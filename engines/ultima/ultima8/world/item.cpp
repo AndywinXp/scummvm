@@ -36,6 +36,7 @@
 #include "ultima/ultima8/gumps/game_map_gump.h"
 #include "ultima/ultima8/graphics/main_shape_archive.h"
 #include "ultima/ultima8/graphics/gump_shape_archive.h"
+#include "ultima/ultima8/graphics/anim_dat.h"
 #include "ultima/ultima8/graphics/shape.h"
 #include "ultima/ultima8/graphics/shape_info.h"
 #include "ultima/ultima8/world/item_factory.h"
@@ -67,6 +68,7 @@
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/world/missile_tracker.h"
 #include "ultima/ultima8/world/crosshair_process.h"
+#include "ultima/ultima8/world/actors/anim_action.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -1153,7 +1155,7 @@ int32 Item::collideMove(int32 dx, int32 dy, int32 dz, bool teleport, bool force,
 	return 0;
 }
 
-uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, char someflag) {
+uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, char findtarget) {
 	int32 ix, iy, iz;
 	getLocation(ix, iy, iz);
 
@@ -1176,7 +1178,9 @@ uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, 
 	int damage = firetypedat->getRandomDamage();
 
 	const Item *blocker = nullptr;
-	bool isvalid = currentmap->isValidPosition(ix, iy, iz, BULLET_SPLASH_SHAPE, 0, nullptr, nullptr, &blocker);
+	// CHECKME: the original doesn't exclude the source like this,
+	// but it seems obvious we have to or NPCs shoot themselves?
+	bool isvalid = currentmap->isValidPosition(ix, iy, iz, BULLET_SPLASH_SHAPE, _objId, nullptr, nullptr, &blocker);
 	if (!isvalid && blocker) {
 		Item *block = getItem(blocker->getObjId());
 		Point3 blockpt;
@@ -1212,18 +1216,19 @@ uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, 
 
 		// HACK: this should be fixed to use inheritence so the behavior
 		// is clean for both Item and Actor.
+		DirectionMode dirmode = dirmode_8dirs;
 		const Actor *thisactor = dynamic_cast<Actor *>(this);
 		if (thisactor) {
-			// TODO: Get damage for active inventory item, and do something with
-			// animation here (lines 185~208 of disasm)
+			// TODO: Get damage for active inventory item
+			dirmode = thisactor->animDirMode(thisactor->getLastAnim());
 		}
 
 		Item *target = nullptr;
-		if (someflag) {
+		if (findtarget) {
 			if (this != getControlledActor()) {
 				target = getControlledActor();
 			} else {
-				target = currentmap->findBestTargetItem(ix, iy, dir, dirmode_8dirs);
+				target = currentmap->findBestTargetItem(ix, iy, dir, dirmode);
 			}
 		}
 
@@ -1231,29 +1236,8 @@ uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, 
 		int32 ty = 0;
 		int32 tz = 0;
 		if (target) {
-			int32 tsx, tsy, tsz;
 			target->getCentre(tx, ty, tz);
-			target->getFootpadData(tsx, tsy, tsz);
-
-			tz = target->getZ() + tsz * 8;
-
-			if (tsz < 3) {
-				if (tsz)
-					tz -= 8;
-			} else {
-				int32 targetz = tz;
-				int32 thisz = getZ();
-				tz -= 16;
-				if (thisz - targetz < -0x2f) {
-					tz += 8;
-				} else if (thisz - targetz > 0x2f) {
-					if (tsz == 6) {
-						tz -= 16;
-					} else if (tsz >= 7) {
-						tz -= 24;
-					}
-				}
-			}
+			tz = target->getTargetZRelativeToAttackerZ(getZ());
 		}
 
 		// TODO: check if we need the equivalent of FUN_1130_0299 here..
@@ -1261,6 +1245,7 @@ uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, 
 		// handle differently.
 
 		int numshots = firetypedat->getNumShots();
+		uint16 spriteprocpid = 0;
 		for (int i = 0; i < numshots; i++) {
 			SuperSpriteProcess *ssp;
 			CrosshairProcess *chp = CrosshairProcess::get_instance();
@@ -1288,18 +1273,32 @@ uint16 Item::fireWeapon(int32 x, int32 y, int32 z, Direction dir, int firetype, 
 			uint16 targetid = (target ? target->getObjId() : 0);
 			ssp = new SuperSpriteProcess(BULLET_SPLASH_SHAPE, spriteframe,
 										 ix, iy, iz, ssx, ssy, ssz, firetype,
-										 damage, _objId, targetid, someflag);
+										 damage, _objId, targetid, findtarget);
 			Kernel::get_instance()->addProcess(ssp);
+			spriteprocpid = ssp->getPid();
 		}
+		return spriteprocpid;
 	}
-
-	return 0;
 }
 
 uint16 Item::fireDistance(Item *other, Direction dir, int16 xoff, int16 yoff, int16 zoff) {
 	if (!other)
 		return 0;
 
+	//
+	// We pick what animation the actor would do to fire, then
+	// pick the frame(s) where they fire in that anim.
+	//
+	// Then, check if the target can be hit using the attackx/attacky/attackz offsets.
+	// The offsets are checked in priority order:
+	// * First fire frame in anim
+	// * Second fire frame
+	// * if there are no fire frames, use the parameter offsets
+	//
+	int16 xoff2 = 0;
+	int16 yoff2 = 0;
+	int16 zoff2 = 0;
+	bool other_offsets = false;
 	Actor *a = dynamic_cast<Actor *>(this);
 	if (a) {
 		Animation::Sequence anim;
@@ -1323,11 +1322,29 @@ uint16 Item::fireDistance(Item *other, Direction dir, int16 xoff, int16 yoff, in
 				anim = Animation::fire2;
 		}
 
-		// TODO: Get midpoint of frames in anim.  For now we ignore it and get the centre below.
+		bool first_offsets = false;
+		const AnimAction *action = GameData::get_instance()->getMainShapes()->getAnim(_shape, static_cast<int32>(anim));
+		for (unsigned int i = 0; i < action->getSize(); i++) {
+			const AnimFrame &frame = action->getFrame(dir, i);
+			if (frame.is_cruattack()) {
+				if (!first_offsets) {
+					xoff = frame.cru_attackx();
+					yoff = frame.cru_attacky();
+					zoff = frame.cru_attackz();
+					first_offsets = true;
+				} else {
+					xoff2 = frame.cru_attackx();
+					yoff2 = frame.cru_attacky();
+					zoff2 = frame.cru_attackz();
+					other_offsets = true;
+					break;
+				}
+			}
+		}
 	}
 
-	int32 cx, cy, cz;
-	getCentre(cx, cy, cz);
+	int32 x, y, z;
+	getLocation(x, y, z);
 
 	int32 ox, oy, oz;
 	other->getLocation(ox, oy, oz);
@@ -1337,36 +1354,69 @@ uint16 Item::fireDistance(Item *other, Direction dir, int16 xoff, int16 yoff, in
 	CurrentMap *cm = World::get_instance()->getCurrentMap();
 	if (!cm)
 		return 0;
-	const Item *blocker = nullptr;
-	bool valid = cm->isValidPosition(cx, cy, cz, BULLET_SPLASH_SHAPE,
-									 getObjId(), nullptr, nullptr, &blocker);
-	if (!valid) {
-		if (blocker->getObjId() == other->getObjId())
-			dist = MAX(abs(_x - ox), abs(_y - oy));
-	} else {
-		int32 ocx, ocy, ocz;
-		other->getCentre(ocx, ocy, ocz);
-		const int32 start[3] = {cx, cy, cz};
-		const int32 end[3] = {ocx, ocy, cz};
-		const int32 dims[3] = { 2, 2, 2 };
 
-		Std::list<CurrentMap::SweepItem> collisions;
-		Std::list<CurrentMap::SweepItem>::iterator it;
-		cm->sweepTest(start, end, dims, ShapeInfo::SI_SOLID,
-					   _objId, false, &collisions);
-		for (it = collisions.begin(); it != collisions.end(); it++) {
-			if (it->_item == getObjId())
-				continue;
-			if (it->_item != other->getObjId())
+	for (int i = 0; i < (other_offsets ? 2 : 1) && dist == 0; i++) {
+		int32 cx = x + (i == 0 ? xoff : xoff2);
+		int32 cy = y + (i == 0 ? yoff : yoff2);
+		int32 cz = z + (i == 0 ? zoff : zoff2);
+		const Item *blocker = nullptr;
+		bool valid = cm->isValidPosition(cx, cy, cz, BULLET_SPLASH_SHAPE,
+										 getObjId(), nullptr, nullptr, &blocker);
+		if (!valid) {
+			if (blocker->getObjId() == other->getObjId())
+				dist = MAX(abs(_x - ox), abs(_y - oy));
+		} else {
+			int32 ocx, ocy, ocz;
+			other->getCentre(ocx, ocy, ocz);
+			ocz = other->getTargetZRelativeToAttackerZ(getZ());
+			const int32 start[3] = {cx, cy, cz};
+			const int32 end[3] = {ocx, ocy, ocz};
+			const int32 dims[3] = {2, 2, 2};
+
+			Std::list<CurrentMap::SweepItem> collisions;
+			Std::list<CurrentMap::SweepItem>::iterator it;
+			cm->sweepTest(start, end, dims, ShapeInfo::SI_SOLID,
+						   _objId, false, &collisions);
+			for (it = collisions.begin(); it != collisions.end(); it++) {
+				if (it->_item == getObjId())
+					continue;
+				if (it->_item != other->getObjId())
+					break;
+				int32 out[3];
+				it->GetInterpolatedCoords(out, start, end);
+				dist = MAX(abs(_x - out[0]), abs(_y - out[1]));
 				break;
-			int32 out[3];
-			it->GetInterpolatedCoords(out, start, end);
-			dist = MAX(abs(_x - out[0]), abs(_y - out[1]));
-			break;
+			}
 		}
 	}
 	return dist / 32;
 }
+
+int32 Item::getTargetZRelativeToAttackerZ(int32 otherz) {
+	int32 tsx, tsy, tsz;
+	getFootpadData(tsx, tsy, tsz);
+
+	int32 tz = getZ() + tsz * 8;
+
+	if (tsz < 3) {
+		if (tsz)
+			tz -= 8;
+	} else {
+		int32 targetz = tz;
+		tz -= 16;
+		if (otherz - targetz < -0x2f) {
+			tz += 8;
+		} else if (otherz - targetz > 0x2f) {
+			if (tsz == 6) {
+				tz -= 16;
+			} else if (tsz >= 7) {
+				tz -= 24;
+			}
+		}
+	}
+	return tz;
+}
+
 
 unsigned int Item::countNearby(uint32 shape, uint16 range) {
 	CurrentMap *currentmap = World::get_instance()->getCurrentMap();
@@ -1583,7 +1633,7 @@ void Item::destroy(bool delnow) {
 //
 // Item::setupLerp()
 //
-// Desc: Setup the lerped info for this _frame
+// Desc: Setup the lerped info for this frame
 //
 void Item::setupLerp(int32 gametick) {
 	// Don't need to set us up
@@ -1607,7 +1657,10 @@ void Item::setupLerp(int32 gametick) {
 	_extendedFlags &= ~EXT_LERP_NOPREV;
 
 	// Animate it, if needed
-	if ((gametick % 3) == (_objId % 3)) animateItem();
+	const ShapeInfo *info = getShapeInfo();
+	if (info->_animType &&
+			((gametick % info->_animSpeed) == (_objId % info->_animSpeed)))
+		animateItem();
 
 	// Setup the prev values for lerping
 	if (!no_lerp) _lPrev = _lNext;
@@ -1632,15 +1685,17 @@ void Item::setupLerp(int32 gametick) {
 // Animate the item
 void Item::animateItem() {
 	const ShapeInfo *info = getShapeInfo();
-	const Shape *shp = getShapeObject();
 
-	if (!info->_animType) return;
+	if (!info->_animType)
+		return;
 
 	int anim_data = info->_animData;
-	//bool dirty = false;
+	int speed = info->_animSpeed;
 
-	if ((static_cast<int>(_lastSetup) % 6) != (_objId % 6) && info->_animType != 1)
+	if ((static_cast<int>(_lastSetup) % speed * 2) != (_objId % speed * 2) && info->_animType != 1)
 		return;
+
+	const Shape *shp = getShapeObject();
 
 	switch (info->_animType) {
 	case 2:
@@ -1656,23 +1711,21 @@ void Item::animateItem() {
 		if (anim_data < 2) {
 			if (shp && _frame == shp->frameCount()) _frame = 0;
 		} else {
+			// Data represents frame count for the loop
 			unsigned int num = (_frame - 1) / anim_data;
 			if (_frame == ((num + 1)*anim_data)) _frame = num * anim_data;
 		}
-		//dirty = true;
 		break;
 
 	case 4:
 		if (!(getRandom() % anim_data)) break;
 		_frame ++;
 		if (shp && _frame == shp->frameCount()) _frame = 0;
-		//dirty = true;
 		break;
 
 
 	case 5:
 		callUsecodeEvent_anim();
-		//dirty = true;
 		break;
 
 	case 6:
@@ -1686,14 +1739,12 @@ void Item::animateItem() {
 			unsigned int num = (_frame - 1) / anim_data;
 			if (_frame == ((num + 1)*anim_data)) _frame = num * anim_data + 1;
 		}
-		//dirty = true;
 		break;
 
 	default:
 		pout << "type " << info->_animType << " data " << anim_data << Std::endl;
 		break;
 	}
-	//return dirty;
 }
 
 
@@ -1722,7 +1773,7 @@ void Item::enterFastArea() {
 
 	if (!hasFlags(FLG_BROKEN) && GAME_IS_CRUSADER) {
 		const ShapeInfo *si = getShapeInfo();
-		if ((si->_flags & ShapeInfo::SI_TARGETABLE) || (si->_flags & ShapeInfo::SI_OCCL)) {
+		if ((si->_flags & ShapeInfo::SI_CRU_TARGETABLE) || (si->_flags & ShapeInfo::SI_OCCL)) {
 			World::get_instance()->getCurrentMap()->addTargetItem(this);
 		}
 		if (_shape == SNAP_EGG_SHAPE) {
@@ -2042,7 +2093,7 @@ void Item::receiveHitU8(uint16 other, Direction dir, int damage, uint16 type) {
 		return;
 
 	// explosive?
-	if (getShapeInfo()->is_explode()) {
+	if (getShapeInfo()->is_u8_explode()) {
 		explode(0, true); // warning: deletes this
 		return;
 	}
@@ -3570,8 +3621,9 @@ uint32 Item::I_getSurfaceWeight(const uint8 *args, unsigned int /*argsize*/) {
 
 uint32 Item::I_isExplosive(const uint8 *args, unsigned int /*argsize*/) {
 	ARG_ITEM_FROM_PTR(item);
+	assert(GAME_IS_U8); // explode bit has different meaning in Cru.
 	if (!item) return 0;
-	return item->getShapeInfo()->is_explode() ? 1 : 0;
+	return item->getShapeInfo()->is_u8_explode() ? 1 : 0;
 }
 
 uint32 Item::I_receiveHit(const uint8 *args, unsigned int /*argsize*/) {
@@ -3678,7 +3730,7 @@ uint32 Item::I_isCrusTypeNPC(const uint8 *args, unsigned int /*argsize*/) {
 	info = GameData::get_instance()->getMainShapes()->getShapeInfo(sh);
 	if (!info) return 0;
 
-	if (info->_flags & ShapeInfo::SI_CRUS_NPC)
+	if (info->_flags & ShapeInfo::SI_CRU_NPC)
 		return 1;
 	else
 		return 0;

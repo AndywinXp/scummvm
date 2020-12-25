@@ -593,6 +593,8 @@ int StarTrekEngine::leftClickEvent() {
 			return MENUEVENT_LCLICK_OFFBUTTON;
 		}
 	}
+
+	return MENUEVENT_LCLICK_OFFBUTTON;
 }
 
 int StarTrekEngine::rightClickEvent() {
@@ -1057,7 +1059,7 @@ void StarTrekEngine::showRepublicMap(int16 arg0, int16 turbolift) {
 	bool spriteLoaded = false;
 	int16 clickedArea = 0;
 
-	actorFunc1();
+	removeDrawnActorsFromScreen();
 	_gfx->pushSprites();
 
 	if (!_awayMission.veng.showedRepublicMapFirstTime) {

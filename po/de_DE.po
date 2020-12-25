@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.10.0git\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2020-12-07 22:01+0000\n"
+"POT-Creation-Date: 2020-12-23 11:08+0000\n"
 "PO-Revision-Date: 2020-12-07 20:32+0000\n"
 "Last-Translator: Lothar Serra Mari <serra@scummvm.org>\n"
 "Language-Team: German <https://translations.scummvm.org/projects/scummvm/"
@@ -66,8 +66,8 @@ msgstr "Pfad hoch"
 #: gui/saveload-dialog.cpp:1165 gui/themebrowser.cpp:55
 #: gui/unknown-game-dialog.cpp:54 engines/engine.cpp:652
 #: backends/dialogs/gtk/gtk-dialogs.cpp:46
-#: backends/events/default/default-events.cpp:183
-#: backends/events/default/default-events.cpp:207
+#: backends/events/default/default-events.cpp:185
+#: backends/events/default/default-events.cpp:209
 #: backends/platform/wii/options.cpp:48 engines/cine/saveload.cpp:864
 #: engines/drascula/saveload.cpp:49 engines/mohawk/myst_stacks/menu.cpp:284
 #: engines/mohawk/myst_stacks/menu.cpp:301
@@ -131,7 +131,7 @@ msgstr ""
 #: gui/filebrowser-dialog.cpp:133 gui/fluidsynth-dialog.cpp:218
 #: gui/launcher.cpp:398 gui/launcher.cpp:419 gui/launcher.cpp:462
 #: gui/options.cpp:2708 gui/options.cpp:2746
-#: backends/events/default/default-events.cpp:183
+#: backends/events/default/default-events.cpp:185
 #: backends/events/symbiansdl/symbiansdl-events.cpp:191
 #: engines/grim/grim.cpp:353 engines/kyra/gui/saveload_eob.cpp:596
 #: engines/kyra/gui/saveload_eob.cpp:629
@@ -603,7 +603,7 @@ msgstr "Schließen"
 #: engines/dragons/metaengine.cpp:163 engines/glk/scott/scott.cpp:412
 #: engines/griffon/metaengine.cpp:96 engines/grim/grim.cpp:451
 #: engines/grim/grim.cpp:528 engines/twine/metaengine.cpp:373
-#: engines/wintermute/keymapper_tables.h:1011
+#: engines/twine/metaengine.cpp:433 engines/wintermute/keymapper_tables.h:1011
 #: engines/wintermute/keymapper_tables.h:1100
 #: engines/wintermute/keymapper_tables.h:1474
 #: engines/wintermute/keymapper_tables.h:1704
@@ -615,7 +615,7 @@ msgstr "Hoch"
 #: engines/dragons/metaengine.cpp:169 engines/glk/scott/scott.cpp:412
 #: engines/griffon/metaengine.cpp:102 engines/grim/grim.cpp:456
 #: engines/grim/grim.cpp:533 engines/twine/metaengine.cpp:379
-#: engines/wintermute/keymapper_tables.h:1017
+#: engines/twine/metaengine.cpp:440 engines/wintermute/keymapper_tables.h:1017
 #: engines/wintermute/keymapper_tables.h:1107
 #: engines/wintermute/keymapper_tables.h:1480
 #: engines/wintermute/keymapper_tables.h:1710
@@ -626,7 +626,8 @@ msgstr "Runter"
 #: backends/platform/symbian/src/SymbianActions.cpp:42
 #: engines/dragons/metaengine.cpp:175 engines/griffon/metaengine.cpp:108
 #: engines/grim/grim.cpp:461 engines/grim/grim.cpp:538
-#: engines/twine/metaengine.cpp:392 engines/wintermute/keymapper_tables.h:1023
+#: engines/twine/metaengine.cpp:392 engines/twine/metaengine.cpp:453
+#: engines/wintermute/keymapper_tables.h:1023
 #: engines/wintermute/keymapper_tables.h:1462
 #: engines/wintermute/keymapper_tables.h:1570
 #: engines/wintermute/keymapper_tables.h:1692
@@ -637,7 +638,8 @@ msgstr "Links"
 #: backends/platform/symbian/src/SymbianActions.cpp:43
 #: engines/dragons/metaengine.cpp:181 engines/griffon/metaengine.cpp:114
 #: engines/grim/grim.cpp:466 engines/grim/grim.cpp:543
-#: engines/twine/metaengine.cpp:385 engines/wintermute/keymapper_tables.h:1029
+#: engines/twine/metaengine.cpp:385 engines/twine/metaengine.cpp:447
+#: engines/wintermute/keymapper_tables.h:1029
 #: engines/wintermute/keymapper_tables.h:1468
 #: engines/wintermute/keymapper_tables.h:1578
 #: engines/wintermute/keymapper_tables.h:1698
@@ -1969,7 +1971,7 @@ msgstr "Wert löschen"
 msgid "Error running game:"
 msgstr "Fehler beim Ausführen des Spiels:"
 
-#: base/main.cpp:667
+#: base/main.cpp:666
 msgid "Could not find any engine capable of running the selected game"
 msgstr "Konnte keine Spiel-Engine finden, die dieses Spiel starten kann"
 
@@ -2572,7 +2574,7 @@ msgstr "Download abgeschlossen."
 msgid "Download failed."
 msgstr "Download fehlgeschlagen."
 
-#: backends/events/default/default-events.cpp:183
+#: backends/events/default/default-events.cpp:185
 msgid ""
 "Do you really want to return to the Launcher?\n"
 "Any unsaved progress will be lost."
@@ -2580,7 +2582,7 @@ msgstr ""
 "Möchtest Du wirklich zum Launcher zurückkehren?\n"
 "Jeder nicht gespeicherte Fortschritt geht dabei verloren."
 
-#: backends/events/default/default-events.cpp:207
+#: backends/events/default/default-events.cpp:209
 msgid ""
 "Do you really want to quit?\n"
 "Any unsaved progress will be lost."
@@ -2588,8 +2590,8 @@ msgstr ""
 "Möchtest Du ScummVM wirklich beenden?\n"
 "Jeder nicht gespeicherte Fortschritt geht dabei verloren."
 
-#: backends/events/default/default-events.cpp:207
-#: backends/events/default/default-events.cpp:324
+#: backends/events/default/default-events.cpp:209
+#: backends/events/default/default-events.cpp:326
 #: backends/platform/symbian/src/SymbianActions.cpp:54
 #: engines/hdb/metaengine.cpp:255 engines/mohawk/myst_stacks/menu.cpp:318
 #: engines/mohawk/riven_stacks/aspit.cpp:455 engines/scumm/dialogs.cpp:185
@@ -2598,23 +2600,23 @@ msgstr ""
 msgid "Quit"
 msgstr "Beenden"
 
-#: backends/events/default/default-events.cpp:301
+#: backends/events/default/default-events.cpp:303
 msgid "Global"
 msgstr "Allgemein"
 
-#: backends/events/default/default-events.cpp:304
+#: backends/events/default/default-events.cpp:306
 msgid "Global Main Menu"
 msgstr "Hauptmenü"
 
-#: backends/events/default/default-events.cpp:311
+#: backends/events/default/default-events.cpp:313
 msgid "Display keyboard"
 msgstr "Tastatur anzeigen"
 
-#: backends/events/default/default-events.cpp:318
+#: backends/events/default/default-events.cpp:320
 msgid "Toggle mute"
 msgstr "Stummschaltung umschalten"
 
-#: backends/events/default/default-events.cpp:346
+#: backends/events/default/default-events.cpp:348
 msgid "Open Debugger"
 msgstr "Debugger öffnen"
 
@@ -4185,7 +4187,7 @@ msgstr ""
 
 #: engines/cge/detection.cpp:48 engines/cge/detection.cpp:54
 #: engines/kyra/detection_tables.h:224 engines/kyra/detection_tables.h:237
-#: engines/kyra/detection_tables.h:579 engines/kyra/detection_tables.h:1763
+#: engines/kyra/detection_tables.h:593 engines/kyra/detection_tables.h:1777
 #: engines/saga/detection_tables.h:187 engines/saga/detection_tables.h:608
 #: engines/saga/detection_tables.h:936 engines/sci/detection_tables.h:4824
 #: engines/sci/detection_tables.h:4832
@@ -4393,11 +4395,11 @@ msgstr "Das ist zu kurz, um eine gültige Alan2-Datei zu sein."
 msgid "This is not a valid Alan2 file."
 msgstr "Dies ist keine gültige Alan2-Datei."
 
-#: engines/glk/comprehend/game.cpp:319
+#: engines/glk/comprehend/game.cpp:322
 msgid "Savegame"
 msgstr "Spielstand"
 
-#: engines/glk/comprehend/game.cpp:838
+#: engines/glk/comprehend/game.cpp:862
 msgid "Picture window toggled\n"
 msgstr "Bild-Fenster umgeschaltet\n"
 
@@ -4999,13 +5001,13 @@ msgstr "Unterstützung für Eye of the Beholder ist nicht eingebaut"
 
 #: engines/kyra/engine/eobcommon.cpp:367 engines/kyra/engine/lol.cpp:469
 #: engines/ultima/ultima4/meta_engine.cpp:233
-#: engines/ultima/ultima8/meta_engine.cpp:131
+#: engines/ultima/ultima8/meta_engine.cpp:136
 msgid "Interact via Left Click"
 msgstr "Interaktion via Linksklick"
 
 #: engines/kyra/engine/eobcommon.cpp:368 engines/kyra/engine/lol.cpp:470
 #: engines/ultima/ultima4/meta_engine.cpp:239
-#: engines/ultima/ultima8/meta_engine.cpp:137
+#: engines/ultima/ultima8/meta_engine.cpp:142
 msgid "Interact via Right Click"
 msgstr "Interaktion via Rechtsklick"
 
@@ -5864,7 +5866,7 @@ msgstr ""
 "Bitte verwenden Sie einen externen Betrachter, um die Hilfedatei des Spiels "
 "zu öffnen: %s"
 
-#: engines/sci/engine/kmisc.cpp:874
+#: engines/sci/engine/kmisc.cpp:865
 msgid ""
 "The Poker logic is hardcoded in an external DLL, and is not implemented yet. "
 "There exists some dummy logic for now, where opponent actions are chosen "
@@ -6821,11 +6823,11 @@ msgstr "Zeigt Fenster mit teilweise transparentem Hintergrund"
 msgid "The \"sky.cpt\" engine data file has an incorrect size."
 msgstr "Die Engine-Datendatei \"sky.cpt\" hat eine falsche Größe."
 
-#: engines/sky/detection.cpp:39
+#: engines/sky/detection.cpp:37
 msgid "Floppy intro"
 msgstr "Vorspann der Diskettenversion"
 
-#: engines/sky/detection.cpp:40
+#: engines/sky/detection.cpp:38
 msgid "Use the floppy version's intro (CD version only)"
 msgstr "Verwendet den Vorspann der Diskettenversion (nur bei CD-Version)"
 
@@ -7294,6 +7296,7 @@ msgid "Accept"
 msgstr "Annehmen"
 
 #: engines/twine/metaengine.cpp:367 engines/twine/metaengine.cpp:411
+#: engines/twine/metaengine.cpp:428
 msgid "Abort"
 msgstr "Abbrechen"
 
@@ -7333,19 +7336,19 @@ msgstr "Originaler Spielstand"
 msgid "Transfer Character"
 msgstr "Charakter übertragen"
 
-#: engines/ultima/ultima8/meta_engine.cpp:124
+#: engines/ultima/ultima8/meta_engine.cpp:129
 msgid "Ultima VIII"
 msgstr "Ultima VIII"
 
-#: engines/ultima/ultima8/meta_engine.cpp:124
+#: engines/ultima/ultima8/meta_engine.cpp:129
 msgid "Crusader"
 msgstr "Kreuzritter"
 
-#: engines/ultima/ultima8/meta_engine.cpp:170
+#: engines/ultima/ultima8/meta_engine.cpp:176
 msgid "Ultima VIII Cheats"
 msgstr "Ultima VIII-Cheats"
 
-#: engines/ultima/ultima8/meta_engine.cpp:185
+#: engines/ultima/ultima8/meta_engine.cpp:193
 msgid "Ultima VIII Debug"
 msgstr "Ultima VIII-Fehlersuche"
 

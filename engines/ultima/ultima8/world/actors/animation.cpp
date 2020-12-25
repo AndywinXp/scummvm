@@ -37,6 +37,7 @@ bool isCombatAnim(const Sequence anim) {
 	case kick:
 	case startBlock:
 	case stopBlock:
+	case fire2:
 		return true;
 	default:
 		return false;

@@ -36,45 +36,45 @@
 #include "engines/util.h"
 #include "graphics/colormasks.h"
 #include "graphics/cursorman.h"
-#include "graphics/fontman.h"
 #include "graphics/font.h"
+#include "graphics/fontman.h"
 #include "graphics/managed_surface.h"
 #include "graphics/palette.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #include "gui/debugger.h"
-#include "twine/actor.h"
-#include "twine/animations.h"
-#include "twine/collision.h"
-#include "twine/console.h"
-#include "twine/debug.h"
-#include "twine/debug_grid.h"
-#include "twine/debug_scene.h"
-#include "twine/extra.h"
+#include "twine/scene/actor.h"
+#include "twine/scene/animations.h"
+#include "twine/audio/music.h"
+#include "twine/audio/sound.h"
+#include "twine/scene/collision.h"
+#include "twine/debugger/console.h"
+#include "twine/debugger/debug.h"
+#include "twine/debugger/debug_grid.h"
+#include "twine/debugger/debug_scene.h"
+#include "twine/scene/extra.h"
 #include "twine/flamovies.h"
-#include "twine/gamestate.h"
-#include "twine/grid.h"
+#include "twine/scene/gamestate.h"
+#include "twine/scene/grid.h"
 #include "twine/holomap.h"
-#include "twine/hqr.h"
+#include "twine/resources/hqr.h"
 #include "twine/input.h"
-#include "twine/interface.h"
-#include "twine/menu.h"
-#include "twine/menuoptions.h"
-#include "twine/movements.h"
-#include "twine/music.h"
-#include "twine/redraw.h"
-#include "twine/renderer.h"
-#include "twine/resources.h"
-#include "twine/scene.h"
-#include "twine/screens.h"
-#include "twine/script_life_v1.h"
-#include "twine/script_move_v1.h"
-#include "twine/sound.h"
+#include "twine/menu/interface.h"
+#include "twine/menu/menu.h"
+#include "twine/menu/menuoptions.h"
+#include "twine/scene/movements.h"
+#include "twine/renderer/redraw.h"
+#include "twine/renderer/renderer.h"
+#include "twine/renderer/screens.h"
+#include "twine/resources/resources.h"
+#include "twine/scene/scene.h"
+#include "twine/script/script_life_v1.h"
+#include "twine/script/script_move_v1.h"
 #include "twine/text.h"
 
 namespace TwinE {
 
-ScopedEngineFreeze::ScopedEngineFreeze(TwinEEngine* engine) : _engine(engine) {
+ScopedEngineFreeze::ScopedEngineFreeze(TwinEEngine *engine) : _engine(engine) {
 	_engine->freezeTime();
 }
 
@@ -82,12 +82,27 @@ ScopedEngineFreeze::~ScopedEngineFreeze() {
 	_engine->unfreezeTime();
 }
 
-ScopedCursor::ScopedCursor(TwinEEngine* engine) : _engine(engine) {
+ScopedCursor::ScopedCursor(TwinEEngine *engine) : _engine(engine) {
 	_engine->pushMouseCursorVisible();
 }
 
 ScopedCursor::~ScopedCursor() {
 	_engine->popMouseCursorVisible();
+}
+
+ScopedFPS::ScopedFPS(uint32 fps) : _fps(fps) {
+	_start = g_system->getMillis();
+}
+
+ScopedFPS::~ScopedFPS() {
+	const uint32 end = g_system->getMillis();
+	const uint32 frameTime = end - _start;
+	const uint32 maxDelay = 1000 / _fps;
+	if (frameTime > maxDelay) {
+		return;
+	}
+	const uint32 waitMillis = maxDelay - frameTime;
+	g_system->delayMillis(waitMillis);
 }
 
 TwinEEngine::TwinEEngine(OSystem *system, Common::Language language, uint32 flags, TwineGameType gameType)
@@ -221,6 +236,7 @@ Common::Error TwinEEngine::run() {
 		case EngineState::GameLoop:
 			if (gameEngineLoop()) {
 				_menuOptions->showCredits();
+				_menuOptions->showEndSequence();
 			}
 			_state = EngineState::Menu;
 			break;
@@ -289,10 +305,11 @@ void TwinEEngine::autoSave() {
 
 void TwinEEngine::allocVideoMemory() {
 	const Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
+
+	imageBuffer.create(640, 480, format); // original lba1 resolution for a lot of images.
+
 	workVideoBuffer.create(SCREEN_WIDTH, SCREEN_HEIGHT, format);
 	frontVideoBuffer.create(SCREEN_WIDTH, SCREEN_HEIGHT, format);
-
-	// initVideoVar1 = -1;
 }
 
 static int getLanguageTypeIndex(const char *languageName) {
@@ -391,21 +408,21 @@ void TwinEEngine::initEngine() {
 	// verify game version screens
 	if (!abort && cfgfile.Version == EUROPE_VERSION) {
 		// Little Big Adventure screen
-		abort |= _screens->loadImageDelay(RESSHQR_LBAIMG, 3);
+		abort |= _screens->loadImageDelay(RESSHQR_LBAIMG, RESSHQR_LBAPAL, 3);
 		if (!abort) {
 			// Electronic Arts Logo
-			abort |= _screens->loadImageDelay(RESSHQR_EAIMG, 2);
+			abort |= _screens->loadImageDelay(RESSHQR_EAIMG, RESSHQR_EAPAL, 2);
 		}
 	} else if (!abort && cfgfile.Version == USA_VERSION) {
 		// Relentless screen
-		abort |= _screens->loadImageDelay(RESSHQR_RELLENTIMG, 3);
+		abort |= _screens->loadImageDelay(RESSHQR_RELLENTIMG, RESSHQR_RELLENTPAL, 3);
 		if (!abort) {
 			// Electronic Arts Logo
-			abort |= _screens->loadImageDelay(RESSHQR_EAIMG, 2);
+			abort |= _screens->loadImageDelay(RESSHQR_EAIMG, RESSHQR_EAPAL, 2);
 		}
 	} else if (!abort && cfgfile.Version == MODIFICATION_VERSION) {
 		// Modification screen
-		abort |= _screens->loadImageDelay(RESSHQR_RELLENTIMG, 2);
+		abort |= _screens->loadImageDelay(RESSHQR_RELLENTIMG, RESSHQR_RELLENTPAL, 2);
 	}
 
 	if (!abort) {
@@ -498,7 +515,7 @@ void TwinEEngine::processInventoryAction() {
 		break;
 	case kiBookOfBu: {
 		_screens->fadeToBlack(_screens->paletteRGBA);
-		_screens->loadImage(RESSHQR_INTROSCREEN1IMG);
+		_screens->loadImage(RESSHQR_INTROSCREEN1IMG, RESSHQR_INTROSCREEN1PAL);
 		_text->initTextBank(TextBankId::Inventory_Intro_and_Holomap);
 		_text->drawTextBoxBackground = false;
 		_text->textClipFull();
@@ -509,7 +526,7 @@ void TwinEEngine::processInventoryAction() {
 		cfgfile.FlagDisplayText = tmpFlagDisplayText;
 		_text->textClipSmall();
 		_text->drawTextBoxBackground = true;
-		_text->initTextBank(_scene->sceneTextBank + 3);
+		_text->initSceneTextBank();
 		_screens->fadeToBlack(_screens->paletteRGBACustom);
 		_screens->clearScreen();
 		flip();
@@ -561,7 +578,7 @@ void TwinEEngine::processInventoryAction() {
 		_text->setFontCrossColor(15);
 		_text->drawTextFullscreen(162);
 		_text->textClipSmall();
-		_text->initTextBank(_scene->sceneTextBank + 3);
+		_text->initSceneTextBank();
 		break;
 	}
 	case kiCloverLeaf:
@@ -589,26 +606,31 @@ void TwinEEngine::processOptionsMenu() {
 }
 
 void TwinEEngine::centerScreenOnActor() {
-	if (!disableScreenRecenter && !_debugGrid->useFreeCamera) {
-		ActorStruct *actor = _scene->getActor(_scene->currentlyFollowedActor);
-		_renderer->projectPositionOnScreen(actor->x - (_grid->newCameraX << 9),
-		                                   actor->y - (_grid->newCameraY << 8),
-		                                   actor->z - (_grid->newCameraZ << 9));
-		if (_renderer->projPosX < 80 || _renderer->projPosX >= SCREEN_WIDTH - 60 || _renderer->projPosY < 80 || _renderer->projPosY >= SCREEN_HEIGHT - 50) {
-			_grid->newCameraX = ((actor->x + 0x100) >> 9) + (((actor->x + 0x100) >> 9) - _grid->newCameraX) / 2;
-			_grid->newCameraY = actor->y >> 8;
-			_grid->newCameraZ = ((actor->z + 0x100) >> 9) + (((actor->z + 0x100) >> 9) - _grid->newCameraZ) / 2;
+	if (disableScreenRecenter) {
+		return;
+	}
+	if (_debugGrid->useFreeCamera) {
+		return;
+	}
 
-			if (_grid->newCameraX >= GRID_SIZE_X) {
-				_grid->newCameraX = GRID_SIZE_X - 1;
-			}
+	ActorStruct *actor = _scene->getActor(_scene->currentlyFollowedActor);
+	_renderer->projectPositionOnScreen(actor->x - (_grid->newCameraX << 9),
+	                                   actor->y - (_grid->newCameraY << 8),
+	                                   actor->z - (_grid->newCameraZ << 9));
+	if (_renderer->projPosX < 80 || _renderer->projPosX >= SCREEN_WIDTH - 60 || _renderer->projPosY < 80 || _renderer->projPosY >= SCREEN_HEIGHT - 50) {
+		_grid->newCameraX = ((actor->x + 0x100) >> 9) + (((actor->x + 0x100) >> 9) - _grid->newCameraX) / 2;
+		_grid->newCameraY = actor->y >> 8;
+		_grid->newCameraZ = ((actor->z + 0x100) >> 9) + (((actor->z + 0x100) >> 9) - _grid->newCameraZ) / 2;
 
-			if (_grid->newCameraZ >= GRID_SIZE_Z) {
-				_grid->newCameraZ = GRID_SIZE_Z - 1;
-			}
-
-			_redraw->reqBgRedraw = true;
+		if (_grid->newCameraX >= GRID_SIZE_X) {
+			_grid->newCameraX = GRID_SIZE_X - 1;
 		}
+
+		if (_grid->newCameraZ >= GRID_SIZE_Z) {
+			_grid->newCameraZ = GRID_SIZE_Z - 1;
+		}
+
+		_redraw->reqBgRedraw = true;
 	}
 }
 
@@ -628,7 +650,7 @@ int32 TwinEEngine::runGameEngine() { // mainLoopInteration
 	if (_menuOptions->canShowCredits) {
 		// TODO: if current music playing != 8, than play_track(8);
 		if (_input->toggleAbortAction()) {
-			return 0;
+			return 1;
 		}
 	} else {
 		// Process give up menu - Press ESC
@@ -733,11 +755,11 @@ int32 TwinEEngine::runGameEngine() { // mainLoopInteration
 			_text->drawText(5, 446, "Pause"); // no key for pause in Text Bank
 			copyBlockPhys(5, 446, 100, 479);
 			do {
+				ScopedFPS scopedFps;
 				readKeys();
 				if (shouldQuit()) {
 					break;
 				}
-				g_system->delayMillis(10);
 			} while (!_input->toggleActionIfActive(TwinEActionType::Pause));
 			unfreezeTime();
 			_redraw->redrawEngineActions(true);
@@ -943,6 +965,7 @@ bool TwinEEngine::delaySkip(uint32 time) {
 	uint32 startTicks = _system->getMillis();
 	uint32 stopTicks = 0;
 	do {
+		ScopedFPS scopedFps;
 		readKeys();
 		if (_input->toggleAbortAction()) {
 			return true;
@@ -951,7 +974,6 @@ bool TwinEEngine::delaySkip(uint32 time) {
 			return true;
 		}
 		stopTicks = _system->getMillis() - startTicks;
-		_system->delayMillis(1);
 		//lbaTime++;
 	} while (stopTicks <= time);
 	return false;
