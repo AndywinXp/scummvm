@@ -27,9 +27,19 @@
 
 #include "rooms/function_map.h"
 
+// TODO: Delete this macro, replacing it with the next one.
+// New "[roomName]NumActions" variables need to be made before that.
+#define ADD_ROOM_OLD(ROOM) {\
+		if (name.equalsIgnoreCase(#ROOM)) {\
+			_roomActionList = ROOM##ActionList;\
+			_numRoomActions = ARRAYSIZE(ROOM##ActionList);\
+		}\
+	}
+
 #define ADD_ROOM(ROOM) {\
 		if (name.equalsIgnoreCase(#ROOM)) {\
 			_roomActionList = ROOM##ActionList;\
+			_numRoomActions = ROOM##NumActions;\
 		}\
 	}
 
@@ -46,30 +56,30 @@ Room::Room(StarTrekEngine *vm, const Common::String &name) : _vm(vm), _awayMissi
 
 	_roomActionList = nullptr;
 
-	ADD_ROOM(demon0);
-	ADD_ROOM(demon1);
-	ADD_ROOM(demon2);
-	ADD_ROOM(demon3);
-	ADD_ROOM(demon4);
-	ADD_ROOM(demon5);
-	ADD_ROOM(demon6);
-	ADD_ROOM(tug0);
-	ADD_ROOM(tug1);
-	ADD_ROOM(tug2);
-	ADD_ROOM(tug3);
-	ADD_ROOM(love0);
-	ADD_ROOM(love1);
-	ADD_ROOM(love2);
-	ADD_ROOM(love3);
-	ADD_ROOM(love4);
-	ADD_ROOM(love5);
-	ADD_ROOM(mudd0);
-	ADD_ROOM(mudd1);
-	ADD_ROOM(mudd2);
-	ADD_ROOM(mudd3);
-	ADD_ROOM(mudd4);
-	ADD_ROOM(mudd5);
-	ADD_ROOM(feather0);
+	ADD_ROOM_OLD(demon0);
+	ADD_ROOM_OLD(demon1);
+	ADD_ROOM_OLD(demon2);
+	ADD_ROOM_OLD(demon3);
+	ADD_ROOM_OLD(demon4);
+	ADD_ROOM_OLD(demon5);
+	ADD_ROOM_OLD(demon6);
+	ADD_ROOM_OLD(tug0);
+	ADD_ROOM_OLD(tug1);
+	ADD_ROOM_OLD(tug2);
+	ADD_ROOM_OLD(tug3);
+	ADD_ROOM_OLD(love0);
+	ADD_ROOM_OLD(love1);
+	ADD_ROOM_OLD(love2);
+	ADD_ROOM_OLD(love3);
+	ADD_ROOM_OLD(love4);
+	ADD_ROOM_OLD(love5);
+	ADD_ROOM_OLD(mudd0);
+	ADD_ROOM_OLD(mudd1);
+	ADD_ROOM_OLD(mudd2);
+	ADD_ROOM_OLD(mudd3);
+	ADD_ROOM_OLD(mudd4);
+	ADD_ROOM_OLD(mudd5);
+	ADD_ROOM_OLD(feather0);
 	ADD_ROOM(feather1);
 	ADD_ROOM(feather2);
 	ADD_ROOM(feather3);
@@ -101,11 +111,11 @@ Room::Room(StarTrekEngine *vm, const Common::String &name) : _vm(vm), _awayMissi
 
 	if (_roomActionList == nullptr) {
 		warning("Room \"%s\" unimplemented", name.c_str());
+		_numRoomActions = 0;
 	}
 
 	bool isDemo = _vm->getFeatures() & GF_DEMO;
-	bool isFloppy = !(_vm->getFeatures() & GF_CDROM);
-	if (!isDemo && !isFloppy) {
+	if (!isDemo) {
 		loadRoomMessages();
 		loadOtherRoomMessages();
 	}
@@ -310,8 +320,9 @@ uint16 Room::readRdfWord(int offset) {
 
 bool Room::actionHasCode(const Action &action) {
 	const RoomAction *roomActionPtr = _roomActionList;
+	int n = _numRoomActions;
 
-	while (roomActionPtr->action.type != ACTION_LIST_END) {
+	while (n-- > 0) {
 		if (action == roomActionPtr->action)
 			return true;
 		roomActionPtr++;
@@ -319,15 +330,16 @@ bool Room::actionHasCode(const Action &action) {
 	return false;
 }
 
-bool Room::actionHasCode(int8 type, byte b1, byte b2, byte b3) {
+bool Room::actionHasCode(byte type, byte b1, byte b2, byte b3) {
 	const Action a = {type, b1, b2, b3};
 	return actionHasCode(a);
 }
 
 bool Room::handleAction(const Action &action) {
 	const RoomAction *roomActionPtr = _roomActionList;
+	int n = _numRoomActions;
 
-	while (roomActionPtr->action.type != ACTION_LIST_END) {
+	while (n-- > 0) {
 		if (action == roomActionPtr->action) {
 			_vm->_awayMission.rdfStillDoDefaultAction = false;
 			(this->*(roomActionPtr->funcPtr))();
@@ -339,15 +351,16 @@ bool Room::handleAction(const Action &action) {
 	return false;
 }
 
-bool Room::handleAction(int8 type, byte b1, byte b2, byte b3) {
+bool Room::handleAction(byte type, byte b1, byte b2, byte b3) {
 	const Action a = {type, b1, b2, b3};
 	return handleAction(a);
 }
 
 bool Room::handleActionWithBitmask(const Action &action) {
 	const RoomAction *roomActionPtr = _roomActionList;
+	int n = _numRoomActions;
 
-	while (roomActionPtr->action.type != ACTION_LIST_END) {
+	while (n-- > 0) {
 		uint32 bitmask = roomActionPtr->action.getBitmask();
 		if ((action.toUint32() & bitmask) == (roomActionPtr->action.toUint32() & bitmask)) {
 			_vm->_awayMission.rdfStillDoDefaultAction = false;
@@ -360,7 +373,7 @@ bool Room::handleActionWithBitmask(const Action &action) {
 	return false;
 }
 
-bool Room::handleActionWithBitmask(int8 type, byte b1, byte b2, byte b3) {
+bool Room::handleActionWithBitmask(byte type, byte b1, byte b2, byte b3) {
 	Action a = {type, b1, b2, b3};
 	return handleActionWithBitmask(a);
 }
@@ -386,12 +399,10 @@ Common::Point Room::getSpawnPosition(int crewmanIndex) {
 // Creates a fatal error on failure.
 int Room::findFunctionPointer(int action, void (Room::*funcPtr)()) {
 	assert(action == ACTION_FINISHED_ANIMATION || action == ACTION_FINISHED_WALKING);
-	const RoomAction *roomActionPtr = _roomActionList;
 
-	while (roomActionPtr->action.type != ACTION_LIST_END) {
-		if (roomActionPtr->action.type == action && roomActionPtr->funcPtr == funcPtr)
-			return roomActionPtr->action.b1;
-		roomActionPtr++;
+	for (int i = 0; i < _numRoomActions; i++) {
+		if (_roomActionList[i].action.type == action && _roomActionList[i].funcPtr == funcPtr)
+			return _roomActionList[i].action.b1;
 	}
 
 	if (action == ACTION_FINISHED_ANIMATION)
@@ -668,43 +679,25 @@ void Room::endMission(int16 score, int16 arg1, int16 arg2) {
 
 	_vm->_awayMission.disableInput = false;
 
-	if (_vm->_missionName == "DEMON") {
-		_vm->_gameMode = GAMEMODE_BEAMUP;
-		_vm->_roomIndexToLoad = 0;
-		_vm->_bridgeSequenceToLoad = 4; // kSeqEndMissionDemon
-	} else if (_vm->_missionName == "TUG") {
-		_vm->_gameMode = GAMEMODE_BEAMUP;
-		_vm->_roomIndexToLoad = 0;
-		_vm->_bridgeSequenceToLoad = 9; // kSeqEndMissionTug
-	} else if (_vm->_missionName == "LOVE") {
-		_vm->_gameMode = GAMEMODE_BEAMUP;
-		_vm->_roomIndexToLoad = 0;
-		_vm->_bridgeSequenceToLoad = 15; // kSeqEndMissionLove
-	} else if (_vm->_missionName == "MUDD") {
-		_vm->_gameMode = GAMEMODE_BEAMUP;
-		_vm->_roomIndexToLoad = 0;
-		_vm->_bridgeSequenceToLoad = 18; // kSeqEndMissionMudd
-	} else {
-		// TODO: This is a stopgap measure (loading the next away mission immediately).
-		// Replace this with the proper code later.
-		_vm->_gameMode = GAMEMODE_BEAMDOWN;
-		_vm->_roomIndexToLoad = 0;
+	// TODO: This is a stopgap measure (loading the next away mission immediately).
+	// Replace this with the proper code later.
+	_vm->_gameMode = GAMEMODE_BEAMDOWN;
 
-		const char *missionNames[] = {
-		    //"DEMON",
-		    //"TUG",
-		    //"LOVE",
-		    //"MUDD",
-		    "FEATHER",
-		    "TRIAL",
-		    "SINS",
-		    "VENG"};
+	const char *missionNames[] = {
+		"DEMON",
+		"TUG",
+		"LOVE",
+		"MUDD",
+		"FEATHER",
+		"TRIAL",
+		"SINS",
+		"VENG"
+	};
 
-		for (int i = 0; i < ARRAYSIZE(missionNames) - 1; i++) {
-			if (_vm->_missionName == missionNames[i]) {
-				_vm->_missionToLoad = missionNames[i + 1];
-				break;
-			}
+	for (int i = 0; i < ARRAYSIZE(missionNames)-1; i++) {
+		if (_vm->_missionName == missionNames[i]) {
+			_vm->_missionToLoad = missionNames[i + 1];
+			break;
 		}
 	}
 }

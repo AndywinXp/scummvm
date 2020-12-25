@@ -25,7 +25,7 @@
 namespace BladeRunner {
 
 AIScriptGeneralDoll::AIScriptGeneralDoll(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 }
 
 void AIScriptGeneralDoll::Initialize() {
@@ -34,7 +34,7 @@ void AIScriptGeneralDoll::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 
 	Actor_Put_In_Set(kActorGeneralDoll, kSetFreeSlotG);
 	Actor_Set_At_Waypoint(kActorGeneralDoll, 39, 0);
@@ -78,23 +78,18 @@ void AIScriptGeneralDoll::CompletedMovementTrack() {
 			case 0:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 0, 80, 0, 0, 0);
 				break;
-
 			case 1:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 10, 80, 0, 0, 0);
 				break;
-
 			case 2:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 20, 80, 0, 0, 0);
 				break;
-
 			case 3:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 30, 80, 0, 0, 0);
 				break;
-
 			case 4:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 40, 80, 0, 0, 0);
 				break;
-
 			case 5:
 				Ambient_Sounds_Play_Speech_Sound(kActorGeneralDoll, 50, 80, 0, 0, 0);
 				break;
@@ -291,48 +286,48 @@ bool AIScriptGeneralDoll::GoalChanged(int currentGoalNumber, int newGoalNumber) 
 bool AIScriptGeneralDoll::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelGeneralDollIdle;
+		*animation = 834;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelGeneralDollIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(834)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = kModelGeneralDollHaltSalute;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelGeneralDollIdle;
+		*animation = 835;
+		if (!_animationFrame && _flag) {
+			*animation = 834;
 			_animationFrame = 0;
 			_animationState = 0;
 		} else {
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelGeneralDollHaltSalute)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(835)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 2:
-		*animation = kModelGeneralDollWalking;
+		*animation = 833;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelGeneralDollWalking)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(833)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 3:
-		*animation = kModelGeneralDollGotHit;
+		*animation = 837;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelGeneralDollGotHit)) {
-			*animation = kModelGeneralDollIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(837)) {
+			*animation = 834;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 4:
-		*animation = kModelGeneralDollShotDead;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelGeneralDollShotDead) - 1) {
+		*animation = 836;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(836) - 1) {
 			++_animationFrame;
 		}
 		break;
@@ -349,13 +344,12 @@ bool AIScriptGeneralDoll::ChangeAnimationMode(int mode) {
 	switch (mode) {
 	case 0:
 		if (_animationState == 1) {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 		} else {
 			_animationState = 0;
 			_animationFrame = 0;
 		}
 		break;
-
 	case 1:
 		_animationState = 2;
 		_animationFrame = 0;
@@ -364,7 +358,7 @@ bool AIScriptGeneralDoll::ChangeAnimationMode(int mode) {
 	case 3:
 		_animationState = 1;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 43:

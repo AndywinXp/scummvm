@@ -24,7 +24,6 @@
 #include "hadesch/hadesch.h"
 #include "hadesch/video.h"
 #include "hadesch/ambient.h"
-#include "common/translation.h"
 
 namespace Hadesch {
 
@@ -58,22 +57,16 @@ static const char *musicNames[] = {
 	"MusicPainPanic"
 };
 
-static const TranscribedSound painSounds[] = {
-	{"SndPainBedtime", _s("It's bed time")},
-	{"SndPanicBoneHead", _s("Hey there, bonehead")},
-	{"SndPainRecognize", _s("Recognize the jewel?")} // Unclear
+static const char *painSounds[] = {
+	"SndPainBedtime",
+	"SndPanicBoneHead",
+	"SndPainRecognize"
 };
 
-static const TranscribedSound painSounds2[] = {
-	{"SndPanicLightsOut", _s("He-he. Lights out") },
-	{"SndPainByeBye", _s("Bye-Bye")},
-	{"SndPanicMaybeHit", _s("Maybe it will hit ya")}
-};
-
-static const TranscribedSound guardSpeeches[] = {
-	{"T3220wA0", _s("Do you think we were going to let you just walk into Troy?")},
-	{"T3220wB0", _s("So sorry, noone is allowed in. So beat it")},
-	{"T3220wC0", _s("Hey, Troy is closed to all visitors. Take a hike")}
+static const char *painSounds2[] = {
+	"SndPanicLightsOut",
+	"SndPainByeBye",
+	"SndPanicMaybeHit"
 };
 
 enum {
@@ -139,7 +132,7 @@ public:
 			renderDecoder();
 			if (!_philBangPlayed) {
 				_philBangPlayed = true;
-				room->playSFX("SndBigBang", 22012);
+				room->playSound("SndBigBang", 22012);
 			}
 			return;
 		}
@@ -209,25 +202,26 @@ public:
 			room->playVideo("PhilWowLowOnTroops", 0);
 			break;
 		case 22016:
-			room->playSFX("SndGuardTrapDoorOpen", 22017);
+			room->playSound("SndGuardTrapDoorOpen", 22017);
 			break;
 		case 22017:
-			room->playSpeech(TranscribedSound::make("SndGuardLaugh", "[laughter]"), 22018);
+			room->playSound("SndGuardLaugh", 22018);
 			break;
 		case 22018:
-			room->playSpeech(
-				guardSpeeches[g_vm->getRnd().getRandomNumberRng(0, ARRAYSIZE(guardSpeeches) - 1)],
+			room->playSound(
+				Common::String::format("T3220w%c0",
+						       g_vm->getRnd().getRandomNumberRng('A', 'C')),
 				22019);
 			break;
 		case 22019:
-			room->playSFX("SndGuardTrapDoorClose", 22020);
+			room->playSound("SndGuardTrapDoorClose", 22020);
 			break;
 		case 22020:
 			persistent->_catacombLevel = kCatacombLevelSign;
 			g_vm->moveToRoom(kTroyRoom);
 			break;
 		case 22022:
-			room->playSpeech(painSounds2[level], 22023);
+			room->playSound(painSounds2[level], 22023);
 			persistent->_catacombLevel = kCatacombLevelSign;
 			break;
 		case 22023:
@@ -274,17 +268,19 @@ public:
 
 		persistent->_catacombLastLevel = level;
 
+		room->playSoundLoop("T3010eA0");
+
 		if (persistent->_catacombPainAndPanic) {
 			persistent->_catacombPainAndPanic = false;
 			room->addStaticLayer("DeadEndBackground", 10001);
-			room->playMusic("SndPainPanicStinger", 22022);
-			room->playSpeech(painSounds[persistent->_catacombLevel]);
+			room->playSound("SndPainPanicStinger", 22022);
+			room->playSound(painSounds[persistent->_catacombLevel]);
 			return;
 		}
 		
 		if (level == 0)
 			room->loadHotZones("CaDecode.HOT", false);
-		room->playMusicLoop("T3010eA0");
+		room->playSoundLoop("T3010eA0");
 		// TODO: tremmors
 		// TODO: handle timer
 		g_vm->addTimer(22007, level == 2 ? 30000 : 40000, -1);
@@ -328,7 +324,7 @@ public:
 
 		switch (level) {
 		case 0:
-			room->playMusic("IntroMusic");
+			room->playSound("IntroMusic");
 			room->enableHotzone(skullHotzones[persistent->_catacombDecoderSkullPosition]);
 			room->selectFrame(
 				caVariantGet(persistent->_catacombDecoderSkullPosition, "SkullDecoder"), 450, 1);
@@ -357,7 +353,7 @@ public:
 			}
 			break;
 		case 2:
-			room->playSFX("CollapseSnd", 22009);
+			room->playSound("CollapseSnd", 22009);
 			for (CatacombsPosition side = kCatacombsLeft; side <= kCatacombsRight; side = (CatacombsPosition) (side + 1)) {
 				room->playAnimLoop(
 					caVariantGet(side, "TorchNormal"),
@@ -376,12 +372,11 @@ private:
 			room->stopAnim(musicNames[i]);
 	}
 
-	// TODO: how can we make tune challenge accessible to deaf people?
 	void playTune(CatacombsPosition side) {
 		Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
 		Persistent *persistent = g_vm->getPersistent();
 		stopTune();
-		room->playMusicLoop(musicNames[persistent->_catacombPaths[2][side]]);
+		room->playSoundLoop(musicNames[persistent->_catacombPaths[2][side]]);
 	}
 
 	void renderDecoder() {
@@ -453,7 +448,7 @@ private:
 			caVariantGet(side, isHelen ? "TorchLongBurst" : "TorchNormalBurst"),
 			caVariantGet(side, "TorchZ").asUint64(),
 			PlayAnimParams::disappear(), kL1TrochLitLeft + side - kCatacombsLeft);
-		room->playSFX("SndTorchBurst");
+		room->playSound("SndTorchBurst");
 		room->disableHotzone(torchHotzones[side]);
 	}
 

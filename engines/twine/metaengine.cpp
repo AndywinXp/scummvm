@@ -160,7 +160,7 @@ Common::KeymapArray TwinEMetaEngine::initKeymaps(const char *target) const {
 	using namespace Common;
 	Action *act;
 
-	KeymapArray array(4);
+	KeymapArray array(3);
 
 	{
 		Keymap *gameKeyMap = new Keymap(Keymap::kKeymapTypeGame, mainKeyMapId, "Little Big Adventure");
@@ -417,46 +417,6 @@ Common::KeymapArray TwinEMetaEngine::initKeymaps(const char *target) const {
 		cutsceneKeyMap->addAction(act);
 
 		array[2] = cutsceneKeyMap;
-	}
-
-	{
-		Keymap *holomapKeyMap = new Keymap(Keymap::kKeymapTypeGame, holomapKeyMapId, "Little Big Adventure Holomap");
-
-		// TODO: CTRL + cursor rotates the globe
-		// just cursor keys switch the quest locations and print the text for the current selected location.
-
-		act = new Action("ABORT", _("Abort"));
-		act->setCustomEngineActionEvent(TwinEActionType::HolomapAbort);
-		act->addDefaultInputMapping("ESCAPE");
-		holomapKeyMap->addAction(act);
-
-		act = new Action("UP", _("Up"));
-		act->setCustomEngineActionEvent(TwinEActionType::HolomapUp);
-		act->addDefaultInputMapping("UP");
-		act->addDefaultInputMapping("KP8");
-		act->addDefaultInputMapping("MOUSE_WHEEL_UP");
-		holomapKeyMap->addAction(act);
-
-		act = new Action("DOWN", _("Down"));
-		act->setCustomEngineActionEvent(TwinEActionType::HolomapDown);
-		act->addDefaultInputMapping("DOWN");
-		act->addDefaultInputMapping("KP2");
-		act->addDefaultInputMapping("MOUSE_WHEEL_DOWN");
-		holomapKeyMap->addAction(act);
-
-		act = new Action("RIGHT", _("Right"));
-		act->setCustomEngineActionEvent(TwinEActionType::HolomapRight);
-		act->addDefaultInputMapping("RIGHT");
-		act->addDefaultInputMapping("KP6");
-		holomapKeyMap->addAction(act);
-
-		act = new Action("LEFT", _("Left"));
-		act->setCustomEngineActionEvent(TwinEActionType::HolomapLeft);
-		act->addDefaultInputMapping("LEFT");
-		act->addDefaultInputMapping("KP4");
-		holomapKeyMap->addAction(act);
-
-		array[3] = holomapKeyMap;
 	}
 
 	return array;

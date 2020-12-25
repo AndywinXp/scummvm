@@ -38,13 +38,6 @@ FileBuffer::FileBuffer(const Common::String &filename) : _pos(0) {
 	f.read(&_data[0], f.size());
 }
 
-FileBuffer::FileBuffer(Common::ReadStream *stream, size_t size) : _pos(0) {
-	_data.resize(size);
-	_readBytes.resize(size);
-	stream->read(&_data[0], size);
-}
-
-
 bool FileBuffer::exists(const Common::String &filename) {
 	return Common::File::exists(filename);
 }

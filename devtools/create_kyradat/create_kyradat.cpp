@@ -45,7 +45,7 @@
 
 
 enum {
-	kKyraDatVersion = 108
+	kKyraDatVersion = 107
 };
 
 const ExtractFilename extractFilenames[] = {
@@ -1201,7 +1201,6 @@ const TypeTable languageTable[] = {
 	{ IT_ITA, 5 },
 	{ JA_JPN, 6 },
 	{ RU_RUS, 7 },
-	{ HE_ISR, 8 },
 	{ -1, -1 }
 };
 

@@ -228,7 +228,7 @@ uint Glulx::perform_restoreundo() {
 Common::Error Glulx::readSaveData(Common::SeekableReadStream *rs) {
 	Common::ErrorCode errCode = Common::kNoError;
 	QuetzalReader r;
-	if (r.open(rs))
+	if (r.open(rs, ID_IFSF))
 		// Load in the savegame chunks
 		errCode = loadGameChunks(r).getCode();
 

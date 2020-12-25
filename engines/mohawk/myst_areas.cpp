@@ -184,13 +184,16 @@ MystAreaVideo::MystAreaVideo(MohawkEngine_Myst *vm, ResourceType type, Common::S
 		MystAreaAction(vm, type, rlstStream, parent) {
 	char c = 0;
 
-	while ((c = rlstStream->readByte()) != 0) {
+	do {
+		c = rlstStream->readByte();
 		_videoFile += c;
-	}
+	} while (c);
 
-	if ((_videoFile.size() & 1) == 0) {
-		rlstStream->skip(1);
-	}
+	rlstStream->skip(_videoFile.size() & 1);
+
+	// Trim method does not remove extra trailing nulls
+	while (_videoFile.size() != 0 && _videoFile.lastChar() == 0)
+		_videoFile.deleteLastChar();
 
 	_videoFile = convertMystVideoName(_videoFile);
 	_videoFile = _vm->selectLocalizedMovieFilename(_videoFile);

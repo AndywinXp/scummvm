@@ -74,6 +74,11 @@ public:
 	 * Differing eof that returns true when pos == size as well as beyond
 	 */
 	bool eof();
+
+	/**
+	 * Reads in a null terminated string
+	 */
+	Common::String readString();
 };
 
 } // End of namespace Shared

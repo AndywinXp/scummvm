@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ScummVM 1.3.0svn\n"
 "Report-Msgid-Bugs-To: scummvm-devel@lists.scummvm.org\n"
-"POT-Creation-Date: 2020-12-23 11:08+0000\n"
+"POT-Creation-Date: 2020-12-07 22:01+0000\n"
 "PO-Revision-Date: 2020-12-05 10:44+0000\n"
 "Last-Translator: George Kormendi <grubycza@hotmail.com>\n"
 "Language-Team: Hungarian <https://translations.scummvm.org/projects/scummvm/"
@@ -65,8 +65,8 @@ msgstr "Feljebb"
 #: gui/saveload-dialog.cpp:1165 gui/themebrowser.cpp:55
 #: gui/unknown-game-dialog.cpp:54 engines/engine.cpp:652
 #: backends/dialogs/gtk/gtk-dialogs.cpp:46
-#: backends/events/default/default-events.cpp:185
-#: backends/events/default/default-events.cpp:209
+#: backends/events/default/default-events.cpp:183
+#: backends/events/default/default-events.cpp:207
 #: backends/platform/wii/options.cpp:48 engines/cine/saveload.cpp:864
 #: engines/drascula/saveload.cpp:49 engines/mohawk/myst_stacks/menu.cpp:284
 #: engines/mohawk/myst_stacks/menu.cpp:301
@@ -128,7 +128,7 @@ msgstr ""
 #: gui/filebrowser-dialog.cpp:133 gui/fluidsynth-dialog.cpp:218
 #: gui/launcher.cpp:398 gui/launcher.cpp:419 gui/launcher.cpp:462
 #: gui/options.cpp:2708 gui/options.cpp:2746
-#: backends/events/default/default-events.cpp:185
+#: backends/events/default/default-events.cpp:183
 #: backends/events/symbiansdl/symbiansdl-events.cpp:191
 #: engines/grim/grim.cpp:353 engines/kyra/gui/saveload_eob.cpp:596
 #: engines/kyra/gui/saveload_eob.cpp:629
@@ -596,7 +596,7 @@ msgstr "Bezár"
 #: engines/dragons/metaengine.cpp:163 engines/glk/scott/scott.cpp:412
 #: engines/griffon/metaengine.cpp:96 engines/grim/grim.cpp:451
 #: engines/grim/grim.cpp:528 engines/twine/metaengine.cpp:373
-#: engines/twine/metaengine.cpp:433 engines/wintermute/keymapper_tables.h:1011
+#: engines/wintermute/keymapper_tables.h:1011
 #: engines/wintermute/keymapper_tables.h:1100
 #: engines/wintermute/keymapper_tables.h:1474
 #: engines/wintermute/keymapper_tables.h:1704
@@ -608,7 +608,7 @@ msgstr "Fel"
 #: engines/dragons/metaengine.cpp:169 engines/glk/scott/scott.cpp:412
 #: engines/griffon/metaengine.cpp:102 engines/grim/grim.cpp:456
 #: engines/grim/grim.cpp:533 engines/twine/metaengine.cpp:379
-#: engines/twine/metaengine.cpp:440 engines/wintermute/keymapper_tables.h:1017
+#: engines/wintermute/keymapper_tables.h:1017
 #: engines/wintermute/keymapper_tables.h:1107
 #: engines/wintermute/keymapper_tables.h:1480
 #: engines/wintermute/keymapper_tables.h:1710
@@ -619,8 +619,7 @@ msgstr "Le"
 #: backends/platform/symbian/src/SymbianActions.cpp:42
 #: engines/dragons/metaengine.cpp:175 engines/griffon/metaengine.cpp:108
 #: engines/grim/grim.cpp:461 engines/grim/grim.cpp:538
-#: engines/twine/metaengine.cpp:392 engines/twine/metaengine.cpp:453
-#: engines/wintermute/keymapper_tables.h:1023
+#: engines/twine/metaengine.cpp:392 engines/wintermute/keymapper_tables.h:1023
 #: engines/wintermute/keymapper_tables.h:1462
 #: engines/wintermute/keymapper_tables.h:1570
 #: engines/wintermute/keymapper_tables.h:1692
@@ -631,8 +630,7 @@ msgstr "Bal"
 #: backends/platform/symbian/src/SymbianActions.cpp:43
 #: engines/dragons/metaengine.cpp:181 engines/griffon/metaengine.cpp:114
 #: engines/grim/grim.cpp:466 engines/grim/grim.cpp:543
-#: engines/twine/metaengine.cpp:385 engines/twine/metaengine.cpp:447
-#: engines/wintermute/keymapper_tables.h:1029
+#: engines/twine/metaengine.cpp:385 engines/wintermute/keymapper_tables.h:1029
 #: engines/wintermute/keymapper_tables.h:1468
 #: engines/wintermute/keymapper_tables.h:1578
 #: engines/wintermute/keymapper_tables.h:1698
@@ -1949,7 +1947,7 @@ msgstr "Érték törlése"
 msgid "Error running game:"
 msgstr "Hiba a játék futtatásakor:"
 
-#: base/main.cpp:666
+#: base/main.cpp:667
 msgid "Could not find any engine capable of running the selected game"
 msgstr "Nem található olyan játékmotor ami a választott játékot támogatja"
 
@@ -2546,7 +2544,7 @@ msgstr "Letöltés befejezõdött."
 msgid "Download failed."
 msgstr "Letöltés nem sikerült."
 
-#: backends/events/default/default-events.cpp:185
+#: backends/events/default/default-events.cpp:183
 msgid ""
 "Do you really want to return to the Launcher?\n"
 "Any unsaved progress will be lost."
@@ -2554,7 +2552,7 @@ msgstr ""
 "Tényleg vissza akarsz térni az Indítóhoz?\n"
 "Minden nem mentett változás el fog veszni."
 
-#: backends/events/default/default-events.cpp:209
+#: backends/events/default/default-events.cpp:207
 msgid ""
 "Do you really want to quit?\n"
 "Any unsaved progress will be lost."
@@ -2562,8 +2560,8 @@ msgstr ""
 "Biztosan ki szeretnél lépni?\n"
 "Minden nem mentett változás el fog veszni."
 
-#: backends/events/default/default-events.cpp:209
-#: backends/events/default/default-events.cpp:326
+#: backends/events/default/default-events.cpp:207
+#: backends/events/default/default-events.cpp:324
 #: backends/platform/symbian/src/SymbianActions.cpp:54
 #: engines/hdb/metaengine.cpp:255 engines/mohawk/myst_stacks/menu.cpp:318
 #: engines/mohawk/riven_stacks/aspit.cpp:455 engines/scumm/dialogs.cpp:185
@@ -2572,23 +2570,23 @@ msgstr ""
 msgid "Quit"
 msgstr "Kilépés"
 
-#: backends/events/default/default-events.cpp:303
+#: backends/events/default/default-events.cpp:301
 msgid "Global"
 msgstr "Globális"
 
-#: backends/events/default/default-events.cpp:306
+#: backends/events/default/default-events.cpp:304
 msgid "Global Main Menu"
 msgstr "Globális Fõmenü"
 
-#: backends/events/default/default-events.cpp:313
+#: backends/events/default/default-events.cpp:311
 msgid "Display keyboard"
 msgstr "Billentyûzet beállítások"
 
-#: backends/events/default/default-events.cpp:320
+#: backends/events/default/default-events.cpp:318
 msgid "Toggle mute"
 msgstr "Váltás némításra"
 
-#: backends/events/default/default-events.cpp:348
+#: backends/events/default/default-events.cpp:346
 msgid "Open Debugger"
 msgstr "Hibakeresõ megnyitása"
 
@@ -4148,7 +4146,7 @@ msgstr ""
 
 #: engines/cge/detection.cpp:48 engines/cge/detection.cpp:54
 #: engines/kyra/detection_tables.h:224 engines/kyra/detection_tables.h:237
-#: engines/kyra/detection_tables.h:593 engines/kyra/detection_tables.h:1777
+#: engines/kyra/detection_tables.h:579 engines/kyra/detection_tables.h:1763
 #: engines/saga/detection_tables.h:187 engines/saga/detection_tables.h:608
 #: engines/saga/detection_tables.h:936 engines/sci/detection_tables.h:4824
 #: engines/sci/detection_tables.h:4832
@@ -4352,11 +4350,11 @@ msgstr "Ez túl rövid érvényes Alan2 fájlnak."
 msgid "This is not a valid Alan2 file."
 msgstr "Ez nem egy valós Alan2 fájl."
 
-#: engines/glk/comprehend/game.cpp:322
+#: engines/glk/comprehend/game.cpp:319
 msgid "Savegame"
 msgstr "Játékmentés"
 
-#: engines/glk/comprehend/game.cpp:862
+#: engines/glk/comprehend/game.cpp:838
 msgid "Picture window toggled\n"
 msgstr "Képablak átváltva\n"
 
@@ -4953,13 +4951,13 @@ msgstr "Eye of Beholder támogatás nincs lefordítva"
 
 #: engines/kyra/engine/eobcommon.cpp:367 engines/kyra/engine/lol.cpp:469
 #: engines/ultima/ultima4/meta_engine.cpp:233
-#: engines/ultima/ultima8/meta_engine.cpp:136
+#: engines/ultima/ultima8/meta_engine.cpp:131
 msgid "Interact via Left Click"
 msgstr "Interakció bal kattintással"
 
 #: engines/kyra/engine/eobcommon.cpp:368 engines/kyra/engine/lol.cpp:470
 #: engines/ultima/ultima4/meta_engine.cpp:239
-#: engines/ultima/ultima8/meta_engine.cpp:142
+#: engines/ultima/ultima8/meta_engine.cpp:137
 msgid "Interact via Right Click"
 msgstr "Interakció jobb kattintással"
 
@@ -5789,7 +5787,7 @@ msgid "Please use an external viewer to open the game's help file: %s"
 msgstr ""
 "A játék súgófájljának megnyitásához külsõ megjelenítõt kell használnia: %s"
 
-#: engines/sci/engine/kmisc.cpp:865
+#: engines/sci/engine/kmisc.cpp:874
 msgid ""
 "The Poker logic is hardcoded in an external DLL, and is not implemented yet. "
 "There exists some dummy logic for now, where opponent actions are chosen "
@@ -6734,11 +6732,11 @@ msgstr "Ablakok megjelenítése részben átlászó háttérrel"
 msgid "The \"sky.cpt\" engine data file has an incorrect size."
 msgstr "A \"sky.cpt\" motor adatfájl mérete inkorrekt.."
 
-#: engines/sky/detection.cpp:37
+#: engines/sky/detection.cpp:39
 msgid "Floppy intro"
 msgstr "Floppy intro"
 
-#: engines/sky/detection.cpp:38
+#: engines/sky/detection.cpp:40
 msgid "Use the floppy version's intro (CD version only)"
 msgstr "A floppy verzió intro használata (csak CD verziónál)"
 
@@ -7195,7 +7193,6 @@ msgid "Accept"
 msgstr "Elfogad"
 
 #: engines/twine/metaengine.cpp:367 engines/twine/metaengine.cpp:411
-#: engines/twine/metaengine.cpp:428
 msgid "Abort"
 msgstr "Megszakít"
 
@@ -7235,19 +7232,19 @@ msgstr "Eredeti mentés"
 msgid "Transfer Character"
 msgstr "Karakter átadása"
 
-#: engines/ultima/ultima8/meta_engine.cpp:129
+#: engines/ultima/ultima8/meta_engine.cpp:124
 msgid "Ultima VIII"
 msgstr "Ultima VIII"
 
-#: engines/ultima/ultima8/meta_engine.cpp:129
+#: engines/ultima/ultima8/meta_engine.cpp:124
 msgid "Crusader"
 msgstr "Keresztes lovag"
 
-#: engines/ultima/ultima8/meta_engine.cpp:176
+#: engines/ultima/ultima8/meta_engine.cpp:170
 msgid "Ultima VIII Cheats"
 msgstr "Ultima VIII Csalások"
 
-#: engines/ultima/ultima8/meta_engine.cpp:193
+#: engines/ultima/ultima8/meta_engine.cpp:185
 msgid "Ultima VIII Debug"
 msgstr "Ultima VIII Debug"
 

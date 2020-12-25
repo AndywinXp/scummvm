@@ -212,34 +212,34 @@ void IMuseDigital::refreshScripts() {
 	}
 }
 
-int IMuseDigital::startVoice(int soundId, Audio::AudioStream *input) {
+void IMuseDigital::startVoice(int soundId, Audio::AudioStream *input) {
 	debug(5, "startVoiceStream(%d)", soundId);
-	return startSound(soundId, "", 0, IMUSE_VOLGRP_VOICE, input, 0, 127, 127, NULL);
+	startSound(soundId, "", 0, IMUSE_VOLGRP_VOICE, input, 0, 127, 127, NULL);
 }
 
-int IMuseDigital::startVoice(int soundId, const char *soundName) {
+void IMuseDigital::startVoice(int soundId, const char *soundName) {
 	debug(5, "startVoiceBundle(%s, %d)", soundName, soundId);
-	return startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_VOICE, NULL, 0, 127, 127, NULL);
+	startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_VOICE, NULL, 0, 127, 127, NULL);
 }
 
-int IMuseDigital::startMusic(int soundId, int volume) {
+void IMuseDigital::startMusic(int soundId, int volume) {
 	debug(5, "startMusicResource(%d)", soundId);
-	return startSound(soundId, "", IMUSE_RESOURCE, IMUSE_VOLGRP_MUSIC, NULL, 0, volume, 126, NULL);
+	startSound(soundId, "", IMUSE_RESOURCE, IMUSE_VOLGRP_MUSIC, NULL, 0, volume, 126, NULL);
 }
 
-int IMuseDigital::startMusic(const char *soundName, int soundId, int hookId, int volume) {
+void IMuseDigital::startMusic(const char *soundName, int soundId, int hookId, int volume) {
 	debug(5, "startMusicBundle(%s, soundId:%d, hookId:%d)", soundName, soundId, hookId);
-	return startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, NULL, hookId, volume, 126, NULL);
+	startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, NULL, hookId, volume, 126, NULL);
 }
 
-int IMuseDigital::startMusicWithOtherPos(const char *soundName, int soundId, int hookId, int volume, Track *otherTrack) {
+void IMuseDigital::startMusicWithOtherPos(const char *soundName, int soundId, int hookId, int volume, Track *otherTrack) {
 	debug(5, "startMusicWithOtherPos(%s, soundId:%d, hookId:%d, oldSoundId:%d)", soundName, soundId, hookId, otherTrack->soundId);
-	return startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, NULL, hookId, volume, 126, otherTrack);
+	startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, NULL, hookId, volume, 126, otherTrack);
 }
 
-int IMuseDigital::startSfx(int soundId, int priority) {
+void IMuseDigital::startSfx(int soundId, int priority) {
 	debug(5, "startSfx(%d)", soundId);
-	return startSound(soundId, "", IMUSE_RESOURCE, IMUSE_VOLGRP_SFX, NULL, 0, 127, priority, NULL);
+	startSound(soundId, "", IMUSE_RESOURCE, IMUSE_VOLGRP_SFX, NULL, 0, 127, priority, NULL);
 }
 
 void IMuseDigital::getLipSync(int soundId, int syncId, int32 msPos, int32 &width, int32 &height) {

@@ -52,7 +52,7 @@ public:
 		Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
 		room->playVideo("movie", 500, 29001);
 		room->disableHeroBelt();
-		room->playMusicLoop("V6010eA0");
+		room->playSoundLoop("V6010eA0");
 		room->disableMouse();
 	}
 };

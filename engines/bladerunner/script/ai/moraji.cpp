@@ -26,7 +26,7 @@ namespace BladeRunner {
 
 AIScriptMoraji::AIScriptMoraji(BladeRunnerEngine *vm) : AIScriptBase(vm) {
 	_var1 = 1;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	_var2 = 0;
 }
 
 void AIScriptMoraji::Initialize() {
@@ -36,7 +36,7 @@ void AIScriptMoraji::Initialize() {
 	_animationNext = 0;
 
 	_var1 = 1;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	_var2 = 0;
 
 	Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiDefault);
 }
@@ -236,9 +236,9 @@ bool AIScriptMoraji::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationMorajiCuffedIdle;
-		if (_varNumOfTimesToHoldCurrentFrame > 0) {
-			--_varNumOfTimesToHoldCurrentFrame;
+		*animation = 733;
+		if (_var2) {
+			--_var2;
 		} else {
 			_animationFrame += _var1;
 			if (Random_Query(0, 10) == 0) {
@@ -250,7 +250,7 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 			if (_animationFrame < 0) {
 				_animationFrame = Slice_Animation_Query_Number_Of_Frames(*animation) - 1;
 			}
-			_varNumOfTimesToHoldCurrentFrame = Random_Query(0, 1);
+			_var2 = Random_Query(0, 1);
 		}
 		break;
 
@@ -261,17 +261,16 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 2:
-		// Dummy placeholder, kModelAnimationIzoWalking (290) is an Izo animation
-		*animation = kModelAnimationIzoWalking;
+		*animation = 290;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationIzoWalking))
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(290))
 			_animationFrame = 0;
 		break;
 
 	case 3:
-		*animation = kModelAnimationMorajiRunning;
+		*animation = 732;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiRunning))
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(732))
 			_animationFrame = 0;
 		break;
 
@@ -279,41 +278,41 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 5:
-		*animation = kModelAnimationMorajiCuffedFastTalk;
+		*animation = 734;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiCuffedFastTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(734)) {
 			_animationFrame = 0;
 			_animationState = Random_Query(0, 2) + 5;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationMorajiCuffedMoreFastTalk;
+		*animation = 735;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiCuffedMoreFastTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(735)) {
 			_animationFrame = 0;
 			_animationState = 5;
-			*animation = kModelAnimationMorajiCuffedMoreFastTalk;
+			*animation = 735;
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationMorajiCuffedPointingTalk;
+		*animation = 736;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiCuffedPointingTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(736)) {
 			_animationFrame = 0;
 			_animationState = 5;
-			*animation = kModelAnimationMorajiCuffedPointingTalk;
+			*animation = 736;
 		}
 		break;
 
 	case 8:
-		*animation = kModelAnimationMorajiCuffedSomethingExplodingToHisLeft;
+		*animation = 737;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiCuffedSomethingExplodingToHisLeft)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(737)) {
 			_animationFrame = 0;
 			_animationState = 0;
-			*animation = kModelAnimationMorajiCuffedIdle;
+			*animation = 733;
 			Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiScream);
 		}
 		if (_animationFrame == 6) {
@@ -322,38 +321,38 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 9:
-		*animation = kModelAnimationMorajiSittingGetsUp;
+		*animation = 742;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiSittingGetsUp)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(742)) {
 			_animationFrame = 0;
 			_animationState = 3;
-			*animation = kModelAnimationMorajiRunning;
+			*animation = 732;
 			Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiRunOut);
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationMorajiCuffedShotDead;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiCuffedShotDead) - 1) {
+		*animation = 738;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(738) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationMorajiRunningDivesForward;
+		*animation = 739;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiRunningDivesForward)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(739)) {
 			Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiLayDown);
 			_animationFrame = 0;
 			_animationState = 12;
-			*animation = kModelAnimationMorajiLayingForwardTalk;
+			*animation = 740;
 		}
 		break;
 
 	case 12:
-		*animation = kModelAnimationMorajiLayingForwardTalk;
-		if (_varNumOfTimesToHoldCurrentFrame > 0) {
-			--_varNumOfTimesToHoldCurrentFrame;
+		*animation = 740;
+		if (_var2) {
+			--_var2;
 		} else {
 			_animationFrame += _var1;
 			if (!Random_Query(0, 5)) {
@@ -365,22 +364,22 @@ bool AIScriptMoraji::UpdateAnimation(int *animation, int *frame) {
 			if (_animationFrame < 0) {
 				_animationFrame = Slice_Animation_Query_Number_Of_Frames(*animation) - 1;
 			}
-			_varNumOfTimesToHoldCurrentFrame = Random_Query(0, 2);
+			_var2 = Random_Query(0, 2);
 		}
 		break;
 
 	case 13:
-		*animation = kModelAnimationMorajiLayingForwardDies;
+		*animation = 741;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiLayingForwardDies) - 1) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(741) - 1) {
 			_animationFrame = Slice_Animation_Query_Number_Of_Frames(*animation) - 1;
 			Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiDead);
 		}
 		break;
 
 	case 14:
-		*animation = kModelAnimationMorajiLayingForwardDies;
-		_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationMorajiLayingForwardDies) - 1;
+		*animation = 741;
+		_animationFrame = Slice_Animation_Query_Number_Of_Frames(741) - 1;
 		break;
 
 	default:
@@ -411,7 +410,7 @@ bool AIScriptMoraji::ChangeAnimationMode(int mode) {
 		if (_animationState == 0) {
 			_animationState = 1;
 			_animationStateNext = 3;
-			_animationNext = kModelAnimationMorajiRunning;
+			_animationNext = 732;
 		} else if (_animationState != 3) {
 			_animationState = 3;
 			_animationFrame = 0;
@@ -435,7 +434,7 @@ bool AIScriptMoraji::ChangeAnimationMode(int mode) {
 		if (_animationState == 0) {
 			_animationState = 1;
 			_animationStateNext = 6;
-			_animationNext = kModelAnimationMorajiCuffedMoreFastTalk;
+			_animationNext = 735;
 		} else {
 			_animationState = 6;
 			_animationFrame = 0;
@@ -446,7 +445,7 @@ bool AIScriptMoraji::ChangeAnimationMode(int mode) {
 		if (_animationState == 0) {
 			_animationState = 1;
 			_animationStateNext = 7;
-			_animationNext = kModelAnimationMorajiCuffedPointingTalk;
+			_animationNext = 736;
 		} else {
 			_animationState = 7;
 			_animationFrame = 0;

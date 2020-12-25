@@ -26,7 +26,7 @@ namespace BladeRunner {
 
 AIScriptTyrellGuard::AIScriptTyrellGuard(BladeRunnerEngine *vm) : AIScriptBase(vm) {
 	_frameDelta = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag1 = false;
 }
 
 void AIScriptTyrellGuard::Initialize() {
@@ -36,7 +36,7 @@ void AIScriptTyrellGuard::Initialize() {
 	_animationNext = 0;
 
 	_frameDelta = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag1 = false;
 	Actor_Set_Goal_Number(kActorTyrellGuard, 0);
 }
 
@@ -148,15 +148,15 @@ bool AIScriptTyrellGuard::GoalChanged(int currentGoalNumber, int newGoalNumber) 
 bool AIScriptTyrellGuard::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationTyrellGuardSittingIdle;
+		*animation = 555;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(555)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = kModelAnimationTyrellGuardSittingSleepingWakingUp;
+		*animation = 564;
 		if (_animationFrame <= 5) {
 			_frameDelta = 1;
 		} else if (_animationFrame >= 12) {
@@ -166,18 +166,20 @@ bool AIScriptTyrellGuard::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 2:
-		*animation = kModelAnimationTyrellGuardSittingSleepingWakingUp;
+		*animation = 564;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingSleepingWakingUp)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(564)) {
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationTyrellGuardSittingCalmTalk;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationTyrellGuardSittingIdle;
+		*animation = 558;
+		if (_animationFrame == 0
+		 && _flag1
+		) {
+			*animation = 555;
 			_animationState = 0;
 		} else {
 			++_animationFrame;
@@ -188,80 +190,78 @@ bool AIScriptTyrellGuard::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 4:
-		*animation = kModelAnimationTyrellGuardSittingExplainTalk;
+		*animation = 559;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingExplainTalk)) {
-			*animation = kModelAnimationTyrellGuardSittingCalmTalk;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(559)) {
+			*animation = 558;
 			_animationFrame = 0;
 			_animationState = 3;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationTyrellGuardSittingHandOverHeadTalk;
+		*animation = 560;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingHandOverHeadTalk)) {
-			*animation = kModelAnimationTyrellGuardSittingCalmTalk;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(560)) {
+			*animation = 558;
 			_animationFrame = 0;
 			_animationState = 3;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationTyrellGuardSittingSuggestTalk;
+		*animation = 561;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingSuggestTalk)) {
-			*animation = kModelAnimationTyrellGuardSittingCalmTalk;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(561)) {
+			*animation = 558;
 			_animationFrame = 0;
 			_animationState = 3;
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationTyrellGuardSittingUpsetTalk;
+		*animation = 562;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingUpsetTalk)) {
-			*animation = kModelAnimationTyrellGuardSittingCalmTalk;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(562)) {
+			*animation = 558;
 			_animationFrame = 0;
 			_animationState = 3;
 		}
 		break;
-
 	case 8:
-		*animation = kModelAnimationTyrellGuardSittingGestureGive;
+		*animation = 557;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingGestureGive)) {
-			*animation = kModelAnimationTyrellGuardSittingIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(557)) {
+			*animation = 555;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
-
 	case 9:
-		*animation = kModelAnimationTyrellGuardSittingMaybeHugsMonitors;
+		*animation = 563;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingMaybeHugsMonitors)) {
-			*animation = kModelAnimationTyrellGuardSittingIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(563)) {
+			*animation = 555;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationTyrellGuardSittingSleepingWakingUp;
+		*animation = 564;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingSleepingWakingUp)) {
-			*animation = kModelAnimationTyrellGuardSittingIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(564)) {
+			*animation = 555;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationTyrellGuardSittingPressingAlertButton;
+		*animation = 565;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationTyrellGuardSittingPressingAlertButton)) {
-			*animation = kModelAnimationTyrellGuardSittingIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(565)) {
+			*animation = 555;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
@@ -280,26 +280,18 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 			_animationState = 8;
 			_animationFrame = 0;
 			break;
-
 		case 1:
 			_animationState = 2;
 			break;
-
 		case 3:
-			// fall through
 		case 4:
-			// fall through
 		case 5:
-			// fall through
 		case 6:
-			// fall through
 		case 7:
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag1 = true;
 			break;
-
 		case 8:
 			break;
-
 		default:
 			_animationState = 0;
 			_animationFrame = 0;
@@ -313,7 +305,7 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		} else if ((_animationState - 1 != 7 && _animationState - 1 != 10) || _animationState - 1 > 10) {
 			_animationState = 3;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag1 = false;
 		}
 		break;
 
@@ -323,7 +315,7 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		} else if ((_animationState - 1 != 7 && _animationState - 1 != 10) || _animationState - 1 > 10) {
 			_animationState = 4;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag1 = false;
 		}
 		break;
 
@@ -333,7 +325,7 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		} else if ((_animationState - 1 != 7 && _animationState - 1 != 10) || _animationState - 1 > 10) {
 			_animationState = 5;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag1 = false;
 		}
 		break;
 
@@ -343,7 +335,7 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		} else if ((_animationState - 1 != 7 && _animationState - 1 != 10) || _animationState - 1 > 10) {
 			_animationState = 6;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag1 = false;
 		}
 		break;
 
@@ -353,7 +345,7 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		} else if ((_animationState - 1 != 7 && _animationState - 1 != 10) || _animationState - 1 > 10) {
 			_animationState = 7;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag1 = false;
 		}
 		break;
 
@@ -368,7 +360,6 @@ bool AIScriptTyrellGuard::ChangeAnimationMode(int mode) {
 		break;
 
 	case 43:
-		// fall through
 	case 55:
 		if (_animationState != 1) {
 			_animationState = 1;

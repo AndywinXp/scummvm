@@ -173,9 +173,7 @@ void GraphicsWindow::fillRect(uint color, const Rect &box) {
 	// zero out hyperlinks for these coordinates
 	g_vm->_selection->putHyperlink(0, hx0, hy0, hx1, hy1);
 
-	Rect r(x0, y0, x1, y1);
-	if (!r.isEmpty())
-		_surface->fillRect(r, color);
+	_surface->fillRect(Rect(x0, y0, x1, y1), color);
 	touch();
 }
 

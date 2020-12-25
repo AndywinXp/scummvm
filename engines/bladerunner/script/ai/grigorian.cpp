@@ -25,14 +25,13 @@
 namespace BladeRunner {
 
 AIScriptGrigorian::AIScriptGrigorian(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	// _varChooseIdleAnimation can have valid values: 0, 1, 2
-	_varChooseIdleAnimation = 0;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	var_45CA10 = 0;
+	var_45CA14 = 0;
 }
 
 void AIScriptGrigorian::Initialize() {
-	_varChooseIdleAnimation = 0;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	var_45CA10 = 0;
+	var_45CA14 = 0;
 	_animationStateNext = 0;
 	_animationFrame = 0;
 	_animationState = 0;
@@ -103,125 +102,106 @@ bool AIScriptGrigorian::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptGrigorian::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		if (_varChooseIdleAnimation == 0) {
-			*animation = kModelAnimationGrigorianStandIdle;
-			if (_varNumOfTimesToHoldCurrentFrame > 0) {
-				--_varNumOfTimesToHoldCurrentFrame;
+		if (var_45CA10 == 0) {
+			*animation = 478;
+			if (var_45CA14) {
+				--var_45CA14;
 			} else {
 				++_animationFrame;
 				if (_animationFrame == 5 || _animationFrame == 13) {
-					_varNumOfTimesToHoldCurrentFrame = Random_Query(2, 4);
+					var_45CA14 = Random_Query(2, 4);
 				}
-				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandIdle)) {
+				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(478)) {
 					_animationFrame = 0;
-					_varChooseIdleAnimation = Random_Query(0, 2);
+					var_45CA10 = Random_Query(0, 2);
 				}
 			}
-		} else if (_varChooseIdleAnimation == 1) {
-			*animation = kModelAnimationGrigorianStandAnnoyedTalk;
+		} else if (var_45CA10 == 1) {
+			*animation = 479;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandAnnoyedTalk)) {
-				*animation = kModelAnimationGrigorianStandIdle;
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(479)) {
+				*animation = 478;
 				_animationFrame = 0;
-				_varChooseIdleAnimation = 0;
+				var_45CA10 = 0;
 			}
-		} else if (_varChooseIdleAnimation == 2) {
-			*animation = kModelAnimationGrigorianStandArmsCrossedTalk;
-			if (_varNumOfTimesToHoldCurrentFrame > 0) {
-				--_varNumOfTimesToHoldCurrentFrame;
+		} else if (var_45CA10 == 2) {
+			*animation = 480;
+			if (var_45CA14) {
+				--var_45CA14;
 			} else {
 				++_animationFrame;
 				if (_animationFrame >= 8 && _animationFrame <= 10) {
-					_varNumOfTimesToHoldCurrentFrame = Random_Query(2, 4);
+					var_45CA14 = Random_Query(2, 4);
 				}
-#if BLADERUNNER_ORIGINAL_BUGS
-				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandIdle)) {
-					*animation = kModelAnimationGrigorianStandIdle;
+				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(478)) {
+					*animation = 478;
 					_animationFrame = 0;
-					_varChooseIdleAnimation = 0;
+					var_45CA10 = 0;
 				}
-#else
-				// bugfix set proper current animation here to get frameset number of frames
-				//        (could also use *animation)
-				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandArmsCrossedTalk)) {
-					*animation = kModelAnimationGrigorianStandIdle;
-					_animationFrame = 0;
-					_varChooseIdleAnimation = 0;
-				}
-#endif // BLADERUNNER_ORIGINAL_BUGS
 			}
 		}
 		break;
-
 	case 1:
-		*animation = kModelAnimationGrigorianStandAnnoyedTalk;
+		*animation = 479;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandAnnoyedTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(479)) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case 2:
-		*animation = kModelAnimationGrigorianStandProtestTalk;
+		*animation = 481;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandProtestTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(481)) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case 3:
-		*animation = kModelAnimationGrigorianStandProtestMoreTalk;
+		*animation = 482;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandProtestMoreTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(482)) {
 			_animationState = 2;
 			_animationFrame = 0;
-			*animation = kModelAnimationGrigorianStandProtestTalk;
+			*animation = 481;
 		}
 		break;
-
 	case 4:
-		*animation = kModelAnimationGrigorianStandProtestEvenMoreTalk;
+		*animation = 483;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandProtestEvenMoreTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(483)) {
 			_animationState = 2;
 			_animationFrame = 0;
-			*animation = kModelAnimationGrigorianStandProtestTalk;
+			*animation = 481;
 		}
 		break;
-
 	case 5:
-		*animation = kModelAnimationGrigorianStandInsistentTalk;
+		*animation = 484;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandInsistentTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(484)) {
 			_animationState = 2;
 			_animationFrame = 0;
-			*animation = kModelAnimationGrigorianStandProtestTalk;
+			*animation = 481;
 		}
 		break;
-
 	case 6:
-		*animation = kModelAnimationGrigorianStandDismissOrAccuseTalk;
+		*animation = 485;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandDismissOrAccuseTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(485)) {
 			_animationState = 2;
 			_animationFrame = 0;
-			*animation = kModelAnimationGrigorianStandProtestTalk;
+			*animation = 481;
 		}
 		break;
-
 	case 7:
-		*animation = kModelAnimationGrigorianStandBegOrMockingTalk;
+		*animation = 486;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationGrigorianStandBegOrMockingTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(486)) {
 			_animationState = 2;
 			_animationFrame = 0;
-			*animation = kModelAnimationGrigorianStandProtestTalk;
+			*animation = 481;
 		}
 		break;
-
 	default:
-		// Dummy placeholder, kModelAnimationZubenWalking (399) is a Zuben animation
-		*animation = kModelAnimationZubenWalking;
+		*animation = 399;
 		break;
 	}
 	*frame = _animationFrame;
@@ -234,40 +214,32 @@ bool AIScriptGrigorian::ChangeAnimationMode(int mode) {
 		_animationState = 0;
 		_animationFrame = 0;
 		break;
-
 	case kAnimationModeWalk:
-		// TODO A bug? This animation state is not for walking. It is for kModelAnimationGrigorianStandAnnoyedTalk.
 		if (_animationState != 1) {
 			_animationState = 1;
 			_animationFrame = 0;
 		}
 		break;
-
 	case kAnimationModeTalk:
 		_animationState = 2;
 		_animationFrame = 0;
 		break;
-
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
 		break;
-
 	case 13:
 		_animationState = 4;
 		_animationFrame = 0;
 		break;
-
 	case 14:
 		_animationState = 5;
 		_animationFrame = 0;
 		break;
-
 	case 15:
 		_animationState = 6;
 		_animationFrame = 0;
 		break;
-
 	case 16:
 		_animationState = 7;
 		_animationFrame = 0;

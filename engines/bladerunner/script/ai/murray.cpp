@@ -25,7 +25,7 @@
 namespace BladeRunner {
 
 AIScriptMurray::AIScriptMurray(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptMurray::Initialize() {
@@ -34,7 +34,7 @@ void AIScriptMurray::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 	Actor_Put_In_Set(kActorMurray, kSetHF01);
 	Actor_Set_At_XYZ(kActorMurray, 566.07f, -0.01f, -205.43f, 271);
 	Actor_Set_Goal_Number(kActorMurray, 0);
@@ -123,68 +123,68 @@ bool AIScriptMurray::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptMurray::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationMurrayIdle;
+		*animation = 698;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayIdle))
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(698))
 			_animationFrame = 0;
 		break;
 
 	case 1:
-		*animation = kModelAnimationMurrayCalmTalk;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+		*animation = 700;
+		if (!_animationFrame && _flag) {
 			_animationState = 0;
 		} else {
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayCalmTalk))
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(700))
 				_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		*animation = kModelAnimationMurrayMoreCalmTalk;
+		*animation = 701;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayMoreCalmTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(701)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = kModelAnimationMurrayCalmTalk;
+			*animation = 700;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationMurrayExplainTalk;
+		*animation = 702;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(702)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = kModelAnimationMurrayCalmTalk;
+			*animation = 700;
 		}
 		break;
 
 	case 4:
-		*animation = kModelAnimationMurrayMoreExplainTalk;
+		*animation = 703;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayMoreExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(703)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = kModelAnimationMurrayCalmTalk;
+			*animation = 700;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationMurrayCautionTalk;
+		*animation = 704;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayCautionTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(704)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = kModelAnimationMurrayCalmTalk;
+			*animation = 700;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationMurrayGestureGive;
+		*animation = 699;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMurrayGestureGive)) {
-			*animation = kModelAnimationMurrayIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(699)) {
+			*animation = 698;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
@@ -203,7 +203,7 @@ bool AIScriptMurray::ChangeAnimationMode(int mode) {
 	switch (mode) {
 	case kAnimationModeIdle:
 		if (_animationState > 0 && _animationState <= 5) {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = true;
 		} else {
 			_animationState = 0;
 			_animationFrame = 0;
@@ -213,31 +213,31 @@ bool AIScriptMurray::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 1;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 12:
 		_animationState = 2;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 13:
 		_animationState = 3;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 14:
 		_animationState = 4;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 15:
 		_animationState = 5;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 	}
 

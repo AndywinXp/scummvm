@@ -52,7 +52,6 @@ bool AIScriptGenericWalkerC::Update() {
 				return true;
 			}
 			break;
-
 		case kGoalGenwalkerMoving:
 			if (deltaX != 0.0f || deltaZ != 0.0f) {
 				movingUpdate();
@@ -94,39 +93,30 @@ void AIScriptGenericWalkerC::ClickedByPlayer() {
 	case 1:
 		Actor_Says(kActorMcCoy, 365, 3);
 		break;
-
 	case 2:
 		Actor_Says(kActorMcCoy, 755, 3);
 		break;
-
 	case 3:
 		Actor_Says(kActorMcCoy, 940, 3);
 		break;
-
 	case 4:
 		Actor_Says(kActorMcCoy, 4560, 3);
 		break;
-
 	case 5:
 		Actor_Says(kActorMcCoy, 4870, 3);
 		break;
-
 	case 6:
 		Actor_Says(kActorMcCoy, 5125, 3);
 		break;
-
 	case 7:
 		Actor_Says(kActorMcCoy, 8450, 3);
 		break;
-
 	case 8:
 		Actor_Says(kActorMcCoy, 1085, 3);
 		break;
-
 	case 9:
 		Actor_Says(kActorMcCoy, 365, 3); // Re-used line, same as case 1
 		break;
-
 	case 10:
 		Actor_Says(kActorMcCoy, 7415, 3);
 		break;
@@ -194,54 +184,45 @@ bool AIScriptGenericWalkerC::UpdateAnimation(int *animation, int *frame) {
 	case kGenericWalkerCStatesIdle:
 		switch (Global_Variable_Query(kVariableGenericWalkerCModel)) {
 		case 0:
-			*animation = kModelGenWalkerHattedPersonWithUmbrellaStandsStill; // Hatted Person with umbrella still
+			*animation = 426;
 			break;
-
 		case 1:
-			*animation = kModelGenWalkerHoodedPersonWithUmbrellaStandsStill; // Hooded person with umbrella still
+			*animation = 430;
 			break;
-
 		case 2:
 #if BLADERUNNER_ORIGINAL_BUGS
 			// Hatted lady with wooden umbrella still (different from 436 model!)
-			*animation = kModelGenWalkerHattedLadyWithWoodenUmbrellaStandsStill;
+			*animation = 437;
 #else
 			// use model 436 and animation frame 4
-			*animation = kModelGenWalkerHattedPersonWithWoodenUmbrella;
-			_animationFrame = 4; // frame 4 is used for still
+			*animation = 436;
+			_animationFrame = 4;
 #endif // BLADERUNNER_ORIGINAL_BUGS
 			break;
-
 		case 3:
-			*animation = kModelGenWalkerPunkPersonWithGlassesAndBeardStandsStill;
+			*animation = 431;
 			break;
-
 		case 4:
-			*animation = kModelGenWalkerHattedPersonNoUmbrellaStandsStill;
+			*animation = 427;
 			break;
-
 		case 5:
-			*animation = kModelGenWalkerPunkPersonWithGlassesStandsStill;
+			*animation = 433;
 			break;
-
 		case 6:
-			*animation = kModelGenWalkerHattedChild; // Hatted child walking
-			_animationFrame = 11; // frame 11 used for still
+			*animation = 434; // Hatted child walking // frame 11 could be used for still
+			_animationFrame = 11;
 			break;
-
 		case 7:
-			*animation = kModelGenWalkerChild; // Child walking
-			_animationFrame = 0; // frame 0 used for still (could also use frame 5)
+			*animation = 435; // Child walking // frame 5 or 0 could be used for still
+			_animationFrame = 0;
 			break;
-
 		case 8:
-			*animation = kModelGenWalkerHattedPersonFastPace; // Hatted person walking fast
-			_animationFrame = 1; // frame 1 used for still
+			*animation = 422; // Hatted person walking fast // frame 1 could be used for still
+			_animationFrame = 1;
 			break;
-
 		case 9:
-			*animation = kModelGenWalkerHattedPersonLoweredFace; // Hatted person walking lowered face
-			_animationFrame = 6; // frame 6 used for still
+			*animation = 423; // Hatted person walking lowered face // frame 6 could be used for still
+			_animationFrame = 6;
 			break;
 		}
 		if (!_vm->_cutContent
@@ -250,47 +231,37 @@ bool AIScriptGenericWalkerC::UpdateAnimation(int *animation, int *frame) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case kGenericWalkerCStatesWalk:
 		switch (Global_Variable_Query(kVariableGenericWalkerCModel)) {
 		case 0:
-			*animation = kModelGenWalkerHattedPersonWithUmbrella;
+			*animation = 424;
 			break;
-
 		case 1:
-			*animation = kModelGenWalkerHoodedPersonWithUmbrella;
+			*animation = 428;
 			break;
-
 		case 2:
-			*animation = kModelGenWalkerHattedPersonWithWoodenUmbrella;
+			*animation = 436;
 			break;
-
 		case 3:
-			*animation = kModelGenWalkerPunkPersonWithGlassesAndBeard;
+			*animation = 429;
 			break;
-
 		case 4:
-			*animation = kModelGenWalkerHattedPersonNoUmbrellaSmallSteps;
+			*animation = 425;
 			break;
-
 		case 5:
-			*animation = kModelGenWalkerPunkPersonWithGlasses;
+			*animation = 432;
 			break;
-
 		case 6:
-			*animation = kModelGenWalkerHattedChild; // Hatted child walking
+			*animation = 434; // Hatted child walking
 			break;
-
 		case 7:
-			*animation = kModelGenWalkerChild; // Child walking
+			*animation = 435; // Child walking
 			break;
-
 		case 8:
-			*animation = kModelGenWalkerHattedPersonFastPace; // Hatted person walking fast
+			*animation = 422; // Hatted person walking fast
 			break;
-
 		case 9:
-			*animation = kModelGenWalkerHattedPersonLoweredFace; // Hatted person walking lowered face
+			*animation = 423; // Hatted person walking lowered face
 			break;
 		}
 		++_animationFrame;
@@ -298,7 +269,6 @@ bool AIScriptGenericWalkerC::UpdateAnimation(int *animation, int *frame) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case kGenericWalkerCStatesDie:
 		// This is an animation for Maggie (exploding) but is also used for generic death states (rats, generic walkers)
 		// probably for debug purposes
@@ -328,7 +298,6 @@ bool AIScriptGenericWalkerC::ChangeAnimationMode(int mode) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case kAnimationModeWalk:
 		_animationState = kGenericWalkerCStatesWalk;
 		_animationFrame = 0;

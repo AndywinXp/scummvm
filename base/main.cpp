@@ -620,14 +620,15 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 			}
 
 			// Quit unless an error occurred, or Return to launcher was requested
-			if (result.getCode() == Common::kNoError && !g_system->getEventManager()->shouldReturnToLauncher() &&
-			    !g_system->hasFeature(OSystem::kFeatureNoQuit) && !ConfMan.getBool("gui_return_to_launcher_at_exit"))
+#ifndef FORCE_RETURN_TO_LAUNCHER
+			if (result.getCode() == Common::kNoError && !g_system->getEventManager()->shouldReturnToLauncher())
 				break;
-
-			// Reset the return to launcher and quit flags in case we want to load another engine
+#endif
+			// Reset the return to launcher flag in case we want to load another engine
 			g_system->getEventManager()->resetReturnToLauncher();
+#ifdef FORCE_RETURN_TO_LAUNCHER
 			g_system->getEventManager()->resetQuit();
-
+#endif
 #ifdef ENABLE_EVENTRECORDER
 			if (g_eventRec.checkForContinueGame()) {
 				continue;
@@ -697,7 +698,7 @@ extern "C" int scummvm_main(int argc, const char * const argv[]) {
 #endif
 	Common::SearchManager::destroy();
 #ifdef USE_TRANSLATION
-	Common::MainTranslationManager::destroy();
+	Common::TranslationManager::destroy();
 #endif
 	MusicManager::destroy();
 	Graphics::CursorManager::destroy();

@@ -101,12 +101,6 @@ enum _TextId {
 
 #define TEXT_MAX_FADE_IN_CHR 32
 
-enum class ProgressiveTextState {
-	End = 0,
-	UNK1 = 1,
-	NextPage = 2
-};
-
 class TwinEEngine;
 class Text {
 private:
@@ -126,7 +120,7 @@ private:
 	 * @param character ascii character to display
 	 * @param color character color
 	 */
-	void drawCharacterShadow(int32 x, int32 y, uint8 character, int32 color, Common::Rect& dirtyRect);
+	void drawCharacterShadow(int32 x, int32 y, uint8 character, int32 color);
 	void initProgressiveTextBuffer();
 	struct WordSize {
 		int32 inChar = 0;
@@ -168,12 +162,13 @@ private:
 
 	// TODO: refactor all this variables and related functions
 	char _progressiveTextBuffer[256] {'\0'};
-	const char *_progressiveTextNextWord = nullptr;
+	char *printText8Var8 = nullptr;
+	int32 printText10Var1 = 0;
 
 	int32 _dialTextXPos = 0;
-	int32 _dialTextYPos = 0;
 	char *_progressiveTextBufferPtr = nullptr;
 	int32 _dialTextBoxCurrentLine = 0;
+	int32 _dialTextYPos = 0;
 	bool _progressiveTextEnd = false;
 	bool _progressiveTextNextPage = false;
 	struct BlendInCharacter {
@@ -189,13 +184,9 @@ private:
 	/** Current dialogue text size */
 	int32 _currDialTextSize = 0;
 
-	char currMenuTextBuffer[256];
-	int32 currMenuTextBank = TextBankId::None;
-	int32 currMenuTextIndex = -1;
-
 	/** Pixel size between dialogue text */
 	int32 _dialSpaceBetween = 0;
-	/** Pixel size of the space character - recalculated per per line */
+	/** Pixel size of the space character */
 	int32 _dialCharSpace = 0;
 	/** Dialogue text color */
 	int32 _dialTextColor = 0;
@@ -216,9 +207,9 @@ private:
 	Common::Rect _dialTextBox { 0, 0, 0, 0};
 
 	int32 _dialTextBoxLines = 0; // dialogueBoxParam1
-	int32 _dialTextBoxMaxX = 0; // dialogueBoxParam2
+	int32 _dialTextBoxParam2 = 0; // dialogueBoxParam2
 public:
-	Text(TwinEEngine *engine);
+	Text(TwinEEngine *engine) : _engine(engine) {}
 	~Text();
 
 	// TODO: refactor all this variables and related functions
@@ -241,7 +232,6 @@ public:
 	 * @param bankIdx Text bank index
 	 */
 	void initTextBank(int32 bankIdx);
-	void initSceneTextBank();
 
 	/**
 	 * Display a certain dialogue text in the screen
@@ -265,9 +255,7 @@ public:
 	void initInventoryDialogueBox();
 
 	void initText(int32 index);
-	void initInventoryText(int index);
-	void initItemFoundText(int index);
-	ProgressiveTextState updateProgressiveText();
+	int updateProgressiveText();
 
 	/**
 	 * Set font type parameters

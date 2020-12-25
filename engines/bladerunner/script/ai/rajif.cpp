@@ -112,16 +112,16 @@ bool AIScriptRajif::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 
 bool AIScriptRajif::UpdateAnimation(int *animation, int *frame) {
 	if (_animationState <= 1) {
-		if (_animationState > 0) {
-			*animation = kModelAnimationRajifWithGunIdle;
+		if (_animationState) {
+			*animation = 751;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationRajifWithGunIdle)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
 				_animationFrame = 0;
 			}
 		} else { // bug in original. Both branches are equal
-			*animation = kModelAnimationRajifWithGunIdle;
+			*animation = 751;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationRajifWithGunIdle)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
 				_animationFrame = 0;
 			}
 		}

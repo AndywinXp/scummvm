@@ -24,7 +24,6 @@
 #include "hadesch/hadesch.h"
 #include "hadesch/video.h"
 #include "hadesch/ambient.h"
-#include "common/translation.h"
 
 namespace Hadesch {
 
@@ -79,12 +78,11 @@ static const char *hadesIntroVideos[] = {
 	"H0020bF0"
 };
 
-static const TranscribedSound h0090_names[] = {
-	{ "H0090wF0", _s("Congratulations. You've shown Mr Sour Grapes") },
-	{ "H0090wA0", _s("The enveloppe, please. And the winner is ... you. Hey, good job. That's showing him") },
-	{ "H0090wB0", _s("Way to go") },
-	// Difficult to hear. Please someone check after me
-	{ "H0090wE0", _s("You're amazing. Or Hades is hard under the gollar") }
+static const char *h0090_names[] = {
+	"H0090wF0",
+	"H0090wA0",
+	"H0090wB0",
+	"H0090wE0"
 };
 
 static const int kNumQuestions = 4;
@@ -129,7 +127,7 @@ public:
 		Persistent *persistent = g_vm->getPersistent();
 		switch (eventId) {
 		case kBigItemSwitchToLoop:
-			room->playAnimWithSFX(
+			room->playAnimWithSound(
 				_bigItem, "SpinningItemSnd", kBigItemZ, PlayAnimParams::loop().partial(4, -1));
 			break;
 		case kZeusStingerFinished:
@@ -143,8 +141,8 @@ public:
 		case kHadesVideoFinished:
 			room->selectFrame(kQuestionBackground, kOverlayAnimZ, 0);
 			room->playAnimLoop("FlameAnim", kFlameAnimZ);
-			room->playSFXLoop("FlameSnd");
-			room->playMusicLoop("AmbientQuestionMusic");
+			room->playSoundLoop("FlameSnd");
+			room->playSoundLoop("AmbientQuestionMusic");
 			smallAnim();
 			playHadesVideo(hadesIntroVideos[g_vm->getRnd().getRandomNumberRng(0, 5)],
 					kFirstQuestion);
@@ -200,15 +198,14 @@ public:
 			break;
 
 		case kHadesFirstLaugh:
-			hadesAndZeus(TranscribedSound::make("ZeusNotFair", "Hold on, Hades. That's not fair. You've never explained the rules. That doesn't count"),
-				     kHadesInstructions);
+			hadesAndZeus("ZeusNotFair", kHadesInstructions);
 			_hadesIsFree = false;
 			break;
 
 		case kHadesInstructions:
 			hadesAndZeusEnd();
-			room->playAnimWithSFX("FlameBurstAnim", "FlameBurstSnd", kFlameBurstAnimZ,
-					      PlayAnimParams::disappear(), 30021);
+			room->playAnimWithSound("FlameBurstAnim", "FlameBurstSnd", kFlameBurstAnimZ,
+						PlayAnimParams::disappear(), 30021);
 			_shrinkLevel--;
 			break;
 
@@ -238,8 +235,8 @@ public:
 			break;
 
 		case kBuzzerFinished:
-			room->playAnimWithSFX("FlameBurstAnim", "FlameBurstSnd", kFlameBurstAnimZ,
-					      PlayAnimParams::disappear());
+			room->playAnimWithSound("FlameBurstAnim", "FlameBurstSnd", kFlameBurstAnimZ,
+						PlayAnimParams::disappear());
 			_shrinkLevel++;
 			if (_wrongAnswerCount == 0) {
 				playHadesVideo("HadesLaugh", kHadesFirstLaugh);
@@ -423,9 +420,9 @@ private:
 		_hadesIsFree = false;
 		room->selectFrame(kHadesEyes, kHadesEyesZ, 0);
 		if (selected == getRightAnswer())
-			room->playSFX("DingSnd", kDingFinished);
+			room->playSound("DingSnd", kDingFinished);
 		else
-			room->playSFX("BuzzerSnd", kBuzzerFinished);
+			room->playSound("BuzzerSnd", kBuzzerFinished);
 		memset(_frames, 0, sizeof (_frames));
 		for (int ansidx = 0; ansidx < kNumAnswers; ansidx++) {
 			_frames[ansidx] = 5;
@@ -437,9 +434,9 @@ private:
 		renderQuestion();
 	}
 
-	void hadesAndZeus(const TranscribedSound &name, int event) {
+	void hadesAndZeus(const Common::String &name, int event) {
 		Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
-		room->playAnimWithSpeech("HadesAndZeusAnim", name, kHadesAndZeusAnimZ,
+		room->playAnimWithSound("HadesAndZeusAnim", name, kHadesAndZeusAnimZ,
 					PlayAnimParams::keepLastFrame().partial(0, 5), event);
 		room->playAnim("ZeusLightAnim", kZeusLightAnimZ, PlayAnimParams::keepLastFrame());
 		_hadesIsFree = false;

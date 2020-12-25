@@ -26,7 +26,7 @@ namespace BladeRunner {
 
 AIScriptMutant3::AIScriptMutant3(BladeRunnerEngine *vm) : AIScriptBase(vm) {
 	_var1 = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 }
 
 void AIScriptMutant3::Initialize() {
@@ -36,7 +36,7 @@ void AIScriptMutant3::Initialize() {
 	_animationNext = 0;
 
 	_var1 = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 
 	Actor_Put_In_Set(kActorMutant3, kSetFreeSlotG);
 	Actor_Set_At_Waypoint(kActorMutant3, 39, 0);
@@ -331,17 +331,13 @@ bool AIScriptMutant3::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 			break;
 
 		case kSetUG04:
-			// fall through
 		case kSetUG05:
-			// fall through
 		case kSetUG06:
 			Non_Player_Actor_Combat_Mode_On(kActorMutant3, kActorCombatStateIdle, false, kActorMcCoy, 10, kAnimationModeCombatIdle, kAnimationModeCombatWalk, kAnimationModeCombatRun, -1, -1, -1, 10, 300, false);
 			break;
 
 		case kSetUG10:
-			// fall through
 		case kSetUG12:
-			// fall through
 		case kSetUG14:
 			Non_Player_Actor_Combat_Mode_On(kActorMutant3, kActorCombatStateIdle, false, kActorMcCoy, 14, kAnimationModeCombatIdle, kAnimationModeCombatWalk, kAnimationModeCombatRun, -1, -1, -1, 10, 300, false);
 			break;
@@ -384,54 +380,54 @@ bool AIScriptMutant3::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptMutant3::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationMutant3Idle;
+		*animation = 910;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3Idle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(910)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = kModelAnimationMutant3Walking;
+		*animation = 908;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3Walking)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(908)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		*animation = kModelAnimationMutant3Running;
+		*animation = 909;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3Running)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(909)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 3:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationMutant3Idle;
+		if (!_animationFrame && _flag) {
+			*animation = 910;
 			_animationState = 0;
 		} else {
-			*animation = kModelAnimationMutant3YellOrHurt;
+			*animation = 912;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3YellOrHurt)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(912)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 4:
-		*animation = kModelAnimationMutant3YellOrHurt;
+		*animation = 912;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3YellOrHurt)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(912)) {
 			_animationFrame = 0;
 			_animationState = 3;
-			*animation = kModelAnimationMutant3CalmTalk;
+			*animation = 911;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationMutant3PicksUpAndThrowsRock;
+		*animation = 913;
 		++_animationFrame;
 		if (_animationFrame == 9) {
 			int snd;
@@ -451,62 +447,61 @@ bool AIScriptMutant3::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 6:
-		*animation = kModelAnimationMutant3ShotDead;
+		*animation = 917;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3ShotDead)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(917)) {
 			Actor_Change_Animation_Mode(kActorMutant3, 88);
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationMutant3ShotDead;
-		_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3ShotDead) - 1;
+		*animation = 917;
+		_animationFrame = Slice_Animation_Query_Number_Of_Frames(917) - 1;
 		break;
 
 	case 8:
-		*animation = kModelAnimationMutant3CrouchedWaiting;
+		*animation = 914;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3CrouchedWaiting)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(914)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 9:
-		*animation = kModelAnimationMutant3CrouchedFromStanding;
+		*animation = 916;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3CrouchedFromStanding)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(916)) {
 			_animationFrame = 0;
 			_animationState = 8;
-			*animation = kModelAnimationMutant3CrouchedWaiting;
+			*animation = 914;
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationMutant3CrouchedToStanding;
+		*animation = 915;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3CrouchedToStanding)) {
-			*animation = kModelAnimationMutant3Idle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(915)) {
+			*animation = 910;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationMutant3ShotDead;
+		*animation = 917;
 		_animationFrame += _var1;
 		if (_animationFrame == 3) {
 			Sound_Play(kSfxHURT1M3, 100, 0, 0, 50);
 			_var1 = -1;
 		} else {
-			if (_animationFrame == 0) {
+			if (!_animationFrame) {
 				Actor_Change_Animation_Mode(kActorMutant3, kAnimationModeIdle);
 			}
 		}
 		break;
 
 	default:
-		// Dummy placeholder, kModelAnimationZubenIdle (406) is a Zuben animation
-		*animation = kModelAnimationZubenIdle;
+		*animation = 406;
 		break;
 	}
 	*frame = _animationFrame;
@@ -519,14 +514,14 @@ bool AIScriptMutant3::ChangeAnimationMode(int mode) {
 	case 0:
 		switch (_animationState) {
 		case 3:
-			// fall through
 		case 4:
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 			break;
 
 		case 8:
 			_animationState = 10;
 			_animationFrame = 0;
+
 			break;
 
 		case 10:
@@ -540,30 +535,27 @@ bool AIScriptMutant3::ChangeAnimationMode(int mode) {
 		break;
 
 	case 1:
-		// fall through
 	case 7:
 		_animationState = 1;
 		_animationFrame = 0;
 		break;
 
 	case 2:
-		// fall through
 	case 8:
 		_animationState = 2;
 		_animationFrame = 0;
 		break;
 
 	case 3:
-		// fall through
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 4:
 		if (_animationState >= 3 && _animationState <= 4) {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 		} else {
 			_animationState = 0;
 			_animationFrame = 0;
@@ -576,7 +568,6 @@ bool AIScriptMutant3::ChangeAnimationMode(int mode) {
 		break;
 
 	case 21:
-		// fall through
 	case 22:
 		_animationState = 11;
 		_animationFrame = 0;
@@ -585,7 +576,7 @@ bool AIScriptMutant3::ChangeAnimationMode(int mode) {
 
 	case 88:
 		_animationState = 7;
-		_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationMutant3ShotDead) - 1;
+		_animationFrame = Slice_Animation_Query_Number_Of_Frames(917) - 1;
 		break;
 
  	case 43:

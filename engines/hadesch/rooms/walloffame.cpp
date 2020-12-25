@@ -243,7 +243,7 @@ public:
 		if (hotname == kApplicationHeroineHotzone) {
 			room->selectFrame(kApplicationHeroine, kApplicationButtonZ, 1);
 			room->selectFrame(kApplicationHero, kApplicationButtonZ, 0);
-			room->playSFX(kApplicationChooseHeroineSound);
+			room->playSound(kApplicationChooseHeroineSound);
 			_gender = kFemale;
 			computeEnter();
 			return;
@@ -251,7 +251,7 @@ public:
 		if (hotname == kApplicationHeroHotzone) {
 			room->selectFrame(kApplicationHeroine, kApplicationButtonZ, 0);
 			room->selectFrame(kApplicationHero, kApplicationButtonZ, 1);
-			room->playSFX(kApplicationChooseHeroSound);
+			room->playSound(kApplicationChooseHeroSound);
 			_gender = kMale;
 			computeEnter();
 			return;
@@ -270,7 +270,7 @@ public:
 			if (hotname == herculesRoomElements[i]) {
 				room->disableMouse();
 				room->playAnimKeepLastFrame(hotname + " glow", kGlowZ);
-				room->playSFX("click");
+				room->playSound("click");
 				room->playVideo("zeus " + hotname, kSoundOnlyZ, 1019026);
 				return;
 			}
@@ -278,9 +278,9 @@ public:
 		for (unsigned power = 0; power < ARRAYSIZE(powerLevelNames); power++) {
 			if (hotname.matchString(Common::String::format("%s#", powerLevelNames[power]))) {
 				Common::String pl(powerLevelNames[power]);
-				room->playSFX("click");
+				room->playSound("click");
 				if (strcmp(powerLevelNames[power], "thunderbolt") == 0)
-					room->playSFX("thunder sound");
+					room->playSound("thunder sound");
 				zeusCommentRight("zeus " + pl);
 				return;
 			}
@@ -288,13 +288,13 @@ public:
 
 		for (unsigned i = 0; i < sizeof (zeusComments) / sizeof(zeusComments[0]); i++)
 			if (hotname == zeusComments[i]) {
-				room->playSFX("click");
+				room->playSound("click");
 				zeusCommentRight(Common::String("zeus ") + hotname);
 				return;
 			}
 
 		if (hotname == "typhon") {
-			room->playSFX("click");
+			room->playSound("click");
 			zeusCommentRight(persistent->_gender == kFemale ? "zeus typhon heroine" : "zeus typhon hero");
 			return;
 		}
@@ -392,7 +392,7 @@ public:
 			room->playVideo(kZeusYooHoo, kSoundOnlyZ, 19701); // zeus yoo-hoo
 			break;
 		case 19005:
-			playPhilAnimSFX(kPhilRollsOver, 1019001, Common::Point(-26, 2)); // state 1
+			playPhilAnim(kPhilRollsOver, 1019001, Common::Point(-26, 2)); // state 1
 			break;
 		case 19011:
 			room->playVideo(kZeusVacationIsOver, kSoundOnlyZ, 19012);
@@ -423,13 +423,13 @@ public:
 			break;
 		case 1019001:
 			cancelAllPhils();
-			playPhilAnimSFX(kPhilJumpsOffPillow, -1, Common::Point(-26, 2)); // state 4
+			playPhilAnim(kPhilJumpsOffPillow, -1, Common::Point(-26, 2)); // state 4
 			room->playVideo(kZeusYellsPhil, kSoundOnlyZ, 19011);
 			break;
 		case 1019003:
 			room->setLayerEnabled(kRope, true);
 			displayPhilIdle();
-			room->playAnimWithSFX(
+			room->playAnimWithSound(
 				kApplicationUnfurls, kApplicationUnfurlsSound,
 				kApplicationZ, PlayAnimParams::disappear().speed(200), 1019004);
 			break;
@@ -466,7 +466,7 @@ public:
 			break;
 		case 1019011:
 			displayPhilYap();
-			room->playAnimWithSFX(
+			room->playAnimWithSound(
 				kHeroBelt, kHeroBeltUpSound, kHeroBeltZ,
 				PlayAnimParams::keepLastFrame().partial(0, 9),
 				19022, kOffsetRightRoom);
@@ -480,25 +480,25 @@ public:
 		case 1019013:
 			room->selectFrame(kHeroBelt, kHeroBeltZ, 10,
 					     kOffsetRightRoom);
-			room->playSFX("hero belt items highlight sound");
+			room->playSound("hero belt items highlight sound");
 			room->playVideo(kPhilClickAnItem, kPhilZ, 1019014); // state 15
 			break;
 		case 1019014:
 			room->selectFrame(kHeroBelt, kHeroBeltZ, 11,
 					     kOffsetRightRoom);
-			room->playSFX("hero belt items highlight sound");
+			room->playSound("hero belt items highlight sound");
 			room->playVideo(kPhilHeroPowers, kPhilZ, 1019015); // state 16
 			break;
 		case 1019015:
 			room->selectFrame(kHeroBelt, kHeroBeltZ, 12,
 					     kOffsetRightRoom);
-			room->playSFX("hero belt items highlight sound");
+			room->playSound("hero belt items highlight sound");
 			g_vm->addTimer(19029, 4000);
 			room->playVideo(kPhilRightNotches, kPhilZ, 1019016); // state 17
 			break;
 		case 1019016:
 			g_vm->cancelTimer(19029);
-			room->playAnimWithSFX(
+			room->playAnimWithSound(
 				kHeroBelt, kHeroBeltDownSound, kHeroBeltZ, PlayAnimParams::disappear().partial(9, 0),
 				1019017, kOffsetRightRoom);
 			break;
@@ -508,27 +508,27 @@ public:
 				      Common::Point(-8, 144)); // state 18
 			break;
 		case 1019018:
-			room->playSFX(kPanicAndPainSting);
+			room->playSound(kPanicAndPainSting);
 			playPhilVideo(kPhilBadNews, 1019019, Common::Point(14, 320)); // state 19
 			break;
 		case 1019019:
 			displayPhilIdle();
-			room->playAnimWithSFX(kMugshot, kMugshotSound,
-					      kMugshotZ, PlayAnimParams::keepLastFrame(),
-					      19006, kOffsetRightRoom);
+			room->playAnimWithSound(kMugshot, kMugshotSound,
+						kMugshotZ, PlayAnimParams::keepLastFrame(),
+						19006, kOffsetRightRoom);
 			break;
 		case 19006:
-			room->playAnimWithSFX(kScroll, kScrollSound,
-					      kScrollZ, PlayAnimParams::keepLastFrame(),
-					      19009, kOffsetRightRoom);
+			room->playAnimWithSound(kScroll, kScrollSound,
+						kScrollZ, PlayAnimParams::keepLastFrame(),
+						19009, kOffsetRightRoom);
 			break;
 		case 19009:
 			playPhilVideo(kPhilFirstQuest, kPhilNewQuestScroll, Common::Point(40, 324)); // state 21
 			break;
 		case kPhilNewQuestScroll:
 			room->selectFrame(kScroll, kScrollZ, 0, kOffsetRightRoom);
-			room->playMusic("quest intro music");
-			playPhilAnimSFX(kPhilTakesScroll, 1019021); // state 22
+			room->playSound("quest intro music");
+			playPhilAnim(kPhilTakesScroll, 1019021); // state 22
 			break;
 		case 1019021:
 			switch (quest) {
@@ -545,7 +545,7 @@ public:
 			}
 			break;
 		case 1019022:
-			playPhilAnimSFX(kPhilDropsScroll, 1019023); // state 23
+			playPhilAnim(kPhilDropsScroll, 1019023); // state 23
 			break;
 		case 1019023:
 			switch (quest) {
@@ -623,8 +623,8 @@ public:
 				}
 				_philWalkPhase++;
 				updatePhilHotzone();
-				playPhilAnimSFX("phil walks left to center", kPhilJokeEventCleanup,
-						Common::Point(-166, +2));
+				playPhilAnim("phil walks left to center", kPhilJokeEventCleanup,
+					     Common::Point(-166, +2));
 				break;
 			case 6:
 				// state 45, go left
@@ -634,29 +634,29 @@ public:
 				}
 				_philWalkPhase--;
 				updatePhilHotzone();
-				playPhilAnimSFX(kPhilWalksCenterToLeft, kPhilJokeEventCleanup);
+				playPhilAnim(kPhilWalksCenterToLeft, kPhilJokeEventCleanup);
 				break;
 			case 7:
 				// state 46
-				playPhilAnimSFX("phil faces backward left", kPhilJokeEventCleanup, Common::Point(-640, 0));
+				playPhilAnim("phil faces backward left", kPhilJokeEventCleanup, Common::Point(-640, 0));
 				break;
 			case 8:
 				// state 47
-				playPhilAnimSFX(kPhilSighsLeft, kPhilJokeEventCleanup);
+				playPhilAnim(kPhilSighsLeft, kPhilJokeEventCleanup);
 				break;
 			case 9:
 				// state 48
-				playPhilAnimSFX(kPhilTapsFootLeft, kPhilJokeEventCleanup);
+				playPhilAnim(kPhilTapsFootLeft, kPhilJokeEventCleanup);
 				break;
 			case 10:
 				// state 49, dusts
 				switch (_philWalkPhase) {
 				case 0:
-					playPhilAnimSFX("phil dusts left", kPhilJokeEventCleanup);
+					playPhilAnim("phil dusts left", kPhilJokeEventCleanup);
 					break;
 				case 1:
 				case 2:
-					playPhilAnimSFX("phil dusts center", kPhilJokeEventCleanup, Common::Point(-166, 2));
+					playPhilAnim("phil dusts center", kPhilJokeEventCleanup, Common::Point(-166, 2));
 					break;
 				case 3:
 					schedulePhilJoke();
@@ -669,7 +669,7 @@ public:
 		case 19029:
 			room->selectFrame(kHeroBelt, kHeroBeltZ, 13,
 					  kOffsetRightRoom);
-			room->playSFX("hero belt items highlight sound");
+			room->playSound("hero belt items highlight sound");
 			break;
 		case kPhilJokeEventCleanup:
 			schedulePhilJoke();
@@ -683,7 +683,7 @@ public:
 			room->enableMouse();
 			break;
 		case kPhilRereadDropScroll:
-			playPhilAnimSFX(kPhilDropsScroll, 19047);
+			playPhilAnim(kPhilDropsScroll, 19047);
 			break;
 		case 19047:
 			philBecomesIdle();
@@ -722,8 +722,8 @@ public:
 			room->setPannable(false);
 			room->addStaticLayer("black background", kBackgroundZ, kOffsetRightRoom);
 			room->playVideo("hades eye of fates", 0, 19054, kOffsetRightRoom);
-			room->playSFX("herc laughs");
-			room->playSFX("phil laughs");
+			room->playSound("herc laughs");
+			room->playSound("phil laughs");
 			break;
 		case 19054:
 			g_vm->moveToRoom(kCreditsRoom);
@@ -731,7 +731,7 @@ public:
 		case 1019031:
 			_philWalkPhase--;
 			updatePhilHotzone();
-			playPhilAnimSFX(kPhilWalksCenterToLeft, 1019032);
+			playPhilAnim(kPhilWalksCenterToLeft, 1019032);
 			break;
 		case 1019032:
 			playPhilVideo("phil lots more to do", kPhilNewQuestScroll, Common::Point(14, 312)); // state 28
@@ -749,7 +749,7 @@ public:
 		case 1019036:
 			_philWalkPhase--;
 			updatePhilHotzone();
-			playPhilAnimSFX(kPhilWalksCenterToLeft, 1019037);
+			playPhilAnim(kPhilWalksCenterToLeft, 1019037);
 			break;
 		case 1019037:
 			playPhilVideo("phil good work", kPhilNewQuestScroll, Common::Point(40, 324)); // state 35
@@ -784,7 +784,7 @@ public:
 			     || code == '.' || code == '-' || code == ' ')
 			    && room->computeStringWidth("application sign-in text", _heroName + code) <= 318) {
 				_heroName += code;
-				room->playSFX("application click");
+				room->playSound("application click");
 				renderNameInApplication();
 				computeEnter();
 				return;
@@ -792,7 +792,7 @@ public:
 
 			if (_heroName.size() > 0 && code == '\b') {
 				_heroName.deleteLastChar();
-				room->playSFX("application click");
+				room->playSound("application click");
 				renderNameInApplication();
 				computeEnter();
 				return;
@@ -872,7 +872,7 @@ public:
 		room->setPannable(true);
 		if (newGame) {
 			room->disableMouse();
-			room->playAnimWithSFX(kPhilSnores, kPhilSnoresSound, kPhilZ, PlayAnimParams::loop()); //state 0
+			room->playAnimWithSound(kPhilSnores, kPhilSnoresSound, kPhilZ, PlayAnimParams::loop()); //state 0
 			room->selectFrame(kMugshot, kMugshotZ, 0, kOffsetRightRoom);
 			g_vm->addSkippableTimer(19004, 4000);
 		} else if (persistent->_doQuestIntro) {
@@ -882,12 +882,12 @@ public:
 			case kTroyQuest:
 				_philWalkPhase = 1;
 				playPhilVideo("phil congrats trapped minotaur", 1019031, Common::Point(14, 320)); // state 27
-				room->playMusic("done crete quest theme");
+				room->playSound("done crete quest theme");
 				break;
 			case kMedusaQuest:
 				_philWalkPhase = 1;
 				playPhilVideo("phil dances", 1019035, Common::Point(36, 257)); // state 38
-				room->playMusic("done troy quest theme");
+				room->playSound("done troy quest theme");
 				break;
 			case kRescuePhilQuest:
 				g_vm->addTimer(19048, 5000, 1);
@@ -895,10 +895,10 @@ public:
 				room->disableHotzone("hades note popup background2");
 				room->setPannable(false);
 				room->enableMouse();
-				room->playAnimWithSFX("hades note", "hades note sound", 150, PlayAnimParams::loop(),
-						      EventHandlerWrapper(), kOffsetRightRoom);
+				room->playAnimWithSound("hades note", "hades note sound", 150, PlayAnimParams::loop(),
+							EventHandlerWrapper(), kOffsetRightRoom);
 				room->setHotzoneEnabled("argo", false);
-				room->playMusic("done medusa quest theme");
+				room->playSound("done medusa quest theme");
 				_endGameOutro = true;
 				break;
 
@@ -922,7 +922,7 @@ public:
 
 		renderLintel();
 
-		room->playMusicLoop("C1010eA0");
+		room->playSoundLoop("C1010eA0");
 
 		g_vm->getHeroBelt()->setColour(HeroBelt::kWarm);
 	}
@@ -974,8 +974,7 @@ private:
 			persistent->_gender = _gender;
 			persistent->_heroName = _heroName;
 			room->disableMouse();
-			// Or should it be music? Unclear to me
-			room->playSFX("hades evil intro theme");
+			room->playSound("hades evil intro theme");
 			room->playVideo(kHadesBurstsIn, kHadesVideoZ, 19016);
 		}
 	}
@@ -1009,13 +1008,13 @@ private:
 						videoOffset + getPhilBase());
 	}
 
-	void playPhilAnimSFX(const Common::String &name,
-			     int callback, const Common::Point videoOffset = Common::Point(0, 0)) {
+	void playPhilAnim(const Common::String &name,
+			  int callback, const Common::Point videoOffset = Common::Point(0, 0)) {
 		Persistent *persistent = g_vm->getPersistent();
 		cancelAllPhils();
 		if (persistent->_quest == kRescuePhilQuest)
 			return;
-		g_vm->getVideoRoom()->playAnimWithSFX(
+		g_vm->getVideoRoom()->playAnimWithSound(
 			name, name + " sound", kPhilZ, PlayAnimParams::keepLastFrame(), callback,
 			videoOffset + getPhilBase());
 	}

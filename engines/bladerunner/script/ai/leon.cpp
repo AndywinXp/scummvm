@@ -28,14 +28,14 @@ AIScriptLeon::AIScriptLeon(BladeRunnerEngine *vm) : AIScriptBase(vm) {
 	_mcCoyPositionX = 0.0f;
 	_mcCoyPositionY = 0.0f;
 	_mcCoyPositionZ = 0.0f;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptLeon::Initialize() {
 	_mcCoyPositionX = 0.0f;
 	_mcCoyPositionY = 0.0f;
 	_mcCoyPositionZ = 0.0f;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 	_animationStateNext = 0;
 	_animationNext = 0;
 	_animationFrame = 0;
@@ -271,101 +271,105 @@ bool AIScriptLeon::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelLeonIdle;
+		*animation = 847;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(847)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = kModelLeonWalking;
+		*animation = 846;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonWalking)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(846)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelLeonIdle;
+		if (_animationFrame == 0
+		 && _flag
+		) {
+			*animation = 847;
 			_animationState = 0;
 		} else {
-			*animation = kModelLeonCalmTalk;
+			*animation = 850;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonCalmTalk)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(850)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 3:
-		*animation = kModelLeonComplainTalk;
+		*animation = 851;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonComplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(851)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelLeonCalmTalk;
+			*animation = 850;
 		}
 		break;
 
 	case 4:
-		*animation = kModelLeonAwkwardTalk;
+		*animation = 852;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonAwkwardTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(852)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelLeonCalmTalk;
+			*animation = 850;
 		}
 		break;
 
 	case 5:
-		*animation = kModelLeonDenyTalk;
+		*animation = 853;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonDenyTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(853)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelLeonCalmTalk;
+			*animation = 850;
 		}
 		break;
 
 	case 6:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+		if (_animationFrame == 0
+		 && _flag
+		) {
 			Actor_Change_Animation_Mode(kActorLeon, 72);
-			*animation = kModelLeonGrabHoldHigh;
+			*animation = 848;
 		} else {
-			*animation = kModelLeonGrabTalk;
+			*animation = 854;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabTalk)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(854)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 7:
-		*animation = kModelLeonGrabAndGutPunchTalk;
+		*animation = 855;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabAndGutPunchTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(855)) {
 			_animationFrame = 0;
 			_animationState = 6;
-			*animation = kModelLeonGrabTalk;
+			*animation = 854;
 		}
 		break;
 
 	case 8:
-		*animation = kModelLeonGrabTalk;
+		*animation = 854;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(854)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 9:
-		*animation = kModelLeonGrabLetsGo;
+		*animation = 849;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabLetsGo)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(849)) {
 			Actor_Change_Animation_Mode(kActorLeon, kAnimationModeIdle);
-			*animation = kModelLeonIdle;
+			*animation = 847;
 			_animationFrame = 0;
 			_animationState = 0;
 			if (Actor_Query_Goal_Number(kActorLeon) == kGoalLeonReleaseDeskClerk) {
@@ -375,7 +379,7 @@ bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 10:
-		*animation = kModelLeonPunchAttack;
+		*animation = 856;
 		++_animationFrame;
 		if (_animationFrame == 6) {
 			Actor_Change_Animation_Mode(kActorMcCoy, kAnimationModeDie);
@@ -383,7 +387,7 @@ bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 		}
 
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelLeonIdle;
+			*animation = 847;
 			_animationFrame = 0;
 			Actor_Change_Animation_Mode(kActorLeon, kAnimationModeIdle);
 		}
@@ -398,23 +402,16 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case kAnimationModeIdle:
 		switch (_animationState) {
 		case 2:
-			// fall through
 		case 3:
-			// fall through
 		case 4:
-			// fall through
 		case 5:
-			// fall through
 		case 6:
-			// fall through
 		case 7:
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = true;
 			break;
-
 		case 8:
 			Actor_Change_Animation_Mode(kActorLeon, 72);
 			break;
-
 		default:
 			_animationState = 0;
 			_animationFrame = 0;
@@ -430,7 +427,7 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 2;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case kAnimationModeCombatAttack:
@@ -441,31 +438,31 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 13:
 		_animationState = 4;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 14:
 		_animationState = 5;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 15:
 		_animationState = 6;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 16:
 		_animationState = 7;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = false;
 		break;
 
 	case 26:

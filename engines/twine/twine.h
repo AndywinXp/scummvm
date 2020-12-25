@@ -32,7 +32,7 @@
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #include "metaengine.h"
-#include "twine/scene/actor.h"
+#include "twine/actor.h"
 #include "twine/input.h"
 #include "twine/detection.h"
 
@@ -169,15 +169,6 @@ struct ScopedCursor {
 	~ScopedCursor();
 };
 
-class ScopedFPS {
-private:
-	uint32 _fps;
-	uint32 _start;
-public:
-	ScopedFPS(uint32 fps = DEFAULT_FRAMES_PER_SECOND);
-	~ScopedFPS();
-};
-
 class TwinEEngine : public Engine {
 private:
 	int32 isTimeFreezed = 0;
@@ -213,8 +204,8 @@ public:
 	void pushMouseCursorVisible();
 	void popMouseCursorVisible();
 
-	bool isLBA1() const { return _gameType == TwineGameType::GType_LBA; }
-	bool isLBA2() const { return _gameType == TwineGameType::GType_LBA2; }
+	bool isLBA1() const { return _gameType == TwineGameType::GType_LBA; };
+	bool isLBA2() const { return _gameType == TwineGameType::GType_LBA2; };
 
 	Actor *_actor;
 	Animations *_animations;
@@ -270,7 +261,6 @@ public:
 	int32 quitGame = 0;
 	int32 lbaTime = 0;
 
-	Graphics::ManagedSurface imageBuffer;
 	/** Work video buffer */
 	Graphics::ManagedSurface workVideoBuffer;
 	/** Main game video buffer */

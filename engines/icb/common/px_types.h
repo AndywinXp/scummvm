@@ -37,6 +37,8 @@ typedef struct {
 	int32 bottom;
 } LRECT;
 
+#define _MAX_PATH 260
+
 } // End of namespace ICB
 
 #endif

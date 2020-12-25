@@ -102,7 +102,6 @@ enum ScriptOpcode {
 	OPCODE_REMOVE_OBJECT,
 	OPCODE_SET_FLAG,
 	OPCODE_CALL_FUNC,
-	OPCODE_CALL_FUNC2,
 	OPCODE_TURN_TICK,
 	OPCODE_CLEAR_FLAG,
 	OPCODE_INVENTORY_ROOM,
@@ -433,15 +432,6 @@ private:
 	uint64 string_get_chunk(uint8 *string);
 	char decode_string_elem(uint8 c, bool capital, bool special);
 
-	void parse_string_table(FileBuffer *fb, uint start_addr,
-		uint32 end_addr, StringTable *table);
-	void parse_variables(FileBuffer *fb);
-	void parse_flags(FileBuffer *fb);
-	void parse_replace_words(FileBuffer *fb);
-
-	void loadGameData();
-
-protected:
 	/**
 	 * Game strings are stored using 5-bit characters. By default a character
 	 * value maps to the lower-case letter table. If a character has the value 0x1e
@@ -452,6 +442,15 @@ protected:
 	 */
 	Common::String parseString(FileBuffer *fb);
 
+	void parse_string_table(FileBuffer *fb, uint start_addr,
+		uint32 end_addr, StringTable *table);
+	void parse_variables(FileBuffer *fb);
+	void parse_flags(FileBuffer *fb);
+	void parse_replace_words(FileBuffer *fb);
+
+	void loadGameData();
+
+protected:
 	/**
 	 * The main game data file header has the offsets for where each bit of
 	 * game data is. The offsets have a magic constant value added to them.

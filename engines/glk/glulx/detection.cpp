@@ -41,7 +41,7 @@ GameDescriptor GlulxMetaEngine::findGame(const char *gameId) {
 	for (const PlainGameDescriptor *pd = GLULXE_GAME_LIST; pd->gameId; ++pd) {
 		if (!strcmp(gameId, pd->gameId)) {
 			GameDescriptor gd = *pd;
-			gd._supportLevel = kTestingGame;
+			gd._supportLevel = kUnstableGame;
 			return gd;
 		}
 	}

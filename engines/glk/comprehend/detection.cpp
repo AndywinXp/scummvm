@@ -39,9 +39,7 @@ GameDescriptor ComprehendMetaEngine::findGame(const char *gameId) {
 	for (const PlainGameDescriptor *pd = COMPREHEND_GAME_LIST; pd->gameId; ++pd) {
 		if (!strcmp(gameId, pd->gameId)) {
 			GameDescriptor gd = *pd;
-			Common::String s(pd->gameId);
-			gd._supportLevel = (s == "transylvaniav2" || s == "talisman") ?
-				kUnstableGame : kTestingGame;
+			gd._supportLevel = kUnstableGame;
 			return gd;
 		}
 	}
@@ -81,8 +79,7 @@ bool ComprehendMetaEngine::detectGames(const Common::FSList &fslist, DetectedGam
 				if (p->_md5 == md5) {
 					// Found a match
 					PlainGameDescriptor gameDesc = findGame(p->_gameId);
-					GlkDetectedGame gd(p->_gameId, gameDesc.description, filename);
-					gameList.push_back(gd);
+					gameList.push_back(GlkDetectedGame(p->_gameId, gameDesc.description, filename));
 				}
 			}
 		}

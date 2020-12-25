@@ -201,8 +201,8 @@ void SceneScriptRC01::SceneLoaded() {
 		Preload(kModelAnimationMcCoyWalking);
 		Preload(kModelAnimationMcCoyRunning);
 		Preload(kModelAnimationMcCoyIdle);
-		Preload(kModelAnimationOfficerLearyWalking);
-		Preload(kModelAnimationOfficerLearyOscillateIdle);
+		Preload(582);
+		Preload(589);
 	}
 
 	if (!Game_Flag_Query(kFlagRC01ChromeDebrisTaken)) {

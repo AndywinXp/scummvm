@@ -111,23 +111,6 @@ StarTrekEngine::StarTrekEngine(OSystem *syst, const StarTrekGameDescription *gam
 	for (int i = 0; i < MAX_BAN_FILES; i++)
 		_banFiles[i] = nullptr;
 
-	_targetPlanet = -1;
-	_currentPlanet = -1;
-	_gameIsPaused = false;
-	_hailedTarget = false;
-	_deadMasadaPrisoners = 0;
-	_beamDownAllowed = true;
-	_missionEndFlag = 0;
-
-	_awayMission.demon.missionScore = 0;
-	_awayMission.tug.missionScore = 0;
-	_awayMission.love.missionScore = 0;
-	_awayMission.mudd.missionScore = 0;
-	_awayMission.feather.missionScore = 0;
-	_awayMission.trial.missionScore = 0;
-	_awayMission.sins.missionScore = 0;
-	_awayMission.veng.missionScore = 0;
-
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "patches");
 }
@@ -166,16 +149,13 @@ Common::Error StarTrekEngine::run() {
 		if (!isDemo) {
 			playIntro();
 			_missionToLoad = "DEMON";
-			_bridgeSequenceToLoad = 0;
 			runGameMode(GAMEMODE_BRIDGE, false);
 		} else {
 			_missionToLoad = "DEMO";
-			_bridgeSequenceToLoad = -1;
 			runGameMode(GAMEMODE_AWAYMISSION, false);
 		}
 	} else {
 		_roomIndexToLoad = -1;
-		_bridgeSequenceToLoad = -1;
 		runGameMode(_gameMode, true);
 	}
 	
@@ -289,7 +269,7 @@ void StarTrekEngine::runTransportSequence(const Common::String &name) {
 
 	_sound->stopAllVocSounds();
 	_gfx->fadeoutScreen();
-	removeDrawnActorsFromScreen();
+	actorFunc1();
 	initActors();
 
 	_gfx->setBackgroundImage("transprt");
@@ -312,9 +292,12 @@ void StarTrekEngine::runTransportSequence(const Common::String &name) {
 	} else if (_missionToLoad.equalsIgnoreCase("trial")) {
 		if (name[4] == 'd') {
 			loadActorAnim(9, "qteled", 0x61, 0x79, 1.0);
-		} else if (_missionEndFlag >= 3) {
+		}
+		/* TODO
+		else if (word_51156 >= 3) {
 			loadActorAnim(9, "qteleb", 0x61, 0x79, 1.0);
 		}
+		*/
 	}
 
 	loadActorAnim(8, "transc", 0, 0, 1.0);
@@ -347,7 +330,7 @@ void StarTrekEngine::runTransportSequence(const Common::String &name) {
 
 	_gfx->drawAllSprites();
 	_gfx->fadeoutScreen();
-	removeDrawnActorsFromScreen();
+	actorFunc1();
 	initActors();
 }
 

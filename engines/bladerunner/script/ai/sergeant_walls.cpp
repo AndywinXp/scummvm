@@ -102,101 +102,90 @@ bool AIScriptSergeantWalls::UpdateAnimation(int *animation, int *frame) {
 		if ( Game_Flag_Query(kFlagSergeantWallsBuzzInRequest)
 		 && !Game_Flag_Query(kFlagSergeantWallsBuzzInDone)
 		) {
-			// TODO maybe use kModelAnimationSergeantWallsHitsBuzzerTalk here?
-			*animation = kModelAnimationSergeantWallsGestureGive;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsGestureGive)) {
+			*animation = 724;
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(724)) {
 				_animationFrame = 0;
 				Game_Flag_Set(kFlagSergeantWallsBuzzInDone);
 			}
 		} else {
-			*animation = kModelAnimationSergeantWallsIdle;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsIdle)) {
+			*animation = 722;
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(722)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
-
 	case 1:
-		*animation = kModelAnimationSergeantWallsCalmTalk;
+		*animation = 725;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsCalmTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(725)) {
 			_animationFrame = 0;
 		}
 		break;
-
 	case 3:
-		*animation = kModelAnimationSergeantWallsMoreHeadMoveTalk;
+		*animation = 726;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsMoreHeadMoveTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(726)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 4:
-		*animation = kModelAnimationSergeantWallsExplainTalk;
+		*animation = 727;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(727)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 5:
-		*animation = kModelAnimationSergeantWallsLaughTalk;
+		*animation = 728;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsLaughTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(728)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 6:
-		*animation = kModelAnimationSergeantWallsHarderLaughTalk;
+		*animation = 729;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsHarderLaughTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(729)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 7:
-		*animation = kModelAnimationSergeantWallsDefendTalk;
+		*animation = 730;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsDefendTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(730)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 8:
-		*animation = kModelAnimationSergeantWallsHitsBuzzerTalk;
+		*animation = 731;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsHitsBuzzerTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(731)) {
 			_animationState = 1;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsCalmTalk;
+			*animation = 725;
 		}
 		break;
-
 	case 9:
-		*animation = kModelAnimationSergeantWallsGestureGive;
+		*animation = 724;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationSergeantWallsGestureGive)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(724)) {
 			_animationState = 9;
 			_animationFrame = 0;
-			*animation = kModelAnimationSergeantWallsGestureGive;
+			*animation = 724;
 		}
 		break;
-
 	default:
-		// Dummy placeholder, kModelAnimationZubenWalking (399) is a Zuben animation
-		*animation = kModelAnimationZubenWalking;
+		*animation = 399;
 		break;
 	}
 	*frame = _animationFrame;
@@ -209,42 +198,34 @@ bool AIScriptSergeantWalls::ChangeAnimationMode(int mode) {
 		_animationState = 0;
 		_animationFrame = 0;
 		break;
-
 	case kAnimationModeTalk:
 		_animationState = 1;
 		_animationFrame = 0;
 		break;
-
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
 		break;
-
 	case 13:
 		_animationState = 4;
 		_animationFrame = 0;
 		break;
-
 	case 14:
 		_animationState = 5;
 		_animationFrame = 0;
 		break;
-
 	case 15:
 		_animationState = 6;
 		_animationFrame = 0;
 		break;
-
 	case 16:
 		_animationState = 7;
 		_animationFrame = 0;
 		break;
-
 	case 17:
 		_animationState = 8;
 		_animationFrame = 0;
 		break;
-
 	case 23:
 		_animationState = 9;
 		_animationFrame = 0;

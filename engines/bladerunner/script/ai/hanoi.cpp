@@ -25,10 +25,9 @@
 namespace BladeRunner {
 
 AIScriptHanoi::AIScriptHanoi(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
-	// _varChooseIdleAnimation can have valid values: 0, 1
-	_varChooseIdleAnimation = 0;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	_var1 = 0;
+	_flag1 = 0;
+	_var3 = 0;
 	_var4 = 1;
 }
 
@@ -38,9 +37,9 @@ void AIScriptHanoi::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
-	_varChooseIdleAnimation = 0;
-	_varNumOfTimesToHoldCurrentFrame = 0;
+	_var1 = 0;
+	_flag1 = 0;
+	_var3 = 0;
 	_var4 = 1;
 
 	Actor_Set_Goal_Number(kActorHanoi, 0);
@@ -357,20 +356,20 @@ bool AIScriptHanoi::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		if (_varChooseIdleAnimation > 0) {
-			*animation = kModelAnimationHanoiScratchesBackIdle;
+		if (_flag1) {
+			*animation = 649;
 			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-				*animation = kModelAnimationHanoiLooksAroundIdle;
+				*animation = 648;
 				_animationFrame = 0;
-				_varChooseIdleAnimation = 0;
+				_flag1 = false;
 			}
 			break;
 		}
 
-		*animation = kModelAnimationHanoiLooksAroundIdle;
-		if (_varNumOfTimesToHoldCurrentFrame != 0) {
-			--_varNumOfTimesToHoldCurrentFrame;
+		*animation = 648;
+		if (_var3 != 0) {
+			--_var3;
 			if (!Random_Query(0, 6)) {
 				_var4 = -_var4;
 			}
@@ -389,26 +388,26 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 			 || _animationFrame == 11
 			 || _animationFrame == 0
 			) {
-				_varNumOfTimesToHoldCurrentFrame = Random_Query(5, 12);
+				_var3 = Random_Query(5, 12);
 			}
 
 			if (_animationFrame >= 10
 			 && _animationFrame <= 13
 			) {
-				_varNumOfTimesToHoldCurrentFrame = Random_Query(0, 1);
+				_var3 = Random_Query(0, 1);
 			}
 
 			if (_animationFrame == 0) {
 				if (!Random_Query(0, 4)) {
-					_varChooseIdleAnimation = 1;
+					_flag1 = true;
 				}
 			}
 		}
 		break;
 
 	case 1:
-		if (_varChooseIdleAnimation > 0) {
-			*animation = kModelAnimationHanoiScratchesBackIdle;
+		if (_flag1) {
+			*animation = 649;
 			if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(*animation) / 2) {
 				_animationFrame += 2;
 			} else {
@@ -430,17 +429,17 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 2:
-		*animation = kModelAnimationHanoiGrabsMcCoy;
+		*animation = 657;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 3;
-			*animation = kModelAnimationHanoiHoldsMcCoyUp;
+			*animation = 658;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationHanoiHoldsMcCoyUp;
+		*animation = 658;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
@@ -448,22 +447,22 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 4:
-		*animation = kModelAnimationHanoiHoldsMcCoyUpAndTalks;
+		*animation = 659;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 3;
-			*animation = kModelAnimationHanoiHoldsMcCoyUp;
+			*animation = 658;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationHanoiGrabsMcCoy;
+		*animation = 657;
 		--_animationFrame;
 		if (_animationFrame == 0) {
 			_animationState = 0;
 			_animationFrame = 0;
-			*animation = kModelAnimationHanoiLooksAroundIdle;
+			*animation = 648;
 
 			Actor_Face_Actor(kActorMcCoy, kActorHanoi, true);
 			Actor_Set_Invisible(kActorMcCoy, false);
@@ -478,20 +477,20 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 6:
-		*animation = kModelAnimationSadikPicksUpAndThrowsMcCoy;  // Sadik is used in this animation, but he is well hidden
+		*animation = 345;  // Sadik is used in this animation, but he is well hidden
 		++_animationFrame;
 		if (_animationFrame > 26) {
 			Actor_Change_Animation_Mode(kActorHanoi, kAnimationModeIdle);
 			_animationState = 0;
 			_animationFrame = 0;
-			*animation = kModelAnimationHanoiLooksAroundIdle;
+			*animation = 648;
 			Actor_Set_Goal_Number(kActorMcCoy, kGoalMcCoyNR01ThrownOut);
 			Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiNR03GoToDefaultPosition);
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationHanoiWalking;
+		*animation = 645;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
@@ -499,7 +498,7 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 8:
-		*animation = kModelAnimationHanoiCombatIdle;
+		*animation = 642;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
@@ -507,19 +506,19 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 9:
-		*animation = kModelAnimationHanoiCombatKicksDoorIn;
+		*animation = 643;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			Actor_Change_Animation_Mode(kActorHanoi, kAnimationModeCombatIdle);
 			_animationState = 8;
 			_animationFrame = 0;
-			*animation = kModelAnimationHanoiCombatIdle;
+			*animation = 642;
 			Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiNR04ShootMcCoy);
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationHanoiCombatFiresGun;
+		*animation = 644;
 		++_animationFrame;
 
 		if (_animationFrame == 4) {
@@ -539,41 +538,42 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 			Actor_Change_Animation_Mode(kActorHanoi, kAnimationModeCombatIdle);
 			_animationFrame = 0;
 			_animationState = 8;
-			*animation = kModelAnimationHanoiCombatIdle;
+			*animation = 642;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationHanoiPunchUpAttack;
+		*animation = 660;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelAnimationHanoiLooksAroundIdle;
+			*animation = 648;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 12:
-		*animation = kModelAnimationHanoiGotHitOrViolentHeadNod;
+		*animation = 646;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelAnimationHanoiCombatIdle;
+			*animation = 642;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 13:
-		*animation = kModelAnimationHanoiShotDead;
+		*animation = 647;
 		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(*animation) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 14:
-		*animation = kModelAnimationHanoiCalmTalk;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			// _resumeIdleAfterFramesetCompletesFlag is never set so it's always false, thus this does not evaluate true
+		*animation = 650;
+		if (_animationFrame == 0
+		 && _var1 // this is never set so it's always 0
+		) {
 			_animationState = 0;
 		} else {
 			++_animationFrame;
@@ -584,62 +584,62 @@ bool AIScriptHanoi::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 15:
-		*animation = kModelAnimationHanoiExplainTalk;
+		*animation = 651;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
 	case 16:
-		*animation = kModelAnimationHanoiDownwardsNodTalk;
+		*animation = 652;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
 	case 17:
-		*animation = kModelAnimationHanoiDenyTalk;
+		*animation = 653;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
 	case 18:
-		*animation = kModelAnimationHanoiSlightBowingTalk;
+		*animation = 654;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
 	case 19:
-		*animation = kModelAnimationHanoiLaughTalk;
+		*animation = 655;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
 	case 20:
-		*animation = kModelAnimationHanoiMockTalk;
+		*animation = 656;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 14;
-			*animation = kModelAnimationHanoiCalmTalk;
+			*animation = 650;
 		}
 		break;
 
@@ -675,7 +675,7 @@ bool AIScriptHanoi::ChangeAnimationMode(int mode) {
 			_animationFrame = 0;
 		} else {
 			_animationStateNext = 14;
-			_animationNext = kModelAnimationHanoiCalmTalk;
+			_animationNext = 650;
 			_animationState = 1;
 		}
 		break;
@@ -692,50 +692,41 @@ bool AIScriptHanoi::ChangeAnimationMode(int mode) {
 
 	case 12:
 		_animationStateNext = 15;
-		_animationNext = kModelAnimationHanoiExplainTalk;
+		_animationNext = 651;
 		_animationState = 1;
 		break;
 
 	case 13:
 		_animationStateNext = 16;
-		_animationNext = kModelAnimationHanoiDownwardsNodTalk;
+		_animationNext = 652;
 		_animationState = 1;
 		break;
 
 	case 14:
 		_animationStateNext = 17;
-		_animationNext = kModelAnimationHanoiDenyTalk;
+		_animationNext = 653;
 		_animationState = 1;
 		break;
 
 	case 15:
 		_animationStateNext = 18;
-		_animationNext = kModelAnimationHanoiSlightBowingTalk;
+		_animationNext = 654;
 		_animationState = 1;
 		break;
 
 	case 16:
-		// Used when Hanoi says "You're real cute" to McCoy (in NR03), 
-		// when McCoy first tries to sit on the rotating couch
-#if BLADERUNNER_ORIGINAL_BUGS
-		// TODO a bug? uses kModelAnimationHanoiSlightBowingTalk (654) again like case 15
 		_animationStateNext = 18;
-		_animationNext = kModelAnimationHanoiSlightBowingTalk;
-#else
-		_animationStateNext = 19;
-		_animationNext = kModelAnimationHanoiLaughTalk;
-#endif
+		_animationNext = 654;
 		_animationState = 1;
 		break;
 
 	case 17:
 		_animationStateNext = 20;
-		_animationNext = kModelAnimationHanoiMockTalk;
+		_animationNext = 656;
 		_animationState = 1;
 		break;
 
 	case kAnimationModeHit:
-		// fall through
 	case kAnimationModeCombatHit:
 		_animationState = 12;
 		_animationFrame = 0;
@@ -750,7 +741,7 @@ bool AIScriptHanoi::ChangeAnimationMode(int mode) {
 			_animationFrame = 0;
 		} else {
 			_animationState = 5;
-			_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationHanoiGrabsMcCoy) - 1;
+			_animationFrame = Slice_Animation_Query_Number_Of_Frames(657) - 1;
 		}
 		break;
 

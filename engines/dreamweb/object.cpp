@@ -294,14 +294,9 @@ void DreamWebEngine::openOb() {
 
 	copyName(_openedType, _openedOb, commandLine);
 
-	if (getLanguage() != Common::RU_RUS) {
-		printMessage(kInventx, kInventy+86, 62, 240, false);
+	printMessage(kInventx, kInventy+86, 62, 240, false);
 
-		printDirect(commandLine, _lastXPos + 5, kInventy+86, 220, false);
-	} else {
-		printDirect(commandLine, kInventx, kInventy+86, 220, false);
-		printMessage(_lastXPos, kInventy+86, 62, 240, false);
-	}
+	printDirect(commandLine, _lastXPos + 5, kInventy+86, 220, false);
 
 	fillOpen();
 	_openChangeSize = getOpenedSlotCount() * kItempicsize + kInventx;

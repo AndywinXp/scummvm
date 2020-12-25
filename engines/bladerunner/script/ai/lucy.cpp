@@ -24,20 +24,8 @@
 
 namespace BladeRunner {
 
-enum kLucyStates {
-	kLucyStateIdle            = 0,
-	kLucyStateWalking         = 1,
-	kLucyStateRunning         = 2,
-	kLucyStateClimbStairsUp   = 3,
-	kLucyStateClimbStairsDown = 4,
-	kLucyStateGotShotA        = 5,
-	kLucyStateGotShotB        = 6,
-	kLucyStateDie             = 7
-	// TODO fill in the rest of the animationStates
-};
-
 AIScriptLucy::AIScriptLucy(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 }
 
 void AIScriptLucy::Initialize() {
@@ -46,7 +34,7 @@ void AIScriptLucy::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 
 	Actor_Set_Goal_Number(kActorLucy, kGoalLucyDefault);
 }
@@ -181,7 +169,6 @@ void AIScriptLucy::CompletedMovementTrack() {
 		break;
 
 	case kGoalLucyGoToFreeSlotGAG:
-		// fall through
 	case kGoalLucyGoToFreeSlotGAHJ:
 		Actor_Set_Goal_Number(kActorLucy, kGoalLucyMoveAround);
 		break;
@@ -554,32 +541,29 @@ bool AIScriptLucy::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 
 bool AIScriptLucy::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
-	case kLucyStateIdle:
-		*animation = kModelAnimationLucyIdle;
+	case 0:
+		*animation = 260;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(260)) {
 			_animationFrame = 0;
 		}
 		break;
 
-	case kLucyStateWalking:
-		// fall through
-	case kLucyStateRunning:
-		// fall through
-	case kLucyStateClimbStairsUp:
-		// fall through
-	case kLucyStateClimbStairsDown:
-		if (_animationState == kLucyStateWalking) {
-			*animation = kModelAnimationLucyWalking;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		if (_animationState == 1) {
+			*animation = 253;
 		}
-		if (_animationState == kLucyStateRunning) {
-			*animation = kModelAnimationLucyRunning;
+		if (_animationState == 2) {
+			*animation = 254;
 		}
-		if (_animationState == kLucyStateClimbStairsUp) {
-			*animation = kModelAnimationLucyClimbStairsUp;
+		if (_animationState == 3) {
+			*animation = 255;
 		}
-		if (_animationState == kLucyStateClimbStairsDown) {
-			*animation = kModelAnimationLucyClimbStairsDown;
+		if (_animationState == 4) {
+			*animation = 256;
 		}
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
@@ -587,136 +571,128 @@ bool AIScriptLucy::UpdateAnimation(int *animation, int *frame) {
 		}
 		break;
 
-	case kLucyStateGotShotA:
-		// fall through
-	case kLucyStateGotShotB:
-		if (_animationState == kLucyStateGotShotA) {
-			*animation = kModelAnimationLucyGotHitBendsForward;
+	case 5:
+	case 6:
+		if (_animationState == 5) {
+			*animation = 257;
 		}
-		if (_animationState == kLucyStateGotShotB) {
-			*animation = kModelAnimationLucyGotHitBendsBackward;
+		if (_animationState == 6) {
+			*animation = 258;
 		}
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelAnimationLucyIdle;
+			*animation = 260;
 			_animationFrame = 0;
-			_animationState = kLucyStateIdle;
+			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorLucy, kAnimationModeIdle);
 		}
 		break;
 
-	case kLucyStateDie:
-		*animation = kModelAnimationLucyShotDead;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyShotDead) - 1) {
+	case 7:
+		*animation = 259;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(259) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 8:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationLucyIdle;
-			_animationState = kLucyStateIdle;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+		if (!_animationFrame && _flag) {
+			*animation = 260;
+			_animationState = 0;
+			_flag = 0;
 		} else {
-			*animation = kModelAnimationLucyCalmShortRightwardsNodTalk;
+			*animation = 263;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyCalmShortRightwardsNodTalk)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(263)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 9:
-		// fall through
 	case 10:
-		// fall through
 	case 11:
-		// fall through
 	case 12:
-		// fall through
 	case 13:
-		// fall through
 	case 14:
-		// fall through
 	case 15:
-		// fall through
 	case 16:
 		if (_animationState == 9) {
-			*animation = kModelAnimationLucyComplainingTalk;
+			*animation = 264;
 		}
 		if (_animationState == 10) {
-			*animation = kModelAnimationLucyIntenseTalk;
+			*animation = 265;
 		}
 		if (_animationState == 11) {
-			*animation = kModelAnimationLucyPointingTalk;
+			*animation = 266;
 		}
 		if (_animationState == 12) {
-			*animation = kModelAnimationLucySelfPointingTalk;
+			*animation = 267;
 		}
 		if (_animationState == 13) {
-			*animation = kModelAnimationLucyVeryUpsetTalk;
+			*animation = 268;
 		}
 		if (_animationState == 14) {
-			*animation = kModelAnimationLucyCalmLongRightwardsNodTalk;
+			*animation = 269;
 		}
 		if (_animationState == 15) {
-			*animation = kModelAnimationLucySubtleThrowKissTalk;
+			*animation = 270;
 		}
 		if (_animationState == 16) {
-			*animation = kModelAnimationLucyHappyHopTalk;
+			*animation = 271;
 		}
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 8;
-			*animation = kModelAnimationLucyCalmShortRightwardsNodTalk;
+			*animation = 263;
 		}
 		break;
 
 	case 17:
-		*animation = kModelAnimationLucyCombatIdle;
+		*animation = 272;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyCombatIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(272)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 18:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+		if (!_animationFrame && _flag) {
 			_animationState = 17;
-			_resumeIdleAfterFramesetCompletesFlag = false;
-			*animation = kModelAnimationLucyCombatIdle;
+			_flag = 0;
+			*animation = 272;
 		} else {
-			*animation = kModelAnimationLucyCombatBlocksUp;
+			*animation = 273;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyCombatBlocksUp)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(273)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 19:
-		*animation = kModelAnimationLucyCombatResumeNonCombat;
+		*animation = 274;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyCombatResumeNonCombat)) {
-			*animation = kModelAnimationLucyIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(274)) {
+			*animation = 260;
 			_animationFrame = 0;
-			_animationState = kLucyStateIdle;
+			_animationState = 0;
 		}
 		break;
 
 	case 20:
-		*animation = kModelAnimationLucyCombatDropsDead;
+		*animation = 275;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyCombatDropsDead)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(275)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 21:
-		*animation = kModelAnimationLucyRemovesNeckletDiesFromExplosion;
+		*animation = 276;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationLucyRemovesNeckletDiesFromExplosion)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(276)) {
 			_animationFrame = 0;
 		}
 		break;
@@ -731,118 +707,118 @@ bool AIScriptLucy::UpdateAnimation(int *animation, int *frame) {
 
 bool AIScriptLucy::ChangeAnimationMode(int mode) {
 	switch (mode) {
-	case kAnimationModeIdle:
-		if (_animationState >= 8 && _animationState <= 16) {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+		case 0:
+	if (_animationState >= 8 && _animationState <= 16) {
+			_flag = 1;
 		} else {
-			_animationState = kLucyStateIdle;
+			_animationState = 0;
 			_animationFrame = 0;
 		}
 		break;
 
-	case kAnimationModeWalk:
-		_animationState = kLucyStateWalking;
+	case 1:
+		_animationState = 1;
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeRun:
-		_animationState = kLucyStateRunning;
+	case 2:
+		_animationState = 2;
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeTalk:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+	case 3:
+		_flag = 0;
 		_animationState = 8;
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeCombatIdle:
+	case 4:
 		if (_animationState >= 8 && _animationState <= 16) {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 		} else {
-			_animationState = kLucyStateIdle;
+			_animationState = 0;
 			_animationFrame = 0;
 		}
 		break;
 
-	case kAnimationModeCombatWalk:
-		_animationState = kLucyStateWalking;
+	case 7:
+		_animationState = 1;
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeCombatRun:
-		_animationState = kLucyStateRunning;
+	case 8:
+		_animationState = 2;
 		_animationFrame = 0;
 		break;
 
 	case 12:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 9;
 		_animationFrame = 0;
 		break;
 
 	case 13:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 10;
 		_animationFrame = 0;
 		break;
 
 	case 14:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 11;
 		_animationFrame = 0;
 		break;
 
 	case 15:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 12;
 		_animationFrame = 0;
 		break;
 
 	case 16:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 13;
 		_animationFrame = 0;
 		break;
 
 	case 17:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 14;
 		_animationFrame = 0;
 		break;
 
 	case 18:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 15;
 		_animationFrame = 0;
 		break;
 
 	case 19:
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		_animationState = 16;
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeHit:
+	case 21:
 		if (Random_Query(1, 2) == 1) {
-			_animationState = kLucyStateGotShotA;
+			_animationState = 5;
 		} else {
-			_animationState = kLucyStateGotShotB;
+			_animationState = 6;
 		}
 		_animationFrame = 0;
 		break;
 
-	case kAnimationModeCombatHit:
+	case 22:
 		if (Random_Query(1, 2) == 1) {
-			_animationState = kLucyStateGotShotA;
+			_animationState = 5;
 		} else {
-			_animationState = kLucyStateGotShotB;
+			_animationState = 6;
 		}
 		_animationFrame = 0;
 		break;
 
 	case kAnimationModeDie:
-		_animationState = kLucyStateDie;
+		_animationState = 7;
 		_animationFrame = 0;
 		break;
 	}
@@ -889,12 +865,7 @@ void AIScriptLucy::voightKampffTest() {
 	Actor_Says(kActorLucy, 1070, 17);
 	Delay(1000);
 	Actor_Says(kActorLucy, 1080, 14);
-#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 6820, 16);
-#else
-	// McCoy is interrupted here
-	Actor_Says_With_Pause(kActorMcCoy, 6820, 0.0f, 16);
-#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorLucy, 1090, 13);
 	if (!Game_Flag_Query(kFlagDirectorsCut)) {
 		Actor_Says(kActorMcCoy, 6825, 13);
@@ -903,13 +874,7 @@ void AIScriptLucy::voightKampffTest() {
 	Actor_Says(kActorLucy, 1100, 14);
 	Actor_Says(kActorMcCoy, 6835, 14);
 	Actor_Says(kActorLucy, 1110, 15);
-#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 6840, 13);
-#else
-	// McCoy cuts his sentence short here.
-	// He is not interrupted, but still we should use Actor_Says_With_Pause 0.0f
-	Actor_Says_With_Pause(kActorMcCoy, 6840, 0.0f, 13);
-#endif // BLADERUNNER_ORIGINAL_BUGS
 	Delay(1000);
 	Actor_Says(kActorMcCoy, 6845, 12);
 	Delay(500);
@@ -949,12 +914,7 @@ void AIScriptLucy::voightKampffTest() {
 		Actor_Says(kActorLucy, 1210, 17);
 	}
 	Actor_Says(kActorMcCoy, 6895, 15);
-#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 6900, 11);
-#else
-	// McCoy is interrupted here
-	Actor_Says_With_Pause(kActorMcCoy, 6900, 0.0f, 11);
-#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorLucy, 1220, 16);
 	Actor_Says(kActorMcCoy, 6905, 13);
 	Actor_Says(kActorLucy, 1230, 17);

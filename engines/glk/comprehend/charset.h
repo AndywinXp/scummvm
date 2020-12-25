@@ -28,15 +28,12 @@
 namespace Glk {
 namespace Comprehend {
 
-/**
- * Fixed width base font
- */
-class FixedFont : public Graphics::Font {
-protected:
+class CharSet : public Graphics::Font {
+private:
 	byte _data[128 - 32][8];
 
 public:
-	~FixedFont() override {}
+	CharSet();
 
 	/**
 	 */
@@ -78,24 +75,6 @@ public:
 	 * Draw a character at a specific point on a surface.
 	 */
 	void drawChar(Graphics::Surface *dst, uint32 chr, int x, int y, uint32 color) const override;
-};
-
-/**
- * Font loaded from charset.gda
- */
-class CharSet : public FixedFont {
-public:
-	CharSet();
-	~CharSet() override {}
-};
-
-/**
- * Talisman font directly from the executable
- */
-class TalismanFont : public FixedFont {
-public:
-	TalismanFont();
-	~TalismanFont() override {}
 };
 
 } // End of namespace Comprehend

@@ -23,11 +23,11 @@
 #include "twine/flamovies.h"
 #include "common/file.h"
 #include "common/system.h"
-#include "twine/audio/music.h"
-#include "twine/audio/sound.h"
-#include "twine/scene/grid.h"
+#include "twine/grid.h"
 #include "twine/input.h"
-#include "twine/renderer/screens.h"
+#include "twine/music.h"
+#include "twine/screens.h"
+#include "twine/sound.h"
 #include "twine/twine.h"
 
 namespace TwinE {
@@ -181,7 +181,7 @@ void FlaMovies::processFrame() {
 		return;
 	}
 
-	uint8 *outBuf = (uint8 *)_engine->workVideoBuffer.getPixels();
+	uint8 *outBuf = (uint8*)_engine->workVideoBuffer.getPixels();
 	file.read(outBuf, frameData.frameVar0);
 
 	if ((int32)frameData.videoSize <= 0) {
@@ -304,7 +304,6 @@ void FlaMovies::playFlaMovie(const char *flaName) {
 		ScopedKeyMap scopedKeyMap(_engine, cutsceneKeyMapId);
 
 		do {
-			ScopedFPS scopedFps(flaHeaderData.speed);
 			_engine->readKeys();
 			if (_engine->shouldQuit()) {
 				break;
@@ -335,6 +334,8 @@ void FlaMovies::playFlaMovie(const char *flaName) {
 			}
 
 			currentFrame++;
+
+			_engine->_system->delayMillis(1000 / flaHeaderData.speed + 1);
 		} while (!_engine->_input->toggleAbortAction());
 	}
 

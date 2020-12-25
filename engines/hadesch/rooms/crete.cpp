@@ -24,7 +24,6 @@
 #include "hadesch/hadesch.h"
 #include "hadesch/video.h"
 #include "hadesch/ambient.h"
-#include "common/translation.h"
 
 namespace Hadesch {
 
@@ -471,7 +470,7 @@ public:
 					_vasePos[i] %= 4;
 				_vaseBusy[i] = true;
 				renderVase();
-				room->playSFX(vaseSound[i], kSoundVaseSegment1Finished + i);
+				room->playSound(vaseSound[i], kSoundVaseSegment1Finished + i);
 				return;
 			}
 		}
@@ -500,9 +499,9 @@ public:
 		if (name == "Latch") {
 			room->disableMouse();
 			persistent->_creteStrongBoxState = Persistent::BOX_OPEN;
-			room->playAnimWithSFX("r2230bb0", "g0082ea0", 1000,
-					      PlayAnimParams::keepLastFrame().partial(1, 3),
-					      12402, kOffsetRightRoom);
+			room->playAnimWithSound("r2230bb0", "g0082ea0", 1000,
+						PlayAnimParams::keepLastFrame().partial(1, 3),
+						12402, kOffsetRightRoom);
 			return;
 		}
 
@@ -528,7 +527,7 @@ public:
 
 		if (name == "ButtonC" && !strongBoxIsBusy()) {
 			g_vm->addTimer(12409, 250);
-			room->playSFX("r2230ed0", 12412);
+			room->playSound("r2230ed0", 12412);
 			for (int i = 0; i < 12; i++) {
 				int pos = _strongBoxTiles[i].getPosition();
 				if (pos == 1 || pos == 2 || pos == 5 || pos == 6) {
@@ -664,12 +663,7 @@ TODO:
 				break;
 			persistent->_cretePlayedZeusCheckOutThatBox = true;
 			room->disableMouse();
-			room->playAnimWithSpeech("r2230ba0",
-						TranscribedSound::make("r2230wa0",
-								 "Hey, why don't you check out that box? Maybe it has something that can help"),
-						4000,
-						PlayAnimParams::keepLastFrame(),
-						12145,
+			room->playAnimWithSound("r2230ba0", "r2230wa0", 4000, PlayAnimParams::keepLastFrame(), 12145,
 						kOffsetRightRoom);
 			break;
 		case kAtlantisBoatIntro2Finished:
@@ -715,7 +709,7 @@ TODO:
 			room->playAnim("r1220ba0", 500,
 				       PlayAnimParams::disappear().partial(0, 17), 12206);
 			room->playVideo("r1220mb0", 0);
-			room->playSFX("r1220ea0");
+			room->playSound("r1220ea0");
 			room->disableMouse();
 			break;
 		}
@@ -736,7 +730,7 @@ TODO:
 		case 12306:
 			room->disableMouse();
 			hideAtlantisPopupOverlays();
-			room->playAnimWithSFX(kAtlantisOpening, "r1210eb0", kAtlantisOpeningZ,
+			room->playAnimWithSound(kAtlantisOpening, "r1210eb0",kAtlantisOpeningZ,
 						PlayAnimParams::keepLastFrame().partial(0, 8),
 						kAtlantisDoorOpens);
 			break;
@@ -746,11 +740,9 @@ TODO:
 			// Fallthrough
 		case 12403:
 			room->disableMouse();
-			room->playAnimWithSpeech("r2230ba0",
-						 TranscribedSound::make("r2230wb0", "I think those buttons control the symbols"),
-						 4000,
-						 PlayAnimParams::keepLastFrame(), 12404,
-						 kOffsetRightRoom);
+			room->playAnimWithSound("r2230ba0", "r2230wb0", 4000,
+						PlayAnimParams::keepLastFrame(), 12404,
+						kOffsetRightRoom);
 			break;
 		case 12404:
 		case 12405:
@@ -768,11 +760,9 @@ TODO:
 			if (!room->isMouseEnabled())
 				break;
 			room->disableMouse();
-			room->playAnimWithSpeech("r2230ba0",
-						 TranscribedSound::make("r2230wc0", "Try to spell my name"),
-						 4000,
-						 PlayAnimParams::keepLastFrame(), 12407,
-						 kOffsetRightRoom);
+			room->playAnimWithSound("r2230ba0", "r2230wc0", 4000,
+						PlayAnimParams::keepLastFrame(), 12407,
+						kOffsetRightRoom);
 			break;
 		case 12409:
 			for (int i = 0; i < 12; i++) {
@@ -852,9 +842,7 @@ TODO:
 			room->selectFrame("r2035ba0", 1200, 0);
 
 			// Originally event 12123
-			room->playSpeech(TranscribedSound::make(
-						      "r2035wa0",
-						      "Seems the only thing I can count on you two for is target practice"), 12124);
+			room->playSound("r2035wa0", 12124);
 			persistent->_creteHadesPusnishesPainAndPanic = false;
 			return;
 		}
@@ -890,7 +878,7 @@ TODO:
 		if (quest == kMedusaQuest && !persistent->_creteAlchemistExploded) {
 			persistent->_creteAlchemistExploded = true;
 			room->disableMouse();
-			room->playAnimWithSFX("r1190ba0", "r1190ea0", 1005, PlayAnimParams::disappear(), 12128);
+			room->playAnimWithSound("r1190ba0", "r1190ea0", 1005, PlayAnimParams::disappear(), 12128);
 		}
 
 		if (quest == kRescuePhilQuest || quest == kMedusaQuest) {
@@ -898,7 +886,7 @@ TODO:
 		}
 
 		if (quest == kMedusaQuest) {
-			room->playAnimWithSFX("r2220bb0", "r2220eb0", 4500, PlayAnimParams::loop(), -1, kOffsetRightRoom);
+			room->playAnimWithSound("r2220bb0", "r2220eb0", 4500, PlayAnimParams::loop(), -1, kOffsetRightRoom);
 		}
 
 		showMiniStrongBox();
@@ -1191,7 +1179,7 @@ TODO:
 		if (persistent->_creteShowMerchant) {
 			room->addStaticLayer("r2010on0", kMerchantStandZ);
 			room->selectFrame(kMerchantAnim, kMerchantZ, 0);
-			room->playSFX("G0261mA0");
+			room->playSound("G0261mA0");
 			if (persistent->_creteShowHorned) {
 				room->addStaticLayer(kHorned, 1220);
 				room->enableHotzone(kHornedHotzone);
@@ -1283,7 +1271,7 @@ TODO:
 			room->addStaticLayer(bg1, 1000);
 		}
 
-		room->playMusicLoop("R1010eA0");
+		room->playSound("R1010eA0", true);
 
 		if (g_vm->getPreviousRoomId() == kMinosPalaceRoom) {
 			room->panRightInstant();
@@ -1400,13 +1388,12 @@ private:
 	}
 
 	AmbientAnim ambient(const Common::String &anim, const Common::String &sound,
-			    int zValue, int minint, int maxint,
-			    AmbientAnim::PanType pan,
-			    Common::Point offset = Common::Point(0,0),
-			    bool loop = true) {
+		     int zValue, int minint, int maxint,
+		     AmbientAnim::PanType pan,
+		     Common::Point offset = Common::Point(0,0),
+		     bool loop = true) {
 		AmbientAnim ret = AmbientAnim(anim, sound, zValue, minint * 1000, maxint * 1000,
-					      loop ? AmbientAnim::KEEP_LOOP : AmbientAnim::DISAPPEAR,
-					      offset, pan);
+			    loop ? AmbientAnim::KEEP_LOOP : AmbientAnim::DISAPPEAR, offset, pan);
 		ret.start();
 		return ret;
 	}
@@ -1426,7 +1413,7 @@ private:
 		Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
 		_atlantisBoatPosition[diskNum] = (_atlantisBoatPosition[diskNum] + 1) % 8;
 		renderAtlantisDisks();
-		room->playSFX(Common::String::format("r1210e%c0", 'e' + diskNum), 12303 + diskNum);
+		room->playSound(Common::String::format("r1210e%c0", 'e' + diskNum), 12303 + diskNum);
 	}
 
 	void hideAtlantisPopupOverlays() {
@@ -1456,7 +1443,7 @@ private:
 		// User already clicked, no need to play that anim
 		persistent->_cretePlayedZeusCheckOutThatBox = true;
 		room->pushHotZones("Box.Hot");
-		room->playSFX("g0082ea0");
+		room->playSound("g0082ea0");
 		redrawStrongBox();
 		_strongBoxPopup = true;
 		switch(persistent->_creteStrongBoxState) {
@@ -1578,15 +1565,14 @@ private:
 			room->disableHotzone("ButtonE");
 			room->disableHotzone("ButtonW");
 			room->disableHotzone("ButtonC");
-			room->playAnimWithSFX("r2230bf0", "r2230ea0", 300,
-					      PlayAnimParams::keepLastFrame().partial(0, -2),
-					      12414, kOffsetRightRoom);
+			room->playAnimWithSound("r2230bf0", "r2230ea0", 300, PlayAnimParams::keepLastFrame().partial(0, -2),
+						12414, kOffsetRightRoom);
 		}
 	}
 
 	void strongBoxMoveTiles(int p1, int p2, int p3, int p4) {
 		Common::SharedPtr<VideoRoom> room = g_vm->getVideoRoom();
-		room->playSFX("r2230ee0");
+		room->playSound("r2230ee0");
 		for (int i = 0; i < 12; i++) {
 			int pos = _strongBoxTiles[i].getPosition();
 			if (pos == p1)

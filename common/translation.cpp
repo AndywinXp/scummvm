@@ -39,14 +39,14 @@
 
 namespace Common {
 
-DECLARE_SINGLETON(MainTranslationManager);
+DECLARE_SINGLETON(TranslationManager);
 
 bool operator<(const TLanguage &l, const TLanguage &r) {
 	return l.name < r.name;
 }
 
-TranslationManager::TranslationManager(const Common::String &fileName) : _currentLang(-1) {
-	loadTranslationsInfoDat(fileName);
+TranslationManager::TranslationManager() : _currentLang(-1) {
+	loadTranslationsInfoDat();
 
 	// Set the default language
 	setLanguage("");
@@ -230,7 +230,7 @@ bool TranslationManager::openTranslationsFile(File &inFile) {
 
 	// Then try to open it using the SearchMan.
 	ArchiveMemberList fileList;
-	SearchMan.listMatchingMembers(fileList, _translationsFileName);
+	SearchMan.listMatchingMembers(fileList, "translations.dat");
 	for (ArchiveMemberList::iterator it = fileList.begin(); it != fileList.end(); ++it) {
 		ArchiveMember       const &m      = **it;
 		SeekableReadStream *const  stream = m.createReadStream();
@@ -251,7 +251,7 @@ bool TranslationManager::openTranslationsFile(const FSNode &node, File &inFile, 
 	// Check if we can find the file in this directory
 	// Since File::open(FSNode) makes all the needed tests, it is not really
 	// necessary to make them here. But it avoid printing warnings.
-	FSNode fileNode = node.getChild(_translationsFileName);
+	FSNode fileNode = node.getChild("translations.dat");
 	if (fileNode.exists() && fileNode.isReadable() && !fileNode.isDirectory()) {
 		if (inFile.open(fileNode)) {
 			if (checkHeader(inFile))
@@ -278,11 +278,10 @@ bool TranslationManager::openTranslationsFile(const FSNode &node, File &inFile, 
 	return false;
 }
 
-void TranslationManager::loadTranslationsInfoDat(const Common::String &name) {
+void TranslationManager::loadTranslationsInfoDat() {
 	File in;
-	_translationsFileName = name;
 	if (!openTranslationsFile(in)) {
-		warning("You are missing a valid '%s' file. GUI translation will not be available", name.c_str());
+		warning("You are missing a valid 'translations.dat' file. GUI translation will not be available");
 		return;
 	}
 

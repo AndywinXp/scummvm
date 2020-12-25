@@ -36,7 +36,7 @@ updatepot:
 	fi;
 
 translations-dat: devtools/create_translations
-	devtools/create_translations/create_translations translations.dat $(POFILES)
+	devtools/create_translations/create_translations $(POFILES)
 	mv translations.dat $(srcdir)/gui/themes/
 
 update-translations: updatepot $(POFILES) translations-dat

@@ -30,23 +30,25 @@
 namespace Ultima {
 namespace Ultima8 {
 
-/**
- * Base class for mover processes that decide which animation to
- * do next based on last anim and keyboard / mouse / etc.
- */
 class AvatarMoverProcess : public Process {
 public:
 	AvatarMoverProcess();
 	~AvatarMoverProcess() override;
 
+	// p_dynamic_cast stuff
+	ENABLE_RUNTIME_CLASSTYPE()
+
 	void run() override;
+
+	void onMouseDown(int button, int32 mx, int32 my);
+	void onMouseUp(int button);
 
 	void resetIdleTime() {
 		_idleTime = 0;
 	}
 
 	bool loadData(Common::ReadStream *rs, uint32 version);
-	virtual void saveData(Common::WriteStream *ws) override;
+	void saveData(Common::WriteStream *ws) override;
 
 	bool hasMovementFlags(uint32 flags) const {
 		return (_movementFlags & flags) != 0;
@@ -58,10 +60,7 @@ public:
 		_movementFlags &= ~mask;
 	}
 
-	void onMouseDown(int button, int32 mx, int32 my);
-	void onMouseUp(int button);
-
-	virtual void tryAttack() = 0;
+	void tryAttack();
 
 	enum MovementFlags {
 		MOVE_MOUSE_DIRECTION = 0x001,
@@ -84,31 +83,16 @@ public:
 		MOVE_ANY_DIRECTION = MOVE_MOUSE_DIRECTION | MOVE_FORWARD | MOVE_BACK | MOVE_LEFT | MOVE_RIGHT | MOVE_UP | MOVE_DOWN
 	};
 
-protected:
-	virtual void handleHangingMode() = 0;
-	virtual void handleCombatMode() = 0;
-	virtual void handleNormalMode() = 0;
+private:
+	void handleHangingMode();
+	void handleCombatMode();
+	void handleNormalMode();
 
-	virtual bool canAttack() = 0;
-
+	void step(Animation::Sequence action, Direction direction, bool adjusted = false);
+	void jump(Animation::Sequence action, Direction direction);
 	void turnToDirection(Direction direction);
 	bool checkTurn(Direction direction, bool moving);
-
-	// Walk and then stop in the given direction
-	void slowFromRun(Direction direction);
-
-	// Stow weapon and stand
-	void putAwayWeapon(Direction direction);
-
-	// If the last animation was falling or die but we're not dead, stand up!
-	// return true if we are waiting to get up
-	bool standUpIfNeeded(Direction direction);
-
-	// Get directions based on what movement flags are set, eg y=+1 for up, x=-1 for left.
-	void getMovementFlagAxes(int &x, int &y);
-
-	// Adjust the direction based on the current turn flags
-	Direction getTurnDirForTurnFlags(Direction direction, DirectionMode dirmode);
+	bool canAttack();
 
 	uint32 _lastFrame;
 
@@ -117,7 +101,8 @@ protected:
 
 	// shake head when idle
 	uint32 _idleTime;
-
+	Animation::Sequence _lastHeadShakeAnim;
+	
 	MButton _mouseButton[2];
 
 	uint32 _movementFlags;

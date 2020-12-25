@@ -25,7 +25,7 @@
 namespace BladeRunner {
 
 AIScriptFishDealer::AIScriptFishDealer(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptFishDealer::Initialize() {
@@ -34,7 +34,7 @@ void AIScriptFishDealer::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 	Actor_Put_In_Set(kActorFishDealer, kSetAR01_AR02);
 	Actor_Set_At_Waypoint(kActorFishDealer, 120, 424);
 	Actor_Set_Goal_Number(kActorFishDealer, 0);
@@ -193,64 +193,64 @@ bool AIScriptFishDealer::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptFishDealer::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationFishDealerIdle;
+		*animation = 683;
 		++_animationFrame;
 
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerIdle))
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(683))
 			_animationFrame = 0;
 
 		break;
 
 	case 1:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationFishDealerIdle;
+		if (!_animationFrame && _flag) {
+			*animation = 683;
 			_animationState = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag = 0;
 		} else {
-			*animation = kModelAnimationFishDealerCalmTalk;
+			*animation = 685;
 			++_animationFrame;
 
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerCalmTalk))
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(685))
 				_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		*animation = kModelAnimationFishDealerExplainTalk;
+		*animation = 686;
 		++_animationFrame;
 
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(686)) {
 			_animationFrame = 0;
 			_animationState = 2;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationFishDealerNoTroubleTalk;
+		*animation = 687;
 		++_animationFrame;
 
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerNoTroubleTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(687)) {
 			_animationFrame = 0;
 			_animationState = 3;
 		}
 		break;
 
 	case 4:
-		*animation = kModelAnimationFishDealerGestureGive;
+		*animation = 684;
 		++_animationFrame;
 
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerGestureGive)) {
-			*animation = kModelAnimationFishDealerIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(684)) {
+			*animation = 683;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationFishDealerWalking;
+		*animation = 682;
 		++_animationFrame;
 
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationFishDealerWalking))
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(682))
 			_animationFrame = 0;
 
 		break;
@@ -271,7 +271,7 @@ bool AIScriptFishDealer::ChangeAnimationMode(int mode) {
 			_animationState = 0;
 			_animationFrame = 0;
 		} else {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 		}
 		break;
 
@@ -281,17 +281,11 @@ bool AIScriptFishDealer::ChangeAnimationMode(int mode) {
 		break;
 
 	case 3:
-		// fall through
 	case 14:
-		// fall through
 	case 15:
-		// fall through
 	case 16:
-		// fall through
 	case 17:
-		// fall through
 	case 18:
-		// fall through
 	case 19:
 		_animationState = Random_Query(0, 2) + 1;
 		_animationFrame = 0;

@@ -25,7 +25,7 @@
 namespace BladeRunner {
 
 AIScriptLuther::AIScriptLuther(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptLuther::Initialize() {
@@ -34,7 +34,7 @@ void AIScriptLuther::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 
 	Actor_Put_In_Set(kActorLuther, kSetUG16);
 	Actor_Set_At_XYZ(kActorLuther, 176.91f, -40.67f, 225.92f, 486);
@@ -246,7 +246,7 @@ bool AIScriptLuther::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationTwinsSitIdle;
+		*animation = 346;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
@@ -254,10 +254,10 @@ bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 1:
-		*animation = kModelAnimationTwinsSitLancePutsSomethingToTheLeft;
+		*animation = 348;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelAnimationTwinsSitIdle;
+			*animation = 346;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorLuther, kAnimationModeIdle);
@@ -265,11 +265,13 @@ bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 2:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationTwinsSitIdle;
+		if (_animationFrame == 0
+		 && _flag
+		) {
+			*animation = 346;
 			_animationState = 0;
 		} else {
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 				_animationFrame = 0;
@@ -278,70 +280,70 @@ bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 3:
-		*animation = kModelAnimationTwinsSitLanceLongerCalmTalk;
+		*animation = 350;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 4:
-		*animation = kModelAnimationTwinsSitLutherCalmTalk;
+		*animation = 351;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationTwinsSitLutherMoreCalmTalk;
+		*animation = 352;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationTwinsSitLanceMoreCalmTalk;
+		*animation = 353;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationTwinsSitLutherProtestTalk;
+		*animation = 354;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 8:
-		*animation = kModelAnimationTwinsSitLutherGoAheadTalk;
+		*animation = 355;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationTwinsSitLanceShortCalmTalk;
+			*animation = 349;
 		}
 		break;
 
 	case 9:
-		*animation = kModelAnimationTwinsSitLutherHitsOrFeedsLance;
+		*animation = 356;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = kModelAnimationTwinsSitIdle;
+			*animation = 346;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorLuther, kAnimationModeIdle);
@@ -349,24 +351,24 @@ bool AIScriptLuther::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 10:
-		*animation = kModelAnimationTwinsSitDropForwards;
+		*animation = 357;
 		++_animationFrame;
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
 			Actor_Change_Animation_Mode(kActorLuther, 50);
-			*animation = kModelAnimationTwinsSitAlmostDeadLutherPushesButton;
+			*animation = 358;
 			_animationFrame = 0;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationTwinsSitAlmostDeadLutherPushesButton;
+		*animation = 358;
 		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(*animation) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 12:
-		*animation = kModelAnimationTwinsSitDieCompletely;
+		*animation = 359;
 		if (_animationFrame == 12) {
 			Ambient_Sounds_Play_Sound(kSfxHEADHIT2, 59, 0, 0, 20);
 		}
@@ -389,14 +391,14 @@ bool AIScriptLuther::ChangeAnimationMode(int mode) {
 			_animationState = 0;
 			_animationFrame = 0;
 		} else {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 		}
 		break;
 
 	case 3:
 		_animationState = 2;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 6:
@@ -407,37 +409,37 @@ bool AIScriptLuther::ChangeAnimationMode(int mode) {
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 13:
 		_animationState = 4;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 14:
 		_animationState = 5;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 15:
 		_animationState = 6;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 16:
 		_animationState = 7;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 17:
 		_animationState = 8;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 23:

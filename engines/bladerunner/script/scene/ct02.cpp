@@ -122,9 +122,9 @@ void SceneScriptCT02::SceneLoaded() {
 		Preload(kModelAnimationMcCoyWithGunWalking);
 		Preload(kModelAnimationMcCoyWithGunWalking); // A bug? Why is this preloaded twice?
 		Preload(kModelAnimationMcCoyDodgeAndDrawGun);
-		Preload(kModelAnimationZubenRunning);
-		Preload(kModelAnimationZubenToppleSoupCauldron);
-		Preload(kModelAnimationZubenBashOnDoor);
+		Preload(400);
+		Preload(419);
+		Preload(420);
 	}
 	if (Game_Flag_Query(kFlagCT02McCoyCombatReady)) {
 		Game_Flag_Reset(kFlagCT02McCoyCombatReady);

@@ -25,29 +25,40 @@
 
 namespace Math {
 
-/* Linear equation used to describe the line:
- *
- * Ax + By = C
- *
- */
+Line2d::Line2d() :
+	_a(0), _b(0), _c(0) {
 
+}
 
 Line2d::Line2d(const Vector2d &direction, const Vector2d &point) {
-	_a = direction.getX();
-	_b = direction.getY();
-	_c = point.getY() * (point.getX() + direction.getX()) - point.getX() * (point.getY() + direction.getY());
+	Vector2d d = direction;
+	if (fabsf(d.getX()) > 0.0001f) {
+		_a = d.getY() / d.getX();
+		_b = -1;
+	} else {
+		_a = 1;
+		_b = 0;
+	}
+
+	if (_b == 0) {
+		_c = -point.getX();
+	} else {
+		_c = point.getY() - (d.getY() / d.getX()) * point.getX();
+	}
 }
 
 Line2d Line2d::getPerpendicular(const Vector2d &point) const {
-	return Line2d(Vector2d(_a, _b), point);
+	Vector2d v(1, _b / _a);
+
+	return Line2d(v, point);
 }
 
 Vector2d Line2d::getDirection() const {
-	return Vector2d(-_b, _a);
+	return Vector2d(1, _a);
 }
 
 float Line2d::getDistanceTo(const Vector2d &point, Vector2d *intersection) const {
-	float dist = fabsf(_a * point.getX() + _b * point.getY() - _c) / sqrt(_a * _a + _b * _b);
+	float dist = fabsf(_a * point.getX() + _b * point.getY() + _c) / sqrt(_a * _a + _b * _b);
 
 	if (intersection) {
 		intersectsLine(getPerpendicular(point), intersection);
@@ -56,24 +67,28 @@ float Line2d::getDistanceTo(const Vector2d &point, Vector2d *intersection) const
 }
 
 bool Line2d::intersectsLine(const Line2d &line, Vector2d *pos) const {
-	float a1 = _a;
-	float b1 = _b;
-	float c1 = _c;
+	// 	if (*this == line) {
+	// 		return false;
+	// 	}
 
-	float a2 = line._a;
-	float b2 = line._b;
-	float c2 = line._c;
+	float a = _a;
+	float b = _b;
+	float c = _c;
+
+	float d = line._a;
+	float e = line._b;
+	float f = line._c;
 
 	float x, y;
 
-	const float det = a1 * b2 - b1 * a2;
+	const float det = a * e - b * d;
 
-	if (fabsf(det) < epsilon) {
+	if (fabsf(det) < 0.0001f) {
 		return false;
 	}
 
-	x = (c1 * b2 - c2 * b1) / det;
-	y = (a1 * c2 - a2 * c1) / det;
+	x = (-c * e + b * f) / det;
+	y = (-a * f + c * d) / det;
 
 	if (pos)
 		*pos = Vector2d(x, y);
@@ -82,15 +97,19 @@ bool Line2d::intersectsLine(const Line2d &line, Vector2d *pos) const {
 }
 
 bool Line2d::containsPoint(const Vector2d &point) const {
-	float n = _a * point.getX() + _b * point.getY() - _c;
-	return (fabsf(n) < epsilon);
+	float n = _a * point.getX() + _b * point.getY() + _c;
+	return (n < 0.0001 && n > -0.0001);
+}
+
+float Line2d::getYatX(float x) const {
+	return -(_a * x + _c) / _b;
 }
 
 Common::StreamDebug &operator<<(Common::StreamDebug &dbg, const Math::Line2d &line) {
-	if (fabsf(line._a) < epsilon) {
-		dbg.nospace() << "Line2d: <y = " << (-line._a / line._b) << " * x + " << line._c / line._b << ">";
+	if (fabsf(line._a) < 0.0001f) {
+		dbg.nospace() << "Line2d: <y = " << (-line._a / line._b) << " * x + " << -line._c / line._b << ">";
 	} else {
-		dbg.nospace() << "Line2d: <x = " << (-line._b / line._a) << " * y + " << line._c / line._a << ">";
+		dbg.nospace() << "Line2d: <x = " << (-line._b / line._a) << " * y + " << -line._c / line._a << ">";
 	}
 
 	return dbg.space();
@@ -150,14 +169,14 @@ bool Segment2d::intersectsSegment(const Segment2d &other, Vector2d *pos) {
 	float nume_b = ((_end.getX() - _begin.getX()) * (other._begin.getY() - _begin.getY())) -
 	((_end.getY() - _begin.getY()) * (other._begin.getX() - _begin.getX()));
 
-	if (denom == 0.0f || d == 0.0f ) {
+	if (denom == 0.0f) {
 		return false;
 	}
 
 	float ua = nume_a / denom;
 	float ub = nume_b / d;
 
-	if (ua < 0.0f || ua > 1.0f || ub < 0.0f || ub > 1.0f) {
+	if (ua < 0 || ua > 1 || ub < 0 || ub > 1) {
 		return false;
 	}
 

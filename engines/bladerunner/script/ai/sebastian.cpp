@@ -25,7 +25,7 @@
 namespace BladeRunner {
 
 AIScriptSebastian::AIScriptSebastian(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptSebastian::Initialize() {
@@ -34,7 +34,7 @@ void AIScriptSebastian::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 
 	Actor_Set_Goal_Number(kActorSebastian, 0);
 }
@@ -146,121 +146,121 @@ bool AIScriptSebastian::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptSebastian::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = kModelAnimationSebastianIdle;
+		*animation = 811;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianIdle) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(811) - 1) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = kModelAnimationSebastianWalking;
+		*animation = 809;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianWalking) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(809) - 1) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		*animation = kModelAnimationSebastianStepsBack;
+		*animation = 810;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianStepsBack) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(810) - 1) {
 			Actor_Change_Animation_Mode(kActorSebastian, kAnimationModeIdle);
-			*animation = kModelAnimationSebastianIdle;
+			*animation = 811;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationSebastianTriesToRunHitsHeadAndFalls;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianTriesToRunHitsHeadAndFalls) - 1) {
+		*animation = 821;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(821) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 4:
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+		if (!_animationFrame && _flag) {
 			Actor_Change_Animation_Mode(kActorSebastian, kAnimationModeIdle);
-			*animation = kModelAnimationSebastianIdle;
+			*animation = 811;
 			_animationState = 0;
 			_animationFrame = 0;
 		} else {
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 			++_animationFrame;
-			if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianCalmHeadNodLeftTalk) - 1) {
+			if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(813) - 1) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationSebastianCalmHeadNodRightTalk;
+		*animation = 814;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianCalmHeadNodRightTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(814) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationSebastianSuggestTalk;
+		*animation = 815;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianSuggestTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(815) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationSebastianWonderingTalk;
+		*animation = 816;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianWonderingTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(816) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 8:
-		*animation = kModelAnimationSebastianPointingToSelfTalk;
+		*animation = 817;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianPointingToSelfTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(817) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 9:
-		*animation = kModelAnimationSebastianScratchEarTalk;
+		*animation = 818;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianScratchEarTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(818) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationSebastianAnnoyedTalk;
+		*animation = 819;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianAnnoyedTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(819) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationSebastianWaitTalk;
+		*animation = 820;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationSebastianWaitTalk) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(820) - 1) {
 			_animationFrame = 0;
 			_animationState = 4;
-			*animation = kModelAnimationSebastianCalmHeadNodLeftTalk;
+			*animation = 813;
 		}
 		break;
 
@@ -279,7 +279,7 @@ bool AIScriptSebastian::ChangeAnimationMode(int mode) {
 			_animationState = 0;
 			_animationFrame = 0;
 		} else {
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = true;
 		}
 		break;
 
@@ -291,49 +291,49 @@ bool AIScriptSebastian::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 4;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 12:
 		_animationState = 5;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 13:
 		_animationState = 6;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 14:
 		_animationState = 7;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 15:
 		_animationState = 8;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 16:
 		_animationState = 9;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 17:
 		_animationState = 10;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 18:
 		_animationState = 11;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 20:

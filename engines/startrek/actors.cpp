@@ -49,32 +49,21 @@ int StarTrekEngine::loadActorAnim(int actorIndex, const Common::String &animName
 	debugC(6, kDebugGraphics, "Load animation '%s' on actor %d", animName.c_str(), actorIndex);
 
 	if (actorIndex == -1) {
-		bool foundSlot = false;
-
-		for (int i = 8; i < NUM_ACTORS; i++) {
-			if (_actorList[i].spriteDrawn == 0) {
-				actorIndex = i;
-				foundSlot = true;
-				break;
-			}
-		}
-
-		if (!foundSlot) {
-			error("All animations are in use");
-		}
-	}
-
-	Actor *actor = &_actorList[actorIndex];
-
-	if (actor->spriteDrawn) {
-		releaseAnim(actor);
-		drawActorToScreen(actor, animName, x, y, scale, false);
+		// TODO
+		warning("loadActorAnim: actor == -1");
 	} else {
-		drawActorToScreen(actor, animName, x, y, scale, true);
-	}
+		Actor *actor = &_actorList[actorIndex];
 
-	actor->triggerActionWhenAnimFinished = false;
-	actor->finishedAnimActionParam = 0;
+		if (actor->spriteDrawn) {
+			releaseAnim(actor);
+			drawActorToScreen(actor, animName, x, y, scale, false);
+		} else {
+			drawActorToScreen(actor, animName, x, y, scale, true);
+		}
+
+		actor->triggerActionWhenAnimFinished = false;
+		actor->finishedAnimActionParam = 0;
+	}
 
 	return actorIndex;
 }
@@ -182,8 +171,6 @@ void StarTrekEngine::updateActorAnimations() {
 					actor->animFile->read(animFrameFilename, 16);
 					actor->bitmapFilename = animFrameFilename;
 					actor->bitmapFilename.trim();
-					if (actor->bitmapFilename.contains(' '))
-						actor->bitmapFilename = actor->bitmapFilename.substr(0, actor->bitmapFilename.find(' '));
 
 					sprite->setBitmap(loadAnimationFrame(actor->bitmapFilename, actor->scale));
 
@@ -443,7 +430,7 @@ void StarTrekEngine::removeActorFromScreen(int actorIndex) {
 	releaseAnim(actor);
 }
 
-void StarTrekEngine::removeDrawnActorsFromScreen() {
+void StarTrekEngine::actorFunc1() {
 	for (int i = 0; i < NUM_ACTORS; i++) {
 		if (_actorList[i].spriteDrawn == 1) {
 			removeActorFromScreen(i);
@@ -1001,7 +988,7 @@ bool StarTrekEngine::walkActiveObjectToHotspot() {
 	else {
 		// If this action has code defined for it in this room, buffer the action to be
 		// done after the object finished walking there.
-		Action action = {static_cast<int8>(_awayMission.activeAction), _awayMission.activeObject, 0, 0};
+		Action action = {_awayMission.activeAction, _awayMission.activeObject, 0, 0};
 		if (_awayMission.activeAction == ACTION_USE)
 			action.b2 = _awayMission.passiveObject;
 

@@ -25,11 +25,10 @@
 namespace BladeRunner {
 
 AIScriptEarlyQ::AIScriptEarlyQ(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_varNumOfTimesToHoldCurrentFrame = 0;
-	// _varChooseIdleAnimation can have valid values: 0, 1
-	_varChooseIdleAnimation = 0;
+	_var1 = 0;
+	_var2 = 0;
 	_var3 = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = false;
 }
 
 void AIScriptEarlyQ::Initialize() {
@@ -38,10 +37,10 @@ void AIScriptEarlyQ::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_varNumOfTimesToHoldCurrentFrame = 0;
-	_varChooseIdleAnimation = 0;
+	_var1 = 0;
+	_var2 = 0;
 	_var3 = 1;
-	_resumeIdleAfterFramesetCompletesFlag = false;
+	_flag = 0;
 }
 
 bool AIScriptEarlyQ::Update() {
@@ -132,7 +131,6 @@ void AIScriptEarlyQ::CompletedMovementTrack() {
 		break;
 
 	case 1:
-		// fall through
 	case 2:
 		Actor_Set_Goal_Number(kActorEarlyQ, 0);
 		break;
@@ -491,46 +489,46 @@ bool AIScriptEarlyQ::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		if (_varChooseIdleAnimation == 1) {
-			*animation = kModelAnimationEarlyQHandOnFace;
-			if (_varNumOfTimesToHoldCurrentFrame > 0) {
-				--_varNumOfTimesToHoldCurrentFrame;
+		if (_var2 == 1) {
+			*animation = 370;
+			if (_var1) {
+				--_var1;
 			} else {
 				if (++_animationFrame == 6) {
-					_varNumOfTimesToHoldCurrentFrame = Random_Query(8, 15);
+					_var1 = Random_Query(8, 15);
 				}
 				if (_animationFrame < 6) {
-					_varNumOfTimesToHoldCurrentFrame = 1;
+					_var1 = 1;
 				}
-				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQHandOnFace)) {
+				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(370)) {
 					_animationFrame = 0;
-					_varChooseIdleAnimation = 0;
+					_var2 = 0;
 				}
 			}
-		} else if (_varChooseIdleAnimation == 0) {
-			*animation = kModelAnimationEarlyQIdle;
-			if (_varNumOfTimesToHoldCurrentFrame > 0) {
-				--_varNumOfTimesToHoldCurrentFrame;
+		} else if (_var2 == 0) {
+			*animation = 369;
+			if (_var1) {
+				--_var1;
 				if (!Random_Query(0, 6)) {
 					_var3 = -_var3;
 				}
 			} else {
 				_animationFrame += _var3;
-				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQIdle)) {
+				if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(369)) {
 					_animationFrame = 0;
 				}
 				if (_animationFrame < 0) {
-					_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQIdle) - 1;
+					_animationFrame = Slice_Animation_Query_Number_Of_Frames(369) - 1;
 				}
-				_varNumOfTimesToHoldCurrentFrame = Random_Query(0, 1);
-				if (_animationFrame == 0) {
+				_var1 = Random_Query(0, 1);
+				if (!_animationFrame) {
 					if (!Random_Query(0, 3)) {
-						_varChooseIdleAnimation = 1;
+						_var2 = 1;
 					}
 				}
-				if (_animationFrame == 0 || _animationFrame == 5) {
+				if (!_animationFrame || _animationFrame == 5) {
 					if (Random_Query(0, 1)) {
-						_varNumOfTimesToHoldCurrentFrame = Random_Query(2, 8);
+						_var1 = Random_Query(2, 8);
 					}
 				}
 			}
@@ -538,7 +536,7 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 1:
-		*animation = kModelAnimationEarlyQSPicksUpBottleAndPoursDrink;
+		*animation = 381;
 		++_animationFrame;
 		if (_animationFrame == 18) {
 			Ambient_Sounds_Play_Sound(kSfxBARSFX4, 99, 0, 0, 20);
@@ -547,23 +545,23 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 			Actor_Change_Animation_Mode(kActorEarlyQ, 74);
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = kModelAnimationEarlyQSHoldsDrinkIdle;
+			*animation = 382;
 		}
 		break;
 
 	case 2:
-		*animation = kModelAnimationEarlyQSHoldsDrinkIdle;
+		*animation = 382;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSHoldsDrinkIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(382)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 3:
-		*animation = kModelAnimationEarlyQGivesSomething;
+		*animation = 371;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQGivesSomething)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(371)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeIdle);
@@ -571,75 +569,75 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 4:
-		*animation = kModelAnimationEarlyQDropsDead;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQDropsDead) - 1) {
+		*animation = 368;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(368) - 1) {
 			++_animationFrame;
 		}
 		break;
 
 	case 5:
-		*animation = kModelAnimationEarlyQWalking;
+		*animation = 365;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQWalking)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(365)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 6:
-		*animation = kModelAnimationEarlyQCombatWalking;
+		*animation = 361;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCombatWalking)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(361)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 7:
-		*animation = kModelAnimationEarlyQSitsAndCrossesLegs;
+		*animation = 383;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSitsAndCrossesLegs)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(383)) {
 			_animationFrame = 0;
 			_animationState = 9;
-			*animation = kModelAnimationEarlyQSitIdle;
+			*animation = 384;
 		}
 		break;
 
 	case 8:
-		*animation = kModelAnimationEarlyQSitToStandingUp;
+		*animation = 387;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSitToStandingUp)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(387)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 9:
-		*animation = kModelAnimationEarlyQSitIdle;
+		*animation = 384;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSitIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(384)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 10:
-		*animation = kModelAnimationEarlyQSitTalk;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			_resumeIdleAfterFramesetCompletesFlag = false;
+		*animation = 385;
+		if (!_animationFrame && _flag) {
+			_flag = 0;
 			_animationState = 9;
-			_varChooseIdleAnimation = 0;
-			*animation = kModelAnimationEarlyQSitIdle;
+			_var2 = 0;
+			*animation = 384;
 			Actor_Change_Animation_Mode(kActorEarlyQ, 53);
 		} else {
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSitTalk)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(385)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 11:
-		*animation = kModelAnimationEarlyQSitScorpionAgonyDeath;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSitScorpionAgonyDeath) - 1) {
+		*animation = 386;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(386) - 1) {
 			++_animationFrame;
 		}
 		if (_animationFrame == 1) {
@@ -657,52 +655,52 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 12:
-		*animation = kModelAnimationEarlyQCombatIdle;
+		*animation = 360;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCombatIdle)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(360)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 13:
-		*animation = kModelAnimationEarlyQCombatUnholsterGun;
+		*animation = 362;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCombatUnholsterGun)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(362)) {
 			_animationFrame = 0;
 			_animationState = 12;
-			*animation = kModelAnimationEarlyQCombatIdle;
+			*animation = 360;
 		}
 		break;
 
 	case 14:
-		*animation = kModelAnimationEarlyQCombatHolsterGun;
+		*animation = 363;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCombatHolsterGun)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(363)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
 		break;
 
 	case 15:
-		*animation = kModelAnimationEarlyQCombatFiresGun;
+		*animation = 364;
 		++_animationFrame;
 		if (_animationFrame == 2) {
 			Ambient_Sounds_Play_Sound(kSfxLGCAL1, 60, 0, 0, 20);
 		}
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCombatFiresGun)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(364)) {
 			_animationFrame = 0;
 			_animationState = 12;
-			*animation = kModelAnimationEarlyQCombatIdle;
+			*animation = 360;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeCombatIdle); // TODO: kAnimationModeCombatIdle?
 		}
 		break;
 
 	case 16:
-		*animation = kModelAnimationEarlyQGotHitRight;
+		*animation = 366;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQGotHitRight)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(366)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeIdle);
@@ -710,10 +708,10 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 17:
-		*animation = kModelAnimationEarlyQGotHitLeft;
+		*animation = 367;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQGotHitLeft)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(367)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeIdle);
@@ -721,10 +719,10 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 18:
-		*animation = kModelAnimationEarlyQGotHitRight;
+		*animation = 366;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQGotHitRight)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(366)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeIdle);
@@ -732,10 +730,10 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 19:
-		*animation = kModelAnimationEarlyQGotHitLeft;
+		*animation = 367;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQGotHitLeft)) {
-			*animation = kModelAnimationEarlyQIdle;
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(367)) {
+			*animation = 369;
 			_animationFrame = 0;
 			_animationState = 0;
 			Actor_Change_Animation_Mode(kActorEarlyQ, kAnimationModeIdle);
@@ -743,97 +741,97 @@ bool AIScriptEarlyQ::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 20:
-		*animation = kModelAnimationEarlyQCalmTalk;
-		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
-			*animation = kModelAnimationEarlyQIdle;
+		*animation = 372;
+		if (!_animationFrame && _flag) {
+			*animation = 369;
 			_animationFrame = 0;
-			_resumeIdleAfterFramesetCompletesFlag = false;
+			_flag = 0;
 			_animationState = 0;
 		} else {
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCalmTalk)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(372)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 21:
-		*animation = kModelAnimationEarlyQCalmExplainTalk;
+		*animation = 373;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQCalmExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(373)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 22:
-		*animation = kModelAnimationEarlyQVulgarTalk;
+		*animation = 374;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQVulgarTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(374)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 23:
-		*animation = kModelAnimationEarlyQDismissTalk;
+		*animation = 375;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQDismissTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(375)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 24:
-		*animation = kModelAnimationEarlyQMoreDismissTalk;
+		*animation = 376;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQMoreDismissTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(376)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 25:
-		*animation = kModelAnimationEarlyQIntenseExplainTalk;
+		*animation = 377;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQIntenseExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(377)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 26:
-		*animation = kModelAnimationEarlyQSubtleExplainTalk;
+		*animation = 378;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQSubtleExplainTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(378)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 27:
-		*animation = kModelAnimationEarlyQExcitedTalk;
+		*animation = 379;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQExcitedTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(379)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
 	case 28:
-		*animation = kModelAnimationEarlyQAnnounceTalk;
+		*animation = 380;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationEarlyQAnnounceTalk)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(380)) {
 			_animationFrame = 0;
 			_animationState = 20;
-			*animation = kModelAnimationEarlyQCalmTalk;
+			*animation = 372;
 		}
 		break;
 
@@ -862,31 +860,20 @@ bool AIScriptEarlyQ::ChangeAnimationMode(int mode) {
 			break;
 
 		case 10:
-			// fall through
 		case 20:
-			// fall through
 		case 21:
-			// fall through
 		case 22:
-			// fall through
 		case 23:
-			// fall through
 		case 24:
-			// fall through
 		case 25:
-			// fall through
 		case 26:
-			// fall through
 		case 27:
-			// fall through
 		case 28:
-			_resumeIdleAfterFramesetCompletesFlag = true;
+			_flag = 1;
 			break;
 
 		case 12:
-			// fall through
 		case 13:
-			// fall through
 		case 15:
 			_animationState = 14;
 			_animationFrame = 0;
@@ -910,7 +897,7 @@ bool AIScriptEarlyQ::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 20;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case kAnimationModeCombatIdle:
@@ -938,49 +925,49 @@ bool AIScriptEarlyQ::ChangeAnimationMode(int mode) {
 	case 12:
 		_animationState = 21;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 13:
 		_animationState = 22;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 14:
 		_animationState = 23;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 15:
 		_animationState = 24;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 16:
 		_animationState = 25;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 17:
 		_animationState = 26;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 18:
 		_animationState = 27;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case 19:
 		_animationState = 28;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case kAnimationModeHit:
@@ -1019,7 +1006,7 @@ bool AIScriptEarlyQ::ChangeAnimationMode(int mode) {
 	case 30:
 		_animationState = 10;
 		_animationFrame = 0;
-		_resumeIdleAfterFramesetCompletesFlag = false;
+		_flag = 0;
 		break;
 
 	case kAnimationModeDie:

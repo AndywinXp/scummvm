@@ -391,7 +391,7 @@ void Game::displayChuteAnimation() {
 	ValueTableData &fields = res.fieldList();
 	Palette palette(CHUTE_PALETTE_ID);
 
-	mouse.setCursorNum(CURSOR_DISK);
+	mouse.setCursorNum(CursorType::CURSOR_DISK);
 	if (!LureEngine::getReference().isEGA())
 		Screen::getReference().paletteFadeOut();
 
@@ -420,15 +420,6 @@ void Game::displayChuteAnimation() {
 	Sound.killSounds();
 	mouse.cursorOn();
 	fields.setField(AREA_FLAG, 1);
-
-	// WORKAROUND When outside in the town, the game plays an ambient sound
-	// of twittering birds. When first entering town after falling through
-	// the chute, this sound does not play; it starts playing after you
-	// enter and exit a building. Calling removeSounds here triggers the
-	// function which manages the ambient sounds in town, so the bird
-	// sounds start playing. Because all other sounds have already been
-	// removed, this has no side effects.
-	Sound.removeSounds();
 }
 
 void Game::displayBarrelAnimation() {
@@ -437,7 +428,7 @@ void Game::displayBarrelAnimation() {
 	LureEngine &engine = LureEngine::getReference();
 	Screen &screen = Screen::getReference();
 
-	mouse.setCursorNum(CURSOR_DISK);
+	mouse.setCursorNum(CursorType::CURSOR_DISK);
 	if (!engine.isEGA())
 		screen.paletteFadeOut();
 

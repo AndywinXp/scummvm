@@ -374,9 +374,6 @@ endif
 ifdef ENABLE_DRASCULA
 DIST_FILES_ENGINEDATA+=drascula.dat
 endif
-ifdef ENABLE_HADESCH
-DIST_FILES_ENGINEDATA+=hadesch_translations.dat
-endif
 ifdef ENABLE_HUGO
 DIST_FILES_ENGINEDATA+=hugo.dat
 endif

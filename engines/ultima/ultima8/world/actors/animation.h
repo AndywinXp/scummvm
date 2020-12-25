@@ -136,10 +136,8 @@ enum Sequence {
 	slowCombatRollLeft = 61,
 	slowCombatRollRight = 62,
 	finishFiring = 63,
-
-	crusaderAbsoluteAnimFlag = 0x1000, //!< Bit mask magic to say we want an exact number, don't do mapping from U8 animation numbers
-	teleportInReplacement = crusaderAbsoluteAnimFlag | teleportIn,	//!< See notes in Actor::receiveHitCru
-	teleportOutReplacement = crusaderAbsoluteAnimFlag | teleportOut	//!< See notes in Actor::receiveHitCru
+	teleportInReplacement = 0x1020,	//!< See notes in Actor::receiveHitCru
+	teleportOutReplacement = 0x1021	//!< See notes in Actor::receiveHitCru
 };
 
 enum Result {
