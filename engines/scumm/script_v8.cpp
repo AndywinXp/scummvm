@@ -27,7 +27,7 @@
 #include "scumm/akos.h"
 #include "scumm/charset.h"
 #include "scumm/file.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v8.h"
@@ -1226,10 +1226,10 @@ void ScummEngine_v8::o8_kernelGetFunctions() {
 		break;
 	}
 	case 0xDA:		// lipSyncWidth
-		push(_imuseDigital->getCurVoiceLipSyncWidth());
+		push(_diMUSE->getCurVoiceLipSyncWidth());
 		break;
 	case 0xDB:		// lipSyncHeight
-		push(_imuseDigital->getCurVoiceLipSyncHeight());
+		push(_diMUSE->getCurVoiceLipSyncHeight());
 		break;
 	case 0xDC:		// actorTalkAnimation
 		{
@@ -1268,13 +1268,13 @@ void ScummEngine_v8::o8_kernelGetFunctions() {
 		}
 		break;
 	case 0xE1:		// imGetMusicPosition
-		push(_imuseDigital->getCurMusicPosInMs());
+		push(_diMUSE->getCurMusicPosInMs());
 		break;
 	case 0xE2:		// musicLipSyncWidth
-		push(_imuseDigital->getCurMusicLipSyncWidth(args[1]));
+		push(_diMUSE->getCurMusicLipSyncWidth(args[1]));
 		break;
 	case 0xE3:		// musicLipSyncHeight
-		push(_imuseDigital->getCurMusicLipSyncHeight(args[1]));
+		push(_diMUSE->getCurMusicLipSyncHeight(args[1]));
 		break;
 	default:
 		error("o8_kernelGetFunctions: default case 0x%x (len = %d)", args[0], len);

@@ -42,7 +42,8 @@
 #include "scumm/file.h"
 #include "scumm/file_nes.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v2/dimuse_v2.h"
 #include "scumm/smush/smush_mixer.h"
 #include "scumm/smush/smush_player.h"
 #include "scumm/players/player_towns.h"
@@ -150,7 +151,7 @@ ScummEngine::ScummEngine(OSystem *syst, const DetectorResult &dr)
 
 	// Init all vars
 	_imuse = NULL;
-	_imuseDigital = NULL;
+	_diMUSE = NULL;
 	_musicEngine = NULL;
 	_townsPlayer = NULL;
 	_verbs = NULL;
@@ -1631,7 +1632,12 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100);
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
 	ConfMan.flushToDisk();
-	_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
+	if (_game.id == GID_FT) {
+		_musicEngine = _diMUSE = new DiMUSE_v1(this, _mixer, dimuseTempo);
+	} else {
+		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimuseTempo);
+	}
+	
 
 	ScummEngine::setupScumm(macResourceFile);
 
@@ -2832,11 +2838,11 @@ void ScummEngine::scummLoop_handleSound() {
 #ifdef ENABLE_SCUMM_7_8
 void ScummEngine_v7::scummLoop_handleSound() {
 	ScummEngine_v6::scummLoop_handleSound();
-	if (_imuseDigital) {
-		_imuseDigital->flushTracks();
-		// In CoMI and the Dig the full (non-demo) version invoke IMuseDigital::refreshScripts
+	if (_diMUSE) {
+		_diMUSE->flushTracks();
+		// In CoMI and the Dig the full (non-demo) version invoke DiMUSE_v1::refreshScripts
 		if ((_game.id == GID_DIG || _game.id == GID_CMI) && !(_game.features & GF_DEMO))
-			_imuseDigital->refreshScripts();
+			_diMUSE->refreshScripts();
 	}
 	if (_smixer) {
 		_smixer->flush();

@@ -31,13 +31,13 @@
 
 #include "scumm/resource.h"
 #include "scumm/scumm.h"
-#include "scumm/imuse_digi/dimuse_bndmgr.h"
-#include "scumm/imuse_digi/dimuse_codecs.h"
-#include "scumm/imuse_digi/dimuse_sndmgr.h"
+#include "scumm/dimuse_v1/dimuse_bndmgr.h"
+#include "scumm/dimuse_v1/dimuse_codecs.h"
+#include "scumm/dimuse_v1/dimuse_sndmgr.h"
 
 namespace Scumm {
 
-ImuseDigiSndMgr::ImuseDigiSndMgr(ScummEngine *scumm) {
+DiMUSESndMgr::DiMUSESndMgr(ScummEngine *scumm) {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		memset(&_sounds[l], 0, sizeof(SoundDesc));
 	}
@@ -48,7 +48,7 @@ ImuseDigiSndMgr::ImuseDigiSndMgr(ScummEngine *scumm) {
 	BundleCodecs::initializeImcTables();
 }
 
-ImuseDigiSndMgr::~ImuseDigiSndMgr() {
+DiMUSESndMgr::~DiMUSESndMgr() {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		closeSound(&_sounds[l]);
 	}
@@ -57,7 +57,7 @@ ImuseDigiSndMgr::~ImuseDigiSndMgr() {
 	BundleCodecs::releaseImcTables();
 }
 
-void ImuseDigiSndMgr::countElements(byte *ptr, int &numRegions, int &numJumps, int &numSyncs, int &numMarkers) {
+void DiMUSESndMgr::countElements(byte *ptr, int &numRegions, int &numJumps, int &numSyncs, int &numMarkers) {
 	uint32 tag;
 	int32 size = 0;
 
@@ -92,7 +92,7 @@ void ImuseDigiSndMgr::countElements(byte *ptr, int &numRegions, int &numJumps, i
 	} while (tag != MKTAG('D','A','T','A'));
 }
 
-void ImuseDigiSndMgr::prepareSoundFromRMAP(Common::SeekableReadStream *file, SoundDesc *sound, int32 offset, int32 size) {
+void DiMUSESndMgr::prepareSoundFromRMAP(Common::SeekableReadStream *file, SoundDesc *sound, int32 offset, int32 size) {
 	int l;
 
 	file->seek(offset, SEEK_SET);
@@ -151,7 +151,7 @@ void ImuseDigiSndMgr::prepareSoundFromRMAP(Common::SeekableReadStream *file, Sou
 	}
 }
 
-void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound, bool rawBundle) {
+void DiMUSESndMgr::prepareSound(byte *ptr, SoundDesc *sound, bool rawBundle) {
 	if (READ_BE_UINT32(ptr) == MKTAG('C','r','e','a')) {
 		bool quit = false;
 		int len;
@@ -307,7 +307,7 @@ void ImuseDigiSndMgr::prepareSound(byte *ptr, SoundDesc *sound, bool rawBundle) 
 	}
 }
 
-ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::allocSlot() {
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::allocSlot() {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		if (!_sounds[l].inUse) {
 			_sounds[l].inUse = true;
@@ -318,7 +318,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::allocSlot() {
 	return NULL;
 }
 
-bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
+bool DiMUSESndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
 
 	sound->bundle = new BundleMgr(_cacheBundleDir);
@@ -332,9 +332,9 @@ bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 				disk = _vm->VAR(_vm->VAR_CURRENTDISK);
 			sprintf(musicfile, "musdisk%d.bun", disk);
 //			if (_disk != _vm->VAR(_vm->VAR_CURRENTDISK)) {
-//				_vm->_imuseDigital->parseScriptCmds(0x1000, 0, 0, 0, 0, 0, 0, 0);
-//				_vm->_imuseDigital->parseScriptCmds(0x2000, 0, 0, 0, 0, 0, 0, 0);
-//				_vm->_imuseDigital->stopAllSounds();
+//				_vm->_DiMUSE_v1->parseScriptCmds(0x1000, 0, 0, 0, 0, 0, 0, 0);
+//				_vm->_DiMUSE_v1->parseScriptCmds(0x2000, 0, 0, 0, 0, 0, 0, 0);
+//				_vm->_DiMUSE_v1->stopAllSounds();
 //				sound->bundle->closeFile();
 //			}
 
@@ -353,7 +353,7 @@ bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 	return result;
 }
 
-bool ImuseDigiSndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
+bool DiMUSESndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
 
 	sound->bundle = new BundleMgr(_cacheBundleDir);
@@ -367,9 +367,9 @@ bool ImuseDigiSndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 				disk = _vm->VAR(_vm->VAR_CURRENTDISK);
 			sprintf(voxfile, "voxdisk%d.bun", disk);
 //			if (_disk != _vm->VAR(_vm->VAR_CURRENTDISK)) {
-//				_vm->_imuseDigital->parseScriptCmds(0x1000, 0, 0, 0, 0, 0, 0, 0);
-//				_vm->_imuseDigital->parseScriptCmds(0x2000, 0, 0, 0, 0, 0, 0, 0);
-//				_vm->_imuseDigital->stopAllSounds();
+//				_vm->_DiMUSE_v1->parseScriptCmds(0x1000, 0, 0, 0, 0, 0, 0, 0);
+//				_vm->_DiMUSE_v1->parseScriptCmds(0x2000, 0, 0, 0, 0, 0, 0, 0);
+//				_vm->_DiMUSE_v1->stopAllSounds();
 //				sound->bundle->closeFile();
 //			}
 
@@ -388,7 +388,7 @@ bool ImuseDigiSndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 	return result;
 }
 
-ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk) {
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk) {
 	assert(soundId >= 0);
 	assert(soundType);
 	bool rawBundle = false;
@@ -473,7 +473,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 	return sound;
 }
 
-void ImuseDigiSndMgr::closeSound(SoundDesc *soundDesc) {
+void DiMUSESndMgr::closeSound(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 
 	if (soundDesc->resPtr) {
@@ -500,8 +500,8 @@ void ImuseDigiSndMgr::closeSound(SoundDesc *soundDesc) {
 	memset(soundDesc, 0, sizeof(SoundDesc));
 }
 
-ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::cloneSound(SoundDesc *soundDesc) {
-	ImuseDigiSndMgr::SoundDesc *desc;
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::cloneSound(SoundDesc *soundDesc) {
+	DiMUSESndMgr::SoundDesc *desc;
 	assert(checkForProperHandle(soundDesc));
 
 	desc = openSound(soundDesc->soundId, soundDesc->name, soundDesc->type, soundDesc->volGroupId, soundDesc->disk);
@@ -512,7 +512,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::cloneSound(SoundDesc *soundDesc) {
 	return desc;
 }
 
-bool ImuseDigiSndMgr::checkForProperHandle(SoundDesc *soundDesc) {
+bool DiMUSESndMgr::checkForProperHandle(SoundDesc *soundDesc) {
 	if (!soundDesc)
 		return false;
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
@@ -522,50 +522,50 @@ bool ImuseDigiSndMgr::checkForProperHandle(SoundDesc *soundDesc) {
 	return false;
 }
 
-bool ImuseDigiSndMgr::isSndDataExtComp(SoundDesc *soundDesc) {
+bool DiMUSESndMgr::isSndDataExtComp(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->compressed;
 }
 
-int ImuseDigiSndMgr::getFreq(SoundDesc *soundDesc) {
+int DiMUSESndMgr::getFreq(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->freq;
 }
 
-int ImuseDigiSndMgr::getBits(SoundDesc *soundDesc) {
+int DiMUSESndMgr::getBits(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->bits;
 }
 
-int ImuseDigiSndMgr::getChannels(SoundDesc *soundDesc) {
+int DiMUSESndMgr::getChannels(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->channels;
 }
 
-bool ImuseDigiSndMgr::isEndOfRegion(SoundDesc *soundDesc, int region) {
+bool DiMUSESndMgr::isEndOfRegion(SoundDesc *soundDesc, int region) {
 	assert(checkForProperHandle(soundDesc));
 	assert(region >= 0 && region < soundDesc->numRegions);
 	return soundDesc->endFlag;
 }
 
-int ImuseDigiSndMgr::getNumRegions(SoundDesc *soundDesc) {
+int DiMUSESndMgr::getNumRegions(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->numRegions;
 }
 
-int ImuseDigiSndMgr::getNumJumps(SoundDesc *soundDesc) {
+int DiMUSESndMgr::getNumJumps(SoundDesc *soundDesc) {
 	assert(checkForProperHandle(soundDesc));
 	return soundDesc->numJumps;
 }
 
-int ImuseDigiSndMgr::getRegionOffset(SoundDesc *soundDesc, int region) {
+int DiMUSESndMgr::getRegionOffset(SoundDesc *soundDesc, int region) {
 	debug(5, "getRegionOffset() region:%d", region);
 	assert(checkForProperHandle(soundDesc));
 	assert(region >= 0 && region < soundDesc->numRegions);
 	return soundDesc->region[region].offset;
 }
 
-int ImuseDigiSndMgr::getJumpIdByRegionAndHookId(SoundDesc *soundDesc, int region, int hookId) {
+int DiMUSESndMgr::getJumpIdByRegionAndHookId(SoundDesc *soundDesc, int region, int hookId) {
 	debug(5, "getJumpIdByRegionAndHookId() region:%d, hookId:%d", region, hookId);
 	assert(checkForProperHandle(soundDesc));
 	assert(region >= 0 && region < soundDesc->numRegions);
@@ -594,7 +594,7 @@ int ImuseDigiSndMgr::getJumpIdByRegionAndHookId(SoundDesc *soundDesc, int region
 	return -1;
 }
 
-bool ImuseDigiSndMgr::checkForTriggerByRegionAndMarker(SoundDesc *soundDesc, int region, const char *marker) {
+bool DiMUSESndMgr::checkForTriggerByRegionAndMarker(SoundDesc *soundDesc, int region, const char *marker) {
 	debug(5, "checkForTriggerByRegionAndMarker() region:%d, marker:%s", region, marker);
 	assert(checkForProperHandle(soundDesc));
 	assert(region >= 0 && region < soundDesc->numRegions);
@@ -610,7 +610,7 @@ bool ImuseDigiSndMgr::checkForTriggerByRegionAndMarker(SoundDesc *soundDesc, int
 	return false;
 }
 
-void ImuseDigiSndMgr::getSyncSizeAndPtrById(SoundDesc *soundDesc, int number, int32 &sync_size, byte **sync_ptr) {
+void DiMUSESndMgr::getSyncSizeAndPtrById(SoundDesc *soundDesc, int number, int32 &sync_size, byte **sync_ptr) {
 	assert(checkForProperHandle(soundDesc));
 	assert(number >= 0);
 	if (number < soundDesc->numSyncs) {
@@ -622,7 +622,7 @@ void ImuseDigiSndMgr::getSyncSizeAndPtrById(SoundDesc *soundDesc, int number, in
 	}
 }
 
-int ImuseDigiSndMgr::getRegionIdByJumpId(SoundDesc *soundDesc, int jumpId) {
+int DiMUSESndMgr::getRegionIdByJumpId(SoundDesc *soundDesc, int jumpId) {
 	debug(5, "getRegionIdByJumpId() jumpId:%d", jumpId);
 	assert(checkForProperHandle(soundDesc));
 	assert(jumpId >= 0 && jumpId < soundDesc->numJumps);
@@ -636,21 +636,21 @@ int ImuseDigiSndMgr::getRegionIdByJumpId(SoundDesc *soundDesc, int jumpId) {
 	return -1;
 }
 
-int ImuseDigiSndMgr::getJumpHookId(SoundDesc *soundDesc, int number) {
+int DiMUSESndMgr::getJumpHookId(SoundDesc *soundDesc, int number) {
 	debug(5, "getJumpHookId() number:%d", number);
 	assert(checkForProperHandle(soundDesc));
 	assert(number >= 0 && number < soundDesc->numJumps);
 	return soundDesc->jump[number].hookId;
 }
 
-int ImuseDigiSndMgr::getJumpFade(SoundDesc *soundDesc, int number) {
+int DiMUSESndMgr::getJumpFade(SoundDesc *soundDesc, int number) {
 	debug(5, "getJumpFade() number:%d", number);
 	assert(checkForProperHandle(soundDesc));
 	assert(number >= 0 && number < soundDesc->numJumps);
 	return soundDesc->jump[number].fadeDelay;
 }
 
-int32 ImuseDigiSndMgr::getDataFromRegion(SoundDesc *soundDesc, int region, byte **buf, int32 offset, int32 size) {
+int32 DiMUSESndMgr::getDataFromRegion(SoundDesc *soundDesc, int region, byte **buf, int32 offset, int32 size) {
 	debug(6, "getDataFromRegion() region:%d, offset:%d, size:%d, numRegions:%d", region, offset, size, soundDesc->numRegions);
 	assert(checkForProperHandle(soundDesc));
 

@@ -25,7 +25,7 @@
 #include "scumm/akos.h"
 #include "scumm/bomp.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v7.h"
@@ -1878,8 +1878,8 @@ void ScummEngine_v7::akos_processQueue() {
 			break;
 		case 3:
 			if (param_1 != 0) {
-				if (_imuseDigital) {
-					_imuseDigital->startSfx(param_1, 63);
+				if (_diMUSE) {
+					_diMUSE->startSfx(param_1, 63);
 				}
 			}
 			break;
@@ -1895,22 +1895,22 @@ void ScummEngine_v7::akos_processQueue() {
 			break;
 		case 7:
 			if (param_1 != 0) {
-				if (_imuseDigital) {
-					_imuseDigital->setVolume(param_1, param_2);
+				if (_diMUSE) {
+					_diMUSE->setVolume(param_1, param_2);
 				}
 			}
 			break;
 		case 8:
 			if (param_1 != 0) {
-				if (_imuseDigital) {
-					_imuseDigital->setPan(param_1, param_2);
+				if (_diMUSE) {
+					_diMUSE->setPan(param_1, param_2);
 				}
 			}
 			break;
 		case 9:
 			if (param_1 != 0) {
-				if (_imuseDigital) {
-					_imuseDigital->setPriority(param_1, param_2);
+				if (_diMUSE) {
+					_diMUSE->setPriority(param_1, param_2);
 				}
 			}
 			break;

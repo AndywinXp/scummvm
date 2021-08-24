@@ -26,11 +26,12 @@
 #include "scumm/actor.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
-#include "scumm/imuse_digi/dimuse.h"
-#include "scumm/imuse_digi/dimuse_bndmgr.h"
-#include "scumm/imuse_digi/dimuse_codecs.h"
-#include "scumm/imuse_digi/dimuse_track.h"
-#include "scumm/imuse_digi/dimuse_tables.h"
+#include "scumm/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v1/dimuse_bndmgr.h"
+#include "scumm/dimuse_v1/dimuse_codecs.h"
+#include "scumm/dimuse_v1/dimuse_track.h"
+#include "scumm/dimuse_v1/dimuse_tables.h"
 
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
@@ -38,18 +39,18 @@
 
 namespace Scumm {
 
-void IMuseDigital::timer_handler(void *refCon) {
-	IMuseDigital *imuseDigital = (IMuseDigital *)refCon;
-	imuseDigital->callback();
+void DiMUSE_v1::timer_handler(void *refCon) {
+	DiMUSE_v1 *diMUSE = (DiMUSE_v1 *)refCon;
+	diMUSE->callback();
 }
 
-IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
-	: _vm(scumm), _mixer(mixer) {
+DiMUSE_v1::DiMUSE_v1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
+	: _vm(scumm), _mixer(mixer), DiMUSE(scumm, mixer, fps) {
 	assert(_vm);
 	assert(mixer);
 
 	_pause = false;
-	_sound = new ImuseDigiSndMgr(_vm);
+	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
 	_callbackFps = fps;
 	if (_vm->_game.id == GID_FT)
@@ -61,13 +62,13 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 		_track[l]->reset();
 		_track[l]->trackId = l;
 	}
-	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "IMuseDigital");
+	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v1");
 
 	_audioNames = NULL;
 	_numAudioNames = 0;
 }
 
-IMuseDigital::~IMuseDigital() {
+DiMUSE_v1::~DiMUSE_v1() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	stopAllSounds();
 	for (int l = 0; l < MAX_DIGITAL_TRACKS + MAX_DIGITAL_FADETRACKS; l++) {
@@ -96,7 +97,7 @@ static int32 makeMixerFlags(Track *track) {
 	return mixerFlags;
 }
 
-void IMuseDigital::resetState() {
+void DiMUSE_v1::resetState() {
 	_curMusicState = 0;
 	_curMusicSeq = 0;
 	_curMusicCue = 0;
@@ -137,8 +138,8 @@ static void syncWithSerializer(Common::Serializer &s, Track &t) {
 	s.syncAsByte(t.sndDataExtComp, VER(45));
 }
 
-void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
-	Common::StackLock lock(_mutex, "IMuseDigital::saveLoadEarly()");
+void DiMUSE_v1::saveLoadEarly(Common::Serializer &s) {
+	Common::StackLock lock(_mutex, "DiMUSE_v1::saveLoadEarly()");
 
 	s.skip(4, VER(31), VER(42)); // _volVoice
 	s.skip(4, VER(31), VER(42)); // _volSfx
@@ -165,7 +166,7 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 				continue;
 			}
 
-			// TODO: The code below has a lot in common with that in IMuseDigital::startSound.
+			// TODO: The code below has a lot in common with that in DiMUSE_v1::startSound.
 			// Try to refactor them to reduce the code duplication.
 
 			track->soundDesc = _sound->openSound(track->soundId, track->soundName, track->soundType, track->volGroupId, -1);
@@ -175,7 +176,7 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 				track->soundDesc = _sound->openSound(track->soundId, track->soundName, track->soundType, track->volGroupId, 2);
 
 			if (!track->soundDesc) {
-				warning("IMuseDigital::saveOrLoad: Can't open sound so will not be resumed");
+				warning("DiMUSE_v1::saveOrLoad: Can't open sound so will not be resumed");
 				track->used = false;
 				continue;
 			}
@@ -205,7 +206,7 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 			} else if (bits == 8) {
 				track->mixerFlags |= kFlagUnsigned;
 			} else
-				error("IMuseDigital::saveOrLoad(): Can't handle %d bit samples", bits);
+				error("DiMUSE_v1::saveOrLoad(): Can't handle %d bit samples", bits);
 
 			track->stream = Audio::makeQueuingAudioStream(freq, (track->mixerFlags & kFlagStereo) != 0);
 
@@ -215,8 +216,8 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 	}
 }
 
-void IMuseDigital::callback() {
-	Common::StackLock lock(_mutex, "IMuseDigital::callback()");
+void DiMUSE_v1::callback() {
+	Common::StackLock lock(_mutex, "DiMUSE_v1::callback()");
 	_speechIsPlaying = false;
 	// Check for any track playing a speech line
 	if (_vm->_game.id != GID_DIG) {
@@ -455,7 +456,7 @@ void IMuseDigital::callback() {
 				} else if (_vm->_game.id == GID_FT) {
 					// Adjust audio mix for Full Throttle
 					// (this affects music and sfx only, speech volume mix
-					// is changed accordingly in IMuseDigital::startSound()
+					// is changed accordingly in DiMUSE_v1::startSound()
 					// since that's the only handle we have for speech)
 					if (track->volGroupId == IMUSE_VOLGRP_MUSIC) {
 						// Gain reduction
@@ -474,7 +475,7 @@ void IMuseDigital::callback() {
 	}
 }
 
-void IMuseDigital::switchToNextRegion(Track *track) {
+void DiMUSE_v1::switchToNextRegion(Track *track) {
 	assert(track);
 
 	if (track->trackId >= MAX_DIGITAL_TRACKS) {
@@ -491,7 +492,7 @@ void IMuseDigital::switchToNextRegion(Track *track) {
 		return;
 	}
 
-	ImuseDigiSndMgr::SoundDesc *soundDesc = track->soundDesc;
+	DiMUSESndMgr::SoundDesc *soundDesc = track->soundDesc;
 	if (_triggerUsed && track->soundDesc->numMarkers) {
 		if (_sound->checkForTriggerByRegionAndMarker(soundDesc, track->curRegion, _triggerParams.marker)) {
 			if (_vm->_game.id != GID_CMI) {

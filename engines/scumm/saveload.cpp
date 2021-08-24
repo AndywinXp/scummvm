@@ -29,7 +29,7 @@
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/imuse/imuse.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/he/intern_he.h"
@@ -411,9 +411,9 @@ bool ScummEngine::loadState(int slot, bool compat, Common::String &filename) {
 		_sound->stopAllSounds();
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_imuseDigital) {
-		_imuseDigital->stopAllSounds();
-		_imuseDigital->resetState();
+	if (_diMUSE) {
+		_diMUSE->stopAllSounds();
+		_diMUSE->resetState();
 	}
 #endif
 
@@ -1602,7 +1602,7 @@ void syncWithSerializer(Common::Serializer &s, ScummEngine_v7::SubtitleText &st)
 void ScummEngine_v7::saveLoadWithSerializer(Common::Serializer &s) {
 	ScummEngine::saveLoadWithSerializer(s);
 
-	_imuseDigital->saveLoadEarly(s);
+	_diMUSE->saveLoadEarly(s);
 
 	s.syncArray(_subtitleQueue, ARRAYSIZE(_subtitleQueue), syncWithSerializer);
 	s.syncAsSint32LE(_subtitleQueuePos, VER(61));

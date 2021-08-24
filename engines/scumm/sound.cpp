@@ -30,7 +30,7 @@
 #include "scumm/cdda.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/resource.h"
 #include "scumm/scumm.h"
@@ -442,10 +442,10 @@ void Sound::processSfxQueues() {
 		Actor *a;
 		bool finished;
 
-		if (_vm->_imuseDigital) {
+		if (_vm->_diMUSE) {
 			finished = !isSoundRunning(kTalkSoundID);
 #if defined(ENABLE_SCUMM_7_8)
-			_curSoundPos = _vm->_imuseDigital->getSoundElapsedTimeInMs(kTalkSoundID) * 60 / 1000;
+			_curSoundPos = _vm->_diMUSE->getSoundElapsedTimeInMs(kTalkSoundID) * 60 / 1000;
 #endif
 		} else if (_vm->_game.heversion >= 60) {
 			finished = !isSoundRunning(1);
@@ -674,10 +674,10 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			return;
 		}
 
-		if (_vm->_imuseDigital) {
+		if (_vm->_diMUSE) {
 #ifdef ENABLE_SCUMM_7_8
-			//_vm->_imuseDigital->stopSound(kTalkSoundID);
-			_vm->_imuseDigital->startVoice(kTalkSoundID, input);
+			//_vm->_DiMUSE_v1->stopSound(kTalkSoundID);
+			_vm->_diMUSE->startVoice(kTalkSoundID, input);
 #endif
 		} else {
 			if (mode == 1) {
@@ -691,9 +691,9 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 
 void Sound::stopTalkSound() {
 	if (_sfxMode & 2) {
-		if (_vm->_imuseDigital) {
+		if (_vm->_diMUSE) {
 #ifdef ENABLE_SCUMM_7_8
-			_vm->_imuseDigital->stopSound(kTalkSoundID);
+			_vm->_diMUSE->stopSound(kTalkSoundID);
 #endif
 		} else if (_vm->_game.heversion >= 60) {
 			stopSound(1);
@@ -723,8 +723,8 @@ bool Sound::isMouthSyncOff(uint pos) {
 
 int Sound::isSoundRunning(int sound) const {
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_imuseDigital)
-		return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
+	if (_vm->_diMUSE)
+		return (_vm->_diMUSE->getSoundStatus(sound) != 0);
 #endif
 
 	if (sound == _currentCDSound)
@@ -759,8 +759,8 @@ int Sound::isSoundRunning(int sound) const {
 bool Sound::isSoundInUse(int sound) const {
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_imuseDigital)
-		return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
+	if (_vm->_diMUSE)
+		return (_vm->_diMUSE->getSoundStatus(sound) != 0);
 #endif
 
 	if (sound == _currentCDSound)
@@ -848,7 +848,7 @@ void Sound::stopAllSounds() {
 	}
 
 	// Stop all SFX
-	if (!_vm->_imuseDigital) {
+	if (!_vm->_diMUSE) {
 		_mixer->stopAll();
 	}
 }
@@ -857,8 +857,8 @@ void Sound::soundKludge(int *list, int num) {
 	int i;
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_imuseDigital) {
-		_vm->_imuseDigital->parseScriptCmds(list[0], list[1], list[2], list[3], list[4],
+	if (_vm->_diMUSE) {
+		_vm->_diMUSE->parseScriptCmds(list[0], list[1], list[2], list[3], list[4],
 												list[5], list[6], list[7]);
 		return;
 	}
@@ -909,8 +909,8 @@ void Sound::pauseSounds(bool pause) {
 	_soundsPaused = pause;
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_imuseDigital) {
-		_vm->_imuseDigital->pause(pause);
+	if (_vm->_diMUSE) {
+		_vm->_diMUSE->pause(pause);
 	}
 #endif
 

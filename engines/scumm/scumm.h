@@ -87,7 +87,9 @@ class BaseCostumeRenderer;
 class BaseScummFile;
 class CharsetRenderer;
 class IMuse;
-class IMuseDigital;
+class DiMUSE;
+class DiMUSE_v1;
+class DiMUSE_v2;
 class MusicEngine;
 class Player_Towns;
 class ScummEngine;
@@ -293,7 +295,7 @@ public:
 	 * That results in a shorter form of the opcode
 	 * on some architectures. */
 	IMuse *_imuse;
-	IMuseDigital *_imuseDigital;
+	DiMUSE *_diMUSE;
 	MusicEngine *_musicEngine;
 	Player_Towns *_townsPlayer;
 	Sound *_sound;
@@ -376,7 +378,7 @@ protected:
 
 	// Event handling
 public:
-	void parseEvents();	// Used by IMuseDigital::startSound
+	void parseEvents();	// Used by DiMUSE_v1::startSound
 protected:
 	virtual void parseEvent(Common::Event event);
 

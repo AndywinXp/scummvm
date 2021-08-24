@@ -32,7 +32,7 @@
 #include "scumm/dialogs.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -220,7 +220,7 @@ void ScummEngine::askForDisk(const char *filename, int disknum) {
 #ifdef ENABLE_SCUMM_7_8
 		char result;
 
-		_imuseDigital->stopAllSounds();
+		_diMUSE->stopAllSounds();
 
 #ifdef MACOSX
 		sprintf(buf, "Cannot find file: '%s'\nPlease insert disc %d.\nPress OK to retry, Quit to exit", filename, disknum);
@@ -358,7 +358,7 @@ void ScummEngine_v7::readIndexBlock(uint32 blocktype, uint32 itemsize) {
 		num = _fileHandle->readUint16LE();
 		ptr = (char *)malloc(num * 9);
 		_fileHandle->read(ptr, num * 9);
-		_imuseDigital->setAudioNames(num, ptr);
+		_diMUSE->setAudioNames(num, ptr);
 		break;
 
 	case MKTAG('D','R','S','C'):		// Used by: COMI

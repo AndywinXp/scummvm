@@ -40,7 +40,7 @@ class ScummEngine;
 class BundleMgr;
 class BundleDirCache;
 
-class ImuseDigiSndMgr {
+class DiMUSESndMgr {
 public:
 
 #define MAX_IMUSE_SOUNDS 16
@@ -132,8 +132,8 @@ private:
 
 public:
 
-	ImuseDigiSndMgr(ScummEngine *scumm);
-	~ImuseDigiSndMgr();
+	DiMUSESndMgr(ScummEngine *scumm);
+	~DiMUSESndMgr();
 
 	SoundDesc *openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk);
 	void closeSound(SoundDesc *soundDesc);

@@ -88,14 +88,16 @@ ifdef ENABLE_SCUMM_7_8
 MODULE_OBJS += \
 	nut_renderer.o \
 	script_v8.o \
-	imuse_digi/dimuse.o \
-	imuse_digi/dimuse_bndmgr.o \
-	imuse_digi/dimuse_codecs.o \
-	imuse_digi/dimuse_music.o \
-	imuse_digi/dimuse_sndmgr.o \
-	imuse_digi/dimuse_script.o \
-	imuse_digi/dimuse_track.o \
-	imuse_digi/dimuse_tables.o \
+	dimuse.o \
+	dimuse_v1/dimuse_v1.o \
+	dimuse_v1/dimuse_bndmgr.o \
+	dimuse_v1/dimuse_codecs.o \
+	dimuse_v1/dimuse_music.o \
+	dimuse_v1/dimuse_sndmgr.o \
+	dimuse_v1/dimuse_script.o \
+	dimuse_v1/dimuse_track.o \
+	dimuse_v1/dimuse_tables.o \
+	dimuse_v2/dimuse_v2.o \
 	insane/insane.o \
 	insane/insane_ben.o \
 	insane/insane_enemy.o \

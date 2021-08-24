@@ -27,7 +27,7 @@
 #include "scumm/charset.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/insane/insane.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -1060,7 +1060,7 @@ void ScummEngine_v6::o6_startSound() {
 
 #ifdef ENABLE_SCUMM_7_8
 	if (_game.version >= 7)
-		_imuseDigital->startSfx(pop(), 64);
+		_diMUSE->startSfx(pop(), 64);
 	else
 #endif
 		_sound->addSoundToQueue(pop(), offset);
@@ -2589,7 +2589,7 @@ void ScummEngine_v7::o6_kernelSetFunctions() {
 		enqueueText(getStringAddressVar(VAR_STRING2DRAW), args[3], args[4], args[2], args[1], (args[0] == 16));
 		break;
 	case 20:
-		_imuseDigital->setRadioChatterSFX(args[1]);
+		_diMUSE->setRadioChatterSFX(args[1]);
 		break;
 	case 107:
 		a = derefActor(args[1], "o6_kernelSetFunctions: 107");

@@ -20,8 +20,8 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_H
+#if !defined(SCUMM_IMUSE_DIGI_V1_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_V1_H
 
 #include "common/scummsys.h"
 #include "common/mutex.h"
@@ -29,9 +29,10 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "scumm/imuse_digi/dimuse.h"
-#include "scumm/imuse_digi/dimuse_bndmgr.h"
-#include "scumm/imuse_digi/dimuse_sndmgr.h"
+#include "scumm/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v1/dimuse_bndmgr.h"
+#include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
 
@@ -52,7 +53,7 @@ struct imuseComiTable;
 class ScummEngine_v7;
 struct Track;
 
-class IMuseDigital : public MusicEngine {
+class DiMUSE_v1 : public DiMUSE {
 private:
 
 	int _callbackFps;		// value how many times callback needs to be called per second
@@ -74,7 +75,7 @@ private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
-	ImuseDigiSndMgr *_sound;
+	DiMUSESndMgr *_sound;
 
 	char *_audioNames;		// filenames of sound SFX used in FT
 	int32 _numAudioNames;	// number of above filenames
@@ -128,8 +129,8 @@ private:
 	void flushTrack(Track *track);
 
 public:
-	IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
-	~IMuseDigital() override;
+	DiMUSE_v1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
+	~DiMUSE_v1() override;
 
 	void setAudioNames(int32 num, char *names);
 
@@ -140,7 +141,7 @@ public:
 	int startMusicWithOtherPos(const char *soundName, int soundId, int hookId, int volume, Track *otherTrack);
 	int startSfx(int soundId, int priority);
 	void startSound(int sound) override
-		{ error("IMuseDigital::startSound(int) should be never called"); }
+		{ error("DiMUSE_v1::startSound(int) should be never called"); }
 
 	void saveLoadEarly(Common::Serializer &ser);
 	void resetState();

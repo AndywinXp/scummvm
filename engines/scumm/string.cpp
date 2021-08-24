@@ -29,7 +29,7 @@
 #include "scumm/charset.h"
 #include "scumm/dialogs.h"
 #include "scumm/file.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #ifdef ENABLE_HE
 #include "scumm/he/intern_he.h"
 #include "scumm/he/localizer.h"
@@ -1814,8 +1814,8 @@ void ScummEngine_v7::playSpeech(const byte *ptr) {
 			pointerStr += ".IMX";
 
 		_sound->stopTalkSound();
-		_imuseDigital->stopSound(kTalkSoundID);
-		_imuseDigital->startVoice(kTalkSoundID, pointerStr.c_str());
+		_diMUSE->stopSound(kTalkSoundID);
+		_diMUSE->startVoice(kTalkSoundID, pointerStr.c_str());
 		_sound->talkSound(0, 0, 2);
 	}
 }

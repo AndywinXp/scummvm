@@ -32,7 +32,7 @@
 #include "graphics/palette.h"
 
 #include "scumm/file.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
@@ -1072,7 +1072,7 @@ void SmushPlayer::parseNextFrame() {
 	if (_insanity)
 		_vm->_sound->processSound();
 
-	_vm->_imuseDigital->flushTracks();
+	_vm->_diMUSE->flushTracks();
 }
 
 void SmushPlayer::setPalette(const byte *palette) {

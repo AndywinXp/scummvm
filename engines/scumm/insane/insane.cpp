@@ -33,7 +33,7 @@
 #include "scumm/sound.h"
 
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/dimuse_v1/dimuse_v1.h"
 
 #include "scumm/smush/smush_player.h"
 #include "scumm/smush/smush_font.h"
@@ -773,7 +773,7 @@ void Insane::smush_setToFinish() {
 
 // smlayer_stopSound
 void Insane::smlayer_stopSound(int idx) {
-	_vm->_imuseDigital->stopSound(readArray(idx));
+	_vm->_diMUSE->stopSound(readArray(idx));
 }
 
 void Insane::switchSceneIfNeeded() {
@@ -1218,12 +1218,12 @@ void Insane::smlayer_setFluPalette(byte *pal, int shut_flag) {
 }
 
 bool Insane::smlayer_isSoundRunning(int32 sound) {
-	return _vm->_imuseDigital->getSoundStatus(readArray(sound)) != 0;
+	return _vm->_diMUSE->getSoundStatus(readArray(sound)) != 0;
 }
 
 bool Insane::smlayer_startSfx(int32 sound) {
 	if (smlayer_loadSound(sound, 0, 2)) {
-		_vm->_imuseDigital->startSfx(readArray(sound), 40);
+		_vm->_diMUSE->startSfx(readArray(sound), 40);
 		return true;
 	} else
 		return false;
@@ -1231,18 +1231,18 @@ bool Insane::smlayer_startSfx(int32 sound) {
 
 bool Insane::smlayer_startVoice(int32 sound) {
 	if (smlayer_loadSound(sound, 0, 2)) {
-		_vm->_imuseDigital->startSfx(readArray(sound), 126);
+		_vm->_diMUSE->startSfx(readArray(sound), 126);
 		return true;
 	} else
 		return false;
 }
 
 void Insane::smlayer_soundSetPan(int32 soundId, int32 pan) {
-	_vm->_imuseDigital->setPan(soundId, pan);
+	_vm->_diMUSE->setPan(soundId, pan);
 }
 
 void Insane::smlayer_soundSetPriority(int32 soundId, int32 priority) {
-	_vm->_imuseDigital->setPriority(soundId, priority);
+	_vm->_diMUSE->setPriority(soundId, priority);
 }
 
 void Insane::smlayer_drawSomething(byte *renderBitmap, int32 codecparam,

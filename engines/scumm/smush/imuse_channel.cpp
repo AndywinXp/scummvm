@@ -26,7 +26,7 @@
 #include "scumm/scumm.h"	// For DEBUG_SMUSH
 #include "scumm/util.h"
 #include "scumm/smush/channel.h"
-#include "scumm/imuse_digi/dimuse_codecs.h"	// for decode12BitsSample
+#include "scumm/dimuse_v1/dimuse_codecs.h"	// for decode12BitsSample
 
 namespace Scumm {
 
