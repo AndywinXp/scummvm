@@ -82,7 +82,7 @@ public:
 	virtual void setVolume(int soundId, int volume) {};
 	virtual void setPan(int soundId, int pan) {};
 	virtual void pause(bool pause) {};
-	virtual void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h) {};
+	virtual void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {};
 	virtual void refreshScripts() {};
 	virtual void flushTracks() {};
 

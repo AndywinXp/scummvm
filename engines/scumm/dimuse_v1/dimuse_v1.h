@@ -159,7 +159,7 @@ public:
 	void stopSound(int sound) override;
 	void stopAllSounds() override;
 	void pause(bool pause);
-	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h);
+	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p);
 	void refreshScripts();
 	void flushTracks();
 	int getSoundStatus(int sound) const override;

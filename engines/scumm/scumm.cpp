@@ -1634,7 +1634,9 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
 	ConfMan.setInt("dimuse_v2_tempo", dimusev2Tempo);
 	ConfMan.flushToDisk();
-	if (_game.id == GID_FT) {
+
+	// Use the old engine for FT and DIG&COMI demos
+	if (_game.id == GID_FT || (_game.features & GF_DEMO)) {
 		_musicEngine = _diMUSE = new DiMUSE_v1(this, _mixer, dimuseTempo);
 	} else {
 		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimusev2Tempo);

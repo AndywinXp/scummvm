@@ -858,8 +858,9 @@ void Sound::soundKludge(int *list, int num) {
 
 #ifdef ENABLE_SCUMM_7_8
 	if (_vm->_diMUSE) {
-		_vm->_diMUSE->parseScriptCmds(list[0], list[1], list[2], list[3], list[4],
-												list[5], list[6], list[7]);
+		_vm->_diMUSE->parseScriptCmds(list[0],  list[1],  list[2],  list[3],  list[4],
+									  list[5],  list[6],  list[7],  list[8],  list[9],
+									  list[10], list[11], list[12], list[13], list[14], list[15]);
 		return;
 	}
 #endif

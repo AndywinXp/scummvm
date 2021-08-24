@@ -97,6 +97,17 @@ MODULE_OBJS += \
 	dimuse_v1/dimuse_track.o \
 	dimuse_v1/dimuse_tables.o \
 	dimuse_v2/dimuse_v2.o \
+	dimuse_v2/dimuse_v2_cmds.o \
+	dimuse_v2/dimuse_v2_dispatch.o \
+	dimuse_v2/dimuse_v2_fades.o \
+	dimuse_v2/dimuse_v2_files.o \
+	dimuse_v2/dimuse_v2_groups.o \
+	dimuse_v2/dimuse_v2_streamer.o \
+	dimuse_v2/dimuse_v2_timer.o \
+	dimuse_v2/dimuse_v2_tracks.o \
+	dimuse_v2/dimuse_v2_triggers.o \
+	dimuse_v2/dimuse_v2_wave.o \
+	dimuse_v2/dimuse_v2_waveapi.o \
 	insane/insane.o \
 	insane/insane_ben.o \
 	insane/insane_enemy.o \

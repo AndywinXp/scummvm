@@ -36,7 +36,7 @@
 
 namespace Scumm {
 
-void DiMUSE_v1::parseScriptCmds(int cmd, int b, int c, int d, int e, int f, int g, int h) {
+void DiMUSE_v1::parseScriptCmds(int cmd, int b, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
 	int soundId = b;
 	int sub_cmd = c;
 
@@ -194,7 +194,7 @@ void DiMUSE_v1::refreshScripts() {
 		// small delay, it seems help for fix bug #3325
 		if (_stopingSequence++ > 120) {
 			debug(5, "refreshScripts() Force restore music state");
-			parseScriptCmds(0x1001, 0, 0, 0, 0, 0, 0, 0);
+			parseScriptCmds(0x1001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 			_stopingSequence = 0;
 		}
 	}
@@ -210,7 +210,7 @@ void DiMUSE_v1::refreshScripts() {
 
 	if (!found && _curMusicState) {
 		debug(5, "refreshScripts() Restore music state");
-		parseScriptCmds(0x1001, 0, 0, 0, 0, 0, 0, 0);
+		parseScriptCmds(0x1001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	}
 }
 
