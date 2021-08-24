@@ -306,6 +306,7 @@ void registerDefaults() {
 #endif
 #if (defined(ENABLE_SCUMM) && defined(ENABLE_SCUMM_7_8)) || defined(ENABLE_GRIM)
 	ConfMan.registerDefault("dimuse_tempo", 10);
+	ConfMan.registerDefault("dimuse_v2_tempo", 100);
 #endif
 
 #if defined(ENABLE_SKY) || defined(ENABLE_QUEEN)

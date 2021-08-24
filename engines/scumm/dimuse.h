@@ -58,8 +58,8 @@ private:
 	void callback();
 
 public:
-	DiMUSE(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
-	~DiMUSE() override;
+	DiMUSE(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps) {};
+	~DiMUSE() {};
 
 	void startSound(int sound) override
 	{ error("DiMUSE::startSound(int) should be never called"); }

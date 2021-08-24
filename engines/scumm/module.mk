@@ -88,7 +88,6 @@ ifdef ENABLE_SCUMM_7_8
 MODULE_OBJS += \
 	nut_renderer.o \
 	script_v8.o \
-	dimuse.o \
 	dimuse_v1/dimuse_v1.o \
 	dimuse_v1/dimuse_bndmgr.o \
 	dimuse_v1/dimuse_codecs.o \

@@ -1629,13 +1629,15 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	else
 		_smushFrameRate = (_game.id == GID_FT) ? 10 : 12;
 
-	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100);
+	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100); // FT
+	int dimusev2Tempo = CLIP(ConfMan.getInt("dimuse_v2_tempo"), 10, 100); // DIG & COMI
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
+	ConfMan.setInt("dimuse_v2_tempo", dimusev2Tempo);
 	ConfMan.flushToDisk();
 	if (_game.id == GID_FT) {
 		_musicEngine = _diMUSE = new DiMUSE_v1(this, _mixer, dimuseTempo);
 	} else {
-		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimuseTempo);
+		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimusev2Tempo);
 	}
 	
 
