@@ -42,9 +42,11 @@ int DiMUSE_v2::groups_setGroupVol(int id, int volume) {
 	if (id >= MAX_GROUPS) {
 		return -5;
 	}
+
 	if (volume == -1) {
 		return groupVols[id];
 	}
+
 	if (volume > 127)
 		return -5;
 
@@ -60,8 +62,7 @@ int DiMUSE_v2::groups_setGroupVol(int id, int volume) {
 		}
 	}
 
-	debug(5, "DiMUSE_v2::groups_setGroupVol(): UNIMPLEMENTED wave_setGroupVol()");
-	//wave_setGroupVol();
+	wave_setGroupVol();
 	return groupVols[id];
 }
 
@@ -69,6 +70,7 @@ int DiMUSE_v2::groups_getGroupVol(int id) {
 	if (id >= MAX_GROUPS) {
 		return -5;
 	}
+
 	return groupEffVols[id];
 }
 

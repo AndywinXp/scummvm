@@ -25,8 +25,8 @@
 namespace Scumm {
 
 	int DiMUSE_v2::wave_init() {
-		/*if (tracks_init())
-			return -1;*/
+		if (tracks_moduleInit())
+			return -1;
 		wvSlicingHalted = 0;
 		return 0;
 	}
@@ -74,7 +74,7 @@ namespace Scumm {
 
 	void DiMUSE_v2::wave_setGroupVol() {
 		wvSlicingHalted++;
-		//tracks_setGroupVol();
+		tracks_setGroupVol();
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -82,7 +82,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_startSound(int soundId, int priority) {
 		wvSlicingHalted++;
-		int result = 0;// tracks_startSound(soundId, priority, 0);
+		int result = tracks_startSound(soundId, priority, 0);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -91,7 +91,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_stopSound(int soundId) {
 		wvSlicingHalted++;
-		int result = 0;// tracks_stopSound(soundId);
+		int result = tracks_stopSound(soundId);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -100,7 +100,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_stopAllSounds() {
 		wvSlicingHalted++;
-		int result = 0;// tracks_stopAllSounds();
+		int result = tracks_stopAllSounds();
 		if (wvSlicingHalted != 0) {
 			wvSlicingHalted--;
 		}
@@ -109,7 +109,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_getNextSound(int soundId) {
 		wvSlicingHalted++;
-		int result = 0;// tracks_getNextSound(soundId);
+		int result = tracks_getNextSound(soundId);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -118,7 +118,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_setParam(int soundId, int opcode, int value) {
 		wvSlicingHalted++;
-		int result = 0;// tracks_setParam(soundId, opcode, value);
+		int result = tracks_setParam(soundId, opcode, value);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -127,7 +127,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_getParam(int soundId, int opcode) {
 		wvSlicingHalted++;
-		int result = 0;// tracks_getParam(soundId, opcode);
+		int result = tracks_getParam(soundId, opcode);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -135,18 +135,18 @@ namespace Scumm {
 	}
 
 	int DiMUSE_v2::wave_setHook(int soundId, int hookId) {
-		return 0;// tracks_setHook(soundId, hookId);
+		return tracks_setHook(soundId, hookId);
 	}
 
 	int DiMUSE_v2::wave_getHook(int soundId) {
-		return 0;// tracks_getHook(soundId);
+		return tracks_getHook(soundId);
 	}
 
-	int DiMUSE_v2::wave_startSoundInGroup(int soundId, int priority, int groupId) {
+	int DiMUSE_v2::wave_startStream(int soundId, int priority, int bufferId) {
 		if (!files_checkRange(soundId))
 			return -1;
 		wvSlicingHalted++;
-		int result = 0;// tracks_startSound(soundId, priority, groupId);
+		int result = tracks_startSound(soundId, priority, bufferId);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -155,7 +155,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_switchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1) {
 		wvSlicingHalted++;
-		int result = 0;// dispatch_switchStream(oldSoundId, newSoundId, fadeLengthMs, fadeSyncFlag2, fadeSyncFlag1);
+		int result = dispatch_switchStream(oldSoundId, newSoundId, fadeLengthMs, fadeSyncFlag2, fadeSyncFlag1);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -164,7 +164,7 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_processStreams() {
 		wvSlicingHalted++;
-		int result = 0;//streamer_processStreams();
+		int result = streamer_processStreams();
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
@@ -173,16 +173,16 @@ namespace Scumm {
 
 	int DiMUSE_v2::wave_queryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
 		wvSlicingHalted++;
-		int result = 0;//tracks_queryStream(soundId, bufSize, criticalSize, freeSpace, paused);
+		int result = tracks_queryStream(soundId, bufSize, criticalSize, freeSpace, paused);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}
 		return result;
 	}
 
-	int DiMUSE_v2::wave_feedStream(int soundId, int srcBuf, int sizeToFeed, int paused) {
+	int DiMUSE_v2::wave_feedStream(int soundId, int *srcBuf, int sizeToFeed, int paused) {
 		wvSlicingHalted++;
-		int result = 0;//tracks_feedStream(soundId, srcBuf, sizeToFeed, paused);
+		int result = tracks_feedStream(soundId, (uint8 *)srcBuf, sizeToFeed, paused);
 		if (wvSlicingHalted) {
 			wvSlicingHalted--;
 		}

@@ -86,12 +86,13 @@ namespace Scumm {
 		return 0;
 	}
 
-	/*
-	iMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
+	
+	DiMUSE_v2::iMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
+		/*
 		if (bufId && files_initDataPtr->bufInfoFunc != NULL) {
 			return files_initDataPtr->bufInfoFunc(bufId);
-		}
-		printf("ERR: bufInfoFunc failure");
+		}*/
+		debug(5, "ERR: bufInfoFunc failure");
 		return NULL;
-	}*/
+	}
 } // End of namespace Scumm

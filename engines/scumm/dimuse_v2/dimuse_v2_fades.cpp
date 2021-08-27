@@ -64,12 +64,13 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 	}
 
 	if (!fadeLength) {
+		debug(5, "DiMUSE_v2::fades_fadeParam(): warning, allocated fade with zero length for sound %d", soundId);
 		if (opcode != 0x600 || destinationValue) {
-			// IMUSE_CMDS_SetParam
+			// cmds_setParam
 			cmds_handleCmds(12, soundId, opcode, destinationValue, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 			return 0;
 		} else {
-			// IMUSE_CMDS_StopSound
+			// cmds_stopSound
 			cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 			return 0;
 		}
@@ -79,11 +80,14 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 		if (!fades[l].status) {
 			fades[l].sound = soundId;
 			fades[l].param = opcode;
-			// IMUSE_CMDS_GetParam (probably fetches current volume, with opcode 0x600)
+			// cmds_getParam (fetches current volume, with opcode 0x600)
 			fades[l].currentVal = cmds_handleCmds(13, soundId, opcode, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 			fades[l].length = fadeLength;
 			fades[l].counter = fadeLength;
 			fades[l].slope = (destinationValue - fades[l].currentVal) / fadeLength;
+			fades[l].modOvfloCounter = 0;
+			fades[l].status = 1;
+			fadesOn = 1;
 
 			if ((destinationValue - fades[l].currentVal) < 0) {
 				fades[l].nudge = -1;
@@ -93,13 +97,11 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 				fades[l].slopeMod = fades[l].slope % fadeLength;
 			}
 
-			fades[l].modOvfloCounter = 0;
-			fades[l].status = 1;
-			fadesOn = 1;
+			return 0;
 		}
 	}
 
-	debug(5, "ERROR: fd unable to alloc fade...\n");
+	debug(5, "DiMUSE_v2::fades_fadeParam(): unable to allocate fade for sound %d", soundId);
 	return -6;
 }
 
@@ -138,6 +140,7 @@ void DiMUSE_v2::fades_loop() {
 				fades[l].currentVal = currentVolume;
 
 				if ((fades[l].counter % 6) == 0) {
+					debug(5, "DiMUSE_v2::fades_loop(): running fade for sound %d with id %d, currently at volume %d", fades[l].sound, l, currentVolume);
 					if ((fades[l].param != 0x600) || currentVolume != 0) {
 						// IMUSE_CMDS_SetParam
 						cmds_handleCmds(12, fades[l].sound, fades[l].param, currentVolume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);

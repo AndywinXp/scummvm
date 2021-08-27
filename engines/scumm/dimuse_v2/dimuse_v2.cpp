@@ -30,7 +30,6 @@
 #include "scumm/dimuse_v2/dimuse_v2.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_codecs.h"
-#include "scumm/dimuse_v1/dimuse_track.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
 
 #include "audio/audiostream.h"
@@ -52,11 +51,22 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	cmds_init();
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
+
+	_cacheBundleDir = new BundleDirCache();
+	assert(_cacheBundleDir);
+	BundleCodecs::initializeImcTables();
+	DiMUSE_initializeScript();
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	cmds_deinit();
+	delete _cacheBundleDir;
+	BundleCodecs::releaseImcTables();
+}
+
+void DiMUSE_v2::refreshScripts() {
+	DiMUSE_refreshScript();
 }
 
 void DiMUSE_v2::callback() {
@@ -82,7 +92,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol;
 
 	int usecPerInt = timer_getUsecPerInt(); // Always returns 20000 microseconds (50 Hz)
-	//waveapi_callback();
+	waveapi_callback();
 
 	/*
 	if (cmd_hostIntHandler) {
@@ -97,7 +107,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	while (cmd_running60HzCount >= 16667) {
 		cmd_running60HzCount -= 16667;
 		//cmd_initDataPtr->num60hzIterations++;
-		debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 60Hz interval reached");
+		//debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 60Hz interval reached");
 		fades_loop();
 		triggers_loop();
 	}
@@ -107,7 +117,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 		return;
 
 	do {
-		debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 10Hz interval reached");
+		//debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 10Hz interval reached");
 		// SPEECH GAIN REDUCTION 10Hz
 		cmd_running10HzCount -= 100000;
 		soundId = 0;
@@ -172,18 +182,23 @@ void DiMUSE_v2::pause(bool p) {
 }
 
 void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
+	int b = soundId;
+	int c = sub_cmd;
 	switch (cmd) {
 	case 0x1000:
 		// SetState
+		DiMUSE_setState(soundId);
 		break;
 	case 0x1001:
 		// SetSequence
+		DiMUSE_setSequence(soundId);
 		break;
 	case 0x1002:
 		// SetCuePoint
 		break;
 	case 0x1003:
 		// SetAttribute
+		DiMUSE_setAttribute(b, c);
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
@@ -202,8 +217,156 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 	default:
 		error("DiMUSE_v2::doCommand DEFAULT command %d", cmd);
 	}
-		
-	
+
 };
+
+// UNIMPLEMENTED STUFF:
+/*
+IMUSE_Terminate()
+IMUSE_Initialize()
+IMUSE_Pause() ?
+IMUSE_Resume() ?
+IMUSE_Save() ?
+IMUSE_Restore() ?
+IMUSE_SetGroupVol()
+IMUSE_StartSound()
+IMUSE_StopSound()
+IMUSE_StopAllSounds()
+IMUSE_GetNextSound()
+IMUSE_SetParam()
+IMUSE_GetParam()
+IMUSE_FadeParam()
+IMUSE_SetHook()
+IMUSE_SetTrigger()
+IMUSE_StartStream()
+IMUSE_SwitchStream()
+IMUSE_ProcessStreams()
+IMUSE_QueryStream()
+IMUSE_FeedStream()
+IMUSE_SetGroupVol_Music() ?
+IMUSE_SetGroupVol_SFX() ?
+IMUSE_SetGroupVol_Voice() ?
+IMUSE_GetGroupVol_Music() ?
+IMUSE_GetGroupVol_SFX() ?
+IMUSE_GetGroupVol_Voice() ?
+IMUSE_get_some1() ???
+IMUSE_InitializeScript()
+IMUSE_TerminateScript()
+IMUSE_SaveScript() ?
+IMUSE_RestoreScript() ?
+IMUSE_RefreshScript()
+IMUSE_SetState()
+IMUSE_SetSequence()
+IMUSE_SetCuePoint()
+IMUSE_SetAttribute()
+
+IMUSE_SCRIPT_Parse()
+IMUSE_SCRIPT_Init()
+IMUSE_SCRIPT_Terminate() ?
+IMUSE_SCRIPT_Save() ?
+IMUSE_SCRIPT_Restore() ?
+IMUSE_SCRIPT_Refresh()
+IMUSE_SCRIPT_SetState()
+IMUSE_SCRIPT_SetSequence()
+IMUSE_SCRIPT_SetCuePoint()
+IMUSE_SCRIPT_SetAttribute()
+IMUSE_SCRIPT_PlayMusic()
+IMUSE_SCRIPT_Callback()
+
+*/
+
+int DiMUSE_v2::DiMUSE_terminate() { return 0; }
+int DiMUSE_v2::DiMUSE_initialize() { return 0; }
+int DiMUSE_v2::DiMUSE_pause() { return 0; }
+int DiMUSE_v2::DiMUSE_resume() { return 0; }
+int DiMUSE_v2::DiMUSE_save() { return 0; }
+int DiMUSE_v2::DiMUSE_restore() { return 0; }
+int DiMUSE_v2::DiMUSE_setGroupVol() { return 0; }
+
+int DiMUSE_v2::DiMUSE_startSound(int soundId, int priority) {
+	return cmds_handleCmds(7, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_stopSound() { return 0; }
+
+int DiMUSE_v2::DiMUSE_stopAllSounds() { return 0; }
+
+int DiMUSE_v2::DiMUSE_getNextSound(int soundId) {
+	return cmds_handleCmds(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+void DiMUSE_v2::DiMUSE_setParam(int soundId, int paramId, int value) {
+	cmds_handleCmds(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_getParam(int soundId, int paramId) {
+	return cmds_handleCmds(13, soundId, paramId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength) {
+	return cmds_handleCmds(14, soundId, opcode, destValue, fadeLength, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_setHook(int soundId, int hookId) {
+	return cmds_handleCmds(15, soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+	return triggers_setTrigger(soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
+}
+
+int DiMUSE_v2::DiMUSE_startStream(int soundId, int priority, int bufferId) {
+	return cmds_handleCmds(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
+	return cmds_handleCmds(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_processStreams() { return 0; }
+int DiMUSE_v2::DiMUSE_queryStream() { return 0; }
+int DiMUSE_v2::DiMUSE_feedStream() { return 0; }
+int DiMUSE_v2::DiMUSE_setGroupVol_Music() { return 0; }
+int DiMUSE_v2::DiMUSE_setGroupVol_SFX() { return 0; }
+int DiMUSE_v2::DiMUSE_setGroupVol_Voice() { return 0; }
+int DiMUSE_v2::DiMUSE_getGroupVol_Music() { return 0; }
+int DiMUSE_v2::DiMUSE_getGroupVol_SFX() { return 0; }
+int DiMUSE_v2::DiMUSE_getGroupVol_Voice() { return 0; }
+int DiMUSE_v2::DiMUSE_get_some1() { return 0; }
+
+int DiMUSE_v2::DiMUSE_initializeScript() {
+	script_parse(0, -1, -1, -1, -1, -1, -1, -1, -1);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_terminateScript() { return 0; }
+int DiMUSE_v2::DiMUSE_saveScript() { return 0; }
+int DiMUSE_v2::DiMUSE_restoreScript() { return 0; }
+
+void DiMUSE_v2::DiMUSE_refreshScript() {
+	script_parse(4, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_setState(int soundId) {
+	script_parse(5, soundId, -1, -1, -1, -1, -1, -1, -1);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_setSequence(int soundId) {
+	script_parse(6, soundId, -1, -1, -1, -1, -1, -1, -1);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_setCuePoint() {
+	script_parse(7, -1, -1, -1, -1, -1, -1, -1, -1);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_setAttribute(int attrIndex, int attrVal) {
+	if (_vm->_game.id == GID_DIG) {
+		_attributes[attrIndex] = attrVal;
+	}
+	return 0;
+}
 
 } // End of namespace Scumm
