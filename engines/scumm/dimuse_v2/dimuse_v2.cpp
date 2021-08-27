@@ -29,6 +29,7 @@
 #include "scumm/dimuse.h"
 #include "scumm/dimuse_v2/dimuse_v2.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
+#include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/dimuse_v1/dimuse_codecs.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
 
@@ -53,8 +54,19 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 
 	_cacheBundleDir = new BundleDirCache();
+	_bundle = new BundleMgr(_cacheBundleDir);
+	_sound = new DiMUSESndMgr(_vm);
+	assert(_sound);
+
+	//bool compressed = true;
+	//_bundle->open("musdisk1.bun", compressed, true);
+	//_bundle->open("digmusic.bun", compressed, true);
 	assert(_cacheBundleDir);
 	BundleCodecs::initializeImcTables();
+
+	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
+	DiMUSE_allocSoundBuffer(2, 528000, 44000, 352000);
+
 	DiMUSE_initializeScript();
 }
 
@@ -63,6 +75,26 @@ DiMUSE_v2::~DiMUSE_v2() {
 	cmds_deinit();
 	delete _cacheBundleDir;
 	BundleCodecs::releaseImcTables();
+
+	DiMUSE_deallocSoundBuffer(1);
+	DiMUSE_deallocSoundBuffer(2);
+}
+
+void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
+	iMUSESoundBuffer *selectedSoundBuf;
+
+	selectedSoundBuf = &_soundBuffers[bufId];
+	selectedSoundBuf->buffer = (uint8 *)malloc(size);
+	selectedSoundBuf->bufSize = size;
+	selectedSoundBuf->loadSize = loadSize;
+	selectedSoundBuf->criticalSize = criticalSize;
+}
+
+void DiMUSE_v2::DiMUSE_deallocSoundBuffer(int bufId) {
+	iMUSESoundBuffer *selectedSoundBuf;
+
+	selectedSoundBuf = &_soundBuffers[bufId];
+	free(selectedSoundBuf->buffer);
 }
 
 void DiMUSE_v2::refreshScripts() {
@@ -220,61 +252,6 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 
 };
 
-// UNIMPLEMENTED STUFF:
-/*
-IMUSE_Terminate()
-IMUSE_Initialize()
-IMUSE_Pause() ?
-IMUSE_Resume() ?
-IMUSE_Save() ?
-IMUSE_Restore() ?
-IMUSE_SetGroupVol()
-IMUSE_StartSound()
-IMUSE_StopSound()
-IMUSE_StopAllSounds()
-IMUSE_GetNextSound()
-IMUSE_SetParam()
-IMUSE_GetParam()
-IMUSE_FadeParam()
-IMUSE_SetHook()
-IMUSE_SetTrigger()
-IMUSE_StartStream()
-IMUSE_SwitchStream()
-IMUSE_ProcessStreams()
-IMUSE_QueryStream()
-IMUSE_FeedStream()
-IMUSE_SetGroupVol_Music() ?
-IMUSE_SetGroupVol_SFX() ?
-IMUSE_SetGroupVol_Voice() ?
-IMUSE_GetGroupVol_Music() ?
-IMUSE_GetGroupVol_SFX() ?
-IMUSE_GetGroupVol_Voice() ?
-IMUSE_get_some1() ???
-IMUSE_InitializeScript()
-IMUSE_TerminateScript()
-IMUSE_SaveScript() ?
-IMUSE_RestoreScript() ?
-IMUSE_RefreshScript()
-IMUSE_SetState()
-IMUSE_SetSequence()
-IMUSE_SetCuePoint()
-IMUSE_SetAttribute()
-
-IMUSE_SCRIPT_Parse()
-IMUSE_SCRIPT_Init()
-IMUSE_SCRIPT_Terminate() ?
-IMUSE_SCRIPT_Save() ?
-IMUSE_SCRIPT_Restore() ?
-IMUSE_SCRIPT_Refresh()
-IMUSE_SCRIPT_SetState()
-IMUSE_SCRIPT_SetSequence()
-IMUSE_SCRIPT_SetCuePoint()
-IMUSE_SCRIPT_SetAttribute()
-IMUSE_SCRIPT_PlayMusic()
-IMUSE_SCRIPT_Callback()
-
-*/
-
 int DiMUSE_v2::DiMUSE_terminate() { return 0; }
 int DiMUSE_v2::DiMUSE_initialize() { return 0; }
 int DiMUSE_v2::DiMUSE_pause() { return 0; }
@@ -311,8 +288,8 @@ int DiMUSE_v2::DiMUSE_setHook(int soundId, int hookId) {
 	return cmds_handleCmds(15, soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::DiMUSE_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
-	return triggers_setTrigger(soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
+int DiMUSE_v2::DiMUSE_setTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+	return cmds_handleCmds(17, soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
 }
 
 int DiMUSE_v2::DiMUSE_startStream(int soundId, int priority, int bufferId) {
@@ -323,7 +300,10 @@ int DiMUSE_v2::DiMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay
 	return cmds_handleCmds(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::DiMUSE_processStreams() { return 0; }
+int DiMUSE_v2::DiMUSE_processStreams() {
+	return cmds_handleCmds(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
 int DiMUSE_v2::DiMUSE_queryStream() { return 0; }
 int DiMUSE_v2::DiMUSE_feedStream() { return 0; }
 int DiMUSE_v2::DiMUSE_setGroupVol_Music() { return 0; }

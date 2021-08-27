@@ -69,7 +69,7 @@ int DiMUSE_v2::triggers_setTrigger(int soundId, char *marker, int opcode, int d,
 		marker = &triggers_empty_marker;
 	}
 
-	if (iMUSE_getMarkerLength(marker) >= 256) {
+	if (iMUSE_strlen(marker) >= 256) {
 		debug(5, "ERR: attempting to set trig with oversize marker string...");
 		return -5;
 	}
@@ -102,7 +102,7 @@ int DiMUSE_v2::triggers_checkTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (trigs[l].sound != 0) {
 			if (soundId == -1 || trigs[l].sound == soundId) {
-				if (marker == (char *)-1 || !iMUSE_compareTEXT(marker, trigs[l].text)) {
+				if (marker == (char *)-1 || !iMUSE_strcmp(marker, trigs[l].text)) {
 					if (opcode == -1 || trigs[l].opcode == opcode)
 						r++;
 				}
@@ -116,7 +116,7 @@ int DiMUSE_v2::triggers_checkTrigger(int soundId, char *marker, int opcode) {
 int DiMUSE_v2::triggers_clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((trigs[l].sound != 0) && (soundId == -1 || trigs[l].sound == soundId) &&
-			(marker || !iMUSE_compareTEXT(marker, trigs[l].text)) &&
+			(marker || !iMUSE_strcmp(marker, trigs[l].text)) &&
 			(opcode == -1 || trigs[l].opcode == opcode)) {
 
 			if (triggers_midProcessing) {
@@ -132,7 +132,7 @@ int DiMUSE_v2::triggers_clearTrigger(int soundId, char *marker, int opcode) {
 void DiMUSE_v2::triggers_processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
-	if (iMUSE_getMarkerLength(marker) >= 256) {
+	if (iMUSE_strlen(marker) >= 256) {
 		debug(5, "ERR: TgProcessMarker() passed oversize marker string...");
 		return;
 	}
@@ -141,7 +141,7 @@ void DiMUSE_v2::triggers_processTriggers(int soundId, char *marker) {
 	triggers_midProcessing++;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((trigs[l].sound && trigs[l].sound == soundId) &&
-			(trigs[l].text[0] == '\0' || iMUSE_compareTEXT(triggers_textBuffer, trigs[l].text))) {
+			(trigs[l].text[0] == '\0' || iMUSE_strcmp(triggers_textBuffer, trigs[l].text))) {
 
 			// Save the string into our local buffer for later
 			r = 0;

@@ -152,9 +152,9 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 					}
 
 					if (curStreamZoneList->prev) {
-						((iMUSEStreamZone *)curStreamZoneList->prev)->offset = curDispatchPtr->currentOffset;
-						((iMUSEStreamZone *)curStreamZoneList->prev)->size = 0;
-						((iMUSEStreamZone *)curStreamZoneList->prev)->fadeFlag = 0;
+						curStreamZoneList->prev->offset = curDispatchPtr->currentOffset;
+						curStreamZoneList->prev->size = 0;
+						curStreamZoneList->prev->fadeFlag = 0;
 					} else {
 						debug(5, "ERR: unable to alloc zone during restore...\n");
 					}
@@ -208,7 +208,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				iMUSE_removeItemFromList((int *)&dispatchToDeallocate->streamZoneList, (int *)streamZoneList);
+				iMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
 			} while (streamZoneList);
 		}
 	}
@@ -268,7 +268,7 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				iMUSE_removeItemFromList((int *)dispatchToDeallocate->streamZoneList, (int *)streamZoneList); // TODO: Is it right?
+				iMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList); // TODO: Is it right?
 			} while (streamZoneList);
 		}
 	}
@@ -313,8 +313,6 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 	return 0;
 }
 
-// Almost validated
-// list stuff blah blah
 int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag) {
 	int effFadeLen;
 	/*unsigned*/int strZnSize;
@@ -516,8 +514,8 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		// Start the newSoundId from an offset
 		streamer_setSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
 		while (curDispatch->streamZoneList->next) {
-			((iMUSEStreamZone *)curDispatch->streamZoneList->next)->useFlag = 0;
-			iMUSE_removeItemFromList(curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
+			curDispatch->streamZoneList->next->useFlag = 0;
+			iMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
 		}
 		curDispatch->streamZoneList->size = 0;
 
@@ -528,7 +526,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 		while (curDispatch->streamZoneList) {
 			curDispatch->streamZoneList->useFlag = 0;
-			iMUSE_removeItemFromList((int *)curDispatch->streamZoneList, (int *)curDispatch->streamZoneList);
+			iMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList, curDispatch->streamZoneList);
 		}
 
 		curDispatch->currentOffset = 0;
@@ -1164,7 +1162,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 					}
 
 					dispatchPtr->streamZoneList->useFlag = 0;
-					iMUSE_removeItemFromList((int *)dispatchPtr->streamZoneList, (int *)dispatchPtr->streamZoneList);
+					iMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 
 					if (dispatchPtr->streamZoneList->fadeFlag) {
 						if (dispatchPtr->fadeBuf) {
@@ -1291,7 +1289,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 						}
 
 						dispatchPtr->streamZoneList->useFlag = 0;
-						iMUSE_removeItemFromList((int *)dispatchPtr->streamZoneList, (int *)dispatchPtr->streamZoneList);
+						iMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 					}
 				}
 
@@ -1537,10 +1535,9 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 					streamer_setIndex2(dispatch->streamPtr, cumulativeStreamOffset);
 
 					// Remove che previous streamZone from the list, we don't need it anymore
-					while (((iMUSEStreamZone *)szList->next)->prev) {
-						// ...sorry
-						((iMUSEStreamZone *)((iMUSEStreamZone *)szList->next)->prev)->useFlag = 0;
-						iMUSE_removeItemFromList(szList->next, ((iMUSEStreamZone *)(szList->next))->prev);
+					while (szList->next->prev) {
+						szList->next->prev->useFlag = 0;
+						iMUSE_removeStreamZoneFromList(&szList->next, szList->next->prev);
 					}
 
 					streamer_setSoundToStreamWithCurrentOffset(
@@ -1550,7 +1547,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 				}
 			}
 		}
-		szList = (iMUSEStreamZone *)szList->next;
+		szList = szList->next;
 	}
 }
 
@@ -1579,7 +1576,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 
 	// Edge cases handling
 	if (streamZonePtr->size + streamZonePtr->offset == hookPosition) {
-		nextStreamZone = (iMUSEStreamZone *)streamZonePtr->next;
+		nextStreamZone = streamZonePtr->next;
 		if (nextStreamZone) {
 			if (nextStreamZone->fadeFlag) {
 				// Avoid jumping if the next stream zone is already fading
@@ -1587,7 +1584,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 				// Basically: cancel the jump if there's already a fade in progress
 				if (nextStreamZone->offset == hookPosition) {
 					if (nextStreamZone->next) {
-						if (((iMUSEStreamZone *)nextStreamZone->next)->offset == jumpDestination)
+						if (nextStreamZone->next->offset == jumpDestination)
 							return;
 					}
 				}
@@ -1689,14 +1686,14 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	zoneCycle = dispatchPtr->streamZoneList;
 	while (zoneCycle != streamZonePtr) {
 		streamOffset += zoneCycle->size;
-		zoneCycle = (iMUSEStreamZone *)zoneCycle->next;
+		zoneCycle = zoneCycle->next;
 	}
 
 	streamer_setIndex2(dispatchPtr->streamPtr, streamOffset);
 
 	while (streamZonePtr->next) {
-		((iMUSEStreamZone *)streamZonePtr->next)->useFlag = 0;
-		iMUSE_removeItemFromList(streamZonePtr->next, streamZonePtr->next);
+		streamZonePtr->next->useFlag = 0;
+		iMUSE_removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
 	}
 
 	streamer_setSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr,
@@ -1705,8 +1702,8 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	// Prepare the fading zone for the jump
 	// and also a subsequent empty dummy zone
 	if (dispatch_size) {
-		streamZonePtr->next = (int *)zoneForJump;
-		zoneForJump->prev = (int *)streamZonePtr;
+		streamZonePtr->next = zoneForJump;
+		zoneForJump->prev = streamZonePtr;
 		streamZonePtr = zoneForJump;
 		zoneForJump->next = 0;
 		zoneForJump->offset = hookPosition;
@@ -1714,8 +1711,8 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 		zoneForJump->fadeFlag = 1;
 	}
 
-	streamZonePtr->next = (int *)zoneAfterJump;
-	zoneAfterJump->prev = (int *)streamZonePtr;
+	streamZonePtr->next = zoneAfterJump;
+	zoneAfterJump->prev = streamZonePtr;
 	zoneAfterJump->next = NULL;
 	zoneAfterJump->offset = jumpDestination;
 	zoneAfterJump->size = 0;

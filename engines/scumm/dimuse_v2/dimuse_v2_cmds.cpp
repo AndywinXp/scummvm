@@ -34,6 +34,18 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 	int arg_5, int arg_6, int arg_7, int arg_8, int arg_9,
 	int arg_10, int arg_11, int arg_12, int arg_13) {
 
+	// Convert the character constant (single quotes '') to string
+	char marker[5];
+	if (cmd == 17 || cmd == 18 || cmd == 19) {
+		for (int i = 0; i < 4; i++) {
+#if defined SCUMM_BIG_ENDIAN	
+			marker[i] = (arg_1 >> (8 * i)) & 0xff;		
+#elif defined SCUMM_LITTLE_ENDIAN
+			marker[3 - i] = (arg_1 >> (8 * i)) & 0xff;
+#endif
+		}
+		marker[4] = '\0';
+	}
  	switch (cmd) {
 	case 0:
 		return cmds_init();
@@ -63,25 +75,23 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 		break;
 	case 11:
 		return cmds_getNextSound(arg_0);
-		break;
 	case 12:
 		cmds_setParam(arg_0, arg_1, arg_2);
 		break;
 	case 13:
 		return cmds_getParam(arg_0, arg_1);
-		break;
 	case 14:
 		return fades_fadeParam(arg_0, arg_1, arg_2, arg_3);
 	case 15:
 		return cmds_setHook(arg_0, arg_1);
 	case 16:
 		return cmds_getHook(arg_0);
-	case 17:
-		return triggers_setTrigger(arg_0, (char *)arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
+	case 17:		
+		return triggers_setTrigger(arg_0, marker, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
 	case 18:
-		return triggers_checkTrigger(arg_0, (char *)arg_1, arg_2);
+		return triggers_checkTrigger(arg_0, marker, arg_2);
 	case 19:
-		return triggers_clearTrigger(arg_0, (char *)arg_1, arg_2);
+		return triggers_clearTrigger(arg_0, marker, arg_2);
 	case 20:
 		return triggers_deferCommand(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
 	case 21:

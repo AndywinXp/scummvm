@@ -68,15 +68,16 @@ enum {
 };
 
 class DiMUSE_v2 : public DiMUSE {
-
 private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
+	DiMUSESndMgr *_sound;
 
 	int _callbackFps;		// value how many times callback needs to be called per second
 	BundleDirCache *_cacheBundleDir;
-
+	BundleMgr *_bundle;
+	
 	static void timer_handler(void *refConf);
 	void callback();
 
@@ -155,7 +156,7 @@ public:
 	int DiMUSE_getParam(int soundId, int paramId);
 	int DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength);
 	int DiMUSE_setHook(int soundId, int hookId);
-	int DiMUSE_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int DiMUSE_setTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
 	int DiMUSE_startStream(int soundId, int priority, int groupId);
 	int DiMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
 	int DiMUSE_processStreams();
@@ -275,10 +276,15 @@ public:
 	int streamer_feedStream(iMUSEStream *streamPtr, uint8 *srcBuf, /*unsigned*/ int sizeToFeed, int paused);
 	int streamer_fetchData(iMUSEStream *streamPtr);
 
+	iMUSESoundBuffer _soundBuffers[4];
+
+	void DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
+	void DiMUSE_deallocSoundBuffer(int bufId);
+
 	// Tracks
 	struct iMUSETrack {
-		int *prev;
-		int *next;
+		iMUSETrack *prev;
+		iMUSETrack *next;
 		iMUSEDispatch *dispatchPtr;
 		int soundId;
 		int marker;
@@ -328,9 +334,9 @@ public:
 	int tracks_debug();
 
 	// Dispatch
-	struct iMUSEStreamZone{
-		int *prev;
-		int *next;
+	struct iMUSEStreamZone {
+		iMUSEStreamZone *prev;
+		iMUSEStreamZone *next;
 		int useFlag;
 		int offset;
 		int size;
@@ -493,8 +499,9 @@ public:
 	int files_fetchMap(int soundId);
 	int files_getNextSound(int soundId);
 	int files_checkRange(int soundId);
-	int files_seek(int soundId, int offset, int mode);
-	int files_read(int soundId, uint8 *buf, int size);
+	int files_seek(int soundId, int offset, int mode, int bufId);
+	int files_read(int soundId, uint8 *buf, int size, int bufId);
+	void files_getFilenameFromSoundId(int soundId, char *fileName);
 	iMUSESoundBuffer *files_getBufInfo(int bufId);
 
 	// Wave
@@ -568,12 +575,14 @@ public:
 
 		
 	// Utils
-	int iMUSE_addItemToList(int *listPtr, int *listPtr_Item);
-	int iMUSE_removeItemFromList(int *listPtr, int *itemPtr);
+	int iMUSE_addTrackToList(iMUSETrack **listPtr, iMUSETrack *listPtr_Item);
+	int iMUSE_removeTrackFromList(iMUSETrack **listPtr, iMUSETrack *itemPtr);
+	int iMUSE_addStreamZoneToList(iMUSEStreamZone **listPtr, iMUSEStreamZone *listPtr_Item);
+	int iMUSE_removeStreamZoneFromList(iMUSEStreamZone **listPtr, iMUSEStreamZone *itemPtr);
 	int iMUSE_SWAP32(uint8 *value);
 	void iMUSE_strcpy(char *dst, char *marker);
-	int  iMUSE_compareTEXT(char *marker1, char *marker2);
-	int  iMUSE_getMarkerLength(char *marker);
+	int  iMUSE_strcmp(char *marker1, char *marker2);
+	int  iMUSE_strlen(char *marker);
 	int iMUSE_clampNumber(int value, int minValue, int maxValue);
 	int iMUSE_clampTuning(int value, int minValue, int maxValue);
 	int iMUSE_checkHookId(int *trackHookId, int sampleHookId);

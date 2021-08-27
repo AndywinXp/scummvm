@@ -24,53 +24,114 @@
 
 namespace Scumm {
 
-int DiMUSE_v2::iMUSE_addItemToList(int *listPtr, int *listPtr_Item) {
+int DiMUSE_v2::iMUSE_addTrackToList(iMUSETrack **listPtr, iMUSETrack *listPtr_Item) {
 	// [0] is ->prev, [1] is ->next
-	if (!listPtr_Item || listPtr_Item[0] || listPtr_Item[1]) {
+	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
 		debug(5, "ERR: list arg err when adding...\n");
 		return -5;
 	} else {
 		// Set item's next element to the list
-		listPtr_Item[1] = *listPtr;
+		listPtr_Item->next = *listPtr;
 
 		if (*listPtr) {
 			// If the list is empty, use this item as the list
-			listPtr = listPtr_Item; // TODO: Is this right?
+			(*listPtr)->prev = listPtr_Item; // TODO: Is this right?
 		}
+
 		// Set the previous element of the item as NULL, 
 		// effectively making the item the first element of the list
-		*listPtr_Item = NULL;
+		listPtr_Item->prev = NULL;
 
 		// Update the list with the new data
-		listPtr = listPtr_Item;
+		*listPtr = listPtr_Item;
 
 	}
 	return 0;
 }
 
-int DiMUSE_v2::iMUSE_removeItemFromList(int *listPtr, int *listPtr_Item) {
-	int *element = (int *)*listPtr;
-	if (listPtr_Item && element) {
+int DiMUSE_v2::iMUSE_removeTrackFromList(iMUSETrack **listPtr, iMUSETrack *listPtr_Item) {
+	iMUSETrack *currentTrack = *listPtr;
+	iMUSETrack *nextTrack;
+	if (listPtr_Item && currentTrack) {
 		do {
-			if (element == listPtr_Item)
+			if (currentTrack == listPtr_Item)
 				break;
-			element = (int *)element[1];
-		} while (element);
+			currentTrack = currentTrack->next;
+		} while (currentTrack);
 
-		if (element) {
-			int *next_element = (int *)listPtr_Item[1];
+		if (currentTrack) {
+			nextTrack = listPtr_Item->next;
 
-			if (next_element)
-				next_element[0] = listPtr_Item[0];
+			if (nextTrack)
+				nextTrack->prev = listPtr_Item->prev;
 
-			if (*listPtr_Item) {
-				*(int *)(*listPtr_Item + 4) = listPtr_Item[1];
+			if (listPtr_Item->prev) {
+				listPtr_Item->prev->next = listPtr_Item->next;
 			} else {
-				*listPtr = listPtr_Item[1];
+				*listPtr = listPtr_Item->next;
 			}
 
-			listPtr_Item[0] = NULL;
-			listPtr_Item[1] = NULL;
+			listPtr_Item->prev = NULL;
+			listPtr_Item->next = NULL;
+			return 0;
+		} else {
+			debug(5, "ERR: item not on list...\n");
+			return -3;
+		}
+	} else {
+		debug(5, "ERR: list arg err when removing...\n");
+		return -5;
+	}
+}
+
+int DiMUSE_v2::iMUSE_addStreamZoneToList(iMUSEStreamZone **listPtr, iMUSEStreamZone *listPtr_Item) {
+	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
+		debug(5, "ERR: list arg err when adding...\n");
+		return -5;
+	} else {
+		// Set item's next element to the list
+		listPtr_Item->next = *listPtr;
+
+		if (*listPtr) {
+			// If the list is empty, use this item as the list
+			(*listPtr)->prev = listPtr_Item; // TODO: Is this right?
+		}
+
+		// Set the previous element of the item as NULL, 
+		// effectively making the item the first element of the list
+		listPtr_Item->prev = NULL;
+
+		// Update the list with the new data
+		*listPtr = listPtr_Item;
+
+	}
+	return 0;
+}
+
+int DiMUSE_v2::iMUSE_removeStreamZoneFromList(iMUSEStreamZone **listPtr, iMUSEStreamZone *listPtr_Item) {
+	iMUSEStreamZone *currentTrack = *listPtr;
+	iMUSEStreamZone *nextTrack;
+	if (listPtr_Item && currentTrack) {
+		do {
+			if (currentTrack == listPtr_Item)
+				break;
+			currentTrack = currentTrack->next;
+		} while (currentTrack);
+
+		if (currentTrack) {
+			nextTrack = listPtr_Item->next;
+
+			if (nextTrack)
+				nextTrack->prev = listPtr_Item->prev;
+
+			if (listPtr_Item->prev) {
+				listPtr_Item->prev->next = listPtr_Item->next;
+			} else {
+				*listPtr = listPtr_Item->next;
+			}
+
+			listPtr_Item->prev = NULL;
+			listPtr_Item->next = NULL;
 			return 0;
 		} else {
 			debug(5, "ERR: item not on list...\n");
@@ -124,7 +185,6 @@ int DiMUSE_v2::iMUSE_checkHookId(int *trackHookId, int sampleHookId) {
 	}
 }
 
-// Probably just a strcpy, but if there's undefined behavior it's best to match it
 void DiMUSE_v2::iMUSE_strcpy(char *dst, char *marker) {
 	char currentChar;
 
@@ -139,8 +199,7 @@ void DiMUSE_v2::iMUSE_strcpy(char *dst, char *marker) {
 	return;
 }
 
-// Probably just a stricmp, but if there's undefined behavior it's best to match it
-int DiMUSE_v2::iMUSE_compareTEXT(char *marker1, char *marker2) {
+int DiMUSE_v2::iMUSE_strcmp(char *marker1, char *marker2) {
 	if (*marker1 != 0) {
 		while ((*marker2 != 0 && (*marker1 == *marker2))) {
 			marker1 = marker1 + 1;
@@ -153,8 +212,7 @@ int DiMUSE_v2::iMUSE_compareTEXT(char *marker1, char *marker2) {
 	return (int)(char)(*marker2 | *marker1);
 }
 
-// Probably just a strlen, but if there's undefined behavior it's best to match it
-int DiMUSE_v2::iMUSE_getMarkerLength(char *marker) {
+int DiMUSE_v2::iMUSE_strlen(char *marker) {
 	int resultingLength;
 	char curChar;
 

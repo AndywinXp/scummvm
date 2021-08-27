@@ -171,6 +171,34 @@ Common::SeekableReadStream *BundleMgr::getFile(const char *filename, int32 &offs
 	return NULL;
 }
 
+int32 BundleMgr::seekFile(const char *filename, int32 offset, int mode) {
+	BundleDirCache::IndexNode target;
+	strcpy(target.filename, filename);
+	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
+		sizeof(BundleDirCache::IndexNode), (int(*)(const void*, const void*))scumm_stricmp);
+	if (found) {
+		// We're seeking a subfile, so translate the mode accordingly
+		switch (mode) {
+		case SEEK_END:
+			offset += _bundleTable[found->index].offset + _bundleTable[found->index].size;
+			break;
+		case SEEK_SET:
+		default:
+			offset += _bundleTable[found->index].offset;
+			break;
+		case SEEK_CUR:
+			offset += _file->pos();
+			break;
+		}
+		_file->seek(offset, SEEK_SET);
+		int result = _file->pos();
+		result -= _bundleTable[found->index].offset;
+		return result;
+	}
+
+	return NULL;
+}
+
 bool BundleMgr::open(const char *filename, bool &compressed, bool errorFlag) {
 	if (_file->isOpen())
 		return true;

@@ -24,7 +24,6 @@
 
 namespace Scumm {
 
-// Validated
 int DiMUSE_v2::streamer_moduleInit() {
 	for (int l = 0; l < MAX_STREAMS; l++) {
 		streamer_streams[l].soundId = 0;
@@ -33,7 +32,6 @@ int DiMUSE_v2::streamer_moduleInit() {
 	return 0;
 }
 
-// Validated
 DiMUSE_v2::iMUSEStream *DiMUSE_v2::streamer_alloc(int soundId, int bufId, int maxRead) {
 	iMUSESoundBuffer *bufInfoPtr = files_getBufInfo(bufId);
 	if (!bufInfoPtr) {
@@ -55,7 +53,7 @@ DiMUSE_v2::iMUSEStream *DiMUSE_v2::streamer_alloc(int soundId, int bufId, int ma
 
 	for (int l = 0; l < MAX_STREAMS; l++) {
 		if (!streamer_streams[l].soundId) {
-			streamer_streams[l].endOffset = files_seek(soundId, 0, SEEK_END);
+			streamer_streams[l].endOffset = files_seek(soundId, 0, SEEK_END, bufId);
 			streamer_streams[l].curOffset = 0;
 			streamer_streams[l].soundId = soundId;
 			streamer_streams[l].bufId = bufId;
@@ -74,7 +72,6 @@ DiMUSE_v2::iMUSEStream *DiMUSE_v2::streamer_alloc(int soundId, int bufId, int ma
 	return NULL;
 }
 
-// Validated
 int DiMUSE_v2::streamer_clearSoundInStream(iMUSEStream *streamPtr) {
 	streamPtr->soundId = 0;
 	if (streamer_lastStreamLoaded == streamPtr) {
@@ -83,7 +80,6 @@ int DiMUSE_v2::streamer_clearSoundInStream(iMUSEStream *streamPtr) {
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::streamer_processStreams() {
 	dispatch_predictFirstStream();
 	iMUSEStream *stream1 = NULL;
@@ -160,7 +156,6 @@ int DiMUSE_v2::streamer_processStreams() {
 	}
 }
 
-// Validated
 int *DiMUSE_v2::streamer_reAllocReadBuffer(iMUSEStream *streamPtr, int reallocSize) {
 	int size = streamPtr->loadIndex - streamPtr->readIndex;
 
@@ -183,7 +178,6 @@ int *DiMUSE_v2::streamer_reAllocReadBuffer(iMUSEStream *streamPtr, int reallocSi
 	return ptr;
 }
 
-// Validated
 int *DiMUSE_v2::streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, int size) {
 	int value = streamPtr->loadIndex - streamPtr->readIndex;
 	if (value < 0)
@@ -202,7 +196,6 @@ int *DiMUSE_v2::streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, 
 	return (int *)streamPtr->buf + offsetReadIndex;
 }
 
-// Validated
 int DiMUSE_v2::streamer_setIndex1(iMUSEStream *streamPtr, int offset) {
 	streamer_bailFlag = 1;
 	int value = streamPtr->loadIndex - streamPtr->readIndex;
@@ -218,7 +211,6 @@ int DiMUSE_v2::streamer_setIndex1(iMUSEStream *streamPtr, int offset) {
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::streamer_setIndex2(iMUSEStream *streamPtr, int offset) {
 	streamer_bailFlag = 1;
 	int value = streamPtr->loadIndex - streamPtr->readIndex;
@@ -234,7 +226,6 @@ int DiMUSE_v2::streamer_setIndex2(iMUSEStream *streamPtr, int offset) {
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::streamer_getFreeBuffer(iMUSEStream *streamPtr) {
 	int freeBufferSize = streamPtr->loadIndex - streamPtr->readIndex;
 	if (freeBufferSize < 0)
@@ -242,7 +233,6 @@ int DiMUSE_v2::streamer_getFreeBuffer(iMUSEStream *streamPtr) {
 	return freeBufferSize;
 }
 
-// Validated
 int DiMUSE_v2::streamer_setSoundToStreamWithCurrentOffset(iMUSEStream *streamPtr, int soundId, int currentOffset) {
 	streamer_bailFlag = 1;
 	streamPtr->soundId = soundId;
@@ -255,7 +245,6 @@ int DiMUSE_v2::streamer_setSoundToStreamWithCurrentOffset(iMUSEStream *streamPtr
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::streamer_queryStream(iMUSEStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
 	dispatch_predictFirstStream();
 	*bufSize = streamPtr->bufFreeSize;
@@ -268,7 +257,7 @@ int DiMUSE_v2::streamer_queryStream(iMUSEStream *streamPtr, int *bufSize, int *c
 	return 0;
 }
 
-// Validated (appears to be used for IACT blocks)
+// (appears to be used for IACT blocks)
 int DiMUSE_v2::streamer_feedStream(iMUSEStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused) {
 	int size = streamPtr->loadIndex - streamPtr->readIndex;
 	if (size <= 0)
@@ -314,17 +303,16 @@ int DiMUSE_v2::streamer_feedStream(iMUSEStream *streamPtr, uint8 *srcBuf, int si
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 	if (streamPtr->endOffset == 0) {
-		streamPtr->endOffset = files_seek(streamPtr->soundId, 0, SEEK_END);
+		streamPtr->endOffset = files_seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId);
 	}
 
 	int size = streamPtr->loadIndex - streamPtr->readIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
 
-	int loadSize = streamPtr->loadSize; // For music that's 11000 bytes
+	int loadSize = streamPtr->loadSize;
 	int remainingSize = streamPtr->endOffset - streamPtr->curOffset;
 
 	if (loadSize >= size - 4) {
@@ -361,15 +349,15 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 			requestedAmount = loadSize;
 		}
 
-		if (files_seek(streamPtr->soundId, streamPtr->curOffset, SEEK_SET) != streamPtr->curOffset) {
-			warning("ERR: Invalid seek in streamer...");
+		if (files_seek(streamPtr->soundId, streamPtr->curOffset, SEEK_SET, streamPtr->bufId) != streamPtr->curOffset) {
+			debug(5, "ERR: Invalid seek in streamer...");
 			streamPtr->paused = 1;
 			return 0;
 		}
 
 		streamer_bailFlag = 0;
 		waveapi_decreaseSlice();
-		actualAmount = files_read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount);
+		actualAmount = files_read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
 		waveapi_decreaseSlice();
 		if (streamer_bailFlag != 0)
 			return 0;
