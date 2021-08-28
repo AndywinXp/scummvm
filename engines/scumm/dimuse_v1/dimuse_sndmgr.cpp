@@ -311,6 +311,7 @@ DiMUSESndMgr::SoundDesc *DiMUSESndMgr::allocSlot() {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		if (!_sounds[l].inUse) {
 			_sounds[l].inUse = true;
+			_sounds[l].scheduledForDealloc = false;
 			return &_sounds[l];
 		}
 	}
@@ -484,6 +485,56 @@ void DiMUSESndMgr::closeSound(SoundDesc *soundDesc) {
 		}
 		if (!found)
 			_vm->_res->unlock(rtSound, soundDesc->soundId);
+	}
+
+	delete soundDesc->compressedStream;
+	delete soundDesc->bundle;
+
+	for (int r = 0; r < soundDesc->numSyncs; r++)
+		delete[] soundDesc->sync[r].ptr;
+	for (int r = 0; r < soundDesc->numMarkers; r++)
+		delete[] soundDesc->marker[r].ptr;
+	delete[] soundDesc->region;
+	delete[] soundDesc->jump;
+	delete[] soundDesc->sync;
+	delete[] soundDesc->marker;
+	memset(soundDesc, 0, sizeof(SoundDesc));
+}
+
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::findSoundById(int soundId) {
+	SoundDesc *soundDesc = NULL;
+	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
+		if (_sounds[i].soundId == soundId) {
+			soundDesc = &_sounds[i];
+			break;
+		}
+	}
+	return soundDesc;
+}
+
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::getFirstActiveSound() {
+	SoundDesc *soundDesc = NULL;
+	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
+		if (_sounds[i].inUse) {
+			soundDesc = &_sounds[i];
+			break;
+		}
+	}
+	return soundDesc;
+}
+
+void DiMUSESndMgr::closeSoundById(int soundId) {
+	SoundDesc *soundDesc;
+	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
+		if (_sounds[i].soundId == soundId) {
+			soundDesc = &_sounds[i];
+		}
+	}
+
+	assert(checkForProperHandle(soundDesc));
+
+	if (soundDesc->resPtr) {
+		_vm->_res->unlock(rtSound, soundDesc->soundId);
 	}
 
 	delete soundDesc->compressedStream;

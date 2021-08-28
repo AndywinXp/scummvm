@@ -114,7 +114,7 @@ public:
 	void pause(bool pause) override;
 	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
 	void refreshScripts() override;
-	void flushTracks() override {};
+	void flushTracks() override;
 
 
 

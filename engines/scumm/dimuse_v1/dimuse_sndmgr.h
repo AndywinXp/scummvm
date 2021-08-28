@@ -98,6 +98,7 @@ public:
 
 		bool endFlag;
 		bool inUse;
+		bool scheduledForDealloc;
 		byte *allData;
 		int32 offsetData;
 		byte *resPtr;
@@ -137,6 +138,9 @@ public:
 
 	SoundDesc *openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk);
 	void closeSound(SoundDesc *soundDesc);
+	void closeSoundById(int soundId);
+	SoundDesc *findSoundById(int soundId);
+	SoundDesc *getFirstActiveSound();
 	SoundDesc *cloneSound(SoundDesc *soundDesc);
 
 	bool isSndDataExtComp(SoundDesc *soundDesc);

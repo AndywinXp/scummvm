@@ -24,17 +24,17 @@
 
 namespace Scumm {
 
-// Validated
 int DiMUSE_v2::files_moduleInit() {
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::files_moduleDeinit() {
 	return 0;
 }
 
 uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
+	// This function is always used for SFX (tracks which do not have a
+	// stream pointer), hence the use of IMUSE_RESOURCE
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
@@ -44,8 +44,8 @@ uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
 
 		return s->resPtr;
 	}
-	debug(5, "DiMUSE_v2::files_getSoundAddrData(): UNIMPLEMENTED");
-	return 0;
+	debug(5, "DiMUSE_v2::files_getSoundAddrData(): soundId is 0 or out of range");
+	return NULL;
 }
 
 // Always returns 0 in disasm
@@ -68,10 +68,14 @@ int DiMUSE_v2::files_checkRange(int soundId) {
 }
 
 int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
+	// This function and files_read() are used for sounds for which a stream is needed
+	// (speech and music), therefore they will always refer to sounds in a bundle file
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
-		int volIdGroup = bufId == 2 ? 3 : 1;
+		
+		int volIdGroup = bufId == IMUSE_BUFFER_MUSIC ? IMUSE_VOLGRP_MUSIC : IMUSE_VOLGRP_VOICE;
+
 		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
 
 		if (!s)
@@ -86,16 +90,19 @@ int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 		_sound->closeSound(s); // Is this necessary?
 		return resultingOffset;
 	}
+
 	debug(5, "DiMUSE_v2::files_seek(): soundId is 0 or out of range");
 	return 0;
 }
 
 int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
+	// This function and files_seek() are used for sounds for which a stream is needed
+	// (speech and music), therefore they will always refer to sounds in a bundle file
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
 
-		int volIdGroup = bufId == 2 ? 3 : 1;
+		int volIdGroup = bufId == IMUSE_BUFFER_MUSIC ? IMUSE_VOLGRP_MUSIC : IMUSE_VOLGRP_VOICE;
 
 		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
 
@@ -106,12 +113,13 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 		if (!s)
 			return -1;
 
-		bool dummy = false;
-		int resultingSize = s->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), dummy);
+		bool uncompressedBundle = false;
+		int resultingSize = s->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), uncompressedBundle);
 
 		_sound->closeSound(s); // Is this necessary?
 		return resultingSize;
 	}
+
 	debug(5, "DiMUSE_v2::files_read(): soundId is 0 or out of range");
 	return 0;
 }

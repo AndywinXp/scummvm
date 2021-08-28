@@ -229,6 +229,15 @@ int DiMUSE_v2::getCurSpeechPan() {
 	return _currentSpeechPan;
 }
 
+void DiMUSE_v2::flushTracks() {
+	DiMUSESndMgr::SoundDesc *curSnd = NULL;
+	while ((curSnd = _sound->getFirstActiveSound()) != NULL) {
+		if (curSnd->scheduledForDealloc && !DiMUSE_getParam(curSnd->soundId, 0x100) && !DiMUSE_getParam(curSnd->soundId, 0x200))
+			_sound->closeSound(curSnd);
+	}
+	_sound->getFirstActiveSound();
+}
+
 void DiMUSE_v2::pause(bool p) {
 	if (p) {
 		debug(5, "DiMUSE_v2::pause(): pausing...");
@@ -279,8 +288,12 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 };
 
 int DiMUSE_v2::DiMUSE_terminate() {
-	if (_scriptInitializedFlag)
+	if (_scriptInitializedFlag) {
 		DiMUSE_stopAllSounds();
+		//IMUSE_OPCODE_UnloadAll();
+		//IMUSE_OPCODE_CloseAll();
+	}
+		
 	return 0;
 }
 
