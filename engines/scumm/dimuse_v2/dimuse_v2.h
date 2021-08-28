@@ -75,11 +75,13 @@ private:
 	DiMUSESndMgr *_sound;
 
 	int _callbackFps;		// value how many times callback needs to be called per second
-	BundleDirCache *_cacheBundleDir;
-	BundleMgr *_bundle;
 	
 	static void timer_handler(void *refConf);
 	void callback();
+
+	int _currentSpeechVolume;
+	int _currentSpeechFrequency;
+	int _currentSpeechPan;
 
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
@@ -91,9 +93,9 @@ public:
 	void setMusicVolume(int vol) override {}
 	void stopSound(int sound) override {};
 	void stopAllSounds() override {};
-	int getSoundStatus(int sound) const override {
-		return 0;
-	};
+
+	int getSoundStatus(int sound) const override { return 0; };
+	int isSoundRunning(int soundId);
 
 	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
 	int startVoice(int soundId, const char *soundName) override { return 0; };
@@ -103,12 +105,18 @@ public:
 	void setAudioNames(int32 num, char *names) override {};
 	int  startSfx(int soundId, int priority) override { return 0; };
 	void setPriority(int soundId, int priority) override {};
-	void setVolume(int soundId, int volume) override {};
-	void setPan(int soundId, int pan) override {};
+	void setVolume(int soundId, int volume) override;
+	void setPan(int soundId, int pan) override;
+	void setFrequency(int soundId, int frequency) override;
+	int  getCurSpeechVolume() override;
+	int  getCurSpeechPan() override;
+	int  getCurSpeechFrequency() override;
 	void pause(bool pause) override;
 	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
 	void refreshScripts() override;
 	void flushTracks() override {};
+
+
 
 	int32 getCurMusicPosInMs() override { return 0; };
 	int32 getCurVoiceLipSyncWidth() override { return 0; };
@@ -137,7 +145,7 @@ public:
 	int32 _curMusicState;	// current or previous id of music
 	int32 _curMusicSeq;		// current or previous id of sequence music
 	int32 _curMusicCue;		// current cue for current music. used in FT
-	int _stopingSequence;
+	int _stopSequenceFlag;
 	int _scriptInitializedFlag = 0;
 
 	// General
@@ -149,10 +157,10 @@ public:
 	int DiMUSE_restore();
 	int DiMUSE_setGroupVol();
 	int DiMUSE_startSound(int soundId, int priority);
-	int DiMUSE_stopSound();
+	int DiMUSE_stopSound(int soundId);
 	int DiMUSE_stopAllSounds();
 	int DiMUSE_getNextSound(int soundId);
-	void DiMUSE_setParam(int soundId, int paramId, int value);
+	int DiMUSE_setParam(int soundId, int paramId, int value);
 	int DiMUSE_getParam(int soundId, int paramId);
 	int DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength);
 	int DiMUSE_setHook(int soundId, int hookId);
@@ -190,7 +198,6 @@ public:
 	void script_setSequence(int soundId);
 	int script_setCuePoint();
 	int script_setAttribute(int attrIndex, int attrVal);
-	int script_playMusic();
 	int script_callback(char *marker);
 
 	// CMDs

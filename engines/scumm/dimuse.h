@@ -67,10 +67,8 @@ public:
 	void setMusicVolume(int vol) override {}
 	void stopSound(int sound) override {};
 	void stopAllSounds() override {};
-	int getSoundStatus(int sound) const override {
-		return 0;
-	};
-
+	virtual int getSoundStatus(int sound) const { return 0; };
+	virtual int isSoundRunning(int sound) { return 0; };
 	virtual int startVoice(int soundId, Audio::AudioStream *input) { return 0; };
 	virtual int startVoice(int soundId, const char *soundName) { return 0; };
 	virtual void saveLoadEarly(Common::Serializer &ser) {};
@@ -81,6 +79,10 @@ public:
 	virtual void setPriority(int soundId, int priority) {};
 	virtual void setVolume(int soundId, int volume) {};
 	virtual void setPan(int soundId, int pan) {};
+	virtual void setFrequency(int soundId, int value) {};
+	virtual int  getCurSpeechVolume() { return 0; };
+	virtual int  getCurSpeechPan() { return 0; };
+	virtual int  getCurSpeechFrequency() { return 0; };
 	virtual void pause(bool pause) {};
 	virtual void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {};
 	virtual void refreshScripts() {};

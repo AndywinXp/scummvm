@@ -281,7 +281,6 @@ int DiMUSE_v2::streamer_feedStream(iMUSEStream *streamPtr, uint8 *srcBuf, int si
 
 	if (sizeToFeed > 0) {
 		do {
-			int loadIndex = streamPtr->loadIndex;
 			size = streamPtr->bufFreeSize - streamPtr->loadIndex;
 			if (size >= sizeToFeed) {
 				size = sizeToFeed;

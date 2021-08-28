@@ -49,20 +49,13 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
-	cmds_init();
+
+	DiMUSE_initialize();
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 
-	_cacheBundleDir = new BundleDirCache();
-	_bundle = new BundleMgr(_cacheBundleDir);
 	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
-
-	//bool compressed = true;
-	//_bundle->open("musdisk1.bun", compressed, true);
-	//_bundle->open("digmusic.bun", compressed, true);
-	assert(_cacheBundleDir);
-	BundleCodecs::initializeImcTables();
 
 	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
 	DiMUSE_allocSoundBuffer(2, 528000, 44000, 352000);
@@ -73,11 +66,17 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	cmds_deinit();
-	delete _cacheBundleDir;
-	BundleCodecs::releaseImcTables();
+	DiMUSE_terminate();
+
+	delete _sound;
 
 	DiMUSE_deallocSoundBuffer(1);
 	DiMUSE_deallocSoundBuffer(2);
+}
+
+int DiMUSE_v2::isSoundRunning(int soundId) {
+	debug(5, "DiMUSE_v2::getSoundStatus(%d)", soundId);
+	return DiMUSE_getParam(soundId, 0x100) > 0;
 }
 
 void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
@@ -106,7 +105,6 @@ void DiMUSE_v2::callback() {
 	if (cmd_pauseCount)
 		return;
 
-	//debug(5, "DiMUSE_v2::callback()");
 	if (!timer_intFlag) {
 		timer_intFlag = 1;
 		iMUSEHeartbeat();
@@ -138,8 +136,6 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	cmd_running60HzCount += usecPerInt;
 	while (cmd_running60HzCount >= 16667) {
 		cmd_running60HzCount -= 16667;
-		//cmd_initDataPtr->num60hzIterations++;
-		//debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 60Hz interval reached");
 		fades_loop();
 		triggers_loop();
 	}
@@ -149,7 +145,6 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 		return;
 
 	do {
-		//debug(5, "DiMUSE_v2::iMUSEHeartbeat(): 10Hz interval reached");
 		// SPEECH GAIN REDUCTION 10Hz
 		cmd_running10HzCount -= 100000;
 		soundId = 0;
@@ -186,8 +181,9 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 					musicVol = musicEffVol;
 				}
 			}
-		} else { // Bring music volume down to target volume with a -18 step if there's speech playing
-		   // or else, just cap it to the target if it's out of range
+		} else {
+			// Bring music volume down to target volume with a -18 step if there's speech playing
+		    // or else, just cap it to the target if it's out of range
 			musicEffVol -= 18;
 			if (musicEffVol > musicTargetVolume) {
 				if (musicVol >= musicEffVol) {
@@ -203,13 +199,43 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	} while (cmd_running10HzCount >= 100000);
 }
 
+void DiMUSE_v2::setVolume(int soundId, int volume) {
+	DiMUSE_setParam(soundId, 0x600, volume);
+	if (soundId == kTalkSoundID)
+		_currentSpeechVolume = volume;
+}
+
+void DiMUSE_v2::setFrequency(int soundId, int frequency) {
+	DiMUSE_setParam(soundId, 0x900, frequency);
+	if (soundId == kTalkSoundID)
+		_currentSpeechFrequency = frequency;
+}
+
+void DiMUSE_v2::setPan(int soundId, int pan) {
+	DiMUSE_setParam(soundId, 0x700, pan);
+	if (soundId == kTalkSoundID)
+		_currentSpeechPan = pan;
+}
+
+int DiMUSE_v2::getCurSpeechVolume() {
+	return _currentSpeechVolume;
+}
+
+int DiMUSE_v2::getCurSpeechFrequency() {
+	return _currentSpeechFrequency;
+}
+
+int DiMUSE_v2::getCurSpeechPan() {
+	return _currentSpeechPan;
+}
+
 void DiMUSE_v2::pause(bool p) {
 	if (p) {
 		debug(5, "DiMUSE_v2::pause(): pausing...");
-		cmds_pause();
+		DiMUSE_pause();
 	} else {
 		debug(5, "DiMUSE_v2::pause(): resuming...");
-		cmds_resume();
+		DiMUSE_resume();
 	}
 }
 
@@ -252,10 +278,24 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 
 };
 
-int DiMUSE_v2::DiMUSE_terminate() { return 0; }
-int DiMUSE_v2::DiMUSE_initialize() { return 0; }
-int DiMUSE_v2::DiMUSE_pause() { return 0; }
-int DiMUSE_v2::DiMUSE_resume() { return 0; }
+int DiMUSE_v2::DiMUSE_terminate() {
+	if (_scriptInitializedFlag)
+		DiMUSE_stopAllSounds();
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_initialize() {
+	return cmds_handleCmds(0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_pause() {
+	return cmds_handleCmds(3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_resume() {
+	return cmds_handleCmds(4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
 int DiMUSE_v2::DiMUSE_save() { return 0; }
 int DiMUSE_v2::DiMUSE_restore() { return 0; }
 int DiMUSE_v2::DiMUSE_setGroupVol() { return 0; }
@@ -264,16 +304,20 @@ int DiMUSE_v2::DiMUSE_startSound(int soundId, int priority) {
 	return cmds_handleCmds(7, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::DiMUSE_stopSound() { return 0; }
+int DiMUSE_v2::DiMUSE_stopSound(int soundId) {
+	return cmds_handleCmds(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
 
-int DiMUSE_v2::DiMUSE_stopAllSounds() { return 0; }
+int DiMUSE_v2::DiMUSE_stopAllSounds() {
+	return cmds_handleCmds(10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
 
 int DiMUSE_v2::DiMUSE_getNextSound(int soundId) {
 	return cmds_handleCmds(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-void DiMUSE_v2::DiMUSE_setParam(int soundId, int paramId, int value) {
-	cmds_handleCmds(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::DiMUSE_setParam(int soundId, int paramId, int value) {
+	return cmds_handleCmds(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::DiMUSE_getParam(int soundId, int paramId) {
@@ -324,6 +368,7 @@ int DiMUSE_v2::DiMUSE_saveScript() { return 0; }
 int DiMUSE_v2::DiMUSE_restoreScript() { return 0; }
 
 void DiMUSE_v2::DiMUSE_refreshScript() {
+	DiMUSE_processStreams();
 	script_parse(4, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 

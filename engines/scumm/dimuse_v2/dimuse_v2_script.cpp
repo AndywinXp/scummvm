@@ -32,7 +32,7 @@ int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3,
 		switch (cmd) {
 		case 0:
 			if (_scriptInitializedFlag) {
-				debug(5, "ERROR:script already initialized...");
+				debug(5, "DiMUSE_v2::script_parse(): script module already initialized");
 				return -1;
 			} else {
 				_scriptInitializedFlag = 1;
@@ -61,16 +61,17 @@ int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3,
 		case 8:
 			return script_setAttribute(a0, param1);
 		default:
-			debug(5, "ERROR:unrecognized opcode in script...");
+			debug(5, "DiMUSE_v2::script_parse(): unrecognized opcode (%d)", cmd);
 			return -1;
 		}
 	} else {
-		debug(5, "ERROR:script not initialized...");
+		debug(5, "DiMUSE_v2::script_parse(): script module not initialized");
 		return -1;
 	}
 
 	return -1;
 }
+
 int DiMUSE_v2::script_init() {
 	_curMusicState = 0;
 	_curMusicSeq = 0;
@@ -78,7 +79,17 @@ int DiMUSE_v2::script_init() {
 	memset(_attributes, 0, sizeof(_attributes));
 	return 0;
 }
-int DiMUSE_v2::script_terminate() { return 0; }
+
+int DiMUSE_v2::script_terminate() {
+	DiMUSE_terminate();
+
+	_curMusicState = 0;
+	_curMusicSeq = 0;
+	_nextSeqToPlay = 0;
+	memset(_attributes, 0, sizeof(_attributes));
+	return 0;
+}
+
 int DiMUSE_v2::script_save() { return 0; }
 int DiMUSE_v2::script_restore() { return 0; }
 
@@ -92,9 +103,9 @@ void DiMUSE_v2::script_refresh() {
 		return;
 	}
 
-	if (_stopingSequence) {
+	if (_stopSequenceFlag) {
 		script_setSequence(0);
-		_stopingSequence = 0;
+		_stopSequenceFlag = 0;
 	}
 
 	soundId = 0;
@@ -136,9 +147,20 @@ void DiMUSE_v2::script_setSequence(int soundId) {
 }
 
 int DiMUSE_v2::script_setCuePoint() { return 0; }
-int DiMUSE_v2::script_setAttribute(int attrIndex, int attrVal) { return 0; }
-int DiMUSE_v2::script_playMusic() { return 0; }
-int DiMUSE_v2::script_callback(char *marker) { return 0; }
+
+int DiMUSE_v2::script_setAttribute(int attrIndex, int attrVal) {
+	debug(5, "DiMUSE_v2::script_setAttribute(): unimplemented");
+	return 0;
+}
+
+int DiMUSE_v2::script_callback(char *marker) {
+	if (marker[0] != '_') {
+		debug(5, "DiMUSE_v2::script_callback(): got marker != '_end', callback ignored");
+		return -1;
+	}	
+	_stopSequenceFlag = 1;
+	return 0;
+}
 
 void DiMUSE_v2::setDigMusicState(int stateId) {
 	int l, num = -1;
@@ -264,7 +286,7 @@ void DiMUSE_v2::setComiMusicState(int stateId) {
 
 	if (_curMusicState == num)
 		return;
-
+	
 	if (_curMusicSeq == 0) {
 		if (num == 0)
 			playComiMusic(NULL, &_comiStateMusicTable[0], num, false);
@@ -414,7 +436,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 		}
 
 		if (table->transitionType == 4) {
-			_stopingSequence = 0;
+			_stopSequenceFlag = 0;
 			DiMUSE_setTrigger(table->soundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
@@ -459,7 +481,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 		debug(5, "DiMUSE_v2::playDigMusic(): no-op transition type (5), ignored");
 		break;
 	case 6:
-		_stopingSequence = 0;
+		_stopSequenceFlag = 0;
 		DiMUSE_setTrigger(12345680, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
@@ -550,7 +572,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		}
 
 		if (table->transitionType == 4) {
-			_stopingSequence = 0;
+			_stopSequenceFlag = 0;
 			DiMUSE_setTrigger(table->soundId, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
@@ -626,7 +648,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		debug(5, "DiMUSE_v2::playComiMusic(): no-op transition type (5), ignored");
 		break;
 	case 6:
-		_stopingSequence = 0;
+		_stopSequenceFlag = 0;
 		DiMUSE_setTrigger(12345680, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
@@ -640,7 +662,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 	case 9:
 		if (oldSoundId)
 			DiMUSE_setHook(oldSoundId, table->hookId);
-		_stopingSequence = 0;
+		_stopSequenceFlag = 0;
 		DiMUSE_setTrigger(oldSoundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	default:

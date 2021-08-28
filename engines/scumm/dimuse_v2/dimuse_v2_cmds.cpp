@@ -46,6 +46,7 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 		}
 		marker[4] = '\0';
 	}
+
  	switch (cmd) {
 	case 0:
 		return cmds_init();
@@ -117,7 +118,7 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 		return -1;
 	}
 
-	return -1;
+	return 0;
 }
 
 // Validated

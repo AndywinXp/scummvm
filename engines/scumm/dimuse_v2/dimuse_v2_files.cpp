@@ -35,15 +35,15 @@ int DiMUSE_v2::files_moduleDeinit() {
 }
 
 uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
-	char fileName[20] = "";
-	files_getFilenameFromSoundId(soundId, fileName);
-	/*
-	if ((soundId != 0 && soundId < 0xFFFFFFF0) && files_initDataPtr != NULL) {
-		if (files_initDataPtr->getSoundDataAddr) {
-			return (uint8 *)files_initDataPtr->getSoundDataAddr(soundId);
-		}
+	if (soundId != 0 && soundId < 0xFFFFFFF0) {
+		char fileName[20] = "";
+		files_getFilenameFromSoundId(soundId, fileName);
+		
+		uint8 *buf;
+		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
+
+		return s->resPtr;
 	}
-	debug(5, "ERR: soundAddrFunc failure");*/
 	debug(5, "DiMUSE_v2::files_getSoundAddrData(): UNIMPLEMENTED");
 	return 0;
 }
@@ -72,25 +72,18 @@ int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
 		int volIdGroup = bufId == 2 ? 3 : 1;
-		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, 2, volIdGroup, -1);
-
+		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
 
 		if (!s)
-			s = _sound->openSound(soundId, fileName, 2, volIdGroup, 1);
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 1);
 		if (!s)
-			s = _sound->openSound(soundId, fileName, 2, volIdGroup, 2);
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 2);
 		if (!s)
 			return -1;
 
 		int resultingOffset = s->bundle->seekFile(fileName, offset, mode);
 
-		/*if (soundId != 0 && soundId < 0xFFFFFFF0) {
-			if (files_initDataPtr->seekFunc != NULL) {
-				return files_initDataPtr->seekFunc(soundId, offset, mode);
-			}
-		}
-		debug(5, "ERR: seekFunc failure");*/
-		_sound->closeSound(s);
+		_sound->closeSound(s); // Is this necessary?
 		return resultingOffset;
 	}
 	debug(5, "DiMUSE_v2::files_seek(): soundId is 0 or out of range");
@@ -103,25 +96,20 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 		files_getFilenameFromSoundId(soundId, fileName);
 
 		int volIdGroup = bufId == 2 ? 3 : 1;
-		bool dummy = false;
-		//_bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), dummy);
-		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, 2, volIdGroup, -1);
+
+		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
 
 		if (!s)
-			s = _sound->openSound(soundId, fileName, 2, volIdGroup, 1);
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 1);
 		if (!s)
-			s = _sound->openSound(soundId, fileName, 2, volIdGroup, 2);
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 2);
 		if (!s)
 			return -1;
 
+		bool dummy = false;
 		int resultingSize = s->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), dummy);
-		/*if (soundId != 0 && soundId < 0xFFFFFFF0) {
-			if (files_initDataPtr->readFunc != NULL) {
-				return files_initDataPtr->readFunc(soundId, buf, size);
-			}
-		}
-		debug(5, "ERR: readFunc failure");*/
-		_sound->closeSound(s);
+
+		_sound->closeSound(s); // Is this necessary?
 		return resultingSize;
 	}
 	debug(5, "DiMUSE_v2::files_read(): soundId is 0 or out of range");
@@ -143,7 +131,6 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 
 	if (_vm->_game.id == GID_CMI) {
 		if (soundId < 2000) {
-			int i = 0;
 			while (_comiStateMusicTable[i].soundId != -1) {
 				if (_comiStateMusicTable[i].soundId == soundId) {
 					iMUSE_strcpy(fileName, (char *)_comiStateMusicTable[i].filename);
@@ -162,7 +149,6 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		}
 	} else {
 		if (soundId < 2000) {
-			int i = 0;
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {
 					iMUSE_strcpy(fileName, (char *)_digStateMusicTable[i].filename);
