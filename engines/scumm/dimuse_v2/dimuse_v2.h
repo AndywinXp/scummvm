@@ -510,6 +510,9 @@ public:
 	int files_read(int soundId, uint8 *buf, int size, int bufId);
 	void files_getFilenameFromSoundId(int soundId, char *fileName);
 	iMUSESoundBuffer *files_getBufInfo(int bufId);
+	void files_openSound(int soundId);
+	void files_closeSound(int soundId);
+	void files_closeAllSounds();
 
 	// Wave
 	int wvSlicingHalted = 1;

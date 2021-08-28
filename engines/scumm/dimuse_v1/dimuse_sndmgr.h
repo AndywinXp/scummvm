@@ -140,7 +140,8 @@ public:
 	void closeSound(SoundDesc *soundDesc);
 	void closeSoundById(int soundId);
 	SoundDesc *findSoundById(int soundId);
-	SoundDesc *getFirstActiveSound();
+	SoundDesc *getSounds();
+	void scheduleSoundForDeallocation(int soundId);
 	SoundDesc *cloneSound(SoundDesc *soundDesc);
 
 	bool isSndDataExtComp(SoundDesc *soundDesc);

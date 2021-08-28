@@ -458,6 +458,8 @@ int DiMUSE_v2::tracks_getParam(int soundId, int opcode) {
 	iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 	int l = 0;
 	do {
+		if (track)
+			l++;
 		if (track->soundId == soundId) {
 			switch (opcode) {
 			case 0:
@@ -500,7 +502,6 @@ int DiMUSE_v2::tracks_getParam(int soundId, int opcode) {
 		}
 
 		track = (iMUSETrack *)track->next;
-		l++;
 	} while (track);
 
 	if (opcode != 0x100)

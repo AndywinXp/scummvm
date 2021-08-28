@@ -71,23 +71,13 @@ int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		char fileName[20] = "";
+		char fileName[23] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
-		
-		int volIdGroup = bufId == IMUSE_BUFFER_MUSIC ? IMUSE_VOLGRP_MUSIC : IMUSE_VOLGRP_VOICE;
 
-		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
-
-		if (!s)
-			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 1);
-		if (!s)
-			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 2);
-		if (!s)
-			return -1;
+		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
 
 		int resultingOffset = s->bundle->seekFile(fileName, offset, mode);
 
-		_sound->closeSound(s); // Is this necessary?
 		return resultingOffset;
 	}
 
@@ -98,29 +88,32 @@ int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
+	// TODO: Does this work with speech?
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		char fileName[20] = "";
+		char fileName[23] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
 
 		int volIdGroup = bufId == IMUSE_BUFFER_MUSIC ? IMUSE_VOLGRP_MUSIC : IMUSE_VOLGRP_VOICE;
 
-		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, -1);
+		DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
+		DiMUSESndMgr::SoundDesc *curSnd = NULL;
+		for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
+			curSnd = &s[i];
+			if (curSnd->inUse) {
+				if (curSnd->soundId == soundId) {
+					bool uncompressedBundle = false;
+					int resultingSize = curSnd->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), uncompressedBundle);
+					return resultingSize;
+				}
+			}
+		}
 
-		if (!s)
-			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 1);
-		if (!s)
-			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, volIdGroup, 2);
-		if (!s)
-			return -1;
+		debug(5, "DiMUSE_v2::files_read(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
 
-		bool uncompressedBundle = false;
-		int resultingSize = s->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), uncompressedBundle);
-
-		_sound->closeSound(s); // Is this necessary?
-		return resultingSize;
+	} else {
+		debug(5, "DiMUSE_v2::files_read(): soundId is 0 or out of range");
 	}
-
-	debug(5, "DiMUSE_v2::files_read(): soundId is 0 or out of range");
+	
 	return 0;
 }
 
@@ -132,6 +125,33 @@ DiMUSE_v2::iMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
 
 	debug(5, "ERR: bufInfoFunc failure");
 	return NULL;
+}
+
+void DiMUSE_v2::files_openSound(int soundId) {
+	char fileName[23] = "";
+	files_getFilenameFromSoundId(soundId, fileName);
+	DiMUSESndMgr::SoundDesc *s = NULL;
+	s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, -1);
+	if (!s)
+		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, 1);
+	if (!s)
+		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, 2);
+	if (!s)
+		debug(5, "DiMUSE_v2::files_openSound(): can't open sound %d (%s)", soundId, fileName);
+}
+
+void DiMUSE_v2::files_closeSound(int soundId) {
+	_sound->scheduleSoundForDeallocation(soundId);
+}
+
+void DiMUSE_v2::files_closeAllSounds() {
+	DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
+	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
+		if (s[i].inUse)
+			files_closeSound(s->soundId);
+	}
+
+	flushTracks();
 }
 
 void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {

@@ -512,15 +512,21 @@ DiMUSESndMgr::SoundDesc *DiMUSESndMgr::findSoundById(int soundId) {
 	return soundDesc;
 }
 
-DiMUSESndMgr::SoundDesc *DiMUSESndMgr::getFirstActiveSound() {
-	SoundDesc *soundDesc = NULL;
+DiMUSESndMgr::SoundDesc *DiMUSESndMgr::getSounds() {
+	return _sounds;
+}
+
+void DiMUSESndMgr::scheduleSoundForDeallocation(int soundId) {
+	SoundDesc *soundDesc;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
-		if (_sounds[i].inUse) {
+		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];
-			break;
 		}
 	}
-	return soundDesc;
+
+	assert(checkForProperHandle(soundDesc));
+
+	soundDesc->scheduledForDealloc = true;
 }
 
 void DiMUSESndMgr::closeSoundById(int soundId) {

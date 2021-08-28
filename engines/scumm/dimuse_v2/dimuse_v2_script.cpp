@@ -416,13 +416,13 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 		debug(5, "DiMUSE_v2::playDigMusic(): NULL transition, ignored");
 		break;
 	case 1:
-		//IMUSE_OPCODE_OpenSound(IMUSE_SCRIPT_songFileName, 0)
+		files_openSound(table->soundId);
 		if (table->soundId) {
 			if (DiMUSE_startSound(table->soundId, 126))
 				debug(5, "DiMUSE_v2::playDigMusic(): transition 1, failed to start the sound (%d)", table->soundId);
 			DiMUSE_setParam(table->soundId, 0x600, 1);
 			DiMUSE_fadeParam(table->soundId, 0x600, 127, 120);
-			//_sound->closeSound(table->soundId); IMUSE_OPCODE_CloseSound(newSoundId);
+			files_closeSound(table->soundId);
 			DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		} else {
 			debug(5, "DiMUSE_v2::playDigMusic(): transition 1, empty soundId, ignored");
@@ -432,7 +432,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 	case 2:
 	case 3:
 	case 4:
-		// IMUSE_OPCODE_OpenSound(IMUSE_SCRIPT_songFileName, 0);
+		files_openSound(table->soundId);
 		if (table->filename[0] == 0 || table->soundId == 0) {
 			if (oldSoundId)
 				DiMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
@@ -468,7 +468,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 					DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 					DiMUSE_setHook(table->soundId, hookId);
 					DiMUSE_processStreams();
-					//IMUSE_OPCODE_CloseSound((int)newSoundId);
+					files_closeSound(table->soundId);
 					DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
 				}
 			}
@@ -479,7 +479,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 			DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 			DiMUSE_setHook(table->soundId, hookId);
 		}
-		//IMUSE_OPCODE_CloseSound((int)newSoundId);
+		files_closeSound(table->soundId);
 		DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
 		break;
 	case 5:
@@ -554,13 +554,13 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		debug(5, "DiMUSE_v2::playComiMusic(): NULL transition, ignored");
 		break;
 	case 1:
-		//IMUSE_OPCODE_OpenSound((int)newSoundId);
+		files_openSound(table->soundId);
 		if (table->soundId) {
 			if (DiMUSE_startSound(table->soundId, 126))
 				debug(5, "DiMUSE_v2::playComiMusic(): transition 1, failed to start the sound (%d)", table->soundId);
 			DiMUSE_setParam(table->soundId, 0x600, 1);
 			DiMUSE_fadeParam(table->soundId, 0x600, 127, 120);
-			//IMUSE_OPCODE_CloseSound((int)newSoundId);
+			files_closeSound(table->soundId);
 			DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		} else {
 			debug(5, "DiMUSE_v2::playComiMusic(): transition 1, empty soundId, ignored");
@@ -572,7 +572,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 	case 10:
 	case 11:
 	case 12:
-		//newSoundId = IMUSE_OPCODE_OpenSound(IMUSE_SCRIPT_songFileName, 0);
+		files_openSound(table->soundId);
 		if (table->filename[0] == 0 || table->soundId == 0) {
 			if (oldSoundId)
 				DiMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
@@ -649,7 +649,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 			DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 			DiMUSE_setHook(table->soundId, hookId);
 		}
-		//IMUSE_OPCODE_CloseSound((int)newSoundId);
+		files_closeSound(table->soundId);
 		DiMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		break;
 	case 5:
