@@ -339,7 +339,7 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 	int actualAmount;
 	int requestedAmount;
 
-	do {
+	while (1) {
 		if (loadSize <= 0)
 			return 0;
 
@@ -356,8 +356,8 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 
 		streamer_bailFlag = 0;
 		waveapi_decreaseSlice();
-		actualAmount = files_read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
-		waveapi_decreaseSlice();
+		actualAmount = files_read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], streamPtr->curOffset, requestedAmount, streamPtr->bufId);
+		waveapi_increaseSlice();
 		if (streamer_bailFlag != 0)
 			return 0;
 
@@ -369,7 +369,7 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 		if (streamPtr->loadIndex + actualAmount >= streamPtr->bufFreeSize) {
 			streamPtr->loadIndex = streamPtr->loadIndex + actualAmount - streamPtr->bufFreeSize;
 		}
-	} while (actualAmount == requestedAmount);
+	}
 
 	debug(5, "ERR: unable to load correct amount (req=%lu,act=%lu)...", requestedAmount, actualAmount);
 	streamer_lastStreamLoaded = NULL;

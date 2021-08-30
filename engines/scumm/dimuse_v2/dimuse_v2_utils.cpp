@@ -27,7 +27,7 @@ namespace Scumm {
 int DiMUSE_v2::iMUSE_addTrackToList(iMUSETrack **listPtr, iMUSETrack *listPtr_Item) {
 	// [0] is ->prev, [1] is ->next
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "ERR: list arg err when adding...\n");
+		debug(5, "DiMUSE_v2::iMUSE_addTrackToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -75,18 +75,18 @@ int DiMUSE_v2::iMUSE_removeTrackFromList(iMUSETrack **listPtr, iMUSETrack *listP
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "ERR: item not on list...\n");
+			debug(5, "DiMUSE_v2::iMUSE_removeTrackFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "ERR: list arg err when removing...\n");
+		debug(5, "DiMUSE_v2::iMUSE_removeTrackFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
 
 int DiMUSE_v2::iMUSE_addStreamZoneToList(iMUSEStreamZone **listPtr, iMUSEStreamZone *listPtr_Item) {
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "ERR: list arg err when adding...\n");
+		debug(5, "DiMUSE_v2::iMUSE_addStreamZoneToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -109,20 +109,20 @@ int DiMUSE_v2::iMUSE_addStreamZoneToList(iMUSEStreamZone **listPtr, iMUSEStreamZ
 }
 
 int DiMUSE_v2::iMUSE_removeStreamZoneFromList(iMUSEStreamZone **listPtr, iMUSEStreamZone *listPtr_Item) {
-	iMUSEStreamZone *currentTrack = *listPtr;
-	iMUSEStreamZone *nextTrack;
-	if (listPtr_Item && currentTrack) {
+	iMUSEStreamZone *currentStrZone = *listPtr;
+	iMUSEStreamZone *nextStrZone;
+	if (listPtr_Item && currentStrZone) {
 		do {
-			if (currentTrack == listPtr_Item)
+			if (currentStrZone == listPtr_Item)
 				break;
-			currentTrack = currentTrack->next;
-		} while (currentTrack);
+			currentStrZone = currentStrZone->next;
+		} while (currentStrZone);
 
-		if (currentTrack) {
-			nextTrack = listPtr_Item->next;
+		if (currentStrZone) {
+			nextStrZone = listPtr_Item->next;
 
-			if (nextTrack)
-				nextTrack->prev = listPtr_Item->prev;
+			if (nextStrZone)
+				nextStrZone->prev = listPtr_Item->prev;
 
 			if (listPtr_Item->prev) {
 				listPtr_Item->prev->next = listPtr_Item->next;
@@ -134,11 +134,11 @@ int DiMUSE_v2::iMUSE_removeStreamZoneFromList(iMUSEStreamZone **listPtr, iMUSESt
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "ERR: item not on list...\n");
+			debug(5, "DiMUSE_v2::iMUSE_removeStreamZoneFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "ERR: list arg err when removing...\n");
+		debug(5, "DiMUSE_v2::iMUSE_removeStreamZoneFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
@@ -166,7 +166,7 @@ int DiMUSE_v2::iMUSE_clampTuning(int value, int minValue, int maxValue) {
 }
 
 int DiMUSE_v2::iMUSE_SWAP32(uint8 *value) {
-	return value[3] | ((value[2] | ((value[1] | (*value << 8)) << 8)) << 8);
+	return value[3] | ((value[2] | ((value[1] | (value[0] << 8)) << 8)) << 8);
 }
 
 int DiMUSE_v2::iMUSE_checkHookId(int *trackHookId, int sampleHookId) {

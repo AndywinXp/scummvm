@@ -36,14 +36,21 @@ int DiMUSE_v2::tracks_moduleInit() {
 			return -1;
 	} else {
 		debug(5, "TR: No WAVE driver loaded...");
-		waveapi_waveOutParams.mixBuf = 0;
+		waveapi_waveOutParams.mixBuf = NULL;
 		waveapi_waveOutParams.offsetBeginMixBuf = 0;
 		waveapi_waveOutParams.sizeSampleKB = 0;
 		waveapi_waveOutParams.bytesPerSample = 8;
 		waveapi_waveOutParams.numChannels = 1;
 	}
 	
-	if (/*mixer_moduleInit(&waveapi_waveOutParams) || */dispatch_moduleInit() || streamer_moduleInit())
+	if (_diMUSEMixer->mixer_initModule(waveapi_waveOutParams.bytesPerSample,
+			waveapi_waveOutParams.numChannels,
+			0, // waveapi_waveOutParams.mixBuf
+			waveapi_waveOutParams.offsetBeginMixBuf,
+			waveapi_waveOutParams.sizeSampleKB,
+			tracks_trackCount) ||
+			dispatch_moduleInit() ||
+			streamer_moduleInit())
 		return -1;
 	
 	for (int l = 0; l < tracks_trackCount; l++) {
@@ -119,11 +126,22 @@ void DiMUSE_v2::tracks_callback() {
 			return;
 		tracks_pauseTimer = 3;
 	}
+	
 
 	waveapi_increaseSlice();
 	dispatch_predictFirstStream();
 	if (tracks_waveCall) {
-		waveapi_write(iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
+		//waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
+		if (_mixer->isReady()) {
+			if (_vm->_game.id == GID_DIG) {
+				waveapi_xorTrigger ^= 1;
+				if (!waveapi_xorTrigger) {
+					waveapi_decreaseSlice();
+					return;
+				}	
+			}
+			_diMUSEMixer->_stream->queueBuffer((byte *)iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
 		// Anyway it appears we never reach this block since tracks_waveCall is assigned to a (dummy) function
@@ -132,14 +150,13 @@ void DiMUSE_v2::tracks_callback() {
 			tracks_running40HzCount -= 25000;
 			iMUSE_feedSize = tracks_prefSampleRate / 40;
 			iMUSE_sampleRate = tracks_prefSampleRate;
-		}
-		else {
+		} else {
 			iMUSE_feedSize = 0;
 		}
 	}
 
 	if (iMUSE_feedSize != 0) {
-		//mixer_clearMixBuff();
+		_diMUSEMixer->mixer_clearMixBuff();
 		if (!tracks_pauseTimer) {
 			iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 
@@ -151,9 +168,19 @@ void DiMUSE_v2::tracks_callback() {
 		}
 
 		if (tracks_waveCall) {
-			//mixer_loop(iMUSE_audioBuffer, iMUSE_feedSize);
+			_diMUSEMixer->mixer_loop((uint8 *)iMUSE_audioBuffer, iMUSE_feedSize);
 			if (tracks_waveCall) {
 				//waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, 0);
+				if (_mixer->isReady()) {
+					if (_vm->_game.id == GID_DIG) {
+						waveapi_xorTrigger ^= 1;
+						if (!waveapi_xorTrigger) {
+							waveapi_decreaseSlice();
+							return;
+						}
+					}
+					_diMUSEMixer->_stream->queueBuffer((byte *)iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+				}
 			}
 		}
 	}
@@ -162,6 +189,7 @@ void DiMUSE_v2::tracks_callback() {
 }
 
 int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
+	debug(5, "DiMUSE_v2::tracks_startSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
 	int priority = iMUSE_clampNumber(tryPriority, 0, 127);
 	if (tracks_trackCount > 0) {
 		int l = 0;

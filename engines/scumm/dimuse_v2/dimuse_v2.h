@@ -30,16 +30,20 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
+//#include "scumm/dimuse_v1/dimuse_v1.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
+#include "audio/mixer.h"
+#include "audio/decoders/raw.h"
 
 namespace Audio {
-	class AudioStream;
-	class Mixer;
+class AudioStream;
+class Mixer;
+class QueuingAudioStream;
 }
 
 namespace Scumm {
@@ -67,13 +71,19 @@ enum {
 	IMUSE_BUFFER_MUSIC = 2
 };
 
+enum {
+	kFlagUnsigned = 1 << 0,
+	kFlag16Bits = 1 << 1,
+	kFlagStereo = 1 << 3
+};
+
 class DiMUSE_v2 : public DiMUSE {
 private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
 	DiMUSESndMgr *_sound;
-
+	DiMUSE_InternalMixer *_diMUSEMixer;
 	int _callbackFps;		// value how many times callback needs to be called per second
 	
 	static void timer_handler(void *refConf);
@@ -82,7 +92,7 @@ private:
 	int _currentSpeechVolume;
 	int _currentSpeechFrequency;
 	int _currentSpeechPan;
-
+	
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
@@ -116,8 +126,6 @@ public:
 	void refreshScripts() override;
 	void flushTracks() override;
 
-
-
 	int32 getCurMusicPosInMs() override { return 0; };
 	int32 getCurVoiceLipSyncWidth() override { return 0; };
 	int32 getCurVoiceLipSyncHeight() override { return 0; };
@@ -125,9 +133,9 @@ public:
 	int32 getCurMusicLipSyncHeight(int syncId) override { return 0; };
 	int32 getSoundElapsedTimeInMs(int soundId) override { return 0; };
 
-	char *iMUSE_audioBuffer;
-	int iMUSE_feedSize; // Always 1024 apparently
-	int iMUSE_sampleRate;
+	char iMUSE_audioBuffer[0x4000];
+	int iMUSE_feedSize = 1024; // Always 1024 apparently
+	int iMUSE_sampleRate = 22050;
 
 	struct iMUSEDispatch;
 	struct iMUSETrack;
@@ -155,7 +163,7 @@ public:
 	int DiMUSE_resume();
 	int DiMUSE_save();
 	int DiMUSE_restore();
-	int DiMUSE_setGroupVol();
+	int DiMUSE_setGroupVol(int groupId, int volume);
 	int DiMUSE_startSound(int soundId, int priority);
 	int DiMUSE_stopSound(int soundId);
 	int DiMUSE_stopAllSounds();
@@ -170,9 +178,9 @@ public:
 	int DiMUSE_processStreams();
 	int DiMUSE_queryStream();
 	int DiMUSE_feedStream();
-	int DiMUSE_setGroupVol_Music();
-	int DiMUSE_setGroupVol_SFX();
-	int DiMUSE_setGroupVol_Voice();
+	int DiMUSE_setGroupVol_Music(int volume);
+	int DiMUSE_setGroupVol_SFX(int volume);
+	int DiMUSE_setGroupVol_Voice(int volume);
 	int DiMUSE_getGroupVol_Music();
 	int DiMUSE_getGroupVol_SFX();
 	int DiMUSE_getGroupVol_Voice();
@@ -507,7 +515,7 @@ public:
 	int files_getNextSound(int soundId);
 	int files_checkRange(int soundId);
 	int files_seek(int soundId, int offset, int mode, int bufId);
-	int files_read(int soundId, uint8 *buf, int size, int bufId);
+	int files_read(int soundId, uint8 *buf, int loadIndex, int size, int bufId);
 	void files_getFilenameFromSoundId(int soundId, char *fileName);
 	iMUSESoundBuffer *files_getBufInfo(int bufId);
 	void files_openSound(int soundId);
@@ -541,7 +549,6 @@ public:
 
 	// Waveapi
 #define NUM_HEADERS 8
-
 	typedef struct {
 		int bytesPerSample;
 		int numChannels;
@@ -577,7 +584,7 @@ public:
 	int waveapi_disableWrite = 0;
 
 	int waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStruct);
-	void waveapi_write(char *lpData, int *feedSize, int *sampleRate);
+	void waveapi_write(char **lpData, int *feedSize, int *sampleRate);
 	int waveapi_free();
 	void waveapi_callback();
 	void waveapi_increaseSlice();

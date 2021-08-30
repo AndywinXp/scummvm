@@ -30,12 +30,10 @@
 #include "scumm/dimuse_v2/dimuse_v2.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
-#include "scumm/dimuse_v1/dimuse_codecs.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
 
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
-#include "audio/decoders/raw.h"
 
 namespace Scumm {
 
@@ -49,27 +47,28 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
-
-	DiMUSE_initialize();
-	
-	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
-
+	_diMUSEMixer = new DiMUSE_InternalMixer(mixer);
 	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
-
+	memset(iMUSE_audioBuffer, 0, sizeof(iMUSE_audioBuffer));
+	DiMUSE_initialize();
+	DiMUSE_initializeScript();
 	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
 	DiMUSE_allocSoundBuffer(2, 528000, 44000, 352000);
-
-	DiMUSE_initializeScript();
+	
+	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
+	
+	//for (int i = 0; i < 20; i++)
+	//	DiMUSE
+	//
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	cmds_deinit();
 	DiMUSE_terminate();
-
+	
 	delete _sound;
-
 	DiMUSE_deallocSoundBuffer(1);
 	DiMUSE_deallocSoundBuffer(2);
 }
@@ -233,9 +232,10 @@ void DiMUSE_v2::flushTracks() {
 	DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		DiMUSESndMgr::SoundDesc *curSnd = &s[i];
-		if (curSnd->inUse) {
-			if (curSnd->scheduledForDealloc && !DiMUSE_getParam(curSnd->soundId, 0x100) && !DiMUSE_getParam(curSnd->soundId, 0x200))
-				_sound->closeSound(curSnd);
+		if (curSnd && curSnd->inUse) {
+			if (curSnd->scheduledForDealloc)
+				if (!DiMUSE_getParam(curSnd->soundId, 0x100) && !DiMUSE_getParam(curSnd->soundId, 0x200))
+					_sound->closeSound(curSnd);
 		}
 	}
 }
@@ -271,12 +271,15 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
+		DiMUSE_setGroupVol_SFX(b);
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
+		DiMUSE_setGroupVol_Voice(b);
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
+		DiMUSE_setGroupVol_Music(b);
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam
@@ -312,10 +315,13 @@ int DiMUSE_v2::DiMUSE_resume() {
 
 int DiMUSE_v2::DiMUSE_save() { return 0; }
 int DiMUSE_v2::DiMUSE_restore() { return 0; }
-int DiMUSE_v2::DiMUSE_setGroupVol() { return 0; }
+
+int DiMUSE_v2::DiMUSE_setGroupVol(int groupId, int volume) {
+	return cmds_handleCmds(7, groupId, volume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
 
 int DiMUSE_v2::DiMUSE_startSound(int soundId, int priority) {
-	return cmds_handleCmds(7, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+	return cmds_handleCmds(8, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::DiMUSE_stopSound(int soundId) {
@@ -351,7 +357,7 @@ int DiMUSE_v2::DiMUSE_setTrigger(int soundId, int marker, int opcode, int d, int
 }
 
 int DiMUSE_v2::DiMUSE_startStream(int soundId, int priority, int bufferId) {
-	return cmds_handleCmds(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+ 	return cmds_handleCmds(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::DiMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
@@ -364,12 +370,37 @@ int DiMUSE_v2::DiMUSE_processStreams() {
 
 int DiMUSE_v2::DiMUSE_queryStream() { return 0; }
 int DiMUSE_v2::DiMUSE_feedStream() { return 0; }
-int DiMUSE_v2::DiMUSE_setGroupVol_Music() { return 0; }
-int DiMUSE_v2::DiMUSE_setGroupVol_SFX() { return 0; }
-int DiMUSE_v2::DiMUSE_setGroupVol_Voice() { return 0; }
-int DiMUSE_v2::DiMUSE_getGroupVol_Music() { return 0; }
-int DiMUSE_v2::DiMUSE_getGroupVol_SFX() { return 0; }
-int DiMUSE_v2::DiMUSE_getGroupVol_Voice() { return 0; }
+
+int DiMUSE_v2::DiMUSE_setGroupVol_Music(int volume) {
+	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_Music(): %d", volume);
+	DiMUSE_setGroupVol(3, volume);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_setGroupVol_SFX(int volume) {
+	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_SFX(): %d", volume);
+	DiMUSE_setGroupVol(1, volume);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_setGroupVol_Voice(int volume) {
+	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_Voice(): %d", volume);
+	DiMUSE_setGroupVol(2, volume);
+	return 0;
+}
+
+int DiMUSE_v2::DiMUSE_getGroupVol_Music() {
+	return DiMUSE_setGroupVol(3, -1);
+}
+
+int DiMUSE_v2::DiMUSE_getGroupVol_SFX() {
+	return DiMUSE_setGroupVol(1, -1);
+}
+
+int DiMUSE_v2::DiMUSE_getGroupVol_Voice() {
+	return DiMUSE_setGroupVol(2, -1);
+}
+
 int DiMUSE_v2::DiMUSE_get_some1() { return 0; }
 
 int DiMUSE_v2::DiMUSE_initializeScript() {

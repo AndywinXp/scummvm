@@ -46,7 +46,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	if (waveapi_bytesPerSample != 1) {
 		waveapi_zeroLevel = 0;
 	}
-	waveapi_outBuf = (int *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 9216);
+	//waveapi_outBuf = (int *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 9216);
 
 	waveapi_waveFormat.nChannels = waveapi_numChannels;
 	waveapi_waveFormat.wFormatTag = 1;
@@ -69,7 +69,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveapi_waveOutParams.mixBuf = waveapi_mixBuf;
 
 	// Init the buffer at volume zero
-	memset(waveapi_outBuf, waveapi_zeroLevel, (unsigned int)waveapi_numChannels * (unsigned int)waveapi_bytesPerSample * 9216);
+	//memset(waveapi_outBuf, waveapi_zeroLevel, (unsigned int)waveapi_numChannels * (unsigned int)waveapi_bytesPerSample * 9216);
 
 	/*
 	*waveHeaders = (LPWAVEHDR)malloc(32 * sizeof(LPWAVEHDR));
@@ -107,7 +107,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 
 // Validated
 
-void DiMUSE_v2::waveapi_write(char *lpData, int *feedSize, int *sampleRate) {
+void DiMUSE_v2::waveapi_write(char **lpData, int *feedSize, int *sampleRate) {
 	if (waveapi_disableWrite)
 		return;
 	/*
@@ -131,11 +131,15 @@ void DiMUSE_v2::waveapi_write(char *lpData, int *feedSize, int *sampleRate) {
 	if (!ptrToWriteIndex || !*ptrToWriteIndex)
 		return;
 	
-	ptrToWriteIndex = waveapi_outBuf + ((waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex) << 10);
-	*lpData = waveHeaders[waveapi_writeIndex]->lpData; // Is it right?
-	waveOutPrepareHeader(waveHeaders, headerToUse, 32);
+	ptrToWriteIndex = waveapi_outBuf + ((waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex) << 10);*/
+	//int size = sizeof(&waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex * 1024]);
+	//memcpy((int *)lpData, &waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex * 1024], waveapi_numChannels * waveapi_bytesPerSample * 1024);
+	//*lpData = (char *)&waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * 1024];
+
+	/*waveOutPrepareHeader(waveHeaders, headerToUse, 32);
 	waveOutWrite(waveHeaders, headerToUse, 32);*/
-	*sampleRate = waveapi_sampleRate;
+	if (sampleRate)
+		*sampleRate = waveapi_sampleRate;
 	*feedSize = 1024;
 	waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 }
@@ -150,8 +154,8 @@ int DiMUSE_v2::waveapi_free() {
 	//free(waveHeaders);
 	//waveOutReset(waveHandle);
 	//waveOutClose(waveHandle);
-	free(waveapi_outBuf);
-	waveapi_outBuf = NULL;
+	//free(waveapi_outBuf);
+	//waveapi_outBuf = NULL;
 	return 0;
 }
 

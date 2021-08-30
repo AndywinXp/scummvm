@@ -137,7 +137,7 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 					}
 
 					if (!curStreamZone) {
-						debug(5, "ERR: out of streamZones...\n");
+						debug(5, "DiMUSE_v2::dispatch_allocStreamZones(): out of streamZones");
 						curStreamZoneList = (iMUSEStreamZone *)&curDispatchPtr->streamZoneList;
 						curDispatchPtr->streamZoneList = 0;
 					} else {
@@ -156,11 +156,11 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 						curStreamZoneList->prev->size = 0;
 						curStreamZoneList->prev->fadeFlag = 0;
 					} else {
-						debug(5, "ERR: unable to alloc zone during restore...\n");
+						debug(5, "DiMUSE_v2::dispatch_allocStreamZones(): unable to alloc zone during restore");
 					}
 				}
 			} else {
-				debug(5, "ERR: unable to start stream during restore...\n");
+				debug(5, "DiMUSE_v2::dispatch_allocStreamZones(): unable to start stream during restore");
 			}
 		}
 	}
@@ -183,14 +183,13 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	if (groupId) {
 		trackDispatch->streamPtr = streamer_alloc(trackPtr->soundId, groupId, 0x4000u); // 0x2000
 		if (!trackDispatch->streamPtr) {
-			debug(5, "ERR: unable to alloc stream...");
+			debug(5, "DiMUSE_v2::dispatch_alloc(): unable to alloc stream");
 			return -1;
 		}
 		trackDispatch->streamBufID = groupId;
 		trackDispatch->streamZoneList = 0;
 		trackDispatch->streamErrFlag = 0;
-	}
-	else {
+	} else {
 		trackDispatch->streamPtr = 0;
 	}
 
@@ -198,7 +197,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	if (!getMapResult || getMapResult == -3)
 		return 0;
 
-	debug(5, "ERR: problem starting sound in dispatch...\n");
+	debug(5, "DiMUSE_v2::dispatch_alloc(): problem starting sound in dispatch");
 
 	// Remove streamZones from list
 	dispatchToDeallocate = trackDispatch->trackPtr->dispatchPtr;
@@ -227,7 +226,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 
 		if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuf) { // Found it!
 			if (dispatch_largeFadeFlags[i] == 0) {
-				debug(5, "ERR: redundant large fade buf de-allocation...\n");
+				debug(5, "DiMUSE_v2::dispatch_alloc(): redundant large fade buf de-allocation");
 			}
 			dispatch_largeFadeFlags[i] = 0;
 			return -1;
@@ -242,14 +241,14 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 
 		if (dispatch_largeFadeBufs + (SMALL_FADE_DIM * j) == fadeBuf) { // Found it!
 			if (dispatch_smallFadeFlags[j] == 0) {
-				debug(5, "ERR: redundant small fade buf de-allocation...\n");
+				debug(5, "DiMUSE_v2::dispatch_alloc(): redundant small fade buf de-allocation");
 			}
 			dispatch_smallFadeFlags[j] = 0;
 			return -1;
 		}
 	}
 
-	debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+	debug(5, "DiMUSE_v2::dispatch_alloc(): couldn't find fade buf to de-allocate");
 	return -1;
 }
 
@@ -269,7 +268,7 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 			do {
 				streamZoneList->useFlag = 0;
 				iMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList); // TODO: Is it right?
-			} while (streamZoneList);
+			} while (dispatchToDeallocate->streamZoneList);
 		}
 	}
 
@@ -287,7 +286,7 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 
 		if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuf) { // Found it!
 			if (dispatch_largeFadeFlags[i] == 0) {
-				debug(5, "ERR: redundant large fade buf de-allocation...\n");
+				debug(5, "DiMUSE_v2::dispatch_release(): redundant large fade buf de-allocation");
 			}
 			dispatch_largeFadeFlags[i] = 0;
 			return 0;
@@ -302,14 +301,14 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 
 		if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == fadeBuf) { // Found it!
 			if (dispatch_smallFadeFlags[j] == 0) {
-				debug(5, "ERR: redundant small fade buf de-allocation...\n");
+				debug(5, "DiMUSE_v2::dispatch_release(): redundant small fade buf de-allocation");
 			}
 			dispatch_smallFadeFlags[j] = 0;
 			return 0;
 		}
 	}
 
-	debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+	debug(5, "DiMUSE_v2::dispatch_release(): couldn't find fade buf to de-allocate");
 	return 0;
 }
 
@@ -329,13 +328,13 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		effFadeLen = 2000;
 
 	if (tracks_trackCount <= 0) {
-		debug(5, "ERR: DpSwitchStream() couldn't find sound...\n");
+		debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't find sound");
 		return -1;
 	}
 
 	for (i = 0; i <= tracks_trackCount; i++) {
 		if (i >= tracks_trackCount) {
-			debug(5, "ERR: DpSwitchStream() couldn't find sound...\n");
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't find sound");
 			return -1;
 		}
 
@@ -347,7 +346,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 	if (curDispatch->streamZoneList) {
 		if (!curDispatch->wordSize) {
-			debug(5, "ERR: DpSwitchStream() found streamZoneList but null wordSize...\n");
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): found streamZoneList but null wordSize");
 			return -1;
 		}
 
@@ -364,7 +363,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 				if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuffer) {
 					if (dispatch_largeFadeFlags[i] == 0) {
-						debug(5, "ERR: redundant large fade buf de-allocation...\n");
+						debug(5, "DiMUSE_v2::dispatch_switchStream(): redundant large fade buf de-allocation");
 					}
 					dispatch_largeFadeFlags[i] = 0;
 					break;
@@ -377,13 +376,13 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 					j++, ptrCtr += SMALL_FADE_DIM) {
 
 					if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
-						debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+						debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't find fade buf to de-allocate");
 						break;
 					}
 
 					if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == fadeBuffer) {
 						if (dispatch_smallFadeFlags[j] == 0) {
-							debug(5, "ERR: redundant small fade buf de-allocation...\n");
+							debug(5, "DiMUSE_v2::dispatch_switchStream(): redundant small fade buf de-allocation");
 						}
 						dispatch_smallFadeFlags[j] = 0;
 						break;
@@ -416,18 +415,18 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		if (alignmentModDividend) {
 			dispatch_fadeSize -= dispatch_fadeSize % alignmentModDividend;
 		} else {
-			debug(5, "ERR:ValidateFadeSize() tried mod by 0...\n");
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): ValidateFadeSize() tried mod by 0");
 		}
 
 		if (dispatch_fadeSize > LARGE_FADE_DIM) {
-			debug(5, "WARNING: requested fade too large (%lu)...\n", dispatch_fadeSize);
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): WARNING: requested fade too large (%lu)", dispatch_fadeSize);
 			dispatch_fadeSize = LARGE_FADE_DIM;
 		}
 
 		if (dispatch_fadeSize <= SMALL_FADE_DIM) { // Small fade
 			for (i = 0; i <= SMALL_FADES; i++) {
 				if (i == SMALL_FADES) {
-					debug(5, "ERR: couldn't allocate small fade buf...\n");
+					debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't allocate small fade buf");
 					curDispatch->fadeBuf = NULL;
 					break;
 				}
@@ -441,7 +440,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		} else { // Large fade
 			for (i = 0; i <= LARGE_FADES; i++) {
 				if (i == LARGE_FADES) {
-					debug(5, "ERR: couldn't allocate large fade buf...\n");
+					debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't allocate large fade buf");
 					curDispatch->fadeBuf = NULL;
 					break;
 				}
@@ -457,7 +456,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 			if (!curDispatch->fadeBuf) {
 				for (i = 0; i <= SMALL_FADES; i++) {
 					if (i == SMALL_FADES) {
-						debug(5, "ERR: couldn't allocate small fade buf...\n");
+						debug(5, "DiMUSE_v2::dispatch_switchStream(): couldn't allocate small fade buf");
 						curDispatch->fadeBuf = NULL;
 						break;
 					}
@@ -489,15 +488,15 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 				if ((dispatch_fadeSize - curDispatch->fadeRemaining) >= 0x4000) // Originally 0x2000 for DIG, but it shouldn't be a problem
 					effFadeSize = 0x4000;
 
-				memcpy(
-					(void *)(curDispatch->fadeBuf + curDispatch->fadeRemaining),
-					(const void *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize),
-					effFadeSize);
+				//memcpy(
+				//	(void *)(curDispatch->fadeBuf + curDispatch->fadeRemaining),
+				//	(const void *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize),
+				//	effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
 		} else {
-			debug(5, "WARNING:DpSwitchStream() couldn't alloc fade buf...\n");
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): WARNING: couldn't alloc fade buf");
 		}
 	}
 
@@ -539,7 +538,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		if (!getMapResult || getMapResult == -3) {
 			return 0;
 		} else {
-			debug(5, "ERR: problem switching stream in dispatch...\n");
+			debug(5, "DiMUSE_v2::dispatch_switchStream(): problem switching stream in dispatch");
 			tracks_clear(curDispatch->trackPtr);
 			return -1;
 		}
@@ -596,8 +595,8 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 			// Send it all to the mixer
 			srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
-			/*
-			mixer_mix(
+			
+			_diMUSEMixer->mixer_mix(
 				srcBuf,
 				inFrameCount,
 				dispatchPtr->fadeWordSize,
@@ -605,7 +604,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 				effFeedSize,
 				0,
 				mixVolume,
-				trackPtr->pan);*/
+				trackPtr->pan);
 
 			dispatchPtr->fadeOffset += effRemainingFade;
 			dispatchPtr->fadeRemaining -= effRemainingFade;
@@ -620,7 +619,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 					if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
 						if (dispatch_largeFadeFlags[i] == 0) {
-							debug(5, "ERR: redundant large fade buf de-allocation...\n");
+							debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant large fade buf de-allocation");
 						}
 						dispatch_largeFadeFlags[i] = 0;
 						break;
@@ -633,13 +632,13 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 						j++, ptrCtr += SMALL_FADE_DIM) {
 
 						if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
-							debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+							debug(5, "DiMUSE_v2::dispatch_processDispatches(): couldn't find fade buf to de-allocate");
 							break;
 						}
 
 						if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) {
 							if (dispatch_smallFadeFlags[j] == 0) {
-								debug(5, "ERR: redundant small fade buf de-allocation...\n");
+								debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant small fade buf de-allocation");
 							}
 							dispatch_smallFadeFlags[j] = 0;
 							break;
@@ -647,9 +646,8 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					}
 				}
 			}
-		}
-		else {
-			debug(5, "WARNING:fade ends with incomplete frame (or odd 12-bit mono frame)...\n");
+		} else {
+			debug(5, "DiMUSE_v2::dispatch_processDispatches(): WARNING: fade ends with incomplete frame (or odd 12-bit mono frame)");
 
 			// Fade ended, deallocate it
 			ptrCtr = 0;
@@ -659,7 +657,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 				if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
 					if (dispatch_largeFadeFlags[i] == 0) {
-						debug(5, "ERR: redundant large fade buf de-allocation...\n");
+						debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant large fade buf de-allocation");
 					}
 					dispatch_largeFadeFlags[i] = 0;
 					break;
@@ -672,13 +670,13 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					j++, ptrCtr += SMALL_FADE_DIM) {
 
 					if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
-						debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+						debug(5, "DiMUSE_v2::dispatch_processDispatches(): couldn't find fade buf to de-allocate");
 						break;
 					}
 
 					if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) {
 						if (dispatch_smallFadeFlags[j] == 0) {
-							debug(5, "ERR: redundant small fade buf de-allocation...\n");
+							debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant small fade buf de-allocation");
 						}
 						dispatch_smallFadeFlags[j] = 0;
 						break;
@@ -722,7 +720,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					inFrameCount &= 0xFFFFFFFE;
 
 				if (!inFrameCount)
-					debug(5, "WARNING:fade ends with incomplete frame (or odd 12-bit mono frame)...\n");
+					debug(5, "DiMUSE_v2::dispatch_processDispatches(): WARNING: fade ends with incomplete frame (or odd 12-bit mono frame)");
 
 				effRemainingFade = (inFrameCount * dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount) / 8;
 				mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
@@ -738,8 +736,8 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 				// Send it all to the mixer
 				srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
-				/*
-				mixer_mix(
+				
+				_diMUSEMixer->mixer_mix(
 					srcBuf,
 					inFrameCount,
 					dispatchPtr->fadeWordSize,
@@ -747,7 +745,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					effFeedSize,
 					mixStartingPoint,
 					mixVolume,
-					trackPtr->pan);*/
+					trackPtr->pan);
 
 				dispatchPtr->fadeOffset += effRemainingFade;
 				dispatchPtr->fadeRemaining -= effRemainingFade;
@@ -761,7 +759,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 						if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
 							if (dispatch_largeFadeFlags[i] == 0) {
-								debug(5, "ERR: redundant large fade buf de-allocation...\n");
+								debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant large fade buf de-allocation");
 							}
 							dispatch_largeFadeFlags[i] = 0;
 							break;
@@ -774,13 +772,13 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 							j++, ptrCtr += SMALL_FADE_DIM) {
 
 							if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
-								debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+								debug(5, "DiMUSE_v2::dispatch_processDispatches(): couldn't find fade buf to de-allocate");
 								break;
 							}
 
 							if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) {
 								if (dispatch_smallFadeFlags[j] == 0) {
-									debug(5, "ERR: redundant small fade buf de-allocation...\n");
+									debug(5, "DiMUSE_v2::dispatch_processDispatches(): redundant small fade buf de-allocation");
 								}
 								dispatch_smallFadeFlags[j] = 0;
 								break;
@@ -808,7 +806,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			inFrameCount &= 0xFFFFFFFE;
 
 		if (!inFrameCount) {
-			debug(5, "ERR:region ends with incomplete frame (or odd 12-bit mono frame)...\n");
+			debug(5, "DiMUSE_v2::dispatch_processDispatches(): ERROR: region ends with incomplete frame (or odd 12-bit mono frame)");
 			tracks_clear(trackPtr);
 			return;
 		}
@@ -832,7 +830,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					&dispatch_curStreamPaused);
 
 				if (dispatch_curStreamPaused) {
-					debug(5, "WARNING: stopping starving paused stream...\n");
+					debug(5, "DiMUSE_v2::dispatch_processDispatches(): WARNING: stopping starving paused stream");
 					tracks_clear(trackPtr);
 				}
 
@@ -893,11 +891,11 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			mixVolume = trackPtr->effVol;
 		}
 
-		/*
+		
 		if (trackPtr->mailbox) // Whatever this thing does
-			mixer_setRadioChatter();
+			_diMUSEMixer->mixer_setRadioChatter();
 			
-		mixer_mix(
+		_diMUSEMixer->mixer_mix(
 			srcBuf,
 			inFrameCount,
 			dispatchPtr->wordSize,
@@ -905,9 +903,9 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			effFeedSize,
 			mixStartingPoint,
 			mixVolume,
-			trackPtr->pan);*/
+			trackPtr->pan);
 
-		//mixer_clearRadioChatter();
+		_diMUSEMixer->mixer_clearRadioChatter();
 		mixStartingPoint += effFeedSize;
 		feedSize -= effFeedSize;
 
@@ -958,7 +956,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 	// and the correct state of the stream in the current dispatch
 	if (dispatchPtr->map[0] != 'MAP ') {
 		if (dispatchPtr->currentOffset) {
-			debug(5, "ERR: GetMap found offset but no map...\n");
+			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): found offset but no map");
 			return -1;
 		}
 
@@ -966,31 +964,31 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 		rawMap = (uint8 *)files_fetchMap(dispatchPtr->trackPtr->soundId);
 		if (rawMap) {
 			if (dispatch_convertMap((uint8 *)rawMap, (uint8 *)dstMap)) {
-				debug(5, "ERR: ConvertMap() failed...\n");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): dispatch_convertMap() failed");
 				return -1;
 			}
 
 			if (dispatchPtr->map[2] != 'FRMT') {
-				debug(5, "ERR: expected 'FRMT' at start of map...\n");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 				return -1;
 			}
 
 			dispatchPtr->currentOffset = dispatchPtr->map[4];
 			if (dispatchPtr->streamPtr) {
 				if (streamer_getFreeBuffer(dispatchPtr->streamPtr)) {
-					debug(5, "ERR: GetMap() expected empty stream buf...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected empty stream buf");
 					return -1;
 				}
 
 				if (dispatchPtr->streamZoneList) {
-					debug(5, "ERR: GetMap() expected null streamZoneList...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected null streamZoneList");
 					return -1;
 				}
 
 				allStrZn = dispatch_allocStreamZone();
 				dispatchPtr->streamZoneList = allStrZn;
 				if (!allStrZn) {
-					debug(5, "ERR: GetMap() couldn't alloc zone...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: couldn't alloc zone");
 					return -1;
 				}
 
@@ -1021,33 +1019,33 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				}
 				rawMap = (uint8 *)streamer_reAllocReadBuffer(dispatchPtr->streamPtr, size);
 				if (!rawMap) {
-					debug(5, "ERR: stream read failed after view succeeded in GetMap()...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: stream read failed after view succeeded in GetMap()");
 					return -1;
 				}
 
 				dispatchPtr->currentOffset = size;
 				if (dispatch_convertMap(rawMap + 8, (uint8 *)dstMap)) {
-					debug(5, "ERR: ConvertMap() failed...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: ConvertMap() failed");
 					return -1;
 				}
 
 				if (dispatchPtr->map[2] != 'FRMT') {
-					debug(5, "ERR: expected 'FRMT' at start of map...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 					return -1;
 				}
 
 				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
-					debug(5, "ERR: GetMap() expected data to follow map...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetMap() expected data to follow map");
 					return -1;
 				} else {
 					if (dispatchPtr->streamZoneList) {
-						debug(5, "ERR: GetMap() expected null streamZoneList...\n");
+						debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetMap() expected null streamZoneList");
 						return -1;
 					}
 
 					dispatchPtr->streamZoneList = dispatch_allocStreamZone();
 					if (!dispatchPtr->streamZoneList) {
-						debug(5, "ERR: GetMap() couldn't alloc zone...\n");
+						debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetMap() couldn't alloc zone");
 						return -1;
 					}
 
@@ -1056,7 +1054,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 					dispatchPtr->streamZoneList->fadeFlag = 0;
 				}
 			} else {
-				debug(5, "ERR: unrecognized file format in stream buf...\n");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: unrecognized file format in stream buf");
 				return -1;
 			}
 
@@ -1065,28 +1063,28 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			soundAddrData = files_getSoundAddrData(dispatchPtr->trackPtr->soundId);
 
 			if (!soundAddrData) {
-				debug(5, "ERR: GetMap() couldn't get sound address...\n");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetMap() couldn't get sound address");
 				return -1;
 			}
 
 			if (iMUSE_SWAP32(soundAddrData) == 'iMUS' && iMUSE_SWAP32(soundAddrData + 8) == 'MAP ') {
 				dispatchPtr->currentOffset = iMUSE_SWAP32(soundAddrData + 12) + 24;
 				if (dispatch_convertMap((soundAddrData + 8), (uint8 *)dstMap)) {
-					debug(5, "ERR: ConvertMap() failed...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERR: ConvertMap() failed");
 					return -1;
 				}
 
 				if (dispatchPtr->map[2] != 'FRMT') {
-					debug(5, "ERR: expected 'FRMT' at start of map...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 					return -1;
 				}
 
 				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
-					debug(5, "ERR: GetMap() expected data to follow map...\n");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetMap() expected data to follow map");
 					return -1;
 				}
 			} else {
-				debug(5, "ERR: unrecognized file format in stream buf...\n");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: unrecognized file format in stream buf");
 				return -1;
 			}
 		}
@@ -1094,7 +1092,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 
 	if (dispatchPtr->audioRemaining
 		|| dispatchPtr->streamPtr && dispatchPtr->streamZoneList->offset != dispatchPtr->currentOffset) {
-		debug(5, "ERR: navigation error in dispatch...\n");
+		debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: navigation error in dispatch");
 		return -1;
 	}
 
@@ -1107,13 +1105,13 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			mapCurPos = (int *)((int8 *)mapCurPos + mapCurPos[1] + 8);
 			if ((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1] > (int8 *)mapCurPos) {
 				if (mapCurPos[2] != curOffset) {
-					debug(5, "ERR: GetNextMapEvent() no more events at offset %lu...\n", dispatchPtr->currentOffset);
-					debug(5, "ERR: no more map events at offset %lx...\n", dispatchPtr->currentOffset);
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetNextMapEvent() no more events at offset %lu", dispatchPtr->currentOffset);
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: no more map events at offset %lx", dispatchPtr->currentOffset);
 					return -1;
 				}
 			} else {
-				debug(5, "ERR: GetNextMapEvent() map overrun...\n");
-				debug(5, "ERR: no more map events at offset %lx...\n", dispatchPtr->currentOffset);
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetNextMapEvent() map overrun");
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: no more map events at offset %lx", dispatchPtr->currentOffset);
 				return -1;
 			}
 
@@ -1129,15 +1127,15 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				mapCurPos = (int *)((int8 *)mapCurPos + mapCurPos[1] + 8);
 
 				if ((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1] <= (int8 *)mapCurPos) {
-					debug(5, "ERR: GetNextMapEvent() couldn't find event at offset %lu...\n", dispatchPtr->currentOffset);
-					debug(5, "ERR: no more map events at offset %lx...\n", dispatchPtr->currentOffset);
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: GetNextMapEvent() couldn't find event at offset %lu", dispatchPtr->currentOffset);
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: no more map events at offset %lx", dispatchPtr->currentOffset);
 					return -1;
 				}
 			}
 		}
 
 		if (!mapCurPos) {
-			debug(5, "ERR: no more map events at offset %lx...\n", dispatchPtr->currentOffset);
+			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: no more map events at offset %lx", dispatchPtr->currentOffset);
 			return -1;
 		}
 
@@ -1157,7 +1155,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				dispatchPtr->currentOffset = mapCurPos[3];
 				if (dispatchPtr->streamPtr) {
 					if (dispatchPtr->streamZoneList->size || !dispatchPtr->streamZoneList->next) {
-						debug(5, "ERR: failed to prepare for jump...\n");
+						debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: failed to prepare for jump"); // Not a real error, apparently
 						dispatch_parseJump(dispatchPtr, dispatchPtr->streamZoneList, mapCurPos, 1);
 					}
 
@@ -1174,7 +1172,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 
 								if (dispatch_largeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
 									if (dispatch_largeFadeFlags[i] == 0) {
-										debug(5, "ERR: redundant large fade buf de-allocation...\n");
+										debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: redundant large fade buf de-allocation");
 									}
 									dispatch_largeFadeFlags[i] = 0;
 									break;
@@ -1187,13 +1185,13 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 									j++, ptrCtr += SMALL_FADE_DIM) {
 
 									if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
-										debug(5, "ERR: couldn't find fade buf to de-allocate...\n");
+										debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: couldn't find fade buf to de-allocate");
 										break;
 									}
 
 									if (dispatch_smallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) {
 										if (dispatch_smallFadeFlags[j] == 0) {
-											debug(5, "ERR: redundant small fade buf de-allocation...\n");
+											debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: redundant small fade buf de-allocation");
 										}
 										dispatch_smallFadeFlags[j] = 0;
 										break;
@@ -1204,14 +1202,14 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 
 						dispatch_requestedFadeSize = dispatchPtr->streamZoneList->size;
 						if (dispatch_requestedFadeSize > LARGE_FADE_DIM) {
-							debug(5, "WARNING: requested fade too large (%lu)...\n", dispatch_requestedFadeSize);
+							debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): WARNING: requested fade too large (%lu)", dispatch_requestedFadeSize);
 							dispatch_requestedFadeSize = LARGE_FADE_DIM;
 						}
 
 						if (dispatch_fadeSize <= SMALL_FADE_DIM) { // Small fade
 							for (i = 0; i <= SMALL_FADES; i++) {
 								if (i == SMALL_FADES) {
-									debug(5, "ERR: couldn't allocate small fade buf...\n");
+									debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: couldn't allocate small fade buf");
 									dispatchPtr->fadeBuf = NULL;
 									break;
 								}
@@ -1225,7 +1223,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 						} else { // Large fade
 							for (i = 0; i <= LARGE_FADES; i++) {
 								if (i == LARGE_FADES) {
-									debug(5, "ERR: couldn't allocate large fade buf...\n");
+									debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: couldn't allocate large fade buf");
 									dispatchPtr->fadeBuf = NULL;
 									break;
 								}
@@ -1241,7 +1239,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 							if (!dispatchPtr->fadeBuf) {
 								for (i = 0; i <= SMALL_FADES; i++) {
 									if (i == SMALL_FADES) {
-										debug(5, "ERR: couldn't allocate small fade buf...\n");
+										debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: couldn't allocate small fade buf");
 										dispatchPtr->fadeBuf = NULL;
 										break;
 									}
@@ -1301,6 +1299,17 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				return 0;
 		}
 
+		// SYNC block (fixed size: x bytes)
+		// - The string 'SYNC' (4 bytes)
+		// - Block size in bytes minus 8 (4 bytes)
+		// - Block offset (4 bytes)
+		// - Don't know yet
+		if (blockName == 'SYNC') {
+			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: SYNC block not implemented yet");
+
+			continue;
+		}
+
 		// Format block (fixed size: 28 bytes)
 		// - The string 'FRMT' (4 bytes)
 		// - Block size in bytes minus 8 (4 bytes)
@@ -1327,9 +1336,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			if (regionOffset == dispatchPtr->currentOffset) {
 				dispatchPtr->audioRemaining = mapCurPos[3];
 				return 0;
-			}
-			else {
-				debug(5, "ERR: region offset %lu != currentOffset %lu...\n", regionOffset, dispatchPtr->currentOffset);
+			} else {
+				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: region offset %lu != currentOffset %lu", regionOffset, dispatchPtr->currentOffset);
 				return -1;
 			}
 		}
@@ -1353,9 +1361,11 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			triggers_processTriggers(dispatchPtr->trackPtr->soundId, marker);
 			if (dispatchPtr->audioRemaining)
 				return 0;
+
+			continue;
 		}
 
-		debug(5, "ERR: Unrecognized map event at offset %lx...\n", dispatchPtr->currentOffset);
+		debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: Unrecognized map event at offset %lx", dispatchPtr->currentOffset);
 		return -1;
 	}
 
@@ -1379,14 +1389,15 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	if (iMUSE_SWAP32(rawMap) == 'MAP ') {
 		bytesUntilEndOfMap = iMUSE_SWAP32(rawMap + 4);
 		effMapSize = bytesUntilEndOfMap + 8;
-		if ((_vm->_game.id == GID_DIG && effMapSize <= 0x400) || (_vm->_game.id == GID_CMI && effMapSize <= 0x4000)) {
+		if ((_vm->_game.id == GID_DIG && effMapSize <= 0x400) || (_vm->_game.id == GID_CMI && effMapSize <= 0x2000)) {
 			memcpy(destMap, rawMap, effMapSize);
 
 			// Fill (or rather, swap32) the fields:
 			// - The 4 bytes string 'MAP '
 			// - Size of the map
-			*(uint16 *)destMap = iMUSE_SWAP32(destMap);
-			*((uint16 *)destMap + 1) = iMUSE_SWAP32(destMap + 4);
+			//int dest = READ_BE_UINT32(destMap);
+			*(int *)destMap = iMUSE_SWAP32(destMap);
+			*((int *)destMap + 1) = iMUSE_SWAP32(destMap + 4);
 
 			mapCurPos = destMap + 8;
 			endOfMapPtr = &destMap[effMapSize];
@@ -1394,13 +1405,14 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// Swap32 the rest of the map
 			while (mapCurPos < endOfMapPtr) {
 				// Swap32 the 4 characters block name
-				*(uint16 *)mapCurPos = iMUSE_SWAP32(mapCurPos);
-				blockName = iMUSE_SWAP32(mapCurPos);
+				int swapped = iMUSE_SWAP32(mapCurPos);
+				*(int *)mapCurPos = swapped;
+				blockName = swapped;
 
 				// Advance and Swap32 the block size (minus 8) field
 				blockSizePtr = mapCurPos + 4;
 				blockSizeMin8 = iMUSE_SWAP32(blockSizePtr);
-				*(uint16 *)blockSizePtr = blockSizeMin8;
+				*(int *)blockSizePtr = blockSizeMin8;
 				mapCurPos = blockSizePtr + 4;
 
 				// Swapping32 a TEXT block is different:
@@ -1408,7 +1420,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 				// since they're already good like this
 				if (blockName == 'TEXT') {
 					// Swap32 the block offset position
-					*(uint16 *)mapCurPos = iMUSE_SWAP32(mapCurPos);
+					*(int *)mapCurPos = iMUSE_SWAP32(mapCurPos);
 
 					// Skip the single characters
 					firstChar = mapCurPos + 4;
@@ -1425,7 +1437,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 
 					// ...and swap them of course
 					do {
-						*(uint16 *)mapCurPos = iMUSE_SWAP32(mapCurPos);
+						*(int *)mapCurPos = iMUSE_SWAP32(mapCurPos);
 						mapCurPos += 4;
 						--remainingFieldsNum;
 					} while (remainingFieldsNum);
@@ -1436,19 +1448,18 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// nothing more and nothing less than that
 			// TODO: Rewrite this mess: for now I trust this won't go out of bounds
 			/*
-			if (&destMap[bytesUntilEndOfMap - (uint16)mapCurPos] == (uint8 *)-8) { 
+			if (&destMap[bytesUntilEndOfMap - (uint16)mapCurPos] == (uint8 *)'\xF8') {
 				return 0;
 			} else {
 				debug(5, "ERR: ConvertMap() converted wrong number of bytes...\n");
 				return -1;
 			}*/
-
 		} else {
-			debug(5, "ERR: MAP TOO BIG (%lu)!!!...\n", effMapSize);
+			debug(5, "DiMUSE_v2::dispatch_convertMap(): ERROR: map is too big (%lu)", effMapSize);
 			return -1;
 		}
 	} else {
-		debug(5, "ERR: ConvertMap() got bogus map...\n");
+		debug(5, "DiMUSE_v2::dispatch_convertMap(): ERROR: got bogus map");
 		return -1;
 	}
 
@@ -1468,7 +1479,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 	/*unsigned*/int mapPlaceHookPosition;
 
 	if (!dispatch->streamPtr || !dispatch->streamZoneList) {
-		debug(5, "ERR: null streamID or zoneList in PredictStream()...\n");
+		debug(5, "DiMUSE_v2::dispatch_predictStream(): ERROR: null streamId or zoneList");
 		return;
 	}
 
@@ -1629,7 +1640,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	if (alignmentModDividend) {
 		dispatch_size -= dispatch_size % alignmentModDividend;
 	} else {
-		debug(5, "ERR:ValidateFadeSize() tried mod by 0...\n");
+		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: ValidateFadeSize() tried mod by 0");
 	}
 
 	if (hookPosition < jumpDestination)
@@ -1645,8 +1656,8 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 		}
 
 		if (!zoneForJump) {
-			debug(5, "ERR: out of streamZones...\n");
-			debug(5, "ERR: PrepareToJump() couldn't alloc zone...\n");
+			debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: out of streamZones");
+			debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't alloc zone");
 			return;
 		}
 
@@ -1666,8 +1677,8 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	}
 
 	if (!zoneAfterJump) {
-		debug(5, "ERR: out of streamZones...\n");
-		debug(5, "ERR: PrepareToJump() couldn't alloc zone...\n");
+		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: out of streamZones");
+		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't alloc zone");
 		return;
 	}
 
@@ -1735,7 +1746,7 @@ DiMUSE_v2::iMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
 			return &streamZones[i];
 		}
 	}
-	debug(5, "ERR: out of streamZones...\n");
+	debug(5, "DiMUSE_v2::dispatch_allocStreamZone(): ERROR: out of streamZones");
 	return NULL;
 }
 

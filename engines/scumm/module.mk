@@ -102,6 +102,7 @@ MODULE_OBJS += \
 	dimuse_v2/dimuse_v2_fades.o \
 	dimuse_v2/dimuse_v2_files.o \
 	dimuse_v2/dimuse_v2_groups.o \
+	dimuse_v2/dimuse_v2_internalmixer.o \
 	dimuse_v2/dimuse_v2_script.o \
 	dimuse_v2/dimuse_v2_streamer.o \
 	dimuse_v2/dimuse_v2_timer.o \

@@ -39,7 +39,6 @@ uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
 		
-		uint8 *buf;
 		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
 
 		return s->resPtr;
@@ -85,15 +84,13 @@ int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 	return 0;
 }
 
-int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
+int DiMUSE_v2::files_read(int soundId, uint8 *buf, int loadIndex, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// TODO: Does this work with speech?
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[23] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
-
-		int volIdGroup = bufId == IMUSE_BUFFER_MUSIC ? IMUSE_VOLGRP_MUSIC : IMUSE_VOLGRP_VOICE;
 
 		DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
 		DiMUSESndMgr::SoundDesc *curSnd = NULL;
@@ -102,7 +99,9 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
 					bool uncompressedBundle = false;
-					int resultingSize = curSnd->bundle->decompressSampleByName(fileName, 0, size, &buf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), uncompressedBundle);
+					uint8 *tmpBuf; debug(5, "DiMUSE_v2::files_read(): loadIndex (%d)", loadIndex);
+					int resultingSize = curSnd->bundle->decompressSampleByName(fileName, loadIndex, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)), uncompressedBundle);
+					memcpy(buf, tmpBuf, size);
 					return resultingSize;
 				}
 			}
