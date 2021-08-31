@@ -61,7 +61,6 @@ private:
 	int mixer_stereoReverseFlag;
 
 	// Lookup table for a linear volume ramp (0 to 16) accounting for panning (-8 to 8)
-	// This is for The Dig, it appears to be different for COMI (actually not)
 	int8 mixer_table[284] = { 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
 						      0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2,  0,  0,  1,  1,  1,  1,  2,  2,  2,
 						      2,  2,  3,  3,  3,  3,  3,  3,  0,  0,  1,  1,  2,  2,  2,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  0,
@@ -100,7 +99,7 @@ public:
 	int  mixer_clearMixBuff();
 
 	void mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan);
-	int  mixer_loop(uint8 *destBuffer, unsigned int len);
+	int  mixer_loop(uint8 *destBuffer, int len);
 	Audio::QueuingAudioStream *_stream;
 };
 
