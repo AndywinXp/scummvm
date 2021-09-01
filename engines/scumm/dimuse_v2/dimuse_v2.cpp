@@ -57,10 +57,6 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	DiMUSE_allocSoundBuffer(2, 528000, 44000, 352000);
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
-	
-	//for (int i = 0; i < 20; i++)
-	//	DiMUSE
-	//
 }
 
 DiMUSE_v2::~DiMUSE_v2() {

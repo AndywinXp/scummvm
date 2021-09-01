@@ -133,8 +133,8 @@ public:
 	int32 getCurMusicLipSyncHeight(int syncId) override { return 0; };
 	int32 getSoundElapsedTimeInMs(int soundId) override { return 0; };
 
-	char iMUSE_audioBuffer[0x4000];
-	int iMUSE_feedSize = 1024; // Always 1024 apparently
+	uint8 iMUSE_audioBuffer[0x2000];
+	int iMUSE_feedSize = 2048; // 1024 for DIG (Win95), 2048 for COMI (DirectSound)
 	int iMUSE_sampleRate = 22050;
 
 	struct iMUSEDispatch;
@@ -281,8 +281,8 @@ public:
 	iMUSEStream *streamer_alloc(int soundId, int bufId, int maxRead);
 	int streamer_clearSoundInStream(iMUSEStream *streamPtr);
 	int streamer_processStreams();
-	int *streamer_reAllocReadBuffer(iMUSEStream *streamPtr, /*unsigned*/int reallocSize);
-	int *streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, int size);
+	uint8 *streamer_reAllocReadBuffer(iMUSEStream *streamPtr, /*unsigned*/int reallocSize);
+	uint8 *streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, int size);
 	int streamer_setIndex1(iMUSEStream *streamPtr, /*unsigned*/ int offset);
 	int streamer_setIndex2(iMUSEStream *streamPtr, /*unsigned*/ int offset);
 	int streamer_getFreeBuffer(iMUSEStream *streamPtr);

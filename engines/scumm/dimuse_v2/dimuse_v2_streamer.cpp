@@ -156,7 +156,7 @@ int DiMUSE_v2::streamer_processStreams() {
 	}
 }
 
-int *DiMUSE_v2::streamer_reAllocReadBuffer(iMUSEStream *streamPtr, int reallocSize) {
+uint8 *DiMUSE_v2::streamer_reAllocReadBuffer(iMUSEStream *streamPtr, int reallocSize) {
 	int size = streamPtr->loadIndex - streamPtr->readIndex;
 
 	if (size < 0)
@@ -166,34 +166,34 @@ int *DiMUSE_v2::streamer_reAllocReadBuffer(iMUSEStream *streamPtr, int reallocSi
 		return 0;
 
 	if (streamPtr->bufFreeSize - streamPtr->readIndex < reallocSize) {
-		memcpy(streamPtr->buf + streamPtr->bufFreeSize, streamPtr->buf, reallocSize - streamPtr->bufFreeSize + streamPtr->readIndex + 4);
+		memcpy(&streamPtr->buf[streamPtr->bufFreeSize], streamPtr->buf, reallocSize - streamPtr->bufFreeSize + streamPtr->readIndex + 4);
 	}
 
 	int readIndex_tmp = streamPtr->readIndex;
-	int *ptr = (int *)(streamPtr->buf + streamPtr->readIndex);
-	streamPtr->readIndex += reallocSize;
+	uint8 *ptr = &streamPtr->buf[readIndex_tmp];
+	streamPtr->readIndex = readIndex_tmp + reallocSize;
 	if (streamPtr->bufFreeSize <= readIndex_tmp + reallocSize)
 		streamPtr->readIndex = readIndex_tmp + reallocSize - streamPtr->bufFreeSize;
 
 	return ptr;
 }
 
-int *DiMUSE_v2::streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, int size) {
+uint8 *DiMUSE_v2::streamer_copyBufferAbsolute(iMUSEStream *streamPtr, int offset, int size) {
 	int value = streamPtr->loadIndex - streamPtr->readIndex;
 	if (value < 0)
 		value += streamPtr->bufFreeSize;
 	if (offset + size > value || streamPtr->maxRead < size)
 		return 0;
 	int offsetReadIndex = offset + streamPtr->readIndex;
-	if (offset + streamPtr->readIndex >= streamPtr->bufFreeSize) {
+	if (offsetReadIndex >= streamPtr->bufFreeSize) {
 		offsetReadIndex -= streamPtr->bufFreeSize;
 	}
 
 	if (streamPtr->bufFreeSize - offsetReadIndex < size) {
-		memcpy(streamPtr->buf + streamPtr->bufFreeSize, streamPtr->buf, size + offsetReadIndex - streamPtr->bufFreeSize);
+		memcpy(&streamPtr->buf[streamPtr->bufFreeSize], streamPtr->buf, size + offsetReadIndex - streamPtr->bufFreeSize);
 	}
 
-	return (int *)streamPtr->buf + offsetReadIndex;
+	return &streamPtr->buf[offsetReadIndex];
 }
 
 int DiMUSE_v2::streamer_setIndex1(iMUSEStream *streamPtr, int offset) {
@@ -307,7 +307,7 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 		streamPtr->endOffset = files_seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId);
 	}
 
-	int size = streamPtr->loadIndex - streamPtr->readIndex;
+	int size = streamPtr->readIndex - streamPtr->loadIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
 
@@ -365,9 +365,10 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 		streamPtr->curOffset += actualAmount;
 		streamer_lastStreamLoaded = streamPtr;
 
-		streamPtr->loadIndex += actualAmount;
-		if (streamPtr->loadIndex + actualAmount >= streamPtr->bufFreeSize) {
-			streamPtr->loadIndex = streamPtr->loadIndex + actualAmount - streamPtr->bufFreeSize;
+		int newLoadIndex = actualAmount + streamPtr->loadIndex;
+		streamPtr->loadIndex = newLoadIndex;
+		if (newLoadIndex >= streamPtr->bufFreeSize) {
+			streamPtr->loadIndex = newLoadIndex - streamPtr->bufFreeSize;
 		}
 	}
 

@@ -488,10 +488,8 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 				if ((dispatch_fadeSize - curDispatch->fadeRemaining) >= 0x4000) // Originally 0x2000 for DIG, but it shouldn't be a problem
 					effFadeSize = 0x4000;
 
-				//memcpy(
-				//	(void *)(curDispatch->fadeBuf + curDispatch->fadeRemaining),
-				//	(const void *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize),
-				//	effFadeSize);
+				//uint8 *ptr = (uint8 *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize);
+				//memcpy(((uint8 *)curDispatch->fadeBuf + curDispatch->fadeRemaining), ptr, effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -1305,7 +1303,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 		// - Block offset (4 bytes)
 		// - Don't know yet
 		if (blockName == 'SYNC') {
-			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: SYNC block not implemented yet");
+			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): WARNING: SYNC block not implemented yet");
 
 			continue;
 		}

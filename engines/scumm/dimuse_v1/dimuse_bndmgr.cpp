@@ -145,6 +145,7 @@ BundleMgr::BundleMgr(BundleDirCache *cache) {
 	_compTable = NULL;
 	_numFiles = 0;
 	_numCompItems = 0;
+	_lastBlockDecompressedSize = 0;
 	_curSampleId = -1;
 	_fileBundleId = -1;
 	_file = new ScummFile();
@@ -257,8 +258,8 @@ bool BundleMgr::loadCompTable(int32 index) {
 
 	_numCompItems = _file->readUint32BE();
 	assert(_numCompItems > 0);
-	_file->seek(8, SEEK_CUR);
-
+	_file->seek(4, SEEK_CUR);
+	_lastBlockDecompressedSize = _file->readUint32BE();
 	if (tag != MKTAG('C','O','M','P')) {
 		debug("BundleMgr::loadCompTable() Compressed sound %d (%s:%d) invalid (%s)", index, _file->getName(), _bundleTable[index].offset, tag2str(tag));
 		return false;

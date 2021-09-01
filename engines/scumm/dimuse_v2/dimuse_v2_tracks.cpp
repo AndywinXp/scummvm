@@ -127,7 +127,7 @@ void DiMUSE_v2::tracks_callback() {
 		tracks_pauseTimer = 3;
 	}
 	
-
+	byte *ptr;
 	waveapi_increaseSlice();
 	dispatch_predictFirstStream();
 	if (tracks_waveCall) {
@@ -140,7 +140,9 @@ void DiMUSE_v2::tracks_callback() {
 					return;
 				}	
 			}
-			_diMUSEMixer->_stream->queueBuffer((byte *)iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+			ptr = (byte *)malloc(iMUSE_feedSize);
+			memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+			_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
 		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
@@ -168,7 +170,7 @@ void DiMUSE_v2::tracks_callback() {
 		}
 
 		if (tracks_waveCall) {
-			_diMUSEMixer->mixer_loop((uint8 *)iMUSE_audioBuffer, iMUSE_feedSize);
+			_diMUSEMixer->mixer_loop(iMUSE_audioBuffer, iMUSE_feedSize);
 			if (tracks_waveCall) {
 				//waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, 0);
 				if (_mixer->isReady()) {
@@ -179,7 +181,9 @@ void DiMUSE_v2::tracks_callback() {
 							return;
 						}
 					}
-					_diMUSEMixer->_stream->queueBuffer((byte *)iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+					ptr = (byte *)malloc(iMUSE_feedSize);
+					memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
 				}
 			}
 		}

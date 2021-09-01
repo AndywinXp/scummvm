@@ -81,6 +81,7 @@ private:
 
 	int _numFiles;
 	int _numCompItems;
+	int _lastBlockDecompressedSize;
 	int _curSampleId;
 	BaseScummFile *_file;
 	bool _compTableLoaded;
@@ -90,7 +91,6 @@ private:
 	byte *_compInputBuff;
 	int _outputSize;
 	int _lastBlock;
-
 	bool loadCompTable(int32 index);
 
 public:

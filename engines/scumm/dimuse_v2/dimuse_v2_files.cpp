@@ -69,18 +69,22 @@ int DiMUSE_v2::files_checkRange(int soundId) {
 int DiMUSE_v2::files_seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
+	// The seeked position is in reference to the decompressed sound
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[23] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
 
 		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
+		if (s) {
+			int resultingOffset = s->bundle->seekFile(fileName, offset, mode);
 
-		int resultingOffset = s->bundle->seekFile(fileName, offset, mode);
-
-		return resultingOffset;
+			return resultingOffset;
+		} 
+		debug(5, "DiMUSE_v2::files_seek(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
+	} else {
+		debug(5, "DiMUSE_v2::files_seek(): soundId is 0 or out of range");
 	}
 
-	debug(5, "DiMUSE_v2::files_seek(): soundId is 0 or out of range");
 	return 0;
 }
 

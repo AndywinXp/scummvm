@@ -116,7 +116,7 @@ public:
 private:
 
 	SoundDesc _sounds[MAX_IMUSE_SOUNDS];
-
+	bool _comiHackInputBufferActive;
 	bool checkForProperHandle(SoundDesc *soundDesc);
 	SoundDesc *allocSlot();
 	void prepareSound(byte *ptr, SoundDesc *sound, bool uncompressedBundle);
