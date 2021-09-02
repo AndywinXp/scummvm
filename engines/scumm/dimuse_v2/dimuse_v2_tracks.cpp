@@ -142,7 +142,7 @@ void DiMUSE_v2::tracks_callback() {
 			}
 			ptr = (byte *)malloc(iMUSE_feedSize);
 			memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-			_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+			_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
@@ -181,9 +181,9 @@ void DiMUSE_v2::tracks_callback() {
 							return;
 						}
 					}
-					ptr = (byte *)malloc(iMUSE_feedSize);
-					memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO);//makeMixerFlags(track)
+					//ptr = (byte *)malloc(iMUSE_feedSize);
+					//memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+					//_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 				}
 			}
 		}
@@ -472,9 +472,8 @@ int DiMUSE_v2::tracks_setParam(int soundId, int opcode, int value) {
 				debug(5, "ERR: setParam: unknown opcode %lu\n", opcode);
 				return -5;
 			}
-
-			track = (iMUSETrack *)track->next;
 		}
+		track = (iMUSETrack *)track->next;
 	}
 
 	return -4;

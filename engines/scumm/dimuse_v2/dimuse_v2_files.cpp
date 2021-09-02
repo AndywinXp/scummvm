@@ -33,13 +33,16 @@ int DiMUSE_v2::files_moduleDeinit() {
 }
 
 uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
-	// This function is always used for SFX (tracks which do not have a
-	// stream pointer), hence the use of IMUSE_RESOURCE
+	// This function is always used for SFX (tracks which do not
+	// have a stream pointer), hence the use of IMUSE_RESOURCE
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
 		char fileName[20] = "";
 		files_getFilenameFromSoundId(soundId, fileName);
-		
-		DiMUSESndMgr::SoundDesc *s = _sound->openSound(soundId, fileName, IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
+		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
+		if (!s) {
+			s = _sound->openSound(soundId, fileName, IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
+			//files_closeSound(soundId);
+		}
 
 		return s->resPtr;
 	}

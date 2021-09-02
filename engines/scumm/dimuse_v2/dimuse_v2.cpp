@@ -69,9 +69,18 @@ DiMUSE_v2::~DiMUSE_v2() {
 	DiMUSE_deallocSoundBuffer(2);
 }
 
+void DiMUSE_v2::stopSound(int sound) {
+	DiMUSE_stopSound(sound);
+}
+
+void DiMUSE_v2::stopAllSounds() {
+	DiMUSE_stopAllSounds();
+}
+
 int DiMUSE_v2::isSoundRunning(int soundId) {
-	debug(5, "DiMUSE_v2::getSoundStatus(%d)", soundId);
-	return DiMUSE_getParam(soundId, 0x100) > 0;
+	int result = DiMUSE_getParam(soundId, 0x100) > 0;
+	debug(5, "DiMUSE_v2::isSoundRunning(%d): %d", soundId, result);
+	return result;
 }
 
 void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
@@ -93,6 +102,12 @@ void DiMUSE_v2::DiMUSE_deallocSoundBuffer(int bufId) {
 
 void DiMUSE_v2::refreshScripts() {
 	DiMUSE_refreshScript();
+}
+
+int DiMUSE_v2::startSfx(int soundId, int priority) {
+	DiMUSE_startSound(soundId, priority);
+	DiMUSE_setParam(soundId, 0x400, 1);
+	return 0;
 }
 
 void DiMUSE_v2::callback() {
@@ -321,10 +336,12 @@ int DiMUSE_v2::DiMUSE_startSound(int soundId, int priority) {
 }
 
 int DiMUSE_v2::DiMUSE_stopSound(int soundId) {
-	return cmds_handleCmds(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+	debug(5, "DiMUSE_v2::DiMUSE_stopSound(): %d", soundId);
+	return cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::DiMUSE_stopAllSounds() {
+	debug(5, "DiMUSE_v2::DiMUSE_stopAllSounds()");
 	return cmds_handleCmds(10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 

@@ -101,8 +101,8 @@ public:
 	{ error("DiMUSE_v2::startSound(int) should be never called"); }
 
 	void setMusicVolume(int vol) override {}
-	void stopSound(int sound) override {};
-	void stopAllSounds() override {};
+	void stopSound(int sound) override;
+	void stopAllSounds() override;
 
 	int getSoundStatus(int sound) const override { return 0; };
 	int isSoundRunning(int soundId);
@@ -113,7 +113,7 @@ public:
 	void resetState() override {};
 	void setRadioChatterSFX(bool state) override {};
 	void setAudioNames(int32 num, char *names) override {};
-	int  startSfx(int soundId, int priority) override { return 0; };
+	int  startSfx(int soundId, int priority) override;
 	void setPriority(int soundId, int priority) override {};
 	void setVolume(int soundId, int volume) override;
 	void setPan(int soundId, int pan) override;

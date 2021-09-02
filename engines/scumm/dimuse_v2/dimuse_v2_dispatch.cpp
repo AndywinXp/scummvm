@@ -1000,10 +1000,10 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			}
 
 		}
-
+		// If there's a streamPtr it means that this is a sound loaded
+		// from a bundle (either music or speech)
 		if (dispatchPtr->streamPtr) {
-			// If there's a streamPtr it means that we already have the sound in memory
-			// so we just fetch and convert the map
+			
 			copiedBuf = (uint8 *)streamer_copyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x10u);
 
 			if (!copiedBuf) {
@@ -1057,7 +1057,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			}
 
 		} else {
-			// Otherwise we load the sound from scratch
+			// Otherwise, this is a SFX and we must load it using its resource pointer
 			soundAddrData = files_getSoundAddrData(dispatchPtr->trackPtr->soundId);
 
 			if (!soundAddrData) {
