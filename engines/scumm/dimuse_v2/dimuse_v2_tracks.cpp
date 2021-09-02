@@ -131,18 +131,19 @@ void DiMUSE_v2::tracks_callback() {
 	waveapi_increaseSlice();
 	dispatch_predictFirstStream();
 	if (tracks_waveCall) {
-		//waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
 		if (_mixer->isReady()) {
 			if (_vm->_game.id == GID_DIG) {
 				waveapi_xorTrigger ^= 1;
-				if (!waveapi_xorTrigger) {
-					waveapi_decreaseSlice();
-					return;
+				if (waveapi_xorTrigger) {
+					ptr = (byte *)malloc(iMUSE_feedSize);
+					memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 				}	
+			} else {
+				ptr = (byte *)malloc(iMUSE_feedSize);
+				memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+				_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 			}
-			ptr = (byte *)malloc(iMUSE_feedSize);
-			memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-			_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
@@ -172,18 +173,18 @@ void DiMUSE_v2::tracks_callback() {
 		if (tracks_waveCall) {
 			_diMUSEMixer->mixer_loop(iMUSE_audioBuffer, iMUSE_feedSize);
 			if (tracks_waveCall) {
-				//waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, 0);
-				if (_mixer->isReady()) {
-					if (_vm->_game.id == GID_DIG) {
+				// The Dig tries to write a second time to the audio queue
+				// COMI only writes once (at the start of the function)
+				if (_vm->_game.id == GID_DIG) {
+					if (_mixer->isReady()) {
 						waveapi_xorTrigger ^= 1;
-						if (!waveapi_xorTrigger) {
-							waveapi_decreaseSlice();
-							return;
+						if (waveapi_xorTrigger) {
+							ptr = (byte *)malloc(iMUSE_feedSize);
+							memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
+							_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
 						}
 					}
-					//ptr = (byte *)malloc(iMUSE_feedSize);
-					//memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-					//_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
+					
 				}
 			}
 		}

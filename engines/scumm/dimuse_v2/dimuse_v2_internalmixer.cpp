@@ -40,11 +40,7 @@ DiMUSE_InternalMixer::DiMUSE_InternalMixer(Audio::Mixer *mixer) {
 
 DiMUSE_InternalMixer::~DiMUSE_InternalMixer() {
 	free(mixer_amp8Table);
-	free(mixer_amp12Table);
-	free(mixer_softLTable);
 	mixer_amp8Table = NULL;
-	mixer_amp12Table = NULL;
-	mixer_softLTable = NULL;
 }
 
 int DiMUSE_InternalMixer::mixer_initModule(int bytesPerSample, int numChannels, int *mixBuf, int offsetBeginMixBuf, int sizeSampleKB, int mixChannelsNum) {
@@ -198,7 +194,7 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 					channelPan = (pan / 8) - 8;
 					if (pan > 64)
 						++channelPan;
-					channelVolume = 0x10;
+
 					channelPan = channelVolume == 0 ? 0 : channelPan;
 
 					// Linear volume quantization from the lookup table
@@ -237,9 +233,6 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 						channelVolume++;
 					if (channelVolume >= 17)
 						channelVolume = 16;
-					channelVolume = 0x10;
-					if (wordSize == 16)
-						channelVolume = 0x0;
 					if (wordSize == 8)
 						ampTable = &mixer_amp8Table[channelVolume * 128];
 					else
