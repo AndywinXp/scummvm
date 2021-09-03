@@ -137,18 +137,18 @@ void DiMUSE_v2::tracks_callback() {
 				if (waveapi_xorTrigger) {
 					ptr = (byte *)malloc(iMUSE_feedSize);
 					memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
+					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 				}	
 			} else {
 				ptr = (byte *)malloc(iMUSE_feedSize);
 				memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-				_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
+				_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 			}
 		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
 		// Anyway it appears we never reach this block since tracks_waveCall is assigned to a (dummy) function
-		tracks_running40HzCount += timer_getUsecPerInt(); // Rename to timer_running40HzCount or similar
+		tracks_running40HzCount += timer_getUsecPerInt();
 		if (tracks_running40HzCount >= 25000) {
 			tracks_running40HzCount -= 25000;
 			iMUSE_feedSize = tracks_prefSampleRate / 40;
@@ -181,10 +181,9 @@ void DiMUSE_v2::tracks_callback() {
 						if (waveapi_xorTrigger) {
 							ptr = (byte *)malloc(iMUSE_feedSize);
 							memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-							_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);//makeMixerFlags(track)
+							_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 						}
 					}
-					
 				}
 			}
 		}
@@ -237,7 +236,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			}*/
 
 			if (dispatch_alloc(foundTrack, group)) {
-				debug(5, "ERR: dispatch couldn't start sound...\n");
+				debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
 				foundTrack->soundId = 0;
 				return -1;
 			}
@@ -248,7 +247,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 		}
 	}
 
-	debug(5, "ERR: no spare tracks...\n");
+	debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: no spare tracks for sound %d", soundId);
 
 	// Let's steal the track with the lowest priority
 	iMUSETrack *track = (iMUSETrack *)tracks_trackList;
@@ -300,7 +299,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	}*/
 
 	if (dispatch_alloc(stolenTrack, group)) {
-		debug(5, "ERR: dispatch couldn't start sound...\n");
+		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
 		stolenTrack->soundId = 0;
 		return -1;
 	}
@@ -470,7 +469,7 @@ int DiMUSE_v2::tracks_setParam(int soundId, int opcode, int value) {
 				track->mailbox = value;
 				return 0;
 			default:
-				debug(5, "ERR: setParam: unknown opcode %lu\n", opcode);
+				debug(5, "DiMUSE_v2::tracks_setParam(): unknown opcode %lu", opcode);
 				return -5;
 			}
 		}

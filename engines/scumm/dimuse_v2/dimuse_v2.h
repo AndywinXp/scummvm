@@ -515,7 +515,7 @@ public:
 	int files_getNextSound(int soundId);
 	int files_checkRange(int soundId);
 	int files_seek(int soundId, int offset, int mode, int bufId);
-	int files_read(int soundId, uint8 *buf, int loadIndex, int size, int bufId);
+	int files_read(int soundId, uint8 *buf, int size, int bufId);
 	void files_getFilenameFromSoundId(int soundId, char *fileName);
 	iMUSESoundBuffer *files_getBufInfo(int bufId);
 	void files_openSound(int soundId);

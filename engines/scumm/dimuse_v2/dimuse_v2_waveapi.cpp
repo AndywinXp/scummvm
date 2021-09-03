@@ -140,7 +140,7 @@ void DiMUSE_v2::waveapi_write(char **lpData, int *feedSize, int *sampleRate) {
 	waveOutWrite(waveHeaders, headerToUse, 32);*/
 	if (sampleRate)
 		*sampleRate = waveapi_sampleRate;
-	*feedSize = 1024;
+	*feedSize = 2048;
 	waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 }
 
