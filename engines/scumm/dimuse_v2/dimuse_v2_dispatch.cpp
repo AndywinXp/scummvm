@@ -942,7 +942,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 	int *mapCurPos;
 	int curOffset;
 	int blockName;
-	/*unsigned */ int effFadeSize;
+	/*unsigned */int effFadeSize;
 	/*unsigned */int elapsedFadeSize;
 	int regionOffset;
 	int ptrCtr, i, j;

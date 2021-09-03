@@ -84,20 +84,19 @@ int DiMUSE_v2::streamer_processStreams() {
 	dispatch_predictFirstStream();
 	iMUSEStream *stream1 = NULL;
 	iMUSEStream *stream2 = NULL;
-	iMUSEStream *stream1_tmp = NULL;
-	iMUSEStream *stream2_tmp = NULL;
 
-	// Rewrite this mess in a more readable way
 	for (int l = 0; l < MAX_STREAMS; l++) {
-		if ((streamer_streams[l].soundId != 0) &&
-			(!streamer_streams[l].paused) &&
-			(stream1 = &streamer_streams[l], stream1_tmp != NULL) &&
-			(stream1 = stream1_tmp, stream2 = &streamer_streams[l], stream2_tmp != NULL)) {
-			debug(5, "DiMUSE_v2::streamer_processStreams(): WARNING: three streams in use");
-			stream2 = stream2_tmp;
+		if ((streamer_streams[l].soundId) && (!streamer_streams[l].paused)) {
+			if (stream2) {
+				if (stream1) {
+					debug(5, "DiMUSE_v2::streamer_processStreams(): WARNING: three streams in use");
+				} else {
+					stream1 = &streamer_streams[l];
+				}
+			} else {
+				stream2 = &streamer_streams[l];
+			}
 		}
-		stream1_tmp = stream1;
-		stream2_tmp = stream2;
 	}
 
 	if (!stream1) {
