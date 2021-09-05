@@ -50,7 +50,8 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_diMUSEMixer = new DiMUSE_InternalMixer(mixer);
 	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
-	memset(iMUSE_audioBuffer, 0, sizeof(iMUSE_audioBuffer));
+	iMUSE_audioBuffer = (uint8 *)malloc(0x2000);
+	memset(iMUSE_audioBuffer, 0, 0x2000);
 	DiMUSE_initialize();
 	DiMUSE_initializeScript();
 	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
@@ -67,6 +68,8 @@ DiMUSE_v2::~DiMUSE_v2() {
 	delete _sound;
 	DiMUSE_deallocSoundBuffer(1);
 	DiMUSE_deallocSoundBuffer(2);
+
+	free(iMUSE_audioBuffer);
 }
 
 void DiMUSE_v2::stopSound(int sound) {

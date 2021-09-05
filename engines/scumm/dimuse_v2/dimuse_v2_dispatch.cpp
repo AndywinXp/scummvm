@@ -813,7 +813,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 		effRemainingAudio = (effWordSize * inFrameCount) / 8;
 
 		if (dispatchPtr->streamPtr) {
-			srcBuf = (uint8 *)streamer_reAllocReadBuffer(dispatchPtr->streamPtr, (effWordSize * inFrameCount) / 8);
+			srcBuf = (uint8 *)streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effRemainingAudio);
 			if (!srcBuf) {
 
 				dispatchPtr->streamErrFlag = 1;
@@ -844,7 +844,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 				return;
 			}
 
-			srcBuf = (uint8 *)(soundAddrData + dispatchPtr->currentOffset);
+			srcBuf = &soundAddrData[dispatchPtr->currentOffset];
 		}
 
 		if (dispatchPtr->fadeBuf) {
@@ -889,8 +889,8 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			mixVolume = trackPtr->effVol;
 		}
 
-		
-		if (trackPtr->mailbox) // Whatever this thing does
+		// Real-time lo-fi Radio voice effect
+		if (trackPtr->mailbox)
 			_diMUSEMixer->mixer_setRadioChatter();
 			
 		_diMUSEMixer->mixer_mix(
@@ -1442,16 +1442,13 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 				}
 			}
 
-			// Just a sanity check to see if we've parsed the whole map,
-			// nothing more and nothing less than that
-			// TODO: Rewrite this mess: for now I trust this won't go out of bounds
-			/*
-			if (&destMap[bytesUntilEndOfMap - (uint16)mapCurPos] == (uint8 *)'\xF8') {
+			// Just a sanity check to see if we've parsed the whole map
+			if (&destMap[bytesUntilEndOfMap] - mapCurPos == -8) {
 				return 0;
 			} else {
 				debug(5, "ERR: ConvertMap() converted wrong number of bytes...\n");
 				return -1;
-			}*/
+			}
 		} else {
 			debug(5, "DiMUSE_v2::dispatch_convertMap(): ERROR: map is too big (%lu)", effMapSize);
 			return -1;

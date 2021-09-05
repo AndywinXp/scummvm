@@ -51,7 +51,7 @@ private:
 	int *mixer_amp12Table;
 	int *mixer_softLMID;
 	int *mixer_softLTable;
-	int mixer_mixBuf[4096];
+	int mixer_mixBuf[0x2000];
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _channelHandle;
 	int mixer_mixBufSize;
@@ -99,7 +99,7 @@ public:
 	int  mixer_clearMixBuff();
 
 	void mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan);
-	int  mixer_loop(uint8 *destBuffer, int len);
+	int  mixer_loop(uint8 **destBuffer, int len);
 	Audio::QueuingAudioStream *_stream;
 };
 

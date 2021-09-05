@@ -64,7 +64,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 
 	waveapi_waveOutParams.bytesPerSample = waveapi_bytesPerSample * 8;
 	waveapi_waveOutParams.numChannels = waveapi_numChannels;
-	waveapi_waveOutParams.offsetBeginMixBuf = (waveapi_bytesPerSample * waveapi_numChannels) * 1024;
+	waveapi_waveOutParams.offsetBeginMixBuf = 0x2000;//(waveapi_bytesPerSample * waveapi_numChannels) * 1024;
 	waveapi_waveOutParams.sizeSampleKB = 0;
 	waveapi_waveOutParams.mixBuf = waveapi_mixBuf;
 

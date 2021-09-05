@@ -133,7 +133,7 @@ public:
 	int32 getCurMusicLipSyncHeight(int syncId) override { return 0; };
 	int32 getSoundElapsedTimeInMs(int soundId) override { return 0; };
 
-	uint8 iMUSE_audioBuffer[0x2000];
+	uint8 *iMUSE_audioBuffer;
 	int iMUSE_feedSize = 2048; // 1024 for DIG (Win95), 2048 for COMI (DirectSound)
 	int iMUSE_sampleRate = 22050;
 

@@ -127,23 +127,14 @@ void DiMUSE_v2::tracks_callback() {
 		tracks_pauseTimer = 3;
 	}
 	
-	byte *ptr;
 	waveapi_increaseSlice();
 	dispatch_predictFirstStream();
 	if (tracks_waveCall) {
 		if (_mixer->isReady()) {
-			if (_vm->_game.id == GID_DIG) {
-				waveapi_xorTrigger ^= 1;
-				if (waveapi_xorTrigger) {
-					ptr = (byte *)malloc(iMUSE_feedSize);
-					memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-					_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-				}	
-			} else {
-				ptr = (byte *)malloc(iMUSE_feedSize);
-				memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-				_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-			}
+			waveapi_xorTrigger ^= 1;
+			if (_vm->_game.id == GID_CMI || (waveapi_xorTrigger && _vm->_game.id == GID_DIG)) {
+				_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+			}	
 		}
 	} else {
 		// 40 Hz frequency for filling the audio buffer, for some reason
@@ -171,7 +162,7 @@ void DiMUSE_v2::tracks_callback() {
 		}
 
 		if (tracks_waveCall) {
-			_diMUSEMixer->mixer_loop(iMUSE_audioBuffer, iMUSE_feedSize);
+			_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
 			if (tracks_waveCall) {
 				// The Dig tries to write a second time to the audio queue
 				// COMI only writes once (at the start of the function)
@@ -179,16 +170,13 @@ void DiMUSE_v2::tracks_callback() {
 					if (_mixer->isReady()) {
 						waveapi_xorTrigger ^= 1;
 						if (waveapi_xorTrigger) {
-							ptr = (byte *)malloc(iMUSE_feedSize);
-							memcpy(ptr, iMUSE_audioBuffer, iMUSE_feedSize);
-							_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+							_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 						}
 					}
 				}
 			}
 		}
 	}
-
 	waveapi_decreaseSlice();
 }
 
