@@ -461,6 +461,16 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 				_file->seek(_bundleTable[found->index].offset + _compTable[i].offset, SEEK_SET);
 				_file->read(_compInputBuff, _compTable[i].size);
 				_outputSize = BundleCodecs::decompressCodec(_compTable[i].codec, _compInputBuff, _compOutputBuff, _compTable[i].size);
+				// Swap the buffer if the codec is 13 or 15
+				if (_compTable[i].codec == 13 || _compTable[i].codec == 15) {
+					uint8 tmpVal;
+					for (int i = 0; i < _outputSize; i += 2) {
+						tmpVal = _compOutputBuff[i + 0];
+						_compOutputBuff[i + 0] = _compOutputBuff[i + 1];
+						_compOutputBuff[i + 1] = tmpVal;
+					}
+				}
+
 				if (_outputSize > 0x2000) {
 					error("_outputSize: %d", _outputSize);
 				}

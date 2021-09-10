@@ -154,25 +154,9 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 	int leftChannelVolume;
 	int channelVolume;
 	int channelPan;
-	uint8 *swappedBuffer;
-	uint8 tmpVal;
 
 	if (mixer_mixBuf) {
 		if (srcBuf) {
-			// Swap the buffer two bytes at a time
-			if (wordSize == 16) {
-				swappedBuffer = (uint8 *)malloc(MAX(feedSize, inFrameCount));
-				memcpy(swappedBuffer, srcBuf, MAX(feedSize, inFrameCount));
-
-				for (int i = 0; i < MAX(feedSize, inFrameCount); i += 2) {
-					tmpVal = swappedBuffer[i + 0];
-					swappedBuffer[i + 0] = swappedBuffer[i + 1];
-					swappedBuffer[i + 1] = tmpVal;
-				}
-			} else {
-				swappedBuffer = srcBuf;
-			}
-
 			if (inFrameCount) {
 				if (channelCount == 1 && mixer_outChannelCount == 2) {
 					channelVolume = volume / 8;
@@ -191,7 +175,7 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 					leftChannelVolume = mixer_table[17 * channelVolume - channelPan];
 					if (wordSize == 8) {
 						mixer_mixBits8ConvertToStereo(
-							swappedBuffer,
+							srcBuf,
 							inFrameCount,
 							feedSize,
 							mixBufStartIndex,
@@ -200,7 +184,7 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 					} else {
 						if (wordSize == 12) {
 							mixer_mixBits12ConvertToStereo(
-								swappedBuffer,
+								srcBuf,
 								inFrameCount,
 								feedSize,
 								mixBufStartIndex,
@@ -208,7 +192,7 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 								&mixer_amp12Table[rightChannelVolume * 2048]);
 						} else {
 							mixer_mixBits16ConvertToStereo(
-								swappedBuffer,
+								srcBuf,
 								inFrameCount,
 								feedSize,
 								mixBufStartIndex,
@@ -231,31 +215,28 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 					if (mixer_outChannelCount == 1) {
 						if (channelCount == 1) {
 							if (wordSize == 8) {
-								mixer_mixBits8Mono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+								mixer_mixBits8Mono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 							} else if (wordSize == 12) {
-								mixer_mixBits12Mono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+								mixer_mixBits12Mono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 							} else {
-								mixer_mixBits16Mono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+								mixer_mixBits16Mono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 							}
 						} else if (wordSize == 8) {
-							mixer_mixBits8ConvertToMono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+							mixer_mixBits8ConvertToMono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 						} else if (wordSize == 12) {
-							mixer_mixBits12ConvertToMono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+							mixer_mixBits12ConvertToMono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 						} else {
-							mixer_mixBits16ConvertToMono(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+							mixer_mixBits16ConvertToMono(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 						}
 					} else if (wordSize == 8) {
-						mixer_mixBits8Stereo(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+						mixer_mixBits8Stereo(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 					} else if (wordSize == 12) {
-						mixer_mixBits12Stereo(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+						mixer_mixBits12Stereo(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 					} else {
-						mixer_mixBits16Stereo(swappedBuffer, inFrameCount, feedSize, mixBufStartIndex, ampTable);
+						mixer_mixBits16Stereo(srcBuf, inFrameCount, feedSize, mixBufStartIndex, ampTable);
 					}
 				}
 			}
-
-			if (wordSize == 16)
-				free(swappedBuffer);
 		}
 	}
 }

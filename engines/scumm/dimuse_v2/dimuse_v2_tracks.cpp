@@ -122,7 +122,7 @@ void DiMUSE_v2::tracks_callback() {
 
 	waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
 
-	if (iMUSE_feedSize != 0) {
+ 	if (iMUSE_feedSize != 0) {
 		_diMUSEMixer->mixer_clearMixBuff();
 		if (!tracks_pauseTimer) {
 			iMUSETrack *track = (iMUSETrack *)tracks_trackList;
