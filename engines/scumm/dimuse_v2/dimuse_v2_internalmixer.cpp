@@ -43,7 +43,7 @@ DiMUSE_InternalMixer::~DiMUSE_InternalMixer() {
 	mixer_amp8Table = NULL;
 }
 
-int DiMUSE_InternalMixer::mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int offsetBeginMixBuf, int sizeSampleKB, int mixChannelsNum) {
+int DiMUSE_InternalMixer::mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum) {
 	int amplitudeValue;
 	int waveMixChannelsCount;
 	int softLdenominator;
@@ -53,7 +53,7 @@ int DiMUSE_InternalMixer::mixer_initModule(int bytesPerSample, int numChannels, 
 
 	mixer_outWordSize = bytesPerSample;
 	mixer_outChannelCount = numChannels;
-	mixer_mixBufSize = offsetBeginMixBuf;
+	mixer_mixBufSize = mixBufSize;
 	mixer_stereoReverseFlag = sizeSampleKB;
 	mixer_mixBuf = mixBuf;
 
@@ -142,8 +142,8 @@ int DiMUSE_InternalMixer::mixer_clearMixBuff() {
 	if (!mixer_mixBuf)
 		return -1;
 
-	memset(mixer_mixBuf, 0, 4* (mixer_mixBufSize >> 2)); // MIXER_mixBuf, 0, 4 * ((unsigned int)MIXER_mixBufSize >> 2)
-	//memset(&mixer_mixBuf[mixer_mixBufSize >> 2], 0, mixer_mixBufSize & 3);
+	memset(mixer_mixBuf, 0, mixer_mixBufSize); // MIXER_mixBuf, 0, 4 * ((unsigned int)MIXER_mixBufSize >> 2)
+	memset(&mixer_mixBuf[mixer_mixBufSize], 0, mixer_mixBufSize & 3);
 
 	return 0;
 }

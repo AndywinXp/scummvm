@@ -65,42 +65,12 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 
 	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
 	waveoutParamStruct->numChannels = waveapi_numChannels;
-	waveoutParamStruct->offsetBeginMixBuf = (waveapi_bytesPerSample * waveapi_numChannels) << 10;
+	waveoutParamStruct->mixBufSize = (waveapi_bytesPerSample * waveapi_numChannels) << 10; // 4096
 	waveoutParamStruct->sizeSampleKB = 0;
 	waveoutParamStruct->mixBuf = waveapi_mixBuf;
 
 	// Init the buffer at volume zero
 	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * 9216);
-
-	/*
-	*waveHeaders = (LPWAVEHDR)malloc(32 * sizeof(LPWAVEHDR));
-	for (int l = 0; l < NUM_HEADERS; l++) {
-		waveHeaders[l]->lpData = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * l * 1024);
-		waveHeaders[l]->dwBufferLength = waveapi_bytesPerSample * waveapi_numChannels * 1024;
-		waveHeaders[l]->dwFlags = 0;
-		waveHeaders[l]->dwLoops = 0;
-		if (waveOutPrepareHeader(waveHandle, waveHeaders[l], 32)) {
-			debug(5, "iWIN init: waveOutPrepareHeader failed.\n");
-			for (l = 0; l < 8; l++) {
-				waveOutUnprepareHeader(waveHandle, waveHeaders[l], 32);
-				waveHeaders[l] = NULL;
-			}
-			free(waveHeaders);
-			return -1;
-		}
-	}
-	for (int l = 0; l < NUM_HEADERS; l++) {
-		if (waveOutWrite(waveHandle, waveHeaders[l], 32)) {
-			debug(5, "iWIN init: waveOutWrite failed.\n");
-			for (int r = 0; r < NUM_HEADERS; r++) {
-				waveOutUnprepareHeader(waveHandle, waveHeaders[r], 32);
-				waveHeaders[r] = NULL;
-			}
-			free(waveHeaders);
-			waveapi_disableWrite = 0;
-			return -1;
-		}
-	}*/
 
 	waveapi_disableWrite = 0;
 	return 0;

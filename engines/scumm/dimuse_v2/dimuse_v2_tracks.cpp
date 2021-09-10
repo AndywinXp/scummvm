@@ -36,7 +36,7 @@ int DiMUSE_v2::tracks_moduleInit() {
 	if (_diMUSEMixer->mixer_initModule(waveapi_waveOutParams.bytesPerSample,
 			waveapi_waveOutParams.numChannels,
 			waveapi_waveOutParams.mixBuf,
-			waveapi_waveOutParams.offsetBeginMixBuf,
+			waveapi_waveOutParams.mixBufSize,
 			waveapi_waveOutParams.sizeSampleKB,
 			tracks_trackCount) ||
 			dispatch_moduleInit() ||

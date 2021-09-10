@@ -95,7 +95,7 @@ private:
 public:
 	DiMUSE_InternalMixer(Audio::Mixer *mixer);
 	~DiMUSE_InternalMixer();
-	int  mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int offsetBeginMixBuf, int sizeSampleKB, int mixChannelsNum);
+	int  mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum);
 	void mixer_setRadioChatter();
 	void mixer_clearRadioChatter();
 	int  mixer_clearMixBuff();

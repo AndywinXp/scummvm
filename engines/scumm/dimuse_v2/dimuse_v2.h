@@ -552,7 +552,7 @@ public:
 		int bytesPerSample;
 		int numChannels;
 		uint8 *mixBuf;
-		int offsetBeginMixBuf;
+		int mixBufSize;
 		int sizeSampleKB;
 	} waveOutParams;
 
