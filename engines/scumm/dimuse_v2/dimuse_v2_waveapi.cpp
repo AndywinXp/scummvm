@@ -46,12 +46,13 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	if (waveapi_bytesPerSample != 1) {
 		waveapi_zeroLevel = 0;
 	}
-	//waveapi_outBuf = (int *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 9216);
+	// Nine buffers (1024 bytes each), one will be used for the mixer
+	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 9216);
+	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 8192); // 9-th buffer
 
 	waveapi_waveFormat.nChannels = waveapi_numChannels;
 	waveapi_waveFormat.wFormatTag = 1;
 	waveapi_waveFormat.nSamplesPerSec = waveapi_sampleRate;
-	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 8192);
 	waveapi_waveFormat.nAvgBytesPerSec = waveapi_bytesPerSample * waveapi_sampleRate * waveapi_numChannels;
 	waveapi_waveFormat.nBlockAlign = waveapi_numChannels * waveapi_bytesPerSample;
 	waveapi_waveFormat.wBitsPerSample = waveapi_bytesPerSample * 8;
@@ -62,14 +63,14 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 		return -1;
 	}*/
 
-	waveapi_waveOutParams.bytesPerSample = waveapi_bytesPerSample * 8;
-	waveapi_waveOutParams.numChannels = waveapi_numChannels;
-	waveapi_waveOutParams.offsetBeginMixBuf = 0x2000;//(waveapi_bytesPerSample * waveapi_numChannels) * 1024;
-	waveapi_waveOutParams.sizeSampleKB = 0;
-	waveapi_waveOutParams.mixBuf = waveapi_mixBuf;
+	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
+	waveoutParamStruct->numChannels = waveapi_numChannels;
+	waveoutParamStruct->offsetBeginMixBuf = (waveapi_bytesPerSample * waveapi_numChannels) << 10;
+	waveoutParamStruct->sizeSampleKB = 0;
+	waveoutParamStruct->mixBuf = waveapi_mixBuf;
 
 	// Init the buffer at volume zero
-	//memset(waveapi_outBuf, waveapi_zeroLevel, (unsigned int)waveapi_numChannels * (unsigned int)waveapi_bytesPerSample * 9216);
+	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * 9216);
 
 	/*
 	*waveHeaders = (LPWAVEHDR)malloc(32 * sizeof(LPWAVEHDR));
@@ -107,13 +108,11 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 
 // Validated
 
-void DiMUSE_v2::waveapi_write(char **lpData, int *feedSize, int *sampleRate) {
+void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate) {
+	uint8 *curBufferBlock;
 	if (waveapi_disableWrite)
 		return;
-	/*
-	if (waveHeaders == NULL)
-		return;
-	*/
+
 	if (_vm->_game.id == GID_DIG) {
 		waveapi_xorTrigger ^= 1;
 		if (!waveapi_xorTrigger)
@@ -121,27 +120,17 @@ void DiMUSE_v2::waveapi_write(char **lpData, int *feedSize, int *sampleRate) {
 	}
 	
 	*feedSize = 0;
-	/*
-	LPWAVEHDR headerToUse = waveHeaders[waveapi_writeIndex];
-	if ((headerToUse->dwFlags & 1) == (headerToUse->lpData))
-		return;
-	if (waveOutUnprepareHeader(waveHandle, headerToUse, 32))
-		return;
-	LPWAVEHDR *ptrToWriteIndex = *(&waveHeaders + waveapi_writeIndex);
-	if (!ptrToWriteIndex || !*ptrToWriteIndex)
-		return;
-	
-	ptrToWriteIndex = waveapi_outBuf + ((waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex) << 10);*/
-	//int size = sizeof(&waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex * 1024]);
-	//memcpy((int *)lpData, &waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * waveapi_writeIndex * 1024], waveapi_numChannels * waveapi_bytesPerSample * 1024);
-	//*lpData = (char *)&waveapi_outBuf[waveapi_numChannels * waveapi_bytesPerSample * 1024];
+	if (_mixer->isReady()) {
+		curBufferBlock = &waveapi_outBuf[1024 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels];
 
-	/*waveOutPrepareHeader(waveHeaders, headerToUse, 32);
-	waveOutWrite(waveHeaders, headerToUse, 32);*/
-	if (sampleRate)
+		*audioData = curBufferBlock;
+
 		*sampleRate = waveapi_sampleRate;
-	*feedSize = 2048;
-	waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
+		*feedSize = 1024;
+		waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
+
+		_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+	}
 }
 
 // Validated
@@ -154,7 +143,7 @@ int DiMUSE_v2::waveapi_free() {
 	//free(waveHeaders);
 	//waveOutReset(waveHandle);
 	//waveOutClose(waveHandle);
-	//free(waveapi_outBuf);
+	free(waveapi_outBuf);
 	//waveapi_outBuf = NULL;
 	return 0;
 }

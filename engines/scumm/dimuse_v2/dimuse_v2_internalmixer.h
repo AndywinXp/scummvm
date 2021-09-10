@@ -51,7 +51,9 @@ private:
 	int *mixer_amp12Table;
 	int *mixer_softLMID;
 	int *mixer_softLTable;
-	int mixer_mixBuf[0x2000];
+	
+	uint8 *mixer_mixBuf; //int mixer_mixBuf[0x2000];
+
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _channelHandle;
 	int mixer_mixBufSize;
@@ -93,7 +95,7 @@ private:
 public:
 	DiMUSE_InternalMixer(Audio::Mixer *mixer);
 	~DiMUSE_InternalMixer();
-	int  mixer_initModule(int bytesPerSample, int numChannels, int *mixBuf, int offsetBeginMixBuf, int sizeSampleKB, int mixChannelsNum);
+	int  mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int offsetBeginMixBuf, int sizeSampleKB, int mixChannelsNum);
 	void mixer_setRadioChatter();
 	void mixer_clearRadioChatter();
 	int  mixer_clearMixBuff();

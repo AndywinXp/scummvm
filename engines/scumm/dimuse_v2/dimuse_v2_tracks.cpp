@@ -26,26 +26,16 @@ namespace Scumm {
 
 int DiMUSE_v2::tracks_moduleInit() {
 	tracks_trackCount = 6;
-	tracks_waveCall = -1; // This is just a function which returns -1
 	tracks_pauseTimer = 0;
 	tracks_trackList = NULL;
 	tracks_prefSampleRate = 22050;
 
-	if (tracks_waveCall) {	
-		if (waveapi_moduleInit(22050, &waveapi_waveOutParams))
-			return -1;
-	} else {
-		debug(5, "TR: No WAVE driver loaded...");
-		waveapi_waveOutParams.mixBuf = NULL;
-		waveapi_waveOutParams.offsetBeginMixBuf = 0;
-		waveapi_waveOutParams.sizeSampleKB = 0;
-		waveapi_waveOutParams.bytesPerSample = 8;
-		waveapi_waveOutParams.numChannels = 1;
-	}
+	if (waveapi_moduleInit(22050, &waveapi_waveOutParams))
+		return -1;
 	
 	if (_diMUSEMixer->mixer_initModule(waveapi_waveOutParams.bytesPerSample,
 			waveapi_waveOutParams.numChannels,
-			0, // waveapi_waveOutParams.mixBuf
+			waveapi_waveOutParams.mixBuf,
 			waveapi_waveOutParams.offsetBeginMixBuf,
 			waveapi_waveOutParams.sizeSampleKB,
 			tracks_trackCount) ||
@@ -129,25 +119,8 @@ void DiMUSE_v2::tracks_callback() {
 	
 	waveapi_increaseSlice();
 	dispatch_predictFirstStream();
-	if (tracks_waveCall) {
-		if (_mixer->isReady()) {
-			waveapi_xorTrigger ^= 1;
-			if (_vm->_game.id == GID_CMI || (waveapi_xorTrigger && _vm->_game.id == GID_DIG)) {
-				_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-			}	
-		}
-	} else {
-		// 40 Hz frequency for filling the audio buffer, for some reason
-		// Anyway it appears we never reach this block since tracks_waveCall is assigned to a (dummy) function
-		tracks_running40HzCount += timer_getUsecPerInt();
-		if (tracks_running40HzCount >= 25000) {
-			tracks_running40HzCount -= 25000;
-			iMUSE_feedSize = tracks_prefSampleRate / 40;
-			iMUSE_sampleRate = tracks_prefSampleRate;
-		} else {
-			iMUSE_feedSize = 0;
-		}
-	}
+
+	waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
 
 	if (iMUSE_feedSize != 0) {
 		_diMUSEMixer->mixer_clearMixBuff();
@@ -161,21 +134,12 @@ void DiMUSE_v2::tracks_callback() {
 			};
 		}
 
-		if (tracks_waveCall) {
-			_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
-			if (tracks_waveCall) {
-				// The Dig tries to write a second time to the audio queue
-				// COMI only writes once (at the start of the function)
-				if (_vm->_game.id == GID_DIG) {
-					if (_mixer->isReady()) {
-						waveapi_xorTrigger ^= 1;
-						if (waveapi_xorTrigger) {
-							_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-						}
-					}
-				}
-			}
-		}
+		_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
+
+		// The Dig tries to write a second time
+		if (_vm->_game.id == GID_DIG) {
+			waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
+		}	
 	}
 	waveapi_decreaseSlice();
 }
@@ -657,7 +621,6 @@ void DiMUSE_v2::tracks_free() {
 
 int DiMUSE_v2::tracks_debug() {
 	debug(5, "trackCount: %d\n", tracks_trackCount);
-	debug(5, "waveCall: %p\n", tracks_waveCall);
 	debug(5, "pauseTimer: %d\n", tracks_pauseTimer);
 	debug(5, "trackList: %p\n", *(int *)tracks_trackList);
 	debug(5, "prefSampleRate: %d\n", tracks_prefSampleRate);

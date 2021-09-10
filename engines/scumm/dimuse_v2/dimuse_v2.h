@@ -134,7 +134,7 @@ public:
 	int32 getSoundElapsedTimeInMs(int soundId) override { return 0; };
 
 	uint8 *iMUSE_audioBuffer;
-	int iMUSE_feedSize = 2048; // 1024 for DIG (Win95), 2048 for COMI (DirectSound)
+	int iMUSE_feedSize = 1024; // 1024 for DIG (Windows API), 2048 (DirectSound) and 1024 (Windows API) for COMI 
 	int iMUSE_sampleRate = 22050;
 
 	struct iMUSEDispatch;
@@ -319,7 +319,6 @@ public:
 	iMUSETrack *tracks_trackList;
 
 	int tracks_trackCount;
-	int tracks_waveCall;
 	int tracks_pauseTimer;
 	int tracks_prefSampleRate;
 	int tracks_running40HzCount;
@@ -552,7 +551,7 @@ public:
 	typedef struct {
 		int bytesPerSample;
 		int numChannels;
-		int *mixBuf;
+		uint8 *mixBuf;
 		int offsetBeginMixBuf;
 		int sizeSampleKB;
 	} waveOutParams;
@@ -576,15 +575,15 @@ public:
 	int waveapi_bytesPerSample;
 	int waveapi_numChannels;
 	int waveapi_zeroLevel;
-	int *waveapi_mixBuf;
-	int *waveapi_outBuf;
+	uint8 *waveapi_mixBuf;
+	uint8 *waveapi_outBuf;
 
 	int waveapi_xorTrigger = 0;
 	int waveapi_writeIndex = 0;
 	int waveapi_disableWrite = 0;
 
 	int waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStruct);
-	void waveapi_write(char **lpData, int *feedSize, int *sampleRate);
+	void waveapi_write(uint8 **lpData, int *feedSize, int *sampleRate);
 	int waveapi_free();
 	void waveapi_callback();
 	void waveapi_increaseSlice();
