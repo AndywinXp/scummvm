@@ -68,8 +68,6 @@ DiMUSE_v2::~DiMUSE_v2() {
 	delete _sound;
 	DiMUSE_deallocSoundBuffer(1);
 	DiMUSE_deallocSoundBuffer(2);
-
-	free(iMUSE_audioBuffer);
 }
 
 void DiMUSE_v2::stopSound(int sound) {
@@ -114,7 +112,7 @@ int DiMUSE_v2::startSfx(int soundId, int priority) {
 }
 
 void DiMUSE_v2::callback() {
-	//Common::StackLock lock(_mutex, "DiMUSE_v2::callback()");
+	Common::StackLock lock(_mutex, "DiMUSE_v2::callback()");
 	if (cmd_pauseCount)
 		return;
 

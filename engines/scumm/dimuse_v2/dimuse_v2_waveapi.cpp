@@ -25,22 +25,10 @@
 namespace Scumm {
 
 int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStruct) {
-	//struct tagWAVEOUTCAPSA pwoc;
-
 	waveapi_sampleRate = sampleRate;
-	/*waveOutGetDevCapsA(-1, (LPWAVEOUTCAPSA)&pwoc, 52);
-	if (pwoc.dwFormats & 1) {
-		waveapi_bytesPerSample = 1;
-	}
-	if (pwoc.dwFormats & 2) {
-		waveapi_bytesPerSample = 2;
-	}
-	if (waveapi_sampleRate > 40000 && pwoc.dwFormats & 1) {
-		waveapi_bytesPerSample = 2;
-	}*/
+
 	waveapi_bytesPerSample = 2;
 	waveapi_zeroLevel = 128;
-	//waveapi_numChannels = pwoc.wChannels;
 	waveapi_numChannels = 2;
 
 	if (waveapi_bytesPerSample != 1) {
@@ -56,12 +44,6 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveapi_waveFormat.nAvgBytesPerSec = waveapi_bytesPerSample * waveapi_sampleRate * waveapi_numChannels;
 	waveapi_waveFormat.nBlockAlign = waveapi_numChannels * waveapi_bytesPerSample;
 	waveapi_waveFormat.wBitsPerSample = waveapi_bytesPerSample * 8;
-
-	/*
-	if (waveOutOpen((LPHWAVEOUT)&waveHandle, -1, (LPCWAVEFORMATEX)&waveapi_waveFormat.wFormatTag, 0, 0, 0)) {
-		warning("iWIN init: waveOutOpen failed\n");
-		return -1;
-	}*/
 
 	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
 	waveoutParamStruct->numChannels = waveapi_numChannels;
@@ -99,7 +81,9 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 		*feedSize = 1024;
 		waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 
-		_diMUSEMixer->_stream->queueBuffer(iMUSE_audioBuffer, iMUSE_feedSize, DisposeAfterUse::NO, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+		byte *ptr = (byte *)malloc(iMUSE_feedSize*4);
+		memcpy(ptr, curBufferBlock, iMUSE_feedSize*4);
+		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize*4, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 	}
 }
 

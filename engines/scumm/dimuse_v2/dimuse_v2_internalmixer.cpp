@@ -142,7 +142,7 @@ int DiMUSE_InternalMixer::mixer_clearMixBuff() {
 	if (!mixer_mixBuf)
 		return -1;
 
-	memset(mixer_mixBuf, 0, mixer_mixBufSize); // MIXER_mixBuf, 0, 4 * ((unsigned int)MIXER_mixBufSize >> 2)
+	memset(mixer_mixBuf, 0, mixer_mixBufSize);
 	memset(&mixer_mixBuf[mixer_mixBufSize], 0, mixer_mixBufSize & 3);
 
 	return 0;
