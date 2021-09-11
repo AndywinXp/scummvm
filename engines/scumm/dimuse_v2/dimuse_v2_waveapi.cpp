@@ -31,7 +31,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveapi_numChannels = 2;
 	waveapi_zeroLevel = 0;
 
-	// Nine buffers (1024 bytes each), one will be used for the mixer
+	// Nine buffers (1024 * 4 bytes each), one will be used for the mixer
 	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 1024 * 9);
 	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 1024 * 8); // 9-th buffer
 
@@ -92,11 +92,8 @@ void DiMUSE_v2::waveapi_increaseSlice() {
 	wvSlicingHalted++;
 }
 
-int DiMUSE_v2::waveapi_decreaseSlice() {
-	int result = wvSlicingHalted;
-	if (wvSlicingHalted--)
-		result = wvSlicingHalted - 1;
-	return result;
+void DiMUSE_v2::waveapi_decreaseSlice() {
+	wvSlicingHalted--;
 }
 
 } // End of namespace Scumm

@@ -125,6 +125,7 @@ private:
 	ScummEngine *_vm;
 	byte _disk;
 	BundleDirCache *_cacheBundleDir;
+	bool _isDiMUSEv2;
 
 	bool openMusicBundle(SoundDesc *sound, int &disk);
 	bool openVoiceBundle(SoundDesc *sound, int &disk);
@@ -133,7 +134,7 @@ private:
 
 public:
 
-	DiMUSESndMgr(ScummEngine *scumm);
+	DiMUSESndMgr(ScummEngine *scumm, bool isDiMUSEv2 = false);
 	~DiMUSESndMgr();
 
 	SoundDesc *openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk);

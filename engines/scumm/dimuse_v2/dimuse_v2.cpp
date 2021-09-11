@@ -48,10 +48,8 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(mixer);
 	_callbackFps = fps;
 	_diMUSEMixer = new DiMUSE_InternalMixer(mixer);
-	_sound = new DiMUSESndMgr(_vm);
+	_sound = new DiMUSESndMgr(_vm, true);
 	assert(_sound);
-	//iMUSE_audioBuffer = (uint8 *)malloc(0x2000);
-	//memset(iMUSE_audioBuffer, 0, 0x2000);
 	DiMUSE_initialize();
 	DiMUSE_initializeScript();
 	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);

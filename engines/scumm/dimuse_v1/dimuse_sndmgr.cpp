@@ -37,13 +37,14 @@
 
 namespace Scumm {
 
-DiMUSESndMgr::DiMUSESndMgr(ScummEngine *scumm) {
+DiMUSESndMgr::DiMUSESndMgr(ScummEngine *scumm, bool isDiMUSEv2) {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		memset(&_sounds[l], 0, sizeof(SoundDesc));
 	}
 	_vm = scumm;
 	_disk = 0;
 	_cacheBundleDir = new BundleDirCache();
+	_isDiMUSEv2 = isDiMUSEv2;
 	assert(_cacheBundleDir);
 	BundleCodecs::initializeImcTables();
 }
@@ -322,7 +323,7 @@ DiMUSESndMgr::SoundDesc *DiMUSESndMgr::allocSlot() {
 bool DiMUSESndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
 
-	sound->bundle = new BundleMgr(_cacheBundleDir);
+	sound->bundle = new BundleMgr(_cacheBundleDir, _isDiMUSEv2);
 	assert(sound->bundle);
 	if (_vm->_game.id == GID_CMI) {
 		if (_vm->_game.features & GF_DEMO) {
@@ -357,7 +358,7 @@ bool DiMUSESndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 bool DiMUSESndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
 
-	sound->bundle = new BundleMgr(_cacheBundleDir);
+	sound->bundle = new BundleMgr(_cacheBundleDir, _isDiMUSEv2);
 	assert(sound->bundle);
 	if (_vm->_game.id == GID_CMI) {
 		if (_vm->_game.features & GF_DEMO) {
@@ -517,7 +518,7 @@ DiMUSESndMgr::SoundDesc *DiMUSESndMgr::getSounds() {
 }
 
 void DiMUSESndMgr::scheduleSoundForDeallocation(int soundId) {
-	SoundDesc *soundDesc;
+	SoundDesc *soundDesc = NULL;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];
@@ -530,7 +531,7 @@ void DiMUSESndMgr::scheduleSoundForDeallocation(int soundId) {
 }
 
 void DiMUSESndMgr::closeSoundById(int soundId) {
-	SoundDesc *soundDesc;
+	SoundDesc *soundDesc = NULL;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];

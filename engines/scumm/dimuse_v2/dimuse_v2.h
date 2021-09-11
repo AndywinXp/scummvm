@@ -369,7 +369,7 @@ public:
 		int streamBufID;
 		iMUSEStreamZone *streamZoneList;
 		int streamErrFlag;
-		int *fadeBuf;
+		uint8 *fadeBuf;
 		int fadeOffset;
 		int fadeRemaining;
 		int fadeWordSize;
@@ -383,10 +383,10 @@ public:
 
 	iMUSEDispatch dispatches[MAX_DISPATCHES];
 	iMUSEStreamZone streamZones[MAX_STREAMZONES];
-	int *dispatch_buf;
+	uint8 *dispatch_buf;
 	int dispatch_size;
-	int *dispatch_smallFadeBufs;
-	int *dispatch_largeFadeBufs;
+	uint8 *dispatch_smallFadeBufs;
+	uint8 *dispatch_largeFadeBufs;
 	int dispatch_fadeSize;
 	int dispatch_largeFadeFlags[LARGE_FADES];
 	int dispatch_smallFadeFlags[SMALL_FADES];
@@ -407,7 +407,7 @@ public:
 	int dispatch_release(iMUSETrack *trackPtr);
 	int dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
 	void dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, int sampleRate);
-	int dispatch_predictFirstStream();
+	void dispatch_predictFirstStream();
 	int dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr);
 	int dispatch_convertMap(uint8 *rawMap, uint8 *destMap);
 	void dispatch_predictStream(iMUSEDispatch *dispatch);
@@ -574,7 +574,7 @@ public:
 	int waveapi_free();
 	void waveapi_callback();
 	void waveapi_increaseSlice();
-	int waveapi_decreaseSlice();
+	void waveapi_decreaseSlice();
 
 		
 	// Utils

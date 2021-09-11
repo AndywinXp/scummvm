@@ -197,7 +197,7 @@ static int32 compDecode(byte *src, byte *dst) {
 }
 #undef NextBit
 
-int32 decompressADPCM(byte *compInput, byte *compOutput, int channels) {
+int32 decompressADPCM(byte *compInput, byte *compOutput, int channels, bool isDiMUSEv2) {
 	byte *src;
 
 	// Decoder for the the IMA ADPCM variants used in COMI.
@@ -211,7 +211,7 @@ int32 decompressADPCM(byte *compInput, byte *compOutput, int channels) {
 	byte initialTablePos[MAX_CHANNELS] = {0, 0};
 	//int32 initialimcTableEntry[MAX_CHANNELS] = {7, 7};
 	int32 initialOutputWord[MAX_CHANNELS] = {0, 0};
-	int32 totalBitOffset, curTablePos, outputWord;
+	int32 totalBitOffset, curTablePos, outputWord, swappedWord;
 	byte *dst;
 	int i;
 
@@ -305,7 +305,13 @@ int32 decompressADPCM(byte *compInput, byte *compOutput, int channels) {
 
 			// Clip outputWord to 16 bit signed, and write it into the destination stream
 			outputWord = CLIP<int32>(outputWord, -0x8000, 0x7fff);
-			WRITE_BE_UINT16(dst + destPos, outputWord);
+
+			if (isDiMUSEv2) {
+				WRITE_LE_UINT16(dst + destPos, outputWord);
+			} else {
+				WRITE_BE_UINT16(dst + destPos, outputWord);
+			}
+
 			destPos += channels << 1;
 
 			// Adjust the curTablePos
@@ -317,7 +323,7 @@ int32 decompressADPCM(byte *compInput, byte *compOutput, int channels) {
 	return 0x2000;
 }
 
-int32 decompressCodec(int32 codec, byte *compInput, byte *compOutput, int32 inputSize) {
+int32 decompressCodec(int32 codec, byte *compInput, byte *compOutput, int32 inputSize, bool isDiMUSEv2) {
 	int32 outputSize;
 	int32 offset1, offset2, offset3, length, k, c, s, j, r, t, z;
 	byte *src, *t_table, *p, *ptr;
@@ -640,7 +646,7 @@ int32 decompressCodec(int32 codec, byte *compInput, byte *compOutput, int32 inpu
 
 	case 13:
 	case 15:
-		outputSize = decompressADPCM(compInput, compOutput, (codec == 13) ? 1 : 2);
+		outputSize = decompressADPCM(compInput, compOutput, (codec == 13) ? 1 : 2, isDiMUSEv2);
 		break;
 
 	default:

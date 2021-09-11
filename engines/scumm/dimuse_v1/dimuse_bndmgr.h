@@ -92,11 +92,12 @@ private:
 	byte *_compInputBuff;
 	int _outputSize;
 	int _lastBlock;
+	bool _isDiMUSEv2;
 	bool loadCompTable(int32 index);
 
 public:
 
-	BundleMgr(BundleDirCache *_cache);
+	BundleMgr(BundleDirCache *_cache, bool _isDiMUSEv2);
 	~BundleMgr();
 
 	bool open(const char *filename, bool &compressed, bool errorFlag = false);

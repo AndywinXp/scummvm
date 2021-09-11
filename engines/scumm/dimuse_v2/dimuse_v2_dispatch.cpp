@@ -26,7 +26,7 @@ namespace Scumm {
 
 // Almost validated, check if there has to be a separate malloc for dispatch_smallFadeBufs; edit dispatch_free accordingly
 int DiMUSE_v2::dispatch_moduleInit() {
-	dispatch_buf = (int *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
+	dispatch_buf = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
 
 	if (dispatch_buf) {
 		dispatch_largeFadeBufs = dispatch_buf;
@@ -173,7 +173,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	iMUSEDispatch *dispatchToDeallocate;
 	iMUSEStreamZone *streamZoneList;
 	int getMapResult;
-	int *fadeBuf;
+	uint8 *fadeBuf;
 
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
@@ -256,7 +256,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 	iMUSEDispatch *dispatchToDeallocate;
 	iMUSEStreamZone *streamZoneList;
-	int *fadeBuf;
+	uint8 *fadeBuf;
 
 	dispatchToDeallocate = trackPtr->dispatchPtr;
 
@@ -318,7 +318,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 	int alignmentModDividend;
 	iMUSEDispatch *curDispatch = dispatches;
 	int ptrCtr, i, j;
-	int *fadeBuffer;
+	uint8 *fadeBuffer;
 	/*unsigned*/int effFadeSize;
 	int getMapResult;
 
@@ -447,7 +447,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 				if (!dispatch_largeFadeFlags[i]) {
 					dispatch_largeFadeFlags[i] = 1;
-					curDispatch->fadeBuf = dispatch_largeFadeFlags + LARGE_FADE_DIM * i;
+					curDispatch->fadeBuf = dispatch_largeFadeBufs + LARGE_FADE_DIM * i;
 					break;
 				}
 			}
@@ -489,7 +489,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 					effFadeSize = 0x4000;
 
 				//uint8 *ptr = (uint8 *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize);
-				//memcpy(((uint8 *)curDispatch->fadeBuf + curDispatch->fadeRemaining), ptr, effFadeSize);
+				memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -919,7 +919,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 		dispatchPtr->fadeSyncDelta += feedSize;
 }
 
-int DiMUSE_v2::dispatch_predictFirstStream() {
+void DiMUSE_v2::dispatch_predictFirstStream() {
 	waveapi_increaseSlice();
 
 	if (tracks_trackCount > 0) {
@@ -929,7 +929,7 @@ int DiMUSE_v2::dispatch_predictFirstStream() {
 		}
 	}
 
-	return waveapi_decreaseSlice();
+	waveapi_decreaseSlice();
 }
 
 int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
@@ -942,8 +942,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 	int *mapCurPos;
 	int curOffset;
 	int blockName;
-	/*unsigned */int effFadeSize;
-	/*unsigned */int elapsedFadeSize;
+	int effFadeSize;
+	int elapsedFadeSize;
 	int regionOffset;
 	int ptrCtr, i, j;
 
@@ -1228,7 +1228,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 
 								if (!dispatch_largeFadeFlags[i]) {
 									dispatch_largeFadeFlags[i] = 1;
-									dispatchPtr->fadeBuf = dispatch_largeFadeFlags + LARGE_FADE_DIM * i;
+									dispatchPtr->fadeBuf = dispatch_largeFadeBufs + LARGE_FADE_DIM * i;
 									break;
 								}
 							}
@@ -1264,16 +1264,15 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 							dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 							dispatchPtr->fadeSlope = 0;
 
-							// Basically clone the old sound in the fade buffer for just the duration of the fade 
+							// Clone the old sound in the fade buffer for just the duration of the fade 
 							if (dispatch_requestedFadeSize) {
 								do {
 									effFadeSize = dispatch_requestedFadeSize - dispatchPtr->fadeRemaining;
-									if ((unsigned int)(dispatch_requestedFadeSize - dispatchPtr->fadeRemaining) >= 0x2000)
+									if ((dispatch_requestedFadeSize - dispatchPtr->fadeRemaining) >= 0x2000)
 										effFadeSize = 0x2000;
 
-									memcpy(
-										(void *)(dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
-										(const void *)streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
+									memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
+										streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
 										effFadeSize);
 
 									elapsedFadeSize = effFadeSize + dispatchPtr->fadeRemaining;
@@ -1290,11 +1289,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				}
 
 				mapCurPos = NULL;
-				continue;
 			}
-
-			if (dispatchPtr->audioRemaining)
-				return 0;
+			continue;
 		}
 
 		// SYNC block (fixed size: x bytes)
@@ -1371,7 +1367,6 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 	return 0;
 }
 
-// Validated
 int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	int effMapSize;
 	uint8 *mapCurPos;
@@ -1461,7 +1456,6 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	return 0;
 }
 
-// Validated
 void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 	iMUSEStreamZone *szTmp;
 	iMUSEStreamZone *lastStreamInList;
@@ -1557,7 +1551,6 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 	}
 }
 
-// Almost validated, list stuff to check
 void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent) {
 	int hookPosition, jumpDestination, fadeTime;
 	iMUSEStreamZone *nextStreamZone;
@@ -1727,7 +1720,6 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	return;
 }
 
-// Validated
 DiMUSE_v2::iMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
 	for (int i = 0; i < MAX_STREAMZONES; i++) {
 		if (streamZones[i].useFlag == 0) {
@@ -1745,7 +1737,6 @@ DiMUSE_v2::iMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
 	return NULL;
 }
 
-// Validated
 void DiMUSE_v2::dispatch_free() {
 	free(dispatch_buf);
 	dispatch_buf = NULL;
