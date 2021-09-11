@@ -69,7 +69,7 @@ int DiMUSE_v2::dispatch_moduleInit() {
 			dispatches[i].fadeSlope = 0;
 		}*/	
 	} else {
-		debug(5, "ERR:in dispatch allocating buffers...\n");
+		debug(5, "DiMUSE_v2::dispatch_moduleInit(): ERROR: couldn't allocate buffers\n");
 		return -1;
 	}
 
@@ -488,8 +488,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 				if ((dispatch_fadeSize - curDispatch->fadeRemaining) >= 0x4000) // Originally 0x2000 for DIG, but it shouldn't be a problem
 					effFadeSize = 0x4000;
 
-				//uint8 *ptr = (uint8 *)streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize);
-				memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
+				//memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -840,7 +839,10 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 		} else {
 			soundAddrData = files_getSoundAddrData(trackPtr->soundId);
 			if (!soundAddrData) {
-				debug(5, "ERR: dispatch got NULL file addr...\n");
+				debug(5, "DiMUSE_v2::dispatch_processDispatches(): ERROR: soundAddrData for sound %d is NULL\n", trackPtr->soundId);
+				// Try to gracefully play nothing instead of getting stuck on an infinite loop
+				dispatchPtr->currentOffset += effRemainingAudio;
+				dispatchPtr->audioRemaining -= effRemainingAudio;
 				return;
 			}
 
@@ -1273,9 +1275,9 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 									if ((dispatch_requestedFadeSize - dispatchPtr->fadeRemaining) >= 0x2000)
 										effFadeSize = 0x2000;
 
-									memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
-										streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
-										effFadeSize);
+									//memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
+									//	streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
+									//	effFadeSize);
 
 									elapsedFadeSize = effFadeSize + dispatchPtr->fadeRemaining;
 									dispatchPtr->fadeRemaining = elapsedFadeSize;
@@ -1443,7 +1445,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			if (&destMap[bytesUntilEndOfMap] - mapCurPos == -8) {
 				return 0;
 			} else {
-				debug(5, "ERR: ConvertMap() converted wrong number of bytes...\n");
+				debug(5, "DiMUSE_v2::dispatch_convertMap(): ERROR: converted wrong number of bytes\n");
 				return -1;
 			}
 		} else {

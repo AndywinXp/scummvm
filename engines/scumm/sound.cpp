@@ -466,20 +466,22 @@ void Sound::processSfxQueues() {
 				}
 			}
 
-			int volume = a->_talkVolume;
-			int frequency = a->_talkFrequency;
-			int pan = a->_talkPan;
-			if (_vm->_diMUSE->isSoundRunning(kTalkSoundID)) {
-				if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
-					volume = 0;
-				if (_vm->_diMUSE->getCurSpeechVolume() != volume) {
-					_vm->_diMUSE->setVolume(kTalkSoundID, volume);
-				}
-				if (_vm->_diMUSE->getCurSpeechFrequency() != frequency) {
-					_vm->_diMUSE->setFrequency(kTalkSoundID, frequency);
-				}
-				if (_vm->_diMUSE->getCurSpeechPan() != pan) {
-					_vm->_diMUSE->setPan(kTalkSoundID, pan);
+			if (!(_vm->_game.id == GID_FT || (_vm->_game.features & GF_DEMO))) {
+				int volume = a->_talkVolume;
+				int frequency = a->_talkFrequency;
+				int pan = a->_talkPan;
+				if (_vm->_diMUSE->isSoundRunning(kTalkSoundID)) {
+					if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
+						volume = 0;
+					if (_vm->_diMUSE->getCurSpeechVolume() != volume) {
+						_vm->_diMUSE->setVolume(kTalkSoundID, volume);
+					}
+					if (_vm->_diMUSE->getCurSpeechFrequency() != frequency) {
+						_vm->_diMUSE->setFrequency(kTalkSoundID, frequency);
+					}
+					if (_vm->_diMUSE->getCurSpeechPan() != pan) {
+						_vm->_diMUSE->setPan(kTalkSoundID, pan);
+					}
 				}
 			}
 		}

@@ -194,7 +194,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 		}
 	}
 
-	debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: no spare tracks for sound %d", soundId);
+	debug(5, "DiMUSE_v2::tracks_startSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
 
 	// Let's steal the track with the lowest priority
 	iMUSETrack *track = (iMUSETrack *)tracks_trackList;
@@ -211,6 +211,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	}
 
 	if (!stolenTrack || priority < bestPriority) {
+		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: couldn't steal a lower priority track", soundId);
 		return -6;
 	} else {
 		iMUSE_removeTrackFromList(&tracks_trackList, stolenTrack);

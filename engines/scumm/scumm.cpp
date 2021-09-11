@@ -2845,7 +2845,7 @@ void ScummEngine_v7::scummLoop_handleSound() {
 	if (_diMUSE) {
 		_diMUSE->flushTracks();
 		// In CoMI and the Dig the full (non-demo) version invoke refreshScripts()
-		if ((_game.id == GID_DIG || _game.id == GID_CMI) && !(_game.features & GF_DEMO))
+		if (!(_game.id == GID_FT) && !(_game.features & GF_DEMO))
 			_diMUSE->refreshScripts();
 	}
 
