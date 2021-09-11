@@ -91,10 +91,10 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 
 			if ((destinationValue - fades[l].currentVal) < 0) {
 				fades[l].nudge = -1;
-				fades[l].slopeMod = (-fades[l].slope % fadeLength);
+				fades[l].slopeMod = (-(destinationValue - fades[l].currentVal) % fadeLength);
 			} else {
 				fades[l].nudge = 1;
-				fades[l].slopeMod = fades[l].slope % fadeLength;
+				fades[l].slopeMod = (destinationValue - fades[l].currentVal) % fadeLength;
 			}
 
 			return 0;
