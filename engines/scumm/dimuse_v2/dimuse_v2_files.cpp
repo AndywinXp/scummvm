@@ -36,11 +36,9 @@ uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of IMUSE_RESOURCE
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		char fileName[20] = "";
-		files_getFilenameFromSoundId(soundId, fileName);
 		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
-		if (!s) {
-			s = _sound->openSound(soundId, fileName, IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
+		if (!s || !s->resPtr) {
+			s = _sound->openSound(soundId, "", IMUSE_RESOURCE, IMUSE_BUFFER_SFX, -1);
 			// I'm not sure this is the right way to avoid cluttering
 			// the SFX queue, but it appears to work fine
 			files_closeSound(soundId); 

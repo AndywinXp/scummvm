@@ -921,6 +921,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 void DiMUSE_v2::dispatch_predictFirstStream() {
 	waveapi_increaseSlice();
+	debug(5, "dispatch_predictFirstStream() called increaseSlice()");
 
 	if (tracks_trackCount > 0) {
 		for (int i = 0; i < tracks_trackCount; i++) {
@@ -930,6 +931,7 @@ void DiMUSE_v2::dispatch_predictFirstStream() {
 	}
 
 	waveapi_decreaseSlice();
+	debug(5, "dispatch_predictFirstStream() called decreaseSlice()");
 }
 
 int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {

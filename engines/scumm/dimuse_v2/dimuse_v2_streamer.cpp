@@ -355,8 +355,10 @@ int DiMUSE_v2::streamer_fetchData(iMUSEStream *streamPtr) {
 
 		streamer_bailFlag = 0;
 		waveapi_decreaseSlice();
+		debug(5, "streamer_fetchData() called decreaseSlice()");
 		actualAmount = files_read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
 		waveapi_increaseSlice();
+		debug(5, "streamer_fetchData() called increaseSlice()");
 		if (streamer_bailFlag != 0)
 			return 0;
 
