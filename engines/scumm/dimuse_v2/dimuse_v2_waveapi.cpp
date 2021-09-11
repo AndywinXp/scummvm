@@ -35,8 +35,8 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 		waveapi_zeroLevel = 0;
 	}
 	// Nine buffers (1024 bytes each), one will be used for the mixer
-	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 9216);
-	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 8192); // 9-th buffer
+	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 1024 * 9);
+	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 1024 * 8); // 9-th buffer
 
 	waveapi_waveFormat.nChannels = waveapi_numChannels;
 	waveapi_waveFormat.wFormatTag = 1;
@@ -52,7 +52,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveoutParamStruct->mixBuf = waveapi_mixBuf;
 
 	// Init the buffer at volume zero
-	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * 9216);
+	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * 1024 * 9);
 
 	waveapi_disableWrite = 0;
 	return 0;
@@ -73,7 +73,7 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 	
 	*feedSize = 0;
 	if (_mixer->isReady()) {
-		curBufferBlock = &waveapi_outBuf[1024 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels];
+		curBufferBlock = &waveapi_outBuf[1024 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels]; // 1024
 
 		*audioData = curBufferBlock;
 
@@ -81,22 +81,16 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 		*feedSize = 1024;
 		waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 
-		byte *ptr = (byte *)malloc(iMUSE_feedSize*4);
-		memcpy(ptr, curBufferBlock, iMUSE_feedSize*4);
-		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize*4, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+		byte *ptr = (byte *)malloc(iMUSE_feedSize * 4);
+		memcpy(ptr, curBufferBlock, iMUSE_feedSize * 4);
+		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize * 4, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+		debug(5, "Num of blocks queued: %d", _diMUSEMixer->_stream->numQueuedStreams());
 	}
 }
 
 // Validated
 int DiMUSE_v2::waveapi_free() {
 	waveapi_disableWrite = 1;
-	for (int l = 0; l < NUM_HEADERS; l++) {
-		//waveOutUnprepareHeader(waveHandle, waveHeaders[l], 32);
-		//waveHeaders[l] = NULL;
-	}
-	//free(waveHeaders);
-	//waveOutReset(waveHandle);
-	//waveOutClose(waveHandle);
 	free(waveapi_outBuf);
 	//waveapi_outBuf = NULL;
 	return 0;

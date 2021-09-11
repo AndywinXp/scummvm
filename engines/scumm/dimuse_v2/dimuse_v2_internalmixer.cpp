@@ -143,7 +143,7 @@ int DiMUSE_InternalMixer::mixer_clearMixBuff() {
 		return -1;
 
 	memset(mixer_mixBuf, 0, mixer_mixBufSize);
-	memset(&mixer_mixBuf[mixer_mixBufSize], 0, mixer_mixBufSize & 3);
+	//memset(&mixer_mixBuf[mixer_mixBufSize], 0, (mixer_mixBufSize >> 2) & 3);
 
 	return 0;
 }
@@ -206,7 +206,7 @@ void DiMUSE_InternalMixer::mixer_mix(uint8 *srcBuf, int inFrameCount, int wordSi
 						channelVolume++;
 					if (channelVolume >= 17)
 						channelVolume = 16;
-					channelVolume = 0x10;
+
 					if (wordSize == 8)
 						ampTable = &mixer_amp8Table[channelVolume * 128];
 					else

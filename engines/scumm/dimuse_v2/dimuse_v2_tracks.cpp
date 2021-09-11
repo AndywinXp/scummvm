@@ -118,29 +118,32 @@ void DiMUSE_v2::tracks_callback() {
 	}
 	
 	waveapi_increaseSlice();
-	dispatch_predictFirstStream();
+	if (_diMUSEMixer->_stream->numQueuedStreams() < 2) {
+		dispatch_predictFirstStream();
 
-	waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
+		waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
 
- 	if (iMUSE_feedSize != 0) {
-		_diMUSEMixer->mixer_clearMixBuff();
-		if (!tracks_pauseTimer) {
-			iMUSETrack *track = (iMUSETrack *)tracks_trackList;
+		if (iMUSE_feedSize != 0) {
+			_diMUSEMixer->mixer_clearMixBuff();
+			if (!tracks_pauseTimer) {
+				iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 
-			while (track) {
-				iMUSETrack *next = (iMUSETrack *)track->next;
-				dispatch_processDispatches(track, iMUSE_feedSize, iMUSE_sampleRate);
-				track = next;
-			};
+				while (track) {
+					iMUSETrack *next = (iMUSETrack *)track->next;
+					dispatch_processDispatches(track, iMUSE_feedSize, iMUSE_sampleRate);
+					track = next;
+				};
+			}
+
+			_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
+
+			// The Dig tries to write a second time
+			if (_vm->_game.id == GID_DIG) {
+				waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
+			}
 		}
-
-		_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
-
-		// The Dig tries to write a second time
-		if (_vm->_game.id == GID_DIG) {
-			waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
-		}	
 	}
+	
 	waveapi_decreaseSlice();
 }
 
@@ -174,18 +177,6 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			foundTrack->pitchShift = 0;
 			foundTrack->mailbox = 0;
 			foundTrack->jumpHook = 0;
-
-			/*
-			if (_vm->_game.id == GID_CMI) {
-				foundTrack->next->prev = 0;
-				foundTrack->next->next = 0;
-				foundTrack->next->dispatchPtr = 0;
-				foundTrack->next->soundId = 0;
-				foundTrack->next->marker = 0;
-				foundTrack->next->group = 0;
-				foundTrack->next->priority = 0;
-				foundTrack->next->vol = 0;
-			}*/
 
 			if (dispatch_alloc(foundTrack, group)) {
 				debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);

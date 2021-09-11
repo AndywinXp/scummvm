@@ -50,8 +50,8 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_diMUSEMixer = new DiMUSE_InternalMixer(mixer);
 	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
-	iMUSE_audioBuffer = (uint8 *)malloc(0x2000);
-	memset(iMUSE_audioBuffer, 0, 0x2000);
+	//iMUSE_audioBuffer = (uint8 *)malloc(0x2000);
+	//memset(iMUSE_audioBuffer, 0, 0x2000);
 	DiMUSE_initialize();
 	DiMUSE_initializeScript();
 	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
@@ -134,15 +134,6 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 
 	int usecPerInt = timer_getUsecPerInt(); // Always returns 20000 microseconds (50 Hz)
 	waveapi_callback();
-
-	/*
-	if (cmd_hostIntHandler) {
-		cmd_hostIntUsecCount += usecPerInt;
-		while (cmd_runningHostCount >= cmd_hostIntUsecCount) {
-			cmd_runningHostCount -= cmd_hostIntUsecCount;
-			cmds_hostIntHandler();
-		}
-	}*/
 
 	cmd_running60HzCount += usecPerInt;
 	while (cmd_running60HzCount >= 16667) {
