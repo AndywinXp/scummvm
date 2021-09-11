@@ -28,22 +28,12 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveapi_sampleRate = sampleRate;
 
 	waveapi_bytesPerSample = 2;
-	waveapi_zeroLevel = 128;
 	waveapi_numChannels = 2;
+	waveapi_zeroLevel = 0;
 
-	if (waveapi_bytesPerSample != 1) {
-		waveapi_zeroLevel = 0;
-	}
 	// Nine buffers (1024 bytes each), one will be used for the mixer
 	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 1024 * 9);
 	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 1024 * 8); // 9-th buffer
-
-	waveapi_waveFormat.nChannels = waveapi_numChannels;
-	waveapi_waveFormat.wFormatTag = 1;
-	waveapi_waveFormat.nSamplesPerSec = waveapi_sampleRate;
-	waveapi_waveFormat.nAvgBytesPerSec = waveapi_bytesPerSample * waveapi_sampleRate * waveapi_numChannels;
-	waveapi_waveFormat.nBlockAlign = waveapi_numChannels * waveapi_bytesPerSample;
-	waveapi_waveFormat.wBitsPerSample = waveapi_bytesPerSample * 8;
 
 	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
 	waveoutParamStruct->numChannels = waveapi_numChannels;
@@ -58,8 +48,6 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	return 0;
 }
 
-// Validated
-
 void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate) {
 	uint8 *curBufferBlock;
 	if (waveapi_disableWrite)
@@ -73,7 +61,7 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 	
 	*feedSize = 0;
 	if (_mixer->isReady()) {
-		curBufferBlock = &waveapi_outBuf[1024 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels]; // 1024
+		curBufferBlock = &waveapi_outBuf[1024 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels];
 
 		*audioData = curBufferBlock;
 
@@ -84,31 +72,26 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 		byte *ptr = (byte *)malloc(iMUSE_feedSize * 4);
 		memcpy(ptr, curBufferBlock, iMUSE_feedSize * 4);
 		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize * 4, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-		debug(5, "Num of blocks queued: %d", _diMUSEMixer->_stream->numQueuedStreams());
+		//debug(5, "Num of blocks queued: %d", _diMUSEMixer->_stream->numQueuedStreams());
 	}
 }
 
-// Validated
 int DiMUSE_v2::waveapi_free() {
 	waveapi_disableWrite = 1;
 	free(waveapi_outBuf);
-	//waveapi_outBuf = NULL;
 	return 0;
 }
 
-// Validated
 void DiMUSE_v2::waveapi_callback() {
 	if (!wvSlicingHalted) {
 		tracks_callback();
 	}
 }
 
-// Validated
 void DiMUSE_v2::waveapi_increaseSlice() {
 	wvSlicingHalted++;
 }
 
-// Validated
 int DiMUSE_v2::waveapi_decreaseSlice() {
 	int result = wvSlicingHalted;
 	if (wvSlicingHalted--)

@@ -108,7 +108,7 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
 					uint8 *tmpBuf;
-					debug(5, "DiMUSE_v2::files_read(): trying to read (%d) bytes of data", size);
+					debug(5, "DiMUSE_v2::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
 					int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
 					memcpy(buf, tmpBuf, size);
 					return resultingSize;
@@ -127,11 +127,11 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 
 	
 DiMUSE_v2::iMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
-	if (bufId) {
+	if (bufId > 0 && bufId <= 4) {
 		return &_soundBuffers[bufId];
 	}
 
-	debug(5, "ERR: bufInfoFunc failure");
+	debug(5, "DiMUSE_v2::files_getBufInfo(): ERROR: invalid buffer id");
 	return NULL;
 }
 

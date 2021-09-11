@@ -229,18 +229,6 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	stolenTrack->mailbox = 0;
 	stolenTrack->jumpHook = 0;
 
-	/*
-	if (_vm->_game.id == GID_CMI) {
-		stolenTrack->next->prev = 0;
-		stolenTrack->next->next = 0;
-		stolenTrack->next->dispatchPtr = 0;
-		stolenTrack->next->soundId = 0;
-		stolenTrack->next->marker = 0;
-		stolenTrack->next->group = 0;
-		stolenTrack->next->priority = 0;
-		stolenTrack->next->vol = 0;
-	}*/
-
 	if (dispatch_alloc(stolenTrack, group)) {
 		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
 		stolenTrack->soundId = 0;

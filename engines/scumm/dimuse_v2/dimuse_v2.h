@@ -556,20 +556,7 @@ public:
 		int sizeSampleKB;
 	} waveOutParams;
 
-	typedef struct tWAVEFORMATEX {
-		int16  wFormatTag;
-		int16  nChannels;
-		int nSamplesPerSec;
-		int nAvgBytesPerSec;
-		int16  nBlockAlign;
-		int16  wBitsPerSample;
-		int16  cbSize;
-	} WAVEFORMATEX;
-	
 	waveOutParams waveapi_waveOutParams;
-	WAVEFORMATEX waveapi_waveFormat;
-	/*LPWAVEHDR *waveHeaders;
-	HWAVEOUT waveHandle;*/
 
 	int waveapi_sampleRate;
 	int waveapi_bytesPerSample;
