@@ -70,7 +70,7 @@ int DiMUSE_v2::triggers_setTrigger(int soundId, char *marker, int opcode, int d,
 	}
 
 	if (iMUSE_strlen(marker) >= 256) {
-		debug(5, "ERR: attempting to set trig with oversize marker string...");
+		debug(5, "DiMUSE_v2::triggers_setTrigger(): ERROR: attempting to set trigger with oversized marker string");
 		return -5;
 	}
 
@@ -133,63 +133,65 @@ void DiMUSE_v2::triggers_processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
 	if (iMUSE_strlen(marker) >= 256) {
-		debug(5, "ERR: TgProcessMarker() passed oversize marker string...");
+		debug(5, "DiMUSE_v2::triggers_processTriggers(): ERROR: the input marker string is oversized");
 		return;
 	}
 
 	iMUSE_strcpy(triggers_textBuffer, marker);
 	triggers_midProcessing++;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		if ((trigs[l].sound && trigs[l].sound == soundId) &&
-			(trigs[l].text[0] == '\0' || iMUSE_strcmp(triggers_textBuffer, trigs[l].text))) {
-
-			// Save the string into our local buffer for later
-			r = 0;
-			if (triggers_textBuffer[0] != '\0') {
-				do {
-					textBuffer[r] = triggers_textBuffer[r];
-					r++;
-				} while (triggers_textBuffer[r] != '\0');
-			}
-			textBuffer[r] = '\0';
-
-			trigs[l].sound = 0;
-			if (trigs[l].opcode == 0) {
-				// Call the script callback (a function which sets _stoppingSequence to 1)
-				script_callback(triggers_textBuffer);
-			} else {
-				if (trigs[l].opcode < 30) {
-					// Execute a command
-					cmds_handleCmds((int)trigs[l].opcode, trigs[l].args_0_,
-						trigs[l].args_1_, trigs[l].args_2_,
-						trigs[l].args_3_, trigs[l].args_4_,
-						trigs[l].args_5_, trigs[l].args_6_,
-						trigs[l].args_7_, trigs[l].args_8_,
-						trigs[l].args_9_, -1, -1, -1, -1);
-				}
-				// This is used by DIG when speech is playing; not clear what its purpose is,
-				// but its absence never appeared to disrupt anything
-				/* else {
-					int(*func)() = trigs[l].opcode;
-					func(triggers_textBuffer, trigs[l].args_0_,
-						trigs[l].args_1_, trigs[l].args_2_,
-						trigs[l].args_3_, trigs[l].args_4_,
-						trigs[l].args_5_, trigs[l].args_6_,
-						trigs[l].args_7_, trigs[l].args_8_,
-						trigs[l].args_9_);
-				}*/
-			}
-
-			// Restore the global textBuffer
-			r = 0;
-			if (textBuffer[0] != '\0') {
-				do {
-					triggers_textBuffer[r] = textBuffer[r];
-					r++;
-				} while (textBuffer[r] != '\0');
-			}
-			triggers_textBuffer[r] = '\0';
+		if (!trigs[l].sound ||
+			trigs[l].sound != soundId ||
+			trigs[l].text[0] && iMUSE_strcmp(triggers_textBuffer, trigs[l].text)) {
+			continue;
 		}
+
+		// Save the string into our local buffer for later
+		r = 0;
+		if (triggers_textBuffer[0] != '\0') {
+			do {
+				textBuffer[r] = triggers_textBuffer[r];
+				r++;
+			} while (triggers_textBuffer[r] != '\0');
+		}
+		textBuffer[r] = '\0';
+
+		trigs[l].sound = 0;
+		if (trigs[l].opcode == 0) {
+			// Call the script callback (a function which sets _stoppingSequence to 1)
+			script_callback(triggers_textBuffer);
+		} else {
+			if (trigs[l].opcode < 30) {
+				// Execute a command
+				cmds_handleCmds((int)trigs[l].opcode, trigs[l].args_0_,
+					trigs[l].args_1_, trigs[l].args_2_,
+					trigs[l].args_3_, trigs[l].args_4_,
+					trigs[l].args_5_, trigs[l].args_6_,
+					trigs[l].args_7_, trigs[l].args_8_,
+					trigs[l].args_9_, -1, -1, -1, -1);
+			}
+			// This is used by DIG when speech is playing; not clear what its purpose is,
+			// but its absence never appeared to disrupt anything
+			/* else {
+				int(*func)() = trigs[l].opcode;
+				func(triggers_textBuffer, trigs[l].args_0_,
+					trigs[l].args_1_, trigs[l].args_2_,
+					trigs[l].args_3_, trigs[l].args_4_,
+					trigs[l].args_5_, trigs[l].args_6_,
+					trigs[l].args_7_, trigs[l].args_8_,
+					trigs[l].args_9_);
+			}*/
+		}
+
+		// Restore the global textBuffer
+		r = 0;
+		if (textBuffer[0] != '\0') {
+			do {
+				triggers_textBuffer[r] = textBuffer[r];
+				r++;
+			} while (textBuffer[r] != '\0');
+		}
+		triggers_textBuffer[r] = '\0';
 	}
 	if (--triggers_midProcessing == 0) {
 		for (int l = 0; l < MAX_TRIGGERS; l++) {
@@ -222,7 +224,7 @@ int DiMUSE_v2::triggers_deferCommand(int count, int opcode, int c, int d, int e,
 			return 0;
 		}
 	}
-	debug(5, "ERR: tr unable to alloc deferred cmd...");
+	debug(5, "DiMUSE_v2::triggers_deferCommand(): ERROR: couldn't allocate deferred command");
 	return -6;
 }
 

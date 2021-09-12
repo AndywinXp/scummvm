@@ -488,7 +488,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 				if ((dispatch_fadeSize - curDispatch->fadeRemaining) >= 0x4000) // Originally 0x2000 for DIG, but it shouldn't be a problem
 					effFadeSize = 0x4000;
 
-				//memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
+				memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamer_reAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -923,7 +923,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 void DiMUSE_v2::dispatch_predictFirstStream() {
 	waveapi_increaseSlice();
-	debug(5, "dispatch_predictFirstStream() called increaseSlice()");
+	//debug(5, "dispatch_predictFirstStream() called increaseSlice()");
 
 	if (tracks_trackCount > 0) {
 		for (int i = 0; i < tracks_trackCount; i++) {
@@ -933,7 +933,7 @@ void DiMUSE_v2::dispatch_predictFirstStream() {
 	}
 
 	waveapi_decreaseSlice();
-	debug(5, "dispatch_predictFirstStream() called decreaseSlice()");
+	//debug(5, "dispatch_predictFirstStream() called decreaseSlice()");
 }
 
 int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
@@ -1072,7 +1072,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 			if (iMUSE_SWAP32(soundAddrData) == 'iMUS' && iMUSE_SWAP32(soundAddrData + 8) == 'MAP ') {
 				dispatchPtr->currentOffset = iMUSE_SWAP32(soundAddrData + 12) + 24;
 				if (dispatch_convertMap((soundAddrData + 8), (uint8 *)dstMap)) {
-					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERR: ConvertMap() failed");
+					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: dispatch_convertMap() failure");
 					return -1;
 				}
 
@@ -1275,9 +1275,9 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 									if ((dispatch_requestedFadeSize - dispatchPtr->fadeRemaining) >= 0x2000)
 										effFadeSize = 0x2000;
 
-									//memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
-									//	streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
-									//	effFadeSize);
+									memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
+										streamer_reAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
+										effFadeSize);
 
 									elapsedFadeSize = effFadeSize + dispatchPtr->fadeRemaining;
 									dispatchPtr->fadeRemaining = elapsedFadeSize;

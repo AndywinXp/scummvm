@@ -37,7 +37,7 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 
 	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
 	waveoutParamStruct->numChannels = waveapi_numChannels;
-	waveoutParamStruct->mixBufSize = 2048;// (waveapi_bytesPerSample * waveapi_numChannels) << 10; // 4096
+	waveoutParamStruct->mixBufSize = (waveapi_bytesPerSample * waveapi_numChannels) * 512;
 	waveoutParamStruct->sizeSampleKB = 0;
 	waveoutParamStruct->mixBuf = waveapi_mixBuf;
 
@@ -69,9 +69,9 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 		*feedSize = 512;
 		waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 
-		byte *ptr = (byte *)malloc(iMUSE_feedSize * 4);
-		memcpy(ptr, curBufferBlock, iMUSE_feedSize * 4);
-		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize * 4, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+		byte *ptr = (byte *)malloc(iMUSE_feedSize * waveapi_bytesPerSample * waveapi_numChannels);
+		memcpy(ptr, curBufferBlock, iMUSE_feedSize * waveapi_bytesPerSample * waveapi_numChannels);
+		_diMUSEMixer->_stream->queueBuffer(ptr, iMUSE_feedSize * waveapi_bytesPerSample * waveapi_numChannels, DisposeAfterUse::YES, Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
 		//debug(5, "Num of blocks queued: %d", _diMUSEMixer->_stream->numQueuedStreams());
 	}
 }

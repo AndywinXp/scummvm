@@ -270,9 +270,9 @@ void DiMUSE_v2::setComiMusicState(int stateId) {
 	/*
 	if (stateId == 4) // look into #3604 bug, ignore stateId == 4 it's seems needed after all
 		return;
-
+	*/
 	if (stateId == 0)
-		stateId = 1000;*/
+		stateId = 1000;
 
 	for (l = 0; _comiStateMusicTable[l].soundId != -1; l++) {
 		if ((_comiStateMusicTable[l].soundId == stateId)) {

@@ -118,7 +118,7 @@ void DiMUSE_v2::tracks_callback() {
 	}
 	
 	waveapi_increaseSlice();
-	debug(5, "tracks_callback() called increaseSlice()");
+	//debug(5, "tracks_callback() called increaseSlice()");
 	if (_diMUSEMixer->_stream->numQueuedStreams() < 2) {
 		dispatch_predictFirstStream();
 
@@ -146,7 +146,7 @@ void DiMUSE_v2::tracks_callback() {
 	}
 	
 	waveapi_decreaseSlice();
-	debug(5, "tracks_callback() called decreaseSlice()");
+	//debug(5, "tracks_callback() called decreaseSlice()");
 }
 
 int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
@@ -186,10 +186,10 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 				return -1;
 			}
 			waveapi_increaseSlice();
-			debug(5, "tracks_startSound() called increaseSlice()");
+			//debug(5, "tracks_startSound() called increaseSlice()");
 			iMUSE_addTrackToList(&tracks_trackList, foundTrack);
 			waveapi_decreaseSlice();
-			debug(5, "tracks_startSound() called decreaseSlice()");
+			//debug(5, "tracks_startSound() called decreaseSlice()");
 			return 0;
 		}
 	}
@@ -241,10 +241,10 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	}
 
 	waveapi_increaseSlice();
-	debug(5, "tracks_startSound() called increaseSlice() 2");
+	//debug(5, "tracks_startSound() called increaseSlice() 2");
 	iMUSE_addTrackToList(&tracks_trackList, stolenTrack);
 	waveapi_decreaseSlice();
-	debug(5, "tracks_startSound() called decreaseSlice() 2");
+	//debug(5, "tracks_startSound() called decreaseSlice() 2");
 
 	return 0;
 }
@@ -270,7 +270,7 @@ int DiMUSE_v2::tracks_stopSound(int soundId) {
 
 int DiMUSE_v2::tracks_stopAllSounds() {
 	waveapi_increaseSlice();
-	debug(5, "tracks_stopAllSounds() called increaseSlice()");
+	//debug(5, "tracks_stopAllSounds() called increaseSlice()");
 	if (tracks_trackList) {
 		iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 		do {
@@ -284,7 +284,7 @@ int DiMUSE_v2::tracks_stopAllSounds() {
 	}
 
 	waveapi_decreaseSlice();
-	debug(5, "tracks_stopAllSounds() called decreaseSlice()");
+	//debug(5, "tracks_stopAllSounds() called decreaseSlice()");
 	return 0;
 }
 
@@ -589,7 +589,7 @@ void DiMUSE_v2::tracks_free() {
 		return;
 
 	waveapi_increaseSlice();
-	debug(5, "tracks_free() called increaseSlice()");
+	//debug(5, "tracks_free() called increaseSlice()");
 	iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 	do {
 		iMUSE_removeTrackFromList(&tracks_trackList, track);
@@ -603,7 +603,7 @@ void DiMUSE_v2::tracks_free() {
 	} while (track);
 
 	waveapi_decreaseSlice();
-	debug(5, "tracks_free() called decreaseSlice()");
+	//debug(5, "tracks_free() called decreaseSlice()");
 }
 
 int DiMUSE_v2::tracks_debug() {

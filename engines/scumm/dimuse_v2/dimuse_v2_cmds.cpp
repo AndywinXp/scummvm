@@ -255,7 +255,7 @@ int DiMUSE_v2::cmds_startSound(int soundId, int priority) {
 	int stringIndex = 0;
 
 	if (src == NULL) {
-		debug(5, "ERR: null sound addr in StartSound()...");
+		debug(5, "DiMUSE_v2::cmds_startSound(): ERROR: resource address for sound %d is NULL", soundId);
 		return -1;
 	}
 
