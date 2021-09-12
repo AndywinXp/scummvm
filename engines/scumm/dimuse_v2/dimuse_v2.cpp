@@ -82,6 +82,55 @@ int DiMUSE_v2::isSoundRunning(int soundId) {
 	return result;
 }
 
+int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
+
+	if (_vm->_game.id == GID_DIG) {
+		if (!strcmp(soundName, "PIG.018"))
+			strcpy(_currentSpeechFile, "PIG.019");
+		else
+			strcpy(_currentSpeechFile, soundName);
+
+		//IMUSE_SetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
+		_sound->closeSoundById(soundId);
+		files_openSound(kTalkSoundID);
+		DiMUSE_startStream(kTalkSoundID, 127, 1);
+		DiMUSE_setParam(kTalkSoundID, 0x400, 2);
+		if (_vm->VAR(_vm->VAR_TALK_ACTOR) == _vm->VAR(_vm->VAR_EGO)) {
+			DiMUSE_setParam(kTalkSoundID, 0xA00, 0);
+			DiMUSE_setParam(kTalkSoundID, 0x600, 127);
+		} else {
+			DiMUSE_setParam(kTalkSoundID, 0xA00, _radioChatterSFX);
+			DiMUSE_setParam(kTalkSoundID, 0x600, 88);
+		}
+		files_closeSound(kTalkSoundID);
+	} else {
+		strcpy(_currentSpeechFile, soundName);
+		_sound->closeSoundById(soundId);
+		files_openSound(kTalkSoundID);
+		DiMUSE_startStream(kTalkSoundID, 127, 1);
+		DiMUSE_setParam(kTalkSoundID, 0x400, 2);
+
+		// Let's not give the occasion to raise errors here
+		if (_vm->isValidActor(_vm->VAR(_vm->VAR_TALK_ACTOR))) {
+			Actor *a = _vm->derefActor(_vm->VAR(_vm->VAR_TALK_ACTOR), "DiMUSE_v2::startVoice");
+			if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
+				DiMUSE_setParam(kTalkSoundID, 0x600, 0);
+			else
+				DiMUSE_setParam(kTalkSoundID, 0x600, a->_talkVolume);
+
+			DiMUSE_setParam(kTalkSoundID, 0x900, a->_talkFrequency);
+			DiMUSE_setParam(kTalkSoundID, 0x700, a->_talkPan);
+		}
+
+		// The interpreter really calls for processStreams two times in a row,
+		// and who am I to contradict it?
+		DiMUSE_processStreams();
+		DiMUSE_processStreams();
+	}
+
+	return 0;
+}
+
 void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
 	iMUSESoundBuffer *selectedSoundBuf;
 
@@ -101,6 +150,10 @@ void DiMUSE_v2::DiMUSE_deallocSoundBuffer(int bufId) {
 
 void DiMUSE_v2::refreshScripts() {
 	DiMUSE_refreshScript();
+}
+
+void DiMUSE_v2::setRadioChatterSFX(bool state) {
+	_radioChatterSFX = state;
 }
 
 int DiMUSE_v2::startSfx(int soundId, int priority) {
@@ -128,7 +181,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	// - Triggers and fades handling happens at a (somewhat hacky) 60Hz rate;
 	// - Music gain reduction happens at a 10Hz rate.
 
-	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol;
+	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol;
 
 	int usecPerInt = timer_getUsecPerInt(); // Always returns 20000 microseconds (50 Hz)
 	waveapi_callback();
@@ -170,32 +223,32 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 		musicEffVol = groups_setGroupVol(IMUSE_GROUP_MUSICEFF, -1); // MUSIC EFFECTIVE VOLUME GROUP (used for gain reduction)
 		musicVol = groups_setGroupVol(IMUSE_GROUP_MUSIC, -1); // MUSIC VOLUME SUBGROUP (keeps track of original music volume)
 
-		if (musicEffVol < musicVol) { // If there is gain reduction already going on...
-			musicEffVol += 3;
-			if (musicEffVol >= musicTargetVolume) {
-				if (musicVol <= musicTargetVolume) {
-					musicVol = musicTargetVolume;
+		if (musicEffVol < musicTargetVolume) { // If there is gain reduction already going on...
+			tempEffVol = musicEffVol + 3;
+			if (tempEffVol < musicTargetVolume) {
+				if (musicVol <= tempEffVol) {
+					musicVol = tempEffVol;
 				}
-			} else { // Bring up the effective music volume immediately when speech stops playing
-				if (musicVol <= musicEffVol) {
-					musicVol = musicEffVol;
-				}
+			} else if (musicVol <= musicTargetVolume) { // Bring up the music volume immediately when speech stops playing
+				musicVol = musicTargetVolume;
 			}
-		} else {
+			groups_setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+		} else if (musicEffVol > musicTargetVolume) {
 			// Bring music volume down to target volume with a -18 step if there's speech playing
 		    // or else, just cap it to the target if it's out of range
-			musicEffVol -= 18;
-			if (musicEffVol > musicTargetVolume) {
-				if (musicVol >= musicEffVol) {
-					musicVol = musicEffVol;
-				}
-			} else {
+			tempVol = musicEffVol - 18;
+			if (tempVol <= musicTargetVolume) {
 				if (musicVol >= musicTargetVolume) {
 					musicVol = musicTargetVolume;
 				}
+			} else {
+				if (musicVol >= tempVol) {
+					musicVol = tempVol;
+				}
 			}
+			groups_setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
 		}
-		groups_setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+		
 	} while (cmd_running10HzCount >= 100000);
 }
 
@@ -241,6 +294,88 @@ void DiMUSE_v2::flushTracks() {
 	}
 }
 
+int32 DiMUSE_v2::getCurMusicPosInMs() {
+	int soundId, curSoundId;
+
+	curSoundId = 0;
+	soundId = 0;
+	while (1) {
+		curSoundId = DiMUSE_getNextSound(curSoundId);
+		if (!curSoundId)
+			break;
+
+		if (DiMUSE_getParam(curSoundId, 0x1800) && DiMUSE_getParam(curSoundId, 0x1900) == 2) {
+			soundId = curSoundId;
+			return DiMUSE_getParam(soundId, 0x1A00);
+		}
+	}
+
+	return DiMUSE_getParam(soundId, 0x1A00);
+}
+
+int32 DiMUSE_v2::getCurVoiceLipSyncWidth() {
+	int32 width, height;
+	getSpeechLipSyncInfo(&width, &height);
+	return width;
+}
+
+int32 DiMUSE_v2::getCurVoiceLipSyncHeight() {
+	int32 width, height;
+	getSpeechLipSyncInfo(&width, &height);
+	return height;
+}
+
+int32 DiMUSE_v2::getCurMusicLipSyncWidth(int syncId) {
+	int32 width, height;
+	getMusicLipSyncInfo(syncId, &width, &height);
+	return width;
+}
+
+int32 DiMUSE_v2::getCurMusicLipSyncHeight(int syncId) {
+	int32 width, height;
+	getMusicLipSyncInfo(syncId, &width, &height);
+	return height;
+}
+
+void DiMUSE_v2::getSpeechLipSyncInfo(int32 *width, int32 *height) {
+	int curSpeechPosInMs;
+
+	*width = 0;
+	*height = 0;
+
+	if (DiMUSE_getParam(kTalkSoundID, 0x100) > 0) {
+		curSpeechPosInMs = DiMUSE_getParam(kTalkSoundID, 0x1A00);
+		DiMUSE_lipSync(kTalkSoundID, 0, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
+	}
+}
+
+void DiMUSE_v2::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
+	int soundId;
+	int speechSoundId;
+	int curSpeechPosInMs;
+
+	soundId = 0;
+	speechSoundId = 0;
+	*width = 0;
+	*height = 0;
+	while (1) {
+		soundId = DiMUSE_getNextSound(soundId);
+		if (!soundId)
+			break;
+		if (DiMUSE_getParam(soundId, 0x1800)) {
+			if (DiMUSE_getParam(soundId, 0x1900) == 2) {
+				speechSoundId = soundId;
+				break;
+			}
+		}
+	}
+
+	if (speechSoundId) {
+		curSpeechPosInMs = DiMUSE_getParam(speechSoundId, 0x1A00);
+		DiMUSE_lipSync(speechSoundId, syncId, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
+	}
+}
+
 void DiMUSE_v2::pause(bool p) {
 	if (p) {
 		debug(5, "DiMUSE_v2::pause(): pausing...");
@@ -272,15 +407,15 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
-		DiMUSE_setGroupVol_SFX(b);
+		//DiMUSE_setGroupVol_SFX(b);
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
-		DiMUSE_setGroupVol_Voice(b);
+		//DiMUSE_setGroupVol_Voice(b);
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
-		DiMUSE_setGroupVol_Music(b);
+		//DiMUSE_setGroupVol_Music(b);
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam
@@ -373,6 +508,12 @@ int DiMUSE_v2::DiMUSE_processStreams() {
 
 int DiMUSE_v2::DiMUSE_queryStream() { return 0; }
 int DiMUSE_v2::DiMUSE_feedStream() { return 0; }
+
+int DiMUSE_v2::DiMUSE_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+	// Skip over cmds_handleCmds for this one, I really don't like the idea of having to use intptr_t casts
+	// return cmds_handleCmds(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+	return wave_lipSync(soundId, syncId, msPos, width, height);
+}
 
 int DiMUSE_v2::DiMUSE_setGroupVol_Music(int volume) {
 	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_Music(): %d", volume);

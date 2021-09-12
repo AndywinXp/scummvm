@@ -129,11 +129,12 @@ void DiMUSE_v2::files_openSound(int soundId) {
 	char fileName[23] = "";
 	files_getFilenameFromSoundId(soundId, fileName);
 	DiMUSESndMgr::SoundDesc *s = NULL;
-	s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, -1);
+	int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
+	s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, -1);
 	if (!s)
-		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, 1);
+		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 1);
 	if (!s)
-		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, IMUSE_VOLGRP_MUSIC, 2);
+		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 2);
 	if (!s)
 		debug(5, "DiMUSE_v2::files_openSound(): can't open sound %d (%s)", soundId, fileName);
 }
@@ -154,6 +155,10 @@ void DiMUSE_v2::files_closeAllSounds() {
 
 void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 	int i = 0;
+
+	if (soundId == kTalkSoundID) {
+		iMUSE_strcpy(fileName, _currentSpeechFile);
+	}
 
 	if (_vm->_game.id == GID_CMI) {
 		if (soundId < 2000) {

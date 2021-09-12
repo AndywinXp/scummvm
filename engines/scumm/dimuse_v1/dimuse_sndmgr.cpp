@@ -538,24 +538,26 @@ void DiMUSESndMgr::closeSoundById(int soundId) {
 		}
 	}
 
-	assert(checkForProperHandle(soundDesc));
+	if (soundDesc) {
+		assert(checkForProperHandle(soundDesc));
 
-	if (soundDesc->resPtr) {
-		_vm->_res->unlock(rtSound, soundDesc->soundId);
+		if (soundDesc->resPtr) {
+			_vm->_res->unlock(rtSound, soundDesc->soundId);
+		}
+
+		delete soundDesc->compressedStream;
+		delete soundDesc->bundle;
+
+		for (int r = 0; r < soundDesc->numSyncs; r++)
+			delete[] soundDesc->sync[r].ptr;
+		for (int r = 0; r < soundDesc->numMarkers; r++)
+			delete[] soundDesc->marker[r].ptr;
+		delete[] soundDesc->region;
+		delete[] soundDesc->jump;
+		delete[] soundDesc->sync;
+		delete[] soundDesc->marker;
+		memset(soundDesc, 0, sizeof(SoundDesc));
 	}
-
-	delete soundDesc->compressedStream;
-	delete soundDesc->bundle;
-
-	for (int r = 0; r < soundDesc->numSyncs; r++)
-		delete[] soundDesc->sync[r].ptr;
-	for (int r = 0; r < soundDesc->numMarkers; r++)
-		delete[] soundDesc->marker[r].ptr;
-	delete[] soundDesc->region;
-	delete[] soundDesc->jump;
-	delete[] soundDesc->sync;
-	delete[] soundDesc->marker;
-	memset(soundDesc, 0, sizeof(SoundDesc));
 }
 
 DiMUSESndMgr::SoundDesc *DiMUSESndMgr::cloneSound(SoundDesc *soundDesc) {

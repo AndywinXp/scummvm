@@ -1303,11 +1303,38 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 
 		// SYNC block (fixed size: x bytes)
 		// - The string 'SYNC' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (4 bytes)
-		// - Don't know yet
+		// - SYNC size in bytes (4 bytes)
+		// - SYNC data (variable length)
 		if (blockName == 'SYNC') {
-			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): WARNING: SYNC block not implemented yet");
+			// It is possible to gather a total maximum of 4 SYNCs for a single track;
+			// this is not a problem however, as speech files only have one SYNC block,
+			// and the most we get is four (one for each character) in 
+			// A Pirate I Was Meant To Be, in Part 3 of COMI
+
+			// Curiously we skip the first four bytes of data, ending up having the first
+			// four bytes of the next block in our syncPtr; but this is exactly what happens
+			// within the interpreter, so I'm not going to argue with it
+
+			if (!dispatchPtr->trackPtr->syncPtr_0) {
+				dispatchPtr->trackPtr->syncPtr_0 = (byte *)malloc(mapCurPos[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_0, mapCurPos + 3, mapCurPos[1]);
+				dispatchPtr->trackPtr->syncSize_0 = mapCurPos[1];
+
+			} else if (!dispatchPtr->trackPtr->syncPtr_1) {
+				dispatchPtr->trackPtr->syncPtr_1 = (byte *)malloc(mapCurPos[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_1, mapCurPos + 3, mapCurPos[1]);
+				dispatchPtr->trackPtr->syncSize_1 = mapCurPos[1];
+
+			} else if (!dispatchPtr->trackPtr->syncPtr_2) {
+				dispatchPtr->trackPtr->syncPtr_2 = (byte *)malloc(mapCurPos[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_2, mapCurPos + 3, mapCurPos[1]);
+				dispatchPtr->trackPtr->syncSize_2 = mapCurPos[1];
+
+			} else if (!dispatchPtr->trackPtr->syncPtr_3) {
+				dispatchPtr->trackPtr->syncPtr_3 = (byte *)malloc(mapCurPos[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_3, mapCurPos + 3, mapCurPos[1]);
+				dispatchPtr->trackPtr->syncSize_3 = mapCurPos[1];
+			}
 
 			continue;
 		}
@@ -1316,7 +1343,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 		// - The string 'FRMT' (4 bytes)
 		// - Block size in bytes minus 8 (4 bytes)
 		// - Block offset (4 bytes)
-		// - Empty field (4 bytes) (which is set to 1 in Grim Fandango)
+		// - Empty field (4 bytes) (which is set to 1 in Grim Fandango, I suspect this is the endianness)
 		// - Word size between 8, 12 and 16 (4 bytes)
 		// - Sample rate (4 bytes)
 		// - Number of channels (4 bytes)

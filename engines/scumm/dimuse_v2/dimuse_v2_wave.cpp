@@ -190,7 +190,6 @@ namespace Scumm {
 	}
 
 	int DiMUSE_v2::wave_lipSync(int soundId, int syncId, int msPos, int *width, int *height) {
-		//return tracks_lipSync(soundId, syncId, msPos, width, height);
-		return 0;
+		return tracks_lipSync(soundId, syncId, msPos, width, height);
 	}
 } // End of namespace Scumm

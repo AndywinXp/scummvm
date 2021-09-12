@@ -179,6 +179,14 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			foundTrack->pitchShift = 0;
 			foundTrack->mailbox = 0;
 			foundTrack->jumpHook = 0;
+			foundTrack->syncSize_0 = 0;
+			foundTrack->syncPtr_0 = NULL;
+			foundTrack->syncSize_1 = 0;
+			foundTrack->syncPtr_1 = NULL;
+			foundTrack->syncSize_2 = 0;
+			foundTrack->syncPtr_2 = NULL;
+			foundTrack->syncSize_3 = 0;
+			foundTrack->syncPtr_3 = NULL;
 
 			if (dispatch_alloc(foundTrack, group)) {
 				debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
@@ -233,6 +241,14 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	stolenTrack->pitchShift = 0;
 	stolenTrack->mailbox = 0;
 	stolenTrack->jumpHook = 0;
+	stolenTrack->syncSize_0 = 0;
+	stolenTrack->syncPtr_0 = NULL;
+	stolenTrack->syncSize_1 = 0;
+	stolenTrack->syncPtr_1 = NULL;
+	stolenTrack->syncSize_2 = 0;
+	stolenTrack->syncPtr_2 = NULL;
+	stolenTrack->syncSize_3 = 0;
+	stolenTrack->syncPtr_3 = NULL;
 
 	if (dispatch_alloc(stolenTrack, group)) {
 		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
@@ -340,6 +356,32 @@ int DiMUSE_v2::tracks_feedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int
 }
 
 void DiMUSE_v2::tracks_clear(iMUSETrack *trackPtr) {
+	if (_vm->_game.id == GID_CMI) {
+		if (trackPtr->syncPtr_0) {
+			trackPtr->syncSize_0 = 0;
+			free(trackPtr->syncPtr_0);
+			trackPtr->syncPtr_0 = NULL;
+		}
+
+		if (trackPtr->syncPtr_1) {
+			trackPtr->syncSize_1 = 0;
+			free(trackPtr->syncPtr_1);
+			trackPtr->syncPtr_1 = NULL;
+		}
+
+		if (trackPtr->syncPtr_2) {
+			trackPtr->syncSize_2 = 0;
+			free(trackPtr->syncPtr_2);
+			trackPtr->syncPtr_2 = NULL;
+		}
+
+		if (trackPtr->syncPtr_3) {
+			trackPtr->syncSize_3 = 0;
+			free(trackPtr->syncPtr_3);
+			trackPtr->syncPtr_3 = NULL;
+		}
+	}
+
 	iMUSE_removeTrackFromList(&tracks_trackList, trackPtr);
 	dispatch_release(trackPtr);
 	fades_clearFadeStatus(trackPtr->soundId, -1);
@@ -478,79 +520,83 @@ int DiMUSE_v2::tracks_getParam(int soundId, int opcode) {
 	else
 		return 0;
 }
-/*
-int tracks_lipSync(int soundId, int syncId, int msPos, int *width, char *height) {
-	int w = 0;
-	int h = 0;
-	iMUSETrack *track = *(iMUSETrack**)tracks_trackList;
-	int result = 0;
-	if (msPos < 0) {
-		if (width)
-			*width = 0;
-		if (height)
-			*height = 0;
-		return result;
-	}
-	msPos /= 16;
-	if (msPos >= 65536) {
-		result = -5;
-	}
-	else {
-		if (tracks_trackList) {
-			do {
-				if (track->soundId == soundId)
-					break;
-				track = track->next;
-			} while (track);
-		}
-		if (track) {
-			switch (syncId) {
-			case 0:
-				sync_ptr = track->sync_ptr_0;
-				sync_size = track->sync_size_0;
-				goto break;
-			case 1:
-				sync_ptr = track->sync_ptr_1
-					sync_size = track->sync_size_1;
-				goto break;
-			case 2:
-				sync_ptr = track->sync_ptr_2;
-				sync_size = track->sync_size_2;
-				break;
-			case 3:
-				sync_ptr = track->sync_ptr_3;
-				sync_size = track->sync_size_3;
-				break;
-			default:
-				break;
-			}
-			if (sync_size && sync_ptr) {
-				sync_size /= 4;
-				v12 = sync_ptr + 2;
-				v15 = sync_size;
-				v13 = sync_size - 1;
-				while (sync_size--) {
-					if (sync_ptr[2] >= msPos)
+int DiMUSE_v2::tracks_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+	int h, w;
+
+	byte *syncPtr = NULL;
+	int syncSize = 0;
+
+	iMUSETrack *curTrack;
+	uint16 msPosDiv;
+	uint16 *tmpPtr;
+	int loopIndex;
+	int16 val;
+
+	h = 0;
+	w = 0;
+	curTrack = tracks_trackList;
+
+	if (msPos >= 0) {
+		msPosDiv = msPos >> 4;
+		if (((msPos >> 4) & 0xFFFF0000) != 0) {
+			return -5;
+		} else {
+			if (tracks_trackList) {
+				do {
+					if (curTrack->soundId == soundId)
 						break;
-					sync_ptr += 4;
+					curTrack = curTrack->next;
+				} while (curTrack);
+			}
+
+			if (curTrack) {
+				if (syncId >= 0 && syncId < 4) {
+					if (syncId == 0) {
+						syncPtr = curTrack->syncPtr_0;
+						syncSize = curTrack->syncSize_0;
+					} else if (syncId == 1) {
+						syncPtr = curTrack->syncPtr_1;
+						syncSize = curTrack->syncSize_1;
+					} else if (syncId == 2) {
+						syncPtr = curTrack->syncPtr_2;
+						syncSize = curTrack->syncSize_2;
+					} else if (syncId == 3) {
+						syncPtr = curTrack->syncPtr_3;
+						syncSize = curTrack->syncSize_3;
+					}
+
+					if (syncSize && syncPtr) {
+						tmpPtr = (uint16 *)(syncPtr + 2);
+						loopIndex = (syncSize >> 2) - 1;
+						if (syncSize >> 2) {
+							do {
+								if (*tmpPtr >= msPosDiv)
+									break;
+								tmpPtr += 2;
+							} while (loopIndex--);
+						}
+
+						if (loopIndex < 0 || *tmpPtr > msPosDiv)
+							tmpPtr -= 2;
+
+						val = *(tmpPtr - 1);
+						w = (val >> 8) & 0x7F;           // (val >> 8) & 0x7F;
+						h = val & 0x7F;
+					}
 				}
-				if (sync_size < 0 || sync_ptr[2] > msPos)
-					sync_size -= 4;
-				val = *(sync_ptr - 2);
-				w = (val >> 8) & 0x7F;
-				h = val & 0x7F;
+			} else {
+				return -4;
 			}
 		}
-		else {
-			result = -4;
-		}
 	}
+
 	if (width)
 		*width = w;
 	if (height)
 		*height = h;
-	return result;
-}*/
+
+	return 0;
+}
 
 int DiMUSE_v2::tracks_setHook(int soundId, int hookId) {
 	if (hookId > 128)

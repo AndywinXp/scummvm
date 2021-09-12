@@ -92,6 +92,7 @@ private:
 	int _currentSpeechVolume;
 	int _currentSpeechFrequency;
 	int _currentSpeechPan;
+	bool _radioChatterSFX;
 	
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
@@ -108,10 +109,10 @@ public:
 	int isSoundRunning(int soundId);
 
 	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
-	int startVoice(int soundId, const char *soundName) override { return 0; };
+	int startVoice(int soundId, const char *soundName) override;
 	void saveLoadEarly(Common::Serializer &ser) override {};
 	void resetState() override {};
-	void setRadioChatterSFX(bool state) override {};
+	void setRadioChatterSFX(bool state) override;
 	void setAudioNames(int32 num, char *names) override {};
 	int  startSfx(int soundId, int priority) override;
 	void setPriority(int soundId, int priority) override {};
@@ -126,12 +127,13 @@ public:
 	void refreshScripts() override;
 	void flushTracks() override;
 
-	int32 getCurMusicPosInMs() override { return 0; };
-	int32 getCurVoiceLipSyncWidth() override { return 0; };
-	int32 getCurVoiceLipSyncHeight() override { return 0; };
-	int32 getCurMusicLipSyncWidth(int syncId) override { return 0; };
-	int32 getCurMusicLipSyncHeight(int syncId) override { return 0; };
-	int32 getSoundElapsedTimeInMs(int soundId) override { return 0; };
+	int32 getCurMusicPosInMs() override;
+	int32 getCurVoiceLipSyncWidth() override;
+	int32 getCurVoiceLipSyncHeight() override;
+	int32 getCurMusicLipSyncWidth(int syncId) override;
+	int32 getCurMusicLipSyncHeight(int syncId) override;
+	void getSpeechLipSyncInfo(int32 *width, int32 *height);
+	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
 
 	uint8 *iMUSE_audioBuffer;
 	int iMUSE_feedSize = 1024; // 1024 for DIG (Windows API), 2048 (DirectSound) and 1024 (Windows API) for COMI 
@@ -178,6 +180,7 @@ public:
 	int DiMUSE_processStreams();
 	int DiMUSE_queryStream();
 	int DiMUSE_feedStream();
+	int DiMUSE_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
 	int DiMUSE_setGroupVol_Music(int volume);
 	int DiMUSE_setGroupVol_SFX(int volume);
 	int DiMUSE_setGroupVol_Voice(int volume);
@@ -313,6 +316,14 @@ public:
 		int pitchShift;
 		int mailbox;
 		int jumpHook;
+		int syncSize_0;
+		byte *syncPtr_0;
+		int syncSize_1;
+		byte *syncPtr_1;
+		int syncSize_2;
+		byte *syncPtr_2;
+		int syncSize_3;
+		byte *syncPtr_3;
 	};
 
 	iMUSETrack tracks[MAX_TRACKS];
@@ -340,7 +351,7 @@ public:
 	void tracks_clear(iMUSETrack *trackPtr);
 	int tracks_setParam(int soundId, int opcode, int value);
 	int tracks_getParam(int soundId, int opcode);
-	int tracks_lipSync(int soundId, int syncId, int msPos, int *width, char *height);
+	int tracks_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
 	int tracks_setHook(int soundId, int hookId);
 	int tracks_getHook(int soundId);
 	void tracks_free();
@@ -507,6 +518,9 @@ public:
 	char triggers_empty_marker = '\0';
 
 	// Files
+
+	char _currentSpeechFile[60];
+
 	int files_moduleInit();
 	int files_moduleDeinit();
 	uint8 *files_getSoundAddrData(int soundId);
