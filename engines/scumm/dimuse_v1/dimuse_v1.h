@@ -163,6 +163,7 @@ public:
 	void refreshScripts();
 	void flushTracks();
 	int getSoundStatus(int sound) const override;
+	int isSoundRunning(int sound) override;
 	int32 getCurMusicPosInMs();
 	int32 getCurVoiceLipSyncWidth();
 	int32 getCurVoiceLipSyncHeight();

@@ -307,6 +307,11 @@ int DiMUSE_v1::getSoundStatus(int soundId) const {
 	return 0;
 }
 
+// Fallback to getSoundStatus
+int DiMUSE_v1::isSoundRunning(int sound) {
+	return getSoundStatus(sound);
+}
+
 void DiMUSE_v1::stopSound(int soundId) {
 	Common::StackLock lock(_mutex, "DiMUSE_v1::stopSound()");
 	debug(5, "DiMUSE_v1::stopSound(%d)", soundId);
