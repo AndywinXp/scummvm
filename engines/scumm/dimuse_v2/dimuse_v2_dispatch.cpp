@@ -1157,7 +1157,11 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				dispatchPtr->currentOffset = mapCurPos[3];
 				if (dispatchPtr->streamPtr) {
 					if (dispatchPtr->streamZoneList->size || !dispatchPtr->streamZoneList->next) {
-						debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: failed to prepare for jump"); // Not a real error, apparently
+						debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): \n"
+							"\tJUMP found for sound %d with valid hookId (%d), \n"
+							"\tgoing to offset %d with a crossfade of %d ms",
+							dispatchPtr->trackPtr->soundId, mapCurPos[4], mapCurPos[3], mapCurPos[5]);
+
 						dispatch_parseJump(dispatchPtr, dispatchPtr->streamZoneList, mapCurPos, 1);
 					}
 
@@ -1591,8 +1595,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 							return;
 					}
 				}
-			}
-			else {
+			} else {
 				// Avoid jumping if we're trying to jump to the next stream zone
 				if (nextStreamZone->offset == jumpDestination)
 					return;
@@ -1635,9 +1638,13 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: ValidateFadeSize() tried mod by 0");
 	}
 
-	if (hookPosition < jumpDestination)
-		dispatch_size = NULL;
-
+	if (_vm->_game.id == GID_DIG) {
+		if (hookPosition < jumpDestination)
+			dispatch_size = NULL;
+	} else {
+		if (dispatchPtr->fadeRemaining)
+			dispatch_size = 0;
+	}
 	// Try allocating the two zones needed for the jump
 	zoneForJump = NULL;
 	if (dispatch_size) {
@@ -1649,7 +1656,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 
 		if (!zoneForJump) {
 			debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: out of streamZones");
-			debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't alloc zone");
+			debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't allocate zone");
 			return;
 		}
 
@@ -1670,7 +1677,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 
 	if (!zoneAfterJump) {
 		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: out of streamZones");
-		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't alloc zone");
+		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: couldn't allocate zone");
 		return;
 	}
 

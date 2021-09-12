@@ -93,7 +93,7 @@ int DiMUSE_v2::triggers_setTrigger(int soundId, char *marker, int opcode, int d,
 			return 0;
 		}
 	}
-	debug(5, "ERR: tr unable to alloc trigger...");
+	debug(5, "DiMUSE_v2::triggers_setTrigger(): ERROR: unable to allocate trigger \"%s\" for sound %d, every slot is full", marker, soundId);
 	return -6;
 }
 
@@ -116,7 +116,7 @@ int DiMUSE_v2::triggers_checkTrigger(int soundId, char *marker, int opcode) {
 int DiMUSE_v2::triggers_clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((trigs[l].sound != 0) && (soundId == -1 || trigs[l].sound == soundId) &&
-			(marker || !iMUSE_strcmp(marker, trigs[l].text)) &&
+			(marker == "" || !iMUSE_strcmp(marker, trigs[l].text)) &&
 			(opcode == -1 || trigs[l].opcode == opcode)) {
 
 			if (triggers_midProcessing) {

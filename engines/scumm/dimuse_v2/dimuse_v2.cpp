@@ -78,7 +78,7 @@ void DiMUSE_v2::stopAllSounds() {
 
 int DiMUSE_v2::isSoundRunning(int soundId) {
 	int result = DiMUSE_getParam(soundId, 0x100) > 0;
-	debug(5, "DiMUSE_v2::isSoundRunning(%d): %d", soundId, result);
+	//debug(5, "DiMUSE_v2::isSoundRunning(%d): %d", soundId, result);
 	return result;
 }
 
