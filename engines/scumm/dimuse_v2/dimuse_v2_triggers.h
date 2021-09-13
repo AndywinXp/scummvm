@@ -34,31 +34,30 @@ class DiMUSETriggersHandler {
 
 private:
 	DiMUSE_v2 *_engine;
-	DiMUSETrigger trigs[MAX_TRIGGERS];
-	DiMUSEDefer defers[MAX_DEFERS];
+	DiMUSETrigger _trigs[MAX_TRIGGERS];
+	DiMUSEDefer _defers[MAX_DEFERS];
 
-	int  triggers_defersOn;
-	int  triggers_midProcessing;
-	char triggers_textBuffer[256];
-	char triggers_empty_marker = '\0';
+	int  _defersOn;
+	int  _midProcessing;
+	char _textBuffer[256];
+	char _emptyMarker = '\0';
 public:
 	DiMUSETriggersHandler(DiMUSE_v2 *engine);
 	~DiMUSETriggersHandler();
 
-	int  triggers_moduleInit();
-	int  triggers_clear();
-	int  triggers_save(int *buffer, int bufferSize);
-	int  triggers_restore(int *buffer);
-	int  triggers_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	int  triggers_checkTrigger(int soundId, char *marker, int opcode);
-	int  triggers_clearTrigger(int soundId, char *marker, int opcode);
-	void triggers_processTriggers(int soundId, char *marker);
-	int  triggers_deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	void triggers_loop();
-	int  triggers_countPendingSounds(int soundId);
-	int  triggers_moduleFree();
+	int  init();
+	int  clearAllTriggers();
+	int  save(int *buffer, int bufferSize);
+	int  restore(int *buffer);
+	int  setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int  checkTrigger(int soundId, char *marker, int opcode);
+	int  clearTrigger(int soundId, char *marker, int opcode);
+	void processTriggers(int soundId, char *marker);
+	int  deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	void loop();
+	int  countPendingSounds(int soundId);
+	int  deinit();
 
-		
 };
 
 } // End of namespace Scumm

@@ -31,49 +31,47 @@ DiMUSETriggersHandler::DiMUSETriggersHandler(DiMUSE_v2 *engine) {
 
 DiMUSETriggersHandler::~DiMUSETriggersHandler() {}
 
-int DiMUSETriggersHandler::triggers_moduleInit() {
+int DiMUSETriggersHandler::init() {
+	return clearAllTriggers();
+}
+
+int DiMUSETriggersHandler::deinit() {
+	return clearAllTriggers();
+}
+
+int DiMUSETriggersHandler::clearAllTriggers() {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		trigs[l].sound = 0;
-		defers[l].counter = 0;
+		_trigs[l].sound = 0;
+		_defers[l].counter = 0;
 	}
-	triggers_defersOn = 0;
-	triggers_midProcessing = 0;
+	_defersOn = 0;
+	_midProcessing = 0;
 	return 0;
 }
 
-int DiMUSETriggersHandler::triggers_clear() {
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		trigs[l].sound = 0;
-		defers[l].counter = 0;
-	}
-	triggers_defersOn = 0;
-	triggers_midProcessing = 0;
-	return 0;
-}
-
-int DiMUSETriggersHandler::triggers_save(int * buffer, int bufferSize) {
+int DiMUSETriggersHandler::save(int * buffer, int bufferSize) {
 	if (bufferSize < 2848) {
 		return -5;
 	}
-	memcpy(buffer, trigs, 2464);
-	memcpy(buffer + 2464, defers, 384);
+	memcpy(buffer, _trigs, 2464);
+	memcpy(buffer + 2464, _defers, 384);
 	return 2848;
 }
 
-int DiMUSETriggersHandler::triggers_restore(int * buffer) {
-	memcpy(trigs, buffer, 2464);
-	memcpy(defers, buffer + 2464, 384);
-	triggers_defersOn = 1;
+int DiMUSETriggersHandler::restore(int * buffer) {
+	memcpy(_trigs, buffer, 2464);
+	memcpy(_defers, buffer + 2464, 384);
+	_defersOn = 1;
 	return 2848;
 }
 
-int DiMUSETriggersHandler::triggers_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 	if (soundId == 0) {
 		return -5;
 	}
 
 	if (marker == NULL) {
-		marker = &triggers_empty_marker;
+		marker = &_emptyMarker;
 	}
 
 	if (_engine->diMUSE_strlen(marker) >= 256) {
@@ -82,21 +80,21 @@ int DiMUSETriggersHandler::triggers_setTrigger(int soundId, char *marker, int op
 	}
 
 	for (int index = 0; index < MAX_TRIGGERS; index++) {
-		if (trigs[index].sound == 0) {
-			trigs[index].sound = soundId;
-			trigs[index].clearLater = 0;
-			trigs[index].opcode = opcode;
-			_engine->diMUSE_strcpy(trigs[index].text, marker);
-			trigs[index].args_0_ = d;
-			trigs[index].args_1_ = e;
-			trigs[index].args_2_ = f;
-			trigs[index].args_3_ = g;
-			trigs[index].args_4_ = h;
-			trigs[index].args_5_ = i;
-			trigs[index].args_6_ = j;
-			trigs[index].args_7_ = k;
-			trigs[index].args_8_ = l;
-			trigs[index].args_9_ = m;
+		if (_trigs[index].sound == 0) {
+			_trigs[index].sound = soundId;
+			_trigs[index].clearLater = 0;
+			_trigs[index].opcode = opcode;
+			_engine->diMUSE_strcpy(_trigs[index].text, marker);
+			_trigs[index].args_0_ = d;
+			_trigs[index].args_1_ = e;
+			_trigs[index].args_2_ = f;
+			_trigs[index].args_3_ = g;
+			_trigs[index].args_4_ = h;
+			_trigs[index].args_5_ = i;
+			_trigs[index].args_6_ = j;
+			_trigs[index].args_7_ = k;
+			_trigs[index].args_8_ = l;
+			_trigs[index].args_9_ = m;
 			return 0;
 		}
 	}
@@ -104,13 +102,13 @@ int DiMUSETriggersHandler::triggers_setTrigger(int soundId, char *marker, int op
 	return -6;
 }
 
-int DiMUSETriggersHandler::triggers_checkTrigger(int soundId, char *marker, int opcode) {
+int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	int r = 0;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		if (trigs[l].sound != 0) {
-			if (soundId == -1 || trigs[l].sound == soundId) {
-				if (marker == (char *)-1 || !_engine->diMUSE_strcmp(marker, trigs[l].text)) {
-					if (opcode == -1 || trigs[l].opcode == opcode)
+		if (_trigs[l].sound != 0) {
+			if (soundId == -1 || _trigs[l].sound == soundId) {
+				if (marker == (char *)-1 || !_engine->diMUSE_strcmp(marker, _trigs[l].text)) {
+					if (opcode == -1 || _trigs[l].opcode == opcode)
 						r++;
 				}
 			}
@@ -120,23 +118,23 @@ int DiMUSETriggersHandler::triggers_checkTrigger(int soundId, char *marker, int 
 	return r;
 }
 
-int DiMUSETriggersHandler::triggers_clearTrigger(int soundId, char *marker, int opcode) {
+int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		if ((trigs[l].sound != 0) && (soundId == -1 || trigs[l].sound == soundId) &&
-			(!_engine->diMUSE_strcmp(marker, (char *)"") || !_engine->diMUSE_strcmp(marker, trigs[l].text)) &&
-			(opcode == -1 || trigs[l].opcode == opcode)) {
+		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
+			(!_engine->diMUSE_strcmp(marker, (char *)"") || !_engine->diMUSE_strcmp(marker, _trigs[l].text)) &&
+			(opcode == -1 || _trigs[l].opcode == opcode)) {
 
-			if (triggers_midProcessing) {
-				trigs[l].clearLater = 1;
+			if (_midProcessing) {
+				_trigs[l].clearLater = 1;
 			} else {
-				trigs[l].sound = 0;
+				_trigs[l].sound = 0;
 			}
 		}
 	}
 	return 0;
 }
 
-void DiMUSETriggersHandler::triggers_processTriggers(int soundId, char *marker) {
+void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
 	if (_engine->diMUSE_strlen(marker) >= 256) {
@@ -144,38 +142,38 @@ void DiMUSETriggersHandler::triggers_processTriggers(int soundId, char *marker) 
 		return;
 	}
 
-	_engine->diMUSE_strcpy(triggers_textBuffer, marker);
-	triggers_midProcessing++;
+	_engine->diMUSE_strcpy(_textBuffer, marker);
+	_midProcessing++;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		if (!trigs[l].sound ||
-			trigs[l].sound != soundId ||
-			trigs[l].text[0] && _engine->diMUSE_strcmp(triggers_textBuffer, trigs[l].text)) {
+		if (!_trigs[l].sound ||
+			_trigs[l].sound != soundId ||
+			_trigs[l].text[0] && _engine->diMUSE_strcmp(_textBuffer, _trigs[l].text)) {
 			continue;
 		}
 
 		// Save the string into our local buffer for later
 		r = 0;
-		if (triggers_textBuffer[0] != '\0') {
+		if (_textBuffer[0] != '\0') {
 			do {
-				textBuffer[r] = triggers_textBuffer[r];
+				textBuffer[r] = _textBuffer[r];
 				r++;
-			} while (triggers_textBuffer[r] != '\0');
+			} while (_textBuffer[r] != '\0');
 		}
 		textBuffer[r] = '\0';
 
-		trigs[l].sound = 0;
-		if (trigs[l].opcode == 0) {
+		_trigs[l].sound = 0;
+		if (_trigs[l].opcode == 0) {
 			// Call the script callback (a function which sets _stoppingSequence to 1)
-			_engine->script_callback(triggers_textBuffer);
+			_engine->script_callback(_textBuffer);
 		} else {
-			if (trigs[l].opcode < 30) {
+			if (_trigs[l].opcode < 30) {
 				// Execute a command
-				_engine->cmds_handleCmds((int)trigs[l].opcode, trigs[l].args_0_,
-					trigs[l].args_1_, trigs[l].args_2_,
-					trigs[l].args_3_, trigs[l].args_4_,
-					trigs[l].args_5_, trigs[l].args_6_,
-					trigs[l].args_7_, trigs[l].args_8_,
-					trigs[l].args_9_, -1, -1, -1, -1);
+				_engine->cmds_handleCmds((int)_trigs[l].opcode, _trigs[l].args_0_,
+					_trigs[l].args_1_, _trigs[l].args_2_,
+					_trigs[l].args_3_, _trigs[l].args_4_,
+					_trigs[l].args_5_, _trigs[l].args_6_,
+					_trigs[l].args_7_, _trigs[l].args_8_,
+					_trigs[l].args_9_, -1, -1, -1, -1);
 			}
 			// This is used by DIG when speech is playing; not clear what its purpose is,
 			// but its absence never appeared to disrupt anything
@@ -194,40 +192,40 @@ void DiMUSETriggersHandler::triggers_processTriggers(int soundId, char *marker) 
 		r = 0;
 		if (textBuffer[0] != '\0') {
 			do {
-				triggers_textBuffer[r] = textBuffer[r];
+				_textBuffer[r] = textBuffer[r];
 				r++;
 			} while (textBuffer[r] != '\0');
 		}
-		triggers_textBuffer[r] = '\0';
+		_textBuffer[r] = '\0';
 	}
-	if (--triggers_midProcessing == 0) {
+	if (--_midProcessing == 0) {
 		for (int l = 0; l < MAX_TRIGGERS; l++) {
-			if (trigs[l].clearLater) {
-				trigs[l].sound = 0;
+			if (_trigs[l].clearLater) {
+				_trigs[l].sound = 0;
 			}
 		}
 	}
 }
 
-int DiMUSETriggersHandler::triggers_deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+int DiMUSETriggersHandler::deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 	if (!count) {
 		return -5;
 	}
 	for (int index = 0; index < MAX_DEFERS; index++) {
-		if (!defers[index].counter) {
-			defers[index].counter = count;
-			defers[index].opcode = opcode;
-			defers[index].args_0_ = c;
-			defers[index].args_1_ = d;
-			defers[index].args_2_ = e;
-			defers[index].args_3_ = f;
-			defers[index].args_4_ = g;
-			defers[index].args_5_ = h;
-			defers[index].args_6_ = i;
-			defers[index].args_7_ = j;
-			defers[index].args_8_ = k;
-			defers[index].args_9_ = l;
-			triggers_defersOn = 1;
+		if (!_defers[index].counter) {
+			_defers[index].counter = count;
+			_defers[index].opcode = opcode;
+			_defers[index].args_0_ = c;
+			_defers[index].args_1_ = d;
+			_defers[index].args_2_ = e;
+			_defers[index].args_3_ = f;
+			_defers[index].args_4_ = g;
+			_defers[index].args_5_ = h;
+			_defers[index].args_6_ = i;
+			_defers[index].args_7_ = j;
+			_defers[index].args_8_ = k;
+			_defers[index].args_9_ = l;
+			_defersOn = 1;
 			return 0;
 		}
 	}
@@ -235,27 +233,27 @@ int DiMUSETriggersHandler::triggers_deferCommand(int count, int opcode, int c, i
 	return -6;
 }
 
-void DiMUSETriggersHandler::triggers_loop() {
-	if (!triggers_defersOn)
+void DiMUSETriggersHandler::loop() {
+	if (!_defersOn)
 		return;
 
-	triggers_defersOn = 0;
+	_defersOn = 0;
 	for (int l = 0; l < MAX_DEFERS; l++) {
-		if (defers[l].counter == 0)
+		if (_defers[l].counter == 0)
 			continue;
 
-		triggers_defersOn = 1;
-		defers[l].counter--;
+		_defersOn = 1;
+		_defers[l].counter--;
 
-		if (defers[l].counter == 1) {
-			if (defers[l].opcode != 0) {
-				if (defers[l].opcode < 30) {
-					_engine->cmds_handleCmds((int)trigs[l].opcode,
-						trigs[l].args_0_, trigs[l].args_1_,
-						trigs[l].args_2_, trigs[l].args_3_,
-						trigs[l].args_4_, trigs[l].args_5_,
-						trigs[l].args_6_, trigs[l].args_7_,
-						trigs[l].args_8_, trigs[l].args_9_, -1, -1, -1, -1);
+		if (_defers[l].counter == 1) {
+			if (_defers[l].opcode != 0) {
+				if (_defers[l].opcode < 30) {
+					_engine->cmds_handleCmds((int)_trigs[l].opcode,
+						_trigs[l].args_0_, _trigs[l].args_1_,
+						_trigs[l].args_2_, _trigs[l].args_3_,
+						_trigs[l].args_4_, _trigs[l].args_5_,
+						_trigs[l].args_6_, _trigs[l].args_7_,
+						_trigs[l].args_8_, _trigs[l].args_9_, -1, -1, -1, -1);
 				}
 				// This is used by DIG when speech is playing; not clear what its purpose is,
 				// but its absence never appeared to disrupt anything
@@ -269,43 +267,33 @@ void DiMUSETriggersHandler::triggers_loop() {
 						trigs[l].args_8_, trigs[l].args_9_);
 				}*/ 
 			} else {
-				_engine->script_callback(trigs[l].text);
+				_engine->script_callback(_trigs[l].text);
 			}
 		}
 	}
 }
 
-int DiMUSETriggersHandler::triggers_countPendingSounds(int soundId) {
+int DiMUSETriggersHandler::countPendingSounds(int soundId) {
 	int r = 0;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		if (!trigs[l].sound)
+		if (!_trigs[l].sound)
 			continue;
 
-		int opcode = trigs[l].opcode;
-		if ((opcode == 8 && trigs[l].args_0_ == soundId) || (opcode == 26 && trigs[l].args_1_ == soundId))
+		int opcode = _trigs[l].opcode;
+		if ((opcode == 8 && _trigs[l].args_0_ == soundId) || (opcode == 26 && _trigs[l].args_1_ == soundId))
 			r++;
 	}
 
 	for (int l = 0; l < MAX_DEFERS; l++) {
-		if (!defers[l].counter)
+		if (!_defers[l].counter)
 			continue;
 
-		int opcode = defers[l].opcode;
-		if ((opcode == 8 && defers[l].args_0_ == soundId) || (opcode == 26 && defers[l].args_1_ == soundId))
+		int opcode = _defers[l].opcode;
+		if ((opcode == 8 && _defers[l].args_0_ == soundId) || (opcode == 26 && _defers[l].args_1_ == soundId))
 			r++;
 	}
 
 	return r;
-}
-
-int DiMUSETriggersHandler::triggers_moduleFree() {
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
-		trigs[l].sound = 0;
-		defers[l].counter = 0;
-	}
-	triggers_defersOn = 0;
-	triggers_midProcessing = 0;
-	return 0;
 }
 
 } // End of namespace Scumm

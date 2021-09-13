@@ -470,7 +470,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 	// Clear fades and triggers for the old newSoundId
 	_fadesHandler->clearFadeStatus(curDispatch->trackPtr->soundId, -1);
-	_triggersHandler->triggers_clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
+	_triggersHandler->clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
 
 	// Setup the new newSoundId
 	curDispatch->trackPtr->soundId = newSoundId;
@@ -1382,7 +1382,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - A string of characters ending with '\0' (variable length)
 		if (blockName == 'TEXT') {
 			char *marker = (char *)mapCurPos + 12;
-			_triggersHandler->triggers_processTriggers(dispatchPtr->trackPtr->soundId, marker);
+			_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, marker);
 			if (dispatchPtr->audioRemaining)
 				return 0;
 

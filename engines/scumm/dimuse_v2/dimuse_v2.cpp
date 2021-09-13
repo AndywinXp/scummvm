@@ -214,7 +214,7 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 	while (cmd_running60HzCount >= 16667) {
 		cmd_running60HzCount -= 16667;
 		_fadesHandler->loop();
-		_triggersHandler->triggers_loop();
+		_triggersHandler->loop();
 	}
 
 	cmd_running10HzCount += usecPerInt;
@@ -449,7 +449,6 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 	default:
 		error("DiMUSE_v2::doCommand DEFAULT command %d", cmd);
 	}
-
 };
 
 int DiMUSE_v2::diMUSE_terminate() {
