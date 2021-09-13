@@ -20,34 +20,49 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2_timer.h"
+#if !defined(SCUMM_IMUSE_DIGI_V2_FADES_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_V2_FADES_H
+
+#include "common/scummsys.h"
+#include "common/textconsole.h"
+#include "common/util.h"
 
 namespace Scumm {
 
-DiMUSETimerHandler::DiMUSETimerHandler() {}
+#define MAX_FADES 16
 
-DiMUSETimerHandler::~DiMUSETimerHandler() {}
+class DiMUSEFadesHandler {
 
-int DiMUSETimerHandler::init() {
-	_usecPerInt = 20000;
-	_interruptFlag = 0;
-	return 0;
-}
+	typedef struct {
+		int status;
+		int sound;
+		int param;
+		int currentVal;
+		int counter;
+		int length;
+		int slope;
+		int slopeMod;
+		int modOvfloCounter;
+		int nudge;
+	} DiMUSEFade;
 
-int DiMUSETimerHandler::deinit() {
-	return 0;
-}
+private:
+	DiMUSE_v2 *_engine;
+	DiMUSEFade _fades[MAX_FADES];
+	int _fadesOn;
+public:
+	DiMUSEFadesHandler(DiMUSE_v2 *engine);
+	~DiMUSEFadesHandler();
 
-int DiMUSETimerHandler::getUsecPerInt() {
-	return _usecPerInt;
-}
-
-int DiMUSETimerHandler::getInterruptFlag() {
-	return _interruptFlag;
-}
-
-void DiMUSETimerHandler::setInterruptFlag(int value) {
-	_interruptFlag = value;
-}
+	int init();
+	void deinit();
+	int save(unsigned char *buffer, int sizeLeft);
+	int restore(unsigned char *buffer);
+	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot);
+	void clearFadeStatus(int soundId, int opcode);
+	void loop();
+	
+};
 
 } // End of namespace Scumm
+#endif

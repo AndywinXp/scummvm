@@ -82,7 +82,7 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 	case 13:
 		return cmds_getParam(arg_0, arg_1);
 	case 14:
-		return fades_fadeParam(arg_0, arg_1, arg_2, arg_3, arg_4);
+		return _fadesHandler->fadeParam(arg_0, arg_1, arg_2, arg_3, arg_4);
 	case 15:
 		return cmds_setHook(arg_0, arg_1);
 	case 16:
@@ -129,8 +129,8 @@ int DiMUSE_v2::cmds_init() {
 	cmd_running60HzCount = 0;
 	cmd_running10HzCount = 0;
 
-	if (files_moduleInit() || _groupsHandler->init() || fades_moduleInit() ||
-		triggers_moduleInit() || wave_init() || timer_moduleInit()) {
+	if (files_moduleInit() || _groupsHandler->init() || _fadesHandler->init() ||
+		triggers_moduleInit() || wave_init() || _timerHandler->init()) {
 		return -1;
 	}
 
@@ -139,11 +139,11 @@ int DiMUSE_v2::cmds_init() {
 }
 
 int DiMUSE_v2::cmds_deinit() {
-	timer_moduleDeinit();
+	_timerHandler->deinit();
 	wave_terminate();
 	waveapi_free();
 	triggers_clear();
-	fades_moduleDeinit();
+	_fadesHandler->deinit();
 	_groupsHandler->deinit();
 	files_moduleDeinit();
 	cmd_pauseCount = 0;
@@ -284,11 +284,7 @@ int DiMUSE_v2::cmds_stopSound(int soundId) {
 }
 
 int DiMUSE_v2::cmds_stopAllSounds() {
-	int result = fades_moduleDeinit();
-	result |= triggers_clear();
-	result |= wave_stopAllSounds();
-
-	return result;
+	return triggers_clear() | wave_stopAllSounds();
 }
 
 int DiMUSE_v2::cmds_getNextSound(int soundId) {

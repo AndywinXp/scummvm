@@ -21,45 +21,48 @@
  */
 
 #include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/dimuse_v2/dimuse_v2_fades.h"
 
 namespace Scumm {
 
-int DiMUSE_v2::fades_moduleInit() {
+DiMUSEFadesHandler::DiMUSEFadesHandler(DiMUSE_v2 *engine) {
+	_engine = engine;
+}
+
+DiMUSEFadesHandler::~DiMUSEFadesHandler() {}
+
+int DiMUSEFadesHandler::init() {
 	for (int l = 0; l < MAX_FADES; l++) {
-		fades[l].status = 0;
+		_fades[l].status = 0;
 	}
-	fadesOn = 0;
+	_fadesOn = 0;
 	return 0;
 }
 
-int DiMUSE_v2::fades_moduleDeinit() {
-	return 0;
-}
-
-int DiMUSE_v2::fades_save(unsigned char *buffer, int sizeLeft) {
+int DiMUSEFadesHandler::save(unsigned char *buffer, int sizeLeft) {
 	// We're saving 640 bytes:
 	// which means 10 ints (4 bytes each) for 16 times (number of fades)
 	if (sizeLeft < 640)
 		return -5;
-	memcpy(buffer, fades, 640);
+	memcpy(buffer, _fades, 640);
 	return 640;
 }
 
-int DiMUSE_v2::fades_restore(unsigned char *buffer) {
-	memcpy(fades, buffer, 640);
-	fadesOn = 1;
+int DiMUSEFadesHandler::restore(unsigned char *buffer) {
+	memcpy(_fades, buffer, 640);
+	_fadesOn = 1;
 	return 640;
 }
 
-int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot) {
+int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot) {
 	if (!soundId || fadeLength < 0)
 		return -5;
 	if (opcode != 0x500 && opcode != 0x600 && opcode != 0x700 && opcode != 0x800 && opcode != 0xF00 && opcode != 17)
 		return -5;
 
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (fades[l].status && (fades[l].sound == soundId && !oneShot) && (fades[l].param == opcode || opcode == -1)) {
-			fades[l].status = 0;
+		if (_fades[l].status && (_fades[l].sound == soundId && !oneShot) && (_fades[l].param == opcode || opcode == -1)) {
+			_fades[l].status = 0;
 		}
 	}
 
@@ -67,34 +70,34 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 		debug(5, "DiMUSE_v2::fades_fadeParam(): warning, allocated fade with zero length for sound %d", soundId);
 		if (opcode != 0x600 || destinationValue) {
 			// cmds_setParam
-			cmds_handleCmds(12, soundId, opcode, destinationValue, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_engine->cmds_handleCmds(12, soundId, opcode, destinationValue, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 			return 0;
 		} else {
 			// cmds_stopSound
-			cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_engine->cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 			return 0;
 		}
 	}
 
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (!fades[l].status) {
-			fades[l].sound = soundId;
-			fades[l].param = opcode;
+		if (!_fades[l].status) {
+			_fades[l].sound = soundId;
+			_fades[l].param = opcode;
 			// cmds_getParam (fetches current volume, with opcode 0x600)
-			fades[l].currentVal = cmds_handleCmds(13, soundId, opcode, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-			fades[l].length = fadeLength;
-			fades[l].counter = fadeLength;
-			fades[l].slope = (destinationValue - fades[l].currentVal) / fadeLength;
-			fades[l].modOvfloCounter = 0;
-			fades[l].status = 1;
-			fadesOn = 1;
+			_fades[l].currentVal = _engine->cmds_handleCmds(13, soundId, opcode, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_fades[l].length = fadeLength;
+			_fades[l].counter = fadeLength;
+			_fades[l].slope = (destinationValue - _fades[l].currentVal) / fadeLength;
+			_fades[l].modOvfloCounter = 0;
+			_fades[l].status = 1;
+			_fadesOn = 1;
 
-			if ((destinationValue - fades[l].currentVal) < 0) {
-				fades[l].nudge = -1;
-				fades[l].slopeMod = (-(destinationValue - fades[l].currentVal) % fadeLength);
+			if ((destinationValue - _fades[l].currentVal) < 0) {
+				_fades[l].nudge = -1;
+				_fades[l].slopeMod = (-(destinationValue - _fades[l].currentVal) % fadeLength);
 			} else {
-				fades[l].nudge = 1;
-				fades[l].slopeMod = (destinationValue - fades[l].currentVal) % fadeLength;
+				_fades[l].nudge = 1;
+				_fades[l].slopeMod = (destinationValue - _fades[l].currentVal) % fadeLength;
 			}
 
 			return 0;
@@ -105,49 +108,49 @@ int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, in
 	return -6;
 }
 
-void DiMUSE_v2::fades_clearFadeStatus(int soundId, int opcode) {
+void DiMUSEFadesHandler::clearFadeStatus(int soundId, int opcode) {
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (fades[l].status == 0
-			&& fades[l].sound == soundId
-			&& (fades[l].param == opcode || opcode == -1)) {
-			fades[l].status = 0;
+		if (_fades[l].status == 0
+			&& _fades[l].sound == soundId
+			&& (_fades[l].param == opcode || opcode == -1)) {
+			_fades[l].status = 0;
 		}
 	}
 }
 
-void DiMUSE_v2::fades_loop() {
-	if (!fadesOn)
+void DiMUSEFadesHandler::loop() {
+	if (!_fadesOn)
 		return;
-	fadesOn = 0;
+	_fadesOn = 0;
 
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (fades[l].status) {
-			fadesOn = 1;
-			if (--fades[l].counter == 0) {
-				fades[l].status = 0;
+		if (_fades[l].status) {
+			_fadesOn = 1;
+			if (--_fades[l].counter == 0) {
+				_fades[l].status = 0;
 			}
 
-			int currentVolume = fades[l].currentVal + fades[l].slope;
-			int currentSlopeMod = fades[l].modOvfloCounter + fades[l].slopeMod;
-			fades[l].modOvfloCounter += fades[l].slopeMod;
+			int currentVolume = _fades[l].currentVal + _fades[l].slope;
+			int currentSlopeMod = _fades[l].modOvfloCounter + _fades[l].slopeMod;
+			_fades[l].modOvfloCounter += _fades[l].slopeMod;
 
-			if (fades[l].length <= currentSlopeMod) {
-				fades[l].modOvfloCounter = currentSlopeMod - fades[l].length;
-				currentVolume += fades[l].nudge;
+			if (_fades[l].length <= currentSlopeMod) {
+				_fades[l].modOvfloCounter = currentSlopeMod - _fades[l].length;
+				currentVolume += _fades[l].nudge;
 			}
 
-			if (fades[l].currentVal != currentVolume) {
-				fades[l].currentVal = currentVolume;
+			if (_fades[l].currentVal != currentVolume) {
+				_fades[l].currentVal = currentVolume;
 
-				if ((fades[l].counter % 6) == 0) {
-					debug(5, "DiMUSE_v2::fades_loop(): running fade for sound %d with id %d, currently at volume %d", fades[l].sound, l, currentVolume);
-					if ((fades[l].param != 0x600) || currentVolume != 0) {
+				if ((_fades[l].counter % 6) == 0) {
+					debug(5, "DiMUSE_v2::fades_loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
+					if ((_fades[l].param != 0x600) || currentVolume != 0) {
 						// IMUSE_CMDS_SetParam
-						cmds_handleCmds(12, fades[l].sound, fades[l].param, currentVolume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						_engine->cmds_handleCmds(12, _fades[l].sound, _fades[l].param, currentVolume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 						continue;
 					} else {
 						// IMUSE_CMDS_StopSound
-						cmds_handleCmds(9, fades[l].sound, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						_engine->cmds_handleCmds(9, _fades[l].sound, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 					}
 				}
 			}
@@ -155,30 +158,11 @@ void DiMUSE_v2::fades_loop() {
 	}
 }
 
-void DiMUSE_v2::fades_moduleFree() {
+void DiMUSEFadesHandler::deinit() {
 	for (int l = 0; l < MAX_FADES; l++) {
-		fades[l].status = 0;
+		_fades[l].status = 0;
 	}
-	fadesOn = 0;
+	_fadesOn = 0;
 }
 
-int DiMUSE_v2::fades_moduleDebug() {
-	debug(5, "fadesOn: %d", fadesOn);
-
-	for (int l = 0; l < MAX_FADES; l++) {
-		debug(5, "\n");
-		debug(5, "fades[%d]: \n", l);
-		debug(5, "status: %d \n", fades[l].status);
-		debug(5, "sound: %d \n", fades[l].sound);
-		debug(5, "param: %d \n", fades[l].param);
-		debug(5, "currentVal: %d \n", fades[l].currentVal);
-		debug(5, "counter: %d \n", fades[l].counter);
-		debug(5, "length: %d \n", fades[l].length);
-		debug(5, "slope: %d \n", fades[l].slope);
-		debug(5, "slopeMod: %d \n", fades[l].slopeMod);
-		debug(5, "modOvfloCounter: %d \n", fades[l].modOvfloCounter);
-		debug(5, "nudge: %d \n", fades[l].nudge);
-	}
-	return 0;
-}
 } // End of namespace Scumm

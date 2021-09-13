@@ -51,7 +51,7 @@ int DiMUSE_v2::dispatch_moduleInit() {
 	return 0;
 }
 
-DiMUSE_v2::iMUSEDispatch *DiMUSE_v2::dispatch_getDispatchByTrackId(int trackId) {
+DiMUSE_v2::DiMUSEDispatch *DiMUSE_v2::dispatch_getDispatchByTrackId(int trackId) {
 	return &dispatches[trackId];
 }
 
@@ -81,10 +81,10 @@ int DiMUSE_v2::dispatch_restore(uint8 *src) {
 }
 
 int DiMUSE_v2::dispatch_allocStreamZones() {
-	iMUSEDispatch *curDispatchPtr;
-	iMUSEStream *curAllocatedStream;
-	iMUSEStreamZone *curStreamZone;
-	iMUSEStreamZone *curStreamZoneList;
+	DiMUSEDispatch *curDispatchPtr;
+	DiMUSEStream *curAllocatedStream;
+	DiMUSEStreamZone *curStreamZone;
+	DiMUSEStreamZone *curStreamZoneList;
 
 	curDispatchPtr = dispatches;
 	for (int i = 0; i < MAX_TRACKS; i++) {
@@ -110,10 +110,10 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 
 					if (!curStreamZone) {
 						debug(5, "DiMUSE_v2::dispatch_allocStreamZones(): out of streamZones");
-						curStreamZoneList = (iMUSEStreamZone *)&curDispatchPtr->streamZoneList;
+						curStreamZoneList = (DiMUSEStreamZone *)&curDispatchPtr->streamZoneList;
 						curDispatchPtr->streamZoneList = 0;
 					} else {
-						curStreamZoneList = (iMUSEStreamZone *)&curDispatchPtr->streamZoneList;
+						curStreamZoneList = (DiMUSEStreamZone *)&curDispatchPtr->streamZoneList;
 						curStreamZone->prev = 0;
 						curStreamZone->next = 0;
 						curStreamZone->useFlag = 1;
@@ -139,10 +139,10 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 	return 0;
 }
 
-int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
-	iMUSEDispatch *trackDispatch;
-	iMUSEDispatch *dispatchToDeallocate;
-	iMUSEStreamZone *streamZoneList;
+int DiMUSE_v2::dispatch_alloc(DiMUSETrack *trackPtr, int groupId) {
+	DiMUSEDispatch *trackDispatch;
+	DiMUSEDispatch *dispatchToDeallocate;
+	DiMUSEStreamZone *streamZoneList;
 	int getMapResult;
 	uint8 *fadeBuf;
 
@@ -178,7 +178,7 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				iMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
+				diMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
 			} while (streamZoneList);
 		}
 	}
@@ -223,9 +223,9 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	return -1;
 }
 
-int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
-	iMUSEDispatch *dispatchToDeallocate;
-	iMUSEStreamZone *streamZoneList;
+int DiMUSE_v2::dispatch_release(DiMUSETrack *trackPtr) {
+	DiMUSEDispatch *dispatchToDeallocate;
+	DiMUSEStreamZone *streamZoneList;
 	uint8 *fadeBuf;
 
 	dispatchToDeallocate = trackPtr->dispatchPtr;
@@ -237,7 +237,7 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				iMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList); // TODO: Is it right?
+				diMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList); // TODO: Is it right?
 			} while (dispatchToDeallocate->streamZoneList);
 		}
 	}
@@ -286,7 +286,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 	int effFadeLen;
 	int strZnSize;
 	int alignmentModDividend;
-	iMUSEDispatch *curDispatch = dispatches;
+	DiMUSEDispatch *curDispatch = dispatches;
 	int ptrCtr, i, j;
 	uint8 *fadeBuffer;
 	int effFadeSize;
@@ -468,7 +468,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 	}
 
 	// Clear fades and triggers for the old newSoundId
-	fades_clearFadeStatus(curDispatch->trackPtr->soundId, -1);
+	_fadesHandler->clearFadeStatus(curDispatch->trackPtr->soundId, -1);
 	triggers_clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
 
 	// Setup the new newSoundId
@@ -481,7 +481,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		streamer_setSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
 		while (curDispatch->streamZoneList->next) {
 			curDispatch->streamZoneList->next->useFlag = 0;
-			iMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
+			diMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
 		}
 		curDispatch->streamZoneList->size = 0;
 
@@ -492,7 +492,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 		while (curDispatch->streamZoneList) {
 			curDispatch->streamZoneList->useFlag = 0;
-			iMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList, curDispatch->streamZoneList);
+			diMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList, curDispatch->streamZoneList);
 		}
 
 		curDispatch->currentOffset = 0;
@@ -512,8 +512,8 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 	}
 }
 
-void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, int sampleRate) {
-	iMUSEDispatch *dispatchPtr;
+void DiMUSE_v2::dispatch_processDispatches(DiMUSETrack *trackPtr, int feedSize, int sampleRate) {
+	DiMUSEDispatch *dispatchPtr;
 	int inFrameCount;
 	int effFeedSize;
 	int effWordSize;
@@ -569,7 +569,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			// Send it all to the mixer
 			srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
 			
-			_internalMixer->mixer_mix(
+			_internalMixer->mix(
 				srcBuf,
 				inFrameCount,
 				dispatchPtr->fadeWordSize,
@@ -715,7 +715,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 				// Send it all to the mixer
 				srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
 				
-				_internalMixer->mixer_mix(
+				_internalMixer->mix(
 					srcBuf,
 					inFrameCount,
 					dispatchPtr->fadeWordSize,
@@ -887,9 +887,9 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 		// Real-time lo-fi Radio voice effect
 		if (trackPtr->mailbox)
-			_internalMixer->mixer_setRadioChatter();
+			_internalMixer->setRadioChatter();
 			
-		_internalMixer->mixer_mix(
+		_internalMixer->mix(
 			srcBuf,
 			inFrameCount,
 			dispatchPtr->wordSize,
@@ -899,7 +899,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			mixVolume,
 			trackPtr->pan);
 
-		_internalMixer->mixer_clearRadioChatter();
+		_internalMixer->clearRadioChatter();
 		mixStartingPoint += effFeedSize;
 		feedSize -= effFeedSize;
 
@@ -930,10 +930,10 @@ void DiMUSE_v2::dispatch_predictFirstStream() {
 	//debug(5, "dispatch_predictFirstStream() called decreaseSlice()");
 }
 
-int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
+int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 	int *dstMap;
 	uint8 *rawMap;
-	iMUSEStreamZone *allStrZn;
+	DiMUSEStreamZone *allStrZn;
 	uint8 *copiedBuf;
 	uint8 *soundAddrData;
 	int size;
@@ -1008,8 +1008,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				return -3;
 			}
 
-			if (iMUSE_SWAP32(copiedBuf) == 'iMUS' && iMUSE_SWAP32(copiedBuf + 8) == 'MAP ') {
-				size = iMUSE_SWAP32(copiedBuf + 12) + 24;
+			if (diMUSE_SWAP32(copiedBuf) == 'iMUS' && diMUSE_SWAP32(copiedBuf + 8) == 'MAP ') {
+				size = diMUSE_SWAP32(copiedBuf + 12) + 24;
 				if (!streamer_copyBufferAbsolute(dispatchPtr->streamPtr, 0, size)) {
 					return -3;
 				}
@@ -1063,8 +1063,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 				return -1;
 			}
 
-			if (iMUSE_SWAP32(soundAddrData) == 'iMUS' && iMUSE_SWAP32(soundAddrData + 8) == 'MAP ') {
-				dispatchPtr->currentOffset = iMUSE_SWAP32(soundAddrData + 12) + 24;
+			if (diMUSE_SWAP32(soundAddrData) == 'iMUS' && diMUSE_SWAP32(soundAddrData + 8) == 'MAP ') {
+				dispatchPtr->currentOffset = diMUSE_SWAP32(soundAddrData + 12) + 24;
 				if (dispatch_convertMap((soundAddrData + 8), (uint8 *)dstMap)) {
 					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: dispatch_convertMap() failure");
 					return -1;
@@ -1146,7 +1146,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 		// - Hook ID (4 bytes)
 		// - Fade time in ms (4 bytes)
 		if (blockName == 'JUMP') {
-			if (!iMUSE_checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurPos[4])) {
+			if (!diMUSE_checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurPos[4])) {
 				// This is the right hookId, let's jump
 				dispatchPtr->currentOffset = mapCurPos[3];
 				if (dispatchPtr->streamPtr) {
@@ -1160,7 +1160,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 					}
 
 					dispatchPtr->streamZoneList->useFlag = 0;
-					iMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
+					diMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 
 					if (dispatchPtr->streamZoneList->fadeFlag) {
 						if (dispatchPtr->fadeBuf) {
@@ -1286,7 +1286,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(iMUSEDispatch *dispatchPtr) {
 						}
 
 						dispatchPtr->streamZoneList->useFlag = 0;
-						iMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
+						diMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 					}
 				}
 
@@ -1408,8 +1408,8 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	int bytesUntilEndOfMap;
 	uint8 *endOfMapPtr;
 
-	if (iMUSE_SWAP32(rawMap) == 'MAP ') {
-		bytesUntilEndOfMap = iMUSE_SWAP32(rawMap + 4);
+	if (diMUSE_SWAP32(rawMap) == 'MAP ') {
+		bytesUntilEndOfMap = diMUSE_SWAP32(rawMap + 4);
 		effMapSize = bytesUntilEndOfMap + 8;
 		if ((_vm->_game.id == GID_DIG && effMapSize <= 0x400) || (_vm->_game.id == GID_CMI && effMapSize <= 0x2000)) {
 			memcpy(destMap, rawMap, effMapSize);
@@ -1418,8 +1418,8 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// - The 4 bytes string 'MAP '
 			// - Size of the map
 			//int dest = READ_BE_UINT32(destMap);
-			*(int *)destMap = iMUSE_SWAP32(destMap);
-			*((int *)destMap + 1) = iMUSE_SWAP32(destMap + 4);
+			*(int *)destMap = diMUSE_SWAP32(destMap);
+			*((int *)destMap + 1) = diMUSE_SWAP32(destMap + 4);
 
 			mapCurPos = destMap + 8;
 			endOfMapPtr = &destMap[effMapSize];
@@ -1427,13 +1427,13 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// Swap32 the rest of the map
 			while (mapCurPos < endOfMapPtr) {
 				// Swap32 the 4 characters block name
-				int swapped = iMUSE_SWAP32(mapCurPos);
+				int swapped = diMUSE_SWAP32(mapCurPos);
 				*(int *)mapCurPos = swapped;
 				blockName = swapped;
 
 				// Advance and Swap32 the block size (minus 8) field
 				blockSizePtr = mapCurPos + 4;
-				blockSizeMin8 = iMUSE_SWAP32(blockSizePtr);
+				blockSizeMin8 = diMUSE_SWAP32(blockSizePtr);
 				*(int *)blockSizePtr = blockSizeMin8;
 				mapCurPos = blockSizePtr + 4;
 
@@ -1442,7 +1442,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 				// since they're already good like this
 				if (blockName == 'TEXT') {
 					// Swap32 the block offset position
-					*(int *)mapCurPos = iMUSE_SWAP32(mapCurPos);
+					*(int *)mapCurPos = diMUSE_SWAP32(mapCurPos);
 
 					// Skip the single characters
 					firstChar = mapCurPos + 4;
@@ -1459,7 +1459,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 
 					// ...and swap them of course
 					do {
-						*(int *)mapCurPos = iMUSE_SWAP32(mapCurPos);
+						*(int *)mapCurPos = diMUSE_SWAP32(mapCurPos);
 						mapCurPos += 4;
 						--remainingFieldsNum;
 					} while (remainingFieldsNum);
@@ -1485,10 +1485,10 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	return 0;
 }
 
-void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
-	iMUSEStreamZone *szTmp;
-	iMUSEStreamZone *lastStreamInList;
-	iMUSEStreamZone *szList;
+void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
+	DiMUSEStreamZone *szTmp;
+	DiMUSEStreamZone *lastStreamInList;
+	DiMUSEStreamZone *szList;
 	int cumulativeStreamOffset;
 	int *curMapPlace;
 	int mapPlaceName;
@@ -1508,7 +1508,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 	do {
 		cumulativeStreamOffset += szTmp->size;
 		lastStreamInList = szTmp;
-		szTmp = (iMUSEStreamZone *)szTmp->next;
+		szTmp = (DiMUSEStreamZone *)szTmp->next;
 	} while (szTmp);
 
 	lastStreamInList->size += streamer_getFreeBuffer(dispatch->streamPtr) - cumulativeStreamOffset;
@@ -1538,7 +1538,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 
 					if (mapPlaceHookPosition > szList->offset && mapPlaceHookPosition <= szList->size + szList->offset) {
 						// Break out of the loop if we have to JUMP
-						if (!iMUSE_checkHookId(&buff_hookid, mapPlaceHookId))
+						if (!diMUSE_checkHookId(&buff_hookid, mapPlaceHookId))
 							break;
 					}
 				}
@@ -1557,7 +1557,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 					szTmp = dispatch->streamZoneList;
 					while (szTmp != szList) {
 						cumulativeStreamOffset += szTmp->size;
-						szTmp = (iMUSEStreamZone *)szTmp->next;
+						szTmp = (DiMUSEStreamZone *)szTmp->next;
 					}
 
 					// Continue streaming the newSoundId from where we left off
@@ -1566,7 +1566,7 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 					// Remove che previous streamZone from the list, we don't need it anymore
 					while (szList->next->prev) {
 						szList->next->prev->useFlag = 0;
-						iMUSE_removeStreamZoneFromList(&szList->next, szList->next->prev);
+						diMUSE_removeStreamZoneFromList(&szList->next, szList->next->prev);
 					}
 
 					streamer_setSoundToStreamWithCurrentOffset(
@@ -1580,14 +1580,14 @@ void DiMUSE_v2::dispatch_predictStream(iMUSEDispatch *dispatch) {
 	}
 }
 
-void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent) {
+void DiMUSE_v2::dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent) {
 	int hookPosition, jumpDestination, fadeTime;
-	iMUSEStreamZone *nextStreamZone;
+	DiMUSEStreamZone *nextStreamZone;
 	unsigned int alignmentModDividend;
-	iMUSEStreamZone *zoneForJump;
-	iMUSEStreamZone *zoneAfterJump;
+	DiMUSEStreamZone *zoneForJump;
+	DiMUSEStreamZone *zoneAfterJump;
 	unsigned int streamOffset;
-	iMUSEStreamZone *zoneCycle;
+	DiMUSEStreamZone *zoneCycle;
 
 	/* jumpParamsFromMap format:
 		jumpParamsFromMap[0]: four bytes which form the string 'JUMP'
@@ -1724,7 +1724,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 
 	while (streamZonePtr->next) {
 		streamZonePtr->next->useFlag = 0;
-		iMUSE_removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
+		diMUSE_removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
 	}
 
 	streamer_setSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr,
@@ -1752,7 +1752,7 @@ void DiMUSE_v2::dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *
 	return;
 }
 
-DiMUSE_v2::iMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
+DiMUSE_v2::DiMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
 	for (int i = 0; i < MAX_STREAMZONES; i++) {
 		if (streamZones[i].useFlag == 0) {
 			streamZones[i].prev = 0;

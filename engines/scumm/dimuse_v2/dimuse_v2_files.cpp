@@ -124,7 +124,7 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 }
 
 	
-DiMUSE_v2::iMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
+DiMUSE_v2::DiMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
 	if (bufId > 0 && bufId <= 4) {
 		return &_soundBuffers[bufId];
 	}
@@ -165,14 +165,14 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
-		iMUSE_strcpy(fileName, _currentSpeechFile);
+		diMUSE_strcpy(fileName, _currentSpeechFile);
 	}
 
 	if (_vm->_game.id == GID_CMI) {
 		if (soundId < 2000) {
 			while (_comiStateMusicTable[i].soundId != -1) {
 				if (_comiStateMusicTable[i].soundId == soundId) {
-					iMUSE_strcpy(fileName, (char *)_comiStateMusicTable[i].filename);
+					diMUSE_strcpy(fileName, (char *)_comiStateMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -180,7 +180,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_comiSeqMusicTable[i].soundId != -1) {
 				if (_comiSeqMusicTable[i].soundId == soundId) {
-					iMUSE_strcpy(fileName, (char *)_comiSeqMusicTable[i].filename);
+					diMUSE_strcpy(fileName, (char *)_comiSeqMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -190,7 +190,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		if (soundId < 2000) {
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {
-					iMUSE_strcpy(fileName, (char *)_digStateMusicTable[i].filename);
+					diMUSE_strcpy(fileName, (char *)_digStateMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -198,7 +198,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_digSeqMusicTable[i].soundId != -1) {
 				if (_digSeqMusicTable[i].soundId == soundId) {
-					iMUSE_strcpy(fileName, (char *)_digSeqMusicTable[i].filename);
+					diMUSE_strcpy(fileName, (char *)_digSeqMusicTable[i].filename);
 					return;
 				}
 				i++;

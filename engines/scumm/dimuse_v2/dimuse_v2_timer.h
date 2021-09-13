@@ -20,34 +20,26 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2_timer.h"
+#if !defined(SCUMM_IMUSE_DIGI_V2_TIMER_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_V2_TIMER_H
 
 namespace Scumm {
 
-DiMUSETimerHandler::DiMUSETimerHandler() {}
+class DiMUSETimerHandler {
 
-DiMUSETimerHandler::~DiMUSETimerHandler() {}
+private:
+	int _interruptFlag;
+	int _usecPerInt; // This field helps keeping track of the timing of the callback
 
-int DiMUSETimerHandler::init() {
-	_usecPerInt = 20000;
-	_interruptFlag = 0;
-	return 0;
-}
-
-int DiMUSETimerHandler::deinit() {
-	return 0;
-}
-
-int DiMUSETimerHandler::getUsecPerInt() {
-	return _usecPerInt;
-}
-
-int DiMUSETimerHandler::getInterruptFlag() {
-	return _interruptFlag;
-}
-
-void DiMUSETimerHandler::setInterruptFlag(int value) {
-	_interruptFlag = value;
-}
+public:
+	DiMUSETimerHandler();
+	~DiMUSETimerHandler();
+	int init();
+	int deinit();
+	int getUsecPerInt();
+	int getInterruptFlag();
+	void setInterruptFlag(int value);
+};
 
 } // End of namespace Scumm
+#endif
