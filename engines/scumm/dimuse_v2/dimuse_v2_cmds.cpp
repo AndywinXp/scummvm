@@ -63,7 +63,7 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 	case 6: // cmds_restore
 		break;
 	case 7:
-		groups_setGroupVol(arg_0, arg_1);
+		_groupsHandler->setGroupVol(arg_0, arg_1);
 		break;
 	case 8:
 		cmds_startSound(arg_0, arg_1);
@@ -129,7 +129,7 @@ int DiMUSE_v2::cmds_init() {
 	cmd_running60HzCount = 0;
 	cmd_running10HzCount = 0;
 
-	if (files_moduleInit() || groups_moduleInit() || fades_moduleInit() ||
+	if (files_moduleInit() || _groupsHandler->init() || fades_moduleInit() ||
 		triggers_moduleInit() || wave_init() || timer_moduleInit()) {
 		return -1;
 	}
@@ -144,7 +144,7 @@ int DiMUSE_v2::cmds_deinit() {
 	waveapi_free();
 	triggers_clear();
 	fades_moduleDeinit();
-	groups_moduleDeinit();
+	_groupsHandler->deinit();
 	files_moduleDeinit();
 	cmd_pauseCount = 0;
 	cmd_hostIntHandler = 0;

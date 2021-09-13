@@ -20,67 +20,33 @@
  *
  */
 
+#if !defined(SCUMM_IMUSE_DIGI_V2_GROUPS_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_V2_GROUPS_H
+
+#include "common/scummsys.h"
+#include "common/mutex.h"
+#include "common/serializer.h"
+#include "common/textconsole.h"
+#include "common/util.h"
 #include "scumm/dimuse.h"
 #include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_groups.h"
 
 namespace Scumm {
+#define MAX_GROUPS 16
+class DiMUSEGroupsHandler {
 
-DiMUSEGroupsHandler::DiMUSEGroupsHandler(DiMUSE_v2 *engine) {
-	_engine = engine;
-}
-
-DiMUSEGroupsHandler::~DiMUSEGroupsHandler() {
-}
-
-int DiMUSEGroupsHandler::init() {
-	for (int i = 0; i < MAX_GROUPS; i++) {
-		_effVols[i] = 127;
-		_vols[i] = 127;
-	}
-	return 0;
-}
-
-int DiMUSEGroupsHandler::deinit() {
-	return 0;
-}
-
-int DiMUSEGroupsHandler::setGroupVol(int id, int volume) {
-	int l;
-
-	if (id >= MAX_GROUPS) {
-		return -5;
-	}
-
-	if (volume == -1) {
-		return _vols[id];
-	}
-
-	if (volume > 127)
-		return -5;
-
-	if (id) {
-		_vols[id] = volume;
-		_effVols[id] = (_vols[0] * (volume + 1)) / 128;
-	} else {
-		_effVols[0] = volume;
-		_vols[0] = volume;
-
-		for (l = 1; l < MAX_GROUPS; l++) {
-			_effVols[l] = (volume * (_vols[id] + 1)) / 128;
-		}
-	}
-
-	_engine->wave_setGroupVol();
-	return _vols[id];
-}
-
-int DiMUSEGroupsHandler::getGroupVol(int id) {
-	if (id >= MAX_GROUPS) {
-		return -5;
-	}
-
-	return _effVols[id];
-}
+private:
+	DiMUSE_v2 *_engine;
+	int _effVols[MAX_GROUPS];
+	int _vols[MAX_GROUPS];
+public:
+	DiMUSEGroupsHandler(DiMUSE_v2 *engine);
+	~DiMUSEGroupsHandler();
+	int init();
+	int deinit();
+	int setGroupVol(int id, int volume);
+	int getGroupVol(int id);
+};
 
 } // End of namespace Scumm
+#endif

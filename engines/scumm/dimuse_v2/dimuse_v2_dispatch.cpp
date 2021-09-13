@@ -569,7 +569,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			// Send it all to the mixer
 			srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
 			
-			_diMUSEMixer->mixer_mix(
+			_internalMixer->mixer_mix(
 				srcBuf,
 				inFrameCount,
 				dispatchPtr->fadeWordSize,
@@ -715,7 +715,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 				// Send it all to the mixer
 				srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
 				
-				_diMUSEMixer->mixer_mix(
+				_internalMixer->mixer_mix(
 					srcBuf,
 					inFrameCount,
 					dispatchPtr->fadeWordSize,
@@ -887,9 +887,9 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 
 		// Real-time lo-fi Radio voice effect
 		if (trackPtr->mailbox)
-			_diMUSEMixer->mixer_setRadioChatter();
+			_internalMixer->mixer_setRadioChatter();
 			
-		_diMUSEMixer->mixer_mix(
+		_internalMixer->mixer_mix(
 			srcBuf,
 			inFrameCount,
 			dispatchPtr->wordSize,
@@ -899,7 +899,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			mixVolume,
 			trackPtr->pan);
 
-		_diMUSEMixer->mixer_clearRadioChatter();
+		_internalMixer->mixer_clearRadioChatter();
 		mixStartingPoint += effFeedSize;
 		feedSize -= effFeedSize;
 

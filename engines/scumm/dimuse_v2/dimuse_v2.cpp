@@ -47,7 +47,8 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
-	_diMUSEMixer = new DiMUSE_InternalMixer(mixer);
+	_internalMixer = new DiMUSEInternalMixer(mixer);
+	_groupsHandler = new DiMUSEGroupsHandler(this);
 	_sound = new DiMUSESndMgr(_vm, true);
 	assert(_sound);
 	DiMUSE_initialize();
@@ -186,6 +187,25 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 	int usecPerInt = timer_getUsecPerInt(); // Always returns 20000 microseconds (50 Hz)
 	waveapi_callback();
 
+	// Update volumes
+
+	if (_curMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType)) {
+		_curMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType);
+		DiMUSE_setGroupVol_Music(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
+	}
+
+	if (_curSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType)) {
+		_curSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType);
+		DiMUSE_setGroupVol_Voice(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
+	}
+
+	if (_curSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType)) {
+		_curSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType);
+		DiMUSE_setGroupVol_SFX(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
+	}
+
+	// Handle fades and triggers
+
 	cmd_running60HzCount += usecPerInt;
 	while (cmd_running60HzCount >= 16667) {
 		cmd_running60HzCount -= 16667;
@@ -201,7 +221,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 		// SPEECH GAIN REDUCTION 10Hz
 		cmd_running10HzCount -= 100000;
 		soundId = 0;
-		musicTargetVolume = groups_setGroupVol(IMUSE_GROUP_MUSIC, -1);
+		musicTargetVolume = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSIC, -1);
 		while (1) { // Check all tracks to see if there's a speech file playing
 			soundId = wave_getNextSound(soundId);
 			if (!soundId)
@@ -220,8 +240,8 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 			}
 		}
 
-		musicEffVol = groups_setGroupVol(IMUSE_GROUP_MUSICEFF, -1); // MUSIC EFFECTIVE VOLUME GROUP (used for gain reduction)
-		musicVol = groups_setGroupVol(IMUSE_GROUP_MUSIC, -1); // MUSIC VOLUME SUBGROUP (keeps track of original music volume)
+		musicEffVol = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, -1); // MUSIC EFFECTIVE VOLUME GROUP (used for gain reduction)
+		musicVol = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSIC, -1); // MUSIC VOLUME SUBGROUP (keeps track of original music volume)
 
 		if (musicEffVol < musicTargetVolume) { // If there is gain reduction already going on...
 			tempEffVol = musicEffVol + 3;
@@ -232,7 +252,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 			} else if (musicVol <= musicTargetVolume) { // Bring up the music volume immediately when speech stops playing
 				musicVol = musicTargetVolume;
 			}
-			groups_setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+			_groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
 		} else if (musicEffVol > musicTargetVolume) {
 			// Bring music volume down to target volume with a -18 step if there's speech playing
 		    // or else, just cap it to the target if it's out of range
@@ -246,7 +266,7 @@ void DiMUSE_v2::iMUSEHeartbeat() {
 					musicVol = tempVol;
 				}
 			}
-			groups_setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+			_groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
 		}
 		
 	} while (cmd_running10HzCount >= 100000);
@@ -407,15 +427,15 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
-		DiMUSE_setGroupVol_SFX(b);
+		DiMUSE_setGroupVol_SFX(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
-		DiMUSE_setGroupVol_Voice(b);
+		DiMUSE_setGroupVol_Voice(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
-		DiMUSE_setGroupVol_Music(b);
+		DiMUSE_setGroupVol_Music(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam

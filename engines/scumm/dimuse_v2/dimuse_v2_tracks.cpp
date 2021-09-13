@@ -33,7 +33,7 @@ int DiMUSE_v2::tracks_moduleInit() {
 	if (waveapi_moduleInit(22050, &waveapi_waveOutParams))
 		return -1;
 	
-	if (_diMUSEMixer->mixer_initModule(waveapi_waveOutParams.bytesPerSample,
+	if (_internalMixer->mixer_initModule(waveapi_waveOutParams.bytesPerSample,
 			waveapi_waveOutParams.numChannels,
 			waveapi_waveOutParams.mixBuf,
 			waveapi_waveOutParams.mixBufSize,
@@ -105,7 +105,7 @@ int DiMUSE_v2::tracks_restore(uint8 *buffer) {
 void DiMUSE_v2::tracks_setGroupVol() {
 	iMUSETrack* curTrack = (iMUSETrack *)tracks_trackList;
 	while (curTrack) {
-		curTrack->effVol = ((curTrack->vol + 1) * groups_getGroupVol(curTrack->group)) / 128;
+		curTrack->effVol = ((curTrack->vol + 1) * _groupsHandler->getGroupVol(curTrack->group)) / 128;
 		curTrack = (iMUSETrack *)curTrack->next;
 	};
 }
@@ -119,13 +119,13 @@ void DiMUSE_v2::tracks_callback() {
 	
 	waveapi_increaseSlice();
 	//debug(5, "tracks_callback() called increaseSlice()");
-	if (_diMUSEMixer->_stream->numQueuedStreams() < 2) {
+	if (_internalMixer->_stream->numQueuedStreams() < 2) {
 		dispatch_predictFirstStream();
 
 		waveapi_write(&iMUSE_audioBuffer, &iMUSE_feedSize, &iMUSE_sampleRate);
 
 		if (iMUSE_feedSize != 0) {
-			_diMUSEMixer->mixer_clearMixBuff();
+			_internalMixer->mixer_clearMixBuff();
 			if (!tracks_pauseTimer) {
 				iMUSETrack *track = (iMUSETrack *)tracks_trackList;
 
@@ -136,7 +136,7 @@ void DiMUSE_v2::tracks_callback() {
 				};
 			}
 
-			_diMUSEMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
+			_internalMixer->mixer_loop(&iMUSE_audioBuffer, iMUSE_feedSize);
 
 			// The Dig tries to write a second time
 			if (_vm->_game.id == GID_DIG) {
@@ -172,7 +172,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			foundTrack->group = 0;
 			foundTrack->priority = priority;
 			foundTrack->vol = 127;
-			foundTrack->effVol = groups_getGroupVol(0);
+			foundTrack->effVol = _groupsHandler->getGroupVol(0);
 			foundTrack->pan = 64;
 			foundTrack->detune = 0;
 			foundTrack->transpose = 0;
@@ -240,7 +240,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	stolenTrack->group = 0;
 	stolenTrack->priority = priority;
 	stolenTrack->vol = 127;
-	stolenTrack->effVol = groups_getGroupVol(0);
+	stolenTrack->effVol = _groupsHandler->getGroupVol(0);
 	stolenTrack->pan = 64;
 	stolenTrack->detune = 0;
 	stolenTrack->transpose = 0;
@@ -407,7 +407,7 @@ int DiMUSE_v2::tracks_setParam(int soundId, int opcode, int value) {
 				if (value >= 16)
 					return -5;
 				track->group = value;
-				track->effVol = ((track->vol + 1) * groups_getGroupVol(value)) / 128;
+				track->effVol = ((track->vol + 1) * _groupsHandler->getGroupVol(value)) / 128;
 				return 0;
 			case 0x500:
 				if (value > 127)
@@ -418,7 +418,7 @@ int DiMUSE_v2::tracks_setParam(int soundId, int opcode, int value) {
 				if (value > 127)
 					return -5;
 				track->vol = value;
-				track->effVol = ((value + 1) * groups_getGroupVol(track->group)) / 128;
+				track->effVol = ((value + 1) * _groupsHandler->getGroupVol(track->group)) / 128;
 				return 0;
 			case 0x700:
 				if (value > 127)

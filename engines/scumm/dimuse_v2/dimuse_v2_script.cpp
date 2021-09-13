@@ -108,8 +108,10 @@ void DiMUSE_v2::script_refresh() {
 				if (!soundId)
 					break;
 
-				if (DiMUSE_getParam(soundId, 0x400) == IMUSE_GROUP_MUSICEFF && DiMUSE_getParam(soundId, 0x1800))
+				if (DiMUSE_getParam(soundId, 0x400) == IMUSE_GROUP_MUSICEFF && DiMUSE_getParam(soundId, 0x1800)) {
 					DiMUSE_fadeParam(soundId, 0x600, 0, 60, 1);
+					script_setState(0);
+				}
 			}
 		}
 	}

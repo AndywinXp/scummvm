@@ -44,7 +44,7 @@ class QueuingAudioStream;
 
 namespace Scumm {
 
-class DiMUSE_InternalMixer {
+class DiMUSEInternalMixer {
 
 private:
 	int *mixer_amp8Table;
@@ -93,8 +93,8 @@ private:
 	void mixer_mixBits16Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable);
 
 public:
-	DiMUSE_InternalMixer(Audio::Mixer *mixer);
-	~DiMUSE_InternalMixer();
+	DiMUSEInternalMixer(Audio::Mixer *mixer);
+	~DiMUSEInternalMixer();
 	int  mixer_initModule(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum);
 	void mixer_setRadioChatter();
 	void mixer_clearRadioChatter();

@@ -31,7 +31,7 @@
 
 #include "scumm/dimuse.h"
 #include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
-//#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v2/dimuse_v2_groups.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
@@ -48,28 +48,26 @@ class QueuingAudioStream;
 
 namespace Scumm {
 
-enum {
-	MAX_GROUPS = 16,
-	MAX_FADES = 16,
-	MAX_TRIGGERS = 8,
-	MAX_DEFERS = 8,
-	MAX_TRACKS = 8,
-	LARGE_FADES = 1,
-	SMALL_FADES = 4,
-	MAX_DISPATCHES = 8,
-	MAX_STREAMZONES = 50,
-	LARGE_FADE_DIM = 350000,
-	SMALL_FADE_DIM = 44100,
-	MAX_FADE_VOLUME = 8323072,
-	MAX_STREAMS = 3,
-	IMUSE_GROUP_SFX = 1,
-	IMUSE_GROUP_SPEECH = 2,
-	IMUSE_GROUP_MUSIC = 3,
-	IMUSE_GROUP_MUSICEFF = 4,
-	IMUSE_BUFFER_SFX = 0,
-	IMUSE_BUFFER_SPEECH = 1,
-	IMUSE_BUFFER_MUSIC = 2
-};
+#define MAX_GROUPS 16
+#define MAX_FADES 16
+#define MAX_TRIGGERS 8
+#define MAX_DEFERS 8
+#define MAX_TRACKS 8
+#define LARGE_FADES 1
+#define SMALL_FADES 4
+#define MAX_DISPATCHES 8
+#define MAX_STREAMZONES 50
+#define LARGE_FADE_DIM 350000
+#define SMALL_FADE_DIM 44100
+#define MAX_FADE_VOLUME 8323072
+#define MAX_STREAMS 3
+#define IMUSE_GROUP_SFX 1
+#define IMUSE_GROUP_SPEECH 2
+#define IMUSE_GROUP_MUSIC 3
+#define IMUSE_GROUP_MUSICEFF 4
+#define IMUSE_BUFFER_SFX 0
+#define IMUSE_BUFFER_SPEECH 1
+#define IMUSE_BUFFER_MUSIC 2
 
 enum {
 	kFlagUnsigned = 1 << 0,
@@ -82,10 +80,12 @@ private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
+
 	DiMUSESndMgr *_sound;
-	DiMUSE_InternalMixer *_diMUSEMixer;
+	DiMUSEInternalMixer *_internalMixer;
+	DiMUSEGroupsHandler *_groupsHandler;
+
 	int _callbackFps;		// value how many times callback needs to be called per second
-	
 	static void timer_handler(void *refConf);
 	void callback();
 
@@ -159,6 +159,7 @@ public:
 	int _scriptInitializedFlag = 0;
 
 	// General
+	int _curMusicVolume, _curSpeechVolume, _curSFXVolume;
 	int DiMUSE_terminate();
 	int DiMUSE_initialize();
 	int DiMUSE_pause();
@@ -425,16 +426,6 @@ public:
 	void dispatch_parseJump(iMUSEDispatch *dispatchPtr, iMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	iMUSEStreamZone *dispatch_allocStreamZone();
 	void dispatch_free();
-
-	// Groups
-	int groupEffVols[MAX_GROUPS];
-	int groupVols[MAX_GROUPS];
-
-	int groups_moduleInit();
-	int groups_moduleDeinit();
-	int groups_setGroupVol(int id, int volume);
-	int groups_getGroupVol(int id);
-	int groups_moduleDebug();
 
 	// Fades
 	typedef struct {
