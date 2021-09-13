@@ -469,7 +469,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 	// Clear fades and triggers for the old newSoundId
 	_fadesHandler->clearFadeStatus(curDispatch->trackPtr->soundId, -1);
-	triggers_clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
+	_triggersHandler->triggers_clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
 
 	// Setup the new newSoundId
 	curDispatch->trackPtr->soundId = newSoundId;
@@ -1381,7 +1381,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - A string of characters ending with '\0' (variable length)
 		if (blockName == 'TEXT') {
 			char *marker = (char *)mapCurPos + 12;
-			triggers_processTriggers(dispatchPtr->trackPtr->soundId, marker);
+			_triggersHandler->triggers_processTriggers(dispatchPtr->trackPtr->soundId, marker);
 			if (dispatchPtr->audioRemaining)
 				return 0;
 
@@ -1514,7 +1514,7 @@ void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
 	lastStreamInList->size += streamer_getFreeBuffer(dispatch->streamPtr) - cumulativeStreamOffset;
 	szList = dispatch->streamZoneList;
 
-	buff_hookid = dispatch->trackPtr->jumpHook;
+	dispatch_bufferedHookId = dispatch->trackPtr->jumpHook;
 	while (szList) {
 		if (!szList->fadeFlag) {
 			curMapPlace = &dispatch->map[2];
@@ -1538,7 +1538,7 @@ void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
 
 					if (mapPlaceHookPosition > szList->offset && mapPlaceHookPosition <= szList->size + szList->offset) {
 						// Break out of the loop if we have to JUMP
-						if (!diMUSE_checkHookId(&buff_hookid, mapPlaceHookId))
+						if (!diMUSE_checkHookId(&dispatch_bufferedHookId, mapPlaceHookId))
 							break;
 					}
 				}

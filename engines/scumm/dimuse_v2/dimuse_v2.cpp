@@ -51,12 +51,13 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_groupsHandler = new DiMUSEGroupsHandler(this);
 	_timerHandler = new DiMUSETimerHandler();
 	_fadesHandler = new DiMUSEFadesHandler(this);
+	_triggersHandler = new DiMUSETriggersHandler(this);
 	_sound = new DiMUSESndMgr(_vm, true);
 	assert(_sound);
 	diMUSE_initialize();
 	diMUSE_initializeScript();
-	DiMUSE_allocSoundBuffer(1, 176000, 44000, 88000);
-	DiMUSE_allocSoundBuffer(2, 528000, 44000, 352000);
+	DiMUSE_allocSoundBuffer(IMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
+	DiMUSE_allocSoundBuffer(IMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
@@ -191,18 +192,18 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 
 	// Update volumes
 
-	if (_curMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType)) {
-		_curMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType);
+	if (_curMixerMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType)) {
+		_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType);
 		diMUSE_setGroupVol_Music(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
 	}
 
-	if (_curSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType)) {
-		_curSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType);
+	if (_curMixerSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType)) {
+		_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType);
 		diMUSE_setGroupVol_Voice(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
 	}
 
-	if (_curSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType)) {
-		_curSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType);
+	if (_curMixerSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType)) {
+		_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType);
 		diMUSE_setGroupVol_SFX(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
 	}
 
@@ -212,7 +213,7 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 	while (cmd_running60HzCount >= 16667) {
 		cmd_running60HzCount -= 16667;
 		_fadesHandler->loop();
-		triggers_loop();
+		_triggersHandler->triggers_loop();
 	}
 
 	cmd_running10HzCount += usecPerInt;

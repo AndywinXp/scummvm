@@ -34,6 +34,7 @@
 #include "scumm/dimuse_v2/dimuse_v2_groups.h"
 #include "scumm/dimuse_v2/dimuse_v2_timer.h"
 #include "scumm/dimuse_v2/dimuse_v2_fades.h"
+#include "scumm/dimuse_v2/dimuse_v2_triggers.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"
@@ -89,18 +90,37 @@ private:
 	DiMUSEGroupsHandler *_groupsHandler;
 	DiMUSETimerHandler *_timerHandler;
 	DiMUSEFadesHandler *_fadesHandler;
+	DiMUSETriggersHandler *_triggersHandler;
 	int _callbackFps;
 	static void timer_handler(void *refConf);
 	void callback();
 
-	int _currentSpeechVolume;
-	int _currentSpeechFrequency;
-	int _currentSpeechPan;
+	int _currentSpeechVolume, _currentSpeechFrequency, _currentSpeechPan;
+	int _curMixerMusicVolume, _curMixerSpeechVolume, _curMixerSFXVolume;
 	bool _radioChatterSFX = false;
+
+	int32 _attributes[188];	// internal attributes for each music file to store and check later
+	int32 _nextSeqToPlay;	// id of sequence type of music needed played
+	int32 _curMusicState;	// current or previous id of music
+	int32 _curMusicSeq;		// current or previous id of sequence music
+	int32 _curMusicCue;		// current cue for current music. used in FT
+	int _stopSequenceFlag;
+	int _scriptInitializedFlag = 0;
+
+	void setDigMusicState(int stateId);
+	void setDigMusicSequence(int seqId);
+	void playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence);
+	void setComiMusicState(int stateId);
+	void setComiMusicSequence(int seqId);
+	void playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
 	
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
+
+	struct DiMUSEDispatch;
+	struct DiMUSETrack;
+	struct DiMUSEStreamZone;
 
 	void startSound(int sound) override
 	{ error("DiMUSE_v2::startSound(int) should be never called"); }
@@ -110,7 +130,7 @@ public:
 	void stopAllSounds() override;
 
 	int getSoundStatus(int sound) const override { return 0; };
-	int isSoundRunning(int soundId);
+	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
 
 	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
 	int startVoice(int soundId, const char *soundName) override;
@@ -143,27 +163,7 @@ public:
 	int diMUSE_feedSize = 512;
 	int diMUSE_sampleRate = 22050;
 
-	struct DiMUSEDispatch;
-	struct DiMUSETrack;
-	struct DiMUSEStreamZone;
-
-	void setDigMusicState(int stateId);
-	void setDigMusicSequence(int seqId);
-	void playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence);
-	void setComiMusicState(int stateId);
-	void setComiMusicSequence(int seqId);
-	void playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
-
-	int32 _attributes[188];	// internal attributes for each music file to store and check later
-	int32 _nextSeqToPlay;	// id of sequence type of music needed played
-	int32 _curMusicState;	// current or previous id of music
-	int32 _curMusicSeq;		// current or previous id of sequence music
-	int32 _curMusicCue;		// current cue for current music. used in FT
-	int _stopSequenceFlag;
-	int _scriptInitializedFlag = 0;
-
 	// General
-	int _curMusicVolume, _curSpeechVolume, _curSFXVolume;
 	int diMUSE_terminate();
 	int diMUSE_initialize();
 	int diMUSE_pause();
@@ -202,6 +202,19 @@ public:
 	int diMUSE_setCuePoint();
 	int diMUSE_setAttribute(int attrIndex, int attrVal);
 
+	// Utils
+	int diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
+	int diMUSE_removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
+	int diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
+	int diMUSE_removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
+	int diMUSE_SWAP32(uint8 *value);
+	void diMUSE_strcpy(char *dst, char *marker);
+	int diMUSE_strcmp(char *marker1, char *marker2);
+	int diMUSE_strlen(char *marker);
+	int diMUSE_clampNumber(int value, int minValue, int maxValue);
+	int diMUSE_clampTuning(int value, int minValue, int maxValue);
+	int diMUSE_checkHookId(int *trackHookId, int sampleHookId);
+
 	// Script
 	int script_parse(int a1, int a0, int param1, int param2, int param3, int param4, int param5, int param6, int param7);
 	int script_init();
@@ -231,8 +244,6 @@ public:
 	int cmds_init();
 	int cmds_deinit();
 	int cmds_terminate();
-	int cmds_persistence(int cmd, void *funcCall);
-	int cmds_print(int param1, int param2, int param3, int param4, int param5, int param6, int param7);
 	int cmds_pause();
 	int cmds_resume();
 	int cmds_save(int *buffer, int bufferSize);
@@ -396,7 +407,7 @@ public:
 	int dispatch_largeFadeFlags[LARGE_FADES];
 	int dispatch_smallFadeFlags[SMALL_FADES];
 	int dispatch_fadeStartedFlag;
-	int buff_hookid;
+	int dispatch_bufferedHookId;
 	int dispatch_requestedFadeSize;
 	int dispatch_curStreamBufSize;
 	int dispatch_curStreamCriticalSize;
@@ -419,60 +430,6 @@ public:
 	void dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	DiMUSEStreamZone *dispatch_allocStreamZone();
 	void dispatch_free();
-
-	// Triggers
-	typedef struct {
-		int sound;
-		char text[256];
-		int opcode;
-		int args_0_;
-		int args_1_;
-		int args_2_;
-		int args_3_;
-		int args_4_;
-		int args_5_;
-		int args_6_;
-		int args_7_;
-		int args_8_;
-		int args_9_;
-		int clearLater;
-	} DiMUSETrigger;
-
-	typedef struct {
-		int counter;
-		int opcode;
-		int args_0_;
-		int args_1_;
-		int args_2_;
-		int args_3_;
-		int args_4_;
-		int args_5_;
-		int args_6_;
-		int args_7_;
-		int args_8_;
-		int args_9_;
-	} DiMUSEDefer;
-
-	DiMUSETrigger trigs[MAX_TRIGGERS];
-	DiMUSEDefer defers[MAX_DEFERS];
-
-	int  triggers_moduleInit();
-	int  triggers_clear();
-	int  triggers_save(int *buffer, int bufferSize);
-	int  triggers_restore(int *buffer);
-	int  triggers_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	int  triggers_checkTrigger(int soundId, char *marker, int opcode);
-	int  triggers_clearTrigger(int soundId, char *marker, int opcode);
-	void triggers_processTriggers(int soundId, char *marker);
-	int  triggers_deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	void triggers_loop();
-	int  triggers_countPendingSounds(int soundId);
-	int  triggers_moduleFree();
-
-	int  triggers_defersOn;
-	int  triggers_midProcessing;
-	char triggers_textBuffer[256];
-	char triggers_empty_marker = '\0';
 
 	// Files
 
@@ -546,20 +503,6 @@ public:
 	void waveapi_callback();
 	void waveapi_increaseSlice();
 	void waveapi_decreaseSlice();
-
-		
-	// Utils
-	int diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
-	int diMUSE_removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
-	int diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
-	int diMUSE_removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
-	int diMUSE_SWAP32(uint8 *value);
-	void diMUSE_strcpy(char *dst, char *marker);
-	int  diMUSE_strcmp(char *marker1, char *marker2);
-	int  diMUSE_strlen(char *marker);
-	int diMUSE_clampNumber(int value, int minValue, int maxValue);
-	int diMUSE_clampTuning(int value, int minValue, int maxValue);
-	int diMUSE_checkHookId(int *trackHookId, int sampleHookId);
 
 };
 

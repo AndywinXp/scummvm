@@ -231,7 +231,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 		diMUSE_removeTrackFromList(&tracks_trackList, stolenTrack);
 		dispatch_release(stolenTrack);
 		_fadesHandler->clearFadeStatus(stolenTrack->soundId, -1);
-		triggers_clearTrigger(stolenTrack->soundId, (char *)-1, -1); // TODO: inserire "" al posto di -1
+		_triggersHandler->triggers_clearTrigger(stolenTrack->soundId, (char *)"", -1);
 		stolenTrack->soundId = 0;
 	}
 
@@ -281,7 +281,7 @@ int DiMUSE_v2::tracks_stopSound(int soundId) {
 			diMUSE_removeTrackFromList(&tracks_trackList, track);
 			dispatch_release(track);
 			_fadesHandler->clearFadeStatus(track->soundId, -1);
-			triggers_clearTrigger(track->soundId, (char *)-1, -1);
+			_triggersHandler->triggers_clearTrigger(track->soundId, (char *)-1, -1);
 			track->soundId = 0;
 		}
 		track = (DiMUSETrack *)track->next;
@@ -299,7 +299,7 @@ int DiMUSE_v2::tracks_stopAllSounds() {
 			diMUSE_removeTrackFromList(&tracks_trackList, track);
 			dispatch_release(track);
 			_fadesHandler->clearFadeStatus(track->soundId, -1);
-			triggers_clearTrigger(track->soundId, (char *)-1, -1);
+			_triggersHandler->triggers_clearTrigger(track->soundId, (char *)-1, -1);
 			track->soundId = 0;
 			track = (DiMUSETrack *)track->next;
 		} while (track);
@@ -391,7 +391,7 @@ void DiMUSE_v2::tracks_clear(DiMUSETrack *trackPtr) {
 	diMUSE_removeTrackFromList(&tracks_trackList, trackPtr);
 	dispatch_release(trackPtr);
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
-	triggers_clearTrigger(trackPtr->soundId, (char *)-1, -1);
+	_triggersHandler->triggers_clearTrigger(trackPtr->soundId, (char *)-1, -1);
 	trackPtr->soundId = 0;
 }
 
@@ -648,7 +648,7 @@ void DiMUSE_v2::tracks_free() {
 
 		dispatch_release(track);
 		_fadesHandler->clearFadeStatus(track->soundId, -1);
-		triggers_clearTrigger(track->soundId, (char *)-1, -1);
+		_triggersHandler->triggers_clearTrigger(track->soundId, (char *)-1, -1);
 
 		track->soundId = 0;
 		track = (DiMUSETrack *)track->next;
