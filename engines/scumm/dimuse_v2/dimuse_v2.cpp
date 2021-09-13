@@ -28,6 +28,7 @@
 #include "scumm/sound.h"
 #include "scumm/dimuse.h"
 #include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/dimuse_v2/dimuse_v2_defs.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
 #include "scumm/dimuse_v1/dimuse_tables.h"

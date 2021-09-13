@@ -21,6 +21,7 @@
 */
 
 #include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/dimuse_v2/dimuse_v2_defs.h"
 
 namespace Scumm {
 
@@ -51,7 +52,7 @@ int DiMUSE_v2::dispatch_moduleInit() {
 	return 0;
 }
 
-DiMUSE_v2::DiMUSEDispatch *DiMUSE_v2::dispatch_getDispatchByTrackId(int trackId) {
+DiMUSEDispatch *DiMUSE_v2::dispatch_getDispatchByTrackId(int trackId) {
 	return &dispatches[trackId];
 }
 
@@ -1752,7 +1753,7 @@ void DiMUSE_v2::dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone
 	return;
 }
 
-DiMUSE_v2::DiMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
+DiMUSEStreamZone *DiMUSE_v2::dispatch_allocStreamZone() {
 	for (int i = 0; i < MAX_STREAMZONES; i++) {
 		if (streamZones[i].useFlag == 0) {
 			streamZones[i].prev = 0;

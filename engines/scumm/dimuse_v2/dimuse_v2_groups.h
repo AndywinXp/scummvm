@@ -32,7 +32,7 @@
 #include "scumm/dimuse_v2/dimuse_v2.h"
 
 namespace Scumm {
-#define MAX_GROUPS 16
+
 class DiMUSEGroupsHandler {
 
 private:

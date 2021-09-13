@@ -124,7 +124,7 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 }
 
 	
-DiMUSE_v2::DiMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
+DiMUSESoundBuffer *DiMUSE_v2::files_getBufInfo(int bufId) {
 	if (bufId > 0 && bufId <= 4) {
 		return &_soundBuffers[bufId];
 	}

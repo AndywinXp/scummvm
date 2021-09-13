@@ -26,73 +26,40 @@
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 #include "common/util.h"
+#include "scumm/dimuse_v2/dimuse_v2_defs.h"
 
 namespace Scumm {
-#define MAX_TRIGGERS 8
-#define MAX_DEFERS 8
 
-	typedef struct {
-		int sound;
-		char text[256];
-		int opcode;
-		int args_0_;
-		int args_1_;
-		int args_2_;
-		int args_3_;
-		int args_4_;
-		int args_5_;
-		int args_6_;
-		int args_7_;
-		int args_8_;
-		int args_9_;
-		int clearLater;
-	} DiMUSETrigger;
+class DiMUSETriggersHandler {
 
-	typedef struct {
-		int counter;
-		int opcode;
-		int args_0_;
-		int args_1_;
-		int args_2_;
-		int args_3_;
-		int args_4_;
-		int args_5_;
-		int args_6_;
-		int args_7_;
-		int args_8_;
-		int args_9_;
-	} DiMUSEDefer;
+private:
+	DiMUSE_v2 *_engine;
+	DiMUSETrigger trigs[MAX_TRIGGERS];
+	DiMUSEDefer defers[MAX_DEFERS];
 
-	class DiMUSETriggersHandler {
+	int  triggers_defersOn;
+	int  triggers_midProcessing;
+	char triggers_textBuffer[256];
+	char triggers_empty_marker = '\0';
+public:
+	DiMUSETriggersHandler(DiMUSE_v2 *engine);
+	~DiMUSETriggersHandler();
 
-	private:
-		DiMUSE_v2 *_engine;
-		DiMUSETrigger trigs[MAX_TRIGGERS];
-		DiMUSEDefer defers[MAX_DEFERS];
-
-		int  triggers_defersOn;
-		int  triggers_midProcessing;
-		char triggers_textBuffer[256];
-		char triggers_empty_marker = '\0';
-	public:
-		DiMUSETriggersHandler(DiMUSE_v2 *engine);
-		~DiMUSETriggersHandler();
-
-		int  triggers_moduleInit();
-		int  triggers_clear();
-		int  triggers_save(int *buffer, int bufferSize);
-		int  triggers_restore(int *buffer);
-		int  triggers_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-		int  triggers_checkTrigger(int soundId, char *marker, int opcode);
-		int  triggers_clearTrigger(int soundId, char *marker, int opcode);
-		void triggers_processTriggers(int soundId, char *marker);
-		int  triggers_deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-		void triggers_loop();
-		int  triggers_countPendingSounds(int soundId);
-		int  triggers_moduleFree();
+	int  triggers_moduleInit();
+	int  triggers_clear();
+	int  triggers_save(int *buffer, int bufferSize);
+	int  triggers_restore(int *buffer);
+	int  triggers_setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int  triggers_checkTrigger(int soundId, char *marker, int opcode);
+	int  triggers_clearTrigger(int soundId, char *marker, int opcode);
+	void triggers_processTriggers(int soundId, char *marker);
+	int  triggers_deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	void triggers_loop();
+	int  triggers_countPendingSounds(int soundId);
+	int  triggers_moduleFree();
 
 		
-	};
+};
 
 } // End of namespace Scumm
 #endif

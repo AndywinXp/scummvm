@@ -32,7 +32,7 @@ int DiMUSE_v2::streamer_moduleInit() {
 	return 0;
 }
 
-DiMUSE_v2::DiMUSEStream *DiMUSE_v2::streamer_alloc(int soundId, int bufId, int maxRead) {
+DiMUSEStream *DiMUSE_v2::streamer_alloc(int soundId, int bufId, int maxRead) {
 	DiMUSESoundBuffer *bufInfoPtr = files_getBufInfo(bufId);
 	if (!bufInfoPtr) {
 		debug(5, "DiMUSE_v2::streamer_alloc(): ERROR: couldn't get buffer info");

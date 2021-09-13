@@ -29,22 +29,7 @@
 
 namespace Scumm {
 
-#define MAX_FADES 16
-
 class DiMUSEFadesHandler {
-
-	typedef struct {
-		int status;
-		int sound;
-		int param;
-		int currentVal;
-		int counter;
-		int length;
-		int slope;
-		int slopeMod;
-		int modOvfloCounter;
-		int nudge;
-	} DiMUSEFade;
 
 private:
 	DiMUSE_v2 *_engine;

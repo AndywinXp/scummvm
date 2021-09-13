@@ -52,7 +52,7 @@ private:
 	int *_softLMID;
 	int *_softLTable;
 	
-	uint8 *_mixBuf; //int mixer_mixBuf[0x2000];
+	uint8 *_mixBuf;
 
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _channelHandle;

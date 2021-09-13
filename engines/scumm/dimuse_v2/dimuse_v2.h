@@ -30,6 +30,7 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
+#include "scumm/dimuse_v2/dimuse_v2_defs.h"
 #include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
 #include "scumm/dimuse_v2/dimuse_v2_groups.h"
 #include "scumm/dimuse_v2/dimuse_v2_timer.h"
@@ -51,33 +52,9 @@ class QueuingAudioStream;
 
 namespace Scumm {
 
-#define MAX_GROUPS 16
-#define MAX_FADES 16
-#define MAX_TRIGGERS 8
-#define MAX_DEFERS 8
-#define MAX_TRACKS 8
-#define LARGE_FADES 1
-#define SMALL_FADES 4
-#define MAX_DISPATCHES 8
-#define MAX_STREAMZONES 50
-#define LARGE_FADE_DIM 350000
-#define SMALL_FADE_DIM 44100
-#define MAX_FADE_VOLUME 8323072
-#define MAX_STREAMS 3
-#define IMUSE_GROUP_SFX 1
-#define IMUSE_GROUP_SPEECH 2
-#define IMUSE_GROUP_MUSIC 3
-#define IMUSE_GROUP_MUSICEFF 4
-#define IMUSE_BUFFER_SFX 0
-#define IMUSE_BUFFER_SPEECH 1
-#define IMUSE_BUFFER_MUSIC 2
-#define NUM_HEADERS 8
-
-enum {
-	kFlagUnsigned = 1 << 0,
-	kFlag16Bits = 1 << 1,
-	kFlagStereo = 1 << 3
-};
+struct DiMUSEDispatch;
+struct DiMUSETrack;
+struct DiMUSEStreamZone;
 
 class DiMUSE_v2 : public DiMUSE {
 private:
@@ -117,10 +94,6 @@ private:
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
-
-	struct DiMUSEDispatch;
-	struct DiMUSETrack;
-	struct DiMUSEStreamZone;
 
 	void startSound(int sound) override
 	{ error("DiMUSE_v2::startSound(int) should be never called"); }
@@ -259,28 +232,6 @@ public:
 	int cmds_debug();
 
 	// Streamer
-	typedef struct {
-		int soundId;
-		int curOffset;
-		int endOffset;
-		int bufId;
-		uint8 *buf;
-		int bufFreeSize;
-		int loadSize;
-		int criticalSize;
-		int maxRead;
-		int loadIndex;
-		int readIndex;
-		int paused;
-	} DiMUSEStream;
-
-	typedef struct {
-		uint8 *buffer;
-		int bufSize;
-		int loadSize;
-		int criticalSize;
-	} DiMUSESoundBuffer;
-
 	DiMUSEStream streamer_streams[MAX_STREAMS];
 	DiMUSEStream *streamer_lastStreamLoaded;
 	int streamer_bailFlag;
@@ -305,32 +256,6 @@ public:
 	void DiMUSE_deallocSoundBuffer(int bufId);
 
 	// Tracks
-	struct DiMUSETrack {
-		DiMUSETrack *prev;
-		DiMUSETrack *next;
-		DiMUSEDispatch *dispatchPtr;
-		int soundId;
-		int marker;
-		int group;
-		int priority;
-		int vol;
-		int effVol;
-		int pan;
-		int detune;
-		int transpose;
-		int pitchShift;
-		int mailbox;
-		int jumpHook;
-		int syncSize_0;
-		byte *syncPtr_0;
-		int syncSize_1;
-		byte *syncPtr_1;
-		int syncSize_2;
-		byte *syncPtr_2;
-		int syncSize_3;
-		byte *syncPtr_3;
-	};
-
 	DiMUSETrack tracks[MAX_TRACKS];
 	DiMUSETrack *tracks_trackList;
 
@@ -364,39 +289,6 @@ public:
 	int tracks_debug();
 
 	// Dispatch
-	struct DiMUSEStreamZone {
-		DiMUSEStreamZone *prev;
-		DiMUSEStreamZone *next;
-		int useFlag;
-		int offset;
-		int size;
-		int fadeFlag;
-	};
-
-	struct DiMUSEDispatch {
-		DiMUSETrack *trackPtr;
-		int wordSize;
-		int sampleRate;
-		int channelCount;
-		int currentOffset;
-		int audioRemaining;
-		int map[4096]; // For DIG it's 256
-		DiMUSEStream *streamPtr;
-		int streamBufID;
-		DiMUSEStreamZone *streamZoneList;
-		int streamErrFlag;
-		uint8 *fadeBuf;
-		int fadeOffset;
-		int fadeRemaining;
-		int fadeWordSize;
-		int fadeSampleRate;
-		int fadeChannelCount;
-		int fadeSyncFlag;
-		int fadeSyncDelta;
-		int fadeVol;
-		int fadeSlope;
-	};
-
 	DiMUSEDispatch dispatches[MAX_DISPATCHES];
 	DiMUSEStreamZone streamZones[MAX_STREAMZONES];
 	uint8 *dispatch_buf;
@@ -432,9 +324,7 @@ public:
 	void dispatch_free();
 
 	// Files
-
 	char _currentSpeechFile[60];
-
 	int files_moduleInit();
 	int files_moduleDeinit();
 	uint8 *files_getSoundAddrData(int soundId);
@@ -451,7 +341,6 @@ public:
 
 	// Wave
 	int wvSlicingHalted = 1;
-
 	int wave_init();
 	int wave_terminate();
 	int wave_pause();
@@ -475,14 +364,6 @@ public:
 	int wave_lipSync(int soundId, int syncId, int msPos, int *width, int *height);
 
 	// Waveapi
-	typedef struct {
-		int bytesPerSample;
-		int numChannels;
-		uint8 *mixBuf;
-		int mixBufSize;
-		int sizeSampleKB;
-	} waveOutParams;
-
 	waveOutParams waveapi_waveOutParams;
 
 	int waveapi_sampleRate;
@@ -503,7 +384,6 @@ public:
 	void waveapi_callback();
 	void waveapi_increaseSlice();
 	void waveapi_decreaseSlice();
-
 };
 
 } // End of namespace Scumm
