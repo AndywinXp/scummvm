@@ -172,7 +172,7 @@ public:
 	int DiMUSE_getNextSound(int soundId);
 	int DiMUSE_setParam(int soundId, int paramId, int value);
 	int DiMUSE_getParam(int soundId, int paramId);
-	int DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength);
+	int DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot = 0);
 	int DiMUSE_setHook(int soundId, int hookId);
 	int DiMUSE_setTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
 	int DiMUSE_startStream(int soundId, int priority, int groupId);
@@ -457,7 +457,7 @@ public:
 	int fades_moduleDeinit();
 	int fades_save(unsigned char *buffer, int sizeLeft);
 	int fades_restore(unsigned char *buffer);
-	int fades_fadeParam(int soundId, int opcode, int destinationValue, int fadeLength);
+	int fades_fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot);
 	void fades_clearFadeStatus(int soundId, int opcode);
 	void fades_loop();
 	void fades_moduleFree();
@@ -576,6 +576,7 @@ public:
 	int waveapi_bytesPerSample;
 	int waveapi_numChannels;
 	int waveapi_zeroLevel;
+	int waveapi_preferredFeedSize = 0;
 	uint8 *waveapi_mixBuf;
 	uint8 *waveapi_outBuf;
 

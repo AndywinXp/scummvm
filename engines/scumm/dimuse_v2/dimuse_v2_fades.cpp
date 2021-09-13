@@ -51,14 +51,14 @@ int DiMUSE_v2::fades_restore(unsigned char *buffer) {
 	return 640;
 }
 
-int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, int fadeLength) {
+int DiMUSE_v2::fades_fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot) {
 	if (!soundId || fadeLength < 0)
 		return -5;
 	if (opcode != 0x500 && opcode != 0x600 && opcode != 0x700 && opcode != 0x800 && opcode != 0xF00 && opcode != 17)
 		return -5;
 
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (fades[l].status && fades[l].sound == soundId && (fades[l].param == opcode || opcode == -1)) {
+		if (fades[l].status && (fades[l].sound == soundId && !oneShot) && (fades[l].param == opcode || opcode == -1)) {
 			fades[l].status = 0;
 		}
 	}

@@ -482,8 +482,8 @@ int DiMUSE_v2::DiMUSE_getParam(int soundId, int paramId) {
 	return cmds_handleCmds(13, soundId, paramId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength) {
-	return cmds_handleCmds(14, soundId, opcode, destValue, fadeLength, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::DiMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot) {
+	return cmds_handleCmds(14, soundId, opcode, destValue, fadeLength, oneShot, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::DiMUSE_setHook(int soundId, int hookId) {

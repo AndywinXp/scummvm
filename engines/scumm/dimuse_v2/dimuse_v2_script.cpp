@@ -97,10 +97,21 @@ void DiMUSE_v2::script_refresh() {
 	int soundId;
 	int nextSound;
 
-	// Prevent new music from starting, and fade out the current one
 	if (_vm->isSmushActive()) {
-		//fadeOutMusic(60);
-		return;
+		// The Dig calls for a switchStream() in the IACT handler when a SMUSH movie is launched,
+		// and since I don't have any intention of dismantling the audio section of SMUSH,
+		// let's just impose a volume fade-out of one second and call it a day
+		if (_vm->_game.id == GID_DIG) {
+			soundId = 0;
+			while (1) {
+				soundId = DiMUSE_getNextSound(soundId);
+				if (!soundId)
+					break;
+
+				if (DiMUSE_getParam(soundId, 0x400) == IMUSE_GROUP_MUSICEFF && DiMUSE_getParam(soundId, 0x1800))
+					DiMUSE_fadeParam(soundId, 0x600, 0, 60, 1);
+			}
+		}
 	}
 
 	if (_stopSequenceFlag) {

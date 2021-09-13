@@ -211,7 +211,7 @@ int32 decompressADPCM(byte *compInput, byte *compOutput, int channels, bool isDi
 	byte initialTablePos[MAX_CHANNELS] = {0, 0};
 	//int32 initialimcTableEntry[MAX_CHANNELS] = {7, 7};
 	int32 initialOutputWord[MAX_CHANNELS] = {0, 0};
-	int32 totalBitOffset, curTablePos, outputWord, swappedWord;
+	int32 totalBitOffset, curTablePos, outputWord;
 	byte *dst;
 	int i;
 

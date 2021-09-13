@@ -21,6 +21,7 @@
  */
 
 #include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/resource.h"
 
 namespace Scumm {
 
@@ -36,7 +37,10 @@ uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		return NULL;//_vm->getResourceAddress(rtSound, soundId);
+		if (false && _vm->_res->isResourceLoaded(rtSound, soundId))
+			return _vm->getResourceAddress(rtSound, soundId);
+		else
+			return NULL;
 	}
 	debug(5, "DiMUSE_v2::files_getSoundAddrData(): soundId is 0 or out of range");
 	return NULL;
@@ -100,7 +104,11 @@ int DiMUSE_v2::files_read(int soundId, uint8 *buf, int size, int bufId) {
 					uint8 *tmpBuf;
 					//debug(5, "DiMUSE_v2::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
 					int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
+
+					if (resultingSize != size)
+						debug(5, "DiMUSE_v2::files_read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
 					memcpy(buf, tmpBuf, size);
+					free(tmpBuf);
 					return resultingSize;
 				}
 			}

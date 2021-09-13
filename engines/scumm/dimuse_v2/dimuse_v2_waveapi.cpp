@@ -30,19 +30,19 @@ int DiMUSE_v2::waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStr
 	waveapi_bytesPerSample = 2;
 	waveapi_numChannels = 2;
 	waveapi_zeroLevel = 0;
-
-	// Nine buffers (1024 * 4 bytes each), one will be used for the mixer
-	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * 512 * 9);
-	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * 512 * 8); // 9-th buffer
+	waveapi_preferredFeedSize = 512;
+	// Nine buffers (waveapi_preferredFeedSize * 4 bytes each), one will be used for the mixer
+	waveapi_outBuf = (uint8 *)malloc(waveapi_numChannels * waveapi_bytesPerSample * waveapi_preferredFeedSize * 9);
+	waveapi_mixBuf = waveapi_outBuf + (waveapi_numChannels * waveapi_bytesPerSample * waveapi_preferredFeedSize * 8); // 9-th buffer
 
 	waveoutParamStruct->bytesPerSample = waveapi_bytesPerSample * 8;
 	waveoutParamStruct->numChannels = waveapi_numChannels;
-	waveoutParamStruct->mixBufSize = (waveapi_bytesPerSample * waveapi_numChannels) * 512;
+	waveoutParamStruct->mixBufSize = (waveapi_bytesPerSample * waveapi_numChannels) * waveapi_preferredFeedSize;
 	waveoutParamStruct->sizeSampleKB = 0;
 	waveoutParamStruct->mixBuf = waveapi_mixBuf;
 
 	// Init the buffer at volume zero
-	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * 512 * 9);
+	memset(waveapi_outBuf, waveapi_zeroLevel, waveapi_numChannels * waveapi_bytesPerSample * waveapi_preferredFeedSize * 9);
 
 	waveapi_disableWrite = 0;
 	return 0;
@@ -61,12 +61,12 @@ void DiMUSE_v2::waveapi_write(uint8 **audioData, int *feedSize, int *sampleRate)
 	
 	*feedSize = 0;
 	if (_mixer->isReady()) {
-		curBufferBlock = &waveapi_outBuf[512 * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels];
+		curBufferBlock = &waveapi_outBuf[waveapi_preferredFeedSize * waveapi_writeIndex * waveapi_bytesPerSample * waveapi_numChannels];
 
 		*audioData = curBufferBlock;
 
 		*sampleRate = waveapi_sampleRate;
-		*feedSize = 512;
+		*feedSize = waveapi_preferredFeedSize;
 		waveapi_writeIndex = (waveapi_writeIndex + 1) % 8;
 
 		byte *ptr = (byte *)malloc(iMUSE_feedSize * waveapi_bytesPerSample * waveapi_numChannels);

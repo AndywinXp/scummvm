@@ -82,7 +82,7 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 	case 13:
 		return cmds_getParam(arg_0, arg_1);
 	case 14:
-		return fades_fadeParam(arg_0, arg_1, arg_2, arg_3);
+		return fades_fadeParam(arg_0, arg_1, arg_2, arg_3, arg_4);
 	case 15:
 		return cmds_setHook(arg_0, arg_1);
 	case 16:
