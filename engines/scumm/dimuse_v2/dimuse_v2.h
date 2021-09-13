@@ -92,7 +92,7 @@ private:
 	int _currentSpeechVolume;
 	int _currentSpeechFrequency;
 	int _currentSpeechPan;
-	bool _radioChatterSFX;
+	bool _radioChatterSFX = false;
 	
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);

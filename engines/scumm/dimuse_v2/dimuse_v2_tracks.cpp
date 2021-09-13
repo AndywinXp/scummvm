@@ -176,7 +176,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			foundTrack->pan = 64;
 			foundTrack->detune = 0;
 			foundTrack->transpose = 0;
-			foundTrack->pitchShift = 0;
+			foundTrack->pitchShift = 256;
 			foundTrack->mailbox = 0;
 			foundTrack->jumpHook = 0;
 			foundTrack->syncSize_0 = 0;
@@ -187,6 +187,12 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			foundTrack->syncPtr_2 = NULL;
 			foundTrack->syncSize_3 = 0;
 			foundTrack->syncPtr_3 = NULL;
+
+			if (soundId == kTalkSoundID) {
+				_currentSpeechVolume = 127;
+				_currentSpeechPan = 64;
+				_currentSpeechFrequency = 0;
+			}
 
 			if (dispatch_alloc(foundTrack, group)) {
 				debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
@@ -238,7 +244,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	stolenTrack->pan = 64;
 	stolenTrack->detune = 0;
 	stolenTrack->transpose = 0;
-	stolenTrack->pitchShift = 0;
+	stolenTrack->pitchShift = 256;
 	stolenTrack->mailbox = 0;
 	stolenTrack->jumpHook = 0;
 	stolenTrack->syncSize_0 = 0;

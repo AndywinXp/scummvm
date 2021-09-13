@@ -258,28 +258,28 @@ void DiMUSE_v2::setVolume(int soundId, int volume) {
 		_currentSpeechVolume = volume;
 }
 
-void DiMUSE_v2::setFrequency(int soundId, int frequency) {
-	DiMUSE_setParam(soundId, 0x900, frequency);
-	if (soundId == kTalkSoundID)
-		_currentSpeechFrequency = frequency;
-}
-
 void DiMUSE_v2::setPan(int soundId, int pan) {
 	DiMUSE_setParam(soundId, 0x700, pan);
 	if (soundId == kTalkSoundID)
 		_currentSpeechPan = pan;
 }
 
+void DiMUSE_v2::setFrequency(int soundId, int frequency) {
+	DiMUSE_setParam(soundId, 0x900, frequency);
+	if (soundId == kTalkSoundID)
+		_currentSpeechFrequency = frequency;
+}
+
 int DiMUSE_v2::getCurSpeechVolume() {
 	return _currentSpeechVolume;
 }
 
-int DiMUSE_v2::getCurSpeechFrequency() {
-	return _currentSpeechFrequency;
-}
-
 int DiMUSE_v2::getCurSpeechPan() {
 	return _currentSpeechPan;
+}
+
+int DiMUSE_v2::getCurSpeechFrequency() {
+	return _currentSpeechFrequency;
 }
 
 void DiMUSE_v2::flushTracks() {
@@ -407,15 +407,15 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
-		//DiMUSE_setGroupVol_SFX(b);
+		DiMUSE_setGroupVol_SFX(b);
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
-		//DiMUSE_setGroupVol_Voice(b);
+		DiMUSE_setGroupVol_Voice(b);
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
-		//DiMUSE_setGroupVol_Music(b);
+		DiMUSE_setGroupVol_Music(b);
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam

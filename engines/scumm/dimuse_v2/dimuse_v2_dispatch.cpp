@@ -24,7 +24,6 @@
 
 namespace Scumm {
 
-// Almost validated, check if there has to be a separate malloc for dispatch_smallFadeBufs; edit dispatch_free accordingly
 int DiMUSE_v2::dispatch_moduleInit() {
 	dispatch_buf = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
 
@@ -43,31 +42,7 @@ int DiMUSE_v2::dispatch_moduleInit() {
 		for (int i = 0; i < MAX_STREAMZONES; i++) {
 			streamZones[i].useFlag = 0;
 		}
-		/*
-		for (int i = 0; i < MAX_DISPATCHES; i++) {
-			dispatches[i].wordSize = 0;
-			dispatches[i].sampleRate = 0;
-			dispatches[i].channelCount = 0;
-			dispatches[i].currentOffset = 0;
-			dispatches[i].audioRemaining = 0;
 
-			memset(dispatches[i].map, 0, sizeof(dispatches[i].map));
-
-			dispatches[i].streamPtr = 0;
-			dispatches[i].streamBufID = 0;
-			dispatches[i].streamZoneList = 0;
-			dispatches[i].streamErrFlag = 0;
-			dispatches[i].fadeBuf = 0;
-			dispatches[i].fadeOffset = 0;
-			dispatches[i].fadeRemaining = 0;
-			dispatches[i].fadeWordSize = 0;
-			dispatches[i].fadeSampleRate = 0;
-			dispatches[i].fadeChannelCount = 0;
-			dispatches[i].fadeSyncFlag = 0;
-			dispatches[i].fadeSyncDelta = 0;
-			dispatches[i].fadeVol = 0;
-			dispatches[i].fadeSlope = 0;
-		}*/	
 	} else {
 		debug(5, "DiMUSE_v2::dispatch_moduleInit(): ERROR: couldn't allocate buffers\n");
 		return -1;
@@ -80,7 +55,6 @@ DiMUSE_v2::iMUSEDispatch *DiMUSE_v2::dispatch_getDispatchByTrackId(int trackId) 
 	return &dispatches[trackId];
 }
 
-// Validated
 int DiMUSE_v2::dispatch_save(uint8 *dst, int size) {
 	if (size < 8832)
 		return -5;
@@ -88,7 +62,6 @@ int DiMUSE_v2::dispatch_save(uint8 *dst, int size) {
 	return 8832;
 }
 
-// Validated
 int DiMUSE_v2::dispatch_restore(uint8 *src) {
 	memcpy(dispatches, src, 8832);
 
@@ -107,7 +80,6 @@ int DiMUSE_v2::dispatch_restore(uint8 *src) {
 	return 8832;
 }
 
-// Almost validated, check if the list related code works
 int DiMUSE_v2::dispatch_allocStreamZones() {
 	iMUSEDispatch *curDispatchPtr;
 	iMUSEStream *curAllocatedStream;
@@ -167,7 +139,6 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 	return 0;
 }
 
-// Almost validated, check if the list removal code works
 int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	iMUSEDispatch *trackDispatch;
 	iMUSEDispatch *dispatchToDeallocate;
@@ -252,7 +223,6 @@ int DiMUSE_v2::dispatch_alloc(iMUSETrack *trackPtr, int groupId) {
 	return -1;
 }
 
-// Almost validated, check if the list removal code works
 int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 	iMUSEDispatch *dispatchToDeallocate;
 	iMUSEStreamZone *streamZoneList;
@@ -314,12 +284,12 @@ int DiMUSE_v2::dispatch_release(iMUSETrack *trackPtr) {
 
 int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag) {
 	int effFadeLen;
-	/*unsigned*/int strZnSize;
+	int strZnSize;
 	int alignmentModDividend;
 	iMUSEDispatch *curDispatch = dispatches;
 	int ptrCtr, i, j;
 	uint8 *fadeBuffer;
-	/*unsigned*/int effFadeSize;
+	int effFadeSize;
 	int getMapResult;
 
 	effFadeLen = fadeLength;
@@ -542,7 +512,6 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 	}
 }
 
-// Validated
 void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, int sampleRate) {
 	iMUSEDispatch *dispatchPtr;
 	int inFrameCount;
@@ -550,6 +519,7 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 	int effWordSize;
 	int effRemainingAudio;
 	int effRemainingFade;
+	int effSampleRate;
 	int getNextMapEventResult;
 	int mixVolume;
 	int ptrCtr, i, j;
@@ -566,11 +536,17 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 	if (dispatchPtr->fadeBuf) {
 		inFrameCount = 8 * dispatchPtr->fadeRemaining / (dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount);
 
-		if (inFrameCount >= dispatchPtr->fadeSampleRate * feedSize / sampleRate) {
-			inFrameCount = dispatchPtr->fadeSampleRate * feedSize / sampleRate;
+		if (_vm->_game.id == GID_DIG) {
+			effSampleRate = dispatchPtr->fadeSampleRate;
+		} else {
+			effSampleRate = (trackPtr->pitchShift * dispatchPtr->fadeSampleRate) >> 8;
+		}
+
+		if (inFrameCount >= effSampleRate * feedSize / sampleRate) {
+			inFrameCount = effSampleRate * feedSize / sampleRate;
 			effFeedSize = feedSize;
 		} else {
-			effFeedSize = sampleRate * inFrameCount / dispatchPtr->fadeSampleRate;
+			effFeedSize = sampleRate * inFrameCount / effSampleRate;
 		}
 
 		if (dispatchPtr->fadeWordSize == 12 && dispatchPtr->fadeChannelCount == 1)
@@ -704,13 +680,18 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 			// We reached a JUMP, therefore we have to crossfade to
 			// the destination region: start a fade-out
 			if (dispatch_fadeStartedFlag) {
-				inFrameCount = 8 * dispatchPtr->fadeRemaining / (dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount);
+				if (_vm->_game.id == GID_DIG) {
+					effSampleRate = dispatchPtr->fadeSampleRate;
+				} else {
+					effSampleRate = (trackPtr->pitchShift * dispatchPtr->fadeSampleRate) >> 8;
+				}
 
-				if (inFrameCount >= dispatchPtr->fadeSampleRate * feedSize / sampleRate) {
-					inFrameCount = dispatchPtr->fadeSampleRate * feedSize / sampleRate;
+				inFrameCount = 8 * dispatchPtr->fadeRemaining / (dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount);
+				if (inFrameCount >= effSampleRate * feedSize / sampleRate) {
+					inFrameCount = effSampleRate * feedSize / sampleRate;
 					effFeedSize = feedSize;
 				} else {
-					effFeedSize = sampleRate * inFrameCount / dispatchPtr->fadeSampleRate;
+					effFeedSize = sampleRate * inFrameCount / effSampleRate;
 				}
 
 				if (dispatchPtr->fadeWordSize == 12 && dispatchPtr->fadeChannelCount == 1)
@@ -789,14 +770,20 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 		if (!feedSize)
 			return;
 
+		if (_vm->_game.id == GID_DIG) {
+			effSampleRate = dispatchPtr->sampleRate;
+		} else {
+			effSampleRate = (trackPtr->pitchShift * dispatchPtr->sampleRate) >> 8;
+		}
+
 		effWordSize = dispatchPtr->channelCount * dispatchPtr->wordSize;
-		inFrameCount = dispatchPtr->sampleRate * feedSize / sampleRate;
+		inFrameCount = effSampleRate * feedSize / sampleRate;
 
 		if (inFrameCount <= (8 * dispatchPtr->audioRemaining / effWordSize)) {
 			effFeedSize = feedSize;
 		} else {
 			inFrameCount = 8 * dispatchPtr->audioRemaining / effWordSize;
-			effFeedSize = sampleRate * (8 * dispatchPtr->audioRemaining / effWordSize) / dispatchPtr->sampleRate;
+			effFeedSize = sampleRate * (8 * dispatchPtr->audioRemaining / effWordSize) / effSampleRate;
 		}
 
 		if (dispatchPtr->wordSize == 12 && dispatchPtr->channelCount == 1)
@@ -858,10 +845,17 @@ void DiMUSE_v2::dispatch_processDispatches(iMUSETrack *trackPtr, int feedSize, i
 					elapsedFadeDelta = effFeedSize;
 					if (effFeedSize >= dispatchPtr->fadeSyncDelta)
 						elapsedFadeDelta = dispatchPtr->fadeSyncDelta;
-
+					
 					dispatchPtr->fadeSyncDelta -= elapsedFadeDelta;
 					effFeedSize -= elapsedFadeDelta;
-					inFrameCount = effFeedSize * dispatchPtr->sampleRate / sampleRate;
+
+					if (_vm->_game.id == GID_DIG) {
+						effSampleRate = dispatchPtr->sampleRate;
+					} else {
+						effSampleRate = (trackPtr->pitchShift * dispatchPtr->sampleRate) >> 8;
+					}
+
+					inFrameCount = effFeedSize * effSampleRate / sampleRate;
 
 					if (dispatchPtr->wordSize == 12 && dispatchPtr->channelCount == 1)
 						inFrameCount &= 0xFFFFFFFE;
