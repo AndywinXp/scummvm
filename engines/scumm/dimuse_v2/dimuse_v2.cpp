@@ -55,34 +55,34 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_triggersHandler = new DiMUSETriggersHandler(this);
 	_sound = new DiMUSESndMgr(_vm, true);
 	assert(_sound);
-	diMUSE_initialize();
-	diMUSE_initializeScript();
-	DiMUSE_allocSoundBuffer(IMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
-	DiMUSE_allocSoundBuffer(IMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
+	diMUSEInitialize();
+	diMUSEInitializeScript();
+	diMUSEAllocSoundBuffer(IMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
+	diMUSEAllocSoundBuffer(IMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
-	cmds_deinit();
-	diMUSE_terminate();
+	cmdsDeinit();
+	diMUSETerminate();
 	
 	delete _sound;
-	DiMUSE_deallocSoundBuffer(1);
-	DiMUSE_deallocSoundBuffer(2);
+	diMUSEDeallocSoundBuffer(1);
+	diMUSEDeallocSoundBuffer(2);
 }
 
 void DiMUSE_v2::stopSound(int sound) {
-	diMUSE_stopSound(sound);
+	diMUSEStopSound(sound);
 }
 
 void DiMUSE_v2::stopAllSounds() {
-	diMUSE_stopAllSounds();
+	diMUSEStopAllSounds();
 }
 
 int DiMUSE_v2::isSoundRunning(int soundId) {
-	int result = diMUSE_getParam(soundId, 0x100) > 0;
+	int result = diMUSEGetParam(soundId, 0x100) > 0;
 	//debug(5, "DiMUSE_v2::isSoundRunning(%d): %d", soundId, result);
 	return result;
 }
@@ -98,45 +98,45 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 		//IMUSE_SetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
 		_sound->closeSoundById(soundId);
 		files_openSound(kTalkSoundID);
-		diMUSE_startStream(kTalkSoundID, 127, 1);
-		diMUSE_setParam(kTalkSoundID, 0x400, 2);
+		diMUSEStartStream(kTalkSoundID, 127, 1);
+		diMUSESetParam(kTalkSoundID, 0x400, 2);
 		if (_vm->VAR(_vm->VAR_TALK_ACTOR) == _vm->VAR(_vm->VAR_EGO)) {
-			diMUSE_setParam(kTalkSoundID, 0xA00, 0);
-			diMUSE_setParam(kTalkSoundID, 0x600, 127);
+			diMUSESetParam(kTalkSoundID, 0xA00, 0);
+			diMUSESetParam(kTalkSoundID, 0x600, 127);
 		} else {
-			diMUSE_setParam(kTalkSoundID, 0xA00, _radioChatterSFX);
-			diMUSE_setParam(kTalkSoundID, 0x600, 88);
+			diMUSESetParam(kTalkSoundID, 0xA00, _radioChatterSFX);
+			diMUSESetParam(kTalkSoundID, 0x600, 88);
 		}
 		files_closeSound(kTalkSoundID);
 	} else {
 		strcpy(_currentSpeechFile, soundName);
 		_sound->closeSoundById(soundId);
 		files_openSound(kTalkSoundID);
-		diMUSE_startStream(kTalkSoundID, 127, 1);
-		diMUSE_setParam(kTalkSoundID, 0x400, 2);
+		diMUSEStartStream(kTalkSoundID, 127, 1);
+		diMUSESetParam(kTalkSoundID, 0x400, 2);
 
 		// Let's not give the occasion to raise errors here
 		if (_vm->isValidActor(_vm->VAR(_vm->VAR_TALK_ACTOR))) {
 			Actor *a = _vm->derefActor(_vm->VAR(_vm->VAR_TALK_ACTOR), "DiMUSE_v2::startVoice");
 			if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
-				diMUSE_setParam(kTalkSoundID, 0x600, 0);
+				diMUSESetParam(kTalkSoundID, 0x600, 0);
 			else
-				diMUSE_setParam(kTalkSoundID, 0x600, a->_talkVolume);
+				diMUSESetParam(kTalkSoundID, 0x600, a->_talkVolume);
 
-			diMUSE_setParam(kTalkSoundID, 0x900, a->_talkFrequency);
-			diMUSE_setParam(kTalkSoundID, 0x700, a->_talkPan);
+			diMUSESetParam(kTalkSoundID, 0x900, a->_talkFrequency);
+			diMUSESetParam(kTalkSoundID, 0x700, a->_talkPan);
 		}
 
 		// The interpreter really calls for processStreams two times in a row,
 		// and who am I to contradict it?
-		diMUSE_processStreams();
-		diMUSE_processStreams();
+		diMUSEProcessStreams();
+		diMUSEProcessStreams();
 	}
 
 	return 0;
 }
 
-void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
+void DiMUSE_v2::diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
 	DiMUSESoundBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
@@ -146,7 +146,7 @@ void DiMUSE_v2::DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int c
 	selectedSoundBuf->criticalSize = criticalSize;
 }
 
-void DiMUSE_v2::DiMUSE_deallocSoundBuffer(int bufId) {
+void DiMUSE_v2::diMUSEDeallocSoundBuffer(int bufId) {
 	DiMUSESoundBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
@@ -154,7 +154,7 @@ void DiMUSE_v2::DiMUSE_deallocSoundBuffer(int bufId) {
 }
 
 void DiMUSE_v2::refreshScripts() {
-	diMUSE_refreshScript();
+	diMUSERefreshScript();
 }
 
 void DiMUSE_v2::setRadioChatterSFX(bool state) {
@@ -162,14 +162,14 @@ void DiMUSE_v2::setRadioChatterSFX(bool state) {
 }
 
 int DiMUSE_v2::startSfx(int soundId, int priority) {
-	diMUSE_startSound(soundId, priority);
-	diMUSE_setParam(soundId, 0x400, 1);
+	diMUSEStartSound(soundId, priority);
+	diMUSESetParam(soundId, 0x400, 1);
 	return 0;
 }
 
 void DiMUSE_v2::callback() {
 	Common::StackLock lock(_mutex, "DiMUSE_v2::callback()");
-	if (cmd_pauseCount)
+	if (_cmdsPauseCount)
 		return;
 
 	if (!_timerHandler->getInterruptFlag()) {
@@ -188,42 +188,42 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 
 	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol;
 
-	int usecPerInt = _timerHandler->getUsecPerInt(); // Always returns 20000 microseconds (50 Hz)
+	int usecPerInt = _timerHandler->getUsecPerInt(); // (Set to 50 Hz)
 	waveapi_callback();
 
 	// Update volumes
 
 	if (_curMixerMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType)) {
 		_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType);
-		diMUSE_setGroupVol_Music(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
+		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
 	}
 
 	if (_curMixerSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType)) {
 		_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType);
-		diMUSE_setGroupVol_Voice(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
+		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
 	}
 
 	if (_curMixerSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType)) {
 		_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType);
-		diMUSE_setGroupVol_SFX(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
+		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
 	}
 
 	// Handle fades and triggers
 
-	cmd_running60HzCount += usecPerInt;
-	while (cmd_running60HzCount >= 16667) {
-		cmd_running60HzCount -= 16667;
+	_cmdsRunning60HzCount += usecPerInt;
+	while (_cmdsRunning60HzCount >= 16667) {
+		_cmdsRunning60HzCount -= 16667;
 		_fadesHandler->loop();
 		_triggersHandler->loop();
 	}
 
-	cmd_running10HzCount += usecPerInt;
-	if (cmd_running10HzCount < 100000)
+	_cmdsRunning10HzCount += usecPerInt;
+	if (_cmdsRunning10HzCount < 100000)
 		return;
 
 	do {
 		// SPEECH GAIN REDUCTION 10Hz
-		cmd_running10HzCount -= 100000;
+		_cmdsRunning10HzCount -= 100000;
 		soundId = 0;
 		musicTargetVolume = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSIC, -1);
 		while (1) { // Check all tracks to see if there's a speech file playing
@@ -273,23 +273,23 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 			_groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
 		}
 		
-	} while (cmd_running10HzCount >= 100000);
+	} while (_cmdsRunning10HzCount >= 100000);
 }
 
 void DiMUSE_v2::setVolume(int soundId, int volume) {
-	diMUSE_setParam(soundId, 0x600, volume);
+	diMUSESetParam(soundId, 0x600, volume);
 	if (soundId == kTalkSoundID)
 		_currentSpeechVolume = volume;
 }
 
 void DiMUSE_v2::setPan(int soundId, int pan) {
-	diMUSE_setParam(soundId, 0x700, pan);
+	diMUSESetParam(soundId, 0x700, pan);
 	if (soundId == kTalkSoundID)
 		_currentSpeechPan = pan;
 }
 
 void DiMUSE_v2::setFrequency(int soundId, int frequency) {
-	diMUSE_setParam(soundId, 0x900, frequency);
+	diMUSESetParam(soundId, 0x900, frequency);
 	if (soundId == kTalkSoundID)
 		_currentSpeechFrequency = frequency;
 }
@@ -312,7 +312,7 @@ void DiMUSE_v2::flushTracks() {
 		DiMUSESndMgr::SoundDesc *curSnd = &s[i];
 		if (curSnd && curSnd->inUse) {
 			if (curSnd->scheduledForDealloc)
-				if (!diMUSE_getParam(curSnd->soundId, 0x100) && !diMUSE_getParam(curSnd->soundId, 0x200))
+				if (!diMUSEGetParam(curSnd->soundId, 0x100) && !diMUSEGetParam(curSnd->soundId, 0x200))
 					_sound->closeSound(curSnd);
 		}
 	}
@@ -324,17 +324,17 @@ int32 DiMUSE_v2::getCurMusicPosInMs() {
 	curSoundId = 0;
 	soundId = 0;
 	while (1) {
-		curSoundId = diMUSE_getNextSound(curSoundId);
+		curSoundId = diMUSEGetNextSound(curSoundId);
 		if (!curSoundId)
 			break;
 
-		if (diMUSE_getParam(curSoundId, 0x1800) && diMUSE_getParam(curSoundId, 0x1900) == 2) {
+		if (diMUSEGetParam(curSoundId, 0x1800) && diMUSEGetParam(curSoundId, 0x1900) == 2) {
 			soundId = curSoundId;
-			return diMUSE_getParam(soundId, 0x1A00);
+			return diMUSEGetParam(soundId, 0x1A00);
 		}
 	}
 
-	return diMUSE_getParam(soundId, 0x1A00);
+	return diMUSEGetParam(soundId, 0x1A00);
 }
 
 int32 DiMUSE_v2::getCurVoiceLipSyncWidth() {
@@ -367,9 +367,9 @@ void DiMUSE_v2::getSpeechLipSyncInfo(int32 *width, int32 *height) {
 	*width = 0;
 	*height = 0;
 
-	if (diMUSE_getParam(kTalkSoundID, 0x100) > 0) {
-		curSpeechPosInMs = diMUSE_getParam(kTalkSoundID, 0x1A00);
-		diMUSE_lipSync(kTalkSoundID, 0, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
+	if (diMUSEGetParam(kTalkSoundID, 0x100) > 0) {
+		curSpeechPosInMs = diMUSEGetParam(kTalkSoundID, 0x1A00);
+		diMUSELipSync(kTalkSoundID, 0, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
 	}
 }
 
@@ -383,11 +383,11 @@ void DiMUSE_v2::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
 	*width = 0;
 	*height = 0;
 	while (1) {
-		soundId = diMUSE_getNextSound(soundId);
+		soundId = diMUSEGetNextSound(soundId);
 		if (!soundId)
 			break;
-		if (diMUSE_getParam(soundId, 0x1800)) {
-			if (diMUSE_getParam(soundId, 0x1900) == 2) {
+		if (diMUSEGetParam(soundId, 0x1800)) {
+			if (diMUSEGetParam(soundId, 0x1900) == 2) {
 				speechSoundId = soundId;
 				break;
 			}
@@ -395,18 +395,18 @@ void DiMUSE_v2::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
 	}
 
 	if (speechSoundId) {
-		curSpeechPosInMs = diMUSE_getParam(speechSoundId, 0x1A00);
-		diMUSE_lipSync(speechSoundId, syncId, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
+		curSpeechPosInMs = diMUSEGetParam(speechSoundId, 0x1A00);
+		diMUSELipSync(speechSoundId, syncId, _vm->VAR(_vm->VAR_SYNC) + curSpeechPosInMs + 50, width, height);
 	}
 }
 
 void DiMUSE_v2::pause(bool p) {
 	if (p) {
 		debug(5, "DiMUSE_v2::pause(): pausing...");
-		diMUSE_pause();
+		diMUSEPause();
 	} else {
 		debug(5, "DiMUSE_v2::pause(): resuming...");
-		diMUSE_resume();
+		diMUSEResume();
 	}
 }
 
@@ -416,192 +416,186 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 	switch (cmd) {
 	case 0x1000:
 		// SetState
-		diMUSE_setState(soundId);
+		diMUSESetState(soundId);
 		break;
 	case 0x1001:
 		// SetSequence
-		diMUSE_setSequence(soundId);
+		diMUSESetSequence(soundId);
 		break;
 	case 0x1002:
 		// SetCuePoint
 		break;
 	case 0x1003:
 		// SetAttribute
-		diMUSE_setAttribute(b, c);
+		diMUSESetAttribute(b, c);
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
-		diMUSE_setGroupVol_SFX(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
+		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
-		diMUSE_setGroupVol_Voice(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
+		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
-		diMUSE_setGroupVol_Music(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
+		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam
 	case 14: // FadeParam
-		cmds_handleCmds(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
+		cmdsHandleCmd(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
 		break;
 	default:
-		error("DiMUSE_v2::doCommand DEFAULT command %d", cmd);
+		error("DiMUSE_v2::parseScriptCmds(): WARNING: unhandled command %d", cmd);
 	}
 };
 
-int DiMUSE_v2::diMUSE_terminate() {
+int DiMUSE_v2::diMUSETerminate() {
 	if (_scriptInitializedFlag) {
-		diMUSE_stopAllSounds();
+		diMUSEStopAllSounds();
 		files_closeAllSounds();
 	}
 		
 	return 0;
 }
 
-int DiMUSE_v2::diMUSE_initialize() {
-	return cmds_handleCmds(0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEInitialize() {
+	return cmdsHandleCmd(0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_pause() {
-	return cmds_handleCmds(3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEPause() {
+	return cmdsHandleCmd(3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_resume() {
-	return cmds_handleCmds(4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEResume() {
+	return cmdsHandleCmd(4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_save() { return 0; }
-int DiMUSE_v2::diMUSE_restore() { return 0; }
+int DiMUSE_v2::diMUSESave() { return 0; }
+int DiMUSE_v2::diMUSERestore() { return 0; }
 
-int DiMUSE_v2::diMUSE_setGroupVol(int groupId, int volume) {
-	return cmds_handleCmds(7, groupId, volume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSESetGroupVol(int groupId, int volume) {
+	return cmdsHandleCmd(7, groupId, volume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_startSound(int soundId, int priority) {
-	return cmds_handleCmds(8, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEStartSound(int soundId, int priority) {
+	return cmdsHandleCmd(8, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_stopSound(int soundId) {
-	debug(5, "DiMUSE_v2::DiMUSE_stopSound(): %d", soundId);
-	return cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEStopSound(int soundId) {
+	debug(5, "DiMUSE_v2::diMUSEStopSound(): %d", soundId);
+	return cmdsHandleCmd(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_stopAllSounds() {
-	debug(5, "DiMUSE_v2::DiMUSE_stopAllSounds()");
-	return cmds_handleCmds(10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEStopAllSounds() {
+	debug(5, "DiMUSE_v2::diMUSEStopAllSounds()");
+	return cmdsHandleCmd(10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_getNextSound(int soundId) {
-	return cmds_handleCmds(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEGetNextSound(int soundId) {
+	return cmdsHandleCmd(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_setParam(int soundId, int paramId, int value) {
-	return cmds_handleCmds(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSESetParam(int soundId, int paramId, int value) {
+	return cmdsHandleCmd(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_getParam(int soundId, int paramId) {
-	return cmds_handleCmds(13, soundId, paramId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEGetParam(int soundId, int paramId) {
+	return cmdsHandleCmd(13, soundId, paramId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot) {
-	return cmds_handleCmds(14, soundId, opcode, destValue, fadeLength, oneShot, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot) {
+	return cmdsHandleCmd(14, soundId, opcode, destValue, fadeLength, oneShot, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_setHook(int soundId, int hookId) {
-	return cmds_handleCmds(15, soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSESetHook(int soundId, int hookId) {
+	return cmdsHandleCmd(15, soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_setTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
-	return cmds_handleCmds(17, soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
+int DiMUSE_v2::diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+	return cmdsHandleCmd(17, soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
 }
 
-int DiMUSE_v2::diMUSE_startStream(int soundId, int priority, int bufferId) {
- 	return cmds_handleCmds(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEStartStream(int soundId, int priority, int bufferId) {
+ 	return cmdsHandleCmd(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
-	return cmds_handleCmds(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
+	return cmdsHandleCmd(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_processStreams() {
-	return cmds_handleCmds(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEProcessStreams() {
+	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_queryStream() { return 0; }
-int DiMUSE_v2::diMUSE_feedStream() { return 0; }
+int DiMUSE_v2::diMUSEQueryStream() { return 0; }
+int DiMUSE_v2::diMUSEFeedStream() { return 0; }
 
-int DiMUSE_v2::diMUSE_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	// Skip over cmds_handleCmds for this one, I really don't like the idea of having to use intptr_t casts
 	// return cmds_handleCmds(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 	return wave_lipSync(soundId, syncId, msPos, width, height);
 }
 
-int DiMUSE_v2::diMUSE_setGroupVol_Music(int volume) {
-	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_Music(): %d", volume);
-	diMUSE_setGroupVol(3, volume);
-	return 0;
+int DiMUSE_v2::diMUSESetMusicGroupVol(int volume) {
+	debug(5, "DiMUSE_v2::diMUSESetMusicGroupVol(): %d", volume);
+	return diMUSESetGroupVol(3, volume);
 }
 
-int DiMUSE_v2::diMUSE_setGroupVol_SFX(int volume) {
-	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_SFX(): %d", volume);
-	diMUSE_setGroupVol(1, volume);
-	return 0;
+int DiMUSE_v2::diMUSESetSFXGroupVol(int volume) {
+	debug(5, "DiMUSE_v2::diMUSESetSFXGroupVol(): %d", volume);
+	return diMUSESetGroupVol(1, volume);
 }
 
-int DiMUSE_v2::diMUSE_setGroupVol_Voice(int volume) {
-	debug(5, "DiMUSE_v2::DiMUSE_setGroupVol_Voice(): %d", volume);
-	diMUSE_setGroupVol(2, volume);
-	return 0;
+int DiMUSE_v2::diMUSESetVoiceGroupVol(int volume) {
+	debug(5, "DiMUSE_v2::diMUSESetVoiceGroupVol(): %d", volume);
+	return diMUSESetGroupVol(2, volume);
 }
 
-int DiMUSE_v2::diMUSE_getGroupVol_Music() {
-	return diMUSE_setGroupVol(3, -1);
+int DiMUSE_v2::diMUSEGetMusicGroupVol() {
+	return diMUSESetGroupVol(3, -1);
 }
 
-int DiMUSE_v2::diMUSE_getGroupVol_SFX() {
-	return diMUSE_setGroupVol(1, -1);
+int DiMUSE_v2::diMUSEGetSFXGroupVol() {
+	return diMUSESetGroupVol(1, -1);
 }
 
-int DiMUSE_v2::diMUSE_getGroupVol_Voice() {
-	return diMUSE_setGroupVol(2, -1);
+int DiMUSE_v2::diMUSEGetVoiceGroupVol() {
+	return diMUSESetGroupVol(2, -1);
 }
 
-int DiMUSE_v2::diMUSE_initializeScript() {
-	script_parse(0, -1, -1, -1, -1, -1, -1, -1, -1);
-	return 0;
+void DiMUSE_v2::diMUSEUpdateGroupVolumes() {
+	wave_updateGroupVolumes();
 }
 
-int DiMUSE_v2::diMUSE_terminateScript() { return 0; }
-int DiMUSE_v2::diMUSE_saveScript() { return 0; }
-int DiMUSE_v2::diMUSE_restoreScript() { return 0; }
-
-void DiMUSE_v2::diMUSE_refreshScript() {
-	diMUSE_processStreams();
-	script_parse(4, -1, -1, -1, -1, -1, -1, -1, -1);
+int DiMUSE_v2::diMUSEInitializeScript() {
+	return scriptParse(0, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_setState(int soundId) {
-	script_parse(5, soundId, -1, -1, -1, -1, -1, -1, -1);
-	return 0;
+int DiMUSE_v2::diMUSETerminateScript() { return 0; }
+int DiMUSE_v2::diMUSESaveScript() { return 0; }
+int DiMUSE_v2::diMUSERestoreScript() { return 0; }
+
+void DiMUSE_v2::diMUSERefreshScript() {
+	diMUSEProcessStreams();
+	scriptParse(4, -1, -1);
 }
 
-int DiMUSE_v2::diMUSE_setSequence(int soundId) {
-	script_parse(6, soundId, -1, -1, -1, -1, -1, -1, -1);
-	return 0;
+int DiMUSE_v2::diMUSESetState(int soundId) {
+	return scriptParse(5, soundId, -1);
 }
 
-int DiMUSE_v2::diMUSE_setCuePoint() {
-	script_parse(7, -1, -1, -1, -1, -1, -1, -1, -1);
-	return 0;
+int DiMUSE_v2::diMUSESetSequence(int soundId) {
+	return scriptParse(6, soundId, -1);
 }
 
-int DiMUSE_v2::diMUSE_setAttribute(int attrIndex, int attrVal) {
-	if (_vm->_game.id == GID_DIG) {
-		_attributes[attrIndex] = attrVal;
-	}
-	return 0;
+int DiMUSE_v2::diMUSESetCuePoint() {
+	return scriptParse(7, -1, -1);
+}
+
+int DiMUSE_v2::diMUSESetAttribute(int attrIndex, int attrVal) {
+	return scriptParse(8, attrIndex, attrVal);
 }
 
 } // End of namespace Scumm

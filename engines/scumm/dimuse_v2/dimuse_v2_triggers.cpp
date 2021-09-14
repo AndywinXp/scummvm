@@ -74,7 +74,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 		marker = &_emptyMarker;
 	}
 
-	if (_engine->diMUSE_strlen(marker) >= 256) {
+	if (_engine->internalStrlen(marker) >= 256) {
 		debug(5, "DiMUSE_v2::triggers_setTrigger(): ERROR: attempting to set trigger with oversized marker string");
 		return -5;
 	}
@@ -84,7 +84,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			_trigs[index].sound = soundId;
 			_trigs[index].clearLater = 0;
 			_trigs[index].opcode = opcode;
-			_engine->diMUSE_strcpy(_trigs[index].text, marker);
+			_engine->internalStrcpy(_trigs[index].text, marker);
 			_trigs[index].args_0_ = d;
 			_trigs[index].args_1_ = e;
 			_trigs[index].args_2_ = f;
@@ -107,7 +107,7 @@ int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (_trigs[l].sound != 0) {
 			if (soundId == -1 || _trigs[l].sound == soundId) {
-				if (marker == (char *)-1 || !_engine->diMUSE_strcmp(marker, _trigs[l].text)) {
+				if (marker == (char *)-1 || !_engine->internalStrcmp(marker, _trigs[l].text)) {
 					if (opcode == -1 || _trigs[l].opcode == opcode)
 						r++;
 				}
@@ -121,7 +121,7 @@ int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
-			(!_engine->diMUSE_strcmp(marker, (char *)"") || !_engine->diMUSE_strcmp(marker, _trigs[l].text)) &&
+			(!_engine->internalStrcmp(marker, (char *)"") || !_engine->internalStrcmp(marker, _trigs[l].text)) &&
 			(opcode == -1 || _trigs[l].opcode == opcode)) {
 
 			if (_midProcessing) {
@@ -137,17 +137,17 @@ int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
-	if (_engine->diMUSE_strlen(marker) >= 256) {
+	if (_engine->internalStrlen(marker) >= 256) {
 		debug(5, "DiMUSE_v2::triggers_processTriggers(): ERROR: the input marker string is oversized");
 		return;
 	}
 
-	_engine->diMUSE_strcpy(_textBuffer, marker);
+	_engine->internalStrcpy(_textBuffer, marker);
 	_midProcessing++;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound ||
 			_trigs[l].sound != soundId ||
-			_trigs[l].text[0] && _engine->diMUSE_strcmp(_textBuffer, _trigs[l].text)) {
+			_trigs[l].text[0] && _engine->internalStrcmp(_textBuffer, _trigs[l].text)) {
 			continue;
 		}
 
@@ -164,11 +164,11 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 		_trigs[l].sound = 0;
 		if (_trigs[l].opcode == 0) {
 			// Call the script callback (a function which sets _stoppingSequence to 1)
-			_engine->script_callback(_textBuffer);
+			_engine->scriptTriggerCallback(_textBuffer);
 		} else {
 			if (_trigs[l].opcode < 30) {
 				// Execute a command
-				_engine->cmds_handleCmds((int)_trigs[l].opcode, _trigs[l].args_0_,
+				_engine->cmdsHandleCmd(_trigs[l].opcode, _trigs[l].args_0_,
 					_trigs[l].args_1_, _trigs[l].args_2_,
 					_trigs[l].args_3_, _trigs[l].args_4_,
 					_trigs[l].args_5_, _trigs[l].args_6_,
@@ -248,7 +248,7 @@ void DiMUSETriggersHandler::loop() {
 		if (_defers[l].counter == 1) {
 			if (_defers[l].opcode != 0) {
 				if (_defers[l].opcode < 30) {
-					_engine->cmds_handleCmds((int)_trigs[l].opcode,
+					_engine->cmdsHandleCmd(_trigs[l].opcode,
 						_trigs[l].args_0_, _trigs[l].args_1_,
 						_trigs[l].args_2_, _trigs[l].args_3_,
 						_trigs[l].args_4_, _trigs[l].args_5_,
@@ -267,7 +267,7 @@ void DiMUSETriggersHandler::loop() {
 						trigs[l].args_8_, trigs[l].args_9_);
 				}*/ 
 			} else {
-				_engine->script_callback(_trigs[l].text);
+				_engine->scriptTriggerCallback(_trigs[l].text);
 			}
 		}
 	}

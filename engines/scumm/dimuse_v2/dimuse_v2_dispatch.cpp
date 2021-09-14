@@ -94,7 +94,7 @@ int DiMUSE_v2::dispatch_allocStreamZones() {
 
 		if (curDispatchPtr->trackPtr->soundId && curDispatchPtr->streamPtr) {
 			// Try allocating the stream
-			curAllocatedStream = streamer_alloc(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, 0x4000); // 0x2000
+			curAllocatedStream = streamer_alloc(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, 0x4000);
 			curDispatchPtr->streamPtr = curAllocatedStream;
 
 			if (curAllocatedStream) {
@@ -153,7 +153,7 @@ int DiMUSE_v2::dispatch_alloc(DiMUSETrack *trackPtr, int groupId) {
 	trackDispatch->map[0] = NULL;
 	trackDispatch->fadeBuf = 0;
 	if (groupId) {
-		trackDispatch->streamPtr = streamer_alloc(trackPtr->soundId, groupId, 0x4000u); // 0x2000
+		trackDispatch->streamPtr = streamer_alloc(trackPtr->soundId, groupId, 0x4000u);
 		if (!trackDispatch->streamPtr) {
 			debug(5, "DiMUSE_v2::dispatch_alloc(): unable to alloc stream");
 			return -1;
@@ -179,7 +179,7 @@ int DiMUSE_v2::dispatch_alloc(DiMUSETrack *trackPtr, int groupId) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				diMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
+				removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
 			} while (streamZoneList);
 		}
 	}
@@ -238,7 +238,7 @@ int DiMUSE_v2::dispatch_release(DiMUSETrack *trackPtr) {
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
-				diMUSE_removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList); // TODO: Is it right?
+				removeStreamZoneFromList(&dispatchToDeallocate->streamZoneList, streamZoneList);
 			} while (dispatchToDeallocate->streamZoneList);
 		}
 	}
@@ -482,7 +482,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 		streamer_setSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
 		while (curDispatch->streamZoneList->next) {
 			curDispatch->streamZoneList->next->useFlag = 0;
-			diMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
+			removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
 		}
 		curDispatch->streamZoneList->size = 0;
 
@@ -493,7 +493,7 @@ int DiMUSE_v2::dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLen
 
 		while (curDispatch->streamZoneList) {
 			curDispatch->streamZoneList->useFlag = 0;
-			diMUSE_removeStreamZoneFromList(&curDispatch->streamZoneList, curDispatch->streamZoneList);
+			removeStreamZoneFromList(&curDispatch->streamZoneList, curDispatch->streamZoneList);
 		}
 
 		curDispatch->currentOffset = 0;
@@ -951,7 +951,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 
 	// Sanity checks for the correct file format
 	// and the correct state of the stream in the current dispatch
-	if (dispatchPtr->map[0] != 'MAP ') {
+	if (dispatchPtr->map[0] != MKTAG('M', 'A', 'P', ' ')) {
 		if (dispatchPtr->currentOffset) {
 			debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): found offset but no map");
 			return -1;
@@ -965,7 +965,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 				return -1;
 			}
 
-			if (dispatchPtr->map[2] != 'FRMT') {
+			if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
 				debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 				return -1;
 			}
@@ -1009,8 +1009,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 				return -3;
 			}
 
-			if (diMUSE_SWAP32(copiedBuf) == 'iMUS' && diMUSE_SWAP32(copiedBuf + 8) == 'MAP ') {
-				size = diMUSE_SWAP32(copiedBuf + 12) + 24;
+			if (READ_BE_UINT32(copiedBuf) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(copiedBuf + 8) == MKTAG('M', 'A', 'P', ' ')) {
+				size = READ_BE_UINT32(copiedBuf + 12) + 24;
 				if (!streamer_copyBufferAbsolute(dispatchPtr->streamPtr, 0, size)) {
 					return -3;
 				}
@@ -1026,7 +1026,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 					return -1;
 				}
 
-				if (dispatchPtr->map[2] != 'FRMT') {
+				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
 					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 					return -1;
 				}
@@ -1064,14 +1064,14 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 				return -1;
 			}
 
-			if (diMUSE_SWAP32(soundAddrData) == 'iMUS' && diMUSE_SWAP32(soundAddrData + 8) == 'MAP ') {
-				dispatchPtr->currentOffset = diMUSE_SWAP32(soundAddrData + 12) + 24;
+			if (READ_BE_UINT32(soundAddrData) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(soundAddrData + 8) == MKTAG('M', 'A', 'P', ' ')) {
+				dispatchPtr->currentOffset = READ_BE_UINT32(soundAddrData + 12) + 24;
 				if (dispatch_convertMap((soundAddrData + 8), (uint8 *)dstMap)) {
 					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: dispatch_convertMap() failure");
 					return -1;
 				}
 
-				if (dispatchPtr->map[2] != 'FRMT') {
+				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
 					debug(5, "DiMUSE_v2::dispatch_getNextMapEvent(): ERROR: expected 'FRMT' at start of map");
 					return -1;
 				}
@@ -1146,8 +1146,8 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - Jump destination offset (4 bytes)
 		// - Hook ID (4 bytes)
 		// - Fade time in ms (4 bytes)
-		if (blockName == 'JUMP') {
-			if (!diMUSE_checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurPos[4])) {
+		if (blockName == MKTAG('J', 'U', 'M', 'P')) {
+			if (!checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurPos[4])) {
 				// This is the right hookId, let's jump
 				dispatchPtr->currentOffset = mapCurPos[3];
 				if (dispatchPtr->streamPtr) {
@@ -1161,7 +1161,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 					}
 
 					dispatchPtr->streamZoneList->useFlag = 0;
-					diMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
+					removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 
 					if (dispatchPtr->streamZoneList->fadeFlag) {
 						if (dispatchPtr->fadeBuf) {
@@ -1287,7 +1287,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 						}
 
 						dispatchPtr->streamZoneList->useFlag = 0;
-						diMUSE_removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
+						removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 					}
 				}
 
@@ -1300,7 +1300,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - The string 'SYNC' (4 bytes)
 		// - SYNC size in bytes (4 bytes)
 		// - SYNC data (variable length)
-		if (blockName == 'SYNC') {
+		if (blockName == MKTAG('S', 'Y', 'N', 'C')) {
 			// It is possible to gather a total maximum of 4 SYNCs for a single track;
 			// this is not a problem however, as speech files only have one SYNC block,
 			// and the most we get is four (one for each character) in 
@@ -1342,7 +1342,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - Word size between 8, 12 and 16 (4 bytes)
 		// - Sample rate (4 bytes)
 		// - Number of channels (4 bytes)
-		if (blockName == 'FRMT') {
+		if (blockName == MKTAG('F', 'R', 'M', 'T')) {
 			dispatchPtr->wordSize = mapCurPos[4];
 			dispatchPtr->sampleRate = mapCurPos[5];
 			dispatchPtr->channelCount = mapCurPos[6];
@@ -1355,7 +1355,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - Block size in bytes minus 8 (4 bytes)
 		// - Block offset (4 bytes)
 		// - Region length (4 bytes)
-		if (blockName == 'REGN') {
+		if (blockName == MKTAG('R', 'E', 'G', 'N')) {
 			regionOffset = mapCurPos[2];
 			if (regionOffset == dispatchPtr->currentOffset) {
 				dispatchPtr->audioRemaining = mapCurPos[3];
@@ -1371,7 +1371,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - The string 'STOP' (4 bytes)
 		// - Block size in bytes minus 8 (4 bytes)
 		// - Block offset (4 bytes)
-		if (blockName == 'STOP')
+		if (blockName == MKTAG('S', 'T', 'O', 'P'))
 			return -1;
 
 		// Marker block (variable size)
@@ -1380,7 +1380,7 @@ int DiMUSE_v2::dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// - Block size in bytes minus 8 (4 bytes)
 		// - Block offset (4 bytes)
 		// - A string of characters ending with '\0' (variable length)
-		if (blockName == 'TEXT') {
+		if (blockName == MKTAG('T', 'E', 'X', 'T')) {
 			char *marker = (char *)mapCurPos + 12;
 			_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, marker);
 			if (dispatchPtr->audioRemaining)
@@ -1409,8 +1409,8 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 	int bytesUntilEndOfMap;
 	uint8 *endOfMapPtr;
 
-	if (diMUSE_SWAP32(rawMap) == 'MAP ') {
-		bytesUntilEndOfMap = diMUSE_SWAP32(rawMap + 4);
+	if (READ_BE_UINT32(rawMap) == MKTAG('M', 'A', 'P', ' ')) {
+		bytesUntilEndOfMap = READ_BE_UINT32(rawMap + 4);
 		effMapSize = bytesUntilEndOfMap + 8;
 		if ((_vm->_game.id == GID_DIG && effMapSize <= 0x400) || (_vm->_game.id == GID_CMI && effMapSize <= 0x2000)) {
 			memcpy(destMap, rawMap, effMapSize);
@@ -1419,8 +1419,8 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// - The 4 bytes string 'MAP '
 			// - Size of the map
 			//int dest = READ_BE_UINT32(destMap);
-			*(int *)destMap = diMUSE_SWAP32(destMap);
-			*((int *)destMap + 1) = diMUSE_SWAP32(destMap + 4);
+			*(int *)destMap = READ_BE_UINT32(destMap);
+			*((int *)destMap + 1) = READ_BE_UINT32(destMap + 4);
 
 			mapCurPos = destMap + 8;
 			endOfMapPtr = &destMap[effMapSize];
@@ -1428,22 +1428,22 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 			// Swap32 the rest of the map
 			while (mapCurPos < endOfMapPtr) {
 				// Swap32 the 4 characters block name
-				int swapped = diMUSE_SWAP32(mapCurPos);
+				int swapped = READ_BE_UINT32(mapCurPos);
 				*(int *)mapCurPos = swapped;
 				blockName = swapped;
 
 				// Advance and Swap32 the block size (minus 8) field
 				blockSizePtr = mapCurPos + 4;
-				blockSizeMin8 = diMUSE_SWAP32(blockSizePtr);
+				blockSizeMin8 = READ_BE_UINT32(blockSizePtr);
 				*(int *)blockSizePtr = blockSizeMin8;
 				mapCurPos = blockSizePtr + 4;
 
 				// Swapping32 a TEXT block is different:
 				// it also contains single characters, so we skip them
 				// since they're already good like this
-				if (blockName == 'TEXT') {
+				if (blockName == MKTAG('T', 'E', 'X', 'T')) {
 					// Swap32 the block offset position
-					*(int *)mapCurPos = diMUSE_SWAP32(mapCurPos);
+					*(int *)mapCurPos = READ_BE_UINT32(mapCurPos);
 
 					// Skip the single characters
 					firstChar = mapCurPos + 4;
@@ -1460,7 +1460,7 @@ int DiMUSE_v2::dispatch_convertMap(uint8 *rawMap, uint8 *destMap) {
 
 					// ...and swap them of course
 					do {
-						*(int *)mapCurPos = diMUSE_SWAP32(mapCurPos);
+						*(int *)mapCurPos = READ_BE_UINT32(mapCurPos);
 						mapCurPos += 4;
 						--remainingFieldsNum;
 					} while (remainingFieldsNum);
@@ -1531,7 +1531,7 @@ void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
 				mapPlaceName = curMapPlace[0]; // TODO: Is this right?
 				bytesUntilNextPlace = curMapPlace[1] + 8;
 
-				if (mapPlaceName == 'JUMP') {
+				if (mapPlaceName == MKTAG('J', 'U', 'M', 'P')) {
 					// We assign these here, to avoid going out of bounds
 					// on a place which doesn't have as many fields, like TEXT
 					mapPlaceHookPosition = curMapPlace[4];
@@ -1539,7 +1539,7 @@ void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
 
 					if (mapPlaceHookPosition > szList->offset && mapPlaceHookPosition <= szList->size + szList->offset) {
 						// Break out of the loop if we have to JUMP
-						if (!diMUSE_checkHookId(&dispatch_bufferedHookId, mapPlaceHookId))
+						if (!checkHookId(&dispatch_bufferedHookId, mapPlaceHookId))
 							break;
 					}
 				}
@@ -1567,7 +1567,7 @@ void DiMUSE_v2::dispatch_predictStream(DiMUSEDispatch *dispatch) {
 					// Remove che previous streamZone from the list, we don't need it anymore
 					while (szList->next->prev) {
 						szList->next->prev->useFlag = 0;
-						diMUSE_removeStreamZoneFromList(&szList->next, szList->next->prev);
+						removeStreamZoneFromList(&szList->next, szList->next->prev);
 					}
 
 					streamer_setSoundToStreamWithCurrentOffset(
@@ -1657,7 +1657,7 @@ void DiMUSE_v2::dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone
 	if (alignmentModDividend) {
 		dispatch_size -= dispatch_size % alignmentModDividend;
 	} else {
-		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: ValidateFadeSize() tried mod by 0");
+		debug(5, "DiMUSE_v2::dispatch_parseJump(): ERROR: tried mod by 0 while validating fade size");
 	}
 
 	if (_vm->_game.id == GID_DIG) {
@@ -1725,7 +1725,7 @@ void DiMUSE_v2::dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone
 
 	while (streamZonePtr->next) {
 		streamZonePtr->next->useFlag = 0;
-		diMUSE_removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
+		removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
 	}
 
 	streamer_setSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr,

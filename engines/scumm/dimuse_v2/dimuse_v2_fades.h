@@ -35,6 +35,8 @@ private:
 	DiMUSE_v2 *_engine;
 	DiMUSEFade _fades[MAX_FADES];
 	int _fadesOn;
+
+	void clearAllFades();
 public:
 	DiMUSEFadesHandler(DiMUSE_v2 *engine);
 	~DiMUSEFadesHandler();

@@ -27,7 +27,7 @@ namespace Scumm {
 #define DIG_SEQ_OFFSET (DIG_STATE_OFFSET + 65)
 #define COMI_STATE_OFFSET 3
 
-int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3, int param4, int param5, int param6, int param7) {
+int DiMUSE_v2::scriptParse(int cmd, int a, int b) {
 	if (_scriptInitializedFlag || !cmd) {
 		switch (cmd) {
 		case 0:
@@ -36,11 +36,11 @@ int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3,
 				return -1;
 			} else {
 				_scriptInitializedFlag = 1;
-				return script_init();
+				return scriptInit();
 			}
 		case 1:
 			_scriptInitializedFlag = 0;
-			return script_terminate();
+			return scriptTerminate();
 		case 2:
 			//result = script_save((_DWORD *)a0, param1);
 			break;
@@ -48,18 +48,18 @@ int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3,
 			//result = script_restore((int *)a0);
 			break;
 		case 4:
-			script_refresh();
+			scriptRefresh();
 			return 0;
 		case 5:
-			script_setState(a0);
+			scriptSetState(a);
 			return 0;
 		case 6:
-			script_setSequence(a0);
+			scriptSetSequence(a);
 			return 0;
 		case 7:
-			return script_setCuePoint();
+			return scriptSetCuePoint();
 		case 8:
-			return script_setAttribute(a0, param1);
+			return scriptSetAttribute(a, b);
 		default:
 			debug(5, "DiMUSE_v2::script_parse(): unrecognized opcode (%d)", cmd);
 			return -1;
@@ -72,7 +72,7 @@ int DiMUSE_v2::script_parse(int cmd, int a0, int param1, int param2, int param3,
 	return -1;
 }
 
-int DiMUSE_v2::script_init() {
+int DiMUSE_v2::scriptInit() {
 	_curMusicState = 0;
 	_curMusicSeq = 0;
 	_nextSeqToPlay = 0;
@@ -80,8 +80,8 @@ int DiMUSE_v2::script_init() {
 	return 0;
 }
 
-int DiMUSE_v2::script_terminate() {
-	diMUSE_terminate();
+int DiMUSE_v2::scriptTerminate() {
+	diMUSETerminate();
 
 	_curMusicState = 0;
 	_curMusicSeq = 0;
@@ -90,47 +90,52 @@ int DiMUSE_v2::script_terminate() {
 	return 0;
 }
 
-int DiMUSE_v2::script_save() { return 0; }
-int DiMUSE_v2::script_restore() { return 0; }
+int DiMUSE_v2::scriptSave() { return 0; }
+int DiMUSE_v2::scriptRestore() { return 0; }
 
-void DiMUSE_v2::script_refresh() {
+void DiMUSE_v2::scriptRefresh() {
 	int soundId;
 	int nextSound;
 
 	if (_vm->isSmushActive()) {
 		// The Dig calls for a switchStream() in the IACT handler when a SMUSH movie is launched,
-		// and since I don't have any intention of dismantling the audio section of SMUSH,
-		// let's just impose a volume fade-out of one second and call it a day
+		// and since I don't have any intention of dismantling the audio section of SMUSH right now,
+		// let's just impose a volume fade-out of one second and call it a day.
+
+		// Of course, life is never too easy, and this only suffices for only this edge case, since
+		// The Dig LOVES using Digital iMUSE features (like the "_end" trigger) all over the .SAN movies :-),
+		// so some parts of this game's audio will remain broken until a SMUSH expert with a lot of patience
+		// comes by and helps me update the audio code there too.
 		if (_vm->_game.id == GID_DIG) {
 			soundId = 0;
 			while (1) {
-				soundId = diMUSE_getNextSound(soundId);
+				soundId = diMUSEGetNextSound(soundId);
 				if (!soundId)
 					break;
 
-				if (diMUSE_getParam(soundId, 0x400) == IMUSE_GROUP_MUSICEFF && diMUSE_getParam(soundId, 0x1800)) {
-					diMUSE_fadeParam(soundId, 0x600, 0, 60, 1);
-					script_setState(0);
+				if (diMUSEGetParam(soundId, 0x400) == IMUSE_GROUP_MUSICEFF && diMUSEGetParam(soundId, 0x1800)) {
+					diMUSEFadeParam(soundId, 0x600, 0, 60, 1);
+					scriptSetState(0);
 				}
 			}
 		}
 	}
 
 	if (_stopSequenceFlag) {
-		script_setSequence(0);
+		scriptSetSequence(0);
 		_stopSequenceFlag = 0;
 	}
 
 	soundId = 0;
 
 	while (1) {
-		nextSound = diMUSE_getNextSound(soundId);
+		nextSound = diMUSEGetNextSound(soundId);
 		soundId = nextSound;
 
 		if (!nextSound)
 			break;
 
-		if (diMUSE_getParam(nextSound, 0x1800) && diMUSE_getParam(soundId, 0x1900) == IMUSE_BUFFER_MUSIC) {
+		if (diMUSEGetParam(nextSound, 0x1800) && diMUSEGetParam(soundId, 0x1900) == IMUSE_BUFFER_MUSIC) {
 			if (soundId)
 				return;
 			break;
@@ -138,13 +143,13 @@ void DiMUSE_v2::script_refresh() {
 	}
 
 	if (_curMusicSeq)
-		script_setSequence(0);
+		scriptSetSequence(0);
 
 	flushTracks();
 	return;
 }
 
-void DiMUSE_v2::script_setState(int soundId) {
+void DiMUSE_v2::scriptSetState(int soundId) {
 	if (_vm->_game.id == GID_DIG) {
 		setDigMusicState(soundId);
 	} else if (_vm->_game.id == GID_CMI) {
@@ -152,7 +157,7 @@ void DiMUSE_v2::script_setState(int soundId) {
 	}
 }
 
-void DiMUSE_v2::script_setSequence(int soundId) {
+void DiMUSE_v2::scriptSetSequence(int soundId) {
 	if (_vm->_game.id == GID_DIG) {
 		setDigMusicSequence(soundId);
 	} else if (_vm->_game.id == GID_CMI) {
@@ -160,14 +165,16 @@ void DiMUSE_v2::script_setSequence(int soundId) {
 	}
 }
 
-int DiMUSE_v2::script_setCuePoint() { return 0; }
+int DiMUSE_v2::scriptSetCuePoint() { return 0; }
 
-int DiMUSE_v2::script_setAttribute(int attrIndex, int attrVal) {
-	debug(5, "DiMUSE_v2::script_setAttribute(): unimplemented");
+int DiMUSE_v2::scriptSetAttribute(int attrIndex, int attrVal) {
+	if (_vm->_game.id == GID_DIG) {
+		_attributes[attrIndex] = attrVal;
+	}
 	return 0;
 }
 
-int DiMUSE_v2::script_callback(char *marker) {
+int DiMUSE_v2::scriptTriggerCallback(char *marker) {
 	if (marker[0] != '_') {
 		debug(5, "DiMUSE_v2::script_callback(): got marker != '_end', callback ignored");
 		return -1;
@@ -396,23 +403,23 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 
 	int nextSoundId = 0;
 	while (1) {
-		nextSoundId = diMUSE_getNextSound(nextSoundId);
+		nextSoundId = diMUSEGetNextSound(nextSoundId);
 		if (!nextSoundId)
 			break;
 
 		// If a sound is found (and its stream is active), fade it out if it's a music track
-		if (diMUSE_getParam(nextSoundId, 0x400) == IMUSE_GROUP_MUSICEFF && !diMUSE_getParam(nextSoundId, 0x1800))
-			diMUSE_fadeParam(nextSoundId, 0x600, 0, 120);
+		if (diMUSEGetParam(nextSoundId, 0x400) == IMUSE_GROUP_MUSICEFF && !diMUSEGetParam(nextSoundId, 0x1800))
+			diMUSEFadeParam(nextSoundId, 0x600, 0, 120);
 	}
 
 	int oldSoundId = 0;
 	nextSoundId = 0;
 	while (1) {
-		nextSoundId = diMUSE_getNextSound(nextSoundId);
+		nextSoundId = diMUSEGetNextSound(nextSoundId);
 		if (!nextSoundId)
 			break;
 
-		if (diMUSE_getParam(nextSoundId, 0x1800) && (diMUSE_getParam(nextSoundId, 0x1900) == IMUSE_BUFFER_MUSIC)) {
+		if (diMUSEGetParam(nextSoundId, 0x1800) && (diMUSEGetParam(nextSoundId, 0x1900) == IMUSE_BUFFER_MUSIC)) {
 			oldSoundId = nextSoundId; // Could _digStateMusicTable[_curMusicState].soundId be enough as oldSoundId?
 			break;
 		}
@@ -420,7 +427,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 
 	if (!songName) {
 		if (oldSoundId)
-			diMUSE_fadeParam(oldSoundId, 0x600, 0, 120);
+			diMUSEFadeParam(oldSoundId, 0x600, 0, 120);
 		return;
 	}
 
@@ -431,12 +438,12 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 	case 1:
 		files_openSound(table->soundId);
 		if (table->soundId) {
-			if (diMUSE_startSound(table->soundId, 126))
+			if (diMUSEStartSound(table->soundId, 126))
 				debug(5, "DiMUSE_v2::playDigMusic(): transition 1, failed to start the sound (%d)", table->soundId);
-			diMUSE_setParam(table->soundId, 0x600, 1);
-			diMUSE_fadeParam(table->soundId, 0x600, 127, 120);
+			diMUSESetParam(table->soundId, 0x600, 1);
+			diMUSEFadeParam(table->soundId, 0x600, 127, 120);
 			files_closeSound(table->soundId);
-			diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+			diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		} else {
 			debug(5, "DiMUSE_v2::playDigMusic(): transition 1, empty soundId, ignored");
 		}
@@ -448,63 +455,63 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 		files_openSound(table->soundId);
 		if (table->filename[0] == 0 || table->soundId == 0) {
 			if (oldSoundId)
-				diMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
+				diMUSEFadeParam(oldSoundId, 0x600, 0, 60);
 			return;
 		}
 
 		if (table->transitionType == 4) {
 			_stopSequenceFlag = 0;
-			diMUSE_setTrigger(table->soundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			diMUSESetTrigger(table->soundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
 		if (oldSoundId) {
 			if (table->transitionType == 2) {
-				diMUSE_switchStream(oldSoundId, table->soundId, 1800, 0, 0);
-				diMUSE_setParam(table->soundId, 0x600, 127);
-				diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-				diMUSE_setHook(table->soundId, hookId);
-				diMUSE_processStreams();
-				diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
+				diMUSESwitchStream(oldSoundId, table->soundId, 1800, 0, 0);
+				diMUSESetParam(table->soundId, 0x600, 127);
+				diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+				diMUSESetHook(table->soundId, hookId);
+				diMUSEProcessStreams();
+				diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
 				return;
 			}
 
 			if (oldSoundId != table->soundId) {
 				if ((!sequence) && (table->attribPos != 0) &&
 					(table->attribPos == _digStateMusicTable[_curMusicState].attribPos)) {
-					diMUSE_switchStream(oldSoundId, table->soundId, 1800, 0, 1);
-					diMUSE_setParam(table->soundId, 0x600, 127);
-					diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-					diMUSE_processStreams();
+					diMUSESwitchStream(oldSoundId, table->soundId, 1800, 0, 1);
+					diMUSESetParam(table->soundId, 0x600, 127);
+					diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+					diMUSEProcessStreams();
 				} else {
-					diMUSE_switchStream(oldSoundId, table->soundId, 1800, 0, 0);
-					diMUSE_setParam(table->soundId, 0x600, 127);
-					diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-					diMUSE_setHook(table->soundId, hookId);
-					diMUSE_processStreams();
+					diMUSESwitchStream(oldSoundId, table->soundId, 1800, 0, 0);
+					diMUSESetParam(table->soundId, 0x600, 127);
+					diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+					diMUSESetHook(table->soundId, hookId);
+					diMUSEProcessStreams();
 					files_closeSound(table->soundId);
-					diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
+					diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
 				}
 			}
 		} else {
-			if (diMUSE_startStream(table->soundId, 126, IMUSE_BUFFER_MUSIC))
+			if (diMUSEStartStream(table->soundId, 126, IMUSE_BUFFER_MUSIC))
 				debug(5, "DiMUSE_v2::playDigMusic(): failed to start the stream for sound %d", table->soundId);
-			diMUSE_setParam(table->soundId, 0x600, 127);
-			diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-			diMUSE_setHook(table->soundId, hookId);
+			diMUSESetParam(table->soundId, 0x600, 127);
+			diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+			diMUSESetHook(table->soundId, hookId);
 		}
 		files_closeSound(table->soundId);
-		diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
+		diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF); // Repeated intentionally
 		break;
 	case 5:
 		debug(5, "DiMUSE_v2::playDigMusic(): no-op transition type (5), ignored");
 		break;
 	case 6:
 		_stopSequenceFlag = 0;
-		diMUSE_setTrigger(12345680, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(12345680, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
 		if (oldSoundId)
-			diMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
+			diMUSEFadeParam(oldSoundId, 0x600, 0, 60);
 		break;
 	default:
 		debug(5, "DiMUSE_v2::playDigMusic(): bogus transition type, ignored");
@@ -534,23 +541,23 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 
 	int nextSoundId = 0;
 	while (1) {
-		nextSoundId = diMUSE_getNextSound(nextSoundId);
+		nextSoundId = diMUSEGetNextSound(nextSoundId);
 		if (!nextSoundId)
 			break;
 
 		// If a sound is found (and its stream is active), fade it out if it's a music track
-		if (diMUSE_getParam(nextSoundId, 0x400) == IMUSE_GROUP_MUSICEFF && !diMUSE_getParam(nextSoundId, 0x1800))
-			diMUSE_fadeParam(nextSoundId, 0x600, 0, 120);
+		if (diMUSEGetParam(nextSoundId, 0x400) == IMUSE_GROUP_MUSICEFF && !diMUSEGetParam(nextSoundId, 0x1800))
+			diMUSEFadeParam(nextSoundId, 0x600, 0, 120);
 	}
 
 	int oldSoundId = 0;
 	nextSoundId = 0;
 	while (1) {
-		nextSoundId = diMUSE_getNextSound(nextSoundId);
+		nextSoundId = diMUSEGetNextSound(nextSoundId);
 		if (!nextSoundId)
 			break;
 
-		if (diMUSE_getParam(nextSoundId, 0x1800) && (diMUSE_getParam(nextSoundId, 0x1900) == IMUSE_BUFFER_MUSIC)) {
+		if (diMUSEGetParam(nextSoundId, 0x1800) && (diMUSEGetParam(nextSoundId, 0x1900) == IMUSE_BUFFER_MUSIC)) {
 			oldSoundId = nextSoundId; // Could _comiStateMusicTable[_curMusicState].soundId be enough as oldSoundId?
 			break;
 		}
@@ -558,7 +565,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 	
 	if (!songName) {
 		if (oldSoundId)
-			diMUSE_fadeParam(oldSoundId, 0x600, 0, 120);
+			diMUSEFadeParam(oldSoundId, 0x600, 0, 120);
 		return;
 	}
 
@@ -569,12 +576,12 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 	case 1:
 		files_openSound(table->soundId);
 		if (table->soundId) {
-			if (diMUSE_startSound(table->soundId, 126))
+			if (diMUSEStartSound(table->soundId, 126))
 				debug(5, "DiMUSE_v2::playComiMusic(): transition 1, failed to start the sound (%d)", table->soundId);
-			diMUSE_setParam(table->soundId, 0x600, 1);
-			diMUSE_fadeParam(table->soundId, 0x600, 127, 120);
+			diMUSESetParam(table->soundId, 0x600, 1);
+			diMUSEFadeParam(table->soundId, 0x600, 127, 120);
 			files_closeSound(table->soundId);
-			diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+			diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		} else {
 			debug(5, "DiMUSE_v2::playComiMusic(): transition 1, empty soundId, ignored");
 		}
@@ -588,13 +595,13 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		files_openSound(table->soundId);
 		if (table->filename[0] == 0 || table->soundId == 0) {
 			if (oldSoundId)
-				diMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
+				diMUSEFadeParam(oldSoundId, 0x600, 0, 60);
 			break;
 		}
 
 		if (table->transitionType == 4) {
 			_stopSequenceFlag = 0;
-			diMUSE_setTrigger(table->soundId, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			diMUSESetTrigger(table->soundId, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
 		if (oldSoundId) {
@@ -605,11 +612,11 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 				fadeDelay = (fadeDelay * 100) / 6; // Set dimuse_table fade out time to millisecond scale
 
 			if (table->transitionType == 2) {
-				diMUSE_switchStream(oldSoundId, table->soundId, fadeDelay, 0, 0);
-				diMUSE_setParam(table->soundId, 0x600, 127);
-				diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-				diMUSE_setHook(table->soundId, table->hookId);
-				diMUSE_processStreams();
+				diMUSESwitchStream(oldSoundId, table->soundId, fadeDelay, 0, 0);
+				diMUSESetParam(table->soundId, 0x600, 127);
+				diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+				diMUSESetHook(table->soundId, table->hookId);
+				diMUSEProcessStreams();
 			} else if (oldSoundId != table->soundId) {
 				if ((!sequence) && (table->attribPos != 0) &&
 					(table->attribPos == _comiStateMusicTable[_curMusicState].attribPos)) {
@@ -617,74 +624,74 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 					debug(5, "DiMUSE_v2::playComiMusic(): Starting new sound (%s) with same attribute as old sound (%s)",
 						table->name, _comiStateMusicTable[_curMusicState].name);
 
-					diMUSE_switchStream(oldSoundId, table->soundId, fadeDelay, 0, 1);
-					diMUSE_setParam(table->soundId, 0x600, 127);
-					diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-					diMUSE_processStreams();
+					diMUSESwitchStream(oldSoundId, table->soundId, fadeDelay, 0, 1);
+					diMUSESetParam(table->soundId, 0x600, 127);
+					diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+					diMUSEProcessStreams();
 				} else {
 					switch (table->transitionType) {
 					case 10:
-						diMUSE_setTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, - 1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, - 1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_processStreams();
+						diMUSESetTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, - 1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, - 1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSEProcessStreams();
 						break;
 					case 11: // Markers actually are 'exit2', which is too long for a char constant; this transition is unused anyway
-						diMUSE_setTrigger(oldSoundId, 'exi2', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exi2', 15, table->soundId, hookId,- 1, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_processStreams();
+						diMUSESetTrigger(oldSoundId, 'exi2', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exi2', 15, table->soundId, hookId,- 1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSEProcessStreams();
 						break;
 					case 12:
-						diMUSE_setHook(oldSoundId, table->hookId);
-						diMUSE_setTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_setTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSE_processStreams();
+						diMUSESetHook(oldSoundId, table->hookId);
+						diMUSESetTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSEProcessStreams();
 						break;
 					default:
-						diMUSE_switchStream(oldSoundId, table->soundId, fadeDelay, 0, 0);
-						diMUSE_setParam(table->soundId, 0x600, 127);
-						diMUSE_setParam(table->soundId, 0x400, 4);
-						diMUSE_setHook(table->soundId, hookId);
-						diMUSE_processStreams();
+						diMUSESwitchStream(oldSoundId, table->soundId, fadeDelay, 0, 0);
+						diMUSESetParam(table->soundId, 0x600, 127);
+						diMUSESetParam(table->soundId, 0x400, 4);
+						diMUSESetHook(table->soundId, hookId);
+						diMUSEProcessStreams();
 						break;
 					}
 				}
 			}
 		} else {
-			if (diMUSE_startStream(table->soundId, 126, IMUSE_BUFFER_MUSIC))
+			if (diMUSEStartStream(table->soundId, 126, IMUSE_BUFFER_MUSIC))
 				debug(5, "DiMUSE_v2::playComiMusic(): failed to start the stream for sound %d", table->soundId);
-			diMUSE_setParam(table->soundId, 0x600, 127);
-			diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
-			diMUSE_setHook(table->soundId, hookId);
+			diMUSESetParam(table->soundId, 0x600, 127);
+			diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+			diMUSESetHook(table->soundId, hookId);
 		}
 		files_closeSound(table->soundId);
-		diMUSE_setParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
+		diMUSESetParam(table->soundId, 0x400, IMUSE_GROUP_MUSICEFF);
 		break;
 	case 5:
 		debug(5, "DiMUSE_v2::playComiMusic(): no-op transition type (5), ignored");
 		break;
 	case 6:
 		_stopSequenceFlag = 0;
-		diMUSE_setTrigger(12345680, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(12345680, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
 		if (oldSoundId)
-			diMUSE_fadeParam(oldSoundId, 0x600, 0, 60);
+			diMUSEFadeParam(oldSoundId, 0x600, 0, 60);
 		break;
 	case 8:
 		if (oldSoundId)
-			diMUSE_setHook(oldSoundId, table->hookId);
+			diMUSESetHook(oldSoundId, table->hookId);
 		break;
 	case 9:
 		if (oldSoundId)
-			diMUSE_setHook(oldSoundId, table->hookId);
+			diMUSESetHook(oldSoundId, table->hookId);
 		_stopSequenceFlag = 0;
-		diMUSE_setTrigger(oldSoundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(oldSoundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	default:
 		debug(5, "DiMUSE_v2::playComiMusic(): bogus transition type, ignored");

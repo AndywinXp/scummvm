@@ -32,10 +32,7 @@ DiMUSEFadesHandler::DiMUSEFadesHandler(DiMUSE_v2 *engine) {
 DiMUSEFadesHandler::~DiMUSEFadesHandler() {}
 
 int DiMUSEFadesHandler::init() {
-	for (int l = 0; l < MAX_FADES; l++) {
-		_fades[l].status = 0;
-	}
-	_fadesOn = 0;
+	clearAllFades();
 	return 0;
 }
 
@@ -61,20 +58,20 @@ int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue,
 		return -5;
 
 	for (int l = 0; l < MAX_FADES; l++) {
+		// The oneShot parameter is a hack for fading out a sound during a SMUSH movie in The Dig; 
+		// see scriptRefresh() in dimuse_v2_script.cpp for further information
 		if (_fades[l].status && (_fades[l].sound == soundId && !oneShot) && (_fades[l].param == opcode || opcode == -1)) {
 			_fades[l].status = 0;
 		}
 	}
 
 	if (!fadeLength) {
-		debug(5, "DiMUSE_v2::fades_fadeParam(): warning, allocated fade with zero length for sound %d", soundId);
+		debug(5, "DiMUSEFadesHandler::fadeParam(): WARNING: allocated fade with zero length for sound %d", soundId);
 		if (opcode != 0x600 || destinationValue) {
-			// cmds_setParam
-			_engine->cmds_handleCmds(12, soundId, opcode, destinationValue, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_engine->diMUSESetParam(soundId, opcode, destinationValue);
 			return 0;
 		} else {
-			// cmds_stopSound
-			_engine->cmds_handleCmds(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_engine->diMUSEStopSound(soundId);
 			return 0;
 		}
 	}
@@ -83,8 +80,7 @@ int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue,
 		if (!_fades[l].status) {
 			_fades[l].sound = soundId;
 			_fades[l].param = opcode;
-			// cmds_getParam (fetches current volume, with opcode 0x600)
-			_fades[l].currentVal = _engine->cmds_handleCmds(13, soundId, opcode, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			_fades[l].currentVal = _engine->diMUSEGetParam(soundId, opcode);
 			_fades[l].length = fadeLength;
 			_fades[l].counter = fadeLength;
 			_fades[l].slope = (destinationValue - _fades[l].currentVal) / fadeLength;
@@ -104,7 +100,7 @@ int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue,
 		}
 	}
 
-	debug(5, "DiMUSE_v2::fades_fadeParam(): unable to allocate fade for sound %d", soundId);
+	debug(5, "DiMUSEFadesHandler::fadeParam(): unable to allocate fade for sound %d", soundId);
 	return -6;
 }
 
@@ -143,14 +139,12 @@ void DiMUSEFadesHandler::loop() {
 				_fades[l].currentVal = currentVolume;
 
 				if ((_fades[l].counter % 6) == 0) {
-					debug(5, "DiMUSE_v2::fades_loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
+					debug(5, "DiMUSEFadesHandler::loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
 					if ((_fades[l].param != 0x600) || currentVolume != 0) {
-						// IMUSE_CMDS_SetParam
-						_engine->cmds_handleCmds(12, _fades[l].sound, _fades[l].param, currentVolume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						_engine->diMUSESetParam(_fades[l].sound, _fades[l].param, currentVolume);
 						continue;
 					} else {
-						// IMUSE_CMDS_StopSound
-						_engine->cmds_handleCmds(9, _fades[l].sound, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						_engine->diMUSEStopSound(_fades[l].sound);
 					}
 				}
 			}
@@ -159,6 +153,10 @@ void DiMUSEFadesHandler::loop() {
 }
 
 void DiMUSEFadesHandler::deinit() {
+	clearAllFades();
+}
+
+void DiMUSEFadesHandler::clearAllFades() {
 	for (int l = 0; l < MAX_FADES; l++) {
 		_fades[l].status = 0;
 	}

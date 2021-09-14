@@ -72,6 +72,10 @@ private:
 	static void timer_handler(void *refConf);
 	void callback();
 
+	uint8 *_outputAudioBuffer;
+	int _outputFeedSize = 512;
+	int _outputSampleRate = 22050;
+
 	int _currentSpeechVolume, _currentSpeechFrequency, _currentSpeechPan;
 	int _curMixerMusicVolume, _curMixerSpeechVolume, _curMixerSFXVolume;
 	bool _radioChatterSFX = false;
@@ -84,152 +88,47 @@ private:
 	int _stopSequenceFlag;
 	int _scriptInitializedFlag = 0;
 
+	void diMUSEHeartbeat();
+
 	void setDigMusicState(int stateId);
 	void setDigMusicSequence(int seqId);
 	void playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence);
 	void setComiMusicState(int stateId);
 	void setComiMusicSequence(int seqId);
 	void playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
-	
-public:
-	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
-	~DiMUSE_v2() override;
-
-	void startSound(int sound) override
-	{ error("DiMUSE_v2::startSound(int) should be never called"); }
-
-	void setMusicVolume(int vol) override {}
-	void stopSound(int sound) override;
-	void stopAllSounds() override;
-
-	int getSoundStatus(int sound) const override { return 0; };
-	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
-
-	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
-	int startVoice(int soundId, const char *soundName) override;
-	void saveLoadEarly(Common::Serializer &ser) override {};
-	void resetState() override {};
-	void setRadioChatterSFX(bool state) override;
-	void setAudioNames(int32 num, char *names) override {};
-	int  startSfx(int soundId, int priority) override;
-	void setPriority(int soundId, int priority) override {};
-	void setVolume(int soundId, int volume) override;
-	void setPan(int soundId, int pan) override;
-	void setFrequency(int soundId, int frequency) override;
-	int  getCurSpeechVolume() override;
-	int  getCurSpeechPan() override;
-	int  getCurSpeechFrequency() override;
-	void pause(bool pause) override;
-	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
-	void refreshScripts() override;
-	void flushTracks() override;
-
-	int32 getCurMusicPosInMs() override;
-	int32 getCurVoiceLipSyncWidth() override;
-	int32 getCurVoiceLipSyncHeight() override;
-	int32 getCurMusicLipSyncWidth(int syncId) override;
-	int32 getCurMusicLipSyncHeight(int syncId) override;
-	void getSpeechLipSyncInfo(int32 *width, int32 *height);
-	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
-
-	uint8 *diMUSE_audioBuffer;
-	int diMUSE_feedSize = 512;
-	int diMUSE_sampleRate = 22050;
-
-	// General
-	int diMUSE_terminate();
-	int diMUSE_initialize();
-	int diMUSE_pause();
-	int diMUSE_resume();
-	int diMUSE_save();
-	int diMUSE_restore();
-	int diMUSE_setGroupVol(int groupId, int volume);
-	int diMUSE_startSound(int soundId, int priority);
-	int diMUSE_stopSound(int soundId);
-	int diMUSE_stopAllSounds();
-	int diMUSE_getNextSound(int soundId);
-	int diMUSE_setParam(int soundId, int paramId, int value);
-	int diMUSE_getParam(int soundId, int paramId);
-	int diMUSE_fadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot = 0);
-	int diMUSE_setHook(int soundId, int hookId);
-	int diMUSE_setTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	int diMUSE_startStream(int soundId, int priority, int groupId);
-	int diMUSE_switchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
-	int diMUSE_processStreams();
-	int diMUSE_queryStream();
-	int diMUSE_feedStream();
-	int diMUSE_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
-	int diMUSE_setGroupVol_Music(int volume);
-	int diMUSE_setGroupVol_SFX(int volume);
-	int diMUSE_setGroupVol_Voice(int volume);
-	int diMUSE_getGroupVol_Music();
-	int diMUSE_getGroupVol_SFX();
-	int diMUSE_getGroupVol_Voice();
-	int diMUSE_initializeScript();
-	int diMUSE_terminateScript();
-	int diMUSE_saveScript();
-	int diMUSE_restoreScript();
-	void diMUSE_refreshScript();
-	int diMUSE_setState(int soundId);
-	int diMUSE_setSequence(int soundId);
-	int diMUSE_setCuePoint();
-	int diMUSE_setAttribute(int attrIndex, int attrVal);
-
-	// Utils
-	int diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
-	int diMUSE_removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
-	int diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
-	int diMUSE_removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
-	int diMUSE_SWAP32(uint8 *value);
-	void diMUSE_strcpy(char *dst, char *marker);
-	int diMUSE_strcmp(char *marker1, char *marker2);
-	int diMUSE_strlen(char *marker);
-	int diMUSE_clampNumber(int value, int minValue, int maxValue);
-	int diMUSE_clampTuning(int value, int minValue, int maxValue);
-	int diMUSE_checkHookId(int *trackHookId, int sampleHookId);
 
 	// Script
-	int script_parse(int a1, int a0, int param1, int param2, int param3, int param4, int param5, int param6, int param7);
-	int script_init();
-	int script_terminate();
-	int script_save();
-	int script_restore();
-	void script_refresh();
-	void script_setState(int soundId);
-	void script_setSequence(int soundId);
-	int script_setCuePoint();
-	int script_setAttribute(int attrIndex, int attrVal);
-	int script_callback(char *marker);
+	int scriptParse(int cmd, int a, int b);
+	int scriptInit();
+	int scriptTerminate();
+	int scriptSave();
+	int scriptRestore();
+	void scriptRefresh();
+	void scriptSetState(int soundId);
+	void scriptSetSequence(int soundId);
+	int scriptSetCuePoint();
+	int scriptSetAttribute(int attrIndex, int attrVal);
 
 	// CMDs
-	int cmd_pauseCount;
-	int cmd_hostIntHandler;
-	int cmd_hostIntUsecCount;
-	int cmd_runningHostCount;
-	int cmd_running60HzCount;
-	int cmd_running10HzCount;
+	int _cmdsPauseCount;
+	int _cmdsRunning60HzCount;
+	int _cmdsRunning10HzCount;
 
-	void diMUSEHeartbeat();
-	int cmds_handleCmds(int cmd, int b, int c, int d, int e, int f,
-		int g, int h, int i, int j, int k,
-		int l, int m, int n, int o);
-
-	int cmds_init();
-	int cmds_deinit();
-	int cmds_terminate();
-	int cmds_pause();
-	int cmds_resume();
-	int cmds_save(int *buffer, int bufferSize);
-	int cmds_restore(int *buffer);
-	int cmds_startSound(int soundId, int priority);
-	int cmds_stopSound(int soundId);
-	int cmds_stopAllSounds();
-	int cmds_getNextSound(int soundId);
-	int cmds_setParam(int soundId, int opcode, int value);
-	int cmds_getParam(int soundId, int opcode);
-	int cmds_setHook(int soundId, int hookId);
-	int cmds_getHook(int soundId);
-	int cmds_debug();
+	int cmdsInit();
+	int cmdsDeinit();
+	int cmdsTerminate();
+	int cmdsPause();
+	int cmdsResume();
+	int cmdsSave(int *buffer, int bufferSize);
+	int cmdsRestore(int *buffer);
+	int cmdsStartSound(int soundId, int priority);
+	int cmdsStopSound(int soundId);
+	int cmdsStopAllSounds();
+	int cmdsGetNextSound(int soundId);
+	int cmdsSetParam(int soundId, int opcode, int value);
+	int cmdsGetParam(int soundId, int opcode);
+	int cmdsSetHook(int soundId, int hookId);
+	int cmdsGetHook(int soundId);
 
 	// Streamer
 	DiMUSEStream streamer_streams[MAX_STREAMS];
@@ -251,9 +150,6 @@ public:
 	int streamer_fetchData(DiMUSEStream *streamPtr);
 
 	DiMUSESoundBuffer _soundBuffers[4];
-
-	void DiMUSE_allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
-	void DiMUSE_deallocSoundBuffer(int bufId);
 
 	// Tracks
 	DiMUSETrack tracks[MAX_TRACKS];
@@ -285,8 +181,6 @@ public:
 	int tracks_setHook(int soundId, int hookId);
 	int tracks_getHook(int soundId);
 	void tracks_free();
-
-	int tracks_debug();
 
 	// Dispatch
 	DiMUSEDispatch dispatches[MAX_DISPATCHES];
@@ -323,31 +217,16 @@ public:
 	DiMUSEStreamZone *dispatch_allocStreamZone();
 	void dispatch_free();
 
-	// Files
-	char _currentSpeechFile[60];
-	int files_moduleInit();
-	int files_moduleDeinit();
-	uint8 *files_getSoundAddrData(int soundId);
-	int files_fetchMap(int soundId);
-	int files_getNextSound(int soundId);
-	int files_checkRange(int soundId);
-	int files_seek(int soundId, int offset, int mode, int bufId);
-	int files_read(int soundId, uint8 *buf, int size, int bufId);
-	void files_getFilenameFromSoundId(int soundId, char *fileName);
-	DiMUSESoundBuffer *files_getBufInfo(int bufId);
-	void files_openSound(int soundId);
-	void files_closeSound(int soundId);
-	void files_closeAllSounds();
+	// Wave (mainly a wrapper for Tracks functions)
+	int _wvSlicingHalted = 1;
 
-	// Wave
-	int wvSlicingHalted = 1;
 	int wave_init();
 	int wave_terminate();
 	int wave_pause();
 	int wave_resume();
 	int wave_save(unsigned char *buffer, int bufferSize);
 	int wave_restore(unsigned char *buffer);
-	void wave_setGroupVol();
+	void wave_updateGroupVolumes(); // Move to private and wrap it
 	int wave_startSound(int soundId, int priority);
 	int wave_stopSound(int soundId);
 	int wave_stopAllSounds();
@@ -384,6 +263,122 @@ public:
 	void waveapi_callback();
 	void waveapi_increaseSlice();
 	void waveapi_decreaseSlice();
+public:
+	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
+	~DiMUSE_v2() override;
+
+	// Wrapper functions used by the main engine
+
+	void startSound(int sound) override { error("DiMUSE_v2::startSound(int) should be never called"); }
+	void setMusicVolume(int vol) override {}
+	void stopSound(int sound) override;
+	void stopAllSounds() override;
+	int getSoundStatus(int sound) const override { return 0; };
+	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
+	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
+	int startVoice(int soundId, const char *soundName) override;
+	void saveLoadEarly(Common::Serializer &ser) override {};
+	void resetState() override {};
+	void setRadioChatterSFX(bool state) override;
+	void setAudioNames(int32 num, char *names) override {};
+	int  startSfx(int soundId, int priority) override;
+	void setPriority(int soundId, int priority) override {};
+	void setVolume(int soundId, int volume) override;
+	void setPan(int soundId, int pan) override;
+	void setFrequency(int soundId, int frequency) override;
+	int  getCurSpeechVolume() override;
+	int  getCurSpeechPan() override;
+	int  getCurSpeechFrequency() override;
+	void pause(bool pause) override;
+	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
+	void refreshScripts() override;
+	void flushTracks() override;
+
+	int32 getCurMusicPosInMs() override;
+	int32 getCurVoiceLipSyncWidth() override;
+	int32 getCurVoiceLipSyncHeight() override;
+	int32 getCurMusicLipSyncWidth(int syncId) override;
+	int32 getCurMusicLipSyncHeight(int syncId) override;
+	void getSpeechLipSyncInfo(int32 *width, int32 *height);
+	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
+
+	// General engine functions
+	int diMUSETerminate();
+	int diMUSEInitialize();
+	int diMUSEPause();
+	int diMUSEResume();
+	int diMUSESave();
+	int diMUSERestore();
+	int diMUSESetGroupVol(int groupId, int volume);
+	int diMUSEStartSound(int soundId, int priority);
+	int diMUSEStopSound(int soundId);
+	int diMUSEStopAllSounds();
+	int diMUSEGetNextSound(int soundId);
+	int diMUSESetParam(int soundId, int paramId, int value);
+	int diMUSEGetParam(int soundId, int paramId);
+	int diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot = 0);
+	int diMUSESetHook(int soundId, int hookId);
+	int diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int diMUSEStartStream(int soundId, int priority, int groupId);
+	int diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
+	int diMUSEProcessStreams();
+	int diMUSEQueryStream();
+	int diMUSEFeedStream();
+	int diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
+	int diMUSESetMusicGroupVol(int volume);
+	int diMUSESetSFXGroupVol(int volume);
+	int diMUSESetVoiceGroupVol(int volume);
+	int diMUSEGetMusicGroupVol();
+	int diMUSEGetSFXGroupVol();
+	int diMUSEGetVoiceGroupVol();
+	void diMUSEUpdateGroupVolumes();
+	int diMUSEInitializeScript();
+	int diMUSETerminateScript();
+	int diMUSESaveScript();
+	int diMUSERestoreScript();
+	void diMUSERefreshScript();
+	int diMUSESetState(int soundId);
+	int diMUSESetSequence(int soundId);
+	int diMUSESetCuePoint();
+	int diMUSESetAttribute(int attrIndex, int attrVal);
+	void diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
+	void diMUSEDeallocSoundBuffer(int bufId);
+
+	// Utils
+	int addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
+	int removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
+	int addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
+	int removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
+	void internalStrcpy(char *dst, char *marker);
+	int internalStrcmp(char *marker1, char *marker2);
+	int internalStrlen(char *marker);
+	int clampNumber(int value, int minValue, int maxValue);
+	int clampTuning(int value, int minValue, int maxValue);
+	int checkHookId(int *trackHookId, int sampleHookId);
+
+	// CMDs
+	int cmdsHandleCmd(int cmd, int b, int c, int d, int e, int f,
+		int g, int h, int i, int j, int k,
+		int l, int m, int n, int o);
+
+	// Script
+	int scriptTriggerCallback(char *marker);
+
+	// Files
+	char _currentSpeechFile[60];
+	int files_moduleInit();
+	int files_moduleDeinit();
+	uint8 *files_getSoundAddrData(int soundId);
+	int files_fetchMap(int soundId);
+	int files_getNextSound(int soundId);
+	int files_checkRange(int soundId);
+	int files_seek(int soundId, int offset, int mode, int bufId);
+	int files_read(int soundId, uint8 *buf, int size, int bufId);
+	void files_getFilenameFromSoundId(int soundId, char *fileName);
+	DiMUSESoundBuffer *files_getBufInfo(int bufId);
+	void files_openSound(int soundId);
+	void files_closeSound(int soundId);
+	void files_closeAllSounds();
 };
 
 } // End of namespace Scumm

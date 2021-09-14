@@ -37,7 +37,7 @@ uint8 *DiMUSE_v2::files_getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		if (false && _vm->_res->isResourceLoaded(rtSound, soundId))
+		if (_vm->_res->isResourceLoaded(rtSound, soundId))
 			return _vm->getResourceAddress(rtSound, soundId);
 		else
 			return NULL;
@@ -165,14 +165,14 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
-		diMUSE_strcpy(fileName, _currentSpeechFile);
+		internalStrcpy(fileName, _currentSpeechFile);
 	}
 
 	if (_vm->_game.id == GID_CMI) {
 		if (soundId < 2000) {
 			while (_comiStateMusicTable[i].soundId != -1) {
 				if (_comiStateMusicTable[i].soundId == soundId) {
-					diMUSE_strcpy(fileName, (char *)_comiStateMusicTable[i].filename);
+					internalStrcpy(fileName, (char *)_comiStateMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -180,7 +180,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_comiSeqMusicTable[i].soundId != -1) {
 				if (_comiSeqMusicTable[i].soundId == soundId) {
-					diMUSE_strcpy(fileName, (char *)_comiSeqMusicTable[i].filename);
+					internalStrcpy(fileName, (char *)_comiSeqMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -190,7 +190,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		if (soundId < 2000) {
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {
-					diMUSE_strcpy(fileName, (char *)_digStateMusicTable[i].filename);
+					internalStrcpy(fileName, (char *)_digStateMusicTable[i].filename);
 					return;
 				}
 				i++;
@@ -198,7 +198,7 @@ void DiMUSE_v2::files_getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_digSeqMusicTable[i].soundId != -1) {
 				if (_digSeqMusicTable[i].soundId == soundId) {
-					diMUSE_strcpy(fileName, (char *)_digSeqMusicTable[i].filename);
+					internalStrcpy(fileName, (char *)_digSeqMusicTable[i].filename);
 					return;
 				}
 				i++;

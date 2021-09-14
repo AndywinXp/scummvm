@@ -24,10 +24,10 @@
 
 namespace Scumm {
 
-int DiMUSE_v2::diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
+int DiMUSE_v2::addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
 	// [0] is ->prev, [1] is ->next
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "DiMUSE_v2::iMUSE_addTrackToList(): ERROR: arguments might be null");
+		debug(5, "DiMUSE_v2::addTrackToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -35,7 +35,7 @@ int DiMUSE_v2::diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr
 
 		if (*listPtr) {
 			// If the list is empty, use this item as the list
-			(*listPtr)->prev = listPtr_Item; // TODO: Is this right?
+			(*listPtr)->prev = listPtr_Item;
 		}
 
 		// Set the previous element of the item as NULL, 
@@ -49,7 +49,7 @@ int DiMUSE_v2::diMUSE_addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr
 	return 0;
 }
 
-int DiMUSE_v2::diMUSE_removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
+int DiMUSE_v2::removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
 	DiMUSETrack *currentTrack = *listPtr;
 	DiMUSETrack *nextTrack;
 	if (listPtr_Item && currentTrack) {
@@ -75,18 +75,18 @@ int DiMUSE_v2::diMUSE_removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *li
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "DiMUSE_v2::iMUSE_removeTrackFromList(): ERROR: item not on list");
+			debug(5, "DiMUSE_v2::removeTrackFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "DiMUSE_v2::iMUSE_removeTrackFromList(): ERROR: arguments might be null");
+		debug(5, "DiMUSE_v2::removeTrackFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
 
-int DiMUSE_v2::diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
+int DiMUSE_v2::addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "DiMUSE_v2::iMUSE_addStreamZoneToList(): ERROR: arguments might be null");
+		debug(5, "DiMUSE_v2::addStreamZoneToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -94,7 +94,7 @@ int DiMUSE_v2::diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStre
 
 		if (*listPtr) {
 			// If the list is empty, use this item as the list
-			(*listPtr)->prev = listPtr_Item; // TODO: Is this right?
+			(*listPtr)->prev = listPtr_Item;
 		}
 
 		// Set the previous element of the item as NULL, 
@@ -108,7 +108,7 @@ int DiMUSE_v2::diMUSE_addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStre
 	return 0;
 }
 
-int DiMUSE_v2::diMUSE_removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
+int DiMUSE_v2::removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
 	DiMUSEStreamZone *currentStrZone = *listPtr;
 	DiMUSEStreamZone *nextStrZone;
 	if (listPtr_Item && currentStrZone) {
@@ -134,16 +134,16 @@ int DiMUSE_v2::diMUSE_removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUS
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "DiMUSE_v2::iMUSE_removeStreamZoneFromList(): ERROR: item not on list");
+			debug(5, "DiMUSE_v2::removeStreamZoneFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "DiMUSE_v2::iMUSE_removeStreamZoneFromList(): ERROR: arguments might be null");
+		debug(5, "DiMUSE_v2::removeStreamZoneFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
 
-int DiMUSE_v2::diMUSE_clampNumber(int value, int minValue, int maxValue) {
+int DiMUSE_v2::clampNumber(int value, int minValue, int maxValue) {
 	if (value < minValue)
 		return minValue;
 
@@ -153,7 +153,7 @@ int DiMUSE_v2::diMUSE_clampNumber(int value, int minValue, int maxValue) {
 	return value;
 }
 
-int DiMUSE_v2::diMUSE_clampTuning(int value, int minValue, int maxValue) {
+int DiMUSE_v2::clampTuning(int value, int minValue, int maxValue) {
 	if (minValue > value) {
 		value += (12 * ((minValue - value) + 11) / 12);
 	}
@@ -165,11 +165,7 @@ int DiMUSE_v2::diMUSE_clampTuning(int value, int minValue, int maxValue) {
 	return value;
 }
 
-int DiMUSE_v2::diMUSE_SWAP32(uint8 *value) {
-	return value[3] | ((value[2] | ((value[1] | (value[0] << 8)) << 8)) << 8);
-}
-
-int DiMUSE_v2::diMUSE_checkHookId(int *trackHookId, int sampleHookId) {
+int DiMUSE_v2::checkHookId(int *trackHookId, int sampleHookId) {
 	if (sampleHookId) {
 		if (*trackHookId == sampleHookId) {
 			*trackHookId = 0;
@@ -185,7 +181,7 @@ int DiMUSE_v2::diMUSE_checkHookId(int *trackHookId, int sampleHookId) {
 	}
 }
 
-void DiMUSE_v2::diMUSE_strcpy(char *dst, char *marker) {
+void DiMUSE_v2::internalStrcpy(char *dst, char *marker) {
 	char currentChar;
 
 	if ((dst != NULL) && (marker != NULL)) {
@@ -199,7 +195,7 @@ void DiMUSE_v2::diMUSE_strcpy(char *dst, char *marker) {
 	return;
 }
 
-int DiMUSE_v2::diMUSE_strcmp(char *marker1, char *marker2) {
+int DiMUSE_v2::internalStrcmp(char *marker1, char *marker2) {
 	if (*marker1 != 0) {
 		while ((*marker2 != 0 && (*marker1 == *marker2))) {
 			marker1 = marker1 + 1;
@@ -212,7 +208,7 @@ int DiMUSE_v2::diMUSE_strcmp(char *marker1, char *marker2) {
 	return (int)(char)(*marker2 | *marker1);
 }
 
-int DiMUSE_v2::diMUSE_strlen(char *marker) {
+int DiMUSE_v2::internalStrlen(char *marker) {
 	int resultingLength;
 	char curChar;
 

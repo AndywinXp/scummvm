@@ -30,7 +30,7 @@
 #endif
 namespace Scumm {
 
-int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg_3, int arg_4,
+int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, int arg_1, int arg_2, int arg_3, int arg_4,
 	int arg_5, int arg_6, int arg_7, int arg_8, int arg_9,
 	int arg_10, int arg_11, int arg_12, int arg_13) {
 
@@ -49,15 +49,15 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 
  	switch (cmd) {
 	case 0:
-		return cmds_init();
+		return cmdsInit();
 	case 1: // cmds_terminate
 		break; 
 	case 2: // cmds_print
 		break; 
 	case 3:
-		return cmds_pause();
+		return cmdsPause();
 	case 4:
-		return cmds_resume();
+		return cmdsResume();
 	case 5: // cmds_save
 		break;
 	case 6: // cmds_restore
@@ -66,27 +66,27 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 		_groupsHandler->setGroupVol(arg_0, arg_1);
 		break;
 	case 8:
-		cmds_startSound(arg_0, arg_1);
+		cmdsStartSound(arg_0, arg_1);
 		break;
 	case 9:
-		cmds_stopSound(arg_0);
+		cmdsStopSound(arg_0);
 		break;
 	case 10:
-		cmds_stopAllSounds();
+		cmdsStopAllSounds();
 		break;
 	case 11:
-		return cmds_getNextSound(arg_0);
+		return cmdsGetNextSound(arg_0);
 	case 12:
-		cmds_setParam(arg_0, arg_1, arg_2);
+		cmdsSetParam(arg_0, arg_1, arg_2);
 		break;
 	case 13:
-		return cmds_getParam(arg_0, arg_1);
+		return cmdsGetParam(arg_0, arg_1);
 	case 14:
 		return _fadesHandler->fadeParam(arg_0, arg_1, arg_2, arg_3, arg_4);
 	case 15:
-		return cmds_setHook(arg_0, arg_1);
+		return cmdsSetHook(arg_0, arg_1);
 	case 16:
-		return cmds_getHook(arg_0);
+		return cmdsGetHook(arg_0);
 	case 17:		
 		return _triggersHandler->setTrigger(arg_0, marker, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
 	case 18:
@@ -122,79 +122,72 @@ int DiMUSE_v2::cmds_handleCmds(int cmd, int arg_0, int arg_1, int arg_2, int arg
 }
 
 // Validated
-int DiMUSE_v2::cmds_init() {
-	cmd_hostIntHandler = 0;
-	cmd_hostIntUsecCount = 20000;
-	cmd_runningHostCount = 0;
-	cmd_running60HzCount = 0;
-	cmd_running10HzCount = 0;
+int DiMUSE_v2::cmdsInit() {
+	_cmdsRunning60HzCount = 0;
+	_cmdsRunning10HzCount = 0;
 
 	if (files_moduleInit() || _groupsHandler->init() || _fadesHandler->init() ||
 		_triggersHandler->init() || wave_init() || _timerHandler->init()) {
 		return -1;
 	}
 
-	cmd_pauseCount = 0;
+	_cmdsPauseCount = 0;
 	return 48;
 }
 
-int DiMUSE_v2::cmds_deinit() {
+int DiMUSE_v2::cmdsDeinit() {
 	_timerHandler->deinit();
 	wave_terminate();
 	waveapi_free();
-	_triggersHandler->clearAllTriggers();
+	_triggersHandler->deinit();
 	_fadesHandler->deinit();
 	_groupsHandler->deinit();
 	files_moduleDeinit();
-	cmd_pauseCount = 0;
-	cmd_hostIntHandler = 0;
-	cmd_hostIntUsecCount = 0;
-	cmd_runningHostCount = 0;
-	cmd_running60HzCount = 0;
-	cmd_running10HzCount = 0;
+	_cmdsPauseCount = 0;
+	_cmdsRunning60HzCount = 0;
+	_cmdsRunning10HzCount = 0;
 
 	return 0;
 }
 
-int DiMUSE_v2::cmds_terminate() {
+int DiMUSE_v2::cmdsTerminate() {
 	return 0;
 }
 
-int DiMUSE_v2::cmds_pause() {
+int DiMUSE_v2::cmdsPause() {
 	int result = 0;
 
-	if (cmd_pauseCount == 0) {
+	if (_cmdsPauseCount == 0) {
 		result = wave_pause();
 	}
 
 	if (!result) {
-		result = cmd_pauseCount + 1;
+		result = _cmdsPauseCount + 1;
 	}
-	cmd_pauseCount++;
+	_cmdsPauseCount++;
 
 	return result;
 }
 
-int DiMUSE_v2::cmds_resume() {
+int DiMUSE_v2::cmdsResume() {
 	int result = 0;
 
-	if (cmd_pauseCount == 1) {
+	if (_cmdsPauseCount == 1) {
 		result = wave_resume();
 	}
 
-	if (cmd_pauseCount != 0) {
-		cmd_pauseCount--;
+	if (_cmdsPauseCount != 0) {
+		_cmdsPauseCount--;
 	}
 
 	if (!result) {
-		result = cmd_pauseCount;
+		result = _cmdsPauseCount;
 	}
 
 	return result;
 }
 
 /*
-// Validated
 int DiMUSE_v2::cmds_save(int * buffer, int bufferSize) {
 	if (bufferSize < 10000) {
 		debug(5, "ERR: save buffer too small...");
@@ -219,7 +212,6 @@ int DiMUSE_v2::cmds_save(int * buffer, int bufferSize) {
 	return savedSize;
 }*/
 
-// Validated
 /*int DiMUSE_v2::cmds_restore(int *buffer) {
 	fades_moduleDeinit();
 	triggers_clear();
@@ -241,9 +233,8 @@ int DiMUSE_v2::cmds_save(int * buffer, int bufferSize) {
 	return fadesSize + triggersSize + waveSize + 8;
 }*/
 
-int DiMUSE_v2::cmds_startSound(int soundId, int priority) {
+int DiMUSE_v2::cmdsStartSound(int soundId, int priority) {
 	uint8 *src = files_getSoundAddrData(soundId);
-	int stringIndex = 0;
 
 	if (src == NULL) {
 		debug(5, "DiMUSE_v2::cmds_startSound(): ERROR: resource address for sound %d is NULL", soundId);
@@ -251,21 +242,13 @@ int DiMUSE_v2::cmds_startSound(int soundId, int priority) {
 	}
 
 	// Check for the "iMUS" header
-	uint8 *iMUSstring = (uint8*)TO_LE32("iMUS");
-	do {
-		if (src[stringIndex] != iMUSstring[stringIndex])
-			break;
-		stringIndex += 1;
-	} while (stringIndex < 4);
-
-	if (stringIndex == 4) {
+	if (READ_BE_UINT32(src) == MKTAG('i', 'M', 'U', 'S'))
 		return wave_startSound(soundId, priority);
-	}
 
 	return -1;
 }
 
-int DiMUSE_v2::cmds_stopSound(int soundId) {
+int DiMUSE_v2::cmdsStopSound(int soundId) {
 	int result = files_getNextSound(soundId);
 
 	if (result != 2)
@@ -274,15 +257,15 @@ int DiMUSE_v2::cmds_stopSound(int soundId) {
 	return wave_stopSound(soundId);
 }
 
-int DiMUSE_v2::cmds_stopAllSounds() {
+int DiMUSE_v2::cmdsStopAllSounds() {
 	return _triggersHandler->clearAllTriggers() | wave_stopAllSounds();
 }
 
-int DiMUSE_v2::cmds_getNextSound(int soundId) {
+int DiMUSE_v2::cmdsGetNextSound(int soundId) {
 	return wave_getNextSound(soundId);
 }
 
-int DiMUSE_v2::cmds_setParam(int soundId, int subCmd, int value) {
+int DiMUSE_v2::cmdsSetParam(int soundId, int subCmd, int value) {
 	int result = files_getNextSound(soundId);
 
 	if (result != 2)
@@ -291,7 +274,7 @@ int DiMUSE_v2::cmds_setParam(int soundId, int subCmd, int value) {
 	return wave_setParam(soundId, subCmd, value);
 }
 
-int DiMUSE_v2::cmds_getParam(int soundId, int subCmd) {
+int DiMUSE_v2::cmdsGetParam(int soundId, int subCmd) {
 	int result = files_getNextSound(soundId);
 
 	if (subCmd != 0) {
@@ -309,7 +292,7 @@ int DiMUSE_v2::cmds_getParam(int soundId, int subCmd) {
 	return result;
 }
 
-int DiMUSE_v2::cmds_setHook(int soundId, int hookId) {
+int DiMUSE_v2::cmdsSetHook(int soundId, int hookId) {
 	int result = files_getNextSound(soundId);
 
 	if (result != 2)
@@ -318,25 +301,13 @@ int DiMUSE_v2::cmds_setHook(int soundId, int hookId) {
 	return wave_setHook(soundId, hookId);
 }
 
-int DiMUSE_v2::cmds_getHook(int soundId) {
+int DiMUSE_v2::cmdsGetHook(int soundId) {
 	int result = files_getNextSound(soundId);
 
 	if (result != 2)
 		return -1;
 
 	return wave_getHook(soundId);
-}
-
-int DiMUSE_v2::cmds_debug() {
-	debug(5, "initImuseDataPtr: %p", 0);
-	debug(5, "pauseCount: %d", cmd_pauseCount);
-	debug(5, "hostIntHandler: %p", cmd_hostIntHandler);
-	debug(5, "hostIntUsecCount: %d", cmd_hostIntUsecCount);
-	debug(5, "runningHostCount: %d", cmd_runningHostCount);
-	debug(5, "running60HzCount: %d", cmd_running60HzCount);
-	debug(5, "running10HzCount: %d", cmd_running10HzCount);
-
-	return 0;
 }
 
 } // End of namespace Scumm

@@ -91,7 +91,7 @@ int DiMUSE_v2::tracks_restore(uint8 *buffer) {
 			tracks[l].dispatchPtr = dispatch_getDispatchByTrackId(l);
 			tracks[l].dispatchPtr->trackPtr = &tracks[l];
 			if (tracks[l].soundId) {
-				diMUSE_addTrackToList(&tracks_trackList, &tracks[l]);
+				addTrackToList(&tracks_trackList, &tracks[l]);
 			}
 		}
 	}
@@ -122,25 +122,25 @@ void DiMUSE_v2::tracks_callback() {
 	if (_internalMixer->_stream->numQueuedStreams() < 2) {
 		dispatch_predictFirstStream();
 
-		waveapi_write(&diMUSE_audioBuffer, &diMUSE_feedSize, &diMUSE_sampleRate);
+		waveapi_write(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
 
-		if (diMUSE_feedSize != 0) {
+		if (_outputFeedSize != 0) {
 			_internalMixer->clearMixerBuffer();
 			if (!tracks_pauseTimer) {
 				DiMUSETrack *track = (DiMUSETrack *)tracks_trackList;
 
 				while (track) {
 					DiMUSETrack *next = (DiMUSETrack *)track->next;
-					dispatch_processDispatches(track, diMUSE_feedSize, diMUSE_sampleRate);
+					dispatch_processDispatches(track, _outputFeedSize, _outputSampleRate);
 					track = next;
 				};
 			}
 
-			_internalMixer->loop(&diMUSE_audioBuffer, diMUSE_feedSize);
+			_internalMixer->loop(&_outputAudioBuffer, _outputFeedSize);
 
 			// The Dig tries to write a second time
 			if (_vm->_game.id == GID_DIG) {
-				waveapi_write(&diMUSE_audioBuffer, &diMUSE_feedSize, &diMUSE_sampleRate);
+				waveapi_write(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
 			}
 		}
 	}
@@ -151,7 +151,7 @@ void DiMUSE_v2::tracks_callback() {
 
 int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 	debug(5, "DiMUSE_v2::tracks_startSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
-	int priority = diMUSE_clampNumber(tryPriority, 0, 127);
+	int priority = clampNumber(tryPriority, 0, 127);
 	if (tracks_trackCount > 0) {
 		int l = 0;
 		while (tracks[l].soundId) {
@@ -201,7 +201,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 			}
 			waveapi_increaseSlice();
 			//debug(5, "tracks_startSound() called increaseSlice()");
-			diMUSE_addTrackToList(&tracks_trackList, foundTrack);
+			addTrackToList(&tracks_trackList, foundTrack);
 			waveapi_decreaseSlice();
 			//debug(5, "tracks_startSound() called decreaseSlice()");
 			return 0;
@@ -228,7 +228,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: couldn't steal a lower priority track", soundId);
 		return -6;
 	} else {
-		diMUSE_removeTrackFromList(&tracks_trackList, stolenTrack);
+		removeTrackFromList(&tracks_trackList, stolenTrack);
 		dispatch_release(stolenTrack);
 		_fadesHandler->clearFadeStatus(stolenTrack->soundId, -1);
 		_triggersHandler->clearTrigger(stolenTrack->soundId, (char *)"", -1);
@@ -264,7 +264,7 @@ int DiMUSE_v2::tracks_startSound(int soundId, int tryPriority, int group) {
 
 	waveapi_increaseSlice();
 	//debug(5, "tracks_startSound() called increaseSlice() 2");
-	diMUSE_addTrackToList(&tracks_trackList, stolenTrack);
+	addTrackToList(&tracks_trackList, stolenTrack);
 	waveapi_decreaseSlice();
 	//debug(5, "tracks_startSound() called decreaseSlice() 2");
 
@@ -278,7 +278,7 @@ int DiMUSE_v2::tracks_stopSound(int soundId) {
 	DiMUSETrack *track = (DiMUSETrack *)tracks_trackList;
 	do {
 		if (track->soundId == soundId) {
-			diMUSE_removeTrackFromList(&tracks_trackList, track);
+			removeTrackFromList(&tracks_trackList, track);
 			dispatch_release(track);
 			_fadesHandler->clearFadeStatus(track->soundId, -1);
 			_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
@@ -296,7 +296,7 @@ int DiMUSE_v2::tracks_stopAllSounds() {
 	if (tracks_trackList) {
 		DiMUSETrack *track = (DiMUSETrack *)tracks_trackList;
 		do {
-			diMUSE_removeTrackFromList(&tracks_trackList, track);
+			removeTrackFromList(&tracks_trackList, track);
 			dispatch_release(track);
 			_fadesHandler->clearFadeStatus(track->soundId, -1);
 			_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
@@ -388,7 +388,7 @@ void DiMUSE_v2::tracks_clear(DiMUSETrack *trackPtr) {
 		}
 	}
 
-	diMUSE_removeTrackFromList(&tracks_trackList, trackPtr);
+	removeTrackFromList(&tracks_trackList, trackPtr);
 	dispatch_release(trackPtr);
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
 	_triggersHandler->clearTrigger(trackPtr->soundId, (char *)-1, -1);
@@ -439,7 +439,7 @@ int DiMUSE_v2::tracks_setParam(int soundId, int opcode, int value) {
 					if (value == 0) {
 						track->transpose = 0;
 					} else {
-						track->transpose = diMUSE_clampTuning(track->detune + value, -12, 12);
+						track->transpose = clampTuning(track->detune + value, -12, 12);
 					}
 
 					track->pitchShift = track->detune + (track->transpose * 256);
@@ -644,7 +644,7 @@ void DiMUSE_v2::tracks_free() {
 	//debug(5, "tracks_free() called increaseSlice()");
 	DiMUSETrack *track = (DiMUSETrack *)tracks_trackList;
 	do {
-		diMUSE_removeTrackFromList(&tracks_trackList, track);
+		removeTrackFromList(&tracks_trackList, track);
 
 		dispatch_release(track);
 		_fadesHandler->clearFadeStatus(track->soundId, -1);
@@ -656,34 +656,6 @@ void DiMUSE_v2::tracks_free() {
 
 	waveapi_decreaseSlice();
 	//debug(5, "tracks_free() called decreaseSlice()");
-}
-
-int DiMUSE_v2::tracks_debug() {
-	debug(5, "trackCount: %d\n", tracks_trackCount);
-	debug(5, "pauseTimer: %d\n", tracks_pauseTimer);
-	debug(5, "trackList: %p\n", *(int *)tracks_trackList);
-	debug(5, "prefSampleRate: %d\n", tracks_prefSampleRate);
-
-	for (int i = 0; i < MAX_TRACKS; i++) {
-		debug(5, "trackId: %d\n", i);
-		debug(5, "\tprev: %p\n", tracks[i].prev);
-		debug(5, "\tnext: %p\n", tracks[i].next);
-		debug(5, "\tdispatchPtr: %p\n", tracks[i].dispatchPtr);
-		debug(5, "\tsound: %d\n", tracks[i].soundId);
-		debug(5, "\tmarker: %d\n", tracks[i].marker);
-		debug(5, "\tgroup: %d\n", tracks[i].group);
-		debug(5, "\tpriority: %d\n", tracks[i].priority);
-		debug(5, "\tvol: %d\n", tracks[i].vol);
-		debug(5, "\teffVol: %d\n", tracks[i].effVol);
-		debug(5, "\tpan: %d\n", tracks[i].pan);
-		debug(5, "\tdetune: %d\n", tracks[i].detune);
-		debug(5, "\ttranspose: %d\n", tracks[i].transpose);
-		debug(5, "\tpitchShift: %d\n", tracks[i].pitchShift);
-		debug(5, "\tmailbox: %d\n", tracks[i].mailbox);
-		debug(5, "\tjumpHook: %d\n", tracks[i].jumpHook);
-	}
-
-	return 0;
 }
 
 } // End of namespace Scumm

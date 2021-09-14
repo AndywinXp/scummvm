@@ -71,7 +71,7 @@ int DiMUSEGroupsHandler::setGroupVol(int id, int volume) {
 		}
 	}
 
-	_engine->wave_setGroupVol();
+	_engine->diMUSEUpdateGroupVolumes();
 	return _vols[id];
 }
 
