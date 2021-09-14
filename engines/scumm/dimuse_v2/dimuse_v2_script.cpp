@@ -296,7 +296,7 @@ void DiMUSE_v2::setComiMusicState(int stateId) {
 
 	for (l = 0; _comiStateMusicTable[l].soundId != -1; l++) {
 		if ((_comiStateMusicTable[l].soundId == stateId)) {
-			debug(5, "Set music state: %s, %s", _comiStateMusicTable[l].name, _comiStateMusicTable[l].filename);
+			debug(5, "DiMUSE_v2::setComiMusicState(): Set music state: %s, %s", _comiStateMusicTable[l].name, _comiStateMusicTable[l].filename);
 			num = l;
 			break;
 		}
@@ -326,7 +326,7 @@ void DiMUSE_v2::setComiMusicSequence(int seqId) {
 
 	for (l = 0; _comiSeqMusicTable[l].soundId != -1; l++) {
 		if ((_comiSeqMusicTable[l].soundId == seqId)) {
-			debug(5, "Set music sequence: %s, %s", _comiSeqMusicTable[l].name, _comiSeqMusicTable[l].filename);
+			debug(5, "DiMUSE_v2::setComiMusicSequence(): Set music sequence: %s, %s", _comiSeqMusicTable[l].name, _comiSeqMusicTable[l].filename);
 			num = l;
 			break;
 		}

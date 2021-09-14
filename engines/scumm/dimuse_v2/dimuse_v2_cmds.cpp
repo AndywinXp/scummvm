@@ -21,13 +21,7 @@
 */
 
 #include "scumm/dimuse_v2/dimuse_v2.h"
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define TO_LE32(x)	(x)
-#define TO_LE16(x)	(x)
-#else
-#define TO_LE32(x)	bswap_32(x)
-#define TO_LE16(x)	bswap_16(x)
-#endif
+
 namespace Scumm {
 
 int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, int arg_1, int arg_2, int arg_3, int arg_4,
@@ -187,51 +181,25 @@ int DiMUSE_v2::cmdsResume() {
 	return result;
 }
 
-/*
-int DiMUSE_v2::cmds_save(int * buffer, int bufferSize) {
-	if (bufferSize < 10000) {
-		debug(5, "ERR: save buffer too small...");
-		return -1;
-	}
+void DiMUSE_v2::cmdsSaveLoad(Common::Serializer &ser) {
+	// Serialize in this order:
+	// - Open files
+	// - Fades
+	// - Triggers
+	// - Pass the control to waveSaveLoad and then tracksSaveLoad, which will serialize:
+	//     - Dispatches
+	//     - Tracks (with SYNCs, if the game is COMI)
+	// - State and sequence info
 
-	buffer[0] = 0x30;
-	buffer[1] = 6;
-
-	int savedSize = fades_save((buffer + 8), bufferSize - 8);
-	if (savedSize >= 0) {
-		int tmpSize = savedSize + 8;
-		savedSize = triggers_save(buffer + tmpSize, bufferSize - tmpSize);
-		if (savedSize >= 0) {
-			tmpSize += savedSize;
-		}
-		savedSize = wave_save(buffer + tmpSize, bufferSize - tmpSize);
-		if (savedSize >= 0)
-			savedSize += tmpSize;
-	}
-
-	return savedSize;
-}*/
-
-/*int DiMUSE_v2::cmds_restore(int *buffer) {
-	fades_moduleDeinit();
-	triggers_clear();
-	wave_stopAllSounds();
-
-	if (buffer[0] != 0x30) {
-		printf("ERR: restore buffer contains bad data...");
-		return -1;
-	}
-
-	if (buffer[1] != *(int *)cmd_initDataPtr->waveMixCount) {
-		printf("ERR: waveMixCount changed between save ");
-		return -1;
-	}
-
-	int fadesSize = fades_restore(buffer + 2);
-	int triggersSize = triggers_restore(buffer + fadesSize + 8);
-	int waveSize = wave_restore(buffer + fadesSize + triggersSize + 8);
-	return fadesSize + triggersSize + waveSize + 8;
-}*/
+	_filesHandler->saveLoad(ser);
+	_fadesHandler->saveLoad(ser);
+	_triggersHandler->saveLoad(ser);
+	waveSaveLoad(ser);
+	ser.syncAsSint32LE(_curMusicState, VER(103));
+	ser.syncAsSint32LE(_curMusicSeq, VER(103));
+	ser.syncAsSint32LE(_nextSeqToPlay, VER(103));
+	ser.syncAsByte(_radioChatterSFX, VER(103));
+}
 
 int DiMUSE_v2::cmdsStartSound(int soundId, int priority) {
 	uint8 *src = _filesHandler->getSoundAddrData(soundId);

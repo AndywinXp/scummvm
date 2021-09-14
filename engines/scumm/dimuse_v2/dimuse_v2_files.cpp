@@ -44,6 +44,28 @@ int DiMUSEFilesHandler::deinit() {
 	return 0;
 }
 
+void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
+	int curSound = 0;
+	ser.syncArray(_currentSpeechFile, 60, Common::Serializer::SByte, VER(103));
+	if (ser.isSaving()) {
+		DiMUSESndMgr::SoundDesc *soundsToSave = _sound->getSounds();
+		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
+			ser.syncAsSint32LE(soundsToSave[l].soundId, VER(103));
+		}
+	}
+
+	if (ser.isLoading()) {
+		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
+			ser.syncAsSint32LE(curSound, VER(103));
+			if (curSound) {
+				openSound(curSound);
+				if (curSound != kTalkSoundID)
+					closeSound(curSound);
+			}
+		}
+	}
+}
+
 uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address

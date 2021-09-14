@@ -49,6 +49,14 @@ int DiMUSE_v2::tracksInit() {
 		_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
 		_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
 		_tracks[l].soundId = 0;
+		_tracks[l].syncSize_0 = 0;
+		_tracks[l].syncSize_1 = 0;
+		_tracks[l].syncSize_2 = 0;
+		_tracks[l].syncSize_3 = 0;
+		_tracks[l].syncPtr_0 = NULL;
+		_tracks[l].syncPtr_1 = NULL;
+		_tracks[l].syncPtr_2 = NULL;
+		_tracks[l].syncPtr_3 = NULL;
 	}
 
 	return 0;
@@ -62,44 +70,73 @@ void DiMUSE_v2::tracksResume() {
 	_tracksPauseTimer = 0;
 }
 
-int DiMUSE_v2::tracksSave(uint8 *buffer, int bufferSize) {
+void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
 	waveOutIncreaseSlice();
-	int result = dispatchSave(buffer, bufferSize);
-	if (result < 0) {
-		waveOutDecreaseSlice();
-		return result;
-	}
-	bufferSize -= result;
-	if (bufferSize < 480) {
-		waveOutDecreaseSlice();
-		return -5;
-	}
-	memcpy(buffer + result, &_tracks, 480);
-	waveOutDecreaseSlice();
-	return result + 480;
-}
+	dispatchSaveLoad(ser);
 
-int DiMUSE_v2::tracksRestore(uint8 *buffer) {
-	waveOutIncreaseSlice();
-	_trackList = NULL;
-	int result = dispatchRestore(buffer);
-	memcpy(&_tracks, buffer + result, 480);
-	if (_trackCount > 0) {
-		for (int l = 0; l < _trackCount; l++) {
-			_tracks[l].prev = NULL;
-			_tracks[l].next = NULL;
-			_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
-			_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
-			if (_tracks[l].soundId) {
-				addTrackToList(&_trackList, &_tracks[l]);
+	for (int l = 0; l < _trackCount; l++) {
+		ser.syncAsSint32LE(_tracks[l].soundId, VER(103));
+		ser.syncAsSint32LE(_tracks[l].marker, VER(103));
+		ser.syncAsSint32LE(_tracks[l].group, VER(103));
+		ser.syncAsSint32LE(_tracks[l].priority, VER(103));
+		ser.syncAsSint32LE(_tracks[l].vol, VER(103));
+		ser.syncAsSint32LE(_tracks[l].effVol, VER(103));
+		ser.syncAsSint32LE(_tracks[l].pan, VER(103));
+		ser.syncAsSint32LE(_tracks[l].detune, VER(103));
+		ser.syncAsSint32LE(_tracks[l].transpose, VER(103));
+		ser.syncAsSint32LE(_tracks[l].pitchShift, VER(103));
+		ser.syncAsSint32LE(_tracks[l].mailbox, VER(103));
+		ser.syncAsSint32LE(_tracks[l].jumpHook, VER(103));
+
+		if (_vm->_game.id == GID_CMI) {
+			ser.syncAsSint32LE(_tracks[l].syncSize_0, VER(103));
+			ser.syncAsSint32LE(_tracks[l].syncSize_1, VER(103));
+			ser.syncAsSint32LE(_tracks[l].syncSize_2, VER(103));
+			ser.syncAsSint32LE(_tracks[l].syncSize_3, VER(103));
+
+			if (_tracks[l].syncSize_0) {
+				if (ser.isLoading())
+					_tracks[l].syncPtr_0 = (byte *)malloc(_tracks[l].syncSize_0);
+				ser.syncArray(_tracks[l].syncPtr_0, _tracks[l].syncSize_0, Common::Serializer::Byte, VER(103));
+			}
+
+			if (_tracks[l].syncSize_1) {
+				if (ser.isLoading())
+					_tracks[l].syncPtr_1 = (byte *)malloc(_tracks[l].syncSize_1);
+				ser.syncArray(_tracks[l].syncPtr_1, _tracks[l].syncSize_1, Common::Serializer::Byte, VER(103));
+			}
+
+			if (_tracks[l].syncSize_2) {
+				if (ser.isLoading())
+					_tracks[l].syncPtr_2 = (byte *)malloc(_tracks[l].syncSize_2);
+				ser.syncArray(_tracks[l].syncPtr_2, _tracks[l].syncSize_2, Common::Serializer::Byte, VER(103));
+			}
+
+			if (_tracks[l].syncSize_3) {
+				if (ser.isLoading())
+					_tracks[l].syncPtr_3 = (byte *)malloc(_tracks[l].syncSize_3);
+				ser.syncArray(_tracks[l].syncPtr_3, _tracks[l].syncSize_3, Common::Serializer::Byte, VER(103));
 			}
 		}
 	}
 
-	dispatchAllocStreamZones();
-	waveOutDecreaseSlice();
+	if (ser.isLoading()) {
+		if (_trackCount > 0) {
+			for (int l = 0; l < _trackCount; l++) {
+				_tracks[l].prev = NULL;
+				_tracks[l].next = NULL;
+				_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
+				_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
+				if (_tracks[l].soundId) {
+					addTrackToList(&_trackList, &_tracks[l]);
+				}
+			}
+		}
 
-	return result + 480;
+		dispatchAllocStreamZones();
+	}
+
+	waveOutDecreaseSlice();
 }
 
 void DiMUSE_v2::tracksSetGroupVol() {
@@ -146,11 +183,11 @@ void DiMUSE_v2::tracksCallback() {
 	}
 	
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_callback() called decreaseSlice()");
+	//debug(5, "tracks_callback() called waveOutDecreaseSlice()");
 }
 
 int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
-	debug(5, "DiMUSE_v2::tracks_startSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
+	debug(5, "DiMUSE_v2::tracksStartSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
 	int priority = clampNumber(tryPriority, 0, 127);
 	if (_trackCount > 0) {
 		int l = 0;
@@ -195,20 +232,20 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 			}
 
 			if (dispatchAlloc(foundTrack, group)) {
-				debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
+				debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 				foundTrack->soundId = 0;
 				return -1;
 			}
 			waveOutIncreaseSlice();
-			//debug(5, "tracks_startSound() called increaseSlice()");
+			//debug(5, "tracksStartSound() called increaseSlice()");
 			addTrackToList(&_trackList, foundTrack);
 			waveOutDecreaseSlice();
-			//debug(5, "tracks_startSound() called decreaseSlice()");
+			//debug(5, "tracksStartSound() called waveOutDecreaseSlice()");
 			return 0;
 		}
 	}
 
-	debug(5, "DiMUSE_v2::tracks_startSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
+	debug(5, "DiMUSE_v2::tracksStartSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
 
 	// Let's steal the track with the lowest priority
 	DiMUSETrack *track = (DiMUSETrack *)_trackList;
@@ -225,7 +262,7 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	}
 
 	if (!stolenTrack || priority < bestPriority) {
-		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: couldn't steal a lower priority track", soundId);
+		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: couldn't steal a lower priority track", soundId);
 		return -6;
 	} else {
 		removeTrackFromList(&_trackList, stolenTrack);
@@ -257,16 +294,16 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	stolenTrack->syncPtr_3 = NULL;
 
 	if (dispatchAlloc(stolenTrack, group)) {
-		debug(5, "DiMUSE_v2::tracks_startSound(): ERROR: dispatch couldn't start sound %d", soundId);
+		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 		stolenTrack->soundId = 0;
 		return -1;
 	}
 
 	waveOutIncreaseSlice();
-	//debug(5, "tracks_startSound() called increaseSlice() 2");
+	//debug(5, "tracksStartSound() called increaseSlice() 2");
 	addTrackToList(&_trackList, stolenTrack);
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_startSound() called decreaseSlice() 2");
+	//debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2");
 
 	return 0;
 }
@@ -293,20 +330,32 @@ int DiMUSE_v2::tracksStopSound(int soundId) {
 int DiMUSE_v2::tracksStopAllSounds() {
 	waveOutIncreaseSlice();
 	//debug(5, "tracks_stopAllSounds() called increaseSlice()");
-	if (_trackList) {
-		DiMUSETrack *track = (DiMUSETrack *)_trackList;
-		do {
-			removeTrackFromList(&_trackList, track);
-			dispatchRelease(track);
-			_fadesHandler->clearFadeStatus(track->soundId, -1);
-			_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
-			track->soundId = 0;
-			track = (DiMUSETrack *)track->next;
-		} while (track);
+	DiMUSETrack *nextTrack = _trackList;
+	DiMUSETrack *curTrack;
+
+	if (_vm->_game.id == GID_DIG) {
+		if (_trackList) {
+			do {
+				curTrack = nextTrack->next;
+				removeTrackFromList(&_trackList, nextTrack);
+				dispatchRelease(nextTrack);
+				_fadesHandler->clearFadeStatus(nextTrack->soundId, -1);
+				_triggersHandler->clearTrigger(nextTrack->soundId, (char *)"", -1);
+				nextTrack->soundId = 0;
+				nextTrack = curTrack;
+			} while (nextTrack);
+		}
+	} else {
+		while (nextTrack) {
+			curTrack = nextTrack;
+			nextTrack = curTrack->next;
+			tracksClear(curTrack);
+		}
 	}
+	
 
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_stopAllSounds() called decreaseSlice()");
+	//debug(5, "tracks_stopAllSounds() called waveOutDecreaseSlice()");
 	return 0;
 }
 
@@ -391,7 +440,7 @@ void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
 	removeTrackFromList(&_trackList, trackPtr);
 	dispatchRelease(trackPtr);
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
-	_triggersHandler->clearTrigger(trackPtr->soundId, (char *)-1, -1);
+	_triggersHandler->clearTrigger(trackPtr->soundId, (char *)"", -1);
 	trackPtr->soundId = 0;
 }
 
@@ -455,7 +504,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 				track->mailbox = value;
 				return 0;
 			default:
-				debug(5, "DiMUSE_v2::tracks_setParam(): unknown opcode %lu", opcode);
+				debug(5, "DiMUSE_v2::tracksSetParam(): unknown opcode %lu", opcode);
 				return -5;
 			}
 		}
@@ -586,7 +635,7 @@ int DiMUSE_v2::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, i
 							tmpPtr -= 2;
 
 						val = *(tmpPtr - 1);
-						w = (val >> 8) & 0x7F;           // (val >> 8) & 0x7F;
+						w = (val >> 8) & 0x7F;
 						h = val & 0x7F;
 					}
 				}
@@ -641,7 +690,7 @@ void DiMUSE_v2::tracksDeinit() {
 		return;
 
 	waveOutIncreaseSlice();
-	//debug(5, "tracks_free() called increaseSlice()");
+	//debug(5, "tracksDeinit() called increaseSlice()");
 	DiMUSETrack *track = (DiMUSETrack *)_trackList;
 	do {
 		removeTrackFromList(&_trackList, track);
@@ -655,7 +704,7 @@ void DiMUSE_v2::tracksDeinit() {
 	} while (track);
 
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_free() called decreaseSlice()");
+	//debug(5, "tracksDeinit() called waveOutDecreaseSlice()");
 }
 
 } // End of namespace Scumm

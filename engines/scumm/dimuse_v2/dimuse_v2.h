@@ -87,8 +87,7 @@ private:
 	int32 _nextSeqToPlay;	// id of sequence type of music needed played
 	int32 _curMusicState;	// current or previous id of music
 	int32 _curMusicSeq;		// current or previous id of sequence music
-	int32 _curMusicCue;		// current cue for current music. used in FT
-	int _stopSequenceFlag;
+	int _stopSequenceFlag = 0;
 	int _scriptInitializedFlag = 0;
 
 	void diMUSEHeartbeat();
@@ -122,8 +121,7 @@ private:
 	int cmdsTerminate();
 	int cmdsPause();
 	int cmdsResume();
-	int cmdsSave(int *buffer, int bufferSize);
-	int cmdsRestore(int *buffer);
+	void cmdsSaveLoad(Common::Serializer &ser);
 	int cmdsStartSound(int soundId, int priority);
 	int cmdsStopSound(int soundId);
 	int cmdsStopAllSounds();
@@ -164,8 +162,7 @@ private:
 	int tracksInit();
 	void tracksPause();
 	void tracksResume();
-	int tracksSave(uint8 *buffer, int leftSize);
-	int tracksRestore(uint8 *buffer);
+	void tracksSaveLoad(Common::Serializer &ser);
 	void tracksSetGroupVol();
 	void tracksCallback();
 	int tracksStartSound(int soundId, int tryPriority, int group);
@@ -189,7 +186,7 @@ private:
 	int _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
 	uint8 *_dispatchLargeFadeBufs;
-	int _dispatchFadeSize;
+	int _dispatchFadeSize = 0;
 	int _dispatchLargeFadeFlags[LARGE_FADES];
 	int _dispatchSmallFadeFlags[SMALL_FADES];
 	int _dispatchFadeStartedFlag;
@@ -202,8 +199,7 @@ private:
 
 	int dispatchInit();
 	DiMUSEDispatch *dispatchGetDispatchByTrackId(int trackId);
-	int dispatchSave(uint8 *dst, int size);
-	int dispatchRestore(uint8 *src);
+	void dispatchSaveLoad(Common::Serializer &ser);
 	int dispatchAllocStreamZones();
 	int dispatchAlloc(DiMUSETrack *trackPtr, int groupId);
 	int dispatchRelease(DiMUSETrack *trackPtr);
@@ -218,14 +214,13 @@ private:
 	void dispatchDeinit();
 
 	// Wave (mainly a wrapper for Tracks functions)
-	int _wvSlicingHalted = 1;
+	int _waveSlicingHalted = 1;
 
 	int waveInit();
 	int waveTerminate();
 	int wavePause();
 	int waveResume();
-	int waveSave(unsigned char *buffer, int bufferSize);
-	int waveRestore(unsigned char *buffer);
+	void waveSaveLoad(Common::Serializer &ser);
 	void waveUpdateGroupVolumes();
 	int waveStartSound(int soundId, int priority);
 	int waveStopSound(int soundId);
@@ -277,7 +272,7 @@ public:
 	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
 	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
 	int startVoice(int soundId, const char *soundName) override;
-	void saveLoadEarly(Common::Serializer &ser) override {};
+	void saveLoadEarly(Common::Serializer &ser) override;
 	void resetState() override {};
 	void setRadioChatterSFX(bool state) override;
 	void setAudioNames(int32 num, char *names) override {};
@@ -307,8 +302,7 @@ public:
 	int diMUSEInitialize();
 	int diMUSEPause();
 	int diMUSEResume();
-	int diMUSESave();
-	int diMUSERestore();
+	void diMUSESaveLoad(Common::Serializer &ser);
 	int diMUSESetGroupVol(int groupId, int volume);
 	int diMUSEStartSound(int soundId, int priority);
 	int diMUSEStopSound(int soundId);

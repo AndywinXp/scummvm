@@ -137,6 +137,48 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 	return 0;
 }
 
+void DiMUSE_v2::saveLoadEarly(Common::Serializer &s) {
+	Common::StackLock lock(_mutex, "DiMUSE_v2::saveLoadEarly()");
+
+	if (s.isLoading()) {
+		diMUSEStopAllSounds();
+		_filesHandler->closeSoundImmediatelyById(kTalkSoundID);
+	}
+
+	if (s.getVersion() < 103) {
+		// Just load the current state and sequence, and play them
+		debug(5, "DiMUSE_v2::saveLoadEarly(): old savegame detected (version %d), game may load with an undesired audio status", s.getVersion());
+		s.skip(4, VER(31), VER(42)); // _volVoice
+		s.skip(4, VER(31), VER(42)); // _volSfx
+		s.skip(4, VER(31), VER(42)); // _volMusic
+		s.syncAsSint32LE(_curMusicState, VER(31));
+		s.syncAsSint32LE(_curMusicSeq, VER(31));
+		s.skip(4); // _curMusicCue
+		s.syncAsSint32LE(_nextSeqToPlay, VER(31));
+		s.syncAsByte(_radioChatterSFX, VER(76));
+		s.syncArray(_attributes, 188, Common::Serializer::Sint32LE, VER(31));
+
+		int stateSoundId = 0;
+		int seqSoundId = 0;
+
+		if (_vm->_game.id == GID_DIG) {
+			stateSoundId = _digStateMusicTable[_curMusicState].soundId;
+			seqSoundId = _digSeqMusicTable[_curMusicSeq].soundId;
+		} else {
+			stateSoundId = _comiStateMusicTable[_curMusicState].soundId;
+			seqSoundId = _comiSeqMusicTable[_curMusicSeq].soundId;
+		}
+
+		_curMusicState = 0;
+		_curMusicSeq = 0;
+		scriptSetSequence(seqSoundId);
+		scriptSetState(stateSoundId);
+
+	} else {
+		diMUSESaveLoad(s);
+	}
+}
+
 void DiMUSE_v2::refreshScripts() {
 	diMUSERefreshScript();
 }
@@ -448,8 +490,10 @@ int DiMUSE_v2::diMUSEResume() {
 	return cmdsHandleCmd(4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESave() { return 0; }
-int DiMUSE_v2::diMUSERestore() { return 0; }
+void DiMUSE_v2::diMUSESaveLoad(Common::Serializer &ser) {
+	cmdsSaveLoad(ser);
+	return;
+}
 
 int DiMUSE_v2::diMUSESetGroupVol(int groupId, int volume) {
 	return cmdsHandleCmd(7, groupId, volume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);

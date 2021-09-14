@@ -42,6 +42,7 @@ int DiMUSETriggersHandler::deinit() {
 int DiMUSETriggersHandler::clearAllTriggers() {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		_trigs[l].sound = 0;
+		_trigs[l].clearLater = 0;
 		_defers[l].counter = 0;
 	}
 	_defersOn = 0;
@@ -49,20 +50,41 @@ int DiMUSETriggersHandler::clearAllTriggers() {
 	return 0;
 }
 
-int DiMUSETriggersHandler::save(int * buffer, int bufferSize) {
-	if (bufferSize < 2848) {
-		return -5;
+void DiMUSETriggersHandler::saveLoad(Common::Serializer &ser) {
+	for (int l = 0; l < MAX_TRIGGERS; l++) {
+		ser.syncAsSint32LE(_trigs[l].sound, VER(103));
+		ser.syncArray(_trigs[l].text, 256, Common::Serializer::SByte, VER(103));
+		ser.syncAsSint32LE(_trigs[l].opcode, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_0_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_1_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_2_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_3_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_4_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_5_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_6_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_7_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_8_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].args_9_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].clearLater, VER(103));
 	}
-	memcpy(buffer, _trigs, 2464);
-	memcpy(buffer + 2464, _defers, 384);
-	return 2848;
-}
 
-int DiMUSETriggersHandler::restore(int * buffer) {
-	memcpy(_trigs, buffer, 2464);
-	memcpy(_defers, buffer + 2464, 384);
-	_defersOn = 1;
-	return 2848;
+	for (int l = 0; l < MAX_DEFERS; l++) {
+		ser.syncAsSint32LE(_defers[l].counter, VER(103));
+		ser.syncAsSint32LE(_defers[l].opcode, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_0_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_1_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_2_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_3_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_4_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_5_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_6_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_7_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_8_, VER(103));
+		ser.syncAsSint32LE(_defers[l].args_9_, VER(103));
+	}
+
+	if (ser.isLoading())
+		_defersOn = 1;
 }
 
 int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
@@ -75,7 +97,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 	}
 
 	if (strlen(marker) >= 256) {
-		debug(5, "DiMUSE_v2::triggers_setTrigger(): ERROR: attempting to set trigger with oversized marker string");
+		debug(5, "DiMUSETriggersHandler::setTrigger(): ERROR: attempting to set trigger with oversized marker string");
 		return -5;
 	}
 
@@ -98,7 +120,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			return 0;
 		}
 	}
-	debug(5, "DiMUSE_v2::triggers_setTrigger(): ERROR: unable to allocate trigger \"%s\" for sound %d, every slot is full", marker, soundId);
+	debug(5, "DiMUSETriggersHandler::setTrigger(): ERROR: unable to allocate trigger \"%s\" for sound %d, every slot is full", marker, soundId);
 	return -6;
 }
 
@@ -138,7 +160,7 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
 	if (strlen(marker) >= 256) {
-		debug(5, "DiMUSE_v2::triggers_processTriggers(): ERROR: the input marker string is oversized");
+		debug(5, "DiMUSETriggersHandler::processTriggers(): ERROR: the input marker string is oversized");
 		return;
 	}
 
@@ -229,7 +251,7 @@ int DiMUSETriggersHandler::deferCommand(int count, int opcode, int c, int d, int
 			return 0;
 		}
 	}
-	debug(5, "DiMUSE_v2::triggers_deferCommand(): ERROR: couldn't allocate deferred command");
+	debug(5, "DiMUSETriggersHandler::deferCommand(): ERROR: couldn't allocate deferred command");
 	return -6;
 }
 
@@ -295,5 +317,7 @@ int DiMUSETriggersHandler::countPendingSounds(int soundId) {
 
 	return r;
 }
+
+
 
 } // End of namespace Scumm

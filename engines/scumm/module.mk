@@ -110,7 +110,7 @@ MODULE_OBJS += \
 	dimuse_v2/dimuse_v2_triggers.o \
 	dimuse_v2/dimuse_v2_utils.o \
 	dimuse_v2/dimuse_v2_wave.o \
-	dimuse_v2/dimuse_v2_waveapi.o \
+	dimuse_v2/dimuse_v2_waveout.o \
 	insane/insane.o \
 	insane/insane_ben.o \
 	insane/insane_enemy.o \

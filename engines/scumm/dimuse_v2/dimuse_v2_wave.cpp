@@ -27,7 +27,7 @@ namespace Scumm {
 	int DiMUSE_v2::waveInit() {
 		if (tracksInit())
 			return -1;
-		_wvSlicingHalted = 0;
+		_waveSlicingHalted = 0;
 		return 0;
 	}
 
@@ -36,100 +36,89 @@ namespace Scumm {
 	}
 
 	int DiMUSE_v2::wavePause() {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		tracksPause();
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return 0;
 	}
 
 	int DiMUSE_v2::waveResume() {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		tracksResume();
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return 0;
 	}
 
-	int DiMUSE_v2::waveSave(unsigned char *buffer, int bufferSize) {
-		_wvSlicingHalted++;
-		int result = tracksSave(buffer, bufferSize);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+	void DiMUSE_v2::waveSaveLoad(Common::Serializer &ser) {
+		_waveSlicingHalted++;
+		tracksSaveLoad(ser);
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
-
-		return result;
-	}
-
-	int DiMUSE_v2::waveRestore(unsigned char *buffer) {
-		_wvSlicingHalted++;
-		int result = tracksRestore(buffer);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
-		}
-		return result;
 	}
 
 	void DiMUSE_v2::waveUpdateGroupVolumes() {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		tracksSetGroupVol();
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 	}
 
 	int DiMUSE_v2::waveStartSound(int soundId, int priority) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksStartSound(soundId, priority, 0);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveStopSound(int soundId) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksStopSound(soundId);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveStopAllSounds() {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksStopAllSounds();
-		if (_wvSlicingHalted != 0) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted != 0) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveGetNextSound(int soundId) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksGetNextSound(soundId);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveSetParam(int soundId, int opcode, int value) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksSetParam(soundId, opcode, value);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveGetParam(int soundId, int opcode) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksGetParam(soundId, opcode);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
@@ -145,46 +134,46 @@ namespace Scumm {
 	int DiMUSE_v2::waveStartStream(int soundId, int priority, int bufferId) {
 		if (!_filesHandler->checkIdInRange(soundId))
 			return -1;
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksStartSound(soundId, priority, bufferId);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = dispatchSwitchStream(oldSoundId, newSoundId, fadeLengthMs, fadeSyncFlag2, fadeSyncFlag1);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveProcessStreams() {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = streamerProcessStreams();
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksQueryStream(soundId, bufSize, criticalSize, freeSpace, paused);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}
 
 	int DiMUSE_v2::waveFeedStream(int soundId, int *srcBuf, int sizeToFeed, int paused) {
-		_wvSlicingHalted++;
+		_waveSlicingHalted++;
 		int result = tracksFeedStream(soundId, (uint8 *)srcBuf, sizeToFeed, paused);
-		if (_wvSlicingHalted) {
-			_wvSlicingHalted--;
+		if (_waveSlicingHalted) {
+			_waveSlicingHalted--;
 		}
 		return result;
 	}

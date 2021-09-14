@@ -43,8 +43,7 @@ public:
 
 	int init();
 	void deinit();
-	int save(unsigned char *buffer, int sizeLeft);
-	int restore(unsigned char *buffer);
+	void saveLoad(Common::Serializer &ser);
 	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot);
 	void clearFadeStatus(int soundId, int opcode);
 	void loop();

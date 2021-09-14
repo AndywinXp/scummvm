@@ -124,7 +124,7 @@ int DiMUSEInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mixBuf
 		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_channelHandle, _stream, -1, Audio::Mixer::kMaxMixerVolume - 1, false);
 		return 0;
 	} else {
-		debug(5, "DiMUSE_InternalMixer::mixer_initModule(): ERROR: allocating mixer buffers");
+		debug(5, "DiMUSE_InternalMixer::init(): ERROR: allocating mixer buffers");
 		return -1;
 	}
 	
@@ -348,7 +348,7 @@ void DiMUSEInternalMixer::mixBits12Mono(uint8 *srcBuf, int inFrameCount, int fee
 
 	if ((inFrameCount & 1) != 0) {
 		inFrameCount &= 0xFFFFFFFE;
-		debug(5, "DiMUSE_InternalMixer::mixer_mixBits12Mono(): WARNING: odd inFrameCount with 12-bit data");
+		debug(5, "DiMUSE_InternalMixer::mixBits12Mono(): WARNING: odd inFrameCount with 12-bit data");
 	}
 
 	mixBufCurCell = (uint16 *)(&_mixBuf[2 * mixBufStartIndex]);

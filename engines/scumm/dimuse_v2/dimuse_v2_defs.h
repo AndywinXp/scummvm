@@ -161,7 +161,7 @@ struct DiMUSEDispatch {
 	int channelCount;
 	int currentOffset;
 	int audioRemaining;
-	int map[4096]; // For DIG it's 256
+	int map[2048]; // For DIG it's 256
 	DiMUSEStream *streamPtr;
 	int streamBufID;
 	DiMUSEStreamZone *streamZoneList;

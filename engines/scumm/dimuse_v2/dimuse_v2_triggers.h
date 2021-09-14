@@ -47,8 +47,7 @@ public:
 
 	int  init();
 	int  clearAllTriggers();
-	int  save(int *buffer, int bufferSize);
-	int  restore(int *buffer);
+	void saveLoad(Common::Serializer &ser);
 	int  setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
 	int  checkTrigger(int soundId, char *marker, int opcode);
 	int  clearTrigger(int soundId, char *marker, int opcode);

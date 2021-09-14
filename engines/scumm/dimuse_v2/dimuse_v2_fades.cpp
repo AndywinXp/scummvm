@@ -36,21 +36,6 @@ int DiMUSEFadesHandler::init() {
 	return 0;
 }
 
-int DiMUSEFadesHandler::save(unsigned char *buffer, int sizeLeft) {
-	// We're saving 640 bytes:
-	// which means 10 ints (4 bytes each) for 16 times (number of fades)
-	if (sizeLeft < 640)
-		return -5;
-	memcpy(buffer, _fades, 640);
-	return 640;
-}
-
-int DiMUSEFadesHandler::restore(unsigned char *buffer) {
-	memcpy(_fades, buffer, 640);
-	_fadesOn = 1;
-	return 640;
-}
-
 int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot) {
 	if (!soundId || fadeLength < 0)
 		return -5;
@@ -156,9 +141,28 @@ void DiMUSEFadesHandler::deinit() {
 	clearAllFades();
 }
 
+void DiMUSEFadesHandler::saveLoad(Common::Serializer &ser) {
+	for (int l = 0; l < MAX_FADES; l++) {
+		ser.syncAsSint32LE(_fades[l].status, VER(103));
+		ser.syncAsSint32LE(_fades[l].sound, VER(103));
+		ser.syncAsSint32LE(_fades[l].param, VER(103));
+		ser.syncAsSint32LE(_fades[l].currentVal, VER(103));
+		ser.syncAsSint32LE(_fades[l].counter, VER(103));
+		ser.syncAsSint32LE(_fades[l].length, VER(103));
+		ser.syncAsSint32LE(_fades[l].slope, VER(103));
+		ser.syncAsSint32LE(_fades[l].slopeMod, VER(103));
+		ser.syncAsSint32LE(_fades[l].modOvfloCounter, VER(103));
+		ser.syncAsSint32LE(_fades[l].nudge, VER(103));
+	}
+	
+	if (ser.isLoading())
+		_fadesOn = 1;
+}
+
 void DiMUSEFadesHandler::clearAllFades() {
 	for (int l = 0; l < MAX_FADES; l++) {
 		_fades[l].status = 0;
+		_fades[l].sound = 0;
 	}
 	_fadesOn = 0;
 }

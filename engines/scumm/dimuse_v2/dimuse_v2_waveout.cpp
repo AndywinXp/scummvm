@@ -36,6 +36,7 @@ int DiMUSE_v2::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettingsS
 	_waveOutOutputBuffer = (uint8 *)malloc(_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9);
 	_waveOutMixBuffer = _waveOutOutputBuffer + (_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 8); // 9-th buffer
 
+	// This information will be fed to the internal mixer during its initialization
 	waveOutSettingsStruct->bytesPerSample = _waveOutBytesPerSample * 8;
 	waveOutSettingsStruct->numChannels = _waveOutNumChannels;
 	waveOutSettingsStruct->mixBufSize = (_waveOutBytesPerSample * _waveOutNumChannels) * _waveOutPreferredFeedSize;
@@ -72,6 +73,7 @@ void DiMUSE_v2::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) 
 
 		byte *ptr = (byte *)malloc(_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels);
 		memcpy(ptr, curBufferBlock, _outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels);
+
 		_internalMixer->_stream->queueBuffer(ptr,
 			_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels,
 			DisposeAfterUse::YES,
@@ -86,17 +88,17 @@ int DiMUSE_v2::waveOutDeinit() {
 }
 
 void DiMUSE_v2::waveOutCallback() {
-	if (!_wvSlicingHalted) {
+	if (!_waveSlicingHalted) {
 		tracksCallback();
 	}
 }
 
 void DiMUSE_v2::waveOutIncreaseSlice() {
-	_wvSlicingHalted++;
+	_waveSlicingHalted++;
 }
 
 void DiMUSE_v2::waveOutDecreaseSlice() {
-	_wvSlicingHalted--;
+	_waveSlicingHalted--;
 }
 
 } // End of namespace Scumm

@@ -63,6 +63,7 @@ public:
 	void flushSounds();
 	void setCurrentSpeechFile(const char *fileName);
 	void closeSoundImmediatelyById(int soundId);
+	void saveLoad(Common::Serializer &ser);
 };
 
 } // End of namespace Scumm
