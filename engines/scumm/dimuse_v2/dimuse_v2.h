@@ -35,6 +35,7 @@
 #include "scumm/dimuse_v2/dimuse_v2_groups.h"
 #include "scumm/dimuse_v2/dimuse_v2_timer.h"
 #include "scumm/dimuse_v2/dimuse_v2_fades.h"
+#include "scumm/dimuse_v2/dimuse_v2_files.h"
 #include "scumm/dimuse_v2/dimuse_v2_triggers.h"
 #include "scumm/dimuse_v1/dimuse_bndmgr.h"
 #include "scumm/dimuse_v1/dimuse_sndmgr.h"
@@ -62,19 +63,21 @@ private:
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
 
-	DiMUSESndMgr *_sound;
 	DiMUSEInternalMixer *_internalMixer;
 	DiMUSEGroupsHandler *_groupsHandler;
 	DiMUSETimerHandler *_timerHandler;
 	DiMUSEFadesHandler *_fadesHandler;
 	DiMUSETriggersHandler *_triggersHandler;
+	DiMUSEFilesHandler *_filesHandler;
+
 	int _callbackFps;
 	static void timer_handler(void *refConf);
 	void callback();
 
+	// These three are manipulated in the waveOut functions
 	uint8 *_outputAudioBuffer;
-	int _outputFeedSize = 512;
-	int _outputSampleRate = 22050;
+	int _outputFeedSize;
+	int _outputSampleRate;
 
 	int _currentSpeechVolume, _currentSpeechFrequency, _currentSpeechPan;
 	int _curMixerMusicVolume, _curMixerSpeechVolume, _curMixerSFXVolume;
@@ -131,138 +134,135 @@ private:
 	int cmdsGetHook(int soundId);
 
 	// Streamer
-	DiMUSEStream streamer_streams[MAX_STREAMS];
-	DiMUSEStream *streamer_lastStreamLoaded;
-	int streamer_bailFlag;
+	DiMUSEStream _streams[MAX_STREAMS];
+	DiMUSEStream *_lastStreamLoaded;
+	int _streamerBailFlag;
 
-	int streamer_moduleInit();
-	DiMUSEStream *streamer_alloc(int soundId, int bufId, int maxRead);
-	int streamer_clearSoundInStream(DiMUSEStream *streamPtr);
-	int streamer_processStreams();
-	uint8 *streamer_reAllocReadBuffer(DiMUSEStream *streamPtr, /*unsigned*/int reallocSize);
-	uint8 *streamer_copyBufferAbsolute(DiMUSEStream *streamPtr, int offset, int size);
-	int streamer_setIndex1(DiMUSEStream *streamPtr, /*unsigned*/ int offset);
-	int streamer_setIndex2(DiMUSEStream *streamPtr, /*unsigned*/ int offset);
-	int streamer_getFreeBuffer(DiMUSEStream *streamPtr);
-	int streamer_setSoundToStreamWithCurrentOffset(DiMUSEStream *streamPtr, int soundId, int currentOffset);
-	int streamer_queryStream(DiMUSEStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
-	int streamer_feedStream(DiMUSEStream *streamPtr, uint8 *srcBuf, /*unsigned*/ int sizeToFeed, int paused);
-	int streamer_fetchData(DiMUSEStream *streamPtr);
-
-	DiMUSESoundBuffer _soundBuffers[4];
+	int streamerInit();
+	DiMUSEStream *streamerAllocateSound(int soundId, int bufId, int maxRead);
+	int streamerClearSoundInStream(DiMUSEStream *streamPtr);
+	int streamerProcessStreams();
+	uint8 *streamerReAllocReadBuffer(DiMUSEStream *streamPtr, int reallocSize);
+	uint8 *streamerCopyBufferAbsolute(DiMUSEStream *streamPtr, int offset, int size);
+	int streamerSetIndex1(DiMUSEStream *streamPtr, int offset);
+	int streamerSetIndex2(DiMUSEStream *streamPtr, int offset);
+	int streamerGetFreeBuffer(DiMUSEStream *streamPtr);
+	int streamerSetSoundToStreamWithCurrentOffset(DiMUSEStream *streamPtr, int soundId, int currentOffset);
+	int streamerQueryStream(DiMUSEStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
+	int streamerFeedStream(DiMUSEStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused);
+	int streamerFetchData(DiMUSEStream *streamPtr);
 
 	// Tracks
-	DiMUSETrack tracks[MAX_TRACKS];
-	DiMUSETrack *tracks_trackList;
+	DiMUSETrack _tracks[MAX_TRACKS];
+	DiMUSETrack *_trackList;
 
-	int tracks_trackCount;
-	int tracks_pauseTimer;
-	int tracks_prefSampleRate;
-	int tracks_running40HzCount;
-	int tracks_uSecsToFeed;
+	int _trackCount;
+	int _tracksPauseTimer;
+	int _tracksPrefSampleRate;
+	int _tracksMicroSecsToFeed;
 
-	int tracks_moduleInit();
-	void tracks_pause();
-	void tracks_resume();
-	int tracks_save(uint8 *buffer, int leftSize);
-	int tracks_restore(uint8 *buffer);
-	void tracks_setGroupVol();
-	void tracks_callback();
-	int tracks_startSound(int soundId, int tryPriority, int group);
-	int tracks_stopSound(int soundId);
-	int tracks_stopAllSounds();
-	int tracks_getNextSound(int soundId);
-	int tracks_queryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
-	int tracks_feedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
-	void tracks_clear(DiMUSETrack *trackPtr);
-	int tracks_setParam(int soundId, int opcode, int value);
-	int tracks_getParam(int soundId, int opcode);
-	int tracks_lipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
-	int tracks_setHook(int soundId, int hookId);
-	int tracks_getHook(int soundId);
-	void tracks_free();
+	int tracksInit();
+	void tracksPause();
+	void tracksResume();
+	int tracksSave(uint8 *buffer, int leftSize);
+	int tracksRestore(uint8 *buffer);
+	void tracksSetGroupVol();
+	void tracksCallback();
+	int tracksStartSound(int soundId, int tryPriority, int group);
+	int tracksStopSound(int soundId);
+	int tracksStopAllSounds();
+	int tracksGetNextSound(int soundId);
+	int tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
+	int tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
+	void tracksClear(DiMUSETrack *trackPtr);
+	int tracksSetParam(int soundId, int opcode, int value);
+	int tracksGetParam(int soundId, int opcode);
+	int tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
+	int tracksSetHook(int soundId, int hookId);
+	int tracksGetHook(int soundId);
+	void tracksDeinit();
 
 	// Dispatch
-	DiMUSEDispatch dispatches[MAX_DISPATCHES];
-	DiMUSEStreamZone streamZones[MAX_STREAMZONES];
-	uint8 *dispatch_buf;
-	int dispatch_size;
-	uint8 *dispatch_smallFadeBufs;
-	uint8 *dispatch_largeFadeBufs;
-	int dispatch_fadeSize;
-	int dispatch_largeFadeFlags[LARGE_FADES];
-	int dispatch_smallFadeFlags[SMALL_FADES];
-	int dispatch_fadeStartedFlag;
-	int dispatch_bufferedHookId;
-	int dispatch_requestedFadeSize;
-	int dispatch_curStreamBufSize;
-	int dispatch_curStreamCriticalSize;
-	int dispatch_curStreamFreeSpace;
-	int dispatch_curStreamPaused;
+	DiMUSEDispatch _dispatches[MAX_DISPATCHES];
+	DiMUSEStreamZone _streamZones[MAX_STREAMZONES];
+	uint8 *_dispatchBuffer;
+	int _dispatchSize;
+	uint8 *_dispatchSmallFadeBufs;
+	uint8 *_dispatchLargeFadeBufs;
+	int _dispatchFadeSize;
+	int _dispatchLargeFadeFlags[LARGE_FADES];
+	int _dispatchSmallFadeFlags[SMALL_FADES];
+	int _dispatchFadeStartedFlag;
+	int _dispatchBufferedHookId;
+	int _dispatchRequestedFadeSize;
+	int _dispatchCurStreamBufSize;
+	int _dispatchCurStreamCriticalSize;
+	int _dispatchCurStreamFreeSpace;
+	int _dispatchCurStreamPaused;
 
-	int dispatch_moduleInit();
-	DiMUSEDispatch *dispatch_getDispatchByTrackId(int trackId);
-	int dispatch_save(uint8 *dst, int size);
-	int dispatch_restore(uint8 *src);
-	int dispatch_allocStreamZones();
-	int dispatch_alloc(DiMUSETrack *trackPtr, int groupId);
-	int dispatch_release(DiMUSETrack *trackPtr);
-	int dispatch_switchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
-	void dispatch_processDispatches(DiMUSETrack *trackPtr, int feedSize, int sampleRate);
-	void dispatch_predictFirstStream();
-	int dispatch_getNextMapEvent(DiMUSEDispatch *dispatchPtr);
-	int dispatch_convertMap(uint8 *rawMap, uint8 *destMap);
-	void dispatch_predictStream(DiMUSEDispatch *dispatch);
-	void dispatch_parseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
-	DiMUSEStreamZone *dispatch_allocStreamZone();
-	void dispatch_free();
+	int dispatchInit();
+	DiMUSEDispatch *dispatchGetDispatchByTrackId(int trackId);
+	int dispatchSave(uint8 *dst, int size);
+	int dispatchRestore(uint8 *src);
+	int dispatchAllocStreamZones();
+	int dispatchAlloc(DiMUSETrack *trackPtr, int groupId);
+	int dispatchRelease(DiMUSETrack *trackPtr);
+	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
+	void dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, int sampleRate);
+	void dispatchPredictFirstStream();
+	int dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr);
+	int dispatchConvertMap(uint8 *rawMap, uint8 *destMap);
+	void dispatchPredictStream(DiMUSEDispatch *dispatch);
+	void dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
+	DiMUSEStreamZone *dispatchAllocStreamZone();
+	void dispatchDeinit();
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int _wvSlicingHalted = 1;
 
-	int wave_init();
-	int wave_terminate();
-	int wave_pause();
-	int wave_resume();
-	int wave_save(unsigned char *buffer, int bufferSize);
-	int wave_restore(unsigned char *buffer);
-	void wave_updateGroupVolumes(); // Move to private and wrap it
-	int wave_startSound(int soundId, int priority);
-	int wave_stopSound(int soundId);
-	int wave_stopAllSounds();
-	int wave_getNextSound(int soundId);
-	int wave_setParam(int soundId, int opcode, int value);
-	int wave_getParam(int soundId, int opcode);
-	int wave_setHook(int soundId, int hookId);
-	int wave_getHook(int soundId);
-	int wave_startStream(int soundId, int priority, int groupId);
-	int wave_switchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
-	int wave_processStreams();
-	int wave_queryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
-	int wave_feedStream(int soundId, int *srcBuf, int sizeToFeed, int paused);
-	int wave_lipSync(int soundId, int syncId, int msPos, int *width, int *height);
+	int waveInit();
+	int waveTerminate();
+	int wavePause();
+	int waveResume();
+	int waveSave(unsigned char *buffer, int bufferSize);
+	int waveRestore(unsigned char *buffer);
+	void waveUpdateGroupVolumes();
+	int waveStartSound(int soundId, int priority);
+	int waveStopSound(int soundId);
+	int waveStopAllSounds();
+	int waveGetNextSound(int soundId);
+	int waveSetParam(int soundId, int opcode, int value);
+	int waveGetParam(int soundId, int opcode);
+	int waveSetHook(int soundId, int hookId);
+	int waveGetHook(int soundId);
+	int waveStartStream(int soundId, int priority, int groupId);
+	int waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
+	int waveProcessStreams();
+	int waveQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
+	int waveFeedStream(int soundId, int *srcBuf, int sizeToFeed, int paused);
+	int waveLipSync(int soundId, int syncId, int msPos, int *width, int *height);
 
 	// Waveapi
-	waveOutParams waveapi_waveOutParams;
+	waveOutParamsStruct waveOutSettings;
 
-	int waveapi_sampleRate;
-	int waveapi_bytesPerSample;
-	int waveapi_numChannels;
-	int waveapi_zeroLevel;
-	int waveapi_preferredFeedSize = 0;
-	uint8 *waveapi_mixBuf;
-	uint8 *waveapi_outBuf;
+	int _waveOutSampleRate;
+	int _waveOutBytesPerSample;
+	int _waveOutNumChannels;
+	int _waveOutZeroLevel;
+	int _waveOutPreferredFeedSize = 0;
+	uint8 *_waveOutMixBuffer;
+	uint8 *_waveOutOutputBuffer;
 
-	int waveapi_xorTrigger = 0;
-	int waveapi_writeIndex = 0;
-	int waveapi_disableWrite = 0;
+	int _waveOutXorTrigger = 0;
+	int _waveOutWriteIndex = 0;
+	int _waveOutDisableWrite = 0;
 
-	int waveapi_moduleInit(int sampleRate, waveOutParams *waveoutParamStruct);
-	void waveapi_write(uint8 **lpData, int *feedSize, int *sampleRate);
-	int waveapi_free();
-	void waveapi_callback();
-	void waveapi_increaseSlice();
-	void waveapi_decreaseSlice();
+	int waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettings);
+	void waveOutWrite(uint8 **audioBuffer, int *feedSize, int *sampleRate);
+	int waveOutDeinit();
+	void waveOutCallback();
+	void waveOutIncreaseSlice();
+	void waveOutDecreaseSlice();
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
@@ -341,17 +341,12 @@ public:
 	int diMUSESetSequence(int soundId);
 	int diMUSESetCuePoint();
 	int diMUSESetAttribute(int attrIndex, int attrVal);
-	void diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
-	void diMUSEDeallocSoundBuffer(int bufId);
 
 	// Utils
 	int addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
 	int removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
 	int addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
 	int removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
-	void internalStrcpy(char *dst, char *marker);
-	int internalStrcmp(char *marker1, char *marker2);
-	int internalStrlen(char *marker);
 	int clampNumber(int value, int minValue, int maxValue);
 	int clampTuning(int value, int minValue, int maxValue);
 	int checkHookId(int *trackHookId, int sampleHookId);
@@ -363,22 +358,6 @@ public:
 
 	// Script
 	int scriptTriggerCallback(char *marker);
-
-	// Files
-	char _currentSpeechFile[60];
-	int files_moduleInit();
-	int files_moduleDeinit();
-	uint8 *files_getSoundAddrData(int soundId);
-	int files_fetchMap(int soundId);
-	int files_getNextSound(int soundId);
-	int files_checkRange(int soundId);
-	int files_seek(int soundId, int offset, int mode, int bufId);
-	int files_read(int soundId, uint8 *buf, int size, int bufId);
-	void files_getFilenameFromSoundId(int soundId, char *fileName);
-	DiMUSESoundBuffer *files_getBufInfo(int bufId);
-	void files_openSound(int soundId);
-	void files_closeSound(int soundId);
-	void files_closeAllSounds();
 };
 
 } // End of namespace Scumm

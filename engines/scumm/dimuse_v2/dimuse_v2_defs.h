@@ -38,13 +38,14 @@ namespace Scumm {
 #define SMALL_FADE_DIM 44100
 #define MAX_FADE_VOLUME 8323072
 #define MAX_STREAMS 3
-#define IMUSE_GROUP_SFX 1
-#define IMUSE_GROUP_SPEECH 2
-#define IMUSE_GROUP_MUSIC 3
-#define IMUSE_GROUP_MUSICEFF 4
-#define IMUSE_BUFFER_SFX 0
-#define IMUSE_BUFFER_SPEECH 1
-#define IMUSE_BUFFER_MUSIC 2
+#define DIMUSE_SAMPLERATE 22050
+#define DIMUSE_GROUP_SFX 1
+#define DIMUSE_GROUP_SPEECH 2
+#define DIMUSE_GROUP_MUSIC 3
+#define DIMUSE_GROUP_MUSICEFF 4
+#define DIMUSE_BUFFER_SFX 0
+#define DIMUSE_BUFFER_SPEECH 1
+#define DIMUSE_BUFFER_MUSIC 2
 #define NUM_HEADERS 8
 
 struct DiMUSEDispatch;
@@ -183,7 +184,7 @@ typedef struct {
 	uint8 *mixBuf;
 	int mixBufSize;
 	int sizeSampleKB;
-} waveOutParams;
+} waveOutParamsStruct;
 
 
 } // End of namespace Scumm

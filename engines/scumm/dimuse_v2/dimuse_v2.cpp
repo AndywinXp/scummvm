@@ -48,29 +48,28 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
+
 	_internalMixer = new DiMUSEInternalMixer(mixer);
 	_groupsHandler = new DiMUSEGroupsHandler(this);
 	_timerHandler = new DiMUSETimerHandler();
 	_fadesHandler = new DiMUSEFadesHandler(this);
 	_triggersHandler = new DiMUSETriggersHandler(this);
-	_sound = new DiMUSESndMgr(_vm, true);
-	assert(_sound);
+	_filesHandler = new DiMUSEFilesHandler(this, scumm);
+	
 	diMUSEInitialize();
 	diMUSEInitializeScript();
-	diMUSEAllocSoundBuffer(IMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
-	diMUSEAllocSoundBuffer(IMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
+	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
+	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
 	
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
+	_filesHandler->diMUSEDeallocSoundBuffer(1);
+	_filesHandler->diMUSEDeallocSoundBuffer(2);
 	cmdsDeinit();
 	diMUSETerminate();
-	
-	delete _sound;
-	diMUSEDeallocSoundBuffer(1);
-	diMUSEDeallocSoundBuffer(2);
 }
 
 void DiMUSE_v2::stopSound(int sound) {
@@ -91,13 +90,15 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 
 	if (_vm->_game.id == GID_DIG) {
 		if (!strcmp(soundName, "PIG.018"))
-			strcpy(_currentSpeechFile, "PIG.019");
+			_filesHandler->setCurrentSpeechFile("PIG.019");
 		else
-			strcpy(_currentSpeechFile, soundName);
+			_filesHandler->setCurrentSpeechFile(soundName);
 
-		//IMUSE_SetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
-		_sound->closeSoundById(soundId);
-		files_openSound(kTalkSoundID);
+		// At this point, The Dig sets up a trigger for the voice file; it is not clear what it does,
+		// and its absence never appeared to distrupt anything, so I'll just leave it as a comment
+		// diMUSESetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
+		_filesHandler->closeSoundImmediatelyById(soundId);
+		_filesHandler->openSound(kTalkSoundID);
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 		if (_vm->VAR(_vm->VAR_TALK_ACTOR) == _vm->VAR(_vm->VAR_EGO)) {
@@ -107,11 +108,11 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 			diMUSESetParam(kTalkSoundID, 0xA00, _radioChatterSFX);
 			diMUSESetParam(kTalkSoundID, 0x600, 88);
 		}
-		files_closeSound(kTalkSoundID);
+		_filesHandler->closeSound(kTalkSoundID);
 	} else {
-		strcpy(_currentSpeechFile, soundName);
-		_sound->closeSoundById(soundId);
-		files_openSound(kTalkSoundID);
+		_filesHandler->setCurrentSpeechFile(soundName);
+		_filesHandler->closeSoundImmediatelyById(soundId);
+		_filesHandler->openSound(kTalkSoundID);
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 
@@ -134,23 +135,6 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 	}
 
 	return 0;
-}
-
-void DiMUSE_v2::diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
-	DiMUSESoundBuffer *selectedSoundBuf;
-
-	selectedSoundBuf = &_soundBuffers[bufId];
-	selectedSoundBuf->buffer = (uint8 *)malloc(size);
-	selectedSoundBuf->bufSize = size;
-	selectedSoundBuf->loadSize = loadSize;
-	selectedSoundBuf->criticalSize = criticalSize;
-}
-
-void DiMUSE_v2::diMUSEDeallocSoundBuffer(int bufId) {
-	DiMUSESoundBuffer *selectedSoundBuf;
-
-	selectedSoundBuf = &_soundBuffers[bufId];
-	free(selectedSoundBuf->buffer);
 }
 
 void DiMUSE_v2::refreshScripts() {
@@ -189,7 +173,7 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol;
 
 	int usecPerInt = _timerHandler->getUsecPerInt(); // (Set to 50 Hz)
-	waveapi_callback();
+	waveOutCallback();
 
 	// Update volumes
 
@@ -225,18 +209,18 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 		// SPEECH GAIN REDUCTION 10Hz
 		_cmdsRunning10HzCount -= 100000;
 		soundId = 0;
-		musicTargetVolume = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSIC, -1);
+		musicTargetVolume = _groupsHandler->setGroupVol(DIMUSE_GROUP_MUSIC, -1);
 		while (1) { // Check all tracks to see if there's a speech file playing
-			soundId = wave_getNextSound(soundId);
+			soundId = waveGetNextSound(soundId);
 			if (!soundId)
 				break;
 
 			foundGroupId = -1;
-			if (files_getNextSound(soundId) == 2) {
-				foundGroupId = wave_getParam(soundId, 0x400); // Check the groupId of this sound
+			if (_filesHandler->getNextSound(soundId) == 2) {
+				foundGroupId = waveGetParam(soundId, 0x400); // Check the groupId of this sound
 			}
 
-			if (foundGroupId == IMUSE_GROUP_SPEECH) {
+			if (foundGroupId == DIMUSE_GROUP_SPEECH) {
 				// Remember: when a speech file stops playing this block stops 
 				// being executed, so musicTargetVolume returns back to its original value
 				musicTargetVolume = (musicTargetVolume * 80) / 128;
@@ -244,8 +228,8 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 			}
 		}
 
-		musicEffVol = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, -1); // MUSIC EFFECTIVE VOLUME GROUP (used for gain reduction)
-		musicVol = _groupsHandler->setGroupVol(IMUSE_GROUP_MUSIC, -1); // MUSIC VOLUME SUBGROUP (keeps track of original music volume)
+		musicEffVol = _groupsHandler->setGroupVol(DIMUSE_GROUP_MUSICEFF, -1); // MUSIC EFFECTIVE VOLUME GROUP (used for gain reduction)
+		musicVol = _groupsHandler->setGroupVol(DIMUSE_GROUP_MUSIC, -1); // MUSIC VOLUME SUBGROUP (keeps track of original music volume)
 
 		if (musicEffVol < musicTargetVolume) { // If there is gain reduction already going on...
 			tempEffVol = musicEffVol + 3;
@@ -256,7 +240,7 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 			} else if (musicVol <= musicTargetVolume) { // Bring up the music volume immediately when speech stops playing
 				musicVol = musicTargetVolume;
 			}
-			_groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+			_groupsHandler->setGroupVol(DIMUSE_GROUP_MUSICEFF, musicVol);
 		} else if (musicEffVol > musicTargetVolume) {
 			// Bring music volume down to target volume with a -18 step if there's speech playing
 		    // or else, just cap it to the target if it's out of range
@@ -270,7 +254,7 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 					musicVol = tempVol;
 				}
 			}
-			_groupsHandler->setGroupVol(IMUSE_GROUP_MUSICEFF, musicVol);
+			_groupsHandler->setGroupVol(DIMUSE_GROUP_MUSICEFF, musicVol);
 		}
 		
 	} while (_cmdsRunning10HzCount >= 100000);
@@ -307,15 +291,7 @@ int DiMUSE_v2::getCurSpeechFrequency() {
 }
 
 void DiMUSE_v2::flushTracks() {
-	DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
-	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
-		DiMUSESndMgr::SoundDesc *curSnd = &s[i];
-		if (curSnd && curSnd->inUse) {
-			if (curSnd->scheduledForDealloc)
-				if (!diMUSEGetParam(curSnd->soundId, 0x100) && !diMUSEGetParam(curSnd->soundId, 0x200))
-					_sound->closeSound(curSnd);
-		}
-	}
+	_filesHandler->flushSounds();
 }
 
 int32 DiMUSE_v2::getCurMusicPosInMs() {
@@ -454,7 +430,7 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 int DiMUSE_v2::diMUSETerminate() {
 	if (_scriptInitializedFlag) {
 		diMUSEStopAllSounds();
-		files_closeAllSounds();
+		_filesHandler->closeAllSounds();
 	}
 		
 	return 0;
@@ -535,7 +511,7 @@ int DiMUSE_v2::diMUSEFeedStream() { return 0; }
 int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	// Skip over cmds_handleCmds for this one, I really don't like the idea of having to use intptr_t casts
 	// return cmds_handleCmds(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-	return wave_lipSync(soundId, syncId, msPos, width, height);
+	return waveLipSync(soundId, syncId, msPos, width, height);
 }
 
 int DiMUSE_v2::diMUSESetMusicGroupVol(int volume) {
@@ -566,7 +542,7 @@ int DiMUSE_v2::diMUSEGetVoiceGroupVol() {
 }
 
 void DiMUSE_v2::diMUSEUpdateGroupVolumes() {
-	wave_updateGroupVolumes();
+	waveUpdateGroupVolumes();
 }
 
 int DiMUSE_v2::diMUSEInitializeScript() {

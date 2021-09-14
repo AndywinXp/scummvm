@@ -181,45 +181,4 @@ int DiMUSE_v2::checkHookId(int *trackHookId, int sampleHookId) {
 	}
 }
 
-void DiMUSE_v2::internalStrcpy(char *dst, char *marker) {
-	char currentChar;
-
-	if ((dst != NULL) && (marker != NULL)) {
-		do {
-			currentChar = *marker;
-			marker = marker + 1;
-			*dst = currentChar;
-			dst = dst + 1;
-		} while (currentChar != '\0');
-	}
-	return;
-}
-
-int DiMUSE_v2::internalStrcmp(char *marker1, char *marker2) {
-	if (*marker1 != 0) {
-		while ((*marker2 != 0 && (*marker1 == *marker2))) {
-			marker1 = marker1 + 1;
-			marker2 = marker2 + 1;
-			if (*marker1 == 0) {
-				return (int)(char)(*marker2 | *marker1);
-			}
-		}
-	}
-	return (int)(char)(*marker2 | *marker1);
-}
-
-int DiMUSE_v2::internalStrlen(char *marker) {
-	int resultingLength;
-	char curChar;
-
-	resultingLength = 0;
-	curChar = *marker;
-	while (curChar != '\0') {
-		marker = marker + 1;
-		resultingLength += 1;
-		curChar = *marker;
-	}
-	return resultingLength;
-}
-
 } // End of namespace Scumm
