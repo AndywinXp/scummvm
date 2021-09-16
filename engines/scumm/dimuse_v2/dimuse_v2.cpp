@@ -579,9 +579,7 @@ int DiMUSE_v2::diMUSEQueryStream() { return 0; }
 int DiMUSE_v2::diMUSEFeedStream() { return 0; }
 
 int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
-	// Skip over cmds_handleCmds for this one, I really don't like the idea of having to use intptr_t casts
-	// return cmds_handleCmds(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-	return waveLipSync(soundId, syncId, msPos, width, height);
+	return cmdsHandleCmd(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::diMUSESetMusicGroupVol(int volume) {
