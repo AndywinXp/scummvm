@@ -83,7 +83,6 @@ void DiMUSE_v2::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) 
 
 int DiMUSE_v2::waveOutDeinit() {
 	_waveOutDisableWrite = 1;
-	free(_waveOutOutputBuffer);
 	return 0;
 }
 

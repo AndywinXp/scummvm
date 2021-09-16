@@ -41,11 +41,9 @@ int DiMUSE_v2::scriptParse(int cmd, int a, int b) {
 		case 1:
 			_scriptInitializedFlag = 0;
 			return scriptTerminate();
-		case 2:
-			//result = script_save((_DWORD *)a0, param1);
+		case 2: // script_save(a, b);
 			break;
-		case 3:
-			//result = script_restore((int *)a0);
+		case 3: // script_restore(a);
 			break;
 		case 4:
 			scriptRefresh();
@@ -61,11 +59,11 @@ int DiMUSE_v2::scriptParse(int cmd, int a, int b) {
 		case 8:
 			return scriptSetAttribute(a, b);
 		default:
-			debug(5, "DiMUSE_v2::script_parse(): unrecognized opcode (%d)", cmd);
+			debug(5, "DiMUSE_v2::scriptParse(): unrecognized opcode (%d)", cmd);
 			return -1;
 		}
 	} else {
-		debug(5, "DiMUSE_v2::script_parse(): script module not initialized");
+		debug(5, "DiMUSE_v2::scriptParse(): script module not initialized");
 		return -1;
 	}
 
@@ -176,7 +174,7 @@ int DiMUSE_v2::scriptSetAttribute(int attrIndex, int attrVal) {
 
 int DiMUSE_v2::scriptTriggerCallback(char *marker) {
 	if (marker[0] != '_') {
-		debug(5, "DiMUSE_v2::script_callback(): got marker != '_end', callback ignored");
+		debug(5, "DiMUSE_v2::scriptTriggerCallback(): got marker != '_end', callback ignored");
 		return -1;
 	}	
 	_stopSequenceFlag = 1;
@@ -188,7 +186,7 @@ void DiMUSE_v2::setDigMusicState(int stateId) {
 
 	for (l = 0; _digStateMusicTable[l].soundId != -1; l++) {
 		if ((_digStateMusicTable[l].soundId == stateId)) {
-			debug(5, "Set music state: %s, %s", _digStateMusicTable[l].name, _digStateMusicTable[l].filename);
+			debug(5, "DiMUSE_v2::setDigMusicState(): Set music state: %s, %s", _digStateMusicTable[l].name, _digStateMusicTable[l].filename);
 			num = l;
 			break;
 		}
@@ -219,7 +217,7 @@ void DiMUSE_v2::setDigMusicState(int stateId) {
 		}
 	}
 
-	debug(5, "Set music state: %s, %s", _digStateMusicTable[num].name, _digStateMusicTable[num].filename);
+	debug(5, "DiMUSE_v2::setDigMusicState(): Set music state: %s, %s", _digStateMusicTable[num].name, _digStateMusicTable[num].filename);
 
 	if (_curMusicState == num)
 		return;
@@ -242,7 +240,7 @@ void DiMUSE_v2::setDigMusicSequence(int seqId) {
 
 	for (l = 0; _digSeqMusicTable[l].soundId != -1; l++) {
 		if ((_digSeqMusicTable[l].soundId == seqId)) {
-			debug(5, "Set music sequence: %s, %s", _digSeqMusicTable[l].name, _digSeqMusicTable[l].filename);
+			debug(5, "DiMUSE_v2::setDigMusicSequence(): Set music sequence: %s, %s", _digSeqMusicTable[l].name, _digSeqMusicTable[l].filename);
 			num = l;
 			break;
 		}
@@ -461,7 +459,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 
 		if (table->transitionType == 4) {
 			_stopSequenceFlag = 0;
-			diMUSESetTrigger(table->soundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			diMUSESetTrigger(table->soundId, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
 		if (oldSoundId) {
@@ -507,7 +505,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 		break;
 	case 6:
 		_stopSequenceFlag = 0;
-		diMUSESetTrigger(12345680, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(12345680, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
 		if (oldSoundId)
@@ -601,7 +599,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 
 		if (table->transitionType == 4) {
 			_stopSequenceFlag = 0;
-			diMUSESetTrigger(table->soundId, (int)'_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+			diMUSESetTrigger(table->soundId, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		}
 
 		if (oldSoundId) {
@@ -631,25 +629,25 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 				} else {
 					switch (table->transitionType) {
 					case 10:
-						diMUSESetTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, - 1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, - 1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, 0x600, 127, - 1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, 0x400, 4, - 1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 						diMUSEProcessStreams();
 						break;
 					case 11: // Markers actually are 'exit2', which is too long for a char constant; this transition is unused anyway
-						diMUSESetTrigger(oldSoundId, 'exi2', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exi2', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exi2', 15, table->soundId, hookId,- 1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 15, table->soundId, hookId,- 1, -1, -1, -1, -1, -1, -1, -1, -1);
 						diMUSEProcessStreams();
 						break;
 					case 12:
 						diMUSESetHook(oldSoundId, table->hookId);
-						diMUSESetTrigger(oldSoundId, 'exit', 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, 'exit', 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, 0x600, 127, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, 0x400, 4, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 						diMUSEProcessStreams();
 						break;
 					default:
@@ -677,7 +675,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		break;
 	case 6:
 		_stopSequenceFlag = 0;
-		diMUSESetTrigger(12345680, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(12345680, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
 		if (oldSoundId)
@@ -691,7 +689,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		if (oldSoundId)
 			diMUSESetHook(oldSoundId, table->hookId);
 		_stopSequenceFlag = 0;
-		diMUSESetTrigger(oldSoundId, '_end', 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(oldSoundId, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	default:
 		debug(5, "DiMUSE_v2::playComiMusic(): bogus transition type, ignored");

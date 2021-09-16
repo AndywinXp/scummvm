@@ -108,7 +108,7 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, int arg_1, int arg_2, int arg_3
 	case 30:
 		return waveLipSync(arg_0, arg_1, arg_2, (int32 *)arg_3, (int32 *)arg_4);
 	default:
-		debug(5, "DiMUSE_v2::cmds_handleCmds(): bogus opcode ignored.");
+		debug(5, "DiMUSE_v2::cmdsHandleCmd(): bogus opcode ignored.");
 		return -1;
 	}
 
@@ -205,7 +205,7 @@ int DiMUSE_v2::cmdsStartSound(int soundId, int priority) {
 	uint8 *src = _filesHandler->getSoundAddrData(soundId);
 
 	if (src == NULL) {
-		debug(5, "DiMUSE_v2::cmds_startSound(): ERROR: resource address for sound %d is NULL", soundId);
+		debug(5, "DiMUSE_v2::cmdsStartSound(): ERROR: resource address for sound %d is NULL", soundId);
 		return -1;
 	}
 

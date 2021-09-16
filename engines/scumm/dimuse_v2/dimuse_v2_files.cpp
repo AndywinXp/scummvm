@@ -103,7 +103,7 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// The seeked position is in reference to the decompressed sound
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		char fileName[23] = "";
+		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName);
 
 		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
@@ -125,7 +125,7 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// TODO: Does this work with speech?
 	if (soundId != 0 && soundId < 0xFFFFFFF0) {
-		char fileName[23] = "";
+		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName);
 
 		DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
@@ -167,7 +167,7 @@ DiMUSESoundBuffer *DiMUSEFilesHandler::getBufInfo(int bufId) {
 }
 
 void DiMUSEFilesHandler::openSound(int soundId) {
-	char fileName[23] = "";
+	char fileName[60] = "";
 	getFilenameFromSoundId(soundId, fileName);
 	DiMUSESndMgr::SoundDesc *s = NULL;
 	int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
@@ -198,14 +198,14 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName) {
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
-		strcpy(fileName, _currentSpeechFile);
+		strncpy(fileName, _currentSpeechFile, 60);
 	}
 
 	if (_vm->_game.id == GID_CMI) {
 		if (soundId < 2000) {
 			while (_comiStateMusicTable[i].soundId != -1) {
 				if (_comiStateMusicTable[i].soundId == soundId) {
-					strcpy(fileName, (char *)_comiStateMusicTable[i].filename);
+					strncpy(fileName, (char *)_comiStateMusicTable[i].filename, 60);
 					return;
 				}
 				i++;
@@ -213,7 +213,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_comiSeqMusicTable[i].soundId != -1) {
 				if (_comiSeqMusicTable[i].soundId == soundId) {
-					strcpy(fileName, (char *)_comiSeqMusicTable[i].filename);
+					strncpy(fileName, (char *)_comiSeqMusicTable[i].filename, 60);
 					return;
 				}
 				i++;
@@ -223,7 +223,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName) {
 		if (soundId < 2000) {
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {
-					strcpy(fileName, (char *)_digStateMusicTable[i].filename);
+					strncpy(fileName, (char *)_digStateMusicTable[i].filename, 60);
 					return;
 				}
 				i++;
@@ -231,7 +231,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName) {
 		} else {
 			while (_digSeqMusicTable[i].soundId != -1) {
 				if (_digSeqMusicTable[i].soundId == soundId) {
-					strcpy(fileName, (char *)_digSeqMusicTable[i].filename);
+					strncpy(fileName, (char *)_digSeqMusicTable[i].filename, 60);
 					return;
 				}
 				i++;
@@ -255,6 +255,7 @@ void DiMUSEFilesHandler::diMUSEDeallocSoundBuffer(int bufId) {
 
 	selectedSoundBuf = &_soundBuffers[bufId];
 	free(selectedSoundBuf->buffer);
+	selectedSoundBuf->buffer = NULL;
 }
 
 void DiMUSEFilesHandler::flushSounds() {
@@ -270,7 +271,7 @@ void DiMUSEFilesHandler::flushSounds() {
 }
 
 void DiMUSEFilesHandler::setCurrentSpeechFile(const char *fileName) {
-	strcpy(_currentSpeechFile, fileName);
+	strncpy(_currentSpeechFile, fileName, 60);
 }
 
 void DiMUSEFilesHandler::closeSoundImmediatelyById(int soundId) {

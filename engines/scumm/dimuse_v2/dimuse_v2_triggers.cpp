@@ -27,6 +27,7 @@ namespace Scumm {
 
 DiMUSETriggersHandler::DiMUSETriggersHandler(DiMUSE_v2 *engine) {
 	_engine = engine;
+	_emptyMarker = '\0';
 }
 
 DiMUSETriggersHandler::~DiMUSETriggersHandler() {}
@@ -117,6 +118,8 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			_trigs[index].args_7_ = k;
 			_trigs[index].args_8_ = l;
 			_trigs[index].args_9_ = m;
+
+			debug(5, "DiMUSETriggersHandler::setTrigger(): Successfully set trigger for soundId %d and marker '%s'", soundId, marker);
 			return 0;
 		}
 	}
@@ -184,6 +187,8 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 		textBuffer[r] = '\0';
 
 		_trigs[l].sound = 0;
+
+		debug(5, "DiMUSETriggersHandler::processTriggers(): executing trigger for soundId %d and marker '%s'", soundId, marker);
 		if (_trigs[l].opcode == 0) {
 			// Call the script callback (a function which sets _stoppingSequence to 1)
 			_engine->scriptTriggerCallback(_textBuffer);

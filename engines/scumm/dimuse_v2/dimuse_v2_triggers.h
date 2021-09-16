@@ -40,7 +40,7 @@ private:
 	int  _defersOn;
 	int  _midProcessing;
 	char _textBuffer[256];
-	char _emptyMarker = '\0';
+	char _emptyMarker;
 public:
 	DiMUSETriggersHandler(DiMUSE_v2 *engine);
 	~DiMUSETriggersHandler();

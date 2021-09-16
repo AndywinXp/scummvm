@@ -408,13 +408,13 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 	int32 final_size = 0;
 
 	if (!_file->isOpen()) {
-		error("BundleMgr::decompressSampleByName() File is not open");
+		error("BundleMgr::readFile() File is not open");
 		return 0;
 	}
 
 	// Find the sound in the bundle
 	BundleDirCache::IndexNode target;
-	strcpy(target.filename, name);
+	strncpy(target.filename, name, 24);
 	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
 		sizeof(BundleDirCache::IndexNode), (int(*)(const void*, const void*))scumm_stricmp);
 
@@ -426,7 +426,7 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 		assert(0 <= found->index && found->index < _numFiles);
 
 		if (_file->isOpen() == false) {
-			error("BundleMgr::decompressSampleByIndex() File is not open");
+			error("BundleMgr::readFile() File is not open");
 			return 0;
 		}
 
@@ -462,15 +462,6 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 				_file->seek(_bundleTable[found->index].offset + _compTable[i].offset, SEEK_SET);
 				_file->read(_compInputBuff, _compTable[i].size);
 				_outputSize = BundleCodecs::decompressCodec(_compTable[i].codec, _compInputBuff, _compOutputBuff, _compTable[i].size, _isDiMUSEv2);
-				// Swap the buffer if the codec is 13 or 15
-				//if (_compTable[i].codec == 13 || _compTable[i].codec == 15) {
-				//	uint8 tmpVal;
-				//	for (int j = 0; j < _outputSize; j += 2) {
-				//		tmpVal = _compOutputBuff[j + 0];
-				//		_compOutputBuff[j + 0] = _compOutputBuff[j + 1];
-				//		_compOutputBuff[j + 1] = tmpVal;
-				//	}
-				//}
 
 				if (_outputSize > 0x2000) {
 					error("_outputSize: %d", _outputSize);

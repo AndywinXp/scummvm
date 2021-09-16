@@ -1819,9 +1819,4 @@ DiMUSEStreamZone *DiMUSE_v2::dispatchAllocStreamZone() {
 	return NULL;
 }
 
-void DiMUSE_v2::dispatchDeinit() {
-	free(_dispatchBuffer);
-	_dispatchBuffer = NULL;
-}
-
 } // End of namespace Scumm

@@ -49,6 +49,18 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(mixer);
 	_callbackFps = fps;
 
+	_waveOutXorTrigger = 0;
+	_waveOutWriteIndex = 0;
+	_waveOutDisableWrite = 0;
+	_waveOutPreferredFeedSize = 0;
+	_waveSlicingHalted = 1;
+	_dispatchFadeSize = 0;
+
+	_stopSequenceFlag = 0;
+	_scriptInitializedFlag = 0;
+
+	_radioChatterSFX = false;
+
 	_internalMixer = new DiMUSEInternalMixer(mixer);
 	_groupsHandler = new DiMUSEGroupsHandler(this);
 	_timerHandler = new DiMUSETimerHandler();
@@ -60,7 +72,7 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	diMUSEInitializeScript();
 	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
 	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
-	
+
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
 
@@ -70,6 +82,20 @@ DiMUSE_v2::~DiMUSE_v2() {
 	_filesHandler->diMUSEDeallocSoundBuffer(2);
 	cmdsDeinit();
 	diMUSETerminate();
+	delete _internalMixer;
+	delete _groupsHandler;
+	delete _timerHandler;
+	delete _fadesHandler;
+	delete _triggersHandler;
+	delete _filesHandler;
+
+	// Deinit the Dispatch module
+	free(_dispatchBuffer);
+	_dispatchBuffer = NULL;
+
+	// Deinit the WaveOut module
+	free(_waveOutOutputBuffer);
+	_waveOutOutputBuffer = NULL;
 }
 
 void DiMUSE_v2::stopSound(int sound) {
@@ -320,15 +346,15 @@ void DiMUSE_v2::setFrequency(int soundId, int frequency) {
 		_currentSpeechFrequency = frequency;
 }
 
-int DiMUSE_v2::getCurSpeechVolume() {
+int DiMUSE_v2::getCurSpeechVolume() const {
 	return _currentSpeechVolume;
 }
 
-int DiMUSE_v2::getCurSpeechPan() {
+int DiMUSE_v2::getCurSpeechPan() const {
 	return _currentSpeechPan;
 }
 
-int DiMUSE_v2::getCurSpeechFrequency() {
+int DiMUSE_v2::getCurSpeechFrequency() const {
 	return _currentSpeechFrequency;
 }
 

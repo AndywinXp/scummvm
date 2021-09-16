@@ -144,7 +144,7 @@ void DiMUSE_v2::tracksSetGroupVol() {
 	while (curTrack) {
 		curTrack->effVol = ((curTrack->vol + 1) * _groupsHandler->getGroupVol(curTrack->group)) / 128;
 		curTrack = (DiMUSETrack *)curTrack->next;
-	};
+	}
 }
 
 void DiMUSE_v2::tracksCallback() {
@@ -575,6 +575,7 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 	else
 		return 0;
 }
+
 int DiMUSE_v2::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	int h, w;
 

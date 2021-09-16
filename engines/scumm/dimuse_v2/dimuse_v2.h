@@ -81,14 +81,14 @@ private:
 
 	int _currentSpeechVolume, _currentSpeechFrequency, _currentSpeechPan;
 	int _curMixerMusicVolume, _curMixerSpeechVolume, _curMixerSFXVolume;
-	bool _radioChatterSFX = false;
+	bool _radioChatterSFX;
 
 	int32 _attributes[188];	// internal attributes for each music file to store and check later
 	int32 _nextSeqToPlay;	// id of sequence type of music needed played
 	int32 _curMusicState;	// current or previous id of music
 	int32 _curMusicSeq;		// current or previous id of sequence music
-	int _stopSequenceFlag = 0;
-	int _scriptInitializedFlag = 0;
+	int _stopSequenceFlag;
+	int _scriptInitializedFlag;
 
 	void diMUSEHeartbeat();
 
@@ -186,7 +186,7 @@ private:
 	int _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
 	uint8 *_dispatchLargeFadeBufs;
-	int _dispatchFadeSize = 0;
+	int _dispatchFadeSize;
 	int _dispatchLargeFadeFlags[LARGE_FADES];
 	int _dispatchSmallFadeFlags[SMALL_FADES];
 	int _dispatchFadeStartedFlag;
@@ -211,10 +211,9 @@ private:
 	void dispatchPredictStream(DiMUSEDispatch *dispatch);
 	void dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	DiMUSEStreamZone *dispatchAllocStreamZone();
-	void dispatchDeinit();
 
 	// Wave (mainly a wrapper for Tracks functions)
-	int _waveSlicingHalted = 1;
+	int _waveSlicingHalted;
 
 	int waveInit();
 	int waveTerminate();
@@ -244,13 +243,13 @@ private:
 	int _waveOutBytesPerSample;
 	int _waveOutNumChannels;
 	int _waveOutZeroLevel;
-	int _waveOutPreferredFeedSize = 0;
+	int _waveOutPreferredFeedSize;
 	uint8 *_waveOutMixBuffer;
 	uint8 *_waveOutOutputBuffer;
 
-	int _waveOutXorTrigger = 0;
-	int _waveOutWriteIndex = 0;
-	int _waveOutDisableWrite = 0;
+	int _waveOutXorTrigger;
+	int _waveOutWriteIndex;
+	int _waveOutDisableWrite;
 
 	int waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettings);
 	void waveOutWrite(uint8 **audioBuffer, int *feedSize, int *sampleRate);
@@ -268,9 +267,9 @@ public:
 	void setMusicVolume(int vol) override {}
 	void stopSound(int sound) override;
 	void stopAllSounds() override;
-	int getSoundStatus(int sound) const override { return 0; };
+	int getSoundStatus(int sound) const override { return 0; }
 	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
-	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; };
+	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; }
 	int startVoice(int soundId, const char *soundName) override;
 	void saveLoadEarly(Common::Serializer &ser) override;
 	void resetState() override {};
@@ -281,9 +280,9 @@ public:
 	void setVolume(int soundId, int volume) override;
 	void setPan(int soundId, int pan) override;
 	void setFrequency(int soundId, int frequency) override;
-	int  getCurSpeechVolume() override;
-	int  getCurSpeechPan() override;
-	int  getCurSpeechFrequency() override;
+	int  getCurSpeechVolume() const override;
+	int  getCurSpeechPan() const override;
+	int  getCurSpeechFrequency() const override;
 	void pause(bool pause) override;
 	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
 	void refreshScripts() override;
