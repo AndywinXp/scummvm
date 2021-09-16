@@ -156,7 +156,14 @@ void DiMUSE_v2::tracksCallback() {
 	
 	waveOutIncreaseSlice();
 	//debug(5, "tracks_callback() called increaseSlice()");
-	if (_internalMixer->_stream->numQueuedStreams() < 2) {
+
+	// If we leave the number of queued streams unbounded, we fill the queue with streams faster than
+	// we can play them: this leads to a very noticeable audio latency and desync with the graphics.
+	// While 8 should be the limit sort of used by the EXE, this still creates a very small but
+	// noticeable latency; the best scenario would be to put the limit to 2, but this appears to cause
+	// some small desyncs on the crossfades, so until I understand why that desync happens since we're throwing
+	// everything into a single audio buffer, keeping the limit to 4 appears to partially suffice for both issues
+	if (_internalMixer->_stream->numQueuedStreams() < 4) {
 		dispatchPredictFirstStream();
 
 		waveOutWrite(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
