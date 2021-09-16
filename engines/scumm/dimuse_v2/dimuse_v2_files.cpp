@@ -79,9 +79,9 @@ uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	return NULL;
 }
 
-// Always returns 0 in disasm
-int DiMUSEFilesHandler::fetchMap(int soundId) {
-	return 0;
+// Always returns NULL in disasm
+uint8 *DiMUSEFilesHandler::fetchMap(int soundId) {
+	return NULL;
 }
 
 int DiMUSEFilesHandler::getNextSound(int soundId) {

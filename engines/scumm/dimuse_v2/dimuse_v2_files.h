@@ -49,7 +49,7 @@ public:
 	int init();
 	int deinit();
 	uint8 *getSoundAddrData(int soundId);
-	int fetchMap(int soundId);
+	uint8 *fetchMap(int soundId);
 	int getNextSound(int soundId);
 	int checkIdInRange(int soundId);
 	int seek(int soundId, int offset, int mode, int bufId);

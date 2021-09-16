@@ -242,7 +242,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	int ptrCtr = 0;
 	int i, j;
 	for (i = 0, ptrCtr = 0;
-		i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+		i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 		i++, ptrCtr += LARGE_FADE_DIM) {
 
 		if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuf) { // Found it!
@@ -257,7 +257,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	// Check between the small fades 
 	ptrCtr = 0;
 	for (j = 0, ptrCtr = 0;
-		j < SMALL_FADES, ptrCtr < SMALL_FADE_DIM * SMALL_FADES;
+		j < SMALL_FADES && ptrCtr < SMALL_FADE_DIM * SMALL_FADES;
 		j++, ptrCtr += SMALL_FADE_DIM) {
 
 		if (_dispatchLargeFadeBufs + (SMALL_FADE_DIM * j) == fadeBuf) { // Found it!
@@ -301,7 +301,7 @@ int DiMUSE_v2::dispatchRelease(DiMUSETrack *trackPtr) {
 	int ptrCtr = 0;
 	int i, j;
 	for (i = 0, ptrCtr = 0;
-		i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+		i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 		i++, ptrCtr += LARGE_FADE_DIM) {
 
 		if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuf) { // Found it!
@@ -316,7 +316,7 @@ int DiMUSE_v2::dispatchRelease(DiMUSETrack *trackPtr) {
 	// Check between the small fades 
 	ptrCtr = 0;
 	for (j = 0, ptrCtr = 0;
-		j < SMALL_FADES, ptrCtr < SMALL_FADE_DIM*SMALL_FADES;
+		j < SMALL_FADES && ptrCtr < SMALL_FADE_DIM * SMALL_FADES;
 		j++, ptrCtr += SMALL_FADE_DIM) {
 
 		if (_dispatchSmallFadeBufs + (SMALL_FADE_DIM * j) == fadeBuf) { // Found it!
@@ -378,7 +378,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 			// Mark the fade corresponding to our fadeBuf as unused
 			ptrCtr = 0;
 			for (i = 0, ptrCtr = 0;
-				i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+				i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 				i++, ptrCtr += LARGE_FADE_DIM) {
 
 				if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == fadeBuffer) {
@@ -392,7 +392,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 
 			if (ptrCtr + _dispatchLargeFadeBufs != fadeBuffer) {
 				for (j = 0, ptrCtr = 0;
-					j < SMALL_FADES, ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
+					j < SMALL_FADES && ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
 					j++, ptrCtr += SMALL_FADE_DIM) {
 
 					if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
@@ -637,7 +637,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 				ptrCtr = 0;
 				for (i = 0, ptrCtr = 0;
-					i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+					i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 					i++, ptrCtr += LARGE_FADE_DIM) {
 
 					if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
@@ -651,7 +651,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 				if (ptrCtr + _dispatchLargeFadeBufs != dispatchPtr->fadeBuf) {
 					for (j = 0, ptrCtr = 0;
-						j < SMALL_FADES, ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
+						j < SMALL_FADES && ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
 						j++, ptrCtr += SMALL_FADE_DIM) {
 
 						if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
@@ -675,7 +675,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 			// Fade ended, deallocate it
 			ptrCtr = 0;
 			for (i = 0, ptrCtr = 0;
-				i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+				i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 				i++, ptrCtr += LARGE_FADE_DIM) {
 
 				if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
@@ -689,7 +689,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 			if (ptrCtr + _dispatchLargeFadeBufs != dispatchPtr->fadeBuf) {
 				for (j = 0, ptrCtr = 0;
-					j < SMALL_FADES, ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
+					j < SMALL_FADES && ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
 					j++, ptrCtr += SMALL_FADE_DIM) {
 
 					if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
@@ -782,7 +782,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 					// Fade ended, deallocate it
 					ptrCtr = 0;
 					for (i = 0, ptrCtr = 0;
-						i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+						i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 						i++, ptrCtr += LARGE_FADE_DIM) {
 
 						if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
@@ -796,7 +796,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 					if (ptrCtr + _dispatchLargeFadeBufs != dispatchPtr->fadeBuf) {
 						for (j = 0, ptrCtr = 0;
-							j < SMALL_FADES, ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
+							j < SMALL_FADES && ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
 							j++, ptrCtr += SMALL_FADE_DIM) {
 
 							if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
@@ -1007,7 +1007,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		}
 
 		// This appears to always be NULL since func_fetchMap is never initialized
-		rawMap = (uint8 *)(_filesHandler->fetchMap(dispatchPtr->trackPtr->soundId));
+		rawMap = _filesHandler->fetchMap(dispatchPtr->trackPtr->soundId);
 		if (rawMap) {
 			if (dispatchConvertMap((uint8 *)rawMap, (uint8 *)dstMap)) {
 				debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): dispatchConvertMap() failed");
@@ -1217,7 +1217,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 							// Mark the fade corresponding to our fadeBuf as unused
 							ptrCtr = 0;
 							for (i = 0, ptrCtr = 0;
-								i < LARGE_FADES, ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
+								i < LARGE_FADES && ptrCtr < LARGE_FADE_DIM * LARGE_FADES;
 								i++, ptrCtr += LARGE_FADE_DIM) {
 
 								if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) {
@@ -1231,7 +1231,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 
 							if (ptrCtr + _dispatchLargeFadeBufs != dispatchPtr->fadeBuf) {
 								for (j = 0, ptrCtr = 0;
-									j < SMALL_FADES, ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
+									j < SMALL_FADES && ptrCtr <= SMALL_FADE_DIM * SMALL_FADES;
 									j++, ptrCtr += SMALL_FADE_DIM) {
 
 									if (ptrCtr >= SMALL_FADE_DIM * SMALL_FADES) {
