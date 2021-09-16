@@ -493,7 +493,7 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 	default:
 		error("DiMUSE_v2::parseScriptCmds(): WARNING: unhandled command %d", cmd);
 	}
-};
+}
 
 int DiMUSE_v2::diMUSETerminate() {
 	if (_scriptInitializedFlag) {

@@ -41,7 +41,7 @@ private:
 	DiMUSESoundBuffer _soundBuffers[4];
 	char _currentSpeechFile[60];
 
-	void getFilenameFromSoundId(int soundId, char *fileName);
+	void getFilenameFromSoundId(int soundId, char *fileName, size_t size);
 public:
 	DiMUSEFilesHandler(DiMUSE_v2 *engine, ScummEngine_v7 *vm);
 	~DiMUSEFilesHandler();

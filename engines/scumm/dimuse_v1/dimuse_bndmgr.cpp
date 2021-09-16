@@ -414,7 +414,8 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 
 	// Find the sound in the bundle
 	BundleDirCache::IndexNode target;
-	strncpy(target.filename, name, 24);
+	strncpy(target.filename, name, sizeof(target.filename));
+	target.filename[sizeof(target.filename) - 1] = '\0';
 	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
 		sizeof(BundleDirCache::IndexNode), (int(*)(const void*, const void*))scumm_stricmp);
 

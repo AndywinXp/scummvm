@@ -35,6 +35,7 @@ namespace Scumm {
 DiMUSEInternalMixer::DiMUSEInternalMixer(Audio::Mixer *mixer) {
 	_stream = Audio::makeQueuingAudioStream(22050, true);
 	_mixer = mixer;
+	_radioChatter = 0;
 }
 
 DiMUSEInternalMixer::~DiMUSEInternalMixer() {

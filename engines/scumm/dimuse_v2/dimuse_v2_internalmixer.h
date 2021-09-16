@@ -57,7 +57,7 @@ private:
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _channelHandle;
 	int _mixBufSize;
-	int _radioChatter = 0;
+	int _radioChatter;
 	int _outWordSize;
 	int _outChannelCount;
 	int _stereoReverseFlag;
