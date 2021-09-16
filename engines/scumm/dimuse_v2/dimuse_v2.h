@@ -211,6 +211,7 @@ private:
 	void dispatchPredictStream(DiMUSEDispatch *dispatch);
 	void dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	DiMUSEStreamZone *dispatchAllocStreamZone();
+	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int _waveSlicingHalted;
