@@ -245,19 +245,19 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 
 	// Update volumes
 
-	if (_curMixerMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType)) {
-		_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType);
-		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
+	if (_curMixerMusicVolume != _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType)) {
+		_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
+		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) / 2, 0, 127));
 	}
 
-	if (_curMixerSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType)) {
-		_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType);
-		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
+	if (_curMixerSpeechVolume != _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType)) {
+		_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
+		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) / 2, 0, 127));
 	}
 
-	if (_curMixerSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType)) {
-		_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType);
-		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
+	if (_curMixerSFXVolume != _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType)) {
+		_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType);
+		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType) / 2, 0, 127));
 	}
 
 	// Handle fades and triggers
@@ -475,15 +475,15 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		break;
 	case 0x2000:
 		// SetGroupSfxVolume
-		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSFXSoundType) / 2, 0, 127));
+		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType) / 2, 0, 127));
 		break;
 	case 0x2001:
 		// SetGroupVoiceVolume
-		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kSpeechSoundType) / 2, 0, 127));
+		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) / 2, 0, 127));
 		break;
 	case 0x2002:
 		// SetGroupMusicVolume
-		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::SoundType::kMusicSoundType) / 2, 0, 127));
+		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) / 2, 0, 127));
 		break;
 	case 10: // StopAllSounds
 	case 12: // SetParam

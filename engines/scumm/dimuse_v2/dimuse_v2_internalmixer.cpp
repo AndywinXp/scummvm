@@ -122,7 +122,7 @@ int DiMUSEInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mixBuf
 				((short *)_softLMID)[-i - 1] = -1 - (short)softLcurValue;
 			}
 		}
-		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_channelHandle, _stream, -1, Audio::Mixer::kMaxMixerVolume - 1, false);
+		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_channelHandle, _stream, -1, Audio::Mixer::kMaxChannelVolume, false);
 		return 0;
 	} else {
 		debug(5, "DiMUSE_InternalMixer::init(): ERROR: allocating mixer buffers");
