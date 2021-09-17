@@ -69,7 +69,7 @@ void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
-	if (soundId != 0 && soundId < MAX_SOUNDID) {
+	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
 		if (_vm->_res->isResourceLoaded(rtSound, soundId))
 			return _vm->getResourceAddress(rtSound, soundId);
 		else
@@ -95,14 +95,14 @@ int DiMUSEFilesHandler::getNextSound(int soundId) {
 }
 
 int DiMUSEFilesHandler::checkIdInRange(int soundId) {
-	return (soundId != 0 && soundId < MAX_SOUNDID);
+	return (soundId != 0 /*&& soundId < MAX_SOUNDID*/);
 }
 
 int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// The seeked position is in reference to the decompressed sound
-	if (soundId != 0 && soundId < MAX_SOUNDID) {
+	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -124,7 +124,7 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// TODO: Does this work with speech?
-	if (soundId != 0 && soundId < MAX_SOUNDID) {
+	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
