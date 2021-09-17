@@ -49,6 +49,13 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(mixer);
 	_callbackFps = fps;
 
+	_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
+	_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
+	_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType);
+	_currentSpeechVolume = 0;
+	_currentSpeechFrequency = 0;
+	_currentSpeechPan = 0;
+
 	_waveOutXorTrigger = 0;
 	_waveOutWriteIndex = 0;
 	_waveOutDisableWrite = 0;
