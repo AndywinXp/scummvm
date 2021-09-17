@@ -228,7 +228,6 @@ int DiMUSE_v2::startSfx(int soundId, int priority) {
 }
 
 void DiMUSE_v2::callback() {
-	Common::StackLock lock(_mutex, "DiMUSE_v2::callback()");
 	if (_cmdsPauseCount)
 		return;
 

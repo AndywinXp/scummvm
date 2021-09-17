@@ -307,10 +307,10 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	}
 
 	waveOutIncreaseSlice();
-	debug(5, "tracksStartSound() called waveOutIncreaseSlice() 2: %d", _waveSlicingHalted);
+	//debug(5, "tracksStartSound() called waveOutIncreaseSlice() 2: %d", _waveSlicingHalted);
 	addTrackToList(&_trackList, stolenTrack);
 	waveOutDecreaseSlice();
-	debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2: %d", _waveSlicingHalted);
+	//debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2: %d", _waveSlicingHalted);
 
 	return 0;
 }
