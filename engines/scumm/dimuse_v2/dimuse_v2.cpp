@@ -567,7 +567,7 @@ int DiMUSE_v2::diMUSESetHook(int soundId, int hookId) {
 }
 
 int DiMUSE_v2::diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
-	return cmdsHandleCmd(17, soundId, marker, opcode, e, f, g, h, i, j, k, l, m, n, -1);
+	return cmdsHandleCmd(17, soundId, marker, opcode, d, e, f, g, h, i, j, k, l, m, n);
 }
 
 int DiMUSE_v2::diMUSEStartStream(int soundId, int priority, int bufferId) {
