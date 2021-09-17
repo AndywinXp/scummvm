@@ -455,7 +455,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = (DiMUSETrack *)_trackList;
+	DiMUSETrack *track = _trackList;
 	while (track) {
 		if (track->soundId == soundId) {
 			switch (opcode) {
@@ -515,7 +515,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 				return -5;
 			}
 		}
-		track = (DiMUSETrack *)track->next;
+		track = track->next;
 	}
 
 	return -4;
@@ -528,7 +528,7 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 		else
 			return 0;
 	}
-	DiMUSETrack *track = (DiMUSETrack *)_trackList;
+	DiMUSETrack *track = _trackList;
 	int l = 0;
 	do {
 		if (track)
@@ -574,7 +574,7 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 			}
 		}
 
-		track = (DiMUSETrack *)track->next;
+		track = track->next;
 	} while (track);
 
 	if (opcode != 0x100)
@@ -667,9 +667,9 @@ int DiMUSE_v2::tracksSetHook(int soundId, int hookId) {
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = (DiMUSETrack *)_trackList;
+	DiMUSETrack *track = _trackList;
 	while (track->soundId != soundId) {
-		track = (DiMUSETrack *)track->next;
+		track = track->next;
 		if (!track)
 			return -4;
 	}
@@ -683,9 +683,9 @@ int DiMUSE_v2::tracksGetHook(int soundId) {
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = (DiMUSETrack *)_trackList;
+	DiMUSETrack *track = _trackList;
 	while (track->soundId != soundId) {
-		track = (DiMUSETrack *)track->next;
+		track = track->next;
 		if (!track)
 			return -4;
 	}
@@ -699,7 +699,7 @@ void DiMUSE_v2::tracksDeinit() {
 
 	waveOutIncreaseSlice();
 	//debug(5, "tracksDeinit() called increaseSlice()");
-	DiMUSETrack *track = (DiMUSETrack *)_trackList;
+	DiMUSETrack *track = _trackList;
 	do {
 		removeTrackFromList(&_trackList, track);
 
@@ -708,7 +708,7 @@ void DiMUSE_v2::tracksDeinit() {
 		_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
 
 		track->soundId = 0;
-		track = (DiMUSETrack *)track->next;
+		track = track->next;
 	} while (track);
 
 	waveOutDecreaseSlice();
