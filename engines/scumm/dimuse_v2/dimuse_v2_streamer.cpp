@@ -355,10 +355,10 @@ int DiMUSE_v2::streamerFetchData(DiMUSEStream *streamPtr) {
 
 		_streamerBailFlag = 0;
 		waveOutDecreaseSlice();
-		//debug(5, "streamer_fetchData() called decreaseSlice()");
+		//debug(5, "streamer_fetchData() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 		actualAmount = _filesHandler->read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
 		waveOutIncreaseSlice();
-		//debug(5, "streamer_fetchData() called increaseSlice()");
+		//debug(5, "streamer_fetchData() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 		if (_streamerBailFlag != 0)
 			return 0;
 

@@ -155,7 +155,7 @@ void DiMUSE_v2::tracksCallback() {
 	}
 	
 	waveOutIncreaseSlice();
-	//debug(5, "tracks_callback() called increaseSlice()");
+	//debug(5, "tracks_callback() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 
 	// If we leave the number of queued streams unbounded, we fill the queue with streams faster than
 	// we can play them: this leads to a very noticeable audio latency and desync with the graphics.
@@ -190,7 +190,7 @@ void DiMUSE_v2::tracksCallback() {
 	}
 	
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_callback() called waveOutDecreaseSlice()");
+	//debug(5, "tracks_callback() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
 int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
@@ -244,10 +244,10 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 				return -1;
 			}
 			waveOutIncreaseSlice();
-			//debug(5, "tracksStartSound() called increaseSlice()");
+			//debug(5, "tracksStartSound() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 			addTrackToList(&_trackList, foundTrack);
 			waveOutDecreaseSlice();
-			//debug(5, "tracksStartSound() called waveOutDecreaseSlice()");
+			//debug(5, "tracksStartSound() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 			return 0;
 		}
 	}
@@ -307,10 +307,10 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	}
 
 	waveOutIncreaseSlice();
-	//debug(5, "tracksStartSound() called increaseSlice() 2");
+	debug(5, "tracksStartSound() called waveOutIncreaseSlice() 2: %d", _waveSlicingHalted);
 	addTrackToList(&_trackList, stolenTrack);
 	waveOutDecreaseSlice();
-	//debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2");
+	debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2: %d", _waveSlicingHalted);
 
 	return 0;
 }
@@ -336,7 +336,7 @@ int DiMUSE_v2::tracksStopSound(int soundId) {
 
 int DiMUSE_v2::tracksStopAllSounds() {
 	waveOutIncreaseSlice();
-	//debug(5, "tracks_stopAllSounds() called increaseSlice()");
+	debug(5, "tracks_stopAllSounds() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 	DiMUSETrack *nextTrack = _trackList;
 	DiMUSETrack *curTrack;
 
@@ -362,7 +362,7 @@ int DiMUSE_v2::tracksStopAllSounds() {
 	
 
 	waveOutDecreaseSlice();
-	//debug(5, "tracks_stopAllSounds() called waveOutDecreaseSlice()");
+	debug(5, "tracks_stopAllSounds() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 	return 0;
 }
 
@@ -698,7 +698,7 @@ void DiMUSE_v2::tracksDeinit() {
 		return;
 
 	waveOutIncreaseSlice();
-	//debug(5, "tracksDeinit() called increaseSlice()");
+	debug(5, "tracksDeinit() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 	DiMUSETrack *track = _trackList;
 	do {
 		removeTrackFromList(&_trackList, track);
@@ -712,7 +712,7 @@ void DiMUSE_v2::tracksDeinit() {
 	} while (track);
 
 	waveOutDecreaseSlice();
-	//debug(5, "tracksDeinit() called waveOutDecreaseSlice()");
+	debug(5, "tracksDeinit() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
 } // End of namespace Scumm

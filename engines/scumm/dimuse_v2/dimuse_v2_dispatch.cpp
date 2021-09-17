@@ -293,9 +293,10 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 		}
 
 		if (oldSoundId && curDispatch->trackPtr->soundId == oldSoundId && curDispatch->streamPtr) {
-			curDispatch = &_dispatches[i];
 			break;
 		}
+
+		curDispatch = &_dispatches[i];
 	}
 
 	if (curDispatch->streamZoneList) {
@@ -768,7 +769,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 void DiMUSE_v2::dispatchPredictFirstStream() {
 	waveOutIncreaseSlice();
-	//debug(5, "dispatch_predictFirstStream() called increaseSlice()");
+	//debug(5, "dispatch_predictFirstStream() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 
 	if (_trackCount > 0) {
 		for (int i = 0; i < _trackCount; i++) {
@@ -778,7 +779,7 @@ void DiMUSE_v2::dispatchPredictFirstStream() {
 	}
 
 	waveOutDecreaseSlice();
-	//debug(5, "dispatch_predictFirstStream() called decreaseSlice()");
+	//debug(5, "dispatch_predictFirstStream() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
 int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
@@ -1603,7 +1604,7 @@ void DiMUSE_v2::dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *
 
 	// If not, check between the small fade buffers
 	for (int j = 0; j < SMALL_FADES; j++) {
-		if (_dispatchLargeFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) { // Found it!
+		if (_dispatchSmallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) { // Found it!
 			if (_dispatchSmallFadeFlags[j] == 0) {
 				debug(5, "DiMUSE_v2::%s(): redundant small fade buf de-allocation", function);
 			}
