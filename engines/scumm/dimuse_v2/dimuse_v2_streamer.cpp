@@ -46,7 +46,7 @@ DiMUSEStream *DiMUSE_v2::streamerAllocateSound(int soundId, int bufId, int maxRe
 
 	for (int l = 0; l < MAX_STREAMS; l++) {
 		if (_streams[l].soundId && _streams[l].bufId == bufId) {
-			debug(5, "DiMUSE_v2::streamerAlloc(): ERROR: stream bufId %lu already in use", bufId);
+			debug(5, "DiMUSE_v2::streamerAlloc(): ERROR: stream bufId %d already in use", bufId);
 			return NULL;
 		}
 	}
