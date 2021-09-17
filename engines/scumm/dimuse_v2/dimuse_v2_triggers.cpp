@@ -27,7 +27,7 @@ namespace Scumm {
 
 DiMUSETriggersHandler::DiMUSETriggersHandler(DiMUSE_v2 *engine) {
 	_engine = engine;
-	_emptyMarker = '\0';
+	_emptyMarker[0] = '\0';
 }
 
 DiMUSETriggersHandler::~DiMUSETriggersHandler() {}
@@ -94,7 +94,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 	}
 
 	if (marker == NULL) {
-		marker = &_emptyMarker;
+		marker = _emptyMarker;
 	}
 
 	if (strlen(marker) >= 256) {
@@ -132,7 +132,7 @@ int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (_trigs[l].sound != 0) {
 			if (soundId == -1 || _trigs[l].sound == soundId) {
-				if (marker == (char *)-1 || !strcmp(marker, _trigs[l].text)) {
+				if (!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) {
 					if (opcode == -1 || _trigs[l].opcode == opcode)
 						r++;
 				}
@@ -146,7 +146,7 @@ int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
-			(!strcmp(marker, (char *)"") || !strcmp(marker, _trigs[l].text)) &&
+			(!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) &&
 			(opcode == -1 || _trigs[l].opcode == opcode)) {
 
 			if (_midProcessing) {
@@ -172,7 +172,7 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound ||
 			_trigs[l].sound != soundId ||
-			_trigs[l].text[0] && strcmp(_textBuffer, _trigs[l].text)) {
+			(_trigs[l].text[0] && strcmp(_textBuffer, _trigs[l].text))) {
 			continue;
 		}
 

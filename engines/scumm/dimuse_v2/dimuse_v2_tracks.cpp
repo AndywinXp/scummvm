@@ -269,13 +269,13 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	}
 
 	if (!stolenTrack || priority < bestPriority) {
-		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: couldn't steal a lower priority track", soundId);
+		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: couldn't steal a lower priority track for sound %d", soundId);
 		return -6;
 	} else {
 		removeTrackFromList(&_trackList, stolenTrack);
 		dispatchRelease(stolenTrack);
 		_fadesHandler->clearFadeStatus(stolenTrack->soundId, -1);
-		_triggersHandler->clearTrigger(stolenTrack->soundId, (char *)"", -1);
+		_triggersHandler->clearTrigger(stolenTrack->soundId, _emptyMarker, -1);
 		stolenTrack->soundId = 0;
 	}
 
@@ -347,7 +347,7 @@ int DiMUSE_v2::tracksStopAllSounds() {
 				removeTrackFromList(&_trackList, nextTrack);
 				dispatchRelease(nextTrack);
 				_fadesHandler->clearFadeStatus(nextTrack->soundId, -1);
-				_triggersHandler->clearTrigger(nextTrack->soundId, (char *)"", -1);
+				_triggersHandler->clearTrigger(nextTrack->soundId, _emptyMarker, -1);
 				nextTrack->soundId = 0;
 				nextTrack = curTrack;
 			} while (nextTrack);
@@ -447,7 +447,7 @@ void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
 	removeTrackFromList(&_trackList, trackPtr);
 	dispatchRelease(trackPtr);
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
-	_triggersHandler->clearTrigger(trackPtr->soundId, (char *)"", -1);
+	_triggersHandler->clearTrigger(trackPtr->soundId, _emptyMarker, -1);
 	trackPtr->soundId = 0;
 }
 
@@ -511,7 +511,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 				track->mailbox = value;
 				return 0;
 			default:
-				debug(5, "DiMUSE_v2::tracksSetParam(): unknown opcode %lu", opcode);
+				debug(5, "DiMUSE_v2::tracksSetParam(): unknown opcode %d", opcode);
 				return -5;
 			}
 		}

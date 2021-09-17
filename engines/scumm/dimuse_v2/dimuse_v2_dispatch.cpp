@@ -198,7 +198,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
 	trackDispatch->audioRemaining = 0;
-	trackDispatch->map[0] = NULL;
+	memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
 	trackDispatch->fadeBuf = 0;
 	if (groupId) {
 		trackDispatch->streamPtr = streamerAllocateSound(trackPtr->soundId, groupId, 0x4000u);
@@ -416,8 +416,9 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 	}
 
 	// Clear fades and triggers for the old newSoundId
+	char emptyMarker[1] = "";
 	_fadesHandler->clearFadeStatus(curDispatch->trackPtr->soundId, -1);
-	_triggersHandler->clearTrigger(curDispatch->trackPtr->soundId, (char *)"", -1);
+	_triggersHandler->clearTrigger(curDispatch->trackPtr->soundId, (char *)emptyMarker, -1);
 
 	// Setup the new newSoundId
 	curDispatch->trackPtr->soundId = newSoundId;
@@ -445,7 +446,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 
 		curDispatch->currentOffset = 0;
 		curDispatch->audioRemaining = 0;
-		curDispatch->map[0] = NULL;
+		memset(curDispatch->map, 0, sizeof(curDispatch->map));
 
 		// Sanity check: make sure we correctly switched 
 		// the stream and getNextMapEvent gives an error
@@ -936,7 +937,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 	}
 
 	if (dispatchPtr->audioRemaining
-		|| dispatchPtr->streamPtr && dispatchPtr->streamZoneList->offset != dispatchPtr->currentOffset) {
+		|| (dispatchPtr->streamPtr && dispatchPtr->streamZoneList->offset != dispatchPtr->currentOffset)) {
 		debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): ERROR: navigation error in dispatch");
 		return -1;
 	}
@@ -1478,7 +1479,7 @@ void DiMUSE_v2::dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone 
 
 	if (_vm->_game.id == GID_DIG) {
 		if (hookPosition < jumpDestination)
-			_dispatchSize = NULL;
+			_dispatchSize = 0;
 	} else {
 		if (dispatchPtr->fadeRemaining)
 			_dispatchSize = 0;

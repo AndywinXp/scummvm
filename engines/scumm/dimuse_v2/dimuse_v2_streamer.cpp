@@ -348,7 +348,7 @@ int DiMUSE_v2::streamerFetchData(DiMUSEStream *streamPtr) {
 		}
 
 		if (_filesHandler->seek(streamPtr->soundId, streamPtr->curOffset, SEEK_SET, streamPtr->bufId) != streamPtr->curOffset) {
-			debug(5, "DiMUSE_v2::streamerFetchData(): ERROR: invalid seek in streamer (%lu)", streamPtr->curOffset);
+			debug(5, "DiMUSE_v2::streamerFetchData(): ERROR: invalid seek in streamer (%d)", streamPtr->curOffset);
 			streamPtr->paused = 1;
 			return 0;
 		}
@@ -373,7 +373,7 @@ int DiMUSE_v2::streamerFetchData(DiMUSEStream *streamPtr) {
 		}
 	}
 
-	debug(5, "DiMUSE_v2::streamerFetchData(): ERROR: unable to load the correct amount of data (req=%lu, act=%lu)", requestedAmount, actualAmount);
+	debug(5, "DiMUSE_v2::streamerFetchData(): ERROR: unable to load the correct amount of data (req=%d, act=%d)", requestedAmount, actualAmount);
 	_lastStreamLoaded = NULL;
 	return 0;
 }

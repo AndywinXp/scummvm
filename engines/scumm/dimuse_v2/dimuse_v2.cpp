@@ -61,6 +61,7 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 
 	_radioChatterSFX = false;
 
+	_emptyMarker[0] = '\0';
 	_internalMixer = new DiMUSEInternalMixer(mixer);
 	_groupsHandler = new DiMUSEGroupsHandler(this);
 	_timerHandler = new DiMUSETimerHandler();
@@ -579,7 +580,7 @@ int DiMUSE_v2::diMUSEQueryStream() { return 0; }
 int DiMUSE_v2::diMUSEFeedStream() { return 0; }
 
 int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
-	return cmdsHandleCmd(30, soundId, syncId, msPos, (intptr_t)width, (intptr_t)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+	return cmdsHandleCmd(30, soundId, syncId, msPos, (uintptr)width, (uintptr)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int DiMUSE_v2::diMUSESetMusicGroupVol(int volume) {

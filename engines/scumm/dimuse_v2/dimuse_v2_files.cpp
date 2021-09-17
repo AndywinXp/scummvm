@@ -69,7 +69,7 @@ void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
-	if (soundId != 0 && soundId < 0xFFFFFFF0) {
+	if (soundId != 0 && soundId < MAX_SOUNDID) {
 		if (_vm->_res->isResourceLoaded(rtSound, soundId))
 			return _vm->getResourceAddress(rtSound, soundId);
 		else
@@ -95,14 +95,14 @@ int DiMUSEFilesHandler::getNextSound(int soundId) {
 }
 
 int DiMUSEFilesHandler::checkIdInRange(int soundId) {
-	return (soundId != 0 && soundId < 0xFFFFFFF0);
+	return (soundId != 0 && soundId < MAX_SOUNDID);
 }
 
 int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// The seeked position is in reference to the decompressed sound
-	if (soundId != 0 && soundId < 0xFFFFFFF0) {
+	if (soundId != 0 && soundId < MAX_SOUNDID) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -124,7 +124,7 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// TODO: Does this work with speech?
-	if (soundId != 0 && soundId < 0xFFFFFFF0) {
+	if (soundId != 0 && soundId < MAX_SOUNDID) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -205,7 +205,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 		if (soundId < 2000) {
 			while (_comiStateMusicTable[i].soundId != -1) {
 				if (_comiStateMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, (char *)_comiStateMusicTable[i].filename, size);
+					Common::strlcpy(fileName, _comiStateMusicTable[i].filename, size);
 					return;
 				}
 				i++;
@@ -213,7 +213,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 		} else {
 			while (_comiSeqMusicTable[i].soundId != -1) {
 				if (_comiSeqMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, (char *)_comiSeqMusicTable[i].filename, size);
+					Common::strlcpy(fileName, _comiSeqMusicTable[i].filename, size);
 					return;
 				}
 				i++;
@@ -223,7 +223,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 		if (soundId < 2000) {
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, (char *)_digStateMusicTable[i].filename, size);
+					Common::strlcpy(fileName, _digStateMusicTable[i].filename, size);
 					return;
 				}
 				i++;
@@ -231,7 +231,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 		} else {
 			while (_digSeqMusicTable[i].soundId != -1) {
 				if (_digSeqMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, (char *)_digSeqMusicTable[i].filename, size);
+					Common::strlcpy(fileName, _digSeqMusicTable[i].filename, size);
 					return;
 				}
 				i++;

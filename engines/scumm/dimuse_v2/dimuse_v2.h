@@ -89,6 +89,7 @@ private:
 	int32 _curMusicSeq;		// current or previous id of sequence music
 	int _stopSequenceFlag;
 	int _scriptInitializedFlag;
+	char _emptyMarker[1];
 
 	void diMUSEHeartbeat();
 
@@ -346,7 +347,7 @@ public:
 	int checkHookId(int *trackHookId, int sampleHookId);
 
 	// CMDs
-	int cmdsHandleCmd(int cmd, int b, intptr_t c, intptr_t d, intptr_t e, intptr_t f,
+	int cmdsHandleCmd(int cmd, int b, uintptr c, uintptr d, uintptr e, uintptr f,
 		int g, int h, int i, int j, int k,
 		int l, int m, int n, int o);
 

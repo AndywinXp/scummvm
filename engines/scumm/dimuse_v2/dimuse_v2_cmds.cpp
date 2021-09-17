@@ -24,9 +24,9 @@
 
 namespace Scumm {
 
-// We have some intptr_t arguments as commands 28, 29 and 30 actually require pointer arguments
+// We have some uintptr arguments as commands 28, 29 and 30 actually require pointer arguments
 // Unfortunately this makes function calls for other command a little less pretty...
-int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, intptr_t arg_1, intptr_t arg_2, intptr_t arg_3, intptr_t arg_4,
+int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, uintptr arg_3, uintptr arg_4,
 	int arg_5, int arg_6, int arg_7, int arg_8, int arg_9,
 	int arg_10, int arg_11, int arg_12, int arg_13) {
 
