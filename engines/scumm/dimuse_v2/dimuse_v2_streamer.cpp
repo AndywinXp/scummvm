@@ -260,17 +260,18 @@ int DiMUSE_v2::streamerFeedStream(DiMUSEStream *streamPtr, uint8 *srcBuf, int si
 	int size = streamPtr->readIndex - streamPtr->loadIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
-	if (sizeToFeed > size - 4) {
-		debug(5, "DiMUSE_v2::streamerFeedStream(): ERROR: buffer overflow");
+	if (sizeToFeed > (size - 4)) {
+		// Don't worry, judging from the intro of The Dig, this is totally expected
+		// to happen, and when it does, the output matches the EXE behavior
+		debug(5, "DiMUSE_v2::streamerFeedStream(): WARNING: buffer overflow");
 		_streamerBailFlag = 1;
 
-		int newTentativeSize = sizeToFeed - size - 4;
-		newTentativeSize -= newTentativeSize % 12 + 12;
+		int newTentativeSize = sizeToFeed - (size - 4) - (sizeToFeed - (size - 4)) % 12 + 12;
 		size = streamPtr->loadIndex - streamPtr->readIndex;
 		if (size < 0)
 			size += streamPtr->bufFreeSize;
 		if (size >= newTentativeSize) {
-			streamPtr->readIndex = newTentativeSize + streamPtr->bufFreeSize;
+			streamPtr->readIndex = newTentativeSize + streamPtr->readIndex;
 			if (streamPtr->bufFreeSize <= streamPtr->readIndex)
 				streamPtr->readIndex -= streamPtr->bufFreeSize;
 		}
