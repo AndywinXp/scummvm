@@ -260,7 +260,6 @@ int DiMUSE_v2::streamerFeedStream(DiMUSEStream *streamPtr, uint8 *srcBuf, int si
 	int size = streamPtr->readIndex - streamPtr->loadIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
-	debug(5, "DiMUSE_v2::streamerFeedStream()");
 	if (sizeToFeed > size - 4) {
 		debug(5, "DiMUSE_v2::streamerFeedStream(): ERROR: buffer overflow");
 		_streamerBailFlag = 1;
