@@ -78,8 +78,15 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	
 	diMUSEInitialize();
 	diMUSEInitializeScript();
-	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
-	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
+	if (_vm->_game.id == GID_CMI) {
+		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
+		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
+	} else {
+		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 88000, 22000, 44000);
+		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 11000, 132000);
+	}
+	
+	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SMUSH, 198000, 0, 0);
 
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
@@ -88,6 +95,7 @@ DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	_filesHandler->diMUSEDeallocSoundBuffer(1);
 	_filesHandler->diMUSEDeallocSoundBuffer(2);
+	_filesHandler->diMUSEDeallocSoundBuffer(3);
 	cmdsDeinit();
 	diMUSETerminate();
 	delete _internalMixer;
@@ -214,7 +222,10 @@ void DiMUSE_v2::saveLoadEarly(Common::Serializer &s) {
 }
 
 void DiMUSE_v2::refreshScripts() {
-	diMUSERefreshScript();
+	if (!_vm->isSmushActive()) {
+		diMUSEProcessStreams();
+		diMUSERefreshScript();
+	}
 }
 
 void DiMUSE_v2::setRadioChatterSFX(bool state) {
@@ -582,8 +593,13 @@ int DiMUSE_v2::diMUSEProcessStreams() {
 	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEQueryStream() { return 0; }
-int DiMUSE_v2::diMUSEFeedStream() { return 0; }
+int DiMUSE_v2::diMUSEQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
+	return cmdsHandleCmd(28, soundId, (uintptr)bufSize, (uintptr)criticalSize, (uintptr)freeSpace, (uintptr)paused, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
+int DiMUSE_v2::diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+	return cmdsHandleCmd(29, soundId, (uintptr)srcBuf, sizeToFeed, paused, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
 
 int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	return cmdsHandleCmd(30, soundId, syncId, msPos, (uintptr)width, (uintptr)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);

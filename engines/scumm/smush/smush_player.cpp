@@ -32,7 +32,9 @@
 #include "graphics/palette.h"
 
 #include "scumm/file.h"
+#include "scumm/dimuse.h"
 #include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/dimuse_v2/dimuse_v2.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
@@ -216,8 +218,9 @@ void SmushPlayer::timerCallback() {
 	parseNextFrame();
 }
 
-SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm) {
+SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE, bool usingDiMUSEv2) {
 	_vm = scumm;
+	_diMUSE = diMUSE;
 	_nbframes = 0;
 	_codec37 = 0;
 	_codec47 = 0;
@@ -250,7 +253,10 @@ SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm) {
 	_paused = false;
 	_pauseStartTime = 0;
 	_pauseTime = 0;
+	_usingDiMUSEv2 = usingDiMUSEv2;
 
+	for (int i = 0; i < 4; i++)
+		_iactTable[i] = 0;
 
 	_IACTchannel = new Audio::SoundHandle();
 	_compressedFileSoundHandle = new Audio::SoundHandle();
@@ -406,36 +412,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 	int32 size = b.readUint32LE();
 	int32 bsize = subSize - 18;
 
-	if (_vm->_game.id != GID_CMI) {
-		int32 track = track_id;
-		if (track_flags == 1) {
-			track = track_id + 100;
-		} else if (track_flags == 2) {
-			track = track_id + 200;
-		} else if (track_flags == 3) {
-			track = track_id + 300;
-		} else if ((track_flags >= 100) && (track_flags <= 163)) {
-			track = track_id + 400;
-		} else if ((track_flags >= 200) && (track_flags <= 263)) {
-			track = track_id + 500;
-		} else if ((track_flags >= 300) && (track_flags <= 363)) {
-			track = track_id + 600;
-		} else {
-			error("SmushPlayer::handleIACT(): bad track_flags: %d", track_flags);
-		}
-		debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): %d, %d, %d", track, index, track_flags);
-
-		SmushChannel *c = _smixer->findChannel(track);
-		if (c == 0) {
-			c = new ImuseChannel(track);
-			_smixer->addChannel(c);
-		}
-		if (index == 0)
-			c->setParameters(nbframes, size, track_flags, unknown, 0);
-		else
-			c->checkParameters(index, nbframes, size, track_flags, unknown);
-		c->appendData(b, bsize);
-	} else {
+	if (_vm->_game.id == GID_CMI) {
 		// TODO: Move this code into another SmushChannel subclass?
 		byte *src = (byte *)malloc(bsize);
 		b.read(src, bsize);
@@ -505,7 +482,131 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		}
 
 		free(src);
-	}
+	} else if (_vm->_game.id == GID_DIG && _usingDiMUSEv2) {
+		int bufId, volume, paused, result, curSoundId;
+		int userId = track_flags;
+
+		DiMUSE_v2 *engine = (DiMUSE_v2 *)_diMUSE;
+		byte *dataBuffer = (byte *)malloc(bsize);
+		b.read(dataBuffer, bsize);
+
+		switch (userId) {
+		case 1:
+			bufId = 1;
+			volume = 127;
+			break;
+		case 2:
+			bufId = 2;
+			volume = 127;
+			break;
+		case 3:
+			bufId = 3;
+			volume = 127;
+			break;
+		default:
+			if (userId >= 100 && userId <= 163) {
+				bufId = 1;
+				volume = 2 * userId - 200;
+			} else if (userId >= 200 && userId <= 263) {
+				bufId = 2;
+				volume = 2 * userId - 400;
+			} else if (userId >= 300 && userId <= 363) {
+				bufId = 3;
+				volume = 2 * userId - 600;
+			} else {
+				free(dataBuffer);
+				error("SmushPlayer::handleIACT(): ERROR: got invalid userID (%d)", userId);
+			}
+			break;
+		}
+
+		paused = nbframes - index == 1;
+
+		if (index && _iactTable[bufId] - index != -1) {
+			free(dataBuffer);
+			error("SmushPlayer::handleIACT(): ERROR: got out of order block");
+		}
+
+		_iactTable[bufId] = index;
+
+		if (index) {
+			if (engine->diMUSEGetParam(bufId + 12345678, 0x100)) {
+				engine->diMUSEFeedStream(bufId + 12345678, dataBuffer, subSize - 18, paused);
+				free(dataBuffer);
+				return;
+			}
+
+			debug(5, "SmushPlayer::handleIACT(): ERROR: got unexpected non-zero IACT block, bufID %d", bufId);
+			result = -1;
+		} else {
+			if (READ_BE_UINT32(dataBuffer) != MKTAG('i', 'M', 'U', 'S')) {
+				free(dataBuffer);
+				error("SmushPlayer::handleIACT(): ERROR: got non-IMUS IACT block");
+			}
+
+			curSoundId = 0;
+			do {
+				curSoundId = engine->diMUSEGetNextSound(curSoundId);
+				if (!curSoundId)
+					break;
+			} while (engine->diMUSEGetParam(curSoundId, 0x1800) != 1 || engine->diMUSEGetParam(curSoundId, 0x1900) != bufId);
+
+			if (!curSoundId) {
+				// There isn't any previous sound running: start a new stream
+				if (engine->diMUSEStartStream(bufId + 12345678, 126, bufId)) {
+					free(dataBuffer);
+					error("SmushPlayer::handleIACT(): ERROR: couldn't start stream");
+				}
+			} else {
+				// There's an old sound running: switch the stream from the old one to the new one
+				engine->diMUSESwitchStream(curSoundId, bufId + 12345678, bufId == 2 ? 1000 : 150, 0, 0);
+			}
+
+			engine->diMUSESetParam(bufId + 12345678, 0x600, volume);
+
+			if (bufId == 1) {
+				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_SPEECH);
+			} else if (bufId == 2) {
+				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_MUSIC);
+			} else {
+				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_SFX);
+			}
+
+			engine->diMUSEFeedStream(bufId + 12345678, dataBuffer, subSize - 18, paused);
+			free(dataBuffer);
+			return;
+		}
+	} else {
+	// Fallback for DiMUSE_v1
+		int32 track = track_id;
+		if (track_flags == 1) {
+			track = track_id + 100;
+		} else if (track_flags == 2) {
+			track = track_id + 200;
+		} else if (track_flags == 3) {
+			track = track_id + 300;
+		} else if ((track_flags >= 100) && (track_flags <= 163)) {
+			track = track_id + 400;
+		} else if ((track_flags >= 200) && (track_flags <= 263)) {
+			track = track_id + 500;
+		} else if ((track_flags >= 300) && (track_flags <= 363)) {
+			track = track_id + 600;
+		} else {
+			error("SmushPlayer::handleIACT(): bad track_flags: %d", track_flags);
+		}
+		debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): %d, %d, %d", track, index, track_flags);
+
+		SmushChannel *c = _smixer->findChannel(track);
+		if (c == 0) {
+			c = new ImuseChannel(track);
+			_smixer->addChannel(c);
+		}
+		if (index == 0)
+			c->setParameters(nbframes, size, track_flags, unknown, 0);
+		else
+			c->checkParameters(index, nbframes, size, track_flags, unknown);
+		c->appendData(b, bsize);
+	} 
 }
 
 void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::SeekableReadStream &b) {

@@ -95,30 +95,6 @@ void DiMUSE_v2::scriptRefresh() {
 	int soundId;
 	int nextSound;
 
-	if (_vm->isSmushActive()) {
-		// The Dig calls for a switchStream() in the IACT handler when a SMUSH movie is launched,
-		// and since I don't have any intention of dismantling the audio section of SMUSH right now,
-		// let's just impose a volume fade-out of one second and call it a day.
-
-		// Of course, life is never too easy, and this only suffices for this edge case, since
-		// The Dig LOVES using Digital iMUSE features (like the "_end" trigger) all over the .SAN movies :-),
-		// so some parts of this game's audio will remain broken until a SMUSH expert with a lot of patience
-		// comes by and helps me update the audio code there too.
-		if (_vm->_game.id == GID_DIG) {
-			soundId = 0;
-			while (1) {
-				soundId = diMUSEGetNextSound(soundId);
-				if (!soundId)
-					break;
-
-				if (diMUSEGetParam(soundId, 0x400) == DIMUSE_GROUP_MUSICEFF && diMUSEGetParam(soundId, 0x1800)) {
-					diMUSEFadeParam(soundId, 0x600, 0, 60, 1);
-					scriptSetState(0);
-				}
-			}
-		}
-	}
-
 	if (_stopSequenceFlag) {
 		scriptSetSequence(0);
 		_stopSequenceFlag = 0;

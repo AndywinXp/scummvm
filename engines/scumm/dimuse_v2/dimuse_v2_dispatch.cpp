@@ -127,6 +127,7 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 	DiMUSEStream *curAllocatedStream;
 	DiMUSEStreamZone *curStreamZone;
 	DiMUSEStreamZone *curStreamZoneList;
+	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
@@ -143,7 +144,7 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 
 		if (curDispatchPtr->trackPtr->soundId && curDispatchPtr->streamPtr) {
 			// Try allocating the stream
-			curAllocatedStream = streamerAllocateSound(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, 0x4000);
+			curAllocatedStream = streamerAllocateSound(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, sizeToFeed);
 			curDispatchPtr->streamPtr = curAllocatedStream;
 
 			if (curAllocatedStream) {
@@ -194,6 +195,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	DiMUSEDispatch *dispatchToDeallocate;
 	DiMUSEStreamZone *streamZoneList;
 	int getMapResult;
+	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
@@ -201,7 +203,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
 	trackDispatch->fadeBuf = 0;
 	if (groupId) {
-		trackDispatch->streamPtr = streamerAllocateSound(trackPtr->soundId, groupId, 0x4000u);
+		trackDispatch->streamPtr = streamerAllocateSound(trackPtr->soundId, groupId, sizeToFeed);
 		if (!trackDispatch->streamPtr) {
 			debug(5, "DiMUSE_v2::dispatchAlloc(): unable to allocate stream for sound %d", trackPtr->soundId);
 			return -1;
@@ -275,6 +277,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 	int effFadeSize;
 	int getMapResult;
 	int i;
+	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	effFadeLen = fadeLength;
 
@@ -401,11 +404,11 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 			curDispatch->fadeSyncDelta = 0;
 			curDispatch->fadeVol = MAX_FADE_VOLUME;
 			curDispatch->fadeSlope = 0;
-
+			
 			while (curDispatch->fadeRemaining < _dispatchFadeSize) {
 				effFadeSize = _dispatchFadeSize - curDispatch->fadeRemaining;
-				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= 0x4000) // Originally 0x2000 for DIG, but it shouldn't be a problem
-					effFadeSize = 0x4000;
+				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= sizeToFeed)
+					effFadeSize = sizeToFeed;
 
 				memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamerReAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
@@ -1085,12 +1088,13 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 							dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 							dispatchPtr->fadeSlope = 0;
 
+							int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 							// Clone the old sound in the fade buffer for just the duration of the fade 
 							if (_dispatchRequestedFadeSize) {
 								do {
 									effFadeSize = _dispatchRequestedFadeSize - dispatchPtr->fadeRemaining;
-									if ((_dispatchRequestedFadeSize - dispatchPtr->fadeRemaining) >= 0x2000)
-										effFadeSize = 0x2000;
+									if ((_dispatchRequestedFadeSize - dispatchPtr->fadeRemaining) >= sizeToFeed)
+										effFadeSize = sizeToFeed;
 
 									memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
 										streamerReAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),

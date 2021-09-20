@@ -1653,7 +1653,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	_smixer = new SmushMixer(_mixer);
 
-	_splayer = new SmushPlayer(this);
+	_splayer = new SmushPlayer(this, _diMUSE, !(_game.id == GID_FT || (_game.features & GF_DEMO)));
 }
 #endif
 

@@ -169,9 +169,9 @@ int DiMUSE_v2::waveQueryStream(int soundId, int *bufSize, int *criticalSize, int
 	return result;
 }
 
-int DiMUSE_v2::waveFeedStream(int soundId, int *srcBuf, int sizeToFeed, int paused) {
+int DiMUSE_v2::waveFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
 	_waveSlicingHalted++;
-	int result = tracksFeedStream(soundId, (uint8 *)srcBuf, sizeToFeed, paused);
+	int result = tracksFeedStream(soundId, srcBuf, sizeToFeed, paused);
 	if (_waveSlicingHalted) {
 		_waveSlicingHalted--;
 	}

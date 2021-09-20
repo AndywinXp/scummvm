@@ -47,6 +47,7 @@ namespace Scumm {
 #define DIMUSE_BUFFER_SFX 0
 #define DIMUSE_BUFFER_SPEECH 1
 #define DIMUSE_BUFFER_MUSIC 2
+#define DIMUSE_BUFFER_SMUSH 3
 #define NUM_HEADERS 8
 
 struct DiMUSEDispatch;

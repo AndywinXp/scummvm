@@ -235,7 +235,7 @@ private:
 	int waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
 	int waveProcessStreams();
 	int waveQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
-	int waveFeedStream(int soundId, int *srcBuf, int sizeToFeed, int paused);
+	int waveFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
 	int waveLipSync(int soundId, int syncId, int msPos, int *width, int *height);
 
 	// Waveapi
@@ -317,8 +317,8 @@ public:
 	int diMUSEStartStream(int soundId, int priority, int groupId);
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
 	int diMUSEProcessStreams();
-	int diMUSEQueryStream();
-	int diMUSEFeedStream();
+	int diMUSEQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
+	int diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
 	int diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
 	int diMUSESetMusicGroupVol(int volume);
 	int diMUSESetSFXGroupVol(int volume);

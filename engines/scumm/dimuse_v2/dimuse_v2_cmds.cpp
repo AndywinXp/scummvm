@@ -106,9 +106,9 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, u
 	case 28:
 		return waveQueryStream(arg_0, (int *)arg_1, (int *)arg_2, (int *)arg_3, (int *)arg_4);
 	case 29:
-		return waveFeedStream(arg_0, (int *)arg_1, (int)arg_2, (int)arg_3);
+		return waveFeedStream(arg_0, (uint8 *)arg_1, (int)arg_2, (int)arg_3);
 	case 30:
-		return waveLipSync(arg_0, arg_1, arg_2, (int32 *)arg_3, (int32 *)arg_4);
+		return waveLipSync(arg_0, (int)arg_1, (int)arg_2, (int32 *)arg_3, (int32 *)arg_4);
 	default:
 		debug(5, "DiMUSE_v2::cmdsHandleCmd(): bogus opcode ignored.");
 		return -1;

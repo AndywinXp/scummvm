@@ -102,6 +102,11 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// The seeked position is in reference to the decompressed sound
+
+	// A soundId > 10000 is a SAN cutscene
+	if ((_vm->_game.id == GID_DIG) && (soundId > 10000))
+		return 0;
+
 	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
