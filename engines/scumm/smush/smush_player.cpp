@@ -483,7 +483,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 
 		free(src);
 	} else if (_vm->_game.id == GID_DIG && _usingDiMUSEv2) {
-		int bufId, volume, paused, result, curSoundId;
+		int bufId, volume, paused, curSoundId;
 		int userId = track_flags;
 
 		DiMUSE_v2 *engine = (DiMUSE_v2 *)_diMUSE;
