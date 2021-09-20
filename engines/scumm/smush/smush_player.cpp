@@ -535,9 +535,8 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 				free(dataBuffer);
 				return;
 			}
-
-			debug(5, "SmushPlayer::handleIACT(): ERROR: got unexpected non-zero IACT block, bufID %d", bufId);
-			result = -1;
+			free(dataBuffer);
+			error("SmushPlayer::handleIACT(): ERROR: got unexpected non-zero IACT block, bufID %d", bufId);
 		} else {
 			if (READ_BE_UINT32(dataBuffer) != MKTAG('i', 'M', 'U', 'S')) {
 				free(dataBuffer);
