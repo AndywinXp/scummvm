@@ -522,9 +522,11 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 
 		paused = nbframes - index == 1;
 
+		// Apparently this is expected to happen (e.g.: Brink's death video)
 		if (index && _iactTable[bufId] - index != -1) {
 			free(dataBuffer);
-			error("SmushPlayer::handleIACT(): ERROR: got out of order block");
+			debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): WARNING: got out of order block");
+			return;
 		}
 
 		_iactTable[bufId] = index;
