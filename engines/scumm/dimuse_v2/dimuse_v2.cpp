@@ -60,7 +60,7 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_waveOutWriteIndex = 0;
 	_waveOutDisableWrite = 0;
 	_waveOutPreferredFeedSize = 0;
-	_waveSlicingHalted = 1;
+	//_waveSlicingHalted = 1;
 	_dispatchFadeSize = 0;
 
 	_stopSequenceFlag = 0;
@@ -129,18 +129,23 @@ int DiMUSE_v2::isSoundRunning(int soundId) {
 }
 
 int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
+	_filesHandler->closeSoundImmediatelyById(soundId);
 
+	int fileDoesNotExist = 0;
 	if (_vm->_game.id == GID_DIG) {
 		if (!strcmp(soundName, "PIG.018"))
-			_filesHandler->setCurrentSpeechFile("PIG.019");
+			fileDoesNotExist = _filesHandler->setCurrentSpeechFile("PIG.019");
 		else
-			_filesHandler->setCurrentSpeechFile(soundName);
+			fileDoesNotExist = _filesHandler->setCurrentSpeechFile(soundName);
+
+		if (fileDoesNotExist)
+			return 1;
 
 		// At this point, The Dig sets up a trigger for the voice file; it is not clear what it does,
 		// and its absence never appeared to distrupt anything, so I'll just leave it as a comment
 		// diMUSESetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
-		_filesHandler->closeSoundImmediatelyById(soundId);
-		_filesHandler->openSound(kTalkSoundID);
+		
+		//_filesHandler->openSound(kTalkSoundID);
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 		if (_vm->VAR(_vm->VAR_TALK_ACTOR) == _vm->VAR(_vm->VAR_EGO)) {
@@ -152,9 +157,11 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 		}
 		_filesHandler->closeSound(kTalkSoundID);
 	} else {
-		_filesHandler->setCurrentSpeechFile(soundName);
-		_filesHandler->closeSoundImmediatelyById(soundId);
-		_filesHandler->openSound(kTalkSoundID);
+		fileDoesNotExist = _filesHandler->setCurrentSpeechFile(soundName);
+		if (fileDoesNotExist)
+			return 1;
+
+		//_filesHandler->openSound(kTalkSoundID);
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 

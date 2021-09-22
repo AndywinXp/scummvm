@@ -87,17 +87,19 @@ int DiMUSE_v2::waveOutDeinit() {
 }
 
 void DiMUSE_v2::waveOutCallback() {
-	if (!_waveSlicingHalted) {
-		tracksCallback();
-	}
+	//if (!_waveSlicingHalted) {
+	//	tracksCallback();
+	//}
+	Common::StackLock lock(_mutex);
+	tracksCallback();
 }
 
-void DiMUSE_v2::waveOutIncreaseSlice() {
-	_waveSlicingHalted++;
-}
+//void DiMUSE_v2::waveOutIncreaseSlice() {
+//	_waveSlicingHalted++;
+//}
 
-void DiMUSE_v2::waveOutDecreaseSlice() {
-	_waveSlicingHalted--;
-}
+//void DiMUSE_v2::waveOutDecreaseSlice() {
+//	_waveSlicingHalted--;
+//}
 
 } // End of namespace Scumm

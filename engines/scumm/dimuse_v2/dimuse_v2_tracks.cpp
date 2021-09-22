@@ -71,7 +71,8 @@ void DiMUSE_v2::tracksResume() {
 }
 
 void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
-	waveOutIncreaseSlice();
+	Common::StackLock lock(_mutex);
+	//waveOutIncreaseSlice();
 	dispatchSaveLoad(ser);
 
 	for (int l = 0; l < _trackCount; l++) {
@@ -136,7 +137,7 @@ void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
 		dispatchAllocStreamZones();
 	}
 
-	waveOutDecreaseSlice();
+	//waveOutDecreaseSlice();
 }
 
 void DiMUSE_v2::tracksSetGroupVol() {
@@ -153,8 +154,9 @@ void DiMUSE_v2::tracksCallback() {
 			return;
 		_tracksPauseTimer = 3;
 	}
-	
-	waveOutIncreaseSlice();
+
+	Common::StackLock lock(_mutex);
+	//waveOutIncreaseSlice();
 	//debug(5, "tracks_callback() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 
 	// If we leave the number of queued streams unbounded, we fill the queue with streams faster than
@@ -189,7 +191,7 @@ void DiMUSE_v2::tracksCallback() {
 		}
 	}
 	
-	waveOutDecreaseSlice();
+	//waveOutDecreaseSlice();
 	//debug(5, "tracks_callback() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
@@ -243,11 +245,13 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 				foundTrack->soundId = 0;
 				return -1;
 			}
-			waveOutIncreaseSlice();
+			Common::StackLock lock(_mutex);
+			//waveOutIncreaseSlice();
 			//debug(5, "tracksStartSound() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 			addTrackToList(&_trackList, foundTrack);
-			waveOutDecreaseSlice();
+			//waveOutDecreaseSlice();
 			//debug(5, "tracksStartSound() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
+			Common::StackLock unlock(_mutex);
 			return 0;
 		}
 	}
@@ -306,11 +310,13 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 		return -1;
 	}
 
-	waveOutIncreaseSlice();
+	Common::StackLock lock(_mutex);
+	//waveOutIncreaseSlice();
 	//debug(5, "tracksStartSound() called waveOutIncreaseSlice() 2: %d", _waveSlicingHalted);
 	addTrackToList(&_trackList, stolenTrack);
-	waveOutDecreaseSlice();
+	//waveOutDecreaseSlice();
 	//debug(5, "tracksStartSound() called waveOutDecreaseSlice() 2: %d", _waveSlicingHalted);
+	Common::StackLock unlock(_mutex);
 
 	return 0;
 }
@@ -335,8 +341,9 @@ int DiMUSE_v2::tracksStopSound(int soundId) {
 }
 
 int DiMUSE_v2::tracksStopAllSounds() {
-	waveOutIncreaseSlice();
-	debug(5, "tracks_stopAllSounds() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
+	Common::StackLock lock(_mutex);
+	//waveOutIncreaseSlice();
+	//debug(5, "tracks_stopAllSounds() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 	DiMUSETrack *nextTrack = _trackList;
 	DiMUSETrack *curTrack;
 
@@ -361,8 +368,8 @@ int DiMUSE_v2::tracksStopAllSounds() {
 	}
 	
 
-	waveOutDecreaseSlice();
-	debug(5, "tracks_stopAllSounds() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
+	//waveOutDecreaseSlice();
+	//debug(5, "tracks_stopAllSounds() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 	return 0;
 }
 
@@ -702,8 +709,9 @@ void DiMUSE_v2::tracksDeinit() {
 	if (!_trackList)
 		return;
 
-	waveOutIncreaseSlice();
-	debug(5, "tracksDeinit() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
+	Common::StackLock lock(_mutex);
+	//waveOutIncreaseSlice();
+	//debug(5, "tracksDeinit() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 	DiMUSETrack *track = _trackList;
 	do {
 		removeTrackFromList(&_trackList, track);
@@ -716,8 +724,8 @@ void DiMUSE_v2::tracksDeinit() {
 		track = track->next;
 	} while (track);
 
-	waveOutDecreaseSlice();
-	debug(5, "tracksDeinit() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
+	//waveOutDecreaseSlice();
+	//debug(5, "tracksDeinit() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
 } // End of namespace Scumm

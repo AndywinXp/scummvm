@@ -137,7 +137,6 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
-	// TODO: Does this work with speech?
 	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
@@ -180,7 +179,7 @@ DiMUSESoundBuffer *DiMUSEFilesHandler::getBufInfo(int bufId) {
 	return NULL;
 }
 
-void DiMUSEFilesHandler::openSound(int soundId) {
+int DiMUSEFilesHandler::openSound(int soundId) {
 	char fileName[60] = "";
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 	DiMUSESndMgr::SoundDesc *s = NULL;
@@ -190,8 +189,12 @@ void DiMUSEFilesHandler::openSound(int soundId) {
 		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 1);
 	if (!s)
 		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 2);
-	if (!s)
+	if (!s) {
 		debug(5, "DiMUSEFilesHandler::openSound(): can't open sound %d (%s)", soundId, fileName);
+		return 1;
+	}
+
+	return 0;
 }
 
 void DiMUSEFilesHandler::closeSound(int soundId) {
@@ -284,8 +287,12 @@ void DiMUSEFilesHandler::flushSounds() {
 	}
 }
 
-void DiMUSEFilesHandler::setCurrentSpeechFile(const char *fileName) {
+int DiMUSEFilesHandler::setCurrentSpeechFile(const char *fileName) {
 	Common::strlcpy(_currentSpeechFile, fileName, sizeof(_currentSpeechFile));
+	if (openSound(kTalkSoundID))
+		return 1;
+
+	return 0;
 }
 
 void DiMUSEFilesHandler::closeSoundImmediatelyById(int soundId) {

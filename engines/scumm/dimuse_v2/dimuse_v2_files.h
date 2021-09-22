@@ -55,13 +55,13 @@ public:
 	int seek(int soundId, int offset, int mode, int bufId);
 	int read(int soundId, uint8 *buf, int size, int bufId);
 	DiMUSESoundBuffer *getBufInfo(int bufId);
-	void openSound(int soundId);
+	int openSound(int soundId);
 	void closeSound(int soundId);
 	void closeAllSounds();
 	void diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
 	void diMUSEDeallocSoundBuffer(int bufId);
 	void flushSounds();
-	void setCurrentSpeechFile(const char *fileName);
+	int setCurrentSpeechFile(const char *fileName);
 	void closeSoundImmediatelyById(int soundId);
 	void saveLoad(Common::Serializer &ser);
 };

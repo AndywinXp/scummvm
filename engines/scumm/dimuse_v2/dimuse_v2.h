@@ -215,7 +215,7 @@ private:
 	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
 
 	// Wave (mainly a wrapper for Tracks functions)
-	int _waveSlicingHalted;
+	//int _waveSlicingHalted;
 
 	int waveInit();
 	int waveTerminate();
@@ -257,8 +257,8 @@ private:
 	void waveOutWrite(uint8 **audioBuffer, int *feedSize, int *sampleRate);
 	int waveOutDeinit();
 	void waveOutCallback();
-	void waveOutIncreaseSlice();
-	void waveOutDecreaseSlice();
+	//void waveOutIncreaseSlice();
+	//void waveOutDecreaseSlice();
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
