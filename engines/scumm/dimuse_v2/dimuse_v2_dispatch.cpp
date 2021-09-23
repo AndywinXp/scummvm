@@ -289,17 +289,16 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 		return -1;
 	}
 
-	for (i = 0; i <= _trackCount; i++) {
-		if (i >= _trackCount) {
-			debug(5, "DiMUSE_v2::dispatchSwitchStream(): couldn't find sound, index went past _trackCount (%d)", _trackCount);
-			return -1;
-		}
-
+	for (i = 0; i < _trackCount; i++) {
+		curDispatch = &_dispatches[i];
 		if (oldSoundId && curDispatch->trackPtr->soundId == oldSoundId && curDispatch->streamPtr) {
 			break;
 		}
+	}
 
-		curDispatch = &_dispatches[i];
+	if (i >= _trackCount) {
+		debug(5, "DiMUSE_v2::dispatchSwitchStream(): couldn't find sound, index went past _trackCount (%d)", _trackCount);
+		return -1;
 	}
 
 	if (curDispatch->streamZoneList) {
@@ -645,7 +644,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 			inFrameCount &= 0xFFFFFFFE;
 
 		if (!inFrameCount) {
-			debug(5, "DiMUSE_v2::dispatchProcessDispatches(): ERROR: region in sound %d ends with incomplete frame (or odd 12-bit mono frame)", trackPtr->soundId);
+			debug(5, "DiMUSE_v2::dispatchProcessDispatches(): WARNING: region in sound %d ends with incomplete frame (or odd 12-bit mono frame)", trackPtr->soundId);
 			tracksClear(trackPtr);
 			return;
 		}
