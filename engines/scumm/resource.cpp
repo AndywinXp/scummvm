@@ -1491,6 +1491,7 @@ const byte *ResourceIterator::findNext(uint32 tag) {
 }
 
 const byte *ScummEngine::findResource(uint32 tag, const byte *searchin) {
+	Common::StackLock lock(_mutex);
 	uint32 curpos, totalsize, size;
 
 	debugC(DEBUG_RESOURCE, "findResource(%s, %p)", tag2str(tag), (const void *)searchin);
