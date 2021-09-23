@@ -277,7 +277,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 	int effFadeSize;
 	int getMapResult;
 	int i;
-	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+	int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	effFadeLen = fadeLength;
 
@@ -418,18 +418,18 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 		}
 	}
 
-	// Clear fades and triggers for the old newSoundId
+	// Clear fades and triggers for the old soundId
 	char emptyMarker[1] = "";
 	_fadesHandler->clearFadeStatus(curDispatch->trackPtr->soundId, -1);
 	_triggersHandler->clearTrigger(curDispatch->trackPtr->soundId, (char *)emptyMarker, -1);
 
-	// Setup the new newSoundId
+	// Setup the new soundId
 	curDispatch->trackPtr->soundId = newSoundId;
 
 	streamerSetIndex1(curDispatch->streamPtr, streamerGetFreeBuffer(curDispatch->streamPtr));
 
 	if (offsetFadeSyncFlag && curDispatch->streamZoneList) {
-		// Start the newSoundId from an offset
+		// Start the soundId from an offset
 		streamerSetSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
 		while (curDispatch->streamZoneList->next) {
 			curDispatch->streamZoneList->next->useFlag = 0;
@@ -439,7 +439,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 
 		return 0;
 	} else {
-		// Start the newSoundId from the beginning
+		// Start the soundId from the beginning
 		streamerSetSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, 0);
 
 		while (curDispatch->streamZoneList) {
