@@ -46,15 +46,21 @@ int DiMUSEFilesHandler::deinit() {
 
 void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 	int curSound = 0;
+	DiMUSESndMgr::SoundDesc *sounds = _sound->getSounds();
+
 	ser.syncArray(_currentSpeechFile, 60, Common::Serializer::SByte, VER(103));
 	if (ser.isSaving()) {
-		DiMUSESndMgr::SoundDesc *soundsToSave = _sound->getSounds();
 		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
-			ser.syncAsSint32LE(soundsToSave[l].soundId, VER(103));
+			ser.syncAsSint32LE(sounds[l].soundId, VER(103));
 		}
 	}
 
 	if (ser.isLoading()) {
+		// Close prior sounds if we're reloading (needed for edge cases like the recipe book in COMI)
+		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
+			_sound->closeSound(&sounds[l]);
+		}
+
 		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 			ser.syncAsSint32LE(curSound, VER(103));
 			if (curSound) {
