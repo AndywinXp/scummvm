@@ -38,6 +38,7 @@ private:
 	DiMUSE_v2 *_engine;
 	DiMUSESndMgr *_sound;
 	ScummEngine_v7 *_vm;
+	Common::Mutex _mutex;
 	DiMUSESoundBuffer _soundBuffers[4];
 	char _currentSpeechFile[60];
 

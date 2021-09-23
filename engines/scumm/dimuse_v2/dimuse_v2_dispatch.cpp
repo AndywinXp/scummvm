@@ -127,7 +127,7 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 	DiMUSEStream *curAllocatedStream;
 	DiMUSEStreamZone *curStreamZone;
 	DiMUSEStreamZone *curStreamZoneList;
-	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+	int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
@@ -195,7 +195,7 @@ int DiMUSE_v2::dispatchAlloc(DiMUSETrack *trackPtr, int groupId) {
 	DiMUSEDispatch *dispatchToDeallocate;
 	DiMUSEStreamZone *streamZoneList;
 	int getMapResult;
-	int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+	int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
@@ -1089,7 +1089,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 							dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 							dispatchPtr->fadeSlope = 0;
 
-							int sizeToFeed = (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+							int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 							// Clone the old sound in the fade buffer for just the duration of the fade 
 							if (_dispatchRequestedFadeSize) {
 								do {

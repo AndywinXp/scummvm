@@ -595,6 +595,7 @@ void ScummEngine::nukeCharset(int i) {
 }
 
 void ScummEngine::ensureResourceLoaded(ResType type, ResId idx) {
+	Common::StackLock lock(_mutex);
 	debugC(DEBUG_RESOURCE, "ensureResourceLoaded(%s,%d)", nameOfResType(type), idx);
 
 	if ((type == rtRoom) && idx > 0x7F && _game.version < 7 && _game.heversion <= 71) {
@@ -743,6 +744,7 @@ int ScummEngine::getResourceSize(ResType type, ResId idx) {
 }
 
 byte *ScummEngine::getResourceAddress(ResType type, ResId idx) {
+	Common::StackLock lock(_mutex);
 	byte *ptr;
 
 	if (_game.heversion >= 80 && type == rtString)

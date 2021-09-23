@@ -456,9 +456,9 @@ void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
 	_triggersHandler->clearTrigger(trackPtr->soundId, _emptyMarker, -1);
 
-	//if (trackPtr->soundId < 1000 && trackPtr->soundId) {
-	//	_vm->_res->unlock(rtSound, trackPtr->soundId);
-	//}
+	if (trackPtr->soundId < 1000 && trackPtr->soundId) {
+		_vm->_res->unlock(rtSound, trackPtr->soundId);
+	}
 
 	trackPtr->soundId = 0;
 }

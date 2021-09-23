@@ -67,13 +67,10 @@ void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 }
 
 uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
+	Common::StackLock lock(_mutex);
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
 	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
-		//if (_vm->_res->isResourceLoaded(rtSound, soundId))
-		//	return _vm->getResourceAddress(rtSound, soundId);
-		//else
-		//	return NULL;
 		_vm->ensureResourceLoaded(rtSound, soundId);
 		_vm->_res->lock(rtSound, soundId);
 		byte *ptr = _vm->getResourceAddress(rtSound, soundId);
