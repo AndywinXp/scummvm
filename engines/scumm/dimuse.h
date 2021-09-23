@@ -68,7 +68,7 @@ public:
 	virtual int getSoundStatus(int sound) const { return 0; }
 	virtual int isSoundRunning(int sound) { return 0; }
 	virtual int startVoice(int soundId, Audio::AudioStream *input) { return 0; }
-	virtual int startVoice(int soundId, const char *soundName) { return 0; }
+	virtual int startVoice(int soundId, const char *soundName, byte speakingActorId = 0) { return 0; }
 	virtual void saveLoadEarly(Common::Serializer &ser) {}
 	virtual void resetState() {}
 	virtual void setRadioChatterSFX(bool state) {}

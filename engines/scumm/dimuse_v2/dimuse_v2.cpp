@@ -128,7 +128,7 @@ int DiMUSE_v2::isSoundRunning(int soundId) {
 	return result;
 }
 
-int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
+int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActorId) {
 	_filesHandler->closeSoundImmediatelyById(soundId);
 
 	int fileDoesNotExist = 0;
@@ -144,11 +144,10 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 		// At this point, The Dig sets up a trigger for the voice file; it is not clear what it does,
 		// and its absence never appeared to distrupt anything, so I'll just leave it as a comment
 		// diMUSESetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
-		
-		//_filesHandler->openSound(kTalkSoundID);
+
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
-		if (_vm->VAR(_vm->VAR_TALK_ACTOR) == _vm->VAR(_vm->VAR_EGO)) {
+		if (speakingActorId == _vm->VAR(_vm->VAR_EGO)) {
 			diMUSESetParam(kTalkSoundID, 0xA00, 0);
 			diMUSESetParam(kTalkSoundID, 0x600, 127);
 		} else {
@@ -161,7 +160,6 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName) {
 		if (fileDoesNotExist)
 			return 1;
 
-		//_filesHandler->openSound(kTalkSoundID);
 		diMUSEStartStream(kTalkSoundID, 127, 1);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 

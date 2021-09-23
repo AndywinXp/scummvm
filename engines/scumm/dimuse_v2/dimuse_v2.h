@@ -272,7 +272,7 @@ public:
 	int getSoundStatus(int sound) const override { return 0; }
 	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
 	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; }
-	int startVoice(int soundId, const char *soundName) override;
+	int startVoice(int soundId, const char *soundName, byte speakingActorId) override;
 	void saveLoadEarly(Common::Serializer &ser) override;
 	void resetState() override {};
 	void setRadioChatterSFX(bool state) override;

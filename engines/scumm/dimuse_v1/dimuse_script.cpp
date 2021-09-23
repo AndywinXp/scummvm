@@ -219,7 +219,7 @@ int DiMUSE_v1::startVoice(int soundId, Audio::AudioStream *input) {
 	return startSound(soundId, "", 0, IMUSE_VOLGRP_VOICE, input, 0, 127, 127, NULL);
 }
 
-int DiMUSE_v1::startVoice(int soundId, const char *soundName) {
+int DiMUSE_v1::startVoice(int soundId, const char *soundName, byte speakingActorId) {
 	debug(5, "startVoiceBundle(%s, %d)", soundName, soundId);
 	return startSound(soundId, soundName, IMUSE_BUNDLE, IMUSE_VOLGRP_VOICE, NULL, 0, 127, 127, NULL);
 }

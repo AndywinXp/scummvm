@@ -135,7 +135,7 @@ public:
 	void setAudioNames(int32 num, char *names);
 
 	int startVoice(int soundId, Audio::AudioStream *input);
-	int startVoice(int soundId, const char *soundName);
+	int startVoice(int soundId, const char *soundName, byte speakingActorId = 0);
 	int startMusic(int soundId, int volume);
 	int startMusic(const char *soundName, int soundId, int hookId, int volume);
 	int startMusicWithOtherPos(const char *soundName, int soundId, int hookId, int volume, Track *otherTrack);
