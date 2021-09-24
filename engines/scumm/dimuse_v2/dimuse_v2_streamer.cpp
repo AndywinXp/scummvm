@@ -117,7 +117,7 @@ int DiMUSE_v2::streamerProcessStreams() {
 	}
 
 	int size2 = stream2->loadIndex - stream2->readIndex;
-	if (size1 < 0) {
+	if (size2 < 0) {
 		size2 += stream2->bufFreeSize;
 	}
 
@@ -372,6 +372,9 @@ int DiMUSE_v2::streamerFetchData(DiMUSEStream *streamPtr) {
 		if (newLoadIndex >= streamPtr->bufFreeSize) {
 			streamPtr->loadIndex = newLoadIndex - streamPtr->bufFreeSize;
 		}
+
+		if (actualAmount != requestedAmount)
+			break;
 	}
 
 	debug(5, "DiMUSE_v2::streamerFetchData(): ERROR: unable to load the correct amount of data (req=%d, act=%d)", requestedAmount, actualAmount);
