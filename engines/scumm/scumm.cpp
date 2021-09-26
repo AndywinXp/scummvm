@@ -1639,7 +1639,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	// - Be either DIG or COMI;
 	// - Be a non-demo;
 	// - Use the original BUN compression format;
-	// Compressed SAN movies work fine with DiMUSE_v2, so we allow them
+	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them
 	_useDiMUSEv2 = !(_game.id == GID_FT) && !(_game.features & GF_DEMO);
 
 	if (_useDiMUSEv2) {
@@ -1647,15 +1647,18 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		bool isExtComp = false;
 		bool isRawBun = false;
 		if (_game.id == GID_CMI) {
-			bool isExtComp1, isExtComp2, isExtComp3, isExtComp4 = false;
+			bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
+			// Check voxdisk1 and 2 separatedly for isRawBun, just for good measure
 			bnd->open("voxdisk1.bun", isExtComp1);
+			isRawBun = bnd->isBundleFileRaw();
 			bnd->open("voxdisk2.bun", isExtComp2);
+			isRawBun |= bnd->isBundleFileRaw(); 
 			bnd->open("musdisk1.bun", isExtComp3);
 			bnd->open("musdisk2.bun", isExtComp4);
-			isRawBun = bnd->isBundleFileRaw();
+			
 			isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
 		} else {
-			bool isExtComp1, isExtComp2 = false;
+			bool isExtComp1 = false, isExtComp2 = false;
 			bnd->open("digvoice.bun", isExtComp1);
 			bnd->open("digmusic.bun", isExtComp2);
 			isExtComp = isExtComp1 | isExtComp2;
