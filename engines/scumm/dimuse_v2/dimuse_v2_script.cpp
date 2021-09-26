@@ -261,10 +261,6 @@ void DiMUSE_v2::setDigMusicSequence(int seqId) {
 void DiMUSE_v2::setComiMusicState(int stateId) {
 	int l, num = -1;
 
-	/*
-	if (stateId == 4) // look into #3604 bug, ignore stateId == 4 it's seems needed after all
-		return;
-	*/
 	if (stateId == 0)
 		stateId = 1000;
 
