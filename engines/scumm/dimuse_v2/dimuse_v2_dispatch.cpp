@@ -1000,13 +1000,14 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 				dispatchPtr->currentOffset = mapCurPos[3];
 				if (dispatchPtr->streamPtr) {
 					if (dispatchPtr->streamZoneList->size || !dispatchPtr->streamZoneList->next) {
-						debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): \n"
-							"\tJUMP found for sound %d with valid hookId (%d), \n"
-							"\tgoing to offset %d with a crossfade of %d ms",
-							dispatchPtr->trackPtr->soundId, mapCurPos[4], mapCurPos[3], mapCurPos[5]);
-
+						debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): WARNING: failed to prepare for jump, will fallback to dispatchParseJump()");
 						dispatchParseJump(dispatchPtr, dispatchPtr->streamZoneList, mapCurPos, 1);
 					}
+
+					debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): \n"
+						"\tJUMP found for sound %d with valid hookId (%d), \n"
+						"\tgoing to offset %d with a crossfade of %d ms",
+						dispatchPtr->trackPtr->soundId, mapCurPos[4], mapCurPos[3], mapCurPos[5]);
 
 					dispatchPtr->streamZoneList->useFlag = 0;
 					removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
