@@ -1648,7 +1648,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		bool isRawBun = false;
 		if (_game.id == GID_CMI) {
 			bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
-			// Check voxdisk1 and 2 separatedly for isRawBun, just for good measure
+			// Check voxdisk1 and 2 separately for isRawBun, just for good measure
 			bnd->open("voxdisk1.bun", isExtComp1);
 			isRawBun = bnd->isBundleFileRaw();
 			bnd->open("voxdisk2.bun", isExtComp2);
