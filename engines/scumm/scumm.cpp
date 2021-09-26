@@ -1635,13 +1635,44 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	ConfMan.setInt("dimuse_v2_tempo", dimusev2Tempo);
 	ConfMan.flushToDisk();
 
-	// Use the old engine for FT and DIG&COMI demos
-	if (_game.id == GID_FT || (_game.features & GF_DEMO)) {
+	// Check if we are able to use DiMUSE_v2; the game has to:
+	// - Be either DIG or COMI;
+	// - Be a non-demo;
+	// - Use the original BUN compression format;
+	// Compressed SAN movies work fine with DiMUSE_v2, so we allow them
+	_useDiMUSEv2 = !(_game.id == GID_FT) && !(_game.features & GF_DEMO);
+
+	if (_useDiMUSEv2) {
+		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
+		bool isExtComp = false;
+		bool isRawBun = false;
+		if (_game.id == GID_CMI) {
+			bool isExtComp1, isExtComp2, isExtComp3, isExtComp4 = false;
+			bnd->open("voxdisk1.bun", isExtComp1);
+			bnd->open("voxdisk2.bun", isExtComp2);
+			bnd->open("musdisk1.bun", isExtComp3);
+			bnd->open("musdisk2.bun", isExtComp4);
+			isRawBun = bnd->isBundleFileRaw();
+			isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
+		} else {
+			bool isExtComp1, isExtComp2 = false;
+			bnd->open("digvoice.bun", isExtComp1);
+			bnd->open("digmusic.bun", isExtComp2);
+			isExtComp = isExtComp1 | isExtComp2;
+		}
+
+		_useDiMUSEv2 &= !isRawBun;
+		_useDiMUSEv2 &= !isExtComp;
+
+		delete bnd;
+	}
+
+	// Fallback to DiMUSE_v1
+	if (!_useDiMUSEv2) {
 		_musicEngine = _diMUSE = new DiMUSE_v1(this, _mixer, dimuseTempo);
 	} else {
 		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimusev2Tempo);
 	}
-	
 
 	ScummEngine::setupScumm(macResourceFile);
 
@@ -1653,7 +1684,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	_smixer = new SmushMixer(_mixer);
 
-	_splayer = new SmushPlayer(this, _diMUSE, !(_game.id == GID_FT || (_game.features & GF_DEMO)));
+	_splayer = new SmushPlayer(this, _diMUSE, _useDiMUSEv2);
 }
 #endif
 

@@ -79,23 +79,23 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	diMUSEInitialize();
 	diMUSEInitializeScript();
 	if (_vm->_game.id == GID_CMI) {
-		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
-		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
 	} else {
-		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SPEECH, 88000, 22000, 44000);
-		_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 11000, 132000);
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SPEECH, 88000, 22000, 44000);
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 11000, 132000);
 	}
 	
-	_filesHandler->diMUSEAllocSoundBuffer(DIMUSE_BUFFER_SMUSH, 198000, 0, 0);
+	_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SMUSH, 198000, 0, 0);
 
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
-	_filesHandler->diMUSEDeallocSoundBuffer(1);
-	_filesHandler->diMUSEDeallocSoundBuffer(2);
-	_filesHandler->diMUSEDeallocSoundBuffer(3);
+	_filesHandler->deallocSoundBuffer(1);
+	_filesHandler->deallocSoundBuffer(2);
+	_filesHandler->deallocSoundBuffer(3);
 	cmdsDeinit();
 	diMUSETerminate();
 	delete _internalMixer;

@@ -321,6 +321,7 @@ protected:
 	VirtualMachineState vm;
 
 	bool _oldSoundsPaused;
+	bool _useDiMUSEv2;
 
 public:
 	// Constructor / Destructor

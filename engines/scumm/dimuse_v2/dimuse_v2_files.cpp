@@ -260,7 +260,7 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 	}
 }
 
-void DiMUSEFilesHandler::diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
+void DiMUSEFilesHandler::allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
 	DiMUSESoundBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
@@ -270,7 +270,7 @@ void DiMUSEFilesHandler::diMUSEAllocSoundBuffer(int bufId, int size, int loadSiz
 	selectedSoundBuf->criticalSize = criticalSize;
 }
 
-void DiMUSEFilesHandler::diMUSEDeallocSoundBuffer(int bufId) {
+void DiMUSEFilesHandler::deallocSoundBuffer(int bufId) {
 	DiMUSESoundBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];

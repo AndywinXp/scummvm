@@ -401,9 +401,8 @@ int32 BundleMgr::seekFile(int32 offset, int mode) {
 	return result;
 
 }
+
 // Used by DiMUSE_v2
-// At the moment still not sure the behavior is exactly the same
-// I might get back to it later
 int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool header_outside) {
 	int32 final_size = 0;
 
@@ -504,6 +503,17 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 
 	debug(2, "BundleMgr::decompressSampleByName() Failed finding sound %s", name);
 	return final_size;
+}
+
+bool BundleMgr::isBundleFileRaw() {
+	_file->seek(_bundleTable[0].offset, SEEK_SET);
+	uint32 tag = _file->readUint32BE();
+
+	if (tag == MKTAG('i', 'M', 'U', 'S')) {
+		return true;
+	}
+
+	return false;
 }
 
 } // End of namespace Scumm

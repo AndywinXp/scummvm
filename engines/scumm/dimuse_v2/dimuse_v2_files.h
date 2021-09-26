@@ -59,8 +59,8 @@ public:
 	int openSound(int soundId);
 	void closeSound(int soundId);
 	void closeAllSounds();
-	void diMUSEAllocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
-	void diMUSEDeallocSoundBuffer(int bufId);
+	void allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
+	void deallocSoundBuffer(int bufId);
 	void flushSounds();
 	int setCurrentSpeechFile(const char *fileName);
 	void closeSoundImmediatelyById(int soundId);
