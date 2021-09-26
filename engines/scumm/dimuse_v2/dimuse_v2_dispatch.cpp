@@ -132,7 +132,7 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
 		curDispatchPtr = &_dispatches[i];
-		curDispatchPtr->fadeBuf = 0;
+		curDispatchPtr->fadeBuf = NULL;
 
 		// This operation below is needed because the EXE saves the streamPtr when saving the dispatches;
 		// we don't do that, but we still have to signal this function that the sound is not a SFX (which has a streamPtr == NULL)
@@ -336,7 +336,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 		if (alignmentModDividend) {
 			_dispatchFadeSize -= _dispatchFadeSize % alignmentModDividend;
 		} else {
-			debug(5, "DiMUSE_v2::dispatchSwitchStream(): ERROR: tried mod by 0 while validating fade size");
+			debug(5, "DiMUSE_v2::dispatchSwitchStream(): WARNING: tried mod by 0 while validating fade size");
 		}
 
 		if (_dispatchFadeSize > LARGE_FADE_DIM) {
@@ -409,7 +409,7 @@ int DiMUSE_v2::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLeng
 				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= sizeToFeed)
 					effFadeSize = sizeToFeed;
 
-				memcpy((curDispatch->fadeBuf + curDispatch->fadeRemaining), streamerReAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
+				memcpy(&curDispatch->fadeBuf[curDispatch->fadeRemaining], streamerReAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -512,13 +512,13 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 			dispatchPtr->fadeVol += effRemainingFade * dispatchPtr->fadeSlope;
 
 			// Clamp fadeVol between 0 and MAX_FADE_VOLUME
-			if (dispatchPtr->fadeVol + effRemainingFade * dispatchPtr->fadeSlope < 0)
+			if (dispatchPtr->fadeVol < 0)
 				dispatchPtr->fadeVol = 0;
 			if (dispatchPtr->fadeVol > MAX_FADE_VOLUME)
 				dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 
 			// Send it all to the mixer
-			srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
+			srcBuf = &dispatchPtr->fadeBuf[dispatchPtr->fadeOffset];
 			
 			_internalMixer->mix(
 				srcBuf,
@@ -644,7 +644,8 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 			inFrameCount &= 0xFFFFFFFE;
 
 		if (!inFrameCount) {
-			debug(5, "DiMUSE_v2::dispatchProcessDispatches(): WARNING: region in sound %d ends with incomplete frame (or odd 12-bit mono frame)", trackPtr->soundId);
+			if (_vm->_game.id == GID_DIG || dispatchPtr->wordSize == 12)
+				debug(5, "DiMUSE_v2::dispatchProcessDispatches(): WARNING: region in sound %d ends with incomplete frame (or odd 12-bit mono frame)", trackPtr->soundId);
 			tracksClear(trackPtr);
 			return;
 		}
@@ -655,7 +656,6 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 		if (dispatchPtr->streamPtr) {
 			srcBuf = (uint8 *)streamerReAllocReadBuffer(dispatchPtr->streamPtr, effRemainingAudio);
 			if (!srcBuf) {
-
 				dispatchPtr->streamErrFlag = 1;
 				if (dispatchPtr->fadeBuf && dispatchPtr->fadeSyncFlag)
 					dispatchPtr->fadeSyncDelta += feedSize;
@@ -1096,7 +1096,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 									if ((_dispatchRequestedFadeSize - dispatchPtr->fadeRemaining) >= sizeToFeed)
 										effFadeSize = sizeToFeed;
 
-									memcpy((dispatchPtr->fadeBuf + dispatchPtr->fadeRemaining),
+									memcpy(&dispatchPtr->fadeBuf[dispatchPtr->fadeRemaining],
 										streamerReAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
 										effFadeSize);
 
@@ -1331,7 +1331,7 @@ void DiMUSE_v2::dispatchPredictStream(DiMUSEDispatch *dispatch) {
 	do {
 		cumulativeStreamOffset += szTmp->size;
 		lastStreamInList = szTmp;
-		szTmp = (DiMUSEStreamZone *)szTmp->next;
+		szTmp = szTmp->next;
 	} while (szTmp);
 
 	lastStreamInList->size += streamerGetFreeBuffer(dispatch->streamPtr) - cumulativeStreamOffset;
@@ -1350,14 +1350,14 @@ void DiMUSE_v2::dispatchPredictStream(DiMUSEDispatch *dispatch) {
 					break;
 				}
 
-				mapPlaceName = curMapPlace[0]; // TODO: Is this right?
+				mapPlaceName = curMapPlace[0];
 				bytesUntilNextPlace = curMapPlace[1] + 8;
 
 				if (mapPlaceName == MKTAG('J', 'U', 'M', 'P')) {
 					// We assign these here, to avoid going out of bounds
 					// on a place which doesn't have as many fields, like TEXT
-					mapPlaceHookPosition = curMapPlace[4];
-					mapPlaceHookId = curMapPlace[6];
+					mapPlaceHookPosition = curMapPlace[2];
+					mapPlaceHookId = curMapPlace[4];
 
 					if (mapPlaceHookPosition > szList->offset && mapPlaceHookPosition <= szList->size + szList->offset) {
 						// Break out of the loop if we have to JUMP
@@ -1365,12 +1365,12 @@ void DiMUSE_v2::dispatchPredictStream(DiMUSEDispatch *dispatch) {
 							break;
 					}
 				}
-				// Advance the getNextMapEventResult by bytesUntilNextPlace bytes
+				// Advance the map offset by bytesUntilNextPlace bytes
 				curMapPlace = (int *)((int8 *)curMapPlace + bytesUntilNextPlace);
 			}
 
 			if (curMapPlace) {
-				// This is where we should end up if iMUSE_checkHookId has been successful
+				// This is where we should end up if checkHookId() has been successful
 				dispatchParseJump(dispatch, szList, curMapPlace, 0);
 			} else {
 				// Otherwise this is where we end up when we reached the end of the getNextMapEventResult,
@@ -1380,7 +1380,7 @@ void DiMUSE_v2::dispatchPredictStream(DiMUSEDispatch *dispatch) {
 					szTmp = dispatch->streamZoneList;
 					while (szTmp != szList) {
 						cumulativeStreamOffset += szTmp->size;
-						szTmp = (DiMUSEStreamZone *)szTmp->next;
+						szTmp = szTmp->next;
 					}
 
 					// Continue streaming the newSoundId from where we left off
