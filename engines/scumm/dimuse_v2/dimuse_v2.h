@@ -255,8 +255,7 @@ private:
 	void waveOutWrite(uint8 **audioBuffer, int *feedSize, int *sampleRate);
 	int waveOutDeinit();
 	void waveOutCallback();
-	//void waveOutIncreaseSlice();
-	//void waveOutDecreaseSlice();
+
 public:
 	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
 	~DiMUSE_v2() override;
