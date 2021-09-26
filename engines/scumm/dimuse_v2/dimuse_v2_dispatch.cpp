@@ -771,8 +771,6 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 void DiMUSE_v2::dispatchPredictFirstStream() {
 	Common::StackLock lock(_mutex);
-	//waveOutIncreaseSlice();
-	//debug(5, "dispatch_predictFirstStream() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 
 	if (_trackCount > 0) {
 		for (int i = 0; i < _trackCount; i++) {
@@ -780,9 +778,6 @@ void DiMUSE_v2::dispatchPredictFirstStream() {
 				dispatchPredictStream(&_dispatches[i]);
 		}
 	}
-
-	//waveOutDecreaseSlice();
-	//debug(5, "dispatch_predictFirstStream() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 }
 
 int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {

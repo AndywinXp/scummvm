@@ -353,13 +353,11 @@ int DiMUSE_v2::streamerFetchData(DiMUSEStream *streamPtr) {
 		}
 
 		_streamerBailFlag = 0;
+
 		Common::StackLock lock(_mutex);
-		//waveOutDecreaseSlice();
-		//debug(5, "streamer_fetchData() called waveOutDecreaseSlice(): %d", _waveSlicingHalted);
 		actualAmount = _filesHandler->read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
-		//waveOutIncreaseSlice();
-		//debug(5, "streamer_fetchData() called waveOutIncreaseSlice(): %d", _waveSlicingHalted);
 		Common::StackLock unlock(_mutex);
+
 		if (_streamerBailFlag != 0)
 			return 0;
 

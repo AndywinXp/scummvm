@@ -60,7 +60,7 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_waveOutWriteIndex = 0;
 	_waveOutDisableWrite = 0;
 	_waveOutPreferredFeedSize = 0;
-	//_waveSlicingHalted = 1;
+
 	_dispatchFadeSize = 0;
 
 	_stopSequenceFlag = 0;

@@ -215,8 +215,6 @@ private:
 	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
 
 	// Wave (mainly a wrapper for Tracks functions)
-	//int _waveSlicingHalted;
-
 	int waveInit();
 	int waveTerminate();
 	int wavePause();
