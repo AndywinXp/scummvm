@@ -36,14 +36,6 @@ DiMUSEFilesHandler::~DiMUSEFilesHandler() {
 	delete _sound;
 }
 
-int DiMUSEFilesHandler::init() {
-	return 0;
-}
-
-int DiMUSEFilesHandler::deinit() {
-	return 0;
-}
-
 void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 	int curSound = 0;
 	DiMUSESndMgr::SoundDesc *sounds = _sound->getSounds();
@@ -76,7 +68,7 @@ uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	Common::StackLock lock(_mutex);
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
-	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
+	if (soundId != 0) {
 		_vm->ensureResourceLoaded(rtSound, soundId);
 		_vm->_res->lock(rtSound, soundId);
 		byte *ptr = _vm->getResourceAddress(rtSound, soundId);
@@ -91,11 +83,6 @@ uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 	return NULL;
 }
 
-// Always returns NULL in disasm
-uint8 *DiMUSEFilesHandler::fetchMap(int soundId) {
-	return NULL;
-}
-
 int DiMUSEFilesHandler::getNextSound(int soundId) {
 	int foundSoundId = 0;
 	do {
@@ -104,10 +91,6 @@ int DiMUSEFilesHandler::getNextSound(int soundId) {
 			return -1;
 	} while (foundSoundId != soundId);
 	return 2;
-}
-
-int DiMUSEFilesHandler::checkIdInRange(int soundId) {
-	return (soundId != 0 /*&& soundId < MAX_SOUNDID*/);
 }
 
 int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
@@ -119,7 +102,7 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	if ((_vm->_game.id == GID_DIG) && (soundId > 10000))
 		return 0;
 
-	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
+	if (soundId != 0) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -140,7 +123,7 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
-	if (soundId != 0 /*&& soundId < MAX_SOUNDID*/) {
+	if (soundId != 0) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 

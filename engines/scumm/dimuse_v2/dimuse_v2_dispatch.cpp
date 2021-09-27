@@ -783,7 +783,6 @@ void DiMUSE_v2::dispatchPredictFirstStream() {
 int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 	int *dstMap;
 	uint8 *rawMap;
-	DiMUSEStreamZone *allStrZn;
 	uint8 *copiedBuf;
 	uint8 *soundAddrData;
 	int size;
@@ -805,48 +804,6 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 			return -1;
 		}
 
-		// This appears to always be NULL since func_fetchMap is never initialized
-		rawMap = _filesHandler->fetchMap(dispatchPtr->trackPtr->soundId);
-		if (rawMap) {
-			if (dispatchConvertMap((uint8 *)rawMap, (uint8 *)dstMap)) {
-				debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): dispatchConvertMap() failed");
-				return -1;
-			}
-
-			if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
-				debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): ERROR: expected 'FRMT' at start of map");
-				return -1;
-			}
-
-			dispatchPtr->currentOffset = dispatchPtr->map[4];
-			if (dispatchPtr->streamPtr) {
-				if (streamerGetFreeBuffer(dispatchPtr->streamPtr)) {
-					debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): ERROR: expected empty stream buffer");
-					return -1;
-				}
-
-				if (dispatchPtr->streamZoneList) {
-					debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): ERROR: expected NULL streamZoneList");
-					return -1;
-				}
-
-				allStrZn = dispatchAllocStreamZone();
-				dispatchPtr->streamZoneList = allStrZn;
-				if (!allStrZn) {
-					debug(5, "DiMUSE_v2::dispatchGetNextMapEvent(): ERROR: couldn't allocate zone");
-					return -1;
-				}
-
-				allStrZn->offset = dispatchPtr->currentOffset;
-				dispatchPtr->streamZoneList->size = 0;
-				dispatchPtr->streamZoneList->fadeFlag = 0;
-				streamerSetSoundToStreamWithCurrentOffset(
-					dispatchPtr->streamPtr,
-					dispatchPtr->trackPtr->soundId,
-					dispatchPtr->currentOffset);
-			}
-
-		}
 		// If there's a streamPtr it means that this is a sound loaded
 		// from a bundle (either music or speech)
 		if (dispatchPtr->streamPtr) {

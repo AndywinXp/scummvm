@@ -43,7 +43,6 @@ public:
 	DiMUSEGroupsHandler(DiMUSE_v2 *engine);
 	~DiMUSEGroupsHandler();
 	int init();
-	int deinit();
 	int setGroupVol(int id, int volume);
 	int getGroupVol(int id);
 };

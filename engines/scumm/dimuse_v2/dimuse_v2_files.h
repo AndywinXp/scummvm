@@ -47,12 +47,8 @@ public:
 	DiMUSEFilesHandler(DiMUSE_v2 *engine, ScummEngine_v7 *vm);
 	~DiMUSEFilesHandler();
 
-	int init();
-	int deinit();
 	uint8 *getSoundAddrData(int soundId);
-	uint8 *fetchMap(int soundId);
 	int getNextSound(int soundId);
-	int checkIdInRange(int soundId);
 	int seek(int soundId, int offset, int mode, int bufId);
 	int read(int soundId, uint8 *buf, int size, int bufId);
 	DiMUSESoundBuffer *getBufInfo(int bufId);

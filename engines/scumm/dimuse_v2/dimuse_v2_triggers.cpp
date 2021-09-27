@@ -202,17 +202,6 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 					_trigs[l].args_7_, _trigs[l].args_8_,
 					_trigs[l].args_9_, -1, -1, -1, -1);
 			}
-			// This is used by DIG when speech is playing; not clear what its purpose is,
-			// but its absence never appeared to disrupt anything
-			/* else {
-				int(*func)() = trigs[l].opcode;
-				func(triggers_textBuffer, trigs[l].args_0_,
-					trigs[l].args_1_, trigs[l].args_2_,
-					trigs[l].args_3_, trigs[l].args_4_,
-					trigs[l].args_5_, trigs[l].args_6_,
-					trigs[l].args_7_, trigs[l].args_8_,
-					trigs[l].args_9_);
-			}*/
 		}
 
 		// Restore the global textBuffer
@@ -282,17 +271,6 @@ void DiMUSETriggersHandler::loop() {
 						_trigs[l].args_6_, _trigs[l].args_7_,
 						_trigs[l].args_8_, _trigs[l].args_9_, -1, -1, -1, -1);
 				}
-				// This is used by DIG when speech is playing; not clear what its purpose is,
-				// but its absence never appeared to disrupt anything
-				/*else {
-					int(*func)() = trigs[l].opcode;
-					func(trigs[l].text,
-						trigs[l].args_0_, trigs[l].args_1_,
-						trigs[l].args_2_, trigs[l].args_3_,
-						trigs[l].args_4_, trigs[l].args_5_,
-						trigs[l].args_6_, trigs[l].args_7_,
-						trigs[l].args_8_, trigs[l].args_9_);
-				}*/ 
 			} else {
 				_engine->scriptTriggerCallback(_trigs[l].text);
 			}

@@ -30,18 +30,13 @@ DiMUSEGroupsHandler::DiMUSEGroupsHandler(DiMUSE_v2 *engine) {
 	_engine = engine;
 }
 
-DiMUSEGroupsHandler::~DiMUSEGroupsHandler() {
-}
+DiMUSEGroupsHandler::~DiMUSEGroupsHandler() {}
 
 int DiMUSEGroupsHandler::init() {
 	for (int i = 0; i < MAX_GROUPS; i++) {
 		_effVols[i] = 127;
 		_vols[i] = 127;
 	}
-	return 0;
-}
-
-int DiMUSEGroupsHandler::deinit() {
 	return 0;
 }
 

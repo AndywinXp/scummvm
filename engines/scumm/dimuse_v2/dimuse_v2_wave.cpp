@@ -95,7 +95,7 @@ int DiMUSE_v2::waveGetHook(int soundId) {
 }
 
 int DiMUSE_v2::waveStartStream(int soundId, int priority, int bufferId) {
-	if (!_filesHandler->checkIdInRange(soundId))
+	if (soundId == 0)
 		return -1;
 
 	Common::StackLock lock(_mutex);

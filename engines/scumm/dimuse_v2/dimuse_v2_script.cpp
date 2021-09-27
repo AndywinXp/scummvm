@@ -42,7 +42,6 @@ int DiMUSE_v2::scriptParse(int cmd, int a, int b) {
 			_scriptInitializedFlag = 0;
 			return scriptTerminate();
 		case 2: // script_save(a, b);
-			break;
 		case 3: // script_restore(a);
 			break;
 		case 4:
@@ -390,7 +389,7 @@ void DiMUSE_v2::playDigMusic(const char *songName, const imuseDigTable *table, i
 			break;
 
 		if (diMUSEGetParam(nextSoundId, 0x1800) && (diMUSEGetParam(nextSoundId, 0x1900) == DIMUSE_BUFFER_MUSIC)) {
-			oldSoundId = nextSoundId; // Could _digStateMusicTable[_curMusicState].soundId be enough as oldSoundId?
+			oldSoundId = nextSoundId;
 			break;
 		}
 	}
@@ -528,7 +527,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 			break;
 
 		if (diMUSEGetParam(nextSoundId, 0x1800) && (diMUSEGetParam(nextSoundId, 0x1900) == DIMUSE_BUFFER_MUSIC)) {
-			oldSoundId = nextSoundId; // Could _comiStateMusicTable[_curMusicState].soundId be enough as oldSoundId?
+			oldSoundId = nextSoundId;
 			break;
 		}
 	}
