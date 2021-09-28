@@ -107,7 +107,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			_trigs[index].sound = soundId;
 			_trigs[index].clearLater = 0;
 			_trigs[index].opcode = opcode;
-			strcpy(_trigs[index].text, marker);
+			Common::strlcpy(_trigs[index].text, marker, sizeof(_trigs[index].text));
 			_trigs[index].args_0_ = d;
 			_trigs[index].args_1_ = e;
 			_trigs[index].args_2_ = f;
@@ -167,7 +167,7 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 		return;
 	}
 
-	strcpy(_textBuffer, marker);
+	Common::strlcpy(_textBuffer, marker, sizeof(marker));
 	_midProcessing++;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound ||
