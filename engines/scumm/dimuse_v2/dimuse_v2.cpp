@@ -86,16 +86,16 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 11000, 132000);
 	}
 	
-	_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SMUSH, 198000, 0, 0);
+	_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SFX, 198000, 0, 0);
 
 	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
 }
 
 DiMUSE_v2::~DiMUSE_v2() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
-	_filesHandler->deallocSoundBuffer(1);
-	_filesHandler->deallocSoundBuffer(2);
-	_filesHandler->deallocSoundBuffer(3);
+	_filesHandler->deallocSoundBuffer(DIMUSE_BUFFER_SPEECH);
+	_filesHandler->deallocSoundBuffer(DIMUSE_BUFFER_MUSIC);
+	_filesHandler->deallocSoundBuffer(DIMUSE_BUFFER_SFX);
 	cmdsDeinit();
 	diMUSETerminate();
 	delete _internalMixer;
@@ -141,11 +141,15 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActor
 		if (fileDoesNotExist)
 			return 1;
 
-		// At this point, The Dig sets up a trigger for the voice file; it is not clear what it does,
-		// and its absence never appeared to distrupt anything, so I'll just leave it as a comment
-		// diMUSESetTrigger(kTalkSoundID, byte_451808, speechTriggerFunction);
+		// Workaround for this particular sound file not playing (this is a bug in the original):
+		// this is happening because the sound buffer responsible for speech
+		// is still busy with the previous speech file playing during the SAN
+		// movie. We just stop the SMUSH speech sound before playing NEXUS.029.
+		if (!strcmp(soundName, "NEXUS.029")) {
+			diMUSEStopSound(SMUSH_SOUNDID + DIMUSE_BUFFER_SPEECH);
+		}
 
-		diMUSEStartStream(kTalkSoundID, 127, 1);
+		diMUSEStartStream(kTalkSoundID, 127, DIMUSE_BUFFER_SPEECH);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 		if (speakingActorId == _vm->VAR(_vm->VAR_EGO)) {
 			diMUSESetParam(kTalkSoundID, 0xA00, 0);
@@ -160,7 +164,7 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActor
 		if (fileDoesNotExist)
 			return 1;
 
-		diMUSEStartStream(kTalkSoundID, 127, 1);
+		diMUSEStartStream(kTalkSoundID, 127, DIMUSE_BUFFER_SPEECH);
 		diMUSESetParam(kTalkSoundID, 0x400, 2);
 
 		// Let's not give the occasion to raise errors here

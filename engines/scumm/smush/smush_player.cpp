@@ -505,13 +505,13 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 			break;
 		default:
 			if (userId >= 100 && userId <= 163) {
-				bufId = 1;
+				bufId = DIMUSE_BUFFER_SPEECH;
 				volume = 2 * userId - 200;
 			} else if (userId >= 200 && userId <= 263) {
-				bufId = 2;
+				bufId = DIMUSE_BUFFER_MUSIC;
 				volume = 2 * userId - 400;
 			} else if (userId >= 300 && userId <= 363) {
-				bufId = 3;
+				bufId = DIMUSE_BUFFER_SFX;
 				volume = 2 * userId - 600;
 			} else {
 				free(dataBuffer);
@@ -532,8 +532,8 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		_iactTable[bufId] = index;
 
 		if (index) {
-			if (engine->diMUSEGetParam(bufId + 12345678, 0x100)) {
-				engine->diMUSEFeedStream(bufId + 12345678, dataBuffer, subSize - 18, paused);
+			if (engine->diMUSEGetParam(bufId + SMUSH_SOUNDID, 0x100)) {
+				engine->diMUSEFeedStream(bufId + SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
 				free(dataBuffer);
 				return;
 			}
@@ -554,26 +554,26 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 
 			if (!curSoundId) {
 				// There isn't any previous sound running: start a new stream
-				if (engine->diMUSEStartStream(bufId + 12345678, 126, bufId)) {
+				if (engine->diMUSEStartStream(bufId + SMUSH_SOUNDID, 126, bufId)) {
 					free(dataBuffer);
 					error("SmushPlayer::handleIACT(): ERROR: couldn't start stream");
 				}
 			} else {
 				// There's an old sound running: switch the stream from the old one to the new one
-				engine->diMUSESwitchStream(curSoundId, bufId + 12345678, bufId == 2 ? 1000 : 150, 0, 0);
+				engine->diMUSESwitchStream(curSoundId, bufId + SMUSH_SOUNDID, bufId == 2 ? 1000 : 150, 0, 0);
 			}
 
-			engine->diMUSESetParam(bufId + 12345678, 0x600, volume);
+			engine->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x600, volume);
 
-			if (bufId == 1) {
-				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_SPEECH);
-			} else if (bufId == 2) {
-				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_MUSIC);
+			if (bufId == DIMUSE_BUFFER_SPEECH) {
+				engine->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SPEECH);
+			} else if (bufId == DIMUSE_BUFFER_MUSIC) {
+				engine->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_MUSIC);
 			} else {
-				engine->diMUSESetParam(bufId + 12345678, 0x400, DIMUSE_GROUP_SFX);
+				engine->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SFX);
 			}
 
-			engine->diMUSEFeedStream(bufId + 12345678, dataBuffer, subSize - 18, paused);
+			engine->diMUSEFeedStream(bufId + SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
 			free(dataBuffer);
 			return;
 		}
