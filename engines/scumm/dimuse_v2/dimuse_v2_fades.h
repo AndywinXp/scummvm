@@ -44,7 +44,7 @@ public:
 	int init();
 	void deinit();
 	void saveLoad(Common::Serializer &ser);
-	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot);
+	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength);
 	void clearFadeStatus(int soundId, int opcode);
 	void loop();
 	

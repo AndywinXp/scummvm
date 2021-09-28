@@ -36,23 +36,21 @@ int DiMUSEFadesHandler::init() {
 	return 0;
 }
 
-int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength, int oneShot) {
+int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength) {
 	if (!soundId || fadeLength < 0)
 		return -5;
-	if (opcode != 0x500 && opcode != 0x600 && opcode != 0x700 && opcode != 0x800 && opcode != 0xF00 && opcode != 17)
+	if (opcode != P_PRIORITY && opcode != P_VOLUME && opcode != P_PAN && opcode != P_DETUNE && opcode != P_UNKNOWN && opcode != 17)
 		return -5;
 
 	for (int l = 0; l < MAX_FADES; l++) {
-		// The oneShot parameter is a hack for fading out a sound during a SMUSH movie in The Dig; 
-		// see scriptRefresh() in dimuse_v2_script.cpp for further information
-		if (_fades[l].status && (_fades[l].sound == soundId && !oneShot) && (_fades[l].param == opcode || opcode == -1)) {
+		if (_fades[l].status && (_fades[l].sound == soundId) && (_fades[l].param == opcode || opcode == -1)) {
 			_fades[l].status = 0;
 		}
 	}
 
 	if (!fadeLength) {
 		debug(5, "DiMUSEFadesHandler::fadeParam(): WARNING: allocated fade with zero length for sound %d", soundId);
-		if (opcode != 0x600 || destinationValue) {
+		if (opcode != P_VOLUME || destinationValue) {
 			_engine->diMUSESetParam(soundId, opcode, destinationValue);
 			return 0;
 		} else {
@@ -125,7 +123,7 @@ void DiMUSEFadesHandler::loop() {
 
 				if ((_fades[l].counter % 6) == 0) {
 					debug(5, "DiMUSEFadesHandler::loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
-					if ((_fades[l].param != 0x600) || currentVolume != 0) {
+					if ((_fades[l].param != P_VOLUME) || currentVolume != 0) {
 						_engine->diMUSESetParam(_fades[l].sound, _fades[l].param, currentVolume);
 						continue;
 					} else {

@@ -50,6 +50,23 @@ namespace Scumm {
 #define NUM_HEADERS 8
 #define SMUSH_SOUNDID 12345678
 
+// Parameters IDs
+#define P_BOGUS_ID	     0x0
+#define P_SND_TRACK_NUM  0x100
+#define P_TRIGS_SNDS     0x200
+#define P_MARKER         0x300
+#define P_GROUP          0x400
+#define P_PRIORITY       0x500
+#define P_VOLUME         0x600
+#define P_PAN            0x700
+#define P_DETUNE         0x800
+#define P_TRANSPOSE      0x900
+#define P_MAILBOX        0xA00
+#define P_UNKNOWN        0xF00
+#define P_SND_HAS_STREAM 0x1800
+#define P_STREAM_BUFID   0x1900
+#define P_SND_POS_IN_MS  0x1A00
+
 struct DiMUSEDispatch;
 struct DiMUSETrack;
 struct DiMUSEStreamZone;

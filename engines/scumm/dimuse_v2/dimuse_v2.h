@@ -308,7 +308,7 @@ public:
 	int diMUSEGetNextSound(int soundId);
 	int diMUSESetParam(int soundId, int paramId, int value);
 	int diMUSEGetParam(int soundId, int paramId);
-	int diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength, int oneShot = 0);
+	int diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength);
 	int diMUSESetHook(int soundId, int hookId);
 	int diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
 	int diMUSEStartStream(int soundId, int priority, int groupId);
@@ -320,18 +320,11 @@ public:
 	int diMUSESetMusicGroupVol(int volume);
 	int diMUSESetSFXGroupVol(int volume);
 	int diMUSESetVoiceGroupVol(int volume);
-	int diMUSEGetMusicGroupVol();
-	int diMUSEGetSFXGroupVol();
-	int diMUSEGetVoiceGroupVol();
 	void diMUSEUpdateGroupVolumes();
 	int diMUSEInitializeScript();
-	int diMUSETerminateScript();
-	int diMUSESaveScript();
-	int diMUSERestoreScript();
 	void diMUSERefreshScript();
 	int diMUSESetState(int soundId);
 	int diMUSESetSequence(int soundId);
-	int diMUSESetCuePoint();
 	int diMUSESetAttribute(int attrIndex, int attrVal);
 
 	// Utils

@@ -808,7 +808,7 @@ int DiMUSE_v2::dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr) {
 		// from a bundle (either music or speech)
 		if (dispatchPtr->streamPtr) {
 			
-			copiedBuf = (uint8 *)streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x10u);
+			copiedBuf = (uint8 *)streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x10);
 
 			if (!copiedBuf) {
 				return -3;

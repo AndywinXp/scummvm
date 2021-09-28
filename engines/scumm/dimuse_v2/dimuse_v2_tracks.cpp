@@ -433,6 +433,7 @@ void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
 	_fadesHandler->clearFadeStatus(trackPtr->soundId, -1);
 	_triggersHandler->clearTrigger(trackPtr->soundId, _emptyMarker, -1);
 
+	// Unlock the sound, if it's a SFX
 	if (trackPtr->soundId < 1000 && trackPtr->soundId) {
 		_vm->_res->unlock(rtSound, trackPtr->soundId);
 	}
@@ -448,35 +449,35 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 	while (track) {
 		if (track->soundId == soundId) {
 			switch (opcode) {
-			case 0x400:
+			case P_GROUP:
 				if (value >= 16)
 					return -5;
 				track->group = value;
 				track->effVol = ((track->vol + 1) * _groupsHandler->getGroupVol(value)) / 128;
 				return 0;
-			case 0x500:
+			case P_PRIORITY:
 				if (value > 127)
 					return -5;
 				track->priority = value;
 				return 0;
-			case 0x600:
+			case P_VOLUME:
 				if (value > 127)
 					return -5;
 				track->vol = value;
 				track->effVol = ((value + 1) * _groupsHandler->getGroupVol(track->group)) / 128;
 				return 0;
-			case 0x700:
+			case P_PAN:
 				if (value > 127)
 					return -5;
 				track->pan = value;
 				return 0;
-			case 0x800:
+			case P_DETUNE:
 				if (value < -9216 || value > 9216)
 					return -5;
 				track->detune = value;
 				track->pitchShift = value + track->transpose * 256;
 				return 0;
-			case 0x900:
+			case P_TRANSPOSE:
 				if (_vm->_game.id == GID_DIG) {
 					if (value < -12 || value > 12)
 						return -5;
@@ -496,7 +497,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 				}
 				
 				return 0;
-			case 0xA00:
+			case P_MAILBOX:
 				track->mailbox = value;
 				return 0;
 			default:
@@ -512,11 +513,12 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 
 int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 	if (!_trackList) {
-		if (opcode != 0x100)
+		if (opcode != P_SND_TRACK_NUM)
 			return -4;
 		else
 			return 0;
 	}
+
 	DiMUSETrack *track = _trackList;
 	int l = 0;
 	do {
@@ -524,33 +526,33 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 			l++;
 		if (track->soundId == soundId) {
 			switch (opcode) {
-			case 0:
+			case P_BOGUS_ID:
 				return -1;
-			case 0x100:
+			case P_SND_TRACK_NUM:
 				return l;
-			case 0x200:
+			case P_TRIGS_SNDS:
 				return -1;
-			case 0x300:
+			case P_MARKER:
 				return track->marker;
-			case 0x400:
+			case P_GROUP:
 				return track->group;
-			case 0x500:
+			case P_PRIORITY:
 				return track->priority;
-			case 0x600:
+			case P_VOLUME:
 				return track->vol;
-			case 0x700:
+			case P_PAN:
 				return track->pan;
-			case 0x800:
+			case P_DETUNE:
 				return track->detune;
-			case 0x900:
+			case P_TRANSPOSE:
 				return track->transpose;
-			case 0xA00:
+			case P_MAILBOX:
 				return track->mailbox;
-			case 0x1800:
+			case P_SND_HAS_STREAM:
 				return (track->dispatchPtr->streamPtr != 0);
-			case 0x1900:
+			case P_STREAM_BUFID:
 				return track->dispatchPtr->streamBufID;
-			case 0x1A00: // getCurSoundPositionInMs
+			case P_SND_POS_IN_MS: // getCurSoundPositionInMs
 				if (track->dispatchPtr->wordSize == 0)
 					return 0;
 				if (track->dispatchPtr->sampleRate == 0)
@@ -566,10 +568,7 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 		track = track->next;
 	} while (track);
 
-	if (opcode != 0x100)
-		return -4;
-	else
-		return 0;
+	return 0;
 }
 
 int DiMUSE_v2::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
@@ -693,7 +692,7 @@ void DiMUSE_v2::tracksDeinit() {
 
 		dispatchRelease(track);
 		_fadesHandler->clearFadeStatus(track->soundId, -1);
-		_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
+		_triggersHandler->clearTrigger(track->soundId, _emptyMarker, -1);
 
 		track->soundId = 0;
 		track = track->next;

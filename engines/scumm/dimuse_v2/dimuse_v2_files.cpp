@@ -99,7 +99,7 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// The seeked position is in reference to the decompressed sound
 
 	// A soundId > 10000 is a SAN cutscene
-	if ((_vm->_game.id == GID_DIG) && (soundId > 10000))
+	if ((_vm->_game.id == GID_DIG) && (soundId > kTalkSoundID))
 		return 0;
 
 	if (soundId != 0) {
@@ -267,7 +267,7 @@ void DiMUSEFilesHandler::flushSounds() {
 		DiMUSESndMgr::SoundDesc *curSnd = &s[i];
 		if (curSnd && curSnd->inUse) {
 			if (curSnd->scheduledForDealloc)
-				if (!_engine->diMUSEGetParam(curSnd->soundId, 0x100) && !_engine->diMUSEGetParam(curSnd->soundId, 0x200))
+				if (!_engine->diMUSEGetParam(curSnd->soundId, P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, 0x200))
 					_sound->closeSound(curSnd);
 		}
 	}

@@ -47,7 +47,6 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, u
 	case 0:
 		return cmdsInit();
 	case 1: // cmds_terminate
-		break; 
 	case 2: // cmds_print
 		break; 
 	case 3:
@@ -55,7 +54,6 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, u
 	case 4:
 		return cmdsResume();
 	case 5: // cmds_save
-		break;
 	case 6: // cmds_restore
 		break;
 	case 7:
@@ -78,7 +76,7 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, u
 	case 13:
 		return cmdsGetParam(arg_0, (int)arg_1);
 	case 14:
-		return _fadesHandler->fadeParam(arg_0, (int)arg_1, (int)arg_2, (int)arg_3, (int)arg_4);
+		return _fadesHandler->fadeParam(arg_0, (int)arg_1, (int)arg_2, (int)arg_3);
 	case 15:
 		return cmdsSetHook(arg_0, (int)arg_1);
 	case 16:
@@ -246,7 +244,7 @@ int DiMUSE_v2::cmdsGetParam(int soundId, int subCmd) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (subCmd != 0) {
-		if (subCmd == 0x200) {
+		if (subCmd == P_TRIGS_SNDS) {
 			return _triggersHandler->countPendingSounds(soundId);
 		}
 
@@ -254,7 +252,7 @@ int DiMUSE_v2::cmdsGetParam(int soundId, int subCmd) {
 			return waveGetParam(soundId, subCmd);
 		}
 
-		result = (subCmd == 0x100) - 1;
+		result = (subCmd == P_SND_TRACK_NUM) - 1;
 	}
 
 	return result;
