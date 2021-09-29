@@ -121,7 +121,7 @@ int DiMUSE_v2::cmdsInit() {
 	_cmdsRunning10HzCount = 0;
 
 	if (_groupsHandler->init() || _fadesHandler->init() ||
-		_triggersHandler->init() || waveInit() || _timerHandler->init()) {
+		_triggersHandler->init() || waveInit()) {
 		return -1;
 	}
 
@@ -130,7 +130,6 @@ int DiMUSE_v2::cmdsInit() {
 }
 
 int DiMUSE_v2::cmdsDeinit() {
-	_timerHandler->deinit();
 	waveTerminate();
 	waveOutDeinit();
 	_triggersHandler->deinit();

@@ -48,6 +48,7 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
+	_usecPerInt = 20000;
 
 	_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
 	_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
@@ -65,13 +66,13 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 
 	_stopSequenceFlag = 0;
 	_scriptInitializedFlag = 0;
+	_callbackInterruptFlag = 0;
 
 	_radioChatterSFX = false;
 
 	_emptyMarker[0] = '\0';
 	_internalMixer = new DiMUSEInternalMixer(mixer);
 	_groupsHandler = new DiMUSEGroupsHandler(this);
-	_timerHandler = new DiMUSETimerHandler();
 	_fadesHandler = new DiMUSEFadesHandler(this);
 	_triggersHandler = new DiMUSETriggersHandler(this);
 	_filesHandler = new DiMUSEFilesHandler(this, scumm);
@@ -100,7 +101,6 @@ DiMUSE_v2::~DiMUSE_v2() {
 	diMUSETerminate();
 	delete _internalMixer;
 	delete _groupsHandler;
-	delete _timerHandler;
 	delete _fadesHandler;
 	delete _triggersHandler;
 	delete _filesHandler;
@@ -249,10 +249,10 @@ void DiMUSE_v2::callback() {
 	if (_cmdsPauseCount)
 		return;
 
-	if (!_timerHandler->getInterruptFlag()) {
-		_timerHandler->setInterruptFlag(1);
+	if (!_callbackInterruptFlag) {
+		_callbackInterruptFlag = 1;
 		diMUSEHeartbeat();
-		_timerHandler->setInterruptFlag(0);
+		_callbackInterruptFlag = 0;
 	}
 }
 
@@ -265,7 +265,6 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 
 	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol;
 
-	int usecPerInt = _timerHandler->getUsecPerInt(); // (Set to 50 Hz)
 	waveOutCallback();
 
 	// Update volumes
@@ -287,14 +286,14 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 
 	// Handle fades and triggers
 
-	_cmdsRunning60HzCount += usecPerInt;
+	_cmdsRunning60HzCount += _usecPerInt;
 	while (_cmdsRunning60HzCount >= 16667) {
 		_cmdsRunning60HzCount -= 16667;
 		_fadesHandler->loop();
 		_triggersHandler->loop();
 	}
 
-	_cmdsRunning10HzCount += usecPerInt;
+	_cmdsRunning10HzCount += _usecPerInt;
 	if (_cmdsRunning10HzCount < 100000)
 		return;
 

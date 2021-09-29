@@ -105,7 +105,6 @@ MODULE_OBJS += \
 	dimuse_v2/dimuse_v2_internalmixer.o \
 	dimuse_v2/dimuse_v2_script.o \
 	dimuse_v2/dimuse_v2_streamer.o \
-	dimuse_v2/dimuse_v2_timer.o \
 	dimuse_v2/dimuse_v2_tracks.o \
 	dimuse_v2/dimuse_v2_triggers.o \
 	dimuse_v2/dimuse_v2_utils.o \

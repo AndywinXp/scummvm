@@ -32,7 +32,7 @@ int DiMUSE_v2::scriptParse(int cmd, int a, int b) {
 		switch (cmd) {
 		case 0:
 			if (_scriptInitializedFlag) {
-				debug(5, "DiMUSE_v2::script_parse(): script module already initialized");
+				debug(5, "DiMUSE_v2::scriptParse(): script module already initialized");
 				return -1;
 			} else {
 				_scriptInitializedFlag = 1;
@@ -601,8 +601,8 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 					switch (table->transitionType) {
 					case 10:
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, P_VOLUME, 127, - 1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, P_GROUP, 4, - 1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, P_VOLUME, 127, -1, -1, -1, -1, -1, -1, -1, -1);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, P_GROUP, 4, -1, -1, -1, -1, -1, -1, -1, -1);
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 						diMUSEProcessStreams();
 						break;
@@ -646,7 +646,7 @@ void DiMUSE_v2::playComiMusic(const char *songName, const imuseComiTable *table,
 		break;
 	case 6:
 		_stopSequenceFlag = 0;
-		diMUSESetTrigger(12345680, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+		diMUSESetTrigger(SMUSH_SOUNDID + DIMUSE_BUFFER_MUSIC, MKTAG('_', 'e', 'n', 'd'), 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 		break;
 	case 7:
 		if (oldSoundId)

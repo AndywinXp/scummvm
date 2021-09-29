@@ -33,7 +33,6 @@
 #include "scumm/dimuse_v2/dimuse_v2_defs.h"
 #include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
 #include "scumm/dimuse_v2/dimuse_v2_groups.h"
-#include "scumm/dimuse_v2/dimuse_v2_timer.h"
 #include "scumm/dimuse_v2/dimuse_v2_fades.h"
 #include "scumm/dimuse_v2/dimuse_v2_files.h"
 #include "scumm/dimuse_v2/dimuse_v2_triggers.h"
@@ -65,7 +64,6 @@ private:
 
 	DiMUSEInternalMixer *_internalMixer;
 	DiMUSEGroupsHandler *_groupsHandler;
-	DiMUSETimerHandler *_timerHandler;
 	DiMUSEFadesHandler *_fadesHandler;
 	DiMUSETriggersHandler *_triggersHandler;
 	DiMUSEFilesHandler *_filesHandler;
@@ -91,6 +89,8 @@ private:
 	int _scriptInitializedFlag;
 	char _emptyMarker[1];
 
+	int _usecPerInt; // Microseconds between each callback (will be set to 50 Hz)
+	int _callbackInterruptFlag;
 	void diMUSEHeartbeat();
 
 	void setDigMusicState(int stateId);
