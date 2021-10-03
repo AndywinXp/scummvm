@@ -1649,29 +1649,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	if (_useDiMUSEv2) {
 		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
-		bool isExtComp = false;
-		bool isRawBun = false;
-		if (_game.id == GID_CMI) {
-			bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
-			// Check voxdisk1 and 2 separately for isRawBun, just for good measure
-			bnd->open("voxdisk1.bun", isExtComp1);
-			isRawBun = bnd->isBundleFileRaw();
-			bnd->open("voxdisk2.bun", isExtComp2);
-			isRawBun |= bnd->isBundleFileRaw(); 
-			bnd->open("musdisk1.bun", isExtComp3);
-			bnd->open("musdisk2.bun", isExtComp4);
-			
-			isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
-		} else {
-			bool isExtComp1 = false, isExtComp2 = false;
-			bnd->open("digvoice.bun", isExtComp1);
-			bnd->open("digmusic.bun", isExtComp2);
-			isExtComp = isExtComp1 | isExtComp2;
-		}
-
-		_useDiMUSEv2 &= !isRawBun;
-		_useDiMUSEv2 &= !isExtComp;
-
+		_useDiMUSEv2 &= !bnd->isRawOrExtCompBun(_game.id);
 		delete bnd;
 	}
 

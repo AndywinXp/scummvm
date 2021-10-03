@@ -516,4 +516,28 @@ bool BundleMgr::isBundleFileRaw() {
 	return false;
 }
 
+bool BundleMgr::isRawOrExtCompBun(byte gameId) {
+	bool isExtComp = false;
+	bool isRawBun = false;
+	if (gameId == GID_CMI) {
+		bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
+		// Check voxdisk1 and 2 separately for isRawBun, just for good measure
+		this->open("voxdisk1.bun", isExtComp1);
+		isRawBun = this->isBundleFileRaw();
+		this->open("voxdisk2.bun", isExtComp2);
+		isRawBun |= this->isBundleFileRaw();
+		this->open("musdisk1.bun", isExtComp3);
+		this->open("musdisk2.bun", isExtComp4);
+
+		isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
+	} else {
+		bool isExtComp1 = false, isExtComp2 = false;
+		this->open("digvoice.bun", isExtComp1);
+		this->open("digmusic.bun", isExtComp2);
+		isExtComp = isExtComp1 | isExtComp2;
+	}
+
+	return isRawBun || isExtComp;
+}
+
 } // End of namespace Scumm
