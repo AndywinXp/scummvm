@@ -26,18 +26,17 @@ namespace Scumm {
 
 // We have some uintptr arguments as commands 28, 29 and 30 actually require pointer arguments
 // Unfortunately this makes function calls for other command a little less pretty...
-int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, uintptr arg_3, uintptr arg_4,
-	int arg_5, int arg_6, int arg_7, int arg_8, int arg_9,
-	int arg_10, int arg_11, int arg_12, int arg_13) {
+int DiMUSE_v2::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, uintptr e,
+	int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 
 	// Convert the character constant (single quotes '') to string
 	char marker[5];
 	if (cmd == 17 || cmd == 18 || cmd == 19) {
 		for (int i = 0; i < 4; i++) {
 #if defined SCUMM_BIG_ENDIAN	
-			marker[i] = (arg_1 >> (8 * i)) & 0xff;		
+			marker[i] = (b >> (8 * i)) & 0xff;		
 #elif defined SCUMM_LITTLE_ENDIAN
-			marker[3 - i] = (arg_1 >> (8 * i)) & 0xff;
+			marker[3 - i] = (b >> (8 * i)) & 0xff;
 #endif
 		}
 		marker[4] = '\0';
@@ -46,69 +45,57 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int arg_0, uintptr arg_1, uintptr arg_2, u
  	switch (cmd) {
 	case 0:
 		return cmdsInit();
-	case 1: // cmds_terminate
-	case 2: // cmds_print
-		break; 
 	case 3:
 		return cmdsPause();
 	case 4:
 		return cmdsResume();
-	case 5: // cmds_save
-	case 6: // cmds_restore
-		break;
 	case 7:
-		_groupsHandler->setGroupVol(arg_0, (int)arg_1);
+		_groupsHandler->setGroupVol(a, (int)b);
 		break;
 	case 8:
-		cmdsStartSound(arg_0, (int)arg_1);
+		cmdsStartSound(a, (int)b);
 		break;
 	case 9:
-		cmdsStopSound(arg_0);
+		cmdsStopSound(a);
 		break;
 	case 10:
 		cmdsStopAllSounds();
 		break;
 	case 11:
-		return cmdsGetNextSound(arg_0);
+		return cmdsGetNextSound(a);
 	case 12:
-		cmdsSetParam(arg_0, (int)arg_1, (int)arg_2);
+		cmdsSetParam(a, (int)b, (int)c);
 		break;
 	case 13:
-		return cmdsGetParam(arg_0, (int)arg_1);
+		return cmdsGetParam(a, (int)b);
 	case 14:
-		return _fadesHandler->fadeParam(arg_0, (int)arg_1, (int)arg_2, (int)arg_3);
+		return _fadesHandler->fadeParam(a, (int)b, (int)c, (int)d);
 	case 15:
-		return cmdsSetHook(arg_0, (int)arg_1);
+		return cmdsSetHook(a, (int)b);
 	case 16:
-		return cmdsGetHook(arg_0);
+		return cmdsGetHook(a);
 	case 17:		
-		return _triggersHandler->setTrigger(arg_0, marker, (int)arg_2, (int)arg_3, (int)arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
+		return _triggersHandler->setTrigger(a, marker, (int)c, (int)d, (int)e, f, g, h, i, j, k, l, m, n);
 	case 18:
-		return _triggersHandler->checkTrigger(arg_0, marker, (int)arg_2);
+		return _triggersHandler->checkTrigger(a, marker, (int)c);
 	case 19:
-		return _triggersHandler->clearTrigger(arg_0, marker, (int)arg_2);
+		return _triggersHandler->clearTrigger(a, marker, (int)c);
 	case 20:
-		return _triggersHandler->deferCommand(arg_0, (int)arg_1, (int)arg_2, (int)arg_3, (int)arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11, arg_12, arg_13);
-	case 21:
-	case 22:
-	case 23:
-	case 24:
-		// Empty opcodes
-		return 0;
+		return _triggersHandler->deferCommand(a, (int)b, (int)c, (int)d, (int)e, f, g, h, i, j, k, l, m, n);
 	case 25:
-		return waveStartStream(arg_0, (int)arg_1, (int)arg_2);
+		return waveStartStream(a, (int)b, (int)c);
 	case 26:
-		return waveSwitchStream(arg_0, (int)arg_1, (int)arg_2, (int)arg_3, (int)arg_4);
+		return waveSwitchStream(a, (int)b, (int)c, (int)d, (int)e);
 	case 27:
 		return waveProcessStreams();
 	case 28:
-		return waveQueryStream(arg_0, (int *)arg_1, (int *)arg_2, (int *)arg_3, (int *)arg_4);
+		return waveQueryStream(a, (int *)b, (int *)c, (int *)d, (int *)e);
 	case 29:
-		return waveFeedStream(arg_0, (uint8 *)arg_1, (int)arg_2, (int)arg_3);
+		return waveFeedStream(a, (uint8 *)b, (int)c, (int)d);
 	case 30:
-		return waveLipSync(arg_0, (int)arg_1, (int)arg_2, (int32 *)arg_3, (int32 *)arg_4);
+		return waveLipSync(a, (int)b, (int)c, (int32 *)d, (int32 *)e);
 	default:
-		debug(5, "DiMUSE_v2::cmdsHandleCmd(): bogus opcode ignored.");
+		debug(5, "DiMUSE_v2::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
 		return -1;
 	}
 

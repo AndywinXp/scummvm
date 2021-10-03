@@ -56,32 +56,32 @@ void DiMUSETriggersHandler::saveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_trigs[l].sound, VER(103));
 		ser.syncArray(_trigs[l].text, 256, Common::Serializer::SByte, VER(103));
 		ser.syncAsSint32LE(_trigs[l].opcode, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_0_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_1_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_2_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_3_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_4_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_5_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_6_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_7_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_8_, VER(103));
-		ser.syncAsSint32LE(_trigs[l].args_9_, VER(103));
+		ser.syncAsSint32LE(_trigs[l].a, VER(103));
+		ser.syncAsSint32LE(_trigs[l].b, VER(103));
+		ser.syncAsSint32LE(_trigs[l].c, VER(103));
+		ser.syncAsSint32LE(_trigs[l].d, VER(103));
+		ser.syncAsSint32LE(_trigs[l].e, VER(103));
+		ser.syncAsSint32LE(_trigs[l].f, VER(103));
+		ser.syncAsSint32LE(_trigs[l].g, VER(103));
+		ser.syncAsSint32LE(_trigs[l].h, VER(103));
+		ser.syncAsSint32LE(_trigs[l].i, VER(103));
+		ser.syncAsSint32LE(_trigs[l].j, VER(103));
 		ser.syncAsSint32LE(_trigs[l].clearLater, VER(103));
 	}
 
 	for (int l = 0; l < MAX_DEFERS; l++) {
 		ser.syncAsSint32LE(_defers[l].counter, VER(103));
 		ser.syncAsSint32LE(_defers[l].opcode, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_0_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_1_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_2_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_3_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_4_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_5_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_6_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_7_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_8_, VER(103));
-		ser.syncAsSint32LE(_defers[l].args_9_, VER(103));
+		ser.syncAsSint32LE(_defers[l].a, VER(103));
+		ser.syncAsSint32LE(_defers[l].b, VER(103));
+		ser.syncAsSint32LE(_defers[l].c, VER(103));
+		ser.syncAsSint32LE(_defers[l].d, VER(103));
+		ser.syncAsSint32LE(_defers[l].e, VER(103));
+		ser.syncAsSint32LE(_defers[l].f, VER(103));
+		ser.syncAsSint32LE(_defers[l].g, VER(103));
+		ser.syncAsSint32LE(_defers[l].h, VER(103));
+		ser.syncAsSint32LE(_defers[l].i, VER(103));
+		ser.syncAsSint32LE(_defers[l].j, VER(103));
 	}
 
 	if (ser.isLoading())
@@ -108,16 +108,16 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			_trigs[index].clearLater = 0;
 			_trigs[index].opcode = opcode;
 			Common::strlcpy(_trigs[index].text, marker, sizeof(_trigs[index].text));
-			_trigs[index].args_0_ = d;
-			_trigs[index].args_1_ = e;
-			_trigs[index].args_2_ = f;
-			_trigs[index].args_3_ = g;
-			_trigs[index].args_4_ = h;
-			_trigs[index].args_5_ = i;
-			_trigs[index].args_6_ = j;
-			_trigs[index].args_7_ = k;
-			_trigs[index].args_8_ = l;
-			_trigs[index].args_9_ = m;
+			_trigs[index].a = d;
+			_trigs[index].b = e;
+			_trigs[index].c = f;
+			_trigs[index].d = g;
+			_trigs[index].e = h;
+			_trigs[index].f = i;
+			_trigs[index].g = j;
+			_trigs[index].h = k;
+			_trigs[index].i = l;
+			_trigs[index].j = m;
 
 			debug(5, "DiMUSETriggersHandler::setTrigger(): Successfully set trigger for soundId %d and marker '%s'", soundId, marker);
 			return 0;
@@ -195,12 +195,12 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 		} else {
 			if (_trigs[l].opcode < 30) {
 				// Execute a command
-				_engine->cmdsHandleCmd(_trigs[l].opcode, _trigs[l].args_0_,
-					_trigs[l].args_1_, _trigs[l].args_2_,
-					_trigs[l].args_3_, _trigs[l].args_4_,
-					_trigs[l].args_5_, _trigs[l].args_6_,
-					_trigs[l].args_7_, _trigs[l].args_8_,
-					_trigs[l].args_9_, -1, -1, -1, -1);
+				_engine->cmdsHandleCmd(_trigs[l].opcode, _trigs[l].a,
+					_trigs[l].b, _trigs[l].c,
+					_trigs[l].d, _trigs[l].e,
+					_trigs[l].f, _trigs[l].g,
+					_trigs[l].h, _trigs[l].i,
+					_trigs[l].j, -1, -1, -1, -1);
 			}
 		}
 
@@ -231,16 +231,16 @@ int DiMUSETriggersHandler::deferCommand(int count, int opcode, int c, int d, int
 		if (!_defers[index].counter) {
 			_defers[index].counter = count;
 			_defers[index].opcode = opcode;
-			_defers[index].args_0_ = c;
-			_defers[index].args_1_ = d;
-			_defers[index].args_2_ = e;
-			_defers[index].args_3_ = f;
-			_defers[index].args_4_ = g;
-			_defers[index].args_5_ = h;
-			_defers[index].args_6_ = i;
-			_defers[index].args_7_ = j;
-			_defers[index].args_8_ = k;
-			_defers[index].args_9_ = l;
+			_defers[index].a = c;
+			_defers[index].b = d;
+			_defers[index].c = e;
+			_defers[index].d = f;
+			_defers[index].e = g;
+			_defers[index].f = h;
+			_defers[index].g = i;
+			_defers[index].h = j;
+			_defers[index].i = k;
+			_defers[index].j = l;
 			_defersOn = 1;
 			return 0;
 		}
@@ -265,11 +265,11 @@ void DiMUSETriggersHandler::loop() {
 			if (_defers[l].opcode != 0) {
 				if (_defers[l].opcode < 30) {
 					_engine->cmdsHandleCmd(_trigs[l].opcode,
-						_trigs[l].args_0_, _trigs[l].args_1_,
-						_trigs[l].args_2_, _trigs[l].args_3_,
-						_trigs[l].args_4_, _trigs[l].args_5_,
-						_trigs[l].args_6_, _trigs[l].args_7_,
-						_trigs[l].args_8_, _trigs[l].args_9_, -1, -1, -1, -1);
+						_trigs[l].a, _trigs[l].b,
+						_trigs[l].c, _trigs[l].d,
+						_trigs[l].e, _trigs[l].f,
+						_trigs[l].g, _trigs[l].h,
+						_trigs[l].i, _trigs[l].j, -1, -1, -1, -1);
 				}
 			} else {
 				_engine->scriptTriggerCallback(_trigs[l].text);
@@ -285,7 +285,7 @@ int DiMUSETriggersHandler::countPendingSounds(int soundId) {
 			continue;
 
 		int opcode = _trigs[l].opcode;
-		if ((opcode == 8 && _trigs[l].args_0_ == soundId) || (opcode == 26 && _trigs[l].args_1_ == soundId))
+		if ((opcode == 8 && _trigs[l].a == soundId) || (opcode == 26 && _trigs[l].b == soundId))
 			r++;
 	}
 
@@ -294,7 +294,7 @@ int DiMUSETriggersHandler::countPendingSounds(int soundId) {
 			continue;
 
 		int opcode = _defers[l].opcode;
-		if ((opcode == 8 && _defers[l].args_0_ == soundId) || (opcode == 26 && _defers[l].args_1_ == soundId))
+		if ((opcode == 8 && _defers[l].a == soundId) || (opcode == 26 && _defers[l].b == soundId))
 			r++;
 	}
 

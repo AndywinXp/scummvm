@@ -75,32 +75,32 @@ typedef struct {
 	int sound;
 	char text[256];
 	int opcode;
-	int args_0_;
-	int args_1_;
-	int args_2_;
-	int args_3_;
-	int args_4_;
-	int args_5_;
-	int args_6_;
-	int args_7_;
-	int args_8_;
-	int args_9_;
+	int a;
+	int b;
+	int c;
+	int d;
+	int e;
+	int f;
+	int g;
+	int h;
+	int i;
+	int j;
 	int clearLater;
 } DiMUSETrigger;
 
 typedef struct {
 	int counter;
 	int opcode;
-	int args_0_;
-	int args_1_;
-	int args_2_;
-	int args_3_;
-	int args_4_;
-	int args_5_;
-	int args_6_;
-	int args_7_;
-	int args_8_;
-	int args_9_;
+	int a;
+	int b;
+	int c;
+	int d;
+	int e;
+	int f;
+	int g;
+	int h;
+	int i;
+	int j;
 } DiMUSEDefer;
 
 typedef struct {
