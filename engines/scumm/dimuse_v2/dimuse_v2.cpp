@@ -386,6 +386,10 @@ void DiMUSE_v2::flushTracks() {
 	_filesHandler->flushSounds();
 }
 
+bool DiMUSE_v2::isUsingV2Engine() {
+	return true;
+}
+
 int32 DiMUSE_v2::getCurMusicPosInMs() {
 	int soundId, curSoundId;
 

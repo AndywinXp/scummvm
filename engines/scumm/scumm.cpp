@@ -1687,7 +1687,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	_smixer = new SmushMixer(_mixer);
 
-	_splayer = new SmushPlayer(this, _diMUSE, _useDiMUSEv2);
+	_splayer = new SmushPlayer(this, _diMUSE);
 }
 #endif
 

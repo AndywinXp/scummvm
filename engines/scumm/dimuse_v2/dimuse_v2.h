@@ -287,6 +287,8 @@ public:
 	void refreshScripts() override;
 	void flushTracks() override;
 
+	bool isUsingV2Engine() override;
+
 	int32 getCurMusicPosInMs() override;
 	int32 getCurVoiceLipSyncWidth() override;
 	int32 getCurVoiceLipSyncHeight() override;

@@ -218,7 +218,7 @@ void SmushPlayer::timerCallback() {
 	parseNextFrame();
 }
 
-SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE, bool usingDiMUSEv2) {
+SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE) {
 	_vm = scumm;
 	_diMUSE = diMUSE;
 	_nbframes = 0;
@@ -253,7 +253,6 @@ SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE, bool usingDiMUSE
 	_paused = false;
 	_pauseStartTime = 0;
 	_pauseTime = 0;
-	_usingDiMUSEv2 = usingDiMUSEv2;
 
 	for (int i = 0; i < 4; i++)
 		_iactTable[i] = 0;
@@ -482,7 +481,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		}
 
 		free(src);
-	} else if (_vm->_game.id == GID_DIG && _usingDiMUSEv2) {
+	} else if (_vm->_game.id == GID_DIG && _diMUSE->isUsingV2Engine()) {
 		int bufId, volume, paused, curSoundId;
 		int userId = track_flags;
 

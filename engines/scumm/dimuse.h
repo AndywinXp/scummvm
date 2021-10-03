@@ -92,6 +92,8 @@ public:
 	virtual int32 getCurMusicLipSyncWidth(int syncId) { return 0; }
 	virtual int32 getCurMusicLipSyncHeight(int syncId) { return 0; }
 	virtual int32 getSoundElapsedTimeInMs(int soundId) { return 0; }
+
+	virtual bool isUsingV2Engine() { return false; }
 };
 
 } // End of namespace Scumm

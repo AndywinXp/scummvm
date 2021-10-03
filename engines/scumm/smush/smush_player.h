@@ -87,10 +87,9 @@ private:
 	bool _insanity;
 	bool _middleAudio;
 	bool _skipPalette;
-	bool _usingDiMUSEv2;
 	int _iactTable[4];
 public:
-	SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE, bool usingDiMUSEv2);
+	SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE);
 	~SmushPlayer();
 
 	void pause();
