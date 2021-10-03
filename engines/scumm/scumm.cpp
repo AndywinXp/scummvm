@@ -1630,9 +1630,14 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		_smushFrameRate = (_game.id == GID_FT) ? 10 : 12;
 
 	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100); // FT
-	int dimusev2Tempo = CLIP(ConfMan.getInt("dimuse_v2_tempo"), 10, 100); // DIG & COMI
+
+	// Workaround for old config files: originally, the rate for the callback
+	// was 10 Hz to facilitate slow devices. Now we set it to 50 Hz, which is
+	// the intended rate.
+	if (dimuseTempo != 50)
+		dimuseTempo = 50;
+
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
-	ConfMan.setInt("dimuse_v2_tempo", dimusev2Tempo);
 	ConfMan.flushToDisk();
 
 	// Check if we are able to use DiMUSE_v2; the game has to:
@@ -1674,7 +1679,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	if (!_useDiMUSEv2) {
 		_musicEngine = _diMUSE = new DiMUSE_v1(this, _mixer, dimuseTempo);
 	} else {
-		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimusev2Tempo);
+		_musicEngine = _diMUSE = new DiMUSE_v2(this, _mixer, dimuseTempo);
 	}
 
 	ScummEngine::setupScumm(macResourceFile);

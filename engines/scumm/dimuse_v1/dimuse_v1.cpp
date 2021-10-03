@@ -53,8 +53,6 @@ DiMUSE_v1::DiMUSE_v1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_sound = new DiMUSESndMgr(_vm);
 	assert(_sound);
 	_callbackFps = fps;
-	if (_vm->_game.id == GID_FT)
-		_callbackFps *= 2;
 	resetState();
 	for (int l = 0; l < MAX_DIGITAL_TRACKS + MAX_DIGITAL_FADETRACKS; l++) {
 		_track[l] = new Track;
