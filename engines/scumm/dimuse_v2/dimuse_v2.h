@@ -192,7 +192,7 @@ private:
 	int _dispatchSmallFadeFlags[SMALL_FADES];
 	int _dispatchFadeStartedFlag;
 	int _dispatchBufferedHookId;
-	int _dispatchRequestedFadeSize;
+	int _dispatchJumpFadeSize;
 	int _dispatchCurStreamBufSize;
 	int _dispatchCurStreamCriticalSize;
 	int _dispatchCurStreamFreeSpace;
@@ -212,7 +212,9 @@ private:
 	void dispatchPredictStream(DiMUSEDispatch *dispatch);
 	void dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	DiMUSEStreamZone *dispatchAllocStreamZone();
+	uint8 *dispatchAllocateFade(int *fadeSize, const char *function);
 	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
+	void dispatchValidateFade(DiMUSEDispatch *dispatchPtr, int *dispatchSize, const char *function);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int waveInit();
