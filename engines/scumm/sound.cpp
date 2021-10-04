@@ -743,10 +743,11 @@ bool Sound::isMouthSyncOff(uint pos) {
 int Sound::isSoundRunning(int sound) const {
 #ifdef ENABLE_SCUMM_7_8
 	if (_vm->_diMUSE)
-		if ((_vm->_game.id == GID_DIG || _vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO))
+		if ((_vm->_game.id == GID_DIG || _vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)) {
 			return (_vm->_diMUSE->isSoundRunning(sound) != 0);
-		else
+		} else {
 			return (_vm->_diMUSE->getSoundStatus(sound) != 0);
+		}
 #endif
 
 	if (sound == _currentCDSound)

@@ -32,11 +32,11 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, ui
 	// Convert the character constant (single quotes '') to string
 	char marker[5];
 	if (cmd == 17 || cmd == 18 || cmd == 19) {
-		for (int i = 0; i < 4; i++) {
+		for (int index = 0; index < 4; index++) {
 #if defined SCUMM_BIG_ENDIAN	
-			marker[i] = (b >> (8 * i)) & 0xff;		
+			marker[index] = (b >> (8 * index)) & 0xff;
 #elif defined SCUMM_LITTLE_ENDIAN
-			marker[3 - i] = (b >> (8 * i)) & 0xff;
+			marker[3 - index] = (b >> (8 * index)) & 0xff;
 #endif
 		}
 		marker[4] = '\0';
