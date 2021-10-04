@@ -301,6 +301,4 @@ int DiMUSETriggersHandler::countPendingSounds(int soundId) {
 	return r;
 }
 
-
-
 } // End of namespace Scumm
