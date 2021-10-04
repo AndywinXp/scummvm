@@ -452,7 +452,7 @@ Track *DiMUSE_v1::cloneToFadeOutTrack(Track *track, int fadeDelay) {
 
 	// Clone the sound.
 	// leaving bug number for now #3005
-	DiMUSESndMgr::SoundDesc *soundDesc = _sound->cloneSound(track->soundDesc);
+	ImuseDigiSndMgr::SoundDesc *soundDesc = _sound->cloneSound(track->soundDesc);
 	if (!soundDesc) {
 		// it fail load open old song after switch to different CDs
 		// so gave up

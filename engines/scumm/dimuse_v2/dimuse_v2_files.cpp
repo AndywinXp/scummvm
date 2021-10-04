@@ -27,7 +27,7 @@ namespace Scumm {
 
 DiMUSEFilesHandler::DiMUSEFilesHandler(DiMUSE_v2 *engine, ScummEngine_v7 *vm) {
 	_engine = engine;
-	_sound = new DiMUSESndMgr(vm, true);
+	_sound = new ImuseDigiSndMgr(vm, true);
 	assert(_sound);
 	_vm = vm;
 }
@@ -38,7 +38,7 @@ DiMUSEFilesHandler::~DiMUSEFilesHandler() {
 
 void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 	int curSound = 0;
-	DiMUSESndMgr::SoundDesc *sounds = _sound->getSounds();
+	ImuseDigiSndMgr::SoundDesc *sounds = _sound->getSounds();
 
 	ser.syncArray(_currentSpeechFile, 60, Common::Serializer::SByte, VER(103));
 	if (ser.isSaving()) {
@@ -106,7 +106,7 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
-		DiMUSESndMgr::SoundDesc *s = _sound->findSoundById(soundId);
+		ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
 		if (s) {
 			int resultingOffset = s->bundle->seekFile(offset, mode);
 
@@ -127,8 +127,8 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
-		DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
-		DiMUSESndMgr::SoundDesc *curSnd = NULL;
+		ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
+		ImuseDigiSndMgr::SoundDesc *curSnd = NULL;
 		for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 			curSnd = &s[i];
 			if (curSnd->inUse) {
@@ -168,7 +168,7 @@ DiMUSESoundBuffer *DiMUSEFilesHandler::getBufInfo(int bufId) {
 int DiMUSEFilesHandler::openSound(int soundId) {
 	char fileName[60] = "";
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
-	DiMUSESndMgr::SoundDesc *s = NULL;
+	ImuseDigiSndMgr::SoundDesc *s = NULL;
 	int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
 	s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, -1);
 	if (!s)
@@ -188,7 +188,7 @@ void DiMUSEFilesHandler::closeSound(int soundId) {
 }
 
 void DiMUSEFilesHandler::closeAllSounds() {
-	DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
+	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (s[i].inUse)
 			closeSound(s->soundId);
@@ -262,9 +262,9 @@ void DiMUSEFilesHandler::deallocSoundBuffer(int bufId) {
 }
 
 void DiMUSEFilesHandler::flushSounds() {
-	DiMUSESndMgr::SoundDesc *s = _sound->getSounds();
+	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
-		DiMUSESndMgr::SoundDesc *curSnd = &s[i];
+		ImuseDigiSndMgr::SoundDesc *curSnd = &s[i];
 		if (curSnd && curSnd->inUse) {
 			if (curSnd->scheduledForDealloc)
 				if (!_engine->diMUSEGetParam(curSnd->soundId, P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, 0x200))

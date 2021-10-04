@@ -75,7 +75,7 @@ private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
-	DiMUSESndMgr *_sound;
+	ImuseDigiSndMgr *_sound;
 
 	char *_audioNames;		// filenames of sound SFX used in FT
 	int32 _numAudioNames;	// number of above filenames

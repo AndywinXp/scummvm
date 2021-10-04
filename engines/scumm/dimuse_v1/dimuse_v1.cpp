@@ -50,7 +50,7 @@ DiMUSE_v1::DiMUSE_v1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	assert(mixer);
 
 	_pause = false;
-	_sound = new DiMUSESndMgr(_vm);
+	_sound = new ImuseDigiSndMgr(_vm);
 	assert(_sound);
 	_callbackFps = fps;
 	resetState();
@@ -490,7 +490,7 @@ void DiMUSE_v1::switchToNextRegion(Track *track) {
 		return;
 	}
 
-	DiMUSESndMgr::SoundDesc *soundDesc = track->soundDesc;
+	ImuseDigiSndMgr::SoundDesc *soundDesc = track->soundDesc;
 	if (_triggerUsed && track->soundDesc->numMarkers) {
 		if (_sound->checkForTriggerByRegionAndMarker(soundDesc, track->curRegion, _triggerParams.marker)) {
 			if (_vm->_game.id != GID_CMI) {

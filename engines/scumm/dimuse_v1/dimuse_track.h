@@ -75,7 +75,7 @@ struct Track {
 	int32 dataMod12Bit;	     // value used between all callback to align 12 bit source of data
 	int32 mixerFlags;	     // flags for sound mixer's channel (kFlagStereo, kFlag16Bits, kFlagUnsigned)
 	bool littleEndian;       // Endianness: default is big for original files and native for recompressed ones
-	DiMUSESndMgr::SoundDesc *soundDesc;	// sound handle used by iMuse sound manager
+	ImuseDigiSndMgr::SoundDesc *soundDesc;	// sound handle used by iMuse sound manager
 	Audio::SoundHandle mixChanHandle;		// sound mixer's channel handle
 	Audio::QueuingAudioStream *stream;		// sound mixer's audio stream handle for *.la1 and *.bun
 	Actor *speakingActor;					// actor reference for CMI speech
