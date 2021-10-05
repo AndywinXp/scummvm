@@ -44,7 +44,7 @@ class SmushPlayer {
 	friend class Insane;
 private:
 	ScummEngine_v7 *_vm;
-	DiMUSE *_diMUSE;
+	DiMUSE *_imuseDigital;
 	int32 _nbframes;
 	SmushMixer *_smixer;
 	int16 _deltaPal[0x300];
@@ -89,7 +89,7 @@ private:
 	bool _skipPalette;
 	int _iactTable[4];
 public:
-	SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE);
+	SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *_imuseDigital);
 	~SmushPlayer();
 
 	void pause();

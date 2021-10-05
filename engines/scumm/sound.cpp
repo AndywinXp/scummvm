@@ -442,10 +442,10 @@ void Sound::processSfxQueues() {
 		Actor *a;
 		bool finished;
 
-		if (_vm->_diMUSE) {
+		if (_vm->_imuseDigital) {
 			finished = !isSoundRunning(kTalkSoundID);
 #if defined(ENABLE_SCUMM_7_8)
-			_curSoundPos = _vm->_diMUSE->getSoundElapsedTimeInMs(kTalkSoundID) * 60 / 1000;
+			_curSoundPos = _vm->_imuseDigital->getSoundElapsedTimeInMs(kTalkSoundID) * 60 / 1000;
 #endif
 		} else if (_vm->_game.heversion >= 60) {
 			finished = !isSoundRunning(1);
@@ -470,17 +470,17 @@ void Sound::processSfxQueues() {
 				int volume = a->_talkVolume;
 				int frequency = a->_talkFrequency;
 				int pan = a->_talkPan;
-				if (_vm->_diMUSE->isSoundRunning(kTalkSoundID)) {
+				if (_vm->_imuseDigital->isSoundRunning(kTalkSoundID)) {
 					if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
 						volume = 0;
-					if (_vm->_diMUSE->getCurSpeechVolume() != volume) {
-						_vm->_diMUSE->setVolume(kTalkSoundID, volume);
+					if (_vm->_imuseDigital->getCurSpeechVolume() != volume) {
+						_vm->_imuseDigital->setVolume(kTalkSoundID, volume);
 					}
-					if (_vm->_diMUSE->getCurSpeechFrequency() != frequency) {
-						_vm->_diMUSE->setFrequency(kTalkSoundID, frequency);
+					if (_vm->_imuseDigital->getCurSpeechFrequency() != frequency) {
+						_vm->_imuseDigital->setFrequency(kTalkSoundID, frequency);
 					}
-					if (_vm->_diMUSE->getCurSpeechPan() != pan) {
-						_vm->_diMUSE->setPan(kTalkSoundID, pan);
+					if (_vm->_imuseDigital->getCurSpeechPan() != pan) {
+						_vm->_imuseDigital->setPan(kTalkSoundID, pan);
 					}
 				}
 			}
@@ -693,10 +693,10 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			return;
 		}
 
-		if (_vm->_diMUSE) {
+		if (_vm->_imuseDigital) {
 #ifdef ENABLE_SCUMM_7_8
 			//_vm->_DiMUSE_v1->stopSound(kTalkSoundID);
-			_vm->_diMUSE->startVoice(kTalkSoundID, input);
+			_vm->_imuseDigital->startVoice(kTalkSoundID, input);
 #endif
 		} else {
 			if (mode == 1) {
@@ -710,9 +710,9 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 
 void Sound::stopTalkSound() {
 	if (_sfxMode & 2) {
-		if (_vm->_diMUSE) {
+		if (_vm->_imuseDigital) {
 #ifdef ENABLE_SCUMM_7_8
-			_vm->_diMUSE->stopSound(kTalkSoundID);
+			_vm->_imuseDigital->stopSound(kTalkSoundID);
 #endif
 		} else if (_vm->_game.heversion >= 60) {
 			stopSound(1);
@@ -742,11 +742,11 @@ bool Sound::isMouthSyncOff(uint pos) {
 
 int Sound::isSoundRunning(int sound) const {
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_diMUSE)
+	if (_vm->_imuseDigital)
 		if ((_vm->_game.id == GID_DIG || _vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)) {
-			return (_vm->_diMUSE->isSoundRunning(sound) != 0);
+			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 		} else {
-			return (_vm->_diMUSE->getSoundStatus(sound) != 0);
+			return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
 		}
 #endif
 
@@ -782,8 +782,8 @@ int Sound::isSoundRunning(int sound) const {
 bool Sound::isSoundInUse(int sound) const {
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_diMUSE)
-		return (_vm->_diMUSE->getSoundStatus(sound) != 0);
+	if (_vm->_imuseDigital)
+		return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
 #endif
 
 	if (sound == _currentCDSound)
@@ -871,7 +871,7 @@ void Sound::stopAllSounds() {
 	}
 
 	// Stop all SFX
-	if (!_vm->_diMUSE) {
+	if (!_vm->_imuseDigital) {
 		_mixer->stopAll();
 	}
 }
@@ -880,8 +880,8 @@ void Sound::soundKludge(int *list, int num) {
 	int i;
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_diMUSE) {
-		_vm->_diMUSE->parseScriptCmds(list[0],  list[1],  list[2],  list[3],  list[4],
+	if (_vm->_imuseDigital) {
+		_vm->_imuseDigital->parseScriptCmds(list[0],  list[1],  list[2],  list[3],  list[4],
 									  list[5],  list[6],  list[7],  list[8],  list[9],
 									  list[10], list[11], list[12], list[13], list[14], list[15]);
 		return;
@@ -933,8 +933,8 @@ void Sound::pauseSounds(bool pause) {
 	_soundsPaused = pause;
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_vm->_diMUSE) {
-		_vm->_diMUSE->pause(pause);
+	if (_vm->_imuseDigital) {
+		_vm->_imuseDigital->pause(pause);
 	}
 #endif
 

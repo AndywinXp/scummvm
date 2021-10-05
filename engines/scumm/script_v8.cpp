@@ -1226,10 +1226,10 @@ void ScummEngine_v8::o8_kernelGetFunctions() {
 		break;
 	}
 	case 0xDA:		// lipSyncWidth
-		push(_diMUSE->getCurVoiceLipSyncWidth());
+		push(_imuseDigital->getCurVoiceLipSyncWidth());
 		break;
 	case 0xDB:		// lipSyncHeight
-		push(_diMUSE->getCurVoiceLipSyncHeight());
+		push(_imuseDigital->getCurVoiceLipSyncHeight());
 		break;
 	case 0xDC:		// actorTalkAnimation
 		{
@@ -1268,13 +1268,13 @@ void ScummEngine_v8::o8_kernelGetFunctions() {
 		}
 		break;
 	case 0xE1:		// imGetMusicPosition
-		push(_diMUSE->getCurMusicPosInMs());
+		push(_imuseDigital->getCurMusicPosInMs());
 		break;
 	case 0xE2:		// musicLipSyncWidth
-		push(_diMUSE->getCurMusicLipSyncWidth(args[1]));
+		push(_imuseDigital->getCurMusicLipSyncWidth(args[1]));
 		break;
 	case 0xE3:		// musicLipSyncHeight
-		push(_diMUSE->getCurMusicLipSyncHeight(args[1]));
+		push(_imuseDigital->getCurMusicLipSyncHeight(args[1]));
 		break;
 	default:
 		error("o8_kernelGetFunctions: default case 0x%x (len = %d)", args[0], len);

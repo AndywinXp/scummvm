@@ -411,9 +411,9 @@ bool ScummEngine::loadState(int slot, bool compat, Common::String &filename) {
 		_sound->stopAllSounds();
 
 #ifdef ENABLE_SCUMM_7_8
-	if (_diMUSE) {
-		_diMUSE->stopAllSounds();
-		_diMUSE->resetState();
+	if (_imuseDigital) {
+		_imuseDigital->stopAllSounds();
+		_imuseDigital->resetState();
 	}
 #endif
 
@@ -1602,7 +1602,7 @@ void syncWithSerializer(Common::Serializer &s, ScummEngine_v7::SubtitleText &st)
 void ScummEngine_v7::saveLoadWithSerializer(Common::Serializer &s) {
 	ScummEngine::saveLoadWithSerializer(s);
 
-	_diMUSE->saveLoadEarly(s);
+	_imuseDigital->saveLoadEarly(s);
 
 	s.syncArray(_subtitleQueue, ARRAYSIZE(_subtitleQueue), syncWithSerializer);
 	s.syncAsSint32LE(_subtitleQueuePos, VER(61));

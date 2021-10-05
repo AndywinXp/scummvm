@@ -218,9 +218,9 @@ void SmushPlayer::timerCallback() {
 	parseNextFrame();
 }
 
-SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *diMUSE) {
+SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *imuseDigital) {
 	_vm = scumm;
-	_diMUSE = diMUSE;
+	_imuseDigital = imuseDigital;
 	_nbframes = 0;
 	_codec37 = 0;
 	_codec47 = 0;
@@ -481,11 +481,11 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		}
 
 		free(src);
-	} else if (_vm->_game.id == GID_DIG && _diMUSE->isUsingV2Engine()) {
+	} else if (_vm->_game.id == GID_DIG && _imuseDigital->isUsingV2Engine()) {
 		int bufId, volume, paused, curSoundId;
 		int userId = track_flags;
 
-		DiMUSE_v2 *engine = (DiMUSE_v2 *)_diMUSE;
+		DiMUSE_v2 *engine = (DiMUSE_v2 *)_imuseDigital;
 		byte *dataBuffer = (byte *)malloc(bsize);
 		b.read(dataBuffer, bsize);
 
@@ -1173,7 +1173,7 @@ void SmushPlayer::parseNextFrame() {
 	if (_insanity)
 		_vm->_sound->processSound();
 
-	_vm->_diMUSE->flushTracks();
+	_vm->_imuseDigital->flushTracks();
 }
 
 void SmushPlayer::setPalette(const byte *palette) {

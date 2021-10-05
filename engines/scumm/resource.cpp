@@ -220,7 +220,7 @@ void ScummEngine::askForDisk(const char *filename, int disknum) {
 #ifdef ENABLE_SCUMM_7_8
 		char result;
 
-		_diMUSE->stopAllSounds();
+		_imuseDigital->stopAllSounds();
 
 #ifdef MACOSX
 		sprintf(buf, "Cannot find file: '%s'\nPlease insert disc %d.\nPress OK to retry, Quit to exit", filename, disknum);
@@ -358,7 +358,7 @@ void ScummEngine_v7::readIndexBlock(uint32 blocktype, uint32 itemsize) {
 		num = _fileHandle->readUint16LE();
 		ptr = (char *)malloc(num * 9);
 		_fileHandle->read(ptr, num * 9);
-		_diMUSE->setAudioNames(num, ptr);
+		_imuseDigital->setAudioNames(num, ptr);
 		break;
 
 	case MKTAG('D','R','S','C'):		// Used by: COMI

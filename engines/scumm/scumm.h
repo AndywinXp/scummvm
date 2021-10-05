@@ -296,7 +296,7 @@ public:
 	 * That results in a shorter form of the opcode
 	 * on some architectures. */
 	IMuse *_imuse;
-	DiMUSE *_diMUSE;
+	DiMUSE *_imuseDigital;
 	MusicEngine *_musicEngine;
 	Player_Towns *_townsPlayer;
 	Sound *_sound;
