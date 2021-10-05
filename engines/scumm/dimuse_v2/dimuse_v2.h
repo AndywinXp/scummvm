@@ -201,7 +201,7 @@ private:
 	int dispatchInit();
 	DiMUSEDispatch *dispatchGetDispatchByTrackId(int trackId);
 	void dispatchSaveLoad(Common::Serializer &ser);
-	int dispatchAllocStreamZones();
+	int dispatchRestoreStreamZones();
 	int dispatchAlloc(DiMUSETrack *trackPtr, int groupId);
 	int dispatchRelease(DiMUSETrack *trackPtr);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
@@ -215,6 +215,7 @@ private:
 	uint8 *dispatchAllocateFade(int *fadeSize, const char *function);
 	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
 	void dispatchValidateFade(DiMUSEDispatch *dispatchPtr, int *dispatchSize, const char *function);
+	int dispatchUpdateFadeMixVolume(DiMUSEDispatch *dispatchPtr, int remainingFade);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int waveInit();

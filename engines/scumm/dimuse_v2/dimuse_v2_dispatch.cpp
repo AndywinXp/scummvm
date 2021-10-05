@@ -122,7 +122,7 @@ void DiMUSE_v2::dispatchSaveLoad(Common::Serializer &ser) {
 	}
 }
 
-int DiMUSE_v2::dispatchAllocStreamZones() {
+int DiMUSE_v2::dispatchRestoreStreamZones() {
 	DiMUSEDispatch *curDispatchPtr;
 	DiMUSEStream *curAllocatedStream;
 	DiMUSEStreamZone *curStreamZone;
@@ -160,7 +160,7 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 					}
 
 					if (!curStreamZone) {
-						debug(5, "DiMUSE_v2::dispatchAllocStreamZones(): out of streamZones");
+						debug(5, "DiMUSE_v2::dispatchRestoreStreamZones(): out of streamZones");
 						curStreamZoneList = (DiMUSEStreamZone *)&curDispatchPtr->streamZoneList;
 						curDispatchPtr->streamZoneList = 0;
 					} else {
@@ -179,11 +179,11 @@ int DiMUSE_v2::dispatchAllocStreamZones() {
 						curStreamZoneList->prev->size = 0;
 						curStreamZoneList->prev->fadeFlag = 0;
 					} else {
-						debug(5, "DiMUSE_v2::dispatchAllocStreamZones(): unable to alloc zone during restore");
+						debug(5, "DiMUSE_v2::dispatchRestoreStreamZones(): unable to alloc zone during restore");
 					}
 				}
 			} else {
-				debug(5, "DiMUSE_v2::dispatchAllocStreamZones(): unable to start stream during restore");
+				debug(5, "DiMUSE_v2::dispatchRestoreStreamZones(): unable to start stream during restore");
 			}
 		}
 	}
@@ -439,17 +439,9 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 
 		// If the fade is still going on
 		if (inFrameCount) {
-			mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
-
-			// Update fadeVol
+			// Update the fade volume
 			effRemainingFade = ((dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount) * inFrameCount) / 8;
-			dispatchPtr->fadeVol += effRemainingFade * dispatchPtr->fadeSlope;
-
-			// Clamp fadeVol between 0 and MAX_FADE_VOLUME
-			if (dispatchPtr->fadeVol < 0)
-				dispatchPtr->fadeVol = 0;
-			if (dispatchPtr->fadeVol > MAX_FADE_VOLUME)
-				dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+			mixVolume = dispatchUpdateFadeMixVolume(dispatchPtr, effRemainingFade);
 
 			// Send it all to the mixer
 			srcBuf = &dispatchPtr->fadeBuf[dispatchPtr->fadeOffset];
@@ -520,20 +512,12 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 				if (!inFrameCount)
 					debug(5, "DiMUSE_v2::dispatchProcessDispatches(): WARNING: fade for sound %d ends with incomplete frame (or odd 12-bit mono frame)", trackPtr->soundId);
 
+				// Update the fade volume
 				effRemainingFade = (inFrameCount * dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount) / 8;
-				mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
-
-				// Update fadeVol
-				dispatchPtr->fadeVol += effRemainingFade * dispatchPtr->fadeSlope;
-
-				// Clamp fadeVol between 0 and MAX_FADE_VOLUME
-				if (dispatchPtr->fadeVol < 0)
-					dispatchPtr->fadeVol = 0;
-				if (dispatchPtr->fadeVol > MAX_FADE_VOLUME)
-					dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+				mixVolume = dispatchUpdateFadeMixVolume(dispatchPtr, effRemainingFade);
 
 				// Send it all to the mixer
-				srcBuf = (uint8 *)(dispatchPtr->fadeBuf + dispatchPtr->fadeOffset);
+				srcBuf = &dispatchPtr->fadeBuf[dispatchPtr->fadeOffset];
 				
 				_internalMixer->mix(
 					srcBuf,
@@ -588,7 +572,7 @@ void DiMUSE_v2::dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, i
 		effRemainingAudio = (effWordSize * inFrameCount) / 8;
 
 		if (dispatchPtr->streamPtr) {
-			srcBuf = (uint8 *)streamerReAllocReadBuffer(dispatchPtr->streamPtr, effRemainingAudio);
+			srcBuf = streamerReAllocReadBuffer(dispatchPtr->streamPtr, effRemainingAudio);
 			if (!srcBuf) {
 				dispatchPtr->streamErrFlag = 1;
 				if (dispatchPtr->fadeBuf && dispatchPtr->fadeSyncFlag)
@@ -1515,6 +1499,18 @@ void DiMUSE_v2::dispatchValidateFade(DiMUSEDispatch *dispatchPtr, int *dispatchS
 	} else {
 		debug(5, "DiMUSE_v2::dispatchValidateFade(): WARNING: tried mod by 0 while validating fade size in %s(), ignored", function);
 	}
+}
+
+int DiMUSE_v2::dispatchUpdateFadeMixVolume(DiMUSEDispatch *dispatchPtr, int remainingFade) {
+	int mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
+	dispatchPtr->fadeVol += remainingFade * dispatchPtr->fadeSlope;
+
+	if (dispatchPtr->fadeVol < 0)
+		dispatchPtr->fadeVol = 0;
+	if (dispatchPtr->fadeVol > MAX_FADE_VOLUME)
+		dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+
+	return mixVolume;
 }
 
 } // End of namespace Scumm

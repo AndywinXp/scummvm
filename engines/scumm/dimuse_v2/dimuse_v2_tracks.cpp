@@ -133,7 +133,7 @@ void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
 			}
 		}
 
-		dispatchAllocStreamZones();
+		dispatchRestoreStreamZones();
 	}
 }
 
@@ -313,7 +313,7 @@ int DiMUSE_v2::tracksStopSound(int soundId) {
 			removeTrackFromList(&_trackList, track);
 			dispatchRelease(track);
 			_fadesHandler->clearFadeStatus(track->soundId, -1);
-			_triggersHandler->clearTrigger(track->soundId, (char *)-1, -1);
+			_triggersHandler->clearTrigger(track->soundId, _emptyMarker, -1);
 			track->soundId = 0;
 		}
 		track = track->next;
