@@ -20,11 +20,11 @@
 *
 */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 
 namespace Scumm {
 
-int DiMUSE_v2::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettingsStruct) {
+int IMuseDigital::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettingsStruct) {
 	_waveOutSampleRate = sampleRate;
 
 	_waveOutBytesPerSample = 2;
@@ -50,7 +50,7 @@ int DiMUSE_v2::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettingsS
 	return 0;
 }
 
-void DiMUSE_v2::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) {
+void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) {
 	uint8 *curBufferBlock;
 	if (_waveOutDisableWrite)
 		return;
@@ -81,12 +81,12 @@ void DiMUSE_v2::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) 
 	}
 }
 
-int DiMUSE_v2::waveOutDeinit() {
+int IMuseDigital::waveOutDeinit() {
 	_waveOutDisableWrite = 1;
 	return 0;
 }
 
-void DiMUSE_v2::waveOutCallback() {
+void IMuseDigital::waveOutCallback() {
 	Common::StackLock lock(_mutex);
 	tracksCallback();
 }

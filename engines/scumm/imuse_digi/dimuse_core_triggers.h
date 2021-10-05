@@ -26,24 +26,24 @@
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 #include "common/util.h"
-#include "scumm/dimuse_v2/dimuse_v2_defs.h"
+#include "scumm/imuse_digi/dimuse_core_defs.h"
 
 namespace Scumm {
 
-class DiMUSETriggersHandler {
+class IMuseDigiTriggersHandler {
 
 private:
-	DiMUSE_v2 *_engine;
-	DiMUSETrigger _trigs[MAX_TRIGGERS];
-	DiMUSEDefer _defers[MAX_DEFERS];
+	IMuseDigital *_engine;
+	IMuseDigiTrigger _trigs[MAX_TRIGGERS];
+	IMuseDigiDefer _defers[MAX_DEFERS];
 
 	int  _defersOn;
 	int  _midProcessing;
 	char _textBuffer[256];
 	char _emptyMarker[1];
 public:
-	DiMUSETriggersHandler(DiMUSE_v2 *engine);
-	~DiMUSETriggersHandler();
+	IMuseDigiTriggersHandler(IMuseDigital *engine);
+	~IMuseDigiTriggersHandler();
 
 	int  init();
 	int  clearAllTriggers();

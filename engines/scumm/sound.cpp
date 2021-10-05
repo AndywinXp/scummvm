@@ -30,7 +30,7 @@
 #include "scumm/cdda.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/resource.h"
 #include "scumm/scumm.h"

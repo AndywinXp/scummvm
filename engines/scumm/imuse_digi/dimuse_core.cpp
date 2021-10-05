@@ -27,24 +27,24 @@
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_defs.h"
-#include "scumm/dimuse_v1/dimuse_bndmgr.h"
-#include "scumm/dimuse_v1/dimuse_sndmgr.h"
-#include "scumm/dimuse_v1/dimuse_tables.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_defs.h"
+#include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_sndmgr.h"
+#include "scumm/imuse_digi/dimuse_tables.h"
 
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
 
 namespace Scumm {
 
-void DiMUSE_v2::timer_handler(void *refCon) {
-	DiMUSE_v2 *diMUSE = (DiMUSE_v2 *)refCon;
+void IMuseDigital::timer_handler(void *refCon) {
+	IMuseDigital *diMUSE = (IMuseDigital *)refCon;
 	diMUSE->callback();
 }
 
-DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
-	: _vm(scumm), _mixer(mixer), DiMUSE(scumm, mixer, fps) {
+IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
+	: _vm(scumm), _mixer(mixer), IMuseDigitalAbstract(scumm, mixer, fps) {
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
@@ -71,11 +71,11 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_radioChatterSFX = false;
 
 	_emptyMarker[0] = '\0';
-	_internalMixer = new DiMUSEInternalMixer(mixer);
-	_groupsHandler = new DiMUSEGroupsHandler(this);
-	_fadesHandler = new DiMUSEFadesHandler(this);
-	_triggersHandler = new DiMUSETriggersHandler(this);
-	_filesHandler = new DiMUSEFilesHandler(this, scumm);
+	_internalMixer = new IMuseDigiInternalMixer(mixer);
+	_groupsHandler = new IMuseDigiGroupsHandler(this);
+	_fadesHandler = new IMuseDigiFadesHandler(this);
+	_triggersHandler = new IMuseDigiTriggersHandler(this);
+	_filesHandler = new IMuseDigiFilesHandler(this, scumm);
 	
 	diMUSEInitialize();
 	diMUSEInitializeScript();
@@ -89,10 +89,10 @@ DiMUSE_v2::DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	
 	_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SFX, 198000, 0, 0);
 
-	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "DiMUSE_v2");
+	_vm->getTimerManager()->installTimerProc(timer_handler, 1000000 / _callbackFps, this, "IMuseDigital");
 }
 
-DiMUSE_v2::~DiMUSE_v2() {
+IMuseDigital::~IMuseDigital() {
 	_vm->getTimerManager()->removeTimerProc(timer_handler);
 	_filesHandler->deallocSoundBuffer(DIMUSE_BUFFER_SPEECH);
 	_filesHandler->deallocSoundBuffer(DIMUSE_BUFFER_MUSIC);
@@ -114,19 +114,19 @@ DiMUSE_v2::~DiMUSE_v2() {
 	_waveOutOutputBuffer = NULL;
 }
 
-void DiMUSE_v2::stopSound(int sound) {
+void IMuseDigital::stopSound(int sound) {
 	diMUSEStopSound(sound);
 }
 
-void DiMUSE_v2::stopAllSounds() {
+void IMuseDigital::stopAllSounds() {
 	diMUSEStopAllSounds();
 }
 
-int DiMUSE_v2::isSoundRunning(int soundId) {
+int IMuseDigital::isSoundRunning(int soundId) {
 	return diMUSEGetParam(soundId, P_SND_TRACK_NUM) > 0;
 }
 
-int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActorId) {
+int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingActorId) {
 	_filesHandler->closeSoundImmediatelyById(soundId);
 
 	int fileDoesNotExist = 0;
@@ -167,7 +167,7 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActor
 
 		// Let's not give the occasion to raise errors here
 		if (_vm->isValidActor(_vm->VAR(_vm->VAR_TALK_ACTOR))) {
-			Actor *a = _vm->derefActor(_vm->VAR(_vm->VAR_TALK_ACTOR), "DiMUSE_v2::startVoice");
+			Actor *a = _vm->derefActor(_vm->VAR(_vm->VAR_TALK_ACTOR), "IMuseDigital::startVoice");
 			if (_vm->VAR(_vm->VAR_VOICE_MODE) == 2)
 				diMUSESetParam(kTalkSoundID, P_VOLUME, 0);
 			else
@@ -186,8 +186,8 @@ int DiMUSE_v2::startVoice(int soundId, const char *soundName, byte speakingActor
 	return 0;
 }
 
-void DiMUSE_v2::saveLoadEarly(Common::Serializer &s) {
-	Common::StackLock lock(_mutex, "DiMUSE_v2::saveLoadEarly()");
+void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
+	Common::StackLock lock(_mutex, "IMuseDigital::saveLoadEarly()");
 
 	if (s.isLoading()) {
 		diMUSEStopAllSounds();
@@ -196,7 +196,7 @@ void DiMUSE_v2::saveLoadEarly(Common::Serializer &s) {
 
 	if (s.getVersion() < 103) {
 		// Just load the current state and sequence, and play them
-		debug(5, "DiMUSE_v2::saveLoadEarly(): old savegame detected (version %d), game may load with an undesired audio status", s.getVersion());
+		debug(5, "IMuseDigital::saveLoadEarly(): old savegame detected (version %d), game may load with an undesired audio status", s.getVersion());
 		s.skip(4, VER(31), VER(42)); // _volVoice
 		s.skip(4, VER(31), VER(42)); // _volSfx
 		s.skip(4, VER(31), VER(42)); // _volMusic
@@ -228,24 +228,24 @@ void DiMUSE_v2::saveLoadEarly(Common::Serializer &s) {
 	}
 }
 
-void DiMUSE_v2::refreshScripts() {
+void IMuseDigital::refreshScripts() {
 	if (!_vm->isSmushActive()) {
 		diMUSEProcessStreams();
 		diMUSERefreshScript();
 	}
 }
 
-void DiMUSE_v2::setRadioChatterSFX(bool state) {
+void IMuseDigital::setRadioChatterSFX(bool state) {
 	_radioChatterSFX = state;
 }
 
-int DiMUSE_v2::startSfx(int soundId, int priority) {
+int IMuseDigital::startSfx(int soundId, int priority) {
 	diMUSEStartSound(soundId, priority);
 	diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_SFX);
 	return 0;
 }
 
-void DiMUSE_v2::callback() {
+void IMuseDigital::callback() {
 	if (_cmdsPauseCount)
 		return;
 
@@ -256,7 +256,7 @@ void DiMUSE_v2::callback() {
 	}
 }
 
-void DiMUSE_v2::diMUSEHeartbeat() {
+void IMuseDigital::diMUSEHeartbeat() {
 	// This is what happens:
 	// - Usual audio stuff like fetching and playing sound (and everything 
 	//   within waveapi_callback()) happens at a base 50Hz rate;
@@ -352,45 +352,45 @@ void DiMUSE_v2::diMUSEHeartbeat() {
 	} while (_cmdsRunning10HzCount >= 100000);
 }
 
-void DiMUSE_v2::setVolume(int soundId, int volume) {
+void IMuseDigital::setVolume(int soundId, int volume) {
 	diMUSESetParam(soundId, P_VOLUME, volume);
 	if (soundId == kTalkSoundID)
 		_currentSpeechVolume = volume;
 }
 
-void DiMUSE_v2::setPan(int soundId, int pan) {
+void IMuseDigital::setPan(int soundId, int pan) {
 	diMUSESetParam(soundId, P_PAN, pan);
 	if (soundId == kTalkSoundID)
 		_currentSpeechPan = pan;
 }
 
-void DiMUSE_v2::setFrequency(int soundId, int frequency) {
+void IMuseDigital::setFrequency(int soundId, int frequency) {
 	diMUSESetParam(soundId, P_TRANSPOSE, frequency);
 	if (soundId == kTalkSoundID)
 		_currentSpeechFrequency = frequency;
 }
 
-int DiMUSE_v2::getCurSpeechVolume() const {
+int IMuseDigital::getCurSpeechVolume() const {
 	return _currentSpeechVolume;
 }
 
-int DiMUSE_v2::getCurSpeechPan() const {
+int IMuseDigital::getCurSpeechPan() const {
 	return _currentSpeechPan;
 }
 
-int DiMUSE_v2::getCurSpeechFrequency() const {
+int IMuseDigital::getCurSpeechFrequency() const {
 	return _currentSpeechFrequency;
 }
 
-void DiMUSE_v2::flushTracks() {
+void IMuseDigital::flushTracks() {
 	_filesHandler->flushSounds();
 }
 
-bool DiMUSE_v2::isUsingV2Engine() {
+bool IMuseDigital::isUsingV2Engine() {
 	return true;
 }
 
-int32 DiMUSE_v2::getCurMusicPosInMs() {
+int32 IMuseDigital::getCurMusicPosInMs() {
 	int soundId, curSoundId;
 
 	curSoundId = 0;
@@ -409,31 +409,31 @@ int32 DiMUSE_v2::getCurMusicPosInMs() {
 	return diMUSEGetParam(soundId, P_SND_POS_IN_MS);
 }
 
-int32 DiMUSE_v2::getCurVoiceLipSyncWidth() {
+int32 IMuseDigital::getCurVoiceLipSyncWidth() {
 	int32 width, height;
 	getSpeechLipSyncInfo(&width, &height);
 	return width;
 }
 
-int32 DiMUSE_v2::getCurVoiceLipSyncHeight() {
+int32 IMuseDigital::getCurVoiceLipSyncHeight() {
 	int32 width, height;
 	getSpeechLipSyncInfo(&width, &height);
 	return height;
 }
 
-int32 DiMUSE_v2::getCurMusicLipSyncWidth(int syncId) {
+int32 IMuseDigital::getCurMusicLipSyncWidth(int syncId) {
 	int32 width, height;
 	getMusicLipSyncInfo(syncId, &width, &height);
 	return width;
 }
 
-int32 DiMUSE_v2::getCurMusicLipSyncHeight(int syncId) {
+int32 IMuseDigital::getCurMusicLipSyncHeight(int syncId) {
 	int32 width, height;
 	getMusicLipSyncInfo(syncId, &width, &height);
 	return height;
 }
 
-void DiMUSE_v2::getSpeechLipSyncInfo(int32 *width, int32 *height) {
+void IMuseDigital::getSpeechLipSyncInfo(int32 *width, int32 *height) {
 	int curSpeechPosInMs;
 
 	*width = 0;
@@ -445,7 +445,7 @@ void DiMUSE_v2::getSpeechLipSyncInfo(int32 *width, int32 *height) {
 	}
 }
 
-void DiMUSE_v2::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
+void IMuseDigital::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
 	int soundId;
 	int speechSoundId;
 	int curSpeechPosInMs;
@@ -472,17 +472,17 @@ void DiMUSE_v2::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
 	}
 }
 
-void DiMUSE_v2::pause(bool p) {
+void IMuseDigital::pause(bool p) {
 	if (p) {
-		debug(5, "DiMUSE_v2::pause(): pausing...");
+		debug(5, "IMuseDigital::pause(): pausing...");
 		diMUSEPause();
 	} else {
-		debug(5, "DiMUSE_v2::pause(): resuming...");
+		debug(5, "IMuseDigital::pause(): resuming...");
 		diMUSEResume();
 	}
 }
 
-void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
+void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
 	int b = soundId;
 	int c = sub_cmd;
 	switch (cmd) {
@@ -519,11 +519,11 @@ void DiMUSE_v2::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e,
 		cmdsHandleCmd(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
 		break;
 	default:
-		error("DiMUSE_v2::parseScriptCmds(): WARNING: unhandled command %d", cmd);
+		error("IMuseDigital::parseScriptCmds(): WARNING: unhandled command %d", cmd);
 	}
 }
 
-int DiMUSE_v2::diMUSETerminate() {
+int IMuseDigital::diMUSETerminate() {
 	if (_scriptInitializedFlag) {
 		diMUSEStopAllSounds();
 		_filesHandler->closeAllSounds();
@@ -532,126 +532,126 @@ int DiMUSE_v2::diMUSETerminate() {
 	return 0;
 }
 
-int DiMUSE_v2::diMUSEInitialize() {
+int IMuseDigital::diMUSEInitialize() {
 	return cmdsHandleCmd(0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEPause() {
+int IMuseDigital::diMUSEPause() {
 	return cmdsHandleCmd(3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEResume() {
+int IMuseDigital::diMUSEResume() {
 	return cmdsHandleCmd(4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-void DiMUSE_v2::diMUSESaveLoad(Common::Serializer &ser) {
+void IMuseDigital::diMUSESaveLoad(Common::Serializer &ser) {
 	cmdsSaveLoad(ser);
 	return;
 }
 
-int DiMUSE_v2::diMUSESetGroupVol(int groupId, int volume) {
+int IMuseDigital::diMUSESetGroupVol(int groupId, int volume) {
 	return cmdsHandleCmd(7, groupId, volume, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEStartSound(int soundId, int priority) {
+int IMuseDigital::diMUSEStartSound(int soundId, int priority) {
 	return cmdsHandleCmd(8, soundId, priority, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEStopSound(int soundId) {
-	debug(5, "DiMUSE_v2::diMUSEStopSound(): %d", soundId);
+int IMuseDigital::diMUSEStopSound(int soundId) {
+	debug(5, "IMuseDigital::diMUSEStopSound(): %d", soundId);
 	return cmdsHandleCmd(9, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEStopAllSounds() {
-	debug(5, "DiMUSE_v2::diMUSEStopAllSounds()");
+int IMuseDigital::diMUSEStopAllSounds() {
+	debug(5, "IMuseDigital::diMUSEStopAllSounds()");
 	return cmdsHandleCmd(10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEGetNextSound(int soundId) {
+int IMuseDigital::diMUSEGetNextSound(int soundId) {
 	return cmdsHandleCmd(11, soundId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESetParam(int soundId, int paramId, int value) {
+int IMuseDigital::diMUSESetParam(int soundId, int paramId, int value) {
 	return cmdsHandleCmd(12, soundId, paramId, value, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEGetParam(int soundId, int paramId) {
+int IMuseDigital::diMUSEGetParam(int soundId, int paramId) {
 	return cmdsHandleCmd(13, soundId, paramId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength) {
+int IMuseDigital::diMUSEFadeParam(int soundId, int opcode, int destValue, int fadeLength) {
 	return cmdsHandleCmd(14, soundId, opcode, destValue, fadeLength, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESetHook(int soundId, int hookId) {
+int IMuseDigital::diMUSESetHook(int soundId, int hookId) {
 	return cmdsHandleCmd(15, soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+int IMuseDigital::diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 	return cmdsHandleCmd(17, soundId, marker, opcode, d, e, f, g, h, i, j, k, l, m, n);
 }
 
-int DiMUSE_v2::diMUSEStartStream(int soundId, int priority, int bufferId) {
+int IMuseDigital::diMUSEStartStream(int soundId, int priority, int bufferId) {
  	return cmdsHandleCmd(25, soundId, priority, bufferId, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
+int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1) {
 	return cmdsHandleCmd(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEProcessStreams() {
+int IMuseDigital::diMUSEProcessStreams() {
 	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
+int IMuseDigital::diMUSEQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
 	return cmdsHandleCmd(28, soundId, (uintptr)bufSize, (uintptr)criticalSize, (uintptr)freeSpace, (uintptr)paused, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+int IMuseDigital::diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
 	return cmdsHandleCmd(29, soundId, (uintptr)srcBuf, sizeToFeed, paused, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+int IMuseDigital::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	return cmdsHandleCmd(30, soundId, syncId, msPos, (uintptr)width, (uintptr)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESetMusicGroupVol(int volume) {
-	debug(5, "DiMUSE_v2::diMUSESetMusicGroupVol(): %d", volume);
+int IMuseDigital::diMUSESetMusicGroupVol(int volume) {
+	debug(5, "IMuseDigital::diMUSESetMusicGroupVol(): %d", volume);
 	return diMUSESetGroupVol(3, volume);
 }
 
-int DiMUSE_v2::diMUSESetSFXGroupVol(int volume) {
-	debug(5, "DiMUSE_v2::diMUSESetSFXGroupVol(): %d", volume);
+int IMuseDigital::diMUSESetSFXGroupVol(int volume) {
+	debug(5, "IMuseDigital::diMUSESetSFXGroupVol(): %d", volume);
 	return diMUSESetGroupVol(1, volume);
 }
 
-int DiMUSE_v2::diMUSESetVoiceGroupVol(int volume) {
-	debug(5, "DiMUSE_v2::diMUSESetVoiceGroupVol(): %d", volume);
+int IMuseDigital::diMUSESetVoiceGroupVol(int volume) {
+	debug(5, "IMuseDigital::diMUSESetVoiceGroupVol(): %d", volume);
 	return diMUSESetGroupVol(2, volume);
 }
 
-void DiMUSE_v2::diMUSEUpdateGroupVolumes() {
+void IMuseDigital::diMUSEUpdateGroupVolumes() {
 	waveUpdateGroupVolumes();
 }
 
-int DiMUSE_v2::diMUSEInitializeScript() {
+int IMuseDigital::diMUSEInitializeScript() {
 	return scriptParse(0, -1, -1);
 }
 
-void DiMUSE_v2::diMUSERefreshScript() {
+void IMuseDigital::diMUSERefreshScript() {
 	diMUSEProcessStreams();
 	scriptParse(4, -1, -1);
 }
 
-int DiMUSE_v2::diMUSESetState(int soundId) {
+int IMuseDigital::diMUSESetState(int soundId) {
 	return scriptParse(5, soundId, -1);
 }
 
-int DiMUSE_v2::diMUSESetSequence(int soundId) {
+int IMuseDigital::diMUSESetSequence(int soundId) {
 	return scriptParse(6, soundId, -1);
 }
 
-int DiMUSE_v2::diMUSESetAttribute(int attrIndex, int attrVal) {
+int IMuseDigital::diMUSESetAttribute(int attrIndex, int attrVal) {
 	return scriptParse(8, attrIndex, attrVal);
 }
 

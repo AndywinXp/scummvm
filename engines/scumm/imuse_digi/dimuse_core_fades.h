@@ -29,17 +29,17 @@
 
 namespace Scumm {
 
-class DiMUSEFadesHandler {
+class IMuseDigiFadesHandler {
 
 private:
-	DiMUSE_v2 *_engine;
-	DiMUSEFade _fades[MAX_FADES];
+	IMuseDigital *_engine;
+	IMuseDigiFade _fades[MAX_FADES];
 	int _fadesOn;
 
 	void clearAllFades();
 public:
-	DiMUSEFadesHandler(DiMUSE_v2 *engine);
-	~DiMUSEFadesHandler();
+	IMuseDigiFadesHandler(IMuseDigital *engine);
+	~IMuseDigiFadesHandler();
 
 	int init();
 	void deinit();

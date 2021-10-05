@@ -33,8 +33,8 @@
 
 #include "scumm/file.h"
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
@@ -218,7 +218,7 @@ void SmushPlayer::timerCallback() {
 	parseNextFrame();
 }
 
-SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, DiMUSE *imuseDigital) {
+SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, IMuseDigitalAbstract *imuseDigital) {
 	_vm = scumm;
 	_imuseDigital = imuseDigital;
 	_nbframes = 0;
@@ -485,7 +485,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		int bufId, volume, paused, curSoundId;
 		int userId = track_flags;
 
-		DiMUSE_v2 *engine = (DiMUSE_v2 *)_imuseDigital;
+		IMuseDigital *engine = (IMuseDigital *)_imuseDigital;
 		byte *dataBuffer = (byte *)malloc(bsize);
 		b.read(dataBuffer, bsize);
 
@@ -577,7 +577,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 			return;
 		}
 	} else {
-	// Fallback for DiMUSE_v1
+	// Fallback for IMuseDigitalV1
 		int32 track = track_id;
 		if (track_flags == 1) {
 			track = track_id + 100;

@@ -45,7 +45,7 @@ struct imuseComiTable;
 class ScummEngine_v7;
 struct Track;
 
-class DiMUSE : public MusicEngine {
+class IMuseDigitalAbstract : public MusicEngine {
 private:
 	int _callbackFps;		// value how many times callback needs to be called per second
 
@@ -57,10 +57,10 @@ private:
 	void callback();
 
 public:
-	DiMUSE(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps) {}
-	~DiMUSE() {}
+	IMuseDigitalAbstract(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps) {}
+	~IMuseDigitalAbstract() {}
 
-	void startSound(int sound) override { error("DiMUSE::startSound(int) should be never called"); }
+	void startSound(int sound) override { error("IMuseDigitalAbstract::startSound(int) should be never called"); }
 
 	void setMusicVolume(int vol) override {}
 	void stopSound(int sound) override {}

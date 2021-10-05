@@ -20,14 +20,14 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 
 namespace Scumm {
 
-int DiMUSE_v2::addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
+int IMuseDigital::addTrackToList(IMuseDigiTrack **listPtr, IMuseDigiTrack *listPtr_Item) {
 	// [0] is ->prev, [1] is ->next
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "DiMUSE_v2::addTrackToList(): ERROR: arguments might be null");
+		debug(5, "IMuseDigital::addTrackToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -49,9 +49,9 @@ int DiMUSE_v2::addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) 
 	return 0;
 }
 
-int DiMUSE_v2::removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item) {
-	DiMUSETrack *currentTrack = *listPtr;
-	DiMUSETrack *nextTrack;
+int IMuseDigital::removeTrackFromList(IMuseDigiTrack **listPtr, IMuseDigiTrack *listPtr_Item) {
+	IMuseDigiTrack *currentTrack = *listPtr;
+	IMuseDigiTrack *nextTrack;
 	if (listPtr_Item && currentTrack) {
 		do {
 			if (currentTrack == listPtr_Item)
@@ -75,18 +75,18 @@ int DiMUSE_v2::removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_I
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "DiMUSE_v2::removeTrackFromList(): ERROR: item not on list");
+			debug(5, "IMuseDigital::removeTrackFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "DiMUSE_v2::removeTrackFromList(): ERROR: arguments might be null");
+		debug(5, "IMuseDigital::removeTrackFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
 
-int DiMUSE_v2::addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
+int IMuseDigital::addStreamZoneToList(IMuseDigiStreamZone **listPtr, IMuseDigiStreamZone *listPtr_Item) {
 	if (!listPtr_Item || listPtr_Item->prev || listPtr_Item->next) {
-		debug(5, "DiMUSE_v2::addStreamZoneToList(): ERROR: arguments might be null");
+		debug(5, "IMuseDigital::addStreamZoneToList(): ERROR: arguments might be null");
 		return -5;
 	} else {
 		// Set item's next element to the list
@@ -108,9 +108,9 @@ int DiMUSE_v2::addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone 
 	return 0;
 }
 
-int DiMUSE_v2::removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item) {
-	DiMUSEStreamZone *currentStrZone = *listPtr;
-	DiMUSEStreamZone *nextStrZone;
+int IMuseDigital::removeStreamZoneFromList(IMuseDigiStreamZone **listPtr, IMuseDigiStreamZone *listPtr_Item) {
+	IMuseDigiStreamZone *currentStrZone = *listPtr;
+	IMuseDigiStreamZone *nextStrZone;
 	if (listPtr_Item && currentStrZone) {
 		do {
 			if (currentStrZone == listPtr_Item)
@@ -134,16 +134,16 @@ int DiMUSE_v2::removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStream
 			listPtr_Item->next = NULL;
 			return 0;
 		} else {
-			debug(5, "DiMUSE_v2::removeStreamZoneFromList(): ERROR: item not on list");
+			debug(5, "IMuseDigital::removeStreamZoneFromList(): ERROR: item not on list");
 			return -3;
 		}
 	} else {
-		debug(5, "DiMUSE_v2::removeStreamZoneFromList(): ERROR: arguments might be null");
+		debug(5, "IMuseDigital::removeStreamZoneFromList(): ERROR: arguments might be null");
 		return -5;
 	}
 }
 
-int DiMUSE_v2::clampNumber(int value, int minValue, int maxValue) {
+int IMuseDigital::clampNumber(int value, int minValue, int maxValue) {
 	if (value < minValue)
 		return minValue;
 
@@ -153,7 +153,7 @@ int DiMUSE_v2::clampNumber(int value, int minValue, int maxValue) {
 	return value;
 }
 
-int DiMUSE_v2::clampTuning(int value, int minValue, int maxValue) {
+int IMuseDigital::clampTuning(int value, int minValue, int maxValue) {
 	if (minValue > value) {
 		value += (12 * ((minValue - value) + 11) / 12);
 	}
@@ -165,7 +165,7 @@ int DiMUSE_v2::clampTuning(int value, int minValue, int maxValue) {
 	return value;
 }
 
-int DiMUSE_v2::checkHookId(int *trackHookId, int sampleHookId) {
+int IMuseDigital::checkHookId(int *trackHookId, int sampleHookId) {
 	if (sampleHookId) {
 		if (*trackHookId == sampleHookId) {
 			*trackHookId = 0;

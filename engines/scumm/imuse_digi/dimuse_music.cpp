@@ -23,8 +23,8 @@
 
 #include "common/scummsys.h"
 #include "scumm/scumm.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
-#include "scumm/dimuse_v1/dimuse_tables.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_tables.h"
 
 namespace Scumm {
 
@@ -32,7 +32,7 @@ namespace Scumm {
 #define DIG_SEQ_OFFSET (DIG_STATE_OFFSET + 65)
 #define COMI_STATE_OFFSET 3
 
-void DiMUSE_v1::setDigMusicState(int stateId) {
+void IMuseDigitalV1::setDigMusicState(int stateId) {
 	int l, num = -1;
 
 	for (l = 0; _digStateMusicTable[l].soundId != -1; l++) {
@@ -83,7 +83,7 @@ void DiMUSE_v1::setDigMusicState(int stateId) {
 	_curMusicState = num;
 }
 
-void DiMUSE_v1::setDigMusicSequence(int seqId) {
+void IMuseDigitalV1::setDigMusicSequence(int seqId) {
 	int l, num = -1;
 
 	if (seqId == 0)
@@ -131,7 +131,7 @@ void DiMUSE_v1::setDigMusicSequence(int seqId) {
 	_curMusicSeq = num;
 }
 
-void DiMUSE_v1::playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence) {
+void IMuseDigitalV1::playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence) {
 	int hookId = 0;
 
 	if (songName != NULL) {
@@ -198,7 +198,7 @@ void DiMUSE_v1::playDigMusic(const char *songName, const imuseDigTable *table, i
 	}
 }
 
-void DiMUSE_v1::setComiMusicState(int stateId) {
+void IMuseDigitalV1::setComiMusicState(int stateId) {
 	int l, num = -1;
 
 	if (stateId == 4) // look into #3604 bug, ignore stateId == 4 it's seems needed after all
@@ -231,7 +231,7 @@ void DiMUSE_v1::setComiMusicState(int stateId) {
 	_curMusicState = num;
 }
 
-void DiMUSE_v1::setComiMusicSequence(int seqId) {
+void IMuseDigitalV1::setComiMusicSequence(int seqId) {
 	int l, num = -1;
 
 	if (seqId == 0)
@@ -277,7 +277,7 @@ void DiMUSE_v1::setComiMusicSequence(int seqId) {
 	_curMusicSeq = num;
 }
 
-void DiMUSE_v1::setComiDemoMusicState(int stateNum) {
+void IMuseDigitalV1::setComiDemoMusicState(int stateNum) {
 	if (stateNum == -1)
 		return;
 
@@ -299,7 +299,7 @@ void DiMUSE_v1::setComiDemoMusicState(int stateNum) {
 	_curMusicState = stateNum;
 }
 
-void DiMUSE_v1::playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence) {
+void IMuseDigitalV1::playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence) {
 	int hookId = 0;
 
 	if ((songName != NULL) && (attribPos != 0)) {
@@ -388,7 +388,7 @@ void DiMUSE_v1::playComiMusic(const char *songName, const imuseComiTable *table,
 	}
 }
 
-void DiMUSE_v1::playComiDemoMusic(const char *songName, const imuseComiTable *table, int attribPos) {
+void IMuseDigitalV1::playComiDemoMusic(const char *songName, const imuseComiTable *table, int attribPos) {
 	int hookId = 0;
 
 	if ((songName != NULL) && (attribPos != 0)) {
@@ -434,7 +434,7 @@ void DiMUSE_v1::playComiDemoMusic(const char *songName, const imuseComiTable *ta
 	}
 }
 
-void DiMUSE_v1::setFtMusicState(int stateId) {
+void IMuseDigitalV1::setFtMusicState(int stateId) {
 	if (stateId > 48)
 		return;
 
@@ -453,7 +453,7 @@ void DiMUSE_v1::setFtMusicState(int stateId) {
 	_curMusicState = stateId;
 }
 
-void DiMUSE_v1::setFtMusicSequence(int seqId) {
+void IMuseDigitalV1::setFtMusicSequence(int seqId) {
 	if (seqId > 52)
 		return;
 
@@ -477,7 +477,7 @@ void DiMUSE_v1::setFtMusicSequence(int seqId) {
 	_curMusicCue = 0;
 }
 
-void DiMUSE_v1::setFtMusicCuePoint(int cueId) {
+void IMuseDigitalV1::setFtMusicCuePoint(int cueId) {
 	if (cueId > 3)
 		return;
 
@@ -499,13 +499,13 @@ void DiMUSE_v1::setFtMusicCuePoint(int cueId) {
 	_curMusicCue = cueId;
 }
 
-void DiMUSE_v1::setAudioNames(int32 num, char *names) {
+void IMuseDigitalV1::setAudioNames(int32 num, char *names) {
 	free(_audioNames);
 	_numAudioNames = num;
 	_audioNames = names;
 }
 
-int DiMUSE_v1::getSoundIdByName(const char *soundName) {
+int IMuseDigitalV1::getSoundIdByName(const char *soundName) {
 	if (soundName && soundName[0] != 0) {
 		for (int r = 0; r < _numAudioNames; r++) {
 			if (strcmp(soundName, &_audioNames[r * 9]) == 0) {
@@ -517,7 +517,7 @@ int DiMUSE_v1::getSoundIdByName(const char *soundName) {
 	return -1;
 }
 
-void DiMUSE_v1::playFtMusic(const char *songName, int opcode, int volume) {
+void IMuseDigitalV1::playFtMusic(const char *songName, int opcode, int volume) {
 	fadeOutMusic(200);
 
 	switch (opcode) {

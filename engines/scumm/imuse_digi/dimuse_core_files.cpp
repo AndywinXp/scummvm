@@ -20,23 +20,23 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_files.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_files.h"
 
 namespace Scumm {
 
-DiMUSEFilesHandler::DiMUSEFilesHandler(DiMUSE_v2 *engine, ScummEngine_v7 *vm) {
+IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v7 *vm) {
 	_engine = engine;
 	_sound = new ImuseDigiSndMgr(vm, true);
 	assert(_sound);
 	_vm = vm;
 }
 
-DiMUSEFilesHandler::~DiMUSEFilesHandler() {
+IMuseDigiFilesHandler::~IMuseDigiFilesHandler() {
 	delete _sound;
 }
 
-void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
+void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 	int curSound = 0;
 	ImuseDigiSndMgr::SoundDesc *sounds = _sound->getSounds();
 
@@ -64,7 +64,7 @@ void DiMUSEFilesHandler::saveLoad(Common::Serializer &ser) {
 	}
 }
 
-uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
+uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 	Common::StackLock lock(_mutex);
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
@@ -79,11 +79,11 @@ uint8 *DiMUSEFilesHandler::getSoundAddrData(int soundId) {
 		return ptr;
 			
 	}
-	debug(5, "DiMUSEFilesHandler::getSoundAddrData(): soundId is 0 or out of range");
+	debug(5, "IMuseDigiFilesHandler::getSoundAddrData(): soundId is 0 or out of range");
 	return NULL;
 }
 
-int DiMUSEFilesHandler::getNextSound(int soundId) {
+int IMuseDigiFilesHandler::getNextSound(int soundId) {
 	int foundSoundId = 0;
 	do {
 		foundSoundId = _engine->diMUSEGetNextSound(foundSoundId);
@@ -93,7 +93,7 @@ int DiMUSEFilesHandler::getNextSound(int soundId) {
 	return 2;
 }
 
-int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
+int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	// The seeked position is in reference to the decompressed sound
@@ -112,15 +112,15 @@ int DiMUSEFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 
 			return resultingOffset;
 		} 
-		debug(5, "DiMUSEFilesHandler::seek(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
+		debug(5, "IMuseDigiFilesHandler::seek(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
 	} else {
-		debug(5, "DiMUSEFilesHandler::seek(): soundId is 0 or out of range");
+		debug(5, "IMuseDigiFilesHandler::seek(): soundId is 0 or out of range");
 	}
 
 	return 0;
 }
 
-int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
+int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed
 	// (speech and music), therefore they will always refer to sounds in a bundle file
 	if (soundId != 0) {
@@ -134,11 +134,11 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
 					uint8 *tmpBuf;
-					//debug(5, "DiMUSE_v2::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
+					//debug(5, "IMuseDigital::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
 					int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
 
 					if (resultingSize != size)
-						debug(5, "DiMUSEFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
+						debug(5, "IMuseDigiFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
 					memcpy(buf, tmpBuf, size);
 					free(tmpBuf);
 					return resultingSize;
@@ -146,26 +146,26 @@ int DiMUSEFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 			}
 		}
 
-		debug(5, "DiMUSEFilesHandler::read(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
+		debug(5, "IMuseDigiFilesHandler::read(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
 
 	} else {
-		debug(5, "DiMUSEFilesHandler::read(): soundId is 0 or out of range");
+		debug(5, "IMuseDigiFilesHandler::read(): soundId is 0 or out of range");
 	}
 	
 	return 0;
 }
 
 	
-DiMUSESoundBuffer *DiMUSEFilesHandler::getBufInfo(int bufId) {
+IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 	if (bufId > 0 && bufId <= 4) {
 		return &_soundBuffers[bufId];
 	}
 
-	debug(5, "DiMUSEFilesHandler::getBufInfo(): ERROR: invalid buffer id");
+	debug(5, "IMuseDigiFilesHandler::getBufInfo(): ERROR: invalid buffer id");
 	return NULL;
 }
 
-int DiMUSEFilesHandler::openSound(int soundId) {
+int IMuseDigiFilesHandler::openSound(int soundId) {
 	char fileName[60] = "";
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 	ImuseDigiSndMgr::SoundDesc *s = NULL;
@@ -176,18 +176,18 @@ int DiMUSEFilesHandler::openSound(int soundId) {
 	if (!s)
 		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 2);
 	if (!s) {
-		debug(5, "DiMUSEFilesHandler::openSound(): can't open sound %d (%s)", soundId, fileName);
+		debug(5, "IMuseDigiFilesHandler::openSound(): can't open sound %d (%s)", soundId, fileName);
 		return 1;
 	}
 
 	return 0;
 }
 
-void DiMUSEFilesHandler::closeSound(int soundId) {
+void IMuseDigiFilesHandler::closeSound(int soundId) {
 	_sound->scheduleSoundForDeallocation(soundId);
 }
 
-void DiMUSEFilesHandler::closeAllSounds() {
+void IMuseDigiFilesHandler::closeAllSounds() {
 	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (s[i].inUse)
@@ -197,7 +197,7 @@ void DiMUSEFilesHandler::closeAllSounds() {
 	_engine->flushTracks();
 }
 
-void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, size_t size) {
+void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, size_t size) {
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
@@ -243,8 +243,8 @@ void DiMUSEFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, siz
 	}
 }
 
-void DiMUSEFilesHandler::allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
-	DiMUSESoundBuffer *selectedSoundBuf;
+void IMuseDigiFilesHandler::allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
+	IMuseDigiSndBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
 	selectedSoundBuf->buffer = (uint8 *)malloc(size);
@@ -253,15 +253,15 @@ void DiMUSEFilesHandler::allocSoundBuffer(int bufId, int size, int loadSize, int
 	selectedSoundBuf->criticalSize = criticalSize;
 }
 
-void DiMUSEFilesHandler::deallocSoundBuffer(int bufId) {
-	DiMUSESoundBuffer *selectedSoundBuf;
+void IMuseDigiFilesHandler::deallocSoundBuffer(int bufId) {
+	IMuseDigiSndBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
 	free(selectedSoundBuf->buffer);
 	selectedSoundBuf->buffer = NULL;
 }
 
-void DiMUSEFilesHandler::flushSounds() {
+void IMuseDigiFilesHandler::flushSounds() {
 	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		ImuseDigiSndMgr::SoundDesc *curSnd = &s[i];
@@ -273,7 +273,7 @@ void DiMUSEFilesHandler::flushSounds() {
 	}
 }
 
-int DiMUSEFilesHandler::setCurrentSpeechFile(const char *fileName) {
+int IMuseDigiFilesHandler::setCurrentSpeechFile(const char *fileName) {
 	Common::strlcpy(_currentSpeechFile, fileName, sizeof(_currentSpeechFile));
 	if (openSound(kTalkSoundID))
 		return 1;
@@ -281,7 +281,7 @@ int DiMUSEFilesHandler::setCurrentSpeechFile(const char *fileName) {
 	return 0;
 }
 
-void DiMUSEFilesHandler::closeSoundImmediatelyById(int soundId) {
+void IMuseDigiFilesHandler::closeSoundImmediatelyById(int soundId) {
 	_sound->closeSoundById(soundId);
 }
 

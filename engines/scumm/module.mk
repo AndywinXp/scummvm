@@ -88,28 +88,28 @@ ifdef ENABLE_SCUMM_7_8
 MODULE_OBJS += \
 	nut_renderer.o \
 	script_v8.o \
-	dimuse_v1/dimuse_v1.o \
-	dimuse_v1/dimuse_bndmgr.o \
-	dimuse_v1/dimuse_codecs.o \
-	dimuse_v1/dimuse_music.o \
-	dimuse_v1/dimuse_sndmgr.o \
-	dimuse_v1/dimuse_script.o \
-	dimuse_v1/dimuse_track.o \
-	dimuse_v1/dimuse_tables.o \
-	dimuse_v2/dimuse_v2.o \
-	dimuse_v2/dimuse_v2_cmds.o \
-	dimuse_v2/dimuse_v2_dispatch.o \
-	dimuse_v2/dimuse_v2_fades.o \
-	dimuse_v2/dimuse_v2_files.o \
-	dimuse_v2/dimuse_v2_groups.o \
-	dimuse_v2/dimuse_v2_internalmixer.o \
-	dimuse_v2/dimuse_v2_script.o \
-	dimuse_v2/dimuse_v2_streamer.o \
-	dimuse_v2/dimuse_v2_tracks.o \
-	dimuse_v2/dimuse_v2_triggers.o \
-	dimuse_v2/dimuse_v2_utils.o \
-	dimuse_v2/dimuse_v2_wave.o \
-	dimuse_v2/dimuse_v2_waveout.o \
+	imuse_digi/dimuse_v1.o \
+	imuse_digi/dimuse_bndmgr.o \
+	imuse_digi/dimuse_codecs.o \
+	imuse_digi/dimuse_music.o \
+	imuse_digi/dimuse_sndmgr.o \
+	imuse_digi/dimuse_script.o \
+	imuse_digi/dimuse_track.o \
+	imuse_digi/dimuse_tables.o \
+	imuse_digi/dimuse_core.o \
+	imuse_digi/dimuse_core_cmds.o \
+	imuse_digi/dimuse_core_dispatch.o \
+	imuse_digi/dimuse_core_fades.o \
+	imuse_digi/dimuse_core_files.o \
+	imuse_digi/dimuse_core_groups.o \
+	imuse_digi/dimuse_core_internalmixer.o \
+	imuse_digi/dimuse_core_script.o \
+	imuse_digi/dimuse_core_streamer.o \
+	imuse_digi/dimuse_core_tracks.o \
+	imuse_digi/dimuse_core_triggers.o \
+	imuse_digi/dimuse_core_utils.o \
+	imuse_digi/dimuse_core_wave.o \
+	imuse_digi/dimuse_core_waveout.o \
 	insane/insane.o \
 	insane/insane_ben.o \
 	insane/insane_enemy.o \

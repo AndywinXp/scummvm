@@ -29,7 +29,7 @@
 #include "scumm/charset.h"
 #include "scumm/dialogs.h"
 #include "scumm/file.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
 #ifdef ENABLE_HE
 #include "scumm/he/intern_he.h"
 #include "scumm/he/localizer.h"

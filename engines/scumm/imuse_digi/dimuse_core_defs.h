@@ -67,9 +67,9 @@ namespace Scumm {
 #define P_STREAM_BUFID   0x1900
 #define P_SND_POS_IN_MS  0x1A00
 
-struct DiMUSEDispatch;
-struct DiMUSETrack;
-struct DiMUSEStreamZone;
+struct IMuseDigiDispatch;
+struct IMuseDigiTrack;
+struct IMuseDigiStreamZone;
 
 typedef struct {
 	int sound;
@@ -86,7 +86,7 @@ typedef struct {
 	int i;
 	int j;
 	int clearLater;
-} DiMUSETrigger;
+} IMuseDigiTrigger;
 
 typedef struct {
 	int counter;
@@ -101,7 +101,7 @@ typedef struct {
 	int h;
 	int i;
 	int j;
-} DiMUSEDefer;
+} IMuseDigiDefer;
 
 typedef struct {
 	int status;
@@ -114,12 +114,12 @@ typedef struct {
 	int slopeMod;
 	int modOvfloCounter;
 	int nudge;
-} DiMUSEFade;
+} IMuseDigiFade;
 
-struct DiMUSETrack {
-	DiMUSETrack *prev;
-	DiMUSETrack *next;
-	DiMUSEDispatch *dispatchPtr;
+struct IMuseDigiTrack {
+	IMuseDigiTrack *prev;
+	IMuseDigiTrack *next;
+	IMuseDigiDispatch *dispatchPtr;
 	int soundId;
 	int marker;
 	int group;
@@ -142,9 +142,9 @@ struct DiMUSETrack {
 	byte *syncPtr_3;
 };
 
-struct DiMUSEStreamZone {
-	DiMUSEStreamZone *prev;
-	DiMUSEStreamZone *next;
+struct IMuseDigiStreamZone {
+	IMuseDigiStreamZone *prev;
+	IMuseDigiStreamZone *next;
 	int useFlag;
 	int offset;
 	int size;
@@ -164,26 +164,26 @@ typedef struct {
 	int loadIndex;
 	int readIndex;
 	int paused;
-} DiMUSEStream;
+} IMuseDigiStream;
 
 typedef struct {
 	uint8 *buffer;
 	int bufSize;
 	int loadSize;
 	int criticalSize;
-} DiMUSESoundBuffer;
+} IMuseDigiSndBuffer;
 
-struct DiMUSEDispatch {
-	DiMUSETrack *trackPtr;
+struct IMuseDigiDispatch {
+	IMuseDigiTrack *trackPtr;
 	int wordSize;
 	int sampleRate;
 	int channelCount;
 	int currentOffset;
 	int audioRemaining;
 	int map[2048]; // For DIG it's 256
-	DiMUSEStream *streamPtr;
+	IMuseDigiStream *streamPtr;
 	int streamBufID;
-	DiMUSEStreamZone *streamZoneList;
+	IMuseDigiStreamZone *streamZoneList;
 	int streamErrFlag;
 	uint8 *fadeBuf;
 	int fadeOffset;
@@ -204,7 +204,6 @@ typedef struct {
 	int mixBufSize;
 	int sizeSampleKB;
 } waveOutParamsStruct;
-
 
 } // End of namespace Scumm
 #endif

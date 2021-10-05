@@ -20,23 +20,23 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_fades.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_fades.h"
 
 namespace Scumm {
 
-DiMUSEFadesHandler::DiMUSEFadesHandler(DiMUSE_v2 *engine) {
+IMuseDigiFadesHandler::IMuseDigiFadesHandler(IMuseDigital *engine) {
 	_engine = engine;
 }
 
-DiMUSEFadesHandler::~DiMUSEFadesHandler() {}
+IMuseDigiFadesHandler::~IMuseDigiFadesHandler() {}
 
-int DiMUSEFadesHandler::init() {
+int IMuseDigiFadesHandler::init() {
 	clearAllFades();
 	return 0;
 }
 
-int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength) {
+int IMuseDigiFadesHandler::fadeParam(int soundId, int opcode, int destinationValue, int fadeLength) {
 	if (!soundId || fadeLength < 0)
 		return -5;
 	if (opcode != P_PRIORITY && opcode != P_VOLUME && opcode != P_PAN && opcode != P_DETUNE && opcode != P_UNKNOWN && opcode != 17)
@@ -49,7 +49,7 @@ int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue,
 	}
 
 	if (!fadeLength) {
-		debug(5, "DiMUSEFadesHandler::fadeParam(): WARNING: allocated fade with zero length for sound %d", soundId);
+		debug(5, "IMuseDigiFadesHandler::fadeParam(): WARNING: allocated fade with zero length for sound %d", soundId);
 		if (opcode != P_VOLUME || destinationValue) {
 			_engine->diMUSESetParam(soundId, opcode, destinationValue);
 			return 0;
@@ -83,11 +83,11 @@ int DiMUSEFadesHandler::fadeParam(int soundId, int opcode, int destinationValue,
 		}
 	}
 
-	debug(5, "DiMUSEFadesHandler::fadeParam(): unable to allocate fade for sound %d", soundId);
+	debug(5, "IMuseDigiFadesHandler::fadeParam(): unable to allocate fade for sound %d", soundId);
 	return -6;
 }
 
-void DiMUSEFadesHandler::clearFadeStatus(int soundId, int opcode) {
+void IMuseDigiFadesHandler::clearFadeStatus(int soundId, int opcode) {
 	for (int l = 0; l < MAX_FADES; l++) {
 		if (_fades[l].status == 0
 			&& _fades[l].sound == soundId
@@ -97,7 +97,7 @@ void DiMUSEFadesHandler::clearFadeStatus(int soundId, int opcode) {
 	}
 }
 
-void DiMUSEFadesHandler::loop() {
+void IMuseDigiFadesHandler::loop() {
 	if (!_fadesOn)
 		return;
 	_fadesOn = 0;
@@ -122,7 +122,7 @@ void DiMUSEFadesHandler::loop() {
 				_fades[l].currentVal = currentVolume;
 
 				if ((_fades[l].counter % 6) == 0) {
-					debug(5, "DiMUSEFadesHandler::loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
+					debug(5, "IMuseDigiFadesHandler::loop(): running fade for sound %d with id %d, currently at volume %d", _fades[l].sound, l, currentVolume);
 					if ((_fades[l].param != P_VOLUME) || currentVolume != 0) {
 						_engine->diMUSESetParam(_fades[l].sound, _fades[l].param, currentVolume);
 						continue;
@@ -135,11 +135,11 @@ void DiMUSEFadesHandler::loop() {
 	}
 }
 
-void DiMUSEFadesHandler::deinit() {
+void IMuseDigiFadesHandler::deinit() {
 	clearAllFades();
 }
 
-void DiMUSEFadesHandler::saveLoad(Common::Serializer &ser) {
+void IMuseDigiFadesHandler::saveLoad(Common::Serializer &ser) {
 	for (int l = 0; l < MAX_FADES; l++) {
 		ser.syncAsSint32LE(_fades[l].status, VER(103));
 		ser.syncAsSint32LE(_fades[l].sound, VER(103));
@@ -157,7 +157,7 @@ void DiMUSEFadesHandler::saveLoad(Common::Serializer &ser) {
 		_fadesOn = 1;
 }
 
-void DiMUSEFadesHandler::clearAllFades() {
+void IMuseDigiFadesHandler::clearAllFades() {
 	for (int l = 0; l < MAX_FADES; l++) {
 		_fades[l].status = 0;
 		_fades[l].sound = 0;

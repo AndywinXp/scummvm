@@ -23,7 +23,7 @@
 #include "common/scummsys.h"
 #include "common/endian.h"
 #include "common/util.h"
-#include "scumm/dimuse_v1/dimuse_codecs.h"
+#include "scumm/imuse_digi/dimuse_codecs.h"
 
 #include "audio/decoders/adpcm_intern.h"
 

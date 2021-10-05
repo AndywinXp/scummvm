@@ -30,9 +30,9 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
-#include "scumm/dimuse_v1/dimuse_bndmgr.h"
-#include "scumm/dimuse_v1/dimuse_sndmgr.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_sndmgr.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
 
@@ -53,7 +53,7 @@ struct imuseComiTable;
 class ScummEngine_v7;
 struct Track;
 
-class DiMUSE_v1 : public DiMUSE {
+class IMuseDigitalV1 : public IMuseDigitalAbstract {
 private:
 
 	int _callbackFps;		// value how many times callback needs to be called per second
@@ -129,8 +129,8 @@ private:
 	void flushTrack(Track *track);
 
 public:
-	DiMUSE_v1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
-	~DiMUSE_v1() override;
+	IMuseDigitalV1(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
+	~IMuseDigitalV1() override;
 
 	void setAudioNames(int32 num, char *names);
 
@@ -141,7 +141,7 @@ public:
 	int startMusicWithOtherPos(const char *soundName, int soundId, int hookId, int volume, Track *otherTrack);
 	int startSfx(int soundId, int priority);
 	void startSound(int sound) override
-		{ error("DiMUSE_v1::startSound(int) should be never called"); }
+		{ error("IMuseDigitalV1::startSound(int) should be never called"); }
 
 	void saveLoadEarly(Common::Serializer &ser);
 	void resetState();

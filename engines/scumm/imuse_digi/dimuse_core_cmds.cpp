@@ -20,13 +20,13 @@
 *
 */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 
 namespace Scumm {
 
 // We have some uintptr arguments as commands 28, 29 and 30 actually require pointer arguments
 // Unfortunately this makes function calls for other command a little less pretty...
-int DiMUSE_v2::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, uintptr e,
+int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, uintptr e,
 	int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 
 	// Convert the character constant (single quotes '') to string
@@ -95,7 +95,7 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, ui
 	case 30:
 		return waveLipSync(a, (int)b, (int)c, (int32 *)d, (int32 *)e);
 	default:
-		debug(5, "DiMUSE_v2::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
+		debug(5, "IMuseDigital::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
 		return -1;
 	}
 
@@ -103,7 +103,7 @@ int DiMUSE_v2::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, ui
 }
 
 // Validated
-int DiMUSE_v2::cmdsInit() {
+int IMuseDigital::cmdsInit() {
 	_cmdsRunning60HzCount = 0;
 	_cmdsRunning10HzCount = 0;
 
@@ -116,7 +116,7 @@ int DiMUSE_v2::cmdsInit() {
 	return 48;
 }
 
-int DiMUSE_v2::cmdsDeinit() {
+int IMuseDigital::cmdsDeinit() {
 	waveTerminate();
 	waveOutDeinit();
 	_triggersHandler->deinit();
@@ -128,11 +128,11 @@ int DiMUSE_v2::cmdsDeinit() {
 	return 0;
 }
 
-int DiMUSE_v2::cmdsTerminate() {
+int IMuseDigital::cmdsTerminate() {
 	return 0;
 }
 
-int DiMUSE_v2::cmdsPause() {
+int IMuseDigital::cmdsPause() {
 	int result = 0;
 
 	if (_cmdsPauseCount == 0) {
@@ -147,7 +147,7 @@ int DiMUSE_v2::cmdsPause() {
 	return result;
 }
 
-int DiMUSE_v2::cmdsResume() {
+int IMuseDigital::cmdsResume() {
 	int result = 0;
 
 	if (_cmdsPauseCount == 1) {
@@ -165,7 +165,7 @@ int DiMUSE_v2::cmdsResume() {
 	return result;
 }
 
-void DiMUSE_v2::cmdsSaveLoad(Common::Serializer &ser) {
+void IMuseDigital::cmdsSaveLoad(Common::Serializer &ser) {
 	// Serialize in this order:
 	// - Open files
 	// - Fades
@@ -185,11 +185,11 @@ void DiMUSE_v2::cmdsSaveLoad(Common::Serializer &ser) {
 	ser.syncAsByte(_radioChatterSFX, VER(103));
 }
 
-int DiMUSE_v2::cmdsStartSound(int soundId, int priority) {
+int IMuseDigital::cmdsStartSound(int soundId, int priority) {
 	uint8 *src = _filesHandler->getSoundAddrData(soundId);
 
 	if (src == NULL) {
-		debug(5, "DiMUSE_v2::cmdsStartSound(): ERROR: resource address for sound %d is NULL", soundId);
+		debug(5, "IMuseDigital::cmdsStartSound(): ERROR: resource address for sound %d is NULL", soundId);
 		return -1;
 	}
 
@@ -200,7 +200,7 @@ int DiMUSE_v2::cmdsStartSound(int soundId, int priority) {
 	return -1;
 }
 
-int DiMUSE_v2::cmdsStopSound(int soundId) {
+int IMuseDigital::cmdsStopSound(int soundId) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (result != 2)
@@ -209,15 +209,15 @@ int DiMUSE_v2::cmdsStopSound(int soundId) {
 	return waveStopSound(soundId);
 }
 
-int DiMUSE_v2::cmdsStopAllSounds() {
+int IMuseDigital::cmdsStopAllSounds() {
 	return _triggersHandler->clearAllTriggers() | waveStopAllSounds();
 }
 
-int DiMUSE_v2::cmdsGetNextSound(int soundId) {
+int IMuseDigital::cmdsGetNextSound(int soundId) {
 	return waveGetNextSound(soundId);
 }
 
-int DiMUSE_v2::cmdsSetParam(int soundId, int subCmd, int value) {
+int IMuseDigital::cmdsSetParam(int soundId, int subCmd, int value) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (result != 2)
@@ -226,7 +226,7 @@ int DiMUSE_v2::cmdsSetParam(int soundId, int subCmd, int value) {
 	return waveSetParam(soundId, subCmd, value);
 }
 
-int DiMUSE_v2::cmdsGetParam(int soundId, int subCmd) {
+int IMuseDigital::cmdsGetParam(int soundId, int subCmd) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (subCmd != 0) {
@@ -244,7 +244,7 @@ int DiMUSE_v2::cmdsGetParam(int soundId, int subCmd) {
 	return result;
 }
 
-int DiMUSE_v2::cmdsSetHook(int soundId, int hookId) {
+int IMuseDigital::cmdsSetHook(int soundId, int hookId) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (result != 2)
@@ -253,7 +253,7 @@ int DiMUSE_v2::cmdsSetHook(int soundId, int hookId) {
 	return waveSetHook(soundId, hookId);
 }
 
-int DiMUSE_v2::cmdsGetHook(int soundId) {
+int IMuseDigital::cmdsGetHook(int soundId) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (result != 2)

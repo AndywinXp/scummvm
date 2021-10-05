@@ -29,19 +29,19 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 
 namespace Scumm {
 
-class DiMUSEGroupsHandler {
+class IMuseDigiGroupsHandler {
 
 private:
-	DiMUSE_v2 *_engine;
+	IMuseDigital *_engine;
 	int _effVols[MAX_GROUPS];
 	int _vols[MAX_GROUPS];
 public:
-	DiMUSEGroupsHandler(DiMUSE_v2 *engine);
-	~DiMUSEGroupsHandler();
+	IMuseDigiGroupsHandler(IMuseDigital *engine);
+	~IMuseDigiGroupsHandler();
 	int init();
 	int setGroupVol(int id, int volume);
 	int getGroupVol(int id);

@@ -20,11 +20,11 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 
 namespace Scumm {
 
-int DiMUSE_v2::tracksInit() {
+int IMuseDigital::tracksInit() {
 	_trackCount = 6;
 	_tracksPauseTimer = 0;
 	_trackList = NULL;
@@ -62,15 +62,15 @@ int DiMUSE_v2::tracksInit() {
 	return 0;
 }
 
-void DiMUSE_v2::tracksPause() {
+void IMuseDigital::tracksPause() {
 	_tracksPauseTimer = 1;
 }
 
-void DiMUSE_v2::tracksResume() {
+void IMuseDigital::tracksResume() {
 	_tracksPauseTimer = 0;
 }
 
-void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
+void IMuseDigital::tracksSaveLoad(Common::Serializer &ser) {
 	Common::StackLock lock(_mutex);
 	dispatchSaveLoad(ser);
 
@@ -137,15 +137,15 @@ void DiMUSE_v2::tracksSaveLoad(Common::Serializer &ser) {
 	}
 }
 
-void DiMUSE_v2::tracksSetGroupVol() {
-	DiMUSETrack* curTrack = _trackList;
+void IMuseDigital::tracksSetGroupVol() {
+	IMuseDigiTrack* curTrack = _trackList;
 	while (curTrack) {
 		curTrack->effVol = ((curTrack->vol + 1) * _groupsHandler->getGroupVol(curTrack->group)) / 128;
 		curTrack = curTrack->next;
 	}
 }
 
-void DiMUSE_v2::tracksCallback() {
+void IMuseDigital::tracksCallback() {
 	if (_tracksPauseTimer) {
 		if (++_tracksPauseTimer < 3)
 			return;
@@ -164,10 +164,10 @@ void DiMUSE_v2::tracksCallback() {
 		if (_outputFeedSize != 0) {
 			_internalMixer->clearMixerBuffer();
 			if (!_tracksPauseTimer) {
-				DiMUSETrack *track = _trackList;
+				IMuseDigiTrack *track = _trackList;
 
 				while (track) {
-					DiMUSETrack *next = track->next;
+					IMuseDigiTrack *next = track->next;
 					dispatchProcessDispatches(track, _outputFeedSize, _outputSampleRate);
 					track = next;
 				};
@@ -183,8 +183,8 @@ void DiMUSE_v2::tracksCallback() {
 	}
 }
 
-int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
-	debug(5, "DiMUSE_v2::tracksStartSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
+int IMuseDigital::tracksStartSound(int soundId, int tryPriority, int group) {
+	debug(5, "IMuseDigital::tracksStartSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
 	int priority = clampNumber(tryPriority, 0, 127);
 	if (_trackCount > 0) {
 		int l = 0;
@@ -197,7 +197,7 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 		}
 
 		if (l != -1) {
-			DiMUSETrack *foundTrack = &_tracks[l];
+			IMuseDigiTrack *foundTrack = &_tracks[l];
 			if (!foundTrack)
 				return -6;
 
@@ -229,7 +229,7 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 			}
 
 			if (dispatchAlloc(foundTrack, group)) {
-				debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
+				debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 				foundTrack->soundId = 0;
 				return -1;
 			}
@@ -242,12 +242,12 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 		}
 	}
 
-	debug(5, "DiMUSE_v2::tracksStartSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
+	debug(5, "IMuseDigital::tracksStartSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
 
 	// Let's steal the track with the lowest priority
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	int bestPriority = 127;
-	DiMUSETrack *stolenTrack = NULL;
+	IMuseDigiTrack *stolenTrack = NULL;
 
 	while (track) {
 		int curTrackPriority = track->priority;
@@ -259,7 +259,7 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	}
 
 	if (!stolenTrack || priority < bestPriority) {
-		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: couldn't steal a lower priority track for sound %d", soundId);
+		debug(5, "IMuseDigital::tracksStartSound(): ERROR: couldn't steal a lower priority track for sound %d", soundId);
 		return -6;
 	} else {
 		removeTrackFromList(&_trackList, stolenTrack);
@@ -291,7 +291,7 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	stolenTrack->syncPtr_3 = NULL;
 
 	if (dispatchAlloc(stolenTrack, group)) {
-		debug(5, "DiMUSE_v2::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
+		debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 		stolenTrack->soundId = 0;
 		return -1;
 	}
@@ -303,11 +303,11 @@ int DiMUSE_v2::tracksStartSound(int soundId, int tryPriority, int group) {
 	return 0;
 }
 
-int DiMUSE_v2::tracksStopSound(int soundId) {
+int IMuseDigital::tracksStopSound(int soundId) {
 	if (!_trackList)
 		return -1;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	do {
 		if (track->soundId == soundId) {
 			removeTrackFromList(&_trackList, track);
@@ -322,10 +322,10 @@ int DiMUSE_v2::tracksStopSound(int soundId) {
 	return 0;
 }
 
-int DiMUSE_v2::tracksStopAllSounds() {
+int IMuseDigital::tracksStopAllSounds() {
 	Common::StackLock lock(_mutex);
-	DiMUSETrack *nextTrack = _trackList;
-	DiMUSETrack *curTrack;
+	IMuseDigiTrack *nextTrack = _trackList;
+	IMuseDigiTrack *curTrack;
 
 	if (_vm->_game.id == GID_DIG) {
 		if (_trackList) {
@@ -350,9 +350,9 @@ int DiMUSE_v2::tracksStopAllSounds() {
 	return 0;
 }
 
-int DiMUSE_v2::tracksGetNextSound(int soundId) {
+int IMuseDigital::tracksGetNextSound(int soundId) {
 	int found_soundId = 0;
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	while (track) {
 		if (track->soundId > soundId) {
 			if (!found_soundId || track->soundId < found_soundId) {
@@ -365,11 +365,11 @@ int DiMUSE_v2::tracksGetNextSound(int soundId) {
 	return found_soundId;
 }
 
-int DiMUSE_v2::tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
+int IMuseDigital::tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
 	if (!_trackList)
 		return -1;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	do {
 		if (track->soundId) {
 			if (track->soundId == soundId && track->dispatchPtr->streamPtr) {
@@ -383,11 +383,11 @@ int DiMUSE_v2::tracksQueryStream(int soundId, int *bufSize, int *criticalSize, i
 	return -1;
 }
 
-int DiMUSE_v2::tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+int IMuseDigital::tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
 	if (!_trackList)
 		return -1;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	do {
 		if (track->soundId != 0) {
 			if (track->soundId == soundId && track->dispatchPtr->streamPtr) {
@@ -401,7 +401,7 @@ int DiMUSE_v2::tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int 
 	return -1;
 }
 
-void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
+void IMuseDigital::tracksClear(IMuseDigiTrack *trackPtr) {
 	if (_vm->_game.id == GID_CMI) {
 		if (trackPtr->syncPtr_0) {
 			trackPtr->syncSize_0 = 0;
@@ -441,11 +441,11 @@ void DiMUSE_v2::tracksClear(DiMUSETrack *trackPtr) {
 	trackPtr->soundId = 0;
 }
 
-int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
+int IMuseDigital::tracksSetParam(int soundId, int opcode, int value) {
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	while (track) {
 		if (track->soundId == soundId) {
 			switch (opcode) {
@@ -501,7 +501,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 				track->mailbox = value;
 				return 0;
 			default:
-				debug(5, "DiMUSE_v2::tracksSetParam(): unknown opcode %d", opcode);
+				debug(5, "IMuseDigital::tracksSetParam(): unknown opcode %d", opcode);
 				return -5;
 			}
 		}
@@ -511,7 +511,7 @@ int DiMUSE_v2::tracksSetParam(int soundId, int opcode, int value) {
 	return -4;
 }
 
-int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
+int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 	if (!_trackList) {
 		if (opcode != P_SND_TRACK_NUM)
 			return -4;
@@ -519,7 +519,7 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 			return 0;
 	}
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	int l = 0;
 	do {
 		if (track)
@@ -571,13 +571,13 @@ int DiMUSE_v2::tracksGetParam(int soundId, int opcode) {
 	return 0;
 }
 
-int DiMUSE_v2::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	int h, w;
 
 	byte *syncPtr = NULL;
 	int syncSize = 0;
 
-	DiMUSETrack *curTrack;
+	IMuseDigiTrack *curTrack;
 	uint16 msPosDiv;
 	uint16 *tmpPtr;
 	int loopIndex;
@@ -649,13 +649,13 @@ int DiMUSE_v2::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, i
 	return 0;
 }
 
-int DiMUSE_v2::tracksSetHook(int soundId, int hookId) {
+int IMuseDigital::tracksSetHook(int soundId, int hookId) {
 	if (hookId > 128)
 		return -5;
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	while (track->soundId != soundId) {
 		track = track->next;
 		if (!track)
@@ -667,11 +667,11 @@ int DiMUSE_v2::tracksSetHook(int soundId, int hookId) {
 	return 0;
 }
 
-int DiMUSE_v2::tracksGetHook(int soundId) {
+int IMuseDigital::tracksGetHook(int soundId) {
 	if (!_trackList)
 		return -4;
 
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	while (track->soundId != soundId) {
 		track = track->next;
 		if (!track)
@@ -681,12 +681,12 @@ int DiMUSE_v2::tracksGetHook(int soundId) {
 	return track->jumpHook;
 }
 
-void DiMUSE_v2::tracksDeinit() {
+void IMuseDigital::tracksDeinit() {
 	if (!_trackList)
 		return;
 
 	Common::StackLock lock(_mutex);
-	DiMUSETrack *track = _trackList;
+	IMuseDigiTrack *track = _trackList;
 	do {
 		removeTrackFromList(&_trackList, track);
 

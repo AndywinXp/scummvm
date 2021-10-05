@@ -25,7 +25,7 @@
 #include "scumm/akos.h"
 #include "scumm/bomp.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v7.h"

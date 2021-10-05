@@ -26,17 +26,17 @@
 #include "scumm/actor.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
-#include "scumm/dimuse_v1/dimuse_bndmgr.h"
-#include "scumm/dimuse_v1/dimuse_track.h"
-#include "scumm/dimuse_v1/dimuse_tables.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_track.h"
+#include "scumm/imuse_digi/dimuse_tables.h"
 
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
 
 namespace Scumm {
 
-int DiMUSE_v1::allocSlot(int priority) {
+int IMuseDigitalV1::allocSlot(int priority) {
 	int l, lowest_priority = 127;
 	int trackId = -1;
 
@@ -48,7 +48,7 @@ int DiMUSE_v1::allocSlot(int priority) {
 	}
 
 	if (trackId == -1) {
-		debug(5, "DiMUSE_v1::allocSlot(): All slots are full");
+		debug(5, "IMuseDigitalV1::allocSlot(): All slots are full");
 		for (l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 			Track *track = _track[l];
 			if (track->used && !track->toBeRemoved &&
@@ -70,9 +70,9 @@ int DiMUSE_v1::allocSlot(int priority) {
 			// Mark it as unused
 			track->reset();
 
-			debug(5, "DiMUSE_v1::allocSlot(): Removed sound %d from track %d", _track[trackId]->soundId, trackId);
+			debug(5, "IMuseDigitalV1::allocSlot(): Removed sound %d from track %d", _track[trackId]->soundId, trackId);
 		} else {
-			debug(5, "DiMUSE_v1::allocSlot(): Priority sound too low");
+			debug(5, "IMuseDigitalV1::allocSlot(): Priority sound too low");
 			return -1;
 		}
 	}
@@ -80,9 +80,9 @@ int DiMUSE_v1::allocSlot(int priority) {
 	return trackId;
 }
 
-int DiMUSE_v1::startSound(int soundId, const char *soundName, int soundType, int volGroupId, Audio::AudioStream *input, int hookId, int volume, int priority, Track *otherTrack) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::startSound()");
-	debug(5, "DiMUSE_v1::startSound(%d) - begin func", soundId);
+int IMuseDigitalV1::startSound(int soundId, const char *soundName, int soundType, int volGroupId, Audio::AudioStream *input, int hookId, int volume, int priority, Track *otherTrack) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::startSound()");
+	debug(5, "IMuseDigitalV1::startSound(%d) - begin func", soundId);
 
 	bool forceFadeIn = false;
 	if (_vm->_game.id == GID_FT && volGroupId == IMUSE_VOLGRP_MUSIC) {
@@ -119,10 +119,10 @@ int DiMUSE_v1::startSound(int soundId, const char *soundName, int soundType, int
 
 	int l = allocSlot(priority);
 	if (l == -1) {
-		warning("DiMUSE_v1::startSound() Can't start sound - no free slots");
+		warning("IMuseDigitalV1::startSound() Can't start sound - no free slots");
 		return -1;
 	}
-	debug(5, "DiMUSE_v1::startSound(%d, trackId:%d)", soundId, l);
+	debug(5, "IMuseDigitalV1::startSound(%d, trackId:%d)", soundId, l);
 
 	Track *track = _track[l];
 
@@ -176,7 +176,7 @@ int DiMUSE_v1::startSound(int soundId, const char *soundName, int soundType, int
 
 		if ((soundId == kTalkSoundID) && (soundType == IMUSE_BUNDLE)) {
 			if (_vm->_actorToPrintStrFor != 0xFF && _vm->_actorToPrintStrFor != 0) {
-				Actor *a = _vm->derefActor(_vm->_actorToPrintStrFor, "DiMUSE_v1::startSound");
+				Actor *a = _vm->derefActor(_vm->_actorToPrintStrFor, "IMuseDigitalV1::startSound");
 				freq = (freq * a->_talkFrequency) / 256;
 
 				if (a->_talkPan <= 127)
@@ -217,7 +217,7 @@ int DiMUSE_v1::startSound(int soundId, const char *soundName, int soundType, int
 		} else if (bits == 8) {
 			track->mixerFlags |= kFlagUnsigned;
 		} else
-			error("DiMUSE_v1::startSound(): Can't handle %d bit samples", bits);
+			error("IMuseDigitalV1::startSound(): Can't handle %d bit samples", bits);
 
 		track->littleEndian = track->soundDesc->littleEndian;
 
@@ -252,35 +252,35 @@ int DiMUSE_v1::startSound(int soundId, const char *soundName, int soundType, int
 	return track->trackId;
 }
 
-void DiMUSE_v1::setPriority(int soundId, int priority) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setPriority()");
-	debug(5, "DiMUSE_v1::setPriority(%d, %d)", soundId, priority);
+void IMuseDigitalV1::setPriority(int soundId, int priority) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setPriority()");
+	debug(5, "IMuseDigitalV1::setPriority(%d, %d)", soundId, priority);
 	assert ((priority >= 0) && (priority <= 127));
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->soundId == soundId)) {
-			debug(5, "DiMUSE_v1::setPriority(%d) - setting", soundId);
+			debug(5, "IMuseDigitalV1::setPriority(%d) - setting", soundId);
 			track->soundPriority = priority;
 		}
 	}
 }
 
-void DiMUSE_v1::setVolume(int soundId, int volume) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setVolume()");
-	debug(5, "DiMUSE_v1::setVolume(%d, %d)", soundId, volume);
+void IMuseDigitalV1::setVolume(int soundId, int volume) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setVolume()");
+	debug(5, "IMuseDigitalV1::setVolume(%d, %d)", soundId, volume);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->soundId == soundId)) {
-			debug(5, "DiMUSE_v1::setVolume(%d) - setting", soundId);
+			debug(5, "IMuseDigitalV1::setVolume(%d) - setting", soundId);
 			track->vol = volume * 1000;
 		}
 	}
 }
 
-void DiMUSE_v1::setHookId(int soundId, int hookId) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setHookId()");
+void IMuseDigitalV1::setHookId(int soundId, int hookId) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setHookId()");
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
@@ -290,8 +290,8 @@ void DiMUSE_v1::setHookId(int soundId, int hookId) {
 	}
 }
 
-int DiMUSE_v1::getCurMusicSoundId() {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::getCurMusicSoundId()");
+int IMuseDigitalV1::getCurMusicSoundId() {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::getCurMusicSoundId()");
 	int soundId = -1;
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
@@ -305,22 +305,22 @@ int DiMUSE_v1::getCurMusicSoundId() {
 	return soundId;
 }
 
-void DiMUSE_v1::setPan(int soundId, int pan) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setPan()");
-	debug(5, "DiMUSE_v1::setPan(%d, %d)", soundId, pan);
+void IMuseDigitalV1::setPan(int soundId, int pan) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setPan()");
+	debug(5, "IMuseDigitalV1::setPan(%d, %d)", soundId, pan);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->soundId == soundId)) {
-			debug(5, "DiMUSE_v1::setPan(%d) - setting", soundId);
+			debug(5, "IMuseDigitalV1::setPan(%d) - setting", soundId);
 			track->pan = pan;
 		}
 	}
 }
 
-void DiMUSE_v1::selectVolumeGroup(int soundId, int volGroupId) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::selectVolumeGroup()");
-	debug(5, "DiMUSE_v1::setGroupVolume(%d, %d)", soundId, volGroupId);
+void IMuseDigitalV1::selectVolumeGroup(int soundId, int volGroupId) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::selectVolumeGroup()");
+	debug(5, "IMuseDigitalV1::setGroupVolume(%d, %d)", soundId, volGroupId);
 	assert((volGroupId >= 1) && (volGroupId <= 4));
 
 	if (volGroupId == 4)
@@ -329,20 +329,20 @@ void DiMUSE_v1::selectVolumeGroup(int soundId, int volGroupId) {
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->soundId == soundId)) {
-			debug(5, "DiMUSE_v1::setVolumeGroup(%d) - setting", soundId);
+			debug(5, "IMuseDigitalV1::setVolumeGroup(%d) - setting", soundId);
 			track->volGroupId = volGroupId;
 		}
 	}
 }
 
-void DiMUSE_v1::setFade(int soundId, int destVolume, int delay60HzTicks) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setFade()");
-	debug(5, "DiMUSE_v1::setFade(%d, %d, %d)", soundId, destVolume, delay60HzTicks);
+void IMuseDigitalV1::setFade(int soundId, int destVolume, int delay60HzTicks) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setFade()");
+	debug(5, "IMuseDigitalV1::setFade(%d, %d, %d)", soundId, destVolume, delay60HzTicks);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->soundId == soundId)) {
-			debug(5, "DiMUSE_v1::setFade(%d) - setting", soundId);
+			debug(5, "IMuseDigitalV1::setFade(%d) - setting", soundId);
 			track->volFadeDelay = delay60HzTicks;
 			track->volFadeDest = destVolume * 1000;
 			track->volFadeStep = (track->volFadeDest - track->vol) * 60 * (1000 / _callbackFps) / (1000 * delay60HzTicks);
@@ -351,14 +351,14 @@ void DiMUSE_v1::setFade(int soundId, int destVolume, int delay60HzTicks) {
 	}
 }
 
-void DiMUSE_v1::fadeOutMusicAndStartNew(int fadeDelay, const char *filename, int soundId) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::fadeOutMusicAndStartNew()");
-	debug(5, "DiMUSE_v1::fadeOutMusicAndStartNew(fade:%d, file:%s, sound:%d)", fadeDelay, filename, soundId);
+void IMuseDigitalV1::fadeOutMusicAndStartNew(int fadeDelay, const char *filename, int soundId) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::fadeOutMusicAndStartNew()");
+	debug(5, "IMuseDigitalV1::fadeOutMusicAndStartNew(fade:%d, file:%s, sound:%d)", fadeDelay, filename, soundId);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->volGroupId == IMUSE_VOLGRP_MUSIC)) {
-			debug(5, "DiMUSE_v1::fadeOutMusicAndStartNew(sound:%d) - starting", soundId);
+			debug(5, "IMuseDigitalV1::fadeOutMusicAndStartNew(sound:%d) - starting", soundId);
 
 			// Store the fadeDelay in the track: startMusicWithOtherPos will use it to
 			// fade in the new track; this will match fade in and fade out speeds.
@@ -376,14 +376,14 @@ void DiMUSE_v1::fadeOutMusicAndStartNew(int fadeDelay, const char *filename, int
 	}
 }
 
-void DiMUSE_v1::fadeOutMusic(int fadeDelay) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::fadeOutMusic()");
-	debug(5, "DiMUSE_v1::fadeOutMusic(fade:%d)", fadeDelay);
+void IMuseDigitalV1::fadeOutMusic(int fadeDelay) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::fadeOutMusic()");
+	debug(5, "IMuseDigitalV1::fadeOutMusic(fade:%d)", fadeDelay);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->volGroupId == IMUSE_VOLGRP_MUSIC)) {
-			debug(5, "DiMUSE_v1::fadeOutMusic(fade:%d, sound:%d)", fadeDelay, track->soundId);
+			debug(5, "IMuseDigitalV1::fadeOutMusic(fade:%d, sound:%d)", fadeDelay, track->soundId);
 			if (_vm->_game.id == GID_CMI || _vm->_game.id == GID_FT) {
 				handleFadeOut(track, fadeDelay);
 			} else {
@@ -395,29 +395,29 @@ void DiMUSE_v1::fadeOutMusic(int fadeDelay) {
 	}
 }
 
-void DiMUSE_v1::setHookIdForMusic(int hookId) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setHookIdForMusic()");
-	debug(5, "DiMUSE_v1::setHookIdForMusic(hookId:%d)", hookId);
+void IMuseDigitalV1::setHookIdForMusic(int hookId) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setHookIdForMusic()");
+	debug(5, "IMuseDigitalV1::setHookIdForMusic(hookId:%d)", hookId);
 
 	for (int l = 0; l < MAX_DIGITAL_TRACKS; l++) {
 		Track *track = _track[l];
 		if (track->used && !track->toBeRemoved && (track->volGroupId == IMUSE_VOLGRP_MUSIC)) {
-			debug(5, "DiMUSE_v1::setHookIdForMusic - setting for sound:%d", track->soundId);
+			debug(5, "IMuseDigitalV1::setHookIdForMusic - setting for sound:%d", track->soundId);
 			track->curHookId = hookId;
 			break;
 		}
 	}
 }
 
-void DiMUSE_v1::setTrigger(TriggerParams *trigger) {
-	Common::StackLock lock(_mutex, "DiMUSE_v1::setTrigger()");
-	debug(5, "DiMUSE_v1::setTrigger(%s)", trigger->filename);
+void IMuseDigitalV1::setTrigger(TriggerParams *trigger) {
+	Common::StackLock lock(_mutex, "IMuseDigitalV1::setTrigger()");
+	debug(5, "IMuseDigitalV1::setTrigger(%s)", trigger->filename);
 
 	memcpy(&_triggerParams, trigger, sizeof(TriggerParams));
 	_triggerUsed = true;
 }
 
-Track *DiMUSE_v1::handleFadeOut(Track *track, int fadeDelay) {
+Track *IMuseDigitalV1::handleFadeOut(Track *track, int fadeDelay) {
 	track->volFadeDelay = fadeDelay != 0 ? fadeDelay : 60;
 	track->volFadeDest = 0;
 	track->volFadeStep = (track->volFadeDest - track->vol) * 60 * (1000 / _callbackFps) / (1000 * track->volFadeDelay);
@@ -427,7 +427,7 @@ Track *DiMUSE_v1::handleFadeOut(Track *track, int fadeDelay) {
 }
 
 
-Track *DiMUSE_v1::cloneToFadeOutTrack(Track *track, int fadeDelay) {
+Track *IMuseDigitalV1::cloneToFadeOutTrack(Track *track, int fadeDelay) {
 	assert(track);
 	Track *fadeTrack;
 
@@ -475,7 +475,7 @@ Track *DiMUSE_v1::cloneToFadeOutTrack(Track *track, int fadeDelay) {
 	return fadeTrack;
 }
 
-int DiMUSE_v1::transformVolumeLinearToEqualPow(int volume, int mode) {
+int IMuseDigitalV1::transformVolumeLinearToEqualPow(int volume, int mode) {
 	if (volume == 0 || volume == 127000)
 		return volume;
 
@@ -520,7 +520,7 @@ int DiMUSE_v1::transformVolumeLinearToEqualPow(int volume, int mode) {
 	return result;
 }
 
-int DiMUSE_v1::transformVolumeEqualPowToLinear(int volume, int mode) {
+int IMuseDigitalV1::transformVolumeEqualPowToLinear(int volume, int mode) {
 	if (volume == 0 || volume == 127000)
 		return volume;
 

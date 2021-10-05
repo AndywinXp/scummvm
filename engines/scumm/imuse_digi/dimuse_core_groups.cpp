@@ -21,18 +21,18 @@
  */
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_groups.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_groups.h"
 
 namespace Scumm {
 
-DiMUSEGroupsHandler::DiMUSEGroupsHandler(DiMUSE_v2 *engine) {
+IMuseDigiGroupsHandler::IMuseDigiGroupsHandler(IMuseDigital *engine) {
 	_engine = engine;
 }
 
-DiMUSEGroupsHandler::~DiMUSEGroupsHandler() {}
+IMuseDigiGroupsHandler::~IMuseDigiGroupsHandler() {}
 
-int DiMUSEGroupsHandler::init() {
+int IMuseDigiGroupsHandler::init() {
 	for (int i = 0; i < MAX_GROUPS; i++) {
 		_effVols[i] = 127;
 		_vols[i] = 127;
@@ -40,7 +40,7 @@ int DiMUSEGroupsHandler::init() {
 	return 0;
 }
 
-int DiMUSEGroupsHandler::setGroupVol(int id, int volume) {
+int IMuseDigiGroupsHandler::setGroupVol(int id, int volume) {
 	int l;
 
 	if (id >= MAX_GROUPS) {
@@ -70,7 +70,7 @@ int DiMUSEGroupsHandler::setGroupVol(int id, int volume) {
 	return _vols[id];
 }
 
-int DiMUSEGroupsHandler::getGroupVol(int id) {
+int IMuseDigiGroupsHandler::getGroupVol(int id) {
 	if (id >= MAX_GROUPS) {
 		return -5;
 	}

@@ -27,18 +27,18 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_internalmixer.h"
 
 namespace Scumm {
 
-DiMUSEInternalMixer::DiMUSEInternalMixer(Audio::Mixer *mixer) {
+IMuseDigiInternalMixer::IMuseDigiInternalMixer(Audio::Mixer *mixer) {
 	_stream = Audio::makeQueuingAudioStream(22050, true);
 	_mixer = mixer;
 	_radioChatter = 0;
 }
 
-DiMUSEInternalMixer::~DiMUSEInternalMixer() {
+IMuseDigiInternalMixer::~IMuseDigiInternalMixer() {
 	free(_amp8Table);
 	_amp8Table = NULL;
 }
@@ -58,7 +58,7 @@ static const int8 _stereoVolumeTable[284] = {
 	14, 15, 15, 15, 0,  2,  3,  5,  6,  8,  9,  10, 11, 12, 13, 14, 15, 15, 16, 16, 16, 0,  0,  0
 };
 
-int DiMUSEInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum) {
+int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum) {
 	int amplitudeValue;
 	int waveMixChannelsCount;
 	int softLdenominator;
@@ -146,14 +146,14 @@ int DiMUSEInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mixBuf
 	
 }
 
-void DiMUSEInternalMixer::setRadioChatter() {
+void IMuseDigiInternalMixer::setRadioChatter() {
 	_radioChatter = 1;
 }
-void DiMUSEInternalMixer::clearRadioChatter() {
+void IMuseDigiInternalMixer::clearRadioChatter() {
 	_radioChatter = 0;
 }
 
-int DiMUSEInternalMixer::clearMixerBuffer() {
+int IMuseDigiInternalMixer::clearMixerBuffer() {
 	if (!_mixBuf)
 		return -1;
 
@@ -163,7 +163,7 @@ int DiMUSEInternalMixer::clearMixerBuffer() {
 	return 0;
 }
 
-void DiMUSEInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan) {
+void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan) {
 	int *ampTable;
 	int rightChannelVolume;
 	int leftChannelVolume;
@@ -254,7 +254,7 @@ void DiMUSEInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, int
 	}
 }
 
-int DiMUSEInternalMixer::loop(uint8 **destBuffer, int len) {
+int IMuseDigiInternalMixer::loop(uint8 **destBuffer, int len) {
 	int16 *mixBuffer = (int16 *)_mixBuf;
 	uint8 *destBuffer_tmp = *destBuffer;
 
@@ -299,7 +299,7 @@ int DiMUSEInternalMixer::loop(uint8 **destBuffer, int len) {
 	return 0;
 }
 
-void DiMUSEInternalMixer::mixBits8Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits8Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 	uint8 *ptr;
@@ -353,7 +353,7 @@ void DiMUSEInternalMixer::mixBits8Mono(uint8 *srcBuf, int inFrameCount, int feed
 	}
 }
 
-void DiMUSEInternalMixer::mixBits12Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits12Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 	int value;
@@ -432,7 +432,7 @@ void DiMUSEInternalMixer::mixBits12Mono(uint8 *srcBuf, int inFrameCount, int fee
 	}
 }
 
-void DiMUSEInternalMixer::mixBits16Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits16Mono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint16 *srcBuf_ptr;
 	int residualLength;
@@ -483,7 +483,7 @@ void DiMUSEInternalMixer::mixBits16Mono(uint8 *srcBuf, int inFrameCount, int fee
 	}
 }
 
-void DiMUSEInternalMixer::mixBits8ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits8ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint8 *srcBuf_ptr;
 	int residualLength;
 	uint16 *mixBufCurCell;
@@ -529,7 +529,7 @@ void DiMUSEInternalMixer::mixBits8ConvertToMono(uint8 *srcBuf, int inFrameCount,
 	}
 }
 
-void DiMUSEInternalMixer::mixBits12ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits12ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint8 *srcBuf_ptr;
 	int residualLength;
 	uint16 *mixBufCurCell;
@@ -596,7 +596,7 @@ void DiMUSEInternalMixer::mixBits12ConvertToMono(uint8 *srcBuf, int inFrameCount
 	}
 }
 
-void DiMUSEInternalMixer::mixBits16ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits16ConvertToMono(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint16 *srcBuf_ptr;
 	int residualLength;
@@ -656,7 +656,7 @@ void DiMUSEInternalMixer::mixBits16ConvertToMono(uint8 *srcBuf, int inFrameCount
 	}
 }
 
-void DiMUSEInternalMixer::mixBits8ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
+void IMuseDigiInternalMixer::mixBits8ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 	uint8 *ptr;
@@ -729,7 +729,7 @@ void DiMUSEInternalMixer::mixBits8ConvertToStereo(uint8 *srcBuf, int inFrameCoun
 	}
 }
 
-void DiMUSEInternalMixer::mixBits12ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
+void IMuseDigiInternalMixer::mixBits12ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 
@@ -841,7 +841,7 @@ void DiMUSEInternalMixer::mixBits12ConvertToStereo(uint8 *srcBuf, int inFrameCou
 	}
 }
 
-void DiMUSEInternalMixer::mixBits16ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
+void IMuseDigiInternalMixer::mixBits16ConvertToStereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *leftAmpTable, int *rightAmpTable) {
 	uint16* mixBufCurCell;
 	uint16 *srcBuf_tmp;
 	int residualLength;
@@ -904,7 +904,7 @@ void DiMUSEInternalMixer::mixBits16ConvertToStereo(uint8 *srcBuf, int inFrameCou
 	}
 }
 
-void DiMUSEInternalMixer::mixBits8Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits8Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 	int residualLength;
@@ -961,7 +961,7 @@ void DiMUSEInternalMixer::mixBits8Stereo(uint8 *srcBuf, int inFrameCount, int fe
 	}
 }
 
-void DiMUSEInternalMixer::mixBits12Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits12Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint8 *srcBuf_ptr;
 	int residualLength;
@@ -1027,7 +1027,7 @@ void DiMUSEInternalMixer::mixBits12Stereo(uint8 *srcBuf, int inFrameCount, int f
 	}
 }
 
-void DiMUSEInternalMixer::mixBits16Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
+void IMuseDigiInternalMixer::mixBits16Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable) {
 	uint16 *mixBufCurCell;
 	uint16 *srcBuf_ptr;
 	int residualLength;

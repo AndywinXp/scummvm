@@ -27,31 +27,31 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 #include "scumm/resource.h"
-#include "scumm/dimuse_v1/dimuse_bndmgr.h"
-#include "scumm/dimuse_v1/dimuse_sndmgr.h"
+#include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_sndmgr.h"
 
 namespace Scumm {
 
-class DiMUSEFilesHandler {
+class IMuseDigiFilesHandler {
 
 private:
-	DiMUSE_v2 *_engine;
+	IMuseDigital *_engine;
 	ImuseDigiSndMgr *_sound;
 	ScummEngine_v7 *_vm;
 	Common::Mutex _mutex;
-	DiMUSESoundBuffer _soundBuffers[4];
+	IMuseDigiSndBuffer _soundBuffers[4];
 	char _currentSpeechFile[60];
 
 	void getFilenameFromSoundId(int soundId, char *fileName, size_t size);
 public:
-	DiMUSEFilesHandler(DiMUSE_v2 *engine, ScummEngine_v7 *vm);
-	~DiMUSEFilesHandler();
+	IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v7 *vm);
+	~IMuseDigiFilesHandler();
 
 	uint8 *getSoundAddrData(int soundId);
 	int getNextSound(int soundId);
 	int seek(int soundId, int offset, int mode, int bufId);
 	int read(int soundId, uint8 *buf, int size, int bufId);
-	DiMUSESoundBuffer *getBufInfo(int bufId);
+	IMuseDigiSndBuffer *getBufInfo(int bufId);
 	int openSound(int soundId);
 	void closeSound(int soundId);
 	void closeAllSounds();

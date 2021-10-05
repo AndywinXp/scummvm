@@ -30,15 +30,15 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2_defs.h"
-#include "scumm/dimuse_v2/dimuse_v2_internalmixer.h"
-#include "scumm/dimuse_v2/dimuse_v2_groups.h"
-#include "scumm/dimuse_v2/dimuse_v2_fades.h"
-#include "scumm/dimuse_v2/dimuse_v2_files.h"
-#include "scumm/dimuse_v2/dimuse_v2_triggers.h"
-#include "scumm/dimuse_v1/dimuse_bndmgr.h"
-#include "scumm/dimuse_v1/dimuse_sndmgr.h"
-#include "scumm/dimuse_v1/dimuse_tables.h"
+#include "scumm/imuse_digi/dimuse_core_defs.h"
+#include "scumm/imuse_digi/dimuse_core_internalmixer.h"
+#include "scumm/imuse_digi/dimuse_core_groups.h"
+#include "scumm/imuse_digi/dimuse_core_fades.h"
+#include "scumm/imuse_digi/dimuse_core_files.h"
+#include "scumm/imuse_digi/dimuse_core_triggers.h"
+#include "scumm/imuse_digi/dimuse_bndmgr.h"
+#include "scumm/imuse_digi/dimuse_sndmgr.h"
+#include "scumm/imuse_digi/dimuse_tables.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
 #include "audio/mixer.h"
@@ -52,21 +52,21 @@ class QueuingAudioStream;
 
 namespace Scumm {
 
-struct DiMUSEDispatch;
-struct DiMUSETrack;
-struct DiMUSEStreamZone;
+struct IMuseDigiDispatch;
+struct IMuseDigiTrack;
+struct IMuseDigiStreamZone;
 
-class DiMUSE_v2 : public DiMUSE {
+class IMuseDigital : public IMuseDigitalAbstract {
 private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
 	Audio::Mixer *_mixer;
 
-	DiMUSEInternalMixer *_internalMixer;
-	DiMUSEGroupsHandler *_groupsHandler;
-	DiMUSEFadesHandler *_fadesHandler;
-	DiMUSETriggersHandler *_triggersHandler;
-	DiMUSEFilesHandler *_filesHandler;
+	IMuseDigiInternalMixer *_internalMixer;
+	IMuseDigiGroupsHandler *_groupsHandler;
+	IMuseDigiFadesHandler *_fadesHandler;
+	IMuseDigiTriggersHandler *_triggersHandler;
+	IMuseDigiFilesHandler *_filesHandler;
 
 	int _callbackFps;
 	static void timer_handler(void *refConf);
@@ -133,27 +133,27 @@ private:
 	int cmdsGetHook(int soundId);
 
 	// Streamer
-	DiMUSEStream _streams[MAX_STREAMS];
-	DiMUSEStream *_lastStreamLoaded;
+	IMuseDigiStream _streams[MAX_STREAMS];
+	IMuseDigiStream *_lastStreamLoaded;
 	int _streamerBailFlag;
 
 	int streamerInit();
-	DiMUSEStream *streamerAllocateSound(int soundId, int bufId, int maxRead);
-	int streamerClearSoundInStream(DiMUSEStream *streamPtr);
+	IMuseDigiStream *streamerAllocateSound(int soundId, int bufId, int maxRead);
+	int streamerClearSoundInStream(IMuseDigiStream *streamPtr);
 	int streamerProcessStreams();
-	uint8 *streamerReAllocReadBuffer(DiMUSEStream *streamPtr, int reallocSize);
-	uint8 *streamerCopyBufferAbsolute(DiMUSEStream *streamPtr, int offset, int size);
-	int streamerSetIndex1(DiMUSEStream *streamPtr, int offset);
-	int streamerSetIndex2(DiMUSEStream *streamPtr, int offset);
-	int streamerGetFreeBuffer(DiMUSEStream *streamPtr);
-	int streamerSetSoundToStreamWithCurrentOffset(DiMUSEStream *streamPtr, int soundId, int currentOffset);
-	int streamerQueryStream(DiMUSEStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
-	int streamerFeedStream(DiMUSEStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused);
-	int streamerFetchData(DiMUSEStream *streamPtr);
+	uint8 *streamerReAllocReadBuffer(IMuseDigiStream *streamPtr, int reallocSize);
+	uint8 *streamerCopyBufferAbsolute(IMuseDigiStream *streamPtr, int offset, int size);
+	int streamerSetIndex1(IMuseDigiStream *streamPtr, int offset);
+	int streamerSetIndex2(IMuseDigiStream *streamPtr, int offset);
+	int streamerGetFreeBuffer(IMuseDigiStream *streamPtr);
+	int streamerSetSoundToStreamWithCurrentOffset(IMuseDigiStream *streamPtr, int soundId, int currentOffset);
+	int streamerQueryStream(IMuseDigiStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
+	int streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused);
+	int streamerFetchData(IMuseDigiStream *streamPtr);
 
 	// Tracks
-	DiMUSETrack _tracks[MAX_TRACKS];
-	DiMUSETrack *_trackList;
+	IMuseDigiTrack _tracks[MAX_TRACKS];
+	IMuseDigiTrack *_trackList;
 
 	int _trackCount;
 	int _tracksPauseTimer;
@@ -172,7 +172,7 @@ private:
 	int tracksGetNextSound(int soundId);
 	int tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
 	int tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
-	void tracksClear(DiMUSETrack *trackPtr);
+	void tracksClear(IMuseDigiTrack *trackPtr);
 	int tracksSetParam(int soundId, int opcode, int value);
 	int tracksGetParam(int soundId, int opcode);
 	int tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
@@ -181,8 +181,8 @@ private:
 	void tracksDeinit();
 
 	// Dispatch
-	DiMUSEDispatch _dispatches[MAX_DISPATCHES];
-	DiMUSEStreamZone _streamZones[MAX_STREAMZONES];
+	IMuseDigiDispatch _dispatches[MAX_DISPATCHES];
+	IMuseDigiStreamZone _streamZones[MAX_STREAMZONES];
 	uint8 *_dispatchBuffer;
 	int _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
@@ -199,23 +199,23 @@ private:
 	int _dispatchCurStreamPaused;
 
 	int dispatchInit();
-	DiMUSEDispatch *dispatchGetDispatchByTrackId(int trackId);
+	IMuseDigiDispatch *dispatchGetDispatchByTrackId(int trackId);
 	void dispatchSaveLoad(Common::Serializer &ser);
 	int dispatchRestoreStreamZones();
-	int dispatchAlloc(DiMUSETrack *trackPtr, int groupId);
-	int dispatchRelease(DiMUSETrack *trackPtr);
+	int dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId);
+	int dispatchRelease(IMuseDigiTrack *trackPtr);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
-	void dispatchProcessDispatches(DiMUSETrack *trackPtr, int feedSize, int sampleRate);
+	void dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate);
 	void dispatchPredictFirstStream();
-	int dispatchGetNextMapEvent(DiMUSEDispatch *dispatchPtr);
+	int dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr);
 	int dispatchConvertMap(uint8 *rawMap, uint8 *destMap);
-	void dispatchPredictStream(DiMUSEDispatch *dispatch);
-	void dispatchParseJump(DiMUSEDispatch *dispatchPtr, DiMUSEStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
-	DiMUSEStreamZone *dispatchAllocStreamZone();
+	void dispatchPredictStream(IMuseDigiDispatch *dispatch);
+	void dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
+	IMuseDigiStreamZone *dispatchAllocStreamZone();
 	uint8 *dispatchAllocateFade(int *fadeSize, const char *function);
-	void dispatchDeallocateFade(DiMUSEDispatch *dispatchPtr, const char *function);
-	void dispatchValidateFade(DiMUSEDispatch *dispatchPtr, int *dispatchSize, const char *function);
-	int dispatchUpdateFadeMixVolume(DiMUSEDispatch *dispatchPtr, int remainingFade);
+	void dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const char *function);
+	void dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function);
+	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int waveInit();
@@ -260,12 +260,12 @@ private:
 	void waveOutCallback();
 
 public:
-	DiMUSE_v2(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
-	~DiMUSE_v2() override;
+	IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps);
+	~IMuseDigital() override;
 
 	// Wrapper functions used by the main engine
 
-	void startSound(int sound) override { error("DiMUSE_v2::startSound(int) should be never called"); }
+	void startSound(int sound) override { error("IMuseDigital::startSound(int) should be never called"); }
 	void setMusicVolume(int vol) override {}
 	void stopSound(int sound) override;
 	void stopAllSounds() override;
@@ -333,10 +333,10 @@ public:
 	int diMUSESetAttribute(int attrIndex, int attrVal);
 
 	// Utils
-	int addTrackToList(DiMUSETrack **listPtr, DiMUSETrack *listPtr_Item);
-	int removeTrackFromList(DiMUSETrack **listPtr, DiMUSETrack *itemPtr);
-	int addStreamZoneToList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *listPtr_Item);
-	int removeStreamZoneFromList(DiMUSEStreamZone **listPtr, DiMUSEStreamZone *itemPtr);
+	int addTrackToList(IMuseDigiTrack **listPtr, IMuseDigiTrack *listPtr_Item);
+	int removeTrackFromList(IMuseDigiTrack **listPtr, IMuseDigiTrack *itemPtr);
+	int addStreamZoneToList(IMuseDigiStreamZone **listPtr, IMuseDigiStreamZone *listPtr_Item);
+	int removeStreamZoneFromList(IMuseDigiStreamZone **listPtr, IMuseDigiStreamZone *itemPtr);
 	int clampNumber(int value, int minValue, int maxValue);
 	int clampTuning(int value, int minValue, int maxValue);
 	int checkHookId(int *trackHookId, int sampleHookId);

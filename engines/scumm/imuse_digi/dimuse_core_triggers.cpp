@@ -20,27 +20,27 @@
  *
  */
 
-#include "scumm/dimuse_v2/dimuse_v2.h"
-#include "scumm/dimuse_v2/dimuse_v2_triggers.h"
+#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_core_triggers.h"
 
 namespace Scumm {
 
-DiMUSETriggersHandler::DiMUSETriggersHandler(DiMUSE_v2 *engine) {
+IMuseDigiTriggersHandler::IMuseDigiTriggersHandler(IMuseDigital *engine) {
 	_engine = engine;
 	_emptyMarker[0] = '\0';
 }
 
-DiMUSETriggersHandler::~DiMUSETriggersHandler() {}
+IMuseDigiTriggersHandler::~IMuseDigiTriggersHandler() {}
 
-int DiMUSETriggersHandler::init() {
+int IMuseDigiTriggersHandler::init() {
 	return clearAllTriggers();
 }
 
-int DiMUSETriggersHandler::deinit() {
+int IMuseDigiTriggersHandler::deinit() {
 	return clearAllTriggers();
 }
 
-int DiMUSETriggersHandler::clearAllTriggers() {
+int IMuseDigiTriggersHandler::clearAllTriggers() {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		_trigs[l].sound = 0;
 		_trigs[l].clearLater = 0;
@@ -51,7 +51,7 @@ int DiMUSETriggersHandler::clearAllTriggers() {
 	return 0;
 }
 
-void DiMUSETriggersHandler::saveLoad(Common::Serializer &ser) {
+void IMuseDigiTriggersHandler::saveLoad(Common::Serializer &ser) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		ser.syncAsSint32LE(_trigs[l].sound, VER(103));
 		ser.syncArray(_trigs[l].text, 256, Common::Serializer::SByte, VER(103));
@@ -88,7 +88,7 @@ void DiMUSETriggersHandler::saveLoad(Common::Serializer &ser) {
 		_defersOn = 1;
 }
 
-int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+int IMuseDigiTriggersHandler::setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 	if (soundId == 0) {
 		return -5;
 	}
@@ -98,7 +98,7 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 	}
 
 	if (strlen(marker) >= 256) {
-		debug(5, "DiMUSETriggersHandler::setTrigger(): ERROR: attempting to set trigger with oversized marker string");
+		debug(5, "IMuseDigiTriggersHandler::setTrigger(): ERROR: attempting to set trigger with oversized marker string");
 		return -5;
 	}
 
@@ -119,15 +119,15 @@ int DiMUSETriggersHandler::setTrigger(int soundId, char *marker, int opcode, int
 			_trigs[index].i = l;
 			_trigs[index].j = m;
 
-			debug(5, "DiMUSETriggersHandler::setTrigger(): Successfully set trigger for soundId %d and marker '%s'", soundId, marker);
+			debug(5, "IMuseDigiTriggersHandler::setTrigger(): Successfully set trigger for soundId %d and marker '%s'", soundId, marker);
 			return 0;
 		}
 	}
-	debug(5, "DiMUSETriggersHandler::setTrigger(): ERROR: unable to allocate trigger \"%s\" for sound %d, every slot is full", marker, soundId);
+	debug(5, "IMuseDigiTriggersHandler::setTrigger(): ERROR: unable to allocate trigger \"%s\" for sound %d, every slot is full", marker, soundId);
 	return -6;
 }
 
-int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
+int IMuseDigiTriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	int r = 0;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (_trigs[l].sound != 0) {
@@ -143,7 +143,7 @@ int DiMUSETriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	return r;
 }
 
-int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
+int IMuseDigiTriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
 			(!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) &&
@@ -159,11 +159,11 @@ int DiMUSETriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	return 0;
 }
 
-void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
+void IMuseDigiTriggersHandler::processTriggers(int soundId, char *marker) {
 	char textBuffer[256];
 	int r;
 	if (strlen(marker) >= 256) {
-		debug(5, "DiMUSETriggersHandler::processTriggers(): ERROR: the input marker string is oversized");
+		debug(5, "IMuseDigiTriggersHandler::processTriggers(): ERROR: the input marker string is oversized");
 		return;
 	}
 
@@ -188,7 +188,7 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 
 		_trigs[l].sound = 0;
 
-		debug(5, "DiMUSETriggersHandler::processTriggers(): executing trigger for soundId %d and marker '%s'", soundId, marker);
+		debug(5, "IMuseDigiTriggersHandler::processTriggers(): executing trigger for soundId %d and marker '%s'", soundId, marker);
 		if (_trigs[l].opcode == 0) {
 			// Call the script callback (a function which sets _stoppingSequence to 1)
 			_engine->scriptTriggerCallback(_textBuffer);
@@ -223,7 +223,7 @@ void DiMUSETriggersHandler::processTriggers(int soundId, char *marker) {
 	}
 }
 
-int DiMUSETriggersHandler::deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
+int IMuseDigiTriggersHandler::deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 	if (!count) {
 		return -5;
 	}
@@ -245,11 +245,11 @@ int DiMUSETriggersHandler::deferCommand(int count, int opcode, int c, int d, int
 			return 0;
 		}
 	}
-	debug(5, "DiMUSETriggersHandler::deferCommand(): ERROR: couldn't allocate deferred command");
+	debug(5, "IMuseDigiTriggersHandler::deferCommand(): ERROR: couldn't allocate deferred command");
 	return -6;
 }
 
-void DiMUSETriggersHandler::loop() {
+void IMuseDigiTriggersHandler::loop() {
 	if (!_defersOn)
 		return;
 
@@ -278,7 +278,7 @@ void DiMUSETriggersHandler::loop() {
 	}
 }
 
-int DiMUSETriggersHandler::countPendingSounds(int soundId) {
+int IMuseDigiTriggersHandler::countPendingSounds(int soundId) {
 	int r = 0;
 	for (int l = 0; l < MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound)

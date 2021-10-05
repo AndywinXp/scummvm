@@ -30,7 +30,7 @@
 #include "common/util.h"
 
 #include "scumm/dimuse.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
 #include "audio/mixer.h"
@@ -44,7 +44,7 @@ class QueuingAudioStream;
 
 namespace Scumm {
 
-class DiMUSEInternalMixer {
+class IMuseDigiInternalMixer {
 
 private:
 	int *_amp8Table;
@@ -79,8 +79,8 @@ private:
 	void mixBits16Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable);
 
 public:
-	DiMUSEInternalMixer(Audio::Mixer *mixer);
-	~DiMUSEInternalMixer();
+	IMuseDigiInternalMixer(Audio::Mixer *mixer);
+	~IMuseDigiInternalMixer();
 	int  init(int bytesPerSample, int numChannels, uint8 *mixBuf, int mixBufSize, int sizeSampleKB, int mixChannelsNum);
 	void setRadioChatter();
 	void clearRadioChatter();

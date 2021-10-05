@@ -42,8 +42,8 @@
 #include "scumm/file.h"
 #include "scumm/file_nes.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/dimuse_v1/dimuse_v1.h"
-#include "scumm/dimuse_v2/dimuse_v2.h"
+#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_core.h"
 #include "scumm/smush/smush_mixer.h"
 #include "scumm/smush/smush_player.h"
 #include "scumm/players/player_towns.h"
@@ -1653,11 +1653,11 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		delete bnd;
 	}
 
-	// Fallback to DiMUSE_v1
+	// Fallback to IMuseDigitalV1
 	if (!_useDiMUSEv2) {
-		_musicEngine = _imuseDigital = new DiMUSE_v1(this, _mixer, dimuseTempo);
+		_musicEngine = _imuseDigital = new IMuseDigitalV1(this, _mixer, dimuseTempo);
 	} else {
-		_musicEngine = _imuseDigital = new DiMUSE_v2(this, _mixer, dimuseTempo);
+		_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
 	}
 
 	ScummEngine::setupScumm(macResourceFile);
