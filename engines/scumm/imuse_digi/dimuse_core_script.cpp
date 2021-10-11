@@ -358,7 +358,6 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 	_curMusicSeq = num;
 }
 
-
 void IMuseDigital::playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence) {
 	int hookId = 0;
 

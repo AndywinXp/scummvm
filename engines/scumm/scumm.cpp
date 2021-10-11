@@ -1643,7 +1643,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	// Check if we are able to use DiMUSE_v2; the game has to:
 	// - Be either DIG or COMI;
 	// - If DIG, be a non-demo;
-	// - Use the original BUN compression format;
+	// - Use the original BUN compression format or a raw uncompressed bundles;
 	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them
 
 	// Note: COMI Demo uses almost exactly The Dig's version of the engine. The only difference is that 
@@ -1652,7 +1652,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	if (_useDiMUSEv2 && !(_game.id == GID_CMI && _game.features & GF_DEMO)) {
 		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
-		_useDiMUSEv2 &= !bnd->isRawOrExtCompBun(_game.id);
+		_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
 		delete bnd;
 	}
 

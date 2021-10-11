@@ -108,8 +108,7 @@ public:
 	int32 decompressSampleByName(const char *name, int32 offset, int32 size, byte **compFinal, bool headerOutside, bool &uncompressedBundle);
 	int32 decompressSampleByIndex(int32 index, int32 offset, int32 size, byte **compFinal, int header_size, bool headerOutside, bool &uncompressedBundle);
 	int32 decompressSampleByCurIndex(int32 offset, int32 size, byte **compFinal, int headerSize, bool headerOutside);
-	bool isBundleFileRaw();
-	bool isRawOrExtCompBun(byte gameId);
+	bool isExtCompBun(byte gameId);
 };
 
 } // End of namespace Scumm

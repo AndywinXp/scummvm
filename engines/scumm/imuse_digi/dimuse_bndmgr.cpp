@@ -385,21 +385,29 @@ int32 BundleMgr::seekFile(int32 offset, int mode) {
 	int result = 0;
 	switch (mode) {
 	case SEEK_END:
-		result = offset + ((_numCompItems - 1) * 0x2000) + _lastBlockDecompressedSize;
+		if (_isUncompressed) {
+			result = offset + _bundleTable[_curSampleId].size;
+		} else {
+			result = offset + ((_numCompItems - 1) * 0x2000) + _lastBlockDecompressedSize;
+		}
 		_curDecompressedFilePos = result;
 		break;
 	case SEEK_SET:
 	default:
-		int destBlock = offset / 0x2000 + (offset % 0x2000 != 0);
-		if (destBlock <= _numCompItems) {
+		if (_isUncompressed) {
 			result = offset;
 			_curDecompressedFilePos = result;
+		} else {
+			int destBlock = offset / 0x2000 + (offset % 0x2000 != 0);
+			if (destBlock <= _numCompItems) {
+				result = offset;
+				_curDecompressedFilePos = result;
+			}
 		}
+		
 		break;
 	}
-
 	return result;
-
 }
 
 // Used by DiMUSE_v2
@@ -439,6 +447,15 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 			_compTableLoaded = loadCompTable(found->index);
 			if (!_compTableLoaded)
 				return 0;
+		}
+
+		if (_isUncompressed) {
+			_file->seek(_bundleTable[found->index].offset + _curDecompressedFilePos + headerSize, SEEK_SET);
+			*comp_final = (byte *)malloc(size);
+			assert(*comp_final);
+			_file->read(*comp_final, size);
+			_curDecompressedFilePos += size;
+			return size;
 		}
 
 		firstBlock = (_curDecompressedFilePos + headerSize) / 0x2000;
@@ -501,31 +518,16 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 		return finalSize;
 	}
 
-	debug(2, "BundleMgr::decompressSampleByName() Failed finding sound %s", name);
+	debug(2, "BundleMgr::readFile() Failed finding sound %s", name);
 	return final_size;
 }
 
-bool BundleMgr::isBundleFileRaw() {
-	_file->seek(_bundleTable[0].offset, SEEK_SET);
-	uint32 tag = _file->readUint32BE();
-
-	if (tag == MKTAG('i', 'M', 'U', 'S')) {
-		return true;
-	}
-
-	return false;
-}
-
-bool BundleMgr::isRawOrExtCompBun(byte gameId) {
+bool BundleMgr::isExtCompBun(byte gameId) {
 	bool isExtComp = false;
-	bool isRawBun = false;
 	if (gameId == GID_CMI) {
 		bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
-		// Check voxdisk1 and 2 separately for isRawBun, just for good measure
 		this->open("voxdisk1.bun", isExtComp1);
-		isRawBun = this->isBundleFileRaw();
 		this->open("voxdisk2.bun", isExtComp2);
-		isRawBun |= this->isBundleFileRaw();
 		this->open("musdisk1.bun", isExtComp3);
 		this->open("musdisk2.bun", isExtComp4);
 
@@ -537,7 +539,7 @@ bool BundleMgr::isRawOrExtCompBun(byte gameId) {
 		isExtComp = isExtComp1 | isExtComp2;
 	}
 
-	return isRawBun || isExtComp;
+	return isExtComp;
 }
 
 } // End of namespace Scumm
