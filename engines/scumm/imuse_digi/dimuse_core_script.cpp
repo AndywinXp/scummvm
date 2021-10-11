@@ -263,10 +263,10 @@ void IMuseDigital::setComiMusicState(int stateId) {
 	if (stateId == 0)
 		stateId = 1000;
 
-	if (_vm->_game.features & GF_DEMO && stateId == 1000)
+	if ((_vm->_game.features & GF_DEMO) && stateId == 1000)
 		stateId = 0;
 
-	if (!_vm->_game.features & GF_DEMO) {
+	if (!(_vm->_game.features & GF_DEMO)) {
 		for (l = 0; _comiStateMusicTable[l].soundId != -1; l++) {
 			if ((_comiStateMusicTable[l].soundId == stateId)) {
 				debug(5, "IMuseDigital::setComiMusicState(): Set music state: %s, %s", _comiStateMusicTable[l].name, _comiStateMusicTable[l].filename);
@@ -276,7 +276,7 @@ void IMuseDigital::setComiMusicState(int stateId) {
 		}
 	}
 
-	if (num == -1 && !_vm->_game.features & GF_DEMO)
+	if (num == -1 && !(_vm->_game.features & GF_DEMO))
 		return;
 
 	if (!(_vm->_game.features & GF_DEMO) && _curMusicState == num) {
