@@ -1054,7 +1054,9 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 	if (READ_BE_UINT32(rawMap) == MKTAG('M', 'A', 'P', ' ')) {
 		bytesUntilEndOfMap = READ_BE_UINT32(rawMap + 4);
 		effMapSize = bytesUntilEndOfMap + 8;
-		if ((_vm->_game.id == GID_DIG && effMapSize <= 0x400) || (_vm->_game.id == GID_CMI && effMapSize <= 0x2000)) {
+		if (((_vm->_game.id == GID_DIG
+			|| (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) && effMapSize <= 0x400)
+			|| (_vm->_game.id == GID_CMI && effMapSize <= 0x2000)) {
 			memcpy(destMap, rawMap, effMapSize);
 
 			// Fill (or rather, swap32) the fields:
@@ -1484,7 +1486,7 @@ void IMuseDigital::dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const 
 
 void IMuseDigital::dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function) {
 	int alignmentModDividend;
-	if (_vm->_game.id == GID_DIG) {
+	if (_vm->_game.id == GID_DIG || (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) {
 		alignmentModDividend = dispatchPtr->channelCount * (dispatchPtr->wordSize == 8 ? 1 : 3);
 	} else {
 		if (dispatchPtr->wordSize == 8) {

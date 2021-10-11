@@ -205,21 +205,31 @@ void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, 
 	}
 
 	if (_vm->_game.id == GID_CMI) {
-		if (soundId < 2000) {
-			while (_comiStateMusicTable[i].soundId != -1) {
-				if (_comiStateMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, _comiStateMusicTable[i].filename, size);
+		if (_vm->_game.features & GF_DEMO) {
+			while (_comiDemoStateMusicTable[i].soundId != -1) {
+				if (_comiDemoStateMusicTable[i].soundId == soundId) {
+					Common::strlcpy(fileName, _comiDemoStateMusicTable[i].filename, size);
 					return;
 				}
 				i++;
 			}
 		} else {
-			while (_comiSeqMusicTable[i].soundId != -1) {
-				if (_comiSeqMusicTable[i].soundId == soundId) {
-					Common::strlcpy(fileName, _comiSeqMusicTable[i].filename, size);
-					return;
+			if (soundId < 2000) {
+				while (_comiStateMusicTable[i].soundId != -1) {
+					if (_comiStateMusicTable[i].soundId == soundId) {
+						Common::strlcpy(fileName, _comiStateMusicTable[i].filename, size);
+						return;
+					}
+					i++;
 				}
-				i++;
+			} else {
+				while (_comiSeqMusicTable[i].soundId != -1) {
+					if (_comiSeqMusicTable[i].soundId == soundId) {
+						Common::strlcpy(fileName, _comiSeqMusicTable[i].filename, size);
+						return;
+					}
+					i++;
+				}
 			}
 		}
 	} else {

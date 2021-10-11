@@ -99,6 +99,7 @@ private:
 	void setComiMusicState(int stateId);
 	void setComiMusicSequence(int seqId);
 	void playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
+	void playComiDemoMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
 
 	// Script
 	int scriptParse(int cmd, int a, int b);

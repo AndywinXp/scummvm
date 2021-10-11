@@ -1642,12 +1642,15 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	// Check if we are able to use DiMUSE_v2; the game has to:
 	// - Be either DIG or COMI;
-	// - Be a non-demo;
+	// - If DIG, be a non-demo;
 	// - Use the original BUN compression format;
 	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them
-	_useDiMUSEv2 = !(_game.id == GID_FT) && !(_game.features & GF_DEMO);
 
-	if (_useDiMUSEv2) {
+	// Note: COMI Demo uses almost exactly The Dig's version of the engine. The only difference is that 
+	// the COMI one can handle pitch shifting (for the helium balloon and the pirates on the boats).
+	_useDiMUSEv2 = !(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO);
+
+	if (_useDiMUSEv2 && !(_game.id == GID_CMI && _game.features & GF_DEMO)) {
 		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
 		_useDiMUSEv2 &= !bnd->isRawOrExtCompBun(_game.id);
 		delete bnd;
@@ -2862,7 +2865,7 @@ void ScummEngine_v7::scummLoop_handleSound() {
 	if (_imuseDigital) {
 		_imuseDigital->flushTracks();
 		// In CoMI and the Dig the full (non-demo) version invoke refreshScripts()
-		if (!(_game.id == GID_FT) && !(_game.features & GF_DEMO))
+		if (!(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO))
 			_imuseDigital->refreshScripts();
 	}
 

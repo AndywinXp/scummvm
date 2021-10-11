@@ -214,8 +214,13 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 			stateSoundId = _digStateMusicTable[_curMusicState].soundId;
 			seqSoundId = _digSeqMusicTable[_curMusicSeq].soundId;
 		} else {
-			stateSoundId = _comiStateMusicTable[_curMusicState].soundId;
-			seqSoundId = _comiSeqMusicTable[_curMusicSeq].soundId;
+			if (_vm->_game.features & GF_DEMO) {
+				stateSoundId = _comiDemoStateMusicTable[_curMusicState].soundId;
+			} else {
+				stateSoundId = _comiStateMusicTable[_curMusicState].soundId;
+				seqSoundId = _comiSeqMusicTable[_curMusicSeq].soundId;
+			}
+			
 		}
 
 		_curMusicState = 0;

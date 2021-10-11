@@ -327,7 +327,7 @@ int IMuseDigital::tracksStopAllSounds() {
 	IMuseDigiTrack *nextTrack = _trackList;
 	IMuseDigiTrack *curTrack;
 
-	if (_vm->_game.id == GID_DIG) {
+	if (_vm->_game.id == GID_DIG || (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) {
 		if (_trackList) {
 			do {
 				curTrack = nextTrack->next;
