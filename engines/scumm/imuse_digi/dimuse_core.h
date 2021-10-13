@@ -105,8 +105,6 @@ private:
 	int scriptParse(int cmd, int a, int b);
 	int scriptInit();
 	int scriptTerminate();
-	int scriptSave();
-	int scriptRestore();
 	void scriptRefresh();
 	void scriptSetState(int soundId);
 	void scriptSetSequence(int soundId);

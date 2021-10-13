@@ -87,9 +87,6 @@ int IMuseDigital::scriptTerminate() {
 	return 0;
 }
 
-int IMuseDigital::scriptSave() { return 0; }
-int IMuseDigital::scriptRestore() { return 0; }
-
 void IMuseDigital::scriptRefresh() {
 	int soundId;
 	int nextSound;

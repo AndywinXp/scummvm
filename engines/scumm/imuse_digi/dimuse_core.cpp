@@ -524,7 +524,7 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 		cmdsHandleCmd(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
 		break;
 	default:
-		error("IMuseDigital::parseScriptCmds(): WARNING: unhandled command %d", cmd);
+		debug("IMuseDigital::parseScriptCmds(): WARNING: unhandled command %d", cmd);
 	}
 }
 
