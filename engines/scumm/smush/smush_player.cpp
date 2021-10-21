@@ -481,7 +481,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		}
 
 		free(src);
-	} else if (_vm->_game.id == GID_DIG && _imuseDigital->isUsingV2Engine()) {
+	} else if ((_vm->_game.id == GID_DIG) && !(_vm->_game.features & GF_DEMO) && _imuseDigital->isUsingV2Engine()) {
 		int bufId, volume, paused, curSoundId;
 		int userId = track_flags;
 

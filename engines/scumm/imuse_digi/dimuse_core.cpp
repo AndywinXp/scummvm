@@ -50,6 +50,8 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_callbackFps = fps;
 	_usecPerInt = 20000;
 
+	_isEarlyDiMUSE = (_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO));
+
 	_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
 	_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
 	_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType);
@@ -268,7 +270,7 @@ void IMuseDigital::diMUSEHeartbeat() {
 	// - Triggers and fades handling happens at a (somewhat hacky) 60Hz rate;
 	// - Music gain reduction happens at a 10Hz rate.
 
-	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol;
+	int soundId, foundGroupId, musicTargetVolume, musicEffVol, musicVol, tempVol, tempEffVol, factor, step;
 
 	waveOutCallback();
 
@@ -320,7 +322,8 @@ void IMuseDigital::diMUSEHeartbeat() {
 			if (foundGroupId == DIMUSE_GROUP_SPEECH) {
 				// Remember: when a speech file stops playing this block stops 
 				// being executed, so musicTargetVolume returns back to its original value
-				musicTargetVolume = (musicTargetVolume * 80) / 128;
+				factor = _isEarlyDiMUSE ? 82 : 80;
+				musicTargetVolume = (musicTargetVolume * factor) / 128;
 				break;
 			}
 		}
@@ -339,9 +342,10 @@ void IMuseDigital::diMUSEHeartbeat() {
 			}
 			_groupsHandler->setGroupVol(DIMUSE_GROUP_MUSICEFF, musicVol);
 		} else if (musicEffVol > musicTargetVolume) {
-			// Bring music volume down to target volume with a -18 step if there's speech playing
-		    // or else, just cap it to the target if it's out of range
-			tempVol = musicEffVol - 18;
+			// Bring music volume down to target volume with a -18 (or -6 for FT & DIG demo) step 
+		    // if there's speech playing or else, just cap it to the target if it's out of range
+			step = _isEarlyDiMUSE ? 6 : 18;
+			tempVol = musicEffVol - step;
 			if (tempVol <= musicTargetVolume) {
 				if (musicVol >= musicTargetVolume) {
 					musicVol = musicTargetVolume;

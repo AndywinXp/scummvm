@@ -72,6 +72,8 @@ private:
 	static void timer_handler(void *refConf);
 	void callback();
 
+	bool _isEarlyDiMUSE;
+
 	// These three are manipulated in the waveOut functions
 	uint8 *_outputAudioBuffer;
 	int _outputFeedSize;

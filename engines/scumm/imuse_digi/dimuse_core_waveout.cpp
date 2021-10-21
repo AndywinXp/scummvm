@@ -55,7 +55,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 	if (_waveOutDisableWrite)
 		return;
 
-	if (_vm->_game.id == GID_DIG) {
+	if (!_isEarlyDiMUSE && _vm->_game.id == GID_DIG) {
 		_waveOutXorTrigger ^= 1;
 		if (!_waveOutXorTrigger)
 			return;

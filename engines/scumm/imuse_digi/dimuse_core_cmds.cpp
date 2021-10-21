@@ -31,7 +31,7 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 
 	// Convert the character constant (single quotes '') to string
 	char marker[5];
-	if (cmd == 17 || cmd == 18 || cmd == 19) {
+	if (!_isEarlyDiMUSE && (cmd == 17 || cmd == 18 || cmd == 19)) {
 		for (int index = 0; index < 4; index++) {
 #if defined SCUMM_BIG_ENDIAN	
 			marker[index] = (b >> (8 * index)) & 0xff;
@@ -102,7 +102,6 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	return 0;
 }
 
-// Validated
 int IMuseDigital::cmdsInit() {
 	_cmdsRunning60HzCount = 0;
 	_cmdsRunning10HzCount = 0;
@@ -194,6 +193,10 @@ int IMuseDigital::cmdsStartSound(int soundId, int priority) {
 		debug(5, "IMuseDigital::cmdsStartSound(): ERROR: resource address for sound %d is NULL", soundId);
 		return -1;
 	}
+
+	// Check for the "Creative Voice File" header
+	if (_isEarlyDiMUSE && READ_BE_UINT32(src) == MKTAG('C', 'r', 'e', 'a'))
+		return waveStartSound(soundId, priority);
 
 	// Check for the "iMUS" header
 	if (READ_BE_UINT32(src) == MKTAG('i', 'M', 'U', 'S'))

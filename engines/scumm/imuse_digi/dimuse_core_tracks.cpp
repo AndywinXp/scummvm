@@ -157,7 +157,8 @@ void IMuseDigital::tracksCallback() {
 	// If we leave the number of queued streams unbounded, we fill the queue with streams faster than
 	// we can play them: this leads to a very noticeable audio latency and desync with the graphics.
 	if (_internalMixer->_stream->numQueuedStreams() < 2) {
-		dispatchPredictFirstStream();
+		if (!_isEarlyDiMUSE)
+			dispatchPredictFirstStream();
 
 		waveOutWrite(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
 
@@ -176,7 +177,7 @@ void IMuseDigital::tracksCallback() {
 			_internalMixer->loop(&_outputAudioBuffer, _outputFeedSize);
 
 			// The Dig tries to write a second time
-			if (_vm->_game.id == GID_DIG) {
+			if (!_isEarlyDiMUSE && _vm->_game.id == GID_DIG) {
 				waveOutWrite(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
 			}
 		}
@@ -478,7 +479,7 @@ int IMuseDigital::tracksSetParam(int soundId, int opcode, int value) {
 				track->pitchShift = value + track->transpose * 256;
 				return 0;
 			case P_TRANSPOSE:
-				if (_vm->_game.id == GID_DIG) {
+				if (_vm->_game.id == GID_DIG || _vm->_game.id == GID_FT) {
 					if (value < -12 || value > 12)
 						return -5;
 
@@ -650,6 +651,9 @@ int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 *width
 }
 
 int IMuseDigital::tracksSetHook(int soundId, int hookId) {
+	if (_isEarlyDiMUSE)
+		return -2;
+
 	if (hookId > 128)
 		return -5;
 	if (!_trackList)
@@ -668,6 +672,9 @@ int IMuseDigital::tracksSetHook(int soundId, int hookId) {
 }
 
 int IMuseDigital::tracksGetHook(int soundId) {
+	if (_isEarlyDiMUSE)
+		return -2;
+
 	if (!_trackList)
 		return -4;
 
