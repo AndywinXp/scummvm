@@ -164,6 +164,8 @@ typedef struct {
 	int loadIndex;
 	int readIndex;
 	int paused;
+	int dataOffsetFlag;
+	int dataOffsetValue;
 } IMuseDigiStream;
 
 typedef struct {

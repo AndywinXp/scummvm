@@ -99,7 +99,7 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// The seeked position is in reference to the decompressed sound
 
 	// A soundId > 10000 is a SAN cutscene
-	if ((_vm->_game.id == GID_DIG) && (soundId > kTalkSoundID))
+	if ((_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO)) && (soundId > kTalkSoundID))
 		return 0;
 
 	if (soundId != 0) {

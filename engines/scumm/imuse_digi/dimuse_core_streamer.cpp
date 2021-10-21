@@ -58,7 +58,7 @@ IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int
 			_streams[l].soundId = soundId;
 			_streams[l].bufId = bufId;
 			_streams[l].buf = bufInfoPtr->buffer;
-			_streams[l].bufFreeSize = bufInfoPtr->bufSize - maxRead - 4;
+			_streams[l].bufFreeSize = bufInfoPtr->bufSize - maxRead - (_isEarlyDiMUSE ? 0 : 4);
 			_streams[l].loadSize = bufInfoPtr->loadSize;
 			_streams[l].criticalSize = bufInfoPtr->criticalSize;
 			_streams[l].maxRead = maxRead;
@@ -81,7 +81,9 @@ int IMuseDigital::streamerClearSoundInStream(IMuseDigiStream *streamPtr) {
 }
 
 int IMuseDigital::streamerProcessStreams() {
-	dispatchPredictFirstStream();
+	if (!_isEarlyDiMUSE)
+		dispatchPredictFirstStream();
+
 	IMuseDigiStream *stream1 = NULL;
 	IMuseDigiStream *stream2 = NULL;
 
@@ -165,7 +167,9 @@ uint8 *IMuseDigital::streamerReAllocReadBuffer(IMuseDigiStream *streamPtr, int r
 		return 0;
 
 	if (streamPtr->bufFreeSize - streamPtr->readIndex < reallocSize) {
-		memcpy(&streamPtr->buf[streamPtr->bufFreeSize], streamPtr->buf, reallocSize - streamPtr->bufFreeSize + streamPtr->readIndex + 4);
+		memcpy(&streamPtr->buf[streamPtr->bufFreeSize],
+			streamPtr->buf,
+			reallocSize - streamPtr->bufFreeSize + streamPtr->readIndex + (_isEarlyDiMUSE ? 0 : 4));
 	}
 
 	int readIndex_tmp = streamPtr->readIndex;
@@ -236,7 +240,7 @@ int IMuseDigital::streamerSetSoundToStreamWithCurrentOffset(IMuseDigiStream *str
 	_streamerBailFlag = 1;
 	streamPtr->soundId = soundId;
 	streamPtr->curOffset = currentOffset;
-	streamPtr->endOffset = 0;
+	streamPtr->endOffset = _isEarlyDiMUSE ? _filesHandler->seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId) : 0;
 	streamPtr->paused = 0;
 	if (_lastStreamLoaded == streamPtr) {
 		_lastStreamLoaded = NULL;
@@ -301,7 +305,7 @@ int IMuseDigital::streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, 
 }
 
 int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
-	if (streamPtr->endOffset == 0) {
+	if (!_isEarlyDiMUSE && streamPtr->endOffset == 0) {
 		streamPtr->endOffset = _filesHandler->seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId);
 	}
 
@@ -312,8 +316,8 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 	int loadSize = streamPtr->loadSize;
 	int remainingSize = streamPtr->endOffset - streamPtr->curOffset;
 
-	if (loadSize >= size - 4) {
-		loadSize = size - 4;
+	if (loadSize >= size - (_isEarlyDiMUSE ? 1 : 4)) {
+		loadSize = size - (_isEarlyDiMUSE ? 1 : 4);
 	}
 
 	if (loadSize >= remainingSize) {
@@ -323,22 +327,24 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 	if (remainingSize <= 0) {
 		streamPtr->paused = 1;
 
-		// Pad the buffer
-		streamPtr->buf[streamPtr->loadIndex] = 127;
-		streamPtr->loadIndex++;
-		streamPtr->buf[streamPtr->loadIndex] = 127;
-		streamPtr->loadIndex++;
-		streamPtr->buf[streamPtr->loadIndex] = 127;
-		streamPtr->loadIndex++;
-		streamPtr->buf[streamPtr->loadIndex] = 127;
-		streamPtr->loadIndex++;
+		if (!_isEarlyDiMUSE) {
+			// Pad the buffer
+			streamPtr->buf[streamPtr->loadIndex] = 127;
+			streamPtr->loadIndex++;
+			streamPtr->buf[streamPtr->loadIndex] = 127;
+			streamPtr->loadIndex++;
+			streamPtr->buf[streamPtr->loadIndex] = 127;
+			streamPtr->loadIndex++;
+			streamPtr->buf[streamPtr->loadIndex] = 127;
+			streamPtr->loadIndex++;
+		}
 	}
 
 	int actualAmount;
 	int requestedAmount;
 
 	while (1) {
-		if (loadSize <= 0)
+		if (!_isEarlyDiMUSE && loadSize <= 0)
 			return 0;
 
 		requestedAmount = streamPtr->bufFreeSize - streamPtr->loadIndex;
@@ -358,7 +364,8 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 		actualAmount = _filesHandler->read(streamPtr->soundId, &streamPtr->buf[streamPtr->loadIndex], requestedAmount, streamPtr->bufId);
 		Common::StackLock unlock(_mutex);
 
-		if (_streamerBailFlag != 0)
+		// FT has no bailFlag
+		if (!_isEarlyDiMUSE && _streamerBailFlag)
 			return 0;
 
 		loadSize -= actualAmount;
@@ -371,13 +378,33 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 			streamPtr->loadIndex = newLoadIndex - streamPtr->bufFreeSize;
 		}
 
+		if (_isEarlyDiMUSE && streamPtr->dataOffsetFlag) {
+			if (streamPtr->dataOffsetValue <= streamPtr->curOffset) {
+				dispatchVOCLoopCallback(streamPtr->soundId);
+				streamPtr->dataOffsetFlag = 0;
+			}
+		}
+
 		if (actualAmount != requestedAmount)
 			break;
+
+		// FT checks for negative or zero loadSize here
+		if (_isEarlyDiMUSE && loadSize <= 0)
+			return 0;
 	}
 
 	debug(5, "IMuseDigital::streamerFetchData(): ERROR: unable to load the correct amount of data (req=%d, act=%d)", requestedAmount, actualAmount);
 	_lastStreamLoaded = NULL;
 	return 0;
+}
+
+void IMuseDigital::streamerSetDataOffsetFlag(IMuseDigiStream *streamPtr, int offset) {
+	streamPtr->dataOffsetFlag = 1;
+	streamPtr->dataOffsetValue = offset;
+}
+
+void IMuseDigital::streamerRemoveDataOffsetFlag(IMuseDigiStream *streamPtr) {
+	streamPtr->dataOffsetFlag = 0;
 }
 
 } // End of namespace Scumm

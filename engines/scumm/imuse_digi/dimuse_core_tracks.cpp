@@ -352,18 +352,18 @@ int IMuseDigital::tracksStopAllSounds() {
 }
 
 int IMuseDigital::tracksGetNextSound(int soundId) {
-	int found_soundId = 0;
+	int foundSoundId = 0;
 	IMuseDigiTrack *track = _trackList;
 	while (track) {
 		if (track->soundId > soundId) {
-			if (!found_soundId || track->soundId < found_soundId) {
-				found_soundId = track->soundId;
+			if (!foundSoundId || track->soundId < foundSoundId) {
+				foundSoundId = track->soundId;
 			}
 		}
 		track = track->next;
 	};
 
-	return found_soundId;
+	return foundSoundId;
 }
 
 int IMuseDigital::tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {

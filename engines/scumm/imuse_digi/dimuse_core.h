@@ -151,6 +151,8 @@ private:
 	int streamerQueryStream(IMuseDigiStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
 	int streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused);
 	int streamerFetchData(IMuseDigiStream *streamPtr);
+	void streamerSetDataOffsetFlag(IMuseDigiStream *streamPtr, int offset);
+	void streamerRemoveDataOffsetFlag(IMuseDigiStream *streamPtr);
 
 	// Tracks
 	IMuseDigiTrack _tracks[MAX_TRACKS];
@@ -217,6 +219,7 @@ private:
 	void dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const char *function);
 	void dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function);
 	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade);
+	void dispatchVOCLoopCallback(int soundId);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int waveInit();

@@ -1515,4 +1515,7 @@ int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, in
 	return mixVolume;
 }
 
+void IMuseDigital::dispatchVOCLoopCallback(int soundId) {
+}
+
 } // End of namespace Scumm
