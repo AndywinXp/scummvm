@@ -89,7 +89,7 @@ int IMuseDigiFadesHandler::fadeParam(int soundId, int opcode, int destinationVal
 
 void IMuseDigiFadesHandler::clearFadeStatus(int soundId, int opcode) {
 	for (int l = 0; l < MAX_FADES; l++) {
-		if (_fades[l].status == 0
+		if (_fades[l].status
 			&& _fades[l].sound == soundId
 			&& (_fades[l].param == opcode || opcode == -1)) {
 			_fades[l].status = 0;
