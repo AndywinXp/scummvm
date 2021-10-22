@@ -183,7 +183,11 @@ void IMuseDigital::tracksCallback() {
 
 				while (track) {
 					IMuseDigiTrack *next = track->next;
-					dispatchProcessDispatches(track, _outputFeedSize, _outputSampleRate);
+					if (_isEarlyDiMUSE) {
+						dispatchProcessDispatches(track, _outputFeedSize);
+					} else {
+						dispatchProcessDispatches(track, _outputFeedSize, _outputSampleRate);
+					}
 					track = next;
 				};
 			}

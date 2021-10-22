@@ -469,7 +469,7 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 					if (oldSoundId) {
 						if (oldSoundId != soundId || transitionType == 2)
 							diMUSESwitchStream(oldSoundId, soundId, _crossfadeBuffer, 30000, 0);
-					} else if (diMUSEStartStream(soundId, 126, 2)) {
+					} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
 						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\"(%d)", songName, soundId);
 					}
 
