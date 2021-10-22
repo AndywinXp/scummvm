@@ -85,7 +85,10 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	case 25:
 		return waveStartStream(a, (int)b, (int)c);
 	case 26:
-		return waveSwitchStream(a, (int)b, (int)c, (int)d, (int)e);
+		if (_isEarlyDiMUSE)
+			return waveSwitchStream(a, (int)b, (uint8 *)c, (int)d, (int)e);
+		else
+			return waveSwitchStream(a, (int)b, (int)c, (int)d, (int)e);
 	case 27:
 		return waveProcessStreams();
 	case 28:
@@ -184,6 +187,7 @@ void IMuseDigital::cmdsSaveLoad(Common::Serializer &ser) {
 	ser.syncAsSint32LE(_nextSeqToPlay, VER(103));
 	ser.syncAsByte(_radioChatterSFX, VER(103));
 	ser.syncArray(_attributes, 188, Common::Serializer::Sint32LE, VER(104));
+	ser.syncAsSint32LE(_curMusicCue, VER(105));
 }
 
 int IMuseDigital::cmdsStartSound(int soundId, int priority) {

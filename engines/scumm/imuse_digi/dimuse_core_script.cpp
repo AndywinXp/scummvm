@@ -54,7 +54,8 @@ int IMuseDigital::scriptParse(int cmd, int a, int b) {
 			scriptSetSequence(a);
 			return 0;
 		case 7:
-			return scriptSetCuePoint();
+			scriptSetCuePoint(a);
+			return 0;
 		case 8:
 			return scriptSetAttribute(a, b);
 		default:
@@ -73,6 +74,7 @@ int IMuseDigital::scriptInit() {
 	_curMusicState = 0;
 	_curMusicSeq = 0;
 	_nextSeqToPlay = 0;
+	_curMusicCue = 0;
 	memset(_attributes, 0, sizeof(_attributes));
 	return 0;
 }
@@ -83,6 +85,7 @@ int IMuseDigital::scriptTerminate() {
 	_curMusicState = 0;
 	_curMusicSeq = 0;
 	_nextSeqToPlay = 0;
+	_curMusicCue = 0;
 	memset(_attributes, 0, sizeof(_attributes));
 	return 0;
 }
@@ -135,7 +138,26 @@ void IMuseDigital::scriptSetSequence(int soundId) {
 	}
 }
 
-int IMuseDigital::scriptSetCuePoint() { return 0; }
+void IMuseDigital::scriptSetCuePoint(int cueId) {
+	if (!_isEarlyDiMUSE)
+		return;
+
+	if (cueId > 3)
+		return;
+
+	debug(5, "IMuseDigital::scriptSetCuePoint(): Cue point sequence: %d", cueId);
+
+	if (_curMusicSeq && _curMusicCue != cueId) {
+		if (cueId == 0)
+			playFtMusic(NULL, 0, 0);
+		else {
+			int seq = ((_curMusicSeq - 1) * 4) + cueId;
+			playFtMusic(_ftSeqMusicTable[seq].audioName, _ftSeqMusicTable[seq].transitionType, _ftSeqMusicTable[seq].volume);
+		}
+	}
+
+	_curMusicCue = cueId;
+}
 
 int IMuseDigital::scriptSetAttribute(int attrIndex, int attrVal) {
 	if (_vm->_game.id == GID_DIG) {
@@ -152,6 +174,50 @@ int IMuseDigital::scriptTriggerCallback(char *marker) {
 	_stopSequenceFlag = 1;
 	return 0;
 }
+
+void Scumm::IMuseDigital::setFtMusicState(int stateId) {
+	if (stateId > 48)
+		return;
+
+	debug(5, "IMuseDigital::setFtMusicState(): State music: %s, %s", _ftStateMusicTable[stateId].name, _ftStateMusicTable[stateId].audioName);
+
+	if (_curMusicState == stateId)
+		return;
+
+	if (_curMusicSeq == 0) {
+		if (stateId == 0) {
+			playFtMusic(NULL, 0, 0);
+		} else {
+			playFtMusic(_ftStateMusicTable[stateId].audioName, _ftStateMusicTable[stateId].transitionType, _ftStateMusicTable[stateId].volume);
+		}
+	}
+
+	_curMusicState = stateId;
+}
+
+void IMuseDigital::setFtMusicSequence(int seqId) {
+	if (seqId > 52)
+		return;
+
+	debug(5, "IMuseDigital::setFtMusicSequence(): Sequence music: %s", _ftSeqNames[seqId].name);
+
+	if (_curMusicSeq != seqId) {
+		if (seqId == 0) {
+			if (_curMusicState == 0) {
+				playFtMusic(NULL, 0, 0);
+			} else {
+				playFtMusic(_ftStateMusicTable[_curMusicState].audioName, _ftStateMusicTable[_curMusicState].transitionType, _ftStateMusicTable[_curMusicState].volume);
+			}
+		} else {
+			int seq = (seqId - 1) * 4;
+			playFtMusic(_ftSeqMusicTable[seq].audioName, _ftSeqMusicTable[seq].transitionType, _ftSeqMusicTable[seq].volume);
+		}
+	}
+
+	_curMusicSeq = seqId;
+	_curMusicCue = 0;
+}
+
 
 void IMuseDigital::setDigMusicState(int stateId) {
 	int l, num = -1;
@@ -353,6 +419,81 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 	}
 
 	_curMusicSeq = num;
+}
+
+void IMuseDigital::playFtMusic(const char *songName, int transitionType, int volume) {
+	uint8 *_crossfadeBuffer = NULL;
+	int oldSoundId = 0;
+	int soundId;
+	if (_crossfadeBuffer || (_crossfadeBuffer = (uint8 *)malloc(30000)) != 0) {
+		// Check for any music piece which is played as a SFX (without an associated stream)
+		// and fade it out
+		for (int i = diMUSEGetNextSound(0); i; i = diMUSEGetNextSound(i)) {
+			if (diMUSEGetParam(i, P_GROUP) == DIMUSE_GROUP_MUSICEFF && !diMUSEGetParam(i, P_SND_HAS_STREAM))
+				diMUSEFadeParam(i, P_VOLUME, 0, 200);
+		}
+
+		// Now grab the current standard music soundId: it will either be crossfaded by SwitchStream,
+		// or faded out
+		for (int j = diMUSEGetNextSound(0); j; j = diMUSEGetNextSound(j)) {
+			if (diMUSEGetParam(j, P_GROUP) == DIMUSE_GROUP_MUSICEFF && diMUSEGetParam(j, P_SND_HAS_STREAM))
+				oldSoundId = j;
+		}
+
+		if (songName) {
+			switch (transitionType) {
+			case 0:
+				debug(5, "IMuseDigital::playFtMusic(): NULL transition, ignored");
+				return;
+			case 1:
+				soundId = getSoundIdByName(songName);
+				_filesHandler->openSound(soundId);
+				if (!soundId) {
+					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"(%d)", songName);
+					break;
+				}
+
+				if (diMUSEStartSound(soundId, 126))
+					debug(5, "IMuseDigital::playFtMusic(): transition 1, failed to start sound \"%s\"(%d)", songName, soundId);
+
+				_filesHandler->closeSound(soundId);
+				diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
+				diMUSESetParam(soundId, P_VOLUME, volume);
+				break;
+			case 2:
+			case 3:
+				soundId = getSoundIdByName(songName);
+				_filesHandler->openSound(soundId);
+				if (soundId) {
+					if (oldSoundId) {
+						if (oldSoundId != soundId || transitionType == 2)
+							diMUSESwitchStream(oldSoundId, soundId, _crossfadeBuffer, 30000, 0);
+					} else if (diMUSEStartStream(soundId, 126, 2)) {
+						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\"(%d)", songName, soundId);
+					}
+
+					_filesHandler->closeSound(soundId);
+					diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
+					diMUSESetParam(soundId, P_VOLUME, volume);
+				} else {
+					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"(%d)", songName);
+				}
+				break;
+			case 4:
+				if (oldSoundId)
+					diMUSEFadeParam(oldSoundId, P_VOLUME, 0, 200);
+				return;
+			default:
+				debug(5, "IMuseDigital::playFtMusic(): bogus transition type, ignored");
+				return;
+			}
+		} else {
+			if (oldSoundId)
+				diMUSEFadeParam(oldSoundId, P_VOLUME, 0, 200);
+		}
+	} else {
+		debug(5, "IMuseDigital::playFtMusic(): ERROR: couldn't allocate crossfade buffer");
+	}
 }
 
 void IMuseDigital::playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence) {

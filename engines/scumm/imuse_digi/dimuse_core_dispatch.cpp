@@ -27,6 +27,7 @@ namespace Scumm {
 
 int IMuseDigital::dispatchInit() {
 	_dispatchBuffer = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
+	_crossfadeBuffer = NULL;
 
 	if (_dispatchBuffer) {
 		_dispatchLargeFadeBufs = _dispatchBuffer;
@@ -71,6 +72,7 @@ int IMuseDigital::dispatchInit() {
 			_dispatches[i].fadeSyncDelta = 0;
 			_dispatches[i].fadeVol = 0;
 			_dispatches[i].fadeSlope = 0;
+			_dispatches[i].loopStartingPoint = 0;
 		}
 
 	} else {
@@ -105,6 +107,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_dispatches[l].fadeSyncDelta, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeVol, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeSlope, VER(103));
+		ser.syncAsSint32LE(_dispatches[l].loopStartingPoint, VER(105));
 	}
 
 	if (ser.isLoading()) {
@@ -396,6 +399,10 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 			return -1;
 		}
 	}
+}
+
+int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
+	return 0;
 }
 
 void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate) {

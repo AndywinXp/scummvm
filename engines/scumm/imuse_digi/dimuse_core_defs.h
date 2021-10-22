@@ -197,6 +197,7 @@ struct IMuseDigiDispatch {
 	int fadeSyncDelta;
 	int fadeVol;
 	int fadeSlope;
+	int loopStartingPoint;
 };
 
 typedef struct {

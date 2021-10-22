@@ -72,6 +72,9 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 
 	_radioChatterSFX = false;
 
+	_audioNames = NULL;
+	_numAudioNames = 0;
+
 	_emptyMarker[0] = '\0';
 	_internalMixer = new IMuseDigiInternalMixer(mixer);
 	_groupsHandler = new IMuseDigiGroupsHandler(this);
@@ -111,9 +114,14 @@ IMuseDigital::~IMuseDigital() {
 	free(_dispatchBuffer);
 	_dispatchBuffer = NULL;
 
+	free(_crossfadeBuffer);
+	_crossfadeBuffer = NULL;
+
 	// Deinit the WaveOut module
 	free(_waveOutOutputBuffer);
 	_waveOutOutputBuffer = NULL;
+
+	free(_audioNames);
 }
 
 void IMuseDigital::stopSound(int sound) {
@@ -204,7 +212,7 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 		s.skip(4, VER(31), VER(42)); // _volMusic
 		s.syncAsSint32LE(_curMusicState, VER(31));
 		s.syncAsSint32LE(_curMusicSeq, VER(31));
-		s.skip(4); // _curMusicCue
+		s.syncAsSint32LE(_curMusicCue, VER(31));
 		s.syncAsSint32LE(_nextSeqToPlay, VER(31));
 		s.syncAsByte(_radioChatterSFX, VER(76));
 		s.syncArray(_attributes, 188, Common::Serializer::Sint32LE, VER(31));
@@ -212,6 +220,7 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 		int stateSoundId = 0;
 		int seqSoundId = 0;
 
+		// TODO: Check if FT actually works here
 		if (_vm->_game.id == GID_DIG) {
 			stateSoundId = _digStateMusicTable[_curMusicState].soundId;
 			seqSoundId = _digSeqMusicTable[_curMusicSeq].soundId;
@@ -222,14 +231,14 @@ void IMuseDigital::saveLoadEarly(Common::Serializer &s) {
 				stateSoundId = _comiStateMusicTable[_curMusicState].soundId;
 				seqSoundId = _comiSeqMusicTable[_curMusicSeq].soundId;
 			}
-			
 		}
 
 		_curMusicState = 0;
 		_curMusicSeq = 0;
 		scriptSetSequence(seqSoundId);
 		scriptSetState(stateSoundId);
-
+		scriptSetCuePoint(_curMusicCue);
+		_curMusicCue = 0;
 	} else {
 		diMUSESaveLoad(s);
 	}
@@ -491,9 +500,28 @@ void IMuseDigital::pause(bool p) {
 	}
 }
 
+void IMuseDigital::setAudioNames(int32 num, char *names) {
+	free(_audioNames);
+	_numAudioNames = num;
+	_audioNames = names;
+}
+
+int IMuseDigital::getSoundIdByName(const char *soundName) {
+	if (soundName && soundName[0] != 0) {
+		for (int r = 0; r < _numAudioNames; r++) {
+			if (strcmp(soundName, &_audioNames[r * 9]) == 0) {
+				return r;
+			}
+		}
+	}
+
+	return -1;
+}
+
 void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
 	int b = soundId;
 	int c = sub_cmd;
+	int id;
 	switch (cmd) {
 	case 0x1000:
 		// SetState
@@ -505,6 +533,7 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 		break;
 	case 0x1002:
 		// SetCuePoint
+		diMUSESetCuePoint(soundId);
 		break;
 	case 0x1003:
 		// SetAttribute
@@ -526,6 +555,11 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 	case 12: // SetParam
 	case 14: // FadeParam
 		cmdsHandleCmd(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
+		break;
+	case 25: // OpenSound
+		// TODO
+		id = getSoundIdByName("kstand");
+		_filesHandler->openSound(id);
 		break;
 	default:
 		debug("IMuseDigital::parseScriptCmds(): WARNING: unhandled command %d", cmd);
@@ -608,6 +642,11 @@ int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDel
 	return cmdsHandleCmd(26, oldSoundId, newSoundId, fadeDelay, fadeSyncFlag2, fadeSyncFlag1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
+// Variation for FT and DIG demo
+int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
+	return cmdsHandleCmd(26, oldSoundId, newSoundId, (uintptr)crossfadeBuffer, crossfadeBufferSize, dataOffsetFlag, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+}
+
 int IMuseDigital::diMUSEProcessStreams() {
 	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
@@ -658,6 +697,10 @@ int IMuseDigital::diMUSESetState(int soundId) {
 
 int IMuseDigital::diMUSESetSequence(int soundId) {
 	return scriptParse(6, soundId, -1);
+}
+
+int IMuseDigital::diMUSESetCuePoint(int cueId) {
+	return scriptParse(7, cueId, -1);
 }
 
 int IMuseDigital::diMUSESetAttribute(int attrIndex, int attrVal) {

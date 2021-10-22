@@ -84,9 +84,14 @@ private:
 	bool _radioChatterSFX;
 
 	int32 _attributes[188];	// internal attributes for each music file to store and check later
-	int32 _nextSeqToPlay;	// id of sequence type of music needed played
-	int32 _curMusicState;	// current or previous id of music
-	int32 _curMusicSeq;		// current or previous id of sequence music
+	int32 _nextSeqToPlay;
+	int32 _curMusicState;
+	int32 _curMusicSeq;	
+	int32 _curMusicCue;
+
+	char *_audioNames;		// filenames of sound SFX used in FT
+	int32 _numAudioNames;	// number of above filenames
+
 	int _stopSequenceFlag;
 	int _scriptInitializedFlag;
 	char _emptyMarker[1];
@@ -95,6 +100,9 @@ private:
 	int _callbackInterruptFlag;
 	void diMUSEHeartbeat();
 
+	void setFtMusicState(int stateId);
+	void setFtMusicSequence(int seqId);
+	void playFtMusic(const char *songName, int opcode, int volume);
 	void setDigMusicState(int stateId);
 	void setDigMusicSequence(int seqId);
 	void playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence);
@@ -102,6 +110,7 @@ private:
 	void setComiMusicSequence(int seqId);
 	void playComiMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
 	void playComiDemoMusic(const char *songName, const imuseComiTable *table, int attribPos, bool sequence);
+	int getSoundIdByName(const char *soundName);
 
 	// Script
 	int scriptParse(int cmd, int a, int b);
@@ -110,7 +119,7 @@ private:
 	void scriptRefresh();
 	void scriptSetState(int soundId);
 	void scriptSetSequence(int soundId);
-	int scriptSetCuePoint();
+	void scriptSetCuePoint(int cueId);
 	int scriptSetAttribute(int attrIndex, int attrVal);
 
 	// CMDs
@@ -187,6 +196,7 @@ private:
 	IMuseDigiDispatch _dispatches[MAX_DISPATCHES];
 	IMuseDigiStreamZone _streamZones[MAX_STREAMZONES];
 	uint8 *_dispatchBuffer;
+	uint8 *_crossfadeBuffer;
 	int _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
 	uint8 *_dispatchLargeFadeBufs;
@@ -208,6 +218,7 @@ private:
 	int dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId);
 	int dispatchRelease(IMuseDigiTrack *trackPtr);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
+	int dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag);
 	void dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate);
 	void dispatchPredictFirstStream();
 	int dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr);
@@ -238,6 +249,7 @@ private:
 	int waveGetHook(int soundId);
 	int waveStartStream(int soundId, int priority, int groupId);
 	int waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
+	int waveSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag);
 	int waveProcessStreams();
 	int waveQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
 	int waveFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
@@ -280,7 +292,7 @@ public:
 	void saveLoadEarly(Common::Serializer &ser) override;
 	void resetState() override {};
 	void setRadioChatterSFX(bool state) override;
-	void setAudioNames(int32 num, char *names) override {};
+	void setAudioNames(int32 num, char *names) override;
 	int  startSfx(int soundId, int priority) override;
 	void setPriority(int soundId, int priority) override {};
 	void setVolume(int soundId, int volume) override;
@@ -322,6 +334,7 @@ public:
 	int diMUSESetTrigger(int soundId, int marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
 	int diMUSEStartStream(int soundId, int priority, int groupId);
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
+	int diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag);
 	int diMUSEProcessStreams();
 	int diMUSEQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused);
 	int diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
@@ -334,6 +347,7 @@ public:
 	void diMUSERefreshScript();
 	int diMUSESetState(int soundId);
 	int diMUSESetSequence(int soundId);
+	int diMUSESetCuePoint(int cueId);
 	int diMUSESetAttribute(int attrIndex, int attrVal);
 
 	// Utils
