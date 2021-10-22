@@ -133,6 +133,20 @@ void IMuseDigital::tracksSaveLoad(Common::Serializer &ser) {
 			}
 		}
 
+		// We didn't store the streamPtr before
+		if (ser.getVersion() < 105 && !_isEarlyDiMUSE) {
+			IMuseDigiDispatch *curDispatchPtr;
+			for (int i = 0; i < _trackCount; i++) {
+				curDispatchPtr = &_dispatches[i];
+
+				if (curDispatchPtr->trackPtr->soundId < 1000) {
+					curDispatchPtr->streamPtr = NULL;
+				} else {
+					curDispatchPtr->streamPtr = (IMuseDigiStream *)1;
+				}
+			}
+		}
+
 		dispatchRestoreStreamZones();
 	}
 }

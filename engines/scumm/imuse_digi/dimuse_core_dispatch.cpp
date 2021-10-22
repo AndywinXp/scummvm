@@ -96,6 +96,18 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_dispatches[l].currentOffset, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].audioRemaining, VER(103));
 		ser.syncArray(_dispatches[l].map, 2048, Common::Serializer::Sint32LE, VER(103));
+
+		// This is only needed to signal if the sound originally had a stream associated with it
+		int hasStream = 0;
+		if (ser.isSaving()) {
+			if (_dispatches[l].streamPtr)
+				hasStream = 1;
+			ser.syncAsSint32LE(hasStream, VER(105));
+		} else {
+			ser.syncAsSint32LE(hasStream, VER(105));
+			_dispatches[l].streamPtr = hasStream ? (IMuseDigiStream *)1 : NULL;
+		}
+		
 		ser.syncAsSint32LE(_dispatches[l].streamBufID, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].streamErrFlag, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeOffset, VER(103));
@@ -127,33 +139,26 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 
 int IMuseDigital::dispatchRestoreStreamZones() {
 	IMuseDigiDispatch *curDispatchPtr;
-	IMuseDigiStream *curAllocatedStream;
 	IMuseDigiStreamZone *curStreamZone;
 	IMuseDigiStreamZone *curStreamZoneList;
-	int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
 		curDispatchPtr = &_dispatches[i];
 		curDispatchPtr->fadeBuf = NULL;
 
-		// This operation below is needed because the EXE saves the streamPtr when saving the dispatches;
-		// we don't do that, but we still have to signal this function that the sound is not a SFX (which has a streamPtr == NULL)
-		if (curDispatchPtr->trackPtr->soundId < 1000) {
-			curDispatchPtr->streamPtr = NULL;
-		} else {
-			curDispatchPtr->streamPtr = (IMuseDigiStream *)1; // Bogus value, just to signal that this sound is either music or speech
-		}
-
 		if (curDispatchPtr->trackPtr->soundId && curDispatchPtr->streamPtr) {
 			// Try allocating the stream
-			curAllocatedStream = streamerAllocateSound(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, sizeToFeed);
-			curDispatchPtr->streamPtr = curAllocatedStream;
+			curDispatchPtr->streamPtr = streamerAllocateSound(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, sizeToFeed);
 
-			if (curAllocatedStream) {
-				streamerSetSoundToStreamWithCurrentOffset(curAllocatedStream, curDispatchPtr->trackPtr->soundId, curDispatchPtr->currentOffset);
-				if (curDispatchPtr->audioRemaining) {
+			if (curDispatchPtr->streamPtr) {
+				streamerSetSoundToStreamWithCurrentOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->currentOffset);
 
+				if (_isEarlyDiMUSE) {
+					if (curDispatchPtr->loopStartingPoint)
+						streamerSetDataOffsetFlag(curDispatchPtr->streamPtr, curDispatchPtr->currentOffset + curDispatchPtr->audioRemaining);
+				} else if (curDispatchPtr->audioRemaining) {
 					// Try finding a stream zone which is not in use
 					curStreamZone = NULL;
 					for (int j = 0; j < MAX_STREAMZONES; j++) {
@@ -198,24 +203,38 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 	IMuseDigiDispatch *dispatchToDeallocate;
 	IMuseDigiStreamZone *streamZoneList;
 	int getMapResult;
-	int sizeToFeed = 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
+	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000; // (_vm->_game.id == GID_DIG) ? 0x2000 : 0x4000;
 
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
 	trackDispatch->audioRemaining = 0;
-	memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
 	trackDispatch->fadeBuf = 0;
+
+	if (_isEarlyDiMUSE) {
+		trackDispatch->loopStartingPoint = 0;
+	} else {
+		memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
+	}
+	
+	
 	if (groupId) {
 		trackDispatch->streamPtr = streamerAllocateSound(trackPtr->soundId, groupId, sizeToFeed);
+		trackDispatch->streamBufID = groupId;
+
 		if (!trackDispatch->streamPtr) {
 			debug(5, "IMuseDigital::dispatchAlloc(): unable to allocate stream for sound %d", trackPtr->soundId);
 			return -1;
 		}
-		trackDispatch->streamBufID = groupId;
+
+		if (_isEarlyDiMUSE)
+			return 0;
+		
 		trackDispatch->streamZoneList = 0;
 		trackDispatch->streamErrFlag = 0;
 	} else {
 		trackDispatch->streamPtr = 0;
+		if (_isEarlyDiMUSE)
+			return dispatchSeekToNextChunk(trackDispatch);
 	}
 
 	getMapResult = dispatchGetNextMapEvent(trackDispatch);
@@ -254,8 +273,12 @@ int IMuseDigital::dispatchRelease(IMuseDigiTrack *trackPtr) {
 
 	// Remove streamZones from list
 	if (dispatchToDeallocate->streamPtr) {
-		streamZoneList = dispatchToDeallocate->streamZoneList;
 		streamerClearSoundInStream(dispatchToDeallocate->streamPtr);
+
+		if (_isEarlyDiMUSE)
+			return 0;
+
+		streamZoneList = dispatchToDeallocate->streamZoneList;
 		if (dispatchToDeallocate->streamZoneList) {
 			do {
 				streamZoneList->useFlag = 0;
@@ -1137,7 +1160,7 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 	return 0;
 }
 
-void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatch) {
+void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 	IMuseDigiStreamZone *szTmp;
 	IMuseDigiStreamZone *lastStreamInList;
 	IMuseDigiStreamZone *szList;
@@ -1148,12 +1171,12 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatch) {
 	int bytesUntilNextPlace, mapPlaceHookId;
 	int mapPlaceHookPosition;
 
-	if (!dispatch->streamPtr || !dispatch->streamZoneList) {
+	if (!dispatchPtr->streamPtr || !dispatchPtr->streamZoneList) {
 		debug(5, "IMuseDigital::dispatchPredictStream(): ERROR: NULL streamId or zoneList");
 		return;
 	}
 
-	szTmp = dispatch->streamZoneList;
+	szTmp = dispatchPtr->streamZoneList;
 
 	// Get the offset which our stream is currently at
 	cumulativeStreamOffset = 0;
@@ -1163,14 +1186,14 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatch) {
 		szTmp = szTmp->next;
 	} while (szTmp);
 
-	lastStreamInList->size += streamerGetFreeBuffer(dispatch->streamPtr) - cumulativeStreamOffset;
-	szList = dispatch->streamZoneList;
+	lastStreamInList->size += streamerGetFreeBuffer(dispatchPtr->streamPtr) - cumulativeStreamOffset;
+	szList = dispatchPtr->streamZoneList;
 
-	_dispatchBufferedHookId = dispatch->trackPtr->jumpHook;
+	_dispatchBufferedHookId = dispatchPtr->trackPtr->jumpHook;
 	while (szList) {
 		if (!szList->fadeFlag) {
-			curMapPlace = &dispatch->map[2];
-			endOfMap = (int *)((int8 *)&dispatch->map[2] + dispatch->map[1]);
+			curMapPlace = &dispatchPtr->map[2];
+			endOfMap = (int *)((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1]);
 
 			while (1) {
 				// End of the map, stream
@@ -1200,20 +1223,20 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatch) {
 
 			if (curMapPlace) {
 				// This is where we should end up if checkHookId() has been successful
-				dispatchParseJump(dispatch, szList, curMapPlace, 0);
+				dispatchParseJump(dispatchPtr, szList, curMapPlace, 0);
 			} else {
 				// Otherwise this is where we end up when we reached the end of the getNextMapEventResult,
 				// which means: if we don't have to jump, just play the next streamZone available
 				if (szList->next) {
 					cumulativeStreamOffset = szList->size;
-					szTmp = dispatch->streamZoneList;
+					szTmp = dispatchPtr->streamZoneList;
 					while (szTmp != szList) {
 						cumulativeStreamOffset += szTmp->size;
 						szTmp = szTmp->next;
 					}
 
 					// Continue streaming the newSoundId from where we left off
-					streamerSetIndex2(dispatch->streamPtr, cumulativeStreamOffset);
+					streamerSetIndex2(dispatchPtr->streamPtr, cumulativeStreamOffset);
 
 					// Remove che previous streamZone from the list, we don't need it anymore
 					while (szList->next->prev) {
@@ -1222,8 +1245,8 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatch) {
 					}
 
 					streamerSetSoundToStreamWithCurrentOffset(
-						dispatch->streamPtr,
-						dispatch->trackPtr->soundId,
+						dispatchPtr->streamPtr,
+						dispatchPtr->trackPtr->soundId,
 						szList->size + szList->offset);
 				}
 			}
@@ -1523,6 +1546,93 @@ int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, in
 }
 
 void IMuseDigital::dispatchVOCLoopCallback(int soundId) {
+	IMuseDigiDispatch *curDispatchPtr;
+	uint8 *dataBlockTag;
+
+	if (!soundId)
+		return;
+
+	for (int i = 0; i < _trackCount; i++) {
+		curDispatchPtr = &_dispatches[i];
+		if (curDispatchPtr->trackPtr->soundId == soundId) {
+			dataBlockTag = streamerCopyBufferAbsolute(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining, 1);
+			if (dataBlockTag && dataBlockTag[0] == 7) { // End of loop
+				streamerSetIndex2(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining + 1);
+				streamerSetSoundToStreamWithCurrentOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->loopStartingPoint);
+			}
+		}
+	}
+}
+
+int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
+	uint8 *headerBuf;
+	uint8 *soundAddrData;
+	while (1) {
+		if (dispatchPtr->streamPtr) {
+			headerBuf = streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x30);
+			if (headerBuf || (headerBuf = streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 1)) != 0) {
+				memcpy(_currentVOCHeader, headerBuf, 0x30);
+			} else {
+				return -3;
+			}
+			
+		} else {
+			soundAddrData = _filesHandler->getSoundAddrData(dispatchPtr->trackPtr->soundId);
+			if (soundAddrData) {
+				memcpy(_currentVOCHeader, &soundAddrData[dispatchPtr->currentOffset], 0x30);
+			} else {
+				return -1;
+			}
+		}
+
+		if (READ_BE_UINT32(_currentVOCHeader) == MKTAG('C', 'r', 'e', 'a')) {
+			// We expect to find (everything in Little Endian except where noted):
+			// - The string "Creative Voice File" stored in Big Endian format;
+			// - 0x1A, which the interpreter doesn't check, so we don't either
+			// - Total size of the header, which has to be 0x001A (0x1A00 in LE)
+			// - Version tags: 0x0A (minor), 0x01 (major), this corresponds to version 1.10
+			if (_currentVOCHeader[20] == 0x1A && _currentVOCHeader[21] == 0x0 &&
+				_currentVOCHeader[22] == 0xA && _currentVOCHeader[23] == 0x1) {
+				dispatchPtr->currentOffset += 26;
+				if (dispatchPtr->streamPtr)
+					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 26);
+				continue;
+			}
+			return -1;
+		} else {
+			switch (_currentVOCHeader[0]) {
+			case 1:
+				dispatchPtr->channelCount = _currentVOCHeader[4] > 196;
+				dispatchPtr->audioRemaining = (READ_LE_UINT32(_currentVOCHeader + 26) >> 8) - 2;
+				dispatchPtr->currentOffset = dispatchPtr->currentOffset + 6;
+
+				if (dispatchPtr->streamPtr) {
+					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
+					if (dispatchPtr->loopStartingPoint)
+						streamerSetDataOffsetFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
+				}
+				return 0;
+			case 4: // Marker, 2 bytes, used for triggers (disabling them for now, but I will work on these later)
+				//_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, *(__int16 *)&_currentVOCHeader[4]);
+				dispatchPtr->currentOffset += 6;
+				continue;
+			case 6:
+				dispatchPtr->loopStartingPoint = dispatchPtr->currentOffset;
+				dispatchPtr->currentOffset = dispatchPtr->currentOffset + 6;
+				if (dispatchPtr->streamPtr)
+					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
+				continue;
+			case 7:
+				dispatchPtr->currentOffset = dispatchPtr->loopStartingPoint;
+				if (dispatchPtr->streamPtr)
+					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 1);
+				continue;
+			default:
+				return -1;
+			}
+		}
+		return -1;
+	}
 }
 
 } // End of namespace Scumm

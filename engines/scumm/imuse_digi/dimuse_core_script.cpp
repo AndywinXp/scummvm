@@ -160,6 +160,8 @@ void IMuseDigital::scriptSetCuePoint(int cueId) {
 }
 
 int IMuseDigital::scriptSetAttribute(int attrIndex, int attrVal) {
+	// FT appears to set a single attribute to 1 at start-up and 
+	// never use it again, so we currently ignore that behavior
 	if (_vm->_game.id == GID_DIG) {
 		_attributes[attrIndex] = attrVal;
 	}

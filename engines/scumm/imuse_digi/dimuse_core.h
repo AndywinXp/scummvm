@@ -91,6 +91,7 @@ private:
 
 	char *_audioNames;		// filenames of sound SFX used in FT
 	int32 _numAudioNames;	// number of above filenames
+	uint8 _currentVOCHeader[52]; // Header for the current sound for early DiMUSE
 
 	int _stopSequenceFlag;
 	int _scriptInitializedFlag;
@@ -223,7 +224,7 @@ private:
 	void dispatchPredictFirstStream();
 	int dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr);
 	int dispatchConvertMap(uint8 *rawMap, uint8 *destMap);
-	void dispatchPredictStream(IMuseDigiDispatch *dispatch);
+	void dispatchPredictStream(IMuseDigiDispatch *dispatchPtr);
 	void dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	IMuseDigiStreamZone *dispatchAllocStreamZone();
 	uint8 *dispatchAllocateFade(int *fadeSize, const char *function);
@@ -231,6 +232,7 @@ private:
 	void dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function);
 	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade);
 	void dispatchVOCLoopCallback(int soundId);
+	int dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr);
 
 	// Wave (mainly a wrapper for Tracks functions)
 	int waveInit();
