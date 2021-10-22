@@ -425,7 +425,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 }
 
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
-	IMuseDigiDispatch *dispatchPtr;
+	IMuseDigiDispatch *dispatchPtr = NULL;
 	uint8 *streamBuf;
 	int i, effAudioRemaining, effFadeRemaining, audioRemaining, offset;
 
@@ -784,13 +784,11 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 }
 
 void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize) {
-	IMuseDigiDispatch *dispatchPtr;
+	IMuseDigiDispatch *dispatchPtr = NULL;
 	IMuseDigiStream *streamPtr;
 	uint8 *buffer, *srcBuf;
-	int tentativeFeedSize, effFeedSize;
-	int fadeChunkSize, fadeSyncDelta;
-	int mixStartingPoint;
-	int seekResult; 
+	int fadeChunkSize = 0;
+	int tentativeFeedSize, effFeedSize, fadeSyncDelta, mixStartingPoint, seekResult; 
 	int mixVolume, pan;
 
 	dispatchPtr = trackPtr->dispatchPtr;
