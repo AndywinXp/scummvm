@@ -422,7 +422,6 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 }
 
 void IMuseDigital::playFtMusic(const char *songName, int transitionType, int volume) {
-	uint8 *_crossfadeBuffer = NULL;
 	int oldSoundId = 0;
 	int soundId;
 	if (_crossfadeBuffer || (_crossfadeBuffer = (uint8 *)malloc(30000)) != 0) {
