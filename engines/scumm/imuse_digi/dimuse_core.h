@@ -221,6 +221,7 @@ private:
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag);
 	void dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate);
+	void dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize);
 	void dispatchPredictFirstStream();
 	int dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr);
 	int dispatchConvertMap(uint8 *rawMap, uint8 *destMap);
@@ -231,6 +232,7 @@ private:
 	void dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const char *function);
 	void dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function);
 	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade);
+	int dispatchUpdateFadeSlope(IMuseDigiDispatch *dispatchPtr);
 	void dispatchVOCLoopCallback(int soundId);
 	int dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr);
 

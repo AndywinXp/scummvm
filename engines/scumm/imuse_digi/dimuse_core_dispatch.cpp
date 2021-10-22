@@ -425,6 +425,80 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 }
 
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
+	IMuseDigiDispatch *dispatchPtr;
+	uint8 *streamBuf;
+	int i, effAudioRemaining, effFadeRemaining, audioRemaining, offset;
+
+	if (_trackCount <= 0) {
+		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, _trackCount is %d", _trackCount);
+		return -1;
+	}
+
+	for (i = 0; i < _trackCount; i++) {
+		dispatchPtr = &_dispatches[i];
+		if (oldSoundId && dispatchPtr->trackPtr->soundId == oldSoundId && dispatchPtr->streamPtr) {
+			break;
+		}
+	}
+
+	if (i >= _trackCount) {
+		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, index went past _trackCount (%d)", _trackCount);
+		return -1;
+	}
+
+	offset = dispatchPtr->currentOffset;
+	audioRemaining = dispatchPtr->audioRemaining;
+	dispatchPtr->trackPtr->soundId = newSoundId;
+	dispatchPtr->fadeBuf = crossfadeBuffer;
+	dispatchPtr->fadeRemaining = 0;
+	dispatchPtr->fadeSyncDelta = 0;
+	dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+	dispatchPtr->fadeSlope = 0;
+
+	if (crossfadeBufferSize) {
+		do {
+			if (!streamerGetFreeBuffer(dispatchPtr->streamPtr)
+				|| (!dispatchPtr->audioRemaining && dispatchSeekToNextChunk(dispatchPtr))) {
+				break;
+			}
+
+			effAudioRemaining = dispatchPtr->audioRemaining;
+			if (crossfadeBufferSize - dispatchPtr->fadeRemaining < effAudioRemaining)
+				effAudioRemaining = crossfadeBufferSize - dispatchPtr->fadeRemaining;
+
+			if (effAudioRemaining >= streamerGetFreeBuffer(dispatchPtr->streamPtr))
+				effAudioRemaining = streamerGetFreeBuffer(dispatchPtr->streamPtr);
+
+			if (effAudioRemaining >= 0x800)
+				effAudioRemaining = 0x800;
+
+			streamBuf = streamerReAllocReadBuffer(dispatchPtr->streamPtr, effAudioRemaining);
+			memcpy(&crossfadeBuffer[dispatchPtr->fadeRemaining], streamBuf, effAudioRemaining);
+			effFadeRemaining = effAudioRemaining + dispatchPtr->fadeRemaining;
+
+			dispatchPtr->fadeRemaining = effFadeRemaining;
+			dispatchPtr->currentOffset += effAudioRemaining;
+			dispatchPtr->audioRemaining -= effAudioRemaining;
+		} while (effFadeRemaining < crossfadeBufferSize);
+	}
+
+	streamerSetIndex1(dispatchPtr->streamPtr, streamerGetFreeBuffer(dispatchPtr->streamPtr));
+	streamerSetSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr, newSoundId, dataOffsetFlag ? offset : 0);
+
+	if (dataOffsetFlag) {
+		if (dispatchPtr->loopStartingPoint)
+			streamerSetDataOffsetFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
+	} else {
+		streamerRemoveDataOffsetFlag(dispatchPtr->streamPtr);
+	}
+
+	dispatchPtr->currentOffset = dataOffsetFlag ? offset : 0;
+	dispatchPtr->audioRemaining = dataOffsetFlag ? audioRemaining : 0;
+
+	if (!dataOffsetFlag) {
+		dispatchPtr->loopStartingPoint = 0;
+	}
+
 	return 0;
 }
 
@@ -671,15 +745,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 			// the fade volume, effectively creating a crossfade
 			if (dispatchPtr->fadeBuf) {
 				// Fade-in
-				mixVolume = (dispatchPtr->trackPtr->effVol * (128 - (dispatchPtr->fadeVol / 65536))) / 128;
-
-				// Update the fadeSlope
-				if (!dispatchPtr->fadeSlope) {
-					effRemainingFade = dispatchPtr->fadeRemaining;
-					if (effRemainingFade <= 1)
-						effRemainingFade = 2;
-					dispatchPtr->fadeSlope = -(MAX_FADE_VOLUME / effRemainingFade);
-				}
+				mixVolume = dispatchUpdateFadeSlope(dispatchPtr);
 			} else {
 				mixVolume = trackPtr->effVol;
 			}
@@ -715,6 +781,101 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 	if (dispatchPtr->fadeBuf && dispatchPtr->fadeSyncFlag)
 		dispatchPtr->fadeSyncDelta += feedSize;
+}
+
+void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize) {
+	IMuseDigiDispatch *dispatchPtr;
+	IMuseDigiStream *streamPtr;
+	uint8 *buffer, *srcBuf;
+	int tentativeFeedSize, effFeedSize;
+	int fadeChunkSize, fadeSyncDelta;
+	int mixStartingPoint;
+	int seekResult; 
+	int mixVolume, pan;
+
+	dispatchPtr = trackPtr->dispatchPtr;
+	tentativeFeedSize = (dispatchPtr->channelCount == 1) ? feedSize : feedSize / 2;
+
+	if (dispatchPtr->fadeBuf) {
+		if (tentativeFeedSize >= dispatchPtr->fadeRemaining) {
+			fadeChunkSize = dispatchPtr->fadeRemaining;
+		} else {
+			fadeChunkSize = tentativeFeedSize;
+		}
+
+		pan = trackPtr->pan;
+		mixVolume = dispatchUpdateFadeMixVolume(dispatchPtr, fadeChunkSize);
+		_internalMixer->mix(dispatchPtr->fadeBuf, 0, mixVolume, pan);
+
+		dispatchPtr->fadeRemaining -= fadeChunkSize;
+		dispatchPtr->fadeBuf += fadeChunkSize;
+		if (dispatchPtr->fadeRemaining == fadeChunkSize)
+			dispatchPtr->fadeBuf = NULL;
+	}
+
+	mixStartingPoint = 0;
+	while (1) {
+		if (!dispatchPtr->audioRemaining) {
+			seekResult = dispatchSeekToNextChunk(dispatchPtr);
+			if (seekResult)
+				break;
+		}
+
+		if (!tentativeFeedSize)
+			return;
+
+		effFeedSize = dispatchPtr->audioRemaining;
+		if (tentativeFeedSize < effFeedSize)
+			effFeedSize = tentativeFeedSize;
+
+		streamPtr = dispatchPtr->streamPtr;
+		if (streamPtr) {
+			buffer = streamerReAllocReadBuffer(streamPtr, effFeedSize);
+			if (!buffer) {
+				if (dispatchPtr->fadeBuf)
+					dispatchPtr->fadeSyncDelta += fadeChunkSize;
+				return;
+			}
+		} else {
+			srcBuf = _filesHandler->getSoundAddrData(trackPtr->soundId);
+			if (!srcBuf)
+				return;
+			buffer = &srcBuf[dispatchPtr->currentOffset];
+		}
+
+		if (dispatchPtr->fadeBuf) {
+			if (dispatchPtr->fadeSyncDelta) {
+				fadeSyncDelta = dispatchPtr->fadeSyncDelta;
+				if (dispatchPtr->fadeSyncDelta >= effFeedSize)
+					fadeSyncDelta = effFeedSize;
+				effFeedSize -= fadeSyncDelta;
+				dispatchPtr->fadeSyncDelta -= fadeSyncDelta;
+				buffer += fadeSyncDelta;
+				dispatchPtr->currentOffset += fadeSyncDelta;
+				dispatchPtr->audioRemaining -= fadeSyncDelta;
+			}
+		}
+
+		if (effFeedSize) {
+			if (dispatchPtr->fadeBuf) {
+				mixVolume = dispatchUpdateFadeSlope(dispatchPtr);
+			} else {
+				mixVolume = trackPtr->effVol;
+			}
+				
+			_internalMixer->mix(buffer, mixStartingPoint, mixVolume, trackPtr->pan);
+			mixStartingPoint += effFeedSize;
+			tentativeFeedSize -= effFeedSize;
+			dispatchPtr->currentOffset += effFeedSize;
+			dispatchPtr->audioRemaining -= effFeedSize;
+		}
+	}
+
+	if (seekResult == -1)
+		tracksClear(trackPtr);
+
+	if (dispatchPtr->fadeBuf)
+		dispatchPtr->fadeSyncDelta += fadeChunkSize;
 }
 
 void IMuseDigital::dispatchPredictFirstStream() {
@@ -1543,6 +1704,20 @@ int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, in
 		dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 
 	return mixVolume;
+}
+
+int IMuseDigital::dispatchUpdateFadeSlope(IMuseDigiDispatch *dispatchPtr) {
+	int updatedVolume, effRemainingFade;
+
+	updatedVolume = (dispatchPtr->trackPtr->effVol * (128 - (dispatchPtr->fadeVol / 65536))) / 128;
+	if (!dispatchPtr->fadeSlope) {
+		effRemainingFade = dispatchPtr->fadeRemaining;
+		if (effRemainingFade <= 1)
+			effRemainingFade = 2;
+		dispatchPtr->fadeSlope = -(MAX_FADE_VOLUME / effRemainingFade);
+	}
+
+	return updatedVolume;
 }
 
 void IMuseDigital::dispatchVOCLoopCallback(int soundId) {

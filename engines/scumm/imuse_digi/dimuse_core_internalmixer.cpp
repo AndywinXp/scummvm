@@ -254,6 +254,10 @@ void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, 
 	}
 }
 
+// Variant for early DiMUSE
+void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int mixBufStartIndex, int volume, int pan) {
+}
+
 int IMuseDigiInternalMixer::loop(uint8 **destBuffer, int len) {
 	int16 *mixBuffer = (int16 *)_mixBuf;
 	uint8 *destBuffer_tmp = *destBuffer;

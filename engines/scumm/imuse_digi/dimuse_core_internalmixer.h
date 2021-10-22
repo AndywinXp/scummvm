@@ -87,6 +87,7 @@ public:
 	int  clearMixerBuffer();
 
 	void mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan);
+	void mix(uint8 *srcBuf, int mixBufStartIndex, int volume, int pan);
 	int  loop(uint8 **destBuffer, int len);
 	Audio::QueuingAudioStream *_stream;
 };
