@@ -494,6 +494,13 @@ void IMuseDigital::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) 
 	}
 }
 
+int32 IMuseDigital::getSoundElapsedTimeInMs(int soundId) {
+	if (diMUSEGetParam(soundId, P_SND_HAS_STREAM)) {
+		return diMUSEGetParam(soundId, P_SND_POS_IN_MS);
+	}
+	return 0;
+}
+
 void IMuseDigital::pause(bool p) {
 	if (p) {
 		debug(5, "IMuseDigital::pause(): pausing...");

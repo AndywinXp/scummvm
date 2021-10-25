@@ -320,6 +320,7 @@ public:
 	int32 getCurMusicLipSyncHeight(int syncId) override;
 	void getSpeechLipSyncInfo(int32 *width, int32 *height);
 	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
+	int32 getSoundElapsedTimeInMs(int soundId) override;
 
 	// General engine functions
 	int diMUSETerminate();
