@@ -140,7 +140,7 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 	_filesHandler->closeSoundImmediatelyById(soundId);
 
 	int fileDoesNotExist = 0;
-	if (_vm->_game.id == GID_DIG) {
+	if (_vm->_game.id == GID_DIG && !_isEarlyDiMUSE) {
 		if (!strcmp(soundName, "PIG.018"))
 			fileDoesNotExist = _filesHandler->setCurrentSpeechFile("PIG.019");
 		else
@@ -167,7 +167,7 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 			diMUSESetParam(kTalkSoundID, P_VOLUME, 88);
 		}
 		_filesHandler->closeSound(kTalkSoundID);
-	} else {
+	} else if (_vm->_game.id == GID_CMI) {
 		fileDoesNotExist = _filesHandler->setCurrentSpeechFile(soundName);
 		if (fileDoesNotExist)
 			return 1;
@@ -406,6 +406,10 @@ void IMuseDigital::flushTracks() {
 
 bool IMuseDigital::isUsingV2Engine() {
 	return true;
+}
+
+bool IMuseDigital::isEarlyVersion() {
+	return _isEarlyDiMUSE;
 }
 
 int32 IMuseDigital::getCurMusicPosInMs() {

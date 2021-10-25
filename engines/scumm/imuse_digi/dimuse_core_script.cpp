@@ -123,18 +123,22 @@ void IMuseDigital::scriptRefresh() {
 }
 
 void IMuseDigital::scriptSetState(int soundId) {
-	if (_vm->_game.id == GID_DIG) {
+	if (_vm->_game.id == GID_DIG && !_isEarlyDiMUSE) {
 		setDigMusicState(soundId);
 	} else if (_vm->_game.id == GID_CMI) {
 		setComiMusicState(soundId);
+	} else {
+		setFtMusicState(soundId);
 	}
 }
 
 void IMuseDigital::scriptSetSequence(int soundId) {
-	if (_vm->_game.id == GID_DIG) {
+	if (_vm->_game.id == GID_DIG && !_isEarlyDiMUSE) {
 		setDigMusicSequence(soundId);
 	} else if (_vm->_game.id == GID_CMI) {
 		setComiMusicSequence(soundId);
+	} else {
+		setFtMusicSequence(soundId);
 	}
 }
 
@@ -464,20 +468,25 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 			case 2:
 			case 3:
 				soundId = getSoundIdByName(songName);
-				_filesHandler->openSound(soundId);
+				// TODO: Remove this when finally phasing out V1, and make
+				//  the above function return 0 if songName is an empty string
+				if (soundId == -1)
+					soundId = 0;
+				else
+					_filesHandler->openSound(soundId);
 				if (soundId) {
 					if (oldSoundId) {
 						if (oldSoundId != soundId || transitionType == 2)
 							diMUSESwitchStream(oldSoundId, soundId, _crossfadeBuffer, 30000, 0);
 					} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
-						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\"(%d)", songName, soundId);
+						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\" (%d)", songName, soundId);
 					}
 
 					_filesHandler->closeSound(soundId);
 					diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
 					diMUSESetParam(soundId, P_VOLUME, volume);
 				} else {
-					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"(%d)", songName);
+					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\" (%d)", songName, soundId);
 				}
 				break;
 			case 4:

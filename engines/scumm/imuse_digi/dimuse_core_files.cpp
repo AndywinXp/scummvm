@@ -94,27 +94,40 @@ int IMuseDigiFilesHandler::getNextSound(int soundId) {
 }
 
 int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
-	// This function and files_read() are used for sounds for which a stream is needed
-	// (speech and music), therefore they will always refer to sounds in a bundle file
+	// This function and files_read() are used for sounds for which a stream is needed (speech 
+	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 	// The seeked position is in reference to the decompressed sound
+	char fileName[60] = "";
+	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
-	// A soundId > 10000 is a SAN cutscene
-	if ((_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO)) && (soundId > kTalkSoundID))
-		return 0;
+	ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
+	if (s) {
+		if (soundId != 0) {
+			if (_engine->isEarlyVersion()) {
+				if (soundId != kTalkSoundID) {
+					switch (mode) {
+					case SEEK_END:
+						return s->resSize;
+					case SEEK_SET:
+					default:
+						if (offset < s->resSize) {
+							s->resCurOffset = offset;
+							return offset;
+						}
+					}
+				}
+			} else {
+				// A soundId > 10000 is a SAN cutscene
+				if ((_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO)) && (soundId > kTalkSoundID))
+					return 0;
 
-	if (soundId != 0) {
-		char fileName[60] = "";
-		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
-
-		ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
-		if (s) {
-			int resultingOffset = s->bundle->seekFile(offset, mode);
-
-			return resultingOffset;
-		} 
-		debug(5, "IMuseDigiFilesHandler::seek(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
+				return s->bundle->seekFile(offset, mode);
+			}
+		} else {
+			debug(5, "IMuseDigiFilesHandler::seek(): soundId is 0 or out of range");
+		}
 	} else {
-		debug(5, "IMuseDigiFilesHandler::seek(): soundId is 0 or out of range");
+		debug(5, "IMuseDigiFilesHandler::seek(): can't find sound %d (%s); did you forget to open it?", soundId, fileName);
 	}
 
 	return 0;
@@ -133,15 +146,24 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 			curSnd = &s[i];
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
-					uint8 *tmpBuf;
-					//debug(5, "IMuseDigital::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
-					int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
+					if (_engine->isEarlyVersion()) {
+						if (soundId != kTalkSoundID) {
+							uint8 *ptr = &curSnd->resPtr[curSnd->resCurOffset];
+							int effSize = size > (curSnd->resSize - curSnd->resCurOffset) ? (curSnd->resSize - curSnd->resCurOffset) : size;
+							memcpy(buf, ptr, effSize);
+						}
+						return size;
+					} else {
+						uint8 *tmpBuf;
+						//debug(5, "IMuseDigital::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
+						int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
 
-					if (resultingSize != size)
-						debug(5, "IMuseDigiFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
-					memcpy(buf, tmpBuf, size);
-					free(tmpBuf);
-					return resultingSize;
+						if (resultingSize != size)
+							debug(5, "IMuseDigiFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
+						memcpy(buf, tmpBuf, size);
+						free(tmpBuf);
+						return resultingSize;
+					}
 				}
 			}
 		}
@@ -166,19 +188,33 @@ IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 }
 
 int IMuseDigiFilesHandler::openSound(int soundId) {
-	char fileName[60] = "";
-	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 	ImuseDigiSndMgr::SoundDesc *s = NULL;
-	int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
-	s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, -1);
-	if (!s)
-		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 1);
-	if (!s)
-		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 2);
-	if (!s) {
-		debug(5, "IMuseDigiFilesHandler::openSound(): can't open sound %d (%s)", soundId, fileName);
-		return 1;
+	if (!_engine->isEarlyVersion()) {
+		char fileName[60] = "";
+		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
+		
+		int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
+		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, -1);
+		if (!s)
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 1);
+		if (!s)
+			s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, 2);
+		if (!s) {
+			debug(5, "IMuseDigiFilesHandler::openSound(): can't open sound %d (%s)", soundId, fileName);
+			return 1;
+		}
+	} else {
+		s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, -1);
+		if (!s)
+			s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, 1);
+		if (!s)
+			s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, 2);
+		if (!s) {
+			debug(5, "IMuseDigiFilesHandler::openSound(): can't open sound %d", soundId);
+			return 1;
+		}
 	}
+	
 
 	return 0;
 }
@@ -198,6 +234,7 @@ void IMuseDigiFilesHandler::closeAllSounds() {
 }
 
 void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, size_t size) {
+	// TODO: Fix this for FT
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {

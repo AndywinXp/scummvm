@@ -78,6 +78,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 			_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels,
 			DisposeAfterUse::YES,
 			Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+		
 	}
 }
 

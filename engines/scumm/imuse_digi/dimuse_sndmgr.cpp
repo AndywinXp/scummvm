@@ -416,6 +416,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 			return NULL;
 		}
 		sound->resPtr = ptr;
+		sound->resSize = _vm->getResourceSize(rtSound, soundId) - 8;
 		break;
 	case IMUSE_BUNDLE:
 		if (volGroupId == IMUSE_VOLGRP_VOICE)

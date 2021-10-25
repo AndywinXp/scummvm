@@ -311,6 +311,7 @@ public:
 	void flushTracks() override;
 
 	bool isUsingV2Engine() override;
+	bool isEarlyVersion(); // Used in the handlers to check if we're using the FT version of the engine
 
 	int32 getCurMusicPosInMs() override;
 	int32 getCurVoiceLipSyncWidth() override;

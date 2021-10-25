@@ -788,11 +788,11 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	IMuseDigiStream *streamPtr;
 	uint8 *buffer, *srcBuf;
 	int fadeChunkSize = 0;
-	int tentativeFeedSize, effFeedSize, fadeSyncDelta, mixStartingPoint, seekResult; 
+	int tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult; 
 	int mixVolume, pan;
 
 	dispatchPtr = trackPtr->dispatchPtr;
-	tentativeFeedSize = (dispatchPtr->channelCount == 1) ? feedSize : feedSize / 2;
+	tentativeFeedSize = (dispatchPtr->sampleRate == 22050) ? feedSize : feedSize / 2;
 
 	if (dispatchPtr->fadeBuf) {
 		if (tentativeFeedSize >= dispatchPtr->fadeRemaining) {
@@ -803,8 +803,8 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 		pan = trackPtr->pan;
 		mixVolume = dispatchUpdateFadeMixVolume(dispatchPtr, fadeChunkSize);
-		_internalMixer->mix(dispatchPtr->fadeBuf, 0, mixVolume, pan);
-
+		//_internalMixer->mix(dispatchPtr->fadeBuf, fadeChunkSize, dispatchPtr->sampleRate, 0, mixVolume, pan);
+		_internalMixer->mix(dispatchPtr->fadeBuf, fadeChunkSize, 8, 1, feedSize, 0, mixVolume, pan);
 		dispatchPtr->fadeRemaining -= fadeChunkSize;
 		dispatchPtr->fadeBuf += fadeChunkSize;
 		if (dispatchPtr->fadeRemaining == fadeChunkSize)
@@ -822,13 +822,13 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		if (!tentativeFeedSize)
 			return;
 
-		effFeedSize = dispatchPtr->audioRemaining;
-		if (tentativeFeedSize < effFeedSize)
-			effFeedSize = tentativeFeedSize;
+		inFrameCount = dispatchPtr->audioRemaining;
+		if (tentativeFeedSize < inFrameCount)
+			inFrameCount = tentativeFeedSize;
 
 		streamPtr = dispatchPtr->streamPtr;
 		if (streamPtr) {
-			buffer = streamerReAllocReadBuffer(streamPtr, effFeedSize);
+			buffer = streamerReAllocReadBuffer(streamPtr, inFrameCount);
 			if (!buffer) {
 				if (dispatchPtr->fadeBuf)
 					dispatchPtr->fadeSyncDelta += fadeChunkSize;
@@ -844,9 +844,9 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		if (dispatchPtr->fadeBuf) {
 			if (dispatchPtr->fadeSyncDelta) {
 				fadeSyncDelta = dispatchPtr->fadeSyncDelta;
-				if (dispatchPtr->fadeSyncDelta >= effFeedSize)
-					fadeSyncDelta = effFeedSize;
-				effFeedSize -= fadeSyncDelta;
+				if (dispatchPtr->fadeSyncDelta >= inFrameCount)
+					fadeSyncDelta = inFrameCount;
+				inFrameCount -= fadeSyncDelta;
 				dispatchPtr->fadeSyncDelta -= fadeSyncDelta;
 				buffer += fadeSyncDelta;
 				dispatchPtr->currentOffset += fadeSyncDelta;
@@ -854,18 +854,19 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 			}
 		}
 
-		if (effFeedSize) {
+		if (inFrameCount) {
 			if (dispatchPtr->fadeBuf) {
 				mixVolume = dispatchUpdateFadeSlope(dispatchPtr);
 			} else {
 				mixVolume = trackPtr->effVol;
 			}
 				
-			_internalMixer->mix(buffer, mixStartingPoint, mixVolume, trackPtr->pan);
-			mixStartingPoint += effFeedSize;
-			tentativeFeedSize -= effFeedSize;
-			dispatchPtr->currentOffset += effFeedSize;
-			dispatchPtr->audioRemaining -= effFeedSize;
+			//_internalMixer->mix(buffer, inFrameCount, dispatchPtr->sampleRate, mixStartingPoint, mixVolume, trackPtr->pan);
+			_internalMixer->mix(buffer, inFrameCount, 8, 1, feedSize, mixStartingPoint, mixVolume, trackPtr->pan);
+			mixStartingPoint += inFrameCount;
+			tentativeFeedSize -= inFrameCount;
+			dispatchPtr->currentOffset += inFrameCount;
+			dispatchPtr->audioRemaining -= inFrameCount;
 		}
 	}
 
@@ -1775,9 +1776,9 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 		} else {
 			switch (_currentVOCHeader[0]) {
 			case 1:
-				dispatchPtr->channelCount = _currentVOCHeader[4] > 196;
-				dispatchPtr->audioRemaining = (READ_LE_UINT32(_currentVOCHeader + 26) >> 8) - 2;
-				dispatchPtr->currentOffset = dispatchPtr->currentOffset + 6;
+				dispatchPtr->sampleRate = _currentVOCHeader[4] > 196 ? 22050 : 11025;
+				dispatchPtr->audioRemaining = (READ_LE_UINT32(_currentVOCHeader) >> 8) - 2;
+				dispatchPtr->currentOffset += 6;
 
 				if (dispatchPtr->streamPtr) {
 					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
@@ -1786,12 +1787,12 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 				}
 				return 0;
 			case 4: // Marker, 2 bytes, used for triggers (disabling them for now, but I will work on these later)
-				//_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, *(__int16 *)&_currentVOCHeader[4]);
+				//_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, *(int16 *)&_currentVOCHeader[4]);
 				dispatchPtr->currentOffset += 6;
 				continue;
 			case 6:
 				dispatchPtr->loopStartingPoint = dispatchPtr->currentOffset;
-				dispatchPtr->currentOffset = dispatchPtr->currentOffset + 6;
+				dispatchPtr->currentOffset += 6;
 				if (dispatchPtr->streamPtr)
 					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
 				continue;

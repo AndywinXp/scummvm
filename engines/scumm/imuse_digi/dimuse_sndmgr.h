@@ -102,6 +102,8 @@ public:
 		byte *allData;
 		int32 offsetData;
 		byte *resPtr;
+		int resSize;
+		int resCurOffset;
 		char name[15];
 		int16 soundId;
 		BundleMgr *bundle;
