@@ -738,6 +738,7 @@ uint32 ScummEngine_v70he::getResourceRoomOffset(ResType type, ResId idx) {
 }
 
 int ScummEngine::getResourceSize(ResType type, ResId idx) {
+	Common::StackLock lock(_resourceAccessMutex);
 	byte *ptr = getResourceAddress(type, idx);
 	assert(ptr);
 	return _res->_types[type][idx]._size;
