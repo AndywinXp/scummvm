@@ -1134,8 +1134,8 @@ void IMuseDigiInternalMixer::mix22050HzToStereo(uint8 *destBuf, uint8 *srcBuf, i
 		do
 		{
 			destBuf += 4;
-			*((uint8 *)destBuf - 2) += *((char *)leftAmpTable + (unsigned __int8)*srcBuf);
-			*((uint8 *)destBuf - 1) += *((char *)rightAmpTable + (unsigned __int8)*srcBuf++);
+			*((uint8 *)destBuf - 2) += *((char *)leftAmpTable + (uint8)*srcBuf);
+			*((uint8 *)destBuf - 1) += *((char *)rightAmpTable + (uint8)*srcBuf++);
 			--v6;
 		} while (v6);
 	}
