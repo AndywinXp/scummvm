@@ -110,7 +110,7 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 						return s->resSize;
 					case SEEK_SET:
 					default:
-						if (offset < s->resSize) {
+						if (offset <= s->resSize) {
 							s->resCurOffset = offset;
 							return offset;
 						}

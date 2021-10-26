@@ -454,7 +454,7 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 				soundId = getSoundIdByName(songName);
 				_filesHandler->openSound(soundId);
 				if (!soundId) {
-					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"(%d)", songName);
+					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"", songName);
 					break;
 				}
 

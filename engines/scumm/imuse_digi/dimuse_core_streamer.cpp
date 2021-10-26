@@ -353,7 +353,7 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 		}
 
 		if (_filesHandler->seek(streamPtr->soundId, streamPtr->curOffset, SEEK_SET, streamPtr->bufId) != streamPtr->curOffset) {
-			debug(5, "IMuseDigital::streamerFetchData(): ERROR: invalid seek in streamer (%d)", streamPtr->curOffset);
+			debug(5, "IMuseDigital::streamerFetchData(): ERROR: invalid seek in streamer (%d), pausing stream...", streamPtr->curOffset);
 			streamPtr->paused = 1;
 			return 0;
 		}
