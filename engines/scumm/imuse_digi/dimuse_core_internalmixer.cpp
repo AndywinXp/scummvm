@@ -254,38 +254,6 @@ void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, 
 	}
 }
 
-// Variant for early DiMUSE
-void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int sampleRate, int mixBufStartIndex, int volume, int pan) {
-	int startingPos;
-	int effVol, effPan, volumeIndex;
-	int rightChannelVolume, leftChannelVolume; 
-	int *leftChannelAmpTable, *rightChannelAmpTable;
-
-	if (_mixBuf && inFrameCount) {
-		effVol = volume >> 3;
-		if (volume)
-			++effVol;
-		if (effVol >= 17)
-			effVol = 16;
-		effPan = (pan >> 3) - 8;
-		if (pan > 64)
-			++effPan;
-		volumeIndex = 17 * effVol;
-		rightChannelVolume = _stereoVolumeTable[volumeIndex + effPan];
-		leftChannelVolume = _stereoVolumeTable[volumeIndex - effPan];
-
-		leftChannelAmpTable = &_amp8Table[128 * leftChannelVolume]; // 64 * leftChannelVolume
-		rightChannelAmpTable = &_amp8Table[128 * rightChannelVolume];
-
-		startingPos = mixBufStartIndex * 2;
-		if (sampleRate == 22050) {
-			mix22050HzToStereo(&_mixBuf[startingPos], srcBuf, leftChannelAmpTable, rightChannelAmpTable, inFrameCount);
-		} else {
-			mix11025HzToStereo(&_mixBuf[startingPos], srcBuf, leftChannelAmpTable, rightChannelAmpTable, inFrameCount);
-		}
-	}
-}
-
 int IMuseDigiInternalMixer::loop(uint8 **destBuffer, int len) {
 	int16 *mixBuffer = (int16 *)_mixBuf;
 	uint8 *destBuffer_tmp = *destBuffer;
@@ -1123,40 +1091,6 @@ void IMuseDigiInternalMixer::mixBits16Stereo(uint8 *srcBuf, int inFrameCount, in
 		}
 	}
 	return;
-}
-
-void IMuseDigiInternalMixer::mix22050HzToStereo(uint8 *destBuf, uint8 *srcBuf, int *leftAmpTable, int *rightAmpTable, int inFrameCount) {
-	int v6; // ebp
-
-	if (inFrameCount)
-	{
-		v6 = inFrameCount;
-		do
-		{
-			destBuf += 4;
-			*((uint8 *)destBuf - 2) += *((char *)leftAmpTable + (uint8)*srcBuf);
-			*((uint8 *)destBuf - 1) += *((char *)rightAmpTable + (uint8)*srcBuf++);
-			--v6;
-		} while (v6);
-	}
-}
-
-void IMuseDigiInternalMixer::mix11025HzToStereo(uint8 *destBuf, uint8 *srcBuf, int *leftAmpTable, int *rightAmpTable, int inFrameCount) {
-	int v7; // ebx
-	uint8 *v8; // ecx
-
-	if (inFrameCount) {
-		v7 = inFrameCount;
-		do {
-			v8 = destBuf + 6;
-			*((uint16 *)v8 - 3) += *((char *)leftAmpTable + *srcBuf);
-			destBuf = v8 + 2;
-			*((uint16 *)destBuf - 3) += *((char *)rightAmpTable + *srcBuf++);
-			*((uint16 *)destBuf - 2) += *((char *)leftAmpTable + (*srcBuf + *(srcBuf - 1)) / 2);
-			*((uint16 *)destBuf - 1) += *((char *)rightAmpTable + (*srcBuf + *(srcBuf - 1)) / 2);
-			--v7;
-		} while (v7);
-	}
 }
 
 } // End of namespace Scumm

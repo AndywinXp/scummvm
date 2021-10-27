@@ -78,9 +78,6 @@ private:
 	void mixBits12Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable);
 	void mixBits16Stereo(uint8 *srcBuf, int inFrameCount, int feedSize, int mixBufStartIndex, int *ampTable);
 
-	void mix22050HzToStereo(uint8 *destBuf, uint8 *srcBuf, int *leftAmpTable, int *rightAmpTable, int inFrameCount);
-	void mix11025HzToStereo(uint8 *destBuf, uint8 *srcBuf, int *leftAmpTable, int *rightAmpTable, int inFrameCount);
-
 public:
 	IMuseDigiInternalMixer(Audio::Mixer *mixer);
 	~IMuseDigiInternalMixer();
@@ -90,7 +87,6 @@ public:
 	int  clearMixerBuffer();
 
 	void mix(uint8 *srcBuf, int inFrameCount, int wordSize, int channelCount, int feedSize, int mixBufStartIndex, int volume, int pan);
-	void mix(uint8 *srcBuf, int inFrameCount, int sampleRate, int mixBufStartIndex, int volume, int pan);
 	int  loop(uint8 **destBuffer, int len);
 	Audio::QueuingAudioStream *_stream;
 };

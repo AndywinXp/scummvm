@@ -22,6 +22,7 @@
 
 #include "scumm/imuse_digi/dimuse_core.h"
 #include "scumm/imuse_digi/dimuse_core_files.h"
+#include "scumm/file.h"
 
 namespace Scumm {
 
@@ -30,9 +31,15 @@ IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v
 	_sound = new ImuseDigiSndMgr(vm, true);
 	assert(_sound);
 	_vm = vm;
+	_ftSpeechSubFileOffset = 0;
+	_ftSpeechFileSize = 0;
+	_ftSpeechFileCurPos = 0;
+	_ftSpeechFile = NULL;
 }
 
 IMuseDigiFilesHandler::~IMuseDigiFilesHandler() {
+	if (_ftSpeechFile)
+		_ftSpeechFile->close();
 	delete _sound;
 }
 
@@ -40,7 +47,7 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 	int curSound = 0;
 	ImuseDigiSndMgr::SoundDesc *sounds = _sound->getSounds();
 
-	ser.syncArray(_currentSpeechFile, 60, Common::Serializer::SByte, VER(103));
+	ser.syncArray(_currentSpeechFilename, 60, Common::Serializer::SByte, VER(103));
 	if (ser.isSaving()) {
 		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 			ser.syncAsSint32LE(sounds[l].soundId, VER(103));
@@ -101,18 +108,27 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
 	ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
-	if (s) {
+	if (s || (_engine->isEarlyVersion() && soundId == kTalkSoundID)) {
 		if (soundId != 0) {
 			if (_engine->isEarlyVersion()) {
-				if (soundId != kTalkSoundID) {
-					switch (mode) {
-					case SEEK_END:
+				switch (mode) {
+				case SEEK_END:
+					if (soundId != kTalkSoundID) {
 						return s->resSize;
-					case SEEK_SET:
-					default:
+					} else {
+						return _ftSpeechFileSize;
+					}
+				case SEEK_SET:
+				default:
+					if (soundId != kTalkSoundID) {
 						if (offset <= s->resSize) {
 							s->resCurOffset = offset;
 							return offset;
+						}
+					} else {
+						if (offset <= _ftSpeechFileSize) {
+							_ftSpeechFileCurPos = offset;
+							return _ftSpeechFileCurPos;
 						}
 					}
 				}
@@ -134,9 +150,19 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 }
 
 int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
-	// This function and files_seek() are used for sounds for which a stream is needed
-	// (speech and music), therefore they will always refer to sounds in a bundle file
+	// This function and files_seek() are used for sounds for which a stream is needed (speech 
+	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 	if (soundId != 0) {
+		uint8 *tmpBuf = NULL;
+		int resultingSize;
+
+		// We don't have SoundDesc objects for FT & DIG demo speech files
+		if (_engine->isEarlyVersion() && soundId == kTalkSoundID) {
+			_ftSpeechFile->seek(_ftSpeechSubFileOffset + _ftSpeechFileCurPos, SEEK_SET);
+			resultingSize = size > _ftSpeechFileSize ? (_ftSpeechFileSize - _ftSpeechFileCurPos) : size;
+			return _ftSpeechFile->read(buf, resultingSize);
+		}
+
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -146,21 +172,22 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 			curSnd = &s[i];
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
-					if (_engine->isEarlyVersion()) {
-						if (soundId != kTalkSoundID) {
-							uint8 *ptr = &curSnd->resPtr[curSnd->resCurOffset];
-							int effSize = size > (curSnd->resSize - curSnd->resCurOffset) ? (curSnd->resSize - curSnd->resCurOffset) : size;
-							memcpy(buf, ptr, effSize);
-						}
-						return size;
-					} else {
-						uint8 *tmpBuf;
-						//debug(5, "IMuseDigital::files_read(): trying to read (%d) bytes of data from file %s", size, fileName);
-						int resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
+					if (_engine->isEarlyVersion()) { // FT & DIG demo
+						resultingSize = size > (curSnd->resSize - curSnd->resCurOffset) ? (curSnd->resSize - curSnd->resCurOffset) : size;
+						tmpBuf = &curSnd->resPtr[curSnd->resCurOffset];
 
 						if (resultingSize != size)
 							debug(5, "IMuseDigiFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
-						memcpy(buf, tmpBuf, size);
+
+						memcpy(buf, tmpBuf, resultingSize); // We don't free tmpBuf: it's the resource pointer
+						return resultingSize;
+					} else { // DIG & COMI
+						resultingSize = curSnd->bundle->readFile(fileName, size, &tmpBuf, ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO)));
+
+						if (resultingSize != size)
+							debug(5, "IMuseDigiFilesHandler::read(): WARNING: tried to read %d bytes, got %d instead (soundId %d (%s))", size, resultingSize, soundId, fileName);
+
+						memcpy(buf, tmpBuf, resultingSize);
 						free(tmpBuf);
 						return resultingSize;
 					}
@@ -214,7 +241,6 @@ int IMuseDigiFilesHandler::openSound(int soundId) {
 			return 1;
 		}
 	}
-	
 
 	return 0;
 }
@@ -238,7 +264,7 @@ void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, 
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
-		Common::strlcpy(fileName, _currentSpeechFile, size);
+		Common::strlcpy(fileName, _currentSpeechFilename, size);
 	}
 
 	if (_vm->_game.id == GID_CMI) {
@@ -320,12 +346,18 @@ void IMuseDigiFilesHandler::flushSounds() {
 	}
 }
 
-int IMuseDigiFilesHandler::setCurrentSpeechFile(const char *fileName) {
-	Common::strlcpy(_currentSpeechFile, fileName, sizeof(_currentSpeechFile));
+int IMuseDigiFilesHandler::setCurrentSpeechFilename(const char *fileName) {
+	Common::strlcpy(_currentSpeechFilename, fileName, sizeof(_currentSpeechFilename));
 	if (openSound(kTalkSoundID))
 		return 1;
 
 	return 0;
+}
+
+void IMuseDigiFilesHandler::setCurrentFtSpeechFile(ScummFile *file, unsigned int offset, unsigned int size) {
+	_ftSpeechFile = file;
+	_ftSpeechSubFileOffset = offset;
+	_ftSpeechFileSize = size;
 }
 
 void IMuseDigiFilesHandler::closeSoundImmediatelyById(int soundId) {

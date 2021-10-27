@@ -27,6 +27,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 #include "scumm/resource.h"
+#include "scumm/file.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 #include "scumm/imuse_digi/dimuse_sndmgr.h"
 
@@ -40,7 +41,11 @@ private:
 	ScummEngine_v7 *_vm;
 	Common::Mutex _mutex;
 	IMuseDigiSndBuffer _soundBuffers[4];
-	char _currentSpeechFile[60];
+	char _currentSpeechFilename[60];
+	ScummFile *_ftSpeechFile;
+	int _ftSpeechSubFileOffset;
+	int _ftSpeechFileSize;
+	int _ftSpeechFileCurPos;
 
 	void getFilenameFromSoundId(int soundId, char *fileName, size_t size);
 public:
@@ -58,7 +63,8 @@ public:
 	void allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize);
 	void deallocSoundBuffer(int bufId);
 	void flushSounds();
-	int setCurrentSpeechFile(const char *fileName);
+	int setCurrentSpeechFilename(const char *fileName);
+	void setCurrentFtSpeechFile(ScummFile *file, unsigned int offset, unsigned int size);
 	void closeSoundImmediatelyById(int soundId);
 	void saveLoad(Common::Serializer &ser);
 };

@@ -1648,7 +1648,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	// Note: COMI Demo uses almost exactly The Dig's version of the engine. The only difference is that 
 	// the COMI one can handle pitch shifting (for the helium balloon and the pirates on the boats).
-	_useDiMUSEv2 = !(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO);
+	_useDiMUSEv2 = true; // !(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO); CHANGE
 
 	if (_useDiMUSEv2 && !(_game.id == GID_CMI && _game.features & GF_DEMO)) {
 		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
@@ -2867,6 +2867,8 @@ void ScummEngine_v7::scummLoop_handleSound() {
 		// In CoMI and the Dig the full (non-demo) version invoke refreshScripts()
 		if (!(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO))
 			_imuseDigital->refreshScripts();
+		else if (_useDiMUSEv2)// CHANGE
+			((IMuseDigital *)_imuseDigital)->diMUSEProcessStreams();
 	}
 
 	if (_smixer) {

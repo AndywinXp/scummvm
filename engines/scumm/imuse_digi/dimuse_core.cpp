@@ -140,11 +140,11 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 	_filesHandler->closeSoundImmediatelyById(soundId);
 
 	int fileDoesNotExist = 0;
-	if (_vm->_game.id == GID_DIG && !_isEarlyDiMUSE) {
+	if (_vm->_game.id == GID_DIG) {
 		if (!strcmp(soundName, "PIG.018"))
-			fileDoesNotExist = _filesHandler->setCurrentSpeechFile("PIG.019");
+			fileDoesNotExist = _filesHandler->setCurrentSpeechFilename("PIG.019");
 		else
-			fileDoesNotExist = _filesHandler->setCurrentSpeechFile(soundName);
+			fileDoesNotExist = _filesHandler->setCurrentSpeechFilename(soundName);
 
 		if (fileDoesNotExist)
 			return 1;
@@ -168,7 +168,7 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 		}
 		_filesHandler->closeSound(kTalkSoundID);
 	} else if (_vm->_game.id == GID_CMI) {
-		fileDoesNotExist = _filesHandler->setCurrentSpeechFile(soundName);
+		fileDoesNotExist = _filesHandler->setCurrentSpeechFilename(soundName);
 		if (fileDoesNotExist)
 			return 1;
 
@@ -193,6 +193,15 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 		diMUSEProcessStreams();
 	}
 
+	return 0;
+}
+
+// Used by FT and DIG demo
+int IMuseDigital::startVoice(ScummFile *file, unsigned int offset, unsigned int size) {
+	_filesHandler->setCurrentFtSpeechFile(file, offset, size);
+	diMUSEStopSound(kTalkSoundID);
+	diMUSEStartStream(kTalkSoundID, 127, DIMUSE_BUFFER_SPEECH);
+	diMUSESetParam(kTalkSoundID, P_GROUP, DIMUSE_GROUP_SPEECH);
 	return 0;
 }
 
@@ -422,7 +431,7 @@ int32 IMuseDigital::getCurMusicPosInMs() {
 		if (!curSoundId)
 			break;
 
-		if (diMUSEGetParam(curSoundId, P_SND_HAS_STREAM) && diMUSEGetParam(curSoundId, P_STREAM_BUFID) == 2) {
+		if (diMUSEGetParam(curSoundId, P_SND_HAS_STREAM) && diMUSEGetParam(curSoundId, P_STREAM_BUFID) == DIMUSE_BUFFER_MUSIC) {
 			soundId = curSoundId;
 			return diMUSEGetParam(soundId, P_SND_POS_IN_MS);
 		}
@@ -568,9 +577,21 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 		cmdsHandleCmd(cmd, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
 		break;
 	case 25: // OpenSound
-		// TODO
-		id = getSoundIdByName("kstand");
-		_filesHandler->openSound(id);
+		if (_vm->_game.id == GID_FT) {
+			id = getSoundIdByName("kstand");
+			_filesHandler->openSound(id);
+		} else if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
+			_filesHandler->openSound(soundId);
+			diMUSEStartSound(soundId, 126);
+		}
+		
+		break;
+	case 26:
+		if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
+			_filesHandler->openSound(c);
+			diMUSESwitchStream(soundId, c, NULL, 0, 0);
+			_filesHandler->closeSound(soundId);
+		}
 		break;
 	default:
 		debug("IMuseDigital::parseScriptCmds(): WARNING: unhandled command %d", cmd);
