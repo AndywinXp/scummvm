@@ -802,7 +802,7 @@ bool Sound::isMouthSyncOff(uint pos) {
 int Sound::isSoundRunning(int sound) const {
 #ifdef ENABLE_SCUMM_7_8
 	if (_vm->_imuseDigital) {
-		if (((_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO)) || _vm->_game.id == GID_CMI)) {
+		if (_vm->_imuseDigital->isUsingV2Engine()) {
 			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 		} else {
 			return (_vm->_imuseDigital->getSoundStatus(sound) != 0);

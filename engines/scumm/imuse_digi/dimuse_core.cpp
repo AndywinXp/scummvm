@@ -87,9 +87,12 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	if (_vm->_game.id == GID_CMI) {
 		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SPEECH, 176000, 44000, 88000);
 		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 44000, 352000);
-	} else {
+	} else if (_vm->_game.id == GID_DIG && !isFTSoundEngine()) {
 		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SPEECH, 88000, 22000, 44000);
 		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 528000, 11000, 132000);
+	} else {
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SPEECH, 110000, 22000, 44000);
+		_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_MUSIC, 220000, 22000, 44000);
 	}
 	
 	_filesHandler->allocSoundBuffer(DIMUSE_BUFFER_SFX, 198000, 0, 0);
@@ -417,7 +420,7 @@ bool IMuseDigital::isUsingV2Engine() {
 	return true;
 }
 
-bool IMuseDigital::isEarlyVersion() {
+bool IMuseDigital::isFTSoundEngine() {
 	return _isEarlyDiMUSE;
 }
 

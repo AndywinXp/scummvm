@@ -108,9 +108,9 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
 	ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
-	if (s || (_engine->isEarlyVersion() && soundId == kTalkSoundID)) {
+	if (s || (_engine->isFTSoundEngine() && soundId == kTalkSoundID)) {
 		if (soundId != 0) {
-			if (_engine->isEarlyVersion()) {
+			if (_engine->isFTSoundEngine()) {
 				switch (mode) {
 				case SEEK_END:
 					if (soundId != kTalkSoundID) {
@@ -157,7 +157,7 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 		int resultingSize;
 
 		// We don't have SoundDesc objects for FT & DIG demo speech files
-		if (_engine->isEarlyVersion() && soundId == kTalkSoundID) {
+		if (_engine->isFTSoundEngine() && soundId == kTalkSoundID) {
 			_ftSpeechFile->seek(_ftSpeechSubFileOffset + _ftSpeechFileCurPos, SEEK_SET);
 			resultingSize = size > _ftSpeechFileSize ? (_ftSpeechFileSize - _ftSpeechFileCurPos) : size;
 			return _ftSpeechFile->read(buf, resultingSize);
@@ -172,7 +172,7 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 			curSnd = &s[i];
 			if (curSnd->inUse) {
 				if (curSnd->soundId == soundId) {
-					if (_engine->isEarlyVersion()) { // FT & DIG demo
+					if (_engine->isFTSoundEngine()) { // FT & DIG demo
 						resultingSize = size > (curSnd->resSize - curSnd->resCurOffset) ? (curSnd->resSize - curSnd->resCurOffset) : size;
 						tmpBuf = &curSnd->resPtr[curSnd->resCurOffset];
 
@@ -216,7 +216,7 @@ IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 
 int IMuseDigiFilesHandler::openSound(int soundId) {
 	ImuseDigiSndMgr::SoundDesc *s = NULL;
-	if (!_engine->isEarlyVersion()) {
+	if (!_engine->isFTSoundEngine()) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 		
