@@ -519,7 +519,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 	if (_vm->_game.id == GID_CMI || (_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO))) {
 		_sfxMode |= mode;
 		return;
-	} else if (!isDiMUSEv2 && _vm->_game.id == GID_DIG && (_vm->_game.features & GF_DEMO)) {
+	} else if (_vm->_game.id == GID_DIG && (_vm->_game.features & GF_DEMO)) {
 		_sfxMode |= mode;
 
 		char filename[30];
@@ -565,9 +565,15 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			warning("startTalkSound: dig demo: voc file not found");
 			return;
 		}
-	} else if (isDiMUSEv2 &&
-		(_vm->_game.id == GID_FT ||
-		(_vm->_game.id == GID_DIG && (_vm->_game.features & GF_DEMO)))) {
+
+		// This check will be gone, as DIG demo will be using DiMUSEv2 only
+		if (isDiMUSEv2) {
+			file->seek(0, SEEK_END);
+			int fileSize = file->pos();
+			_vm->_imuseDigital->startVoice(file.release(), 0, fileSize);
+			return;
+		}
+	} else if (isDiMUSEv2 && _vm->_game.id == GID_FT) {
 
 		int totalOffset, soundSize, fileSize, headerTag;
 

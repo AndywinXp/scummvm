@@ -65,6 +65,8 @@ IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int
 			_streams[l].loadIndex = 0;
 			_streams[l].readIndex = 0;
 			_streams[l].paused = 0;
+			_streams[l].dataOffsetFlag = 0;
+			_streams[l].dataOffsetValue = 0;
 			return &_streams[l];
 		}
 	}
