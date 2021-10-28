@@ -603,7 +603,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			totalOffset = offset + b;
 			file->seek(totalOffset, SEEK_SET);
 			headerTag = file->readUint32BE();
-			soundSize = file->readUint32LE() - 8;
+			soundSize = file->readUint32BE() - 8;
 			fileSize = soundSize;
 			if (headerTag == MKTAG('C','r','e','a')) {
 				file->seek(totalOffset + 27, SEEK_SET);

@@ -592,7 +592,7 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 	case 26:
 		if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
 			_filesHandler->openSound(c);
-			diMUSESwitchStream(soundId, c, NULL, 0, 0);
+			diMUSESwitchStream(soundId, c, (uint8 *)NULL, 0, 0);
 			_filesHandler->closeSound(soundId);
 		}
 		break;
