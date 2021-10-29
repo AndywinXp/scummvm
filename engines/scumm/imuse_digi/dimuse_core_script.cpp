@@ -489,6 +489,13 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 						if (oldSoundId != soundId || transitionType == 2) {
 							diMUSESwitchStream(oldSoundId, soundId, crossfadeBuf, 30000, 0);
 						}
+
+						// WORKAROUND for bug in the original: at the beginning of the game, going in
+						// and out of the bar a couple of times breaks and temporarily stops the music
+						// Here, we override the fade out, just like the remastered does
+						if (oldSoundId == soundId && soundId == 622) {
+							diMUSEFadeParam(soundId, P_VOLUME, volume, 200);
+						}
 					} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
 						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\" (%d)", songName, soundId);
 					}
