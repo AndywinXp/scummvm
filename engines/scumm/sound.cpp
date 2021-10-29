@@ -1014,6 +1014,10 @@ void Sound::pauseSounds(bool pause) {
 	}
 }
 
+bool Sound::isSfxFileCompressed() {
+	return !(_soundMode == kVOCMode);
+}
+
 void Sound::setupSfxFile() {
 	struct SoundFileExtensions {
 		const char *ext;

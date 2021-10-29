@@ -1629,6 +1629,8 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	else
 		_smushFrameRate = (_game.id == GID_FT) ? 10 : 12;
 
+	ScummEngine::setupScumm(macResourceFile);
+
 	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100); // FT
 
 	// Workaround for old config files: originally, the rate for the callback
@@ -1653,7 +1655,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 			_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
 			delete bnd;
 		} else if (_game.id == GID_FT) {
-			//_sound->
+			_useDiMUSEv2 &= !_sound->isSfxFileCompressed();
 		}
 	}
 
@@ -1663,8 +1665,6 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	} else {
 		_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
 	}
-
-	ScummEngine::setupScumm(macResourceFile);
 
 	// Create FT INSANE object
 	if (_game.id == GID_FT)
