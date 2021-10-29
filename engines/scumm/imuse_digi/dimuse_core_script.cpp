@@ -432,9 +432,6 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 	int soundId;
 	uint8 *crossfadeBuf = NULL;
 
-	if (_vm->_game.id == GID_FT && !_ftCrossfadeBuffer)
-		_ftCrossfadeBuffer = (uint8 *)malloc(30000);
-
 	if (_vm->_game.id == GID_FT)
 		crossfadeBuf = _ftCrossfadeBuffer;
 	else

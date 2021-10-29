@@ -122,9 +122,6 @@ IMuseDigital::~IMuseDigital() {
 	free(_dispatchBuffer);
 	_dispatchBuffer = NULL;
 
-	free(_ftCrossfadeBuffer);
-	_ftCrossfadeBuffer = NULL;
-
 	// Deinit the WaveOut module
 	free(_waveOutOutputBuffer);
 	_waveOutOutputBuffer = NULL;
@@ -537,10 +534,10 @@ void IMuseDigital::setAudioNames(int32 num, char *names) {
 int IMuseDigital::getSoundIdByName(const char *soundName) {
 	if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
 		if (soundName && soundName[0] != 0) {
-			for (int i = 0; i < 49; i++) {
-				if (!strcmp(soundName, _ftStateMusicTable[i].audioName)) {
-					return i;
-				}
+			if (!strcmp(soundName, "kstand")) {
+				return 6;
+			} else {
+				return 2;
 			}
 		}
 	} else if (soundName && soundName[0] != 0) {

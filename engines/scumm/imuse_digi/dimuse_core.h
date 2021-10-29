@@ -197,7 +197,7 @@ private:
 	IMuseDigiDispatch _dispatches[MAX_DISPATCHES];
 	IMuseDigiStreamZone _streamZones[MAX_STREAMZONES];
 	uint8 *_dispatchBuffer;
-	uint8 *_ftCrossfadeBuffer; // Used by FT
+	uint8 _ftCrossfadeBuffer[30000]; // Used by FT
 	uint8 _smallCrossfadeBuffer[7500]; // Used by DIG demo
 	uint8 _bigCrossfadeBuffer[11000]; // Used by DIG demo
 	int _dispatchSize;

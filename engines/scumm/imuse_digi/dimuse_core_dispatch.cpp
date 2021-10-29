@@ -27,7 +27,6 @@ namespace Scumm {
 
 int IMuseDigital::dispatchInit() {
 	_dispatchBuffer = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
-	_ftCrossfadeBuffer = NULL;
 
 	if (_dispatchBuffer) {
 		_dispatchLargeFadeBufs = _dispatchBuffer;
