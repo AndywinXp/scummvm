@@ -304,12 +304,12 @@ void IMuseDigital::setDigMusicSequence(int seqId) {
 		} else {
 			playDigMusic(_digSeqMusicTable[num].name, &_digSeqMusicTable[num], 0, true);
 			_nextSeqToPlay = 0;
-			_attributes[DIG_SEQ_OFFSET + num] = 1; // _attributes[COMI_SEQ_OFFSET] in Comi are not used as it doesn't have 'room' attributes table
+			_attributes[DIG_SEQ_OFFSET + num] = 1;
 		}
 	} else {
 		if (_nextSeqToPlay != 0) {
 			playDigMusic(_digSeqMusicTable[_nextSeqToPlay].name, &_digSeqMusicTable[_nextSeqToPlay], 0, true);
-			_attributes[DIG_SEQ_OFFSET + _nextSeqToPlay] = 1; // _attributes[COMI_SEQ_OFFSET] in Comi are not used as it doesn't have 'room' attributes table
+			_attributes[DIG_SEQ_OFFSET + _nextSeqToPlay] = 1;
 			num = _nextSeqToPlay;
 			_nextSeqToPlay = 0;
 		} else {
@@ -430,7 +430,17 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 void IMuseDigital::playFtMusic(const char *songName, int transitionType, int volume) {
 	int oldSoundId = 0;
 	int soundId;
-	if (_crossfadeBuffer || (_crossfadeBuffer = (uint8 *)malloc(30000)) != 0) {
+	uint8 *crossfadeBuf = NULL;
+
+	if (_vm->_game.id == GID_FT && !_ftCrossfadeBuffer)
+		_ftCrossfadeBuffer = (uint8 *)malloc(30000);
+
+	if (_vm->_game.id == GID_FT)
+		crossfadeBuf = _ftCrossfadeBuffer;
+	else
+		crossfadeBuf = _bigCrossfadeBuffer;
+
+	if (crossfadeBuf) {
 		// Check for any music piece which is played as a SFX (without an associated stream)
 		// and fade it out
 		for (int i = diMUSEGetNextSound(0); i; i = diMUSEGetNextSound(i)) {
@@ -476,8 +486,9 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 					_filesHandler->openSound(soundId);
 				if (soundId) {
 					if (oldSoundId) {
-						if (oldSoundId != soundId || transitionType == 2)
-							diMUSESwitchStream(oldSoundId, soundId, _crossfadeBuffer, 30000, 0);
+						if (oldSoundId != soundId || transitionType == 2) {
+							diMUSESwitchStream(oldSoundId, soundId, crossfadeBuf, 30000, 0);
+						}
 					} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
 						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\" (%d)", songName, soundId);
 					}

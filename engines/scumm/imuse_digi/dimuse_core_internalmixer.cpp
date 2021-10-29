@@ -36,6 +36,7 @@ IMuseDigiInternalMixer::IMuseDigiInternalMixer(Audio::Mixer *mixer) {
 	_stream = Audio::makeQueuingAudioStream(22050, true);
 	_mixer = mixer;
 	_radioChatter = 0;
+	_amp8Table = NULL;
 }
 
 IMuseDigiInternalMixer::~IMuseDigiInternalMixer() {
@@ -72,6 +73,8 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	_stereoReverseFlag = sizeSampleKB;
 	_mixBuf = mixBuf;
 
+	waveMixChannelsCount = mixChannelsNum;
+
 	int *tableMalloc = (int *)malloc(213504);
 	memset(tableMalloc, 0, 213504);
 	_amp8Table = tableMalloc;          // Dim: 2176
@@ -79,12 +82,8 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	_softLTable = tableMalloc + 36992; // Dim: 8192 * 2
 	_softLMID = tableMalloc + 45184;
 
-	waveMixChannelsCount = mixChannelsNum;
-
 	if (tableMalloc) {
 		zeroCenterOffset = 0;
-		// It's a mess but it gets initialized as intended
-		// TODO: actually use a short amp8Table instead of int
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;
 			for (int j = 0; j < 256; j++) {
@@ -95,7 +94,6 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 			zeroCenterOffset += 8;
 			if (zeroCenterOffset == 8)
 				zeroCenterOffset = 7;
-			
 		}
 
 		zeroCenterOffset = 0;
@@ -140,10 +138,9 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_channelHandle, _stream, -1, Audio::Mixer::kMaxChannelVolume, false);
 		return 0;
 	} else {
-		debug(5, "DiMUSE_InternalMixer::init(): ERROR: allocating mixer buffers");
+		debug(5, "DiMUSE_InternalMixer::init(): ERROR: couldn't allocate mixer tables");
 		return -1;
 	}
-	
 }
 
 void IMuseDigiInternalMixer::setRadioChatter() {
@@ -172,7 +169,7 @@ void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, 
 
 	if (_mixBuf) {
 		if (srcBuf) {
-			if (inFrameCount) {
+			if (inFrameCount) {				
 				if (channelCount == 1 && _outChannelCount == 2) {
 					channelVolume = volume / 8;
 					if (volume)
@@ -267,7 +264,7 @@ int IMuseDigiInternalMixer::loop(uint8 **destBuffer, int len) {
 	if (!_stereoReverseFlag || _outChannelCount == 1) {
 		if (_outWordSize != 16) {
 			if (len) {
-				for (int i = 0, j = len - 1; j > 0; i++, j--) {
+				for (int i = 0; i < len; i++) {
 					destBuffer_tmp[i] = ((uint8 *)_softLMID)[mixBuffer[i]];
 				}
 			}

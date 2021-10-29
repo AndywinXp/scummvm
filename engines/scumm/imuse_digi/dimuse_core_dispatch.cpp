@@ -27,7 +27,7 @@ namespace Scumm {
 
 int IMuseDigital::dispatchInit() {
 	_dispatchBuffer = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
-	_crossfadeBuffer = NULL;
+	_ftCrossfadeBuffer = NULL;
 
 	if (_dispatchBuffer) {
 		_dispatchLargeFadeBufs = _dispatchBuffer;
@@ -215,8 +215,7 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 	} else {
 		memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
 	}
-	
-	
+
 	if (groupId) {
 		trackDispatch->streamPtr = streamerAllocateSound(trackPtr->soundId, groupId, sizeToFeed);
 		trackDispatch->streamBufID = groupId;
@@ -427,7 +426,10 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
 	IMuseDigiDispatch *dispatchPtr = NULL;
 	uint8 *streamBuf;
-	int i, effAudioRemaining, effFadeRemaining, audioRemaining, offset;
+	int i, effAudioRemaining, audioRemaining, offset;
+
+	if (_vm->_game.id == GID_DIG)
+		crossfadeBufferSize = crossfadeBufferSize / 4;
 
 	if (_trackCount <= 0) {
 		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, _trackCount is %d", _trackCount);
@@ -474,12 +476,11 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 
 			streamBuf = streamerReAllocReadBuffer(dispatchPtr->streamPtr, effAudioRemaining);
 			memcpy(&crossfadeBuffer[dispatchPtr->fadeRemaining], streamBuf, effAudioRemaining);
-			effFadeRemaining = effAudioRemaining + dispatchPtr->fadeRemaining;
 
-			dispatchPtr->fadeRemaining = effFadeRemaining;
+			dispatchPtr->fadeRemaining += effAudioRemaining;
 			dispatchPtr->currentOffset += effAudioRemaining;
 			dispatchPtr->audioRemaining -= effAudioRemaining;
-		} while (effFadeRemaining < crossfadeBufferSize);
+		} while (dispatchPtr->fadeRemaining < crossfadeBufferSize);
 	}
 
 	streamerSetIndex1(dispatchPtr->streamPtr, streamerGetFreeBuffer(dispatchPtr->streamPtr));
@@ -789,7 +790,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	uint8 *buffer, *srcBuf;
 	int fadeChunkSize = 0;
 	int tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult; 
-	int mixVolume, pan;
+	int mixVolume;
 
 	dispatchPtr = trackPtr->dispatchPtr;
 	tentativeFeedSize = (dispatchPtr->sampleRate == 22050) ? feedSize : feedSize / 2;
@@ -801,10 +802,8 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 			fadeChunkSize = tentativeFeedSize;
 		}
 
-		pan = trackPtr->pan;
 		mixVolume = dispatchUpdateFadeMixVolume(dispatchPtr, fadeChunkSize);
-		//_internalMixer->mix(dispatchPtr->fadeBuf, fadeChunkSize, dispatchPtr->sampleRate, 0, mixVolume, pan);
-		_internalMixer->mix(dispatchPtr->fadeBuf, fadeChunkSize, 8, 1, feedSize, 0, mixVolume, pan);
+		_internalMixer->mix(dispatchPtr->fadeBuf, fadeChunkSize, 8, 1, feedSize, 0, mixVolume, trackPtr->pan);
 		dispatchPtr->fadeRemaining -= fadeChunkSize;
 		dispatchPtr->fadeBuf += fadeChunkSize;
 		if (dispatchPtr->fadeRemaining == fadeChunkSize)
@@ -860,8 +859,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 			} else {
 				mixVolume = trackPtr->effVol;
 			}
-				
-			//_internalMixer->mix(buffer, inFrameCount, dispatchPtr->sampleRate, mixStartingPoint, mixVolume, trackPtr->pan);
+
 			_internalMixer->mix(buffer, inFrameCount, 8, 1, feedSize, mixStartingPoint, mixVolume, trackPtr->pan);
 			mixStartingPoint += inFrameCount;
 			tentativeFeedSize -= inFrameCount;
@@ -1741,6 +1739,8 @@ void IMuseDigital::dispatchVOCLoopCallback(int soundId) {
 int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 	uint8 *headerBuf;
 	uint8 *soundAddrData;
+	int resSize;
+
 	while (1) {
 		if (dispatchPtr->streamPtr) {
 			headerBuf = streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x30);
@@ -1753,7 +1753,13 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 		} else {
 			soundAddrData = _filesHandler->getSoundAddrData(dispatchPtr->trackPtr->soundId);
 			if (soundAddrData) {
-				memcpy(_currentVOCHeader, &soundAddrData[dispatchPtr->currentOffset], 0x30);
+				// Little hack: avoid copying stuff from the resource to the
+				// header buffer beyond the resource size limit
+				resSize = _vm->getResourceSize(rtSound, dispatchPtr->trackPtr->soundId);
+				if ((resSize - dispatchPtr->currentOffset) < 0x30)
+					memcpy(_currentVOCHeader, &soundAddrData[dispatchPtr->currentOffset], resSize - dispatchPtr->currentOffset);
+				else
+					memcpy(_currentVOCHeader, &soundAddrData[dispatchPtr->currentOffset], 0x30);
 			} else {
 				return -1;
 			}
@@ -1779,6 +1785,15 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 				dispatchPtr->sampleRate = _currentVOCHeader[4] > 196 ? 22050 : 11025;
 				dispatchPtr->audioRemaining = (READ_LE_UINT32(_currentVOCHeader) >> 8) - 2;
 				dispatchPtr->currentOffset += 6;
+
+				// Another little hack to avoid click and pops artifacts:
+				// read one audio sample less if this is the last audio chunk of the file
+				if (!dispatchPtr->streamPtr) {
+					resSize = _vm->getResourceSize(rtSound, dispatchPtr->trackPtr->soundId);
+					if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
+						dispatchPtr->audioRemaining -= 2;
+					}
+				}
 
 				if (dispatchPtr->streamPtr) {
 					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);

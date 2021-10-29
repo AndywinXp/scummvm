@@ -260,11 +260,14 @@ void IMuseDigiFilesHandler::closeAllSounds() {
 }
 
 void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, size_t size) {
-	// TODO: Fix this for FT
+	if (_engine->isFTSoundEngine())
+		return;
+
 	int i = 0;
 
 	if (soundId == kTalkSoundID) {
 		Common::strlcpy(fileName, _currentSpeechFilename, size);
+		return;
 	}
 
 	if (_vm->_game.id == GID_CMI) {
@@ -295,7 +298,7 @@ void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, 
 				}
 			}
 		}
-	} else {
+	} else if (_vm->_game.id == GID_DIG) {
 		if (soundId < 2000) {
 			while (_digStateMusicTable[i].soundId != -1) {
 				if (_digStateMusicTable[i].soundId == soundId) {

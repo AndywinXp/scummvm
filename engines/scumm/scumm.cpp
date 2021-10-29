@@ -1640,20 +1640,21 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
 	ConfMan.flushToDisk();
 
-	// Check if we are able to use DiMUSE_v2; the game has to:
-	// - Be either DIG or COMI;
-	// - If DIG, be a non-demo;
-	// - Use the original BUN compression format or a raw uncompressed bundles;
-	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them
+	// Check if we are able to use DiMUSE_v2; the game has to use the original BUN/SOU
+	// compression format or raw uncompressed bundles (for Akella COMI).
+	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them.
+	_useDiMUSEv2 = true;
 
-	// Note: COMI Demo uses almost exactly The Dig's version of the engine. The only difference is that 
-	// the COMI one can handle pitch shifting (for the helium balloon and the pirates on the boats).
-	_useDiMUSEv2 = true; // !(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO); CHANGE
-
-	if (_useDiMUSEv2 && !(_game.id == GID_CMI && _game.features & GF_DEMO)) {
-		BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
-		_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
-		delete bnd;
+	if (_useDiMUSEv2) {
+		// COMI demo is excluded from the count since it appears it can't be compressed
+		// DIG demo uses raw VOC files for speech instead of a MONSTER.SOU file
+		if ((_game.id == GID_CMI || _game.id == GID_DIG) && !(_game.features & GF_DEMO)) {
+			BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
+			_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
+			delete bnd;
+		} else if (_game.id == GID_FT) {
+			//_sound->
+		}
 	}
 
 	// Fallback to IMuseDigitalV1

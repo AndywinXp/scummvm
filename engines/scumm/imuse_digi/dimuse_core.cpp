@@ -52,6 +52,11 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 
 	_isEarlyDiMUSE = (_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO));
 
+	if (_isEarlyDiMUSE) {
+		memset(_bigCrossfadeBuffer, 0, sizeof(_bigCrossfadeBuffer));
+		memset(_smallCrossfadeBuffer, 0, sizeof(_smallCrossfadeBuffer));
+	}
+
 	_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
 	_curMixerSpeechVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType);
 	_curMixerSFXVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType);
@@ -117,8 +122,8 @@ IMuseDigital::~IMuseDigital() {
 	free(_dispatchBuffer);
 	_dispatchBuffer = NULL;
 
-	free(_crossfadeBuffer);
-	_crossfadeBuffer = NULL;
+	free(_ftCrossfadeBuffer);
+	_ftCrossfadeBuffer = NULL;
 
 	// Deinit the WaveOut module
 	free(_waveOutOutputBuffer);
@@ -530,7 +535,15 @@ void IMuseDigital::setAudioNames(int32 num, char *names) {
 }
 
 int IMuseDigital::getSoundIdByName(const char *soundName) {
-	if (soundName && soundName[0] != 0) {
+	if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
+		if (soundName && soundName[0] != 0) {
+			for (int i = 0; i < 49; i++) {
+				if (!strcmp(soundName, _ftStateMusicTable[i].audioName)) {
+					return i;
+				}
+			}
+		}
+	} else if (soundName && soundName[0] != 0) {
 		for (int r = 0; r < _numAudioNames; r++) {
 			if (strcmp(soundName, &_audioNames[r * 9]) == 0) {
 				return r;
@@ -592,7 +605,7 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 	case 26:
 		if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
 			_filesHandler->openSound(c);
-			diMUSESwitchStream(soundId, c, (uint8 *)NULL, 0, 0);
+			diMUSESwitchStream(soundId, c, _bigCrossfadeBuffer, 44000, 0);
 			_filesHandler->closeSound(soundId);
 		}
 		break;
