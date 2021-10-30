@@ -53,8 +53,8 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_isEarlyDiMUSE = (_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO));
 
 	if (_isEarlyDiMUSE) {
-		memset(_bigCrossfadeBuffer, 0, sizeof(_bigCrossfadeBuffer));
-		memset(_smallCrossfadeBuffer, 0, sizeof(_smallCrossfadeBuffer));
+		memset(_digDemoCrossfadeBuffer, 0, sizeof(_digDemoCrossfadeBuffer));
+		memset(_ftCrossfadeBuffer, 0, sizeof(_ftCrossfadeBuffer));
 	}
 
 	_curMixerMusicVolume = _mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType);
@@ -532,15 +532,7 @@ void IMuseDigital::setAudioNames(int32 num, char *names) {
 }
 
 int IMuseDigital::getSoundIdByName(const char *soundName) {
-	if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
-		if (soundName && soundName[0] != 0) {
-			if (!strcmp(soundName, "kstand")) {
-				return 6;
-			} else {
-				return 2;
-			}
-		}
-	} else if (soundName && soundName[0] != 0) {
+	if (soundName && soundName[0] != 0) {
 		for (int r = 0; r < _numAudioNames; r++) {
 			if (strcmp(soundName, &_audioNames[r * 9]) == 0) {
 				return r;
@@ -594,15 +586,17 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 			id = getSoundIdByName("kstand");
 			_filesHandler->openSound(id);
 		} else if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
+			// Special opcode used in place of the first setState instruction
 			_filesHandler->openSound(soundId);
-			diMUSEStartSound(soundId, 126);
+			diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC);
 		}
 		
 		break;
 	case 26:
+		// Special opcode used in place of setState instructions
 		if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
 			_filesHandler->openSound(c);
-			diMUSESwitchStream(soundId, c, _bigCrossfadeBuffer, 44000, 0);
+			diMUSESwitchStream(soundId, c, _digDemoCrossfadeBuffer, 44000, 0);
 			_filesHandler->closeSound(soundId);
 		}
 		break;

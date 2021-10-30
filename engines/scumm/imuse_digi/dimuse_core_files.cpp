@@ -90,6 +90,23 @@ uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 	return NULL;
 }
 
+int IMuseDigiFilesHandler::getSoundAddrDataSize(int soundId, bool hasStream) {
+	if (hasStream) {
+		ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
+		if (s) {
+			if (soundId != kTalkSoundID) {
+				return s->resSize;
+			}
+		} else if (soundId == kTalkSoundID) {
+			return _ftSpeechFileSize;
+		}
+	} else {
+		return _vm->getResourceSize(rtSound, soundId);
+	}
+
+	return 0;
+}
+
 int IMuseDigiFilesHandler::getNextSound(int soundId) {
 	int foundSoundId = 0;
 	do {
@@ -231,7 +248,9 @@ int IMuseDigiFilesHandler::openSound(int soundId) {
 			return 1;
 		}
 	} else {
-		s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, -1);
+		s = _sound->findSoundById(soundId);
+		if (!s)
+			s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, -1);
 		if (!s)
 			s = _sound->openSound(soundId, "", IMUSE_RESOURCE, -1, 1);
 		if (!s)

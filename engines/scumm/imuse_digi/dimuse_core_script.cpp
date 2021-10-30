@@ -430,94 +430,84 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 void IMuseDigital::playFtMusic(const char *songName, int transitionType, int volume) {
 	int oldSoundId = 0;
 	int soundId;
-	uint8 *crossfadeBuf = NULL;
 
-	if (_vm->_game.id == GID_FT)
-		crossfadeBuf = _ftCrossfadeBuffer;
-	else
-		crossfadeBuf = _bigCrossfadeBuffer;
+	// Check for any music piece which is played as a SFX (without an associated stream)
+	// and fade it out
+	for (int i = diMUSEGetNextSound(0); i; i = diMUSEGetNextSound(i)) {
+		if (diMUSEGetParam(i, P_GROUP) == DIMUSE_GROUP_MUSICEFF && !diMUSEGetParam(i, P_SND_HAS_STREAM))
+			diMUSEFadeParam(i, P_VOLUME, 0, 200);
+	}
 
-	if (crossfadeBuf) {
-		// Check for any music piece which is played as a SFX (without an associated stream)
-		// and fade it out
-		for (int i = diMUSEGetNextSound(0); i; i = diMUSEGetNextSound(i)) {
-			if (diMUSEGetParam(i, P_GROUP) == DIMUSE_GROUP_MUSICEFF && !diMUSEGetParam(i, P_SND_HAS_STREAM))
-				diMUSEFadeParam(i, P_VOLUME, 0, 200);
-		}
+	// Now grab the current standard music soundId: it will either be crossfaded by SwitchStream,
+	// or faded out
+	for (int j = diMUSEGetNextSound(0); j; j = diMUSEGetNextSound(j)) {
+		if (diMUSEGetParam(j, P_GROUP) == DIMUSE_GROUP_MUSICEFF && diMUSEGetParam(j, P_SND_HAS_STREAM))
+			oldSoundId = j;
+	}
 
-		// Now grab the current standard music soundId: it will either be crossfaded by SwitchStream,
-		// or faded out
-		for (int j = diMUSEGetNextSound(0); j; j = diMUSEGetNextSound(j)) {
-			if (diMUSEGetParam(j, P_GROUP) == DIMUSE_GROUP_MUSICEFF && diMUSEGetParam(j, P_SND_HAS_STREAM))
-				oldSoundId = j;
-		}
+	if (songName) {
+		switch (transitionType) {
+		case 0:
+			debug(5, "IMuseDigital::playFtMusic(): NULL transition, ignored");
+			return;
+		case 1:
+			soundId = getSoundIdByName(songName);
+			_filesHandler->openSound(soundId);
+			if (!soundId) {
+				debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"", songName);
+				break;
+			}
 
-		if (songName) {
-			switch (transitionType) {
-			case 0:
-				debug(5, "IMuseDigital::playFtMusic(): NULL transition, ignored");
-				return;
-			case 1:
-				soundId = getSoundIdByName(songName);
+			if (diMUSEStartSound(soundId, 126))
+				debug(5, "IMuseDigital::playFtMusic(): transition 1, failed to start sound \"%s\"(%d)", songName, soundId);
+
+			_filesHandler->closeSound(soundId);
+			diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
+			diMUSESetParam(soundId, P_VOLUME, volume);
+			break;
+		case 2:
+		case 3:
+			soundId = getSoundIdByName(songName);
+			// TODO: Remove this when finally phasing out V1, and make
+			//  the above function return 0 if songName is an empty string
+			if (soundId == -1)
+				soundId = 0;
+			else
 				_filesHandler->openSound(soundId);
-				if (!soundId) {
-					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\"", songName);
-					break;
-				}
+			if (soundId) {
+				if (oldSoundId) {
+					if (oldSoundId != soundId || transitionType == 2) {
+						diMUSESwitchStream(oldSoundId, soundId, _ftCrossfadeBuffer, 30000, 0);
+					}
 
-				if (diMUSEStartSound(soundId, 126))
-					debug(5, "IMuseDigital::playFtMusic(): transition 1, failed to start sound \"%s\"(%d)", songName, soundId);
+					// WORKAROUND for bug in the original: at the beginning of the game, going in
+					// and out of the bar a couple of times breaks and temporarily stops the music
+					// Here, we override the fade out, just like the remastered does
+					if (oldSoundId == soundId && soundId == 622) {
+						diMUSEFadeParam(soundId, P_VOLUME, volume, 200);
+					}
+				} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
+					debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\" (%d)", songName, soundId);
+				}
 
 				_filesHandler->closeSound(soundId);
 				diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
 				diMUSESetParam(soundId, P_VOLUME, volume);
-				break;
-			case 2:
-			case 3:
-				soundId = getSoundIdByName(songName);
-				// TODO: Remove this when finally phasing out V1, and make
-				//  the above function return 0 if songName is an empty string
-				if (soundId == -1)
-					soundId = 0;
-				else
-					_filesHandler->openSound(soundId);
-				if (soundId) {
-					if (oldSoundId) {
-						if (oldSoundId != soundId || transitionType == 2) {
-							diMUSESwitchStream(oldSoundId, soundId, crossfadeBuf, 30000, 0);
-						}
-
-						// WORKAROUND for bug in the original: at the beginning of the game, going in
-						// and out of the bar a couple of times breaks and temporarily stops the music
-						// Here, we override the fade out, just like the remastered does
-						if (oldSoundId == soundId && soundId == 622) {
-							diMUSEFadeParam(soundId, P_VOLUME, volume, 200);
-						}
-					} else if (diMUSEStartStream(soundId, 126, DIMUSE_BUFFER_MUSIC)) {
-						debug(5, "IMuseDigital::playFtMusic(): failed to start the stream for \"%s\" (%d)", songName, soundId);
-					}
-
-					_filesHandler->closeSound(soundId);
-					diMUSESetParam(soundId, P_GROUP, DIMUSE_GROUP_MUSICEFF);
-					diMUSESetParam(soundId, P_VOLUME, volume);
-				} else {
-					debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\" (%d)", songName, soundId);
-				}
-				break;
-			case 4:
-				if (oldSoundId)
-					diMUSEFadeParam(oldSoundId, P_VOLUME, 0, 200);
-				return;
-			default:
-				debug(5, "IMuseDigital::playFtMusic(): bogus transition type, ignored");
-				return;
+			} else {
+				debug(5, "IMuseDigital::playFtMusic(): failed to retrieve soundId for sound \"%s\" (%d)", songName, soundId);
 			}
-		} else {
+			break;
+		case 4:
 			if (oldSoundId)
 				diMUSEFadeParam(oldSoundId, P_VOLUME, 0, 200);
+			return;
+		default:
+			debug(5, "IMuseDigital::playFtMusic(): bogus transition type, ignored");
+			return;
 		}
 	} else {
-		debug(5, "IMuseDigital::playFtMusic(): ERROR: couldn't allocate crossfade buffer");
+		if (oldSoundId)
+			diMUSEFadeParam(oldSoundId, P_VOLUME, 0, 200);
 	}
 }
 

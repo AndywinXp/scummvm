@@ -53,6 +53,7 @@ public:
 	~IMuseDigiFilesHandler();
 
 	uint8 *getSoundAddrData(int soundId);
+	int getSoundAddrDataSize(int soundId, bool hasStream);
 	int getNextSound(int soundId);
 	int seek(int soundId, int offset, int mode, int bufId);
 	int read(int soundId, uint8 *buf, int size, int bufId);
