@@ -70,7 +70,7 @@ public:
 	virtual int isSoundRunning(int sound) { return 0; }
 	virtual int startVoice(int soundId, Audio::AudioStream *input) { return 0; }
 	virtual int startVoice(int soundId, const char *soundName, byte speakingActorId = 0) { return 0; }
-	virtual int startVoice(ScummFile *file, unsigned int offset, unsigned int size) { return 0; }
+	virtual int startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) { return 0; }
 	virtual void saveLoadEarly(Common::Serializer &ser) {}
 	virtual void resetState() {}
 	virtual void setRadioChatterSFX(bool state) {}

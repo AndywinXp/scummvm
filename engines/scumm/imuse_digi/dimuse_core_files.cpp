@@ -31,6 +31,8 @@ IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v
 	_sound = new ImuseDigiSndMgr(vm, true);
 	assert(_sound);
 	_vm = vm;
+
+	_ftSpeechFilename[0] = '\0';
 	_ftSpeechSubFileOffset = 0;
 	_ftSpeechFileSize = 0;
 	_ftSpeechFileCurPos = 0;
@@ -60,6 +62,12 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 		for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 			ser.syncAsSint32LE(sounds[l].soundId, VER(103));
 		}
+		if (_engine->isFTSoundEngine()) {
+			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(106));
+			ser.syncAsSint32LE(_ftSpeechFileSize, VER(106));
+			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(106));
+			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(106));
+		}
 	}
 
 	if (ser.isLoading()) {
@@ -75,6 +83,14 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 				if (curSound != kTalkSoundID)
 					closeSound(curSound);
 			}
+		}
+
+		if (_engine->isFTSoundEngine()) {
+			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(106));
+			ser.syncAsSint32LE(_ftSpeechFileSize, VER(106));
+			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(106));
+			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(106));
+			_ftSpeechFile = _vm->_sound->restoreDiMUSESpeechFile(_ftSpeechFilename);
 		}
 	}
 }
@@ -384,7 +400,8 @@ int IMuseDigiFilesHandler::setCurrentSpeechFilename(const char *fileName) {
 	return 0;
 }
 
-void IMuseDigiFilesHandler::setCurrentFtSpeechFile(ScummFile *file, unsigned int offset, unsigned int size) {
+void IMuseDigiFilesHandler::setCurrentFtSpeechFile(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) {
+	Common::strlcpy(_ftSpeechFilename, fileName, sizeof(_ftSpeechFilename));
 	_ftSpeechFile = file;
 	_ftSpeechSubFileOffset = offset;
 	_ftSpeechFileSize = size;

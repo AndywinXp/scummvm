@@ -571,7 +571,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 		if (isDiMUSEv2) {
 			file->seek(0, SEEK_END);
 			int fileSize = file->pos();
-			_vm->_imuseDigital->startVoice(file.release(), 0, fileSize);
+			_vm->_imuseDigital->startVoice(filename, file.release(), 0, fileSize);
 			return;
 		}
 	} else if (isDiMUSEv2 && _vm->_game.id == GID_FT) {
@@ -617,11 +617,11 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 				fileSize = 31;
 				fileSize += file->readUint32LE() >> 8;
 #ifdef ENABLE_SCUMM_7_8
-				_vm->_imuseDigital->startVoice(file.release(), totalOffset, fileSize);
+				_vm->_imuseDigital->startVoice(_sfxFilename.c_str(), file.release(), totalOffset, fileSize);
 #endif
 			} else if (headerTag == MKTAG('V','T','L','K')) {
 #ifdef ENABLE_SCUMM_7_8
-				_vm->_imuseDigital->startVoice(file.release(), totalOffset + 8, soundSize);
+				_vm->_imuseDigital->startVoice(_sfxFilename.c_str(), file.release(), totalOffset + 8, soundSize);
 #endif
 			} else {
 				file.release()->close();
@@ -1017,6 +1017,16 @@ void Sound::pauseSounds(bool pause) {
 
 bool Sound::isSfxFileCompressed() {
 	return !(_soundMode == kVOCMode);
+}
+
+ScummFile *Sound::restoreDiMUSESpeechFile(const char *fileName) {
+	Common::ScopedPtr<ScummFile> file;
+	file.reset(new ScummFile());
+	if (!_vm->openFile(*file, fileName)) {
+		return NULL;
+	}
+
+	return file.release();
 }
 
 void Sound::setupSfxFile() {

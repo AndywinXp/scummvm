@@ -43,6 +43,7 @@ private:
 	IMuseDigiSndBuffer _soundBuffers[4];
 	char _currentSpeechFilename[60];
 	ScummFile *_ftSpeechFile;
+	char _ftSpeechFilename[160];
 	int _ftSpeechSubFileOffset;
 	int _ftSpeechFileSize;
 	int _ftSpeechFileCurPos;
@@ -65,7 +66,7 @@ public:
 	void deallocSoundBuffer(int bufId);
 	void flushSounds();
 	int setCurrentSpeechFilename(const char *fileName);
-	void setCurrentFtSpeechFile(ScummFile *file, unsigned int offset, unsigned int size);
+	void setCurrentFtSpeechFile(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size);
 	void closeSoundImmediatelyById(int soundId);
 	void saveLoad(Common::Serializer &ser);
 };

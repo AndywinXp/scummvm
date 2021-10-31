@@ -28,6 +28,7 @@
 #include "common/str.h"
 #include "audio/mididrv.h"
 #include "backends/audiocd/audiocd.h"
+#include "scumm/file.h"
 
 namespace Audio {
 class Mixer;
@@ -121,6 +122,7 @@ public:
 	virtual void setupSound();
 	void pauseSounds(bool pause);
 	bool isSfxFileCompressed();
+	ScummFile *restoreDiMUSESpeechFile(const char *fileName);
 
 	void startCDTimer();
 	void stopCDTimer();

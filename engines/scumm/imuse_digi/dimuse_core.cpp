@@ -201,8 +201,8 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 }
 
 // Used by FT and DIG demo
-int IMuseDigital::startVoice(ScummFile *file, unsigned int offset, unsigned int size) {
-	_filesHandler->setCurrentFtSpeechFile(file, offset, size);
+int IMuseDigital::startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) {
+	_filesHandler->setCurrentFtSpeechFile(fileName, file, offset, size);
 	diMUSEStopSound(kTalkSoundID);
 	diMUSEStartStream(kTalkSoundID, 127, DIMUSE_BUFFER_SPEECH);
 	diMUSESetParam(kTalkSoundID, P_GROUP, DIMUSE_GROUP_SPEECH);
