@@ -466,7 +466,7 @@ void Sound::processSfxQueues() {
 				}
 			}
 
-			if (!(_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO))) {
+			if (_vm->_imuseDigital && !(_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO))) {
 				int volume = a->_talkVolume;
 				int frequency = a->_talkFrequency;
 				int pan = a->_talkPan;
@@ -513,7 +513,8 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 	bool _sampleIsPCMS16BE44100 = false;
 
 #ifdef ENABLE_SCUMM_7_8
-	isDiMUSEv2 = _vm->_imuseDigital->isUsingV2Engine();
+	if (_vm->_imuseDigital)
+		isDiMUSEv2 = _vm->_imuseDigital->isUsingV2Engine();
 #endif
 
 	if (_vm->_game.id == GID_CMI || (_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO))) {
