@@ -35,6 +35,14 @@ IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v
 	_ftSpeechFileSize = 0;
 	_ftSpeechFileCurPos = 0;
 	_ftSpeechFile = NULL;
+
+	for (int i = 0; i < 4; i++) {
+		IMuseDigiSndBuffer *selectedSoundBuf = &_soundBuffers[i];
+		selectedSoundBuf->buffer = NULL;
+		selectedSoundBuf->bufSize = 0;
+		selectedSoundBuf->loadSize = 0;
+		selectedSoundBuf->criticalSize = 0;
+	}
 }
 
 IMuseDigiFilesHandler::~IMuseDigiFilesHandler() {

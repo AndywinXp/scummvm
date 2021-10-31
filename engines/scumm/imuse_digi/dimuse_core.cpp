@@ -53,7 +53,6 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_isEarlyDiMUSE = (_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO));
 
 	if (_isEarlyDiMUSE) {
-		memset(_digDemoCrossfadeBuffer, 0, sizeof(_digDemoCrossfadeBuffer));
 		memset(_ftCrossfadeBuffer, 0, sizeof(_ftCrossfadeBuffer));
 	}
 
@@ -593,10 +592,10 @@ void IMuseDigital::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int
 		
 		break;
 	case 26:
-		// Special opcode used in place of setState instructions
+		// Special opcode used in place of successive setState instructions
 		if (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO) {
 			_filesHandler->openSound(c);
-			diMUSESwitchStream(soundId, c, _digDemoCrossfadeBuffer, 44000, 0);
+			diMUSESwitchStream(soundId, c, _ftCrossfadeBuffer, sizeof(_ftCrossfadeBuffer), 0);
 			_filesHandler->closeSound(soundId);
 		}
 		break;

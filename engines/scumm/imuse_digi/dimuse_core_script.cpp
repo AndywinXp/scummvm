@@ -477,7 +477,7 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 			if (soundId) {
 				if (oldSoundId) {
 					if (oldSoundId != soundId || transitionType == 2) {
-						diMUSESwitchStream(oldSoundId, soundId, _ftCrossfadeBuffer, 30000, 0);
+						diMUSESwitchStream(oldSoundId, soundId, _ftCrossfadeBuffer, sizeof(_ftCrossfadeBuffer), 0);
 					}
 
 					// WORKAROUND for bug in the original: at the beginning of the game, going in

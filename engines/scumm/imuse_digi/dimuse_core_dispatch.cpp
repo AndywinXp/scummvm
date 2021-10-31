@@ -427,9 +427,6 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 	uint8 *streamBuf;
 	int i, effAudioRemaining, audioRemaining, offset;
 
-	if (_vm->_game.id == GID_DIG)
-		crossfadeBufferSize = crossfadeBufferSize / 4;
-
 	if (_trackCount <= 0) {
 		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, _trackCount is %d", _trackCount);
 		return -1;
