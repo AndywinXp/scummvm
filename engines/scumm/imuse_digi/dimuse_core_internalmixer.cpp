@@ -76,13 +76,14 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	waveMixChannelsCount = mixChannelsNum;
 
 	int *tableMalloc = (int *)malloc(213504);
-	memset(tableMalloc, 0, 213504);
+	
 	_amp8Table = tableMalloc;          // Dim: 2176
 	_amp12Table = tableMalloc + 2176;  // Dim: 34816
 	_softLTable = tableMalloc + 36992; // Dim: 8192 * 2
 	_softLMID = tableMalloc + 45184;
 
 	if (tableMalloc) {
+		memset(tableMalloc, 0, 213504);
 		zeroCenterOffset = 0;
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;
