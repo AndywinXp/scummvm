@@ -366,6 +366,8 @@ int IMuseDigital::tracksStopAllSounds() {
 		}
 	}
 
+	_filesHandler->closeAllSounds();
+
 	return 0;
 }
 

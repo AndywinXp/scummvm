@@ -295,8 +295,9 @@ void IMuseDigiFilesHandler::closeSound(int soundId) {
 void IMuseDigiFilesHandler::closeAllSounds() {
 	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
-		if (s[i].inUse)
-			closeSound(s->soundId);
+		if (s[i].inUse) {
+			closeSound((&s[i])->soundId);
+		}
 	}
 
 	_engine->flushTracks();
@@ -386,7 +387,7 @@ void IMuseDigiFilesHandler::flushSounds() {
 		ImuseDigiSndMgr::SoundDesc *curSnd = &s[i];
 		if (curSnd && curSnd->inUse) {
 			if (curSnd->scheduledForDealloc)
-				if (!_engine->diMUSEGetParam(curSnd->soundId, P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, 0x200))
+				if (!_engine->diMUSEGetParam(curSnd->soundId, P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, P_TRIGS_SNDS))
 					_sound->closeSound(curSnd);
 		}
 	}
