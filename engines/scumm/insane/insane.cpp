@@ -1238,11 +1238,11 @@ bool Insane::smlayer_startVoice(int32 sound) {
 }
 
 void Insane::smlayer_soundSetPan(int32 soundId, int32 pan) {
-	_vm->_imuseDigital->setPan(soundId, pan);
+	_vm->_imuseDigital->setPan(readArray(soundId), pan);
 }
 
 void Insane::smlayer_soundSetPriority(int32 soundId, int32 priority) {
-	_vm->_imuseDigital->setPriority(soundId, priority);
+	_vm->_imuseDigital->setPriority(readArray(soundId), priority);
 }
 
 void Insane::smlayer_drawSomething(byte *renderBitmap, int32 codecparam,
