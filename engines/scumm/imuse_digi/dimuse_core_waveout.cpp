@@ -32,9 +32,9 @@ int IMuseDigital::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettin
 	_waveOutZeroLevel = 0;
 	_waveOutPreferredFeedSize = 512;
 
-	// Nine buffers (waveOutPreferredFeedSize * 4 bytes each), one will be used for the mixer
+	// Nine buffers (waveOutPreferredFeedSize * 4 bytes each), two will be used for the mixer
 	_waveOutOutputBuffer = (uint8 *)malloc(_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9);
-	_waveOutMixBuffer = _waveOutOutputBuffer + (_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 8); // 9-th buffer
+	_waveOutMixBuffer = _waveOutOutputBuffer + (_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 7); // 8-th buffer
 
 	// This information will be fed to the internal mixer during its initialization
 	waveOutSettingsStruct->bytesPerSample = _waveOutBytesPerSample * 8;
@@ -69,7 +69,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 
 		*sampleRate = _waveOutSampleRate;
 		*feedSize = _waveOutPreferredFeedSize;
-		_waveOutWriteIndex = (_waveOutWriteIndex + 1) % 8;
+		_waveOutWriteIndex = (_waveOutWriteIndex + 1) % 7;
 
 		byte *ptr = (byte *)malloc(_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels);
 		memcpy(ptr, curBufferBlock, _outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels);
