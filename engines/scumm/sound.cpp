@@ -812,7 +812,7 @@ int Sound::isSoundRunning(int sound) const {
 		if (_vm->_imuseDigital->isUsingV2Engine()) {
 			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 		} else {
-			return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
+			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 		}
 	}
 #endif
@@ -850,7 +850,7 @@ bool Sound::isSoundInUse(int sound) const {
 
 #ifdef ENABLE_SCUMM_7_8
 	if (_vm->_imuseDigital)
-		return (_vm->_imuseDigital->getSoundStatus(sound) != 0);
+		return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 #endif
 
 	if (sound == _currentCDSound)

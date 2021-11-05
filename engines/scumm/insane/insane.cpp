@@ -1218,7 +1218,7 @@ void Insane::smlayer_setFluPalette(byte *pal, int shut_flag) {
 }
 
 bool Insane::smlayer_isSoundRunning(int32 sound) {
-	return _vm->_imuseDigital->getSoundStatus(readArray(sound)) != 0;
+	return _vm->_imuseDigital->isSoundRunning(readArray(sound)) != 0;
 }
 
 bool Insane::smlayer_startSfx(int32 sound) {
