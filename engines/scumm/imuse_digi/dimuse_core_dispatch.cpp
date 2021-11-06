@@ -1751,18 +1751,22 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 			}
 			return -1;
 		} else {
-			switch (_currentVOCHeader[0]) {
+			uint8 *headerTag = _currentVOCHeader;
+			if (headerTag[0] != 1 && headerTag[0] != 4 && headerTag[0] != 6 && headerTag[0] != 7)
+				headerTag += 2;
+
+			switch (headerTag[0]) {
 			case 1:
-				dispatchPtr->sampleRate = _currentVOCHeader[4] > 196 ? 22050 : 11025;
-				dispatchPtr->audioRemaining = (READ_LE_UINT32(_currentVOCHeader) >> 8) - 2;
+				dispatchPtr->sampleRate = headerTag[4] > 196 ? 22050 : 11025;
+				dispatchPtr->audioRemaining = (READ_LE_UINT32(headerTag) >> 8) - 2;
 				dispatchPtr->currentOffset += 6;
 
 				// Another little hack to avoid click and pops artifacts:
 				// read one audio sample less if this is the last audio chunk of the file
 				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
-				//if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
-				//	dispatchPtr->audioRemaining -= 2;
-				//}
+				if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
+					dispatchPtr->audioRemaining -= 2;
+				}
 
 				if (dispatchPtr->streamPtr) {
 					streamerGetStreamBuffer(dispatchPtr->streamPtr, 6);
