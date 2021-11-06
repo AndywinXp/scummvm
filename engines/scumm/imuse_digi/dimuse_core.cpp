@@ -681,8 +681,8 @@ int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDel
 }
 
 // Variation for FT and DIG demo
-int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
-	return cmdsHandleCmd(26, oldSoundId, newSoundId, (uintptr)crossfadeBuffer, crossfadeBufferSize, dataOffsetFlag, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int IMuseDigital::diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag) {
+	return cmdsHandleCmd(26, oldSoundId, newSoundId, (uintptr)crossfadeBuffer, crossfadeBufferSize, vocLoopFlag, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int IMuseDigital::diMUSEProcessStreams() {

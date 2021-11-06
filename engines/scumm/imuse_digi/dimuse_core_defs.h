@@ -164,8 +164,8 @@ typedef struct {
 	int loadIndex;
 	int readIndex;
 	int paused;
-	int dataOffsetFlag;
-	int dataOffsetValue;
+	int vocLoopFlag;
+	int vocLoopTriggerOffset;
 } IMuseDigiStream;
 
 typedef struct {
@@ -197,7 +197,7 @@ struct IMuseDigiDispatch {
 	int fadeSyncDelta;
 	int fadeVol;
 	int fadeSlope;
-	int loopStartingPoint;
+	int vocLoopStartingPoint;
 };
 
 typedef struct {

@@ -71,7 +71,7 @@ int IMuseDigital::dispatchInit() {
 			_dispatches[i].fadeSyncDelta = 0;
 			_dispatches[i].fadeVol = 0;
 			_dispatches[i].fadeSlope = 0;
-			_dispatches[i].loopStartingPoint = 0;
+			_dispatches[i].vocLoopStartingPoint = 0;
 		}
 
 	} else {
@@ -118,7 +118,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_dispatches[l].fadeSyncDelta, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeVol, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeSlope, VER(103));
-		ser.syncAsSint32LE(_dispatches[l].loopStartingPoint, VER(105));
+		ser.syncAsSint32LE(_dispatches[l].vocLoopStartingPoint, VER(105));
 	}
 
 	if (ser.isLoading()) {
@@ -152,11 +152,11 @@ int IMuseDigital::dispatchRestoreStreamZones() {
 			curDispatchPtr->streamPtr = streamerAllocateSound(curDispatchPtr->trackPtr->soundId, curDispatchPtr->streamBufID, sizeToFeed);
 
 			if (curDispatchPtr->streamPtr) {
-				streamerSetSoundToStreamWithCurrentOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->currentOffset);
+				streamerSetSoundToStreamFromOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->currentOffset);
 
 				if (_isEarlyDiMUSE) {
-					if (curDispatchPtr->loopStartingPoint)
-						streamerSetDataOffsetFlag(curDispatchPtr->streamPtr, curDispatchPtr->currentOffset + curDispatchPtr->audioRemaining);
+					if (curDispatchPtr->vocLoopStartingPoint)
+						streamerSetLoopFlag(curDispatchPtr->streamPtr, curDispatchPtr->currentOffset + curDispatchPtr->audioRemaining);
 				} else if (curDispatchPtr->audioRemaining) {
 					// Try finding a stream zone which is not in use
 					curStreamZone = NULL;
@@ -210,7 +210,7 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 	trackDispatch->fadeBuf = 0;
 
 	if (_isEarlyDiMUSE) {
-		trackDispatch->loopStartingPoint = 0;
+		trackDispatch->vocLoopStartingPoint = 0;
 	} else {
 		memset(trackDispatch->map, 0, sizeof(trackDispatch->map));
 	}
@@ -235,7 +235,7 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 			return dispatchSeekToNextChunk(trackDispatch);
 	}
 
-	getMapResult = dispatchGetNextMapEvent(trackDispatch);
+	getMapResult = dispatchNavigateMap(trackDispatch);
 	if (!getMapResult || getMapResult == -3)
 		return 0;
 
@@ -294,13 +294,8 @@ int IMuseDigital::dispatchRelease(IMuseDigiTrack *trackPtr) {
 }
 
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag) {
-	int effFadeLen;
-	int strZnSize;
+	int effFadeLen, effFadeSize, strZnSize, getMapResult, i;
 	IMuseDigiDispatch *curDispatch = _dispatches;
-	int effFadeSize;
-	int getMapResult;
-	int i;
-	int sizeToFeed = 0x4000;
 
 	effFadeLen = fadeLength;
 
@@ -335,7 +330,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 			dispatchDeallocateFade(curDispatch, "dispatchSwitchStream");
 		}
 
-		_dispatchFadeSize = (curDispatch->channelCount * curDispatch->wordSize * ((effFadeLen * curDispatch->sampleRate / 1000) & 0xFFFFFFFE)) / 8;
+		_dispatchFadeSize = dispatchGetFadeSize(curDispatch, effFadeLen);
 
 		strZnSize = curDispatch->streamZoneList->size;
 		if (strZnSize >= _dispatchFadeSize)
@@ -345,7 +340,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		// Validate and adjust the fade dispatch size further;
 		// this should correctly align the dispatch size to avoid starting a fade without
 		// inverting the stereo image by mistake
-		dispatchValidateFade(curDispatch, &_dispatchFadeSize, "dispatchSwitchStream");
+		dispatchValidateFadeSize(curDispatch, &_dispatchFadeSize, "dispatchSwitchStream");
 
 		curDispatch->fadeBuf = dispatchAllocateFade(&_dispatchFadeSize, "dispatchSwitchStream");
 
@@ -364,10 +359,10 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 			
 			while (curDispatch->fadeRemaining < _dispatchFadeSize) {
 				effFadeSize = _dispatchFadeSize - curDispatch->fadeRemaining;
-				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= sizeToFeed)
-					effFadeSize = sizeToFeed;
+				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= 0x4000)
+					effFadeSize = 0x4000;
 
-				memcpy(&curDispatch->fadeBuf[curDispatch->fadeRemaining], streamerReAllocReadBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
+				memcpy(&curDispatch->fadeBuf[curDispatch->fadeRemaining], streamerGetStreamBuffer(curDispatch->streamPtr, effFadeSize), effFadeSize);
 
 				curDispatch->fadeRemaining += effFadeSize;
 			}
@@ -384,11 +379,11 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 	// Setup the new soundId
 	curDispatch->trackPtr->soundId = newSoundId;
 
-	streamerSetIndex1(curDispatch->streamPtr, streamerGetFreeBuffer(curDispatch->streamPtr));
+	streamerSetReadIndex(curDispatch->streamPtr, streamerGetFreeBufferAmount(curDispatch->streamPtr));
 
 	if (offsetFadeSyncFlag && curDispatch->streamZoneList) {
 		// Start the soundId from an offset
-		streamerSetSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
+		streamerSetSoundToStreamFromOffset(curDispatch->streamPtr, newSoundId, curDispatch->currentOffset);
 		while (curDispatch->streamZoneList->next) {
 			curDispatch->streamZoneList->next->useFlag = 0;
 			removeStreamZoneFromList(&curDispatch->streamZoneList->next, curDispatch->streamZoneList->next);
@@ -398,7 +393,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		return 0;
 	} else {
 		// Start the soundId from the beginning
-		streamerSetSoundToStreamWithCurrentOffset(curDispatch->streamPtr, newSoundId, 0);
+		streamerSetSoundToStreamFromOffset(curDispatch->streamPtr, newSoundId, 0);
 
 		while (curDispatch->streamZoneList) {
 			curDispatch->streamZoneList->useFlag = 0;
@@ -409,9 +404,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		curDispatch->audioRemaining = 0;
 		memset(curDispatch->map, 0, sizeof(curDispatch->map));
 
-		// Sanity check: make sure we correctly switched 
-		// the stream and getNextMapEvent gives an error
-		getMapResult = dispatchGetNextMapEvent(curDispatch);
+		getMapResult = dispatchNavigateMap(curDispatch);
 		if (!getMapResult || getMapResult == -3) {
 			return 0;
 		} else {
@@ -422,7 +415,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 	}
 }
 
-int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
+int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag) {
 	IMuseDigiDispatch *dispatchPtr = NULL;
 	uint8 *streamBuf;
 	int i, effAudioRemaining, audioRemaining, offset;
@@ -455,7 +448,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 
 	if (crossfadeBufferSize) {
 		do {
-			if (!streamerGetFreeBuffer(dispatchPtr->streamPtr)
+			if (!streamerGetFreeBufferAmount(dispatchPtr->streamPtr)
 				|| (!dispatchPtr->audioRemaining && dispatchSeekToNextChunk(dispatchPtr))) {
 				break;
 			}
@@ -464,13 +457,13 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 			if (crossfadeBufferSize - dispatchPtr->fadeRemaining < effAudioRemaining)
 				effAudioRemaining = crossfadeBufferSize - dispatchPtr->fadeRemaining;
 
-			if (effAudioRemaining >= streamerGetFreeBuffer(dispatchPtr->streamPtr))
-				effAudioRemaining = streamerGetFreeBuffer(dispatchPtr->streamPtr);
+			if (effAudioRemaining >= streamerGetFreeBufferAmount(dispatchPtr->streamPtr))
+				effAudioRemaining = streamerGetFreeBufferAmount(dispatchPtr->streamPtr);
 
 			if (effAudioRemaining >= 0x800)
 				effAudioRemaining = 0x800;
 
-			streamBuf = streamerReAllocReadBuffer(dispatchPtr->streamPtr, effAudioRemaining);
+			streamBuf = streamerGetStreamBuffer(dispatchPtr->streamPtr, effAudioRemaining);
 			memcpy(&crossfadeBuffer[dispatchPtr->fadeRemaining], streamBuf, effAudioRemaining);
 
 			dispatchPtr->fadeRemaining += effAudioRemaining;
@@ -479,21 +472,21 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 		} while (dispatchPtr->fadeRemaining < crossfadeBufferSize);
 	}
 
-	streamerSetIndex1(dispatchPtr->streamPtr, streamerGetFreeBuffer(dispatchPtr->streamPtr));
-	streamerSetSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr, newSoundId, dataOffsetFlag ? offset : 0);
+	streamerSetReadIndex(dispatchPtr->streamPtr, streamerGetFreeBufferAmount(dispatchPtr->streamPtr));
+	streamerSetSoundToStreamFromOffset(dispatchPtr->streamPtr, newSoundId, vocLoopFlag ? offset : 0);
 
-	if (dataOffsetFlag) {
-		if (dispatchPtr->loopStartingPoint)
-			streamerSetDataOffsetFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
+	if (vocLoopFlag) {
+		if (dispatchPtr->vocLoopStartingPoint)
+			streamerSetLoopFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
 	} else {
-		streamerRemoveDataOffsetFlag(dispatchPtr->streamPtr);
+		streamerRemoveLoopFlag(dispatchPtr->streamPtr);
 	}
 
-	dispatchPtr->currentOffset = dataOffsetFlag ? offset : 0;
-	dispatchPtr->audioRemaining = dataOffsetFlag ? audioRemaining : 0;
+	dispatchPtr->currentOffset = vocLoopFlag ? offset : 0;
+	dispatchPtr->audioRemaining = vocLoopFlag ? audioRemaining : 0;
 
-	if (!dataOffsetFlag) {
-		dispatchPtr->loopStartingPoint = 0;
+	if (!vocLoopFlag) {
+		dispatchPtr->vocLoopStartingPoint = 0;
 	}
 
 	return 0;
@@ -501,24 +494,16 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 
 void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate) {
 	IMuseDigiDispatch *dispatchPtr;
-	int inFrameCount;
-	int effFeedSize;
-	int effWordSize;
-	int effRemainingAudio;
-	int effRemainingFade;
-	int effSampleRate;
-	int getNextMapEventResult;
-	int mixVolume;
-	int elapsedFadeDelta;
-	uint8 *srcBuf;
-	uint8 *soundAddrData;
-	int mixStartingPoint;
+	int effFeedSize, effWordSize, effRemainingAudio, effRemainingFade, effSampleRate;
+	int inFrameCount, mixVolume, mixStartingPoint, elapsedFadeDelta;
+	int navigateMapResult;
+	uint8 *srcBuf, *soundAddrData;
 
 	dispatchPtr = trackPtr->dispatchPtr;
 	if (dispatchPtr->streamPtr && dispatchPtr->streamZoneList)
 		dispatchPredictStream(dispatchPtr);
 
-	// If there's a fade
+	// If a fade has previously been allocated
 	if (dispatchPtr->fadeBuf) {
 		inFrameCount = 8 * dispatchPtr->fadeRemaining / (dispatchPtr->fadeWordSize * dispatchPtr->fadeChannelCount);
 
@@ -585,14 +570,14 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		// go check for any event on the map for the current offset
 		if (!dispatchPtr->audioRemaining) {
 			_dispatchFadeStartedFlag = 0;
-			getNextMapEventResult = dispatchGetNextMapEvent(dispatchPtr);
+			navigateMapResult = dispatchNavigateMap(dispatchPtr);
 
-			if (getNextMapEventResult)
+			if (navigateMapResult)
 				break;
 
-			// We reached a JUMP, therefore we have to crossfade to
-			// the destination region: start a fade-out
 			if (_dispatchFadeStartedFlag) {
+				// We reached a JUMP, therefore we have to crossfade to
+				// the destination region: start a fade-out
 				if (_vm->_game.id == GID_DIG) {
 					effSampleRate = dispatchPtr->fadeSampleRate;
 				} else {
@@ -673,7 +658,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		effRemainingAudio = (effWordSize * inFrameCount) / 8;
 
 		if (dispatchPtr->streamPtr) {
-			srcBuf = streamerReAllocReadBuffer(dispatchPtr->streamPtr, effRemainingAudio);
+			srcBuf = streamerGetStreamBuffer(dispatchPtr->streamPtr, effRemainingAudio);
 			if (!srcBuf) {
 				dispatchPtr->streamErrFlag = 1;
 				if (dispatchPtr->fadeBuf && dispatchPtr->fadeSyncFlag)
@@ -773,7 +758,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	}
 
 	// Behavior of errors and STOP marker
-	if (getNextMapEventResult == -1)
+	if (navigateMapResult == -1)
 		tracksClear(trackPtr);
 
 	if (dispatchPtr->fadeBuf && dispatchPtr->fadeSyncFlag)
@@ -823,7 +808,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 		streamPtr = dispatchPtr->streamPtr;
 		if (streamPtr) {
-			buffer = streamerReAllocReadBuffer(streamPtr, inFrameCount);
+			buffer = streamerGetStreamBuffer(streamPtr, inFrameCount);
 			if (!buffer) {
 				if (dispatchPtr->fadeBuf)
 					dispatchPtr->fadeSyncDelta += fadeChunkSize;
@@ -882,190 +867,54 @@ void IMuseDigital::dispatchPredictFirstStream() {
 	}
 }
 
-int IMuseDigital::dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr) {
-	int *dstMap;
-	uint8 *rawMap;
-	uint8 *copiedBuf;
-	uint8 *soundAddrData;
-	int size;
-	int *mapCurPos;
-	int curOffset;
-	int blockName;
-	int effFadeSize;
-	int elapsedFadeSize;
-	int regionOffset;
+int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
+	int *mapCurEvent;
+	int blockTag, effFadeSize, elapsedFadeSize, regionOffset;
+	char *marker = NULL;
 
-	dstMap = dispatchPtr->map;
-
-	// Sanity checks for the correct file format
-	// and the correct state of the stream in the current dispatch
-	if (dispatchPtr->map[0] != MKTAG('M', 'A', 'P', ' ')) {
-		if (dispatchPtr->currentOffset) {
-			debug(5, "IMuseDigital::dispatchGetNextMapEvent(): found offset but no map");
-			return -1;
-		}
-
-		// If there's a streamPtr it means that this is a sound loaded
-		// from a bundle (either music or speech)
-		if (dispatchPtr->streamPtr) {
-			
-			copiedBuf = (uint8 *)streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x10);
-
-			if (!copiedBuf) {
-				return -3;
-			}
-
-			if (READ_BE_UINT32(copiedBuf) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(copiedBuf + 8) == MKTAG('M', 'A', 'P', ' ')) {
-				size = READ_BE_UINT32(copiedBuf + 12) + 24;
-				if (!streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, size)) {
-					return -3;
-				}
-				rawMap = (uint8 *)streamerReAllocReadBuffer(dispatchPtr->streamPtr, size);
-				if (!rawMap) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: stream read failed after view succeeded in GetMap()");
-					return -1;
-				}
-
-				dispatchPtr->currentOffset = size;
-				if (dispatchConvertMap(rawMap + 8, (uint8 *)dstMap)) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: ConvertMap() failed");
-					return -1;
-				}
-
-				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: expected 'FRMT' at start of map");
-					return -1;
-				}
-
-				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: GetMap() expected data to follow map");
-					return -1;
-				} else {
-					if (dispatchPtr->streamZoneList) {
-						debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: GetMap() expected NULL streamZoneList");
-						return -1;
-					}
-
-					dispatchPtr->streamZoneList = dispatchAllocStreamZone();
-					if (!dispatchPtr->streamZoneList) {
-						debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: GetMap() couldn't allocate zone");
-						return -1;
-					}
-
-					dispatchPtr->streamZoneList->offset = dispatchPtr->currentOffset;
-					dispatchPtr->streamZoneList->size = streamerGetFreeBuffer(dispatchPtr->streamPtr);
-					dispatchPtr->streamZoneList->fadeFlag = 0;
-				}
-			} else {
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: unrecognized file format in stream buffer");
-				return -1;
-			}
-
-		} else {
-			// Otherwise, this is a SFX and we must load it using its resource pointer
-			soundAddrData = _filesHandler->getSoundAddrData(dispatchPtr->trackPtr->soundId);
-
-			if (!soundAddrData) {
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: couldn't get sound address");
-				return -1;
-			}
-
-			if (READ_BE_UINT32(soundAddrData) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(soundAddrData + 8) == MKTAG('M', 'A', 'P', ' ')) {
-				dispatchPtr->currentOffset = READ_BE_UINT32(soundAddrData + 12) + 24;
-				if (dispatchConvertMap((soundAddrData + 8), (uint8 *)dstMap)) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: dispatchConvertMap() failure");
-					return -1;
-				}
-
-				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: expected 'FRMT' at start of map");
-					return -1;
-				}
-
-				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: expected data to follow map");
-					return -1;
-				}
-			} else {
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: unrecognized file format in stream buffer");
-				return -1;
-			}
-		}
-	}
+	int getMapResult = dispatchGetMap(dispatchPtr);
+	if (getMapResult)
+		return getMapResult;
 
 	if (dispatchPtr->audioRemaining
 		|| (dispatchPtr->streamPtr && dispatchPtr->streamZoneList->offset != dispatchPtr->currentOffset)) {
-		debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: navigation error in dispatch");
+		debug(5, "IMuseDigital::dispatchNavigateMap(): ERROR: navigation error in dispatch");
 		return -1;
 	}
 
-	mapCurPos = NULL;
+	mapCurEvent = NULL;
 	while (1) {
-		curOffset = dispatchPtr->currentOffset;
+		mapCurEvent = dispatchGetNextMapEvent(dispatchPtr->map, dispatchPtr->currentOffset, mapCurEvent);
 
-		if (mapCurPos) {
-			// Advance the map to the next block (mapCurPos[1] + 8 is the size of the block)
-			mapCurPos = (int *)((int8 *)mapCurPos + mapCurPos[1] + 8);
-			if ((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1] > (int8 *)mapCurPos) {
-				if (mapCurPos[2] != curOffset) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more events at offset %d", dispatchPtr->currentOffset);
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more map events at offset %dx", dispatchPtr->currentOffset);
-					return -1;
-				}
-			} else {
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: map overrun");
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more map events at offset %dx", dispatchPtr->currentOffset);
-				return -1;
-			}
-
-		} else {
-			// Init the current map position starting from the first block
-			// (cells 0 and 1 are the string 'MAP ' and the map size respectively)
-			mapCurPos = &dispatchPtr->map[2];
-
-			// Search for the block with the same offset as ours
-			while (mapCurPos[2] != curOffset) {
-				// Check if we've overrun the offset, to make sure 
-				// that there actually is an event at our offset
-				mapCurPos = (int *)((int8 *)mapCurPos + mapCurPos[1] + 8);
-
-				if ((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1] <= (int8 *)mapCurPos) {
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: couldn't find event at offset %d", dispatchPtr->currentOffset);
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more map events at offset %dx", dispatchPtr->currentOffset);
-					return -1;
-				}
-			}
-		}
-
-		if (!mapCurPos) {
-			debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more map events at offset %dx", dispatchPtr->currentOffset);
+		if (!mapCurEvent) {
+			debug(5, "IMuseDigital::dispatchNavigateMap(): ERROR: no more map events at offset %dx", dispatchPtr->currentOffset);
 			return -1;
 		}
 
-		blockName = mapCurPos[0];
-
-		// Handle any event found at this offset
-		// Jump block (fixed size: 28 bytes)
-		// - The string 'JUMP' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (hook position) (4 bytes)
-		// - Jump destination offset (4 bytes)
-		// - Hook ID (4 bytes)
-		// - Fade time in ms (4 bytes)
-		if (blockName == MKTAG('J', 'U', 'M', 'P')) {
-			if (!checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurPos[4])) {
+		blockTag = mapCurEvent[0];
+		switch (blockTag) {
+		case MKTAG('J', 'U', 'M', 'P'):
+			// Handle any event found at this offset
+			// Jump block (fixed size: 28 bytes)
+			// - The tag 'JUMP' (4 bytes)
+			// - Block size in bytes minus 8 (4 bytes)
+			// - Block offset (hook position) (4 bytes)
+			// - Jump destination offset (4 bytes)
+			// - Hook ID (4 bytes)
+			// - Fade time in ms (4 bytes)
+			if (!checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurEvent[4])) {
 				// This is the right hookId, let's jump
-				dispatchPtr->currentOffset = mapCurPos[3];
+				dispatchPtr->currentOffset = mapCurEvent[3];
 				if (dispatchPtr->streamPtr) {
 					if (dispatchPtr->streamZoneList->size || !dispatchPtr->streamZoneList->next) {
-						debug(5, "IMuseDigital::dispatchGetNextMapEvent(): WARNING: failed to prepare for jump, will fallback to dispatchParseJump()");
-						dispatchParseJump(dispatchPtr, dispatchPtr->streamZoneList, mapCurPos, 1);
+						debug(5, "IMuseDigital::dispatchNavigateMap(): next streamZone is unallocated, calling dispatchPrepareToJump()");
+						dispatchPrepareToJump(dispatchPtr, dispatchPtr->streamZoneList, mapCurEvent, 1);
 					}
 
-					debug(5, "IMuseDigital::dispatchGetNextMapEvent(): \n"
-						"\tJUMP found for sound %d with valid hookId (%d), \n"
-						"\tgoing to offset %d with a crossfade of %d ms",
-						dispatchPtr->trackPtr->soundId, mapCurPos[4], mapCurPos[3], mapCurPos[5]);
+					debug(5, "IMuseDigital::dispatchNavigateMap(): \n"
+							 "\tJUMP found for sound %d with valid candidateHookId (%d), \n"
+							 "\tgoing to offset %d with a crossfade of %d ms",
+						  dispatchPtr->trackPtr->soundId, mapCurEvent[4], mapCurEvent[3], mapCurEvent[5]);
 
 					dispatchPtr->streamZoneList->useFlag = 0;
 					removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
@@ -1073,11 +922,11 @@ int IMuseDigital::dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr) {
 					if (dispatchPtr->streamZoneList->fadeFlag) {
 						if (dispatchPtr->fadeBuf) {
 							// Mark the fade corresponding to our fadeBuf as unused
-							dispatchDeallocateFade(dispatchPtr, "dispatchGetNextMapEvent");
+							dispatchDeallocateFade(dispatchPtr, "dispatchNavigateMap");
 						}
 
 						_dispatchJumpFadeSize = dispatchPtr->streamZoneList->size;
-						dispatchPtr->fadeBuf = dispatchAllocateFade(&_dispatchJumpFadeSize, "dispatchGetNextMapEvent");
+						dispatchPtr->fadeBuf = dispatchAllocateFade(&_dispatchJumpFadeSize, "dispatchNavigateMap");
 
 						// If the fade buffer is allocated
 						// set up the fade
@@ -1092,44 +941,40 @@ int IMuseDigital::dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr) {
 							dispatchPtr->fadeVol = MAX_FADE_VOLUME;
 							dispatchPtr->fadeSlope = 0;
 
-							int sizeToFeed = 0x4000;
-							// Clone the old sound in the fade buffer for just the duration of the fade 
+							// Clone the old sound in the fade buffer for just the duration of the fade
 							if (_dispatchJumpFadeSize) {
 								do {
 									effFadeSize = _dispatchJumpFadeSize - dispatchPtr->fadeRemaining;
-									if ((_dispatchJumpFadeSize - dispatchPtr->fadeRemaining) >= sizeToFeed)
-										effFadeSize = sizeToFeed;
+									if ((_dispatchJumpFadeSize - dispatchPtr->fadeRemaining) >= 0x4000)
+										effFadeSize = 0x4000;
 
 									memcpy(&dispatchPtr->fadeBuf[dispatchPtr->fadeRemaining],
-										streamerReAllocReadBuffer(dispatchPtr->streamPtr, effFadeSize),
-										effFadeSize);
+										   streamerGetStreamBuffer(dispatchPtr->streamPtr, effFadeSize),
+										   effFadeSize);
 
 									elapsedFadeSize = effFadeSize + dispatchPtr->fadeRemaining;
 									dispatchPtr->fadeRemaining = elapsedFadeSize;
 								} while (_dispatchJumpFadeSize > elapsedFadeSize);
 							}
-
 							_dispatchFadeStartedFlag = 1;
 						}
-
 						dispatchPtr->streamZoneList->useFlag = 0;
 						removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 					}
 				}
-
-				mapCurPos = NULL;
+				mapCurEvent = NULL;
 			}
-			continue;
-		}
 
-		// SYNC block (fixed size: x bytes)
-		// - The string 'SYNC' (4 bytes)
-		// - SYNC size in bytes (4 bytes)
-		// - SYNC data (variable length)
-		if (blockName == MKTAG('S', 'Y', 'N', 'C')) {
+			continue;
+		case MKTAG('S', 'Y', 'N', 'C'):
+			// SYNC block (fixed size: x bytes)
+			// - The tag 'SYNC' (4 bytes)
+			// - SYNC size in bytes (4 bytes)
+			// - SYNC data (variable length)
+
 			// It is possible to gather a total maximum of 4 SYNCs for a single track;
 			// this is not a problem however, as speech files only have one SYNC block,
-			// and the most we get is four (one for each character) in 
+			// and the most we get is four (one for each character) in
 			// A Pirate I Was Meant To Be, in Part 3 of COMI
 
 			// Curiously we skip the first four bytes of data, ending up having the first
@@ -1137,89 +982,184 @@ int IMuseDigital::dispatchGetNextMapEvent(IMuseDigiDispatch *dispatchPtr) {
 			// within the interpreter, so I'm not going to argue with it
 
 			if (!dispatchPtr->trackPtr->syncPtr_0) {
-				dispatchPtr->trackPtr->syncPtr_0 = (byte *)malloc(mapCurPos[1]);
-				memcpy(dispatchPtr->trackPtr->syncPtr_0, mapCurPos + 3, mapCurPos[1]);
-				dispatchPtr->trackPtr->syncSize_0 = mapCurPos[1];
+				dispatchPtr->trackPtr->syncPtr_0 = (byte *)malloc(mapCurEvent[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_0, mapCurEvent + 3, mapCurEvent[1]);
+				dispatchPtr->trackPtr->syncSize_0 = mapCurEvent[1];
 
 			} else if (!dispatchPtr->trackPtr->syncPtr_1) {
-				dispatchPtr->trackPtr->syncPtr_1 = (byte *)malloc(mapCurPos[1]);
-				memcpy(dispatchPtr->trackPtr->syncPtr_1, mapCurPos + 3, mapCurPos[1]);
-				dispatchPtr->trackPtr->syncSize_1 = mapCurPos[1];
+				dispatchPtr->trackPtr->syncPtr_1 = (byte *)malloc(mapCurEvent[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_1, mapCurEvent + 3, mapCurEvent[1]);
+				dispatchPtr->trackPtr->syncSize_1 = mapCurEvent[1];
 
 			} else if (!dispatchPtr->trackPtr->syncPtr_2) {
-				dispatchPtr->trackPtr->syncPtr_2 = (byte *)malloc(mapCurPos[1]);
-				memcpy(dispatchPtr->trackPtr->syncPtr_2, mapCurPos + 3, mapCurPos[1]);
-				dispatchPtr->trackPtr->syncSize_2 = mapCurPos[1];
+				dispatchPtr->trackPtr->syncPtr_2 = (byte *)malloc(mapCurEvent[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_2, mapCurEvent + 3, mapCurEvent[1]);
+				dispatchPtr->trackPtr->syncSize_2 = mapCurEvent[1];
 
 			} else if (!dispatchPtr->trackPtr->syncPtr_3) {
-				dispatchPtr->trackPtr->syncPtr_3 = (byte *)malloc(mapCurPos[1]);
-				memcpy(dispatchPtr->trackPtr->syncPtr_3, mapCurPos + 3, mapCurPos[1]);
-				dispatchPtr->trackPtr->syncSize_3 = mapCurPos[1];
+				dispatchPtr->trackPtr->syncPtr_3 = (byte *)malloc(mapCurEvent[1]);
+				memcpy(dispatchPtr->trackPtr->syncPtr_3, mapCurEvent + 3, mapCurEvent[1]);
+				dispatchPtr->trackPtr->syncSize_3 = mapCurEvent[1];
 			}
 
 			continue;
-		}
-
-		// Format block (fixed size: 28 bytes)
-		// - The string 'FRMT' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (4 bytes)
-		// - Empty field (4 bytes) (which is set to 1 in Grim Fandango, I suspect this is the endianness)
-		// - Word size between 8, 12 and 16 (4 bytes)
-		// - Sample rate (4 bytes)
-		// - Number of channels (4 bytes)
-		if (blockName == MKTAG('F', 'R', 'M', 'T')) {
-			dispatchPtr->wordSize = mapCurPos[4];
-			dispatchPtr->sampleRate = mapCurPos[5];
-			dispatchPtr->channelCount = mapCurPos[6];
+		case MKTAG('F', 'R', 'M', 'T'):
+			// Format block (fixed size: 28 bytes)
+			// - The tag 'FRMT' (4 bytes)
+			// - Block size in bytes minus 8 (4 bytes)
+			// - Block offset (4 bytes)
+			// - Empty field (4 bytes) (which is set to 1 in Grim Fandango, I suspect this is the endianness)
+			// - Word size between 8, 12 and 16 (4 bytes)
+			// - Sample rate (4 bytes)
+			// - Number of channels (4 bytes)
+			dispatchPtr->wordSize = mapCurEvent[4];
+			dispatchPtr->sampleRate = mapCurEvent[5];
+			dispatchPtr->channelCount = mapCurEvent[6];
 
 			continue;
-		}
-
-		// Region block (fixed size: 16 bytes)
-		// - The string 'REGN' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (4 bytes)
-		// - Region length (4 bytes)
-		if (blockName == MKTAG('R', 'E', 'G', 'N')) {
-			regionOffset = mapCurPos[2];
+		case MKTAG('R', 'E', 'G', 'N'):
+			// Region block (fixed size: 16 bytes)
+			// - The tag 'REGN' (4 bytes)
+			// - Block size in bytes minus 8 (4 bytes)
+			// - Block offset (4 bytes)
+			// - Region length (4 bytes)
+			regionOffset = mapCurEvent[2];
 			if (regionOffset == dispatchPtr->currentOffset) {
-				dispatchPtr->audioRemaining = mapCurPos[3];
+				dispatchPtr->audioRemaining = mapCurEvent[3];
 				return 0;
 			} else {
-				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: region offset %d != currentOffset %d", regionOffset, dispatchPtr->currentOffset);
+				debug(5, "IMuseDigital::dispatchNavigateMap(): ERROR: region offset %d != currentOffset %d", regionOffset, dispatchPtr->currentOffset);
 				return -1;
 			}
-		}
-
-		// Stop block (fixed size: 12 bytes)
-		// Contains:
-		// - The string 'STOP' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (4 bytes)
-		if (blockName == MKTAG('S', 'T', 'O', 'P'))
+		case MKTAG('S', 'T', 'O', 'P'):
+			// Stop block (fixed size: 12 bytes)
+			// Contains:
+			// - The tag 'STOP' (4 bytes)
+			// - Block size in bytes minus 8 (4 bytes)
+			// - Block offset (4 bytes)
 			return -1;
-
-		// Marker block (variable size)
-		// Contains:
-		// - The string 'TEXT' (4 bytes)
-		// - Block size in bytes minus 8 (4 bytes)
-		// - Block offset (4 bytes)
-		// - A string of characters ending with '\0' (variable length)
-		if (blockName == MKTAG('T', 'E', 'X', 'T')) {
-			char *marker = (char *)mapCurPos + 12;
+		case MKTAG('T', 'E', 'X', 'T'):
+			// Marker block (variable size)
+			// Contains:
+			// - The tag 'TEXT' (4 bytes)
+			// - Block size in bytes minus 8 (4 bytes)
+			// - Block offset (4 bytes)
+			// - A string of characters ending with '\0' (variable length)
+			marker = (char *)mapCurEvent + 12;
 			_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, marker);
 			if (dispatchPtr->audioRemaining)
 				return 0;
 
 			continue;
+		default:
+			debug(5, "IMuseDigital::dispatchNavigateMap(): ERROR: Unrecognized map event at offset %dx", dispatchPtr->currentOffset);
+			break;
+		};
+	}
+	return -1;
+}
+
+int IMuseDigital::dispatchGetMap(IMuseDigiDispatch *dispatchPtr) {
+	int *dstMap;
+	uint8 *rawMap, *copiedBuf, *soundAddrData;
+	int size;
+
+	dstMap = dispatchPtr->map;
+
+	// If there's no map, try to fetch it
+	if (dispatchPtr->map[0] != MKTAG('M', 'A', 'P', ' ')) {
+		if (dispatchPtr->currentOffset) {
+			debug(5, "IMuseDigital::dispatchNavigateMap(): found offset but no map");
+			return -1;
 		}
 
-		debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: Unrecognized map event at offset %dx", dispatchPtr->currentOffset);
-		return -1;
+		// If there's a streamPtr it means that this is a sound loaded
+		// from a bundle (either music or speech)
+		if (dispatchPtr->streamPtr) {
+			copiedBuf = (uint8 *)streamerGetStreamBufferAtOffset(dispatchPtr->streamPtr, 0, 0x10);
+
+			if (!copiedBuf) {
+				return -3;
+			}
+
+			if (READ_BE_UINT32(copiedBuf) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(copiedBuf + 8) == MKTAG('M', 'A', 'P', ' ')) {
+				size = READ_BE_UINT32(copiedBuf + 12) + 24;
+				if (!streamerGetStreamBufferAtOffset(dispatchPtr->streamPtr, 0, size)) {
+					return -3;
+				}
+				rawMap = (uint8 *)streamerGetStreamBuffer(dispatchPtr->streamPtr, size);
+				if (!rawMap) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: stream read failed after view succeeded");
+					return -1;
+				}
+
+				dispatchPtr->currentOffset = size;
+				if (dispatchConvertMap(rawMap + 8, (uint8 *)dstMap)) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: dispatchConvertMap() failed");
+					return -1;
+				}
+
+				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: expected 'FRMT' at start of map");
+					return -1;
+				}
+
+				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: expected data to follow map");
+					return -1;
+				} else {
+					if (dispatchPtr->streamZoneList) {
+						debug(5, "IMuseDigital::dispatchGetMap(): ERROR: expected NULL streamZoneList");
+						return -1;
+					}
+
+					dispatchPtr->streamZoneList = dispatchAllocStreamZone();
+					if (!dispatchPtr->streamZoneList) {
+						debug(5, "IMuseDigital::dispatchGetMap(): ERROR: couldn't allocate zone");
+						return -1;
+					}
+
+					dispatchPtr->streamZoneList->offset = dispatchPtr->currentOffset;
+					dispatchPtr->streamZoneList->size = streamerGetFreeBufferAmount(dispatchPtr->streamPtr);
+					dispatchPtr->streamZoneList->fadeFlag = 0;
+				}
+			} else {
+				debug(5, "IMuseDigital::dispatchGetMap(): ERROR: unrecognized file format in stream buffer");
+				return -1;
+			}
+
+		} else {
+			// Otherwise, this is a SFX and we must load it using its resource pointer
+			soundAddrData = _filesHandler->getSoundAddrData(dispatchPtr->trackPtr->soundId);
+
+			if (!soundAddrData) {
+				debug(5, "IMuseDigital::dispatchGetMap(): ERROR: couldn't get sound address");
+				return -1;
+			}
+
+			if (READ_BE_UINT32(soundAddrData) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(soundAddrData + 8) == MKTAG('M', 'A', 'P', ' ')) {
+				dispatchPtr->currentOffset = READ_BE_UINT32(soundAddrData + 12) + 24;
+				if (dispatchConvertMap((soundAddrData + 8), (uint8 *)dstMap)) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: dispatchConvertMap() failure");
+					return -1;
+				}
+
+				if (dispatchPtr->map[2] != MKTAG('F', 'R', 'M', 'T')) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: expected 'FRMT' at start of map");
+					return -1;
+				}
+
+				if (dispatchPtr->map[4] != dispatchPtr->currentOffset) {
+					debug(5, "IMuseDigital::dispatchGetMap(): ERROR: expected data to follow map");
+					return -1;
+				}
+			} else {
+				debug(5, "IMuseDigital::dispatchGetMap(): ERROR: unrecognized file format in stream buffer");
+				return -1;
+			}
+		}
 	}
 
-	// You should never be able to reach this return
 	return 0;
 }
 
@@ -1314,19 +1254,49 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 	return 0;
 }
 
+int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *mapEvent) {
+	if (mapEvent) {
+		// Advance the map to the next block (mapEvent[1] + 8 is the size of the block)
+		mapEvent = (int *)((int8 *)mapEvent + mapEvent[1] + 8);
+
+		if ((int8 *)&mapPtr[2] + mapPtr[1] > (int8 *)mapEvent) {
+			if (mapEvent[2] != soundOffset) {
+				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more events at offset %d", soundOffset);
+				return NULL;
+			}
+		} else {
+			debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: map overrun");
+			return NULL;
+		}
+
+	} else {
+		// Init the current map position starting from the first block
+		// (cells 0 and 1 are the tag 'MAP ' and the map size respectively)
+		mapEvent = &mapPtr[2];
+
+		// Search for the block with the same offset as ours
+		while (mapEvent[2] != soundOffset) {
+			// Check if we've overrun the offset, to make sure
+			// that there actually is an event at our offset
+			mapEvent = (int *)((int8 *)mapEvent + mapEvent[1] + 8);
+
+			if ((int8 *)&mapPtr[2] + mapPtr[1] <= (int8 *)mapEvent) {
+				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: couldn't find event at offset %d", soundOffset);
+				return NULL;
+			}
+		}
+	}
+
+	return mapEvent;
+}
+
 void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
-	IMuseDigiStreamZone *szTmp;
-	IMuseDigiStreamZone *lastStreamInList;
-	IMuseDigiStreamZone *szList;
+	IMuseDigiStreamZone *szTmp, *lastStreamInList, *curStrZn;
 	int cumulativeStreamOffset;
-	int *curMapPlace;
-	int mapPlaceName;
-	int *endOfMap;
-	int bytesUntilNextPlace, mapPlaceHookId;
-	int mapPlaceHookPosition;
+	int *jumpParameters;
 
 	if (!dispatchPtr->streamPtr || !dispatchPtr->streamZoneList) {
-		debug(5, "IMuseDigital::dispatchPredictStream(): ERROR: NULL streamId or zoneList");
+		debug(5, "IMuseDigital::dispatchPredictStream(): ERROR: NULL streamId or streamZoneList");
 		return;
 	}
 
@@ -1340,76 +1310,49 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 		szTmp = szTmp->next;
 	} while (szTmp);
 
-	lastStreamInList->size += streamerGetFreeBuffer(dispatchPtr->streamPtr) - cumulativeStreamOffset;
-	szList = dispatchPtr->streamZoneList;
+	lastStreamInList->size += streamerGetFreeBufferAmount(dispatchPtr->streamPtr) - cumulativeStreamOffset;
+	curStrZn = dispatchPtr->streamZoneList;
 
-	_dispatchBufferedHookId = dispatchPtr->trackPtr->jumpHook;
-	while (szList) {
-		if (!szList->fadeFlag) {
-			curMapPlace = &dispatchPtr->map[2];
-			endOfMap = (int *)((int8 *)&dispatchPtr->map[2] + dispatchPtr->map[1]);
-
-			while (1) {
-				// End of the map, stream
-				if (curMapPlace >= endOfMap) {
-					curMapPlace = NULL;
-					break;
-				}
-
-				mapPlaceName = curMapPlace[0];
-				bytesUntilNextPlace = curMapPlace[1] + 8;
-
-				if (mapPlaceName == MKTAG('J', 'U', 'M', 'P')) {
-					// We assign these here, to avoid going out of bounds
-					// on a place which doesn't have as many fields, like TEXT
-					mapPlaceHookPosition = curMapPlace[2];
-					mapPlaceHookId = curMapPlace[4];
-
-					if (mapPlaceHookPosition > szList->offset && mapPlaceHookPosition <= szList->size + szList->offset) {
-						// Break out of the loop if we have to JUMP
-						if (!checkHookId(&_dispatchBufferedHookId, mapPlaceHookId))
-							break;
-					}
-				}
-				// Advance the map offset by bytesUntilNextPlace bytes
-				curMapPlace = (int *)((int8 *)curMapPlace + bytesUntilNextPlace);
-			}
-
-			if (curMapPlace) {
-				// This is where we should end up if checkHookId() has been successful
-				dispatchParseJump(dispatchPtr, szList, curMapPlace, 0);
+	for (_dispatchBufferedHookId = dispatchPtr->trackPtr->jumpHook; curStrZn; curStrZn = curStrZn->next) {
+		if (!curStrZn->fadeFlag) {
+			jumpParameters = dispatchCheckForJump(dispatchPtr->map, curStrZn, &_dispatchBufferedHookId);
+			if (jumpParameters) {
+				// If we've reached a JUMP and it's successful, allocate the streamZone of the destination
+				dispatchPrepareToJump(dispatchPtr, curStrZn, jumpParameters, 0);
 			} else {
-				// Otherwise this is where we end up when we reached the end of the getNextMapEventResult,
-				// which means: if we don't have to jump, just play the next streamZone available
-				if (szList->next) {
-					cumulativeStreamOffset = szList->size;
-					szTmp = dispatchPtr->streamZoneList;
-					while (szTmp != szList) {
-						cumulativeStreamOffset += szTmp->size;
-						szTmp = szTmp->next;
-					}
-
-					// Continue streaming the newSoundId from where we left off
-					streamerSetIndex2(dispatchPtr->streamPtr, cumulativeStreamOffset);
-
-					// Remove che previous streamZone from the list, we don't need it anymore
-					while (szList->next->prev) {
-						szList->next->prev->useFlag = 0;
-						removeStreamZoneFromList(&szList->next, szList->next->prev);
-					}
-
-					streamerSetSoundToStreamWithCurrentOffset(
-						dispatchPtr->streamPtr,
-						dispatchPtr->trackPtr->soundId,
-						szList->size + szList->offset);
-				}
+				// If we don't have to jump, just play the next streamZone available
+				dispatchStreamNextZone(dispatchPtr, curStrZn);
 			}
 		}
-		szList = szList->next;
 	}
 }
 
-void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *streamZonePtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent) {
+int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int *candidateHookId) {
+	int *curMapPlace = &mapPtr[2];
+	int *endOfMap = (int *)((int8 *)&mapPtr[2] + mapPtr[1]);
+	int mapPlaceTag, jumpHookPos, jumpHookId, bytesUntilNextPlace;
+
+	while (curMapPlace < endOfMap) {
+		mapPlaceTag = curMapPlace[0];
+		bytesUntilNextPlace = curMapPlace[1] + 8;
+
+		if (mapPlaceTag == MKTAG('J', 'U', 'M', 'P')) {
+			jumpHookPos = curMapPlace[2];
+			jumpHookId = curMapPlace[4];
+
+			if (jumpHookPos > strZnPtr->offset && jumpHookPos <= strZnPtr->size + strZnPtr->offset) {
+				if (!checkHookId(candidateHookId, jumpHookId))
+					return curMapPlace;
+			}
+		}
+		// Advance the map to the next place
+		curMapPlace = (int *)((int8 *)curMapPlace + bytesUntilNextPlace);
+	}
+
+	return NULL;
+}
+
+void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParams, int calledFromNavigateMap) {
 	int hookPosition, jumpDestination, fadeTime;
 	IMuseDigiStreamZone *nextStreamZone;
 	IMuseDigiStreamZone *zoneForJump;
@@ -1417,22 +1360,22 @@ void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiSt
 	unsigned int streamOffset;
 	IMuseDigiStreamZone *zoneCycle;
 
-	/* jumpParamsFromMap format:
-		jumpParamsFromMap[0]: four bytes which form the string 'JUMP'
-		jumpParamsFromMap[1]: block size in bytes minus 8 (16 for a JUMP block like this; total == 24 bytes)
-		jumpParamsFromMap[2]: hook position
-		jumpParamsFromMap[3]: jump destination
-		jumpParamsFromMap[4]: hook ID
-		jumpParamsFromMap[5]: fade time in milliseconds
+	/* jumpParams format:
+		jumpParams[0]: four bytes which form the string 'JUMP'
+		jumpParams[1]: block size in bytes minus 8 (16 for a JUMP block like this one; total == 24 bytes)
+		jumpParams[2]: hook position
+		jumpParams[3]: jump destination
+		jumpParams[4]: hook ID
+		jumpParams[5]: fade time in milliseconds
 	*/
 
-	hookPosition = jumpParamsFromMap[2];
-	jumpDestination = jumpParamsFromMap[3];
-	fadeTime = jumpParamsFromMap[5];
+	hookPosition = jumpParams[2];
+	jumpDestination = jumpParams[3];
+	fadeTime = jumpParams[5];
 
 	// Edge cases handling
-	if (streamZonePtr->size + streamZonePtr->offset == hookPosition) {
-		nextStreamZone = streamZonePtr->next;
+	if (strZnPtr->size + strZnPtr->offset == hookPosition) {
+		nextStreamZone = strZnPtr->next;
 		if (nextStreamZone) {
 			if (nextStreamZone->fadeFlag) {
 				// Avoid jumping if the next stream zone is already fading
@@ -1453,25 +1396,21 @@ void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiSt
 	}
 
 	// Maximum size of the dispatch for the fade (in bytes)
-	_dispatchSize = (dispatchPtr->wordSize
-		* dispatchPtr->channelCount
-		* ((dispatchPtr->sampleRate * fadeTime / 1000u) & 0xFFFFFFFE)) / 8;
+	_dispatchSize = dispatchGetFadeSize(dispatchPtr, fadeTime);
 
-	// If this function is being called from predictStream, 
+	// If this function is being called from dispatchPredictStream, 
 	// avoid accepting an oversized dispatch
-	if (!calledFromGetNextMapEvent) {
-		if (_dispatchSize > streamZonePtr->size + streamZonePtr->offset - hookPosition)
+	if (!calledFromNavigateMap) {
+		if (_dispatchSize > strZnPtr->size + strZnPtr->offset - hookPosition)
 			return;
 	}
 
 	// Cap the dispatch size, if oversized
-	if (_dispatchSize > streamZonePtr->size + streamZonePtr->offset - hookPosition)
-		_dispatchSize = streamZonePtr->size + streamZonePtr->offset - hookPosition;
+	if (_dispatchSize > strZnPtr->size + strZnPtr->offset - hookPosition)
+		_dispatchSize = strZnPtr->size + strZnPtr->offset - hookPosition;
 
-	// Validate and adjust the fade dispatch size further;
-	// this should correctly align the dispatch size to avoid starting a fade without
-	// inverting the stereo image by mistake
-	dispatchValidateFade(dispatchPtr, &_dispatchSize, "dispatchParseJump");
+	// This prevents starting a fade with an inverted stereo image
+	dispatchValidateFadeSize(dispatchPtr, &_dispatchSize, "dispatchPrepareToJump");
 
 	if (_vm->_game.id == GID_DIG) {
 		if (hookPosition < jumpDestination)
@@ -1490,8 +1429,8 @@ void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiSt
 		}
 
 		if (!zoneForJump) {
-			debug(5, "IMuseDigital::dispatchParseJump(): ERROR: out of streamZones");
-			debug(5, "IMuseDigital::dispatchParseJump(): ERROR: couldn't allocate zone");
+			debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: out of streamZones");
+			debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate zone");
 			return;
 		}
 
@@ -1511,8 +1450,8 @@ void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiSt
 	}
 
 	if (!zoneAfterJump) {
-		debug(5, "IMuseDigital::dispatchParseJump(): ERROR: out of streamZones");
-		debug(5, "IMuseDigital::dispatchParseJump(): ERROR: couldn't allocate zone");
+		debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: out of streamZones");
+		debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate zone");
 		return;
 	}
 
@@ -1523,47 +1462,73 @@ void IMuseDigital::dispatchParseJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiSt
 	zoneAfterJump->size = 0;
 	zoneAfterJump->fadeFlag = 0;
 
-	streamZonePtr->size = hookPosition - streamZonePtr->offset;
-	streamOffset = hookPosition - streamZonePtr->offset + _dispatchSize;
+	strZnPtr->size = hookPosition - strZnPtr->offset;
+	streamOffset = hookPosition - strZnPtr->offset + _dispatchSize;
 
 	// Go to the interested stream zone to calculate the stream offset, 
 	// and schedule the sound to stream with that offset
 	zoneCycle = dispatchPtr->streamZoneList;
-	while (zoneCycle != streamZonePtr) {
+	while (zoneCycle != strZnPtr) {
 		streamOffset += zoneCycle->size;
 		zoneCycle = zoneCycle->next;
 	}
 
-	streamerSetIndex2(dispatchPtr->streamPtr, streamOffset);
+	streamerSetLoadIndex(dispatchPtr->streamPtr, streamOffset);
 
-	while (streamZonePtr->next) {
-		streamZonePtr->next->useFlag = 0;
-		removeStreamZoneFromList(&streamZonePtr->next, streamZonePtr->next);
+	while (strZnPtr->next) {
+		strZnPtr->next->useFlag = 0;
+		removeStreamZoneFromList(&strZnPtr->next, strZnPtr->next);
 	}
 
-	streamerSetSoundToStreamWithCurrentOffset(dispatchPtr->streamPtr,
+	streamerSetSoundToStreamFromOffset(dispatchPtr->streamPtr,
 		dispatchPtr->trackPtr->soundId, jumpDestination);
 
 	// Prepare the fading zone for the jump
 	// and also a subsequent empty dummy zone
 	if (_dispatchSize) {
-		streamZonePtr->next = zoneForJump;
-		zoneForJump->prev = streamZonePtr;
-		streamZonePtr = zoneForJump;
+		strZnPtr->next = zoneForJump;
+		zoneForJump->prev = strZnPtr;
+		strZnPtr = zoneForJump;
 		zoneForJump->next = 0;
 		zoneForJump->offset = hookPosition;
 		zoneForJump->size = _dispatchSize;
 		zoneForJump->fadeFlag = 1;
 	}
 
-	streamZonePtr->next = zoneAfterJump;
-	zoneAfterJump->prev = streamZonePtr;
+	strZnPtr->next = zoneAfterJump;
+	zoneAfterJump->prev = strZnPtr;
 	zoneAfterJump->next = NULL;
 	zoneAfterJump->offset = jumpDestination;
 	zoneAfterJump->size = 0;
 	zoneAfterJump->fadeFlag = 0;
+}
 
-	return;
+void IMuseDigital::dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr) {
+	int cumulativeStreamOffset;
+	IMuseDigiStreamZone *szTmp;
+	
+	if (strZnPtr->next) {
+		cumulativeStreamOffset = strZnPtr->size;
+		szTmp = dispatchPtr->streamZoneList;
+		while (szTmp != strZnPtr) {
+			cumulativeStreamOffset += szTmp->size;
+			szTmp = szTmp->next;
+		}
+
+		// Set the stream load index of the sound to the new streamZone
+		streamerSetLoadIndex(dispatchPtr->streamPtr, cumulativeStreamOffset);
+
+		// Remove che previous streamZone from the list, we don't need it anymore
+		while (strZnPtr->next->prev) {
+			strZnPtr->next->prev->useFlag = 0;
+			removeStreamZoneFromList(&strZnPtr->next, strZnPtr->next->prev);
+		}
+
+		streamerSetSoundToStreamFromOffset(
+			dispatchPtr->streamPtr,
+			dispatchPtr->trackPtr->soundId,
+			strZnPtr->size + strZnPtr->offset);
+	}
 }
 
 IMuseDigiStreamZone *IMuseDigital::dispatchAllocStreamZone() {
@@ -1668,7 +1633,11 @@ void IMuseDigital::dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const 
 	debug(5, "IMuseDigital::dispatchDeallocateFade(): couldn't find fade buf to de-allocate in %s()", function);
 }
 
-void IMuseDigital::dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function) {
+int IMuseDigital::dispatchGetFadeSize(IMuseDigiDispatch *dispatchPtr, int fadeLength) {
+	return (dispatchPtr->wordSize * dispatchPtr->channelCount * ((dispatchPtr->sampleRate * fadeLength / 1000) & 0xFFFFFFFE)) / 8;
+}
+
+void IMuseDigital::dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function) {
 	int alignmentModDividend;
 	if (_vm->_game.id == GID_DIG || (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) {
 		alignmentModDividend = dispatchPtr->channelCount * (dispatchPtr->wordSize == 8 ? 1 : 3);
@@ -1683,7 +1652,7 @@ void IMuseDigital::dispatchValidateFade(IMuseDigiDispatch *dispatchPtr, int *dis
 	if (alignmentModDividend) {
 		*dispatchSize -= *dispatchSize % alignmentModDividend;
 	} else {
-		debug(5, "IMuseDigital::dispatchValidateFade(): WARNING: tried mod by 0 while validating fade size in %s(), ignored", function);
+		debug(5, "IMuseDigital::dispatchValidateFadeSize(): WARNING: tried mod by 0 while validating fade size in %s(), ignored", function);
 	}
 }
 
@@ -1723,10 +1692,10 @@ void IMuseDigital::dispatchVOCLoopCallback(int soundId) {
 	for (int i = 0; i < _trackCount; i++) {
 		curDispatchPtr = &_dispatches[i];
 		if (curDispatchPtr->trackPtr->soundId == soundId) {
-			dataBlockTag = streamerCopyBufferAbsolute(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining, 1);
+			dataBlockTag = streamerGetStreamBufferAtOffset(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining, 1);
 			if (dataBlockTag && dataBlockTag[0] == 7) { // End of loop
-				streamerSetIndex2(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining + 1);
-				streamerSetSoundToStreamWithCurrentOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->loopStartingPoint);
+				streamerSetLoadIndex(curDispatchPtr->streamPtr, curDispatchPtr->audioRemaining + 1);
+				streamerSetSoundToStreamFromOffset(curDispatchPtr->streamPtr, curDispatchPtr->trackPtr->soundId, curDispatchPtr->vocLoopStartingPoint);
 			}
 		}
 	}
@@ -1739,8 +1708,8 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 
 	while (1) {
 		if (dispatchPtr->streamPtr) {
-			headerBuf = streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 0x30);
-			if (headerBuf || (headerBuf = streamerCopyBufferAbsolute(dispatchPtr->streamPtr, 0, 1)) != 0) {
+			headerBuf = streamerGetStreamBufferAtOffset(dispatchPtr->streamPtr, 0, 0x30);
+			if (headerBuf || (headerBuf = streamerGetStreamBufferAtOffset(dispatchPtr->streamPtr, 0, 1)) != 0) {
 				// Little hack: avoid copying stuff from the resource to the
 				// header buffer beyond the resource size limit
 				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
@@ -1777,7 +1746,7 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 				_currentVOCHeader[22] == 0xA && _currentVOCHeader[23] == 0x1) {
 				dispatchPtr->currentOffset += 26;
 				if (dispatchPtr->streamPtr)
-					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 26);
+					streamerGetStreamBuffer(dispatchPtr->streamPtr, 26);
 				continue;
 			}
 			return -1;
@@ -1791,14 +1760,14 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 				// Another little hack to avoid click and pops artifacts:
 				// read one audio sample less if this is the last audio chunk of the file
 				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
-				if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
-					dispatchPtr->audioRemaining -= 2;
-				}
+				//if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
+				//	dispatchPtr->audioRemaining -= 2;
+				//}
 
 				if (dispatchPtr->streamPtr) {
-					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
-					if (dispatchPtr->loopStartingPoint)
-						streamerSetDataOffsetFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
+					streamerGetStreamBuffer(dispatchPtr->streamPtr, 6);
+					if (dispatchPtr->vocLoopStartingPoint)
+						streamerSetLoopFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
 				}
 				return 0;
 			case 4: // Marker, 2 bytes, used for triggers (disabling them for now, but I will work on these later)
@@ -1806,15 +1775,15 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 				dispatchPtr->currentOffset += 6;
 				continue;
 			case 6:
-				dispatchPtr->loopStartingPoint = dispatchPtr->currentOffset;
+				dispatchPtr->vocLoopStartingPoint = dispatchPtr->currentOffset;
 				dispatchPtr->currentOffset += 6;
 				if (dispatchPtr->streamPtr)
-					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 6);
+					streamerGetStreamBuffer(dispatchPtr->streamPtr, 6);
 				continue;
 			case 7:
-				dispatchPtr->currentOffset = dispatchPtr->loopStartingPoint;
+				dispatchPtr->currentOffset = dispatchPtr->vocLoopStartingPoint;
 				if (dispatchPtr->streamPtr)
-					streamerReAllocReadBuffer(dispatchPtr->streamPtr, 1);
+					streamerGetStreamBuffer(dispatchPtr->streamPtr, 1);
 				continue;
 			default:
 				return -1;

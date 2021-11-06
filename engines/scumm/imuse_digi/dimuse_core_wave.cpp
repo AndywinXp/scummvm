@@ -107,9 +107,9 @@ int IMuseDigital::waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengt
 	return dispatchSwitchStream(oldSoundId, newSoundId, fadeLengthMs, fadeSyncFlag2, fadeSyncFlag1);
 }
 
-int IMuseDigital::waveSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int dataOffsetFlag) {
+int IMuseDigital::waveSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag) {
 	Common::StackLock lock(_mutex);
-	return dispatchSwitchStream(oldSoundId, newSoundId, crossfadeBuffer, crossfadeBufferSize, dataOffsetFlag);
+	return dispatchSwitchStream(oldSoundId, newSoundId, crossfadeBuffer, crossfadeBufferSize, vocLoopFlag);
 }
 
 int IMuseDigital::waveProcessStreams() {
