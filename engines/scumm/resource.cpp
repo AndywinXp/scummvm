@@ -595,7 +595,7 @@ void ScummEngine::nukeCharset(int i) {
 }
 
 void ScummEngine::ensureResourceLoaded(ResType type, ResId idx) {
-	Common::StackLock lock(_resourceAccessMutex);
+	//Common::StackLock lock(_resourceAccessMutex);
 	debugC(DEBUG_RESOURCE, "ensureResourceLoaded(%s,%d)", nameOfResType(type), idx);
 
 	if ((type == rtRoom) && idx > 0x7F && _game.version < 7 && _game.heversion <= 71) {
