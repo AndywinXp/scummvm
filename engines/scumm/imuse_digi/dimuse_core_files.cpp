@@ -101,7 +101,6 @@ uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
 	if (soundId != 0) {
-		//_vm->ensureResourceLoaded(rtSound, soundId);
 		_vm->_res->lock(rtSound, soundId);
 		byte *ptr = _vm->getResourceAddress(rtSound, soundId);
 		if (!ptr) {

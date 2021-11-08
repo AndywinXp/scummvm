@@ -679,7 +679,7 @@ public:
 	void ensureResourceLoaded(ResType type, ResId idx);
 
 protected:
-	Common::Mutex _resourceAccessMutex; // Used in ensureResourceLoaded(), getResourceAddress() and findResource()
+	Common::Mutex _resourceAccessMutex; // Used in getResourceSize(), getResourceAddress() and findResource()
 										// to avoid race conditions between the audio thread of DiMUSE_v2
 										// and the main SCUMM thread
 

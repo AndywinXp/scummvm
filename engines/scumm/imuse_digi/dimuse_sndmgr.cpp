@@ -408,7 +408,6 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 	case IMUSE_RESOURCE:
 		assert(soundName[0] == 0);	// Paranoia check
 
-		//_vm->ensureResourceLoaded(rtSound, soundId);
 		_vm->_res->lock(rtSound, soundId);
 		ptr = _vm->getResourceAddress(rtSound, soundId);
 		if (ptr == NULL) {

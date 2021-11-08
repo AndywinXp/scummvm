@@ -72,7 +72,6 @@ int IMuseDigital::waveStopAllSounds() {
 }
 
 int IMuseDigital::waveGetNextSound(int soundId) {
-	//Common::StackLock lock(_mutex);
 	return tracksGetNextSound(soundId);
 }
 
