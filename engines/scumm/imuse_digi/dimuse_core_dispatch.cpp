@@ -1774,8 +1774,9 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 						streamerSetLoopFlag(dispatchPtr->streamPtr, dispatchPtr->audioRemaining + dispatchPtr->currentOffset);
 				}
 				return 0;
-			case 4: // Marker, 2 bytes, used for triggers (disabling them for now, but I will work on these later)
-				//_triggersHandler->processTriggers(dispatchPtr->trackPtr->soundId, *(int16 *)&_currentVOCHeader[4]);
+			case 4:
+				// Marker, 2 bytes, theoretically used for triggers, but never actually found in the game;
+				// I am keeping this case here, in order to correctly keep track of the offset
 				dispatchPtr->currentOffset += 6;
 				continue;
 			case 6:
