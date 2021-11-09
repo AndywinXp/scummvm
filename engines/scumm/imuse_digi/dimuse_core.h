@@ -231,7 +231,7 @@ private:
 	int *dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int *candidateHookId);
 	void dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	void dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr);
-	IMuseDigiStreamZone *dispatchAllocStreamZone();
+	IMuseDigiStreamZone *dispatchAllocateStreamZone();
 	uint8 *dispatchAllocateFade(int *fadeSize, const char *functionName);
 	void dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const char *functionName);
 	int dispatchGetFadeSize(IMuseDigiDispatch *dispatchPtr, int fadeLength);

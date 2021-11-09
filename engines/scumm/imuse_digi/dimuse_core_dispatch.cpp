@@ -158,35 +158,16 @@ int IMuseDigital::dispatchRestoreStreamZones() {
 					if (curDispatchPtr->vocLoopStartingPoint)
 						streamerSetLoopFlag(curDispatchPtr->streamPtr, curDispatchPtr->currentOffset + curDispatchPtr->audioRemaining);
 				} else if (curDispatchPtr->audioRemaining) {
-					// Try finding a stream zone which is not in use
-					curStreamZone = NULL;
-					for (int j = 0; j < MAX_STREAMZONES; j++) {
-						if (_streamZones[j].useFlag == 0) {
-							curStreamZone = &_streamZones[j];
-						}
-					}
+					// Try allocating the first streamZone of the dispatch
+					curStreamZone = dispatchAllocateStreamZone();
+					curDispatchPtr->streamZoneList = curStreamZone;
 
-					if (!curStreamZone) {
-						debug(5, "IMuseDigital::dispatchRestoreStreamZones(): out of streamZones");
-						curStreamZoneList = (IMuseDigiStreamZone *)&curDispatchPtr->streamZoneList;
-						curDispatchPtr->streamZoneList = 0;
-					} else {
-						curStreamZoneList = (IMuseDigiStreamZone *)&curDispatchPtr->streamZoneList;
-						curStreamZone->prev = 0;
-						curStreamZone->next = 0;
-						curStreamZone->useFlag = 1;
-						curStreamZone->offset = 0;
+					if (curStreamZone) {
+						curStreamZone->offset = curDispatchPtr->currentOffset;
 						curStreamZone->size = 0;
 						curStreamZone->fadeFlag = 0;
-						curDispatchPtr->streamZoneList = curStreamZone;
-					}
-
-					if (curStreamZoneList->prev) {
-						curStreamZoneList->prev->offset = curDispatchPtr->currentOffset;
-						curStreamZoneList->prev->size = 0;
-						curStreamZoneList->prev->fadeFlag = 0;
 					} else {
-						debug(5, "IMuseDigital::dispatchRestoreStreamZones(): unable to alloc zone during restore");
+						debug(5, "IMuseDigital::dispatchRestoreStreamZones(): unable to allocate streamZone during restore");
 					}
 				}
 			} else {
@@ -1113,7 +1094,7 @@ int IMuseDigital::dispatchGetMap(IMuseDigiDispatch *dispatchPtr) {
 						return -1;
 					}
 
-					dispatchPtr->streamZoneList = dispatchAllocStreamZone();
+					dispatchPtr->streamZoneList = dispatchAllocateStreamZone();
 					if (!dispatchPtr->streamZoneList) {
 						debug(5, "IMuseDigital::dispatchGetMap(): ERROR: couldn't allocate zone");
 						return -1;
@@ -1355,7 +1336,7 @@ int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnP
 void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParams, int calledFromNavigateMap) {
 	int hookPosition, jumpDestination, fadeTime;
 	IMuseDigiStreamZone *nextStreamZone;
-	IMuseDigiStreamZone *zoneForJump;
+	IMuseDigiStreamZone *zoneForJump = NULL;
 	IMuseDigiStreamZone *zoneAfterJump;
 	unsigned int streamOffset;
 	IMuseDigiStreamZone *zoneCycle;
@@ -1419,48 +1400,21 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 		if (dispatchPtr->fadeRemaining)
 			_dispatchSize = 0;
 	}
-	// Try allocating the two zones needed for the jump
-	zoneForJump = NULL;
-	if (_dispatchSize) {
-		for (int i = 0; i < MAX_STREAMZONES; i++) {
-			if (!_streamZones[i].useFlag) {
-				zoneForJump = &_streamZones[i];
-			}
-		}
 
+	// Try allocating the two streamZones needed for the jump
+	if (_dispatchSize) {
+		zoneForJump = dispatchAllocateStreamZone();
 		if (!zoneForJump) {
-			debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: out of streamZones");
-			debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate zone");
+			debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate streamZone");
 			return;
 		}
-
-		zoneForJump->prev = NULL;
-		zoneForJump->next = NULL;
-		zoneForJump->useFlag = 1;
-		zoneForJump->offset = 0;
-		zoneForJump->size = 0;
-		zoneForJump->fadeFlag = 0;
 	}
 
-	zoneAfterJump = NULL;
-	for (int i = 0; i < MAX_STREAMZONES; i++) {
-		if (!_streamZones[i].useFlag) {
-			zoneAfterJump = &_streamZones[i];
-		}
-	}
-
+	zoneAfterJump = dispatchAllocateStreamZone();
 	if (!zoneAfterJump) {
-		debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: out of streamZones");
-		debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate zone");
+		debug(5, "IMuseDigital::dispatchPrepareToJump(): ERROR: couldn't allocate streamZone");
 		return;
 	}
-
-	zoneAfterJump->prev = NULL;
-	zoneAfterJump->next = NULL;
-	zoneAfterJump->useFlag = 1;
-	zoneAfterJump->offset = 0;
-	zoneAfterJump->size = 0;
-	zoneAfterJump->fadeFlag = 0;
 
 	strZnPtr->size = hookPosition - strZnPtr->offset;
 	streamOffset = hookPosition - strZnPtr->offset + _dispatchSize;
@@ -1531,7 +1485,7 @@ void IMuseDigital::dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseD
 	}
 }
 
-IMuseDigiStreamZone *IMuseDigital::dispatchAllocStreamZone() {
+IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
 	for (int i = 0; i < MAX_STREAMZONES; i++) {
 		if (_streamZones[i].useFlag == 0) {
 			_streamZones[i].prev = 0;
@@ -1544,7 +1498,7 @@ IMuseDigiStreamZone *IMuseDigital::dispatchAllocStreamZone() {
 			return &_streamZones[i];
 		}
 	}
-	debug(5, "IMuseDigital::dispatchAllocStreamZone(): ERROR: out of streamZones");
+	debug(5, "IMuseDigital::dispatchAllocateStreamZone(): ERROR: out of streamZones");
 	return NULL;
 }
 
