@@ -191,6 +191,7 @@ private:
 	int tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
 	int tracksSetHook(int soundId, int hookId);
 	int tracksGetHook(int soundId);
+	IMuseDigiTrack *tracksReserveTrack(int priority);
 	void tracksDeinit();
 
 	// Dispatch

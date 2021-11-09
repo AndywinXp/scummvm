@@ -283,11 +283,6 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 	if (fadeLength > 2000)
 		effFadeLen = 2000;
 
-	if (_trackCount <= 0) {
-		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, _trackCount is %d", _trackCount);
-		return -1;
-	}
-
 	for (i = 0; i < _trackCount; i++) {
 		curDispatch = &_dispatches[i];
 		if (oldSoundId && curDispatch->trackPtr->soundId == oldSoundId && curDispatch->streamPtr) {
@@ -400,11 +395,6 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 	IMuseDigiDispatch *dispatchPtr = NULL;
 	uint8 *streamBuf;
 	int i, effAudioRemaining, audioRemaining, offset;
-
-	if (_trackCount <= 0) {
-		debug(5, "IMuseDigital::dispatchSwitchStream(): couldn't find sound, _trackCount is %d", _trackCount);
-		return -1;
-	}
 
 	for (i = 0; i < _trackCount; i++) {
 		dispatchPtr = &_dispatches[i];
@@ -840,11 +830,9 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 void IMuseDigital::dispatchPredictFirstStream() {
 	Common::StackLock lock(_mutex);
 
-	if (_trackCount > 0) {
-		for (int i = 0; i < _trackCount; i++) {
-			if (_dispatches[i].trackPtr->soundId && _dispatches[i].streamPtr && _dispatches[i].streamZoneList)
-				dispatchPredictStream(&_dispatches[i]);
-		}
+	for (int i = 0; i < _trackCount; i++) {
+		if (_dispatches[i].trackPtr->soundId && _dispatches[i].streamPtr && _dispatches[i].streamZoneList)
+			dispatchPredictStream(&_dispatches[i]);
 	}
 }
 

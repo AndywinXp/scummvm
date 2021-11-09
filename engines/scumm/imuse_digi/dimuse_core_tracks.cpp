@@ -121,15 +121,13 @@ void IMuseDigital::tracksSaveLoad(Common::Serializer &ser) {
 	}
 
 	if (ser.isLoading()) {
-		if (_trackCount > 0) {
-			for (int l = 0; l < _trackCount; l++) {
-				_tracks[l].prev = NULL;
-				_tracks[l].next = NULL;
-				_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
-				_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
-				if (_tracks[l].soundId) {
-					addTrackToList(&_trackList, &_tracks[l]);
-				}
+		for (int l = 0; l < _trackCount; l++) {
+			_tracks[l].prev = NULL;
+			_tracks[l].next = NULL;
+			_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
+			_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
+			if (_tracks[l].soundId) {
+				addTrackToList(&_trackList, &_tracks[l]);
 			}
 		}
 
@@ -203,120 +201,45 @@ void IMuseDigital::tracksCallback() {
 }
 
 int IMuseDigital::tracksStartSound(int soundId, int tryPriority, int group) {
-	debug(5, "IMuseDigital::tracksStartSound(): sound %d with priority %d and group %d", soundId, tryPriority, group);
 	int priority = clampNumber(tryPriority, 0, 127);
-	if (_trackCount > 0) {
-		int l = 0;
-		while (_tracks[l].soundId) {
-			l++;
-			if (l >= _trackCount) {
-				l = -1;
-				break;
-			}
-		}
 
-		if (l != -1) {
-			IMuseDigiTrack *foundTrack = &_tracks[l];
-			if (!foundTrack)
-				return -6;
+	debug(5, "IMuseDigital::tracksStartSound(): sound %d with priority %d and group %d", soundId, priority, group);
+	IMuseDigiTrack *allocatedTrack = tracksReserveTrack(priority);
 
-			foundTrack->soundId = soundId;
-			foundTrack->marker = 0;
-			foundTrack->group = 0;
-			foundTrack->priority = priority;
-			foundTrack->vol = 127;
-			foundTrack->effVol = _groupsHandler->getGroupVol(0);
-			foundTrack->pan = 64;
-			foundTrack->detune = 0;
-			foundTrack->transpose = 0;
-			foundTrack->pitchShift = 256;
-			foundTrack->mailbox = 0;
-			foundTrack->jumpHook = 0;
-			foundTrack->syncSize_0 = 0;
-			foundTrack->syncPtr_0 = NULL;
-			foundTrack->syncSize_1 = 0;
-			foundTrack->syncPtr_1 = NULL;
-			foundTrack->syncSize_2 = 0;
-			foundTrack->syncPtr_2 = NULL;
-			foundTrack->syncSize_3 = 0;
-			foundTrack->syncPtr_3 = NULL;
-
-			if (soundId == kTalkSoundID) {
-				_currentSpeechVolume = 127;
-				_currentSpeechPan = 64;
-				_currentSpeechFrequency = 0;
-			}
-
-			if (dispatchAllocateSound(foundTrack, group)) {
-				debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
-				foundTrack->soundId = 0;
-				return -1;
-			}
-
-			Common::StackLock lock(_mutex);
-			addTrackToList(&_trackList, foundTrack);
-			Common::StackLock unlock(_mutex);
-
-			return 0;
-		}
-	}
-
-	debug(5, "IMuseDigital::tracksStartSound(): WARNING: no spare tracks for sound %d, attempting to steal a lower priority track", soundId);
-
-	// Let's steal the track with the lowest priority
-	IMuseDigiTrack *track = _trackList;
-	int bestPriority = 127;
-	IMuseDigiTrack *stolenTrack = NULL;
-
-	while (track) {
-		int curTrackPriority = track->priority;
-		if (curTrackPriority <= bestPriority) {
-			bestPriority = curTrackPriority;
-			stolenTrack = track;
-		}
-		track = track->next;
-	}
-
-	if (!stolenTrack || priority < bestPriority) {
-		debug(5, "IMuseDigital::tracksStartSound(): ERROR: couldn't steal a lower priority track for sound %d", soundId);
+	if (!allocatedTrack) {
+		debug(5, "IMuseDigital::tracksStartSound(): ERROR: couldn't find a spare track to allocate sound %d", soundId);
 		return -6;
-	} else {
-		removeTrackFromList(&_trackList, stolenTrack);
-		dispatchRelease(stolenTrack);
-		_fadesHandler->clearFadeStatus(stolenTrack->soundId, -1);
-		_triggersHandler->clearTrigger(stolenTrack->soundId, _emptyMarker, -1);
-		stolenTrack->soundId = 0;
 	}
 
-	stolenTrack->soundId = soundId;
-	stolenTrack->marker = 0;
-	stolenTrack->group = 0;
-	stolenTrack->priority = priority;
-	stolenTrack->vol = 127;
-	stolenTrack->effVol = _groupsHandler->getGroupVol(0);
-	stolenTrack->pan = 64;
-	stolenTrack->detune = 0;
-	stolenTrack->transpose = 0;
-	stolenTrack->pitchShift = 256;
-	stolenTrack->mailbox = 0;
-	stolenTrack->jumpHook = 0;
-	stolenTrack->syncSize_0 = 0;
-	stolenTrack->syncPtr_0 = NULL;
-	stolenTrack->syncSize_1 = 0;
-	stolenTrack->syncPtr_1 = NULL;
-	stolenTrack->syncSize_2 = 0;
-	stolenTrack->syncPtr_2 = NULL;
-	stolenTrack->syncSize_3 = 0;
-	stolenTrack->syncPtr_3 = NULL;
+	allocatedTrack->soundId = soundId;
+	allocatedTrack->marker = 0;
+	allocatedTrack->group = 0;
+	allocatedTrack->priority = priority;
+	allocatedTrack->vol = 127;
+	allocatedTrack->effVol = _groupsHandler->getGroupVol(0);
+	allocatedTrack->pan = 64;
+	allocatedTrack->detune = 0;
+	allocatedTrack->transpose = 0;
+	allocatedTrack->pitchShift = 256;
+	allocatedTrack->mailbox = 0;
+	allocatedTrack->jumpHook = 0;
+	allocatedTrack->syncSize_0 = 0;
+	allocatedTrack->syncPtr_0 = NULL;
+	allocatedTrack->syncSize_1 = 0;
+	allocatedTrack->syncPtr_1 = NULL;
+	allocatedTrack->syncSize_2 = 0;
+	allocatedTrack->syncPtr_2 = NULL;
+	allocatedTrack->syncSize_3 = 0;
+	allocatedTrack->syncPtr_3 = NULL;
 
-	if (dispatchAllocateSound(stolenTrack, group)) {
+	if (dispatchAllocateSound(allocatedTrack, group)) {
 		debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
-		stolenTrack->soundId = 0;
+		allocatedTrack->soundId = 0;
 		return -1;
 	}
 
 	Common::StackLock lock(_mutex);
-	addTrackToList(&_trackList, stolenTrack);
+	addTrackToList(&_trackList, allocatedTrack);
 	Common::StackLock unlock(_mutex);
 
 	return 0;
@@ -346,24 +269,10 @@ int IMuseDigital::tracksStopAllSounds() {
 	IMuseDigiTrack *nextTrack = _trackList;
 	IMuseDigiTrack *curTrack;
 
-	if (_vm->_game.id == GID_DIG || (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) {
-		if (_trackList) {
-			do {
-				curTrack = nextTrack->next;
-				removeTrackFromList(&_trackList, nextTrack);
-				dispatchRelease(nextTrack);
-				_fadesHandler->clearFadeStatus(nextTrack->soundId, -1);
-				_triggersHandler->clearTrigger(nextTrack->soundId, _emptyMarker, -1);
-				nextTrack->soundId = 0;
-				nextTrack = curTrack;
-			} while (nextTrack);
-		}
-	} else {
-		while (nextTrack) {
-			curTrack = nextTrack;
-			nextTrack = curTrack->next;
-			tracksClear(curTrack);
-		}
+	while (nextTrack) {
+		curTrack = nextTrack;
+		nextTrack = curTrack->next;
+		tracksClear(curTrack);
 	}
 
 	_filesHandler->closeAllSounds();
@@ -708,22 +617,37 @@ int IMuseDigital::tracksGetHook(int soundId) {
 	return track->jumpHook;
 }
 
+IMuseDigiTrack *IMuseDigital::tracksReserveTrack(int priority) {
+	IMuseDigiTrack *curTrack;
+	IMuseDigiTrack *reservedTrack = NULL;
+	int minPriorityFound;
+
+	// Pick the track from the pool of free tracks
+	for (int i = 0; i < _trackCount; i++) {
+		reservedTrack = &_tracks[i];
+		if (!reservedTrack->soundId) {
+			return reservedTrack;
+		}
+	}
+
+	// If no free track is found, steal the lower priority one
+	curTrack = _trackList;
+	for (minPriorityFound = 127; curTrack; curTrack = curTrack->next) {
+		if (curTrack->priority <= minPriorityFound) {
+			minPriorityFound = curTrack->priority;
+			reservedTrack = curTrack;
+		}
+	}
+
+	if (reservedTrack && priority >= minPriorityFound) {
+		tracksClear(reservedTrack);
+	}
+
+	return reservedTrack;
+}
+
 void IMuseDigital::tracksDeinit() {
-	if (!_trackList)
-		return;
-
-	Common::StackLock lock(_mutex);
-	IMuseDigiTrack *track = _trackList;
-	do {
-		removeTrackFromList(&_trackList, track);
-
-		dispatchRelease(track);
-		_fadesHandler->clearFadeStatus(track->soundId, -1);
-		_triggersHandler->clearTrigger(track->soundId, _emptyMarker, -1);
-
-		track->soundId = 0;
-		track = track->next;
-	} while (track);
+	tracksStopAllSounds();
 }
 
 } // End of namespace Scumm
