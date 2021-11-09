@@ -197,11 +197,11 @@ int IMuseDigital::dispatchRestoreStreamZones() {
 	return 0;
 }
 
-int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
+int IMuseDigital::dispatchAllocateSound(IMuseDigiTrack *trackPtr, int groupId) {
 	IMuseDigiDispatch *trackDispatch;
 	IMuseDigiDispatch *dispatchToDeallocate;
 	IMuseDigiStreamZone *streamZoneList;
-	int getMapResult;
+	int navigateMapResult;
 	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
 
 	trackDispatch = trackPtr->dispatchPtr;
@@ -220,7 +220,7 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 		trackDispatch->streamBufID = groupId;
 
 		if (!trackDispatch->streamPtr) {
-			debug(5, "IMuseDigital::dispatchAlloc(): unable to allocate stream for sound %d", trackPtr->soundId);
+			debug(5, "IMuseDigital::dispatchAllocateSound(): unable to allocate stream for sound %d", trackPtr->soundId);
 			return -1;
 		}
 
@@ -235,12 +235,12 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 			return dispatchSeekToNextChunk(trackDispatch);
 	}
 
-	getMapResult = dispatchNavigateMap(trackDispatch);
-	if (!getMapResult || getMapResult == -3)
+	navigateMapResult = dispatchNavigateMap(trackDispatch);
+	if (!navigateMapResult || navigateMapResult == -3)
 		return 0;
 
 	// At this point, something went wrong, so deallocate what we have to...
-	debug(5, "IMuseDigital::dispatchAlloc(): problem starting sound (%d) in dispatch", trackPtr->soundId);
+	debug(5, "IMuseDigital::dispatchAllocateSound(): problem starting sound (%d) in dispatch", trackPtr->soundId);
 	
 	// Remove streamZones from list
 	dispatchToDeallocate = trackDispatch->trackPtr->dispatchPtr;
@@ -259,7 +259,7 @@ int IMuseDigital::dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId) {
 		return -1;
 
 	// Mark the fade corresponding to our fadeBuf as unused
-	dispatchDeallocateFade(dispatchToDeallocate, "dispatchAlloc");
+	dispatchDeallocateFade(dispatchToDeallocate, "dispatchAllocateSound");
 	return -1;
 }
 

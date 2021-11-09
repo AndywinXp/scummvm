@@ -247,7 +247,7 @@ int IMuseDigital::tracksStartSound(int soundId, int tryPriority, int group) {
 				_currentSpeechFrequency = 0;
 			}
 
-			if (dispatchAlloc(foundTrack, group)) {
+			if (dispatchAllocateSound(foundTrack, group)) {
 				debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 				foundTrack->soundId = 0;
 				return -1;
@@ -309,7 +309,7 @@ int IMuseDigital::tracksStartSound(int soundId, int tryPriority, int group) {
 	stolenTrack->syncSize_3 = 0;
 	stolenTrack->syncPtr_3 = NULL;
 
-	if (dispatchAlloc(stolenTrack, group)) {
+	if (dispatchAllocateSound(stolenTrack, group)) {
 		debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
 		stolenTrack->soundId = 0;
 		return -1;

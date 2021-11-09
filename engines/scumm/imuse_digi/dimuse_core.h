@@ -216,7 +216,7 @@ private:
 	IMuseDigiDispatch *dispatchGetDispatchByTrackId(int trackId);
 	void dispatchSaveLoad(Common::Serializer &ser);
 	int dispatchRestoreStreamZones();
-	int dispatchAlloc(IMuseDigiTrack *trackPtr, int groupId);
+	int dispatchAllocateSound(IMuseDigiTrack *trackPtr, int groupId);
 	int dispatchRelease(IMuseDigiTrack *trackPtr);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag);
 	int dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag);
