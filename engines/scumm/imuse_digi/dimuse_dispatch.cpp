@@ -1328,14 +1328,13 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 	unsigned int streamOffset;
 	IMuseDigiStreamZone *zoneCycle;
 
-	/* jumpParams format:
-		jumpParams[0]: four bytes which form the string 'JUMP'
-		jumpParams[1]: block size in bytes minus 8 (16 for a JUMP block like this one; total == 24 bytes)
-		jumpParams[2]: hook position
-		jumpParams[3]: jump destination
-		jumpParams[4]: hook ID
-		jumpParams[5]: fade time in milliseconds
-	*/
+	// jumpParams format:
+	// jumpParams[0]: four bytes which form the string 'JUMP'
+	// jumpParams[1]: block size in bytes minus 8 (16 for a JUMP block like this one; total == 24 bytes)
+	// jumpParams[2]: hook position
+	// jumpParams[3]: jump destination
+	// jumpParams[4]: hook ID
+	// jumpParams[5]: fade time in milliseconds
 
 	hookPosition = jumpParams[2];
 	jumpDestination = jumpParams[3];
