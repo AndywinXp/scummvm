@@ -132,7 +132,7 @@ int BundleDirCache::matchFile(const char *filename) {
 			_budleDirCache[freeSlot].indexTable[i].index = i;
 		}
 		qsort(_budleDirCache[freeSlot].indexTable, _budleDirCache[freeSlot].numFiles,
-				sizeof(IndexNode), (int (*)(const void*, const void*))scumm_stricmp);
+				sizeof(IndexNode), (int (*)(const void *, const void *))scumm_stricmp);
 		return freeSlot;
 	} else {
 		return fileId;
@@ -161,7 +161,7 @@ Common::SeekableReadStream *BundleMgr::getFile(const char *filename, int32 &offs
 	BundleDirCache::IndexNode target;
 	strcpy(target.filename, filename);
 	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
-			sizeof(BundleDirCache::IndexNode), (int (*)(const void*, const void*))scumm_stricmp);
+			sizeof(BundleDirCache::IndexNode), (int (*)(const void *, const void *))scumm_stricmp);
 	if (found) {
 		_file->seek(_bundleTable[found->index].offset, SEEK_SET);
 		offset = _bundleTable[found->index].offset;
@@ -268,7 +268,7 @@ int32 BundleMgr::seekFile(int32 offset, int mode) {
 		if (_isUncompressed) {
 			result = offset + _bundleTable[_curSampleId].size;
 		} else {
-			result = offset + ((_numCompItems - 1) * 0x2000) + _lastBlockDecompressedSize;
+			result = offset + ((_numCompItems - 1) * DIMUSE_BUN_CHUNK_SIZE) + _lastBlockDecompressedSize;
 		}
 		_curDecompressedFilePos = result;
 		break;
@@ -278,7 +278,7 @@ int32 BundleMgr::seekFile(int32 offset, int mode) {
 			result = offset;
 			_curDecompressedFilePos = result;
 		} else {
-			int destBlock = offset / 0x2000 + (offset % 0x2000 != 0);
+			int destBlock = offset / DIMUSE_BUN_CHUNK_SIZE + (offset % DIMUSE_BUN_CHUNK_SIZE != 0);
 			if (destBlock <= _numCompItems) {
 				result = offset;
 				_curDecompressedFilePos = result;
@@ -302,7 +302,7 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 	strncpy(target.filename, name, sizeof(target.filename));
 	target.filename[sizeof(target.filename) - 1] = '\0';
 	BundleDirCache::IndexNode *found = (BundleDirCache::IndexNode *)bsearch(&target, _indexTable, _numFiles,
-		sizeof(BundleDirCache::IndexNode), (int(*)(const void*, const void*))scumm_stricmp);
+		sizeof(BundleDirCache::IndexNode), (int(*)(const void *, const void *))scumm_stricmp);
 
 	if (found) {
 		int32 i, finalSize, outputSize;
@@ -336,19 +336,19 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 			return size;
 		}
 
-		firstBlock = (_curDecompressedFilePos + headerSize) / 0x2000;
-		lastBlock = (_curDecompressedFilePos + headerSize + size - 1) / 0x2000;
+		firstBlock = (_curDecompressedFilePos + headerSize) / DIMUSE_BUN_CHUNK_SIZE;
+		lastBlock = (_curDecompressedFilePos + headerSize + size - 1) / DIMUSE_BUN_CHUNK_SIZE;
 
 		// Clip last_block by the total number of blocks (= "comp items")
 		if ((lastBlock >= _numCompItems) && (_numCompItems > 0))
 			lastBlock = _numCompItems - 1;
 
-		int32 blocksFinalSize = 0x2000 * (1 + lastBlock - firstBlock);
+		int32 blocksFinalSize = DIMUSE_BUN_CHUNK_SIZE * (1 + lastBlock - firstBlock);
 		*comp_final = (byte *)malloc(blocksFinalSize);
 		assert(*comp_final);
 		finalSize = 0;
 
-		skip = (_curDecompressedFilePos + headerSize) % 0x2000; // Excess length after the last block
+		skip = (_curDecompressedFilePos + headerSize) % DIMUSE_BUN_CHUNK_SIZE; // Excess length after the last block
 
 		for (i = firstBlock; i <= lastBlock; i++) {
 			if (_lastBlock != i) {
@@ -358,7 +358,7 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 				_file->read(_compInputBuff, _compTable[i].size);
 				_outputSize = BundleCodecs::decompressCodec(_compTable[i].codec, _compInputBuff, _compOutputBuff, _compTable[i].size);
 
-				if (_outputSize > 0x2000) {
+				if (_outputSize > DIMUSE_BUN_CHUNK_SIZE) {
 					error("_outputSize: %d", _outputSize);
 				}
 				_lastBlock = i;
@@ -373,8 +373,8 @@ int32 BundleMgr::readFile(const char *name, int32 size, byte **comp_final, bool 
 					outputSize -= skip;
 			}
 
-			if ((outputSize + skip) > 0x2000) // workaround
-				outputSize -= (outputSize + skip) - 0x2000;
+			if ((outputSize + skip) > DIMUSE_BUN_CHUNK_SIZE) // workaround
+				outputSize -= (outputSize + skip) - DIMUSE_BUN_CHUNK_SIZE;
 
 			if (outputSize > size)
 				outputSize = size;
