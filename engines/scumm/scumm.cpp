@@ -1650,7 +1650,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		// COMI demo is excluded from the count since it appears it can't be compressed
 		// DIG demo uses raw VOC files for speech instead of a MONSTER.SOU file
 		if ((_game.id == GID_CMI || _game.id == GID_DIG) && !(_game.features & GF_DEMO)) {
-			BundleMgr *bnd = new BundleMgr(new BundleDirCache(), false);
+			BundleMgr *bnd = new BundleMgr(new BundleDirCache());
 			_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
 			delete bnd;
 		} else if (_game.id == GID_FT) {

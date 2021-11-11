@@ -61,7 +61,6 @@ public:
 	AudioTable *getTable(int slot);
 	IndexNode *getIndexTable(int slot);
 	int32 getNumFiles(int slot);
-	bool isSndDataExtComp(int slot);
 };
 
 class BundleMgr {
@@ -92,22 +91,18 @@ private:
 	byte *_compInputBuff;
 	int _outputSize;
 	int _lastBlock;
-	bool _isDiMUSEv2;
 	bool loadCompTable(int32 index);
 
 public:
 
-	BundleMgr(BundleDirCache *_cache, bool _isDiMUSEv2);
+	BundleMgr(BundleDirCache *_cache);
 	~BundleMgr();
 
-	bool open(const char *filename, bool &compressed, bool errorFlag = false);
+	bool open(const char *filename, bool errorFlag = false);
 	void close();
 	Common::SeekableReadStream *getFile(const char *filename, int32 &offset, int32 &size);
 	int32 seekFile(int32 offset, int size);
 	int32 readFile(const char *name, int32 size, byte **compFinal, bool headerOutside);
-	int32 decompressSampleByName(const char *name, int32 offset, int32 size, byte **compFinal, bool headerOutside, bool &uncompressedBundle);
-	int32 decompressSampleByIndex(int32 index, int32 offset, int32 size, byte **compFinal, int header_size, bool headerOutside, bool &uncompressedBundle);
-	int32 decompressSampleByCurIndex(int32 offset, int32 size, byte **compFinal, int headerSize, bool headerOutside);
 	bool isExtCompBun(byte gameId);
 };
 
