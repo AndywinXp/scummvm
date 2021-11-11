@@ -153,7 +153,7 @@ void IMuseDigital::scriptSetCuePoint(int cueId) {
 
 	if (_curMusicSeq && _curMusicCue != cueId) {
 		if (cueId == 0)
-			playFtMusic(NULL, 0, 0);
+			playFtMusic(nullptr, 0, 0);
 		else {
 			int seq = ((_curMusicSeq - 1) * 4) + cueId;
 			playFtMusic(_ftSeqMusicTable[seq].audioName, _ftSeqMusicTable[seq].transitionType, _ftSeqMusicTable[seq].volume);
@@ -192,7 +192,7 @@ void Scumm::IMuseDigital::setFtMusicState(int stateId) {
 
 	if (_curMusicSeq == 0) {
 		if (stateId == 0) {
-			playFtMusic(NULL, 0, 0);
+			playFtMusic(nullptr, 0, 0);
 		} else {
 			playFtMusic(_ftStateMusicTable[stateId].audioName, _ftStateMusicTable[stateId].transitionType, _ftStateMusicTable[stateId].volume);
 		}
@@ -210,7 +210,7 @@ void IMuseDigital::setFtMusicSequence(int seqId) {
 	if (_curMusicSeq != seqId) {
 		if (seqId == 0) {
 			if (_curMusicState == 0) {
-				playFtMusic(NULL, 0, 0);
+				playFtMusic(nullptr, 0, 0);
 			} else {
 				playFtMusic(_ftStateMusicTable[_curMusicState].audioName, _ftStateMusicTable[_curMusicState].transitionType, _ftStateMusicTable[_curMusicState].volume);
 			}
@@ -268,7 +268,7 @@ void IMuseDigital::setDigMusicState(int stateId) {
 
 	if (_curMusicSeq == 0) {
 		if (num == 0)
-			playDigMusic(NULL, &_digStateMusicTable[0], num, false);
+			playDigMusic(nullptr, &_digStateMusicTable[0], num, false);
 		else
 			playDigMusic(_digStateMusicTable[num].name, &_digStateMusicTable[num], num, false);
 	}
@@ -316,7 +316,7 @@ void IMuseDigital::setDigMusicSequence(int seqId) {
 			if (_curMusicState != 0) {
 				playDigMusic(_digStateMusicTable[_curMusicState].name, &_digStateMusicTable[_curMusicState], _curMusicState, true);
 			} else {
-				playDigMusic(NULL, &_digStateMusicTable[0], _curMusicState, true);
+				playDigMusic(nullptr, &_digStateMusicTable[0], _curMusicState, true);
 			}
 
 			num = 0;
@@ -358,13 +358,13 @@ void IMuseDigital::setComiMusicState(int stateId) {
 		if (_vm->_game.features & GF_DEMO) {
 			if (_curMusicSeq == 0) {
 				if (stateId == 0)
-					playComiDemoMusic(NULL, &_comiDemoStateMusicTable[0], stateId, false);
+					playComiDemoMusic(nullptr, &_comiDemoStateMusicTable[0], stateId, false);
 				else
 					playComiDemoMusic(_comiDemoStateMusicTable[stateId].name, &_comiDemoStateMusicTable[stateId], stateId, false);
 			}
 		} else {
 			if (num == 0)
-				playComiMusic(NULL, &_comiStateMusicTable[0], num, false);
+				playComiMusic(nullptr, &_comiStateMusicTable[0], num, false);
 			else
 				playComiMusic(_comiStateMusicTable[num].name, &_comiStateMusicTable[num], num, false);
 		}
@@ -415,7 +415,7 @@ void IMuseDigital::setComiMusicSequence(int seqId) {
 			if (_curMusicState != 0) {
 				playComiMusic(_comiStateMusicTable[_curMusicState].name, &_comiStateMusicTable[_curMusicState], _curMusicState, true);
 			} else {
-				playComiMusic(NULL, &_comiStateMusicTable[0], _curMusicState, true);
+				playComiMusic(nullptr, &_comiStateMusicTable[0], _curMusicState, true);
 			}
 			num = 0;
 		}
@@ -511,7 +511,7 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 void IMuseDigital::playDigMusic(const char *songName, const imuseDigTable *table, int attribPos, bool sequence) {
 	int hookId = 0;
 
-	if (songName != NULL) {
+	if (songName != nullptr) {
 		if ((_attributes[DIG_SEQ_OFFSET + 38]) && (!_attributes[DIG_SEQ_OFFSET + 41])) {
 			if ((attribPos == 43) || (attribPos == 44))
 				hookId = 3;
@@ -665,7 +665,7 @@ void IMuseDigital::playComiDemoMusic(const char *songName, const imuseComiTable 
 	// This is a stripped down version of playDigMusic
 	int hookId = 0;
 
-	if (songName != NULL) {
+	if (songName != nullptr) {
 		if (attribPos != 0) {
 			if (table->attribPos != 0)
 				attribPos = table->attribPos;
@@ -749,7 +749,7 @@ void IMuseDigital::playComiMusic(const char *songName, const imuseComiTable *tab
 	int hookId = 0;
 	int fadeDelay = 0;
 
-	if ((songName != NULL) && (attribPos != 0)) {
+	if ((songName != nullptr) && (attribPos != 0)) {
 		if (table->attribPos != 0)
 			attribPos = table->attribPos;
 		hookId = _attributes[COMI_STATE_OFFSET + attribPos];

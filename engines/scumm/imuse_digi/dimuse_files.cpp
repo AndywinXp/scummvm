@@ -36,11 +36,11 @@ IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v
 	_ftSpeechSubFileOffset = 0;
 	_ftSpeechFileSize = 0;
 	_ftSpeechFileCurPos = 0;
-	_ftSpeechFile = NULL;
+	_ftSpeechFile = nullptr;
 
 	for (int i = 0; i < 4; i++) {
 		IMuseDigiSndBuffer *selectedSoundBuf = &_soundBuffers[i];
-		selectedSoundBuf->buffer = NULL;
+		selectedSoundBuf->buffer = nullptr;
 		selectedSoundBuf->bufSize = 0;
 		selectedSoundBuf->loadSize = 0;
 		selectedSoundBuf->criticalSize = 0;
@@ -98,7 +98,7 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 
 uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 	if (_engine->isEngineDisabled())
-		return NULL;
+		return nullptr;
 
 	Common::StackLock lock(_mutex);
 	// This function is always used for SFX (tracks which do not
@@ -108,13 +108,13 @@ uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 		byte *ptr = _vm->getResourceAddress(rtSound, soundId);
 		if (!ptr) {
 			_vm->_res->unlock(rtSound, soundId);
-			return NULL;
+			return nullptr;
 		}
 		return ptr;
 
 	}
 	debug(5, "IMuseDigiFilesHandler::getSoundAddrData(): soundId is 0 or out of range");
-	return NULL;
+	return nullptr;
 }
 
 int IMuseDigiFilesHandler::getSoundAddrDataSize(int soundId, bool hasStream) {
@@ -208,7 +208,7 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 		return 0;
 
 	if (soundId != 0) {
-		uint8 *tmpBuf = NULL;
+		uint8 *tmpBuf = nullptr;
 		int resultingSize;
 
 		// We don't have SoundDesc objects for FT & DIG demo speech files
@@ -222,7 +222,7 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
 		ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
-		ImuseDigiSndMgr::SoundDesc *curSnd = NULL;
+		ImuseDigiSndMgr::SoundDesc *curSnd = nullptr;
 		for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 			curSnd = &s[i];
 			if (curSnd->inUse) {
@@ -265,14 +265,14 @@ IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 	}
 
 	debug(5, "IMuseDigiFilesHandler::getBufInfo(): ERROR: invalid buffer id");
-	return NULL;
+	return nullptr;
 }
 
 int IMuseDigiFilesHandler::openSound(int soundId) {
 	if (_engine->isEngineDisabled())
 		return 1;
 
-	ImuseDigiSndMgr::SoundDesc *s = NULL;
+	ImuseDigiSndMgr::SoundDesc *s = nullptr;
 	if (!_engine->isFTSoundEngine()) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
@@ -397,7 +397,7 @@ void IMuseDigiFilesHandler::deallocSoundBuffer(int bufId) {
 
 	selectedSoundBuf = &_soundBuffers[bufId];
 	free(selectedSoundBuf->buffer);
-	selectedSoundBuf->buffer = NULL;
+	selectedSoundBuf->buffer = nullptr;
 }
 
 void IMuseDigiFilesHandler::flushSounds() {

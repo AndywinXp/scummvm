@@ -27,7 +27,7 @@ namespace Scumm {
 int IMuseDigital::tracksInit() {
 	_trackCount = 6;
 	_tracksPauseTimer = 0;
-	_trackList = NULL;
+	_trackList = nullptr;
 	_tracksPrefSampleRate = DIMUSE_SAMPLERATE;
 
 	if (waveOutInit(DIMUSE_SAMPLERATE, &waveOutSettings))
@@ -44,8 +44,8 @@ int IMuseDigital::tracksInit() {
 		return -1;
 
 	for (int l = 0; l < _trackCount; l++) {
-		_tracks[l].prev = NULL;
-		_tracks[l].next = NULL;
+		_tracks[l].prev = nullptr;
+		_tracks[l].next = nullptr;
 		_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
 		_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
 		_tracks[l].soundId = 0;
@@ -53,10 +53,10 @@ int IMuseDigital::tracksInit() {
 		_tracks[l].syncSize_1 = 0;
 		_tracks[l].syncSize_2 = 0;
 		_tracks[l].syncSize_3 = 0;
-		_tracks[l].syncPtr_0 = NULL;
-		_tracks[l].syncPtr_1 = NULL;
-		_tracks[l].syncPtr_2 = NULL;
-		_tracks[l].syncPtr_3 = NULL;
+		_tracks[l].syncPtr_0 = nullptr;
+		_tracks[l].syncPtr_1 = nullptr;
+		_tracks[l].syncPtr_2 = nullptr;
+		_tracks[l].syncPtr_3 = nullptr;
 	}
 
 	return 0;
@@ -122,8 +122,8 @@ void IMuseDigital::tracksSaveLoad(Common::Serializer &ser) {
 
 	if (ser.isLoading()) {
 		for (int l = 0; l < _trackCount; l++) {
-			_tracks[l].prev = NULL;
-			_tracks[l].next = NULL;
+			_tracks[l].prev = nullptr;
+			_tracks[l].next = nullptr;
 			_tracks[l].dispatchPtr = dispatchGetDispatchByTrackId(l);
 			_tracks[l].dispatchPtr->trackPtr = &_tracks[l];
 			if (_tracks[l].soundId) {
@@ -138,7 +138,7 @@ void IMuseDigital::tracksSaveLoad(Common::Serializer &ser) {
 				curDispatchPtr = &_dispatches[i];
 
 				if (curDispatchPtr->trackPtr->soundId < 1000) {
-					curDispatchPtr->streamPtr = NULL;
+					curDispatchPtr->streamPtr = nullptr;
 				} else {
 					curDispatchPtr->streamPtr = (IMuseDigiStream *)1;
 				}
@@ -224,13 +224,13 @@ int IMuseDigital::tracksStartSound(int soundId, int tryPriority, int group) {
 	allocatedTrack->mailbox = 0;
 	allocatedTrack->jumpHook = 0;
 	allocatedTrack->syncSize_0 = 0;
-	allocatedTrack->syncPtr_0 = NULL;
+	allocatedTrack->syncPtr_0 = nullptr;
 	allocatedTrack->syncSize_1 = 0;
-	allocatedTrack->syncPtr_1 = NULL;
+	allocatedTrack->syncPtr_1 = nullptr;
 	allocatedTrack->syncSize_2 = 0;
-	allocatedTrack->syncPtr_2 = NULL;
+	allocatedTrack->syncPtr_2 = nullptr;
 	allocatedTrack->syncSize_3 = 0;
-	allocatedTrack->syncPtr_3 = NULL;
+	allocatedTrack->syncPtr_3 = nullptr;
 
 	if (dispatchAllocateSound(allocatedTrack, group)) {
 		debug(5, "IMuseDigital::tracksStartSound(): ERROR: dispatch couldn't start sound %d", soundId);
@@ -336,25 +336,25 @@ void IMuseDigital::tracksClear(IMuseDigiTrack *trackPtr) {
 		if (trackPtr->syncPtr_0) {
 			trackPtr->syncSize_0 = 0;
 			free(trackPtr->syncPtr_0);
-			trackPtr->syncPtr_0 = NULL;
+			trackPtr->syncPtr_0 = nullptr;
 		}
 
 		if (trackPtr->syncPtr_1) {
 			trackPtr->syncSize_1 = 0;
 			free(trackPtr->syncPtr_1);
-			trackPtr->syncPtr_1 = NULL;
+			trackPtr->syncPtr_1 = nullptr;
 		}
 
 		if (trackPtr->syncPtr_2) {
 			trackPtr->syncSize_2 = 0;
 			free(trackPtr->syncPtr_2);
-			trackPtr->syncPtr_2 = NULL;
+			trackPtr->syncPtr_2 = nullptr;
 		}
 
 		if (trackPtr->syncPtr_3) {
 			trackPtr->syncSize_3 = 0;
 			free(trackPtr->syncPtr_3);
-			trackPtr->syncPtr_3 = NULL;
+			trackPtr->syncPtr_3 = nullptr;
 		}
 	}
 
@@ -504,7 +504,7 @@ int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
 	int h, w;
 
-	byte *syncPtr = NULL;
+	byte *syncPtr = nullptr;
 	int syncSize = 0;
 
 	IMuseDigiTrack *curTrack;
@@ -619,7 +619,7 @@ int IMuseDigital::tracksGetHook(int soundId) {
 
 IMuseDigiTrack *IMuseDigital::tracksReserveTrack(int priority) {
 	IMuseDigiTrack *curTrack;
-	IMuseDigiTrack *reservedTrack = NULL;
+	IMuseDigiTrack *reservedTrack = nullptr;
 	int minPriorityFound;
 
 	// Pick the track from the pool of free tracks

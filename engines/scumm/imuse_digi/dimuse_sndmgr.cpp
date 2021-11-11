@@ -66,7 +66,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::allocSlot() {
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
@@ -152,7 +152,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 
 	const bool header_outside = ((_vm->_game.id == GID_CMI) && !(_vm->_game.features & GF_DEMO));
 	bool result = false;
-	byte *ptr = NULL;
+	byte *ptr = nullptr;
 
 	switch (soundType) {
 	case IMUSE_RESOURCE:
@@ -160,9 +160,9 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 
 		_vm->_res->lock(rtSound, soundId);
 		ptr = _vm->getResourceAddress(rtSound, soundId);
-		if (ptr == NULL) {
+		if (ptr == nullptr) {
 			closeSound(sound);
-			return NULL;
+			return nullptr;
 		}
 		sound->resPtr = ptr;
 		sound->resSize = _vm->getResourceSize(rtSound, soundId) - 8;
@@ -176,18 +176,18 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::openSound(int32 soundId, const char
 			error("ImuseDigiSndMgr::openSound() Don't know how load sound: %d", soundId);
 		if (!result) {
 			closeSound(sound);
-			return NULL;
+			return nullptr;
 		}
 
 		if (soundName[0] != 0) {
-			if (sound->bundle->readFile(soundName, 0x2000, &ptr, header_outside) == 0 || ptr == NULL) {
+			if (sound->bundle->readFile(soundName, 0x2000, &ptr, header_outside) == 0 || ptr == nullptr) {
 				closeSound(sound);
 				free(ptr);
-				return NULL;
+				return nullptr;
 			}
 		}
 
-		sound->resPtr = NULL;
+		sound->resPtr = nullptr;
 		break;
 	default:
 		error("ImuseDigiSndMgr::openSound() Unknown soundType %d (trying to load sound %d)", soundType, soundId);
@@ -221,7 +221,7 @@ void ImuseDigiSndMgr::closeSound(SoundDesc *soundDesc) {
 }
 
 ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::findSoundById(int soundId) {
-	SoundDesc *soundDesc = NULL;
+	SoundDesc *soundDesc = nullptr;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];
@@ -236,7 +236,7 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::getSounds() {
 }
 
 void ImuseDigiSndMgr::scheduleSoundForDeallocation(int soundId) {
-	SoundDesc *soundDesc = NULL;
+	SoundDesc *soundDesc = nullptr;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];
@@ -249,7 +249,7 @@ void ImuseDigiSndMgr::scheduleSoundForDeallocation(int soundId) {
 }
 
 void ImuseDigiSndMgr::closeSoundById(int soundId) {
-	SoundDesc *soundDesc = NULL;
+	SoundDesc *soundDesc = nullptr;
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		if (_sounds[i].soundId == soundId) {
 			soundDesc = &_sounds[i];

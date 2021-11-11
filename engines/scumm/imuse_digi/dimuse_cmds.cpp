@@ -193,7 +193,7 @@ void IMuseDigital::cmdsSaveLoad(Common::Serializer &ser) {
 int IMuseDigital::cmdsStartSound(int soundId, int priority) {
 	uint8 *src = _filesHandler->getSoundAddrData(soundId);
 
-	if (src == NULL) {
+	if (src == nullptr) {
 		debug(5, "IMuseDigital::cmdsStartSound(): ERROR: resource address for sound %d is NULL", soundId);
 		return -1;
 	}

@@ -152,7 +152,7 @@ void IMuseDigiFadesHandler::saveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_fades[l].modOvfloCounter, VER(103));
 		ser.syncAsSint32LE(_fades[l].nudge, VER(103));
 	}
-	
+
 	if (ser.isLoading())
 		_fadesOn = 1;
 }

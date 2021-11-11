@@ -28,7 +28,7 @@ int IMuseDigital::streamerInit() {
 	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		_streams[l].soundId = 0;
 	}
-	_lastStreamLoaded = NULL;
+	_lastStreamLoaded = nullptr;
 	return 0;
 }
 
@@ -36,18 +36,18 @@ IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int
 	IMuseDigiSndBuffer *bufInfoPtr = _filesHandler->getBufInfo(bufId);
 	if (!bufInfoPtr) {
 		debug(5, "IMuseDigital::streamerAlloc(): ERROR: couldn't get buffer info");
-		return NULL;
+		return nullptr;
 	}
 
 	if ((bufInfoPtr->bufSize / 4) <= maxRead) {
 		debug(5, "IMuseDigital::streamerAlloc(): ERROR: maxRead too big for buffer");
-		return NULL;
+		return nullptr;
 	}
 
 	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		if (_streams[l].soundId && _streams[l].bufId == bufId) {
 			debug(5, "IMuseDigital::streamerAlloc(): ERROR: stream bufId %d already in use", bufId);
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -71,7 +71,7 @@ IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int
 		}
 	}
 	debug(5, "IMuseDigital::streamerAlloc(): ERROR: no spare streams");
-	return NULL;
+	return nullptr;
 }
 
 int IMuseDigital::streamerClearSoundInStream(IMuseDigiStream *streamPtr) {
@@ -86,8 +86,8 @@ int IMuseDigital::streamerProcessStreams() {
 	if (!_isEarlyDiMUSE)
 		dispatchPredictFirstStream();
 
-	IMuseDigiStream *stream1 = NULL;
-	IMuseDigiStream *stream2 = NULL;
+	IMuseDigiStream *stream1 = nullptr;
+	IMuseDigiStream *stream2 = nullptr;
 
 	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		if ((_streams[l].soundId) && (!_streams[l].paused)) {
@@ -222,7 +222,7 @@ int IMuseDigital::streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr,
 	streamPtr->endOffset = _isEarlyDiMUSE ? _filesHandler->seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId) : 0;
 	streamPtr->paused = 0;
 	if (_lastStreamLoaded == streamPtr) {
-		_lastStreamLoaded = NULL;
+		_lastStreamLoaded = nullptr;
 	}
 	return 0;
 }
@@ -370,7 +370,7 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 	}
 
 	debug(5, "IMuseDigital::streamerFetchData(): ERROR: unable to load the correct amount of data (req=%d, act=%d)", requestedAmount, actualAmount);
-	_lastStreamLoaded = NULL;
+	_lastStreamLoaded = nullptr;
 	return 0;
 }
 

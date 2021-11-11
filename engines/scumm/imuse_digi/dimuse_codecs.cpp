@@ -41,8 +41,8 @@ namespace BundleCodecs {
  * varies the size of each "packet" between 2 and 7 bits.
  */
 
-static byte *_destImcTable = NULL;
-static uint32 *_destImcTable2 = NULL;
+static byte *_destImcTable = nullptr;
+static uint32 *_destImcTable2 = nullptr;
 
 // This table is the "big brother" of Audio::ADPCMStream::_stepAdjustTable.
 static const byte imxOtherTable[6][64] = {
@@ -87,9 +87,9 @@ static const byte imxOtherTable[6][64] = {
 
 void releaseImcTables() {
 	free(_destImcTable);
-	_destImcTable = NULL;
+	_destImcTable = nullptr;
 	free(_destImcTable2);
-	_destImcTable2 = NULL;
+	_destImcTable2 = nullptr;
 }
 
 void initializeImcTables() {

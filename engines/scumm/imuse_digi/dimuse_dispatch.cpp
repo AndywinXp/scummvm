@@ -43,25 +43,25 @@ int IMuseDigital::dispatchInit() {
 		for (int i = 0; i < DIMUSE_MAX_STREAMZONES; i++) {
 			_streamZones[i].useFlag = 0;
 			_streamZones[i].fadeFlag = 0;
-			_streamZones[i].prev = NULL;
-			_streamZones[i].next = NULL;
+			_streamZones[i].prev = nullptr;
+			_streamZones[i].next = nullptr;
 			_streamZones[i].size = 0;
 			_streamZones[i].offset = 0;
 		}
 
 		for (int i = 0; i < DIMUSE_MAX_DISPATCHES; i++) {
-			_dispatches[i].trackPtr = NULL;
+			_dispatches[i].trackPtr = nullptr;
 			_dispatches[i].wordSize = 0;
 			_dispatches[i].sampleRate = 0;
 			_dispatches[i].channelCount = 0;
 			_dispatches[i].currentOffset = 0;
 			_dispatches[i].audioRemaining = 0;
 			memset(_dispatches[i].map, 0, sizeof(_dispatches[i].map));
-			_dispatches[i].streamPtr = NULL;
+			_dispatches[i].streamPtr = nullptr;
 			_dispatches[i].streamBufID = 0;
-			_dispatches[i].streamZoneList = NULL;
+			_dispatches[i].streamZoneList = nullptr;
 			_dispatches[i].streamErrFlag = 0;
-			_dispatches[i].fadeBuf = NULL;
+			_dispatches[i].fadeBuf = nullptr;
 			_dispatches[i].fadeOffset = 0;
 			_dispatches[i].fadeRemaining = 0;
 			_dispatches[i].fadeWordSize = 0;
@@ -104,7 +104,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 			ser.syncAsSint32LE(hasStream, VER(105));
 		} else {
 			ser.syncAsSint32LE(hasStream, VER(105));
-			_dispatches[l].streamPtr = hasStream ? (IMuseDigiStream *)1 : NULL;
+			_dispatches[l].streamPtr = hasStream ? (IMuseDigiStream *)1 : nullptr;
 		}
 
 		ser.syncAsSint32LE(_dispatches[l].streamBufID, VER(103));
@@ -144,7 +144,7 @@ int IMuseDigital::dispatchRestoreStreamZones() {
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
 		curDispatchPtr = &_dispatches[i];
-		curDispatchPtr->fadeBuf = NULL;
+		curDispatchPtr->fadeBuf = nullptr;
 
 		if (curDispatchPtr->trackPtr->soundId && curDispatchPtr->streamPtr) {
 			// Try allocating the stream
@@ -527,7 +527,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		}
 
 		if (!dispatchPtr->fadeRemaining)
-			dispatchPtr->fadeBuf = NULL;
+			dispatchPtr->fadeBuf = nullptr;
 	}
 
 	// This index keeps track of the offset position until which we have
@@ -736,7 +736,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 }
 
 void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize) {
-	IMuseDigiDispatch *dispatchPtr = NULL;
+	IMuseDigiDispatch *dispatchPtr = nullptr;
 	IMuseDigiStream *streamPtr;
 	uint8 *buffer, *srcBuf;
 	int fadeChunkSize = 0;
@@ -758,7 +758,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		dispatchPtr->fadeRemaining -= fadeChunkSize;
 		dispatchPtr->fadeBuf += fadeChunkSize;
 		if (dispatchPtr->fadeRemaining == fadeChunkSize)
-			dispatchPtr->fadeBuf = NULL;
+			dispatchPtr->fadeBuf = nullptr;
 	}
 
 	mixStartingPoint = 0;
@@ -930,7 +930,7 @@ int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
 						removeStreamZoneFromList(&dispatchPtr->streamZoneList, dispatchPtr->streamZoneList);
 					}
 				}
-				mapCurEvent = NULL;
+				mapCurEvent = nullptr;
 			}
 
 			continue;
@@ -1230,11 +1230,11 @@ int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *ma
 		if ((int8 *)&mapPtr[2] + mapPtr[1] > (int8 *)mapEvent) {
 			if (mapEvent[2] != soundOffset) {
 				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: no more events at offset %d", soundOffset);
-				return NULL;
+				return nullptr;
 			}
 		} else {
 			debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: map overrun");
-			return NULL;
+			return nullptr;
 		}
 
 	} else {
@@ -1250,7 +1250,7 @@ int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *ma
 
 			if ((int8 *)&mapPtr[2] + mapPtr[1] <= (int8 *)mapEvent) {
 				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: couldn't find event at offset %d", soundOffset);
-				return NULL;
+				return nullptr;
 			}
 		}
 	}
@@ -1317,13 +1317,13 @@ int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnP
 		curMapPlace = (int *)((int8 *)curMapPlace + bytesUntilNextPlace);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParams, int calledFromNavigateMap) {
 	int hookPosition, jumpDestination, fadeTime;
 	IMuseDigiStreamZone *nextStreamZone;
-	IMuseDigiStreamZone *zoneForJump = NULL;
+	IMuseDigiStreamZone *zoneForJump = nullptr;
 	IMuseDigiStreamZone *zoneAfterJump;
 	unsigned int streamOffset;
 	IMuseDigiStreamZone *zoneCycle;
@@ -1438,7 +1438,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 
 	strZnPtr->next = zoneAfterJump;
 	zoneAfterJump->prev = strZnPtr;
-	zoneAfterJump->next = NULL;
+	zoneAfterJump->next = nullptr;
 	zoneAfterJump->offset = jumpDestination;
 	zoneAfterJump->size = 0;
 	zoneAfterJump->fadeFlag = 0;
@@ -1486,11 +1486,11 @@ IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
 		}
 	}
 	debug(5, "IMuseDigital::dispatchAllocateStreamZone(): ERROR: out of streamZones");
-	return NULL;
+	return nullptr;
 }
 
 uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
-	uint8 *allocatedFadeBuf = NULL;
+	uint8 *allocatedFadeBuf = nullptr;
 	if (*fadeSize > DIMUSE_LARGE_FADE_DIM) {
 		debug(5, "IMuseDigital::dispatchAllocateFade(): WARNING: requested fade too large (%d) in %s()", *fadeSize, function);
 		*fadeSize = DIMUSE_LARGE_FADE_DIM;
@@ -1500,7 +1500,7 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 		for (int i = 0; i <= DIMUSE_SMALL_FADES; i++) {
 			if (i == DIMUSE_SMALL_FADES) {
 				debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate small fade buffer in %s()", function);
-				allocatedFadeBuf = NULL;
+				allocatedFadeBuf = nullptr;
 				break;
 			}
 
@@ -1514,7 +1514,7 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 		for (int i = 0; i <= DIMUSE_LARGE_FADES; i++) {
 			if (i == DIMUSE_LARGE_FADES) {
 				debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate large fade buffer in %s()", function);
-				allocatedFadeBuf = NULL;
+				allocatedFadeBuf = nullptr;
 				break;
 			}
 
@@ -1530,7 +1530,7 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 			for (int i = 0; i <= DIMUSE_SMALL_FADES; i++) {
 				if (i == DIMUSE_SMALL_FADES) {
 					debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate small fade buffer in %s()", function);
-					allocatedFadeBuf = NULL;
+					allocatedFadeBuf = nullptr;
 					break;
 				}
 
@@ -1653,7 +1653,7 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 			if (headerBuf || (headerBuf = streamerGetStreamBufferAtOffset(dispatchPtr->streamPtr, 0, 1)) != 0) {
 				// Little hack: avoid copying stuff from the resource to the
 				// header buffer beyond the resource size limit
-				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
+				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != nullptr);
 				if ((resSize - dispatchPtr->currentOffset) < 0x30) {
 					memcpy(_currentVOCHeader, headerBuf, resSize - dispatchPtr->currentOffset);
 				} else {
@@ -1666,7 +1666,7 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 			soundAddrData = _filesHandler->getSoundAddrData(dispatchPtr->trackPtr->soundId);
 			if (soundAddrData) {
 				// Little hack: see above
-				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
+				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != nullptr);
 				if ((resSize - dispatchPtr->currentOffset) < 0x30) {
 					memcpy(_currentVOCHeader, &soundAddrData[dispatchPtr->currentOffset], resSize - dispatchPtr->currentOffset);
 				} else {
@@ -1704,7 +1704,7 @@ int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 
 				// Another little hack to avoid click and pops artifacts:
 				// read one audio sample less if this is the last audio chunk of the file
-				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != NULL);
+				resSize = _filesHandler->getSoundAddrDataSize(dispatchPtr->trackPtr->soundId, dispatchPtr->streamPtr != nullptr);
 				if ((resSize - (dispatchPtr->currentOffset + dispatchPtr->audioRemaining)) < 0x30) {
 					dispatchPtr->audioRemaining -= 2;
 				}

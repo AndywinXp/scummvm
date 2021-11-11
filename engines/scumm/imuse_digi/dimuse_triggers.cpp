@@ -93,7 +93,7 @@ int IMuseDigiTriggersHandler::setTrigger(int soundId, char *marker, int opcode, 
 		return -5;
 	}
 
-	if (marker == NULL) {
+	if (marker == nullptr) {
 		marker = _emptyMarker;
 	}
 

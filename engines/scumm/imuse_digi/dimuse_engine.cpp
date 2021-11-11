@@ -76,7 +76,7 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_radioChatterSFX = false;
 	_isEngineDisabled = false;
 
-	_audioNames = NULL;
+	_audioNames = nullptr;
 	_numAudioNames = 0;
 
 	_emptyMarker[0] = '\0';
@@ -119,11 +119,11 @@ IMuseDigital::~IMuseDigital() {
 
 	// Deinit the Dispatch module
 	free(_dispatchBuffer);
-	_dispatchBuffer = NULL;
+	_dispatchBuffer = nullptr;
 
 	// Deinit the WaveOut module
 	free(_waveOutOutputBuffer);
-	_waveOutOutputBuffer = NULL;
+	_waveOutOutputBuffer = nullptr;
 
 	free(_audioNames);
 }

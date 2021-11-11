@@ -25,6 +25,7 @@
 
 #include "common/scummsys.h"
 #include "common/file.h"
+#include "scumm/imuse_digi/dimuse_defs.h"
 
 namespace Scumm {
 

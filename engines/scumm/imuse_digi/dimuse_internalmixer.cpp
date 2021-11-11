@@ -35,12 +35,12 @@ IMuseDigiInternalMixer::IMuseDigiInternalMixer(Audio::Mixer *mixer) {
 	_stream = Audio::makeQueuingAudioStream(22050, true);
 	_mixer = mixer;
 	_radioChatter = 0;
-	_amp8Table = NULL;
+	_amp8Table = nullptr;
 }
 
 IMuseDigiInternalMixer::~IMuseDigiInternalMixer() {
 	free(_amp8Table);
-	_amp8Table = NULL;
+	_amp8Table = nullptr;
 }
 
 // Lookup table for a linear volume ramp (0 to 16) accounting for panning (-8 to 8)

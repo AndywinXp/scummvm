@@ -38,9 +38,9 @@ int IMuseDigital::addTrackToList(IMuseDigiTrack **listPtr, IMuseDigiTrack *listP
 			(*listPtr)->prev = listPtr_Item;
 		}
 
-		// Set the previous element of the item as NULL,
+		// Set the previous element of the item as nullptr,
 		// effectively making the item the first element of the list
-		listPtr_Item->prev = NULL;
+		listPtr_Item->prev = nullptr;
 
 		// Update the list with the new data
 		*listPtr = listPtr_Item;
@@ -71,8 +71,8 @@ int IMuseDigital::removeTrackFromList(IMuseDigiTrack **listPtr, IMuseDigiTrack *
 				*listPtr = listPtr_Item->next;
 			}
 
-			listPtr_Item->prev = NULL;
-			listPtr_Item->next = NULL;
+			listPtr_Item->prev = nullptr;
+			listPtr_Item->next = nullptr;
 			return 0;
 		} else {
 			debug(5, "IMuseDigital::removeTrackFromList(): ERROR: item not on list");
@@ -97,9 +97,9 @@ int IMuseDigital::addStreamZoneToList(IMuseDigiStreamZone **listPtr, IMuseDigiSt
 			(*listPtr)->prev = listPtr_Item;
 		}
 
-		// Set the previous element of the item as NULL,
+		// Set the previous element of the item as nullptr,
 		// effectively making the item the first element of the list
-		listPtr_Item->prev = NULL;
+		listPtr_Item->prev = nullptr;
 
 		// Update the list with the new data
 		*listPtr = listPtr_Item;
@@ -130,8 +130,8 @@ int IMuseDigital::removeStreamZoneFromList(IMuseDigiStreamZone **listPtr, IMuseD
 				*listPtr = listPtr_Item->next;
 			}
 
-			listPtr_Item->prev = NULL;
-			listPtr_Item->next = NULL;
+			listPtr_Item->prev = nullptr;
+			listPtr_Item->next = nullptr;
 			return 0;
 		} else {
 			debug(5, "IMuseDigital::removeStreamZoneFromList(): ERROR: item not on list");
