@@ -86,7 +86,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	// at different levels of granularity depending on the case (as uint32, uint16 or uint8).
 	// The latter is populated from the middle, inside-out; hence _softLMID.
 
-	int *tableMalloc = (int *)malloc(53376 * sizeof(int32));
+	int32 *tableMalloc = (int32 *)malloc(53376 * sizeof(int32));
 
 	_amp8Table = tableMalloc;          // Dim: 2176
 	_amp12Table = tableMalloc + 2176;  // Dim: 34816
