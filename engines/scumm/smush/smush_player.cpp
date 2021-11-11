@@ -403,10 +403,10 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 	}
 
 	assert(flags == 46 && unknown == 0);
-	int track_id = b.readUint16LE();
+	/*int track_id =*/ b.readUint16LE();
 	int index = b.readUint16LE();
 	int nbframes = b.readUint16LE();
-	int32 size = b.readUint32LE();
+	/*int32 size =*/ b.readUint32LE();
 	int32 bsize = subSize - 18;
 
 	if (_vm->_game.id == GID_CMI) {
@@ -572,37 +572,7 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 			free(dataBuffer);
 			return;
 		}
-	} /* else {
-	// Fallback for IMuseDigitalV1
-		int32 track = track_id;
-		if (userId == 1) {
-			track = track_id + 100;
-		} else if (userId == 2) {
-			track = track_id + 200;
-		} else if (userId == 3) {
-			track = track_id + 300;
-		} else if ((userId >= 100) && (userId <= 163)) {
-			track = track_id + 400;
-		} else if ((userId >= 200) && (userId <= 263)) {
-			track = track_id + 500;
-		} else if ((userId >= 300) && (userId <= 363)) {
-			track = track_id + 600;
-		} else {
-			error("SmushPlayer::handleIACT(): bad userId: %d", userId);
-		}
-		debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): %d, %d, %d", track, index, userId);
-
-		SmushChannel *c = _smixer->findChannel(track);
-		if (c == 0) {
-			c = new ImuseChannel(track);
-			_smixer->addChannel(c);
-		}
-		if (index == 0)
-			c->setParameters(nbframes, size, userId, unknown, 0);
-		else
-			c->checkParameters(index, nbframes, size, userId, unknown);
-		c->appendData(b, bsize);
-	} */
+	}
 }
 
 void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::SeekableReadStream &b) {
