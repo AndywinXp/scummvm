@@ -701,10 +701,6 @@ int IMuseDigital::diMUSEProcessStreams() {
 	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int IMuseDigital::diMUSEQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused) {
-	return cmdsHandleCmd(28, soundId, (uintptr)bufSize, (uintptr)criticalSize, (uintptr)freeSpace, (uintptr)paused, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-}
-
 int IMuseDigital::diMUSEFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused) {
 	return cmdsHandleCmd(29, soundId, (uintptr)srcBuf, sizeToFeed, paused, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }

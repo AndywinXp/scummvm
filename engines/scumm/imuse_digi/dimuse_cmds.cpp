@@ -98,8 +98,6 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 			return waveSwitchStream(a, (int)b, (int)c, (int)d, (int)e);
 	case 27:
 		return waveProcessStreams();
-	case 28:
-		return waveQueryStream(a, *bufSize, *criticalSize, *freeSpace, *paused);
 	case 29:
 		return waveFeedStream(a, (uint8 *)b, (int)c, (int)d);
 	case 30:

@@ -190,7 +190,6 @@ private:
 	int tracksStopSound(int soundId);
 	int tracksStopAllSounds();
 	int tracksGetNextSound(int soundId);
-	int tracksQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
 	int tracksFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
 	void tracksClear(IMuseDigiTrack *trackPtr);
 	int tracksSetParam(int soundId, int opcode, int value);
@@ -268,7 +267,6 @@ private:
 	int waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
 	int waveSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag);
 	int waveProcessStreams();
-	int waveQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
 	int waveFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
 	int waveLipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height);
 
@@ -355,7 +353,6 @@ public:
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag);
 	int diMUSEProcessStreams();
-	int diMUSEQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
 	int diMUSEFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
 	int diMUSELipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height);
 	int diMUSESetMusicGroupVol(int volume);

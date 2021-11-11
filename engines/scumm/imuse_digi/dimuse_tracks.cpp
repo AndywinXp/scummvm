@@ -295,24 +295,6 @@ int IMuseDigital::tracksGetNextSound(int soundId) {
 	return foundSoundId;
 }
 
-int IMuseDigital::tracksQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused) {
-	if (!_trackList)
-		return -1;
-
-	IMuseDigiTrack *track = _trackList;
-	do {
-		if (track->soundId) {
-			if (track->soundId == soundId && track->dispatchPtr->streamPtr) {
-				streamerQueryStream(track->dispatchPtr->streamPtr, bufSize, criticalSize, freeSpace, paused);
-				return 0;
-			}
-		}
-		track = track->next;
-	} while (track);
-
-	return -1;
-}
-
 int IMuseDigital::tracksFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused) {
 	if (!_trackList)
 		return -1;
