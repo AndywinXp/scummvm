@@ -313,7 +313,7 @@ int IMuseDigital::tracksQueryStream(int soundId, int32 &bufSize, int32 &critical
 	return -1;
 }
 
-int IMuseDigital::tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+int IMuseDigital::tracksFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused) {
 	if (!_trackList)
 		return -1;
 
@@ -502,15 +502,15 @@ int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 }
 
 int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height) {
-	int h, w;
+	int32 h, w;
 
 	byte *syncPtr = nullptr;
-	int syncSize = 0;
+	int32 syncSize = 0;
 
 	IMuseDigiTrack *curTrack;
 	uint16 msPosDiv;
 	uint16 *tmpPtr;
-	int loopIndex;
+	int32 loopIndex;
 	int16 val;
 
 	h = 0;

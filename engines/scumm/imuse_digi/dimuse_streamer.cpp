@@ -32,7 +32,7 @@ int IMuseDigital::streamerInit() {
 	return 0;
 }
 
-IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int maxRead) {
+IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int32 maxRead) {
 	IMuseDigiSndBuffer *bufInfoPtr = _filesHandler->getBufInfo(bufId);
 	if (!bufInfoPtr) {
 		debug(5, "IMuseDigital::streamerAlloc(): ERROR: couldn't get buffer info");
@@ -116,8 +116,8 @@ int IMuseDigital::streamerProcessStreams() {
 	}
 
 	// Check if we've reached or surpassed criticalSize
-	int critical1 = (streamerGetFreeBufferAmount(stream1) >= stream1->criticalSize);
-	int critical2 = (streamerGetFreeBufferAmount(stream2) >= stream2->criticalSize);
+	bool critical1 = (streamerGetFreeBufferAmount(stream1) >= stream1->criticalSize);
+	bool critical2 = (streamerGetFreeBufferAmount(stream2) >= stream2->criticalSize);
 
 	if (!critical1) {
 		if (!critical2) {
@@ -159,7 +159,7 @@ uint8 *IMuseDigital::streamerGetStreamBuffer(IMuseDigiStream *streamPtr, int siz
 			size - streamPtr->bufFreeSize + streamPtr->readIndex + (_isEarlyDiMUSE ? 0 : 4));
 	}
 
-	int readIndex_tmp = streamPtr->readIndex;
+	int32 readIndex_tmp = streamPtr->readIndex;
 	uint8 *ptr = &streamPtr->buf[readIndex_tmp];
 	streamPtr->readIndex = readIndex_tmp + size;
 	if (streamPtr->bufFreeSize <= readIndex_tmp + size)
@@ -168,11 +168,11 @@ uint8 *IMuseDigital::streamerGetStreamBuffer(IMuseDigiStream *streamPtr, int siz
 	return ptr;
 }
 
-uint8 *IMuseDigital::streamerGetStreamBufferAtOffset(IMuseDigiStream *streamPtr, int offset, int size) {
+uint8 *IMuseDigital::streamerGetStreamBufferAtOffset(IMuseDigiStream *streamPtr, int32 offset, int size) {
 	if (offset + size > streamerGetFreeBufferAmount(streamPtr) || streamPtr->maxRead < size)
 		return 0;
 
-	int offsetReadIndex = offset + streamPtr->readIndex;
+	int32 offsetReadIndex = offset + streamPtr->readIndex;
 	if (offsetReadIndex >= streamPtr->bufFreeSize) {
 		offsetReadIndex -= streamPtr->bufFreeSize;
 	}
@@ -209,13 +209,13 @@ int IMuseDigital::streamerSetLoadIndex(IMuseDigiStream *streamPtr, int offset) {
 }
 
 int IMuseDigital::streamerGetFreeBufferAmount(IMuseDigiStream *streamPtr) {
-	int freeBufferSize = streamPtr->loadIndex - streamPtr->readIndex;
+	int32 freeBufferSize = streamPtr->loadIndex - streamPtr->readIndex;
 	if (freeBufferSize < 0)
 		freeBufferSize += streamPtr->bufFreeSize;
 	return freeBufferSize;
 }
 
-int IMuseDigital::streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr, int soundId, int offset) {
+int IMuseDigital::streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr, int soundId, int32 offset) {
 	_streamerBailFlag = 1;
 	streamPtr->soundId = soundId;
 	streamPtr->curOffset = offset;
@@ -236,8 +236,8 @@ int IMuseDigital::streamerQueryStream(IMuseDigiStream *streamPtr, int32 &bufSize
 	return 0;
 }
 
-int IMuseDigital::streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused) {
-	int size = streamPtr->readIndex - streamPtr->loadIndex;
+int IMuseDigital::streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int32 sizeToFeed, int paused) {
+	int32 size = streamPtr->readIndex - streamPtr->loadIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
 	if (sizeToFeed > (size - 4)) {
@@ -246,7 +246,7 @@ int IMuseDigital::streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, 
 		debug(5, "IMuseDigital::streamerFeedStream(): WARNING: buffer overflow");
 		_streamerBailFlag = 1;
 
-		int newTentativeSize = sizeToFeed - (size - 4) - (sizeToFeed - (size - 4)) % 12 + 12;
+		int32 newTentativeSize = sizeToFeed - (size - 4) - (sizeToFeed - (size - 4)) % 12 + 12;
 		size = streamPtr->loadIndex - streamPtr->readIndex;
 		if (size < 0)
 			size += streamPtr->bufFreeSize;
@@ -285,12 +285,12 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 		streamPtr->endOffset = _filesHandler->seek(streamPtr->soundId, 0, SEEK_END, streamPtr->bufId);
 	}
 
-	int size = streamPtr->readIndex - streamPtr->loadIndex;
+	int32 size = streamPtr->readIndex - streamPtr->loadIndex;
 	if (size <= 0)
 		size += streamPtr->bufFreeSize;
 
-	int loadSize = streamPtr->loadSize;
-	int remainingSize = streamPtr->endOffset - streamPtr->curOffset;
+	int32 loadSize = streamPtr->loadSize;
+	int32 remainingSize = streamPtr->endOffset - streamPtr->curOffset;
 
 	if (loadSize >= size - (_isEarlyDiMUSE ? 1 : 4)) {
 		loadSize = size - (_isEarlyDiMUSE ? 1 : 4);
@@ -316,8 +316,8 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 		}
 	}
 
-	int actualAmount;
-	int requestedAmount;
+	int32 actualAmount;
+	int32 requestedAmount;
 
 	while (1) {
 		if (!_isEarlyDiMUSE && loadSize <= 0)
@@ -348,7 +348,7 @@ int IMuseDigital::streamerFetchData(IMuseDigiStream *streamPtr) {
 		streamPtr->curOffset += actualAmount;
 		_lastStreamLoaded = streamPtr;
 
-		int newLoadIndex = actualAmount + streamPtr->loadIndex;
+		int32 newLoadIndex = actualAmount + streamPtr->loadIndex;
 		streamPtr->loadIndex = newLoadIndex;
 		if (newLoadIndex >= streamPtr->bufFreeSize) {
 			streamPtr->loadIndex = newLoadIndex - streamPtr->bufFreeSize;

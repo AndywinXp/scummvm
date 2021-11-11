@@ -139,7 +139,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 int IMuseDigital::dispatchRestoreStreamZones() {
 	IMuseDigiDispatch *curDispatchPtr;
 	IMuseDigiStreamZone *curStreamZone;
-	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
+	int32 sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
 
 	curDispatchPtr = _dispatches;
 	for (int i = 0; i < _trackCount; i++) {
@@ -182,7 +182,7 @@ int IMuseDigital::dispatchAllocateSound(IMuseDigiTrack *trackPtr, int groupId) {
 	IMuseDigiDispatch *dispatchToDeallocate;
 	IMuseDigiStreamZone *streamZoneList;
 	int navigateMapResult;
-	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
+	int32 sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
 
 	trackDispatch = trackPtr->dispatchPtr;
 	trackDispatch->currentOffset = 0;
@@ -274,7 +274,8 @@ int IMuseDigital::dispatchRelease(IMuseDigiTrack *trackPtr) {
 }
 
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag) {
-	int effFadeLen, effFadeSize, strZnSize, getMapResult, i;
+	int32 effFadeLen, effFadeSize, strZnSize;
+	int getMapResult, i;
 	IMuseDigiDispatch *curDispatch = _dispatches;
 
 	effFadeLen = fadeLength;
@@ -315,7 +316,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		// Validate and adjust the fade dispatch size further;
 		// this should correctly align the dispatch size to avoid starting a fade without
 		// inverting the stereo image by mistake
-		dispatchValidateFadeSize(curDispatch, &_dispatchFadeSize, "dispatchSwitchStream");
+		dispatchValidateFadeSize(curDispatch, _dispatchFadeSize, "dispatchSwitchStream");
 
 		curDispatch->fadeBuf = dispatchAllocateFade(_dispatchFadeSize, "dispatchSwitchStream");
 
@@ -393,7 +394,8 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag) {
 	IMuseDigiDispatch *dispatchPtr = NULL;
 	uint8 *streamBuf;
-	int i, effAudioRemaining, audioRemaining, offset;
+	int i;
+	int32 effAudioRemaining, audioRemaining, offset;
 
 	for (i = 0; i < _trackCount; i++) {
 		dispatchPtr = &_dispatches[i];
@@ -464,8 +466,8 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 
 void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedSize, int sampleRate) {
 	IMuseDigiDispatch *dispatchPtr;
-	int effFeedSize, effWordSize, effRemainingAudio, effRemainingFade, effSampleRate;
-	int inFrameCount, mixVolume, mixStartingPoint, elapsedFadeDelta;
+	int32 effFeedSize, effWordSize, effRemainingAudio, effRemainingFade, effSampleRate;
+	int32 inFrameCount, mixVolume, mixStartingPoint, elapsedFadeDelta;
 	int navigateMapResult;
 	uint8 *srcBuf, *soundAddrData;
 
@@ -739,9 +741,9 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	IMuseDigiDispatch *dispatchPtr = nullptr;
 	IMuseDigiStream *streamPtr;
 	uint8 *buffer, *srcBuf;
-	int fadeChunkSize = 0;
-	int tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult;
-	int mixVolume;
+	int32 fadeChunkSize = 0;
+	int32 tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult;
+	int32 mixVolume;
 
 	dispatchPtr = trackPtr->dispatchPtr;
 	tentativeFeedSize = (dispatchPtr->sampleRate == 22050) ? feedSize : feedSize / 2;
@@ -836,8 +838,8 @@ void IMuseDigital::dispatchPredictFirstStream() {
 }
 
 int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
-	int *mapCurEvent;
-	int blockTag, effFadeSize, elapsedFadeSize, regionOffset;
+	int32 *mapCurEvent;
+	int32 blockTag, effFadeSize, elapsedFadeSize, regionOffset;
 	char *marker = NULL;
 
 	int getMapResult = dispatchGetMap(dispatchPtr);
@@ -1028,9 +1030,9 @@ int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
 }
 
 int IMuseDigital::dispatchGetMap(IMuseDigiDispatch *dispatchPtr) {
-	int *dstMap;
+	int32 *dstMap;
 	uint8 *rawMap, *copiedBuf, *soundAddrData;
-	int size;
+	int32 size;
 
 	dstMap = dispatchPtr->map;
 
@@ -1132,15 +1134,15 @@ int IMuseDigital::dispatchGetMap(IMuseDigiDispatch *dispatchPtr) {
 }
 
 int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
-	int effMapSize;
+	int32 effMapSize;
 	uint8 *mapCurPos;
-	int blockName;
+	int32 blockName;
 	uint8 *blockSizePtr;
-	unsigned int blockSizeMin8;
+	uint32 blockSizeMin8;
 	uint8 *firstChar;
 	uint8 *otherChars;
-	unsigned int remainingFieldsNum;
-	int bytesUntilEndOfMap;
+	uint32 remainingFieldsNum;
+	int32 bytesUntilEndOfMap;
 	uint8 *endOfMapPtr;
 
 	if (READ_BE_UINT32(rawMap) == MKTAG('M', 'A', 'P', ' ')) {
@@ -1155,8 +1157,8 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 			// - The 4 bytes string 'MAP '
 			// - Size of the map
 			//int dest = READ_BE_UINT32(destMap);
-			*(int *)destMap = READ_BE_UINT32(destMap);
-			*((int *)destMap + 1) = READ_BE_UINT32(destMap + 4);
+			*(int32 *)destMap = READ_BE_UINT32(destMap);
+			*((int32 *)destMap + 1) = READ_BE_UINT32(destMap + 4);
 
 			mapCurPos = destMap + 8;
 			endOfMapPtr = &destMap[effMapSize];
@@ -1164,14 +1166,14 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 			// Swap32 the rest of the map
 			while (mapCurPos < endOfMapPtr) {
 				// Swap32 the 4 characters block name
-				int swapped = READ_BE_UINT32(mapCurPos);
-				*(int *)mapCurPos = swapped;
+				int32 swapped = READ_BE_UINT32(mapCurPos);
+				*(int32 *)mapCurPos = swapped;
 				blockName = swapped;
 
 				// Advance and Swap32 the block size (minus 8) field
 				blockSizePtr = mapCurPos + 4;
 				blockSizeMin8 = READ_BE_UINT32(blockSizePtr);
-				*(int *)blockSizePtr = blockSizeMin8;
+				*(int32 *)blockSizePtr = blockSizeMin8;
 				mapCurPos = blockSizePtr + 4;
 
 				// Swapping32 a TEXT block is different:
@@ -1179,7 +1181,7 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 				// since they're already good like this
 				if (blockName == MKTAG('T', 'E', 'X', 'T')) {
 					// Swap32 the block offset position
-					*(int *)mapCurPos = READ_BE_UINT32(mapCurPos);
+					*(int32 *)mapCurPos = READ_BE_UINT32(mapCurPos);
 
 					// Skip the single characters
 					firstChar = mapCurPos + 4;
@@ -1196,7 +1198,7 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 
 					// ...and swap them of course
 					do {
-						*(int *)mapCurPos = READ_BE_UINT32(mapCurPos);
+						*(int32 *)mapCurPos = READ_BE_UINT32(mapCurPos);
 						mapCurPos += 4;
 						--remainingFieldsNum;
 					} while (remainingFieldsNum);
@@ -1222,10 +1224,10 @@ int IMuseDigital::dispatchConvertMap(uint8 *rawMap, uint8 *destMap) {
 	return 0;
 }
 
-int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *mapEvent) {
+int32 *IMuseDigital::dispatchGetNextMapEvent(int32 *mapPtr, int32 soundOffset, int32 *mapEvent) {
 	if (mapEvent) {
 		// Advance the map to the next block (mapEvent[1] + 8 is the size of the block)
-		mapEvent = (int *)((int8 *)mapEvent + mapEvent[1] + 8);
+		mapEvent = (int32 *)((int8 *)mapEvent + mapEvent[1] + 8);
 
 		if ((int8 *)&mapPtr[2] + mapPtr[1] > (int8 *)mapEvent) {
 			if (mapEvent[2] != soundOffset) {
@@ -1246,7 +1248,7 @@ int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *ma
 		while (mapEvent[2] != soundOffset) {
 			// Check if we've overrun the offset, to make sure
 			// that there actually is an event at our offset
-			mapEvent = (int *)((int8 *)mapEvent + mapEvent[1] + 8);
+			mapEvent = (int32 *)((int8 *)mapEvent + mapEvent[1] + 8);
 
 			if ((int8 *)&mapPtr[2] + mapPtr[1] <= (int8 *)mapEvent) {
 				debug(5, "IMuseDigital::dispatchGetNextMapEvent(): ERROR: couldn't find event at offset %d", soundOffset);
@@ -1260,8 +1262,8 @@ int *IMuseDigital::dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *ma
 
 void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 	IMuseDigiStreamZone *szTmp, *lastStreamInList, *curStrZn;
-	int cumulativeStreamOffset;
-	int *jumpParameters;
+	int32 cumulativeStreamOffset;
+	int32 *jumpParameters;
 
 	if (!dispatchPtr->streamPtr || !dispatchPtr->streamZoneList) {
 		debug(5, "IMuseDigital::dispatchPredictStream(): ERROR: NULL streamId or streamZoneList");
@@ -1295,10 +1297,10 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 	}
 }
 
-int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int &candidateHookId) {
-	int *curMapPlace = &mapPtr[2];
-	int *endOfMap = (int *)((int8 *)&mapPtr[2] + mapPtr[1]);
-	int mapPlaceTag, jumpHookPos, jumpHookId, bytesUntilNextPlace;
+int32 *IMuseDigital::dispatchCheckForJump(int32 *mapPtr, IMuseDigiStreamZone *strZnPtr, int &candidateHookId) {
+	int32 *curMapPlace = &mapPtr[2];
+	int32 *endOfMap = (int32 *)((int8 *)&mapPtr[2] + mapPtr[1]);
+	int32 mapPlaceTag, jumpHookPos, jumpHookId, bytesUntilNextPlace;
 
 	while (curMapPlace < endOfMap) {
 		mapPlaceTag = curMapPlace[0];
@@ -1314,18 +1316,18 @@ int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnP
 			}
 		}
 		// Advance the map to the next place
-		curMapPlace = (int *)((int8 *)curMapPlace + bytesUntilNextPlace);
+		curMapPlace = (int32 *)((int8 *)curMapPlace + bytesUntilNextPlace);
 	}
 
 	return nullptr;
 }
 
-void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParams, int calledFromNavigateMap) {
-	int hookPosition, jumpDestination, fadeTime;
+void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int32 *jumpParams, int calledFromNavigateMap) {
+	int32 hookPosition, jumpDestination, fadeTime;
 	IMuseDigiStreamZone *nextStreamZone;
 	IMuseDigiStreamZone *zoneForJump = nullptr;
 	IMuseDigiStreamZone *zoneAfterJump;
-	unsigned int streamOffset;
+	uint32 streamOffset;
 	IMuseDigiStreamZone *zoneCycle;
 
 	// jumpParams format:
@@ -1377,7 +1379,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 		_dispatchSize = strZnPtr->size + strZnPtr->offset - hookPosition;
 
 	// This prevents starting a fade with an inverted stereo image
-	dispatchValidateFadeSize(dispatchPtr, &_dispatchSize, "dispatchPrepareToJump");
+	dispatchValidateFadeSize(dispatchPtr, _dispatchSize, "dispatchPrepareToJump");
 
 	if (_vm->_game.id == GID_DIG) {
 		if (hookPosition < jumpDestination)
@@ -1444,7 +1446,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 }
 
 void IMuseDigital::dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr) {
-	int cumulativeStreamOffset;
+	int32 cumulativeStreamOffset;
 	IMuseDigiStreamZone *szTmp;
 
 	if (strZnPtr->next) {
@@ -1488,7 +1490,7 @@ IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
 	return nullptr;
 }
 
-uint8 *IMuseDigital::dispatchAllocateFade(int &fadeSize, const char *function) {
+uint8 *IMuseDigital::dispatchAllocateFade(int32 &fadeSize, const char *function) {
 	uint8 *allocatedFadeBuf = nullptr;
 	if (fadeSize > DIMUSE_LARGE_FADE_DIM) {
 		debug(5, "IMuseDigital::dispatchAllocateFade(): WARNING: requested fade too large (%d) in %s()", fadeSize, function);
@@ -1577,7 +1579,7 @@ int IMuseDigital::dispatchGetFadeSize(IMuseDigiDispatch *dispatchPtr, int fadeLe
 	return (dispatchPtr->wordSize * dispatchPtr->channelCount * ((dispatchPtr->sampleRate * fadeLength / 1000) & 0xFFFFFFFE)) / 8;
 }
 
-void IMuseDigital::dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *function) {
+void IMuseDigital::dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int32 &dispatchSize, const char *function) {
 	int alignmentModDividend;
 	if (_vm->_game.id == GID_DIG || (_vm->_game.id == GID_CMI && _vm->_game.features & GF_DEMO)) {
 		alignmentModDividend = dispatchPtr->channelCount * (dispatchPtr->wordSize == 8 ? 1 : 3);
@@ -1590,14 +1592,14 @@ void IMuseDigital::dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int 
 	}
 
 	if (alignmentModDividend) {
-		*dispatchSize -= *dispatchSize % alignmentModDividend;
+		dispatchSize -= dispatchSize % alignmentModDividend;
 	} else {
 		debug(5, "IMuseDigital::dispatchValidateFadeSize(): WARNING: tried mod by 0 while validating fade size in %s(), ignored", function);
 	}
 }
 
-int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade) {
-	int mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
+int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int32 remainingFade) {
+	int32 mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
 	dispatchPtr->fadeVol += remainingFade * dispatchPtr->fadeSlope;
 
 	if (dispatchPtr->fadeVol < 0)
@@ -1609,7 +1611,7 @@ int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, in
 }
 
 int IMuseDigital::dispatchUpdateFadeSlope(IMuseDigiDispatch *dispatchPtr) {
-	int updatedVolume, effRemainingFade;
+	int32 updatedVolume, effRemainingFade;
 
 	updatedVolume = (dispatchPtr->trackPtr->effVol * (128 - (dispatchPtr->fadeVol / 65536))) / 128;
 	if (!dispatchPtr->fadeSlope) {
@@ -1644,7 +1646,7 @@ void IMuseDigital::dispatchVOCLoopCallback(int soundId) {
 int IMuseDigital::dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr) {
 	uint8 *headerBuf;
 	uint8 *soundAddrData;
-	int resSize;
+	int32 resSize;
 
 	while (1) {
 		if (dispatchPtr->streamPtr) {

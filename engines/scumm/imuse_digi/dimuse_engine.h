@@ -156,17 +156,17 @@ private:
 	int _streamerBailFlag;
 
 	int streamerInit();
-	IMuseDigiStream *streamerAllocateSound(int soundId, int bufId, int maxRead);
+	IMuseDigiStream *streamerAllocateSound(int soundId, int bufId, int32 maxRead);
 	int streamerClearSoundInStream(IMuseDigiStream *streamPtr);
 	int streamerProcessStreams();
 	uint8 *streamerGetStreamBuffer(IMuseDigiStream *streamPtr, int size);
-	uint8 *streamerGetStreamBufferAtOffset(IMuseDigiStream *streamPtr, int offset, int size);
+	uint8 *streamerGetStreamBufferAtOffset(IMuseDigiStream *streamPtr, int32 offset, int size);
 	int streamerSetReadIndex(IMuseDigiStream *streamPtr, int offset);
 	int streamerSetLoadIndex(IMuseDigiStream *streamPtr, int offset);
 	int streamerGetFreeBufferAmount(IMuseDigiStream *streamPtr);
-	int streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr, int soundId, int currentOffset);
+	int streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr, int soundId, int32 offset);
 	int streamerQueryStream(IMuseDigiStream *streamPtr, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
-	int streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int sizeToFeed, int paused);
+	int streamerFeedStream(IMuseDigiStream *streamPtr, uint8 *srcBuf, int32 sizeToFeed, int paused);
 	int streamerFetchData(IMuseDigiStream *streamPtr);
 	void streamerSetLoopFlag(IMuseDigiStream *streamPtr, int offset);
 	void streamerRemoveLoopFlag(IMuseDigiStream *streamPtr);
@@ -191,7 +191,7 @@ private:
 	int tracksStopAllSounds();
 	int tracksGetNextSound(int soundId);
 	int tracksQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
-	int tracksFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
+	int tracksFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
 	void tracksClear(IMuseDigiTrack *trackPtr);
 	int tracksSetParam(int soundId, int opcode, int value);
 	int tracksGetParam(int soundId, int opcode);
@@ -206,18 +206,18 @@ private:
 	IMuseDigiStreamZone _streamZones[DIMUSE_MAX_STREAMZONES];
 	uint8 *_dispatchBuffer;
 	uint8 _ftCrossfadeBuffer[30000]; // Used by FT & DIG demo
-	int _dispatchSize;
+	int32 _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
 	uint8 *_dispatchLargeFadeBufs;
-	int _dispatchFadeSize;
+	int32 _dispatchFadeSize;
 	int _dispatchLargeFadeFlags[DIMUSE_LARGE_FADES];
 	int _dispatchSmallFadeFlags[DIMUSE_SMALL_FADES];
 	int _dispatchFadeStartedFlag;
 	int _dispatchBufferedHookId;
-	int _dispatchJumpFadeSize;
-	int _dispatchCurStreamBufSize;
-	int _dispatchCurStreamCriticalSize;
-	int _dispatchCurStreamFreeSpace;
+	int32 _dispatchJumpFadeSize;
+	int32 _dispatchCurStreamBufSize;
+	int32 _dispatchCurStreamCriticalSize;
+	int32 _dispatchCurStreamFreeSpace;
 	int _dispatchCurStreamPaused;
 
 	int dispatchInit();
@@ -234,17 +234,17 @@ private:
 	int dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr);
 	int dispatchGetMap(IMuseDigiDispatch *dispatchPtr);
 	int dispatchConvertMap(uint8 *rawMap, uint8 *destMap);
-	int *dispatchGetNextMapEvent(int *mapPtr, int soundOffset, int *mapEvent);
+	int32 *dispatchGetNextMapEvent(int32 *mapPtr, int32 soundOffset, int32 *mapEvent);
 	void dispatchPredictStream(IMuseDigiDispatch *dispatchPtr);
-	int *dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int &candidateHookId);
-	void dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int *jumpParamsFromMap, int calledFromGetNextMapEvent);
+	int32 *dispatchCheckForJump(int32 *mapPtr, IMuseDigiStreamZone *strZnPtr, int &candidateHookId);
+	void dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr, int32 *jumpParamsFromMap, int calledFromGetNextMapEvent);
 	void dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr);
 	IMuseDigiStreamZone *dispatchAllocateStreamZone();
-	uint8 *dispatchAllocateFade(int &fadeSize, const char *functionName);
+	uint8 *dispatchAllocateFade(int32 &fadeSize, const char *functionName);
 	void dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const char *functionName);
 	int dispatchGetFadeSize(IMuseDigiDispatch *dispatchPtr, int fadeLength);
-	void dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int *dispatchSize, const char *functionName);
-	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int remainingFade);
+	void dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int32 &dispatchSize, const char *functionName);
+	int dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int32 remainingFade);
 	int dispatchUpdateFadeSlope(IMuseDigiDispatch *dispatchPtr);
 	void dispatchVOCLoopCallback(int soundId);
 	int dispatchSeekToNextChunk(IMuseDigiDispatch *dispatchPtr);
@@ -268,9 +268,9 @@ private:
 	int waveSwitchStream(int oldSoundId, int newSoundId, int fadeLengthMs, int fadeSyncFlag2, int fadeSyncFlag1);
 	int waveSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag);
 	int waveProcessStreams();
-	int waveQueryStream(int soundId, int &bufSize, int &criticalSize, int &freeSpace, int &paused);
-	int waveFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
-	int waveLipSync(int soundId, int syncId, int msPos, int &width, int &height);
+	int waveQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
+	int waveFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
+	int waveLipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height);
 
 	// Waveapi
 	waveOutParamsStruct waveOutSettings;
@@ -304,9 +304,8 @@ public:
 	void stopAllSounds() override;
 	int getSoundStatus(int sound) const override { return 0; }
 	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
-	//int startVoice(int soundId, Audio::AudioStream *input) override { return 0; }
 	int startVoice(int soundId, const char *soundName, byte speakingActorId);
-	int startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size);
+	int startVoice(const char *fileName, ScummFile *file, uint32 offset, uint32 size);
 	void saveLoadEarly(Common::Serializer &ser);
 	void setRadioChatterSFX(bool state);
 	void setAudioNames(int32 num, char *names);
@@ -332,8 +331,8 @@ public:
 	int32 getCurVoiceLipSyncHeight();
 	int32 getCurMusicLipSyncWidth(int syncId);
 	int32 getCurMusicLipSyncHeight(int syncId);
-	void getSpeechLipSyncInfo(int32 *width, int32 *height);
-	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
+	void getSpeechLipSyncInfo(int32 &width, int32 &height);
+	void getMusicLipSyncInfo(int syncId, int32 &width, int32 &height);
 	int32 getSoundElapsedTimeInMs(int soundId);
 
 	// General engine functions
@@ -356,9 +355,9 @@ public:
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, int fadeDelay, int fadeSyncFlag2, int fadeSyncFlag1);
 	int diMUSESwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag);
 	int diMUSEProcessStreams();
-	int diMUSEQueryStream(int soundId, int &bufSize, int &criticalSize, int &freeSpace, int &paused);
-	int diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused);
-	int diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height);
+	int diMUSEQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused);
+	int diMUSEFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused);
+	int diMUSELipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height);
 	int diMUSESetMusicGroupVol(int volume);
 	int diMUSESetSFXGroupVol(int volume);
 	int diMUSESetVoiceGroupVol(int volume);

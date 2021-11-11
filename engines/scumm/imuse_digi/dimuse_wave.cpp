@@ -116,17 +116,17 @@ int IMuseDigital::waveProcessStreams() {
 	return streamerProcessStreams();
 }
 
-int IMuseDigital::waveQueryStream(int soundId, int &bufSize, int &criticalSize, int &freeSpace, int &paused) {
+int IMuseDigital::waveQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int & paused) {
 	Common::StackLock lock(_mutex);
 	return tracksQueryStream(soundId, bufSize, criticalSize, freeSpace, paused);
 }
 
-int IMuseDigital::waveFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+int IMuseDigital::waveFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused) {
 	Common::StackLock lock(_mutex);
 	return tracksFeedStream(soundId, srcBuf, sizeToFeed, paused);
 }
 
-int IMuseDigital::waveLipSync(int soundId, int syncId, int msPos, int &width, int &height) {
+int IMuseDigital::waveLipSync(int soundId, int syncId, int msPos, int32 & width, int32 & height) {
 	return tracksLipSync(soundId, syncId, msPos, width, height);
 }
 

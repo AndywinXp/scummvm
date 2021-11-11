@@ -147,7 +147,7 @@ int IMuseDigiFilesHandler::getNextSound(int soundId) {
 	return 2;
 }
 
-int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
+int IMuseDigiFilesHandler::seek(int soundId, int32 offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed (speech
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 	// The seeked position is in reference to the decompressed sound
@@ -200,7 +200,7 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	return 0;
 }
 
-int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
+int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int32 size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed (speech
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 
@@ -209,7 +209,7 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 
 	if (soundId != 0) {
 		uint8 *tmpBuf = nullptr;
-		int resultingSize;
+		int32 resultingSize;
 
 		// We don't have SoundDesc objects for FT & DIG demo speech files
 		if (_engine->isFTSoundEngine() && soundId == kTalkSoundID) {
@@ -382,7 +382,7 @@ void IMuseDigiFilesHandler::getFilenameFromSoundId(int soundId, char *fileName, 
 	}
 }
 
-void IMuseDigiFilesHandler::allocSoundBuffer(int bufId, int size, int loadSize, int criticalSize) {
+void IMuseDigiFilesHandler::allocSoundBuffer(int bufId, int32 size, int32 loadSize, int32 criticalSize) {
 	IMuseDigiSndBuffer *selectedSoundBuf;
 
 	selectedSoundBuf = &_soundBuffers[bufId];
@@ -423,7 +423,7 @@ int IMuseDigiFilesHandler::setCurrentSpeechFilename(const char *fileName) {
 	return 0;
 }
 
-void IMuseDigiFilesHandler::setCurrentFtSpeechFile(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) {
+void IMuseDigiFilesHandler::setCurrentFtSpeechFile(const char *fileName, ScummFile *file, uint32 offset, uint32 size) {
 	Common::strlcpy(_ftSpeechFilename, fileName, sizeof(_ftSpeechFilename));
 	_ftSpeechFile = file;
 	_ftSpeechSubFileOffset = offset;

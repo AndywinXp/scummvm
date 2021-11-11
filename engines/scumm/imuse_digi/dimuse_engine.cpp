@@ -203,7 +203,7 @@ int IMuseDigital::startVoice(int soundId, const char *soundName, byte speakingAc
 }
 
 // Used by FT and DIG demo
-int IMuseDigital::startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) {
+int IMuseDigital::startVoice(const char *fileName, ScummFile *file, uint32 offset, uint32 size) {
 	_filesHandler->setCurrentFtSpeechFile(fileName, file, offset, size);
 	diMUSEStopSound(kTalkSoundID);
 	diMUSEStartStream(kTalkSoundID, 127, DIMUSE_BUFFER_SPEECH);
@@ -458,33 +458,33 @@ int32 IMuseDigital::getCurMusicPosInMs() {
 
 int32 IMuseDigital::getCurVoiceLipSyncWidth() {
 	int32 width, height;
-	getSpeechLipSyncInfo(&width, &height);
+	getSpeechLipSyncInfo(width, height);
 	return width;
 }
 
 int32 IMuseDigital::getCurVoiceLipSyncHeight() {
 	int32 width, height;
-	getSpeechLipSyncInfo(&width, &height);
+	getSpeechLipSyncInfo(width, height);
 	return height;
 }
 
 int32 IMuseDigital::getCurMusicLipSyncWidth(int syncId) {
 	int32 width, height;
-	getMusicLipSyncInfo(syncId, &width, &height);
+	getMusicLipSyncInfo(syncId, width, height);
 	return width;
 }
 
 int32 IMuseDigital::getCurMusicLipSyncHeight(int syncId) {
 	int32 width, height;
-	getMusicLipSyncInfo(syncId, &width, &height);
+	getMusicLipSyncInfo(syncId, width, height);
 	return height;
 }
 
-void IMuseDigital::getSpeechLipSyncInfo(int32 *width, int32 *height) {
+void IMuseDigital::getSpeechLipSyncInfo(int32 &width, int32 &height) {
 	int curSpeechPosInMs;
 
-	*width = 0;
-	*height = 0;
+	width = 0;
+	height = 0;
 
 	if (diMUSEGetParam(kTalkSoundID, DIMUSE_P_SND_TRACK_NUM) > 0) {
 		curSpeechPosInMs = diMUSEGetParam(kTalkSoundID, DIMUSE_P_SND_POS_IN_MS);
@@ -492,15 +492,15 @@ void IMuseDigital::getSpeechLipSyncInfo(int32 *width, int32 *height) {
 	}
 }
 
-void IMuseDigital::getMusicLipSyncInfo(int syncId, int32 *width, int32 *height) {
+void IMuseDigital::getMusicLipSyncInfo(int syncId, int32 &width, int32 &height) {
 	int soundId;
 	int speechSoundId;
 	int curSpeechPosInMs;
 
 	soundId = 0;
 	speechSoundId = 0;
-	*width = 0;
-	*height = 0;
+	width = 0;
+	height = 0;
 	while (1) {
 		soundId = diMUSEGetNextSound(soundId);
 		if (!soundId)
@@ -701,16 +701,16 @@ int IMuseDigital::diMUSEProcessStreams() {
 	return cmdsHandleCmd(27, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int IMuseDigital::diMUSEQueryStream(int soundId, int &bufSize, int &criticalSize, int &freeSpace, int &paused) {
+int IMuseDigital::diMUSEQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused) {
 	return cmdsHandleCmd(28, soundId, (uintptr)bufSize, (uintptr)criticalSize, (uintptr)freeSpace, (uintptr)paused, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int IMuseDigital::diMUSEFeedStream(int soundId, uint8 *srcBuf, int sizeToFeed, int paused) {
+int IMuseDigital::diMUSEFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, int paused) {
 	return cmdsHandleCmd(29, soundId, (uintptr)srcBuf, sizeToFeed, paused, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
-int IMuseDigital::diMUSELipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
-	return cmdsHandleCmd(30, soundId, syncId, msPos, (uintptr)width, (uintptr)height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+int IMuseDigital::diMUSELipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height) {
+	return cmdsHandleCmd(30, soundId, syncId, msPos, (uintptr)&width, (uintptr)&height, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 }
 
 int IMuseDigital::diMUSESetMusicGroupVol(int volume) {
