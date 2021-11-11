@@ -1641,25 +1641,30 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	ConfMan.setInt("dimuse_tempo", dimuseTempo);
 	ConfMan.flushToDisk();
 
-	// Check if we are able to use DiMUSE_v2; the game has to use the original BUN/SOU
-	// compression format or raw uncompressed bundles (for Akella COMI).
-	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them.
-	bool _useDiMUSEv2 = true;
+	// Check if we are dealing with old resource files compressed with the ScummVM tools
+	bool filesAreCompressed = false;
 
-	if (_useDiMUSEv2) {
-		// COMI demo is excluded from the count since it appears it can't be compressed
-		// DIG demo uses raw VOC files for speech instead of a MONSTER.SOU file
-		if ((_game.id == GID_CMI || _game.id == GID_DIG) && !(_game.features & GF_DEMO)) {
-			BundleMgr *bnd = new BundleMgr(new BundleDirCache());
-			_useDiMUSEv2 &= !bnd->isExtCompBun(_game.id);
-			delete bnd;
-		} else if (_game.id == GID_FT) {
-			_useDiMUSEv2 &= !_sound->isSfxFileCompressed();
-		}
+	// COMI demo is excluded from the count since it appears it can't be compressed
+	// DIG demo uses raw VOC files for speech instead of a MONSTER.SOU file
+	if ((_game.id == GID_CMI || _game.id == GID_DIG) && !(_game.features & GF_DEMO)) {
+		BundleMgr *bnd = new BundleMgr(new BundleDirCache());
+		filesAreCompressed |= bnd->isExtCompBun(_game.id);
+		delete bnd;
+	} else if (_game.id == GID_FT) {
+		filesAreCompressed |= _sound->isSfxFileCompressed();
 	}
 
 	_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
 
+	if (filesAreCompressed) {
+		GUI::MessageDialog dialog(_(
+			"Audio files compressed with ScummVM Tools were detected; *.BUN/*.SOU\n"
+			"compression is not supported anymore for this game, audio will be disabled.\n"
+			"Please reinstall the game with the correct resource files."),
+		_("OK"));
+		dialog.runModal();
+		_imuseDigital->disableEngine();
+	}
 
 	// Create FT INSANE object
 	if (_game.id == GID_FT)

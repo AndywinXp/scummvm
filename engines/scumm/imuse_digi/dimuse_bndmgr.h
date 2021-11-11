@@ -61,6 +61,7 @@ public:
 	AudioTable *getTable(int slot);
 	IndexNode *getIndexTable(int slot);
 	int32 getNumFiles(int slot);
+	bool isSndDataExtComp(int slot);
 };
 
 class BundleMgr {
@@ -98,7 +99,7 @@ public:
 	BundleMgr(BundleDirCache *_cache);
 	~BundleMgr();
 
-	bool open(const char *filename, bool errorFlag = false);
+	bool open(const char *filename, bool &isCompressed, bool errorFlag = false);
 	void close();
 	Common::SeekableReadStream *getFile(const char *filename, int32 &offset, int32 &size);
 	int32 seekFile(int32 offset, int size);

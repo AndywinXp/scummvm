@@ -97,6 +97,9 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 }
 
 uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
+	if (_engine->isEngineDisabled())
+		return NULL;
+
 	Common::StackLock lock(_mutex);
 	// This function is always used for SFX (tracks which do not
 	// have a stream pointer), hence the use of the resource address
@@ -115,6 +118,9 @@ uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 }
 
 int IMuseDigiFilesHandler::getSoundAddrDataSize(int soundId, bool hasStream) {
+	if (_engine->isEngineDisabled())
+		return 0;
+
 	if (hasStream) {
 		ImuseDigiSndMgr::SoundDesc *s = _sound->findSoundById(soundId);
 		if (s) {
@@ -145,6 +151,10 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 	// This function and files_read() are used for sounds for which a stream is needed (speech 
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 	// The seeked position is in reference to the decompressed sound
+
+	if (_engine->isEngineDisabled())
+		return 0;
+
 	char fileName[60] = "";
 	getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
 
@@ -193,6 +203,10 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	// This function and files_seek() are used for sounds for which a stream is needed (speech 
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
+
+	if (_engine->isEngineDisabled())
+		return 0;
+
 	if (soundId != 0) {
 		uint8 *tmpBuf = NULL;
 		int resultingSize;
@@ -256,6 +270,9 @@ IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 }
 
 int IMuseDigiFilesHandler::openSound(int soundId) {
+	if (_engine->isEngineDisabled())
+		return 1;
+
 	ImuseDigiSndMgr::SoundDesc *s = NULL;
 	if (!_engine->isFTSoundEngine()) {
 		char fileName[60] = "";
@@ -289,6 +306,9 @@ int IMuseDigiFilesHandler::openSound(int soundId) {
 }
 
 void IMuseDigiFilesHandler::closeSound(int soundId) {
+	if (_engine->isEngineDisabled())
+		return;
+
 	_sound->scheduleSoundForDeallocation(soundId);
 }
 
@@ -382,6 +402,9 @@ void IMuseDigiFilesHandler::deallocSoundBuffer(int bufId) {
 }
 
 void IMuseDigiFilesHandler::flushSounds() {
+	if (_engine->isEngineDisabled())
+		return;
+
 	ImuseDigiSndMgr::SoundDesc *s = _sound->getSounds();
 	for (int i = 0; i < MAX_IMUSE_SOUNDS; i++) {
 		ImuseDigiSndMgr::SoundDesc *curSnd = &s[i];
@@ -409,6 +432,9 @@ void IMuseDigiFilesHandler::setCurrentFtSpeechFile(const char *fileName, ScummFi
 }
 
 void IMuseDigiFilesHandler::closeSoundImmediatelyById(int soundId) {
+	if (_engine->isEngineDisabled())
+		return;
+
 	_sound->closeSoundById(soundId);
 }
 

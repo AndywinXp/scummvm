@@ -71,12 +71,13 @@ ImuseDigiSndMgr::SoundDesc *ImuseDigiSndMgr::allocSlot() {
 
 bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
+	bool compressed = false;
 
 	sound->bundle = new BundleMgr(_cacheBundleDir);
 	assert(sound->bundle);
 	if (_vm->_game.id == GID_CMI) {
 		if (_vm->_game.features & GF_DEMO) {
-			result = sound->bundle->open("music.bun");
+			result = sound->bundle->open("music.bun", compressed);
 		} else {
 			char musicfile[20];
 			if (disk == -1)
@@ -89,13 +90,13 @@ bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 //				sound->bundle->closeFile();
 //			}
 
-			result = sound->bundle->open(musicfile, true);
+			result = sound->bundle->open(musicfile, compressed);
 
 			// FIXME: Shouldn't we only set _disk if result == true?
 			_disk = (byte)_vm->VAR(_vm->VAR_CURRENTDISK);
 		}
 	} else if (_vm->_game.id == GID_DIG)
-		result = sound->bundle->open("digmusic.bun", true);
+		result = sound->bundle->open("digmusic.bun", compressed);
 	else
 		error("ImuseDigiSndMgr::openMusicBundle() Don't know which bundle file to load");
 
@@ -106,12 +107,13 @@ bool ImuseDigiSndMgr::openMusicBundle(SoundDesc *sound, int &disk) {
 
 bool ImuseDigiSndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 	bool result = false;
+	bool compressed = false;
 
 	sound->bundle = new BundleMgr(_cacheBundleDir);
 	assert(sound->bundle);
 	if (_vm->_game.id == GID_CMI) {
 		if (_vm->_game.features & GF_DEMO) {
-			result = sound->bundle->open("voice.bun");
+			result = sound->bundle->open("voice.bun", compressed);
 		} else {
 			char voxfile[20];
 			if (disk == -1)
@@ -124,13 +126,13 @@ bool ImuseDigiSndMgr::openVoiceBundle(SoundDesc *sound, int &disk) {
 //				sound->bundle->closeFile();
 //			}
 
-			result = sound->bundle->open(voxfile);
+			result = sound->bundle->open(voxfile, compressed);
 
 			// FIXME: Shouldn't we only set _disk if result == true?
 			_disk = (byte)_vm->VAR(_vm->VAR_CURRENTDISK);
 		}
 	} else if (_vm->_game.id == GID_DIG)
-		result = sound->bundle->open("digvoice.bun");
+		result = sound->bundle->open("digvoice.bun", compressed);
 	else
 		error("ImuseDigiSndMgr::openVoiceBundle() Don't know which bundle file to load");
 

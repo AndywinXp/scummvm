@@ -59,6 +59,10 @@ BundleDirCache::IndexNode *BundleDirCache::getIndexTable(int slot) {
 	return _budleDirCache[slot].indexTable;
 }
 
+bool BundleDirCache::isSndDataExtComp(int slot) {
+	return _budleDirCache[slot].isCompressed;
+}
+
 int BundleDirCache::matchFile(const char *filename) {
 	int32 tag, offset;
 	bool found = false;
@@ -168,7 +172,7 @@ Common::SeekableReadStream *BundleMgr::getFile(const char *filename, int32 &offs
 	return NULL;
 }
 
-bool BundleMgr::open(const char *filename, bool errorFlag) {
+bool BundleMgr::open(const char *filename, bool &isCompressed, bool errorFlag) {
 	if (_file->isOpen())
 		return true;
 
@@ -183,6 +187,7 @@ bool BundleMgr::open(const char *filename, bool errorFlag) {
 
 	int slot = _cache->matchFile(filename);
 	assert(slot != -1);
+	isCompressed = _cache->isSndDataExtComp(slot);
 	_numFiles = _cache->getNumFiles(slot);
 	assert(_numFiles);
 	_bundleTable = _cache->getTable(slot);
@@ -400,10 +405,10 @@ bool BundleMgr::isExtCompBun(byte gameId) {
 	bool isExtComp = false;
 	if (gameId == GID_CMI) {
 		bool isExtComp1 = false, isExtComp2 = false, isExtComp3 = false, isExtComp4 = false;
-		this->open("voxdisk1.bun", isExtComp1);
-		this->open("voxdisk2.bun", isExtComp2);
-		this->open("musdisk1.bun", isExtComp3);
-		this->open("musdisk2.bun", isExtComp4);
+		this->open("voxdisk1.bun", isExtComp1); this->close();
+		this->open("voxdisk2.bun", isExtComp2); this->close();
+		this->open("musdisk1.bun", isExtComp3); this->close();
+		this->open("musdisk2.bun", isExtComp4); this->close();
 
 		isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
 	} else {

@@ -74,6 +74,7 @@ IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
 	_callbackInterruptFlag = 0;
 
 	_radioChatterSFX = false;
+	_isEngineDisabled = false;
 
 	_audioNames = NULL;
 	_numAudioNames = 0;
@@ -418,6 +419,16 @@ int IMuseDigital::getCurSpeechFrequency() const {
 
 void IMuseDigital::flushTracks() {
 	_filesHandler->flushSounds();
+}
+
+// This is used in order to avoid crash everything
+// if a compressed audio resource file is found
+void IMuseDigital::disableEngine() {
+	_isEngineDisabled = true;
+}
+
+bool IMuseDigital::isEngineDisabled() {
+	return _isEngineDisabled;
 }
 
 bool IMuseDigital::isFTSoundEngine() {

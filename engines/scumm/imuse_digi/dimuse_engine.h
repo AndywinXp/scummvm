@@ -79,6 +79,7 @@ private:
 	void callback();
 
 	bool _isEarlyDiMUSE;
+	bool _isEngineDisabled;
 
 	// These three are manipulated in the waveOut functions
 	uint8 *_outputAudioBuffer;
@@ -321,6 +322,8 @@ public:
 	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p);
 	void refreshScripts();
 	void flushTracks();
+	void disableEngine();
+	bool isEngineDisabled();
 
 	bool isFTSoundEngine(); // Used in the handlers to check if we're using the FT version of the engine
 
