@@ -465,12 +465,9 @@ void IMuseDigital::playFtMusic(const char *songName, int transitionType, int vol
 		case 2:
 		case 3:
 			soundId = getSoundIdByName(songName);
-			// TODO: Remove this when finally phasing out V1, and make
-			//  the above function return 0 if songName is an empty string
-			if (soundId == -1)
-				soundId = 0;
-			else
+			if (soundId)
 				_filesHandler->openSound(soundId);
+
 			if (soundId) {
 				if (oldSoundId) {
 					if (oldSoundId != soundId || transitionType == 2) {
@@ -815,8 +812,6 @@ void IMuseDigital::playComiMusic(const char *songName, const imuseComiTable *tab
 	case 2:
 	case 3:
 	case 4:
-	case 10:
-	case 11:
 	case 12:
 		_filesHandler->openSound(table->soundId);
 		if (table->filename[0] == 0 || table->soundId == 0) {
@@ -856,20 +851,6 @@ void IMuseDigital::playComiMusic(const char *songName, const imuseComiTable *tab
 					diMUSEProcessStreams();
 				} else {
 					switch (table->transitionType) {
-					case 10:
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, DIMUSE_P_VOLUME, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, DIMUSE_P_GROUP, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSEProcessStreams();
-						break;
-					case 11: // Markers actually are 'exit2', which is too long for a char constant; this transition is unused anyway
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 12, table->soundId, DIMUSE_P_VOLUME, 127, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 12, table->soundId, DIMUSE_P_GROUP, 4, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', '2'), 15, table->soundId, hookId, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-						diMUSEProcessStreams();
-						break;
 					case 12:
 						diMUSESetHook(oldSoundId, table->hookId);
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0, -1, -1, -1, -1, -1, -1);

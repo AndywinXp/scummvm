@@ -456,7 +456,7 @@ void IMuseDigiInternalMixer::mixBits16Mono(uint8 *srcBuf, int inFrameCount, int 
 		}
 	} else if (2 * inFrameCount == feedSize) {
 		srcBuf_ptr = (uint16 *)srcBuf;
-		int i = 0; // TODO: check
+		int i = 0;
 		if (inFrameCount - 1 != 0) {
 			for (i = 0; i < inFrameCount - 1; i++) {
 				mixBufCurCell[0] += *(uint16 *)((uint8 *)ampTable + (((int16)srcBuf_ptr[i] & (int16)0xFFF7) >> 3) + 4096);
