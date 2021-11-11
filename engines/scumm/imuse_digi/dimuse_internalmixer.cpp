@@ -74,15 +74,28 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 
 	waveMixChannelsCount = mixChannelsNum;
 
-	int *tableMalloc = (int *)malloc(213504);
+	// We're allocating:
+	// - The amplitude quantization table for 8-bit audio ((17 * 256) int16 == 2176 int32)
+	// - The amplitude quantization table for 12-bit/16-bit audio ((17 * 4096) int16 == 34816 int32)
+	// - The pseudologarithmic curve for volume fade ((8 * 4096) int16 == 16384 int32)
+	//
+	// For the first two tables 17 represents the volume range (0-16), while
+	// 256 and 4096 are respectively the dynamic range for 8-bit and 12-bit audio;
+	//
+	// Every table is initialized with short/int16 values, but stored as int32 and manipulated
+	// at different levels of granularity depending on the case (as uint32, uint16 or uint8).
+	// The latter is populated from the middle, inside-out; hence _softLMID.
+
+	int *tableMalloc = (int *)malloc(53376 * sizeof(int));
 
 	_amp8Table = tableMalloc;          // Dim: 2176
 	_amp12Table = tableMalloc + 2176;  // Dim: 34816
-	_softLTable = tableMalloc + 36992; // Dim: 8192 * 2
-	_softLMID = tableMalloc + 45184;
+	_softLTable = tableMalloc + 36992; // Dim: 16384
+	_softLMID = tableMalloc + 45184;   // Mid table
 
 	if (tableMalloc) {
-		memset(tableMalloc, 0, 213504);
+		// Any unpopulated cell is expected to be set to 0
+		memset(tableMalloc, 0, 53376 * sizeof(int));
 		zeroCenterOffset = 0;
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;
