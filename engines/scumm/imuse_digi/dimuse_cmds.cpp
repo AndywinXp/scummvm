@@ -86,13 +86,13 @@ int IMuseDigital::cmdsHandleCmd(int cmd, uint8 *ptr, int a, int b, int c, int d,
 		return waveStartStream(a, b, c);
 	case 26:
 		if (_isEarlyDiMUSE)
-			return waveSwitchStream(a, b, (uint8 *)ptr, d, e);
+			return waveSwitchStream(a, b, ptr, d, e);
 		else
 			return waveSwitchStream(a, b, c, d, e);
 	case 27:
 		return waveProcessStreams();
 	case 29:
-		return waveFeedStream(a, (uint8 *)ptr, c, d);
+		return waveFeedStream(a, ptr, c, d);
 	default:
 		debug(5, "IMuseDigital::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
 		return -1;
