@@ -376,9 +376,10 @@ public:
 	int checkHookId(int &trackHookId, int sampleHookId);
 
 	// CMDs
-	int cmdsHandleCmd(int cmd, int b, uintptr c, uintptr d, uintptr e, uintptr f,
-		int g, int h, int i, int j, int k,
-		int l, int m, int n, int o);
+	int cmdsHandleCmd(int cmd, uintptr ptr = (uintptr)nullptr,
+		int a = -1, int b = -1, int c = -1, int d = -1, int e = -1,
+		int f = -1, int g = -1, int h = -1, int i = -1, int j = -1,
+		int k = -1, int l = -1, int m = -1, int n = -1);
 
 	// Script
 	int scriptTriggerCallback(char *marker);

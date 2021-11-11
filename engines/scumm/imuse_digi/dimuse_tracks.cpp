@@ -553,10 +553,8 @@ int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 &width
 		}
 	}
 
-	if (&width)
-		width = w;
-	if (&height)
-		height = h;
+	width = w;
+	height = h;
 
 	return 0;
 }

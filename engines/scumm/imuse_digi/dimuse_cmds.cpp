@@ -26,7 +26,7 @@ namespace Scumm {
 
 // We have some uintptr arguments as commands 28, 29 and 30 actually require pointer arguments
 // Unfortunately this makes function calls for other command a little less pretty...
-int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d, uintptr e,
+int IMuseDigital::cmdsHandleCmd(int cmd, uintptr ptr, int a, int b, int c, int d, int e,
 	int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 
 	// Convert the character constant (single quotes '') to string
@@ -50,10 +50,10 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	case 4:
 		return cmdsResume();
 	case 7:
-		_groupsHandler->setGroupVol(a, (int)b);
+		_groupsHandler->setGroupVol(a, b);
 		break;
 	case 8:
-		cmdsStartSound(a, (int)b);
+		cmdsStartSound(a, b);
 		break;
 	case 9:
 		cmdsStopSound(a);
@@ -64,37 +64,35 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	case 11:
 		return cmdsGetNextSound(a);
 	case 12:
-		cmdsSetParam(a, (int)b, (int)c);
+		cmdsSetParam(a, b, c);
 		break;
 	case 13:
-		return cmdsGetParam(a, (int)b);
+		return cmdsGetParam(a, b);
 	case 14:
-		return _fadesHandler->fadeParam(a, (int)b, (int)c, (int)d);
+		return _fadesHandler->fadeParam(a, b, c, d);
 	case 15:
-		return cmdsSetHook(a, (int)b);
+		return cmdsSetHook(a, b);
 	case 16:
 		return cmdsGetHook(a);
 	case 17:
-		return _triggersHandler->setTrigger(a, marker, (int)c, (int)d, (int)e, f, g, h, i, j, k, l, m, n);
+		return _triggersHandler->setTrigger(a, marker, c, d, e, f, g, h, i, j, k, l, m, n);
 	case 18:
-		return _triggersHandler->checkTrigger(a, marker, (int)c);
+		return _triggersHandler->checkTrigger(a, marker, c);
 	case 19:
-		return _triggersHandler->clearTrigger(a, marker, (int)c);
+		return _triggersHandler->clearTrigger(a, marker, c);
 	case 20:
-		return _triggersHandler->deferCommand(a, (int)b, (int)c, (int)d, (int)e, f, g, h, i, j, k, l, m, n);
+		return _triggersHandler->deferCommand(a, b, c, d, e, f, g, h, i, j, k, l, m, n);
 	case 25:
-		return waveStartStream(a, (int)b, (int)c);
+		return waveStartStream(a, b, c);
 	case 26:
 		if (_isEarlyDiMUSE)
-			return waveSwitchStream(a, (int)b, (uint8 *)c, (int)d, (int)e);
+			return waveSwitchStream(a, b, (uint8 *)ptr, d, e);
 		else
-			return waveSwitchStream(a, (int)b, (int)c, (int)d, (int)e);
+			return waveSwitchStream(a, b, c, d, e);
 	case 27:
 		return waveProcessStreams();
 	case 29:
-		return waveFeedStream(a, (uint8 *)b, (int)c, (int)d);
-	case 30:
-		return waveLipSync(a, (int)b, (int)c, *((int32 *)d), *((int32 *)e));
+		return waveFeedStream(a, (uint8 *)ptr, c, d);
 	default:
 		debug(5, "IMuseDigital::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
 		return -1;

@@ -193,12 +193,12 @@ void IMuseDigiTriggersHandler::processTriggers(int soundId, char *marker) {
 		} else {
 			if (_trigs[l].opcode < 30) {
 				// Execute a command
-				_engine->cmdsHandleCmd(_trigs[l].opcode, _trigs[l].a,
-					_trigs[l].b, _trigs[l].c,
-					_trigs[l].d, _trigs[l].e,
-					_trigs[l].f, _trigs[l].g,
-					_trigs[l].h, _trigs[l].i,
-					_trigs[l].j, -1, -1, -1, -1);
+				_engine->cmdsHandleCmd(_trigs[l].opcode, (uintptr)nullptr,
+					_trigs[l].a, _trigs[l].b,
+					_trigs[l].c, _trigs[l].d,
+					_trigs[l].e, _trigs[l].f,
+					_trigs[l].g, _trigs[l].h,
+					_trigs[l].i, _trigs[l].j);
 			}
 		}
 
@@ -262,12 +262,12 @@ void IMuseDigiTriggersHandler::loop() {
 		if (_defers[l].counter == 1) {
 			if (_defers[l].opcode != 0) {
 				if (_defers[l].opcode < 30) {
-					_engine->cmdsHandleCmd(_trigs[l].opcode,
+					_engine->cmdsHandleCmd(_trigs[l].opcode, (uintptr)nullptr,
 						_trigs[l].a, _trigs[l].b,
 						_trigs[l].c, _trigs[l].d,
 						_trigs[l].e, _trigs[l].f,
 						_trigs[l].g, _trigs[l].h,
-						_trigs[l].i, _trigs[l].j, -1, -1, -1, -1);
+						_trigs[l].i, _trigs[l].j);
 				}
 			} else {
 				_engine->scriptTriggerCallback(_trigs[l].text);
