@@ -32,7 +32,7 @@ int IMuseDigital::tracksInit() {
 
 	if (waveOutInit(DIMUSE_SAMPLERATE, &waveOutSettings))
 		return -1;
-	
+
 	if (_internalMixer->init(waveOutSettings.bytesPerSample,
 			waveOutSettings.numChannels,
 			waveOutSettings.mixBuf,
@@ -42,7 +42,7 @@ int IMuseDigital::tracksInit() {
 			dispatchInit() ||
 			streamerInit())
 		return -1;
-	
+
 	for (int l = 0; l < _trackCount; l++) {
 		_tracks[l].prev = NULL;
 		_tracks[l].next = NULL;
@@ -379,35 +379,35 @@ int IMuseDigital::tracksSetParam(int soundId, int opcode, int value) {
 	while (track) {
 		if (track->soundId == soundId) {
 			switch (opcode) {
-			case P_GROUP:
+			case DIMUSE_P_GROUP:
 				if (value >= 16)
 					return -5;
 				track->group = value;
 				track->effVol = ((track->vol + 1) * _groupsHandler->getGroupVol(value)) / 128;
 				return 0;
-			case P_PRIORITY:
+			case DIMUSE_P_PRIORITY:
 				if (value > 127)
 					return -5;
 				track->priority = value;
 				return 0;
-			case P_VOLUME:
+			case DIMUSE_P_VOLUME:
 				if (value > 127)
 					return -5;
 				track->vol = value;
 				track->effVol = ((value + 1) * _groupsHandler->getGroupVol(track->group)) / 128;
 				return 0;
-			case P_PAN:
+			case DIMUSE_P_PAN:
 				if (value > 127)
 					return -5;
 				track->pan = value;
 				return 0;
-			case P_DETUNE:
+			case DIMUSE_P_DETUNE:
 				if (value < -9216 || value > 9216)
 					return -5;
 				track->detune = value;
 				track->pitchShift = value + track->transpose * 256;
 				return 0;
-			case P_TRANSPOSE:
+			case DIMUSE_P_TRANSPOSE:
 				if (_vm->_game.id == GID_DIG || _vm->_game.id == GID_FT) {
 					if (value < -12 || value > 12)
 						return -5;
@@ -425,9 +425,9 @@ int IMuseDigital::tracksSetParam(int soundId, int opcode, int value) {
 
 					track->pitchShift = value;
 				}
-				
+
 				return 0;
-			case P_MAILBOX:
+			case DIMUSE_P_MAILBOX:
 				track->mailbox = value;
 				return 0;
 			default:
@@ -443,7 +443,7 @@ int IMuseDigital::tracksSetParam(int soundId, int opcode, int value) {
 
 int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 	if (!_trackList) {
-		if (opcode != P_SND_TRACK_NUM)
+		if (opcode != DIMUSE_P_SND_TRACK_NUM)
 			return -4;
 		else
 			return 0;
@@ -456,33 +456,33 @@ int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 			l++;
 		if (track->soundId == soundId) {
 			switch (opcode) {
-			case P_BOGUS_ID:
+			case DIMUSE_P_BOGUS_ID:
 				return -1;
-			case P_SND_TRACK_NUM:
+			case DIMUSE_P_SND_TRACK_NUM:
 				return l;
-			case P_TRIGS_SNDS:
+			case DIMUSE_P_TRIGS_SNDS:
 				return -1;
-			case P_MARKER:
+			case DIMUSE_P_MARKER:
 				return track->marker;
-			case P_GROUP:
+			case DIMUSE_P_GROUP:
 				return track->group;
-			case P_PRIORITY:
+			case DIMUSE_P_PRIORITY:
 				return track->priority;
-			case P_VOLUME:
+			case DIMUSE_P_VOLUME:
 				return track->vol;
-			case P_PAN:
+			case DIMUSE_P_PAN:
 				return track->pan;
-			case P_DETUNE:
+			case DIMUSE_P_DETUNE:
 				return track->detune;
-			case P_TRANSPOSE:
+			case DIMUSE_P_TRANSPOSE:
 				return track->transpose;
-			case P_MAILBOX:
+			case DIMUSE_P_MAILBOX:
 				return track->mailbox;
-			case P_SND_HAS_STREAM:
+			case DIMUSE_P_SND_HAS_STREAM:
 				return (track->dispatchPtr->streamPtr != 0);
-			case P_STREAM_BUFID:
+			case DIMUSE_P_STREAM_BUFID:
 				return track->dispatchPtr->streamBufID;
-			case P_SND_POS_IN_MS: // getCurSoundPositionInMs
+			case DIMUSE_P_SND_POS_IN_MS: // getCurSoundPositionInMs
 				if (track->dispatchPtr->wordSize == 0)
 					return 0;
 				if (track->dispatchPtr->sampleRate == 0)

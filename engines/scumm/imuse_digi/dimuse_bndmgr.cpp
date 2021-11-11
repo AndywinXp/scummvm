@@ -284,7 +284,6 @@ int32 BundleMgr::seekFile(int32 offset, int mode) {
 				_curDecompressedFilePos = result;
 			}
 		}
-		
 		break;
 	}
 	return result;

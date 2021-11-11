@@ -38,7 +38,7 @@ int IMuseDigital::addTrackToList(IMuseDigiTrack **listPtr, IMuseDigiTrack *listP
 			(*listPtr)->prev = listPtr_Item;
 		}
 
-		// Set the previous element of the item as NULL, 
+		// Set the previous element of the item as NULL,
 		// effectively making the item the first element of the list
 		listPtr_Item->prev = NULL;
 
@@ -97,7 +97,7 @@ int IMuseDigital::addStreamZoneToList(IMuseDigiStreamZone **listPtr, IMuseDigiSt
 			(*listPtr)->prev = listPtr_Item;
 		}
 
-		// Set the previous element of the item as NULL, 
+		// Set the previous element of the item as NULL,
 		// effectively making the item the first element of the list
 		listPtr_Item->prev = NULL;
 

@@ -26,21 +26,21 @@
 namespace Scumm {
 
 int IMuseDigital::dispatchInit() {
-	_dispatchBuffer = (uint8 *)malloc(SMALL_FADES * SMALL_FADE_DIM + LARGE_FADE_DIM * LARGE_FADES);
+	_dispatchBuffer = (uint8 *)malloc(DIMUSE_SMALL_FADES * DIMUSE_SMALL_FADE_DIM + DIMUSE_LARGE_FADE_DIM * DIMUSE_LARGE_FADES);
 
 	if (_dispatchBuffer) {
 		_dispatchLargeFadeBufs = _dispatchBuffer;
-		_dispatchSmallFadeBufs = _dispatchBuffer + (LARGE_FADE_DIM * LARGE_FADES);
+		_dispatchSmallFadeBufs = _dispatchBuffer + (DIMUSE_LARGE_FADE_DIM * DIMUSE_LARGE_FADES);
 
-		for (int i = 0; i < LARGE_FADES; i++) {
+		for (int i = 0; i < DIMUSE_LARGE_FADES; i++) {
 			_dispatchLargeFadeFlags[i] = 0;
 		}
 
-		for (int i = 0; i < SMALL_FADES; i++) {
+		for (int i = 0; i < DIMUSE_SMALL_FADES; i++) {
 			_dispatchSmallFadeFlags[i] = 0;
 		}
 
-		for (int i = 0; i < MAX_STREAMZONES; i++) {
+		for (int i = 0; i < DIMUSE_MAX_STREAMZONES; i++) {
 			_streamZones[i].useFlag = 0;
 			_streamZones[i].fadeFlag = 0;
 			_streamZones[i].prev = NULL;
@@ -49,7 +49,7 @@ int IMuseDigital::dispatchInit() {
 			_streamZones[i].offset = 0;
 		}
 
-		for (int i = 0; i < MAX_DISPATCHES; i++) {
+		for (int i = 0; i < DIMUSE_MAX_DISPATCHES; i++) {
 			_dispatches[i].trackPtr = NULL;
 			_dispatches[i].wordSize = 0;
 			_dispatches[i].sampleRate = 0;
@@ -88,7 +88,7 @@ IMuseDigiDispatch *IMuseDigital::dispatchGetDispatchByTrackId(int trackId) {
 
 void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 
-	for (int l = 0; l < MAX_DISPATCHES; l++) {
+	for (int l = 0; l < DIMUSE_MAX_DISPATCHES; l++) {
 		ser.syncAsSint32LE(_dispatches[l].wordSize, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].sampleRate, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].channelCount, VER(103));
@@ -106,7 +106,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 			ser.syncAsSint32LE(hasStream, VER(105));
 			_dispatches[l].streamPtr = hasStream ? (IMuseDigiStream *)1 : NULL;
 		}
-		
+
 		ser.syncAsSint32LE(_dispatches[l].streamBufID, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].streamErrFlag, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeOffset, VER(103));
@@ -122,15 +122,15 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 	}
 
 	if (ser.isLoading()) {
-		for (int i = 0; i < LARGE_FADES; i++) {
+		for (int i = 0; i < DIMUSE_LARGE_FADES; i++) {
 			_dispatchLargeFadeFlags[i] = 0;
 		}
 
-		for (int i = 0; i < SMALL_FADES; i++) {
+		for (int i = 0; i < DIMUSE_SMALL_FADES; i++) {
 			_dispatchSmallFadeFlags[i] = 0;
 		}
 
-		for (int i = 0; i < MAX_STREAMZONES; i++) {
+		for (int i = 0; i < DIMUSE_MAX_STREAMZONES; i++) {
 			_streamZones[i].useFlag = 0;
 		}
 	}
@@ -206,7 +206,7 @@ int IMuseDigital::dispatchAllocateSound(IMuseDigiTrack *trackPtr, int groupId) {
 
 		if (_isEarlyDiMUSE)
 			return 0;
-		
+
 		trackDispatch->streamZoneList = 0;
 		trackDispatch->streamErrFlag = 0;
 	} else {
@@ -221,7 +221,7 @@ int IMuseDigital::dispatchAllocateSound(IMuseDigiTrack *trackPtr, int groupId) {
 
 	// At this point, something went wrong, so deallocate what we have to...
 	debug(5, "IMuseDigital::dispatchAllocateSound(): problem starting sound (%d) in dispatch", trackPtr->soundId);
-	
+
 	// Remove streamZones from list
 	dispatchToDeallocate = trackDispatch->trackPtr->dispatchPtr;
 	if (dispatchToDeallocate->streamPtr) {
@@ -329,9 +329,9 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 			curDispatch->fadeChannelCount = curDispatch->channelCount;
 			curDispatch->fadeSyncFlag = unusedFadeSyncFlag | offsetFadeSyncFlag;
 			curDispatch->fadeSyncDelta = 0;
-			curDispatch->fadeVol = MAX_FADE_VOLUME;
+			curDispatch->fadeVol = DIMUSE_MAX_FADE_VOLUME;
 			curDispatch->fadeSlope = 0;
-			
+
 			while (curDispatch->fadeRemaining < _dispatchFadeSize) {
 				effFadeSize = _dispatchFadeSize - curDispatch->fadeRemaining;
 				if ((_dispatchFadeSize - curDispatch->fadeRemaining) >= 0x4000)
@@ -413,7 +413,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *cr
 	dispatchPtr->fadeBuf = crossfadeBuffer;
 	dispatchPtr->fadeRemaining = 0;
 	dispatchPtr->fadeSyncDelta = 0;
-	dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+	dispatchPtr->fadeVol = DIMUSE_MAX_FADE_VOLUME;
 	dispatchPtr->fadeSlope = 0;
 
 	if (crossfadeBufferSize) {
@@ -501,7 +501,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 			// Send it all to the mixer
 			srcBuf = &dispatchPtr->fadeBuf[dispatchPtr->fadeOffset];
-			
+
 			_internalMixer->mix(
 				srcBuf,
 				inFrameCount,
@@ -574,7 +574,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 				// Send it all to the mixer
 				srcBuf = &dispatchPtr->fadeBuf[dispatchPtr->fadeOffset];
-				
+
 				_internalMixer->mix(
 					srcBuf,
 					inFrameCount,
@@ -673,7 +673,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 					elapsedFadeDelta = effFeedSize;
 					if (effFeedSize >= dispatchPtr->fadeSyncDelta)
 						elapsedFadeDelta = dispatchPtr->fadeSyncDelta;
-					
+
 					dispatchPtr->fadeSyncDelta -= elapsedFadeDelta;
 					effFeedSize -= elapsedFadeDelta;
 
@@ -693,7 +693,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 			}
 
 			// If there's still a fadeBuffer active in our dispatch
-			// we balance the volume of the considered track with 
+			// we balance the volume of the considered track with
 			// the fade volume, effectively creating a crossfade
 			if (dispatchPtr->fadeBuf) {
 				// Fade-in
@@ -708,7 +708,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 		// Real-time lo-fi Radio voice effect
 		if (trackPtr->mailbox)
 			_internalMixer->setRadioChatter();
-			
+
 		_internalMixer->mix(
 			srcBuf,
 			inFrameCount,
@@ -740,7 +740,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	IMuseDigiStream *streamPtr;
 	uint8 *buffer, *srcBuf;
 	int fadeChunkSize = 0;
-	int tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult; 
+	int tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult;
 	int mixVolume;
 
 	dispatchPtr = trackPtr->dispatchPtr;
@@ -906,7 +906,7 @@ int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
 							dispatchPtr->fadeRemaining = 0;
 							dispatchPtr->fadeSyncFlag = 0;
 							dispatchPtr->fadeSyncDelta = 0;
-							dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+							dispatchPtr->fadeVol = DIMUSE_MAX_FADE_VOLUME;
 							dispatchPtr->fadeSlope = 0;
 
 							// Clone the old sound in the fade buffer for just the duration of the fade
@@ -1366,7 +1366,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 	// Maximum size of the dispatch for the fade (in bytes)
 	_dispatchSize = dispatchGetFadeSize(dispatchPtr, fadeTime);
 
-	// If this function is being called from dispatchPredictStream, 
+	// If this function is being called from dispatchPredictStream,
 	// avoid accepting an oversized dispatch
 	if (!calledFromNavigateMap) {
 		if (_dispatchSize > strZnPtr->size + strZnPtr->offset - hookPosition)
@@ -1406,7 +1406,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 	strZnPtr->size = hookPosition - strZnPtr->offset;
 	streamOffset = hookPosition - strZnPtr->offset + _dispatchSize;
 
-	// Go to the interested stream zone to calculate the stream offset, 
+	// Go to the interested stream zone to calculate the stream offset,
 	// and schedule the sound to stream with that offset
 	zoneCycle = dispatchPtr->streamZoneList;
 	while (zoneCycle != strZnPtr) {
@@ -1447,7 +1447,7 @@ void IMuseDigital::dispatchPrepareToJump(IMuseDigiDispatch *dispatchPtr, IMuseDi
 void IMuseDigital::dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseDigiStreamZone *strZnPtr) {
 	int cumulativeStreamOffset;
 	IMuseDigiStreamZone *szTmp;
-	
+
 	if (strZnPtr->next) {
 		cumulativeStreamOffset = strZnPtr->size;
 		szTmp = dispatchPtr->streamZoneList;
@@ -1473,7 +1473,7 @@ void IMuseDigital::dispatchStreamNextZone(IMuseDigiDispatch *dispatchPtr, IMuseD
 }
 
 IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
-	for (int i = 0; i < MAX_STREAMZONES; i++) {
+	for (int i = 0; i < DIMUSE_MAX_STREAMZONES; i++) {
 		if (_streamZones[i].useFlag == 0) {
 			_streamZones[i].prev = 0;
 			_streamZones[i].next = 0;
@@ -1491,14 +1491,14 @@ IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
 
 uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 	uint8 *allocatedFadeBuf = NULL;
-	if (*fadeSize > LARGE_FADE_DIM) {
+	if (*fadeSize > DIMUSE_LARGE_FADE_DIM) {
 		debug(5, "IMuseDigital::dispatchAllocateFade(): WARNING: requested fade too large (%d) in %s()", *fadeSize, function);
-		*fadeSize = LARGE_FADE_DIM;
+		*fadeSize = DIMUSE_LARGE_FADE_DIM;
 	}
 
-	if (*fadeSize <= SMALL_FADE_DIM) { // Small fade
-		for (int i = 0; i <= SMALL_FADES; i++) {
-			if (i == SMALL_FADES) {
+	if (*fadeSize <= DIMUSE_SMALL_FADE_DIM) { // Small fade
+		for (int i = 0; i <= DIMUSE_SMALL_FADES; i++) {
+			if (i == DIMUSE_SMALL_FADES) {
 				debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate small fade buffer in %s()", function);
 				allocatedFadeBuf = NULL;
 				break;
@@ -1506,13 +1506,13 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 
 			if (!_dispatchSmallFadeFlags[i]) {
 				_dispatchSmallFadeFlags[i] = 1;
-				allocatedFadeBuf = &_dispatchSmallFadeBufs[SMALL_FADE_DIM * i];
+				allocatedFadeBuf = &_dispatchSmallFadeBufs[DIMUSE_SMALL_FADE_DIM * i];
 				break;
 			}
 		}
 	} else { // Large fade
-		for (int i = 0; i <= LARGE_FADES; i++) {
-			if (i == LARGE_FADES) {
+		for (int i = 0; i <= DIMUSE_LARGE_FADES; i++) {
+			if (i == DIMUSE_LARGE_FADES) {
 				debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate large fade buffer in %s()", function);
 				allocatedFadeBuf = NULL;
 				break;
@@ -1520,15 +1520,15 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 
 			if (!_dispatchLargeFadeFlags[i]) {
 				_dispatchLargeFadeFlags[i] = 1;
-				allocatedFadeBuf = &_dispatchLargeFadeBufs[LARGE_FADE_DIM * i];
+				allocatedFadeBuf = &_dispatchLargeFadeBufs[DIMUSE_LARGE_FADE_DIM * i];
 				break;
 			}
 		}
 
 		// Fallback to a small fade if large fades are unavailable
 		if (!allocatedFadeBuf) {
-			for (int i = 0; i <= SMALL_FADES; i++) {
-				if (i == SMALL_FADES) {
+			for (int i = 0; i <= DIMUSE_SMALL_FADES; i++) {
+				if (i == DIMUSE_SMALL_FADES) {
 					debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate small fade buffer in %s()", function);
 					allocatedFadeBuf = NULL;
 					break;
@@ -1536,7 +1536,7 @@ uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
 
 				if (!_dispatchSmallFadeFlags[i]) {
 					_dispatchSmallFadeFlags[i] = 1;
-					allocatedFadeBuf = &_dispatchSmallFadeBufs[SMALL_FADE_DIM * i];
+					allocatedFadeBuf = &_dispatchSmallFadeBufs[DIMUSE_SMALL_FADE_DIM * i];
 					break;
 				}
 			}
@@ -1550,8 +1550,8 @@ void IMuseDigital::dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const 
 	// This function flags the fade corresponding to our fadeBuf as unused
 
 	// First, check if our fade buffer is one of the large fade buffers
-	for (int i = 0; i < LARGE_FADES; i++) {
-		if (_dispatchLargeFadeBufs + (LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) { // Found it!
+	for (int i = 0; i < DIMUSE_LARGE_FADES; i++) {
+		if (_dispatchLargeFadeBufs + (DIMUSE_LARGE_FADE_DIM * i) == dispatchPtr->fadeBuf) { // Found it!
 			if (_dispatchLargeFadeFlags[i] == 0) {
 				debug(5, "IMuseDigital::dispatchDeallocateFade(): redundant large fade buf de-allocation in %s()", function);
 			}
@@ -1561,8 +1561,8 @@ void IMuseDigital::dispatchDeallocateFade(IMuseDigiDispatch *dispatchPtr, const 
 	}
 
 	// If not, check between the small fade buffers
-	for (int j = 0; j < SMALL_FADES; j++) {
-		if (_dispatchSmallFadeBufs + (SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) { // Found it!
+	for (int j = 0; j < DIMUSE_SMALL_FADES; j++) {
+		if (_dispatchSmallFadeBufs + (DIMUSE_SMALL_FADE_DIM * j) == dispatchPtr->fadeBuf) { // Found it!
 			if (_dispatchSmallFadeFlags[j] == 0) {
 				debug(5, "IMuseDigital::dispatchDeallocateFade(): redundant small fade buf de-allocation in %s()", function);
 			}
@@ -1603,8 +1603,8 @@ int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, in
 
 	if (dispatchPtr->fadeVol < 0)
 		dispatchPtr->fadeVol = 0;
-	if (dispatchPtr->fadeVol > MAX_FADE_VOLUME)
-		dispatchPtr->fadeVol = MAX_FADE_VOLUME;
+	if (dispatchPtr->fadeVol > DIMUSE_MAX_FADE_VOLUME)
+		dispatchPtr->fadeVol = DIMUSE_MAX_FADE_VOLUME;
 
 	return mixVolume;
 }
@@ -1617,7 +1617,7 @@ int IMuseDigital::dispatchUpdateFadeSlope(IMuseDigiDispatch *dispatchPtr) {
 		effRemainingFade = dispatchPtr->fadeRemaining;
 		if (effRemainingFade <= 1)
 			effRemainingFade = 2;
-		dispatchPtr->fadeSlope = -(MAX_FADE_VOLUME / effRemainingFade);
+		dispatchPtr->fadeSlope = -(DIMUSE_MAX_FADE_VOLUME / effRemainingFade);
 	}
 
 	return updatedVolume;

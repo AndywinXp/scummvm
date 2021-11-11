@@ -25,7 +25,7 @@
 namespace Scumm {
 
 int IMuseDigital::streamerInit() {
-	for (int l = 0; l < MAX_STREAMS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		_streams[l].soundId = 0;
 	}
 	_lastStreamLoaded = NULL;
@@ -44,14 +44,14 @@ IMuseDigiStream *IMuseDigital::streamerAllocateSound(int soundId, int bufId, int
 		return NULL;
 	}
 
-	for (int l = 0; l < MAX_STREAMS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		if (_streams[l].soundId && _streams[l].bufId == bufId) {
 			debug(5, "IMuseDigital::streamerAlloc(): ERROR: stream bufId %d already in use", bufId);
 			return NULL;
 		}
 	}
 
-	for (int l = 0; l < MAX_STREAMS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		if (!_streams[l].soundId) {
 			_streams[l].endOffset = _filesHandler->seek(soundId, 0, SEEK_END, bufId);
 			_streams[l].curOffset = 0;
@@ -89,7 +89,7 @@ int IMuseDigital::streamerProcessStreams() {
 	IMuseDigiStream *stream1 = NULL;
 	IMuseDigiStream *stream2 = NULL;
 
-	for (int l = 0; l < MAX_STREAMS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_STREAMS; l++) {
 		if ((_streams[l].soundId) && (!_streams[l].paused)) {
 			if (stream2) {
 				if (stream1) {

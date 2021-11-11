@@ -33,7 +33,7 @@ class IMuseDigiFadesHandler {
 
 private:
 	IMuseDigital *_engine;
-	IMuseDigiFade _fades[MAX_FADES];
+	IMuseDigiFade _fades[DIMUSE_MAX_FADES];
 	int _fadesOn;
 
 	void clearAllFades();
@@ -47,7 +47,7 @@ public:
 	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength);
 	void clearFadeStatus(int soundId, int opcode);
 	void loop();
-	
+
 };
 
 } // End of namespace Scumm

@@ -50,7 +50,7 @@ private:
 	int *_amp12Table;
 	int *_softLMID;
 	int *_softLTable;
-	
+
 	uint8 *_mixBuf;
 
 	Audio::Mixer *_mixer;

@@ -41,7 +41,7 @@ int IMuseDigiTriggersHandler::deinit() {
 }
 
 int IMuseDigiTriggersHandler::clearAllTriggers() {
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		_trigs[l].sound = 0;
 		_trigs[l].clearLater = 0;
 		_defers[l].counter = 0;
@@ -52,7 +52,7 @@ int IMuseDigiTriggersHandler::clearAllTriggers() {
 }
 
 void IMuseDigiTriggersHandler::saveLoad(Common::Serializer &ser) {
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		ser.syncAsSint32LE(_trigs[l].sound, VER(103));
 		ser.syncArray(_trigs[l].text, 256, Common::Serializer::SByte, VER(103));
 		ser.syncAsSint32LE(_trigs[l].opcode, VER(103));
@@ -69,7 +69,7 @@ void IMuseDigiTriggersHandler::saveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_trigs[l].clearLater, VER(103));
 	}
 
-	for (int l = 0; l < MAX_DEFERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_DEFERS; l++) {
 		ser.syncAsSint32LE(_defers[l].counter, VER(103));
 		ser.syncAsSint32LE(_defers[l].opcode, VER(103));
 		ser.syncAsSint32LE(_defers[l].a, VER(103));
@@ -102,7 +102,7 @@ int IMuseDigiTriggersHandler::setTrigger(int soundId, char *marker, int opcode, 
 		return -5;
 	}
 
-	for (int index = 0; index < MAX_TRIGGERS; index++) {
+	for (int index = 0; index < DIMUSE_MAX_TRIGGERS; index++) {
 		if (_trigs[index].sound == 0) {
 			_trigs[index].sound = soundId;
 			_trigs[index].clearLater = 0;
@@ -129,7 +129,7 @@ int IMuseDigiTriggersHandler::setTrigger(int soundId, char *marker, int opcode, 
 
 int IMuseDigiTriggersHandler::checkTrigger(int soundId, char *marker, int opcode) {
 	int r = 0;
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		if (_trigs[l].sound != 0) {
 			if (soundId == -1 || _trigs[l].sound == soundId) {
 				if (!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) {
@@ -144,7 +144,7 @@ int IMuseDigiTriggersHandler::checkTrigger(int soundId, char *marker, int opcode
 }
 
 int IMuseDigiTriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
 			(!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) &&
 			(opcode == -1 || _trigs[l].opcode == opcode)) {
@@ -169,7 +169,7 @@ void IMuseDigiTriggersHandler::processTriggers(int soundId, char *marker) {
 
 	Common::strlcpy(_textBuffer, marker, sizeof(marker));
 	_midProcessing++;
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound ||
 			_trigs[l].sound != soundId ||
 			(_trigs[l].text[0] && strcmp(_textBuffer, _trigs[l].text))) {
@@ -215,7 +215,7 @@ void IMuseDigiTriggersHandler::processTriggers(int soundId, char *marker) {
 		_textBuffer[r] = '\0';
 	}
 	if (--_midProcessing == 0) {
-		for (int l = 0; l < MAX_TRIGGERS; l++) {
+		for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 			if (_trigs[l].clearLater) {
 				_trigs[l].sound = 0;
 			}
@@ -227,7 +227,7 @@ int IMuseDigiTriggersHandler::deferCommand(int count, int opcode, int c, int d, 
 	if (!count) {
 		return -5;
 	}
-	for (int index = 0; index < MAX_DEFERS; index++) {
+	for (int index = 0; index < DIMUSE_MAX_DEFERS; index++) {
 		if (!_defers[index].counter) {
 			_defers[index].counter = count;
 			_defers[index].opcode = opcode;
@@ -254,7 +254,7 @@ void IMuseDigiTriggersHandler::loop() {
 		return;
 
 	_defersOn = 0;
-	for (int l = 0; l < MAX_DEFERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_DEFERS; l++) {
 		if (_defers[l].counter == 0)
 			continue;
 
@@ -280,7 +280,7 @@ void IMuseDigiTriggersHandler::loop() {
 
 int IMuseDigiTriggersHandler::countPendingSounds(int soundId) {
 	int r = 0;
-	for (int l = 0; l < MAX_TRIGGERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		if (!_trigs[l].sound)
 			continue;
 
@@ -289,7 +289,7 @@ int IMuseDigiTriggersHandler::countPendingSounds(int soundId) {
 			r++;
 	}
 
-	for (int l = 0; l < MAX_DEFERS; l++) {
+	for (int l = 0; l < DIMUSE_MAX_DEFERS; l++) {
 		if (!_defers[l].counter)
 			continue;
 

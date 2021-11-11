@@ -25,21 +25,25 @@
 
 namespace Scumm {
 
-#define MAX_GROUPS 16
-#define MAX_FADES 16
-#define MAX_TRIGGERS 8
-#define MAX_DEFERS 8
-#define MAX_TRACKS 8
-#define LARGE_FADES 1
-#define SMALL_FADES 4
-#define MAX_DISPATCHES 8
-#define MAX_STREAMZONES 50
-#define LARGE_FADE_DIM 350000
-#define SMALL_FADE_DIM 44100
-#define MAX_FADE_VOLUME 8323072
-#define MAX_STREAMS 3
-#define MAX_SOUNDID 4294967280
+#define DIMUSE_MAX_GROUPS 16
+#define DIMUSE_MAX_FADES 16
+#define DIMUSE_MAX_TRIGGERS 8
+#define DIMUSE_MAX_DEFERS 8
+#define DIMUSE_MAX_TRACKS 8
+#define DIMUSE_MAX_MAP_SIZE 2048
+#define DIMUSE_MAX_DISPATCHES 8
+#define DIMUSE_MAX_STREAMZONES 50
+#define DIMUSE_MAX_FADE_VOLUME 8323072
+#define DIMUSE_MAX_STREAMS 3
+
+#define DIMUSE_LARGE_FADES 1
+#define DIMUSE_SMALL_FADES 4
+#define DIMUSE_LARGE_FADE_DIM 350000
+#define DIMUSE_SMALL_FADE_DIM 44100
+
 #define DIMUSE_SAMPLERATE 22050
+#define DIMUSE_NUM_WAVE_BUFS 8
+#define DIMUSE_SMUSH_SOUNDID 12345678
 #define DIMUSE_GROUP_SFX 1
 #define DIMUSE_GROUP_SPEECH 2
 #define DIMUSE_GROUP_MUSIC 3
@@ -47,25 +51,23 @@ namespace Scumm {
 #define DIMUSE_BUFFER_SPEECH 1
 #define DIMUSE_BUFFER_MUSIC 2
 #define DIMUSE_BUFFER_SFX 3
-#define NUM_HEADERS 8
-#define SMUSH_SOUNDID 12345678
 
 // Parameters IDs
-#define P_BOGUS_ID	     0x0
-#define P_SND_TRACK_NUM  0x100
-#define P_TRIGS_SNDS     0x200
-#define P_MARKER         0x300
-#define P_GROUP          0x400
-#define P_PRIORITY       0x500
-#define P_VOLUME         0x600
-#define P_PAN            0x700
-#define P_DETUNE         0x800
-#define P_TRANSPOSE      0x900
-#define P_MAILBOX        0xA00
-#define P_UNKNOWN        0xF00
-#define P_SND_HAS_STREAM 0x1800
-#define P_STREAM_BUFID   0x1900
-#define P_SND_POS_IN_MS  0x1A00
+#define DIMUSE_P_BOGUS_ID	     0x0
+#define DIMUSE_P_SND_TRACK_NUM  0x100
+#define DIMUSE_P_TRIGS_SNDS     0x200
+#define DIMUSE_P_MARKER         0x300
+#define DIMUSE_P_GROUP          0x400
+#define DIMUSE_P_PRIORITY       0x500
+#define DIMUSE_P_VOLUME         0x600
+#define DIMUSE_P_PAN            0x700
+#define DIMUSE_P_DETUNE         0x800
+#define DIMUSE_P_TRANSPOSE      0x900
+#define DIMUSE_P_MAILBOX        0xA00
+#define DIMUSE_P_UNKNOWN        0xF00
+#define DIMUSE_P_SND_HAS_STREAM 0x1800
+#define DIMUSE_P_STREAM_BUFID   0x1900
+#define DIMUSE_P_SND_POS_IN_MS  0x1A00
 
 struct IMuseDigiDispatch;
 struct IMuseDigiTrack;
@@ -182,7 +184,7 @@ struct IMuseDigiDispatch {
 	int channelCount;
 	int currentOffset;
 	int audioRemaining;
-	int map[2048]; // For DIG it's 256
+	int map[DIMUSE_MAX_MAP_SIZE];
 	IMuseDigiStream *streamPtr;
 	int streamBufID;
 	IMuseDigiStreamZone *streamZoneList;

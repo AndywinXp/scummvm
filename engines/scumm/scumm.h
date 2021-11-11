@@ -88,8 +88,6 @@ class BaseCostumeRenderer;
 class BaseScummFile;
 class CharsetRenderer;
 class IMuse;
-class IMuseDigitalAbstract;
-class IMuseDigitalV1;
 class IMuseDigital;
 class MusicEngine;
 class Player_Towns;
@@ -379,7 +377,7 @@ protected:
 
 	// Event handling
 public:
-	void parseEvents();	// Used by IMuseDigitalV1::startSound
+	void parseEvents();	// Used by IMuseDigital::startSound
 protected:
 	virtual void parseEvent(Common::Event event);
 

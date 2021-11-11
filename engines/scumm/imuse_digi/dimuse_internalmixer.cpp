@@ -75,7 +75,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	waveMixChannelsCount = mixChannelsNum;
 
 	int *tableMalloc = (int *)malloc(213504);
-	
+
 	_amp8Table = tableMalloc;          // Dim: 2176
 	_amp12Table = tableMalloc + 2176;  // Dim: 34816
 	_softLTable = tableMalloc + 36992; // Dim: 8192 * 2
@@ -155,7 +155,6 @@ int IMuseDigiInternalMixer::clearMixerBuffer() {
 		return -1;
 
 	memset(_mixBuf, 0, _mixBufSize);
-	//memset(&mixer_mixBuf[mixer_mixBufSize], 0, (mixer_mixBufSize >> 2) & 3);
 
 	return 0;
 }
@@ -169,7 +168,7 @@ void IMuseDigiInternalMixer::mix(uint8 *srcBuf, int inFrameCount, int wordSize, 
 
 	if (_mixBuf) {
 		if (srcBuf) {
-			if (inFrameCount) {				
+			if (inFrameCount) {
 				if (channelCount == 1 && _outChannelCount == 2) {
 					channelVolume = volume / 8;
 					if (volume)
@@ -856,7 +855,7 @@ void IMuseDigiInternalMixer::mixBits16ConvertToStereo(uint8 *srcBuf, int inFrame
 		}
 	} else if (2 * inFrameCount == feedSize) {
 		srcBuf_tmp = (uint16 *)srcBuf;
-		int i = 0; 
+		int i = 0;
 		if (inFrameCount - 1 != 0) {
 			for (i = 0; i < inFrameCount - 1; i++) {
 				mixBufCurCell[0] += *(uint16 *)((uint8 *)leftAmpTable  + (((int16)srcBuf_tmp[i] & (int16)0xFFF7) >> 3) + 4096);
@@ -980,7 +979,7 @@ void IMuseDigiInternalMixer::mixBits12Stereo(uint8 *srcBuf, int inFrameCount, in
 		srcBuf_ptr = srcBuf;
 		if (inFrameCount - 1 != 0) {
 			for (int i = 0; i < inFrameCount - 1; i++) {
-				mixBufCurCell[0] +=  *((uint16 *)ampTable + (srcBuf_ptr[0] | ((srcBuf_ptr[1] & 0xF)  << 8)));						   			 
+				mixBufCurCell[0] +=  *((uint16 *)ampTable + (srcBuf_ptr[0] | ((srcBuf_ptr[1] & 0xF)  << 8)));
 				mixBufCurCell[1] +=  *((uint16 *)ampTable + (srcBuf_ptr[2] | ((srcBuf_ptr[1] & 0xF0) << 4)));
 				mixBufCurCell[2] += (*((int16 *)ampTable + (srcBuf_ptr[0] | ((srcBuf_ptr[1] & 0xF)  << 8)))
 								   + *((int16  *)ampTable + (srcBuf_ptr[3] | ((srcBuf_ptr[4] & 0xF)  << 8)))) >> 1;
@@ -1034,7 +1033,7 @@ void IMuseDigiInternalMixer::mixBits16Stereo(uint8 *srcBuf, int inFrameCount, in
 		if (feedSize) {
 			srcBuf_ptr = (uint16 *)srcBuf;
 
-			for (int i = 0; i < feedSize; i++) { 
+			for (int i = 0; i < feedSize; i++) {
 				mixBufCurCell[0] += *(uint16 *)((int8 *)ampTable + (((int16)srcBuf_ptr[0] & (int16)0xFFF7) >> 3) + 4096);
 				mixBufCurCell[1] += *(uint16 *)((int8 *)ampTable + (((int16)srcBuf_ptr[1] & (int16)0xFFF7) >> 3) + 4096);
 				srcBuf_ptr += 2;

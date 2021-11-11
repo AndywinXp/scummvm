@@ -111,7 +111,7 @@ uint8 *IMuseDigiFilesHandler::getSoundAddrData(int soundId) {
 			return NULL;
 		}
 		return ptr;
-			
+
 	}
 	debug(5, "IMuseDigiFilesHandler::getSoundAddrData(): soundId is 0 or out of range");
 	return NULL;
@@ -148,7 +148,7 @@ int IMuseDigiFilesHandler::getNextSound(int soundId) {
 }
 
 int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
-	// This function and files_read() are used for sounds for which a stream is needed (speech 
+	// This function and files_read() are used for sounds for which a stream is needed (speech
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 	// The seeked position is in reference to the decompressed sound
 
@@ -201,7 +201,7 @@ int IMuseDigiFilesHandler::seek(int soundId, int offset, int mode, int bufId) {
 }
 
 int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
-	// This function and files_seek() are used for sounds for which a stream is needed (speech 
+	// This function and files_seek() are used for sounds for which a stream is needed (speech
 	// and music), therefore they will always refer to sounds in a bundle file for DIG and COMI
 
 	if (_engine->isEngineDisabled())
@@ -255,11 +255,10 @@ int IMuseDigiFilesHandler::read(int soundId, uint8 *buf, int size, int bufId) {
 	} else {
 		debug(5, "IMuseDigiFilesHandler::read(): soundId is 0 or out of range");
 	}
-	
+
 	return 0;
 }
 
-	
 IMuseDigiSndBuffer *IMuseDigiFilesHandler::getBufInfo(int bufId) {
 	if (bufId > 0 && bufId <= 4) {
 		return &_soundBuffers[bufId];
@@ -277,7 +276,7 @@ int IMuseDigiFilesHandler::openSound(int soundId) {
 	if (!_engine->isFTSoundEngine()) {
 		char fileName[60] = "";
 		getFilenameFromSoundId(soundId, fileName, sizeof(fileName));
-		
+
 		int groupId = soundId == kTalkSoundID ? IMUSE_VOLGRP_VOICE : IMUSE_VOLGRP_MUSIC;
 		s = _sound->openSound(soundId, fileName, IMUSE_BUNDLE, groupId, -1);
 		if (!s)
@@ -410,7 +409,7 @@ void IMuseDigiFilesHandler::flushSounds() {
 		ImuseDigiSndMgr::SoundDesc *curSnd = &s[i];
 		if (curSnd && curSnd->inUse) {
 			if (curSnd->scheduledForDealloc)
-				if (!_engine->diMUSEGetParam(curSnd->soundId, P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, P_TRIGS_SNDS))
+				if (!_engine->diMUSEGetParam(curSnd->soundId, DIMUSE_P_SND_TRACK_NUM) && !_engine->diMUSEGetParam(curSnd->soundId, DIMUSE_P_TRIGS_SNDS))
 					_sound->closeSound(curSnd);
 		}
 	}

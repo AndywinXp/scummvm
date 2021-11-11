@@ -93,7 +93,7 @@ private:
 	int32 _attributes[188];	// internal attributes for each music file to store and check later
 	int32 _nextSeqToPlay;
 	int32 _curMusicState;
-	int32 _curMusicSeq;	
+	int32 _curMusicSeq;
 	int32 _curMusicCue;
 
 	char *_audioNames;		// filenames of sound SFX used in FT
@@ -151,7 +151,7 @@ private:
 	int cmdsGetHook(int soundId);
 
 	// Streamer
-	IMuseDigiStream _streams[MAX_STREAMS];
+	IMuseDigiStream _streams[DIMUSE_MAX_STREAMS];
 	IMuseDigiStream *_lastStreamLoaded;
 	int _streamerBailFlag;
 
@@ -172,7 +172,7 @@ private:
 	void streamerRemoveLoopFlag(IMuseDigiStream *streamPtr);
 
 	// Tracks
-	IMuseDigiTrack _tracks[MAX_TRACKS];
+	IMuseDigiTrack _tracks[DIMUSE_MAX_TRACKS];
 	IMuseDigiTrack *_trackList;
 
 	int _trackCount;
@@ -202,16 +202,16 @@ private:
 	void tracksDeinit();
 
 	// Dispatch
-	IMuseDigiDispatch _dispatches[MAX_DISPATCHES];
-	IMuseDigiStreamZone _streamZones[MAX_STREAMZONES];
+	IMuseDigiDispatch _dispatches[DIMUSE_MAX_DISPATCHES];
+	IMuseDigiStreamZone _streamZones[DIMUSE_MAX_STREAMZONES];
 	uint8 *_dispatchBuffer;
 	uint8 _ftCrossfadeBuffer[30000]; // Used by FT & DIG demo
 	int _dispatchSize;
 	uint8 *_dispatchSmallFadeBufs;
 	uint8 *_dispatchLargeFadeBufs;
 	int _dispatchFadeSize;
-	int _dispatchLargeFadeFlags[LARGE_FADES];
-	int _dispatchSmallFadeFlags[SMALL_FADES];
+	int _dispatchLargeFadeFlags[DIMUSE_LARGE_FADES];
+	int _dispatchSmallFadeFlags[DIMUSE_SMALL_FADES];
 	int _dispatchFadeStartedFlag;
 	int _dispatchBufferedHookId;
 	int _dispatchJumpFadeSize;

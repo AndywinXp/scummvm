@@ -527,8 +527,8 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		_iactTable[bufId] = index;
 
 		if (index) {
-			if (_imuseDigital->diMUSEGetParam(bufId + SMUSH_SOUNDID, 0x100)) {
-				_imuseDigital->diMUSEFeedStream(bufId + SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
+			if (_imuseDigital->diMUSEGetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x100)) {
+				_imuseDigital->diMUSEFeedStream(bufId + DIMUSE_SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
 				free(dataBuffer);
 				return;
 			}
@@ -549,26 +549,26 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 
 			if (!curSoundId) {
 				// There isn't any previous sound running: start a new stream
-				if (_imuseDigital->diMUSEStartStream(bufId + SMUSH_SOUNDID, 126, bufId)) {
+				if (_imuseDigital->diMUSEStartStream(bufId + DIMUSE_SMUSH_SOUNDID, 126, bufId)) {
 					free(dataBuffer);
 					error("SmushPlayer::handleIACT(): ERROR: couldn't start stream");
 				}
 			} else {
 				// There's an old sound running: switch the stream from the old one to the new one
-				_imuseDigital->diMUSESwitchStream(curSoundId, bufId + SMUSH_SOUNDID, bufId == 2 ? 1000 : 150, 0, 0);
+				_imuseDigital->diMUSESwitchStream(curSoundId, bufId + DIMUSE_SMUSH_SOUNDID, bufId == 2 ? 1000 : 150, 0, 0);
 			}
 
-			_imuseDigital->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x600, volume);
+			_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x600, volume);
 
 			if (bufId == DIMUSE_BUFFER_SPEECH) {
-				_imuseDigital->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SPEECH);
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SPEECH);
 			} else if (bufId == DIMUSE_BUFFER_MUSIC) {
-				_imuseDigital->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_MUSIC);
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_MUSIC);
 			} else {
-				_imuseDigital->diMUSESetParam(bufId + SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SFX);
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SFX);
 			}
 
-			_imuseDigital->diMUSEFeedStream(bufId + SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
+			_imuseDigital->diMUSEFeedStream(bufId + DIMUSE_SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
 			free(dataBuffer);
 			return;
 		}

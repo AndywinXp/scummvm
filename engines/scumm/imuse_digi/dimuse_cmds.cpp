@@ -33,7 +33,7 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	char marker[5];
 	if (!_isEarlyDiMUSE && (cmd == 17 || cmd == 18 || cmd == 19)) {
 		for (int index = 0; index < 4; index++) {
-#if defined SCUMM_BIG_ENDIAN	
+#if defined SCUMM_BIG_ENDIAN
 			marker[index] = (b >> (8 * index)) & 0xff;
 #elif defined SCUMM_LITTLE_ENDIAN
 			marker[3 - index] = (b >> (8 * index)) & 0xff;
@@ -74,7 +74,7 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 		return cmdsSetHook(a, (int)b);
 	case 16:
 		return cmdsGetHook(a);
-	case 17:		
+	case 17:
 		return _triggersHandler->setTrigger(a, marker, (int)c, (int)d, (int)e, f, g, h, i, j, k, l, m, n);
 	case 18:
 		return _triggersHandler->checkTrigger(a, marker, (int)c);
@@ -239,7 +239,7 @@ int IMuseDigital::cmdsGetParam(int soundId, int subCmd) {
 	int result = _filesHandler->getNextSound(soundId);
 
 	if (subCmd != 0) {
-		if (subCmd == P_TRIGS_SNDS) {
+		if (subCmd == DIMUSE_P_TRIGS_SNDS) {
 			return _triggersHandler->countPendingSounds(soundId);
 		}
 
@@ -247,7 +247,7 @@ int IMuseDigital::cmdsGetParam(int soundId, int subCmd) {
 			return waveGetParam(soundId, subCmd);
 		}
 
-		result = (subCmd == P_SND_TRACK_NUM) - 1;
+		result = (subCmd == DIMUSE_P_SND_TRACK_NUM) - 1;
 	}
 
 	return result;

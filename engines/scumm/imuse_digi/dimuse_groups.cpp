@@ -32,7 +32,7 @@ IMuseDigiGroupsHandler::IMuseDigiGroupsHandler(IMuseDigital *engine) {
 IMuseDigiGroupsHandler::~IMuseDigiGroupsHandler() {}
 
 int IMuseDigiGroupsHandler::init() {
-	for (int i = 0; i < MAX_GROUPS; i++) {
+	for (int i = 0; i < DIMUSE_MAX_GROUPS; i++) {
 		_effVols[i] = 127;
 		_vols[i] = 127;
 	}
@@ -42,7 +42,7 @@ int IMuseDigiGroupsHandler::init() {
 int IMuseDigiGroupsHandler::setGroupVol(int id, int volume) {
 	int l;
 
-	if (id >= MAX_GROUPS) {
+	if (id >= DIMUSE_MAX_GROUPS) {
 		return -5;
 	}
 
@@ -60,7 +60,7 @@ int IMuseDigiGroupsHandler::setGroupVol(int id, int volume) {
 		_effVols[0] = volume;
 		_vols[0] = volume;
 
-		for (l = 1; l < MAX_GROUPS; l++) {
+		for (l = 1; l < DIMUSE_MAX_GROUPS; l++) {
 			_effVols[l] = (volume * (_vols[id] + 1)) / 128;
 		}
 	}
@@ -70,7 +70,7 @@ int IMuseDigiGroupsHandler::setGroupVol(int id, int volume) {
 }
 
 int IMuseDigiGroupsHandler::getGroupVol(int id) {
-	if (id >= MAX_GROUPS) {
+	if (id >= DIMUSE_MAX_GROUPS) {
 		return -5;
 	}
 

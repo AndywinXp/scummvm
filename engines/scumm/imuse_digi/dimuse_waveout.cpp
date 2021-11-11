@@ -60,7 +60,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 		if (!_waveOutXorTrigger)
 			return;
 	}
-	
+
 	*feedSize = 0;
 	if (_mixer->isReady()) {
 		curBufferBlock = &_waveOutOutputBuffer[_waveOutPreferredFeedSize * _waveOutWriteIndex * _waveOutBytesPerSample * _waveOutNumChannels];
@@ -78,7 +78,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 			_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels,
 			DisposeAfterUse::YES,
 			Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
-		
+
 	}
 }
 
