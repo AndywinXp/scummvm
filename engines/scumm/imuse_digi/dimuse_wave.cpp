@@ -121,7 +121,7 @@ int IMuseDigital::waveFeedStream(int soundId, uint8 *srcBuf, int32 sizeToFeed, i
 	return tracksFeedStream(soundId, srcBuf, sizeToFeed, paused);
 }
 
-int IMuseDigital::waveLipSync(int soundId, int syncId, int msPos, int32 & width, int32 & height) {
+int IMuseDigital::waveLipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height) {
 	return tracksLipSync(soundId, syncId, msPos, width, height);
 }
 
