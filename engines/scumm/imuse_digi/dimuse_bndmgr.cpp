@@ -413,8 +413,8 @@ bool BundleMgr::isExtCompBun(byte gameId) {
 		isExtComp = isExtComp1 | isExtComp2 | isExtComp3 | isExtComp4;
 	} else {
 		bool isExtComp1 = false, isExtComp2 = false;
-		this->open("digvoice.bun", isExtComp1);
-		this->open("digmusic.bun", isExtComp2);
+		this->open("digvoice.bun", isExtComp1); this->close();
+		this->open("digmusic.bun", isExtComp2); this->close();
 		isExtComp = isExtComp1 | isExtComp2;
 	}
 
