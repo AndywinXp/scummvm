@@ -20,31 +20,43 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_GROUPS_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_GROUPS_H
+#if !defined(SCUMM_IMUSE_DIGI_TRIGGERS_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_TRIGGERS_H
 
 #include "common/scummsys.h"
-#include "common/mutex.h"
-#include "common/serializer.h"
 #include "common/textconsole.h"
 #include "common/util.h"
-#include "scumm/dimuse.h"
-#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_defs.h"
 
 namespace Scumm {
 
-class IMuseDigiGroupsHandler {
+class IMuseDigiTriggersHandler {
 
 private:
 	IMuseDigital *_engine;
-	int _effVols[MAX_GROUPS];
-	int _vols[MAX_GROUPS];
+	IMuseDigiTrigger _trigs[MAX_TRIGGERS];
+	IMuseDigiDefer _defers[MAX_DEFERS];
+
+	int  _defersOn;
+	int  _midProcessing;
+	char _textBuffer[256];
+	char _emptyMarker[1];
 public:
-	IMuseDigiGroupsHandler(IMuseDigital *engine);
-	~IMuseDigiGroupsHandler();
-	int init();
-	int setGroupVol(int id, int volume);
-	int getGroupVol(int id);
+	IMuseDigiTriggersHandler(IMuseDigital *engine);
+	~IMuseDigiTriggersHandler();
+
+	int  init();
+	int  clearAllTriggers();
+	void saveLoad(Common::Serializer &ser);
+	int  setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int  checkTrigger(int soundId, char *marker, int opcode);
+	int  clearTrigger(int soundId, char *marker, int opcode);
+	void processTriggers(int soundId, char *marker);
+	int  deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	void loop();
+	int  countPendingSounds(int soundId);
+	int  deinit();
+
 };
 
 } // End of namespace Scumm

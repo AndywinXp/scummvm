@@ -29,8 +29,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "scumm/dimuse.h"
-#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/music.h"
 #include "scumm/sound.h"
 #include "audio/mixer.h"

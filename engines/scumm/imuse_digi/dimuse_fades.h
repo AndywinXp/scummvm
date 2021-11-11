@@ -20,43 +20,34 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_TRIGGERS_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_TRIGGERS_H
+#if !defined(SCUMM_IMUSE_DIGI_FADES_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_FADES_H
 
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 #include "common/util.h"
-#include "scumm/imuse_digi/dimuse_core_defs.h"
 
 namespace Scumm {
 
-class IMuseDigiTriggersHandler {
+class IMuseDigiFadesHandler {
 
 private:
 	IMuseDigital *_engine;
-	IMuseDigiTrigger _trigs[MAX_TRIGGERS];
-	IMuseDigiDefer _defers[MAX_DEFERS];
+	IMuseDigiFade _fades[MAX_FADES];
+	int _fadesOn;
 
-	int  _defersOn;
-	int  _midProcessing;
-	char _textBuffer[256];
-	char _emptyMarker[1];
+	void clearAllFades();
 public:
-	IMuseDigiTriggersHandler(IMuseDigital *engine);
-	~IMuseDigiTriggersHandler();
+	IMuseDigiFadesHandler(IMuseDigital *engine);
+	~IMuseDigiFadesHandler();
 
-	int  init();
-	int  clearAllTriggers();
+	int init();
+	void deinit();
 	void saveLoad(Common::Serializer &ser);
-	int  setTrigger(int soundId, char *marker, int opcode, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
-	int  checkTrigger(int soundId, char *marker, int opcode);
-	int  clearTrigger(int soundId, char *marker, int opcode);
-	void processTriggers(int soundId, char *marker);
-	int  deferCommand(int count, int opcode, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n);
+	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength);
+	void clearFadeStatus(int soundId, int opcode);
 	void loop();
-	int  countPendingSounds(int soundId);
-	int  deinit();
-
+	
 };
 
 } // End of namespace Scumm

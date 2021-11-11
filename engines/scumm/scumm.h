@@ -296,7 +296,7 @@ public:
 	 * That results in a shorter form of the opcode
 	 * on some architectures. */
 	IMuse *_imuse;
-	IMuseDigitalAbstract *_imuseDigital;
+	IMuseDigital *_imuseDigital;
 	MusicEngine *_musicEngine;
 	Player_Towns *_townsPlayer;
 	Sound *_sound;
@@ -321,7 +321,6 @@ protected:
 	VirtualMachineState vm;
 
 	bool _oldSoundsPaused;
-	bool _useDiMUSEv2;
 
 public:
 	// Constructor / Destructor
@@ -680,7 +679,7 @@ public:
 
 protected:
 	Common::Mutex _resourceAccessMutex; // Used in getResourceSize(), getResourceAddress() and findResource()
-										// to avoid race conditions between the audio thread of DiMUSE_v2
+										// to avoid race conditions between the audio thread of Digital iMUSE
 										// and the main SCUMM thread
 
 	int readSoundResource(ResId idx);

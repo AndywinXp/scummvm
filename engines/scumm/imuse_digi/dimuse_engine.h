@@ -20,8 +20,8 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_H
+#if !defined(SCUMM_IMUSE_DIGI_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_H
 
 #include "common/scummsys.h"
 #include "common/mutex.h"
@@ -29,18 +29,21 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "scumm/dimuse.h"
-#include "scumm/imuse_digi/dimuse_core_defs.h"
-#include "scumm/imuse_digi/dimuse_core_internalmixer.h"
-#include "scumm/imuse_digi/dimuse_core_groups.h"
-#include "scumm/imuse_digi/dimuse_core_fades.h"
-#include "scumm/imuse_digi/dimuse_core_files.h"
-#include "scumm/imuse_digi/dimuse_core_triggers.h"
+#include "scumm/scumm_v7.h"
+#include "scumm/music.h"
+#include "scumm/sound.h"
+#include "scumm/file.h"
+
+#include "scumm/imuse_digi/dimuse_defs.h"
+#include "scumm/imuse_digi/dimuse_internalmixer.h"
+#include "scumm/imuse_digi/dimuse_groups.h"
+#include "scumm/imuse_digi/dimuse_fades.h"
+#include "scumm/imuse_digi/dimuse_files.h"
+#include "scumm/imuse_digi/dimuse_triggers.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 #include "scumm/imuse_digi/dimuse_sndmgr.h"
 #include "scumm/imuse_digi/dimuse_tables.h"
-#include "scumm/music.h"
-#include "scumm/sound.h"
+
 #include "audio/mixer.h"
 #include "audio/decoders/raw.h"
 
@@ -51,12 +54,15 @@ class QueuingAudioStream;
 }
 
 namespace Scumm {
+class ScummEngine_v7;
 
+struct imuseDigTable;
+struct imuseComiTable;
 struct IMuseDigiDispatch;
 struct IMuseDigiTrack;
 struct IMuseDigiStreamZone;
 
-class IMuseDigital : public IMuseDigitalAbstract {
+class IMuseDigital : public MusicEngine {
 private:
 	Common::Mutex _mutex;
 	ScummEngine_v7 *_vm;
@@ -297,37 +303,35 @@ public:
 	void stopAllSounds() override;
 	int getSoundStatus(int sound) const override { return 0; }
 	int isSoundRunning(int soundId); // Needed because getSoundStatus is a const function, and I needed a workaround
-	int startVoice(int soundId, Audio::AudioStream *input) override { return 0; }
-	int startVoice(int soundId, const char *soundName, byte speakingActorId) override;
-	int startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size) override;
-	void saveLoadEarly(Common::Serializer &ser) override;
-	void resetState() override {};
-	void setRadioChatterSFX(bool state) override;
-	void setAudioNames(int32 num, char *names) override;
-	int  startSfx(int soundId, int priority) override;
-	void setPriority(int soundId, int priority) override {};
-	void setVolume(int soundId, int volume) override;
-	void setPan(int soundId, int pan) override;
-	void setFrequency(int soundId, int frequency) override;
-	int  getCurSpeechVolume() const override;
-	int  getCurSpeechPan() const override;
-	int  getCurSpeechFrequency() const override;
-	void pause(bool pause) override;
-	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) override;
-	void refreshScripts() override;
-	void flushTracks() override;
+	//int startVoice(int soundId, Audio::AudioStream *input) override { return 0; }
+	int startVoice(int soundId, const char *soundName, byte speakingActorId);
+	int startVoice(const char *fileName, ScummFile *file, unsigned int offset, unsigned int size);
+	void saveLoadEarly(Common::Serializer &ser);
+	void setRadioChatterSFX(bool state);
+	void setAudioNames(int32 num, char *names);
+	int  startSfx(int soundId, int priority) ;
+	void setPriority(int soundId, int priority);
+	void setVolume(int soundId, int volume);
+	void setPan(int soundId, int pan);
+	void setFrequency(int soundId, int frequency);
+	int  getCurSpeechVolume() const;
+	int  getCurSpeechPan() const;
+	int  getCurSpeechFrequency() const;
+	void pause(bool pause);
+	void parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p);
+	void refreshScripts();
+	void flushTracks();
 
-	bool isUsingV2Engine() override;
 	bool isFTSoundEngine(); // Used in the handlers to check if we're using the FT version of the engine
 
-	int32 getCurMusicPosInMs() override;
-	int32 getCurVoiceLipSyncWidth() override;
-	int32 getCurVoiceLipSyncHeight() override;
-	int32 getCurMusicLipSyncWidth(int syncId) override;
-	int32 getCurMusicLipSyncHeight(int syncId) override;
+	int32 getCurMusicPosInMs();
+	int32 getCurVoiceLipSyncWidth();
+	int32 getCurVoiceLipSyncHeight();
+	int32 getCurMusicLipSyncWidth(int syncId);
+	int32 getCurMusicLipSyncHeight(int syncId);
 	void getSpeechLipSyncInfo(int32 *width, int32 *height);
 	void getMusicLipSyncInfo(int syncId, int32 *width, int32 *height);
-	int32 getSoundElapsedTimeInMs(int soundId) override;
+	int32 getSoundElapsedTimeInMs(int soundId);
 
 	// General engine functions
 	int diMUSETerminate();

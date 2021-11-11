@@ -20,7 +20,7 @@
  *
  */
 
-#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 
 namespace Scumm {
 #define DIG_STATE_OFFSET 11

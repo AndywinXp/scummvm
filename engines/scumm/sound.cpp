@@ -29,8 +29,7 @@
 #include "scumm/actor.h"
 #include "scumm/cdda.h"
 #include "scumm/file.h"
-#include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/resource.h"
 #include "scumm/scumm.h"
@@ -466,7 +465,7 @@ void Sound::processSfxQueues() {
 				}
 			}
 
-			if (_vm->_imuseDigital && !(_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO))) {
+			if (_vm->_imuseDigital && !_vm->_imuseDigital->isFTSoundEngine()) {
 				int volume = a->_talkVolume;
 				int frequency = a->_talkFrequency;
 				int pan = a->_talkPan;
@@ -507,17 +506,12 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 	int num = 0, i;
 	int id = -1;
 	int size = 0;
-	bool isDiMUSEv2 = false;
 	Common::ScopedPtr<ScummFile> file;
 
 	bool _sampleIsPCMS16BE44100 = false;
 
-#ifdef ENABLE_SCUMM_7_8
-	if (_vm->_imuseDigital)
-		isDiMUSEv2 = _vm->_imuseDigital->isUsingV2Engine();
-#endif
-
-	if (_vm->_game.id == GID_CMI || (_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO))) {
+	if (!_vm->_imuseDigital->isFTSoundEngine()) {
+		// COMI (full & demo), DIG (full)
 		_sfxMode |= mode;
 		return;
 	} else if (_vm->_game.id == GID_DIG && (_vm->_game.features & GF_DEMO)) {
@@ -567,15 +561,12 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			return;
 		}
 
-		// This check will be gone, as DIG demo will be using DiMUSEv2 only
-		if (isDiMUSEv2) {
-			file->seek(0, SEEK_END);
-			int fileSize = file->pos();
-			_vm->_imuseDigital->startVoice(filename, file.release(), 0, fileSize);
-			return;
-		}
-	} else if (isDiMUSEv2 && _vm->_game.id == GID_FT) {
+		file->seek(0, SEEK_END);
+		int fileSize = file->pos();
+		_vm->_imuseDigital->startVoice(filename, file.release(), 0, fileSize);
 
+		return;
+	} else if (_vm->_game.id == GID_FT) {
 		int totalOffset, soundSize, fileSize, headerTag;
 
 		if (_vm->_voiceMode != 2) {
@@ -759,12 +750,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			return;
 		}
 
-		if (_vm->_imuseDigital) {
-#ifdef ENABLE_SCUMM_7_8
-			//_vm->_imuseDigital->stopSound(kTalkSoundID);
-			_vm->_imuseDigital->startVoice(kTalkSoundID, input);
-#endif
-		} else {
+		if (!_vm->_imuseDigital) {
 			if (mode == 1) {
 				_mixer->playStream(Audio::Mixer::kSFXSoundType, handle, input, id);
 			} else {
@@ -809,11 +795,7 @@ bool Sound::isMouthSyncOff(uint pos) {
 int Sound::isSoundRunning(int sound) const {
 #ifdef ENABLE_SCUMM_7_8
 	if (_vm->_imuseDigital) {
-		if (_vm->_imuseDigital->isUsingV2Engine()) {
-			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
-		} else {
-			return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
-		}
+		return (_vm->_imuseDigital->isSoundRunning(sound) != 0);
 	}
 #endif
 

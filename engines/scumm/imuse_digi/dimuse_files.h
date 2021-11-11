@@ -20,8 +20,8 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_FILES_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_FILES_H
+#if !defined(SCUMM_IMUSE_DIGI_FILES_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_FILES_H
 
 #include "common/scummsys.h"
 #include "common/textconsole.h"

@@ -29,7 +29,7 @@
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
-#include "scumm/imuse_digi/dimuse_v1.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/imuse/imuse.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/he/intern_he.h"
@@ -413,7 +413,6 @@ bool ScummEngine::loadState(int slot, bool compat, Common::String &filename) {
 #ifdef ENABLE_SCUMM_7_8
 	if (_imuseDigital) {
 		_imuseDigital->stopAllSounds();
-		_imuseDigital->resetState();
 	}
 #endif
 

@@ -26,9 +26,8 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "scumm/dimuse.h"
-#include "scumm/imuse_digi/dimuse_core.h"
-#include "scumm/imuse_digi/dimuse_core_internalmixer.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
+#include "scumm/imuse_digi/dimuse_internalmixer.h"
 
 namespace Scumm {
 

@@ -42,8 +42,7 @@
 #include "scumm/file.h"
 #include "scumm/file_nes.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse_v1.h"
-#include "scumm/imuse_digi/dimuse_core.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/smush/smush_mixer.h"
 #include "scumm/smush/smush_player.h"
 #include "scumm/players/player_towns.h"
@@ -1645,7 +1644,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 	// Check if we are able to use DiMUSE_v2; the game has to use the original BUN/SOU
 	// compression format or raw uncompressed bundles (for Akella COMI).
 	// Compressed SAN movies appear to work fine with DiMUSE_v2, so we allow them.
-	_useDiMUSEv2 = true;
+	bool _useDiMUSEv2 = true;
 
 	if (_useDiMUSEv2) {
 		// COMI demo is excluded from the count since it appears it can't be compressed
@@ -1659,12 +1658,8 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		}
 	}
 
-	// Fallback to IMuseDigitalV1
-	if (!_useDiMUSEv2) {
-		_musicEngine = _imuseDigital = new IMuseDigitalV1(this, _mixer, dimuseTempo);
-	} else {
-		_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
-	}
+	_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
+
 
 	// Create FT INSANE object
 	if (_game.id == GID_FT)
@@ -2868,8 +2863,8 @@ void ScummEngine_v7::scummLoop_handleSound() {
 		// In CoMI and the Dig the full (non-demo) version invoke refreshScripts()
 		if (!(_game.id == GID_FT) && !(_game.id == GID_DIG && _game.features & GF_DEMO))
 			_imuseDigital->refreshScripts();
-		else if (_useDiMUSEv2)// CHANGE
-			((IMuseDigital *)_imuseDigital)->diMUSEProcessStreams();
+		else
+			_imuseDigital->diMUSEProcessStreams();
 	}
 
 	if (_smixer) {

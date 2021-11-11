@@ -26,9 +26,8 @@
 #include "scumm/actor.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
-#include "scumm/dimuse.h"
-#include "scumm/imuse_digi/dimuse_core.h"
-#include "scumm/imuse_digi/dimuse_core_defs.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
+#include "scumm/imuse_digi/dimuse_defs.h"
 #include "scumm/imuse_digi/dimuse_bndmgr.h"
 #include "scumm/imuse_digi/dimuse_sndmgr.h"
 #include "scumm/imuse_digi/dimuse_tables.h"
@@ -44,7 +43,7 @@ void IMuseDigital::timer_handler(void *refCon) {
 }
 
 IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
-	: _vm(scumm), _mixer(mixer), IMuseDigitalAbstract(scumm, mixer, fps) {
+	: _vm(scumm), _mixer(mixer) {
 	assert(_vm);
 	assert(mixer);
 	_callbackFps = fps;
@@ -383,6 +382,10 @@ void IMuseDigital::diMUSEHeartbeat() {
 	} while (_cmdsRunning10HzCount >= 100000);
 }
 
+void IMuseDigital::setPriority(int soundId, int priority) {
+	diMUSESetParam(soundId, P_PRIORITY, priority);
+}
+
 void IMuseDigital::setVolume(int soundId, int volume) {
 	diMUSESetParam(soundId, P_VOLUME, volume);
 	if (soundId == kTalkSoundID)
@@ -415,10 +418,6 @@ int IMuseDigital::getCurSpeechFrequency() const {
 
 void IMuseDigital::flushTracks() {
 	_filesHandler->flushSounds();
-}
-
-bool IMuseDigital::isUsingV2Engine() {
-	return true;
 }
 
 bool IMuseDigital::isFTSoundEngine() {

@@ -20,8 +20,8 @@
 *
 */
 
-#include "scumm/imuse_digi/dimuse_core.h"
-#include "scumm/imuse_digi/dimuse_core_defs.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
+#include "scumm/imuse_digi/dimuse_defs.h"
 
 namespace Scumm {
 

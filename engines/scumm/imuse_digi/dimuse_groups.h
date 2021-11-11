@@ -20,34 +20,30 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_FADES_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_FADES_H
+#if !defined(SCUMM_IMUSE_DIGI_GROUPS_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_GROUPS_H
 
 #include "common/scummsys.h"
+#include "common/mutex.h"
+#include "common/serializer.h"
 #include "common/textconsole.h"
 #include "common/util.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 
 namespace Scumm {
 
-class IMuseDigiFadesHandler {
+class IMuseDigiGroupsHandler {
 
 private:
 	IMuseDigital *_engine;
-	IMuseDigiFade _fades[MAX_FADES];
-	int _fadesOn;
-
-	void clearAllFades();
+	int _effVols[MAX_GROUPS];
+	int _vols[MAX_GROUPS];
 public:
-	IMuseDigiFadesHandler(IMuseDigital *engine);
-	~IMuseDigiFadesHandler();
-
+	IMuseDigiGroupsHandler(IMuseDigital *engine);
+	~IMuseDigiGroupsHandler();
 	int init();
-	void deinit();
-	void saveLoad(Common::Serializer &ser);
-	int fadeParam(int soundId, int opcode, int destinationValue, int fadeLength);
-	void clearFadeStatus(int soundId, int opcode);
-	void loop();
-	
+	int setGroupVol(int id, int volume);
+	int getGroupVol(int id);
 };
 
 } // End of namespace Scumm

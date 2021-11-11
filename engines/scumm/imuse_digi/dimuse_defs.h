@@ -20,8 +20,8 @@
  *
  */
 
-#if !defined(SCUMM_IMUSE_DIGI_V2_DEFS_H) && defined(ENABLE_SCUMM_7_8)
-#define SCUMM_IMUSE_DIGI_V2_DEFS_H
+#if !defined(SCUMM_IMUSE_DIGI_DEFS_H) && defined(ENABLE_SCUMM_7_8)
+#define SCUMM_IMUSE_DIGI_DEFS_H
 
 namespace Scumm {
 
