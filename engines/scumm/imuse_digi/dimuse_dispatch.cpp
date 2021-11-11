@@ -139,7 +139,6 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 int IMuseDigital::dispatchRestoreStreamZones() {
 	IMuseDigiDispatch *curDispatchPtr;
 	IMuseDigiStreamZone *curStreamZone;
-	IMuseDigiStreamZone *curStreamZoneList;
 	int sizeToFeed = _isEarlyDiMUSE ? 0x800 : 0x4000;
 
 	curDispatchPtr = _dispatches;
