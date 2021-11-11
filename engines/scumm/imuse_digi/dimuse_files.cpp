@@ -28,7 +28,7 @@ namespace Scumm {
 
 IMuseDigiFilesHandler::IMuseDigiFilesHandler(IMuseDigital *engine, ScummEngine_v7 *vm) {
 	_engine = engine;
-	_sound = new ImuseDigiSndMgr(vm, true);
+	_sound = new ImuseDigiSndMgr(vm);
 	assert(_sound);
 	_vm = vm;
 
