@@ -42,11 +42,13 @@ void IMuseDigital::timer_handler(void *refCon) {
 	diMUSE->callback();
 }
 
-IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer, int fps)
+IMuseDigital::IMuseDigital(ScummEngine_v7 *scumm, Audio::Mixer *mixer)
 	: _vm(scumm), _mixer(mixer) {
 	assert(_vm);
 	assert(mixer);
-	_callbackFps = fps;
+
+	// 50 Hz rate for the callback
+	_callbackFps = 50;
 	_usecPerInt = 20000;
 
 	_isEarlyDiMUSE = (_vm->_game.id == GID_FT || (_vm->_game.id == GID_DIG && _vm->_game.features & GF_DEMO));

@@ -1630,17 +1630,6 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 
 	ScummEngine::setupScumm(macResourceFile);
 
-	int dimuseTempo = CLIP(ConfMan.getInt("dimuse_tempo"), 10, 100); // FT
-
-	// Workaround for old config files: originally, the rate for the callback
-	// was 10 Hz to facilitate slow devices. Now we set it to 50 Hz, which is
-	// the intended rate.
-	if (dimuseTempo != 50)
-		dimuseTempo = 50;
-
-	ConfMan.setInt("dimuse_tempo", dimuseTempo);
-	ConfMan.flushToDisk();
-
 	// Check if we are dealing with old resource files compressed with the ScummVM tools
 	bool filesAreCompressed = false;
 
@@ -1654,7 +1643,7 @@ void ScummEngine_v7::setupScumm(const Common::String &macResourceFile) {
 		filesAreCompressed |= _sound->isSfxFileCompressed();
 	}
 
-	_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer, dimuseTempo);
+	_musicEngine = _imuseDigital = new IMuseDigital(this, _mixer);
 
 	if (filesAreCompressed) {
 		GUI::MessageDialog dialog(_(

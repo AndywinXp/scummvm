@@ -304,7 +304,7 @@ void registerDefaults() {
 #ifdef ENABLE_SCUMM
 	ConfMan.registerDefault("tempo", 0);
 #endif
-#if (defined(ENABLE_SCUMM) && defined(ENABLE_SCUMM_7_8)) || defined(ENABLE_GRIM)
+#if defined(ENABLE_GRIM)
 	ConfMan.registerDefault("dimuse_tempo", 50);
 #endif
 
