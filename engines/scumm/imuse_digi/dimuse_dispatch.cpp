@@ -743,7 +743,7 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 	uint8 *buffer, *srcBuf;
 	int32 fadeChunkSize = 0;
 	int32 tentativeFeedSize, inFrameCount, fadeSyncDelta, mixStartingPoint, seekResult;
-	int32 mixVolume;
+	int mixVolume;
 
 	dispatchPtr = trackPtr->dispatchPtr;
 	tentativeFeedSize = (dispatchPtr->sampleRate == 22050) ? feedSize : feedSize / 2;
@@ -1599,7 +1599,7 @@ void IMuseDigital::dispatchValidateFadeSize(IMuseDigiDispatch *dispatchPtr, int3
 }
 
 int IMuseDigital::dispatchUpdateFadeMixVolume(IMuseDigiDispatch *dispatchPtr, int32 remainingFade) {
-	int32 mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
+	int mixVolume = (((dispatchPtr->fadeVol / 65536) + 1) * dispatchPtr->trackPtr->effVol) / 128;
 	dispatchPtr->fadeVol += remainingFade * dispatchPtr->fadeSlope;
 
 	if (dispatchPtr->fadeVol < 0)
