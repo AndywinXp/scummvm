@@ -37,7 +37,7 @@
 
 namespace Scumm {
 
-ImuseDigiSndMgr::ImuseDigiSndMgr(ScummEngine *scumm, bool isDiMUSEv2) {
+ImuseDigiSndMgr::ImuseDigiSndMgr(ScummEngine *scumm) {
 	for (int l = 0; l < MAX_IMUSE_SOUNDS; l++) {
 		memset(&_sounds[l], 0, sizeof(SoundDesc));
 	}

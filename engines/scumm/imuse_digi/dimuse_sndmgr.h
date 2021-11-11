@@ -81,7 +81,7 @@ private:
 
 public:
 
-	ImuseDigiSndMgr(ScummEngine *scumm, bool isDiMUSEv2 = false);
+	ImuseDigiSndMgr(ScummEngine *scumm);
 	~ImuseDigiSndMgr();
 
 	SoundDesc *openSound(int32 soundId, const char *soundName, int soundType, int volGroupId, int disk);
