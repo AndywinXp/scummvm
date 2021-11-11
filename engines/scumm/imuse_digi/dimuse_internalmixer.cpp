@@ -86,7 +86,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	// at different levels of granularity depending on the case (as uint32, uint16 or uint8).
 	// The latter is populated from the middle, inside-out; hence _softLMID.
 
-	int *tableMalloc = (int *)malloc(53376 * sizeof(int));
+	int *tableMalloc = (int *)malloc(53376 * sizeof(int32));
 
 	_amp8Table = tableMalloc;          // Dim: 2176
 	_amp12Table = tableMalloc + 2176;  // Dim: 34816
@@ -95,7 +95,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 
 	if (tableMalloc) {
 		// Any unpopulated cell is expected to be set to 0
-		memset(tableMalloc, 0, 53376 * sizeof(int));
+		memset(tableMalloc, 0, 53376 * sizeof(int32));
 		zeroCenterOffset = 0;
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;

@@ -392,7 +392,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 }
 
 int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, uint8 *crossfadeBuffer, int crossfadeBufferSize, int vocLoopFlag) {
-	IMuseDigiDispatch *dispatchPtr = NULL;
+	IMuseDigiDispatch *dispatchPtr = nullptr;
 	uint8 *streamBuf;
 	int i;
 	int32 effAudioRemaining, audioRemaining, offset;

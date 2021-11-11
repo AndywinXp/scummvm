@@ -23,6 +23,7 @@
 #include "scumm/imuse_digi/dimuse_engine.h"
 
 namespace Scumm {
+
 #define DIG_STATE_OFFSET 11
 #define DIG_SEQ_OFFSET (DIG_STATE_OFFSET + 65)
 #define COMI_STATE_OFFSET 3
@@ -119,7 +120,6 @@ void IMuseDigital::scriptRefresh() {
 		scriptSetSequence(0);
 
 	flushTracks();
-	return;
 }
 
 void IMuseDigital::scriptSetState(int soundId) {

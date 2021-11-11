@@ -639,7 +639,6 @@ int IMuseDigital::diMUSEResume() {
 
 void IMuseDigital::diMUSESaveLoad(Common::Serializer &ser) {
 	cmdsSaveLoad(ser);
-	return;
 }
 
 int IMuseDigital::diMUSESetGroupVol(int groupId, int volume) {

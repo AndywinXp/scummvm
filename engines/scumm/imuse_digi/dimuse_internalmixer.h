@@ -46,10 +46,10 @@ namespace Scumm {
 class IMuseDigiInternalMixer {
 
 private:
-	int *_amp8Table;
-	int *_amp12Table;
-	int *_softLMID;
-	int *_softLTable;
+	int32 *_amp8Table;
+	int32 *_amp12Table;
+	int32 *_softLMID;
+	int32 *_softLTable;
 
 	uint8 *_mixBuf;
 

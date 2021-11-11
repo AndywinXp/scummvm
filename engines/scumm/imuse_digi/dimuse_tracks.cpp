@@ -40,8 +40,9 @@ int IMuseDigital::tracksInit() {
 			waveOutSettings.sizeSampleKB,
 			_trackCount) ||
 			dispatchInit() ||
-			streamerInit())
+		streamerInit()) {
 		return -1;
+	}
 
 	for (int l = 0; l < _trackCount; l++) {
 		_tracks[l].prev = nullptr;
