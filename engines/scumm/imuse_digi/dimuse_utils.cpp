@@ -165,16 +165,16 @@ int IMuseDigital::clampTuning(int value, int minValue, int maxValue) {
 	return value;
 }
 
-int IMuseDigital::checkHookId(int *trackHookId, int sampleHookId) {
+int IMuseDigital::checkHookId(int &trackHookId, int sampleHookId) {
 	if (sampleHookId) {
-		if (*trackHookId == sampleHookId) {
-			*trackHookId = 0;
+		if (trackHookId == sampleHookId) {
+			trackHookId = 0;
 			return 0;
 		} else {
 			return -1;
 		}
-	} else if (*trackHookId == 128) {
-		*trackHookId = 0;
+	} else if (trackHookId == 128) {
+		trackHookId = 0;
 		return -1;
 	} else {
 		return 0;

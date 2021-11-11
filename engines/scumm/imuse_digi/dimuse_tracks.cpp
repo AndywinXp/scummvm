@@ -172,7 +172,7 @@ void IMuseDigital::tracksCallback() {
 		if (!_isEarlyDiMUSE)
 			dispatchPredictFirstStream();
 
-		waveOutWrite(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
+		waveOutWrite(&_outputAudioBuffer, _outputFeedSize, _outputSampleRate);
 
 		if (_outputFeedSize != 0) {
 			_internalMixer->clearMixerBuffer();
@@ -194,7 +194,7 @@ void IMuseDigital::tracksCallback() {
 
 			// The Dig tries to write a second time
 			if (!_isEarlyDiMUSE && _vm->_game.id == GID_DIG) {
-				waveOutWrite(&_outputAudioBuffer, &_outputFeedSize, &_outputSampleRate);
+				waveOutWrite(&_outputAudioBuffer, _outputFeedSize, _outputSampleRate);
 			}
 		}
 	}
@@ -295,7 +295,7 @@ int IMuseDigital::tracksGetNextSound(int soundId) {
 	return foundSoundId;
 }
 
-int IMuseDigital::tracksQueryStream(int soundId, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
+int IMuseDigital::tracksQueryStream(int soundId, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused) {
 	if (!_trackList)
 		return -1;
 
@@ -501,7 +501,7 @@ int IMuseDigital::tracksGetParam(int soundId, int opcode) {
 	return 0;
 }
 
-int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 *width, int32 *height) {
+int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 &width, int32 &height) {
 	int h, w;
 
 	byte *syncPtr = nullptr;
@@ -571,10 +571,10 @@ int IMuseDigital::tracksLipSync(int soundId, int syncId, int msPos, int32 *width
 		}
 	}
 
-	if (width)
-		*width = w;
-	if (height)
-		*height = h;
+	if (&width)
+		width = w;
+	if (&height)
+		height = h;
 
 	return 0;
 }

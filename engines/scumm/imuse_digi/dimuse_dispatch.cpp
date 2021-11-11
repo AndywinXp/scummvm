@@ -317,7 +317,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		// inverting the stereo image by mistake
 		dispatchValidateFadeSize(curDispatch, &_dispatchFadeSize, "dispatchSwitchStream");
 
-		curDispatch->fadeBuf = dispatchAllocateFade(&_dispatchFadeSize, "dispatchSwitchStream");
+		curDispatch->fadeBuf = dispatchAllocateFade(_dispatchFadeSize, "dispatchSwitchStream");
 
 		// If we were able to allocate a fade, set up a fade out for the old sound.
 		// We'll copy data from the stream buffer to the fade buffer
@@ -636,10 +636,10 @@ void IMuseDigital::dispatchProcessDispatches(IMuseDigiTrack *trackPtr, int feedS
 
 				streamerQueryStream(
 					dispatchPtr->streamPtr,
-					&_dispatchCurStreamBufSize,
-					&_dispatchCurStreamCriticalSize,
-					&_dispatchCurStreamFreeSpace,
-					&_dispatchCurStreamPaused);
+					_dispatchCurStreamBufSize,
+					_dispatchCurStreamCriticalSize,
+					_dispatchCurStreamFreeSpace,
+					_dispatchCurStreamPaused);
 
 				if (_dispatchCurStreamPaused) {
 					debug(5, "IMuseDigital::dispatchProcessDispatches(): WARNING: stopping starving paused stream for sound %d", dispatchPtr->trackPtr->soundId);
@@ -870,7 +870,7 @@ int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
 			// - Jump destination offset (4 bytes)
 			// - Hook ID (4 bytes)
 			// - Fade time in ms (4 bytes)
-			if (!checkHookId(&dispatchPtr->trackPtr->jumpHook, mapCurEvent[4])) {
+			if (!checkHookId(dispatchPtr->trackPtr->jumpHook, mapCurEvent[4])) {
 				// This is the right hookId, let's jump
 				dispatchPtr->currentOffset = mapCurEvent[3];
 				if (dispatchPtr->streamPtr) {
@@ -894,7 +894,7 @@ int IMuseDigital::dispatchNavigateMap(IMuseDigiDispatch *dispatchPtr) {
 						}
 
 						_dispatchJumpFadeSize = dispatchPtr->streamZoneList->size;
-						dispatchPtr->fadeBuf = dispatchAllocateFade(&_dispatchJumpFadeSize, "dispatchNavigateMap");
+						dispatchPtr->fadeBuf = dispatchAllocateFade(_dispatchJumpFadeSize, "dispatchNavigateMap");
 
 						// If the fade buffer is allocated
 						// set up the fade
@@ -1283,7 +1283,7 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 
 	for (_dispatchBufferedHookId = dispatchPtr->trackPtr->jumpHook; curStrZn; curStrZn = curStrZn->next) {
 		if (!curStrZn->fadeFlag) {
-			jumpParameters = dispatchCheckForJump(dispatchPtr->map, curStrZn, &_dispatchBufferedHookId);
+			jumpParameters = dispatchCheckForJump(dispatchPtr->map, curStrZn, _dispatchBufferedHookId);
 			if (jumpParameters) {
 				// If we've reached a JUMP and it's successful, allocate the streamZone of the destination
 				dispatchPrepareToJump(dispatchPtr, curStrZn, jumpParameters, 0);
@@ -1295,7 +1295,7 @@ void IMuseDigital::dispatchPredictStream(IMuseDigiDispatch *dispatchPtr) {
 	}
 }
 
-int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int *candidateHookId) {
+int *IMuseDigital::dispatchCheckForJump(int *mapPtr, IMuseDigiStreamZone *strZnPtr, int &candidateHookId) {
 	int *curMapPlace = &mapPtr[2];
 	int *endOfMap = (int *)((int8 *)&mapPtr[2] + mapPtr[1]);
 	int mapPlaceTag, jumpHookPos, jumpHookId, bytesUntilNextPlace;
@@ -1489,14 +1489,14 @@ IMuseDigiStreamZone *IMuseDigital::dispatchAllocateStreamZone() {
 	return nullptr;
 }
 
-uint8 *IMuseDigital::dispatchAllocateFade(int *fadeSize, const char *function) {
+uint8 *IMuseDigital::dispatchAllocateFade(int &fadeSize, const char *function) {
 	uint8 *allocatedFadeBuf = nullptr;
-	if (*fadeSize > DIMUSE_LARGE_FADE_DIM) {
-		debug(5, "IMuseDigital::dispatchAllocateFade(): WARNING: requested fade too large (%d) in %s()", *fadeSize, function);
-		*fadeSize = DIMUSE_LARGE_FADE_DIM;
+	if (fadeSize > DIMUSE_LARGE_FADE_DIM) {
+		debug(5, "IMuseDigital::dispatchAllocateFade(): WARNING: requested fade too large (%d) in %s()", fadeSize, function);
+		fadeSize = DIMUSE_LARGE_FADE_DIM;
 	}
 
-	if (*fadeSize <= DIMUSE_SMALL_FADE_DIM) { // Small fade
+	if (fadeSize <= DIMUSE_SMALL_FADE_DIM) { // Small fade
 		for (int i = 0; i <= DIMUSE_SMALL_FADES; i++) {
 			if (i == DIMUSE_SMALL_FADES) {
 				debug(5, "IMuseDigital::dispatchAllocateFade(): couldn't allocate small fade buffer in %s()", function);

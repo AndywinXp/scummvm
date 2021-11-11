@@ -227,12 +227,12 @@ int IMuseDigital::streamerSetSoundToStreamFromOffset(IMuseDigiStream *streamPtr,
 	return 0;
 }
 
-int IMuseDigital::streamerQueryStream(IMuseDigiStream *streamPtr, int *bufSize, int *criticalSize, int *freeSpace, int *paused) {
+int IMuseDigital::streamerQueryStream(IMuseDigiStream *streamPtr, int32 &bufSize, int32 &criticalSize, int32 &freeSpace, int &paused) {
 	dispatchPredictFirstStream();
-	*bufSize = streamPtr->bufFreeSize;
-	*criticalSize = streamPtr->criticalSize;
-	*freeSpace = streamerGetFreeBufferAmount(streamPtr);
-	*paused = streamPtr->paused;
+	bufSize = streamPtr->bufFreeSize;
+	criticalSize = streamPtr->criticalSize;
+	freeSpace = streamerGetFreeBufferAmount(streamPtr);
+	paused = streamPtr->paused;
 	return 0;
 }
 

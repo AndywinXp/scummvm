@@ -50,7 +50,7 @@ int IMuseDigital::waveOutInit(int sampleRate, waveOutParamsStruct *waveOutSettin
 	return 0;
 }
 
-void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRate) {
+void IMuseDigital::waveOutWrite(uint8 **audioData, int &feedSize, int &sampleRate) {
 	uint8 *curBufferBlock;
 	if (_waveOutDisableWrite)
 		return;
@@ -61,14 +61,14 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int *feedSize, int *sampleRat
 			return;
 	}
 
-	*feedSize = 0;
+	feedSize = 0;
 	if (_mixer->isReady()) {
 		curBufferBlock = &_waveOutOutputBuffer[_waveOutPreferredFeedSize * _waveOutWriteIndex * _waveOutBytesPerSample * _waveOutNumChannels];
 
 		*audioData = curBufferBlock;
 
-		*sampleRate = _waveOutSampleRate;
-		*feedSize = _waveOutPreferredFeedSize;
+		sampleRate = _waveOutSampleRate;
+		feedSize = _waveOutPreferredFeedSize;
 		_waveOutWriteIndex = (_waveOutWriteIndex + 1) % 7;
 
 		byte *ptr = (byte *)malloc(_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels);

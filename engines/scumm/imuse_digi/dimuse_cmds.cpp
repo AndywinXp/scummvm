@@ -42,7 +42,14 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 		marker[4] = '\0';
 	}
 
- 	switch (cmd) {
+	int32 *bufSize = (int32 *)b;
+	int32 *criticalSize = (int32 *)c;
+	int32 *freeSpace = (int32 *)d;
+	int32 *paused = (int32 *)e;
+	int32 *width = (int32 *) d;
+	int32 *height = (int32 *) e;
+
+	switch (cmd) {
 	case 0:
 		return cmdsInit();
 	case 3:
@@ -92,11 +99,11 @@ int IMuseDigital::cmdsHandleCmd(int cmd, int a, uintptr b, uintptr c, uintptr d,
 	case 27:
 		return waveProcessStreams();
 	case 28:
-		return waveQueryStream(a, (int *)b, (int *)c, (int *)d, (int *)e);
+		return waveQueryStream(a, *bufSize, *criticalSize, *freeSpace, *paused);
 	case 29:
 		return waveFeedStream(a, (uint8 *)b, (int)c, (int)d);
 	case 30:
-		return waveLipSync(a, (int)b, (int)c, (int32 *)d, (int32 *)e);
+		return waveLipSync(a, (int)b, (int)c, *width, *height);
 	default:
 		debug(5, "IMuseDigital::cmdsHandleCmd(): bogus/unused opcode ignored (%d).", cmd);
 		return -1;
