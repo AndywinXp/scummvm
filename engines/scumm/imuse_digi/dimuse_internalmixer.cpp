@@ -82,7 +82,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 	// For the first two tables 17 represents the volume range (0-16), while
 	// 256 and 4096 are respectively the dynamic range for 8-bit and 12-bit audio;
 	//
-	// Every table is initialized with short/int16 values, but stored as int32 and manipulated
+	// Every table is initialized with int16 values, but stored as int32 and manipulated
 	// at different levels of granularity depending on the case (as uint32, uint16 or uint8).
 	// The latter is populated from the middle, inside-out; hence _softLMID.
 
@@ -100,7 +100,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;
 			for (int j = 0; j < 256; j++) {
-				((short *)&_amp8Table[i * 128])[j] = (short)(amplitudeValue / 127);
+				((int16 *)&_amp8Table[i * 128])[j] = (int16)(amplitudeValue / 127);
 				amplitudeValue += 16 * zeroCenterOffset;
 			}
 
@@ -113,7 +113,7 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 		for (int i = 0; i < 17; i++) {
 			amplitudeValue = -2048 * zeroCenterOffset;
 			for (int j = 0; j < 4096; j++) {
-				((short *)&_amp12Table[i * 2048])[j] = (short)(amplitudeValue / 127);
+				((int16 *)&_amp12Table[i * 2048])[j] = (int16)(amplitudeValue / 127);
 				amplitudeValue += zeroCenterOffset;
 			}
 
@@ -132,8 +132,8 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 					softLnumerator += 254 * waveMixChannelsCount;
 					softLcurValue /= 2;
 
-					((char *)_softLMID)[i] = (char)softLcurValue + 128;
-					((char *)_softLMID)[-i] = 127 - (char)softLcurValue;
+					((int8 *)_softLMID)[i] = (int8)softLcurValue + 128;
+					((int8 *)_softLMID)[-i] = 127 - (int8)softLcurValue;
 				}
 			}
 		} else if (waveMixChannelsCount * 2048 > 0) {
@@ -144,8 +144,8 @@ int IMuseDigiInternalMixer::init(int bytesPerSample, int numChannels, uint8 *mix
 				softLcurValue /= 2;
 				softLdenominator += waveMixChannelsCount - 1;
 				softLnumerator += 65534 * waveMixChannelsCount;
-				((short *)_softLMID)[i] = (short)softLcurValue;
-				((short *)_softLMID)[-i - 1] = -1 - (short)softLcurValue;
+				((int16 *)_softLMID)[i] = (int16)softLcurValue;
+				((int16 *)_softLMID)[-i - 1] = -1 - (int16)softLcurValue;
 			}
 		}
 		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_channelHandle, _stream, -1, Audio::Mixer::kMaxChannelVolume, false);
@@ -1099,7 +1099,6 @@ void IMuseDigiInternalMixer::mixBits16Stereo(uint8 *srcBuf, int inFrameCount, in
 			}
 		}
 	}
-	return;
 }
 
 } // End of namespace Scumm
