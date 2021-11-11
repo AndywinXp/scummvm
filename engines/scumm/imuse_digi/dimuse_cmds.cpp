@@ -26,7 +26,7 @@ namespace Scumm {
 
 // We have some uintptr arguments as commands 28, 29 and 30 actually require pointer arguments
 // Unfortunately this makes function calls for other command a little less pretty...
-int IMuseDigital::cmdsHandleCmd(int cmd, uintptr ptr, int a, int b, int c, int d, int e,
+int IMuseDigital::cmdsHandleCmd(int cmd, uint8 *ptr, int a, int b, int c, int d, int e,
 	int f, int g, int h, int i, int j, int k, int l, int m, int n) {
 
 	// Convert the character constant (single quotes '') to string

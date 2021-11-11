@@ -376,7 +376,7 @@ public:
 	int checkHookId(int &trackHookId, int sampleHookId);
 
 	// CMDs
-	int cmdsHandleCmd(int cmd, uintptr ptr = (uintptr)nullptr,
+	int cmdsHandleCmd(int cmd, uint8 *ptr = nullptr,
 		int a = -1, int b = -1, int c = -1, int d = -1, int e = -1,
 		int f = -1, int g = -1, int h = -1, int i = -1, int j = -1,
 		int k = -1, int l = -1, int m = -1, int n = -1);
