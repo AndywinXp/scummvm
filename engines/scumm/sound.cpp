@@ -464,7 +464,7 @@ void Sound::processSfxQueues() {
 					_mouthSyncMode = 1;
 				}
 			}
-
+#if defined(ENABLE_SCUMM_7_8)
 			if (_vm->_imuseDigital && !_vm->_imuseDigital->isFTSoundEngine()) {
 				int volume = a->_talkVolume;
 				int frequency = a->_talkFrequency;
@@ -483,6 +483,7 @@ void Sound::processSfxQueues() {
 					}
 				}
 			}
+#endif
 		}
 
 		if ((!ConfMan.getBool("subtitles") && finished) || (finished && _vm->_talkDelay == 0)) {
@@ -510,7 +511,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 
 	bool _sampleIsPCMS16BE44100 = false;
 
-	if (!_vm->_imuseDigital->isFTSoundEngine()) {
+	if (_vm->_game.id == GID_CMI || (_vm->_game.id == GID_DIG && !(_vm->_game.features & GF_DEMO))) {
 		// COMI (full & demo), DIG (full)
 		_sfxMode |= mode;
 		return;
@@ -563,8 +564,9 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 
 		file->seek(0, SEEK_END);
 		int fileSize = file->pos();
+#if defined(ENABLE_SCUMM_7_8)
 		_vm->_imuseDigital->startVoice(filename, file.release(), 0, fileSize);
-
+#endif
 		return;
 	} else if (_vm->_game.id == GID_FT) {
 		int totalOffset, soundSize, fileSize, headerTag;
@@ -597,7 +599,7 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 			_sfxMode |= mode;
 			_curSoundPos = 0;
 			_mouthSyncMode = true;
-			
+
 			totalOffset = offset + b;
 			file->seek(totalOffset, SEEK_SET);
 			headerTag = file->readUint32BE();
@@ -607,11 +609,11 @@ void Sound::startTalkSound(uint32 offset, uint32 b, int mode, Audio::SoundHandle
 				file->seek(totalOffset + 27, SEEK_SET);
 				fileSize = 31;
 				fileSize += file->readUint32LE() >> 8;
-#ifdef ENABLE_SCUMM_7_8
+#if defined(ENABLE_SCUMM_7_8)
 				_vm->_imuseDigital->startVoice(_sfxFilename.c_str(), file.release(), totalOffset, fileSize);
 #endif
 			} else if (headerTag == MKTAG('V','T','L','K')) {
-#ifdef ENABLE_SCUMM_7_8
+#if defined(ENABLE_SCUMM_7_8)
 				_vm->_imuseDigital->startVoice(_sfxFilename.c_str(), file.release(), totalOffset + 8, soundSize);
 #endif
 			} else {
