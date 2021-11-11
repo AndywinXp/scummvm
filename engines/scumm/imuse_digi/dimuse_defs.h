@@ -135,13 +135,13 @@ struct IMuseDigiTrack {
 	int pitchShift;
 	int mailbox;
 	int jumpHook;
-	int syncSize_0;
+	int32 syncSize_0;
 	byte *syncPtr_0;
-	int syncSize_1;
+	int32 syncSize_1;
 	byte *syncPtr_1;
-	int syncSize_2;
+	int32 syncSize_2;
 	byte *syncPtr_2;
-	int syncSize_3;
+	int32 syncSize_3;
 	byte *syncPtr_3;
 };
 
@@ -149,33 +149,33 @@ struct IMuseDigiStreamZone {
 	IMuseDigiStreamZone *prev;
 	IMuseDigiStreamZone *next;
 	int useFlag;
-	int offset;
-	int size;
+	int32 offset;
+	int32 size;
 	int fadeFlag;
 };
 
 typedef struct {
 	int soundId;
-	int curOffset;
-	int endOffset;
+	int32 curOffset;
+	int32 endOffset;
 	int bufId;
 	uint8 *buf;
-	int bufFreeSize;
-	int loadSize;
-	int criticalSize;
-	int maxRead;
-	int loadIndex;
-	int readIndex;
+	int32 bufFreeSize;
+	int32 loadSize;
+	int32 criticalSize;
+	int32 maxRead;
+	int32 loadIndex;
+	int32 readIndex;
 	int paused;
 	int vocLoopFlag;
-	int vocLoopTriggerOffset;
+	int32 vocLoopTriggerOffset;
 } IMuseDigiStream;
 
 typedef struct {
 	uint8 *buffer;
-	int bufSize;
-	int loadSize;
-	int criticalSize;
+	int32 bufSize;
+	int32 loadSize;
+	int32 criticalSize;
 } IMuseDigiSndBuffer;
 
 struct IMuseDigiDispatch {
@@ -183,24 +183,24 @@ struct IMuseDigiDispatch {
 	int wordSize;
 	int sampleRate;
 	int channelCount;
-	int currentOffset;
-	int audioRemaining;
-	int map[DIMUSE_MAX_MAP_SIZE];
+	int32 currentOffset;
+	int32 audioRemaining;
+	int32 map[DIMUSE_MAX_MAP_SIZE];
 	IMuseDigiStream *streamPtr;
 	int streamBufID;
 	IMuseDigiStreamZone *streamZoneList;
 	int streamErrFlag;
 	uint8 *fadeBuf;
-	int fadeOffset;
-	int fadeRemaining;
+	int32 fadeOffset;
+	int32 fadeRemaining;
 	int fadeWordSize;
 	int fadeSampleRate;
 	int fadeChannelCount;
 	int fadeSyncFlag;
-	int fadeSyncDelta;
+	int32 fadeSyncDelta;
 	int fadeVol;
 	int fadeSlope;
-	int vocLoopStartingPoint;
+	int32 vocLoopStartingPoint;
 };
 
 typedef struct {
