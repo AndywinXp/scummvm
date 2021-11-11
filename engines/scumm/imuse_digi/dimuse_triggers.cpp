@@ -146,8 +146,8 @@ int IMuseDigiTriggersHandler::checkTrigger(int soundId, char *marker, int opcode
 int IMuseDigiTriggersHandler::clearTrigger(int soundId, char *marker, int opcode) {
 	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
 		if ((_trigs[l].sound != 0) && (soundId == -1 || _trigs[l].sound == soundId) &&
-			(!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) &&
-			(opcode == -1 || _trigs[l].opcode == opcode)) {
+            (!strcmp(marker, _emptyMarker) || !strcmp(marker, _trigs[l].text)) &&
+            (opcode == -1 || _trigs[l].opcode == opcode)) {
 
 			if (_midProcessing) {
 				_trigs[l].clearLater = 1;
@@ -170,9 +170,7 @@ void IMuseDigiTriggersHandler::processTriggers(int soundId, char *marker) {
 	Common::strlcpy(_textBuffer, marker, sizeof(marker));
 	_midProcessing++;
 	for (int l = 0; l < DIMUSE_MAX_TRIGGERS; l++) {
-		if (!_trigs[l].sound ||
-			_trigs[l].sound != soundId ||
-			(_trigs[l].text[0] && strcmp(_textBuffer, _trigs[l].text))) {
+		if (!_trigs[l].sound || _trigs[l].sound != soundId || (_trigs[l].text[0] && strcmp(_textBuffer, _trigs[l].text))) {
 			continue;
 		}
 
@@ -285,8 +283,9 @@ int IMuseDigiTriggersHandler::countPendingSounds(int soundId) {
 			continue;
 
 		int opcode = _trigs[l].opcode;
-		if ((opcode == 8 && _trigs[l].a == soundId) || (opcode == 26 && _trigs[l].b == soundId))
+		if ((opcode == 8 && _trigs[l].a == soundId) || (opcode == 26 && _trigs[l].b == soundId)) {
 			r++;
+		}
 	}
 
 	for (int l = 0; l < DIMUSE_MAX_DEFERS; l++) {
@@ -294,8 +293,9 @@ int IMuseDigiTriggersHandler::countPendingSounds(int soundId) {
 			continue;
 
 		int opcode = _defers[l].opcode;
-		if ((opcode == 8 && _defers[l].a == soundId) || (opcode == 26 && _defers[l].b == soundId))
+		if ((opcode == 8 && _defers[l].a == soundId) || (opcode == 26 && _defers[l].b == soundId)) {
 			r++;
+		}
 	}
 
 	return r;
