@@ -290,7 +290,7 @@ int32 decompressADPCM(byte *compInput, byte *compOutput, int channels) {
 			// This is being written as-is (LE), without concerns regarding endianness:
 			// this is because the internal DiMUSE mixer handles the data in LE format,
 			// and we'll convert data to the appropriate format using the QueuingAudioStream flags
-			// when flushing the final audio data to the output stream (see dimuse_waveout.cpp:53)
+			// when flushing the final audio data to the output stream (see IMuseDigital::waveOutWrite())
 			WRITE_UINT16(dst + destPos, outputWord);
 
 			destPos += channels << 1;
