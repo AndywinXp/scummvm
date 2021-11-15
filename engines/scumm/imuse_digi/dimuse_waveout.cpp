@@ -77,7 +77,7 @@ void IMuseDigital::waveOutWrite(uint8 **audioData, int &feedSize, int &sampleRat
 		_internalMixer->_stream->queueBuffer(ptr,
 			_outputFeedSize * _waveOutBytesPerSample * _waveOutNumChannels,
 			DisposeAfterUse::YES,
-			Audio::FLAG_16BITS | Audio::FLAG_STEREO | Audio::FLAG_LITTLE_ENDIAN);
+			waveOutGetStreamFlags());
 
 	}
 }
@@ -90,6 +90,14 @@ int IMuseDigital::waveOutDeinit() {
 void IMuseDigital::waveOutCallback() {
 	Common::StackLock lock(_mutex);
 	tracksCallback();
+}
+
+byte IMuseDigital::waveOutGetStreamFlags() {
+	byte flags = Audio::FLAG_16BITS | Audio::FLAG_STEREO;
+#ifdef SCUMM_LITTLE_ENDIAN
+	flags |= Audio::FLAG_LITTLE_ENDIAN;
+#endif
+	return flags;
 }
 
 } // End of namespace Scumm
