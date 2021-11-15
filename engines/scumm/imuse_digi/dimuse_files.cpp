@@ -63,10 +63,10 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 			ser.syncAsSint32LE(sounds[l].soundId, VER(103));
 		}
 		if (_engine->isFTSoundEngine()) {
-			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(106));
-			ser.syncAsSint32LE(_ftSpeechFileSize, VER(106));
-			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(106));
-			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(106));
+			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(103));
+			ser.syncAsSint32LE(_ftSpeechFileSize, VER(103));
+			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(103));
+			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(103));
 		}
 	}
 
@@ -86,12 +86,11 @@ void IMuseDigiFilesHandler::saveLoad(Common::Serializer &ser) {
 		}
 
 		if (_engine->isFTSoundEngine()) {
-			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(106));
-			ser.syncAsSint32LE(_ftSpeechFileSize, VER(106));
-			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(106));
-			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(106));
-			if (ser.getVersion() >= 106)
-				_ftSpeechFile = _vm->_sound->restoreDiMUSESpeechFile(_ftSpeechFilename);
+			ser.syncAsSint32LE(_ftSpeechFileCurPos, VER(103));
+			ser.syncAsSint32LE(_ftSpeechFileSize, VER(103));
+			ser.syncAsSint32LE(_ftSpeechSubFileOffset, VER(103));
+			ser.syncArray(_ftSpeechFilename, sizeof(_ftSpeechFilename), Common::Serializer::SByte, VER(103));
+			_ftSpeechFile = _vm->_sound->restoreDiMUSESpeechFile(_ftSpeechFilename);
 		}
 	}
 }

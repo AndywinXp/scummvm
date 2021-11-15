@@ -173,6 +173,7 @@ void IMuseDigital::cmdsSaveLoad(Common::Serializer &ser) {
 	//     - Tracks (with SYNCs, if the game is COMI)
 	// - State and sequence info
 	// - Attributes
+	// - Full Throttle's music cue ID
 
 	_filesHandler->saveLoad(ser);
 	_fadesHandler->saveLoad(ser);
@@ -182,8 +183,8 @@ void IMuseDigital::cmdsSaveLoad(Common::Serializer &ser) {
 	ser.syncAsSint32LE(_curMusicSeq, VER(103));
 	ser.syncAsSint32LE(_nextSeqToPlay, VER(103));
 	ser.syncAsByte(_radioChatterSFX, VER(103));
-	ser.syncArray(_attributes, 188, Common::Serializer::Sint32LE, VER(104));
-	ser.syncAsSint32LE(_curMusicCue, VER(105));
+	ser.syncArray(_attributes, 188, Common::Serializer::Sint32LE, VER(103));
+	ser.syncAsSint32LE(_curMusicCue, VER(103));
 }
 
 int IMuseDigital::cmdsStartSound(int soundId, int priority) {

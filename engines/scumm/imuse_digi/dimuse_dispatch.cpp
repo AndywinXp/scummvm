@@ -101,9 +101,9 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 		if (ser.isSaving()) {
 			if (_dispatches[l].streamPtr)
 				hasStream = 1;
-			ser.syncAsSint32LE(hasStream, VER(105));
+			ser.syncAsSint32LE(hasStream, VER(103));
 		} else {
-			ser.syncAsSint32LE(hasStream, VER(105));
+			ser.syncAsSint32LE(hasStream, VER(103));
 			_dispatches[l].streamPtr = hasStream ? (IMuseDigiStream *)1 : nullptr;
 		}
 
@@ -118,7 +118,7 @@ void IMuseDigital::dispatchSaveLoad(Common::Serializer &ser) {
 		ser.syncAsSint32LE(_dispatches[l].fadeSyncDelta, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeVol, VER(103));
 		ser.syncAsSint32LE(_dispatches[l].fadeSlope, VER(103));
-		ser.syncAsSint32LE(_dispatches[l].vocLoopStartingPoint, VER(105));
+		ser.syncAsSint32LE(_dispatches[l].vocLoopStartingPoint, VER(103));
 	}
 
 	if (ser.isLoading()) {
