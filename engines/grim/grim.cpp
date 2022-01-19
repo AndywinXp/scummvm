@@ -79,7 +79,7 @@
 #include "engines/grim/remastered/lua_remastered.h"
 #include "engines/grim/remastered/commentary.h"
 
-#include "engines/grim/imuse/imuse.h"
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/emi/sound/emisound.h"
 
 #include "engines/grim/lua/lua.h"
@@ -375,7 +375,7 @@ Common::Error GrimEngine::run() {
 			g_movie = CreateBinkPlayer(demo);
 	}
 	if (getGameType() == GType_GRIM) {
-		g_imuse = new Imuse(20, demo);
+		g_imuse = new Imuse(50, demo, _mixer);
 		g_emiSound = nullptr;
 		if (g_grim->isRemastered()) {
 			// This must happen here, since we need the resource loader set up.
@@ -743,7 +743,8 @@ void GrimEngine::handleDebugLoadResource() {
 		resource = (void *)g_movie->play(buf, false, 0, 0);
 	else if (strstr(buf, ".wav") || strstr(buf, ".imu")) {
 		if (g_imuse)
-			g_imuse->startSfx(buf);
+			;
+			//g_imuse->startSfx(buf, 127);
 		resource = (void *)1;
 	} else if (strstr(buf, ".mat")) {
 		CMap *cmap = g_resourceloader->loadColormap("item.cmp");
@@ -1174,7 +1175,7 @@ void GrimEngine::savegameRestore() {
 	if (!_savedState || !_savedState->isCompatible())
 		return;
 	if (g_imuse) {
-		g_imuse->stopAllSounds();
+		g_imuse->diMUSEStopAllSounds();
 		g_imuse->resetState();
 	}
 	g_movie->stop();

@@ -18,14 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #include "common/textconsole.h"
 #include "common/timer.h"
 
 #include "engines/grim/savegame.h"
 #include "engines/grim/debug.h"
 
-#include "engines/grim/imuse/imuse.h"
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/movie/codecs/vima.h"
 
 #include "audio/audiostream.h"
@@ -373,4 +373,4 @@ void Imuse::switchToNextRegion(Track *track) {
 	track->regionOffset = 0;
 }
 
-} // end of namespace Grim
+} // end of namespace Grim*/

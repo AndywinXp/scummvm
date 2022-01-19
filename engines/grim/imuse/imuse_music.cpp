@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #include "engines/grim/debug.h"
 
 #include "engines/grim/imuse/imuse.h"
@@ -86,32 +86,32 @@ int Imuse::setMusicSequence(int seqId) {
 	return _seqMusicTable[_curMusicSeq].soundId;
 }
 
-void Imuse::playMusic(const ImuseTable *table, int atribPos, bool sequence) {
+void Imuse::playMusic(const ImuseTable *table, int attribPos, bool sequence) {
 	int hookId = 0;
 
-	if (atribPos) {
-		if (table->atribPos)
-			atribPos = table->atribPos;
-		hookId = _attributes[atribPos];
+	if (attribPos) {
+		if (table->attribPos)
+			attribPos = table->attribPos;
+		hookId = _attributes[attribPos];
 		if (table->hookId) {
 			if (hookId && table->hookId > 1) {
-				_attributes[atribPos] = 2;
+				_attributes[attribPos] = 2;
 			} else {
-				_attributes[atribPos] = hookId + 1;
+				_attributes[attribPos] = hookId + 1;
 				if (table->hookId < hookId + 1)
-					_attributes[atribPos] = 1;
+					_attributes[attribPos] = 1;
 			}
 		}
 	}
 	if (hookId == 0)
 		hookId = 100;
 
-	if (table->opcode == 0) {
+	if (table->transitionType == 0) {
 		fadeOutMusic(120);
 		return;
 	}
 
-	if (table->opcode == 2 || table->opcode == 3) {
+	if (table->transitionType == 2 || table->transitionType == 3) {
 		if (table->filename[0] == 0) {
 			fadeOutMusic(60);
 			return;
@@ -126,7 +126,7 @@ void Imuse::playMusic(const ImuseTable *table, int atribPos, bool sequence) {
 		if (!soundName) {
 			startMusic(table->filename, hookId, 0, pan);
 			setVolume(table->filename, 0);
-			setFadeVolume(table->filename, table->volume, table->fadeOut60TicksDelay);
+			setFadeVolume(table->filename, table->volume, table->fadeTime60HzTicks);
 			return;
 		}
 		int old_pan = getCurMusicPan();
@@ -136,32 +136,32 @@ void Imuse::playMusic(const ImuseTable *table, int atribPos, bool sequence) {
 		if (old_vol == -1)
 			old_vol = 127;
 
-		if (table->opcode == 2) {
-			fadeOutMusic(table->fadeOut60TicksDelay);
+		if (table->transitionType == 2) {
+			fadeOutMusic(table->fadeTime60HzTicks);
 			startMusic(table->filename, hookId, table->volume, pan);
 			setVolume(table->filename, 0);
-			setFadeVolume(table->filename, table->volume, table->fadeOut60TicksDelay);
-			setFadePan(table->filename, pan, table->fadeOut60TicksDelay);
+			setFadeVolume(table->filename, table->volume, table->fadeTime60HzTicks);
+			setFadePan(table->filename, pan, table->fadeTime60HzTicks);
 			return;
 		}
 		if (strcmp(soundName, table->filename) == 0) {
-			setFadeVolume(soundName, table->volume, table->fadeOut60TicksDelay);
-			setFadePan(soundName, pan, table->fadeOut60TicksDelay);
+			setFadeVolume(soundName, table->volume, table->fadeTime60HzTicks);
+			setFadePan(soundName, pan, table->fadeTime60HzTicks);
 			return;
 		}
 
-		if (!sequence && table->atribPos && table->atribPos == _stateMusicTable[_curMusicState].atribPos) {
-			fadeOutMusicAndStartNew(table->fadeOut60TicksDelay, table->filename, hookId, old_vol, old_pan);
+		if (!sequence && table->attribPos && table->attribPos == _stateMusicTable[_curMusicState].attribPos) {
+			fadeOutMusicAndStartNew(table->fadeTime60HzTicks, table->filename, hookId, old_vol, old_pan);
 			setVolume(table->filename, 0);
-			setFadeVolume(table->filename, table->volume, table->fadeOut60TicksDelay);
-			setFadePan(table->filename, pan, table->fadeOut60TicksDelay);
+			setFadeVolume(table->filename, table->volume, table->fadeTime60HzTicks);
+			setFadePan(table->filename, pan, table->fadeTime60HzTicks);
 		} else {
-			fadeOutMusic(table->fadeOut60TicksDelay);
+			fadeOutMusic(table->fadeTime60HzTicks);
 			startMusic(table->filename, hookId, table->volume, pan);
 			setVolume(table->filename, 0);
-			setFadeVolume(table->filename, table->volume, table->fadeOut60TicksDelay);
+			setFadeVolume(table->filename, table->volume, table->fadeTime60HzTicks);
 		}
 	}
 }
 
-} // end of namespace Grim
+} // end of namespace Grim*/

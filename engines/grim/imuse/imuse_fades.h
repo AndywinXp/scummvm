@@ -19,22 +19,34 @@
  *
  */
 
-#ifndef GRIM_IMUSE_TABLES_H
-#define GRIM_IMUSE_TABLES_H
+#if !defined(GRIM_IMUSE_FADES_H)
+#define GRIM_IMUSE_FADES_H
+
+#include "common/scummsys.h"
+#include "common/textconsole.h"
+#include "common/util.h"
 
 namespace Grim {
 
-struct ImuseTable {
-	byte transitionType;
-	int16 soundId;
-	byte attribPos;
-	byte hookId;
-	int16 fadeTime60HzTicks;
-	byte volume;
-	byte pan;
-	char filename[32];
+class IMuseDigiFadesHandler {
+
+private:
+	Imuse *_engine;
+	IMuseDigiFade _fades[DIMUSE_MAX_FADES];
+	int _fadesOn;
+
+public:
+	IMuseDigiFadesHandler(Imuse *engine);
+	~IMuseDigiFadesHandler();
+
+	int init();
+	void deinit();
+	void saveLoad(Common::Serializer &ser);
+	int fadeParam(int soundId, int transitionType, int destinationValue, int fadeLength);
+	void clearFadeStatus(int soundId, int transitionType);
+	void loop();
+
 };
 
-} // end of namespace Grim
-
+} // End of namespace Grim
 #endif

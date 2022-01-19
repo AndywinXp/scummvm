@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #include "common/textconsole.h"
 
 #include "engines/grim/debug.h"
@@ -408,4 +408,4 @@ Track *Imuse::cloneToFadeOutTrack(Track *track, int fadeDelay) {
 	return fadeTrack;
 }
 
-} // end of namespace Grim
+} // end of namespace Grim*/

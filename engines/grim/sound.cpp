@@ -20,7 +20,7 @@
  */
 
 #include "engines/grim/grim.h"
-#include "engines/grim/imuse/imuse.h"
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/emi/sound/emisound.h"
 #include "engines/grim/sound.h"
 
@@ -29,22 +29,26 @@ namespace Grim {
 SoundPlayer *g_sound = nullptr;
 
 bool SoundPlayer::startVoice(const char *soundName, int volume, int pan) {
-	if (g_grim->getGameType() == GType_GRIM)
-		return g_imuse->startVoice(soundName, volume, pan);
-	else
+	if (g_grim->getGameType() == GType_GRIM) {
+		return g_imuse->startVoice(kTalkSoundID, soundName, 1);
+	} else {
 		return g_emiSound->startVoice(soundName, volume, pan);
+	}
 }
 
 bool SoundPlayer::getSoundStatus(const char *soundName) {
-	if (g_grim->getGameType() == GType_GRIM)
-		return g_imuse->getSoundStatus(soundName);
-	else
+	if (g_grim->getGameType() == GType_GRIM) {
+		int soundId = 0;
+		return g_imuse->isSoundRunning(soundId);
+	} else {
 		return g_emiSound->getSoundStatus(soundName);
+	}
 }
 
 void SoundPlayer::stopSound(const char *soundName) {
 	if (g_grim->getGameType() == GType_GRIM) {
-		g_imuse->stopSound(soundName);
+		int soundId = 0;
+		g_imuse->diMUSEStopSound(soundId);
 		return;
 	} else {
 		g_emiSound->stopSound(soundName);
@@ -52,15 +56,18 @@ void SoundPlayer::stopSound(const char *soundName) {
 }
 
 int32 SoundPlayer::getPosIn16msTicks(const char *soundName) {
-	if (g_grim->getGameType() == GType_GRIM)
-		return g_imuse->getPosIn16msTicks(soundName);
-	else
+	if (g_grim->getGameType() == GType_GRIM) {
+		int soundId = 0;
+		return g_imuse->diMUSEGetParam(soundId, DIMUSE_P_SND_POS_IN_MS);
+	} else {
 		return g_emiSound->getPosIn16msTicks(soundName);
+	}
 }
 
 void SoundPlayer::setVolume(const char *soundName, int volume) {
 	if (g_grim->getGameType() == GType_GRIM) {
-		g_imuse->setVolume(soundName, volume);
+		int soundId = 0;
+		g_imuse->diMUSESetParam(soundId, DIMUSE_P_VOLUME, volume);
 	} else {
 		g_emiSound->setVolume(soundName, volume);
 	}
@@ -68,7 +75,8 @@ void SoundPlayer::setVolume(const char *soundName, int volume) {
 
 void SoundPlayer::setPan(const char *soundName, int pan) {
 	if (g_grim->getGameType() == GType_GRIM) {
-		g_imuse->setPan(soundName, pan);
+		int soundId = 0;
+		g_imuse->diMUSESetParam(soundId, DIMUSE_P_PAN, pan);
 	} else {
 		g_emiSound->setPan(soundName, pan);
 	}
@@ -76,7 +84,7 @@ void SoundPlayer::setPan(const char *soundName, int pan) {
 
 void SoundPlayer::setMusicState(int stateId) {
 	if (g_grim->getGameType() == GType_GRIM) {
-		g_imuse->setMusicState(stateId);
+		g_imuse->diMUSESetState(stateId);
 	} else {
 		g_emiSound->setMusicState(stateId);
 	}

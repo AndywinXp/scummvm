@@ -28,7 +28,7 @@
 #include "engines/grim/savegame.h"
 #include "engines/grim/set.h"
 
-#include "engines/grim/imuse/imuse.h"
+#include "engines/grim/imuse/imuse_engine.h"
 
 #include "engines/grim/lua/lauxlib.h"
 
@@ -60,7 +60,7 @@ void Lua_V1::ImStartSound() {
 	int group = (int)lua_getnumber(groupObj);
 
 	// Start the sound with the appropriate settings
-	if (g_imuse->startSound(soundName, group, 0, 127, 64, priority, nullptr)) {
+	if (g_imuse->diMUSEStartSound(0, priority)) {
 		// FIXME actually it's pushnumber from result of startSound
 		lua_pushstring(soundName);
 	}
@@ -72,11 +72,12 @@ void Lua_V1::ImStopSound() {
 		error("ImStopsound: name from value not supported");
 
 	const char *soundName = lua_getstring(nameObj);
-	g_imuse->stopSound(soundName);
+	int soundId = 0;
+	g_imuse->diMUSEStopSound(soundId);
 }
 
 void Lua_V1::ImStopAllSounds() {
-	g_imuse->stopAllSounds();
+	g_imuse->diMUSEStopAllSounds();
 }
 
 void Lua_V1::ImPause() {
@@ -98,11 +99,12 @@ void Lua_V1::ImSetMusicVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_system->getMixer()->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, (int)(lua_getnumber(volObj) * ImToMixer));
+
+	g_imuse->diMUSESetMusicGroupVol(lua_getnumber(volObj));
 }
 
 void Lua_V1::ImGetMusicVol() {
-	lua_pushnumber(g_system->getMixer()->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) / ImToMixer);
+	lua_pushnumber(g_imuse->diMUSESetMusicGroupVol(-1));
 }
 
 void Lua_V1::ImSetVoiceVol() {
@@ -113,7 +115,7 @@ void Lua_V1::ImSetVoiceVol() {
 }
 
 void Lua_V1::ImGetVoiceVol() {
-	lua_pushnumber(g_system->getMixer()->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) / ImToMixer);
+	lua_pushnumber(g_imuse->diMUSESetVoiceGroupVol(-1));
 }
 
 void Lua_V1::ImSetSfxVol() {
@@ -124,7 +126,7 @@ void Lua_V1::ImSetSfxVol() {
 }
 
 void Lua_V1::ImGetSfxVol() {
-	lua_pushnumber(g_system->getMixer()->getVolumeForSoundType(Audio::Mixer::kSFXSoundType) / ImToMixer);
+	lua_pushnumber(g_imuse->diMUSESetSFXGroupVol(-1));
 }
 
 void Lua_V1::ImSetParam() {
@@ -144,16 +146,8 @@ void Lua_V1::ImSetParam() {
 	int value = (int)lua_getnumber(valueObj);
 	if (value < 0)
 		value = 0;
-	switch (param) {
-	case IM_SOUND_VOL:
-		g_imuse->setVolume(soundName, value);
-		break;
-	case IM_SOUND_PAN:
-		g_imuse->setPan(soundName, value);
-		break;
-	default:
-		error("ImSetParam() Unimplemented %d", param);
-	}
+	int soundId = 0;
+	g_imuse->diMUSESetParam(soundId, param, value);
 }
 
 void Lua_V1::ImGetParam() {
@@ -169,16 +163,8 @@ void Lua_V1::ImGetParam() {
 
 	const char *soundName = lua_getstring(nameObj);
 	int param = (int)lua_getnumber(paramObj);
-	switch (param) {
-	case IM_SOUND_PLAY_COUNT:
-		lua_pushnumber(g_imuse->getCountPlayedTracks(soundName));
-		break;
-	case IM_SOUND_VOL:
-		lua_pushnumber(g_imuse->getVolume(soundName));
-		break;
-	default:
-		error("ImGetParam() Unimplemented %d", param);
-	}
+	int soundId = 0;
+	g_imuse->diMUSEGetParam(soundId, param);
 }
 
 void Lua_V1::ImFadeParam() {
@@ -198,19 +184,13 @@ void Lua_V1::ImFadeParam() {
 		error("ImFadeParam: getting name from number is not supported");
 	}
 	const char *soundName = lua_getstring(nameObj);
-	int opcode = (int)lua_getnumber(opcodeObj);
+	int transitionType = (int)lua_getnumber(opcodeObj);
 	int value = (int)lua_getnumber(valueObj);
 	if (value < 0)
 		value = 0;
 	int duration = (int)lua_getnumber(durationObj);
-	switch (opcode) {
-	case IM_SOUND_PAN:
-		g_imuse->setFadePan(soundName, value, duration);
-		break;
-	default:
-		error("ImFadeParam(%s, %x, %d, %d)", soundName, opcode, value, duration);
-		break;
-	}
+	int soundId = 0;
+	g_imuse->diMUSEFadeParam(soundId, transitionType, value, duration);
 }
 
 void Lua_V1::ImSetState() {
@@ -222,12 +202,12 @@ void Lua_V1::ImSetState() {
 }
 
 void Lua_V1::ImSetSequence() {
-	lua_Object stateObj = lua_getparam(1);
-	if (!lua_isnumber(stateObj))
+	lua_Object seqObj = lua_getparam(1);
+	if (!lua_isnumber(seqObj))
 		return;
 
-	int state = (int)lua_getnumber(stateObj);
-	lua_pushnumber(g_imuse->setMusicSequence(state));
+	int seq = (int)lua_getnumber(seqObj);
+	lua_pushnumber(g_imuse->diMUSESetSequence(seq));
 }
 
 void Lua_V1::SaveIMuse() {
@@ -242,7 +222,7 @@ void Lua_V1::RestoreIMuse() {
 	SaveGame *savedIMuse = SaveGame::openForLoading("grim.tmp");
 	if (!savedIMuse)
 		return;
-	g_imuse->stopAllSounds();
+	g_imuse->diMUSEStopAllSounds();
 	g_imuse->resetState();
 	g_imuse->restoreState(savedIMuse);
 	delete savedIMuse;

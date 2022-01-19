@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #ifndef GRIM_IMUSE_H
 #define GRIM_IMUSE_H
 
@@ -65,7 +65,7 @@ private:
 	void fadeOutMusicAndStartNew(int fadeDelay, const char *filename, int hookId, int vol, int pan);
 	Track *cloneToFadeOutTrack(Track *track, int fadeDelay);
 
-	void playMusic(const ImuseTable *table, int atribPos, bool sequence);
+	void playMusic(const ImuseTable *table, int attribPos, bool sequence);
 
 	void flushTrack(Track *track);
 
@@ -87,7 +87,7 @@ public:
 	void setPriority(const char *soundName, int priority);
 	void setVolume(const char *soundName, int volume);
 	int getVolume(const char *soundName);
-	void setPan(const char *soundName, int pan); /* pan: 0 .. 127 */
+	void setPan(const char *soundName, int pan); // pan: 0 .. 127
 	void setFadePan(const char *soundName, int destPan, int duration);
 	void setFadeVolume(const char *soundName, int destVolume, int duration);
 	void setHookId(const char *soundName, int hookId);
@@ -111,4 +111,4 @@ extern Imuse *g_imuse;
 
 } // end of namespace Grim
 
-#endif
+#endif */

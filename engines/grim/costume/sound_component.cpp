@@ -26,7 +26,7 @@
 
 #include "engines/grim/costume/sound_component.h"
 
-#include "engines/grim/imuse/imuse.h"
+#include "engines/grim/imuse/imuse_engine.h"
 
 namespace Grim {
 

@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #ifndef GRIM_IMUSE_TRACK_H
 #define GRIM_IMUSE_TRACK_H
 
@@ -101,7 +101,7 @@ struct Track {
 		stream = nullptr;
 	}
 
-	/* getPan() returns -127 ... 127 */
+	// getPan() returns -127 ... 127
 	int getPan() const { return (pan != 64000) ? 2 * (pan / 1000) - 127 : 0; }
 	int getVol() const { return vol / 1000; }
 	Audio::Mixer::SoundType getType() const {
@@ -122,4 +122,4 @@ struct Track {
 
 } // end of namespace Grim
 
-#endif
+#endif */

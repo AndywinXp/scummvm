@@ -19,22 +19,31 @@
  *
  */
 
-#ifndef GRIM_IMUSE_TABLES_H
-#define GRIM_IMUSE_TABLES_H
+#if !defined(GRIM_IMUSE_GROUPS_H)
+#define GRIM_IMUSE_GROUPS_H
+
+#include "common/scummsys.h"
+#include "common/mutex.h"
+#include "common/serializer.h"
+#include "common/textconsole.h"
+#include "common/util.h"
+#include "engines/grim/imuse/imuse_engine.h"
 
 namespace Grim {
 
-struct ImuseTable {
-	byte transitionType;
-	int16 soundId;
-	byte attribPos;
-	byte hookId;
-	int16 fadeTime60HzTicks;
-	byte volume;
-	byte pan;
-	char filename[32];
+class IMuseDigiGroupsHandler {
+
+private:
+	Imuse *_engine;
+	int _effVols[DIMUSE_MAX_GROUPS];
+	int _vols[DIMUSE_MAX_GROUPS];
+public:
+	IMuseDigiGroupsHandler(Imuse *engine);
+	~IMuseDigiGroupsHandler();
+	int init();
+	int setGroupVol(int id, int volume);
+	int getGroupVol(int id);
 };
 
-} // end of namespace Grim
-
+} // End of namespace Grim
 #endif
