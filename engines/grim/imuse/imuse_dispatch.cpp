@@ -790,13 +790,12 @@ int Imuse::dispatchGetMap(IMuseDigiDispatch *dispatchPtr) {
 				READ_BE_UINT32(copiedBuf + 8)  == MKTAG('W', 'A', 'V', 'E') &&
 				READ_BE_UINT32(copiedBuf + 12) == MKTAG('f', 'm', 't', ' ')) {
 
-
-				uint8 *extFrmtBufPtr = getExtFormatBuffer(copiedBuf, formatId, sampleRate, wordSize, nChans, swapFlag, audioLength);
+				uint8 *extFrmtBufPtr = _filesHandler->getSoundMgr()->getExtFormatBuffer(copiedBuf, formatId, sampleRate, wordSize, nChans, swapFlag, audioLength);
 
 				dispatchPtr->currentOffset = extFrmtBufPtr - copiedBuf;
 				if (!streamerGetStreamBuffer(dispatchPtr->streamPtr, extFrmtBufPtr - copiedBuf))
 					return -1;
-				createSoundHeader((int32 *)fakeWavHeader, sampleRate, 16, nChans, audioLength);
+				_filesHandler->getSoundMgr()->createSoundHeader((int32 *)fakeWavHeader, sampleRate, 16, nChans, audioLength);
 				rawMap = fakeWavHeader;
 			} else if (READ_BE_UINT32(copiedBuf) == MKTAG('i', 'M', 'U', 'S') && READ_BE_UINT32(copiedBuf + 8) == MKTAG('M', 'A', 'P', ' ')) {
 				size = READ_BE_UINT32(copiedBuf + 12) + 24;

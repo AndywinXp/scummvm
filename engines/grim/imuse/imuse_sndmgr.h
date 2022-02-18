@@ -33,7 +33,7 @@ class ImuseSndMgr {
 public:
 
 // MAX_IMUSE_SOUNDS needs to be hardcoded, ask aquadran
-#define MAX_IMUSE_SOUNDS    16
+#define MAX_IMUSE_SOUNDS    32
 
 // The numbering below fixes talking to Domino in his office
 // and it also allows Manny to get the info for Mercedes
@@ -78,19 +78,75 @@ public:
 		Common::SeekableReadStream *inStream;
 	};
 
+	struct SoundInfo {
+		char soundFilename[32];
+		int luaSoundId;
+		int tsOfAllocation;
+		uint8 *soundUncompData;
+		uint8 *soundAddrData;
+		uint8 *soundMap;
+		int uncompResourceSize;
+		int flag;
+		int priority;
+	};
+
+	struct VIMAHeader {
+		uint8 chanOneStepIndexHint;
+		uint8 chanTwoStepIndexHint;
+		int16 chanOnePCMHint;
+		int16 chanTwoPCMHint;
+	};
+
+
+	struct SndResource {
+		int resId;
+		int32 resSize;
+		int32 fileCurOffset;
+		int compBlocksNum;
+		uint8 *mcmpBlockPtr;
+		int32 **compBlockPtr;
+		int32 *decompBlockSizes;
+		int32 *compBlockOffsets;
+		int32 *compBlockSizes;
+		int32 *vimaOffsets;
+		int curProcessedCompBlock;
+		int32 curDecompBlockSize;
+		uint8 *decompDataBuffer;
+		VIMAHeader vimaHeader;
+		char filename[80];
+		Common::SeekableReadStream *fileStream;
+	};
+
 private:
 
-	SoundDesc _sounds[MAX_IMUSE_SOUNDS];
+	SoundDesc _Oldsounds[MAX_IMUSE_SOUNDS];
+	SoundInfo _iMUSESounds[MAX_IMUSE_SOUNDS];
+	SndResource _resources[MAX_IMUSE_SOUNDS];
+	Common::Mutex _mutex;
 	bool _demo;
+	Imuse *_engine;
+	int _currentSoundSlot;
+	int _nextResIndex;
 
 	bool checkForProperHandle(SoundDesc *soundDesc);
 	SoundDesc *allocSlot();
 	void parseSoundHeader(SoundDesc *sound, int &headerSize);
 	void countElements(SoundDesc *sound);
+	int nukeOldestSound();
+	intptr openSound(const char *soundName);
+	void closeSound(intptr resPtrOrId);
+	int getExistingResource(const char *soundName);
+	void soundSeek(intptr resPtrOrId, int pos, int mode);
+	int soundTell(intptr resPtrOrId);
+	void resetLipsyncState(int soundId);
+	void registerLipsync(const char *lipFilename, int soundId);
+	bool isPointerToResource(intptr resPtrOrId);
+	void vimaClearHeader(VIMAHeader *header);
+	int getCompBlockIdFromOffset(SndResource *resPtr, int32 offset);
 
 public:
 
-	ImuseSndMgr(bool demo);
+	ImuseSndMgr(bool demo, Imuse *engine);
 	~ImuseSndMgr();
 
 	SoundDesc *openSound(const char *soundName, int volGroupId);
@@ -109,7 +165,10 @@ public:
 	int getRegionIdByJumpId(SoundDesc *sound, int jumpId);
 	int getJumpHookId(SoundDesc *sound, int number);
 	int getJumpFade(SoundDesc *sound, int number);
-
+	int getSoundId(const char *soundName);
+	uint8 *getExtFormatBuffer(uint8 *srcBuf, int &formatId, int &sampleRate, int &wordSize, int &nChans, int &swapFlag, int32 &audioLength);
+	void createSoundHeader(int32 *fakeWavHeader, int sampleRate, int wordSize, int nChans, int32 audioLength);
+	void copyDataFromResource(intptr resPtrOrId, uint8 *destBuf, int32 size);
 	int32 getDataFromRegion(SoundDesc *sound, int region, byte **buf, int32 offset, int32 size);
 };
 

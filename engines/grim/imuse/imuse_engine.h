@@ -102,9 +102,6 @@ private:
 	void diMUSEHeartbeat();
 
 	void playMusic(const ImuseTable *table, int attribPos, bool sequence);
-	int getSoundIdByName(const char *soundName);
-	uint8 *getExtFormatBuffer(uint8 *srcBuf, int &formatId, int &sampleRate, int &wordSize, int &nChans, int &swapFlag, int32 &audioLength);
-	void createSoundHeader(int32 *fakeWavHeader, int sampleRate, int wordSize, int nChans, int32 audioLength);
 
 	// Script
 	int scriptParse(int cmd, int a, int b);

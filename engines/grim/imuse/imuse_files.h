@@ -47,6 +47,7 @@ public:
 
 	uint8 *getSoundAddrData(int soundId);
 	int getSoundAddrDataSize(int soundId, bool hasStream);
+	ImuseSndMgr *getSoundMgr();
 	int getNextSound(int soundId);
 	int seek(int soundId, int32 offset, int mode, int bufId);
 	int read(int soundId, uint8 *buf, int32 size, int bufId);

@@ -40,7 +40,6 @@ namespace Grim {
 
 Imuse *g_imuse = nullptr;
 
-extern uint16 imuseDestTable[];
 extern ImuseTable grimStateMusicTable[];
 extern ImuseTable grimSeqMusicTable[];
 extern ImuseTable grimDemoStateMusicTable[];
@@ -110,7 +109,6 @@ Imuse::Imuse(int fps, bool demo, Audio::Mixer *mixer)
 		_maxQueuedStreams = 4;
 	}
 
-	vimaInit(imuseDestTable);
 	if (_demo) {
 		_stateMusicTable = grimDemoStateMusicTable;
 		_seqMusicTable = grimDemoSeqMusicTable;
@@ -569,171 +567,6 @@ void Imuse::pause(bool p) {
 		diMUSEResume();
 	}
 }
-
-void Imuse::setAudioNames(int32 num, char *names) {
-	//free(_audioNames);
-	//_numAudioNames = num;
-	//_audioNames = names;
-}
-
-int Imuse::getSoundIdByName(const char *soundName) {
-	//if (soundName && soundName[0] != 0) {
-	//	for (int r = 0; r < _numAudioNames; r++) {
-	//		if (strcmp(soundName, &_audioNames[r * 9]) == 0) {
-	//			return r;
-	//		}
-	//	}
-	//}
-
-	return 0;
-}
-
-uint8 *Imuse::getExtFormatBuffer(uint8 *srcBuf, int &formatId, int &sampleRate, int &wordSize, int &nChans, int &swapFlag, int32 &audioLength) {
-	// This function is used to extract format metadata for sounds in WAV format (speech and sfx)
-
-	int isMCMP;
-	uint8 *bufPtr;
-	int v10;
-	int v11;
-	const char *v12;
-	unsigned int v13;
-	unsigned int v14;
-	uint8 *v15;
-	unsigned int v16;
-	const char *v17;
-	unsigned int v18;
-	unsigned int v19;
-	unsigned int v20;
-	uint8 *v21;
-	unsigned int v22;
-	char v23;
-	int v24;
-	uint8 *streamBuffera;
-
-	if (!bufPtr)
-		return nullptr;
-
-	isMCMP = 0;
-	formatId = 0;
-	audioLength = 0;
-	bufPtr = srcBuf;
-
-	if (READ_BE_UINT32(srcBuf) == MKTAG('M', 'C', 'M', 'P')) {
-		//v10 = HIBYTE(*((unsigned __int16 *)srcBuf + 2)) | ((unsigned __int8)*((_WORD *)srcBuf + 2) << 8);
-		//v8 = &srcBuf[8 * v10 + 8 + v10 + (HIBYTE(*(unsigned __int16 *)&srcBuf[8 * v10 + 6 + v10]) | ((unsigned __int8)*(_WORD *)&srcBuf[8 * v10 + 6 + v10] << 8))];
-		// TODO: Advance ptr
-		uint16 numCompItems = READ_BE_UINT16(srcBuf + 4);
-		isMCMP = 1;
-		error("Imuse::getExtFormatBuffer(): Got MCMP tag!");
-	}
-
-	// Follow the WAVE PCM header format
-	if (READ_BE_UINT32(bufPtr)      == MKTAG('R', 'I', 'F', 'F') &&
-		READ_BE_UINT32(bufPtr + 8)  == MKTAG('W', 'A', 'V', 'E') &&
-		READ_BE_UINT32(bufPtr + 12) == MKTAG('f', 'm', 't', ' ')) {
-
-		if (READ_LE_UINT32(bufPtr + 20) == 1) {
-			formatId = (isMCMP != 0) + 5;
-			nChans = READ_LE_UINT32(bufPtr + 22);
-			sampleRate = READ_LE_UINT32(bufPtr + 24);
-			wordSize = READ_LE_UINT32(bufPtr + 34);
-			swapFlag = 1;
-
-			if (READ_BE_UINT32(bufPtr + 36) == MKTAG('d', 'a', 't', 'a')) {
-				audioLength = READ_BE_UINT32(bufPtr + 40);
-				return bufPtr + 44;
-			}
-		}
-		return nullptr;
-	}
-
-	// Follow the iMUSE MAP format block specification
-	if (READ_BE_UINT32(bufPtr) == MKTAG('i', 'M', 'U', 'S')) {
-		if (READ_BE_UINT32(bufPtr + 16) == MKTAG('F', 'R', 'M', 'T')) {
-			formatId = (isMCMP != 0) + 3;
-			wordSize = READ_LE_UINT32(bufPtr + 8);
-			sampleRate = READ_LE_UINT32(bufPtr + 9);
-			nChans = READ_LE_UINT32(bufPtr + 10);
-			swapFlag = 0;
-			audioLength = READ_LE_UINT32(bufPtr + 20);
-			return bufPtr + 24;
-		}
-		return nullptr;
-	}
-
-	if (isMCMP)
-		return nullptr;
-
-	return bufPtr;
-}
-
-void Imuse::createSoundHeader(int32 *fakeWavHeader, int sampleRate, int wordSize, int nChans, int32 audioLength) {
-	// This function is used to create an iMUSE map for sounds in WAV format (speech and sfx)
-
-	fakeWavHeader[0] =  TO_LE_32(MKTAG('i', 'M', 'U', 'S'));
-	fakeWavHeader[1] =  TO_LE_32(audioLength + 80);            // Map size
-	fakeWavHeader[2] =  TO_LE_32(MKTAG('M', 'A', 'P', ' '));
-	fakeWavHeader[3] =  0x38000000;                            // Block offset
-	fakeWavHeader[4] =  TO_LE_32(MKTAG('F', 'R', 'M', 'T'));
-	fakeWavHeader[5] =  0x14000000;                            // Block size minus 8, 20 bytes
-	fakeWavHeader[6] =  0x50000000;                            // Block offset: 80 bytes
-	fakeWavHeader[7] =  0;                                     // Endianness
-	fakeWavHeader[8] =  TO_LE_32(wordSize);
-	fakeWavHeader[9] =  TO_LE_32(sampleRate);
-	fakeWavHeader[10] = TO_LE_32(nChans);
-	fakeWavHeader[11] = TO_LE_32(MKTAG('R', 'E', 'G', 'N'));
-	fakeWavHeader[12] = 0x08000000;                            // Block size minus 8: 8 bytes
-	fakeWavHeader[13] = 0x50000000;                            // Block offset: 80 bytes
-	fakeWavHeader[14] = TO_LE_32(audioLength);
-	fakeWavHeader[15] = TO_LE_32(MKTAG('S', 'T', 'O', 'P'));
-	fakeWavHeader[16] = 0x04000000;                            // Block size minus 8: 4 bytes
-	fakeWavHeader[17] = TO_LE_32(audioLength + 80);
-	fakeWavHeader[18] = TO_LE_32(MKTAG('D', 'A', 'T', 'A'));
-	fakeWavHeader[19] = TO_LE_32(audioLength);                 // Data block size
-}
-
-//void Imuse::parseScriptCmds(int cmd, int soundId, int sub_cmd, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p) {
-//	int b = soundId;
-//	int c = sub_cmd;
-//	int id;
-//	switch (cmd) {
-//	case 0x1000:
-//		// SetState
-//		diMUSESetState(soundId);
-//		break;
-//	case 0x1001:
-//		// SetSequence
-//		diMUSESetSequence(soundId);
-//		break;
-//	case 0x1002:
-//		// SetCuePoint
-//		diMUSESetCuePoint(soundId);
-//		break;
-//	case 0x1003:
-//		// SetAttribute
-//		diMUSESetAttribute(b, c);
-//		break;
-//	case 0x2000:
-//		// SetGroupSfxVolume
-//		diMUSESetSFXGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSFXSoundType) / 2, 0, 127));
-//		break;
-//	case 0x2001:
-//		// SetGroupVoiceVolume
-//		diMUSESetVoiceGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kSpeechSoundType) / 2, 0, 127));
-//		break;
-//	case 0x2002:
-//		// SetGroupMusicVolume
-//		diMUSESetMusicGroupVol(CLIP(_mixer->getVolumeForSoundType(Audio::Mixer::kMusicSoundType) / 2, 0, 127));
-//		break;
-//	case 10: // StopAllSounds
-//	case 12: // SetParam
-//	case 14: // FadeParam
-//		cmdsHandleCmd(cmd, nullptr, soundId, sub_cmd, d, e, f, g, h, i, j, k, l, m, n, o);
-//		break;
-//	default:
-//		debug("Imuse::parseScriptCmds(): WARNING: unhandled command %d", cmd);
-//	}
-//}
 
 int Imuse::diMUSETerminate() {
 	if (_scriptInitializedFlag) {

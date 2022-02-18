@@ -26,7 +26,7 @@ namespace Grim {
 
 IMuseDigiFilesHandler::IMuseDigiFilesHandler(Imuse *engine, bool demo) {
 	_engine = engine;
-	_sound = new ImuseSndMgr(demo);
+	_sound = new ImuseSndMgr(demo, _engine);
 	assert(_sound);
 	_demo = demo;
 
@@ -124,6 +124,10 @@ int IMuseDigiFilesHandler::getSoundAddrDataSize(int soundId, bool hasStream) {
 //	}
 
 	return 0;
+}
+
+ImuseSndMgr *IMuseDigiFilesHandler::getSoundMgr() {
+	return _sound;
 }
 
 int IMuseDigiFilesHandler::getNextSound(int soundId) {
