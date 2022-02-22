@@ -64,6 +64,10 @@ int32 SoundPlayer::getPosIn16msTicks(const char *soundName) {
 	}
 }
 
+void SoundPlayer::setParam(const char *soundName, int paramId, int value) {
+	assert(g_grim->getGameType() == GType_GRIM);
+}
+
 void SoundPlayer::setVolume(const char *soundName, int volume) {
 	if (g_grim->getGameType() == GType_GRIM) {
 		int soundId = 0;
@@ -80,6 +84,11 @@ void SoundPlayer::setPan(const char *soundName, int pan) {
 	} else {
 		g_emiSound->setPan(soundName, pan);
 	}
+}
+
+int SoundPlayer::getParam(const char *soundName, int paramId) {
+	assert(g_grim->getGameType() == GType_GRIM);
+	return 0;
 }
 
 void SoundPlayer::setMusicState(int stateId) {

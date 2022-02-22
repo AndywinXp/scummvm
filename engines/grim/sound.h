@@ -35,8 +35,10 @@ public:
 	void stopSound(const char *soundName);
 	int32 getPosIn16msTicks(const char *soundName);
 
+	void setParam(const char *soundName, int paramId, int value);
 	void setVolume(const char *soundName, int volume);
 	void setPan(const char *soundName, int pan);
+	int getParam(const char *soundName, int paramId);
 
 	void setMusicState(int stateId);
 	void flushTracks();

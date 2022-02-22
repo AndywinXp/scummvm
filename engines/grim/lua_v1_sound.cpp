@@ -81,11 +81,11 @@ void Lua_V1::ImStopAllSounds() {
 }
 
 void Lua_V1::ImPause() {
-	g_imuse->pause(true);
+	g_imuse->diMUSEPause();
 }
 
 void Lua_V1::ImResume() {
-	g_imuse->pause(false);
+	g_imuse->diMUSEResume();
 }
 
 void Lua_V1::ImSetVoiceEffect() {
@@ -154,17 +154,19 @@ void Lua_V1::ImGetParam() {
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object paramObj = lua_getparam(2);
 
-	if (lua_isnumber(nameObj))
+	if (lua_isnumber(nameObj)) {
+		int soundId = (int)lua_getnumber(nameObj);
+		int param = (int)lua_getnumber(paramObj);
 		error("ImGetParam: getting name from number is not supported");
-	if (!lua_isstring(nameObj)) {
-		lua_pushnumber(-1.0);
+	} else if (lua_isstring(nameObj)) {
+		const char *soundName = lua_getstring(nameObj);
+		int param = (int)lua_getnumber(paramObj);
+		int soundId = 0;
+		g_imuse->diMUSEGetParam(soundId, param);
 		return;
 	}
 
-	const char *soundName = lua_getstring(nameObj);
-	int param = (int)lua_getnumber(paramObj);
-	int soundId = 0;
-	g_imuse->diMUSEGetParam(soundId, param);
+	lua_pushnumber(-1.0);
 }
 
 void Lua_V1::ImFadeParam() {

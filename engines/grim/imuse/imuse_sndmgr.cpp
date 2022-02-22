@@ -143,8 +143,6 @@ intptr ImuseSndMgr::openSound(const char *soundName) {
 	Common::SeekableReadStream *data = g_resourceloader->openNewStreamFile(soundName);
 
 	if (data) {
-		uint32 tag = data->readUint32BE();
-
 		Common::StackLock lock(_mutex);
 		// Search for an empty resource slot
 		int effNextResIndex = _nextResIndex;
@@ -168,31 +166,44 @@ intptr ImuseSndMgr::openSound(const char *soundName) {
 
 			selectedRes->resId = effNextResIndex;
 			selectedRes->fileCurOffset = 0;
+
+			uint32 tag = data->readUint32BE();
 			if (tag == MKTAG('M', 'C', 'M', 'P')) {
 				uint16 numOfCompBlocks = data->readUint16BE();
 
 				selectedRes->compBlocksNum = numOfCompBlocks;
 				data->seek(9 * numOfCompBlocks + 6, SEEK_SET);
-				uint16 offset = data->readUint16BE();
+
+				// This value is used to skip a section of the header which contains comp item tags ("NULL", "VIMA")
+				uint16 offsetSkipTags = data->readUint16BE();
 
 				mcmpTable = (uint8 *)malloc(9 * numOfCompBlocks);
-				allocatedBuf = (uint8 *)malloc(offset + (sizeof(int32) * 5) * (numOfCompBlocks + 1));
+
+				// 5 as in: the number of arrays we're creating (see below); while this is sort of a messy way
+				// to do it, it allows us to just write "free(res->mcmpBlockPtr)" to deallocate every array
+				allocatedBuf = (uint8 *)malloc(offsetSkipTags + (sizeof(int32) * 5) * (numOfCompBlocks + 1));
 
 				selectedRes->mcmpBlockPtr = allocatedBuf;
-				selectedRes->compBlockPtr = (int32 **)&allocatedBuf[offset];
-				selectedRes->decompBlockSizes = (int32 *)&allocatedBuf[offset + sizeof(int32) * (numOfCompBlocks + 1)];
-				selectedRes->compBlockOffsets = (int32 *)&allocatedBuf[offset + sizeof(int32) * 2 * (numOfCompBlocks + 1)];
-				selectedRes->compBlockSizes = (int32 *)&allocatedBuf[offset + sizeof(int32) * 3 * (numOfCompBlocks + 1)];
-				selectedRes->vimaOffsets = (int32 *)&allocatedBuf[offset + sizeof(int32) * 4 * (numOfCompBlocks + 1)];
+				selectedRes->compBlockPtr = (int32 **)&allocatedBuf[offsetSkipTags];
+				selectedRes->decompBlockSizes = (int32 *)&allocatedBuf[offsetSkipTags + sizeof(int32) * (numOfCompBlocks + 1)];
+				selectedRes->compBlockOffsets = (int32 *)&allocatedBuf[offsetSkipTags + sizeof(int32) * 2 * (numOfCompBlocks + 1)];
+				selectedRes->compBlockSizes = (int32 *)&allocatedBuf[offsetSkipTags + sizeof(int32) * 3 * (numOfCompBlocks + 1)];
+				selectedRes->vimaOffsets = (int32 *)&allocatedBuf[offsetSkipTags + sizeof(int32) * 4 * (numOfCompBlocks + 1)];
 
-				data->read(allocatedBuf, offset);
+				// Remember, at this point the file pointer is at (9 * numOfCompBlocks + 6), so the next thing
+				// we're reading is a block of size offsetSkipTags which contains the comp item names...
+				data->read(allocatedBuf, offsetSkipTags);
+
+				// ...then go back and read the whole compression map (where each item is 9 bytes long)
 				data->seek(6, SEEK_SET);
 				data->read(mcmpTable, 9 * numOfCompBlocks);
 
 				cumulativeSize = 0;
 
-				int32 curVIMAOffset = 9 * numOfCompBlocks + offset + 8;
-				for (int i; i < numOfCompBlocks; i++) {
+				int32 curVIMAOffset = 9 * numOfCompBlocks + offsetSkipTags + 8;
+
+				// Now parse the compression map and populate the arrays
+				for (int i = 0; i < numOfCompBlocks; i++) {
 					curCompBlockPtr = selectedRes->mcmpBlockPtr;
 					codec = (byte)mcmpTable[0];
 
@@ -224,6 +235,7 @@ intptr ImuseSndMgr::openSound(const char *soundName) {
 					cumulativeSize += selectedRes->decompBlockSizes[i];
 					curVIMAOffset += selectedRes->compBlockSizes[i];
 				}
+
 				selectedRes->compBlockOffsets[numOfCompBlocks] = cumulativeSize;
 				selectedRes->vimaOffsets[numOfCompBlocks] = curVIMAOffset;
 				selectedRes->resSize = cumulativeSize;
@@ -234,11 +246,11 @@ intptr ImuseSndMgr::openSound(const char *soundName) {
 				selectedRes->curProcessedCompBlock = -1;
 			} else {
 				data->seek(0, SEEK_SET);
+				// TODO: Remember to check if this is actually right
+				selectedRes->resSize = data->size();
 			}
 
-			// TODO: Is this right?
-			selectedRes->resSize = data->size();
-			strncpy(selectedRes->filename, soundName, 80);
+			strncpy(selectedRes->filename, soundName, sizeof(selectedRes->filename));
 			selectedRes->filename[79] = '\0';
 			selectedRes->fileStream = data;
 
@@ -639,7 +651,7 @@ int ImuseSndMgr::getSoundId(const char *soundName) {
 		}
 	} else {
 		soundIndex = 31;
-		while (_strcmpi(sound->soundFilename, soundName)) {
+		while (scumm_stricmp(sound->soundFilename, soundName)) {
 			if (!sound->soundFilename[0])
 				firstAvailableSlot = soundIndex;
 			--sound;
@@ -651,7 +663,7 @@ int ImuseSndMgr::getSoundId(const char *soundName) {
 				}
 
 				sound = &_iMUSESounds[firstAvailableSlot];
-				strncpy(sound->soundFilename, soundName, 32);
+				strncpy(sound->soundFilename, soundName, sizeof(sound->soundFilename));
 				sound->soundFilename[31] = 0;
 				foundSoundSlot = _currentSoundSlot;
 
@@ -741,12 +753,17 @@ uint8 *ImuseSndMgr::getExtFormatBuffer(uint8 *srcBuf, int &formatId, int &sample
 	bufPtr = srcBuf;
 
 	if (READ_BE_UINT32(srcBuf) == MKTAG('M', 'C', 'M', 'P')) {
-		//v10 = HIBYTE(*((unsigned __int16 *)srcBuf + 2)) | ((unsigned __int8)*((_WORD *)srcBuf + 2) << 8);
-		//v8 = &srcBuf[8 * v10 + 8 + v10 + (HIBYTE(*(unsigned __int16 *)&srcBuf[8 * v10 + 6 + v10]) | ((unsigned __int8)*(_WORD *)&srcBuf[8 * v10 + 6 + v10] << 8))];
-		// TODO: Advance offsetArray
+		// Advance bufPtr to the underlying header tag ("RIFF" or "iMUS")
 		uint16 numCompItems = READ_BE_UINT16(srcBuf + 4);
+		uint16 offsetSkipTags = READ_BE_UINT16(srcBuf + 6 + 9 * numCompItems);
+
+		bufPtr += 4; // Skip the "MCMP" tag
+		bufPtr += 2; // Skip the numCompItems value we've read before
+		bufPtr += 9 * numCompItems; // Skip the comp items
+		bufPtr += 2; // Skip the offsetToHeader value we've read before
+		bufPtr += offsetSkipTags;   // Skip the comp items' tags ("NULL", "VIMA", ...)
+
 		isMCMP = 1;
-		error("Imuse::getExtFormatBuffer(): Got MCMP tag!");
 	}
 
 	// Follow the WAVE PCM header format
