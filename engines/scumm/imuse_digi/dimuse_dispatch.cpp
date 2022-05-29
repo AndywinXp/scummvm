@@ -253,7 +253,7 @@ int IMuseDigital::dispatchRelease(IMuseDigiTrack *trackPtr) {
 	return 0;
 }
 
-int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int unusedFadeSyncFlag, int offsetFadeSyncFlag) {
+int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int exitTriggerSyncFlag, int offsetFadeSyncFlag) {
 	int32 effFadeLen, effFadeSize, strZnSize;
 	int getMapResult, i;
 	IMuseDigiDispatch *curDispatch = _dispatches;
@@ -308,7 +308,7 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 			curDispatch->fadeWordSize = curDispatch->wordSize;
 			curDispatch->fadeSampleRate = curDispatch->sampleRate;
 			curDispatch->fadeChannelCount = curDispatch->channelCount;
-			curDispatch->fadeSyncFlag = unusedFadeSyncFlag | offsetFadeSyncFlag;
+			curDispatch->fadeSyncFlag = exitTriggerSyncFlag | offsetFadeSyncFlag;
 			curDispatch->fadeSyncDelta = 0;
 			curDispatch->fadeVol = DIMUSE_MAX_FADE_VOLUME;
 			curDispatch->fadeSlope = 0;
@@ -359,6 +359,10 @@ int IMuseDigital::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeL
 		curDispatch->currentOffset = 0;
 		curDispatch->audioRemaining = 0;
 		memset(curDispatch->map, 0, sizeof(curDispatch->map));
+
+		if (exitTriggerSyncFlag) {
+			streamerFetchData(curDispatch->streamPtr);
+		}
 
 		getMapResult = dispatchNavigateMap(curDispatch);
 		if (!getMapResult || getMapResult == -3) {

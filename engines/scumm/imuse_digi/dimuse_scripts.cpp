@@ -331,6 +331,71 @@ void IMuseDigital::setComiMusicState(int stateId) {
 	if (stateId == 0)
 		stateId = 1000;
 
+	if (_vm->_enableEnhancements) {
+		// ENHANCEMENT: enable states marked as "Alt" (as in "alternate") (1212, 1241, 1248).
+		// These three music states have transitionId == 12, and are never used in the game.
+		//
+		// This kind of transition does not straight up switch the stream, but instead
+		// it sets up a trigger to do so later, when an "exit" marker is reached on
+		// the previous music track; this is done to ensure that the transition happens
+		// precisely on time with the previous song, instead of doing so at whatever point
+		// the state was changed, and therefore is more musically pleasing. It also is the
+		// digital counterpart of the same mechanism used by MIDI iMUSE.
+		// This might count as unheard content restoration, if you will. :-)
+		//
+		// During my research I have come across two reasons why these were never used:
+		//  1. When the trigger is reached,  is called with the
+		//     exitTriggerFadeFlag activated, but the correspondent stream is never properly
+		//     rewound, so it fails to even fetch the iMUSE map and the new track is never
+		//     played.
+		//  2. If you go back and forth quickly enough between the rooms which involve
+		//     these "alternate" states, after you stop you could easily end up in the wrong
+		//     state, although not in a game breaking way at all.
+		//
+		// To fix point (1), a call to streamerFetchData() is applied inside
+		// the dispatchSwitchStream() function, if exitTriggerFadeFlag == 1.
+		//
+		// Fixing point (2) was a bit trickier, but the changes made in the following code block
+		// manage to amend every single one of those inconsistent-track states, while also
+		// activating the correspondent new states:
+		//   - For state 1212 it is sufficient to just clear the trigger queue, but we still do it for
+		//     1241 and (indirectly from 1245) for 1248, in order not to accumulate stale triggers.
+		//   - For state 1248 we make the substitution only under the circumstances that allow us to
+		//     perform transition 12 without inconsistencies. This state and 1241 are strictly connected
+		//     to state 1245, which is the row boat music in Danjer Cove. In order not to land on an
+		//     inconsistent state (i.e. exit from the row boat and re-enter immediately), we restart
+		//     the row boat music by calling playComiMusic() (to any random track which has a
+		//     transition type different from 0, so to trigger a switchStream call immediately) and
+		//     by setting the _curMusicState to anything different than the row boat one, and then
+		//     letting this function do its business, as it will surely restart the row boat music
+		//     properly.
+		if (stateId == 1210) {
+			_triggersHandler->clearAllTriggers();
+			stateId = 1212;
+		}
+
+		// Avoid playing the alternate track if seqShark was playing before
+		if (stateId == 1240 && !(_curMusicSeq == 24)) {
+			_triggersHandler->clearAllTriggers();
+			stateId = 1241;
+		}
+
+		if (stateId == 1245) {
+			_triggersHandler->clearAllTriggers();
+			_curMusicState = 0;
+			// I have chosen entry 15 in the table since it is an ambient sfx track. It will
+			// never play, given how tightly the internal timings are respected, but if it ever
+			// does, it won't be another music track.
+			playComiMusic(_comiDemoStateMusicTable[15].name, &_comiStateMusicTable[15], 15, false);
+		}
+
+		// Avoid playing the alternate track if we're coming from above the Sea Cucumber
+		// (either by manually getting down, or by being sent away by the crew)
+		if (stateId == 1247 && !(_curMusicState == 33 || _curMusicState == 34 || _curMusicSeq == 22 || _curMusicSeq == 23))
+			stateId = 1248;
+	}
+
+
 	if ((_vm->_game.features & GF_DEMO) && stateId == 1000)
 		stateId = 0;
 
@@ -854,7 +919,7 @@ void IMuseDigital::playComiMusic(const char *songName, const imuseComiTable *tab
 						diMUSESetHook(oldSoundId, table->hookId);
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 26, oldSoundId, table->soundId, fadeDelay, 1, 0);
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, DIMUSE_P_VOLUME, 127);
-						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, DIMUSE_P_GROUP, 4);
+						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 12, table->soundId, DIMUSE_P_GROUP, DIMUSE_GROUP_MUSICEFF);
 						diMUSESetTrigger(oldSoundId, MKTAG('e', 'x', 'i', 't'), 15, table->soundId, hookId);
 						diMUSEProcessStreams();
 						break;
