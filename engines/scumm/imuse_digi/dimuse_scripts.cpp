@@ -391,8 +391,9 @@ void IMuseDigital::setComiMusicState(int stateId) {
 
 		// Avoid playing the alternate track if we're coming from above the Sea Cucumber
 		// (either by manually getting down, or by being sent away by the crew)
-		if (stateId == 1247 && !(_curMusicState == 33 || _curMusicState == 34 || _curMusicSeq == 22 || _curMusicSeq == 23))
+		if (stateId == 1247 && !(_curMusicState == 31 || _curMusicState == 33 || _curMusicState == 34 || _curMusicSeq == 22 || _curMusicSeq == 23)) {
 			stateId = 1248;
+		}
 	}
 
 
