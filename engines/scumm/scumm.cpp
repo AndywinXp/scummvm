@@ -2336,7 +2336,7 @@ void ScummEngine::scummLoop(int delta) {
 	scummLoop_updateScummVars();
 
 	if (_game.features & GF_AUDIOTRACKS) {
-		VAR(VAR_MUSIC_TIMER) = _sound->getCDMusicTimer();
+		VAR(VAR_MUSIC_TIMER) = _game.platform == Common::kPlatformFMTowns ? _townsPlayer->getMusicTimer() : _sound->getCDMusicTimer();
 	} else if (VAR_MUSIC_TIMER != 0xFF) {
 		if (_sound->useReplacementAudioTracks() && _sound->getCurrentCDSound()) {
 			// The replacement music timer operates on real time, adjusted to

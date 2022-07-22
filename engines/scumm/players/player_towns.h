@@ -94,6 +94,8 @@ public:
 	int getSoundStatus(int sound) const override;
 	int getCurrentCdaSound() override { return _cdaCurrentSound; }
 	int getCurrentCdaVolume() override { return (_cdaVolLeft + _cdaVolRight + 1) >> 1; }
+	void advanceCdaTimer();
+	int getMusicTimer() override;
 
 	int32 doCommand(int numargs, int args[]) override;
 
@@ -131,6 +133,9 @@ private:
 	uint8 _cdaCurrentSound;
 	uint8 _cdaNumLoops;
 	uint8 _cdaForceRestart;
+	uint8 _cdaCurrentFramesElapsed;
+	uint8 _cdaCurrentSecondsElapsed;
+	uint8 _cdaCurrentMinutesElapsed;
 
 	uint8 _cdaCurrentSoundTemp;
 	uint8 _cdaNumLoopsTemp;

@@ -106,6 +106,8 @@ Sound::Sound(ScummEngine *parent, Audio::Mixer *mixer, bool useReplacementAudioT
 	_loomSteamCDAudioHandle = new Audio::SoundHandle();
 	_talkChannelHandle = new Audio::SoundHandle();
 
+	_playerCdTowns = nullptr;
+
 	// This timer targets every talkie game, except for LOOM CD
 	// which is handled differently, and except for COMI which
 	// handles lipsync within Digital iMUSE.
@@ -1398,6 +1400,13 @@ static void cdTimerHandler(void *refCon) {
 	}
 }
 
+static void cdTimerHandlerTowns(void *refCon) {
+	Sound *snd = (Sound *)refCon;
+
+	if (snd->getTownsCdPlayer())
+		snd->getTownsCdPlayer()->advanceCdaTimer();
+}
+
 void Sound::startCDTimer() {
 	if (_useReplacementAudioTracks)
 		return;
@@ -1413,18 +1422,31 @@ void Sound::startCDTimer() {
 	// LOOM Steam uses a fixed 240Hz rate. This was probably done to get rid of some
 	// audio glitches which are confirmed to be in the original. So let's activate this
 	// fix for the DOS version of LOOM as well, if enhancements are enabled.
-	if (_isLoomSteam || (_vm->_game.id == GID_LOOM && _vm->_enableEnhancements))
+	if (_isLoomSteam ||
+			(_vm->_game.id == GID_LOOM &&
+			_vm->_game.platform != Common::kPlatformFMTowns &&
+			_vm->_enableEnhancements))
 		interval = 1000000 / LOOM_STEAM_CDDA_RATE;
 
-	_vm->getTimerManager()->removeTimerProc(&cdTimerHandler);
-	_vm->getTimerManager()->installTimerProc(&cdTimerHandler, interval, this, "scummCDtimer");
+	if (_vm->_game.platform == Common::kPlatformFMTowns) {
+		_vm->getTimerManager()->removeTimerProc(&cdTimerHandlerTowns);
+		_vm->getTimerManager()->installTimerProc(&cdTimerHandlerTowns, 1000000 / 450, this, "scummCDtimer");
+	} else {
+		_vm->getTimerManager()->removeTimerProc(&cdTimerHandler);
+		_vm->getTimerManager()->installTimerProc(&cdTimerHandler, interval, this, "scummCDtimer");
+	}
 }
 
 void Sound::stopCDTimer() {
 	if (_useReplacementAudioTracks)
 		return;
 
-	_vm->getTimerManager()->removeTimerProc(&cdTimerHandler);
+	if (_vm->_game.platform == Common::kPlatformFMTowns) {
+		_vm->getTimerManager()->removeTimerProc(&cdTimerHandlerTowns);
+	} else {
+		_vm->getTimerManager()->removeTimerProc(&cdTimerHandler);
+	}
+
 }
 
 void Sound::playCDTrack(int track, int numLoops, int startFrame, int duration) {
@@ -1496,6 +1518,14 @@ AudioCDManager::Status Sound::getCDStatus() {
 		info.playing = _mixer->isSoundHandleActive(*_loomSteamCDAudioHandle);
 		return info;
 	}
+}
+
+void Sound::setTownsCdPlayer(Player_Towns_v1 *player) {
+	_playerCdTowns = player;
+}
+
+Player_Towns_v1 *Sound::getTownsCdPlayer() {
+	return _playerCdTowns;
 }
 
 void Sound::saveLoadWithSerializer(Common::Serializer &s) {

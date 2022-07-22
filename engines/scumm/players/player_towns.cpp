@@ -191,6 +191,7 @@ Player_Towns_v1::Player_Towns_v1(ScummEngine *vm, Audio::Mixer *mixer) : Player_
 	_cdaCurrentSound = _eupCurrentSound = _cdaNumLoops = 0;
 	_cdaForceRestart = 0;
 	_cdaVolLeft = _cdaVolRight = 0;
+	_cdaCurrentMinutesElapsed = _cdaCurrentSecondsElapsed = _cdaCurrentFramesElapsed = 0;
 
 	_eupVolLeft = _eupVolRight = 0;
 	_eupLooping = false;
@@ -201,6 +202,7 @@ Player_Towns_v1::Player_Towns_v1(ScummEngine *vm, Audio::Mixer *mixer) : Player_
 
 	_player = new EuphonyPlayer(mixer);
 	_intf = new TownsAudioInterface(mixer, nullptr);
+	_vm->_sound->setTownsCdPlayer(this);
 }
 
 Player_Towns_v1::~Player_Towns_v1() {
@@ -578,8 +580,32 @@ void Player_Towns_v1::playCdaTrack(int sound, const uint8 *data, bool skipTrackV
 
 	_vm->_sound->playCDTrack(track, _cdaNumLoops == 0xff ? -1 : _cdaNumLoops, start, end <= start ? 0 : end - start);
 	_cdaForceRestart = 0;
+	_cdaCurrentMinutesElapsed = 0;
+	_cdaCurrentSecondsElapsed = 0;
+	_cdaCurrentFramesElapsed = 0;
 	_cdaCurrentSound = sound;
 }
+
+void Player_Towns_v1::advanceCdaTimer() {
+	_cdaCurrentFramesElapsed++;
+
+	if (_cdaCurrentFramesElapsed >= 75) {
+		_cdaCurrentFramesElapsed -= 75;
+		_cdaCurrentSecondsElapsed++;
+	}
+
+	if (_cdaCurrentSecondsElapsed >= 60) {
+		_cdaCurrentSecondsElapsed -= 60;
+		_cdaCurrentMinutesElapsed++;
+	}
+}
+
+int Player_Towns_v1::getMusicTimer() {
+	int totalFramesElasped = 4500 * _cdaCurrentMinutesElapsed + 75 * _cdaCurrentSecondsElapsed + _cdaCurrentFramesElapsed;
+	debug(5, "%d", (2 * totalFramesElasped + 14) / 15);
+	return (2 * totalFramesElasped + 14) / 15;
+}
+
 
 Player_Towns_v2::Player_Towns_v2(ScummEngine *vm, Audio::Mixer *mixer, IMuse *imuse, bool disposeIMuse) : Player_Towns(vm, true), _imuse(imuse), _imuseDispose(disposeIMuse), _sblData(nullptr) {
 	_soundOverride = new SoundOvrParameters[_numSoundMax]();

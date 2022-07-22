@@ -28,6 +28,7 @@
 #include "audio/mididrv.h"
 #include "backends/audiocd/audiocd.h"
 #include "scumm/file.h"
+#include "scumm/players/player_towns.h"
 
 // The number of "ticks" (1/10th of a second) into the Overture that the
 // LucasFilm logo should appear. This corresponds to a timer value of 204.
@@ -102,6 +103,8 @@ protected:
 	int _loomOvertureTransition;
 	uint32 _replacementTrackStartTime;
 
+	Player_Towns_v1 *_playerCdTowns;
+
 public:
 	Audio::SoundHandle *_talkChannelHandle;	// Handle of mixer channel actor is talking on
 
@@ -158,6 +161,9 @@ public:
 	void updateMusicTimer();
 	int getMusicTimer() const { return _musicTimer; }
 	int getCDMusicTimer() const { return _cdMusicTimer; }
+
+	void setTownsCdPlayer(Player_Towns_v1 *player);
+	Player_Towns_v1 *getTownsCdPlayer();
 
 	void saveLoadWithSerializer(Common::Serializer &ser) override;
 	void restoreAfterLoad();

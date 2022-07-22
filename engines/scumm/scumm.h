@@ -351,6 +351,13 @@ class ResourceManager;
 #define AMIGA_NTSC_VBLANK_RATE 240.0
 
 /**
+ * FMTowns timing constants.
+ */
+
+#define FMTOWNS_VBLANK_RATE   60.0
+#define FMTOWNS_CD_AUDIO_RATE 75.0
+
+/**
  * Base class for all SCUMM engines.
  */
 class ScummEngine : public Engine, public Common::Serializable {
