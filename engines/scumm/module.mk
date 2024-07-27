@@ -142,6 +142,17 @@ endif
 ifdef ENABLE_HE
 MODULE_OBJS += \
 	he/animation_he.o \
+	he/basketball/ai_main.o \
+	he/basketball/ai_test.o \
+	he/basketball/basketball.o \
+	he/basketball/collision.o \
+	he/basketball/court.o \
+	he/basketball/cursor.o \
+	he/basketball/geo_translation.o \
+	he/basketball/obstacle_avoidance.o \
+	he/basketball/passing.o \
+	he/basketball/shooting.o \
+	he/basketball/trajectory.o \
 	he/cup_player_he.o \
 	he/gfx_comp/aux_comp.o \
 	he/gfx_comp/mrle_comp.o \
@@ -161,7 +172,7 @@ MODULE_OBJS += \
 	he/wizwarp_he.o \
 	he/localizer.o \
 	he/logic/baseball2001.o \
-	he/logic/basketball.o \
+	he/logic/basketball_logic.o \
 	he/logic/football.o \
 	he/logic/funshop.o \
 	he/logic/moonbase_logic.o \
