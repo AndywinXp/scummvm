@@ -26,6 +26,8 @@
 
 namespace Grim {
 
+class StdBitmap;
+
 struct StdRect {
 	int x;
 	int y;
@@ -73,6 +75,8 @@ class StdDisplay {
 public:
 	StdDisplay();
 
+	void setStdBitmap(StdBitmap *pStdBitmap) { _pStdBitmap = pStdBitmap; }
+
 	StdVBuffer *vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, int bVideoMemoryOnly, byte *pPalette);
 	void vBufferFree(StdVBuffer *&pVBuffer);
 	void vBufferFreeEntry(StdVBuffer *pVBuffer);
@@ -83,6 +87,7 @@ public:
 	int vBufferSetColorKey(StdVBuffer *pVBuffer, int colorKey);
 	void vBufferDeCompress(StdVBuffer *pVBuffer);
 	int vBufferDeCompressTo(StdVBuffer *pSrc, StdVBuffer *pDst);
+	StdVBuffer *vBufferConvertColorFormat(StdColorFormat *pFormat, StdVBuffer *pVBuffer);
 	int copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
 	int lzssDecompress(byte *pDst, byte *pSrc, int size, int outputSize);
 
@@ -90,6 +95,7 @@ private:
 	void decompressImpl();
 	int readFlagBit(const byte *&pIn, uint &flagBits, int &flagCount);
 
+	StdBitmap *_pStdBitmap;
 	byte *_inputBuffer;
 	int _inputBufferIndex;
 	int _inputBufferMax;
