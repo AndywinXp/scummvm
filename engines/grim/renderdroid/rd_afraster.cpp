@@ -1533,6 +1533,11 @@ void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *pSpan, int uMas
 	}
 
 	plotRun16(run, pSpan->width, bIntensity);
+
+	_spanU = run.u;
+	_spanV = run.v;
+	_spanDU = run.du;
+	_spanDV = run.dv;
 }
 
 void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity) {
@@ -1564,10 +1569,12 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 	float oneOverZ = pSpan->oneOverZ;
 	float uOverZ = pSpan->uOverZ;
 	float vOverZ = pSpan->vOverZ;
-	double inverse = 1.0 / oneOverZ;
-	float inverseF = (float)inverse;
-	float uStart = (float)(inverse * uOverZ);
-	float vStart = (float)((double)inverseF * vOverZ);
+
+	_bLowPrecision = true;
+
+	double inverse = fpuDiv(1.0, oneOverZ);
+	float uStart = (float)fpuMul(inverse, uOverZ);
+	float vStart = (float)fpuMul(inverse, vOverZ);
 
 	run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y;
 	run.uMask = uMask;
@@ -1580,10 +1587,10 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 		run.dIntensity = pSpan->dIntensity;
 	}
 
-	run.du = 0;
-	run.dv = 0;
-	run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
-	run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
+	run.u = _spanU;
+	run.v = _spanV;
+	run.du = _spanDU;
+	run.dv = _spanDV;
 
 	float nextZ;
 	float nextU;
@@ -1592,17 +1599,20 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 	if (width) {
 		float inverseWidth = _rd->_raster.getOneOverNFlex(width);
 
-		nextZ = (float)((double)width * _dOneOverZdX + oneOverZ);
-		nextU = (float)((double)width * _dUOverZdX + uOverZ);
-		nextV = (float)((double)width * _dVOverZdX + vOverZ);
+		nextZ = (float)fpuAdd(fpuMul(width, _dOneOverZdX), oneOverZ);
+		nextU = (float)fpuAdd(fpuMul(width, _dUOverZdX), uOverZ);
+		nextV = (float)fpuAdd(fpuMul(width, _dVOverZdX), vOverZ);
 
-		double inverseEnd = 1.0 / nextZ;
+		double inverseEnd = fpuDiv(1.0, nextZ);
 		float inverseEndF = (float)inverseEnd;
-		float uEnd = (float)(inverseEnd * nextU);
-		float vEnd = (float)((double)inverseEndF * nextV);
+		float uEnd = (float)fpuMul(inverseEnd, nextU);
+		float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-		run.du = (int)floor((float)(((double)uEnd - uStart) * inverseWidth * 65536.0)) >> _mipMapNum;
+		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseWidth), 65536.0)) >> _mipMapNum;
+		_bLowPrecision = false;
 		run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseWidth * 65536.0)) >> _mipMapNum;
+		run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
+		run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
 
 		plotRun16(run, width, bIntensity);
 
@@ -1612,18 +1622,19 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 		uStart = uEnd;
 		vStart = vEnd;
 	} else {
-		nextZ = (float)(oneOverZ + _oneOverZStep);
-		nextU = (float)(uOverZ + _uOverZStep);
-		nextV = (float)(vOverZ + _vOverZStep);
+		nextZ = (float)fpuAdd(oneOverZ, _oneOverZStep);
+		nextU = (float)fpuAdd(uOverZ, _uOverZStep);
+		nextV = (float)fpuAdd(vOverZ, _vOverZStep);
 	}
 
 	for (int chunk = 0; chunk < numChunks; chunk++) {
-		double inverseEnd = 1.0 / nextZ;
+		double inverseEnd = fpuDiv(1.0, nextZ);
 		float inverseEndF = (float)inverseEnd;
-		float uEnd = (float)(inverseEnd * nextU);
-		float vEnd = (float)((double)inverseEndF * nextV);
+		float uEnd = (float)fpuMul(inverseEnd, nextU);
+		float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-		run.du = (int)floor((float)(((double)uEnd - uStart) * 0.0625 * 65536.0)) >> _mipMapNum;
+		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), 0.0625), 65536.0)) >> _mipMapNum;
+		_bLowPrecision = false;
 		run.dv = (int)floor((float)(((double)vEnd - vStart) * 0.0625 * 65536.0)) >> _mipMapNum;
 		run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
 		run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
@@ -1644,16 +1655,17 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 			double steps = (double)count;
 			float inverseCount = _rd->_raster.getOneOverNFlex(count);
 
-			nextZ = (float)(steps * _dOneOverZdX - _oneOverZStep + nextZ);
-			nextU = (float)(steps * _dUOverZdX - _uOverZStep + nextU);
-			nextV = (float)(steps * _dVOverZdX - _vOverZStep + nextV);
+			nextZ = (float)fpuAdd(fpuSub(fpuMul(steps, _dOneOverZdX), _oneOverZStep), nextZ);
+			nextU = (float)fpuAdd(fpuSub(fpuMul(steps, _dUOverZdX), _uOverZStep), nextU);
+			nextV = (float)fpuAdd(fpuSub(fpuMul(steps, _dVOverZdX), _vOverZStep), nextV);
 
-			double inverseEnd = 1.0 / nextZ;
+			double inverseEnd = fpuDiv(1.0, nextZ);
 			float inverseEndF = (float)inverseEnd;
-			float uEnd = (float)(inverseEnd * nextU);
-			float vEnd = (float)((double)inverseEndF * nextV);
+			float uEnd = (float)fpuMul(inverseEnd, nextU);
+			float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-			run.du = (int)floor((float)(((double)uEnd - uStart) * inverseCount * 65536.0)) >> _mipMapNum;
+			run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseCount), 65536.0)) >> _mipMapNum;
+			_bLowPrecision = false;
 			run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseCount * 65536.0)) >> _mipMapNum;
 			run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
 			run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
@@ -1661,6 +1673,43 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 
 		plotRun16(run, tail, bIntensity);
 	}
+
+	_bLowPrecision = false;
+	_spanU = run.u;
+	_spanV = run.v;
+	_spanDU = run.du;
+	_spanDV = run.dv;
+}
+
+double RenderDroid::AFRasterModule::fpuRound(double value) {
+	if (!_bLowPrecision)
+		return value;
+
+	float result = (float)value;
+	if (result != 0.0f && fabs((double)result) > fabs(value)) {
+		uint32 bits;
+		memcpy(&bits, &result, sizeof(bits));
+		bits--;
+		memcpy(&result, &bits, sizeof(bits));
+	}
+
+	return result;
+}
+
+double RenderDroid::AFRasterModule::fpuAdd(double a, double b) {
+	return fpuRound(a + b);
+}
+
+double RenderDroid::AFRasterModule::fpuSub(double a, double b) {
+	return fpuRound(a - b);
+}
+
+double RenderDroid::AFRasterModule::fpuMul(double a, double b) {
+	return fpuRound(a * b);
+}
+
+double RenderDroid::AFRasterModule::fpuDiv(double a, double b) {
+	return fpuRound(a / b);
 }
 
 void RenderDroid::AFRasterModule::drawSpanNGonLAT_16(RdActiveSpan *pSpan) {

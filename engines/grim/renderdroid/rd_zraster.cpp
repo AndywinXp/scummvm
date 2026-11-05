@@ -730,6 +730,28 @@ void RenderDroid::ZRasterModule::setRunSteps(ScanState *pState, float uEnd, floa
 	pState->v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
 }
 
+void RenderDroid::ZRasterModule::setIdleRunCoords(ScanState *pState, const ScanParams &params, float oneOverZ, float uStart, float vStart) {
+	bool gouraud = (params.mode.shading == kGouraud);
+	bool transparent = (params.mode.flags & kTransparent) != 0;
+	bool masked = (params.mode.flags & kMasked) != 0;
+	bool is8bpp = (params.mode.bpp == 8);
+
+	if (!gouraud && !masked && (transparent || is8bpp)) {
+		pState->u = pState->z;
+	} else if (gouraud && !masked && is8bpp) {
+		pState->u = pState->intensity;
+	} else if (gouraud && transparent && (masked || !is8bpp)) {
+		float zFixed = (float)(oneOverZ * 65536.0);
+		memcpy(&pState->u, &zFixed, sizeof(pState->u));
+	} else {
+		pState->u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
+		pState->v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
+		return;
+	}
+
+	pState->v = pState->u;
+}
+
 void RenderDroid::ZRasterModule::scanLinePerspective(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params) {
 	ScanState state;
 
@@ -801,10 +823,8 @@ void RenderDroid::ZRasterModule::scanLinePerspective(RdZRasterEdge *pLeft, RdZRa
 		uOverZNext = uOverZEnd + _uOverZStep;
 		vOverZNext = vOverZEnd + _vOverZStep;
 	} else {
-		if (!params.caseMode) {
-			state.u = (params.mode.shading == kGouraud) ? state.intensity : state.z;
-			state.v = state.u;
-		}
+		if (!params.caseMode)
+			setIdleRunCoords(&state, params, oneOverZ, uStart, vStart);
 
 		oneOverZNext = oneOverZ + _oneOverZStep;
 		uOverZNext = uOverZ + _uOverZStep;

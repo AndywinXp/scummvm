@@ -931,7 +931,7 @@ public:
 		typedef void (AFRasterModule::*StepEdgeFunc)(RdActiveEdge *pEdge);
 		typedef int (AFRasterModule::*SetupEdgeFunc)(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
 
-		explicit AFRasterModule(RenderDroid *rd) : Module(rd), _mipMapNum(0), _texRowShift(0), _texPitch(0), _uWrap(0), _vWrap(0), _dUdXModifier(0), _dVdXModifier(0), _dOneOverZdXFixed(0), _dOneOverZdX(0.0f), _dUOverZdX(0.0f), _dVOverZdX(0.0f), _oneOverZStep(0.0f), _uOverZStep(0.0f), _vOverZStep(0.0f), _pPixels(nullptr), _aMonoMap(nullptr), _aRGBMap(nullptr), _color(0), _RGBcolor(0), _pfDrawSpan(nullptr) {}
+		explicit AFRasterModule(RenderDroid *rd) : Module(rd), _mipMapNum(0), _texRowShift(0), _texPitch(0), _uWrap(0), _vWrap(0), _dUdXModifier(0), _dVdXModifier(0), _dOneOverZdXFixed(0), _dOneOverZdX(0.0f), _dUOverZdX(0.0f), _dVOverZdX(0.0f), _oneOverZStep(0.0f), _uOverZStep(0.0f), _vOverZStep(0.0f), _pPixels(nullptr), _aMonoMap(nullptr), _aRGBMap(nullptr), _color(0), _RGBcolor(0), _pfDrawSpan(nullptr), _bLowPrecision(false), _spanU(0), _spanV(0), _spanDU(0), _spanDV(0) {}
 
 		void calcAffineGradients(RdActiveFace *pFace, int refVert);
 		void calcPerspGradients(RdActiveFace *pFace, int refVert);
@@ -1087,6 +1087,11 @@ public:
 		void plotRun16(SpanRun &run, int count, bool bIntensity);
 		void drawSpanAffine16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
 		void drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
+		double fpuRound(double value);
+		double fpuAdd(double a, double b);
+		double fpuSub(double a, double b);
+		double fpuMul(double a, double b);
+		double fpuDiv(double a, double b);
 
 		int _mipMapNum;
 		int _texRowShift;
@@ -1108,6 +1113,11 @@ public:
 		byte _color;
 		uint16 _RGBcolor;
 		DrawSpanFunc _pfDrawSpan;
+		bool _bLowPrecision;
+		int _spanU;
+		int _spanV;
+		int _spanDU;
+		int _spanDV;
 	};
 
 	class NRasterModule : public Module {
@@ -1593,6 +1603,7 @@ public:
 		ScanParams makeScanParams(int bpp, int shading, int flags, bool perspective);
 		void scanLineAffine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
 		void setRunSteps(ScanState *pState, float uEnd, float vEnd, float uStart, float vStart, double stepScale);
+		void setIdleRunCoords(ScanState *pState, const ScanParams &params, float oneOverZ, float uStart, float vStart);
 		void scanLinePerspective(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
 		void scanLineCase(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch);
 		bool setupGeometry(RdProcFace *pProcFace);
