@@ -170,12 +170,14 @@ MODULE_OBJS := \
 	primitives.o \
 	patchr.o \
 	registry.o \
+	res.o \
 	resource.o \
 	savegame.o \
 	set.o \
 	sector.o \
 	sound.o \
 	sprite.o \
+	sputresource.o \
 	textobject.o \
 	textsplit.o \
 	puck.o \
