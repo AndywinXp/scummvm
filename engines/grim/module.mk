@@ -178,6 +178,8 @@ MODULE_OBJS := \
 	sprite.o \
 	textobject.o \
 	textsplit.o \
+	puck.o \
+	walkplane.o \
 	object.o \
 	debugger.o \
 	md5check.o \
