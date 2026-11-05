@@ -167,6 +167,7 @@ MODULE_OBJS := \
 	material.o \
 	model.o \
 	objectstate.o \
+	primitivequeue.o \
 	primitives.o \
 	patchr.o \
 	registry.o \
@@ -177,6 +178,7 @@ MODULE_OBJS := \
 	sector.o \
 	sound.o \
 	sprite.o \
+	sputprimitive.o \
 	sputresource.o \
 	textobject.o \
 	textsplit.o \
