@@ -127,11 +127,17 @@ MODULE_OBJS := \
 	renderdroid/rd_thing.o \
 	renderdroid/rd_vector.o \
 	renderdroid/rd_zraster.o \
+	std/std_bitmap.o \
+	std/std_bmp.o \
 	std/std_conffile.o \
 	std/std_display.o \
 	std/std_file.o \
+	std/std_gif.o \
+	std/std_lbm.o \
 	std/std_math.o \
 	std/std_math_tables.o \
+	std/std_pcx.o \
+	std/std_pic.o \
 	update/packfile.o \
 	update/mscab.o \
 	update/lang_filter.o \

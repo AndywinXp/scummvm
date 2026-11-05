@@ -22,14 +22,20 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Grim {
 
-StdDisplay::StdDisplay() : _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0) {
+StdDisplay::StdDisplay() : _pStdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0) {
 }
 
 StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, int bVideoMemoryOnly, byte *pPalette) {
+	if (((uint)pFormat->format.bpp >> 3) == 0) {
+		warning("StdDisplay::vBufferNew(): unsupported bits per pixel");
+		return nullptr;
+	}
+
 	StdVBuffer *pBuffer = new StdVBuffer;
 
 	pBuffer->pPaletteRGB = pPalette;
@@ -180,6 +186,50 @@ int StdDisplay::vBufferDeCompressTo(StdVBuffer *pSrc, StdVBuffer *pDst) {
 	lzssDecompress(pDst->pPixels, pSrc->pPixels, pSrc->tex.sizeInBytes, pDst->tex.sizeInBytes);
 
 	return vBufferUnlock(pDst);
+}
+
+StdVBuffer *StdDisplay::vBufferConvertColorFormat(StdColorFormat *pFormat, StdVBuffer *pVBuffer) {
+	if (!memcmp(pFormat, &pVBuffer->tex.format, sizeof(StdColorFormat)))
+		return pVBuffer;
+
+	if (!pVBuffer->tex.format.colorMode && !pFormat->colorMode)
+		return pVBuffer;
+
+	if (pVBuffer->type != 0) {
+		warning("StdDisplay::vBufferConvertColorFormat(): buffer is not a memory buffer");
+		return pVBuffer;
+	}
+
+	StdVBuffer *pResult;
+
+	if (pVBuffer->tex.format.bpp == pFormat->bpp) {
+		pResult = pVBuffer;
+	} else {
+		StdVBufferTexFmt texFormat = pVBuffer->tex;
+
+		texFormat.format = *pFormat;
+		pResult = vBufferNew(&texFormat, 0, 0, nullptr);
+
+		if (!pResult)
+			return pResult;
+	}
+
+	vBufferLock(pVBuffer);
+	vBufferLock(pResult);
+
+	for (int i = 0; i < pResult->tex.height; i++)
+		_pStdBitmap->convertPixelRow(&pResult->pPixels[pResult->tex.pitchInBytes * i], pFormat, &pVBuffer->pPixels[pVBuffer->tex.pitchInBytes * i], &pVBuffer->tex.format, pResult->tex.width);
+
+	vBufferUnlock(pVBuffer);
+	vBufferUnlock(pResult);
+
+	pResult->colorKey = _pStdBitmap->convertColor(pFormat, pVBuffer->colorKey, &pVBuffer->tex.format);
+	pResult->tex.format = *pFormat;
+
+	if (pResult != pVBuffer)
+		vBufferFree(pVBuffer);
+
+	return pResult;
 }
 
 int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
