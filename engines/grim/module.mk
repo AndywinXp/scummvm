@@ -102,6 +102,36 @@ MODULE_OBJS := \
 	remastered/hotspot.o \
 	remastered/lua_remastered.o \
 	remastered/overlay.o \
+	renderdroid/rd.o \
+	renderdroid/rd_active.o \
+	renderdroid/rd_afraster.o \
+	renderdroid/rd_cache.o \
+	renderdroid/rd_camera.o \
+	renderdroid/rd_canvas.o \
+	renderdroid/rd_clip.o \
+	renderdroid/rd_color_effects.o \
+	renderdroid/rd_colormap.o \
+	renderdroid/rd_face.o \
+	renderdroid/rd_keyframe.o \
+	renderdroid/rd_light.o \
+	renderdroid/rd_material.o \
+	renderdroid/rd_math.o \
+	renderdroid/rd_matrix.o \
+	renderdroid/rd_model3.o \
+	renderdroid/rd_nraster.o \
+	renderdroid/rd_primit2.o \
+	renderdroid/rd_primit3.o \
+	renderdroid/rd_puppet.o \
+	renderdroid/rd_raster.o \
+	renderdroid/rd_sprite.o \
+	renderdroid/rd_thing.o \
+	renderdroid/rd_vector.o \
+	renderdroid/rd_zraster.o \
+	std/std_conffile.o \
+	std/std_display.o \
+	std/std_file.o \
+	std/std_math.o \
+	std/std_math_tables.o \
 	update/packfile.o \
 	update/mscab.o \
 	update/lang_filter.o \
