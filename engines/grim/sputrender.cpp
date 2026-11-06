@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/blasttext.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputrender.h"
@@ -33,12 +34,11 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer) :
 		_pRd(pRd), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pRes(pRes), _pSputResource(pSputResource),
 		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
-		_aActors(nullptr),
+		_aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0),
 		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
-		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _backBufferPixels(nullptr), _backBufferBytesPerPixel(0),
-		_backBufferPitch(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
+		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
 		_nextSerialNumber(0), _pCacheRectList(nullptr), _reset(0), _irisStart(0), _irisX(0.0f), _irisY(320),
 		_irisDuration(240), _renderFlags(0), _bSkipPrimitives(0), _pSetPaletteFunc(nullptr), _pPageFlipFunc(nullptr),
 		_pageFlipEnable(1), _movieJustFinished(0), _gCamActorIndex(0), _debugFlags(8), _bDebugKey1Down(0),
@@ -195,11 +195,13 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 	if (!_pCleanArtBuffer || !_pCleanZBuffer)
 		return 0;
 
-	_backBufferPixels = _pBackBuffer->pPixels;
-	_backBufferBytesPerPixel = (uint)_pBackBuffer->tex.format.bpp >> 3;
-	// TODO: set the BlastText screen height
-	_backBufferPitch = _pBackBuffer->tex.pitchInBytes;
-	// TODO: set the BlastText screen width
+	BlastTextSurface *pTextSurface = _pBlastText->getSurface();
+
+	pTextSurface->pPixels = _pBackBuffer->pPixels;
+	pTextSurface->bytesPerPixel = (uint)_pBackBuffer->tex.format.bpp >> 3;
+	pTextSurface->height = _pBackBuffer->tex.height;
+	pTextSurface->pitch = _pBackBuffer->tex.pitchInBytes;
+	pTextSurface->width = _pDrawBuffer->tex.width;
 
 	pOptions[3] |= 2;
 	setRenderOptions(pOptions);

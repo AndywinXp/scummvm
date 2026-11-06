@@ -37,16 +37,27 @@ enum SputResourceTags {
 	kSputTagBknd = MKTAG('D', 'N', 'K', 'B'),
 	kSputTagCmap = MKTAG('P', 'A', 'M', 'C'),
 	kSputTagCost = MKTAG('T', 'S', 'O', 'C'),
+	kSputTagFont = MKTAG('T', 'N', 'O', 'F'),
 	kSputTagKeyf = MKTAG('F', 'Y', 'E', 'K'),
 	kSputTagMat = MKTAG(' ', 'T', 'A', 'M'),
+	kSputTagMem = MKTAG(' ', 'M', 'E', 'M'),
 	kSputTagModl = MKTAG('L', 'D', 'O', 'M'),
 	kSputTagSet = MKTAG(' ', 'T', 'E', 'S'),
+	kSputTagSnd = MKTAG(' ', 'D', 'N', 'S'),
+	kSputTagSync = MKTAG('S', 'Y', 'N', 'C'),
 	kSputTagZbuf = MKTAG('F', 'U', 'B', 'Z')
 };
 
+struct ResMemBlock {
+	byte *pData;
+	int size;
+};
+
+class BlastText;
 class Cos;
 class SputRender;
 class SputRoom;
+class Text;
 
 class SputResource : public ResHandler {
 public:
@@ -55,6 +66,8 @@ public:
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
 	void setCos(Cos *pCos) { _pCos = pCos; }
+	void setText(Text *pText) { _pText = pText; }
+	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
 
 	int handler(ResHandlerMsg *pMsg);
 
@@ -71,15 +84,19 @@ public:
 	int shutdown();
 	int registerHandlers();
 	int setMemoryUsage(int totalAllowedLimit, int purgeAmount);
+	int loadResSync(ResHandlerMsg *pMsg);
 	int loadResBknd(ResHandlerMsg *pMsg);
 	void loadBknd();
 	int loadResCost(ResHandlerMsg *pMsg);
 	int loadResCmap(ResHandlerMsg *pMsg);
+	int loadResFont(ResHandlerMsg *pMsg);
 	int loadResKeyf(ResHandlerMsg *pMsg);
 	int loadResMat(ResHandlerMsg *pMsg);
 	int loadResModl(ResHandlerMsg *pMsg);
 	int loadResSet(ResHandlerMsg *pMsg);
+	int loadResSnd(ResHandlerMsg *pMsg);
 	int loadResZbuf(ResHandlerMsg *pMsg);
+	int loadResMem(ResHandlerMsg *pMsg);
 	int cmap();
 	RdMaterial *mat(char *path, int bVideoMemory, int bVideoMemoryOnly);
 	int unlock(RdMaterial *pMaterial);
@@ -95,6 +112,8 @@ private:
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
 	Cos *_pCos;
+	Text *_pText;
+	BlastText *_pBlastText;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;

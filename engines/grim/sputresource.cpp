@@ -21,11 +21,14 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/blasttext.h"
 #include "engines/grim/chore/cos.h"
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/registry.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/text.h"
 
 namespace Grim {
 
@@ -41,7 +44,7 @@ static int materialUnloader(RdMaterial *pMaterial) {
 
 SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
 		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr), _pCos(nullptr),
-		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
+		_pText(nullptr), _pBlastText(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
 
@@ -53,6 +56,8 @@ int SputResource::handler(ResHandlerMsg *pMsg) {
 		return loadResCost(pMsg);
 	case kSputTagCmap:
 		return loadResCmap(pMsg);
+	case kSputTagFont:
+		return loadResFont(pMsg);
 	case kSputTagKeyf:
 		return loadResKeyf(pMsg);
 	case kSputTagMat:
@@ -61,8 +66,14 @@ int SputResource::handler(ResHandlerMsg *pMsg) {
 		return loadResModl(pMsg);
 	case kSputTagSet:
 		return loadResSet(pMsg);
+	case kSputTagSnd:
+		return loadResSnd(pMsg);
+	case kSputTagSync:
+		return loadResSync(pMsg);
 	case kSputTagZbuf:
 		return loadResZbuf(pMsg);
+	case kSputTagMem:
+		return loadResMem(pMsg);
 	default:
 		break;
 	}
@@ -172,10 +183,11 @@ int SputResource::shutdown() {
 }
 
 int SputResource::registerHandlers() {
-	const int aTags[8] = { kSputTagBknd, kSputTagCost, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet, kSputTagZbuf };
+	const int aTags[12] = { kSputTagBknd, kSputTagCost, kSputTagCmap, kSputTagFont, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet,
+		kSputTagSnd, kSputTagSync, kSputTagZbuf, kSputTagMem };
 	int result = 0;
 
-	for (uint i = 0; i < 8; i++) {
+	for (uint i = 0; i < 12; i++) {
 		result = _pRes->sysRegisterHandler(aTags[i], this);
 
 		if (result != 1)
@@ -193,6 +205,37 @@ int SputResource::setMemoryUsage(int totalAllowedLimit, int purgeAmount) {
 		_purgeAmount = purgeAmount;
 
 	return purgeAmount;
+}
+
+int SputResource::loadResSync(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagSync)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		IMuseLipSync *pLipSync = g_imuse->grimSoundLipSyncLoad(pMsg->pName);
+
+		if (!pLipSync)
+			return 0;
+
+		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pLipSync);
+	}
+	case 2:
+		g_imuse->grimSoundLipSyncFree(static_cast<IMuseLipSync *>(pMsg->data));
+
+		return 1;
+	case 3: {
+		IMuseLipSync *pLipSync = static_cast<IMuseLipSync *>(pMsg->data);
+
+		pMsg->result = pLipSync->size + 40;
+
+		return 1;
+	}
+	default:
+		break;
+	}
+
+	return 0;
 }
 
 int SputResource::loadResBknd(ResHandlerMsg *pMsg) {
@@ -390,6 +433,41 @@ int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
+int SputResource::loadResFont(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagFont)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		BlastTextFont *pFont = nullptr;
+
+		if (!_pBlastText->load(pMsg->pName, pFont)) {
+			int result = _pRes->allocCompletion(pMsg->tag, pMsg->pName, pFont);
+			_pRes->setPurgeOnFree(pFont, 0);
+
+			return result;
+		}
+
+		break;
+	}
+	case 2: {
+		BlastTextFont *pFont = static_cast<BlastTextFont *>(pMsg->data);
+
+		_pText->freeFont(pFont);
+
+		return 1;
+	}
+	case 3:
+		pMsg->result = 1;
+
+		return 1;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int SputResource::loadResKeyf(ResHandlerMsg *pMsg) {
 	if (pMsg->tag != kSputTagKeyf)
 		return 0;
@@ -538,6 +616,10 @@ int SputResource::loadResSet(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
+int SputResource::loadResSnd(ResHandlerMsg *pMsg) {
+	return 0;
+}
+
 int SputResource::loadResZbuf(ResHandlerMsg *pMsg) {
 	if (pMsg->tag != kSputTagZbuf)
 		return 0;
@@ -570,6 +652,33 @@ int SputResource::loadResZbuf(ResHandlerMsg *pMsg) {
 	}
 
 	return 0;
+}
+
+int SputResource::loadResMem(ResHandlerMsg *pMsg) {
+	ResMemBlock *pBlock = static_cast<ResMemBlock *>(pMsg->data);
+
+	if (pMsg->op == 2) {
+		if (!pBlock) {
+			warning("SputResource::loadResMem(): no memory block to free");
+			return 1;
+		}
+
+		delete[] pBlock->pData;
+		pBlock->pData = nullptr;
+		delete pBlock;
+		pBlock = nullptr;
+	} else if (pMsg->op == 3) {
+		if (!pBlock) {
+			warning("SputResource::loadResMem(): no memory block to measure");
+			return 1;
+		}
+
+		pMsg->result = pBlock->size;
+
+		return 1;
+	}
+
+	return 1;
 }
 
 int SputResource::cmap() {

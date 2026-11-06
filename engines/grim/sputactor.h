@@ -60,6 +60,7 @@ struct Extra {
 	int inBoxes;
 	float collisionScale;
 	int field_3F8;
+	int talkColor;
 };
 
 struct SputActor {
