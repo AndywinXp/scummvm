@@ -37,13 +37,16 @@ static int materialUnloader(RdMaterial *pMaterial) {
 	return g_pSputResource->unlock(pMaterial);
 }
 
-SputResource::SputResource(Res *pRes, RenderDroid *pRd) : _pRes(pRes), _pRd(pRd), _pSputRender(nullptr),
+SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
+		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
 
 int SputResource::handler(ResHandlerMsg *pMsg) {
 	switch (pMsg->tag) {
+	case kSputTagBknd:
+		return loadResBknd(pMsg);
 	case kSputTagCmap:
 		return loadResCmap(pMsg);
 	case kSputTagKeyf:
@@ -161,10 +164,10 @@ int SputResource::shutdown() {
 }
 
 int SputResource::registerHandlers() {
-	const int aTags[4] = { kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl };
+	const int aTags[5] = { kSputTagBknd, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl };
 	int result = 0;
 
-	for (uint i = 0; i < 4; i++) {
+	for (uint i = 0; i < 5; i++) {
 		result = _pRes->sysRegisterHandler(aTags[i], this);
 
 		if (result != 1)
@@ -182,6 +185,115 @@ int SputResource::setMemoryUsage(int totalAllowedLimit, int purgeAmount) {
 		_purgeAmount = purgeAmount;
 
 	return purgeAmount;
+}
+
+int SputResource::loadResBknd(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagBknd)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		Common::String path(pMsg->pName);
+		StdBitmapStruct *pBitmap = _pStdBitmap->loadLbm(path, 0, 0);
+
+		if (!pBitmap)
+			return 0;
+
+		if (!pBitmap->encoding && pBitmap->format.colorMode == 1) {
+			for (int i = 0; i < (int)pBitmap->numFrames; i++) {
+				StdVBuffer *pFrame = pBitmap->apFrames[i];
+
+				_pStdDisplay->vBufferLock(pFrame);
+
+				for (int row = 0; row < pFrame->tex.height; row++)
+					_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * row), pFrame->tex.width);
+
+				_pStdDisplay->vBufferUnlock(pFrame);
+
+				uint16 colorKey = 63519;
+
+				_pSputRender->colorCorrect(&colorKey, 1);
+				pFrame->colorKey = colorKey;
+			}
+		}
+
+		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pBitmap);
+	}
+	case 2: {
+		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pMsg->data);
+
+		_pStdBitmap->unloadBitmap(pBitmap);
+
+		return 1;
+	}
+	case 3: {
+		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pMsg->data);
+
+		pMsg->result = _pStdBitmap->memUsage(pBitmap);
+
+		return 1;
+	}
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+void SputResource::loadBknd() {
+	ResNode *pNext;
+	void *handle;
+
+	_pRes->allocatedIterFirst(&pNext, &handle, kSputTagBknd);
+
+	while (handle) {
+		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(handle);
+
+		if (!pBitmap->encoding) {
+			Common::String path(pBitmap->aName);
+			StdBitmapStruct *pNewBitmap = _pStdBitmap->loadLbm(path, 0, 0);
+
+			if (pNewBitmap) {
+				if (pNewBitmap->numFrames < pBitmap->numFrames) {
+					warning("SputResource::loadBknd(): bitmap %s has fewer frames than the loaded one", pBitmap->aName);
+				} else {
+					for (int j = 0; j < (int)pBitmap->numFrames; j++) {
+						StdVBuffer *pOldFrame = pBitmap->apFrames[j];
+
+						pBitmap->apFrames[j] = pNewBitmap->apFrames[j];
+						pNewBitmap->apFrames[j] = pOldFrame;
+					}
+				}
+
+				_pStdBitmap->unloadBitmap(pNewBitmap);
+			}
+
+			for (int k = 0; k < (int)pBitmap->numFrames; k++) {
+				StdVBuffer *pFrame = pBitmap->apFrames[k];
+
+				_pStdDisplay->vBufferLock(pFrame);
+
+				for (int row = 0; row < pFrame->tex.height; row++)
+					_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * row), pFrame->tex.width);
+
+				_pStdDisplay->vBufferUnlock(pFrame);
+			}
+		}
+
+		uint16 colorKey = 63519;
+
+		_pSputRender->colorCorrect(&colorKey, 1);
+		pBitmap->colorKey = colorKey;
+
+		for (int n = 0; n < (int)pBitmap->numFrames; n++) {
+			uint16 frameColorKey = 63519;
+
+			_pSputRender->colorCorrect(&frameColorKey, 1);
+			pBitmap->apFrames[n]->colorKey = frameColorKey;
+		}
+
+		_pRes->allocatedIterNext(&pNext, &handle, kSputTagBknd);
+	}
 }
 
 int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
