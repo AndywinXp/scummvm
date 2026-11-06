@@ -23,13 +23,13 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/registry.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_lbm.h"
+#include "engines/grim/wuregistry.h"
 
 namespace Grim {
 
@@ -47,8 +47,9 @@ void SputCostume::puppetHookCallback(void *userArg, int trackNum, int markerType
 	g_pSputCostume->puppetHook(static_cast<ModelInst *>(userArg), trackNum, markerType);
 }
 
-SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm) :
+SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry) :
 		_pRes(pRes), _pRd(pRd), _pSputResource(pSputResource), _pSputRender(pSputRender), _pSputRoom(pSputRoom), _pStdLbm(pStdLbm),
+		_pWuRegistry(pWuRegistry), _pGrim(nullptr),
 		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pShadowColormap(nullptr), _aLECBitmaps(nullptr),
 		_pLastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
 		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this),
@@ -526,24 +527,30 @@ void SputCostume::fadeKeysOut(int hInst, int choreIndex, int timeMs) {
 }
 
 void SputCostume::getDataPath(const char *valueName, char *pData, const char *defaultDirectory) {
-	// TODO: read the "Requesters\<valueName>" registry value into pData
+	char name[128];
+
+	Common::strlcpy(name, "Requesters\\", sizeof(name));
+	Common::strlcat(name, valueName, sizeof(name));
+
+	_pWuRegistry->getStr(name, pData, 128, "");
 
 	if (*pData)
 		return;
 
-	Common::String dataDirectory = g_registry->getString("GrimDataDir");
-
-	if (dataDirectory.size() >= 128)
-		return;
-
-	Common::strlcpy(pData, dataDirectory.c_str(), 128);
-	Common::strlcat(pData, "\\", 128);
-	Common::strlcat(pData, defaultDirectory, 128);
+	if (_pWuRegistry->getStr("GrimDataDir", pData, 128, "")) {
+		Common::strlcat(pData, "\\", 128);
+		Common::strlcat(pData, defaultDirectory, 128);
+	}
 }
 
 void SputCostume::writeRegistryValue(const char *valueName, const char *pData) {
 	if (*pData) {
-		// TODO: save the "Requesters\<valueName>" registry value
+		char name[128];
+
+		Common::strlcpy(name, "Requesters\\", sizeof(name));
+		Common::strlcat(name, valueName, sizeof(name));
+
+		_pWuRegistry->saveStr(name, pData);
 	}
 }
 

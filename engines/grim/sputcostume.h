@@ -31,11 +31,13 @@
 
 namespace Grim {
 
+class GrimEngine;
 class SputRender;
 class SputResource;
 class SputActorModule;
 class SputRoom;
 class StdLbm;
+class WuRegistry;
 struct CostumeNode;
 struct SputActor;
 
@@ -53,8 +55,9 @@ class SputCostume {
 	friend class LuaVarHandler;
 
 public:
-	SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm);
+	SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry);
 
+	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 	void setActors(SputActor *aActors) { _aActors = aActors; }
 	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 	Cos *getCos() { return &_cos; }
@@ -92,6 +95,8 @@ private:
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
 	StdLbm *_pStdLbm;
+	WuRegistry *_pWuRegistry;
+	GrimEngine *_pGrim;
 	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SysStruct *_pHS;

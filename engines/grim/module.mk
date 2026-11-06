@@ -167,6 +167,9 @@ MODULE_OBJS := \
 	gfx_opengl.o \
 	grim.o \
 	grim_controls.o \
+	grim_lib.o \
+	grim_main.o \
+	grim_save.o \
 	inputdialog.o \
 	iris.o \
 	keyframe.o \
@@ -189,6 +192,7 @@ MODULE_OBJS := \
 	primitivequeue.o \
 	primitives.o \
 	patchr.o \
+	polyglot.o \
 	registry.o \
 	res.o \
 	resource.o \
@@ -205,6 +209,7 @@ MODULE_OBJS := \
 	sputactor_shadow.o \
 	sputactor_talk.o \
 	sputactor_walk.o \
+	sputcontrol.o \
 	sputcostume.o \
 	sputcostume_keyframe.o \
 	sputcostume_media.o \
@@ -219,12 +224,16 @@ MODULE_OBJS := \
 	sputresource.o \
 	sputroom.o \
 	sputroom_sections.o \
+	sputsmush.o \
 	sputtext.o \
+	sputtime.o \
+	stdcontrol.o \
 	text.o \
 	textobject.o \
 	textsplit.o \
 	puck.o \
 	walkplane.o \
+	wuregistry.o \
 	object.o \
 	debugger.o \
 	md5check.o \

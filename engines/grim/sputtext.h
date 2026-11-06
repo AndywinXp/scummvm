@@ -35,11 +35,14 @@ class WriteStream;
 
 namespace Grim {
 
+class GrimEngine;
 class NormalText;
+class Polyglot;
 class RenderDroid;
 class Res;
 class SputRender;
 class SputRoom;
+class SputTime;
 class Text;
 struct SputActor;
 
@@ -59,10 +62,11 @@ struct SputTextEvent {
 
 class SputText {
 public:
-	SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText);
+	SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText, SputTime *pSputTime, Polyglot *pPolyglot);
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
+	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 
 	void killEvent(SputTextEvent *pEvent);
 	void update(int bForce);
@@ -87,8 +91,11 @@ private:
 	NormalText *_pNormalText;
 	Text *_pText;
 	BlastText *_pBlastText;
+	SputTime *_pSputTime;
+	Polyglot *_pPolyglot;
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
+	GrimEngine *_pGrim;
 
 	SysStruct *_pHS;
 	int _bInitialized;

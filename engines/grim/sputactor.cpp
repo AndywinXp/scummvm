@@ -45,9 +45,11 @@ static const LipSyncEntry g_lipSyncAnimTable[46] = {
 };
 
 SputActorModule::SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath, StdDisplay *pStdDisplay, WalkSystem *pWalkSystem,
-		SputResource *pSputResource, SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText) :
+		SputResource *pSputResource, SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText,
+		SputTime *pSputTime) :
 		_pRes(pRes), _pRd(pRd), _pStdMath(pStdMath), _pStdDisplay(pStdDisplay), _pWalkSystem(pWalkSystem), _pSputResource(pSputResource),
-		_pSputRoom(pSputRoom), _pSputRender(pSputRender), _pSputCostume(pSputCostume), _pSputText(pSputText), _pCos(pSputCostume->getCos()),
+		_pSputRoom(pSputRoom), _pSputRender(pSputRender), _pSputCostume(pSputCostume), _pSputText(pSputText), _pSputTime(pSputTime),
+		_pGrim(nullptr), _pCos(pSputCostume->getCos()),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _aActors(nullptr), _maxActors(1024), _numActors(0), _pSelectedActor(nullptr),
 		_numActorsTalking(0), _numCollisionActors(0), _speechMode(2), _textRate(6), _walkSystemFadeTime(130), _numLipSyncAnims(46),
 		_pShadowMaterial(nullptr) {

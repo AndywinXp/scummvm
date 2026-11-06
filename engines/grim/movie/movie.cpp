@@ -119,6 +119,24 @@ bool MoviePlayer::prepareFrame() {
 	return true;
 }
 
+int MoviePlayer::getWidth() {
+	Common::StackLock lock(_frameMutex);
+
+	if (!_internalSurface)
+		return 0;
+
+	return _internalSurface->w;
+}
+
+int MoviePlayer::getHeight() {
+	Common::StackLock lock(_frameMutex);
+
+	if (!_internalSurface)
+		return 0;
+
+	return _internalSurface->h;
+}
+
 Graphics::Surface *MoviePlayer::getDstSurface() {
 	Common::StackLock lock(_frameMutex);
 	if (_updateNeeded && _internalSurface) {

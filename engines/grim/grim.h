@@ -36,7 +36,30 @@
 #include "engines/grim/iris.h"
 #include "engines/grim/detection.h"
 
+namespace Common {
+class SeekableReadStream;
+class WriteStream;
+}
+
 namespace Grim {
+
+class IMuse;
+class Res;
+class SputActorModule;
+class SputControl;
+class SputCostume;
+class SputPrimitive;
+class SputRender;
+class SputResource;
+class SputRoom;
+class SputSmush;
+class SputText;
+class SputTime;
+class StdDisplay;
+class SysStruct;
+class WalkSystem;
+struct StdRect;
+struct StdVBuffer;
 
 class Actor;
 class SaveGame;
@@ -54,6 +77,36 @@ class GfxBase;
 struct ControlDescriptor {
 	const char *name;
 	int key;
+};
+
+enum SputMainModule {
+	kSputMainModuleFileUtil,
+	kSputMainModuleMemory,
+	kSputMainModuleRoom,
+	kSputMainModuleTime,
+	kSputMainModuleLua,
+	kSputMainModuleCostume,
+	kSputMainModuleActor,
+	kSputMainModuleResource,
+	kSputMainModuleControl,
+	kSputMainModuleSounds,
+	kSputMainModuleRender,
+	kSputMainModuleText,
+	kSputMainModulePrimitive,
+	kSputMainModuleSmush,
+	kNumSputMainModules
+};
+
+enum {
+	kNumBaseModules = 8,
+	kNumMainModules = 6,
+	kNumPerfCounters = 13
+};
+
+struct PerfCounter {
+	const char *pName;
+	double start;
+	double elapsed;
 };
 
 class GrimEngine : public Engine {
@@ -186,6 +239,66 @@ public:
 
 	void changeHardwareState();
 
+	// sputMain module
+	int sputInitialize(SysStruct *pHS);
+	int sputTerminate();
+	int sputStartup();
+	int sputShutdown();
+	int callRegisterModules(SysStruct *pHS, int firstModule, int count);
+	int runInitTable(int firstModule, int count);
+	int callTableFunc(int firstModule, int count);
+	int callRelease(int firstModule, int count);
+	int bundleDofile();
+	int startEngine(int saveGameResume, const char *bootParam);
+	int loop(int bRender, int manualTicks);
+	void timedPageFlip();
+	void setPerfCounter(uint slot);
+	int queryPerfCounterDiff(uint slot);
+	void save();
+	int zwrite(const void *buffer, int size);
+	void restore();
+	int zread(void *buffer, int size);
+	StdVBuffer *getSaveGameImage(const char *fileName);
+	void setPrevMode(int mode);
+	int getPrevMode() const;
+	void imuseSave();
+	void imuseRestore();
+	PerfCounter *getPerfCounters() { return _aPerfCounters; }
+
+	// grimlib module
+	void overrideSelectedActorCostume(int hInstance);
+	void restoreSelectedActorCostume();
+	int setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer);
+	int unsetDisplay();
+	void makeCurrentSet(const char *name);
+	void close();
+	void setDebugToggleCallback(void *pFunc);
+	void setPaletteCallback(int (*pFunc)(byte *, int));
+	void setShutdownCallback(int (*pFunc)(int));
+	void setPageFlipCallback(int (*pFunc)());
+	void using3DHardware(int b3D);
+	int addResourcePath(const char *path);
+	int findResources();
+	void markDirtyRect(const StdRect *pRect, int page);
+	void makeCurrentSetupLib(uint setup);
+	void nextSetup();
+	void previousSetup();
+	int confirmClose();
+	void requestShutdown(int arg);
+	void setPause(int bPause);
+	int doPauseCallback();
+	int characterCallback();
+	int setImuseState(int state);
+	int playMovie(const char *name, int bFullscreen, int bLooping, int x, int y);
+	int userPaint();
+	void saveLib(const char *fileName);
+	void loadLib(const char *fileName);
+	int justLoaded();
+	int getLibMode() const { return _libMode; }
+	void setLibMode(int mode) { _libMode = mode; }
+	int getDebugKeys() const { return _bDebugKeys; }
+	void setDebugKeys(int bDebugKeys) { _bDebugKeys = bDebugKeys; }
+
 	// Engine APIs
 	bool hasFeature(EngineFeature f) const override;
 
@@ -290,6 +403,59 @@ protected:
 	Common::String _saveMeta3;
 
 	Commentary *_commentary;
+
+	// sputMain and grimlib modules
+	int initializeModule(int module, SysStruct *pHS);
+	int startupModule(int module);
+	void shutdownModule(int module);
+	void terminateModule(int module);
+	void soundsSave(Common::WriteStream *pStream);
+	void soundsRestore(Common::SeekableReadStream *pStream);
+
+	Res *_pRes = nullptr;
+	StdDisplay *_pStdDisplay = nullptr;
+	SputResource *_pSputResource = nullptr;
+	SputRoom *_pSputRoom = nullptr;
+	SputTime *_pSputTime = nullptr;
+	SputCostume *_pSputCostume = nullptr;
+	SputActorModule *_pSputActor = nullptr;
+	SputControl *_pSputControl = nullptr;
+	SputRender *_pSputRender = nullptr;
+	SputText *_pSputText = nullptr;
+	SputPrimitive *_pSputPrimitive = nullptr;
+	SputSmush *_pSputSmush = nullptr;
+	WalkSystem *_pWalkSystem = nullptr;
+	IMuse *_pImuse = nullptr;
+	StdVBuffer *_pMainGfxBuffer = nullptr;
+
+	SysStruct *_pSputHS = nullptr;
+	int _bSputInitialized = 0;
+	int _bSputStarted = 0;
+	int _loopCount = 0;
+	int _bRenderPending = 0;
+	int _bRunLua = 1;
+	int _sputPrevMode = 0;
+	PerfCounter _aPerfCounters[kNumPerfCounters] = {
+		{ "Grimlib", 0.0, 0.0 }, { "Controls", 0.0, 0.0 }, { "Lua", 0.0, 0.0 }, { "Actors", 0.0, 0.0 }, { "Rects", 0.0, 0.0 },
+		{ "2D", 0.0, 0.0 }, { "3D", 0.0, 0.0 }, { "Rasterize", 0.0, 0.0 }, { "Display", 0.0, 0.0 }, { "ISO", 0.0, 0.0 },
+		{ "Sound", 0.0, 0.0 }, { "Shadows", 0.0, 0.0 }, { "WAITICON", 0.0, 0.0 }
+	};
+	Common::WriteStream *_pSaveWriteStream = nullptr;
+	Common::SeekableReadStream *_pSaveReadStream = nullptr;
+
+	int _libMode = 0;
+	int _libPauseOldMode = 0;
+	int _libPauseSavedMode = 0;
+	int _libPauseSavedOldMode = 0;
+	int _bDebugKeys = 0;
+	int _bSputOpen = 0;
+	int _libSaveRequest = 0;
+	int _libLoadRequest = 0;
+	Common::String _libSaveGameFileName;
+	int _libJustLoaded = 0;
+	int _libImuseState = -1;
+	int (*_pShutdownCallback)(int) = nullptr;
+	int _libRenderOptions[8] = { 4, 3, 1, 1, 0, 0, 2, 0 };
 
 public:
 	int _cursorX = 0;

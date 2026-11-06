@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/lua/lua.h"
 #include "engines/grim/sputactor.h"
@@ -287,9 +288,8 @@ int SoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
 }
 
 void SmushHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	if (!keyValue) {
-		// TODO: grimlib_PlayMovie(static_cast<const char *>(pInstData), 0, 0, -1, -1)
-	}
+	if (!keyValue)
+		_pSputCostume->_pGrim->playMovie(static_cast<const char *>(pInstData), 0, 0, -1, -1);
 }
 
 int SmushHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {

@@ -23,13 +23,16 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/lua/lua.h"
 #include "engines/grim/normaltext.h"
+#include "engines/grim/polyglot.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputtext.h"
+#include "engines/grim/sputtime.h"
 #include "engines/grim/text.h"
 
 namespace Grim {
@@ -40,8 +43,10 @@ static uint16 colorToRgb565(int color) {
 	return (uint16)(((value >> 19) & 0x1F) | (32 * (((uint16)(value >> 3) << 6) | ((value >> 10) & 0x3F))));
 }
 
-SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText) : _pRes(pRes), _pRd(pRd),
-		_pNormalText(pNormalText), _pText(pText), _pBlastText(pBlastText), _pSputRender(nullptr), _pSputRoom(nullptr),
+SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText, SputTime *pSputTime, Polyglot *pPolyglot) :
+		_pRes(pRes), _pRd(pRd), _pNormalText(pNormalText), _pText(pText), _pBlastText(pBlastText), _pSputTime(pSputTime),
+		_pPolyglot(pPolyglot),
+		_pSputRender(nullptr), _pSputRoom(nullptr), _pGrim(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLocked(0), _pTextQueue(nullptr), _pFont(nullptr), _pEmergencyFont(nullptr),
 		_translationMode(0), _centerValue(320), _offscreenTextPos(450), _textPosX(0), _textPosY(0),
 		_luaTextObjXRef(0), _luaTextObjYRef(0), _luaTextObjFontRef(0), _luaTextObjWidthRef(0), _luaTextObjHeightRef(0),
@@ -110,7 +115,7 @@ void SputText::killEvent(SputTextEvent *pEvent) {
 
 void SputText::update(int bForce) {
 	if (!_bLocked) {
-		int frameTime = 0; // TODO: sputTime_GetFrameTime()
+		int frameTime = _pSputTime->getFrameTime();
 		SputTextEvent *pEvent = _pTextQueue;
 
 		while (pEvent) {
@@ -181,7 +186,7 @@ SputTextEvent *SputText::createActorText(SputActor *pActor, const char *pText, i
 	params.bgColor = 0;
 	params.fxColor = 0;
 
-	int mode = 2; // TODO: grimlib_mode
+	int mode = _pGrim->getLibMode();
 	StdRect *pRect;
 
 	if (!pActor->onScreen || mode == 3) {
@@ -395,7 +400,7 @@ const char *SputText::extractSayLineData(const char *msgId, char *translation) {
 	if (translation)
 		*translation = 0;
 
-	const char *pTranslated = msgId; // TODO: polyglot_getTranslation(msgId)
+	const char *pTranslated = _pPolyglot->getTranslation(msgId);
 	const char *pResult;
 
 	if (translation && msgId && *msgId == '/') {

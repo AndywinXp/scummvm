@@ -25,6 +25,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/res.h"
+#include "engines/grim/sputcontrol.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Common {
@@ -35,12 +36,16 @@ class WriteStream;
 namespace Grim {
 
 class BlastText;
+class GrimEngine;
 class RenderDroid;
 class SputActorModule;
 class SputPrimitive;
 class SputResource;
 class SputRoom;
+class SputSmush;
 class SputText;
+class SputTime;
+class StdControl;
 class WalkSystem;
 struct RdCanvas;
 struct Room;
@@ -75,15 +80,19 @@ struct ActorSortInfo {
 	int actorIndex;
 };
 
-class SputRender {
+class SputRender : public SputControlCallback {
 public:
 	SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer);
+			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer,
+			SputTime *pSputTime, SputControl *pSputControl);
 
 	void setActors(SputActor *aActors) { _aActors = aActors; }
 	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 	void setSputText(SputText *pSputText) { _pSputText = pSputText; }
 	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
+	void setSputSmush(SputSmush *pSputSmush) { _pSputSmush = pSputSmush; }
+	void setStdControl(StdControl *pStdControl) { _pStdControl = pStdControl; }
+	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 
 	int initialize(SysStruct *pHS);
 	int terminate();
@@ -103,7 +112,7 @@ public:
 	void setPageFlip(int enable);
 	int pageFlip();
 	int setRenderOptions(const int *pOptions);
-	int controlCallback();
+	int controlCallback(float frameTime) override;
 	void forceRefresh();
 
 	void markDirtyRect(const StdRect *pRect, int page);
@@ -184,6 +193,11 @@ private:
 	SputActor *_aActors;
 	SputText *_pSputText;
 	BlastText *_pBlastText;
+	SputSmush *_pSputSmush;
+	SputTime *_pSputTime;
+	SputControl *_pSputControl;
+	StdControl *_pStdControl;
+	GrimEngine *_pGrim;
 
 	SysStruct *_pHS;
 	int _bInitialized;

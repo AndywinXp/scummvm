@@ -28,6 +28,7 @@
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_math.h"
 #include "engines/grim/walkplane.h"
 
@@ -79,7 +80,7 @@ int SputActorModule::canActorSeeActor(SputActor *pActor, SputActor *pTarget, flo
 
 void SputActorModule::turn(SputActor *pActor, float dir) {
 	Extra *pExtra = pActor->pExtra;
-	float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+	float frameTime = _pSputTime->getFrameTimeFlex();
 	float scaledTime = (float)((double)frameTime * pExtra->timeScale);
 	float turnAmount = (float)(((double)pExtra->turnRate * scaledTime) * dir);
 
@@ -107,8 +108,6 @@ void SputActorModule::turn(SputActor *pActor, float dir) {
 }
 
 void SputActorModule::forward(SputActor *pActor) {
-	// TODO: sputTime_GetFrameTimeFlex()
-
 	if (!pActor->pExtra->puck)
 		enablePuck(pActor, 1);
 
@@ -327,7 +326,7 @@ void SputActorModule::updateCostumes3(SputActor *pActor) {
 	if (!(absAngle > 2.0))
 		return;
 
-	float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+	float frameTime = _pSputTime->getFrameTimeFlex();
 	double rate = (double)frameTime * pActor->pExtra->turnRate;
 
 	if (angleF > 0.0f && rate < angleF)
@@ -360,7 +359,7 @@ void SputActorModule::updateShadow(SputActor *pActor) {
 	Puck *pPuck = pExtra->puck;
 
 	if (pExtra->turnDir && !(pActor->mode & 1)) {
-		float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+		float frameTime = _pSputTime->getFrameTimeFlex();
 		float scaledTime = (float)((double)frameTime * pExtra->timeScale);
 		float turnAmount = (float)(((double)pExtra->turnRate * scaledTime) * (double)pExtra->turnDir);
 
@@ -368,7 +367,7 @@ void SputActorModule::updateShadow(SputActor *pActor) {
 	}
 
 	if (pActor->pExtra->bWalking) {
-		float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+		float frameTime = _pSputTime->getFrameTimeFlex();
 		Extra *pWalkExtra = pActor->pExtra;
 		float distance = (float)(((double)frameTime * pWalkExtra->timeScale) * pWalkExtra->walkRate);
 		int bWalking;
@@ -437,7 +436,7 @@ int SputActorModule::updateLookAt(SputActor *pActor, Puck *pPuck) {
 		limit = 3.4028234663852886e38;
 		pExtra->turnRate = pExtra->turnRate * -1.0f;
 	} else {
-		float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+		float frameTime = _pSputTime->getFrameTimeFlex();
 
 		limit = (double)frameTime * pActor->pExtra->timeScale * pActor->pExtra->turnRate;
 	}
@@ -584,7 +583,7 @@ void SputActorModule::updatePuckMovement(SputActor *pActor) {
 
 	pExtra = pActor->pExtra;
 
-	float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+	float frameTime = _pSputTime->getFrameTimeFlex();
 	float step = (float)((double)frameTime * pExtra->timeScale * walkRate * 1.25);
 
 	if (distance < step) {

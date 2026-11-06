@@ -77,6 +77,8 @@ public:
 	virtual const byte *getDstPalette();
 	virtual int getX() { return _x; }
 	virtual int getY() { return _y; }
+	virtual int getWidth();
+	virtual int getHeight();
 	virtual int getFrame() { return _frame; }
 	virtual void clearUpdateNeeded() { _updateNeeded = false; }
 	virtual int32 getMovieTime() { return (int32)_movieTime; }

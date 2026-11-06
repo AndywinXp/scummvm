@@ -36,12 +36,14 @@ class WriteStream;
 namespace Grim {
 
 class Cos;
+class GrimEngine;
 class Puck;
 class SputCostume;
 class SputRender;
 class SputResource;
 class SputRoom;
 class SputText;
+class SputTime;
 class StdDisplay;
 class StdMath;
 class SysStruct;
@@ -148,9 +150,12 @@ struct LipSyncEntry {
 class SputActorModule {
 public:
 	SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath, StdDisplay *pStdDisplay, WalkSystem *pWalkSystem, SputResource *pSputResource,
-			SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText);
+			SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText, SputTime *pSputTime);
 
+	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 	SputActor *getActors() { return _aActors; }
+	SputActor *getSelectedActor() { return _pSelectedActor; }
+	void clearShadowMaterial() { _pShadowMaterial = nullptr; }
 
 	void nukeCostumeStacks();
 	int initialize(SysStruct *pHS);
@@ -255,6 +260,8 @@ private:
 	SputRender *_pSputRender;
 	SputCostume *_pSputCostume;
 	SputText *_pSputText;
+	SputTime *_pSputTime;
+	GrimEngine *_pGrim;
 	Cos *_pCos;
 
 	SysStruct *_pHS;
