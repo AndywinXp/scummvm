@@ -1,6 +1,12 @@
 MODULE := engines/grim
 
 MODULE_OBJS := \
+	chore/cos.o \
+	chore/cos_chore.o \
+	chore/cos_component.o \
+	chore/cos_instance.o \
+	chore/cos_parse.o \
+	chore/cos_save.o \
 	costume/bitmap_component.o \
 	costume/chore.o \
 	costume/colormap_component.o \
