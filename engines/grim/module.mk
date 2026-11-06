@@ -193,6 +193,8 @@ MODULE_OBJS := \
 	sputrender_debug.o \
 	sputrender_scene.o \
 	sputresource.o \
+	sputroom.o \
+	sputroom_sections.o \
 	textobject.o \
 	textsplit.o \
 	puck.o \

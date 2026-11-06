@@ -37,6 +37,7 @@ namespace Grim {
 class RenderDroid;
 class SputPrimitive;
 class SputResource;
+class SputRoom;
 class WalkSystem;
 struct RdCanvas;
 struct Room;
@@ -74,9 +75,8 @@ struct ActorSortInfo {
 class SputRender {
 public:
 	SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer);
+			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer);
 
-	void setCurrentRoom(Room *pRoom) { _pCurrentRoom = pRoom; }
 	void setActors(SputActor *aActors) { _aActors = aActors; }
 
 	int initialize(SysStruct *pHS);
@@ -169,10 +169,10 @@ private:
 	SputResource *_pSputResource;
 	SputPrimitive *_pSputPrimitive;
 	WalkSystem *_pWalkSystem;
+	SputRoom *_pSputRoom;
 	StdVBuffer *_pBackBuffer;
 	StdVBuffer *_pMainGfxBuffer;
 
-	Room *_pCurrentRoom;
 	SputActor *_aActors;
 
 	SysStruct *_pHS;

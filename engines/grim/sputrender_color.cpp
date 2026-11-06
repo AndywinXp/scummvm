@@ -82,7 +82,7 @@ void SputRender::setGamma(float gamma) {
 		_gammaCorrection = gamma;
 		loadSetupBackground(_pColorInfo);
 
-		Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+		Room *pRoom = _pSputRoom->getCurrentRoom();
 
 		if (pRoom)
 			useSetup(pRoom, pRoom->curSetup);
@@ -134,7 +134,7 @@ void SputRender::dim(int bForce, char shift) {
 		uint16 *pPixel = (uint16 *)(pBuffer->pPixels + pBuffer->tex.pitchInBytes * y);
 
 		for (int x = 0; x < pBuffer->tex.width; x++) {
-			int bRoom = _pCurrentRoom != nullptr; // TODO: sputRoom_GetCurrentRoom()
+			int bRoom = _pSputRoom->getCurrentRoom() != nullptr;
 			uint pixel;
 
 			if (bRoom)

@@ -39,16 +39,20 @@ enum SputResourceTags {
 	kSputTagCost = MKTAG('T', 'S', 'O', 'C'),
 	kSputTagKeyf = MKTAG('F', 'Y', 'E', 'K'),
 	kSputTagMat = MKTAG(' ', 'T', 'A', 'M'),
-	kSputTagModl = MKTAG('L', 'D', 'O', 'M')
+	kSputTagModl = MKTAG('L', 'D', 'O', 'M'),
+	kSputTagSet = MKTAG(' ', 'T', 'E', 'S'),
+	kSputTagZbuf = MKTAG('F', 'U', 'B', 'Z')
 };
 
 class SputRender;
+class SputRoom;
 
 class SputResource : public ResHandler {
 public:
 	SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
 
 	int handler(ResHandlerMsg *pMsg);
 
@@ -71,6 +75,8 @@ public:
 	int loadResKeyf(ResHandlerMsg *pMsg);
 	int loadResMat(ResHandlerMsg *pMsg);
 	int loadResModl(ResHandlerMsg *pMsg);
+	int loadResSet(ResHandlerMsg *pMsg);
+	int loadResZbuf(ResHandlerMsg *pMsg);
 	int cmap();
 	RdMaterial *mat(char *path, int bVideoMemory, int bVideoMemoryOnly);
 	int unlock(RdMaterial *pMaterial);
@@ -84,6 +90,7 @@ private:
 	StdDisplay *_pStdDisplay;
 	StdBitmap *_pStdBitmap;
 	SputRender *_pSputRender;
+	SputRoom *_pSputRoom;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;
