@@ -27,21 +27,42 @@
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/res.h"
 
+namespace Common {
+class ReadStream;
+class WriteStream;
+}
+
 namespace Grim {
 
+class RenderDroid;
+class SputRender;
+class SputResource;
+class StdBitmap;
+class StdConffile;
+class StdDisplay;
+class StdLbm;
+class WalkSystem;
+struct SputActor;
 struct SputObjectState;
+struct StdVBuffer;
 
-// TODO: incomplete, the remaining fields come with the sputRoom port
 struct RoomCamera {
 	RdVector3 position;
 	RdVector3 interest;
+	float roll;
+	float fov;
+	float nearClip;
+	float farClip;
 	RdCamera *prdCamera;
+	RdThing *pThing;
 	RdMatrix34 posMatrix;
 };
 
-// TODO: incomplete, the remaining fields come with the sputRoom port
 struct RoomSetup {
+	char aName[32];
 	RoomCamera camera;
+	char aBitmapName[32];
+	char aZBufferName[32];
 	ResRef bitmapRef;
 	ResRef zbufferRef;
 	SputObjectState *ObjectStates;
@@ -59,21 +80,132 @@ struct RoomActorLink {
 	RoomActorLink *pNext;
 };
 
-// TODO: incomplete, the remaining fields come with the sputRoom port
 struct RoomActorNode {
+	char name[128];
 	RoomActorLink *pActors;
+	RoomActorNode *pNext;
 };
 
-// TODO: incomplete, the remaining fields come with the sputRoom port
 struct Room {
+	char name[128];
 	ResRef *apColormaps;
+	int numcolormaps;
 	int field_88;
+	char colormapName[32];
 	RoomSetup *pSetups;
 	uint numSetups;
 	int curSetup;
 	uint numLights;
 	RoomLight aLights[64];
 	RoomActorNode *pActorNode;
+	ResRef roomRef;
+	int structSize;
+	byte minVol;
+	byte maxVol;
+	float maxDist;
+	float panFactor;
+	float maxRadius;
+};
+
+struct RoomSound {
+	RoomSound *pNext;
+	const char *soundName;
+	RdVector3 pos;
+	int minVol;
+	int maxVol;
+	float maxDist;
+	float radius;
+};
+
+class SputRoom {
+public:
+	SputRoom(RenderDroid *pRd, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, StdLbm *pStdLbm,
+			StdConffile *pStdConffile, WalkSystem *pWalkSystem);
+
+	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+	void setActors(SputActor *aActors) { _aActors = aActors; }
+
+	StdVBuffer *getSetupBackground(Room *pRoom, int setupIndex);
+	StdVBuffer *getSetupZBackground(Room *pRoom, int setupIndex);
+	void relocateSounds();
+	void setSoundParameters(Room *pRoom, float maxDist, byte minVol, byte maxVol, float panFactor, float maxRadius);
+	void getSoundParameters(Room *pRoom, float *maxDist, byte *minVol, byte *maxVol, float *panFactor, float *maxRadius);
+	int setSoundPosition(const char *soundName, float *pPos, int minVol, int maxVol, float maxDist, float radius);
+	void setCurrentRoom(Room *pRoom);
+	Room *getCurrentRoom();
+	const char *getCurrentRoomName();
+	int save(Common::WriteStream *pStream);
+	int restore(Common::ReadStream *pStream);
+	int initialize(SysStruct *pHS);
+	StdVBuffer *loadZBuffer(const char *fileName);
+	void freeZBuffer(StdVBuffer *&pZBuffer);
+	Room *loadRoom(const char *fileName);
+	void freeRoom(Room *&pRoom);
+	int loadResources(Room *pRoom);
+	int terminate();
+	int startup();
+	int shutdown();
+	RoomLight *getLight(Room *pRoom, int index);
+	int findLightByName(Room *pRoom, const char *name);
+	SputObjectState *addObjectState(int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int copyMode);
+	void removeObjectState(SputObjectState *pObj);
+	void removeActor(const char *roomName, SputActor *pActor);
+	void addActor(const char *roomName, SputActor *pActor);
+	RoomActorLink *getRoomActors(const char *roomName);
+	RoomActorNode *findActorNode(const char *roomName);
+
+private:
+	typedef int (SputRoom::*SectionFunc)();
+
+	struct Section {
+		char name[32];
+		SectionFunc handler;
+	};
+
+	StdVBuffer *loadZBufferEntry(const char *fileName);
+	void freeZBufferEntry(StdVBuffer *&pZBuffer);
+	void newRoomEntry(Room *pRoom);
+	int loadRoomEntry(const char *fileName, Room *pRoom);
+	void unReference(Room *pRoom);
+	void freeRoomEntry(Room *pRoom);
+	void freeRoomSetups(Room *pRoom);
+	void freeSetupEntry(Room *pRoom, RoomSetup *pSetup);
+	void freeSoundTable();
+	RoomSound *allocSoundTable(const char *soundName, float *pPos, int minVol, int maxVol, float maxDist, float radius);
+	int setupSoundPosition(RoomSound *pSound);
+	int readSections();
+	int readSectionFunc(const char *name, SectionFunc pfnRead);
+	int sectionNameCompare(const char *name);
+	int loadSections(const char *fileName);
+	int findSectionHandler(const char *name);
+	int readLightSection();
+	int readSetupsSection();
+	int readColorMapsSection();
+	int readSectors();
+	RoomActorNode *allocActorNode(const char *roomName);
+	void freeActorNode(RoomActorNode *pNode);
+
+	RenderDroid *_pRd;
+	Res *_pRes;
+	SputResource *_pSputResource;
+	StdDisplay *_pStdDisplay;
+	StdBitmap *_pStdBitmap;
+	StdLbm *_pStdLbm;
+	StdConffile *_pStdConffile;
+	WalkSystem *_pWalkSystem;
+	SputRender *_pSputRender;
+	SputActor *_aActors;
+	SysStruct *_pHS;
+	int _bInitialized;
+	int _bStarted;
+	ResRef _currentRoomRef;
+	char _currentRoomName[32];
+	RoomSound *_pSoundList;
+	RoomActorNode *_pActorNodeList;
+	Room *_pLoadingRoom;
+	int _bUpdateLoop;
+	int _numSections;
+	Section _aSections[32];
 };
 
 } // End of namespace Grim

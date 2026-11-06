@@ -99,7 +99,7 @@ void SputRender::useSetup(Room *pRoom, int setup) {
 
 	memcpy(pOrient, pSetup->camera.posMatrix, sizeof(RdMatrix34));
 
-	StdVBuffer *pBackground = nullptr; // TODO: sputRoom_GetSetupBackground(pRoom, setup)
+	StdVBuffer *pBackground = _pSputRoom->getSetupBackground(pRoom, setup);
 
 	if (pBackground) {
 		if (pBackground->type == 2) {
@@ -110,7 +110,7 @@ void SputRender::useSetup(Room *pRoom, int setup) {
 		}
 	}
 
-	StdVBuffer *pZBackground = nullptr; // TODO: sputRoom_GetSetupZBackground(pRoom, setup)
+	StdVBuffer *pZBackground = _pSputRoom->getSetupZBackground(pRoom, setup);
 
 	if (pZBackground) {
 		if (pZBackground->type == 2) {
@@ -197,7 +197,7 @@ void SputRender::update() {
 		// TODO: lua_printstack(0)
 	}
 
-	Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (!pRoom)
 		return;
@@ -339,7 +339,7 @@ void SputRender::update() {
 	_pStdDisplay->vBufferUnlock(_pBackBuffer);
 
 	if (_debugFlags & 1) {
-		Room *pDebugRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+		Room *pDebugRoom = _pSputRoom->getCurrentRoom();
 
 		if (_debugFlags & 2)
 			drawCameraDebug(pDebugRoom);
@@ -459,7 +459,7 @@ int SputRender::loadSetupBackground(const StdColorFormat *pFormat) {
 void SputRender::preRendered(int bBitmap, int bZBuffer) {
 	_renderFlags |= 3;
 
-	Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (!pRoom)
 		return;
@@ -553,7 +553,7 @@ int SputRender::buildShadowBitmap(float *pOut, float *pA, float *pB, float a, fl
 
 void SputRender::restoreDirtyRects(StdVBuffer *pDst, StdVBuffer *pZBuffer) {
 	DirtyRect *pNode = _pDirtyRectQueue;
-	Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (!pRoom)
 		return;
@@ -653,7 +653,7 @@ void SputRender::drawPrimitives(int layerMask) {
 void SputRender::sortActors() {
 	resetActorSortList();
 
-	Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (!pRoom || !pRoom->pActorNode || !_aActors || !_pCamera) {
 		warning("SputRender::sortActors(): no current room, actors or camera");
@@ -663,7 +663,7 @@ void SputRender::sortActors() {
 	for (RoomActorLink *pLink = pRoom->pActorNode->pActors; pLink; pLink = pLink->pNext) {
 		SputActor *pActor = &_aActors[pLink->actorIndex];
 
-		pActor->on_screen = 0;
+		pActor->onScreen = 0;
 
 		if ((pActor->flags & 3) == 0) {
 			ActorSortInfo *pEntry = allocActorSortEntry();
@@ -674,9 +674,9 @@ void SputRender::sortActors() {
 			RdVector3 vec;
 			RdVector3 out;
 
-			vec[0] = (float)((double)pActor->actor_pos[0] - (double)_pCamera->position[0]);
-			vec[1] = (float)((double)pActor->actor_pos[1] - (double)_pCamera->position[1]);
-			vec[2] = (float)((double)pActor->actor_pos[2] - (double)_pCamera->position[2]);
+			vec[0] = (float)((double)pActor->actorPos[0] - (double)_pCamera->position[0]);
+			vec[1] = (float)((double)pActor->actorPos[1] - (double)_pCamera->position[1]);
+			vec[2] = (float)((double)pActor->actorPos[2] - (double)_pCamera->position[2]);
 			_pRd->transformVectorOrtho34(out, vec, _pCamera->posMatrix);
 			pEntry->depth = out[1];
 
@@ -743,7 +743,7 @@ void SputRender::drawActor(SputActor *pActor) {
 	float (*pOrient)[3] = pActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pActor)
 
 	if (_pRd->_thing.draw(pActor->pCostumeStack->pHeadThing, pOrient)) {
-		pActor->on_screen = 1;
+		pActor->onScreen = 1;
 		pActor->drawnRect.x = pViewport[0];
 		pActor->drawnRect.y = pViewport[1];
 		pActor->drawnRect.width = pViewport[2] - pViewport[0];

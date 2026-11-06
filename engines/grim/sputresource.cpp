@@ -24,6 +24,7 @@
 #include "engines/grim/registry.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
+#include "engines/grim/sputroom.h"
 
 namespace Grim {
 
@@ -38,7 +39,7 @@ static int materialUnloader(RdMaterial *pMaterial) {
 }
 
 SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
-		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr),
+		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
@@ -55,6 +56,10 @@ int SputResource::handler(ResHandlerMsg *pMsg) {
 		return loadResMat(pMsg);
 	case kSputTagModl:
 		return loadResModl(pMsg);
+	case kSputTagSet:
+		return loadResSet(pMsg);
+	case kSputTagZbuf:
+		return loadResZbuf(pMsg);
 	default:
 		break;
 	}
@@ -164,10 +169,10 @@ int SputResource::shutdown() {
 }
 
 int SputResource::registerHandlers() {
-	const int aTags[5] = { kSputTagBknd, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl };
+	const int aTags[7] = { kSputTagBknd, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet, kSputTagZbuf };
 	int result = 0;
 
-	for (uint i = 0; i < 5; i++) {
+	for (uint i = 0; i < 7; i++) {
 		result = _pRes->sysRegisterHandler(aTags[i], this);
 
 		if (result != 1)
@@ -461,6 +466,74 @@ int SputResource::loadResModl(ResHandlerMsg *pMsg) {
 		pMsg->result = 1;
 
 		return 1;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+int SputResource::loadResSet(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagSet)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		Room *pRoom = _pSputRoom->loadRoom(pMsg->pName);
+
+		if (!pRoom)
+			return 0;
+
+		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pRoom);
+	}
+	case 2: {
+		Room *pRoom = static_cast<Room *>(pMsg->data);
+
+		_pSputRoom->freeRoom(pRoom);
+
+		return 1;
+	}
+	case 3: {
+		Room *pRoom = static_cast<Room *>(pMsg->data);
+
+		pMsg->result = pRoom->structSize;
+
+		return 1;
+	}
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+int SputResource::loadResZbuf(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagZbuf)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		StdVBuffer *pZBuffer = _pSputRoom->loadZBuffer(pMsg->pName);
+
+		if (!pZBuffer)
+			return 0;
+
+		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pZBuffer);
+	}
+	case 2: {
+		StdVBuffer *pZBuffer = static_cast<StdVBuffer *>(pMsg->data);
+
+		_pSputRoom->freeZBuffer(pZBuffer);
+
+		return 1;
+	}
+	case 3: {
+		StdVBuffer *pZBuffer = static_cast<StdVBuffer *>(pMsg->data);
+
+		pMsg->result = pZBuffer->tex.sizeInBytes;
+
+		return 1;
+	}
 	default:
 		break;
 	}

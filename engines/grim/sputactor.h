@@ -43,6 +43,7 @@ struct Extra {
 	int numPathPoints;
 	RdVector3 aPath[30];
 	Puck *puck;
+	int inBoxes;
 	float collisionScale;
 	int field_3F8;
 };
@@ -51,13 +52,13 @@ struct SputActor {
 	ResRef *pColorMap;
 	int flags;
 	int mode;
-	RdVector3 actor_pos;
+	RdVector3 actorPos;
 	RdVector3 prevPosition;
-	RdVector3 actor_rot;
+	RdVector3 actorRot;
 	float scale;
-	int matrix_valid;
+	int matrixValid;
 	RdMatrix34 orientMatrix;
-	int on_screen;
+	int onScreen;
 	StdRect drawnRect;
 	char curSetName[32];
 	int bInUse;

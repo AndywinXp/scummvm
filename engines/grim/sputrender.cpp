@@ -30,10 +30,10 @@
 namespace Grim {
 
 SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer) :
+		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer) :
 		_pRd(pRd), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pRes(pRes), _pSputResource(pSputResource),
-		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
-		_pCurrentRoom(nullptr), _aActors(nullptr),
+		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
+		_aActors(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0),
 		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
@@ -204,7 +204,7 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 	pOptions[3] |= 2;
 	setRenderOptions(pOptions);
 
-	Room *pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (pRoom)
 		_pRd->_camera.setAmbientLight(pRoom->pSetups[pRoom->curSetup].camera.prdCamera, _ambient);
@@ -213,7 +213,7 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 	loadSetupBackground(_pColorInfo); // TODO: pass grim_colorInfoCopy
 	_pDecompressionBuffer = 1;
 
-	pRoom = _pCurrentRoom; // TODO: sputRoom_GetCurrentRoom()
+	pRoom = _pSputRoom->getCurrentRoom();
 
 	if (pRoom)
 		useSetup(pRoom, pRoom->curSetup);
