@@ -123,6 +123,7 @@ public:
 	int totalAllocated();
 	void checkAnotherLists(ResNode *pNode);
 	uint changeFileNameToUpper(const char *src, char *dst);
+	int findExternalFile(const char *name, char *pOutPath, uint size);
 	void setReference(ResRef *pRef, void *handle);
 	void removeReference(ResRef *pRef);
 	void allocatedIterFirst(ResNode **ppNext, void **pHandle, int tag);

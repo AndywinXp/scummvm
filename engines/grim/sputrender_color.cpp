@@ -22,12 +22,15 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputprimitive.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputresource.h"
+#include "engines/grim/sputsmush.h"
 #include "engines/grim/sputtext.h"
+#include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_bitmap.h"
 
 namespace Grim {
@@ -91,7 +94,7 @@ void SputRender::setGamma(float gamma) {
 }
 
 void SputRender::dim(int bForce, char shift) {
-	int mode = 4; // TODO: grimlib_mode
+	int mode = _pGrim->getLibMode();
 
 	if (mode == 4 && !bForce)
 		return;
@@ -102,11 +105,11 @@ void SputRender::dim(int bForce, char shift) {
 	}
 
 	if (mode == 3) {
-		// TODO: set the SMUSH target to the back buffer
+		_pSputSmush->setTarget(_pBackBuffer);
 	} else {
 		_pSputText->pause();
 		_pSputPrimitive->pause();
-		// TODO: advance the game time manually
+		_pSputTime->advanceManual(0);
 		update();
 		_pRd->finishFrame();
 		_pSputText->resume();
@@ -274,7 +277,7 @@ void SputRender::getIris(float percent, int x, int y) {
 }
 
 void SputRender::irisDown(int y, int duration, int x) {
-	int gameTime = 0; // TODO: sputTime_GetGameTime()
+	int gameTime = _pSputTime->getGameTime();
 
 	_irisStart = gameTime;
 	_irisDuration = duration;
@@ -284,7 +287,7 @@ void SputRender::irisDown(int y, int duration, int x) {
 }
 
 void SputRender::irisUp(int y, int duration, int x) {
-	int gameTime = 0; // TODO: sputTime_GetGameTime()
+	int gameTime = _pSputTime->getGameTime();
 
 	_irisStart = gameTime;
 	_irisDuration = duration;
@@ -362,8 +365,9 @@ void SputRender::allowLoadImage(int enable) {
 
 void SputRender::drawLoadingImage() {
 	if (_loadImageAllowed && _renderEnable) {
-		int perfCounterDiff = 0; // TODO: sputMain_QueryPerfCounterDiff(12)
-		// TODO: sputMain_SetPerfCounter(12)
+		int perfCounterDiff = _pGrim->queryPerfCounterDiff(12);
+
+		_pGrim->setPerfCounter(12);
 		int elapsed = perfCounterDiff + _perfCounter;
 
 		_perfCounter += perfCounterDiff;

@@ -24,19 +24,23 @@
 #include "common/util.h"
 
 #include "engines/grim/blasttext.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputrender.h"
+#include "engines/grim/sputtime.h"
+#include "engines/grim/stdcontrol.h"
 
 namespace Grim {
 
 SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer) :
+		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer,
+		SputTime *pSputTime, SputControl *pSputControl) :
 		_pRd(pRd), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pRes(pRes), _pSputResource(pSputResource),
 		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
-		_pSputActor(nullptr), _aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr),
-		_pHS(nullptr), _bInitialized(0), _bStarted(0),
+		_pSputActor(nullptr), _aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr), _pSputSmush(nullptr), _pSputTime(pSputTime),
+		_pSputControl(pSputControl), _pStdControl(nullptr), _pGrim(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0),
 		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
 		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
@@ -58,7 +62,7 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 int SputRender::initialize(SysStruct *pHS) {
 	_pHS = pHS;
 
-	// TODO: register the control callback
+	_pSputControl->addCallback(this);
 	_bInitialized = 1;
 
 	return 0;
@@ -291,25 +295,25 @@ int SputRender::setRenderOptions(const int *pOptions) {
 	return _pRd->setZBufferMethod(_renderVars[6]);
 }
 
-int SputRender::controlCallback() {
+int SputRender::controlCallback(float frameTime) {
 	int result = 0;
 	int bKeyDown;
 
-	bKeyDown = 0; // TODO: grimlib_bDebugKeys
+	bKeyDown = _pGrim->getDebugKeys();
 	if (!bKeyDown)
 		return 0;
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(29, 0, 0)
+	bKeyDown = _pStdControl->readKey(29, nullptr, nullptr);
 	if (!bKeyDown)
 		return result;
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(32, 0, 0)
+	bKeyDown = _pStdControl->readKey(32, nullptr, nullptr);
 	if (!bKeyDown)
 		return result;
 
 	result = 1;
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(57, 0, 0)
+	bKeyDown = _pStdControl->readKey(57, nullptr, nullptr);
 	if (bKeyDown) {
 		if (!_bDebugKey1Down) {
 			drawDebuggingToggle();
@@ -322,7 +326,7 @@ int SputRender::controlCallback() {
 	if ((_debugFlags & 1) == 0)
 		return result;
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(48, 0, 0)
+	bKeyDown = _pStdControl->readKey(48, nullptr, nullptr);
 	if (bKeyDown) {
 		if (!_bDebugKey8Down) {
 			if (_debugFlags & 8) {
@@ -337,7 +341,7 @@ int SputRender::controlCallback() {
 		_bDebugKey8Down = 0;
 	}
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(38, 0, 0)
+	bKeyDown = _pStdControl->readKey(38, nullptr, nullptr);
 	if (bKeyDown) {
 		if (!_bDebugKey2Down) {
 			if (_debugFlags & 2) {
@@ -352,7 +356,7 @@ int SputRender::controlCallback() {
 		_bDebugKey2Down = 0;
 	}
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(46, 0, 0)
+	bKeyDown = _pStdControl->readKey(46, nullptr, nullptr);
 	if (bKeyDown) {
 		if (!_bDebugKey4Down) {
 			if (_debugFlags & 4) {
@@ -367,7 +371,7 @@ int SputRender::controlCallback() {
 		_bDebugKey4Down = 0;
 	}
 
-	bKeyDown = 0; // TODO: stdControl_ReadKey(19, 0, 0)
+	bKeyDown = _pStdControl->readKey(19, nullptr, nullptr);
 	if (!bKeyDown) {
 		_bDebugKey10Down = 0;
 		return result;

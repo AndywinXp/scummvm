@@ -24,6 +24,7 @@
 #include "common/util.h"
 
 #include "engines/grim/blasttext.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputobjectstate.h"
@@ -31,7 +32,9 @@
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/sputsmush.h"
 #include "engines/grim/sputtext.h"
+#include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_sort.h"
 
 namespace Grim {
@@ -151,17 +154,18 @@ void SputRender::useSetup(Room *pRoom, int setup) {
 }
 
 void SputRender::update() {
-	int mode = 2; // TODO: grimlib_mode
+	int mode = _pGrim->getLibMode();
 
 	switch (mode) {
 	case 0:
 		return;
 	case 3: {
-		// TODO: set the SMUSH target to the back buffer
-		int bMovieFinished = 0; // TODO: sputSmush_Periodic()
+		_pSputSmush->setTarget(_pBackBuffer);
+		int bMovieFinished = _pSputSmush->periodic();
 
 		if (bMovieFinished) {
-			// TODO: set grimlib_mode to 2
+			_pGrim->setLibMode(2);
+
 			StdRect rect;
 
 			rect.x = 0;
@@ -176,7 +180,7 @@ void SputRender::update() {
 			_movieJustFinished = 1;
 		}
 
-		float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+		float frameTime = _pSputTime->getFrameTimeFlex();
 
 		_pSputActor->updateSpeechOnly(frameTime);
 		_pStdDisplay->vBufferLock(_pBackBuffer);
@@ -187,9 +191,8 @@ void SputRender::update() {
 		return;
 	}
 	case 4:
-		if (_reset) {
-			// TODO: grimlib_UserPaint
-		}
+		if (_reset)
+			_pGrim->userPaint();
 
 		_reset = 0;
 		return;
@@ -221,14 +224,14 @@ void SputRender::update() {
 	for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
 		pState->update(3, _pCleanArtBuffer, _pCleanZBuffer);
 
-	// TODO: sputMain_SetPerfCounter(4)
+	_pGrim->setPerfCounter(4);
 
 	if (_pageFlipEnable)
 		restoreDirtyRects(_pBackBuffer, _pZBuffer);
 
-	// TODO: sputMain_QueryPerfCounterDiff(4)
-	// TODO: set the SMUSH target to the back buffer
-	// TODO: sputSmush_Periodic()
+	_pGrim->queryPerfCounterDiff(4);
+	_pSputSmush->setTarget(_pBackBuffer);
+	_pSputSmush->periodic();
 	_pStdDisplay->vBufferLock(_pBackBuffer);
 	drawPrimitives(1);
 	_pStdDisplay->vBufferUnlock(_pBackBuffer);
@@ -240,7 +243,8 @@ void SputRender::update() {
 	sortActors();
 
 	if (_numSortActors || (_debugFlags & 1)) {
-		// TODO: sputMain_SetPerfCounter(5)
+		_pGrim->setPerfCounter(5);
+
 		int numSorted = 0;
 
 		for (int i = 0; i < _numSortActors; i++) {
@@ -253,7 +257,7 @@ void SputRender::update() {
 			numSorted++;
 		}
 
-		// TODO: sputMain_QueryPerfCounterDiff(5)
+		_pGrim->queryPerfCounterDiff(5);
 
 		if (_debugFlags & 1) {
 			_pStdDisplay->vBufferLock(_pBackBuffer);
@@ -266,7 +270,7 @@ void SputRender::update() {
 			_pStdDisplay->vBufferUnlock(_pBackBuffer);
 		}
 
-		// TODO: sputMain_SetPerfCounter(6)
+		_pGrim->setPerfCounter(6);
 
 		for (int i = numSorted - 1; i >= 0; i--) {
 			ActorSortInfo *pEntry = _aSortedActors[i];
@@ -331,10 +335,10 @@ void SputRender::update() {
 			}
 		}
 
-		// TODO: sputMain_QueryPerfCounterDiff(6)
-		// TODO: sputMain_SetPerfCounter(7)
+		_pGrim->queryPerfCounterDiff(6);
+		_pGrim->setPerfCounter(7);
 		_pRd->finishFrame();
-		// TODO: sputMain_QueryPerfCounterDiff(7)
+		_pGrim->queryPerfCounterDiff(7);
 
 		for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
 			pState->update(2, _pBackBuffer, _pZBuffer);
@@ -355,7 +359,7 @@ void SputRender::update() {
 	}
 
 	if (_renderFlags & 4) {
-		int gameTime = 0; // TODO: sputTime_GetGameTime()
+		int gameTime = _pSputTime->getGameTime();
 		double ratio;
 
 		if (_irisX == 0.0f) {

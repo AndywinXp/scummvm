@@ -121,4 +121,32 @@ void sort(void *pBase, size_t num, size_t width, SortCompare compare) {
 	}
 }
 
+// bsearch is redefined because the element found among equal ones depends on the algorithm used by the executable
+void *binarySearch(const void *pKey, const void *pBase, size_t num, size_t width, SortCompare compare) {
+	const char *pLo = (const char *)pBase;
+
+	while (num) {
+		size_t half = num >> 1;
+
+		if (!half)
+			return compare(pKey, pLo) == 0 ? (void *)pLo : nullptr;
+
+		size_t mid = (num & 1) ? half : half - 1;
+		const char *pMid = pLo + mid * width;
+		int result = compare(pKey, pMid);
+
+		if (result == 0)
+			return (void *)pMid;
+
+		if (result < 0) {
+			num = mid;
+		} else {
+			pLo = pMid + width;
+			num = half;
+		}
+	}
+
+	return nullptr;
+}
+
 } // End of namespace Grim

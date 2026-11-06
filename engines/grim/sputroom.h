@@ -34,6 +34,7 @@ class WriteStream;
 
 namespace Grim {
 
+class GrimEngine;
 class RenderDroid;
 class SputActorModule;
 class SputRender;
@@ -124,6 +125,7 @@ public:
 			StdConffile *pStdConffile, WalkSystem *pWalkSystem);
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 	void setActors(SputActor *aActors) { _aActors = aActors; }
 	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 
@@ -196,6 +198,7 @@ private:
 	StdConffile *_pStdConffile;
 	WalkSystem *_pWalkSystem;
 	SputRender *_pSputRender;
+	GrimEngine *_pGrim;
 	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SysStruct *_pHS;

@@ -21,6 +21,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
 #include "engines/grim/sputcostume_components.h"
@@ -129,7 +130,7 @@ void SputActorModule::loadShadowResources(SputActor *pActor) {
 	if (!pActor->pExtra)
 		return;
 
-	// TODO: sputMain_SetPerfCounter(11)
+	_pGrim->setPerfCounter(11);
 
 	for (int i = 0; i < 6; i++) {
 		ActorShadow *pShadow = &pActor->pExtra->aShadows[i];
@@ -156,7 +157,7 @@ void SputActorModule::loadShadowResources(SputActor *pActor) {
 			initShadow(pActor->pCostumeStack, pShadow);
 	}
 
-	// TODO: sputMain_QueryPerfCounterDiff(11)
+	_pGrim->queryPerfCounterDiff(11);
 }
 
 void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {

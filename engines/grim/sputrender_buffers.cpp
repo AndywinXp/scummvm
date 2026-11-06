@@ -22,6 +22,7 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/std/std_bitmap.h"
 
@@ -111,7 +112,7 @@ int SputRender::copyGFXBuffer() {
 }
 
 int SputRender::cleanDrawBuffer() {
-	int mode = 4; // TODO: grimlib_mode
+	int mode = _pGrim->getLibMode();
 	int result = mode;
 
 	if (mode == 4) {
@@ -157,9 +158,12 @@ StdVBuffer *SputRender::screenShot(int width, int height) {
 		return nullptr;
 	}
 
-	// TODO: set grimlib_mode to 2 while dimming and restore it afterwards
+	int oldMode = _pGrim->getLibMode();
+
+	_pGrim->setLibMode(2);
 	_reset = 1;
 	dim(1, 0);
+	_pGrim->setLibMode(oldMode);
 
 	StdVBuffer *pClean = _pCleanArtBuffer;
 

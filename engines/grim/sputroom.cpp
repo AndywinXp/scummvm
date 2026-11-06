@@ -23,6 +23,7 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/puck.h"
 #include "engines/grim/sputactor.h"
@@ -40,7 +41,7 @@ namespace Grim {
 SputRoom::SputRoom(RenderDroid *pRd, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, StdLbm *pStdLbm,
 		StdConffile *pStdConffile, WalkSystem *pWalkSystem) : _pRd(pRd), _pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay),
 		_pStdBitmap(pStdBitmap), _pStdLbm(pStdLbm), _pStdConffile(pStdConffile), _pWalkSystem(pWalkSystem), _pSputRender(nullptr),
-		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSoundList(nullptr), _pActorNodeList(nullptr),
+		_pGrim(nullptr), _pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSoundList(nullptr), _pActorNodeList(nullptr),
 		_pLoadingRoom(nullptr), _bUpdateLoop(0), _numSections(0) {
 	memset(&_currentRoomRef, 0, sizeof(_currentRoomRef));
 	memset(_currentRoomName, 0, sizeof(_currentRoomName));
@@ -365,7 +366,7 @@ int SputRoom::restore(Common::ReadStream *pStream) {
 	setCurrentRoom(pCurrentRoom);
 
 	if (pCurrentRoom) {
-		// TODO: grimlib_MakeCurrentSetup(pCurrentRoom->curSetup)
+		_pGrim->makeCurrentSetupLib(pCurrentRoom->curSetup);
 
 		_pWalkSystem->setCollection(pCurrentRoom->name);
 

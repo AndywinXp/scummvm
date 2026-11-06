@@ -577,6 +577,30 @@ uint Res::changeFileNameToUpper(const char *src, char *dst) {
 	return hash;
 }
 
+int Res::findExternalFile(const char *name, char *pOutPath, uint size) {
+	char upperName[260];
+
+	if (strlen(name) >= sizeof(upperName)) {
+		warning("Res::findExternalFile(): name too long");
+		return 0;
+	}
+
+	if (!size) {
+		warning("Res::findExternalFile(): empty output buffer");
+		return 0;
+	}
+
+	changeFileNameToUpper(name, upperName);
+
+	if (!SearchMan.hasFile(Common::Path(upperName)))
+		return 0;
+
+	memset(pOutPath, 0, size);
+	strncpy(pOutPath, upperName, size - 1);
+
+	return 1;
+}
+
 void Res::setReference(ResRef *pRef, void *handle) {
 	ResNode *pNode = checkAllocatedRes(handle);
 
