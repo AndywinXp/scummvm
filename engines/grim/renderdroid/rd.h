@@ -254,7 +254,7 @@ struct RdKeyframe {
 	int aMarkerType[8];
 };
 
-typedef void (*RdPuppetTrackCallback)(int userArg, int trackNum, int markerType);
+typedef void (*RdPuppetTrackCallback)(void *userArg, int trackNum, int markerType);
 
 struct RdPuppetTrack {
 	uint status;
@@ -385,7 +385,7 @@ struct RdThing {
 	int curLightingMode;
 	int curTextureMode;
 	int frustrumCull;
-	int userArg;
+	void *userArg;
 };
 
 struct RdColormap {
@@ -827,8 +827,8 @@ public:
 	class ThingModule : public Module {
 	public:
 		explicit ThingModule(RenderDroid *rd) : Module(rd) {}
-		RdThing *create(int userArg);
-		int newEntry(RdThing *pThing, int userArg);
+		RdThing *create(void *userArg);
+		int newEntry(RdThing *pThing, void *userArg);
 		void destroy(RdThing *&pThing);
 		void freeEntry(RdThing *pThing);
 		int setModel3(RdThing *pThing, RdModel3 *pModel3);

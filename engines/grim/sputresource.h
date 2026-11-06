@@ -44,6 +44,7 @@ enum SputResourceTags {
 	kSputTagZbuf = MKTAG('F', 'U', 'B', 'Z')
 };
 
+class Cos;
 class SputRender;
 class SputRoom;
 
@@ -53,6 +54,7 @@ public:
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
+	void setCos(Cos *pCos) { _pCos = pCos; }
 
 	int handler(ResHandlerMsg *pMsg);
 
@@ -71,6 +73,7 @@ public:
 	int setMemoryUsage(int totalAllowedLimit, int purgeAmount);
 	int loadResBknd(ResHandlerMsg *pMsg);
 	void loadBknd();
+	int loadResCost(ResHandlerMsg *pMsg);
 	int loadResCmap(ResHandlerMsg *pMsg);
 	int loadResKeyf(ResHandlerMsg *pMsg);
 	int loadResMat(ResHandlerMsg *pMsg);
@@ -91,6 +94,7 @@ private:
 	StdBitmap *_pStdBitmap;
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
+	Cos *_pCos;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;

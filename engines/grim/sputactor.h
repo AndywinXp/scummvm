@@ -31,11 +31,25 @@
 namespace Grim {
 
 class Puck;
+struct ModelInst;
 
-// TODO: incomplete, the remaining fields come with the sputActor port
 struct CostumeNode {
-	void *hCostumeInstance;
+	int hCostumeInstance;
 	RdThing *pHeadThing;
+	ModelInst *pHeadList;
+	int aHeadJoint[3];
+	float headTurnRate;
+	float headYawLimit;
+	float headPitchLimit;
+	float headLookRef;
+	int walkChore;
+	int turnLeftChore;
+	int turnRightChore;
+	int restChore;
+	int aChore[16];
+	int mumbleChore;
+	ResRef rCostume;
+	CostumeNode *pNext;
 };
 
 // TODO: incomplete, the remaining fields come with the sputActor port

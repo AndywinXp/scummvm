@@ -21,6 +21,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/chore/cos.h"
 #include "engines/grim/registry.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
@@ -39,7 +40,7 @@ static int materialUnloader(RdMaterial *pMaterial) {
 }
 
 SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
-		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr),
+		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr), _pCos(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
@@ -48,6 +49,8 @@ int SputResource::handler(ResHandlerMsg *pMsg) {
 	switch (pMsg->tag) {
 	case kSputTagBknd:
 		return loadResBknd(pMsg);
+	case kSputTagCost:
+		return loadResCost(pMsg);
 	case kSputTagCmap:
 		return loadResCmap(pMsg);
 	case kSputTagKeyf:
@@ -169,10 +172,10 @@ int SputResource::shutdown() {
 }
 
 int SputResource::registerHandlers() {
-	const int aTags[7] = { kSputTagBknd, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet, kSputTagZbuf };
+	const int aTags[8] = { kSputTagBknd, kSputTagCost, kSputTagCmap, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet, kSputTagZbuf };
 	int result = 0;
 
-	for (uint i = 0; i < 7; i++) {
+	for (uint i = 0; i < 8; i++) {
 		result = _pRes->sysRegisterHandler(aTags[i], this);
 
 		if (result != 1)
@@ -299,6 +302,34 @@ void SputResource::loadBknd() {
 
 		_pRes->allocatedIterNext(&pNext, &handle, kSputTagBknd);
 	}
+}
+
+int SputResource::loadResCost(ResHandlerMsg *pMsg) {
+	if (pMsg->tag != kSputTagCost)
+		return 0;
+
+	switch (pMsg->op) {
+	case 1: {
+		int hCostume = _pCos->load(pMsg->pName);
+
+		if (!hCostume)
+			return 0;
+
+		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, (void *)(intptr)hCostume);
+	}
+	case 2:
+		_pCos->freeCostume((int)(intptr)pMsg->data);
+
+		return 1;
+	case 3:
+		pMsg->result = 1;
+
+		return 1;
+	default:
+		break;
+	}
+
+	return 0;
 }
 
 int SputResource::loadResCmap(ResHandlerMsg *pMsg) {

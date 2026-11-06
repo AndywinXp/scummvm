@@ -66,14 +66,14 @@ struct CosChore {
 };
 
 struct CosStateBitmapDesc {
-	int field_0;
+	byte *pPixels;
 	int field_4;
 	int field_8;
 	int field_C;
 };
 
 struct CosStateBitmap {
-	int field_0;
+	byte *pPixels;
 	int field_4;
 	int field_8;
 	int field_C;

@@ -128,7 +128,7 @@ void Cos::setComponentNames(CosComponent *pComp, const CosComponentNames *pNames
 			const CosStateBitmapDesc *pDesc = &pNames->aStateBitmaps[i];
 			pComp->apStateBitmaps[i] = pBitmap;
 
-			pBitmap->field_0 = pDesc->field_0;
+			pBitmap->pPixels = pDesc->pPixels;
 			pBitmap->field_4 = pDesc->field_4;
 			pBitmap->field_8 = pDesc->field_8;
 			pBitmap->field_C = pDesc->field_C;
