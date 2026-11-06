@@ -23,14 +23,20 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/sputprimitive.h"
+#include "engines/grim/sputrender.h"
 
 namespace Grim {
 
-SputPrimitive::SputPrimitive(RenderDroid *pRd) : _pHS(nullptr), _bInitialized(0), _bStarted(0), _current(pRd) {
+SputPrimitive::SputPrimitive(RenderDroid *pRd) : _pSputRender(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _current(pRd) {
 }
 
 SputPrimitive::~SputPrimitive() {
 	_current.purge();
+}
+
+void SputPrimitive::setSputRender(SputRender *pSputRender) {
+	_pSputRender = pSputRender;
+	_current.setSputRender(pSputRender);
 }
 
 int SputPrimitive::initialize(SysStruct *pHS) {
@@ -42,12 +48,11 @@ int SputPrimitive::initialize(SysStruct *pHS) {
 
 void SputPrimitive::pause() {
 	_current.markAllDirty(3);
-
-	// TODO: set the renderer flag that skips the primitives
+	_pSputRender->setSkipPrimitives(1);
 }
 
 void SputPrimitive::resume() {
-	// TODO: clear the renderer flag that skips the primitives
+	_pSputRender->setSkipPrimitives(0);
 }
 
 int SputPrimitive::terminate() {

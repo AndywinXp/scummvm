@@ -33,6 +33,7 @@ namespace Grim {
 
 // The tag values are the reversed characters
 enum SputResourceTags {
+	kSputTagBknd = MKTAG('D', 'N', 'K', 'B'),
 	kSputTagCmap = MKTAG('P', 'A', 'M', 'C'),
 	kSputTagCost = MKTAG('T', 'S', 'O', 'C'),
 	kSputTagKeyf = MKTAG('F', 'Y', 'E', 'K'),
@@ -40,9 +41,13 @@ enum SputResourceTags {
 	kSputTagModl = MKTAG('L', 'D', 'O', 'M')
 };
 
+class SputRender;
+
 class SputResource : public ResHandler {
 public:
 	SputResource(Res *pRes, RenderDroid *pRd);
+
+	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 
 	int handler(ResHandlerMsg *pMsg);
 
@@ -73,6 +78,7 @@ private:
 
 	Res *_pRes;
 	RenderDroid *_pRd;
+	SputRender *_pSputRender;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;

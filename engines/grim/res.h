@@ -84,10 +84,14 @@ struct ResTag {
 	ResHandler *pHandler;
 };
 
+class SputRender;
+
 class Res {
 public:
 	Res();
 	~Res();
+
+	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 
 	int sysInitialize(SysStruct *pHS);
 	void sysTerminate();
@@ -143,6 +147,7 @@ private:
 	ResHandler *_pDefaultHandler;
 	Common::DumpFile *_logFile;
 	int _memoryLimit;
+	SputRender *_pSputRender;
 };
 
 } // End of namespace Grim

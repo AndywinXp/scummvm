@@ -27,6 +27,7 @@
 namespace Grim {
 
 class RenderDroid;
+class SputRender;
 struct RdCanvas;
 
 enum SputPrimitiveShape {
@@ -56,6 +57,8 @@ class PrimitiveQueue {
 public:
 	explicit PrimitiveQueue(RenderDroid *pRd);
 
+	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+
 	void purge();
 	int addLine(int x1, int y1, int x2, int y2, int color, int layer);
 	int addRect(int x1, int y1, int x2, int y2, int color, int bFilled, int layer);
@@ -81,6 +84,7 @@ private:
 	friend class SputPrimitive;
 
 	RenderDroid *_pRd;
+	SputRender *_pSputRender;
 	SputPrimitiveObject *_pHead;
 	SputPrimitiveObject *_pTail;
 	int _nextId;

@@ -24,12 +24,13 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/res.h"
+#include "engines/grim/sputrender.h"
 
 namespace Grim {
 
 Res::Res() : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0),
 		_pTagHead(nullptr), _pNodeHead(nullptr), _pNodeTail(nullptr), _pDefaultHandler(nullptr),
-		_logFile(nullptr), _memoryLimit(0x1800000) {
+		_logFile(nullptr), _memoryLimit(0x1800000), _pSputRender(nullptr) {
 }
 
 Res::~Res() {
@@ -345,7 +346,7 @@ ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
 	msg.data = nullptr;
 	msg.result = 0;
 
-	// TODO: draw the loading image
+	_pSputRender->drawLoadingImage();
 
 	if (pTag)
 		*pResult = pTag->pHandler->handler(&msg);

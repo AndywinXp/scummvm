@@ -891,7 +891,7 @@ public:
 		int drawFaceN(RdProcFace *pProcFace);
 		int drawFaceZ(RdProcFace *pProcFace);
 		int drawFaceUser(RdProcFace *pProcFace);
-		int procFaceCompare(const RdProcFace *pA, const RdProcFace *pB);
+		static int procFaceCompare(const void *pA, const void *pB);
 
 	private:
 		friend class RenderDroid;
