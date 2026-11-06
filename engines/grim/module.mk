@@ -184,6 +184,7 @@ MODULE_OBJS := \
 	sector.o \
 	sound.o \
 	sprite.o \
+	sputobjectstate.o \
 	sputprimitive.o \
 	sputresource.o \
 	textobject.o \
