@@ -23,6 +23,7 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputrender.h"
 
@@ -163,6 +164,7 @@ int Res::setPurgeOnFree(void *handle, int bPurge) {
 
 int Res::freeResources(uint bytesWanted, uint *pBytesFreed) {
 	int bFreedAny = 1;
+	int numVisited = 0;
 
 	*pBytesFreed = 0;
 
@@ -175,7 +177,11 @@ int Res::freeResources(uint bytesWanted, uint *pBytesFreed) {
 				int bListEnded = 0;
 
 				while (*pBytesFreed < bytesWanted) {
-					// TODO: call the sound periodic function every 5th visited node
+					numVisited++;
+
+					if (g_imuse && !(numVisited % 5))
+						g_imuse->soundsPeriodic();
+
 					ResNode *pPrev = pNode->pPrev;
 
 					if (!pNode->pRefs && !(pNode->flags & 8)) {
@@ -355,7 +361,8 @@ ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
 	else
 		*pResult = loadFileData(&msg);
 
-	// TODO: call the sound periodic function
+	if (g_imuse)
+		g_imuse->soundsPeriodic();
 
 	if (*pResult == 1) {
 		pNode = checkList1(tag, name);

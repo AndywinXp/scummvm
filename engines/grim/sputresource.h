@@ -58,6 +58,7 @@ class Cos;
 class SputRender;
 class SputRoom;
 class Text;
+class WuRegistry;
 
 class SputResource : public ResHandler {
 public:
@@ -68,6 +69,7 @@ public:
 	void setCos(Cos *pCos) { _pCos = pCos; }
 	void setText(Text *pText) { _pText = pText; }
 	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
+	void setWuRegistry(WuRegistry *pWuRegistry) { _pWuRegistry = pWuRegistry; }
 
 	int handler(ResHandlerMsg *pMsg);
 
@@ -80,7 +82,7 @@ public:
 	int logToFile(const char *path);
 	int terminate();
 	int startup();
-	void saveVerifyCallback(const char *fileName);
+	int saveVerifyCallback(const char *fileName);
 	int shutdown();
 	int registerHandlers();
 	int setMemoryUsage(int totalAllowedLimit, int purgeAmount);
@@ -114,6 +116,7 @@ private:
 	Cos *_pCos;
 	Text *_pText;
 	BlastText *_pBlastText;
+	WuRegistry *_pWuRegistry;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;
