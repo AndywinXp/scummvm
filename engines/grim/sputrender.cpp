@@ -25,6 +25,7 @@
 
 #include "engines/grim/blasttext.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/sputactor.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputrender.h"
 
@@ -34,7 +35,7 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer) :
 		_pRd(pRd), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pRes(pRes), _pSputResource(pSputResource),
 		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
-		_aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr),
+		_pSputActor(nullptr), _aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0),
 		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
@@ -151,7 +152,8 @@ int SputRender::restore(Common::ReadStream *pStream) {
 }
 
 int SputRender::open() {
-	// TODO: allocate the camera helper actor and set its first flag
+	_gCamActorIndex = _pSputActor->allocateActor();
+	_pSputActor->actorDeref(_gCamActorIndex)->flags |= 1;
 
 	return 1;
 }

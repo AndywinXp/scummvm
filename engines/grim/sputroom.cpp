@@ -40,7 +40,7 @@ namespace Grim {
 SputRoom::SputRoom(RenderDroid *pRd, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, StdLbm *pStdLbm,
 		StdConffile *pStdConffile, WalkSystem *pWalkSystem) : _pRd(pRd), _pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay),
 		_pStdBitmap(pStdBitmap), _pStdLbm(pStdLbm), _pStdConffile(pStdConffile), _pWalkSystem(pWalkSystem), _pSputRender(nullptr),
-		_aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSoundList(nullptr), _pActorNodeList(nullptr),
+		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSoundList(nullptr), _pActorNodeList(nullptr),
 		_pLoadingRoom(nullptr), _bUpdateLoop(0), _numSections(0) {
 	memset(&_currentRoomRef, 0, sizeof(_currentRoomRef));
 	memset(_currentRoomName, 0, sizeof(_currentRoomName));
@@ -544,8 +544,7 @@ void SputRoom::freeRoomEntry(Room *pRoom) {
 
 	if (pActorNode) {
 		for (RoomActorLink *pLink = pActorNode->pActors; pLink; pLink = pActorNode->pActors) {
-			// TODO: sputActor_ResetShadows(&_aActors[pLink->actorIndex])
-
+			_pSputActor->resetShadows(&_aActors[pLink->actorIndex]);
 			removeActor(pRoom->name, &_aActors[pLink->actorIndex]);
 
 			if (pActorNode->pActors == pLink) {

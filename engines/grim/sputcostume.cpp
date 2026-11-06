@@ -49,7 +49,7 @@ void SputCostume::puppetHookCallback(void *userArg, int trackNum, int markerType
 
 SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm) :
 		_pRes(pRes), _pRd(pRd), _pSputResource(pSputResource), _pSputRender(pSputRender), _pSputRoom(pSputRoom), _pStdLbm(pStdLbm),
-		_aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pShadowColormap(nullptr), _aLECBitmaps(nullptr),
+		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pShadowColormap(nullptr), _aLECBitmaps(nullptr),
 		_pLastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
 		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this),
 		_bitmapHandler(this), _soundHandler(this), _smushHandler(this), _spriteHandler(this), _imuseHandler(this), _luaVarHandler(this) {
@@ -159,7 +159,7 @@ CostumeNode *SputCostume::setCostume(CostumeNode *pNode, int hCostume, int hInst
 }
 
 CostumeNode *SputCostume::pushCostume(CostumeNode *pPrev, int hCostume, int hInstance) {
-	CostumeNode *pNode = allocCostumeNode();
+	CostumeNode *pNode = _pSputActor->allocCostumeNode();
 
 	pNode->pNext = pPrev;
 
@@ -201,34 +201,6 @@ CostumeNode *SputCostume::pushCostume(CostumeNode *pPrev, int hCostume, int hIns
 	}
 
 	return pNode;
-}
-
-CostumeNode *SputCostume::allocCostumeNode() {
-	CostumeNode *pNode = new CostumeNode();
-
-	initCostumeNode(pNode);
-
-	return pNode;
-}
-
-void SputCostume::initCostumeNode(CostumeNode *pNode) {
-	pNode->hCostumeInstance = 0;
-	pNode->aHeadJoint[0] = -1;
-	pNode->aHeadJoint[1] = -1;
-	pNode->aHeadJoint[2] = -1;
-	pNode->headYawLimit = 30.0f;
-	pNode->headPitchLimit = 90.0f;
-	pNode->headLookRef = -0.35f;
-	pNode->headTurnRate = 360.0f;
-	pNode->walkChore = -1;
-	pNode->turnLeftChore = -1;
-	pNode->turnRightChore = -1;
-	pNode->restChore = -1;
-	pNode->mumbleChore = -1;
-	memset(pNode->aChore, 0xFF, sizeof(pNode->aChore));
-	memset(&pNode->rCostume, 0, sizeof(pNode->rCostume));
-	pNode->pHeadList = nullptr;
-	pNode->pNext = nullptr;
 }
 
 RdThing *SputCostume::getMainThing(int hInst) {
