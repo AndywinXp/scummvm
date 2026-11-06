@@ -23,6 +23,7 @@
 
 #include "engines/grim/primitivequeue.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/sputrender.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Grim {
@@ -31,7 +32,7 @@ SputPrimitiveObject::SputPrimitiveObject(int id, int shape) : pNext(nullptr), pP
 		layer(2), x1(0), y1(0), x2(0), y2(0), color(0), pattern(-1), bFilled(0) {
 }
 
-PrimitiveQueue::PrimitiveQueue(RenderDroid *pRd) : _pRd(pRd), _pHead(nullptr), _pTail(nullptr), _nextId(1) {
+PrimitiveQueue::PrimitiveQueue(RenderDroid *pRd) : _pRd(pRd), _pSputRender(nullptr), _pHead(nullptr), _pTail(nullptr), _nextId(1) {
 }
 
 void PrimitiveQueue::purge() {
@@ -279,7 +280,7 @@ void PrimitiveQueue::markDirty(SputPrimitiveObject *pObj) {
 	rect.width = MAX(pObj->x1, pObj->x2) - rect.x + 1;
 	rect.height = MAX(pObj->y1, pObj->y2) - rect.y + 1;
 
-	// TODO: mark the rectangle dirty in the renderer
+	_pSputRender->markDirtyRect(&rect, 0);
 }
 
 void PrimitiveQueue::resetId() {

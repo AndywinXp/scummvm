@@ -24,21 +24,14 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/sputobjectstate.h"
+#include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/std/std_bitmap.h"
 
 namespace Grim {
 
-namespace {
-
-enum {
-	kBkndTag = MKTAG('D', 'N', 'K', 'B')
-};
-
-} // End of anonymous namespace
-
-ObjectStateImage::ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) :
-		_pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap) {
+ObjectStateImage::ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender) :
+		_pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(pSputRender) {
 	memset(&rect, 0, sizeof(rect));
 	memset(aFileName, 0, sizeof(aFileName));
 	memset(&bitmapRef, 0, sizeof(bitmapRef));
@@ -78,7 +71,7 @@ void ObjectStateImage::setFile(const char *fileName) {
 void ObjectStateImage::load(int bLoad) {
 	if (bLoad && aFileName[0]) {
 		if (!bitmapRef.valid) {
-			void *handle = _pSputResource->alloc(kBkndTag, aFileName);
+			void *handle = _pSputResource->alloc(kSputTagBknd, aFileName);
 			StdBitmapStruct *pBitmap = (StdBitmapStruct *)handle;
 
 			if (handle) {
@@ -143,15 +136,14 @@ void ObjectStateImage::draw(StdVBuffer *pDst) {
 
 				if (vBuffer()) {
 					if (vBuffer()->type == 2) {
-						// TODO: fill the renderer draw buffer with the frame
-						// TODO: copy the renderer clean buffer to the destination
+						_pSputRender->fillDrawBuffer(vBuffer());
+						_pStdDisplay->vBufferCopy(pDst, _pSputRender->getCleanBuffer(), pBitmap->xPos, pBitmap->yPos, nullptr, (char)mode);
 					} else {
 						_pStdDisplay->vBufferCopy(pDst, vBuffer(), pBitmap->xPos, pBitmap->yPos, nullptr, (char)mode);
 					}
 
-					if (mode) {
-						// TODO: mark the rectangle dirty in the renderer
-					}
+					if (mode)
+						_pSputRender->markDirtyRect(&rect, 1);
 				}
 			}
 		}
@@ -168,8 +160,9 @@ int ObjectStateImage::inSync() {
 	return 0;
 }
 
-SputObjectState::SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) :
-		colorImage(pRes, pSputResource, pStdDisplay, pStdBitmap), zImage(pRes, pSputResource, pStdDisplay, pStdBitmap) {
+SputObjectState::SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender) :
+		colorImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender), zImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender),
+		_pSputRender(pSputRender) {
 	setupIndex = -1;
 	type = objectType;
 	colorImage.setFile(colorFile);
@@ -217,7 +210,7 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 		return;
 
 	if (type == 3) {
-		// TODO: int page = 0; (argument of the dirty marking call below)
+		int page = 0;
 
 		if (!colorImage.inSync()) {
 			colorImage.draw(pColor);
@@ -226,11 +219,11 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 				if (pZ) {
 					((StdBitmapStruct *)zImage.bitmapRef.handle)->unk_104 = colorImage.curFrame;
 					zImage.draw(pZ);
-					// TODO: page = 1;
+					page = 1;
 				}
 			}
 
-			// TODO: mark all the pages dirty in the renderer
+			_pSputRender->markAllPagesDirty(&colorImage.rect, page);
 		}
 	} else {
 		int colorFrame;
@@ -240,9 +233,8 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 		else
 			colorFrame = -1;
 
-		if (colorFrame == -1 && colorImage.curFrame != -1) {
-			// TODO: mark all the pages dirty in the renderer
-		}
+		if (colorFrame == -1 && colorImage.curFrame != -1)
+			_pSputRender->markAllPagesDirty(&colorImage.rect, 1);
 
 		colorImage.draw(pColor);
 		zImage.draw(pZ);

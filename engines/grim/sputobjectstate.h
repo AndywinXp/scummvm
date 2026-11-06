@@ -29,10 +29,11 @@
 
 namespace Grim {
 
+class SputRender;
 class SputResource;
 
 struct ObjectStateImage {
-	ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
+	ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender);
 	~ObjectStateImage();
 
 	void clear();
@@ -56,10 +57,11 @@ private:
 	SputResource *_pSputResource;
 	StdDisplay *_pStdDisplay;
 	StdBitmap *_pStdBitmap;
+	SputRender *_pSputRender;
 };
 
 struct SputObjectState {
-	SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
+	SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender);
 	~SputObjectState();
 
 	void loadResources();
@@ -77,6 +79,9 @@ struct SputObjectState {
 	ObjectStateImage zImage;
 	SputObjectState *pPrev;
 	SputObjectState *pNext;
+
+private:
+	SputRender *_pSputRender;
 };
 
 } // End of namespace Grim

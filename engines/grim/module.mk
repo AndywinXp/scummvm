@@ -136,6 +136,7 @@ MODULE_OBJS := \
 	std/std_lbm.o \
 	std/std_math.o \
 	std/std_math_tables.o \
+	std/std_sort.o \
 	std/std_pcx.o \
 	std/std_pic.o \
 	update/packfile.o \
@@ -186,6 +187,11 @@ MODULE_OBJS := \
 	sprite.o \
 	sputobjectstate.o \
 	sputprimitive.o \
+	sputrender.o \
+	sputrender_buffers.o \
+	sputrender_color.o \
+	sputrender_debug.o \
+	sputrender_scene.o \
 	sputresource.o \
 	textobject.o \
 	textsplit.o \

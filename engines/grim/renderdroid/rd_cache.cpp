@@ -23,16 +23,9 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_sort.h"
 
 namespace Grim {
-
-struct RdProcFaceLess {
-	RenderDroid::CacheModule *_cache;
-
-	bool operator()(const RdProcFace &a, const RdProcFace &b) const {
-		return _cache->procFaceCompare(&a, &b) < 0;
-	}
-};
 
 int RenderDroid::CacheModule::startup() {
 	return 1;
@@ -91,9 +84,7 @@ int RenderDroid::CacheModule::flush() {
 		return result;
 
 	if (_rd->_curSortingMethod == 2) {
-		RdProcFaceLess less;
-		less._cache = this;
-		Common::sort(_aProcFaces, _aProcFaces + _numProcFaces, less);
+		sort(_aProcFaces, _numProcFaces, sizeof(RdProcFace), procFaceCompare);
 	}
 
 	if (_rd->_curAcceleration <= 0) {
@@ -215,11 +206,14 @@ int RenderDroid::CacheModule::addProcFace(uint flags, uint numVertices, char buf
 	return 1;
 }
 
-int RenderDroid::CacheModule::procFaceCompare(const RdProcFace *pA, const RdProcFace *pB) {
-	if (pA->zMin == pB->zMin)
+int RenderDroid::CacheModule::procFaceCompare(const void *pA, const void *pB) {
+	const RdProcFace *pFaceA = (const RdProcFace *)pA;
+	const RdProcFace *pFaceB = (const RdProcFace *)pB;
+
+	if (pFaceA->zMin == pFaceB->zMin)
 		return 0;
 
-	if (pA->zMin >= (double)pB->zMin)
+	if (pFaceA->zMin >= (double)pFaceB->zMin)
 		return -1;
 
 	return 1;

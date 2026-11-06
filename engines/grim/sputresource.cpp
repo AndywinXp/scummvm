@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/registry.h"
+#include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 
 namespace Grim {
@@ -36,7 +37,7 @@ static int materialUnloader(RdMaterial *pMaterial) {
 	return g_pSputResource->unlock(pMaterial);
 }
 
-SputResource::SputResource(Res *pRes, RenderDroid *pRd) : _pRes(pRes), _pRd(pRd),
+SputResource::SputResource(Res *pRes, RenderDroid *pRd) : _pRes(pRes), _pRd(pRd), _pSputRender(nullptr),
 		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
@@ -213,7 +214,7 @@ int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
 
 		if (pColormap->pRGB16) {
 			_pRd->_colormap.buildRGB16(pColormap->pRGB16, pColormap->aColors, 0, 0, 0, &colorFormat);
-			// TODO: color correct the RGB16 table
+			_pSputRender->colorCorrect((uint16 *)pColormap->pRGB16, 0x4000);
 		} else {
 			warning("SputResource::loadResCmap(): colormap %s has no RGB16 table", pMsg->pName);
 		}
@@ -382,7 +383,7 @@ int SputResource::cmap() {
 
 		if (pColormap->pRGB16) {
 			_pRd->_colormap.buildRGB16(pColormap->pRGB16, pColormap->aColors, 0, 0, 0, &colorFormat);
-			// TODO: color correct the RGB16 table
+			_pSputRender->colorCorrect((uint16 *)pColormap->pRGB16, 0x4000);
 		} else {
 			warning("SputResource::cmap(): colormap %s has no RGB16 table", pColormap->aName);
 		}

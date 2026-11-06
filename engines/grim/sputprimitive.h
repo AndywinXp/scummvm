@@ -35,11 +35,14 @@ class WriteStream;
 namespace Grim {
 
 class RenderDroid;
+class SputRender;
 
 class SputPrimitive {
 public:
 	explicit SputPrimitive(RenderDroid *pRd);
 	~SputPrimitive();
+
+	void setSputRender(SputRender *pSputRender);
 
 	int initialize(SysStruct *pHS);
 	void pause();
@@ -53,6 +56,7 @@ public:
 	PrimitiveQueue *getCurrent() { return &_current; }
 
 private:
+	SputRender *_pSputRender;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;
