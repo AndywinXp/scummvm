@@ -167,9 +167,6 @@ MODULE_OBJS := \
 	gfx_opengl.o \
 	grim.o \
 	grim_controls.o \
-	grim_lib.o \
-	grim_main.o \
-	grim_save.o \
 	inputdialog.o \
 	iris.o \
 	keyframe.o \

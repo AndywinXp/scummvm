@@ -101,6 +101,7 @@ public:
 
 	StdControlInput *getInput() { return &_input; }
 	int isStarted() const { return _bStartup; }
+	int isOpen() const { return _bOpen; }
 
 	int startup();
 	void shutdown();

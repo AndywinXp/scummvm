@@ -24,11 +24,11 @@
 #include "engines/grim/blasttext.h"
 #include "engines/grim/chore/cos.h"
 #include "engines/grim/imuse/imuse_engine.h"
-#include "engines/grim/registry.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/text.h"
+#include "engines/grim/wuregistry.h"
 
 namespace Grim {
 
@@ -42,9 +42,13 @@ static int materialUnloader(RdMaterial *pMaterial) {
 	return g_pSputResource->unlock(pMaterial);
 }
 
+static int saveVerifier(const char *fileName) {
+	return g_pSputResource->saveVerifyCallback(fileName);
+}
+
 SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
 		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr), _pCos(nullptr),
-		_pText(nullptr), _pBlastText(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
+		_pText(nullptr), _pBlastText(nullptr), _pWuRegistry(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
 
@@ -110,7 +114,12 @@ int SputResource::closeResources() {
 }
 
 int SputResource::findResources() {
-	Common::String dataDirectory = g_registry->getString("GrimDataDir");
+	char aDataDirectory[128];
+
+	aDataDirectory[0] = 0;
+	_pWuRegistry->getStr("GrimDataDir", aDataDirectory, sizeof(aDataDirectory), "");
+
+	Common::String dataDirectory(aDataDirectory);
 
 	// TODO: the current directory is not added
 	addResourcePathInternal(dataDirectory.c_str());
@@ -165,12 +174,13 @@ int SputResource::startup() {
 	g_pSputResource = this;
 	_oldMatLoader = _pRd->_material.registerLoader(materialLoader);
 	_oldMatUnloader = _pRd->_material.registerUnloader(materialUnloader);
+	_pCos->registerSaveVerify(saveVerifier);
 
 	return _bStarted == 0;
 }
 
-void SputResource::saveVerifyCallback(const char *fileName) {
-	_pRes->initLists(kSputTagCost, fileName);
+int SputResource::saveVerifyCallback(const char *fileName) {
+	return _pRes->initLists(kSputTagCost, fileName);
 }
 
 int SputResource::shutdown() {

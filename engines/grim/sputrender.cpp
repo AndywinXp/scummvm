@@ -218,7 +218,7 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 		_pRd->_camera.setAmbientLight(pRoom->pSetups[pRoom->curSetup].camera.prdCamera, _ambient);
 
 	_pColorInfo = &_pBackBuffer->tex.format;
-	loadSetupBackground(_pColorInfo); // TODO: pass grim_colorInfoCopy
+	loadSetupBackground(_pGrim->getColorInfo());
 	_pDecompressionBuffer = 1;
 
 	pRoom = _pSputRoom->getCurrentRoom();

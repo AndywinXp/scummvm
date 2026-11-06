@@ -35,6 +35,8 @@
 #include "engines/grim/textobject.h"
 #include "engines/grim/iris.h"
 #include "engines/grim/detection.h"
+#include "engines/grim/std/std_display.h"
+#include "engines/grim/std/std_sys.h"
 
 namespace Common {
 class SeekableReadStream;
@@ -43,8 +45,24 @@ class WriteStream;
 
 namespace Grim {
 
+class BlastText;
 class IMuse;
+class NormalText;
+class Polyglot;
+class RenderDroid;
 class Res;
+class StdBitmap;
+class StdBmp;
+class StdConffile;
+class StdControl;
+class StdFile;
+class StdGif;
+class StdLbm;
+class StdMath;
+class StdPcx;
+class StdPic;
+class Text;
+class WuRegistry;
 class SputActorModule;
 class SputControl;
 class SputCostume;
@@ -109,7 +127,7 @@ struct PerfCounter {
 	double elapsed;
 };
 
-class GrimEngine : public Engine {
+class GrimEngine : public Engine, public SysStruct {
 
 protected:
 	// Engine APIs
@@ -287,7 +305,7 @@ public:
 	void requestShutdown(int arg);
 	void setPause(int bPause);
 	int doPauseCallback();
-	int characterCallback();
+	int characterCallback(int character);
 	int setImuseState(int state);
 	int playMovie(const char *name, int bFullscreen, int bLooping, int x, int y);
 	int userPaint();
@@ -298,6 +316,10 @@ public:
 	void setLibMode(int mode) { _libMode = mode; }
 	int getDebugKeys() const { return _bDebugKeys; }
 	void setDebugKeys(int bDebugKeys) { _bDebugKeys = bDebugKeys; }
+	const StdColorFormat *getColorInfo() const { return &_colorInfoCopy; }
+
+	// grim module
+	Common::SeekableReadStream *openFile(const char *path) override;
 
 	// Engine APIs
 	bool hasFeature(EngineFeature f) const override;
@@ -411,6 +433,64 @@ protected:
 	void terminateModule(int module);
 	void soundsSave(Common::WriteStream *pStream);
 	void soundsRestore(Common::SeekableReadStream *pStream);
+
+	// grim module
+	Common::Error runGrime();
+	bool useGrimeFlow() const;
+	void createImuse();
+	void createModules();
+	void destroyModules();
+	int grimStartup();
+	void grimMain();
+	void grimShutdown();
+	void fatalError(const char *text, const char *caption);
+	int initDisplayAndDevice();
+	int selectDisplayMode();
+	void shutdownDisplay();
+	void loadSplash();
+	void pumpEvents();
+	void handleFocus(int bActive);
+	void handleKey(Common::EventType type, const Common::KeyState &key, bool bRepeat);
+	void handleKeyDebug(const Common::KeyState &key);
+	void addKeyboardEvent(uint offset, int data);
+	void addMouseButtonEvent(uint offset, int data);
+	static int shutdownCallback(int arg);
+	static int pageFlipCallback();
+
+	StdMath *_pStdMath = nullptr;
+	StdFile *_pStdFile = nullptr;
+	StdConffile *_pStdConffile = nullptr;
+	StdBitmap *_pStdBitmap = nullptr;
+	StdLbm *_pStdLbm = nullptr;
+	StdPcx *_pStdPcx = nullptr;
+	StdGif *_pStdGif = nullptr;
+	StdPic *_pStdPic = nullptr;
+	StdBmp *_pStdBmp = nullptr;
+	RenderDroid *_pRd = nullptr;
+	StdControl *_pStdControl = nullptr;
+	WuRegistry *_pWuRegistry = nullptr;
+	Polyglot *_pPolyglot = nullptr;
+	Text *_pText = nullptr;
+	BlastText *_pBlastText = nullptr;
+	NormalText *_pNormalText = nullptr;
+	StdVBuffer *_pBackBuffer = nullptr;
+	StdVBuffer *_pZBuffer = nullptr;
+	StdColorFormat _colorInfoCopy = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
+	int _numDrawBuffers = 1;
+	int _bActive = 1;
+	int _bFirstFrame = 0;
+	int _bQuit = 0;
+	int _bDisplayOpen = 0;
+	int _bShowDebugOverlay = 0;
+	int _bBackspaceHeld = 0;
+	int _bEnginePaused = 0;
+	int _saveGameToResume = 0;
+	int _grimFrameCount = 0;
+	int _grimLastFpsFrame = 0;
+	uint32 _grimLastFpsTime = 0;
+	double _grimFps = 0.0;
+	int _screenshotCounter = 0;
+	int _zbufShotCounter = 0;
 
 	Res *_pRes = nullptr;
 	StdDisplay *_pStdDisplay = nullptr;

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef GRIM_WALKPLANE_H
-#define GRIM_WALKPLANE_H
+#ifndef GRIM_WALKSYSTEM_H
+#define GRIM_WALKSYSTEM_H
 
 #include "common/scummsys.h"
 

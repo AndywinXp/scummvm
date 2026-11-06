@@ -32,11 +32,21 @@
 #include "common/config-manager.h"
 #include "common/compression/stuffit.h"
 #include "common/translation.h"
+#include "common/endian.h"
+#include "common/events.h"
+#include "common/savefile.h"
+#include "common/serializer.h"
+#include "common/str.h"
+#include "common/stream.h"
+#include "common/system.h"
+#include "common/textconsole.h"
 
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymap.h"
 #include "backends/keymapper/standard-actions.h"
 
+#include "graphics/cursorman.h"
+#include "graphics/pixelformat.h"
 #include "graphics/renderer.h"
 
 #if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
@@ -80,6 +90,37 @@
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/emi/sound/emisound.h"
 #include "engines/grim/lua/lua.h"
+#include "engines/grim/stdcontrol.h"
+#include "engines/grim/blasttext.h"
+#include "engines/grim/chore/cos.h"
+#include "engines/grim/normaltext.h"
+#include "engines/grim/patchr.h"
+#include "engines/grim/polyglot.h"
+#include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/res.h"
+#include "engines/grim/sputactor.h"
+#include "engines/grim/sputcontrol.h"
+#include "engines/grim/sputcostume.h"
+#include "engines/grim/sputprimitive.h"
+#include "engines/grim/sputrender.h"
+#include "engines/grim/sputresource.h"
+#include "engines/grim/sputroom.h"
+#include "engines/grim/sputsmush.h"
+#include "engines/grim/sputtext.h"
+#include "engines/grim/sputtime.h"
+#include "engines/grim/std/std_bitmap.h"
+#include "engines/grim/std/std_bmp.h"
+#include "engines/grim/std/std_conffile.h"
+#include "engines/grim/std/std_display.h"
+#include "engines/grim/std/std_file.h"
+#include "engines/grim/std/std_gif.h"
+#include "engines/grim/std/std_lbm.h"
+#include "engines/grim/std/std_math.h"
+#include "engines/grim/std/std_pcx.h"
+#include "engines/grim/std/std_pic.h"
+#include "engines/grim/text.h"
+#include "engines/grim/walkplane.h"
+#include "engines/grim/wuregistry.h"
 
 namespace Grim {
 
@@ -97,7 +138,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	_gamePlatform = platform;
 	_gameLanguage = language;
 
-	if (getGameType() == GType_GRIM)
+	if (getGameType() == GType_GRIM && !useGrimeFlow())
 		g_registry = new Registry();
 	else
 		g_registry = nullptr;
@@ -200,6 +241,8 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 }
 
 GrimEngine::~GrimEngine() {
+	destroyModules();
+
 	delete[] _controlsEnabled;
 	delete[] _controlsState;
 	delete[] _joyAxisPosition;
@@ -373,6 +416,9 @@ Common::Error GrimEngine::run() {
 		ConfMan.flushToDisk();
 	}
 
+	if (useGrimeFlow())
+		return runGrime();
+
 	g_resourceloader = new ResourceLoader();
 	bool demo = getGameFlags() & ADGF_DEMO;
 	if (getGameType() == GType_GRIM)
@@ -384,26 +430,7 @@ Common::Error GrimEngine::run() {
 			g_movie = CreateBinkPlayer(demo);
 	}
 	if (getGameType() == GType_GRIM) {
-		// The remastered works at 48000Hz
-		int baseSampleRate = isRemastered() ? IMUSE_REMASTERED_SAMPLERATE : IMUSE_BASE_SAMPLERATE;
-		int sampleRate = baseSampleRate;
-		ConfMan.registerDefault("imuse_sample_rate", baseSampleRate);
-		if (ConfMan.hasKey("imuse_sample_rate", _targetName)) {
-			// Only accept sample rates which are a multiple or submultiple of the base one
-			int configSampleRate = ConfMan.getInt("imuse_sample_rate");
-			if ((configSampleRate % (baseSampleRate / 2)) == 0 &&
-				configSampleRate >= baseSampleRate / 2 &&
-				configSampleRate <= baseSampleRate * 4) {
-				sampleRate = configSampleRate;
-			}
-		}
-
-		bool lowLatencyMode = false;
-		ConfMan.registerDefault("imuse_low_latency_mode", false);
-		if (ConfMan.hasKey("imuse_low_latency_mode", _targetName))
-			lowLatencyMode = ConfMan.getBool("imuse_low_latency_mode");
-
-		g_imuse = new IMuse(sampleRate, _mixer, &_imuseMutex, lowLatencyMode, demo, isRemastered());
+		createImuse();
 		g_emiSound = nullptr;
 		if (g_grim->isRemastered()) {
 			// This must happen here, since we need the resource loader set up.
@@ -715,6 +742,10 @@ void GrimEngine::playAspyrLogo() {
 
 Common::Error GrimEngine::loadGameState(int slot) {
 	assert(slot >= 0);
+	if (useGrimeFlow()) {
+		loadLib(Common::String::format("grim%02d.gsv", slot).c_str());
+		return Common::kNoError;
+	}
 	if (getGameType() == GType_MONKEY4) {
 		if (getGamePlatform() == Common::kPlatformPS2) {
 			_savegameFileName = Common::String::format("efmi%03d.ps2", slot);
@@ -1692,6 +1723,21 @@ bool GrimEngine::hasFeature(EngineFeature f) const {
 }
 
 void GrimEngine::pauseEngineIntern(bool pause) {
+	if (useGrimeFlow()) {
+		if (pause) {
+			_bEnginePaused = _libMode != 1;
+			setPause(1);
+		} else if (_bEnginePaused) {
+			_bEnginePaused = 0;
+			setPause(0);
+
+			if (_pStdControl)
+				_pStdControl->flush();
+		}
+
+		return;
+	}
+
 	if (g_imuse)
 		g_imuse->pause(pause);
 	if (g_movie)
@@ -1762,6 +1808,1720 @@ void GrimEngine::setSaveMetaData(const char *meta1, int meta2, const char *meta3
 	_saveMeta1 = meta1;
 	_saveMeta2 = meta2;
 	_saveMeta3 = meta3;
+}
+
+bool GrimEngine::useGrimeFlow() const {
+	return _gameType == GType_GRIM && !(_gameFlags & ADGF_DEMO) && !isRemastered();
+}
+
+Common::Error GrimEngine::runGrime() {
+	g_resourceloader = new ResourceLoader();
+	g_movie = CreateSmushPlayer(false);
+
+	createImuse();
+	createModules();
+
+	if (!grimStartup()) {
+		grimShutdown();
+		destroyModules();
+
+		return Common::kUnknownError;
+	}
+
+	if (ConfMan.hasKey("save_slot"))
+		loadGameState(ConfMan.getInt("save_slot"));
+
+	while (!shouldQuit() && !_bQuit) {
+		uint32 startTime = g_system->getMillis();
+
+		pumpEvents();
+		grimMain();
+
+		uint32 endTime = g_system->getMillis();
+
+		if (endTime >= startTime && endTime - startTime < _speedLimitMs)
+			g_system->delayMillis(_speedLimitMs - (endTime - startTime));
+	}
+
+	grimShutdown();
+	destroyModules();
+
+	return Common::kNoError;
+}
+
+void GrimEngine::createImuse() {
+	bool demo = getGameFlags() & ADGF_DEMO;
+
+	// The remastered works at 48000Hz
+	int baseSampleRate = isRemastered() ? IMUSE_REMASTERED_SAMPLERATE : IMUSE_BASE_SAMPLERATE;
+	int sampleRate = baseSampleRate;
+	ConfMan.registerDefault("imuse_sample_rate", baseSampleRate);
+	if (ConfMan.hasKey("imuse_sample_rate", _targetName)) {
+		// Only accept sample rates which are a multiple or submultiple of the base one
+		int configSampleRate = ConfMan.getInt("imuse_sample_rate");
+		if ((configSampleRate % (baseSampleRate / 2)) == 0 &&
+			configSampleRate >= baseSampleRate / 2 &&
+			configSampleRate <= baseSampleRate * 4) {
+			sampleRate = configSampleRate;
+		}
+	}
+
+	bool lowLatencyMode = false;
+	ConfMan.registerDefault("imuse_low_latency_mode", false);
+	if (ConfMan.hasKey("imuse_low_latency_mode", _targetName))
+		lowLatencyMode = ConfMan.getBool("imuse_low_latency_mode");
+
+	g_imuse = new IMuse(sampleRate, _mixer, &_imuseMutex, lowLatencyMode, demo, isRemastered());
+}
+
+void GrimEngine::createModules() {
+	_pImuse = g_imuse;
+
+	_pStdMath = new StdMath();
+	_pStdFile = new StdFile();
+	_pStdDisplay = new StdDisplay();
+	_pStdConffile = new StdConffile(this);
+	_pStdBitmap = new StdBitmap(_pStdDisplay, _pStdFile, this);
+	_pStdDisplay->setStdBitmap(_pStdBitmap);
+	_pStdLbm = new StdLbm(_pStdDisplay, _pStdFile, _pStdBitmap, this);
+	_pStdPcx = new StdPcx(_pStdDisplay, _pStdFile, _pStdBitmap, this);
+	_pStdGif = new StdGif(_pStdDisplay, _pStdFile, _pStdBitmap, this);
+	_pStdPic = new StdPic(_pStdDisplay, _pStdFile, this);
+	_pStdBmp = new StdBmp(_pStdDisplay, _pStdFile, this);
+	_pStdBitmap->setImageFormats(_pStdLbm, _pStdPcx, _pStdGif, _pStdPic, _pStdBmp);
+
+	_pRd = new RenderDroid(_pStdMath, _pStdDisplay, _pStdConffile, _pStdFile);
+	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile);
+
+	_pRes = new Res();
+	_pSputResource = new SputResource(_pRes, _pRd, _pStdDisplay, _pStdBitmap);
+	_pStdControl = new StdControl();
+	_pWuRegistry = new WuRegistry();
+	_pPolyglot = new Polyglot();
+	_pSputTime = new SputTime();
+	_pSputPrimitive = new SputPrimitive(_pRd);
+	_pSputRoom = new SputRoom(_pRd, _pRes, _pSputResource, _pStdDisplay, _pStdBitmap, _pStdLbm, _pStdConffile, _pWalkSystem);
+	_pSputControl = new SputControl(_pRd, _pSputRoom, _pStdControl);
+
+	_pText = new Text();
+	_pBlastText = new BlastText(_pText);
+	_pText->setBlastText(_pBlastText);
+	_pNormalText = new NormalText();
+	_pSputText = new SputText(_pRes, _pRd, _pNormalText, _pText, _pBlastText, _pSputTime, _pPolyglot);
+
+	_pMainGfxBuffer = new StdVBuffer();
+	_pBackBuffer = new StdVBuffer();
+	_pSputRender = new SputRender(_pRd, _pStdDisplay, _pStdBitmap, _pRes, _pSputResource, _pSputPrimitive, _pWalkSystem, _pSputRoom,
+			_pBackBuffer, _pMainGfxBuffer, _pSputTime, _pSputControl);
+	_pSputCostume = new SputCostume(_pRes, _pRd, _pSputResource, _pSputRender, _pSputRoom, _pStdLbm, _pWuRegistry);
+	_pSputActor = new SputActorModule(_pRes, _pRd, _pStdMath, _pStdDisplay, _pWalkSystem, _pSputResource, _pSputRoom, _pSputRender,
+			_pSputCostume, _pSputText, _pSputTime);
+	_pSputSmush = new SputSmush(g_movie, _pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+
+	_pRes->setSputRender(_pSputRender);
+	_pSputResource->setSputRender(_pSputRender);
+	_pSputResource->setSputRoom(_pSputRoom);
+	_pSputResource->setCos(_pSputCostume->getCos());
+	_pSputResource->setText(_pText);
+	_pSputResource->setBlastText(_pBlastText);
+	_pSputResource->setWuRegistry(_pWuRegistry);
+	_pSputPrimitive->setSputRender(_pSputRender);
+	_pSputRoom->setSputRender(_pSputRender);
+	_pSputRoom->setSputActor(_pSputActor);
+	_pSputRoom->setGrimEngine(this);
+	_pSputText->setSputRender(_pSputRender);
+	_pSputText->setSputRoom(_pSputRoom);
+	_pSputText->setGrimEngine(this);
+	_pSputRender->setSputActor(_pSputActor);
+	_pSputRender->setSputText(_pSputText);
+	_pSputRender->setBlastText(_pBlastText);
+	_pSputRender->setSputSmush(_pSputSmush);
+	_pSputRender->setStdControl(_pStdControl);
+	_pSputRender->setGrimEngine(this);
+	_pSputCostume->setSputActor(_pSputActor);
+	_pSputCostume->setGrimEngine(this);
+	_pSputActor->setGrimEngine(this);
+	_pSputControl->setGrimEngine(this);
+}
+
+void GrimEngine::destroyModules() {
+	if (_bDisplayOpen)
+		shutdownDisplay();
+
+	delete _pSputSmush;
+	_pSputSmush = nullptr;
+	delete _pSputActor;
+	_pSputActor = nullptr;
+	delete _pSputCostume;
+	_pSputCostume = nullptr;
+	delete _pSputRender;
+	_pSputRender = nullptr;
+	delete _pBackBuffer;
+	_pBackBuffer = nullptr;
+	delete _pMainGfxBuffer;
+	_pMainGfxBuffer = nullptr;
+	delete _pSputText;
+	_pSputText = nullptr;
+	delete _pNormalText;
+	_pNormalText = nullptr;
+	delete _pBlastText;
+	_pBlastText = nullptr;
+	delete _pText;
+	_pText = nullptr;
+	delete _pSputControl;
+	_pSputControl = nullptr;
+	delete _pSputRoom;
+	_pSputRoom = nullptr;
+	delete _pSputPrimitive;
+	_pSputPrimitive = nullptr;
+	delete _pSputTime;
+	_pSputTime = nullptr;
+	delete _pPolyglot;
+	_pPolyglot = nullptr;
+	delete _pWuRegistry;
+	_pWuRegistry = nullptr;
+	delete _pStdControl;
+	_pStdControl = nullptr;
+	delete _pSputResource;
+	_pSputResource = nullptr;
+	delete _pRes;
+	_pRes = nullptr;
+	delete _pWalkSystem;
+	_pWalkSystem = nullptr;
+	delete _pRd;
+	_pRd = nullptr;
+	delete _pStdBmp;
+	_pStdBmp = nullptr;
+	delete _pStdPic;
+	_pStdPic = nullptr;
+	delete _pStdGif;
+	_pStdGif = nullptr;
+	delete _pStdPcx;
+	_pStdPcx = nullptr;
+	delete _pStdLbm;
+	_pStdLbm = nullptr;
+	delete _pStdBitmap;
+	_pStdBitmap = nullptr;
+	delete _pStdConffile;
+	_pStdConffile = nullptr;
+	delete _pStdDisplay;
+	_pStdDisplay = nullptr;
+	delete _pStdFile;
+	_pStdFile = nullptr;
+	delete _pStdMath;
+	_pStdMath = nullptr;
+	_pImuse = nullptr;
+}
+
+int GrimEngine::grimStartup() {
+	_pPolyglot->initialize(this);
+	_pPolyglot->startup();
+	_pPolyglot->configure("grim.tab");
+	_pWuRegistry->startup("1.0");
+
+	_pRd->startup(this);
+
+	if (!_pRd->open(0))
+		return 0;
+
+	if (!initDisplayAndDevice())
+		return 0;
+
+	if (sputInitialize(this))
+		return 0;
+
+	if (sputStartup()) {
+		fatalError(_pPolyglot->getTranslation("/engn004/Please make sure you are not running any other DirectX apps that take exclusive control of your hardware."),
+				_pPolyglot->getTranslation("/engn005/Grim Fandango could not initialize your hardware!"));
+		return 0;
+	}
+
+	// TODO: lua_openlib(hardwareTable)
+	setShutdownCallback(shutdownCallback);
+	setPageFlipCallback(pageFlipCallback);
+	findResources();
+	loadSplash();
+
+	if (bundleDofile()) {
+		fatalError(_pPolyglot->getTranslation("/engn006/Please make sure that the game is properly installed and that the CD is in your drive."),
+				_pPolyglot->getTranslation("/engn007/Grim Fandango could not find files!"));
+		return 0;
+	}
+
+	if (startEngine(_saveGameToResume, nullptr))
+		return 0;
+
+	return 1;
+}
+
+void GrimEngine::grimMain() {
+	if (_bQuit)
+		return;
+
+	loop(_bActive, _bFirstFrame);
+	_bFirstFrame = 0;
+	_grimFrameCount++;
+
+	uint32 curTime = g_system->getMillis();
+	uint32 elapsed = curTime - _grimLastFpsTime;
+
+	if (elapsed > 1000) {
+		_grimLastFpsTime = curTime;
+
+		int numFrames = _grimFrameCount - _grimLastFpsFrame;
+
+		_grimLastFpsFrame = _grimFrameCount;
+		_grimFps = (double)numFrames * 1000.0 / (double)elapsed;
+	}
+
+	if (_showFps) {
+		Common::String text = Common::String::format("%02.3f", _grimFps);
+		// TODO: stdDisplay_TextOut(text, 4, 4)
+		StdRect rect = { 0, 0, 80, 30 };
+
+		markDirtyRect(&rect, 0);
+	}
+
+	if (_bShowDebugOverlay) {
+		int y = 30;
+
+		for (int i = 0; i < kNumPerfCounters; i++) {
+			Common::String text = Common::String::format("%s %02.3f", _aPerfCounters[i].pName, _aPerfCounters[i].elapsed);
+			// TODO: stdDisplay_TextOut(text, 4, y)
+			StdRect rect = { 4, y, 190, 20 };
+
+			markDirtyRect(&rect, 0);
+			_aPerfCounters[i].elapsed = 0.0;
+			y += 20;
+		}
+	}
+
+	if (_bActive)
+		timedPageFlip();
+}
+
+void GrimEngine::grimShutdown() {
+	close();
+
+	if (_bSputStarted)
+		sputShutdown();
+
+	sputTerminate();
+
+	_pRd->close();
+	_pRd->shutdown();
+
+	shutdownDisplay();
+
+	_pWuRegistry->shutdown();
+	_pPolyglot->shutdown();
+}
+
+int GrimEngine::shutdownCallback(int arg) {
+	g_grim->_bQuit = 1;
+
+	return 0;
+}
+
+Common::SeekableReadStream *GrimEngine::openFile(const char *path) {
+	Common::String name(path);
+
+	name.replace('\\', '/');
+	name.toLowercase();
+
+	Common::String baseName = Common::lastPathComponent(name, '/');
+	Common::Path fullPath(name, '/');
+	Common::Path basePath(baseName, Common::Path::kNoSeparator);
+	Common::SeekableReadStream *pStream = nullptr;
+
+	if (SearchMan.hasFile(fullPath)) {
+		pStream = SearchMan.createReadStreamForMember(fullPath);
+		pStream = wrapPatchedFile(pStream, fullPath);
+	} else if (SearchMan.hasFile(basePath)) {
+		pStream = SearchMan.createReadStreamForMember(basePath);
+		pStream = wrapPatchedFile(pStream, basePath);
+	}
+
+	return pStream;
+}
+
+int GrimEngine::sputInitialize(SysStruct *pHS) {
+	_pSputHS = pHS;
+
+	int result = callRegisterModules(pHS, 0, kNumBaseModules);
+
+	if (!result)
+		result = callRegisterModules(pHS, kNumBaseModules, kNumMainModules);
+
+	_bSputInitialized = result == 0;
+
+	return result;
+}
+
+int GrimEngine::sputTerminate() {
+	_pSputHS = nullptr;
+
+	if (_bSputInitialized) {
+		callRelease(kNumBaseModules, kNumMainModules);
+		callRelease(0, kNumBaseModules);
+		_bSputInitialized = 0;
+	}
+
+	return 0;
+}
+
+int GrimEngine::sputStartup() {
+	if (_bSputStarted)
+		return 1;
+
+	int result = runInitTable(0, kNumBaseModules);
+
+	if (!result) {
+		int physicalRam = 0x7FFFFFFF; // TODO: stdPlatform_GetPhysicalRam()
+
+		if (physicalRam > 0x1000000) {
+			// TODO: iMUSE_DeclareBufferSizes with 9 tracks
+			int memoryLimit = _pRes->getMemoryLimit();
+
+			if (memoryLimit >= (int)(physicalRam - 0x800000))
+				memoryLimit = physicalRam - 0x800000;
+
+			_pSputResource->setMemoryUsage(memoryLimit, 0);
+		} else {
+			// TODO: iMUSE_DeclareBufferSizes with 6 tracks
+			_pSputResource->setMemoryUsage(10485760, 0);
+		}
+
+		result = runInitTable(kNumBaseModules, kNumMainModules);
+	}
+
+	_bSputStarted = result == 0;
+
+	return result;
+}
+
+int GrimEngine::sputShutdown() {
+	callTableFunc(kNumBaseModules, kNumMainModules);
+
+	int result = callTableFunc(0, kNumBaseModules);
+
+	_bSputStarted = 0;
+
+	return result;
+}
+
+int GrimEngine::callRegisterModules(SysStruct *pHS, int firstModule, int count) {
+	for (int i = 0; i < count; i++) {
+		if (initializeModule(firstModule + i, pHS)) {
+			for (int j = i - 1; j >= 0; j--)
+				terminateModule(firstModule + j);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int GrimEngine::runInitTable(int firstModule, int count) {
+	for (int i = 0; i < count; i++) {
+		if (startupModule(firstModule + i)) {
+			for (int j = i - 1; j >= 0; j--)
+				shutdownModule(firstModule + j);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int GrimEngine::callTableFunc(int firstModule, int count) {
+	for (int i = count - 1; i >= 0; i--)
+		shutdownModule(firstModule + i);
+
+	return 0;
+}
+
+int GrimEngine::callRelease(int firstModule, int count) {
+	for (int i = count - 1; i >= 0; i--)
+		terminateModule(firstModule + i);
+
+	return 0;
+}
+
+int GrimEngine::initializeModule(int module, SysStruct *pHS) {
+	switch (module) {
+	case kSputMainModuleRoom:
+		return _pSputRoom->initialize(pHS);
+	case kSputMainModuleTime:
+		return _pSputTime->initialize(pHS);
+	case kSputMainModuleLua:
+		// TODO: sputLua_Initialize
+		return 0;
+	case kSputMainModuleCostume:
+		return _pSputCostume->initialize(pHS);
+	case kSputMainModuleActor:
+		return _pSputActor->initialize(pHS);
+	case kSputMainModuleResource:
+		return _pSputResource->initialize(pHS);
+	case kSputMainModuleControl:
+		return _pSputControl->initialize(pHS);
+	case kSputMainModuleSounds:
+		return 0;
+	case kSputMainModuleRender:
+		return _pSputRender->initialize(pHS);
+	case kSputMainModuleText:
+		return _pSputText->initialize(pHS);
+	case kSputMainModulePrimitive:
+		return _pSputPrimitive->initialize(pHS);
+	case kSputMainModuleSmush:
+		return _pSputSmush->initialize(pHS);
+	default:
+		return 0;
+	}
+}
+
+int GrimEngine::startupModule(int module) {
+	switch (module) {
+	case kSputMainModuleRoom:
+		return _pSputRoom->startup();
+	case kSputMainModuleTime:
+		return _pSputTime->startup();
+	case kSputMainModuleLua:
+		// TODO: sputLua_Startup
+		return 0;
+	case kSputMainModuleCostume:
+		return _pSputCostume->startup();
+	case kSputMainModuleActor:
+		return _pSputActor->startup();
+	case kSputMainModuleResource:
+		return _pSputResource->startup();
+	case kSputMainModuleControl:
+		return _pSputControl->startup();
+	case kSputMainModuleSounds:
+		return 0;
+	case kSputMainModuleRender:
+		return _pSputRender->startup();
+	case kSputMainModuleText:
+		return _pSputText->startup();
+	case kSputMainModulePrimitive:
+		return _pSputPrimitive->startup();
+	case kSputMainModuleSmush:
+		return _pSputSmush->startup();
+	default:
+		return 0;
+	}
+}
+
+void GrimEngine::shutdownModule(int module) {
+	switch (module) {
+	case kSputMainModuleRoom:
+		_pSputRoom->shutdown();
+		break;
+	case kSputMainModuleTime:
+		_pSputTime->shutdown();
+		break;
+	case kSputMainModuleLua:
+		// TODO: sputLua_Shutdown
+		break;
+	case kSputMainModuleCostume:
+		_pSputCostume->shutdown();
+		break;
+	case kSputMainModuleActor:
+		_pSputActor->shutdown();
+		break;
+	case kSputMainModuleResource:
+		_pSputResource->shutdown();
+		break;
+	case kSputMainModuleControl:
+		_pSputControl->shutdown();
+		break;
+	case kSputMainModuleSounds:
+		break;
+	case kSputMainModuleRender:
+		_pSputRender->shutdown();
+		break;
+	case kSputMainModuleText:
+		_pSputText->shutdown();
+		break;
+	case kSputMainModulePrimitive:
+		_pSputPrimitive->shutdown();
+		break;
+	case kSputMainModuleSmush:
+		_pSputSmush->shutdown();
+		break;
+	default:
+		break;
+	}
+}
+
+void GrimEngine::terminateModule(int module) {
+	switch (module) {
+	case kSputMainModuleRoom:
+		_pSputRoom->terminate();
+		break;
+	case kSputMainModuleTime:
+		_pSputTime->terminate();
+		break;
+	case kSputMainModuleLua:
+		// TODO: sputLua_Terminate
+		break;
+	case kSputMainModuleCostume:
+		_pSputCostume->terminate();
+		break;
+	case kSputMainModuleActor:
+		_pSputActor->terminate();
+		break;
+	case kSputMainModuleResource:
+		_pSputResource->terminate();
+		break;
+	case kSputMainModuleControl:
+		_pSputControl->terminate();
+		break;
+	case kSputMainModuleSounds:
+		break;
+	case kSputMainModuleRender:
+		_pSputRender->terminate();
+		break;
+	case kSputMainModuleText:
+		_pSputText->release();
+		break;
+	case kSputMainModulePrimitive:
+		_pSputPrimitive->terminate();
+		break;
+	case kSputMainModuleSmush:
+		_pSputSmush->terminate();
+		break;
+	default:
+		break;
+	}
+}
+
+int GrimEngine::bundleDofile() {
+	int bFound = 1; // TODO: sputLua_FindSystemFiles()
+
+	return !bFound;
+}
+
+int GrimEngine::startEngine(int saveGameResume, const char *bootParam) {
+	if (_bSputOpen)
+		return 1;
+
+	int bBooted = 1; // TODO: sputLua_Boot(saveGameResume, bootParam)
+
+	if (!bBooted)
+		return 1;
+
+	_libMode = 2;
+	_pSputRender->open();
+
+	if (!_pSputControl->open())
+		return 1;
+
+	_bSputOpen = 1;
+
+	return 0;
+}
+
+int GrimEngine::loop(int bRender, int manualTicks) {
+	if (_libSaveRequest)
+		save();
+
+	if (_libLoadRequest)
+		restore();
+
+	setPerfCounter(0);
+	setPerfCounter(10);
+	_pImuse->soundsPeriodic();
+	queryPerfCounterDiff(10);
+
+	int result = _libMode;
+
+	if (_libMode) {
+		setPerfCounter(1);
+		_pSputControl->update(_pSputTime->getFrameTimeFlex());
+		queryPerfCounterDiff(1);
+
+		int mode = _libMode;
+
+		if (mode != 1 || manualTicks) {
+			_loopCount++;
+
+			if (manualTicks)
+				_pSputTime->advanceManual(manualTicks);
+			else
+				_pSputTime->advance();
+
+			if (_bRunLua) {
+				setPerfCounter(2);
+				// TODO: sputLua_Update()
+				queryPerfCounterDiff(2);
+			}
+
+			mode = _libMode;
+
+			if (mode != 3 && mode != 4) {
+				setPerfCounter(3);
+				_pSputActor->updateActors(_pSputTime->getFrameTimeFlex());
+				queryPerfCounterDiff(3);
+				mode = _libMode;
+			}
+		}
+
+		if (bRender && (mode != 1 || manualTicks)) {
+			_pSputRender->update();
+			_bRenderPending = 1;
+		}
+
+		queryPerfCounterDiff(0);
+
+		result = _libImuseState;
+
+		if (result != -1) {
+			result = _pImuse->imSetState(result);
+			_libImuseState = -1;
+		}
+	}
+
+	return result;
+}
+
+void GrimEngine::timedPageFlip() {
+	setPerfCounter(8);
+
+	switch (_libMode) {
+	case 3:
+		if (!_pSputRender->queryDisplayState())
+			_pSputRender->pageFlip();
+
+		break;
+	case 2:
+		_pSputRender->pageFlip();
+		break;
+	case 1:
+		if (_bRenderPending) {
+			_pSputRender->pageFlip();
+			_bRenderPending = 0;
+		}
+
+		break;
+	default:
+		break;
+	}
+
+	queryPerfCounterDiff(8);
+}
+
+void GrimEngine::setPerfCounter(uint slot) {
+	if (slot >= (uint)kNumPerfCounters)
+		error("GrimEngine::setPerfCounter(): slot %u out of range", slot);
+
+	_aPerfCounters[slot].start = (double)g_system->getMillis();
+}
+
+int GrimEngine::queryPerfCounterDiff(uint slot) {
+	if (slot >= (uint)kNumPerfCounters)
+		error("GrimEngine::queryPerfCounterDiff(): slot %u out of range", slot);
+
+	double elapsed = (double)g_system->getMillis() - _aPerfCounters[slot].start;
+
+	_aPerfCounters[slot].elapsed = elapsed;
+
+	return (int)elapsed;
+}
+
+void GrimEngine::setPrevMode(int mode) {
+	_sputPrevMode = mode;
+}
+
+int GrimEngine::getPrevMode() const {
+	return _sputPrevMode;
+}
+
+void GrimEngine::overrideSelectedActorCostume(int hInstance) {
+	SputActor *pActor = _pSputActor->getSelectedActor();
+
+	if (pActor) {
+		// TODO: sputLua_DoCostumeOverrideCallback(pActor, 1)
+		_pSputActor->pushCostume(pActor, nullptr, hInstance);
+	}
+}
+
+void GrimEngine::restoreSelectedActorCostume() {
+	SputActor *pActor = _pSputActor->getSelectedActor();
+
+	if (pActor) {
+		// TODO: sputLua_DoCostumeOverrideCallback(pActor, 0)
+		_pSputActor->popCostume(pActor, 0);
+	}
+}
+
+int GrimEngine::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer) {
+	_pSputRender->pageCountIs(_numDrawBuffers);
+	_pSputRender->setDisplay(pVBuffer, pZBuffer, 0, 0, pVBuffer->tex.width - 1, pVBuffer->tex.height - 1, _libRenderOptions);
+
+	return 0;
+}
+
+int GrimEngine::unsetDisplay() {
+	_pSputRender->close();
+
+	return 0;
+}
+
+void GrimEngine::makeCurrentSet(const char *name) {
+	if (name) {
+		Room *pRoom = static_cast<Room *>(_pSputResource->alloc(kSputTagSet, name));
+
+		if (pRoom && pRoom->apColormaps && pRoom != _pSputRoom->getCurrentRoom()) {
+			_pSputRoom->setCurrentRoom(pRoom);
+			_pWalkSystem->setCollection(pRoom->name);
+			_pSputRender->syncCamera(pRoom, pRoom->curSetup);
+		}
+	} else {
+		_pSputRoom->setCurrentRoom(nullptr);
+	}
+}
+
+void GrimEngine::close() {
+	if (_bSputOpen) {
+		_libMode = 0;
+		_pSputControl->close();
+		_pSputRender->close();
+		_pSputRoom->setCurrentRoom(nullptr);
+		_bSputOpen = 0;
+	}
+}
+
+void GrimEngine::setDebugToggleCallback(void *pFunc) {
+	// TODO: sputLua_SetDebugToggleCallback(pFunc)
+}
+
+void GrimEngine::setPaletteCallback(int (*pFunc)(byte *, int)) {
+	_pSputRender->setPaletteCallback(pFunc);
+}
+
+void GrimEngine::setShutdownCallback(int (*pFunc)(int)) {
+	_pShutdownCallback = pFunc;
+}
+
+void GrimEngine::setPageFlipCallback(int (*pFunc)()) {
+	_pSputRender->setPageFlipCallback(pFunc);
+}
+
+void GrimEngine::using3DHardware(int b3D) {
+	_pSputRender->using3DHardware(b3D);
+}
+
+int GrimEngine::addResourcePath(const char *path) {
+	return _pSputResource->addResourcePath(path);
+}
+
+int GrimEngine::findResources() {
+	return _pSputResource->findResources();
+}
+
+void GrimEngine::markDirtyRect(const StdRect *pRect, int page) {
+	_pSputRender->markDirtyRect(pRect, page);
+}
+
+void GrimEngine::makeCurrentSetupLib(uint setup) {
+	Room *pRoom = _pSputRoom->getCurrentRoom();
+
+	if (!pRoom) {
+		warning("GrimEngine::makeCurrentSetupLib(): no current room");
+		return;
+	}
+
+	uint numSetups = pRoom->numSetups;
+	int newSetup = (int)setup;
+
+	if (setup >= numSetups) {
+		if (!numSetups) {
+			warning("GrimEngine::makeCurrentSetupLib(): the room has no setups");
+			return;
+		}
+
+		newSetup = (int)(setup % numSetups);
+	}
+
+	int oldSetup = pRoom->curSetup;
+
+	if (newSetup != oldSetup) {
+		pRoom->curSetup = newSetup;
+		_pSputRoom->setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+		// TODO: sputLua_CameraChange(oldSetup, newSetup)
+		_pSputRoom->relocateSounds();
+	}
+}
+
+void GrimEngine::nextSetup() {
+	Room *pRoom = _pSputRoom->getCurrentRoom();
+
+	if (!pRoom || !pRoom->numSetups) {
+		warning("GrimEngine::nextSetup(): no current room or no setups");
+		return;
+	}
+
+	makeCurrentSetupLib((uint)(pRoom->curSetup + 1) % pRoom->numSetups);
+}
+
+void GrimEngine::previousSetup() {
+	Room *pRoom = _pSputRoom->getCurrentRoom();
+
+	if (!pRoom || !pRoom->numSetups) {
+		warning("GrimEngine::previousSetup(): no current room or no setups");
+		return;
+	}
+
+	makeCurrentSetupLib((uint)(pRoom->curSetup + pRoom->numSetups - 1) % pRoom->numSetups);
+}
+
+int GrimEngine::confirmClose() {
+	int result = 0; // TODO: sputLua_DoExitCallback()
+
+	return result == 0;
+}
+
+void GrimEngine::requestShutdown(int arg) {
+	if (_pShutdownCallback)
+		_pShutdownCallback(arg);
+}
+
+void GrimEngine::setPause(int bPause) {
+	if (!_libMode)
+		return;
+
+	if (bPause) {
+		if (_libMode != 1) {
+			_libPauseSavedMode = _libMode;
+			_libPauseSavedOldMode = _libPauseOldMode;
+			_libMode = 1;
+			_pImuse->imPause();
+			_pSputSmush->pause(1);
+		}
+	} else if (_libMode == 1) {
+		_libMode = _libPauseSavedMode;
+		_libPauseOldMode = _libPauseSavedOldMode;
+		_pImuse->imResume();
+		_pSputSmush->pause(0);
+	}
+}
+
+int GrimEngine::doPauseCallback() {
+	int result = 0; // TODO: sputLua_DoPauseCallback()
+
+	return result;
+}
+
+int GrimEngine::characterCallback(int character) {
+	int result = 0; // TODO: sputLua_DoCharacterCallback(character)
+
+	return result;
+}
+
+int GrimEngine::setImuseState(int state) {
+	_libImuseState = state;
+
+	return state;
+}
+
+int GrimEngine::playMovie(const char *name, int bFullscreen, int bLooping, int x, int y) {
+	if (bFullscreen)
+		_pSputSmush->setTarget(_pMainGfxBuffer);
+	else
+		_pSputSmush->setTarget(_pSputRender->drawBuffer());
+
+	if (_pSputSmush->startMovie(name, bLooping, x, y))
+		return 0;
+
+	if (bFullscreen) {
+		_libMode = 3;
+		return 1;
+	}
+
+	if (_libMode == 3)
+		_libMode = 2;
+
+	return 1;
+}
+
+int GrimEngine::userPaint() {
+	int result = 0;
+
+	if (_libMode == 4) {
+		// TODO: sputLua_DoUserPaintCallback()
+	}
+
+	return result;
+}
+
+void GrimEngine::saveLib(const char *fileName) {
+	_libSaveRequest = 1;
+	_libSaveGameFileName = fileName ? fileName : "";
+}
+
+void GrimEngine::loadLib(const char *fileName) {
+	_libLoadRequest = 1;
+	_libSaveGameFileName = fileName ? fileName : "";
+}
+
+int GrimEngine::justLoaded() {
+	int result = _libJustLoaded;
+
+	_libJustLoaded = 0;
+
+	return result;
+}
+
+static const StdColorFormat g_saveImageFormat = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
+
+static const int kSoundsSaveVersion = 30;
+
+void GrimEngine::save() {
+	_libSaveRequest = 0;
+	_pSputRender->allowLoadImage(0);
+	_pSputRender->drawProgressBar(0.1f);
+
+	Common::String fileName = _libSaveGameFileName;
+
+	if (fileName.empty())
+		fileName = "grim.sav";
+
+	_pSaveWriteStream = g_system->getSavefileManager()->openForSaving(fileName);
+
+	if (!_pSaveWriteStream)
+		return;
+
+	// TODO: sputLua_SaveGameCallback(zwrite)
+
+	StdVBuffer *pShot = _pSputRender->screenShot(250, 188);
+	uint32 imageSize = 0;
+
+	if (pShot) {
+		StdColorFormat format = g_saveImageFormat;
+		StdVBuffer *pImage = _pStdDisplay->vBufferConvertColorFormat(&format, pShot);
+
+		if (pImage) {
+			imageSize = TO_LE_32((uint32)pImage->tex.sizeInBytes);
+			zwrite(&imageSize, 4);
+			zwrite(pImage->pPixels, pImage->tex.sizeInBytes);
+			_pStdDisplay->vBufferFree(pImage);
+		}
+	} else {
+		warning("GrimEngine::save(): no screenshot for the savegame");
+	}
+
+	if (!imageSize)
+		zwrite(&imageSize, 4);
+
+	_pSputRender->drawProgressBar(0.2f);
+	_pSputCostume->getCos()->save(_pSaveWriteStream);
+	_pSputRender->drawProgressBar(0.3f);
+	_pRes->sysSave(_pSaveWriteStream);
+	_pSputRender->drawProgressBar(0.4f);
+	_pSputText->save(_pSaveWriteStream);
+	_pSputRoom->save(_pSaveWriteStream);
+	_pSputRender->drawProgressBar(0.5f);
+	_pSputActor->save(_pSaveWriteStream);
+	_pSputRender->save(_pSaveWriteStream);
+	_pSputPrimitive->save(_pSaveWriteStream);
+	_pSputSmush->save(_pSaveWriteStream);
+
+	uint32 prevMode = TO_LE_32((uint32)_sputPrevMode);
+
+	zwrite(&prevMode, 4);
+	_pSputRender->drawProgressBar(0.75f);
+	// TODO: lua_Save(zwrite)
+	_pSputRender->drawProgressBar(1.0f);
+	soundsSave(_pSaveWriteStream);
+
+	_pSaveWriteStream->finalize();
+	delete _pSaveWriteStream;
+	_pSaveWriteStream = nullptr;
+
+	_pSputRender->allowLoadImage(1);
+}
+
+int GrimEngine::zwrite(const void *buffer, int size) {
+	if (size && _pSaveWriteStream->write(buffer, size) != (uint32)size)
+		error("GrimEngine::zwrite(): write error");
+
+	return 0;
+}
+
+void GrimEngine::restore() {
+	_libLoadRequest = 0;
+
+	Common::String fileName = _libSaveGameFileName;
+
+	if (fileName.empty())
+		fileName = "grim.sav";
+
+	_pSaveReadStream = g_system->getSavefileManager()->openForLoading(fileName);
+
+	if (!_pSaveReadStream)
+		return;
+
+	_pSputRender->allowLoadImage(0);
+	_pSputRender->drawProgressBar(0.1f);
+	_pImuse->imStopAllSounds();
+	_pSputSmush->stopMovie();
+	_pSputSmush->periodic();
+	_pRes->freeAll();
+	_pSputActor->clearShadowMaterial();
+	_pSputResource->stopPurge(1);
+
+	uint32 blockSize = 0;
+
+	zread(&blockSize, 4);
+	_pSaveReadStream->seek((int)FROM_LE_32(blockSize), SEEK_CUR);
+
+	uint32 imageSize = 0;
+
+	zread(&imageSize, 4);
+	_pSaveReadStream->seek((int)FROM_LE_32(imageSize), SEEK_CUR);
+
+	_pSputRender->drawProgressBar(0.2f);
+	_pSputCostume->getCos()->restore(_pSaveReadStream);
+	_pSputRender->drawProgressBar(0.3f);
+	_pRes->sysLoad(_pSaveReadStream);
+	_pSputText->restore(_pSaveReadStream);
+	_pSputRender->drawProgressBar(0.4f);
+	_pSputRoom->restore(_pSaveReadStream);
+	_pSputActor->restore(_pSaveReadStream);
+	_pSputRender->restore(_pSaveReadStream);
+	_pSputPrimitive->restore(_pSaveReadStream);
+	_pSputSmush->restore(_pSaveReadStream);
+
+	_libMode = 4;
+
+	uint32 prevMode = 0;
+
+	zread(&prevMode, 4);
+	_sputPrevMode = (int)FROM_LE_32(prevMode);
+	_pSputRender->drawProgressBar(0.75f);
+	// TODO: lua_Restore(zread), then lua_PatchGrimSave() as the old restore does
+	_pSputRender->drawProgressBar(1.0f);
+	soundsRestore(_pSaveReadStream);
+	_pSputResource->stopPurge(0);
+
+	Room *pRoom = _pSputRoom->getCurrentRoom();
+	int curSetup = 0;
+
+	if (pRoom)
+		curSetup = pRoom->curSetup;
+
+	_pSputRender->useSetup(pRoom, curSetup);
+
+	delete _pSaveReadStream;
+	_pSaveReadStream = nullptr;
+
+	// TODO: lua_dofile("patch05.bin")
+	_libJustLoaded = 1;
+	_pSputRender->allowLoadImage(1);
+
+	StdRect rect = { 0, 0, 640, 480 };
+
+	_pSputRender->markAllPagesDirty(&rect, 1);
+}
+
+int GrimEngine::zread(void *buffer, int size) {
+	if (size)
+		_pSaveReadStream->read(buffer, size);
+
+	return 0;
+}
+
+StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
+	Common::SeekableReadStream *pFile = g_system->getSavefileManager()->openForLoading(fileName);
+
+	if (!pFile)
+		return nullptr;
+
+	int blockSize = pFile->readSint32LE();
+
+	pFile->seek(blockSize, SEEK_CUR);
+
+	StdVBufferTexFmt format;
+
+	memset(&format, 0, sizeof(format));
+	format.pitchInPixels = 2;
+	format.width = 250;
+	format.height = 188;
+	format.pitchInBytes = 500;
+	format.format = g_saveImageFormat;
+
+	StdVBuffer *pImage = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+
+	if (!pImage) {
+		delete pFile;
+		return nullptr;
+	}
+
+	int size = pFile->readSint32LE();
+
+	if (size != pImage->tex.sizeInBytes) {
+		warning("GrimEngine::getSaveGameImage(): unexpected image size %d", size);
+		_pStdDisplay->vBufferFree(pImage);
+		delete pFile;
+		return nullptr;
+	}
+
+	pFile->read(pImage->pPixels, size);
+	delete pFile;
+
+	return pImage;
+}
+
+void GrimEngine::imuseSave() {
+	Common::OutSaveFile *pFile = g_system->getSavefileManager()->openForSaving("grim.tmp");
+
+	if (!pFile)
+		return;
+
+	soundsSave(pFile);
+	pFile->finalize();
+	delete pFile;
+}
+
+void GrimEngine::imuseRestore() {
+	Common::InSaveFile *pFile = g_system->getSavefileManager()->openForLoading("grim.tmp");
+
+	if (!pFile)
+		return;
+
+	_pImuse->imStopAllSounds();
+	soundsRestore(pFile);
+	delete pFile;
+	g_system->getSavefileManager()->removeSavefile("grim.tmp");
+}
+
+void GrimEngine::soundsSave(Common::WriteStream *pStream) {
+	Common::Serializer ser(nullptr, pStream);
+
+	ser.setVersion(kSoundsSaveVersion);
+	_pImuse->soundsSaveLoad(ser);
+}
+
+void GrimEngine::soundsRestore(Common::SeekableReadStream *pStream) {
+	Common::Serializer ser(pStream, nullptr);
+
+	ser.setVersion(kSoundsSaveVersion);
+	_pImuse->soundsSaveLoad(ser);
+}
+
+enum {
+	kDisplayWidth = 640,
+	kDisplayHeight = 480
+};
+
+void GrimEngine::fatalError(const char *text, const char *caption) {
+	Common::String message = Common::String::format("%s\n\n%s", caption, text);
+
+	GUI::displayErrorDialog(Common::U32String(message));
+	shutdownDisplay();
+	CursorMan.showMouse(true);
+}
+
+int GrimEngine::initDisplayAndDevice() {
+	return selectDisplayMode();
+}
+
+int GrimEngine::selectDisplayMode() {
+	shutdownDisplay();
+
+	Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+
+	initGraphics(kDisplayWidth, kDisplayHeight, &pixelFormat);
+
+	if (g_system->getScreenFormat() != pixelFormat)
+		error("GrimEngine::selectDisplayMode(): the screen does not support the RGB565 pixel format");
+
+	StdVBufferTexFmt tex;
+
+	memset(&tex, 0, sizeof(tex));
+	tex.width = kDisplayWidth;
+	tex.height = kDisplayHeight;
+	tex.pitchInBytes = kDisplayWidth * 2;
+	tex.pitchInPixels = kDisplayWidth;
+	tex.sizeInBytes = kDisplayWidth * kDisplayHeight * 2;
+	tex.format = _colorInfoCopy;
+
+	_pMainGfxBuffer->type = 0;
+	_pMainGfxBuffer->lockCount = 0;
+	_pMainGfxBuffer->bVideoMemory = 0;
+	_pMainGfxBuffer->tex = tex;
+	_pMainGfxBuffer->pPaletteRGB = nullptr;
+	_pMainGfxBuffer->pPixels = new byte[tex.sizeInBytes]();
+	_pMainGfxBuffer->colorKey = 0;
+	*_pBackBuffer = *_pMainGfxBuffer;
+	_bDisplayOpen = 1;
+
+	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
+	pageFlipCallback();
+	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
+	_pRd->setColorInfo(_colorInfoCopy);
+
+	StdVBufferTexFmt zFormat = _pBackBuffer->tex;
+
+	zFormat.format.bpp = 16;
+	_pZBuffer = _pStdDisplay->vBufferNew(&zFormat, 0, 0, nullptr);
+
+	setDisplay(_pBackBuffer, _pZBuffer);
+
+	return 1;
+}
+
+void GrimEngine::shutdownDisplay() {
+	if (!_bDisplayOpen)
+		return;
+
+	unsetDisplay();
+	_pStdDisplay->vBufferFree(_pZBuffer);
+
+	delete[] _pMainGfxBuffer->pPixels;
+	_pMainGfxBuffer->pPixels = nullptr;
+	_pBackBuffer->pPixels = nullptr;
+	_bDisplayOpen = 0;
+}
+
+void GrimEngine::loadSplash() {
+	StdBitmapStruct *pBitmap = _pStdBitmap->zbmLoad("splash.bm", 0, 0);
+
+	if (!pBitmap)
+		return;
+
+	StdVBuffer *pFrame = pBitmap->apFrames[0];
+
+	if (!pFrame)
+		return;
+
+	for (int i = 0; i < pFrame->tex.height; i++)
+		_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * i), pFrame->tex.width);
+
+	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
+	pageFlipCallback();
+	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
+	_pStdBitmap->unloadBitmap(pBitmap);
+}
+
+int GrimEngine::pageFlipCallback() {
+	const StdVBuffer *pBuffer = g_grim->_pMainGfxBuffer;
+
+	if (!pBuffer->pPixels) {
+		warning("GrimEngine::pageFlipCallback(): the display is not open");
+		return 0;
+	}
+
+	g_system->copyRectToScreen(pBuffer->pPixels, pBuffer->tex.pitchInBytes, 0, 0, pBuffer->tex.width, pBuffer->tex.height);
+	g_system->updateScreen();
+
+	return 1;
+}
+
+static int keyCodeToScanCode(Common::KeyCode keyCode) {
+	switch (keyCode) {
+	case Common::KEYCODE_ESCAPE:
+		return 1;
+	case Common::KEYCODE_1:
+		return 2;
+	case Common::KEYCODE_2:
+		return 3;
+	case Common::KEYCODE_3:
+		return 4;
+	case Common::KEYCODE_4:
+		return 5;
+	case Common::KEYCODE_5:
+		return 6;
+	case Common::KEYCODE_6:
+		return 7;
+	case Common::KEYCODE_7:
+		return 8;
+	case Common::KEYCODE_8:
+		return 9;
+	case Common::KEYCODE_9:
+		return 10;
+	case Common::KEYCODE_0:
+		return 11;
+	case Common::KEYCODE_MINUS:
+		return 12;
+	case Common::KEYCODE_EQUALS:
+		return 13;
+	case Common::KEYCODE_BACKSPACE:
+		return 14;
+	case Common::KEYCODE_TAB:
+		return 15;
+	case Common::KEYCODE_q:
+		return 16;
+	case Common::KEYCODE_w:
+		return 17;
+	case Common::KEYCODE_e:
+		return 18;
+	case Common::KEYCODE_r:
+		return 19;
+	case Common::KEYCODE_t:
+		return 20;
+	case Common::KEYCODE_y:
+		return 21;
+	case Common::KEYCODE_u:
+		return 22;
+	case Common::KEYCODE_i:
+		return 23;
+	case Common::KEYCODE_o:
+		return 24;
+	case Common::KEYCODE_p:
+		return 25;
+	case Common::KEYCODE_LEFTBRACKET:
+		return 26;
+	case Common::KEYCODE_RIGHTBRACKET:
+		return 27;
+	case Common::KEYCODE_RETURN:
+		return 28;
+	case Common::KEYCODE_LCTRL:
+		return 29;
+	case Common::KEYCODE_a:
+		return 30;
+	case Common::KEYCODE_s:
+		return 31;
+	case Common::KEYCODE_d:
+		return 32;
+	case Common::KEYCODE_f:
+		return 33;
+	case Common::KEYCODE_g:
+		return 34;
+	case Common::KEYCODE_h:
+		return 35;
+	case Common::KEYCODE_j:
+		return 36;
+	case Common::KEYCODE_k:
+		return 37;
+	case Common::KEYCODE_l:
+		return 38;
+	case Common::KEYCODE_SEMICOLON:
+		return 39;
+	case Common::KEYCODE_QUOTE:
+		return 40;
+	case Common::KEYCODE_BACKQUOTE:
+		return 41;
+	case Common::KEYCODE_LSHIFT:
+		return 42;
+	case Common::KEYCODE_BACKSLASH:
+		return 43;
+	case Common::KEYCODE_z:
+		return 44;
+	case Common::KEYCODE_x:
+		return 45;
+	case Common::KEYCODE_c:
+		return 46;
+	case Common::KEYCODE_v:
+		return 47;
+	case Common::KEYCODE_b:
+		return 48;
+	case Common::KEYCODE_n:
+		return 49;
+	case Common::KEYCODE_m:
+		return 50;
+	case Common::KEYCODE_COMMA:
+		return 51;
+	case Common::KEYCODE_PERIOD:
+		return 52;
+	case Common::KEYCODE_SLASH:
+		return 53;
+	case Common::KEYCODE_RSHIFT:
+		return 54;
+	case Common::KEYCODE_KP_MULTIPLY:
+		return 55;
+	case Common::KEYCODE_LALT:
+		return 56;
+	case Common::KEYCODE_SPACE:
+		return 57;
+	case Common::KEYCODE_CAPSLOCK:
+		return 58;
+	case Common::KEYCODE_F1:
+		return 59;
+	case Common::KEYCODE_F2:
+		return 60;
+	case Common::KEYCODE_F3:
+		return 61;
+	case Common::KEYCODE_F4:
+		return 62;
+	case Common::KEYCODE_F5:
+		return 63;
+	case Common::KEYCODE_F6:
+		return 64;
+	case Common::KEYCODE_F7:
+		return 65;
+	case Common::KEYCODE_F8:
+		return 66;
+	case Common::KEYCODE_F9:
+		return 67;
+	case Common::KEYCODE_F10:
+		return 68;
+	case Common::KEYCODE_NUMLOCK:
+		return 69;
+	case Common::KEYCODE_SCROLLOCK:
+		return 70;
+	case Common::KEYCODE_KP7:
+		return 71;
+	case Common::KEYCODE_KP8:
+		return 72;
+	case Common::KEYCODE_KP9:
+		return 73;
+	case Common::KEYCODE_KP_MINUS:
+		return 74;
+	case Common::KEYCODE_KP4:
+		return 75;
+	case Common::KEYCODE_KP5:
+		return 76;
+	case Common::KEYCODE_KP6:
+		return 77;
+	case Common::KEYCODE_KP_PLUS:
+		return 78;
+	case Common::KEYCODE_KP1:
+		return 79;
+	case Common::KEYCODE_KP2:
+		return 80;
+	case Common::KEYCODE_KP3:
+		return 81;
+	case Common::KEYCODE_KP0:
+		return 82;
+	case Common::KEYCODE_KP_PERIOD:
+		return 83;
+	case Common::KEYCODE_F11:
+		return 87;
+	case Common::KEYCODE_F12:
+		return 88;
+	case Common::KEYCODE_KP_EQUALS:
+		return 141;
+	case Common::KEYCODE_KP_ENTER:
+		return 156;
+	case Common::KEYCODE_RCTRL:
+		return 157;
+	case Common::KEYCODE_KP_DIVIDE:
+		return 181;
+	case Common::KEYCODE_SYSREQ:
+	case Common::KEYCODE_PRINT:
+		return 183;
+	case Common::KEYCODE_RALT:
+		return 184;
+	case Common::KEYCODE_PAUSE:
+		return 197;
+	case Common::KEYCODE_HOME:
+		return 199;
+	case Common::KEYCODE_UP:
+		return 200;
+	case Common::KEYCODE_PAGEUP:
+		return 201;
+	case Common::KEYCODE_LEFT:
+		return 203;
+	case Common::KEYCODE_RIGHT:
+		return 205;
+	case Common::KEYCODE_END:
+		return 207;
+	case Common::KEYCODE_DOWN:
+		return 208;
+	case Common::KEYCODE_PAGEDOWN:
+		return 209;
+	case Common::KEYCODE_INSERT:
+		return 210;
+	case Common::KEYCODE_DELETE:
+		return 211;
+	case Common::KEYCODE_LSUPER:
+	case Common::KEYCODE_LMETA:
+		return 219;
+	case Common::KEYCODE_RSUPER:
+	case Common::KEYCODE_RMETA:
+		return 220;
+	case Common::KEYCODE_MENU:
+		return 221;
+	default:
+		return 0;
+	}
+}
+
+void GrimEngine::pumpEvents() {
+	Common::EventManager *pEventMan = g_system->getEventManager();
+	StdControlInput *pInput = _pStdControl->getInput();
+	Common::Event event;
+
+	while (pEventMan->pollEvent(event)) {
+		switch (event.type) {
+		case Common::EVENT_QUIT:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
+			if (!confirmClose()) {
+				pEventMan->resetQuit();
+				pEventMan->resetReturnToLauncher();
+			}
+
+			break;
+		case Common::EVENT_FOCUS_GAINED:
+			handleFocus(1);
+			break;
+		case Common::EVENT_FOCUS_LOST:
+			handleFocus(0);
+			break;
+		case Common::EVENT_KEYDOWN:
+			handleKey(event.type, event.kbd, event.kbdRepeat);
+			break;
+		case Common::EVENT_KEYUP:
+			handleKey(event.type, event.kbd, false);
+			break;
+		case Common::EVENT_MOUSEMOVE:
+			pInput->mouse.x += event.relMouse.x;
+			pInput->mouse.y += event.relMouse.y;
+			break;
+		case Common::EVENT_WHEELUP:
+			pInput->mouse.z += 120;
+			break;
+		case Common::EVENT_WHEELDOWN:
+			pInput->mouse.z -= 120;
+			break;
+		case Common::EVENT_LBUTTONDOWN:
+			addMouseButtonEvent(12, 0x80);
+			break;
+		case Common::EVENT_LBUTTONUP:
+			addMouseButtonEvent(12, 0);
+			break;
+		case Common::EVENT_RBUTTONDOWN:
+			addMouseButtonEvent(13, 0x80);
+			break;
+		case Common::EVENT_RBUTTONUP:
+			addMouseButtonEvent(13, 0);
+			break;
+		case Common::EVENT_MBUTTONDOWN:
+			addMouseButtonEvent(14, 0x80);
+			break;
+		case Common::EVENT_MBUTTONUP:
+			addMouseButtonEvent(14, 0);
+			break;
+		case Common::EVENT_X1BUTTONDOWN:
+			addMouseButtonEvent(15, 0x80);
+			break;
+		case Common::EVENT_X1BUTTONUP:
+			addMouseButtonEvent(15, 0);
+			break;
+		case Common::EVENT_JOYAXIS_MOTION:
+		case Common::EVENT_JOYBUTTON_DOWN:
+		case Common::EVENT_JOYBUTTON_UP:
+			// TODO: joystick
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void GrimEngine::handleFocus(int bActive) {
+	if (bActive == _bActive)
+		return;
+
+	_bActive = bActive;
+	_pStdControl->setActivation(bActive);
+
+	if (bActive) {
+		_pSputRender->forceRefresh();
+
+		if (_pStdControl->isOpen())
+			_pStdControl->flush();
+
+		CursorMan.showMouse(true);
+	}
+}
+
+void GrimEngine::handleKey(Common::EventType type, const Common::KeyState &key, bool bRepeat) {
+	int scanCode = keyCodeToScanCode(key.keycode);
+
+	if (type == Common::EVENT_KEYUP) {
+		if (scanCode)
+			addKeyboardEvent(scanCode, 0);
+
+		if (key.keycode == Common::KEYCODE_BACKSPACE)
+			_bBackspaceHeld = 0;
+
+		return;
+	}
+
+	if (scanCode && !bRepeat)
+		addKeyboardEvent(scanCode, 0x80);
+
+	handleKeyDebug(key);
+
+	if (key.ascii > 0 && key.ascii < 256 && key.ascii != 127)
+		characterCallback(key.ascii);
+}
+
+void GrimEngine::handleKeyDebug(const Common::KeyState &key) {
+	switch (key.keycode) {
+	case Common::KEYCODE_BACKSPACE:
+		if (_bDebugKeys)
+			_bBackspaceHeld = 1;
+
+		break;
+	case Common::KEYCODE_PAUSE:
+		doPauseCallback();
+		break;
+	case Common::KEYCODE_f:
+		if (_bBackspaceHeld)
+			_showFps = !_showFps;
+
+		break;
+	case Common::KEYCODE_p:
+		if (_bBackspaceHeld)
+			_bShowDebugOverlay = !_bShowDebugOverlay;
+
+		break;
+	case Common::KEYCODE_s:
+		if (_bBackspaceHeld)
+			_pSputRender->saveDrawBuffer(Common::String::format("shot%d.bmp", _screenshotCounter++).c_str());
+
+		break;
+	case Common::KEYCODE_z:
+		if (_bBackspaceHeld)
+			_pSputRender->saveZBuffer(Common::String::format("shot%d.zbm", _zbufShotCounter++).c_str());
+
+		break;
+	case Common::KEYCODE_F12:
+		// TODO: lua_dofile("grimpatch.bin") while the backspace key is down
+		break;
+	default:
+		break;
+	}
+}
+
+void GrimEngine::addKeyboardEvent(uint offset, int data) {
+	StdControlInput *pInput = _pStdControl->getInput();
+
+	pInput->keyboardState[offset] = (byte)data;
+
+	if (pInput->numKeyboardEvents < 32) {
+		StdControlDeviceEvent *pEvent = &pInput->keyboardEvents[pInput->numKeyboardEvents];
+
+		pEvent->offset = offset;
+		pEvent->data = data;
+		pEvent->timeStamp = (int)g_system->getMillis();
+		pInput->numKeyboardEvents++;
+	} else {
+		pInput->bKeyboardOverflow = 1;
+	}
+}
+
+void GrimEngine::addMouseButtonEvent(uint offset, int data) {
+	StdControlInput *pInput = _pStdControl->getInput();
+
+	pInput->mouse.buttons[offset - 12] = (byte)data;
+
+	if (pInput->numMouseEvents < 32) {
+		StdControlDeviceEvent *pEvent = &pInput->mouseEvents[pInput->numMouseEvents];
+
+		pEvent->offset = offset;
+		pEvent->data = data;
+		pEvent->timeStamp = (int)g_system->getMillis();
+		pInput->numMouseEvents++;
+	} else {
+		pInput->bMouseOverflow = 1;
+	}
 }
 
 } // end of namespace Grim
