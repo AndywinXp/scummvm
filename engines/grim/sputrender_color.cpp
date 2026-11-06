@@ -27,6 +27,7 @@
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputresource.h"
+#include "engines/grim/sputtext.h"
 #include "engines/grim/std/std_bitmap.h"
 
 namespace Grim {
@@ -103,12 +104,12 @@ void SputRender::dim(int bForce, char shift) {
 	if (mode == 3) {
 		// TODO: set the SMUSH target to the back buffer
 	} else {
-		// TODO: pause the text
+		_pSputText->pause();
 		_pSputPrimitive->pause();
 		// TODO: advance the game time manually
 		update();
 		_pRd->finishFrame();
-		// TODO: resume the text
+		_pSputText->resume();
 		_pSputPrimitive->resume();
 	}
 

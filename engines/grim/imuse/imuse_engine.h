@@ -54,6 +54,12 @@ struct IMuseDispatch;
 struct IMuseTrack;
 struct IMuseStreamZone;
 
+struct IMuseLipSync {
+	char filename[32];
+	int32 size;
+	uint8 *ptr;
+};
+
 class IMuse {
 private:
 	Common::Mutex *_mutex;
@@ -375,6 +381,8 @@ public:
 	int soundStopVoiceStream();
 	int soundGetVoiceTime();
 	int iMUSEGetPhoneme(int lipsyncId, int offset);
+	IMuseLipSync *grimSoundLipSyncLoad(const char *source);
+	void grimSoundLipSyncFree(IMuseLipSync *pLipSync);
 
 	// Called by the Groups module
 	void tracksSetGroupVol();

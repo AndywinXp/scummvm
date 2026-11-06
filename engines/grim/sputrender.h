@@ -34,10 +34,12 @@ class WriteStream;
 
 namespace Grim {
 
+class BlastText;
 class RenderDroid;
 class SputPrimitive;
 class SputResource;
 class SputRoom;
+class SputText;
 class WalkSystem;
 struct RdCanvas;
 struct Room;
@@ -78,6 +80,8 @@ public:
 			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer);
 
 	void setActors(SputActor *aActors) { _aActors = aActors; }
+	void setSputText(SputText *pSputText) { _pSputText = pSputText; }
+	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
 
 	int initialize(SysStruct *pHS);
 	int terminate();
@@ -157,6 +161,7 @@ public:
 	void drawWalkPlanes();
 
 	StdVBuffer *getCleanBuffer() const { return _pCleanBuffer; }
+	uint16 *getColors() { return _aColors; }
 	void setSkipPrimitives(int bSkip) { _bSkipPrimitives = bSkip; }
 
 private:
@@ -174,6 +179,8 @@ private:
 	StdVBuffer *_pMainGfxBuffer;
 
 	SputActor *_aActors;
+	SputText *_pSputText;
+	BlastText *_pBlastText;
 
 	SysStruct *_pHS;
 	int _bInitialized;
@@ -194,9 +201,6 @@ private:
 	StdVBuffer *_pCleanArtBuffer;
 	StdVBuffer *_pCleanZBuffer;
 	int _pDecompressionBuffer;
-	byte *_backBufferPixels;
-	int _backBufferBytesPerPixel;
-	int _backBufferPitch;
 
 	int _numPages;
 	DirtyRect *_pDirtyRectQueue;

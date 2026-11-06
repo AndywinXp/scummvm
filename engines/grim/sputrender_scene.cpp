@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/blasttext.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputobjectstate.h"
@@ -30,6 +31,7 @@
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/sputtext.h"
 #include "engines/grim/std/std_sort.h"
 
 namespace Grim {
@@ -176,8 +178,8 @@ void SputRender::update() {
 
 		// TODO: update the speech of the actors with the frame time (sputTime_GetFrameTimeFlex)
 		_pStdDisplay->vBufferLock(_pBackBuffer);
-		_backBufferPixels = _pBackBuffer->pPixels;
-		// TODO: sputText_Update(0)
+		_pBlastText->getSurface()->pPixels = _pBackBuffer->pPixels;
+		_pSputText->update(0);
 		_pStdDisplay->vBufferUnlock(_pBackBuffer);
 		pageFlip();
 		return;
@@ -395,8 +397,8 @@ void SputRender::update() {
 	}
 
 	_pStdDisplay->vBufferLock(_pBackBuffer);
-	_backBufferPixels = _pBackBuffer->pPixels;
-	// TODO: sputText_Update(1)
+	_pBlastText->getSurface()->pPixels = _pBackBuffer->pPixels;
+	_pSputText->update(1);
 	_pStdDisplay->vBufferUnlock(_pBackBuffer);
 	_reset = 0;
 }

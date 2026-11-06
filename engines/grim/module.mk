@@ -58,6 +58,7 @@ MODULE_OBJS := \
 	imuse/imuse_groups.o \
 	imuse/imuse_hmi.o \
 	imuse/imuse_internalmixer.o \
+	imuse/imuse_lipsync.o \
 	imuse/imuse_mcmp_mgr.o \
 	imuse/imuse_scripts.o \
 	imuse/imuse_streamer.o \
@@ -154,6 +155,8 @@ MODULE_OBJS := \
 	actor.o \
 	animation.o \
 	bitmap.o \
+	blasttext.o \
+	blasttext_fontdata.o \
 	costume.o \
 	color.o \
 	colormap.o \
@@ -181,6 +184,7 @@ MODULE_OBJS := \
 	metaengine.o \
 	material.o \
 	model.o \
+	normaltext.o \
 	objectstate.o \
 	primitivequeue.o \
 	primitives.o \
@@ -207,6 +211,8 @@ MODULE_OBJS := \
 	sputresource.o \
 	sputroom.o \
 	sputroom_sections.o \
+	sputtext.o \
+	text.o \
 	textobject.o \
 	textsplit.o \
 	puck.o \
