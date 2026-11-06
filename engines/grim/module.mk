@@ -7,6 +7,8 @@ MODULE_OBJS := \
 	chore/cos_instance.o \
 	chore/cos_parse.o \
 	chore/cos_save.o \
+	chore/cos_util.o \
+	chore/cos_util_write.o \
 	costume/bitmap_component.o \
 	costume/chore.o \
 	costume/colormap_component.o \
@@ -191,6 +193,10 @@ MODULE_OBJS := \
 	sector.o \
 	sound.o \
 	sprite.o \
+	sputcostume.o \
+	sputcostume_keyframe.o \
+	sputcostume_media.o \
+	sputcostume_model.o \
 	sputobjectstate.o \
 	sputprimitive.o \
 	sputrender.o \

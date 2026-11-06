@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-RdThing *RenderDroid::ThingModule::create(int userArg) {
+RdThing *RenderDroid::ThingModule::create(void *userArg) {
 	RdThing *pThing = new RdThing;
 
 	if (!newEntry(pThing, userArg))
@@ -32,7 +32,7 @@ RdThing *RenderDroid::ThingModule::create(int userArg) {
 	return pThing;
 }
 
-int RenderDroid::ThingModule::newEntry(RdThing *pThing, int userArg) {
+int RenderDroid::ThingModule::newEntry(RdThing *pThing, void *userArg) {
 	pThing->curGeoSet = -1;
 	pThing->curCel = -1;
 	pThing->data.pModel3 = nullptr;
