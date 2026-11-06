@@ -451,7 +451,7 @@ int SputRender::loadSetupBackground(const StdColorFormat *pFormat) {
 	_aColors[20] = _colorLookup[(uint16)((uint)(255 >> redLoss) << redShift) | (uint16)((uint)(255 >> blueLoss) << blueShift)];
 	_aColors[21] = _colorLookup[(uint16)((uint)(255 >> greenLoss) << greenShift) | (uint16)((uint)(255 >> blueLoss) << blueShift)];
 
-	// TODO: sputResource_Load_BKND()
+	_pSputResource->loadBknd();
 
 	return _pSputResource->cmap();
 }

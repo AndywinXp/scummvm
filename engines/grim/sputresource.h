@@ -28,6 +28,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/res.h"
+#include "engines/grim/std/std_bitmap.h"
 
 namespace Grim {
 
@@ -45,7 +46,7 @@ class SputRender;
 
 class SputResource : public ResHandler {
 public:
-	SputResource(Res *pRes, RenderDroid *pRd);
+	SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 
@@ -64,6 +65,8 @@ public:
 	int shutdown();
 	int registerHandlers();
 	int setMemoryUsage(int totalAllowedLimit, int purgeAmount);
+	int loadResBknd(ResHandlerMsg *pMsg);
+	void loadBknd();
 	int loadResCmap(ResHandlerMsg *pMsg);
 	int loadResKeyf(ResHandlerMsg *pMsg);
 	int loadResMat(ResHandlerMsg *pMsg);
@@ -78,6 +81,8 @@ private:
 
 	Res *_pRes;
 	RenderDroid *_pRd;
+	StdDisplay *_pStdDisplay;
+	StdBitmap *_pStdBitmap;
 	SputRender *_pSputRender;
 	SysStruct *_pHS;
 	int _bInitialized;
