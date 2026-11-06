@@ -33,6 +33,7 @@ namespace Grim {
 
 class SputRender;
 class SputResource;
+class SputActorModule;
 class SputRoom;
 class StdLbm;
 struct CostumeNode;
@@ -55,7 +56,10 @@ public:
 	SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm);
 
 	void setActors(SputActor *aActors) { _aActors = aActors; }
+	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 	Cos *getCos() { return &_cos; }
+	RdColormap *getShadowColormap() const { return _pShadowColormap; }
+	void setShadowColormap(RdColormap *pColormap) { _pShadowColormap = pColormap; }
 
 	void setShadowColor(int red, int green, int blue);
 	void printCostumeInfo(CostumeNode *pNode);
@@ -63,8 +67,6 @@ public:
 	CostumeNode *popCostume(CostumeNode *pNode, int bFreeInstance);
 	CostumeNode *setCostume(CostumeNode *pNode, int hCostume, int hInstance);
 	CostumeNode *pushCostume(CostumeNode *pPrev, int hCostume, int hInstance);
-	CostumeNode *allocCostumeNode();
-	void initCostumeNode(CostumeNode *pNode);
 	RdThing *getMainThing(int hInst);
 	void update(CostumeNode *pNode, float delta);
 	int initialize(SysStruct *pHS);
@@ -90,6 +92,7 @@ private:
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
 	StdLbm *_pStdLbm;
+	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SysStruct *_pHS;
 	Cos _cos;

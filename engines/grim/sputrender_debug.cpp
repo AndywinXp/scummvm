@@ -56,7 +56,7 @@ void SputRender::drawActorDebug(SputActor *pActor) {
 		}
 
 		RdModel3 *pModel3 = pActor->pCostumeStack->pHeadThing->data.pModel3;
-		float (*pOrient)[3] = pActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pActor)
+		float (*pOrient)[3] = _pSputActor->getOrientMatrix(pActor);
 		RdVector3 out;
 
 		_pRd->transformPoint34(out, pModel3->geomCenter, pOrient);
@@ -180,11 +180,10 @@ void SputRender::drawActorBox(RoomSetup *pSetup) {
 	p1[2] = (float)((double)z - 1.0);
 	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[6], 0xFFFFFFFF);
 
-	SputActor *pCamActor = &_aActors[_gCamActorIndex]; // TODO: sputActor_ActorDeref(_gCamActorIndex)
+	SputActor *pCamActor = _pSputActor->actorDeref(_gCamActorIndex);
 
-	if (pCamActor->pCostumeStack) {
-		// TODO: sputActor_DrawCostume(pCamActor->pCostumeStack, pSetup->camera.posMatrix)
-	}
+	if (pCamActor->pCostumeStack)
+		_pSputActor->drawCostume(pCamActor->pCostumeStack, pSetup->camera.posMatrix);
 }
 
 void SputRender::drawBoundingBox() {

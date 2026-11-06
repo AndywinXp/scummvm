@@ -35,6 +35,7 @@ class WriteStream;
 namespace Grim {
 
 class RenderDroid;
+class SputActorModule;
 class SputRender;
 class SputResource;
 class StdBitmap;
@@ -124,6 +125,7 @@ public:
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 	void setActors(SputActor *aActors) { _aActors = aActors; }
+	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 
 	StdVBuffer *getSetupBackground(Room *pRoom, int setupIndex);
 	StdVBuffer *getSetupZBackground(Room *pRoom, int setupIndex);
@@ -194,6 +196,7 @@ private:
 	StdConffile *_pStdConffile;
 	WalkSystem *_pWalkSystem;
 	SputRender *_pSputRender;
+	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SysStruct *_pHS;
 	int _bInitialized;

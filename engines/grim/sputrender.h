@@ -36,6 +36,7 @@ namespace Grim {
 
 class BlastText;
 class RenderDroid;
+class SputActorModule;
 class SputPrimitive;
 class SputResource;
 class SputRoom;
@@ -80,6 +81,7 @@ public:
 			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer);
 
 	void setActors(SputActor *aActors) { _aActors = aActors; }
+	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 	void setSputText(SputText *pSputText) { _pSputText = pSputText; }
 	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
 
@@ -178,6 +180,7 @@ private:
 	StdVBuffer *_pBackBuffer;
 	StdVBuffer *_pMainGfxBuffer;
 
+	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SputText *_pSputText;
 	BlastText *_pBlastText;

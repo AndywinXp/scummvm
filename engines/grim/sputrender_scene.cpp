@@ -96,8 +96,8 @@ void SputRender::useSetup(Room *pRoom, int setup) {
 	_renderFlags &= ~3;
 	_pCamera = &pSetup->camera;
 
-	SputActor *pCamActor = &_aActors[_gCamActorIndex]; // TODO: sputActor_ActorDeref(_gCamActorIndex)
-	float (*pOrient)[3] = pCamActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pCamActor)
+	SputActor *pCamActor = _pSputActor->actorDeref(_gCamActorIndex);
+	float (*pOrient)[3] = _pSputActor->getOrientMatrix(pCamActor);
 
 	memcpy(pOrient, pSetup->camera.posMatrix, sizeof(RdMatrix34));
 
@@ -176,7 +176,9 @@ void SputRender::update() {
 			_movieJustFinished = 1;
 		}
 
-		// TODO: update the speech of the actors with the frame time (sputTime_GetFrameTimeFlex)
+		float frameTime = 0.0f; // TODO: sputTime_GetFrameTimeFlex()
+
+		_pSputActor->updateSpeechOnly(frameTime);
 		_pStdDisplay->vBufferLock(_pBackBuffer);
 		_pBlastText->getSurface()->pPixels = _pBackBuffer->pPixels;
 		_pSputText->update(0);
@@ -243,7 +245,9 @@ void SputRender::update() {
 
 		for (int i = 0; i < _numSortActors; i++) {
 			if (_aSortedActors[i]->kind == 0) {
-				// TODO: sputActor_EnumCostumeComponents(pActor->pCostumeStack->hCostumeInstance)
+				SputActor *pEnumActor = &_aActors[_aSortedActors[i]->actorIndex];
+
+				_pSputActor->enumCostumeComponents(pEnumActor->pCostumeStack->hCostumeInstance);
 			}
 
 			numSorted++;
@@ -267,7 +271,7 @@ void SputRender::update() {
 		for (int i = numSorted - 1; i >= 0; i--) {
 			ActorSortInfo *pEntry = _aSortedActors[i];
 			SputActor *pActor = &_aActors[pEntry->actorIndex];
-			float (*pOrient)[3] = pActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pActor)
+			float (*pOrient)[3] = _pSputActor->getOrientMatrix(pActor);
 
 			if (pActor->scale != 1.0f) {
 				RdVector3 scale;
@@ -300,7 +304,7 @@ void SputRender::update() {
 				if (_pSetPaletteFunc)
 					_pSetPaletteFunc(pColormap->aColors, 0);
 
-				// TODO: sputActor_DrawCostume(pActor->pCostumeStack, pOrient)
+				_pSputActor->drawCostume(pActor->pCostumeStack, pOrient);
 
 				if (_debugFlags & 1)
 					drawActorDebug(pActor);
@@ -322,7 +326,7 @@ void SputRender::update() {
 				scale[0] = (float)(1.0 / (double)pActor->scale);
 				scale[1] = scale[0];
 				scale[2] = scale[0];
-				pOrient = pActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pActor)
+				pOrient = _pSputActor->getOrientMatrix(pActor);
 				_pRd->preScale34(pOrient, scale);
 			}
 		}
@@ -742,7 +746,7 @@ void SputRender::drawActor(SputActor *pActor) {
 	pActor->drawnRect.width = 0;
 	pActor->drawnRect.height = 0;
 
-	float (*pOrient)[3] = pActor->orientMatrix; // TODO: sputActor_GetOrientMatrix(pActor)
+	float (*pOrient)[3] = _pSputActor->getOrientMatrix(pActor);
 
 	if (_pRd->_thing.draw(pActor->pCostumeStack->pHeadThing, pOrient)) {
 		pActor->onScreen = 1;

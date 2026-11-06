@@ -197,6 +197,14 @@ MODULE_OBJS := \
 	sector.o \
 	sound.o \
 	sprite.o \
+	sputactor.o \
+	sputactor_collision.o \
+	sputactor_costume.o \
+	sputactor_move.o \
+	sputactor_save.o \
+	sputactor_shadow.o \
+	sputactor_talk.o \
+	sputactor_walk.o \
 	sputcostume.o \
 	sputcostume_keyframe.o \
 	sputcostume_media.o \

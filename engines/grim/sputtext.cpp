@@ -604,7 +604,7 @@ int SputText::restore(Common::ReadStream *pStream) {
 		pEvent->params.pSurface = _pBlastText->getSurface();
 		pEvent->params.pClip = &pEvent->clip;
 		pEvent->params.pColorMap = (byte *)_pSputRender->getColors();
-		pEvent->pActor = nullptr; // TODO: sputActor_Restore must set the actor of the event found by sputText_FindSerialNumber
+		pEvent->pActor = nullptr;
 
 		pEvent->pPrev = nullptr;
 		pEvent->pNext = _pTextQueue;
