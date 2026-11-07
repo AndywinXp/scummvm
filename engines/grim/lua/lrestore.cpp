@@ -20,14 +20,65 @@
 
 namespace Grim {
 
-static void restoreObjectValue(TObject *object, SaveGame *savedState) {
-	object->ttype = (lua_Type)savedState->readLESint32();
+static tSaveRestoreAccess *pRestoreFunc;
+static SaveGame *pSaveGame;
+static uint restoreMinorVersion;
+
+static int saveGameReader(void *data, int size) {
+	pSaveGame->read(data, size);
+
+	return 0;
+}
+
+static void readBytes(void *data, int size) {
+	pRestoreFunc(data, size);
+}
+
+static uint64 readLEUint64() {
+	uint64 data;
+	pRestoreFunc(&data, 8);
+
+	return FROM_LE_64(data);
+}
+
+static uint32 readLEUint32() {
+	uint32 data;
+	pRestoreFunc(&data, 4);
+
+	return FROM_LE_32(data);
+}
+
+static int32 readLESint32() {
+	return (int32)readLEUint32();
+}
+
+static byte readByte() {
+	byte data;
+	pRestoreFunc(&data, 1);
+
+	return data;
+}
+
+static bool readBool() {
+	return readByte() != 0;
+}
+
+static float readFloat() {
+	float f;
+	uint32 v = readLEUint32();
+	memcpy(&f, &v, 4);
+
+	return f;
+}
+
+static void restoreObjectValue(TObject *object) {
+	object->ttype = (lua_Type)readLESint32();
 
 	switch (object->ttype) {
 		case LUA_T_NUMBER:
 		case LUA_T_TASK:
 			{
-				object->value.n = savedState->readFloat();
+				object->value.n = readFloat();
 			}
 			break;
 		case LUA_T_NIL:
@@ -38,24 +89,26 @@ static void restoreObjectValue(TObject *object, SaveGame *savedState) {
 		case LUA_T_ARRAY:
 			{
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				object->value.a = (Hash *)makePointerFromId(ptr);
 			}
 			break;
 		case LUA_T_USERDATA:
 			{
-				object->value.ud.id = savedState->readLESint32();
-				object->value.ud.tag = savedState->readLESint32();
-				if (savedState->saveMinorVersion() == 0) {
-					savedState->readLEUint32();
-					savedState->readLEUint32();
+				object->value.ud.id = readLESint32();
+				object->value.ud.tag = readLESint32();
+				if (restoreMinorVersion == 0) {
+					readLEUint32();
+					readLEUint32();
 				}
+				if (lua_restorehook)
+					object->value.ud.id = lua_restorehook(object->value.ud.tag, object->value.ud.id, pRestoreFunc);
 			}
 			break;
 		case LUA_T_STRING:
 			{
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				object->value.ts = (TaggedString *)makePointerFromId(ptr);
 			}
 			break;
@@ -63,7 +116,7 @@ static void restoreObjectValue(TObject *object, SaveGame *savedState) {
 		case LUA_T_PMARK:
 			{
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				object->value.tf = (TProtoFunc *)makePointerFromId(ptr);
 			}
 			break;
@@ -71,7 +124,7 @@ static void restoreObjectValue(TObject *object, SaveGame *savedState) {
 		case LUA_T_CMARK:
 			{
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 
 				// WORKAROUND: C++ forbids casting from a pointer-to-function to a
 				// pointer-to-object. We use a union to work around that.
@@ -88,18 +141,18 @@ static void restoreObjectValue(TObject *object, SaveGame *savedState) {
 		case LUA_T_CLMARK:
 			{
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				object->value.cl = (Closure *)makePointerFromId(ptr);
 			}
 			break;
 		case LUA_T_LINE:
 			{
-				object->value.i = savedState->readLESint32();
+				object->value.i = readLESint32();
 			}
 			break;
 		default:
 			PointerId ptr;
-			ptr.id = savedState->readLEUint64();
+			ptr.id = readLEUint64();
 			object->value.ts = (TaggedString *)makePointerFromId(ptr);
 	}
 }
@@ -205,39 +258,37 @@ static void recreateObj(TObject *obj) {
 	}
 }
 
-void lua_Restore(SaveGame *savedState) {
-	savedState->beginSection('LUAS');
-
+static void restoreState() {
 	lua_close();
 	lua_rootState = lua_state = luaM_new(LState);
 	lua_stateinit(lua_state);
 	lua_resetglobals();
 
-	arrayStringsCount = savedState->readLESint32();
-	arrayClosuresCount = savedState->readLESint32();
-	arrayHashTablesCount = savedState->readLESint32();
-	arrayProtoFuncsCount = savedState->readLESint32();
-	int32 rootGlobalCount = savedState->readLESint32();
+	arrayStringsCount = readLESint32();
+	arrayClosuresCount = readLESint32();
+	arrayHashTablesCount = readLESint32();
+	arrayProtoFuncsCount = readLESint32();
+	int32 rootGlobalCount = readLESint32();
 
 	arrayStrings = (ArrayIDObj *)luaM_malloc(sizeof(ArrayIDObj) * arrayStringsCount);
 	ArrayIDObj *arraysObj = arrayStrings;
 	int32 maxStringsLength;
-	maxStringsLength = savedState->readLESint32();
+	maxStringsLength = readLESint32();
 	char *tempStringBuffer = (char *)luaM_malloc(maxStringsLength + 1); // add extra char for 0 terminate string
 
 	//printf("1: %d\n", g_grim->_savedState->getBufferPos());
 
 	int32 i;
 	for (i = 0; i < arrayStringsCount; i++) {
-		arraysObj->idObj.id = savedState->readLEUint64();
-		int32 constIndex = savedState->readLESint32();
+		arraysObj->idObj.id = readLEUint64();
+		int32 constIndex = readLESint32();
 
 		TaggedString *tempString = nullptr;
 		if (constIndex != -1) {
 			TObject obj;
-			restoreObjectValue(&obj, savedState);
-			int32 length = savedState->readLESint32();
-			savedState->read(tempStringBuffer, length);
+			restoreObjectValue(&obj);
+			int32 length = readLESint32();
+			readBytes(tempStringBuffer, length);
 			tempStringBuffer[length] = '\0';
 			tempString = luaS_new(tempStringBuffer);
 			tempString->globalval = obj;
@@ -257,15 +308,15 @@ void lua_Restore(SaveGame *savedState) {
 	arraysObj = (ArrayIDObj *)luaM_malloc(sizeof(ArrayIDObj) * arrayClosuresCount);
 	arrayClosures = arraysObj;
 	for (i = 0; i < arrayClosuresCount; i++) {
-		arraysObj->idObj.id = savedState->readLEUint64();
-		int32 countElements = savedState->readLESint32();
+		arraysObj->idObj.id = readLEUint64();
+		int32 countElements = readLESint32();
 		tempClosure = (Closure *)luaM_malloc((countElements * sizeof(TObject)) + sizeof(Closure));
 		luaO_insertlist(prevClosure, (GCnode *)tempClosure);
 		prevClosure = (GCnode *)tempClosure;
 
 		tempClosure->nelems = countElements;
 		for (l = 0; l <= tempClosure->nelems; l++) {
-			restoreObjectValue(&tempClosure->consts[l], savedState);
+			restoreObjectValue(&tempClosure->consts[l]);
 		}
 		arraysObj->object = tempClosure;
 		arraysObj++;
@@ -276,18 +327,18 @@ void lua_Restore(SaveGame *savedState) {
 	arraysObj = (ArrayIDObj *)luaM_malloc(sizeof(ArrayIDObj) * arrayHashTablesCount);
 	arrayHashTables = arraysObj;
 	for (i = 0; i < arrayHashTablesCount; i++) {
-		arraysObj->idObj.id = savedState->readLEUint64();
+		arraysObj->idObj.id = readLEUint64();
 		tempHash = luaM_new(Hash);
-		tempHash->nhash = savedState->readLESint32();
-		tempHash->nuse = savedState->readLESint32();
-		tempHash->htag = savedState->readLESint32();
+		tempHash->nhash = readLESint32();
+		tempHash->nuse = readLESint32();
+		tempHash->htag = readLESint32();
 		tempHash->node = hashnodecreate(tempHash->nhash);
 		luaO_insertlist(prevHash, (GCnode *)tempHash);
 		prevHash = (GCnode *)tempHash;
 
 		for (l = 0; l < tempHash->nuse; l++) {
-			restoreObjectValue(&tempHash->node[l].ref, savedState);
-			restoreObjectValue(&tempHash->node[l].val, savedState);
+			restoreObjectValue(&tempHash->node[l].ref);
+			restoreObjectValue(&tempHash->node[l].val);
 		}
 		arraysObj->object = tempHash;
 		arraysObj++;
@@ -298,15 +349,15 @@ void lua_Restore(SaveGame *savedState) {
 	arrayProtoFuncs = (ArrayIDObj *)luaM_malloc(sizeof(ArrayIDObj) * arrayProtoFuncsCount);
 	arraysObj = arrayProtoFuncs;
 	for (i = 0; i < arrayProtoFuncsCount; i++) {
-		arraysObj->idObj.id = savedState->readLEUint64();
+		arraysObj->idObj.id = readLEUint64();
 		tempProtoFunc = luaM_new(TProtoFunc);
 		luaO_insertlist(oldProto, (GCnode *)tempProtoFunc);
 		oldProto = (GCnode *)tempProtoFunc;
 		PointerId ptr;
-		ptr.id = savedState->readLEUint64();
+		ptr.id = readLEUint64();
 		tempProtoFunc->fileName = (TaggedString *)makePointerFromId(ptr);
-		tempProtoFunc->lineDefined = savedState->readLESint32();
-		tempProtoFunc->nconsts = savedState->readLESint32();
+		tempProtoFunc->lineDefined = readLESint32();
+		tempProtoFunc->nconsts = readLESint32();
 		if (tempProtoFunc->nconsts > 0) {
 			tempProtoFunc->consts = (TObject *)luaM_malloc(tempProtoFunc->nconsts * sizeof(TObject));
 		} else {
@@ -314,10 +365,10 @@ void lua_Restore(SaveGame *savedState) {
 		}
 
 		for (l = 0; l < tempProtoFunc->nconsts; l++) {
-			restoreObjectValue(&tempProtoFunc->consts[l], savedState);
+			restoreObjectValue(&tempProtoFunc->consts[l]);
 		}
 
-		int32 countVariables = savedState->readLESint32();
+		int32 countVariables = readLESint32();
 		if (countVariables) {
 			tempProtoFunc->locvars = (LocVar *)luaM_malloc(countVariables * sizeof(LocVar));
 		} else {
@@ -325,14 +376,14 @@ void lua_Restore(SaveGame *savedState) {
 		}
 
 		for (l = 0; l < countVariables; l++) {
-			ptr.id = savedState->readLEUint64();
+			ptr.id = readLEUint64();
 			tempProtoFunc->locvars[l].varname = (TaggedString *)makePointerFromId(ptr);
-			tempProtoFunc->locvars[l].line = savedState->readLESint32();
+			tempProtoFunc->locvars[l].line = readLESint32();
 		}
 
-		int32 codeSize = savedState->readLESint32();
+		int32 codeSize = readLESint32();
 		tempProtoFunc->code = (byte *)luaM_malloc(codeSize);
-		savedState->read(tempProtoFunc->code, codeSize);
+		readBytes(tempProtoFunc->code, codeSize);
 		arraysObj->object = tempProtoFunc;
 		arraysObj++;
 	}
@@ -402,7 +453,7 @@ void lua_Restore(SaveGame *savedState) {
 		TaggedString *tempString = nullptr;
 		tempObj.ttype = LUA_T_STRING;
 		PointerId ptr;
-		ptr.id = savedState->readLEUint64();
+		ptr.id = readLEUint64();
 		tempObj.value.ts = (TaggedString *)makePointerFromId(ptr);
 		recreateObj(&tempObj);
 		tempString = (TaggedString *)tempObj.value.ts;
@@ -412,16 +463,16 @@ void lua_Restore(SaveGame *savedState) {
 	}
 	tempListString->head.next = nullptr;
 
-	restoreObjectValue(&errorim, savedState);
+	restoreObjectValue(&errorim);
 	recreateObj(&errorim);
 
-	IMtable_size = savedState->readLESint32();
+	IMtable_size = readLESint32();
 	if (IMtable_size > 0) {
 		IMtable = (IM *)luaM_malloc(IMtable_size * sizeof(IM));
 		for (i = 0; i < IMtable_size; i++) {
 			IM *im = &IMtable[i];
 			for (l = 0; l < IM_N; l++) {
-				restoreObjectValue(&im->int_method[l], savedState);
+				restoreObjectValue(&im->int_method[l]);
 				recreateObj(&im->int_method[l]);
 			}
 		}
@@ -429,33 +480,33 @@ void lua_Restore(SaveGame *savedState) {
 		IMtable = nullptr;
 	}
 
-	last_tag = savedState->readLESint32();
-	refSize = savedState->readLESint32();
+	last_tag = readLESint32();
+	refSize = readLESint32();
 	if (refSize > 0) {
 		refArray = (ref *)luaM_malloc(refSize * sizeof(ref));
 		for (i = 0; i < refSize; i++) {
-			restoreObjectValue(&refArray[i].o, savedState);
+			restoreObjectValue(&refArray[i].o);
 			recreateObj(&refArray[i].o);
-			refArray[i].status = (Status)savedState->readLESint32();
+			refArray[i].status = (Status)readLESint32();
 		}
 	} else {
 		refArray = nullptr;
 	}
 
-	GCthreshold = savedState->readLESint32();
-	nblocks = savedState->readLESint32();
+	GCthreshold = readLESint32();
+	nblocks = readLESint32();
 
-	Mbuffsize = savedState->readLESint32();
+	Mbuffsize = readLESint32();
 	Mbuffer = (char *)luaM_malloc(Mbuffsize);
-	savedState->read(Mbuffer, Mbuffsize);
-	int32 MbaseOffset = savedState->readLESint32();
+	readBytes(Mbuffer, Mbuffsize);
+	int32 MbaseOffset = readLESint32();
 	Mbuffbase = MbaseOffset + Mbuffer;
-	Mbuffnext = savedState->readLESint32();
+	Mbuffnext = readLESint32();
 
-	globalTaskSerialId = savedState->readLESint32();
+	globalTaskSerialId = readLESint32();
 
-	int32 countStates = savedState->readLESint32();
-	int32 currentState = savedState->readLESint32();
+	int32 countStates = readLESint32();
+	int32 currentState = readLESint32();
 
 	LState *state = lua_rootState;
 	for (l = 0; l < countStates; l++) {
@@ -468,7 +519,7 @@ void lua_Restore(SaveGame *savedState) {
 			s->prev = state;
 			state = s;
 		}
-		int32 countTasks = savedState->readLESint32();
+		int32 countTasks = readLESint32();
 		if (countTasks) {
 			lua_Task *task = nullptr;
 			for (i = 0; i < countTasks; i++) {
@@ -487,29 +538,29 @@ void lua_Restore(SaveGame *savedState) {
 				TObject tempObj;
 				tempObj.ttype = LUA_T_CLOSURE;
 				PointerId ptr;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				tempObj.value.cl = (Closure *)makePointerFromId(ptr);
 				recreateObj(&tempObj);
 				task->cl = (Closure *)tempObj.value.cl;
 				tempObj.ttype = LUA_T_PROTO;
-				ptr.id = savedState->readLEUint64();
+				ptr.id = readLEUint64();
 				tempObj.value.tf = (TProtoFunc *)makePointerFromId(ptr);
 				recreateObj(&tempObj);
 				task->tf = (TProtoFunc *)tempObj.value.tf;
 
-				task->base = savedState->readLESint32();
-				task->initBase = savedState->readLESint32();
-				task->initResults = savedState->readLESint32();
-				task->executed = savedState->readBool();
-				int32 pcOffset = savedState->readLESint32();
+				task->base = readLESint32();
+				task->initBase = readLESint32();
+				task->initResults = readLESint32();
+				task->executed = readBool();
+				int32 pcOffset = readLESint32();
 				task->pc = task->tf->code + pcOffset;
-				task->aux = savedState->readLESint32();
+				task->aux = readLESint32();
 				task->consts = task->tf->consts;
 			}
 		} else {
 			state->task = nullptr;
 		}
-		int32 n = savedState->readLESint32();
+		int32 n = readLESint32();
 		if (n < 0) {
 			state->prevTask = nullptr;
 		} else {
@@ -518,45 +569,45 @@ void lua_Restore(SaveGame *savedState) {
 				state->prevTask = state->prevTask->next;
 		}
 
-		state->updated = savedState->readBool();
+		state->updated = readBool();
 
-		byte pauseState = savedState->readByte();
+		byte pauseState = readByte();
 		state->all_paused = pauseState & LUA_SG_ALL_PAUSED;
 		state->paused = (pauseState & LUA_SG_PAUSED) ? true : false;
 
-		state->preventBreakCounter = savedState->readLESint32();
-		state->callLevelCounter = savedState->readLESint32();
+		state->preventBreakCounter = readLESint32();
+		state->callLevelCounter = readLESint32();
 
-		int32 stackLastSize = savedState->readLESint32();
+		int32 stackLastSize = readLESint32();
 		if (state->stack.stack)
 			luaM_free(state->stack.stack);
 
 		state->stack.stack = (TObject *)luaM_malloc(stackLastSize * sizeof(TObject));
 		state->stack.last = state->stack.stack + stackLastSize - 1;
 
-		int32 stackTopSize = savedState->readLESint32();
+		int32 stackTopSize = readLESint32();
 		state->stack.top = state->stack.stack + stackTopSize;
 		for (i = 0; i < stackTopSize; i++) {
-			restoreObjectValue(&state->stack.stack[i], savedState);
+			restoreObjectValue(&state->stack.stack[i]);
 			recreateObj(&state->stack.stack[i]);
 		}
 
-		state->Cstack.base = savedState->readLESint32();
-		state->Cstack.lua2C = savedState->readLESint32();
-		state->Cstack.num = savedState->readLESint32();
+		state->Cstack.base = readLESint32();
+		state->Cstack.lua2C = readLESint32();
+		state->Cstack.num = readLESint32();
 
-		state->numCblocks = savedState->readLESint32();
+		state->numCblocks = readLESint32();
 		for (i = 0; i < state->numCblocks; i++) {
-			state->Cblocks[i].base = savedState->readLESint32();
-			state->Cblocks[i].lua2C = savedState->readLESint32();
-			state->Cblocks[i].num = savedState->readLESint32();
+			state->Cblocks[i].base = readLESint32();
+			state->Cblocks[i].lua2C = readLESint32();
+			state->Cblocks[i].num = readLESint32();
 		}
 
-		if (savedState->saveMinorVersion() >= 3) {
-			state->sleepFor = savedState->readLEUint32();
+		if (restoreMinorVersion >= 3) {
+			state->sleepFor = readLEUint32();
 		}
-		state->id = savedState->readLEUint32();
-		restoreObjectValue(&state->taskFunc, savedState);
+		state->id = readLEUint32();
+		restoreObjectValue(&state->taskFunc);
 		if (state->taskFunc.ttype == LUA_T_PROTO || state->taskFunc.ttype == LUA_T_CPROTO)
 			recreateObj(&state->taskFunc);
 	}
@@ -577,6 +628,23 @@ void lua_Restore(SaveGame *savedState) {
 	arrayClosures = nullptr;
 	arrayProtoFuncs = nullptr;
 	arrayStrings = nullptr;
+}
+
+int lua_Restore(tSaveRestoreAccess *restoreFunc) {
+	pRestoreFunc = restoreFunc;
+	restoreMinorVersion = SaveGame::SAVEGAME_MINOR_VERSION;
+	restoreState();
+
+	return 0;
+}
+
+void lua_Restore(SaveGame *savedState) {
+	savedState->beginSection('LUAS');
+
+	pSaveGame = savedState;
+	pRestoreFunc = saveGameReader;
+	restoreMinorVersion = savedState->saveMinorVersion();
+	restoreState();
 
 	savedState->endSection();
 }

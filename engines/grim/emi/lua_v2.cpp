@@ -238,7 +238,7 @@ void Lua_V2::GetFontDimensions() {
 void Lua_V2::GetTextCharPosition() {
 	lua_Object textObj = lua_getparam(1);
 	lua_Object posObj = lua_getparam(2);
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
 		TextObject *textObject = gettextobject(textObj);
 		int pos = (int)lua_getnumber(posObj);
 		float textPos = textObject->getTextCharPosition(pos);
@@ -264,7 +264,7 @@ void Lua_V2::SetOffscreenTextPos() {
 void Lua_V2::GetTextObjectDimensions() {
 	lua_Object textObj = lua_getparam(1);
 
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
 		TextObject *textObject = gettextobject(textObj);
 		lua_pushnumber(textObject->getBitmapWidth() / 320.f);
 		lua_pushnumber(textObject->getBitmapHeight() / 240.f);

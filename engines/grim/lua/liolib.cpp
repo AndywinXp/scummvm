@@ -347,56 +347,11 @@ static void io_exit() {
 	exit((int)lua_isnumber(o) ? (int)lua_getnumber(o) : 1);
 }
 
-static void lua_printstack() {
-	int32 level = 1;  // skip level 0 (it's this function)
-	lua_Object func;
-	char buf[256];
-	while ((func = lua_stackedfunction(level++)) != LUA_NOOBJECT) {
-		const char *name;
-		int32 currentline;
-		const char *filename;
-		int32 linedefined;
-		lua_funcinfo(func, &filename, &linedefined);
-		snprintf(buf, 256, (level == 2) ? "Active Stack:\n\t" : "\t");
-		g_stderr->write(buf, strlen(buf));
-		switch (*lua_getobjname(func, &name)) {
-		case 'g':
-			snprintf(buf, 256, "function %s", name);
-			break;
-		case 't':
-			snprintf(buf, 256, "`%s' tag method", name);
-			break;
-		default:
-			{
-				if (linedefined == 0)
-					snprintf(buf, 256, "main of %s", filename);
-				else if (linedefined < 0)
-					snprintf(buf, 256, "%s", filename);
-				else
-					snprintf(buf, 256, "function (%s:%d)", filename, (int)linedefined);
-				filename = nullptr;
-			}
-		}
-		g_stderr->write(buf, strlen(buf));
-
-		if ((currentline = lua_currentline(func)) > 0) {
-			snprintf(buf, 256, " at line %d", (int)currentline);
-			g_stderr->write(buf, strlen(buf));
-		}
-		if (filename) {
-			snprintf(buf, 256, " [in file %s]", filename);
-			g_stderr->write(buf, strlen(buf));
-		}
-		snprintf(buf, 256, "\n");
-		g_stderr->write(buf, strlen(buf));
-	}
-}
-
 static void errorfb() {
 	char buf[256];
 	snprintf(buf, 256, "lua: %s\n", lua_getstring(lua_getparam(1)));
 	g_stderr->write(buf, strlen(buf));
-	lua_printstack();
+	lua_printstack(nullptr);
 }
 
 static struct luaL_reg iolib[] = {

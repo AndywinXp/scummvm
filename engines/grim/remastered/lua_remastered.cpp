@@ -69,7 +69,7 @@ void Lua_Remastered::GetTextObjectDimensions() {
 		warning("Stub function: GetTextObjectDimensions(%d)", val);
 	}
 
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
 		TextObject *textObject = gettextobject(textObj);
 		lua_pushnumber(textObject->getWidth()); // REMASTERED HACK
 		lua_pushnumber(textObject->getBitmapHeight()); // REMASTERED HACK

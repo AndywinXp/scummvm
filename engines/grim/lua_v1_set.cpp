@@ -26,6 +26,13 @@
 #include "engines/grim/actor.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/set.h"
+#include "engines/grim/res.h"
+#include "engines/grim/sputactor.h"
+#include "engines/grim/sputobjectstate.h"
+#include "engines/grim/sputrender.h"
+#include "engines/grim/sputresource.h"
+#include "engines/grim/sputroom.h"
+#include "engines/grim/walkplane.h"
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {
@@ -39,27 +46,28 @@ void Lua_V1::GetPointSector() {
 	lua_Object yObj = lua_getparam(2);
 	lua_Object zObj = lua_getparam(3);
 	lua_Object typeObj = lua_getparam(4);
-	Sector::SectorType sectorType;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
 		lua_pushnil();
 		return;
 	}
-	if (lua_isnil(typeObj))
-		sectorType = Sector::WalkType;
-	else
-		sectorType = (Sector::SectorType)(int)lua_getnumber(typeObj);
 
-	float x = lua_getnumber(xObj);
-	float y = lua_getnumber(yObj);
-	float z = lua_getnumber(zObj);
+	int sectorType = 4096;
 
-	Math::Vector3d point(x, y, z);
-	Sector *result = g_grim->getCurrSet()->findPointSector(point, sectorType);
-	if (result) {
-		lua_pushnumber(result->getSectorId());
-		lua_pushstring(result->getName().c_str());
-		lua_pushnumber(result->getType());
+	if (!lua_isnil(typeObj))
+		sectorType = luaFtol(lua_getnumber(typeObj));
+
+	float point[3];
+	point[0] = lua_getnumber(xObj);
+	point[1] = lua_getnumber(yObj);
+	point[2] = lua_getnumber(zObj);
+
+	WalkPlane *pPlane = g_grim->_pWalkSystem->planeAt(point, sectorType);
+
+	if (pPlane) {
+		lua_pushnumber((float)pPlane->number);
+		lua_pushstring(pPlane->name);
+		lua_pushnumber((float)pPlane->type);
 	} else {
 		lua_pushnil();
 	}
@@ -69,19 +77,20 @@ void Lua_V1::GetActorSector() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object typeObj = lua_getparam(2);
 
-	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
-		return;
-	if (!lua_isnumber(typeObj))
+	if (!isSputActor(actorObj) || !lua_isnumber(typeObj))
 		return;
 
-	Actor *actor = getactor(actorObj);
-	Sector::SectorType sectorType = (Sector::SectorType)(int)lua_getnumber(typeObj);
-	Math::Vector3d pos = actor->getWorldPos();
-	Sector *result = g_grim->getCurrSet()->findPointSector(pos, sectorType);
-	if (result) {
-		lua_pushnumber(result->getSectorId());
-		lua_pushstring(result->getName().c_str());
-		lua_pushnumber(result->getType());
+	SputActor *pActor = getSputActor(actorObj);
+
+	if (!pActor)
+		return;
+
+	WalkPlane *pPlane = g_grim->_pWalkSystem->planeAt(pActor->actorPos, luaFtol(lua_getnumber(typeObj)));
+
+	if (pPlane) {
+		lua_pushnumber((float)pPlane->number);
+		lua_pushstring(pPlane->name);
+		lua_pushnumber((float)pPlane->type);
 	} else {
 		lua_pushnil();
 	}
@@ -90,30 +99,30 @@ void Lua_V1::GetActorSector() {
 void Lua_V1::IsActorInSector() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object nameObj = lua_getparam(2);
-	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
-		return;
-	if (!lua_isstring(nameObj)) {
-		lua_pushnil();
-		return;
-	}
 
-	Actor *actor = getactor(actorObj);
-	const char *name = lua_getstring(nameObj);
+	if (!isSputActor(actorObj))
+		return;
 
-	Sector *sector;
-	if (g_grim->getGameType() == GType_GRIM) {
-		sector = g_grim->getCurrSet()->getSectorBySubstring(name, actor->getPos());
-	} else {
-		sector = g_grim->getCurrSet()->getSectorByName(name);
-		if (!(sector && sector->isPointInSector(actor->getPos()))) {
-			sector = nullptr;
+	SputActor *pActor = nullptr;
+	const char *name = nullptr;
+	WalkPlane *pPlane = nullptr;
+
+	if (lua_isstring(nameObj)) {
+		pActor = getSputActor(actorObj);
+		name = lua_getstring(nameObj);
+
+		if (pActor) {
+			pPlane = g_grim->_pWalkSystem->getHead();
+
+			while (pPlane && (!strstr(pPlane->name, name) || !pPlane->within(pActor->actorPos, 1)))
+				pPlane = pPlane->pNext;
 		}
 	}
 
-	if (sector) {
-		lua_pushnumber(sector->getSectorId());
-		lua_pushstring(sector->getName().c_str());
-		lua_pushnumber(sector->getType());
+	if (pPlane) {
+		lua_pushnumber((float)pPlane->number);
+		lua_pushstring(pPlane->name);
+		lua_pushnumber((float)pPlane->type);
 	} else {
 		lua_pushnil();
 	}
@@ -125,22 +134,25 @@ void Lua_V1::IsPointInSector() {
 	lua_Object zObj = lua_getparam(3);
 	lua_Object nameObj = lua_getparam(4);
 
-	if (!lua_isstring(nameObj)) {
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj) || !lua_isstring(nameObj)) {
 		lua_pushnil();
 		return;
 	}
 
+	float point[3];
+	point[0] = lua_getnumber(xObj);
+	point[1] = lua_getnumber(yObj);
+	point[2] = lua_getnumber(zObj);
 	const char *name = lua_getstring(nameObj);
-	float x = lua_getnumber(xObj);
-	float y = lua_getnumber(yObj);
-	float z = lua_getnumber(zObj);
-	Math::Vector3d pos(x, y, z);
+	WalkPlane *pPlane = g_grim->_pWalkSystem->getHead();
 
-	Sector *sector = g_grim->getCurrSet()->getSectorBySubstring(name, pos);
-	if (sector) {
-		lua_pushnumber(sector->getSectorId());
-		lua_pushstring(sector->getName().c_str());
-		lua_pushnumber(sector->getType());
+	while (pPlane && (!strstr(pPlane->name, name) || !pPlane->within(point, 1)))
+		pPlane = pPlane->pNext;
+
+	if (pPlane) {
+		lua_pushnumber((float)pPlane->number);
+		lua_pushstring(pPlane->name);
+		lua_pushnumber((float)pPlane->type);
 	} else {
 		lua_pushnil();
 	}
@@ -148,39 +160,26 @@ void Lua_V1::IsPointInSector() {
 
 void Lua_V1::GetSectorOppositeEdge() {
 	lua_Object actorObj = lua_getparam(1);
+
+	if (!isSputActor(actorObj)) {
+		lua_pushnil();
+		return;
+	}
+
+	SputActor *pActor = getSputActor(actorObj);
 	lua_Object nameObj = lua_getparam(2);
+	WalkPlane *pPlane = nullptr;
 
-	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
-		return;
+	if (lua_isstring(nameObj))
+		pPlane = g_grim->_pWalkSystem->planeNamed(lua_getstring(nameObj));
 
-	if (!lua_isstring(nameObj)) {
+	if (!pPlane) {
 		lua_pushnil();
 		return;
 	}
 
-	Actor *actor = getactor(actorObj);
-	const char *name = lua_getstring(nameObj);
-
-	Sector *sector = g_grim->getCurrSet()->getSectorBySubstring(name);
-	if (sector) {
-		if (sector->getNumVertices() != 4)
-			warning("GetSectorOppositeEdge(): cheat box with %d (!= 4) edges!", sector->getNumVertices());
-		Math::Vector3d *vertices = sector->getVertices();
-		Sector::ExitInfo e;
-
-		sector->getExitInfo(actor->getPos(), -actor->getPuckVector(), &e);
-		float frac = (e.exitPoint - vertices[e.edgeVertex + 1]).getMagnitude() / e.edgeDir.getMagnitude();
-		e.edgeVertex -= 2;
-		if (e.edgeVertex < 0)
-			e.edgeVertex += sector->getNumVertices();
-		Math::Vector3d edge = vertices[e.edgeVertex + 1] - vertices[e.edgeVertex];
-		Math::Vector3d p = vertices[e.edgeVertex] + edge * frac;
-		lua_pushnumber(p.x());
-		lua_pushnumber(p.y());
-		lua_pushnumber(p.z());
-	} else {
-		lua_pushnil();
-	}
+	if (pActor && hasActorExtra(pActor, "GetSectorOppositeEdge"))
+		g_grim->_pSputActor->leaveSector(pActor, pPlane);
 }
 
 void Lua_V1::MakeSectorActive() {
@@ -189,33 +188,16 @@ void Lua_V1::MakeSectorActive() {
 	if (!lua_isnumber(sectorObj) && !lua_isstring(sectorObj))
 		return;
 
-	// FIXME: This happens on initial load. Are we initting something in the wrong order?
-	if (!g_grim->getCurrSet()) {
-		warning("!!!! Trying to call MakeSectorActive without a scene");
-		return;
-	}
+	lua_Object visibleObj = lua_getparam(2);
+	WalkPlane *pPlane;
 
-	bool visible = !lua_isnil(lua_getparam(2));
+	if (lua_isstring(sectorObj))
+		pPlane = g_grim->_pWalkSystem->planeNamed(lua_getstring(sectorObj));
+	else
+		pPlane = g_grim->_pWalkSystem->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
 
-	if (lua_isnumber(sectorObj)) {
-		int numSectors = g_grim->getCurrSet()->getSectorCount();
-		int id = (int)lua_getnumber(sectorObj);
-		for (int i = 0; i < numSectors; i++) {
-			Sector *sector = g_grim->getCurrSet()->getSectorBase(i);
-			if (sector->getSectorId() == id) {
-				sector->setVisible(visible);
-				return;
-			}
-		}
-	} else if (lua_isstring(sectorObj)) {
-		const char *name = lua_getstring(sectorObj);
-		// a search by name here is needed for set bv, since it calls MakeSectorActive with sectors
-		// "bw_gone" and "bw_gone2", and a substring search would return "bw_gone2" for both.
-		Sector *sector = g_grim->getCurrSet()->getSectorByName(name);
-		if (sector) {
-			sector->setVisible(visible);
-		}
-	}
+	if (pPlane)
+		pPlane->bActive = lua_isnil(visibleObj) ? 0 : 1;
 }
 
 // Set functions
@@ -224,9 +206,10 @@ void Lua_V1::LockSet() {
 	if (!lua_isstring(nameObj))
 		return;
 
-	const char *name = lua_getstring(nameObj);
-	// TODO implement proper locking
-	g_grim->setSetLock(name, true);
+	Room *pRoom = static_cast<Room *>(g_grim->_pSputResource->alloc(kSputTagSet, lua_getstring(nameObj)));
+
+	if (pRoom && !pRoom->roomRef.valid)
+		g_grim->_pRes->setReference(&pRoom->roomRef, pRoom);
 }
 
 void Lua_V1::UnLockSet() {
@@ -234,22 +217,19 @@ void Lua_V1::UnLockSet() {
 	if (!lua_isstring(nameObj))
 		return;
 
-	const char *name = lua_getstring(nameObj);
-	// TODO implement proper unlocking
-	g_grim->setSetLock(name, false);
+	Room *pRoom = static_cast<Room *>(g_grim->_pSputResource->alloc(kSputTagSet, lua_getstring(nameObj)));
+
+	if (pRoom && pRoom->roomRef.valid)
+		g_grim->_pRes->removeReference(&pRoom->roomRef);
 }
 
 void Lua_V1::MakeCurrentSet() {
 	lua_Object nameObj = lua_getparam(1);
-	if (!lua_isstring(nameObj)) {
-		// TODO setting current set null
-		warning("Lua_V1::MakeCurrentSet: implement missing case");
-		return;
-	}
 
-	const char *name = lua_getstring(nameObj);
-	Debug::debug(Debug::Engine, "Entered new scene '%s'.", name);
-	g_grim->setSet(name);
+	if (lua_isstring(nameObj))
+		g_grim->makeCurrentSet(lua_getstring(nameObj));
+	else
+		g_grim->makeCurrentSet(nullptr);
 }
 
 void Lua_V1::MakeCurrentSetup() {
@@ -257,16 +237,9 @@ void Lua_V1::MakeCurrentSetup() {
 	if (!lua_isnumber(setupObj))
 		return;
 
-	int num = (int)lua_getnumber(setupObj);
-	g_grim->makeCurrentSetup(num);
+	g_grim->makeCurrentSetupLib((uint)luaFtol(lua_getnumber(setupObj)));
 }
 
-/* Find the requested scene and return the current setup
- * id number.  This function cannot just use the current
- * scene or else when Manny opens his inventory information
- * gets lost, such as the position for the demon beavors
- * in the Petrified Forest.
- */
 void Lua_V1::GetCurrentSetup() {
 	lua_Object nameObj = lua_getparam(1);
 	if (!lua_isstring(nameObj))
@@ -274,61 +247,73 @@ void Lua_V1::GetCurrentSetup() {
 
 	const char *name = lua_getstring(nameObj);
 
-	// FIXME there are some big difference here !
-	Set *scene = g_grim->loadSet(name);
-	if (!scene) {
-		warning("GetCurrentSetup() Requested scene (%s) is not loaded", name);
+	if (scumm_stricmp(name, g_grim->_pSputRoom->getCurrentRoomName()) != 0) {
+		if (g_grim->_pRes->loaded(kSputTagSet, name)) {
+			Room *pRoom = static_cast<Room *>(g_grim->_pSputResource->alloc(kSputTagSet, name));
+
+			if (pRoom)
+				lua_pushnumber((float)pRoom->curSetup);
+		}
+	} else if (g_grim->_pSputRoom->getCurrentRoom()) {
+		lua_pushnumber((float)g_grim->_pSputRoom->getCurrentRoom()->curSetup);
+	} else {
 		lua_pushnil();
-		return;
 	}
-	lua_pushnumber(scene->getSetup());
 }
 
 void Lua_V1::PreviousSetup() {
-	int num = g_grim->getCurrSet()->getSetup() - 1;
-	if (num < 0) {
-		num = g_grim->getCurrSet()->getNumSetups() - 1;
-	}
-	g_grim->makeCurrentSetup(num);
+	g_grim->previousSetup();
 }
 
 void Lua_V1::NextSetup() {
-	int num = g_grim->getCurrSet()->getSetup() + 1;
-	if (num >= g_grim->getCurrSet()->getNumSetups()) {
-		num = 0;
-	}
-	g_grim->makeCurrentSetup(num);
+	g_grim->nextSetup();
 }
 
 void Lua_V1::GetCameraLookVector() {
-	Set *scene = g_grim->getCurrSet();
-	if (!scene) {
+	lua_Object setupObj = lua_getparam(1);
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+
+	if (!pRoom) {
 		lua_pushnil();
 		return;
 	}
 
-	Set::Setup *setup;
-	lua_Object setupObj = lua_getparam(1);
-	if (lua_isnumber(setupObj)) {
-		setup = scene->getSetup((int)lua_getnumber(setupObj));
-	} else {
-		setup = scene->getCurrSetup();
+	int setupIndex;
+
+	if (lua_isnumber(setupObj))
+		setupIndex = luaFtol(lua_getnumber(setupObj));
+	else
+		setupIndex = pRoom->curSetup;
+
+	if (setupIndex < 0 || (uint)setupIndex >= pRoom->numSetups) {
+		warning("GetCameraLookVector(): invalid setup %d", setupIndex);
+		lua_pushnil();
+		return;
 	}
 
-	Math::Vector3d lookVector = setup->_pos - setup->_interest;
-	lookVector.normalize();
+	RoomCamera *pCamera = &pRoom->pSetups[setupIndex].camera;
+	RdVector3 lookVector;
+
+	lookVector[0] = pCamera->position[0];
+	lookVector[1] = pCamera->position[1];
+	lookVector[2] = pCamera->position[2];
+	lookVector[0] = (float)((double)lookVector[0] - pCamera->interest[0]);
+	lookVector[1] = (float)((double)lookVector[1] - pCamera->interest[1]);
+	lookVector[2] = (float)((double)lookVector[2] - pCamera->interest[2]);
+	g_grim->_pRd->normalize3Acc(lookVector);
+
 	lua_Object result = lua_createtable();
 	lua_pushobject(result);
 	lua_pushstring("x");
-	lua_pushnumber(lookVector.x());
+	lua_pushnumber(lookVector[0]);
 	lua_settable();
 	lua_pushobject(result);
 	lua_pushstring("y");
-	lua_pushnumber(lookVector.y());
+	lua_pushnumber(lookVector[1]);
 	lua_settable();
 	lua_pushobject(result);
 	lua_pushstring("z");
-	lua_pushnumber(lookVector.z());
+	lua_pushnumber(lookVector[2]);
 	lua_settable();
 	lua_pushobject(result);
 }
@@ -343,14 +328,17 @@ void Lua_V1::GetCameraLookVector() {
 void Lua_V1::ShrinkBoxes() {
 	lua_Object sizeObj = lua_getparam(1);
 
-	if (lua_isnumber(sizeObj)) {
-		float size = lua_getnumber(sizeObj);
-		g_grim->getCurrSet()->shrinkBoxes(size);
-	}
+	if (lua_isnil(sizeObj))
+		return;
+
+	UnShrinkBoxes();
+	g_grim->_pWalkSystem->buildCache();
+	g_grim->_pWalkSystem->shrinkBoxes(lua_getnumber(sizeObj));
 }
 
 void Lua_V1::UnShrinkBoxes() {
-	g_grim->getCurrSet()->unshrinkBoxes();
+	g_grim->_pWalkSystem->restoreCache();
+	g_grim->_pWalkSystem->destroyCache();
 }
 
 /* Given a position and a size this function calculates and pushes
@@ -366,105 +354,193 @@ void Lua_V1::GetShrinkPos() {
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj) || !lua_isnumber(rObj))
 		return;
 
-	float x = lua_getnumber(xObj);
-	float y = lua_getnumber(yObj);
-	float z = lua_getnumber(zObj);
-	float r = lua_getnumber(rObj);
-	Math::Vector3d pos;
-	pos.set(x, y, z);
+	RdVector3 pos;
+	float radius;
 
-	Sector *sector;
-	g_grim->getCurrSet()->shrinkBoxes(r);
-	g_grim->getCurrSet()->findClosestSector(pos, &sector, &pos);
-	g_grim->getCurrSet()->unshrinkBoxes();
+	pos[0] = lua_getnumber(xObj);
+	pos[1] = lua_getnumber(yObj);
+	pos[2] = lua_getnumber(zObj);
+	radius = lua_getnumber(rObj);
 
-	if (sector) {
-		lua_pushnumber(pos.x());
-		lua_pushnumber(pos.y());
-		lua_pushnumber(pos.z());
+	g_grim->_pWalkSystem->buildCache();
+	g_grim->_pWalkSystem->shrinkBoxes(radius);
+
+	WalkPlane *pPlane = g_grim->_pWalkSystem->planeClosest(pos, 4096);
+
+	if (pPlane)
+		pPlane->closestPoint(pos);
+
+	UnShrinkBoxes();
+
+	if (pPlane) {
+		lua_pushnumber(pos[0]);
+		lua_pushnumber(pos[1]);
+		lua_pushnumber(pos[2]);
 	} else {
 		lua_pushnil();
 	}
 }
 
-void Lua_V1::NewObjectState() {
-	int setupID = (int)lua_getnumber(lua_getparam(1));
-	int val = (int)lua_getnumber(lua_getparam(2));
-	ObjectState::Position pos = (ObjectState::Position)val;
-	const char *bitmap = lua_getstring(lua_getparam(3));
-	const char *zbitmap = nullptr;
-	if (!lua_isnil(lua_getparam(4)))
-		zbitmap = lua_getstring(lua_getparam(4));
-	bool transparency = getbool(5);
+int Lua_V1::getObjectStateHandle(SputObjectState *pState) {
+	static int nextHandle = 1;
 
-	ObjectState *state = g_grim->getCurrSet()->addObjectState(setupID, pos, bitmap, zbitmap, transparency);
-	lua_pushusertag(state->getId(), MKTAG('S','T','A','T'));
+	if (!pState->luaHandle)
+		pState->luaHandle = nextHandle++;
+
+	return pState->luaHandle;
+}
+
+SputObjectState *Lua_V1::findObjectState(int handle, int *pSetup, int *pIndex) {
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+
+	if (!pRoom || !handle)
+		return nullptr;
+
+	for (uint setup = 0; setup < pRoom->numSetups; setup++) {
+		int index = 0;
+
+		for (SputObjectState *pState = pRoom->pSetups[setup].ObjectStates; pState; pState = pState->pNext) {
+			if (pState->luaHandle == handle) {
+				if (pSetup)
+					*pSetup = (int)setup;
+
+				if (pIndex)
+					*pIndex = index;
+
+				return pState;
+			}
+
+			index++;
+		}
+	}
+
+	return nullptr;
+}
+
+void Lua_V1::NewObjectState() {
+	lua_Object setupObj = lua_getparam(1);
+	lua_Object typeObj = lua_getparam(2);
+	lua_Object bitmapObj = lua_getparam(3);
+	lua_Object zBitmapObj = lua_getparam(4);
+	lua_Object copyModeObj = lua_getparam(5);
+	int copyMode = -1;
+
+	if (!lua_isnil(copyModeObj))
+		copyMode = luaFtol(lua_getnumber(copyModeObj));
+
+	const char *zBitmap = lua_getstring(zBitmapObj);
+	const char *bitmap = lua_getstring(bitmapObj);
+	int type = luaFtol(lua_getnumber(typeObj));
+	int setup = luaFtol(lua_getnumber(setupObj));
+
+	SputObjectState *pState = g_grim->_pSputRoom->addObjectState(setup, type, bitmap, zBitmap, copyMode);
+
+	if (pState)
+		lua_pushusertag(getObjectStateHandle(pState), MKTAG('T','A','T','S'));
+	else
+		lua_pushnil();
 }
 
 void Lua_V1::FreeObjectState() {
-	lua_Object param = lua_getparam(1);
-	if (!lua_isuserdata(param) || lua_tag(param) != MKTAG('S','T','A','T'))
+	lua_Object stateObj = lua_getparam(1);
+
+	if (!lua_isuserdata(stateObj) || lua_tag(stateObj) != MKTAG('T','A','T','S'))
 		return;
-	ObjectState *state = getobjectstate(param);
-	g_grim->getCurrSet()->deleteObjectState(state);
-	delete state;
+
+	SputObjectState *pState = findObjectState(lua_getuserdata(stateObj), nullptr, nullptr);
+
+	if (pState)
+		g_grim->_pSputRoom->removeObjectState(pState);
 }
 
 void Lua_V1::SendObjectToBack() {
-	lua_Object param = lua_getparam(1);
-	if (lua_isuserdata(param) && lua_tag(param) == MKTAG('S','T','A','T')) {
-		ObjectState *state =  getobjectstate(param);
-		g_grim->getCurrSet()->moveObjectStateToBack(state);
+	lua_Object stateObj = lua_getparam(1);
+
+	if (!lua_isuserdata(stateObj) || lua_tag(stateObj) != MKTAG('T','A','T','S'))
+		return;
+
+	int setup;
+	SputObjectState *pState = findObjectState(lua_getuserdata(stateObj), &setup, nullptr);
+
+	if (pState) {
+		RoomSetup *pSetup = &g_grim->_pSputRoom->getCurrentRoom()->pSetups[setup];
+
+		pSetup->ObjectStates = pState->moveToBack(pSetup->ObjectStates);
 	}
 }
 
 void Lua_V1::SendObjectToFront() {
-	lua_Object param = lua_getparam(1);
-	if (lua_isuserdata(param) && lua_tag(param) == MKTAG('S','T','A','T')) {
-		ObjectState *state =  getobjectstate(param);
-		g_grim->getCurrSet()->moveObjectStateToFront(state);
+	lua_Object stateObj = lua_getparam(1);
+
+	if (!lua_isuserdata(stateObj) || lua_tag(stateObj) != MKTAG('T','A','T','S'))
+		return;
+
+	int setup;
+	SputObjectState *pState = findObjectState(lua_getuserdata(stateObj), &setup, nullptr);
+
+	if (pState) {
+		RoomSetup *pSetup = &g_grim->_pSputRoom->getCurrentRoom()->pSetups[setup];
+
+		pSetup->ObjectStates = pState->moveToFront(pSetup->ObjectStates);
 	}
 }
 
 void Lua_V1::SetObjectType() {
-	lua_Object param = lua_getparam(1);
-	if (!lua_isuserdata(param) || lua_tag(param) != MKTAG('S','T','A','T'))
+	lua_Object stateObj = lua_getparam(1);
+	lua_Object typeObj = lua_getparam(2);
+
+	if (!lua_isuserdata(stateObj) || lua_tag(stateObj) != MKTAG('T','A','T','S'))
 		return;
-	ObjectState *state =  getobjectstate(param);
-	int val = (int)lua_getnumber(lua_getparam(2));
-	ObjectState::Position pos = (ObjectState::Position)val;
-	state->setPos(pos);
+
+	SputObjectState *pState = findObjectState(lua_getuserdata(stateObj), nullptr, nullptr);
+
+	if (pState)
+		pState->type = luaFtol(lua_getnumber(typeObj));
 }
 
 void Lua_V1::SetAmbientLight() {
-	int mode = (int)lua_getnumber(lua_getparam(1));
-	Set *set = g_grim->getCurrSet();
+	lua_Object ambientObj = lua_getparam(1);
 
-	if (set == nullptr)
+	if (!lua_isnumber(ambientObj))
 		return;
 
-	if (mode == 0) {
-		set->setLightEnableState(true);
-	} else if (mode == 1) {
-		set->setLightEnableState(false);
-	}
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+
+	if (pRoom)
+		g_grim->_pRd->_camera.setAmbientLight(pRoom->pSetups[pRoom->curSetup].camera.prdCamera, lua_getnumber(ambientObj));
 }
 
 void Lua_V1::SetLightIntensity() {
 	lua_Object lightObj = lua_getparam(1);
 	lua_Object intensityObj = lua_getparam(2);
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+	int lightIndex = -1;
 
-	if (!lua_isnumber(intensityObj))
+	if (lua_isnumber(lightObj)) {
+		lightIndex = luaFtol(lua_getnumber(lightObj));
+	} else if (lua_isstring(lightObj)) {
+		lightIndex = g_grim->_pSputRoom->findLightByName(nullptr, lua_getstring(lightObj));
+	} else {
+		return;
+	}
+
+	RoomLight *pLight = g_grim->_pSputRoom->getLight(nullptr, lightIndex);
+
+	if (!pLight || !lua_isnumber(intensityObj))
 		return;
 
 	float intensity = lua_getnumber(intensityObj);
+	pLight->light.intensity = intensity;
 
-	if (lua_isnumber(lightObj)) {
-		int light = (int)lua_getnumber(lightObj);
-		g_grim->getCurrSet()->setLightIntensity(light, intensity);
-	} else if (lua_isstring(lightObj)) {
-		const char *light = lua_getstring(lightObj);
-		g_grim->getCurrSet()->setLightIntensity(light, intensity);
+	for (uint s = 0; s < pRoom->numSetups; s++) {
+		RdCamera *pCamera = pRoom->pSetups[s].camera.prdCamera;
+
+		if (!pCamera || !pCamera->apLights[lightIndex]) {
+			warning("SetLightIntensity(): setup %u has no camera light %d", s, lightIndex);
+			continue;
+		}
+
+		pCamera->apLights[lightIndex]->intensity = intensity;
 	}
 }
 
@@ -473,41 +549,186 @@ void Lua_V1::SetLightPosition() {
 	lua_Object xObj = lua_getparam(2);
 	lua_Object yObj = lua_getparam(3);
 	lua_Object zObj = lua_getparam(4);
+	int lightIndex = -1;
 
-	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+	if (lua_isnumber(lightObj)) {
+		lightIndex = luaFtol(lua_getnumber(lightObj));
+	} else if (lua_isstring(lightObj)) {
+		lightIndex = g_grim->_pSputRoom->findLightByName(nullptr, lua_getstring(lightObj));
+	} else {
+		return;
+	}
+
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+
+	if (!pRoom)
+		return;
+
+	RoomLight *pLight = g_grim->_pSputRoom->getLight(nullptr, lightIndex);
+
+	if (!pLight || !lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
 		return;
 
 	float x = lua_getnumber(xObj);
 	float y = lua_getnumber(yObj);
 	float z = lua_getnumber(zObj);
-	Math::Vector3d vec(x, y, z);
 
-	if (lua_isnumber(lightObj)) {
-		int light = (int)lua_getnumber(lightObj);
-		g_grim->getCurrSet()->setLightPosition(light, vec);
-	} else if (lua_isstring(lightObj)) {
-		const char *light = lua_getstring(lightObj);
-		g_grim->getCurrSet()->setLightPosition(light, vec);
+	pLight->position[0] = x;
+	pLight->position[1] = y;
+	pLight->position[2] = z;
+
+	for (uint s = 0; s < pRoom->numSetups; s++) {
+		RdCamera *pCamera = pRoom->pSetups[s].camera.prdCamera;
+
+		if (!pCamera) {
+			warning("SetLightPosition(): setup %u has no camera", s);
+			continue;
+		}
+
+		pCamera->aLightPos[lightIndex][0] = x;
+		pCamera->aLightPos[lightIndex][1] = y;
+		pCamera->aLightPos[lightIndex][2] = z;
 	}
 }
 
 void Lua_V1::TurnLightOn() {
 	lua_Object lightObj = lua_getparam(1);
+	lua_Object onObj = lua_getparam(2);
+	int lightIndex = -1;
 
-	Set *scene = g_grim->getCurrSet();
-	bool isOn = getbool(2);
 	if (lua_isnumber(lightObj)) {
-		scene->setLightEnabled((int)lua_getnumber(lightObj), isOn);
+		lightIndex = luaFtol(lua_getnumber(lightObj));
 	} else if (lua_isstring(lightObj)) {
-		scene->setLightEnabled(lua_getstring(lightObj), isOn);
+		lightIndex = g_grim->_pSputRoom->findLightByName(nullptr, lua_getstring(lightObj));
+	} else {
+		return;
 	}
+
+	RoomLight *pLight = g_grim->_pSputRoom->getLight(nullptr, lightIndex);
+
+	if (pLight)
+		pLight->light.bActive = !lua_isnil(onObj);
 }
 
 void Lua_V1::GetCameraPosition() {
-	Set::Setup *setup = g_grim->getCurrSet()->getCurrSetup();
-	lua_pushnumber(setup->_pos.x());
-	lua_pushnumber(setup->_pos.y());
-	lua_pushnumber(setup->_pos.z());
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("GetCameraPosition(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_pushnumber(pCamera->position[0]);
+	lua_pushnumber(pCamera->position[1]);
+	lua_pushnumber(pCamera->position[2]);
+}
+
+void Lua_V1::SetCameraPosition() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("SetCameraPosition(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(1);
+	lua_Object zObj = lua_getparam(1);
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+		lua_pushnil();
+
+	pCamera->position[0] = lua_getnumber(xObj);
+	pCamera->position[1] = lua_getnumber(yObj);
+	pCamera->position[2] = lua_getnumber(zObj);
+	g_grim->_pRd->lookAt(pCamera->posMatrix, pCamera->position, pCamera->interest, pCamera->roll);
+	g_grim->_pRd->_camera.update(pCamera->posMatrix);
+}
+
+void Lua_V1::SetCameraInterest() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("SetCameraInterest(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(1);
+	lua_Object zObj = lua_getparam(1);
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+		lua_pushnil();
+
+	pCamera->interest[0] = lua_getnumber(xObj);
+	pCamera->interest[1] = lua_getnumber(yObj);
+	pCamera->interest[2] = lua_getnumber(zObj);
+	g_grim->_pRd->lookAt(pCamera->posMatrix, pCamera->position, pCamera->interest, pCamera->roll);
+	g_grim->_pRd->_camera.update(pCamera->posMatrix);
+}
+
+void Lua_V1::GetCameraFOV() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("GetCameraFOV(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_pushnumber(pCamera->fov);
+}
+
+void Lua_V1::SetCameraFOV() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("SetCameraFOV(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_Object fovObj = lua_getparam(1);
+
+	if (!lua_isnumber(fovObj))
+		lua_pushnil();
+
+	pCamera->fov = lua_getnumber(fovObj);
+	pCamera->prdCamera->fov = pCamera->fov;
+}
+
+void Lua_V1::GetCameraRoll() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("GetCameraRoll(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_pushnumber(pCamera->roll);
+}
+
+void Lua_V1::SetCameraRoll() {
+	RoomCamera *pCamera = g_grim->_pSputRender->getCamera();
+
+	if (!pCamera) {
+		warning("SetCameraRoll(): no camera");
+		lua_pushnil();
+		return;
+	}
+
+	lua_Object rollObj = lua_getparam(1);
+
+	if (!lua_isnumber(rollObj))
+		lua_pushnil();
+
+	pCamera->roll = lua_getnumber(rollObj);
+	g_grim->_pRd->lookAt(pCamera->posMatrix, pCamera->position, pCamera->interest, pCamera->roll);
+	g_grim->_pRd->_camera.update(pCamera->posMatrix);
 }
 
 } // end of namespace Grim

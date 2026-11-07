@@ -32,6 +32,7 @@
 namespace Grim {
 
 class GrimEngine;
+class Lua_V1;
 class SputRender;
 class SputResource;
 class SputActorModule;
@@ -58,6 +59,7 @@ public:
 	SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry);
 
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 	void setActors(SputActor *aActors) { _aActors = aActors; }
 	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
 	Cos *getCos() { return &_cos; }
@@ -97,6 +99,7 @@ private:
 	StdLbm *_pStdLbm;
 	WuRegistry *_pWuRegistry;
 	GrimEngine *_pGrim;
+	Lua_V1 *_pLua = nullptr;
 	SputActorModule *_pSputActor;
 	SputActor *_aActors;
 	SysStruct *_pHS;

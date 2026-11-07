@@ -124,6 +124,7 @@ public:
 	void setMovieTime(float movieTime);
 	virtual void registerLua();
 	virtual void registerOpcodes();
+	void recognizeOpcodes();
 	virtual void loadSystemScript();
 	virtual void boot();
 	virtual void postRestoreHandle() { }
@@ -162,16 +163,21 @@ protected:
 	// 2 - return '/msgId/'
 	int _translationMode;
 
+	void registerTypeOverride();
+	void registerSectorConstants();
+	void registerConcatFallback();
+
 	DECLARE_LUA_OPCODE(dummyHandler);
 	DECLARE_LUA_OPCODE(typeOverride);
 	DECLARE_LUA_OPCODE(concatFallback);
 
-private:
-	unsigned int _frameTimeCollection;
-
 	int refSystemTable;
 	int refTypeOverride;
 	int refOldConcatFallback;
+
+private:
+	unsigned int _frameTimeCollection;
+
 	int refTextObjectX;
 	int refTextObjectY;
 	int refTextObjectFont;

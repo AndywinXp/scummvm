@@ -10,6 +10,10 @@
 
 #include "engines/grim/lua/lua.h"
 
+namespace Common {
+class WriteStream;
+}
+
 namespace Grim {
 
 typedef lua_Object lua_Function;
@@ -20,6 +24,7 @@ typedef void (*lua_CHFunction)(lua_Function func, const char *file, int32 line);
 lua_Function lua_stackedfunction(int32 level);
 void lua_funcinfo(lua_Object func, const char **filename, int32 *linedefined);
 int32 lua_currentline(lua_Function func);
+void lua_printstack(Common::WriteStream *f);
 const char *lua_getobjname(lua_Object o, const char **name);
 
 lua_Object lua_getlocal(lua_Function func, int32 local_number, char **name);

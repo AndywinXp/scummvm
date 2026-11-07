@@ -44,8 +44,8 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
 		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
-		_nextSerialNumber(0), _pCacheRectList(nullptr), _reset(0), _irisStart(0), _irisX(0.0f), _irisY(320),
-		_irisDuration(240), _renderFlags(0), _bSkipPrimitives(0), _pSetPaletteFunc(nullptr), _pPageFlipFunc(nullptr),
+		_nextSerialNumber(0), _pCacheRectList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),
+		_irisCenterY(240), _renderFlags(0), _bSkipPrimitives(0), _pSetPaletteFunc(nullptr), _pPageFlipFunc(nullptr),
 		_pageFlipEnable(1), _movieJustFinished(0), _gCamActorIndex(0), _debugFlags(8), _bDebugKey1Down(0),
 		_bDebugKey2Down(0), _bDebugKey4Down(0), _bDebugKey8Down(0), _bDebugKey10Down(0), _renderEnable(1),
 		_loadImageAllowed(1), _perfCounter(0), _waitBitmapTimerMs(0), _waitBitmapFrame(0),
@@ -119,9 +119,9 @@ int SputRender::shutdown() {
 
 int SputRender::save(Common::WriteStream *pStream) {
 	pStream->writeSint32LE(_irisStart);
-	pStream->writeFloatLE(_irisX);
-	pStream->writeSint32LE(_irisY);
-	pStream->writeSint32LE(_irisDuration);
+	pStream->writeFloatLE(_irisDuration);
+	pStream->writeSint32LE(_irisCenterX);
+	pStream->writeSint32LE(_irisCenterY);
 	pStream->writeFloatLE(_gammaCorrection);
 	pStream->writeSint32LE(_renderFlags);
 	pStream->writeSint32LE(_pageFlipEnable);
@@ -138,9 +138,9 @@ int SputRender::save(Common::WriteStream *pStream) {
 
 int SputRender::restore(Common::ReadStream *pStream) {
 	_irisStart = pStream->readSint32LE();
-	_irisX = pStream->readFloatLE();
-	_irisY = pStream->readSint32LE();
-	_irisDuration = pStream->readSint32LE();
+	_irisDuration = pStream->readFloatLE();
+	_irisCenterX = pStream->readSint32LE();
+	_irisCenterY = pStream->readSint32LE();
 	_gammaCorrection = pStream->readFloatLE();
 	_renderFlags = pStream->readSint32LE();
 	_pageFlipEnable = pStream->readSint32LE();

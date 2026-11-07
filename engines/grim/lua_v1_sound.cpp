@@ -28,6 +28,8 @@
 #include "engines/grim/savegame.h"
 #include "engines/grim/set.h"
 #include "engines/grim/sound.h"
+#include "engines/grim/sputactor.h"
+#include "engines/grim/sputroom.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/lua/lauxlib.h"
 
@@ -36,7 +38,7 @@ namespace Grim {
 // Like the original, a sound is identified either by its name or by the number ImStartSound returned
 static const char *getSoundKey(lua_Object nameObj) {
 	if (lua_isnumber(nameObj))
-		return (const char *)(intptr)(int)lua_getnumber(nameObj);
+		return (const char *)(intptr)luaFtol(lua_getnumber(nameObj));
 
 	return lua_getstring(nameObj);
 }
@@ -46,14 +48,14 @@ void Lua_V1::ImStartSound() {
 	lua_Object priorityObj = lua_getparam(2);
 	lua_Object groupObj = lua_getparam(3);
 
-	if (!lua_isstring(nameObj) && !lua_isnumber(nameObj))
+	if (!lua_isstring(nameObj) && !lua_isnil(nameObj))
 		return;
 	if (!lua_isnumber(priorityObj) || !lua_isnumber(groupObj))
 		return;
 
 	const char *soundName = lua_getstring(nameObj);
-	int priority = (int)lua_getnumber(priorityObj);
-	int group = (int)lua_getnumber(groupObj);
+	int priority = luaFtol(lua_getnumber(priorityObj));
+	int group = luaFtol(lua_getnumber(groupObj));
 
 	int result = g_imuse->soundsLoadStartSound(soundName, priority, group);
 
@@ -72,17 +74,25 @@ void Lua_V1::ImStopAllSounds() {
 }
 
 void Lua_V1::ImPause() {
-	g_imuse->pause(true);
+	g_imuse->imPause();
 }
 
 void Lua_V1::ImResume() {
-	g_imuse->pause(false);
+	g_imuse->imResume();
 }
 
 void Lua_V1::ImSetVoiceEffect() {
-	const char *effectName;
+	lua_Object effectObj = lua_getparam(1);
 
-	effectName = luaL_check_string(1);
+	if (!lua_isstring(effectObj) && !lua_isnil(effectObj))
+		return;
+
+	const char *effectName = lua_getstring(effectObj);
+	if (!effectName) {
+		warning("Lua_V1::ImSetVoiceEffect(): no effect name");
+		return;
+	}
+
 	g_imuse->iMUSESetVoiceEffect(effectName);
 }
 
@@ -90,7 +100,7 @@ void Lua_V1::ImSetMusicVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setMusicGroupVol((int)lua_getnumber(volObj));
+	g_imuse->setMusicGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetMusicVol() {
@@ -101,7 +111,7 @@ void Lua_V1::ImSetVoiceVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setVoiceGroupVol((int)lua_getnumber(volObj));
+	g_imuse->setVoiceGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetVoiceVol() {
@@ -112,7 +122,7 @@ void Lua_V1::ImSetSfxVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setSFXGroupVol((int)lua_getnumber(volObj));
+	g_imuse->setSFXGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetSfxVol() {
@@ -129,8 +139,8 @@ void Lua_V1::ImSetParam() {
 	if (!lua_isnumber(paramObj) || !lua_isnumber(valueObj))
 		return;
 
-	int param = (int)lua_getnumber(paramObj);
-	int value = (int)lua_getnumber(valueObj);
+	int param = luaFtol(lua_getnumber(paramObj));
+	int value = luaFtol(lua_getnumber(valueObj));
 	if (value < 0 && !(g_grim->getGameFlags() & ADGF_DEMO))
 		value = 0;
 
@@ -141,12 +151,12 @@ void Lua_V1::ImGetParam() {
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object paramObj = lua_getparam(2);
 
-	if (!lua_isnumber(nameObj) && !lua_isstring(nameObj)) {
+	if (!lua_isnumber(nameObj) && !lua_isstring(paramObj)) {
 		lua_pushnumber(-1.0);
 		return;
 	}
 
-	int param = (int)lua_getnumber(paramObj);
+	int param = luaFtol(lua_getnumber(paramObj));
 	lua_pushnumber(g_imuse->soundsGetParam(getSoundKey(nameObj), param));
 }
 
@@ -166,11 +176,11 @@ void Lua_V1::ImFadeParam() {
 	if (!lua_isnumber(opcodeObj) || !lua_isnumber(valueObj) || !lua_isnumber(durationObj))
 		return;
 
-	int opcode = (int)lua_getnumber(opcodeObj);
-	int value = (int)lua_getnumber(valueObj);
+	int opcode = luaFtol(lua_getnumber(opcodeObj));
+	int value = luaFtol(lua_getnumber(valueObj));
 	if (value < 0 && !demo)
 		value = 0;
-	int duration = (int)lua_getnumber(durationObj);
+	int duration = luaFtol(lua_getnumber(durationObj));
 
 	g_imuse->soundsFadeParam(getSoundKey(nameObj), opcode, value, duration);
 }
@@ -182,11 +192,11 @@ void Lua_V1::ImSetState() {
 
 	// The demo sets the state right away and returns the new one
 	if (g_grim->getGameFlags() & ADGF_DEMO) {
-		lua_pushnumber(g_imuse->imSetState((int)lua_getnumber(stateObj)));
+		lua_pushnumber(g_imuse->imSetState(luaFtol(lua_getnumber(stateObj))));
 		return;
 	}
 
-	g_imuseState = (int)lua_getnumber(stateObj);
+	g_grim->setImuseState(luaFtol(lua_getnumber(stateObj)));
 }
 
 void Lua_V1::ImSetSequence() {
@@ -194,85 +204,76 @@ void Lua_V1::ImSetSequence() {
 	if (!lua_isnumber(stateObj))
 		return;
 
-	int state = (int)lua_getnumber(stateObj);
+	int state = luaFtol(lua_getnumber(stateObj));
 	lua_pushnumber(g_imuse->imSetSequence(state));
 }
 
 void Lua_V1::SaveIMuse() {
-	SaveGame *savedIMuse = SaveGame::openForSaving("grim.tmp");
-	if (!savedIMuse)
-		return;
-	g_sound->saveState(savedIMuse);
-	delete savedIMuse;
+	g_grim->imuseSave();
 }
 
 void Lua_V1::RestoreIMuse() {
-	SaveGame *savedIMuse = SaveGame::openForLoading("grim.tmp");
-	if (!savedIMuse)
-		return;
-	g_sound->restoreState(savedIMuse);
-	delete savedIMuse;
-	g_system->getSavefileManager()->removeSavefile("grim.tmp");
+	g_grim->imuseRestore();
 }
 
 void Lua_V1::SetSoundPosition() {
-	Math::Vector3d pos;
-	int minVolume = 10;
-	int maxVolume = 127;
-	float maxDist = kSoundDefaultMaxDist;
-	float panFactor, maxRadius;
-	int argId = 1;
-	lua_Object paramObj;
+	RdVector3 pos = { 0.0f, 0.0f, 0.0f };
+	byte minVol = 10;
+	byte maxVol = 127;
+	float maxDist = 8.0f;
+	float panFactor = 1.5f;
+	float maxRadius = 1.0f;
+	int argId = 3;
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
 
-	// Use the room defaults if a room is currently set
-	if (g_grim->getCurrSet())
-		g_grim->getCurrSet()->getSoundParameters(&maxDist, &minVolume, &maxVolume, &panFactor, &maxRadius);
+	if (pRoom)
+		g_grim->_pSputRoom->getSoundParameters(pRoom, &maxDist, &minVol, &maxVol, &panFactor, &maxRadius);
 
-	lua_Object nameObj = lua_getparam(argId++);
+	lua_Object nameObj = lua_getparam(1);
 	if (!lua_isnumber(nameObj) && !lua_isstring(nameObj))
 		return;
 
-	lua_Object actorObj = lua_getparam(argId++);
-	if (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('A','C','T','R')) {
-		Actor *actor = getactor(actorObj);
-		if (!actor)
+	lua_Object actorObj = lua_getparam(2);
+	if (isSputActor(actorObj)) {
+		SputActor *pActor = getSputActor(actorObj);
+		if (!pActor)
 			return;
-		pos = actor->getPos();
+
+		pos[0] = pActor->actorPos[0];
+		pos[1] = pActor->actorPos[1];
+		pos[2] = pActor->actorPos[2];
 	} else if (lua_isnumber(actorObj)) {
-		float x = lua_getnumber(actorObj);
-		float y = lua_getnumber(argId++);
-		float z = lua_getnumber(argId++);
-		pos.set(x, y, z);
+		argId = 5;
+		pos[0] = lua_getnumber(actorObj);
+		pos[1] = lua_getnumber(lua_getparam(3));
+		pos[2] = lua_getnumber(lua_getparam(4));
 	}
 
-	paramObj = (int)lua_getparam(argId++);
-	if (lua_isnumber(paramObj)) {
-		minVolume = (int)lua_getnumber(paramObj);
-		if (minVolume > 127)
-			minVolume = 127;
-	}
-	paramObj = lua_getparam(argId++);
-	if (lua_isnumber(paramObj)) {
-		maxVolume = (int)lua_getnumber(paramObj);
-		if (maxVolume > 127)
-			maxVolume = 127;
-		else if (maxVolume < minVolume)
-			maxVolume = minVolume;
+	lua_Object minVolObj = lua_getparam(argId);
+	lua_Object maxVolObj = lua_getparam(argId + 1);
+	lua_Object maxDistObj = lua_getparam(argId + 2);
+
+	if (lua_isnumber(minVolObj)) {
+		minVol = (byte)luaFtol(lua_getnumber(minVolObj));
+		if (minVol > 127)
+			minVol = 127;
 	}
 
-	paramObj = lua_getparam(argId++);
-	if (lua_isnumber(paramObj)) {
-		maxDist = lua_getnumber(paramObj);
+	if (lua_isnumber(maxVolObj)) {
+		maxVol = (byte)luaFtol(lua_getnumber(maxVolObj));
+		if (maxVol > 127)
+			maxVol = 127;
+		else if (maxVol < minVol)
+			maxVol = minVol;
+	}
+
+	if (lua_isnumber(maxDistObj)) {
+		maxDist = lua_getnumber(maxDistObj);
 		if (maxDist < 0.0f)
 			maxDist = 0.0f;
 	}
 
-	if (g_grim->getCurrSet()) {
-		if (lua_isnumber(nameObj))
-			g_grim->getCurrSet()->setSoundPosition((int)lua_getnumber(nameObj), pos, minVolume, maxVolume, maxDist, kSoundDefaultRadius);
-		else
-			g_grim->getCurrSet()->setSoundPosition(lua_getstring(nameObj), pos, minVolume, maxVolume, maxDist, kSoundDefaultRadius);
-	}
+	g_grim->_pSputRoom->setSoundPosition(getSoundKey(nameObj), pos, minVol, maxVol, maxDist, 0.8f);
 }
 
 void Lua_V1::IsSoundPlaying() {

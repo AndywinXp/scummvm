@@ -164,6 +164,7 @@ SputObjectState::SputObjectState(SputObjectState *pHead, const char *colorFile, 
 		colorImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender), zImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender),
 		_pSputRender(pSputRender) {
 	setupIndex = -1;
+	luaHandle = 0;
 	type = objectType;
 	colorImage.setFile(colorFile);
 	zImage.setFile(zFile);

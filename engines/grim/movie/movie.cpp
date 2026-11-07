@@ -204,7 +204,8 @@ bool MoviePlayer::play(const Common::String &filename, bool looping, int x, int 
 	if (!loadFile(_fname))
 		return false;
 
-	_videoDecoder->setOutputPixelFormat(g_driver->getMovieFormat());
+	if (g_driver)
+		_videoDecoder->setOutputPixelFormat(g_driver->getMovieFormat());
 
 	Debug::debug(Debug::Movie, "Playing video '%s'.\n", filename.c_str());
 

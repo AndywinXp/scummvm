@@ -19,7 +19,12 @@
  *
  */
 
+#include "common/algorithm.h"
+#include "common/fs.h"
+#include "common/path.h"
+#include "common/str-array.h"
 #include "common/textconsole.h"
+#include "common/util.h"
 
 #include "engines/grim/blasttext.h"
 #include "engines/grim/chore/cos.h"
@@ -31,6 +36,13 @@
 #include "engines/grim/wuregistry.h"
 
 namespace Grim {
+
+static const char *const g_resourceDirectories[] = {
+	"Animation", "Backgrounds", "Costumes", "Colormaps", "Fonts", "Materials", "Models", "Movies", "Objects", "Scripts", "Sets",
+	"Voices", "Footsteps", "SFX", "Loops",
+	"DEBUG_Animation", "DEBUG_Backgrounds", "DEBUG_Costumes", "DEBUG_Colormaps", "DEBUG_Fonts", "DEBUG_Materials", "DEBUG_Models",
+	"DEBUG_Movies", "DEBUG_Objects", "DEBUG_Scripts", "DEBUG_Sets", "DEBUG_Voices", "DEBUG_Footsteps", "DEBUG_SFX", "DEBUG_Loops"
+};
 
 static SputResource *g_pSputResource = nullptr;
 
@@ -108,24 +120,25 @@ void *SputResource::alloc(int resType, const char *name) {
 }
 
 int SputResource::closeResources() {
-	// TODO: close the mounted LAB files
+	_pRes->fileCloseAll();
 
 	return 1;
 }
 
 int SputResource::findResources() {
-	char aDataDirectory[128];
+	char aDataDirectory[512];
 
 	aDataDirectory[0] = 0;
 	_pWuRegistry->getStr("GrimDataDir", aDataDirectory, sizeof(aDataDirectory), "");
 
 	Common::String dataDirectory(aDataDirectory);
-
-	// TODO: the current directory is not added
-	addResourcePathInternal(dataDirectory.c_str());
+	Common::String currentDirectory(dataDirectory);
 
 	if (!_extraDataPath.empty() && !_extraDataPath.equalsIgnoreCase(dataDirectory))
 		addResourcePathInternal(_extraDataPath.c_str());
+
+	if (!currentDirectory.equalsIgnoreCase(_extraDataPath))
+		addResourcePathInternal(currentDirectory.c_str());
 
 	return 1;
 }
@@ -137,7 +150,67 @@ int SputResource::addResourcePath(const char *path) {
 }
 
 int SputResource::addResourcePathInternal(const char *path) {
-	// TODO: mount the LAB files and the resource subdirectories found in path
+	const char separator = Common::Path::kNativeSeparator;
+	Common::String directory(path);
+
+	if (!directory.empty() && (directory.lastChar() == '\\' || directory.lastChar() == '/'))
+		directory.deleteLastChar();
+
+	if (directory.empty())
+		return 0;
+
+	Common::FSNode node((Common::Path(directory, separator)));
+	Common::FSList files;
+	Common::FSList subDirectories;
+	Common::StringArray labNames;
+
+	node.getChildren(files, Common::FSNode::kListFilesOnly);
+	node.getChildren(subDirectories, Common::FSNode::kListDirectoriesOnly);
+
+	for (uint i = 0; i < files.size(); i++) {
+		Common::String name(files[i].getName());
+
+		name.toLowercase();
+
+		if (!name.hasSuffix(".lab") || name == "datausr.lab")
+			continue;
+
+		labNames.push_back(name);
+	}
+
+	Common::sort(labNames.begin(), labNames.end());
+
+	directory += separator;
+
+	if (!_pRes->fileOpen(directory.c_str()))
+		return 0;
+
+	_pRes->fileMoveToFront(directory.c_str());
+
+	for (uint i = 0; i < labNames.size(); i++) {
+		Common::String labPath(directory);
+
+		labPath += labNames[i];
+
+		if (_pRes->fileOpen(labPath.c_str()))
+			_pRes->fileMoveToFront(labPath.c_str());
+	}
+
+	for (uint i = 0; i < ARRAYSIZE(g_resourceDirectories); i++) {
+		for (uint j = 0; j < subDirectories.size(); j++) {
+			if (!subDirectories[j].getName().equalsIgnoreCase(g_resourceDirectories[i]))
+				continue;
+
+			Common::String subPath(directory);
+
+			subPath += subDirectories[j].getName();
+			subPath += separator;
+
+			if (_pRes->fileOpen(subPath.c_str()))
+				_pRes->fileMoveToFront(subPath.c_str());
+		}
+	}
+
 	return 1;
 }
 
