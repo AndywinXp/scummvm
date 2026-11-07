@@ -58,6 +58,7 @@ class StdControl;
 class StdFile;
 class StdGif;
 class StdLbm;
+class Std3D;
 class StdMath;
 class StdPcx;
 class StdPic;
@@ -76,6 +77,7 @@ class SputTime;
 class StdDisplay;
 class SysStruct;
 class WalkSystem;
+struct Std3DDevice;
 struct StdRect;
 struct StdVBuffer;
 
@@ -120,8 +122,6 @@ enum {
 	kNumBaseModules = 8,
 	kNumMainModules = 6,
 	kNumPerfCounters = 13,
-	kNumVideoDevices = 1,
-	kNum3DDevices = 0,
 	kPhysicalRam = 0x7FFFFFFF
 };
 
@@ -129,6 +129,13 @@ struct PerfCounter {
 	const char *pName;
 	double start;
 	double elapsed;
+};
+
+struct GrimVideoDevice {
+	uint numModes;
+	StdDisplayMode *aModes;
+	uint num3DDevices;
+	Std3DDevice *a3DDevices;
 };
 
 class GrimEngine : public Engine, public SysStruct {
@@ -451,10 +458,19 @@ protected:
 	void textOut(const char *text, int x, int y);
 	void grimShutdown();
 	void fatalError(const char *text, const char *caption);
+	bool wantsHardwareRenderer() const;
+	int initDisplay();
+	void freeVideoDevices();
 	int initDisplayAndDevice();
-	int selectDisplayMode();
-	void chooseDefaultDisplay(int *pDevice, int *pMode, int *p3DDevice);
+	int loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice);
+	int chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice);
+	int selectDisplayMode(int deviceIndex, int modeIndex, int threeDIndex);
+	int select3DDevice(int index);
+	void shutdown3D();
 	void shutdownDisplay();
+	int getCurVideoDeviceIndex();
+	int getCur3DDeviceIndex();
+	int isHardware3D();
 	void loadSplash();
 	void pumpEvents();
 	void handleFocus(int bActive);
@@ -463,6 +479,7 @@ protected:
 	void addKeyboardEvent(uint offset, int data);
 	void addMouseButtonEvent(uint offset, int data);
 	static int shutdownCallback(int arg);
+	static int paletteCallback(byte *pPalette, int alpha);
 	static int pageFlipCallback();
 
 	StdMath *_pStdMath = nullptr;
@@ -500,12 +517,15 @@ protected:
 	int _screenshotCounter = 0;
 	int _zbufShotCounter = 0;
 	int _bEnumerateVideo = 0;
-	int _curDeviceIndex = 0;
-	int _std3DCurDeviceIndex = -1;
+	int _bShow = 0;
+	int _bUseHardware = 0;
 	int _pendingDevice = 0;
 	int _pendingMode = 0;
 	int _pending3DDevice = -1;
 	int _bDisplayChangePending = 0;
+	Std3D *_pStd3D = nullptr;
+	GrimVideoDevice _aVideoDevices[kStdDisplayMaxDevices] = {};
+	StdDisplayMode _videoDeviceConfig = {};
 
 	Res *_pRes = nullptr;
 	StdDisplay *_pStdDisplay = nullptr;

@@ -111,6 +111,7 @@
 #include "engines/grim/sputsmush.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_bmp.h"
 #include "engines/grim/std/std_conffile.h"
@@ -1885,6 +1886,12 @@ void GrimEngine::createModules() {
 	_pStdConffile = new StdConffile(this);
 	_pStdBitmap = new StdBitmap(_pStdDisplay, _pStdFile, this);
 	_pStdDisplay->setStdBitmap(_pStdBitmap);
+
+#if defined(USE_OPENGL_SHADERS)
+	_pStd3D = new Std3D(_pStdDisplay, _pStdBitmap);
+#endif
+
+	_pStdDisplay->setStd3D(_pStd3D);
 	_pStdLbm = new StdLbm(_pStdDisplay, _pStdFile, _pStdBitmap, this);
 	_pStdPcx = new StdPcx(_pStdDisplay, _pStdFile, _pStdBitmap, this);
 	_pStdGif = new StdGif(_pStdDisplay, _pStdFile, _pStdBitmap, this);
@@ -1893,6 +1900,7 @@ void GrimEngine::createModules() {
 	_pStdBitmap->setImageFormats(_pStdLbm, _pStdPcx, _pStdGif, _pStdPic, _pStdBmp);
 
 	_pRd = new RenderDroid(_pStdMath, _pStdDisplay, _pStdConffile, _pStdFile);
+	_pRd->setStd3D(_pStd3D);
 	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile);
 
 	_pRes = new Res();
@@ -1929,6 +1937,7 @@ void GrimEngine::createModules() {
 
 	_pMainGfxBuffer = new StdVBuffer();
 	_pBackBuffer = new StdVBuffer();
+	_pStdDisplay->setBuffers(_pMainGfxBuffer, _pBackBuffer);
 	_pSputRender = new SputRender(_pRd, _pStdDisplay, _pStdBitmap, _pRes, _pSputResource, _pSputPrimitive, _pWalkSystem, _pSputRoom,
 			_pBackBuffer, _pMainGfxBuffer, _pSputTime, _pSputControl);
 	_pSputCostume = new SputCostume(_pRes, _pRd, _pSputResource, _pSputRender, _pSputRoom, _pStdLbm, _pWuRegistry);
@@ -1958,6 +1967,7 @@ void GrimEngine::createModules() {
 	_pSputRender->setBlastText(_pBlastText);
 	_pSputRender->setSputSmush(_pSputSmush);
 	_pSputRender->setStdControl(_pStdControl);
+	_pSputRender->setStd3D(_pStd3D);
 	_pSputRender->setGrimEngine(this);
 	_pSputRender->setLua(_pLua);
 	_pSputCostume->setSputActor(_pSputActor);
@@ -1965,12 +1975,15 @@ void GrimEngine::createModules() {
 	_pSputCostume->setLua(_pLua);
 	_pSputActor->setGrimEngine(this);
 	_pSputActor->setLua(_pLua);
+	_pSputActor->setStd3D(_pStd3D);
 	_pSputControl->setGrimEngine(this);
 }
 
 void GrimEngine::destroyModules() {
 	if (_bDisplayOpen)
 		shutdownDisplay();
+
+	freeVideoDevices();
 
 	delete _pLua;
 	_pLua = nullptr;
@@ -2016,6 +2029,12 @@ void GrimEngine::destroyModules() {
 	_pWalkSystem = nullptr;
 	delete _pRd;
 	_pRd = nullptr;
+
+#if defined(USE_OPENGL_SHADERS)
+	delete _pStd3D;
+#endif
+
+	_pStd3D = nullptr;
 	delete _pStdBmp;
 	_pStdBmp = nullptr;
 	delete _pStdPic;
@@ -2039,7 +2058,23 @@ void GrimEngine::destroyModules() {
 	_pImuse = nullptr;
 }
 
+bool GrimEngine::wantsHardwareRenderer() const {
+#if defined(USE_OPENGL_SHADERS)
+	if (!(Graphics::Renderer::getAvailableTypes() & Graphics::kRendererTypeOpenGLShaders))
+		return false;
+
+	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(ConfMan.get("renderer"));
+
+	return desiredRendererType == Graphics::kRendererTypeDefault || desiredRendererType == Graphics::kRendererTypeOpenGLShaders;
+#else
+	return false;
+#endif
+}
+
 int GrimEngine::grimStartup() {
+	_bUseHardware = wantsHardwareRenderer() ? 1 : 0;
+
+	_pStdDisplay->startup();
 	_pPolyglot->initialize(this);
 	_pPolyglot->startup();
 	_pPolyglot->configure("grim.tab");
@@ -2049,6 +2084,14 @@ int GrimEngine::grimStartup() {
 
 	if (!_pRd->open(0))
 		return 0;
+
+	if (!_pStdDisplay->enumerateDevices())
+		return 0;
+
+	initDisplay();
+
+	if (_bEnumerateVideo && _bShow)
+		_pWuRegistry->saveInt("ExperimentalDisplay", 1);
 
 	if (!initDisplayAndDevice())
 		return 0;
@@ -2064,6 +2107,7 @@ int GrimEngine::grimStartup() {
 
 	_pLua->registerHardwareOpcodes();
 	setShutdownCallback(shutdownCallback);
+	setPaletteCallback(paletteCallback);
 	setPageFlipCallback(pageFlipCallback);
 	findResources();
 	loadSplash();
@@ -2083,6 +2127,27 @@ int GrimEngine::grimStartup() {
 void GrimEngine::grimMain() {
 	if (_bQuit)
 		return;
+
+	if (_bDisplayChangePending) {
+		int mode = _libMode;
+
+		if (!selectDisplayMode(_pendingDevice, _pendingMode, _pending3DDevice)) {
+			warning("GrimEngine::grimMain(): could not change the display, going back to the software display");
+
+			int device;
+			int displayMode;
+			int threeDDevice;
+
+			_bUseHardware = 0;
+			chooseDefaultDisplay(1, 0, &device, &displayMode, &threeDDevice);
+			selectDisplayMode(device, displayMode, threeDDevice);
+		}
+
+		_libMode = 2;
+		_pSputRender->dim(1, 2);
+		_libMode = mode;
+		_bDisplayChangePending = 0;
+	}
 
 	loop(_bActive, _bFirstFrame);
 	_bFirstFrame = 0;
@@ -2129,7 +2194,7 @@ void GrimEngine::grimMain() {
 }
 
 void GrimEngine::textOut(const char *text, int x, int y) {
-	if (!_bDisplayOpen || !_pBackBuffer || !_pBackBuffer->pPixels)
+	if (!_bDisplayOpen || !_pBackBuffer)
 		return;
 
 	const Graphics::Font *pFont = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
@@ -2139,16 +2204,30 @@ void GrimEngine::textOut(const char *text, int x, int y) {
 		return;
 	}
 
-	Graphics::Surface surface;
+	bool bVideoMemory = _pBackBuffer->type == 1;
 
-	surface.init(_pBackBuffer->tex.width, _pBackBuffer->tex.height, _pBackBuffer->tex.pitchInBytes, _pBackBuffer->pPixels, g_system->getScreenFormat());
+	if (bVideoMemory && !_pStdDisplay->vBufferLock(_pBackBuffer)) {
+		warning("GrimEngine::textOut(): could not lock the back buffer");
+		return;
+	}
 
-	uint32 color = surface.format.RGBToColor(255, 255, 0);
+	if (_pBackBuffer->pPixels) {
+		Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+		Graphics::Surface surface;
 
-	pFont->drawString(&surface, Common::String(text), x, y, surface.w - x, color);
+		surface.init(_pBackBuffer->tex.width, _pBackBuffer->tex.height, _pBackBuffer->tex.pitchInBytes, _pBackBuffer->pPixels, pixelFormat);
+
+		uint32 color = surface.format.RGBToColor(255, 255, 0);
+
+		pFont->drawString(&surface, Common::String(text), x, y, surface.w - x, color);
+	}
+
+	if (bVideoMemory)
+		_pStdDisplay->vBufferUnlock(_pBackBuffer);
 }
 
 void GrimEngine::grimShutdown() {
+	freeVideoDevices();
 	close();
 
 	if (_bSputStarted)
@@ -2160,9 +2239,11 @@ void GrimEngine::grimShutdown() {
 	_pRd->shutdown();
 
 	shutdownDisplay();
+	_pStdDisplay->restoreDisplayMode();
 
 	_pWuRegistry->shutdown();
 	_pPolyglot->shutdown();
+	_pStdDisplay->shutdown();
 }
 
 int GrimEngine::shutdownCallback(int arg) {
@@ -3078,45 +3159,265 @@ void GrimEngine::fatalError(const char *text, const char *caption) {
 	CursorMan.showMouse(true);
 }
 
+int GrimEngine::initDisplay() {
+	memset(&_videoDeviceConfig, 0, sizeof(_videoDeviceConfig));
+	_videoDeviceConfig.tex.width = kDisplayWidth;
+	_videoDeviceConfig.tex.height = kDisplayHeight;
+	_videoDeviceConfig.tex.format = _colorInfoCopy;
+
+	freeVideoDevices();
+
+	uint numDevices = _pStdDisplay->getNumDevices();
+
+	for (uint i = 0; i < numDevices; i++) {
+		GrimVideoDevice *pVideoDevice = &_aVideoDevices[i];
+		uint numModes = 0;
+
+		if (_pStdDisplay->enumerateModes(i))
+			numModes = _pStdDisplay->getNumModes();
+
+		pVideoDevice->numModes = numModes;
+		pVideoDevice->aModes = new StdDisplayMode[numModes];
+		memcpy(pVideoDevice->aModes, _pStdDisplay->getModes(), sizeof(StdDisplayMode) * numModes);
+		pVideoDevice->num3DDevices = 0;
+		pVideoDevice->a3DDevices = nullptr;
+
+#if defined(USE_OPENGL_SHADERS)
+		if (_bUseHardware && _pStdDisplay->getDevices()[i].b3D) {
+			initGraphics3d(kDisplayWidth, kDisplayHeight);
+
+			if (_pStd3D->enumerateDevices()) {
+				uint numThreeDDevices = _pStd3D->getNumDevices();
+
+				pVideoDevice->num3DDevices = numThreeDDevices;
+				pVideoDevice->a3DDevices = new Std3DDevice[numThreeDDevices];
+				memcpy(pVideoDevice->a3DDevices, _pStd3D->getDevices(), sizeof(Std3DDevice) * numThreeDDevices);
+				_pStd3D->releaseDirect3D();
+			}
+		}
+#endif
+
+		_pStdDisplay->closeDisplay();
+	}
+
+	return numDevices;
+}
+
+void GrimEngine::freeVideoDevices() {
+	for (int i = 0; i < kStdDisplayMaxDevices; i++) {
+		GrimVideoDevice *pVideoDevice = &_aVideoDevices[i];
+
+		delete[] pVideoDevice->a3DDevices;
+		pVideoDevice->a3DDevices = nullptr;
+		delete[] pVideoDevice->aModes;
+		pVideoDevice->aModes = nullptr;
+		pVideoDevice->numModes = 0;
+		pVideoDevice->num3DDevices = 0;
+	}
+}
+
 int GrimEngine::initDisplayAndDevice() {
-	return selectDisplayMode();
+	int device;
+	int mode;
+	int threeDDevice;
+
+	if (!loadDisplaySettings(&device, &mode, &threeDDevice))
+		chooseDefaultDisplay(_bShow && _bEnumerateVideo, _bUseHardware, &device, &mode, &threeDDevice);
+
+	int result = selectDisplayMode(device, mode, threeDDevice);
+
+	if (result && threeDDevice != -1 && !isHardware3D()) {
+		warning("GrimEngine::initDisplayAndDevice(): the 3D device could not be started");
+		result = 0;
+	}
+
+	if (!result && _bUseHardware) {
+		warning("GrimEngine::initDisplayAndDevice(): the hardware display failed, going back to the software display");
+
+		_bUseHardware = 0;
+		chooseDefaultDisplay(1, 0, &device, &mode, &threeDDevice);
+		result = selectDisplayMode(device, mode, threeDDevice);
+	}
+
+	return result;
 }
 
-void GrimEngine::chooseDefaultDisplay(int *pDevice, int *pMode, int *p3DDevice) {
-	*pDevice = 0;
-	*pMode = 0;
+int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
+	if (_pWuRegistry->getInt("ExperimentalDisplay", 1)) {
+		debug("grimdemo_DefaultDisplay: Last switch was not successful.");
+		return 0;
+	}
+
+	byte aZeroGuid[16];
+	byte aLastDisplayGuid[16];
+	byte aLast3DGuid[16];
+
+	memset(aZeroGuid, 0, sizeof(aZeroGuid));
+	memset(aLastDisplayGuid, 0, sizeof(aLastDisplayGuid));
+	memset(aLast3DGuid, 0, sizeof(aLast3DGuid));
+
+	if (!_pWuRegistry->getBinary("LastDisplayDevice", aLastDisplayGuid, sizeof(aLastDisplayGuid))) {
+		debug("grimdemo_DefaultDisplay: Could not find matching device.");
+		return 0;
+	}
+
+	_pWuRegistry->getBinary("Last3DDevice", aLast3DGuid, sizeof(aLast3DGuid));
+
+	uint numDevices = _pStdDisplay->getNumDevices();
+	StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+	uint device = 0;
+
+	while (device < numDevices) {
+		if (!memcmp(aDevices[device].guid, aLastDisplayGuid, sizeof(aLastDisplayGuid)))
+			break;
+
+		device++;
+	}
+
+	if (device == numDevices || (aDevices[device].type == 1 && !_bUseHardware)) {
+		debug("grimdemo_DefaultDisplay: Could not find matching device.");
+		return 0;
+	}
+
+	GrimVideoDevice *pVideoDevice = &_aVideoDevices[device];
+
+	*pDevice = device;
+	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
+
+	if (!memcmp(aLast3DGuid, aZeroGuid, sizeof(aZeroGuid))) {
+		*p3DDevice = -1;
+		return 1;
+	}
+
+	uint threeDDevice = 0;
+
+	while (threeDDevice < pVideoDevice->num3DDevices) {
+		if (!memcmp(pVideoDevice->a3DDevices[threeDDevice].guid, aLast3DGuid, sizeof(aLast3DGuid)))
+			break;
+
+		threeDDevice++;
+	}
+
+	if (threeDDevice == pVideoDevice->num3DDevices) {
+		debug("grimdemo_DefaultDisplay: 3D device no longer present.");
+		return 0;
+	}
+
+	*p3DDevice = threeDDevice;
+	return 1;
+}
+
+int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice) {
+	StdDisplayDeviceFlags wanted;
+
+	if (!_bUseHardware) {
+		bPreferWindowed = 1;
+		bWant3D = 0;
+	}
+
+	if (bPreferWindowed) {
+		wanted.type = 0;
+		wanted.bHasHardware = 0;
+	} else {
+		wanted.type = 1;
+		wanted.bHasHardware = 1;
+	}
+
+	wanted.bHasGuid = 1;
+	wanted.b3D = bWant3D;
+	wanted.bPrimary = bWant3D == 0;
+
+	int device = _pStdDisplay->findClosestDevice(&wanted);
+	GrimVideoDevice *pVideoDevice = &_aVideoDevices[device];
+
+	*pDevice = device;
+	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
 	*p3DDevice = -1;
+
+#if defined(USE_OPENGL_SHADERS)
+	if (pVideoDevice->num3DDevices && bWant3D) {
+		Std3DDevice wantedDevice;
+
+		memset(&wantedDevice, 0, sizeof(wantedDevice));
+		wantedDevice.bHardware = 1;
+		wantedDevice.bPerspectiveCorrect = 1;
+		wantedDevice.bZBuffer = 1;
+		wantedDevice.colorModelFlags = 2;
+
+		int threeDDevice = _pStd3D->findClosestDevice(&wantedDevice, pVideoDevice->a3DDevices, pVideoDevice->num3DDevices);
+
+		*p3DDevice = threeDDevice;
+
+		if (!pVideoDevice->a3DDevices[threeDDevice].bHardware)
+			*p3DDevice = -1;
+	}
+#endif
+
+	return 1;
 }
 
-int GrimEngine::selectDisplayMode() {
+int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDIndex) {
 	shutdownDisplay();
 
-	Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+	if (_bDisplayOpen)
+		return 0;
 
-	initGraphics(kDisplayWidth, kDisplayHeight, &pixelFormat);
+	if (deviceIndex < 0 || (uint)deviceIndex >= _pStdDisplay->getNumDevices()) {
+		warning("GrimEngine::selectDisplayMode(): invalid display device %d", deviceIndex);
+		return 0;
+	}
 
-	if (g_system->getScreenFormat() != pixelFormat)
-		error("GrimEngine::selectDisplayMode(): the screen does not support the RGB565 pixel format");
+	StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[deviceIndex];
 
-	StdVBufferTexFmt tex;
+	if (pDevice->type == 1 && !_bUseHardware) {
+		warning("GrimEngine::selectDisplayMode(): the hardware display is not enabled by the renderer setting");
+		return 0;
+	}
 
-	memset(&tex, 0, sizeof(tex));
-	tex.width = kDisplayWidth;
-	tex.height = kDisplayHeight;
-	tex.pitchInBytes = kDisplayWidth * 2;
-	tex.pitchInPixels = kDisplayWidth;
-	tex.sizeInBytes = kDisplayWidth * kDisplayHeight * 2;
-	tex.format = _colorInfoCopy;
+	_pWuRegistry->saveInt("ExperimentalDisplay", 1);
 
-	_pMainGfxBuffer->type = 0;
-	_pMainGfxBuffer->lockCount = 0;
-	_pMainGfxBuffer->bVideoMemory = 0;
-	_pMainGfxBuffer->tex = tex;
-	_pMainGfxBuffer->pPaletteRGB = nullptr;
-	_pMainGfxBuffer->pPixels = new byte[tex.sizeInBytes]();
-	_pMainGfxBuffer->allocSize = tex.sizeInBytes;
-	_pMainGfxBuffer->colorKey = 0;
-	*_pBackBuffer = *_pMainGfxBuffer;
+	if (!_pStdDisplay->enumerateModes(deviceIndex))
+		return 0;
+
+	StdVBufferTexFmt displayTex;
+
+	if (pDevice->type == 1) {
+		if (!_pStdDisplay->openDisplay(modeIndex, nullptr, 1)) {
+			_pStdDisplay->closeDisplay();
+			return 0;
+		}
+
+		displayTex = _pStdDisplay->getDisplayMode()->tex;
+		_colorInfoCopy = displayTex.format;
+		_numDrawBuffers = _pStdDisplay->getNumDrawBuffers();
+	} else {
+		Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+
+		initGraphics(kDisplayWidth, kDisplayHeight, &pixelFormat);
+
+		if (g_system->getScreenFormat() != pixelFormat)
+			error("GrimEngine::selectDisplayMode(): the screen does not support the RGB565 pixel format");
+
+		memset(&displayTex, 0, sizeof(displayTex));
+		displayTex.width = kDisplayWidth;
+		displayTex.height = kDisplayHeight;
+		displayTex.pitchInBytes = kDisplayWidth * 2;
+		displayTex.pitchInPixels = kDisplayWidth;
+		displayTex.sizeInBytes = kDisplayWidth * kDisplayHeight * 2;
+		displayTex.format = _colorInfoCopy;
+
+		_pMainGfxBuffer->type = 0;
+		_pMainGfxBuffer->lockCount = 0;
+		_pMainGfxBuffer->bVideoMemory = 0;
+		_pMainGfxBuffer->tex = displayTex;
+		_pMainGfxBuffer->pPaletteRGB = nullptr;
+		_pMainGfxBuffer->pPixels = new byte[displayTex.sizeInBytes]();
+		_pMainGfxBuffer->allocSize = displayTex.sizeInBytes;
+		_pMainGfxBuffer->colorKey = 0;
+		*_pBackBuffer = *_pMainGfxBuffer;
+		_numDrawBuffers = 1;
+	}
+
 	_bDisplayOpen = 1;
 
 	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
@@ -3124,27 +3425,118 @@ int GrimEngine::selectDisplayMode() {
 	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
 	_pRd->setColorInfo(_colorInfoCopy);
 
-	StdVBufferTexFmt zFormat = _pBackBuffer->tex;
+	StdVBuffer *pZBuffer = nullptr;
 
-	zFormat.format.bpp = 16;
-	_pZBuffer = _pStdDisplay->vBufferNew(&zFormat, 0, 0, nullptr);
+	if (select3DDevice(threeDIndex)) {
+#if defined(USE_OPENGL_SHADERS)
+		pZBuffer = _pStd3D->getZBuffer();
+#endif
+	} else {
+		StdVBufferTexFmt zFormat = displayTex;
 
+		zFormat.format.bpp = 16;
+		pZBuffer = _pStdDisplay->vBufferNew(&zFormat, 0, 0, nullptr);
+	}
+
+	_pZBuffer = pZBuffer;
 	setDisplay(_pBackBuffer, _pZBuffer);
+	_pWuRegistry->saveBinary("LastDisplayDevice", pDevice->guid, sizeof(pDevice->guid));
+	_bShow = pDevice->type == 0;
 
 	return 1;
+}
+
+int GrimEngine::select3DDevice(int index) {
+	shutdown3D();
+
+#if defined(USE_OPENGL_SHADERS)
+	if (index != -1 && _pStd3D->enumerateDevices()) {
+		GrimVideoDevice *pVideoDevice = &_aVideoDevices[getCurVideoDeviceIndex()];
+
+		if (index < 0 || (uint)index >= pVideoDevice->num3DDevices)
+			warning("GrimEngine::select3DDevice(): invalid 3D device %d", index);
+
+		if (_pStd3D->startup(index, 1)) {
+			_pRd->setAcceleration(_pRd->getAcceleration() | 1);
+			using3DHardware(1);
+			_pWuRegistry->saveBinary("Last3DDevice", _pStd3D->getCurDevice()->guid, sizeof(_pStd3D->getCurDevice()->guid));
+
+			return 1;
+		}
+	}
+#endif
+
+	byte aZeroGuid[16];
+
+	memset(aZeroGuid, 0, sizeof(aZeroGuid));
+	_pWuRegistry->saveBinary("Last3DDevice", aZeroGuid, sizeof(aZeroGuid));
+
+	return 0;
+}
+
+void GrimEngine::shutdown3D() {
+#if defined(USE_OPENGL_SHADERS)
+	if (_pStd3D->isAvailable()) {
+		_pStd3D->shutdown();
+		_pStd3D->releaseDirect3D();
+		_pRd->setAcceleration(_pRd->getAcceleration() & ~1);
+		using3DHardware(0);
+	}
+#endif
 }
 
 void GrimEngine::shutdownDisplay() {
 	if (!_bDisplayOpen)
 		return;
 
-	unsetDisplay();
-	_pStdDisplay->vBufferFree(_pZBuffer);
+	StdDisplayDevice *pDevice = _pStdDisplay->getCurDevice();
+	bool bVideoDevice = pDevice && pDevice->type == 1;
 
-	delete[] _pMainGfxBuffer->pPixels;
-	_pMainGfxBuffer->pPixels = nullptr;
-	_pBackBuffer->pPixels = nullptr;
+	unsetDisplay();
+
+	if (isHardware3D())
+		shutdown3D();
+	else
+		_pStdDisplay->vBufferFree(_pZBuffer);
+
+	_pZBuffer = nullptr;
+	_pStdDisplay->releaseSurfaces();
+	_pStdDisplay->closeDisplay();
+
+	if (!bVideoDevice) {
+		delete[] _pMainGfxBuffer->pPixels;
+		_pMainGfxBuffer->pPixels = nullptr;
+		_pBackBuffer->pPixels = nullptr;
+	}
+
 	_bDisplayOpen = 0;
+	_pWuRegistry->saveInt("ExperimentalDisplay", 0);
+}
+
+int GrimEngine::getCurVideoDeviceIndex() {
+	return _pStdDisplay->getCurDeviceIndex();
+}
+
+int GrimEngine::getCur3DDeviceIndex() {
+#if defined(USE_OPENGL_SHADERS)
+	if (isHardware3D())
+		return _pStd3D->getCurDeviceIndex();
+#endif
+
+	return -1;
+}
+
+int GrimEngine::isHardware3D() {
+	return _pSputRender->is3DHardware();
+}
+
+int GrimEngine::paletteCallback(byte *pPalette, int alpha) {
+#if defined(USE_OPENGL_SHADERS)
+	if (g_grim->isHardware3D())
+		g_grim->_pStd3D->setCurrentPalette(pPalette, (byte)alpha);
+#endif
+
+	return 1;
 }
 
 void GrimEngine::loadSplash() {
@@ -3162,12 +3554,21 @@ void GrimEngine::loadSplash() {
 		_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * i), pFrame->tex.width);
 
 	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
+
+	if (_pBackBuffer->type == 1)
+		_pStdDisplay->vBufferCopy(_pBackBuffer, pFrame, 0, 0, nullptr, 0);
+
 	pageFlipCallback();
 	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
 	_pStdBitmap->unloadBitmap(pBitmap);
 }
 
 int GrimEngine::pageFlipCallback() {
+	StdDisplayDevice *pDevice = g_grim->_pStdDisplay->getCurDevice();
+
+	if (g_grim->_bDisplayOpen && pDevice && pDevice->type == 1)
+		return g_grim->_pStdDisplay->update();
+
 	const StdVBuffer *pBuffer = g_grim->_pMainGfxBuffer;
 
 	if (!pBuffer->pPixels) {
@@ -3545,6 +3946,14 @@ void GrimEngine::handleKeyDebug(const Common::KeyState &key) {
 	case Common::KEYCODE_s:
 		if (_bBackspaceHeld)
 			_pSputRender->saveDrawBuffer(Common::String::format("shot%d.bmp", _screenshotCounter++).c_str());
+
+		break;
+	case Common::KEYCODE_t:
+		if (_bBackspaceHeld) {
+#if defined(USE_OPENGL_SHADERS)
+			_pStd3D->purgeTextureCache();
+#endif
+		}
 
 		break;
 	case Common::KEYCODE_z:

@@ -122,6 +122,7 @@ MODULE_OBJS := \
 	renderdroid/rd_color_effects.o \
 	renderdroid/rd_colormap.o \
 	renderdroid/rd_face.o \
+	renderdroid/rd_hardware.o \
 	renderdroid/rd_keyframe.o \
 	renderdroid/rd_light.o \
 	renderdroid/rd_material.o \
@@ -137,10 +138,14 @@ MODULE_OBJS := \
 	renderdroid/rd_thing.o \
 	renderdroid/rd_vector.o \
 	renderdroid/rd_zraster.o \
+	std/std_3d.o \
+	std/std_3d_surface.o \
+	std/std_3d_texture.o \
 	std/std_bitmap.o \
 	std/std_bmp.o \
 	std/std_conffile.o \
 	std/std_display.o \
+	std/std_display_video.o \
 	std/std_file.o \
 	std/std_gif.o \
 	std/std_lbm.o \

@@ -27,6 +27,7 @@
 #include "engines/grim/sputcostume_components.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Grim {
@@ -95,7 +96,7 @@ void SputActorModule::drawCostume(CostumeNode *pNode, RdMatrix34 pMatrix) {
 }
 
 void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
-	// TODO: sputRender_b3DAcceleration branches (std3D_SetCurrentPalette)
+	int b3DAcceleration = _pSputRender->is3DHardware();
 	RdThing *pHeadThing = pNode->pHeadThing;
 
 	for (CostumeNode *pCurrent = pNode; pCurrent; pCurrent = pCurrent->pNext) {
@@ -137,8 +138,14 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 				pColormapModel = pColormapModel->pParentModel;
 			} while (pColormapModel);
 
-			if (pColormapModel && pColormapModel->pColormap)
+			if (pColormapModel && pColormapModel->pColormap) {
 				_pRd->_colormap.setCurrent(pColormapModel->pColormap);
+
+#if defined(USE_OPENGL_SHADERS)
+				if (b3DAcceleration)
+					_pStd3D->setCurrentPalette(pColormapModel->pColormap->aColors, 0);
+#endif
+			}
 
 			buildJointMatricesRec(pModelInst->pParentModel, pMatrix);
 
@@ -147,7 +154,8 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 			RdModel3HNode *pChildNode = pModelInst->pThing->data.pModel3->aHNodes;
 			float aInsertOffset[3] = { 0.0f, 0.0f, 0.0f };
 
-			_pStdDisplay->vBufferLock(_pSputRender->drawBuffer());
+			if (!b3DAcceleration)
+				_pStdDisplay->vBufferLock(_pSputRender->drawBuffer());
 
 			if (pModelInst->resolveParentOffset && pModelInst->pThing->type != 4) {
 				float *pInsertOffset = pModelInst->pThing->data.pModel3->insertOffset;
@@ -187,18 +195,37 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 				pInsertOffset[2] = aInsertOffset[2];
 			}
 
-			_pStdDisplay->vBufferUnlock(_pSputRender->drawBuffer());
+			if (!b3DAcceleration)
+				_pStdDisplay->vBufferUnlock(_pSputRender->drawBuffer());
 		} else {
-			if (pModelInst->pColormap)
+			if (pModelInst->pColormap) {
 				_pRd->_colormap.setCurrent(pModelInst->pColormap);
 
-			_pStdDisplay->vBufferLock(_pSputRender->drawBuffer());
+#if defined(USE_OPENGL_SHADERS)
+				if (b3DAcceleration)
+					_pStd3D->setCurrentPalette(pModelInst->pColormap->aColors, 0);
+#endif
+			}
+
+			if (!b3DAcceleration)
+				_pStdDisplay->vBufferLock(_pSputRender->drawBuffer());
+
 			pActor->onScreen = _pRd->_thing.draw(pModelInst->pThing, pMatrix) != 0;
-			_pStdDisplay->vBufferUnlock(_pSputRender->drawBuffer());
+
+			if (!b3DAcceleration)
+				_pStdDisplay->vBufferUnlock(_pSputRender->drawBuffer());
 		}
 
-		if (pActor->pColorMap->valid)
-			_pRd->_colormap.setCurrent(static_cast<RdColormap *>(pActor->pColorMap->handle));
+		if (pActor->pColorMap->valid) {
+			RdColormap *pActorColormap = static_cast<RdColormap *>(pActor->pColorMap->handle);
+
+			_pRd->_colormap.setCurrent(pActorColormap);
+
+#if defined(USE_OPENGL_SHADERS)
+			if (b3DAcceleration)
+				_pStd3D->setCurrentPalette(pActorColormap->aColors, 0);
+#endif
+		}
 
 		StdRect rect;
 

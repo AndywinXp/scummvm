@@ -19,7 +19,10 @@
  *
  */
 
+#include "common/textconsole.h"
+
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_3d.h"
 
 namespace Grim {
 
@@ -28,7 +31,7 @@ RenderDroid::RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *
 		_face(this), _keyframe(this), _light(this), _material(this), _model3(this),
 		_primit2(this), _primit3(this), _puppet(this), _sprite(this), _thing(this),
 		_active(this), _cache(this), _raster(this), _afRaster(this), _nRaster(this),
-		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile),
+		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile), _pStd3D(nullptr),
 		_pHS(nullptr), _bStarted(0), _bOpened(0),
 		_frameTrue(0), _curAcceleration(0), _curRenderOptions(0), _curGeometryMode(0),
 		_curLightingMode(0), _curTextureMode(0), _curSortingMethod(0), _curOcclusionMethod(0),
@@ -52,6 +55,23 @@ RenderDroid::~RenderDroid() {
 
 void RenderDroid::setColorInfo(const StdColorFormat &colorInfo) {
 	_colorInfo = colorInfo;
+}
+
+void RenderDroid::setStd3D(Std3D *pStd3D) {
+	_pStd3D = pStd3D;
+}
+
+int RenderDroid::getAcceleration() const {
+	return _curAcceleration;
+}
+
+void RenderDroid::setAcceleration(int acceleration) {
+	if (acceleration > 0 && !_pStd3D) {
+		warning("RenderDroid::setAcceleration(): no 3D device set");
+		acceleration = 0;
+	}
+
+	_curAcceleration = acceleration;
 }
 
 int RenderDroid::startup(SysStruct *pHS) {
@@ -87,6 +107,12 @@ int RenderDroid::open(int acceleration) {
 		_frameTrue = 0;
 		clearPreStatistics();
 		_bOpened = 1;
+
+		if (acceleration > 0 && !_pStd3D) {
+			warning("RenderDroid::open(): no 3D device set");
+			acceleration = 0;
+		}
+
 		_curAcceleration = acceleration;
 	}
 
@@ -158,7 +184,14 @@ void RenderDroid::clearPreStatistics() {
 }
 
 int RenderDroid::beginHardwareScene() {
-	return _curAcceleration;
+	int result = _curAcceleration;
+
+#if defined(USE_OPENGL_SHADERS)
+	if (result > 0)
+		return _pStd3D->beginScene();
+#endif
+
+	return result;
 }
 
 } // End of namespace Grim
