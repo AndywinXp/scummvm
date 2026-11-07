@@ -23,9 +23,6 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "graphics/surface.h"
-
-#include "engines/grim/movie/movie.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputsmush.h"
@@ -33,23 +30,29 @@
 
 namespace Grim {
 
-SputSmush::SputSmush(MoviePlayer *pMovie, Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer,
-		WuRegistry *pWuRegistry) :
-		_pMovie(pMovie), _pRes(pRes), _pStdDisplay(pStdDisplay), _pSputRender(pSputRender), _pMainGfxBuffer(pMainGfxBuffer),
-		_pWuRegistry(pWuRegistry), _pHS(nullptr), _bPlayInitialized(0), _bPlayStarted(0), _pTranslationTable(nullptr),
-		_colorLookupConfig(0), _bStarted(0), _pPresentBuf(nullptr), _buf(0), _playing(0), _paused(0), _abort(0), _looping(0), _x(0), _y(0),
-		_startTime(0), _lastPeriodicTime(0) {
+SputSmush::SputSmush(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry) :
+		_pRes(pRes), _pStdDisplay(pStdDisplay), _pSputRender(pSputRender), _pMainGfxBuffer(pMainGfxBuffer),
+		_pWuRegistry(pWuRegistry), _pHS(nullptr), _bStarted(0), _pPresentBuf(nullptr), _buf(0), _playing(0), _paused(0), _abort(0),
+		_looping(0), _x(0), _y(0), _startTime(0), _lastPeriodicTime(0) {
 	memset(_curMovieFile, 0, sizeof(_curMovieFile));
+
+	_pSmushPlay = new SmushPlay(false);
+}
+
+SputSmush::~SputSmush() {
+	delete _pSmushPlay;
+	_pSmushPlay = nullptr;
 }
 
 int SputSmush::getMovieTime() {
-	return _pMovie->getMovieTime();
+	return _pSmushPlay->getMovieTime();
 }
 
 int SputSmush::initialize(SysStruct *pHS) {
 	_pHS = pHS;
 
-	smushPlaySysInitialize();
+	_pSmushPlay->sysInitialize(pHS);
+	_pSmushPlay->sysSetVideoCallbacks(this);
 
 	_pPresentBuf = nullptr;
 	_buf = 1;
@@ -106,7 +109,7 @@ int SputSmush::startup() {
 	int bFound = _pWuRegistry->getStr("StartSmush", startSmush, sizeof(startSmush), "");
 
 	if (!bFound || scumm_stricmp(startSmush, "FALSE")) {
-		if (smushPlaySysStartup())
+		if (_pSmushPlay->sysStartup())
 			return 1;
 
 		_bStarted = 1;
@@ -117,13 +120,13 @@ int SputSmush::startup() {
 
 int SputSmush::shutdown() {
 	if (_bStarted)
-		smushPlaySysShutdown();
+		_pSmushPlay->sysShutdown();
 
 	return 0;
 }
 
 int SputSmush::terminate() {
-	smushPlaySysTerminate();
+	_pSmushPlay->sysTerminate();
 
 	return 0;
 }
@@ -138,22 +141,23 @@ int SputSmush::periodic() {
 	if (_paused)
 		return 0;
 
-	smushPlaySetTranslationTable(_pSputRender->getColorLookup());
+	_pSmushPlay->setTranslationTable(_pSputRender->getColorLookup());
 
-	if (_abort || !smushPlayUpdateMovie(&finished)) {
+	if (_abort || !_pSmushPlay->updateMovie(&finished)) {
 		if (finished || _abort) {
 			_playing = 0;
 
-			StdRect frameRect = { _pMovie->getX(), _pMovie->getY(), _pMovie->getWidth(), _pMovie->getHeight() };
+			StdRect frameRect;
 
-			smushPlayStopMovie();
+			_pSmushPlay->stopMovie();
+			_pSmushPlay->getFrameRect(&frameRect, nullptr);
 			_pSputRender->markAllPagesDirty(&frameRect, 0);
 		} else {
 			result = 0;
 		}
 	}
 
-	smushPlaySysConfigureColorLookup(0);
+	_pSmushPlay->sysConfigureColorLookup(0);
 	_lastPeriodicTime = g_system->getMillis();
 
 	return result;
@@ -173,7 +177,7 @@ int SputSmush::startMovie(const char *name, int bLooping, int x, int y) {
 		return 1;
 
 	if (_playing) {
-		smushPlayStopMovie();
+		_pSmushPlay->stopMovie();
 		_playing = 0;
 	}
 
@@ -182,13 +186,13 @@ int SputSmush::startMovie(const char *name, int bLooping, int x, int y) {
 		return 1;
 	}
 
-	smushPlaySetTranslationTable(_pSputRender->getColorLookup());
+	_pSmushPlay->setTranslationTable(_pSputRender->getColorLookup());
 
 	_looping = bLooping;
 	_x = x;
 	_y = y;
 
-	if (smushPlayStartMovie(name, bLooping, x, y, _pPresentBuf->tex.width, _pPresentBuf->tex.height))
+	if (_pSmushPlay->startMovie(name, bLooping != 0 ? 0x10 : 0, 100000, x, y, _pPresentBuf->tex.width, _pPresentBuf->tex.height, 0, 1))
 		return 1;
 
 	_paused = 0;
@@ -224,12 +228,12 @@ int SputSmush::getMovieLength(const char *name) {
 	int movieLength = 0;
 
 	if (_pRes->findExternalFile(name, path, sizeof(path)) == 1)
-		movieLength = smushPlayGetMovieLength(path);
+		movieLength = _pSmushPlay->getMovieLength(path);
 
 	return movieLength;
 }
 
-int SputSmush::startVideo(int width, int height, int depth) {
+int SputSmush::startVideo(int width, int height, int depth, int pixelFormat) {
 	if (!_bStarted)
 		return 1;
 
@@ -270,7 +274,7 @@ int SputSmush::lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) {
 	return 0;
 }
 
-int SputSmush::unlockMovieBuffer() {
+int SputSmush::unlockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) {
 	if (!_bStarted)
 		return 1;
 
@@ -295,188 +299,10 @@ int SputSmush::moviePlaying() {
 int SputSmush::pause(int bPause) {
 	_paused = bPause;
 
-	if (_pMovie->isPlaying())
-		_pMovie->pause(bPause != 0);
-
-	return 0;
-}
-
-int SputSmush::smushPlaySysInitialize() {
-	if (_bPlayInitialized)
-		return 1;
-
-	_bPlayInitialized = 1;
-
-	return 0;
-}
-
-void SputSmush::smushPlaySysTerminate() {
-	_bPlayInitialized = 0;
-}
-
-int SputSmush::smushPlaySysStartup() {
-	if (!_bPlayInitialized || _bPlayStarted)
-		return 1;
-
-	_bPlayStarted = 1;
-
-	return 0;
-}
-
-void SputSmush::smushPlaySysShutdown() {
-	_bPlayStarted = 0;
-}
-
-void SputSmush::smushPlaySysConfigureColorLookup(int config) {
-	_colorLookupConfig = config;
-}
-
-void SputSmush::smushPlaySetTranslationTable(const uint16 *pTable) {
-	_pTranslationTable = pTable;
-}
-
-int SputSmush::smushPlayStartMovie(const char *name, int bLooping, int x, int y, int width, int height) {
-	if (startVideo(width, height, 16))
-		return 1;
-
-	if (!_pMovie->play(name, bLooping != 0, x, y)) {
-		stopVideo();
-
-		return 1;
-	}
-
-	return 0;
-}
-
-int SputSmush::smushPlayStopMovie() {
-	_pMovie->stop();
-	stopVideo();
-
-	return 0;
-}
-
-int SputSmush::smushPlayUpdateMovie(int *pFinished) {
-	LecBitmap bitmap;
-	StdRect rect;
-	Graphics::Surface *pFrame = _pMovie->getDstSurface();
-
-	_pMovie->clearUpdateNeeded();
-
-	if (!lockMovieBuffer(&bitmap, &rect)) {
-		smushPlayBlit(&bitmap, pFrame, &rect);
-		unlockMovieBuffer();
-	}
-
-	*pFinished = !_pMovie->isPlaying();
-
-	return 0;
-}
-
-int SputSmush::smushPlayBlit(LecBitmap *pDest, const Graphics::Surface *pSource, const StdRect *pRect) {
-	if (!pDest || !pSource || !pSource->getPixels())
-		return 0;
-
-	if (pSource->format.bytesPerPixel != 2 || pDest->bytesPerPixel != 2) {
-		warning("SputSmush::smushPlayBlit(): only 16 bpp frames are supported");
-		return 0;
-	}
-
-	int x = _pMovie->getX();
-	int y = _pMovie->getY();
-	int width = pSource->w;
-	int height = pSource->h;
-
-	if (x < pRect->x) {
-		width += x - pRect->x;
-		x = pRect->x;
-	}
-
-	if (x + width > pRect->x + pRect->width)
-		width = pRect->x + pRect->width - x;
-
-	if (y < pRect->y) {
-		height += y - pRect->y;
-		y = pRect->y;
-	}
-
-	if (y + height > pRect->y + pRect->height)
-		height = pRect->y + pRect->height - y;
-
-	if (width < 0 || height < 0) {
-		warning("SputSmush::smushPlayBlit(): the movie is outside of the target");
-		return 0;
-	}
-
-	byte *pDestPixels = pDest->pPixels + pDest->pitchInBytes * y + pDest->bytesPerPixel * x;
-
-	smushPlayBlitCopy((const byte *)pSource->getPixels(), pSource->pitch, pDestPixels, pDest->pitchInBytes,
-			pSource->format.bytesPerPixel * width, height);
-
-	return 0;
-}
-
-void SputSmush::smushPlayBlitCopy(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows) {
-	int numPixels = (rowBytes >> 2) * 2;
-
-	for (int row = 0; row < rows; row++) {
-		const uint16 *pSourceRow = (const uint16 *)(pSource + sourcePitch * row);
-		uint16 *pDestRow = (uint16 *)(pDest + destPitch * row);
-
-		if (_pTranslationTable) {
-			for (int i = 0; i < numPixels; i++)
-				pDestRow[i] = _pTranslationTable[pSourceRow[i]];
-		} else {
-			for (int i = 0; i < numPixels; i++)
-				pDestRow[i] = pSourceRow[i];
-		}
-	}
-}
-
-int SputSmush::smushPlayGetMovieLength(const char *path) {
-	if (!_pHS) {
-		warning("SputSmush::smushPlayGetMovieLength(): the module is not initialized");
-		return 0;
-	}
-
-	Common::SeekableReadStream *pStream = _pHS->openFile(path);
-
-	if (!pStream)
-		return 0;
-
-	SmushMovieInfo info;
-
-	memset(&info, 0, sizeof(info));
-	smushPlayGetInfo(pStream, &info);
-	delete pStream;
-	pStream = nullptr;
-
-	return (int)((double)info.frames * 66.666664);
-}
-
-int SputSmush::smushPlayGetInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInfo) {
-	if (!pStream)
-		return 0;
-
-	int32 position = pStream->pos();
-
-	pStream->seek(16, SEEK_SET);
-	pInfo->version0 = pStream->readByte();
-	pInfo->version1 = pStream->readByte();
-	pInfo->frames = pStream->readSint16LE();
-	pInfo->x = pStream->readSint16LE();
-	pInfo->y = pStream->readSint16LE();
-	pInfo->width = pStream->readSint16LE();
-	pInfo->height = pStream->readSint16LE();
-	pInfo->field_C = pStream->readSint16LE();
-	pInfo->frameDelay = pStream->readSint32LE();
-	pInfo->field_12 = pStream->readSint32LE();
-	pStream->read(pInfo->palette, sizeof(pInfo->palette));
-	pInfo->field_416 = pStream->readSint16LE();
-
-	if (pInfo->width <= 0 || pInfo->height <= 0 || pInfo->field_12 <= 0)
-		return -2;
-
-	pStream->seek(position, SEEK_SET);
+	if (bPause)
+		_pSmushPlay->pauseMovie();
+	else
+		_pSmushPlay->resumeMovie();
 
 	return 0;
 }

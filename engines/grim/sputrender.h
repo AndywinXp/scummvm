@@ -212,7 +212,6 @@ private:
 	int _renderVars[7];
 	uint16 _colorLookup[65536];
 	float _gammaCorrection;
-	uint16 _fillColor;
 	StdColorFormat *_pColorInfo;
 	int _b3DAcceleration;
 	int _bAcceleratedZBuffers;

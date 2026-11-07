@@ -69,6 +69,7 @@ struct StdVBuffer {
 	byte *pPaletteRGB;
 	byte *pPixels;
 	int colorKey;
+	int allocSize;
 };
 
 class StdDisplay {
