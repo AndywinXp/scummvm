@@ -23,6 +23,7 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/lua_v1.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
 #include "engines/grim/sputrender.h"
@@ -313,7 +314,7 @@ int SputCostume::startup() {
 	_oldInstanceHook = _cos.registerInstanceHook(instanceHookThunk);
 	_oldSaveHook = _cos.registerSaveHook(saveHookThunk);
 
-	// TODO: sputLua_RegisterFunctions(luaCostumeFuncs, 2): GetKeyLength, GetSmushLength
+	// TODO: register GetKeyLength and GetSmushLength (opcode batch B2)
 
 	_bStarted = 1;
 
@@ -353,20 +354,6 @@ int SputCostume::shutdown() {
 }
 
 int SputCostume::saveHook(const char *path, int hCostume, const char *header) {
-	const char *pName = strrchr(path, '\\');
-
-	if (pName)
-		pName++;
-	else
-		pName = path;
-
-	const char *costumeName = _cos.getCostumeName(hCostume);
-
-	if (!costumeName || scumm_stricmp(pName, costumeName)) {
-		// TODO: grimPlat_SaveFileDialog("Name chore list file...", "Script files (*.lua, *.def)")
-		return 0;
-	}
-
 	const char *pExtension = _pStdLbm->getExtension(path);
 
 	if (!pExtension) {
@@ -378,8 +365,7 @@ int SputCostume::saveHook(const char *path, int hCostume, const char *header) {
 	Common::DumpFile file;
 
 	if (!file.open(fileName.c_str())) {
-		// TODO: grimPlat_QueryDialog("File Error!", "Unable to open chore list file...")
-		warning("SputCostume::saveHook(): unable to open chore list file %s", fileName.c_str());
+		warning("SputCostume::saveHook(): Unable to open chore list file. Check to make sure that the destination file is not read-only (%s)", fileName.c_str());
 		return 0;
 	}
 
@@ -423,7 +409,7 @@ void SputCostume::puppetHook(ModelInst *pModel, int trackNum, int markerType) {
 	if (!pModel)
 		return;
 
-	// TODO: sputLua_DoCostumeMarkerCallback(&aActors[Cos_InstGetUserData(pModel->trackUserArg)], markerType)
+	_pLua->doCostumeMarkerCallback(&_aActors[_cos.instGetUserData(pModel->trackUserArg)], markerType);
 
 	if (!markerType) {
 		if (trackNum < 0 || trackNum >= 6) {

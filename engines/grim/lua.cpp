@@ -40,6 +40,7 @@
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/model.h"
 #include "engines/grim/primitives.h"
+#include "engines/grim/sputactor.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/lua/lualib.h"
@@ -175,25 +176,9 @@ void LuaBase::registerLua() {
 	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
 	lua_settable();
 
-	lua_pushobject(lua_getglobal("type"));
-	refTypeOverride = lua_ref(true);
-	lua_pushCclosure(LUA_OPCODE(LuaBase, typeOverride), 0);
-	lua_setglobal("type");
-
-	// Register constants for box types
-	lua_pushnumber(Sector::NoneType);
-	lua_setglobal("NONE");
-	lua_pushnumber(Sector::WalkType);
-	lua_setglobal("WALK");
-	lua_pushnumber(Sector::CameraType);
-	lua_setglobal("CAMERA");
-	lua_pushnumber(Sector::SpecialType);
-	lua_setglobal("SPECIAL");
-	lua_pushnumber(Sector::HotType);
-	lua_setglobal("HOT");
-
-	lua_pushobject(lua_setfallback("concat", LUA_OPCODE(LuaBase, concatFallback)));
-	refOldConcatFallback = lua_ref(1);
+	registerTypeOverride();
+	registerSectorConstants();
+	registerConcatFallback();
 
 	// initialize Text globals
 	lua_pushstring("x");
@@ -234,6 +219,32 @@ void LuaBase::registerLua() {
 	refTextObjectCoords = lua_ref(true);
 }
 
+void LuaBase::registerTypeOverride() {
+	lua_pushobject(lua_getglobal("type"));
+	refTypeOverride = lua_ref(true);
+	lua_pushCclosure(LUA_OPCODE(LuaBase, typeOverride), 0);
+	lua_setglobal("type");
+}
+
+void LuaBase::registerSectorConstants() {
+	// Register constants for box types
+	lua_pushnumber(Sector::NoneType);
+	lua_setglobal("NONE");
+	lua_pushnumber(Sector::WalkType);
+	lua_setglobal("WALK");
+	lua_pushnumber(Sector::CameraType);
+	lua_setglobal("CAMERA");
+	lua_pushnumber(Sector::SpecialType);
+	lua_setglobal("SPECIAL");
+	lua_pushnumber(Sector::HotType);
+	lua_setglobal("HOT");
+}
+
+void LuaBase::registerConcatFallback() {
+	lua_pushobject(lua_setfallback("concat", LUA_OPCODE(LuaBase, concatFallback)));
+	refOldConcatFallback = lua_ref(1);
+}
+
 void LuaBase::forceDemo() {
 	lua_pushnumber(1);
 	lua_setglobal("DEMO");
@@ -248,6 +259,10 @@ struct luaL_reg baseOpcodes[] = {
 
 void LuaBase::registerOpcodes() {
 	luaL_openlib(baseOpcodes, ARRAYSIZE(baseOpcodes));
+}
+
+void LuaBase::recognizeOpcodes() {
+	luaL_addlibtolist(baseOpcodes, ARRAYSIZE(baseOpcodes));
 }
 
 void LuaBase::loadSystemScript() {
@@ -382,7 +397,9 @@ Font *LuaBase::getfont(lua_Object fontObj) {
 }
 
 Color LuaBase::getcolor(lua_Object obj) {
-	return Color(lua_getuserdata(obj));
+	uint32 color = lua_getuserdata(obj);
+
+	return Color(color & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF);
 }
 
 PrimitiveObject *LuaBase::getprimitive(lua_Object obj) {
@@ -552,7 +569,7 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 	lua_pushobject(lua_getref(refTextObjectFGColor));
 	keyObj = lua_gettable();
 	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('C','O','L','R')) {
+		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
 			textObject->setFGColor(getcolor(keyObj));
 		}
 	}
@@ -561,7 +578,7 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 	lua_pushobject(lua_getref(refTextObjectBGColor));
 	keyObj = lua_gettable();
 	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('C','O','L','R')) {
+		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
 			//textObject->setBGColor(static_cast<Color *>(lua_getuserdata(keyObj)));
 			warning("setTextObjectParams: dummy BGColor");
 		}
@@ -571,7 +588,7 @@ void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object table
 	lua_pushobject(lua_getref(refTextObjectFXColor));
 	keyObj = lua_gettable();
 	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('C','O','L','R')) {
+		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
 			//textObject->setFXColor(static_cast<Color *>(lua_getuserdata(keyObj)));
 			warning("setTextObjectParams: dummy FXColor");
 		}
@@ -646,6 +663,7 @@ void LuaBase::typeOverride() {
 	if (lua_isuserdata(data)) {
 		switch (lua_tag(data)) {
 			case MKTAG('A','C','T','R'):
+			case MKTAG('R','T','C','A'):
 				lua_pushstring("actor");
 				lua_pushnumber(lua_tag(data));
 				return;
@@ -699,7 +717,16 @@ void LuaBase::concatFallback() {
 			Common::sprintf_s(strPtr, sizeof(result) - pos, "(nil)");
 		else if (lua_isstring(params[i]))
 			Common::sprintf_s(strPtr, sizeof(result) - pos, "%s", lua_getstring(params[i]));
-		else if (lua_tag(params[i]) == MKTAG('A','C','T','R')) {
+		else if (lua_tag(params[i]) == MKTAG('R','T','C','A')) {
+			int handle = lua_getuserdata(params[i]);
+			SputActor *pActor = g_grim->_pSputActor->actorDeref(handle);
+			const char *modelName = "";
+
+			if (pActor && pActor->pCostumeStack && pActor->pCostumeStack->pHeadThing && pActor->pCostumeStack->pHeadThing->data.pModel3)
+				modelName = pActor->pCostumeStack->pHeadThing->data.pModel3->aName;
+
+			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%d:%s)", handle, modelName);
+		} else if (lua_tag(params[i]) == MKTAG('A','C','T','R')) {
 			Actor *a = getactor(params[i]);
 			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%p:%s)", (void *)a,
 					(a->getCurrentCostume() && a->getCurrentCostume()->getModelNodes()) ?

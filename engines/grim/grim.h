@@ -89,6 +89,7 @@ class Set;
 class TextObject;
 class PrimitiveObject;
 class LuaBase;
+class Lua_V1;
 class Commentary;
 class GfxBase;
 
@@ -118,7 +119,10 @@ enum SputMainModule {
 enum {
 	kNumBaseModules = 8,
 	kNumMainModules = 6,
-	kNumPerfCounters = 13
+	kNumPerfCounters = 13,
+	kNumVideoDevices = 1,
+	kNum3DDevices = 0,
+	kPhysicalRam = 0x7FFFFFFF
 };
 
 struct PerfCounter {
@@ -128,6 +132,8 @@ struct PerfCounter {
 };
 
 class GrimEngine : public Engine, public SysStruct {
+	friend class Lua_V1;
+	friend class LuaBase;
 
 protected:
 	// Engine APIs
@@ -290,7 +296,7 @@ public:
 	int unsetDisplay();
 	void makeCurrentSet(const char *name);
 	void close();
-	void setDebugToggleCallback(void *pFunc);
+	void setDebugToggleCallback(void (*pFunc)(int));
 	void setPaletteCallback(int (*pFunc)(byte *, int));
 	void setShutdownCallback(int (*pFunc)(int));
 	void setPageFlipCallback(int (*pFunc)());
@@ -442,10 +448,12 @@ protected:
 	void destroyModules();
 	int grimStartup();
 	void grimMain();
+	void textOut(const char *text, int x, int y);
 	void grimShutdown();
 	void fatalError(const char *text, const char *caption);
 	int initDisplayAndDevice();
 	int selectDisplayMode();
+	void chooseDefaultDisplay(int *pDevice, int *pMode, int *p3DDevice);
 	void shutdownDisplay();
 	void loadSplash();
 	void pumpEvents();
@@ -491,6 +499,13 @@ protected:
 	double _grimFps = 0.0;
 	int _screenshotCounter = 0;
 	int _zbufShotCounter = 0;
+	int _bEnumerateVideo = 0;
+	int _curDeviceIndex = 0;
+	int _std3DCurDeviceIndex = -1;
+	int _pendingDevice = 0;
+	int _pendingMode = 0;
+	int _pending3DDevice = -1;
+	int _bDisplayChangePending = 0;
 
 	Res *_pRes = nullptr;
 	StdDisplay *_pStdDisplay = nullptr;
@@ -504,6 +519,7 @@ protected:
 	SputText *_pSputText = nullptr;
 	SputPrimitive *_pSputPrimitive = nullptr;
 	SputSmush *_pSputSmush = nullptr;
+	Lua_V1 *_pLua = nullptr;
 	WalkSystem *_pWalkSystem = nullptr;
 	IMuse *_pImuse = nullptr;
 	StdVBuffer *_pMainGfxBuffer = nullptr;

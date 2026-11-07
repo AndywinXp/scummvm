@@ -276,23 +276,23 @@ void SputRender::getIris(float percent, int x, int y) {
 	_pStdDisplay->vBufferUnlock(_pBackBuffer);
 }
 
-void SputRender::irisDown(int y, int duration, int x) {
+void SputRender::irisDown(int x, int y, int duration) {
 	int gameTime = _pSputTime->getGameTime();
 
 	_irisStart = gameTime;
-	_irisDuration = duration;
-	_irisX = (float)x;
-	_irisY = y;
+	_irisCenterY = y;
+	_irisDuration = (float)duration;
+	_irisCenterX = x;
 	_renderFlags |= 4;
 }
 
-void SputRender::irisUp(int y, int duration, int x) {
+void SputRender::irisUp(int x, int y, int duration) {
 	int gameTime = _pSputTime->getGameTime();
 
 	_irisStart = gameTime;
-	_irisDuration = duration;
-	_irisY = y;
-	_irisX = (float)(-(double)x);
+	_irisCenterY = y;
+	_irisCenterX = x;
+	_irisDuration = (float)(-(double)duration);
 	_renderFlags |= 4;
 }
 

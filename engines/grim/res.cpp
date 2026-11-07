@@ -19,17 +19,24 @@
  *
  */
 
+#include "common/archive.h"
 #include "common/file.h"
+#include "common/fs.h"
 #include "common/stream.h"
 #include "common/textconsole.h"
 
 #include "engines/grim/imuse/imuse_engine.h"
+#include "engines/grim/lab.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputrender.h"
 
 namespace Grim {
 
-Res::Res() : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0),
+static const int kLabPriorityBase = -1000;
+static const int kDirectoryPriorityBase = 2;
+
+Res::Res() : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0), _nextLabPriority(kLabPriorityBase),
+		_nextDirectoryPriority(kDirectoryPriorityBase),
 		_pTagHead(nullptr), _pNodeHead(nullptr), _pNodeTail(nullptr), _pDefaultHandler(nullptr),
 		_logFile(nullptr), _memoryLimit(0x1800000), _pSputRender(nullptr) {
 }
@@ -71,7 +78,7 @@ int Res::sysStartup() {
 
 int Res::sysShutdown() {
 	if (_bStarted) {
-		// TODO: close the mounted LAB files
+		fileCloseAll();
 		freeAll();
 
 		while (_pTagHead) {
@@ -116,6 +123,128 @@ int Res::sysRegisterHandler(int tag, ResHandler *pHandler) {
 	_pTagHead = pTag;
 
 	return 1;
+}
+
+int Res::fileOpen(const char *path) {
+	if (!*path || path[strlen(path) - 1] == '\\' || path[strlen(path) - 1] == '/')
+		return fileOpenSearch(path);
+
+	return openLabFile(path);
+}
+
+int Res::fileClose(const char *path) {
+	int index = lookupFileHandle(path);
+
+	if (index >= 0) {
+		SearchMan.remove(_labFiles[index].archiveName);
+		_labFiles.remove_at(index);
+	}
+
+	return 1;
+}
+
+void Res::fileCloseAll() {
+	while (!_labFiles.empty()) {
+		Common::String path(_labFiles[0].path);
+
+		fileClose(path.c_str());
+	}
+
+	_nextLabPriority = kLabPriorityBase;
+	_nextDirectoryPriority = kDirectoryPriorityBase;
+}
+
+int Res::fileMoveToFront(const char *path) {
+	int index = lookupFileHandle(path);
+
+	if (index < 0)
+		return 0;
+
+	if (_labFiles[index].flags == kResLabFileLab) {
+		SearchMan.setPriority(_labFiles[index].archiveName, _nextLabPriority);
+		_nextLabPriority++;
+	} else {
+		SearchMan.setPriority(_labFiles[index].archiveName, _nextDirectoryPriority);
+		_nextDirectoryPriority++;
+	}
+
+	return 1;
+}
+
+int Res::openLabFile(const char *path) {
+	Common::Path labPath(path, Common::Path::kNativeSeparator);
+	Common::String name(labPath.baseName());
+
+	name.toLowercase();
+
+	if (SearchMan.hasArchive(name))
+		return 1;
+
+	if (!SearchMan.hasFile(Common::Path(name))) {
+		warning("Res::openLabFile(): %s is not reachable", path);
+		return 0;
+	}
+
+	Lab *pLab = new Lab();
+
+	if (!pLab->open(Common::Path(name), false)) {
+		delete pLab;
+		pLab = nullptr;
+
+		return 0;
+	}
+
+	SearchMan.add(name, pLab, _nextLabPriority, true);
+
+	ResLabFile labFile;
+
+	labFile.path = path;
+	labFile.archiveName = name;
+	labFile.flags = kResLabFileLab;
+	_labFiles.push_back(labFile);
+
+	return 1;
+}
+
+int Res::fileOpenSearch(const char *dirPath) {
+	Common::String directoryName(dirPath);
+
+	if (!directoryName.empty() && (directoryName.lastChar() == '\\' || directoryName.lastChar() == '/'))
+		directoryName.deleteLastChar();
+
+	if (directoryName.empty())
+		return 0;
+
+	Common::FSNode directory(Common::Path(directoryName, Common::Path::kNativeSeparator));
+	Common::FSList files;
+
+	if (!directory.exists() || !directory.isDirectory() || !directory.getChildren(files, Common::FSNode::kListFilesOnly) || files.empty())
+		return 0;
+
+	Common::String name(directory.getPath().toString());
+
+	if (SearchMan.hasArchive(name))
+		return 1;
+
+	SearchMan.add(name, new Common::FSDirectory(directory, 1), _nextDirectoryPriority, true);
+
+	ResLabFile labFile;
+
+	labFile.path = dirPath;
+	labFile.archiveName = name;
+	labFile.flags = kResLabFileDirectory;
+	_labFiles.push_back(labFile);
+
+	return 1;
+}
+
+int Res::lookupFileHandle(const char *path) {
+	for (uint i = 0; i < _labFiles.size(); i++) {
+		if (_labFiles[i].path == path)
+			return i;
+	}
+
+	return -1;
 }
 
 int Res::allocCompletion(int tag, const char *name, void *handle) {

@@ -34,6 +34,7 @@ class WriteStream;
 
 namespace Grim {
 
+class Lua_V1;
 class RenderDroid;
 class SputRender;
 
@@ -43,6 +44,7 @@ public:
 	~SputPrimitive();
 
 	void setSputRender(SputRender *pSputRender);
+	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 
 	int initialize(SysStruct *pHS);
 	void pause();
@@ -57,6 +59,7 @@ public:
 
 private:
 	SputRender *_pSputRender;
+	Lua_V1 *_pLua = nullptr;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;

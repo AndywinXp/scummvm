@@ -39,6 +39,8 @@ SmushDecoder::SmushDecoder() {
 	_wave = nullptr;
 	_blocky16Frames = 0;
 	_frameDelay = 0;
+	_movieX = 0;
+	_movieY = 0;
 }
 
 SmushDecoder::~SmushDecoder() {
@@ -77,8 +79,10 @@ bool SmushDecoder::readHeader() {
 	assert(tag == MKTAG('S', 'H', 'D', 'R'));
 
 	_file->readUint16LE();
-	uint16 nbFrames = _file->readUint32LE();
-	_file->readUint16LE();
+	uint32 nbFramesField = _file->readUint32LE();
+	uint16 nbFrames = nbFramesField;
+	_movieX = (int16)(nbFramesField >> 16);
+	_movieY = (int16)_file->readUint16LE();
 	int width = _file->readUint16LE();
 	int height = _file->readUint16LE();
 	_file->readUint16LE();

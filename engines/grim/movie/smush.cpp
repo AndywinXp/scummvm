@@ -152,12 +152,28 @@ bool SmushPlayer::loadFile(const Common::String &filename) {
 		success = _theoraDecoder->loadFile(theoraFilename);
 		_videoDecoder = _theoraDecoder;
 		_currentVideoIsTheora = true;
+
+		if (success) {
+			if (_x < 0)
+				_x = 0;
+
+			if (_y < 0)
+				_y = 0;
+		}
 #else
 		success = false;
 #endif
 	} else {
 		_videoDecoder = _smushDecoder;
 		_currentVideoIsTheora = false;
+
+		if (!_demo) {
+			if (_x < 0)
+				_x = _smushDecoder->getMovieX();
+
+			if (_y < 0)
+				_y = _smushDecoder->getMovieY();
+		}
 	}
 	return success;
 }

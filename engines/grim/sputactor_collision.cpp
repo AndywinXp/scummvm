@@ -23,6 +23,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/lua_v1.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
 #include "engines/grim/std/std_math.h"
@@ -616,7 +617,7 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 			}
 		}
 
-		// TODO: sputLua_CollisionHandler(pActor, pOther, _tmpPos2, _tmpPos0, _tmpPos1)
+		_pLua->collisionHandler(pActor, pOther, _tmpPos2, _tmpPos0, _tmpPos1);
 	}
 }
 

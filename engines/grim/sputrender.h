@@ -37,6 +37,7 @@ namespace Grim {
 
 class BlastText;
 class GrimEngine;
+class Lua_V1;
 class RenderDroid;
 class SputActorModule;
 class SputPrimitive;
@@ -93,6 +94,7 @@ public:
 	void setSputSmush(SputSmush *pSputSmush) { _pSputSmush = pSputSmush; }
 	void setStdControl(StdControl *pStdControl) { _pStdControl = pStdControl; }
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 
 	int initialize(SysStruct *pHS);
 	int terminate();
@@ -140,8 +142,8 @@ public:
 	void dimRegion(int x, int y, int width, int height, float scale);
 
 	void getIris(float percent, int x, int y);
-	void irisDown(int y, int duration, int x);
-	void irisUp(int y, int duration, int x);
+	void irisDown(int x, int y, int duration);
+	void irisUp(int x, int y, int duration);
 	int irisComplete();
 	void clearIris();
 
@@ -174,6 +176,9 @@ public:
 	StdVBuffer *getCleanBuffer() const { return _pCleanBuffer; }
 	uint16 *getColors() { return _aColors; }
 	void setSkipPrimitives(int bSkip) { _bSkipPrimitives = bSkip; }
+	int getCamActorIndex() const { return _gCamActorIndex; }
+	RoomCamera *getCamera() const { return _pCamera; }
+	const uint16 *getColorLookup() const { return _colorLookup; }
 
 private:
 	void markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex);
@@ -198,6 +203,7 @@ private:
 	SputControl *_pSputControl;
 	StdControl *_pStdControl;
 	GrimEngine *_pGrim;
+	Lua_V1 *_pLua = nullptr;
 
 	SysStruct *_pHS;
 	int _bInitialized;
@@ -228,9 +234,9 @@ private:
 	int _reset;
 
 	int _irisStart;
-	float _irisX;
-	int _irisY;
-	int _irisDuration;
+	float _irisDuration;
+	int _irisCenterX;
+	int _irisCenterY;
 	int _renderFlags;
 	int _bSkipPrimitives;
 

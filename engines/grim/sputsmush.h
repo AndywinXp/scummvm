@@ -29,7 +29,12 @@
 
 namespace Common {
 class ReadStream;
+class SeekableReadStream;
 class WriteStream;
+}
+
+namespace Graphics {
+struct Surface;
 }
 
 namespace Grim {
@@ -46,6 +51,21 @@ struct LecBitmap {
 	int bytesPerPixel;
 	int field_10;
 	int pitchInBytes;
+};
+
+struct SmushMovieInfo {
+	byte version0;
+	byte version1;
+	int16 frames;
+	int16 x;
+	int16 y;
+	int16 width;
+	int16 height;
+	int16 field_C;
+	int32 frameDelay;
+	int32 field_12;
+	byte palette[1024];
+	int16 field_416;
 };
 
 class SputSmush {
@@ -74,6 +94,20 @@ public:
 	int pause(int bPause);
 
 private:
+	int smushPlaySysInitialize();
+	void smushPlaySysTerminate();
+	int smushPlaySysStartup();
+	void smushPlaySysShutdown();
+	void smushPlaySysConfigureColorLookup(int config);
+	void smushPlaySetTranslationTable(const uint16 *pTable);
+	int smushPlayStartMovie(const char *name, int bLooping, int x, int y, int width, int height);
+	int smushPlayStopMovie();
+	int smushPlayUpdateMovie(int *pFinished);
+	int smushPlayBlit(LecBitmap *pDest, const Graphics::Surface *pSource, const StdRect *pRect);
+	void smushPlayBlitCopy(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows);
+	int smushPlayGetMovieLength(const char *path);
+	int smushPlayGetInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInfo);
+
 	MoviePlayer *_pMovie;
 	Res *_pRes;
 	StdDisplay *_pStdDisplay;
@@ -81,6 +115,10 @@ private:
 	StdVBuffer *_pMainGfxBuffer;
 	WuRegistry *_pWuRegistry;
 	SysStruct *_pHS;
+	int _bPlayInitialized;
+	int _bPlayStarted;
+	const uint16 *_pTranslationTable;
+	int _colorLookupConfig;
 	int _bStarted;
 	StdVBuffer *_pPresentBuf;
 	int _buf;

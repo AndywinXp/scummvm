@@ -75,6 +75,7 @@ struct SputObjectState {
 	int size;
 	int type;
 	int setupIndex;
+	int luaHandle;
 	ObjectStateImage colorImage;
 	ObjectStateImage zImage;
 	SputObjectState *pPrev;

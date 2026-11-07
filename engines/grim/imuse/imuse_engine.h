@@ -287,7 +287,6 @@ private:
 	int _globalVolume;
 
 	int soundsRegisterVoice(const char *filename);
-	void soundsCloseVoiceFile();
 	void soundsReOpenVoiceFile();
 	int loadLip(const char *lipsyncFilename, int soundId);
 	void soundsResetLipsyncState(int soundId);
@@ -379,6 +378,7 @@ public:
 	int soundsResume();
 	int soundStartVoiceStream(const char *filename, int volume, int pan);
 	int soundStopVoiceStream();
+	void soundsCloseVoiceFile();
 	int soundGetVoiceTime();
 	int iMUSEGetPhoneme(int lipsyncId, int offset);
 	IMuseLipSync *grimSoundLipSyncLoad(const char *source);

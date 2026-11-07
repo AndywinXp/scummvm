@@ -23,6 +23,8 @@
 #define GRIM_LUA_V1
 
 #include "engines/grim/lua.h"
+#include "engines/grim/lua/lua.h"
+#include "engines/grim/sputcontrol.h"
 
 // Windows.h badness: Remove #defines to the following Win32 API MultiByte/Unicode functions.
 #ifdef GetDiskFreeSpace
@@ -35,12 +37,49 @@
 
 namespace Grim {
 
-class Lua_V1 : public LuaBase {
+struct CostumeNode;
+struct SputActor;
+struct SputObjectState;
+struct SputTextEvent;
+struct StdVBuffer;
+
+int luaFtol(float value);
+
+class Lua_V1 : public LuaBase, public SputControlCallback {
 public:
 	typedef Lua_V1 LuaClass;
+
+	Lua_V1();
+
 	void registerOpcodes() override;
 	void boot() override;
 	void postRestoreHandle() override;
+
+	int initialize(SysStruct *pHS);
+	int terminate();
+	int startup();
+	int shutdown();
+	int findSystemFiles();
+	int boot(int saveGameResume, const char *bootParam);
+	void update();
+
+	void registerMainOpcodes();
+	void registerTextOpcodes();
+	void registerPrimitiveOpcodes();
+	void registerHardwareOpcodes();
+
+	int controlCallback(float frameTime) override;
+	void setDebugToggleCallback(void (*pFunc)(int));
+	void cameraChange(int oldSetup, int newSetup);
+	void postCameraChange(int setup);
+	void collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2);
+	void doCostumeOverrideCallback(SputActor *pActor, int bOverride);
+	void doCostumeMarkerCallback(SputActor *pActor, int markerType);
+	void doUserPaintCallback();
+	int doExitCallback();
+	int doPauseCallback();
+	int doCharacterCallback(int character);
+	void saveGameCallback();
 
 protected:
 	// Opcodes
@@ -285,6 +324,37 @@ protected:
 	DECLARE_LUA_OPCODE(GetMemoryUsage);
 	DECLARE_LUA_OPCODE(GetFontDimensions);
 	DECLARE_LUA_OPCODE(PurgeText);
+
+private:
+	enum {
+		kMaxImages = 128
+	};
+
+	void makeSystemTable();
+	void registerControls();
+	bool getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf);
+	SputTextEvent *getTextEvent(lua_Object obj);
+	bool isSputActor(lua_Object obj);
+	SputActor *getSputActor(lua_Object obj);
+	void pushSputActor(int handle);
+	bool hasActorExtra(SputActor *pActor, const char *opcode);
+	bool findCostumeInStack(lua_Object obj, CostumeNode *pStack, CostumeNode **ppFound);
+	bool isImage(lua_Object obj);
+	int findImage(lua_Object obj);
+	void pushImage(StdVBuffer *pImage);
+	static int getObjectStateHandle(SputObjectState *pState);
+	static SputObjectState *findObjectState(int handle, int *pSetup, int *pIndex);
+
+	static int32 saveIndirector(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc);
+	static int32 restoreIndirector(int32 tag, int32 hData, tSaveRestoreAccess *restoreFunc);
+
+	SysStruct *_pHS;
+	int _bInitialized;
+	void (*_pDebugToggleFunc)(int);
+	int _totSaveBytes;
+	int _imageHandles[kMaxImages];
+	StdVBuffer *_images[kMaxImages];
+	int _nextImageHandle;
 };
 
 }

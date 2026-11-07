@@ -22,6 +22,7 @@
 #ifndef GRIM_RES_H
 #define GRIM_RES_H
 
+#include "common/array.h"
 #include "common/endian.h"
 #include "common/scummsys.h"
 #include "common/str.h"
@@ -84,6 +85,17 @@ struct ResTag {
 	ResHandler *pHandler;
 };
 
+enum ResLabFileFlags {
+	kResLabFileDirectory = 1,
+	kResLabFileLab = 2
+};
+
+struct ResLabFile {
+	Common::String path;
+	Common::String archiveName;
+	int flags;
+};
+
 class SputRender;
 
 class Res {
@@ -98,6 +110,10 @@ public:
 	int sysStartup();
 	int sysShutdown();
 	int sysRegisterHandler(int tag, ResHandler *pHandler);
+	int fileOpen(const char *path);
+	int fileClose(const char *path);
+	void fileCloseAll();
+	int fileMoveToFront(const char *path);
 	int sysSave(Common::WriteStream *pStream);
 	int sysLoad(Common::ReadStream *pStream);
 	int allocCompletion(int tag, const char *name, void *handle);
@@ -139,9 +155,16 @@ public:
 	int getMemoryLimit() const { return _memoryLimit; }
 
 private:
+	int openLabFile(const char *path);
+	int fileOpenSearch(const char *dirPath);
+	int lookupFileHandle(const char *path);
+
 	SysStruct *_pResHS;
 	int _fResSysInitialized;
 	int _bStarted;
+	Common::Array<ResLabFile> _labFiles;
+	int _nextLabPriority;
+	int _nextDirectoryPriority;
 	ResTag *_pTagHead;
 	ResNode *_pNodeHead;
 	ResNode *_pNodeTail;

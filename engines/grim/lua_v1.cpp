@@ -36,13 +36,44 @@
 #include "engines/grim/savegame.h"
 #include "engines/grim/resource.h"
 #include "engines/grim/bitmap.h"
+#include "engines/grim/blasttext.h"
 #include "engines/grim/font.h"
 #include "engines/grim/gfx_base.h"
+#include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/localize.h"
+#include "engines/grim/res.h"
+#include "engines/grim/sputactor.h"
+#include "engines/grim/sputobjectstate.h"
+#include "engines/grim/sputrender.h"
+#include "engines/grim/sputresource.h"
+#include "engines/grim/sputroom.h"
+#include "engines/grim/sputsmush.h"
+#include "engines/grim/sputtext.h"
+#include "engines/grim/sputtime.h"
+#include "engines/grim/std/std_math.h"
+#include "engines/grim/stdcontrol.h"
+#include "engines/grim/text.h"
+#include "engines/grim/wuregistry.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 
 namespace Grim {
+
+int luaFtol(float value) {
+	double number = value;
+
+	if (!(number > -9223372036854775809.0 && number < 9223372036854775808.0)) {
+		warning("luaFtol(): value out of range");
+		return 0;
+	}
+
+	int64 result = (int64)number;
+
+	if (result < -2147483648LL || result > 2147483647LL)
+		warning("luaFtol(): value out of range");
+
+	return (int)(uint32)result;
+}
 
 byte clamp_color(int c) {
 	if (c < 0)
@@ -102,44 +133,30 @@ void Lua_V1::PrintWarning() {
 }
 
 void Lua_V1::FunctionName() {
-	const char *name;
-	char buf[256];
+	const char *name = nullptr;
 	const char *filename = nullptr;
-	int32 line;
-	lua_Object param1 = lua_getparam(1);
+	int32 line = 0;
+	char buf[256];
+	lua_Object funcObj = lua_getparam(1);
 
-	if (!lua_isfunction(param1)) {
-		Common::sprintf_s(buf, "function InvalidArgsToFunctionName");
-		lua_pushstring(buf);
+	if (!lua_isfunction(funcObj))
 		return;
+
+	lua_funcinfo(funcObj, &filename, &line);
+	char funcType = *lua_getobjname(funcObj, &name);
+
+	const char *typeName = "unnamed function";
+	const char *funcName = "<unknown>";
+
+	if (funcType == 'g') {
+		typeName = "function";
+		funcName = name;
+	} else if (funcType == 't') {
+		typeName = "tag method";
+		funcName = name;
 	}
 
-	lua_funcinfo(param1, &filename, &line);
-	switch (*lua_getobjname(param1, &name)) {
-	case 'g':
-		Common::sprintf_s(buf, "function %.100s", name);
-		break;
-	case 't':
-		Common::sprintf_s(buf, "`%.100s' tag method", name);
-		break;
-	default:
-		{
-			if (line == 0)
-				Common::sprintf_s(buf, "main of %.100s", filename);
-			else if (line < 0)
-				Common::sprintf_s(buf, "%.100s", filename);
-			else {
-				Common::sprintf_s(buf, "function (%.100s:%d)", filename, (int)line);
-				filename = nullptr;
-			}
-		}
-	}
-	int curr_line = lua_currentline(param1);
-	size_t pos = strlen(buf);
-	if (curr_line > 0)
-		Common::sprintf_s(buf + pos, sizeof(buf) - pos, " at line %d", curr_line);
-	if (filename)
-		Common::sprintf_s(buf + pos, sizeof(buf) - pos, " [in file %.100s]", filename);
+	Common::sprintf_s(buf, "%s '%s' (%s:%d)\n", typeName, funcName, filename, (int)line);
 	lua_pushstring(buf);
 }
 
@@ -149,15 +166,22 @@ void Lua_V1::CheckForFile() {
 	if (!lua_isstring(strObj))
 		return;
 
-	const char *filename = lua_getstring(strObj);
-	pushbool(SearchMan.hasFile(filename));
+	Common::SeekableReadStream *pFile = g_grim->openFile(lua_getstring(strObj));
+
+	if (pFile) {
+		delete pFile;
+		lua_pushnumber(1.0f);
+	} else {
+		lua_pushnil();
+	}
 }
 
 void Lua_V1::MakeColor() {
 	lua_Object rObj = lua_getparam(1);
 	lua_Object gObj = lua_getparam(2);
 	lua_Object bObj = lua_getparam(3);
-	int r, g, b;
+	lua_Object aObj = lua_getparam(4);
+	uint r, g, b, a;
 
 	if (!lua_isnumber(rObj))
 		r = 0;
@@ -174,11 +198,12 @@ void Lua_V1::MakeColor() {
 	else
 		b = clamp_color((int)lua_getnumber(bObj));
 
-	Color c(r, g, b);
-	int32 cTag = c.toEncodedValue();
-	if (g_grim->getGameType() == GType_MONKEY4)
-		cTag |= (0xFF << 24);
-	lua_pushusertag(cTag, MKTAG('C','O','L','R'));
+	if (!lua_isnumber(aObj))
+		a = 0;
+	else
+		a = clamp_color((int)lua_getnumber(aObj));
+
+	lua_pushusertag((int32)(r | (g << 8) | (b << 16) | (a << 24)), MKTAG('R','L','O','C'));
 }
 
 void Lua_V1::GetColorComponents() {
@@ -197,40 +222,36 @@ void Lua_V1::ReadRegistryValue() {
 		return;
 	}
 	const char *key = lua_getstring(keyObj);
+	WuRegistry *pWuRegistry = g_grim->_pWuRegistry;
 
-	Registry::ValueType type = g_registry->getValueType(key);
-	switch (type) {
-	case Registry::String:
-		lua_pushstring(g_registry->getString(key).c_str());
-		break;
-	case Registry::Integer:
-		lua_pushnumber(g_registry->getInt(key));
-		break;
-	case Registry::Boolean:
-		pushbool(g_registry->getBool(key));
-		break;
+	uint type = pWuRegistry->queryType(key);
+	if (type == WuRegistry::kValueBinary) {
+		lua_pushnumber(pWuRegistry->getFloat(key, 0.0f));
+	} else if (type == WuRegistry::kValueString) {
+		char value[256];
+
+		value[0] = '\0';
+		pWuRegistry->getStr(key, value, 255, "");
+		lua_pushstring(value);
+	} else {
+		lua_pushnil();
 	}
 }
 
 void Lua_V1::WriteRegistryValue() {
 	lua_Object keyObj = lua_getparam(1);
-	lua_Object valObj = lua_getparam(2);
 
 	if (!lua_isstring(keyObj))
 		return;
 
 	const char *key = lua_getstring(keyObj);
-	if (strcmp(key, "GrimMannyState") == 0) //This isn't used. it's probably a left over from testing phase.
-		return;
+	lua_Object valObj = lua_getparam(2);
+	WuRegistry *pWuRegistry = g_grim->_pWuRegistry;
 
-	// Check isnumber first, because isstring returns true for numbers
-	if (lua_isnumber(valObj)) {
-		int val = (int)lua_getnumber(valObj);
-		g_registry->setInt(key, val);
-	} else if (lua_isstring(valObj)) {
-		const char *val = lua_getstring(valObj);
-		g_registry->setString(key, val);
-	}
+	if (lua_isstring(valObj))
+		pWuRegistry->saveStr(key, lua_getstring(valObj));
+	else if (lua_isnumber(valObj))
+		pWuRegistry->saveFloat(key, lua_getnumber(valObj));
 }
 
 void Lua_V1::GetAngleBetweenVectors() {
@@ -242,102 +263,106 @@ void Lua_V1::GetAngleBetweenVectors() {
 		return;
 	}
 
+	RdVector3 vec1;
+	RdVector3 vec2;
+
 	lua_pushobject(vec1Obj);
 	lua_pushstring("x");
-	lua_Object table = lua_gettable();
-	float x1 = lua_getnumber(table);
+	vec1[0] = lua_getnumber(lua_gettable());
 	lua_pushobject(vec1Obj);
 	lua_pushstring("y");
-	table = lua_gettable();
-	float y1 = lua_getnumber(table);
+	vec1[1] = lua_getnumber(lua_gettable());
 	lua_pushobject(vec1Obj);
 	lua_pushstring("z");
-	table = lua_gettable();
-	float z1 = lua_getnumber(table);
+	vec1[2] = lua_getnumber(lua_gettable());
 	lua_pushobject(vec2Obj);
 	lua_pushstring("x");
-	table = lua_gettable();
-	float x2 = lua_getnumber(table);
+	vec2[0] = lua_getnumber(lua_gettable());
 	lua_pushobject(vec2Obj);
 	lua_pushstring("y");
-	table = lua_gettable();
-	float y2 = lua_getnumber(table);
+	vec2[1] = lua_getnumber(lua_gettable());
 	lua_pushobject(vec2Obj);
 	lua_pushstring("z");
-	table = lua_gettable();
-	float z2 = lua_getnumber(table);
+	vec2[2] = lua_getnumber(lua_gettable());
 
-	Math::Vector3d vec1(x1, y1, z1);
-	Math::Vector3d vec2(x2, y2, z2);
-	vec1.normalize();
-	vec2.normalize();
+	g_grim->_pRd->normalize3Acc(vec1);
+	g_grim->_pRd->normalize3Acc(vec2);
 
-	float dot = vec1.dotProduct(vec2);
-	float angle = 90.0f - (180.0f * asin(dot)) / (float)M_PI;
-	if (angle < 0)
-		angle = -angle;
-	lua_pushnumber(angle);
+	float dot = (float)(((double)vec2[0] * vec1[0] + (double)vec2[1] * vec1[1]) + (double)vec2[2] * vec1[2]);
+
+	lua_pushnumber((float)(90.0f - (double)g_grim->_pStdMath->arcSin3(dot)));
 }
 
 void Lua_V1::Is3DHardwareEnabled() {
-	pushbool(g_driver->isHardwareAccelerated());
+	// TODO: std3D_pCurDevice (3D device layer)
+	lua_pushnil();
 }
 
 void Lua_V1::SetHardwareState() {
-	// changing only in config setup (software/hardware rendering)
-	bool accel = getbool(1);
+	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
+	int curDevice = g_grim->_curDeviceIndex;
+	int cur3DDevice = g_grim->_std3DCurDeviceIndex;
 
-	Graphics::RendererType renderer = accel ? Graphics::kRendererTypeOpenGL : Graphics::kRendererTypeTinyGL;
-	renderer = Graphics::Renderer::getBestMatchingAvailableType(renderer,
-#if defined(USE_OPENGL_GAME)
-			Graphics::kRendererTypeOpenGL |
-#endif
-#if defined(USE_OPENGL_SHADERS)
-			Graphics::kRendererTypeOpenGLShaders |
-#endif
-#if defined(USE_TINYGL)
-			Graphics::kRendererTypeTinyGL |
-#endif
-			0);
-	ConfMan.set("renderer", Graphics::Renderer::getTypeCode(renderer));
+	g_grim->chooseDefaultDisplay(&g_grim->_pendingDevice, &g_grim->_pendingMode, &g_grim->_pending3DDevice);
 
-	g_grim->changeHardwareState();
+	if (g_grim->_pendingDevice != curDevice || g_grim->_pending3DDevice != cur3DDevice)
+		g_grim->_bDisplayChangePending = 1;
 }
 
 void Lua_V1::SetVideoDevices() {
-	/*int devId = (int)*/lua_getnumber(lua_getparam(1));
-	/*int modeId = (int)*/lua_getnumber(lua_getparam(2));
-	// ignore setting video devices
+	lua_Object deviceObj = lua_getparam(1);
+	lua_Object modeObj = lua_getparam(2);
+
+	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
+	int curDevice = g_grim->_curDeviceIndex;
+	int cur3DDevice = g_grim->_std3DCurDeviceIndex;
+
+	g_grim->_pendingDevice = luaFtol(lua_getnumber(deviceObj));
+	g_grim->_pendingMode = 0;
+
+	int mode3D = luaFtol(lua_getnumber(modeObj));
+
+	g_grim->_pending3DDevice = mode3D;
+
+	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < kNumVideoDevices &&
+		mode3D >= -1 && mode3D < kNum3DDevices &&
+		(g_grim->_pendingDevice != curDevice || mode3D != cur3DDevice))
+		g_grim->_bDisplayChangePending = 1;
 }
 
 void Lua_V1::GetVideoDevices() {
-	lua_pushnumber(0.0);
-	lua_pushnumber(-1.0);
+	lua_pushnumber((float)g_grim->_curDeviceIndex);
+
+	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
+	lua_pushnumber((float)g_grim->_std3DCurDeviceIndex);
 }
 
 void Lua_V1::EnumerateVideoDevices() {
 	lua_Object result = lua_createtable();
-	lua_pushobject(result);
-	lua_pushnumber(0.0); // id of device
-	lua_pushstring(g_driver->getVideoDeviceName()); // name of device
-	lua_settable();
+	int firstDevice = g_grim->_bEnumerateVideo == 0 ? 1 : 0;
+
+	for (int i = firstDevice; i < kNumVideoDevices; i++) {
+		lua_pushobject(result);
+		lua_pushnumber((float)i);
+		lua_pushstring("DIBsection windowed display");
+		lua_settable();
+	}
+
 	lua_pushobject(result);
 }
 
 void Lua_V1::Enumerate3DDevices() {
-	lua_Object result = lua_createtable();
 	lua_Object numObj = lua_getparam(1);
 	if (!lua_isnumber(numObj))
 		return;
-	//int num = (int)lua_getnumber(numObj);
+
+	lua_Object result = lua_createtable();
+
 	lua_pushobject(result);
 	lua_pushnumber(-1.0);
-	if (g_driver->isHardwareAccelerated()) {
-		lua_pushstring("OpenGL"); // type of 3d renderer
-	} else {
-		lua_pushstring("/engn003/Software"); // type of 3d renderer
-	}
+	lua_pushstring("/engn003/Software");
 	lua_settable();
+
 	lua_pushobject(result);
 }
 
@@ -356,43 +381,43 @@ void Lua_V1::RotateVector() {
 		return;
 	}
 
+	RdVector3 vec;
+	RdVector3 rot;
+
 	lua_pushobject(vecObj);
 	lua_pushstring("x");
-	float x = lua_getnumber(lua_gettable());
+	vec[0] = lua_getnumber(lua_gettable());
 	lua_pushobject(vecObj);
 	lua_pushstring("y");
-	float y = lua_getnumber(lua_gettable());
+	vec[1] = lua_getnumber(lua_gettable());
 	lua_pushobject(vecObj);
 	lua_pushstring("z");
-	float z = lua_getnumber(lua_gettable());
-	Math::Vector3d vec(x, y, z);
+	vec[2] = lua_getnumber(lua_gettable());
 
 	lua_pushobject(rotObj);
 	lua_pushstring("x");
-	Math::Angle pitch = lua_getnumber(lua_gettable());
+	rot[0] = lua_getnumber(lua_gettable());
 	lua_pushobject(rotObj);
 	lua_pushstring("y");
-	Math::Angle yaw = lua_getnumber(lua_gettable());
+	rot[1] = lua_getnumber(lua_gettable());
 	lua_pushobject(rotObj);
 	lua_pushstring("z");
-	Math::Angle roll = lua_getnumber(lua_gettable());
+	rot[2] = lua_getnumber(lua_gettable());
 
-	Math::Matrix3 mat;
-	mat.buildFromEuler(yaw, pitch, roll, Math::EO_ZXY);
-	mat.transformVector(&vec);
+	g_grim->_pRd->rotate3Acc(vec, rot);
 
 	lua_Object resObj = lua_createtable();
 	lua_pushobject(resObj);
 	lua_pushstring("x");
-	lua_pushnumber(vec.x());
+	lua_pushnumber(vec[0]);
 	lua_settable();
 	lua_pushobject(resObj);
 	lua_pushstring("y");
-	lua_pushnumber(vec.y());
+	lua_pushnumber(vec[1]);
 	lua_settable();
 	lua_pushobject(resObj);
 	lua_pushstring("z");
-	lua_pushnumber(vec.z());
+	lua_pushnumber(vec[2]);
 	lua_settable();
 
 	lua_pushobject(resObj);
@@ -405,15 +430,16 @@ void Lua_V1::WorldToScreen() {
 	if (!lua_isnumber(worldX) || !lua_isnumber(worldY) || !lua_isnumber(worldZ)) {
 		return;
 	}
-	Math::Vector4d worldVec(lua_getnumber(worldX), lua_getnumber(worldY), lua_getnumber(worldZ), 1.0f);
-	Math::Matrix4 projModelView = g_driver->getProjection() * g_driver->getModelView();
-	Math::Vector4d screenPos = projModelView * worldVec;
-	screenPos /= screenPos.w();
-	float winX = (1 + screenPos.x()) / 2.0f * g_driver->getScreenWidth();
-	float winY = g_driver->getScreenHeight() - (1 + screenPos.y()) / 2.0f * g_driver->getScreenHeight();
-	if (winX >= 0 && winX < g_driver->getScreenWidth() && winY >= 0 && winY < g_driver->getScreenHeight()) {
-		lua_pushnumber(winX);
-		lua_pushnumber(winY);
+	RdVector3 worldPos;
+	int screen[2];
+
+	worldPos[0] = lua_getnumber(worldX);
+	worldPos[1] = lua_getnumber(worldY);
+	worldPos[2] = lua_getnumber(worldZ);
+
+	if (g_grim->_pRd->_primit3.getScreenCoord(worldPos, screen)) {
+		lua_pushnumber((float)screen[0]);
+		lua_pushnumber((float)screen[1]);
 	} else {
 		lua_pushnil();
 		lua_pushnil();
@@ -462,13 +488,9 @@ void Lua_V1::FileFindFirst() {
 
 void Lua_V1::PerSecond() {
 	lua_Object rateObj = lua_getparam(1);
+	float frameTime = g_grim->_pSputTime->getFrameTimeFlex();
 
-	if (!lua_isnumber(rateObj)) {
-		lua_pushnil();
-		return;
-	}
-	float rate = lua_getnumber(rateObj);
-	lua_pushnumber(g_grim->getPerSecond(rate));
+	lua_pushnumber((float)((double)lua_getnumber(rateObj) * frameTime));
 }
 
 void Lua_V1::EnableControl() {
@@ -478,11 +500,7 @@ void Lua_V1::EnableControl() {
 		lua_pushnil();
 		return;
 	}
-	int num = (int)lua_getnumber(numObj);
-	if (num < 0 || num >= KEYCODE_EXTRA_LAST)
-		error("control identifier out of range");
-
-	g_grim->enableControl(num);
+	g_grim->_pSputControl->enableControl((uint)(int)lua_getnumber(numObj));
 }
 
 void Lua_V1::DisableControl() {
@@ -492,11 +510,7 @@ void Lua_V1::DisableControl() {
 		lua_pushnil();
 		return;
 	}
-	int num = (int)lua_getnumber(numObj);
-	if (num < 0 || num >= KEYCODE_EXTRA_LAST)
-		error("control identifier out of range");
-
-	g_grim->disableControl(num);
+	g_grim->_pSputControl->disableControl((uint)(int)lua_getnumber(numObj));
 }
 
 void Lua_V1::GetControlState() {
@@ -505,35 +519,75 @@ void Lua_V1::GetControlState() {
 	if (!lua_isnumber(numObj))
 		return;
 
-	int num = (int)lua_getnumber(numObj);
-	if (num < 0 || num >= KEYCODE_EXTRA_LAST)
-		error("control identifier out of range");
-	if (num >= KEYCODE_AXIS_JOY1_X && num <= KEYCODE_AXIS_MOUSE_Z)
-		lua_pushnumber(g_grim->getControlAxis(num));
-	else {
-		pushbool(g_grim->getControlState(num)); // key down, originally it push number if key down
-		// pushnil or number, what is is ?
+	uint index = (uint)(int)lua_getnumber(numObj);
+
+	if (index >= (uint)g_grim->_pSputControl->getNumSymbols())
+		return;
+
+	ControlSymbol *pSymbol = &g_grim->_pSputControl->getSymbols()[index];
+
+	if (pSymbol->flags & 4) {
+		int pressCount = 0;
+		int doubleClick = 0;
+
+		if (g_grim->_pStdControl->readKey(pSymbol->code, &pressCount, &doubleClick))
+			lua_pushnumber(1.0f);
+		else
+			lua_pushnil();
+
+		if (doubleClick)
+			lua_pushnumber(1.0f);
+		else
+			lua_pushnil();
+	} else {
+		float axis = g_grim->_pStdControl->readAxis(pSymbol->code);
+
+		if (pSymbol->flags & 8)
+			axis = -axis;
+
+		lua_pushnumber(axis);
 	}
 }
 
 void Lua_V1::Exit() {
-	g_grim->quitGame();
+	lua_Object exitObj = lua_getparam(1);
+
+	if (lua_isnumber(exitObj))
+		g_grim->requestShutdown((int)lua_getnumber(exitObj));
+	else
+		g_grim->requestShutdown(0);
 }
 
 void Lua_V1::SetSpeechMode() {
-	GrimEngine::SpeechMode mode = (GrimEngine::SpeechMode)((int)lua_getnumber(lua_getparam(1)));
+	lua_Object modeObj = lua_getparam(1);
+
+	if (!lua_isnumber(modeObj))
+		return;
+
+	int mode = (int)lua_getnumber(modeObj);
+
 	if (mode >= 1 && mode <= 3)
-		g_grim->setSpeechMode(mode);
+		g_grim->_pSputActor->setSpeechMode(mode);
 }
 
 void Lua_V1::GetSpeechMode() {
-	lua_pushnumber(g_grim->getSpeechMode());
+	int mode = g_grim->_pSputActor->getSpeechMode();
+
+	if (mode & 2) {
+		if (mode & 1) {
+			lua_pushnumber(3.0f);
+			return;
+		}
+	} else if (mode & 1) {
+		lua_pushnumber(1.0f);
+		return;
+	}
+
+	lua_pushnumber(2.0f);
 }
 
 void Lua_V1::GetDiskFreeSpace() {
-	// The ps2 version of emi wants more than 600 KB
-	// Grim: amount of free space in MB, used for creating saves
-	lua_pushnumber(700);
+	lua_pushnumber(700.0f);
 }
 
 void Lua_V1::GetCurrentScript() {
@@ -541,81 +595,75 @@ void Lua_V1::GetCurrentScript() {
 }
 
 void Lua_V1::GetSaveGameImage() {
-	int width = 250, height = 188;
-	int dataSize;
+	lua_Object nameObj = lua_getparam(1);
 
-	lua_Object param = lua_getparam(1);
-	if (!lua_isstring(param)) {
-		lua_pushnil();
-		return;
+	if (lua_isstring(nameObj)) {
+		StdVBuffer *pImage = g_grim->getSaveGameImage(lua_getstring(nameObj));
+
+		if (pImage) {
+			g_grim->_pSputRender->colorCorrect((uint16 *)pImage->pPixels, pImage->tex.width * pImage->tex.height);
+			pushImage(pImage);
+			return;
+		}
 	}
-	const char *filename = lua_getstring(param);
-	SaveGame *savedState = SaveGame::openForLoading(filename);
-	if (!savedState || !savedState->isCompatible()) {
-		delete savedState;
-		lua_pushnil();
-		return;
-	}
-	dataSize = savedState->beginSection('SIMG');
-	uint16 *data = new uint16[dataSize / 2];
-	for (int l = 0; l < dataSize / 2; l++) {
-		data[l] = savedState->readLEUint16();
-	}
-	Graphics::Surface buf;
-	buf.init(width, height, width * 2, (void *)data, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
-	Bitmap *screenshot = new Bitmap(buf, width, height, "screenshot");
-	delete[] data;
-	if (screenshot) {
-		lua_pushusertag(screenshot->getId(), MKTAG('V','B','U','F'));
-	} else {
-		lua_pushnil();
-		warning("Could not restore screenshot from file");
-		delete savedState;
-		return;
-	}
-	savedState->endSection();
-	delete savedState;
+
+	lua_pushnil();
 }
 
 void Lua_V1::SubmitSaveGameData() {
-	lua_Object table, table2;
-	SaveGame *savedState;
-	const char *str;
-	table = lua_getparam(1);
+	lua_Object tableObj = lua_getparam(1);
+	int index = 0;
 
-	savedState = g_grim->savedState();
-	if (!savedState)
-		error("Cannot obtain saved game");
-	savedState->beginSection('SUBS');
-	int count = 0;
-	Common::String localized;
-	for (;;) {
-		lua_pushobject(table);
-		lua_pushnumber(count);
-		count++;
-		table2 = lua_gettable();
-		if (lua_isnil(table2))
-			break;
-		str = lua_getstring(table2);
-		if (g_grim->getGameType() == GType_MONKEY4 &&
-			g_grim->getGamePlatform() == Common::kPlatformPS2) {
-			if (count == 1) {
-				localized = g_localizer->localize(str);
-			}
-		}
-		int32 len = strlen(str) + 1;
-		savedState->writeLESint32(len);
-		savedState->write(str, len);
+	if (!g_grim->_pSaveWriteStream) {
+		warning("Lua_V1::SubmitSaveGameData(): no save in progress");
+		return;
 	}
-	savedState->endSection();
 
-	// Give ps2 saves a human-readable name
-	if (g_grim->getGameType() == GType_MONKEY4 &&
-		g_grim->getGamePlatform() == Common::kPlatformPS2) {
-		savedState->beginSection('PS2S');
-		savedState->writeLESint32(localized.size() + 1);
-		savedState->write(localized.c_str(), localized.size() + 1);
-		savedState->endSection();
+	_totSaveBytes = 0;
+
+	for (;;) {
+		lua_pushobject(tableObj);
+		lua_pushnumber((float)index);
+		index++;
+
+		lua_Object entryObj = lua_gettable();
+
+		if (lua_isnil(entryObj))
+			break;
+
+		if (!lua_isstring(entryObj)) {
+			warning("Lua_V1::SubmitSaveGameData(): the table must contain only strings");
+			return;
+		}
+
+		_totSaveBytes += (int)strlen(lua_getstring(entryObj)) + 5;
+	}
+
+	if (!_totSaveBytes)
+		return;
+
+	uint32 totalBytes = TO_LE_32((uint32)_totSaveBytes);
+
+	g_grim->zwrite(&totalBytes, 4);
+
+	index = 0;
+
+	for (;;) {
+		lua_pushobject(tableObj);
+		lua_pushnumber((float)index);
+		index++;
+
+		lua_Object entryObj = lua_gettable();
+
+		if (lua_isnil(entryObj))
+			break;
+
+		const char *str = lua_getstring(entryObj);
+		int length = (int)strlen(str) + 1;
+		uint32 lengthLE = TO_LE_32((uint32)length);
+
+		g_grim->zwrite(&lengthLE, 4);
+		g_grim->zwrite(str, length);
 	}
 }
 
@@ -623,88 +671,59 @@ void Lua_V1::GetSaveGameData() {
 	lua_Object param = lua_getparam(1);
 	if (!lua_isstring(param))
 		return;
-	Common::String filename(lua_getstring(param));
-	if (g_grim->getGameType() == GType_MONKEY4 &&
-		g_grim->getGamePlatform() == Common::kPlatformPS2) {
-		filename += ".ps2";
-	}
-	SaveGame *savedState = SaveGame::openForLoading(filename);
-	lua_Object result = lua_createtable();
+	Common::SeekableReadStream *pFile = g_system->getSavefileManager()->openForLoading(lua_getstring(param));
 
-	if (!savedState || !savedState->isCompatible()) {
-		lua_pushobject(result);
-		lua_pushnumber(2);
-		lua_pushstring("mo.set"); // Just a placeholder to not make it throw a lua error
-		lua_settable();
-		lua_pushobject(result);
-
-		if (!savedState) {
-			warning("Savegame %s is invalid", filename.c_str());
-		} else {
-			warning("Savegame %s is incompatible with this ScummVM build. Save version: %d.%d; current version: %d.%d",
-					filename.c_str(), savedState->saveMajorVersion(), savedState->saveMinorVersion(),
-					SaveGame::SAVEGAME_MAJOR_VERSION, SaveGame::SAVEGAME_MINOR_VERSION);
-		}
-		delete savedState;
+	if (!pFile)
 		return;
-	}
-	int32 dataSize = savedState->beginSection('SUBS');
 
-	char str[200];
-	int32 strSize;
-	int count = 0;
+	lua_Object result = lua_createtable();
+	char str[1024];
+	int index = 0;
+	int totalBytes = pFile->readSint32LE();
 
-	for (;;) {
-		if (dataSize <= 0)
+	while (totalBytes > 0) {
+		int strSize = pFile->readSint32LE();
+
+		if (pFile->err() || pFile->eos() || strSize < 1 || strSize > (int)sizeof(str)) {
+			warning("Lua_V1::GetSaveGameData(): invalid string size %d", strSize);
 			break;
-		strSize = savedState->readLESint32();
-		savedState->read(str, strSize);
+		}
+
+		if (pFile->read(str, strSize) != (uint32)strSize) {
+			warning("Lua_V1::GetSaveGameData(): unexpected end of file");
+			break;
+		}
+
+		str[strSize - 1] = '\0';
+
 		lua_pushobject(result);
-		lua_pushnumber(count);
+		lua_pushnumber((float)index);
 		lua_pushstring(str);
 		lua_settable();
-		dataSize -= strSize;
-		dataSize -= 4;
-		count++;
+		index++;
+		totalBytes -= strSize + 4;
 	}
-	lua_pushobject(result);
 
-	savedState->endSection();
-	delete savedState;
+	lua_pushobject(result);
+	delete pFile;
 }
 
 void Lua_V1::Load() {
 	lua_Object fileNameObj = lua_getparam(1);
-	if (lua_isnil(fileNameObj)) {
-		g_grim->loadGame("");
-	} else if (lua_isstring(fileNameObj)) {
-		Common::String fileName(lua_getstring(fileNameObj));
-		if (g_grim->getGameType() == GType_MONKEY4 &&
-			g_grim->getGamePlatform() == Common::kPlatformPS2) {
-			fileName += ".ps2";
-		}
-		g_grim->loadGame(fileName);
-	} else {
-		warning("Load() fileName is wrong");
-		return;
-	}
+
+	if (lua_isnil(fileNameObj))
+		g_grim->loadLib(nullptr);
+	else if (lua_isstring(fileNameObj))
+		g_grim->loadLib(lua_getstring(fileNameObj));
 }
 
 void Lua_V1::Save() {
 	lua_Object fileNameObj = lua_getparam(1);
-	if (lua_isnil(fileNameObj)) {
-		g_grim->saveGame("");
-	} else if (lua_isstring(fileNameObj)) {
-		Common::String fileName(lua_getstring(fileNameObj));
-		if (g_grim->getGameType() == GType_MONKEY4 &&
-			g_grim->getGamePlatform() == Common::kPlatformPS2) {
-			fileName += ".ps2";
-		}
-		g_grim->saveGame(fileName);
-	} else {
-		warning("Save() fileName is wrong");
-		return;
-	}
+
+	if (lua_isnil(fileNameObj))
+		g_grim->saveLib(nullptr);
+	else if (lua_isstring(fileNameObj))
+		g_grim->saveLib(lua_getstring(fileNameObj));
 }
 
 void Lua_V1::Remove() {
@@ -719,11 +738,17 @@ void Lua_V1::Remove() {
 void Lua_V1::LockFont() {
 	lua_Object param1 = lua_getparam(1);
 	if (lua_isstring(param1)) {
-		const char *fontName = lua_getstring(param1);
-		Font *result = g_resourceloader->loadFont(fontName);
-		if (result) {
-			lua_pushusertag(result->getPoolId(), result->getPoolTag());
-			return;
+		void *pFont = g_grim->_pSputResource->alloc(kSputTagFont, lua_getstring(param1));
+
+		if (pFont) {
+			ResNode *pNode = g_grim->_pRes->checkAllocatedRes(pFont);
+
+			if (pNode) {
+				lua_pushusertag(pNode->serial, kSputTagFont);
+				return;
+			}
+
+			warning("Lua_V1::LockFont(): font resource not found");
 		}
 	}
 
@@ -731,49 +756,64 @@ void Lua_V1::LockFont() {
 }
 
 void Lua_V1::JustLoaded() {
-	if (g_grim->getJustSaveLoaded())
+	if (g_grim->justLoaded())
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
-	g_grim->setJustSaveLoaded(false);
 }
 
 void Lua_V1::EnableDebugKeys() {
-	// nothing to implement
+	g_grim->setDebugKeys(1);
+
+	if (_pDebugToggleFunc)
+		_pDebugToggleFunc(1);
 }
 
 void Lua_V1::FlushControls() {
-	g_grim->clearEventQueue();
+	g_grim->_pStdControl->flush();
 }
 
 void Lua_V1::LightMgrSetChange() {
-	// nothing to implement
-	// lights manager for game debug purpose only
+	// TODO: LightManager (Win32 light editor) not ported
 }
 
 void Lua_V1::LightMgrStartup() {
-	// nothing to implement
-	// lights manager for game debug purpose only
+	// TODO: LightManager (Win32 light editor) not ported
 }
 
 void Lua_V1::SetEmergencyFont() {
-	// nothing to implement
-	// originally this is used only for CD changing which is not supported here
+	lua_Object fontObj = lua_getparam(1);
+	SputText *pSputText = g_grim->_pSputText;
+
+	if (lua_isstring(fontObj)) {
+		if (pSputText->_pEmergencyFont) {
+			g_grim->_pText->freeFont(pSputText->_pEmergencyFont);
+			pSputText->_pEmergencyFont = nullptr;
+		}
+
+		g_grim->_pBlastText->load(lua_getstring(fontObj), pSputText->_pEmergencyFont);
+	} else if (lua_isnil(fontObj) && pSputText->_pEmergencyFont) {
+		g_grim->_pText->freeFont(pSputText->_pEmergencyFont);
+		pSputText->_pEmergencyFont = nullptr;
+	}
 }
 
 void Lua_V1::NukeResources() {
-	// nothing to implement
-	// originally this is used only for CD changing which is not supported here
+	g_grim->_pSputRoom->setCurrentRoom(nullptr);
+	g_grim->_pSputActor->nukeCostumeStacks();
+	g_grim->_pRes->freeAll();
+	g_grim->_pSputActor->clearShadowMaterial();
 }
 
 void Lua_V1::AttachToResources() {
-	// nothing to implement
-	// originally this is used only for CD changing which is not supported here
+	g_grim->_pSputResource->closeResources();
+	g_grim->findResources();
 }
 
 void Lua_V1::DetachFromResources() {
-	// nothing to implement
-	// originally this is used only for CD changing which is not supported here
+	g_grim->_pSputSmush->stopMovie();
+	g_imuse->soundsCloseVoiceFile();
+	g_grim->_pSputResource->closeResources();
 }
 
 void Lua_V1::SpewStartup() {
@@ -781,24 +821,13 @@ void Lua_V1::SpewStartup() {
 	// originally this opcode launch external library 'spew.dll'
 }
 
-void Lua_V1::SetCameraInterest() {
-	// nothing to implement
-	// it's referenced once in Grim dead lua code
+void Lua_V1::GetMemoryUsage() {
+	lua_pushnumber((float)g_grim->_pRes->totalAllocated());
 }
 
-#define STUB_FUNC(name) void name() {}
-
-// Stub functions not used in games
-STUB_FUNC(Lua_V1::SetCameraRoll)
-STUB_FUNC(Lua_V1::WalkActorToAvoiding)
-STUB_FUNC(Lua_V1::GetActorChores)
-STUB_FUNC(Lua_V1::SetCameraPosition)
-STUB_FUNC(Lua_V1::GetCameraFOV)
-STUB_FUNC(Lua_V1::SetCameraFOV)
-STUB_FUNC(Lua_V1::GetCameraRoll)
-STUB_FUNC(Lua_V1::GetMemoryUsage)
-STUB_FUNC(Lua_V1::GetFontDimensions)
-STUB_FUNC(Lua_V1::PurgeText)
+void Lua_V1::GetFontDimensions() {
+	warning("GetFontDimensions(): the original dereferences a Lua object as a font pointer and crashes");
+}
 
 struct luaL_reg grimMainOpcodes[] = {
 	{ "EngineDisplay", LUA_OPCODE(Lua_V1, EngineDisplay) },
@@ -1053,18 +1082,34 @@ struct luaL_reg grimHardwareOpcodes[] = {
 	{ "EnumerateVideoDevices", LUA_OPCODE(Lua_V1, EnumerateVideoDevices) }
 };
 
-void Lua_V1::registerOpcodes() {
-	// Register main opcodes functions
+Lua_V1::Lua_V1() : _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1) {
+	for (int i = 0; i < kMaxImages; i++) {
+		_imageHandles[i] = 0;
+		_images[i] = nullptr;
+	}
+}
+
+void Lua_V1::registerMainOpcodes() {
 	luaL_openlib(grimMainOpcodes, ARRAYSIZE(grimMainOpcodes));
+}
 
-	// Register text opcodes functions
+void Lua_V1::registerTextOpcodes() {
 	luaL_openlib(grimTextOpcodes, ARRAYSIZE(grimTextOpcodes));
+}
 
-	// Register primitives opcodeEs functions
+void Lua_V1::registerPrimitiveOpcodes() {
 	luaL_openlib(grimPrimitivesOpcodes, ARRAYSIZE(grimPrimitivesOpcodes));
+}
 
-	// Register hardware opcode functions
+void Lua_V1::registerHardwareOpcodes() {
 	luaL_openlib(grimHardwareOpcodes, ARRAYSIZE(grimHardwareOpcodes));
+}
+
+void Lua_V1::registerOpcodes() {
+	registerMainOpcodes();
+	registerTextOpcodes();
+	registerPrimitiveOpcodes();
+	registerHardwareOpcodes();
 
 	LuaBase::registerOpcodes();
 }
@@ -1124,6 +1169,481 @@ void Lua_V1::postRestoreHandle() {
 		}
 	}
 	lua_endblock();
+}
+
+int Lua_V1::initialize(SysStruct *pHS) {
+	_pHS = pHS;
+	_bInitialized = 1;
+
+	return 0;
+}
+
+int Lua_V1::terminate() {
+	_pHS = nullptr;
+
+	if (_bInitialized)
+		_bInitialized = 0;
+
+	return 0;
+}
+
+int Lua_V1::startup() {
+	registerMainOpcodes();
+	recognizeOpcodes();
+	makeSystemTable();
+	registerTypeOverride();
+	registerSectorConstants();
+	registerConcatFallback();
+
+	lua_savehook = saveIndirector;
+	lua_restorehook = restoreIndirector;
+
+	g_grim->_pSputControl->addCallback(this);
+
+	return 0;
+}
+
+int Lua_V1::shutdown() {
+	FileFindDispose();
+
+	lua_unref(refSystemTable);
+	lua_savehook = nullptr;
+	lua_restorehook = nullptr;
+
+	return 0;
+}
+
+int Lua_V1::findSystemFiles() {
+	return dofile("_system.lua") == 0;
+}
+
+int Lua_V1::boot(int saveGameResume, const char *bootParam) {
+	if (saveGameResume)
+		lua_pushnumber(1);
+	else
+		lua_pushnil();
+
+	if (bootParam)
+		lua_pushstring(bootParam);
+	else
+		lua_pushnil();
+
+	return lua_call("BOOT") == 0;
+}
+
+void Lua_V1::update() {
+	int movieTime = g_grim->_pSputSmush->getMovieTime();
+	int frameTime = g_grim->_pSputTime->getFrameTime();
+
+	LuaBase::update(frameTime, movieTime);
+}
+
+void Lua_V1::makeSystemTable() {
+	lua_Object systemTable = lua_createtable();
+	lua_pushobject(systemTable);
+	lua_setglobal("system");
+
+	lua_pushobject(systemTable);
+	refSystemTable = lua_ref(1);
+
+	registerControls();
+
+	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushstring("camChangeHandler");
+	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
+	lua_settable();
+
+	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushstring("axisHandler");
+	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
+	lua_settable();
+
+	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushstring("buttonHandler");
+	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
+	lua_settable();
+}
+
+void Lua_V1::registerControls() {
+	lua_Object controlsTable = lua_createtable();
+
+	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushstring("controls");
+	lua_pushobject(controlsTable);
+	lua_settable();
+
+	ControlSymbol *aSymbols = g_grim->_pSputControl->getSymbols();
+	int numSymbols = g_grim->_pSputControl->getNumSymbols();
+
+	for (int i = 0; i < numSymbols; i++) {
+		lua_pushobject(controlsTable);
+		lua_pushstring(aSymbols[i].pName);
+		lua_pushnumber((float)i);
+		lua_settable();
+	}
+}
+
+bool Lua_V1::getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf) {
+	*pFunc = LUA_NOOBJECT;
+	*pSelf = LUA_NOOBJECT;
+
+	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushstring(name);
+	lua_Object handler = lua_gettable();
+
+	if (bAllowTable && lua_istable(handler)) {
+		lua_pushobject(handler);
+		lua_pushstring(name);
+		lua_Object func = lua_gettable();
+
+		if (!lua_isfunction(func))
+			return false;
+
+		*pFunc = func;
+		*pSelf = handler;
+
+		return true;
+	}
+
+	if (lua_isfunction(handler)) {
+		*pFunc = handler;
+
+		return true;
+	}
+
+	return false;
+}
+
+int Lua_V1::controlCallback(float frameTime) {
+	StdControl *pStdControl = g_grim->_pStdControl;
+	ControlSymbol *aSymbols = g_grim->_pSputControl->getSymbols();
+	int numSymbols = g_grim->_pSputControl->getNumSymbols();
+	lua_Object buttonFunc;
+	lua_Object buttonSelf;
+	lua_Object axisFunc;
+	lua_Object axisSelf;
+
+	lua_beginblock();
+
+	bool bButtonHandler = getSystemHandler("buttonHandler", true, &buttonFunc, &buttonSelf);
+	bool bAxisHandler = getSystemHandler("axisHandler", true, &axisFunc, &axisSelf);
+
+	for (int i = 0; i < numSymbols; i++) {
+		ControlSymbol *pSymbol = &aSymbols[i];
+
+		if (!(pSymbol->flags & 1))
+			continue;
+
+		if (pSymbol->flags & 4) {
+			int pressCount = 0;
+			int doubleClick = 0;
+			int value = pStdControl->readKey(pSymbol->code, &pressCount, &doubleClick);
+
+			if (value != pSymbol->lastValue && bButtonHandler) {
+				if (buttonSelf != LUA_NOOBJECT)
+					lua_pushobject(buttonSelf);
+
+				lua_pushnumber((float)i);
+
+				if (value)
+					lua_pushnumber(1);
+				else
+					lua_pushnil();
+
+				lua_pushnumber((float)(uint)pressCount);
+				lua_pushnumber((float)doubleClick);
+				lua_callfunction(buttonFunc);
+				pSymbol->lastValue = value;
+			}
+		} else {
+			float value = pStdControl->readAxis(pSymbol->code);
+			float lastValue;
+
+			if (pSymbol->flags & 8)
+				value = -value;
+
+			memcpy(&lastValue, &pSymbol->lastValue, sizeof(lastValue));
+
+			if (value != lastValue && bAxisHandler) {
+				if (axisSelf != LUA_NOOBJECT)
+					lua_pushobject(axisSelf);
+
+				lua_pushnumber((float)i);
+				lua_pushnumber(value);
+				lua_callfunction(axisFunc);
+				memcpy(&pSymbol->lastValue, &value, sizeof(value));
+			}
+		}
+	}
+
+	lua_endblock();
+
+	return 0;
+}
+
+void Lua_V1::setDebugToggleCallback(void (*pFunc)(int)) {
+	_pDebugToggleFunc = pFunc;
+}
+
+void Lua_V1::cameraChange(int oldSetup, int newSetup) {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	if (getSystemHandler("camChangeHandler", false, &func, &self)) {
+		lua_pushnumber((float)oldSetup);
+		lua_pushnumber((float)newSetup);
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V1::postCameraChange(int setup) {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	if (getSystemHandler("postCamChangeHandler", false, &func, &self)) {
+		lua_pushnumber((float)setup);
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V1::collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2) {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	if (getSystemHandler("collisionHandler", true, &func, &self)) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_pushusertag(g_grim->_pSputActor->getActorHandle(pActor), MKTAG('R','T','C','A'));
+		lua_pushusertag(g_grim->_pSputActor->getActorHandle(pOther), MKTAG('R','T','C','A'));
+		lua_pushnumber(pPos0[0]);
+		lua_pushnumber(pPos0[1]);
+		lua_pushnumber(pPos0[2]);
+		lua_pushnumber(pPos1[0]);
+		lua_pushnumber(pPos1[1]);
+		lua_pushnumber(pPos1[2]);
+		lua_pushnumber(pPos2[0]);
+		lua_pushnumber(pPos2[1]);
+		lua_pushnumber(pPos2[2]);
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V1::doCostumeOverrideCallback(SputActor *pActor, int bOverride) {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	int hActor = g_grim->_pSputActor->getActorHandle(pActor);
+
+	if (getSystemHandler("costumeOverrideHandler", true, &func, &self)) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_pushusertag(hActor, MKTAG('R','T','C','A'));
+
+		if (bOverride)
+			lua_pushnumber(1);
+		else
+			lua_pushnil();
+
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V1::doCostumeMarkerCallback(SputActor *pActor, int markerType) {
+	lua_Object func;
+	lua_Object self;
+
+	if (!markerType)
+		return;
+
+	int hActor = g_grim->_pSputActor->getActorHandle(pActor);
+
+	lua_beginblock();
+
+	if (getSystemHandler("costumeMarkerHandler", true, &func, &self)) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_pushusertag(hActor, MKTAG('R','T','C','A'));
+		lua_pushnumber((float)(uint)markerType);
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V1::doUserPaintCallback() {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	if (getSystemHandler("userPaintHandler", true, &func, &self)) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+}
+
+int Lua_V1::doExitCallback() {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	bool bFound = getSystemHandler("exitHandler", true, &func, &self);
+
+	if (bFound) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+
+	return bFound;
+}
+
+int Lua_V1::doPauseCallback() {
+	lua_Object func;
+	lua_Object self;
+
+	lua_beginblock();
+
+	bool bFound = getSystemHandler("pauseHandler", true, &func, &self);
+
+	if (bFound) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_callfunction(func);
+	}
+
+	lua_endblock();
+
+	return bFound;
+}
+
+int Lua_V1::doCharacterCallback(int character) {
+	lua_Object func;
+	lua_Object self;
+	int result = 0;
+
+	lua_beginblock();
+
+	if (getSystemHandler("characterHandler", true, &func, &self)) {
+		char str[2];
+
+		str[0] = (char)(byte)character;
+		str[1] = '\0';
+
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_pushstring(str);
+		lua_callfunction(func);
+		result = !lua_isnil(lua_getresult(1));
+	}
+
+	lua_endblock();
+
+	return result;
+}
+
+void Lua_V1::saveGameCallback() {
+	lua_Object func;
+	lua_Object self;
+
+	_totSaveBytes = 0;
+
+	lua_beginblock();
+
+	if (getSystemHandler("saveGameCallback", true, &func, &self)) {
+		if (self != LUA_NOOBJECT)
+			lua_pushobject(self);
+
+		lua_callfunction(func);
+	}
+
+	if (!_totSaveBytes)
+		g_grim->zwrite(&_totSaveBytes, 4);
+
+	lua_endblock();
+}
+
+int32 Lua_V1::saveIndirector(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc) {
+	if (tag == MKTAG('T', 'A', 'T', 'S')) {
+		int setup;
+		int index;
+
+		if (!g_grim->_pSputRoom->getCurrentRoom() || !findObjectState(hData, &setup, &index))
+			return -1;
+
+		return index | (setup << 16);
+	}
+
+	return hData;
+}
+
+int32 Lua_V1::restoreIndirector(int32 tag, int32 hData, tSaveRestoreAccess *restoreFunc) {
+	if (tag == MKTAG('T', 'A', 'T', 'S')) {
+		Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+
+		if (hData == -1 || !pRoom)
+			return 0;
+
+		uint setup = (uint)hData >> 16;
+		uint index = (uint)hData & 0xFFFF;
+
+		if (setup >= pRoom->numSetups) {
+			warning("Lua_V1::restoreIndirector(): invalid setup %u for an object state", setup);
+			return 0;
+		}
+
+		SputObjectState *pState = pRoom->pSetups[setup].ObjectStates;
+
+		while (pState && index) {
+			pState = pState->pNext;
+			index--;
+		}
+
+		if (!pState) {
+			warning("Lua_V1::restoreIndirector(): object state not found");
+			return 0;
+		}
+
+		return getObjectStateHandle(pState);
+	}
+
+	if (tag == MKTAG('T', 'X', 'E', 'T')) {
+		if (g_grim->_pSputText->findSerialNumber(hData))
+			return hData;
+
+		return 0;
+	}
+
+	return hData;
 }
 
 } // end of namespace Grim

@@ -22,6 +22,7 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/lua_v1.h"
 #include "engines/grim/sputprimitive.h"
 #include "engines/grim/sputrender.h"
 
@@ -68,7 +69,7 @@ int SputPrimitive::startup() {
 	if (_bStarted)
 		return 1;
 
-	// TODO: register the primitives Lua functions
+	_pLua->registerPrimitiveOpcodes();
 	_bStarted = 1;
 
 	return 0;

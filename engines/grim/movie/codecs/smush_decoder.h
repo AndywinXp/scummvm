@@ -40,6 +40,8 @@ public:
 
 	void setWave(SmushWave *wave) { _wave = wave; }
 	int getFrameDelay() const { return _frameDelay; }
+	int getMovieX() const { return _movieX; }
+	int getMovieY() const { return _movieY; }
 	Common::SeekableReadStream *getFile() { return _file; }
 	void decodeFrameBlock(const byte *block, uint32 size, int flags);
 	const Graphics::Surface *getFrameSurface();
@@ -92,6 +94,8 @@ private:
 	SmushWave *_wave;
 	int _blocky16Frames;
 	int _frameDelay;
+	int _movieX;
+	int _movieY;
 
 	Common::SeekableReadStream *_file;
 

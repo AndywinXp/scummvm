@@ -25,6 +25,8 @@
 
 #include "engines/grim/blasttext.h"
 #include "engines/grim/grim.h"
+#include "engines/grim/lua/luadebug.h"
+#include "engines/grim/lua_v1.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputobjectstate.h"
@@ -201,7 +203,7 @@ void SputRender::update() {
 	}
 
 	if (_bPrintLuaStack) {
-		// TODO: lua_printstack(0)
+		lua_printstack(nullptr);
 	}
 
 	Room *pRoom = _pSputRoom->getCurrentRoom();
@@ -214,7 +216,7 @@ void SputRender::update() {
 		_pLastRoom = pRoom;
 		_curView = _pLastRoom->curSetup;
 		useSetup(_pLastRoom, _curView);
-		// TODO: sputLua_PostCameraChange(_curView)
+		_pLua->postCameraChange(_curView);
 	}
 
 	RoomSetup *pSetup = &_pLastRoom->pSetups[_curView];
@@ -362,12 +364,12 @@ void SputRender::update() {
 		int gameTime = _pSputTime->getGameTime();
 		double ratio;
 
-		if (_irisX == 0.0f) {
+		if (_irisDuration == 0.0f) {
 			// The original could divide by zero here, let's avoid that...
 			warning("SputRender::update(): the iris duration is zero");
 			ratio = 2.0;
 		} else {
-			ratio = (double)(uint)((uint)gameTime - (uint)_irisStart) / (double)_irisX;
+			ratio = (double)(uint)((uint)gameTime - (uint)_irisStart) / (double)_irisDuration;
 		}
 
 		if (ratio < 0.0)
@@ -378,7 +380,7 @@ void SputRender::update() {
 		} else {
 			ratio = 1.0;
 
-			if (_irisX < 0.0f)
+			if (_irisDuration < 0.0f)
 				_renderFlags &= ~4;
 			else
 				_renderFlags |= 8;
@@ -386,14 +388,14 @@ void SputRender::update() {
 
 		float percent;
 
-		if (_irisX <= 0.0f)
+		if (_irisDuration <= 0.0f)
 			percent = (float)(1.0 - ratio);
 		else
 			percent = (float)ratio;
 
-		getIris(percent, _irisY, _irisDuration);
+		getIris(percent, _irisCenterX, _irisCenterY);
 
-		if (_irisX < 0.0f) {
+		if (_irisDuration < 0.0f) {
 			StdRect rect;
 
 			rect.x = 0;

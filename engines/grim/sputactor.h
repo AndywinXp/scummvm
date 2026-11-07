@@ -37,6 +37,7 @@ namespace Grim {
 
 class Cos;
 class GrimEngine;
+class Lua_V1;
 class Puck;
 class SputCostume;
 class SputRender;
@@ -153,6 +154,7 @@ public:
 			SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText, SputTime *pSputTime);
 
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 	SputActor *getActors() { return _aActors; }
 	SputActor *getSelectedActor() { return _pSelectedActor; }
 	void clearShadowMaterial() { _pShadowMaterial = nullptr; }
@@ -262,6 +264,7 @@ private:
 	SputText *_pSputText;
 	SputTime *_pSputTime;
 	GrimEngine *_pGrim;
+	Lua_V1 *_pLua = nullptr;
 	Cos *_pCos;
 
 	SysStruct *_pHS;

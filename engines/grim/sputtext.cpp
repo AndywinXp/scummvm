@@ -25,11 +25,13 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/lua/lua.h"
+#include "engines/grim/lua_v1.h"
 #include "engines/grim/normaltext.h"
 #include "engines/grim/polyglot.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputrender.h"
+#include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
@@ -292,7 +294,7 @@ int SputText::startup() {
 	_defaultTextParams.pFont = _pFont;
 	_blastTextParams.pFont = _pFont;
 
-	// TODO: sputLua_RegisterFunctions(textFunc_table)
+	_pLua->registerTextOpcodes();
 
 	lua_pushstring("x");
 	_luaTextObjXRef = lua_ref(1);
@@ -498,6 +500,161 @@ SputTextEvent *SputText::findSerialNumber(int serial) {
 	}
 
 	return nullptr;
+}
+
+int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, SputTextEvent *pEvent) {
+	StdRect *pClip = pParams->pClip;
+	lua_Object obj;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjXRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isnumber(obj)) {
+		int x = luaFtol(lua_getnumber(obj));
+
+		pParams->x = x;
+
+		if (pEvent)
+			pEvent->x = x;
+	}
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjYRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isnumber(obj)) {
+		int baseLine = 0;
+
+		if (pParams->pFont)
+			baseLine = pParams->pFont->baseLine;
+		else
+			warning("SputText::getTextObjectParams(): no font");
+
+		int y = luaFtol(lua_getnumber(obj));
+
+		pParams->y = y + baseLine;
+
+		if (pEvent)
+			pEvent->y = y;
+	}
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjFontRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isuserdata(obj) && lua_tag(obj) == kSputTagFont && !_pEmergencyFont) {
+		BlastTextFont *pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(lua_getuserdata(obj)));
+
+		if (pFont)
+			pParams->pFont = pFont;
+		else
+			warning("SputText::getTextObjectParams(): font resource not found");
+	}
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjWidthRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isnumber(obj) && pClip)
+		pClip->width = luaFtol(lua_getnumber(obj));
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjHeightRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isnumber(obj) && pClip)
+		pClip->height = luaFtol(lua_getnumber(obj));
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjFGColorRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
+		pParams->fgColor = lua_getuserdata(obj);
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjBGColorRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
+		pParams->bgColor = lua_getuserdata(obj);
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjFXColorRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
+		pParams->fxColor = lua_getuserdata(obj);
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjCenterRef));
+	obj = lua_gettable();
+
+	if (obj && !lua_isnil(obj))
+		pParams->flags = 5;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjLJustifyRef));
+	obj = lua_gettable();
+
+	if (obj && !lua_isnil(obj))
+		pParams->flags = 4;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjRJustifyRef));
+	obj = lua_gettable();
+
+	if (obj && !lua_isnil(obj))
+		pParams->flags = 6;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjDurationRef));
+	obj = lua_gettable();
+
+	if (obj && lua_isnumber(obj))
+		return luaFtol(lua_getnumber(obj));
+
+	return -1;
+}
+
+void SputText::parseSayLineTable(lua_Object tableObj, int *pBackground, int *pVolume, int *pPan, int *pX, int *pY) {
+	lua_Object obj;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjXRef));
+	obj = lua_gettable();
+
+	if (lua_isnumber(obj) && *pX)
+		*pX = luaFtol(lua_getnumber(obj));
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjYRef));
+	obj = lua_gettable();
+
+	if (lua_isnumber(obj) && *pY)
+		*pY = luaFtol(lua_getnumber(obj));
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjBackgroundRef));
+	obj = lua_gettable();
+
+	if (!lua_isnil(obj) && *pBackground)
+		*pBackground = 0;
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjVolumeRef));
+	obj = lua_gettable();
+
+	if (lua_isnumber(obj) && *pVolume)
+		*pVolume = luaFtol(lua_getnumber(obj));
+
+	lua_pushobject(tableObj);
+	lua_pushobject(lua_getref(_luaTextObjBufferRef));
+	obj = lua_gettable();
+
+	if (lua_isnumber(obj) && *pPan)
+		*pPan = luaFtol(lua_getnumber(obj));
 }
 
 int SputText::save(Common::WriteStream *pStream) {

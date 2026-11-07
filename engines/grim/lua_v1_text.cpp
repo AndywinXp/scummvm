@@ -29,10 +29,24 @@
 #include "engines/grim/savegame.h"
 #include "engines/grim/resource.h"
 #include "engines/grim/inputdialog.h"
+#include "engines/grim/blasttext.h"
+#include "engines/grim/sputactor.h"
+#include "engines/grim/sputrender.h"
+#include "engines/grim/sputtext.h"
+#include "engines/grim/text.h"
 #include "engines/grim/textobject.h"
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {
+
+SputTextEvent *Lua_V1::getTextEvent(lua_Object obj) {
+	SputTextEvent *pEvent = g_grim->_pSputText->findSerialNumber(lua_getuserdata(obj));
+
+	if (!pEvent)
+		warning("Lua_V1::getTextEvent(): the text object does not exist");
+
+	return pEvent;
+}
 
 /* Destroy a text object since we don't need it anymore
  * note that the menu creates more objects than it needs,
@@ -41,8 +55,11 @@ namespace Grim {
 void Lua_V1::KillTextObject() {
 	lua_Object textObj = lua_getparam(1);
 
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
-		delete gettextobject(textObj);
+	if (textObj && lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
+		SputTextEvent *pEvent = getTextEvent(textObj);
+
+		if (pEvent)
+			pEvent->flags &= ~1;
 	}
 }
 
@@ -51,43 +68,37 @@ void Lua_V1::KillTextObject() {
  */
 void Lua_V1::ChangeTextObject() {
 	lua_Object textObj = lua_getparam(1);
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
-		TextObject *textObject = gettextobject(textObj);
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
+		SputTextEvent *pEvent = getTextEvent(textObj);
+		SputText *pSputText = g_grim->_pSputText;
 		int paramId = 2;
-		for (;;) {
+
+		if (!pEvent)
+			return;
+
+		for (int i = 0; i < 2; i++) {
 			lua_Object paramObj = lua_getparam(paramId++);
 			if (!paramObj)
 				break;
 
-			// If the text object is invalid (deleted) ignore the request
-			// We do the check here so that all of the params are used
-			if (!textObject)
-				continue;
+			if (lua_isstring(paramObj)) {
+				const char *pText = pSputText->extractSayLineData(lua_getstring(paramObj), nullptr);
 
-			if (!lua_isstring(paramObj)) {
+				Common::strlcpy(pEvent->text, pText, sizeof(pEvent->text));
+			} else {
 				if (!lua_istable(paramObj))
 					break;
-				setTextObjectParams(textObject, paramObj);
-				textObject->destroy();
-			} else {
-				const char *line = lua_getstring(paramObj);
-				textObject->setText(line, false);
-				lua_getstring(paramObj);
-
+				pSputText->getTextObjectParams(&pEvent->params, paramObj, pEvent);
 			}
-
-			lua_pushnumber(textObject->getBitmapWidth());
-			lua_pushnumber(textObject->getBitmapHeight());
 		}
+
+		lua_pushnumber((float)g_grim->_pText->getStringWidth(&pEvent->params, pEvent->text));
+		lua_pushnumber((float)g_grim->_pText->getStringHeight(&pEvent->params, pEvent->text));
 	}
 }
 
-/* Return the "text speed", this option must be handled
- * to prevent errors in the "Options" menu even though
- * we're not currently using the value
- */
 void Lua_V1::GetTextSpeed() {
-	lua_pushnumber(g_grim->getTextSpeed());
+	lua_pushnumber((float)g_grim->_pSputActor->getActorTextRate());
 }
 
 void Lua_V1::SetTextSpeed() {
@@ -95,88 +106,169 @@ void Lua_V1::SetTextSpeed() {
 	if (!lua_isnumber(speedObj))
 		return;
 
-	int speed = (int)lua_getnumber(speedObj);
-	g_grim->setTextSpeed(speed);
+	g_grim->_pSputActor->setActorTextRate(luaFtol(lua_getnumber(speedObj)));
 }
 
 void Lua_V1::MakeTextObject() {
+	SputText *pSputText = g_grim->_pSputText;
+	StdRect clip;
+
+	clip.x = 0;
+	clip.y = 0;
+	clip.width = g_grim->_pBlastText->getSurface()->width;
+	clip.height = g_grim->_pBlastText->getSurface()->height;
+
 	lua_Object textObj = lua_getparam(1);
 	if (!lua_isstring(textObj)) {
 		return;
 	}
 
-	TextObject *textObject = new TextObject();
-	const char *line = lua_getstring(textObj);
+	const char *pMsgId = lua_getstring(textObj);
+	TextParams params = pSputText->_blastTextParams;
 
-	textObject->setDefaults(&g_grim->_blastTextDefaults);
+	params.pClip = &clip;
+
 	lua_Object tableObj = lua_getparam(2);
-	if (lua_istable(tableObj))
-		setTextObjectParams(textObject, tableObj);
+	if (tableObj && lua_istable(tableObj))
+		pSputText->getTextObjectParams(&params, tableObj, nullptr);
 
-	textObject->setText(line, false);
+	char translation[32];
+	const char *pText = pSputText->extractSayLineData(pMsgId, translation);
+	SputTextEvent *pEvent = pSputText->allocEvent(&params, pText);
 
-	lua_pushusertag(textObject->getId(), MKTAG('T', 'E', 'X', 'T'));
-	if (!(g_grim->getGameFlags() & ADGF_DEMO)) {
-		lua_pushnumber(textObject->getBitmapWidth());
-		lua_pushnumber(textObject->getBitmapHeight());
-	}
+	lua_pushusertag(pEvent->serial, MKTAG('T', 'X', 'E', 'T'));
+	lua_pushnumber((float)g_grim->_pText->getStringWidth(&pEvent->params, pEvent->text));
+	lua_pushnumber((float)g_grim->_pText->getStringHeight(&pEvent->params, pEvent->text));
+	pSputText->addToQueue(pEvent, 0, 1);
 }
 
 void Lua_V1::GetTextObjectDimensions() {
 	lua_Object textObj = lua_getparam(1);
 
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
-		TextObject *textObject = gettextobject(textObj);
-		lua_pushnumber(textObject->getBitmapWidth());
-		lua_pushnumber(textObject->getBitmapHeight());
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
+		SputTextEvent *pEvent = getTextEvent(textObj);
+
+		if (pEvent) {
+			lua_pushnumber((float)g_grim->_pText->getStringWidth(&pEvent->params, pEvent->text));
+			lua_pushnumber((float)g_grim->_pText->getStringHeight(&pEvent->params, pEvent->text));
+		}
 	}
 }
 
 void Lua_V1::ExpireText() {
-	// Cleanup actor references to deleted text objects
-	for (Actor *a : Actor::getPool()) {
-		a->lineCleanup();
+	SputTextEvent *pEvent = g_grim->_pSputText->_pTextQueue;
+
+	while (pEvent) {
+		SputTextEvent *pNext = pEvent->pNext;
+
+		if (pEvent->flags & 4) {
+			SputActor *pActor = pEvent->pActor;
+
+			g_grim->_pSputText->killEvent(pEvent);
+
+			if (pActor && pActor->pExtra)
+				pActor->pExtra->pSayText = nullptr;
+		} else {
+			pEvent->duration = -1;
+		}
+
+		pEvent = pNext;
+	}
+}
+
+void Lua_V1::PurgeText() {
+	SputTextEvent *pEvent = g_grim->_pSputText->_pTextQueue;
+
+	while (pEvent) {
+		pEvent->duration = -1;
+		pEvent->flags &= ~1;
+		pEvent = pEvent->pNext;
 	}
 }
 
 void Lua_V1::GetTextCharPosition() {
 	lua_Object textObj = lua_getparam(1);
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'E', 'X', 'T')) {
-		TextObject *textObject = gettextobject(textObj);
-		int pos = (int)lua_getnumber(lua_getparam(2));
-		lua_pushnumber(textObject->getTextCharPosition(pos));
+	lua_Object posObj = lua_getparam(2);
+	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
+		SputTextEvent *pEvent = getTextEvent(textObj);
+		int pos = luaFtol(lua_getnumber(posObj));
+		int width = 0;
+
+		if (!pEvent)
+			return;
+
+		if (pos > 0) {
+			const char *pText = pEvent->text;
+
+			do {
+				char c = *pText;
+
+				if (!c)
+					break;
+
+				pText++;
+				width += g_grim->_pText->getCharKernedWidth(&pEvent->params, c);
+			} while ((int)(pText - pEvent->text) < pos);
+		}
+
+		lua_pushnumber((float)width);
 	}
 }
 
 void Lua_V1::BlastText() {
+	SputText *pSputText = g_grim->_pSputText;
+	StdRect clip;
+
+	clip.x = 0;
+	clip.y = 0;
+	clip.width = g_grim->_pBlastText->getSurface()->width;
+	clip.height = g_grim->_pBlastText->getSurface()->height;
+
 	lua_Object textObj = lua_getparam(1);
 	if (!lua_isstring(textObj)) {
 		return;
 	}
 
-	const char *line = lua_getstring(textObj);
-	if (!line || line[0] == 0)
-		return;
+	const char *pMsgId = lua_getstring(textObj);
 
-	TextObject *textObject = new TextObject();
-	textObject->setBlastDraw();
-	textObject->setDefaults(&g_grim->_blastTextDefaults);
+	g_grim->_pStdDisplay->vBufferLock(g_grim->_pSputRender->drawBuffer());
+
+	TextParams params = pSputText->_blastTextParams;
+
+	params.pSurface->pPixels = g_grim->_pSputRender->drawBuffer()->pPixels;
+	params.pClip = &clip;
+
 	lua_Object tableObj = lua_getparam(2);
-	if (lua_istable(tableObj))
-		setTextObjectParams(textObject, tableObj);
+	if (tableObj && lua_istable(tableObj))
+		pSputText->getTextObjectParams(&params, tableObj, nullptr);
 
-	textObject->setText(line, false);
-	textObject->draw();
-	delete textObject;
+	char translation[32];
+	const char *pText = pSputText->extractSayLineData(pMsgId, translation);
+	SputTextEvent *pEvent = pSputText->allocEvent(&params, pText);
+
+	pSputText->drawTextEvent(pEvent, 0);
+	g_grim->_pStdDisplay->vBufferUnlock(g_grim->_pSputRender->drawBuffer());
+	pSputText->killEvent(pEvent);
 }
 
 void Lua_V1::SetOffscreenTextPos() {
-	// called with (0,0) on dialog entry, (nil, nil) on dialog exit
-	warning("Lua_V1::SetOffscreenTextPos: implement opcode");
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(2);
+	SputText *pSputText = g_grim->_pSputText;
+
+	if (lua_isnumber(xObj))
+		pSputText->_centerValue = luaFtol(lua_getnumber(xObj));
+	else
+		pSputText->_centerValue = 320;
+
+	if (lua_isnumber(yObj))
+		pSputText->_offscreenTextPos = luaFtol(lua_getnumber(yObj));
+	else
+		pSputText->_offscreenTextPos = 450;
 }
 
 void Lua_V1::TextFileGetLine() {
-	char textBuf[1000];
+	char textBuf[512];
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object posObj = lua_getparam(2);
 	Common::SeekableReadStream *file;
@@ -194,17 +286,20 @@ void Lua_V1::TextFileGetLine() {
 		return;
 	}
 
-	int pos = (int)lua_getnumber(posObj);
-	file->seek(pos, SEEK_SET);
-	memset(textBuf, 0, 1000);
-	file->readLine(textBuf, 1000);
+	int pos = luaFtol(lua_getnumber(posObj));
+
+	if (pos >= 0)
+		file->seek(pos, SEEK_SET);
+
+	memset(textBuf, 0, sizeof(textBuf));
+	file->readLine(textBuf, sizeof(textBuf));
 	delete file;
 
 	lua_pushstring(textBuf);
 }
 
 void Lua_V1::TextFileGetLineCount() {
-	char textBuf[1000];
+	char textBuf[512];
 	lua_Object nameObj = lua_getparam(1);
 
 	if (lua_isnil(nameObj)) {
@@ -227,18 +322,17 @@ void Lua_V1::TextFileGetLineCount() {
 		if (file->eos())
 			break;
 		lua_pushobject(result);
-		lua_pushnumber(line);
-		int pos = file->pos();
-		lua_pushnumber(pos);
+		lua_pushnumber((float)line);
+		lua_pushnumber((float)file->pos());
 		lua_settable();
-		file->readLine(textBuf, 1000);
+		file->readLine(textBuf, sizeof(textBuf));
 		line++;
 	}
 	delete file;
 
 	lua_pushobject(result);
 	lua_pushstring("count");
-	lua_pushnumber(line);
+	lua_pushnumber((float)line);
 	lua_settable();
 	lua_pushobject(result);
 }
@@ -246,62 +340,59 @@ void Lua_V1::TextFileGetLineCount() {
 // Localization function
 
 void Lua_V1::LocalizeString() {
-	char msgId[50], buf[1000];
+	char translation[32];
+	char buf[640];
 	lua_Object strObj = lua_getparam(1);
 
 	if (lua_isstring(strObj)) {
-		const char *str = lua_getstring(strObj);
-		// If the string that we're passed isn't localized yet then
-		// construct the localized string, otherwise spit back what
-		// we've been given
-		if (str[0] == '/') {
-			Common::String msg = parseMsgText(str, msgId);
-			Common::sprintf_s(buf, "/%s/%s", msgId, msg.c_str());
-			str = buf;
-		}
-		lua_pushstring(str);
+		const char *pText = g_grim->_pSputText->extractSayLineData(lua_getstring(strObj), translation);
+
+		Common::sprintf_s(buf, "/%s/%s", translation, pText);
+		lua_pushstring(buf);
 	}
 }
 
 void Lua_V1::SetSayLineDefaults() {
 	lua_Object tableObj = lua_getparam(1);
 	if (tableObj && lua_istable(tableObj))
-		setTextObjectParams(&g_grim->_sayLineDefaults, tableObj);
+		g_grim->_pSputText->getTextObjectParams(g_grim->_pSputText->getDefaultTextParams(), tableObj, nullptr);
 }
 
 void Lua_V1::SayLine() {
-	int vol = 127, buffer = 64, paramId = 1;
-	float x = -1, y = -1;
-	bool background = true;
+	SputActorModule *pSputActor = g_grim->_pSputActor;
+	SputText *pSputText = g_grim->_pSputText;
+	int vol = 127, pan = 64, paramId = 2;
+	int x = -1, y = -1;
+	int background = 1;
 	const char *msgId = nullptr;
-	Common::String msg;
-	lua_Object paramObj = lua_getparam(paramId++);
+	lua_Object paramObj = lua_getparam(1);
 
-	if ((lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('A','C','T','R'))
+	if ((lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('R','T','C','A'))
 			|| lua_isstring(paramObj) || lua_istable(paramObj)) {
-		Actor *actor = nullptr;// some Actor, maybe some current actor
-		if (lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('A','C','T','R')) {
-			actor = getactor(paramObj);
-			paramObj = lua_getparam(paramId++);
+		SputActor *actor = pSputActor->getSelectedActor();
+		if (lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('R','T','C','A')) {
+			actor = pSputActor->actorDeref(lua_getuserdata(paramObj));
+			paramId = 3;
+			paramObj = lua_getparam(2);
 		}
 		if (actor) {
 			while (!lua_isnil(paramObj)) {
 				if (!lua_isstring(paramObj) && !lua_isnumber(paramObj) && !lua_istable(paramObj))
-					break;
-				if (lua_istable(paramObj))
-					parseSayLineTable(paramObj, &background, &vol, &buffer, &x, &y);
-				else {
-					if (lua_isnumber(paramObj))
-						background = false;
-					else {
-						msgId = lua_getstring(paramObj);
-					}
+					return;
+				if (lua_istable(paramObj)) {
+					pSputText->parseSayLineTable(paramObj, &background, &vol, &pan, &x, &y);
+				} else if (lua_isnumber(paramObj)) {
+					background = 0;
+				} else {
+					char translation[32];
+
+					msgId = lua_getstring(paramObj);
+					pSputText->extractSayLineData(msgId, translation);
 				}
 				paramObj = lua_getparam(paramId++);
 			}
-			if (msgId) {
-				actor->sayLine(msgId, background, x, y); // background, vol, pan, x, y
-			}
+			if (msgId)
+				pSputActor->actorPlayVoiceDrawText(actor, msgId, background, vol, pan, x, y);
 		}
 	}
 }
@@ -309,33 +400,52 @@ void Lua_V1::SayLine() {
 void Lua_V1::ShutUpActor() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('A','C','T','R'))
+	if (!isSputActor(actorObj))
 		return;
-	Actor *actor = getactor(actorObj);
-	if (actor)
-		actor->shutUp();
+
+	SputActor *pActor = getSputActor(actorObj);
+
+	if (pActor)
+		g_grim->_pSputActor->shutUp(pActor);
 }
 
 void Lua_V1::PrintLine() {
-	int vol = 127, buffer = 64; /*paramId = 1, */
-	float x = -1, y = -1;
-	bool background = true;
-	char msgId[50];
-	Common::String msg;
-	lua_Object param1Obj = lua_getparam(0);
-	lua_Object param2Obj = lua_getparam(1);
+	SputText *pSputText = g_grim->_pSputText;
+	BlastTextSurface *pSurface = g_grim->_pBlastText->getSurface();
+	int duration = -1;
+	lua_Object param1Obj = lua_getparam(1);
+	lua_Object param2Obj = lua_getparam(2);
+
+	if (pSputText->_printLineClip.width >= pSurface->width)
+		pSputText->_printLineClip.width = pSurface->width;
+
+	if (pSputText->_printLineClip.height >= pSurface->height)
+		pSputText->_printLineClip.height = pSurface->height;
 
 	if ((lua_isstring(param1Obj) || lua_isnil(param1Obj)) && (lua_istable(param2Obj) || lua_isnil(param2Obj))) {
-		if (lua_istable(param2Obj)) {
-			setTextObjectParams(&g_grim->_printLineDefaults, param2Obj);
-			parseSayLineTable(param2Obj, &background, &vol, &buffer, &x, &y);
+		TextParams localParams;
+		TextParams *pParams;
+
+		if (lua_isnil(param1Obj)) {
+			pParams = &pSputText->_printLineParams;
+		} else {
+			localParams = pSputText->_printLineParams;
+			pParams = &localParams;
 		}
+
+		if (lua_istable(param2Obj))
+			duration = pSputText->getTextObjectParams(pParams, param2Obj, nullptr);
+
 		if (lua_isstring(param1Obj)) {
-			const char *tmpstr = lua_getstring(param1Obj);
-			msg = parseMsgText(tmpstr, msgId);
-		}
-		if (!msg.empty()) {
-			//actor->sayLine(msg.c_str(), msgId); //background, vol, pan, x, y
+			char translation[32];
+			const char *pText = pSputText->extractSayLineData(lua_getstring(param1Obj), translation);
+
+			if (duration < 0)
+				duration = (int)((double)(40 + 3 * (int)strlen(pText)) * 16.6666679f);
+
+			SputTextEvent *pEvent = pSputText->allocEvent(pParams, pText);
+
+			pSputText->addToQueue(pEvent, duration, 0);
 		}
 	}
 }
@@ -345,7 +455,7 @@ void Lua_V1::InputDialog() {
 	lua_Object messageObj = lua_getparam(2);
 	lua_Object defaultObj = lua_getparam(3);
 
-	if (!lua_isstring(titleObj) || !lua_isstring(messageObj)) {
+	if (!lua_isstring(titleObj) || !lua_isstring(messageObj) || (!lua_isnil(defaultObj) && !lua_isstring(defaultObj))) {
 		lua_pushnil();
 		return;
 	}
@@ -353,13 +463,24 @@ void Lua_V1::InputDialog() {
 	Common::String str = lua_getstring(titleObj);
 	str += ": ";
 	str += lua_getstring(messageObj);
-	Grim::InputDialog d(str, lua_getstring(defaultObj));
+
+	Common::String defaultString;
+
+	if (lua_isstring(defaultObj))
+		defaultString = lua_getstring(defaultObj);
+
+	Grim::InputDialog d(str, defaultString);
 	int res = d.runModal();
 	// The KeyUp event for CTRL has been eat by the gui loop, so we
 	// need to reset it manually.
 	g_grim->clearEventQueue();
 	if (res) {
-		lua_pushstring(d.getString().c_str());
+		Common::String text = d.getString();
+
+		if (text.size() > 100)
+			text = text.substr(0, 100);
+
+		lua_pushstring(text.c_str());
 	} else {
 		lua_pushnil();
 	}
@@ -368,37 +489,53 @@ void Lua_V1::InputDialog() {
 void Lua_V1::IsMessageGoing() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!actorObj || (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('A','C','T','R')) || lua_isnil(actorObj)) {
-		if (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('A','C','T','R')) {
-			Actor *actor = getactor(actorObj);
-			if (actor) {
-				pushbool(actor->isTalking());
+	if (!actorObj || (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('R','T','C','A')) || lua_isnil(actorObj)) {
+		if (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('R','T','C','A')) {
+			SputActor *actor = g_grim->_pSputActor->actorDeref(lua_getuserdata(actorObj));
+			if (actor && actor->pExtra && actor->pExtra->talking) {
+				lua_pushnumber(1.0f);
+				return;
 			}
 		} else {
-			// NOTE: this part is quite delicate. If you do changes test the crying angelitos in set fo.
-			pushbool(g_grim->areActorsTalking());
+			SputTextEvent *pEvent = g_grim->_pSputText->_pTextQueue;
+
+			if (g_grim->_pSputActor->getNumActorsTalking()) {
+				lua_pushnumber(1.0f);
+				return;
+			}
+
+			while (pEvent) {
+				if (!(pEvent->flags & 1)) {
+					lua_pushnumber(1.0f);
+					return;
+				}
+
+				pEvent = pEvent->pNext;
+			}
 		}
-	} else
 		lua_pushnil();
+	}
 }
 
 void Lua_V1::GetTranslationMode() {
-	lua_pushnumber(_translationMode);
+	lua_pushnumber((float)g_grim->_pSputText->_translationMode);
 }
 
 void Lua_V1::SetTranslationMode() {
-	int mode = 0;
 	lua_Object paramObj = lua_getparam(1);
 
-	if (!lua_isnil(paramObj) && lua_isnumber(paramObj)) {
-		mode = lua_getnumber(paramObj);
+	if (lua_isnil(paramObj)) {
+		g_grim->_pSputText->_translationMode = 0;
+	} else if (lua_isnumber(paramObj)) {
+		int mode = luaFtol(lua_getnumber(paramObj));
+
 		if (mode < 0)
 			mode = 0;
-		if (mode > 2)
+		else if (mode > 2)
 			mode = 2;
-	}
 
-	_translationMode = mode;
+		g_grim->_pSputText->_translationMode = mode;
+	}
 }
 
 } // end of namespace Grim

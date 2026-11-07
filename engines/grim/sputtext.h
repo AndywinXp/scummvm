@@ -25,6 +25,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/blasttext.h"
+#include "engines/grim/lua/lua.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/std/std_sys.h"
 
@@ -36,6 +37,7 @@ class WriteStream;
 namespace Grim {
 
 class GrimEngine;
+class Lua_V1;
 class NormalText;
 class Polyglot;
 class RenderDroid;
@@ -67,6 +69,7 @@ public:
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
 	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 
 	void killEvent(SputTextEvent *pEvent);
 	void update(int bForce);
@@ -82,10 +85,15 @@ public:
 	const char *extractSayLineData(const char *msgId, char *translation);
 	void drawTextEvent(SputTextEvent *pEvent, int bMarkDirty);
 	SputTextEvent *findSerialNumber(int serial);
+	int getTextObjectParams(TextParams *pParams, lua_Object tableObj, SputTextEvent *pEvent);
+	void parseSayLineTable(lua_Object tableObj, int *pBackground, int *pVolume, int *pPan, int *pX, int *pY);
+	TextParams *getDefaultTextParams() { return &_defaultTextParams; }
 	int save(Common::WriteStream *pStream);
 	int restore(Common::ReadStream *pStream);
 
 private:
+	friend class Lua_V1;
+
 	Res *_pRes;
 	RenderDroid *_pRd;
 	NormalText *_pNormalText;
@@ -96,6 +104,7 @@ private:
 	SputRender *_pSputRender;
 	SputRoom *_pSputRoom;
 	GrimEngine *_pGrim;
+	Lua_V1 *_pLua = nullptr;
 
 	SysStruct *_pHS;
 	int _bInitialized;

@@ -58,9 +58,17 @@ public:
 	void seek(int32 pos, int whence = 0);
 };
 
+typedef int tSaveRestoreAccess(void *buffer, int size);
+typedef int32 (*lua_SaveRestoreUserHFunction)(int32 tag, int32 pItem, tSaveRestoreAccess *saveFunc);
+
+extern lua_SaveRestoreUserHFunction lua_savehook;
+extern lua_SaveRestoreUserHFunction lua_restorehook;
+
 class SaveGame;
 void lua_Save(SaveGame *state);
 void lua_Restore(SaveGame *state);
+int lua_Save(tSaveRestoreAccess *saveFunc);
+int lua_Restore(tSaveRestoreAccess *restoreFunc);
 
 void lua_removelibslists();
 

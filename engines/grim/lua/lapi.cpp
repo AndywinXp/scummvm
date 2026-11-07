@@ -6,6 +6,10 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 
+#include "common/str.h"
+#include "common/stream.h"
+#include "common/textconsole.h"
+
 #include "engines/grim/lua/lapi.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/ldo.h"
@@ -359,6 +363,8 @@ void lua_settag(int32 tag) {
 // Hooks
 lua_CHFunction lua_callhook = nullptr;
 lua_LHFunction lua_linehook = nullptr;
+lua_SaveRestoreUserHFunction lua_savehook = nullptr;
+lua_SaveRestoreUserHFunction lua_restorehook = nullptr;
 
 lua_Function lua_stackedfunction(int32 level) {
 	StkId i;
@@ -369,6 +375,53 @@ lua_Function lua_stackedfunction(int32 level) {
 				return Ref(lua_state->stack.stack + i);
 	}
 	return LUA_NOOBJECT;
+}
+
+void lua_printstack(Common::WriteStream *f) {
+	int32 level = 1;
+	lua_Object func;
+	Common::String text;
+
+	while ((func = lua_stackedfunction(level++)) != LUA_NOOBJECT) {
+		const char *name;
+		int32 currentline;
+		const char *filename;
+		int32 linedefined;
+
+		lua_funcinfo(func, &filename, &linedefined);
+		text += (level == 2) ? "Active Stack:\n\t" : "\t";
+
+		switch (*lua_getobjname(func, &name)) {
+		case 'g':
+			text += Common::String::format("function %s", name);
+			break;
+		case 't':
+			text += Common::String::format("`%s' tag method", name);
+			break;
+		default:
+			if (linedefined == 0)
+				text += Common::String::format("main of %s", filename);
+			else if (linedefined < 0)
+				text += Common::String::format("%s", filename);
+			else
+				text += Common::String::format("function (%s:%d)", filename, (int)linedefined);
+
+			filename = nullptr;
+		}
+
+		if ((currentline = lua_currentline(func)) > 0)
+			text += Common::String::format(" at line %d", (int)currentline);
+
+		if (filename)
+			text += Common::String::format(" [in file %s]", filename);
+
+		text += "\n";
+	}
+
+	if (f)
+		f->writeString(text);
+	else if (!text.empty())
+		warning("%s", text.c_str());
 }
 
 int32 lua_currentline(lua_Function func) {
