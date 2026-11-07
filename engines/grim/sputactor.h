@@ -45,6 +45,7 @@ class SputResource;
 class SputRoom;
 class SputText;
 class SputTime;
+class Std3D;
 class StdDisplay;
 class StdMath;
 class SysStruct;
@@ -155,6 +156,7 @@ public:
 
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
+	void setStd3D(Std3D *pStd3D) { _pStd3D = pStd3D; }
 	SputActor *getActors() { return _aActors; }
 	SputActor *getSelectedActor() { return _pSelectedActor; }
 	void clearShadowMaterial() { _pShadowMaterial = nullptr; }
@@ -265,6 +267,7 @@ private:
 	SputTime *_pSputTime;
 	GrimEngine *_pGrim;
 	Lua_V1 *_pLua = nullptr;
+	Std3D *_pStd3D = nullptr;
 	Cos *_pCos;
 
 	SysStruct *_pHS;

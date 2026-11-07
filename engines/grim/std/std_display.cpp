@@ -22,12 +22,17 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Grim {
 
-StdDisplay::StdDisplay() : _pStdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0) {
+StdDisplay::StdDisplay() : _pStdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0),
+		_pStd3D(nullptr), _pMainGfxBuffer(nullptr), _pBackBuffer(nullptr), _bStartup(0), _bEnumerated(0), _bDisplayOpen(0), _bSurfacesCreated(0), _bFullscreen(0),
+		_numDrawBuffers(1), _numDevices(0), _pCurDevice(nullptr), _curDeviceIndex(0), _numModes(0), _curModeIndex(0), _pDisplayMode(nullptr) {
+	memset(_aDevices, 0, sizeof(_aDevices));
+	memset(_aModes, 0, sizeof(_aModes));
 }
 
 StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, int bVideoMemoryOnly, byte *pPalette) {
@@ -42,6 +47,9 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, 
 	pBuffer->pPixels = nullptr;
 	pBuffer->lockCount = 0;
 	pBuffer->tex = *pFormat;
+	pBuffer->allocSize = 0;
+	pBuffer->pSurface = nullptr;
+	pBuffer->surfaceColorKey = -1;
 
 	int width = pBuffer->tex.width;
 	uint bytesPerPixel = (uint)pBuffer->tex.format.bpp >> 3;
@@ -52,6 +60,28 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, 
 
 	int sizeInBytes = pBuffer->tex.height * width * bytesPerPixel;
 	pBuffer->tex.sizeInBytes = sizeInBytes;
+
+#if defined(USE_OPENGL_SHADERS)
+	if (bVideoMemory && _bDisplayOpen && _pCurDevice && _pCurDevice->type == 1 && _pStd3D) {
+		if (pBuffer->tex.format.bpp != 16) {
+			warning("StdDisplay::vBufferNew(): only 16 bpp video memory buffers are supported, using system memory");
+		} else {
+			pBuffer->bVideoMemory = 0;
+			pBuffer->type = 1;
+			pBuffer->pSurface = _pStd3D->createSurface(pBuffer->tex.width, pBuffer->tex.height, 0);
+
+			if (!pBuffer->pSurface) {
+				delete pBuffer;
+				return nullptr;
+			}
+
+			if (bVideoMemoryOnly)
+				pBuffer->bVideoMemory = 1;
+
+			return pBuffer;
+		}
+	}
+#endif
 
 	pBuffer->type = 0;
 	pBuffer->bVideoMemory = 0;
@@ -77,25 +107,77 @@ void StdDisplay::vBufferFreeEntry(StdVBuffer *pVBuffer) {
 			pVBuffer->pPixels = nullptr;
 		}
 	}
+#if defined(USE_OPENGL_SHADERS)
+	else if (pVBuffer->type == 1) {
+		if (pVBuffer->pSurface && _pStd3D)
+			_pStd3D->destroySurface(pVBuffer->pSurface);
+
+		pVBuffer->pSurface = nullptr;
+
+		if (pVBuffer->allocSize) {
+			delete[] pVBuffer->pPixels;
+			pVBuffer->pPixels = nullptr;
+			pVBuffer->allocSize = 0;
+		}
+	}
+#endif
 }
 
 int StdDisplay::vBufferLock(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type == 0)
+	if (pVBuffer->type == 0) {
 		pVBuffer->lockCount++;
+		return 1;
+	}
+
+	if (pVBuffer->type == 1) {
+#if defined(USE_OPENGL_SHADERS)
+		if (!surfaceLock(pVBuffer))
+			return 0;
+
+		pVBuffer->lockCount++;
+		return 1;
+#else
+		return 0;
+#endif
+	}
 
 	return 1;
 }
 
 int StdDisplay::vBufferUnlock(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type == 0 && pVBuffer->lockCount)
+	if (pVBuffer->type == 0) {
+		if (pVBuffer->lockCount)
+			pVBuffer->lockCount--;
+
+		return 1;
+	}
+
+	if (pVBuffer->type != 1)
+		return 1;
+
+	if (!pVBuffer->lockCount)
+		return 1;
+
+#if defined(USE_OPENGL_SHADERS)
+	int result = surfaceUnlock(pVBuffer, 1);
+
+	if (result)
 		pVBuffer->lockCount--;
 
-	return 1;
+	return result;
+#else
+	return 0;
+#endif
 }
 
 void StdDisplay::vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect) {
-	if (pVBuffer->type != 0)
+	if (pVBuffer->type != 0) {
+#if defined(USE_OPENGL_SHADERS)
+		if (pVBuffer->type == 1)
+			surfaceBlt(pVBuffer, color, pRect);
+#endif
 		return;
+	}
 
 	switch (pVBuffer->tex.format.bpp) {
 	case 8:
@@ -154,17 +236,33 @@ void StdDisplay::vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect) {
 }
 
 int StdDisplay::vBufferCopy(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
-	if (pSrc->type != 0 || pDst->type != 0)
-		return 0;
+	if (pSrc->type == 0 && pDst->type == 0) {
+		copyBltA(pDst, pSrc, x, y, pRect, bColorKey);
+		return 1;
+	}
 
-	copyBltA(pDst, pSrc, x, y, pRect, bColorKey);
+#if defined(USE_OPENGL_SHADERS)
+	if (pSrc->type != 0) {
+		if (pDst->type == 1)
+			copyBltB(pDst, pSrc, x, y, pRect, bColorKey);
+		else
+			copyBltD(pDst, pSrc, x, y, pRect, bColorKey);
 
+		return 1;
+	}
+
+	copyBltC(pDst, pSrc, x, y, pRect, bColorKey);
 	return 1;
+#else
+	return 0;
+#endif
 }
 
 int StdDisplay::vBufferSetColorKey(StdVBuffer *pVBuffer, int colorKey) {
 	if (pVBuffer->type == 0)
 		pVBuffer->colorKey = colorKey;
+	else if (pVBuffer->type == 1)
+		pVBuffer->surfaceColorKey = colorKey;
 
 	return 1;
 }
@@ -197,8 +295,8 @@ StdVBuffer *StdDisplay::vBufferConvertColorFormat(StdColorFormat *pFormat, StdVB
 	if (!pVBuffer->tex.format.colorMode && !pFormat->colorMode)
 		return pVBuffer;
 
-	if (pVBuffer->type != 0) {
-		warning("StdDisplay::vBufferConvertColorFormat(): buffer is not a memory buffer");
+	if (pVBuffer->type == 2) {
+		warning("StdDisplay::vBufferConvertColorFormat(): buffer is compressed");
 		return pVBuffer;
 	}
 

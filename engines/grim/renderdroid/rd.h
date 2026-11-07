@@ -57,6 +57,10 @@ struct RdActiveEdge;
 struct RdActiveFace;
 struct RdActiveSpan;
 
+class Std3D;
+struct Std3DVertex;
+struct Std3DTri;
+
 struct RdBound3 {
 	RdVector3 min;
 	RdVector3 max;
@@ -151,9 +155,6 @@ struct RdMatCel {
 };
 
 struct RdTexCacheEntry {
-	void *pD3DTexture;
-	void *pDDSurface;
-	byte ddsd[108];
 	uint hTexture;
 	int bInCache;
 	int bColorKey;
@@ -441,7 +442,7 @@ struct RdProcFace {
 
 struct RdColorEffects {
 	int tint[3];
-	int filter[3];
+	float filter[3];
 	int add[3];
 	float fade;
 };
@@ -492,6 +493,9 @@ public:
 	void clearPreStatistics();
 	int beginHardwareScene();
 	void setColorInfo(const StdColorFormat &colorInfo);
+	void setStd3D(Std3D *pStd3D);
+	int getAcceleration() const;
+	void setAcceleration(int acceleration);
 
 	void cross3(RdVector3 out, RdVector3 a, RdVector3 b);
 	float dot2(RdVector2 a, RdVector2 b);
@@ -677,6 +681,7 @@ public:
 		int loadEntry(char *path, RdMaterial *pMaterial, int bVideoMemory, int bVideoMemoryOnly);
 		int destroy(RdMaterial *&pMaterial);
 		void freeEntry(RdMaterial *pMaterial);
+		int addToTextureCache(RdMaterial *pMaterial, RdTexture *pTexture, int mipLevel, int alt);
 
 	private:
 		RdMaterialLoaderFunc _pfLoader;
@@ -872,9 +877,8 @@ public:
 
 	class CacheModule : public Module {
 	public:
-		explicit CacheModule(RenderDroid *rd) : Module(rd), _numProcFaces(0), _numUsedVertices(0), _numUsedTexVertices(0), _numUsedIntensities(0), _drawnFaces(0) {
-			memset(_viewportRect, 0, sizeof(_viewportRect));
-		}
+		explicit CacheModule(RenderDroid *rd);
+		~CacheModule();
 		int *getViewportRect() { return _viewportRect; }
 		RdProcFace *getProcFaces() { return _aProcFaces; }
 		size_t getNumProcFaces() const { return _numProcFaces; }
@@ -892,6 +896,10 @@ public:
 		int drawFaceZ(RdProcFace *pProcFace);
 		int drawFaceUser(RdProcFace *pProcFace);
 		static int procFaceCompare(const void *pA, const void *pB);
+		int sendFaceListToHardware();
+		int resetRenderList();
+		uint drawRenderList();
+		static int hwTriCompare(const void *pA, const void *pB);
 
 	private:
 		friend class RenderDroid;
@@ -907,6 +915,12 @@ public:
 		uint _numUsedIntensities;
 		uint _drawnFaces;
 		int _viewportRect[4];
+		Std3DVertex *_aHWVertices;
+		Std3DTri *_aHWNormalTris;
+		Std3DTri *_aHWSolidTris;
+		uint _totalNormalTris;
+		uint _totalSolidTris;
+		uint _totalVerts;
 	};
 
 	class RasterModule : public Module {
@@ -1682,6 +1696,7 @@ private:
 	StdDisplay *_stdDisplay;
 	StdConffile *_stdConffile;
 	StdFile *_stdFile;
+	Std3D *_pStd3D;
 	SysStruct *_pHS;
 	int _bStarted;
 	int _bOpened;

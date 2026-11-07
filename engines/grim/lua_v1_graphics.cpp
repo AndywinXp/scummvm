@@ -31,6 +31,7 @@
 #include "engines/grim/sputprimitive.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputsmush.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/imuse/imuse_engine.h"
@@ -496,17 +497,23 @@ void Lua_V1::BlastRect() {
 
 	StdVBuffer *pBuffer = g_grim->_pSputRender->drawBuffer();
 
-	if (!pBuffer || !pBuffer->pPixels || pBuffer->tex.format.bpp != 16 || pBuffer->tex.width < 640 || pBuffer->tex.height < 480) {
+	if (!pBuffer || pBuffer->tex.format.bpp != 16 || pBuffer->tex.width < 640 || pBuffer->tex.height < 480) {
 		warning("Lua_V1::BlastRect(): unsupported draw buffer");
 		return;
 	}
 
 	int width = x2 - x1 + 1;
 	int height = y2 - y1 + 1;
-	int pitch = pBuffer->tex.pitchInBytes;
 
 	g_grim->_pStdDisplay->vBufferLock(pBuffer);
 
+	if (!pBuffer->pPixels) {
+		warning("Lua_V1::BlastRect(): the draw buffer could not be locked");
+		g_grim->_pStdDisplay->vBufferUnlock(pBuffer);
+		return;
+	}
+
+	int pitch = pBuffer->tex.pitchInBytes;
 	byte *pRow = pBuffer->pPixels + pitch * y1 + x1 * 2;
 	uint16 *pPixel = (uint16 *)pRow;
 
@@ -646,7 +653,10 @@ void Lua_V1::PreRender() {
 }
 
 void Lua_V1::ResetTextures() {
-	// TODO: std3D_PurgeTextureCache (no 3D device layer)
+#if defined(USE_OPENGL_SHADERS)
+	if (g_grim->_pStd3D)
+		g_grim->_pStd3D->purgeTextureCache();
+#endif
 }
 
 } // end of namespace Grim

@@ -25,6 +25,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_3d.h"
 
 namespace Grim {
 
@@ -228,12 +229,41 @@ void RenderDroid::MaterialModule::freeEntry(RdMaterial *pMaterial) {
 	for (uint i = 0; i < pMaterial->numTextures; i++) {
 		RdTexture *pTexture = &pMaterial->aTextures[i];
 
-		for (uint mip = 0; mip < pTexture->numMips; mip++)
+		for (uint mip = 0; mip < pTexture->numMips; mip++) {
 			_rd->_stdDisplay->vBufferFree(pTexture->apMips[mip]);
+
+#if defined(USE_OPENGL_SHADERS)
+			RdTexCacheEntry *pEntry = &pTexture->aCache[0][mip];
+
+			if (pEntry->bInCache && _rd->_pStd3D) {
+				_rd->_pStd3D->releaseTexture(pEntry);
+				pEntry->bInCache = 0;
+				pEntry->lastFrame = 0;
+				_rd->_pStd3D->cacheListRemove(pEntry);
+			}
+#endif
+		}
 	}
 
 	delete[] pMaterial->aTextures;
 	pMaterial->aTextures = nullptr;
+}
+
+int RenderDroid::MaterialModule::addToTextureCache(RdMaterial *, RdTexture *pTexture, int mipLevel, int alt) {
+#if defined(USE_OPENGL_SHADERS)
+	StdVBuffer *pMip = pTexture->apMips[mipLevel];
+	RdTexCacheEntry *pEntry = &pTexture->aCache[alt ? 1 : 0][mipLevel];
+
+	if (pEntry->bInCache) {
+		_rd->_pStd3D->cacheListTouch(pEntry);
+		return 1;
+	}
+
+	if (_rd->_pStd3D->addToTextureCache(pMip, pEntry, pTexture->flags & 1, alt))
+		return 1;
+#endif
+
+	return 0;
 }
 
 } // End of namespace Grim

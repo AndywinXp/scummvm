@@ -37,6 +37,7 @@
 #include "engines/grim/sputsmush.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_sort.h"
 
 namespace Grim {
@@ -593,8 +594,10 @@ void SputRender::restoreDirtyRects(StdVBuffer *pDst, StdVBuffer *pZBuffer) {
 		if (pZBuffer && pNode->page) {
 			if (_renderFlags & 2) {
 				if (_b3DAcceleration) {
-					// TODO: std3D_SetActiveRect(pRect)
-					// TODO: std3D_ClearZBuffer()
+#if defined(USE_OPENGL_SHADERS)
+					_pStd3D->setActiveRect(pRect);
+					_pStd3D->clearZBuffer();
+#endif
 				} else {
 					_pStdDisplay->vBufferFill(pZBuffer, 0, pRect);
 				}

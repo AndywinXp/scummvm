@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_3d.h"
 
 namespace Grim {
 
@@ -329,7 +330,14 @@ void RenderDroid::CameraModule::advanceFrame() {
 
 	RdCanvas *pCanvas = _pCurCamera->pCanvas;
 
-	if ((_rd->_curRenderOptions & 0x100) && (pCanvas->flags & 2) && _rd->_curAcceleration <= 0) {
+	if ((_rd->_curRenderOptions & 0x100) && (pCanvas->flags & 2)) {
+		if (_rd->_curAcceleration > 0) {
+#if defined(USE_OPENGL_SHADERS)
+			_rd->_pStd3D->clearZBuffer();
+#endif
+			return;
+		}
+
 		if (pCanvas->flags & 1) {
 			StdRect rect;
 

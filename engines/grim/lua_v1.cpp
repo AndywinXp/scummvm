@@ -50,6 +50,7 @@
 #include "engines/grim/sputsmush.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_math.h"
 #include "engines/grim/stdcontrol.h"
 #include "engines/grim/text.h"
@@ -294,16 +295,19 @@ void Lua_V1::GetAngleBetweenVectors() {
 }
 
 void Lua_V1::Is3DHardwareEnabled() {
-	// TODO: std3D_pCurDevice (3D device layer)
-	lua_pushnil();
+	if (g_grim->isHardware3D())
+		lua_pushnumber(1.0);
+	else
+		lua_pushnil();
 }
 
 void Lua_V1::SetHardwareState() {
-	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
-	int curDevice = g_grim->_curDeviceIndex;
-	int cur3DDevice = g_grim->_std3DCurDeviceIndex;
+	lua_Object stateObj = lua_getparam(1);
+	int curDevice = g_grim->getCurVideoDeviceIndex();
+	int cur3DDevice = g_grim->getCur3DDeviceIndex();
+	int bWant3D = lua_isnil(stateObj) == 0;
 
-	g_grim->chooseDefaultDisplay(&g_grim->_pendingDevice, &g_grim->_pendingMode, &g_grim->_pending3DDevice);
+	g_grim->chooseDefaultDisplay(0, bWant3D, &g_grim->_pendingDevice, &g_grim->_pendingMode, &g_grim->_pending3DDevice);
 
 	if (g_grim->_pendingDevice != curDevice || g_grim->_pending3DDevice != cur3DDevice)
 		g_grim->_bDisplayChangePending = 1;
@@ -312,39 +316,49 @@ void Lua_V1::SetHardwareState() {
 void Lua_V1::SetVideoDevices() {
 	lua_Object deviceObj = lua_getparam(1);
 	lua_Object modeObj = lua_getparam(2);
-
-	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
-	int curDevice = g_grim->_curDeviceIndex;
-	int cur3DDevice = g_grim->_std3DCurDeviceIndex;
+	int curDevice = g_grim->getCurVideoDeviceIndex();
+	int cur3DDevice = g_grim->getCur3DDeviceIndex();
 
 	g_grim->_pendingDevice = luaFtol(lua_getnumber(deviceObj));
-	g_grim->_pendingMode = 0;
+
+	int numDevices = (int)g_grim->_pStdDisplay->getNumDevices();
+
+	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < numDevices) {
+		GrimVideoDevice *pVideoDevice = &g_grim->_aVideoDevices[g_grim->_pendingDevice];
+
+		g_grim->_pendingMode = g_grim->_pStdDisplay->findClosestMode(&g_grim->_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
+	} else {
+		g_grim->_pendingMode = 0;
+	}
 
 	int mode3D = luaFtol(lua_getnumber(modeObj));
 
 	g_grim->_pending3DDevice = mode3D;
 
-	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < kNumVideoDevices &&
-		mode3D >= -1 && mode3D < kNum3DDevices &&
+	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < numDevices &&
+		mode3D >= -1 && mode3D < (int)g_grim->_aVideoDevices[g_grim->_pendingDevice].num3DDevices &&
 		(g_grim->_pendingDevice != curDevice || mode3D != cur3DDevice))
 		g_grim->_bDisplayChangePending = 1;
 }
 
 void Lua_V1::GetVideoDevices() {
-	lua_pushnumber((float)g_grim->_curDeviceIndex);
-
-	// TODO: std3D_pCurDevice, std3D_curDeviceIndex (hardware 3D)
-	lua_pushnumber((float)g_grim->_std3DCurDeviceIndex);
+	lua_pushnumber((float)g_grim->getCurVideoDeviceIndex());
+	lua_pushnumber((float)g_grim->getCur3DDeviceIndex());
 }
 
 void Lua_V1::EnumerateVideoDevices() {
 	lua_Object result = lua_createtable();
 	int firstDevice = g_grim->_bEnumerateVideo == 0 ? 1 : 0;
+	int numDevices = (int)g_grim->_pStdDisplay->getNumDevices();
+	StdDisplayDevice *aDevices = g_grim->_pStdDisplay->getDevices();
 
-	for (int i = firstDevice; i < kNumVideoDevices; i++) {
+	for (int i = firstDevice; i < numDevices; i++) {
+		if (aDevices[i].type == 1 && !g_grim->_bUseHardware)
+			continue;
+
 		lua_pushobject(result);
 		lua_pushnumber((float)i);
-		lua_pushstring("DIBsection windowed display");
+		lua_pushstring(aDevices[i].aDescription);
 		lua_settable();
 	}
 
@@ -356,12 +370,40 @@ void Lua_V1::Enumerate3DDevices() {
 	if (!lua_isnumber(numObj))
 		return;
 
+	int deviceIndex = luaFtol(lua_getnumber(numObj));
 	lua_Object result = lua_createtable();
 
-	lua_pushobject(result);
-	lua_pushnumber(-1.0);
-	lua_pushstring("/engn003/Software");
-	lua_settable();
+	if (deviceIndex < 0 || deviceIndex >= (int)g_grim->_pStdDisplay->getNumDevices()) {
+		warning("Lua_V1::Enumerate3DDevices(): invalid display device %d", deviceIndex);
+		lua_pushobject(result);
+		return;
+	}
+
+	StdDisplayDevice *pDevice = &g_grim->_pStdDisplay->getDevices()[deviceIndex];
+	GrimVideoDevice *pVideoDevice = &g_grim->_aVideoDevices[deviceIndex];
+	int bList;
+
+	if (!pDevice->bPrimary && pDevice->b3D) {
+		bList = 1;
+	} else {
+		lua_pushobject(result);
+		lua_pushnumber(-1.0);
+		lua_pushstring("/engn003/Software");
+		lua_settable();
+		bList = pDevice->b3D;
+	}
+
+	if (bList) {
+		for (uint i = 0; i < pVideoDevice->num3DDevices; i++) {
+			if (!pVideoDevice->a3DDevices[i].bHardware)
+				continue;
+
+			lua_pushobject(result);
+			lua_pushnumber((float)i);
+			lua_pushstring(pVideoDevice->a3DDevices[i].aDescription);
+			lua_settable();
+		}
+	}
 
 	lua_pushobject(result);
 }

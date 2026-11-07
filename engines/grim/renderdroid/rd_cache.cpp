@@ -23,16 +23,38 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_sort.h"
 
 namespace Grim {
+
+RenderDroid::CacheModule::CacheModule(RenderDroid *rd) : Module(rd), _numProcFaces(0), _numUsedVertices(0), _numUsedTexVertices(0), _numUsedIntensities(0), _drawnFaces(0),
+		_totalNormalTris(0), _totalSolidTris(0), _totalVerts(0) {
+	memset(_viewportRect, 0, sizeof(_viewportRect));
+	_aHWVertices = new Std3DVertex[32768]();
+	_aHWNormalTris = new Std3DTri[1024]();
+	_aHWSolidTris = new Std3DTri[1024]();
+}
+
+RenderDroid::CacheModule::~CacheModule() {
+	delete[] _aHWVertices;
+	delete[] _aHWNormalTris;
+	delete[] _aHWSolidTris;
+}
 
 int RenderDroid::CacheModule::startup() {
 	return 1;
 }
 
 int RenderDroid::CacheModule::finishFrame() {
-	return _rd->_curAcceleration;
+	int result = _rd->_curAcceleration;
+
+#if defined(USE_OPENGL_SHADERS)
+	if (result > 0)
+		return _rd->_pStd3D->endScene();
+#endif
+
+	return result;
 }
 
 int RenderDroid::CacheModule::reset() {
@@ -88,6 +110,14 @@ int RenderDroid::CacheModule::flush() {
 	}
 
 	if (_rd->_curAcceleration <= 0) {
+		StdVBuffer *pLockedBuffer = nullptr;
+		RdCamera *pCamera = _rd->_camera.getCurrent();
+
+		if (pCamera && pCamera->pCanvas && pCamera->pCanvas->pVBuffer && pCamera->pCanvas->pVBuffer->type == 1) {
+			if (_rd->_stdDisplay->vBufferLock(pCamera->pCanvas->pVBuffer))
+				pLockedBuffer = pCamera->pCanvas->pVBuffer;
+		}
+
 		if (_rd->_curOcclusionMethod) {
 			if (_rd->_curOcclusionMethod == 1) {
 				_rd->_active.advanceFrame();
@@ -110,6 +140,13 @@ int RenderDroid::CacheModule::flush() {
 					drawFaceN(&_aProcFaces[i]);
 			}
 		}
+
+		if (pLockedBuffer)
+			_rd->_stdDisplay->vBufferUnlock(pLockedBuffer);
+	} else {
+#if defined(USE_OPENGL_SHADERS)
+		sendFaceListToHardware();
+#endif
 	}
 
 	_drawnFaces += (uint)_numProcFaces;

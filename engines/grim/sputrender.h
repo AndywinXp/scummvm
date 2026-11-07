@@ -46,6 +46,7 @@ class SputRoom;
 class SputSmush;
 class SputText;
 class SputTime;
+class Std3D;
 class StdControl;
 class WalkSystem;
 struct RdCanvas;
@@ -93,6 +94,7 @@ public:
 	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
 	void setSputSmush(SputSmush *pSputSmush) { _pSputSmush = pSputSmush; }
 	void setStdControl(StdControl *pStdControl) { _pStdControl = pStdControl; }
+	void setStd3D(Std3D *pStd3D) { _pStd3D = pStd3D; }
 	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
 	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 
@@ -107,6 +109,7 @@ public:
 	int setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int *pOptions);
 	int queryDisplayState();
 	void using3DHardware(int b3D);
+	int is3DHardware() const { return _b3DAcceleration; }
 	void pageCountIs(int numPages);
 	void setPaletteCallback(SputRenderPaletteFunc pFunc);
 	void setPageFlipCallback(SputRenderPageFlipFunc pFunc);
@@ -202,6 +205,7 @@ private:
 	SputTime *_pSputTime;
 	SputControl *_pSputControl;
 	StdControl *_pStdControl;
+	Std3D *_pStd3D = nullptr;
 	GrimEngine *_pGrim;
 	Lua_V1 *_pLua = nullptr;
 
