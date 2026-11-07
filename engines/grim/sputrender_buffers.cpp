@@ -148,7 +148,7 @@ void SputRender::fillDrawBuffer(StdVBuffer *pSrc) {
 
 	if (pSrc->tex.format.colorMode != 5) {
 		colorCorrect((uint16 *)_pCleanBuffer->pPixels, size);
-		_pCleanBuffer->colorKey = _fillColor;
+		_pCleanBuffer->colorKey = _colorLookup[63519];
 	}
 }
 

@@ -1819,7 +1819,6 @@ bool GrimEngine::useGrimeFlow() const {
 
 Common::Error GrimEngine::runGrime() {
 	g_resourceloader = new ResourceLoader();
-	g_movie = CreateSmushPlayer(false);
 
 	createImuse();
 	createModules();
@@ -1935,7 +1934,7 @@ void GrimEngine::createModules() {
 	_pSputCostume = new SputCostume(_pRes, _pRd, _pSputResource, _pSputRender, _pSputRoom, _pStdLbm, _pWuRegistry);
 	_pSputActor = new SputActorModule(_pRes, _pRd, _pStdMath, _pStdDisplay, _pWalkSystem, _pSputResource, _pSputRoom, _pSputRender,
 			_pSputCostume, _pSputText, _pSputTime);
-	_pSputSmush = new SputSmush(g_movie, _pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+	_pSputSmush = new SputSmush(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
 	_pLua = new Lua_V1();
 
 	_pRes->setSputRender(_pSputRender);
@@ -3115,6 +3114,7 @@ int GrimEngine::selectDisplayMode() {
 	_pMainGfxBuffer->tex = tex;
 	_pMainGfxBuffer->pPaletteRGB = nullptr;
 	_pMainGfxBuffer->pPixels = new byte[tex.sizeInBytes]();
+	_pMainGfxBuffer->allocSize = tex.sizeInBytes;
 	_pMainGfxBuffer->colorKey = 0;
 	*_pBackBuffer = *_pMainGfxBuffer;
 	_bDisplayOpen = 1;

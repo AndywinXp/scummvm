@@ -52,12 +52,12 @@ public:
 	bool rewind() override;
 	bool seekIntern(const Audio::Timestamp &time) override;
 	bool loadStream(Common::SeekableReadStream *stream) override;
+	void close() override;
 
 protected:
 	bool readHeader();
 	bool handleFramesHeader();
 	void init();
-	void close() override;
 	class SmushVideoTrack : public FixedRateVideoTrack {
 	public:
 		SmushVideoTrack(int width, int height, int fps, int numFrames);

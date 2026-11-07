@@ -104,6 +104,7 @@ MODULE_OBJS := \
 	movie/smush_anim.o \
 	movie/smush_animator.o \
 	movie/smush_mixer.o \
+	movie/smush_play.o \
 	movie/smush_sound.o \
 	movie/smush_timer.o \
 	movie/smush_wave.o \

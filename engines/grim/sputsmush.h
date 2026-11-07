@@ -24,54 +24,25 @@
 
 #include "common/scummsys.h"
 
+#include "engines/grim/movie/smush_play.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/std/std_sys.h"
 
 namespace Common {
 class ReadStream;
-class SeekableReadStream;
 class WriteStream;
-}
-
-namespace Graphics {
-struct Surface;
 }
 
 namespace Grim {
 
-class MoviePlayer;
 class Res;
 class SputRender;
 class WuRegistry;
 
-struct LecBitmap {
-	byte *pPixels;
-	int width;
-	int height;
-	int bytesPerPixel;
-	int field_10;
-	int pitchInBytes;
-};
-
-struct SmushMovieInfo {
-	byte version0;
-	byte version1;
-	int16 frames;
-	int16 x;
-	int16 y;
-	int16 width;
-	int16 height;
-	int16 field_C;
-	int32 frameDelay;
-	int32 field_12;
-	byte palette[1024];
-	int16 field_416;
-};
-
-class SputSmush {
+class SputSmush : public SmushPlayVideo {
 public:
-	SputSmush(MoviePlayer *pMovie, Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer,
-			WuRegistry *pWuRegistry);
+	SputSmush(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry);
+	~SputSmush();
 
 	int getMovieTime();
 	int initialize(SysStruct *pHS);
@@ -85,40 +56,22 @@ public:
 	int startMovie(const char *name, int bLooping, int x, int y);
 	int stopMovie();
 	int getMovieLength(const char *name);
-	int startVideo(int width, int height, int depth);
-	int stopVideo();
-	int lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect);
-	int unlockMovieBuffer();
-	int setVideoPalette(uint32 *pPalette, int start, int count);
+	int startVideo(int width, int height, int depth, int pixelFormat) override;
+	int stopVideo() override;
+	int lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
+	int unlockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
+	int setVideoPalette(uint32 *pPalette, int start, int count) override;
 	int moviePlaying();
 	int pause(int bPause);
 
 private:
-	int smushPlaySysInitialize();
-	void smushPlaySysTerminate();
-	int smushPlaySysStartup();
-	void smushPlaySysShutdown();
-	void smushPlaySysConfigureColorLookup(int config);
-	void smushPlaySetTranslationTable(const uint16 *pTable);
-	int smushPlayStartMovie(const char *name, int bLooping, int x, int y, int width, int height);
-	int smushPlayStopMovie();
-	int smushPlayUpdateMovie(int *pFinished);
-	int smushPlayBlit(LecBitmap *pDest, const Graphics::Surface *pSource, const StdRect *pRect);
-	void smushPlayBlitCopy(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows);
-	int smushPlayGetMovieLength(const char *path);
-	int smushPlayGetInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInfo);
-
-	MoviePlayer *_pMovie;
+	SmushPlay *_pSmushPlay;
 	Res *_pRes;
 	StdDisplay *_pStdDisplay;
 	SputRender *_pSputRender;
 	StdVBuffer *_pMainGfxBuffer;
 	WuRegistry *_pWuRegistry;
 	SysStruct *_pHS;
-	int _bPlayInitialized;
-	int _bPlayStarted;
-	const uint16 *_pTranslationTable;
-	int _colorLookupConfig;
 	int _bStarted;
 	StdVBuffer *_pPresentBuf;
 	int _buf;

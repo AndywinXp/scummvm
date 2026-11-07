@@ -56,6 +56,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, 
 	pBuffer->type = 0;
 	pBuffer->bVideoMemory = 0;
 	pBuffer->pPixels = new byte[sizeInBytes];
+	pBuffer->allocSize = sizeInBytes;
 	pBuffer->lockCount = 1;
 
 	return pBuffer;
@@ -178,12 +179,13 @@ void StdDisplay::vBufferDeCompress(StdVBuffer *pVBuffer) {
 	delete[] pVBuffer->pPixels;
 	pVBuffer->tex.sizeInBytes = size;
 	pVBuffer->type = 0;
+	pVBuffer->allocSize = pVBuffer->tex.height * pVBuffer->tex.pitchInBytes;
 	pVBuffer->pPixels = pPixels;
 }
 
 int StdDisplay::vBufferDeCompressTo(StdVBuffer *pSrc, StdVBuffer *pDst) {
 	vBufferLock(pDst);
-	lzssDecompress(pDst->pPixels, pSrc->pPixels, pSrc->tex.sizeInBytes, pDst->tex.sizeInBytes);
+	lzssDecompress(pDst->pPixels, pSrc->pPixels, pSrc->tex.sizeInBytes, pDst->allocSize);
 
 	return vBufferUnlock(pDst);
 }

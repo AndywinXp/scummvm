@@ -41,7 +41,7 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
 		_pSputActor(nullptr), _aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr), _pSputSmush(nullptr), _pSputTime(pSputTime),
 		_pSputControl(pSputControl), _pStdControl(nullptr), _pGrim(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0),
-		_gammaCorrection(1.0f), _fillColor(0), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
+		_gammaCorrection(1.0f), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
 		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
 		_nextSerialNumber(0), _pCacheRectList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),

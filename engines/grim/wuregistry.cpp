@@ -126,6 +126,7 @@ enum {
 	kMapSpeechMode,
 	kMapBool,
 	kMapPath,
+	kMapFloat,
 	kMapLastSet
 };
 
@@ -144,8 +145,8 @@ static const WuRegistryMapping g_mappings[] = {
 	{ "SfxVolume", "sfx_volume", kMapVolume },
 	{ "VoiceVolume", "speech_volume", kMapVolume },
 	{ "LastSavedGame", "last_saved_game", kMapString },
-	{ "Gamma", "gamma", kMapInt },
-	{ "GammaCorrection", "gamma", kMapInt },
+	{ "Gamma", "grim_gamma", kMapFloat },
+	{ "GammaCorrection", "grim_gamma", kMapFloat },
 	{ "VoiceEffects", "voice_effects", kMapString },
 	{ "TextSpeed", "talkspeed", kMapTalkSpeed },
 	{ "TextMode", "subtitles", kMapSpeechMode },
@@ -214,10 +215,13 @@ static const WuRegistryMapping *findMapping(const char *valueName) {
 }
 
 static bool isStringKind(int kind) {
-	return kind == kMapString || kind == kMapPath || kind == kMapLastSet;
+	return kind == kMapString || kind == kMapPath || kind == kMapFloat || kind == kMapLastSet;
 }
 
 static uint getMappedType(const WuRegistryMapping *pMapping) {
+	if (pMapping->kind == kMapFloat)
+		return ConfMan.hasKey(pMapping->key) ? WuRegistry::kValueBinary : 0;
+
 	if (isStringKind(pMapping->kind))
 		return WuRegistry::kValueString;
 
@@ -284,6 +288,7 @@ static void writeMappedInt(const WuRegistryMapping *pMapping, int value);
 static void writeMappedText(const WuRegistryMapping *pMapping, const char *pText) {
 	switch (pMapping->kind) {
 	case kMapString:
+	case kMapFloat:
 		ConfMan.set(pMapping->key, pText);
 		break;
 	case kMapPath:
@@ -472,6 +477,13 @@ int WuRegistry::saveFloat(const char *valueName, float value) {
 	Common::String key;
 	const WuRegistryMapping *pMapping = findMapping(valueName);
 
+	if (pMapping && pMapping->kind == kMapFloat) {
+		ConfMan.set(pMapping->key, Common::String::format("%.9g", value));
+		addIndex(valueName);
+
+		return 1;
+	}
+
 	if (pMapping) {
 		if (!(value > -2147483648.0f && value < 2147483648.0f)) {
 			warning("WuRegistry::saveFloat(): the value of '%s' does not fit an integer", valueName);
@@ -546,6 +558,15 @@ float WuRegistry::getFloat(const char *valueName, float defaultValue) {
 
 	if (!findIndex(valueName))
 		return defaultValue;
+
+	if (pMapping && pMapping->kind == kMapFloat) {
+		if (!canParseFloat(ConfMan.get(pMapping->key))) {
+			warning("WuRegistry::getFloat(): the value of '%s' is not a number", valueName);
+			return defaultValue;
+		}
+
+		return ConfMan.getFloat(pMapping->key);
+	}
 
 	if (pMapping) {
 		int mappedValue;
