@@ -125,6 +125,7 @@ public:
 	ResTag *getResTagStruct(int tag);
 	ResNode *checkAllocatedRes(void *handle);
 	void *handleFromSerialNumber(int serial);
+	int serialFromHandle(void *handle);
 	ResNode *resourceHandleFromSerialNumber(int serial);
 	int loaded(int tag, const char *name);
 	ResNode *isResourceLoaded(int tag, const char *name);

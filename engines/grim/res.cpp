@@ -426,6 +426,15 @@ void *Res::handleFromSerialNumber(int serial) {
 	return nullptr;
 }
 
+int Res::serialFromHandle(void *handle) {
+	ResNode *pNode = checkAllocatedRes(handle);
+
+	if (pNode)
+		return pNode->serial;
+
+	return (int)(intptr)handle;
+}
+
 ResNode *Res::resourceHandleFromSerialNumber(int serial) {
 	ResNode *pNode = _pNodeHead;
 
