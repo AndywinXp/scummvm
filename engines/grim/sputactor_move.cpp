@@ -24,6 +24,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/chore/cos.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/puck.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
@@ -213,6 +214,9 @@ void SputActorModule::updateCostumes2(SputActor *pActor, float delta) {
 	if (pExtra->lookCarrot[0] == 0.0f && pExtra->lookCarrot[1] == 0.0f && pExtra->lookCarrot[2] == 0.0f) {
 		bLookAhead = 1;
 		_pRd->transformVector34(target, getOrientMatrix(pActor)[1], inverseMatrix);
+
+		if (g_grim->useRemasterFixes())
+			_pRd->normalize3Acc(target);
 	} else {
 		_pRd->transformPoint34(target, pExtra->lookCarrot, inverseMatrix);
 		_pRd->normalize3Acc(target);
