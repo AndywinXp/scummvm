@@ -871,7 +871,9 @@ int Res::sysSave(Common::WriteStream *pStream) {
 			if (pStream->err())
 				return 1;
 
-			pNode->serial = (int)(intptr)pNode->handle;
+			// The EXE overwrote the serial with the handle here, which supposedly
+			// worked only because its heap addresses are the same on every run
+			// pNode->serial = (int)(intptr)pNode->handle;
 			pStream->writeSint32LE(pNode->serial);
 
 			if (pStream->err())
