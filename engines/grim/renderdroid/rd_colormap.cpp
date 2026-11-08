@@ -67,7 +67,8 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *pColormap) {
 	byte firstGreen = pColormap->aColors[1];
 	byte firstBlue = pColormap->aColors[2];
 
-	for (int i = 0; i < 254; i++) {
+	// The demo does not change the colors that are equal to the first one
+	for (int i = 0; i < 254 && !_bDemoFormat; i++) {
 		if (pColormap->aColors[0] == firstRed)
 			pColormap->aColors[0] = pColormap->aColors[0] >= 247 ? pColormap->aColors[0] - 8 : pColormap->aColors[0] + 8;
 
@@ -216,9 +217,10 @@ int RenderDroid::ColormapModule::buildGrayRamp(RdColormap *pColormap) {
 		pColormap->pLightLevel = pColormap->pLightLevelAlloc + 256 - ((uintptr)pColormap->pLightLevelAlloc & 0xFF);
 
 	for (uint i = 0; i < 256; i++) {
-		pColormap->aColors[i * 3] = i;
-		pColormap->aColors[i * 3 + 1] = i;
-		pColormap->aColors[i * 3 + 2] = i;
+		// The overlapping writes are in the original
+		pColormap->aColors[i] = i;
+		pColormap->aColors[i + 1] = i;
+		pColormap->aColors[i + 2] = i;
 
 		uint level = 0;
 		for (uint j = 0; j < 0x4000; j += 256)

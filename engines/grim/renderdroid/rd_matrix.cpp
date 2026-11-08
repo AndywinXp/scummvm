@@ -102,7 +102,8 @@ void RenderDroid::buildFromVectorAngle34(RdMatrix34 out, RdVector3 axis, float a
 
 	float xx = (float)(ax * ax);
 	float yy = (float)(ay * ay);
-	double xxCos = ax * ax * cosAngle;
+	// The demo multiplies the cosine by xx already rounded to float
+	double xxCos = isDemo() ? (double)xx * cosAngle : ax * ax * cosAngle;
 	float xxCosStored = (float)xxCos;
 	float z = (float)((1.0 - xx) - yy);
 	double yyCos = (double)yy * cosAngle;
@@ -258,7 +259,10 @@ void RenderDroid::invertOrtho34(RdMatrix34 out, RdMatrix34 in) {
 	double x = in[3][0];
 
 	out[3][0] = (float)-((double)in[0][1] * y + (double)in[0][2] * z + x * in[0][0]);
-	out[3][1] = (float)-((double)in[1][1] * y + (double)in[1][0] * x + (double)in[1][2] * z);
+	if (isDemo())
+		out[3][1] = (float)-((double)in[1][1] * y + (double)in[1][2] * z + (double)in[1][0] * x);
+	else
+		out[3][1] = (float)-((double)in[1][1] * y + (double)in[1][0] * x + (double)in[1][2] * z);
 	out[3][2] = (float)-((double)in[2][2] * z + (double)in[2][0] * x + (double)in[2][1] * y);
 }
 
@@ -306,10 +310,18 @@ void RenderDroid::multiply34(RdMatrix34 out, RdMatrix34 a, RdMatrix34 b) {
 	out[0][0] = (float)((double)a[2][0] * b[0][2] + (double)a[1][0] * b[0][1] + (double)a[0][0] * b[0][0]);
 	out[0][1] = (float)((double)a[0][1] * b[0][0] + (double)a[1][1] * b[0][1] + (double)a[2][1] * b[0][2]);
 	out[0][2] = (float)((double)a[0][2] * b[0][0] + (double)a[2][2] * b[0][2] + (double)a[1][2] * b[0][1]);
-	out[1][0] = (float)((double)b[1][0] * a[0][0] + (double)b[1][1] * a[1][0] + (double)b[1][2] * a[2][0]);
+	if (isDemo())
+		out[1][0] = (float)((double)b[1][0] * a[0][0] + (double)b[1][2] * a[2][0] + (double)b[1][1] * a[1][0]);
+	else
+		out[1][0] = (float)((double)b[1][0] * a[0][0] + (double)b[1][1] * a[1][0] + (double)b[1][2] * a[2][0]);
+
 	out[1][1] = (float)((double)b[1][2] * a[2][1] + (double)b[1][1] * a[1][1] + (double)b[1][0] * a[0][1]);
 	out[1][2] = (float)((double)b[1][2] * a[2][2] + (double)a[1][2] * b[1][1] + (double)b[1][0] * a[0][2]);
-	out[2][0] = (float)((double)b[2][0] * a[0][0] + (double)b[2][2] * a[2][0] + (double)b[2][1] * a[1][0]);
+	if (isDemo())
+		out[2][0] = (float)((double)b[2][0] * a[0][0] + (double)b[2][1] * a[1][0] + (double)b[2][2] * a[2][0]);
+	else
+		out[2][0] = (float)((double)b[2][0] * a[0][0] + (double)b[2][2] * a[2][0] + (double)b[2][1] * a[1][0]);
+
 	out[2][1] = (float)((double)b[2][0] * a[0][1] + (double)b[2][1] * a[1][1] + (double)b[2][2] * a[2][1]);
 	out[2][2] = (float)((double)b[2][2] * a[2][2] + (double)b[2][0] * a[0][2] + (double)b[2][1] * a[1][2]);
 	out[3][0] = (float)((double)b[3][0] * a[0][0] + (double)b[3][2] * a[2][0] + (double)b[3][1] * a[1][0] + a[3][0]);
@@ -321,6 +333,29 @@ void RenderDroid::postMultiply34(RdMatrix34 dst, RdMatrix34 src) {
 	RdMatrix34 orig;
 
 	memcpy(orig, dst, sizeof(RdMatrix34));
+
+	if (isDemo()) {
+		for (int r = 0; r < 4; r++) {
+			float add0 = (r == 3) ? src[3][0] : 0.0f;
+			float add1 = (r == 3) ? src[3][1] : 0.0f;
+			float add2 = (r == 3) ? src[3][2] : 0.0f;
+			double x = (double)src[2][0] * orig[r][2] + (double)src[1][0] * orig[r][1] + (double)orig[r][0] * src[0][0];
+			double y = (double)src[2][1] * orig[r][2] + (double)src[1][1] * orig[r][1] + (double)src[0][1] * orig[r][0];
+			double z = (double)src[1][2] * orig[r][1] + (double)src[2][2] * orig[r][2] + (double)src[0][2] * orig[r][0];
+
+			if (r == 3) {
+				x += add0;
+				y += add1;
+				z += add2;
+			}
+
+			dst[r][0] = (float)x;
+			dst[r][1] = (float)y;
+			dst[r][2] = (float)z;
+		}
+
+		return;
+	}
 
 	dst[0][0] = (float)((double)src[1][0] * orig[0][1] + (double)src[2][0] * orig[0][2] + (double)orig[0][0] * src[0][0]);
 	dst[0][1] = (float)((double)src[2][1] * orig[0][2] + (double)src[0][1] * orig[0][0] + (double)src[1][1] * orig[0][1]);
@@ -346,6 +381,21 @@ void RenderDroid::preMultiply34(RdMatrix34 dst, RdMatrix34 src) {
 	RdMatrix34 orig;
 
 	memcpy(orig, dst, sizeof(RdMatrix34));
+
+	if (isDemo()) {
+		for (int c = 0; c < 3; c++)
+			dst[0][c] = (float)((double)src[0][1] * orig[1][c] + (double)src[0][2] * orig[2][c] + (double)orig[0][c] * src[0][0]);
+
+		for (int r = 1; r < 3; r++) {
+			for (int c = 0; c < 3; c++)
+				dst[r][c] = (float)((double)src[r][2] * orig[2][c] + (double)src[r][1] * orig[1][c] + (double)src[r][0] * orig[0][c]);
+		}
+
+		for (int c = 0; c < 3; c++)
+			dst[3][c] = (float)((double)src[3][0] * orig[0][c] + (double)src[3][2] * orig[2][c] + (double)src[3][1] * orig[1][c] + orig[3][c]);
+
+		return;
+	}
 
 	dst[0][0] = (float)((double)src[0][1] * orig[1][0] + (double)src[0][2] * orig[2][0] + (double)orig[0][0] * src[0][0]);
 	dst[0][1] = (float)((double)src[0][1] * orig[1][1] + (double)src[0][2] * orig[2][1] + (double)orig[0][1] * src[0][0]);
@@ -394,7 +444,11 @@ void RenderDroid::transformPoint34Acc(RdVector3 pt, RdMatrix34 mat) {
 void RenderDroid::transformPointLst34(RdMatrix34 mat, RdVector3 *aIn, RdVector3 *aOut, uint num) {
 	for (uint i = 0; i < num; i++) {
 		aOut[i][0] = (float)((double)aIn[i][1] * mat[1][0] + (double)mat[2][0] * aIn[i][2] + (double)mat[0][0] * aIn[i][0] + mat[3][0]);
-		aOut[i][1] = (float)((double)mat[0][1] * aIn[i][0] + (double)mat[2][1] * aIn[i][2] + (double)mat[1][1] * aIn[i][1] + mat[3][1]);
+		if (isDemo())
+			aOut[i][1] = (float)((double)mat[0][1] * aIn[i][0] + (double)mat[1][1] * aIn[i][1] + (double)mat[2][1] * aIn[i][2] + mat[3][1]);
+		else
+			aOut[i][1] = (float)((double)mat[0][1] * aIn[i][0] + (double)mat[2][1] * aIn[i][2] + (double)mat[1][1] * aIn[i][1] + mat[3][1]);
+
 		aOut[i][2] = (float)((double)mat[0][2] * aIn[i][0] + (double)mat[1][2] * aIn[i][1] + (double)mat[2][2] * aIn[i][2] + mat[3][2]);
 	}
 }

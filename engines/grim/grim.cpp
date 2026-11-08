@@ -1909,7 +1909,7 @@ void GrimEngine::createModules() {
 	_pRd->setStd3D(_pStd3D);
 	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile, isDemo);
 
-	_pRes = new Res();
+	_pRes = new Res(isDemo);
 	_pSputResource = new SputResource(_pRes, _pRd, _pStdDisplay, _pStdBitmap);
 	_pStdControl = new StdControl();
 
@@ -2323,7 +2323,10 @@ int GrimEngine::sputStartup() {
 	if (!result) {
 		int physicalRam = kPhysicalRam;
 
-		if (physicalRam > 0x1000000) {
+		// The demo always uses 12288000 bytes, whatever the memory of the machine
+		if (_gameFlags & ADGF_DEMO) {
+			_pSputResource->setMemoryUsage(12288000, 0);
+		} else if (physicalRam > 0x1000000) {
 			int memoryLimit = _pRes->getMemoryLimit();
 
 			if (memoryLimit >= (int)(physicalRam - 0x800000))
@@ -2601,7 +2604,7 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 
 			mode = _libMode;
 
-			if (mode != 3 && mode != 4) {
+			if (mode != 3 && (mode != 4 || (_gameFlags & ADGF_DEMO))) {
 				setPerfCounter(3);
 				if (_gameFlags & ADGF_DEMO)
 					_pSputActor->updateActorsDemo(_pSputTime->getFrameTimeFlex());
@@ -2614,6 +2617,10 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 
 		if (bRender && (mode != 1 || manualTicks)) {
 			_pSputRender->update();
+
+			if (_gameFlags & ADGF_DEMO)
+				_pRd->advanceFrame();
+
 			_bRenderPending = 1;
 		}
 

@@ -497,10 +497,12 @@ void SputCostume::fadeKeysIn(int hInst, int choreIndex, int timeMs) {
 		if (!pKeyframeInst->ref.valid)
 			warning("SputCostume::fadeKeysIn(): Bad keyframe Reference");
 
-		while (trackNum < 6 && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
+		int numTracks = _pRd->_puppet.getNumTracks();
+
+		while (trackNum < numTracks && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
 			trackNum++;
 
-		if (trackNum == 6)
+		if (trackNum == numTracks)
 			continue;
 
 		if (pPuppet->aTracks[trackNum].fade == 1.0f)
@@ -544,10 +546,12 @@ void SputCostume::fadeKeysOut(int hInst, int choreIndex, int timeMs) {
 		if (!pKeyframeInst->ref.valid)
 			warning("SputCostume::fadeKeysOut(): Bad keyframe Reference");
 
-		while (trackNum < 6 && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
+		int numTracks = _pRd->_puppet.getNumTracks();
+
+		while (trackNum < numTracks && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
 			trackNum++;
 
-		if (trackNum == 6)
+		if (trackNum == numTracks)
 			continue;
 
 		float time = (float)((double)timeMs * (double)0.001f);

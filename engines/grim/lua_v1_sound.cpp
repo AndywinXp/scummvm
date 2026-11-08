@@ -37,7 +37,8 @@ namespace Grim {
 
 // Like the original, a sound is identified either by its name or by the number ImStartSound returned
 static const char *getSoundKey(lua_Object nameObj) {
-	if (lua_isnumber(nameObj))
+	// The demo always uses the name, ImStartSound doesn't return a number there
+	if (!(g_grim->getGameFlags() & ADGF_DEMO) && lua_isnumber(nameObj))
 		return (const char *)(intptr)luaFtol(lua_getnumber(nameObj));
 
 	return lua_getstring(nameObj);
@@ -66,6 +67,12 @@ void Lua_V1::ImStartSound() {
 
 void Lua_V1::ImStopSound() {
 	lua_Object nameObj = lua_getparam(1);
+
+	if ((g_grim->getGameFlags() & ADGF_DEMO) && !lua_isstring(nameObj) && !lua_isnil(nameObj)) {
+		warning("Lua_V1::ImStopSound(): invalid filename");
+		return;
+	}
+
 	g_imuse->soundsStopSound(getSoundKey(nameObj));
 }
 
@@ -134,8 +141,15 @@ void Lua_V1::ImSetParam() {
 	lua_Object paramObj = lua_getparam(2);
 	lua_Object valueObj = lua_getparam(3);
 
-	if (!lua_isnumber(nameObj) && !lua_isstring(nameObj))
+	if (g_grim->getGameFlags() & ADGF_DEMO) {
+		if (!lua_isstring(nameObj) && !lua_isnil(nameObj)) {
+			warning("Lua_V1::ImSetParam(): invalid filename");
+			return;
+		}
+	} else if (!lua_isnumber(nameObj) && !lua_isstring(nameObj)) {
 		return;
+	}
+
 	if (!lua_isnumber(paramObj) || !lua_isnumber(valueObj))
 		return;
 
@@ -151,7 +165,13 @@ void Lua_V1::ImGetParam() {
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object paramObj = lua_getparam(2);
 
-	if (!lua_isnumber(nameObj) && !lua_isstring(paramObj)) {
+	if (g_grim->getGameFlags() & ADGF_DEMO) {
+		if ((!lua_isstring(nameObj) && !lua_isnil(nameObj)) || !lua_isnumber(paramObj)) {
+			warning("Lua_V1::ImGetParam(): invalid filename or param");
+			lua_pushnumber(-1.0);
+			return;
+		}
+	} else if (!lua_isnumber(nameObj) && !lua_isstring(paramObj)) {
 		lua_pushnumber(-1.0);
 		return;
 	}
@@ -168,9 +188,13 @@ void Lua_V1::ImFadeParam() {
 
 	bool demo = g_grim->getGameFlags() & ADGF_DEMO;
 
-	if (!lua_isstring(nameObj) && !lua_isnumber(nameObj)) {
-		if (!demo)
-			lua_pushnumber(0);
+	if (demo) {
+		if (!lua_isstring(nameObj) && !lua_isnil(nameObj)) {
+			warning("Lua_V1::ImFadeParam(): invalid filename");
+			return;
+		}
+	} else if (!lua_isstring(nameObj) && !lua_isnumber(nameObj)) {
+		lua_pushnumber(0);
 		return;
 	}
 	if (!lua_isnumber(opcodeObj) || !lua_isnumber(valueObj) || !lua_isnumber(durationObj))

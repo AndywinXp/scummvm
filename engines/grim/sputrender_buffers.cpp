@@ -224,6 +224,8 @@ void SputRender::fillDrawBuffer(StdVBuffer *pSrc) {
 	if (pSrc->tex.format.colorMode != 5) {
 		colorCorrect((uint16 *)_pCleanBuffer->pPixels, size);
 		_pCleanBuffer->colorKey = _colorLookup[63519];
+	} else if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		_pCleanBuffer->colorKey = _colorLookup[63519];
 	}
 }
 

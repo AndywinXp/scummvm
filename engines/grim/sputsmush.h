@@ -66,6 +66,7 @@ public:
 	int setVideoPalette(uint32 *pPalette, int start, int count) override;
 	virtual int moviePlaying();
 	virtual int pause(int bPause);
+	virtual void blitFrame() {}
 
 protected:
 	SmushPlay *_pSmushPlay;

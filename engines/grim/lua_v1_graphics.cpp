@@ -226,8 +226,12 @@ void Lua_V1::IsFullscreenMoviePlaying() {
 	pushbool(g_grim->_pSputSmush->moviePlaying() != 0);
 }
 
+void Lua_V1::IsFullscreenMoviePlayingDemo() {
+	pushbool(g_grim->getLibMode() == 3);
+}
+
 void Lua_V1::IsMoviePlaying() {
-	Lua_V1::IsFullscreenMoviePlaying();
+	pushbool(g_grim->_pSputSmush->moviePlaying() != 0);
 }
 
 void Lua_V1::StopMovie() {
@@ -583,7 +587,8 @@ void Lua_V1::KillPrimitive() {
 }
 
 void Lua_V1::DimScreen() {
-	g_grim->_pSputRender->dim(0, 2);
+	// The demo dims to half, not to a quarter
+	g_grim->_pSputRender->dim(0, (g_grim->getGameFlags() & ADGF_DEMO) ? 1 : 2);
 }
 
 void Lua_V1::DimRegion() {
@@ -649,7 +654,8 @@ void Lua_V1::RenderModeUser() {
 		g_grim->_pSputSmush->pause(0);
 		g_grim->_pSputRender->forceRefresh();
 		g_grim->setLibMode(g_grim->getPrevMode());
-	} else if (!lua_isnil(modeObj) && g_grim->getLibMode() != 4) {
+	} else if ((!lua_isnil(modeObj) || (g_grim->getGameFlags() & ADGF_DEMO)) && g_grim->getLibMode() != 4) {
+		// The demo enters the user mode also when the argument is nil
 		g_grim->setPrevMode(g_grim->getLibMode());
 		g_grim->_pSputSmush->pause(1);
 		g_grim->setLibMode(4);

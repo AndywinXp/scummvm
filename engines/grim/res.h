@@ -100,7 +100,7 @@ class SputRender;
 
 class Res {
 public:
-	Res();
+	explicit Res(bool isDemo);
 	~Res();
 
 	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
@@ -173,6 +173,7 @@ private:
 	Common::DumpFile *_logFile;
 	int _memoryLimit;
 	SputRender *_pSputRender;
+	bool _bDemo;
 };
 
 } // End of namespace Grim

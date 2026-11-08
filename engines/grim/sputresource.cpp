@@ -333,7 +333,8 @@ int SputResource::loadResBknd(ResHandlerMsg *pMsg) {
 		if (!pBitmap)
 			return 0;
 
-		if (!pBitmap->encoding && pBitmap->format.colorMode == 1) {
+		// The demo does not correct the colors of the backgrounds
+		if (!_pRd->isDemo() && !pBitmap->encoding && pBitmap->format.colorMode == 1) {
 			for (int i = 0; i < (int)pBitmap->numFrames; i++) {
 				StdVBuffer *pFrame = pBitmap->apFrames[i];
 
@@ -526,7 +527,10 @@ int SputResource::loadResFont(ResHandlerMsg *pMsg) {
 
 		if (!_pBlastText->load(pMsg->pName, pFont)) {
 			int result = _pRes->allocCompletion(pMsg->tag, pMsg->pName, pFont);
-			_pRes->setPurgeOnFree(pFont, 0);
+
+			// The demo can purge the fonts
+			if (!_pRd->isDemo())
+				_pRes->setPurgeOnFree(pFont, 0);
 
 			return result;
 		}
@@ -562,7 +566,9 @@ int SputResource::loadResKeyf(ResHandlerMsg *pMsg) {
 		if (!pKeyframe)
 			return 0;
 
-		pKeyframe->fps = 15.0f;
+		// The demo keeps the rate of the file
+		if (!_pRd->isDemo())
+			pKeyframe->fps = 15.0f;
 
 		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pKeyframe);
 	}

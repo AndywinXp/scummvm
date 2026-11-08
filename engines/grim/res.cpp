@@ -35,10 +35,10 @@ namespace Grim {
 static const int kLabPriorityBase = -1000;
 static const int kDirectoryPriorityBase = 2;
 
-Res::Res() : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0), _nextLabPriority(kLabPriorityBase),
+Res::Res(bool isDemo) : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0), _nextLabPriority(kLabPriorityBase),
 		_nextDirectoryPriority(kDirectoryPriorityBase),
 		_pTagHead(nullptr), _pNodeHead(nullptr), _pNodeTail(nullptr), _pDefaultHandler(nullptr),
-		_logFile(nullptr), _memoryLimit(0x1800000), _pSputRender(nullptr) {
+		_logFile(nullptr), _memoryLimit(0x1800000), _pSputRender(nullptr), _bDemo(isDemo) {
 }
 
 Res::~Res() {
@@ -490,7 +490,9 @@ ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
 	msg.data = nullptr;
 	msg.result = 0;
 
-	_pSputRender->drawLoadingImage();
+	// The demo has no loading image and does not update the sounds while loading
+	if (!_bDemo)
+		_pSputRender->drawLoadingImage();
 
 	if (pTag)
 		*pResult = pTag->pHandler->handler(&msg);
@@ -499,13 +501,14 @@ ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
 	else
 		*pResult = loadFileData(&msg);
 
-	if (g_imuse)
+	if (g_imuse && !_bDemo)
 		g_imuse->soundsPeriodic();
 
 	if (*pResult == 1) {
 		pNode = checkList1(tag, name);
 
-		if (pNode) {
+		// The demo asks the handler for the size every time it is needed
+		if (pNode && !_bDemo) {
 			ResHandlerMsg sizeMsg;
 
 			sizeMsg.op = 3;
@@ -668,10 +671,29 @@ int Res::loadFileData(ResHandlerMsg *pMsg) {
 }
 
 int Res::getUserField(ResNode *pNode) {
-	if (pNode)
-		return pNode->size;
+	if (!pNode)
+		return 0;
 
-	return 0;
+	if (_bDemo) {
+		ResTag *pTag = getResTagStruct(pNode->tag);
+
+		if (!pTag)
+			return 0;
+
+		ResHandlerMsg sizeMsg;
+
+		sizeMsg.op = 3;
+		sizeMsg.pName = pNode->pName;
+		sizeMsg.tag = pNode->tag;
+		sizeMsg.data = pNode->handle;
+		sizeMsg.result = 0;
+
+		pTag->pHandler->handler(&sizeMsg);
+
+		return sizeMsg.result;
+	}
+
+	return pNode->size;
 }
 
 int Res::totalAllocated() {

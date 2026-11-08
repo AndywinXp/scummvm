@@ -255,10 +255,8 @@ int MeshHandler::request(int hCostume, int fourcc, void *pParentId, int parentFo
 
 	int meshIndex = atoi(pDigit);
 
-	if (meshIndex < 0 || meshIndex >= (int)pModel3->numHNodes) {
-		warning("MeshHandler::request(): mesh %d is out of range", meshIndex);
-		return 0;
-	}
+	if (meshIndex < 0 || meshIndex >= (int)pModel3->numHNodes)
+		warning("Mesh number out of range for thing!");
 
 	char name[45];
 

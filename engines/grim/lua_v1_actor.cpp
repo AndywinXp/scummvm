@@ -85,12 +85,13 @@ bool Lua_V1::findCostumeInStack(lua_Object obj, CostumeNode *pStack, CostumeNode
 
 	if (lua_isstring(obj)) {
 		const char *costumeName = lua_getstring(obj);
+		bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 		if (*ppFound) {
 			do {
 				CosCostume *pCostume = g_grim->_pSputCostume->getCos()->instGetCostume((*ppFound)->hCostumeInstance, nullptr);
 
-				if (pCostume && !scumm_stricmp(pCostume->name, costumeName))
+				if (pCostume && !(bDemo ? strcmp(pCostume->name, costumeName) : scumm_stricmp(pCostume->name, costumeName)))
 					break;
 
 				*ppFound = (*ppFound)->pNext;
@@ -192,7 +193,10 @@ void Lua_V1::SetActorRestChore() {
 	if (!pActor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	// The demo has no costume parameter
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		pNode = nullptr;
+	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
 		return;
 
 	if (lua_isnil(choreObj))
@@ -210,7 +214,10 @@ void Lua_V1::SetActorWalkChore() {
 	CostumeNode *pNode;
 	int chore;
 
-	if (!isSputActor(actorObj) || (!lua_isnumber(choreObj) && !lua_isnil(choreObj)))
+	bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
+
+	// The demo does not accept nil and has no costume parameter
+	if (!isSputActor(actorObj) || (!lua_isnumber(choreObj) && (bDemo || !lua_isnil(choreObj))))
 		return;
 
 	SputActor *pActor = getSputActor(actorObj);
@@ -218,7 +225,9 @@ void Lua_V1::SetActorWalkChore() {
 	if (!pActor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (bDemo)
+		pNode = nullptr;
+	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
 		return;
 
 	if (lua_isnumber(choreObj))
@@ -244,7 +253,10 @@ void Lua_V1::SetActorTurnChores() {
 	if (!pActor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	// The demo has no costume parameter
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		pNode = nullptr;
+	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
 		return;
 
 	int rightChore = luaFtol(lua_getnumber(rightChoreObj));
@@ -274,7 +286,13 @@ void Lua_V1::SetActorTalkChore() {
 	if (!pActor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode) || !pNode)
+	// The demo has no costume parameter
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		pNode = pActor->pCostumeStack;
+	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		return;
+
+	if (!pNode)
 		return;
 
 	if (lua_isnumber(choreObj))
@@ -300,7 +318,13 @@ void Lua_V1::SetActorMumblechore() {
 	if (!pActor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode) || !pNode)
+	// The demo has no costume parameter
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		pNode = pActor->pCostumeStack;
+	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		return;
+
+	if (!pNode)
 		return;
 
 	pNode->mumbleChore = chore;
@@ -340,6 +364,24 @@ void Lua_V1::SetActorScale() {
 		pActor->scale = lua_getnumber(scaleObj);
 	else
 		pActor->scale = 1.0f;
+}
+
+void Lua_V1::GetActorScale() {
+	lua_Object actorObj = lua_getparam(1);
+
+	if (!isSputActor(actorObj)) {
+		if (g_grim->getGameFlags() & ADGF_DEMO)
+			warning("GetActorScale: Invalid actor handle!");
+
+		return;
+	}
+
+	SputActor *pActor = getSputActor(actorObj);
+
+	if (!pActor)
+		return;
+
+	lua_pushnumber(pActor->scale);
 }
 
 void Lua_V1::SetActorTimeScale() {
@@ -611,6 +653,16 @@ void Lua_V1::PutActorInSet() {
 	if (!lua_isstring(setObj) && !lua_isnil(setObj))
 		return;
 
+	// The demo only stores the name of the set
+	if (g_grim->getGameFlags() & ADGF_DEMO) {
+		if (lua_isstring(setObj))
+			Common::strlcpy(pActor->curSetName, lua_getstring(setObj), sizeof(pActor->curSetName));
+		else
+			pActor->curSetName[0] = 0;
+
+		return;
+	}
+
 	g_grim->_pSputRoom->addActor(lua_getstring(setObj), pActor);
 
 	if (pActor->pExtra && lua_isstring(setObj) && pActor->pExtra->puck && pActor->pExtra->inBoxes) {
@@ -670,7 +722,8 @@ void Lua_V1::SetActorTurnRate() {
 	if (!pActor->pExtra)
 		g_grim->_pSputActor->allocateActorExtra(pActor);
 
-	if (!(pActor->pExtra->turnRate >= 0.0f))
+	// The demo stores the rate as it is
+	if (!(pActor->pExtra->turnRate >= 0.0f) && !(g_grim->getGameFlags() & ADGF_DEMO))
 		rate = rate * -1.0f;
 
 	pActor->pExtra->turnRate = rate;
@@ -940,7 +993,10 @@ void Lua_V1::GetActorNodeLocation() {
 	if (!pNode || !pNode->pHeadThing)
 		return;
 
-	if (!pActor->onScreen)
+	bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
+
+	// The demo uses the joint matrices of the last frame
+	if (!pActor->onScreen && !bDemo)
 		g_grim->_pRd->_puppet.buildJointMatrices(pNode->pHeadThing, g_grim->_pSputActor->getOrientMatrix(pActor));
 
 	uint nodeNum = (uint)luaFtol(lua_getnumber(nodeObj));
@@ -948,6 +1004,14 @@ void Lua_V1::GetActorNodeLocation() {
 
 	if (!g_grim->_pRd->_model3.getMeshMatrix(pNode->pHeadThing, g_grim->_pSputActor->getOrientMatrix(pActor), nodeNum, meshMatrix)) {
 		warning("GetActorNodeLocation(): invalid node %u", nodeNum);
+		return;
+	}
+
+	// The demo returns the position of the mesh matrix as it is
+	if (bDemo) {
+		lua_pushnumber(meshMatrix[3][0]);
+		lua_pushnumber(meshMatrix[3][1]);
+		lua_pushnumber(meshMatrix[3][2]);
 		return;
 	}
 
@@ -1912,6 +1976,26 @@ void Lua_V1::GetVisibleThings() {
 	}
 
 	lua_Object result = lua_createtable();
+
+	// The demo checks all the actors, not the ones linked to the set
+	if (g_grim->getGameFlags() & ADGF_DEMO) {
+		int numActors = g_grim->_pSputActor->getNumActors();
+
+		for (int i = 0; i < numActors; i++) {
+			SputActor *pTestActor = &g_grim->_pSputActor->getActors()[i];
+			float distance;
+
+			if (pTestActor != pActor && !(pActor->flags & 1) && g_grim->_pSputActor->canActorSeeActor(pActor, pTestActor, &distance)) {
+				lua_pushobject(result);
+				pushSputActor(g_grim->_pSputActor->getActorHandle(pTestActor));
+				lua_pushnumber(1.0f);
+				lua_settable();
+			}
+		}
+
+		lua_pushobject(result);
+		return;
+	}
 
 	if (!pActor->curSetName[0])
 		lua_pushobject(result);

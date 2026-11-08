@@ -51,6 +51,7 @@ public:
 	int getMovieLength(const char *name) override;
 	int moviePlaying() override;
 	int pause(int bPause) override;
+	void blitFrame() override;
 
 	int videoStart(int width, int height, int depth) override;
 	void videoStop() override;
@@ -59,8 +60,6 @@ public:
 	void videoSetPalette(const uint32 *palette, int start, int count) override;
 
 private:
-	void blitFrame();
-
 	GrimEngine *_pGrim;
 	SmushDemoDriver *_pDriver;
 	SmushDemoPlayer *_pPlayer;

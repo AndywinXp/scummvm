@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/debug.h"
 #include "common/textconsole.h"
 
 #include "engines/grim/grim.h"
@@ -299,6 +300,22 @@ void SputControl::update(float frameTime) {
 }
 
 int SputControl::standardHandler() {
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		int bKeyDown = _pStdControl->readKey(29, nullptr, nullptr);
+		if (!bKeyDown)
+			return 0;
+
+		bKeyDown = _pStdControl->readKey(78, nullptr, nullptr);
+		if (bKeyDown)
+			changeFOV(0.5);
+
+		bKeyDown = _pStdControl->readKey(74, nullptr, nullptr);
+		if (bKeyDown)
+			return changeFOV(-0.5);
+
+		return 0;
+	}
+
 	int bKeyDown = _pGrim->getDebugKeys();
 
 	if (!bKeyDown)
@@ -321,14 +338,21 @@ int SputControl::standardHandler() {
 		step = -0.5;
 	}
 
+	return changeFOV(step);
+}
+
+int SputControl::changeFOV(double step) {
 	Room *pRoom = _pSputRoom->getCurrentRoom();
 
 	if (!pRoom || pRoom->curSetup < 0 || (uint)pRoom->curSetup >= pRoom->numSetups) {
-		warning("SputControl::standardHandler(): there is no current setup");
+		warning("SputControl::changeFOV(): there is no current setup");
 		return 0;
 	}
 
 	RdCamera *pCamera = pRoom->pSetups[pRoom->curSetup].camera.prdCamera;
+
+	if (_pGrim->getGameFlags() & ADGF_DEMO)
+		debug("Changing FOV from %f to %f...", (double)pCamera->fov, (double)pCamera->fov + step);
 
 	_pRd->_camera.setFOV(pCamera, (float)((double)pCamera->fov + step));
 

@@ -494,7 +494,7 @@ void SputRoom::newRoomEntry(Room *pRoom) {
 	pRoom->colormapName[0] = 0;
 	Common::strlcpy(pRoom->colormapName, "<none>", 32);
 	Common::strlcpy(pRoom->name, "", 32);
-	pRoom->structSize = 6920;
+	pRoom->structSize = (_pGrim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
 }
 
 int SputRoom::loadRoomEntry(const char *fileName, Room *pRoom) {
@@ -688,7 +688,7 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 }
 
 int SputRoom::loadResources(Room *pRoom) {
-	pRoom->structSize = 6920;
+	pRoom->structSize = (_pGrim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
 
 	g_imuse->soundsFloodMusicBuffer();
 
@@ -763,8 +763,22 @@ int SputRoom::loadResources(Room *pRoom) {
 			}
 		}
 
-		if ((_pGrim->getGameFlags() & ADGF_DEMO) && !pSetup->ObjectStates)
-			createObjectStates(pRoom, pSetup, i);
+		if (_pGrim->getGameFlags() & ADGF_DEMO) {
+			if (!pSetup->ObjectStates) {
+				createObjectStates(pRoom, pSetup, i);
+			} else {
+				for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
+					pState->loadResources();
+			}
+
+			for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext) {
+				if (pState->colorImage.bitmapRef.valid)
+					pRoom->structSize += _pStdBitmap->memUsage(static_cast<StdBitmapStruct *>(pState->colorImage.bitmapRef.handle));
+
+				if (pState->zImage.bitmapRef.valid)
+					pRoom->structSize += _pStdBitmap->memUsage(static_cast<StdBitmapStruct *>(pState->zImage.bitmapRef.handle));
+			}
+		}
 
 		if (!pSetup->camera.prdCamera) {
 			pSetup->camera.prdCamera = _pRd->_camera.create(pSetup->camera.fov, 1, pSetup->camera.nearClip, pSetup->camera.farClip, 1.0f);
@@ -895,7 +909,7 @@ SputObjectState *SputRoom::addObjectState(int setupIndex, int objectType, const 
 	RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
 
 	pSetup->ObjectStates = new SputObjectState(pSetup->ObjectStates, bitmapName, zbufferName, objectType, _pRes, _pSputResource,
-			_pStdDisplay, _pStdBitmap, _pSputRender);
+			_pStdDisplay, _pStdBitmap, _pSputRender, (_pGrim->getGameFlags() & ADGF_DEMO) != 0);
 	pSetup->ObjectStates->loadResources();
 	pSetup->ObjectStates->setupIndex = setupIndex;
 
@@ -919,7 +933,7 @@ void SputRoom::createObjectStates(Room *pRoom, RoomSetup *pSetup, int setupIndex
 			continue;
 
 		SputObjectState *pState = new SputObjectState(pSetup->ObjectStates, pArt->aBitmapName, pArt->aZBufferName, 3, _pRes, _pSputResource,
-				_pStdDisplay, _pStdBitmap, _pSputRender);
+				_pStdDisplay, _pStdBitmap, _pSputRender, true);
 
 		pSetup->ObjectStates = pState;
 		pState->setupIndex = setupIndex;

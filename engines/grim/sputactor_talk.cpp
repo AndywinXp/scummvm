@@ -104,7 +104,7 @@ void SputActorModule::sayLineDemo(SputActor *pActor, const char *msgId) {
 			pExtra->talkTimerMs = 48 * (int)strlen(pText) + 640;
 
 		if (pEvent)
-			_pSputText->addToQueue(pEvent, -1, 13);
+			_pSputText->addToQueue(pEvent, -1, 5);
 	}
 
 	// There is no lip sync data in the demo, so the mumble chore always plays

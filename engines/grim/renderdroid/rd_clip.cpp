@@ -889,6 +889,10 @@ int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count,
 				double z = (double)slope * c;
 				double t;
 
+				// The versions with texture or intensities keep z as a float
+				if (pSrc->aTexVerts || pSrc->aIntensities)
+					z = (float)z;
+
 				if (fabs((double)dy) <= fabs((double)dz))
 					t = (z - prev[2]) / dz;
 				else

@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/puck.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/sputactor.h"
@@ -49,7 +50,8 @@ void SputRender::drawActorDebug(SputActor *pActor) {
 		}
 	}
 
-	if (pExtra->field_3F8) {
+	// The demo has no collision sphere to draw
+	if (pExtra->field_3F8 && !(_pGrim->getGameFlags() & ADGF_DEMO)) {
 		if (!pActor->pCostumeStack || !pActor->pCostumeStack->pHeadThing || !pActor->pCostumeStack->pHeadThing->data.pModel3) {
 			warning("SputRender::drawActorDebug(): the actor has no model");
 			return;
@@ -65,6 +67,16 @@ void SputRender::drawActorDebug(SputActor *pActor) {
 
 		_pRd->_primit3.drawPoint(out, radius, 10.0f, 0xFFFF, 0xFFFFFFFF);
 	}
+}
+
+void SputRender::drawRoomDebug() {
+	Room *pDebugRoom = _pSputRoom->getCurrentRoom();
+
+	if (_debugFlags & 2)
+		drawCameraDebug(pDebugRoom);
+
+	if (_debugFlags & 4)
+		drawActorBoxes(pDebugRoom, 0xFFFFFFFF);
 }
 
 void SputRender::drawCameraDebug(Room *pRoom) {

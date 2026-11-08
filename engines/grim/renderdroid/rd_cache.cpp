@@ -63,6 +63,14 @@ int RenderDroid::CacheModule::reset() {
 	_numUsedTexVertices = 0;
 	_numUsedIntensities = 0;
 
+	// Only the demo resets the viewport rectangle with the cache
+	if (_rd->isDemo()) {
+		_viewportRect[0] = 0x7FFFFFFF;
+		_viewportRect[1] = 0x7FFFFFFF;
+		_viewportRect[2] = 0;
+		_viewportRect[3] = 0;
+	}
+
 	return 0;
 }
 
@@ -355,7 +363,8 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 		break;
 	case 3:
 	case 4:
-		if (geometryMode == 4 && textureMode != 0 && textureMode != 1)
+		// The demo draws textured faces only with the perspective mode
+		if (geometryMode == 4 && ((_rd->isDemo() && textureMode != 1) || (textureMode != 0 && textureMode != 1)))
 			break;
 
 		switch (lightingMode) {
@@ -379,6 +388,10 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 	default:
 		break;
 	}
+
+	// The demo draws the wireframe over the face when the option is set
+	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
+		_rd->_nRaster.drawNGonLW(pProcFace, pCel);
 
 	return 1;
 }
@@ -564,6 +577,10 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 	default:
 		break;
 	}
+
+	// The demo draws the wireframe over the face when the option is set
+	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
+		_rd->_nRaster.drawNGonLW(pProcFace, pCel);
 
 	return 1;
 }
@@ -756,6 +773,10 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 	default:
 		break;
 	}
+
+	// The demo draws the wireframe over the face when the option is set
+	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
+		_rd->_zRaster.drawNGonLW(pProcFace, pCel);
 
 	return 1;
 }

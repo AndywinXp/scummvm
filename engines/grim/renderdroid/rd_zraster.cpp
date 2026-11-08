@@ -336,7 +336,8 @@ int RenderDroid::ZRasterModule::setupEdgeLinear(RdZRasterEdge *pEdge, int vertex
 	return 0;
 }
 
-int RenderDroid::ZRasterModule::setupLeftEdgePerspective(RdZRasterEdge *pEdge, bool gouraud) {
+int RenderDroid::ZRasterModule::setupLeftEdgePerspective(RdZRasterEdge *pEdge, int shading) {
+	bool gouraud = (shading == kGouraud);
 	uint vertIdx;
 	uint nextIdx;
 	float yStart;
@@ -389,9 +390,42 @@ int RenderDroid::ZRasterModule::setupLeftEdgePerspective(RdZRasterEdge *pEdge, b
 		pEdge->intensity = (int)floor(intensityFixed);
 
 	double xDelta = (double)xAtStart - _aVertices[vertIdx][0];
-	pEdge->oneOverZ = (float)((double)yOffset * _dOneOverZdY + _aOneOverZ[vertIdx] + xDelta * _dOneOverZdX);
-	pEdge->uOverZ = (float)((double)yOffset * _dUOverZdY + _aUOverZ[vertIdx] + xDelta * _dUOverZdX);
-	pEdge->vOverZ = (float)(xDelta * _dVOverZdX + _aVOverZ[vertIdx] + (double)yOffset * _dVOverZdY);
+	double yOneOverZ = (double)yOffset * _dOneOverZdY;
+	double yUOverZ = (double)yOffset * _dUOverZdY;
+	double yVOverZ = (double)yOffset * _dVOverZdY;
+	double xOneOverZ = xDelta * _dOneOverZdX;
+	double xUOverZ = xDelta * _dUOverZdX;
+	double xVOverZ = xDelta * _dVOverZdX;
+	bool oneYFirst = true;
+	bool uYFirst = true;
+	bool vYFirst = false;
+
+	if (_rd->isDemo()) {
+		if (shading == kUnlit) {
+			uYFirst = false;
+		} else if (shading == kFlat) {
+			oneYFirst = false;
+			vYFirst = true;
+		} else {
+			vYFirst = true;
+		}
+	}
+
+	if (oneYFirst)
+		pEdge->oneOverZ = (float)(yOneOverZ + _aOneOverZ[vertIdx] + xOneOverZ);
+	else
+		pEdge->oneOverZ = (float)(xOneOverZ + _aOneOverZ[vertIdx] + yOneOverZ);
+
+	if (uYFirst)
+		pEdge->uOverZ = (float)(yUOverZ + _aUOverZ[vertIdx] + xUOverZ);
+	else
+		pEdge->uOverZ = (float)(xUOverZ + _aUOverZ[vertIdx] + yUOverZ);
+
+	if (vYFirst)
+		pEdge->vOverZ = (float)(yVOverZ + _aVOverZ[vertIdx] + xVOverZ);
+	else
+		pEdge->vOverZ = (float)(xVOverZ + _aVOverZ[vertIdx] + yVOverZ);
+
 	pEdge->vertIdx = nextIdx;
 
 	return 0;
@@ -452,7 +486,7 @@ int RenderDroid::ZRasterModule::setupLeftEdge(RdZRasterEdge *pEdge, int mapping,
 	bool gouraud = (shading == kGouraud);
 
 	if (mapping == kPerspective)
-		return setupLeftEdgePerspective(pEdge, gouraud);
+		return setupLeftEdgePerspective(pEdge, shading);
 
 	return setupEdgeLinear(pEdge, _leftVertexStep, mapping == kAffine, gouraud);
 }
@@ -490,7 +524,7 @@ void RenderDroid::ZRasterModule::stepEdge(RdZRasterEdge *pEdge, int mapping, int
 	pEdge->y++;
 }
 
-bool RenderDroid::ZRasterModule::beginScanLine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, ScanState *pState) {
+bool RenderDroid::ZRasterModule::beginScanLine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, bool signedEnd, ScanState *pState) {
 	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
 	StdVBuffer *pVBuffer = pCanvas->pVBuffer;
 	StdVBuffer *pZBuffer = pCanvas->pZBuffer;
@@ -506,7 +540,7 @@ bool RenderDroid::ZRasterModule::beginScanLine(RdZRasterEdge *pLeft, RdZRasterEd
 
 	int x = pState->xStart >> 16;
 	pState->x = x;
-	pState->numPixels = (int)(xEnd >> 16) - x;
+	pState->numPixels = (signedEnd ? ((int)xEnd >> 16) : (int)(xEnd >> 16)) - x;
 	if (pState->numPixels <= 0)
 		return false;
 
@@ -642,7 +676,7 @@ void RenderDroid::ZRasterModule::drawTextureRun(int count, ScanState *pState, co
 void RenderDroid::ZRasterModule::scanLineSolid(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, int shading, int flags) {
 	ScanState state;
 
-	if (!beginScanLine(pLeft, pRight, bpp, &state))
+	if (!beginScanLine(pLeft, pRight, bpp, false, &state))
 		return;
 
 	bool gouraud = (shading == kGouraud);
@@ -695,23 +729,27 @@ RenderDroid::ZRasterModule::ScanParams RenderDroid::ZRasterModule::makeScanParam
 	return params;
 }
 
-void RenderDroid::ZRasterModule::scanLineAffine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params) {
-	ScanState state;
-
-	if (!beginScanLine(pLeft, pRight, params.mode.bpp, &state))
-		return;
-
-	int oneOverN = _rd->_raster.getOneOverNFixed(state.numPixels);
-	int xOffset = state.xStart - state.xLeft;
+void RenderDroid::ZRasterModule::setupAffineRun(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState) {
+	int oneOverN = _rd->_raster.getOneOverNFixed(pState->numPixels);
+	int xOffset = pState->xStart - pState->xLeft;
 	int uStepFull = (int)((uint64)((int64)oneOverN * (pRight->u - pLeft->u)) >> 16);
 	int vStepFull = (int)((uint64)((int64)oneOverN * (pRight->v - pLeft->v)) >> 16);
 
-	state.uStep = uStepFull >> _mipMapNum;
-	state.vStep = vStepFull >> _mipMapNum;
-	state.u = _dUdXModifier + ((int)((uint)pLeft->u + (uint)((uint64)((int64)uStepFull * xOffset) >> 16)) >> _mipMapNum);
-	state.v = _dVdXModifier + ((int)((uint)pLeft->v + (uint)((uint64)((int64)vStepFull * xOffset) >> 16)) >> _mipMapNum);
+	pState->uStep = uStepFull >> _mipMapNum;
+	pState->vStep = vStepFull >> _mipMapNum;
+	pState->u = _dUdXModifier + ((int)((uint)pLeft->u + (uint)((uint64)((int64)uStepFull * xOffset) >> 16)) >> _mipMapNum);
+	pState->v = _dVdXModifier + ((int)((uint)pLeft->v + (uint)((uint64)((int64)vStepFull * xOffset) >> 16)) >> _mipMapNum);
 
-	setupLinearZ(pLeft, pRight, &state);
+	setupLinearZ(pLeft, pRight, pState);
+}
+
+void RenderDroid::ZRasterModule::scanLineAffine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params) {
+	ScanState state;
+
+	if (!beginScanLine(pLeft, pRight, params.mode.bpp, false, &state))
+		return;
+
+	setupAffineRun(pLeft, pRight, &state);
 	if (params.mode.shading == kGouraud)
 		setupLinearIntensity(pLeft, pRight, &state);
 
@@ -721,6 +759,13 @@ void RenderDroid::ZRasterModule::scanLineAffine(RdZRasterEdge *pLeft, RdZRasterE
 	}
 
 	drawTextureRun(state.numPixels, &state, params);
+
+	if (params.caseMode) {
+		_caseU = state.u;
+		_caseV = state.v;
+		_caseUStep = state.uStep;
+		_caseVStep = state.vStep;
+	}
 }
 
 void RenderDroid::ZRasterModule::setRunSteps(ScanState *pState, float uEnd, float vEnd, float uStart, float vStart, double stepScale) {
@@ -755,7 +800,7 @@ void RenderDroid::ZRasterModule::setIdleRunCoords(ScanState *pState, const ScanP
 void RenderDroid::ZRasterModule::scanLinePerspective(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params) {
 	ScanState state;
 
-	if (!beginScanLine(pLeft, pRight, params.mode.bpp, &state))
+	if (!beginScanLine(pLeft, pRight, params.mode.bpp, true, &state))
 		return;
 
 	int numPixels = state.numPixels;
@@ -887,6 +932,287 @@ void RenderDroid::ZRasterModule::scanLineCase(RdZRasterEdge *pLeft, RdZRasterEdg
 		scanLinePerspective(pLeft, pRight, params);
 	else
 		scanLineAffine(pLeft, pRight, params);
+}
+
+int RenderDroid::ZRasterModule::roundToInt(double value) {
+	double lower = floor(value);
+	double fraction = value - lower;
+
+	if (fraction > 0.5 || (fraction == 0.5 && lower - 2.0 * floor(lower * 0.5) != 0.0))
+		lower += 1.0;
+
+	// Out of range gives the same result as fistp
+	if (!(lower >= -2147483648.0 && lower <= 2147483647.0))
+		return -2147483647 - 1;
+
+	return (int)lower;
+}
+
+void RenderDroid::ZRasterModule::setCaseRun(float uStart, float vStart, double uEnd, double vEnd, double stepScale, int shift) {
+	_caseV = roundToInt((double)vStart * 65536.0) >> shift;
+	_caseU = roundToInt((double)uStart * 65536.0) >> shift;
+	_caseVStep = roundToInt((vEnd - (double)vStart) * stepScale) >> shift;
+	_caseUStep = roundToInt((uEnd - (double)uStart) * stepScale) >> shift;
+}
+
+uint RenderDroid::ZRasterModule::zTestMask(ScanState *pState, int count) {
+	uint mask = 0;
+
+	for (int i = 0; i < count; i++) {
+		if ((uint16)pState->z > pState->pZ[i]) {
+			pState->pZ[i] = (uint16)pState->z;
+			mask |= 1u << i;
+		}
+
+		pState->z = (int)((uint)pState->z + (uint)pState->zStep);
+	}
+
+	pState->pZ += count;
+
+	return mask;
+}
+
+byte RenderDroid::ZRasterModule::fetchTexel8(int u, int v, int vShift) {
+	return _pPixels[(_vWrap & ((uint)v >> vShift)) + (((uint)_uWrap & (uint)u) >> 16)];
+}
+
+byte RenderDroid::ZRasterModule::shadeTexel8(int shading, byte texel, uint intensity) {
+	if (shading == kUnlit)
+		return texel;
+
+	if (shading == kFlat)
+		return _aMonoMap[texel];
+
+	return _aMonoMap[((intensity & 0x3F0000) >> 8) + texel];
+}
+
+void RenderDroid::ZRasterModule::drawPixels8(ScanState *pState, int count, uint mask, int shading, int vShift) {
+	for (int i = 0; i < count; i++) {
+		if (mask & (1u << i))
+			pState->pDest[i] = shadeTexel8(shading, fetchTexel8(pState->u, pState->v, vShift), (uint)pState->intensity);
+
+		pState->u = (int)((uint)pState->u + (uint)pState->uStep);
+		pState->v = (int)((uint)pState->v + (uint)pState->vStep);
+		pState->intensity = (int)((uint)pState->intensity + (uint)pState->intensityStep);
+	}
+
+	pState->pDest += count;
+}
+
+void RenderDroid::ZRasterModule::drawBlock8(ScanState *pState, uint mask, int shading, int vShift) {
+	for (int i = 0; i < 16; i++) {
+		if (mask & (1u << i)) {
+			uint intensity = (uint)pState->intensity + (uint)(i & ~1) * (uint)pState->intensityStep;
+
+			pState->pDest[i] = shadeTexel8(shading, fetchTexel8(pState->u, pState->v, vShift), intensity);
+		}
+
+		pState->u = (int)((uint)pState->u + (uint)pState->uStep);
+		pState->v = (int)((uint)pState->v + (uint)pState->vStep);
+	}
+
+	pState->intensity = (int)((uint)pState->intensity + 16u * (uint)pState->intensityStep);
+	pState->pDest += 16;
+}
+
+void RenderDroid::ZRasterModule::scanLineAffineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift) {
+	ScanState state;
+
+	if (!beginScanLine(pLeft, pRight, 8, false, &state))
+		return;
+
+	setupAffineRun(pLeft, pRight, &state);
+	if (shading == kGouraud)
+		setupLinearIntensity(pLeft, pRight, &state);
+
+	int numBlocks = state.numPixels >> 4;
+	int tailPixels = state.numPixels & 15;
+
+	for (int block = 0; block < numBlocks; block++) {
+		uint mask = zTestMask(&state, 16);
+
+		drawBlock8(&state, mask, shading, vShift);
+	}
+
+	_caseU = state.u;
+	_caseV = state.v;
+	_caseUStep = state.uStep;
+	_caseVStep = state.vStep;
+
+	if (tailPixels != 0) {
+		uint mask = zTestMask(&state, tailPixels);
+
+		drawPixels8(&state, tailPixels, mask, shading, vShift);
+	}
+}
+
+void RenderDroid::ZRasterModule::scanLinePerspectiveCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift, bool blockShiftFromTable) {
+	ScanState state;
+
+	if (!beginScanLine(pLeft, pRight, 8, true, &state))
+		return;
+
+	int numPixels = state.numPixels;
+	int headPixels = 0;
+
+	if (state.x % 16 != 0) {
+		headPixels = 16 - state.x % 16;
+		if (numPixels < headPixels)
+			headPixels = numPixels;
+	}
+
+	int restPixels = numPixels - headPixels;
+	int numBlocks = 0;
+	int tailPixels = 0;
+
+	if (restPixels != 0) {
+		numBlocks = restPixels / 16;
+		tailPixels = restPixels % 16;
+		if (tailPixels == 0) {
+			tailPixels = 16;
+			numBlocks--;
+		}
+	}
+
+	if (shading == kGouraud)
+		setupLinearIntensity(pLeft, pRight, &state);
+
+	// The blocks of the first Gouraud case shift by the low byte of a light table pointer
+	int blockShift = _mipMapNum;
+	if (blockShiftFromTable)
+		blockShift = (int)((uintptr)_aMonoMap & 0xFF) & 31;
+
+	double fraction = (double)(state.xStart - state.xLeft) * 0.0000152587890625;
+	float oneOverZ = truncToFloat(truncToFloat(fraction * (double)_dOneOverZdX) + (double)pLeft->oneOverZ);
+	float uOverZ = truncToFloat(truncToFloat(fraction * (double)_dUOverZdX) + (double)pLeft->uOverZ);
+	float vOverZ = truncToFloat(truncToFloat(fraction * (double)_dVOverZdX) + (double)pLeft->vOverZ);
+
+	state.z = (int)floor((float)((double)oneOverZ * 65536.0));
+	state.zStep = _dOneOverZdXFixed;
+
+	double invOneOverZ = 1.0 / (double)oneOverZ;
+	float invStored = (float)invOneOverZ;
+	float uStart = (float)(invOneOverZ * (double)uOverZ);
+	float vStart = (float)((double)invStored * (double)vOverZ);
+	float oneOverZNext;
+	float uOverZNext;
+	float vOverZNext;
+
+	if (headPixels != 0) {
+		double head = (double)headPixels;
+		float oneOverZEnd = (float)(head * (double)_dOneOverZdX + (double)oneOverZ);
+		float uOverZEnd = (float)(head * (double)_dUOverZdX + (double)uOverZ);
+		float vOverZEnd = (float)(head * (double)_dVOverZdX + (double)vOverZ);
+		uint mask = zTestMask(&state, headPixels);
+		double invEnd = 1.0 / (double)oneOverZEnd;
+		double uEnd = (double)uOverZEnd * invEnd;
+		double vEnd = (double)vOverZEnd * invEnd;
+
+		if (mask != 0) {
+			setCaseRun(uStart, vStart, uEnd, vEnd, (double)_rd->_raster.getOneOverNFlex(headPixels) * 65536.0, _mipMapNum);
+			state.u = (int)((uint)_dUdXModifier + (uint)_caseU);
+			state.v = (int)((uint)_dVdXModifier + (uint)_caseV);
+			state.uStep = _caseUStep;
+			state.vStep = _caseVStep;
+		}
+
+		drawPixels8(&state, headPixels, mask, shading, vShift);
+
+		uStart = (float)uEnd;
+		vStart = (float)vEnd;
+		oneOverZNext = (float)((double)oneOverZEnd + (double)_oneOverZStep);
+		uOverZNext = (float)((double)uOverZEnd + (double)_uOverZStep);
+		vOverZNext = (float)((double)vOverZEnd + (double)_vOverZStep);
+	} else {
+		oneOverZNext = (float)((double)oneOverZ + (double)_oneOverZStep);
+		uOverZNext = (float)((double)uOverZ + (double)_uOverZStep);
+		vOverZNext = (float)((double)vOverZ + (double)_vOverZStep);
+	}
+
+	if (numBlocks != 0) {
+		double invNext = 1.0 / (double)oneOverZNext;
+		double uOverZReg = (double)uOverZNext;
+		double vOverZReg = (double)vOverZNext;
+
+		for (int block = 0; block < numBlocks; block++) {
+			uint mask = zTestMask(&state, 16);
+
+			uOverZNext = (float)uOverZReg;
+			vOverZNext = (float)vOverZReg;
+
+			double uEnd = uOverZReg * invNext;
+			double vEnd = vOverZReg * invNext;
+			double oneOverZReg = (double)oneOverZNext + (double)_oneOverZStep;
+
+			oneOverZNext = (float)oneOverZReg;
+			invNext = 1.0 / oneOverZReg;
+
+			if (mask != 0) {
+				setCaseRun(uStart, vStart, uEnd, vEnd, 4096.0, blockShift);
+				state.u = (int)((uint)_dUdXModifier + (uint)_caseU);
+				state.v = (int)((uint)_dVdXModifier + (uint)_caseV);
+				state.uStep = _caseUStep;
+				state.vStep = _caseVStep;
+				drawBlock8(&state, mask, shading, vShift);
+				_caseU = state.u;
+				_caseV = state.v;
+			} else {
+				drawBlock8(&state, 0, shading, vShift);
+			}
+
+			uStart = (float)uEnd;
+			vStart = (float)vEnd;
+			uOverZReg = (double)uOverZNext + (double)_uOverZStep;
+			vOverZReg = (double)vOverZNext + (double)_vOverZStep;
+		}
+
+		uOverZNext = (float)uOverZReg;
+		vOverZNext = (float)vOverZReg;
+	}
+
+	if (tailPixels != 0) {
+		int tail = tailPixels - 1;
+
+		if (tail != 0) {
+			double tailCount = (double)tail;
+
+			oneOverZNext = (float)(tailCount * (double)_dOneOverZdX - (double)_oneOverZStep + (double)oneOverZNext);
+			uOverZNext = (float)(tailCount * (double)_dUOverZdX - (double)_uOverZStep + (double)uOverZNext);
+			vOverZNext = (float)(tailCount * (double)_dVOverZdX - (double)_vOverZStep + (double)vOverZNext);
+
+			double invTail = 1.0 / (double)oneOverZNext;
+			double uEnd = (double)uOverZNext * invTail;
+			double vEnd = (double)vOverZNext * invTail;
+
+			setCaseRun(uStart, vStart, uEnd, vEnd, (double)_rd->_raster.getOneOverNFlex(tail) * 65536.0, _mipMapNum);
+			_caseV = (int)((uint)_caseV + (uint)_dVdXModifier);
+			_caseU = (int)((uint)_caseU + (uint)_dUdXModifier);
+		}
+
+		state.u = _caseU;
+		state.v = _caseV;
+		state.uStep = _caseUStep;
+		state.vStep = _caseVStep;
+
+		uint mask = zTestMask(&state, tailPixels);
+
+		drawPixels8(&state, tailPixels, mask, shading, vShift);
+	}
+}
+
+void RenderDroid::ZRasterModule::scanLineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch) {
+	int vShift = 16 - _texRowShift;
+
+	if (pitch != 0) {
+		vShift = 16;
+		for (int size = pitch; size > 1; size >>= 1)
+			vShift--;
+	}
+
+	if (mapping == kPerspective)
+		scanLinePerspectiveCase8(pLeft, pRight, shading, vShift, shading == kGouraud && pitch == 0);
+	else
+		scanLineAffineCase8(pLeft, pRight, shading, vShift);
 }
 
 bool RenderDroid::ZRasterModule::setupGeometry(RdProcFace *pProcFace) {
@@ -1047,6 +1373,15 @@ int RenderDroid::ZRasterModule::selectCasePitch(int mapping, int shading) {
 	return 0;
 }
 
+int RenderDroid::ZRasterModule::selectCasePitch8() {
+	for (int pitch = 8; pitch <= 256; pitch *= 2) {
+		if (_texPitch == pitch)
+			return pitch;
+	}
+
+	return 0;
+}
+
 int RenderDroid::ZRasterModule::drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, float light, int mapping, int shading, int flags) {
 	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
 
@@ -1072,8 +1407,15 @@ int RenderDroid::ZRasterModule::drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, 
 
 	bool hasCases = (mapping != kSolid && flags == 0);
 	bool useCase = (hasCases && !_zScaleShift && bpp == 16);
-	bool drawLines = (bpp == 8 || bpp == 16) && !(hasCases && !_zScaleShift && bpp == 8);
-	int casePitch = useCase ? selectCasePitch(mapping, shading) : 0;
+	bool useCase8 = (hasCases && !_zScaleShift && bpp == 8);
+	bool drawLines = (bpp == 8 || bpp == 16);
+	int casePitch = 0;
+
+	if (useCase)
+		casePitch = selectCasePitch(mapping, shading);
+	else if (useCase8)
+		casePitch = selectCasePitch8();
+
 	ScanParams params = makeScanParams(bpp, shading, flags, mapping == kPerspective);
 
 	if (hasCases && bpp != 8 && bpp != 16)
@@ -1082,6 +1424,8 @@ int RenderDroid::ZRasterModule::drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, 
 	while (true) {
 		if (useCase)
 			scanLineCase(&left, &right, mapping, shading, casePitch);
+		else if (useCase8)
+			scanLineCase8(&left, &right, mapping, shading, casePitch);
 		else if (drawLines && mapping == kSolid)
 			scanLineSolid(&left, &right, bpp, shading, flags);
 		else if (drawLines && mapping == kAffine)
@@ -1772,6 +2116,174 @@ void RenderDroid::ZRasterModule::drawNGonGIT_Case5(RdZRasterEdge *pLeft, RdZRast
 
 void RenderDroid::ZRasterModule::drawNGonGIT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
 	scanLineCase(pLeft, pRight, kPerspective, kGouraud, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kUnlit, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kFlat, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kAffine, kGouraud, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonLIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kUnlit, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonFIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kFlat, 256);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 0);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 8);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 16);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 32);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 64);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 128);
+}
+
+void RenderDroid::ZRasterModule::drawNGonGIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight) {
+	scanLineCase8(pLeft, pRight, kPerspective, kGouraud, 256);
 }
 
 } // End of namespace Grim

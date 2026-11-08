@@ -97,6 +97,7 @@ void SputActorModule::drawCostume(CostumeNode *pNode, RdMatrix34 pMatrix) {
 
 void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 	int b3DAcceleration = _pSputRender->is3DHardware();
+	bool bDemo = _pRd->isDemo();
 	RdThing *pHeadThing = pNode->pHeadThing;
 
 	for (CostumeNode *pCurrent = pNode; pCurrent; pCurrent = pCurrent->pNext) {
@@ -131,12 +132,15 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 		if (pModelInst->pParentModel) {
 			ModelInst *pColormapModel = pModelInst;
 
-			do {
-				if (pColormapModel->pColormap)
-					break;
+			// The demo only uses the colormap of the model itself
+			if (!bDemo) {
+				do {
+					if (pColormapModel->pColormap)
+						break;
 
-				pColormapModel = pColormapModel->pParentModel;
-			} while (pColormapModel);
+					pColormapModel = pColormapModel->pParentModel;
+				} while (pColormapModel);
+			}
 
 			if (pColormapModel && pColormapModel->pColormap) {
 				_pRd->_colormap.setCurrent(pColormapModel->pColormap);
@@ -147,7 +151,12 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 #endif
 			}
 
-			buildJointMatricesRec(pModelInst->pParentModel, pMatrix);
+			if (!bDemo) {
+				buildJointMatricesRec(pModelInst->pParentModel, pMatrix);
+			} else if (pModelInst->pParentModel->pThing->jointsFrame != _pRd->getFrameTrue()) {
+				// The demo builds only the parent, and only if it is not up to date
+				_pRd->_puppet.buildJointMatrices(pModelInst->pParentModel->pThing, pMatrix);
+			}
 
 			RdThing *pParentThing = pModelInst->pParentModel->pThing;
 			RdModel3HNode *pParentNode = &pParentThing->data.pModel3->aHNodes[pModelInst->parentMeshIdx];
@@ -171,7 +180,8 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 				pChildNode->pivot[2] = pChildNode->pivot[2] - pParentNode->pivot[2];
 			}
 
-			pActor->onScreen = 0;
+			if (!bDemo)
+				pActor->onScreen = 0;
 
 			if (pActor->pExtra && pActor->pExtra->subClipNode == pModelInst->parentMeshIdx) {
 				_pRd->_model3.activateClipPlane(1);
@@ -210,7 +220,11 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 			if (!b3DAcceleration)
 				_pStdDisplay->vBufferLock(_pSputRender->drawBuffer());
 
-			pActor->onScreen = _pRd->_thing.draw(pModelInst->pThing, pMatrix) != 0;
+			int bDrawn = _pRd->_thing.draw(pModelInst->pThing, pMatrix) != 0;
+
+			// The demo only sets the flag, the sorting clears it
+			if (bDrawn || !bDemo)
+				pActor->onScreen = bDrawn;
 
 			if (!b3DAcceleration)
 				_pStdDisplay->vBufferUnlock(_pSputRender->drawBuffer());

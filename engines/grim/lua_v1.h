@@ -22,8 +22,11 @@
 #ifndef GRIM_LUA_V1
 #define GRIM_LUA_V1
 
+#include "common/array.h"
+
 #include "engines/grim/lua.h"
 #include "engines/grim/lua/lua.h"
+#include "engines/grim/res.h"
 #include "engines/grim/sputcontrol.h"
 
 // Windows.h badness: Remove #defines to the following Win32 API MultiByte/Unicode functions.
@@ -259,6 +262,8 @@ protected:
 	DECLARE_LUA_OPCODE(StartFullscreenMovieDemo);
 	DECLARE_LUA_OPCODE(StartMovieDemo);
 	DECLARE_LUA_OPCODE(IsFullscreenMoviePlaying);
+	DECLARE_LUA_OPCODE(IsFullscreenMoviePlayingDemo);
+	DECLARE_LUA_OPCODE(GetAngleBetweenVectorsDemo);
 	DECLARE_LUA_OPCODE(IsMoviePlaying);
 	DECLARE_LUA_OPCODE(StopMovie);
 	DECLARE_LUA_OPCODE(PauseMovie);
@@ -286,6 +291,7 @@ protected:
 	DECLARE_LUA_OPCODE(Save);
 	DECLARE_LUA_OPCODE(Remove);
 	DECLARE_LUA_OPCODE(LockFont);
+	DECLARE_LUA_OPCODE(UnLockFontDemo);
 	DECLARE_LUA_OPCODE(EnableDebugKeys);
 	DECLARE_LUA_OPCODE(LightMgrSetChange);
 	DECLARE_LUA_OPCODE(SetAmbientLight);
@@ -434,6 +440,7 @@ private:
 	int _imageHandles[kMaxImages];
 	StdVBuffer *_images[kMaxImages];
 	int _nextImageHandle;
+	Common::Array<ResRef *> _lockedFontRefs;
 };
 
 }

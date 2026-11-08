@@ -281,7 +281,7 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 
 		if (pProcFace->type & 2) {
 			flags |= 0x200;
-			alpha = 200;
+			alpha = _rd->isDemo() ? 90 : 200;
 		}
 
 		if (alpha != 255 && !pDevice->bAlphaBlend && !pDevice->bAlphaStipple) {
@@ -362,13 +362,17 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 			if ((pTexture->flags & 1) && pDevice->bAlphaTexture)
 				flags |= 0x400;
 
-			if (!pTexture->aCache[0][mipLevel].bInCache)
+			// The demo sets the palette only when the identity colormap changes
+			if (!_rd->isDemo() && !pTexture->aCache[0][mipLevel].bInCache)
 				pStd3D->setCurrentPalette(pProcFace->pColormap->aColors, 90);
 
 			if (!_rd->_material.addToTextureCache(pMaterial, pTexture, mipLevel, alt)) {
 				drawRenderList();
 				resetRenderList();
-				pStd3D->purgeTextureCache();
+
+				if (!_rd->isDemo())
+					pStd3D->purgeTextureCache();
+
 				firstVertex = _totalVerts;
 				warning("RenderDroid::CacheModule::sendFaceListToHardware(): texture cache full, render list flushed");
 
@@ -405,22 +409,77 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 
 				double invZ;
 
-				if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
-					invZ = 0.0;
+				if (_rd->isDemo()) {
+					// The demo uses 1 / (z + 1), reversed when the z buffer is not 16
+					if (pPos[2] == 0.0f)
+						invZ = 0.0;
+					else
+						invZ = 1.0 / ((double)pPos[2] - -1.0);
+
+					pVertex->sz = (float)(pStd3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
 				} else {
-					int zBias = -1;
+					if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
+						invZ = 0.0;
+					} else {
+						int zBias = -1;
 
-					if (pStd3D->getZBufferMode() == 16)
-						zBias = 1;
+						if (pStd3D->getZBufferMode() == 16)
+							zBias = 1;
 
-					invZ = 1.0 / ((double)zBias + (double)pPos[2]);
+						invZ = 1.0 / ((double)zBias + (double)pPos[2]);
+					}
+
+					pVertex->sz = (float)invZ;
 				}
 
-				pVertex->sz = (float)invZ;
 				pVertex->rhw = (float)(invZ * 0.03125);
 				pVertex->specular = 0;
 
-				if (lightingMode == 0) {
+				if (_rd->isDemo()) {
+					// The demo takes the colors from the palette through the light table of the colormap
+					const byte *pPalette = pProcFace->pColormap->aColors;
+					const byte *pLightLevel = pProcFace->pColormap->pLightLevel;
+					int paletteIndex = 3 * pCel->colorIndex;
+					bool bColorMode = false;
+
+					if (lightingMode == 3 && _rd->_curVertexColorMode == 1) {
+						bColorMode = true;
+						paletteIndex = 3 * pLightLevel[pCel->colorIndex];
+					} else if (lightingMode == 3) {
+						int level = truncateToInt(pProcFace->aIntensities[i]) & 0x3F;
+
+						paletteIndex = 3 * pLightLevel[(level << 8) + pCel->colorIndex];
+					} else if (lightingMode != 0) {
+						int level = truncateToInt(pProcFace->diffuseLight) & 0x3F;
+
+						paletteIndex = 3 * pLightLevel[(level << 8) + pCel->colorIndex];
+					}
+
+					colorRed = pPalette[paletteIndex];
+					colorGreen = pPalette[paletteIndex + 1];
+					colorBlue = pPalette[paletteIndex + 2];
+
+					if (bColorMode) {
+						colorRed += truncateToInt((double)pProcFace->aRedIntensities[i] * 255.0 - -0.5);
+						colorGreen += truncateToInt((double)pProcFace->aGreenIntensities[i] * 255.0 - -0.5);
+						colorBlue += truncateToInt((double)pProcFace->aBlueIntensities[i] * 255.0 - -0.5);
+
+						if (colorRed < 0)
+							colorRed = 0;
+						else if (colorRed > 255)
+							colorRed = 255;
+
+						if (colorGreen < 0)
+							colorGreen = 0;
+						else if (colorGreen > 255)
+							colorGreen = 255;
+
+						if (colorBlue < 0)
+							colorBlue = 0;
+						else if (colorBlue > 255)
+							colorBlue = 255;
+					}
+				} else if (lightingMode == 0) {
 					colorRed = pColor[0];
 					colorGreen = pColor[1];
 					colorBlue = pColor[2];
@@ -466,19 +525,30 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 
 				double invZ;
 
-				if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
-					invZ = 0.0;
+				if (_rd->isDemo()) {
+					// The demo uses 1 / (z + 1), reversed when the z buffer is not 16
+					if (pPos[2] == 0.0f)
+						invZ = 0.0;
+					else
+						invZ = 1.0 / ((double)pPos[2] - -1.0);
+
+					pVertex->sz = (float)(pStd3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
 				} else {
-					int zBias = -1;
+					if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
+						invZ = 0.0;
+					} else {
+						int zBias = -1;
 
-					if (pStd3D->getZBufferMode() == 16)
-						zBias = 1;
+						if (pStd3D->getZBufferMode() == 16)
+							zBias = 1;
 
-					pPos[2] = (float)((double)zBias + (double)pPos[2]);
-					invZ = 1.0 / (double)pPos[2];
+						pPos[2] = (float)((double)zBias + (double)pPos[2]);
+						invZ = 1.0 / (double)pPos[2];
+					}
+
+					pVertex->sz = (float)invZ;
 				}
 
-				pVertex->sz = (float)invZ;
 				pVertex->rhw = (float)invZ;
 				pVertex->specular = 0;
 

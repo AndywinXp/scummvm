@@ -76,6 +76,7 @@ public:
 
 private:
 	int standardHandler();
+	int changeFOV(double step);
 
 	RenderDroid *_pRd;
 	SputRoom *_pSputRoom;

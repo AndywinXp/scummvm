@@ -307,6 +307,36 @@ RdProcFace *RenderDroid::Primit3Module::drawPolygon(RdVector3 *aVerts, int numVe
 
 	(_rd->_camera.*pCamera->pfProjectLst)(aScreen, aTransformed, numClipped);
 
+	// The demo draws the polygon twice, as back face and as front face
+	if (_bDemo) {
+		RdProcFace *pLast = nullptr;
+
+		for (int side = 1; side >= 0; side--) {
+			RdProcFace *pDemoFace = _rd->_cache.getProcEntry();
+
+			if (!pDemoFace) {
+				warning("RenderDroid::Primit3Module::drawPolygon(): no free cache entry");
+				return pLast;
+			}
+
+			pDemoFace->flags = 0;
+			pDemoFace->type = 0;
+			pDemoFace->diffuseLight = 0.0f;
+			pDemoFace->extraLight = 0.0f;
+			pDemoFace->geometryMode = 3;
+			pDemoFace->lightingMode = 1;
+			pDemoFace->numVertices = numClipped;
+			memcpy(pDemoFace->aVertices, aScreen, sizeof(RdVector3) * numClipped);
+			pDemoFace->curCel = -1;
+			pDemoFace->pMaterial = pMaterial;
+			pDemoFace->bBackface = side;
+			_rd->_cache.addProcFace(0, numClipped, 1);
+			pLast = pDemoFace;
+		}
+
+		return pLast;
+	}
+
 	RdProcFace *pProcFace = _rd->_cache.getProcEntry();
 
 	if (!pProcFace) {

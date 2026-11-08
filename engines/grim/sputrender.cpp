@@ -194,7 +194,8 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 	else
 		_pCleanArtBuffer = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
-	int bVideoMemory = (_b3DAcceleration && !_bAcceleratedZBuffers) ? 1 : 0;
+	// The demo always keeps the clean Z buffer in system memory
+	int bVideoMemory = (_b3DAcceleration && !_bAcceleratedZBuffers && !(_pGrim->getGameFlags() & ADGF_DEMO)) ? 1 : 0;
 
 	_pCleanZBuffer = _pStdDisplay->vBufferNew(&format, bVideoMemory, bVideoMemory, nullptr);
 
@@ -226,7 +227,8 @@ int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStar
 	if (pRoom)
 		useSetup(pRoom, pRoom->curSetup);
 
-	forceRefresh();
+	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+		forceRefresh();
 
 	return 1;
 }

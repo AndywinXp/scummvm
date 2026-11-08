@@ -161,6 +161,7 @@ public:
 	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
 	void setStd3D(Std3D *pStd3D) { _pStd3D = pStd3D; }
 	SputActor *getActors() { return _aActors; }
+	int getNumActors() const { return _numActors; }
 	SputActor *getSelectedActor() { return _pSelectedActor; }
 	void clearShadowMaterial() { _pShadowMaterial = nullptr; }
 

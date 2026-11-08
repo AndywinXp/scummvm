@@ -489,6 +489,8 @@ public:
 	int setOcclusionMethod(int method);
 	int setZBufferMethod(int method);
 	int advanceFrame();
+	int getFrameTrue() const { return _frameTrue; }
+	bool isDemo() const { return _bDemo; }
 	void finishFrame();
 	void clearPreStatistics();
 	int beginHardwareScene();
@@ -713,6 +715,7 @@ public:
 		int loadEntryText(char *pFilename, RdModel3 *pModel3);
 		int loadEntryBinary(Common::SeekableReadStream *pFile, RdModel3 *pModel3);
 		void loadPostProcess(RdModel3 *pModel3);
+		int validate(RdModel3 *pModel3);
 		void destroy(RdModel3 *&pModel3);
 		void freeEntry(RdModel3 *pModel3);
 		void buildShadowModel(RdModel3 *pModel3);
@@ -783,7 +786,7 @@ public:
 
 	class Primit3Module : public Module {
 	public:
-		explicit Primit3Module(RenderDroid *rd) : Module(rd) {}
+		Primit3Module(RenderDroid *rd, bool isDemo) : Module(rd), _bDemo(isDemo) {}
 		RdProcFace *drawPolygon(RdVector3 *aVerts, int numVerts, RdMaterial *pMaterial);
 		int getScreenCoord(RdVector3 pt, int *pScreen);
 		int drawLine(RdVector3 p0, RdVector3 p1, int *pScreen0, int *pScreen1, int *pClipped0, int *pClipped1, uint16 color, uint pattern);
@@ -796,6 +799,7 @@ public:
 	private:
 		friend class RenderDroid;
 		RdVector3 _work[32];
+		bool _bDemo;
 	};
 
 	class PuppetModule : public Module {
@@ -998,6 +1002,8 @@ public:
 		int setupEdgeNGonLAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
 		int setupEdgeNGonFAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
 		int setupEdgeNGonGAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
+		int setupEdgeNGonPerspective(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, int variant);
+		void setEdgePerspectiveValues(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, float dy, double xOffset, int variant);
 		int setupEdgeNGonLIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
 		int setupEdgeNGonFIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
 		int setupEdgeNGonGIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
@@ -1069,6 +1075,49 @@ public:
 		void drawSpanNGonGIT_16_W128(RdActiveSpan *pSpan);
 		void drawSpanNGonGIT_16_W256(RdActiveSpan *pSpan);
 
+		void drawSpanNGonLAT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonFAT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonGAT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonLIT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonFIT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W8(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W16(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W32(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W64(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W128(RdActiveSpan *pSpan);
+		void drawSpanNGonGIT_8_W256(RdActiveSpan *pSpan);
+
 		void drawZSpan(RdActiveSpan *pSpan);
 		void drawZSpanShifted(RdActiveSpan *pSpan);
 
@@ -1106,8 +1155,12 @@ public:
 		void drawSpanMaskedAffine(RdActiveSpan *pSpan, bool bpp16, int lightKind);
 		void drawSpanMaskedPersp(RdActiveSpan *pSpan, bool bpp16, int lightKind);
 		void plotRun16(SpanRun &run, int count, bool bIntensity);
+		void plotRun8(SpanRun &run, int count, int lightKind, bool bPairedIntensity);
+		void plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool bChunk);
 		void drawSpanAffine16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
+		void drawSpanAffine8(RdActiveSpan *pSpan, int vShift, int lightKind);
 		void drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
+		void drawSpanPersp(RdActiveSpan *pSpan, int uMask, int vShift, int lightKind, bool bpp16);
 		double fpuRound(double value);
 		double fpuAdd(double a, double b);
 		double fpuSub(double a, double b);
@@ -1281,6 +1334,7 @@ public:
 			kEdgeAffineFlat,
 			kEdgeAffineGouraud,
 			kEdgePerspective,
+			kEdgePerspectiveFlat,
 			kEdgePerspectiveGouraud
 		};
 
@@ -1543,6 +1597,49 @@ public:
 		void drawNGonGIT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
 		void drawNGonGIT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
 
+		void drawNGonLAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonFIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonGIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+
 	private:
 		friend class RenderDroid;
 
@@ -1608,12 +1705,12 @@ public:
 		bool findEdgeSegment(RdZRasterEdge *pEdge, int vertexStep, uint *pVertIdx, uint *pNextIdx, float *pYStart, int *pNumLines);
 		int interpolateEdgeValue(float from, float to, float invDy, float yOffset, int *pStep);
 		int setupEdgeLinear(RdZRasterEdge *pEdge, int vertexStep, bool textured, bool gouraud);
-		int setupLeftEdgePerspective(RdZRasterEdge *pEdge, bool gouraud);
+		int setupLeftEdgePerspective(RdZRasterEdge *pEdge, int shading);
 		int setupRightEdgePerspective(RdZRasterEdge *pEdge, bool gouraud);
 		int setupLeftEdge(RdZRasterEdge *pEdge, int mapping, int shading);
 		int setupRightEdge(RdZRasterEdge *pEdge, int mapping, int shading);
 		void stepEdge(RdZRasterEdge *pEdge, int mapping, int shading, bool isLeft);
-		bool beginScanLine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, ScanState *pState);
+		bool beginScanLine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, bool signedEnd, ScanState *pState);
 		void setupLinearZ(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
 		void setupLinearIntensity(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
 		int lightIndex(int index, bool gouraud);
@@ -1622,15 +1719,27 @@ public:
 		void drawTextureRun(int count, ScanState *pState, const ScanParams &params);
 		void scanLineSolid(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, int shading, int flags);
 		ScanParams makeScanParams(int bpp, int shading, int flags, bool perspective);
+		void setupAffineRun(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
 		void scanLineAffine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
 		void setRunSteps(ScanState *pState, float uEnd, float vEnd, float uStart, float vStart, double stepScale);
 		void setIdleRunCoords(ScanState *pState, const ScanParams &params, float oneOverZ, float uStart, float vStart);
 		void scanLinePerspective(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
 		void scanLineCase(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch);
+		int roundToInt(double value);
+		void setCaseRun(float uStart, float vStart, double uEnd, double vEnd, double stepScale, int shift);
+		uint zTestMask(ScanState *pState, int count);
+		byte fetchTexel8(int u, int v, int vShift);
+		byte shadeTexel8(int shading, byte texel, uint intensity);
+		void drawPixels8(ScanState *pState, int count, uint mask, int shading, int vShift);
+		void drawBlock8(ScanState *pState, uint mask, int shading, int vShift);
+		void scanLineAffineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift);
+		void scanLinePerspectiveCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift, bool blockShiftFromTable);
+		void scanLineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch);
 		bool setupGeometry(RdProcFace *pProcFace);
 		bool setupSolidFace(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, int shading, int flags);
 		bool setupTexturedFace(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, int mapping, int shading, int flags);
 		int selectCasePitch(int mapping, int shading);
+		int selectCasePitch8();
 		int drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, float light, int mapping, int shading, int flags);
 
 		uint _numVertices;
@@ -1719,6 +1828,7 @@ private:
 	int _curVertexColorMode;
 	int _curCullFlags;
 	int _curProcFaceUserData;
+	bool _bDemo;
 	StdColorFormat _colorInfo;
 	RdColorEffects _curColorEffects;
 	float _aMipDistances[4];

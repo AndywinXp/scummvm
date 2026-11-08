@@ -33,7 +33,7 @@ class SputRender;
 class SputResource;
 
 struct ObjectStateImage {
-	ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender);
+	ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo, bool isZ, int *pFrameCount);
 	~ObjectStateImage();
 
 	void clear();
@@ -51,8 +51,14 @@ struct ObjectStateImage {
 	StdVBuffer *pVBuffer;
 	int curFrame;
 	int copyMode;
+	int cleanSaved;
 
 private:
+	void loadDemo();
+
+	bool _bDemo;
+	bool _bZ;
+	int *_pFrameCount;
 	Res *_pRes;
 	SputResource *_pSputResource;
 	StdDisplay *_pStdDisplay;
@@ -61,7 +67,7 @@ private:
 };
 
 struct SputObjectState {
-	SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender);
+	SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo);
 	~SputObjectState();
 
 	void loadResources();
@@ -76,6 +82,7 @@ struct SputObjectState {
 	int type;
 	int setupIndex;
 	int luaHandle;
+	int frameCount;
 	ObjectStateImage colorImage;
 	ObjectStateImage zImage;
 	SputObjectState *pPrev;
@@ -83,6 +90,7 @@ struct SputObjectState {
 
 private:
 	SputRender *_pSputRender;
+	bool _bDemo;
 };
 
 } // End of namespace Grim

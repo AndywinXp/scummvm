@@ -179,11 +179,13 @@ public:
 	void drawPrimitives(int layerMask);
 	void drawAnimationBitmaps(int layer);
 	void sortActors();
+	void sortActorsDemo();
 	void resetActorSortList();
 	ActorSortInfo *allocActorSortEntry();
 	static int compareActorDepth(const void *pA, const void *pB);
 	void drawActor(SputActor *pActor);
 	void drawActorDebug(SputActor *pActor);
+	void drawRoomDebug();
 	void drawCameraDebug(Room *pRoom);
 	void drawActorBoxes(Room *pRoom, uint setup);
 	void drawActorBox(RoomSetup *pSetup);
@@ -191,6 +193,7 @@ public:
 	void drawWalkPlanes();
 
 	StdVBuffer *getCleanBuffer() const { return _pCleanBuffer; }
+	int getRenderFlags() const { return _renderFlags; }
 	uint16 *getColors() { return _aColors; }
 	void setSkipPrimitives(int bSkip) { _bSkipPrimitives = bSkip; }
 	int getCamActorIndex() const { return _gCamActorIndex; }
