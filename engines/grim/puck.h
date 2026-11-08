@@ -46,6 +46,7 @@ public:
 	double getYawToPoint(float *pTarget);
 	void constrain(int bEnable);
 	int forward(float dist, int bAllowLeft, int bAllowRight);
+	int forwardDemo(float dist, int bAllowLeft, int bAllowRight);
 	void orientToPlane(WalkPlane *pTargetPlane);
 	void normalize();
 	int draw(uint16 color);

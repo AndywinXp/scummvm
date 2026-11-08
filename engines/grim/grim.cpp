@@ -2096,8 +2096,11 @@ int GrimEngine::grimStartup() {
 
 	_pRd->startup(this);
 
-	if (_gameFlags & ADGF_DEMO)
+	if (_gameFlags & ADGF_DEMO) {
 		_pRd->_puppet.setNumTracks(4);
+		_pRd->_colormap.setDemoFormat(true);
+		_pWalkSystem->setDemo(true);
+	}
 
 	if (!_pRd->open(0))
 		return 0;

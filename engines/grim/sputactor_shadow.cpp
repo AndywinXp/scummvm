@@ -167,6 +167,7 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 
 	float aMin[2] = { 640.0f, 480.0f };
 	float aMax[2] = { 0.0f, 0.0f };
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
 
 	for (ModelInst *pModelInst = pNode->pHeadList; pModelInst; pModelInst = pModelInst->pNext) {
 		RdThing *pThing = pModelInst->pThing;
@@ -191,9 +192,16 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 			int vertex = 0;
 
 			while (vertex < 16) {
+				// The shadows of the demo have three quads, the second one is missing
+				if (bDemo && vertex == 4) {
+					vertex = 8;
+					continue;
+				}
+
 				_pRd->transformPoint34(aQuads[vertex], pMesh->aShadowVerts[vertex], pThing->aJointMatrices[node]);
 
-				if (!_pSputRender->buildShadowBitmap(aQuads[vertex], pShadow->lightPos, aQuads[vertex], pShadow->normal[0], pShadow->normal[1], pShadow->normal[2], pShadow->planeD))
+				// The demo goes on when the projection fails
+				if (!_pSputRender->buildShadowBitmap(aQuads[vertex], pShadow->lightPos, aQuads[vertex], pShadow->normal[0], pShadow->normal[1], pShadow->normal[2], pShadow->planeD) && !bDemo)
 					break;
 
 				vertex++;
@@ -201,8 +209,6 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 
 			if (vertex < 16)
 				continue;
-
-			bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
 
 			if (!_pShadowMaterial) {
 				if (bDemo) {
@@ -239,7 +245,10 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 #endif
 
 				drawShadowPolygon(aQuads[0], 4, aMin, aMax, pShadow);
-				drawShadowPolygon(aQuads[4], 4, aMin, aMax, pShadow);
+
+				if (!bDemo)
+					drawShadowPolygon(aQuads[4], 4, aMin, aMax, pShadow);
+
 				drawShadowPolygon(aQuads[8], 4, aMin, aMax, pShadow);
 				drawShadowPolygon(aQuads[12], 4, aMin, aMax, pShadow);
 			}

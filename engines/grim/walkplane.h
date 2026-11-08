@@ -123,6 +123,8 @@ public:
 	void tightenPath();
 	void shrinkBoxes(float amount);
 
+	// The pucks of the demo move differently along the edges of the sectors
+	void setDemo(bool bDemo) { _bDemo = bDemo; }
 	WalkPlane *getHead() const { return _pWpHead; }
 	Puck *getPuckHead() const { return _pPuckHead; }
 	const char *getCurCollection() const { return _curCollection; }
@@ -144,6 +146,7 @@ private:
 	WpCollection _aCollection[140];
 	Puck *_pPuckHead;
 	int _forwardCounter;
+	bool _bDemo;
 
 	float _aPath[30][3];
 	int _numPathPoints;

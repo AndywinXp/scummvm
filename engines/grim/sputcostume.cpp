@@ -71,12 +71,16 @@ void SputCostume::setShadowColor(int red, int green, int blue) {
 
 	_pSputRender->colorCorrect(&color, 1);
 
-	if (!_pShadowColormap) {
+	if (!_pShadowColormap && (_pGrim->getGameFlags() & ADGF_DEMO)) {
 		// The demo has no shadow colormap, its shadows are black
-		char fileName[] = "shadow.cmp";
-		char demoFileName[] = "dfltcmp.cmp";
+		_pShadowColormap = new RdColormap();
 
-		_pShadowColormap = _pRd->_colormap.load((_pGrim->getGameFlags() & ADGF_DEMO) ? demoFileName : fileName);
+		memset(_pShadowColormap, 0, sizeof(RdColormap));
+		_pShadowColormap->pRGB16 = new byte[0x8000]();
+	} else if (!_pShadowColormap) {
+		char fileName[] = "shadow.cmp";
+
+		_pShadowColormap = _pRd->_colormap.load(fileName);
 	}
 
 	if (!_pShadowColormap || !_pShadowColormap->pRGB16) {

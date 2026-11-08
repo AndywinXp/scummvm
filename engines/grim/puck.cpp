@@ -201,7 +201,107 @@ void Puck::constrain(int bEnable) {
 	}
 }
 
+int Puck::forwardDemo(float dist, int bAllowLeft, int bAllowRight) {
+	float value = 0.0f;
+
+	if (_pSystem->_forwardCounter == 0)
+		forwardDist = dist;
+
+	_pSystem->_forwardCounter++;
+
+	if (bConstrained) {
+		float dot = _pSystem->_pRd->dot3(orient[0], constraint);
+		double angleDelta = (90.0 - _pSystem->_pStdMath->arcSin3(dot)) - 90.0;
+
+		value = (float)angleDelta;
+
+		if (fabs(angleDelta) > reflectionAngle)
+			return 0;
+
+		if (_pSystem->_pRd->dot3(orient[1], constraint) <= 0.0f)
+			rotate(-value);
+		else
+			rotate(value);
+	}
+
+	RdVector3 pPoint;
+
+	pPoint[0] = 0.0f;
+	pPoint[1] = dist;
+	pPoint[2] = 0.0f;
+
+	xform(pPoint);
+
+	if (!pPlane || pPlane->within(pPoint, 1)) {
+		setPos(pPoint);
+		_pSystem->_forwardCounter = 0;
+
+		return 1;
+	}
+
+	if (_pSystem->_forwardCounter > 8) {
+		_pSystem->_forwardCounter = 0;
+
+		return 0;
+	}
+
+	WalkPlane *pOldPlane = pPlane;
+	RdVector3 pOut;
+
+	value = (float)pOldPlane->intersection(pos, pPoint, pOut);
+	pOldPlane->bEnabled = 0;
+
+	RdVector3 local;
+
+	local[0] = pOut[0];
+	local[1] = pOut[1];
+	local[2] = pOut[2];
+
+	invXform(local);
+
+	dist = (float)((double)dist - local[1]);
+
+	WalkPlane *pNewPlane = _pSystem->planeAt(pOut, 4096);
+
+	if (pNewPlane) {
+		setPos(pOut);
+		pPlane = pNewPlane;
+		orientToPlane(pNewPlane);
+
+		if (dist >= 0.02f)
+			dist = 0.02f;
+
+		int result = forwardDemo(dist, 1, 1);
+
+		pOldPlane->bEnabled = 1;
+
+		return result;
+	}
+
+	setPos(pOut);
+
+	if (fabs((double)value) >= reflectionAngle) {
+		forwardDist = (float)((double)forwardDist - dist);
+	} else if ((value > 0.0f && bAllowLeft) || (value < 0.0f && bAllowRight)) {
+		rotate(value);
+		pOldPlane->bEnabled = 1;
+
+		int result = forwardDemo(dist, 1, 1);
+
+		pOldPlane->bEnabled = 1;
+
+		return result;
+	}
+
+	pOldPlane->bEnabled = 1;
+
+	return 0;
+}
+
 int Puck::forward(float dist, int bAllowLeft, int bAllowRight) {
+	if (_pSystem->_bDemo)
+		return forwardDemo(dist, bAllowLeft, bAllowRight);
+
 	int result = 0;
 	float value = 0.0f;
 

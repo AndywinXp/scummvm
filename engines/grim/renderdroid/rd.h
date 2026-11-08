@@ -620,7 +620,9 @@ public:
 
 	class ColormapModule : public Module {
 	public:
-		explicit ColormapModule(RenderDroid *rd) : Module(rd), _pCurMap(nullptr), _pIdentityMap(nullptr) {}
+		explicit ColormapModule(RenderDroid *rd) : Module(rd), _pCurMap(nullptr), _pIdentityMap(nullptr), _bDemoFormat(false) {}
+		// The colormaps of the demo have a light level table after the colors
+		void setDemoFormat(bool bDemoFormat) { _bDemoFormat = bDemoFormat; }
 		RdColormap *getCurrent() const { return _pCurMap; }
 		RdColormap *getIdentity() const { return _pIdentityMap; }
 		RdColormap *load(char *path);
@@ -637,6 +639,7 @@ public:
 		friend class RenderDroid;
 		RdColormap *_pCurMap;
 		RdColormap *_pIdentityMap;
+		bool _bDemoFormat;
 	};
 
 	class ColorEffectsModule : public Module {

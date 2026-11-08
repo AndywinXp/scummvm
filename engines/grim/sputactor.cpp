@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/chore/cos.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/puck.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
@@ -385,9 +386,13 @@ void SputActorModule::setActorRotation(SputActor *pActor, float *pRot, int bFlip
 		}
 
 		pActor->pExtra->alignOff = angle;
-		pActor->actorRot[2] = pRot[2];
-		pActor->actorRot[0] = pRot[0];
-		pActor->matrixValid = 0;
+
+		// The demo leaves the rotation of the actor alone here
+		if (!(_pGrim->getGameFlags() & ADGF_DEMO)) {
+			pActor->actorRot[2] = pRot[2];
+			pActor->actorRot[0] = pRot[0];
+			pActor->matrixValid = 0;
+		}
 	} else {
 		pActor->actorRot[0] = pRot[0];
 		pActor->actorRot[1] = pRot[1];
