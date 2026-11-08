@@ -264,7 +264,7 @@ int MeshHandler::request(int hCostume, int fourcc, void *pParentId, int parentFo
 
 	Common::strlcpy(name, args, sizeof(name));
 
-	uint id = (uint)meshIndex << 16;
+	uint id = ((uint)(uintptr)pParentId & 0xffff) | ((uint)meshIndex << 16);
 
 	return _pSputCostume->_cos.registerComponent(hCostume, name, (void *)(uintptr)id, fourcc, pParentId, parentFourcc, &thingMeshKeyDesc) != 0;
 }
