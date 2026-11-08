@@ -140,6 +140,17 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 			0
 		}
 	},
+	{
+		GAMEOPTION_REMASTER_BUGFIXES,
+		{
+			_s("Apply Remastered bug fixes"),
+			_s("Apply the fixes to the game engine bugs that were corrected in the Remastered version."),
+			"grim_remaster_bugfixes",
+			true,
+			0,
+			0
+		}
+	},
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };

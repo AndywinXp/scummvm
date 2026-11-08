@@ -175,6 +175,7 @@ public:
 	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 	Common::Error loadGameState(int slot) override;
 	bool isRemastered() const { return !!(_gameFlags & ADGF_REMASTERED); }
+	bool useRemasterFixes() const { return _bRemasterFixes != 0; }
 
 	void setMode(EngineMode mode);
 	EngineMode getMode() { return _mode; }
@@ -525,6 +526,7 @@ protected:
 	int _bShow = 0;
 	int _bUseHardware = 0;
 	int _bHardwareAvailable = 0;
+	int _bRemasterFixes = 0;
 	int _pendingDevice = 0;
 	int _pendingMode = 0;
 	int _pending3DDevice = -1;

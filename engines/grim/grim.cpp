@@ -156,6 +156,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	// Set default settings
 	ConfMan.registerDefault("use_arb_shaders", true);
 	ConfMan.registerDefault("grim_3d_acceleration", false);
+	ConfMan.registerDefault("grim_remaster_bugfixes", true);
 
 	_showFps = ConfMan.getBool("show_fps");
 
@@ -2076,6 +2077,7 @@ bool GrimEngine::wantsHardwareRenderer() const {
 int GrimEngine::grimStartup() {
 	_bHardwareAvailable = wantsHardwareRenderer() ? 1 : 0;
 	_bUseHardware = ConfMan.getBool("grim_3d_acceleration") ? 1 : 0;
+	_bRemasterFixes = (isRemastered() || ConfMan.getBool("grim_remaster_bugfixes")) ? 1 : 0;
 
 	_pStdDisplay->startup();
 	_pPolyglot->initialize(this);
