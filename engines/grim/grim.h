@@ -479,7 +479,7 @@ protected:
 	int isHardware3D();
 	void loadSplash();
 	void pumpEvents();
-	void handleFocus(int bActive);
+	void handleFocus(int bHasFocus);
 	void handleKey(Common::EventType type, const Common::KeyState &key, bool bRepeat);
 	void handleKeyDebug(const Common::KeyState &key);
 	void addKeyboardEvent(uint offset, int data);
@@ -508,7 +508,7 @@ protected:
 	StdVBuffer *_pZBuffer = nullptr;
 	StdColorFormat _colorInfoCopy = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
 	int _numDrawBuffers = 1;
-	int _bActive = 1;
+	int _bHasFocus = 1;
 	int _bFirstFrame = 0;
 	int _bQuit = 0;
 	int _bDisplayOpen = 0;
