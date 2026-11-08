@@ -474,7 +474,7 @@ void Lua_V1::WorldToScreen() {
 		return;
 	}
 	RdVector3 worldPos;
-	int screen[2];
+	int screen[3];
 
 	worldPos[0] = lua_getnumber(worldX);
 	worldPos[1] = lua_getnumber(worldY);
@@ -1470,6 +1470,223 @@ struct luaL_reg grimHardwareOpcodes[] = {
 	{ "EnumerateVideoDevices", LUA_OPCODE(Lua_V1, EnumerateVideoDevices) }
 };
 
+// Opcode tables of the demo executable. It has no primitive and no hardware opcodes
+struct luaL_reg grimDemoMainOpcodes[] = {
+	{ "EnginePause", LUA_OPCODE(Lua_V1, EnginePause) },
+	{ "EngineResume", LUA_OPCODE(Lua_V1, EngineResume) },
+	{ "SetActorColormap", LUA_OPCODE(Lua_V1, SetActorColormap) },
+	{ "GetActorCostume", LUA_OPCODE(Lua_V1, GetActorCostume) },
+	{ "SetActorCostume", LUA_OPCODE(Lua_V1, SetActorCostume) },
+	{ "GetActorScale", LUA_OPCODE(Lua_V1, GetActorScale) },
+	{ "SetActorScale", LUA_OPCODE(Lua_V1, SetActorScale) },
+	{ "GetActorNodeLocation", LUA_OPCODE(Lua_V1, GetActorNodeLocation) },
+	{ "SetActorWalkChore", LUA_OPCODE(Lua_V1, SetActorWalkChore) },
+	{ "SetActorTurnChores", LUA_OPCODE(Lua_V1, SetActorTurnChores) },
+	{ "SetActorRestChore", LUA_OPCODE(Lua_V1, SetActorRestChore) },
+	{ "SetActorMumblechore", LUA_OPCODE(Lua_V1, SetActorMumblechore) },
+	{ "SetActorTalkChore", LUA_OPCODE(Lua_V1, SetActorTalkChore) },
+	{ "SetActorWalkRate", LUA_OPCODE(Lua_V1, SetActorWalkRate) },
+	{ "GetActorWalkRate", LUA_OPCODE(Lua_V1, GetActorWalkRate) },
+	{ "SetActorTurnRate", LUA_OPCODE(Lua_V1, SetActorTurnRate) },
+	{ "GetActorTurnRate", LUA_OPCODE(Lua_V1, GetActorTurnRate) },
+	{ "SetSelectedActor", LUA_OPCODE(Lua_V1, SetSelectedActor) },
+	{ "LoadActor", LUA_OPCODE(Lua_V1, LoadActor) },
+	{ "GetActorPos", LUA_OPCODE(Lua_V1, GetActorPos) },
+	{ "GetActorRect", LUA_OPCODE(Lua_V1, GetActorRect) },
+	{ "GetActorPuckVector", LUA_OPCODE(Lua_V1, GetActorPuckVector) },
+	{ "PutActorAtInterest", LUA_OPCODE(Lua_V1, PutActorAtInterest) },
+	{ "PutActorAtOrigin", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "PutActorAt", LUA_OPCODE(Lua_V1, PutActorAt) },
+	{ "PutActorInSet", LUA_OPCODE(Lua_V1, PutActorInSet) },
+	{ "GetClippedPos", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "WalkActorVector", LUA_OPCODE(Lua_V1, WalkActorVector) },
+	{ "WalkActorForward", LUA_OPCODE(Lua_V1, WalkActorForward) },
+	{ "DriveActorTo", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "WalkActorTo", LUA_OPCODE(Lua_V1, WalkActorTo) },
+	{ "WalkActorToInterest", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "ActorLookAt", LUA_OPCODE(Lua_V1, ActorLookAt) },
+	{ "IsActorLooking", LUA_OPCODE(Lua_V1, IsActorLooking) },
+	{ "SetActorLookRate", LUA_OPCODE(Lua_V1, SetActorLookRate) },
+	{ "GetActorLookRate", LUA_OPCODE(Lua_V1, SetActorLookRate) }, // same function as SetActorLookRate
+	{ "CanActorSee", LUA_OPCODE(Lua_V1, CanActorSee) },
+	{ "GetVisibleThings", LUA_OPCODE(Lua_V1, GetVisibleThings) },
+	{ "GetCameraActor", LUA_OPCODE(Lua_V1, GetCameraActor) },
+	{ "SetActorHead", LUA_OPCODE(Lua_V1, SetActorHead) },
+	{ "SetActorVisibility", LUA_OPCODE(Lua_V1, SetActorVisibility) },
+	{ "SetActorFollowBoxes", LUA_OPCODE(Lua_V1, SetActorFollowBoxes) },
+	{ "ShutUpActor", LUA_OPCODE(Lua_V1, ShutUpActor) },
+	{ "IsActorInSector", LUA_OPCODE(Lua_V1, IsActorInSector) },
+	{ "GetActorSector", LUA_OPCODE(Lua_V1, GetActorSector) },
+	{ "IsPointInSector", LUA_OPCODE(Lua_V1, IsPointInSector) },
+	{ "GetPointSector", LUA_OPCODE(Lua_V1, GetPointSector) },
+	{ "TurnActor", LUA_OPCODE(Lua_V1, TurnActor) },
+	{ "GetActorRot", LUA_OPCODE(Lua_V1, GetActorRot) },
+	{ "SetActorRot", LUA_OPCODE(Lua_V1, SetActorRot) },
+	{ "IsActorTurning", LUA_OPCODE(Lua_V1, IsActorTurning) },
+	{ "PlayActorChore", LUA_OPCODE(Lua_V1, PlayActorChore) },
+	{ "PlayActorChoreLooping", LUA_OPCODE(Lua_V1, PlayActorChoreLooping) },
+	{ "StopActorChore", LUA_OPCODE(Lua_V1, StopActorChore) },
+	{ "CompleteActorChore", LUA_OPCODE(Lua_V1, CompleteActorChore) },
+	{ "IsActorMoving", LUA_OPCODE(Lua_V1, IsActorMoving) },
+	{ "IsActorChoring", LUA_OPCODE(Lua_V1, IsActorChoring) },
+	{ "IsActorResting", LUA_OPCODE(Lua_V1, IsActorResting) },
+	{ "SetActorChoreLooping", LUA_OPCODE(Lua_V1, SetActorChoreLooping) },
+	{ "GetActorChores", LUA_OPCODE(Lua_V1, GetActorChores) },
+	{ "GetActorLoopingChores", LUA_OPCODE(Lua_V1, GetActorLoopingChores) },
+	{ "GetActorCostumeDepth", LUA_OPCODE(Lua_V1, GetActorCostumeDepth) },
+	{ "WorldToScreen", LUA_OPCODE(Lua_V1, WorldToScreen) },
+	{ "ScreenToWorld", LUA_OPCODE(Lua_V1, ScreenToWorld) },
+	{ "exit", LUA_OPCODE(Lua_V1, Exit) },
+	{ "EnableDebugKeys", LUA_OPCODE(Lua_V1, EnableDebugKeys) },
+	{ "LockSet", LUA_OPCODE(Lua_V1, LockSetDemo) },
+	{ "UnlockSet", LUA_OPCODE(Lua_V1, UnlockSetDemo) },
+	{ "LockFont", LUA_OPCODE(Lua_V1, LockFont) },
+	{ "UnLockFont", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "LockSound", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "UnlockSound", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "LockCostume", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "UnlockCostume", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "EnableControl", LUA_OPCODE(Lua_V1, EnableControl) },
+	{ "DisableControl", LUA_OPCODE(Lua_V1, DisableControl) },
+	{ "GetControlState", LUA_OPCODE(Lua_V1, GetControlState) },
+	{ "PrintMessage", LUA_OPCODE(Lua_V1, PrintMessage) },
+	{ "PrintError", LUA_OPCODE(Lua_V1, PrintDebug) },
+	{ "PrintWarning", LUA_OPCODE(Lua_V1, PrintDebug) },
+	{ "PrintDebug", LUA_OPCODE(Lua_V1, PrintDebug) },
+	{ "MakeCurrentSet", LUA_OPCODE(Lua_V1, MakeCurrentSet) },
+	{ "MakeCurrentSetup", LUA_OPCODE(Lua_V1, MakeCurrentSetup) },
+	{ "GetCurrentSetup", LUA_OPCODE(Lua_V1, GetCurrentSetup) },
+	{ "NextSetup", LUA_OPCODE(Lua_V1, NextSetup) },
+	{ "PreviousSetup", LUA_OPCODE(Lua_V1, PreviousSetup) },
+	{ "StartFullscreenMovie", LUA_OPCODE(Lua_V1, StartFullscreenMovieDemo) },
+	{ "IsFullscreenMoviePlaying", LUA_OPCODE(Lua_V1, IsFullscreenMoviePlaying) },
+	{ "StartMovie", LUA_OPCODE(Lua_V1, StartMovieDemo) },
+	{ "StopMovie", LUA_OPCODE(Lua_V1, StopMovie) },
+	{ "PauseMovie", LUA_OPCODE(Lua_V1, PauseMovie) },
+	{ "IsMoviePlaying", LUA_OPCODE(Lua_V1, IsFullscreenMoviePlaying) },
+	{ "PlaySound", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "PlaySoundAt", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "PlaySoundAttached", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "IsSoundPlaying", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "SetSoundPosition", LUA_OPCODE(Lua_V1, SetSoundPositionDemo) },
+	{ "FileFindFirst", LUA_OPCODE(Lua_V1, FileFindFirst) },
+	{ "FileFindNext", LUA_OPCODE(Lua_V1, FileFindNext) },
+	{ "FileFindDispose", LUA_OPCODE(Lua_V1, FileFindDispose) },
+	{ "InputDialog", LUA_OPCODE(Lua_V1, InputDialog) },
+	{ "QueryDialog", LUA_OPCODE(Lua_V1, QueryDialog) },
+	{ "WriteRegistryValue", LUA_OPCODE(Lua_V1, WriteRegistryValue) },
+	{ "ReadRegistryValue", LUA_OPCODE(Lua_V1, ReadRegistryValue) },
+	{ "GetSectorVertices", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "GetSectorOppositeEdge", LUA_OPCODE(Lua_V1, GetSectorOppositeEdge) },
+	{ "IsSectorActive", LUA_OPCODE(Lua_V1, IsSectorActive) },
+	{ "MakeSectorActive", LUA_OPCODE(Lua_V1, MakeSectorActive) },
+	{ "PreRender", LUA_OPCODE(Lua_V1, PreRender) },
+	{ "SpewStartup", LUA_OPCODE(Lua_V1, SpewStartup) },
+	{ "SpewShutdown", LUA_OPCODE(Lua_V1, SpewShutdown) },
+	{ "GetCurrentScript", LUA_OPCODE(Lua_V1, GetCurrentScript) },
+	{ "PrintActorCostumes", LUA_OPCODE(Lua_V1, PrintActorCostumes) },
+	{ "PushActorCostume", LUA_OPCODE(Lua_V1, PushActorCostume) },
+	{ "PopActorCostume", LUA_OPCODE(Lua_V1, PopActorCostume) },
+	{ "LoadCostume", LUA_OPCODE(Lua_V1, LoadCostume) },
+	{ "SetMemoryUsage", LUA_OPCODE(Lua_V1, SetMemoryUsage) },
+	{ "GetCameraPosition", LUA_OPCODE(Lua_V1, GetCameraPosition) },
+	{ "SetCameraPosition", LUA_OPCODE(Lua_V1, SetCameraPosition) },
+	{ "GetCameraInterest", LUA_OPCODE(Lua_V1, GetCameraInterest) },
+	{ "SetCameraInterest", LUA_OPCODE(Lua_V1, SetCameraInterest) },
+	{ "GetCameraFOV", LUA_OPCODE(Lua_V1, GetCameraFOV) },
+	{ "SetCameraFOV", LUA_OPCODE(Lua_V1, SetCameraFOV) },
+	{ "GetCameraRoll", LUA_OPCODE(Lua_V1, GetCameraRoll) },
+	{ "SetCameraRoll", LUA_OPCODE(Lua_V1, SetCameraRoll) },
+	{ "GetCameraLookVector", LUA_OPCODE(Lua_V1, GetCameraLookVector) },
+	{ "PointActorAt", LUA_OPCODE(Lua_V1, PointActorAt) },
+	{ "TurnActorTo", LUA_OPCODE(Lua_V1, TurnActorTo) },
+	{ "PerSecond", LUA_OPCODE(Lua_V1, PerSecond) },
+	{ "SnapToPlane", LUA_OPCODE(Lua_V1, SnapToPlane) },
+	{ "GetAngleBetweenVectors", LUA_OPCODE(Lua_V1, GetAngleBetweenVectors) },
+	{ "GetAngleBetweenActors", LUA_OPCODE(Lua_V1, GetAngleBetweenActors) },
+	{ "SetAmbientLight", LUA_OPCODE(Lua_V1, SetAmbientLight) },
+	{ "FindLight", LUA_OPCODE(Lua_V1, FindLight) },
+	{ "TurnLightOn", LUA_OPCODE(Lua_V1, TurnLightOn) },
+	{ "IsLightOn", LUA_OPCODE(Lua_V1, IsLightOn) },
+	{ "SetLightType", LUA_OPCODE(Lua_V1, SetLightType) },
+	{ "GetLightType", LUA_OPCODE(Lua_V1, GetLightType) },
+	{ "SetLightPosition", LUA_OPCODE(Lua_V1, SetLightPosition) },
+	{ "GetLightPosition", LUA_OPCODE(Lua_V1, GetLightPosition) },
+	{ "SetLightRotation", LUA_OPCODE(Lua_V1, SetLightRotation) },
+	{ "GetLightRotation", LUA_OPCODE(Lua_V1, GetLightRotation) },
+	{ "SetLightAngles", LUA_OPCODE(Lua_V1, SetLightAngles) },
+	{ "GetLightAngles", LUA_OPCODE(Lua_V1, GetLightAngles) },
+	{ "SetLightIntensity", LUA_OPCODE(Lua_V1, SetLightIntensity) },
+	{ "GetLightIntensity", LUA_OPCODE(Lua_V1, GetLightIntensity) },
+	{ "PointLightAt", LUA_OPCODE(Lua_V1, PointLightAt) },
+	{ "LightMgrStartup", LUA_OPCODE(Lua_V1, LightMgrStartup) },
+	{ "LightMgrShutdown", LUA_OPCODE(Lua_V1, LightMgrShutdown) },
+	{ "LightMgrSetChange", LUA_OPCODE(Lua_V1, LightMgrSetChange) },
+	{ "ImStartSound", LUA_OPCODE(Lua_V1, ImStartSound) },
+	{ "ImStopSound", LUA_OPCODE(Lua_V1, ImStopSound) },
+	{ "ImStopAllSounds", LUA_OPCODE(Lua_V1, ImStopAllSounds) },
+	{ "ImGetParam", LUA_OPCODE(Lua_V1, ImGetParam) },
+	{ "ImSetParam", LUA_OPCODE(Lua_V1, ImSetParam) },
+	{ "ImFadeParam", LUA_OPCODE(Lua_V1, ImFadeParam) },
+	{ "ImGetMasterVol", LUA_OPCODE(Lua_V1, ImGetMasterVol) },
+	{ "ImSetMasterVol", LUA_OPCODE(Lua_V1, ImSetMasterVol) },
+	{ "ImGetSfxVol", LUA_OPCODE(Lua_V1, ImGetSfxVol) },
+	{ "ImSetSfxVol", LUA_OPCODE(Lua_V1, ImSetSfxVol) },
+	{ "ImGetVoiceVol", LUA_OPCODE(Lua_V1, ImGetVoiceVol) },
+	{ "ImSetVoiceVol", LUA_OPCODE(Lua_V1, ImSetVoiceVol) },
+	{ "ImGetMusicVol", LUA_OPCODE(Lua_V1, ImGetMusicVol) },
+	{ "ImSetMusicVol", LUA_OPCODE(Lua_V1, ImSetMusicVol) },
+	{ "ImStartVoice", LUA_OPCODE(Lua_V1, ImStartVoice) },
+	{ "ImStopVoice", LUA_OPCODE(Lua_V1, ImStopVoice) },
+	{ "ImSetState", LUA_OPCODE(Lua_V1, ImSetState) },
+	{ "ImSetSequence", LUA_OPCODE(Lua_V1, ImSetSequence) },
+	{ "ImSetAttribute", LUA_OPCODE(Lua_V1, ImSetAttribute) },
+	{ "ImSetCuePoint", LUA_OPCODE(Lua_V1, ImSetCuePoint) },
+	{ "ImPause", LUA_OPCODE(Lua_V1, ImPause) },
+	{ "ImResume", LUA_OPCODE(Lua_V1, ImResume) },
+	{ "LoadBundle", LUA_OPCODE(Lua_V1, LoadBundleDemo) },
+	{ "UnloadBundle", LUA_OPCODE(Lua_V1, UnloadBundleDemo) },
+	{ "SetGamma", LUA_OPCODE(Lua_V1, SetGamma) },
+	{ "SetActorWalkDominate", LUA_OPCODE(Lua_V1, SetActorWalkDominate) },
+	{ "SetActorConstrain", LUA_OPCODE(Lua_V1, SetActorConstrain) },
+	{ "RenderModeUser", LUA_OPCODE(Lua_V1, RenderModeUser) },
+	{ "DimScreen", LUA_OPCODE(Lua_V1, DimScreen) },
+	{ "CleanBuffer", LUA_OPCODE(Lua_V1, CleanBuffer) },
+	{ "Display", LUA_OPCODE(Lua_V1, Display) },
+	{ "SetSpeechMode", LUA_OPCODE(Lua_V1, SetSpeechMode) },
+	{ "GetSpeechMode", LUA_OPCODE(Lua_V1, GetSpeechMode) },
+	{ "SetShadowColor", LUA_OPCODE(Lua_V1, SetShadowColor) },
+	{ "ActivateActorShadow", LUA_OPCODE(Lua_V1, ActivateActorShadow) },
+	{ "ActorShadow", LUA_OPCODE(Lua_V1, ActorShadow) },
+	{ "SetActorShadowPlane", LUA_OPCODE(Lua_V1, SetActorShadowPlane) },
+	{ "SetActorShadowPoint", LUA_OPCODE(Lua_V1, SetActorShadowPoint) },
+	{ "SetActiveShadow", LUA_OPCODE(Lua_V1, SetActiveShadow) },
+	{ "ActorDistToShadowPlane", LUA_OPCODE(Lua_V1, ActorDistToShadowPlane) },
+	{ "KillActorShadows", LUA_OPCODE(Lua_V1, KillActorShadows) },
+	{ "AddShadowPlane", LUA_OPCODE(Lua_V1, AddShadowPlane) },
+	{ "SetActorShadowValid", LUA_OPCODE(Lua_V1, SetActorShadowValid) },
+	{ "FlushControls", LUA_OPCODE(Lua_V1, FlushControls) }
+};
+
+static struct luaL_reg grimDemoTextOpcodes[] = {
+	{ "IsMessageGoing", LUA_OPCODE(Lua_V1, IsMessageGoing) },
+	{ "SetSayLineDefaults", LUA_OPCODE(Lua_V1, SetSayLineDefaults) },
+	{ "SetActorTalkColor", LUA_OPCODE(Lua_V1, SetActorTalkColor) },
+	{ "SayLine", LUA_OPCODE(Lua_V1, SayLine) },
+	{ "PrintLine", LUA_OPCODE(Lua_V1, PrintLine) },
+	{ "MakeTextObject", LUA_OPCODE(Lua_V1, MakeTextObject) },
+	{ "ChangeTextObject", LUA_OPCODE(Lua_V1, ChangeTextObject) },
+	{ "KillTextObject", LUA_OPCODE(Lua_V1, KillTextObject) },
+	{ "BlastText", LUA_OPCODE(Lua_V1, BlastText) },
+	{ "ExpireText", LUA_OPCODE(Lua_V1, ExpireText) },
+	{ "PurgeText", LUA_OPCODE(Lua_V1, PurgeText) },
+	{ "MakeColor", LUA_OPCODE(Lua_V1, MakeColor) }
+};
+
+struct luaL_reg grimDemoCostumeOpcodes[] = {
+	{ "GetKeyLength", LUA_OPCODE(Lua_V1, GetKeyLength) }
+};
+
 Lua_V1::Lua_V1() : _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1) {
 	for (int i = 0; i < kMaxImages; i++) {
 		_imageHandles[i] = 0;
@@ -1478,22 +1695,37 @@ Lua_V1::Lua_V1() : _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), 
 }
 
 void Lua_V1::registerMainOpcodes() {
-	luaL_openlib(grimMainOpcodes, ARRAYSIZE(grimMainOpcodes));
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		luaL_openlib(grimDemoMainOpcodes, ARRAYSIZE(grimDemoMainOpcodes));
+	else
+		luaL_openlib(grimMainOpcodes, ARRAYSIZE(grimMainOpcodes));
 }
 
 void Lua_V1::registerCostumeOpcodes() {
-	luaL_openlib(grimCostumeOpcodes, ARRAYSIZE(grimCostumeOpcodes));
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		luaL_openlib(grimDemoCostumeOpcodes, ARRAYSIZE(grimDemoCostumeOpcodes));
+	else
+		luaL_openlib(grimCostumeOpcodes, ARRAYSIZE(grimCostumeOpcodes));
 }
 
 void Lua_V1::registerTextOpcodes() {
-	luaL_openlib(grimTextOpcodes, ARRAYSIZE(grimTextOpcodes));
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		luaL_openlib(grimDemoTextOpcodes, ARRAYSIZE(grimDemoTextOpcodes));
+	else
+		luaL_openlib(grimTextOpcodes, ARRAYSIZE(grimTextOpcodes));
 }
 
 void Lua_V1::registerPrimitiveOpcodes() {
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		return;
+
 	luaL_openlib(grimPrimitivesOpcodes, ARRAYSIZE(grimPrimitivesOpcodes));
 }
 
 void Lua_V1::registerHardwareOpcodes() {
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		return;
+
 	luaL_openlib(grimHardwareOpcodes, ARRAYSIZE(grimHardwareOpcodes));
 }
 
@@ -1584,6 +1816,10 @@ int Lua_V1::startup() {
 	recognizeOpcodes();
 	makeSystemTable();
 	registerTypeOverride();
+
+	if (g_grim->getGameFlags() & ADGF_DEMO)
+		forceDemo();
+
 	registerSectorConstants();
 	registerConcatFallback();
 

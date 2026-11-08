@@ -276,6 +276,109 @@ void Lua_V1::SetSoundPosition() {
 	g_grim->_pSputRoom->setSoundPosition(getSoundKey(nameObj), pos, minVol, maxVol, maxDist, 0.8f);
 }
 
+void Lua_V1::SetSoundPositionDemo() {
+	RdVector3 pos = { 0.0f, 0.0f, 0.0f };
+	RdVector3 delta;
+	int screen[3];
+	int argId = 3;
+	int minVol = 10;
+	int maxVol = 127;
+	int pan = 64;
+	float maxDist = 8.0f;
+
+	lua_Object nameObj = lua_getparam(1);
+
+	if (!lua_isstring(nameObj)) {
+		warning("SetSoundPosition: first argument (filename) must be a string.");
+		return;
+	}
+
+	lua_Object actorObj = lua_getparam(2);
+
+	if (isSputActor(actorObj)) {
+		SputActor *pActor = getSputActor(actorObj);
+
+		if (!pActor) {
+			warning("SetSoundPosition: invalid actor handle.");
+			return;
+		}
+
+		pos[0] = pActor->actorPos[0];
+		pos[1] = pActor->actorPos[1];
+		pos[2] = pActor->actorPos[2];
+	} else if (lua_isnumber(actorObj)) {
+		argId = 5;
+		pos[0] = lua_getnumber(actorObj);
+		pos[1] = lua_getnumber(lua_getparam(3));
+		pos[2] = lua_getnumber(lua_getparam(4));
+	}
+
+	lua_Object minVolObj = lua_getparam(argId);
+	lua_Object maxVolObj = lua_getparam(argId + 1);
+	lua_Object maxDistObj = lua_getparam(argId + 2);
+
+	if (lua_isnumber(minVolObj)) {
+		minVol = luaFtol(lua_getnumber(minVolObj));
+		if (minVol > 127)
+			minVol = 127;
+	}
+
+	if (lua_isnumber(maxVolObj)) {
+		int value = luaFtol(lua_getnumber(maxVolObj));
+
+		if ((uint)value > 127) {
+			maxVol = 127;
+		} else {
+			maxVol = value < minVol ? minVol : value;
+		}
+	}
+
+	if (lua_isnumber(maxDistObj)) {
+		maxDist = lua_getnumber(maxDistObj);
+		if (maxDist < 0.0f)
+			maxDist = 0.0f;
+	}
+
+	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+	int volume = maxVol;
+
+	if (pRoom) {
+		if (g_grim->_pRd->_primit3.getScreenCoord(pos, screen)) {
+			pan = screen[0] / 5;
+			if ((uint)pan > 127)
+				pan = 127;
+		}
+
+		const float *pCameraPos = pRoom->pSetups[pRoom->curSetup].camera.position;
+
+		delta[0] = pos[0] - pCameraPos[0];
+		delta[1] = pos[1] - pCameraPos[1];
+		delta[2] = pos[2] - pCameraPos[2];
+
+		float distance = g_grim->_pRd->normalize3Acc(delta);
+		double minVolume = (double)minVol;
+		double scaled = minVolume;
+
+		// With maxDist 0 the EXE divides by zero and ends up on the minimum
+		if (maxDist != 0.0f)
+			scaled = (double)(maxVol - minVol) / maxDist * (maxDist - distance) + minVolume;
+
+		if (scaled >= minVolume) {
+			if (scaled > (double)maxVol)
+				scaled = (double)maxVol;
+
+			volume = (int)scaled;
+		} else {
+			volume = minVol;
+		}
+	}
+
+	const char *name = lua_getstring(nameObj);
+
+	g_imuse->soundsSetParam(name, IMUSE_P_VOLUME, volume);
+	g_imuse->soundsSetParam(name, IMUSE_P_PAN, pan);
+}
+
 void Lua_V1::IsSoundPlaying() {
 	// dummy
 }
@@ -286,6 +389,42 @@ void Lua_V1::PlaySoundAt() {
 
 void Lua_V1::LoadBundle() {
 	// loading grimdemo.mus is already handled
+}
+
+void Lua_V1::LoadBundleDemo() {
+	lua_Object nameObj = lua_getparam(1);
+	char path[128];
+
+	// The EXE lets nil through and then reads it as a string
+	if (!lua_isstring(nameObj)) {
+		warning("LUA LoadBundle: invalid filename.");
+		return;
+	}
+
+	if (g_grim->_pRes->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
+		lua_pushnumber((float)g_grim->_pRes->fileOpen(path));
+	} else {
+		warning("Unable to find music bundle '%s'!", lua_getstring(nameObj));
+		lua_pushnil();
+	}
+}
+
+void Lua_V1::UnloadBundleDemo() {
+	lua_Object nameObj = lua_getparam(1);
+	char path[128];
+
+	// The EXE lets nil through and then reads it as a string
+	if (!lua_isstring(nameObj)) {
+		warning("LUA UnLoadBundle: invalid filename.");
+		return;
+	}
+
+	if (g_grim->_pRes->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
+		lua_pushnumber((float)g_grim->_pRes->fileClose(path));
+	} else {
+		warning("Unable to unload music bundle '%s'!", lua_getstring(nameObj));
+		lua_pushnil();
+	}
 }
 
 void Lua_V1::PlaySound() {

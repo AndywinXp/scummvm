@@ -192,6 +192,36 @@ void Lua_V1::StartMovie() {
 	pushbool(false);
 }
 
+void Lua_V1::StartFullscreenMovieDemo() {
+	lua_Object nameObj = lua_getparam(1);
+
+	if (!lua_isstring(nameObj)) {
+		warning("StartMovieFullScreen: Argument must be a string.");
+		lua_pushnil();
+		return;
+	}
+
+	if (g_grim->playMovie(lua_getstring(nameObj), 1, 0, -1, -1) != 1)
+		warning("Start Movie:%s FAIL", lua_getstring(nameObj));
+
+	lua_pushnumber(1.0f);
+}
+
+void Lua_V1::StartMovieDemo() {
+	lua_Object nameObj = lua_getparam(1);
+
+	if (!lua_isstring(nameObj)) {
+		warning("StartMovie: Argument must be a string.");
+		lua_pushnil();
+		return;
+	}
+
+	if (g_grim->playMovie(lua_getstring(nameObj), 0, 0, -1, -1) != 1)
+		warning("Start Movie:%s FAIL", lua_getstring(nameObj));
+
+	lua_pushnumber(1.0f);
+}
+
 void Lua_V1::IsFullscreenMoviePlaying() {
 	pushbool(g_grim->_pSputSmush->moviePlaying() != 0);
 }

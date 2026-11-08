@@ -196,6 +196,8 @@ protected:
 	DECLARE_LUA_OPCODE(MakeSectorActive);
 	DECLARE_LUA_OPCODE(LockSet);
 	DECLARE_LUA_OPCODE(UnLockSet);
+	DECLARE_LUA_OPCODE(LockSetDemo);
+	DECLARE_LUA_OPCODE(UnlockSetDemo);
 	DECLARE_LUA_OPCODE(MakeCurrentSet);
 	DECLARE_LUA_OPCODE(MakeCurrentSetup);
 	DECLARE_LUA_OPCODE(GetCurrentSetup);
@@ -222,6 +224,7 @@ protected:
 	DECLARE_LUA_OPCODE(SaveIMuse);
 	DECLARE_LUA_OPCODE(RestoreIMuse);
 	DECLARE_LUA_OPCODE(SetSoundPosition);
+	DECLARE_LUA_OPCODE(SetSoundPositionDemo);
 	DECLARE_LUA_OPCODE(IsSoundPlaying);
 	DECLARE_LUA_OPCODE(PlaySoundAt);
 	DECLARE_LUA_OPCODE(FileFindDispose);
@@ -250,6 +253,8 @@ protected:
 	DECLARE_LUA_OPCODE(GetSpeechMode);
 	DECLARE_LUA_OPCODE(StartFullscreenMovie);
 	DECLARE_LUA_OPCODE(StartMovie);
+	DECLARE_LUA_OPCODE(StartFullscreenMovieDemo);
+	DECLARE_LUA_OPCODE(StartMovieDemo);
 	DECLARE_LUA_OPCODE(IsFullscreenMoviePlaying);
 	DECLARE_LUA_OPCODE(IsMoviePlaying);
 	DECLARE_LUA_OPCODE(StopMovie);
@@ -296,6 +301,8 @@ protected:
 	DECLARE_LUA_OPCODE(PlaySound);
 	DECLARE_LUA_OPCODE(SetEmergencyFont);
 	DECLARE_LUA_OPCODE(LoadBundle);
+	DECLARE_LUA_OPCODE(LoadBundleDemo);
+	DECLARE_LUA_OPCODE(UnloadBundleDemo);
 	DECLARE_LUA_OPCODE(LightMgrStartup);
 	DECLARE_LUA_OPCODE(GetSectorOppositeEdge);
 	DECLARE_LUA_OPCODE(SetActorInvClipNode);

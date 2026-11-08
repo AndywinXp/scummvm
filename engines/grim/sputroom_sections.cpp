@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_conffile.h"
 #include "engines/grim/walkplane.h"
@@ -34,6 +35,10 @@ int SputRoom::readSections() {
 	readSectionFunc("setups", &SputRoom::readSetupsSection);
 	readSectionFunc("lights", &SputRoom::readLightSection);
 	readSectionFunc("sectors", &SputRoom::readSectors);
+
+	if (_pGrim->getGameFlags() & ADGF_DEMO)
+		readSectionFunc("objectstates", &SputRoom::readObjectsSection);
+
 	_bStarted = 1;
 
 	return 0;
@@ -187,8 +192,10 @@ int SputRoom::readLightSection() {
 
 int SputRoom::readSetupsSection() {
 	Room *pRoom = _pLoadingRoom;
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
 	int setupIndex = -1;
 	char name[1024];
+	char fileName[1024];
 
 	pRoom->pSetups = nullptr;
 
@@ -216,6 +223,13 @@ int SputRoom::readSetupsSection() {
 				pRoom->pSetups = new RoomSetup[numSetups];
 				memset(pRoom->pSetups, 0, sizeof(RoomSetup) * numSetups);
 				setupIndex = -1;
+
+				if (bDemo && pRoom->numObjects) {
+					for (int i = 0; i < numSetups; i++) {
+						pRoom->pSetups[i].pObjectArt = new RoomObjectArt[pRoom->numObjects];
+						memset(pRoom->pSetups[i].pObjectArt, 0, sizeof(RoomObjectArt) * pRoom->numObjects);
+					}
+				}
 			} else {
 				if (!pRoom->pSetups)
 					return 0;
@@ -235,7 +249,29 @@ int SputRoom::readSetupsSection() {
 				} else {
 					RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
 
-					if (sscanf(line, " background %s", name) == 1) {
+					if (bDemo && sscanf(line, " object_art %s %s", name, fileName) == 2) {
+						for (uint i = 0; i < pRoom->numObjects; i++) {
+							if (strcmp(name, pRoom->pObjects[i].name))
+								continue;
+
+							if (strlen(fileName) >= 32)
+								warning("SputRoom::readSetupsSection(): object art name %s is too long", fileName);
+
+							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
+							Common::strlcpy(pSetup->pObjectArt[i].aBitmapName, fileName, 32);
+						}
+					} else if (bDemo && sscanf(line, " object_z %s %s", name, fileName) == 2) {
+						for (uint i = 0; i < pRoom->numObjects; i++) {
+							if (strcmp(name, pRoom->pObjects[i].name))
+								continue;
+
+							if (strlen(fileName) >= 32)
+								warning("SputRoom::readSetupsSection(): object z buffer name %s is too long", fileName);
+
+							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
+							Common::strlcpy(pSetup->pObjectArt[i].aZBufferName, fileName, 32);
+						}
+					} else if (sscanf(line, " background %s", name) == 1) {
 						if (strlen(name) >= 32)
 							warning("SputRoom::readSetupsSection(): background name %s is too long", name);
 
@@ -252,6 +288,68 @@ int SputRoom::readSetupsSection() {
 							sscanf(line, " nclip %f", &pSetup->camera.nearClip) != 1 &&
 							sscanf(line, " fclip %f", &pSetup->camera.farClip) != 1) {
 						return 0;
+					}
+				}
+			}
+		}
+
+		if (!_pStdConffile->readLine())
+			return 1;
+	}
+}
+
+int SputRoom::readObjectsSection() {
+	Room *pRoom = _pLoadingRoom;
+	RoomObject *pObject = nullptr;
+	char name[1024];
+
+	pRoom->numObjects = 0;
+	pRoom->pObjects = nullptr;
+
+	if (!_pStdConffile->readLine())
+		return 1;
+
+	while (true) {
+		const char *line = _pStdConffile->getLine();
+
+		if (*line) {
+			int numObjects;
+
+			name[0] = 0;
+
+			if (sscanf(line, " section: %s\n", name)) {
+				if (!findSectionHandler(name))
+					return 0;
+			} else {
+				if (sscanf(line, " tot_objects %d\n", &numObjects) == 1) {
+					delete[] pRoom->pObjects;
+					pRoom->pObjects = nullptr;
+					pRoom->numObjects = 0;
+
+					if (numObjects > 0) {
+						pRoom->numObjects = numObjects;
+						pRoom->pObjects = new RoomObject[numObjects];
+						memset(pRoom->pObjects, 0, sizeof(RoomObject) * numObjects);
+					}
+
+					pObject = pRoom->pObjects;
+				}
+
+				if (pObject) {
+					RdVector3 position;
+
+					if (sscanf(line, " object %s %f %f %f\n", name, &position[0], &position[1], &position[2]) == 4) {
+						if ((uint)(pObject - pRoom->pObjects) >= pRoom->numObjects) {
+							warning("SputRoom::readObjectsSection(): more than %u objects", pRoom->numObjects);
+							return 0;
+						}
+
+						if (strlen(name) >= 32)
+							warning("SputRoom::readObjectsSection(): object name %s is too long", name);
+
+						Common::strlcpy(pObject->name, name, 32);
+						memcpy(pObject->position, position, sizeof(RdVector3));
+						pObject++;
 					}
 				}
 			}

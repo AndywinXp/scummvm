@@ -61,6 +61,19 @@ struct RoomCamera {
 	RdMatrix34 posMatrix;
 };
 
+// Only the demo has these. Its set files list the objects of the room and the art
+// of each object in every setup, the retail ones create the object states from Lua
+struct RoomObject {
+	char name[32];
+	RdVector3 position;
+};
+
+struct RoomObjectArt {
+	char name[32];
+	char aBitmapName[32];
+	char aZBufferName[32];
+};
+
 struct RoomSetup {
 	char aName[32];
 	RoomCamera camera;
@@ -69,6 +82,7 @@ struct RoomSetup {
 	ResRef bitmapRef;
 	ResRef zbufferRef;
 	SputObjectState *ObjectStates;
+	RoomObjectArt *pObjectArt;
 };
 
 struct RoomLight {
@@ -98,6 +112,8 @@ struct Room {
 	RoomSetup *pSetups;
 	uint numSetups;
 	int curSetup;
+	uint numObjects;
+	RoomObject *pObjects;
 	uint numLights;
 	RoomLight aLights[64];
 	RoomActorNode *pActorNode;
@@ -187,6 +203,8 @@ private:
 	int findSectionHandler(const char *name);
 	int readLightSection();
 	int readSetupsSection();
+	int readObjectsSection();
+	void createObjectStates(Room *pRoom, RoomSetup *pSetup, int setupIndex);
 	int readColorMapsSection();
 	int readSectors();
 	RoomActorNode *allocActorNode(const char *roomName);
