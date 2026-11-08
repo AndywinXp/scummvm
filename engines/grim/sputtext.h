@@ -78,6 +78,7 @@ public:
 	void pause();
 	void resume();
 	SputTextEvent *createActorText(SputActor *pActor, const char *pText, int x, int y);
+	SputTextEvent *createActorTextDemo(SputActor *pActor, const char *pText);
 	SputTextEvent *addToQueue(SputTextEvent *pEvent, int duration, int flags);
 	int release();
 	int startup();

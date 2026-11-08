@@ -246,6 +246,76 @@ SputTextEvent *SputText::createActorText(SputActor *pActor, const char *pText, i
 	return pEvent;
 }
 
+SputTextEvent *SputText::createActorTextDemo(SputActor *pActor, const char *pText) {
+	BlastTextSurface *pSurface = _pBlastText->getSurface();
+	StdRect clip;
+	StdRect defaultRect;
+	TextParams params = _defaultTextParams;
+
+	if (!pActor || !pActor->pExtra || !params.pFont) {
+		warning("SputText::createActorTextDemo(): no actor, actor extra data or font");
+		return nullptr;
+	}
+
+	clip.x = 0;
+	clip.y = 0;
+	clip.width = pSurface->width;
+	clip.height = pSurface->height;
+	defaultRect.x = 320;
+	defaultRect.y = 450;
+	defaultRect.width = 0;
+	defaultRect.height = 0;
+
+	params.pClip = &clip;
+	params.fgColor = pActor->pExtra->talkColor;
+	params.bgColor = 0;
+	params.fxColor = 0;
+
+	StdRect *pRect = &defaultRect;
+
+	if (pActor->onScreen) {
+		pRect = &pActor->drawnRect;
+	} else if (!pActor->pCostumeStack || (pActor->flags & 2)) {
+		int screen[3];
+
+		if (!scumm_stricmp(pActor->curSetName, _pSputRoom->getCurrentRoomName()) && _pRd->_primit3.getScreenCoord(pActor->actorPos, screen)) {
+			defaultRect.x = screen[0];
+			defaultRect.y = screen[1];
+		}
+	}
+
+	int halfWidth = _pText->getStringWidth(&params, pText) / 2;
+	int halfRect = pRect->width / 2;
+	int penX = pRect->x + (halfRect > halfWidth ? halfRect : halfWidth);
+
+	if (penX < 40)
+		penX = 40;
+
+	if (penX > pSurface->width - 40)
+		penX = pSurface->width - 40;
+
+	params.x = penX;
+	params.y = params.pFont->baseLine;
+
+	int height = _pText->getStringHeight(&params, pText);
+	int penY = pRect->y - height - 10;
+
+	if (penY < 0)
+		penY = 0;
+
+	if (penY > pSurface->height - height)
+		penY = pSurface->height - height;
+
+	params.x = penX;
+	params.y = params.pFont->baseLine + penY;
+
+	SputTextEvent *pEvent = allocEvent(&params, pText);
+
+	pEvent->pActor = pActor;
+
+	return pEvent;
+}
+
 SputTextEvent *SputText::addToQueue(SputTextEvent *pEvent, int duration, int flags) {
 	if (pEvent) {
 		if (!pEvent->params.pFont) {

@@ -397,6 +397,53 @@ void Lua_V1::SayLine() {
 	}
 }
 
+void Lua_V1::SayLineDemo() {
+	SputActorModule *pSputActor = g_grim->_pSputActor;
+	lua_Object paramObj = lua_getparam(1);
+
+	if (!(lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('R','T','C','A')) && !lua_isstring(paramObj) && !lua_isnumber(paramObj)) {
+		warning("SayLine: Invalid argument");
+		return;
+	}
+
+	SputActor *actor = pSputActor->getSelectedActor();
+
+	if (lua_isuserdata(paramObj) && lua_tag(paramObj) == MKTAG('R','T','C','A')) {
+		actor = pSputActor->actorDeref(lua_getuserdata(paramObj));
+		paramObj = lua_getparam(2);
+	}
+
+	if (!actor) {
+		warning("SayLine: Invalid actor handle");
+		return;
+	}
+
+	if (!lua_isstring(paramObj)) {
+		warning("SayLine: Invalid message");
+		return;
+	}
+
+	char translation[32];
+	const char *msgId = lua_getstring(paramObj);
+
+	if (!g_grim->_pSputText->extractSayLineData(msgId, translation))
+		warning("SayLine: Invalid message format");
+
+	pSputActor->sayLineDemo(actor, msgId);
+}
+
+void Lua_V1::ShutUpActorDemo() {
+	lua_Object actorObj = lua_getparam(1);
+
+	if (!isSputActor(actorObj))
+		return;
+
+	SputActor *pActor = getSputActor(actorObj);
+
+	if (pActor)
+		g_grim->_pSputActor->shutUpDemo(pActor);
+}
+
 void Lua_V1::ShutUpActor() {
 	lua_Object actorObj = lua_getparam(1);
 

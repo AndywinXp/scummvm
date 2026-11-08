@@ -1946,6 +1946,10 @@ void Lua_V1::SetShadowColor() {
 	g_grim->_pSputCostume->setShadowColor(r, g, b);
 }
 
+void Lua_V1::SetShadowColorDemo() {
+	// The demo stores the color and never reads it
+}
+
 void Lua_V1::KillActorShadows() {
 	lua_Object actorObj = lua_getparam(1);
 

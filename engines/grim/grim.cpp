@@ -2604,7 +2604,10 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 
 			if (mode != 3 && mode != 4) {
 				setPerfCounter(3);
-				_pSputActor->updateActors(_pSputTime->getFrameTimeFlex());
+				if (_gameFlags & ADGF_DEMO)
+					_pSputActor->updateActorsDemo(_pSputTime->getFrameTimeFlex());
+				else
+					_pSputActor->updateActors(_pSputTime->getFrameTimeFlex());
 				queryPerfCounterDiff(3);
 				mode = _libMode;
 			}

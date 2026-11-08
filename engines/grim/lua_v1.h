@@ -174,6 +174,9 @@ protected:
 	DECLARE_LUA_OPCODE(SetActorConstrain);
 	DECLARE_LUA_OPCODE(GetVisibleThings);
 	DECLARE_LUA_OPCODE(SetShadowColor);
+	DECLARE_LUA_OPCODE(SetShadowColorDemo);
+	DECLARE_LUA_OPCODE(SayLineDemo);
+	DECLARE_LUA_OPCODE(ShutUpActorDemo);
 	DECLARE_LUA_OPCODE(KillActorShadows);
 	DECLARE_LUA_OPCODE(SetActiveShadow);
 	DECLARE_LUA_OPCODE(SetActorShadowPoint);

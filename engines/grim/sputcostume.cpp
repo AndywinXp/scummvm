@@ -72,9 +72,11 @@ void SputCostume::setShadowColor(int red, int green, int blue) {
 	_pSputRender->colorCorrect(&color, 1);
 
 	if (!_pShadowColormap) {
+		// The demo has no shadow colormap, its shadows are black
 		char fileName[] = "shadow.cmp";
+		char demoFileName[] = "dfltcmp.cmp";
 
-		_pShadowColormap = _pRd->_colormap.load(fileName);
+		_pShadowColormap = _pRd->_colormap.load((_pGrim->getGameFlags() & ADGF_DEMO) ? demoFileName : fileName);
 	}
 
 	if (!_pShadowColormap || !_pShadowColormap->pRGB16) {
@@ -274,6 +276,28 @@ int SputCostume::initialize(SysStruct *pHS) {
 	_bInitialized = result == 0;
 
 	return result != 0;
+}
+
+void SputCostume::resetCostume(int hInst) {
+	_cos.instStopChores(hInst);
+
+	int numComponents = _cos.instCountComponents(hInst);
+
+	for (int i = 0; i < numComponents; i++) {
+		int fourcc = 0;
+		void *pInstData = _cos.instGetInstanceData(hInst, i, &fourcc);
+
+		if (fourcc == kSputCostumeTagMaterial) {
+			static_cast<MaterialInst *>(pInstData)->key = -1;
+		} else if (fourcc == kSputCostumeTagMainThing || fourcc == kSputCostumeTagThing) {
+			ModelInst *pModelInst = static_cast<ModelInst *>(pInstData);
+
+			pModelInst->bVisible = pModelInst->pParentModel == nullptr;
+
+			for (int track = 0; track < _pRd->_puppet.getNumTracks(); track++)
+				_pRd->_puppet.removeTrack(pModelInst->pThing->pPuppet, track);
+		}
+	}
 }
 
 void SputCostume::terminate() {

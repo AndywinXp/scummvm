@@ -177,7 +177,13 @@ public:
 	void forward(SputActor *pActor);
 	void updateSpeechOnly(float delta);
 	void updateActors(float delta);
+	void updateActorsDemo(float delta);
 	void updateCostumesMain(SputActor *pActor, float delta);
+	void updateCostumesMainDemo(SputActor *pActor, float delta);
+	void stopActorDemo(SputActor *pActor);
+	void sayLineDemo(SputActor *pActor, const char *msgId);
+	void shutUpDemo(SputActor *pActor);
+	int isVoicePlayingDemo(SputActor *pActor);
 	void updateCostumes2(SputActor *pActor, float delta);
 	void updateActorSpeech(SputActor *pActor, float delta);
 	int setSelectedActor(int handle);
@@ -294,6 +300,8 @@ private:
 	LipSyncEntry _aLipSyncAnims[46];
 	int _numLipSyncAnims;
 	RdMaterial *_pShadowMaterial;
+	RdMaterial _demoShadowMaterial;
+	RdMatCel _demoShadowCel;
 };
 
 } // End of namespace Grim

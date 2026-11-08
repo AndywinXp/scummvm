@@ -78,6 +78,7 @@ public:
 	CostumeNode *pushCostume(CostumeNode *pPrev, int hCostume, int hInstance);
 	RdThing *getMainThing(int hInst);
 	void update(CostumeNode *pNode, float delta);
+	void resetCostume(int hInst);
 	int initialize(SysStruct *pHS);
 	void terminate();
 	int startup();
