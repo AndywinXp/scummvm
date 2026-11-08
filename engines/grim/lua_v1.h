@@ -37,6 +37,8 @@
 
 namespace Grim {
 
+class LegacyImporter;
+
 struct CostumeNode;
 struct SputActor;
 struct SputObjectState;
@@ -46,6 +48,8 @@ struct StdVBuffer;
 int luaFtol(float value);
 
 class Lua_V1 : public LuaBase, public SputControlCallback {
+	friend class LegacyImporter;
+
 public:
 	typedef Lua_V1 LuaClass;
 
@@ -67,6 +71,7 @@ public:
 	void registerTextOpcodes();
 	void registerPrimitiveOpcodes();
 	void registerHardwareOpcodes();
+	void registerCostumeOpcodes();
 
 	int controlCallback(float frameTime) override;
 	void setDebugToggleCallback(void (*pFunc)(int));
@@ -324,6 +329,70 @@ protected:
 	DECLARE_LUA_OPCODE(GetMemoryUsage);
 	DECLARE_LUA_OPCODE(GetFontDimensions);
 	DECLARE_LUA_OPCODE(PurgeText);
+	DECLARE_LUA_OPCODE(IrisClear);
+	DECLARE_LUA_OPCODE(LightMgrShutdown);
+
+	// Not ported yet (empty stubs in lua_v1.cpp)
+	DECLARE_LUA_OPCODE(EnginePause);
+	DECLARE_LUA_OPCODE(EngineResume);
+	DECLARE_LUA_OPCODE(SearchForFileOrSwapCDs);
+	DECLARE_LUA_OPCODE(GetActorScale);
+	DECLARE_LUA_OPCODE(GetActorTurnRate);
+	DECLARE_LUA_OPCODE(SetActorOffsetYaw);
+	DECLARE_LUA_OPCODE(IsActorLooking);
+	DECLARE_LUA_OPCODE(CanActorSee);
+	DECLARE_LUA_OPCODE(GetActorLoopingChores);
+	DECLARE_LUA_OPCODE(ScreenToWorld);
+	DECLARE_LUA_OPCODE(PrintMessage);
+	DECLARE_LUA_OPCODE(QueryDialog);
+	DECLARE_LUA_OPCODE(IsSectorActive);
+	DECLARE_LUA_OPCODE(SpewShutdown);
+	DECLARE_LUA_OPCODE(GetPhysicalBytes);
+	DECLARE_LUA_OPCODE(SetMemoryUsage);
+	DECLARE_LUA_OPCODE(GetCameraInterest);
+	DECLARE_LUA_OPCODE(SnapToPlane);
+	DECLARE_LUA_OPCODE(FindLight);
+	DECLARE_LUA_OPCODE(IsLightOn);
+	DECLARE_LUA_OPCODE(SetLightType);
+	DECLARE_LUA_OPCODE(GetLightType);
+	DECLARE_LUA_OPCODE(GetLightPosition);
+	DECLARE_LUA_OPCODE(SetLightRotation);
+	DECLARE_LUA_OPCODE(GetLightRotation);
+	DECLARE_LUA_OPCODE(SetLightAngles);
+	DECLARE_LUA_OPCODE(GetLightAngles);
+	DECLARE_LUA_OPCODE(GetLightIntensity);
+	DECLARE_LUA_OPCODE(PointLightAt);
+	DECLARE_LUA_OPCODE(ImStartRecording);
+	DECLARE_LUA_OPCODE(ImStopRecording);
+	DECLARE_LUA_OPCODE(ImGetMasterVol);
+	DECLARE_LUA_OPCODE(ImSetMasterVol);
+	DECLARE_LUA_OPCODE(ImStartVoice);
+	DECLARE_LUA_OPCODE(ImStopVoice);
+	DECLARE_LUA_OPCODE(ImSetAttribute);
+	DECLARE_LUA_OPCODE(ImSetCuePoint);
+	DECLARE_LUA_OPCODE(ImGetMemoryFootprint);
+	DECLARE_LUA_OPCODE(ImGetSoundCacheSize);
+	DECLARE_LUA_OPCODE(ActorShadow);
+	DECLARE_LUA_OPCODE(ActorDistToShadowPlane);
+	DECLARE_LUA_OPCODE(MarkDirtyRect);
+	DECLARE_LUA_OPCODE(CacheRect);
+	DECLARE_LUA_OPCODE(RestoreCacheRect);
+	DECLARE_LUA_OPCODE(ResReport);
+	DECLARE_LUA_OPCODE(HardwareAccelerated);
+	DECLARE_LUA_OPCODE(IrisComplete);
+	DECLARE_LUA_OPCODE(SaveScreen);
+	DECLARE_LUA_OPCODE(FindFileOnAnyCD);
+	DECLARE_LUA_OPCODE(SetSoundParameters);
+	DECLARE_LUA_OPCODE(GetSoundParameters);
+	DECLARE_LUA_OPCODE(TEST);
+	DECLARE_LUA_OPCODE(GetTickCount);
+	DECLARE_LUA_OPCODE(ActorVoiceIs3D);
+	DECLARE_LUA_OPCODE(DumpMemoryLog);
+	DECLARE_LUA_OPCODE(BuildCache);
+	DECLARE_LUA_OPCODE(RestoreCache);
+	DECLARE_LUA_OPCODE(SetWalkSystemFadeTime);
+	DECLARE_LUA_OPCODE(GetKeyLength);
+	DECLARE_LUA_OPCODE(GetSmushLength);
 
 private:
 	enum {

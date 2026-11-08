@@ -37,6 +37,7 @@ class WriteStream;
 namespace Grim {
 
 class GrimEngine;
+class LegacyImporter;
 class Lua_V1;
 class NormalText;
 class Polyglot;
@@ -93,6 +94,7 @@ public:
 
 private:
 	friend class Lua_V1;
+	friend class LegacyImporter;
 
 	Res *_pRes;
 	RenderDroid *_pRd;

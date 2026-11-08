@@ -35,11 +35,14 @@ class WriteStream;
 
 namespace Grim {
 
+class LegacyImporter;
 class Res;
 class SputRender;
 class WuRegistry;
 
 class SputSmush : public SmushPlayVideo {
+	friend class LegacyImporter;
+
 public:
 	SputSmush(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry);
 	~SputSmush();

@@ -314,7 +314,7 @@ int SputCostume::startup() {
 	_oldInstanceHook = _cos.registerInstanceHook(instanceHookThunk);
 	_oldSaveHook = _cos.registerSaveHook(saveHookThunk);
 
-	// TODO: register GetKeyLength and GetSmushLength (opcode batch B2)
+	_pLua->registerCostumeOpcodes();
 
 	_bStarted = 1;
 

@@ -354,9 +354,52 @@ static void errorfb() {
 	lua_printstack(nullptr);
 }
 
+static void io_remove() {
+	const char *fileName = luaL_check_string(1);
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+
+	if (saveFileMan->removeSavefile(fileName)) {
+		lua_pushuserdata(0);
+	} else {
+		lua_pushnil();
+		lua_pushstring(saveFileMan->getErrorDesc().c_str());
+	}
+}
+
+static void io_setlocale() {
+	warning("io_setlocale(): not implemented");
+}
+
+static void io_execute() {
+	warning("io_execute(): not implemented");
+}
+
+static void io_rename() {
+	warning("io_rename(): not implemented");
+}
+
+static void io_tmpname() {
+	warning("io_tmpname(): not implemented");
+}
+
+static void io_getenv() {
+	warning("io_getenv(): not implemented");
+}
+
+static void io_debug() {
+	warning("io_debug(): not implemented");
+}
+
 static struct luaL_reg iolib[] = {
+	{ "setlocale",   io_setlocale },
+	{ "execute",     io_execute },
+	{ "remove",      io_remove },
+	{ "rename",      io_rename },
+	{ "tmpname",     io_tmpname },
+	{ "getenv",      io_getenv },
 	{ "date",        io_date },
 	{ "exit",        io_exit },
+	{ "debug",       io_debug },
 	{ "print_stack", errorfb }
 };
 

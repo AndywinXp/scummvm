@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/memstream.h"
 #include "common/stream.h"
 #include "common/system.h"
 
@@ -73,6 +74,15 @@ void IMuse::imSaveLoadFilelist(Common::Serializer &ser) {
 			sound = sound->next;
 		}
 
+		// The entries have the pointers of the list, they are not used when loading
+		int32 prevPtr = 0;
+		int32 nextPtr = 0;
+
+		if (!_soundsLegacyLayout) {
+			ser.syncAsSint32LE(prevPtr, VER(30));
+			ser.syncAsSint32LE(nextPtr, VER(30));
+		}
+
 		ser.syncAsSint32LE(soundId, VER(30));
 		ser.syncArray(filename, sizeof(filename), Common::Serializer::SByte, VER(30));
 		ser.syncAsSint32LE(refCount, VER(30));
@@ -99,6 +109,14 @@ void IMuse::imSaveLoadFilelist(Common::Serializer &ser) {
 			refCount = sound->refCount;
 			Common::strlcpy(filename, sound->filename, sizeof(filename));
 			sound = sound->next;
+		}
+
+		int32 prevPtr = 0;
+		int32 nextPtr = 0;
+
+		if (!_soundsLegacyLayout) {
+			ser.syncAsSint32LE(prevPtr, VER(30));
+			ser.syncAsSint32LE(nextPtr, VER(30));
 		}
 
 		ser.syncAsSint32LE(soundId, VER(30));
@@ -1684,10 +1702,74 @@ int IMuse::soundsGetPhoneme(int soundId, int offset) {
 	return IMUSE_PHONEME_NONE;
 }
 
-void IMuse::soundsSaveLoad(Common::Serializer &ser) {
+// The ImSave and ImSaveScript data are stored as a size followed by the data,
+// the ImSave one starts with the tag 49
+void IMuse::soundsSaveLoadBlock(Common::Serializer &ser, bool isImSave, bool legacyLayout) {
+	int32 size = 0;
+
+	// The old ScummVM savegames have the data without size and tag
+	if (legacyLayout) {
+		if (isImSave)
+			imSaveLoad(ser);
+		else
+			imSaveLoadScript(ser);
+
+		return;
+	}
+
+	if (ser.isSaving()) {
+		Common::MemoryWriteStreamDynamic blob(DisposeAfterUse::YES);
+		Common::Serializer blobSer(nullptr, &blob);
+
+		blobSer.setVersion(ser.getVersion());
+		soundsSaveLoadBlockData(blobSer, isImSave);
+
+		size = (int32)blob.size();
+		ser.syncAsSint32LE(size, VER(30));
+		ser.syncBytes(blob.getData(), size, VER(30));
+		return;
+	}
+
+	ser.syncAsSint32LE(size, VER(30));
+
+	byte *data = new byte[size];
+
+	ser.syncBytes(data, size, VER(30));
+
+	Common::MemoryReadStream blob(data, size);
+	Common::Serializer blobSer(&blob, nullptr);
+
+	blobSer.setVersion(ser.getVersion());
+	soundsSaveLoadBlockData(blobSer, isImSave);
+
+	if (blob.pos() != size)
+		warning("IMuse::soundsSaveLoadBlock(): %d bytes read out of %d", (int)blob.pos(), size);
+
+	delete[] data;
+}
+
+void IMuse::soundsSaveLoadBlockData(Common::Serializer &ser, bool isImSave) {
+	if (!isImSave) {
+		imSaveLoadScript(ser);
+		return;
+	}
+
+	int32 tag = 49;
+
+	ser.syncAsSint32LE(tag, VER(30));
+
+	if (ser.isLoading() && tag != 49)
+		warning("IMuse::soundsSaveLoadBlockData(): unexpected tag %d", tag);
+
+	imSaveLoad(ser);
+}
+
+void IMuse::soundsSaveLoad(Common::Serializer &ser, bool legacyLayout) {
 	Common::StackLock lock(*_mutex);
 
 	char effectName[sizeof(_curEffectName)];
+
+	_soundsLegacyLayout = legacyLayout;
 
 	if (ser.isSaving()) {
 		Common::strlcpy(effectName, _curEffectId ? _curEffectName : "OFF", sizeof(effectName));
@@ -1705,8 +1787,8 @@ void IMuse::soundsSaveLoad(Common::Serializer &ser) {
 		_curSpeechFile[0] = '\0';
 	}
 
-	imSaveLoad(ser);
-	imSaveLoadScript(ser);
+	soundsSaveLoadBlock(ser, true, legacyLayout);
+	soundsSaveLoadBlock(ser, false, legacyLayout);
 
 	if (ser.isLoading()) {
 		for (int soundId = imGetNextSound(0); soundId; soundId = imGetNextSound(soundId)) {

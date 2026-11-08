@@ -67,6 +67,16 @@ MODULE_OBJS := \
 	imuse/imuse_triggers.o \
 	imuse/imuse_utils.o \
 	imuse/imuse_waveout.o \
+	legacy_savegames/legacy_lua_restore.o \
+	legacy_savegames/legacy_savegames.o \
+	legacy_savegames/legacy_savegames_actor.o \
+	legacy_savegames/legacy_savegames_controls.o \
+	legacy_savegames/legacy_savegames_import.o \
+	legacy_savegames/legacy_savegames_import_actor.o \
+	legacy_savegames/legacy_savegames_import_lua.o \
+	legacy_savegames/legacy_savegames_import_modules.o \
+	legacy_savegames/legacy_savegames_import_room.o \
+	legacy_savegames/legacy_savegames_lua.o \
 	lua/lapi.o \
 	lua/lauxlib.o \
 	lua/lbuffer.o \

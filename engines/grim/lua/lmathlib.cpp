@@ -48,6 +48,10 @@ static void math_atan() {
 	lua_pushnumber(FROMRAD(atan(luaL_check_number(1))));
 }
 
+static void math_atan2() {
+	lua_pushnumber(FROMRAD(atan2(luaL_check_number(1), luaL_check_number(2))));
+}
+
 static void math_ceil() {
 	lua_pushnumber(ceil(luaL_check_number(1)));
 }
@@ -66,6 +70,18 @@ static void math_sqrt() {
 
 static void math_pow() {
 	lua_pushnumber(pow(luaL_check_number(1), luaL_check_number(2)));
+}
+
+static void math_log() {
+	lua_pushnumber(log(luaL_check_number(1)));
+}
+
+static void math_log10() {
+	lua_pushnumber(log10(luaL_check_number(1)));
+}
+
+static void math_exp() {
+	lua_pushnumber(exp(luaL_check_number(1)));
 }
 
 static void math_deg() {
@@ -119,12 +135,16 @@ static struct luaL_reg mathlib[] = {
 	{ "asin",       math_asin},
 	{ "acos",       math_acos},
 	{ "atan",       math_atan},
+	{ "atan2",      math_atan2},
 	{ "ceil",       math_ceil},
 	{ "floor",      math_floor},
 	{ "mod",        math_mod},
 	{ "sqrt",       math_sqrt},
 	{ "min",        math_min},
 	{ "max",        math_max},
+	{ "log",        math_log},
+	{ "log10",      math_log10},
+	{ "exp",        math_exp},
 	{ "deg",        math_deg},
 	{ "rad",        math_rad},
 	{ "random",     math_random},

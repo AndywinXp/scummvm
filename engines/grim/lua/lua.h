@@ -70,6 +70,11 @@ void lua_Restore(SaveGame *state);
 int lua_Save(tSaveRestoreAccess *saveFunc);
 int lua_Restore(tSaveRestoreAccess *restoreFunc);
 
+uint32 lua_FuncPtrToID(lua_CFunction func);
+lua_CFunction lua_IDToFuncPtr(uint32 id);
+bool lua_FuncPtrHasID(lua_CFunction func);
+void lua_FuncIDsInvalidate();
+
 void lua_removelibslists();
 
 void lua_open();

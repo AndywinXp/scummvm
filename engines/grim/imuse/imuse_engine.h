@@ -200,6 +200,7 @@ private:
 	int dispatchTerminate();
 	IMuseDispatch *dispatchGetDispatchByTrackId(int trackId);
 	void dispatchSaveLoad(Common::Serializer &ser);
+	void dispatchSaveLoadLegacy(Common::Serializer &ser, IMuseDispatch *dispatch);
 	int dispatchRestoreStreamZones();
 	int dispatchAllocateSound(IMuseTrack *trackPtr, int groupId);
 	int dispatchRelease(IMuseTrack *trackPtr);
@@ -304,6 +305,7 @@ private:
 	int _curHMIEffectIdInternal;
 	int _curEffectId;
 	char _curEffectName[40];
+	bool _soundsLegacyLayout; // only while soundsSaveLoad runs
 	uint8 *_voiceSrcBuf;
 	int32 _maxChunkRequested;
 	uint8 *_voiceRemainderBuf;
@@ -371,7 +373,9 @@ public:
 	int iMUSEGetMemoryFootprint();
 	int iMUSEGetSoundCacheSize();
 	void iMUSESetVoiceEffect(const char *effectName);
-	void soundsSaveLoad(Common::Serializer &ser);
+	void soundsSaveLoad(Common::Serializer &ser, bool legacyLayout = false);
+	void soundsSaveLoadBlock(Common::Serializer &ser, bool isImSave, bool legacyLayout);
+	void soundsSaveLoadBlockData(Common::Serializer &ser, bool isImSave);
 	void soundsRestoreLegacy(int32 stateIndex, int32 seqIndex);
 	void soundsPeriodic();
 	int soundsPause();

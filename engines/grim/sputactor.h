@@ -37,6 +37,7 @@ namespace Grim {
 
 class Cos;
 class GrimEngine;
+class LegacyImporter;
 class Lua_V1;
 class Puck;
 class SputCostume;
@@ -150,6 +151,8 @@ struct LipSyncEntry {
 };
 
 class SputActorModule {
+	friend class LegacyImporter;
+
 public:
 	SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath, StdDisplay *pStdDisplay, WalkSystem *pWalkSystem, SputResource *pSputResource,
 			SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText, SputTime *pSputTime);

@@ -94,6 +94,7 @@ class LuaBase;
 class Lua_V1;
 class Commentary;
 class GfxBase;
+class LegacyImporter;
 
 struct ControlDescriptor {
 	const char *name;
@@ -141,6 +142,7 @@ struct GrimVideoDevice {
 class GrimEngine : public Engine, public SysStruct {
 	friend class Lua_V1;
 	friend class LuaBase;
+	friend class LegacyImporter;
 
 protected:
 	// Engine APIs
@@ -445,7 +447,10 @@ protected:
 	void shutdownModule(int module);
 	void terminateModule(int module);
 	void soundsSave(Common::WriteStream *pStream);
-	void soundsRestore(Common::SeekableReadStream *pStream);
+	void soundsRestore(Common::SeekableReadStream *pStream, bool legacyLayout = false);
+	void restorePrologue();
+	void restoreEpilogue();
+	void restoreLegacy();
 
 	// grim module
 	Common::Error runGrime();

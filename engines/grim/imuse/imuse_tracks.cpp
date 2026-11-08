@@ -74,19 +74,54 @@ void IMuse::tracksSaveLoad(Common::Serializer &ser) {
 	Common::StackLock lock(*_mutex);
 	dispatchSaveLoad(ser);
 
-	for (int l = 0; l < _trackCount; l++) {
-		ser.syncAsSint32LE(_tracks[l].soundId, VER(30));
-		ser.syncAsSint32LE(_tracks[l].marker, VER(30));
-		ser.syncAsSint32LE(_tracks[l].group, VER(30));
-		ser.syncAsSint32LE(_tracks[l].priority, VER(30));
-		ser.syncAsSint32LE(_tracks[l].vol, VER(30));
-		ser.syncAsSint32LE(_tracks[l].effVol, VER(30));
-		ser.syncAsSint32LE(_tracks[l].pan, VER(30));
-		ser.syncAsSint32LE(_tracks[l].detune, VER(30));
-		ser.syncAsSint32LE(_tracks[l].transpose, VER(30));
-		ser.syncAsSint32LE(_tracks[l].pitchShift, VER(30));
-		ser.syncAsSint32LE(_tracks[l].mailbox, VER(30));
-		ser.syncAsSint32LE(_tracks[l].jumpHook, VER(30));
+	IMuseTrack emptyTrack;
+
+	memset(&emptyTrack, 0, sizeof(emptyTrack));
+
+	int numTracks = _soundsLegacyLayout ? _trackCount : IMUSE_SAVED_TRACKS;
+
+	// The savegame has the tracks as they are in memory, the pointers are 32 bit values
+	for (int l = 0; l < numTracks; l++) {
+		IMuseTrack *track = l < _trackCount ? &_tracks[l] : &emptyTrack;
+
+		// Tracks of the savegames of the old ScummVM: no pointers
+		if (_soundsLegacyLayout) {
+			ser.syncAsSint32LE(track->soundId, VER(30));
+			ser.syncAsSint32LE(track->marker, VER(30));
+			ser.syncAsSint32LE(track->group, VER(30));
+			ser.syncAsSint32LE(track->priority, VER(30));
+			ser.syncAsSint32LE(track->vol, VER(30));
+			ser.syncAsSint32LE(track->effVol, VER(30));
+			ser.syncAsSint32LE(track->pan, VER(30));
+			ser.syncAsSint32LE(track->detune, VER(30));
+			ser.syncAsSint32LE(track->transpose, VER(30));
+			ser.syncAsSint32LE(track->pitchShift, VER(30));
+			ser.syncAsSint32LE(track->mailbox, VER(30));
+			ser.syncAsSint32LE(track->jumpHook, VER(30));
+			continue;
+		}
+
+
+		// The pointers are not used when loading, the links are rebuilt below
+		int32 next = 0;
+		int32 prev = 0;
+		int32 dispatchPtr = 0;
+
+		ser.syncAsSint32LE(next, VER(30));
+		ser.syncAsSint32LE(prev, VER(30));
+		ser.syncAsSint32LE(dispatchPtr, VER(30));
+		ser.syncAsSint32LE(track->soundId, VER(30));
+		ser.syncAsSint32LE(track->marker, VER(30));
+		ser.syncAsSint32LE(track->group, VER(30));
+		ser.syncAsSint32LE(track->priority, VER(30));
+		ser.syncAsSint32LE(track->vol, VER(30));
+		ser.syncAsSint32LE(track->effVol, VER(30));
+		ser.syncAsSint32LE(track->pan, VER(30));
+		ser.syncAsSint32LE(track->detune, VER(30));
+		ser.syncAsSint32LE(track->transpose, VER(30));
+		ser.syncAsSint32LE(track->pitchShift, VER(30));
+		ser.syncAsSint32LE(track->mailbox, VER(30));
+		ser.syncAsSint32LE(track->jumpHook, VER(30));
 	}
 
 	if (ser.isLoading()) {

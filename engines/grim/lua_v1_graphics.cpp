@@ -648,6 +648,10 @@ void Lua_V1::IrisDown() {
 	g_grim->_pSputRender->irisDown(x, y, time);
 }
 
+void Lua_V1::IrisClear() {
+	g_grim->_pSputRender->clearIris();
+}
+
 void Lua_V1::PreRender() {
 	g_grim->_pSputRender->preRendered(getbool(1), getbool(2));
 }

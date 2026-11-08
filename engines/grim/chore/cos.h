@@ -34,6 +34,8 @@ class WriteStream;
 
 namespace Grim {
 
+class LegacyImporter;
+
 enum CosTagTypes {
 	kCosTagStateBased = 0,
 	kCosTagInt = 1,
@@ -156,6 +158,7 @@ typedef int (*CosBitmapMunger)(const CosStateBitmapDesc *pDesc, int extra);
 
 class Cos {
 	friend class CosUtil;
+	friend class LegacyImporter;
 
 public:
 	Cos();

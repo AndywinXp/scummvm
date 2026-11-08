@@ -10,6 +10,7 @@
 
 #include "common/util.h"
 
+#include "engines/grim/lua.h"
 #include "engines/grim/lua/lapi.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/lbuiltin.h"
@@ -468,6 +469,18 @@ static void testC() {
 
 #endif
 
+static void luaI_dofile() {
+	const char *fileName = luaL_check_string(1);
+	LuaBase *lua = LuaBase::instance();
+
+	if (!lua)
+		return;
+
+	if (lua->dofile(fileName) == 0)
+		if (luaA_passresults() == 0)
+			lua_pushuserdata(0);
+}
+
 /*
 ** Internal functions
 */
@@ -516,7 +529,8 @@ static struct luaL_reg int_funcs[] = {
 	{ "sleep_for", sleep_for },
 	{ "break_here", break_here },
 	{ "pause_script", pause_script },
-	{ "unpause_script", unpause_script }
+	{ "unpause_script", unpause_script },
+	{ "dofile", luaI_dofile }
 };
 
 void luaB_predefine() {

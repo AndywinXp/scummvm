@@ -84,6 +84,7 @@ void lua_removelibslists() {
 		list = nextList;
 	}
 	list_of_libs = nullptr;
+	lua_FuncIDsInvalidate();
 }
 
 void luaL_openlib(luaL_reg *l, int32 n) {
