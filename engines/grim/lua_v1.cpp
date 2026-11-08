@@ -354,7 +354,7 @@ void Lua_V1::EnumerateVideoDevices() {
 	StdDisplayDevice *aDevices = g_grim->_pStdDisplay->getDevices();
 
 	for (int i = firstDevice; i < numDevices; i++) {
-		if (aDevices[i].type == 1 && !g_grim->_bUseHardware)
+		if (aDevices[i].type == 1 && !g_grim->_bHardwareAvailable)
 			continue;
 
 		lua_pushobject(result);

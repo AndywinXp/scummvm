@@ -129,6 +129,17 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 			0
 		}
 	},
+	{
+		GAMEOPTION_3D_ACCELERATION,
+		{
+			_s("Enable 3D acceleration"),
+			_s("Use the hardware accelerated 3D renderer. It can also be changed from the game settings."),
+			"grim_3d_acceleration",
+			false,
+			0,
+			0
+		}
+	},
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
