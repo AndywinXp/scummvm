@@ -474,7 +474,7 @@ typedef RdNRasterEdge RdZRasterEdge;
 
 class RenderDroid {
 public:
-	RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile);
+	RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile, bool isDemo);
 	~RenderDroid();
 
 	int startup(SysStruct *pHS);
@@ -620,9 +620,8 @@ public:
 
 	class ColormapModule : public Module {
 	public:
-		explicit ColormapModule(RenderDroid *rd) : Module(rd), _pCurMap(nullptr), _pIdentityMap(nullptr), _bDemoFormat(false) {}
 		// The colormaps of the demo have a light level table after the colors
-		void setDemoFormat(bool bDemoFormat) { _bDemoFormat = bDemoFormat; }
+		ColormapModule(RenderDroid *rd, bool isDemo) : Module(rd), _pCurMap(nullptr), _pIdentityMap(nullptr), _bDemoFormat(isDemo) {}
 		RdColormap *getCurrent() const { return _pCurMap; }
 		RdColormap *getIdentity() const { return _pIdentityMap; }
 		RdColormap *load(char *path);
@@ -801,9 +800,8 @@ public:
 
 	class PuppetModule : public Module {
 	public:
-		explicit PuppetModule(RenderDroid *rd) : Module(rd), _numTracks(6) {}
 		// The demo puppets have 4 tracks, the retail ones 6
-		void setNumTracks(int numTracks) { _numTracks = numTracks; }
+		PuppetModule(RenderDroid *rd, bool isDemo) : Module(rd), _numTracks(isDemo ? 4 : 6) {}
 		int getNumTracks() const { return _numTracks; }
 		RdPuppet *create(RdThing *pThing);
 		int newEntry(RdPuppet *pPuppet, RdThing *pThing);

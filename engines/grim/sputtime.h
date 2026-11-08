@@ -30,7 +30,7 @@ namespace Grim {
 
 class SputTime {
 public:
-	SputTime();
+	explicit SputTime(bool isDemo);
 
 	int getGameTime() const;
 	int getFrameTime() const;
@@ -44,6 +44,8 @@ public:
 	void shutdown();
 
 private:
+	// The demo limits a frame to 500 ms instead of 300
+	uint _maxFrameTime;
 	SysStruct *_pHS;
 	int _bInitialized;
 	int _bStarted;

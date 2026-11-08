@@ -44,7 +44,7 @@ WalkPlane::WalkPlane(WalkSystem *pSystem, float (*pVerts)[3], int numPoints, con
 	quadAxis = 0;
 	numVerts = numPoints;
 	name[0] = 0;
-	tolerance = 0.005f;
+	tolerance = _pSystem->_bDemo ? 0.1f : 0.005f;
 
 	if (numVerts > 10) {
 		warning("WalkPlane::WalkPlane(): %d vertices requested, only 10 are supported", numVerts);
@@ -169,6 +169,17 @@ void WalkPlane::setName(const char *pName) {
 
 void WalkPlane::setType(int newType) {
 	type = newType;
+
+	if (_pSystem->_bDemo) {
+		// The demo has no quadrilateral axis
+		tolerance = 10000.0f;
+
+		if ((newType & 0x1000) != 0)
+			tolerance = 0.1f;
+
+		return;
+	}
+
 	tolerance = 9999.0f;
 
 	if ((newType & 0x1000) != 0)
@@ -242,7 +253,10 @@ int WalkPlane::within(float *pPoint, uint flags) {
 		for (int i = 0; i < numVerts; i++) {
 			float *pVert = &apVerts[i]->x;
 
-			double side = -((double)pVert[axisU] - pPrevVert[axisU]) * ((double)pPoint[axisV] - pPrevVert[axisV]) + ((double)pVert[axisV] - pPrevVert[axisV]) * ((double)pPoint[axisU] - pPrevVert[axisU]) + 0.00001f;
+			double side = -((double)pVert[axisU] - pPrevVert[axisU]) * ((double)pPoint[axisV] - pPrevVert[axisV]) + ((double)pVert[axisV] - pPrevVert[axisV]) * ((double)pPoint[axisU] - pPrevVert[axisU]);
+
+			if (!_pSystem->_bDemo)
+				side += 0.00001f;
 
 			if (fabs(side) <= 0.00001f)
 				side = 0.0;
@@ -401,6 +415,10 @@ void WalkPlane::project(float *pPoint) {
 	} else if (axisU == 0 && axisV == 2) {
 		axisW = 1;
 	} else if (axisU == 2 && axisV == 1) {
+		// The demo does not project on these planes
+		if (_pSystem->_bDemo)
+			return;
+
 		axisW = 0;
 	} else {
 		warning("WalkPlane::project(): invalid projection axes %d, %d", axisU, axisV);
@@ -510,7 +528,10 @@ float *WalkPlane::getConstraintVector(Puck *pPuck) {
 	float deltaXStored = (float)deltaX;
 	float deltaZStored = (float)deltaZ;
 
-	if (deltaX * deltaXStored + deltaY * deltaY + deltaZ * deltaZStored >= 0.0025) {
+	// The demo uses a larger distance to the corners
+	double cornerDist = _pSystem->_bDemo ? 0.01 : 0.0025;
+
+	if (deltaX * deltaXStored + deltaY * deltaY + deltaZ * deltaZStored >= cornerDist) {
 		int prevEdge = hitEdge - 1;
 
 		if (prevEdge <= -1)
@@ -522,7 +543,7 @@ float *WalkPlane::getConstraintVector(Puck *pPuck) {
 		double probeY = (double)pPrevVert->y - pConstraint[1];
 		double probeZ = (double)pPrevVert->z - pConstraint[2];
 
-		if (probeX * probeX + probeY * probeY + probeZ * probeZ < 0.0025) {
+		if (probeX * probeX + probeY * probeY + probeZ * probeZ < cornerDist) {
 			RdVector3 vec;
 
 			vec[0] = (float)((double)pPrevVert->x - pHitVert->x);
@@ -810,7 +831,7 @@ int WalkPlane::removeShortEdge() {
 	return 1;
 }
 
-WalkSystem::WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdConffile) {
+WalkSystem::WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdConffile, bool isDemo) {
 	_pRd = pRd;
 	_pStdMath = pStdMath;
 	_pStdConffile = pStdConffile;
@@ -822,7 +843,8 @@ WalkSystem::WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdCon
 	memset(_aCollection, 0, sizeof(_aCollection));
 	_pPuckHead = nullptr;
 	_forwardCounter = 0;
-	_bDemo = false;
+	_bDemo = isDemo;
+	_numDemoVerts = 0;
 
 	memset(_aPath, 0, sizeof(_aPath));
 	_numPathPoints = 0;
@@ -1043,7 +1065,47 @@ void WalkSystem::allActive() {
 		pPlane->bEnabled = 1;
 }
 
+WpVertex *WalkSystem::addVertexDemo(float *pPos) {
+	WpVertex *pFree = nullptr;
+
+	if (_numDemoVerts >= 2046) {
+		warning("WalkSystem::addVertexDemo(): vertex database overflow");
+		return nullptr;
+	}
+
+	for (int i = 0; i < _numDemoVerts; i++) {
+		double deltaY = (double)pPos[1] - _aVertDb[i].y;
+		double deltaX = (double)pPos[0] - _aVertDb[i].x;
+		double deltaZ = (double)pPos[2] - _aVertDb[i].z;
+		float deltaXStored = (float)deltaX;
+		float deltaZStored = (float)deltaZ;
+
+		if (deltaX * deltaXStored + deltaY * deltaY + deltaZ * deltaZStored < 0.00000001) {
+			_aVertDb[i].refCount++;
+			return &_aVertDb[i];
+		}
+
+		if (_aVertDb[i].refCount == 0)
+			pFree = &_aVertDb[i];
+	}
+
+	if (!pFree) {
+		pFree = &_aVertDb[_numDemoVerts];
+		_numDemoVerts++;
+	}
+
+	pFree->refCount = 1;
+	pFree->x = pPos[0];
+	pFree->y = pPos[1];
+	pFree->z = pPos[2];
+
+	return pFree;
+}
+
 WpVertex *WalkSystem::addVertex(WalkPlane *pPlane, float *pPos) {
+	if (_bDemo)
+		return addVertexDemo(pPos);
+
 	if (_totVerts >= 1022)
 		warning("WalkSystem::addVertex(): vertex database is almost full (%d vertices)", _totVerts);
 
@@ -1086,6 +1148,11 @@ WpVertex *WalkSystem::addVertex(WalkPlane *pPlane, float *pPos) {
 }
 
 void WalkSystem::removeVertex(WpVertex *pVert) {
+	if (_bDemo) {
+		pVert->refCount--;
+		return;
+	}
+
 	if (pVert->refCount > 0) {
 		pVert->refCount--;
 
@@ -1129,11 +1196,11 @@ const char *WalkSystem::parseCollection(const char *collection) {
 					WalkPlane *pPlane = newPlane(aVerts, numVerts, collection, sectorName, id, bVisible, type);
 
 					if (height != 12345.0f) {
-						if (type == 4096)
+						if (type == 4096 && !_bDemo)
 							height = 0.005f;
 
 						if (height == 0.0f)
-							pPlane->tolerance = 0.005f;
+							pPlane->tolerance = _bDemo ? 0.1f : 0.005f;
 						else
 							pPlane->tolerance = height;
 					}
@@ -1277,7 +1344,8 @@ int WalkSystem::buildPath(float *pFrom, float *pTo, int bTighten) {
 	if (!planeAt(pFrom, 4096))
 		return 0;
 
-	if (!planeAt(pTo, 4096))
+	// The demo does not check the destination
+	if (!_bDemo && !planeAt(pTo, 4096))
 		return 0;
 
 	if (findPath(pFrom, pTo, nullptr)) {
@@ -1338,7 +1406,8 @@ int WalkSystem::findPath(float *pFrom, float *pTo, WalkPlane *pExclude) {
 	float deltaXStored = (float)deltaX;
 	WalkPlane *pNextPlane = nullptr;
 
-	if (deltaY * deltaYStored + deltaZ * deltaZStored + deltaX * deltaXStored > 0.0001f)
+	// The demo always looks for the next plane
+	if (_bDemo || deltaY * deltaYStored + deltaZ * deltaZStored + deltaX * deltaXStored > 0.0001f)
 		pNextPlane = planeAt(aHit, 4096);
 
 	if (pNextPlane) {
