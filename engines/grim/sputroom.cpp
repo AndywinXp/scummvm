@@ -161,7 +161,9 @@ void SputRoom::setCurrentRoom(Room *pRoom) {
 
 			loadResources(static_cast<Room *>(_currentRoomRef.handle));
 			Common::strlcpy(_currentRoomName, pRoom->name, 32);
-			setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+
+			if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+				setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
 		}
 	}
 }
@@ -539,6 +541,11 @@ void SputRoom::freeRoomEntry(Room *pRoom) {
 	}
 
 	freeRoomSetups(pRoom);
+
+	delete[] pRoom->pObjects;
+	pRoom->pObjects = nullptr;
+	pRoom->numObjects = 0;
+
 	_pWalkSystem->killCollection(pRoom->name);
 
 	RoomActorNode *pActorNode = pRoom->pActorNode;
@@ -579,6 +586,8 @@ void SputRoom::freeSetupEntry(Room *pRoom, RoomSetup *pSetup) {
 	if (pSetup->camera.pThing)
 		_pRd->_thing.destroy(pSetup->camera.pThing);
 
+	delete[] pSetup->pObjectArt;
+	pSetup->pObjectArt = nullptr;
 	pSetup->ObjectStates = nullptr;
 }
 
@@ -754,6 +763,9 @@ int SputRoom::loadResources(Room *pRoom) {
 			}
 		}
 
+		if ((_pGrim->getGameFlags() & ADGF_DEMO) && !pSetup->ObjectStates)
+			createObjectStates(pRoom, pSetup, i);
+
 		if (!pSetup->camera.prdCamera) {
 			pSetup->camera.prdCamera = _pRd->_camera.create(pSetup->camera.fov, 1, pSetup->camera.nearClip, pSetup->camera.farClip, 1.0f);
 
@@ -893,6 +905,27 @@ SputObjectState *SputRoom::addObjectState(int setupIndex, int objectType, const 
 		pSetup->ObjectStates->setCopyMode(copyMode);
 
 	return pSetup->ObjectStates;
+}
+
+void SputRoom::createObjectStates(Room *pRoom, RoomSetup *pSetup, int setupIndex) {
+	if (!pSetup->pObjectArt)
+		return;
+
+	// The states are added at the head of the list, the first object has to end up there
+	for (int i = (int)pRoom->numObjects - 1; i >= 0; i--) {
+		RoomObjectArt *pArt = &pSetup->pObjectArt[i];
+
+		if (!pArt->aBitmapName[0])
+			continue;
+
+		SputObjectState *pState = new SputObjectState(pSetup->ObjectStates, pArt->aBitmapName, pArt->aZBufferName, 3, _pRes, _pSputResource,
+				_pStdDisplay, _pStdBitmap, _pSputRender);
+
+		pSetup->ObjectStates = pState;
+		pState->setupIndex = setupIndex;
+		pState->setCopyMode(1);
+		pState->loadResources();
+	}
 }
 
 void SputRoom::removeObjectState(SputObjectState *pObj) {

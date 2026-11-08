@@ -223,6 +223,14 @@ void Lua_V1::UnLockSet() {
 		g_grim->_pRes->removeReference(&pRoom->roomRef);
 }
 
+void Lua_V1::LockSetDemo() {
+	warning("LockSet: Set handles no longer allowed, use filename!");
+}
+
+void Lua_V1::UnlockSetDemo() {
+	warning("UnlockSet: Set handles no longer allowed.");
+}
+
 void Lua_V1::MakeCurrentSet() {
 	lua_Object nameObj = lua_getparam(1);
 

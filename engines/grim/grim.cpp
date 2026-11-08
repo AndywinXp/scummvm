@@ -2778,10 +2778,17 @@ void GrimEngine::makeCurrentSetupLib(uint setup) {
 	int oldSetup = pRoom->curSetup;
 
 	if (newSetup != oldSetup) {
+		bool bDemo = (_gameFlags & ADGF_DEMO) != 0;
+
 		pRoom->curSetup = newSetup;
-		_pSputRoom->setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+
+		if (!bDemo)
+			_pSputRoom->setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+
 		_pLua->cameraChange(oldSetup, newSetup);
-		_pSputRoom->relocateSounds();
+
+		if (!bDemo)
+			_pSputRoom->relocateSounds();
 	}
 }
 
