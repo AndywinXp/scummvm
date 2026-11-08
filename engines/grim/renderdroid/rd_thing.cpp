@@ -82,7 +82,7 @@ void RenderDroid::ThingModule::freeEntry(RdThing *pThing) {
 			pThing->abJointAmputate = nullptr;
 		}
 		if (pThing->pPuppet) {
-			for (int i = 0; i < 6; i++) {
+			for (int i = 0; i < _rd->_puppet.getNumTracks(); i++) {
 				if (pThing->pPuppet->aTracks[i].status)
 					_rd->_puppet.removeTrack(pThing->pPuppet, i);
 			}

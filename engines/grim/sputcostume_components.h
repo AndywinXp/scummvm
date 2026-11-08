@@ -131,6 +131,19 @@ public:
 	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
 };
 
+// Only the demo has this one, the retail executable handles the animation tag as a bitmap
+class AnimationHandler : public BitmapHandler {
+public:
+	explicit AnimationHandler(SputCostume *pSputCostume) : BitmapHandler(pSputCostume) {}
+
+	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
+	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
+	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
+	void stop(void *pInstData) override;
+	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	bool hasAdjuster() const override { return true; }
+};
+
 class ColormapHandler : public ComponentHandler {
 public:
 	explicit ColormapHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
@@ -203,6 +216,15 @@ public:
 	void *instance(int hInst, int compIndex, int bCreate) override;
 };
 
+// The demo puppets have 4 tracks and the tracks start from the beginning of the keyframe
+class DemoKeyframeHandler : public KeyframeHandler {
+public:
+	explicit DemoKeyframeHandler(SputCostume *pSputCostume) : KeyframeHandler(pSputCostume) {}
+
+	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
+	void stop(void *pInstData) override;
+};
+
 class SoundHandler : public ComponentHandler {
 public:
 	explicit SoundHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
@@ -215,6 +237,26 @@ public:
 	bool hasAdjuster() const override { return true; }
 };
 
+// The sounds of the demo have a group instead of a minimum volume and no room positioning
+struct DemoSoundCompRes {
+	char name[32];
+	byte volume;
+	int8 pan;
+	int priority;
+	int group;
+};
+
+class DemoSoundHandler : public ComponentHandler {
+public:
+	explicit DemoSoundHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+
+	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
+	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
+	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
+	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	bool hasAdjuster() const override { return true; }
+};
+
 class SmushHandler : public ComponentHandler {
 public:
 	explicit SmushHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
@@ -223,6 +265,13 @@ public:
 	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
 	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
 	void saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) override;
+};
+
+class DemoSmushHandler : public SmushHandler {
+public:
+	explicit DemoSmushHandler(SputCostume *pSputCostume) : SmushHandler(pSputCostume) {}
+
+	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
 };
 
 class IMuseHandler : public ComponentHandler {

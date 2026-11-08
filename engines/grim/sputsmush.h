@@ -45,29 +45,29 @@ class SputSmush : public SmushPlayVideo {
 
 public:
 	SputSmush(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry);
-	~SputSmush();
+	virtual ~SputSmush();
 
-	int getMovieTime();
-	int initialize(SysStruct *pHS);
-	int save(Common::WriteStream *pStream);
-	int restore(Common::ReadStream *pStream);
-	int startup();
-	int shutdown();
-	int terminate();
-	int periodic();
-	int setTarget(StdVBuffer *pBuffer);
-	int startMovie(const char *name, int bLooping, int x, int y);
-	int stopMovie();
-	int getMovieLength(const char *name);
+	virtual int getMovieTime();
+	virtual int initialize(SysStruct *pHS);
+	virtual int save(Common::WriteStream *pStream);
+	virtual int restore(Common::ReadStream *pStream);
+	virtual int startup();
+	virtual int shutdown();
+	virtual int terminate();
+	virtual int periodic();
+	virtual int setTarget(StdVBuffer *pBuffer);
+	virtual int startMovie(const char *name, int bLooping, int x, int y);
+	virtual int stopMovie();
+	virtual int getMovieLength(const char *name);
 	int startVideo(int width, int height, int depth, int pixelFormat) override;
 	int stopVideo() override;
 	int lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
 	int unlockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
 	int setVideoPalette(uint32 *pPalette, int start, int count) override;
-	int moviePlaying();
-	int pause(int bPause);
+	virtual int moviePlaying();
+	virtual int pause(int bPause);
 
-private:
+protected:
 	SmushPlay *_pSmushPlay;
 	Res *_pRes;
 	StdDisplay *_pStdDisplay;

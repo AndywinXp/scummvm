@@ -90,6 +90,81 @@ void SputRender::restoreCacheRect() {
 	markAllPagesDirty(&pRect->rect, 1);
 }
 
+void SputRender::addAnimationBitmap(void *pBitmap, int layer) {
+	for (AnimationBitmap *pNode = _pAnimationList; pNode; pNode = pNode->pNext) {
+		if (!pNode->bitmapRef.valid)
+			warning("SputRender::addAnimationBitmap(): Bad Bitmap Reference");
+
+		if (pNode->bitmapRef.handle == pBitmap)
+			return;
+	}
+
+	AnimationBitmap *pNode = new AnimationBitmap();
+
+	memset(pNode, 0, sizeof(AnimationBitmap));
+	pNode->pNext = _pAnimationList;
+
+	if (_pAnimationList)
+		_pAnimationList->pPrev = pNode;
+
+	_pAnimationList = pNode;
+	pNode->layer = layer;
+	_pRes->setReference(&pNode->bitmapRef, pBitmap);
+}
+
+void SputRender::removeAnimationBitmap(void *pBitmap) {
+	AnimationBitmap *pNode = _pAnimationList;
+
+	while (pNode && !(pNode->bitmapRef.valid && pNode->bitmapRef.handle == pBitmap))
+		pNode = pNode->pNext;
+
+	if (!pNode)
+		return;
+
+	if (pNode->pNext)
+		pNode->pNext->pPrev = pNode->pPrev;
+
+	if (pNode->pPrev)
+		pNode->pPrev->pNext = pNode->pNext;
+	else
+		_pAnimationList = pNode->pNext;
+
+	_pRes->removeReference(&pNode->bitmapRef);
+	delete pNode;
+}
+
+void SputRender::drawAnimationBitmaps(int layer) {
+	for (AnimationBitmap *pNode = _pAnimationList; pNode; pNode = pNode->pNext) {
+		if (pNode->layer != layer)
+			continue;
+
+		if (!pNode->bitmapRef.valid) {
+			warning("SputRender::drawAnimationBitmaps(): Bad Bitmap Reference");
+			continue;
+		}
+
+		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pNode->bitmapRef.handle);
+		int frame = pBitmap->unk_104;
+
+		if (frame < 0)
+			continue;
+
+		if (frame >= (int)pBitmap->numFrames) {
+			warning("SputRender::drawAnimationBitmaps(): frame %d is out of range", frame);
+			continue;
+		}
+
+		StdVBuffer *pFrame = pBitmap->apFrames[frame];
+
+		if (pFrame->type == 2) {
+			fillDrawBuffer(pFrame);
+			_pStdDisplay->vBufferCopy(_pBackBuffer, _pCleanBuffer, pBitmap->xPos, pBitmap->yPos, nullptr, 1);
+		} else {
+			_pStdDisplay->vBufferCopy(_pBackBuffer, pFrame, pBitmap->xPos, pBitmap->yPos, nullptr, 1);
+		}
+	}
+}
+
 StdVBuffer *SputRender::drawBuffer() {
 	return _pBackBuffer;
 }

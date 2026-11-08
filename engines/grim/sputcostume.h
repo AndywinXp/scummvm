@@ -44,14 +44,18 @@ struct SputActor;
 
 class SputCostume {
 	friend class BitmapHandler;
+	friend class AnimationHandler;
 	friend class ColormapHandler;
 	friend class MaterialHandler;
 	friend class ThingHandler;
 	friend class MeshHandler;
 	friend class SpriteHandler;
 	friend class KeyframeHandler;
+	friend class DemoKeyframeHandler;
 	friend class SoundHandler;
+	friend class DemoSoundHandler;
 	friend class SmushHandler;
+	friend class DemoSmushHandler;
 	friend class IMuseHandler;
 	friend class LuaVarHandler;
 
@@ -125,9 +129,13 @@ private:
 	MeshHandler _meshHandler;
 	MaterialHandler _materialHandler;
 	KeyframeHandler _keyframeHandler;
+	DemoKeyframeHandler _demoKeyframeHandler;
 	BitmapHandler _bitmapHandler;
+	AnimationHandler _animationHandler;
 	SoundHandler _soundHandler;
+	DemoSoundHandler _demoSoundHandler;
 	SmushHandler _smushHandler;
+	DemoSmushHandler _demoSmushHandler;
 	SpriteHandler _spriteHandler;
 	IMuseHandler _imuseHandler;
 	LuaVarHandler _luaVarHandler;

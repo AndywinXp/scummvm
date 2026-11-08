@@ -110,6 +110,7 @@
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/sputsmush.h"
+#include "engines/grim/sputsmush_demo.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_3d.h"
@@ -1818,7 +1819,7 @@ void GrimEngine::setSaveMetaData(const char *meta1, int meta2, const char *meta3
 }
 
 bool GrimEngine::useGrimeFlow() const {
-	return _gameType == GType_GRIM && !(_gameFlags & ADGF_DEMO) && !isRemastered();
+	return _gameType == GType_GRIM && !isRemastered();
 }
 
 Common::Error GrimEngine::runGrime() {
@@ -1946,7 +1947,15 @@ void GrimEngine::createModules() {
 	_pSputCostume = new SputCostume(_pRes, _pRd, _pSputResource, _pSputRender, _pSputRoom, _pStdLbm, _pWuRegistry);
 	_pSputActor = new SputActorModule(_pRes, _pRd, _pStdMath, _pStdDisplay, _pWalkSystem, _pSputResource, _pSputRoom, _pSputRender,
 			_pSputCostume, _pSputText, _pSputTime);
-	_pSputSmush = new SputSmush(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+	if (_gameFlags & ADGF_DEMO) {
+		SputSmushDemo *pSputSmushDemo = new SputSmushDemo(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+
+		pSputSmushDemo->setGrimEngine(this);
+		_pSputSmush = pSputSmushDemo;
+	} else {
+		_pSputSmush = new SputSmush(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+	}
+
 	_pLua = new Lua_V1();
 
 	_pRes->setSputRender(_pSputRender);
@@ -2086,6 +2095,9 @@ int GrimEngine::grimStartup() {
 	_pWuRegistry->startup("1.0");
 
 	_pRd->startup(this);
+
+	if (_gameFlags & ADGF_DEMO)
+		_pRd->_puppet.setNumTracks(4);
 
 	if (!_pRd->open(0))
 		return 0;

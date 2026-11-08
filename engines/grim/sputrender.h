@@ -77,6 +77,14 @@ struct CacheRect {
 	CacheRect *pNext;
 };
 
+// Only the demo has these: bitmaps of animation components that are drawn as primitives
+struct AnimationBitmap {
+	ResRef bitmapRef;
+	int layer;
+	AnimationBitmap *pPrev;
+	AnimationBitmap *pNext;
+};
+
 struct ActorSortInfo {
 	char kind;
 	float depth;
@@ -128,6 +136,8 @@ public:
 	void freeCacheRects();
 	CacheRect *createCacheRect(int x, int y, int width, int height);
 	void restoreCacheRect();
+	void addAnimationBitmap(void *pBitmap, int layer);
+	void removeAnimationBitmap(void *pBitmap);
 	void freeBuffers();
 
 	StdVBuffer *drawBuffer();
@@ -167,6 +177,7 @@ public:
 	int buildShadowBitmap(float *pOut, float *pA, float *pB, float a, float b, float c, float d);
 	void restoreDirtyRects(StdVBuffer *pDst, StdVBuffer *pZBuffer);
 	void drawPrimitives(int layerMask);
+	void drawAnimationBitmaps(int layer);
 	void sortActors();
 	void resetActorSortList();
 	ActorSortInfo *allocActorSortEntry();
@@ -237,6 +248,7 @@ private:
 	int _numDirtyRects;
 	int _nextSerialNumber;
 	CacheRect *_pCacheRectList;
+	AnimationBitmap *_pAnimationList;
 	int _reset;
 
 	int _irisStart;

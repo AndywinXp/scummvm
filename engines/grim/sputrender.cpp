@@ -44,7 +44,7 @@ SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pSt
 		_gammaCorrection(1.0f), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
 		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
 		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
-		_nextSerialNumber(0), _pCacheRectList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),
+		_nextSerialNumber(0), _pCacheRectList(nullptr), _pAnimationList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),
 		_irisCenterY(240), _renderFlags(0), _bSkipPrimitives(0), _pSetPaletteFunc(nullptr), _pPageFlipFunc(nullptr),
 		_pageFlipEnable(1), _movieJustFinished(0), _gCamActorIndex(0), _debugFlags(8), _bDebugKey1Down(0),
 		_bDebugKey2Down(0), _bDebugKey4Down(0), _bDebugKey8Down(0), _bDebugKey10Down(0), _renderEnable(1),
