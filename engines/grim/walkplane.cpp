@@ -822,6 +822,7 @@ WalkSystem::WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdCon
 	memset(_aCollection, 0, sizeof(_aCollection));
 	_pPuckHead = nullptr;
 	_forwardCounter = 0;
+	_bDemo = false;
 
 	memset(_aPath, 0, sizeof(_aPath));
 	_numPathPoints = 0;

@@ -85,6 +85,16 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *pColormap) {
 		pColormap->pRGB16 = nullptr;
 	}
 
+	if (_bDemoFormat) {
+		pColormap->pLightLevelAlloc = new byte[16640];
+		pColormap->pLightLevel = pColormap->pLightLevelAlloc;
+
+		if ((uintptr)pColormap->pLightLevelAlloc & 0xFF)
+			pColormap->pLightLevel = pColormap->pLightLevelAlloc + 256 - ((uintptr)pColormap->pLightLevelAlloc & 0xFF);
+
+		pFile->read(pColormap->pLightLevel, 0x4000);
+	}
+
 	if (!(pColormap->flags & 1)) {
 		delete pFile;
 		return 1;
