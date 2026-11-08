@@ -81,7 +81,8 @@ void RenderDroid::ThingModule::freeEntry(RdThing *pThing) {
 			delete[] pThing->abJointAmputate;
 			pThing->abJointAmputate = nullptr;
 		}
-		if (pThing->pPuppet) {
+		// The demo frees the puppet without removing the tracks
+		if (pThing->pPuppet && !_rd->isDemo()) {
 			for (int i = 0; i < _rd->_puppet.getNumTracks(); i++) {
 				if (pThing->pPuppet->aTracks[i].status)
 					_rd->_puppet.removeTrack(pThing->pPuppet, i);

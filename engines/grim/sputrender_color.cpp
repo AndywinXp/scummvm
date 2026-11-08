@@ -24,6 +24,7 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/sputobjectstate.h"
 #include "engines/grim/sputprimitive.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
@@ -82,14 +83,25 @@ void SputRender::colorCorrect(uint16 *pColors, int count) {
 }
 
 void SputRender::setGamma(float gamma) {
-	if (_gammaCorrection != gamma) {
+	// The demo always rebuilds the tables
+	if (_gammaCorrection != gamma || (_pGrim->getGameFlags() & ADGF_DEMO)) {
 		_gammaCorrection = gamma;
 		loadSetupBackground(_pColorInfo);
 
 		Room *pRoom = _pSputRoom->getCurrentRoom();
 
-		if (pRoom)
+		if (pRoom) {
+			if (_pGrim->getGameFlags() & ADGF_DEMO) {
+				for (uint i = 0; i < pRoom->numSetups; i++) {
+					for (SputObjectState *pState = pRoom->pSetups[i].ObjectStates; pState; pState = pState->pNext) {
+						pState->colorImage.cleanSaved = 0;
+						pState->zImage.cleanSaved = 0;
+					}
+				}
+			}
+
 			useSetup(pRoom, pRoom->curSetup);
+		}
 	}
 }
 
@@ -104,16 +116,33 @@ void SputRender::dim(int bForce, char shift) {
 		return;
 	}
 
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+
 	if (mode == 3) {
 		_pSputSmush->setTarget(_pBackBuffer);
+
+		// The demo shows the current frame of the movie in the buffer
+		if (bDemo)
+			_pSputSmush->blitFrame();
 	} else {
 		_pSputText->pause();
-		_pSputPrimitive->pause();
+
+		// The demo has no primitives to pause
+		if (!bDemo)
+			_pSputPrimitive->pause();
+
 		_pSputTime->advanceManual(0);
 		update();
-		_pRd->finishFrame();
+
+		if (bDemo)
+			_pRd->advanceFrame();
+		else
+			_pRd->finishFrame();
+
 		_pSputText->resume();
-		_pSputPrimitive->resume();
+
+		if (!bDemo)
+			_pSputPrimitive->resume();
 	}
 
 	copyGFXBuffer();
@@ -141,7 +170,8 @@ void SputRender::dim(int bForce, char shift) {
 			int bRoom = _pSputRoom->getCurrentRoom() != nullptr;
 			uint pixel;
 
-			if (bRoom)
+			// The demo doesn't clear the pixels when there is no room
+			if (bRoom || bDemo)
 				pixel = *pPixel;
 			else
 				pixel = 0;

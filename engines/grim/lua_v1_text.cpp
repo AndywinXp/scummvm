@@ -76,6 +76,33 @@ void Lua_V1::ChangeTextObject() {
 		if (!pEvent)
 			return;
 
+		if (g_grim->getGameFlags() & ADGF_DEMO) {
+			// The demo copies the strings as they are, does not move the object and returns nothing
+			const char *pString = nullptr;
+
+			for (int i = 0; i < 2; i++) {
+				lua_Object paramObj = lua_getparam(paramId++);
+
+				if (!paramObj)
+					break;
+
+				if (lua_isstring(paramObj)) {
+					pString = lua_getstring(paramObj);
+					Common::strlcpy(pEvent->text, pString, 128);
+				} else if (lua_isnumber(paramObj)) {
+					if (pString)
+						Common::strlcpy(pEvent->text, pString, 128);
+				} else if (lua_istable(paramObj)) {
+					pSputText->getTextObjectParams(&pEvent->params, paramObj, nullptr);
+				} else {
+					warning("ChangeTextObject args must be formattable, string, or transid");
+					break;
+				}
+			}
+
+			return;
+		}
+
 		for (int i = 0; i < 2; i++) {
 			lua_Object paramObj = lua_getparam(paramId++);
 			if (!paramObj)
@@ -137,8 +164,13 @@ void Lua_V1::MakeTextObject() {
 	SputTextEvent *pEvent = pSputText->allocEvent(&params, pText);
 
 	lua_pushusertag(pEvent->serial, MKTAG('T', 'X', 'E', 'T'));
-	lua_pushnumber((float)g_grim->_pText->getStringWidth(&pEvent->params, pEvent->text));
-	lua_pushnumber((float)g_grim->_pText->getStringHeight(&pEvent->params, pEvent->text));
+
+	// The demo returns only the text object
+	if (!(g_grim->getGameFlags() & ADGF_DEMO)) {
+		lua_pushnumber((float)g_grim->_pText->getStringWidth(&pEvent->params, pEvent->text));
+		lua_pushnumber((float)g_grim->_pText->getStringHeight(&pEvent->params, pEvent->text));
+	}
+
 	pSputText->addToQueue(pEvent, 0, 1);
 }
 
@@ -164,10 +196,18 @@ void Lua_V1::ExpireText() {
 		if (pEvent->flags & 4) {
 			SputActor *pActor = pEvent->pActor;
 
-			g_grim->_pSputText->killEvent(pEvent);
+			if (g_grim->getGameFlags() & ADGF_DEMO) {
+				// The demo does not kill the event: it clears the flags and the duration is set below
+				pEvent->flags &= ~5;
+			} else {
+				g_grim->_pSputText->killEvent(pEvent);
+			}
 
 			if (pActor && pActor->pExtra)
 				pActor->pExtra->pSayText = nullptr;
+
+			if (g_grim->getGameFlags() & ADGF_DEMO)
+				pEvent->duration = -1;
 		} else {
 			pEvent->duration = -1;
 		}

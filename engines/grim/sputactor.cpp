@@ -316,7 +316,16 @@ void SputActorModule::enablePuck(SputActor *pActor, int bEnable) {
 			pPuck->setPos(pActor->actorPos);
 
 			float *pForward = getOrientMatrix(pActor)[1];
+			RdVector3 demoForward;
 			RdVector3 target;
+
+			// The demo reads the three values after the matrix (walking, turn direction, resting) as floats
+			if (_pGrim->getGameFlags() & ADGF_DEMO) {
+				memcpy(&demoForward[0], &pExtra->bWalking, sizeof(float));
+				memcpy(&demoForward[1], &pExtra->turnDir, sizeof(float));
+				memcpy(&demoForward[2], &pExtra->resting, sizeof(float));
+				pForward = demoForward;
+			}
 
 			target[0] = pForward[0] + pActor->actorPos[0];
 			target[1] = pActor->actorPos[1] + pForward[1];
@@ -414,7 +423,10 @@ void SputActorModule::setWalkChore(SputActor *pActor, int choreIndex, CostumeNod
 	if (!pCurrent)
 		return;
 
-	CostumeNode *pTarget = pNode;
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+
+	// The demo has no costume parameter, the chore stays in the node where it was found
+	CostumeNode *pTarget = bDemo ? nullptr : pNode;
 
 	if (!pTarget)
 		pTarget = pActor->pCostumeStack;
@@ -445,8 +457,12 @@ void SputActorModule::setWalkChore(SputActor *pActor, int choreIndex, CostumeNod
 				}
 			}
 
-			pCurrent->walkChore = -1;
-			pTarget->walkChore = choreIndex;
+			if (bDemo) {
+				pCurrent->walkChore = choreIndex;
+			} else {
+				pCurrent->walkChore = -1;
+				pTarget->walkChore = choreIndex;
+			}
 		}
 	} else {
 		pTarget->walkChore = choreIndex;
@@ -459,7 +475,10 @@ void SputActorModule::setTurnChores(SputActor *pActor, int leftChore, int rightC
 	if (!pCurrent)
 		return;
 
-	CostumeNode *pTarget = pNode;
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+
+	// The demo has no costume parameter, the chores stay in the node where they were found
+	CostumeNode *pTarget = bDemo ? nullptr : pNode;
 
 	if (!pTarget)
 		pTarget = pActor->pCostumeStack;
@@ -487,8 +506,12 @@ void SputActorModule::setTurnChores(SputActor *pActor, int leftChore, int rightC
 					_pCos->instPlayChore(pCurrent->hCostumeInstance, leftChore, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			pCurrent->turnLeftChore = -1;
-			pTarget->turnLeftChore = leftChore;
+			if (bDemo) {
+				pCurrent->turnLeftChore = leftChore;
+			} else {
+				pCurrent->turnLeftChore = -1;
+				pTarget->turnLeftChore = leftChore;
+			}
 		}
 
 		if (rightChore != pCurrent->turnRightChore) {
@@ -501,8 +524,12 @@ void SputActorModule::setTurnChores(SputActor *pActor, int leftChore, int rightC
 					_pCos->instPlayChore(pCurrent->hCostumeInstance, rightChore, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			pCurrent->turnRightChore = -1;
-			pTarget->turnRightChore = rightChore;
+			if (bDemo) {
+				pCurrent->turnRightChore = rightChore;
+			} else {
+				pCurrent->turnRightChore = -1;
+				pTarget->turnRightChore = rightChore;
+			}
 		}
 	} else {
 		pTarget->turnLeftChore = leftChore;
@@ -516,7 +543,10 @@ void SputActorModule::setRestChore(SputActor *pActor, int choreIndex, CostumeNod
 	if (!pCurrent)
 		return;
 
-	CostumeNode *pTarget = pNode;
+	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+
+	// The demo has no costume parameter, the chore stays in the node where it was found
+	CostumeNode *pTarget = bDemo ? nullptr : pNode;
 
 	if (!pTarget)
 		pTarget = pActor->pCostumeStack;
@@ -527,7 +557,8 @@ void SputActorModule::setRestChore(SputActor *pActor, int choreIndex, CostumeNod
 		if (pCurrent->pHeadThing != pHeadThing)
 			break;
 
-		if (pCurrent->restChore >= 0)
+		// The demo looks for the node by the left turn chore
+		if (bDemo ? pCurrent->turnLeftChore >= 0 : pCurrent->restChore >= 0)
 			break;
 
 		pCurrent = pCurrent->pNext;
@@ -544,8 +575,12 @@ void SputActorModule::setRestChore(SputActor *pActor, int choreIndex, CostumeNod
 					_pCos->instPlayChore(pCurrent->hCostumeInstance, choreIndex, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			pCurrent->restChore = -1;
-			pTarget->restChore = choreIndex;
+			if (bDemo) {
+				pCurrent->restChore = choreIndex;
+			} else {
+				pCurrent->restChore = -1;
+				pTarget->restChore = choreIndex;
+			}
 		}
 	} else {
 		pTarget->restChore = choreIndex;

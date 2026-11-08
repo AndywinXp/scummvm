@@ -90,8 +90,28 @@ void RenderDroid::Model3Module::calcBoundingBoxes(RdModel3 *pModel3) {
 				if (pVertex[2] > (double)pMesh->bound.max[2])
 					pMesh->bound.max[2] = pVertex[2];
 			}
+
+			// The demo takes the box of the model from the boxes of the meshes
+			if (_rd->isDemo()) {
+				if (pMesh->bound.min[0] < (double)pModel3->bound.min[0])
+					pModel3->bound.min[0] = pMesh->bound.min[0];
+				if (pMesh->bound.min[1] < (double)pModel3->bound.min[1])
+					pModel3->bound.min[1] = pMesh->bound.min[1];
+				if (pMesh->bound.min[2] < (double)pModel3->bound.min[2])
+					pModel3->bound.min[2] = pMesh->bound.min[2];
+				if (pMesh->bound.max[0] > (double)pModel3->bound.max[0])
+					pModel3->bound.max[0] = pMesh->bound.max[0];
+				if (pMesh->bound.max[1] > (double)pModel3->bound.max[1])
+					pModel3->bound.max[1] = pMesh->bound.max[1];
+				if (pMesh->bound.max[2] > (double)pModel3->bound.max[2])
+					pModel3->bound.max[2] = pMesh->bound.max[2];
+			}
 		}
 	}
+
+	// The demo has no center of the geometry and no radius from the box
+	if (_rd->isDemo())
+		return;
 
 	pModel3->bound.min[0] = 3.4e38f;
 	pModel3->bound.min[1] = 3.4e38f;
@@ -136,6 +156,10 @@ void RenderDroid::Model3Module::calcRadii(RdModel3 *pModel3) {
 
 	_maxGeoRadius = 0.0f;
 	buildExpandedRadius(pModel3, pModel3->aHNodes, _rd->_identMatrix34);
+
+	// The demo replaces the radius of the model with the expanded one
+	if (_rd->isDemo())
+		pModel3->radius = (float)((double)_maxGeoRadius * 0.1 + _maxGeoRadius);
 }
 
 void RenderDroid::Model3Module::calcNodeDepths(RdModel3 *pModel3) {
@@ -1200,6 +1224,32 @@ void RenderDroid::Model3Module::loadPostProcess(RdModel3 *pModel3) {
 	calcVertexNormals(pModel3);
 	calcNodeDepths(pModel3);
 	buildShadowModel(pModel3);
+
+	if (_rd->isDemo() && !validate(pModel3))
+		error("RenderDroid::Model3Module::loadPostProcess(): rdModel3_Validate(pModel3)");
+}
+
+int RenderDroid::Model3Module::validate(RdModel3 *pModel3) {
+	for (uint g = 0; g < pModel3->numGeos; g++) {
+		RdModel3Geo *pGeo = &pModel3->aGeo[g];
+
+		for (uint m = 0; m < pGeo->numMeshes; m++) {
+			RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+
+			for (uint f = 0; f < pMesh->numFaces; f++) {
+				RdFace3 *pFace = &pMesh->aFaces[f];
+
+				if (pFace->pMaterial) {
+					if (!(pFace->pMaterial->flags & 2) && pFace->geometryMode > 3)
+						return 0;
+				} else if (pFace->geometryMode > 0) {
+					return 0;
+				}
+			}
+		}
+	}
+
+	return 1;
 }
 
 void RenderDroid::Model3Module::destroy(RdModel3 *&pModel3) {
@@ -1207,6 +1257,8 @@ void RenderDroid::Model3Module::destroy(RdModel3 *&pModel3) {
 		freeEntry(pModel3);
 		delete pModel3;
 		pModel3 = nullptr;
+	} else {
+		warning("RenderDroid::Model3Module::destroy(): attempt to free NULL model ptr");
 	}
 }
 
@@ -1268,10 +1320,18 @@ int RenderDroid::Model3Module::draw(RdThing *pThing, RdMatrix34 mat) {
 
 	_pCurThing = pThing;
 	_pCurModel3 = pThing->data.pModel3;
-	_rd->transformPoint34(center, _pCurModel3->geomCenter, mat);
-	_rd->transformPoint34Acc(center, pCamera->viewMatrix);
+	if (_rd->isDemo()) {
+		// The demo tests the origin of the model, not its geometric center
+		_rd->transformPoint34(center, mat[3], pCamera->viewMatrix);
+	} else {
+		_rd->transformPoint34(center, _pCurModel3->geomCenter, mat);
+		_rd->transformPoint34Acc(center, pCamera->viewMatrix);
+	}
 
-	if (pThing->frustrumCull)
+	// The demo uses the culling flags of the renderer, not the field of the thing
+	bool bCull = _rd->isDemo() ? (_rd->_curCullFlags & 2) != 0 : pThing->frustrumCull != 0;
+
+	if (bCull)
 		_thingFrustrumCull = _rd->_clip.sphereInFrustrum(pCamera->pClipFrustum, center, _pCurModel3->radius);
 	else
 		_thingFrustrumCull = 1;
@@ -1294,7 +1354,10 @@ int RenderDroid::Model3Module::draw(RdThing *pThing, RdMatrix34 mat) {
 	}
 
 	_pCurGeo = &_pCurModel3->aGeo[curGeoSet];
-	_rd->_puppet.buildJointMatrices(_pCurThing, mat);
+
+	// The demo builds the joint matrices once per frame
+	if (!_rd->isDemo() || _pCurThing->jointsFrame != _rd->getFrameTrue())
+		_rd->_puppet.buildJointMatrices(_pCurThing, mat);
 
 	_curGeometryMode = _pCurThing->curGeometryMode;
 
@@ -1521,7 +1584,14 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 	for (uint i = 0; i < pMesh->numFaces; i++) {
 		RdFace3 *pFace = &pMesh->aFaces[i];
 		const float *vertex = _pCurMesh->aVertices[pFace->aVertices[0]];
-		double facing = ((double)_localCamera[2] - vertex[2]) * pFace->normal[2] + ((double)_localCamera[0] - vertex[0]) * pFace->normal[0] + ((double)_localCamera[1] - vertex[1]) * pFace->normal[1];
+		double facing;
+
+		// The demo adds the terms in z, y, x order
+		if (_rd->isDemo())
+			facing = ((double)_localCamera[2] - vertex[2]) * pFace->normal[2] + ((double)_localCamera[1] - vertex[1]) * pFace->normal[1] + ((double)_localCamera[0] - vertex[0]) * pFace->normal[0];
+		else
+			facing = ((double)_localCamera[2] - vertex[2]) * pFace->normal[2] + ((double)_localCamera[0] - vertex[0]) * pFace->normal[0] + ((double)_localCamera[1] - vertex[1]) * pFace->normal[1];
+
 		int bBackface = 0;
 
 		if (facing <= 0.0) {

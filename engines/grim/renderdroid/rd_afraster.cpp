@@ -666,8 +666,17 @@ void RenderDroid::AFRasterModule::drawNGonLAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonLAT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonLAT_8_W8,
+		&AFRasterModule::drawSpanNGonLAT_8_W16,
+		&AFRasterModule::drawSpanNGonLAT_8_W32,
+		&AFRasterModule::drawSpanNGonLAT_8_W64,
+		&AFRasterModule::drawSpanNGonLAT_8_W128,
+		&AFRasterModule::drawSpanNGonLAT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonLAT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonLAT_16);
 
@@ -818,8 +827,17 @@ void RenderDroid::AFRasterModule::drawNGonFAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonFAT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonFAT_8_W8,
+		&AFRasterModule::drawSpanNGonFAT_8_W16,
+		&AFRasterModule::drawSpanNGonFAT_8_W32,
+		&AFRasterModule::drawSpanNGonFAT_8_W64,
+		&AFRasterModule::drawSpanNGonFAT_8_W128,
+		&AFRasterModule::drawSpanNGonFAT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonFAT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonFAT_16);
 
@@ -901,8 +919,17 @@ void RenderDroid::AFRasterModule::drawNGonGAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonGAT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonGAT_8_W8,
+		&AFRasterModule::drawSpanNGonGAT_8_W16,
+		&AFRasterModule::drawSpanNGonGAT_8_W32,
+		&AFRasterModule::drawSpanNGonGAT_8_W64,
+		&AFRasterModule::drawSpanNGonGAT_8_W128,
+		&AFRasterModule::drawSpanNGonGAT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonGAT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonGAT_16);
 
@@ -999,8 +1026,17 @@ void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonLIT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonLIT_8_W8,
+		&AFRasterModule::drawSpanNGonLIT_8_W16,
+		&AFRasterModule::drawSpanNGonLIT_8_W32,
+		&AFRasterModule::drawSpanNGonLIT_8_W64,
+		&AFRasterModule::drawSpanNGonLIT_8_W128,
+		&AFRasterModule::drawSpanNGonLIT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonLIT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonLIT_16);
 
@@ -1008,6 +1044,41 @@ void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *pFace) {
 }
 
 int RenderDroid::AFRasterModule::setupEdgeNGonLIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
+	return setupEdgeNGonPerspective(pEdge, pFace, v0, v1, 0);
+}
+
+void RenderDroid::AFRasterModule::setEdgePerspectiveValues(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, float dy, double xOffset, int variant) {
+	double yOneOverZ = (double)pFace->dOneOverZdY * dy;
+	double yUOverZ = (double)pFace->dUOverZdY * dy;
+	double yVOverZ = (double)pFace->dVOverZdY * dy;
+	double xOneOverZ = pFace->dOneOverZdX * xOffset;
+	double xUOverZ = pFace->dUOverZdX * xOffset;
+	double xVOverZ = pFace->dVOverZdX * xOffset;
+	bool oneYFirst = true;
+	bool vYFirst = false;
+
+	// The demo adds the vertex value to one of the two terms first, in a different order for each variant
+	if (_rd->isDemo()) {
+		if (variant == 0)
+			vYFirst = true;
+		else
+			oneYFirst = false;
+	}
+
+	if (oneYFirst)
+		pEdge->oneOverZ = (float)((yOneOverZ + pFace->aOneOverZ[v0]) + xOneOverZ);
+	else
+		pEdge->oneOverZ = (float)((xOneOverZ + pFace->aOneOverZ[v0]) + yOneOverZ);
+
+	pEdge->uOverZ = (float)((yUOverZ + pFace->aUOverZ[v0]) + xUOverZ);
+
+	if (vYFirst)
+		pEdge->vOverZ = (float)((yVOverZ + pFace->aVOverZ[v0]) + xVOverZ);
+	else
+		pEdge->vOverZ = (float)((xVOverZ + pFace->aVOverZ[v0]) + yVOverZ);
+}
+
+int RenderDroid::AFRasterModule::setupEdgeNGonPerspective(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, int variant) {
 	RdProcFace *pProcFace = pFace->pProcFace;
 	RdVector3 *aVertices = pProcFace->aVertices;
 
@@ -1065,10 +1136,7 @@ int RenderDroid::AFRasterModule::setupEdgeNGonLIT(RdActiveEdge *pEdge, RdActiveF
 		pEdge->x = (int)floor((float)(startX * 65536.0));
 	}
 
-	double xOffset = (double)startX - aVertices[v0][0];
-	pEdge->oneOverZ = (float)(((double)pFace->dOneOverZdY * dy + pFace->aOneOverZ[v0]) + pFace->dOneOverZdX * xOffset);
-	pEdge->uOverZ = (float)(((double)pFace->dUOverZdY * dy + pFace->aUOverZ[v0]) + pFace->dUOverZdX * xOffset);
-	pEdge->vOverZ = (float)((pFace->dVOverZdX * xOffset + pFace->aVOverZ[v0]) + (double)pFace->dVOverZdY * dy);
+	setEdgePerspectiveValues(pEdge, pFace, v0, dy, (double)startX - aVertices[v0][0], variant);
 
 	return 1;
 }
@@ -1148,7 +1216,10 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 		run.dIntensity = pSpan->dIntensity;
 	}
 
-	double inverse = 1.0 / oneOverZ;
+	// The EXE switches the FPU to 24-bit precision rounding toward zero for the whole span
+	_bLowPrecision = true;
+
+	double inverse = fpuDiv(1.0, oneOverZ);
 
 	if (bpp16)
 		run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * pSpan->y * (pVBuffer->tex.pitchInBytes >> 1);
@@ -1157,8 +1228,8 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 
 	run.pZ = (uint16 *)(pZBuffer->pPixels + 2 * pSpan->x + pSpan->y * pZBuffer->tex.pitchInBytes);
 
-	float uStart = (float)(inverse * uOverZ);
-	float vStart = (float)(inverse * vOverZ);
+	float uStart = (float)fpuMul(inverse, uOverZ);
+	float vStart = (float)fpuMul(inverse, vOverZ);
 
 	run.du = 0;
 	run.dv = 0;
@@ -1172,47 +1243,47 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 	if (width) {
 		float inverseWidth = _rd->_raster.getOneOverNFlex(width);
 
-		nextZ = (float)((double)width * _dOneOverZdX + oneOverZ);
-		nextU = (float)((double)width * _dUOverZdX + uOverZ);
-		nextV = (float)((double)width * _dVOverZdX + vOverZ);
+		nextZ = (float)fpuAdd(fpuMul(width, _dOneOverZdX), oneOverZ);
+		nextU = (float)fpuAdd(fpuMul(width, _dUOverZdX), uOverZ);
+		nextV = (float)fpuAdd(fpuMul(width, _dVOverZdX), vOverZ);
 
-		double inverseEnd = 1.0 / nextZ;
-		float uEnd = (float)(inverseEnd * nextU);
-		float vEnd = (float)(inverseEnd * nextV);
+		double inverseEnd = fpuDiv(1.0, nextZ);
+		float uEnd = (float)fpuMul(inverseEnd, nextU);
+		float vEnd = (float)fpuMul(inverseEnd, nextV);
 
-		run.du = (int)floor((float)(((double)uEnd - uStart) * inverseWidth * 65536.0)) >> _mipMapNum;
-		run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseWidth * 65536.0)) >> _mipMapNum;
+		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseWidth), 65536.0)) >> _mipMapNum;
+		run.dv = (int)floor((float)fpuMul(fpuMul(fpuSub(vEnd, vStart), inverseWidth), 65536.0)) >> _mipMapNum;
 
 		plotMaskedRun(run, width, bpp16, lightKind);
 
-		uStart = (float)(inverseEnd * nextU);
-		vStart = (float)(inverseEnd * nextV);
-		nextZ = (float)(nextZ + _oneOverZStep);
-		nextU = (float)(nextU + _uOverZStep);
-		nextV = (float)(nextV + _vOverZStep);
+		uStart = uEnd;
+		vStart = vEnd;
+		nextZ = (float)fpuAdd(nextZ, _oneOverZStep);
+		nextU = (float)fpuAdd(nextU, _uOverZStep);
+		nextV = (float)fpuAdd(nextV, _vOverZStep);
 	} else {
-		nextZ = (float)(oneOverZ + _oneOverZStep);
-		nextU = (float)(uOverZ + _uOverZStep);
-		nextV = (float)(vOverZ + _vOverZStep);
+		nextZ = (float)fpuAdd(oneOverZ, _oneOverZStep);
+		nextU = (float)fpuAdd(uOverZ, _uOverZStep);
+		nextV = (float)fpuAdd(vOverZ, _vOverZStep);
 	}
 
 	for (int chunk = 0; chunk < numChunks; chunk++) {
-		double inverseEnd = 1.0 / nextZ;
-		float uEnd = (float)(inverseEnd * nextU);
-		float vEnd = (float)(inverseEnd * nextV);
+		double inverseEnd = fpuDiv(1.0, nextZ);
+		float uEnd = (float)fpuMul(inverseEnd, nextU);
+		float vEnd = (float)fpuMul(inverseEnd, nextV);
 
-		run.du = (int)floor((float)(((double)uEnd - uStart) * 0.0625 * 65536.0)) >> _mipMapNum;
-		run.dv = (int)floor((float)(((double)vEnd - vStart) * 0.0625 * 65536.0)) >> _mipMapNum;
+		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), 0.0625), 65536.0)) >> _mipMapNum;
+		run.dv = (int)floor((float)fpuMul(fpuMul(fpuSub(vEnd, vStart), 0.0625), 65536.0)) >> _mipMapNum;
 		run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
 		run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
 
 		plotMaskedRun(run, 16, bpp16, lightKind);
 
-		vStart = (float)(inverseEnd * nextV);
-		uStart = (float)(inverseEnd * nextU);
-		nextZ = (float)(nextZ + _oneOverZStep);
-		nextU = (float)(nextU + _uOverZStep);
-		nextV = (float)(nextV + _vOverZStep);
+		vStart = vEnd;
+		uStart = uEnd;
+		nextZ = (float)fpuAdd(nextZ, _oneOverZStep);
+		nextU = (float)fpuAdd(nextU, _uOverZStep);
+		nextV = (float)fpuAdd(nextV, _vOverZStep);
 	}
 
 	if (tail) {
@@ -1221,18 +1292,20 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 		if (count != 0) {
 			double steps = (double)count;
 			float inverseCount = _rd->_raster.getOneOverNFlex(count);
-			double inverseEnd = 1.0 / (steps * _dOneOverZdX - _oneOverZStep + nextZ);
-			float uEnd = (float)((steps * _dUOverZdX - _uOverZStep + nextU) * inverseEnd);
-			float vEnd = (float)((steps * _dVOverZdX - _vOverZStep + nextV) * inverseEnd);
+			double inverseEnd = fpuDiv(1.0, fpuAdd(fpuSub(fpuMul(steps, _dOneOverZdX), _oneOverZStep), nextZ));
+			float uEnd = (float)fpuMul(fpuAdd(fpuSub(fpuMul(steps, _dUOverZdX), _uOverZStep), nextU), inverseEnd);
+			float vEnd = (float)fpuMul(fpuAdd(fpuSub(fpuMul(steps, _dVOverZdX), _vOverZStep), nextV), inverseEnd);
 
-			run.du = (int)floor((float)(((double)uEnd - uStart) * inverseCount * 65536.0)) >> _mipMapNum;
-			run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseCount * 65536.0)) >> _mipMapNum;
+			run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseCount), 65536.0)) >> _mipMapNum;
+			run.dv = (int)floor((float)fpuMul(fpuMul(fpuSub(vEnd, vStart), inverseCount), 65536.0)) >> _mipMapNum;
 			run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
 			run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
 		}
 
 		plotMaskedRun(run, tail, bpp16, lightKind);
 	}
+
+	_bLowPrecision = false;
 }
 
 void RenderDroid::AFRasterModule::drawSpanNGonMLIT_8(RdActiveSpan *pSpan) {
@@ -1266,8 +1339,17 @@ void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonFIT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonFIT_8_W8,
+		&AFRasterModule::drawSpanNGonFIT_8_W16,
+		&AFRasterModule::drawSpanNGonFIT_8_W32,
+		&AFRasterModule::drawSpanNGonFIT_8_W64,
+		&AFRasterModule::drawSpanNGonFIT_8_W128,
+		&AFRasterModule::drawSpanNGonFIT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonFIT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonFIT_16);
 
@@ -1275,7 +1357,7 @@ void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *pFace) {
 }
 
 int RenderDroid::AFRasterModule::setupEdgeNGonFIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonLIT(pEdge, pFace, v0, v1);
+	return setupEdgeNGonPerspective(pEdge, pFace, v0, v1, 1);
 }
 
 void RenderDroid::AFRasterModule::setupNGonMFIT(RdActiveFace *pFace, RdMatCel *pCel, float light) {
@@ -1331,8 +1413,17 @@ void RenderDroid::AFRasterModule::drawNGonGIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonGIT_16_W256
 	};
 
+	DrawSpanFunc apWidthSpans8[6] = {
+		&AFRasterModule::drawSpanNGonGIT_8_W8,
+		&AFRasterModule::drawSpanNGonGIT_8_W16,
+		&AFRasterModule::drawSpanNGonGIT_8_W32,
+		&AFRasterModule::drawSpanNGonGIT_8_W64,
+		&AFRasterModule::drawSpanNGonGIT_8_W128,
+		&AFRasterModule::drawSpanNGonGIT_8_W256
+	};
+
 	if (bpp == 8)
-		_pfDrawSpan = nullptr;
+		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonGIT_8) : nullptr;
 	else if (bpp == 16)
 		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonGIT_16);
 
@@ -1427,10 +1518,7 @@ int RenderDroid::AFRasterModule::setupEdgeNGonGIT(RdActiveEdge *pEdge, RdActiveF
 		pEdge->intensity = (int)floor((float)(aIntensities[v0] * 65536.0));
 	}
 
-	double xOffset = (double)startX - aVertices[v0][0];
-	pEdge->oneOverZ = (float)(((double)pFace->dOneOverZdY * dy + pFace->aOneOverZ[v0]) + pFace->dOneOverZdX * xOffset);
-	pEdge->uOverZ = (float)(((double)pFace->dUOverZdY * dy + pFace->aUOverZ[v0]) + pFace->dUOverZdX * xOffset);
-	pEdge->vOverZ = (float)((pFace->dVOverZdX * xOffset + pFace->aVOverZ[v0]) + (double)pFace->dVOverZdY * dy);
+	setEdgePerspectiveValues(pEdge, pFace, v0, dy, (double)startX - aVertices[v0][0], 2);
 
 	return 1;
 }
@@ -1513,6 +1601,62 @@ void RenderDroid::AFRasterModule::plotRun16(SpanRun &run, int count, bool bInten
 	run.pDst += 2 * count;
 }
 
+void RenderDroid::AFRasterModule::plotRun8(SpanRun &run, int count, int lightKind, bool bPairedIntensity) {
+	int pairIntensity = run.intensity;
+
+	for (int i = 0; i < count; i++) {
+		uint index = (uint)_pPixels[((run.uMask & (uint)run.u) >> 16) + (_vWrap & ((uint)run.v >> run.vShift))];
+
+		// The gouraud blocks of 16 pixels use one intensity for each pair of pixels
+		if (!bPairedIntensity || !(i & 1))
+			pairIntensity = run.intensity;
+
+		if (lightKind == 1)
+			index = _aMonoMap[index];
+		else if (lightKind == 2)
+			index = _aMonoMap[index + ((pairIntensity & 0x3F0000) >> 8)];
+
+		run.pDst[i] = (byte)index;
+
+		run.u += run.du;
+		run.v += run.dv;
+
+		if (lightKind == 2)
+			run.intensity += run.dIntensity;
+	}
+
+	run.pDst += count;
+}
+
+void RenderDroid::AFRasterModule::plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool bChunk) {
+	if (bpp16)
+		plotRun16(run, count, lightKind == 2);
+	else
+		plotRun8(run, count, lightKind, bChunk && lightKind == 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanAffine8(RdActiveSpan *pSpan, int vShift, int lightKind) {
+	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
+	SpanRun run;
+
+	run.pDst = pVBuffer->pPixels + pSpan->x + pVBuffer->tex.pitchInBytes * pSpan->y;
+	run.u = pSpan->u + _dUdXModifier;
+	run.du = pSpan->du;
+	run.v = pSpan->v + _dVdXModifier;
+	run.dv = pSpan->dv;
+	run.uMask = _uWrap;
+	run.vShift = vShift;
+	run.intensity = 0;
+	run.dIntensity = 0;
+
+	if (lightKind == 2) {
+		run.intensity = pSpan->intensity;
+		run.dIntensity = pSpan->dIntensity;
+	}
+
+	plotRun8(run, pSpan->width, lightKind, false);
+}
+
 void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity) {
 	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
 	SpanRun run;
@@ -1541,8 +1685,13 @@ void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *pSpan, int uMas
 }
 
 void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity) {
+	drawSpanPersp(pSpan, uMask, vShift, bIntensity ? 2 : 0, true);
+}
+
+void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *pSpan, int uMask, int vShift, int lightKind, bool bpp16) {
 	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
 	SpanRun run;
+	bool bIntensity = (lightKind == 2);
 
 	int xAlign = pSpan->x & 0xF;
 	int width = 0;
@@ -1576,7 +1725,11 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 	float uStart = (float)fpuMul(inverse, uOverZ);
 	float vStart = (float)fpuMul(inverse, vOverZ);
 
-	run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y;
+	if (bpp16)
+		run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y;
+	else
+		run.pDst = pVBuffer->pPixels + pSpan->x + pVBuffer->tex.pitchInBytes * pSpan->y;
+
 	run.uMask = uMask;
 	run.vShift = vShift;
 	run.intensity = 0;
@@ -1608,17 +1761,16 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 		float uEnd = (float)fpuMul(inverseEnd, nextU);
 		float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseWidth), 65536.0)) >> _mipMapNum;
-		_bLowPrecision = false;
-		run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseWidth * 65536.0)) >> _mipMapNum;
-		run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
-		run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
+		run.du = (int)(float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseWidth), 65536.0) >> _mipMapNum;
+		run.dv = (int)(float)fpuMul(fpuMul(fpuSub(vEnd, vStart), inverseWidth), 65536.0) >> _mipMapNum;
+		run.u = _dUdXModifier + ((int)(float)(uStart * 65536.0) >> _mipMapNum);
+		run.v = _dVdXModifier + ((int)(float)(vStart * 65536.0) >> _mipMapNum);
 
-		plotRun16(run, width, bIntensity);
+		plotPerspRun(run, width, lightKind, bpp16, false);
 
-		nextZ = (float)(nextZ + _oneOverZStep);
-		nextU = (float)(nextU + _uOverZStep);
-		nextV = (float)(nextV + _vOverZStep);
+		nextZ = (float)fpuAdd(nextZ, _oneOverZStep);
+		nextU = (float)fpuAdd(nextU, _uOverZStep);
+		nextV = (float)fpuAdd(nextV, _vOverZStep);
 		uStart = uEnd;
 		vStart = vEnd;
 	} else {
@@ -1633,17 +1785,16 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 		float uEnd = (float)fpuMul(inverseEnd, nextU);
 		float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-		run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), 0.0625), 65536.0)) >> _mipMapNum;
-		_bLowPrecision = false;
-		run.dv = (int)floor((float)(((double)vEnd - vStart) * 0.0625 * 65536.0)) >> _mipMapNum;
-		run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
-		run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
+		run.du = (int)(float)fpuMul(fpuMul(fpuSub(uEnd, uStart), 0.0625), 65536.0) >> _mipMapNum;
+		run.dv = (int)(float)fpuMul(fpuMul(fpuSub(vEnd, vStart), 0.0625), 65536.0) >> _mipMapNum;
+		run.u = _dUdXModifier + ((int)(float)(uStart * 65536.0) >> _mipMapNum);
+		run.v = _dVdXModifier + ((int)(float)(vStart * 65536.0) >> _mipMapNum);
 
-		plotRun16(run, 16, bIntensity);
+		plotPerspRun(run, 16, lightKind, bpp16, true);
 
-		nextZ = (float)(nextZ + _oneOverZStep);
-		nextU = (float)(nextU + _uOverZStep);
-		nextV = (float)(nextV + _vOverZStep);
+		nextZ = (float)fpuAdd(nextZ, _oneOverZStep);
+		nextU = (float)fpuAdd(nextU, _uOverZStep);
+		nextV = (float)fpuAdd(nextV, _vOverZStep);
 		uStart = uEnd;
 		vStart = vEnd;
 	}
@@ -1664,14 +1815,13 @@ void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask
 			float uEnd = (float)fpuMul(inverseEnd, nextU);
 			float vEnd = (float)fpuMul(inverseEndF, nextV);
 
-			run.du = (int)floor((float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseCount), 65536.0)) >> _mipMapNum;
-			_bLowPrecision = false;
-			run.dv = (int)floor((float)(((double)vEnd - vStart) * inverseCount * 65536.0)) >> _mipMapNum;
-			run.u = _dUdXModifier + ((int)floor((float)(uStart * 65536.0)) >> _mipMapNum);
-			run.v = _dVdXModifier + ((int)floor((float)(vStart * 65536.0)) >> _mipMapNum);
+			run.du = (int)(float)fpuMul(fpuMul(fpuSub(uEnd, uStart), inverseCount), 65536.0) >> _mipMapNum;
+			run.dv = (int)(float)fpuMul(fpuMul(fpuSub(vEnd, vStart), inverseCount), 65536.0) >> _mipMapNum;
+			run.u = _dUdXModifier + ((int)(float)(uStart * 65536.0) >> _mipMapNum);
+			run.v = _dVdXModifier + ((int)(float)(vStart * 65536.0) >> _mipMapNum);
 		}
 
-		plotRun16(run, tail, bIntensity);
+		plotPerspRun(run, tail, lightKind, bpp16, false);
 	}
 
 	_bLowPrecision = false;
@@ -1878,6 +2028,174 @@ void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W128(RdActiveSpan *pSpan) {
 
 void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W256(RdActiveSpan *pSpan) {
 	drawSpanPersp16(pSpan, 0xFF0000, 8, true);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 16 - _texRowShift, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 13, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 12, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 11, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 10, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 9, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 8, 0);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 16 - _texRowShift, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 13, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 12, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 11, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 10, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 9, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 8, 1);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 16 - _texRowShift, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 13, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 12, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 11, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 10, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 9, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanAffine8(pSpan, 8, 2);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 13, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 12, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 11, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 10, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 9, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 8, 0, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 13, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 12, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 11, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 10, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 9, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 8, 1, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W8(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 13, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W16(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 12, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W32(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 11, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W64(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 10, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W128(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 9, 2, false);
+}
+
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W256(RdActiveSpan *pSpan) {
+	drawSpanPersp(pSpan, _uWrap, 8, 2, false);
 }
 
 } // End of namespace Grim

@@ -200,6 +200,25 @@ void Lua_V1::MakeSectorActive() {
 		pPlane->bActive = lua_isnil(visibleObj) ? 0 : 1;
 }
 
+void Lua_V1::IsSectorActive() {
+	lua_Object sectorObj = lua_getparam(1);
+
+	if ((lua_isnumber(sectorObj) || lua_isstring(sectorObj)) && g_grim->_pSputRoom->getCurrentRoom()) {
+		WalkPlane *pPlane;
+
+		if (lua_isstring(sectorObj))
+			pPlane = g_grim->_pWalkSystem->planeNamed(lua_getstring(sectorObj));
+		else
+			pPlane = g_grim->_pWalkSystem->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
+
+		if (pPlane && pPlane->bActive)
+			lua_pushnumber(1.0f);
+	}
+
+	// The original always pushes the nil after the result
+	lua_pushnil();
+}
+
 // Set functions
 void Lua_V1::LockSet() {
 	lua_Object nameObj = lua_getparam(1);

@@ -381,8 +381,8 @@ int RenderDroid::NRasterModule::drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel
 int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKind kind) {
 	bool gouraud = kind == kEdgeGouraud || kind == kEdgeAffineGouraud || kind == kEdgePerspectiveGouraud;
 	bool affine = kind == kEdgeAffine || kind == kEdgeAffineFlat || kind == kEdgeAffineGouraud;
-	bool perspective = kind == kEdgePerspective || kind == kEdgePerspectiveGouraud;
-	bool directSlope = kind == kEdgeFlat || kind == kEdgePerspective;
+	bool perspective = kind == kEdgePerspective || kind == kEdgePerspectiveFlat || kind == kEdgePerspectiveGouraud;
+	bool directSlope = kind == kEdgeFlat || kind == kEdgePerspective || kind == kEdgePerspectiveFlat;
 	bool exactSlopeX = kind == kEdgeAffineFlat || kind == kEdgeAffineGouraud;
 
 	int vertIdx = pEdge->vertIdx;
@@ -481,9 +481,43 @@ int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKi
 
 	if (perspective) {
 		double xOffset = (double)xPos - pVert[0];
-		pEdge->oneOverZ = (double)yDelta * _dOneOverZdY + xOffset * _dOneOverZdX + _aOneOverZ[vertIdx];
-		pEdge->uOverZ = (double)yDelta * _dUOverZdY + xOffset * _dUOverZdX + _aUOverZ[vertIdx];
-		pEdge->vOverZ = (double)yDelta * _dVOverZdY + xOffset * _dVOverZdX + _aVOverZ[vertIdx];
+		double yOneOverZ = (double)yDelta * _dOneOverZdY;
+		double yUOverZ = (double)yDelta * _dUOverZdY;
+		double yVOverZ = (double)yDelta * _dVOverZdY;
+		double xOneOverZ = xOffset * _dOneOverZdX;
+		double xUOverZ = xOffset * _dUOverZdX;
+		double xVOverZ = xOffset * _dVOverZdX;
+
+		if (!_rd->isDemo()) {
+			pEdge->oneOverZ = yOneOverZ + xOneOverZ + _aOneOverZ[vertIdx];
+			pEdge->uOverZ = yUOverZ + xUOverZ + _aUOverZ[vertIdx];
+			pEdge->vOverZ = yVOverZ + xVOverZ + _aVOverZ[vertIdx];
+		} else {
+			// The demo adds the vertex value to one of the two terms first, in a different order for each variant
+			bool oneYFirst = false;
+			bool uYFirst = false;
+			bool vYFirst = false;
+
+			if (kind == kEdgePerspective) {
+				oneYFirst = true;
+				vYFirst = true;
+			}
+
+			if (oneYFirst)
+				pEdge->oneOverZ = yOneOverZ + _aOneOverZ[vertIdx] + xOneOverZ;
+			else
+				pEdge->oneOverZ = xOneOverZ + _aOneOverZ[vertIdx] + yOneOverZ;
+
+			if (uYFirst)
+				pEdge->uOverZ = yUOverZ + _aUOverZ[vertIdx] + xUOverZ;
+			else
+				pEdge->uOverZ = xUOverZ + _aUOverZ[vertIdx] + yUOverZ;
+
+			if (vYFirst)
+				pEdge->vOverZ = yVOverZ + _aVOverZ[vertIdx] + xVOverZ;
+			else
+				pEdge->vOverZ = xVOverZ + _aVOverZ[vertIdx] + yVOverZ;
+		}
 	}
 
 	pEdge->vertIdx = nextIdx;
@@ -506,7 +540,7 @@ RenderDroid::NRasterModule::EdgeKind RenderDroid::NRasterModule::getEdgeKind(Geo
 	}
 
 	if (geometry == kGeometryPerspective && isLeft)
-		return kEdgePerspective;
+		return (lighting == kLightingFlat) ? kEdgePerspectiveFlat : kEdgePerspective;
 
 	return kEdgeFlat;
 }
@@ -1446,7 +1480,7 @@ int RenderDroid::NRasterModule::setupRightEdgeNGonLIT(RdNRasterEdge *pEdge) {
 }
 
 int RenderDroid::NRasterModule::setupLeftEdgeNGonFIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgePerspective);
+	return setupEdge(pEdge, _leftVertexStep, kEdgePerspectiveFlat);
 }
 
 int RenderDroid::NRasterModule::setupRightEdgeNGonFIT(RdNRasterEdge *pEdge) {

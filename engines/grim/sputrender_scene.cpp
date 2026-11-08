@@ -143,7 +143,10 @@ void SputRender::useSetup(Room *pRoom, int setup) {
 	}
 
 	for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext) {
-		pState->loadResources();
+		// The demo does not load the art here, a load would set the current frame back to none
+		if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+			pState->loadResources();
+
 		pState->reset(_pCleanArtBuffer, _pCleanZBuffer);
 	}
 
@@ -180,7 +183,16 @@ void SputRender::update() {
 				markDirtyRectInternal(&rect, 1, i);
 
 			forceRefresh();
-			_movieJustFinished = 1;
+
+			if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+				_movieJustFinished = 1;
+		}
+
+		// The demo doesn't update the speech or the text while a movie is playing,
+		// but our main buffer has to be presented here
+		if (_pGrim->getGameFlags() & ADGF_DEMO) {
+			pageFlip();
+			return;
 		}
 
 		float frameTime = _pSputTime->getFrameTimeFlex();
@@ -213,11 +225,16 @@ void SputRender::update() {
 		return;
 
 	if (_pLastRoom != pRoom || pRoom->curSetup != _curView || _reset) {
-		freeCacheRects();
+		// The demo doesn't free the dirty rects and has no post camera change handler
+		if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+			freeCacheRects();
+
 		_pLastRoom = pRoom;
 		_curView = _pLastRoom->curSetup;
 		useSetup(_pLastRoom, _curView);
-		_pLua->postCameraChange(_curView);
+
+		if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+			_pLua->postCameraChange(_curView);
 	}
 
 	RoomSetup *pSetup = &_pLastRoom->pSetups[_curView];
@@ -235,17 +252,26 @@ void SputRender::update() {
 	_pGrim->queryPerfCounterDiff(4);
 	_pSputSmush->setTarget(_pBackBuffer);
 	_pSputSmush->periodic();
-	_pStdDisplay->vBufferLock(_pBackBuffer);
-	drawPrimitives(1);
-	_pStdDisplay->vBufferUnlock(_pBackBuffer);
+
+	// The demo draws the animation bitmaps with buffer copies, which need the buffer unlocked
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		drawPrimitives(1);
+	} else {
+		_pStdDisplay->vBufferLock(_pBackBuffer);
+		drawPrimitives(1);
+		_pStdDisplay->vBufferUnlock(_pBackBuffer);
+	}
 
 	for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
 		pState->update(1, _pBackBuffer, _pZBuffer);
 
-	_pRd->advanceFrame();
+	// The demo advances the frame at the end of the main loop
+	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+		_pRd->advanceFrame();
+
 	sortActors();
 
-	if (_numSortActors || (_debugFlags & 1)) {
+	if (_numSortActors || (!(_pGrim->getGameFlags() & ADGF_DEMO) && (_debugFlags & 1))) {
 		_pGrim->setPerfCounter(5);
 
 		int numSorted = 0;
@@ -347,19 +373,16 @@ void SputRender::update() {
 			pState->update(2, _pBackBuffer, _pZBuffer);
 	}
 
-	_pStdDisplay->vBufferLock(_pBackBuffer);
-	drawPrimitives(2);
-	_pStdDisplay->vBufferUnlock(_pBackBuffer);
-
-	if (_debugFlags & 1) {
-		Room *pDebugRoom = _pSputRoom->getCurrentRoom();
-
-		if (_debugFlags & 2)
-			drawCameraDebug(pDebugRoom);
-
-		if (_debugFlags & 4)
-			drawActorBoxes(pDebugRoom, 0xFFFFFFFF);
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		drawPrimitives(2);
+	} else {
+		_pStdDisplay->vBufferLock(_pBackBuffer);
+		drawPrimitives(2);
+		_pStdDisplay->vBufferUnlock(_pBackBuffer);
 	}
+
+	if (!(_pGrim->getGameFlags() & ADGF_DEMO) && (_debugFlags & 1))
+		drawRoomDebug();
 
 	if (_renderFlags & 4) {
 		int gameTime = _pSputTime->getGameTime();
@@ -410,6 +433,10 @@ void SputRender::update() {
 	_pStdDisplay->vBufferLock(_pBackBuffer);
 	_pBlastText->getSurface()->pPixels = _pBackBuffer->pPixels;
 	_pSputText->update(1);
+
+	if ((_pGrim->getGameFlags() & ADGF_DEMO) && (_debugFlags & 1))
+		drawRoomDebug();
+
 	_pStdDisplay->vBufferUnlock(_pBackBuffer);
 	_reset = 0;
 }
@@ -464,7 +491,9 @@ int SputRender::loadSetupBackground(const StdColorFormat *pFormat) {
 	_aColors[20] = _colorLookup[(uint16)((uint)(255 >> redLoss) << redShift) | (uint16)((uint)(255 >> blueLoss) << blueShift)];
 	_aColors[21] = _colorLookup[(uint16)((uint)(255 >> greenLoss) << greenShift) | (uint16)((uint)(255 >> blueLoss) << blueShift)];
 
-	_pSputResource->loadBknd();
+	// The demo converts only the colormaps
+	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+		_pSputResource->loadBknd();
 
 	return _pSputResource->cmap();
 }
@@ -539,6 +568,22 @@ void SputRender::reverseProject(int x, int y, float *pOut) {
 }
 
 int SputRender::buildShadowBitmap(float *pOut, float *pA, float *pB, float a, float b, float c, float d) {
+	// The demo intersects the line with the plane without checking the denominator
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		float demoDeltaY = (float)((double)pB[1] - pA[1]);
+		float demoDeltaZ = (float)((double)pB[2] - pA[2]);
+		double demoDistA = (double)b * pA[1] + (double)c * pA[2] + (double)a * pA[0] + d;
+		double demoDistB = (double)b * pB[1] + (double)c * pB[2] + (double)a * pB[0] + d;
+		float demoT = (float)(demoDistA / (demoDistA - demoDistB));
+		double demoX = ((double)pB[0] - pA[0]) * demoT + pA[0];
+
+		pOut[0] = (float)demoX;
+		pOut[1] = (float)((double)demoT * demoDeltaY + pA[1]);
+		pOut[2] = (float)((double)demoT * demoDeltaZ + pA[2]);
+
+		return 1;
+	}
+
 	double deltaX = (double)pB[0] - (double)pA[0];
 	float deltaY = (float)((double)pB[1] - (double)pA[1]);
 	float deltaZ = (float)((double)pB[2] - (double)pA[2]);
@@ -670,8 +715,50 @@ void SputRender::drawPrimitives(int layerMask) {
 	_pSputPrimitive->getCurrent()->draw(pCamera->pCanvas, layerMask);
 }
 
+void SputRender::sortActorsDemo() {
+	if (!_aActors || !_pCamera) {
+		warning("SputRender::sortActorsDemo(): no actors or camera");
+		return;
+	}
+
+	int numActors = _pSputActor->getNumActors();
+
+	// The demo checks all the actors, not the ones linked to the room
+	for (int i = 0; i < numActors; i++) {
+		SputActor *pActor = &_aActors[i];
+
+		pActor->onScreen = 0;
+
+		if (!pActor->curSetName[0] || scumm_stricmp(pActor->curSetName, _pSputRoom->getCurrentRoomName()) || (pActor->flags & 3) != 0)
+			continue;
+
+		ActorSortInfo *pEntry = allocActorSortEntry();
+
+		if (!pEntry)
+			break;
+
+		RdVector3 vec;
+		RdVector3 out;
+
+		vec[0] = (float)((double)pActor->actorPos[0] - (double)_pCamera->position[0]);
+		vec[1] = (float)((double)pActor->actorPos[1] - (double)_pCamera->position[1]);
+		vec[2] = (float)((double)pActor->actorPos[2] - (double)_pCamera->position[2]);
+		_pRd->transformVectorOrtho34(out, vec, _pCamera->posMatrix);
+		pEntry->depth = out[1];
+		pEntry->actorIndex = i;
+		pEntry->kind = pActor->pCostumeStack ? 0 : -1;
+	}
+
+	sort(_aSortedActors, _numSortActors, sizeof(ActorSortInfo *), compareActorDepth);
+}
+
 void SputRender::sortActors() {
 	resetActorSortList();
+
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		sortActorsDemo();
+		return;
+	}
 
 	Room *pRoom = _pSputRoom->getCurrentRoom();
 

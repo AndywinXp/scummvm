@@ -124,7 +124,8 @@ void SputText::update(int bForce) {
 			if (pEvent->duration > 0 || (pEvent->flags & 1)) {
 				int flags = pEvent->flags;
 
-				if (((flags & 8) || bForce) && !(flags & 2))
+				// The demo draws all the events at every frame
+				if ((_pGrim->getGameFlags() & ADGF_DEMO) || (((flags & 8) || bForce) && !(flags & 2)))
 					drawTextEvent(pEvent, 1);
 
 				pEvent->duration -= frameTime;
@@ -442,7 +443,12 @@ SputTextEvent *SputText::allocEvent(const TextParams *pParams, const char *pText
 		pText = "";
 	}
 
-	Common::strlcpy(pEvent->text, pText, sizeof(pEvent->text));
+	// The demo keeps only the first 127 characters
+	if (_pGrim->getGameFlags() & ADGF_DEMO)
+		Common::strlcpy(pEvent->text, pText, 128);
+	else
+		Common::strlcpy(pEvent->text, pText, sizeof(pEvent->text));
+
 	pEvent->x = pParams->x;
 	pEvent->y = pParams->y;
 	pEvent->params = *pParams;
@@ -476,7 +482,11 @@ const char *SputText::extractSayLineData(const char *msgId, char *translation) {
 	const char *pResult;
 
 	if (translation && msgId && *msgId == '/') {
-		const char *pSlash = strchr(msgId + 1, '/');
+		// The demo takes the voice name up to the last slash
+		const char *pSlash = (_pGrim->getGameFlags() & ADGF_DEMO) ? strrchr(msgId, '/') : strchr(msgId + 1, '/');
+
+		if (pSlash == msgId)
+			pSlash = nullptr;
 
 		pResult = pSlash;
 

@@ -29,13 +29,13 @@ namespace Grim {
 RenderDroid::RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile, bool isDemo) :
 		_camera(this), _canvas(this), _clip(this), _colormap(this, isDemo), _colorEffects(this),
 		_face(this), _keyframe(this), _light(this), _material(this), _model3(this),
-		_primit2(this), _primit3(this), _puppet(this, isDemo), _sprite(this), _thing(this),
+		_primit2(this), _primit3(this, isDemo), _puppet(this, isDemo), _sprite(this), _thing(this),
 		_active(this), _cache(this), _raster(this), _afRaster(this), _nRaster(this),
 		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile), _pStd3D(nullptr),
 		_pHS(nullptr), _bStarted(0), _bOpened(0),
 		_frameTrue(0), _curAcceleration(0), _curRenderOptions(0), _curGeometryMode(0),
 		_curLightingMode(0), _curTextureMode(0), _curSortingMethod(0), _curOcclusionMethod(0),
-		_curZBufferMethod(0), _curVertexColorMode(0), _curCullFlags(0), _curProcFaceUserData(0) {
+		_curZBufferMethod(0), _curVertexColorMode(0), _curCullFlags(0), _curProcFaceUserData(0), _bDemo(isDemo) {
 	memset(&_colorInfo, 0, sizeof(StdColorFormat));
 	memset(&_curColorEffects, 0, sizeof(RdColorEffects));
 
@@ -100,7 +100,7 @@ int RenderDroid::open(int acceleration) {
 		_curRenderOptions = 1;
 		_curSortingMethod = 0;
 		_curOcclusionMethod = 0;
-		_curCullFlags = 1;
+		_curCullFlags = _bDemo ? 3 : 1;
 		_curProcFaceUserData = 0;
 		_colorEffects.clear(&_curColorEffects);
 		_curVertexColorMode = 0;

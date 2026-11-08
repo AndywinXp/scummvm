@@ -295,6 +295,40 @@ void Lua_V1::GetAngleBetweenVectors() {
 	lua_pushnumber((float)(90.0f - (double)g_grim->_pStdMath->arcSin3(dot)));
 }
 
+void Lua_V1::GetAngleBetweenVectorsDemo() {
+	lua_Object vec1Obj = lua_getparam(1);
+	lua_Object vec2Obj = lua_getparam(2);
+
+	if (!lua_istable(vec1Obj) || !lua_istable(vec2Obj)) {
+		warning("GetAngleBetweenVectors: Both arguments must be tables in the format { x, y, z }.");
+		lua_pushnil();
+		return;
+	}
+
+	lua_pushobject(vec1Obj);
+	lua_pushstring("x");
+	float x1 = lua_getnumber(lua_gettable());
+	lua_pushobject(vec1Obj);
+	lua_pushstring("y");
+	float y1 = lua_getnumber(lua_gettable());
+	lua_pushobject(vec1Obj);
+	lua_pushstring("z");
+	float z1 = lua_getnumber(lua_gettable());
+	lua_pushobject(vec2Obj);
+	lua_pushstring("x");
+	float x2 = lua_getnumber(lua_gettable());
+	lua_pushobject(vec2Obj);
+	lua_pushstring("y");
+	float y2 = lua_getnumber(lua_gettable());
+	lua_pushobject(vec2Obj);
+	lua_pushstring("z");
+	double z2 = lua_getnumber(lua_gettable());
+
+	float dot = (float)(((double)x2 * x1 + (double)y2 * y1) + z2 * z1);
+
+	lua_pushnumber((float)(90.0 - (double)g_grim->_pStdMath->arcSin3(dot)));
+}
+
 void Lua_V1::Is3DHardwareEnabled() {
 	if (g_grim->isHardware3D())
 		lua_pushnumber(1.0);
@@ -807,6 +841,14 @@ void Lua_V1::LockFont() {
 			ResNode *pNode = g_grim->_pRes->checkAllocatedRes(pFont);
 
 			if (pNode) {
+				if (g_grim->getGameFlags() & ADGF_DEMO) {
+					ResRef *pRef = new ResRef();
+
+					memset(pRef, 0, sizeof(ResRef));
+					g_grim->_pRes->setReference(pRef, pFont);
+					_lockedFontRefs.push_back(pRef);
+				}
+
 				lua_pushusertag(pNode->serial, kSputTagFont);
 				return;
 			}
@@ -816,6 +858,30 @@ void Lua_V1::LockFont() {
 	}
 
 	lua_pushnil();
+}
+
+void Lua_V1::UnLockFontDemo() {
+	lua_Object param1 = lua_getparam(1);
+
+	if (!lua_isuserdata(param1) || lua_tag(param1) != kSputTagFont) {
+		warning("UnLockFont: Invalid font handle!");
+		return;
+	}
+
+	void *handle = g_grim->_pRes->handleFromSerialNumber(lua_getuserdata(param1));
+
+	for (uint i = 0; i < _lockedFontRefs.size(); i++) {
+		ResRef *pRef = _lockedFontRefs[i];
+
+		if (pRef->handle == handle) {
+			g_grim->_pRes->removeReference(pRef);
+			delete pRef;
+			_lockedFontRefs.remove_at(i);
+			return;
+		}
+	}
+
+	warning("UnLockFont: font handle is not locked");
 }
 
 void Lua_V1::JustLoaded() {
@@ -828,7 +894,7 @@ void Lua_V1::JustLoaded() {
 void Lua_V1::EnableDebugKeys() {
 	g_grim->setDebugKeys(1);
 
-	if (_pDebugToggleFunc)
+	if (_pDebugToggleFunc && !(g_grim->getGameFlags() & ADGF_DEMO))
 		_pDebugToggleFunc(1);
 }
 
@@ -908,10 +974,6 @@ void Lua_V1::SearchForFileOrSwapCDs() {
 	warning("Lua_V1::SearchForFileOrSwapCDs(): not implemented");
 }
 
-void Lua_V1::GetActorScale() {
-	warning("Lua_V1::GetActorScale(): not implemented");
-}
-
 void Lua_V1::GetActorTurnRate() {
 	warning("Lua_V1::GetActorTurnRate(): not implemented");
 }
@@ -942,10 +1004,6 @@ void Lua_V1::PrintMessage() {
 
 void Lua_V1::QueryDialog() {
 	warning("Lua_V1::QueryDialog(): not implemented");
-}
-
-void Lua_V1::IsSectorActive() {
-	warning("Lua_V1::IsSectorActive(): not implemented");
 }
 
 void Lua_V1::SpewShutdown() {
@@ -1541,7 +1599,7 @@ struct luaL_reg grimDemoMainOpcodes[] = {
 	{ "LockSet", LUA_OPCODE(Lua_V1, LockSetDemo) },
 	{ "UnlockSet", LUA_OPCODE(Lua_V1, UnlockSetDemo) },
 	{ "LockFont", LUA_OPCODE(Lua_V1, LockFont) },
-	{ "UnLockFont", LUA_OPCODE(LuaBase, dummyHandler) },
+	{ "UnLockFont", LUA_OPCODE(Lua_V1, UnLockFontDemo) },
 	{ "LockSound", LUA_OPCODE(LuaBase, dummyHandler) },
 	{ "UnlockSound", LUA_OPCODE(LuaBase, dummyHandler) },
 	{ "LockCostume", LUA_OPCODE(LuaBase, dummyHandler) },
@@ -1559,11 +1617,11 @@ struct luaL_reg grimDemoMainOpcodes[] = {
 	{ "NextSetup", LUA_OPCODE(Lua_V1, NextSetup) },
 	{ "PreviousSetup", LUA_OPCODE(Lua_V1, PreviousSetup) },
 	{ "StartFullscreenMovie", LUA_OPCODE(Lua_V1, StartFullscreenMovieDemo) },
-	{ "IsFullscreenMoviePlaying", LUA_OPCODE(Lua_V1, IsFullscreenMoviePlaying) },
+	{ "IsFullscreenMoviePlaying", LUA_OPCODE(Lua_V1, IsFullscreenMoviePlayingDemo) },
 	{ "StartMovie", LUA_OPCODE(Lua_V1, StartMovieDemo) },
 	{ "StopMovie", LUA_OPCODE(Lua_V1, StopMovie) },
 	{ "PauseMovie", LUA_OPCODE(Lua_V1, PauseMovie) },
-	{ "IsMoviePlaying", LUA_OPCODE(Lua_V1, IsFullscreenMoviePlaying) },
+	{ "IsMoviePlaying", LUA_OPCODE(Lua_V1, IsMoviePlaying) },
 	{ "PlaySound", LUA_OPCODE(LuaBase, dummyHandler) },
 	{ "PlaySoundAt", LUA_OPCODE(LuaBase, dummyHandler) },
 	{ "PlaySoundAttached", LUA_OPCODE(LuaBase, dummyHandler) },
@@ -1602,7 +1660,7 @@ struct luaL_reg grimDemoMainOpcodes[] = {
 	{ "TurnActorTo", LUA_OPCODE(Lua_V1, TurnActorTo) },
 	{ "PerSecond", LUA_OPCODE(Lua_V1, PerSecond) },
 	{ "SnapToPlane", LUA_OPCODE(Lua_V1, SnapToPlane) },
-	{ "GetAngleBetweenVectors", LUA_OPCODE(Lua_V1, GetAngleBetweenVectors) },
+	{ "GetAngleBetweenVectors", LUA_OPCODE(Lua_V1, GetAngleBetweenVectorsDemo) },
 	{ "GetAngleBetweenActors", LUA_OPCODE(Lua_V1, GetAngleBetweenActors) },
 	{ "SetAmbientLight", LUA_OPCODE(Lua_V1, SetAmbientLight) },
 	{ "FindLight", LUA_OPCODE(Lua_V1, FindLight) },
@@ -1803,6 +1861,12 @@ int Lua_V1::initialize(SysStruct *pHS) {
 }
 
 int Lua_V1::terminate() {
+	for (uint i = 0; i < _lockedFontRefs.size(); i++) {
+		g_grim->_pRes->removeReference(_lockedFontRefs[i]);
+		delete _lockedFontRefs[i];
+	}
+
+	_lockedFontRefs.clear();
 	_pHS = nullptr;
 
 	if (_bInitialized)

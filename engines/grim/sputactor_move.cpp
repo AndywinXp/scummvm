@@ -249,7 +249,8 @@ void SputActorModule::updateCostumes2(SputActor *pActor, float delta) {
 	up[1] = 1.0f;
 	up[2] = 0.0f;
 
-	if (!pActor->onScreen)
+	// The demo uses the joint matrices of the last frame
+	if (!pActor->onScreen && !(_pGrim->getGameFlags() & ADGF_DEMO))
 		_pRd->_puppet.buildJointMatrices(pNode->pHeadThing, getOrientMatrix(pActor));
 
 	RdMatrix34 headMatrix;
@@ -445,6 +446,12 @@ void SputActorModule::updateShadow(SputActor *pActor) {
 			pLookExtra->turnDir = -1;
 	}
 
+	// The demo clears the pitch and the roll of the actor
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		pActor->actorRot[0] = 0.0f;
+		pActor->actorRot[2] = 0.0f;
+	}
+
 	pActor->actorPos[0] = pPuck->pos[0];
 	pActor->actorPos[1] = pPuck->pos[1];
 	pActor->actorPos[2] = pPuck->pos[2];
@@ -544,7 +551,7 @@ void SputActorModule::updateCostumes4(SputActor *pActor) {
 				pActor->pExtra->resting = 0;
 				fadeInChore(pNode->hCostumeInstance, pNode->walkChore, _walkSystemFadeTime);
 			}
-		} else if ((status & 1) && !(pActor->mode & 1)) {
+		} else if ((status & 1) && (!(pActor->mode & 1) || (_pGrim->getGameFlags() & ADGF_DEMO))) {
 			fadeOutChore(pNode->hCostumeInstance, pNode->walkChore, _walkSystemFadeTime);
 		}
 	}
