@@ -652,6 +652,11 @@ void SputRender::restoreDirtyRects(StdVBuffer *pDst, StdVBuffer *pZBuffer) {
 }
 
 void SputRender::drawPrimitives(int layerMask) {
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		drawAnimationBitmaps(layerMask - 1);
+		return;
+	}
+
 	if (_bSkipPrimitives)
 		return;
 

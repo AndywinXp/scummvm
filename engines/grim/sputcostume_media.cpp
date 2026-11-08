@@ -28,6 +28,7 @@
 #include "engines/grim/lua/lua.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
+#include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_bitmap.h"
@@ -37,6 +38,10 @@ namespace Grim {
 static const int soundKeyValues[3] = { 0, 1, 2 };
 static const char *const soundKeyNames[3] = { "Play", "Stop", "Stop Looping" };
 static const CosComponentNames soundKeyDesc = { 3, soundKeyValues, soundKeyNames, nullptr, nullptr };
+
+static const int demoSoundKeyValues[2] = { 0, 1 };
+static const char *const demoSoundKeyNames[2] = { "Play", "Stop" };
+static const CosComponentNames demoSoundKeyDesc = { 2, demoSoundKeyValues, demoSoundKeyNames, nullptr, nullptr };
 
 static const int smushKeyValues[2] = { 0, 1 };
 static const char *const smushKeyNames[2] = { "Play", "Stop" };
@@ -128,6 +133,66 @@ void BitmapHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
 	_pSputCostume->_pLastBitmap = pCompRes;
 	_pSputCostume->_pRes->removeReference(pRes);
 	delete pRes;
+}
+
+// The component name is "bitmap,layer", it is kept whole in the bitmap structure
+static int getAnimationLayer(const StdBitmapStruct *pBitmap) {
+	char name[32];
+
+	Common::strlcpy(name, pBitmap->aName, 32);
+	strtok(name, ",");
+
+	const char *pLayer = strtok(nullptr, ",");
+
+	return pLayer && atoi(pLayer) > 0 ? 1 : 0;
+}
+
+void AnimationHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+	ResRef *pRef = static_cast<ResRef *>(pInstData);
+
+	if (!pRef->valid) {
+		warning("AnimationHandler::change(): Bad Bitmap Reference");
+		return;
+	}
+
+	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pRef->handle);
+
+	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
+	pBitmap->unk_104 = keyValue - 1;
+}
+
+int AnimationHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+	if (!BitmapHandler::request(hCostume, fourcc, pParentId, parentFourcc, pComp))
+		return 0;
+
+	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(_pSputCostume->_pLastBitmap);
+
+	Common::strlcpy(pBitmap->aName, pComp->name, 32);
+	pBitmap->unk_104 = -1;
+	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
+
+	return 1;
+}
+
+void AnimationHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
+	// The EXE looks the reference up again after freeing it and never finds it
+	BitmapHandler::freeComponent(hCostume, fourcc, pCompRes);
+}
+
+void AnimationHandler::stop(void *pInstData) {
+	ResRef *pRef = static_cast<ResRef *>(pInstData);
+
+	if (!pRef->valid) {
+		warning("AnimationHandler::stop(): Bad Bitmap Reference");
+		return;
+	}
+
+	_pSputCostume->_pSputRender->removeAnimationBitmap(pRef->handle);
+}
+
+int AnimationHandler::adjust(void **ppCompRes, char *args, int argsSize) {
+	// TODO: grimPlat_InputDialog("Enter a 1 to make this an overlay...")
+	return 0;
 }
 
 void SoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
@@ -287,9 +352,111 @@ int SoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
 	return 1;
 }
 
+void DemoSoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+	DemoSoundCompRes *pRes = static_cast<DemoSoundCompRes *>(pInstData);
+
+	if (keyValue < 0 || keyValue >= 2) {
+		warning("DemoSoundHandler::change(): invalid key %d", keyValue);
+		return;
+	}
+
+	if (demoSoundKeyValues[keyValue]) {
+		if (fourcc == kSputCostumeTagResidentSound)
+			g_imuse->soundsStopSound(pRes->name);
+		else if (fourcc == kSputCostumeTagStreamedSound)
+			g_imuse->soundStopVoiceStream();
+	} else if (fourcc == kSputCostumeTagResidentSound) {
+		g_imuse->soundsLoadStartSound(pRes->name, pRes->priority, pRes->group);
+		g_imuse->soundsSetParam(pRes->name, IMUSE_P_VOLUME, pRes->volume);
+		g_imuse->soundsSetParam(pRes->name, IMUSE_P_PAN, pRes->pan);
+	} else if (fourcc == kSputCostumeTagStreamedSound) {
+		g_imuse->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
+		g_imuse->soundsSetParam(pRes->name, IMUSE_P_GROUP, pRes->group);
+		g_imuse->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
+	}
+}
+
+int DemoSoundHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+	char name[32];
+	byte volume = 127;
+	int8 pan = 64;
+	int priority = 100;
+	int group = 1;
+
+	memset(name, 0, sizeof(name));
+
+	if (pParentId) {
+		warning("Sounds must be children of the costume");
+		return 0;
+	}
+
+	// TODO: grimPlat_OpenFileDialog branch (args == NULL)
+	const char *args = pComp->name;
+
+	Common::strlcpy(name, args, 32);
+	strtok(name, ",");
+
+	char *pVolume = strtok(nullptr, ",");
+
+	if (pVolume) {
+		volume = (byte)atoi(pVolume);
+
+		char *aTokens[3];
+
+		for (int i = 0; i < 3; i++) {
+			aTokens[i] = strtok(nullptr, ",");
+
+			if (!aTokens[i])
+				warning("DemoSoundHandler::request(): missing sound parameter in %s", args);
+		}
+
+		if (aTokens[0])
+			pan = (int8)atoi(aTokens[0]);
+
+		if (aTokens[1])
+			priority = atoi(aTokens[1]);
+
+		if (aTokens[2])
+			group = atoi(aTokens[2]);
+	}
+
+	DemoSoundCompRes *pRes = new DemoSoundCompRes();
+	const char *pSoundName = name;
+
+	if (!name[0])
+		pSoundName = args;
+
+	memset(pRes, 0, sizeof(DemoSoundCompRes));
+	Common::strlcpy(pRes->name, pSoundName, 32);
+	pRes->pan = pan;
+	pRes->group = group;
+	pRes->volume = volume;
+	pRes->priority = priority;
+
+	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, nullptr, parentFourcc, &demoSoundKeyDesc) != 0;
+}
+
+void DemoSoundHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
+	delete static_cast<DemoSoundCompRes *>(pCompRes);
+}
+
+int DemoSoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
+	// TODO: grimPlat_ControlPanel dialog
+	return 0;
+}
+
 void SmushHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
 	if (!keyValue)
 		_pSputCostume->_pGrim->playMovie(static_cast<const char *>(pInstData), 0, 0, -1, -1);
+}
+
+void DemoSmushHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+	char fileName[64];
+
+	snprintf(fileName, sizeof(fileName), "MOVIES\\%s", static_cast<const char *>(pInstData));
+
+	if (!keyValue)
+		_pSputCostume->_pGrim->playMovie(fileName, 0, 0, -1, -1);
 }
 
 int SmushHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {

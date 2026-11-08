@@ -798,7 +798,10 @@ public:
 
 	class PuppetModule : public Module {
 	public:
-		explicit PuppetModule(RenderDroid *rd) : Module(rd) {}
+		explicit PuppetModule(RenderDroid *rd) : Module(rd), _numTracks(6) {}
+		// The demo puppets have 4 tracks, the retail ones 6
+		void setNumTracks(int numTracks) { _numTracks = numTracks; }
+		int getNumTracks() const { return _numTracks; }
 		RdPuppet *create(RdThing *pThing);
 		int newEntry(RdPuppet *pPuppet, RdThing *pThing);
 		int addTrack(RdPuppet *pPuppet, RdKeyframe *pKeyframe, int priority, int priorityMasked);
@@ -812,6 +815,9 @@ public:
 		int updateTracks(RdPuppet *pPuppet, float delta);
 		int resetTrack(RdPuppet *pPuppet, int trackNum);
 		void buildJointMatrices(RdThing *pThing, RdMatrix34 pBase);
+
+	private:
+		int _numTracks;
 	};
 
 	class SpriteModule : public Module {

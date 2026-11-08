@@ -168,6 +168,126 @@ void KeyframeHandler::change(int fourcc, void *pInstData, int op, int keyValue, 
 	}
 }
 
+void DemoKeyframeHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+	KeyframeInst *pInst = static_cast<KeyframeInst *>(pInstData);
+	RenderDroid *pRd = _pSputCostume->_pRd;
+	RdPuppet *pPuppet = pInst->pModelInst->pThing->pPuppet;
+	int numTracks = pRd->_puppet.getNumTracks();
+
+	if (!pInst->ref.valid)
+		warning("DemoKeyframeHandler::change(): Bad keyframe Reference");
+
+	void *handle = pInst->ref.handle;
+	int trackNum = 0;
+
+	while (trackNum < numTracks && pPuppet->aTracks[trackNum].pKeyframe != handle)
+		trackNum++;
+
+	if (keyValue < 0 || keyValue >= 15) {
+		warning("DemoKeyframeHandler::change(): invalid key %d", keyValue);
+		return;
+	}
+
+	int action = keyframeKeyValues[keyValue];
+
+	if (trackNum == numTracks) {
+		if ((uint)action > 7)
+			return;
+
+		trackNum = pRd->_puppet.addTrack(pPuppet, static_cast<RdKeyframe *>(handle), pInst->priority, pInst->priorityMasked);
+
+		if (trackNum < 0) {
+			warning("Unable to add track for keyframe %p", handle);
+			return;
+		}
+
+		pInst->pModelInst->pThing->userArg = pInst->pModelInst;
+		_pSputCostume->_pRes->setReference(&pInst->pModelInst->aTrackRefs[trackNum], handle);
+		pInst->pModelInst->trackUserArg = hInst;
+		pRd->_puppet.setCallback(pPuppet, trackNum, SputCostume::puppetHookCallback);
+	}
+
+	switch (action) {
+	case 0:
+		pRd->_puppet.resetTrack(pPuppet, trackNum);
+		pRd->_puppet.setStatus(pPuppet, trackNum, 0x20);
+		pRd->_puppet.playTrack(pPuppet, trackNum);
+		break;
+	case 1:
+		if ((pPuppet->aTracks[trackNum].status & 0xC) == 0)
+			pRd->_puppet.playTrack(pPuppet, trackNum);
+
+		break;
+	case 2:
+		pRd->_puppet.resetTrack(pPuppet, trackNum);
+		pRd->_puppet.setStatus(pPuppet, trackNum, 0x40);
+		pRd->_puppet.playTrack(pPuppet, trackNum);
+		break;
+	case 3:
+		pRd->_puppet.resetTrack(pPuppet, trackNum);
+		pRd->_puppet.setStatus(pPuppet, trackNum, 0x80);
+		pRd->_puppet.playTrack(pPuppet, trackNum);
+		break;
+	case 4:
+		pRd->_puppet.fadeInTrack(pPuppet, trackNum, 1.0f);
+		break;
+	case 5:
+		pRd->_puppet.fadeInTrack(pPuppet, trackNum, 0.5f);
+		break;
+	case 6:
+		pRd->_puppet.fadeInTrack(pPuppet, trackNum, 0.25f);
+		break;
+	case 7:
+		pRd->_puppet.fadeInTrack(pPuppet, trackNum, 0.125f);
+		break;
+	case 8:
+		if ((pPuppet->aTracks[trackNum].status & 8) == 0)
+			pRd->_puppet.removeTrack(pPuppet, trackNum);
+
+		break;
+	case 9:
+		pRd->_puppet.setStatus(pPuppet, trackNum, 0x10);
+		break;
+	case 10:
+		pPuppet->aTracks[trackNum].status = (pPuppet->aTracks[trackNum].status & 0xFFFFFFED) | 2;
+		break;
+	case 11:
+		pRd->_puppet.fadeOutTrack(pPuppet, trackNum, 1.0f);
+		break;
+	case 12:
+		pRd->_puppet.fadeOutTrack(pPuppet, trackNum, 0.5f);
+		break;
+	case 13:
+		pRd->_puppet.fadeOutTrack(pPuppet, trackNum, 0.25f);
+		break;
+	case 14:
+		pRd->_puppet.fadeOutTrack(pPuppet, trackNum, 0.125f);
+		break;
+	default:
+		break;
+	}
+}
+
+void DemoKeyframeHandler::stop(void *pInstData) {
+	KeyframeInst *pInst = static_cast<KeyframeInst *>(pInstData);
+	RdPuppet *pPuppet = pInst->pModelInst->pThing->pPuppet;
+
+	if (!pInst->ref.valid)
+		return;
+
+	int trackNum = 0;
+
+	while (pPuppet->aTracks[trackNum].pKeyframe != pInst->ref.handle) {
+		trackNum++;
+
+		if (trackNum >= _pSputCostume->_pRd->_puppet.getNumTracks())
+			return;
+	}
+
+	if ((pPuppet->aTracks[trackNum].status & 8) == 0)
+		_pSputCostume->_pRd->_puppet.removeTrack(pPuppet, trackNum);
+}
+
 int KeyframeHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
 	char name[32];
 	int priority = 1;

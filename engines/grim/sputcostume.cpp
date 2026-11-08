@@ -23,6 +23,7 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/lua_v1.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
@@ -53,8 +54,8 @@ SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResourc
 		_pWuRegistry(pWuRegistry), _pGrim(nullptr),
 		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pShadowColormap(nullptr), _aLECBitmaps(nullptr),
 		_pLastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
-		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this),
-		_bitmapHandler(this), _soundHandler(this), _smushHandler(this), _spriteHandler(this), _imuseHandler(this), _luaVarHandler(this) {
+		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this), _demoKeyframeHandler(this),
+		_bitmapHandler(this), _animationHandler(this), _soundHandler(this), _demoSoundHandler(this), _smushHandler(this), _demoSmushHandler(this), _spriteHandler(this), _imuseHandler(this), _luaVarHandler(this) {
 	memset(_keyframePath, 0, sizeof(_keyframePath));
 	memset(_colormapPath, 0, sizeof(_colormapPath));
 	memset(_materialPath, 0, sizeof(_materialPath));
@@ -300,16 +301,31 @@ int SputCostume::startup() {
 	_cos.newStateBasedTag(kSputCostumeTagColormap, "RDroid Colormap", 0, &_colormapHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagMesh, "RDroid Thing Mesh", 0, &_meshHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagMaterial, "RDroid Animated Material", 0, &_materialHandler, 2);
-	_cos.newStateBasedTag(kSputCostumeTagKeyframe, "RDroid Keyframe (.KEY)", 0, &_keyframeHandler, 2);
+	CosComponentHandler *pKeyframeHandler = &_keyframeHandler;
+
+	if (_pGrim->getGameFlags() & ADGF_DEMO)
+		pKeyframeHandler = &_demoKeyframeHandler;
+
+	_cos.newStateBasedTag(kSputCostumeTagKeyframe, "RDroid Keyframe (.KEY)", 0, pKeyframeHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagBitmap, "General Bitmap", 0, &_bitmapHandler, 1);
-	_cos.newStateBasedTag(kSputCostumeTagAnimation, "Animation (old,use Bitmap)", 0, &_bitmapHandler, 1);
-	_cos.newStateBasedTag(kSputCostumeTagStreamedSound, "iMuse Streamed Sound FX", 0, &_soundHandler, 2);
-	_cos.newStateBasedTag(kSputCostumeTagResidentSound, "iMuse Resident Sound FX", 0, &_soundHandler, 2);
-	_cos.newStateBasedTag(kSputCostumeTagSmush, "Smush Movie", 0, &_smushHandler, 2);
-	_cos.newStateBasedTag(kSputCostumeTagSprite, "Sprite", 0, &_spriteHandler, 2);
-	_cos.newIntTag(kSputCostumeTagSequence, "iMuse Sequence", 0, &_imuseHandler, 2);
-	_cos.newIntTag(kSputCostumeTagState, "iMuse State", 0, &_imuseHandler, 2);
-	_cos.newIntTag(kSputCostumeTagLuaVar, "Lua Variable", 0, &_luaVarHandler, 1);
+
+	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+		_cos.newStateBasedTag(kSputCostumeTagStreamedSound, "iMuse Streamed Sound FX", 0, &_demoSoundHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagResidentSound, "iMuse Resident Sound FX", 0, &_demoSoundHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagSmush, "Smush Movie", 0, &_demoSmushHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagAnimation, "Animation", 0, &_animationHandler, 1);
+		_cos.newIntTag(kSputCostumeTagSequence, "iMuse Sequence", 0, &_imuseHandler, 2);
+		_cos.newIntTag(kSputCostumeTagState, "iMuse State", 0, &_imuseHandler, 2);
+	} else {
+		_cos.newStateBasedTag(kSputCostumeTagAnimation, "Animation (old,use Bitmap)", 0, &_bitmapHandler, 1);
+		_cos.newStateBasedTag(kSputCostumeTagStreamedSound, "iMuse Streamed Sound FX", 0, &_soundHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagResidentSound, "iMuse Resident Sound FX", 0, &_soundHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagSmush, "Smush Movie", 0, &_smushHandler, 2);
+		_cos.newStateBasedTag(kSputCostumeTagSprite, "Sprite", 0, &_spriteHandler, 2);
+		_cos.newIntTag(kSputCostumeTagSequence, "iMuse Sequence", 0, &_imuseHandler, 2);
+		_cos.newIntTag(kSputCostumeTagState, "iMuse State", 0, &_imuseHandler, 2);
+		_cos.newIntTag(kSputCostumeTagLuaVar, "Lua Variable", 0, &_luaVarHandler, 1);
+	}
 
 	_oldInstanceHook = _cos.registerInstanceHook(instanceHookThunk);
 	_oldSaveHook = _cos.registerSaveHook(saveHookThunk);

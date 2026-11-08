@@ -238,6 +238,7 @@ MODULE_OBJS := \
 	sputroom.o \
 	sputroom_sections.o \
 	sputsmush.o \
+	sputsmush_demo.o \
 	sputtext.o \
 	sputtime.o \
 	stdcontrol.o \

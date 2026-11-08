@@ -40,7 +40,7 @@ int RenderDroid::PuppetModule::newEntry(RdPuppet *pPuppet, RdThing *pThing) {
 	pPuppet->bPaused = 0;
 	pPuppet->pThing = pThing;
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < _numTracks; i++) {
 		pPuppet->aTracks[i].curFrame = 0.0f;
 		pPuppet->aTracks[i].prevFrame = 0.0f;
 		removeTrack(pPuppet, i);
@@ -52,15 +52,15 @@ int RenderDroid::PuppetModule::newEntry(RdPuppet *pPuppet, RdThing *pThing) {
 int RenderDroid::PuppetModule::addTrack(RdPuppet *pPuppet, RdKeyframe *pKeyframe, int priority, int priorityMasked) {
 	int slot = 0;
 
-	while (slot < 6 && pPuppet->aTracks[slot].status != 0)
+	while (slot < _numTracks && pPuppet->aTracks[slot].status != 0)
 		slot++;
 
-	if (slot >= 6) {
+	if (slot >= _numTracks) {
 		slot = 0;
-		while (slot < 6 && ((pPuppet->aTracks[slot].status & 8) == 0 || (pPuppet->aTracks[slot].status & 0x140) != 0))
+		while (slot < _numTracks && ((pPuppet->aTracks[slot].status & 8) == 0 || (pPuppet->aTracks[slot].status & 0x140) != 0))
 			slot++;
 
-		if (slot >= 6)
+		if (slot >= _numTracks)
 			return -1;
 
 		removeTrack(pPuppet, slot);
@@ -213,7 +213,7 @@ int RenderDroid::PuppetModule::updateTracks(RdPuppet *pPuppet, float delta) {
 	if (pPuppet->bPaused)
 		return activeTracks;
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < _numTracks; i++) {
 		RdPuppetTrack *track = &pPuppet->aTracks[i];
 
 		if (!track->status)
@@ -276,7 +276,7 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 		for (uint i = 0; i < pModel3->numHNodes; i++)
 			memcpy(pThing->aJointMatrices[i], pModel3->aHNodes[i].mat, sizeof(RdMatrix34));
 	} else {
-		for (int t = 0; t < 6; t++) {
+		for (int t = 0; t < _numTracks; t++) {
 			RdPuppetTrack *pTrack = &pPuppet->aTracks[t];
 
 			if (!pTrack->status)
@@ -324,7 +324,7 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 			int topPriority = 0;
 			int secondPriority = 0;
 
-			for (int t = 0; t < 6; t++) {
+			for (int t = 0; t < _numTracks; t++) {
 				RdPuppetTrack *pTrack = &pPuppet->aTracks[t];
 				RdKeyframe *pKeyframe = pTrack->pKeyframe;
 
