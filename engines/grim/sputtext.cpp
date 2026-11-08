@@ -669,12 +669,10 @@ int SputText::save(Common::WriteStream *pStream) {
 		return 1;
 
 	for (SputTextEvent *pEvent = _pTextQueue; pEvent; pEvent = pEvent->pNext) {
-		pEvent->serial = (int)(intptr)pEvent;
-
 		pStream->write(pEvent->text, 512);
 		pStream->writeSint32LE(0);
 		pStream->writeSint32LE(0);
-		pStream->writeSint32LE((int)(intptr)pEvent->params.pFont);
+		pStream->writeSint32LE(_pRes->serialFromHandle(pEvent->params.pFont));
 		pStream->writeSint32LE(pEvent->params.x);
 		pStream->writeSint32LE(pEvent->params.y);
 		pStream->writeSint32LE(pEvent->params.fgColor);
@@ -695,9 +693,9 @@ int SputText::save(Common::WriteStream *pStream) {
 		pStream->writeSint32LE(pEvent->serial);
 	}
 
-	pStream->writeSint32LE((int)(intptr)_printLineParams.pFont);
-	pStream->writeSint32LE((int)(intptr)_defaultTextParams.pFont);
-	pStream->writeSint32LE((int)(intptr)_blastTextParams.pFont);
+	pStream->writeSint32LE(_pRes->serialFromHandle(_printLineParams.pFont));
+	pStream->writeSint32LE(_pRes->serialFromHandle(_defaultTextParams.pFont));
+	pStream->writeSint32LE(_pRes->serialFromHandle(_blastTextParams.pFont));
 
 	if (pStream->err()) {
 		warning("SputText::save(): write error");

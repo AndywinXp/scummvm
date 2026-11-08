@@ -46,7 +46,7 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 			continue;
 
 		pStream->writeSint32LE(actorIndex);
-		pStream->writeSint32LE(pActor->pColorMap->serial);
+		pStream->writeSint32LE(pActor->pColorMap->valid ? _pRes->serialFromHandle(pActor->pColorMap->handle) : pActor->pColorMap->serial);
 		pStream->writeSint32LE(pActor->flags);
 		pStream->writeSint32LE(pActor->mode);
 
@@ -112,7 +112,7 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 			if (!pSaved->rCostume.valid)
 				warning("SputActorModule::save(): the costume reference is not valid");
 
-			pStream->writeSint32LE(pSaved->rCostume.serial);
+			pStream->writeSint32LE(pSaved->rCostume.valid ? _pRes->serialFromHandle(pSaved->rCostume.handle) : pSaved->rCostume.serial);
 			_pCos->saveInstance(pSaved->hCostumeInstance, pStream);
 		}
 

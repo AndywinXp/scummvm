@@ -204,7 +204,7 @@ int SputRoom::save(Common::WriteStream *pStream) {
 		if (_pRes->countDependents(handle)) {
 			Room *pRoom = static_cast<Room *>(handle);
 
-			pStream->writeSint32LE((int)(intptr)handle);
+			pStream->writeSint32LE(_pRes->serialFromHandle(handle));
 			pStream->writeSint32LE(pRoom->curSetup);
 			pStream->writeSint32LE(pRoom->roomRef.valid);
 
@@ -239,7 +239,7 @@ int SputRoom::save(Common::WriteStream *pStream) {
 
 	Room *pCurrentRoom = getCurrentRoom();
 
-	pStream->writeSint32LE((int)(intptr)pCurrentRoom);
+	pStream->writeSint32LE(_pRes->serialFromHandle(pCurrentRoom));
 
 	if (pCurrentRoom) {
 		pStream->writeByte(pCurrentRoom->minVol);
