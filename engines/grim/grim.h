@@ -524,6 +524,7 @@ protected:
 	int _bEnumerateVideo = 0;
 	int _bShow = 0;
 	int _bUseHardware = 0;
+	int _bHardwareAvailable = 0;
 	int _pendingDevice = 0;
 	int _pendingMode = 0;
 	int _pending3DDevice = -1;

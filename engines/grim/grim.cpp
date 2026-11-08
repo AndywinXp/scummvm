@@ -155,6 +155,7 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 
 	// Set default settings
 	ConfMan.registerDefault("use_arb_shaders", true);
+	ConfMan.registerDefault("grim_3d_acceleration", false);
 
 	_showFps = ConfMan.getBool("show_fps");
 
@@ -2073,7 +2074,8 @@ bool GrimEngine::wantsHardwareRenderer() const {
 }
 
 int GrimEngine::grimStartup() {
-	_bUseHardware = wantsHardwareRenderer() ? 1 : 0;
+	_bHardwareAvailable = wantsHardwareRenderer() ? 1 : 0;
+	_bUseHardware = ConfMan.getBool("grim_3d_acceleration") ? 1 : 0;
 
 	_pStdDisplay->startup();
 	_pPolyglot->initialize(this);
@@ -2139,7 +2141,7 @@ void GrimEngine::grimMain() {
 			int displayMode;
 			int threeDDevice;
 
-			_bUseHardware = 0;
+			_bHardwareAvailable = 0;
 			chooseDefaultDisplay(1, 0, &device, &displayMode, &threeDDevice);
 			selectDisplayMode(device, displayMode, threeDDevice);
 		}
@@ -3212,7 +3214,7 @@ int GrimEngine::initDisplay() {
 		pVideoDevice->a3DDevices = nullptr;
 
 #if defined(USE_OPENGL_SHADERS)
-		if (_bUseHardware && _pStdDisplay->getDevices()[i].b3D) {
+		if (_bHardwareAvailable && _pStdDisplay->getDevices()[i].b3D) {
 			initGraphics3d(kDisplayWidth, kDisplayHeight);
 
 			if (_pStd3D->enumerateDevices()) {
@@ -3250,7 +3252,7 @@ int GrimEngine::initDisplayAndDevice() {
 	int mode;
 	int threeDDevice;
 
-	if (!loadDisplaySettings(&device, &mode, &threeDDevice))
+	if (!loadDisplaySettings(&device, &mode, &threeDDevice) || (threeDDevice != -1) != (_bUseHardware != 0))
 		chooseDefaultDisplay(_bShow && _bEnumerateVideo, _bUseHardware, &device, &mode, &threeDDevice);
 
 	int result = selectDisplayMode(device, mode, threeDDevice);
@@ -3260,10 +3262,10 @@ int GrimEngine::initDisplayAndDevice() {
 		result = 0;
 	}
 
-	if (!result && _bUseHardware) {
+	if (!result && _bHardwareAvailable) {
 		warning("GrimEngine::initDisplayAndDevice(): the hardware display failed, going back to the software display");
 
-		_bUseHardware = 0;
+		_bHardwareAvailable = 0;
 		chooseDefaultDisplay(1, 0, &device, &mode, &threeDDevice);
 		result = selectDisplayMode(device, mode, threeDDevice);
 	}
@@ -3303,7 +3305,7 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 		device++;
 	}
 
-	if (device == numDevices || (aDevices[device].type == 1 && !_bUseHardware)) {
+	if (device == numDevices || (aDevices[device].type == 1 && !_bHardwareAvailable)) {
 		debug("grimdemo_DefaultDisplay: Could not find matching device.");
 		return 0;
 	}
@@ -3339,7 +3341,7 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice) {
 	StdDisplayDeviceFlags wanted;
 
-	if (!_bUseHardware) {
+	if (!_bHardwareAvailable) {
 		bPreferWindowed = 1;
 		bWant3D = 0;
 	}
@@ -3398,7 +3400,7 @@ int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDInde
 
 	StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[deviceIndex];
 
-	if (pDevice->type == 1 && !_bUseHardware) {
+	if (pDevice->type == 1 && !_bHardwareAvailable) {
 		warning("GrimEngine::selectDisplayMode(): the hardware display is not enabled by the renderer setting");
 		return 0;
 	}
@@ -3489,6 +3491,7 @@ int GrimEngine::select3DDevice(int index) {
 			_pRd->setAcceleration(_pRd->getAcceleration() | 1);
 			using3DHardware(1);
 			_pWuRegistry->saveBinary("Last3DDevice", _pStd3D->getCurDevice()->guid, sizeof(_pStd3D->getCurDevice()->guid));
+			ConfMan.setBool("grim_3d_acceleration", true);
 
 			return 1;
 		}
@@ -3499,6 +3502,9 @@ int GrimEngine::select3DDevice(int index) {
 
 	memset(aZeroGuid, 0, sizeof(aZeroGuid));
 	_pWuRegistry->saveBinary("Last3DDevice", aZeroGuid, sizeof(aZeroGuid));
+
+	if (_bHardwareAvailable)
+		ConfMan.setBool("grim_3d_acceleration", false);
 
 	return 0;
 }
