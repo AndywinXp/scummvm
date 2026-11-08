@@ -25,8 +25,8 @@
 
 namespace Grim {
 
-SputTime::SputTime() : _pHS(nullptr), _bInitialized(0), _bStarted(0), _lastRealTime(0), _gameTime(0), _frameTime(0),
-		_frameTimeFlex(0.0f) {
+SputTime::SputTime(bool isDemo) : _maxFrameTime(isDemo ? 500 : 300), _pHS(nullptr), _bInitialized(0), _bStarted(0), _lastRealTime(0), _gameTime(0),
+		_frameTime(0), _frameTimeFlex(0.0f) {
 }
 
 int SputTime::getGameTime() const {
@@ -53,9 +53,9 @@ uint SputTime::advance() {
 	_frameTime = frameTime;
 	_lastRealTime = time;
 
-	if (frameTime >= 300) {
-		frameTime = 300;
-		_frameTime = 300;
+	if (frameTime >= _maxFrameTime) {
+		frameTime = _maxFrameTime;
+		_frameTime = _maxFrameTime;
 	}
 
 	uint result = frameTime + _gameTime;
@@ -71,9 +71,9 @@ uint SputTime::advanceManual(uint ticks) {
 
 	_frameTime = ticks;
 
-	if (ticks >= 300) {
-		frameTime = 300;
-		_frameTime = 300;
+	if (ticks >= _maxFrameTime) {
+		frameTime = _maxFrameTime;
+		_frameTime = _maxFrameTime;
 	}
 
 	_gameTime = (int)((uint)_gameTime + frameTime);

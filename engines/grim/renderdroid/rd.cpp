@@ -26,10 +26,10 @@
 
 namespace Grim {
 
-RenderDroid::RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile) :
-		_camera(this), _canvas(this), _clip(this), _colormap(this), _colorEffects(this),
+RenderDroid::RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile, bool isDemo) :
+		_camera(this), _canvas(this), _clip(this), _colormap(this, isDemo), _colorEffects(this),
 		_face(this), _keyframe(this), _light(this), _material(this), _model3(this),
-		_primit2(this), _primit3(this), _puppet(this), _sprite(this), _thing(this),
+		_primit2(this), _primit3(this), _puppet(this, isDemo), _sprite(this), _thing(this),
 		_active(this), _cache(this), _raster(this), _afRaster(this), _nRaster(this),
 		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile), _pStd3D(nullptr),
 		_pHS(nullptr), _bStarted(0), _bOpened(0),

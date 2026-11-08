@@ -540,7 +540,10 @@ void SputText::drawTextEvent(SputTextEvent *pEvent, int bMarkDirty) {
 	pColors[0] = colorToRgb565(foreground);
 	pColors[1] = colorToRgb565(background);
 	pColors[2] = colorToRgb565(effect);
-	_pSputRender->colorCorrect(pColors, 3);
+
+	// The demo does not apply the gamma to the text
+	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+		_pSputRender->colorCorrect(pColors, 3);
 
 	pEvent->params.fgColor = 0;
 	pEvent->params.bgColor = 1;

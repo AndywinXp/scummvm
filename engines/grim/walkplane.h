@@ -98,7 +98,7 @@ private:
 
 class WalkSystem {
 public:
-	WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdConffile);
+	WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdConffile, bool isDemo);
 	~WalkSystem();
 
 	void buildCache();
@@ -123,8 +123,6 @@ public:
 	void tightenPath();
 	void shrinkBoxes(float amount);
 
-	// The pucks of the demo move differently along the edges of the sectors
-	void setDemo(bool bDemo) { _bDemo = bDemo; }
 	WalkPlane *getHead() const { return _pWpHead; }
 	Puck *getPuckHead() const { return _pPuckHead; }
 	const char *getCurCollection() const { return _curCollection; }
@@ -134,13 +132,15 @@ private:
 	friend class Puck;
 
 	WalkPlane *newPlane(float (*pVerts)[3], int numPoints, const char *collection, const char *sectorName, int id, int bVisible, int type);
+	WpVertex *addVertexDemo(float *pPos);
 
 	RenderDroid *_pRd;
 	StdMath *_pStdMath;
 	StdConffile *_pStdConffile;
 
-	WpVertex _aVertDb[1024];
+	WpVertex _aVertDb[2048];
 	int _totVerts;
+	int _numDemoVerts;
 	WalkPlane *_pWpHead;
 	char *_curCollection;
 	WpCollection _aCollection[140];

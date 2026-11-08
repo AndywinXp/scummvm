@@ -1903,9 +1903,11 @@ void GrimEngine::createModules() {
 	_pStdBmp = new StdBmp(_pStdDisplay, _pStdFile, this);
 	_pStdBitmap->setImageFormats(_pStdLbm, _pStdPcx, _pStdGif, _pStdPic, _pStdBmp);
 
-	_pRd = new RenderDroid(_pStdMath, _pStdDisplay, _pStdConffile, _pStdFile);
+	bool isDemo = (_gameFlags & ADGF_DEMO) != 0;
+
+	_pRd = new RenderDroid(_pStdMath, _pStdDisplay, _pStdConffile, _pStdFile, isDemo);
 	_pRd->setStd3D(_pStd3D);
-	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile);
+	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile, isDemo);
 
 	_pRes = new Res();
 	_pSputResource = new SputResource(_pRes, _pRd, _pStdDisplay, _pStdBitmap);
@@ -1928,7 +1930,7 @@ void GrimEngine::createModules() {
 
 	_pWuRegistry = new WuRegistry();
 	_pPolyglot = new Polyglot();
-	_pSputTime = new SputTime();
+	_pSputTime = new SputTime(isDemo);
 	_pSputPrimitive = new SputPrimitive(_pRd);
 	_pSputRoom = new SputRoom(_pRd, _pRes, _pSputResource, _pStdDisplay, _pStdBitmap, _pStdLbm, _pStdConffile, _pWalkSystem);
 	_pSputControl = new SputControl(_pRd, _pSputRoom, _pStdControl);
@@ -2095,12 +2097,6 @@ int GrimEngine::grimStartup() {
 	_pWuRegistry->startup("1.0");
 
 	_pRd->startup(this);
-
-	if (_gameFlags & ADGF_DEMO) {
-		_pRd->_puppet.setNumTracks(4);
-		_pRd->_colormap.setDemoFormat(true);
-		_pWalkSystem->setDemo(true);
-	}
 
 	if (!_pRd->open(0))
 		return 0;
