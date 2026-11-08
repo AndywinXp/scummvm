@@ -78,6 +78,7 @@
 #include "engines/grim/savegame.h"
 #include "engines/grim/registry.h"
 #include "engines/grim/resource.h"
+#include "engines/grim/legacy_savegames/legacy_savegames.h"
 #include "engines/grim/localize.h"
 #include "engines/grim/gfx_base.h"
 #include "engines/grim/bitmap.h"
@@ -205,8 +206,6 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	_printLineDefaults.setFGColor(c);
 	_printLineDefaults.setFont(nullptr);
 	_printLineDefaults.setJustify(TextObject::LJUSTIFY);
-
-	_offscreenTextPos = getDefaultOffscreenTextPos();
 
 	_sayLineDefaults.setX(0);
 	_sayLineDefaults.setY(100);
@@ -1763,11 +1762,6 @@ void GrimEngine::pauseEngineIntern(bool pause) {
 	}
 }
 
-Common::Point GrimEngine::getDefaultOffscreenTextPos() const {
-	// EMI shows them at the top of the screen
-	return Common::Point(320, _gameType == GType_MONKEY4 ? 30 : 450);
-}
-
 void GrimEngine::debugLua(const Common::String &str) {
 	lua_dostring(str.c_str());
 }
@@ -2974,6 +2968,7 @@ void GrimEngine::save() {
 	zwrite(&prevMode, 4);
 	_pSputRender->drawProgressBar(0.75f);
 	lua_Save(luaZwrite);
+
 	_pSputRender->drawProgressBar(1.0f);
 	soundsSave(_pSaveWriteStream);
 
@@ -3004,14 +2999,12 @@ void GrimEngine::restore() {
 	if (!_pSaveReadStream)
 		return;
 
-	_pSputRender->allowLoadImage(0);
-	_pSputRender->drawProgressBar(0.1f);
-	_pImuse->imStopAllSounds();
-	_pSputSmush->stopMovie();
-	_pSputSmush->periodic();
-	_pRes->freeAll();
-	_pSputActor->clearShadowMaterial();
-	_pSputResource->stopPurge(1);
+	if (LegacySaveFile::isLegacySave(_pSaveReadStream)) {
+		restoreLegacy();
+		return;
+	}
+
+	restorePrologue();
 
 	uint32 blockSize = 0;
 
@@ -3043,9 +3036,24 @@ void GrimEngine::restore() {
 	_sputPrevMode = (int)FROM_LE_32(prevMode);
 	_pSputRender->drawProgressBar(0.75f);
 	lua_Restore(luaZread);
-	lua_PatchGrimSave();
+
 	_pSputRender->drawProgressBar(1.0f);
 	soundsRestore(_pSaveReadStream);
+	restoreEpilogue();
+}
+
+void GrimEngine::restorePrologue() {
+	_pSputRender->allowLoadImage(0);
+	_pSputRender->drawProgressBar(0.1f);
+	_pImuse->imStopAllSounds();
+	_pSputSmush->stopMovie();
+	_pSputSmush->periodic();
+	_pRes->freeAll();
+	_pSputActor->clearShadowMaterial();
+	_pSputResource->stopPurge(1);
+}
+
+void GrimEngine::restoreEpilogue() {
 	_pSputResource->stopPurge(0);
 
 	Room *pRoom = _pSputRoom->getCurrentRoom();
@@ -3081,9 +3089,19 @@ StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
 	if (!pFile)
 		return nullptr;
 
-	int blockSize = pFile->readSint32LE();
+	Common::Array<byte> legacyPixels;
+	bool bLegacy = LegacySaveFile::isLegacySave(pFile);
 
-	pFile->seek(blockSize, SEEK_CUR);
+	if (bLegacy) {
+		if (!legacyReadThumbnail(pFile, legacyPixels)) {
+			delete pFile;
+			return nullptr;
+		}
+	} else {
+		int blockSize = pFile->readSint32LE();
+
+		pFile->seek(blockSize, SEEK_CUR);
+	}
 
 	StdVBufferTexFmt format;
 
@@ -3101,7 +3119,7 @@ StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
 		return nullptr;
 	}
 
-	int size = pFile->readSint32LE();
+	int size = bLegacy ? (int)legacyPixels.size() : pFile->readSint32LE();
 
 	if (size != pImage->tex.sizeInBytes) {
 		warning("GrimEngine::getSaveGameImage(): unexpected image size %d", size);
@@ -3110,7 +3128,11 @@ StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
 		return nullptr;
 	}
 
-	pFile->read(pImage->pPixels, size);
+	if (bLegacy)
+		memcpy(pImage->pPixels, legacyPixels.data(), size);
+	else
+		pFile->read(pImage->pPixels, size);
+
 	delete pFile;
 
 	return pImage;
@@ -3146,11 +3168,11 @@ void GrimEngine::soundsSave(Common::WriteStream *pStream) {
 	_pImuse->soundsSaveLoad(ser);
 }
 
-void GrimEngine::soundsRestore(Common::SeekableReadStream *pStream) {
+void GrimEngine::soundsRestore(Common::SeekableReadStream *pStream, bool legacyLayout) {
 	Common::Serializer ser(pStream, nullptr);
 
 	ser.setVersion(kSoundsSaveVersion);
-	_pImuse->soundsSaveLoad(ser);
+	_pImuse->soundsSaveLoad(ser, legacyLayout);
 }
 
 enum {

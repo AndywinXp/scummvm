@@ -9,6 +9,8 @@
 #include "common/str.h"
 #include "common/stream.h"
 #include "common/textconsole.h"
+#include "common/array.h"
+#include "common/util.h"
 
 #include "engines/grim/lua/lapi.h"
 #include "engines/grim/lua/lauxlib.h"
@@ -553,6 +555,495 @@ lua_Object lua_setfallback(const char *name, lua_CFunction fallback) {
 }
 
 #endif
+
+enum {
+	kListInternal,
+	kListState,
+	kListIo,
+	kListIoTag,
+	kListString,
+	kListMath,
+	kListMathPow,
+	kListMain,
+	kListExtra,
+	kListFallback,
+	kListCostume,
+	kListText,
+	kListPrimitives,
+	kListHardware,
+	kNumLists
+};
+
+static const char *const luaFuncIdNamesInternal[] = {
+	"setfallback", "assert", "call", "collectgarbage", "dofile", "copytagmethods", "dostring", "error", "foreach", "foreachvar",
+	"getglobal", "newtag", "next", "nextvar", "print", "rawgetglobal", "rawgettable", "rawsetglobal", "rawsettable", "seterrormethod",
+	"setglobal", "settagmethod", "gettagmethod", "settag", "tonumber", "tostring", "tag", "type", "start_script", "stop_script",
+	"next_script", "identify_script", "pause_scripts", "unpause_scripts", "find_script", "break_here"
+};
+
+static const char *const luaFuncIdNamesState[] = {
+	"stderrorim"
+};
+
+static const char *const luaFuncIdNamesIo[] = {
+	"setlocale", "execute", "remove", "rename", "tmpname", "getenv", "date", "exit", "debug", "print_stack"
+};
+
+static const char *const luaFuncIdNamesIoTag[] = {
+	"readfrom", "writeto", "appendto", "read", "write"
+};
+
+static const char *const luaFuncIdNamesString[] = {
+	"strlen", "strsub", "strlower", "strupper", "strrep", "ascii", "format", "strfind", "gsub"
+};
+
+static const char *const luaFuncIdNamesMath[] = {
+	"abs", "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "ceil", "floor",
+	"mod", "sqrt", "min", "max", "log", "log10", "exp", "deg", "rad", "random",
+	"randomseed"
+};
+
+static const char *const luaFuncIdNamesMathPow[] = {
+	"math_pow"
+};
+
+static const char *const luaFuncIdNamesMain[] = {
+	"EnginePause", "EngineResume", "EngineDisplay", "SearchForFileOrSwapCDs", "CheckForFile", "Load", "Save", "SetActorColormap", "GetActorCostume", "SetActorCostume",
+	"GetActorScale", "SetActorScale", "GetActorTimeScale", "SetActorTimeScale", "GetActorNodeLocation", "SetActorWalkChore", "SetActorTurnChores", "SetActorRestChore", "SetActorMumblechore", "SetActorTalkChore",
+	"SetActorWalkRate", "GetActorWalkRate", "SetActorTurnRate", "GetActorTurnRate", "SetSelectedActor", "LoadActor", "GetActorPos", "GetActorRect", "GetActorPuckVector", "GetActorYawToPoint",
+	"SetActorReflection", "SetActorOffsetYaw", "PutActorAtInterest", "PutActorAtOrigin", "PutActorAt", "PutActorInSet", "GetClippedPos", "WalkActorVector", "WalkActorForward", "DriveActorTo",
+	"WalkActorTo", "WalkActorToAvoiding", "WalkActorToInterest", "ActorLookAt", "IsActorLooking", "SetActorLookRate", "GetActorLookRate", "CanActorSee", "GetVisibleThings", "GetCameraActor",
+	"SetActorHead", "SetActorVisibility", "SetActorFollowBoxes", "ShutUpActor", "SetActorFrustrumCull", "IsActorInSector", "GetActorSector", "IsPointInSector", "GetPointSector", "TurnActor",
+	"GetActorRot", "SetActorRot", "SetActorPitch", "SetActorRoll", "IsActorTurning", "PlayActorChore", "PlayActorChoreLooping", "StopActorChore", "CompleteActorChore", "IsActorMoving",
+	"IsActorChoring", "IsActorResting", "SetActorChoreLooping", "GetActorChores", "GetActorLoopingChores", "GetActorCostumeDepth", "WorldToScreen", "ScreenToWorld", "exit", "FunctionName",
+	"EnableDebugKeys", "LockFont", "UnLockFont", "LockSound", "UnlockSound", "LockCostume", "UnlockCostume", "EnableControl", "DisableControl", "GetControlState",
+	"PrintMessage", "PrintError", "PrintWarning", "PrintDebug", "MakeCurrentSet", "LockSet", "UnLockSet", "MakeCurrentSetup", "GetCurrentSetup", "NextSetup",
+	"PreviousSetup", "StartFullscreenMovie", "IsFullscreenMoviePlaying", "StartMovie", "StopMovie", "PauseMovie", "IsMoviePlaying", "PlaySound", "PlaySoundAt", "PlaySoundAttached",
+	"IsSoundPlaying", "SetSoundPosition", "FileFindFirst", "FileFindNext", "FileFindDispose", "InputDialog", "QueryDialog", "WriteRegistryValue", "ReadRegistryValue", "GetSectorVertices",
+	"GetSectorOppositeEdge", "IsSectorActive", "MakeSectorActive", "PreRender", "SpewStartup", "SpewShutdown", "GetCurrentScript", "PrintActorCostumes", "PushActorCostume", "PopActorCostume",
+	"LoadCostume", "GetPhysicalBytes", "SetMemoryUsage", "RotateVector", "GetCameraPosition", "SetCameraPosition", "GetCameraInterest", "SetCameraInterest", "GetCameraFOV", "SetCameraFOV",
+	"GetCameraRoll", "SetCameraRoll", "GetCameraLookVector", "PointActorAt", "TurnActorTo", "PerSecond", "SnapToPlane", "GetAngleBetweenVectors", "GetAngleBetweenActors", "SetAmbientLight",
+	"FindLight", "TurnLightOn", "IsLightOn", "SetLightType", "GetLightType", "SetLightPosition", "GetLightPosition", "SetLightRotation", "GetLightRotation", "SetLightAngles",
+	"GetLightAngles", "SetLightIntensity", "GetLightIntensity", "PointLightAt", "LightMgrStartup", "LightMgrShutdown", "LightMgrSetChange", "ImStartRecording", "ImStopRecording", "ImStartSound",
+	"play", "ImStopSound", "ImStopAllSounds", "quiet", "ImGetParam", "ImSetParam", "ImFadeParam", "ImGetMasterVol", "ImSetMasterVol", "ImGetSfxVol",
+	"ImSetSfxVol", "ImGetVoiceVol", "ImSetVoiceVol", "ImGetMusicVol", "ImSetMusicVol", "ImStartVoice", "ImStopVoice", "ImSetState", "ImSetSequence", "ImSetAttribute",
+	"ImSetCuePoint", "ImPause", "ImResume", "vfx", "ImSetVoiceEffect", "ImGetMemoryFootprint", "ImGetSoundCacheSize", "LoadBundle", "UnloadBundle", "SetGamma",
+	"SetActorWalkDominate", "SetActorConstrain", "RenderModeUser", "ForceRefresh", "DimScreen", "DimRegion", "CleanBuffer", "Display", "SetSpeechMode", "GetSpeechMode",
+	"SetShadowColor", "ActivateActorShadow", "ActorShadow", "SetActorShadowPlane", "SetActorShadowPoint", "SetActiveShadow", "ActorDistToShadowPlane", "KillActorShadows", "AddShadowPlane", "SetActorShadowValid",
+	"NewObjectState", "FreeObjectState", "SetObjectType", "SendObjectToBack", "SendObjectToFront", "ActorToClean", "FlushControls", "SetActorCollisionMode", "SetActorCollisionScale", "MarkDirtyRect",
+	"CacheRect", "RestoreCacheRect", "ResReport", "HardwareAccelerated", "SetActorClipActive", "SetActorClipPlane", "FadeOutChore", "FadeInChore", "IrisDown", "IrisUp",
+	"IrisComplete", "IrisClear", "TextFileGetLineCount", "TextFileGetLine", "ScreenShot", "SaveScreen", "GetSaveGameImage", "GetImage", "FreeImage", "BlastImage",
+	"BlastRect", "SubmitSaveGameData", "GetSaveGameData", "SetTextSpeed", "GetTextSpeed", "FindFileOnAnyCD", "DetachFromResources", "AttachToResources", "SetSoundParameters", "GetSoundParameters",
+	"TEST", "ActorPuckOrient", "GetTickCount", "ActorVoiceIs3D", "JustLoaded", "DumpMemoryLog", "ResetTextures", "BuildCache", "RestoreCache", "ShrinkBoxes",
+	"UnShrinkBoxes", "GetShrinkPos", "NukeResources", "SetActorInvClipNode", "GetDiskFreeSpace", "SetWalkSystemFadeTime", "SaveIMuse", "RestoreIMuse", "GetMemoryUsage"
+};
+
+static const char *const luaFuncIdNamesExtra[] = {
+	"  concatfallback", "  typeoverride", "  dfltcamera", "  dfltcontrol"
+};
+
+static const char *const luaFuncIdNamesFallback[] = {
+	"  typeFB", "  errorFB", "  nilFB"
+};
+
+static const char *const luaFuncIdNamesCostume[] = {
+	"GetKeyLength", "GetSmushLength"
+};
+
+static const char *const luaFuncIdNamesText[] = {
+	"IsMessageGoing", "SetSayLineDefaults", "SetActorTalkColor", "GetActorTalkColor", "SayLine", "PrintLine", "MakeTextObject", "GetTextObjectDimensions", "GetFontDimensions", "ChangeTextObject",
+	"KillTextObject", "BlastText", "ExpireText", "PurgeText", "MakeColor", "GetColorComponents", "SetTranslationMode", "GetTranslationMode", "GetTextCharPosition", "LocalizeString",
+	"SetEmergencyFont", "SetOffscreenTextPos"
+};
+
+static const char *const luaFuncIdNamesPrimitives[] = {
+	"DrawLine", "DrawPolygon", "DrawRectangle", "ChangePrimitive", "KillPrimitive", "PurgePrimitiveQueue"
+};
+
+static const char *const luaFuncIdNamesHardware[] = {
+	"Is3DHardwareEnabled", "GetVideoDevices", "SetVideoDevices", "SetHardwareState", "Enumerate3DDevices", "EnumerateVideoDevices"
+};
+
+struct LuaFuncIdList {
+	const char *title;
+	const char *const *names;
+	int count;
+	int expectedCount;
+	bool isEngine;
+};
+
+static const LuaFuncIdList luaFuncIdLists[kNumLists] = {
+	{ "int_funcs", luaFuncIdNamesInternal, ARRAYSIZE(luaFuncIdNamesInternal), 36, false },
+	{ "stateFuncs", luaFuncIdNamesState, ARRAYSIZE(luaFuncIdNamesState), 1, false },
+	{ "iolib", luaFuncIdNamesIo, ARRAYSIZE(luaFuncIdNamesIo), 10, false },
+	{ "iolibtag", luaFuncIdNamesIoTag, ARRAYSIZE(luaFuncIdNamesIoTag), 5, false },
+	{ "strlib", luaFuncIdNamesString, ARRAYSIZE(luaFuncIdNamesString), 9, false },
+	{ "mathlib", luaFuncIdNamesMath, ARRAYSIZE(luaFuncIdNamesMath), 21, false },
+	{ "wrappermathlib", luaFuncIdNamesMathPow, ARRAYSIZE(luaFuncIdNamesMathPow), 1, false },
+	{ "main", luaFuncIdNamesMain, ARRAYSIZE(luaFuncIdNamesMain), 279, true },
+	{ "extra", luaFuncIdNamesExtra, ARRAYSIZE(luaFuncIdNamesExtra), 4, true },
+	{ "tmFuncs", luaFuncIdNamesFallback, ARRAYSIZE(luaFuncIdNamesFallback), 3, false },
+	{ "costume", luaFuncIdNamesCostume, ARRAYSIZE(luaFuncIdNamesCostume), 2, true },
+	{ "text", luaFuncIdNamesText, ARRAYSIZE(luaFuncIdNamesText), 22, true },
+	{ "primitives", luaFuncIdNamesPrimitives, ARRAYSIZE(luaFuncIdNamesPrimitives), 6, true },
+	{ "hardware", luaFuncIdNamesHardware, ARRAYSIZE(luaFuncIdNamesHardware), 6, true }
+};
+
+enum {
+	kGroupNone,
+	kGroupErrorIm,
+	kGroupDoNothing,
+	kGroupPrint,
+	kGroupMovie,
+	kGroupPlay,
+	kGroupQuiet,
+	kGroupVoiceEffect,
+	kNumGroups
+};
+
+struct LuaFuncIdAlias {
+	int list;
+	const char *name;
+	int group;
+};
+
+static const LuaFuncIdAlias luaFuncIdAliases[] = {
+	{ kListState, "stderrorim", kGroupErrorIm },
+	{ kListFallback, "  nilFB", kGroupErrorIm },
+
+	{ kListMain, "PutActorAtOrigin", kGroupDoNothing },
+	{ kListMain, "GetClippedPos", kGroupDoNothing },
+	{ kListMain, "DriveActorTo", kGroupDoNothing },
+	{ kListMain, "WalkActorToInterest", kGroupDoNothing },
+	{ kListMain, "UnLockFont", kGroupDoNothing },
+	{ kListMain, "LockSound", kGroupDoNothing },
+	{ kListMain, "UnlockSound", kGroupDoNothing },
+	{ kListMain, "LockCostume", kGroupDoNothing },
+	{ kListMain, "UnlockCostume", kGroupDoNothing },
+	{ kListMain, "PlaySound", kGroupDoNothing },
+	{ kListMain, "PlaySoundAt", kGroupDoNothing },
+	{ kListMain, "PlaySoundAttached", kGroupDoNothing },
+	{ kListMain, "IsSoundPlaying", kGroupDoNothing },
+	{ kListMain, "GetSectorVertices", kGroupDoNothing },
+	{ kListMain, "LoadBundle", kGroupDoNothing },
+	{ kListMain, "UnloadBundle", kGroupDoNothing },
+	{ kListExtra, "  dfltcamera", kGroupDoNothing },
+	{ kListExtra, "  dfltcontrol", kGroupDoNothing },
+
+	{ kListMain, "PrintError", kGroupPrint },
+	{ kListMain, "PrintWarning", kGroupPrint },
+	{ kListMain, "PrintDebug", kGroupPrint },
+
+	{ kListMain, "IsFullscreenMoviePlaying", kGroupMovie },
+	{ kListMain, "IsMoviePlaying", kGroupMovie },
+
+	{ kListMain, "ImStartSound", kGroupPlay },
+	{ kListMain, "play", kGroupPlay },
+
+	{ kListMain, "ImStopAllSounds", kGroupQuiet },
+	{ kListMain, "quiet", kGroupQuiet },
+
+	{ kListMain, "ImSetVoiceEffect", kGroupVoiceEffect },
+	{ kListMain, "vfx", kGroupVoiceEffect }
+};
+
+struct LuaFuncIdEntry {
+	lua_CFunction func;
+	int group;
+};
+
+static Common::Array<LuaFuncIdEntry> s_entries[kNumLists];
+static Common::Array<lua_CFunction> s_groupFuncs[kNumGroups];
+static int s_claimedLists[kNumLists];
+static int s_numLiveLists = 0;
+static bool s_isBuilt = false;
+static luaL_libList *s_builtHead = nullptr;
+static int s_builtNumLists = 0;
+static int s_builtNumEntries = 0;
+
+static Common::Array<uint32> s_reportedIds;
+static Common::Array<lua_CFunction> s_reportedFuncs;
+
+static void getLiveSignature(luaL_libList **pHead, int *pNumLists, int *pNumEntries) {
+	*pHead = list_of_libs;
+	*pNumLists = 0;
+	*pNumEntries = 0;
+
+	for (luaL_libList *list = list_of_libs; list; list = list->next) {
+		(*pNumLists)++;
+		*pNumEntries += list->number;
+	}
+}
+
+static int findLiveEngineList(const Common::Array<luaL_libList *> &live, const Common::Array<bool> &claimed, const LuaFuncIdList &model) {
+	for (uint i = 0; i < live.size(); i++) {
+		if (claimed[i] || live[i]->number != model.count)
+			continue;
+
+		luaL_reg *regs = live[i]->list;
+
+		if (strcmp(regs[0].name, model.names[0]) == 0 && strcmp(regs[model.count - 1].name, model.names[model.count - 1]) == 0)
+			return i;
+	}
+
+	return -1;
+}
+
+static lua_CFunction findInLiveList(const luaL_libList *list, const char *name, int index) {
+	if (index < list->number && strcmp(list->list[index].name, name) == 0)
+		return list->list[index].func;
+
+	for (int32 i = 0; i < list->number; i++) {
+		if (strcmp(list->list[i].name, name) == 0)
+			return list->list[i].func;
+	}
+
+	return nullptr;
+}
+
+static lua_CFunction findLibraryFunction(const Common::Array<luaL_libList *> &live, const Common::Array<bool> &claimed, const char *name) {
+	for (int i = (int)live.size() - 1; i >= 0; i--) {
+		if (claimed[i])
+			continue;
+
+		for (int32 j = 0; j < live[i]->number; j++) {
+			if (strcmp(live[i]->list[j].name, name) == 0)
+				return live[i]->list[j].func;
+		}
+	}
+
+	return nullptr;
+}
+
+static void buildFuncIdLists() {
+	Common::Array<luaL_libList *> live;
+	Common::Array<bool> claimed;
+
+	for (luaL_libList *list = list_of_libs; list; list = list->next) {
+		live.push_back(list);
+		claimed.push_back(false);
+	}
+
+	s_numLiveLists = live.size();
+
+	for (int i = 0; i < kNumLists; i++) {
+		s_claimedLists[i] = -1;
+
+		if (!luaFuncIdLists[i].isEngine)
+			continue;
+
+		int liveIndex = findLiveEngineList(live, claimed, luaFuncIdLists[i]);
+
+		if (liveIndex >= 0) {
+			s_claimedLists[i] = liveIndex;
+			claimed[liveIndex] = true;
+		}
+	}
+
+	for (int i = 0; i < kNumLists; i++) {
+		const LuaFuncIdList &model = luaFuncIdLists[i];
+
+		s_entries[i].clear();
+
+		for (int j = 0; j < model.count; j++) {
+			LuaFuncIdEntry entry;
+			entry.func = nullptr;
+			entry.group = kGroupNone;
+
+			if (!model.isEngine)
+				entry.func = findLibraryFunction(live, claimed, model.names[j]);
+			else if (s_claimedLists[i] >= 0)
+				entry.func = findInLiveList(live[s_claimedLists[i]], model.names[j], j);
+
+			s_entries[i].push_back(entry);
+		}
+	}
+
+	for (int i = 0; i < kNumGroups; i++)
+		s_groupFuncs[i].clear();
+
+	for (uint i = 0; i < ARRAYSIZE(luaFuncIdAliases); i++) {
+		const LuaFuncIdAlias &alias = luaFuncIdAliases[i];
+		const LuaFuncIdList &model = luaFuncIdLists[alias.list];
+		bool isFound = false;
+
+		for (int j = 0; j < model.count; j++) {
+			if (strcmp(model.names[j], alias.name) == 0) {
+				s_entries[alias.list][j].group = alias.group;
+				isFound = true;
+				break;
+			}
+		}
+
+		if (!isFound)
+			warning("buildFuncIdLists(): the alias '%s' is not in the list %s", alias.name, model.title);
+	}
+
+	for (int i = 0; i < kNumLists; i++) {
+		for (uint j = 0; j < s_entries[i].size(); j++) {
+			const LuaFuncIdEntry &entry = s_entries[i][j];
+
+			if (entry.group == kGroupNone || !entry.func)
+				continue;
+
+			bool isKnown = false;
+
+			for (uint k = 0; k < s_groupFuncs[entry.group].size(); k++) {
+				if (s_groupFuncs[entry.group][k] == entry.func)
+					isKnown = true;
+			}
+
+			if (!isKnown)
+				s_groupFuncs[entry.group].push_back(entry.func);
+		}
+	}
+
+	getLiveSignature(&s_builtHead, &s_builtNumLists, &s_builtNumEntries);
+	s_isBuilt = true;
+}
+
+static void ensureFuncIdLists() {
+	if (s_isBuilt) {
+		luaL_libList *head;
+		int numLists;
+		int numEntries;
+
+		getLiveSignature(&head, &numLists, &numEntries);
+
+		if (head == s_builtHead && numLists == s_builtNumLists && numEntries == s_builtNumEntries)
+			return;
+	}
+
+	buildFuncIdLists();
+}
+
+static bool entryMatches(const LuaFuncIdEntry &entry, lua_CFunction func) {
+	if (entry.func == func)
+		return true;
+
+	if (entry.group == kGroupNone)
+		return false;
+
+	for (uint i = 0; i < s_groupFuncs[entry.group].size(); i++) {
+		if (s_groupFuncs[entry.group][i] == func)
+			return true;
+	}
+
+	return false;
+}
+
+static lua_CFunction getEntryFunction(const LuaFuncIdEntry &entry) {
+	if (entry.func)
+		return entry.func;
+
+	if (entry.group != kGroupNone && !s_groupFuncs[entry.group].empty())
+		return s_groupFuncs[entry.group][0];
+
+	return nullptr;
+}
+
+static bool findFunctionId(lua_CFunction func, uint32 *pId) {
+	ensureFuncIdLists();
+
+	if (!func)
+		return false;
+
+	for (int depth = 0; depth < kNumLists; depth++) {
+		const Common::Array<LuaFuncIdEntry> &entries = s_entries[kNumLists - 1 - depth];
+
+		for (uint index = 0; index < entries.size(); index++) {
+			if (entryMatches(entries[index], func)) {
+				*pId = ((uint32)depth << 16) | index;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+static const LuaFuncIdEntry *findEntryOfId(uint32 id, int *pListIndex) {
+	ensureFuncIdLists();
+
+	uint32 depth = id >> 16;
+	uint32 index = id & 0xffff;
+
+	if (depth >= (uint32)kNumLists)
+		return nullptr;
+
+	int listIndex = kNumLists - 1 - (int)depth;
+
+	if (index >= s_entries[listIndex].size())
+		return nullptr;
+
+	*pListIndex = listIndex;
+
+	return &s_entries[listIndex][index];
+}
+
+static const char *findLiveFunctionName(lua_CFunction func) {
+	for (luaL_libList *list = list_of_libs; list; list = list->next) {
+		for (int32 i = 0; i < list->number; i++) {
+			if (list->list[i].func == func)
+				return list->list[i].name;
+		}
+	}
+
+	return nullptr;
+}
+
+uint32 lua_FuncPtrToID(lua_CFunction func) {
+	uint32 id;
+
+	if (findFunctionId(func, &id))
+		return id;
+
+	for (uint i = 0; i < s_reportedFuncs.size(); i++) {
+		if (s_reportedFuncs[i] == func)
+			return 0;
+	}
+
+	s_reportedFuncs.push_back(func);
+
+	const char *name = findLiveFunctionName(func);
+	warning("lua_FuncPtrToID(): the function '%s' has no id, 0 is returned", name ? name : "?");
+
+	return 0;
+}
+
+lua_CFunction lua_IDToFuncPtr(uint32 id) {
+	int listIndex = 0;
+	const LuaFuncIdEntry *entry = findEntryOfId(id, &listIndex);
+	lua_CFunction func = entry ? getEntryFunction(*entry) : nullptr;
+
+	if (func)
+		return func;
+
+	for (uint i = 0; i < s_reportedIds.size(); i++) {
+		if (s_reportedIds[i] == id)
+			return nullptr;
+	}
+
+	s_reportedIds.push_back(id);
+
+	if (!entry)
+		warning("lua_IDToFuncPtr(): no function with the id %08x", id);
+	else
+		warning("lua_IDToFuncPtr(): the function '%s' of the list %s (id %08x) is not in the running Lua",
+			luaFuncIdLists[listIndex].names[id & 0xffff], luaFuncIdLists[listIndex].title, id);
+
+	return nullptr;
+}
+
+bool lua_FuncPtrHasID(lua_CFunction func) {
+	uint32 id;
+
+	return findFunctionId(func, &id);
+}
+
+void lua_FuncIDsInvalidate() {
+	s_isBuilt = false;
+}
 
 } // end of namespace Grim
 

@@ -35,6 +35,7 @@ class WriteStream;
 namespace Grim {
 
 class GrimEngine;
+class LegacyImporter;
 class RenderDroid;
 class SputActorModule;
 class SputRender;
@@ -120,6 +121,8 @@ struct RoomSound {
 };
 
 class SputRoom {
+	friend class LegacyImporter;
+
 public:
 	SputRoom(RenderDroid *pRd, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, StdLbm *pStdLbm,
 			StdConffile *pStdConffile, WalkSystem *pWalkSystem);

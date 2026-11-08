@@ -22,16 +22,89 @@
 #include "engines/grim/grim.h"
 #include "engines/grim/savegame.h"
 #include "engines/grim/emi/emi.h"
+#include "engines/grim/legacy_savegames/legacy_savegames.h"
 
+#include "common/endian.h"
 #include "common/system.h"
 #include "common/savefile.h"
 #include "common/translation.h"
 #include "common/config-manager.h"
 
-#include "graphics/scaler.h"
 #include "graphics/surface.h"
 
 namespace Grim {
+
+static const int kSaveImageWidth = 250;
+static const int kSaveImageHeight = 188;
+static const int kLauncherThumbnailWidth = 160;
+static const int kLauncherThumbnailHeight = 120;
+
+// Same gamma curve as SputRender::buildGammaTable applies to the save image in the game menu
+static void correctSaveImageGamma(Common::Array<byte> &pixels, float gamma) {
+	if (!(gamma >= 0.0f) || gamma == 1.0f)
+		return;
+
+	for (uint i = 0; i + 1 < pixels.size(); i += 2) {
+		uint16 value = READ_LE_UINT16(&pixels[i]);
+		float red = (float)pow((double)((value >> 11) & 0x1F) / 31.0, (double)gamma);
+		float green = (float)pow((double)((value >> 5) & 0x3F) / 63.0, (double)gamma);
+		float blue = (float)pow((double)(value & 0x1F) / 31.0, (double)gamma);
+
+		value = (uint16)(((uint)(31.0 * red) << 11) | ((uint)(63.0 * green) << 5) | (uint)(31.0 * blue));
+		WRITE_LE_UINT16(&pixels[i], value);
+	}
+}
+
+static bool readSaveStrings(Common::SeekableReadStream *pStream, Common::Array<Common::String> &strings) {
+	if (LegacySaveFile::isLegacySave(pStream))
+		return legacyReadSaveStrings(pStream, strings);
+
+	strings.clear();
+
+	int32 totalBytes = pStream->readSint32LE();
+
+	if (pStream->err() || pStream->eos() || totalBytes < 0 || totalBytes > pStream->size() - 4)
+		return false;
+
+	while (totalBytes > 0) {
+		int32 length = pStream->readSint32LE();
+
+		if (pStream->err() || pStream->eos() || length < 1 || length > totalBytes - 4)
+			return false;
+
+		Common::Array<char> text(length);
+
+		if (pStream->read(text.data(), length) != (uint32)length)
+			return false;
+
+		text[length - 1] = '\0';
+		strings.push_back(Common::String(text.data()));
+		totalBytes -= length + 4;
+	}
+
+	return true;
+}
+
+static bool readSaveThumbnail(Common::SeekableReadStream *pStream, Common::Array<byte> &pixels) {
+	if (LegacySaveFile::isLegacySave(pStream))
+		return legacyReadThumbnail(pStream, pixels);
+
+	int32 blockSize = pStream->readSint32LE();
+
+	if (pStream->err() || pStream->eos() || blockSize < 0 || blockSize > pStream->size() - 8)
+		return false;
+
+	pStream->seek(blockSize, SEEK_CUR);
+
+	int32 imageSize = pStream->readSint32LE();
+
+	if (pStream->err() || pStream->eos() || imageSize != kSaveImageWidth * kSaveImageHeight * 2)
+		return false;
+
+	pixels.resize(imageSize);
+
+	return pStream->read(pixels.data(), imageSize) == (uint32)imageSize;
+}
 
 static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 	{
@@ -79,6 +152,9 @@ public:
 	SaveStateList listSaves(const char *target) const override;
 
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+
+	Common::String getSavegameFile(int saveGameIdx, const char *target = nullptr) const override;
+
 };
 
 Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, const Grim::GrimGameDescription *desc) const {
@@ -105,9 +181,25 @@ Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 bool GrimMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
 		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
+		(f == kSupportsDeleteSave) ||
 		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail);
+		(f == kSavesSupportThumbnail) ||
+		(f == kSupportsLoadingDuringStartup);
+}
+
+Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
+	Common::String gameId = target ? ConfMan.get("gameid", target) : Common::String();
+	bool isEmi = gameId == "monkey4";
+	bool isPs2 = target && Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
+	const char *extension = isPs2 ? "ps2" : "gsv";
+
+	if (saveGameIdx == kSavegameFilePattern)
+		return isEmi ? Common::String::format("efmi###.%s", extension) : Common::String("grim##.gsv");
+
+	if (isEmi)
+		return Common::String::format("efmi%03d.%s", saveGameIdx, extension);
+
+	return Common::String::format("grim%02d.gsv", saveGameIdx);
 }
 
 Common::KeymapArray GrimMetaEngine::initKeymaps(const char *target) const {
@@ -151,7 +243,15 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 		// Obtain the last digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + 4);
 
-		if (slotNum >= 0) {
+		if (slotNum >= 0 && gameId != "monkey4") {
+			Common::SeekableReadStream *pFile = saveFileMan->openForLoading(*file);
+			Common::Array<Common::String> strings;
+
+			if (pFile && readSaveStrings(pFile, strings))
+				saveList.push_back(SaveStateDescriptor(this, slotNum, strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0]));
+
+			delete pFile;
+		} else if (slotNum >= 0) {
 			SaveGame *savedState = SaveGame::openForLoading(*file);
 			if (savedState && savedState->isCompatible()) {
 				if (platform == Common::kPlatformPS2)
@@ -173,53 +273,69 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 
 SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
 	Common::String gameId = ConfMan.get("gameid", target);
-	Common::Platform platform = Common::parsePlatform(ConfMan.get("platform", target));
-	const bool isEMI = gameId == "monkey4";
-	Common::String filename;
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+	Common::String fileName = getSavegameFile(slot, target);
 
-	if (isEMI) {
-		if (platform == Common::kPlatformPS2)
-			filename = Common::String::format("efmi%03d.ps2", slot);
-		else
-			filename = Common::String::format("efmi%03d.gsv", slot);
-	} else {
-		filename = Common::String::format("grim%02d.gsv", slot);
-	}
+	if (gameId == "monkey4") {
+		SaveGame *savedState = SaveGame::openForLoading(fileName);
+		SaveStateDescriptor emiDesc;
 
-	SaveGame *savedState = SaveGame::openForLoading(filename);
-	if (!savedState || !savedState->isCompatible()) {
-		delete savedState;
-		return {};
-	}
+		if (savedState && savedState->isCompatible()) {
+			char str[256];
 
-	SaveStateDescriptor desc(this, slot, Common::U32String());
+			if (Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2)
+				savedState->beginSection('PS2S');
+			else
+				savedState->beginSection('SUBS');
 
-	// Grim stores a 250x188 screenshot, EMI a 160x120 one stretched to 256x128
-	const int width = isEMI ? 256 : 250;
-	const int height = isEMI ? 128 : 188;
-	if (savedState->hasSection('SIMG')) {
-		uint32 dataSize = savedState->beginSection('SIMG');
-		if (dataSize == (uint32)(width * height * 2)) {
-			Graphics::Surface screenshot;
-			screenshot.create(width, height, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
-			uint16 *pixels = (uint16 *)screenshot.getPixels();
-			for (int i = 0; i < width * height; i++)
-				pixels[i] = savedState->readLEUint16();
-			desc.setThumbnail(screenshot.scale(kThumbnailWidth, kThumbnailHeight2, true));
-			screenshot.free();
+			int32 strSize = savedState->readLESint32();
+
+			if (strSize > 0 && strSize < (int32)sizeof(str)) {
+				savedState->read(str, strSize);
+				str[strSize] = '\0';
+				emiDesc = SaveStateDescriptor(this, slot, str);
+			}
+
+			savedState->endSection();
 		}
-		savedState->endSection();
+
+		delete savedState;
+		return emiDesc;
 	}
 
-	uint32 descTag = platform == Common::kPlatformPS2 ? 'PS2S' : 'SUBS';
-	if (savedState->hasSection(descTag)) {
-		savedState->beginSection(descTag);
-		Common::String str = savedState->readString();
-		savedState->endSection();
-		desc.setDescription(str.c_str());
+	Common::SeekableReadStream *pFile = saveFileMan->openForLoading(fileName);
+	Common::Array<Common::String> strings;
+
+	if (!pFile)
+		return SaveStateDescriptor();
+
+	if (!readSaveStrings(pFile, strings)) {
+		delete pFile;
+		return SaveStateDescriptor();
 	}
 
-	delete savedState;
+	SaveStateDescriptor desc(this, slot, strings.empty() ? Common::String::format("Slot %d", slot) : strings[0]);
+	Common::Array<byte> pixels;
+
+	pFile->seek(0);
+
+	if (readSaveThumbnail(pFile, pixels)) {
+		if (ConfMan.hasKey("grim_gamma", target))
+			correctSaveImageGamma(pixels, ConfMan.getFloat("grim_gamma", target));
+
+		Graphics::Surface *pThumbnail = new Graphics::Surface();
+
+		pThumbnail->create(kSaveImageWidth, kSaveImageHeight, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
+		memcpy(pThumbnail->getPixels(), pixels.data(), pixels.size());
+
+		Graphics::Surface *pScaled = pThumbnail->scale(kLauncherThumbnailWidth, kLauncherThumbnailHeight, true);
+
+		pThumbnail->free();
+		delete pThumbnail;
+		desc.setThumbnail(pScaled);
+	}
+
+	delete pFile;
 	return desc;
 }
 

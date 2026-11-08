@@ -29,6 +29,14 @@ static void str_len() {
 	lua_pushnumber(strlen(luaL_check_string(1)));
 }
 
+static void str_ascii() {
+	const char *s = luaL_check_string(1);
+	int32 pos = (int32)luaL_opt_number(2, 1) - 1;
+
+	luaL_arg_check(0 <= pos && pos < (int32)strlen(s), 2, "out of range");
+	lua_pushnumber((unsigned char)s[pos]);
+}
+
 static void closeandpush() {
 	luaL_addchar(0);
 	lua_pushstring(luaL_buffer());
@@ -488,6 +496,7 @@ static struct luaL_reg strlib[] = {
 	{"strlower", str_lower},
 	{"strupper", str_upper},
 	{"strrep", str_rep},
+	{"ascii", str_ascii},
 	{"format", str_format},
 	{"strfind", str_find},
 	{"gsub", str_gsub}

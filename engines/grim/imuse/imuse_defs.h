@@ -35,6 +35,7 @@ namespace Grim {
 #define IMUSE_MAX_TRACKS          9
 #define IMUSE_MAX_MAP_SIZE        512
 #define IMUSE_MAX_DISPATCHES      9
+#define IMUSE_SAVED_TRACKS        16 // tracks and dispatches in the savegame
 #define IMUSE_MAX_STREAMZONES     50
 #define IMUSE_MAX_FADE_VOLUME     8323072
 #define IMUSE_MAX_STREAMS         3

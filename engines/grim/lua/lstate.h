@@ -112,6 +112,8 @@ extern LState *lua_state, *lua_rootState;
 
 extern int globalTaskSerialId;
 
+int32 luaExeCodeSize(const byte *code, int32 limit);
+
 void lua_stateinit(LState *state);
 void lua_statedeinit(LState *state);
 void lua_resetglobals();

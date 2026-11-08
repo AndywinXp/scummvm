@@ -37,6 +37,7 @@ namespace Grim {
 
 class BlastText;
 class GrimEngine;
+class LegacyImporter;
 class Lua_V1;
 class RenderDroid;
 class SputActorModule;
@@ -83,6 +84,8 @@ struct ActorSortInfo {
 };
 
 class SputRender : public SputControlCallback {
+	friend class LegacyImporter;
+
 public:
 	SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
 			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer,

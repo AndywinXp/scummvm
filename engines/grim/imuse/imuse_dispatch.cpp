@@ -94,39 +94,85 @@ IMuseDispatch *IMuse::dispatchGetDispatchByTrackId(int trackId) {
 	return &_dispatches[trackId];
 }
 
+// Dispatch of the savegames of the old ScummVM: no pointers, a flag for the stream
+void IMuse::dispatchSaveLoadLegacy(Common::Serializer &ser, IMuseDispatch *dispatch) {
+	ser.syncAsSint32LE(dispatch->wordSize, VER(30));
+	ser.syncAsSint32LE(dispatch->sampleRate, VER(30));
+	ser.syncAsSint32LE(dispatch->channelCount, VER(30));
+	ser.syncAsSint32LE(dispatch->swapEndiannessFlag, VER(30));
+	ser.syncAsSint32LE(dispatch->currentOffset, VER(30));
+	ser.syncAsSint32LE(dispatch->audioRemaining, VER(30));
+	ser.syncArray(dispatch->map, IMUSE_MAX_MAP_SIZE, Common::Serializer::Sint32LE, VER(30));
+
+	int hasStream = dispatch->streamPtr ? 1 : 0;
+
+	ser.syncAsSint32LE(hasStream, VER(30));
+
+	if (ser.isLoading())
+		dispatch->streamPtr = hasStream ? (IMuseStream *)1 : nullptr;
+
+	ser.syncAsSint32LE(dispatch->streamBufID, VER(30));
+	ser.syncAsSint32LE(dispatch->streamErrFlag, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeOffset, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeRemaining, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeWordSize, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeSampleRate, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeChannelCount, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeSyncFlag, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeSyncDelta, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeVol, VER(30));
+	ser.syncAsSint32LE(dispatch->fadeSlope, VER(30));
+}
+
 void IMuse::dispatchSaveLoad(Common::Serializer &ser) {
+	IMuseDispatch emptyDispatch;
 
-	for (int l = 0; l < IMUSE_MAX_DISPATCHES; l++) {
-		ser.syncAsSint32LE(_dispatches[l].wordSize, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].sampleRate, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].channelCount, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].swapEndiannessFlag, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].currentOffset, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].audioRemaining, VER(30));
-		ser.syncArray(_dispatches[l].map, IMUSE_MAX_MAP_SIZE, Common::Serializer::Sint32LE, VER(30));
+	memset(&emptyDispatch, 0, sizeof(emptyDispatch));
 
-		// This is only needed to signal if the sound originally had a stream associated with it
-		int hasStream = 0;
-		if (ser.isSaving()) {
-			if (_dispatches[l].streamPtr)
-				hasStream = 1;
-			ser.syncAsSint32LE(hasStream, VER(30));
-		} else {
-			ser.syncAsSint32LE(hasStream, VER(30));
-			_dispatches[l].streamPtr = hasStream ? (IMuseStream *)1 : nullptr;
+	int numDispatches = _soundsLegacyLayout ? IMUSE_MAX_DISPATCHES : IMUSE_SAVED_TRACKS;
+
+	// The savegame has the dispatches as they are in memory, the pointers are 32 bit values
+	for (int l = 0; l < numDispatches; l++) {
+		IMuseDispatch *dispatch = l < IMUSE_MAX_DISPATCHES ? &_dispatches[l] : &emptyDispatch;
+
+		if (_soundsLegacyLayout) {
+			dispatchSaveLoadLegacy(ser, dispatch);
+			continue;
 		}
 
-		ser.syncAsSint32LE(_dispatches[l].streamBufID, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].streamErrFlag, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeOffset, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeRemaining, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeWordSize, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeSampleRate, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeChannelCount, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeSyncFlag, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeSyncDelta, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeVol, VER(30));
-		ser.syncAsSint32LE(_dispatches[l].fadeSlope, VER(30));
+
+		// The pointers are not used when loading: only the stream one is kept, as a flag
+		int32 trackPtr = 0;
+		int32 streamPtr = dispatch->streamPtr ? 1 : 0;
+		int32 streamZoneList = 0;
+		int32 fadeBuf = 0;
+
+		ser.syncAsSint32LE(trackPtr, VER(30));
+		ser.syncAsSint32LE(dispatch->wordSize, VER(30));
+		ser.syncAsSint32LE(dispatch->sampleRate, VER(30));
+		ser.syncAsSint32LE(dispatch->channelCount, VER(30));
+		ser.syncAsSint32LE(dispatch->swapEndiannessFlag, VER(30));
+		ser.syncAsSint32LE(dispatch->currentOffset, VER(30));
+		ser.syncAsSint32LE(dispatch->audioRemaining, VER(30));
+		ser.syncArray(dispatch->map, IMUSE_MAX_MAP_SIZE, Common::Serializer::Sint32LE, VER(30));
+		ser.syncAsSint32LE(streamPtr, VER(30));
+		ser.syncAsSint32LE(dispatch->streamBufID, VER(30));
+		ser.syncAsSint32LE(streamZoneList, VER(30));
+		ser.syncAsSint32LE(dispatch->streamErrFlag, VER(30));
+		ser.syncAsSint32LE(fadeBuf, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeOffset, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeRemaining, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeWordSize, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeSampleRate, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeChannelCount, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeSyncFlag, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeSyncDelta, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeVol, VER(30));
+		ser.syncAsSint32LE(dispatch->fadeSlope, VER(30));
+
+		// The stream is allocated again later
+		if (ser.isLoading())
+			dispatch->streamPtr = streamPtr ? (IMuseStream *)1 : nullptr;
 	}
 
 	if (ser.isLoading()) {
