@@ -2154,7 +2154,7 @@ void GrimEngine::grimMain() {
 		_bDisplayChangePending = 0;
 	}
 
-	loop(_bActive, _bFirstFrame);
+	loop(1, _bFirstFrame);
 	_bFirstFrame = 0;
 	_grimFrameCount++;
 
@@ -2194,8 +2194,7 @@ void GrimEngine::grimMain() {
 		}
 	}
 
-	if (_bActive)
-		timedPageFlip();
+	timedPageFlip();
 }
 
 void GrimEngine::textOut(const char *text, int x, int y) {
@@ -3921,14 +3920,14 @@ void GrimEngine::pumpEvents() {
 	}
 }
 
-void GrimEngine::handleFocus(int bActive) {
-	if (bActive == _bActive)
+void GrimEngine::handleFocus(int bHasFocus) {
+	if (bHasFocus == _bHasFocus)
 		return;
 
-	_bActive = bActive;
-	_pStdControl->setActivation(bActive);
+	_bHasFocus = bHasFocus;
+	_pStdControl->setActivation(bHasFocus);
 
-	if (bActive) {
+	if (bHasFocus) {
 		_pSputRender->forceRefresh();
 
 		if (_pStdControl->isOpen())
