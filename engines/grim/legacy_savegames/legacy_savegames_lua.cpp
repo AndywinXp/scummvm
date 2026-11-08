@@ -273,6 +273,8 @@ bool legacyRestoreLua(Common::SeekableReadStream *stream, int minorVersion, Lega
 	if (minorVersion >= 7 && minorVersion <= 28)
 		lua_PatchGrimSave();
 
+	lua_PatchGrimNaSave();
+
 	return true;
 }
 

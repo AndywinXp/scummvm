@@ -46,4 +46,23 @@ void lua_PatchGrimSave() {
 	}
 }
 
+void lua_PatchGrimNaSave() {
+	// The old na.lua patch replaced two instructions with bytes that the VM ignores
+	static const byte brokenCode[] = { 0xe8, 0xd5, 0x08, 0x0b, 0x08, 0x0c, 0x67, 0x05, 0xbc, 0xae, 0x79, 0x04 };
+	TProtoFunc *tempProtoFunc = (TProtoFunc *)rootproto.next;
+	while (tempProtoFunc) {
+		if ((tempProtoFunc->lineDefined == 201) && tempProtoFunc->fileName &&
+			(strcmp(tempProtoFunc->fileName->str, "Scripts\\na.lua") == 0) &&
+			(memcmp(tempProtoFunc->code + 167, brokenCode, sizeof(brokenCode)) == 0)) {
+			// PUSHNIL0 and POP0 do nothing
+			tempProtoFunc->code[167] = 0x02;
+			tempProtoFunc->code[168] = 0x7f;
+			tempProtoFunc->code[175] = 0x02;
+			tempProtoFunc->code[176] = 0x7f;
+			break;
+		}
+		tempProtoFunc = (TProtoFunc *)tempProtoFunc->head.next;
+	}
+}
+
 } // end of namespace Grim
