@@ -2000,6 +2000,7 @@ void OpenGLGraphicsManager::updateTextureSettings() {
 
 #if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 	if (_renderer3d) {
+		_renderer3d->enableLinearFiltering(_currentState.filtering);
 		_renderer3d->setRotation(_rotationMode);
 	}
 #endif

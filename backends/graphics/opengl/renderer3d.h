@@ -50,6 +50,7 @@ public:
 	const Texture &getGLTexture() const { return _texture; }
 	bool hasTexture() const { return _texture.getGLTexture() != 0; }
 
+	void enableLinearFiltering(bool enable) { _texture.enableLinearFiltering(enable); }
 	void setRotation(Common::RotationMode rotation) { _texture.setRotation(rotation); }
 
 protected:
