@@ -202,15 +202,24 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 			if (vertex < 16)
 				continue;
 
-			if (!_pShadowMaterial) {
-				char materialName[] = "shadow.mat";
+			bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
 
-				_pShadowMaterial = _pRd->_material.load(materialName, 0, 0);
+			if (!_pShadowMaterial) {
+				if (bDemo) {
+					_pShadowMaterial = &_demoShadowMaterial;
+				} else {
+					char materialName[] = "shadow.mat";
+
+					_pShadowMaterial = _pRd->_material.load(materialName, 0, 0);
+				}
 			}
 
 			RdColormap *pColormap = _pSputCostume->getShadowColormap();
 
-			if (!pColormap) {
+			if (!pColormap && bDemo) {
+				_pSputCostume->setShadowColor(0, 0, 0);
+				pColormap = _pSputCostume->getShadowColormap();
+			} else if (!pColormap) {
 				char colormapName[] = "shadow.cmp";
 
 				pColormap = _pRd->_colormap.load(colormapName);

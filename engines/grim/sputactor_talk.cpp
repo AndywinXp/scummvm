@@ -24,6 +24,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/chore/cos.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputcostume.h"
@@ -33,7 +34,181 @@
 
 namespace Grim {
 
+void SputActorModule::sayLineDemo(SputActor *pActor, const char *msgId) {
+	int speechText = _speechMode & 1;
+	int speechVoice = _speechMode & 2;
+	char translation[32];
+	char voiceFile[36];
+
+	if (!pActor->pExtra)
+		allocateActorExtra(pActor);
+
+	Extra *pExtra = pActor->pExtra;
+
+	translation[0] = 0;
+	voiceFile[0] = 0;
+
+	const char *pText = _pSputText->extractSayLineData(msgId, translation);
+
+	if (translation[0]) {
+		static const char *const aExtensions[4] = { "wvc", "wav", "imc", "imu" };
+
+		for (int i = 0; i < 4 && !voiceFile[0]; i++) {
+			Common::String fileName = Common::String::format("%s.%s", translation, aExtensions[i]);
+			Common::SeekableReadStream *pFile = _pHS->openFile(fileName.c_str());
+
+			if (pFile) {
+				delete pFile;
+				Common::strlcpy(voiceFile, fileName.c_str(), sizeof(voiceFile));
+			}
+		}
+	}
+
+	if (pExtra->talking) {
+		if (translation[0]) {
+			char currentId[13];
+
+			memcpy(currentId, pExtra->sayLineId, 12);
+			currentId[12] = 0;
+
+			if (!strcmp(currentId, translation))
+				return;
+		}
+
+		shutUpDemo(pActor);
+	}
+
+	pExtra->talkTimerMs = 0;
+	pExtra->talking = 1;
+	strncpy(pExtra->sayLineId, translation, 12);
+	_numActorsTalking++;
+	pExtra->phoneme = 0;
+
+	if (speechVoice) {
+		if (voiceFile[0]) {
+			g_imuse->soundStartVoiceStream(voiceFile, 127, 64);
+			Common::strlcpy(pExtra->voiceName, voiceFile, sizeof(pExtra->voiceName));
+		} else {
+			pExtra->voiceName[0] = 0;
+		}
+
+		pExtra->talkTimerMs = -1;
+	}
+
+	if (speechText || !pExtra->voiceName[0]) {
+		SputTextEvent *pEvent = _pSputText->createActorTextDemo(pActor, pText);
+
+		pExtra->pSayText = pEvent;
+
+		if (!pExtra->voiceName[0])
+			pExtra->talkTimerMs = 48 * (int)strlen(pText) + 640;
+
+		if (pEvent)
+			_pSputText->addToQueue(pEvent, -1, 13);
+	}
+
+	// There is no lip sync data in the demo, so the mumble chore always plays
+	CostumeNode *pNode = pActor->pCostumeStack;
+
+	if (pNode) {
+		RdThing *pHeadThing = pNode->pHeadThing;
+
+		do {
+			if (pNode->pHeadThing != pHeadThing)
+				break;
+
+			if (pNode->mumbleChore >= 0)
+				break;
+
+			pNode = pNode->pNext;
+		} while (pNode);
+
+		if (pNode && pNode->pHeadThing == pHeadThing && pNode->mumbleChore >= 0)
+			_pCos->instPlayChore(pNode->hCostumeInstance, pNode->mumbleChore, 1, 0);
+	}
+}
+
+void SputActorModule::shutUpDemo(SputActor *pActor) {
+	if (!pActor) {
+		warning("SputActorModule::shutUpDemo(): no actor");
+		return;
+	}
+
+	CostumeNode *pNode = pActor->pCostumeStack;
+	Extra *pExtra = pActor->pExtra;
+
+	if (!pNode || !pExtra)
+		return;
+
+	if (pExtra->voiceName[0])
+		g_imuse->soundStopVoiceStream();
+
+	if (pExtra->pSayText)
+		_pSputText->killEvent(pExtra->pSayText);
+
+	RdThing *pHeadThing = pNode->pHeadThing;
+
+	do {
+		if (pNode->pHeadThing != pHeadThing)
+			break;
+
+		if (pNode->mumbleChore >= 0)
+			break;
+
+		pNode = pNode->pNext;
+	} while (pNode);
+
+	if (pNode && pNode->pHeadThing == pHeadThing && pNode->mumbleChore >= 0 && _pCos->instChoreStatus(pNode->hCostumeInstance, pNode->mumbleChore))
+		_pCos->instStopChore(pNode->hCostumeInstance, pNode->mumbleChore);
+
+	pNode = pActor->pCostumeStack;
+	pHeadThing = pNode->pHeadThing;
+
+	do {
+		if (pNode->pHeadThing != pHeadThing)
+			break;
+
+		if (pNode->aChore[0] >= 0)
+			break;
+
+		pNode = pNode->pNext;
+	} while (pNode);
+
+	if (pNode && pNode->pHeadThing == pHeadThing && pNode->aChore[0] >= 0)
+		_pCos->instCompleteChore(pNode->hCostumeInstance, pNode->aChore[0]);
+
+	pExtra->phoneme = 0;
+	pExtra->voiceName[0] = 0;
+	pExtra->pSayText = nullptr;
+	pExtra->sayLineId[0] = 0;
+	pExtra->talking = 0;
+
+	if (_numActorsTalking > 0)
+		_numActorsTalking--;
+}
+
+int SputActorModule::isVoicePlayingDemo(SputActor *pActor) {
+	return pActor->pExtra->voiceName[0] && g_imuse->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
+}
+
+void SputActorModule::stopActorDemo(SputActor *pActor) {
+	CostumeNode *pNode = pActor->pCostumeStack;
+
+	if (pNode) {
+		if (pNode->rCostume.valid)
+			_pCos->instRescue(pNode->hCostumeInstance, pNode->rCostume.serial);
+
+		_pSputCostume->resetCostume(pNode->hCostumeInstance);
+	}
+
+	if (pActor->pExtra && pActor->pExtra->talking)
+		shutUpDemo(pActor);
+}
+
 void SputActorModule::updateSpeechOnly(float delta) {
+	if (_pGrim->getGameFlags() & ADGF_DEMO)
+		return;
+
 	for (int i = 0; i < 4; i++) {
 		if (_apTalkingActors[i])
 			updateActorSpeech(_apTalkingActors[i], delta);

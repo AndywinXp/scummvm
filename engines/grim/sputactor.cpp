@@ -59,6 +59,13 @@ SputActorModule::SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath,
 	memset(_tmpPos1, 0, sizeof(_tmpPos1));
 	memset(_tmpPos2, 0, sizeof(_tmpPos2));
 	memcpy(_aLipSyncAnims, g_lipSyncAnimTable, sizeof(_aLipSyncAnims));
+
+	// The demo has no shadow material, its shadows are one solid cel
+	memset(&_demoShadowMaterial, 0, sizeof(_demoShadowMaterial));
+	memset(&_demoShadowCel, 0, sizeof(_demoShadowCel));
+	Common::strlcpy(_demoShadowMaterial.aName, "Default shadow material", 32);
+	_demoShadowMaterial.numCels = 1;
+	_demoShadowMaterial.apCels[0] = &_demoShadowCel;
 }
 
 void SputActorModule::publishActors() {

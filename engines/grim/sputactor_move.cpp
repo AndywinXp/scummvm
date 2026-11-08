@@ -152,6 +152,56 @@ void SputActorModule::updateActors(float delta) {
 	updatePositions();
 }
 
+void SputActorModule::updateActorsDemo(float delta) {
+	_numCollisionActors = 0;
+
+	for (int i = 0; i < _numActors; i++) {
+		SputActor *pActor = &_aActors[i];
+
+		if (!pActor->bInUse)
+			continue;
+
+		if (!scumm_stricmp(pActor->curSetName, _pSputRoom->getCurrentRoomName()) || (pActor->pExtra && pActor->pExtra->talking))
+			updateCostumesMainDemo(pActor, delta);
+		else
+			stopActorDemo(pActor);
+	}
+}
+
+void SputActorModule::updateCostumesMainDemo(SputActor *pActor, float delta) {
+	CostumeNode *pNode = pActor->pCostumeStack;
+
+	if (pNode && pNode->rCostume.valid)
+		_pCos->instRescue(pNode->hCostumeInstance, pNode->rCostume.serial);
+
+	if (pActor->mode & 1)
+		updatePuckMovement(pActor);
+
+	if (pActor->pExtra && pActor->pExtra->puck)
+		updateShadow(pActor);
+
+	updateCostumes4(pActor);
+	_pSputCostume->update(pActor->pCostumeStack, delta);
+
+	if (pActor->mode & 2)
+		updateCostumes2(pActor, delta);
+
+	Extra *pExtra = pActor->pExtra;
+
+	if (!pExtra || !pExtra->talking)
+		return;
+
+	// The demo has no lip sync data, only the timer and the voice end the line
+	pExtra->talkTimerMs += (int)(int64)((double)delta * -1000.0);
+
+	if (pExtra->voiceName[0] && !isVoicePlayingDemo(pActor))
+		shutUpDemo(pActor);
+
+	// Both checks can run, the count of talking actors is lowered twice then, as in the EXE
+	if (!pExtra->voiceName[0] && pExtra->talkTimerMs < 0)
+		shutUpDemo(pActor);
+}
+
 void SputActorModule::updateCostumesMain(SputActor *pActor, float delta) {
 	if (pActor->pExtra)
 		delta = (float)((double)pActor->pExtra->timeScale * delta);
