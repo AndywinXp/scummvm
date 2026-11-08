@@ -64,6 +64,11 @@ class PoolObjectBase;
 void lua_PatchGrimSave();
 
 /**
+ * Fix the na.lua code in saves made with the old patch for bug #312 (Rubacava sign)
+ */
+void lua_PatchGrimNaSave();
+
+/**
  * @brief A list of arguments to be passed to a Lua function.
  *
  * This is a convenience class to pass arguments to a Lua function, using
