@@ -25,6 +25,7 @@
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputsmush.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/imuse/imuse_engine.h"
@@ -685,7 +686,7 @@ void Lua_V1::PreRender() {
 }
 
 void Lua_V1::ResetTextures() {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (g_grim->_pStd3D)
 		g_grim->_pStd3D->purgeTextureCache();
 #endif

@@ -23,6 +23,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 
 namespace Grim {
 
@@ -332,7 +333,7 @@ void RenderDroid::CameraModule::advanceFrame() {
 
 	if ((_rd->_curRenderOptions & 0x100) && (pCanvas->flags & 2)) {
 		if (_rd->_curAcceleration > 0) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 			_rd->_pStd3D->clearZBuffer();
 #endif
 			return;

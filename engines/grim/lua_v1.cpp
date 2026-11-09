@@ -364,6 +364,7 @@ void Lua_V1::SetVideoDevices() {
 	g_grim->_pending3DDevice = mode3D;
 
 	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < numDevices &&
+		g_grim->_pStdDisplay->getDevices()[g_grim->_pendingDevice].bUsable &&
 		mode3D >= -1 && mode3D < (int)g_grim->_aVideoDevices[g_grim->_pendingDevice].num3DDevices &&
 		(g_grim->_pendingDevice != curDevice || mode3D != cur3DDevice))
 		g_grim->_bDisplayChangePending = 1;
@@ -382,7 +383,7 @@ void Lua_V1::EnumerateVideoDevices() {
 	int numListed = 0;
 
 	for (int i = firstDevice; i < numDevices; i++) {
-		if (aDevices[i].type == 1 && !g_grim->_bHardwareAvailable)
+		if (aDevices[i].type == 1 && !aDevices[i].bUsable)
 			continue;
 
 		lua_pushobject(result);

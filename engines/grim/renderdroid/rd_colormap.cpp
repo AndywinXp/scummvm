@@ -25,6 +25,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 
 namespace Grim {
 
@@ -176,7 +177,7 @@ int RenderDroid::ColormapModule::setIdentity(RdColormap *pColormap) {
 	if (_pIdentityMap != pColormap) {
 		_pIdentityMap = pColormap;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 		if (_rd->_curAcceleration > 0)
 			_rd->_pStd3D->setCurrentPalette(pColormap->aColors, 90);
 #endif

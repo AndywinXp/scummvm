@@ -107,6 +107,8 @@ MODULE_OBJS := \
 	renderdroid/rd_vector.o \
 	renderdroid/rd_zraster.o \
 	std/std_3d.o \
+	std/std_3d_gl.o \
+	std/std_3d_tinygl.o \
 	std/std_3d_surface.o \
 	std/std_3d_texture.o \
 	std/std_bitmap.o \

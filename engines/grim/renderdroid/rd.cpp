@@ -23,6 +23,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 
 namespace Grim {
 
@@ -186,7 +187,7 @@ void RenderDroid::clearPreStatistics() {
 int RenderDroid::beginHardwareScene() {
 	int result = _curAcceleration;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (result > 0)
 		return _pStd3D->beginScene();
 #endif

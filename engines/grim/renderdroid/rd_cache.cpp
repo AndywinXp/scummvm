@@ -24,6 +24,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_sort.h"
 
 namespace Grim {
@@ -49,7 +50,7 @@ int RenderDroid::CacheModule::startup() {
 int RenderDroid::CacheModule::finishFrame() {
 	int result = _rd->_curAcceleration;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (result > 0)
 		return _rd->_pStd3D->endScene();
 #endif
@@ -152,7 +153,7 @@ int RenderDroid::CacheModule::flush() {
 		if (pLockedBuffer)
 			_rd->_stdDisplay->vBufferUnlock(pLockedBuffer);
 	} else {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 		sendFaceListToHardware();
 #endif
 	}

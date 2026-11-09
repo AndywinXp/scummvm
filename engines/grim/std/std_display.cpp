@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 
@@ -30,7 +31,7 @@ namespace Grim {
 
 StdDisplay::StdDisplay() : _pStdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0),
 		_pStd3D(nullptr), _pMainGfxBuffer(nullptr), _pBackBuffer(nullptr), _bStartup(0), _bEnumerated(0), _bDisplayOpen(0), _bSurfacesCreated(0), _bFullscreen(0),
-		_numDrawBuffers(1), _numDevices(0), _pCurDevice(nullptr), _curDeviceIndex(0), _numModes(0), _curModeIndex(0), _pDisplayMode(nullptr) {
+		_numDrawBuffers(1), _backendMask(0), _numDevices(0), _pCurDevice(nullptr), _curDeviceIndex(0), _numModes(0), _curModeIndex(0), _pDisplayMode(nullptr) {
 	memset(_aDevices, 0, sizeof(_aDevices));
 	memset(_aModes, 0, sizeof(_aModes));
 }
@@ -61,7 +62,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, 
 	int sizeInBytes = pBuffer->tex.height * width * bytesPerPixel;
 	pBuffer->tex.sizeInBytes = sizeInBytes;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (bVideoMemory && _bDisplayOpen && _pCurDevice && _pCurDevice->type == 1 && _pStd3D) {
 		if (pBuffer->tex.format.bpp != 16) {
 			warning("StdDisplay::vBufferNew(): only 16 bpp video memory buffers are supported, using system memory");
@@ -107,7 +108,7 @@ void StdDisplay::vBufferFreeEntry(StdVBuffer *pVBuffer) {
 			pVBuffer->pPixels = nullptr;
 		}
 	}
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	else if (pVBuffer->type == 1) {
 		if (pVBuffer->pSurface && _pStd3D)
 			_pStd3D->destroySurface(pVBuffer->pSurface);
@@ -130,7 +131,7 @@ int StdDisplay::vBufferLock(StdVBuffer *pVBuffer) {
 	}
 
 	if (pVBuffer->type == 1) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 		if (!surfaceLock(pVBuffer))
 			return 0;
 
@@ -158,7 +159,7 @@ int StdDisplay::vBufferUnlock(StdVBuffer *pVBuffer) {
 	if (!pVBuffer->lockCount)
 		return 1;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	int result = surfaceUnlock(pVBuffer, 1);
 
 	if (result)
@@ -172,7 +173,7 @@ int StdDisplay::vBufferUnlock(StdVBuffer *pVBuffer) {
 
 void StdDisplay::vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect) {
 	if (pVBuffer->type != 0) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 		if (pVBuffer->type == 1)
 			surfaceBlt(pVBuffer, color, pRect);
 #endif
@@ -241,7 +242,7 @@ int StdDisplay::vBufferCopy(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, St
 		return 1;
 	}
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (pSrc->type != 0) {
 		if (pDst->type == 1)
 			copyBltB(pDst, pSrc, x, y, pRect, bColorKey);

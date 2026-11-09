@@ -260,10 +260,14 @@ protected:
 	void textOut(const char *text, int x, int y);
 	void grimShutdown();
 	void fatalError(const char *text, const char *caption);
-	bool wantsHardwareRenderer() const;
+	uint getHardwareBackends() const;
+	int isBackendUsable(int backend);
+	int hasUsableHardwareDevice();
+	int chooseHardwareBackend();
 	int initDisplay();
 	void freeVideoDevices();
 	int initDisplayAndDevice();
+	int selectFallbackDisplay(int failedDevice, int bWant3D);
 	int loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice);
 	int chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice);
 	int selectDisplayMode(int deviceIndex, int modeIndex, int threeDIndex);
@@ -321,7 +325,8 @@ protected:
 	int _bEnumerateVideo = 0;
 	int _bShow = 0;
 	int _bUseHardware = 0;
-	int _bHardwareAvailable = 0;
+	uint _hardwareBackends = 0;
+	int _preferredBackend = kStdDisplayBackendNone;
 	int _bRemasterFixes = 0;
 	int _pendingDevice = 0;
 	int _pendingMode = 0;
