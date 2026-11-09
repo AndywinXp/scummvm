@@ -25,7 +25,7 @@
 
 #include "base/commandLine.h"
 
-#include "engines/grim/resource.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -189,7 +189,7 @@ static void io_readfrom() {
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		inFile = saveFileMan->openForLoading(fileName);
 		if (!inFile) {
-			inFile = g_resourceloader->openNewStreamFile(s);
+			inFile = g_grim->openStreamFile(s);
 		}
 		if (inFile) {
 			LuaFile *current = new LuaFile();

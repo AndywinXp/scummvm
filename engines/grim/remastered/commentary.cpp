@@ -20,10 +20,11 @@
  */
 
 #include "engines/grim/remastered/commentary.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/textsplit.h"
-#include "engines/grim/localize.h"
+// LEGACY: #include "engines/grim/resource.h"
+// LEGACY: #include "engines/grim/textsplit.h"
+// LEGACY: #include "engines/grim/localize.h"
 
+#include "common/array.h"
 #include "common/textconsole.h"
 
 namespace Grim {
@@ -66,8 +67,8 @@ Common::String Comment::getName() const {
 
 void Comment::play() {
 	for (uint i = 0; i < _lines.size(); i++) {
-		Common::String text = g_localizer->localize(_lines[i]._line.c_str());
-		warning("Line: %d Start: %d End: %d Id: %d Text: %s", i, _lines[i]._start, _lines[i]._end, _lines[i]._id, text.c_str());
+		// LEGACY: Common::String text = g_localizer->localize(_lines[i]._line.c_str());
+		// LEGACY: warning("Line: %d Start: %d End: %d Id: %d Text: %s", i, _lines[i]._start, _lines[i]._end, _lines[i]._id, text.c_str());
 	}
 	_hasHeard = true;
 }
@@ -85,49 +86,49 @@ Commentary::~Commentary() {
 }
 
 void Commentary::loadCommentary() {
-	Common::String defFilename = "commentary_def.txt";
-	Common::SeekableReadStream *f = g_resourceloader->openNewStreamFile(defFilename);
-	if (!f) {
-		error("Commentary::loadCommentary: Unable to find commentary definition (%s)", defFilename.c_str());
-		return;
-	}
-	TextSplitter ts(defFilename, f);
-
-	while (!ts.isEof()) {
-		// Skip comments
-		while (ts.checkString("#")) {
-			ts.nextLine();
-		}
-		// Skip blank lines and trim input
-		Common::String currentLine = ts.getCurrentLine();
-		currentLine.trim();
-		while (currentLine.size() == 0) {
-			currentLine = ts.nextLine();
-			currentLine.trim();
-		}
-
-		Common::String name = currentLine;
-		name.trim();
-		Common::String filename = ts.nextLine();
-		ts.nextLine();
-		filename.trim();
-
-		Comment *c = new Comment(name, filename);
-
-		int numLines = 0;
-		ts.scanString("\t%d", 1, &numLines);
-
-		char str[20] = {0};
-		for (int i = 0; i < numLines; i++) {
-			int id = 0;
-			int start = 0;
-			int end = 0;
-			ts.scanString("%d\t%s\t%d\t%d", 4, &id, str, &start, &end);
-			c->addLine(id, str, start, end);
-		}
-
-		_comments.setVal(name, c);
-	}
+	// LEGACY: Common::String defFilename = "commentary_def.txt";
+	// LEGACY: Common::SeekableReadStream *f = g_resourceloader->openNewStreamFile(defFilename);
+	// LEGACY: if (!f) {
+	// LEGACY: 	error("Commentary::loadCommentary: Unable to find commentary definition (%s)", defFilename.c_str());
+	// LEGACY: 	return;
+	// LEGACY: }
+	// LEGACY: TextSplitter ts(defFilename, f);
+	// LEGACY:
+	// LEGACY: while (!ts.isEof()) {
+	// LEGACY: 	// Skip comments
+	// LEGACY: 	while (ts.checkString("#")) {
+	// LEGACY: 		ts.nextLine();
+	// LEGACY: 	}
+	// LEGACY: 	// Skip blank lines and trim input
+	// LEGACY: 	Common::String currentLine = ts.getCurrentLine();
+	// LEGACY: 	currentLine.trim();
+	// LEGACY: 	while (currentLine.size() == 0) {
+	// LEGACY: 		currentLine = ts.nextLine();
+	// LEGACY: 		currentLine.trim();
+	// LEGACY: 	}
+	// LEGACY:
+	// LEGACY: 	Common::String name = currentLine;
+	// LEGACY: 	name.trim();
+	// LEGACY: 	Common::String filename = ts.nextLine();
+	// LEGACY: 	ts.nextLine();
+	// LEGACY: 	filename.trim();
+	// LEGACY:
+	// LEGACY: 	Comment *c = new Comment(name, filename);
+	// LEGACY:
+	// LEGACY: 	int numLines = 0;
+	// LEGACY: 	ts.scanString("\t%d", 1, &numLines);
+	// LEGACY:
+	// LEGACY: 	char str[20] = {0};
+	// LEGACY: 	for (int i = 0; i < numLines; i++) {
+	// LEGACY: 		int id = 0;
+	// LEGACY: 		int start = 0;
+	// LEGACY: 		int end = 0;
+	// LEGACY: 		ts.scanString("%d\t%s\t%d\t%d", 4, &id, str, &start, &end);
+	// LEGACY: 		c->addLine(id, str, start, end);
+	// LEGACY: 	}
+	// LEGACY:
+	// LEGACY: 	_comments.setVal(name, c);
+	// LEGACY: }
 }
 
 Comment *Commentary::findCommentary(const Common::String &name) {

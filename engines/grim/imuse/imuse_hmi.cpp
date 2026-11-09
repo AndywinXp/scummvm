@@ -23,7 +23,7 @@
 
 #include "audio/effects/hmi/hmifxlib.h"
 
-#include "engines/grim/resource.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 
 namespace Grim {
@@ -37,7 +37,7 @@ int IMuse::setupHMI(int heapSize) {
 	if (_hmiFxLib->hmiFXInitSystem(&_hmiInitData))
 		return 0;
 
-	Common::SeekableReadStream *presetFile = g_resourceloader->openNewStreamFile("imuse.psl");
+	Common::SeekableReadStream *presetFile = g_grim->openStreamFile("imuse.psl");
 	int loadResult = presetFile ? _hmiFxLib->hmiFXPresetLoadLibrary(&_presetCollection, *presetFile) : 1;
 	delete presetFile;
 

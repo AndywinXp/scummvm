@@ -24,32 +24,34 @@
 #include "graphics/surface.h"
 
 #include "engines/grim/remastered/overlay.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/material.h"
-#include "engines/grim/gfx_base.h"
+// LEGACY: #include "engines/grim/resource.h"
+// LEGACY: #include "engines/grim/material.h"
+// LEGACY: #include "engines/grim/gfx_base.h"
 
 namespace Grim {
 
 Overlay::Overlay(const Common::String &filename, Common::SeekableReadStream *data) :
 		_x(0), _y(0) {
-	_material = g_resourceloader->loadMaterial(filename, nullptr, true);
+	// LEGACY: _material = g_resourceloader->loadMaterial(filename, nullptr, true);
 }
 
 Overlay::~Overlay() {
-	delete _material;
+	// LEGACY: delete _material;
 }
 
 void Overlay::draw() {
-	_material->select();
-	g_driver->drawOverlay(this);
+	// LEGACY: _material->select();
+	// LEGACY: g_driver->drawOverlay(this);
 }
 
 int Overlay::getWidth() const {
-	return _material->getData()->_textures[0]->_width;
+	// LEGACY: return _material->getData()->_textures[0]->_width;
+	return 0;
 }
 
 int Overlay::getHeight() const {
-	return _material->getData()->_textures[0]->_height;
+	// LEGACY: return _material->getData()->_textures[0]->_height;
+	return 0;
 }
 
 }

@@ -31,17 +31,10 @@
 
 #include "engines/grim/debug.h"
 #include "engines/grim/lua_v1.h"
-#include "engines/grim/registry.h"
 #include "engines/grim/grim.h"
-#include "engines/grim/savegame.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/bitmap.h"
 #include "engines/grim/blasttext.h"
-#include "engines/grim/font.h"
-#include "engines/grim/gfx_base.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/legacy_savegames/legacy_savegames.h"
-#include "engines/grim/localize.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputobjectstate.h"
@@ -210,10 +203,10 @@ void Lua_V1::MakeColor() {
 
 void Lua_V1::GetColorComponents() {
 	lua_Object colorObj = lua_getparam(1);
-	Color c(getcolor(colorObj));
-	lua_pushnumber(c.getRed());
-	lua_pushnumber(c.getGreen());
-	lua_pushnumber(c.getBlue());
+	uint32 color = lua_getuserdata(colorObj);
+	lua_pushnumber(color & 0xFF);
+	lua_pushnumber((color >> 8) & 0xFF);
+	lua_pushnumber((color >> 16) & 0xFF);
 }
 
 void Lua_V1::ReadRegistryValue() {
@@ -1785,72 +1778,6 @@ void Lua_V1::registerHardwareOpcodes() {
 		return;
 
 	luaL_openlib(grimHardwareOpcodes, ARRAYSIZE(grimHardwareOpcodes));
-}
-
-void Lua_V1::registerOpcodes() {
-	registerMainOpcodes();
-	registerTextOpcodes();
-	registerPrimitiveOpcodes();
-	registerHardwareOpcodes();
-
-	LuaBase::registerOpcodes();
-}
-
-void Lua_V1::boot() {
-	// The default value of these globals, defined in _controls.lua, is 256, 257, 258, 259.
-	// These values clash with the numpad 0, 1, 2 and 3 keycodes, so we set them here.
-	lua_pushnumber(KEYCODE_JOY1_HLEFT);
-	lua_setglobal("JOYSTICK_X_LEFT");
-
-	lua_pushnumber(KEYCODE_JOY1_HRIGHT);
-	lua_setglobal("JOYSTICK_X_RIGHT");
-
-	lua_pushnumber(KEYCODE_JOY1_HUP);
-	lua_setglobal("JOYSTICK_Y_UP");
-
-	lua_pushnumber(KEYCODE_JOY1_HDOWN);
-	lua_setglobal("JOYSTICK_Y_DOWN");
-
-	LuaBase::boot();
-}
-
-void Lua_V1::postRestoreHandle() {
-	if (g_grim->getGameType() == GType_GRIM) {
-		lua_beginblock();
-		// Set the developerMode, since the save contains the value of
-		// the installation it was made with.
-		lua_pushobject(lua_getglobal("developerMode"));
-		bool devMode = g_registry->getBool("good_times");
-		pushbool(devMode);
-		lua_setglobal("developerMode");
-		lua_endblock();
-	}
-
-	// Starting a movie calls the function 'music_state.pause()', which saves the current sfx volume to a temp
-	// variable and sets it to 0. When the movie finishes 'music_state.unpause()' will be called, which reads
-	// the volume from the temp variable and sets it. But if we have modified the sfx volume in the options
-	// and than load a savegame made during a movie, at the end of the movie the temp variable will have the
-	// old value. So here we call 'music_state.pause()' again, so that it can set the right value to the
-	// temp variable.
-	lua_beginblock();
-	lua_Object o = lua_getglobal("music_state");
-	if (!lua_isnil(o)) {
-		lua_pushobject(o);
-		lua_pushstring("paused");
-		if (!lua_isnil(lua_gettable())) {
-			lua_pushobject(o);
-			lua_pushstring("paused");
-			pushbool(false);
-			lua_settable();
-
-			lua_pushobject(o);
-			lua_pushstring("pause");
-			lua_Object func = lua_gettable();
-			lua_pushobject(o);
-			lua_callfunction(func);
-		}
-	}
-	lua_endblock();
 }
 
 int Lua_V1::initialize(SysStruct *pHS) {

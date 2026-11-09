@@ -24,17 +24,12 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/lua_v1.h"
-#include "engines/grim/localize.h"
-#include "engines/grim/actor.h"
-#include "engines/grim/savegame.h"
-#include "engines/grim/resource.h"
 #include "engines/grim/inputdialog.h"
 #include "engines/grim/blasttext.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputtext.h"
 #include "engines/grim/text.h"
-#include "engines/grim/textobject.h"
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {

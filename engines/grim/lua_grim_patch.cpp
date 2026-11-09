@@ -22,6 +22,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 
+#include "engines/grim/legacy_savegames/legacy_savegames_lua.h"
 #include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lua.h"
 

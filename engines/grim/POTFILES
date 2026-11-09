@@ -3,5 +3,3 @@ engines/grim/inputdialog.cpp
 engines/grim/md5check.cpp
 engines/grim/md5checkdialog.cpp
 engines/grim/metaengine.cpp
-engines/grim/resource.cpp
-engines/grim/emi/sound/emisound.cpp

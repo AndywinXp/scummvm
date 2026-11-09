@@ -86,6 +86,12 @@ typedef bool (*lua_LegacyUserdataHook)(int32 oldTag, int32 oldId, int32 *pNewTag
 // Reads the Lua state of a legacy savegame (the whole 'LUAS' payload), 0 = success
 int lua_RestoreLegacy(Common::SeekableReadStream *stream, int minorVersion, lua_LegacyFunctionHook functionHook, lua_LegacyUserdataHook userdataHook);
 
+// Patch the Lua state after loading a broken Grim save (defined in lua_grim_patch.cpp)
+void lua_PatchGrimSave();
+
+// Fix the na.lua code in saves made with the old patch for bug #312 (Rubacava sign)
+void lua_PatchGrimNaSave();
+
 // Name of an entry of the legacy lists, nullptr if depth or index do not exist
 const char *legacyLuaFunctionName(int depth, int index);
 

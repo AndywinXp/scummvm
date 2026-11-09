@@ -4,7 +4,6 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/savegame.h"
 #include "engines/grim/std/std_sort.h"
 
 #include "engines/grim/lua/lmem.h"
@@ -601,23 +600,6 @@ int lua_Restore(tSaveRestoreAccess *restoreFunc) {
 	globalTaskSerialId = numThreads;
 
 	return 0;
-}
-
-static SaveGame *pSaveGame;
-
-static int saveGameReader(void *data, int size) {
-	pSaveGame->read(data, size);
-
-	return 0;
-}
-
-void lua_Restore(SaveGame *savedState) {
-	savedState->beginSection('LUAS');
-
-	pSaveGame = savedState;
-	lua_Restore(saveGameReader);
-
-	savedState->endSection();
 }
 
 } // end of namespace Grim

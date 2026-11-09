@@ -25,22 +25,9 @@
 #include "common/str.h"
 #include "common/list.h"
 
-#include "engines/grim/color.h"
-
 namespace Grim {
 
 typedef uint32 lua_Object; // from lua/lua.h
-
-class Actor;
-class Bitmap;
-class Costume;
-class Font;
-class ObjectState;
-class PrimitiveObject;
-class TextObject;
-class TextObjectDefaults;
-class TextObjectCommon;
-class PoolObjectBase;
 
 /**
  * Declare a Lua opcode in the current class.
@@ -59,16 +46,6 @@ class PoolObjectBase;
 	class::static_##func
 
 /**
- * Patch Lua state after loading a broken Grim save
- */
-void lua_PatchGrimSave();
-
-/**
- * Fix the na.lua code in saves made with the old patch for bug #312 (Rubacava sign)
- */
-void lua_PatchGrimNaSave();
-
-/**
  * @brief A list of arguments to be passed to a Lua function.
  *
  * This is a convenience class to pass arguments to a Lua function, using
@@ -78,7 +55,6 @@ class LuaObjects {
 public:
 	void add(float number);
 	void add(int number);
-	void add(const PoolObjectBase *obj);
 	void add(const char *str);
 	void addNil();
 
@@ -95,12 +71,10 @@ private:
 		enum {
 			Nil,
 			Number,
-			Object,
 			String
 		} _type;
 		union {
 			float number;
-			const PoolObjectBase *object;
 			const char *string;
 		} _value;
 	};
@@ -119,20 +93,10 @@ public:
 
 	int dofile(const char *filename);
 
-	virtual bool findCostume(lua_Object costumeObj, Actor *actor, Costume **costume);
-	virtual Common::String parseMsgText(const char *msg, char *msgId);
-	virtual void parseSayLineTable(lua_Object paramObj, bool *background, int *vol, int *pan, float *x, float *y);
-	virtual void setTextObjectParams(TextObjectCommon *textObject, lua_Object tableObj);
-
 	void update(int frameTime, int movieTime);
 	void setFrameTime(float frameTime);
 	void setMovieTime(float movieTime);
-	virtual void registerLua();
-	virtual void registerOpcodes();
 	void recognizeOpcodes();
-	virtual void loadSystemScript();
-	virtual void boot();
-	virtual void postRestoreHandle() { }
 
 	// Force the demo flag
 	virtual void forceDemo();
@@ -154,19 +118,6 @@ public:
 protected:
 	bool getbool(int num);
 	void pushbool(bool val);
-	void pushobject(const PoolObjectBase *o);
-	int getobject(lua_Object obj);
-	Actor *getactor(lua_Object obj);
-	Bitmap *getbitmap(lua_Object obj);
-	TextObject *gettextobject(lua_Object obj);
-	Font *getfont(lua_Object obj);
-	Color getcolor(lua_Object obj);
-	PrimitiveObject *getprimitive(lua_Object obj);
-	ObjectState *getobjectstate(lua_Object obj);
-	// 0 - translate from '/msgId/'
-	// 1 - don't translate - message after '/msgId'
-	// 2 - return '/msgId/'
-	int _translationMode;
 
 	void registerTypeOverride();
 	void registerSectorConstants();
@@ -182,25 +133,6 @@ protected:
 
 private:
 	unsigned int _frameTimeCollection;
-
-	int refTextObjectX;
-	int refTextObjectY;
-	int refTextObjectFont;
-	int refTextObjectWidth;
-	int refTextObjectHeight;
-	int refTextObjectFGColor;
-	int refTextObjectBGColor;
-	int refTextObjectFXColor;
-	int refTextObjectHIColor;
-	int refTextObjectDuration;
-	int refTextObjectCenter;
-	int refTextObjectLJustify;
-	int refTextObjectRJustify;
-	int refTextObjectVolume;
-	int refTextObjectBackground;
-	int refTextObjectPan;
-	int refTextObjectLayer;
-	int refTextObjectCoords;
 
 	static LuaBase *s_instance;
 

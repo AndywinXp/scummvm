@@ -9,47 +9,6 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
-	costume/bitmap_component.o \
-	costume/chore.o \
-	costume/colormap_component.o \
-	costume/component.o \
-	costume/head.o \
-	costume/keyframe_component.o \
-	costume/lua_var_component.o \
-	costume/main_model_component.o \
-	costume/material_component.o \
-	costume/mesh_component.o \
-	costume/model_component.o \
-	costume/sound_component.o \
-	costume/sprite_component.o \
-	costume/anim_component.o \
-	emi/costume/emianim_component.o \
-	emi/costume/emichore.o \
-	emi/costume/emihead.o \
-	emi/costume/emiluavar_component.o \
-	emi/costume/emiluacode_component.o \
-	emi/costume/emimesh_component.o \
-	emi/costume/emiskel_component.o \
-	emi/costume/emisprite_component.o \
-	emi/costume/emitexi_component.o \
-	emi/sound/aifftrack.o \
-	emi/sound/mp3track.o \
-	emi/sound/scxtrack.o \
-	emi/sound/vimatrack.o \
-	emi/sound/track.o \
-	emi/sound/emisound.o \
-	emi/sound/codecs/scx.o \
-	emi/animationemi.o \
-	emi/costumeemi.o \
-	emi/emi.o \
-	emi/modelemi.o \
-	emi/skeleton.o \
-	emi/poolsound.o \
-	emi/layer.o \
-	emi/lua_v2.o \
-	emi/lua_v2_actor.o \
-	emi/lua_v2_sound.o \
-	emi/emi_registry.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \
 	imuse/imuse_engine.o \
@@ -110,7 +69,6 @@ MODULE_OBJS := \
 	movie/mpeg.o \
 	movie/movie.o \
 	movie/quicktime.o \
-	movie/smush.o \
 	movie/smush_anim.o \
 	movie/smush_animator.o \
 	movie/smush_mixer.o \
@@ -168,27 +126,13 @@ MODULE_OBJS := \
 	update/mscab.o \
 	update/lang_filter.o \
 	update/update.o \
-	actor.o \
-	animation.o \
-	bitmap.o \
 	blasttext.o \
 	blasttext_fontdata.o \
-	costume.o \
-	color.o \
-	colormap.o \
 	debug.o \
-	font.o \
-	gfx_base.o \
-	gfx_opengl_shaders.o \
-	gfx_opengl.o \
 	grim.o \
 	grim_controls.o \
 	inputdialog.o \
-	iris.o \
-	keyframe.o \
 	lab.o \
-	lipsync.o \
-	localize.o \
 	lua.o \
 	lua_grim_patch.o \
 	lua_v1.o \
@@ -198,22 +142,11 @@ MODULE_OBJS := \
 	lua_v1_sound.o \
 	lua_v1_text.o \
 	metaengine.o \
-	material.o \
-	model.o \
 	normaltext.o \
-	objectstate.o \
 	primitivequeue.o \
-	primitives.o \
 	patchr.o \
 	polyglot.o \
-	registry.o \
 	res.o \
-	resource.o \
-	savegame.o \
-	set.o \
-	sector.o \
-	sound.o \
-	sprite.o \
 	sputactor.o \
 	sputactor_collision.o \
 	sputactor_costume.o \
@@ -243,12 +176,9 @@ MODULE_OBJS := \
 	sputtime.o \
 	stdcontrol.o \
 	text.o \
-	textobject.o \
-	textsplit.o \
 	puck.o \
 	walkplane.o \
 	wuregistry.o \
-	object.o \
 	debugger.o \
 	md5check.o \
 	md5checkdialog.o
@@ -256,11 +186,6 @@ MODULE_OBJS := \
 ifdef USE_ARM_SMUSH_ASM
 MODULE_OBJS += \
 	movie/codecs/blocky8ARM.o
-endif
-
-ifdef USE_TINYGL
-MODULE_OBJS += \
-	gfx_tinygl.o
 endif
 
 # This module can be built as a plugin

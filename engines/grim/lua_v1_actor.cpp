@@ -21,11 +21,7 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/lua_v1.h"
-#include "engines/grim/actor.h"
-#include "engines/grim/costume.h"
 #include "engines/grim/chore/cos.h"
-#include "engines/grim/set.h"
-#include "engines/grim/model.h"
 #include "engines/grim/puck.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputactor.h"
@@ -36,7 +32,6 @@
 #include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_math.h"
 #include "engines/grim/walkplane.h"
-#include "engines/grim/gfx_base.h"
 #include "engines/grim/lua/lauxlib.h"
 
 namespace Grim {

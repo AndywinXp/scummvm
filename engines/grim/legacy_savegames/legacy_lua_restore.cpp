@@ -6,7 +6,6 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/savegame.h"
 #include "engines/grim/legacy_savegames/legacy_savegames_lua.h"
 
 #include "engines/grim/lua/ltask.h"

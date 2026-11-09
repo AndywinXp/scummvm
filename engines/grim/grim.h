@@ -32,8 +32,6 @@
 
 #include "graphics/renderer.h"
 
-#include "engines/grim/textobject.h"
-#include "engines/grim/iris.h"
 #include "engines/grim/detection.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/std/std_sys.h"
@@ -81,19 +79,8 @@ struct Std3DDevice;
 struct StdRect;
 struct StdVBuffer;
 
-class Actor;
-class SaveGame;
-class Bitmap;
-class Font;
-class Color;
-class ObjectState;
-class Set;
-class TextObject;
-class PrimitiveObject;
 class LuaBase;
 class Lua_V1;
-class Commentary;
-class GfxBase;
 class LegacyImporter;
 
 struct ControlDescriptor {
@@ -149,23 +136,8 @@ protected:
 	Common::Error run() override;
 
 public:
-	enum EngineMode {
-		PauseMode = 1,
-		NormalMode = 2,
-		SmushMode = 3,
-		DrawMode = 4,
-		OverworldMode = 5
-	};
-	enum SpeechMode {
-		TextOnly = 1,
-		VoiceOnly = 2,
-		TextAndVoice = 3
-	};
-
 	GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language);
 	virtual ~GrimEngine();
-
-	void clearPools();
 
 	uint32 getGameFlags() { return _gameFlags; }
 	GrimGameType getGameType() { return _gameType; }
@@ -177,101 +149,7 @@ public:
 	bool isRemastered() const { return !!(_gameFlags & ADGF_REMASTERED); }
 	bool useRemasterFixes() const { return _bRemasterFixes != 0; }
 
-	void setMode(EngineMode mode);
-	EngineMode getMode() { return _mode; }
-	void setPreviousMode(EngineMode mode) { _previousMode = mode; }
-	EngineMode getPreviousMode() { return _previousMode; }
-	void setSpeechMode(SpeechMode mode) { _speechMode = mode; }
-	SpeechMode getSpeechMode() { return _speechMode; }
-	SaveGame *savedState() { return _savedState; }
-	bool getJustSaveLoaded() { return _justSaveLoaded; }
-	void setJustSaveLoaded(bool state) { _justSaveLoaded = state; }
-
-	void handleDebugLoadResource();
-	void luaUpdate();
-	void updateDisplayScene();
-	void doFlip();
-	void setFlipEnable(bool state) { _flipEnable = state; }
-	bool getFlipEnable() { return _flipEnable; }
-	virtual void drawTextObjects();
-	void playIrisAnimation(Iris::Direction dir, int x, int y, int time);
-
-	void mainLoop();
-	unsigned getFrameStart() const { return _frameStart; }
-	unsigned getFrameTime() const { return _frameTime; }
-
-	// perSecond should allow rates of zero, some actors will accelerate
-	// up to their normal speed (such as the bone wagon) so handling
-	// a walking rate of zero should happen in the default actor creation
-	float getPerSecond(float rate) const;
-
-	int getTextSpeed() { return _textSpeed; }
-	void setTextSpeed(int speed);
-
-	void enableControl(int num) { _controlsEnabled[num] = true; }
-	void disableControl(int num) { _controlsEnabled[num] = false; }
-	float getControlAxis(int num);
-	bool getControlState(int num);
 	void clearEventQueue();
-
-	Set *findSet(const Common::String &name);
-	void setSetLock(const char *name, bool lockStatus);
-	Set *loadSet(const Common::String &name);
-	void setSet(const char *name);
-	void setSet(Set *scene);
-	Set *getCurrSet() { return _currSet; }
-	void makeCurrentSetup(int num);
-
-	void flagRefreshShadowMask(bool flag) { _refreshShadowMask = flag; }
-	bool getFlagRefreshShadowMask() { return _refreshShadowMask; }
-
-	void setSelectedActor(Actor *a) { _selectedActor = a; }
-	Actor *getSelectedActor() { return _selectedActor; }
-
-	/**
-	 * Tell the engine that an actor has been moved into/outside a set,
-	 * and so that it should rebuild the list of active ones.
-	 */
-	virtual void invalidateActiveActorsList();
-	virtual void invalidateTextObjectsSortOrder() {};
-	/**
-	 * Return a list of the currently active actors, i. e. the actors in the current set.
-	 */
-	const Common::List<Actor *> &getActiveActors() const { return _activeActors; }
-
-	/**
-	 * Add an actor to the list of actors that are talking
-	 */
-	void addTalkingActor(Actor *actor);
-	inline const Common::List<Actor *> &getTalkingActors() const { return _talkingActors; }
-	bool areActorsTalking() const;
-	void immediatelyRemoveActor(Actor *actor);
-
-	void drawMovieSubtitle();
-	void setMovieSubtitle(TextObject *to);
-	void setMovieSetup();
-
-	int getLanguage() const { return _language; }
-	void setLanguage(int langId) { _language = langId; }
-	Common::String getLanguagePrefix() const;
-
-	bool isConceptEnabled(uint32 number) const;
-	void enableConcept(uint32 number);
-
-	bool isCutsceneEnabled(uint32 number) const;
-	void enableCutscene(uint32 number);
-
-	Commentary *getCommentary() { return _commentary; }
-
-	Graphics::RendererType getRendererType();
-
-	// TODO: Refactor.
-	void setSaveMetaData(const char*, int, const char*);
-
-	void saveGame(const Common::String &file);
-	void loadGame(const Common::String &file);
-
-	void changeHardwareState();
 
 	// sputMain module
 	int sputInitialize(SysStruct *pHS);
@@ -336,111 +214,29 @@ public:
 
 	// grim module
 	Common::SeekableReadStream *openFile(const char *path) override;
+	Common::SeekableReadStream *openStreamFile(const Common::String &fname);
 
 	// Engine APIs
 	bool hasFeature(EngineFeature f) const override;
 
 	static Common::Array<Common::Keymap *> initKeymapsGrim(const char *target);
-	static Common::Array<Common::Keymap *> initKeymapsEMI(const char *target);
 
 	Common::StringArray _listFiles;
 	Common::StringArray::const_iterator _listFilesIter;
-
-	TextObjectDefaults _sayLineDefaults, _printLineDefaults, _blastTextDefaults;
 
 	void debugLua(const Common::String &str);
 
 protected:
 	void pauseEngineIntern(bool pause) override;
 
-	void handleControls(Common::EventType type, const Common::KeyState &key);
-	void handleChars(Common::EventType type, const Common::KeyState &key);
-	void handleJoyAxis(byte axis, int16 position);
-	void handleMouseAxis(byte axis, int16 position);
-	void handleJoyButton(Common::EventType type, byte button);
-	void handleExit();
-	void handlePause();
-	void handleUserPaint();
-	void cameraChangeHandle(int prev, int next);
-	void cameraPostChangeHandle(int num);
-	void buildActiveActorsList();
-	void savegameCallback();
-	GfxBase *createRenderer(int screenW, int screenH);
-	void playAspyrLogo();
-	virtual LuaBase *createLua();
-	virtual void updateNormalMode();
-	virtual void updateDrawMode();
-	virtual void drawNormalMode();
-
-	void savegameSave();
-	void saveGRIM();
-
-	void savegameRestore();
-	void restoreGRIM();
-
-	virtual void storeSaveGameMetadata(SaveGame *state);
-	virtual void storeSaveGameImage(SaveGame *savedState);
-
-	bool _savegameLoadRequest = false;
-	bool _savegameSaveRequest = false;
-	Common::String _savegameFileName;
-	SaveGame *_savedState;
 	Common::Mutex _imuseMutex;
-	bool _justSaveLoaded;
-
-	Set *_currSet;
-	EngineMode _mode, _previousMode;
-	SpeechMode _speechMode;
-	int _textSpeed;
-	bool _flipEnable;
-	char _fps[8];
-	bool _doFlip;
-	bool _refreshShadowMask = false;
-	bool _shortFrame = false;
-	bool _setupChanged = true;
-	// This holds the name of the setup in which the movie must be drawed
-	Common::String _movieSetup;
-
-	unsigned _frameStart = 0, _frameTime = 0, _movieTime = 0;
-	int _prevSmushFrame = 0;
-	unsigned int _frameCounter = 0;
-	unsigned int _lastFrameTime = 0;
 	unsigned _speedLimitMs;
 	bool _showFps;
-	bool _softRenderer;
-
-	bool *_controlsEnabled;
-	bool *_controlsState;
-	float *_joyAxisPosition;
-
-	bool _changeHardwareState = false;
-
-	Actor *_selectedActor;
-	Iris *_iris;
-	TextObject::Ptr _movieSubtitle;
-
-	bool _buildActiveActorsList;
-	Common::List<Actor *> _activeActors;
-	Common::List<Actor *> _talkingActors;
 
 	uint32 _gameFlags;
 	GrimGameType _gameType;
 	Common::Platform _gamePlatform;
 	Common::Language _gameLanguage;
-	uint32 _pauseStartTime;
-
-	// Remastered;
-	uint32 _language;
-	static const uint32 kNumConcepts = 98;
-	static const uint32 kNumCutscenes = 40;
-	bool _cutsceneEnabled[kNumCutscenes]; // TODO, could probably use a different data structure
-	bool _conceptEnabled[kNumConcepts];
-
-	Common::String _saveMeta1;
-	int _saveMeta2 = 0;
-	Common::String _saveMeta3;
-
-	Commentary *_commentary;
 
 	// sputMain and grimlib modules
 	int initializeModule(int module, SysStruct *pHS);
@@ -455,7 +251,7 @@ protected:
 
 	// grim module
 	Common::Error runGrime();
-	bool useGrimeFlow() const;
+	void mountPatchArchives();
 	void createImuse();
 	void createModules();
 	void destroyModules();
@@ -580,18 +376,9 @@ protected:
 	int _libImuseState = -1;
 	int (*_pShutdownCallback)(int) = nullptr;
 	int _libRenderOptions[8] = { 4, 3, 1, 1, 0, 0, 2, 0 };
-
-public:
-	int _cursorX = 0;
-	int _cursorY = 0;
-	bool _isUtf8 = false;
-	bool _transcodeChineseToSimplified = false;
-	Font *_overrideFont = nullptr;
 };
 
 extern GrimEngine *g_grim;
-
-extern int g_imuseState;
 
 // Fake KEYCODE_* values for joystick and mouse events
 

@@ -27,19 +27,7 @@
 
 #include "engines/grim/debug.h"
 #include "engines/grim/lua.h"
-#include "engines/grim/actor.h"
-#include "engines/grim/costume.h"
-#include "engines/grim/registry.h"
-#include "engines/grim/localize.h"
 #include "engines/grim/grim.h"
-#include "engines/grim/savegame.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/bitmap.h"
-#include "engines/grim/font.h"
-#include "engines/grim/set.h"
-#include "engines/grim/gfx_base.h"
-#include "engines/grim/model.h"
-#include "engines/grim/primitives.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
@@ -61,13 +49,6 @@ void LuaObjects::add(int number) {
 	_objects.push_back(obj);
 }
 
-void LuaObjects::add(const PoolObjectBase *object) {
-	Obj obj;
-	obj._type = Obj::Object;
-	obj._value.object = object;
-	_objects.push_back(obj);
-}
-
 void LuaObjects::add(const char *str) {
 	Obj obj;
 	obj._type = Obj::String;
@@ -79,7 +60,7 @@ void LuaObjects::addNil() {
 	Obj obj;
 	obj._type = Obj::Nil;
 	// Just set a value to avoid having uninitialized fields.
-	obj._value.object = nullptr;
+	obj._value.string = nullptr;
 	_objects.push_back(obj);
 }
 
@@ -93,9 +74,6 @@ void LuaObjects::pushObjects() const {
 			case Obj::Number:
 				lua_pushnumber(o._value.number);
 				break;
-			case Obj::Object:
-				LuaBase::instance()->pushobject(o._value.object);
-				break;
 			case Obj::String:
 				lua_pushstring(o._value.string);
 				break;
@@ -106,7 +84,7 @@ void LuaObjects::pushObjects() const {
 LuaBase *LuaBase::s_instance = nullptr;
 
 LuaBase::LuaBase() :
-		_translationMode(0), _frameTimeCollection(0) {
+		_frameTimeCollection(0) {
 	s_instance = this;
 
 	lua_iolibopen();
@@ -122,103 +100,6 @@ LuaBase::~LuaBase() {
 	lua_iolibclose();
 }
 
-// Entries in the system table
-static struct {
-	const char *name;
-	int key;
-} system_defaults[] = {
-	{ "frameTime", 0 },
-	{ "movieTime", 0 }
-};
-
-void LuaBase::registerLua() {
-	// Register system table
-	lua_Object system_table = lua_createtable();
-	lua_pushobject(system_table);
-	lua_setglobal("system");
-
-	lua_pushobject(system_table);
-	refSystemTable = lua_ref(1);
-
-	for (unsigned i = 0; i < ARRAYSIZE(system_defaults); i++) {
-		lua_pushobject(lua_getref(refSystemTable));
-		lua_pushstring(system_defaults[i].name);
-		lua_pushnumber(system_defaults[i].key);
-		lua_settable();
-	}
-
-	// Create and populate system.controls table
-	lua_Object controls_table = lua_createtable();
-	lua_pushobject(lua_getref(refSystemTable));
-	lua_pushstring("controls");
-	lua_pushobject(controls_table);
-	lua_settable();
-
-	for (int i = 0; controls[i].name; i++) {
-		lua_pushobject(controls_table);
-		lua_pushstring(controls[i].name);
-		lua_pushnumber(controls[i].key);
-		lua_settable();
-	}
-
-	lua_pushobject(lua_getref(refSystemTable));
-	lua_pushstring("camChangeHandler");
-	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
-	lua_settable();
-
-	lua_pushobject(lua_getref(refSystemTable));
-	lua_pushstring("axisHandler");
-	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
-	lua_settable();
-
-	lua_pushobject(lua_getref(refSystemTable));
-	lua_pushstring("buttonHandler");
-	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
-	lua_settable();
-
-	registerTypeOverride();
-	registerSectorConstants();
-	registerConcatFallback();
-
-	// initialize Text globals
-	lua_pushstring("x");
-	refTextObjectX = lua_ref(true);
-	lua_pushstring("y");
-	refTextObjectY = lua_ref(true);
-	lua_pushstring("font");
-	refTextObjectFont = lua_ref(true);
-	lua_pushstring("width");
-	refTextObjectWidth = lua_ref(true);
-	lua_pushstring("height");
-	refTextObjectHeight = lua_ref(true);
-	lua_pushstring("fgcolor");
-	refTextObjectFGColor = lua_ref(true);
-	lua_pushstring("bgcolor");
-	refTextObjectBGColor = lua_ref(true);
-	lua_pushstring("fxcolor");
-	refTextObjectFXColor = lua_ref(true);
-	lua_pushstring("hicolor");
-	refTextObjectHIColor = lua_ref(true);
-	lua_pushstring("duration");
-	refTextObjectDuration = lua_ref(true);
-	lua_pushstring("center");
-	refTextObjectCenter = lua_ref(true);
-	lua_pushstring("ljustify");
-	refTextObjectLJustify = lua_ref(true);
-	lua_pushstring("rjustify");
-	refTextObjectRJustify = lua_ref(true);
-	lua_pushstring("volume");
-	refTextObjectVolume = lua_ref(true);
-	lua_pushstring("pan");
-	refTextObjectPan = lua_ref(true);
-	lua_pushstring("background");
-	refTextObjectBackground = lua_ref(true);
-	lua_pushstring("layer");
-	refTextObjectLayer = lua_ref(true);
-	lua_pushstring("coords");
-	refTextObjectCoords = lua_ref(true);
-}
-
 void LuaBase::registerTypeOverride() {
 	lua_pushobject(lua_getglobal("type"));
 	refTypeOverride = lua_ref(true);
@@ -228,15 +109,15 @@ void LuaBase::registerTypeOverride() {
 
 void LuaBase::registerSectorConstants() {
 	// Register constants for box types
-	lua_pushnumber(Sector::NoneType);
+	lua_pushnumber(0);
 	lua_setglobal("NONE");
-	lua_pushnumber(Sector::WalkType);
+	lua_pushnumber(0x1000);
 	lua_setglobal("WALK");
-	lua_pushnumber(Sector::CameraType);
+	lua_pushnumber(0x2000);
 	lua_setglobal("CAMERA");
-	lua_pushnumber(Sector::SpecialType);
+	lua_pushnumber(0x4000);
 	lua_setglobal("SPECIAL");
-	lua_pushnumber(Sector::HotType);
+	lua_pushnumber(0x8000);
 	lua_setglobal("HOT");
 }
 
@@ -257,22 +138,8 @@ struct luaL_reg baseOpcodes[] = {
 	{ "  dfltcontrol", LUA_OPCODE(LuaBase, dummyHandler) },
 };
 
-void LuaBase::registerOpcodes() {
-	luaL_openlib(baseOpcodes, ARRAYSIZE(baseOpcodes));
-}
-
 void LuaBase::recognizeOpcodes() {
 	luaL_addlibtolist(baseOpcodes, ARRAYSIZE(baseOpcodes));
-}
-
-void LuaBase::loadSystemScript() {
-	dofile("_system.lua");
-}
-
-void LuaBase::boot() {
-	lua_pushnil();      // resumeSave
-	lua_pushnil();      // bootParam - not used in scripts
-	lua_call("BOOT");
 }
 
 void LuaBase::update(int frameTime, int movieTime) {
@@ -291,7 +158,7 @@ void LuaBase::update(int frameTime, int movieTime) {
 	lua_endblock();
 
 	// Run asynchronous tasks
-	lua_runtasks();
+	lua_runtasks(frameTime);
 }
 
 void LuaBase::setFrameTime(float frameTime) {
@@ -310,7 +177,7 @@ void LuaBase::setMovieTime(float movieTime) {
 
 int LuaBase::dofile(const char *filename) {
 	Common::SeekableReadStream *stream;
-	stream = g_resourceloader->openNewStreamFile(filename);
+	stream = g_grim->openStreamFile(filename);
 	if (!stream) {
 		Debug::warning(Debug::Engine, "Cannot find script %s", filename);
 		return 2;
@@ -372,289 +239,7 @@ void LuaBase::pushbool(bool val) {
 		lua_pushnil();
 }
 
-void LuaBase::pushobject(const PoolObjectBase *o) {
-	lua_pushusertag(o->getId(), o->getTag());
-}
-
-Actor *LuaBase::getactor(lua_Object obj) {
-	return Actor::getPool().getObject(lua_getuserdata(obj));
-}
-
-Bitmap *LuaBase::getbitmap(lua_Object obj) {
-	return Bitmap::getPool().getObject(lua_getuserdata(obj));
-}
-
-TextObject *LuaBase::gettextobject(lua_Object obj) {
-	return TextObject::getPool().getObject(lua_getuserdata(obj));
-}
-
-Font *LuaBase::getfont(lua_Object fontObj) {
-	if (lua_tag(fontObj) == BitmapFont::getStaticTag())
-		return BitmapFont::getPool().getObject(lua_getuserdata(fontObj));
-	if (lua_tag(fontObj) == FontTTF::getStaticTag())
-		return FontTTF::getPool().getObject(lua_getuserdata(fontObj));
-	return nullptr;
-}
-
-Color LuaBase::getcolor(lua_Object obj) {
-	uint32 color = lua_getuserdata(obj);
-
-	return Color(color & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF);
-}
-
-PrimitiveObject *LuaBase::getprimitive(lua_Object obj) {
-	return PrimitiveObject::getPool().getObject(lua_getuserdata(obj));
-}
-
-ObjectState *LuaBase::getobjectstate(lua_Object obj) {
-	return ObjectState::getPool().getObject(lua_getuserdata(obj));
-}
-
 void LuaBase::dummyHandler() {
-}
-
-bool LuaBase::findCostume(lua_Object costumeObj, Actor *actor, Costume **costume) {
-	*costume = nullptr;
-	if (lua_isnil(costumeObj))
-		return true;
-	if (lua_isnumber(costumeObj)) {
-		//int num = (int)lua_getnumber(costumeObj);
-		error("findCostume: search by Id not implemented");
-		// TODO get costume by ID ?
-	}
-	if (lua_isstring(costumeObj)) {
-		*costume = actor->findCostume(lua_getstring(costumeObj));
-		return *costume != nullptr;
-	}
-
-	return false;
-}
-
-Common::String LuaBase::parseMsgText(const char *msg, char *msgId) {
-	Common::String translation = g_localizer->localize(msg);
-	const char *secondSlash = nullptr;
-
-	if (msg[0] == '/' && msgId) {
-		secondSlash = strchr(msg + 1, '/');
-		if (secondSlash) {
-			strncpy(msgId, msg + 1, secondSlash - msg - 1);
-			msgId[secondSlash - msg - 1] = 0;
-		} else {
-			msgId[0] = 0;
-		}
-	}
-
-	if (_translationMode == 1)
-		return secondSlash;
-
-	if (_translationMode == 2)
-		return msg;
-
-	return translation;
-}
-
-void LuaBase::parseSayLineTable(lua_Object paramObj, bool *background, int *vol, int *pan, float *x, float *y) {
-	lua_Object tableObj;
-
-	lua_pushobject(paramObj);
-	lua_pushobject(lua_getref(refTextObjectX));
-	tableObj = lua_gettable();
-	if (lua_isnumber(tableObj)) {
-		if (x)
-			*x = lua_getnumber(tableObj);
-	}
-
-	lua_pushobject(paramObj);
-	lua_pushobject(lua_getref(refTextObjectY));
-	tableObj = lua_gettable();
-	if (lua_isnumber(tableObj)) {
-		if (y)
-			*y = lua_getnumber(tableObj);
-	}
-
-	lua_pushobject(paramObj);
-	lua_pushobject(lua_getref(refTextObjectBackground));
-	tableObj = lua_gettable();
-	if (tableObj) {
-		if (background)
-			*background = (int)lua_getnumber(tableObj);
-	}
-
-	lua_pushobject(paramObj);
-	lua_pushobject(lua_getref(refTextObjectVolume));
-	tableObj = lua_gettable();
-	if (lua_isnumber(tableObj)) {
-		if (vol)
-			*vol = (int)lua_getnumber(tableObj);
-	}
-
-	lua_pushobject(paramObj);
-	lua_pushobject(lua_getref(refTextObjectPan));
-	tableObj = lua_gettable();
-	if (lua_isnumber(tableObj)) {
-		if (pan)
-			*pan = (int)lua_getnumber(tableObj);
-	}
-}
-
-void LuaBase::setTextObjectParams(TextObjectCommon *textObject, lua_Object tableObj) {
-	lua_Object keyObj;
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectX));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			float num = lua_getnumber(keyObj);
-			if (g_grim->getGameType() == GType_MONKEY4)
-				textObject->setX((int)(num * 320) + 320);
-			else
-				textObject->setX((int)num);
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectY));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			float num = lua_getnumber(keyObj);
-			if (g_grim->getGameType() == GType_MONKEY4)
-				textObject->setY((int)(240 - (num * 240)));
-			else
-				textObject->setY((int)num);
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectFont));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (g_grim->getGameType() == GType_MONKEY4 && lua_isstring(keyObj)) {
-			const char *str = lua_getstring(keyObj);
-			Font *font = Font::getByFileName(str);
-			if (!font) {
-				font = g_resourceloader->loadFont(str);
-			}
-
-			textObject->setFont(font);
-		} else if (lua_isuserdata(keyObj) && (lua_tag(keyObj) == BitmapFont::getStaticTag() || lua_tag(keyObj) == FontTTF::getStaticTag())) {
-			textObject->setFont(getfont(keyObj));
-		} else if (g_grim->getGameType() == GType_MONKEY4 && !textObject->getFont() && g_grim->getGamePlatform() == Common::kPlatformPS2) {
-			// HACK:
-			warning("HACK: No default font set for PS2-version, just picking one for now");
-			textObject->setFont(Font::getFirstFont());
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectWidth));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			textObject->setWidth((int)lua_getnumber(keyObj));
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectHeight));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			textObject->setHeight((int)lua_getnumber(keyObj));
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectFGColor));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
-			textObject->setFGColor(getcolor(keyObj));
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectBGColor));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
-			//textObject->setBGColor(static_cast<Color *>(lua_getuserdata(keyObj)));
-			warning("setTextObjectParams: dummy BGColor");
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectFXColor));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isuserdata(keyObj) && lua_tag(keyObj) == MKTAG('R','L','O','C')) {
-			//textObject->setFXColor(static_cast<Color *>(lua_getuserdata(keyObj)));
-			warning("setTextObjectParams: dummy FXColor");
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectCenter));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (!lua_isnil(keyObj)) {
-			textObject->setJustify(1); //5
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectLJustify));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (!lua_isnil(keyObj)) {
-			textObject->setJustify(2); //4
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectRJustify));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (!lua_isnil(keyObj)) {
-			textObject->setJustify(3); //6
-		}
-	}
-
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectDuration));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			textObject->setDuration((int)lua_getnumber(keyObj));
-		}
-	}
-
-	// FIXME: remove check once the major save version is updated
-	// currently it is needed for backward compatibility of old savegames
-	if (lua_getref(refTextObjectLayer) == LUA_NOOBJECT)
-		return;
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectLayer));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			textObject->setLayer(lua_getnumber(keyObj));
-		}
-	}
-
-	// FIXME: remove check once the major save version is updated
-	// currently it is needed for backward compatibility of old savegames
-	if (lua_getref(refTextObjectCoords) == LUA_NOOBJECT)
-		return;
-	lua_pushobject(tableObj);
-	lua_pushobject(lua_getref(refTextObjectCoords));
-	keyObj = lua_gettable();
-	if (keyObj) {
-		if (lua_isnumber(keyObj)) {
-			textObject->setCoords(lua_getnumber(keyObj));
-		}
-	}
 }
 
 void LuaBase::typeOverride() {
@@ -726,11 +311,6 @@ void LuaBase::concatFallback() {
 				modelName = pActor->pCostumeStack->pHeadThing->data.pModel3->aName;
 
 			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%d:%s)", handle, modelName);
-		} else if (lua_tag(params[i]) == MKTAG('A','C','T','R')) {
-			Actor *a = getactor(params[i]);
-			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%p:%s)", (void *)a,
-					(a->getCurrentCostume() && a->getCurrentCostume()->getModelNodes()) ?
-					a->getCurrentCostume()->getModelNodes()->_name : "");
 		} else {
 			lua_pushobject(params[0]);
 			lua_pushobject(params[1]);

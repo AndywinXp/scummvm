@@ -23,14 +23,16 @@
 #define GRIM_HOTSPOT_H
 
 #include "common/endian.h"
+#include "common/str.h"
 
-#include "engines/grim/pool.h"
+// LEGACY: #include "engines/grim/pool.h"
 
 #include "math/rect2d.h"
 
 namespace Grim {
 
-class Hotspot : public PoolObject<Hotspot> {
+// LEGACY: class Hotspot : public PoolObject<Hotspot> {
+class Hotspot {
 public:
 	Hotspot(const Common::String &name, int x, int y, int width, int height);
 	~Hotspot();

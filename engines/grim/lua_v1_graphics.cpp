@@ -21,13 +21,6 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/lua_v1.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/bitmap.h"
-#include "engines/grim/primitives.h"
-#include "engines/grim/iris.h"
-#include "engines/grim/gfx_base.h"
-#include "engines/grim/set.h"
-#include "engines/grim/actor.h"
 #include "engines/grim/sputprimitive.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputsmush.h"
@@ -35,7 +28,6 @@
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/imuse/imuse_engine.h"
-#include "engines/grim/movie/movie.h"
 #include "engines/grim/lua/lua.h"
 
 namespace Grim {

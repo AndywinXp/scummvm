@@ -6,8 +6,6 @@
 #include "common/hashmap.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/savegame.h"
-
 #include "engines/grim/lua/lopcodes.h"
 #include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lstring.h"
@@ -408,23 +406,6 @@ int lua_Save(tSaveRestoreAccess *saveFunc) {
 	userdataEntries.clear();
 
 	return 0;
-}
-
-static SaveGame *pSaveGame;
-
-static int saveGameWriter(void *data, int size) {
-	pSaveGame->write(data, size);
-
-	return 0;
-}
-
-void lua_Save(SaveGame *savedState) {
-	savedState->beginSection('LUAS');
-
-	pSaveGame = savedState;
-	lua_Save(saveGameWriter);
-
-	savedState->endSection();
 }
 
 } // end of namespace Grim

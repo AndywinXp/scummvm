@@ -21,8 +21,6 @@
 
 #include "common/config-manager.h"
 
-#include "graphics/renderer.h"
-
 #include "engines/grim/debugger.h"
 #include "engines/grim/md5check.h"
 #include "engines/grim/grim.h"
@@ -36,8 +34,6 @@ Debugger::Debugger() :
 	registerCmd("check_gamedata", WRAP_METHOD(Debugger, cmd_checkFiles));
 	registerCmd("lua_do", WRAP_METHOD(Debugger, cmd_lua_do));
 	registerCmd("jump", WRAP_METHOD(Debugger, cmd_jump));
-	registerCmd("renderer_set", WRAP_METHOD(Debugger, cmd_renderer_set));
-	registerCmd("renderer_get", WRAP_METHOD(Debugger, cmd_renderer_get));
 	registerCmd("save", WRAP_METHOD(Debugger, cmd_save));
 	registerCmd("load", WRAP_METHOD(Debugger, cmd_load));
 	registerCmd("imuse", WRAP_METHOD(Debugger, cmd_imuse));
@@ -87,39 +83,10 @@ bool Debugger::cmd_jump(int argc, const char **argv) {
 		debugPrintf("Usage: jump <jump target>\n");
 		return true;
 	}
-	// Escape from Monkey Island keeps the jump script in a separate file, so load it first
-	if (g_grim->getGameType() == GType_MONKEY4) {
-		Common::String loadJS = Common::String::format("dofile(\"_jumpscripts.lua\")\n");
-		g_grim->debugLua(loadJS.c_str());
-	}
 
 	// Start the jump_script Lua function with the desired target
 	Common::String cmd = Common::String::format("start_script(jump_script,\"%s\")", argv[1]);
 	g_grim->debugLua(cmd.c_str());
-	return true;
-}
-
-bool Debugger::cmd_renderer_set(int argc, const char **argv) {
-	if (argc < 2) {
-		debugPrintf("Usage: renderer_set <renderer>\n");
-		debugPrintf("Where <renderer> is 'software', 'opengl' or 'opengl_shaders'\n");
-		return true;
-	}
-
-	Graphics::RendererType renderer = Graphics::Renderer::parseTypeCode(argv[1]);
-	if (renderer == Graphics::kRendererTypeDefault) {
-		debugPrintf("Invalid renderer '%s'\n", argv[1]);
-		return true;
-	}
-
-	ConfMan.set("renderer", Graphics::Renderer::getTypeCode(renderer));
-	g_grim->changeHardwareState();
-	return false;
-}
-
-bool Debugger::cmd_renderer_get(int argc, const char **argv) {
-	auto rendererCodeStr = Graphics::Renderer::getTypeCode(g_grim->getRendererType());
-	debugPrintf("%s\n", rendererCodeStr.c_str());
 	return true;
 }
 
@@ -129,7 +96,7 @@ bool Debugger::cmd_save(int argc, const char **argv) {
 		return true;
 	}
 	Common::String file = Common::String::format("%s.gsv", argv[1]);
-	g_grim->saveGame(file);
+	g_grim->saveLib(file.c_str());
 	return true;
 }
 
@@ -139,7 +106,7 @@ bool Debugger::cmd_load(int argc, const char **argv) {
 		return true;
 	}
 	Common::String file = Common::String::format("%s.gsv", argv[1]);
-	g_grim->loadGame(file);
+	g_grim->loadLib(file.c_str());
 	return true;
 }
 
