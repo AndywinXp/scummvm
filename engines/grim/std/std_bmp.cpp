@@ -89,7 +89,7 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	pBitmap->flags = 0;
 	pBitmap->pPalette = pPalette;
 	pBitmap->numFrames = 1;
-	pBitmap->unk_104 = 0;
+	pBitmap->curFrame = 0;
 
 	switch (biBitCount) {
 	case 8:

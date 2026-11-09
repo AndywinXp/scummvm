@@ -184,7 +184,7 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 			pStream->writeSint32LE(pExtra->resting);
 			pStream->writeFloatLE(pExtra->walkRate);
 			pStream->writeFloatLE(pExtra->turnRate);
-			pStream->writeSint32LE(pExtra->field_20);
+			pStream->writeSint32LE(pExtra->aligned);
 			pStream->writeFloatLE(pExtra->offsetYaw);
 			pStream->writeFloatLE(pExtra->alignOff);
 
@@ -221,7 +221,7 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 			pStream->writeSint32LE(pExtra->activeShadow);
 			pStream->writeSint32LE(pExtra->collisionMode);
 			pStream->writeFloatLE(pExtra->collisionScale);
-			pStream->writeSint32LE(pExtra->field_3F8);
+			pStream->writeSint32LE(pExtra->collided);
 			pStream->writeSint32LE(pExtra->clipPlaneActive);
 
 			for (int i = 0; i < 3; i++)
@@ -527,7 +527,7 @@ int SputActorModule::restore(Common::ReadStream *pStream) {
 			pExtra->resting = pStream->readSint32LE();
 			pExtra->walkRate = pStream->readFloatLE();
 			pExtra->turnRate = pStream->readFloatLE();
-			pExtra->field_20 = pStream->readSint32LE();
+			pExtra->aligned = pStream->readSint32LE();
 			pExtra->offsetYaw = pStream->readFloatLE();
 			pExtra->alignOff = pStream->readFloatLE();
 
@@ -564,7 +564,7 @@ int SputActorModule::restore(Common::ReadStream *pStream) {
 			pExtra->activeShadow = pStream->readSint32LE();
 			pExtra->collisionMode = pStream->readSint32LE();
 			pExtra->collisionScale = pStream->readFloatLE();
-			pExtra->field_3F8 = pStream->readSint32LE();
+			pExtra->collided = pStream->readSint32LE();
 			pExtra->clipPlaneActive = pStream->readSint32LE();
 
 			for (int i = 0; i < 3; i++)

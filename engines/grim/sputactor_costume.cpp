@@ -61,7 +61,7 @@ void SputActorModule::drawToClean(SputActor *pActor) {
 	if (pActor->pColorMap->valid) {
 		pColormap = static_cast<RdColormap *>(pActor->pColorMap->handle);
 	} else {
-		ResRef *pColormapRef = &pRoom->apColormaps[pRoom->field_88];
+		ResRef *pColormapRef = &pRoom->apColormaps[pRoom->curColormap];
 
 		if (!pColormapRef->valid)
 			error("SputActorModule::drawToClean(): Bad Colormap Reference");

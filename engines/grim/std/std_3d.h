@@ -92,7 +92,7 @@ struct Std3DDevice {
 	int bAlphaStipple;
 	int bAlphaBlend;
 	int bSquareTexturesOnly;
-	int unk_32;
+	int reserved32;
 	int colorModelFlags;
 	int renderBitDepthMask;
 	int zCmpMask;

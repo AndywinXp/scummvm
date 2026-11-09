@@ -278,7 +278,7 @@ int SputActorModule::compareAnimEntry(const void *pKey, const void *pEntry) {
 	return *(const int *)pKey - *(const int *)pEntry;
 }
 
-void SputActorModule::actorPlayVoiceDrawText(SputActor *pActor, const char *msgId, int bVoiceStream, int volume, int pan, int x, int y) {
+void SputActorModule::sayLine(SputActor *pActor, const char *msgId, int bVoiceStream, int volume, int pan, int x, int y) {
 	if (!pActor->pExtra)
 		allocateActorExtra(pActor);
 

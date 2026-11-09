@@ -542,12 +542,12 @@ void LegacyActorImporter::importMaterial(const LegacyComponent &comp, MaterialIn
 }
 
 void LegacyActorImporter::importSprite(const LegacyComponent &comp, ModelInst *pSprite) {
-	if (!pSprite->pSprite || !pSprite->pSprite->pMaterial) {
+	if (!pSprite->pSprite || !pSprite->pSprite->face.pMaterial) {
 		warning("LegacyImporter::importActors(): the sprite component %d has no sprite", comp.index);
 		return;
 	}
 
-	RdMaterial *pMaterial = pSprite->pSprite->pMaterial;
+	RdMaterial *pMaterial = pSprite->pSprite->face.pMaterial;
 
 	pSprite->bVisible = comp.spriteVisible ? 1 : 0;
 

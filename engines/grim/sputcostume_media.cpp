@@ -57,7 +57,7 @@ void BitmapHandler::change(int fourcc, void *pInstData, int op, int keyValue, in
 
 	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pRef->handle);
 
-	pBitmap->unk_104 = keyValue - 1;
+	pBitmap->curFrame = keyValue - 1;
 }
 
 int BitmapHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
@@ -102,9 +102,9 @@ int BitmapHandler::request(int hCostume, int fourcc, void *pParentId, int parent
 		aNameIds[i + 1] = i + 1;
 
 		_pSputCostume->_aLECBitmaps[i].pPixels = pFrame->pPixels;
-		_pSputCostume->_aLECBitmaps[i].field_4 = pFrame->tex.width;
-		_pSputCostume->_aLECBitmaps[i].field_8 = pFrame->tex.height;
-		_pSputCostume->_aLECBitmaps[i].field_C = 1;
+		_pSputCostume->_aLECBitmaps[i].width = pFrame->tex.width;
+		_pSputCostume->_aLECBitmaps[i].height = pFrame->tex.height;
+		_pSputCostume->_aLECBitmaps[i].reserved12 = 1;
 	}
 
 	const int *pBitmapExtra = nullptr;
@@ -158,7 +158,7 @@ void AnimationHandler::change(int fourcc, void *pInstData, int op, int keyValue,
 	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pRef->handle);
 
 	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
-	pBitmap->unk_104 = keyValue - 1;
+	pBitmap->curFrame = keyValue - 1;
 }
 
 int AnimationHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
@@ -168,7 +168,7 @@ int AnimationHandler::request(int hCostume, int fourcc, void *pParentId, int par
 	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(_pSputCostume->_pLastBitmap);
 
 	Common::strlcpy(pBitmap->aName, pComp->name, 32);
-	pBitmap->unk_104 = -1;
+	pBitmap->curFrame = -1;
 	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
 
 	return 1;

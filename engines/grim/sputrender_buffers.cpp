@@ -144,7 +144,7 @@ void SputRender::drawAnimationBitmaps(int layer) {
 		}
 
 		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pNode->bitmapRef.handle);
-		int frame = pBitmap->unk_104;
+		int frame = pBitmap->curFrame;
 
 		if (frame < 0)
 			continue;

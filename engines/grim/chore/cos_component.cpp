@@ -129,17 +129,17 @@ void Cos::setComponentNames(CosComponent *pComp, const CosComponentNames *pNames
 			pComp->apStateBitmaps[i] = pBitmap;
 
 			pBitmap->pPixels = pDesc->pPixels;
-			pBitmap->field_4 = pDesc->field_4;
-			pBitmap->field_8 = pDesc->field_8;
-			pBitmap->field_C = pDesc->field_C;
+			pBitmap->width = pDesc->width;
+			pBitmap->height = pDesc->height;
+			pBitmap->reserved12 = pDesc->reserved12;
 
 			if (_pBitmapMunger) {
 				if (pNames->aBitmapExtra)
-					pBitmap->field_10 = _pBitmapMunger(pDesc, pNames->aBitmapExtra[i]);
+					pBitmap->mungerResult = _pBitmapMunger(pDesc, pNames->aBitmapExtra[i]);
 				else
-					pBitmap->field_10 = _pBitmapMunger(pDesc, 0);
+					pBitmap->mungerResult = _pBitmapMunger(pDesc, 0);
 			} else {
-				pBitmap->field_10 = 0;
+				pBitmap->mungerResult = 0;
 			}
 		}
 	}

@@ -72,7 +72,7 @@ public:
 	void draw(uint16 color);
 	void jumpOut(Puck *pPuck);
 	float *getConstraintVector(Puck *pPuck);
-	int clipPolygon(const float *pPoly, int numPoly, float *pOut);
+	int clipPoly(const float *pPoly, int numPoly, float *pOut);
 	double distToEdge(int edge, float *pPoint);
 	int removeShortEdge();
 

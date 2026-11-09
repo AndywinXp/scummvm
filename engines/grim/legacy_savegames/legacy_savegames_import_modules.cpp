@@ -157,7 +157,7 @@ SputObjectState *LegacyImporter::addRoomObjectState(SputRoom *pSputRoom, int set
 			colorFrame = -1;
 		}
 
-		pBitmap->unk_104 = colorFrame;
+		pBitmap->curFrame = colorFrame;
 	}
 
 	if (pState->zImage.bitmapRef.valid) {
@@ -168,7 +168,7 @@ SputObjectState *LegacyImporter::addRoomObjectState(SputRoom *pSputRoom, int set
 			zFrame = -1;
 		}
 
-		pBitmap->unk_104 = zFrame;
+		pBitmap->curFrame = zFrame;
 	}
 
 	return pState;

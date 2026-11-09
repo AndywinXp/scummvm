@@ -72,7 +72,7 @@ void SputRender::drawDebuggingToggle() {
 
 void SputRender::syncCamera(Room *pRoom, int setup) {
 	RoomSetup *pSetup = &pRoom->pSetups[setup];
-	ResRef *pColormapRef = &pRoom->apColormaps[pRoom->field_88];
+	ResRef *pColormapRef = &pRoom->apColormaps[pRoom->curColormap];
 
 	if (!pColormapRef->valid)
 		error("SputRender::syncCamera(): Bad Colormap Reference");
@@ -325,7 +325,7 @@ void SputRender::update() {
 				if (pActor->pColorMap && pActor->pColorMap->valid) {
 					pColormap = static_cast<RdColormap *>(pActor->pColorMap->handle);
 				} else {
-					ResRef *pColormapRef = &_pLastRoom->apColormaps[_pLastRoom->field_88];
+					ResRef *pColormapRef = &_pLastRoom->apColormaps[_pLastRoom->curColormap];
 
 					if (!pColormapRef->valid)
 						error("SputRender::update(): Bad Colormap Reference");

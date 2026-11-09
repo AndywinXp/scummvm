@@ -180,9 +180,9 @@ int SputActorModule::testCollision(float *pFrom, float *pTo, float *pCenter, con
 			float z = (float)((double)tF * dir[2] + start[2]);
 
 			if (xD > box.min[0] && x < box.max[0]) {
-				_tmpPos0[0] = x;
-				_tmpPos0[1] = y;
-				_tmpPos0[2] = z;
+				_collisionImpact[0] = x;
+				_collisionImpact[1] = y;
+				_collisionImpact[2] = z;
 				best = tF;
 			}
 		}
@@ -199,9 +199,9 @@ int SputActorModule::testCollision(float *pFrom, float *pTo, float *pCenter, con
 			float z = (float)((double)tF * dir[2] + start[2]);
 
 			if (xD > box.min[0] && x < box.max[0]) {
-				_tmpPos0[0] = x;
-				_tmpPos0[1] = y;
-				_tmpPos0[2] = z;
+				_collisionImpact[0] = x;
+				_collisionImpact[1] = y;
+				_collisionImpact[2] = z;
 				best = tF;
 			}
 		}
@@ -218,9 +218,9 @@ int SputActorModule::testCollision(float *pFrom, float *pTo, float *pCenter, con
 			float z = (float)((double)tF * dir[2] + start[2]);
 
 			if (yD > box.min[1] && y < box.max[1]) {
-				_tmpPos0[0] = x;
-				_tmpPos0[1] = y;
-				_tmpPos0[2] = z;
+				_collisionImpact[0] = x;
+				_collisionImpact[1] = y;
+				_collisionImpact[2] = z;
 				best = tF;
 			}
 		}
@@ -237,9 +237,9 @@ int SputActorModule::testCollision(float *pFrom, float *pTo, float *pCenter, con
 			float z = (float)((double)tF * dir[2] + start[2]);
 
 			if (yD > box.min[1] && y < box.max[1]) {
-				_tmpPos0[0] = x;
-				_tmpPos0[1] = y;
-				_tmpPos0[2] = z;
+				_collisionImpact[0] = x;
+				_collisionImpact[1] = y;
+				_collisionImpact[2] = z;
 				best = tF;
 			}
 		}
@@ -399,9 +399,9 @@ int SputActorModule::sweepIntoBox(float *pFrom, float *pTo, const RdBound3 &box,
 	pOutPos[0] = (float)(best * dxF + pFrom[0]);
 	pOutPos[1] = (float)(best * dyF + pFrom[1]);
 	pOutPos[2] = (float)(best * dz + pFrom[2]);
-	_tmpPos0[0] = pOutPos[0];
-	_tmpPos0[1] = pOutPos[1];
-	_tmpPos0[2] = pOutPos[2];
+	_collisionImpact[0] = pOutPos[0];
+	_collisionImpact[1] = pOutPos[1];
+	_collisionImpact[2] = pOutPos[2];
 
 	double bestAbs = best < 0.0 ? -best : best;
 	RdVector3 sweep;
@@ -490,17 +490,17 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 			continue;
 
 		if (pOther->pExtra->collisionMode == 2) {
-			pActor->pExtra->field_3F8 = 1;
-			pOther->pExtra->field_3F8 = 1;
+			pActor->pExtra->collided = 1;
+			pOther->pExtra->collided = 1;
 
 			RdVector3 direction;
 
 			direction[0] = (float)((double)myCenterWorld[0] - otherCenterWorld[0]);
 			direction[1] = (float)((double)myCenterWorld[1] - otherCenterWorld[1]);
 			direction[2] = (float)((double)myCenterWorld[2] - otherCenterWorld[2]);
-			_tmpPos2[0] = pActor->actorPos[0];
-			_tmpPos2[1] = pActor->actorPos[1];
-			_tmpPos2[2] = pActor->actorPos[2];
+			_collisionIn[0] = pActor->actorPos[0];
+			_collisionIn[1] = pActor->actorPos[1];
+			_collisionIn[2] = pActor->actorPos[2];
 			_pRd->normalize3Acc(direction);
 
 			float ratio = (float)(((double)distanceF - otherRadiusF) / myRadius);
@@ -514,12 +514,12 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 			int bWalking = (pActor->mode & 1) != 0;
 
 			setActorPosition(pActor, newPos);
-			_tmpPos1[0] = pActor->actorPos[0];
-			_tmpPos1[1] = pActor->actorPos[1];
-			_tmpPos1[2] = pActor->actorPos[2];
-			_tmpPos0[0] = pActor->actorPos[0];
-			_tmpPos0[1] = pActor->actorPos[1];
-			_tmpPos0[2] = pActor->actorPos[2];
+			_collisionOut[0] = pActor->actorPos[0];
+			_collisionOut[1] = pActor->actorPos[1];
+			_collisionOut[2] = pActor->actorPos[2];
+			_collisionImpact[0] = pActor->actorPos[0];
+			_collisionImpact[1] = pActor->actorPos[1];
+			_collisionImpact[2] = pActor->actorPos[2];
 
 			if (bWalking)
 				pActor->mode |= 1;
@@ -551,10 +551,10 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 					localPrev[0] < otherBox.max[0] && localPrev[2] < otherBox.max[2]))
 				continue;
 
-			pActor->pExtra->field_3F8 = 1;
-			_tmpPos2[0] = pActor->actorPos[0];
-			_tmpPos2[1] = pActor->actorPos[1];
-			_tmpPos2[2] = pActor->actorPos[2];
+			pActor->pExtra->collided = 1;
+			_collisionIn[0] = pActor->actorPos[0];
+			_collisionIn[1] = pActor->actorPos[1];
+			_collisionIn[2] = pActor->actorPos[2];
 
 			RdVector3 prevDelta;
 
@@ -588,17 +588,17 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 			pActor->prevPosition[1] = pActor->actorPos[1];
 			pActor->prevPosition[2] = pActor->actorPos[2];
 
-			_pRd->transformPoint34Acc(_tmpPos0, getOrientMatrix(pOther));
-			_tmpPos0[0] = (float)((double)_tmpPos0[0] - myCenterOffset[0]);
-			_tmpPos0[1] = (float)((double)_tmpPos0[1] - myCenterOffset[1]);
-			_tmpPos0[2] = (float)((double)_tmpPos0[2] - myCenterOffset[2]);
+			_pRd->transformPoint34Acc(_collisionImpact, getOrientMatrix(pOther));
+			_collisionImpact[0] = (float)((double)_collisionImpact[0] - myCenterOffset[0]);
+			_collisionImpact[1] = (float)((double)_collisionImpact[1] - myCenterOffset[1]);
+			_collisionImpact[2] = (float)((double)_collisionImpact[2] - myCenterOffset[2]);
 
 			int bWalking = (pActor->mode & 1) != 0;
 
 			setActorPosition(pActor, hitPos);
-			_tmpPos1[0] = pActor->actorPos[0];
-			_tmpPos1[1] = pActor->actorPos[1];
-			_tmpPos1[2] = pActor->actorPos[2];
+			_collisionOut[0] = pActor->actorPos[0];
+			_collisionOut[1] = pActor->actorPos[1];
+			_collisionOut[2] = pActor->actorPos[2];
 
 			if (bWalking) {
 				pActor->mode |= 1;
@@ -617,7 +617,7 @@ void SputActorModule::updatePosition(SputActor *pActor) {
 			}
 		}
 
-		_pLua->collisionHandler(pActor, pOther, _tmpPos2, _tmpPos0, _tmpPos1);
+		_pLua->collisionHandler(pActor, pOther, _collisionIn, _collisionImpact, _collisionOut);
 	}
 }
 

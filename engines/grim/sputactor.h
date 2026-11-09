@@ -95,7 +95,7 @@ struct Extra {
 	int resting;
 	float walkRate;
 	float turnRate;
-	int field_20;
+	int aligned;
 	float offsetYaw;
 	float alignOff;
 	RdVector3 walkTarget;
@@ -118,7 +118,7 @@ struct Extra {
 	ActorShadow aShadows[6];
 	int collisionMode;
 	float collisionScale;
-	int field_3F8;
+	int collided;
 	int clipPlaneActive;
 	RdVector3 clipPlaneNorm;
 	RdVector3 clipPlanePt;
@@ -208,8 +208,8 @@ public:
 	int startup();
 	void shutdown();
 	void updateCostumes3(SputActor *pActor);
-	void updateShadow(SputActor *pActor);
-	int updateLookAt(SputActor *pActor, Puck *pPuck);
+	void updatePuck(SputActor *pActor);
+	int alignToPuck(SputActor *pActor, Puck *pPuck);
 	void updateCostumes4(SputActor *pActor);
 	void actorWalkTo(SputActor *pActor, float *pPos, float *pGoal, SputActor *pTarget);
 	int actorWalkToImpl(SputActor *pActor, SputActor *pTarget, float *pPath, int numPoints, float *pOutPath);
@@ -218,7 +218,7 @@ public:
 	void findObjectCorners(RdModel3 *pModel, float margin, RdMatrix34 mat, float z, ObjectCorners *pOut);
 	int testCollision(float *pFrom, float *pTo, float *pCenter, const RdBound3 &box, RdMatrix34 pMatrix);
 	int findClosestCandidate(float *pFrom, float *pTo, ObjectCorners *pCorners);
-	void actorPlayVoiceDrawText(SputActor *pActor, const char *msgId, int bVoiceStream, int volume, int pan, int x, int y);
+	void sayLine(SputActor *pActor, const char *msgId, int bVoiceStream, int volume, int pan, int x, int y);
 	void shutUp(SputActor *pActor);
 	void setSpeechMode(int mode);
 	int getSpeechMode();
@@ -292,9 +292,9 @@ private:
 	SputActor *_apTalkingActors[4];
 	SputActor *_apCollisionActors[256];
 	int _numCollisionActors;
-	float _tmpPos0[3];
-	float _tmpPos1[3];
-	float _tmpPos2[3];
+	float _collisionImpact[3];
+	float _collisionOut[3];
+	float _collisionIn[3];
 	int _speechMode;
 	int _textRate;
 	int _walkSystemFadeTime;

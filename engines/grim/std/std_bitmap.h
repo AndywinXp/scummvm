@@ -50,7 +50,7 @@ struct StdBitmapStruct {
 	StdColorFormat format;
 	byte *pPalette;
 	uint numFrames;
-	int unk_104;
+	int curFrame;
 	int xPos;
 	int yPos;
 	int colorKey;

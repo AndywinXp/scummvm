@@ -46,7 +46,7 @@ struct StdLbmBmhd {
 	byte planes;
 	byte masking;
 	byte compression;
-	byte pad;
+	byte pad1;
 	uint16 transparentColor;
 	byte xAspect;
 	byte yAspect;

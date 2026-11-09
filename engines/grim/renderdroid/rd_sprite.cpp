@@ -45,39 +45,39 @@ int RenderDroid::SpriteModule::newEntry(RdSprite *pSprite, char *name, int type,
 	pSprite->offset[0] = (*pOffset)[0];
 	pSprite->offset[1] = (*pOffset)[1];
 	pSprite->offset[2] = (*pOffset)[2];
-	pSprite->lightingMode = lightingMode;
-	pSprite->geometryMode = geometryMode;
-	pSprite->bFlag = 1;
-	pSprite->textureMode = textureMode;
-	pSprite->extraLight = extraLight;
+	pSprite->face.lightingMode = lightingMode;
+	pSprite->face.geometryMode = geometryMode;
+	pSprite->face.type = 1;
+	pSprite->face.textureMode = textureMode;
+	pSprite->face.extraLight = extraLight;
 
-	pSprite->pMaterial = _rd->_material.load(matFilename, 0, 0);
+	pSprite->face.pMaterial = _rd->_material.load(matFilename, 0, 0);
 
-	if (!pSprite->pMaterial)
+	if (!pSprite->face.pMaterial)
 		return 0;
 
-	pSprite->numVerts = 4;
-	pSprite->aVertexIdx = new int[4];
+	pSprite->face.numVertices = 4;
+	pSprite->face.aVertices = new int[4];
 
-	if (pSprite->geometryMode <= 3) {
-		for (uint i = 0; i < pSprite->numVerts; i++)
-			pSprite->aVertexIdx[i] = i;
+	if (pSprite->face.geometryMode <= 3) {
+		for (uint i = 0; i < pSprite->face.numVertices; i++)
+			pSprite->face.aVertices[i] = i;
 	} else {
-		pSprite->aTexVertexIdx = new int[pSprite->numVerts];
+		pSprite->face.aTexVertices = new int[pSprite->face.numVertices];
 
-		for (uint i = 0; i < pSprite->numVerts; i++) {
-			pSprite->aVertexIdx[i] = i;
-			pSprite->aTexVertexIdx[i] = i;
+		for (uint i = 0; i < pSprite->face.numVertices; i++) {
+			pSprite->face.aVertices[i] = i;
+			pSprite->face.aTexVertices[i] = i;
 		}
 
-		if (!pSprite->pMaterial->apCels[0] || !pSprite->pMaterial->apCels[0]->pTexture || !pSprite->pMaterial->apCels[0]->pTexture->apMips[0]) {
-			warning("RenderDroid::SpriteModule::newEntry(): material %s has no texture", pSprite->pMaterial->aName);
+		if (!pSprite->face.pMaterial->apCels[0] || !pSprite->face.pMaterial->apCels[0]->pTexture || !pSprite->face.pMaterial->apCels[0]->pTexture->apMips[0]) {
+			warning("RenderDroid::SpriteModule::newEntry(): material %s has no texture", pSprite->face.pMaterial->aName);
 			return 0;
 		}
 
-		pSprite->aTexVerts = new float[2 * pSprite->numVerts];
+		pSprite->aTexVerts = new float[2 * pSprite->face.numVertices];
 
-		StdVBuffer *pTexture = pSprite->pMaterial->apCels[0]->pTexture->apMips[0];
+		StdVBuffer *pTexture = pSprite->face.pMaterial->apCels[0]->pTexture->apMips[0];
 		double texHeight = (double)(uint)pTexture->tex.height;
 		double texWidth = (double)(uint)pTexture->tex.width;
 
@@ -93,8 +93,8 @@ int RenderDroid::SpriteModule::newEntry(RdSprite *pSprite, char *name, int type,
 
 	pSprite->halfWidth = (float)(pSprite->width * 0.5);
 	pSprite->halfHeight = (float)(pSprite->height * 0.5);
-	pSprite->uvDelta[0] = 0.0f;
-	pSprite->uvDelta[1] = 0.0f;
+	pSprite->face.uvDelta[0] = 0.0f;
+	pSprite->face.uvDelta[1] = 0.0f;
 	pSprite->radius = (float)sqrt((double)pSprite->halfWidth * pSprite->halfWidth + (double)pSprite->halfHeight * pSprite->halfHeight);
 
 	return 1;
@@ -158,9 +158,9 @@ int RenderDroid::SpriteModule::draw(RdThing *pThing, RdMatrix34 mat) {
 	memset(&src, 0, sizeof(RdVertexLists));
 	memset(&dst, 0, sizeof(RdVertexLists));
 
-	src.numVertices = pSprite->numVerts;
-	src.aVertIndices = pSprite->aVertexIdx;
-	src.aTexIndices = pSprite->aTexVertexIdx;
+	src.numVertices = pSprite->face.numVertices;
+	src.aVertIndices = pSprite->face.aVertices;
+	src.aTexIndices = pSprite->face.aTexVertices;
 	src.aVertices = (RdVector3 *)_spriteVerts;
 	src.aIntensities = nullptr;
 	src.aTexVertices = (RdVector2 *)pSprite->aTexVerts;
@@ -173,8 +173,8 @@ int RenderDroid::SpriteModule::draw(RdThing *pThing, RdMatrix34 mat) {
 
 	int geometryMode = _rd->_curGeometryMode;
 
-	if (geometryMode >= pSprite->geometryMode)
-		geometryMode = pSprite->geometryMode;
+	if (geometryMode >= pSprite->face.geometryMode)
+		geometryMode = pSprite->face.geometryMode;
 
 	if (geometryMode >= pThing->curGeometryMode)
 		geometryMode = pThing->curGeometryMode;
@@ -186,8 +186,8 @@ int RenderDroid::SpriteModule::draw(RdThing *pThing, RdMatrix34 mat) {
 	} else {
 		int lightingMode = _rd->_curLightingMode;
 
-		if (lightingMode >= pSprite->lightingMode)
-			lightingMode = pSprite->lightingMode;
+		if (lightingMode >= pSprite->face.lightingMode)
+			lightingMode = pSprite->face.lightingMode;
 
 		if (lightingMode >= pThing->curLightingMode)
 			lightingMode = pThing->curLightingMode;
@@ -197,15 +197,15 @@ int RenderDroid::SpriteModule::draw(RdThing *pThing, RdMatrix34 mat) {
 
 	int textureMode = _rd->_curTextureMode;
 
-	if (textureMode >= pSprite->textureMode)
-		textureMode = pSprite->textureMode;
+	if (textureMode >= pSprite->face.textureMode)
+		textureMode = pSprite->face.textureMode;
 
 	if (textureMode >= pThing->curTextureMode)
 		textureMode = pThing->curTextureMode;
 
 	pProcFace->textureMode = textureMode;
 
-	_rd->_primit3.clipFace(pCamera->pClipFrustum, geometryMode, pProcFace->lightingMode, textureMode, &src, &dst, pSprite->uvDelta);
+	_rd->_primit3.clipFace(pCamera->pClipFrustum, geometryMode, pProcFace->lightingMode, textureMode, &src, &dst, pSprite->face.uvDelta);
 
 	if (dst.numVertices < 3)
 		return 0;
@@ -267,9 +267,9 @@ int RenderDroid::SpriteModule::draw(RdThing *pThing, RdMatrix34 mat) {
 
 	pProcFace->curCel = pThing->curCel;
 	pProcFace->bBackface = halfWidth < 0.0f;
-	pProcFace->type = pSprite->bFlag;
-	pProcFace->extraLight = pSprite->extraLight;
-	pProcFace->pMaterial = pSprite->pMaterial;
+	pProcFace->type = pSprite->face.type;
+	pProcFace->extraLight = pSprite->face.extraLight;
+	pProcFace->pMaterial = pSprite->face.pMaterial;
 	_rd->_cache.addProcFace(0, dst.numVertices, bufferFlags);
 
 	return 1;
@@ -289,14 +289,14 @@ void RenderDroid::SpriteModule::freeEntry(RdSprite *pSprite) {
 		pSprite->aTexVerts = nullptr;
 	}
 
-	if (pSprite->aVertexIdx) {
-		delete[] pSprite->aVertexIdx;
-		pSprite->aVertexIdx = nullptr;
+	if (pSprite->face.aVertices) {
+		delete[] pSprite->face.aVertices;
+		pSprite->face.aVertices = nullptr;
 	}
 
-	if (pSprite->aTexVertexIdx) {
-		delete[] pSprite->aTexVertexIdx;
-		pSprite->aTexVertexIdx = nullptr;
+	if (pSprite->face.aTexVertices) {
+		delete[] pSprite->face.aTexVertices;
+		pSprite->face.aTexVertices = nullptr;
 	}
 }
 

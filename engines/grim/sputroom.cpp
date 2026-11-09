@@ -81,12 +81,12 @@ StdVBuffer *SputRoom::getSetupBackground(Room *pRoom, int setupIndex) {
 
 	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pBitmapRef->handle);
 
-	if (pBitmap->unk_104 < 0 || (uint)pBitmap->unk_104 >= pBitmap->numFrames) {
-		warning("SputRoom::getSetupBackground(): frame %d of %s is out of range", pBitmap->unk_104, pSetup->aBitmapName);
+	if (pBitmap->curFrame < 0 || (uint)pBitmap->curFrame >= pBitmap->numFrames) {
+		warning("SputRoom::getSetupBackground(): frame %d of %s is out of range", pBitmap->curFrame, pSetup->aBitmapName);
 		return nullptr;
 	}
 
-	return pBitmap->apFrames[pBitmap->unk_104];
+	return pBitmap->apFrames[pBitmap->curFrame];
 }
 
 StdVBuffer *SputRoom::getSetupZBackground(Room *pRoom, int setupIndex) {
@@ -230,7 +230,7 @@ int SputRoom::save(Common::WriteStream *pStream) {
 
 					StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pState->colorImage.bitmapRef.handle);
 
-					pStream->writeSint32LE(pBitmap->unk_104);
+					pStream->writeSint32LE(pBitmap->curFrame);
 					pStream->writeSint32LE(pState->zImage.curFrame);
 				}
 			}
@@ -345,10 +345,10 @@ int SputRoom::restore(Common::ReadStream *pStream) {
 				}
 
 				if (pHead->colorImage.bitmapRef.valid)
-					static_cast<StdBitmapStruct *>(pHead->colorImage.bitmapRef.handle)->unk_104 = colorFrame;
+					static_cast<StdBitmapStruct *>(pHead->colorImage.bitmapRef.handle)->curFrame = colorFrame;
 
 				if (pHead->zImage.bitmapRef.valid)
-					static_cast<StdBitmapStruct *>(pHead->zImage.bitmapRef.handle)->unk_104 = zFrame;
+					static_cast<StdBitmapStruct *>(pHead->zImage.bitmapRef.handle)->curFrame = zFrame;
 			}
 
 			for (int k = 0; k < numStates; k++) {
@@ -488,7 +488,7 @@ void SputRoom::newRoomEntry(Room *pRoom) {
 	pRoom->numSetups = 0;
 	pRoom->pSetups = nullptr;
 	pRoom->curSetup = 0;
-	pRoom->field_88 = 0;
+	pRoom->curColormap = 0;
 	pRoom->numcolormaps = 1;
 	pRoom->apColormaps = nullptr;
 	pRoom->colormapName[0] = 0;

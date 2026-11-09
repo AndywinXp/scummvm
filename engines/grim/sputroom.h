@@ -107,7 +107,7 @@ struct Room {
 	char name[128];
 	ResRef *apColormaps;
 	int numcolormaps;
-	int field_88;
+	int curColormap;
 	char colormapName[32];
 	RoomSetup *pSetups;
 	uint numSetups;
@@ -201,12 +201,12 @@ private:
 	int sectionNameCompare(const char *name);
 	int loadSections(const char *fileName);
 	int findSectionHandler(const char *name);
-	int readLightSection();
-	int readSetupsSection();
+	int parseLights();
+	int parseSetups();
 	int readObjectsSection();
 	void createObjectStates(Room *pRoom, RoomSetup *pSetup, int setupIndex);
-	int readColorMapsSection();
-	int readSectors();
+	int parseColormaps();
+	int parseSectors();
 	RoomActorNode *allocActorNode(const char *roomName);
 	void freeActorNode(RoomActorNode *pNode);
 

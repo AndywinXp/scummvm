@@ -41,7 +41,7 @@ struct BlastTextSurface {
 	int width;
 	int height;
 	int bytesPerPixel;
-	int field_10;
+	int reserved16;
 	int pitch;
 };
 
@@ -50,18 +50,18 @@ struct BlastTextGlyph {
 	signed char advance;
 	signed char xOffset;
 	signed char yOffset;
-	byte field_7;
+	byte pad;
 	byte *pPixels;
 	uint width;
 	uint height;
-	int field_14;
+	int reserved20;
 };
 
 struct BlastTextFont {
 	int lineHeight;
 	int baseLine;
-	int field_C;
-	int field_10;
+	int reserved12;
+	int reserved16;
 	int minY;
 	uint maxY;
 	int firstChar;

@@ -276,7 +276,7 @@ void SputActorModule::drawShadowPolygon(const float *pPoly, int numPoly, float *
 		if (!pPlane)
 			break;
 
-		int numClipped = pPlane->clipPolygon(pPoly, numPoly, aClipped[0]);
+		int numClipped = pPlane->clipPoly(pPoly, numPoly, aClipped[0]);
 
 		if (numClipped > 2) {
 			RdProcFace *pFace = _pRd->_primit3.drawPolygon(aClipped, numClipped, _pShadowMaterial);

@@ -182,7 +182,7 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 
 	RdVector3 snapped;
 
-	_pRd->transformPoint34(snapped, _tmpPos0, getOrientMatrix(pTarget));
+	_pRd->transformPoint34(snapped, _collisionImpact, getOrientMatrix(pTarget));
 
 	WalkPlane *pPlane = _pWalkSystem->planeClosest(snapped, -1);
 

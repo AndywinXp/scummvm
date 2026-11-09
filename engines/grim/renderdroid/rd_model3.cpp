@@ -541,7 +541,9 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *pFile
 				pFace->uvDelta[0] = pFile->readFloatLE();
 				pFace->uvDelta[1] = pFile->readFloatLE();
 				pFace->extraLight = pFile->readFloatLE();
-				pFile->read(pFace->unk_34, 12);
+				pFace->reserved52 = pFile->readSint32LE();
+				pFace->reserved56 = pFile->readSint32LE();
+				pFace->reserved60 = pFile->readSint32LE();
 				pFace->normal[0] = pFile->readFloatLE();
 				pFace->normal[1] = pFile->readFloatLE();
 				pFace->normal[2] = pFile->readFloatLE();

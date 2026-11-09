@@ -51,7 +51,7 @@ void SputRender::drawActorDebug(SputActor *pActor) {
 	}
 
 	// The demo has no collision sphere to draw
-	if (pExtra->field_3F8 && !(_pGrim->getGameFlags() & ADGF_DEMO)) {
+	if (pExtra->collided && !(_pGrim->getGameFlags() & ADGF_DEMO)) {
 		if (!pActor->pCostumeStack || !pActor->pCostumeStack->pHeadThing || !pActor->pCostumeStack->pHeadThing->data.pModel3) {
 			warning("SputRender::drawActorDebug(): the actor has no model");
 			return;
