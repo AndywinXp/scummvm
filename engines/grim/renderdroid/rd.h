@@ -84,7 +84,9 @@ struct RdFace3 {
 	int curCel;
 	RdVector2 uvDelta;
 	float extraLight;
-	byte unk_34[12];
+	int reserved52;
+	int reserved56;
+	int reserved60;
 	RdVector3 normal;
 };
 
@@ -146,11 +148,11 @@ struct RdModel3 {
 struct RdMatCel {
 	uint flags;
 	int colorIndex;
-	int unk_8;
-	int unk_12;
-	int unk_16;
-	int unk_20;
-	int unk_24;
+	int reserved8;
+	int reserved12;
+	int reserved16;
+	int reserved20;
+	int reserved24;
 	RdTexture *pTexture;
 };
 
@@ -168,7 +170,7 @@ struct RdTexCacheEntry {
 
 struct RdTexture {
 	uint flags;
-	int unk_4;
+	int reserved4;
 	int colorKey;
 	int widthLog2;
 	int widthMask;
@@ -181,7 +183,7 @@ struct RdTexture {
 struct RdMaterial {
 	uint flags;
 	char aName[32];
-	int unk_36;
+	int lockCount;
 	StdColorFormat format;
 	uint numCels;
 	int curCel;
@@ -214,7 +216,9 @@ struct RdVertexLists {
 	RdVector2 *aTexVertices;
 	float *aIntensities;
 	float *aAddedIntensities;
-	byte unk_1C[12];
+	float *aRedIntensities;
+	float *aGreenIntensities;
+	float *aBlueIntensities;
 	RdVector3 *aScreen;
 };
 
@@ -242,7 +246,7 @@ struct RdKeyframeNode {
 
 struct RdKeyframe {
 	char aName[32];
-	int unk_32;
+	int reserved32;
 	uint flags;
 	uint numJoints;
 	uint type;
@@ -259,11 +263,11 @@ typedef void (*RdPuppetTrackCallback)(void *userArg, int trackNum, int markerTyp
 
 struct RdPuppetTrack {
 	uint status;
-	int unk_4;
+	int reserved4;
 	int priority;
 	int priorityMasked;
 	float fps;
-	float unk_20;
+	float noise;
 	float fade;
 	float fadeSpeed;
 	int aEntryIdx[64];
@@ -271,7 +275,7 @@ struct RdPuppetTrack {
 	float prevFrame;
 	RdKeyframe *pKeyframe;
 	RdPuppetTrackCallback pfCallback;
-	int unk_304;
+	int reserved304;
 };
 
 struct RdPuppet {
@@ -313,24 +317,12 @@ struct RdSprite {
 	char aName[32];
 	int type;
 	float radius;
-	byte unk_40[36];
+	byte reserved40[36];
 	float width;
 	float height;
 	float halfWidth;
 	float halfHeight;
-	int unk_92;
-	int bFlag;
-	int geometryMode;
-	int lightingMode;
-	int textureMode;
-	uint numVerts;
-	int *aVertexIdx;
-	int *aTexVertexIdx;
-	RdMaterial *pMaterial;
-	int unk_128;
-	RdVector2 uvDelta;
-	float extraLight;
-	byte unk_144[24];
+	RdFace3 face;
 	float *aTexVerts;
 	RdVector3 offset;
 };
@@ -340,7 +332,7 @@ struct RdPolyline {
 	float length;
 	float startWidth;
 	float endWidth;
-	byte unk_44[12];
+	byte reserved44[12];
 	RdFace3 faceBody;
 	RdFace3 faceEnd;
 	RdVector2 *aTexVertsBody;
@@ -353,7 +345,7 @@ struct RdParticleCloud {
 	uint numParticles;
 	RdVector3 *aPositions;
 	int *aCels;
-	int unk_48;
+	int reserved48;
 	float size;
 	RdMaterial *pMaterial;
 	float radius;
@@ -398,8 +390,8 @@ struct RdColormap {
 	byte *pLightLevelAlloc;
 	byte *pTransparency;
 	byte *pTransparencyAlloc;
-	int unk_832;
-	int unk_836;
+	int reserved832;
+	int reserved836;
 	byte *pRGB16;
 	byte *pRGB16Alpha;
 };
@@ -1916,7 +1908,7 @@ struct RdActiveFace {
 	int vWrap;
 	byte *pLightLevel;
 	byte *pRGB16;
-	int unk_484;
+	int reserved484;
 	RdActiveSetupEdgeFunc pfSetupEdge;
 	RdActiveEdge *pLeftEdge;
 	RdActiveEdge *pRightEdge;

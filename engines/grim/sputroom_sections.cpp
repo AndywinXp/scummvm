@@ -31,10 +31,10 @@
 namespace Grim {
 
 int SputRoom::readSections() {
-	readSectionFunc("colormaps", &SputRoom::readColorMapsSection);
-	readSectionFunc("setups", &SputRoom::readSetupsSection);
-	readSectionFunc("lights", &SputRoom::readLightSection);
-	readSectionFunc("sectors", &SputRoom::readSectors);
+	readSectionFunc("colormaps", &SputRoom::parseColormaps);
+	readSectionFunc("setups", &SputRoom::parseSetups);
+	readSectionFunc("lights", &SputRoom::parseLights);
+	readSectionFunc("sectors", &SputRoom::parseSectors);
 
 	if (_pGrim->getGameFlags() & ADGF_DEMO)
 		readSectionFunc("objectstates", &SputRoom::readObjectsSection);
@@ -103,7 +103,7 @@ int SputRoom::findSectionHandler(const char *name) {
 	return index == -1 || (this->*_aSections[index].handler)() != 0;
 }
 
-int SputRoom::readLightSection() {
+int SputRoom::parseLights() {
 	Room *pRoom = _pLoadingRoom;
 	RoomLight *pLight = nullptr;
 	int lightIndex = -1;
@@ -128,7 +128,7 @@ int SputRoom::readLightSection() {
 					return 0;
 			} else if (sscanf(line, " numlights %d\n", &numLights) == 1) {
 				if (numLights < 0 || numLights > 64) {
-					warning("SputRoom::readLightSection(): invalid number of lights %d", numLights);
+					warning("SputRoom::parseLights(): invalid number of lights %d", numLights);
 					numLights = CLIP(numLights, 0, 64);
 				}
 
@@ -142,21 +142,21 @@ int SputRoom::readLightSection() {
 					lightIndex++;
 
 					if (lightIndex >= 64) {
-						warning("SputRoom::readLightSection(): more than 64 lights");
+						warning("SputRoom::parseLights(): more than 64 lights");
 						pLight = nullptr;
 					} else {
 						pLight = &pRoom->aLights[lightIndex];
 						_pRd->_light.newEntry(&pLight->light);
 
 						if (strlen(name) >= 32)
-							warning("SputRoom::readLightSection(): light name %s is too long", name);
+							warning("SputRoom::parseLights(): light name %s is too long", name);
 
 						Common::strlcpy(pLight->aName, name, 32);
 					}
 				}
 
 				if (!pLight) {
-					warning("SputRoom::readLightSection(): line outside a light ignored");
+					warning("SputRoom::parseLights(): line outside a light ignored");
 				} else {
 					if (sscanf(line, " type %s", name) == 1) {
 						if (!scumm_stricmp(name, "omni"))
@@ -190,7 +190,7 @@ int SputRoom::readLightSection() {
 	}
 }
 
-int SputRoom::readSetupsSection() {
+int SputRoom::parseSetups() {
 	Room *pRoom = _pLoadingRoom;
 	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
 	int setupIndex = -1;
@@ -215,7 +215,7 @@ int SputRoom::readSetupsSection() {
 					return 0;
 			} else if (sscanf(line, " numsetups %d\n", &numSetups) == 1) {
 				if (numSetups < 0) {
-					warning("SputRoom::readSetupsSection(): invalid number of setups %d", numSetups);
+					warning("SputRoom::parseSetups(): invalid number of setups %d", numSetups);
 					return 0;
 				}
 
@@ -241,7 +241,7 @@ int SputRoom::readSetupsSection() {
 						return 0;
 
 					if (strlen(name) >= 32)
-						warning("SputRoom::readSetupsSection(): setup name %s is too long", name);
+						warning("SputRoom::parseSetups(): setup name %s is too long", name);
 
 					Common::strlcpy(pRoom->pSetups[setupIndex].aName, name, 32);
 				} else if (setupIndex < 0) {
@@ -255,7 +255,7 @@ int SputRoom::readSetupsSection() {
 								continue;
 
 							if (strlen(fileName) >= 32)
-								warning("SputRoom::readSetupsSection(): object art name %s is too long", fileName);
+								warning("SputRoom::parseSetups(): object art name %s is too long", fileName);
 
 							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
 							Common::strlcpy(pSetup->pObjectArt[i].aBitmapName, fileName, 32);
@@ -266,19 +266,19 @@ int SputRoom::readSetupsSection() {
 								continue;
 
 							if (strlen(fileName) >= 32)
-								warning("SputRoom::readSetupsSection(): object z buffer name %s is too long", fileName);
+								warning("SputRoom::parseSetups(): object z buffer name %s is too long", fileName);
 
 							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
 							Common::strlcpy(pSetup->pObjectArt[i].aZBufferName, fileName, 32);
 						}
 					} else if (sscanf(line, " background %s", name) == 1) {
 						if (strlen(name) >= 32)
-							warning("SputRoom::readSetupsSection(): background name %s is too long", name);
+							warning("SputRoom::parseSetups(): background name %s is too long", name);
 
 						Common::strlcpy(pSetup->aBitmapName, name, 32);
 					} else if (sscanf(line, " zbuffer %s", name) == 1) {
 						if (strlen(name) >= 32)
-							warning("SputRoom::readSetupsSection(): zbuffer name %s is too long", name);
+							warning("SputRoom::parseSetups(): zbuffer name %s is too long", name);
 
 						Common::strlcpy(pSetup->aZBufferName, name, 32);
 					} else if (sscanf(line, " position %f %f %f", &pSetup->camera.position[0], &pSetup->camera.position[1], &pSetup->camera.position[2]) != 3 &&
@@ -360,12 +360,12 @@ int SputRoom::readObjectsSection() {
 	}
 }
 
-int SputRoom::readColorMapsSection() {
+int SputRoom::parseColormaps() {
 	Room *pRoom = _pLoadingRoom;
 	char name[1024];
 
 	if (pRoom->apColormaps)
-		warning("SputRoom::readColorMapsSection(): pRoom->apColormaps == NULL");
+		warning("SputRoom::parseColormaps(): pRoom->apColormaps == NULL");
 
 	if (!_pStdConffile->readLine())
 		return 1;
@@ -385,7 +385,7 @@ int SputRoom::readColorMapsSection() {
 			} else {
 				if (sscanf(line, " numcolormaps %d\n", &numColormaps) == 1) {
 					if (numColormaps < 0) {
-						warning("SputRoom::readColorMapsSection(): invalid number of colormaps %d", numColormaps);
+						warning("SputRoom::parseColormaps(): invalid number of colormaps %d", numColormaps);
 						return 0;
 					}
 
@@ -402,7 +402,7 @@ int SputRoom::readColorMapsSection() {
 				if (bReadName && pRoom->apColormaps) {
 					if (sscanf(line, " colormap %s", name) == 1) {
 						if (strlen(name) >= 32)
-							warning("SputRoom::readColorMapsSection(): colormap name %s is too long", name);
+							warning("SputRoom::parseColormaps(): colormap name %s is too long", name);
 
 						Common::strlcpy(pRoom->colormapName, name, 32);
 					}
@@ -415,7 +415,7 @@ int SputRoom::readColorMapsSection() {
 	}
 }
 
-int SputRoom::readSectors() {
+int SputRoom::parseSectors() {
 	const char *pNextSection = _pWalkSystem->parseCollection(_pLoadingRoom->name);
 
 	if (pNextSection)

@@ -367,7 +367,7 @@ StdBitmapStruct *StdBitmap::vBufferToBitmap(StdVBuffer *pSrc, int bVideoMemory, 
 		pBitmap->flags = 0;
 
 	pBitmap->numFrames = 1;
-	pBitmap->unk_104 = 0;
+	pBitmap->curFrame = 0;
 	pBitmap->xPos = 0;
 	pBitmap->yPos = 0;
 	pBitmap->apFrames = new StdVBuffer *[1];

@@ -69,17 +69,17 @@ struct CosChore {
 
 struct CosStateBitmapDesc {
 	byte *pPixels;
-	int field_4;
-	int field_8;
-	int field_C;
+	int width;
+	int height;
+	int reserved12;
 };
 
 struct CosStateBitmap {
 	byte *pPixels;
-	int field_4;
-	int field_8;
-	int field_C;
-	int field_10;
+	int width;
+	int height;
+	int reserved12;
+	int mungerResult;
 };
 
 struct CosComponentNames {
@@ -104,7 +104,7 @@ struct CosComponent {
 
 struct CosCostume {
 	char name[32];
-	int field_20;
+	int reserved32;
 	int uniqueId;
 	int numComponents;
 	CosComponent *aComponents;
@@ -147,7 +147,7 @@ struct CosComponentClass {
 	char name[32];
 	int param;
 	CosComponentHandler *pHandler;
-	int field_48[5];
+	int reserved72[5];
 };
 
 typedef int (*CosInstanceHook)(int hInst, int bCreate);

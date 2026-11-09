@@ -372,9 +372,9 @@ int MaterialHandler::request(int hCostume, int fourcc, void *pParentId, int pare
 		StdVBuffer *pFrame = pCel->pTexture->apMips[0];
 
 		_pSputCostume->_aLECBitmaps[i].pPixels = pFrame->pPixels;
-		_pSputCostume->_aLECBitmaps[i].field_4 = pFrame->tex.width;
-		_pSputCostume->_aLECBitmaps[i].field_8 = pFrame->tex.height;
-		_pSputCostume->_aLECBitmaps[i].field_C = 1;
+		_pSputCostume->_aLECBitmaps[i].width = pFrame->tex.width;
+		_pSputCostume->_aLECBitmaps[i].height = pFrame->tex.height;
+		_pSputCostume->_aLECBitmaps[i].reserved12 = 1;
 	}
 
 	CosComponentNames keyDesc = { (int)pMaterial->numCels, nullptr, nullptr, _pSputCostume->_aLECBitmaps, nullptr };
@@ -481,7 +481,7 @@ void SpriteHandler::change(int fourcc, void *pInstData, int op, int keyValue, in
 
 	if (keyValue) {
 		pInst->bVisible = 1;
-		pInst->pSprite->pMaterial->curCel = keyValue - 1;
+		pInst->pSprite->face.pMaterial->curCel = keyValue - 1;
 	} else {
 		pInst->bVisible = 0;
 	}
@@ -543,12 +543,12 @@ int SpriteHandler::request(int hCostume, int fourcc, void *pParentId, int parent
 	pRes->pSprite = _pSputCostume->_pRd->_sprite.create(0, name, name, width, height, 5, 0, 1, 0.0f, &offset);
 	Common::strlcpy(pRes->name, name, 32);
 
-	if (!pRes->pSprite || !pRes->pSprite->pMaterial) {
+	if (!pRes->pSprite || !pRes->pSprite->face.pMaterial) {
 		warning("SpriteHandler::request(): sprite %s has no material", name);
 		return 0;
 	}
 
-	CosComponentNames keyDesc = { (int)pRes->pSprite->pMaterial->numCels + 1, nullptr, nullptr, nullptr, nullptr };
+	CosComponentNames keyDesc = { (int)pRes->pSprite->face.pMaterial->numCels + 1, nullptr, nullptr, nullptr, nullptr };
 
 	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, pParentId, kSputCostumeTagMesh, &keyDesc) != 0;
 }
@@ -556,7 +556,7 @@ int SpriteHandler::request(int hCostume, int fourcc, void *pParentId, int parent
 void SpriteHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
 	SpriteCompRes *pRes = static_cast<SpriteCompRes *>(pCompRes);
 
-	_pSputCostume->_pRd->_material.destroy(pRes->pSprite->pMaterial);
+	_pSputCostume->_pRd->_material.destroy(pRes->pSprite->face.pMaterial);
 	_pSputCostume->_pRd->_sprite.destroy(pRes->pSprite);
 	delete pRes;
 }

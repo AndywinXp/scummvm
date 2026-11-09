@@ -628,7 +628,7 @@ float *WalkPlane::getConstraintVector(Puck *pPuck) {
 	return pConstraint;
 }
 
-int WalkPlane::clipPolygon(const float *pPoly, int numPoly, float *pOut) {
+int WalkPlane::clipPoly(const float *pPoly, int numPoly, float *pOut) {
 	float aBufferA[36] = { 0.0f };
 	float aBufferB[36] = { 0.0f };
 	float *pIn = aBufferA;
@@ -636,7 +636,7 @@ int WalkPlane::clipPolygon(const float *pPoly, int numPoly, float *pOut) {
 	int count = numPoly;
 
 	if (numPoly > 12) {
-		warning("WalkPlane::clipPolygon(): polygon has %d vertices, only 12 are supported", numPoly);
+		warning("WalkPlane::clipPoly(): polygon has %d vertices, only 12 are supported", numPoly);
 		return 0;
 	}
 
@@ -673,7 +673,7 @@ int WalkPlane::clipPolygon(const float *pPoly, int numPoly, float *pOut) {
 
 					if (fabs(denominator) > 0.00001f) {
 						if (outCount >= 12) {
-							warning("WalkPlane::clipPolygon(): clipped polygon has more than 12 vertices");
+							warning("WalkPlane::clipPoly(): clipped polygon has more than 12 vertices");
 							return 0;
 						}
 
@@ -688,7 +688,7 @@ int WalkPlane::clipPolygon(const float *pPoly, int numPoly, float *pOut) {
 
 				if (bAddVertex) {
 					if (outCount >= 12) {
-						warning("WalkPlane::clipPolygon(): clipped polygon has more than 12 vertices");
+						warning("WalkPlane::clipPoly(): clipped polygon has more than 12 vertices");
 						return 0;
 					}
 

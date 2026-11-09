@@ -73,8 +73,8 @@ int BlastText::initFont(BlastTextFont *&pFont) {
 
 	pNewFont->lineHeight = pData[2];
 	pNewFont->baseLine = pData[2] - 1;
-	pNewFont->field_C = 0;
-	pNewFont->field_10 = 1;
+	pNewFont->reserved12 = 0;
+	pNewFont->reserved16 = 1;
 	pNewFont->firstChar = 0;
 	pNewFont->lastChar = numGlyphs;
 
@@ -109,7 +109,7 @@ int BlastText::initFont(BlastTextFont *&pFont) {
 			pGlyph->height = pData[offset + 1];
 			pGlyph->xOffset = xOffset;
 			pGlyph->advance = (signed char)(xOffset + (signed char)pGlyph->width);
-			pGlyph->field_14 = 1;
+			pGlyph->reserved20 = 1;
 			pGlyph->yOffset = (signed char)((signed char)pData[offset + 3] - (signed char)pNewFont->baseLine);
 			pGlyph->dataOffset = pixelOffset;
 			pGlyph->pPixels = pNewFont->pPixels + pixelOffset;
@@ -161,8 +161,8 @@ int BlastText::read(Common::SeekableReadStream *pFile, BlastTextFont *&pFont) {
 
 	pNewFont->lineHeight = pFile->readSint32LE();
 	pNewFont->baseLine = pFile->readSint32LE();
-	pNewFont->field_C = pFile->readSint32LE();
-	pNewFont->field_10 = pFile->readSint32LE();
+	pNewFont->reserved12 = pFile->readSint32LE();
+	pNewFont->reserved16 = pFile->readSint32LE();
 	pNewFont->firstChar = pFile->readSint32LE();
 	pNewFont->lastChar = pFile->readSint32LE();
 
@@ -191,10 +191,10 @@ int BlastText::read(Common::SeekableReadStream *pFile, BlastTextFont *&pFont) {
 		pGlyph->advance = pFile->readSByte();
 		pGlyph->xOffset = pFile->readSByte();
 		pGlyph->yOffset = pFile->readSByte();
-		pGlyph->field_7 = pFile->readByte();
+		pGlyph->pad = pFile->readByte();
 		pGlyph->width = pFile->readUint32LE();
 		pGlyph->height = pFile->readUint32LE();
-		pGlyph->field_14 = 1;
+		pGlyph->reserved20 = 1;
 
 		if (pNewFont->minY > pGlyph->yOffset)
 			pNewFont->minY = pGlyph->yOffset;

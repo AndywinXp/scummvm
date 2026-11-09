@@ -341,7 +341,7 @@ int SmushPlay::animatorRender(int flags) {
 	_internalBitmap.width = pSurface->w;
 	_internalBitmap.height = pSurface->h;
 	_internalBitmap.bytesPerPixel = pSurface->format.bytesPerPixel;
-	_internalBitmap.field_10 = 0;
+	_internalBitmap.bitsPerPixel = 16;
 	_internalBitmap.pitchInBytes = pSurface->pitch;
 	fakeBlit(&_internalBitmap, nullptr);
 
@@ -384,13 +384,13 @@ int SmushPlay::getInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInf
 	pInfo->y = pStream->readSint16LE();
 	pInfo->width = pStream->readSint16LE();
 	pInfo->height = pStream->readSint16LE();
-	pInfo->field_C = pStream->readSint16LE();
+	pInfo->reserved12 = pStream->readSint16LE();
 	pInfo->frameDelay = pStream->readSint32LE();
-	pInfo->field_12 = pStream->readSint32LE();
+	pInfo->maxFrameSize = pStream->readSint32LE();
 	pStream->read(pInfo->palette, sizeof(pInfo->palette));
-	pInfo->field_416 = pStream->readSint16LE();
+	pInfo->reserved1046 = pStream->readSint16LE();
 
-	if (pInfo->width <= 0 || pInfo->height <= 0 || pInfo->field_12 <= 0)
+	if (pInfo->width <= 0 || pInfo->height <= 0 || pInfo->maxFrameSize <= 0)
 		return -2;
 
 	pStream->seek(position, SEEK_SET);

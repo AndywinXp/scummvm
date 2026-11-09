@@ -111,7 +111,7 @@ void ObjectStateImage::loadDemo() {
 	if (bitmapRef.valid) {
 		StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
 
-		pBitmap->unk_104 = -1;
+		pBitmap->curFrame = -1;
 		curFrame = -1;
 
 		for (uint i = 0; i < pBitmap->numFrames; i++)
@@ -143,7 +143,7 @@ void ObjectStateImage::load(int bLoad) {
 				rect.y = pBitmap->yPos;
 				rect.width = (*pBitmap->apFrames)->tex.width;
 				rect.height = (*pBitmap->apFrames)->tex.height;
-				pBitmap->unk_104 = curFrame;
+				pBitmap->curFrame = curFrame;
 				memUsage += _pStdBitmap->memUsage(pBitmap);
 			}
 		}
@@ -214,7 +214,7 @@ void ObjectStateImage::draw(StdVBuffer *pDst) {
 			if (bitmapRef.valid) {
 				StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
 
-				curFrame = pBitmap->unk_104;
+				curFrame = pBitmap->curFrame;
 				if (curFrame == -1)
 					mode = 0;
 
@@ -239,7 +239,7 @@ int ObjectStateImage::inSync() {
 		return 1;
 
 	if (bitmapRef.valid)
-		return ((StdBitmapStruct *)bitmapRef.handle)->unk_104 == curFrame;
+		return ((StdBitmapStruct *)bitmapRef.handle)->curFrame == curFrame;
 
 	// The demo skips the entries without a bitmap
 	return _bDemo ? 1 : 0;
@@ -305,7 +305,7 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 
 			if (zImage.bitmapRef.valid) {
 				if (pZ && !(_bDemo && (_pSputRender->getRenderFlags() & 2))) {
-					((StdBitmapStruct *)zImage.bitmapRef.handle)->unk_104 = colorImage.curFrame;
+					((StdBitmapStruct *)zImage.bitmapRef.handle)->curFrame = colorImage.curFrame;
 					zImage.draw(pZ);
 					page = 1;
 				}
@@ -317,7 +317,7 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 		int colorFrame;
 
 		if (colorImage.bitmapRef.valid)
-			colorFrame = ((StdBitmapStruct *)colorImage.bitmapRef.handle)->unk_104;
+			colorFrame = ((StdBitmapStruct *)colorImage.bitmapRef.handle)->curFrame;
 		else
 			colorFrame = -1;
 

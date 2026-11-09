@@ -47,7 +47,7 @@ struct LecBitmap {
 	int width;
 	int height;
 	int bytesPerPixel;
-	int field_10;
+	int bitsPerPixel;
 	int pitchInBytes;
 };
 
@@ -59,11 +59,11 @@ struct SmushMovieInfo {
 	int16 y;
 	int16 width;
 	int16 height;
-	int16 field_C;
+	int16 reserved12;
 	int32 frameDelay;
-	int32 field_12;
+	int32 maxFrameSize;
 	byte palette[1024];
-	int16 field_416;
+	int16 reserved1046;
 };
 
 class SmushPlayVideo {

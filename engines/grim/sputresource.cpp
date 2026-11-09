@@ -816,10 +816,10 @@ RdMaterial *SputResource::mat(char *path, int bVideoMemory, int bVideoMemoryOnly
 		return nullptr;
 	}
 
-	if (!pMaterial->unk_36)
+	if (!pMaterial->lockCount)
 		_pRes->setPurgeOnFree(pMaterial, 0);
 
-	pMaterial->unk_36++;
+	pMaterial->lockCount++;
 
 	return pMaterial;
 }
@@ -830,10 +830,10 @@ int SputResource::unlock(RdMaterial *pMaterial) {
 		return 0;
 	}
 
-	if (pMaterial->unk_36)
-		pMaterial->unk_36--;
+	if (pMaterial->lockCount)
+		pMaterial->lockCount--;
 
-	if (!pMaterial->unk_36)
+	if (!pMaterial->lockCount)
 		return _pRes->setPurgeOnFree(pMaterial, 1);
 
 	return 1;

@@ -134,7 +134,7 @@ void SputActorModule::updateActors(float delta) {
 		SputActor *pActor = &_aActors[pLink->actorIndex];
 
 		if (pActor->pExtra)
-			pActor->pExtra->field_3F8 = 0;
+			pActor->pExtra->collided = 0;
 
 		if (pActor->pCostumeStack && pActor->pCostumeStack->pHeadThing) {
 			if (_numCollisionActors < 256) {
@@ -178,7 +178,7 @@ void SputActorModule::updateCostumesMainDemo(SputActor *pActor, float delta) {
 		updatePuckMovement(pActor);
 
 	if (pActor->pExtra && pActor->pExtra->puck)
-		updateShadow(pActor);
+		updatePuck(pActor);
 
 	updateCostumes4(pActor);
 	_pSputCostume->update(pActor->pCostumeStack, delta);
@@ -219,7 +219,7 @@ void SputActorModule::updateCostumesMain(SputActor *pActor, float delta) {
 		updatePuckMovement(pActor);
 
 	if (pActor->pExtra && pActor->pExtra->puck)
-		updateShadow(pActor);
+		updatePuck(pActor);
 
 	updateCostumes4(pActor);
 	_pSputCostume->update(pActor->pCostumeStack, delta);
@@ -409,7 +409,7 @@ void SputActorModule::updateCostumes3(SputActor *pActor) {
 	_pRd->build34(pActor->orientMatrix, pActor->actorRot, pActor->actorPos);
 }
 
-void SputActorModule::updateShadow(SputActor *pActor) {
+void SputActorModule::updatePuck(SputActor *pActor) {
 	Extra *pExtra = pActor->pExtra;
 	Puck *pPuck = pExtra->puck;
 
@@ -435,11 +435,11 @@ void SputActorModule::updateShadow(SputActor *pActor) {
 		pActor->pExtra->bWalking = bWalking;
 	}
 
-	pActor->pExtra->field_20 = updateLookAt(pActor, pPuck);
+	pActor->pExtra->aligned = alignToPuck(pActor, pPuck);
 
 	Extra *pLookExtra = pActor->pExtra;
 
-	if (!pLookExtra->turnDir && !pLookExtra->field_20) {
+	if (!pLookExtra->turnDir && !pLookExtra->aligned) {
 		if (!(pLookExtra->alignOff > 0.0f))
 			pLookExtra->turnDir = 1;
 		else
@@ -458,7 +458,7 @@ void SputActorModule::updateShadow(SputActor *pActor) {
 	pActor->matrixValid = 0;
 }
 
-int SputActorModule::updateLookAt(SputActor *pActor, Puck *pPuck) {
+int SputActorModule::alignToPuck(SputActor *pActor, Puck *pPuck) {
 	float *pForward = getOrientMatrix(pActor)[1];
 	RdVector3 vec;
 

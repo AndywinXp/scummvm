@@ -112,13 +112,13 @@ int RenderDroid::MaterialModule::loadEntry(char *path, RdMaterial *pMaterial, in
 
 		pCel->flags = pFile->readUint32LE();
 		pCel->colorIndex = pFile->readSint32LE();
-		pCel->unk_8 = pFile->readSint32LE();
-		pCel->unk_12 = pFile->readSint32LE();
-		pCel->unk_16 = pFile->readSint32LE();
-		pCel->unk_20 = pFile->readSint32LE();
+		pCel->reserved8 = pFile->readSint32LE();
+		pCel->reserved12 = pFile->readSint32LE();
+		pCel->reserved16 = pFile->readSint32LE();
+		pCel->reserved20 = pFile->readSint32LE();
 
 		if (pCel->flags & 8) {
-			pCel->unk_24 = pFile->readSint32LE();
+			pCel->reserved24 = pFile->readSint32LE();
 			pFile->skip(8);
 			aTextureIndices[i] = pFile->readUint32LE();
 		}
@@ -137,7 +137,7 @@ int RenderDroid::MaterialModule::loadEntry(char *path, RdMaterial *pMaterial, in
 		int width = pFile->readSint32LE();
 		int height = pFile->readSint32LE();
 		pTexture->flags = pFile->readUint32LE();
-		pTexture->unk_4 = pFile->readSint32LE();
+		pTexture->reserved4 = pFile->readSint32LE();
 		pTexture->colorKey = pFile->readSint32LE();
 		uint numMips = pFile->readUint32LE();
 

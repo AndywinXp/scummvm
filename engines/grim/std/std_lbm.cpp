@@ -132,7 +132,7 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 	pBitmap->encoding = 0;
 	pBitmap->flags = 2;
 	pBitmap->numFrames = 1;
-	pBitmap->unk_104 = 0;
+	pBitmap->curFrame = 0;
 	pBitmap->format.colorMode = 0;
 	pBitmap->format.bpp = 8;
 	pBitmap->apFrames = new StdVBuffer *[1]();
@@ -517,7 +517,7 @@ void StdLbm::readBmhd(Common::ReadStream *pStream, StdLbmBmhd *pBmhd) {
 	pBmhd->planes = pStream->readByte();
 	pBmhd->masking = pStream->readByte();
 	pBmhd->compression = pStream->readByte();
-	pBmhd->pad = pStream->readByte();
+	pBmhd->pad1 = pStream->readByte();
 	pBmhd->transparentColor = pStream->readUint16LE();
 	pBmhd->xAspect = pStream->readByte();
 	pBmhd->yAspect = pStream->readByte();
@@ -533,7 +533,7 @@ void StdLbm::writeBmhd(Common::WriteStream *pStream, const StdLbmBmhd *pBmhd) {
 	pStream->writeByte(pBmhd->planes);
 	pStream->writeByte(pBmhd->masking);
 	pStream->writeByte(pBmhd->compression);
-	pStream->writeByte(pBmhd->pad);
+	pStream->writeByte(pBmhd->pad1);
 	pStream->writeUint16LE(pBmhd->transparentColor);
 	pStream->writeByte(pBmhd->xAspect);
 	pStream->writeByte(pBmhd->yAspect);

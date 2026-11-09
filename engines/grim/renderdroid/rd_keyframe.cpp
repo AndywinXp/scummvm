@@ -224,7 +224,7 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 
 int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *pFile, RdKeyframe *pKeyframe) {
 	pFile->read(pKeyframe->aName, 32);
-	pKeyframe->unk_32 = pFile->readSint32LE();
+	pKeyframe->reserved32 =pFile->readSint32LE();
 	pKeyframe->flags = pFile->readUint32LE();
 	pKeyframe->numJoints = pFile->readUint32LE();
 	pKeyframe->type = pFile->readUint32LE();

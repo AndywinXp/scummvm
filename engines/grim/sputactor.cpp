@@ -56,9 +56,9 @@ SputActorModule::SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath,
 		_pShadowMaterial(nullptr) {
 	memset(_apTalkingActors, 0, sizeof(_apTalkingActors));
 	memset(_apCollisionActors, 0, sizeof(_apCollisionActors));
-	memset(_tmpPos0, 0, sizeof(_tmpPos0));
-	memset(_tmpPos1, 0, sizeof(_tmpPos1));
-	memset(_tmpPos2, 0, sizeof(_tmpPos2));
+	memset(_collisionImpact, 0, sizeof(_collisionImpact));
+	memset(_collisionOut, 0, sizeof(_collisionOut));
+	memset(_collisionIn, 0, sizeof(_collisionIn));
 	memcpy(_aLipSyncAnims, g_lipSyncAnimTable, sizeof(_aLipSyncAnims));
 
 	// The demo has no shadow material, its shadows are one solid cel

@@ -116,7 +116,7 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	pBitmap->flags = 0;
 	pBitmap->pPalette = nullptr;
 	pBitmap->numFrames = 1;
-	pBitmap->unk_104 = 0;
+	pBitmap->curFrame = 0;
 	pBitmap->format.colorMode = 1;
 	pBitmap->format.bpp = 24;
 	pBitmap->format.redBits = 8;

@@ -57,7 +57,7 @@ StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
 	pBitmap->encoding = 0;
 	pBitmap->flags = 2;
 	pBitmap->numFrames = 1;
-	pBitmap->unk_104 = 0;
+	pBitmap->curFrame = 0;
 	pBitmap->format.colorMode = 0;
 	pBitmap->format.bpp = header.bitsPerPixel;
 	pBitmap->apFrames = new StdVBuffer *[1]();

@@ -427,7 +427,7 @@ void Lua_V1::SayLine() {
 				paramObj = lua_getparam(paramId++);
 			}
 			if (msgId)
-				pSputActor->actorPlayVoiceDrawText(actor, msgId, background, vol, pan, x, y);
+				pSputActor->sayLine(actor, msgId, background, vol, pan, x, y);
 		}
 	}
 }

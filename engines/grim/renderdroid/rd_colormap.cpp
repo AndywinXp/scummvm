@@ -124,8 +124,8 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *pColormap) {
 		pColormap->pRGB16Alpha = nullptr;
 	}
 
-	pColormap->unk_832 = 0;
-	pColormap->unk_836 = 0;
+	pColormap->reserved832 = 0;
+	pColormap->reserved836 = 0;
 
 	delete pFile;
 	return 1;
