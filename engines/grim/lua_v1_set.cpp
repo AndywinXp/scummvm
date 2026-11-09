@@ -23,9 +23,7 @@
 
 #include "engines/grim/debug.h"
 #include "engines/grim/lua_v1.h"
-#include "engines/grim/actor.h"
 #include "engines/grim/grim.h"
-#include "engines/grim/set.h"
 #include "engines/grim/res.h"
 #include "engines/grim/sputactor.h"
 #include "engines/grim/sputobjectstate.h"

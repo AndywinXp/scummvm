@@ -22,13 +22,14 @@
 #include "graphics/surface.h"
 
 #include "common/system.h"
+#include "common/textconsole.h"
 #include "common/timer.h"
 
 #include "engines/grim/movie/movie.h"
-#include "engines/grim/gfx_base.h"
-#include "engines/grim/grim.h"
+// LEGACY: #include "engines/grim/gfx_base.h"
+// LEGACY: #include "engines/grim/grim.h"
 #include "engines/grim/debug.h"
-#include "engines/grim/savegame.h"
+// LEGACY: #include "engines/grim/savegame.h"
 
 namespace Grim {
 
@@ -75,7 +76,7 @@ void MoviePlayer::pause(bool p) {
 void MoviePlayer::stop() {
 	Common::StackLock lock(_frameMutex);
 	deinit();
-	g_grim->setMode(GrimEngine::NormalMode);
+	// LEGACY: g_grim->setMode(GrimEngine::NormalMode);
 }
 
 void MoviePlayer::timerCallback(void *instance) {
@@ -96,9 +97,9 @@ bool MoviePlayer::prepareFrame() {
 	}
 
 	if (_videoFinished) {
-		if (g_grim->getMode() == GrimEngine::SmushMode) {
-			g_grim->setMode(GrimEngine::NormalMode);
-		}
+		// LEGACY: if (g_grim->getMode() == GrimEngine::SmushMode) {
+		// LEGACY: 	g_grim->setMode(GrimEngine::NormalMode);
+		// LEGACY: }
 		_videoPause = true;
 		return false;
 	}
@@ -159,7 +160,7 @@ const byte *MoviePlayer::getDstPalette() {
 
 void MoviePlayer::drawMovieSubtitle() {
 	Common::StackLock lock(_frameMutex);
-	g_grim->drawMovieSubtitle();
+	// LEGACY: g_grim->drawMovieSubtitle();
 }
 
 void MoviePlayer::init() {
@@ -204,8 +205,8 @@ bool MoviePlayer::play(const Common::String &filename, bool looping, int x, int 
 	if (!loadFile(_fname))
 		return false;
 
-	if (g_driver)
-		_videoDecoder->setOutputPixelFormat(g_driver->getMovieFormat());
+	// LEGACY: if (g_driver)
+	// LEGACY: 	_videoDecoder->setOutputPixelFormat(g_driver->getMovieFormat());
 
 	Debug::debug(Debug::Movie, "Playing video '%s'.\n", filename.c_str());
 
@@ -227,49 +228,49 @@ bool MoviePlayer::loadFile(const Common::String &filename) {
 	return _videoDecoder->loadFile(Common::Path(filename));
 }
 
-void MoviePlayer::saveState(SaveGame *state) {
-	Common::StackLock lock(_frameMutex);
-	state->beginSection('SMUS');
-
-	state->writeString(_fname);
-
-	state->writeLESint32(_frame);
-	state->writeFloat(_movieTime);
-	state->writeBool(_videoFinished);
-	state->writeBool(_videoLooping);
-
-	state->writeLESint32(_x);
-	state->writeLESint32(_y);
-
-	save(state);
-
-	state->endSection();
-}
-
-void MoviePlayer::restoreState(SaveGame *state) {
-	Common::StackLock lock(_frameMutex);
-	state->beginSection('SMUS');
-
-	_fname = state->readString();
-
-	int32 frame = state->readLESint32();
-	float movieTime = state->readFloat();
-	bool videoFinished = state->readBool();
-	bool videoLooping = state->readBool();
-
-	int x = state->readLESint32();
-	int y = state->readLESint32();
-
-	if (!videoFinished && !_fname.empty()) {
-		play(_fname.c_str(), videoLooping, x, y, false);
-	}
-	_frame = frame;
-	_movieTime = movieTime;
-
-	restore(state);
-
-	state->endSection();
-}
+// LEGACY: void MoviePlayer::saveState(SaveGame *state) {
+// LEGACY: 	Common::StackLock lock(_frameMutex);
+// LEGACY: 	state->beginSection('SMUS');
+// LEGACY:
+// LEGACY: 	state->writeString(_fname);
+// LEGACY:
+// LEGACY: 	state->writeLESint32(_frame);
+// LEGACY: 	state->writeFloat(_movieTime);
+// LEGACY: 	state->writeBool(_videoFinished);
+// LEGACY: 	state->writeBool(_videoLooping);
+// LEGACY:
+// LEGACY: 	state->writeLESint32(_x);
+// LEGACY: 	state->writeLESint32(_y);
+// LEGACY:
+// LEGACY: 	save(state);
+// LEGACY:
+// LEGACY: 	state->endSection();
+// LEGACY: }
+// LEGACY:
+// LEGACY: void MoviePlayer::restoreState(SaveGame *state) {
+// LEGACY: 	Common::StackLock lock(_frameMutex);
+// LEGACY: 	state->beginSection('SMUS');
+// LEGACY:
+// LEGACY: 	_fname = state->readString();
+// LEGACY:
+// LEGACY: 	int32 frame = state->readLESint32();
+// LEGACY: 	float movieTime = state->readFloat();
+// LEGACY: 	bool videoFinished = state->readBool();
+// LEGACY: 	bool videoLooping = state->readBool();
+// LEGACY:
+// LEGACY: 	int x = state->readLESint32();
+// LEGACY: 	int y = state->readLESint32();
+// LEGACY:
+// LEGACY: 	if (!videoFinished && !_fname.empty()) {
+// LEGACY: 		play(_fname.c_str(), videoLooping, x, y, false);
+// LEGACY: 	}
+// LEGACY: 	_frame = frame;
+// LEGACY: 	_movieTime = movieTime;
+// LEGACY:
+// LEGACY: 	restore(state);
+// LEGACY:
+// LEGACY: 	state->endSection();
+// LEGACY: }
 
 #if !defined(USE_MPEG2) || !defined(USE_BINK)
 #define NEED_NULLPLAYER
@@ -294,8 +295,8 @@ public:
 	bool loadFile(const Common::String &filename) override { return true; }
 	void stop() override {}
 	void pause(bool p) override {}
-	void saveState(SaveGame *state) {}
-	void restoreState(SaveGame *state) {}
+	// LEGACY: void saveState(SaveGame *state) {}
+	// LEGACY: void restoreState(SaveGame *state) {}
 private:
 	static void timerCallback(void *ptr) {}
 	void handleFrame() override {}

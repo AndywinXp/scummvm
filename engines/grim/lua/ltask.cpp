@@ -7,7 +7,6 @@
 #include "engines/grim/lua/lmem.h"
 #include "engines/grim/lua/ldo.h"
 #include "engines/grim/lua/lvm.h"
-#include "engines/grim/grim.h"
 
 #include "common/textconsole.h"
 
@@ -302,7 +301,7 @@ void sleep_for() {
 	}
 }
 
-void lua_runtasks() {
+void lua_runtasks(int frameTime) {
 	if (!lua_state || !lua_state->next) {
 		return;
 	}
@@ -311,7 +310,7 @@ void lua_runtasks() {
 	LState *state = lua_state->next;
 	do {
 		if (state->sleepFor > 0) {
-			state->sleepFor -= g_grim->getFrameTime();
+			state->sleepFor -= frameTime;
 		} else {
 			state->updated = false;
 		}

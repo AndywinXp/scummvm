@@ -23,7 +23,7 @@
 #include "common/stream.h"
 #include "common/system.h"
 
-#include "engines/grim/resource.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/movie/codecs/vima.h"
 #include "engines/grim/imuse/imuse_engine.h"
 
@@ -683,7 +683,7 @@ IMuseResource *IMuse::soundsOpenFile(const char *filename) {
 	Common::String lowerName(filename);
 	lowerName.toLowercase();
 
-	Common::SeekableReadStream *stream = g_resourceloader->openNewStreamFile(lowerName.c_str());
+	Common::SeekableReadStream *stream = g_grim->openStreamFile(lowerName);
 	if (!stream)
 		return nullptr;
 
@@ -1600,13 +1600,13 @@ int IMuse::loadLip(const char *lipsyncFilename, int soundId) {
 	Common::String lowerName(lipsyncFilename);
 	lowerName.toLowercase();
 
-	Common::SeekableReadStream *lipsyncFile = g_resourceloader->openNewStreamFile(lowerName.c_str());
+	Common::SeekableReadStream *lipsyncFile = g_grim->openStreamFile(lowerName);
 
 	// The remastered falls back on the english file if the one with the language prefix doesn't exist
 	if (!lipsyncFile && _remastered && lowerName.size() >= 3 && lowerName[2] == '_') {
 		lowerName.setChar('e', 0);
 		lowerName.setChar('n', 1);
-		lipsyncFile = g_resourceloader->openNewStreamFile(lowerName.c_str());
+		lipsyncFile = g_grim->openStreamFile(lowerName);
 	}
 
 	if (!lipsyncFile) {

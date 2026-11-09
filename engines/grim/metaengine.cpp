@@ -20,8 +20,6 @@
  */
 
 #include "engines/grim/grim.h"
-#include "engines/grim/savegame.h"
-#include "engines/grim/emi/emi.h"
 #include "engines/grim/legacy_savegames/legacy_savegames.h"
 
 #include "common/endian.h"
@@ -182,20 +180,13 @@ public:
 Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, const Grim::GrimGameDescription *desc) const {
 	const GrimGameDescription *gd = (const GrimGameDescription *)desc;
 
-	if (gd->gameType == GType_MONKEY4) {
-#ifdef ENABLE_MONKEY4
-#if !defined(USE_MPEG2)
-		if (gd->desc.platform == Common::kPlatformPS2) {
-			return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island PS2 support required MPEG2 support, which is not compiled in"));
-		}
-#endif
-		*engine = new EMIEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
-#else
-		return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island support is not compiled in"));
-#endif
-	} else {
-		*engine = new GrimEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
-	}
+	if (gd->gameType == GType_MONKEY4)
+		return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island is not supported by this version of the Grim engine"));
+
+	if (gd->desc.flags & ADGF_REMASTERED)
+		return Common::Error(Common::kUnsupportedGameidError, _s("Grim Fandango Remastered is not supported by this version of the Grim engine"));
+
+	*engine = new GrimEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
 
 	return Common::kNoError;
 }
@@ -232,11 +223,6 @@ Common::KeymapArray GrimMetaEngine::initKeymaps(const char *target) const {
 		return Grim::GrimEngine::initKeymapsGrim(target);
 	}
 #endif
-#ifdef ENABLE_MONKEY4
-	if (gameId == "monkey4") {
-		return Grim::GrimEngine::initKeymapsEMI(target);
-	}
-#endif
 
 	return AdvancedMetaEngine::initKeymaps(target);
 }
@@ -250,8 +236,9 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	Common::StringArray filenames;
 	Common::String pattern = gameId == "monkey4" ? "efmi###.gsv" : "grim##.gsv";
 	SaveStateList saveList;
-	char str[256];
-	int32 strSize;
+
+	if (gameId == "monkey4")
+		return saveList;
 
 	if (platform == Common::kPlatformPS2)
 		pattern = "efmi###.ps2";
@@ -273,19 +260,6 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 				saveList.push_back(SaveStateDescriptor(this, slotNum, strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0]));
 
 			delete pFile;
-		} else if (slotNum >= 0) {
-			SaveGame *savedState = SaveGame::openForLoading(*file);
-			if (savedState && savedState->isCompatible()) {
-				if (platform == Common::kPlatformPS2)
-					savedState->beginSection('PS2S');
-				else
-					savedState->beginSection('SUBS');
-				strSize = savedState->readLESint32();
-				savedState->read(str, strSize);
-				savedState->endSection();
-				saveList.push_back(SaveStateDescriptor(this, slotNum, str));
-			}
-			delete savedState;
 		}
 	}
 
@@ -298,32 +272,8 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::String fileName = getSavegameFile(slot, target);
 
-	if (gameId == "monkey4") {
-		SaveGame *savedState = SaveGame::openForLoading(fileName);
-		SaveStateDescriptor emiDesc;
-
-		if (savedState && savedState->isCompatible()) {
-			char str[256];
-
-			if (Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2)
-				savedState->beginSection('PS2S');
-			else
-				savedState->beginSection('SUBS');
-
-			int32 strSize = savedState->readLESint32();
-
-			if (strSize > 0 && strSize < (int32)sizeof(str)) {
-				savedState->read(str, strSize);
-				str[strSize] = '\0';
-				emiDesc = SaveStateDescriptor(this, slot, str);
-			}
-
-			savedState->endSection();
-		}
-
-		delete savedState;
-		return emiDesc;
-	}
+	if (gameId == "monkey4")
+		return SaveStateDescriptor();
 
 	Common::SeekableReadStream *pFile = saveFileMan->openForLoading(fileName);
 	Common::Array<Common::String> strings;

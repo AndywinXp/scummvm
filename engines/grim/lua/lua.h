@@ -64,9 +64,6 @@ typedef int32 (*lua_SaveRestoreUserHFunction)(int32 tag, int32 pItem, tSaveResto
 extern lua_SaveRestoreUserHFunction lua_savehook;
 extern lua_SaveRestoreUserHFunction lua_restorehook;
 
-class SaveGame;
-void lua_Save(SaveGame *state);
-void lua_Restore(SaveGame *state);
 int lua_Save(tSaveRestoreAccess *saveFunc);
 int lua_Restore(tSaveRestoreAccess *restoreFunc);
 
@@ -143,7 +140,7 @@ void lua_unref(int32 ref);
 lua_Object lua_createtable();
 int32 lua_collectgarbage(int32 limit);
 
-void lua_runtasks();
+void lua_runtasks(int frameTime);
 void current_script();
 
 /* some useful macros/derived functions */

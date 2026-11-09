@@ -27,10 +27,10 @@
 #include "engines/grim/remastered/overlay.h"
 #include "engines/grim/remastered/hotspot.h"
 #include "engines/grim/grim.h"
-#include "engines/grim/font.h"
-#include "engines/grim/resource.h"
-#include "engines/grim/registry.h"
-#include "engines/grim/localize.h"
+// LEGACY: #include "engines/grim/font.h"
+// LEGACY: #include "engines/grim/resource.h"
+// LEGACY: #include "engines/grim/registry.h"
+// LEGACY: #include "engines/grim/localize.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 
@@ -42,51 +42,53 @@ void Lua_Remastered::WidescreenCorrectionFactor() {
 }
 
 void Lua_Remastered::GetFontDimensions() {
-	// Taken from Lua_v2 and modified
-	lua_Object fontObj = lua_getparam(1);
-	if (!lua_isuserdata(fontObj))
-		return;
-
-	Font *font = getfont(fontObj);
-
-	if (font) {
-		int32 h = font->getKernedHeight();
-		int32 w = font->getFontWidth();
-		lua_pushnumber(w);
-		lua_pushnumber(h);
-	} else {
-		warning("Lua_Remastered::GetFontDimensions for invalid font: returns 0,0");
-		lua_pushnumber(0.f);
-		lua_pushnumber(0.f);
-	}
+	// LEGACY: // Taken from Lua_v2 and modified
+	// LEGACY: lua_Object fontObj = lua_getparam(1);
+	// LEGACY: if (!lua_isuserdata(fontObj))
+	// LEGACY: 	return;
+	// LEGACY:
+	// LEGACY: Font *font = getfont(fontObj);
+	// LEGACY:
+	// LEGACY: if (font) {
+	// LEGACY: 	int32 h = font->getKernedHeight();
+	// LEGACY: 	int32 w = font->getFontWidth();
+	// LEGACY: 	lua_pushnumber(w);
+	// LEGACY: 	lua_pushnumber(h);
+	// LEGACY: } else {
+	// LEGACY: 	warning("Lua_Remastered::GetFontDimensions for invalid font: returns 0,0");
+	// LEGACY: 	lua_pushnumber(0.f);
+	// LEGACY: 	lua_pushnumber(0.f);
+	// LEGACY: }
+	Lua_V1::GetFontDimensions();
 }
 
 void Lua_Remastered::GetTextObjectDimensions() {
-	lua_Object textObj = lua_getparam(1);
-	lua_Object coordsObj = lua_getparam(2);
-	if (lua_isnumber(coordsObj)) {
-		int val = lua_getnumber(coordsObj);
-		warning("Stub function: GetTextObjectDimensions(%d)", val);
-	}
-
-	if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
-		TextObject *textObject = gettextobject(textObj);
-		lua_pushnumber(textObject->getWidth()); // REMASTERED HACK
-		lua_pushnumber(textObject->getBitmapHeight()); // REMASTERED HACK
-		// If the line is rjustified getX does us no good
-		lua_pushnumber(textObject->getLineX(0));
-		lua_pushnumber(textObject->getY());
-	}
+	// LEGACY: lua_Object textObj = lua_getparam(1);
+	// LEGACY: lua_Object coordsObj = lua_getparam(2);
+	// LEGACY: if (lua_isnumber(coordsObj)) {
+	// LEGACY: 	int val = lua_getnumber(coordsObj);
+	// LEGACY: 	warning("Stub function: GetTextObjectDimensions(%d)", val);
+	// LEGACY: }
+	// LEGACY:
+	// LEGACY: if (lua_isuserdata(textObj) && lua_tag(textObj) == MKTAG('T', 'X', 'E', 'T')) {
+	// LEGACY: 	TextObject *textObject = gettextobject(textObj);
+	// LEGACY: 	lua_pushnumber(textObject->getWidth()); // REMASTERED HACK
+	// LEGACY: 	lua_pushnumber(textObject->getBitmapHeight()); // REMASTERED HACK
+	// LEGACY: 	// If the line is rjustified getX does us no good
+	// LEGACY: 	lua_pushnumber(textObject->getLineX(0));
+	// LEGACY: 	lua_pushnumber(textObject->getY());
+	// LEGACY: }
+	Lua_V1::GetTextObjectDimensions();
 }
 
 void Lua_Remastered::OverlayDimensions() {
-	lua_Object overlayObj = lua_getparam(1);
-	if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
-		return;
-
-	Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
-	lua_pushnumber(overlay->getWidth());
-	lua_pushnumber(overlay->getHeight());
+	// LEGACY: lua_Object overlayObj = lua_getparam(1);
+	// LEGACY: if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
+	// LEGACY: 	return;
+	// LEGACY:
+	// LEGACY: Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
+	// LEGACY: lua_pushnumber(overlay->getWidth());
+	// LEGACY: lua_pushnumber(overlay->getHeight());
 }
 
 void Lua_Remastered::OverlayGetScreenSize() {
@@ -97,70 +99,70 @@ void Lua_Remastered::OverlayGetScreenSize() {
 
 void Lua_Remastered::OverlayCreate() {
 	warning("Stub function: OverlayCreate not done");
-	lua_Object param1 = lua_getparam(1);
-	lua_Object param2 = lua_getparam(2);
-	lua_Object param3 = lua_getparam(3);
-	lua_Object param4 = lua_getparam(4);
-	if (!lua_isstring(param1) || !lua_isnumber(param2) || !lua_isnumber(param3) || !lua_istable(param4)) {
-		return;
-	}
-	const char *overlayName = lua_getstring(param1);
-	float x = lua_getnumber(param2);
-	float y = lua_getnumber(param3);
-
-	lua_pushobject(param4);
-	lua_pushstring("layer");
-	lua_Object table = lua_gettable();
-	float layer = lua_getnumber(table);
-
-	Overlay *overlay = g_resourceloader->loadOverlay(overlayName);
-
-	if (overlay) {
-		overlay->setPos(x, y);
-		overlay->setLayer(layer);
-		lua_pushusertag(overlay->getId(), overlay->getTag());
-	} else {
-		lua_pushnil();
-	}
+	// LEGACY: lua_Object param1 = lua_getparam(1);
+	// LEGACY: lua_Object param2 = lua_getparam(2);
+	// LEGACY: lua_Object param3 = lua_getparam(3);
+	// LEGACY: lua_Object param4 = lua_getparam(4);
+	// LEGACY: if (!lua_isstring(param1) || !lua_isnumber(param2) || !lua_isnumber(param3) || !lua_istable(param4)) {
+	// LEGACY: 	return;
+	// LEGACY: }
+	// LEGACY: const char *overlayName = lua_getstring(param1);
+	// LEGACY: float x = lua_getnumber(param2);
+	// LEGACY: float y = lua_getnumber(param3);
+	// LEGACY:
+	// LEGACY: lua_pushobject(param4);
+	// LEGACY: lua_pushstring("layer");
+	// LEGACY: lua_Object table = lua_gettable();
+	// LEGACY: float layer = lua_getnumber(table);
+	// LEGACY:
+	// LEGACY: Overlay *overlay = g_resourceloader->loadOverlay(overlayName);
+	// LEGACY:
+	// LEGACY: if (overlay) {
+	// LEGACY: 	overlay->setPos(x, y);
+	// LEGACY: 	overlay->setLayer(layer);
+	// LEGACY: 	lua_pushusertag(overlay->getId(), overlay->getTag());
+	// LEGACY: } else {
+	// LEGACY: 	lua_pushnil();
+	// LEGACY: }
 }
 
 void Lua_Remastered::OverlayDestroy() {
-	lua_Object actorObj = lua_getparam(1);
-	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != Overlay::getStaticTag())
-		return;
-
-	Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(actorObj));
-	delete overlay;
+	// LEGACY: lua_Object actorObj = lua_getparam(1);
+	// LEGACY: if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != Overlay::getStaticTag())
+	// LEGACY: 	return;
+	// LEGACY:
+	// LEGACY: Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(actorObj));
+	// LEGACY: delete overlay;
 }
 
 void Lua_Remastered::OverlayFade() {
-	lua_Object overlayObj = lua_getparam(1);
-	lua_Object fadeObj = lua_getparam(2);
-	if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
-		return;
-	assert(lua_isnumber(fadeObj));
-
-	int fadeType = lua_getnumber(fadeObj);
-	warning("Stub function: OverlayFade(%d)", fadeType);
-	Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
-
-	if (fadeType == 3) {
-		delete overlay;
-	}
+	// LEGACY: lua_Object overlayObj = lua_getparam(1);
+	// LEGACY: lua_Object fadeObj = lua_getparam(2);
+	// LEGACY: if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
+	// LEGACY: 	return;
+	// LEGACY: assert(lua_isnumber(fadeObj));
+	// LEGACY:
+	// LEGACY: int fadeType = lua_getnumber(fadeObj);
+	// LEGACY: warning("Stub function: OverlayFade(%d)", fadeType);
+	// LEGACY: Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
+	// LEGACY:
+	// LEGACY: if (fadeType == 3) {
+	// LEGACY: 	delete overlay;
+	// LEGACY: }
 }
 
 void Lua_Remastered::OverlayMove() {
-	lua_Object overlayObj = lua_getparam(1);
-	lua_Object param2 = lua_getparam(2);
-	lua_Object param3 = lua_getparam(3);
-
-	if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
-		return;
-
-	Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
-	float x = lua_getnumber(param2);
-	float y = lua_getnumber(param3);
-	overlay->setPos(x, y);
+	// LEGACY: lua_Object overlayObj = lua_getparam(1);
+	// LEGACY: lua_Object param2 = lua_getparam(2);
+	// LEGACY: lua_Object param3 = lua_getparam(3);
+	// LEGACY:
+	// LEGACY: if (!lua_isuserdata(overlayObj) || lua_tag(overlayObj) != Overlay::getStaticTag())
+	// LEGACY: 	return;
+	// LEGACY:
+	// LEGACY: Overlay *overlay = Overlay::getPool().getObject(lua_getuserdata(overlayObj));
+	// LEGACY: float x = lua_getnumber(param2);
+	// LEGACY: float y = lua_getnumber(param3);
+	// LEGACY: overlay->setPos(x, y);
 }
 
 void Lua_Remastered::QueryActiveHotspots() {
@@ -170,61 +172,61 @@ void Lua_Remastered::QueryActiveHotspots() {
 
 	warning("Stub function: QueryActiveHotspots(%f)", lua_getnumber(param));
 
-	// TODO: Handle coord scaling better
-	float scaleX = 1920.0f/1600;
-	float scaleY = 1080.0f/900;
-	Math::Vector2d pos(g_grim->_cursorX*scaleX, g_grim->_cursorY*scaleY);
-	lua_Object result = lua_createtable();
-	int count = 0;
-	for (Hotspot *h : Hotspot::getPool()) {
-		if (!h->_rect.containsPoint(pos)) {
-			continue;
-		}
-		lua_Object inner = lua_createtable();
-
-		lua_pushobject(inner);
-		lua_pushstring("type");
-		lua_pushstring("normal");
-		lua_settable();
-
-		lua_pushobject(inner);
-		lua_pushstring("cursor");
-		lua_pushnumber(0);
-		lua_settable();
-
-		lua_pushobject(inner);
-		lua_pushstring("id");
-		lua_pushstring(h->_name.c_str());
-		lua_settable();
-
-		lua_pushobject(inner);
-		lua_pushstring("obj");
-		lua_pushusertag(h->getId(), h->getTag());
-		lua_settable();
-
-		lua_pushobject(result);
-		lua_pushnumber(count++);
-		lua_pushobject(inner);
-		lua_settable();
-	}
-
-	lua_pushobject(result);
+	// LEGACY: // TODO: Handle coord scaling better
+	// LEGACY: float scaleX = 1920.0f/1600;
+	// LEGACY: float scaleY = 1080.0f/900;
+	// LEGACY: Math::Vector2d pos(g_grim->_cursorX*scaleX, g_grim->_cursorY*scaleY);
+	// LEGACY: lua_Object result = lua_createtable();
+	// LEGACY: int count = 0;
+	// LEGACY: for (Hotspot *h : Hotspot::getPool()) {
+	// LEGACY: 	if (!h->_rect.containsPoint(pos)) {
+	// LEGACY: 		continue;
+	// LEGACY: 	}
+	// LEGACY: 	lua_Object inner = lua_createtable();
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(inner);
+	// LEGACY: 	lua_pushstring("type");
+	// LEGACY: 	lua_pushstring("normal");
+	// LEGACY: 	lua_settable();
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(inner);
+	// LEGACY: 	lua_pushstring("cursor");
+	// LEGACY: 	lua_pushnumber(0);
+	// LEGACY: 	lua_settable();
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(inner);
+	// LEGACY: 	lua_pushstring("id");
+	// LEGACY: 	lua_pushstring(h->_name.c_str());
+	// LEGACY: 	lua_settable();
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(inner);
+	// LEGACY: 	lua_pushstring("obj");
+	// LEGACY: 	lua_pushusertag(h->getId(), h->getTag());
+	// LEGACY: 	lua_settable();
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(result);
+	// LEGACY: 	lua_pushnumber(count++);
+	// LEGACY: 	lua_pushobject(inner);
+	// LEGACY: 	lua_settable();
+	// LEGACY: }
+	// LEGACY:
+	// LEGACY: lua_pushobject(result);
 }
 
 void Lua_Remastered::GetLanguage() {
 	warning("Stub function: GetLanguage, just guesswork");
-	lua_pushnumber(g_grim->getLanguage());
+	// LEGACY: lua_pushnumber(g_grim->getLanguage());
 }
 
 void Lua_Remastered::SaveRegistryToDisk() {
 	warning("Guesswork: SaveRegistryToDisk");
-	g_registry->save();
+	// LEGACY: g_registry->save();
 	ConfMan.flushToDisk(); // Since we can't consistently exit yet, we force a write for now
 }
 
 void Lua_Remastered::GetCursorPosition() {
-	lua_pushnumber(g_grim->_cursorX);
-	lua_pushnumber(g_grim->_cursorX);
+	// LEGACY: lua_pushnumber(g_grim->_cursorX);
+	// LEGACY: lua_pushnumber(g_grim->_cursorX);
 }
 
 void Lua_Remastered::SetCursor() {
@@ -273,9 +275,9 @@ void Lua_Remastered::SetLanguage() {
 	lua_Object param1 = lua_getparam(1);
 	assert(lua_isnumber(param1));
 	warning("Stub function: SetLanguage(%f)", lua_getnumber(param1));
-	g_grim->setLanguage(lua_getnumber(param1));
-	delete g_localizer;
-	g_localizer = new Localizer();
+	// LEGACY: g_grim->setLanguage(lua_getnumber(param1));
+	// LEGACY: delete g_localizer;
+	// LEGACY: g_localizer = new Localizer();
 }
 
 void Lua_Remastered::SetMouseSpeedScale() {
@@ -295,24 +297,24 @@ void Lua_Remastered::SetCommentary() {
 	lua_Object param1 = lua_getparam(1);
 	assert(lua_isstring(param1));
 	warning("Stub function: SetCommentary(%s)", lua_getstring(param1));
-	g_grim->getCommentary()->setCurrentCommentary(lua_getstring(param1));
+	// LEGACY: g_grim->getCommentary()->setCurrentCommentary(lua_getstring(param1));
 }
 
 void Lua_Remastered::PlayCurrentCommentary() {
 	warning("Stub function: PlayCurrentCommentary");
-	g_grim->getCommentary()->playCurrentCommentary();
+	// LEGACY: g_grim->getCommentary()->playCurrentCommentary();
 }
 
 void Lua_Remastered::HasHeardCommentary() {
-	lua_Object param1 = lua_getparam(1);
-	assert(lua_isstring(param1));
-	bool hasHeard = g_grim->getCommentary()->hasHeardCommentary(lua_getstring(param1));
-	warning("Remastered function: HasHeardCommentary(%s) returns %d", lua_getstring(param1), hasHeard);
-	if (hasHeard) {
-		lua_pushnumber(1);
-	} else {
-		lua_pushnil();
-	}
+	// LEGACY: lua_Object param1 = lua_getparam(1);
+	// LEGACY: assert(lua_isstring(param1));
+	// LEGACY: bool hasHeard = g_grim->getCommentary()->hasHeardCommentary(lua_getstring(param1));
+	// LEGACY: warning("Remastered function: HasHeardCommentary(%s) returns %d", lua_getstring(param1), hasHeard);
+	// LEGACY: if (hasHeard) {
+	// LEGACY: 	lua_pushnumber(1);
+	// LEGACY: } else {
+	// LEGACY: 	lua_pushnil();
+	// LEGACY: }
 }
 
 void Lua_Remastered::SetResolutionScaling() {
@@ -322,44 +324,44 @@ void Lua_Remastered::SetResolutionScaling() {
 }
 
 void Lua_Remastered::IsConceptUnlocked() {
-	lua_Object param1 = lua_getparam(1);
-	assert(lua_isnumber(param1));
-	warning("Remastered function: IsConceptUnlocked(%f) returns %d", lua_getnumber(param1), g_grim->isConceptEnabled(lua_getnumber(param1)));
-	if (g_grim->isConceptEnabled(lua_getnumber(param1))) {
-		lua_pushnumber(1);
-	} else {
-		lua_pushnil();
-	}
+	// LEGACY: lua_Object param1 = lua_getparam(1);
+	// LEGACY: assert(lua_isnumber(param1));
+	// LEGACY: warning("Remastered function: IsConceptUnlocked(%f) returns %d", lua_getnumber(param1), g_grim->isConceptEnabled(lua_getnumber(param1)));
+	// LEGACY: if (g_grim->isConceptEnabled(lua_getnumber(param1))) {
+	// LEGACY: 	lua_pushnumber(1);
+	// LEGACY: } else {
+	// LEGACY: 	lua_pushnil();
+	// LEGACY: }
 }
 
 void Lua_Remastered::UnlockConcept() {
 	lua_Object param1 = lua_getparam(1);
 	assert(lua_isnumber(param1));
 	warning("Remastered function: UnlockConcept(%f)", lua_getnumber(param1));
-	g_grim->enableConcept(lua_getnumber(param1));
+	// LEGACY: g_grim->enableConcept(lua_getnumber(param1));
 }
 
 void Lua_Remastered::UnlockCutscene() {
 	lua_Object param1 = lua_getparam(1);
 	assert(lua_isnumber(param1));
 	warning("Remastered function: UnlockCutscene(%f)", lua_getnumber(param1));
-	g_grim->enableCutscene(lua_getnumber(param1));
+	// LEGACY: g_grim->enableCutscene(lua_getnumber(param1));
 }
 
 void Lua_Remastered::IsCutsceneUnlocked() {
-	lua_Object param1 = lua_getparam(1);
-	assert(lua_isnumber(param1));
-	warning("Remastered function: IsCutsceneUnlocked(%f) returns %d", lua_getnumber(param1), g_grim->isCutsceneEnabled(lua_getnumber(param1)));
-	if (g_grim->isCutsceneEnabled(lua_getnumber(param1))) {
-		lua_pushnumber(1);
-	} else {
-		lua_pushnil();
-	}
+	// LEGACY: lua_Object param1 = lua_getparam(1);
+	// LEGACY: assert(lua_isnumber(param1));
+	// LEGACY: warning("Remastered function: IsCutsceneUnlocked(%f) returns %d", lua_getnumber(param1), g_grim->isCutsceneEnabled(lua_getnumber(param1)));
+	// LEGACY: if (g_grim->isCutsceneEnabled(lua_getnumber(param1))) {
+	// LEGACY: 	lua_pushnumber(1);
+	// LEGACY: } else {
+	// LEGACY: 	lua_pushnil();
+	// LEGACY: }
 }
 
 void Lua_Remastered::GetGameRenderMode() {
 	warning("Stub function: GetGameRenderMode() - not all modes possible yet");
-	lua_pushnumber(g_grim->getMode());
+	// LEGACY: lua_pushnumber(g_grim->getMode());
 }
 
 void Lua_Remastered::SetGameRenderMode() {
@@ -370,7 +372,7 @@ void Lua_Remastered::SetGameRenderMode() {
 	}
 	assert(lua_isnumber(param1));
 	warning("Stub function: SetGameRenderMode(%f)", lua_getnumber(param1));
-	g_grim->setMode((GrimEngine::EngineMode)(int)lua_getnumber(param1));
+	// LEGACY: g_grim->setMode((GrimEngine::EngineMode)(int)lua_getnumber(param1));
 }
 
 void Lua_Remastered::AddHotspot() {
@@ -411,16 +413,16 @@ void Lua_Remastered::AddHotspot() {
 	}
 	warning("Stub function: AddHotspot(%s, %f, %f, %f, %f, %f, %f, %f, %s, %s, %f)", lua_getstring(param1), lua_getnumber(param2), lua_getnumber(param3), lua_getnumber(param4), lua_getnumber(param5), lua_getnumber(param6), lua_getnumber(param7), lua_getnumber(param8), p9str, p10str, lua_getnumber(param11));
 
-	Hotspot *hotspot = new Hotspot(lua_getstring(param1), lua_getnumber(param2), lua_getnumber(param3), lua_getnumber(param4), lua_getnumber(param5));
-
-	lua_pushusertag(hotspot->getId(), hotspot->getTag());
-
+	// LEGACY: Hotspot *hotspot = new Hotspot(lua_getstring(param1), lua_getnumber(param2), lua_getnumber(param3), lua_getnumber(param4), lua_getnumber(param5));
+	// LEGACY:
+	// LEGACY: lua_pushusertag(hotspot->getId(), hotspot->getTag());
+	// LEGACY:
 }
 
 void Lua_Remastered::RemoveHotspot() {
-	lua_Object hotspotObj = lua_getparam(1);
-	Hotspot *hotspot = Hotspot::getPool().getObject(lua_getuserdata(hotspotObj));
-	delete hotspot;
+	// LEGACY: lua_Object hotspotObj = lua_getparam(1);
+	// LEGACY: Hotspot *hotspot = Hotspot::getPool().getObject(lua_getuserdata(hotspotObj));
+	// LEGACY: delete hotspot;
 }
 
 void Lua_Remastered::GlobalSaveResolved() {
@@ -431,109 +433,109 @@ void Lua_Remastered::GlobalSaveResolved() {
 void Lua_Remastered::FindSaveGames() {
 	warning("Stub function: FindSaveGames()");
 
-	Common::SaveFileManager *saveMan = g_grim->getSaveFileManager();
-	Common::StringArray saveFiles = saveMan->listSavefiles("grim_r???.sav");
-
-	if (saveFiles.empty()) {
-		lua_pushnil();
-		return;
-	}
-
-	lua_Object result = lua_createtable();
-
-	Common::StringArray::iterator it = saveFiles.begin();
-	for (int i = 0; it != saveFiles.end(); ++it) {
-		const char *filename  = it->c_str();
-		warning("Savefile: %s", filename);
-		SaveGame *savedState = SaveGame::openForLoading(filename);
-
-		if (!savedState || !savedState->isCompatible()) {
-			if (!savedState) {
-				error("Savegame %s is invalid", filename);
-			} else {
-				error("Savegame %s is incompatible with this ScummVM build. Save version: %d.%d; current version: %d.%d",
-					filename, savedState->saveMajorVersion(), savedState->saveMinorVersion(),
-					SaveGame::SAVEGAME_MAJOR_VERSION, SaveGame::SAVEGAME_MINOR_VERSION);
-			}
-			return;
-		}
-		int slot = atoi(it->c_str() + 6);
-		Common::String str1;
-		Common::String str2;
-		int x;
-		/*int32 dataSize = */savedState->beginSection('META');
-		char str[200] = {};
-		int32 strSize = 0;
-
-		strSize = savedState->readLESint32();
-		savedState->read(str, strSize);
-		str1 = str;
-		x = savedState->readLESint32();
-		strSize = savedState->readLESint32();
-		savedState->read(str, strSize);
-		str2 = str;
-		savedState->endSection();
-		delete savedState;
-
-		lua_pushobject(result);
-		lua_pushnumber(i++);
-
-		str2 = g_localizer->localize(str2.c_str());
-
-		lua_Object keyVal = lua_createtable();
-		// The key-value-mapping:
-		{
-
-			lua_pushobject(keyVal);
-			lua_pushstring("slot");
-			lua_pushnumber(slot);
-			lua_settable();
-
-			lua_pushobject(keyVal);
-			lua_pushstring("title");
-			lua_pushstring(str2.c_str());
-			lua_settable();
-
-			lua_pushobject(keyVal);
-			lua_pushstring("timeDateString");
-			lua_pushstring("Unknown");
-			lua_settable();
-
-			lua_pushobject(keyVal);
-			lua_pushstring("mural_info");
-			lua_pushstring(str1.c_str());
-			lua_settable();
-
-			lua_pushobject(keyVal);
-			lua_pushstring("setIndex");
-			lua_pushnumber(x);
-			lua_settable();
-		}
-		lua_pushobject(keyVal);
-
-		lua_settable();
-	}
-
-	lua_pushobject(result);
+	// LEGACY: Common::SaveFileManager *saveMan = g_grim->getSaveFileManager();
+	// LEGACY: Common::StringArray saveFiles = saveMan->listSavefiles("grim_r???.sav");
+	// LEGACY:
+	// LEGACY: if (saveFiles.empty()) {
+	// LEGACY: 	lua_pushnil();
+	// LEGACY: 	return;
+	// LEGACY: }
+	// LEGACY:
+	// LEGACY: lua_Object result = lua_createtable();
+	// LEGACY:
+	// LEGACY: Common::StringArray::iterator it = saveFiles.begin();
+	// LEGACY: for (int i = 0; it != saveFiles.end(); ++it) {
+	// LEGACY: 	const char *filename  = it->c_str();
+	// LEGACY: 	warning("Savefile: %s", filename);
+	// LEGACY: 	SaveGame *savedState = SaveGame::openForLoading(filename);
+	// LEGACY:
+	// LEGACY: 	if (!savedState || !savedState->isCompatible()) {
+	// LEGACY: 		if (!savedState) {
+	// LEGACY: 			error("Savegame %s is invalid", filename);
+	// LEGACY: 		} else {
+	// LEGACY: 			error("Savegame %s is incompatible with this ScummVM build. Save version: %d.%d; current version: %d.%d",
+	// LEGACY: 				filename, savedState->saveMajorVersion(), savedState->saveMinorVersion(),
+	// LEGACY: 				SaveGame::SAVEGAME_MAJOR_VERSION, SaveGame::SAVEGAME_MINOR_VERSION);
+	// LEGACY: 		}
+	// LEGACY: 		return;
+	// LEGACY: 	}
+	// LEGACY: 	int slot = atoi(it->c_str() + 6);
+	// LEGACY: 	Common::String str1;
+	// LEGACY: 	Common::String str2;
+	// LEGACY: 	int x;
+	// LEGACY: 	/*int32 dataSize = */savedState->beginSection('META');
+	// LEGACY: 	char str[200] = {};
+	// LEGACY: 	int32 strSize = 0;
+	// LEGACY:
+	// LEGACY: 	strSize = savedState->readLESint32();
+	// LEGACY: 	savedState->read(str, strSize);
+	// LEGACY: 	str1 = str;
+	// LEGACY: 	x = savedState->readLESint32();
+	// LEGACY: 	strSize = savedState->readLESint32();
+	// LEGACY: 	savedState->read(str, strSize);
+	// LEGACY: 	str2 = str;
+	// LEGACY: 	savedState->endSection();
+	// LEGACY: 	delete savedState;
+	// LEGACY:
+	// LEGACY: 	lua_pushobject(result);
+	// LEGACY: 	lua_pushnumber(i++);
+	// LEGACY:
+	// LEGACY: 	str2 = g_localizer->localize(str2.c_str());
+	// LEGACY:
+	// LEGACY: 	lua_Object keyVal = lua_createtable();
+	// LEGACY: 	// The key-value-mapping:
+	// LEGACY: 	{
+	// LEGACY:
+	// LEGACY: 		lua_pushobject(keyVal);
+	// LEGACY: 		lua_pushstring("slot");
+	// LEGACY: 		lua_pushnumber(slot);
+	// LEGACY: 		lua_settable();
+	// LEGACY:
+	// LEGACY: 		lua_pushobject(keyVal);
+	// LEGACY: 		lua_pushstring("title");
+	// LEGACY: 		lua_pushstring(str2.c_str());
+	// LEGACY: 		lua_settable();
+	// LEGACY:
+	// LEGACY: 		lua_pushobject(keyVal);
+	// LEGACY: 		lua_pushstring("timeDateString");
+	// LEGACY: 		lua_pushstring("Unknown");
+	// LEGACY: 		lua_settable();
+	// LEGACY:
+	// LEGACY: 		lua_pushobject(keyVal);
+	// LEGACY: 		lua_pushstring("mural_info");
+	// LEGACY: 		lua_pushstring(str1.c_str());
+	// LEGACY: 		lua_settable();
+	// LEGACY:
+	// LEGACY: 		lua_pushobject(keyVal);
+	// LEGACY: 		lua_pushstring("setIndex");
+	// LEGACY: 		lua_pushnumber(x);
+	// LEGACY: 		lua_settable();
+	// LEGACY: 	}
+	// LEGACY: 	lua_pushobject(keyVal);
+	// LEGACY:
+	// LEGACY: 	lua_settable();
+	// LEGACY: }
+	// LEGACY:
+	// LEGACY: lua_pushobject(result);
 }
 
 
 void Lua_Remastered::Load() {
-	lua_Object fileName = lua_getparam(1);
-	//lua_Object param2 = lua_getparam(2);
-
-	if (lua_isnil(fileName)) {
-		g_grim->loadGame("");
-	} else if (lua_isnumber(fileName)) {
-		int slot = lua_getnumber(fileName);
-		Common::String saveGameFilename = Common::String::format("grim_r%03d.sav", slot);
-		g_grim->loadGame(saveGameFilename.c_str());
-	} else if (lua_isstring(fileName)) { // Check for number before this
-		g_grim->loadGame(lua_getstring(fileName));
-	} else {
-		warning("Load() fileName is wrong");
-		return;
-	}
+	// LEGACY: lua_Object fileName = lua_getparam(1);
+	// LEGACY: //lua_Object param2 = lua_getparam(2);
+	// LEGACY:
+	// LEGACY: if (lua_isnil(fileName)) {
+	// LEGACY: 	g_grim->loadGame("");
+	// LEGACY: } else if (lua_isnumber(fileName)) {
+	// LEGACY: 	int slot = lua_getnumber(fileName);
+	// LEGACY: 	Common::String saveGameFilename = Common::String::format("grim_r%03d.sav", slot);
+	// LEGACY: 	g_grim->loadGame(saveGameFilename.c_str());
+	// LEGACY: } else if (lua_isstring(fileName)) { // Check for number before this
+	// LEGACY: 	g_grim->loadGame(lua_getstring(fileName));
+	// LEGACY: } else {
+	// LEGACY: 	warning("Load() fileName is wrong");
+	// LEGACY: 	return;
+	// LEGACY: }
 }
 
 void Lua_Remastered::Save() {
@@ -552,9 +554,9 @@ void Lua_Remastered::Save() {
 	const char *p4Str = lua_getstring(param4);
 
 	warning("REMASTERED save: %d, %s, %d, %s", slot, p2Str, p3Num, p4Str);
-	Common::String saveGameFilename = Common::String::format("grim_r%03d.sav", slot);
-	g_grim->setSaveMetaData(p2Str, p3Num, p4Str);
-	g_grim->saveGame(saveGameFilename.c_str());
+	// LEGACY: Common::String saveGameFilename = Common::String::format("grim_r%03d.sav", slot);
+	// LEGACY: g_grim->setSaveMetaData(p2Str, p3Num, p4Str);
+	// LEGACY: g_grim->saveGame(saveGameFilename.c_str());
 }
 
 void Lua_Remastered::ShowCursor() {
@@ -681,7 +683,7 @@ struct luaL_reg remasteredMainOpcodes[] = {
 };
 
 void Lua_Remastered::registerOpcodes() {
-	Lua_V1::registerOpcodes();
+	// LEGACY: Lua_V1::registerOpcodes();
 
 	// Register main opcodes functions
 	luaL_openlib(remasteredMainOpcodes, ARRAYSIZE(remasteredMainOpcodes));

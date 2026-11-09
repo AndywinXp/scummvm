@@ -30,7 +30,7 @@ namespace Grim {
 class Lua_Remastered : public Lua_V1 {
 public:
 	typedef Lua_Remastered LuaClass;
-	void registerOpcodes() override;
+	void registerOpcodes();
 
 protected:
 

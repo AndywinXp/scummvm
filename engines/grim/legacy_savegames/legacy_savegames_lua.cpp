@@ -28,7 +28,6 @@
 #include "common/util.h"
 
 #include "engines/grim/legacy_savegames/legacy_savegames_lua.h"
-#include "engines/grim/lua.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lua.h"

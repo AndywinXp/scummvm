@@ -14,8 +14,6 @@
 #include "common/endian.h"
 
 #include "engines/grim/debug.h"
-#include "engines/grim/actor.h"
-#include "engines/grim/color.h"
 
 #include "engines/grim/lua/lbuiltin.h"
 #include "engines/grim/lua/ldo.h"
@@ -166,12 +164,11 @@ void callHook(lua_Function func, const char *filename, int32 line) {
 			else if (lua_istable(lua_getparam(i)))
 				fprintf(output, "{...}");
 			else if (lua_isuserdata(lua_getparam(i))) {
-				if (lua_tag(lua_getparam(i)) == MKTAG('A','C','T','R')) {
-					Actor *a = Actor::getPool().getObject(lua_getuserdata(lua_getparam(i)));
-					fprintf(output, "<actor \"%s\">", a->getName().c_str());
-				} else if (lua_tag(lua_getparam(i)) == MKTAG('C','O','L','R')) {
-					Color c(lua_getuserdata(lua_getparam(i)));
-					fprintf(output, "<color #%02x%02x%02x>", c.getRed(), c.getGreen(), c.getBlue());
+				if (lua_tag(lua_getparam(i)) == MKTAG('R','T','C','A')) {
+					fprintf(output, "<actor %d>", lua_getuserdata(lua_getparam(i)));
+				} else if (lua_tag(lua_getparam(i)) == MKTAG('R','L','O','C')) {
+					uint32 c = lua_getuserdata(lua_getparam(i));
+					fprintf(output, "<color #%02x%02x%02x>", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF);
 				} else
 					fprintf(output, "<userdata %d>", lua_getuserdata(lua_getparam(i)));
 			} else if (lua_isfunction(lua_getparam(i))) {

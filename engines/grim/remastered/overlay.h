@@ -23,14 +23,17 @@
 #define GRIM_OVERLAY_H
 
 #include "common/endian.h"
+#include "common/str.h"
+#include "common/stream.h"
 
-#include "engines/grim/pool.h"
+// LEGACY: #include "engines/grim/pool.h"
 
 namespace Grim {
 
-class Material;
+// LEGACY: class Material;
 
-class Overlay : public PoolObject<Overlay> {
+// LEGACY: class Overlay : public PoolObject<Overlay> {
+class Overlay {
 public:
 	Overlay(const Common::String &filename, Common::SeekableReadStream *data);
 	~Overlay();
@@ -44,7 +47,7 @@ public:
 	static int32 getStaticTag() { return MKTAG('O','V','E','R'); }
 
 //private:
-	Material *_material;
+	// LEGACY: Material *_material;
 	float _x;
 	float _y;
 	int _layer = 0;

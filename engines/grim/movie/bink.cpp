@@ -23,13 +23,14 @@
 #include "common/memstream.h"
 #include "common/stream.h"
 #include "common/substream.h"
+#include "common/textconsole.h"
 
 #include "graphics/surface.h"
 
-#include "engines/grim/grim.h"
-#include "engines/grim/localize.h"
-#include "engines/grim/textobject.h"
-#include "engines/grim/textsplit.h"
+// LEGACY: #include "engines/grim/grim.h"
+// LEGACY: #include "engines/grim/localize.h"
+// LEGACY: #include "engines/grim/textobject.h"
+// LEGACY: #include "engines/grim/textsplit.h"
 #include "engines/grim/movie/bink.h"
 
 #include "video/bink_decoder.h"
@@ -54,7 +55,7 @@ bool BinkPlayer::bikCheck(Common::SeekableReadStream *stream, uint32 pos) {
 }
 
 void BinkPlayer::deinit() {
-	g_grim->setMovieSubtitle(nullptr);
+	// LEGACY: g_grim->setMovieSubtitle(nullptr);
 	MoviePlayer::deinit();
 }
 
@@ -70,24 +71,24 @@ void BinkPlayer::handleFrame() {
 	curFrame = _videoDecoder->getCurFrame();
 	if (startFrame <= curFrame && curFrame <= endFrame) {
 		if (!_subtitleIndex->active) {
-			TextObject *textObject = new TextObject();
-			textObject->setDefaults(&g_grim->_sayLineDefaults);
-			Color c(255, 255, 255);
-			textObject->setFGColor(c);
-			textObject->setIsSpeech();
-			if (g_grim->getMode() == GrimEngine::SmushMode) {
-				// TODO: How to center exactly and put the text exactly
-				// at the bottom  even if there are multiple lines?
-				textObject->setX(640 / 2);
-				textObject->setY(40);
-			}
-			textObject->setText(g_localizer->localize(_subtitleIndex->_textId.c_str()), false);
-			g_grim->setMovieSubtitle(textObject);
+			// LEGACY: TextObject *textObject = new TextObject();
+			// LEGACY: textObject->setDefaults(&g_grim->_sayLineDefaults);
+			// LEGACY: Color c(255, 255, 255);
+			// LEGACY: textObject->setFGColor(c);
+			// LEGACY: textObject->setIsSpeech();
+			// LEGACY: if (g_grim->getMode() == GrimEngine::SmushMode) {
+			// LEGACY: 	// TODO: How to center exactly and put the text exactly
+			// LEGACY: 	// at the bottom  even if there are multiple lines?
+			// LEGACY: 	textObject->setX(640 / 2);
+			// LEGACY: 	textObject->setY(40);
+			// LEGACY: }
+			// LEGACY: textObject->setText(g_localizer->localize(_subtitleIndex->_textId.c_str()), false);
+			// LEGACY: g_grim->setMovieSubtitle(textObject);
 			_subtitleIndex->active = true;
 		}
 	} else if (endFrame < curFrame) {
 		if (_subtitleIndex->active) {
-			g_grim->setMovieSubtitle(nullptr);
+			// LEGACY: g_grim->setMovieSubtitle(nullptr);
 			_subtitleIndex->active = false;
 			_subtitleIndex++;
 		}
@@ -98,28 +99,28 @@ bool BinkPlayer::loadFile(const Common::String &filename) {
 	_fname = filename;
 
 	if (_demo) {
-		Common::String subname = filename + ".sub";
+		// LEGACY: Common::String subname = filename + ".sub";
 		// The demo uses a .lab suffix
 		_fname = filename + ".lab";
 		bool ret = MoviePlayer::loadFile(_fname);
 
 		// Load subtitles from adjacent .sub file, if present
-		Common::SeekableReadStream *substream = SearchMan.createReadStreamForMember(Common::Path(subname));
-		if (substream) {
-			TextSplitter tsSub("", substream);
-			while (!tsSub.isEof()) {
-				unsigned int start, end;
-				char textId[256];
-
-				// extract single subtitle entry
-				tsSub.scanString("%d\t%d\t%s", 3, &start, &end, textId);
-
-				Subtitle st(start, end, textId);
-				_subtitles.push_back(st);
-			}
-			delete substream;
-			_subtitleIndex = _subtitles.begin();
-		}
+		// LEGACY: Common::SeekableReadStream *substream = SearchMan.createReadStreamForMember(Common::Path(subname));
+		// LEGACY: if (substream) {
+		// LEGACY: 	TextSplitter tsSub("", substream);
+		// LEGACY: 	while (!tsSub.isEof()) {
+		// LEGACY: 		unsigned int start, end;
+		// LEGACY: 		char textId[256];
+		// LEGACY:
+		// LEGACY: 		// extract single subtitle entry
+		// LEGACY: 		tsSub.scanString("%d\t%d\t%s", 3, &start, &end, textId);
+		// LEGACY:
+		// LEGACY: 		Subtitle st(start, end, textId);
+		// LEGACY: 		_subtitles.push_back(st);
+		// LEGACY: 	}
+		// LEGACY: 	delete substream;
+		// LEGACY: 	_subtitleIndex = _subtitles.begin();
+		// LEGACY: }
 
 		return ret;
 	}
@@ -143,55 +144,55 @@ bool BinkPlayer::loadFile(const Common::String &filename) {
 	stream->read(header, 5);
 	header[5] = 0;
 
-	if (!strcmp(header, "SMUSH")) {
-		// handle SMUSH header
-		unsigned char smushHeader[0x2000];
-
-		// read the first part
-		uint32 consumed = 16;
-		stream->read(smushHeader, consumed);
-
-		// decode the first part
-		for (unsigned int i = 0; i < consumed; i++) {
-			smushHeader[i] ^= 0xd2;
-		}
-
-		Common::MemoryReadStream msStart(smushHeader, consumed);
-		TextSplitter tsStart("", &msStart);
-
-		// extract the length / the start of the following BINK header
-		tsStart.scanString("%d", 1, &startBinkPos);
-
-		assert(startBinkPos < sizeof(smushHeader));
-
-		// read the rest (5 bytes less because of the string "SMUSH" at the beginning)
-		stream->read(smushHeader+consumed, startBinkPos - consumed - 5);
-
-		// decode the reset
-		for (unsigned int i = consumed; i < startBinkPos - 5; i++) {
-			smushHeader[i] ^= 0xd2;
-		}
-		consumed = startBinkPos - 5;
-
-		Common::MemoryReadStream msSmush(smushHeader, consumed);
-		TextSplitter tsSmush("", &msSmush);
-
-		// skip the first line which contains the length
-		tsSmush.nextLine();
-
-		tsSmush.expectString("BEGINDATA");
-		while (!tsSmush.checkString("ENDOFDATA")) {
-			unsigned int start, end;
-			char textId[256];
-
-			// extract single subtitle entry
-			tsSmush.scanString("%d\t%d\t%s", 3, &start, &end, textId);
-
-			Subtitle st(start, end, textId);
-			_subtitles.push_back(st);
-		}
-		tsSmush.expectString("ENDOFDATA");
-	}
+	// LEGACY: if (!strcmp(header, "SMUSH")) {
+	// LEGACY: 	// handle SMUSH header
+	// LEGACY: 	unsigned char smushHeader[0x2000];
+	// LEGACY:
+	// LEGACY: 	// read the first part
+	// LEGACY: 	uint32 consumed = 16;
+	// LEGACY: 	stream->read(smushHeader, consumed);
+	// LEGACY:
+	// LEGACY: 	// decode the first part
+	// LEGACY: 	for (unsigned int i = 0; i < consumed; i++) {
+	// LEGACY: 		smushHeader[i] ^= 0xd2;
+	// LEGACY: 	}
+	// LEGACY:
+	// LEGACY: 	Common::MemoryReadStream msStart(smushHeader, consumed);
+	// LEGACY: 	TextSplitter tsStart("", &msStart);
+	// LEGACY:
+	// LEGACY: 	// extract the length / the start of the following BINK header
+	// LEGACY: 	tsStart.scanString("%d", 1, &startBinkPos);
+	// LEGACY:
+	// LEGACY: 	assert(startBinkPos < sizeof(smushHeader));
+	// LEGACY:
+	// LEGACY: 	// read the rest (5 bytes less because of the string "SMUSH" at the beginning)
+	// LEGACY: 	stream->read(smushHeader+consumed, startBinkPos - consumed - 5);
+	// LEGACY:
+	// LEGACY: 	// decode the reset
+	// LEGACY: 	for (unsigned int i = consumed; i < startBinkPos - 5; i++) {
+	// LEGACY: 		smushHeader[i] ^= 0xd2;
+	// LEGACY: 	}
+	// LEGACY: 	consumed = startBinkPos - 5;
+	// LEGACY:
+	// LEGACY: 	Common::MemoryReadStream msSmush(smushHeader, consumed);
+	// LEGACY: 	TextSplitter tsSmush("", &msSmush);
+	// LEGACY:
+	// LEGACY: 	// skip the first line which contains the length
+	// LEGACY: 	tsSmush.nextLine();
+	// LEGACY:
+	// LEGACY: 	tsSmush.expectString("BEGINDATA");
+	// LEGACY: 	while (!tsSmush.checkString("ENDOFDATA")) {
+	// LEGACY: 		unsigned int start, end;
+	// LEGACY: 		char textId[256];
+	// LEGACY:
+	// LEGACY: 		// extract single subtitle entry
+	// LEGACY: 		tsSmush.scanString("%d\t%d\t%s", 3, &start, &end, textId);
+	// LEGACY:
+	// LEGACY: 		Subtitle st(start, end, textId);
+	// LEGACY: 		_subtitles.push_back(st);
+	// LEGACY: 	}
+	// LEGACY: 	tsSmush.expectString("ENDOFDATA");
+	// LEGACY: }
 
 	// set current subtitle index to the first subtitle
 	_subtitleIndex = _subtitles.begin();

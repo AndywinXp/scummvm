@@ -19,12 +19,13 @@
  *
  */
 
+#include "common/archive.h"
 #include "common/system.h"
 
 #include "video/mpegps_decoder.h"
 
 #include "engines/grim/movie/mpeg.h"
-#include "engines/grim/grim.h"
+// LEGACY: #include "engines/grim/grim.h"
 
 #ifdef USE_MPEG2
 

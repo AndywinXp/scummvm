@@ -84,7 +84,7 @@ ResourceLoader::ResourceLoader() {
 	    || g_grim->getGameType() == GType_MONKEY4) {
 		updateFilename = g_grim->getUpdateFilename();
 	}
-	if (updateFilename) {
+	if (updateFilename && !SearchMan.hasArchive("update")) {
 		Common::File *updStream = new Common::File();
 		if (updStream && updStream->open(updateFilename)) {
 			Common::Archive *update = loadUpdateArchive(updStream);

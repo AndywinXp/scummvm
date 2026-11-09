@@ -58,10 +58,6 @@ public:
 
 	Lua_V1();
 
-	void registerOpcodes() override;
-	void boot() override;
-	void postRestoreHandle() override;
-
 	int initialize(SysStruct *pHS);
 	int terminate();
 	int startup();

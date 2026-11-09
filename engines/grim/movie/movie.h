@@ -29,7 +29,7 @@
 
 namespace Grim {
 
-class SaveGame;
+// LEGACY: class SaveGame;
 
 class MoviePlayer {
 protected:
@@ -86,12 +86,12 @@ public:
 	/* Draw the subtitles, guarded by _drawMutex */
 	void drawMovieSubtitle();
 
-	/**
-	 * Saves the state of the video to a savegame
-	 * @param state         The state to save to
-	 */
-	void saveState(SaveGame *state);
-	void restoreState(SaveGame *state);
+	// LEGACY: /**
+	// LEGACY:  * Saves the state of the video to a savegame
+	// LEGACY:  * @param state         The state to save to
+	// LEGACY:  */
+	// LEGACY: void saveState(SaveGame *state);
+	// LEGACY: void restoreState(SaveGame *state);
 
 protected:
 	static void timerCallback(void *ptr);
@@ -162,29 +162,29 @@ protected:
 	 */
 	virtual bool loadFile(const Common::String &filename);
 
-	/**
-	 * Saves subclass related state of the video to a savegame
-	 * The base implementation of this does nothing, but it can be overridden
-	 * by subclasses.
-	 *
-	 * @param state The state to save to
-	 */
-	virtual void save(SaveGame *state) {}
-
-	/**
-	 * Restores subclass related state of the video to a savegame
-	 * The base implementation of this does nothing, but it can be overridden
-	 * by subclasses.
-	 *
-	 * @param state The state to restore from
-	 */
-	virtual void restore(SaveGame *state) {}
+	// LEGACY: /**
+	// LEGACY:  * Saves subclass related state of the video to a savegame
+	// LEGACY:  * The base implementation of this does nothing, but it can be overridden
+	// LEGACY:  * by subclasses.
+	// LEGACY:  *
+	// LEGACY:  * @param state The state to save to
+	// LEGACY:  */
+	// LEGACY: virtual void save(SaveGame *state) {}
+	// LEGACY:
+	// LEGACY: /**
+	// LEGACY:  * Restores subclass related state of the video to a savegame
+	// LEGACY:  * The base implementation of this does nothing, but it can be overridden
+	// LEGACY:  * by subclasses.
+	// LEGACY:  *
+	// LEGACY:  * @param state The state to restore from
+	// LEGACY:  */
+	// LEGACY: virtual void restore(SaveGame *state) {}
 };
 
 // Factory-like functions:
 
 MoviePlayer *CreateMpegPlayer();
-MoviePlayer *CreateSmushPlayer(bool demo);
+// LEGACY: MoviePlayer *CreateSmushPlayer(bool demo);
 MoviePlayer *CreateBinkPlayer(bool demo);
 MoviePlayer *CreateQuickTimePlayer();
 extern MoviePlayer *g_movie;
