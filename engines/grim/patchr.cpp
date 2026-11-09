@@ -377,8 +377,6 @@ Common::SeekableReadStream *wrapPatchedFile(Common::SeekableReadStream *rs, cons
 			break;
 		}
 
-		Debug::debug(Debug::Patchr, "Patch for %s not applied (patch filename %s)", filename.toString().c_str(), patchfile.toString().c_str());
-
 		delete pf;
 		patchfile = filename.append(Common::String::format("_%d.patchr", i++));
 	}
