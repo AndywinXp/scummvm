@@ -81,6 +81,13 @@ struct StdVBuffer {
 	int surfaceColorKey;
 };
 
+enum StdDisplayBackend {
+	kStdDisplayBackendAny = -1,
+	kStdDisplayBackendNone = 0,
+	kStdDisplayBackendGl = 1,
+	kStdDisplayBackendTinyGl = 2
+};
+
 struct StdDisplayDevice {
 	char aName[128];
 	char aDescription[128];
@@ -92,6 +99,8 @@ struct StdDisplayDevice {
 	uint vidMemTotal;
 	uint vidMemFree;
 	byte guid[16];
+	int backend;
+	int bUsable;
 };
 
 struct StdDisplayDeviceFlags {
@@ -100,6 +109,7 @@ struct StdDisplayDeviceFlags {
 	int b3D;
 	int bPrimary;
 	int bHasHardware;
+	int backend;
 };
 
 struct StdDisplayMode {
@@ -141,8 +151,12 @@ public:
 
 	int startup();
 	void shutdown();
-	int enumerateDevices();
-	int enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName);
+	int enumerateDevices(uint backendMask);
+	int enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName, int backend);
+	void setDeviceUsable(uint deviceIndex, int bUsable);
+	int isBackendEnabled(int backend);
+	int createBackend(int backend);
+	int openBackend(int backend, int width, int height);
 	void restoreDisplayMode();
 	int enumerateModes(uint deviceIndex);
 	int createDirectDraw();
@@ -205,6 +219,7 @@ private:
 	int _bSurfacesCreated;
 	int _bFullscreen;
 	int _numDrawBuffers;
+	uint _backendMask;
 	uint _numDevices;
 	StdDisplayDevice _aDevices[kStdDisplayMaxDevices];
 	StdDisplayDevice *_pCurDevice;

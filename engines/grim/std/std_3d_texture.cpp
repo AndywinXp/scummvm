@@ -21,15 +21,15 @@
 
 #include "common/scummsys.h"
 
-#if defined(USE_OPENGL_SHADERS)
+#include "engines/grim/std/std_3d_config.h"
+
+#if defined(GRIM_STD3D)
 
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "graphics/opengl/context.h"
-#include "graphics/opengl/shader.h"
-
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_backend.h"
 #include "engines/grim/std/std_bitmap.h"
 
 namespace Grim {
@@ -148,10 +148,8 @@ void Std3D::getValidDimensions(uint width, uint height, uint *pWidth, uint *pHei
 }
 
 void Std3D::releaseTexture(RdTexCacheEntry *pEntry) {
-	if (pEntry->hTexture && _bGlReady && OpenGLContext.type != OpenGL::kContextNone) {
-		GLuint texture = pEntry->hTexture;
-		glDeleteTextures(1, &texture);
-	}
+	if (pEntry->hTexture && _pBackend)
+		_pBackend->deleteTexture(pEntry->hTexture);
 
 	pEntry->hTexture = 0;
 }
@@ -168,7 +166,7 @@ void Std3D::purgeTextureCache() {
 }
 
 int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlpha, int bColorKey) {
-	if (!_pCurDevice || !_pTexFormatOpaque || !ensureGl()) {
+	if (!_pCurDevice || !_pTexFormatOpaque || !ensureBackend()) {
 		warning("Std3D::addToTextureCache(): device not started");
 		return 0;
 	}
@@ -262,7 +260,7 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 		pTexFormat = _pTexFormatOpaque;
 	}
 
-	if (!pTexFormat || !isValidFormat(&pTexFormat->format) || (int)width > OpenGLContext.maxTextureSize || (int)height > OpenGLContext.maxTextureSize) {
+	if (!pTexFormat || !isValidFormat(&pTexFormat->format) || (int)width > _pBackend->getMaxTextureSize() || (int)height > _pBackend->getMaxTextureSize()) {
 		warning("Std3D::addToTextureCache(): invalid texture format or size");
 
 		if (pDst)
@@ -360,9 +358,7 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 		}
 	}
 
-	GLuint texture = 0;
-
-	glGenTextures(1, &texture);
+	uint texture = _pBackend->createTexture(pRgba, width, height, _bTexMagLinear, _bTexMinLinear);
 
 	if (!texture) {
 		delete[] pRgba;
@@ -375,22 +371,6 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 		pEntry->lastFrame = 0;
 		return 0;
 	}
-
-	int bPowerOfTwo = (width & (width - 1)) == 0 && (height & (height - 1)) == 0;
-	GLint wrapMode = GL_REPEAT;
-
-	if (!bPowerOfTwo && OpenGLContext.type == OpenGL::kContextGLES2)
-		wrapMode = GL_CLAMP_TO_EDGE;
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _bTexMinLinear ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, _bTexMagLinear ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRgba);
-	glBindTexture(GL_TEXTURE_2D, 0);
 
 	delete[] pRgba;
 
@@ -492,8 +472,10 @@ int Std3D::getTextureMemory(uint *pTotal, uint *pFree) {
 	for (RdTexCacheEntry *pEntry = _pCacheHead; pEntry; pEntry = pEntry->pNext)
 		used += pEntry->size;
 
-	*pTotal = kStd3DTextureMemory;
-	*pFree = kStd3DTextureMemory - used;
+	uint budget = _pBackend ? _pBackend->getTextureBudget() : (uint)kStd3DTextureMemory;
+
+	*pTotal = budget;
+	*pFree = budget - used;
 	return 1;
 }
 

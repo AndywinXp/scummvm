@@ -28,13 +28,10 @@
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_display.h"
 
-namespace OpenGL {
-class Shader;
-}
-
 namespace Grim {
 
 class StdBitmap;
+class Std3DBackend;
 
 enum Std3DRenderFlags {
 	kStd3DRsPerspective = 0x1,
@@ -56,6 +53,11 @@ enum Std3DRenderFlags {
 enum Std3DZBufferMode {
 	kStd3DZBufferLess = 2,
 	kStd3DZBufferGreater = 16
+};
+
+enum Std3DBackendKind {
+	kStd3DBackendGl = 0,
+	kStd3DBackendTinyGl = 1
 };
 
 enum Std3DLimits {
@@ -142,9 +144,6 @@ struct Std3DTri {
 struct Std3DSurface {
 	int width;
 	int height;
-	uint colorTexture;
-	uint framebuffer;
-	uint depthRenderbuffer;
 	int gpuDirty;
 	int dirtyLeft;
 	int dirtyTop;
@@ -152,24 +151,7 @@ struct Std3DSurface {
 	int dirtyBottom;
 	int shadowValid;
 	byte *pReference;
-};
-
-struct Std3DGlVertex {
-	float x;
-	float y;
-	float z;
-	float w;
-	byte r;
-	byte g;
-	byte b;
-	byte a;
-	float u;
-	float v;
-};
-
-struct Std3DGlState {
-	int framebuffer;
-	int viewport[4];
+	void *pBackendData;
 };
 
 enum Std3DCommandType {
@@ -191,6 +173,15 @@ class Std3D {
 public:
 	Std3D(StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
 	~Std3D();
+
+	static int isBackendCompiled(Std3DBackendKind kind);
+	int createBackend(Std3DBackendKind kind);
+	int canProbeWithoutMode();
+	int openBackendMode(int width, int height);
+	int openBackend(Std3DBackendKind kind, int width, int height);
+	void closeBackend();
+	Std3DBackendKind getBackendKind() { return _backendKind; }
+	int hasBackend() { return _pBackend != nullptr; }
 
 	void setDisplayMode(const StdVBufferTexFmt *pTex);
 	void setRenderTarget(Std3DSurface *pSurface);
@@ -253,20 +244,13 @@ public:
 	int presentSurface(Std3DSurface *pSurface);
 
 private:
-	int isGlAvailable();
-	int ensureGl();
-	OpenGL::Shader *createShader(const char *name, const char *vertexSource, const char *fragmentSource, const char *const *attributes, int bDepthOutput);
-	void saveGlState(Std3DGlState *pState);
-	void restoreGlState(const Std3DGlState *pState);
-	void bindSurface(Std3DSurface *pSurface, int bMarkDirty = 1);
-	int attachDepth(Std3DSurface *pSurface);
-	void detachDepth(Std3DSurface *pSurface);
-	void applyRenderState(uint flags);
-	uint glCompareFunc(uint d3dFunc);
-	void drawQuad(const float *pQuad);
+	int ensureBackend();
+	static void markGpuDirty(Std3DSurface *pSurface, int x, int y, int width, int height);
 
 	StdDisplay *_pStdDisplay;
 	StdBitmap *_pStdBitmap;
+	Std3DBackend *_pBackend;
+	Std3DBackendKind _backendKind;
 	const StdVBufferTexFmt *_pDisplayModeTex;
 	Std3DSurface *_pRenderTarget;
 	int _bDepthFromDevice;
@@ -326,16 +310,6 @@ private:
 	uint _listStartRenderState;
 	RdTexCacheEntry *_pCurTexture;
 	int _bCurTextureValid;
-
-	int _bGlReady;
-	int _bFragDepthSupported;
-	OpenGL::Shader *_pTlShader;
-	OpenGL::Shader *_pBlitShader;
-	OpenGL::Shader *_pDepthShader;
-	uint _vertexVbo;
-	uint _indexVbo;
-	uint _quadVbo;
-	uint _depthTexture;
 };
 
 } // End of namespace Grim

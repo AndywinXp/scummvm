@@ -27,14 +27,8 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "engines/util.h"
-
-#if defined(USE_OPENGL_SHADERS)
-#include "graphics/opengl/context.h"
-#endif
-#include "graphics/renderer.h"
-
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/std/std_sort.h"
 
@@ -80,6 +74,10 @@ struct CopyRegion {
 
 static const byte dibSectionGuid[16] = {
 	0x00, 0x9F, 0xA6, 0x92, 0xFA, 0x13, 0xD1, 0x11, 0x97, 0xC0, 0x00, 0xA0, 0x24, 0x29, 0x30, 0x05
+};
+
+static const byte tinyGlDisplayGuid[16] = {
+	0x53, 0x63, 0x75, 0x6D, 0x6D, 0x56, 0x4D, 0x20, 0x54, 0x69, 0x6E, 0x79, 0x47, 0x4C, 0x00, 0x02
 };
 
 static const StdDisplayModeDesc syntheticModes[1] = {
@@ -216,7 +214,7 @@ static int compareDisplayModes(const void *pA, const void *pB) {
 	return pModeA->tex.height - pModeB->tex.height;
 }
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 
 static void setupVideoBuffer(StdVBuffer *pBuffer, const StdDisplayMode *pMode, byte *pPalette) {
 	uint bytesPerPixel = (uint)pMode->tex.format.bpp >> 3;
@@ -470,12 +468,13 @@ void StdDisplay::shutdown() {
 	_bStartup = 0;
 }
 
-int StdDisplay::enumerateDevices() {
+int StdDisplay::enumerateDevices(uint backendMask) {
 	StdDisplayDevice *pDevice = &_aDevices[0];
 
 	memcpy(pDevice->guid, dibSectionGuid, sizeof(pDevice->guid));
 	_bEnumerated = 1;
 	_numDevices = 0;
+	_backendMask = backendMask;
 
 	Common::strlcpy(pDevice->aName, "Window Display Device", sizeof(pDevice->aName));
 	Common::strlcpy(pDevice->aDescription, "DIBsection windowed display", sizeof(pDevice->aDescription));
@@ -486,20 +485,39 @@ int StdDisplay::enumerateDevices() {
 	pDevice->bHasHardware = 0;
 	pDevice->vidMemTotal = 2000000;
 	pDevice->vidMemFree = 2000000;
+	pDevice->backend = kStdDisplayBackendNone;
+	pDevice->bUsable = 1;
 	_numDevices = 1;
 
-	if (Graphics::Renderer::getAvailableTypes() & Graphics::kRendererTypeOpenGLShaders)
-		enumDevicesCallback(nullptr, "ScummVM OpenGL display", "ScummVM OpenGL");
+	if (isBackendEnabled(kStdDisplayBackendGl))
+		enumDevicesCallback(nullptr, "ScummVM OpenGL display", "ScummVM OpenGL", kStdDisplayBackendGl);
+
+	if (isBackendEnabled(kStdDisplayBackendTinyGl))
+		enumDevicesCallback(tinyGlDisplayGuid, "ScummVM TinyGL display", "ScummVM TinyGL", kStdDisplayBackendTinyGl);
 
 	return 1;
 }
 
-int StdDisplay::enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName) {
+int StdDisplay::isBackendEnabled(int backend) {
+	if (backend <= kStdDisplayBackendNone || backend > kStdDisplayBackendTinyGl)
+		return 0;
+
+	return (_backendMask >> backend) & 1;
+}
+
+void StdDisplay::setDeviceUsable(uint deviceIndex, int bUsable) {
+	if (deviceIndex < _numDevices)
+		_aDevices[deviceIndex].bUsable = bUsable;
+}
+
+int StdDisplay::enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName, int backend) {
 	if (_numDevices >= kStdDisplayMaxDevices)
 		return 0;
 
 	StdDisplayDevice *pDevice = &_aDevices[_numDevices];
 
+	pDevice->backend = backend;
+	pDevice->bUsable = 1;
 	pDevice->type = 1;
 	pDevice->bHasHardware = 1;
 
@@ -574,8 +592,8 @@ int StdDisplay::enumerateModes(uint deviceIndex) {
 }
 
 int StdDisplay::createDirectDraw() {
-	if (!(Graphics::Renderer::getAvailableTypes() & Graphics::kRendererTypeOpenGLShaders)) {
-		warning("StdDisplay::createDirectDraw(): OpenGL with shaders is not available");
+	if (!isBackendEnabled(_pCurDevice->backend)) {
+		warning("StdDisplay::createDirectDraw(): the display backend of the device is not available");
 		return 0;
 	}
 
@@ -626,6 +644,12 @@ uint StdDisplay::findClosestDevice(const StdDisplayDeviceFlags *pWanted) {
 	for (uint i = 0; i < _numDevices; i++) {
 		const StdDisplayDevice *pDevice = &_aDevices[i];
 		int score = 0;
+
+		if (!pDevice->bUsable)
+			continue;
+
+		if (pWanted->backend != kStdDisplayBackendAny && pDevice->backend != pWanted->backend)
+			continue;
 
 		if (pDevice->bHasHardware == pWanted->bHasHardware) {
 			score = 1;
@@ -743,7 +767,40 @@ void StdDisplay::closeDisplay() {
 	_bDisplayOpen = 0;
 }
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
+
+static int toBackendKind(int backend, Std3DBackendKind *pKind) {
+	switch (backend) {
+	case kStdDisplayBackendGl:
+		*pKind = kStd3DBackendGl;
+		break;
+	case kStdDisplayBackendTinyGl:
+		*pKind = kStd3DBackendTinyGl;
+		break;
+	default:
+		return 0;
+	}
+
+	return Std3D::isBackendCompiled(*pKind);
+}
+
+int StdDisplay::createBackend(int backend) {
+	Std3DBackendKind kind;
+
+	if (!_pStd3D || !toBackendKind(backend, &kind))
+		return 0;
+
+	return _pStd3D->createBackend(kind);
+}
+
+int StdDisplay::openBackend(int backend, int width, int height) {
+	Std3DBackendKind kind;
+
+	if (!_pStd3D || !toBackendKind(backend, &kind))
+		return 0;
+
+	return _pStd3D->openBackend(kind, width, height);
+}
 
 int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 	if (!_pStd3D || !_pMainGfxBuffer || !_pBackBuffer) {
@@ -756,18 +813,18 @@ int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 		return 0;
 	}
 
-	initGraphics3d(pMode->tex.width, pMode->tex.height);
-
-	if (OpenGLContext.type == OpenGL::kContextNone || !OpenGLContext.enginesShadersSupported || !OpenGLContext.framebufferObjectSupported) {
-		warning("StdDisplay::initDisplay(): the OpenGL context with shaders is not available");
+	if (!openBackend(_pCurDevice->backend, pMode->tex.width, pMode->tex.height)) {
+		warning("StdDisplay::initDisplay(): the 3D backend of the device is not available");
 		return 0;
 	}
 
 	setupVideoBuffer(_pMainGfxBuffer, pMode, pPalette);
 	_pMainGfxBuffer->pSurface = _pStd3D->createSurface(pMode->tex.width, pMode->tex.height, 0);
 
-	if (!_pMainGfxBuffer->pSurface)
+	if (!_pMainGfxBuffer->pSurface) {
+		_pStd3D->closeBackend();
 		return 0;
+	}
 
 	_pMainGfxBuffer->bVideoMemory = 1;
 
@@ -778,6 +835,7 @@ int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 
 		if (!_pBackBuffer->pSurface) {
 			_pStd3D->destroySurface(_pMainGfxBuffer->pSurface);
+			_pStd3D->closeBackend();
 			return 0;
 		}
 
@@ -804,7 +862,7 @@ void StdDisplay::releaseSurfaces() {
 	_bSurfacesCreated = 0;
 }
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 
 void StdDisplay::freeBuffers() {
 	if (!_pMainGfxBuffer || !_pBackBuffer)
@@ -833,7 +891,7 @@ int StdDisplay::prepareWindowForDraw() {
 	return _pCurDevice->type - 1;
 }
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 
 void StdDisplay::prepareOutputForDraw() {
 	if (_bDisplayOpen && _bSurfacesCreated && _pCurDevice && _pCurDevice->type == 1 && _pStd3D)
@@ -1290,6 +1348,14 @@ int StdDisplay::copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 }
 
 #else
+
+int StdDisplay::createBackend(int backend) {
+	return 0;
+}
+
+int StdDisplay::openBackend(int backend, int width, int height) {
+	return 0;
+}
 
 int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 	return 0;

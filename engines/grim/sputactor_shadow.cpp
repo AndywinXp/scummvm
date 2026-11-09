@@ -27,6 +27,7 @@
 #include "engines/grim/sputcostume_components.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/walkplane.h"
 
 namespace Grim {
@@ -235,7 +236,7 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 			if (_pShadowMaterial) {
 				_pRd->_colormap.setCurrent(pColormap);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 				if (_pSputRender->is3DHardware()) {
 					if (pColormap)
 						_pStd3D->setCurrentPalette(pColormap->aColors, 0);

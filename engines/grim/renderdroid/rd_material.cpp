@@ -26,6 +26,7 @@
 
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 
 namespace Grim {
 
@@ -232,7 +233,7 @@ void RenderDroid::MaterialModule::freeEntry(RdMaterial *pMaterial) {
 		for (uint mip = 0; mip < pTexture->numMips; mip++) {
 			_rd->_stdDisplay->vBufferFree(pTexture->apMips[mip]);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 			RdTexCacheEntry *pEntry = &pTexture->aCache[0][mip];
 
 			if (pEntry->bInCache && _rd->_pStd3D) {
@@ -250,7 +251,7 @@ void RenderDroid::MaterialModule::freeEntry(RdMaterial *pMaterial) {
 }
 
 int RenderDroid::MaterialModule::addToTextureCache(RdMaterial *, RdTexture *pTexture, int mipLevel, int alt) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	StdVBuffer *pMip = pTexture->apMips[mipLevel];
 	RdTexCacheEntry *pEntry = &pTexture->aCache[alt ? 1 : 0][mipLevel];
 

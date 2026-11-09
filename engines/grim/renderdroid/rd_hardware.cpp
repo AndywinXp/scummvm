@@ -21,7 +21,9 @@
 
 #include "common/scummsys.h"
 
-#if defined(USE_OPENGL_SHADERS)
+#include "engines/grim/std/std_3d_config.h"
+
+#if defined(GRIM_STD3D)
 
 #include "common/textconsole.h"
 

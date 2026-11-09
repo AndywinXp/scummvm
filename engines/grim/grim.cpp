@@ -52,10 +52,6 @@
 #include "graphics/surface.h"
 #include "graphics/renderer.h"
 
-#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
-#include "graphics/opengl/context.h"
-#endif
-
 #include "gui/error.h"
 #include "gui/gui-manager.h"
 #include "gui/message.h"
@@ -98,6 +94,7 @@
 #include "engines/grim/sputtext.h"
 #include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_bmp.h"
 #include "engines/grim/std/std_conffile.h"
@@ -456,7 +453,7 @@ void GrimEngine::createModules() {
 	_pStdBitmap = new StdBitmap(_pStdDisplay, _pStdFile, this);
 	_pStdDisplay->setStdBitmap(_pStdBitmap);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	_pStd3D = new Std3D(_pStdDisplay, _pStdBitmap);
 #endif
 
@@ -609,7 +606,7 @@ void GrimEngine::destroyModules() {
 	delete _pRd;
 	_pRd = nullptr;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	delete _pStd3D;
 #endif
 
@@ -637,21 +634,90 @@ void GrimEngine::destroyModules() {
 	_pImuse = nullptr;
 }
 
-bool GrimEngine::wantsHardwareRenderer() const {
-#if defined(USE_OPENGL_SHADERS)
-	if (!(Graphics::Renderer::getAvailableTypes() & Graphics::kRendererTypeOpenGLShaders))
-		return false;
+uint GrimEngine::getHardwareBackends() const {
+	uint mask = 0;
+
+#if defined(GRIM_STD3D)
+	uint32 availableTypes = Graphics::Renderer::getAvailableTypes();
+
+	if (Std3D::isBackendCompiled(kStd3DBackendGl) && (availableTypes & Graphics::kRendererTypeOpenGLShaders))
+		mask |= 1 << kStdDisplayBackendGl;
+
+	if (Std3D::isBackendCompiled(kStd3DBackendTinyGl) && (availableTypes & Graphics::kRendererTypeTinyGL))
+		mask |= 1 << kStdDisplayBackendTinyGl;
 
 	Graphics::RendererType desiredRendererType = Graphics::Renderer::parseTypeCode(ConfMan.get("renderer"));
 
-	return desiredRendererType == Graphics::kRendererTypeDefault || desiredRendererType == Graphics::kRendererTypeOpenGLShaders;
-#else
-	return false;
+	if (desiredRendererType == Graphics::kRendererTypeOpenGLShaders) {
+		if (mask & (1 << kStdDisplayBackendGl))
+			mask = 1 << kStdDisplayBackendGl;
+		else if (mask)
+			warning("GrimEngine::getHardwareBackends(): the OpenGL with shaders renderer is not available, using the other renderer");
+	} else if (desiredRendererType == Graphics::kRendererTypeTinyGL) {
+		if (mask & (1 << kStdDisplayBackendTinyGl))
+			mask = 1 << kStdDisplayBackendTinyGl;
+		else if (mask)
+			warning("GrimEngine::getHardwareBackends(): the software renderer is not available, using the other renderer");
+	} else if (desiredRendererType == Graphics::kRendererTypeOpenGL) {
+		warning("GrimEngine::getHardwareBackends(): the OpenGL renderer is not supported, using the default renderer");
+	}
 #endif
+
+	return mask;
+}
+
+int GrimEngine::isBackendUsable(int backend) {
+	uint numDevices = _pStdDisplay->getNumDevices();
+	StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+
+	for (uint i = 0; i < numDevices; i++) {
+		if (aDevices[i].type == 1 && aDevices[i].backend == backend && aDevices[i].bUsable)
+			return 1;
+	}
+
+	return 0;
+}
+
+int GrimEngine::hasUsableHardwareDevice() {
+	return isBackendUsable(kStdDisplayBackendGl) || isBackendUsable(kStdDisplayBackendTinyGl);
+}
+
+int GrimEngine::chooseHardwareBackend() {
+	StdDisplayDevice *pCurDevice = _pStdDisplay->getCurDevice();
+
+	if (_bDisplayOpen && pCurDevice && pCurDevice->type == 1 && isBackendUsable(pCurDevice->backend))
+		return pCurDevice->backend;
+
+	if (_preferredBackend != kStdDisplayBackendNone && isBackendUsable(_preferredBackend))
+		return _preferredBackend;
+
+	if (!_pWuRegistry->getInt("ExperimentalDisplay", 1)) {
+		byte aLastDisplayGuid[16];
+
+		memset(aLastDisplayGuid, 0, sizeof(aLastDisplayGuid));
+
+		if (_pWuRegistry->getBinary("LastDisplayDevice", aLastDisplayGuid, sizeof(aLastDisplayGuid))) {
+			uint numDevices = _pStdDisplay->getNumDevices();
+			StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+
+			for (uint i = 0; i < numDevices; i++) {
+				if (aDevices[i].type == 1 && aDevices[i].bUsable && !memcmp(aDevices[i].guid, aLastDisplayGuid, sizeof(aLastDisplayGuid)))
+					return aDevices[i].backend;
+			}
+		}
+	}
+
+	if (isBackendUsable(kStdDisplayBackendGl))
+		return kStdDisplayBackendGl;
+
+	if (isBackendUsable(kStdDisplayBackendTinyGl))
+		return kStdDisplayBackendTinyGl;
+
+	return kStdDisplayBackendNone;
 }
 
 int GrimEngine::grimStartup() {
-	_bHardwareAvailable = wantsHardwareRenderer() ? 1 : 0;
+	_hardwareBackends = getHardwareBackends();
 	_bUseHardware = ConfMan.getBool("grim_3d_acceleration") ? 1 : 0;
 	_bRemasterFixes = (isRemastered() || ConfMan.getBool("grim_remaster_bugfixes")) ? 1 : 0;
 
@@ -666,7 +732,7 @@ int GrimEngine::grimStartup() {
 	if (!_pRd->open(0))
 		return 0;
 
-	if (!_pStdDisplay->enumerateDevices())
+	if (!_pStdDisplay->enumerateDevices(_hardwareBackends))
 		return 0;
 
 	initDisplay();
@@ -713,15 +779,9 @@ void GrimEngine::grimMain() {
 		int mode = _libMode;
 
 		if (!selectDisplayMode(_pendingDevice, _pendingMode, _pending3DDevice)) {
-			warning("GrimEngine::grimMain(): could not change the display, going back to the software display");
+			warning("GrimEngine::grimMain(): could not change the display, going back to another display");
 
-			int device;
-			int displayMode;
-			int threeDDevice;
-
-			_bHardwareAvailable = 0;
-			chooseDefaultDisplay(1, 0, &device, &displayMode, &threeDDevice);
-			selectDisplayMode(device, displayMode, threeDDevice);
+			selectFallbackDisplay(_pendingDevice, _pending3DDevice != -1);
 		}
 
 		_libMode = 2;
@@ -1807,18 +1867,26 @@ int GrimEngine::initDisplay() {
 		pVideoDevice->num3DDevices = 0;
 		pVideoDevice->a3DDevices = nullptr;
 
-#if defined(USE_OPENGL_SHADERS)
-		if (_bHardwareAvailable && _pStdDisplay->getDevices()[i].b3D) {
-			initGraphics3d(kDisplayWidth, kDisplayHeight);
+		StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[i];
 
-			if (_pStd3D->enumerateDevices()) {
+		if (pDevice->type == 1 && !numModes)
+			_pStdDisplay->setDeviceUsable(i, 0);
+
+#if defined(GRIM_STD3D)
+		if (pDevice->type == 1 && pDevice->bUsable && pDevice->b3D) {
+			if (_pStdDisplay->createBackend(pDevice->backend) && (_pStd3D->canProbeWithoutMode() || _pStd3D->openBackendMode(kDisplayWidth, kDisplayHeight)) && _pStd3D->enumerateDevices()) {
 				uint numThreeDDevices = _pStd3D->getNumDevices();
 
 				pVideoDevice->num3DDevices = numThreeDDevices;
 				pVideoDevice->a3DDevices = new Std3DDevice[numThreeDDevices];
 				memcpy(pVideoDevice->a3DDevices, _pStd3D->getDevices(), sizeof(Std3DDevice) * numThreeDDevices);
 				_pStd3D->releaseDirect3D();
+			} else {
+				warning("GrimEngine::initDisplay(): the display device \"%s\" can not be used", pDevice->aDescription);
+				_pStdDisplay->setDeviceUsable(i, 0);
 			}
+
+			_pStd3D->closeBackend();
 		}
 #endif
 
@@ -1856,13 +1924,33 @@ int GrimEngine::initDisplayAndDevice() {
 		result = 0;
 	}
 
-	if (!result && _bHardwareAvailable) {
-		warning("GrimEngine::initDisplayAndDevice(): the hardware display failed, going back to the software display");
+	if (!result && _pStdDisplay->getDevices()[device].type == 1) {
+		warning("GrimEngine::initDisplayAndDevice(): the hardware display failed, going back to another display");
 
-		_bHardwareAvailable = 0;
-		chooseDefaultDisplay(1, 0, &device, &mode, &threeDDevice);
-		result = selectDisplayMode(device, mode, threeDDevice);
+		result = selectFallbackDisplay(device, threeDDevice != -1);
 	}
+
+	return result;
+}
+
+int GrimEngine::selectFallbackDisplay(int failedDevice, int bWant3D) {
+	int device = failedDevice;
+	int mode = 0;
+	int threeDDevice = -1;
+	int result = 0;
+
+	do {
+		if (device >= 0 && (uint)device < _pStdDisplay->getNumDevices() && _pStdDisplay->getDevices()[device].type == 1)
+			_pStdDisplay->setDeviceUsable(device, 0);
+
+		chooseDefaultDisplay(0, bWant3D, &device, &mode, &threeDDevice);
+		result = selectDisplayMode(device, mode, threeDDevice);
+
+		if (result && threeDDevice != -1 && !isHardware3D()) {
+			warning("GrimEngine::selectFallbackDisplay(): the 3D device could not be started");
+			result = 0;
+		}
+	} while (!result && _pStdDisplay->getDevices()[device].type == 1);
 
 	return result;
 }
@@ -1899,7 +1987,7 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 		device++;
 	}
 
-	if (device == numDevices || (aDevices[device].type == 1 && !_bHardwareAvailable)) {
+	if (device == numDevices || (aDevices[device].type == 1 && !aDevices[device].bUsable)) {
 		debug("grimdemo_DefaultDisplay: Could not find matching device.");
 		return 0;
 	}
@@ -1910,6 +1998,11 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
 
 	if (!memcmp(aLast3DGuid, aZeroGuid, sizeof(aZeroGuid))) {
+		if (aDevices[device].backend == kStdDisplayBackendTinyGl) {
+			debug("grimdemo_DefaultDisplay: The TinyGL display is only used with a 3D device.");
+			return 0;
+		}
+
 		*p3DDevice = -1;
 		return 1;
 	}
@@ -1935,7 +2028,13 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice) {
 	StdDisplayDeviceFlags wanted;
 
-	if (!_bHardwareAvailable) {
+	int backend = kStdDisplayBackendNone;
+
+	if (!bPreferWindowed)
+		backend = chooseHardwareBackend();
+
+	if (backend == kStdDisplayBackendNone || (backend == kStdDisplayBackendTinyGl && !bWant3D)) {
+		backend = kStdDisplayBackendNone;
 		bPreferWindowed = 1;
 		bWant3D = 0;
 	}
@@ -1951,6 +2050,7 @@ int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDev
 	wanted.bHasGuid = 1;
 	wanted.b3D = bWant3D;
 	wanted.bPrimary = bWant3D == 0;
+	wanted.backend = backend;
 
 	int device = _pStdDisplay->findClosestDevice(&wanted);
 	GrimVideoDevice *pVideoDevice = &_aVideoDevices[device];
@@ -1959,7 +2059,7 @@ int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDev
 	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
 	*p3DDevice = -1;
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (pVideoDevice->num3DDevices && bWant3D) {
 		Std3DDevice wantedDevice;
 
@@ -1994,8 +2094,8 @@ int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDInde
 
 	StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[deviceIndex];
 
-	if (pDevice->type == 1 && !_bHardwareAvailable) {
-		warning("GrimEngine::selectDisplayMode(): the hardware display is not enabled by the renderer setting");
+	if (pDevice->type == 1 && !pDevice->bUsable) {
+		warning("GrimEngine::selectDisplayMode(): the hardware display is not available");
 		return 0;
 	}
 
@@ -2053,7 +2153,7 @@ int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDInde
 	StdVBuffer *pZBuffer = nullptr;
 
 	if (select3DDevice(threeDIndex)) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 		pZBuffer = _pStd3D->getZBuffer();
 #endif
 	} else {
@@ -2068,13 +2168,16 @@ int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDInde
 	_pWuRegistry->saveBinary("LastDisplayDevice", pDevice->guid, sizeof(pDevice->guid));
 	_bShow = pDevice->type == 0;
 
+	if (pDevice->type == 1)
+		_preferredBackend = pDevice->backend;
+
 	return 1;
 }
 
 int GrimEngine::select3DDevice(int index) {
 	shutdown3D();
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (index != -1 && _pStd3D->enumerateDevices()) {
 		GrimVideoDevice *pVideoDevice = &_aVideoDevices[getCurVideoDeviceIndex()];
 
@@ -2097,14 +2200,14 @@ int GrimEngine::select3DDevice(int index) {
 	memset(aZeroGuid, 0, sizeof(aZeroGuid));
 	_pWuRegistry->saveBinary("Last3DDevice", aZeroGuid, sizeof(aZeroGuid));
 
-	if (_bHardwareAvailable)
+	if (hasUsableHardwareDevice())
 		ConfMan.setBool("grim_3d_acceleration", false);
 
 	return 0;
 }
 
 void GrimEngine::shutdown3D() {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (_pStd3D->isAvailable()) {
 		_pStd3D->shutdown();
 		_pStd3D->releaseDirect3D();
@@ -2132,6 +2235,11 @@ void GrimEngine::shutdownDisplay() {
 	_pStdDisplay->releaseSurfaces();
 	_pStdDisplay->closeDisplay();
 
+#if defined(GRIM_STD3D)
+	if (bVideoDevice)
+		_pStd3D->closeBackend();
+#endif
+
 	if (!bVideoDevice) {
 		delete[] _pMainGfxBuffer->pPixels;
 		_pMainGfxBuffer->pPixels = nullptr;
@@ -2147,7 +2255,7 @@ int GrimEngine::getCurVideoDeviceIndex() {
 }
 
 int GrimEngine::getCur3DDeviceIndex() {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (isHardware3D())
 		return _pStd3D->getCurDeviceIndex();
 #endif
@@ -2160,7 +2268,7 @@ int GrimEngine::isHardware3D() {
 }
 
 int GrimEngine::paletteCallback(byte *pPalette, int alpha) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 	if (g_grim->isHardware3D())
 		g_grim->_pStd3D->setCurrentPalette(pPalette, (byte)alpha);
 #endif
@@ -2579,7 +2687,7 @@ void GrimEngine::handleKeyDebug(const Common::KeyState &key) {
 		break;
 	case Common::KEYCODE_t:
 		if (_bBackspaceHeld) {
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 			_pStd3D->purgeTextureCache();
 #endif
 		}

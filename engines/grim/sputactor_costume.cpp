@@ -28,6 +28,7 @@
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_3d.h"
+#include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_display.h"
 
 namespace Grim {
@@ -145,7 +146,7 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 			if (pColormapModel && pColormapModel->pColormap) {
 				_pRd->_colormap.setCurrent(pColormapModel->pColormap);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 				if (b3DAcceleration)
 					_pStd3D->setCurrentPalette(pColormapModel->pColormap->aColors, 0);
 #endif
@@ -211,7 +212,7 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 			if (pModelInst->pColormap) {
 				_pRd->_colormap.setCurrent(pModelInst->pColormap);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 				if (b3DAcceleration)
 					_pStd3D->setCurrentPalette(pModelInst->pColormap->aColors, 0);
 #endif
@@ -235,7 +236,7 @@ void SputActorModule::drawCostumeImpl(CostumeNode *pNode, RdMatrix34 pMatrix) {
 
 			_pRd->_colormap.setCurrent(pActorColormap);
 
-#if defined(USE_OPENGL_SHADERS)
+#if defined(GRIM_STD3D)
 			if (b3DAcceleration)
 				_pStd3D->setCurrentPalette(pActorColormap->aColors, 0);
 #endif
