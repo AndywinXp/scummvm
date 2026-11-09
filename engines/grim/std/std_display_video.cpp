@@ -21,8 +21,6 @@
 
 #include "common/scummsys.h"
 
-#if defined(USE_OPENGL_SHADERS)
-
 #include "common/endian.h"
 #include "common/str.h"
 #include "common/system.h"
@@ -31,7 +29,9 @@
 
 #include "engines/util.h"
 
+#if defined(USE_OPENGL_SHADERS)
 #include "graphics/opengl/context.h"
+#endif
 #include "graphics/renderer.h"
 
 #include "engines/grim/std/std_3d.h"
@@ -215,6 +215,8 @@ static int compareDisplayModes(const void *pA, const void *pB) {
 
 	return pModeA->tex.height - pModeB->tex.height;
 }
+
+#if defined(USE_OPENGL_SHADERS)
 
 static void setupVideoBuffer(StdVBuffer *pBuffer, const StdDisplayMode *pMode, byte *pPalette) {
 	uint bytesPerPixel = (uint)pMode->tex.format.bpp >> 3;
@@ -456,6 +458,8 @@ static int findChangedRect(const Std3DSurface *pSurface, const byte *pShadow, St
 	pRect->height = bottom - top + 1;
 	return 1;
 }
+
+#endif
 
 int StdDisplay::startup() {
 	_bStartup = 1;
@@ -739,6 +743,8 @@ void StdDisplay::closeDisplay() {
 	_bDisplayOpen = 0;
 }
 
+#if defined(USE_OPENGL_SHADERS)
+
 int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 	if (!_pStd3D || !_pMainGfxBuffer || !_pBackBuffer) {
 		warning("StdDisplay::initDisplay(): the Std3D module and the display buffers are not set");
@@ -786,6 +792,8 @@ int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
 	return 1;
 }
 
+#endif
+
 void StdDisplay::releaseSurfaces() {
 	if (_bSurfacesCreated) {
 		if (_pCurDevice && _pCurDevice->type == 1)
@@ -795,6 +803,8 @@ void StdDisplay::releaseSurfaces() {
 
 	_bSurfacesCreated = 0;
 }
+
+#if defined(USE_OPENGL_SHADERS)
 
 void StdDisplay::freeBuffers() {
 	if (!_pMainGfxBuffer || !_pBackBuffer)
@@ -814,12 +824,16 @@ void StdDisplay::freeBuffers() {
 		vBufferFreeEntry(_pStd3D->getZBuffer());
 }
 
+#endif
+
 int StdDisplay::prepareWindowForDraw() {
 	if (!_bDisplayOpen || !_bSurfacesCreated || !_pCurDevice)
 		return 0;
 
 	return _pCurDevice->type - 1;
 }
+
+#if defined(USE_OPENGL_SHADERS)
 
 void StdDisplay::prepareOutputForDraw() {
 	if (_bDisplayOpen && _bSurfacesCreated && _pCurDevice && _pCurDevice->type == 1 && _pStd3D)
@@ -1275,6 +1289,19 @@ int StdDisplay::copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	return 1;
 }
 
-} // End of namespace Grim
+#else
+
+int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
+	return 0;
+}
+
+void StdDisplay::freeBuffers() {
+}
+
+int StdDisplay::update() {
+	return 0;
+}
 
 #endif
+
+} // End of namespace Grim

@@ -379,6 +379,7 @@ void Lua_V1::EnumerateVideoDevices() {
 	int firstDevice = g_grim->_bEnumerateVideo == 0 ? 1 : 0;
 	int numDevices = (int)g_grim->_pStdDisplay->getNumDevices();
 	StdDisplayDevice *aDevices = g_grim->_pStdDisplay->getDevices();
+	int numListed = 0;
 
 	for (int i = firstDevice; i < numDevices; i++) {
 		if (aDevices[i].type == 1 && !g_grim->_bHardwareAvailable)
@@ -387,6 +388,15 @@ void Lua_V1::EnumerateVideoDevices() {
 		lua_pushobject(result);
 		lua_pushnumber((float)i);
 		lua_pushstring(aDevices[i].aDescription);
+		lua_settable();
+		numListed++;
+	}
+
+	// Without hardware devices the options menu would be empty
+	if (!numListed && numDevices > 0) {
+		lua_pushobject(result);
+		lua_pushnumber(0.0f);
+		lua_pushstring(aDevices[0].aDescription);
 		lua_settable();
 	}
 
