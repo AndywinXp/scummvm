@@ -10,8 +10,10 @@ MODULE_OBJS := \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
 	emi/cbundle.o \
+	emi/cgrimeconsole.o \
 	emi/cpathingfileservices.o \
 	emi/filefind.o \
+	emi/fileutil.o \
 	emi/labitmap.o \
 	emi/lbitmap.o \
 	emi/lcolorformat.o \
@@ -24,6 +26,8 @@ MODULE_OBJS := \
 	emi/lsound.o \
 	emi/lstring.o \
 	emi/ltimeservices.o \
+	emi/polyglot_v2.o \
+	emi/resourcemanager.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \

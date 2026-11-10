@@ -58,7 +58,11 @@ void LConsoleServices::deleteAllConsoles() {
 
 		if (console) {
 			delete console;
-			gConsoles[i] = nullptr;
+
+			for (uint j = i; j < gNConsoles; j++) {
+				if (gConsoles[j] == console)
+					gConsoles[j] = nullptr;
+			}
 		}
 	}
 

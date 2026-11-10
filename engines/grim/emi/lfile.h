@@ -81,6 +81,7 @@ public:
 	static void deleteAllServices();
 	static int pushServices(LFileServices *services);
 	static LFileServices *popServices();
+	static uint getNumServices();
 };
 
 extern LFileServices *gpFileServices;

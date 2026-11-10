@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/lresourcehandle.h"
 
@@ -84,6 +85,14 @@ LResource::~LResource() {
 	}
 
 	handles.clear();
+}
+
+void *LResource::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LResource::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void LResource::initializeRes() {

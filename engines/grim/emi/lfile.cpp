@@ -441,6 +441,10 @@ LFileServices *LFileServices::popServices() {
 	return services;
 }
 
+uint LFileServices::getNumServices() {
+	return gServices.size();
+}
+
 void LFileServices::openInto(LFile *file, const char *path, const char *mode) {
 	byte flags = getOpenFlags(mode);
 	Common::SeekableReadStream *readStream;
