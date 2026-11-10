@@ -25,9 +25,9 @@
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 
-namespace Grim {
+#include "engines/grim/emi/lresource.h"
 
-class LResource;
+namespace Grim {
 
 class LResourceHandleBase {
 public:
@@ -54,13 +54,36 @@ public:
 		typed = nullptr;
 	}
 
+	explicit LResourceHandle(const LString &name) {
+		typed = nullptr;
+		resource = gpResourceManager->findResource(name);
+
+		if (!resource) {
+			resource = gpResourceManager->createResource(name);
+
+			if (!resource)
+				allocateResource();
+
+			if (resource) {
+				resource->resSetName(name.c_str());
+				gpResourceManager->addResource(resource);
+			}
+		}
+
+		LResourceHandleBase::setResource(resource);
+		typed = dynamic_cast<T *>(resource);
+
+		if (resource && !typed)
+			warning("LResourceHandle::LResourceHandle(): the resource has the wrong type");
+	}
+
 	LResourceHandle(const LResourceHandle<T> &other) : LResourceHandleBase(other) {
-		typed = static_cast<T *>(resource);
+		typed = dynamic_cast<T *>(resource);
 	}
 
 	LResourceHandle<T> &operator=(const LResourceHandle<T> &other) {
 		LResourceHandleBase::operator=(other);
-		typed = static_cast<T *>(resource);
+		typed = dynamic_cast<T *>(resource);
 
 		return *this;
 	}
@@ -77,7 +100,7 @@ public:
 	void setResource(LResource *newResource) override {
 		LResourceHandleBase::setResource(newResource);
 
-		typed = static_cast<T *>(resource);
+		typed = dynamic_cast<T *>(resource);
 
 		if (resource && !typed)
 			warning("LResourceHandle::setResource(): the resource has the wrong type");

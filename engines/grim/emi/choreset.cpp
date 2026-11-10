@@ -24,7 +24,9 @@
 #include "common/util.h"
 
 #include "engines/grim/emi/choreset.h"
+#include "engines/grim/emi/component.h"
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lresourcehandle.h"
 
 namespace Grim {
 
@@ -165,6 +167,54 @@ int Chore::findTrackIndex(int trackId) {
 	}
 
 	return -1;
+}
+
+void Chore::lockComponents() {
+	LResourceHandle<Component> handle;
+
+	for (uint i = 0; i < tracks.size(); i++) {
+		ChoreTrack *track = tracks[i];
+
+		if (!track) {
+			warning("Chore::lockComponents(): missing track %u", i);
+			continue;
+		}
+
+		{
+			LResourceHandle<Component> trackHandle(track->resourceName);
+
+			handle.setResource(trackHandle.resource);
+		}
+
+		if (handle.lock() && handle.typed)
+			handle.typed->resLock();
+
+		handle.unlock();
+	}
+}
+
+void Chore::unlockComponents() {
+	LResourceHandle<Component> handle;
+
+	for (uint i = 0; i < tracks.size(); i++) {
+		ChoreTrack *track = tracks[i];
+
+		if (!track) {
+			warning("Chore::unlockComponents(): missing track %u", i);
+			continue;
+		}
+
+		{
+			LResourceHandle<Component> trackHandle(track->resourceName);
+
+			handle.setResource(trackHandle.resource);
+		}
+
+		if (handle.lock() && handle.typed)
+			handle.typed->resUnlock();
+
+		handle.unlock();
+	}
 }
 
 ChoreSet::ChoreSet() {
