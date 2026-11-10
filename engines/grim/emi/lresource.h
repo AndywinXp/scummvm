@@ -46,6 +46,9 @@ public:
 	LResource();
 	virtual ~LResource();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void initializeRes();
 	virtual bool loadResourceItem(const char *itemName);
 	virtual bool loadResourceItem(const LString &itemName);

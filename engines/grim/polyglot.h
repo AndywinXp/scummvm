@@ -31,13 +31,14 @@ namespace Grim {
 class Polyglot {
 public:
 	Polyglot();
+	virtual ~Polyglot() {}
 
 	int initialize(SysStruct *pHS);
 	int startup();
-	void shutdown();
-	void configure(const char *tabFile);
+	virtual void shutdown();
+	virtual void configure(const char *tabFile);
 	char *findChar(char *s, int c);
-	const char *getTranslation(const char *msg);
+	virtual const char *getTranslation(const char *msg);
 
 private:
 	SysStruct *_pHS;
