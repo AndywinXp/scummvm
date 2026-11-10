@@ -20,63 +20,80 @@
  */
 
 #include "common/str.h"
+#include "common/textconsole.h"
 
 #include "engines/grim/emi/layer.h"
-#include "engines/grim/bitmap.h"
+#include "engines/grim/emi/lresource.h"
 
 namespace Grim {
 
-Layer::Layer() : _filename(""), _sortOrder(0), _frame(0), _bitmap(nullptr) {
+bool Layer::fix16Bit = true;
+int Layer::_nextId = 1;
+
+void Layer::set16BitFix(bool enable) {
+	fix16Bit = enable;
 }
 
-Layer::Layer(const Common::String &filename, int sortOrder) : _filename(filename), _sortOrder(sortOrder), _frame(0) {
-	_bitmap = Bitmap::create(filename);
+void Layer::saveRestoreNextId(tSaveRestoreAccess *access) {
+	access(&_nextId, sizeof(_nextId));
+}
+
+Layer::Layer(const char *layerName, int layerSortOrder, int layerFrame, int layerId) {
+	if (layerId == -1) {
+		id = _nextId;
+		_nextId++;
+	} else {
+		id = layerId;
+	}
+
+	frame = 0;
+	sortOrder = 0;
+
+	if (strlen(layerName) >= kNameSize)
+		warning("Layer::Layer(): the name is too long");
+
+	Common::strlcpy(name, layerName, kNameSize);
+	sortOrder = layerSortOrder;
+	frame = layerFrame;
+
+	LString resourceName = LString::format("BG%s", layerName);
+
+	background.resource = gpResourceManager->findResource(resourceName.c_str());
+
+	if (!background.resource) {
+		background.resource = gpResourceManager->createResource(resourceName.c_str());
+
+		if (!background.resource)
+			background.allocateResource();
+
+		if (background.resource) {
+			background.resource->resSetName(resourceName.c_str());
+			gpResourceManager->addResource(background.resource);
+		}
+	}
+
+	background.setResource(background.resource);
+
+	resourceName = LString::format("TS%s", layerName);
+
+	tiledScene.resource = gpResourceManager->findResource(resourceName.c_str());
+
+	if (!tiledScene.resource) {
+		tiledScene.resource = gpResourceManager->createResource(resourceName.c_str());
+
+		if (!tiledScene.resource)
+			tiledScene.allocateResource();
+
+		if (tiledScene.resource) {
+			tiledScene.resource->resSetName(resourceName.c_str());
+			gpResourceManager->addResource(tiledScene.resource);
+		}
+	}
+
+	tiledScene.setResource(tiledScene.resource);
 }
 
 Layer::~Layer() {
-	delete _bitmap;
 }
 
-void Layer::draw() {
-	_bitmap->drawLayer(_frame);
-}
-
-void Layer::setFrame(int frame) {
-	int numframes = _bitmap->getNumLayers();
-	if (frame >= numframes || frame < 0) {
-		warning("Layer::setFrame: invalid frame number: %d, numLayers: %d", frame, numframes);
-		return;
-	}
-	_frame = frame;
-}
-
-void Layer::setSortOrder(int order) {
-	_sortOrder = order;
-}
-
-void Layer::advanceFrame(int num) {
-	_frame += num;
-	int numframes = _bitmap->getNumLayers();
-	_frame %= numframes;
-}
-
-void Layer::saveState(SaveGame *state) {
-	if (_bitmap) {
-		state->writeBool(true);
-		state->writeString(_bitmap->getFilename());
-	} else {
-		state->writeBool(false);
-	}
-	state->writeLESint32(_frame);
-	state->writeLESint32(_sortOrder);
-}
-
-void Layer::restoreState(SaveGame *state) {
-	bool hasBitmap = state->readBool();
-	if (hasBitmap)
-		_bitmap = Bitmap::create(state->readString());
-	_frame = state->readLESint32();
-	_sortOrder = state->readLESint32();
-}
-
-}
+} // End of namespace Grim

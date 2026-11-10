@@ -1,0 +1,189 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "common/endian.h"
+#include "common/str.h"
+#include "common/textconsole.h"
+
+#include "engines/grim/emi/background.h"
+#include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/layer.h"
+#include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/emi/tiledscene.h"
+#include "engines/grim/emi/zfile.h"
+
+namespace Grim {
+
+Background::Background() {
+	bmData = nullptr;
+
+	for (int i = 0; i < kMaxTextures; i++)
+		textures[i] = nullptr;
+}
+
+Background::~Background() {
+	if (bmData)
+		BmData::free(bmData);
+
+	bmData = nullptr;
+
+	for (int i = 0; i < kMaxTextures; i++) {
+		if (!textures[i])
+			continue;
+
+		if (CDrawContext::context && textures[i] == CDrawContext::context->defaultTexture)
+			warning("Background::~Background(): texture is the default texture");
+		else
+			delete textures[i];
+
+		textures[i] = nullptr;
+	}
+}
+
+uint Background::resSizeOfItem() {
+	uint size = BmData::getSize(bmData) + sizeof(Background);
+
+	for (int i = 0; i < kMaxTextures; i++) {
+		if (textures[i])
+			size += textures[i]->getSize();
+	}
+
+	return size;
+}
+
+CTexture *Background::getTexture(int index) {
+	int slot = index % kMaxTextures;
+
+	if (slot < 0) {
+		warning("Background::getTexture(): negative texture index %d", index);
+
+		return nullptr;
+	}
+
+	return textures[slot];
+}
+
+bool Background::resLoadItem(const char *itemName) {
+	if (strlen(itemName) < 2) {
+		warning("Background::resLoadItem(): invalid resource name");
+
+		return false;
+	}
+
+	if (!CDrawContext::context) {
+		warning("Background::resLoadItem(): no draw context");
+
+		return false;
+	}
+
+	// TODO
+
+	const char *fileName = itemName + 2;
+	ZFile *file = ZFileServices::get()->open(fileName, "rb");
+
+	if (!file) {
+		if (scumm_stricmp(fileName, "dfltroom.til") != 0)
+			return resLoadItem("XXdfltroom.til");
+
+		if (gpConsoleServices)
+			gpConsoleServices->logError("Failed miserably.\n");
+		else
+			warning("Background::resLoadItem(): failed miserably");
+
+		return false;
+	}
+
+	byte signature[4];
+
+	if (file->read(signature, sizeof(signature)) != sizeof(signature)) {
+		warning("Background::resLoadItem(): unexpected end of file");
+		ZFileServices::get()->closeZFile(file);
+
+		return false;
+	}
+
+	file->seek(0, 0);
+
+	if (READ_LE_UINT32(signature) != TiledScene::kSignature) {
+		ZFileServices::get()->closeZFile(file);
+
+		return false;
+	}
+
+	byte headerBytes[TiledScene::kHeaderBytes];
+
+	if (file->read(headerBytes, sizeof(headerBytes)) != sizeof(headerBytes)) {
+		warning("Background::resLoadItem(): unexpected end of file");
+		ZFileServices::get()->closeZFile(file);
+
+		return false;
+	}
+
+	file->seek(READ_LE_INT32(headerBytes + 4 * TiledScene::kHeaderTablesSize), 0);
+
+	bmData = (BmData *)gpMemoryServices->malloc(sizeof(BmData));
+
+	if (bmData) {
+		Common::strlcpy((char *)bmData->reserved0, itemName, sizeof(bmData->reserved0));
+
+		char *extension = strrchr((char *)bmData->reserved0, '.');
+
+		if (extension)
+			*extension = 0;
+
+		if (!bmData->load(file)) {
+			gpMemoryServices->free(bmData);
+			bmData = nullptr;
+		}
+	}
+
+	ZFileServices::get()->closeZFile(file);
+
+	if (!bmData)
+		return false;
+
+	for (uint i = 0; i < bmData->numImages; i++) {
+		if (i == kMaxTextures)
+			break;
+
+		if (textures[i])
+			continue;
+
+		LABitmap bitmap(bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
+
+		if (CDrawContext::context->displayMode.bpp == 16 && Layer::fix16Bit)
+			bitmap.ditherPixels();
+
+		textures[i] = CDrawContext::context->createTexture(&bitmap);
+
+		if (textures[i]) {
+			textures[i]->flags = 0x84;
+			textures[i]->applyFlags();
+		}
+	}
+
+	BmData::free(bmData);
+
+	return true;
+}
+
+} // End of namespace Grim

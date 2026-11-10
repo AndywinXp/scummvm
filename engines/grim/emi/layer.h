@@ -19,41 +19,41 @@
  *
  */
 
-#ifndef GRIM_LAYER_H
-#define GRIM_LAYER_H
+#ifndef GRIM_EMI_LAYER_H
+#define GRIM_EMI_LAYER_H
 
-#include "common/endian.h"
-
-#include "engines/grim/pool.h"
+#include "engines/grim/emi/background.h"
+#include "engines/grim/emi/lresourcehandle.h"
+#include "engines/grim/emi/tiledscene.h"
+#include "engines/grim/lua/lua.h"
 
 namespace Grim {
 
-class Bitmap;
-
-class Layer : public PoolObject<Layer> {
+class Layer {
 public:
-	Layer();
-	Layer(const Common::String &filename, int sortOrder);
+	enum {
+		kNameSize = 128
+	};
+
+	Layer(const char *layerName, int layerSortOrder, int layerFrame, int layerId);
 	~Layer();
 
-	static int32 getStaticTag() { return MKTAG('L','A','Y','R'); }
+	static void set16BitFix(bool enable);
+	static void saveRestoreNextId(tSaveRestoreAccess *access);
 
-	void draw();
-	void setFrame(int frame);
-	void setSortOrder(int order);
-	void advanceFrame(int num);
-	int getSortOrder() const { return _sortOrder; }
+	int id;
+	int sortOrder;
+	int frame;
+	char name[kNameSize];
+	LResourceHandle<TiledScene> tiledScene;
+	LResourceHandle<Background> background;
 
-	void saveState(SaveGame *state);
-	void restoreState(SaveGame *state);
+	static bool fix16Bit;
 
 private:
-	Common::String _filename;
-	Bitmap *_bitmap;
-	int _sortOrder;
-	int _frame;
+	static int _nextId;
 };
 
-}
+} // End of namespace Grim
 
 #endif

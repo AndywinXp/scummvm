@@ -329,4 +329,23 @@ int CClipVolume::computeOutcode(const float *point) {
 	return code;
 }
 
+void CClipVolume::computeVertexOutcodes(int count, DrawVertex **vertices) {
+	for (int i = 0; i < count; i++) {
+		DrawVertex *vertex = vertices[i];
+		int code = 0;
+		uint bit = 1;
+
+		for (int j = 0; j < numPlanes; j++) {
+			if (((uint)planeMask & bit) == 0) {
+				if (-(double)kOutsideLimit > (double)planes[j].n.z * vertex->z + (double)planes[j].n.x * vertex->x + (double)vertex->y * planes[j].n.y + planes[j].d)
+					code |= bit;
+
+				bit *= 2;
+			}
+		}
+
+		vertex->outcode = code;
+	}
+}
+
 } // End of namespace Grim
