@@ -30,6 +30,7 @@ class CPathingFileServices : public LFileServices {
 public:
 	void openInto(LFile *file, const char *path, const char *mode) override;
 	LFile *open(const char *path, const char *mode) override;
+	LFile *openExtended(const char *path, const char *mode, int unused1, int unused2) override;
 	bool exists(const char *path) override;
 	int getModTime(const char *path) override;
 	bool resolvePath(LString &outPath, const char *name) override;
