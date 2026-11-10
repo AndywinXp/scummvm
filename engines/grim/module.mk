@@ -43,6 +43,8 @@ MODULE_OBJS := \
 	emi/ctextfont.o \
 	emi/ctexture.o \
 	emi/ctgafile.o \
+	emi/ctinyglcontext.o \
+	emi/ctinygltexture.o \
 	emi/cweightmap.o \
 	emi/filefind.o \
 	emi/fileutil.o \
