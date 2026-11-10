@@ -139,6 +139,10 @@ LFile *CPathingFileServices::open(const char *path, const char *mode) {
 	return file;
 }
 
+LFile *CPathingFileServices::openExtended(const char *path, const char *mode, int unused1, int unused2) {
+	return open(path, mode);
+}
+
 bool CPathingFileServices::exists(const char *path) {
 	LString resolved;
 

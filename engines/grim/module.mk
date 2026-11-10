@@ -9,11 +9,14 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
+	emi/cbundle.o \
 	emi/cpathingfileservices.o \
+	emi/filefind.o \
 	emi/lconsoleservices.o \
 	emi/lfile.o \
 	emi/lmemoryservices.o \
 	emi/ltimeservices.o \
+	emi/zfile.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \
 	imuse/imuse_engine.o \
