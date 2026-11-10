@@ -9,6 +9,9 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
+	emi/lconsoleservices.o \
+	emi/lmemoryservices.o \
+	emi/ltimeservices.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \
 	imuse/imuse_engine.o \
