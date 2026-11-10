@@ -1,0 +1,75 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef GRIM_EMI_TILEDSCENE_H
+#define GRIM_EMI_TILEDSCENE_H
+
+#include "engines/grim/emi/cdcvertexarray.h"
+#include "engines/grim/emi/lresource.h"
+
+namespace Grim {
+
+class QuadRange {
+public:
+	QuadRange(float firstValue, float secondValue);
+
+	float u;
+	float v;
+};
+
+class TiledScene : public LResource {
+public:
+	enum {
+		kHeaderSize = 9,
+		kHeaderBytes = 36,
+		kSignature = 0x304C4954
+	};
+
+	enum {
+		kHeaderTablesSize = 1,
+		kHeaderNumVertices = 2,
+		kHeaderNumFrames = 3,
+		kHeaderNumBatches = 4
+	};
+
+	TiledScene();
+	~TiledScene() override;
+
+	uint resSizeOfItem() override;
+
+	int getFrameCount();
+
+	byte *data;
+	int dataSize;
+	int header[kHeaderSize];
+	int *frames;
+	int *batches;
+	float *quads;
+	QuadRange *uvs;
+	VertexStreams vertices;
+
+protected:
+	bool resLoadItem(const char *itemName) override;
+};
+
+} // End of namespace Grim
+
+#endif

@@ -23,6 +23,7 @@
 #define GRIM_EMI_CCLIPVOLUME_H
 
 #include "engines/grim/emi/bbox.h"
+#include "engines/grim/emi/cdrawlist.h"
 #include "engines/grim/emi/cplane.h"
 #include "engines/grim/emi/cvector.h"
 
@@ -49,6 +50,7 @@ public:
 	int testSphere(const float *sphere);
 	int testPoints(const float *points, int count);
 	int computeOutcode(const float *point);
+	void computeVertexOutcodes(int count, DrawVertex **vertices);
 
 	int planeMask;
 	int numPlanes;

@@ -23,7 +23,7 @@
 #define EMI_ENGINE_H
 
 #include "engines/grim/grim.h"
-#include "engines/grim/emi/layer.h"
+#include "engines/grim/emi/layer_Old.h"
 
 namespace Grim {
 
