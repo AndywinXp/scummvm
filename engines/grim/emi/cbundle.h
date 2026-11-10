@@ -102,6 +102,9 @@ public:
 	bool findDirectoryEntry(LFileServices *services, const char *normalizedName, uint hash, BundleLookup *lookup);
 	bool findHashedEntry(LFileServices *services, const char *normalizedName, uint hash, BundleLookup *lookup);
 
+	static uint hashPath(const char *path, char *normalized);
+	static int decodeName(char *name);
+
 	CBundle *prev;
 	CBundle *next;
 	Common::String name;
@@ -178,18 +181,19 @@ public:
 	CBundle *head;
 	CBundle *tail;
 	LFile *logFile;
+
+	static bool init();
+	static bool isI9nBundleOpen();
+	static bool openIslandBundles(const char *island);
+	static void closeIslandBundles(const char *island);
+	static bool isIslandBundleOpen(const char *island);
+	static bool setDiscBundles(int disc);
+
+private:
+	static Common::String _currentIsland;
 };
 
 extern CBundleServices *gpBundleServices;
-
-uint hashPath(const char *path, char *normalized);
-int decodeName(char *name);
-bool initBundleServices();
-bool isI9nBundleOpen();
-bool openIslandBundles(const char *island);
-void closeIslandBundles(const char *island);
-bool isIslandBundleOpen(const char *island);
-bool setDiscBundles(int disc);
 
 } // End of namespace Grim
 

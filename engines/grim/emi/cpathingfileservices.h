@@ -34,12 +34,16 @@ public:
 	bool exists(const char *path) override;
 	int getModTime(const char *path) override;
 	bool resolvePath(LString &outPath, const char *name) override;
-};
 
-const char *getTypeDirectory(const char *extension);
-char *getCdPath();
-void suspendCdPath();
-void resumeCdPath();
+	static const char *getTypeDirectory(const char *extension);
+	static char *getCdPath();
+	static void suspendCdPath();
+	static void resumeCdPath();
+
+private:
+	static char _cdPath[260];
+	static char _suspendedCdPath[260];
+};
 
 } // End of namespace Grim
 

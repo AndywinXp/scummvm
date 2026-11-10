@@ -40,6 +40,21 @@ public:
 	void packPixel(byte *dest, uint alpha, uint red, uint green, uint blue) const;
 	void convertPixels(const byte *source, int count, const LColorFormat &destFormat, byte *dest) const;
 
+	static LColorFormat format1;
+	static LColorFormat format2;
+	static LColorFormat format3;
+	static LColorFormat format4;
+	static LColorFormat format5;
+	static LColorFormat format6;
+	static LColorFormat format9;
+	static LColorFormat format10;
+	static LColorFormat format11;
+	static LColorFormat format12;
+	static LColorFormat format13;
+	static LColorFormat format14;
+	static LColorFormat format15;
+	static LColorFormat format16;
+
 	int formatId;
 	int bytesPerPixel;
 	int alphaBits;
@@ -60,21 +75,6 @@ private:
 	uint readPixel(const byte *pixel) const;
 	int getChannel(uint pixelValue, uint mask, int shift) const;
 };
-
-extern LColorFormat gColorFormat1;
-extern LColorFormat gColorFormat2;
-extern LColorFormat gColorFormat3;
-extern LColorFormat gColorFormat4;
-extern LColorFormat gColorFormat5;
-extern LColorFormat gColorFormat6;
-extern LColorFormat gColorFormat9;
-extern LColorFormat gColorFormat10;
-extern LColorFormat gColorFormat11;
-extern LColorFormat gColorFormat12;
-extern LColorFormat gColorFormat13;
-extern LColorFormat gColorFormat14;
-extern LColorFormat gColorFormat15;
-extern LColorFormat gColorFormat16;
 
 } // End of namespace Grim
 

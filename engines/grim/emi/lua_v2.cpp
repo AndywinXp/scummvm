@@ -378,7 +378,7 @@ int Lua_V2::shutdown() {
 		lua_unref(_fieldRefs[i]);
 
 	if (_pFind)
-		fileUtilDisposeFind(_pFind);
+		FileUtilFind::disposeFind(_pFind);
 
 	lua_unref(refSystemTable);
 	lua_savehook = nullptr;

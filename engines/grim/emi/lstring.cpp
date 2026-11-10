@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-LString &stringGetExtension(LString &string, LString &extension) {
+LString &LStringUtil::getExtension(LString &string, LString &extension) {
 	size_t position = string.rfind('.');
 
 	if (position == LString::npos)

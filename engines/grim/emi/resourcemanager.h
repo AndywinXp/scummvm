@@ -67,16 +67,16 @@ public:
 	void dumpUsed(const LResourceType *type);
 	void dumpUnused(const LResourceType *type);
 
+	static bool startup();
+	static void shutdown();
+	static void update(float frameTime);
+	static int dumpResource(LResource *resource, LFile *file);
+
 	LFile *logFile;
 	Common::List<LResource *> allResources;
 	Common::List<LResource *> lruResources;
 	ResourceMap resourcesByName;
 };
-
-bool sputresmgrStartup();
-void sputresmgrShutdown();
-void sputresmgrUpdate(float frameTime);
-int dumpResource(LResource *resource, LFile *file);
 
 } // End of namespace Grim
 

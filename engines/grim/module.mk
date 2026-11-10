@@ -23,7 +23,7 @@ MODULE_OBJS := \
 	emi/lconsoleservices.o \
 	emi/lfile.o \
 	emi/lformatparser.o \
-	emi/lip.o \
+	emi/lipdata.o \
 	emi/lmemoryservices.o \
 	emi/lresource.o \
 	emi/lresourcehandle.o \

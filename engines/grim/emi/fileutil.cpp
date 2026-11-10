@@ -23,78 +23,75 @@
 
 namespace Grim {
 
-FileUtilFind *fileUtilNewFind(const char *directory, int mode, const char *name) {
-	FileUtilFind *find = new FileUtilFind();
-	find->callCount = 0;
-	find->find = nullptr;
+FileUtilFind *FileUtilFind::newFind(const char *directory, int mode, const char *name) {
+	FileUtilFind *created = new FileUtilFind();
+	created->callCount = 0;
+	created->find = nullptr;
 
 	switch (mode) {
 	case 0:
 	case 1:
 	case 2:
-		find->pattern = LString::format("%s*.*", directory);
+		created->pattern = LString::format("%s*.*", directory);
 		break;
 	case 3:
 		if (*name == '.')
 			name++;
 
-		find->pattern = LString::format("%s*.%s", directory, name);
+		created->pattern = LString::format("%s*.%s", directory, name);
 		break;
 	case 4:
-		find->pattern = LString::format("%s%s", directory, name);
+		created->pattern = LString::format("%s%s", directory, name);
 		break;
 	default:
 		break;
 	}
 
-	return find;
+	return created;
 }
 
-void fileUtilDisposeFind(FileUtilFind *&find) {
-	if (!find)
+void FileUtilFind::disposeFind(FileUtilFind *&target) {
+	if (!target)
 		return;
 
-	if (find->find) {
-		find->find->close();
-		delete find->find;
-		find->find = nullptr;
+	if (target->find) {
+		target->find->close();
+		delete target->find;
+		target->find = nullptr;
 	}
 
-	delete find;
-	find = nullptr;
+	delete target;
+	target = nullptr;
 }
 
-bool fileUtilFindNext(FileUtilFind *find, FileUtilEntry *entry) {
-	if (!find)
-		return false;
+bool FileUtilFind::findNext(FileUtilEntry *entry) {
+	int count = callCount;
+	callCount = count + 1;
 
-	int callCount = find->callCount;
-	find->callCount = callCount + 1;
-
-	if (callCount == 0) {
+	if (count == 0) {
 		int separator = -1;
 
-		for (uint i = 0; i < find->pattern.size(); i++) {
-			if (find->pattern[i] == '/' || find->pattern[i] == '\\')
+		for (uint i = 0; i < pattern.size(); i++) {
+			if (pattern[i] == '/' || pattern[i] == '\\')
 				separator = i;
 		}
 
 		LString directory;
-		LString filePattern = find->pattern;
+		LString filePattern = pattern;
 
 		if (separator >= 0) {
-			directory = find->pattern.substr(0, separator + 1);
-			filePattern = find->pattern.substr(separator + 1);
+			directory = pattern.substr(0, separator + 1);
+			filePattern = pattern.substr(separator + 1);
 		}
 
-		find->find = new FileFind(filePattern.c_str(), directory.c_str());
+		find = new FileFind(filePattern.c_str(), directory.c_str());
 	}
 
 	char name[260];
 	uint nameSize = sizeof(name);
 	uint attributes = 0;
 
-	if (!find->find->next(name, &nameSize, &attributes))
+	if (!find->next(name, &nameSize, &attributes))
 		return false;
 
 	entry->isDirectory = (attributes & kFileFindDirectory) != 0;
@@ -102,13 +99,13 @@ bool fileUtilFindNext(FileUtilFind *find, FileUtilEntry *entry) {
 
 	int slash = -1;
 
-	for (uint i = 0; i < find->pattern.size(); i++) {
-		if (find->pattern[i] == '/')
+	for (uint i = 0; i < pattern.size(); i++) {
+		if (pattern[i] == '/')
 			slash = i;
 	}
 
 	if (slash >= 0 && !entry->isDirectory)
-		entry->path = find->pattern.substr(0, slash + 1);
+		entry->path = pattern.substr(0, slash + 1);
 
 	entry->path += name;
 	entry->writeTime = 0;

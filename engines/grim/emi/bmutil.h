@@ -37,6 +37,11 @@ struct BmImage {
 };
 
 struct BmData {
+	bool load(LFile *file);
+	static int getSize(const BmData *bm);
+	static void free(BmData *&bm);
+	static int decompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize);
+
 	byte reserved0[128];
 	int codec;
 	int field132;
@@ -51,11 +56,6 @@ struct BmData {
 	int field212;
 	BmImage images[kBmMaxImages];
 };
-
-bool bmutilLoad(LFile *file, BmData *bm);
-int bmutilGetSize(const BmData *bm);
-void bmutilFree(BmData *&bm);
-int bmutilDecompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize);
 
 } // End of namespace Grim
 

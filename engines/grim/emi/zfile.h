@@ -63,11 +63,12 @@ public:
 	LFile *openExtended(const char *path, const char *mode, int unused1, int unused2) override;
 	virtual void closeZFile(ZFile *file);
 	ZFile *createZFile(LFile *file, const char *mode);
+
+	static ZFileServices *get();
+
+private:
+	static ZFileServices *_instance;
 };
-
-extern ZFileServices *gpZFileServices;
-
-ZFileServices *getZFileServices();
 
 } // End of namespace Grim
 

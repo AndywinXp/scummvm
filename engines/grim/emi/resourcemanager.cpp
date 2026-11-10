@@ -464,7 +464,7 @@ void ResourceManager::dumpUnused(const LResourceType *type) {
 	}
 }
 
-bool sputresmgrStartup() {
+bool ResourceManager::startup() {
 	gPreviousResourceManager = gpResourceManager;
 	gpResourceManager = &gResourceManager;
 
@@ -474,7 +474,7 @@ bool sputresmgrStartup() {
 	return true;
 }
 
-void sputresmgrShutdown() {
+void ResourceManager::shutdown() {
 	gpMemoryServices->unregisterMemoryHandler(gMemoryHandler);
 	gResourceManager.purgeAll();
 
@@ -484,7 +484,7 @@ void sputresmgrShutdown() {
 	gpResourceManager = gPreviousResourceManager;
 }
 
-void sputresmgrUpdate(float frameTime) {
+void ResourceManager::update(float frameTime) {
 	uint bytes = gpMemoryServices->bytesAllocated;
 
 	if (bytes > 0xC00000 && gResourceManager.purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !gLockedMessageShown) {
@@ -518,7 +518,7 @@ void sputresmgrUpdate(float frameTime) {
 	}
 }
 
-int dumpResource(LResource *resource, LFile *file) {
+int ResourceManager::dumpResource(LResource *resource, LFile *file) {
 	if (!resource)
 		return 0;
 

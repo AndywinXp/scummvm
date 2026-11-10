@@ -440,13 +440,13 @@ int LFormatParser::tokenize() {
 	return numTokens;
 }
 
-bool skipCopyrightBanner(LFile *file) {
+bool LFormatParser::skipCopyrightBanner(LFile *file) {
 	byte banner[kCopyrightBannerSize];
 
 	return file->read(banner, kCopyrightBannerSize) == kCopyrightBannerSize;
 }
 
-bool writeCopyrightBanner(LFile *file) {
+bool LFormatParser::writeCopyrightBanner(LFile *file) {
 	file->writeFormat("%s", kCopyrightBanner);
 
 	return true;

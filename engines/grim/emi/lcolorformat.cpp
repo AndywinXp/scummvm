@@ -26,20 +26,20 @@
 
 namespace Grim {
 
-LColorFormat gColorFormat1(1);
-LColorFormat gColorFormat2(2);
-LColorFormat gColorFormat3(3);
-LColorFormat gColorFormat4(4);
-LColorFormat gColorFormat5(5);
-LColorFormat gColorFormat6(6);
-LColorFormat gColorFormat9(9);
-LColorFormat gColorFormat10(10);
-LColorFormat gColorFormat11(11);
-LColorFormat gColorFormat12(12);
-LColorFormat gColorFormat13(13);
-LColorFormat gColorFormat14(14);
-LColorFormat gColorFormat15(15);
-LColorFormat gColorFormat16(16);
+LColorFormat LColorFormat::format1(1);
+LColorFormat LColorFormat::format2(2);
+LColorFormat LColorFormat::format3(3);
+LColorFormat LColorFormat::format4(4);
+LColorFormat LColorFormat::format5(5);
+LColorFormat LColorFormat::format6(6);
+LColorFormat LColorFormat::format9(9);
+LColorFormat LColorFormat::format10(10);
+LColorFormat LColorFormat::format11(11);
+LColorFormat LColorFormat::format12(12);
+LColorFormat LColorFormat::format13(13);
+LColorFormat LColorFormat::format14(14);
+LColorFormat LColorFormat::format15(15);
+LColorFormat LColorFormat::format16(16);
 
 LColorFormat::LColorFormat() {
 }

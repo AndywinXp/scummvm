@@ -66,11 +66,11 @@ bool CTGAFile::readImage(LFile *file, LBitmap *image, int unused) {
 		int bitmapHeight = (int16)height;
 
 		if (pixelDepth == 16)
-			bitmap->create(bitmapWidth, bitmapHeight, gColorFormat5, nullptr);
+			bitmap->create(bitmapWidth, bitmapHeight, LColorFormat::format5, nullptr);
 		else if (pixelDepth == 24)
-			bitmap->create(bitmapWidth, bitmapHeight, gColorFormat6, nullptr);
+			bitmap->create(bitmapWidth, bitmapHeight, LColorFormat::format6, nullptr);
 		else if (pixelDepth == 32)
-			bitmap->create(bitmapWidth, bitmapHeight, gColorFormat9, nullptr);
+			bitmap->create(bitmapWidth, bitmapHeight, LColorFormat::format9, nullptr);
 
 		if (pixelDepth == 16) {
 			if (descriptor <= 1) {

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef GRIM_EMI_LIP_H
-#define GRIM_EMI_LIP_H
+#ifndef GRIM_EMI_LIPDATA_H
+#define GRIM_EMI_LIPDATA_H
 
 #include "common/scummsys.h"
 
@@ -31,17 +31,33 @@ struct LipEntry {
 	byte code[2];
 };
 
-struct LipData {
+class LipData {
+public:
+	enum {
+		kBufferSize = 2000,
+		kMouthTableSize = 46
+	};
+
+	static int readFile(const char *name, LipData **lipData);
+	static int codeToMouthShape(int code);
+	static int compareMouthEntries(const void *first, const void *second);
+	static void sortMouthTable();
+
+	int findCode(int position) const;
+
 	byte reserved0[4];
 	byte count[4];
 	LipEntry entries[1];
-};
 
-int readLipFile(const char *name, LipData **lipData);
-int lipCodeToMouthShape(int code);
-int compareLipMouthEntries(const void *first, const void *second);
-int findLipCode(const LipData *lip, int position);
-void sortLipMouthTable();
+private:
+	struct MouthEntry {
+		uint32 code;
+		uint32 shape;
+	};
+
+	static byte _buffer[kBufferSize];
+	static MouthEntry _mouthTable[kMouthTableSize];
+};
 
 } // End of namespace Grim
 
