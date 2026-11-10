@@ -130,4 +130,8 @@ PackedColor *PackedColor::modulate(PackedColor *out, const PackedColor *other) {
 	return out;
 }
 
+uint32 PackedColor::pack() const {
+	return ((uint32)a << 24) | ((uint32)r << 16) | ((uint32)g << 8) | b;
+}
+
 } // End of namespace Grim

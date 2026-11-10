@@ -198,7 +198,7 @@ CMatrix *CMatrix::setFromQuaternion(const CQuaternion &quaternion) {
 	return this;
 }
 
-CMatrix *CMatrix::transpose(CMatrix *out) {
+CMatrix *CMatrix::transpose(CMatrix *out) const {
 	float result[9];
 
 	result[0] = m[0];
@@ -217,7 +217,7 @@ CMatrix *CMatrix::transpose(CMatrix *out) {
 	return out;
 }
 
-CMatrix *CMatrix::multiply(CMatrix *out, const CMatrix *other) {
+CMatrix *CMatrix::multiply(CMatrix *out, const CMatrix *other) const {
 	float result[9];
 
 	result[0] = (float)((double)m[2] * other->m[6] + (double)other->m[3] * m[1] + (double)other->m[0] * m[0]);

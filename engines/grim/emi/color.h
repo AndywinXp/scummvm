@@ -54,6 +54,7 @@ public:
 class PackedColor {
 public:
 	PackedColor *modulate(PackedColor *out, const PackedColor *other);
+	uint32 pack() const;
 
 	byte b;
 	byte g;

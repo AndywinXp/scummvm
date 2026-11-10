@@ -37,7 +37,10 @@ public:
 		kDebugEnabled = 0x01,
 		kDebugAxes = 0x02,
 		kDebugParentLine = 0x04,
-		kNoOutput = 0x80
+		kNoOutput = 0x80,
+		kDynamicLighting = 0x1000,
+		kAmbientCube = 0x20000,
+		kNoLighting = 0x40000
 	};
 
 	RNode();
