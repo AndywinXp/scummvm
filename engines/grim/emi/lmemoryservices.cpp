@@ -24,6 +24,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
@@ -375,9 +376,44 @@ void LDebugMemoryServices::verifyAll() {
 		verify(allocation);
 }
 
-// TODO
 bool LDebugMemoryServices::dumpAllocations(LFile *file) {
-	return false;
+	static const char *dayNames[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+	static const char *monthNames[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+	int totalBytes = 0;
+	int allocations = 0;
+
+	threadBase.lock();
+
+	if (!file) {
+		threadBase.unlock();
+		return false;
+	}
+
+	TimeDate td;
+	g_system->getTimeAndDate(td);
+	file->writeFormat("Memory Allocation Report: %s %s %2d %02d:%02d:%02d %d\n\n", dayNames[td.tm_wday], monthNames[td.tm_mon],
+		td.tm_mday, td.tm_hour, td.tm_min, td.tm_sec, td.tm_year + 1900);
+
+	LAllocation *allocation = newestAllocation;
+	while (allocation) {
+		totalBytes += allocation->size;
+		allocations++;
+		file->writeFormat("#%d : %d bytes", allocation->id, allocation->size);
+
+		if ((int)allocation->size > 1024)
+			file->writeFormat("!!!!");
+
+		file->writeFormat("\n");
+		allocation = allocation->older;
+	}
+
+	file->writeFormat("\tAllocations: %d\n", allocations);
+	file->writeFormat("\tAllocated Bytes: %d (%fk)\n", totalBytes, (double)totalBytes * 0.0009765625);
+	file->writeFormat("\tMax memory allocated %d (%f MB)\n", maxBytes, (double)maxBytes * 0.00000095367432);
+
+	threadBase.unlock();
+
+	return true;
 }
 
 bool LDebugMemoryServices::dumpLeaks(const char *fileName) {
