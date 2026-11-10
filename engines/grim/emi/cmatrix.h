@@ -34,8 +34,8 @@ public:
 	void toEuler(CVector *eulerDegrees);
 	void toQuaternion(CQuaternion *quaternion);
 	CMatrix *setFromQuaternion(const CQuaternion &quaternion);
-	CMatrix *transpose(CMatrix *out);
-	CMatrix *multiply(CMatrix *out, const CMatrix *other);
+	CMatrix *transpose(CMatrix *out) const;
+	CMatrix *multiply(CMatrix *out, const CMatrix *other) const;
 
 	float m[9];
 };

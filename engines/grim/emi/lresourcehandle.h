@@ -32,6 +32,7 @@ class LResource;
 class LResourceHandleBase {
 public:
 	LResourceHandleBase();
+	LResourceHandleBase(const LResourceHandleBase &other);
 	virtual ~LResourceHandleBase();
 
 	virtual bool allocateResource() = 0;
@@ -51,6 +52,17 @@ class LResourceHandle : public LResourceHandleBase {
 public:
 	LResourceHandle() {
 		typed = nullptr;
+	}
+
+	LResourceHandle(const LResourceHandle<T> &other) : LResourceHandleBase(other) {
+		typed = static_cast<T *>(resource);
+	}
+
+	LResourceHandle<T> &operator=(const LResourceHandle<T> &other) {
+		LResourceHandleBase::operator=(other);
+		typed = static_cast<T *>(resource);
+
+		return *this;
 	}
 
 	bool allocateResource() override {

@@ -29,6 +29,14 @@ LResourceHandleBase::LResourceHandleBase() {
 	resource = nullptr;
 }
 
+LResourceHandleBase::LResourceHandleBase(const LResourceHandleBase &other) {
+	lockCount = 0;
+	resource = other.resource;
+
+	if (resource)
+		resource->addHandle(*this);
+}
+
 LResourceHandleBase::~LResourceHandleBase() {
 	if (resource)
 		resource->removeHandle(*this);

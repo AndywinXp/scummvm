@@ -72,9 +72,13 @@ MODULE_OBJS := \
 	emi/profilertimer.o \
 	emi/rbox.o \
 	emi/resourcemanager.o \
+	emi/rmesh.o \
+	emi/rmeshinstance.o \
+	emi/rmeshparser.o \
 	emi/rnode.o \
 	emi/rprimitiveinstance.o \
 	emi/tiledscene.o \
+	emi/triset.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \
