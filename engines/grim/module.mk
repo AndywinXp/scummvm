@@ -9,12 +9,31 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
+	emi/achannel.o \
+	emi/ainst.o \
+	emi/animation.o \
+	emi/anode.o \
+	emi/atrack.o \
+	emi/bbox.o \
 	emi/bmutil.o \
 	emi/cbundle.o \
+	emi/cclipvolume.o \
 	emi/cgrimeconsole.o \
+	emi/choreset.o \
+	emi/clight.o \
+	emi/clightnode.o \
+	emi/cmatrix.o \
+	emi/cnode.o \
+	emi/cnoderef.o \
+	emi/color.o \
 	emi/cpathingfileservices.o \
 	emi/cpcxfile.o \
+	emi/cplane.o \
+	emi/cprimitive.o \
+	emi/cquaternion.o \
+	emi/cskeleton.o \
 	emi/ctgafile.o \
+	emi/cweightmap.o \
 	emi/filefind.o \
 	emi/fileutil.o \
 	emi/labitmap.o \
@@ -34,6 +53,7 @@ MODULE_OBJS := \
 	emi/lua_v2_actor.o \
 	emi/lua_v2_sound.o \
 	emi/polyglot_v2.o \
+	emi/profilertimer.o \
 	emi/resourcemanager.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \
