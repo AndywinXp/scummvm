@@ -42,6 +42,13 @@ public:
 	int r;
 	int g;
 	int b;
+
+	static Color kWhite;
+	static Color kYellow;
+	static Color kGreen;
+	static Color kRed;
+	static Color kCyan;
+	static Color kBlue;
 };
 
 class PackedColor {
