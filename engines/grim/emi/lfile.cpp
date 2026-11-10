@@ -110,6 +110,14 @@ LFile::~LFile() {
 	closeStreams();
 }
 
+void *LFile::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LFile::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 bool LFile::isOpen() const {
 	return readStream || writeStream;
 }
@@ -415,6 +423,14 @@ LFileServices::LFileServices() {
 }
 
 LFileServices::~LFileServices() {
+}
+
+void *LFileServices::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LFileServices::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void LFileServices::deleteAllServices() {

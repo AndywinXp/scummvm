@@ -31,6 +31,9 @@ public:
 	LConsoleServices();
 	virtual ~LConsoleServices();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual int logStatus(const char *format, ...);
 	virtual int logWarning(const char *format, ...);
 	virtual int logError(const char *format, ...);

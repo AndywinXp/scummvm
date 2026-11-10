@@ -35,6 +35,9 @@ class FileFind {
 public:
 	FileFind(const char *pattern, const char *directory);
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	void close();
 	bool next(char *name, uint *bufferSize, uint *attributes);
 

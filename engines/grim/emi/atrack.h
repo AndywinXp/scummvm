@@ -85,6 +85,9 @@ struct ATrackKey<CQuaternion> {
 
 class AChannelHandle {
 public:
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual bool detach(AInst *inst) = 0;
 	virtual void activate(AInst *inst) = 0;
 	virtual void deactivate(AInst *inst) = 0;
@@ -105,6 +108,9 @@ public:
 
 	ATrack();
 	virtual ~ATrack();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	virtual bool save(LFile *file);
 	virtual bool restore(LFile *file);

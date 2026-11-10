@@ -42,18 +42,18 @@ struct BmData {
 	static void free(BmData *&bm);
 	static int decompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize);
 
-	byte reserved0[128];
+	byte itemName[128];
 	int codec;
-	int field132;
+	int paletteIncluded;
 	int formatField136;
 	int bitsPerPixel;
 	int formatRest[12];
 	void *extraData;
 	uint numImages;
 	int field200;
-	int field204;
-	int field208;
-	int field212;
+	int originX;
+	int originY;
+	int transparentColor;
 	BmImage images[kBmMaxImages];
 };
 

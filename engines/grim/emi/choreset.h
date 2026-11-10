@@ -31,6 +31,9 @@
 namespace Grim {
 
 struct ChoreKey {
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	float time;
 	float value;
 };
@@ -39,6 +42,9 @@ class ChoreTrack {
 public:
 	ChoreTrack();
 	~ChoreTrack();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	int getSize();
 	void addKey(ChoreKey *key);
@@ -53,6 +59,9 @@ class Chore {
 public:
 	Chore();
 	~Chore();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	int getSize();
 	ChoreTrack *addTrack(const LString &trackResourceName);

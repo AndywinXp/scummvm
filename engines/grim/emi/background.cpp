@@ -152,9 +152,9 @@ bool Background::resLoadItem(const char *itemName) {
 	bmData = (BmData *)gpMemoryServices->malloc(sizeof(BmData));
 
 	if (bmData) {
-		Common::strlcpy((char *)bmData->reserved0, itemName, sizeof(bmData->reserved0));
+		Common::strlcpy((char *)bmData->itemName, itemName, sizeof(bmData->itemName));
 
-		char *extension = strrchr((char *)bmData->reserved0, '.');
+		char *extension = strrchr((char *)bmData->itemName, '.');
 
 		if (extension)
 			*extension = 0;

@@ -26,6 +26,7 @@
 #include "engines/grim/emi/choreset.h"
 #include "engines/grim/emi/component.h"
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresourcehandle.h"
 
 namespace Grim {
@@ -98,6 +99,14 @@ static void logChoreError(const char *format, const char *argument) {
 		warning("%s", message.c_str());
 }
 
+void *ChoreKey::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void ChoreKey::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 ChoreTrack::ChoreTrack() {
 	id = -1;
 	parentId = -1;
@@ -112,6 +121,14 @@ ChoreTrack::~ChoreTrack() {
 	}
 
 	keys.clear();
+}
+
+void *ChoreTrack::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void ChoreTrack::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 int ChoreTrack::getSize() {
@@ -136,6 +153,14 @@ Chore::~Chore() {
 
 	tracks.clear();
 	name.clear();
+}
+
+void *Chore::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void Chore::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 int Chore::getSize() {

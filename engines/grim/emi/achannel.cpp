@@ -23,12 +23,21 @@
 
 #include "engines/grim/emi/achannel.h"
 #include "engines/grim/emi/ainst.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
 enum {
 	kMaxGroups = 5
 };
+
+void *ChannelNode::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void ChannelNode::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
 
 static void removeChannel(AInst *inst, AChannelHandle *channel) {
 	Common::List<AChannelHandle *>::iterator it = inst->channels.begin();

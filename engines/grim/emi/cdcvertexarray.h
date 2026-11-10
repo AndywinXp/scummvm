@@ -37,6 +37,9 @@ struct VertexStreams {
 };
 
 struct CDCVertex {
+	void *operator new[](size_t size);
+	void operator delete[](void *block);
+
 	float x;
 	float y;
 	float z;
@@ -51,6 +54,9 @@ class CDCVertexArray {
 public:
 	CDCVertexArray();
 	virtual ~CDCVertexArray();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	virtual void *lock() = 0;
 	virtual void unlock() = 0;

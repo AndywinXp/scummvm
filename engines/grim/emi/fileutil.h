@@ -36,6 +36,9 @@ struct FileUtilEntry {
 };
 
 struct FileUtilFind {
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	static FileUtilFind *newFind(const char *directory, int mode, const char *name);
 	static void disposeFind(FileUtilFind *&target);
 

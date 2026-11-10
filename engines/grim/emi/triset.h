@@ -30,6 +30,9 @@ namespace Grim {
 struct TriSet {
 	TriSet();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	int drawFlags;
 	int numMaterials;
 	int materialIdx;

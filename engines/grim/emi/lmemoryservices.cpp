@@ -43,6 +43,14 @@ uint LDebugMemoryServices::allocationId = 0;
 static LMemoryServices gDefaultMemoryServices;
 LMemoryServices *gpMemoryServices = &gDefaultMemoryServices;
 
+void *LMemoryServices::LMemoryHandler::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LMemoryServices::LMemoryHandler::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 ThreadBase::ThreadBase() {
 	lockCount = 0;
 }

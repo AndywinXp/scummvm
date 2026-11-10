@@ -34,6 +34,9 @@ public:
 	CTexture();
 	virtual ~CTexture();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void applyFlags();
 	virtual void updateTexture(const LColorFormat *format, uint width, uint height, int stride, const byte *pixels);
 	virtual void setup(LABitmap *bitmap);

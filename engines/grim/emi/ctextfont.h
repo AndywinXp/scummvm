@@ -35,6 +35,9 @@ class CDrawContext;
 struct Glyph {
 	Glyph();
 
+	void *operator new[](size_t size);
+	void operator delete[](void *block);
+
 	int blobOffset;
 	signed char advance;
 	signed char offsetX;

@@ -64,6 +64,14 @@ static int doubleToInt(double value) {
 	return (int)(int64)value;
 }
 
+void *AChannelHandle::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void AChannelHandle::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 ATrack::ATrack() {
 	trackType = 0;
 	dataType = 0;
@@ -74,6 +82,14 @@ ATrack::ATrack() {
 }
 
 ATrack::~ATrack() {
+}
+
+void *ATrack::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void ATrack::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 int ATrack::getSize() {

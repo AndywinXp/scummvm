@@ -24,6 +24,7 @@
 #include "engines/grim/emi/cpcxfile.h"
 #include "engines/grim/emi/ctgafile.h"
 #include "engines/grim/emi/lbitmap.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/zfile.h"
 
@@ -36,6 +37,14 @@ static LResourceType gBitmapTypeSgi("SGI");
 static LResourceType gBitmapTypePng("PNG");
 
 LBitmap::LBitmap() {
+}
+
+void *LBitmap::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LBitmap::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void LBitmap::create(int width, int height, const LColorFormat &format, void *pixels) {

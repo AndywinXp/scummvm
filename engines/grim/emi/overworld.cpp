@@ -47,6 +47,11 @@ Overworld *Overworld::getInstance() {
 	return _instance;
 }
 
+void Overworld::destroyInstance() {
+	delete _instance;
+	_instance = nullptr;
+}
+
 Overworld::Overworld() {
 	enabled = true;
 

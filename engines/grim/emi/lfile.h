@@ -35,6 +35,9 @@ public:
 	LFile();
 	virtual ~LFile();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void reset();
 	virtual uint read(void *buffer, uint size);
 	virtual char *readLine(char *buffer, int maxCount);
@@ -65,6 +68,9 @@ class LFileServices {
 public:
 	LFileServices();
 	virtual ~LFileServices();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	virtual void openInto(LFile *file, const char *path, const char *mode);
 	virtual LFile *open(const char *path, const char *mode);

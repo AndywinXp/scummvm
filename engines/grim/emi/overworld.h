@@ -44,6 +44,7 @@ public:
 	void setLightsActive(bool active);
 
 	static Overworld *getInstance();
+	static void destroyInstance();
 
 	Common::List<CLightNode *> lights;
 	bool enabled;

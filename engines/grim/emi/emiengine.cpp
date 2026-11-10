@@ -25,6 +25,7 @@
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/dimregion.h"
 #include "engines/grim/emi/overworld.h"
+#include "engines/grim/emi/polyglot_v2.h"
 #include "engines/grim/emi/primitivequeue_v2.h"
 #include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/resourcemanager.h"
@@ -45,12 +46,20 @@ float EmiEngine::_frameTime = 0.0f;
 bool EmiEngine::_dumpingFrames = false;
 bool EmiEngine::_saveLoadIdle = true;
 int EmiEngine::_frontCopyCount = 0;
+Polyglot_v2 *EmiEngine::_polyglot = nullptr;
 
 EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
 		GrimEngine(syst, gameFlags, gameType, platform, language) {
+	_polyglot = new Polyglot_v2();
 }
 
 EmiEngine::~EmiEngine() {
+	delete _polyglot;
+	_polyglot = nullptr;
+}
+
+Polyglot_v2 *EmiEngine::getPolyglot() {
+	return _polyglot;
 }
 
 int EmiEngine::getMode() {
