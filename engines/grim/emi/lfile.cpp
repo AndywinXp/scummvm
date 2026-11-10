@@ -245,7 +245,18 @@ int LFile::seek(int offset, int whence) {
 		if (readStream)
 			return readStream->seek(offset, whence) ? 0 : -1;
 
-		warning("LFile::seek(): file not open for reading");
+		if (writeStream) {
+			Common::SeekableWriteStream *seekableStream = dynamic_cast<Common::SeekableWriteStream *>(writeStream);
+
+			if (seekableStream)
+				return seekableStream->seek(offset, whence) ? 0 : -1;
+
+			warning("LFile::seek(): write stream is not seekable");
+
+			return -1;
+		}
+
+		warning("LFile::seek(): file not open");
 
 		return -1;
 	}

@@ -38,7 +38,7 @@ public:
 	virtual void create(int width, int height, const LColorFormat &format, void *pixels);
 	virtual bool loadFromFile(LFile *file);
 	virtual bool saveToFile(LFile *file);
-	virtual const LColorFormat &getColorFormat();
+	virtual LColorFormat &getColorFormat();
 	virtual void setColorFormat(const LColorFormat &format);
 	virtual LString &getName();
 	virtual void setName(const char *newName);

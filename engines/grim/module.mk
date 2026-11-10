@@ -9,9 +9,12 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
+	emi/bmutil.o \
 	emi/cbundle.o \
 	emi/cgrimeconsole.o \
 	emi/cpathingfileservices.o \
+	emi/cpcxfile.o \
+	emi/ctgafile.o \
 	emi/filefind.o \
 	emi/fileutil.o \
 	emi/labitmap.o \
@@ -20,6 +23,7 @@ MODULE_OBJS := \
 	emi/lconsoleservices.o \
 	emi/lfile.o \
 	emi/lformatparser.o \
+	emi/lip.o \
 	emi/lmemoryservices.o \
 	emi/lresource.o \
 	emi/lresourcehandle.o \
