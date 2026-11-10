@@ -38,6 +38,13 @@ static const char *const fieldNames[] = {
 	"fxcolor", "duration", "layer", "center", "ljustify", "rjustify", "volume", "pan"
 };
 
+uint Lua_V2::_statsOverlayFlags = 8;
+Common::Array<Lua_V2::LockedChore> Lua_V2::_lockedChores;
+Common::Array<LString> Lua_V2::_lockedChoreSets;
+Common::Array<LString> Lua_V2::_lockedRooms;
+Common::Array<LString> Lua_V2::_lockedBackgrounds;
+Common::Array<uint> Lua_V2::_lockedSounds;
+
 static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "EnginePause", LUA_OPCODE(Lua_V2, EnginePause) },
 	{ "EngineResume", LUA_OPCODE(Lua_V2, EngineResume) },
@@ -801,70 +808,6 @@ void Lua_V2::ClearSpecialtyTexture() {
 	warning("Lua_V2::ClearSpecialtyTexture(): not implemented");
 }
 
-void Lua_V2::Exit() {
-	warning("Lua_V2::Exit(): not implemented");
-}
-
-void Lua_V2::FunctionName() {
-	warning("Lua_V2::FunctionName(): not implemented");
-}
-
-void Lua_V2::GetControlState() {
-	warning("Lua_V2::GetControlState(): not implemented");
-}
-
-void Lua_V2::PrintMessage() {
-	warning("Lua_V2::PrintMessage(): not implemented");
-}
-
-void Lua_V2::PrintError() {
-	warning("Lua_V2::PrintError(): not implemented");
-}
-
-void Lua_V2::PrintWarning() {
-	warning("Lua_V2::PrintWarning(): not implemented");
-}
-
-void Lua_V2::PrintDebug() {
-	warning("Lua_V2::PrintDebug(): not implemented");
-}
-
-void Lua_V2::MakeCurrentSet() {
-	warning("Lua_V2::MakeCurrentSet(): not implemented");
-}
-
-void Lua_V2::LockSet() {
-	warning("Lua_V2::LockSet(): not implemented");
-}
-
-void Lua_V2::UnLockSet() {
-	warning("Lua_V2::UnLockSet(): not implemented");
-}
-
-void Lua_V2::LockBackground() {
-	warning("Lua_V2::LockBackground(): not implemented");
-}
-
-void Lua_V2::UnLockBackground() {
-	warning("Lua_V2::UnLockBackground(): not implemented");
-}
-
-void Lua_V2::MakeCurrentSetup() {
-	warning("Lua_V2::MakeCurrentSetup(): not implemented");
-}
-
-void Lua_V2::GetCurrentSetup() {
-	warning("Lua_V2::GetCurrentSetup(): not implemented");
-}
-
-void Lua_V2::NextSetup() {
-	warning("Lua_V2::NextSetup(): not implemented");
-}
-
-void Lua_V2::PreviousSetup() {
-	warning("Lua_V2::PreviousSetup(): not implemented");
-}
-
 void Lua_V2::StartMovie() {
 	warning("Lua_V2::StartMovie(): not implemented");
 }
@@ -883,158 +826,6 @@ void Lua_V2::EscapeMovie() {
 
 void Lua_V2::IsMoviePlaying() {
 	warning("Lua_V2::IsMoviePlaying(): not implemented");
-}
-
-void Lua_V2::WorldToScreen() {
-	warning("Lua_V2::WorldToScreen(): not implemented");
-}
-
-void Lua_V2::GetCameraPosition() {
-	warning("Lua_V2::GetCameraPosition(): not implemented");
-}
-
-void Lua_V2::SetCameraPosition() {
-	warning("Lua_V2::SetCameraPosition(): not implemented");
-}
-
-void Lua_V2::CameraLookAt() {
-	warning("Lua_V2::CameraLookAt(): not implemented");
-}
-
-void Lua_V2::GetCameraFOV() {
-	warning("Lua_V2::GetCameraFOV(): not implemented");
-}
-
-void Lua_V2::SetCameraFOV() {
-	warning("Lua_V2::SetCameraFOV(): not implemented");
-}
-
-void Lua_V2::GetCameraYaw() {
-	warning("Lua_V2::GetCameraYaw(): not implemented");
-}
-
-void Lua_V2::YawCamera() {
-	warning("Lua_V2::YawCamera(): not implemented");
-}
-
-void Lua_V2::GetCameraPitch() {
-	warning("Lua_V2::GetCameraPitch(): not implemented");
-}
-
-void Lua_V2::PitchCamera() {
-	warning("Lua_V2::PitchCamera(): not implemented");
-}
-
-void Lua_V2::GetCameraRoll() {
-	warning("Lua_V2::GetCameraRoll(): not implemented");
-}
-
-void Lua_V2::RollCamera() {
-	warning("Lua_V2::RollCamera(): not implemented");
-}
-
-void Lua_V2::GetCameraLookVector() {
-	warning("Lua_V2::GetCameraLookVector(): not implemented");
-}
-
-void Lua_V2::PerSecond() {
-	warning("Lua_V2::PerSecond(): not implemented");
-}
-
-void Lua_V2::SnapToPlane() {
-	warning("Lua_V2::SnapToPlane(): not implemented");
-}
-
-void Lua_V2::GetAngleBetweenVectors() {
-	warning("Lua_V2::GetAngleBetweenVectors(): not implemented");
-}
-
-void Lua_V2::TurnLightOn() {
-	warning("Lua_V2::TurnLightOn(): not implemented");
-}
-
-void Lua_V2::IsLightOn() {
-	warning("Lua_V2::IsLightOn(): not implemented");
-}
-
-void Lua_V2::SetLightPosition() {
-	warning("Lua_V2::SetLightPosition(): not implemented");
-}
-
-void Lua_V2::GammaEnabled() {
-	warning("Lua_V2::GammaEnabled(): not implemented");
-}
-
-void Lua_V2::SetGamma() {
-	warning("Lua_V2::SetGamma(): not implemented");
-}
-
-void Lua_V2::SetPixelCenter() {
-	warning("Lua_V2::SetPixelCenter(): not implemented");
-}
-
-void Lua_V2::LoadBundle() {
-	warning("Lua_V2::LoadBundle(): not implemented");
-}
-
-void Lua_V2::RenderModeUser() {
-	warning("Lua_V2::RenderModeUser(): not implemented");
-}
-
-void Lua_V2::DimScreen() {
-	warning("Lua_V2::DimScreen(): not implemented");
-}
-
-void Lua_V2::DimRegion() {
-	warning("Lua_V2::DimRegion(): not implemented");
-}
-
-void Lua_V2::UndimAll() {
-	warning("Lua_V2::UndimAll(): not implemented");
-}
-
-void Lua_V2::UndimRegion() {
-	warning("Lua_V2::UndimRegion(): not implemented");
-}
-
-void Lua_V2::SetSpeechMode() {
-	warning("Lua_V2::SetSpeechMode(): not implemented");
-}
-
-void Lua_V2::GetSpeechMode() {
-	warning("Lua_V2::GetSpeechMode(): not implemented");
-}
-
-void Lua_V2::GetCPUSpeed() {
-	warning("Lua_V2::GetCPUSpeed(): not implemented");
-}
-
-void Lua_V2::NewLayer() {
-	warning("Lua_V2::NewLayer(): not implemented");
-}
-
-void Lua_V2::FreeLayer() {
-	warning("Lua_V2::FreeLayer(): not implemented");
-}
-
-void Lua_V2::GetLayerSortOrder() {
-	warning("Lua_V2::GetLayerSortOrder(): not implemented");
-}
-
-void Lua_V2::SetLayerSortOrder() {
-	warning("Lua_V2::SetLayerSortOrder(): not implemented");
-}
-
-void Lua_V2::GetLayerFrame() {
-	warning("Lua_V2::GetLayerFrame(): not implemented");
-}
-
-void Lua_V2::SetLayerFrame() {
-	warning("Lua_V2::SetLayerFrame(): not implemented");
-}
-
-void Lua_V2::AdvanceLayerFrame() {
-	warning("Lua_V2::AdvanceLayerFrame(): not implemented");
 }
 
 void Lua_V2::SetTextSpeed() {

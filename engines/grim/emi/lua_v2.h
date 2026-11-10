@@ -306,14 +306,32 @@ protected:
 	DECLARE_LUA_OPCODE(ImFlushStack);
 	DECLARE_LUA_OPCODE(ImGetMillisecondPosition);
 
+protected:
+	bool isActor(lua_Object object);
+	Actor *getActor(lua_Object object, const char *opcodeName);
+	CLightNode *getLightArg(int paramNumber, const char *opcodeName);
+
 private:
 	enum {
 		kNumFieldRefs = 16
 	};
 
+	struct LockedChore {
+		LString choreName;
+		LString choreSetName;
+	};
+
 	void makeSystemTable();
 
 	static int32 identityHook(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc);
+	static void toggleStatsOverlay(bool hide);
+
+	static uint _statsOverlayFlags;
+	static Common::Array<LockedChore> _lockedChores;
+	static Common::Array<LString> _lockedChoreSets;
+	static Common::Array<LString> _lockedRooms;
+	static Common::Array<LString> _lockedBackgrounds;
+	static Common::Array<uint> _lockedSounds;
 
 	int _fieldRefs[kNumFieldRefs];
 	FileUtilFind *_pFind;

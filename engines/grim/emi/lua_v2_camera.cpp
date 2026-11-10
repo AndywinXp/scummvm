@@ -1,0 +1,674 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <math.h>
+
+#include "common/textconsole.h"
+
+#include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/camera.h"
+#include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/cnode.h"
+#include "engines/grim/emi/cquaternion.h"
+#include "engines/grim/emi/cvector.h"
+#include "engines/grim/emi/emiengine.h"
+#include "engines/grim/emi/irect.h"
+#include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/room_v2.h"
+#include "engines/grim/emi/walkplane_v2.h"
+#include "engines/grim/emi/walkplanecollection.h"
+
+namespace Grim {
+
+static const float kMinVectorLength = 1e-20f;
+static const float kFlatDotLimit = 1.000001f;
+
+void Lua_V2::WorldToScreen() {
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(2);
+	lua_Object zObj = lua_getparam(3);
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+		return;
+
+	float z = lua_getnumber(zObj);
+	float y = lua_getnumber(yObj);
+	float x = lua_getnumber(xObj);
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom)
+		return;
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::WorldToScreen(): the room has no camera");
+
+		return;
+	}
+
+	camera->updateViewMatrix();
+
+	float view[12];
+
+	for (int i = 0; i < 9; i++)
+		view[i] = camera->view.rot.m[i];
+
+	view[9] = camera->view.pos.x;
+	view[10] = camera->view.pos.y;
+	view[11] = camera->view.pos.z;
+
+	double viewX = ((double)view[3] * y + (double)view[6] * z) + (double)view[0] * x;
+	float viewY = (float)(((double)view[4] * y + (double)view[7] * z) + (double)view[1] * x);
+	float viewDepth = (float)(((double)view[5] * y + (double)view[8] * z) + (double)view[2] * x);
+	float screenYTerm = (float)((double)view[10] + viewY);
+	float inverseDepth = (float)(1.0 / ((double)view[11] + viewDepth));
+	float screenX = (float)((((viewX + view[9]) * camera->focalX) * inverseDepth) + camera->halfWidth);
+	float screenY = (float)((double)camera->halfHeight - (((double)screenYTerm * camera->focalY) * inverseDepth));
+
+	if (!CDrawContext::context) {
+		lua_pushnil();
+		lua_pushnil();
+
+		return;
+	}
+
+	int rectBuffer[4];
+	int *rect = CDrawContext::context->getViewportRect(rectBuffer);
+	int width = rect[2];
+	int height = rect[3];
+
+	if (!(screenX >= 0.0f) || !((double)width >= (double)screenX) || !(screenY >= 0.0f) || !((double)height >= (double)screenY)) {
+		lua_pushnil();
+		lua_pushnil();
+
+		return;
+	}
+
+	double halfWidth = (double)(width / 2);
+	double halfHeight = (double)(height / 2);
+
+	lua_pushnumber((float)(((double)screenX - halfWidth) / halfWidth));
+	lua_pushnumber((float)((halfHeight - (double)screenY) / halfHeight));
+}
+
+void Lua_V2::GetCameraPosition() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraPosition(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+		camera->updateWorldTransform();
+
+	lua_pushnumber(camera->world.pos.x);
+
+	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+		camera->updateWorldTransform();
+
+	lua_pushnumber(camera->world.pos.y);
+
+	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+		camera->updateWorldTransform();
+
+	lua_pushnumber(camera->world.pos.z);
+}
+
+void Lua_V2::SetCameraPosition() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(2);
+	lua_Object zObj = lua_getparam(3);
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CVector position;
+
+	position.z = lua_getnumber(zObj);
+	position.y = lua_getnumber(yObj);
+	position.x = lua_getnumber(xObj);
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::SetCameraPosition(): the room has no camera");
+
+		return;
+	}
+
+	camera->setLocalPosition(position);
+}
+
+void Lua_V2::CameraLookAt() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object xObj = lua_getparam(1);
+	lua_Object yObj = lua_getparam(2);
+	lua_Object zObj = lua_getparam(3);
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CVector target;
+
+	target.z = lua_getnumber(zObj);
+	target.y = lua_getnumber(yObj);
+	target.x = lua_getnumber(xObj);
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::CameraLookAt(): the room has no camera");
+
+		return;
+	}
+
+	camera->lookAt(target);
+}
+
+void Lua_V2::GetCameraFOV() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraFOV(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_pushnumber(camera->fovX);
+}
+
+void Lua_V2::SetCameraFOV() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object fovObj = lua_getparam(1);
+
+	if (!lua_isnumber(fovObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CDrawContext *drawContext = CDrawContext::context;
+
+	if (!drawContext) {
+		warning("Lua_V2::SetCameraFOV(): there is no draw context");
+
+		return;
+	}
+
+	currentRoom->getSetupCamera(-1);
+
+	int rectBuffer[4];
+	int *rect = drawContext->getViewportRect(rectBuffer);
+	IRect viewport;
+
+	viewport.x = rect[0];
+	viewport.y = rect[1];
+	viewport.w = rect[2];
+	viewport.h = rect[3];
+
+	float fov = lua_getnumber(fovObj);
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::SetCameraFOV(): the room has no camera");
+
+		return;
+	}
+
+	camera->setViewport(&viewport, fov);
+}
+
+void Lua_V2::GetCameraYaw() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraYaw(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+		camera->computeLocalMatrixFromWorld();
+
+	lua_pushnumber(camera->eulerDeg.y);
+}
+
+void Lua_V2::YawCamera() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object angleObj = lua_getparam(1);
+
+	if (!lua_isnumber(angleObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CVector axis;
+
+	axis.x = 0.0f;
+	axis.y = 1.0f;
+	axis.z = 0.0f;
+
+	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
+	CQuaternion rotation(axis, angle);
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::YawCamera(): the room has no camera");
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+		camera->updateLocalQuaternion();
+
+	double rotationX = rotation.x;
+	double rotationY = rotation.y;
+	double rotationZ = rotation.z;
+	double rotationW = rotation.w;
+	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
+	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
+	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
+	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+
+	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->updateLocalState();
+}
+
+void Lua_V2::GetCameraPitch() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraPitch(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+		camera->computeLocalMatrixFromWorld();
+
+	lua_pushnumber(camera->eulerDeg.x);
+}
+
+void Lua_V2::PitchCamera() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object angleObj = lua_getparam(1);
+
+	if (!lua_isnumber(angleObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CVector axis;
+
+	axis.x = 1.0f;
+	axis.y = 0.0f;
+	axis.z = 0.0f;
+
+	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
+	CQuaternion rotation(axis, angle);
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::PitchCamera(): the room has no camera");
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+		camera->updateLocalQuaternion();
+
+	double rotationX = rotation.x;
+	double rotationY = rotation.y;
+	double rotationZ = rotation.z;
+	double rotationW = rotation.w;
+	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
+	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
+	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
+	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+
+	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->updateLocalState();
+}
+
+void Lua_V2::GetCameraRoll() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraRoll(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+		camera->computeLocalMatrixFromWorld();
+
+	lua_pushnumber(camera->eulerDeg.z);
+}
+
+void Lua_V2::RollCamera() {
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	lua_Object angleObj = lua_getparam(1);
+
+	if (!lua_isnumber(angleObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	CVector axis;
+
+	axis.x = 0.0f;
+	axis.y = 0.0f;
+	axis.z = 1.0f;
+
+	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
+	CQuaternion rotation(axis, angle);
+	Camera *camera = currentRoom->getSetupCamera(-1);
+
+	if (!camera) {
+		warning("Lua_V2::RollCamera(): the room has no camera");
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+		camera->updateLocalQuaternion();
+
+	double rotationX = rotation.x;
+	double rotationY = rotation.y;
+	double rotationZ = rotation.z;
+	double rotationW = rotation.w;
+	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
+	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
+	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
+	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+
+	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->updateLocalState();
+}
+
+void Lua_V2::GetCameraLookVector() {
+	lua_Object setupObj = lua_getparam(1);
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom) {
+		lua_pushnil();
+
+		return;
+	}
+
+	int setupIndex;
+
+	if (lua_isnumber(setupObj))
+		setupIndex = luaFtol(lua_getnumber(setupObj));
+	else
+		setupIndex = currentRoom->currentSetup;
+
+	Camera *camera = currentRoom->getSetupCamera(setupIndex);
+
+	if (!camera) {
+		warning("Lua_V2::GetCameraLookVector(): the room has no camera");
+		lua_pushnil();
+
+		return;
+	}
+
+	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+		camera->updateWorldTransform();
+
+	double lookX = camera->world.rot.m[6];
+	double lookY = camera->world.rot.m[7];
+	double lookZ = camera->world.rot.m[8];
+	float resultX = camera->world.rot.m[6];
+	float resultY = camera->world.rot.m[7];
+	float resultZ = camera->world.rot.m[8];
+	double length = sqrt((lookX * lookX + lookY * lookY) + lookZ * lookZ);
+
+	if (length >= (double)kMinVectorLength) {
+		double inverse = 1.0 / length;
+
+		resultX = (float)(lookX * inverse);
+		resultY = (float)(lookY * inverse);
+		resultZ = (float)(lookZ * inverse);
+	}
+
+	lua_Object table = lua_createtable();
+
+	lua_pushobject(table);
+	lua_pushstring("x");
+	lua_pushnumber(resultX);
+	lua_settable();
+	lua_pushobject(table);
+	lua_pushstring("y");
+	lua_pushnumber(resultY);
+	lua_settable();
+	lua_pushobject(table);
+	lua_pushstring("z");
+	lua_pushnumber(resultZ);
+	lua_settable();
+	lua_pushobject(table);
+}
+
+void Lua_V2::PerSecond() {
+	lua_Object valueObj = lua_getparam(1);
+
+	// The disasm does not return here, so a second value is pushed
+	if (!lua_isnumber(valueObj))
+		lua_pushnil();
+
+	float frameTime = EmiEngine::getFrameTime();
+
+	lua_pushnumber((float)((double)lua_getnumber(valueObj) * frameTime));
+}
+
+void Lua_V2::SnapToPlane() {
+	lua_Object planeObj = lua_getparam(1);
+	lua_Object xObj = lua_getparam(2);
+	lua_Object yObj = lua_getparam(3);
+	lua_Object zObj = lua_getparam(4);
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+
+	if (!currentRoom || !currentRoom->walkPlanes || !lua_isstring(planeObj)) {
+		warning("Lua_V2::SnapToPlane(): missing walk planes or plane name");
+		lua_pushnil();
+
+		return;
+	}
+
+	LString planeName = lua_getstring(planeObj);
+	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeNamed(planeName);
+
+	if (!plane) {
+		lua_pushnil();
+
+		return;
+	}
+
+	float point[3];
+
+	point[0] = lua_getnumber(xObj);
+	point[1] = lua_getnumber(yObj);
+	point[2] = lua_getnumber(zObj);
+	plane->project(point);
+	lua_pushnumber(point[0]);
+	lua_pushnumber(point[1]);
+	lua_pushnumber(point[2]);
+}
+
+void Lua_V2::GetAngleBetweenVectors() {
+	lua_Object firstObj = lua_getparam(1);
+	lua_Object secondObj = lua_getparam(2);
+
+	if (!lua_istable(firstObj) || !lua_istable(secondObj)) {
+		lua_pushnil();
+
+		return;
+	}
+
+	float firstVector[3];
+	float secondVector[3];
+	const char *const components[3] = { "x", "y", "z" };
+
+	for (int i = 0; i < 3; i++) {
+		lua_pushobject(firstObj);
+		lua_pushstring(components[i]);
+		firstVector[i] = lua_getnumber(lua_gettable());
+	}
+
+	for (int i = 0; i < 3; i++) {
+		lua_pushobject(secondObj);
+		lua_pushstring(components[i]);
+		secondVector[i] = lua_getnumber(lua_gettable());
+	}
+
+	double firstLength = sqrt(((double)firstVector[1] * firstVector[1] + (double)firstVector[2] * firstVector[2]) + (double)firstVector[0] * firstVector[0]);
+	double firstZ = firstVector[2];
+
+	if (firstLength >= (double)kMinVectorLength) {
+		double inverse = 1.0 / firstLength;
+
+		firstVector[0] = (float)(inverse * firstVector[0]);
+		firstVector[1] = (float)(inverse * firstVector[1]);
+		firstZ = firstVector[2] * inverse;
+	}
+
+	double secondLength = sqrt(((double)secondVector[1] * secondVector[1] + (double)secondVector[2] * secondVector[2]) + (double)secondVector[0] * secondVector[0]);
+	double secondZ = secondVector[2];
+
+	if (secondLength >= (double)kMinVectorLength) {
+		double inverse = 1.0 / secondLength;
+
+		secondVector[0] = (float)(inverse * secondVector[0]);
+		secondVector[1] = (float)(inverse * secondVector[1]);
+		secondZ = secondVector[2] * inverse;
+	}
+
+	float dot = (float)(((secondZ * firstZ) + (double)secondVector[1] * firstVector[1]) + (double)secondVector[0] * firstVector[0]);
+
+	if (!(dot > 1.0f) || !(dot < kFlatDotLimit))
+		lua_pushnumber((float)(acos((double)dot) * WalkPlane_v2::kRadiansToDegrees));
+	else
+		lua_pushnumber(0.0f);
+}
+
+} // end of namespace Grim

@@ -93,6 +93,11 @@ MODULE_OBJS := \
 	emi/ltimeservices.o \
 	emi/lua_v2.o \
 	emi/lua_v2_actor.o \
+	emi/lua_v2_camera.o \
+	emi/lua_v2_chore.o \
+	emi/lua_v2_layer.o \
+	emi/lua_v2_render.o \
+	emi/lua_v2_set.o \
 	emi/lua_v2_sound.o \
 	emi/luacommandcomponent.o \
 	emi/luacommandcomponenttype.o \
