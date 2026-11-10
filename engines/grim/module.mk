@@ -10,8 +10,11 @@ MODULE_OBJS := \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
 	emi/achannel.o \
+	emi/actor.o \
 	emi/ainst.o \
 	emi/animation.o \
+	emi/animcomponenttype.o \
+	emi/animwgtcomponenttype.o \
 	emi/anode.o \
 	emi/atrack.o \
 	emi/background.o \
@@ -35,6 +38,9 @@ MODULE_OBJS := \
 	emi/cogltexture.o \
 	emi/coglvertexarray.o \
 	emi/color.o \
+	emi/component.o \
+	emi/componentinstance.o \
+	emi/componenttype.o \
 	emi/cpathingfileservices.o \
 	emi/cpcxfile.o \
 	emi/cplane.o \
@@ -47,9 +53,17 @@ MODULE_OBJS := \
 	emi/ctgafile.o \
 	emi/ctinyglcontext.o \
 	emi/ctinygltexture.o \
+	emi/cubecomponent.o \
+	emi/cubecomponenttype.o \
+	emi/cubeinstance.o \
 	emi/cweightmap.o \
 	emi/filefind.o \
 	emi/fileutil.o \
+	emi/floatcomponenttype.o \
+	emi/globalalphacomponent.o \
+	emi/globalalphacomponenttype.o \
+	emi/globalalphainstance.o \
+	emi/integercomponenttype.o \
 	emi/irect.o \
 	emi/labitmap.o \
 	emi/layer.o \
@@ -60,6 +74,9 @@ MODULE_OBJS := \
 	emi/lformatparser.o \
 	emi/lipdata.o \
 	emi/lmemoryservices.o \
+	emi/localalphacomponent.o \
+	emi/localalphacomponenttype.o \
+	emi/localalphainstance.o \
 	emi/lresource.o \
 	emi/lresourcehandle.o \
 	emi/lsound.o \
@@ -68,6 +85,15 @@ MODULE_OBJS := \
 	emi/lua_v2.o \
 	emi/lua_v2_actor.o \
 	emi/lua_v2_sound.o \
+	emi/luacommandcomponent.o \
+	emi/luacommandcomponenttype.o \
+	emi/luacommandinstance.o \
+	emi/luavarcomponent.o \
+	emi/luavarcomponenttype.o \
+	emi/luavarinstance.o \
+	emi/meshcomponent.o \
+	emi/meshcomponenttype.o \
+	emi/meshinstance.o \
 	emi/polyglot_v2.o \
 	emi/profilertimer.o \
 	emi/rbox.o \
@@ -77,6 +103,19 @@ MODULE_OBJS := \
 	emi/rmeshparser.o \
 	emi/rnode.o \
 	emi/rprimitiveinstance.o \
+	emi/shadowmeshcomponent.o \
+	emi/shadowmeshcomponenttype.o \
+	emi/shadowmeshinstance.o \
+	emi/skeletoncomponenttype.o \
+	emi/snd3dcomponenttype.o \
+	emi/sndcomponenttype.o \
+	emi/spritecomponent.o \
+	emi/spritecomponenttype.o \
+	emi/spriteinstance.o \
+	emi/statecomponenttype.o \
+	emi/textureindexcomponent.o \
+	emi/textureindexcomponenttype.o \
+	emi/textureindexinstance.o \
 	emi/tiledscene.o \
 	emi/triset.o \
 	emi/zfile.o \

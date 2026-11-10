@@ -57,6 +57,8 @@ public:
 	int getSize();
 	ChoreTrack *addTrack(const LString &trackResourceName);
 	int findTrackIndex(int trackId);
+	void lockComponents();
+	void unlockComponents();
 
 	LString name;
 	Common::Array<ChoreTrack *> tracks;
