@@ -21,9 +21,19 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/cpcxfile.h"
+#include "engines/grim/emi/ctgafile.h"
 #include "engines/grim/emi/lbitmap.h"
+#include "engines/grim/emi/lresource.h"
+#include "engines/grim/emi/zfile.h"
 
 namespace Grim {
+
+static LResourceType gBitmapTypePcx("PCX");
+static LResourceType gBitmapTypeTga("TGA");
+static LResourceType gBitmapTypePic("PIC");
+static LResourceType gBitmapTypeSgi("SGI");
+static LResourceType gBitmapTypePng("PNG");
 
 LBitmap::LBitmap() {
 }
@@ -39,13 +49,52 @@ bool LBitmap::saveToFile(LFile *file) {
 	return false;
 }
 
-const LColorFormat &LBitmap::getColorFormat() {
+LColorFormat &LBitmap::getColorFormat() {
 	return colorFormat;
 }
 
 bool LBitmap::loadFile(const char *path) {
-	// TODO
-	warning("LBitmap::loadFile(): image readers not available, cannot load %s", path);
+	const char *dot = strchr(path, '.');
+
+	if (!dot)
+		return false;
+
+	LResourceType type(dot + 1);
+
+	if (type == gBitmapTypePcx) {
+		CPCXFile pcxFile;
+		LFile *file = gpFileServices->open(path, "rb");
+
+		if (!file)
+			return false;
+
+		bool result = pcxFile.readImage(file, this, 0);
+		gpFileServices->close(file, true);
+
+		return result;
+	}
+
+	if (type == gBitmapTypeTga) {
+		CTGAFile tgaFile;
+		ZFile *file = getZFileServices()->open(path, "rb");
+
+		if (!file)
+			return false;
+
+		bool result = tgaFile.readImage(file, this, 0);
+		getZFileServices()->closeZFile(file);
+
+		return result;
+	}
+
+	if (type == gBitmapTypePic)
+		warning("LBitmap::loadFile(): PIC images are not supported (%s)", path);
+	else if (type == gBitmapTypeSgi)
+		warning("LBitmap::loadFile(): SGI images are not supported (%s)", path);
+	else if (type == gBitmapTypePng)
+		warning("LBitmap::loadFile(): PNG images are not supported (%s)", path);
+	else
+		warning("LBitmap::loadFile(): unknown image type (%s)", path);
 
 	return false;
 }
