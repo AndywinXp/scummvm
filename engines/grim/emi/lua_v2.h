@@ -22,11 +22,16 @@
 #ifndef GRIM_LUA_V2
 #define GRIM_LUA_V2
 
+#include "common/array.h"
+
+#include "engines/grim/emi/lfile.h"
 #include "engines/grim/lua_v1.h"
 
 namespace Grim {
 
 struct FileUtilFind;
+class Actor;
+class CLightNode;
 
 class Lua_V2 : public Lua_V1 {
 public:
@@ -43,6 +48,10 @@ public:
 	void recognizeOpcodes() override;
 	void registerMainOpcodes() override;
 	void registerPrimitiveOpcodes() override;
+
+	static void callCameraChange(int oldSetup, int newSetup);
+	static void callPostCameraChange(int setup);
+	static void callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2);
 
 protected:
 	void typeOverride() override;

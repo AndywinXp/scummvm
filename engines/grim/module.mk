@@ -13,8 +13,12 @@ MODULE_OBJS := \
 	emi/actor.o \
 	emi/ainst.o \
 	emi/animation.o \
+	emi/animcomponent.o \
 	emi/animcomponenttype.o \
+	emi/animinstance.o \
+	emi/animwgtcomponent.o \
 	emi/animwgtcomponenttype.o \
+	emi/animwgtinstance.o \
 	emi/anode.o \
 	emi/atrack.o \
 	emi/background.o \
@@ -27,6 +31,7 @@ MODULE_OBJS := \
 	emi/cdrawcontext.o \
 	emi/cdrawlist.o \
 	emi/cgrimeconsole.o \
+	emi/choreinstance.o \
 	emi/choreset.o \
 	emi/clight.o \
 	emi/clightnode.o \
@@ -57,9 +62,13 @@ MODULE_OBJS := \
 	emi/cubecomponenttype.o \
 	emi/cubeinstance.o \
 	emi/cweightmap.o \
+	emi/dimregion.o \
+	emi/emiengine.o \
+	emi/extra_v2.o \
 	emi/filefind.o \
 	emi/fileutil.o \
 	emi/floatcomponenttype.o \
+	emi/frect.o \
 	emi/globalalphacomponent.o \
 	emi/globalalphacomponenttype.o \
 	emi/globalalphainstance.o \
@@ -94,30 +103,46 @@ MODULE_OBJS := \
 	emi/meshcomponent.o \
 	emi/meshcomponenttype.o \
 	emi/meshinstance.o \
+	emi/overworld.o \
 	emi/polyglot_v2.o \
+	emi/primitive.o \
+	emi/primitivequeue_v2.o \
 	emi/profilertimer.o \
+	emi/puck_v2.o \
 	emi/rbox.o \
 	emi/resourcemanager.o \
 	emi/rmesh.o \
 	emi/rmeshinstance.o \
 	emi/rmeshparser.o \
 	emi/rnode.o \
+	emi/room_v2.o \
 	emi/rprimitiveinstance.o \
+	emi/setup.o \
+	emi/shadow_v2.o \
 	emi/shadowmeshcomponent.o \
 	emi/shadowmeshcomponenttype.o \
 	emi/shadowmeshinstance.o \
+	emi/skeletoncomponent.o \
 	emi/skeletoncomponenttype.o \
+	emi/skeletoninstance.o \
+	emi/snd3dcomponent.o \
 	emi/snd3dcomponenttype.o \
+	emi/sndcomponent.o \
 	emi/sndcomponenttype.o \
+	emi/sndinstance.o \
+	emi/sounds.o \
 	emi/spritecomponent.o \
 	emi/spritecomponenttype.o \
 	emi/spriteinstance.o \
 	emi/statecomponenttype.o \
+	emi/textevent.o \
 	emi/textureindexcomponent.o \
 	emi/textureindexcomponenttype.o \
 	emi/textureindexinstance.o \
 	emi/tiledscene.o \
 	emi/triset.o \
+	emi/walkplane_v2.o \
+	emi/walkplanecollection.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \

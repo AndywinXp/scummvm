@@ -32,6 +32,9 @@ public:
 	ANode();
 	virtual ~ANode();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	void bindTrack(AInst *inst, ATrack *track);
 	void unbindTrack(AInst *inst, ATrack *track);
 	void updateANode();

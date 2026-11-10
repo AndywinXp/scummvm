@@ -26,6 +26,7 @@
 
 #include "engines/grim/emi/cnode.h"
 #include "engines/grim/emi/cnoderef.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
@@ -89,6 +90,14 @@ CNode::~CNode() {
 	}
 
 	detachFromParent();
+}
+
+void *CNode::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CNode::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void CNode::updateLocalState() {

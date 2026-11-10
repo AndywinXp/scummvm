@@ -27,6 +27,7 @@ Common::List<CLightNode *> CLightNode::activeLights;
 
 CLightNode::CLightNode() {
 	active = false;
+	savedActive = false;
 	light = nullptr;
 }
 

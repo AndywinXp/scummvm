@@ -42,6 +42,7 @@ public:
 	static int codeToMouthShape(int code);
 	static int compareMouthEntries(const void *first, const void *second);
 	static void sortMouthTable();
+	static int getLipMouthShape(uint soundHandle, int position);
 
 	int findCode(int position) const;
 

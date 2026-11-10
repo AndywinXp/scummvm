@@ -24,6 +24,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/clight.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
@@ -38,6 +39,14 @@ CLight::CLight(Color lightColor, float lightIntensity, float lightFocusDistance,
 	umbraAngle = 0.0f;
 	penumbraAngle = 0.0f;
 	focusDistance = lightFocusDistance;
+}
+
+void *CLight::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CLight::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void CLight::setColor(int newR, int newG, int newB) {

@@ -23,7 +23,9 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/fileutil.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/lua/lauxlib.h"
@@ -486,6 +488,123 @@ void Lua_V2::makeSystemTable() {
 	lua_pushstring("buttonHandler");
 	lua_pushcfunction(LUA_OPCODE(Lua_V2, EmptyFunction));
 	lua_settable();
+}
+
+void Lua_V2::callCameraChange(int oldSetup, int newSetup) {
+	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
+
+	if (!lua || !lua->_bStarted) {
+		warning("Lua_V2::callCameraChange(): the system table is not ready");
+
+		return;
+	}
+
+	lua_beginblock();
+	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushstring("camChangeHandler");
+
+	lua_Object handler = lua_gettable();
+
+	if (lua_isfunction(handler)) {
+		lua_pushnumber((float)oldSetup);
+		lua_pushnumber((float)newSetup);
+		lua_callfunction(handler);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V2::callPostCameraChange(int setup) {
+	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
+
+	if (!lua || !lua->_bStarted) {
+		warning("Lua_V2::callPostCameraChange(): the system table is not ready");
+
+		return;
+	}
+
+	lua_beginblock();
+	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushstring("postCamChangeHandler");
+
+	lua_Object handler = lua_gettable();
+
+	if (lua_isfunction(handler)) {
+		lua_pushnumber((float)setup);
+		lua_callfunction(handler);
+	}
+
+	lua_endblock();
+}
+
+void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2) {
+	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
+
+	if (!lua || !lua->_bStarted) {
+		warning("Lua_V2::callCollisionHandler(): the system table is not ready");
+
+		return;
+	}
+
+	if (!first || !second) {
+		warning("Lua_V2::callCollisionHandler(): missing actor");
+
+		return;
+	}
+
+	lua_beginblock();
+	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushstring("collisionHandler");
+
+	lua_Object handler = lua_gettable();
+	lua_Object function;
+
+	if (lua_istable(handler)) {
+		lua_pushobject(handler);
+		lua_pushstring("collisionHandler");
+
+		function = lua_gettable();
+
+		if (!lua_isfunction(function)) {
+			if (gpConsoleServices)
+				gpConsoleServices->logError("Installed collision handler handler has no member func '%s'\n", "collisionHandler");
+			else
+				warning("Installed collision handler handler has no member func '%s'", "collisionHandler");
+
+			lua_endblock();
+
+			return;
+		}
+
+		lua_pushobject(handler);
+	} else if (lua_isfunction(handler)) {
+		function = handler;
+	} else {
+		if (!lua_isnil(handler)) {
+			if (gpConsoleServices)
+				gpConsoleServices->logError("Installed costume marker handler is invalid.\n");
+			else
+				warning("Installed costume marker handler is invalid.");
+		}
+
+		lua_endblock();
+
+		return;
+	}
+
+	lua_pushusertag(first->id, MKTAG('R', 'T', 'C', 'A'));
+	lua_pushusertag(second->id, MKTAG('R', 'T', 'C', 'A'));
+	lua_pushnumber(x0);
+	lua_pushnumber(y0);
+	lua_pushnumber(z0);
+	lua_pushnumber(x1);
+	lua_pushnumber(y1);
+	lua_pushnumber(z1);
+	lua_pushnumber(x2);
+	lua_pushnumber(y2);
+	lua_pushnumber(z2);
+	lua_callfunction(function);
+	lua_endblock();
 }
 
 void Lua_V2::typeOverride() {
