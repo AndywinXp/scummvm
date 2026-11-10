@@ -17,6 +17,7 @@ MODULE_OBJS := \
 	emi/background.o \
 	emi/bbox.o \
 	emi/bmutil.o \
+	emi/camera.o \
 	emi/cbundle.o \
 	emi/cclipvolume.o \
 	emi/cdcvertexarray.o \
@@ -40,6 +41,7 @@ MODULE_OBJS := \
 	emi/cprimitive.o \
 	emi/cquaternion.o \
 	emi/cskeleton.o \
+	emi/csprite.o \
 	emi/ctextfont.o \
 	emi/ctexture.o \
 	emi/ctgafile.o \
@@ -48,6 +50,7 @@ MODULE_OBJS := \
 	emi/cweightmap.o \
 	emi/filefind.o \
 	emi/fileutil.o \
+	emi/irect.o \
 	emi/labitmap.o \
 	emi/layer.o \
 	emi/lbitmap.o \
@@ -67,7 +70,10 @@ MODULE_OBJS := \
 	emi/lua_v2_sound.o \
 	emi/polyglot_v2.o \
 	emi/profilertimer.o \
+	emi/rbox.o \
 	emi/resourcemanager.o \
+	emi/rnode.o \
+	emi/rprimitiveinstance.o \
 	emi/tiledscene.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \

@@ -23,6 +23,13 @@
 
 namespace Grim {
 
+Color Color::kWhite(0xFFFFFFFF);
+Color Color::kYellow(0xFFFFFF00);
+Color Color::kGreen(0xFF00FF00);
+Color Color::kRed(0xFFFF0000);
+Color Color::kCyan(0xFF00FFFF);
+Color Color::kBlue(0xFF0000FF);
+
 Color::Color() {
 	b = 0;
 	g = 0;
