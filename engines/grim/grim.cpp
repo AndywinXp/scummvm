@@ -520,7 +520,7 @@ void GrimEngine::createModules() {
 		_pSputSmush = new SputSmush(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
 	}
 
-	_pLua = new Lua_V1();
+	_pLua = new Lua_V1(false);
 
 	_pRes->setSputRender(_pSputRender);
 	_pSputResource->setSputRender(_pSputRender);

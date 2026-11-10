@@ -690,6 +690,85 @@ static const LuaFuncIdList luaFuncIdLists[kNumLists] = {
 };
 
 enum {
+	kListEmiInternal,
+	kListEmiState,
+	kListEmiIo,
+	kListEmiIoTag,
+	kListEmiString,
+	kListEmiMath,
+	kListEmiMathPow,
+	kListEmiMain,
+	kListEmiExtra,
+	kListEmiFallback,
+	kListEmiPrimitives,
+	kNumListsEmi
+};
+
+static const char *const luaFuncIdNamesInternalEmi[] = {
+	"setfallback", "assert", "call", "collectgarbage", "dofile", "copytagmethods", "dostring", "error", "foreach", "foreachvar",
+	"getglobal", "newtag", "next", "nextvar", "print", "rawgetglobal", "rawgettable", "rawsetglobal", "rawsettable", "seterrormethod",
+	"setglobal", "settagmethod", "gettagmethod", "settag", "tonumber", "tostring", "tag", "type", "start_script", "stop_script",
+	"next_script", "identify_script", "pause_scripts", "unpause_scripts", "pause_script", "unpause_script", "find_script", "break_here", "sleep_for"
+};
+
+static const char *const luaFuncIdNamesIoEmi[] = {
+	"setlocale", "execute", "remove", "rename", "tmpname", "getenv", "date", "exit", "print_stack"
+};
+
+static const char *const luaFuncIdNamesMainEmi[] = {
+	"EnginePause", "EngineResume", "EngineDisplay", "SpewStartup", "SpewShutdown", "GetCurrentScript", "GetPhysicalBytes", "GetMemoryUsage", "SetMemoryUsage", "GetDiskFreeSpace",
+	"SetActiveCD", "GetActiveCD", "AreWeInternational", "FileFindFirst", "FileFindNext", "FileFindDispose", "TextFileGetLineCount", "TextFileGetLine", "InputDialog", "QueryDialog",
+	"WriteRegistryValue", "ReadRegistryValue", "Load", "Save", "ScreenShot", "MakeScreenTextures", "SubmitSaveGameData", "GetSaveGameData", "JustLoaded", "ScreenshotForSavegame",
+	"ThumbnailFromScreen", "ThumbnailFromFile", "ClearSpecialtyTexture", "LoadActor", "UnloadActor", "GetActorTimeScale", "SetActorTimeScale", "SetActorWalkDominate", "SetSelectedActor", "SetActorWalkChore",
+	"SetActorTurnChores", "SetActorRestChore", "SetActorMumblechore", "SetActorTalkChore", "SetActorWalkRate", "GetActorWalkRate", "SetActorTurnRate", "GetActorTurnRate", "GetActorPos", "GetActorWorldPos",
+	"GetActorPuckVector", "GetActorYawToPoint", "SetActorReflection", "PutActorInSet", "PutActorAt", "PutActorInOverworld", "RemoveActorFromOverworld", "ClearOverworld", "ToggleOverworld", "WalkActorVector",
+	"WalkActorForward", "ActorStopMoving", "WalkActorTo", "WalkActorToAvoiding", "ActorLookAt", "IsActorLooking", "SetActorLookRate", "GetActorLookRate", "SetActorFOV", "GetActorFOV",
+	"GetVisibleThings", "SetActorLighting", "SetActorHead", "SetActorHeadLimits", "SetActorVisibility", "SetActorFollowBoxes", "ActorActivateShadow", "ShutUpActor", "EnableActorPuck", "SetActorGlobalAlpha",
+	"SetActorLocalAlpha", "SetActorCollisionMode", "SetActorCollisionScale", "SetActorSortOrder", "GetActorSortOrder", "AttachActor", "DetachActor", "IsActorInSector", "GetActorSector", "IsPointInSector",
+	"GetPointSector", "TurnActor", "GetActorRot", "SetActorRot", "SetActorPitch", "SetActorRoll", "IsActorTurning", "PointActorAt", "TurnActorTo", "PlayActorChore",
+	"PlayActorChoreLooping", "IsActorMoving", "IsActorResting", "GetActorChores", "StopActorChores", "IsChoreValid", "IsChorePlaying", "IsChoreLooping", "SetChoreLooping", "PlayChore",
+	"FadeInChore", "FadeOutChore", "StopChore", "PauseChore", "AdvanceChore", "CompleteChore", "LockChore", "UnlockChore", "LockChoreSet", "UnlockChoreSet",
+	"exit", "FunctionName", "EnableControl", "DisableControl", "GetControlState", "PrintMessage", "PrintError", "PrintWarning", "PrintDebug", "MakeCurrentSet",
+	"LockSet", "UnLockSet", "LockBackground", "UnLockBackground", "MakeCurrentSetup", "GetCurrentSetup", "NextSetup", "PreviousSetup", "StartMovie", "StopMovie",
+	"PauseMovie", "EscapeMovie", "IsMoviePlaying", "PlaySound", "StopSound", "StopAllSounds", "LoadSound", "FreeSound", "PlayLoadedSound", "IsSoundPlaying",
+	"GetGroupVolume", "SetGroupVolume", "GetSoundVolume", "SetSoundVolume", "EnableAudioGroup", "EnableVoiceFX", "SetAudioMixAhead", "PlaySoundFrom", "PlayLoadedSoundFrom", "SetReverb",
+	"UpdateSoundPosition", "ImSetState", "ImSelectSet", "ImStateHasLooped", "ImStateHasEnded", "ImPushState", "ImPopState", "ImFlushStack", "ImGetMillisecondPosition", "IsSectorActive",
+	"MakeSectorActive", "GetSectorOppositeEdge", "GetSectorName", "WorldToScreen", "GetCameraPosition", "SetCameraPosition", "CameraLookAt", "GetCameraFOV", "SetCameraFOV", "GetCameraYaw",
+	"YawCamera", "GetCameraPitch", "PitchCamera", "GetCameraRoll", "RollCamera", "GetCameraLookVector", "PerSecond", "SnapToPlane", "GetAngleBetweenVectors", "GetAngleBetweenActors",
+	"SetAmbientLight", "TurnLightOn", "IsLightOn", "SetLightPosition", "GammaEnabled", "SetGamma", "SetPixelCenter", "LoadBundle", "RenderModeUser", "DimScreen",
+	"DimRegion", "UndimAll", "UndimRegion", "Display", "SetSpeechMode", "GetSpeechMode", "GetCPUSpeed", "NewLayer", "FreeLayer", "GetLayerSortOrder",
+	"SetLayerSortOrder", "GetLayerFrame", "SetLayerFrame", "AdvanceLayerFrame", "SetTextSpeed", "GetTextSpeed", "IsMessageGoing", "SetSayLineDefaults", "SetActorTalkColor", "GetActorTalkColor",
+	"SayLine", "MakeTextObject", "KillTextObject", "ChangeTextObject", "GetTextObjectDimensions", "BlastText", "ExpireText", "PurgeText", "PushText", "PopText",
+	"MakeColor", "GetColorComponents", "SetTranslationMode", "GetTranslationMode", "LocalizeString", "GetFontDimensions", "GetTextCharPosition", "SetOffscreenTextPos", "ReportAllResources", "ReportLRUResources",
+	"ReportUsedResources", "ReportUnusedResources", "PurgeAmount", "PurgeAllResources", "PurgeUnusedResources", "PurgeUnlockedResources", "NukeAllScriptLocks", "LightMgrStartup", "LightMgrShutdown", "LightMgrSetChange",
+	"ToggleDebugDraw", "ToggleDrawCameras", "ToggleDrawLights", "ToggleDrawSectors", "ToggleDrawBBoxes", "ToggleDrawFPS", "ToggleDrawPerformance", "ToggleDrawActorStats", "WriteSetToFile", "SectEditSelect",
+	"SectEditPlace", "SectEditModify", "SectEditDelete", "SectEditInsert", "SectEditSortAdd", "SectEditForgetIt", "FRUTEY_Begin", "FRUTEY_End", "ImGetSfxVol", "ImSetSfxVol",
+	"ImGetVoiceVol", "ImSetVoiceVol", "ImGetMusicVol", "ImSetMusicVol"
+};
+
+static const char *const luaFuncIdNamesExtraEmi[] = {
+	"  concatfallback", "  typeoverride", "  dfltcontrol"
+};
+
+static const char *const luaFuncIdNamesPrimitivesEmi[] = {
+	"Draw3DLine", "DrawLine", "DrawPolygon", "DrawRectangle", "ChangePrimitive", "KillPrimitive", "PurgePrimitiveQueue"
+};
+
+static const LuaFuncIdList luaFuncIdListsEmi[kNumListsEmi] = {
+	{ "int_funcs", luaFuncIdNamesInternalEmi, ARRAYSIZE(luaFuncIdNamesInternalEmi), 39, false },
+	{ "stateFuncs", luaFuncIdNamesState, ARRAYSIZE(luaFuncIdNamesState), 1, false },
+	{ "iolib", luaFuncIdNamesIoEmi, ARRAYSIZE(luaFuncIdNamesIoEmi), 9, false },
+	{ "iolibtag", luaFuncIdNamesIoTag, ARRAYSIZE(luaFuncIdNamesIoTag), 5, false },
+	{ "strlib", luaFuncIdNamesString, ARRAYSIZE(luaFuncIdNamesString), 9, false },
+	{ "mathlib", luaFuncIdNamesMath, ARRAYSIZE(luaFuncIdNamesMath), 21, false },
+	{ "wrappermathlib", luaFuncIdNamesMathPow, ARRAYSIZE(luaFuncIdNamesMathPow), 1, false },
+	{ "main", luaFuncIdNamesMainEmi, ARRAYSIZE(luaFuncIdNamesMainEmi), 274, true },
+	{ "extra", luaFuncIdNamesExtraEmi, ARRAYSIZE(luaFuncIdNamesExtraEmi), 3, true },
+	{ "tmFuncs", luaFuncIdNamesFallback, ARRAYSIZE(luaFuncIdNamesFallback), 3, false },
+	{ "primitives", luaFuncIdNamesPrimitivesEmi, ARRAYSIZE(luaFuncIdNamesPrimitivesEmi), 7, true }
+};
+
+enum {
 	kGroupNone,
 	kGroupErrorIm,
 	kGroupDoNothing,
@@ -698,6 +777,7 @@ enum {
 	kGroupPlay,
 	kGroupQuiet,
 	kGroupVoiceEffect,
+	kGroupEmpty,
 	kNumGroups
 };
 
@@ -747,10 +827,26 @@ static const LuaFuncIdAlias luaFuncIdAliases[] = {
 	{ kListMain, "vfx", kGroupVoiceEffect }
 };
 
+static const LuaFuncIdAlias luaFuncIdAliasesEmi[] = {
+	{ kListEmiMain, "EngineDisplay", kGroupEmpty },
+	{ kListEmiMain, "SpewStartup", kGroupEmpty },
+	{ kListEmiMain, "SpewShutdown", kGroupEmpty },
+	{ kListEmiMain, "SetAmbientLight", kGroupEmpty },
+	{ kListEmiMain, "Display", kGroupEmpty },
+	{ kListEmiIo, "rename", kGroupEmpty },
+	{ kListEmiExtra, "  dfltcontrol", kGroupEmpty },
+	{ kListEmiFallback, "  nilFB", kGroupEmpty }
+};
+
 struct LuaFuncIdEntry {
 	lua_CFunction func;
 	int group;
 };
+
+static const LuaFuncIdList *s_lists = luaFuncIdLists;
+static int s_numLists = kNumLists;
+static const LuaFuncIdAlias *s_aliases = luaFuncIdAliases;
+static int s_numAliases = ARRAYSIZE(luaFuncIdAliases);
 
 static Common::Array<LuaFuncIdEntry> s_entries[kNumLists];
 static Common::Array<lua_CFunction> s_groupFuncs[kNumGroups];
@@ -826,13 +922,25 @@ static void buildFuncIdLists() {
 
 	s_numLiveLists = live.size();
 
-	for (int i = 0; i < kNumLists; i++) {
+	if (luaIsEmi) {
+		s_lists = luaFuncIdListsEmi;
+		s_numLists = kNumListsEmi;
+		s_aliases = luaFuncIdAliasesEmi;
+		s_numAliases = ARRAYSIZE(luaFuncIdAliasesEmi);
+	} else {
+		s_lists = luaFuncIdLists;
+		s_numLists = kNumLists;
+		s_aliases = luaFuncIdAliases;
+		s_numAliases = ARRAYSIZE(luaFuncIdAliases);
+	}
+
+	for (int i = 0; i < s_numLists; i++) {
 		s_claimedLists[i] = -1;
 
-		if (!luaFuncIdLists[i].isEngine)
+		if (!s_lists[i].isEngine)
 			continue;
 
-		int liveIndex = findLiveEngineList(live, claimed, luaFuncIdLists[i]);
+		int liveIndex = findLiveEngineList(live, claimed, s_lists[i]);
 
 		if (liveIndex >= 0) {
 			s_claimedLists[i] = liveIndex;
@@ -840,8 +948,8 @@ static void buildFuncIdLists() {
 		}
 	}
 
-	for (int i = 0; i < kNumLists; i++) {
-		const LuaFuncIdList &model = luaFuncIdLists[i];
+	for (int i = 0; i < s_numLists; i++) {
+		const LuaFuncIdList &model = s_lists[i];
 
 		s_entries[i].clear();
 
@@ -862,9 +970,9 @@ static void buildFuncIdLists() {
 	for (int i = 0; i < kNumGroups; i++)
 		s_groupFuncs[i].clear();
 
-	for (uint i = 0; i < ARRAYSIZE(luaFuncIdAliases); i++) {
-		const LuaFuncIdAlias &alias = luaFuncIdAliases[i];
-		const LuaFuncIdList &model = luaFuncIdLists[alias.list];
+	for (int i = 0; i < s_numAliases; i++) {
+		const LuaFuncIdAlias &alias = s_aliases[i];
+		const LuaFuncIdList &model = s_lists[alias.list];
 		bool isFound = false;
 
 		for (int j = 0; j < model.count; j++) {
@@ -879,7 +987,7 @@ static void buildFuncIdLists() {
 			warning("buildFuncIdLists(): the alias '%s' is not in the list %s", alias.name, model.title);
 	}
 
-	for (int i = 0; i < kNumLists; i++) {
+	for (int i = 0; i < s_numLists; i++) {
 		for (uint j = 0; j < s_entries[i].size(); j++) {
 			const LuaFuncIdEntry &entry = s_entries[i][j];
 
@@ -948,8 +1056,8 @@ static bool findFunctionId(lua_CFunction func, uint32 *pId) {
 	if (!func)
 		return false;
 
-	for (int depth = 0; depth < kNumLists; depth++) {
-		const Common::Array<LuaFuncIdEntry> &entries = s_entries[kNumLists - 1 - depth];
+	for (int depth = 0; depth < s_numLists; depth++) {
+		const Common::Array<LuaFuncIdEntry> &entries = s_entries[s_numLists - 1 - depth];
 
 		for (uint index = 0; index < entries.size(); index++) {
 			if (entryMatches(entries[index], func)) {
@@ -968,10 +1076,10 @@ static const LuaFuncIdEntry *findEntryOfId(uint32 id, int *pListIndex) {
 	uint32 depth = id >> 16;
 	uint32 index = id & 0xffff;
 
-	if (depth >= (uint32)kNumLists)
+	if (depth >= (uint32)s_numLists)
 		return nullptr;
 
-	int listIndex = kNumLists - 1 - (int)depth;
+	int listIndex = s_numLists - 1 - (int)depth;
 
 	if (index >= s_entries[listIndex].size())
 		return nullptr;
@@ -1030,7 +1138,7 @@ lua_CFunction lua_IDToFuncPtr(uint32 id) {
 		warning("lua_IDToFuncPtr(): no function with the id %08x", id);
 	else
 		warning("lua_IDToFuncPtr(): the function '%s' of the list %s (id %08x) is not in the running Lua",
-			luaFuncIdLists[listIndex].names[id & 0xffff], luaFuncIdLists[listIndex].title, id);
+			s_lists[listIndex].names[id & 0xffff], s_lists[listIndex].title, id);
 
 	return nullptr;
 }

@@ -16,9 +16,12 @@
 
 #include "common/savefile.h"
 #include "common/fs.h"
+#include "common/memstream.h"
 #include "common/system.h"
+#include "common/util.h"
 
 #include "engines/grim/lua/lauxlib.h"
+#include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lua.h"
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/lua/lualib.h"
@@ -26,6 +29,9 @@
 #include "base/commandLine.h"
 
 #include "engines/grim/grim.h"
+
+#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lfile.h"
 
 namespace Grim {
 
@@ -142,9 +148,54 @@ static LuaFile *getfileparam(const char *name, int32 *arg) {
 		return getfile(name);
 }
 
+static Common::String getFileName(const char *path) {
+	if (!luaIsEmi)
+		return Common::lastPathComponent(path, '\\');
+
+	return Common::lastPathComponent(Common::lastPathComponent(path, '\\'), '/');
+}
+
+static Common::SeekableReadStream *openBundleStream(const char *path) {
+	if (!gpFileServices)
+		return nullptr;
+
+	LFile *file = gpFileServices->open(path, "r");
+
+	if (!file)
+		return nullptr;
+
+	file->seek(0, SEEK_END);
+
+	int size = file->tell();
+
+	file->seek(0, SEEK_SET);
+
+	Common::MemoryWriteStreamDynamic data(DisposeAfterUse::NO);
+	byte buffer[1024];
+
+	while (size > 0) {
+		uint count = file->read(buffer, MIN(size, 1024));
+
+		if (!count)
+			break;
+
+		data.write(buffer, count);
+		size -= count;
+	}
+
+	gpFileServices->close(file, true);
+
+	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
+}
+
 static void closefile(const char *name) {
 	LuaFile *f = getfile(name);
-	f->close();
+
+	if (luaIsEmi && !f)
+		warning("closefile(): the file handle is not open");
+	else
+		f->close();
+
 	lua_pushobject(lua_getglobal(name));
 	lua_settag(gettag(CLOSEDTAG));
 }
@@ -170,7 +221,10 @@ static int32 addfile(LuaFile *f) {
 static void io_readfrom() {
 	lua_Object f = lua_getparam(FIRSTARG);
 	if (f == LUA_NOOBJECT) {
-		if (getfile(FINPUT) != getfile(1)) {
+		if (luaIsEmi) {
+			closefile(FINPUT);
+			setreturn(0, FINPUT);
+		} else if (getfile(FINPUT) != getfile(1)) {
 			closefile(FINPUT);
 			setreturn(1, FINPUT);
 		}
@@ -184,12 +238,15 @@ static void io_readfrom() {
 		setreturn(id, FINPUT);
 	} else {
 		const char *s = luaL_check_string(FIRSTARG);
-		Common::String fileName = Common::lastPathComponent(s, '\\');
+		Common::String fileName = getFileName(s);
 		Common::SeekableReadStream *inFile = nullptr;
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		inFile = saveFileMan->openForLoading(fileName);
 		if (!inFile) {
-			inFile = g_grim->openStreamFile(s);
+			if (luaIsEmi)
+				inFile = openBundleStream(s);
+			else
+				inFile = g_grim->openStreamFile(s);
 		}
 		if (inFile) {
 			LuaFile *current = new LuaFile();
@@ -206,7 +263,10 @@ static void io_readfrom() {
 static void io_writeto() {
 	lua_Object f = lua_getparam(FIRSTARG);
 	if (f == LUA_NOOBJECT) {
-		if (getfile(FOUTPUT) != getfile(2)) {
+		if (luaIsEmi) {
+			closefile(FOUTPUT);
+			setreturn(0, FOUTPUT);
+		} else if (getfile(FOUTPUT) != getfile(2)) {
 			closefile(FOUTPUT);
 			setreturn(2, FOUTPUT);
 		}
@@ -219,7 +279,7 @@ static void io_writeto() {
 		}
 		setreturn(id, FOUTPUT);
 	} else {
-		Common::String s = Common::lastPathComponent(luaL_check_string(FIRSTARG), '\\');
+		Common::String s = getFileName(luaL_check_string(FIRSTARG));
 		LuaFile *current;
 		Common::WriteStream *outFile = nullptr;
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
@@ -236,7 +296,7 @@ static void io_writeto() {
 }
 
 static void io_appendto() {
-	Common::String s = Common::lastPathComponent(luaL_check_string(FIRSTARG), '\\');
+	Common::String s = getFileName(luaL_check_string(FIRSTARG));
 	Common::SeekableReadStream *inFile = nullptr;
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	inFile = saveFileMan->openForLoading(s);
@@ -344,10 +404,24 @@ static void io_date() {
 
 static void io_exit() {
 	lua_Object o = lua_getparam(1);
+
+	if (luaIsEmi)
+		return;
+
 	exit((int)lua_isnumber(o) ? (int)lua_getnumber(o) : 1);
 }
 
 static void errorfb() {
+	if (luaIsEmi) {
+		const char *message = lua_getstring(lua_getparam(1));
+
+		if (gpConsoleServices)
+			gpConsoleServices->logError("lua: %s\n", message ? message : "(null)");
+
+		lua_printstack(nullptr);
+		return;
+	}
+
 	char buf[256];
 	snprintf(buf, 256, "lua: %s\n", lua_getstring(lua_getparam(1)));
 	g_stderr->write(buf, strlen(buf));
@@ -355,8 +429,11 @@ static void errorfb() {
 }
 
 static void io_remove() {
-	const char *fileName = luaL_check_string(1);
+	Common::String fileName = luaL_check_string(1);
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+
+	if (luaIsEmi)
+		fileName = getFileName(fileName.c_str());
 
 	if (saveFileMan->removeSavefile(fileName)) {
 		lua_pushuserdata(0);
@@ -375,6 +452,9 @@ static void io_execute() {
 }
 
 static void io_rename() {
+	if (luaIsEmi)
+		return;
+
 	warning("io_rename(): not implemented");
 }
 
@@ -403,6 +483,18 @@ static struct luaL_reg iolib[] = {
 	{ "print_stack", errorfb }
 };
 
+static struct luaL_reg iolibEmi[] = {
+	{ "setlocale",   io_setlocale },
+	{ "execute",     io_execute },
+	{ "remove",      io_remove },
+	{ "rename",      io_rename },
+	{ "tmpname",     io_tmpname },
+	{ "getenv",      io_getenv },
+	{ "date",        io_date },
+	{ "exit",        io_exit },
+	{ "print_stack", errorfb }
+};
+
 static struct luaL_reg iolibtag[] = {
 	{ "readfrom",    io_readfrom },
 	{ "writeto",     io_writeto },
@@ -421,6 +513,9 @@ static void openwithtags() {
 		lua_pushCclosure(iolibtag[i].func, 2);
 		lua_setglobal(iolibtag[i].name);
 	}
+
+	if (luaIsEmi)
+		return;
 
 	LuaFile* f;
 	f = new LuaFile();
@@ -447,7 +542,11 @@ static void openwithtags() {
 void lua_iolibopen() {
 	g_files = new Common::HashMap<int32, LuaFile *>();
 
-	luaL_openlib(iolib, ARRAYSIZE(iolib));
+	if (luaIsEmi)
+		luaL_openlib(iolibEmi, ARRAYSIZE(iolibEmi));
+	else
+		luaL_openlib(iolib, ARRAYSIZE(iolib));
+
 	luaL_addlibtolist(iolibtag, ARRAYSIZE(iolibtag));
 	openwithtags();
 	lua_pushcfunction(errorfb);

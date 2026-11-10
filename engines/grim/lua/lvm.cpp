@@ -22,6 +22,8 @@
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/lua/lvm.h"
 
+#include "common/textconsole.h"
+
 namespace Grim {
 
 #define skip_word(pc)   (pc += 2)
@@ -256,9 +258,16 @@ StkId luaV_execute(lua_Task *task) {
 		}
 		task->executed = true;
 	}
+
+	if (lua_state->callLevelCounter && !lua_state->preventBreakCounter)
+		warning("luaV_execute(): Lua nesting level now %d inside breakable section!", (int)lua_state->callLevelCounter);
+
 	lua_state->callLevelCounter++;
 
 	while (1) {
+		if (task->opcodeCount++ >= 10000000)
+			lua_error("WARNING: Killing Lua script that ran without a break_here() for a really long time!\n");
+
 		switch ((OpCode)(task->aux = *task->pc++)) {
 		case PUSHNIL0:
 			ttype(task->S->top++) = LUA_T_NIL;

@@ -53,6 +53,8 @@ int32 IMtable_size;
 LState *lua_state = nullptr;
 LState *lua_rootState = nullptr;
 
+bool luaIsEmi = false;
+
 int globalTaskSerialId = 0;
 
 void stderrorim();
@@ -88,7 +90,8 @@ void lua_stateinit(LState *state) {
 	state->task = nullptr;
 	state->prevTask = nullptr;
 	state->taskFunc.ttype = LUA_T_NIL;
-	state->sleepFor = 0;
+	state->sleepFor = luaIsEmi ? -1 : 0;
+	state->pauseSticky = false;
 
 	state->stack.stack = luaM_newvector(STACK_UNIT, TObject);
 	state->stack.top = state->stack.stack;
@@ -201,9 +204,10 @@ void callHook(lua_Function func, const char *filename, int32 line) {
 	fprintf(output, "\n");
 }
 
-void lua_open() {
+void lua_open(bool isEmi) {
 	if (lua_state)
 		return;
+	luaIsEmi = isEmi;
 	lua_rootState = lua_state = luaM_new(LState);
 	lua_stateinit(lua_state);
 	lua_resetglobals();

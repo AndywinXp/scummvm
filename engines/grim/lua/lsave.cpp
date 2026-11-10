@@ -78,6 +78,12 @@ static void saveInt32(tSaveRestoreAccess *saveFunc, int32 value) {
 	saveFunc(&data, 4);
 }
 
+static void saveByte(tSaveRestoreAccess *saveFunc, bool value) {
+	byte data = value ? 1 : 0;
+
+	saveFunc(&data, 1);
+}
+
 static uint32 getUserdataSerial(const UserData *pUserdata) {
 	uint64 key = ((uint64)(uint32)pUserdata->tag << 32) | (uint32)pUserdata->id;
 	uint32 index;
@@ -276,7 +282,11 @@ static void SaveGlobals(tSaveRestoreAccess *saveFunc) {
 	for (GCnode *pTString = rootglobal.next; pTString; pTString = pTString->next)
 		saveInt32(saveFunc, (int32)getSerial(pTString));
 
-	saveInt32(saveFunc, 1);
+	if (luaIsEmi)
+		saveByte(saveFunc, true);
+	else
+		saveInt32(saveFunc, 1);
+
 	SaveObject(&errorim, saveFunc);
 
 	saveInt32(saveFunc, IMtable_size);
@@ -317,7 +327,11 @@ static void SaveExecutionState(lua_Task *pExecState, tSaveRestoreAccess *saveFun
 	saveInt32(saveFunc, pExecState->base);
 	saveInt32(saveFunc, pExecState->initBase);
 	saveInt32(saveFunc, pExecState->initResults);
-	saveInt32(saveFunc, pExecState->executed ? 1 : 0);
+	if (luaIsEmi)
+		saveByte(saveFunc, pExecState->executed);
+	else
+		saveInt32(saveFunc, pExecState->executed ? 1 : 0);
+
 	saveInt32(saveFunc, pExecState->pc - pExecState->tf->code);
 	saveInt32(saveFunc, pExecState->aux);
 }
@@ -340,11 +354,21 @@ static void SaveState(LState *pState, tSaveRestoreAccess *saveFunc) {
 
 	saveInt32(saveFunc, previousExecState);
 
-	saveInt32(saveFunc, pState->preventBreakCounter);
-	saveInt32(saveFunc, pState == lua_rootState ? 1 : 0);
-	saveInt32(saveFunc, pState->updated ? 1 : 0);
-	saveInt32(saveFunc, (pState->all_paused || pState->paused) ? 1 : 0);
-	saveInt32(saveFunc, pState->callLevelCounter);
+	if (luaIsEmi) {
+		saveInt32(saveFunc, pState->sleepFor);
+		saveInt32(saveFunc, pState->preventBreakCounter);
+		saveByte(saveFunc, pState == lua_rootState);
+		saveByte(saveFunc, pState->updated);
+		saveByte(saveFunc, pState->paused);
+		saveByte(saveFunc, pState->pauseSticky);
+		saveInt32(saveFunc, pState->callLevelCounter);
+	} else {
+		saveInt32(saveFunc, pState->preventBreakCounter);
+		saveInt32(saveFunc, pState == lua_rootState ? 1 : 0);
+		saveInt32(saveFunc, pState->updated ? 1 : 0);
+		saveInt32(saveFunc, (pState->all_paused || pState->paused) ? 1 : 0);
+		saveInt32(saveFunc, pState->callLevelCounter);
+	}
 
 	int32 stackSize = (pState->stack.last - pState->stack.stack) + 1;
 

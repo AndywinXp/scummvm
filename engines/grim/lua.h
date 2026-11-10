@@ -87,16 +87,16 @@ class LuaBase {
 public:
 	typedef LuaBase LuaClass;
 
-	LuaBase();
+	LuaBase(bool isEmi);
 	virtual ~LuaBase();
 	inline static LuaBase *instance() { return s_instance; }
 
-	int dofile(const char *filename);
+	virtual int dofile(const char *filename);
 
 	void update(int frameTime, int movieTime);
 	void setFrameTime(float frameTime);
 	void setMovieTime(float movieTime);
-	void recognizeOpcodes();
+	virtual void recognizeOpcodes();
 
 	// Force the demo flag
 	virtual void forceDemo();

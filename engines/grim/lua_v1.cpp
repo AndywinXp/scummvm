@@ -1749,7 +1749,7 @@ struct luaL_reg grimDemoCostumeOpcodes[] = {
 	{ "GetKeyLength", LUA_OPCODE(Lua_V1, GetKeyLength) }
 };
 
-Lua_V1::Lua_V1() : _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1) {
+Lua_V1::Lua_V1(bool isEmi) : LuaBase(isEmi), _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1) {
 	for (int i = 0; i < kMaxImages; i++) {
 		_imageHandles[i] = 0;
 		_images[i] = nullptr;
