@@ -19,6 +19,7 @@ struct lua_Task {
 	bool executed;
 	StkId initBase;
 	int32 initResults;
+	int32 opcodeCount;
 };
 
 void lua_taskinit(lua_Task *task, lua_Task *next, StkId tbase, int results);

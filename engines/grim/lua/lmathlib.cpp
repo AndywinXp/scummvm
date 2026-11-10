@@ -9,6 +9,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/lua/lauxlib.h"
+#include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lua.h"
 #include "engines/grim/lua/lualib.h"
 
@@ -115,10 +116,18 @@ static void math_max() {
 }
 
 static void math_random() {
-	float r = (float)(rand() % RAND_MAX) / (float)RAND_MAX;
+	float r;
+
+	if (luaIsEmi)
+		r = (float)((double)(rand() % 0x7FFF) * (1.0 / 32767.0));
+	else
+		r = (float)(rand() % RAND_MAX) / (float)RAND_MAX;
+
 	float l = luaL_opt_number(1, 0);
 	if (l == 0)
 		lua_pushnumber(r);
+	else if (luaIsEmi)
+		lua_pushnumber((float)((int32)((int64)((double)l * (double)r) + 1)));
 	else
 		lua_pushnumber((int32)(r * l) + 1);
 }

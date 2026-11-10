@@ -46,6 +46,14 @@ static int32 loadInt32(tSaveRestoreAccess *restoreFunc) {
 	return (int32)FROM_LE_32(data);
 }
 
+static bool loadByte(tSaveRestoreAccess *restoreFunc) {
+	byte data = 0;
+
+	restoreFunc(&data, 1);
+
+	return data != 0;
+}
+
 static int comparePtrIDs(const void *elem1, const void *elem2) {
 	const PtrID *pElem1 = (const PtrID *)elem1;
 	const PtrID *pElem2 = (const PtrID *)elem2;
@@ -432,7 +440,11 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 
 	pPrevString->next = nullptr;
 
-	loadInt32(restoreFunc);
+	if (luaIsEmi)
+		loadByte(restoreFunc);
+	else
+		loadInt32(restoreFunc);
+
 	LoadResolvedObject(&errorim, restoreFunc);
 
 	IMtable_size = loadInt32(restoreFunc);
@@ -491,7 +503,10 @@ static void RestoreExecutionState(lua_Task *pExecState, Stack *pStack, uint32 nu
 	pExecState->base = loadInt32(restoreFunc);
 	pExecState->initBase = loadInt32(restoreFunc);
 	pExecState->initResults = loadInt32(restoreFunc);
-	pExecState->executed = loadInt32(restoreFunc) != 0;
+	if (luaIsEmi)
+		pExecState->executed = loadByte(restoreFunc);
+	else
+		pExecState->executed = loadInt32(restoreFunc) != 0;
 
 	int32 pcOffset = loadInt32(restoreFunc);
 
@@ -524,12 +539,22 @@ static void RestoreState(LState *pState, tSaveRestoreAccess *restoreFunc) {
 		pState->prevTask = nullptr;
 	}
 
-	pState->preventBreakCounter = loadInt32(restoreFunc);
-	loadInt32(restoreFunc);
-	pState->updated = loadInt32(restoreFunc) != 0;
-	pState->all_paused = loadInt32(restoreFunc) ? 1 : 0;
-	pState->paused = false;
-	pState->callLevelCounter = loadInt32(restoreFunc);
+	if (luaIsEmi) {
+		pState->sleepFor = loadInt32(restoreFunc);
+		pState->preventBreakCounter = loadInt32(restoreFunc);
+		loadByte(restoreFunc);
+		pState->updated = loadByte(restoreFunc);
+		pState->paused = loadByte(restoreFunc);
+		pState->pauseSticky = loadByte(restoreFunc);
+		pState->callLevelCounter = loadInt32(restoreFunc);
+	} else {
+		pState->preventBreakCounter = loadInt32(restoreFunc);
+		loadInt32(restoreFunc);
+		pState->updated = loadInt32(restoreFunc) != 0;
+		pState->all_paused = loadInt32(restoreFunc) ? 1 : 0;
+		pState->paused = false;
+		pState->callLevelCounter = loadInt32(restoreFunc);
+	}
 
 	int32 stackSize = loadInt32(restoreFunc);
 

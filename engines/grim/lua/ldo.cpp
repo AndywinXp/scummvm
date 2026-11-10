@@ -31,6 +31,8 @@
 #include "engines/grim/lua/lvm.h"
 #include "engines/grim/lua/lzio.h"
 
+#include "engines/grim/emi/lconsoleservices.h"
+
 #include "common/file.h"
 #include "common/textconsole.h"
 
@@ -204,6 +206,9 @@ int32 luaD_call(StkId base, int32 nResults) {
 			}
 			firstResult = luaV_execute(lua_state->task);
 		} else if (ttype(funcObj) == LUA_T_CMARK) {
+			if (luaIsEmi)
+				warning("luaD_call(): unexpected cmark at %d", (int)base);
+
 			if (!lua_state->task->executed) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
@@ -269,6 +274,9 @@ int32 luaD_call(StkId base, int32 nResults) {
 					lua_state->prevTask = tmpTask;
 					return 1;
 				}
+
+				if (luaIsEmi && gpConsoleServices)
+					gpConsoleServices->logError("Break not allowed!\n");
 			}
 		}
 

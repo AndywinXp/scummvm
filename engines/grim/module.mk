@@ -26,6 +26,9 @@ MODULE_OBJS := \
 	emi/lsound.o \
 	emi/lstring.o \
 	emi/ltimeservices.o \
+	emi/lua_v2.o \
+	emi/lua_v2_actor.o \
+	emi/lua_v2_sound.o \
 	emi/polyglot_v2.o \
 	emi/resourcemanager.o \
 	emi/zfile.o \

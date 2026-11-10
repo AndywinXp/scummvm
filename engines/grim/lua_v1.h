@@ -56,34 +56,34 @@ class Lua_V1 : public LuaBase, public SputControlCallback {
 public:
 	typedef Lua_V1 LuaClass;
 
-	Lua_V1();
+	Lua_V1(bool isEmi);
 
-	int initialize(SysStruct *pHS);
-	int terminate();
-	int startup();
-	int shutdown();
-	int findSystemFiles();
-	int boot(int saveGameResume, const char *bootParam);
-	void update();
+	virtual int initialize(SysStruct *pHS);
+	virtual int terminate();
+	virtual int startup();
+	virtual int shutdown();
+	virtual int findSystemFiles();
+	virtual int boot(int saveGameResume, const char *bootParam);
+	virtual void update();
 
-	void registerMainOpcodes();
-	void registerTextOpcodes();
-	void registerPrimitiveOpcodes();
-	void registerHardwareOpcodes();
-	void registerCostumeOpcodes();
+	virtual void registerMainOpcodes();
+	virtual void registerTextOpcodes();
+	virtual void registerPrimitiveOpcodes();
+	virtual void registerHardwareOpcodes();
+	virtual void registerCostumeOpcodes();
 
 	int controlCallback(float frameTime) override;
-	void setDebugToggleCallback(void (*pFunc)(int));
-	void cameraChange(int oldSetup, int newSetup);
-	void postCameraChange(int setup);
-	void collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2);
-	void doCostumeOverrideCallback(SputActor *pActor, int bOverride);
-	void doCostumeMarkerCallback(SputActor *pActor, int markerType);
-	void doUserPaintCallback();
-	int doExitCallback();
-	int doPauseCallback();
-	int doCharacterCallback(int character);
-	void saveGameCallback();
+	virtual void setDebugToggleCallback(void (*pFunc)(int));
+	virtual void cameraChange(int oldSetup, int newSetup);
+	virtual void postCameraChange(int setup);
+	virtual void collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2);
+	virtual void doCostumeOverrideCallback(SputActor *pActor, int bOverride);
+	virtual void doCostumeMarkerCallback(SputActor *pActor, int markerType);
+	virtual void doUserPaintCallback();
+	virtual int doExitCallback();
+	virtual int doPauseCallback();
+	virtual int doCharacterCallback(int character);
+	virtual void saveGameCallback();
 
 protected:
 	// Opcodes
@@ -406,14 +406,16 @@ protected:
 	DECLARE_LUA_OPCODE(GetKeyLength);
 	DECLARE_LUA_OPCODE(GetSmushLength);
 
+protected:
+	void registerControls();
+	bool getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf);
+
 private:
 	enum {
 		kMaxImages = 128
 	};
 
 	void makeSystemTable();
-	void registerControls();
-	bool getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf);
 	SputTextEvent *getTextEvent(lua_Object obj);
 	bool isSputActor(lua_Object obj);
 	SputActor *getSputActor(lua_Object obj);

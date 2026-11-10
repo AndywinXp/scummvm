@@ -74,7 +74,7 @@ void lua_FuncIDsInvalidate();
 
 void lua_removelibslists();
 
-void lua_open();
+void lua_open(bool isEmi);
 void lua_close();
 bool lua_isopen();
 

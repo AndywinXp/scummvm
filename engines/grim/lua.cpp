@@ -83,10 +83,11 @@ void LuaObjects::pushObjects() const {
 
 LuaBase *LuaBase::s_instance = nullptr;
 
-LuaBase::LuaBase() :
+LuaBase::LuaBase(bool isEmi) :
 		_frameTimeCollection(0) {
 	s_instance = this;
 
+	lua_open(isEmi);
 	lua_iolibopen();
 	lua_strlibopen();
 	lua_mathlibopen();
