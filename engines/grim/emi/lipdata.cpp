@@ -25,6 +25,7 @@
 
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lipdata.h"
+#include "engines/grim/emi/sounds.h"
 
 namespace Grim {
 
@@ -121,6 +122,22 @@ int LipData::findCode(int position) const {
 
 void LipData::sortMouthTable() {
 	qsort(_mouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
+}
+
+int LipData::getLipMouthShape(uint soundHandle, int position) {
+	LipData *lipData = Sounds::getSoundLipData(soundHandle);
+
+	if (!lipData)
+		return 0;
+
+	int soundPosition = position;
+
+	if (position < 0)
+		soundPosition = Sounds::getSoundPosition(soundHandle);
+	else if (position > Sounds::getSoundLength(soundHandle))
+		return 0;
+
+	return codeToMouthShape(lipData->findCode(soundPosition));
 }
 
 } // End of namespace Grim

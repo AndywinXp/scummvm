@@ -38,6 +38,8 @@ public:
 	void configure(const char *tabFile) override;
 	const char *getTranslation(const char *msg) override;
 
+	static Polyglot_v2 *instance;
+
 private:
 	int nextKeyByte();
 	LFile *openFileNoBundle(const char *path, const char *mode);

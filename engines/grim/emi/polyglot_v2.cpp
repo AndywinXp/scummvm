@@ -29,11 +29,17 @@
 
 namespace Grim {
 
+Polyglot_v2 *Polyglot_v2::instance = nullptr;
+
 Polyglot_v2::Polyglot_v2() : _table(nullptr), _lines(nullptr), _lineCount(0), _randomSeed(0) {
+	instance = this;
 }
 
 Polyglot_v2::~Polyglot_v2() {
 	shutdown();
+
+	if (instance == this)
+		instance = nullptr;
 }
 
 int Polyglot_v2::nextKeyByte() {

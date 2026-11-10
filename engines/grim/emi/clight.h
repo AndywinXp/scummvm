@@ -38,6 +38,9 @@ public:
 
 	CLight(Color lightColor, float lightIntensity, float lightFocusDistance, float lightSpreadDistance);
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	void setColor(int newR, int newG, int newB);
 	void addLighting(Color *accumulator, const float *lightTransform, const float *position, const float *normal);
 	float evaluate(const float *lightTransform, const float *position, const float *normal);

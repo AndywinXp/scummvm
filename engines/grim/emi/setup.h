@@ -1,0 +1,65 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef GRIM_EMI_SETUP_H
+#define GRIM_EMI_SETUP_H
+
+#include "common/list.h"
+
+#include "engines/grim/emi/camera.h"
+#include "engines/grim/emi/layer.h"
+#include "engines/grim/emi/lfile.h"
+#include "engines/grim/lua/lua.h"
+
+namespace Grim {
+
+class Setup {
+public:
+	enum {
+		kNameSize = 128
+	};
+
+	Setup();
+	~Setup();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
+	void *operator new[](size_t size);
+	void operator delete[](void *block);
+
+	void buildLayers();
+	int getSize();
+	int addLayer(const char *layerName, int layerSortOrder, int layerFrame, int layerId);
+	void removeLayer(Layer *layer);
+	void removeLayerById(int layerId);
+	bool save(tSaveRestoreAccess *access);
+	bool restore(tSaveRestoreAccess *access);
+
+	char name[kNameSize];
+	Camera camera;
+	Common::List<Layer *> layers;
+	LString backgroundName;
+	bool layersBuilt;
+};
+
+} // End of namespace Grim
+
+#endif

@@ -29,6 +29,8 @@
 
 namespace Grim {
 
+class CDrawContext;
+
 class Layer {
 public:
 	enum {
@@ -37,6 +39,11 @@ public:
 
 	Layer(const char *layerName, int layerSortOrder, int layerFrame, int layerId);
 	~Layer();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
+	int draw(CDrawContext *context);
 
 	static void set16BitFix(bool enable);
 	static void saveRestoreNextId(tSaveRestoreAccess *access);

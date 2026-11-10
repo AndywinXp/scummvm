@@ -21,12 +21,28 @@
 
 #include "common/textconsole.h"
 #include "common/ustr.h"
+#include "common/util.h"
 
 #include "gui/error.h"
 
+#include "engines/grim/emi/animcomponent.h"
+#include "engines/grim/emi/animwgtcomponent.h"
+#include "engines/grim/emi/cubecomponent.h"
+#include "engines/grim/emi/globalalphacomponent.h"
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/localalphacomponent.h"
 #include "engines/grim/emi/lresourcehandle.h"
+#include "engines/grim/emi/luacommandcomponent.h"
+#include "engines/grim/emi/luavarcomponent.h"
+#include "engines/grim/emi/meshcomponent.h"
 #include "engines/grim/emi/resourcemanager.h"
+#include "engines/grim/emi/shadowmeshcomponent.h"
+#include "engines/grim/emi/skeletoncomponent.h"
+#include "engines/grim/emi/snd3dcomponent.h"
+#include "engines/grim/emi/sndcomponent.h"
+#include "engines/grim/emi/sounds.h"
+#include "engines/grim/emi/spritecomponent.h"
+#include "engines/grim/emi/textureindexcomponent.h"
 
 namespace Grim {
 
@@ -124,7 +140,56 @@ void ResourceManager::resourceNameChange(LResource *resource, const LString &new
 }
 
 LResource *ResourceManager::createResource(const LString &name) {
-	// TODO
+	const char *resourceName = name.c_str();
+
+	if (*resourceName == '!') {
+		const char *tag = resourceName + 1;
+
+		if (!scumm_strnicmp(tag, "anim", 4))
+			return new AnimComponent();
+
+		if (!scumm_strnicmp(tag, "awgt", 4))
+			return new AnimWgtComponent();
+
+		if (!scumm_strnicmp(tag, "cube", 4))
+			return new CubeComponent();
+
+		if (!scumm_strnicmp(tag, "galp", 4))
+			return new GlobalAlphaComponent();
+
+		if (!scumm_strnicmp(tag, "lalp", 4))
+			return new LocalAlphaComponent();
+
+		if (!scumm_strnicmp(tag, "luac", 4))
+			return new LuaCommandComponent();
+
+		if (!scumm_strnicmp(tag, "luav", 4))
+			return new LuaVarComponent();
+
+		if (!scumm_strnicmp(tag, "mesh", 4))
+			return new MeshComponent();
+
+		if (!scumm_strnicmp(tag, "shad", 4))
+			return new ShadowMeshComponent();
+
+		if (!scumm_strnicmp(tag, "skel", 4))
+			return new SkeletonComponent();
+
+		if (!scumm_strnicmp(tag, "snd2", 4))
+			return new SndComponent();
+
+		if (!scumm_strnicmp(tag, "snd3", 4))
+			return new Snd3DComponent();
+
+		if (!scumm_strnicmp(tag, "sprt", 4))
+			return new SpriteComponent();
+
+		if (!scumm_strnicmp(tag, "texi", 4))
+			return new TextureIndexComponent();
+	} else if (*resourceName == '@') {
+		return Sounds::createWaveSoundResource();
+	}
+
 	return nullptr;
 }
 

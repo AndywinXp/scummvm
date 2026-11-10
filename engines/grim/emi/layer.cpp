@@ -22,10 +22,17 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/layer.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
+#include "engines/grim/emi/profilertimer.h"
 
 namespace Grim {
+
+static const int kQuadsFlags = 0x10001;
+
+static ProfilerTimer layerDrawTimer("Layer::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 
 bool Layer::fix16Bit = true;
 int Layer::_nextId = 1;
@@ -94,6 +101,66 @@ Layer::Layer(const char *layerName, int layerSortOrder, int layerFrame, int laye
 }
 
 Layer::~Layer() {
+}
+
+void *Layer::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void Layer::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
+int Layer::draw(CDrawContext *context) {
+	layerDrawTimer.start();
+
+	Background *backgroundData = nullptr;
+
+	if (background.lock())
+		backgroundData = background.typed;
+
+	if (tiledScene.lock()) {
+		TiledScene *scene = tiledScene.typed;
+
+		if (scene) {
+			context->setOrtho(-1.0f, 1.0f, -1.0f, 1.0f);
+
+			int frameCount = scene->getFrameCount();
+
+			if (frameCount > 0) {
+				// The disasm wraps the frame in place
+				while (frame < 0)
+					frame += frameCount;
+
+				int frameIndex = frame % frameCount;
+				int firstBatch = scene->frames[2 * frameIndex];
+				int batchCount = scene->frames[2 * frameIndex + 1];
+
+				if (batchCount > 0 && !backgroundData) {
+					warning("Layer::draw(): the background is not available");
+				} else if (batchCount > 0) {
+					for (int batch = firstBatch; batch < firstBatch + batchCount; batch++) {
+						if (batch < 0 || batch >= scene->header[TiledScene::kHeaderNumBatches]) {
+							warning("Layer::draw(): invalid batch %d", batch);
+							break;
+						}
+
+						const int *entry = &scene->batches[3 * batch];
+						CTexture *texture = backgroundData->getTexture(entry[0]);
+
+						context->drawQuads(kQuadsFlags, texture, entry[1], entry[2], &scene->vertices);
+					}
+				}
+			}
+
+			tiledScene.unlock();
+			background.unlock();
+		}
+	}
+
+	layerDrawTimer.stop();
+
+	return 0;
 }
 
 } // End of namespace Grim

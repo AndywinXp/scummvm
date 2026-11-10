@@ -28,6 +28,7 @@
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/layer.h"
 #include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/tiledscene.h"
 #include "engines/grim/emi/zfile.h"
 
@@ -95,7 +96,15 @@ bool Background::resLoadItem(const char *itemName) {
 		return false;
 	}
 
-	// TODO
+	if (Sounds::audioMixAhead < 64) {
+		int16 mixAhead = 64;
+
+		Sounds::setAudioMixAhead(&mixAhead, false);
+	}
+
+	bool forceUpdate = false;
+
+	Sounds::soundsUpdateThrottled(&forceUpdate);
 
 	const char *fileName = itemName + 2;
 	ZFile *file = ZFileServices::get()->open(fileName, "rb");

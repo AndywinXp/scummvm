@@ -38,6 +38,7 @@ public:
 	void setActive(bool newActive);
 
 	bool active;
+	bool savedActive;
 	CLight *light;
 
 	static Common::List<CLightNode *> activeLights;

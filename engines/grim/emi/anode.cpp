@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/ainst.h"
 #include "engines/grim/emi/anode.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
 
 namespace Grim {
@@ -50,6 +51,14 @@ ANode::~ANode() {
 		delete rotChannel;
 		rotChannel = nullptr;
 	}
+}
+
+void *ANode::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void ANode::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void ANode::bindTrack(AInst *inst, ATrack *track) {

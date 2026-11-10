@@ -49,6 +49,9 @@ public:
 	CNode();
 	virtual ~CNode();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void setLocalTransform(const CVector &position, const CQuaternion &rotation);
 	virtual void setLocalPosition(const CVector &position);
 
