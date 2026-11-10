@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/cweightmap.h"
 #include "engines/grim/emi/lformatparser.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
 
 namespace Grim {
@@ -50,6 +51,14 @@ public:
 	}
 };
 
+void *WeightData::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void WeightData::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 CWeightMap::CWeightMap() {
 	bound = false;
 }
@@ -64,6 +73,14 @@ CWeightMap::~CWeightMap() {
 	vertexLists.clear();
 	weights.clear();
 	nodeNames.clear();
+}
+
+void *CWeightMap::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CWeightMap::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 int CWeightMap::getSize() {

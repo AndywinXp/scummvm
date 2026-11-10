@@ -31,6 +31,9 @@ namespace Grim {
 class AInst;
 
 struct ChannelNode {
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	ChannelNode *prev;
 	ChannelNode *next;
 	ATrack *track;

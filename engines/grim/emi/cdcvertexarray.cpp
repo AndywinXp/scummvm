@@ -20,8 +20,17 @@
  */
 
 #include "engines/grim/emi/cdcvertexarray.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
+
+void *CDCVertex::operator new[](size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CDCVertex::operator delete[](void *block) {
+	gpMemoryServices->free(block);
+}
 
 int VertexStreams::getDataSize() const {
 	int vertexSize = 0;
@@ -47,6 +56,14 @@ CDCVertexArray::CDCVertexArray() {
 }
 
 CDCVertexArray::~CDCVertexArray() {
+}
+
+void *CDCVertexArray::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CDCVertexArray::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 } // End of namespace Grim

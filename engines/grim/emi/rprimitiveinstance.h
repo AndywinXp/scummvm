@@ -43,6 +43,9 @@ public:
 	RPrimitiveInstance(RPrimitive *primitive);
 	virtual ~RPrimitiveInstance();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void output(RNode *node, Camera *camera) {}
 	virtual void update(RNode *node, Camera *camera) {}
 	virtual int getSaveSize();

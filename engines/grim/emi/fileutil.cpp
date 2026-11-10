@@ -20,8 +20,17 @@
  */
 
 #include "engines/grim/emi/fileutil.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
+
+void *FileUtilFind::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void FileUtilFind::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
 
 FileUtilFind *FileUtilFind::newFind(const char *directory, int mode, const char *name) {
 	FileUtilFind *created = new FileUtilFind();

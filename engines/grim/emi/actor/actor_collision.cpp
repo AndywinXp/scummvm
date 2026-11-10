@@ -1,0 +1,760 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <math.h>
+
+#include "common/textconsole.h"
+
+#include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/rmesh.h"
+#include "engines/grim/emi/rprimitiveinstance.h"
+#include "engines/grim/emi/walkplane_v2.h"
+#include "engines/grim/emi/walkplanecollection.h"
+
+namespace Grim {
+
+static const float kCollisionFloatMax = 3.4028235e+38f;
+static const float kCollisionMargin = 0.01f;
+static const float kCollisionMinLength = 1e-20f;
+static const int kCollisionAnyPlane = -1;
+
+static double calcCollisionRadius(const RPrimitive *prim) {
+	double extentX = (double)prim->box.max.x - prim->box.min.x;
+	double extentZ = (double)prim->box.max.z - prim->box.min.z;
+
+	return sqrt((extentZ * extentZ) * 0.25 + (extentX * extentX) * 0.25);
+}
+
+void Actor::getOuttaTheBox(float *point, const float *box, const float *transform) {
+	double deltaX = (double)point[0] - transform[9];
+	double deltaY = (double)point[1] - transform[10];
+	double deltaZ = (double)point[2] - transform[11];
+
+	float localX = (float)((deltaX * transform[0] + deltaZ * transform[2]) + deltaY * transform[1]);
+	float localY = (float)((deltaZ * transform[5] + deltaY * transform[4]) + deltaX * transform[3]);
+	float localZ = (float)((deltaX * transform[6] + deltaZ * transform[8]) + deltaY * transform[7]);
+
+	if (localX <= box[3] && localX >= box[0] && localY <= box[4] && localY >= box[1] && localZ <= box[5] && localZ >= box[2]) {
+		float outX = localX;
+		float outY = localY;
+		float outZ = localZ;
+		double best = kCollisionFloatMax;
+
+		if (box[5] > localZ) {
+			double distance = (double)box[5] - localZ;
+
+			if (distance < 0.0)
+				distance = -distance;
+
+			if (distance < best) {
+				outX = localX;
+				outY = localY;
+				outZ = (float)((double)box[5] + kCollisionMargin);
+				best = (float)distance;
+			}
+		}
+
+		if (box[2] < localZ) {
+			double distance = (double)box[2] - localZ;
+
+			if (distance < 0.0)
+				distance = -distance;
+
+			if (distance < best) {
+				outX = localX;
+				outY = localY;
+				outZ = (float)((double)box[2] - kCollisionMargin);
+				best = (float)distance;
+			}
+		}
+
+		if (box[3] > localX) {
+			double distance = (double)box[3] - localX;
+
+			if (distance < 0.0)
+				distance = -distance;
+
+			if (distance < best) {
+				outX = (float)((double)box[3] + kCollisionMargin);
+				outY = localY;
+				outZ = localZ;
+				best = (float)distance;
+			}
+		}
+
+		if (box[0] < localX) {
+			double distance = (double)box[0] - localX;
+
+			if (distance < 0.0)
+				distance = -distance;
+
+			if (distance < best) {
+				outX = (float)((double)box[0] - kCollisionMargin);
+				outY = localY;
+				outZ = localZ;
+			}
+		}
+
+		double worldX = ((double)outZ * transform[6] + (double)outX * transform[0]) + (double)outY * transform[3];
+		float worldY = (float)(((double)outY * transform[4] + (double)outZ * transform[7]) + (double)outX * transform[1]);
+		float worldZ = (float)(((double)outY * transform[5] + (double)outZ * transform[8]) + (double)outX * transform[2]);
+
+		point[0] = (float)(worldX + transform[9]);
+		point[1] = (float)((double)worldY + transform[10]);
+		point[2] = (float)((double)worldZ + transform[11]);
+	}
+}
+
+bool Actor::testCollision(float startX, float startY, float startZ, float endX, float endY, float endZ, float originX, float originY, float originZ, const float *box, const float *transform) {
+	float best = 1.0f;
+
+	double startDeltaX = ((double)startX - originX) - transform[9];
+	float startRelativeY = (float)((double)startY - originY);
+	float startRelativeZ = (float)((double)startZ - originZ);
+	double startDeltaY = (double)startRelativeY - transform[10];
+	double startDeltaZ = (double)startRelativeZ - transform[11];
+
+	float localStartX = (float)((startDeltaZ * transform[2] + startDeltaY * transform[1]) + startDeltaX * transform[0]);
+	float localStartY = (float)((startDeltaZ * transform[5] + startDeltaY * transform[4]) + startDeltaX * transform[3]);
+	float localStartZ = (float)((startDeltaX * transform[6] + startDeltaZ * transform[8]) + startDeltaY * transform[7]);
+
+	double endDeltaX = ((double)endX - originX) - transform[9];
+	float endRelativeY = (float)((double)endY - originY);
+	float endRelativeZ = (float)((double)endZ - originZ);
+	double endDeltaY = (double)endRelativeY - transform[10];
+	double endDeltaZ = (double)endRelativeZ - transform[11];
+
+	float localEndX = (float)((endDeltaZ * transform[2] + endDeltaY * transform[1]) + endDeltaX * transform[0]);
+	float localEndY = (float)((endDeltaZ * transform[5] + endDeltaY * transform[4]) + endDeltaX * transform[3]);
+	float localEndZ = (float)((endDeltaX * transform[6] + endDeltaZ * transform[8]) + endDeltaY * transform[7]);
+
+	float directionX = (float)((double)localEndX - localStartX);
+	float directionY = (float)((double)localEndY - localStartY);
+	float directionZ = (float)((double)localEndZ - localStartZ);
+
+	if (localStartZ > box[5] && localEndZ < box[5]) {
+		double fraction = ((double)box[5] - localStartZ) / directionZ;
+
+		if (fraction < 1.0) {
+			float fractionFloat = (float)fraction;
+			float hitX = (float)((double)directionX * fractionFloat + localStartX);
+			float hitDeltaY = (float)((double)directionY * fractionFloat);
+			float hitDeltaZ = (float)((double)directionZ * fractionFloat);
+			float hitY = (float)((double)hitDeltaY + localStartY);
+			float hitZ = (float)((double)hitDeltaZ + localStartZ);
+
+			if (hitX > box[0] && hitX < box[3]) {
+				_hitPoint.x = hitX;
+				_hitPoint.y = hitY;
+				_hitPoint.z = hitZ;
+				best = fractionFloat;
+			}
+		}
+	}
+
+	if (localStartZ < box[2] && localEndZ > box[2]) {
+		double fraction = ((double)box[2] - localStartZ) / directionZ;
+
+		if (fraction < best) {
+			float fractionFloat = (float)fraction;
+			float hitX = (float)((double)directionX * fractionFloat + localStartX);
+			float hitDeltaY = (float)((double)directionY * fractionFloat);
+			float hitDeltaZ = (float)((double)directionZ * fractionFloat);
+			float hitY = (float)((double)hitDeltaY + localStartY);
+			float hitZ = (float)((double)hitDeltaZ + localStartZ);
+
+			if (hitX > box[0] && hitX < box[3]) {
+				_hitPoint.x = hitX;
+				_hitPoint.y = hitY;
+				_hitPoint.z = hitZ;
+				best = fractionFloat;
+			}
+		}
+	}
+
+	if (localStartX > box[3] && localEndX < box[3]) {
+		double fraction = ((double)box[3] - localStartX) / directionX;
+
+		if (fraction < best) {
+			float fractionFloat = (float)fraction;
+			float hitDeltaY = (float)((double)directionY * fractionFloat);
+			float hitDeltaZ = (float)((double)directionZ * fractionFloat);
+			float hitX = (float)((double)directionX * fractionFloat + localStartX);
+			float hitY = (float)((double)hitDeltaY + localStartY);
+			double hitZExact = (double)hitDeltaZ + localStartZ;
+			float hitZ = (float)hitZExact;
+
+			if (hitZExact > box[2] && hitZ < box[5]) {
+				_hitPoint.x = hitX;
+				_hitPoint.y = hitY;
+				_hitPoint.z = hitZ;
+				best = fractionFloat;
+			}
+		}
+	}
+
+	if (localStartX < box[0] && localEndX > box[0]) {
+		double fraction = ((double)box[0] - localStartX) / directionX;
+
+		if (fraction < best) {
+			float fractionFloat = (float)fraction;
+			float hitDeltaY = (float)((double)directionY * fractionFloat);
+			float hitDeltaZ = (float)((double)directionZ * fractionFloat);
+			float hitX = (float)((double)directionX * fractionFloat + localStartX);
+			float hitY = (float)((double)hitDeltaY + localStartY);
+			double hitZExact = (double)hitDeltaZ + localStartZ;
+			float hitZ = (float)hitZExact;
+
+			if (hitZExact > box[2] && hitZ < box[5]) {
+				_hitPoint.x = hitX;
+				_hitPoint.y = hitY;
+				_hitPoint.z = hitZ;
+				best = fractionFloat;
+			}
+		}
+	}
+
+	return best != 1.0f;
+}
+
+int Actor::findClosestCandidate(float startX, float startY, float startZ, float goalX, float goalY, float goalZ, const ObjectCorners_v2 *corners) {
+	int found = -1;
+	float best = kCollisionFloatMax;
+
+	for (int i = 0; i < ObjectCorners_v2::kNumCorners; i++) {
+		if (!corners->valid[i])
+			continue;
+
+		double startDeltaZ = (double)startZ - corners->corner[i][2];
+		double startDeltaY = (double)startY - corners->corner[i][1];
+		double startDeltaX = (double)startX - corners->corner[i][0];
+		double goalDeltaZ = (double)corners->corner[i][2] - goalZ;
+		double goalDeltaY = (double)corners->corner[i][1] - goalY;
+		float goalDeltaX = (float)((double)corners->corner[i][0] - goalX);
+
+		float total = (float)(((startDeltaX * startDeltaX + startDeltaZ * startDeltaZ) + startDeltaY * startDeltaY)
+			+ (((double)goalDeltaX * goalDeltaX + goalDeltaZ * goalDeltaZ) + goalDeltaY * goalDeltaY));
+
+		if (total < best) {
+			found = i;
+			best = total;
+		}
+	}
+
+	return found;
+}
+
+int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPath) {
+	int outCount = 0;
+	float startX = 0.0f;
+	float startY = 0.0f;
+	float startZ = 0.0f;
+	float endX = 0.0f;
+	float endY = 0.0f;
+	float endZ = 0.0f;
+	float goal[3];
+
+	goal[0] = 0.0f;
+	goal[1] = 0.0f;
+	goal[2] = 0.0f;
+
+	if (!other || !other->extra || !extra) {
+		if (other && other->extra)
+			warning("Actor::buildAvoidingPath(): the actor has no extra data");
+
+		for (int i = 0; i < count; i++) {
+			outPath[3 * i] = path[3 * i];
+			outPath[3 * i + 1] = path[3 * i + 1];
+			outPath[3 * i + 2] = path[3 * i + 2];
+			outCount++;
+		}
+
+		return outCount;
+	}
+
+	if (count <= 0) {
+		warning("Actor::buildAvoidingPath(): the path has no points");
+
+		return 0;
+	}
+
+	double thisRadius = 0.5;
+
+	if (!instances.empty() && instances[0]) {
+		if (instances[0]->prim)
+			thisRadius = calcCollisionRadius(instances[0]->prim);
+		else
+			warning("Actor::buildAvoidingPath(): primitive instance without primitive");
+	}
+
+	thisRadius = thisRadius * extra->collisionScale;
+
+	double otherRadius = 0.5;
+
+	if (!other->instances.empty() && other->instances[0]) {
+		if (other->instances[0]->prim)
+			otherRadius = calcCollisionRadius(other->instances[0]->prim);
+		else
+			warning("Actor::buildAvoidingPath(): primitive instance without primitive");
+	}
+
+	double radius = thisRadius + otherRadius * other->extra->collisionScale;
+	float radiusFloat = (float)radius;
+	float negativeRadius = (float)-radius;
+	float box[6];
+
+	box[0] = negativeRadius;
+	box[1] = negativeRadius;
+	box[2] = negativeRadius;
+	box[3] = radiusFloat;
+	box[4] = radiusFloat;
+	box[5] = radiusFloat;
+
+	if ((other->nodeFlags & kPositionValid) == 0)
+		other->computeLocalPositionFromWorld();
+
+	if ((other->nodeFlags & kWorldValid) == 0)
+		other->updateWorldTransform();
+
+	float *lastPoint = &path[3 * count - 3];
+
+	getOuttaTheBox(lastPoint, box, other->world.rot.m);
+
+	if ((other->nodeFlags & kPositionValid) == 0)
+		other->computeLocalPositionFromWorld();
+
+	if ((other->nodeFlags & kWorldValid) == 0)
+		other->updateWorldTransform();
+
+	getOuttaTheBox(path, box, other->world.rot.m);
+
+	goal[0] = lastPoint[0];
+	goal[1] = lastPoint[1];
+	goal[2] = lastPoint[2];
+
+	bool locked = room.lock();
+	Room_v2 *currentRoom = locked ? room.typed : nullptr;
+	WalkPlaneCollection *planes = nullptr;
+
+	if (currentRoom)
+		planes = currentRoom->walkPlanes;
+	else
+		warning("Actor::buildAvoidingPath(): the room could not be locked");
+
+	if (locked)
+		room.unlock();
+
+	if (!planes) {
+		warning("Actor::buildAvoidingPath(): the room has no walk planes");
+
+		return 0;
+	}
+
+	if (!planes->planeAt(goal, kCollisionAnyPlane))
+		return 0;
+
+	int index = 0;
+	bool collided = false;
+
+	for (index = 0; index < count - 1; index++) {
+		startX = path[3 * index];
+		startY = path[3 * index + 1];
+		startZ = path[3 * index + 2];
+		endX = path[3 * index + 3];
+		endY = path[3 * index + 4];
+		endZ = path[3 * index + 5];
+
+		outPath[3 * outCount] = path[3 * index];
+		outPath[3 * outCount + 1] = path[3 * index + 1];
+		outPath[3 * outCount + 2] = path[3 * index + 2];
+		outCount++;
+
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		if (testCollision(startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)) {
+			collided = true;
+
+			break;
+		}
+	}
+
+	if (!collided) {
+		outPath[3 * outCount] = path[3 * index];
+		outPath[3 * outCount + 1] = path[3 * index + 1];
+		outPath[3 * outCount + 2] = path[3 * index + 2];
+
+		return outCount + 1;
+	}
+
+	ObjectCorners_v2 corners;
+
+	for (int i = 0; i < ObjectCorners_v2::kNumCorners; i++) {
+		corners.corner[i][0] = 0.0f;
+		corners.corner[i][1] = 0.0f;
+		corners.corner[i][2] = 0.0f;
+	}
+
+	float hit[3];
+
+	hit[0] = _hitPoint.x;
+	hit[1] = _hitPoint.y;
+	hit[2] = _hitPoint.z;
+
+	if ((other->nodeFlags & kWorldValid) == 0)
+		other->updateWorldTransform();
+
+	const float *matrix = other->world.rot.m;
+	double hitWorldX = ((double)hit[1] * matrix[3] + (double)hit[2] * matrix[6]) + (double)hit[0] * matrix[0];
+	float hitOffsetY = (float)(((double)hit[1] * matrix[4] + (double)hit[2] * matrix[7]) + (double)hit[0] * matrix[1]);
+	float hitOffsetZ = (float)(((double)hit[1] * matrix[5] + (double)hit[2] * matrix[8]) + (double)hit[0] * matrix[2]);
+
+	hit[0] = (float)(hitWorldX + other->world.pos.x);
+	hit[1] = (float)((double)hitOffsetY + other->world.pos.y);
+	hit[2] = (float)((double)hitOffsetZ + other->world.pos.z);
+
+	WalkPlane_v2 *closestPlane = planes->planeClosest(hit, kCollisionAnyPlane);
+
+	if (closestPlane)
+		closestPlane->project(hit);
+	else
+		warning("Actor::buildAvoidingPath(): no walk plane near the hit point");
+
+	corners.corner[0][0] = negativeRadius;
+	corners.corner[0][1] = 0.0f;
+	corners.corner[0][2] = negativeRadius;
+	corners.corner[1][0] = radiusFloat;
+	corners.corner[1][1] = 0.0f;
+	corners.corner[1][2] = negativeRadius;
+	corners.corner[2][0] = radiusFloat;
+	corners.corner[2][1] = 0.0f;
+	corners.corner[2][2] = radiusFloat;
+	corners.corner[3][0] = negativeRadius;
+	corners.corner[3][1] = 0.0f;
+	corners.corner[3][2] = radiusFloat;
+
+	for (int k = 0; k < ObjectCorners_v2::kNumCorners; k++) {
+		float *corner = corners.corner[k];
+
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		matrix = other->world.rot.m;
+
+		double cornerWorldX = ((double)matrix[6] * corner[2] + (double)matrix[3] * corner[1]) + (double)corner[0] * matrix[0];
+		float cornerOffsetZ = (float)(((double)matrix[8] * corner[2] + (double)matrix[5] * corner[1]) + (double)matrix[2] * corner[0]);
+
+		corner[0] = (float)(cornerWorldX + other->world.pos.x);
+		corner[1] = hit[1];
+		corner[2] = (float)((double)cornerOffsetZ + other->world.pos.z);
+
+		corners.valid[k] = 0;
+		endX = corner[0];
+		endY = corner[1];
+		endZ = corner[2];
+
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		if (!testCollision(startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+			&& planes->buildPath(&path[3 * index], corner, false))
+			corners.valid[k] = 1;
+	}
+
+	int closest = findClosestCandidate(startX, startY, startZ, goal[0], goal[1], goal[2], &corners);
+
+	if (closest == -1 || !planes->buildPath(&path[3 * index], corners.corner[closest], true))
+		return outCount;
+
+	float (*pathPoints)[3];
+	int pathCount = WalkPlaneCollection::getPath(&pathPoints);
+
+	if (pathCount > 1) {
+		for (int j = 1; j < pathCount; j++) {
+			outPath[3 * outCount] = pathPoints[j][0];
+			outPath[3 * outCount + 1] = pathPoints[j][1];
+			outPath[3 * outCount + 2] = pathPoints[j][2];
+			outCount++;
+		}
+	}
+
+	corners.valid[closest] = 0;
+
+	if ((other->nodeFlags & kWorldValid) == 0)
+		other->updateWorldTransform();
+
+	float *lastOutPoint = &outPath[3 * outCount - 3];
+	float *nextOutPoint = &outPath[3 * outCount];
+
+	if (!testCollision(lastOutPoint[0], lastOutPoint[1], lastOutPoint[2], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+		&& planes->buildPath(lastOutPoint, goal, true)) {
+		pathCount = WalkPlaneCollection::getPath(&pathPoints);
+
+		if (pathCount > 1) {
+			for (int j = 1; j < pathCount; j++) {
+				outPath[3 * outCount] = pathPoints[j][0];
+				outPath[3 * outCount + 1] = pathPoints[j][1];
+				outPath[3 * outCount + 2] = pathPoints[j][2];
+				outCount++;
+			}
+
+			return outCount;
+		}
+
+		return outCount;
+	}
+
+	int previousCorner = (closest + 3) % 4;
+	int nextCorner = (closest + 5) % 4;
+	const float *previousPoint = corners.corner[previousCorner];
+	bool previousReachable = planes->buildPath(lastOutPoint, previousPoint, false);
+	const float *nextPoint = corners.corner[nextCorner];
+	bool nextReachable = planes->buildPath(lastOutPoint, nextPoint, false);
+	int current = nextCorner;
+	int direction = 1;
+
+	if (nextReachable) {
+		if (previousReachable) {
+			double previousToLastZ = (double)lastOutPoint[2] - previousPoint[2];
+			double previousToLastY = (double)lastOutPoint[1] - previousPoint[1];
+			double previousToLastX = (double)lastOutPoint[0] - previousPoint[0];
+			double previousToGoalZ = (double)previousPoint[2] - goal[2];
+			float previousToGoalY = (float)((double)previousPoint[1] - goal[1]);
+			float previousToGoalX = (float)((double)previousPoint[0] - goal[0]);
+			float nextToLastZ = (float)((double)lastOutPoint[2] - nextPoint[2]);
+			float nextToLastY = (float)((double)lastOutPoint[1] - nextPoint[1]);
+			float nextToLastX = (float)((double)lastOutPoint[0] - nextPoint[0]);
+			float nextToGoalZ = (float)((double)nextPoint[2] - goal[2]);
+			float nextToGoalY = (float)((double)nextPoint[1] - goal[1]);
+			float nextToGoalX = (float)((double)nextPoint[0] - goal[0]);
+
+			double previousDistance = ((previousToLastX * previousToLastX + previousToLastY * previousToLastY) + previousToLastZ * previousToLastZ)
+				+ (((double)previousToGoalX * previousToGoalX + (double)previousToGoalY * previousToGoalY) + previousToGoalZ * previousToGoalZ);
+			double nextDistance = (((double)nextToGoalX * nextToGoalX + (double)nextToGoalY * nextToGoalY) + (double)nextToGoalZ * nextToGoalZ)
+				+ (((double)nextToLastX * nextToLastX + (double)nextToLastY * nextToLastY) + (double)nextToLastZ * nextToLastZ);
+
+			if (nextDistance > previousDistance) {
+				current = previousCorner;
+				direction = -1;
+			}
+		}
+	} else if (!previousReachable) {
+		return outCount;
+	} else {
+		current = previousCorner;
+		direction = -1;
+	}
+
+	for (;;) {
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		bool blocked = testCollision(nextOutPoint[-3], nextOutPoint[-2], nextOutPoint[-1], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m);
+
+		if (!blocked || current == closest)
+			break;
+
+		outCount++;
+		nextOutPoint[0] = corners.corner[current][0];
+		nextOutPoint[1] = corners.corner[current][1];
+		nextOutPoint[2] = corners.corner[current][2];
+		nextOutPoint += 3;
+		current = (current + direction + 4) % 4;
+	}
+
+	outPath[3 * outCount] = goal[0];
+	outPath[3 * outCount + 1] = goal[1];
+	outPath[3 * outCount + 2] = goal[2];
+
+	return outCount + 1;
+}
+
+bool Actor::resolveCollisions() {
+	if (instances.empty())
+		return true;
+
+	RPrimitiveInstance *instance = instances[0];
+
+	if (!instance) {
+		warning("Actor::resolveCollisions(): missing primitive instance");
+
+		return true;
+	}
+
+	RPrimitive *prim = instance->prim;
+
+	if (!prim)
+		return true;
+
+	if (!extra) {
+		warning("Actor::resolveCollisions(): the actor has no extra data");
+
+		return true;
+	}
+
+	if ((nodeFlags & kWorldValid) == 0)
+		updateWorldTransform();
+
+	const float *matrix = world.rot.m;
+	float offsetX = (float)(((double)matrix[3] * prim->center.y + (double)matrix[6] * prim->center.z) + (double)matrix[0] * prim->center.x);
+	float offsetY = (float)(((double)matrix[4] * prim->center.y + (double)matrix[7] * prim->center.z) + (double)matrix[1] * prim->center.x);
+	float offsetZ = (float)(((double)matrix[5] * prim->center.y + (double)matrix[8] * prim->center.z) + (double)matrix[2] * prim->center.x);
+
+	if ((nodeFlags & kWorldValid) == 0)
+		updateWorldTransform();
+
+	float centerX = (float)((double)offsetX + world.pos.x);
+	float centerY = (float)((double)offsetY + world.pos.y);
+	float centerZ = (float)((double)offsetZ + world.pos.z);
+	float radius = (float)(calcCollisionRadius(prim) * extra->collisionScale);
+
+	// The disasm handles the collision modes 1 and 2 of this actor in the same way
+	if (extra->collisionMode == 0)
+		return true;
+
+	for (int i = 0; i < _collisionCount; i++) {
+		Actor *other = _collisionActors[i];
+
+		if (!other || other == this)
+			continue;
+
+		Extra_v2 *otherExtra = other->extra;
+
+		if (!otherExtra)
+			continue;
+
+		if (otherExtra->collisionMode == 0)
+			continue;
+
+		if (other->instances.empty())
+			continue;
+
+		RPrimitiveInstance *otherInstance = other->instances[0];
+
+		if (!otherInstance) {
+			warning("Actor::resolveCollisions(): missing primitive instance");
+
+			continue;
+		}
+
+		RPrimitive *otherPrim = otherInstance->prim;
+
+		if (!otherPrim)
+			continue;
+
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		const float *otherMatrix = other->world.rot.m;
+		float otherOffsetX = (float)(((double)otherMatrix[6] * otherPrim->center.z + (double)otherMatrix[3] * otherPrim->center.y) + (double)otherPrim->center.x * otherMatrix[0]);
+		float otherOffsetY = (float)(((double)otherMatrix[7] * otherPrim->center.z + (double)otherMatrix[1] * otherPrim->center.x) + (double)otherMatrix[4] * otherPrim->center.y);
+		float otherOffsetZ = (float)(((double)otherMatrix[8] * otherPrim->center.z + (double)otherMatrix[2] * otherPrim->center.x) + (double)otherMatrix[5] * otherPrim->center.y);
+
+		if ((other->nodeFlags & kWorldValid) == 0)
+			other->updateWorldTransform();
+
+		double otherCenterX = (double)otherOffsetX + other->world.pos.x;
+		double otherCenterY = (double)otherOffsetY + other->world.pos.y;
+		double otherCenterZ = (double)otherOffsetZ + other->world.pos.z;
+		float otherRadius = (float)(calcCollisionRadius(otherPrim) * otherExtra->collisionScale);
+
+		float deltaZ = (float)((double)centerZ - otherCenterZ);
+		float deltaY = (float)((double)centerY - otherCenterY);
+		float deltaX = (float)((double)centerX - otherCenterX);
+		float distance = (float)sqrt(((double)deltaX * deltaX + (double)deltaY * deltaY) + (double)deltaZ * deltaZ);
+
+		if (!((double)otherRadius + radius > distance))
+			continue;
+
+		if (otherExtra->collisionMode != 2)
+			continue;
+
+		if (radius == 0.0f) {
+			// The original could divide by zero here, let's avoid that...
+			warning("Actor::resolveCollisions(): the collision radius is zero");
+
+			continue;
+		}
+
+		extra->inCollision = true;
+		otherExtra->inCollision = true;
+
+		if ((nodeFlags & kPositionValid) == 0)
+			computeLocalPositionFromWorld();
+
+		_collisionOldPosition.x = pos.x;
+		_collisionOldPosition.y = pos.y;
+		_collisionOldPosition.z = pos.z;
+
+		double directionLength = sqrt(((double)deltaX * deltaX + (double)deltaZ * deltaZ) + (double)deltaY * deltaY);
+		double directionX = deltaX;
+		float directionY = deltaY;
+		float directionZ = deltaZ;
+
+		if (directionLength >= kCollisionMinLength) {
+			float inverseLength = (float)(1.0 / (float)directionLength);
+
+			directionX = (double)deltaX * inverseLength;
+			directionY = (float)((double)deltaY * inverseLength);
+			directionZ = (float)((double)deltaZ * inverseLength);
+		}
+
+		double push = (1.0 - ((double)distance - otherRadius) / radius) * radius;
+		float pushFloat = (float)push;
+		float pushY = (float)((double)directionY * pushFloat);
+		float pushZ = (float)((double)directionZ * pushFloat);
+		double pushedX = directionX * push + centerX;
+		float pushedY = (float)((double)pushY + centerY);
+		float pushedZ = (float)((double)pushZ + centerZ);
+		float newPosition[3];
+
+		newPosition[0] = (float)(pushedX - offsetX);
+		newPosition[1] = (float)((double)pushedY - offsetY);
+		newPosition[2] = (float)((double)pushedZ - offsetZ);
+
+		setActorPosition(newPosition);
+
+		if ((nodeFlags & kPositionValid) == 0)
+			computeLocalPositionFromWorld();
+
+		_collisionNewPosition.x = pos.x;
+		_collisionNewPosition.y = pos.y;
+		_collisionNewPosition.z = pos.z;
+		_hitPoint.x = _collisionNewPosition.x;
+		_hitPoint.y = _collisionNewPosition.y;
+		_hitPoint.z = _collisionNewPosition.z;
+
+		Lua_V2::callCollisionHandler(this, other, _collisionOldPosition.x, _collisionOldPosition.y, _collisionOldPosition.z,
+			_hitPoint.x, _hitPoint.y, _hitPoint.z, _collisionNewPosition.x, _collisionNewPosition.y, _collisionNewPosition.z);
+	}
+
+	if ((nodeFlags & kPositionValid) == 0)
+		computeLocalPositionFromWorld();
+
+	prevPos.x = pos.x;
+	prevPos.y = pos.y;
+	prevPos.z = pos.z;
+
+	return true;
+}
+
+} // End of namespace Grim

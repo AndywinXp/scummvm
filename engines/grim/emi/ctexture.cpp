@@ -20,6 +20,7 @@
  */
 
 #include "engines/grim/emi/ctexture.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
@@ -28,6 +29,14 @@ CTexture::CTexture() {
 }
 
 CTexture::~CTexture() {
+}
+
+void *CTexture::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CTexture::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void CTexture::applyFlags() {

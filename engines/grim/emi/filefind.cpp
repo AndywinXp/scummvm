@@ -24,8 +24,17 @@
 #include "common/str.h"
 
 #include "engines/grim/emi/filefind.h"
+#include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
+
+void *FileFind::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void FileFind::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
 
 FileFind::FileFind(const char *pattern, const char *directory) {
 	_current = 0;

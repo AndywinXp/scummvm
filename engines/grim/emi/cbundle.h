@@ -66,6 +66,9 @@ public:
 	PBundleDirectoryEntry();
 	virtual ~PBundleDirectoryEntry() {}
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	void reset();
 
 	virtual bool isDirectoryFile();
@@ -91,6 +94,9 @@ class CBundle {
 public:
 	CBundle();
 	~CBundle();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	void reset();
 	void close();

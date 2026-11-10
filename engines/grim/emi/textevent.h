@@ -85,12 +85,12 @@ public:
 	LString text;
 	float duration;
 	uint flags;
-	int reserved24;
+	int actorId;
 	int clipRect[4];
 	LResourceHandle<CTextFont> font;
 	int x;
 	int y;
-	int reserved68;
+	int layer;
 	int hold;
 	Color color;
 	Color outlineColor;

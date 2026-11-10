@@ -97,10 +97,10 @@ bool BmData::load(LFile *file) {
 		return false;
 
 	codec = READ_LE_INT32(header + 8);
-	field132 = READ_LE_INT32(header + 12);
-	field204 = READ_LE_INT32(header + 20);
-	field208 = READ_LE_INT32(header + 24);
-	field212 = READ_LE_INT32(header + 28);
+	paletteIncluded = READ_LE_INT32(header + 12);
+	originX = READ_LE_INT32(header + 20);
+	originY = READ_LE_INT32(header + 24);
+	transparentColor = READ_LE_INT32(header + 28);
 	formatField136 = READ_LE_INT32(header + 32);
 	bitsPerPixel = READ_LE_INT32(header + 36);
 

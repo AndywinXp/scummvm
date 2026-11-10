@@ -50,6 +50,14 @@ LConsoleServices::~LConsoleServices() {
 		gpConsoleServices = nullptr;
 }
 
+void *LConsoleServices::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void LConsoleServices::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 void LConsoleServices::deleteAllConsoles() {
 	uint i;
 

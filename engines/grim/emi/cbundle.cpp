@@ -48,6 +48,14 @@ PBundleDirectoryEntry::PBundleDirectoryEntry() {
 	reset();
 }
 
+void *PBundleDirectoryEntry::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void PBundleDirectoryEntry::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 void PBundleDirectoryEntry::reset() {
 	hash = 0;
 	name = nullptr;
@@ -98,6 +106,14 @@ CBundle::CBundle() {
 
 CBundle::~CBundle() {
 	close();
+}
+
+void *CBundle::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CBundle::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 void CBundle::reset() {

@@ -37,6 +37,9 @@ struct VertexSource {
 };
 
 struct WeightData {
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	float weight;
 	int node;
 	WeightData *next;
@@ -54,6 +57,9 @@ class CWeightMap : public CPrimitive {
 public:
 	CWeightMap();
 	virtual ~CWeightMap();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
 
 	virtual bool save(LFile *file);
 	virtual bool restore(LFile *file);

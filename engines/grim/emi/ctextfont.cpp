@@ -77,6 +77,14 @@ Glyph::Glyph() {
 	page = 0;
 }
 
+void *Glyph::operator new[](size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void Glyph::operator delete[](void *block) {
+	gpMemoryServices->free(block);
+}
+
 CTextFont::CTextFont() {
 	lineHeight = 0;
 	header52 = 0;

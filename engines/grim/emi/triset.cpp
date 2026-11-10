@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/triset.h"
 
 namespace Grim {
@@ -27,6 +28,14 @@ TriSet::TriSet() {
 	drawFlags = 0;
 	numMaterials = 0;
 	materialIdx = -1;
+}
+
+void *TriSet::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void TriSet::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 } // End of namespace Grim

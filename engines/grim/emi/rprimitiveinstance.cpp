@@ -26,6 +26,7 @@
 #include "engines/grim/emi/camera.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/color.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/rnode.h"
 #include "engines/grim/emi/rprimitiveinstance.h"
 
@@ -52,6 +53,14 @@ RPrimitiveInstance::RPrimitiveInstance(RPrimitive *primitive) {
 }
 
 RPrimitiveInstance::~RPrimitiveInstance() {
+}
+
+void *RPrimitiveInstance::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void RPrimitiveInstance::operator delete(void *block) {
+	gpMemoryServices->free(block);
 }
 
 int RPrimitiveInstance::getSaveSize() {

@@ -28,6 +28,7 @@
 namespace Grim {
 
 class CDrawContext;
+class Polyglot_v2;
 
 class EmiEngine : public GrimEngine {
 public:
@@ -54,8 +55,10 @@ public:
 	static float getFrameTime();
 	static bool isDumpingFrames();
 	static void setSaveLoadIdle(bool idle);
+	static Polyglot_v2 *getPolyglot();
 
 private:
+	static Polyglot_v2 *_polyglot;
 	static int _mode;
 	static int _savedMode;
 	static int _cpuSpeed;

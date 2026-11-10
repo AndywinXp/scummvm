@@ -31,6 +31,9 @@ class LBitmap {
 public:
 	LBitmap();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual int getWidth() = 0;
 	virtual int getHeight() = 0;
 	virtual int getStride() = 0;

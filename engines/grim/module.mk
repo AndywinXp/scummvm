@@ -10,7 +10,16 @@ MODULE_OBJS := \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
 	emi/achannel.o \
-	emi/actor.o \
+	emi/actor/actor.o \
+	emi/actor/actor_chore.o \
+	emi/actor/actor_collision.o \
+	emi/actor/actor_draw.o \
+	emi/actor/actor_lookat.o \
+	emi/actor/actor_save.o \
+	emi/actor/actor_shadow.o \
+	emi/actor/actor_speech.o \
+	emi/actor/actor_update.o \
+	emi/actor/actor_walk.o \
 	emi/ainst.o \
 	emi/animation.o \
 	emi/animcomponent.o \

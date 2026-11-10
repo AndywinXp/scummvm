@@ -127,10 +127,10 @@ void TextEvent::operator delete(void *block) {
 }
 
 void TextEvent::init() {
-	// The disasm leaves flags and reserved68 uninitialized
+	// The disasm leaves flags and layer uninitialized
 	flags = 0;
-	reserved68 = 0;
-	reserved24 = 0;
+	layer = 0;
+	actorId = 0;
 	hold = 0;
 	id = _nextId;
 	_nextId++;
@@ -655,7 +655,7 @@ bool TextEvent::save(tSaveRestoreAccess *access) {
 	access(&x, sizeof(x));
 	access(&y, sizeof(y));
 	access(&duration, sizeof(duration));
-	access(&reserved24, sizeof(reserved24));
+	access(&actorId, sizeof(actorId));
 	access(&flags, sizeof(flags));
 	access(&id, sizeof(id));
 
@@ -673,7 +673,7 @@ bool TextEvent::save(tSaveRestoreAccess *access) {
 
 	access(&length, sizeof(length));
 	access((void *)fontName.c_str(), length);
-	access(&reserved68, sizeof(reserved68));
+	access(&layer, sizeof(layer));
 	access(&hold, sizeof(hold));
 	access(&color, sizeof(color));
 	access(&outlineColor, sizeof(outlineColor));
@@ -703,7 +703,7 @@ bool TextEvent::restore(tSaveRestoreAccess *access) {
 	access(&x, sizeof(x));
 	access(&y, sizeof(y));
 	access(&duration, sizeof(duration));
-	access(&reserved24, sizeof(reserved24));
+	access(&actorId, sizeof(actorId));
 	access(&flags, sizeof(flags));
 	access(&id, sizeof(id));
 
@@ -731,7 +731,7 @@ bool TextEvent::restore(tSaveRestoreAccess *access) {
 		font.setResource(restoredFont.resource);
 	}
 
-	access(&reserved68, sizeof(reserved68));
+	access(&layer, sizeof(layer));
 	access(&hold, sizeof(hold));
 	access(&color, sizeof(color));
 	access(&outlineColor, sizeof(outlineColor));
@@ -877,8 +877,10 @@ const char *TextEvent::translate(const char *msg, char *buffer) {
 	if (buffer)
 		*buffer = 0;
 
-	if (Polyglot_v2::instance) {
-		translated = Polyglot_v2::instance->getTranslation(msg);
+	Polyglot_v2 *polyglot = EmiEngine::getPolyglot();
+
+	if (polyglot) {
+		translated = polyglot->getTranslation(msg);
 	} else {
 		warning("TextEvent::translate(): no translation table");
 

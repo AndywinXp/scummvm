@@ -60,6 +60,9 @@ public:
 	public:
 		virtual ~LMemoryHandler() {}
 
+		void *operator new(size_t size);
+		void operator delete(void *block);
+
 		virtual uint purgeAmount(uint bytes) = 0;
 	};
 
