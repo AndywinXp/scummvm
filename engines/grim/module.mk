@@ -12,9 +12,17 @@ MODULE_OBJS := \
 	emi/cbundle.o \
 	emi/cpathingfileservices.o \
 	emi/filefind.o \
+	emi/labitmap.o \
+	emi/lbitmap.o \
+	emi/lcolorformat.o \
 	emi/lconsoleservices.o \
 	emi/lfile.o \
+	emi/lformatparser.o \
 	emi/lmemoryservices.o \
+	emi/lresource.o \
+	emi/lresourcehandle.o \
+	emi/lsound.o \
+	emi/lstring.o \
 	emi/ltimeservices.o \
 	emi/zfile.o \
 	imuse/imuse_cmds.o \
