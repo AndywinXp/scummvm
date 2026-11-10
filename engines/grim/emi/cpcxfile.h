@@ -52,6 +52,10 @@ struct PcxHeader {
 };
 
 struct PcxReader {
+	bool readHeader(PcxHeader *header);
+	int decodeLine(byte *dest, int length);
+	void loadFile(LFile *file);
+
 	byte *base;
 	byte *cursor;
 	byte *end;
@@ -67,14 +71,11 @@ public:
 	virtual int readPalette(LFile *file, int *palette);
 	virtual int writeImage(LFile *file, LBitmap *image, const int *palette);
 
+	static int writeHeader(LFile *file, const PcxHeader *header);
+	static int encodeLine(const byte *source, byte *dest, int length);
+
 	LBitmap *bitmap;
 };
-
-bool ioPcxReadHeader(PcxReader *reader, PcxHeader *header);
-int ioPcxWriteHeader(LFile *file, const PcxHeader *header);
-int ioPcxEncodeLine(const byte *source, byte *dest, int length);
-int ioPcxDecodeLine(PcxReader *reader, byte *dest, int length);
-void ioPcxLoadFile(LFile *file, PcxReader *reader);
 
 } // End of namespace Grim
 

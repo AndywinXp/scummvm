@@ -36,14 +36,15 @@ struct FileUtilEntry {
 };
 
 struct FileUtilFind {
+	static FileUtilFind *newFind(const char *directory, int mode, const char *name);
+	static void disposeFind(FileUtilFind *&target);
+
+	bool findNext(FileUtilEntry *entry);
+
 	int callCount;
 	LString pattern;
 	FileFind *find;
 };
-
-FileUtilFind *fileUtilNewFind(const char *directory, int mode, const char *name);
-void fileUtilDisposeFind(FileUtilFind *&find);
-bool fileUtilFindNext(FileUtilFind *find, FileUtilEntry *entry);
 
 } // End of namespace Grim
 

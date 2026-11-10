@@ -26,7 +26,10 @@
 
 namespace Grim {
 
-LString &stringGetExtension(LString &string, LString &extension);
+class LStringUtil {
+public:
+	static LString &getExtension(LString &string, LString &extension);
+};
 
 } // End of namespace Grim
 

@@ -65,6 +65,9 @@ public:
 	bool parse(int versionMajor, int versionMinor);
 	int tokenize();
 
+	static bool skipCopyrightBanner(LFile *file);
+	static bool writeCopyrightBanner(LFile *file);
+
 	LFile *file;
 	Common::Array<LFile *> fileStack;
 	bool reading;
@@ -77,9 +80,6 @@ public:
 protected:
 	~LFormatParser();
 };
-
-bool skipCopyrightBanner(LFile *file);
-bool writeCopyrightBanner(LFile *file);
 
 } // End of namespace Grim
 

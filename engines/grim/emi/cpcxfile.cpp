@@ -43,9 +43,9 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 	bool result = false;
 
 	bitmap = image;
-	ioPcxLoadFile(file, &reader);
+	reader.loadFile(file);
 
-	if (ioPcxReadHeader(&reader, &header)) {
+	if (reader.readHeader(&header)) {
 		int imageWidth = header.xMax - header.xMin + 1;
 		int imageHeight = header.yMax - header.yMin + 1;
 		int numPlanes = header.numPlanes;
@@ -60,7 +60,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 			byte *rowBuffer = (byte *)gpMemoryServices->malloc((uint)rowBytes * sizeof(byte));
 			int bytesPerPixel = header.numPlanes * header.bitsPerPixel / 8;
 
-			bitmap->create(imageWidth, imageHeight, gColorFormat6, nullptr);
+			bitmap->create(imageWidth, imageHeight, LColorFormat::format6, nullptr);
 
 			for (int row = 0; row < imageHeight; row++) {
 				if (reader.cursor >= reader.end)
@@ -74,7 +74,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 					break;
 				}
 
-				int decoded = ioPcxDecodeLine(&reader, rowBuffer, rowBytes);
+				int decoded = reader.decodeLine(rowBuffer, rowBytes);
 
 				for (int plane = 0; plane < numPlanes; plane++) {
 					int planeStart = plane * imageWidth;
@@ -177,7 +177,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 	header.screenHeight = bitmap->getHeight();
 	memset(header.filler, 0, sizeof(header.filler));
 
-	ioPcxWriteHeader(file, &header);
+	writeHeader(file, &header);
 
 	byte *lineBuffer = (byte *)gpMemoryServices->malloc((uint)(2 * bitmap->getWidth()) * sizeof(byte));
 
@@ -188,7 +188,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 			for (int row = 0; row < bitmap->getHeight(); row++) {
 				// The disasm advances by the width and not by the stride
 				const byte *line = pixels + row * bitmap->getWidth();
-				int encoded = ioPcxEncodeLine(line, lineBuffer, bitmap->getWidth());
+				int encoded = encodeLine(line, lineBuffer, bitmap->getWidth());
 
 				file->write(lineBuffer, encoded);
 			}
@@ -219,17 +219,17 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 	return 1;
 }
 
-bool ioPcxReadHeader(PcxReader *reader, PcxHeader *header) {
-	if (reader->end - reader->cursor < (int)kHeaderSize) {
-		warning("ioPcxReadHeader(): file too short");
+bool PcxReader::readHeader(PcxHeader *header) {
+	if (end - cursor < (int)kHeaderSize) {
+		warning("PcxReader::readHeader(): file too short");
 
 		return false;
 	}
 
-	byte *data = reader->cursor;
+	byte *data = cursor;
 
 	header->id = data[0];
-	reader->cursor += 1;
+	cursor += 1;
 
 	if (header->id != 10) {
 		if (gpConsoleServices)
@@ -239,7 +239,7 @@ bool ioPcxReadHeader(PcxReader *reader, PcxHeader *header) {
 	}
 
 	header->version = data[1];
-	reader->cursor += 1;
+	cursor += 1;
 
 	if (header->version != 0 && header->version != 2 && header->version != 3 && header->version != 4 && header->version != 5) {
 		if (gpConsoleServices)
@@ -264,12 +264,12 @@ bool ioPcxReadHeader(PcxReader *reader, PcxHeader *header) {
 	header->screenWidth = READ_LE_UINT16(data + 70);
 	header->screenHeight = READ_LE_UINT16(data + 72);
 	memcpy(header->filler, data + 74, sizeof(header->filler));
-	reader->cursor = data + kHeaderSize;
+	cursor = data + kHeaderSize;
 
 	return true;
 }
 
-int ioPcxWriteHeader(LFile *file, const PcxHeader *header) {
+int CPCXFile::writeHeader(LFile *file, const PcxHeader *header) {
 	byte data[kHeaderSize];
 
 	data[0] = header->id;
@@ -296,7 +296,7 @@ int ioPcxWriteHeader(LFile *file, const PcxHeader *header) {
 	return 1;
 }
 
-int ioPcxEncodeLine(const byte *source, byte *dest, int length) {
+int CPCXFile::encodeLine(const byte *source, byte *dest, int length) {
 	int written = 0;
 
 	if (!length)
@@ -341,27 +341,27 @@ int ioPcxEncodeLine(const byte *source, byte *dest, int length) {
 	return written;
 }
 
-int ioPcxDecodeLine(PcxReader *reader, byte *dest, int length) {
+int PcxReader::decodeLine(byte *dest, int length) {
 	int decoded = 0;
 
 	while (decoded < length) {
-		if (reader->cursor >= reader->end)
+		if (cursor >= end)
 			break;
 
-		byte value = *reader->cursor;
-		reader->cursor++;
+		byte value = *cursor;
+		cursor++;
 
 		int run = 1;
 
 		if ((value & 0xC0) == 0xC0) {
 			run = value & 0x3F;
 
-			if (reader->cursor < reader->end) {
-				value = *reader->cursor;
-				reader->cursor++;
+			if (cursor < end) {
+				value = *cursor;
+				cursor++;
 			} else {
 				value = 0;
-				reader->overrun = true;
+				overrun = true;
 			}
 
 			if (run == 0)
@@ -381,39 +381,39 @@ int ioPcxDecodeLine(PcxReader *reader, byte *dest, int length) {
 			break;
 	}
 
-	if (reader->overrun && gpConsoleServices)
+	if (overrun && gpConsoleServices)
 		gpConsoleServices->logWarning("PCX::DecodeRow: EOF during read!\n");
 
 	return decoded;
 }
 
-void ioPcxLoadFile(LFile *file, PcxReader *reader) {
+void PcxReader::loadFile(LFile *file) {
 	int position = file->tell();
 
 	file->seek(0, SEEK_END);
-	reader->size = file->tell();
+	size = file->tell();
 	file->seek(0, SEEK_SET);
 
-	reader->overrun = false;
-	reader->base = (byte *)gpMemoryServices->malloc(reader->size * sizeof(byte));
+	overrun = false;
+	base = (byte *)gpMemoryServices->malloc(size * sizeof(byte));
 
-	if (!reader->base) {
-		warning("ioPcxLoadFile(): cannot allocate %u bytes", reader->size);
+	if (!base) {
+		warning("PcxReader::loadFile(): cannot allocate %u bytes", size);
 
-		reader->cursor = nullptr;
-		reader->end = nullptr;
+		cursor = nullptr;
+		end = nullptr;
 
 		return;
 	}
 
-	if (position < 0 || (uint)position > reader->size) {
-		warning("ioPcxLoadFile(): invalid file position %d", position);
+	if (position < 0 || (uint)position > size) {
+		warning("PcxReader::loadFile(): invalid file position %d", position);
 		position = 0;
 	}
 
-	reader->cursor = reader->base + position;
-	reader->end = reader->base + reader->size;
-	file->read(reader->base, reader->size);
+	cursor = base + position;
+	end = base + size;
+	file->read(base, size);
 }
 
 } // End of namespace Grim

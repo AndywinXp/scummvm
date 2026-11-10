@@ -26,7 +26,7 @@
 
 namespace Grim {
 
-ZFileServices *gpZFileServices = nullptr;
+ZFileServices *ZFileServices::_instance = nullptr;
 
 namespace {
 
@@ -436,11 +436,11 @@ void ZFileServices::closeZFile(ZFile *file) {
 	delete file;
 }
 
-ZFileServices *getZFileServices() {
-	if (!gpZFileServices)
-		gpZFileServices = new ZFileServices();
+ZFileServices *ZFileServices::get() {
+	if (!_instance)
+		_instance = new ZFileServices();
 
-	return gpZFileServices;
+	return _instance;
 }
 
 } // End of namespace Grim

@@ -33,7 +33,7 @@ namespace Grim {
 
 CBundleServices *gpBundleServices = nullptr;
 
-static Common::String gCurrentIsland;
+Common::String CBundleServices::_currentIsland;
 
 BundleLookup::BundleLookup() {
 	file = nullptr;
@@ -794,9 +794,9 @@ LFile *CBundleServices::open(const char *path, const char *mode) {
 	inner->openInto(slot, path, mode);
 
 	if (!slot->isOpen()) {
-		suspendCdPath();
+		CPathingFileServices::suspendCdPath();
 		inner->openInto(slot, path, mode);
-		resumeCdPath();
+		CPathingFileServices::resumeCdPath();
 
 		if (!slot->isOpen())
 			return nullptr;
@@ -1036,7 +1036,7 @@ bool CBundleServices::findFile(const char *path, BundleLookup *result) {
 		return false;
 	}
 
-	uint hash = hashPath(path, normalized);
+	uint hash = CBundle::hashPath(path, normalized);
 	CBundle *bundle = head;
 
 	while (bundle && !found) {
@@ -1183,7 +1183,7 @@ bool CBundleServices::resetBundles() {
 	return openLocalBundles();
 }
 
-uint hashPath(const char *path, char *normalized) {
+uint CBundle::hashPath(const char *path, char *normalized) {
 	uint length = strlen(path);
 	uint hash = (((length | ((length | (length << 8)) << 8)) << 8) | length);
 	const char *in = path;
@@ -1205,7 +1205,7 @@ uint hashPath(const char *path, char *normalized) {
 	return hash;
 }
 
-int decodeName(char *name) {
+int CBundle::decodeName(char *name) {
 	int count = 0;
 	int length = strlen(name);
 
@@ -1217,11 +1217,11 @@ int decodeName(char *name) {
 	return count;
 }
 
-bool initBundleServices() {
+bool CBundleServices::init() {
 	if (gpBundleServices)
 		return true;
 
-	gCurrentIsland = "unknown";
+	_currentIsland = "unknown";
 
 	CBundleServices *services = new CBundleServices(gpFileServices);
 	bool localOpened = services->openLocalBundles();
@@ -1239,11 +1239,11 @@ bool initBundleServices() {
 	return true;
 }
 
-bool isI9nBundleOpen() {
+bool CBundleServices::isI9nBundleOpen() {
 	return gpBundleServices && gpBundleServices->findBundle("i9n.m4b") != nullptr;
 }
 
-bool openIslandBundles(const char *island) {
+bool CBundleServices::openIslandBundles(const char *island) {
 	bool failed = false;
 
 	if (!gpBundleServices)
@@ -1276,12 +1276,12 @@ bool openIslandBundles(const char *island) {
 
 	gpBundleServices->moveBundleToFront("i9n.m4b");
 	gpBundleServices->moveBundleToFront("patch.m4b");
-	gCurrentIsland = island;
+	_currentIsland = island;
 
 	return true;
 }
 
-void closeIslandBundles(const char *island) {
+void CBundleServices::closeIslandBundles(const char *island) {
 	if (!gpBundleServices)
 		return;
 
@@ -1299,10 +1299,10 @@ void closeIslandBundles(const char *island) {
 		gpBundleServices->closeBundle("artMon.m4b");
 	}
 
-	gCurrentIsland = "unknown";
+	_currentIsland = "unknown";
 }
 
-bool isIslandBundleOpen(const char *island) {
+bool CBundleServices::isIslandBundleOpen(const char *island) {
 	if (!gpBundleServices)
 		return false;
 
@@ -1321,7 +1321,7 @@ bool isIslandBundleOpen(const char *island) {
 	return gpBundleServices->findBundle(island) != nullptr;
 }
 
-bool setDiscBundles(int disc) {
+bool CBundleServices::setDiscBundles(int disc) {
 	if (!gpBundleServices)
 		return true;
 

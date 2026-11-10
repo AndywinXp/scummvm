@@ -24,25 +24,19 @@
 #include "common/util.h"
 
 #include "engines/grim/emi/lfile.h"
-#include "engines/grim/emi/lip.h"
+#include "engines/grim/emi/lipdata.h"
 
 namespace Grim {
 
-struct LipMouthEntry {
-	uint32 code;
-	uint32 shape;
-};
-
-static const uint kLipBufferSize = 2000;
 static const uint kLipHeaderSize = 8;
-static const int kLipMaxEntries = (kLipBufferSize - kLipHeaderSize) / sizeof(LipEntry) - 1;
+static const int kLipMaxEntries = (LipData::kBufferSize - kLipHeaderSize) / sizeof(LipEntry) - 1;
 static const int kLipRestCode = 95;
 static const int kLipRestShape = 5;
 static const int kLipUnknownShape = 6;
 
-static byte gLipBuffer[kLipBufferSize];
+byte LipData::_buffer[kBufferSize];
 
-static LipMouthEntry gLipMouthTable[] = {
+LipData::MouthEntry LipData::_mouthTable[kMouthTableSize] = {
 	{ 95, 5 }, { 593, 6 }, { 97, 6 }, { 230, 6 }, { 652, 13 }, { 596, 6 }, { 601, 6 }, { 98, 11 },
 	{ 679, 7 }, { 100, 7 }, { 240, 10 }, { 603, 13 }, { 616, 13 }, { 602, 14 }, { 605, 14 }, { 101, 6 },
 	{ 102, 9 }, { 103, 13 }, { 609, 13 }, { 104, 13 }, { 618, 13 }, { 105, 8 }, { 676, 7 }, { 107, 7 },
@@ -51,9 +45,7 @@ static LipMouthEntry gLipMouthTable[] = {
 	{ 117, 14 }, { 118, 9 }, { 119, 14 }, { 106, 13 }, { 122, 7 }, { 658, 7 }
 };
 
-static const int kLipMouthTableSize = ARRAYSIZE(gLipMouthTable);
-
-int readLipFile(const char *name, LipData **lipData) {
+int LipData::readFile(const char *name, LipData **lipData) {
 	const char *source = name;
 	int result = 0;
 
@@ -71,29 +63,29 @@ int readLipFile(const char *name, LipData **lipData) {
 	LFile *file = gpFileServices->open(path.c_str(), "rb");
 
 	if (file) {
-		int count = file->read(gLipBuffer, kLipBufferSize);
+		int readCount = file->read(_buffer, kBufferSize);
 
 		if (file->eof())
-			result = count;
+			result = readCount;
 
 		gpFileServices->close(file, true);
 	}
 
-	*lipData = (LipData *)gLipBuffer;
+	*lipData = (LipData *)_buffer;
 
 	return result;
 }
 
-int lipCodeToMouthShape(int code) {
+int LipData::codeToMouthShape(int code) {
 	if (code == kLipRestCode)
 		return kLipRestShape;
 
-	LipMouthEntry key;
+	MouthEntry key;
 
 	key.code = code;
 	key.shape = 0;
 
-	const LipMouthEntry *found = (const LipMouthEntry *)bsearch(&key, gLipMouthTable, kLipMouthTableSize, sizeof(LipMouthEntry), compareLipMouthEntries);
+	const MouthEntry *found = (const MouthEntry *)bsearch(&key, _mouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
 
 	if (found)
 		return (uint16)found->shape;
@@ -101,34 +93,34 @@ int lipCodeToMouthShape(int code) {
 	return kLipUnknownShape;
 }
 
-int compareLipMouthEntries(const void *first, const void *second) {
+int LipData::compareMouthEntries(const void *first, const void *second) {
 	return *(const int *)first - *(const int *)second;
 }
 
-int findLipCode(const LipData *lip, int position) {
-	int count = (int)READ_LE_UINT32(lip->count);
+int LipData::findCode(int position) const {
+	int entryCount = (int)READ_LE_UINT32(count);
 	int target = position >> 4;
 
-	if (count > kLipMaxEntries) {
-		warning("findLipCode(): entry count %d is out of range", count);
-		count = kLipMaxEntries;
+	if (entryCount > kLipMaxEntries) {
+		warning("LipData::findCode(): entry count %d is out of range", entryCount);
+		entryCount = kLipMaxEntries;
 	}
 
-	for (int i = 0; i < count; i++) {
-		int entryTime = READ_LE_INT16(lip->entries[i].time);
+	for (int i = 0; i < entryCount; i++) {
+		int entryTime = READ_LE_INT16(entries[i].time);
 
 		if (target < entryTime)
 			return kLipRestCode;
 
-		if (target < READ_LE_INT16(lip->entries[i + 1].time))
-			return READ_LE_INT16(lip->entries[i].code);
+		if (target < READ_LE_INT16(entries[i + 1].time))
+			return READ_LE_INT16(entries[i].code);
 	}
 
 	return kLipRestCode;
 }
 
-void sortLipMouthTable() {
-	qsort(gLipMouthTable, kLipMouthTableSize, sizeof(LipMouthEntry), compareLipMouthEntries);
+void LipData::sortMouthTable() {
+	qsort(_mouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
 }
 
 } // End of namespace Grim

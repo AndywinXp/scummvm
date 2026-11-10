@@ -27,16 +27,14 @@
 
 namespace Grim {
 
-bool gDebugLogEnabled = false;
+bool CGrimeConsole::_debugLogEnabled = false;
+LFile *CGrimeConsole::_debugLogFile = nullptr;
+bool CGrimeConsole::_debugConsoleReady = false;
+int (*CGrimeConsole::_logPrintf)(const char *text) = nullptr;
 
-static LFile *gDebugLogFile = nullptr;
-static bool gDebugConsoleReady = false;
-
-static int logPrintfStub(const char *text) {
+int CGrimeConsole::logPrintfStub(const char *text) {
 	return 0;
 }
-
-static int (*logPrintf)(const char *text) = nullptr;
 
 int CGrimeConsole::logStatus(const char *format, ...) {
 	va_list args;
@@ -52,7 +50,7 @@ int CGrimeConsole::logStatus(const char *format, ...) {
 	}
 
 	Common::String output = "S:" + message;
-	logPrintf(output.c_str());
+	_logPrintf(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -72,7 +70,7 @@ int CGrimeConsole::logDebug(const char *format, ...) {
 	}
 
 	Common::String output = "D:" + message;
-	logPrintf(output.c_str());
+	_logPrintf(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -92,7 +90,7 @@ int CGrimeConsole::logWarning(const char *format, ...) {
 	}
 
 	Common::String output = "W:" + message;
-	logPrintf(output.c_str());
+	_logPrintf(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -112,39 +110,39 @@ int CGrimeConsole::logError(const char *format, ...) {
 	}
 
 	Common::String output = "E:" + message;
-	logPrintf(output.c_str());
+	_logPrintf(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
 }
 
-void writeDebugLog(const char *text) {
-	if (gDebugLogEnabled && gDebugLogFile)
-		gDebugLogFile->writeFormat("%s", text);
+void CGrimeConsole::writeDebugLog(const char *text) {
+	if (_debugLogEnabled && _debugLogFile)
+		_debugLogFile->writeFormat("%s", text);
 }
 
-void setDebugLog(bool enable) {
+void CGrimeConsole::setDebugLog(bool enable) {
 	if (enable) {
-		if (gDebugConsoleReady)
+		if (_debugConsoleReady)
 			return;
 
-		if (gDebugLogEnabled) {
-			gDebugLogFile = gpFileServices->open("debug.log", "w");
+		if (_debugLogEnabled) {
+			_debugLogFile = gpFileServices->open("debug.log", "w");
 
-			if (!gDebugLogFile)
+			if (!_debugLogFile)
 				return;
 		}
 
 		initDebugConsole();
-		gDebugConsoleReady = true;
-	} else if (gDebugConsoleReady && gDebugLogFile) {
-		gpFileServices->close(gDebugLogFile, true);
-		gDebugLogFile = nullptr;
+		_debugConsoleReady = true;
+	} else if (_debugConsoleReady && _debugLogFile) {
+		gpFileServices->close(_debugLogFile, true);
+		_debugLogFile = nullptr;
 	}
 }
 
-bool initDebugConsole() {
-	logPrintf = logPrintfStub;
+bool CGrimeConsole::initDebugConsole() {
+	_logPrintf = logPrintfStub;
 
 	CGrimeConsole *console = new CGrimeConsole();
 

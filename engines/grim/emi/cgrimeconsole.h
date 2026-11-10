@@ -25,6 +25,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lfile.h"
 
 namespace Grim {
 
@@ -34,13 +35,19 @@ public:
 	int logWarning(const char *format, ...) override;
 	int logError(const char *format, ...) override;
 	int logDebug(const char *format, ...) override;
+
+	static void writeDebugLog(const char *text);
+	static void setDebugLog(bool enable);
+	static bool initDebugConsole();
+
+private:
+	static int logPrintfStub(const char *text);
+
+	static bool _debugLogEnabled;
+	static LFile *_debugLogFile;
+	static bool _debugConsoleReady;
+	static int (*_logPrintf)(const char *text);
 };
-
-extern bool gDebugLogEnabled;
-
-void writeDebugLog(const char *text);
-void setDebugLog(bool enable);
-bool initDebugConsole();
 
 } // End of namespace Grim
 

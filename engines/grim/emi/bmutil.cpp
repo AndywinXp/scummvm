@@ -84,7 +84,7 @@ struct Codec3State {
 
 } // End of anonymous namespace
 
-bool bmutilLoad(LFile *file, BmData *bm) {
+bool BmData::load(LFile *file) {
 	byte header[kHeaderSize];
 
 	if (file->read(header, kHeaderSize) != kHeaderSize)
@@ -96,30 +96,30 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 	if (READ_LE_UINT32(header + 4) != kVersion)
 		return false;
 
-	bm->codec = READ_LE_INT32(header + 8);
-	bm->field132 = READ_LE_INT32(header + 12);
-	bm->field204 = READ_LE_INT32(header + 20);
-	bm->field208 = READ_LE_INT32(header + 24);
-	bm->field212 = READ_LE_INT32(header + 28);
-	bm->formatField136 = READ_LE_INT32(header + 32);
-	bm->bitsPerPixel = READ_LE_INT32(header + 36);
+	codec = READ_LE_INT32(header + 8);
+	field132 = READ_LE_INT32(header + 12);
+	field204 = READ_LE_INT32(header + 20);
+	field208 = READ_LE_INT32(header + 24);
+	field212 = READ_LE_INT32(header + 28);
+	formatField136 = READ_LE_INT32(header + 32);
+	bitsPerPixel = READ_LE_INT32(header + 36);
 
-	for (uint i = 0; i < ARRAYSIZE(bm->formatRest); i++)
-		bm->formatRest[i] = READ_LE_INT32(header + 40 + i * 4);
+	for (uint i = 0; i < ARRAYSIZE(formatRest); i++)
+		formatRest[i] = READ_LE_INT32(header + 40 + i * 4);
 
-	bm->numImages = 0;
-	bm->extraData = nullptr;
+	numImages = 0;
+	extraData = nullptr;
 
 	for (uint i = 0; i < kBmMaxImages; i++)
-		bm->images[i].data = nullptr;
+		images[i].data = nullptr;
 
 	uint imageCount = READ_LE_UINT32(header + 16);
 
 	for (uint i = 0; i < imageCount; i++) {
 		byte dimensions[8];
 
-		if (bm->numImages >= kBmMaxImages) {
-			warning("bmutilLoad(): more than %u images", kBmMaxImages);
+		if (numImages >= kBmMaxImages) {
+			warning("BmData::load(): more than %u images", kBmMaxImages);
 
 			return false;
 		}
@@ -129,10 +129,10 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 
 		int width = READ_LE_INT32(dimensions);
 		int height = READ_LE_INT32(dimensions + 4);
-		uint bytesPerPixel = (uint)bm->bitsPerPixel >> 3;
+		uint bytesPerPixel = (uint)bitsPerPixel >> 3;
 
 		if (width < 0 || height < 0 || (uint64)width * (uint64)height * bytesPerPixel > 0x7FFFFFFF) {
-			warning("bmutilLoad(): invalid image size %d x %d", width, height);
+			warning("BmData::load(): invalid image size %d x %d", width, height);
 
 			return false;
 		}
@@ -143,7 +143,7 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 		if (!pixels)
 			return false;
 
-		if (bm->codec == kCodecRaw) {
+		if (codec == kCodecRaw) {
 			uint rowBytes = width * bytesPerPixel;
 			byte *row = pixels;
 
@@ -151,7 +151,7 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 				file->read(row, rowBytes);
 				row += rowBytes;
 			}
-		} else if (bm->codec == kCodecLz) {
+		} else if (codec == kCodecLz) {
 			int compressedSize;
 			byte sizeBytes[4];
 
@@ -159,7 +159,7 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 			compressedSize = READ_LE_INT32(sizeBytes);
 
 			if (compressedSize < 0) {
-				warning("bmutilLoad(): invalid compressed size %d", compressedSize);
+				warning("BmData::load(): invalid compressed size %d", compressedSize);
 
 				return false;
 			}
@@ -171,28 +171,28 @@ bool bmutilLoad(LFile *file, BmData *bm) {
 					return false;
 
 				file->read(compressed, compressedSize);
-				bmutilDecompressCodec3(pixels, size, compressed, compressedSize);
+				decompressCodec3(pixels, size, compressed, compressedSize);
 
 				// The disasm frees the decompressed pixels and keeps the compressed ones
 				gpMemoryServices->free(pixels);
 				pixels = compressed;
 			} else {
-				warning("bmutilLoad(): codec 3 image stored uncompressed, pixels not read");
+				warning("BmData::load(): codec 3 image stored uncompressed, pixels not read");
 			}
 		} else {
-			warning("bmutilLoad(): unknown codec %d", bm->codec);
+			warning("BmData::load(): unknown codec %d", codec);
 		}
 
-		bm->images[bm->numImages].width = width;
-		bm->images[bm->numImages].height = height;
-		bm->images[bm->numImages].data = pixels;
-		bm->numImages++;
+		images[numImages].width = width;
+		images[numImages].height = height;
+		images[numImages].data = pixels;
+		numImages++;
 	}
 
 	return true;
 }
 
-int bmutilGetSize(const BmData *bm) {
+int BmData::getSize(const BmData *bm) {
 	int bits = 0;
 
 	if (!bm)
@@ -204,7 +204,7 @@ int bmutilGetSize(const BmData *bm) {
 	return (bits >> 3) + (int)sizeof(BmData);
 }
 
-void bmutilFree(BmData *&bm) {
+void BmData::free(BmData *&bm) {
 	if (!bm)
 		return;
 
@@ -224,7 +224,7 @@ void bmutilFree(BmData *&bm) {
 	bm = nullptr;
 }
 
-int bmutilDecompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize) {
+int BmData::decompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize) {
 	Codec3State state;
 	uint destPosition = 0;
 
@@ -244,7 +244,7 @@ int bmutilDecompressCodec3(byte *dest, uint destSize, const byte *source, uint s
 				break;
 
 			if (destPosition >= destSize) {
-				warning("bmutilDecompressCodec3(): output buffer too small");
+				warning("BmData::decompressCodec3(): output buffer too small");
 
 				return -1;
 			}
@@ -282,14 +282,14 @@ int bmutilDecompressCodec3(byte *dest, uint destSize, const byte *source, uint s
 			break;
 
 		if (destPosition < (uint)(-offset)) {
-			warning("bmutilDecompressCodec3(): copy from before the start of the output");
+			warning("BmData::decompressCodec3(): copy from before the start of the output");
 
 			return -1;
 		}
 
 		for (int i = 0; i < copyLength; i++) {
 			if (destPosition >= destSize) {
-				warning("bmutilDecompressCodec3(): output buffer too small");
+				warning("BmData::decompressCodec3(): output buffer too small");
 
 				return -1;
 			}
@@ -299,7 +299,7 @@ int bmutilDecompressCodec3(byte *dest, uint destSize, const byte *source, uint s
 		}
 	}
 
-	warning("bmutilDecompressCodec3(): unexpected end of the compressed data");
+	warning("BmData::decompressCodec3(): unexpected end of the compressed data");
 
 	return -1;
 }

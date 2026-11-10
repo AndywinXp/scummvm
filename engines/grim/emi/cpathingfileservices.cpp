@@ -54,10 +54,10 @@ static const TypeDirectory kTypeDirectories[20] = {
 	{ ".m4b", ".\\" }
 };
 
-static char gCdPath[260] = { 0 };
-static char gSuspendedCdPath[260] = { 0 };
+char CPathingFileServices::_cdPath[260] = { 0 };
+char CPathingFileServices::_suspendedCdPath[260] = { 0 };
 
-const char *getTypeDirectory(const char *extension) {
+const char *CPathingFileServices::getTypeDirectory(const char *extension) {
 	for (int i = 0; i < 20; i++) {
 		if (scumm_strnicmp(extension, kTypeDirectories[i].extension, 4) == 0)
 			return kTypeDirectories[i].directory;
@@ -66,17 +66,17 @@ const char *getTypeDirectory(const char *extension) {
 	return nullptr;
 }
 
-char *getCdPath() {
-	return gCdPath[0] != 0 ? gCdPath : nullptr;
+char *CPathingFileServices::getCdPath() {
+	return _cdPath[0] != 0 ? _cdPath : nullptr;
 }
 
-void suspendCdPath() {
-	Common::strcpy_s(gSuspendedCdPath, gCdPath);
-	gCdPath[0] = 0;
+void CPathingFileServices::suspendCdPath() {
+	Common::strcpy_s(_suspendedCdPath, _cdPath);
+	_cdPath[0] = 0;
 }
 
-void resumeCdPath() {
-	Common::strcpy_s(gCdPath, gSuspendedCdPath);
+void CPathingFileServices::resumeCdPath() {
+	Common::strcpy_s(_cdPath, _suspendedCdPath);
 }
 
 void CPathingFileServices::openInto(LFile *file, const char *path, const char *mode) {
@@ -176,7 +176,7 @@ bool CPathingFileServices::resolvePath(LString &outPath, const char *name) {
 	if (!typeDirectory)
 		return false;
 
-	outPath = gCdPath[0] ? gCdPath : ".";
+	outPath = _cdPath[0] ? _cdPath : ".";
 	outPath += typeDirectory + 1;
 	outPath += name;
 

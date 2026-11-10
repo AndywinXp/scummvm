@@ -76,13 +76,13 @@ bool LBitmap::loadFile(const char *path) {
 
 	if (type == gBitmapTypeTga) {
 		CTGAFile tgaFile;
-		ZFile *file = getZFileServices()->open(path, "rb");
+		ZFile *file = ZFileServices::get()->open(path, "rb");
 
 		if (!file)
 			return false;
 
 		bool result = tgaFile.readImage(file, this, 0);
-		getZFileServices()->closeZFile(file);
+		ZFileServices::get()->closeZFile(file);
 
 		return result;
 	}
