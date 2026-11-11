@@ -19,45 +19,90 @@
  *
  */
 
-#ifndef EMI_REGISTRY_H
-#define EMI_REGISTRY_H
+#ifndef GRIM_EMI_EMI_REGISTRY_H
+#define GRIM_EMI_EMI_REGISTRY_H
 
 #include "common/str.h"
-#include "common/hashmap.h"
-#include "common/hash-str.h"
+#include "common/stream.h"
 
 namespace Grim {
 
 class EmiRegistry {
 public:
-	EmiRegistry();
-	~EmiRegistry() { }
-
-	bool Get(const Common::String &key, float &res) const;
-	void Set(const Common::String &key, float &value);
+	static bool isPrefsFile(const Common::String &fileName);
+	static Common::SeekableReadStream *openPrefsForReading(Common::SeekableReadStream *realFile);
+	static Common::WriteStream *openPrefsForWriting(Common::WriteStream *realFile);
+	static void registerDefaults();
+	static void setFromText(const Common::String &text);
+	static bool changedSinceSync();
 
 private:
-	uint convertVolumeToMixer(uint volume) const;
-	uint convertVolumeFromMixer(uint volume) const;
-	uint convertTalkSpeedToGUI(uint talkspeed) const;
-	uint convertTalkSpeedFromGUI(uint talkspeed) const;
-	bool convertSubtitlesToGUI(uint speechmode) const;
-	bool convertSpeechMuteToGUI(uint speechmode) const;
-	uint convertSpeechModeFromGUI(bool subtitles, bool speechMute) const;
-	const Common::String convertGammaToRegistry(float gamma) const;
-	float convertGammaFromRegistry(const Common::String &gamma) const;
+	enum {
+		kNumEntries = 15,
+		kMinVolume = 25,
+		kMaxVolume = 100,
+		kMinTextSpeed = 1,
+		kMaxTextSpeed = 10
+	};
 
-	typedef Common::HashMap<Common::String, bool, Common::IgnoreCase_Hash> StringSet;
+	enum {
+		kKindVolume,
+		kKindSpeechMode,
+		kKindTextSpeed,
+		kKindGamma,
+		kKindBool,
+		kKindShadow,
+		kKindInt
+	};
 
-	Common::StringMap _transMap;
-	StringSet _boolSet;
+	struct Entry {
+		const char *key;
+		const char *confKey;
+		int kind;
+		float defaultValue;
+	};
 
-	static const char *_boolValues[];
-	static const char *_translTable[][2];
+	static const Entry _entries[kNumEntries];
+	static Common::String _syncedSnapshot;
+
+	static Common::String buildSnapshot();
+	static int findEntry(const Common::String &key);
+	static bool nextLine(const Common::String &text, uint &start, Common::String &line);
+	static bool readEntry(const Entry &entry, float &value);
+	static bool writeEntry(const Entry &entry, float value, bool asDefault);
+	static Common::String formatEntry(const Entry &entry, float value);
+	static bool readConfBool(const char *confKey, bool &value);
+	static bool readConfInt(const char *confKey, int &value);
+	static bool readConfFloat(const char *confKey, float &value);
+	static void storeConf(const char *confKey, const Common::String &value, bool asDefault);
+	static void storeConfBool(const char *confKey, bool value, bool asDefault);
+	static int convertVolumeFromConf(int volume);
+	static int convertVolumeToConf(int volume);
+	static int convertTalkSpeedFromConf(int talkSpeed);
+	static int convertTalkSpeedToConf(int talkSpeed);
+	static int convertSpeechModeFromConf(bool subtitles, bool speechMute);
 };
 
-extern EmiRegistry *g_emiregistry;
+class EmiPrefsFile : public Common::WriteStream {
+public:
+	explicit EmiPrefsFile(Common::WriteStream *realFile);
+	~EmiPrefsFile() override;
 
-} // end of namespace Grim
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
+	uint32 write(const void *dataPtr, uint32 dataSize) override;
+	bool flush() override;
+	void finalize() override;
+	int64 pos() const override;
+	bool err() const override;
+	void clearErr() override;
+
+private:
+	Common::WriteStream *_realFile;
+	Common::String _text;
+};
+
+} // End of namespace Grim
 
 #endif

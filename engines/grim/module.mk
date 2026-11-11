@@ -87,6 +87,7 @@ MODULE_OBJS := \
 	emi/cwavfile.o \
 	emi/cweightmap.o \
 	emi/dimregion.o \
+	emi/emi_registry.o \
 	emi/emidebugger.o \
 	emi/emiengine.o \
 	emi/emiengine_frame.o \

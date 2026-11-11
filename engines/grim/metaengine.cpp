@@ -150,6 +150,94 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 			0
 		}
 	},
+	{
+		GAMEOPTION_EMI_JOYSTICK,
+		{
+			_s("Enable joystick/gamepad"),
+			_s("Control the game with the joystick or gamepad."),
+			"joystick_enabled",
+			true,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_ANALOG_JOYSTICK,
+		{
+			_s("Analog joystick mode"),
+			_s("Use the analog stick of the joystick or gamepad to move Guybrush."),
+			"analog_joystick_mode",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_CAMERA_RELATIVE,
+		{
+			_s("Camera-relative movement"),
+			_s("Move Guybrush relative to the camera instead of relative to the character."),
+			"camera_relative_mode",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_MOVIE_SUBTITLES,
+		{
+			_s("Movie subtitles"),
+			_s("Show the subtitles during the movies."),
+			"movie_subtitles",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_AUDIO_EFFECTS,
+		{
+			_s("Audio effects"),
+			_s("Apply the audio effects to the voices."),
+			"audio_effects",
+			true,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_SHADOW_EFFECTS,
+		{
+			_s("Maximal shadow effects"),
+			_s("Use the maximal level of shadow effects instead of the minimal one."),
+			"shadow_effects",
+			true,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_MOVIE_QUALITY,
+		{
+			_s("Reduced movie quality"),
+			_s("Play the movies at the minimal quality instead of the maximal one."),
+			"movie_quality",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_EMI_MUSIC_QUALITY,
+		{
+			_s("Reduced music quality"),
+			_s("Play the music at the minimal quality instead of the maximal one."),
+			"music_quality",
+			false,
+			0,
+			0
+		}
+	},
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };

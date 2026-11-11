@@ -142,4 +142,29 @@ int Lua_V2::doCharacterCallback(int character) {
 	return called;
 }
 
+bool Lua_V2::callPrefsInit() {
+	bool called = false;
+
+	lua_beginblock();
+
+	lua_Object prefs = lua_getglobal("system_prefs");
+
+	if (lua_istable(prefs)) {
+		lua_pushobject(prefs);
+		lua_pushstring("init");
+
+		lua_Object function = lua_gettable();
+
+		if (lua_isfunction(function)) {
+			called = true;
+			lua_pushobject(prefs);
+			lua_callfunction(function);
+		}
+	}
+
+	lua_endblock();
+
+	return called;
+}
+
 } // end of namespace Grim
