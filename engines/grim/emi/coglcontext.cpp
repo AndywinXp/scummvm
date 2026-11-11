@@ -129,7 +129,13 @@ bool COGLContext::close() {
 }
 
 bool COGLContext::beginScene() {
-	return CDrawContext::beginScene();
+	bool result = CDrawContext::beginScene();
+
+	// Not in the disasm, the window of the original has no alpha: the vertex alpha must not reach the framebuffer
+	if (result)
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+
+	return result;
 }
 
 bool COGLContext::endScene() {
@@ -150,6 +156,8 @@ int COGLContext::present(bool vsync) {
 	if (_gammaActive)
 		applyGamma();
 
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
 	g_system->updateScreen();
 	swapCount++;
 
@@ -157,7 +165,18 @@ int COGLContext::present(bool vsync) {
 }
 
 void COGLContext::clear(bool color, bool depth) {
+	GLboolean mask[4];
+
+	glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+
+	// The cleared alpha is opaque, as the framebuffer has no alpha in the original
+	if (color) {
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
 	glClear((depth ? GL_DEPTH_BUFFER_BIT : 0) | (color ? GL_COLOR_BUFFER_BIT : 0));
+	glColorMask(mask[0], mask[1], mask[2], mask[3]);
 }
 
 void COGLContext::setCameraMatrix(const float *matrix) {
