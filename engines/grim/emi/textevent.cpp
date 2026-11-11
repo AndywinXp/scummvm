@@ -240,15 +240,18 @@ void TextEvent::buildGeometry() {
 	colors = (byte *)gpMemoryServices->malloc(vertexCount * 4 * sizeof(byte));
 	uvs = (float *)gpMemoryServices->malloc(vertexCount * 2 * sizeof(float));
 
-	if (!positions || !colors || !uvs) {
+	// The disasm never checks, an empty text gets no memory (size 0) and builds nothing
+	if (vertexCount != 0 && (!positions || !colors || !uvs)) {
 		warning("TextEvent::buildGeometry(): out of memory");
 
 		return;
 	}
 
-	memset(positions, 0, vertexCount * 3 * sizeof(float));
-	memset(colors, 0, vertexCount * 4 * sizeof(byte));
-	memset(uvs, 0, vertexCount * 2 * sizeof(float));
+	if (vertexCount != 0) {
+		memset(positions, 0, vertexCount * 3 * sizeof(float));
+		memset(colors, 0, vertexCount * 4 * sizeof(byte));
+		memset(uvs, 0, vertexCount * 2 * sizeof(float));
+	}
 
 	const char *cursor = text.c_str();
 	CTextFont *lockedFont = nullptr;
