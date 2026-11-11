@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/debug.h"
 #include "common/str.h"
 #include "common/textconsole.h"
 
@@ -33,14 +34,15 @@ bool CGrimeConsole::_debugConsoleReady = false;
 int (*CGrimeConsole::_logPrintf)(const char *text) = nullptr;
 
 int CGrimeConsole::logPrintfStub(const char *text) {
-	if (text[0] == 'E' || text[0] == 'W') {
-		Common::String message(text + 2);
+	Common::String message(text + 2);
 
-		while (!message.empty() && message.lastChar() == '\n')
-			message.deleteLastChar();
+	while (!message.empty() && message.lastChar() == '\n')
+		message.deleteLastChar();
 
-		warning("%s", message.c_str());
-	}
+	if (text[0] == 'E' || text[0] == 'W')
+		debug(1, "%s", message.c_str());
+	else
+		debug(2, "%s", message.c_str());
 
 	return 0;
 }
