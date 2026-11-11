@@ -24,16 +24,84 @@
 
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/eventhandler.h"
+#include "engines/grim/emi/lfile.h"
+
+namespace Graphics {
+struct Surface;
+}
+
+namespace Video {
+class BinkDecoder;
+}
+
 namespace Grim {
 
-class Movie {
+class CDrawContext;
+class TextEvent;
+
+class Movie : public EventHandler {
 public:
-	static bool startMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
+	enum {
+		kMaxSubtitles = 256,
+		kSubtitleKeySize = 16
+	};
+
+	struct SubtitleEntry {
+		int start;
+		int end;
+		char text[kSubtitleKeySize];
+	};
+
+	Movie(const char *name, bool subtitles, bool newFlag6194, bool newFlag6195, int frame);
+	~Movie() override;
+
+	bool handleEvent(const Event *event) override;
+	void pause();
+	void resume();
+	bool update();
+	void presentFrame();
+	uint readHeader();
+	bool loadSubtitles();
+	void updateSubtitle(int frame);
+	bool open();
+	void drawFrame();
+
+	static bool startMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int frame);
 	static void stopMovie();
+	static bool updateMovie();
 	static void presentCurrent();
 	static void pauseCurrent();
 	static void resumeCurrent();
 	static void skipCurrent();
+	static void startupMovies(CDrawContext *newDrawContext);
+	static void releaseSubtitleFont();
+	static void setMovieAudioGate(int (*gate)());
+	static int isMovieAudioEnabled();
+	static bool fileExists(const char *path);
+	static void xorDecryptD2(byte *data, int size);
+
+	LString fileName;
+	bool finished;
+	bool frameReady;
+	SubtitleEntry subtitles[kMaxSubtitles];
+	int numSubtitles;
+	int subtitleIndex;
+	TextEvent *subtitleEvent;
+	bool i9nBundleOpen;
+	bool subtitlesOn;
+	bool flag6194;
+	bool flag6195;
+	bool useDirectDraw;
+	int clearCount;
+	Video::BinkDecoder *bink;
+	const Graphics::Surface *frameSurface;
+	bool paused;
+
+	static Movie *current;
+	static int firstFrame;
+	static CDrawContext *drawContext;
+	static int (*movieAudioGate)();
 };
 
 } // End of namespace Grim

@@ -1,0 +1,151 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef GRIM_EMI_CSOUNDCUE_H
+#define GRIM_EMI_CSOUNDCUE_H
+
+#include "common/hashmap.h"
+#include "common/scummsys.h"
+
+#include "engines/grim/emi/cnoderef_soundcue.h"
+#include "engines/grim/emi/cvector.h"
+#include "engines/grim/emi/lfile.h"
+#include "engines/grim/emi/lresourcehandle.h"
+#include "engines/grim/emi/lsound.h"
+#include "engines/grim/emi/soundposition.h"
+#include "engines/grim/lua/lua.h"
+
+namespace Grim {
+
+class CAudioChannel;
+class CNode;
+class CSnd;
+class CWaveSound;
+class LipData;
+
+class CSoundCue {
+public:
+	enum {
+		kStateNone = 0,
+		kStateWaiting = 1,
+		kStatePlaying = 2,
+		kStateStopped = 3,
+		kStatePaused = 4,
+		kStateFinished = 5,
+		kStateStarted = 6
+	};
+
+	static const uint kFlagForceChannel = 0x00000001;
+	static const uint kFlagLoop = 0x00000004;
+	static const uint kFlagStartInRange = 0x00000008;
+	static const uint kFlagAlwaysInRange = 0x00000020;
+	static const uint kFlagPositional = 0x20000000;
+	static const uint kFlagInRange = 0x40000000;
+	static const uint kFlagReleaseWhenDone = 0x80000000;
+
+	typedef Common::HashMap<uint16, CSoundCue *> SoundCueMap;
+
+	CSoundCue(LResourceHandle<CSnd> *sndHandle, CNode *node);
+	CSoundCue(const LString &name, CNode *node);
+	virtual ~CSoundCue();
+
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
+	virtual bool play(bool releaseWhenDone);
+	virtual bool startPlay(bool startPaused);
+	virtual bool startPlay();
+	virtual bool update();
+
+	static CSoundCue *newSoundCue(LResourceHandle<CSnd> *sndHandle, int category, CNode *node);
+	static CSoundCue *newSoundCue(const LString &name, int category, CNode *node);
+	static void deleteSoundCue(CSoundCue *cue);
+	static void releaseAllCues();
+	static void releaseUnlockedCues();
+	static void updateSoundCues();
+	static bool stopCueToFreeChannel(bool finiteLoopsFirst, bool anyNonLooping);
+	static bool saveCues(tSaveRestoreAccess *access);
+	static bool restoreCues(tSaveRestoreAccess *access, SoundCueMap *cueMap);
+
+	int getSoundType();
+	bool start(bool releaseWhenDone);
+	void stop();
+	void pause();
+	void resume();
+	float getPriority();
+	float getVolume();
+	float getPan();
+	float getCutoffNear();
+	float getCutoffFar();
+	float getCategoryGain();
+	void setVolume(float newVolume);
+	void setPan(float newPan);
+	bool setPosition(float x, float y, float z);
+	bool setPosition(const SoundPosition &newPosition);
+	bool updateSpatialization();
+	bool hasFiniteLoopCount();
+	bool getPosition(CVector *outPosition);
+	int initDefaults(CNode *node);
+	void initFromSnd(CSnd *snd, CNode *node);
+	void setLipData(const void *data, uint size);
+	void releaseChannel();
+	int getState();
+	int getPositionMs(int *totalMs);
+	void setPositionMs(int milliseconds);
+	bool save(tSaveRestoreAccess *access);
+
+	CSoundCue *prev;
+	CSoundCue *next;
+	CWaveSound *sound;
+	float priority;
+	float volume;
+	float mvol;
+	float pan;
+	SoundPosition position;
+	int reserved48;
+	float freq;
+	int state;
+	float cutoffNear;
+	float cutoffFar;
+	uint flags;
+	int reserved72[5];
+	CNodeRef_SoundCue nodeRef;
+	CVector fixedPosition;
+	LString soundName;
+	CAudioChannel *channel;
+	int group;
+	LipData *lipData;
+	uint lipSize;
+	uint16 handle;
+	int category;
+	LResourceHandle<LSound> soundHandle;
+
+	static CSoundCue *firstCue;
+	static CSoundCue *lastCue;
+	static int cueCount;
+	static uint createdCount;
+	static uint destroyedCount;
+	static uint updatedCount;
+};
+
+} // End of namespace Grim
+
+#endif

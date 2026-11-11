@@ -24,6 +24,8 @@
 
 #include "common/scummsys.h"
 
+#include "graphics/pixelformat.h"
+
 #include "engines/grim/emi/cclipvolume.h"
 #include "engines/grim/emi/cdcvertexarray.h"
 #include "engines/grim/emi/cdrawlist.h"
@@ -31,6 +33,10 @@
 #include "engines/grim/emi/ctexture.h"
 #include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lcolorformat.h"
+
+namespace Graphics {
+struct Surface;
+}
 
 namespace Grim {
 
@@ -114,6 +120,8 @@ public:
 	virtual bool getPixelCenter();
 	virtual void setPixelCenter(bool value);
 	virtual void prepareDialog() = 0;
+	virtual Graphics::PixelFormat getMovieFormat();
+	virtual bool drawMovieFrame(const Graphics::Surface &frame) { return false; }
 
 	CDrawList *getDrawList(int index);
 	int flushDrawLists();

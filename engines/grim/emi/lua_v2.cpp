@@ -48,6 +48,15 @@ Common::Array<uint> Lua_V2::_lockedSounds;
 int Lua_V2::_saveDataSize = 0;
 tSaveRestoreAccess *Lua_V2::_saveWriter = nullptr;
 
+bool Lua_V2::isSoundLocked(int soundHandle) {
+	for (uint i = 0; i < _lockedSounds.size(); i++) {
+		if ((int)_lockedSounds[i] == soundHandle)
+			return true;
+	}
+
+	return false;
+}
+
 static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "EnginePause", LUA_OPCODE(Lua_V2, EnginePause) },
 	{ "EngineResume", LUA_OPCODE(Lua_V2, EngineResume) },

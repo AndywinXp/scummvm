@@ -27,6 +27,7 @@
 
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/util.h"
 
 #include "engines/util.h"
 
@@ -765,6 +766,47 @@ int CTinyGLContext::getTextureCost(CTexture *tex) {
 void CTinyGLContext::prepareDialog() {
 	if (swapCount & 1)
 		present(false);
+}
+
+Graphics::PixelFormat CTinyGLContext::getMovieFormat() {
+	return g_system->getScreenFormat();
+}
+
+bool CTinyGLContext::drawMovieFrame(const Graphics::Surface &frame) {
+	if (!_contextHandle || !frame.getPixels()) {
+		warning("CTinyGLContext::drawMovieFrame(): no frame");
+
+		return false;
+	}
+
+	// TinyGL queues the draws: they are executed before writing on the framebuffer
+	flushDrawCalls();
+
+	Graphics::Surface framebuffer;
+
+	TinyGL::getSurfaceRef(framebuffer);
+
+	int width = MIN<int>(frame.w, framebuffer.w);
+	int height = MIN<int>(frame.h, framebuffer.h);
+
+	for (int y = 0; y < height; y++) {
+		if (frame.format == framebuffer.format) {
+			memcpy(framebuffer.getBasePtr(0, y), frame.getBasePtr(0, y), width * framebuffer.format.bytesPerPixel);
+
+			continue;
+		}
+
+		for (int x = 0; x < width; x++) {
+			uint8 red;
+			uint8 green;
+			uint8 blue;
+
+			frame.format.colorToRGB(frame.getPixel(x, y), red, green, blue);
+			framebuffer.setPixel(x, y, framebuffer.format.RGBToColor(red, green, blue));
+		}
+	}
+
+	return true;
 }
 
 void CTinyGLContext::initGLState() {
