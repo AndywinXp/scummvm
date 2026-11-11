@@ -349,6 +349,7 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 	bool otherPlaying = false;
 	int otherSync = 0;
 	MusicStream *otherStream = nullptr;
+	bool otherStreamClosed = false;
 	double otherStart = 0.0;
 	double otherMsPerByte = 0.0;
 
@@ -371,8 +372,8 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 
 				// The original would use the closed stream for the sync position
 				if (otherStream == closedCue->stream.musicStream) {
-					warning("StreamScript::startStream(): the stream to sync with has been closed");
 					otherStream = nullptr;
+					otherStreamClosed = true;
 				}
 
 				delete closedCue->stream.musicStream;
@@ -388,6 +389,7 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 				if (cue->sync > 0) {
 					otherSync = cue->sync;
 					otherStream = cue->stream.musicStream;
+					otherStreamClosed = false;
 					otherStart = cue->stream.start;
 					otherMsPerByte = cue->stream.invPcmBytesPerMs * cue->stream.ratio;
 				}
@@ -422,6 +424,9 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 							offsetMs = 0.0;
 
 						startPosition += (int)(offsetMs * cue->stream.pcmBytesPerMs + (double)0.05f);
+					} else if (otherSync > 0 && otherStreamClosed && cue->sync == otherSync) {
+						// The original would sync with the closed stream here
+						warning("StreamScript::startStream(): the stream to sync with has been closed");
 					}
 
 					musicStream->setLoopBlock(cue->stream.dstByte, cue->stream.srcByte);
