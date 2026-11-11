@@ -20,6 +20,8 @@
  */
 
 #include "common/endian.h"
+#include "common/memstream.h"
+#include "common/path.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 
@@ -32,6 +34,7 @@
 #include "engines/grim/emi/textevent.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
+#include "engines/grim/patchr.h"
 
 namespace Grim {
 
@@ -479,7 +482,31 @@ int Lua_V2::dofile(const char *filename) {
 	buffer[count] = 0;
 	gpFileServices->close(file, true);
 
-	int result = lua_dobuffer(buffer, count, filename);
+	Common::String patchName(filename);
+
+	patchName.replace('\\', '/');
+	patchName.toLowercase();
+
+	Common::MemoryReadStream *original = new Common::MemoryReadStream((const byte *)buffer, count);
+	Common::SeekableReadStream *patched = wrapPatchedFile(original, Common::Path(patchName, '/'));
+	int result;
+
+	if (patched == original) {
+		delete original;
+
+		result = lua_dobuffer(buffer, count, filename);
+	} else {
+		int patchedSize = (int)patched->size();
+		char *patchedBuffer = new char[patchedSize + 1];
+		int patchedCount = (int)patched->read(patchedBuffer, patchedSize);
+
+		patchedBuffer[patchedCount] = 0;
+		delete patched;
+
+		result = lua_dobuffer(patchedBuffer, patchedCount, filename);
+
+		delete[] patchedBuffer;
+	}
 
 	delete[] buffer;
 
