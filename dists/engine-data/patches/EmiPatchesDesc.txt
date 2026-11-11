@@ -5,6 +5,28 @@ List of fixed bugs in EMI scripts:
 	There is a varible that is never declared in mot.lua which positions Guybrush on
 	the raft. Instead of using that one, just use the other variable they probably meant to use.
 
+	-Make the brazier fall in wed always end in the same place - wed.lua.patchr
+	The fall is done with one step per frame, so the final angle of the brazier changes with
+	the frame rate. Run the fall in fixed steps of 1/30 second, like at 30 frames per second.
+
+	-Fix the length of the cannon fuse fade in wed - _actors.lua.patchr
+	Actor.fadeto_vertex_alpha fades with one step per frame, so it lasts a different time
+	at every frame rate. Use fixed steps of 1/30 second, so it lasts one second like at 30 frames per second.
+
+	-Fix the wait before the extra lines of the darts players in scu - scu.lua.patchr
+	Guybrush waits a number of frames before speaking again. Count 1/30 second units
+	instead of frames, so he waits the same time at every frame rate.
+
+	-Fix the speed of the voodoo doors in mel - mel.lua.patchr
+	The doors turn 10 degrees per frame. Use fixed steps of 1/30 second.
+
+	-Fix the speed of the voodoo doors in voo - voo.lua.patchr
+	The doors turn 10 degrees per frame. Use fixed steps of 1/30 second.
+
+	-Fix the speed of the vortex in mot - mot.lua.patchr
+	The spinner turns 10 degrees per frame and the hands 45 degrees per frame. Use fixed steps
+	of 1/30 second. This patch also contains the fix of the raft above, there is only one patch per script.
+
 Contents of monkey4-patch.m4b and its rebuild:
 
 monkey4-patch.m4b contains all .patchr files in the
