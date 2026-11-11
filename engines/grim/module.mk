@@ -30,10 +30,14 @@ MODULE_OBJS := \
 	emi/animwgtinstance.o \
 	emi/anode.o \
 	emi/atrack.o \
+	emi/audiosystem.o \
 	emi/background.o \
 	emi/bbox.o \
 	emi/bmutil.o \
+	emi/caifffile.o \
 	emi/camera.o \
+	emi/caudiochannel.o \
+	emi/caudiodevice.o \
 	emi/cbundle.o \
 	emi/cclipvolume.o \
 	emi/cdcvertexarray.o \
@@ -46,8 +50,10 @@ MODULE_OBJS := \
 	emi/clightnode.o \
 	emi/cmaterial.o \
 	emi/cmatrix.o \
+	emi/cmp3file.o \
 	emi/cnode.o \
 	emi/cnoderef.o \
+	emi/cnoderef_soundcue.o \
 	emi/coglcontext.o \
 	emi/cogltexture.o \
 	emi/coglvertexarray.o \
@@ -61,6 +67,9 @@ MODULE_OBJS := \
 	emi/cprimitive.o \
 	emi/cquaternion.o \
 	emi/cskeleton.o \
+	emi/csnd.o \
+	emi/csndparser.o \
+	emi/csoundcue.o \
 	emi/csprite.o \
 	emi/ctextfont.o \
 	emi/ctexture.o \
@@ -70,9 +79,16 @@ MODULE_OBJS := \
 	emi/cubecomponent.o \
 	emi/cubecomponenttype.o \
 	emi/cubeinstance.o \
+	emi/cueentry.o \
+	emi/cuestream.o \
+	emi/cwaveaudiodevice.o \
+	emi/cwavechannel.o \
+	emi/cwavesound.o \
+	emi/cwavfile.o \
 	emi/cweightmap.o \
 	emi/dimregion.o \
 	emi/emiengine.o \
+	emi/eventhandler.o \
 	emi/extra_v2.o \
 	emi/filefind.o \
 	emi/fileutil.o \
@@ -123,6 +139,7 @@ MODULE_OBJS := \
 	emi/meshcomponenttype.o \
 	emi/meshinstance.o \
 	emi/movie.o \
+	emi/musicstream.o \
 	emi/overworld.o \
 	emi/polyglot_v2.o \
 	emi/primitive.o \
@@ -150,11 +167,13 @@ MODULE_OBJS := \
 	emi/sndcomponent.o \
 	emi/sndcomponenttype.o \
 	emi/sndinstance.o \
+	emi/soundposition.o \
 	emi/sounds.o \
 	emi/spritecomponent.o \
 	emi/spritecomponenttype.o \
 	emi/spriteinstance.o \
 	emi/statecomponenttype.o \
+	emi/streamscript.o \
 	emi/textevent.o \
 	emi/textureindexcomponent.o \
 	emi/textureindexcomponenttype.o \

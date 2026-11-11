@@ -78,6 +78,8 @@ public:
 	CTexture *createTexture(int width, int height, const LColorFormat &format, byte *pixels, const char *name) override;
 	int getTextureCost(CTexture *tex) override;
 	void prepareDialog() override;
+	Graphics::PixelFormat getMovieFormat() override;
+	bool drawMovieFrame(const Graphics::Surface &frame) override;
 
 	void initGLState();
 	void flushDrawCalls();

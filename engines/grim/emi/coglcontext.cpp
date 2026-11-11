@@ -31,6 +31,7 @@
 #include "engines/util.h"
 
 #include "graphics/opengl/context.h"
+#include "graphics/surface.h"
 
 #include "engines/grim/emi/coglcontext.h"
 #include "engines/grim/emi/cogltexture.h"
@@ -696,6 +697,58 @@ int COGLContext::getTextureCost(CTexture *tex) {
 void COGLContext::prepareDialog() {
 	if (swapCount & 1)
 		present(false);
+}
+
+bool COGLContext::drawMovieFrame(const Graphics::Surface &frame) {
+	if (!frame.getPixels() || frame.w <= 0 || frame.h <= 0) {
+		warning("COGLContext::drawMovieFrame(): no frame");
+
+		return false;
+	}
+
+	const byte *pixels = (const byte *)frame.getPixels();
+	byte *converted = nullptr;
+	int rowLength = frame.pitch / 4;
+
+	if (frame.format != getMovieFormat()) {
+		converted = new byte[frame.w * frame.h * 4];
+		rowLength = frame.w;
+
+		for (int y = 0; y < frame.h; y++) {
+			for (int x = 0; x < frame.w; x++) {
+				uint8 red;
+				uint8 green;
+				uint8 blue;
+				byte *destination = converted + (y * frame.w + x) * 4;
+
+				frame.format.colorToRGB(frame.getPixel(x, y), red, green, blue);
+				destination[0] = red;
+				destination[1] = green;
+				destination[2] = blue;
+				destination[3] = 255;
+			}
+		}
+
+		pixels = converted;
+	}
+
+	setOrtho(-1.0f, 1.0f, -1.0f, 1.0f);
+	resetCameraMatrix();
+	setPolyOptions(18);
+	setTextures(nullptr, 18);
+
+	// The frame is drawn from its top left corner, down the screen
+	glRasterPos2f(-1.0f, 1.0f);
+	glPixelZoom(1.0f, -1.0f);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, rowLength);
+	glDrawPixels(frame.w, frame.h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelZoom(1.0f, 1.0f);
+
+	delete[] converted;
+
+	return true;
 }
 
 void COGLContext::initGLState() {

@@ -88,6 +88,10 @@ void CDrawContext::setPixelCenter(bool value) {
 	pixelCenter = value;
 }
 
+Graphics::PixelFormat CDrawContext::getMovieFormat() {
+	return Graphics::PixelFormat::createFormatRGBA32();
+}
+
 bool CDrawContext::beginScene() {
 	if (sceneBegun) {
 		if (gpConsoleServices)
