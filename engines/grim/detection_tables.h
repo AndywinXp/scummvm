@@ -428,7 +428,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -442,7 +442,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::ZH_TWN,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -455,7 +455,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -468,7 +468,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -481,7 +481,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -494,7 +494,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -507,7 +507,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::PT_BRA,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -520,7 +520,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::RU_RUS,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -533,7 +533,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::PL_POL,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -547,7 +547,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -561,7 +561,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -575,7 +575,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformMacintosh,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -589,7 +589,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -602,7 +602,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -615,7 +615,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -628,7 +628,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -641,7 +641,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -656,7 +656,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -670,7 +670,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -684,7 +684,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -699,7 +699,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
@@ -714,7 +714,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_UNSTABLE,
-			GUI_OPTIONS_GRIME
+			GUI_OPTIONS_EMI
 		},
 		GType_MONKEY4
 	},
