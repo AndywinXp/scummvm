@@ -682,6 +682,10 @@ int StreamScript::isStreamingEnabled() {
 }
 
 Common::SeekableReadStream *StreamScript::openStream(const char *path) {
+	// Like CPathingFileServices, the leading ".\" is not part of the lookup
+	if (path[0] == '.' && path[1] == '\\')
+		path += 2;
+
 	Common::Path filePath(path, '\\');
 	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(filePath);
 

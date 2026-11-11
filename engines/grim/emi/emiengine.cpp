@@ -48,6 +48,7 @@
 #include "engines/grim/emi/primitivequeue_v2.h"
 #include "engines/grim/emi/resourcemanager.h"
 #include "engines/grim/emi/room_v2.h"
+#include "engines/grim/emi/cpathingfileservices.h"
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/sputcontrol_v2.h"
 #include "engines/grim/emi/textevent.h"
@@ -238,7 +239,8 @@ bool EmiEngine::findDisc(int disc) {
 	if (disc != 1 && disc != 2)
 		return false;
 
-	// TODO the search of the CD is not ported, the disc is always found
+	// There is no CD, the disc is always found and the CD path is the game directory
+	CPathingFileServices::setCdPath(".");
 	_discNumber = disc;
 
 	return true;
