@@ -47,7 +47,7 @@ static const double kDegreesToHalfRadians = 0.002777777777777778;
 static const uint kRawReadWidth = 640;
 static const uint kRawReadHeight = 480;
 
-static ProfilerTimer outputDrawPolyTimer("OGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting);
+static ProfilerTimer outputDrawPolyTimer("OGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 static ProfilerTimer setPolyOptionsTimer("OGL::SetPolyOptions()", ProfilerTimer::kTrackNesting);
 static ProfilerTimer setTexturesTimer("OGL::SetTextures()", ProfilerTimer::kTrackNesting);
 static ProfilerTimer submitVerticesTimer("OGL::SubmitVertices()", ProfilerTimer::kTrackNesting);
