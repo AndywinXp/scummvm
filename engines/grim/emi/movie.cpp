@@ -261,7 +261,7 @@ uint Movie::readHeader() {
 		}
 	}
 
-	delete file;
+	gpFileServices->close(file, true);
 	numSubtitles = count;
 
 	return size;
@@ -290,7 +290,7 @@ bool Movie::loadSubtitles() {
 			if (line[0] != '#') {
 				// The disasm reads the key without a size limit
 				if (sscanf(line, "%d\t%d\t%15s\t", &subtitles[count].start, &subtitles[count].end, subtitles[count].text) != 3) {
-					delete file;
+					gpFileServices->close(file, true);
 
 					return false;
 				}
@@ -304,7 +304,7 @@ bool Movie::loadSubtitles() {
 	}
 
 	numSubtitles = count;
-	delete file;
+	gpFileServices->close(file, true);
 
 	return true;
 }
@@ -383,7 +383,7 @@ bool Movie::open() {
 	Common::SeekableReadStream *stream = file->readStream;
 
 	file->readStream = nullptr;
-	delete file;
+	gpFileServices->close(file, true);
 
 	if (!stream || header > stream->size()) {
 		warning("Movie::open(): the movie header is bigger than the file");
@@ -556,7 +556,7 @@ bool Movie::fileExists(const char *path) {
 	if (!file)
 		return false;
 
-	delete file;
+	gpFileServices->close(file, true);
 
 	return true;
 }
