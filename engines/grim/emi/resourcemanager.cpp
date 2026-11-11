@@ -23,11 +23,10 @@
 #include "common/ustr.h"
 #include "common/util.h"
 
-#include "gui/error.h"
-
 #include "engines/grim/emi/animcomponent.h"
 #include "engines/grim/emi/animwgtcomponent.h"
 #include "engines/grim/emi/cubecomponent.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/globalalphacomponent.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/localalphacomponent.h"
@@ -553,15 +552,12 @@ void ResourceManager::update(float frameTime) {
 	uint bytes = gpMemoryServices->bytesAllocated;
 
 	if (bytes > 0xC00000 && gResourceManager.purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !gLockedMessageShown) {
-		Common::String message = Common::String::format("%s\n\n%s",
-				"Congratulations, you have found a bug!",
-				"More than 12MB of resources have been left locked.\n"
+		EmiEngine::showMessage("More than 12MB of resources have been left locked.\n"
 				"Please record your location, report this to the proper authorities, and exit the game.\n"
 				"\n"
 				"\n"
-				"(Then get back to work.)");
-
-		GUI::displayErrorDialog(Common::U32String(message));
+				"(Then get back to work.)",
+				"Congratulations, you have found a bug!");
 		gLockedMessageShown = true;
 	}
 

@@ -188,7 +188,7 @@ public:
 	CBundle *tail;
 	LFile *logFile;
 
-	static bool init();
+	static bool init(bool isInternational);
 	static bool isI9nBundleOpen();
 	static bool openIslandBundles(const char *island);
 	static void closeIslandBundles(const char *island);

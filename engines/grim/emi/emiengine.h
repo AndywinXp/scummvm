@@ -22,23 +22,40 @@
 #ifndef GRIM_EMI_EMIENGINE_H
 #define GRIM_EMI_EMIENGINE_H
 
+#include "common/array.h"
+#include "common/str.h"
+
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/grim.h"
+
+namespace Graphics {
+struct Surface;
+}
 
 namespace Grim {
 
 class CDrawContext;
+struct DisplayMode;
+class KeyGenerator;
+class LABitmap;
+class Lua_V2;
 class Polyglot_v2;
+class TextEvent;
+class ZFile;
 
 class EmiEngine : public GrimEngine {
 public:
 	enum {
 		kModeNone = 0,
+		kModePaused = 1,
+		kModeGame = 2,
 		kModeMovie = 3,
 		kModeOverworld = 4
 	};
 
 	enum {
+		kMessageBoxTypeOk = 0,
+		kMessageBoxOk = 1,
 		kMessageBoxYesNoCancel = 3,
 		kMessageBoxYesNo = 4,
 		kMessageBoxCancel = 2,
@@ -50,6 +67,7 @@ public:
 	~EmiEngine() override;
 
 	int renderUpdate(CDrawContext *drawContext);
+	int updateManual(CDrawContext *drawContext, bool draw, int manualMs);
 
 	static int getMode();
 	static void setMode(int newMode);
@@ -70,7 +88,6 @@ public:
 	static uint getTotalPhysMem();
 	static int messageBox(const char *caption, const char *text, uint flags);
 	static bool inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText);
-	static void clearKeyStates();
 	static void saveScreenshot();
 	static bool buildSpecScreenTextures(int index);
 	static bool grabScreen();
@@ -83,8 +100,82 @@ public:
 	static void endFrameDump();
 	static bool playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
 	static void setPendingMusicState(int musicState);
+	static void showMessage(const char *text, const char *caption);
+	static bool onCharacter(byte character);
+	static bool callExitHook();
+	static bool startupModules(CDrawContext *drawContext);
+	static void shutdownModules();
+	static bool openGameview(const char *bootParam);
+	static void closeGameview();
+
+	static Common::Array<Common::Keymap *> initKeymapsEmi(const char *target);
+	static bool readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings);
+	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream);
+	static Common::String getSaveDescription(const Common::Array<Common::String> &strings, int slot);
+	static bool isLegacySaveFile(const Common::String &fileName);
+
+	const char *getUpdateFilename() override;
+	Common::Error loadGameState(int slot) override;
+
+	void saveGame(CDrawContext *drawContext);
+	void loadGame(CDrawContext *drawContext);
+
+protected:
+	Common::Error run() override;
+	void pauseEngineIntern(bool pause) override;
 
 private:
+	enum {
+		kNumStatsEvents = 5
+	};
+
+	void mountEmiPatchArchives();
+	bool initialize();
+	void shutdown();
+	bool runFrame();
+	void pumpEvents();
+	void handleKeyPress(const Common::KeyState &key, bool repeat);
+	void handleKeyRelease(const Common::KeyState &key);
+	void handleDebugKeys(int virtualKey);
+	void handleActivation(bool active);
+	void pixelTest();
+	float updateFrameTime(int manualMs);
+	void drawStatsOverlay(CDrawContext *drawContext);
+	void dumpFrame();
+
+	static CDrawContext *createDrawContext();
+	static bool openDrawContext(CDrawContext *drawContext, DisplayMode *mode);
+	static void saveTga(const char *path);
+
+	static int writeSaveData(void *data, int bytes);
+	static int readSaveData(void *data, int bytes);
+	static void halveBitmap(LABitmap *source, LABitmap *destination);
+	static LABitmap *getScreenBitmap();
+	static Common::String getSaveFileName(const char *path);
+	static bool readSavedText(char *buffer, int bufferSize);
+
+	// TODO audio and movie hooks until those modules are ported
+	static void updateSounds(bool force);
+	static bool updateMovie(float frameTime);
+	static void startupMovies(CDrawContext *drawContext);
+	static void releaseSubtitleFont();
+	static void setMusicState(int musicState, int startMs);
+
+	static bool _modulesStarted;
+	static bool _gameviewOpen;
+	static Lua_V2 *_lua;
+	static KeyGenerator *_keyGenerator;
+	static int _screenshotCount;
+	static int _frameCount;
+	static float _rawFrameTime;
+	static double _lastStamp;
+	static bool _firstFrame;
+	static bool _backspaceHeld;
+	static bool _controlHeld;
+	static TextEvent *_statsEvents[kNumStatsEvents];
+	static ZFile *_saveFile;
+	static LABitmap *_screenBitmap;
+
 	static Polyglot_v2 *_polyglot;
 	static int _mode;
 	static int _pausedMode;

@@ -68,6 +68,14 @@ CDrawContext::~CDrawContext() {
 	}
 }
 
+void *CDrawContext::operator new(size_t size) {
+	return gpMemoryServices->malloc(size);
+}
+
+void CDrawContext::operator delete(void *block) {
+	gpMemoryServices->free(block);
+}
+
 bool CDrawContext::hasGammaControl() {
 	return hasGammaCtl;
 }

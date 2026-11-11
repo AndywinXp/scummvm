@@ -37,7 +37,6 @@
 namespace Grim {
 
 static const float kDefaultDimAlpha = 0.7f;
-static const uint kStatsOverlayFlag = 0x20;
 
 CLightNode *Lua_V2::getLightArg(int paramNumber, const char *opcodeName) {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
@@ -188,10 +187,10 @@ void Lua_V2::RenderModeUser() {
 }
 
 void Lua_V2::toggleStatsOverlay(bool hide) {
-	if (hide || (_statsOverlayFlags & kStatsOverlayFlag) != 0)
-		_statsOverlayFlags &= ~kStatsOverlayFlag;
+	if (hide || (statsOverlayFlags & kStatsOverlayFlag) != 0)
+		statsOverlayFlags &= ~kStatsOverlayFlag;
 	else
-		_statsOverlayFlags |= kStatsOverlayFlag;
+		statsOverlayFlags |= kStatsOverlayFlag;
 }
 
 void Lua_V2::DimScreen() {

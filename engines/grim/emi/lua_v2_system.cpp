@@ -28,6 +28,7 @@
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/sounds.h"
+#include "engines/grim/emi/sputcontrol_v2.h"
 
 namespace Grim {
 
@@ -260,7 +261,7 @@ void Lua_V2::InputDialog() {
 	else
 		lua_pushnil();
 
-	EmiEngine::clearKeyStates();
+	SputControl_v2::clearKeyStates();
 }
 
 void Lua_V2::QueryDialog() {

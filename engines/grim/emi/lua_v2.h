@@ -55,6 +55,26 @@ public:
 	static void callPostCameraChange(int setup);
 	static bool isSoundLocked(int soundHandle);
 	static void callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2);
+	static bool buttonHandler(int vk, bool down);
+	static void axisHandler();
+	static void updateJoySelected();
+
+	int doExitCallback() override;
+	int doPauseCallback() override;
+	int doCharacterCallback(int character) override;
+	using Lua_V1::saveGameCallback;
+	static void saveGameCallback(tSaveRestoreAccess *writer);
+	static void getVersion(LString &version);
+	static void saveLocks(tSaveRestoreAccess *writer);
+	static void restoreLocks(tSaveRestoreAccess *reader);
+	static void toggleStatsOverlay(bool hide);
+
+	enum {
+		kStatsOverlayFlag = 0x20,
+		kStatsProfilerFlag = 0x40
+	};
+
+	static uint statsOverlayFlags;
 
 protected:
 	void typeOverride() override;
@@ -96,6 +116,8 @@ protected:
 	DECLARE_LUA_OPCODE(ClearSpecialtyTexture);
 	DECLARE_LUA_OPCODE(Exit) override;
 	DECLARE_LUA_OPCODE(FunctionName) override;
+	DECLARE_LUA_OPCODE(EnableControl) override;
+	DECLARE_LUA_OPCODE(DisableControl) override;
 	DECLARE_LUA_OPCODE(GetControlState) override;
 	DECLARE_LUA_OPCODE(PrintMessage) override;
 	DECLARE_LUA_OPCODE(PrintError) override;
@@ -341,6 +363,7 @@ private:
 	};
 
 	void makeSystemTable();
+	static void makeControlsTable(int ref);
 	void applyTextTable(lua_Object table, TextEvent *event);
 	void readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y);
 	void dumpResources(int mode);
@@ -351,10 +374,8 @@ private:
 	static bool getColorField(lua_Object table, Color &color);
 	static bool getLayerField(lua_Object table, int *layer);
 	static bool getFloatPairFields(lua_Object table, const char *firstKey, const char *secondKey, float defaultValue, float *first, float *second);
-	static void toggleStatsOverlay(bool hide);
 	static int truncateToInt(double value);
 
-	static uint _statsOverlayFlags;
 	static Common::Array<LockedChore> _lockedChores;
 	static Common::Array<LString> _lockedChoreSets;
 	static Common::Array<LString> _lockedRooms;

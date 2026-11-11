@@ -23,8 +23,6 @@
 #include "common/textconsole.h"
 #include "common/ustr.h"
 
-#include "gui/error.h"
-
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/choreinstance.h"
 #include "engines/grim/emi/emiengine.h"
@@ -353,7 +351,7 @@ void Actor::shutUp(bool stopNow) {
 			Common::String message = Common::String::format("%s still talk choring", actorName.c_str());
 
 			warning("%s", message.c_str());
-			GUI::displayErrorDialog(Common::U32String(message));
+			EmiEngine::showMessage(message.c_str(), "Warning:");
 		}
 	}
 

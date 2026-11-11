@@ -1,3 +1,5 @@
+engines/grim/emi/emiengine.cpp
+engines/grim/emi/emiengine_input.cpp
 engines/grim/grim.cpp
 engines/grim/inputdialog.cpp
 engines/grim/md5check.cpp

@@ -57,6 +57,9 @@ public:
 	CDrawContext();
 	virtual ~CDrawContext();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual void enumerateDevices() {}
 	virtual bool open(const DisplayMode *mode) { return false; }
 	virtual bool close() { return false; }
