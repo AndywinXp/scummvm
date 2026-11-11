@@ -52,7 +52,7 @@ static const uint kQueueFlushThreshold = 6 * 1024 * 1024;
 static const uint kBytesPerVertex = 152;
 static const uint kBytesPerDrawCall = 512;
 
-static ProfilerTimer outputDrawPolyTimer("TinyGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting);
+static ProfilerTimer outputDrawPolyTimer("TinyGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 static ProfilerTimer setPolyOptionsTimer("TinyGL::SetPolyOptions()", ProfilerTimer::kTrackNesting);
 static ProfilerTimer setTexturesTimer("TinyGL::SetTextures()", ProfilerTimer::kTrackNesting);
 static ProfilerTimer submitVerticesTimer("TinyGL::SubmitVertices()", ProfilerTimer::kTrackNesting);

@@ -29,7 +29,7 @@ namespace Grim {
 class ProfilerTimer {
 public:
 	enum {
-		kMaxContexts = 8,
+		kMaxContexts = 32,
 		kMaxCallStack = 64,
 		kNameSize = 32
 	};
@@ -63,6 +63,7 @@ public:
 	int callsShown[kMaxContexts];
 	int framesShown[kMaxContexts];
 	int numContexts;
+	bool contextsWarned;
 	int currentContext;
 	int flags;
 	char name[kNameSize];

@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/debug.h"
 #include "common/str.h"
 #include "common/system.h"
 #include "common/textconsole.h"
@@ -75,6 +76,7 @@ ProfilerTimer::ProfilerTimer(const char *timerName, int timerFlags) {
 	timerCount++;
 	flags = timerFlags;
 	numContexts = 0;
+	contextsWarned = false;
 	currentContext = -1;
 }
 
@@ -121,6 +123,10 @@ ProfilerTimer::~ProfilerTimer() {
 }
 
 void ProfilerTimer::start() {
+	// Not in the disasm, the timers only feed the statistics print of the debug build
+	if (gDebugLevel < 1)
+		return;
+
 	if ((flags & kTrackNesting) && callStackDepth > 0) {
 		ProfilerTimer *top = callStack[callStackDepth - 1];
 		int context = 0;
@@ -144,7 +150,11 @@ void ProfilerTimer::start() {
 				framesShown[context] = 0;
 				numContexts++;
 			} else {
-				warning("ProfilerTimer::start(): too many contexts for '%s'", name);
+				if (!contextsWarned) {
+					warning("ProfilerTimer::start(): too many contexts for '%s'", name);
+					contextsWarned = true;
+				}
+
 				context = kMaxContexts - 1;
 			}
 		}
