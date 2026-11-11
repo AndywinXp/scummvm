@@ -46,6 +46,7 @@ namespace Grim {
 
 static const int kScreenWidth = 640;
 static const int kScreenHeight = 480;
+static const uint32 kMinFrameMs = 4;
 
 Common::Error EmiEngine::run() {
 	if (!checkGameData("Escape from Monkey Island"))
@@ -72,10 +73,11 @@ Common::Error EmiEngine::run() {
 
 			pumpEvents();
 
-			uint32 endTime = g_system->getMillis();
+			// Not in the disasm, gives the CPU back to the system when there is no vsync
+			uint32 elapsed = g_system->getMillis() - startTime;
 
-			if (endTime >= startTime && endTime - startTime < _speedLimitMs)
-				g_system->delayMillis(_speedLimitMs - (endTime - startTime));
+			if (elapsed < kMinFrameMs)
+				g_system->delayMillis(kMinFrameMs - elapsed);
 		}
 	}
 
