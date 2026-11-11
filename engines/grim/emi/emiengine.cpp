@@ -21,7 +21,10 @@
 
 #include "engines/grim/emi/emiengine.h"
 
+#include "audio/mixer.h"
+
 #include "common/archive.h"
+#include "common/config-manager.h"
 #include "common/file.h"
 #include "common/str.h"
 #include "common/textconsole.h"
@@ -35,6 +38,7 @@
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/emi_registry.h"
 #include "engines/grim/emi/emidebugger.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
@@ -81,11 +85,15 @@ bool EmiEngine::_dumpingFrames = false;
 bool EmiEngine::_saveLoadIdle = true;
 int EmiEngine::_frontCopyCount = 0;
 int EmiEngine::_pendingMusicState = -1;
+bool EmiEngine::_gameSettingsPending = false;
 Polyglot_v2 *EmiEngine::_polyglot = nullptr;
 
 EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
 		GrimEngine(syst, gameFlags, gameType, platform, language) {
 	setDebugger(new EmiDebugger());
+
+	EmiRegistry::registerDefaults();
+	syncSoundSettings();
 
 	_polyglot = new Polyglot_v2();
 }
@@ -93,6 +101,36 @@ EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Com
 EmiEngine::~EmiEngine() {
 	delete _polyglot;
 	_polyglot = nullptr;
+}
+
+void EmiEngine::syncSoundSettings() {
+	bool mute = ConfMan.hasKey("mute") && ConfMan.getBool("mute");
+
+	_mixer->muteSoundType(Audio::Mixer::kPlainSoundType, mute);
+	_mixer->muteSoundType(Audio::Mixer::kMusicSoundType, mute);
+	_mixer->muteSoundType(Audio::Mixer::kSFXSoundType, mute);
+	_mixer->muteSoundType(Audio::Mixer::kSpeechSoundType, mute);
+
+	// The game applies its own volumes, the mixer ones stay at the maximum
+	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType, Audio::Mixer::kMaxMixerVolume);
+	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, Audio::Mixer::kMaxMixerVolume);
+	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, Audio::Mixer::kMaxMixerVolume);
+	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, Audio::Mixer::kMaxMixerVolume);
+}
+
+void EmiEngine::applyGameSettings() {
+	if (EmiRegistry::changedSinceSync())
+		_gameSettingsPending = true;
+}
+
+void EmiEngine::applyPendingGameSettings(int manualMs) {
+	if (!_gameSettingsPending || (_mode == kModePaused && manualMs == 0))
+		return;
+
+	_gameSettingsPending = false;
+
+	if (!_lua->callPrefsInit())
+		warning("EmiEngine::applyPendingGameSettings(): system_prefs:init() is not available");
 }
 
 Polyglot_v2 *EmiEngine::getPolyglot() {

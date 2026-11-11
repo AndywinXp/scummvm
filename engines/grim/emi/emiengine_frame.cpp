@@ -81,6 +81,9 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 	if (_mode == kModeNone)
 		return 0;
 
+	// Not in the disasm, the options changed from the ScummVM menu
+	applyPendingGameSettings(manualMs);
+
 	if (InputRecorder::instance && InputRecorder::instance->mode == InputRecorder::kModeReplay)
 		InputRecorder::instance->replayKeys();
 	else

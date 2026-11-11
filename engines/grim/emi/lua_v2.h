@@ -62,6 +62,7 @@ public:
 	int doExitCallback() override;
 	int doPauseCallback() override;
 	int doCharacterCallback(int character) override;
+	bool callPrefsInit();
 	using Lua_V1::saveGameCallback;
 	static void saveGameCallback(tSaveRestoreAccess *writer);
 	static void getVersion(LString &version);

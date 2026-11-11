@@ -116,6 +116,8 @@ public:
 
 	const char *getUpdateFilename() override;
 	Common::Error loadGameState(int slot) override;
+	void syncSoundSettings() override;
+	void applyGameSettings() override;
 
 	void saveGame(CDrawContext *drawContext);
 	void loadGame(CDrawContext *drawContext);
@@ -142,6 +144,7 @@ private:
 	float updateFrameTime(int manualMs);
 	void drawStatsOverlay(CDrawContext *drawContext);
 	void dumpFrame();
+	void applyPendingGameSettings(int manualMs);
 
 	static CDrawContext *createDrawContext();
 	static bool openDrawContext(CDrawContext *drawContext, DisplayMode *mode);
@@ -190,6 +193,7 @@ private:
 	static bool _saveLoadIdle;
 	static int _frontCopyCount;
 	static int _pendingMusicState;
+	static bool _gameSettingsPending;
 };
 
 } // End of namespace Grim

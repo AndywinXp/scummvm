@@ -30,6 +30,7 @@
 
 #include "engines/grim/grim.h"
 
+#include "engines/grim/emi/emi_registry.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 
@@ -242,6 +243,8 @@ static void io_readfrom() {
 		Common::SeekableReadStream *inFile = nullptr;
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		inFile = saveFileMan->openForLoading(fileName);
+		if (luaIsEmi && EmiRegistry::isPrefsFile(fileName))
+			inFile = EmiRegistry::openPrefsForReading(inFile);
 		if (!inFile) {
 			if (luaIsEmi)
 				inFile = openBundleStream(s);
@@ -284,6 +287,8 @@ static void io_writeto() {
 		Common::WriteStream *outFile = nullptr;
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		outFile = saveFileMan->openForSaving(s, false);
+		if (luaIsEmi && EmiRegistry::isPrefsFile(s))
+			outFile = EmiRegistry::openPrefsForWriting(outFile);
 		if (!outFile) {
 			pushresult(0);
 			return;
