@@ -15,6 +15,8 @@
 #include "engines/grim/lua/ltm.h"
 #include "engines/grim/lua/lapi.h"
 
+#include "engines/grim/emi/lconsoleservices.h"
+
 namespace Grim {
 
 const char *luaT_eventname[] = {  // ORDER IM
@@ -158,6 +160,16 @@ const char *luaT_travtagmethods(int32 (*fn)(TObject *)) {
 
 void errorFB() {
 	lua_Object o = lua_getparam(1);
+
+	if (luaIsEmi && gpConsoleServices) {
+		if (lua_isstring(o))
+			gpConsoleServices->logError("lua: %s\n", lua_getstring(o));
+		else
+			gpConsoleServices->logError("lua: unknown error\n");
+
+		return;
+	}
+
 	if (lua_isstring(o))
 		fprintf(stderr, "lua: %s\n", lua_getstring(o));
 	else

@@ -317,6 +317,8 @@ void lua_error(const char *s) {
 		message(s);
 	if (lua_state->errorJmp) {
 		longjmp(*((jmp_buf *)lua_state->errorJmp), 1);
+	} else if (luaIsEmi && gpConsoleServices) {
+		gpConsoleServices->logError("lua: exit(1). Unable to recover\n");
 	} else {
 		fprintf(stderr, "lua: exit(1). Unable to recover\n");
 	}
