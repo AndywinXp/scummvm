@@ -432,7 +432,8 @@ bool EmiEngine::startupModules(CDrawContext *drawContext) {
 	TextEvent::startup(drawContext);
 	ChoreInstance::startup();
 	Actor::startup(drawContext);
-	PrimitiveQueue_v2::startup();
+	if (PrimitiveQueue_v2::startup())
+		_lua->registerPrimitiveOpcodes();
 	Sounds::startSounds(false);
 	startupMovies(drawContext);
 
