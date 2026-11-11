@@ -62,15 +62,15 @@ void CLight::addLighting(Color *accumulator, const float *lightTransform, const 
 	if (factor >= 0.0) {
 		float addedR = (float)((double)(uint)color.r * factorStored);
 
-		accumulator->r += (int)addedR;
+		accumulator->r += (int)lrint(addedR);
 
 		float addedG = (float)((double)(uint)color.g * factorStored);
 
-		accumulator->g += (int)addedG;
+		accumulator->g += (int)lrint(addedG);
 
 		float addedB = (float)((double)(uint)color.b * factorStored);
 
-		accumulator->b += (int)addedB;
+		accumulator->b += (int)lrint(addedB);
 	}
 }
 
