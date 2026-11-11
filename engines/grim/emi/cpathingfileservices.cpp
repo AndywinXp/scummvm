@@ -70,6 +70,10 @@ char *CPathingFileServices::getCdPath() {
 	return _cdPath[0] != 0 ? _cdPath : nullptr;
 }
 
+void CPathingFileServices::setCdPath(const char *path) {
+	Common::strcpy_s(_cdPath, path);
+}
+
 void CPathingFileServices::suspendCdPath() {
 	Common::strcpy_s(_suspendedCdPath, _cdPath);
 	_cdPath[0] = 0;

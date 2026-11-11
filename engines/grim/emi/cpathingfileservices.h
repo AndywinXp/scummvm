@@ -37,6 +37,7 @@ public:
 
 	static const char *getTypeDirectory(const char *extension);
 	static char *getCdPath();
+	static void setCdPath(const char *path);
 	static void suspendCdPath();
 	static void resumeCdPath();
 
