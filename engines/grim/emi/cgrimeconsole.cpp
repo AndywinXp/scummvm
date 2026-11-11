@@ -33,6 +33,15 @@ bool CGrimeConsole::_debugConsoleReady = false;
 int (*CGrimeConsole::_logPrintf)(const char *text) = nullptr;
 
 int CGrimeConsole::logPrintfStub(const char *text) {
+	if (text[0] == 'E' || text[0] == 'W') {
+		Common::String message(text + 2);
+
+		while (!message.empty() && message.lastChar() == '\n')
+			message.deleteLastChar();
+
+		warning("%s", message.c_str());
+	}
+
 	return 0;
 }
 
