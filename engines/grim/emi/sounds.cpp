@@ -102,4 +102,119 @@ void Sounds::setSoundListener(CNode *listener) {
 	// TODO
 }
 
+void Sounds::startSounds(bool flag) {
+	// TODO
+}
+
+void Sounds::shutdownSounds() {
+	// TODO
+}
+
+void Sounds::pauseMusicStreams() {
+	// TODO
+}
+
+void Sounds::resumeMusicStreams() {
+	// TODO
+}
+
+void Sounds::playSound(const char *soundName, int volume) {
+	// TODO
+}
+
+void Sounds::playSoundFrom(const char *soundName, float x, float y, float z, int16 volume) {
+	// TODO
+}
+
+void Sounds::playLoadedSoundFrom(uint soundHandle, float x, float y, float z, bool loop, int16 volume) {
+	// TODO
+}
+
+void Sounds::unregisterSound(uint16 soundHandle) {
+	// TODO
+}
+
+void Sounds::setSoundPosition(uint soundHandle, float x, float y, float z) {
+	// TODO
+}
+
+bool Sounds::setSoundVolume(uint soundHandle, int volume) {
+	// TODO
+	return false;
+}
+
+bool Sounds::getSoundVolume(uint soundHandle, int *volume) {
+	// TODO
+	return false;
+}
+
+bool Sounds::setCategoryVolume(int category, int volume) {
+	// TODO
+	return false;
+}
+
+int Sounds::getCategoryVolume(int category) {
+	// TODO
+	return 0;
+}
+
+void Sounds::setCategoryEnabled(int category, bool enabled) {
+	// TODO
+}
+
+void Sounds::setVoiceFxEnabled(int enabled) {
+	// TODO
+}
+
+void Sounds::setReverb(int preset, float *param1, float *param2, float *param3, float *param4, float *param5) {
+	// TODO
+}
+
+void Sounds::stopAllSounds() {
+	stopAllMusic();
+	releaseAllSounds();
+}
+
+void Sounds::stopAllMusic() {
+	// TODO
+}
+
+void Sounds::releaseAllSounds() {
+	// TODO
+}
+
+void Sounds::pauseAll() {
+	// TODO
+}
+
+void Sounds::resumeAll() {
+	// TODO
+}
+
+void Sounds::selectMusicSet(int16 musicSet) {
+	// TODO
+}
+
+bool Sounds::consumeMusicFlags(const uint &musicId, bool &looped, bool &ended) {
+	// TODO
+	return false;
+}
+
+void Sounds::pushMusicState(int musicId, const bool &flag) {
+	// TODO
+}
+
+void Sounds::popMusicState(const bool &flag) {
+	// TODO
+}
+
+void Sounds::flushMusicStateStack() {
+	// TODO
+}
+
+int Sounds::getMusicPositionMs(const uint &musicId) {
+	// TODO
+	return 0;
+}
+
 } // End of namespace Grim

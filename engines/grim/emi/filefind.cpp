@@ -19,9 +19,12 @@
  *
  */
 
+#include "common/algorithm.h"
 #include "common/config-manager.h"
 #include "common/path.h"
+#include "common/savefile.h"
 #include "common/str.h"
+#include "common/system.h"
 
 #include "engines/grim/emi/filefind.h"
 #include "engines/grim/emi/lmemoryservices.h"
@@ -36,8 +39,51 @@ void FileFind::operator delete(void *block) {
 	gpMemoryServices->free(block);
 }
 
+bool FileFind::isSaveDirectory(const char *directory) {
+	if (!directory || strchr(directory, ':'))
+		return false;
+
+	Common::String component;
+	int numComponents = 0;
+	bool isSaves = false;
+
+	for (const char *p = directory; ; p++) {
+		if (*p == '\\' || *p == '/' || *p == 0) {
+			if (!component.empty() && component != ".") {
+				numComponents++;
+				isSaves = scumm_stricmp(component.c_str(), "Saves") == 0;
+			}
+
+			component.clear();
+
+			if (*p == 0)
+				break;
+		} else {
+			component += *p;
+		}
+	}
+
+	return numComponents == 1 && isSaves;
+}
+
 FileFind::FileFind(const char *pattern, const char *directory) {
 	_current = 0;
+
+	if (isSaveDirectory(directory)) {
+		Common::StringArray saveFiles = g_system->getSavefileManager()->listSavefiles(pattern);
+
+		Common::sort(saveFiles.begin(), saveFiles.end());
+
+		for (uint i = 0; i < saveFiles.size(); i++) {
+			Entry entry;
+
+			entry.name = saveFiles[i];
+			entry.isDirectory = false;
+			_entries.push_back(entry);
+		}
+
+		return;
+	}
 
 	Common::FSNode node(ConfMan.getPath("path"));
 
@@ -72,8 +118,13 @@ FileFind::FileFind(const char *pattern, const char *directory) {
 	bool matchAll = strcmp(pattern, "*.*") == 0 || strcmp(pattern, "*") == 0;
 
 	for (uint i = 0; i < children.size(); i++) {
-		if (matchAll || Common::matchString(children[i].getName().c_str(), pattern, true))
-			_entries.push_back(children[i]);
+		if (matchAll || Common::matchString(children[i].getName().c_str(), pattern, true)) {
+			Entry entry;
+
+			entry.name = children[i].getName();
+			entry.isDirectory = children[i].isDirectory();
+			_entries.push_back(entry);
+		}
 	}
 }
 
@@ -89,7 +140,7 @@ bool FileFind::next(char *name, uint *bufferSize, uint *attributes) {
 		return false;
 	}
 
-	Common::String entryName = _entries[_current].getName();
+	Common::String entryName = _entries[_current].name;
 
 	if (entryName.size() + 1 > *bufferSize) {
 		*bufferSize = entryName.size() + 1;
@@ -98,7 +149,7 @@ bool FileFind::next(char *name, uint *bufferSize, uint *attributes) {
 	}
 
 	Common::strcpy_s(name, *bufferSize, entryName.c_str());
-	*attributes = _entries[_current].isDirectory() ? kFileFindDirectory : kFileFindNormal;
+	*attributes = _entries[_current].isDirectory ? kFileFindDirectory : kFileFindNormal;
 	_current++;
 
 	return true;

@@ -21,16 +21,21 @@
 
 #include "engines/grim/emi/emiengine.h"
 
+#include "common/str.h"
+
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/dimregion.h"
+#include "engines/grim/emi/movie.h"
 #include "engines/grim/emi/overworld.h"
 #include "engines/grim/emi/polyglot_v2.h"
 #include "engines/grim/emi/primitivequeue_v2.h"
 #include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/resourcemanager.h"
 #include "engines/grim/emi/room_v2.h"
+#include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/textevent.h"
+#include "engines/grim/inputdialog.h"
 
 namespace Grim {
 
@@ -39,6 +44,10 @@ static const int kPrimitiveLayers = 2;
 static ProfilerTimer renderUpdateTimer("sputRender_Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 
 int EmiEngine::_mode = 0;
+int EmiEngine::_pausedMode = 0;
+int EmiEngine::_discNumber = 0;
+int EmiEngine::_frameDumpCount = 0;
+LString EmiEngine::_frameDumpPath;
 int EmiEngine::_savedMode = 0;
 int EmiEngine::_cpuSpeed = 1000;
 LString EmiEngine::_island;
@@ -46,6 +55,7 @@ float EmiEngine::_frameTime = 0.0f;
 bool EmiEngine::_dumpingFrames = false;
 bool EmiEngine::_saveLoadIdle = true;
 int EmiEngine::_frontCopyCount = 0;
+int EmiEngine::_pendingMusicState = -1;
 Polyglot_v2 *EmiEngine::_polyglot = nullptr;
 
 EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
@@ -60,6 +70,147 @@ EmiEngine::~EmiEngine() {
 
 Polyglot_v2 *EmiEngine::getPolyglot() {
 	return _polyglot;
+}
+
+void EmiEngine::setPause(bool pause) {
+	if (!_mode)
+		return;
+
+	if (pause) {
+		if (_mode == 1)
+			return;
+
+		_pausedMode = _mode;
+		_mode = 1;
+		Sounds::pauseMusicStreams();
+		Movie::pauseCurrent();
+	} else if (_mode == 1) {
+		_mode = _pausedMode;
+		Sounds::resumeMusicStreams();
+		Movie::resumeCurrent();
+	}
+}
+
+int EmiEngine::getDiscNumber() {
+	return _discNumber;
+}
+
+bool EmiEngine::findDisc(int disc) {
+	if (disc != 1 && disc != 2)
+		return false;
+
+	// TODO the search of the CD is not ported, the disc is always found
+	_discNumber = disc;
+
+	return true;
+}
+
+uint EmiEngine::getTotalPhysMem() {
+	// TODO the original asks the system, this is a constant
+	return 0x40000000;
+}
+
+int EmiEngine::messageBox(const char *caption, const char *text, uint flags) {
+	// TODO
+	return kMessageBoxNo;
+}
+
+bool EmiEngine::inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText) {
+	Common::String message = caption;
+
+	message += ": ";
+	message += prompt;
+
+	Common::String defaultString;
+
+	if (defaultText)
+		defaultString = defaultText;
+
+	InputDialog dialog(message, defaultString);
+
+	if (!dialog.runModal())
+		return false;
+
+	Common::strlcpy(buffer, dialog.getString().c_str(), bufferSize);
+
+	return true;
+}
+
+void EmiEngine::clearKeyStates() {
+	// TODO
+}
+
+void EmiEngine::saveScreenshot() {
+	// TODO
+}
+
+bool EmiEngine::buildSpecScreenTextures(int index) {
+	// TODO
+	return false;
+}
+
+bool EmiEngine::grabScreen() {
+	// TODO
+	return false;
+}
+
+bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
+	// TODO
+	return false;
+}
+
+bool EmiEngine::loadThumbnailTexture(int index, const char *fileName) {
+	// TODO
+	return false;
+}
+
+bool EmiEngine::clearTextureSlot(int index) {
+	// TODO
+	return false;
+}
+
+LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
+	// TODO
+	return nullptr;
+}
+
+void EmiEngine::closeSaveFile(LFile *file) {
+	// TODO
+}
+
+void EmiEngine::beginFrameDump(const char *path) {
+	_frameDumpCount = 0;
+	_frameDumpPath = path;
+	_dumpingFrames = true;
+
+	// TODO create the directory of the dump
+}
+
+void EmiEngine::endFrameDump() {
+	_dumpingFrames = false;
+}
+
+bool EmiEngine::playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame) {
+	LString name = fileName;
+
+	if (!strrchr(fileName, '.'))
+		name += ".bik";
+
+	LString resolvedName;
+
+	if (!gpFileServices->resolvePath(resolvedName, name.c_str()))
+		return false;
+
+	if (!Movie::startMovie(resolvedName.c_str(), subtitles, flag6194, flag6195, startFrame))
+		return false;
+
+	_mode = kModeMovie;
+
+	return true;
+}
+
+void EmiEngine::setPendingMusicState(int musicState) {
+	_pendingMusicState = musicState;
 }
 
 int EmiEngine::getMode() {
@@ -140,7 +291,7 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 	}
 
 	if (getMode() == kModeMovie) {
-		// TODO
+		Movie::presentCurrent();
 
 		renderUpdateTimer.stop();
 

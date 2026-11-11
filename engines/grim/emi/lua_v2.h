@@ -32,6 +32,8 @@ namespace Grim {
 struct FileUtilFind;
 class Actor;
 class CLightNode;
+class Color;
+class TextEvent;
 
 class Lua_V2 : public Lua_V1 {
 public:
@@ -313,7 +315,23 @@ protected:
 
 private:
 	enum {
-		kNumFieldRefs = 16
+		kFieldX,
+		kFieldY,
+		kFieldFont,
+		kFieldWidth,
+		kFieldHeight,
+		kFieldHicolor,
+		kFieldFgcolor,
+		kFieldBgcolor,
+		kFieldFxcolor,
+		kFieldDuration,
+		kFieldLayer,
+		kFieldCenter,
+		kFieldLjustify,
+		kFieldRjustify,
+		kFieldVolume,
+		kFieldPan,
+		kNumFieldRefs
 	};
 
 	struct LockedChore {
@@ -322,9 +340,18 @@ private:
 	};
 
 	void makeSystemTable();
+	void applyTextTable(lua_Object table, TextEvent *event);
+	void readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y);
+	void dumpResources(int mode);
+	void purgeResources(int mode);
 
 	static int32 identityHook(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc);
+	static lua_Object getTableField(lua_Object table, const char *key);
+	static bool getColorField(lua_Object table, Color &color);
+	static bool getLayerField(lua_Object table, int *layer);
+	static bool getFloatPairFields(lua_Object table, const char *firstKey, const char *secondKey, float defaultValue, float *first, float *second);
 	static void toggleStatsOverlay(bool hide);
+	static int truncateToInt(double value);
 
 	static uint _statsOverlayFlags;
 	static Common::Array<LockedChore> _lockedChores;
@@ -332,6 +359,8 @@ private:
 	static Common::Array<LString> _lockedRooms;
 	static Common::Array<LString> _lockedBackgrounds;
 	static Common::Array<uint> _lockedSounds;
+	static int _saveDataSize;
+	static tSaveRestoreAccess *_saveWriter;
 
 	int _fieldRefs[kNumFieldRefs];
 	FileUtilFind *_pFind;

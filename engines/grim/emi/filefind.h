@@ -22,7 +22,9 @@
 #ifndef GRIM_EMI_FILEFIND_H
 #define GRIM_EMI_FILEFIND_H
 
+#include "common/array.h"
 #include "common/fs.h"
+#include "common/str.h"
 
 namespace Grim {
 
@@ -42,7 +44,14 @@ public:
 	bool next(char *name, uint *bufferSize, uint *attributes);
 
 private:
-	Common::FSList _entries;
+	struct Entry {
+		Common::String name;
+		bool isDirectory;
+	};
+
+	static bool isSaveDirectory(const char *directory);
+
+	Common::Array<Entry> _entries;
 	uint _current;
 };
 
