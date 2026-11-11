@@ -55,6 +55,10 @@ void PrimitiveQueue_v2::shutdown() {
 	_started = false;
 }
 
+void PrimitiveQueue_v2::resetIds() {
+	_nextId = 1;
+}
+
 void PrimitiveQueue_v2::drawQueue(CDrawContext *drawContext, int layers) {
 	if (!_drawDisabled)
 		queue.draw(drawContext, layers);

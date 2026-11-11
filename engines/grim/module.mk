@@ -105,9 +105,14 @@ MODULE_OBJS := \
 	emi/lua_v2_camera.o \
 	emi/lua_v2_chore.o \
 	emi/lua_v2_layer.o \
+	emi/lua_v2_movie.o \
+	emi/lua_v2_primitive.o \
 	emi/lua_v2_render.o \
+	emi/lua_v2_resource.o \
 	emi/lua_v2_set.o \
 	emi/lua_v2_sound.o \
+	emi/lua_v2_system.o \
+	emi/lua_v2_text.o \
 	emi/luacommandcomponent.o \
 	emi/luacommandcomponenttype.o \
 	emi/luacommandinstance.o \
@@ -117,6 +122,7 @@ MODULE_OBJS := \
 	emi/meshcomponent.o \
 	emi/meshcomponenttype.o \
 	emi/meshinstance.o \
+	emi/movie.o \
 	emi/overworld.o \
 	emi/polyglot_v2.o \
 	emi/primitive.o \

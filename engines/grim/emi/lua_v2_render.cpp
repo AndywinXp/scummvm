@@ -30,7 +30,9 @@
 #include "engines/grim/emi/frect.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/movie.h"
 #include "engines/grim/emi/room_v2.h"
+#include "engines/grim/emi/sounds.h"
 
 namespace Grim {
 
@@ -167,18 +169,18 @@ void Lua_V2::RenderModeUser() {
 	int mode = EmiEngine::getMode();
 
 	if (lua_isnil(modeObj) && mode == EmiEngine::kModeOverworld) {
-		// TODO
-		if (lua_isnil(soundObj)) {
-			// TODO
-		}
+		Movie::resumeCurrent();
+
+		if (lua_isnil(soundObj))
+			Sounds::resumeAll();
 
 		EmiEngine::setMode(EmiEngine::getSavedMode());
 	} else if (!lua_isnil(modeObj) && mode != EmiEngine::kModeOverworld) {
 		EmiEngine::setSavedMode(mode);
-		// TODO
-		if (lua_isnil(soundObj)) {
-			// TODO
-		}
+		Movie::pauseCurrent();
+
+		if (lua_isnil(soundObj))
+			Sounds::pauseAll();
 
 		EmiEngine::setMode(EmiEngine::kModeOverworld);
 		toggleStatsOverlay(true);

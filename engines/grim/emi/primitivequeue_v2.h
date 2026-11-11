@@ -54,6 +54,7 @@ public:
 
 	static bool startup();
 	static void shutdown();
+	static void resetIds();
 	static void drawQueue(CDrawContext *drawContext, int layers);
 
 	Primitive *head2D;

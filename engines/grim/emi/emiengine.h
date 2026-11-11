@@ -38,6 +38,14 @@ public:
 		kModeOverworld = 4
 	};
 
+	enum {
+		kMessageBoxYesNoCancel = 3,
+		kMessageBoxYesNo = 4,
+		kMessageBoxCancel = 2,
+		kMessageBoxYes = 6,
+		kMessageBoxNo = 7
+	};
+
 	EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language);
 	~EmiEngine() override;
 
@@ -56,10 +64,33 @@ public:
 	static bool isDumpingFrames();
 	static void setSaveLoadIdle(bool idle);
 	static Polyglot_v2 *getPolyglot();
+	static void setPause(bool pause);
+	static int getDiscNumber();
+	static bool findDisc(int disc);
+	static uint getTotalPhysMem();
+	static int messageBox(const char *caption, const char *text, uint flags);
+	static bool inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText);
+	static void clearKeyStates();
+	static void saveScreenshot();
+	static bool buildSpecScreenTextures(int index);
+	static bool grabScreen();
+	static bool makeThumbnailTexture(int index, bool fromScreen);
+	static bool loadThumbnailTexture(int index, const char *fileName);
+	static bool clearTextureSlot(int index);
+	static LFile *openSaveFile(const char *fileName, const char *mode);
+	static void closeSaveFile(LFile *file);
+	static void beginFrameDump(const char *path);
+	static void endFrameDump();
+	static bool playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
+	static void setPendingMusicState(int musicState);
 
 private:
 	static Polyglot_v2 *_polyglot;
 	static int _mode;
+	static int _pausedMode;
+	static int _discNumber;
+	static int _frameDumpCount;
+	static LString _frameDumpPath;
 	static int _savedMode;
 	static int _cpuSpeed;
 	static LString _island;
@@ -67,6 +98,7 @@ private:
 	static bool _dumpingFrames;
 	static bool _saveLoadIdle;
 	static int _frontCopyCount;
+	static int _pendingMusicState;
 };
 
 } // End of namespace Grim

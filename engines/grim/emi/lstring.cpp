@@ -34,4 +34,10 @@ LString &LStringUtil::getExtension(LString &string, LString &extension) {
 	return string;
 }
 
+LString &LStringUtil::stringToLower(LString &string) {
+	string.toLowercase();
+
+	return string;
+}
+
 } // End of namespace Grim
