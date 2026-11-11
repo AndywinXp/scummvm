@@ -53,8 +53,9 @@ int COGLTexture::getSize() {
 
 void COGLTexture::applyFlags() {
 	glBindTexture(GL_TEXTURE_2D, glId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (flags & 0x100) ? GL_CLAMP : GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (flags & 0x200) ? GL_CLAMP : GL_REPEAT);
+	// Not in the disasm (GL_CLAMP), the current drivers blend the edge with the border color
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (flags & 0x100) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (flags & 0x200) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (flags & 2) ? GL_LINEAR : GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (flags & 1) ? GL_LINEAR : GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
