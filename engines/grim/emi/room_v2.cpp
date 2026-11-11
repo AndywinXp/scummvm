@@ -1235,7 +1235,7 @@ bool Room_v2::loadBinary(const char *path) {
 		if (!readBinaryBytes(file, setup->name, Setup::kNameSize) || !readBinaryString(file, buffer))
 			return failBinaryLoad(file, "invalid setup");
 
-		if (setup->name[Setup::kNameSize - 1] != 0) {
+		if (!memchr(setup->name, 0, Setup::kNameSize)) {
 			warning("Room_v2::loadBinary(): the setup name is not terminated");
 			setup->name[Setup::kNameSize - 1] = 0;
 		}
@@ -1278,7 +1278,7 @@ bool Room_v2::loadBinary(const char *path) {
 		if (!readBinaryBytes(file, lightNode->name, CNode::kNameSize))
 			return failBinaryLoad(file, "invalid light name");
 
-		if (lightNode->name[CNode::kNameSize - 1] != 0) {
+		if (!memchr(lightNode->name, 0, CNode::kNameSize)) {
 			warning("Room_v2::loadBinary(): the light name is not terminated");
 			lightNode->name[CNode::kNameSize - 1] = 0;
 		}
