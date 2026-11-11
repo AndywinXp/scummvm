@@ -117,7 +117,9 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 		Engine(syst) {
 	g_grim = this;
 
-	setDebugger(new Debugger());
+	if (gameType != GType_MONKEY4)
+		setDebugger(new Debugger());
+
 	_gameType = gameType;
 	_gameFlags = gameFlags;
 	_gamePlatform = platform;
@@ -176,6 +178,13 @@ Common::Error GrimEngine::run() {
 	if (_gameType != GType_GRIM || isRemastered())
 		return Common::Error(Common::kUnsupportedGameidError, _s("This game is not supported by this version of the Grim engine"));
 
+	if (!checkGameData("Grim Fandango"))
+		return Common::kUserCanceled;
+
+	return runGrime();
+}
+
+bool GrimEngine::checkGameData(const char *gameName) {
 	ConfMan.registerDefault("check_gamedata", true);
 	if (ConfMan.getBool("check_gamedata")) {
 		MD5CheckDialog d;
@@ -184,11 +193,11 @@ Common::Error GrimEngine::run() {
 			        "ScummVM found some problems with your game data files.\n"
 			        "Running ScummVM nevertheless may cause game bugs or even crashes.\n"
 			        "Do you still want to run %s?"),
-			        "Grim Fandango"
+			        gameName
 			        );
 			GUI::MessageDialog msg(confirmString, _("Yes"), _("No"));
 			if (msg.runModal() != GUI::kMessageOK) {
-				return Common::kUserCanceled;
+				return false;
 			}
 		}
 
@@ -196,7 +205,7 @@ Common::Error GrimEngine::run() {
 		ConfMan.flushToDisk();
 	}
 
-	return runGrime();
+	return true;
 }
 
 Common::KeymapArray GrimEngine::initKeymapsGrim(const char *target) {

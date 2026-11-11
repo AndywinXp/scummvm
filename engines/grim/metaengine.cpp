@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/legacy_savegames/legacy_savegames.h"
 
@@ -180,8 +181,21 @@ public:
 Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, const Grim::GrimGameDescription *desc) const {
 	const GrimGameDescription *gd = (const GrimGameDescription *)desc;
 
-	if (gd->gameType == GType_MONKEY4)
-		return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island is not supported by this version of the Grim engine"));
+	if (gd->gameType == GType_MONKEY4) {
+#ifdef ENABLE_MONKEY4
+		if (gd->desc.flags & ADGF_DEMO)
+			return Common::Error(Common::kUnsupportedGameidError, _s("The demo of Escape from Monkey Island is not supported by this version of the Grim engine"));
+
+		if (gd->desc.platform != Common::kPlatformWindows)
+			return Common::Error(Common::kUnsupportedGameidError, _s("Only the Windows version of Escape from Monkey Island is supported by this version of the Grim engine"));
+
+		*engine = new EmiEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
+
+		return Common::kNoError;
+#else
+		return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island support is not compiled in"));
+#endif
+	}
 
 	if (gd->desc.flags & ADGF_REMASTERED)
 		return Common::Error(Common::kUnsupportedGameidError, _s("Grim Fandango Remastered is not supported by this version of the Grim engine"));
@@ -223,6 +237,11 @@ Common::KeymapArray GrimMetaEngine::initKeymaps(const char *target) const {
 		return Grim::GrimEngine::initKeymapsGrim(target);
 	}
 #endif
+#ifdef ENABLE_MONKEY4
+	if (gameId == "monkey4") {
+		return Grim::EmiEngine::initKeymapsEmi(target);
+	}
+#endif
 
 	return AdvancedMetaEngine::initKeymaps(target);
 }
@@ -237,9 +256,6 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	Common::String pattern = gameId == "monkey4" ? "efmi###.gsv" : "grim##.gsv";
 	SaveStateList saveList;
 
-	if (gameId == "monkey4")
-		return saveList;
-
 	if (platform == Common::kPlatformPS2)
 		pattern = "efmi###.ps2";
 
@@ -252,12 +268,16 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 		// Obtain the last digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + 4);
 
-		if (slotNum >= 0 && gameId != "monkey4") {
+		if (slotNum >= 0) {
 			Common::SeekableReadStream *pFile = saveFileMan->openForLoading(*file);
 			Common::Array<Common::String> strings;
 
-			if (pFile && readSaveStrings(pFile, strings))
+			if (pFile && gameId == "monkey4") {
+				if (EmiEngine::readSaveStrings(pFile, strings))
+					saveList.push_back(SaveStateDescriptor(this, slotNum, EmiEngine::getSaveDescription(strings, slotNum)));
+			} else if (pFile && readSaveStrings(pFile, strings)) {
 				saveList.push_back(SaveStateDescriptor(this, slotNum, strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0]));
+			}
 
 			delete pFile;
 		}
@@ -272,14 +292,27 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::String fileName = getSavegameFile(slot, target);
 
-	if (gameId == "monkey4")
-		return SaveStateDescriptor();
-
 	Common::SeekableReadStream *pFile = saveFileMan->openForLoading(fileName);
 	Common::Array<Common::String> strings;
 
 	if (!pFile)
 		return SaveStateDescriptor();
+
+	if (gameId == "monkey4") {
+		if (!EmiEngine::readSaveStrings(pFile, strings)) {
+			delete pFile;
+			return SaveStateDescriptor();
+		}
+
+		SaveStateDescriptor emiDesc(this, slot, EmiEngine::getSaveDescription(strings, slot));
+		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(pFile);
+
+		if (emiThumbnail)
+			emiDesc.setThumbnail(emiThumbnail);
+
+		delete pFile;
+		return emiDesc;
+	}
 
 	if (!readSaveStrings(pFile, strings)) {
 		delete pFile;

@@ -250,6 +250,7 @@ protected:
 	void restoreLegacy();
 
 	// grim module
+	bool checkGameData(const char *gameName);
 	Common::Error runGrime();
 	void mountPatchArchives();
 	void createImuse();

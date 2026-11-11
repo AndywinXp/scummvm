@@ -70,11 +70,6 @@ void Lua_V2::FunctionName() {
 	lua_pushstring(buffer);
 }
 
-void Lua_V2::GetControlState() {
-	// TODO
-	warning("Lua_V2::GetControlState(): not implemented");
-}
-
 void Lua_V2::PrintMessage() {
 	lua_Object messageObj = lua_getparam(1);
 

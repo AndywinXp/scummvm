@@ -1233,7 +1233,7 @@ int CBundle::decodeName(char *name) {
 	return count;
 }
 
-bool CBundleServices::init() {
+bool CBundleServices::init(bool isInternational) {
 	if (gpBundleServices)
 		return true;
 
@@ -1244,7 +1244,8 @@ bool CBundleServices::init() {
 
 	services->openCommonBundles();
 
-	if (!localOpened || isI9nBundleOpen()) {
+	// The English disasm refuses i9n.m4b, the international one does not check it
+	if (!localOpened || (!isInternational && isI9nBundleOpen())) {
 		delete services;
 
 		return false;

@@ -26,6 +26,7 @@
 #include "common/str.h"
 #include "common/system.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/filefind.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
@@ -76,6 +77,9 @@ FileFind::FileFind(const char *pattern, const char *directory) {
 
 		for (uint i = 0; i < saveFiles.size(); i++) {
 			Entry entry;
+
+			if (!saveFiles[i].hasPrefixIgnoreCase("efmi") || EmiEngine::isLegacySaveFile(saveFiles[i]))
+				continue;
 
 			entry.name = saveFiles[i];
 			entry.isDirectory = false;

@@ -87,7 +87,13 @@ MODULE_OBJS := \
 	emi/cwavfile.o \
 	emi/cweightmap.o \
 	emi/dimregion.o \
+	emi/emidebugger.o \
 	emi/emiengine.o \
+	emi/emiengine_frame.o \
+	emi/emiengine_input.o \
+	emi/emiengine_run.o \
+	emi/emiengine_save.o \
+	emi/eventgenerator.o \
 	emi/eventhandler.o \
 	emi/extra_v2.o \
 	emi/filefind.o \
@@ -97,8 +103,12 @@ MODULE_OBJS := \
 	emi/globalalphacomponent.o \
 	emi/globalalphacomponenttype.o \
 	emi/globalalphainstance.o \
+	emi/inputrecorder.o \
 	emi/integercomponenttype.o \
 	emi/irect.o \
+	emi/joystick.o \
+	emi/keyeventmapper.o \
+	emi/keygenerator.o \
 	emi/labitmap.o \
 	emi/layer.o \
 	emi/lbitmap.o \
@@ -118,13 +128,16 @@ MODULE_OBJS := \
 	emi/ltimeservices.o \
 	emi/lua_v2.o \
 	emi/lua_v2_actor.o \
+	emi/lua_v2_callbacks.o \
 	emi/lua_v2_camera.o \
 	emi/lua_v2_chore.o \
+	emi/lua_v2_control.o \
 	emi/lua_v2_layer.o \
 	emi/lua_v2_movie.o \
 	emi/lua_v2_primitive.o \
 	emi/lua_v2_render.o \
 	emi/lua_v2_resource.o \
+	emi/lua_v2_save.o \
 	emi/lua_v2_set.o \
 	emi/lua_v2_sound.o \
 	emi/lua_v2_system.o \
@@ -172,6 +185,7 @@ MODULE_OBJS := \
 	emi/spritecomponent.o \
 	emi/spritecomponenttype.o \
 	emi/spriteinstance.o \
+	emi/sputcontrol_v2.o \
 	emi/statecomponenttype.o \
 	emi/streamscript.o \
 	emi/textevent.o \

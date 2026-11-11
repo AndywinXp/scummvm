@@ -23,11 +23,10 @@
 #include "common/textconsole.h"
 #include "common/ustr.h"
 
-#include "gui/error.h"
-
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/choreinstance.h"
 #include "engines/grim/emi/color.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/overworld.h"
 #include "engines/grim/emi/puck_v2.h"
 #include "engines/grim/emi/rprimitive.h"
@@ -382,7 +381,7 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 			Common::String message = Common::String::format("Could not find file %s.", primitiveName.c_str());
 
 			warning("%s", message.c_str());
-			GUI::displayErrorDialog(Common::U32String(message));
+			EmiEngine::showMessage(message.c_str(), "Error!");
 			access(&stateSize, sizeof(stateSize));
 
 			if (stateSize > kMaxSkippedStateSize) {

@@ -30,6 +30,7 @@
 #include "engines/grim/emi/clight.h"
 #include "engines/grim/emi/color.h"
 #include "engines/grim/emi/cquaternion.h"
+#include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/irect.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -746,6 +747,11 @@ void Room_v2::loadRoom(const char *roomName) {
 
 	_currentRoom->setSoundParameters(8.0f, 20, 127, 1.5f, 0.8f);
 	_currentRoom->setLightsActive(true);
+
+	if (InputRecorder::instance)
+		InputRecorder::instance->recordRoom(roomName);
+	else
+		warning("Room_v2::loadRoom(): there is no input recorder");
 }
 
 Room_v2 *Room_v2::getCurrentRoom() {

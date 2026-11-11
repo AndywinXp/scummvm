@@ -25,6 +25,7 @@
 
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/fileutil.h"
+#include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -39,7 +40,7 @@ static const char *const fieldNames[] = {
 	"fxcolor", "duration", "layer", "center", "ljustify", "rjustify", "volume", "pan"
 };
 
-uint Lua_V2::_statsOverlayFlags = 8;
+uint Lua_V2::statsOverlayFlags = 8;
 Common::Array<Lua_V2::LockedChore> Lua_V2::_lockedChores;
 Common::Array<LString> Lua_V2::_lockedChoreSets;
 Common::Array<LString> Lua_V2::_lockedRooms;
@@ -180,8 +181,8 @@ static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "UnlockChoreSet", LUA_OPCODE(Lua_V2, UnlockChoreSet) },
 	{ "exit", LUA_OPCODE(Lua_V2, Exit) },
 	{ "FunctionName", LUA_OPCODE(Lua_V2, FunctionName) },
-	{ "EnableControl", LUA_OPCODE(Lua_V1, EnableControl) },
-	{ "DisableControl", LUA_OPCODE(Lua_V1, DisableControl) },
+	{ "EnableControl", LUA_OPCODE(Lua_V2, EnableControl) },
+	{ "DisableControl", LUA_OPCODE(Lua_V2, DisableControl) },
 	{ "GetControlState", LUA_OPCODE(Lua_V2, GetControlState) },
 	{ "PrintMessage", LUA_OPCODE(Lua_V2, PrintMessage) },
 	{ "PrintError", LUA_OPCODE(Lua_V2, PrintError) },
@@ -391,7 +392,7 @@ int Lua_V2::startup() {
 	Actor::offscreenTextRect.w = 0;
 	Actor::offscreenTextRect.h = 0;
 
-	// TODO createInputRecorder(0)
+	InputRecorder::createInputRecorder(0);
 
 	_lockedChores.clear();
 	_lockedChoreSets.clear();
@@ -498,17 +499,7 @@ void Lua_V2::makeSystemTable() {
 	lua_pushobject(systemTable);
 	refSystemTable = lua_ref(1);
 
-	registerControls();
-
-	lua_pushobject(lua_getref(refSystemTable));
-	lua_pushstring("controls");
-
-	lua_Object controlsTable = lua_gettable();
-
-	lua_pushobject(controlsTable);
-	lua_pushstring("joy_selected");
-	lua_pushnumber(-1.0f);
-	lua_settable();
+	makeControlsTable(refSystemTable);
 
 	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("axisHandler");
