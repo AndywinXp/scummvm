@@ -69,7 +69,7 @@ bool EmiEngine::runFrame() {
 }
 
 int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) {
-	// PS2 updates sounds once per frame, after Lua
+	// PS2 updates sounds once per frame, before Lua
 	bool isPs2 = getGamePlatform() == Common::kPlatformPS2;
 
 	updateManualTimer.start();
@@ -106,14 +106,17 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 
 	if (_mode != kModePaused || manualMs != 0) {
 		_frameCount++;
-		_lua->update(frameTime);
 
+		// PS2 applies the music state requested by the previous frame before Lua runs
 		if (isPs2) {
 			updateSounds(true);
 			applyPendingMusicState();
-		} else {
-			updateSounds(false);
 		}
+
+		_lua->update(frameTime);
+
+		if (!isPs2)
+			updateSounds(false);
 
 		// PS2 plays the requested movie here and skips the rest of the frame
 		if (isPs2 && Movie::isMovieRequestedPs2()) {
@@ -149,10 +152,10 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 		}
 	}
 
-	applyPendingMusicState();
-
-	if (!isPs2)
+	if (!isPs2) {
+		applyPendingMusicState();
 		updateSounds(false);
+	}
 
 	int result = 0;
 

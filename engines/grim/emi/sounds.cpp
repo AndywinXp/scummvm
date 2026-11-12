@@ -757,6 +757,21 @@ void Sounds::setReverb(int preset, float *param1, float *param2, float *param3, 
 	AudioSystem::setGlobalReverb(kReverbPresets[preset], param1, param2, param3, param4, param5);
 }
 
+void Sounds::setSonyReverb(int type, int depth, int delay, int feedback) {
+	if (!voiceFxEnabled) {
+		if (gpConsoleServices) {
+			gpConsoleServices->logError("***************************\n");
+			gpConsoleServices->logError("SoundsSetReverb: !bReverbOk\n");
+			gpConsoleServices->logError("***************************\n");
+		}
+
+		return;
+	}
+
+	if (audioSystem)
+		AudioSystem::setSonyReverb(type, depth, delay, feedback);
+}
+
 void Sounds::restoreMasterGain() {
 	if (audioSystem)
 		AudioSystem::setMasterGain(defaultMasterGain);

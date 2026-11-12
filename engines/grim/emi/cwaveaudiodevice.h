@@ -60,6 +60,8 @@ public:
 	int getLatency() override;
 	int getActiveSampleCount() override;
 
+	bool setSonyRoomType(int type, int depth, int delay, int feedback);
+
 	static int getMilesDigitalDriver();
 	static EMIMilesDriver *getMilesDriver();
 

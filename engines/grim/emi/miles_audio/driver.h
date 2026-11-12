@@ -33,6 +33,7 @@ namespace Grim {
 
 class EMIMilesDriver;
 class EMIMilesFilter;
+class EMISpu2Reverb;
 struct EMIMilesStream;
 
 struct EMIMilesSample {
@@ -62,6 +63,11 @@ struct EMIMilesSample {
 	int serviceMode;
 	EMIMilesFilter *filter;
 	EMIMilesStream *stream;
+	bool effectSend;
+	uint32 spuCounter;
+	int spuPending;
+	int32 spuHistoryL[4];
+	int32 spuHistoryR[4];
 };
 
 struct EMIMilesStream {
@@ -115,6 +121,9 @@ public:
 		kOutputRate = 22050,
 		kSegmentFrames = 180,
 		kSegmentSamples = kSegmentFrames * 2,
+		kSpu2OutputRate = 48000,
+		kSpu2SegmentFrames = 392,
+		kMaxSegmentSamples = kSpu2SegmentFrames * 2,
 		kMaxSegments = 96,
 		kDefaultMixAhead = 8,
 		kMaxVolume = 127,
@@ -155,7 +164,7 @@ public:
 		kStreamBufferMilliseconds = 250
 	};
 
-	EMIMilesDriver();
+	EMIMilesDriver(bool isPs2);
 	~EMIMilesDriver() override;
 
 	void *operator new(size_t size);
@@ -183,6 +192,7 @@ public:
 	void setSampleVolume(EMIMilesSample *sample, int volume);
 	void setSamplePan(EMIMilesSample *sample, int pan);
 	void setSampleSpuVolume(EMIMilesSample *sample, int left, int right);
+	void setSampleEffectSend(EMIMilesSample *sample, bool enabled);
 	void startSample(EMIMilesSample *sample);
 	void stopSample(EMIMilesSample *sample);
 	void resumeSample(EMIMilesSample *sample);
@@ -198,6 +208,8 @@ public:
 	void setSampleFilterTime(EMIMilesSample *sample, float milliseconds);
 	void setSampleFilterMix(EMIMilesSample *sample, float mix);
 	void setSampleFilterDamping(EMIMilesSample *sample, float hertz);
+
+	int setSpuReverb(int mode, int core, float depthLeft, float depthRight, float delay, float feedback);
 
 	EMIMilesStream *openStream(Common::SeekableReadStream *file);
 	void closeStream(EMIMilesStream *stream);
@@ -235,6 +247,10 @@ private:
 	void service();
 	void pushSegment();
 	void mixSegment(int16 *out);
+	void initSpuEffect();
+	void mixSpuEffect();
+	int mixSpuVoice(EMIMilesSample *sample, int remainingBytes, int dstOffset);
+	static int convertSpuValue(float value);
 	void advanceSample(EMIMilesSample *sample);
 	int mixChunk(EMIMilesSample *sample, int remainingBytes, int dstOffset);
 	void computeScales(EMIMilesSample *sample);
@@ -276,6 +292,11 @@ private:
 	static int scanFrames(const byte *data, int size, int start, int *offsets, int *bitrate, int *rate, bool *stereo, int *samples);
 
 	Common::Mutex _mutex;
+	bool _isPs2;
+	int _outputRate;
+	int _segmentFrames;
+	int _segmentSamples;
+	EMISpu2Reverb *_spu2Reverb;
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _handle;
 	bool _open;
@@ -286,7 +307,8 @@ private:
 	EMIMilesSample _samples[kSampleCount];
 	EMIMilesStream *_streams[kSampleCount];
 
-	int32 _build[kSegmentSamples];
+	int32 _build[kMaxSegmentSamples];
+	int32 _effectBuild[kMaxSegmentSamples];
 	int16 *_fifo;
 	int _fifoReadSegment;
 	int _fifoReadOffset;

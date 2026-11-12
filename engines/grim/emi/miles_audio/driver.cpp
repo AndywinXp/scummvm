@@ -25,13 +25,32 @@
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
 #include "engines/grim/emi/miles_audio/reverb.h"
+#include "engines/grim/emi/miles_audio/ps2/spu2interpolation.h"
+#include "engines/grim/emi/miles_audio/ps2/spu2reverb.h"
 
 namespace Grim {
 
 static const int kDefaultPan = 64;
 static const int kDefaultSampleRate = 11025;
+static const int kSpuEffectEndAddress = 0x1FFFFF;
+static const int kSpuDepthStep = 100;
+static const float kSpuMaxDepth = 32767.0f;
+static const float kSpuMaxDelay = 127.0f;
 
-EMIMilesDriver::EMIMilesDriver() {
+EMIMilesDriver::EMIMilesDriver(bool isPs2) {
+	_isPs2 = isPs2;
+
+	// SPU2 mixes at 48 kHz, while Miles on PC mixes at 22050 Hz
+	if (_isPs2) {
+		_outputRate = kSpu2OutputRate;
+		_segmentFrames = kSpu2SegmentFrames;
+	} else {
+		_outputRate = kOutputRate;
+		_segmentFrames = kSegmentFrames;
+	}
+
+	_segmentSamples = _segmentFrames * 2;
+	_spu2Reverb = nullptr;
 	_mixer = nullptr;
 	_open = false;
 	_released = false;
@@ -43,15 +62,19 @@ EMIMilesDriver::EMIMilesDriver() {
 	_segmentCounter = 0;
 	_mixSourceLimit = nullptr;
 
-	_fifo = new int16[kMaxSegments * kSegmentSamples];
-	memset(_fifo, 0, kMaxSegments * kSegmentSamples * sizeof(int16));
+	_fifo = new int16[kMaxSegments * _segmentSamples];
+	memset(_fifo, 0, kMaxSegments * _segmentSamples * sizeof(int16));
 	memset(_build, 0, sizeof(_build));
+	memset(_effectBuild, 0, sizeof(_effectBuild));
 
 	for (int i = 0; i < kSampleCount; i++) {
 		memset(&_samples[i], 0, sizeof(EMIMilesSample));
 		_samples[i].status = kSampleFree;
 		_streams[i] = nullptr;
 	}
+
+	if (_isPs2)
+		initSpuEffect();
 }
 
 EMIMilesDriver::~EMIMilesDriver() {
@@ -67,6 +90,11 @@ EMIMilesDriver::~EMIMilesDriver() {
 
 	delete[] _fifo;
 	_fifo = nullptr;
+
+	if (_spu2Reverb) {
+		delete _spu2Reverb;
+		_spu2Reverb = nullptr;
+	}
 }
 
 void *EMIMilesDriver::operator new(size_t size) {
@@ -302,6 +330,15 @@ void EMIMilesDriver::setSampleSpuVolume(EMIMilesSample *sample, int left, int ri
 	computeScales(sample);
 }
 
+void EMIMilesDriver::setSampleEffectSend(EMIMilesSample *sample, bool enabled) {
+	if (!sample)
+		return;
+
+	Common::StackLock lock(_mutex);
+
+	sample->effectSend = enabled;
+}
+
 void EMIMilesDriver::startSample(EMIMilesSample *sample) {
 	if (!sample)
 		return;
@@ -319,6 +356,12 @@ void EMIMilesDriver::startSample(EMIMilesSample *sample) {
 	sample->position[current] = 0;
 	sample->serviceMode = 1;
 	sample->status = _released ? kSamplePlayingReleased : kSamplePlaying;
+
+	// Starting a voice restarts its pitch counter
+	sample->spuCounter = 0;
+	sample->spuPending = 1;
+	memset(sample->spuHistoryL, 0, sizeof(sample->spuHistoryL));
+	memset(sample->spuHistoryR, 0, sizeof(sample->spuHistoryR));
 }
 
 void EMIMilesDriver::stopSample(EMIMilesSample *sample) {
@@ -423,7 +466,7 @@ void EMIMilesDriver::setSampleFilter(EMIMilesSample *sample, bool enabled) {
 	destroyFilter(sample);
 
 	if (enabled)
-		sample->filter = EMIMilesFilter::create(kOutputRate);
+		sample->filter = EMIMilesFilter::create(_outputRate);
 }
 
 void EMIMilesDriver::setSampleFilterEnvironment(EMIMilesSample *sample, float environment) {
@@ -475,14 +518,14 @@ int EMIMilesDriver::readBuffer(int16 *buffer, const int numSamples) {
 		if (_fifoSegments == 0)
 			pushSegment();
 
-		int count = MIN(kSegmentSamples - _fifoReadOffset, numSamples - written);
+		int count = MIN(_segmentSamples - _fifoReadOffset, numSamples - written);
 
-		memcpy(buffer + written, _fifo + _fifoReadSegment * kSegmentSamples + _fifoReadOffset, count * sizeof(int16));
+		memcpy(buffer + written, _fifo + _fifoReadSegment * _segmentSamples + _fifoReadOffset, count * sizeof(int16));
 
 		written += count;
 		_fifoReadOffset += count;
 
-		if (_fifoReadOffset == kSegmentSamples) {
+		if (_fifoReadOffset == _segmentSamples) {
 			_fifoReadOffset = 0;
 			_fifoReadSegment = (_fifoReadSegment + 1) % kMaxSegments;
 			_fifoSegments--;
@@ -499,7 +542,7 @@ bool EMIMilesDriver::isStereo() const {
 }
 
 int EMIMilesDriver::getRate() const {
-	return kOutputRate;
+	return _outputRate;
 }
 
 bool EMIMilesDriver::endOfData() const {
@@ -516,13 +559,16 @@ void EMIMilesDriver::service() {
 void EMIMilesDriver::pushSegment() {
 	int writeSegment = (_fifoReadSegment + _fifoSegments) % kMaxSegments;
 
-	mixSegment(_fifo + writeSegment * kSegmentSamples);
+	mixSegment(_fifo + writeSegment * _segmentSamples);
 
 	_fifoSegments++;
 }
 
 void EMIMilesDriver::mixSegment(int16 *out) {
 	memset(_build, 0, sizeof(_build));
+
+	if (_spu2Reverb)
+		memset(_effectBuild, 0, sizeof(_effectBuild));
 
 	streamServiceAll();
 
@@ -531,9 +577,134 @@ void EMIMilesDriver::mixSegment(int16 *out) {
 			advanceSample(&_samples[i]);
 	}
 
-	copyBuildBuffer(_build, out, kSegmentSamples);
+	if (_spu2Reverb)
+		mixSpuEffect();
+
+	copyBuildBuffer(_build, out, _segmentSamples);
 
 	_segmentCounter++;
+}
+
+void EMIMilesDriver::initSpuEffect() {
+	_spu2Reverb = new EMISpu2Reverb();
+
+	// LECAL places the effect area of core 0 at the top of the SPU2 memory and clears it
+	_spu2Reverb->setEffectEndAddress(kSpuEffectEndAddress);
+	_spu2Reverb->setEffectAttr(EMISpu2Reverb::kModeClear, 0, 0, 0, 0);
+	_spu2Reverb->setEffectEnable(true);
+	_spu2Reverb->setEffectVolume(0, 0);
+}
+
+void EMIMilesDriver::mixSpuEffect() {
+	for (int i = 0; i < _segmentSamples; i += 2) {
+		int32 left = 0;
+		int32 right = 0;
+
+		_spu2Reverb->process(_effectBuild[i] >> 11, _effectBuild[i + 1] >> 11, &left, &right);
+
+		_build[i] += left * (1 << 11);
+		_build[i + 1] += right * (1 << 11);
+	}
+}
+
+int EMIMilesDriver::setSpuReverb(int mode, int core, float depthLeft, float depthRight, float delay, float feedback) {
+	if ((uint)mode >= EMISpu2Reverb::kModeCount) {
+		warning("EMIMilesDriver::setSpuReverb(): invalid reverb mode %d", mode);
+
+		return 1;
+	}
+
+	if (depthLeft < -1.0f || !(depthLeft <= 1.0f)) {
+		warning("EMIMilesDriver::setSpuReverb(): left depth %f out of range", depthLeft);
+
+		return 1;
+	}
+
+	if (depthRight < -1.0f || !(depthRight <= 1.0f)) {
+		warning("EMIMilesDriver::setSpuReverb(): right depth %f out of range", depthRight);
+
+		return 1;
+	}
+
+	if (delay < 0.0f || !(delay <= 1.0f)) {
+		warning("EMIMilesDriver::setSpuReverb(): delay %f out of range", delay);
+
+		return 1;
+	}
+
+	if (feedback < 0.0f || !(feedback <= 1.0f)) {
+		warning("EMIMilesDriver::setSpuReverb(): feedback %f out of range", feedback);
+
+		return 1;
+	}
+
+	if ((uint)core >= 2) {
+		warning("EMIMilesDriver::setSpuReverb(): illegal core %d", core);
+
+		return 1;
+	}
+
+	int targetLeft = convertSpuValue(kSpuMaxDepth * depthLeft);
+	int targetRight = convertSpuValue(kSpuMaxDepth * depthRight);
+	int delayValue = convertSpuValue(kSpuMaxDelay * delay);
+	int feedbackValue = convertSpuValue(kSpuMaxDelay * feedback);
+
+	// Only the effect of core 0 is emulated, and the game never sets another core
+	if (core != 0 || !_spu2Reverb)
+		return 0;
+
+	Common::StackLock lock(_mutex);
+
+	_spu2Reverb->setEffectEnable(false);
+	_spu2Reverb->setEffectVolume(0, 0);
+
+	if (mode == 0) {
+		// The registers of the previous mode stay, so the effect keeps running silently
+		_spu2Reverb->setEffectEnable(true);
+		_spu2Reverb->setEffectVolume(0, 0);
+
+		return 0;
+	}
+
+	_spu2Reverb->setEffectAttr(mode, 0, 0, delayValue, feedbackValue);
+	_spu2Reverb->setEffectEnable(true);
+
+	// The original ramps the volume up with one remote call per step, so only the last step is kept
+	int left = 0;
+	int right = 0;
+	int lastLeft = 0;
+	int lastRight = 0;
+
+	while (left < targetLeft && right < targetRight) {
+		lastLeft = left;
+		lastRight = right;
+
+		if (left < targetLeft) {
+			left += kSpuDepthStep;
+
+			if (targetLeft < left)
+				left = targetLeft;
+		}
+
+		if (right < targetRight) {
+			right += kSpuDepthStep;
+
+			// The original compares the right step with the left target
+			if (targetLeft < right)
+				right = targetRight;
+		}
+	}
+
+	_spu2Reverb->setEffectVolume(lastLeft, lastRight);
+
+	return 0;
+}
+
+int EMIMilesDriver::convertSpuValue(float value) {
+	if (value < 0.0f)
+		value = 0.0f;
+
+	return (int)value;
 }
 
 void EMIMilesDriver::advanceSample(EMIMilesSample *sample) {
@@ -552,10 +723,14 @@ void EMIMilesDriver::advanceSample(EMIMilesSample *sample) {
 		}
 
 		if (remaining > 0) {
-			dst = mixChunk(sample, remaining, dst);
+			if (_isPs2)
+				dst = mixSpuVoice(sample, remaining, dst);
+			else
+				dst = mixChunk(sample, remaining, dst);
+
 			emptyJumps = 0;
 
-			if (dst >= kSegmentSamples)
+			if (dst >= _segmentSamples)
 				finished = true;
 
 			continue;
@@ -576,7 +751,7 @@ void EMIMilesDriver::advanceSample(EMIMilesSample *sample) {
 			if (sample->loopCount)
 				sample->loopCount--;
 
-			if (dst >= kSegmentSamples)
+			if (dst >= _segmentSamples)
 				finished = true;
 
 			continue;
@@ -601,7 +776,7 @@ void EMIMilesDriver::advanceSample(EMIMilesSample *sample) {
 
 		sample->current = other;
 
-		if (dst >= kSegmentSamples)
+		if (dst >= _segmentSamples)
 			finished = true;
 	}
 
@@ -613,7 +788,7 @@ int EMIMilesDriver::mixChunk(EMIMilesSample *sample, int remainingBytes, int dst
 	if (sample->rate < 0) {
 		warning("EMIMilesDriver::mixChunk(): invalid sample rate %d", sample->rate);
 
-		return kSegmentSamples;
+		return _segmentSamples;
 	}
 
 	uint flags = kMixOutputStereo;
@@ -627,7 +802,7 @@ int EMIMilesDriver::mixChunk(EMIMilesSample *sample, int remainingBytes, int dst
 	if (sample->scaleL != kUnscaledGain || sample->scaleR != kUnscaledGain)
 		flags |= kMixScaled;
 
-	int ratio = (int)(((int64)sample->rate * 65536 * 2 + kOutputRate) / (2 * kOutputRate));
+	int ratio = (int)(((int64)sample->rate * 65536 * 2 + _outputRate) / (2 * _outputRate));
 
 	if (ratio > 0x10000 + kResampleTolerance || ratio < 0x10000 - kResampleTolerance)
 		flags |= kMixResample;
@@ -636,14 +811,14 @@ int EMIMilesDriver::mixChunk(EMIMilesSample *sample, int remainingBytes, int dst
 	const byte *src = base + sample->position[sample->current];
 	const byte *srcEnd = src + remainingBytes;
 	int32 *dst = _build + dstOffset;
-	const int32 *dstEnd = _build + kSegmentSamples;
+	const int32 *dstEnd = _build + _segmentSamples;
 
 	if (dstEnd - dst <= 0 || srcEnd - src <= 0)
-		return kSegmentSamples;
+		return _segmentSamples;
 
 	flags |= kMixInterpolate;
 
-	if (sample->rate == kOutputRate)
+	if (sample->rate == _outputRate)
 		flags &= ~kMixInterpolate;
 
 	_mixSourceLimit = base + sample->length[sample->current];
@@ -655,6 +830,87 @@ int EMIMilesDriver::mixChunk(EMIMilesSample *sample, int remainingBytes, int dst
 
 	if (!handled)
 		mixerMerge(&src, &sample->srcFract, srcEnd, &dst, dstEnd, &sample->prevL, &sample->prevR, ratio, sample->scaleL, sample->scaleR, flags);
+
+	sample->position[sample->current] = (int)(src - base);
+
+	return (int)(dst - _build);
+}
+
+int EMIMilesDriver::mixSpuVoice(EMIMilesSample *sample, int remainingBytes, int dstOffset) {
+	if (sample->rate < 0) {
+		warning("EMIMilesDriver::mixSpuVoice(): invalid sample rate %d", sample->rate);
+
+		return _segmentSamples;
+	}
+
+	MixFormat format;
+
+	format.is16 = (sample->format & kFormat16Bit) != 0;
+	format.srcStereo = (sample->format & kFormatStereo) != 0;
+	format.scaled = sample->scaleL != kUnscaledGain || sample->scaleR != kUnscaledGain;
+	format.scaleL = sample->scaleL;
+	format.scaleR = sample->scaleR;
+	format.frameBytes = getFrameBytes(sample->format);
+
+	const byte *base = sample->buffer[sample->current];
+	const byte *src = base + sample->position[sample->current];
+	const byte *srcEnd = src + remainingBytes;
+	int32 *dst = _build + dstOffset;
+	const int32 *dstEnd = _build + _segmentSamples;
+	int32 *send = nullptr;
+
+	// Every voice of core 0 also feeds the reverb
+	if (sample->effectSend)
+		send = _effectBuild + dstOffset;
+
+	_mixSourceLimit = base + sample->length[sample->current];
+
+	// LECAL sets the pitch register like this, where 0x1000 plays one sample per output frame
+	int pitch = (int)(((int64)sample->rate << EMISpu2Interpolation::kPitchShift) / EMISpu2Interpolation::kOutputRate);
+
+	if (pitch > EMISpu2Interpolation::kMaxPitch)
+		pitch = EMISpu2Interpolation::kMaxPitch;
+
+	while (dst < dstEnd) {
+		while (sample->spuPending > 0 && src < srcEnd) {
+			int32 left;
+			int32 right;
+
+			fetchFrame(src, format, &left, &right);
+
+			for (int i = 0; i < 3; i++) {
+				sample->spuHistoryL[i] = sample->spuHistoryL[i + 1];
+				sample->spuHistoryR[i] = sample->spuHistoryR[i + 1];
+			}
+
+			sample->spuHistoryL[3] = left;
+			sample->spuHistoryR[3] = right;
+
+			src += format.frameBytes;
+			sample->spuPending--;
+		}
+
+		if (sample->spuPending > 0)
+			break;
+
+		int32 outLeft = EMISpu2Interpolation::interpolate(sample->spuCounter, sample->spuHistoryL);
+		int32 outRight = outLeft;
+
+		if (format.srcStereo)
+			outRight = EMISpu2Interpolation::interpolate(sample->spuCounter, sample->spuHistoryR);
+
+		emitFrame(dst, outLeft, outRight, format);
+		dst += 2;
+
+		if (send) {
+			emitFrame(send, outLeft, outRight, format);
+			send += 2;
+		}
+
+		sample->spuCounter += pitch;
+		sample->spuPending += (int)(sample->spuCounter >> EMISpu2Interpolation::kPitchShift);
+		sample->spuCounter &= EMISpu2Interpolation::kFractionMask;
+	}
 
 	sample->position[sample->current] = (int)(src - base);
 
@@ -730,6 +986,11 @@ void EMIMilesDriver::sampleInit(EMIMilesSample *sample) {
 	sample->spuVolume = false;
 	sample->spuVolumeL = 0;
 	sample->spuVolumeR = 0;
+	sample->effectSend = true;
+	sample->spuCounter = 0;
+	sample->spuPending = 1;
+	memset(sample->spuHistoryL, 0, sizeof(sample->spuHistoryL));
+	memset(sample->spuHistoryR, 0, sizeof(sample->spuHistoryR));
 
 	computeScales(sample);
 

@@ -35,9 +35,12 @@
 #endif
 
 #include "engines/grim/grim.h"
+#include "engines/grim/emi/camera.h"
 #include "engines/grim/emi/cbundle.h"
+#include "engines/grim/emi/cdcvertexarray.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/joystick.h"
+#include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/movie.h"
 #include "engines/grim/emi/movie/pss/pssdecoder.h"
@@ -61,6 +64,25 @@ static const byte kSubtitleJustify = 10;
 static const int kEventsMask = 3;
 static const int kPs2MinFramesBeforeSkip = 4;
 static const int kPs2LoopDelayMs = 4;
+static const uint kPs2LoadingIconMinMs = 500;
+static const int kLoadingIconVertices = 4;
+static const int kLoadingIconQuadsFlags = 0x10004;
+static const float kLoadingIconNearClip = 0.05f;
+static const float kLoadingIconFarClip = 20.0f;
+
+static const float kLoadingIconPositions[] = {
+	1.624f, -1.143f, 1.983f,
+	1.924f, -1.143f, 1.983f,
+	1.924f, -1.443f, 1.983f,
+	1.624f, -1.443f, 1.983f
+};
+
+static const float kLoadingIconUvs[] = {
+	0.0f, 0.0f,
+	1.0f, 0.0f,
+	1.0f, 1.0f,
+	0.0f, 1.0f
+};
 
 Movie *Movie::current = nullptr;
 int Movie::firstFrame = 1;
@@ -69,6 +91,7 @@ bool Movie::ps2MovieRequested = false;
 LString Movie::ps2MovieName;
 Common::WriteStream *Movie::ps2StateWriter = nullptr;
 Common::ReadStream *Movie::ps2StateReader = nullptr;
+CTexture *Movie::loadingIconPs2 = nullptr;
 
 Movie::Movie(const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(0) {
 	Sounds::lowerMasterGainForMovie();
@@ -549,6 +572,7 @@ void Movie::startupMovies(CDrawContext *newDrawContext) {
 	drawContext = newDrawContext;
 	ps2MovieRequested = false;
 	ps2MovieName.clear();
+	loadingIconPs2 = nullptr;
 }
 
 void Movie::releaseSubtitleFont() {
@@ -598,9 +622,19 @@ bool Movie::playRequestedMoviePs2() {
 		Sounds::killMusicForSet(nullptr);
 
 	bool played = playMoviePs2(ps2MovieName.c_str());
+	bool iconShown = drawLoadingIconPs2();
+	uint iconMs = g_system->getMillis();
 
 	// The reload unloads everything again, but the room is already gone by then
 	Sounds::stopAllForLoad();
+
+	// Our reload is instant while PS2 takes a while, so the icon stays on screen for at least 500 ms
+	if (iconShown) {
+		uint elapsedMs = g_system->getMillis() - iconMs;
+
+		if (elapsedMs < kPs2LoadingIconMinMs)
+			g_system->delayMillis(kPs2LoadingIconMinMs - elapsedMs);
+	}
 
 	Common::MemoryReadStream reader(state.getData(), state.size());
 
@@ -752,6 +786,53 @@ void Movie::drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &scre
 	drawContext->drawMovieFrame(*output);
 	drawContext->endScene();
 	drawContext->present(true);
+}
+
+void Movie::loadLoadingIconPs2() {
+	LABitmap bitmap;
+
+	// PS2 creates the texture even when the file is missing, and then divides by zero
+	if (!bitmap.loadFile("FX\\LOADING.TGA")) {
+		warning("Movie::loadLoadingIconPs2(): cannot load FX\\LOADING.TGA");
+
+		return;
+	}
+
+	loadingIconPs2 = drawContext->createTexture(&bitmap);
+}
+
+void Movie::releaseLoadingIconPs2() {
+	drawContext->freeTexture(loadingIconPs2);
+	loadingIconPs2 = nullptr;
+}
+
+bool Movie::drawLoadingIconPs2() {
+	if (!loadingIconPs2)
+		return false;
+
+	drawContext->copyFrontToBack();
+
+	Camera camera;
+
+	camera.setLocalPosition(CVector());
+	camera.nearClip = kLoadingIconNearClip;
+	camera.farClip = kLoadingIconFarClip;
+	camera.applyProjection();
+
+	VertexStreams streams;
+
+	streams.count = kLoadingIconVertices;
+	streams.positions = kLoadingIconPositions;
+	streams.normals = nullptr;
+	streams.colors = nullptr;
+	streams.uvs = kLoadingIconUvs;
+
+	drawContext->beginScene();
+	drawContext->drawQuads(kLoadingIconQuadsFlags, loadingIconPs2, 0, kLoadingIconVertices, &streams);
+	drawContext->endScene();
+	drawContext->present(true);
+
+	return true;
 }
 
 bool Movie::isSkipEventPs2(const Common::Event &event) {

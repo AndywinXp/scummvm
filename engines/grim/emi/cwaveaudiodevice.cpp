@@ -21,11 +21,13 @@
 
 #include "common/system.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/csoundcue.h"
 #include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
 #include "engines/grim/emi/streamscript.h"
@@ -34,6 +36,8 @@ namespace Grim {
 
 static const int kMaxSampleVolume = 127;
 static const uint kReacquireIntervalMs = 5000;
+static const int kSonyRoomTypeCount = 10;
+static const int kSonyMaxValue = 100;
 
 CWaveAudioDevice::CWaveAudioDevice(int channelCount) {
 	lost = false;
@@ -41,7 +45,7 @@ CWaveAudioDevice::CWaveAudioDevice(int channelCount) {
 	lastCheckMs = 0;
 	_driver = nullptr;
 
-	EMIMilesDriver *driver = new EMIMilesDriver();
+	EMIMilesDriver *driver = new EMIMilesDriver(g_grim->getGamePlatform() == Common::kPlatformPS2);
 
 	if (!driver->open(g_system->getMixer())) {
 		delete driver;
@@ -264,6 +268,51 @@ float CWaveAudioDevice::setCategoryVolume(int category) {
 }
 
 bool CWaveAudioDevice::setReverb(const int *preset, const float *time, const float *mix, const float *unusedFirst, const float *damping, const float *unusedSecond) {
+	return true;
+}
+
+bool CWaveAudioDevice::setSonyRoomType(int type, int depth, int delay, int feedback) {
+	if (type < 0 || type >= kSonyRoomTypeCount) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyRoomType: Type out of range (%d)\n", type);
+
+		return false;
+	}
+
+	if (depth < 0 || depth > kSonyMaxValue) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyRoomType: Depth out of range (%d)\n", depth);
+
+		return false;
+	}
+
+	if (delay < 0 || delay > kSonyMaxValue) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyRoomType: Delay out of range (%d)\n", delay);
+
+		return false;
+	}
+
+	// The original checks the depth instead of the feedback for negative values
+	if (depth < 0 || feedback > kSonyMaxValue) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyRoomType: Feedback out of range (%d)\n", feedback);
+
+		return false;
+	}
+
+	if (!_driver)
+		return false;
+
+	float depthValue = (float)depth / 100.0f;
+
+	if (_driver->setSpuReverb(type, 0, depthValue, depthValue, (float)delay / 100.0f, (float)feedback / 100.0f)) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("Cannot set reverb.\n");
+
+		return false;
+	}
+
 	return true;
 }
 

@@ -454,6 +454,9 @@ void EmiEngine::shutdownModules() {
 	if (!_modulesStarted)
 		return;
 
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		Movie::releaseLoadingIconPs2();
+
 	SputControl_v2::shutdown();
 	Sounds::shutdownSounds();
 	Actor::shutdown();
