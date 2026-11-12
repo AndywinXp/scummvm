@@ -274,9 +274,6 @@ Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 		if (gd->desc.flags & ADGF_DEMO)
 			return Common::Error(Common::kUnsupportedGameidError, _s("The demo of Escape from Monkey Island is not supported by this version of the Grim engine"));
 
-		if (gd->desc.platform != Common::kPlatformWindows)
-			return Common::Error(Common::kUnsupportedGameidError, _s("Only the Windows version of Escape from Monkey Island is supported by this version of the Grim engine"));
-
 		*engine = new EmiEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
 
 		return Common::kNoError;
