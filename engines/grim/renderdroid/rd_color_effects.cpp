@@ -23,9 +23,9 @@
 
 namespace Grim {
 
-void RenderDroid::ColorEffectsModule::clear(RdColorEffects *pEffects) {
-	memset(pEffects, 0, sizeof(RdColorEffects));
-	pEffects->fade = 1.0f;
+void RenderDroid::ColorEffectsModule::clear(RdColorEffects *effects) {
+	memset(effects, 0, sizeof(RdColorEffects));
+	effects->fade = 1.0f;
 }
 
 } // End of namespace Grim

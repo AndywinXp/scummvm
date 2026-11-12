@@ -28,154 +28,154 @@
 
 namespace Grim {
 
-const LResourceType CSnd::sndType("SND");
+const LResourceType CSnd::kSndType("SND");
 
 CSnd::CSnd() {
-	volume = 1.0f;
-	mvol = 1.0f;
-	prio = 0.5f;
-	pan = 0.0f;
-	cutoff0 = 1.0f;
-	cutoff1 = 50.0f;
-	flags = 0;
-	group = 1;
-	freq = 1.0f;
-	stDelay = 0.0f;
-	rndDelay0 = 0.0f;
-	rndDelay1 = 0.0f;
-	field28 = 0.0f;
-	field24 = 0.0f;
+	_volume = 1.0f;
+	_mvol = 1.0f;
+	_prio = 0.5f;
+	_pan = 0.0f;
+	_cutoff0 = 1.0f;
+	_cutoff1 = 50.0f;
+	_flags = 0;
+	_group = 1;
+	_freq = 1.0f;
+	_stDelay = 0.0f;
+	_rndDelay0 = 0.0f;
+	_rndDelay1 = 0.0f;
+	_field28 = 0.0f;
+	_field24 = 0.0f;
 }
 
 CSnd::~CSnd() {
 }
 
 LResourceHandle<LSound> *CSnd::getSoundHandle() {
-	return &sound;
+	return &_sound;
 }
 
 void CSnd::setSoundHandle(const LResourceHandle<LSound> &handle) {
-	sound.setResource(handle.resource);
+	_sound.setResource(handle._resource);
 }
 
 float CSnd::getPrio() {
-	return prio;
+	return _prio;
 }
 
 float CSnd::getPan() {
-	return pan;
+	return _pan;
 }
 
 float CSnd::getVolume() {
-	return volume;
+	return _volume;
 }
 
 float CSnd::getMvol() {
-	return mvol;
+	return _mvol;
 }
 
 float CSnd::getFreq() {
-	return freq;
+	return _freq;
 }
 
 float CSnd::getCutoff0() {
-	return cutoff0;
+	return _cutoff0;
 }
 
 float CSnd::getCutoff1() {
-	return cutoff1;
+	return _cutoff1;
 }
 
 float CSnd::getField24() {
-	return field24;
+	return _field24;
 }
 
 float CSnd::getField28() {
-	return field28;
+	return _field28;
 }
 
 float CSnd::getStDelay() {
-	return stDelay;
+	return _stDelay;
 }
 
 float CSnd::getRndDelay0() {
-	return rndDelay0;
+	return _rndDelay0;
 }
 
 float CSnd::getRndDelay1() {
-	return rndDelay1;
+	return _rndDelay1;
 }
 
 int CSnd::getFlags() {
-	return flags;
+	return _flags;
 }
 
 int CSnd::getGroup() {
-	return group;
+	return _group;
 }
 
 void CSnd::setPrio(float value) {
-	prio = value;
+	_prio = value;
 }
 
 void CSnd::setPan(float value) {
-	pan = value;
+	_pan = value;
 }
 
 void CSnd::setVolume(float value) {
-	volume = value;
+	_volume = value;
 }
 
 void CSnd::setMvol(float value) {
-	mvol = value;
+	_mvol = value;
 }
 
 void CSnd::setFreq(float value) {
-	freq = value;
+	_freq = value;
 }
 
 int CSnd::setCutoff0(float value) {
-	cutoff0 = value;
+	_cutoff0 = value;
 
 	return value != 0.0f;
 }
 
 int CSnd::setCutoff1(float value) {
-	cutoff1 = value;
+	_cutoff1 = value;
 
 	return value != 0.0f;
 }
 
 float CSnd::setField24(float value) {
-	field24 = value;
+	_field24 = value;
 
 	return value;
 }
 
 float CSnd::setField28(float value) {
-	field28 = value;
+	_field28 = value;
 
 	return value;
 }
 
 void CSnd::setStDelay(float value) {
-	stDelay = value;
+	_stDelay = value;
 }
 
 void CSnd::setRndDelay0(float value) {
-	rndDelay0 = value;
+	_rndDelay0 = value;
 }
 
 void CSnd::setRndDelay1(float value) {
-	rndDelay1 = value;
+	_rndDelay1 = value;
 }
 
 void CSnd::setFlags(int value) {
-	flags = value;
+	_flags = value;
 }
 
 void CSnd::setGroup(int value) {
-	group = value;
+	_group = value;
 }
 
 bool CSnd::save(LFile *file) {
@@ -194,19 +194,19 @@ bool CSnd::save(LFile *file) {
 	const char *soundName = "";
 
 	// The disasm does not check the resource
-	if (sound.resource)
-		soundName = sound.resource->name.c_str();
+	if (_sound._resource)
+		soundName = _sound._resource->_name.c_str();
 	else
 		warning("CSnd::save(): the sound has no resource");
 
 	parser.writeEntry(CSndParser::kKeywordSound, soundName);
-	parser.writeEntry(CSndParser::kKeywordCutoff, cutoff0, cutoff1);
-	parser.writeEntry(CSndParser::kKeywordMvol, mvol);
-	parser.writeEntry(CSndParser::kKeywordFreq, freq);
-	parser.writeEntry(CSndParser::kKeywordPan, pan);
-	parser.writeEntry(CSndParser::kKeywordPrio, prio);
+	parser.writeEntry(CSndParser::kKeywordCutoff, _cutoff0, _cutoff1);
+	parser.writeEntry(CSndParser::kKeywordMvol, _mvol);
+	parser.writeEntry(CSndParser::kKeywordFreq, _freq);
+	parser.writeEntry(CSndParser::kKeywordPan, _pan);
+	parser.writeEntry(CSndParser::kKeywordPrio, _prio);
 
-	switch (group) {
+	switch (_group) {
 	case 2:
 		parser.writeEntry(CSndParser::kKeywordGroup, "Voice");
 
@@ -228,7 +228,7 @@ bool CSnd::save(LFile *file) {
 		break;
 	}
 
-	parser.writeEntry(CSndParser::kKeywordFlags, flags);
+	parser.writeEntry(CSndParser::kKeywordFlags, _flags);
 
 	return true;
 }
@@ -236,12 +236,12 @@ bool CSnd::save(LFile *file) {
 bool CSnd::resLoadItem(const char *itemName) {
 	CSndParser *parser = new CSndParser(_engine);
 
-	parser->snd = this;
+	parser->_snd = this;
 
 	bool result = parser->parseFile(itemName, 0, 0);
 
 	if (result) {
-		resSetType(sndType);
+		resSetType(kSndType);
 		resSetName(itemName);
 		resSetLoaded(true);
 	} else {
@@ -258,12 +258,12 @@ bool CSnd::resLoadItem(const char *itemName) {
 		argument.stringValue = &aifName[0];
 
 		if (parser->parseSound(CSndParser::kKeywordSound, 1, &argument)) {
-			resSetType(sndType);
+			resSetType(kSndType);
 			resSetName(itemName);
 			result = true;
 			resSetLoaded(true);
 		} else {
-			parser->snd = nullptr;
+			parser->_snd = nullptr;
 		}
 	}
 

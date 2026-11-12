@@ -42,7 +42,7 @@ public:
 	~Std3DTinyGlBackend();
 
 	int openGraphicsMode(int width, int height);
-	void fillDeviceDesc(Std3DDeviceDesc *pDesc);
+	void fillDeviceDesc(Std3DDeviceDesc *desc);
 	int isSupported();
 	int canProbeWithoutMode();
 	int ensureReady();
@@ -52,39 +52,39 @@ public:
 	int getMaxTextureSize();
 	uint getTextureBudget();
 
-	int createSurface(Std3DSurface *pSurface, int bHasDepth, int zBufferBitDepth);
-	void destroySurface(Std3DSurface *pSurface);
-	int uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes);
-	int readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes);
-	int fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color);
+	int createSurface(Std3DSurface *surface, int hasDepth, int zBufferBitDepth);
+	void destroySurface(Std3DSurface *surface);
+	int uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes);
+	int readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes);
+	int fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color);
 	int canBlitOntoSelf();
-	int blit(Std3DSurface *pDst, Std3DSurface *pSrc, int srcX, int srcY, int width, int height, int dstX, int dstY, int bColorKey, uint16 colorKey);
-	int presentSurface(Std3DSurface *pSurface);
+	int blit(Std3DSurface *dst, Std3DSurface *src, int srcX, int srcY, int width, int height, int dstX, int dstY, int colorKeyFlag, uint16 colorKey);
+	int presentSurface(Std3DSurface *surface);
 
-	int attachDepth(Std3DSurface *pSurface, int zBufferBitDepth);
-	void detachDepth(Std3DSurface *pSurface);
-	int hasDepth(const Std3DSurface *pSurface);
-	int supportsDepthUpload(const Std3DSurface *pSurface);
-	int clearDepth(Std3DSurface *pSurface, const StdRect *pRect, float depthValue);
-	int uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes);
+	int attachDepth(Std3DSurface *surface, int zBufferBitDepth);
+	void detachDepth(Std3DSurface *surface);
+	int hasDepth(const Std3DSurface *surface);
+	int supportsDepthUpload(const Std3DSurface *surface);
+	int clearDepth(Std3DSurface *surface, const StdRect *rect, float depthValue);
+	int uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes);
 
-	uint createTexture(const byte *pRgba, int width, int height, int bMagLinear, int bMinLinear);
-	void deleteTexture(uint hTexture);
+	uint createTexture(const byte *rgba, int width, int height, int magLinear, int minLinear);
+	void deleteTexture(uint textureHandle);
 
-	int drawList(const Std3DDrawList *pList);
+	int drawList(const Std3DDrawList *list);
 
 private:
-	void releaseContext(Std3DTinyGlSurface *pData, int width, int height, int bKeepPixels);
-	void flushQueue(Std3DTinyGlSurface *pData);
-	void prepareColorAccess(Std3DTinyGlSurface *pData);
-	void reserveQueue(Std3DTinyGlSurface *pData, uint bytes);
-	void applyRenderState(const Std3DDrawList *pList, uint flags);
-	void removeSurface(Std3DSurface *pSurface);
+	void releaseContext(Std3DTinyGlSurface *data, int width, int height, int keepPixels);
+	void flushQueue(Std3DTinyGlSurface *data);
+	void prepareColorAccess(Std3DTinyGlSurface *data);
+	void reserveQueue(Std3DTinyGlSurface *data, uint bytes);
+	void applyRenderState(const Std3DDrawList *list, uint flags);
+	void removeSurface(Std3DSurface *surface);
 
-	int _bModeReady;
-	int _bWarnedZFunc;
-	int _bWarnedTexCoord;
-	TinyGL::ContextHandle *_pTextureContext;
+	int _modeReady;
+	int _warnedZFunc;
+	int _warnedTexCoord;
+	TinyGL::ContextHandle *_textureContext;
 	Common::Array<uint> _textures;
 	Common::Array<Std3DSurface *> _surfaces;
 };

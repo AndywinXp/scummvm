@@ -35,7 +35,7 @@ static const uint kHeaderSize = 128;
 static const int kMaxPlanes = 3;
 
 CPCXFile::CPCXFile(EmiEngine *engine) : _engine(engine) {
-	bitmap = nullptr;
+	_bitmap = nullptr;
 }
 
 bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
@@ -43,7 +43,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 	PcxHeader header;
 	bool result = false;
 
-	bitmap = image;
+	_bitmap = image;
 	reader.loadFile(file);
 
 	if (reader.readHeader(&header)) {
@@ -61,13 +61,13 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 			byte *rowBuffer = (byte *)_engine->getMemoryServices()->mallocImpl((uint)rowBytes * sizeof(byte));
 			int bytesPerPixel = header.numPlanes * header.bitsPerPixel / 8;
 
-			bitmap->create(imageWidth, imageHeight, LColorFormat::format6, nullptr);
+			_bitmap->create(imageWidth, imageHeight, LColorFormat::kFormat6, nullptr);
 
 			for (int row = 0; row < imageHeight; row++) {
 				if (reader.cursor >= reader.end)
 					break;
 
-				byte *pixels = (byte *)bitmap->getPixels();
+				byte *pixels = (byte *)_bitmap->getPixels();
 
 				if (!pixels || !rowBuffer) {
 					warning("CPCXFile::readImage(): missing buffer");
@@ -100,9 +100,9 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 			result = true;
 
 			if (bytesPerPixel == 1)
-				bitmap->getColorFormat().setFormat(2);
+				_bitmap->getColorFormat().setFormat(2);
 			else
-				bitmap->getColorFormat().setFormat(6);
+				_bitmap->getColorFormat().setFormat(6);
 		}
 	} else {
 		if (_engine->getConsoleServices())
@@ -114,7 +114,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 		reader.base = nullptr;
 	}
 
-	bitmap = nullptr;
+	_bitmap = nullptr;
 
 	return result;
 }
@@ -157,7 +157,7 @@ int CPCXFile::readPalette(LFile *file, int *palette) {
 int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 	PcxHeader header;
 
-	bitmap = image;
+	_bitmap = image;
 
 	header.id = 10;
 	header.version = 5;
@@ -165,31 +165,31 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 	header.bitsPerPixel = 8;
 	header.xMin = 0;
 	header.yMin = 0;
-	header.xMax = bitmap->getWidth() - 1;
-	header.yMax = bitmap->getHeight() - 1;
-	header.hDpi = bitmap->getWidth() - 1;
-	header.vDpi = bitmap->getHeight() - 1;
+	header.xMax = _bitmap->getWidth() - 1;
+	header.yMax = _bitmap->getHeight() - 1;
+	header.hDpi = _bitmap->getWidth() - 1;
+	header.vDpi = _bitmap->getHeight() - 1;
 	memset(header.palette16, 0, sizeof(header.palette16));
 	header.reserved64 = 0;
 	header.numPlanes = 1;
-	header.bytesPerLine = bitmap->getColorFormat().bytesPerPixel * bitmap->getWidth();
+	header.bytesPerLine = _bitmap->getColorFormat()._bytesPerPixel * _bitmap->getWidth();
 	header.paletteType = 2;
-	header.screenWidth = bitmap->getWidth();
-	header.screenHeight = bitmap->getHeight();
+	header.screenWidth = _bitmap->getWidth();
+	header.screenHeight = _bitmap->getHeight();
 	memset(header.filler, 0, sizeof(header.filler));
 
 	writeHeader(file, &header);
 
-	byte *lineBuffer = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(2 * bitmap->getWidth()) * sizeof(byte));
+	byte *lineBuffer = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(2 * _bitmap->getWidth()) * sizeof(byte));
 
 	if (lineBuffer) {
-		const byte *pixels = (const byte *)bitmap->getPixels();
+		const byte *pixels = (const byte *)_bitmap->getPixels();
 
 		if (pixels) {
-			for (int row = 0; row < bitmap->getHeight(); row++) {
+			for (int row = 0; row < _bitmap->getHeight(); row++) {
 				// The disasm advances by the width and not by the stride
-				const byte *line = pixels + row * bitmap->getWidth();
-				int encoded = encodeLine(line, lineBuffer, bitmap->getWidth());
+				const byte *line = pixels + row * _bitmap->getWidth();
+				int encoded = encodeLine(line, lineBuffer, _bitmap->getWidth());
 
 				file->write(lineBuffer, encoded);
 			}
@@ -215,7 +215,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 		}
 	}
 
-	bitmap = nullptr;
+	_bitmap = nullptr;
 
 	return 1;
 }

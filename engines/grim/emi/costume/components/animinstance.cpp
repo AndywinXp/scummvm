@@ -29,23 +29,23 @@
 namespace Grim {
 
 AnimInstance::AnimInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName), AInst(engine), _engine(engine) {
-	owner = actor;
-	bound = false;
+	_owner = actor;
+	_bound = false;
 	bindAnimation();
 }
 
 AnimInstance::~AnimInstance() {
-	if (bound)
+	if (_bound)
 		unbindAnimation();
 }
 
 void AnimInstance::update(float deltaTime) {
-	if ((flags & AInst::kAttached) != 0)
+	if ((_flags & AInst::kAttached) != 0)
 		AInst::update(deltaTime);
 }
 
 void AnimInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!bound)
+	if (!_bound)
 		return;
 
 	switch ((int)value) {
@@ -114,74 +114,74 @@ void AnimInstance::reset() {
 }
 
 void AnimInstance::bindAnimation() {
-	if (bound)
+	if (_bound)
 		return;
 
 	AnimComponent *component = nullptr;
 
-	if (handle.lock())
-		component = dynamic_cast<AnimComponent *>(handle.typed);
+	if (_handle.lock())
+		component = dynamic_cast<AnimComponent *>(_handle._typed);
 
 	if (component) {
-		length = component->Animation::length;
+		_length = component->Animation::_length;
 
-		for (int i = 0; i < component->entryCount; i++) {
-			if (!owner) {
+		for (int i = 0; i < component->_entryCount; i++) {
+			if (!_owner) {
 				warning("AnimInstance::bindAnimation(): no owner");
 				break;
 			}
 
-			if ((uint)i >= component->entries.size()) {
+			if ((uint)i >= component->_entries.size()) {
 				warning("AnimInstance::bindAnimation(): entry %d is missing", i);
 				break;
 			}
 
-			ANode *animNode = dynamic_cast<ANode *>(owner->findNode(component->entries[i].name));
+			ANode *animNode = dynamic_cast<ANode *>(_owner->findNode(component->_entries[i].name));
 
-			if (animNode && !component->entries[i].track)
+			if (animNode && !component->_entries[i].track)
 				warning("AnimInstance::bindAnimation(): entry %d has no track", i);
 			else if (animNode)
-				animNode->bindTrack(this, component->entries[i].track);
+				animNode->bindTrack(this, component->_entries[i].track);
 		}
 	}
 
-	handle.unlock();
-	bound = true;
+	_handle.unlock();
+	_bound = true;
 }
 
 void AnimInstance::unbindAnimation() {
-	if (!bound)
+	if (!_bound)
 		return;
 
-	if (!owner) {
-		bound = false;
+	if (!_owner) {
+		_bound = false;
 
 		return;
 	}
 
 	AnimComponent *component = nullptr;
 
-	if (handle.lock())
-		component = dynamic_cast<AnimComponent *>(handle.typed);
+	if (_handle.lock())
+		component = dynamic_cast<AnimComponent *>(_handle._typed);
 
 	if (component) {
-		for (int i = 0; i < component->entryCount; i++) {
-			if ((uint)i >= component->entries.size()) {
+		for (int i = 0; i < component->_entryCount; i++) {
+			if ((uint)i >= component->_entries.size()) {
 				warning("AnimInstance::unbindAnimation(): entry %d is missing", i);
 				break;
 			}
 
-			ANode *animNode = dynamic_cast<ANode *>(owner->findNode(component->entries[i].name));
+			ANode *animNode = dynamic_cast<ANode *>(_owner->findNode(component->_entries[i].name));
 
-			if (animNode && !component->entries[i].track)
+			if (animNode && !component->_entries[i].track)
 				warning("AnimInstance::unbindAnimation(): entry %d has no track", i);
 			else if (animNode)
-				animNode->unbindTrack(this, component->entries[i].track);
+				animNode->unbindTrack(this, component->_entries[i].track);
 		}
 	}
 
-	handle.unlock();
-	bound = false;
+	_handle.unlock();
+	_bound = false;
 }
 
 } // End of namespace Grim

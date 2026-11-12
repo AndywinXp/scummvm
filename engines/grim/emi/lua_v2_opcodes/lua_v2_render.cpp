@@ -76,7 +76,7 @@ void Lua_V2::TurnLightOn() {
 void Lua_V2::IsLightOn() {
 	CLightNode *light = getLightArg(1, "IsLightOn");
 
-	if (light && light->active)
+	if (light && light->_active)
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -97,9 +97,9 @@ void Lua_V2::SetLightPosition() {
 
 	CVector position;
 
-	position.z = lua_getnumber(zObj);
-	position.y = lua_getnumber(yObj);
-	position.x = lua_getnumber(xObj);
+	position._z = lua_getnumber(zObj);
+	position._y = lua_getnumber(yObj);
+	position._x = lua_getnumber(xObj);
 	light->setLocalPosition(position);
 }
 
@@ -187,10 +187,10 @@ void Lua_V2::RenderModeUser() {
 }
 
 void Lua_V2::toggleStatsOverlay(bool hide) {
-	if (hide || (statsOverlayFlags & kStatsOverlayFlag) != 0)
-		statsOverlayFlags &= ~kStatsOverlayFlag;
+	if (hide || (_statsOverlayFlags & kStatsOverlayFlag) != 0)
+		_statsOverlayFlags &= ~kStatsOverlayFlag;
 	else
-		statsOverlayFlags |= kStatsOverlayFlag;
+		_statsOverlayFlags |= kStatsOverlayFlag;
 }
 
 void Lua_V2::DimScreen() {
@@ -213,10 +213,10 @@ void Lua_V2::DimRegion() {
 	lua_Object alphaObj = lua_getparam(5);
 	FRect region;
 
-	region.x = lua_getnumber(xObj);
-	region.y = lua_getnumber(yObj);
-	region.w = lua_getnumber(widthObj);
-	region.h = lua_getnumber(heightObj);
+	region._x = lua_getnumber(xObj);
+	region._y = lua_getnumber(yObj);
+	region._w = lua_getnumber(widthObj);
+	region._h = lua_getnumber(heightObj);
 
 	float alpha = lua_getnumber(alphaObj);
 

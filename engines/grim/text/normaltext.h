@@ -32,15 +32,15 @@ class NormalText {
 public:
 	NormalText();
 
-	int initialize(SysStruct *pSystem);
+	int initialize(SysStruct *system);
 	void terminate();
 	int startup();
 	void shutdown();
 
 private:
-	SysStruct *_pSystem;
-	int _bInitialized;
-	int _bStarted;
+	SysStruct *_system;
+	int _initialized;
+	int _started;
 };
 
 } // End of namespace Grim

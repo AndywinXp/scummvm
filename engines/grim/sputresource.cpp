@@ -38,7 +38,7 @@
 
 namespace Grim {
 
-static const char *const g_resourceDirectories[] = {
+static const char *const resourceDirectories[] = {
 	"Animation", "Backgrounds", "Costumes", "Colormaps", "Fonts", "Materials", "Models", "Movies", "Objects", "Scripts", "Sets",
 	"Voices", "Footsteps", "SFX", "Loops",
 	"DEBUG_Animation", "DEBUG_Backgrounds", "DEBUG_Costumes", "DEBUG_Colormaps", "DEBUG_Fonts", "DEBUG_Materials", "DEBUG_Models",
@@ -57,38 +57,38 @@ static int saveVerifier(const char *fileName) {
 	return g_grim->getSputResource()->saveVerifyCallback(fileName);
 }
 
-SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
-		_pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(nullptr), _pSputRoom(nullptr), _pCos(nullptr),
-		_pText(nullptr), _pBlastText(nullptr), _pWuRegistry(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _bLoaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
+SputResource::SputResource(Res *res, RenderDroid *rd, StdDisplay *stdDisplay, StdBitmap *stdBitmap) : _res(res), _rd(rd),
+		_stdDisplay(stdDisplay), _stdBitmap(stdBitmap), _sputRender(nullptr), _sputRoom(nullptr), _cos(nullptr),
+		_text(nullptr), _blastText(nullptr), _wuRegistry(nullptr), _hs(nullptr), _initialized(0), _started(0), _loaderLocked(0), _totalAllowedLimit(0xBB8000), _purgeAmount(0x271000),
 		_oldMatLoader(nullptr), _oldMatUnloader(nullptr) {
 }
 
-int SputResource::handler(ResHandlerMsg *pMsg) {
-	switch (pMsg->tag) {
+int SputResource::handler(ResHandlerMsg *msg) {
+	switch (msg->tag) {
 	case kSputTagBknd:
-		return loadResBknd(pMsg);
+		return loadResBknd(msg);
 	case kSputTagCost:
-		return loadResCost(pMsg);
+		return loadResCost(msg);
 	case kSputTagCmap:
-		return loadResCmap(pMsg);
+		return loadResCmap(msg);
 	case kSputTagFont:
-		return loadResFont(pMsg);
+		return loadResFont(msg);
 	case kSputTagKeyf:
-		return loadResKeyf(pMsg);
+		return loadResKeyf(msg);
 	case kSputTagMat:
-		return loadResMat(pMsg);
+		return loadResMat(msg);
 	case kSputTagModl:
-		return loadResModl(pMsg);
+		return loadResModl(msg);
 	case kSputTagSet:
-		return loadResSet(pMsg);
+		return loadResSet(msg);
 	case kSputTagSnd:
-		return loadResSnd(pMsg);
+		return loadResSnd(msg);
 	case kSputTagSync:
-		return loadResSync(pMsg);
+		return loadResSync(msg);
 	case kSputTagZbuf:
-		return loadResZbuf(pMsg);
+		return loadResZbuf(msg);
 	case kSputTagMem:
-		return loadResMem(pMsg);
+		return loadResMem(msg);
 	default:
 		break;
 	}
@@ -97,40 +97,40 @@ int SputResource::handler(ResHandlerMsg *pMsg) {
 }
 
 int SputResource::stopPurge(int state) {
-	_bLoaderLocked = state;
+	_loaderLocked = state;
 
 	return state;
 }
 
 void *SputResource::alloc(int resType, const char *name) {
-	void *handle = _pRes->getResource(resType, name);
+	void *handle = _res->getResource(resType, name);
 
-	if (handle && _pRes->totalAllocated() > _totalAllowedLimit && !_bLoaderLocked) {
+	if (handle && _res->totalAllocated() > _totalAllowedLimit && !_loaderLocked) {
 		ResRef ref;
 		uint bytesFreed;
 
 		ref.valid = 0;
-		_pRes->setReference(&ref, handle);
-		_pRes->freeResources(_purgeAmount, &bytesFreed);
-		_pRes->removeReference(&ref);
+		_res->setReference(&ref, handle);
+		_res->freeResources(_purgeAmount, &bytesFreed);
+		_res->removeReference(&ref);
 	}
 
 	return handle;
 }
 
 int SputResource::closeResources() {
-	_pRes->fileCloseAll();
+	_res->fileCloseAll();
 
 	return 1;
 }
 
 int SputResource::findResources() {
-	char aDataDirectory[512];
+	char dataDirectoryArray[512];
 
-	aDataDirectory[0] = 0;
-	_pWuRegistry->getStr("GrimDataDir", aDataDirectory, sizeof(aDataDirectory), "");
+	dataDirectoryArray[0] = 0;
+	_wuRegistry->getStr("GrimDataDir", dataDirectoryArray, sizeof(dataDirectoryArray), "");
 
-	Common::String dataDirectory(aDataDirectory);
+	Common::String dataDirectory(dataDirectoryArray);
 	Common::String currentDirectory(dataDirectory);
 
 	if (!_extraDataPath.empty() && !_extraDataPath.equalsIgnoreCase(dataDirectory))
@@ -181,23 +181,23 @@ int SputResource::addResourcePathInternal(const char *path) {
 
 	directory += separator;
 
-	if (!_pRes->fileOpen(directory.c_str()))
+	if (!_res->fileOpen(directory.c_str()))
 		return 0;
 
-	_pRes->fileMoveToFront(directory.c_str());
+	_res->fileMoveToFront(directory.c_str());
 
 	for (uint i = 0; i < labNames.size(); i++) {
 		Common::String labPath(directory);
 
 		labPath += labNames[i];
 
-		if (_pRes->fileOpen(labPath.c_str()))
-			_pRes->fileMoveToFront(labPath.c_str());
+		if (_res->fileOpen(labPath.c_str()))
+			_res->fileMoveToFront(labPath.c_str());
 	}
 
-	for (uint i = 0; i < ARRAYSIZE(g_resourceDirectories); i++) {
+	for (uint i = 0; i < ARRAYSIZE(resourceDirectories); i++) {
 		for (uint j = 0; j < subDirectories.size(); j++) {
-			if (!subDirectories[j].getName().equalsIgnoreCase(g_resourceDirectories[i]))
+			if (!subDirectories[j].getName().equalsIgnoreCase(resourceDirectories[i]))
 				continue;
 
 			Common::String subPath(directory);
@@ -205,71 +205,71 @@ int SputResource::addResourcePathInternal(const char *path) {
 			subPath += subDirectories[j].getName();
 			subPath += separator;
 
-			if (_pRes->fileOpen(subPath.c_str()))
-				_pRes->fileMoveToFront(subPath.c_str());
+			if (_res->fileOpen(subPath.c_str()))
+				_res->fileMoveToFront(subPath.c_str());
 		}
 	}
 
 	return 1;
 }
 
-int SputResource::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputResource::initialize(SysStruct *hs) {
+	_hs = hs;
 
-	int result = _pRes->sysInitialize(pHS);
+	int result = _res->sysInitialize(hs);
 
 	if (!result)
-		_bInitialized = 1;
+		_initialized = 1;
 
 	return result;
 }
 
 int SputResource::logToFile(const char *path) {
-	return _pRes->log(path) == 1;
+	return _res->log(path) == 1;
 }
 
 int SputResource::terminate() {
-	_pRes->sysTerminate();
-	_pHS = nullptr;
-	_bInitialized = 0;
+	_res->sysTerminate();
+	_hs = nullptr;
+	_initialized = 0;
 
 	return 0;
 }
 
 int SputResource::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	if (!_pRes->sysStartup())
-		_bStarted = registerHandlers();
+	if (!_res->sysStartup())
+		_started = registerHandlers();
 
-	_oldMatLoader = _pRd->_material.registerLoader(materialLoader);
-	_oldMatUnloader = _pRd->_material.registerUnloader(materialUnloader);
-	_pCos->registerSaveVerify(saveVerifier);
+	_oldMatLoader = _rd->_material.registerLoader(materialLoader);
+	_oldMatUnloader = _rd->_material.registerUnloader(materialUnloader);
+	_cos->registerSaveVerify(saveVerifier);
 
-	return _bStarted == 0;
+	return _started == 0;
 }
 
 int SputResource::saveVerifyCallback(const char *fileName) {
-	return _pRes->initLists(kSputTagCost, fileName);
+	return _res->initLists(kSputTagCost, fileName);
 }
 
 int SputResource::shutdown() {
-	_pRes->sysShutdown();
-	_pRd->_material.registerLoader(_oldMatLoader);
-	_pRd->_material.registerUnloader(_oldMatUnloader);
-	_bStarted = 0;
+	_res->sysShutdown();
+	_rd->_material.registerLoader(_oldMatLoader);
+	_rd->_material.registerUnloader(_oldMatUnloader);
+	_started = 0;
 
 	return 0;
 }
 
 int SputResource::registerHandlers() {
-	const int aTags[12] = { kSputTagBknd, kSputTagCost, kSputTagCmap, kSputTagFont, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet,
+	const int tags[12] = { kSputTagBknd, kSputTagCost, kSputTagCmap, kSputTagFont, kSputTagKeyf, kSputTagMat, kSputTagModl, kSputTagSet,
 		kSputTagSnd, kSputTagSync, kSputTagZbuf, kSputTagMem };
 	int result = 0;
 
 	for (uint i = 0; i < 12; i++) {
-		result = _pRes->sysRegisterHandler(aTags[i], this);
+		result = _res->sysRegisterHandler(tags[i], this);
 
 		if (result != 1)
 			return 0;
@@ -288,27 +288,27 @@ int SputResource::setMemoryUsage(int totalAllowedLimit, int purgeAmount) {
 	return purgeAmount;
 }
 
-int SputResource::loadResSync(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagSync)
+int SputResource::loadResSync(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagSync)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		IMuseLipSync *pLipSync = g_grim->getImuse()->grimSoundLipSyncLoad(pMsg->pName);
+		IMuseLipSync *lipSync = g_grim->getImuse()->grimSoundLipSyncLoad(msg->name);
 
-		if (!pLipSync)
+		if (!lipSync)
 			return 0;
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pLipSync);
+		return _res->allocCompletion(msg->tag, msg->name, lipSync);
 	}
 	case 2:
-		g_grim->getImuse()->grimSoundLipSyncFree(static_cast<IMuseLipSync *>(pMsg->data));
+		g_grim->getImuse()->grimSoundLipSyncFree(static_cast<IMuseLipSync *>(msg->data));
 
 		return 1;
 	case 3: {
-		IMuseLipSync *pLipSync = static_cast<IMuseLipSync *>(pMsg->data);
+		IMuseLipSync *lipSync = static_cast<IMuseLipSync *>(msg->data);
 
-		pMsg->result = pLipSync->size + 40;
+		msg->result = lipSync->size + 40;
 
 		return 1;
 	}
@@ -319,50 +319,50 @@ int SputResource::loadResSync(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResBknd(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagBknd)
+int SputResource::loadResBknd(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagBknd)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		Common::String path(pMsg->pName);
-		StdBitmapStruct *pBitmap = _pStdBitmap->loadLbm(path, 0, 0);
+		Common::String path(msg->name);
+		StdBitmapStruct *bitmap = _stdBitmap->loadLbm(path, 0, 0);
 
-		if (!pBitmap)
+		if (!bitmap)
 			return 0;
 
 		// The demo does not correct the colors of the backgrounds
-		if (!_pRd->isDemo() && !pBitmap->encoding && pBitmap->format.colorMode == 1) {
-			for (int i = 0; i < (int)pBitmap->numFrames; i++) {
-				StdVBuffer *pFrame = pBitmap->apFrames[i];
+		if (!_rd->isDemo() && !bitmap->encoding && bitmap->format.colorMode == 1) {
+			for (int i = 0; i < (int)bitmap->numFrames; i++) {
+				StdVBuffer *frame = bitmap->frames[i];
 
-				_pStdDisplay->vBufferLock(pFrame);
+				_stdDisplay->vBufferLock(frame);
 
-				for (int row = 0; row < pFrame->tex.height; row++)
-					_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * row), pFrame->tex.width);
+				for (int row = 0; row < frame->tex.height; row++)
+					_sputRender->colorCorrect((uint16 *)(frame->pixels + frame->tex.pitchInBytes * row), frame->tex.width);
 
-				_pStdDisplay->vBufferUnlock(pFrame);
+				_stdDisplay->vBufferUnlock(frame);
 
 				uint16 colorKey = 63519;
 
-				_pSputRender->colorCorrect(&colorKey, 1);
-				pFrame->colorKey = colorKey;
+				_sputRender->colorCorrect(&colorKey, 1);
+				frame->colorKey = colorKey;
 			}
 		}
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pBitmap);
+		return _res->allocCompletion(msg->tag, msg->name, bitmap);
 	}
 	case 2: {
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pMsg->data);
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(msg->data);
 
-		_pStdBitmap->unloadBitmap(pBitmap);
+		_stdBitmap->unloadBitmap(bitmap);
 
 		return 1;
 	}
 	case 3: {
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pMsg->data);
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(msg->data);
 
-		pMsg->result = _pStdBitmap->memUsage(pBitmap);
+		msg->result = _stdBitmap->memUsage(bitmap);
 
 		return 1;
 	}
@@ -374,80 +374,80 @@ int SputResource::loadResBknd(ResHandlerMsg *pMsg) {
 }
 
 void SputResource::loadBknd() {
-	ResNode *pNext;
+	ResNode *next;
 	void *handle;
 
-	_pRes->allocatedIterFirst(&pNext, &handle, kSputTagBknd);
+	_res->allocatedIterFirst(&next, &handle, kSputTagBknd);
 
 	while (handle) {
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(handle);
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(handle);
 
-		if (!pBitmap->encoding) {
-			Common::String path(pBitmap->aName);
-			StdBitmapStruct *pNewBitmap = _pStdBitmap->loadLbm(path, 0, 0);
+		if (!bitmap->encoding) {
+			Common::String path(bitmap->name);
+			StdBitmapStruct *newBitmap = _stdBitmap->loadLbm(path, 0, 0);
 
-			if (pNewBitmap) {
-				if (pNewBitmap->numFrames < pBitmap->numFrames) {
-					warning("SputResource::loadBknd(): bitmap %s has fewer frames than the loaded one", pBitmap->aName);
+			if (newBitmap) {
+				if (newBitmap->numFrames < bitmap->numFrames) {
+					warning("SputResource::loadBknd(): bitmap %s has fewer frames than the loaded one", bitmap->name);
 				} else {
-					for (int j = 0; j < (int)pBitmap->numFrames; j++) {
-						StdVBuffer *pOldFrame = pBitmap->apFrames[j];
+					for (int j = 0; j < (int)bitmap->numFrames; j++) {
+						StdVBuffer *oldFrame = bitmap->frames[j];
 
-						pBitmap->apFrames[j] = pNewBitmap->apFrames[j];
-						pNewBitmap->apFrames[j] = pOldFrame;
+						bitmap->frames[j] = newBitmap->frames[j];
+						newBitmap->frames[j] = oldFrame;
 					}
 				}
 
-				_pStdBitmap->unloadBitmap(pNewBitmap);
+				_stdBitmap->unloadBitmap(newBitmap);
 			}
 
-			for (int k = 0; k < (int)pBitmap->numFrames; k++) {
-				StdVBuffer *pFrame = pBitmap->apFrames[k];
+			for (int k = 0; k < (int)bitmap->numFrames; k++) {
+				StdVBuffer *frame = bitmap->frames[k];
 
-				_pStdDisplay->vBufferLock(pFrame);
+				_stdDisplay->vBufferLock(frame);
 
-				for (int row = 0; row < pFrame->tex.height; row++)
-					_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * row), pFrame->tex.width);
+				for (int row = 0; row < frame->tex.height; row++)
+					_sputRender->colorCorrect((uint16 *)(frame->pixels + frame->tex.pitchInBytes * row), frame->tex.width);
 
-				_pStdDisplay->vBufferUnlock(pFrame);
+				_stdDisplay->vBufferUnlock(frame);
 			}
 		}
 
 		uint16 colorKey = 63519;
 
-		_pSputRender->colorCorrect(&colorKey, 1);
-		pBitmap->colorKey = colorKey;
+		_sputRender->colorCorrect(&colorKey, 1);
+		bitmap->colorKey = colorKey;
 
-		for (int n = 0; n < (int)pBitmap->numFrames; n++) {
+		for (int n = 0; n < (int)bitmap->numFrames; n++) {
 			uint16 frameColorKey = 63519;
 
-			_pSputRender->colorCorrect(&frameColorKey, 1);
-			pBitmap->apFrames[n]->colorKey = frameColorKey;
+			_sputRender->colorCorrect(&frameColorKey, 1);
+			bitmap->frames[n]->colorKey = frameColorKey;
 		}
 
-		_pRes->allocatedIterNext(&pNext, &handle, kSputTagBknd);
+		_res->allocatedIterNext(&next, &handle, kSputTagBknd);
 	}
 }
 
-int SputResource::loadResCost(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagCost)
+int SputResource::loadResCost(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagCost)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		int hCostume = _pCos->load(pMsg->pName);
+		int costume = _cos->load(msg->name);
 
-		if (!hCostume)
+		if (!costume)
 			return 0;
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, (void *)(intptr)hCostume);
+		return _res->allocCompletion(msg->tag, msg->name, (void *)(intptr)costume);
 	}
 	case 2:
-		_pCos->freeCostume((int)(intptr)pMsg->data);
+		_cos->freeCostume((int)(intptr)msg->data);
 
 		return 1;
 	case 3:
-		pMsg->result = 1;
+		msg->result = 1;
 
 		return 1;
 	default:
@@ -457,7 +457,7 @@ int SputResource::loadResCost(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
+int SputResource::loadResCmap(ResHandlerMsg *msg) {
 	StdColorFormat colorFormat;
 
 	colorFormat.colorMode = 1;
@@ -475,36 +475,36 @@ int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
 	colorFormat.alphaShift = 0;
 	colorFormat.alphaLoss = 0;
 
-	if (pMsg->tag != kSputTagCmap)
+	if (msg->tag != kSputTagCmap)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		RdColormap *pColormap = _pRd->_colormap.load(const_cast<char *>(pMsg->pName));
+		RdColormap *colormap = _rd->_colormap.load(const_cast<char *>(msg->name));
 
-		if (!pColormap)
+		if (!colormap)
 			return 0;
 
-		if (pColormap->pRGB16) {
-			_pRd->_colormap.buildRGB16(pColormap->pRGB16, pColormap->aColors, 0, 0, 0, &colorFormat);
-			_pSputRender->colorCorrect((uint16 *)pColormap->pRGB16, 0x4000);
+		if (colormap->rgb16) {
+			_rd->_colormap.buildRGB16(colormap->rgb16, colormap->colors, 0, 0, 0, &colorFormat);
+			_sputRender->colorCorrect((uint16 *)colormap->rgb16, 0x4000);
 		} else {
-			warning("SputResource::loadResCmap(): colormap %s has no RGB16 table", pMsg->pName);
+			warning("SputResource::loadResCmap(): colormap %s has no RGB16 table", msg->name);
 		}
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pColormap);
+		return _res->allocCompletion(msg->tag, msg->name, colormap);
 	}
 	case 2: {
-		RdColormap *pColormap = static_cast<RdColormap *>(pMsg->data);
+		RdColormap *colormap = static_cast<RdColormap *>(msg->data);
 
-		_pRd->_colormap.destroy(pColormap);
+		_rd->_colormap.destroy(colormap);
 
 		return 1;
 	}
 	case 3: {
-		RdColormap *pColormap = static_cast<RdColormap *>(pMsg->data);
+		RdColormap *colormap = static_cast<RdColormap *>(msg->data);
 
-		pMsg->result = _pRd->_colormap.size(pColormap);
+		msg->result = _rd->_colormap.size(colormap);
 
 		return 1;
 	}
@@ -515,20 +515,20 @@ int SputResource::loadResCmap(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResFont(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagFont)
+int SputResource::loadResFont(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagFont)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		BlastTextFont *pFont = nullptr;
+		BlastTextFont *font = nullptr;
 
-		if (!_pBlastText->load(pMsg->pName, pFont)) {
-			int result = _pRes->allocCompletion(pMsg->tag, pMsg->pName, pFont);
+		if (!_blastText->load(msg->name, font)) {
+			int result = _res->allocCompletion(msg->tag, msg->name, font);
 
 			// The demo can purge the fonts
-			if (!_pRd->isDemo())
-				_pRes->setPurgeOnFree(pFont, 0);
+			if (!_rd->isDemo())
+				_res->setPurgeOnFree(font, 0);
 
 			return result;
 		}
@@ -536,14 +536,14 @@ int SputResource::loadResFont(ResHandlerMsg *pMsg) {
 		break;
 	}
 	case 2: {
-		BlastTextFont *pFont = static_cast<BlastTextFont *>(pMsg->data);
+		BlastTextFont *font = static_cast<BlastTextFont *>(msg->data);
 
-		_pText->freeFont(pFont);
+		_text->freeFont(font);
 
 		return 1;
 	}
 	case 3:
-		pMsg->result = 1;
+		msg->result = 1;
 
 		return 1;
 	default:
@@ -553,38 +553,38 @@ int SputResource::loadResFont(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResKeyf(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagKeyf)
+int SputResource::loadResKeyf(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagKeyf)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		RdKeyframe *pKeyframe = _pRd->_keyframe.load(const_cast<char *>(pMsg->pName));
+		RdKeyframe *keyframe = _rd->_keyframe.load(const_cast<char *>(msg->name));
 
-		if (!pKeyframe)
+		if (!keyframe)
 			return 0;
 
 		// The demo keeps the rate of the file
-		if (!_pRd->isDemo())
-			pKeyframe->fps = 15.0f;
+		if (!_rd->isDemo())
+			keyframe->fps = 15.0f;
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pKeyframe);
+		return _res->allocCompletion(msg->tag, msg->name, keyframe);
 	}
 	case 2: {
-		RdKeyframe *pKeyframe = static_cast<RdKeyframe *>(pMsg->data);
+		RdKeyframe *keyframe = static_cast<RdKeyframe *>(msg->data);
 
-		_pRd->_keyframe.destroy(pKeyframe);
+		_rd->_keyframe.destroy(keyframe);
 
 		return 1;
 	}
 	case 3: {
-		RdKeyframe *pKeyframe = static_cast<RdKeyframe *>(pMsg->data);
+		RdKeyframe *keyframe = static_cast<RdKeyframe *>(msg->data);
 
-		pMsg->result = 132;
+		msg->result = 132;
 
-		for (int i = 0; i < (int)pKeyframe->numNodes; i++) {
-			pMsg->result += 44;
-			pMsg->result += 56 * pKeyframe->paNodes[i].numEntries;
+		for (int i = 0; i < (int)keyframe->numNodes; i++) {
+			msg->result += 44;
+			msg->result += 56 * keyframe->paNodes[i].numEntries;
 		}
 
 		return 1;
@@ -596,70 +596,39 @@ int SputResource::loadResKeyf(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResMat(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagMat)
+int SputResource::loadResMat(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagMat)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
 		char defaultName[] = "dflt.mat";
-		RdMaterial *pMaterial = new RdMaterial;
+		RdMaterial *material = new RdMaterial;
 
-		if (!_pRd->_material.loadEntry(const_cast<char *>(pMsg->pName), pMaterial, 0, 0) && !_pRd->_material.loadEntry(defaultName, pMaterial, 0, 0)) {
-			_pRd->_material.freeEntry(pMaterial);
-			delete pMaterial;
-			pMaterial = nullptr;
+		if (!_rd->_material.loadEntry(const_cast<char *>(msg->name), material, 0, 0) && !_rd->_material.loadEntry(defaultName, material, 0, 0)) {
+			_rd->_material.freeEntry(material);
+			delete material;
+			material = nullptr;
 
 			return 0;
 		}
 
-		int result = _pRes->allocCompletion(pMsg->tag, pMsg->pName, pMaterial);
-		_pRes->setPurgeOnFree(pMaterial, 0);
+		int result = _res->allocCompletion(msg->tag, msg->name, material);
+		_res->setPurgeOnFree(material, 0);
 
 		return result;
 	}
 	case 2: {
-		RdMaterial *pMaterial = static_cast<RdMaterial *>(pMsg->data);
+		RdMaterial *material = static_cast<RdMaterial *>(msg->data);
 
-		_pRd->_material.freeEntry(pMaterial);
-		delete pMaterial;
-		pMaterial = nullptr;
-
-		return 1;
-	}
-	case 3:
-		pMsg->result = 0;
-
-		return 1;
-	default:
-		break;
-	}
-
-	return 0;
-}
-
-int SputResource::loadResModl(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagModl)
-		return 0;
-
-	switch (pMsg->op) {
-	case 1: {
-		RdModel3 *pModel3 = _pRd->_model3.load(const_cast<char *>(pMsg->pName));
-
-		if (!pModel3)
-			return 0;
-
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pModel3);
-	}
-	case 2: {
-		RdModel3 *pModel3 = static_cast<RdModel3 *>(pMsg->data);
-
-		_pRd->_model3.destroy(pModel3);
+		_rd->_material.freeEntry(material);
+		delete material;
+		material = nullptr;
 
 		return 1;
 	}
 	case 3:
-		pMsg->result = 1;
+		msg->result = 0;
 
 		return 1;
 	default:
@@ -669,30 +638,61 @@ int SputResource::loadResModl(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResSet(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagSet)
+int SputResource::loadResModl(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagModl)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		Room *pRoom = _pSputRoom->loadRoom(pMsg->pName);
+		RdModel3 *model3 = _rd->_model3.load(const_cast<char *>(msg->name));
 
-		if (!pRoom)
+		if (!model3)
 			return 0;
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pRoom);
+		return _res->allocCompletion(msg->tag, msg->name, model3);
 	}
 	case 2: {
-		Room *pRoom = static_cast<Room *>(pMsg->data);
+		RdModel3 *model3 = static_cast<RdModel3 *>(msg->data);
 
-		_pSputRoom->freeRoom(pRoom);
+		_rd->_model3.destroy(model3);
+
+		return 1;
+	}
+	case 3:
+		msg->result = 1;
+
+		return 1;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+int SputResource::loadResSet(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagSet)
+		return 0;
+
+	switch (msg->op) {
+	case 1: {
+		Room *room = _sputRoom->loadRoom(msg->name);
+
+		if (!room)
+			return 0;
+
+		return _res->allocCompletion(msg->tag, msg->name, room);
+	}
+	case 2: {
+		Room *room = static_cast<Room *>(msg->data);
+
+		_sputRoom->freeRoom(room);
 
 		return 1;
 	}
 	case 3: {
-		Room *pRoom = static_cast<Room *>(pMsg->data);
+		Room *room = static_cast<Room *>(msg->data);
 
-		pMsg->result = pRoom->structSize;
+		msg->result = room->structSize;
 
 		return 1;
 	}
@@ -703,34 +703,34 @@ int SputResource::loadResSet(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResSnd(ResHandlerMsg *pMsg) {
+int SputResource::loadResSnd(ResHandlerMsg *msg) {
 	return 0;
 }
 
-int SputResource::loadResZbuf(ResHandlerMsg *pMsg) {
-	if (pMsg->tag != kSputTagZbuf)
+int SputResource::loadResZbuf(ResHandlerMsg *msg) {
+	if (msg->tag != kSputTagZbuf)
 		return 0;
 
-	switch (pMsg->op) {
+	switch (msg->op) {
 	case 1: {
-		StdVBuffer *pZBuffer = _pSputRoom->loadZBuffer(pMsg->pName);
+		StdVBuffer *zBuffer = _sputRoom->loadZBuffer(msg->name);
 
-		if (!pZBuffer)
+		if (!zBuffer)
 			return 0;
 
-		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pZBuffer);
+		return _res->allocCompletion(msg->tag, msg->name, zBuffer);
 	}
 	case 2: {
-		StdVBuffer *pZBuffer = static_cast<StdVBuffer *>(pMsg->data);
+		StdVBuffer *zBuffer = static_cast<StdVBuffer *>(msg->data);
 
-		_pSputRoom->freeZBuffer(pZBuffer);
+		_sputRoom->freeZBuffer(zBuffer);
 
 		return 1;
 	}
 	case 3: {
-		StdVBuffer *pZBuffer = static_cast<StdVBuffer *>(pMsg->data);
+		StdVBuffer *zBuffer = static_cast<StdVBuffer *>(msg->data);
 
-		pMsg->result = pZBuffer->tex.sizeInBytes;
+		msg->result = zBuffer->tex.sizeInBytes;
 
 		return 1;
 	}
@@ -741,26 +741,26 @@ int SputResource::loadResZbuf(ResHandlerMsg *pMsg) {
 	return 0;
 }
 
-int SputResource::loadResMem(ResHandlerMsg *pMsg) {
-	ResMemBlock *pBlock = static_cast<ResMemBlock *>(pMsg->data);
+int SputResource::loadResMem(ResHandlerMsg *msg) {
+	ResMemBlock *block = static_cast<ResMemBlock *>(msg->data);
 
-	if (pMsg->op == 2) {
-		if (!pBlock) {
+	if (msg->op == 2) {
+		if (!block) {
 			warning("SputResource::loadResMem(): no memory block to free");
 			return 1;
 		}
 
-		delete[] pBlock->pData;
-		pBlock->pData = nullptr;
-		delete pBlock;
-		pBlock = nullptr;
-	} else if (pMsg->op == 3) {
-		if (!pBlock) {
+		delete[] block->data;
+		block->data = nullptr;
+		delete block;
+		block = nullptr;
+	} else if (msg->op == 3) {
+		if (!block) {
 			warning("SputResource::loadResMem(): no memory block to measure");
 			return 1;
 		}
 
-		pMsg->result = pBlock->size;
+		msg->result = block->size;
 
 		return 1;
 	}
@@ -770,7 +770,7 @@ int SputResource::loadResMem(ResHandlerMsg *pMsg) {
 
 int SputResource::cmap() {
 	StdColorFormat colorFormat;
-	ResNode *pNext;
+	ResNode *next;
 	void *handle;
 
 	colorFormat.colorMode = 1;
@@ -788,57 +788,57 @@ int SputResource::cmap() {
 	colorFormat.alphaShift = 0;
 	colorFormat.alphaLoss = 0;
 
-	_pRes->allocatedIterFirst(&pNext, &handle, kSputTagCmap);
+	_res->allocatedIterFirst(&next, &handle, kSputTagCmap);
 
 	while (handle) {
-		RdColormap *pColormap = static_cast<RdColormap *>(handle);
+		RdColormap *colormap = static_cast<RdColormap *>(handle);
 
-		if (pColormap->pRGB16) {
-			_pRd->_colormap.buildRGB16(pColormap->pRGB16, pColormap->aColors, 0, 0, 0, &colorFormat);
-			_pSputRender->colorCorrect((uint16 *)pColormap->pRGB16, 0x4000);
+		if (colormap->rgb16) {
+			_rd->_colormap.buildRGB16(colormap->rgb16, colormap->colors, 0, 0, 0, &colorFormat);
+			_sputRender->colorCorrect((uint16 *)colormap->rgb16, 0x4000);
 		} else {
-			warning("SputResource::cmap(): colormap %s has no RGB16 table", pColormap->aName);
+			warning("SputResource::cmap(): colormap %s has no RGB16 table", colormap->name);
 		}
 
-		_pRes->allocatedIterNext(&pNext, &handle, kSputTagCmap);
+		_res->allocatedIterNext(&next, &handle, kSputTagCmap);
 	}
 
 	return 0;
 }
 
-RdMaterial *SputResource::mat(char *path, int bVideoMemory, int bVideoMemoryOnly) {
-	RdMaterial *pMaterial = static_cast<RdMaterial *>(alloc(kSputTagMat, path));
+RdMaterial *SputResource::mat(char *path, int videoMemory, int videoMemoryOnly) {
+	RdMaterial *material = static_cast<RdMaterial *>(alloc(kSputTagMat, path));
 
-	if (!pMaterial) {
+	if (!material) {
 		warning("SputResource::mat(): could not load material %s", path);
 		return nullptr;
 	}
 
-	if (!pMaterial->lockCount)
-		_pRes->setPurgeOnFree(pMaterial, 0);
+	if (!material->lockCount)
+		_res->setPurgeOnFree(material, 0);
 
-	pMaterial->lockCount++;
+	material->lockCount++;
 
-	return pMaterial;
+	return material;
 }
 
-int SputResource::unlock(RdMaterial *pMaterial) {
-	if (!pMaterial) {
+int SputResource::unlock(RdMaterial *material) {
+	if (!material) {
 		warning("SputResource::unlock(): no material given");
 		return 0;
 	}
 
-	if (pMaterial->lockCount)
-		pMaterial->lockCount--;
+	if (material->lockCount)
+		material->lockCount--;
 
-	if (!pMaterial->lockCount)
-		return _pRes->setPurgeOnFree(pMaterial, 1);
+	if (!material->lockCount)
+		return _res->setPurgeOnFree(material, 1);
 
 	return 1;
 }
 
 int SputResource::reportAllocations() {
-	return _pRes->dump("Grim.res", 0);
+	return _res->dump("Grim.res", 0);
 }
 
 } // End of namespace Grim

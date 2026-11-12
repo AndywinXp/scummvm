@@ -144,25 +144,25 @@ protected:
 	int _listCount;
 
 public:
-	int trianglesDrawn;
-	int counter8;
-	int counter12;
-	int counter16;
-	int counter20;
-	int counter24;
-	CDrawList drawListA;
-	CDrawList drawListB;
-	int polyOptions;
-	DisplayMode displayMode;
-	CTexture *defaultTexture;
-	CTexture *textureCache[kNumCachedTextures];
-	int frameCounter;
-	int blendMode;
-	bool textureFlag;
-	CClipVolume clipVolume;
-	bool pixelCenter;
-	bool sceneBegun;
-	bool hasGammaCtl;
+	int _trianglesDrawn;
+	int _counter8;
+	int _counter12;
+	int _counter16;
+	int _counter20;
+	int _counter24;
+	CDrawList _drawListA;
+	CDrawList _drawListB;
+	int _polyOptions;
+	DisplayMode _displayMode;
+	CTexture *_defaultTexture;
+	CTexture *_textureCache[kNumCachedTextures];
+	int _frameCounter;
+	int _blendMode;
+	bool _textureFlag;
+	CClipVolume _clipVolume;
+	bool _pixelCenter;
+	bool _sceneBegun;
+	bool _hasGammaCtl;
 };
 
 } // End of namespace Grim

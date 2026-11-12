@@ -18,27 +18,27 @@ namespace Grim {
 
 struct PtrID {
 	uint32 serialNumber;
-	void *pItem;
+	void *item;
 };
 
-static bool bPtrsSorted = false;
+static bool ptrsSorted = false;
 
-static PtrID *aStringPtrs;
+static PtrID *stringPtrs;
 static uint32 stringPtrTotal;
 
-static PtrID *aClosurePtrs;
+static PtrID *closurePtrs;
 static uint32 closurePtrTotal;
 
-static PtrID *aTablePtrs;
+static PtrID *tablePtrs;
 static uint32 tablePtrTotal;
 
-static PtrID *aProtoPtrs;
+static PtrID *protoPtrs;
 static uint32 protoPtrTotal;
 
 // Userdata is inline in the ScummVM objects: its string table entries point here
-static UserData *aUserdata;
+static UserData *userdata;
 
-static int32 loadInt32(tSaveRestoreAccess *restoreFunc) {
+static int32 loadInt32(SaveRestoreAccess *restoreFunc) {
 	uint32 data = 0;
 
 	restoreFunc(&data, 4);
@@ -46,7 +46,7 @@ static int32 loadInt32(tSaveRestoreAccess *restoreFunc) {
 	return (int32)FROM_LE_32(data);
 }
 
-static bool loadByte(tSaveRestoreAccess *restoreFunc) {
+static bool loadByte(SaveRestoreAccess *restoreFunc) {
 	byte data = 0;
 
 	restoreFunc(&data, 1);
@@ -55,103 +55,103 @@ static bool loadByte(tSaveRestoreAccess *restoreFunc) {
 }
 
 static int comparePtrIDs(const void *elem1, const void *elem2) {
-	const PtrID *pElem1 = (const PtrID *)elem1;
-	const PtrID *pElem2 = (const PtrID *)elem2;
+	const PtrID *elem1Pointer = (const PtrID *)elem1;
+	const PtrID *elem2Pointer = (const PtrID *)elem2;
 
-	if (pElem1->serialNumber < pElem2->serialNumber)
+	if (elem1Pointer->serialNumber < elem2Pointer->serialNumber)
 		return -1;
-	else if (pElem1->serialNumber > pElem2->serialNumber)
+	else if (elem1Pointer->serialNumber > elem2Pointer->serialNumber)
 		return 1;
 
 	return 0;
 }
 
-static void SerialToPtr(TObject *pObject) {
-	PtrID *pPtrID, ptrid;
-	uint32 serialNum = (uint32)pObject->value.i;
+static void SerialToPtr(TObject *object) {
+	PtrID *ptrID, ptrid;
+	uint32 serialNum = (uint32)object->value.i;
 
-	if (!bPtrsSorted) {
-		sort(aStringPtrs, stringPtrTotal, sizeof(PtrID), comparePtrIDs);
-		sort(aClosurePtrs, closurePtrTotal, sizeof(PtrID), comparePtrIDs);
-		sort(aTablePtrs, tablePtrTotal, sizeof(PtrID), comparePtrIDs);
-		sort(aProtoPtrs, protoPtrTotal, sizeof(PtrID), comparePtrIDs);
+	if (!ptrsSorted) {
+		sort(stringPtrs, stringPtrTotal, sizeof(PtrID), comparePtrIDs);
+		sort(closurePtrs, closurePtrTotal, sizeof(PtrID), comparePtrIDs);
+		sort(tablePtrs, tablePtrTotal, sizeof(PtrID), comparePtrIDs);
+		sort(protoPtrs, protoPtrTotal, sizeof(PtrID), comparePtrIDs);
 
-		bPtrsSorted = true;
+		ptrsSorted = true;
 	}
 
-	memset(&pObject->value, 0, sizeof(Value));
+	memset(&object->value, 0, sizeof(Value));
 
 	if (serialNum == 0)
 		return;
 
 	ptrid.serialNumber = serialNum;
-	ptrid.pItem = nullptr;
+	ptrid.item = nullptr;
 
-	switch (pObject->ttype) {
+	switch (object->ttype) {
 	case LUA_T_USERDATA:
 	case LUA_T_STRING:
-		pPtrID = (PtrID *)binarySearch(&ptrid, aStringPtrs, stringPtrTotal, sizeof(PtrID), comparePtrIDs);
+		ptrID = (PtrID *)binarySearch(&ptrid, stringPtrs, stringPtrTotal, sizeof(PtrID), comparePtrIDs);
 		break;
 
 	case LUA_T_CLOSURE:
-		pPtrID = (PtrID *)binarySearch(&ptrid, aClosurePtrs, closurePtrTotal, sizeof(PtrID), comparePtrIDs);
+		ptrID = (PtrID *)binarySearch(&ptrid, closurePtrs, closurePtrTotal, sizeof(PtrID), comparePtrIDs);
 		break;
 
 	case LUA_T_ARRAY:
-		pPtrID = (PtrID *)binarySearch(&ptrid, aTablePtrs, tablePtrTotal, sizeof(PtrID), comparePtrIDs);
+		ptrID = (PtrID *)binarySearch(&ptrid, tablePtrs, tablePtrTotal, sizeof(PtrID), comparePtrIDs);
 		break;
 
 	case LUA_T_PROTO:
 	case LUA_T_PMARK:
-		pPtrID = (PtrID *)binarySearch(&ptrid, aProtoPtrs, protoPtrTotal, sizeof(PtrID), comparePtrIDs);
+		ptrID = (PtrID *)binarySearch(&ptrid, protoPtrs, protoPtrTotal, sizeof(PtrID), comparePtrIDs);
 		break;
 
 	default:
-		pPtrID = nullptr;
+		ptrID = nullptr;
 	}
 
-	if (!pPtrID)
+	if (!ptrID)
 		return;
 
-	switch (pObject->ttype) {
+	switch (object->ttype) {
 	case LUA_T_USERDATA:
-		pObject->value.ud = *(UserData *)pPtrID->pItem;
+		object->value.ud = *(UserData *)ptrID->item;
 		break;
 
 	case LUA_T_STRING:
-		pObject->value.ts = (TaggedString *)pPtrID->pItem;
+		object->value.ts = (TaggedString *)ptrID->item;
 		break;
 
 	case LUA_T_CLOSURE:
-		pObject->value.cl = (Closure *)pPtrID->pItem;
+		object->value.cl = (Closure *)ptrID->item;
 		break;
 
 	case LUA_T_ARRAY:
-		pObject->value.a = (Hash *)pPtrID->pItem;
+		object->value.a = (Hash *)ptrID->item;
 		break;
 
 	default:
-		pObject->value.tf = (TProtoFunc *)pPtrID->pItem;
+		object->value.tf = (TProtoFunc *)ptrID->item;
 	}
 }
 
-static void LoadObject(TObject *pObject, tSaveRestoreAccess *restoreFunc) {
-	pObject->ttype = (lua_Type)loadInt32(restoreFunc);
+static void LoadObject(TObject *object, SaveRestoreAccess *restoreFunc) {
+	object->ttype = (lua_Type)loadInt32(restoreFunc);
 
 	uint32 raw = (uint32)loadInt32(restoreFunc);
 
-	memset(&pObject->value, 0, sizeof(Value));
-	memcpy(&pObject->value, &raw, 4);
+	memset(&object->value, 0, sizeof(Value));
+	memcpy(&object->value, &raw, 4);
 }
 
-static void ResolveObject(TObject *pObject) {
-	switch (pObject->ttype) {
+static void ResolveObject(TObject *object) {
+	switch (object->ttype) {
 	case LUA_T_CPROTO:
 		{
-			uint32 id = (uint32)pObject->value.i;
+			uint32 id = (uint32)object->value.i;
 
-			memset(&pObject->value, 0, sizeof(Value));
-			pObject->value.f = lua_IDToFuncPtr(id);
+			memset(&object->value, 0, sizeof(Value));
+			object->value.f = lua_IDToFuncPtr(id);
 		}
 		break;
 
@@ -162,21 +162,21 @@ static void ResolveObject(TObject *pObject) {
 		break;
 
 	default:
-		SerialToPtr(pObject);
+		SerialToPtr(object);
 	}
 }
 
-static void LoadResolvedObject(TObject *pObject, tSaveRestoreAccess *restoreFunc) {
-	LoadObject(pObject, restoreFunc);
-	ResolveObject(pObject);
+static void LoadResolvedObject(TObject *object, SaveRestoreAccess *restoreFunc) {
+	LoadObject(object, restoreFunc);
+	ResolveObject(object);
 }
 
-static void LoadSerial(TObject *pObject, lua_Type ttype, tSaveRestoreAccess *restoreFunc) {
+static void LoadSerial(TObject *object, lua_Type ttype, SaveRestoreAccess *restoreFunc) {
 	uint32 raw = (uint32)loadInt32(restoreFunc);
 
-	pObject->ttype = ttype;
-	memset(&pObject->value, 0, sizeof(Value));
-	memcpy(&pObject->value, &raw, 4);
+	object->ttype = ttype;
+	memset(&object->value, 0, sizeof(Value));
+	memcpy(&object->value, &raw, 4);
 }
 
 static void luaH_forcerehash(Hash *t) {
@@ -194,21 +194,21 @@ static void luaH_forcerehash(Hash *t) {
 	luaM_free(vold);
 }
 
-static Hash *luaH_load(tSaveRestoreAccess *restoreFunc) {
-	Hash *pHash = luaM_new(Hash);
+static Hash *luaH_load(SaveRestoreAccess *restoreFunc) {
+	Hash *hash = luaM_new(Hash);
 
-	pHash->nhash = loadInt32(restoreFunc);
-	pHash->nuse = loadInt32(restoreFunc);
-	pHash->htag = loadInt32(restoreFunc);
-	pHash->node = hashnodecreate(pHash->nhash);
-	luaO_insertlist(&roottable, (GCnode *)pHash);
+	hash->nhash = loadInt32(restoreFunc);
+	hash->nuse = loadInt32(restoreFunc);
+	hash->htag = loadInt32(restoreFunc);
+	hash->node = hashnodecreate(hash->nhash);
+	luaO_insertlist(&roottable, (GCnode *)hash);
 
-	for (int32 i = 0; i < pHash->nuse; i++) {
-		LoadObject(&pHash->node[i].ref, restoreFunc);
-		LoadObject(&pHash->node[i].val, restoreFunc);
+	for (int32 i = 0; i < hash->nuse; i++) {
+		LoadObject(&hash->node[i].ref, restoreFunc);
+		LoadObject(&hash->node[i].val, restoreFunc);
 	}
 
-	return pHash;
+	return hash;
 }
 
 static void luaS_resolvestrings() {
@@ -216,52 +216,52 @@ static void luaS_resolvestrings() {
 		stringtable *tb = &string_root[i];
 
 		for (int32 j = 0; j < tb->size; j++) {
-			TaggedString *pTString = tb->hash[j];
+			TaggedString *tString = tb->hash[j];
 
-			if (pTString != nullptr && pTString != &EMPTY && pTString->constindex != -1)
-				ResolveObject(&pTString->globalval);
+			if (tString != nullptr && tString != &EMPTY && tString->constindex != -1)
+				ResolveObject(&tString->globalval);
 		}
 	}
 }
 
 static void GlobalEndRestore() {
-	if (aStringPtrs) {
-		luaM_free(aStringPtrs);
+	if (stringPtrs) {
+		luaM_free(stringPtrs);
 		stringPtrTotal = 0;
-		aStringPtrs = nullptr;
+		stringPtrs = nullptr;
 	}
 
-	if (aUserdata) {
-		luaM_free(aUserdata);
-		aUserdata = nullptr;
+	if (userdata) {
+		luaM_free(userdata);
+		userdata = nullptr;
 	}
 
-	if (aClosurePtrs) {
-		luaM_free(aClosurePtrs);
+	if (closurePtrs) {
+		luaM_free(closurePtrs);
 		closurePtrTotal = 0;
-		aClosurePtrs = nullptr;
+		closurePtrs = nullptr;
 	}
 
-	if (aTablePtrs) {
-		luaM_free(aTablePtrs);
+	if (tablePtrs) {
+		luaM_free(tablePtrs);
 		tablePtrTotal = 0;
-		aTablePtrs = nullptr;
+		tablePtrs = nullptr;
 	}
 
-	if (aProtoPtrs) {
-		luaM_free(aProtoPtrs);
+	if (protoPtrs) {
+		luaM_free(protoPtrs);
 		protoPtrTotal = 0;
-		aProtoPtrs = nullptr;
+		protoPtrs = nullptr;
 	}
 
-	bPtrsSorted = false;
+	ptrsSorted = false;
 }
 
-static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
+static void GlobalBeginRestore(SaveRestoreAccess *restoreFunc) {
 	uint32 maxstrlen, globalCount;
 	uint32 numUserdata = 0;
-	PtrID *pPtr;
-	char *pBuffer;
+	PtrID *ptr;
+	char *buffer;
 
 	stringPtrTotal = loadInt32(restoreFunc);
 	closurePtrTotal = loadInt32(restoreFunc);
@@ -269,14 +269,14 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 	protoPtrTotal = loadInt32(restoreFunc);
 	globalCount = loadInt32(restoreFunc);
 
-	pPtr = aStringPtrs = luaM_newvector(stringPtrTotal, PtrID);
-	aUserdata = luaM_newvector(stringPtrTotal, UserData);
+	ptr = stringPtrs = luaM_newvector(stringPtrTotal, PtrID);
+	userdata = luaM_newvector(stringPtrTotal, UserData);
 
 	maxstrlen = loadInt32(restoreFunc);
-	pBuffer = (char *)luaM_malloc(maxstrlen + 5);
+	buffer = (char *)luaM_malloc(maxstrlen + 5);
 
 	for (uint32 i = 0; i < stringPtrTotal; i++) {
-		pPtr->serialNumber = loadInt32(restoreFunc);
+		ptr->serialNumber = loadInt32(restoreFunc);
 
 		int32 constindex = loadInt32(restoreFunc);
 		int32 tag = loadInt32(restoreFunc);
@@ -285,143 +285,143 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 		if (constindex != -1) {
 			uint32 length = loadInt32(restoreFunc);
 
-			restoreFunc(pBuffer, length);
-			pBuffer[length] = '\0';
+			restoreFunc(buffer, length);
+			buffer[length] = '\0';
 
-			TaggedString *pTString = luaS_new(pBuffer);
+			TaggedString *tString = luaS_new(buffer);
 
-			memset(&pTString->globalval.value, 0, sizeof(Value));
-			pTString->globalval.value.i = v;
-			pTString->globalval.ttype = (lua_Type)tag;
-			pTString->constindex = constindex;
+			memset(&tString->globalval.value, 0, sizeof(Value));
+			tString->globalval.value.i = v;
+			tString->globalval.ttype = (lua_Type)tag;
+			tString->constindex = constindex;
 
-			pPtr->pItem = pTString;
+			ptr->item = tString;
 		} else {
-			UserData *pUserdata = &aUserdata[numUserdata++];
+			UserData *userdataEntry = &userdata[numUserdata++];
 
-			pUserdata->tag = tag;
-			pUserdata->id = v;
+			userdataEntry->tag = tag;
+			userdataEntry->id = v;
 
 			if (lua_restorehook)
-				pUserdata->id = lua_restorehook(tag, v, restoreFunc);
+				userdataEntry->id = lua_restorehook(tag, v, restoreFunc);
 
-			pPtr->pItem = pUserdata;
+			ptr->item = userdataEntry;
 		}
 
-		pPtr++;
+		ptr++;
 	}
 
-	luaM_free(pBuffer);
+	luaM_free(buffer);
 
-	pPtr = aClosurePtrs = luaM_newvector(closurePtrTotal, PtrID);
+	ptr = closurePtrs = luaM_newvector(closurePtrTotal, PtrID);
 
 	for (uint32 i = 0; i < closurePtrTotal; i++) {
-		pPtr->serialNumber = loadInt32(restoreFunc);
+		ptr->serialNumber = loadInt32(restoreFunc);
 
 		uint32 nelems = loadInt32(restoreFunc);
-		Closure *pClosure = (Closure *)luaM_malloc(sizeof(Closure) + nelems * sizeof(TObject));
+		Closure *closure = (Closure *)luaM_malloc(sizeof(Closure) + nelems * sizeof(TObject));
 
-		luaO_insertlist(&rootcl, (GCnode *)pClosure);
-		pClosure->nelems = nelems;
+		luaO_insertlist(&rootcl, (GCnode *)closure);
+		closure->nelems = nelems;
 
-		for (int32 j = 0; j <= pClosure->nelems; j++)
-			LoadObject(&pClosure->consts[j], restoreFunc);
+		for (int32 j = 0; j <= closure->nelems; j++)
+			LoadObject(&closure->consts[j], restoreFunc);
 
-		pPtr->pItem = pClosure;
-		pPtr++;
+		ptr->item = closure;
+		ptr++;
 	}
 
-	pPtr = aTablePtrs = luaM_newvector(tablePtrTotal, PtrID);
+	ptr = tablePtrs = luaM_newvector(tablePtrTotal, PtrID);
 
 	for (uint32 i = 0; i < tablePtrTotal; i++) {
-		pPtr->serialNumber = loadInt32(restoreFunc);
-		pPtr->pItem = luaH_load(restoreFunc);
-		pPtr++;
+		ptr->serialNumber = loadInt32(restoreFunc);
+		ptr->item = luaH_load(restoreFunc);
+		ptr++;
 	}
 
-	pPtr = aProtoPtrs = luaM_newvector(protoPtrTotal, PtrID);
+	ptr = protoPtrs = luaM_newvector(protoPtrTotal, PtrID);
 
 	for (uint32 i = 0; i < protoPtrTotal; i++) {
-		pPtr->serialNumber = loadInt32(restoreFunc);
+		ptr->serialNumber = loadInt32(restoreFunc);
 
-		TProtoFunc *pPFunc = luaM_new(TProtoFunc);
+		TProtoFunc *protoFunc = luaM_new(TProtoFunc);
 
-		luaO_insertlist(&rootproto, (GCnode *)pPFunc);
-		pPFunc->fileName = (TaggedString *)(uintptr)(uint32)loadInt32(restoreFunc);
-		pPFunc->lineDefined = loadInt32(restoreFunc);
-		pPFunc->nconsts = loadInt32(restoreFunc);
-		pPFunc->consts = luaM_newvector(pPFunc->nconsts, TObject);
+		luaO_insertlist(&rootproto, (GCnode *)protoFunc);
+		protoFunc->fileName = (TaggedString *)(uintptr)(uint32)loadInt32(restoreFunc);
+		protoFunc->lineDefined = loadInt32(restoreFunc);
+		protoFunc->nconsts = loadInt32(restoreFunc);
+		protoFunc->consts = luaM_newvector(protoFunc->nconsts, TObject);
 
-		for (int32 j = 0; j < pPFunc->nconsts; j++)
-			LoadObject(&pPFunc->consts[j], restoreFunc);
+		for (int32 j = 0; j < protoFunc->nconsts; j++)
+			LoadObject(&protoFunc->consts[j], restoreFunc);
 
 		uint32 numVars = loadInt32(restoreFunc);
 
 		if (numVars)
-			pPFunc->locvars = luaM_newvector(numVars, LocVar);
+			protoFunc->locvars = luaM_newvector(numVars, LocVar);
 		else
-			pPFunc->locvars = nullptr;
+			protoFunc->locvars = nullptr;
 
 		for (uint32 j = 0; j < numVars; j++) {
-			pPFunc->locvars[j].varname = (TaggedString *)(uintptr)(uint32)loadInt32(restoreFunc);
-			pPFunc->locvars[j].line = loadInt32(restoreFunc);
+			protoFunc->locvars[j].varname = (TaggedString *)(uintptr)(uint32)loadInt32(restoreFunc);
+			protoFunc->locvars[j].line = loadInt32(restoreFunc);
 		}
 
 		uint32 numBytes = loadInt32(restoreFunc);
 
-		pPFunc->code = (byte *)luaM_malloc(numBytes);
-		restoreFunc(pPFunc->code, numBytes);
-		pPtr->pItem = pPFunc;
-		pPtr++;
+		protoFunc->code = (byte *)luaM_malloc(numBytes);
+		restoreFunc(protoFunc->code, numBytes);
+		ptr->item = protoFunc;
+		ptr++;
 	}
 
 	luaS_resolvestrings();
 
-	for (TProtoFunc *pPFunc = (TProtoFunc *)rootproto.next; pPFunc; pPFunc = (TProtoFunc *)pPFunc->head.next) {
+	for (TProtoFunc *protoFunc = (TProtoFunc *)rootproto.next; protoFunc; protoFunc = (TProtoFunc *)protoFunc->head.next) {
 		TObject tempObject;
 
 		tempObject.ttype = LUA_T_STRING;
 		memset(&tempObject.value, 0, sizeof(Value));
-		tempObject.value.i = (int32)(uintptr)pPFunc->fileName;
+		tempObject.value.i = (int32)(uintptr)protoFunc->fileName;
 
 		ResolveObject(&tempObject);
 
-		pPFunc->fileName = tempObject.value.ts;
+		protoFunc->fileName = tempObject.value.ts;
 
-		for (int32 i = 0; i < pPFunc->nconsts; i++)
-			ResolveObject(&pPFunc->consts[i]);
+		for (int32 i = 0; i < protoFunc->nconsts; i++)
+			ResolveObject(&protoFunc->consts[i]);
 
-		if (pPFunc->locvars) {
+		if (protoFunc->locvars) {
 			int32 i = 0;
 
-			while (pPFunc->locvars[i].line != -1) {
+			while (protoFunc->locvars[i].line != -1) {
 				tempObject.ttype = LUA_T_STRING;
 				memset(&tempObject.value, 0, sizeof(Value));
-				tempObject.value.i = (int32)(uintptr)pPFunc->locvars[i].varname;
+				tempObject.value.i = (int32)(uintptr)protoFunc->locvars[i].varname;
 
 				ResolveObject(&tempObject);
 
-				pPFunc->locvars[i].varname = tempObject.value.ts;
+				protoFunc->locvars[i].varname = tempObject.value.ts;
 				i++;
 			}
 		}
 	}
 
-	for (Hash *pHash = (Hash *)roottable.next; pHash; pHash = (Hash *)pHash->head.next) {
-		for (int32 i = 0; i < pHash->nuse; i++) {
-			ResolveObject(&pHash->node[i].ref);
-			ResolveObject(&pHash->node[i].val);
+	for (Hash *hash = (Hash *)roottable.next; hash; hash = (Hash *)hash->head.next) {
+		for (int32 i = 0; i < hash->nuse; i++) {
+			ResolveObject(&hash->node[i].ref);
+			ResolveObject(&hash->node[i].val);
 		}
 
-		luaH_forcerehash(pHash);
+		luaH_forcerehash(hash);
 	}
 
-	for (Closure *pClosure = (Closure *)rootcl.next; pClosure; pClosure = (Closure *)pClosure->head.next) {
-		for (int32 i = 0; i <= pClosure->nelems; i++)
-			ResolveObject(&pClosure->consts[i]);
+	for (Closure *closure = (Closure *)rootcl.next; closure; closure = (Closure *)closure->head.next) {
+		for (int32 i = 0; i <= closure->nelems; i++)
+			ResolveObject(&closure->consts[i]);
 	}
 
-	GCnode *pPrevString = &rootglobal;
+	GCnode *prevString = &rootglobal;
 
 	for (uint32 i = 0; i < globalCount; i++) {
 		TObject tempObject;
@@ -429,16 +429,16 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 		LoadSerial(&tempObject, LUA_T_STRING, restoreFunc);
 		ResolveObject(&tempObject);
 
-		TaggedString *pTString = tempObject.value.ts;
+		TaggedString *tString = tempObject.value.ts;
 
-		if (!pTString)
+		if (!tString)
 			error("LState::GlobalBeginRestore(): a global string is missing");
 
-		pPrevString->next = &pTString->head;
-		pPrevString = &pTString->head;
+		prevString->next = &tString->head;
+		prevString = &tString->head;
 	}
 
-	pPrevString->next = nullptr;
+	prevString->next = nullptr;
 
 	if (luaIsEmi)
 		loadByte(restoreFunc);
@@ -451,10 +451,10 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 	IMtable = luaM_newvector(IMtable_size, IM);
 
 	for (int32 i = 0; i < IMtable_size; i++) {
-		IM *pIM = &IMtable[i];
+		IM *im = &IMtable[i];
 
 		for (int32 j = 0; j < IM_N; j++)
-			LoadResolvedObject(&pIM->int_method[j], restoreFunc);
+			LoadResolvedObject(&im->int_method[j], restoreFunc);
 	}
 
 	last_tag = loadInt32(restoreFunc);
@@ -481,111 +481,111 @@ static void GlobalBeginRestore(tSaveRestoreAccess *restoreFunc) {
 	globalTaskSerialId = loadInt32(restoreFunc);
 }
 
-static void RestoreExecutionState(lua_Task *pExecState, Stack *pStack, uint32 numChildren, tSaveRestoreAccess *restoreFunc) {
+static void RestoreExecutionState(lua_Task *execState, Stack *stack, uint32 numChildren, SaveRestoreAccess *restoreFunc) {
 	TObject tempObject;
 
 	if (numChildren) {
-		pExecState->next = luaM_new(lua_Task);
-		lua_taskinit(pExecState->next, nullptr, 0, 0);
-		RestoreExecutionState(pExecState->next, pStack, numChildren - 1, restoreFunc);
+		execState->next = luaM_new(lua_Task);
+		lua_taskinit(execState->next, nullptr, 0, 0);
+		RestoreExecutionState(execState->next, stack, numChildren - 1, restoreFunc);
 	}
 
-	pExecState->S = pStack;
+	execState->S = stack;
 
 	LoadSerial(&tempObject, LUA_T_CLOSURE, restoreFunc);
 	ResolveObject(&tempObject);
-	pExecState->cl = tempObject.value.cl;
+	execState->cl = tempObject.value.cl;
 
 	LoadSerial(&tempObject, LUA_T_PROTO, restoreFunc);
 	ResolveObject(&tempObject);
-	pExecState->tf = tempObject.value.tf;
+	execState->tf = tempObject.value.tf;
 
-	pExecState->base = loadInt32(restoreFunc);
-	pExecState->initBase = loadInt32(restoreFunc);
-	pExecState->initResults = loadInt32(restoreFunc);
+	execState->base = loadInt32(restoreFunc);
+	execState->initBase = loadInt32(restoreFunc);
+	execState->initResults = loadInt32(restoreFunc);
 	if (luaIsEmi)
-		pExecState->executed = loadByte(restoreFunc);
+		execState->executed = loadByte(restoreFunc);
 	else
-		pExecState->executed = loadInt32(restoreFunc) != 0;
+		execState->executed = loadInt32(restoreFunc) != 0;
 
 	int32 pcOffset = loadInt32(restoreFunc);
 
-	pExecState->pc = pExecState->tf->code + pcOffset;
-	pExecState->aux = loadInt32(restoreFunc);
-	pExecState->consts = pExecState->tf->consts;
+	execState->pc = execState->tf->code + pcOffset;
+	execState->aux = loadInt32(restoreFunc);
+	execState->consts = execState->tf->consts;
 }
 
-static void RestoreState(LState *pState, tSaveRestoreAccess *restoreFunc) {
+static void RestoreState(LState *state, SaveRestoreAccess *restoreFunc) {
 	uint32 numExecStates = loadInt32(restoreFunc);
 
 	if (numExecStates) {
-		pState->task = luaM_new(lua_Task);
-		lua_taskinit(pState->task, nullptr, 0, 0);
-		RestoreExecutionState(pState->task, &pState->stack, numExecStates - 1, restoreFunc);
+		state->task = luaM_new(lua_Task);
+		lua_taskinit(state->task, nullptr, 0, 0);
+		RestoreExecutionState(state->task, &state->stack, numExecStates - 1, restoreFunc);
 	} else {
-		pState->task = nullptr;
+		state->task = nullptr;
 	}
 
 	int32 previousExecState = loadInt32(restoreFunc);
 
 	if (previousExecState >= 0) {
-		lua_Task *pExecState = pState->task;
+		lua_Task *execState = state->task;
 
 		while (previousExecState--)
-			pExecState = pExecState->next;
+			execState = execState->next;
 
-		pState->prevTask = pExecState;
+		state->prevTask = execState;
 	} else {
-		pState->prevTask = nullptr;
+		state->prevTask = nullptr;
 	}
 
 	if (luaIsEmi) {
-		pState->sleepFor = loadInt32(restoreFunc);
-		pState->preventBreakCounter = loadInt32(restoreFunc);
+		state->sleepFor = loadInt32(restoreFunc);
+		state->preventBreakCounter = loadInt32(restoreFunc);
 		loadByte(restoreFunc);
-		pState->updated = loadByte(restoreFunc);
-		pState->paused = loadByte(restoreFunc);
-		pState->pauseSticky = loadByte(restoreFunc);
-		pState->callLevelCounter = loadInt32(restoreFunc);
+		state->updated = loadByte(restoreFunc);
+		state->paused = loadByte(restoreFunc);
+		state->pauseSticky = loadByte(restoreFunc);
+		state->callLevelCounter = loadInt32(restoreFunc);
 	} else {
-		pState->preventBreakCounter = loadInt32(restoreFunc);
+		state->preventBreakCounter = loadInt32(restoreFunc);
 		loadInt32(restoreFunc);
-		pState->updated = loadInt32(restoreFunc) != 0;
-		pState->all_paused = loadInt32(restoreFunc) ? 1 : 0;
-		pState->paused = false;
-		pState->callLevelCounter = loadInt32(restoreFunc);
+		state->updated = loadInt32(restoreFunc) != 0;
+		state->all_paused = loadInt32(restoreFunc) ? 1 : 0;
+		state->paused = false;
+		state->callLevelCounter = loadInt32(restoreFunc);
 	}
 
 	int32 stackSize = loadInt32(restoreFunc);
 
-	luaM_free(pState->stack.stack);
-	pState->stack.stack = luaM_newvector(stackSize, TObject);
-	pState->stack.last = pState->stack.stack + stackSize - 1;
+	luaM_free(state->stack.stack);
+	state->stack.stack = luaM_newvector(stackSize, TObject);
+	state->stack.last = state->stack.stack + stackSize - 1;
 
 	int32 stackTop = loadInt32(restoreFunc);
 
-	pState->stack.top = pState->stack.stack + stackTop;
+	state->stack.top = state->stack.stack + stackTop;
 
 	for (int32 i = 0; i < stackTop; i++)
-		LoadResolvedObject(&pState->stack.stack[i], restoreFunc);
+		LoadResolvedObject(&state->stack.stack[i], restoreFunc);
 
-	pState->Cstack.base = loadInt32(restoreFunc);
-	pState->Cstack.lua2C = loadInt32(restoreFunc);
-	pState->Cstack.num = loadInt32(restoreFunc);
+	state->Cstack.base = loadInt32(restoreFunc);
+	state->Cstack.lua2C = loadInt32(restoreFunc);
+	state->Cstack.num = loadInt32(restoreFunc);
 
-	pState->numCblocks = loadInt32(restoreFunc);
+	state->numCblocks = loadInt32(restoreFunc);
 
-	for (int32 j = 0; j < pState->numCblocks; j++) {
-		pState->Cblocks[j].base = loadInt32(restoreFunc);
-		pState->Cblocks[j].lua2C = loadInt32(restoreFunc);
-		pState->Cblocks[j].num = loadInt32(restoreFunc);
+	for (int32 j = 0; j < state->numCblocks; j++) {
+		state->Cblocks[j].base = loadInt32(restoreFunc);
+		state->Cblocks[j].lua2C = loadInt32(restoreFunc);
+		state->Cblocks[j].num = loadInt32(restoreFunc);
 	}
 
-	pState->id = loadInt32(restoreFunc);
-	LoadResolvedObject(&pState->taskFunc, restoreFunc);
+	state->id = loadInt32(restoreFunc);
+	LoadResolvedObject(&state->taskFunc, restoreFunc);
 }
 
-int lua_Restore(tSaveRestoreAccess *restoreFunc) {
+int lua_Restore(SaveRestoreAccess *restoreFunc) {
 	if (lua_isopen())
 		lua_close();
 
@@ -602,17 +602,17 @@ int lua_Restore(tSaveRestoreAccess *restoreFunc) {
 
 	RestoreState(lua_rootState, restoreFunc);
 
-	LState *pLState = lua_rootState;
+	LState *lState = lua_rootState;
 
 	for (uint32 i = 1; i < numTasks; i++) {
-		LState *pNewState = luaM_new(LState);
+		LState *newState = luaM_new(LState);
 
-		lua_stateinit(pNewState);
-		RestoreState(pNewState, restoreFunc);
+		lua_stateinit(newState);
+		RestoreState(newState, restoreFunc);
 
-		pNewState->prev = pLState;
-		pLState->next = pNewState;
-		pLState = pNewState;
+		newState->prev = lState;
+		lState->next = newState;
+		lState = newState;
 	}
 
 	lua_state = lua_rootState;

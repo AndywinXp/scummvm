@@ -35,43 +35,43 @@ enum {
 };
 
 BBox::BBox() {
-	max.z = 0.0f;
-	max.y = 0.0f;
-	max.x = 0.0f;
-	min.z = 0.0f;
-	min.y = 0.0f;
-	min.x = 0.0f;
+	_max._z = 0.0f;
+	_max._y = 0.0f;
+	_max._x = 0.0f;
+	_min._z = 0.0f;
+	_min._y = 0.0f;
+	_min._x = 0.0f;
 }
 
 void BBox::init(const float *point) {
-	min.x = point[0];
-	min.y = point[1];
-	min.z = point[2];
-	max.x = point[0];
-	max.y = point[1];
-	max.z = point[2];
+	_min._x = point[0];
+	_min._y = point[1];
+	_min._z = point[2];
+	_max._x = point[0];
+	_max._y = point[1];
+	_max._z = point[2];
 }
 
 void BBox::expand(const float *point) {
-	if (point[0] >= min.x) {
-		if (point[0] > max.x)
-			max.x = point[0];
+	if (point[0] >= _min._x) {
+		if (point[0] > _max._x)
+			_max._x = point[0];
 	} else {
-		min.x = point[0];
+		_min._x = point[0];
 	}
 
-	if (point[1] >= min.y) {
-		if (point[1] > max.y)
-			max.y = point[1];
+	if (point[1] >= _min._y) {
+		if (point[1] > _max._y)
+			_max._y = point[1];
 	} else {
-		min.y = point[1];
+		_min._y = point[1];
 	}
 
-	if (point[2] >= min.z) {
-		if (point[2] > max.z)
-			max.z = point[2];
+	if (point[2] >= _min._z) {
+		if (point[2] > _max._z)
+			_max._z = point[2];
 	} else {
-		min.z = point[2];
+		_min._z = point[2];
 	}
 }
 
@@ -85,20 +85,20 @@ bool BBox::segmentCrossesFaces(const float *start, const float *end, int faceMas
 		float inverse = (float)(1.0 / deltaX);
 
 		if ((faceMask & kFaceMinX) != 0) {
-			double factor = ((double)min.x - start[0]) * inverse;
+			double factor = ((double)_min._x - start[0]) * inverse;
 			float crossY = (float)(factor * deltaY + start[1]);
 			float crossZ = (float)(factor * deltaZ + start[2]);
 
-			if (crossY >= min.y && crossY <= max.y && crossZ >= min.z && crossZ <= max.z)
+			if (crossY >= _min._y && crossY <= _max._y && crossZ >= _min._z && crossZ <= _max._z)
 				return true;
 		}
 
 		if ((faceMask & kFaceMaxX) != 0) {
-			double factor = ((double)max.x - start[0]) * inverse;
+			double factor = ((double)_max._x - start[0]) * inverse;
 			float crossY = (float)(factor * deltaY + start[1]);
 			float crossZ = (float)(factor * deltaZ + start[2]);
 
-			if (crossY >= min.y && crossY <= max.y && crossZ >= min.z && crossZ <= max.z)
+			if (crossY >= _min._y && crossY <= _max._y && crossZ >= _min._z && crossZ <= _max._z)
 				return true;
 		}
 	}
@@ -107,20 +107,20 @@ bool BBox::segmentCrossesFaces(const float *start, const float *end, int faceMas
 		float inverse = (float)(1.0 / deltaY);
 
 		if ((faceMask & kFaceMinY) != 0) {
-			double factor = ((double)min.y - start[1]) * inverse;
+			double factor = ((double)_min._y - start[1]) * inverse;
 			float crossX = (float)(factor * deltaX + start[0]);
 			float crossZ = (float)(factor * deltaZ + start[2]);
 
-			if (crossX >= min.x && crossX <= max.x && crossZ >= min.z && crossZ <= max.z)
+			if (crossX >= _min._x && crossX <= _max._x && crossZ >= _min._z && crossZ <= _max._z)
 				return true;
 		}
 
 		if ((faceMask & kFaceMaxY) != 0) {
-			double factor = ((double)max.y - start[1]) * inverse;
+			double factor = ((double)_max._y - start[1]) * inverse;
 			float crossX = (float)(factor * deltaX + start[0]);
 			float crossZ = (float)(factor * deltaZ + start[2]);
 
-			if (crossX >= min.x && crossX <= max.x && crossZ >= min.z && crossZ <= max.z)
+			if (crossX >= _min._x && crossX <= _max._x && crossZ >= _min._z && crossZ <= _max._z)
 				return true;
 		}
 	}
@@ -131,20 +131,20 @@ bool BBox::segmentCrossesFaces(const float *start, const float *end, int faceMas
 	float inverse = (float)(1.0 / deltaZ);
 
 	if ((faceMask & kFaceMinZ) != 0) {
-		double factor = ((double)min.z - start[2]) * inverse;
+		double factor = ((double)_min._z - start[2]) * inverse;
 		float crossX = (float)(factor * deltaX + start[0]);
 		float crossY = (float)(factor * deltaY + start[1]);
 
-		if (crossX >= min.x && crossX <= max.x && crossY >= min.y && crossY <= max.y)
+		if (crossX >= _min._x && crossX <= _max._x && crossY >= _min._y && crossY <= _max._y)
 			return true;
 	}
 
 	if ((faceMask & kFaceMaxZ) != 0) {
-		double factor = ((double)max.z - start[2]) * inverse;
+		double factor = ((double)_max._z - start[2]) * inverse;
 		float crossX = (float)(factor * deltaX + start[0]);
 		float crossY = (float)(factor * deltaY + start[1]);
 
-		if (crossX >= min.x && crossX <= max.x && crossY >= min.y && crossY <= max.y)
+		if (crossX >= _min._x && crossX <= _max._x && crossY >= _min._y && crossY <= _max._y)
 			return true;
 	}
 

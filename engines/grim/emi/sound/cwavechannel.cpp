@@ -40,24 +40,24 @@ static const float kSpuRegisterScale = 16383.0f;
 static const float kSpuVoiceStreamGain = 0.55f;
 
 CWaveChannel::CWaveChannel(CWaveAudioDevice *device) : CAudioChannel(device->getEngine()), _device(device), _driver(device->getMilesDriver()) {
-	started = false;
-	hSample = nullptr;
-	cue = nullptr;
-	spuVolume = 0.0f;
-	spuBalance = 0.0f;
+	_started = false;
+	_sample = nullptr;
+	_cue = nullptr;
+	_spuVolume = 0.0f;
+	_spuBalance = 0.0f;
 
 	if (_driver) {
-		hSample = _driver->allocateSample();
+		_sample = _driver->allocateSample();
 
-		if (hSample)
-			_driver->initSample(hSample);
+		if (_sample)
+			_driver->initSample(_sample);
 	}
 }
 
 CWaveChannel::~CWaveChannel() {
-	if (hSample) {
-		_driver->releaseSample(hSample);
-		hSample = nullptr;
+	if (_sample) {
+		_driver->releaseSample(_sample);
+		_sample = nullptr;
 	}
 }
 
@@ -73,9 +73,9 @@ int CWaveChannel::update() {
 	int status = getStatus();
 
 	if (status == 2) {
-		if (started) {
-			if (cue) {
-				cue->state = CSoundCue::kStateFinished;
+		if (_started) {
+			if (_cue) {
+				_cue->_state = CSoundCue::kStateFinished;
 				release();
 			}
 		}
@@ -85,25 +85,25 @@ int CWaveChannel::update() {
 }
 
 bool CWaveChannel::assignToSample(CSoundCue *newCue) {
-	if (!hSample)
+	if (!_sample)
 		warning("CWaveChannel::assignToSample(): the sample is missing");
 
-	if (cue)
+	if (_cue)
 		warning("CWaveChannel::assignToSample(): the channel already has a cue");
 
-	if (!hSample)
+	if (!_sample)
 		return false;
 
 	if (!newCue)
 		return false;
 
-	CWaveSound *waveSound = newCue->sound;
+	CWaveSound *waveSound = newCue->_sound;
 
 	if (!waveSound) {
 		const char *failedName = "<file_error>";
 
-		if (newCue->soundHandle.resource)
-			failedName = newCue->soundHandle.resource->name.c_str();
+		if (newCue->_soundHandle._resource)
+			failedName = newCue->_soundHandle._resource->_name.c_str();
 
 		warning("CWaveChannel::assignToSample(): can't load sound file <%s>", failedName);
 
@@ -111,10 +111,10 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 	}
 
 	if (waveSound->getType() == CWaveSound::kTypeWave) {
-		started = false;
-		_driver->setSampleFilter(hSample, false);
-		_driver->initSample(hSample);
-		_driver->setSampleAddress(hSample, waveSound->samples, waveSound->allocatedSize);
+		_started = false;
+		_driver->setSampleFilter(_sample, false);
+		_driver->initSample(_sample);
+		_driver->setSampleAddress(_sample, waveSound->_samples, waveSound->_allocatedSize);
 
 		int format = 1;
 
@@ -143,9 +143,9 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 			break;
 		}
 
-		_driver->setSampleType(hSample, format);
+		_driver->setSampleType(_sample, format);
 
-		double rate = waveSound->sampleRate;
+		double rate = waveSound->_sampleRate;
 
 		if (!(rate >= 0.0 && rate <= 2147483647.0)) {
 			warning("CWaveChannel::assignToSample(): invalid sample rate");
@@ -153,7 +153,7 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 		}
 
 		setPlaybackRate((int)rate);
-		cue = newCue;
+		_cue = newCue;
 		applyCueSettings(newCue);
 	}
 
@@ -161,70 +161,70 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 }
 
 void CWaveChannel::release() {
-	if (cue) {
-		cue->channel = nullptr;
-		cue = nullptr;
+	if (_cue) {
+		_cue->_channel = nullptr;
+		_cue = nullptr;
 	}
 
-	if (hSample) {
-		_driver->setSampleFilter(hSample, false);
-		_driver->initSample(hSample);
+	if (_sample) {
+		_driver->setSampleFilter(_sample, false);
+		_driver->initSample(_sample);
 	}
 
-	started = false;
+	_started = false;
 }
 
 void CWaveChannel::start() {
-	if (hSample) {
-		if (cue) {
-			_driver->startSample(hSample);
-			cue->state = CSoundCue::kStatePlaying;
-			started = true;
+	if (_sample) {
+		if (_cue) {
+			_driver->startSample(_sample);
+			_cue->_state = CSoundCue::kStatePlaying;
+			_started = true;
 		}
 	}
 }
 
 void CWaveChannel::stop() {
-	if (!hSample)
+	if (!_sample)
 		warning("CWaveChannel::stop(): the sample is missing");
 
-	if (hSample) {
-		_driver->endSample(hSample);
+	if (_sample) {
+		_driver->endSample(_sample);
 
-		if (cue)
-			cue->state = CSoundCue::kStateStopped;
+		if (_cue)
+			_cue->_state = CSoundCue::kStateStopped;
 
 		release();
 	}
 }
 
 void CWaveChannel::pause() {
-	if (hSample) {
-		paused = _driver->getSampleStatus(hSample) == EMIMilesDriver::kSamplePlaying || paused;
-		_driver->stopSample(hSample);
+	if (_sample) {
+		_paused = _driver->getSampleStatus(_sample) == EMIMilesDriver::kSamplePlaying || _paused;
+		_driver->stopSample(_sample);
 
-		if (cue)
-			cue->state = CSoundCue::kStatePaused;
+		if (_cue)
+			_cue->_state = CSoundCue::kStatePaused;
 	}
 }
 
 void CWaveChannel::resume() {
-	if (hSample) {
-		if (paused) {
-			_driver->resumeSample(hSample);
-			paused = false;
+	if (_sample) {
+		if (_paused) {
+			_driver->resumeSample(_sample);
+			_paused = false;
 
-			if (cue)
-				cue->state = CSoundCue::kStatePlaying;
+			if (_cue)
+				_cue->_state = CSoundCue::kStatePlaying;
 		}
 	}
 }
 
 int CWaveChannel::getStatus() {
-	if (!hSample)
+	if (!_sample)
 		return 0;
 
-	switch (_driver->getSampleStatus(hSample)) {
+	switch (_driver->getSampleStatus(_sample)) {
 	case EMIMilesDriver::kSampleFree:
 		return 1;
 
@@ -248,27 +248,27 @@ int CWaveChannel::getStatus() {
 }
 
 int CWaveChannel::getPositionMs(int *totalMs) {
-	if (!hSample)
+	if (!_sample)
 		return -1;
 
 	int currentMs = 0;
 
-	_driver->getSampleMsPosition(hSample, totalMs, &currentMs);
+	_driver->getSampleMsPosition(_sample, totalMs, &currentMs);
 
 	return currentMs;
 }
 
 void CWaveChannel::setPositionMs(int milliseconds) {
-	if (hSample)
-		_driver->setSampleMsPosition(hSample, milliseconds);
+	if (_sample)
+		_driver->setSampleMsPosition(_sample, milliseconds);
 }
 
 void CWaveChannel::setVolume(float volume) {
-	if (!hSample)
+	if (!_sample)
 		return;
 
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		if (!cue)
+		if (!_cue)
 			return;
 
 		float limited = volume < 1.0f ? volume : 1.0f;
@@ -278,7 +278,7 @@ void CWaveChannel::setVolume(float volume) {
 
 		int ailVolume = (int)(limited * 127.0f);
 
-		if (cue->category == 1)
+		if (_cue->_category == 1)
 			setSpuSampleVolume(ailVolume);
 		else
 			setSpuStreamVolume(ailVolume);
@@ -295,20 +295,20 @@ void CWaveChannel::setVolume(float volume) {
 	else
 		clamped = volume;
 
-	_driver->setSampleVolume(hSample, (int)((double)clamped * (double)kMaxSampleVolume));
+	_driver->setSampleVolume(_sample, (int)((double)clamped * (double)kMaxSampleVolume));
 }
 
 void CWaveChannel::setPlaybackRate(int rate) {
-	if (hSample)
-		_driver->setSampleRate(hSample, rate);
+	if (_sample)
+		_driver->setSampleRate(_sample, rate);
 }
 
 void CWaveChannel::setPan(float pan) {
-	if (!hSample)
+	if (!_sample)
 		return;
 
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		if (!cue)
+		if (!_cue)
 			return;
 
 		float limited = pan < 1.0f ? pan : 1.0f;
@@ -324,7 +324,7 @@ void CWaveChannel::setPan(float pan) {
 			ailPan = 63.0f + 64.0f * limited;
 
 		// A voice stream ignores the pan
-		if (cue->category == 1)
+		if (_cue->_category == 1)
 			setSpuSamplePan((int)ailPan);
 
 		return;
@@ -339,11 +339,11 @@ void CWaveChannel::setPan(float pan) {
 	else
 		clamped = pan;
 
-	_driver->setSamplePan(hSample, (int)((double)clamped * 64.0 + 64.0));
+	_driver->setSamplePan(_sample, (int)((double)clamped * 64.0 + 64.0));
 }
 
 bool CWaveChannel::setReverb(int preset, float time, float mix, float unusedFirst, float damping, float unusedSecond) {
-	if (!hSample)
+	if (!_sample)
 		return false;
 
 	if (!(time >= 0.01f && time <= 8000.0f))
@@ -356,52 +356,52 @@ bool CWaveChannel::setReverb(int preset, float time, float mix, float unusedFirs
 		damping = -1.0f;
 
 	if (preset != 0 || !(time < 0.0f) || !(mix < 0.0f) || !(damping < 0.0f)) {
-		_driver->setSampleFilter(hSample, true);
-		_driver->setSampleFilterEnvironment(hSample, (float)preset);
+		_driver->setSampleFilter(_sample, true);
+		_driver->setSampleFilterEnvironment(_sample, (float)preset);
 
 		if (time >= 0.0f)
-			_driver->setSampleFilterTime(hSample, time);
+			_driver->setSampleFilterTime(_sample, time);
 
 		if (mix >= 0.0f)
-			_driver->setSampleFilterMix(hSample, mix);
+			_driver->setSampleFilterMix(_sample, mix);
 
 		if (damping >= 0.0f)
-			_driver->setSampleFilterDamping(hSample, damping);
+			_driver->setSampleFilterDamping(_sample, damping);
 	} else {
-		_driver->setSampleFilter(hSample, false);
+		_driver->setSampleFilter(_sample, false);
 	}
 
 	return true;
 }
 
 bool CWaveChannel::hasFiniteLoopCount() {
-	if (!hSample)
+	if (!_sample)
 		return false;
 
-	int count = _driver->getSampleLoopCount(hSample);
+	int count = _driver->getSampleLoopCount(_sample);
 
 	return count > 1 && count < kSilentTailLoopCount;
 }
 
 void CWaveChannel::setLoopCount(int count) {
-	if (hSample)
-		_driver->setSampleLoopCount(hSample, count);
+	if (_sample)
+		_driver->setSampleLoopCount(_sample, count);
 }
 
 void CWaveChannel::setCutoff(float nearDistance, float farDistance) {
 }
 
 void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
-	if (!newCue || !hSample)
+	if (!newCue || !_sample)
 		return;
 
 	// PS2 only sets the loop flag; the SPU jumps to the loop address given by the ADPCM flags
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		if ((newCue->flags & CSoundCue::kFlagLoop) != 0) {
+		if ((newCue->_flags & CSoundCue::kFlagLoop) != 0) {
 			setLoopCount(0);
 
-			if (newCue->sound)
-				_driver->setSampleLoopBlock(hSample, (int)newCue->sound->spuLoopStart, -1);
+			if (newCue->_sound)
+				_driver->setSampleLoopBlock(_sample, (int)newCue->_sound->_spuLoopStart, -1);
 		}
 
 		return;
@@ -421,13 +421,13 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 	setReverb(preset, reverbFirst, reverbSecond, reverbThird, reverbFourth, reverbFifth);
 	setCutoff(newCue->getCutoffNear(), newCue->getCutoffFar());
 
-	CWaveSound *waveSound = newCue->sound;
+	CWaveSound *waveSound = newCue->_sound;
 
-	if ((newCue->flags & CSoundCue::kFlagLoop) != 0) {
+	if ((newCue->_flags & CSoundCue::kFlagLoop) != 0) {
 		setLoopCount(0);
 
 		if (waveSound)
-			_driver->setSampleLoopBlock(hSample, (int)waveSound->loopStart, (int)waveSound->loopEnd);
+			_driver->setSampleLoopBlock(_sample, (int)waveSound->_loopStart, (int)waveSound->_loopEnd);
 	} else {
 		setLoopCount(kSilentTailLoopCount);
 
@@ -469,32 +469,32 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 				return;
 			}
 
-			if (!waveSound->samples || waveSound->allocatedSize == 0) {
+			if (!waveSound->_samples || waveSound->_allocatedSize == 0) {
 				warning("CWaveChannel::applyCueSettings(): the sound has no samples");
 				setLoopCount(1);
 
 				return;
 			}
 
-			double scaledRate = waveSound->sampleRate * (double)0.0005f;
-			int lastByte = (int)waveSound->allocatedSize - 1;
+			double scaledRate = waveSound->_sampleRate * (double)0.0005f;
+			int lastByte = (int)waveSound->_allocatedSize - 1;
 			int silentStart = lastByte - (int16)(int)(scaledRate * (double)frameBytes + 0.5) - (int)kSilentTailHeadroom;
 
 			if (silentStart < 0)
 				silentStart = 0;
 
 			if (silentStart < lastByte)
-				memset(waveSound->samples + silentStart, silence, lastByte - silentStart);
+				memset(waveSound->_samples + silentStart, silence, lastByte - silentStart);
 
-			_driver->setSampleLoopBlock(hSample, silentStart + (int)kSilentTailHeadroom, lastByte - 1);
+			_driver->setSampleLoopBlock(_sample, silentStart + (int)kSilentTailHeadroom, lastByte - 1);
 		}
 	}
 }
 
 void CWaveChannel::updateSpatialization() {
-	if (cue) {
-		if (cue->position.valid)
-			cue->updateSpatialization();
+	if (_cue) {
+		if (_cue->_position._valid)
+			_cue->updateSpatialization();
 	}
 }
 
@@ -508,10 +508,10 @@ void CWaveChannel::setSpuSampleVolume(int volume) {
 	int left = 0;
 	int right = 0;
 
-	spuVolume = (float)volume / 127.0f;
+	_spuVolume = (float)volume / 127.0f;
 
-	if (getAttenuatedVolumes(spuVolume, spuBalance, &left, &right))
-		_driver->setSampleSpuVolume(hSample, left, right);
+	if (getAttenuatedVolumes(_spuVolume, _spuBalance, &left, &right))
+		_driver->setSampleSpuVolume(_sample, left, right);
 }
 
 void CWaveChannel::setSpuSamplePan(int pan) {
@@ -524,14 +524,14 @@ void CWaveChannel::setSpuSamplePan(int pan) {
 	int left = 0;
 	int right = 0;
 
-	spuBalance = ((float)pan - 64.0f) / 64.0f;
+	_spuBalance = ((float)pan - 64.0f) / 64.0f;
 
 	// In mono output every pan is centered
 	if (!_device->getSpuStereo())
-		spuBalance = 0.0f;
+		_spuBalance = 0.0f;
 
-	if (getAttenuatedVolumes(spuVolume, spuBalance, &left, &right))
-		_driver->setSampleSpuVolume(hSample, left, right);
+	if (getAttenuatedVolumes(_spuVolume, _spuBalance, &left, &right))
+		_driver->setSampleSpuVolume(_sample, left, right);
 }
 
 void CWaveChannel::setSpuStreamVolume(int volume) {
@@ -544,15 +544,15 @@ void CWaveChannel::setSpuStreamVolume(int volume) {
 	float scaled = kSpuRegisterScale * (kSpuVoiceStreamGain * ((float)volume / 127.0f));
 	int level = scaled > 0.0f ? (int)scaled : 0;
 
-	_driver->setSampleSpuVolume(hSample, level, level);
+	_driver->setSampleSpuVolume(_sample, level, level);
 }
 
 void CWaveChannel::endSpuSample() {
 	// On PS2, voices are IOP streams, not SPU samples
-	if (!hSample || !started || (cue && cue->category == 2))
+	if (!_sample || !_started || (_cue && _cue->_category == 2))
 		return;
 
-	_driver->endSample(hSample);
+	_driver->endSample(_sample);
 }
 
 bool CWaveChannel::getAttenuatedVolumes(float volume, float balance, int *left, int *right) {

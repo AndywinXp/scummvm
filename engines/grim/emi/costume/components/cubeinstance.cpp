@@ -28,43 +28,43 @@
 namespace Grim {
 
 CubeInstance::CubeInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
-	boxInstance = nullptr;
+	_owner = actor;
+	_boxInstance = nullptr;
 
 	CubeComponent *component = nullptr;
 
-	if (handle.lock())
-		component = dynamic_cast<CubeComponent *>(handle.typed);
+	if (_handle.lock())
+		component = dynamic_cast<CubeComponent *>(_handle._typed);
 
 	if (!component) {
 		warning("CubeInstance::CubeInstance(): cannot get the cube component %s", componentName.c_str());
-	} else if (!owner) {
+	} else if (!_owner) {
 		warning("CubeInstance::CubeInstance(): no owner");
 	} else {
-		boxInstance = static_cast<RBoxInstance *>(component->RBox::createInstance());
-		owner->instances.push_back(boxInstance);
+		_boxInstance = static_cast<RBoxInstance *>(component->RBox::createInstance());
+		_owner->_instances.push_back(_boxInstance);
 	}
 
-	handle.unlock();
+	_handle.unlock();
 
-	if (boxInstance)
-		boxInstance->visible = true;
+	if (_boxInstance)
+		_boxInstance->_visible = true;
 }
 
 CubeInstance::~CubeInstance() {
-	if (owner && boxInstance) {
-		int index = owner->findPrimitiveInstance(boxInstance);
+	if (_owner && _boxInstance) {
+		int index = _owner->findPrimitiveInstance(_boxInstance);
 
-		owner->removePrimitiveInstance(index);
-		delete boxInstance;
-		boxInstance = nullptr;
+		_owner->removePrimitiveInstance(index);
+		delete _boxInstance;
+		_boxInstance = nullptr;
 	}
 }
 
 void CubeInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
 	// The disasm treats NaN as zero
-	if (boxInstance)
-		boxInstance->visible = (value < 0.0f || value > 0.0f);
+	if (_boxInstance)
+		_boxInstance->_visible = (value < 0.0f || value > 0.0f);
 }
 
 } // End of namespace Grim

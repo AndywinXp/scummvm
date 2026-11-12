@@ -78,7 +78,7 @@ public:
 	static int writeHeader(LFile *file, const PcxHeader *header);
 	static int encodeLine(const byte *source, byte *dest, int length);
 
-	LBitmap *bitmap;
+	LBitmap *_bitmap;
 
 private:
 	EmiEngine *_engine;

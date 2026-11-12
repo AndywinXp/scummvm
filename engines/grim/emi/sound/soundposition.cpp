@@ -28,17 +28,17 @@ SoundPosition::SoundPosition() {
 }
 
 void SoundPosition::set(float x, float y, float z) {
-	pos.x = x;
-	valid = true;
-	pos.y = y;
-	pos.z = z;
+	_pos._x = x;
+	_valid = true;
+	_pos._y = y;
+	_pos._z = z;
 }
 
 void SoundPosition::clear() {
-	valid = false;
-	pos.x = 0.0f;
-	pos.y = 0.0f;
-	pos.z = 0.0f;
+	_valid = false;
+	_pos._x = 0.0f;
+	_pos._y = 0.0f;
+	_pos._z = 0.0f;
 }
 
 } // End of namespace Grim

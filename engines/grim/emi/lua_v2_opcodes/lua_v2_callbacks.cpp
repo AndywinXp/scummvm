@@ -29,7 +29,7 @@ int Lua_V2::doExitCallback() {
 	bool called = false;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("exitHandler");
 
 	lua_Object handler = lua_gettable();
@@ -63,7 +63,7 @@ int Lua_V2::doPauseCallback() {
 	bool called = false;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("pauseHandler");
 
 	lua_Object handler = lua_gettable();
@@ -99,7 +99,7 @@ int Lua_V2::doCharacterCallback(int character) {
 	bool callHandler = false;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("characterHandler");
 
 	lua_Object handler = lua_gettable();

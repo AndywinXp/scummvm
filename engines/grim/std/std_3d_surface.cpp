@@ -33,18 +33,18 @@
 
 namespace Grim {
 
-static int resolveRect(const Std3DSurface *pSurface, const StdRect *pRect, StdRect *pResult) {
-	if (pRect) {
-		*pResult = *pRect;
+static int resolveRect(const Std3DSurface *surface, const StdRect *rect, StdRect *result) {
+	if (rect) {
+		*result = *rect;
 	} else {
-		pResult->x = 0;
-		pResult->y = 0;
-		pResult->width = pSurface->width;
-		pResult->height = pSurface->height;
+		result->x = 0;
+		result->y = 0;
+		result->width = surface->width;
+		result->height = surface->height;
 	}
 
-	if (pResult->x < 0 || pResult->y < 0 || pResult->width < 0 || pResult->height < 0 ||
-		pResult->x + pResult->width > pSurface->width || pResult->y + pResult->height > pSurface->height) {
+	if (result->x < 0 || result->y < 0 || result->width < 0 || result->height < 0 ||
+		result->x + result->width > surface->width || result->y + result->height > surface->height) {
 		warning("Std3D: rectangle outside the surface");
 		return 0;
 	}
@@ -53,139 +53,139 @@ static int resolveRect(const Std3DSurface *pSurface, const StdRect *pRect, StdRe
 }
 
 // A surface that outlived its backend has no backend data
-static int hasBackendData(const Std3DSurface *pSurface, const char *pFunction) {
-	if (!pSurface->pBackendData) {
-		warning("Std3D::%s(): the surface has no backend data", pFunction);
+static int hasBackendData(const Std3DSurface *surface, const char *function) {
+	if (!surface->backendData) {
+		warning("Std3D::%s(): the surface has no backend data", function);
 		return 0;
 	}
 
 	return 1;
 }
 
-void Std3D::markGpuDirty(Std3DSurface *pSurface, int x, int y, int width, int height) {
+void Std3D::markGpuDirty(Std3DSurface *surface, int x, int y, int width, int height) {
 	int left = MAX(x, 0);
 	int top = MAX(y, 0);
-	int right = MIN(x + width, pSurface->width);
-	int bottom = MIN(y + height, pSurface->height);
+	int right = MIN(x + width, surface->width);
+	int bottom = MIN(y + height, surface->height);
 
 	if (right <= left || bottom <= top)
 		return;
 
-	if (!pSurface->gpuDirty) {
-		pSurface->gpuDirty = 1;
-		pSurface->dirtyLeft = left;
-		pSurface->dirtyTop = top;
-		pSurface->dirtyRight = right;
-		pSurface->dirtyBottom = bottom;
+	if (!surface->gpuDirty) {
+		surface->gpuDirty = 1;
+		surface->dirtyLeft = left;
+		surface->dirtyTop = top;
+		surface->dirtyRight = right;
+		surface->dirtyBottom = bottom;
 		return;
 	}
 
-	pSurface->dirtyLeft = MIN(pSurface->dirtyLeft, left);
-	pSurface->dirtyTop = MIN(pSurface->dirtyTop, top);
-	pSurface->dirtyRight = MAX(pSurface->dirtyRight, right);
-	pSurface->dirtyBottom = MAX(pSurface->dirtyBottom, bottom);
+	surface->dirtyLeft = MIN(surface->dirtyLeft, left);
+	surface->dirtyTop = MIN(surface->dirtyTop, top);
+	surface->dirtyRight = MAX(surface->dirtyRight, right);
+	surface->dirtyBottom = MAX(surface->dirtyBottom, bottom);
 }
 
-Std3DSurface *Std3D::createSurface(int width, int height, int bHasDepth) {
+Std3DSurface *Std3D::createSurface(int width, int height, int hasDepth) {
 	if (!ensureBackend())
 		return nullptr;
 
-	int maxSize = _pBackend->getMaxTextureSize();
+	int maxSize = _backend->getMaxTextureSize();
 
 	if (width <= 0 || height <= 0 || width > maxSize || height > maxSize) {
 		warning("Std3D::createSurface(): invalid surface size");
 		return nullptr;
 	}
 
-	Std3DSurface *pSurface = new Std3DSurface;
+	Std3DSurface *surface = new Std3DSurface;
 
-	memset(pSurface, 0, sizeof(Std3DSurface));
-	pSurface->width = width;
-	pSurface->height = height;
+	memset(surface, 0, sizeof(Std3DSurface));
+	surface->width = width;
+	surface->height = height;
 
-	if (!_pBackend->createSurface(pSurface, bHasDepth, _zBufferBitDepth)) {
-		delete pSurface;
+	if (!_backend->createSurface(surface, hasDepth, _zBufferBitDepth)) {
+		delete surface;
 		return nullptr;
 	}
 
-	return pSurface;
+	return surface;
 }
 
-void Std3D::destroySurface(Std3DSurface *&pSurface) {
-	if (!pSurface)
+void Std3D::destroySurface(Std3DSurface *&surface) {
+	if (!surface)
 		return;
 
-	if (pSurface == _pRenderTarget)
-		_pRenderTarget = nullptr;
+	if (surface == _renderTarget)
+		_renderTarget = nullptr;
 
-	if (_pBackend)
-		_pBackend->destroySurface(pSurface);
+	if (_backend)
+		_backend->destroySurface(surface);
 
-	delete[] pSurface->pReference;
-	delete pSurface;
-	pSurface = nullptr;
+	delete[] surface->reference;
+	delete surface;
+	surface = nullptr;
 }
 
-int Std3D::uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes) {
-	if (!pSurface || !pPixels || !ensureBackend() || !hasBackendData(pSurface, "uploadPixels"))
+int Std3D::uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes) {
+	if (!surface || !pixels || !ensureBackend() || !hasBackendData(surface, "uploadPixels"))
 		return 0;
 
 	StdRect rect;
 
-	if (!resolveRect(pSurface, pRect, &rect))
+	if (!resolveRect(surface, rectPointer, &rect))
 		return 0;
 
 	if (rect.width == 0 || rect.height == 0)
 		return 1;
 
-	return _pBackend->uploadPixels(pSurface, &rect, pPixels, pitchInBytes);
+	return _backend->uploadPixels(surface, &rect, pixels, pitchInBytes);
 }
 
-int Std3D::readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes) {
-	if (!pSurface || !pOut || !ensureBackend() || !hasBackendData(pSurface, "readPixels"))
+int Std3D::readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes) {
+	if (!surface || !out || !ensureBackend() || !hasBackendData(surface, "readPixels"))
 		return 0;
 
 	StdRect rect;
 
-	if (!resolveRect(pSurface, pRect, &rect))
+	if (!resolveRect(surface, rectPointer, &rect))
 		return 0;
 
 	if (rect.width == 0 || rect.height == 0)
 		return 1;
 
-	return _pBackend->readPixels(pSurface, &rect, pOut, pitchInBytes);
+	return _backend->readPixels(surface, &rect, out, pitchInBytes);
 }
 
-int Std3D::fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color) {
-	if (!pSurface || !ensureBackend() || !hasBackendData(pSurface, "fillRect"))
+int Std3D::fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color) {
+	if (!surface || !ensureBackend() || !hasBackendData(surface, "fillRect"))
 		return 0;
 
 	StdRect rect;
 
-	if (!resolveRect(pSurface, pRect, &rect))
+	if (!resolveRect(surface, rectPointer, &rect))
 		return 0;
 
 	if (rect.width == 0 || rect.height == 0)
 		return 1;
 
-	markGpuDirty(pSurface, rect.x, rect.y, rect.width, rect.height);
-	return _pBackend->fillRect(pSurface, &rect, color);
+	markGpuDirty(surface, rect.x, rect.y, rect.width, rect.height);
+	return _backend->fillRect(surface, &rect, color);
 }
 
-int Std3D::blit(Std3DSurface *pDst, Std3DSurface *pSrc, const StdRect *pSrcRect, int dstX, int dstY, int bColorKey, uint16 colorKey) {
-	if (!pDst || !pSrc || !ensureBackend() || !hasBackendData(pDst, "blit") || !hasBackendData(pSrc, "blit"))
+int Std3D::blit(Std3DSurface *dst, Std3DSurface *src, const StdRect *srcRectPointer, int dstX, int dstY, int colorKeyFlag, uint16 colorKey) {
+	if (!dst || !src || !ensureBackend() || !hasBackendData(dst, "blit") || !hasBackendData(src, "blit"))
 		return 0;
 
 	int srcX = 0;
 	int srcY = 0;
-	int width = pSrc->width;
-	int height = pSrc->height;
+	int width = src->width;
+	int height = src->height;
 
-	if (pSrcRect) {
-		srcX = pSrcRect->x;
-		srcY = pSrcRect->y;
-		width = pSrcRect->width;
-		height = pSrcRect->height;
+	if (srcRectPointer) {
+		srcX = srcRectPointer->x;
+		srcY = srcRectPointer->y;
+		width = srcRectPointer->width;
+		height = srcRectPointer->height;
 	}
 
 	if (srcX < 0) {
@@ -200,11 +200,11 @@ int Std3D::blit(Std3DSurface *pDst, Std3DSurface *pSrc, const StdRect *pSrcRect,
 		srcY = 0;
 	}
 
-	if (srcX + width > pSrc->width)
-		width = pSrc->width - srcX;
+	if (srcX + width > src->width)
+		width = src->width - srcX;
 
-	if (srcY + height > pSrc->height)
-		height = pSrc->height - srcY;
+	if (srcY + height > src->height)
+		height = src->height - srcY;
 
 	if (dstX < 0) {
 		srcX -= dstX;
@@ -218,19 +218,19 @@ int Std3D::blit(Std3DSurface *pDst, Std3DSurface *pSrc, const StdRect *pSrcRect,
 		dstY = 0;
 	}
 
-	if (dstX + width > pDst->width)
-		width = pDst->width - dstX;
+	if (dstX + width > dst->width)
+		width = dst->width - dstX;
 
-	if (dstY + height > pDst->height)
-		height = pDst->height - dstY;
+	if (dstY + height > dst->height)
+		height = dst->height - dstY;
 
 	if (width <= 0 || height <= 0)
 		return 1;
 
-	if (pDst == pSrc && !_pBackend->canBlitOntoSelf()) {
-		Std3DSurface *pScratch = createSurface(width, height, 0);
+	if (dst == src && !_backend->canBlitOntoSelf()) {
+		Std3DSurface *scratch = createSurface(width, height, 0);
 
-		if (!pScratch)
+		if (!scratch)
 			return 0;
 
 		StdRect srcRect;
@@ -240,41 +240,41 @@ int Std3D::blit(Std3DSurface *pDst, Std3DSurface *pSrc, const StdRect *pSrcRect,
 		srcRect.width = width;
 		srcRect.height = height;
 
-		int result = blit(pScratch, pSrc, &srcRect, 0, 0, 0, 0) && blit(pDst, pScratch, nullptr, dstX, dstY, bColorKey, colorKey);
+		int result = blit(scratch, src, &srcRect, 0, 0, 0, 0) && blit(dst, scratch, nullptr, dstX, dstY, colorKeyFlag, colorKey);
 
-		destroySurface(pScratch);
+		destroySurface(scratch);
 		return result;
 	}
 
-	markGpuDirty(pDst, dstX, dstY, width, height);
-	return _pBackend->blit(pDst, pSrc, srcX, srcY, width, height, dstX, dstY, bColorKey, colorKey);
+	markGpuDirty(dst, dstX, dstY, width, height);
+	return _backend->blit(dst, src, srcX, srcY, width, height, dstX, dstY, colorKeyFlag, colorKey);
 }
 
-int Std3D::uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes) {
-	if (!pSurface || !pZData || !ensureBackend() || !hasBackendData(pSurface, "uploadDepth"))
+int Std3D::uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes) {
+	if (!surface || !zData || !ensureBackend() || !hasBackendData(surface, "uploadDepth"))
 		return 0;
 
-	if (!_pBackend->supportsDepthUpload(pSurface)) {
+	if (!_backend->supportsDepthUpload(surface)) {
 		warning("Std3D::uploadDepth(): depth upload is not available");
 		return 0;
 	}
 
 	StdRect rect;
 
-	if (!resolveRect(pSurface, pRect, &rect))
+	if (!resolveRect(surface, rectPointer, &rect))
 		return 0;
 
 	if (rect.width == 0 || rect.height == 0)
 		return 1;
 
-	return _pBackend->uploadDepth(pSurface, &rect, pZData, pitchInBytes);
+	return _backend->uploadDepth(surface, &rect, zData, pitchInBytes);
 }
 
-int Std3D::presentSurface(Std3DSurface *pSurface) {
-	if (!pSurface || !ensureBackend() || !hasBackendData(pSurface, "presentSurface"))
+int Std3D::presentSurface(Std3DSurface *surface) {
+	if (!surface || !ensureBackend() || !hasBackendData(surface, "presentSurface"))
 		return 0;
 
-	return _pBackend->presentSurface(pSurface);
+	return _backend->presentSurface(surface);
 }
 
 } // End of namespace Grim

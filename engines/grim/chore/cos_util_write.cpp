@@ -28,30 +28,30 @@
 
 namespace Grim {
 
-int CosUtil::write(const char *path, CosCostume *pCostume, const char *header) {
-	if (!path || !pCostume) {
+int CosUtil::write(const char *path, CosCostume *costume, const char *header) {
+	if (!path || !costume) {
 		warning("CosUtil::write(): null path or costume");
 		return 0;
 	}
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
 
-		for (int i = 0; i < pChore->numTracks; i++) {
-			for (int j = 0; j < pChore->numTracks; j++) {
-				if (i != j && pChore->aTracks[i].compIndex == pChore->aTracks[j].compIndex)
+		for (int i = 0; i < chore->numTracks; i++) {
+			for (int j = 0; j < chore->numTracks; j++) {
+				if (i != j && chore->tracks[i].compIndex == chore->tracks[j].compIndex)
 					return 0;
 			}
 		}
 	}
 
-	int numTags = collectTags(pCostume);
+	int numTags = collectTags(costume);
 
-	if (_pCos->_pSaveHook) {
+	if (_cos->_saveHook) {
 		int costumeIndex = -1;
 
-		for (int i = 0; i < _pCos->_maxCostumes; i++) {
-			if (&_pCos->_aCostumes[i] == pCostume) {
+		for (int i = 0; i < _cos->_maxCostumes; i++) {
+			if (&_cos->_costumes[i] == costume) {
 				costumeIndex = i;
 				break;
 			}
@@ -62,7 +62,7 @@ int CosUtil::write(const char *path, CosCostume *pCostume, const char *header) {
 			return 0;
 		}
 
-		if (!_pCos->_pSaveHook(path, _pCos->indexToHandle(costumeIndex), header))
+		if (!_cos->_saveHook(path, _cos->indexToHandle(costumeIndex), header))
 			return 0;
 	}
 
@@ -71,19 +71,19 @@ int CosUtil::write(const char *path, CosCostume *pCostume, const char *header) {
 	if (!file.open(path))
 		return 0;
 
-	const char *pName = strrchr(path, '\\');
+	const char *name = strrchr(path, '\\');
 
-	if (pName)
-		pName++;
+	if (name)
+		name++;
 	else
-		pName = path;
+		name = path;
 
-	if (strlen(pName) > 0x20) {
+	if (strlen(name) > 0x20) {
 		file.close();
 		return 0;
 	}
 
-	Common::strlcpy(pCostume->name, pName, 32);
+	Common::strlcpy(costume->name, name, 32);
 
 	if (!header) {
 		warning("CosUtil::write(): null header");
@@ -97,96 +97,96 @@ int CosUtil::write(const char *path, CosCostume *pCostume, const char *header) {
 	file.writeString("#\tID\tTag\t\t\tClass\tName\n");
 
 	for (int i = 0; i < numTags; i++) {
-		CosComponentClass *pClass = &_pCos->_aClasses[_pCos->_aTagMap[i]];
+		CosComponentClass *classInfo = &_cos->_classes[_cos->_tagMap[i]];
 		char fourcc[5];
-		const char *pType;
+		const char *type;
 
-		WRITE_LE_UINT32(fourcc, pClass->fourcc);
+		WRITE_LE_UINT32(fourcc, classInfo->fourcc);
 		fourcc[4] = 0;
 
-		if (pClass->type == kCosTagStateBased)
-			pType = "fs";
-		else if (pClass->type == kCosTagInt)
-			pType = "int";
+		if (classInfo->type == kCosTagStateBased)
+			type = "fs";
+		else if (classInfo->type == kCosTagInt)
+			type = "int";
 		else
-			pType = "float";
+			type = "float";
 
-		file.writeString(Common::String::format("\t%d\t'%s'\t%s\t\t%s\n", i, fourcc, pType, pClass->name));
+		file.writeString(Common::String::format("\t%d\t'%s'\t%s\t\t%s\n", i, fourcc, type, classInfo->name));
 	}
 
 	file.writeString("\n\nsection components\n");
-	file.writeString(Common::String::format("\tnumcomponents %d\n\n", pCostume->numComponents));
+	file.writeString(Common::String::format("\tnumcomponents %d\n\n", costume->numComponents));
 	file.writeString("#\tID\tTagID\tHash\tParentID\tName\n");
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponent *comp = &costume->components[i];
 		int tagIndex = 0;
 
-		while (tagIndex < numTags && _pCos->_aTagMap[tagIndex] != pComp->classIdx)
+		while (tagIndex < numTags && _cos->_tagMap[tagIndex] != comp->classIdx)
 			tagIndex++;
 
 		if (tagIndex == numTags)
 			warning("CosUtil::write(): j != numTags");
 
-		file.writeString(Common::String::format("\t%d\t%d\t\t%d\t\t%d\t\t\t%s\n", i, tagIndex, pComp->depthIdx, pComp->parent, pComp->name));
+		file.writeString(Common::String::format("\t%d\t%d\t\t%d\t\t%d\t\t\t%s\n", i, tagIndex, comp->depthIdx, comp->parent, comp->name));
 	}
 
 	file.writeString("\n\nsection chores\n");
-	file.writeString(Common::String::format("\tnumchores %d\n\n", pCostume->numChores));
+	file.writeString(Common::String::format("\tnumchores %d\n\n", costume->numChores));
 	file.writeString("#\tID\tLength\tTracks\tName\n");
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
 		int numUsedTracks = 0;
 
-		for (int t = 0; t < pChore->numTracks; t++) {
-			if (pChore->aTracks[t].numKeys)
+		for (int t = 0; t < chore->numTracks; t++) {
+			if (chore->tracks[t].numKeys)
 				numUsedTracks++;
 		}
 
-		file.writeString(Common::String::format("\t%d\t%d\t\t%d\t\t\t%s\n", c, pChore->length, numUsedTracks, pChore->name));
+		file.writeString(Common::String::format("\t%d\t%d\t\t%d\t\t\t%s\n", c, chore->length, numUsedTracks, chore->name));
 	}
 
 	file.writeString("\n\nsection keys\n");
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
 
-		file.writeString(Common::String::format("chore %d\t# %s\n", c, pChore->name));
+		file.writeString(Common::String::format("chore %d\t# %s\n", c, chore->name));
 
-		for (int t = 0; t < pChore->numTracks; t++) {
-			CosChoreTrack *pTrack = &pChore->aTracks[t];
+		for (int t = 0; t < chore->numTracks; t++) {
+			CosChoreTrack *track = &chore->tracks[t];
 
-			if (!pTrack->numKeys)
+			if (!track->numKeys)
 				continue;
 
-			if (pTrack->numKeys < 0 || pTrack->compIndex < 0 || pTrack->compIndex >= pCostume->numComponents) {
+			if (track->numKeys < 0 || track->compIndex < 0 || track->compIndex >= costume->numComponents) {
 				warning("CosUtil::write(): track %d of chore %d has an invalid component or key count", t, c);
 				continue;
 			}
 
-			CosComponent *pComp = &pCostume->aComponents[pTrack->compIndex];
+			CosComponent *comp = &costume->components[track->compIndex];
 
-			if (pComp->classIdx < 0 || pComp->classIdx >= _pCos->_numClasses) {
-				warning("CosUtil::write(): component %d has an invalid tag index %d", pTrack->compIndex, pComp->classIdx);
+			if (comp->classIdx < 0 || comp->classIdx >= _cos->_numClasses) {
+				warning("CosUtil::write(): component %d has an invalid tag index %d", track->compIndex, comp->classIdx);
 				continue;
 			}
 
-			CosComponentClass *pClass = &_pCos->_aClasses[pComp->classIdx];
+			CosComponentClass *classInfo = &_cos->_classes[comp->classIdx];
 
 			file.writeString("#\tCompID\tNumKeys\n");
 			file.writeString("#\t\tTime\t\tValue\n");
-			file.writeString(Common::String::format("\t%d\t\t\t%d\t\t# %s\n", pTrack->compIndex, pTrack->numKeys, pComp->name));
+			file.writeString(Common::String::format("\t%d\t\t\t%d\t\t# %s\n", track->compIndex, track->numKeys, comp->name));
 
-			for (int k = 0; k < pTrack->numKeys; k++) {
-				CosChoreKey *pKey = &pTrack->aKeys[k];
+			for (int k = 0; k < track->numKeys; k++) {
+				CosChoreKey *key = &track->keys[k];
 
-				if (pClass->type == kCosTagStateBased || pClass->type == kCosTagInt) {
-					file.writeString(Common::String::format("\t\t%d\t\t\t%d\n", pKey->time, pKey->value));
-				} else if (pClass->type == kCosTagFloat) {
+				if (classInfo->type == kCosTagStateBased || classInfo->type == kCosTagInt) {
+					file.writeString(Common::String::format("\t\t%d\t\t\t%d\n", key->time, key->value));
+				} else if (classInfo->type == kCosTagFloat) {
 					float value;
-					memcpy(&value, &pKey->value, sizeof(value));
-					file.writeString(Common::String::format("\t\t%d\t\t\t%f\n", pKey->time, (double)value));
+					memcpy(&value, &key->value, sizeof(value));
+					file.writeString(Common::String::format("\t\t%d\t\t\t%f\n", key->time, (double)value));
 				} else {
 					warning("CosUtil::write(): FALSE");
 				}
@@ -201,24 +201,24 @@ int CosUtil::write(const char *path, CosCostume *pCostume, const char *header) {
 	return 1;
 }
 
-int CosUtil::collectTags(CosCostume *pCostume) {
+int CosUtil::collectTags(CosCostume *costume) {
 	int numTags = 0;
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		int classIdx = pCostume->aComponents[i].classIdx;
+	for (int i = 0; i < costume->numComponents; i++) {
+		int classIdx = costume->components[i].classIdx;
 
-		if (classIdx < 0 || classIdx >= _pCos->_numClasses) {
+		if (classIdx < 0 || classIdx >= _cos->_numClasses) {
 			warning("CosUtil::collectTags(): component %d has an invalid tag index %d", i, classIdx);
 			continue;
 		}
 
 		int j = 0;
 
-		while (j < numTags && _pCos->_aTagMap[j] != classIdx)
+		while (j < numTags && _cos->_tagMap[j] != classIdx)
 			j++;
 
 		if (j == numTags) {
-			_pCos->_aTagMap[numTags] = classIdx;
+			_cos->_tagMap[numTags] = classIdx;
 			numTags++;
 		}
 	}

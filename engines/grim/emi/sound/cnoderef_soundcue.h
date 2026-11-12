@@ -34,7 +34,7 @@ public:
 
 	void onNodeDestroyed() override;
 
-	CSoundCue *cue;
+	CSoundCue *_cue;
 };
 
 } // End of namespace Grim

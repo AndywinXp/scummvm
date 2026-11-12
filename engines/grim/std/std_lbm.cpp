@@ -32,67 +32,67 @@
 
 namespace Grim {
 
-StdLbm::StdLbm(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _pHS(pHS),
+StdLbm::StdLbm(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _hs(hs),
 		_packLastByte(0), _packSize(0), _packRunPtr(nullptr), _packOut(nullptr), _packState(0), _packRepeat(0) {
 }
 
-StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+StdBitmapStruct *StdLbm::load(const char *path, int videoMemory, int noZ) {
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return nullptr;
 
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 	byte formHeader[12];
 
 	memset(formHeader, 0, sizeof(formHeader));
-	pFile->read(formHeader, 12);
+	file->read(formHeader, 12);
 
 	if (memcmp(formHeader, "FORM", 4))
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 
-	pFile->seek(0);
+	file->seek(0);
 
-	bool bFound = false;
+	bool found = false;
 	int bmhdSize = 0;
-	int value = pFile->readByte();
+	int value = file->readByte();
 
 	do {
-		if (pFile->eos())
+		if (file->eos())
 			break;
 
 		if (value == 'B') {
-			value = pFile->readByte();
+			value = file->readByte();
 
 			if (value == 'M') {
-				value = pFile->readByte();
+				value = file->readByte();
 
 				if (value == 'H') {
-					value = pFile->readByte();
+					value = file->readByte();
 
 					if (value == 'D') {
 						byte chunkHeader[8];
 
 						memset(chunkHeader, 0, sizeof(chunkHeader));
-						pFile->seek(pFile->pos() - 4);
-						pFile->read(chunkHeader, 8);
+						file->seek(file->pos() - 4);
+						file->read(chunkHeader, 8);
 						bmhdSize = swapLong(READ_LE_UINT32(chunkHeader + 4));
-						bFound = true;
+						found = true;
 					}
 				}
 			}
 		} else {
-			value = pFile->readByte();
+			value = file->readByte();
 		}
-	} while (!bFound);
+	} while (!found);
 
-	if (!bFound)
+	if (!found)
 		return nullptr;
 
 	byte bmhdBytes[20];
 
 	memset(bmhdBytes, 0, sizeof(bmhdBytes));
-	pFile->read(bmhdBytes, 20);
+	file->read(bmhdBytes, 20);
 
 	Common::MemoryReadStream bmhdStream(bmhdBytes, sizeof(bmhdBytes));
 	StdLbmBmhd bmhd;
@@ -101,41 +101,41 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 	swapBMHD(&bmhd);
 
 	if (bmhdSize % 2)
-		pFile->readByte();
+		file->readByte();
 
 	if (bmhdSize % 2)
-		pFile->readByte();
+		file->readByte();
 
-	bFound = false;
+	found = false;
 	int bodySize = 0;
 
 	do {
-		if (pFile->eos())
+		if (file->eos())
 			break;
 
-		if (pFile->readByte() == 'B' && pFile->readByte() == 'O' && pFile->readByte() == 'D' && pFile->readByte() == 'Y') {
+		if (file->readByte() == 'B' && file->readByte() == 'O' && file->readByte() == 'D' && file->readByte() == 'Y') {
 			byte chunkHeader[8];
 
 			memset(chunkHeader, 0, sizeof(chunkHeader));
-			pFile->seek(pFile->pos() - 4);
-			pFile->read(chunkHeader, 8);
+			file->seek(file->pos() - 4);
+			file->read(chunkHeader, 8);
 			bodySize = swapLong(READ_LE_UINT32(chunkHeader + 4));
-			bFound = true;
+			found = true;
 		}
-	} while (!bFound);
+	} while (!found);
 
-	if (!bFound)
+	if (!found)
 		return nullptr;
 
-	strncpy(pBitmap->aName, _stdFile->fromPath(path), 31);
-	pBitmap->aName[31] = 0;
-	pBitmap->encoding = 0;
-	pBitmap->flags = 2;
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
-	pBitmap->format.colorMode = 0;
-	pBitmap->format.bpp = 8;
-	pBitmap->apFrames = new StdVBuffer *[1]();
+	strncpy(bitmap->name, _stdFile->fromPath(path), 31);
+	bitmap->name[31] = 0;
+	bitmap->encoding = 0;
+	bitmap->flags = 2;
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
+	bitmap->format.colorMode = 0;
+	bitmap->format.bpp = 8;
+	bitmap->frames = new StdVBuffer *[1]();
 
 	StdVBufferTexFmt format;
 
@@ -152,18 +152,18 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 
 	if ((int64)format.width * (int64)format.height > 0x7FFFFFFF) {
 		warning("StdLbm::load(): invalid image size");
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 	}
 
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, nullptr);
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&format, videoMemory, noZ, nullptr);
 
-	if (!pBitmap->apFrames[0])
-		return loadFailed(pFile, pBitmap);
+	if (!bitmap->frames[0])
+		return loadFailed(file, bitmap);
 
-	_stdDisplay->vBufferLock(pBitmap->apFrames[0]);
+	_stdDisplay->vBufferLock(bitmap->frames[0]);
 
-	byte *pPixels = pBitmap->apFrames[0]->pPixels;
-	int sizeInBytes = pBitmap->apFrames[0]->tex.sizeInBytes;
+	byte *pixels = bitmap->frames[0]->pixels;
+	int sizeInBytes = bitmap->frames[0]->tex.sizeInBytes;
 
 	if (bmhd.compression == 0) {
 		if (bodySize > 0) {
@@ -174,7 +174,7 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 				copySize = sizeInBytes;
 			}
 
-			pFile->read(pPixels, copySize);
+			file->read(pixels, copySize);
 		}
 	} else if (bmhd.compression == 1) {
 		int pos = 0;
@@ -183,11 +183,11 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 			int rowCount = 0;
 
 			do {
-				signed char control = (signed char)pFile->readByte();
+				signed char control = (signed char)file->readByte();
 
 				if (control < 0) {
 					int count = 1 - control;
-					byte fill = pFile->readByte();
+					byte fill = file->readByte();
 					int fillCount = count;
 
 					if (fillCount > sizeInBytes - pos) {
@@ -199,7 +199,7 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 					}
 
 					if (fillCount > 0)
-						memset(pPixels + pos, fill, fillCount);
+						memset(pixels + pos, fill, fillCount);
 
 					pos += count;
 					rowCount += count;
@@ -209,10 +209,10 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 					rowCount += count;
 
 					for (int i = 0; i < count; i++) {
-						byte literal = pFile->readByte();
+						byte literal = file->readByte();
 
 						if (pos < sizeInBytes)
-							pPixels[pos] = literal;
+							pixels[pos] = literal;
 
 						pos++;
 					}
@@ -221,30 +221,30 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 		}
 	}
 
-	_stdDisplay->vBufferUnlock(pBitmap->apFrames[0]);
-	pBitmap->pPalette = new byte[768];
-	pFile->seek(0);
+	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
+	bitmap->palette = new byte[768];
+	file->seek(0);
 
-	bFound = false;
+	found = false;
 
 	int paletteSize = 0;
 
 	do {
-		if (pFile->eos())
+		if (file->eos())
 			break;
 
-		if (pFile->readByte() == 'C' && pFile->readByte() == 'M' && pFile->readByte() == 'A' && pFile->readByte() == 'P') {
+		if (file->readByte() == 'C' && file->readByte() == 'M' && file->readByte() == 'A' && file->readByte() == 'P') {
 			byte chunkHeader[8];
 
 			memset(chunkHeader, 0, sizeof(chunkHeader));
-			pFile->seek(pFile->pos() - 4);
-			pFile->read(chunkHeader, 8);
+			file->seek(file->pos() - 4);
+			file->read(chunkHeader, 8);
 			paletteSize = swapLong(READ_LE_UINT32(chunkHeader + 4));
-			bFound = true;
+			found = true;
 		}
-	} while (!bFound);
+	} while (!found);
 
-	if (!bFound)
+	if (!found)
 		return nullptr;
 
 	if ((uint)paletteSize > 768) {
@@ -252,14 +252,14 @@ StdBitmapStruct *StdLbm::load(const char *path, int bVideoMemory, int bNoZ) {
 		paletteSize = 768;
 	}
 
-	pFile->read(pBitmap->pPalette, paletteSize);
-	delete pFile;
+	file->read(bitmap->palette, paletteSize);
+	delete file;
 
-	return pBitmap;
+	return bitmap;
 }
 
-int StdLbm::write(const char *path, StdBitmapStruct *pBitmap) {
-	if (!pBitmap->pPalette) {
+int StdLbm::write(const char *path, StdBitmapStruct *bitmap) {
+	if (!bitmap->palette) {
 		warning("StdLbm::write(): bitmap without a palette");
 		return 0;
 	}
@@ -279,28 +279,28 @@ int StdLbm::write(const char *path, StdBitmapStruct *pBitmap) {
 	writeBmhd(&file, &bmhd);
 	file.write("CMAP", 4);
 	file.writeUint32LE(swapLong(0x300));
-	file.write(pBitmap->pPalette, 768);
+	file.write(bitmap->palette, 768);
 
 	int64 bodyStart = file.pos();
 
 	file.write("BODYxxxx", 8);
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+	StdVBuffer *frame = bitmap->frames[0];
 
-	_stdDisplay->vBufferLock(pFrame);
+	_stdDisplay->vBufferLock(frame);
 
-	const byte *pPixels = pFrame->pPixels;
-	int width = pFrame->tex.width;
-	byte *pPackBuffer = new byte[2 * width + 2];
+	const byte *pixels = frame->pixels;
+	int width = frame->tex.width;
+	byte *packBuffer = new byte[2 * width + 2];
 
-	for (int row = 0; row < pFrame->tex.height; row++) {
-		packRow(&file, pPixels, width, pPackBuffer);
-		pPixels += width;
+	for (int row = 0; row < frame->tex.height; row++) {
+		packRow(&file, pixels, width, packBuffer);
+		pixels += width;
 	}
 
-	delete[] pPackBuffer;
-	pPackBuffer = nullptr;
-	_stdDisplay->vBufferUnlock(pBitmap->apFrames[0]);
+	delete[] packBuffer;
+	packBuffer = nullptr;
+	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
 
 	int64 bodyEnd = file.pos();
 	uint bodySize = swapLong((uint)(bodyEnd - bodyStart - 8));
@@ -311,9 +311,9 @@ int StdLbm::write(const char *path, StdBitmapStruct *pBitmap) {
 
 	uint formSize = swapLong((uint)(file.pos() - 8));
 
-	pFrame = pBitmap->apFrames[0];
-	bmhd.width = (uint16)pFrame->tex.width;
-	bmhd.height = (uint16)pFrame->tex.height;
+	frame = bitmap->frames[0];
+	bmhd.width = (uint16)frame->tex.width;
+	bmhd.height = (uint16)frame->tex.height;
 	bmhd.xOrigin = 0;
 	bmhd.yOrigin = 0;
 	bmhd.planes = 8;
@@ -322,8 +322,8 @@ int StdLbm::write(const char *path, StdBitmapStruct *pBitmap) {
 	bmhd.transparentColor = 0;
 	bmhd.xAspect = 6;
 	bmhd.yAspect = 5;
-	bmhd.pageWidth = (uint16)pFrame->tex.width;
-	bmhd.pageHeight = (uint16)pFrame->tex.height;
+	bmhd.pageWidth = (uint16)frame->tex.width;
+	bmhd.pageHeight = (uint16)frame->tex.height;
 	file.seek(4);
 	file.writeUint32LE(formSize);
 	file.seek(20);
@@ -335,13 +335,13 @@ int StdLbm::write(const char *path, StdBitmapStruct *pBitmap) {
 	return 1;
 }
 
-uint32 StdLbm::packRow(Common::WriteStream *pStream, const byte *pPixels, int width, byte *pBuffer) {
+uint32 StdLbm::packRow(Common::WriteStream *stream, const byte *pixels, int width, byte *buffer) {
 	_packSize = 0;
-	_packOut = pBuffer;
+	_packOut = buffer;
 	_packState = 3;
 
 	for (int i = 0; i < width; i++)
-		packByte(pPixels[i]);
+		packByte(pixels[i]);
 
 	if (_packState == 2) {
 		*_packOut = 0;
@@ -350,7 +350,7 @@ uint32 StdLbm::packRow(Common::WriteStream *pStream, const byte *pPixels, int wi
 		_packSize += 2;
 	}
 
-	return pStream->write(pBuffer, _packSize);
+	return stream->write(buffer, _packSize);
 }
 
 void StdLbm::packByte(byte value) {
@@ -433,14 +433,14 @@ uint StdLbm::swapLong(uint value) {
 	return SWAP_BYTES_32(value);
 }
 
-void StdLbm::swapBMHD(StdLbmBmhd *pBmhd) {
-	pBmhd->width = swapShort(pBmhd->width);
-	pBmhd->height = swapShort(pBmhd->height);
-	pBmhd->xOrigin = (int16)swapShort((uint16)pBmhd->xOrigin);
-	pBmhd->yOrigin = (int16)swapShort((uint16)pBmhd->yOrigin);
-	pBmhd->transparentColor = swapShort(pBmhd->transparentColor);
-	pBmhd->pageWidth = swapShort(pBmhd->pageWidth);
-	pBmhd->pageHeight = swapShort(pBmhd->pageHeight);
+void StdLbm::swapBMHD(StdLbmBmhd *bmhd) {
+	bmhd->width = swapShort(bmhd->width);
+	bmhd->height = swapShort(bmhd->height);
+	bmhd->xOrigin = (int16)swapShort((uint16)bmhd->xOrigin);
+	bmhd->yOrigin = (int16)swapShort((uint16)bmhd->yOrigin);
+	bmhd->transparentColor = swapShort(bmhd->transparentColor);
+	bmhd->pageWidth = swapShort(bmhd->pageWidth);
+	bmhd->pageHeight = swapShort(bmhd->pageHeight);
 }
 
 uint16 StdLbm::swapShort(uint16 value) {
@@ -448,40 +448,40 @@ uint16 StdLbm::swapShort(uint16 value) {
 }
 
 const char *StdLbm::stripPath(const char *path) {
-	const char *pSlash = strrchr(path, '\\');
+	const char *slash = strrchr(path, '\\');
 
-	if (!pSlash)
+	if (!slash)
 		return path;
 
-	if (*pSlash == '\\') {
+	if (*slash == '\\') {
 		do {
-			pSlash++;
-		} while (*pSlash == '\\');
+			slash++;
+		} while (*slash == '\\');
 	}
 
-	return pSlash;
+	return slash;
 }
 
 const char *StdLbm::getExtension(const char *path) {
-	const char *pBaseName = stripPath(path);
-	const char *pDot = strrchr(pBaseName, '.');
+	const char *baseName = stripPath(path);
+	const char *dot = strrchr(baseName, '.');
 
-	if (!pDot)
+	if (!dot)
 		return nullptr;
 
-	for (const char *pNext = strrchr(pDot + 1, '.'); pNext; pNext = strrchr(pNext + 1, '.'))
-		pDot = pNext;
+	for (const char *next = strrchr(dot + 1, '.'); next; next = strrchr(next + 1, '.'))
+		dot = next;
 
-	return pDot + 1;
+	return dot + 1;
 }
 
 char *StdLbm::stripExtension(char *path) {
-	const char *pExtension = getExtension(path);
+	const char *extension = getExtension(path);
 
-	if (!pExtension)
+	if (!extension)
 		return nullptr;
 
-	size_t offset = pExtension - path;
+	size_t offset = extension - path;
 
 	path[offset - 1] = 0;
 
@@ -494,51 +494,51 @@ char *StdLbm::copyBaseName(char *dst, int size, const char *path) {
 		return nullptr;
 	}
 
-	const char *pBaseName = stripPath(path);
+	const char *baseName = stripPath(path);
 
-	strncpy(dst, pBaseName, size - 1);
+	strncpy(dst, baseName, size - 1);
 	dst[size - 1] = 0;
 
 	return stripExtension(dst);
 }
 
-StdBitmapStruct *StdLbm::loadFailed(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap) {
-	delete pFile;
-	_stdBitmap->unloadBitmap(pBitmap);
+StdBitmapStruct *StdLbm::loadFailed(Common::SeekableReadStream *file, StdBitmapStruct *bitmap) {
+	delete file;
+	_stdBitmap->unloadBitmap(bitmap);
 
 	return nullptr;
 }
 
-void StdLbm::readBmhd(Common::ReadStream *pStream, StdLbmBmhd *pBmhd) {
-	pBmhd->width = pStream->readUint16LE();
-	pBmhd->height = pStream->readUint16LE();
-	pBmhd->xOrigin = pStream->readSint16LE();
-	pBmhd->yOrigin = pStream->readSint16LE();
-	pBmhd->planes = pStream->readByte();
-	pBmhd->masking = pStream->readByte();
-	pBmhd->compression = pStream->readByte();
-	pBmhd->pad1 = pStream->readByte();
-	pBmhd->transparentColor = pStream->readUint16LE();
-	pBmhd->xAspect = pStream->readByte();
-	pBmhd->yAspect = pStream->readByte();
-	pBmhd->pageWidth = pStream->readUint16LE();
-	pBmhd->pageHeight = pStream->readUint16LE();
+void StdLbm::readBmhd(Common::ReadStream *stream, StdLbmBmhd *bmhd) {
+	bmhd->width = stream->readUint16LE();
+	bmhd->height = stream->readUint16LE();
+	bmhd->xOrigin = stream->readSint16LE();
+	bmhd->yOrigin = stream->readSint16LE();
+	bmhd->planes = stream->readByte();
+	bmhd->masking = stream->readByte();
+	bmhd->compression = stream->readByte();
+	bmhd->pad1 = stream->readByte();
+	bmhd->transparentColor = stream->readUint16LE();
+	bmhd->xAspect = stream->readByte();
+	bmhd->yAspect = stream->readByte();
+	bmhd->pageWidth = stream->readUint16LE();
+	bmhd->pageHeight = stream->readUint16LE();
 }
 
-void StdLbm::writeBmhd(Common::WriteStream *pStream, const StdLbmBmhd *pBmhd) {
-	pStream->writeUint16LE(pBmhd->width);
-	pStream->writeUint16LE(pBmhd->height);
-	pStream->writeSint16LE(pBmhd->xOrigin);
-	pStream->writeSint16LE(pBmhd->yOrigin);
-	pStream->writeByte(pBmhd->planes);
-	pStream->writeByte(pBmhd->masking);
-	pStream->writeByte(pBmhd->compression);
-	pStream->writeByte(pBmhd->pad1);
-	pStream->writeUint16LE(pBmhd->transparentColor);
-	pStream->writeByte(pBmhd->xAspect);
-	pStream->writeByte(pBmhd->yAspect);
-	pStream->writeUint16LE(pBmhd->pageWidth);
-	pStream->writeUint16LE(pBmhd->pageHeight);
+void StdLbm::writeBmhd(Common::WriteStream *stream, const StdLbmBmhd *bmhd) {
+	stream->writeUint16LE(bmhd->width);
+	stream->writeUint16LE(bmhd->height);
+	stream->writeSint16LE(bmhd->xOrigin);
+	stream->writeSint16LE(bmhd->yOrigin);
+	stream->writeByte(bmhd->planes);
+	stream->writeByte(bmhd->masking);
+	stream->writeByte(bmhd->compression);
+	stream->writeByte(bmhd->pad1);
+	stream->writeUint16LE(bmhd->transparentColor);
+	stream->writeByte(bmhd->xAspect);
+	stream->writeByte(bmhd->yAspect);
+	stream->writeUint16LE(bmhd->pageWidth);
+	stream->writeUint16LE(bmhd->pageHeight);
 }
 
 } // End of namespace Grim

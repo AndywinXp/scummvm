@@ -39,11 +39,11 @@ SkeletonComponent::~SkeletonComponent() {
 }
 
 uint SkeletonComponent::resSizeOfItem() {
-	return sizeof(SkeletonComponent) + sizeof(SkeletonNode) * nodes.size();
+	return sizeof(SkeletonComponent) + sizeof(SkeletonNode) * _nodes.size();
 }
 
 ComponentInstance *SkeletonComponent::createInstance(Actor *owner) {
-	return new SkeletonInstance(LResource::_engine, LResource::name, owner);
+	return new SkeletonInstance(LResource::_engine, LResource::_name, owner);
 }
 
 bool SkeletonComponent::resLoadItem(const char *itemName) {
@@ -100,16 +100,16 @@ bool SkeletonComponent::resLoadItem(const char *itemName) {
 CNode *SkeletonComponent::buildNodeTree() {
 	CNode *rootNode = nullptr;
 
-	for (uint i = 0; i < nodes.size(); i++) {
-		SkeletonNode &skeletonNode = nodes[i];
+	for (uint i = 0; i < _nodes.size(); i++) {
+		SkeletonNode &skeletonNode = _nodes[i];
 		ANode *animNode = new ANode(LResource::_engine);
 
-		animNode->setLocalTransform(skeletonNode.pos, skeletonNode.quat);
-		memcpy(animNode->name, skeletonNode.name, CNode::kNameSize);
+		animNode->setLocalTransform(skeletonNode._pos, skeletonNode._quat);
+		memcpy(animNode->_name, skeletonNode._name, CNode::kNameSize);
 
-		if (scumm_strnicmp(skeletonNode.parent, "no_parent", SkeletonNode::kNameSize) != 0) {
+		if (scumm_strnicmp(skeletonNode._parent, "no_parent", SkeletonNode::kNameSize) != 0) {
 			if (rootNode)
-				animNode->setParent(rootNode->findNode(skeletonNode.parent));
+				animNode->setParent(rootNode->findNode(skeletonNode._parent));
 		} else if (!rootNode) {
 			rootNode = animNode;
 		}

@@ -49,11 +49,11 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	LString name;
-	Common::Array<AnimEntry> entries;
-	int trackCount;
-	int entryCount;
-	float length;
+	LString _name;
+	Common::Array<AnimEntry> _entries;
+	int _trackCount;
+	int _entryCount;
+	float _length;
 
 protected:
 	EmiEngine *_engine;

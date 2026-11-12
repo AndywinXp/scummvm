@@ -36,7 +36,7 @@ static const int kSpecialtyPrefixSize = 9;
 class CMaterialParser : public LFormatParser {
 public:
 	explicit CMaterialParser(EmiEngine *engine) : LFormatParser(engine) {
-		material = nullptr;
+		_material = nullptr;
 		addKeyword("TEX", kKeywordTexture, 3);
 	}
 
@@ -49,11 +49,11 @@ public:
 
 	bool parseTexture(int token, int numArgs, KeywordArg *args);
 
-	CMaterial *material;
+	CMaterial *_material;
 };
 
 bool CMaterialParser::parseTexture(int token, int numArgs, KeywordArg *args) {
-	if (!material || numArgs < 1)
+	if (!_material || numArgs < 1)
 		return false;
 
 	LABitmap bitmap(_engine);
@@ -67,13 +67,13 @@ bool CMaterialParser::parseTexture(int token, int numArgs, KeywordArg *args) {
 		if (bitmap.loadFile(name))
 			texture = drawContext->createTexture(&bitmap);
 		else
-			texture = drawContext->defaultTexture;
+			texture = drawContext->_defaultTexture;
 
 		if (bitmap.scanAlpha())
-			material->flags |= 0x80;
+			_material->_flags |= 0x80;
 	}
 
-	material->textures.push_back(texture);
+	_material->_textures.push_back(texture);
 
 	return true;
 }
@@ -86,56 +86,56 @@ CMaterial::~CMaterial() {
 	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (drawContext) {
-		for (uint i = 0; i < textures.size(); i++) {
-			if (textures[i])
-				drawContext->freeTexture(textures[i]);
+		for (uint i = 0; i < _textures.size(); i++) {
+			if (_textures[i])
+				drawContext->freeTexture(_textures[i]);
 		}
 	}
 
-	textures.clear();
+	_textures.clear();
 }
 
 int CMaterial::getNumTextures() {
-	return textures.size();
+	return _textures.size();
 }
 
 CTexture *CMaterial::getTexture(int index) {
-	if (index < 0 || index >= (int)textures.size()) {
+	if (index < 0 || index >= (int)_textures.size()) {
 		warning("CMaterial::getTexture(): texture index %d out of range", index);
 
 		return nullptr;
 	}
 
-	return textures[index];
+	return _textures[index];
 }
 
 void CMaterial::resetFlags() {
-	flags = 7;
+	_flags = 7;
 }
 
 void CMaterial::setFlags(int newFlags) {
-	flags = newFlags;
+	_flags = newFlags;
 
-	for (uint i = 0; i < textures.size(); i++) {
-		if (textures[i]) {
-			textures[i]->flags = newFlags;
-			textures[i]->applyFlags();
+	for (uint i = 0; i < _textures.size(); i++) {
+		if (_textures[i]) {
+			_textures[i]->_flags = newFlags;
+			_textures[i]->applyFlags();
 		}
 	}
 }
 
 void CMaterial::addFlags(int addedFlags) {
-	flags |= addedFlags;
-	setFlags(flags);
+	_flags |= addedFlags;
+	setFlags(_flags);
 }
 
 uint CMaterial::resSizeOfItem() {
-	uint size = sizeof(CMaterial) + textures.size() * sizeof(CTexture *);
+	uint size = sizeof(CMaterial) + _textures.size() * sizeof(CTexture *);
 
 	if (_engine->getDrawContext()) {
-		for (uint i = 0; i < textures.size(); i++) {
-			if (textures[i])
-				size += textures[i]->getSize();
+		for (uint i = 0; i < _textures.size(); i++) {
+			if (_textures[i])
+				size += _textures[i]->getSize();
 		}
 	}
 
@@ -155,7 +155,7 @@ bool CMaterial::resLoadItem(const char *itemName) {
 
 	if (!path.contains(".sur") && !path.contains(".SUR")) {
 		if (!scumm_strnicmp(itemName, kSpecialtyPrefix, kSpecialtyPrefixSize)) {
-			textures.push_back(drawContext->getCachedTexture(atoi(itemName + kSpecialtyPrefixSize)));
+			_textures.push_back(drawContext->getCachedTexture(atoi(itemName + kSpecialtyPrefixSize)));
 		} else {
 			LABitmap bitmap(_engine);
 			CTexture *texture;
@@ -163,23 +163,23 @@ bool CMaterial::resLoadItem(const char *itemName) {
 			if (bitmap.loadFile(path.c_str()))
 				texture = drawContext->createTexture(&bitmap);
 			else
-				texture = drawContext->defaultTexture;
+				texture = drawContext->_defaultTexture;
 
 			if (bitmap.scanAlpha())
-				flags |= 0x80;
+				_flags |= 0x80;
 
-			textures.push_back(texture);
+			_textures.push_back(texture);
 		}
 	} else {
 		CMaterialParser parser(_engine);
 
-		parser.material = this;
+		parser._material = this;
 
 		if (!parser.parseFile(path.c_str(), 0, 0))
 			parser.parseFile("default.sur", 0, 0);
 	}
 
-	setFlags(flags);
+	setFlags(_flags);
 
 	return true;
 }

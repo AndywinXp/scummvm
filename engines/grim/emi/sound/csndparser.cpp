@@ -35,7 +35,7 @@ enum {
 };
 
 CSndParser::CSndParser(EmiEngine *engine) : LFormatParser(engine) {
-	snd = nullptr;
+	_snd = nullptr;
 
 	addKeyword("SOUND", kKeywordSound, kArgMaskString);
 	addKeyword("CUTOFF", kKeywordCutoff, kArgMaskTwoFloats);
@@ -67,7 +67,7 @@ void CSndParser::operator delete(void *block) {
 bool CSndParser::handleKeyword(int id, int numArgs, KeywordArg *args) {
 	bool result = true;
 
-	if (!snd)
+	if (!_snd)
 		return false;
 
 	switch (id) {
@@ -149,23 +149,23 @@ bool CSndParser::handleKeyword(int id, int numArgs, KeywordArg *args) {
 }
 
 bool CSndParser::parseSound(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 1)
+	if (!_snd || numArgs < 1)
 		return false;
 
 	// The disasm never frees this handle
 	LResourceHandle<CWaveSound> *waveHandle = new LResourceHandle<CWaveSound>(_engine, LString(args[0].stringValue));
 	LResourceHandle<CWaveSound> handle;
 
-	handle.setResource(waveHandle->resource);
+	handle.setResource(waveHandle->_resource);
 
-	if (handle.resource) {
+	if (handle._resource) {
 		LResourceHandle<LSound> soundHandle;
 
-		soundHandle.setResource(handle.resource);
-		snd->setSoundHandle(soundHandle);
+		soundHandle.setResource(handle._resource);
+		_snd->setSoundHandle(soundHandle);
 	}
 
-	return handle.resource != nullptr;
+	return handle._resource != nullptr;
 }
 
 bool CSndParser::ignoreKeyword(int id, int numArgs, KeywordArg *args) {
@@ -173,47 +173,47 @@ bool CSndParser::ignoreKeyword(int id, int numArgs, KeywordArg *args) {
 }
 
 bool CSndParser::parseCutoff(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 2)
+	if (!_snd || numArgs < 2)
 		return false;
 
-	snd->setCutoff0(args[0].floatValue);
-	snd->setCutoff1(args[1].floatValue);
+	_snd->setCutoff0(args[0].floatValue);
+	_snd->setCutoff1(args[1].floatValue);
 
 	return true;
 }
 
 bool CSndParser::parseMvol(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 1)
+	if (!_snd || numArgs < 1)
 		return false;
 
-	snd->setMvol(args[0].floatValue);
+	_snd->setMvol(args[0].floatValue);
 
 	return true;
 }
 
 bool CSndParser::parseFreq(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 1)
+	if (!_snd || numArgs < 1)
 		return false;
 
-	snd->setFreq(args[0].floatValue);
+	_snd->setFreq(args[0].floatValue);
 
 	return true;
 }
 
 bool CSndParser::parsePan(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 1)
+	if (!_snd || numArgs < 1)
 		return false;
 
-	snd->setPan(args[0].floatValue);
+	_snd->setPan(args[0].floatValue);
 
 	return true;
 }
 
 bool CSndParser::parsePrio(int id, int numArgs, KeywordArg *args) {
-	if (!snd || numArgs < 1)
+	if (!_snd || numArgs < 1)
 		return false;
 
-	snd->setPrio(args[0].floatValue);
+	_snd->setPrio(args[0].floatValue);
 
 	return true;
 }
@@ -222,7 +222,7 @@ bool CSndParser::parseFlags(int id, int numArgs, KeywordArg *args) {
 	if (numArgs < 1)
 		return false;
 
-	snd->setFlags(args[0].intValue);
+	_snd->setFlags(args[0].intValue);
 
 	return true;
 }
@@ -237,13 +237,13 @@ bool CSndParser::parseGroup(int id, int numArgs, KeywordArg *args) {
 	LString group(args[0].stringValue);
 
 	if (group == "Voice")
-		snd->setGroup(2);
+		_snd->setGroup(2);
 	else if (group == "Music")
-		snd->setGroup(3);
+		_snd->setGroup(3);
 	else if (group == "System")
-		snd->setGroup(4);
+		_snd->setGroup(4);
 	else
-		snd->setGroup(1);
+		_snd->setGroup(1);
 
 	return true;
 }
@@ -252,7 +252,7 @@ bool CSndParser::parseStDelay(int id, int numArgs, KeywordArg *args) {
 	if (numArgs < 1)
 		return false;
 
-	snd->setStDelay(args[0].floatValue);
+	_snd->setStDelay(args[0].floatValue);
 
 	return true;
 }
@@ -261,8 +261,8 @@ bool CSndParser::parseRndDelay(int id, int numArgs, KeywordArg *args) {
 	if (numArgs < 2)
 		return false;
 
-	snd->setRndDelay0(args[0].floatValue);
-	snd->setRndDelay1(args[1].floatValue);
+	_snd->setRndDelay0(args[0].floatValue);
+	_snd->setRndDelay1(args[1].floatValue);
 
 	return true;
 }

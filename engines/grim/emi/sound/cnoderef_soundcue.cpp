@@ -27,18 +27,18 @@
 namespace Grim {
 
 CNodeRef_SoundCue::CNodeRef_SoundCue() : CNodeRef(nullptr) {
-	cue = nullptr;
+	_cue = nullptr;
 }
 
 void CNodeRef_SoundCue::onNodeDestroyed() {
-	if (!cue) {
+	if (!_cue) {
 		warning("CNodeRef_SoundCue::onNodeDestroyed(): the cue is missing");
 
 		return;
 	}
 
-	cue->stop();
-	cue = nullptr;
+	_cue->stop();
+	_cue = nullptr;
 }
 
 } // End of namespace Grim

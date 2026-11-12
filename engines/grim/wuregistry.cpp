@@ -32,12 +32,12 @@
 namespace Grim {
 
 static Common::ConfigManager::Domain *getConfDomain() {
-	Common::ConfigManager::Domain *pDomain = ConfMan.getActiveDomain();
+	Common::ConfigManager::Domain *domain = ConfMan.getActiveDomain();
 
-	if (!pDomain)
-		pDomain = ConfMan.getDomain(Common::ConfigManager::kApplicationDomain);
+	if (!domain)
+		domain = ConfMan.getDomain(Common::ConfigManager::kApplicationDomain);
 
-	return pDomain;
+	return domain;
 }
 
 static bool isStorableName(const char *valueName) {
@@ -54,14 +54,14 @@ static bool isStorableName(const char *valueName) {
 	return true;
 }
 
-static bool isStorableString(const char *pData) {
-	uint length = strlen(pData);
+static bool isStorableString(const char *data) {
+	uint length = strlen(data);
 
-	if (length && (pData[0] == ' ' || pData[0] == '\t' || pData[length - 1] == ' ' || pData[length - 1] == '\t'))
+	if (length && (data[0] == ' ' || data[0] == '\t' || data[length - 1] == ' ' || data[length - 1] == '\t'))
 		return false;
 
 	for (uint i = 0; i < length; i++) {
-		if (pData[i] == '\r' || pData[i] == '\n')
+		if (data[i] == '\r' || data[i] == '\n')
 			return false;
 	}
 
@@ -69,51 +69,51 @@ static bool isStorableString(const char *pData) {
 }
 
 static bool canParseInt(const Common::String &text) {
-	char *pEnd;
+	char *end;
 
 	if (text.empty())
 		return true;
 
-	strtol(text.c_str(), &pEnd, 0);
+	strtol(text.c_str(), &end, 0);
 
-	return pEnd != text.c_str();
+	return end != text.c_str();
 }
 
 static bool canParseFloat(const Common::String &text) {
-	char *pEnd;
+	char *end;
 
 	if (text.empty())
 		return true;
 
-	strtof(text.c_str(), &pEnd);
+	strtof(text.c_str(), &end);
 
-	return pEnd != text.c_str();
+	return end != text.c_str();
 }
 
 static bool isNumberText(const Common::String &text) {
-	char *pEnd;
+	char *end;
 
 	if (text.empty())
 		return false;
 
-	strtod(text.c_str(), &pEnd);
+	strtod(text.c_str(), &end);
 
-	return *pEnd == '\0';
+	return *end == '\0';
 }
 
-static bool queryText(const Common::String &text, byte *pData, uint *pSize) {
-	if (text.size() > *pSize) {
-		*pSize = text.size();
+static bool queryText(const Common::String &text, byte *data, uint *size) {
+	if (text.size() > *size) {
+		*size = text.size();
 		return false;
 	}
 
 	if (text.size())
-		memcpy(pData, text.c_str(), text.size());
+		memcpy(data, text.c_str(), text.size());
 
-	if (text.size() < *pSize)
-		pData[text.size()] = 0;
+	if (text.size() < *size)
+		data[text.size()] = 0;
 
-	*pSize = text.size();
+	*size = text.size();
 
 	return true;
 }
@@ -136,7 +136,7 @@ struct WuRegistryMapping {
 	int kind;
 };
 
-static const WuRegistryMapping g_mappings[] = {
+static const WuRegistryMapping mappings[] = {
 	{ "good_times", "game_devel_mode", kMapBool },
 	{ "GrimDeveloper", "game_devel_mode", kMapBool },
 	{ "GrimDataDir", "path", kMapPath },
@@ -190,14 +190,14 @@ static bool convertSpeechMuteToGUI(uint speechMode) {
 	return speechMode == 1;
 }
 
-static uint convertSpeechModeFromGUI(bool bSubtitles, bool bSpeechMute) {
-	if (!bSubtitles && !bSpeechMute)
+static uint convertSpeechModeFromGUI(bool subtitles, bool speechMute) {
+	if (!subtitles && !speechMute)
 		return 2;
 
-	if (bSubtitles && !bSpeechMute)
+	if (subtitles && !speechMute)
 		return 3;
 
-	if (bSubtitles && bSpeechMute)
+	if (subtitles && speechMute)
 		return 1;
 
 	warning("WuRegistry: both subtitles and speech are off, assuming subtitles only");
@@ -206,9 +206,9 @@ static uint convertSpeechModeFromGUI(bool bSubtitles, bool bSpeechMute) {
 }
 
 static const WuRegistryMapping *findMapping(const char *valueName) {
-	for (uint i = 0; i < ARRAYSIZE(g_mappings); i++) {
-		if (!scumm_stricmp(g_mappings[i].name, valueName))
-			return &g_mappings[i];
+	for (uint i = 0; i < ARRAYSIZE(mappings); i++) {
+		if (!scumm_stricmp(mappings[i].name, valueName))
+			return &mappings[i];
 	}
 
 	return nullptr;
@@ -218,130 +218,130 @@ static bool isStringKind(int kind) {
 	return kind == kMapString || kind == kMapPath || kind == kMapFloat || kind == kMapLastSet;
 }
 
-static uint getMappedType(const WuRegistryMapping *pMapping) {
-	if (pMapping->kind == kMapFloat)
-		return ConfMan.hasKey(pMapping->key) ? WuRegistry::kValueBinary : 0;
+static uint getMappedType(const WuRegistryMapping *mapping) {
+	if (mapping->kind == kMapFloat)
+		return ConfMan.hasKey(mapping->key) ? WuRegistry::kValueBinary : 0;
 
-	if (isStringKind(pMapping->kind))
+	if (isStringKind(mapping->kind))
 		return WuRegistry::kValueString;
 
-	if (pMapping->kind == kMapBool && !ConfMan.getBool(pMapping->key))
+	if (mapping->kind == kMapBool && !ConfMan.getBool(mapping->key))
 		return 0;
 
 	return WuRegistry::kValueBinary;
 }
 
-static bool readMappedText(const WuRegistryMapping *pMapping, Common::String *pText);
+static bool readMappedText(const WuRegistryMapping *mapping, Common::String *text);
 
-static bool readMappedInt(const WuRegistryMapping *pMapping, int *pValue) {
-	switch (pMapping->kind) {
+static bool readMappedInt(const WuRegistryMapping *mapping, int *value) {
+	switch (mapping->kind) {
 	case kMapInt:
-		*pValue = ConfMan.getInt(pMapping->key);
+		*value = ConfMan.getInt(mapping->key);
 		return true;
 	case kMapVolume:
-		*pValue = convertVolumeFromMixer(ConfMan.getInt(pMapping->key));
+		*value = convertVolumeFromMixer(ConfMan.getInt(mapping->key));
 		return true;
 	case kMapTalkSpeed:
-		*pValue = convertTalkSpeedFromGUI(ConfMan.getInt(pMapping->key));
+		*value = convertTalkSpeedFromGUI(ConfMan.getInt(mapping->key));
 		return true;
 	case kMapSpeechMode:
-		*pValue = convertSpeechModeFromGUI(ConfMan.getBool("subtitles"), ConfMan.getBool("speech_mute"));
+		*value = convertSpeechModeFromGUI(ConfMan.getBool("subtitles"), ConfMan.getBool("speech_mute"));
 		return true;
 	case kMapBool:
-		*pValue = ConfMan.getBool(pMapping->key) ? 1 : 0;
-		return *pValue != 0;
+		*value = ConfMan.getBool(mapping->key) ? 1 : 0;
+		return *value != 0;
 	default:
 		break;
 	}
 
 	Common::String text;
 
-	readMappedText(pMapping, &text);
-	*pValue = atoi(text.c_str());
+	readMappedText(mapping, &text);
+	*value = atoi(text.c_str());
 
 	return true;
 }
 
-static bool readMappedText(const WuRegistryMapping *pMapping, Common::String *pText) {
-	if (pMapping->kind == kMapPath) {
-		*pText = ConfMan.getPath(pMapping->key).toString(Common::Path::kNativeSeparator);
+static bool readMappedText(const WuRegistryMapping *mapping, Common::String *text) {
+	if (mapping->kind == kMapPath) {
+		*text = ConfMan.getPath(mapping->key).toString(Common::Path::kNativeSeparator);
 		return true;
 	}
 
-	if (isStringKind(pMapping->kind)) {
-		*pText = ConfMan.get(pMapping->key);
+	if (isStringKind(mapping->kind)) {
+		*text = ConfMan.get(mapping->key);
 		return true;
 	}
 
 	int value;
 
-	if (!readMappedInt(pMapping, &value))
+	if (!readMappedInt(mapping, &value))
 		return false;
 
-	*pText = Common::String::format("%d", value);
+	*text = Common::String::format("%d", value);
 
 	return true;
 }
 
-static void writeMappedInt(const WuRegistryMapping *pMapping, int value);
+static void writeMappedInt(const WuRegistryMapping *mapping, int value);
 
-static void writeMappedText(const WuRegistryMapping *pMapping, const char *pText) {
-	switch (pMapping->kind) {
+static void writeMappedText(const WuRegistryMapping *mapping, const char *text) {
+	switch (mapping->kind) {
 	case kMapString:
 	case kMapFloat:
-		ConfMan.set(pMapping->key, pText);
+		ConfMan.set(mapping->key, text);
 		break;
 	case kMapPath:
-		ConfMan.setPath(pMapping->key, Common::Path(pText, Common::Path::kNativeSeparator));
+		ConfMan.setPath(mapping->key, Common::Path(text, Common::Path::kNativeSeparator));
 		break;
 	case kMapLastSet:
-		if (ConfMan.hasKey(pMapping->key))
-			ConfMan.set(pMapping->key, pText);
+		if (ConfMan.hasKey(mapping->key))
+			ConfMan.set(mapping->key, text);
 
 		break;
 	case kMapBool:
-		ConfMan.setBool(pMapping->key, !scumm_stricmp(pText, "true"));
+		ConfMan.setBool(mapping->key, !scumm_stricmp(text, "true"));
 		break;
 	default:
-		writeMappedInt(pMapping, atoi(pText));
+		writeMappedInt(mapping, atoi(text));
 		break;
 	}
 }
 
-static void writeMappedInt(const WuRegistryMapping *pMapping, int value) {
-	switch (pMapping->kind) {
+static void writeMappedInt(const WuRegistryMapping *mapping, int value) {
+	switch (mapping->kind) {
 	case kMapInt:
-		ConfMan.setInt(pMapping->key, value);
+		ConfMan.setInt(mapping->key, value);
 		break;
 	case kMapVolume:
-		ConfMan.setInt(pMapping->key, convertVolumeToMixer(value));
+		ConfMan.setInt(mapping->key, convertVolumeToMixer(value));
 		break;
 	case kMapTalkSpeed:
-		ConfMan.setInt(pMapping->key, convertTalkSpeedToGUI(value));
+		ConfMan.setInt(mapping->key, convertTalkSpeedToGUI(value));
 		break;
 	case kMapSpeechMode:
 		ConfMan.setBool("subtitles", convertSubtitlesToGUI(value));
 		ConfMan.setBool("speech_mute", convertSpeechMuteToGUI(value));
 		break;
 	case kMapBool:
-		ConfMan.setBool(pMapping->key, value != 0);
+		ConfMan.setBool(mapping->key, value != 0);
 		break;
 	default:
-		writeMappedText(pMapping, Common::String::format("%d", value).c_str());
+		writeMappedText(mapping, Common::String::format("%d", value).c_str());
 		break;
 	}
 }
 
-WuRegistry::WuRegistry() : _bStarted(0), _aValueNames(nullptr), _numValues(0) {
+WuRegistry::WuRegistry() : _started(0), _valueNames(nullptr), _numValues(0) {
 }
 
 WuRegistry::~WuRegistry() {
-	if (_aValueNames)
+	if (_valueNames)
 		freeIndex();
 }
 
 int WuRegistry::startup(const char *version) {
-	_bStarted = 1;
+	_started = 1;
 
 	ConfMan.registerDefault("subtitles", true);
 	ConfMan.registerDefault("talkspeed", 179);
@@ -364,47 +364,47 @@ int WuRegistry::startup(const char *version) {
 
 int WuRegistry::loadIndex() {
 	_numValues = _values.size();
-	_aValueNames = new char *[_numValues];
+	_valueNames = new char *[_numValues];
 
 	for (uint i = 0; i < _numValues; i++) {
 		Common::String name = _values[i].name;
 
 		name.toLowercase();
-		_aValueNames[i] = new char[name.size() + 1];
-		memcpy(_aValueNames[i], name.c_str(), name.size() + 1);
+		_valueNames[i] = new char[name.size() + 1];
+		memcpy(_valueNames[i], name.c_str(), name.size() + 1);
 	}
 
-	sort(_aValueNames, _numValues, sizeof(char *), compareNames);
+	sort(_valueNames, _numValues, sizeof(char *), compareNames);
 
 	return 0;
 }
 
-int WuRegistry::compareNames(const void *pA, const void *pB) {
-	return strcmp(*(const char *const *)pA, *(const char *const *)pB);
+int WuRegistry::compareNames(const void *a, const void *b) {
+	return strcmp(*(const char *const *)a, *(const char *const *)b);
 }
 
 void WuRegistry::shutdown() {
 	freeIndex();
-	_bStarted = 0;
+	_started = 0;
 
 	ConfMan.flushToDisk();
 }
 
 void WuRegistry::freeIndex() {
 	for (uint i = 0; i < _numValues; i++)
-		delete[] _aValueNames[i];
+		delete[] _valueNames[i];
 
-	delete[] _aValueNames;
-	_aValueNames = nullptr;
+	delete[] _valueNames;
+	_valueNames = nullptr;
 	_numValues = 0;
 }
 
 int WuRegistry::saveInt(const char *valueName, int value) {
 	Common::String key;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
-	if (pMapping) {
-		writeMappedInt(pMapping, value);
+	if (mapping) {
+		writeMappedInt(mapping, value);
 
 		return 1;
 	}
@@ -433,41 +433,41 @@ int WuRegistry::addIndex(const char *valueName) {
 
 		name.toLowercase();
 
-		char **aNewNames = new char *[_numValues + 1];
+		char **newNames = new char *[_numValues + 1];
 
 		for (uint i = 0; i < _numValues; i++)
-			aNewNames[i] = _aValueNames[i];
+			newNames[i] = _valueNames[i];
 
-		delete[] _aValueNames;
-		_aValueNames = aNewNames;
+		delete[] _valueNames;
+		_valueNames = newNames;
 		_numValues++;
 
-		_aValueNames[_numValues - 1] = new char[name.size() + 1];
-		memcpy(_aValueNames[_numValues - 1], name.c_str(), name.size() + 1);
+		_valueNames[_numValues - 1] = new char[name.size() + 1];
+		memcpy(_valueNames[_numValues - 1], name.c_str(), name.size() + 1);
 
-		sort(_aValueNames, _numValues, sizeof(char *), compareNames);
+		sort(_valueNames, _numValues, sizeof(char *), compareNames);
 	}
 
 	return index;
 }
 
 int WuRegistry::findIndex(const char *valueName) {
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
-	if (pMapping)
-		return getMappedType(pMapping) ? 1 : 0;
+	if (mapping)
+		return getMappedType(mapping) ? 1 : 0;
 
-	if (!_aValueNames)
+	if (!_valueNames)
 		return 1;
 
 	Common::String name = valueName;
 
 	name.toLowercase();
 
-	const char *pKey = name.c_str();
-	void *pFound = binarySearch(&pKey, _aValueNames, _numValues, sizeof(char *), compareNames);
+	const char *key = name.c_str();
+	void *found = binarySearch(&key, _valueNames, _numValues, sizeof(char *), compareNames);
 
-	if (pFound)
+	if (found)
 		return 1;
 
 	return ConfMan.hasKey(valueName) ? 1 : 0;
@@ -475,22 +475,22 @@ int WuRegistry::findIndex(const char *valueName) {
 
 int WuRegistry::saveFloat(const char *valueName, float value) {
 	Common::String key;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
-	if (pMapping && pMapping->kind == kMapFloat) {
-		ConfMan.set(pMapping->key, Common::String::format("%.9g", value));
+	if (mapping && mapping->kind == kMapFloat) {
+		ConfMan.set(mapping->key, Common::String::format("%.9g", value));
 		addIndex(valueName);
 
 		return 1;
 	}
 
-	if (pMapping) {
+	if (mapping) {
 		if (!(value > -2147483648.0f && value < 2147483648.0f)) {
 			warning("WuRegistry::saveFloat(): the value of '%s' does not fit an integer", valueName);
 			return 1;
 		}
 
-		writeMappedInt(pMapping, (int)value);
+		writeMappedInt(mapping, (int)value);
 
 		return 1;
 	}
@@ -517,15 +517,15 @@ int WuRegistry::getInt(const char *valueName, int defaultValue) {
 	byte data[4] = { 0, 0, 0, 0 };
 	uint size = 4;
 	Common::String key;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
 	if (!findIndex(valueName))
 		return defaultValue;
 
-	if (pMapping) {
+	if (mapping) {
 		int mappedValue;
 
-		if (readMappedInt(pMapping, &mappedValue))
+		if (readMappedInt(mapping, &mappedValue))
 			return mappedValue;
 
 		return defaultValue;
@@ -554,24 +554,24 @@ float WuRegistry::getFloat(const char *valueName, float defaultValue) {
 	byte data[4] = { 0, 0, 0, 0 };
 	uint size = 4;
 	Common::String key;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
 	if (!findIndex(valueName))
 		return defaultValue;
 
-	if (pMapping && pMapping->kind == kMapFloat) {
-		if (!canParseFloat(ConfMan.get(pMapping->key))) {
+	if (mapping && mapping->kind == kMapFloat) {
+		if (!canParseFloat(ConfMan.get(mapping->key))) {
 			warning("WuRegistry::getFloat(): the value of '%s' is not a number", valueName);
 			return defaultValue;
 		}
 
-		return ConfMan.getFloat(pMapping->key);
+		return ConfMan.getFloat(mapping->key);
 	}
 
-	if (pMapping) {
+	if (mapping) {
 		int mappedValue;
 
-		if (readMappedInt(pMapping, &mappedValue))
+		if (readMappedInt(mapping, &mappedValue))
 			return (float)mappedValue;
 
 		return defaultValue;
@@ -601,52 +601,52 @@ float WuRegistry::getFloat(const char *valueName, float defaultValue) {
 	return defaultValue;
 }
 
-int WuRegistry::saveBinary(const char *valueName, const byte *pData, uint size) {
+int WuRegistry::saveBinary(const char *valueName, const byte *data, uint size) {
 	// TODO: binary values are not persisted
-	setValue(valueName, kValueBinary, pData, size);
+	setValue(valueName, kValueBinary, data, size);
 	addIndex(valueName);
 
 	return 1;
 }
 
-int WuRegistry::getBinary(const char *valueName, byte *pData, uint size) {
-	if (findIndex(valueName) && queryValue(valueName, nullptr, pData, &size))
+int WuRegistry::getBinary(const char *valueName, byte *data, uint size) {
+	if (findIndex(valueName) && queryValue(valueName, nullptr, data, &size))
 		return 1;
 
 	return 0;
 }
 
-int WuRegistry::saveStr(const char *valueName, const char *pData) {
+int WuRegistry::saveStr(const char *valueName, const char *data) {
 	Common::String key;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
-	if (pMapping) {
+	if (mapping) {
 		int mappedResult = addIndex(valueName);
 
-		writeMappedText(pMapping, pData);
+		writeMappedText(mapping, data);
 
 		return mappedResult;
 	}
 
-	bool bStorable = isStorableString(pData);
+	bool storable = isStorableString(data);
 
-	if (!bStorable)
+	if (!storable)
 		warning("WuRegistry::saveStr(): the string of '%s' cannot be stored in the configuration", valueName);
 
-	if (bStorable && claimKey(valueName, kValueString, &key)) {
+	if (storable && claimKey(valueName, kValueString, &key)) {
 		int result = addIndex(valueName);
 
-		ConfMan.set(key, pData);
+		ConfMan.set(key, data);
 
 		return result;
 	}
 
-	setValue(valueName, kValueString, (const byte *)pData, strlen(pData));
+	setValue(valueName, kValueString, (const byte *)data, strlen(data));
 
 	return addIndex(valueName);
 }
 
-int WuRegistry::getStr(const char *valueName, char *pData, uint size, const char *pDefault) {
+int WuRegistry::getStr(const char *valueName, char *data, uint size, const char *defaultValue) {
 	int result = findIndex(valueName);
 
 	if (!result)
@@ -660,21 +660,21 @@ int WuRegistry::getStr(const char *valueName, char *pData, uint size, const char
 	Common::String key;
 	uint type = kValueString;
 	uint storedSize = size;
-	bool bQueried;
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	bool queried;
+	const WuRegistryMapping *mapping = findMapping(valueName);
 	Common::String text;
 
-	if (pMapping)
-		bQueried = readMappedText(pMapping, &text) && queryText(text, (byte *)pData, &storedSize);
+	if (mapping)
+		queried = readMappedText(mapping, &text) && queryText(text, (byte *)data, &storedSize);
 	else if (findConfKey(valueName, &key))
-		bQueried = queryText(ConfMan.get(key), (byte *)pData, &storedSize);
+		queried = queryText(ConfMan.get(key), (byte *)data, &storedSize);
 	else
-		bQueried = queryValue(valueName, &type, (byte *)pData, &storedSize);
+		queried = queryValue(valueName, &type, (byte *)data, &storedSize);
 
-	if (!bQueried) {
-		if (pDefault) {
-			strncpy(pData, pDefault, size - 1);
-			pData[size - 1] = 0;
+	if (!queried) {
+		if (defaultValue) {
+			strncpy(data, defaultValue, size - 1);
+			data[size - 1] = 0;
 		}
 
 		return 0;
@@ -682,22 +682,22 @@ int WuRegistry::getStr(const char *valueName, char *pData, uint size, const char
 
 	if (type == kValueString && storedSize >= size) {
 		warning("WuRegistry::getStr(): the string has no room for its terminator");
-		pData[size - 1] = 0;
+		data[size - 1] = 0;
 	}
 
 	return 1;
 }
 
 uint WuRegistry::queryType(const char *valueName) {
-	const WuRegistryMapping *pMapping = findMapping(valueName);
+	const WuRegistryMapping *mapping = findMapping(valueName);
 
-	if (pMapping)
-		return getMappedType(pMapping);
+	if (mapping)
+		return getMappedType(mapping);
 
 	int index = findValue(valueName);
 	Common::String key;
 
-	if (index >= 0 && !_values[index].bInConfMan)
+	if (index >= 0 && !_values[index].inConfMan)
 		return _values[index].type;
 
 	if (!findConfKey(valueName, &key))
@@ -718,7 +718,7 @@ int WuRegistry::findValue(const char *valueName) const {
 	return -1;
 }
 
-void WuRegistry::setValue(const char *valueName, uint type, const byte *pData, uint size) {
+void WuRegistry::setValue(const char *valueName, uint type, const byte *data, uint size) {
 	int index = findValue(valueName);
 
 	if (index < 0) {
@@ -726,30 +726,30 @@ void WuRegistry::setValue(const char *valueName, uint type, const byte *pData, u
 
 		value.name = valueName;
 		value.type = type;
-		value.bInConfMan = false;
+		value.inConfMan = false;
 		_values.push_back(value);
 		index = _values.size() - 1;
 	}
 
 	WuRegistryValue &value = _values[index];
 
-	if (value.bInConfMan) {
-		Common::ConfigManager::Domain *pDomain = getConfDomain();
+	if (value.inConfMan) {
+		Common::ConfigManager::Domain *domain = getConfDomain();
 
-		if (pDomain)
-			pDomain->erase(value.name);
+		if (domain)
+			domain->erase(value.name);
 
-		value.bInConfMan = false;
+		value.inConfMan = false;
 	}
 
 	value.type = type;
 	value.data.resize(size);
 
 	if (size)
-		memcpy(value.data.data(), pData, size);
+		memcpy(value.data.data(), data, size);
 }
 
-bool WuRegistry::claimKey(const char *valueName, uint type, Common::String *pKey) {
+bool WuRegistry::claimKey(const char *valueName, uint type, Common::String *key) {
 	if (!isStorableName(valueName)) {
 		warning("WuRegistry::claimKey(): the value name '%s' cannot be stored in the configuration", valueName);
 		return false;
@@ -762,7 +762,7 @@ bool WuRegistry::claimKey(const char *valueName, uint type, Common::String *pKey
 
 		value.name = valueName;
 		value.type = type;
-		value.bInConfMan = true;
+		value.inConfMan = true;
 		_values.push_back(value);
 		index = _values.size() - 1;
 	}
@@ -770,56 +770,56 @@ bool WuRegistry::claimKey(const char *valueName, uint type, Common::String *pKey
 	WuRegistryValue &value = _values[index];
 
 	value.type = type;
-	value.bInConfMan = true;
+	value.inConfMan = true;
 	value.data.clear();
 
-	*pKey = value.name;
+	*key = value.name;
 
 	return true;
 }
 
-bool WuRegistry::findConfKey(const char *valueName, Common::String *pKey) const {
+bool WuRegistry::findConfKey(const char *valueName, Common::String *key) const {
 	int index = findValue(valueName);
 
 	if (index >= 0) {
-		if (!_values[index].bInConfMan)
+		if (!_values[index].inConfMan)
 			return false;
 
-		*pKey = _values[index].name;
+		*key = _values[index].name;
 	} else {
-		*pKey = valueName;
+		*key = valueName;
 	}
 
-	return ConfMan.hasKey(*pKey);
+	return ConfMan.hasKey(*key);
 }
 
-bool WuRegistry::queryValue(const char *valueName, uint *pType, byte *pData, uint *pSize) const {
+bool WuRegistry::queryValue(const char *valueName, uint *type, byte *data, uint *size) const {
 	int index = findValue(valueName);
 
-	if (index < 0 || _values[index].bInConfMan)
+	if (index < 0 || _values[index].inConfMan)
 		return false;
 
 	const WuRegistryValue &value = _values[index];
 	uint storedSize = value.data.size();
 
-	if (pType)
-		*pType = value.type;
+	if (type)
+		*type = value.type;
 
-	if (!pData)
+	if (!data)
 		return true;
 
-	if (storedSize > *pSize) {
-		*pSize = storedSize;
+	if (storedSize > *size) {
+		*size = storedSize;
 		return false;
 	}
 
 	if (storedSize)
-		memcpy(pData, value.data.data(), storedSize);
+		memcpy(data, value.data.data(), storedSize);
 
-	if (value.type == kValueString && storedSize < *pSize)
-		pData[storedSize] = 0;
+	if (value.type == kValueString && storedSize < *size)
+		data[storedSize] = 0;
 
-	*pSize = storedSize;
+	*size = storedSize;
 
 	return true;
 }

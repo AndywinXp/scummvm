@@ -57,14 +57,14 @@ public:
 	void closeStreams();
 	EmiEngine *getEngine() const { return _engine; }
 
-	Common::SeekableReadStream *readStream;
-	Common::WriteStream *writeStream;
-	LString name;
-	LString fileName;
-	char *memData;
-	char *memCursor;
-	uint memSize;
-	byte openFlags;
+	Common::SeekableReadStream *_readStream;
+	Common::WriteStream *_writeStream;
+	LString _name;
+	LString _fileName;
+	char *_memData;
+	char *_memCursor;
+	uint _memSize;
+	byte _openFlags;
 
 protected:
 	EmiEngine *_engine;

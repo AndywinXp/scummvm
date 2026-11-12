@@ -35,7 +35,7 @@ uint LocalAlphaComponent::resSizeOfItem() {
 }
 
 ComponentInstance *LocalAlphaComponent::createInstance(Actor *owner) {
-	return new LocalAlphaInstance(_engine, name, owner);
+	return new LocalAlphaInstance(_engine, _name, owner);
 }
 
 bool LocalAlphaComponent::resLoadItem(const char *itemName) {

@@ -40,38 +40,38 @@ static const uint kSmshSamplePairs = 1024;
 static const byte kSmshEscape = 0x80;
 
 CWaveSound::CWaveSound() {
-	littleEndian = true;
-	sampleRate = 0.0;
-	loopEnd = 0xFFFFFFFF;
-	decodedBlockIndex = -1;
-	formatTag = kFormatNone;
-	bitsPerSample = 0;
-	numChannels = 0;
-	loopStart = 0;
-	samples = nullptr;
-	allocatedSize = 0;
-	dataSize = 0;
-	decodedBlock = nullptr;
-	spuLoops = false;
-	spuLoopStart = 0;
+	_littleEndian = true;
+	_sampleRate = 0.0;
+	_loopEnd = 0xFFFFFFFF;
+	_decodedBlockIndex = -1;
+	_formatTag = kFormatNone;
+	_bitsPerSample = 0;
+	_numChannels = 0;
+	_loopStart = 0;
+	_samples = nullptr;
+	_allocatedSize = 0;
+	_dataSize = 0;
+	_decodedBlock = nullptr;
+	_spuLoops = false;
+	_spuLoopStart = 0;
 }
 
 CWaveSound::~CWaveSound() {
-	if (decodedBlock) {
-		delete[] decodedBlock;
-		decodedBlock = nullptr;
+	if (_decodedBlock) {
+		delete[] _decodedBlock;
+		_decodedBlock = nullptr;
 	}
 
-	if (samples) {
-		freeAudioMemory(samples);
-		samples = nullptr;
+	if (_samples) {
+		freeAudioMemory(_samples);
+		_samples = nullptr;
 	}
 }
 
 void CWaveSound::reset() {
 	// The disasm drops the decoded block without freeing it
-	decodedBlock = nullptr;
-	decodedBlockIndex = -1;
+	_decodedBlock = nullptr;
+	_decodedBlockIndex = -1;
 }
 
 int CWaveSound::getType() {
@@ -79,21 +79,21 @@ int CWaveSound::getType() {
 }
 
 bool CWaveSound::is16Bit() {
-	return bitsPerSample == 16;
+	return _bitsPerSample == 16;
 }
 
 int CWaveSound::getSampleFormat() {
-	if (numChannels == 1) {
-		if (bitsPerSample == 8)
+	if (_numChannels == 1) {
+		if (_bitsPerSample == 8)
 			return 1;
 
-		if (bitsPerSample == 16)
+		if (_bitsPerSample == 16)
 			return 3;
-	} else if (numChannels == 2) {
-		if (bitsPerSample == 8)
+	} else if (_numChannels == 2) {
+		if (_bitsPerSample == 8)
 			return 2;
 
-		if (bitsPerSample == 16)
+		if (_bitsPerSample == 16)
 			return 4;
 	}
 
@@ -103,39 +103,39 @@ int CWaveSound::getSampleFormat() {
 }
 
 bool CWaveSound::reallocData(uint size) {
-	byte *oldSamples = samples;
+	byte *oldSamples = _samples;
 
-	samples = (byte *)allocAudioMemory(size);
+	_samples = (byte *)allocAudioMemory(size);
 
-	if (!samples) {
-		samples = oldSamples;
+	if (!_samples) {
+		_samples = oldSamples;
 
 		return false;
 	}
 
 	if (oldSamples) {
-		uint copySize = allocatedSize;
+		uint copySize = _allocatedSize;
 
 		if (copySize >= size)
 			copySize = size;
 
-		memcpy(samples, oldSamples, copySize);
+		memcpy(_samples, oldSamples, copySize);
 		freeAudioMemory(oldSamples);
 	}
 
-	allocatedSize = size;
+	_allocatedSize = size;
 
 	return true;
 }
 
 bool CWaveSound::readSamples(char *dest, uint *position, uint count, bool loop) {
-	if (!dataSize)
+	if (!_dataSize)
 		return false;
 
-	if (!allocatedSize)
+	if (!_allocatedSize)
 		return false;
 
-	if (*position >= dataSize)
+	if (*position >= _dataSize)
 		return false;
 
 	uint nextPosition = 0;
@@ -160,7 +160,7 @@ bool CWaveSound::readSamples(char *dest, uint *position, uint count, bool loop) 
 
 			dest += chunk;
 
-			if (nextPosition >= dataSize)
+			if (nextPosition >= _dataSize)
 				break;
 
 			*position = nextPosition;
@@ -173,7 +173,7 @@ bool CWaveSound::readSamples(char *dest, uint *position, uint count, bool loop) 
 		}
 
 		memset(dest, 0, remaining);
-		*position = dataSize;
+		*position = _dataSize;
 	}
 
 	return true;
@@ -183,22 +183,22 @@ uint CWaveSound::getSegmentLength(uint position, uint *nextPosition, bool loop) 
 	uint end;
 
 	if (loop) {
-		*nextPosition = loopStart;
-		end = loopEnd;
+		*nextPosition = _loopStart;
+		end = _loopEnd;
 
-		if (end >= dataSize)
-			return dataSize - position;
+		if (end >= _dataSize)
+			return _dataSize - position;
 	} else {
-		*nextPosition = dataSize;
-		end = dataSize;
+		*nextPosition = _dataSize;
+		end = _dataSize;
 	}
 
 	return end - position;
 }
 
 void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
-	if (formatTag == kFormatPcm) {
-		if (!samples || sourceOffset > allocatedSize) {
+	if (_formatTag == kFormatPcm) {
+		if (!_samples || sourceOffset > _allocatedSize) {
 			warning("CWaveSound::copyData(): offset outside of the samples");
 			memset(dest, 0, count);
 
@@ -207,16 +207,16 @@ void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
 
 		uint copySize = count;
 
-		if (copySize > allocatedSize - sourceOffset)
-			copySize = allocatedSize - sourceOffset;
+		if (copySize > _allocatedSize - sourceOffset)
+			copySize = _allocatedSize - sourceOffset;
 
-		memcpy(dest, samples + sourceOffset, copySize);
+		memcpy(dest, _samples + sourceOffset, copySize);
 
 		if (copySize < count) {
 			warning("CWaveSound::copyData(): count outside of the samples");
 			memset(dest + copySize, 0, count - copySize);
 		}
-	} else if (formatTag == kFormatSmsh) {
+	} else if (_formatTag == kFormatSmsh) {
 		int remaining = count;
 		uint blockOffset = sourceOffset & (kDecodedBlockSize - 1);
 		int lastBlock = (sourceOffset + count) >> kDecodedBlockShift;
@@ -226,10 +226,10 @@ void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
 
 		if (block <= lastBlock) {
 			while (true) {
-				if (block != decodedBlockIndex)
+				if (block != _decodedBlockIndex)
 					decodeBlock(block);
 
-				if (!decodedBlock) {
+				if (!_decodedBlock) {
 					warning("CWaveSound::copyData(): no decoded block");
 					memset(dest + written, 0, left);
 
@@ -241,7 +241,7 @@ void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
 				if ((int)chunk >= remaining)
 					chunk = remaining;
 
-				memcpy(dest + written, decodedBlock + blockOffset, chunk);
+				memcpy(dest + written, _decodedBlock + blockOffset, chunk);
 
 				left -= chunk;
 				written += chunk;
@@ -258,26 +258,26 @@ void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
 		memset(dest, 0, count);
 
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("CWaveSound::CopyData   Unknown wave format: %c%c%c%c (%08x)", (int)((formatTag >> 24) & 0xFF), (int)((formatTag >> 16) & 0xFF), (int)((formatTag >> 8) & 0xFF), (int)(formatTag & 0xFF), formatTag);
+			_engine->getConsoleServices()->logError("CWaveSound::CopyData   Unknown wave format: %c%c%c%c (%08x)", (int)((_formatTag >> 24) & 0xFF), (int)((_formatTag >> 16) & 0xFF), (int)((_formatTag >> 8) & 0xFF), (int)(_formatTag & 0xFF), _formatTag);
 		else
-			warning("CWaveSound::copyData(): unknown wave format %08x", formatTag);
+			warning("CWaveSound::copyData(): unknown wave format %08x", _formatTag);
 	}
 }
 
 void CWaveSound::decodeBlock(uint block) {
-	if ((int)block == decodedBlockIndex || !samples)
+	if ((int)block == _decodedBlockIndex || !_samples)
 		return;
 
-	if (!decodedBlock)
-		decodedBlock = new char[kDecodedBlockSize];
+	if (!_decodedBlock)
+		_decodedBlock = new char[kDecodedBlockSize];
 
-	if (allocatedSize < 4) {
+	if (_allocatedSize < 4) {
 		warning("CWaveSound::decodeBlock(): the samples have no block table");
 
 		return;
 	}
 
-	uint numBlocks = READ_LE_UINT32(samples) >> kDecodedBlockShift;
+	uint numBlocks = READ_LE_UINT32(_samples) >> kDecodedBlockShift;
 
 	// The original divides by zero here
 	if (numBlocks == 0) {
@@ -288,28 +288,28 @@ void CWaveSound::decodeBlock(uint block) {
 
 	uint index = block % numBlocks;
 
-	decodedBlockIndex = index;
+	_decodedBlockIndex = index;
 
 	uint tableOffset = 4 + index * 4;
 
-	if (tableOffset + 4 > allocatedSize) {
+	if (tableOffset + 4 > _allocatedSize) {
 		warning("CWaveSound::decodeBlock(): block table outside of the samples");
-		memset(decodedBlock, 0, kDecodedBlockSize);
+		memset(_decodedBlock, 0, kDecodedBlockSize);
 
 		return;
 	}
 
-	uint blockOffset = READ_LE_UINT32(samples + tableOffset);
+	uint blockOffset = READ_LE_UINT32(_samples + tableOffset);
 
-	if (blockOffset > allocatedSize || allocatedSize - blockOffset < 3) {
+	if (blockOffset > _allocatedSize || _allocatedSize - blockOffset < 3) {
 		warning("CWaveSound::decodeBlock(): block outside of the samples");
-		memset(decodedBlock, 0, kDecodedBlockSize);
+		memset(_decodedBlock, 0, kDecodedBlockSize);
 
 		return;
 	}
 
-	const byte *source = samples + blockOffset + 2;
-	const byte *end = samples + allocatedSize;
+	const byte *source = _samples + blockOffset + 2;
+	const byte *end = _samples + _allocatedSize;
 	int shiftFirst = *source >> 4;
 	int shiftSecond = *source & 0x0F;
 	source++;
@@ -320,7 +320,7 @@ void CWaveSound::decodeBlock(uint block) {
 
 			if (source >= end) {
 				warning("CWaveSound::decodeBlock(): block data outside of the samples");
-				memset(decodedBlock + outputOffset, 0, kDecodedBlockSize - outputOffset);
+				memset(_decodedBlock + outputOffset, 0, kDecodedBlockSize - outputOffset);
 
 				return;
 			}
@@ -333,7 +333,7 @@ void CWaveSound::decodeBlock(uint block) {
 			if (value == kSmshEscape) {
 				if (source + 2 > end) {
 					warning("CWaveSound::decodeBlock(): block data outside of the samples");
-					memset(decodedBlock + outputOffset, 0, kDecodedBlockSize - outputOffset);
+					memset(_decodedBlock + outputOffset, 0, kDecodedBlockSize - outputOffset);
 
 					return;
 				}
@@ -346,7 +346,7 @@ void CWaveSound::decodeBlock(uint block) {
 				decoded = (uint16)((int)(int8)value * (1 << shift));
 			}
 
-			WRITE_LE_UINT16(decodedBlock + outputOffset, decoded);
+			WRITE_LE_UINT16(_decodedBlock + outputOffset, decoded);
 		}
 	}
 }

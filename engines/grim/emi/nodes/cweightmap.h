@@ -76,11 +76,11 @@ public:
 	void computeTransforms(CNode *node, const CTransform *parentTransform);
 	void deformVerts(const VertexSource *source, float *outPositions, float *outNormals, CNode **nodes);
 
-	bool bound;
-	Common::Array<LString> nodeNames;
-	Common::Array<VertexWeight> weights;
-	Common::Array<WeightData *> weightBlocks;
-	Common::Array<WeightData *> vertexLists;
+	bool _bound;
+	Common::Array<LString> _nodeNames;
+	Common::Array<VertexWeight> _weights;
+	Common::Array<WeightData *> _weightBlocks;
+	Common::Array<WeightData *> _vertexLists;
 
 private:
 	EmiEngine *_engine;

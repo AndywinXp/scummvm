@@ -40,8 +40,8 @@ public:
 	int classifyPoint(const CVector &point);
 	void transformToLocal(const CTransform *transform);
 
-	CVector n;
-	float d;
+	CVector _n;
+	float _d;
 };
 
 } // End of namespace Grim

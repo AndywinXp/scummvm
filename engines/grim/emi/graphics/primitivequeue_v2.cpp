@@ -34,10 +34,10 @@ PrimitiveQueue_v2::PrimitiveQueue_v2(EmiEngine *engine) {
 	_started = false;
 	_drawDisabled = false;
 	_nextId = 1;
-	head2D = nullptr;
-	tail2D = nullptr;
-	head3D = nullptr;
-	tail3D = nullptr;
+	_head2D = nullptr;
+	_tail2D = nullptr;
+	_head3D = nullptr;
+	_tail3D = nullptr;
 }
 
 bool PrimitiveQueue_v2::startup() {
@@ -65,14 +65,14 @@ void PrimitiveQueue_v2::drawQueue(CDrawContext *drawContext, int layers) {
 
 void PrimitiveQueue_v2::clear() {
 	// The disasm only frees the 2D list
-	while (head2D) {
-		Primitive *following = head2D->next;
+	while (_head2D) {
+		Primitive *following = _head2D->_next;
 
-		delete head2D;
-		head2D = following;
+		delete _head2D;
+		_head2D = following;
 	}
 
-	tail2D = nullptr;
+	_tail2D = nullptr;
 }
 
 int PrimitiveQueue_v2::add3DLine(float startX, float startY, float startZ, float endX, float endY, float endZ, const Color &lineColor, int layer) {
@@ -82,15 +82,15 @@ int PrimitiveQueue_v2::add3DLine(float startX, float startY, float startZ, float
 
 	Primitive *primitive = newNode3D(primitiveId, layer);
 
-	primitive->x1 = startX;
-	primitive->y1 = startY;
-	primitive->z1 = startZ;
-	primitive->x2 = endX;
-	primitive->y2 = endY;
-	primitive->z2 = endZ;
-	primitive->color = lineColor;
+	primitive->_x1 = startX;
+	primitive->_y1 = startY;
+	primitive->_z1 = startZ;
+	primitive->_x2 = endX;
+	primitive->_y2 = endY;
+	primitive->_z2 = endZ;
+	primitive->_color = lineColor;
 
-	return primitive->id;
+	return primitive->_id;
 }
 
 int PrimitiveQueue_v2::addLine(float startX, float startY, float endX, float endY, const Color &lineColor, int layer) {
@@ -100,15 +100,15 @@ int PrimitiveQueue_v2::addLine(float startX, float startY, float endX, float end
 
 	Primitive *primitive = newNode2D(primitiveId, layer);
 
-	primitive->x1 = startX;
-	primitive->y1 = startY;
-	primitive->z1 = 0.0f;
-	primitive->z2 = 0.0f;
-	primitive->x2 = endX;
-	primitive->y2 = endY;
-	primitive->color = lineColor;
+	primitive->_x1 = startX;
+	primitive->_y1 = startY;
+	primitive->_z1 = 0.0f;
+	primitive->_z2 = 0.0f;
+	primitive->_x2 = endX;
+	primitive->_y2 = endY;
+	primitive->_color = lineColor;
 
-	return primitive->id;
+	return primitive->_id;
 }
 
 int PrimitiveQueue_v2::addRectangle(float startX, float startY, float endX, float endY, const Color &rectangleColor, bool isFilled, int layer) {
@@ -118,17 +118,17 @@ int PrimitiveQueue_v2::addRectangle(float startX, float startY, float endX, floa
 
 	Primitive *primitive = newNode2D(primitiveId, layer);
 
-	primitive->type = Primitive::kTypeRectangle;
-	primitive->x1 = startX;
-	primitive->y1 = startY;
-	primitive->z1 = 0.0f;
-	primitive->z2 = 0.0f;
-	primitive->x2 = endX;
-	primitive->y2 = endY;
-	primitive->color = rectangleColor;
-	primitive->filled = isFilled;
+	primitive->_type = Primitive::kTypeRectangle;
+	primitive->_x1 = startX;
+	primitive->_y1 = startY;
+	primitive->_z1 = 0.0f;
+	primitive->_z2 = 0.0f;
+	primitive->_x2 = endX;
+	primitive->_y2 = endY;
+	primitive->_color = rectangleColor;
+	primitive->_filled = isFilled;
 
-	return primitive->id;
+	return primitive->_id;
 }
 
 int PrimitiveQueue_v2::addPolygon(int numPoints, const float *points, const Color &polygonColor, int layer) {
@@ -145,15 +145,15 @@ int PrimitiveQueue_v2::addPolygon(int numPoints, const float *points, const Colo
 	for (int i = 0; i < numPoints - 1; i++) {
 		Primitive *primitive = newNode2D(primitiveId, layer);
 
-		primitive->type = Primitive::kTypePolygon;
-		primitive->x1 = points[i * 3];
-		primitive->y1 = points[i * 3 + 1];
-		primitive->z1 = points[i * 3 + 2];
-		primitive->x2 = points[i * 3 + 3];
-		primitive->y2 = points[i * 3 + 4];
-		primitive->z2 = points[i * 3 + 5];
-		primitive->color = polygonColor;
-		primitive->polyCount = numPoints - 1;
+		primitive->_type = Primitive::kTypePolygon;
+		primitive->_x1 = points[i * 3];
+		primitive->_y1 = points[i * 3 + 1];
+		primitive->_z1 = points[i * 3 + 2];
+		primitive->_x2 = points[i * 3 + 3];
+		primitive->_y2 = points[i * 3 + 4];
+		primitive->_z2 = points[i * 3 + 5];
+		primitive->_color = polygonColor;
+		primitive->_polyCount = numPoints - 1;
 	}
 
 	return primitiveId;
@@ -162,13 +162,13 @@ int PrimitiveQueue_v2::addPolygon(int numPoints, const float *points, const Colo
 Primitive *PrimitiveQueue_v2::newNode2D(int primitiveId, int layer) {
 	Primitive *primitive = new Primitive(primitiveId, Primitive::kTypeLine);
 
-	if (tail2D) {
-		tail2D->next = primitive;
-		tail2D->next->prev = tail2D;
-		tail2D = tail2D->next;
+	if (_tail2D) {
+		_tail2D->_next = primitive;
+		_tail2D->_next->_prev = _tail2D;
+		_tail2D = _tail2D->_next;
 	} else {
-		tail2D = primitive;
-		head2D = primitive;
+		_tail2D = primitive;
+		_head2D = primitive;
 	}
 
 	int nodeLayer = layer;
@@ -176,21 +176,21 @@ Primitive *PrimitiveQueue_v2::newNode2D(int primitiveId, int layer) {
 	if (nodeLayer != Primitive::kLayerSecond && nodeLayer != Primitive::kLayerFirst)
 		nodeLayer = Primitive::kLayerSecond;
 
-	tail2D->layer = nodeLayer;
+	_tail2D->_layer = nodeLayer;
 
-	return tail2D;
+	return _tail2D;
 }
 
 Primitive *PrimitiveQueue_v2::newNode3D(int primitiveId, int layer) {
 	Primitive *primitive = new Primitive(primitiveId, Primitive::kTypeLine);
 
-	if (tail3D) {
-		tail3D->next = primitive;
-		tail3D->next->prev = tail3D;
-		tail3D = tail3D->next;
+	if (_tail3D) {
+		_tail3D->_next = primitive;
+		_tail3D->_next->_prev = _tail3D;
+		_tail3D = _tail3D->_next;
 	} else {
-		tail3D = primitive;
-		head3D = primitive;
+		_tail3D = primitive;
+		_head3D = primitive;
 	}
 
 	int nodeLayer = layer;
@@ -198,43 +198,43 @@ Primitive *PrimitiveQueue_v2::newNode3D(int primitiveId, int layer) {
 	if (nodeLayer != Primitive::kLayerSecond && nodeLayer != Primitive::kLayerFirst)
 		nodeLayer = Primitive::kLayerSecond;
 
-	tail3D->layer = nodeLayer;
+	_tail3D->_layer = nodeLayer;
 
-	return tail3D;
+	return _tail3D;
 }
 
 void PrimitiveQueue_v2::kill(int primitiveId) {
-	Primitive *current = head2D;
+	Primitive *current = _head2D;
 
 	while (current) {
-		if (current->id == primitiveId) {
-			if (current->prev)
-				current->prev->next = current->next;
+		if (current->_id == primitiveId) {
+			if (current->_prev)
+				current->_prev->_next = current->_next;
 
-			if (current->next)
-				current->next->prev = current->prev;
+			if (current->_next)
+				current->_next->_prev = current->_prev;
 
-			if (tail2D == current)
-				tail2D = current->prev;
+			if (_tail2D == current)
+				_tail2D = current->_prev;
 
-			if (current == head2D)
-				head2D = head2D->next;
+			if (current == _head2D)
+				_head2D = _head2D->_next;
 
-			if (tail3D == current) {
+			if (_tail3D == current) {
 				warning("PrimitiveQueue_v2::kill(): the removed primitive was the 3D tail");
-				tail3D = current->prev;
+				_tail3D = current->_prev;
 			}
 
-			Primitive *following = current->next;
+			Primitive *following = current->_next;
 
 			delete current;
 			current = following;
 		} else {
 			// The disasm moves to the 3D list from its second element
-			if (current == tail2D && head3D)
-				current = head3D;
+			if (current == _tail2D && _head3D)
+				current = _head3D;
 
-			current = current->next;
+			current = current->_next;
 		}
 	}
 }
@@ -243,7 +243,7 @@ void PrimitiveQueue_v2::setColor(int primitiveId, const Color &newColor) {
 	Primitive *current = findNext(primitiveId, nullptr);
 
 	while (current) {
-		current->color = newColor;
+		current->_color = newColor;
 		current = findNext(primitiveId, current);
 	}
 }
@@ -255,7 +255,7 @@ void PrimitiveQueue_v2::setLayer(int primitiveId, int newLayer) {
 		if (newLayer != Primitive::kLayerSecond && newLayer != Primitive::kLayerFirst)
 			newLayer = Primitive::kLayerSecond;
 
-		current->layer = newLayer;
+		current->_layer = newLayer;
 		current = findNext(primitiveId, current);
 	}
 }
@@ -264,10 +264,10 @@ void PrimitiveQueue_v2::moveBy(int primitiveId, float deltaX, float deltaY) {
 	Primitive *current = findNext(primitiveId, nullptr);
 
 	while (current) {
-		current->x1 = deltaX + current->x1;
-		current->y1 = deltaY + current->y1;
-		current->x2 = deltaX + current->x2;
-		current->y2 = deltaY + current->y2;
+		current->_x1 = deltaX + current->_x1;
+		current->_y1 = deltaY + current->_y1;
+		current->_x2 = deltaX + current->_x2;
+		current->_y2 = deltaY + current->_y2;
 		current = findNext(primitiveId, current);
 	}
 }
@@ -281,29 +281,29 @@ void PrimitiveQueue_v2::moveTo(int primitiveId, float newX, float newY) {
 		return;
 
 	if (newX > kNoChange) {
-		double difference = (double)newX - (double)first->x1;
+		double difference = (double)newX - (double)first->_x1;
 
-		first->x1 = newX;
+		first->_x1 = newX;
 		movedX = (float)difference;
 	}
 
 	if (newY > kNoChange) {
-		double difference = (double)newY - (double)first->y1;
+		double difference = (double)newY - (double)first->_y1;
 
-		first->y1 = newY;
+		first->_y1 = newY;
 		movedY = (float)difference;
 	}
 
-	first->x2 = movedX + first->x2;
-	first->y2 = movedY + first->y2;
+	first->_x2 = movedX + first->_x2;
+	first->_y2 = movedY + first->_y2;
 
 	Primitive *current = findNext(primitiveId, first);
 
 	while (current) {
-		current->x1 = movedX + current->x1;
-		current->y1 = movedY + current->y1;
-		current->x2 = movedX + current->x2;
-		current->y2 = movedY + current->y2;
+		current->_x1 = movedX + current->_x1;
+		current->_y1 = movedY + current->_y1;
+		current->_x2 = movedX + current->_x2;
+		current->_y2 = movedY + current->_y2;
 		current = findNext(primitiveId, current);
 	}
 }
@@ -315,10 +315,10 @@ void PrimitiveQueue_v2::setEnd(int primitiveId, float newX, float newY) {
 		return;
 
 	if (newX > kNoChange)
-		primitive->x2 = newX;
+		primitive->_x2 = newX;
 
 	if (newY > kNoChange)
-		primitive->y2 = newY;
+		primitive->_y2 = newY;
 }
 
 void PrimitiveQueue_v2::setEndRelative(int primitiveId, float deltaX, float deltaY) {
@@ -328,31 +328,31 @@ void PrimitiveQueue_v2::setEndRelative(int primitiveId, float deltaX, float delt
 		return;
 
 	if (deltaX > kNoChange)
-		primitive->x2 = deltaX + primitive->x1;
+		primitive->_x2 = deltaX + primitive->_x1;
 
 	if (deltaY > kNoChange)
-		primitive->y2 = deltaY + primitive->y1;
+		primitive->_y2 = deltaY + primitive->_y1;
 }
 
 void PrimitiveQueue_v2::draw(CDrawContext *drawContext, int layers) {
-	Primitive *current3D = head3D;
+	Primitive *current3D = _head3D;
 
 	drawContext->clear(false, true);
 
 	while (current3D) {
-		if ((layers & current3D->layer) != 0)
+		if ((layers & current3D->_layer) != 0)
 			current3D->drawNode(drawContext);
 
-		current3D = current3D->next;
+		current3D = current3D->_next;
 	}
 
-	Primitive *current2D = head2D;
+	Primitive *current2D = _head2D;
 
 	while (current2D) {
-		if ((layers & current2D->layer) != 0)
+		if ((layers & current2D->_layer) != 0)
 			current2D->drawNode(drawContext);
 
-		current2D = current2D->next;
+		current2D = current2D->_next;
 	}
 }
 
@@ -360,18 +360,18 @@ Primitive *PrimitiveQueue_v2::findNext(int primitiveId, Primitive *previous) {
 	Primitive *result;
 
 	if (previous)
-		result = previous->next;
+		result = previous->_next;
 	else
-		result = head2D;
+		result = _head2D;
 
 	while (result) {
-		if (result->id == primitiveId)
+		if (result->_id == primitiveId)
 			break;
 
-		if (result == tail2D)
-			result = head3D;
+		if (result == _tail2D)
+			result = _head3D;
 		else
-			result = result->next;
+			result = result->_next;
 	}
 
 	return result;

@@ -40,10 +40,10 @@ public:
 
 	SkeletonNode();
 
-	char name[kNameSize];
-	char parent[kNameSize];
-	CVector pos;
-	CQuaternion quat;
+	char _name[kNameSize];
+	char _parent[kNameSize];
+	CVector _pos;
+	CQuaternion _quat;
 };
 
 class CSkeleton {
@@ -57,7 +57,7 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	Common::Array<SkeletonNode> nodes;
+	Common::Array<SkeletonNode> _nodes;
 
 protected:
 	EmiEngine *_engine;

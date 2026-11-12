@@ -25,18 +25,18 @@
 
 namespace Grim {
 
-int RenderDroid::ClipModule::calcOutcode2(RdCanvas *pCanvas, int x, int y) {
+int RenderDroid::ClipModule::calcOutcode2(RdCanvas *canvas, int x, int y) {
 	int outcode = 0;
 
-	if (x >= pCanvas->xStart) {
-		if (x > pCanvas->xEnd)
+	if (x >= canvas->xStart) {
+		if (x > canvas->xEnd)
 			outcode = 0x10;
 	} else {
 		outcode = 1;
 	}
 
-	if (y >= pCanvas->yStart) {
-		if (y > pCanvas->yEnd)
+	if (y >= canvas->yStart) {
+		if (y > canvas->yEnd)
 			outcode |= 0x100;
 	} else {
 		outcode |= 0x1000;
@@ -45,9 +45,9 @@ int RenderDroid::ClipModule::calcOutcode2(RdCanvas *pCanvas, int x, int y) {
 	return outcode;
 }
 
-int RenderDroid::ClipModule::line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1, int *y1) {
-	int outcode0 = calcOutcode2(pCanvas, *x0, *y0);
-	int outcode1 = calcOutcode2(pCanvas, *x1, *y1);
+int RenderDroid::ClipModule::line2(RdCanvas *canvas, int *x0, int *y0, int *x1, int *y1) {
+	int outcode0 = calcOutcode2(canvas, *x0, *y0);
+	int outcode1 = calcOutcode2(canvas, *x1, *y1);
 
 	if (!outcode0 && !outcode1)
 		return 1;
@@ -71,14 +71,14 @@ int RenderDroid::ClipModule::line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1,
 			if (vertical)
 				newX = fx0;
 			else
-				newX = ((double)fx1 - fx0) / ((double)fy1 - fy0) * ((double)pCanvas->yStart - fy0) + fx0;
-			newY = (double)pCanvas->yStart;
+				newX = ((double)fx1 - fx0) / ((double)fy1 - fy0) * ((double)canvas->yStart - fy0) + fx0;
+			newY = (double)canvas->yStart;
 		} else if ((outcode & 0x100) != 0) {
 			if (vertical)
 				newX = fx0;
 			else
-				newX = ((double)fx1 - fx0) / ((double)fy1 - fy0) * ((double)pCanvas->yEnd - fy0) + fx0;
-			newY = (double)pCanvas->yEnd;
+				newX = ((double)fx1 - fx0) / ((double)fy1 - fy0) * ((double)canvas->yEnd - fy0) + fx0;
+			newY = (double)canvas->yEnd;
 		} else {
 			float clippedY;
 
@@ -86,14 +86,14 @@ int RenderDroid::ClipModule::line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1,
 				if (horizontal)
 					clippedY = fy0;
 				else
-					clippedY = (float)(((double)fy1 - fy0) / ((double)fx1 - fx0) * ((double)pCanvas->xEnd - fx0) + fy0);
-				newX = (double)pCanvas->xEnd;
+					clippedY = (float)(((double)fy1 - fy0) / ((double)fx1 - fx0) * ((double)canvas->xEnd - fx0) + fy0);
+				newX = (double)canvas->xEnd;
 			} else {
 				if (horizontal)
 					clippedY = fy0;
 				else
-					clippedY = (float)(((double)fy1 - fy0) / ((double)fx1 - fx0) * ((double)pCanvas->xStart - fx0) + fy0);
-				newX = (double)pCanvas->xStart;
+					clippedY = (float)(((double)fy1 - fy0) / ((double)fx1 - fx0) * ((double)canvas->xStart - fx0) + fy0);
+				newX = (double)canvas->xStart;
 			}
 
 			newY = clippedY;
@@ -102,11 +102,11 @@ int RenderDroid::ClipModule::line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1,
 		if (outcode == outcode0) {
 			fx0 = (float)newX;
 			fy0 = (float)newY;
-			outcode0 = calcOutcode2(pCanvas, (int)newX, (int)newY);
+			outcode0 = calcOutcode2(canvas, (int)newX, (int)newY);
 		} else {
 			fx1 = (float)newX;
 			fy1 = (float)newY;
-			outcode1 = calcOutcode2(pCanvas, (int)newX, (int)newY);
+			outcode1 = calcOutcode2(canvas, (int)newX, (int)newY);
 		}
 
 		if (!outcode0 && !outcode1)
@@ -124,114 +124,114 @@ int RenderDroid::ClipModule::line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1,
 	return 1;
 }
 
-int RenderDroid::ClipModule::point3(RdClipFrustum *pClip, RdVector3 pt) {
-	RdCamera *pCamera = _rd->_camera.getCurrent();
-	int projectType = pCamera->projectType;
+int RenderDroid::ClipModule::point3(RdClipFrustum *clip, RdVector3 pt) {
+	RdCamera *camera = _rd->_camera.getCurrent();
+	int projectType = camera->projectType;
 
-	if (pt[1] < (double)pClip->zNear)
+	if (pt[1] < (double)clip->zNear)
 		return 0;
 
-	if (pClip->bClipFar && pt[1] > (double)pClip->zFar)
+	if (clip->clipFar && pt[1] > (double)clip->zFar)
 		return 0;
 
 	double limit;
 
 	if (projectType == 1)
-		limit = (double)pClip->left * pt[1];
+		limit = (double)clip->left * pt[1];
 	else
-		limit = pClip->orthoLeft;
+		limit = clip->orthoLeft;
 	if (limit > pt[0])
 		return 0;
 
 	if (projectType == 1)
-		limit = (double)pClip->right * pt[1];
+		limit = (double)clip->right * pt[1];
 	else
-		limit = pClip->orthoRight;
+		limit = clip->orthoRight;
 	if (limit < pt[0])
 		return 0;
 
 	if (projectType == 1)
-		limit = (double)pClip->top * pt[1];
+		limit = (double)clip->top * pt[1];
 	else
-		limit = pClip->orthoTop;
+		limit = clip->orthoTop;
 	if (limit < pt[2])
 		return 0;
 
 	if (projectType == 1)
-		limit = (double)pClip->bottom * pt[1];
+		limit = (double)clip->bottom * pt[1];
 	else
-		limit = pClip->orthoBottom;
+		limit = clip->orthoBottom;
 
 	return limit <= pt[2];
 }
 
-int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3 v1, int *pClipped0, int *pClipped1) {
-	if (v0[1] < (double)pClip->zNear && v1[1] < (double)pClip->zNear)
+int RenderDroid::ClipModule::line3(RdClipFrustum *clip, RdVector3 v0, RdVector3 v1, int *clipped0, int *clipped1) {
+	if (v0[1] < (double)clip->zNear && v1[1] < (double)clip->zNear)
 		return 0;
 
-	if (v0[1] >= (double)pClip->zNear) {
-		if (v1[1] < (double)pClip->zNear) {
-			double t = ((double)pClip->zNear - v0[1]) / ((double)v1[1] - v0[1]);
+	if (v0[1] >= (double)clip->zNear) {
+		if (v1[1] < (double)clip->zNear) {
+			double t = ((double)clip->zNear - v0[1]) / ((double)v1[1] - v0[1]);
 			float x = v1[0];
 
-			v1[1] = pClip->zNear;
+			v1[1] = clip->zNear;
 			v1[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
 			v1[0] = (float)(((double)x - v0[0]) * t + v0[0]);
-			if (pClipped1)
-				*pClipped1 = 1;
+			if (clipped1)
+				*clipped1 = 1;
 		}
 	} else {
-		double t = ((double)pClip->zNear - v0[1]) / ((double)v1[1] - v0[1]);
+		double t = ((double)clip->zNear - v0[1]) / ((double)v1[1] - v0[1]);
 
-		v0[1] = pClip->zNear;
+		v0[1] = clip->zNear;
 		v0[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
 		v0[0] = (float)(((double)v1[0] - v0[0]) * t + v0[0]);
-		if (pClipped0)
-			*pClipped0 = 1;
+		if (clipped0)
+			*clipped0 = 1;
 	}
 
-	if (pClip->bClipFar) {
-		if (v0[1] > (double)pClip->zFar && v1[1] > (double)pClip->zFar)
+	if (clip->clipFar) {
+		if (v0[1] > (double)clip->zFar && v1[1] > (double)clip->zFar)
 			return 0;
 
-		if (v0[1] <= (double)pClip->zFar) {
-			if (v1[1] > (double)pClip->zFar) {
-				double t = ((double)pClip->zFar - v0[1]) / ((double)v1[1] - v0[1]);
+		if (v0[1] <= (double)clip->zFar) {
+			if (v1[1] > (double)clip->zFar) {
+				double t = ((double)clip->zFar - v0[1]) / ((double)v1[1] - v0[1]);
 				float x = v1[0];
 
-				v1[1] = pClip->zFar;
+				v1[1] = clip->zFar;
 				v1[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
 				v1[0] = (float)(((double)x - v0[0]) * t + v0[0]);
-				if (pClipped1)
-					*pClipped1 = 1;
+				if (clipped1)
+					*clipped1 = 1;
 			}
 		} else {
-			double t = ((double)pClip->zFar - v0[1]) / ((double)v1[1] - v0[1]);
+			double t = ((double)clip->zFar - v0[1]) / ((double)v1[1] - v0[1]);
 
-			v0[1] = pClip->zFar;
+			v0[1] = clip->zFar;
 			v0[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
 			v0[0] = (float)(((double)v1[0] - v0[0]) * t + v0[0]);
-			if (pClipped0)
-				*pClipped0 = 1;
+			if (clipped0)
+				*clipped0 = 1;
 		}
 	}
 
-	float leftLimit = (float)((double)pClip->left * v1[1]);
+	float leftLimit = (float)((double)clip->left * v1[1]);
 
-	if (v0[0] < (double)pClip->left * v0[1] && v1[0] < (double)leftLimit)
+	if (v0[0] < (double)clip->left * v0[1] && v1[0] < (double)leftLimit)
 		return 0;
 
-	if ((double)pClip->left * v0[1] <= v0[0]) {
+	if ((double)clip->left * v0[1] <= v0[0]) {
 		if (v1[0] < (double)leftLimit) {
 			float dy = (float)((double)v1[1] - v0[1]);
 			float dx = (float)((double)v1[0] - v0[0]);
 			double c = (double)v1[1] * v0[0] - (double)v0[1] * v1[0];
-			double denominator = (double)pClip->left * dy - dx;
+			double denominator = (double)clip->left * dy - dx;
 
 			if (denominator != 0.0)
 				c = c / (float)denominator;
 
-			double s = (double)pClip->left * c;
+			double s = (double)clip->left * c;
 			double t;
 
 			if (fabs((double)dy) <= fabs((double)dx))
@@ -243,19 +243,19 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 			v1[0] = (float)s;
 			v1[1] = (float)c;
 			v1[2] = (float)(((double)z - v0[2]) * t + v0[2]);
-			if (pClipped1)
-				*pClipped1 = 1;
+			if (clipped1)
+				*clipped1 = 1;
 		}
 	} else {
 		float dy = (float)((double)v1[1] - v0[1]);
 		float dx = (float)((double)v1[0] - v0[0]);
 		double c = (double)v1[1] * v0[0] - (double)v0[1] * v1[0];
-		double denominator = (double)pClip->left * dy - dx;
+		double denominator = (double)clip->left * dy - dx;
 
 		if (denominator != 0.0)
 			c = c / (float)denominator;
 
-		float s = (float)((double)pClip->left * c);
+		float s = (float)((double)clip->left * c);
 		double t;
 
 		if (fabs((double)dy) <= fabs((double)dx))
@@ -266,26 +266,26 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 		v0[0] = s;
 		v0[1] = (float)c;
 		v0[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
-		if (pClipped0)
-			*pClipped0 = 1;
+		if (clipped0)
+			*clipped0 = 1;
 	}
 
-	float rightLimit = (float)((double)pClip->right * v1[1]);
+	float rightLimit = (float)((double)clip->right * v1[1]);
 
-	if (v0[0] > (double)pClip->right * v0[1] && v1[0] > (double)rightLimit)
+	if (v0[0] > (double)clip->right * v0[1] && v1[0] > (double)rightLimit)
 		return 0;
 
-	if ((double)pClip->right * v0[1] >= v0[0]) {
+	if ((double)clip->right * v0[1] >= v0[0]) {
 		if (v1[0] > (double)rightLimit) {
 			float dy = (float)((double)v1[1] - v0[1]);
 			float dx = (float)((double)v1[0] - v0[0]);
 			double c = (double)v1[1] * v0[0] - (double)v0[1] * v1[0];
-			double denominator = (double)pClip->right * dy - dx;
+			double denominator = (double)clip->right * dy - dx;
 
 			if (denominator != 0.0)
 				c = c / (float)denominator;
 
-			double s = (double)pClip->right * c;
+			double s = (double)clip->right * c;
 			double t;
 
 			if (fabs((double)dy) <= fabs((double)dx))
@@ -297,19 +297,19 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 			v1[0] = (float)s;
 			v1[1] = (float)c;
 			v1[2] = (float)(((double)z - v0[2]) * t + v0[2]);
-			if (pClipped1)
-				*pClipped1 = 1;
+			if (clipped1)
+				*clipped1 = 1;
 		}
 	} else {
 		float dy = (float)((double)v1[1] - v0[1]);
 		float dx = (float)((double)v1[0] - v0[0]);
 		double c = (double)v1[1] * v0[0] - (double)v0[1] * v1[0];
-		double denominator = (double)pClip->right * dy - dx;
+		double denominator = (double)clip->right * dy - dx;
 
 		if (denominator != 0.0)
 			c = c / (float)denominator;
 
-		float s = (float)((double)pClip->right * c);
+		float s = (float)((double)clip->right * c);
 		double t;
 
 		if (fabs((double)dy) <= fabs((double)dx))
@@ -320,26 +320,26 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 		v0[0] = s;
 		v0[1] = (float)c;
 		v0[2] = (float)(((double)v1[2] - v0[2]) * t + v0[2]);
-		if (pClipped0)
-			*pClipped0 = 1;
+		if (clipped0)
+			*clipped0 = 1;
 	}
 
-	float topLimit = (float)((double)pClip->top * v1[1]);
+	float topLimit = (float)((double)clip->top * v1[1]);
 
-	if (v0[2] > (double)pClip->top * v0[1] && v1[2] > (double)topLimit)
+	if (v0[2] > (double)clip->top * v0[1] && v1[2] > (double)topLimit)
 		return 0;
 
-	if ((double)pClip->top * v0[1] >= v0[2]) {
+	if ((double)clip->top * v0[1] >= v0[2]) {
 		if (v1[2] > (double)topLimit) {
 			float dy = (float)((double)v1[1] - v0[1]);
 			float dz = (float)((double)v1[2] - v0[2]);
-			double denominator = (double)pClip->top * dy - dz;
+			double denominator = (double)clip->top * dy - dz;
 			double c = (double)v1[1] * v0[2] - (double)v0[1] * v1[2];
 
 			if (denominator != 0.0)
 				c = c / (float)denominator;
 
-			double s = (double)pClip->top * c;
+			double s = (double)clip->top * c;
 			double t;
 
 			if (fabs((double)dy) <= fabs((double)dz))
@@ -351,19 +351,19 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 			v1[1] = (float)c;
 			v1[2] = (float)s;
 			v1[0] = (float)x;
-			if (pClipped1)
-				*pClipped1 = 1;
+			if (clipped1)
+				*clipped1 = 1;
 		}
 	} else {
 		float dy = (float)((double)v1[1] - v0[1]);
 		float dz = (float)((double)v1[2] - v0[2]);
-		double denominator = (double)pClip->top * dy - dz;
+		double denominator = (double)clip->top * dy - dz;
 		double c = (double)v1[1] * v0[2] - (double)v0[1] * v1[2];
 
 		if (denominator != 0.0)
 			c = c / (float)denominator;
 
-		double s = (double)pClip->top * c;
+		double s = (double)clip->top * c;
 		double t;
 
 		if (fabs((double)dy) <= fabs((double)dz))
@@ -376,26 +376,26 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 		x = x + v0[0];
 		v0[2] = (float)s;
 		v0[0] = (float)x;
-		if (pClipped0)
-			*pClipped0 = 1;
+		if (clipped0)
+			*clipped0 = 1;
 	}
 
-	float bottomLimit = (float)((double)pClip->bottom * v1[1]);
+	float bottomLimit = (float)((double)clip->bottom * v1[1]);
 
-	if (v0[2] < (double)pClip->bottom * v0[1] && v1[2] < (double)bottomLimit)
+	if (v0[2] < (double)clip->bottom * v0[1] && v1[2] < (double)bottomLimit)
 		return 0;
 
-	if ((double)pClip->bottom * v0[1] <= v0[2]) {
+	if ((double)clip->bottom * v0[1] <= v0[2]) {
 		if (v1[2] < (double)bottomLimit) {
 			float dy = (float)((double)v1[1] - v0[1]);
 			float dz = (float)((double)v1[2] - v0[2]);
-			double denominator = (double)pClip->bottom * dy - dz;
+			double denominator = (double)clip->bottom * dy - dz;
 			double c = (double)v1[1] * v0[2] - (double)v0[1] * v1[2];
 
 			if (denominator != 0.0)
 				c = c / (float)denominator;
 
-			double s = (double)pClip->bottom * c;
+			double s = (double)clip->bottom * c;
 			double t;
 
 			if (fabs((double)dy) <= fabs((double)dz))
@@ -407,19 +407,19 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 			v1[1] = (float)c;
 			v1[2] = (float)s;
 			v1[0] = (float)x;
-			if (pClipped1)
-				*pClipped1 = 1;
+			if (clipped1)
+				*clipped1 = 1;
 		}
 	} else {
 		float dy = (float)((double)v1[1] - v0[1]);
 		float dz = (float)((double)v1[2] - v0[2]);
-		double denominator = (double)pClip->bottom * dy - dz;
+		double denominator = (double)clip->bottom * dy - dz;
 		double c = (double)v1[1] * v0[2] - (double)v0[1] * v1[2];
 
 		if (denominator != 0.0)
 			c = c / (float)denominator;
 
-		double s = (double)pClip->bottom * c;
+		double s = (double)clip->bottom * c;
 		double t;
 
 		if (fabs((double)dy) <= fabs((double)dz))
@@ -432,43 +432,43 @@ int RenderDroid::ClipModule::line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3
 		x = x + v0[0];
 		v0[2] = (float)s;
 		v0[0] = (float)x;
-		if (pClipped0)
-			*pClipped0 = 1;
+		if (clipped0)
+			*clipped0 = 1;
 	}
 
 	return 1;
 }
 
-int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *pClip, RdVector3 center, float radius) {
-	RdCamera *pCamera = _rd->_camera.getCurrent();
+int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *clip, RdVector3 center, float radius) {
+	RdCamera *camera = _rd->_camera.getCurrent();
 	float farEdge = (float)((double)radius + center[1]);
 	float nearEdge = (float)((double)center[1] - radius);
 
-	if (farEdge < (double)pClip->zNear)
+	if (farEdge < (double)clip->zNear)
 		return 2;
 
-	int inside = nearEdge >= (double)pClip->zNear;
+	int inside = nearEdge >= (double)clip->zNear;
 
-	if (pClip->bClipFar) {
-		if (nearEdge > (double)pClip->zFar)
+	if (clip->clipFar) {
+		if (nearEdge > (double)clip->zFar)
 			return 2;
 
-		if (farEdge > (double)pClip->zFar)
+		if (farEdge > (double)clip->zFar)
 			inside = 0;
 	}
 
-	int projectType = pCamera->projectType;
+	int projectType = camera->projectType;
 	float topEdge = (float)((double)radius + center[2]);
 	float bottomEdge = (float)((double)center[2] - radius);
 	double limitNear;
 	float limitFar;
 
 	if (projectType == 1) {
-		limitNear = (double)pClip->top * nearEdge;
-		limitFar = (float)((double)pClip->top * farEdge);
+		limitNear = (double)clip->top * nearEdge;
+		limitFar = (float)((double)clip->top * farEdge);
 	} else {
-		limitNear = pClip->orthoTop;
-		limitFar = pClip->orthoTop;
+		limitNear = clip->orthoTop;
+		limitFar = clip->orthoTop;
 	}
 
 	if (bottomEdge > limitNear && bottomEdge > (double)limitFar)
@@ -478,11 +478,11 @@ int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *pClip, RdVector3 ce
 		inside = 0;
 
 	if (projectType == 1) {
-		limitNear = (double)pClip->bottom * nearEdge;
-		limitFar = (float)((double)pClip->bottom * farEdge);
+		limitNear = (double)clip->bottom * nearEdge;
+		limitFar = (float)((double)clip->bottom * farEdge);
 	} else {
-		limitNear = pClip->orthoBottom;
-		limitFar = pClip->orthoBottom;
+		limitNear = clip->orthoBottom;
+		limitFar = clip->orthoBottom;
 	}
 
 	if (topEdge < limitNear && topEdge < (double)limitFar)
@@ -495,11 +495,11 @@ int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *pClip, RdVector3 ce
 	float leftEdge = (float)((double)center[0] - radius);
 
 	if (projectType == 1) {
-		limitNear = (double)pClip->left * nearEdge;
-		limitFar = (float)((double)pClip->left * farEdge);
+		limitNear = (double)clip->left * nearEdge;
+		limitFar = (float)((double)clip->left * farEdge);
 	} else {
-		limitNear = pClip->orthoLeft;
-		limitFar = pClip->orthoLeft;
+		limitNear = clip->orthoLeft;
+		limitFar = clip->orthoLeft;
 	}
 
 	if (rightEdge < limitNear && rightEdge < (double)limitFar)
@@ -509,11 +509,11 @@ int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *pClip, RdVector3 ce
 		inside = 0;
 
 	if (projectType == 1) {
-		limitNear = (double)pClip->right * nearEdge;
-		limitFar = (float)((double)pClip->right * farEdge);
+		limitNear = (double)clip->right * nearEdge;
+		limitFar = (float)((double)clip->right * farEdge);
 	} else {
-		limitNear = pClip->orthoRight;
-		limitFar = pClip->orthoRight;
+		limitNear = clip->orthoRight;
+		limitFar = clip->orthoRight;
 	}
 
 	if (leftEdge > limitNear && leftEdge > (double)limitFar)
@@ -525,52 +525,52 @@ int RenderDroid::ClipModule::sphereInFrustrum(RdClipFrustum *pClip, RdVector3 ce
 	return !inside;
 }
 
-int RenderDroid::ClipModule::face3W(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, nullptr, numVerts, false, false);
+int RenderDroid::ClipModule::face3W(RdClipFrustum *clip, RdVector3 *verts, int numVerts) {
+	return clipFace(clip, verts, nullptr, nullptr, numVerts, false, false);
 }
 
-int RenderDroid::ClipModule::face3WOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, nullptr, numVerts, false, true);
+int RenderDroid::ClipModule::face3WOrtho(RdClipFrustum *clip, RdVector3 *verts, int numVerts) {
+	return clipFace(clip, verts, nullptr, nullptr, numVerts, false, true);
 }
 
-int RenderDroid::ClipModule::face3S(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, nullptr, numVerts, true, false);
+int RenderDroid::ClipModule::face3S(RdClipFrustum *clip, RdVector3 *verts, int numVerts) {
+	return clipFace(clip, verts, nullptr, nullptr, numVerts, true, false);
 }
 
-int RenderDroid::ClipModule::face3SOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, nullptr, numVerts, true, true);
+int RenderDroid::ClipModule::face3SOrtho(RdClipFrustum *clip, RdVector3 *verts, int numVerts) {
+	return clipFace(clip, verts, nullptr, nullptr, numVerts, true, true);
 }
 
-int RenderDroid::ClipModule::face3GS(RdClipFrustum *pClip, RdVector3 *aVerts, float *aIntensities, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, aIntensities, numVerts, true, false);
+int RenderDroid::ClipModule::face3GS(RdClipFrustum *clip, RdVector3 *verts, float *intensities, int numVerts) {
+	return clipFace(clip, verts, nullptr, intensities, numVerts, true, false);
 }
 
-int RenderDroid::ClipModule::face3GSOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, float *aIntensities, int numVerts) {
-	return clipFace(pClip, aVerts, nullptr, aIntensities, numVerts, true, true);
+int RenderDroid::ClipModule::face3GSOrtho(RdClipFrustum *clip, RdVector3 *verts, float *intensities, int numVerts) {
+	return clipFace(clip, verts, nullptr, intensities, numVerts, true, true);
 }
 
-int RenderDroid::ClipModule::face3T(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, int numVerts) {
-	return clipFace(pClip, aVerts, aTexVerts, nullptr, numVerts, true, false);
+int RenderDroid::ClipModule::face3T(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, int numVerts) {
+	return clipFace(clip, verts, texVerts, nullptr, numVerts, true, false);
 }
 
-int RenderDroid::ClipModule::face3TOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, int numVerts) {
-	return clipFace(pClip, aVerts, aTexVerts, nullptr, numVerts, true, true);
+int RenderDroid::ClipModule::face3TOrtho(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, int numVerts) {
+	return clipFace(clip, verts, texVerts, nullptr, numVerts, true, true);
 }
 
-int RenderDroid::ClipModule::face3GT(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts) {
-	return clipFace(pClip, aVerts, aTexVerts, aIntensities, numVerts, true, false);
+int RenderDroid::ClipModule::face3GT(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts) {
+	return clipFace(clip, verts, texVerts, intensities, numVerts, true, false);
 }
 
-int RenderDroid::ClipModule::face3GTOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts) {
-	return clipFace(pClip, aVerts, aTexVerts, aIntensities, numVerts, true, true);
+int RenderDroid::ClipModule::face3GTOrtho(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts) {
+	return clipFace(clip, verts, texVerts, intensities, numVerts, true, true);
 }
 
-int RenderDroid::ClipModule::clipFace(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts, bool bGuard, bool bOrtho) {
+int RenderDroid::ClipModule::clipFace(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts, bool guard, bool ortho) {
 	RdClipPoly caller;
 	RdClipPoly work;
-	RdClipPoly *pSrc = &caller;
-	RdClipPoly *pDst = &work;
-	RdClipPoly *pTemp;
+	RdClipPoly *src = &caller;
+	RdClipPoly *dst = &work;
+	RdClipPoly *temp;
 	int count;
 
 	_faceStatus = 0;
@@ -580,93 +580,93 @@ int RenderDroid::ClipModule::clipFace(RdClipFrustum *pClip, RdVector3 *aVerts, R
 		return 0;
 	}
 
-	caller.aVerts = aVerts;
-	caller.aTexVerts = aTexVerts;
-	caller.aIntensities = aIntensities;
-	work.aVerts = _aVertBufferA;
-	work.aTexVerts = aTexVerts ? _workTVerts : nullptr;
-	work.aIntensities = aIntensities ? _workIVerts : nullptr;
+	caller.verts = verts;
+	caller.texVerts = texVerts;
+	caller.intensities = intensities;
+	work.verts = _vertBufferA;
+	work.texVerts = texVerts ? _workTVerts : nullptr;
+	work.intensities = intensities ? _workIVerts : nullptr;
 
-	if (bOrtho)
-		count = clipOrtho(pSrc, numVerts, pDst, 0, pClip->orthoLeft, true, 0x10);
+	if (ortho)
+		count = clipOrtho(src, numVerts, dst, 0, clip->orthoLeft, true, 0x10);
 	else
-		count = clipPerspectiveX(pSrc, numVerts, pDst, bGuard ? pClip->guardLeft : pClip->left, true, 0x10);
+		count = clipPerspectiveX(src, numVerts, dst, guard ? clip->guardLeft : clip->left, true, 0x10);
 
 	if (count < 3)
 		return count;
 
-	pTemp = pSrc;
-	pSrc = pDst;
-	pDst = pTemp;
+	temp = src;
+	src = dst;
+	dst = temp;
 
-	if (bOrtho)
-		count = clipOrtho(pSrc, count, pDst, 0, pClip->orthoRight, false, 0x20);
+	if (ortho)
+		count = clipOrtho(src, count, dst, 0, clip->orthoRight, false, 0x20);
 	else
-		count = clipPerspectiveX(pSrc, count, pDst, pClip->right, false, 0x20);
+		count = clipPerspectiveX(src, count, dst, clip->right, false, 0x20);
 
 	if (count < 3)
 		return count;
 
-	pTemp = pSrc;
-	pSrc = pDst;
-	pDst = pTemp;
+	temp = src;
+	src = dst;
+	dst = temp;
 
-	if (bOrtho)
-		count = clipOrtho(pSrc, count, pDst, 2, pClip->orthoTop, false, 4);
+	if (ortho)
+		count = clipOrtho(src, count, dst, 2, clip->orthoTop, false, 4);
 	else
-		count = clipPerspectiveZ(pSrc, count, pDst, bGuard ? pClip->guardTop : pClip->top, false, 4);
+		count = clipPerspectiveZ(src, count, dst, guard ? clip->guardTop : clip->top, false, 4);
 
 	if (count < 3)
 		return count;
 
-	pTemp = pSrc;
-	pSrc = pDst;
-	pDst = pTemp;
+	temp = src;
+	src = dst;
+	dst = temp;
 
-	if (bOrtho)
-		count = clipOrtho(pSrc, count, pDst, 2, pClip->orthoBottom, true, 8);
+	if (ortho)
+		count = clipOrtho(src, count, dst, 2, clip->orthoBottom, true, 8);
 	else
-		count = clipPerspectiveZ(pSrc, count, pDst, pClip->bottom, true, 8);
+		count = clipPerspectiveZ(src, count, dst, clip->bottom, true, 8);
 
 	if (count < 3)
 		return count;
 
-	pTemp = pSrc;
-	pSrc = pDst;
-	pDst = pTemp;
+	temp = src;
+	src = dst;
+	dst = temp;
 
-	count = clipDepth(pSrc, count, pDst, pClip->zNear, true, 1);
+	count = clipDepth(src, count, dst, clip->zNear, true, 1);
 
 	if (count < 3) {
 		_faceStatus |= 0x40;
 		return count;
 	}
 
-	if (pClip->bClipFar) {
-		pTemp = pSrc;
-		pSrc = pDst;
-		pDst = pTemp;
+	if (clip->clipFar) {
+		temp = src;
+		src = dst;
+		dst = temp;
 
-		count = clipDepth(pSrc, count, pDst, pClip->zFar, false, 2);
+		count = clipDepth(src, count, dst, clip->zFar, false, 2);
 
 		if (count < 3)
 			return count;
 	}
 
-	if (pDst->aVerts != aVerts) {
-		memcpy(aVerts, pDst->aVerts, sizeof(RdVector3) * count);
+	if (dst->verts != verts) {
+		memcpy(verts, dst->verts, sizeof(RdVector3) * count);
 
-		if (aTexVerts)
-			memcpy(aTexVerts, pDst->aTexVerts, sizeof(RdVector2) * count);
+		if (texVerts)
+			memcpy(texVerts, dst->texVerts, sizeof(RdVector2) * count);
 
-		if (aIntensities)
-			memcpy(aIntensities, pDst->aIntensities, sizeof(float) * count);
+		if (intensities)
+			memcpy(intensities, dst->intensities, sizeof(float) * count);
 	}
 
 	return count;
 }
 
-int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts) {
+int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts) {
 	int outCount = 0;
 
 	if (numVerts <= 0 || numVerts > 32) {
@@ -674,15 +674,15 @@ int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3
 		return 0;
 	}
 
-	const float *prev = aVerts[numVerts - 1];
-	const float *prevTex = aTexVerts ? aTexVerts[numVerts - 1] : nullptr;
-	float prevIntensity = aIntensities ? aIntensities[numVerts - 1] : 0.0f;
+	const float *prev = verts[numVerts - 1];
+	const float *prevTex = texVerts ? texVerts[numVerts - 1] : nullptr;
+	float prevIntensity = intensities ? intensities[numVerts - 1] : 0.0f;
 	float prevDist = (float)(((double)prev[2] - pt[2]) * norm[2] + ((double)prev[0] - pt[0]) * norm[0] + ((double)prev[1] - pt[1]) * norm[1]);
 
 	for (int i = 0; i < numVerts; i++) {
-		const float *cur = aVerts[i];
-		const float *curTex = aTexVerts ? aTexVerts[i] : nullptr;
-		float curIntensity = aIntensities ? aIntensities[i] : 0.0f;
+		const float *cur = verts[i];
+		const float *curTex = texVerts ? texVerts[i] : nullptr;
+		float curIntensity = intensities ? intensities[i] : 0.0f;
 		double dist = ((double)cur[2] - pt[2]) * norm[2] + ((double)cur[0] - pt[0]) * norm[0] + ((double)cur[1] - pt[1]) * norm[1];
 
 		if (prevDist < 0.0f || dist < 0.0) {
@@ -692,16 +692,16 @@ int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3
 				if (!canAddVertex(outCount))
 					return 0;
 
-				_aVertBufferA[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
-				_aVertBufferA[outCount][1] = (float)(((double)cur[1] - prev[1]) * t + prev[1]);
-				_aVertBufferA[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
+				_vertBufferA[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
+				_vertBufferA[outCount][1] = (float)(((double)cur[1] - prev[1]) * t + prev[1]);
+				_vertBufferA[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
 
-				if (aTexVerts) {
+				if (texVerts) {
 					_workTVerts[outCount][0] = (float)(((double)curTex[0] - prevTex[0]) * t + prevTex[0]);
 					_workTVerts[outCount][1] = (float)(((double)curTex[1] - prevTex[1]) * t + prevTex[1]);
 				}
 
-				if (aIntensities)
+				if (intensities)
 					_workIVerts[outCount] = (float)(((double)curIntensity - prevIntensity) * t + prevIntensity);
 
 				outCount++;
@@ -710,16 +710,16 @@ int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3
 					if (!canAddVertex(outCount))
 						return 0;
 
-					_aVertBufferA[outCount][0] = cur[0];
-					_aVertBufferA[outCount][1] = cur[1];
-					_aVertBufferA[outCount][2] = cur[2];
+					_vertBufferA[outCount][0] = cur[0];
+					_vertBufferA[outCount][1] = cur[1];
+					_vertBufferA[outCount][2] = cur[2];
 
-					if (aTexVerts) {
+					if (texVerts) {
 						_workTVerts[outCount][0] = curTex[0];
 						_workTVerts[outCount][1] = curTex[1];
 					}
 
-					if (aIntensities)
+					if (intensities)
 						_workIVerts[outCount] = curIntensity;
 
 					outCount++;
@@ -729,16 +729,16 @@ int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3
 			if (!canAddVertex(outCount))
 				return 0;
 
-			_aVertBufferA[outCount][0] = cur[0];
-			_aVertBufferA[outCount][1] = cur[1];
-			_aVertBufferA[outCount][2] = cur[2];
+			_vertBufferA[outCount][0] = cur[0];
+			_vertBufferA[outCount][1] = cur[1];
+			_vertBufferA[outCount][2] = cur[2];
 
-			if (aTexVerts) {
+			if (texVerts) {
 				_workTVerts[outCount][0] = curTex[0];
 				_workTVerts[outCount][1] = curTex[1];
 			}
 
-			if (aIntensities)
+			if (intensities)
 				_workIVerts[outCount] = curIntensity;
 
 			outCount++;
@@ -751,17 +751,17 @@ int RenderDroid::ClipModule::faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3
 	}
 
 	for (int i = 0; i < outCount; i++) {
-		aVerts[i][0] = _aVertBufferA[i][0];
-		aVerts[i][1] = _aVertBufferA[i][1];
-		aVerts[i][2] = _aVertBufferA[i][2];
+		verts[i][0] = _vertBufferA[i][0];
+		verts[i][1] = _vertBufferA[i][1];
+		verts[i][2] = _vertBufferA[i][2];
 
-		if (aTexVerts) {
-			aTexVerts[i][0] = _workTVerts[i][0];
-			aTexVerts[i][1] = _workTVerts[i][1];
+		if (texVerts) {
+			texVerts[i][0] = _workTVerts[i][0];
+			texVerts[i][1] = _workTVerts[i][1];
 		}
 
-		if (aIntensities)
-			aIntensities[i] = _workIVerts[i];
+		if (intensities)
+			intensities[i] = _workIVerts[i];
 	}
 
 	return outCount;
@@ -776,37 +776,37 @@ bool RenderDroid::ClipModule::canAddVertex(int count) {
 	return true;
 }
 
-void RenderDroid::ClipModule::copyVertex(const RdClipPoly *pSrc, int srcIdx, RdClipPoly *pDst, int dstIdx) {
-	pDst->aVerts[dstIdx][0] = pSrc->aVerts[srcIdx][0];
-	pDst->aVerts[dstIdx][1] = pSrc->aVerts[srcIdx][1];
-	pDst->aVerts[dstIdx][2] = pSrc->aVerts[srcIdx][2];
+void RenderDroid::ClipModule::copyVertex(const RdClipPoly *src, int srcIdx, RdClipPoly *dst, int dstIdx) {
+	dst->verts[dstIdx][0] = src->verts[srcIdx][0];
+	dst->verts[dstIdx][1] = src->verts[srcIdx][1];
+	dst->verts[dstIdx][2] = src->verts[srcIdx][2];
 
-	if (pSrc->aTexVerts) {
-		pDst->aTexVerts[dstIdx][0] = pSrc->aTexVerts[srcIdx][0];
-		pDst->aTexVerts[dstIdx][1] = pSrc->aTexVerts[srcIdx][1];
+	if (src->texVerts) {
+		dst->texVerts[dstIdx][0] = src->texVerts[srcIdx][0];
+		dst->texVerts[dstIdx][1] = src->texVerts[srcIdx][1];
 	}
 
-	if (pSrc->aIntensities)
-		pDst->aIntensities[dstIdx] = pSrc->aIntensities[srcIdx];
+	if (src->intensities)
+		dst->intensities[dstIdx] = src->intensities[srcIdx];
 }
 
-void RenderDroid::ClipModule::interpolateAttributes(const RdClipPoly *pSrc, int prevIdx, int curIdx, RdClipPoly *pDst, int dstIdx, double t) {
-	if (pSrc->aTexVerts) {
-		pDst->aTexVerts[dstIdx][0] = (float)(((double)pSrc->aTexVerts[curIdx][0] - pSrc->aTexVerts[prevIdx][0]) * t + pSrc->aTexVerts[prevIdx][0]);
-		pDst->aTexVerts[dstIdx][1] = (float)(((double)pSrc->aTexVerts[curIdx][1] - pSrc->aTexVerts[prevIdx][1]) * t + pSrc->aTexVerts[prevIdx][1]);
+void RenderDroid::ClipModule::interpolateAttributes(const RdClipPoly *src, int prevIdx, int curIdx, RdClipPoly *dst, int dstIdx, double t) {
+	if (src->texVerts) {
+		dst->texVerts[dstIdx][0] = (float)(((double)src->texVerts[curIdx][0] - src->texVerts[prevIdx][0]) * t + src->texVerts[prevIdx][0]);
+		dst->texVerts[dstIdx][1] = (float)(((double)src->texVerts[curIdx][1] - src->texVerts[prevIdx][1]) * t + src->texVerts[prevIdx][1]);
 	}
 
-	if (pSrc->aIntensities)
-		pDst->aIntensities[dstIdx] = (float)(((double)pSrc->aIntensities[curIdx] - pSrc->aIntensities[prevIdx]) * t + pSrc->aIntensities[prevIdx]);
+	if (src->intensities)
+		dst->intensities[dstIdx] = (float)(((double)src->intensities[curIdx] - src->intensities[prevIdx]) * t + src->intensities[prevIdx]);
 }
 
-int RenderDroid::ClipModule::clipPerspectiveX(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float slope, bool keepGreater, uint status) {
+int RenderDroid::ClipModule::clipPerspectiveX(const RdClipPoly *src, int count, RdClipPoly *dst, float slope, bool keepGreater, uint status) {
 	int outCount = 0;
 	int prevIdx = count - 1;
 
 	for (int curIdx = 0; curIdx < count; curIdx++) {
-		const float *prev = pSrc->aVerts[prevIdx];
-		const float *cur = pSrc->aVerts[curIdx];
+		const float *prev = src->verts[prevIdx];
+		const float *cur = src->verts[curIdx];
 
 		float prevBound = (float)((double)prev[1] * slope);
 		double curBound = (double)cur[1] * slope;
@@ -837,10 +837,10 @@ int RenderDroid::ClipModule::clipPerspectiveX(const RdClipPoly *pSrc, int count,
 				if (!canAddVertex(outCount))
 					return 0;
 
-				pDst->aVerts[outCount][0] = x;
-				pDst->aVerts[outCount][1] = (float)c;
-				pDst->aVerts[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
-				interpolateAttributes(pSrc, prevIdx, curIdx, pDst, outCount, t);
+				dst->verts[outCount][0] = x;
+				dst->verts[outCount][1] = (float)c;
+				dst->verts[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
+				interpolateAttributes(src, prevIdx, curIdx, dst, outCount, t);
 				outCount++;
 				_faceStatus |= status;
 			}
@@ -849,7 +849,7 @@ int RenderDroid::ClipModule::clipPerspectiveX(const RdClipPoly *pSrc, int count,
 				if (!canAddVertex(outCount))
 					return 0;
 
-				copyVertex(pSrc, curIdx, pDst, outCount);
+				copyVertex(src, curIdx, dst, outCount);
 				outCount++;
 			}
 		}
@@ -860,13 +860,13 @@ int RenderDroid::ClipModule::clipPerspectiveX(const RdClipPoly *pSrc, int count,
 	return outCount;
 }
 
-int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float slope, bool keepGreater, uint status) {
+int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *src, int count, RdClipPoly *dst, float slope, bool keepGreater, uint status) {
 	int outCount = 0;
 	int prevIdx = count - 1;
 
 	for (int curIdx = 0; curIdx < count; curIdx++) {
-		const float *prev = pSrc->aVerts[prevIdx];
-		const float *cur = pSrc->aVerts[curIdx];
+		const float *prev = src->verts[prevIdx];
+		const float *cur = src->verts[curIdx];
 
 		float prevBound = (float)((double)slope * prev[1]);
 		double curBound = (double)cur[1] * slope;
@@ -890,7 +890,7 @@ int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count,
 				double t;
 
 				// The versions with texture or intensities keep z as a float
-				if (pSrc->aTexVerts || pSrc->aIntensities)
+				if (src->texVerts || src->intensities)
 					z = (float)z;
 
 				if (fabs((double)dy) <= fabs((double)dz))
@@ -901,10 +901,10 @@ int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count,
 				if (!canAddVertex(outCount))
 					return 0;
 
-				pDst->aVerts[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
-				pDst->aVerts[outCount][1] = (float)c;
-				pDst->aVerts[outCount][2] = (float)z;
-				interpolateAttributes(pSrc, prevIdx, curIdx, pDst, outCount, t);
+				dst->verts[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
+				dst->verts[outCount][1] = (float)c;
+				dst->verts[outCount][2] = (float)z;
+				interpolateAttributes(src, prevIdx, curIdx, dst, outCount, t);
 				outCount++;
 				_faceStatus |= status;
 			}
@@ -913,7 +913,7 @@ int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count,
 				if (!canAddVertex(outCount))
 					return 0;
 
-				copyVertex(pSrc, curIdx, pDst, outCount);
+				copyVertex(src, curIdx, dst, outCount);
 				outCount++;
 			}
 		}
@@ -924,13 +924,13 @@ int RenderDroid::ClipModule::clipPerspectiveZ(const RdClipPoly *pSrc, int count,
 	return outCount;
 }
 
-int RenderDroid::ClipModule::clipOrtho(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, int axis, float bound, bool keepGreater, uint status) {
+int RenderDroid::ClipModule::clipOrtho(const RdClipPoly *src, int count, RdClipPoly *dst, int axis, float bound, bool keepGreater, uint status) {
 	int outCount = 0;
 	int prevIdx = count - 1;
 
 	for (int curIdx = 0; curIdx < count; curIdx++) {
-		const float *prev = pSrc->aVerts[prevIdx];
-		const float *cur = pSrc->aVerts[curIdx];
+		const float *prev = src->verts[prevIdx];
+		const float *cur = src->verts[curIdx];
 
 		bool prevInside = keepGreater ? !(prev[axis] < bound) : (prev[axis] <= bound);
 		bool curInside = keepGreater ? (bound <= cur[axis]) : (bound >= cur[axis]);
@@ -947,12 +947,12 @@ int RenderDroid::ClipModule::clipOrtho(const RdClipPoly *pSrc, int count, RdClip
 
 				for (int k = 0; k < 3; k++) {
 					if (k == axis)
-						pDst->aVerts[outCount][k] = bound;
+						dst->verts[outCount][k] = bound;
 					else
-						pDst->aVerts[outCount][k] = (float)(((double)cur[k] - prev[k]) * t + prev[k]);
+						dst->verts[outCount][k] = (float)(((double)cur[k] - prev[k]) * t + prev[k]);
 				}
 
-				interpolateAttributes(pSrc, prevIdx, curIdx, pDst, outCount, t);
+				interpolateAttributes(src, prevIdx, curIdx, dst, outCount, t);
 				outCount++;
 				_faceStatus |= status;
 			}
@@ -961,7 +961,7 @@ int RenderDroid::ClipModule::clipOrtho(const RdClipPoly *pSrc, int count, RdClip
 				if (!canAddVertex(outCount))
 					return 0;
 
-				copyVertex(pSrc, curIdx, pDst, outCount);
+				copyVertex(src, curIdx, dst, outCount);
 				outCount++;
 			}
 		}
@@ -972,13 +972,13 @@ int RenderDroid::ClipModule::clipOrtho(const RdClipPoly *pSrc, int count, RdClip
 	return outCount;
 }
 
-int RenderDroid::ClipModule::clipDepth(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float plane, bool keepGreater, uint status) {
+int RenderDroid::ClipModule::clipDepth(const RdClipPoly *src, int count, RdClipPoly *dst, float plane, bool keepGreater, uint status) {
 	int outCount = 0;
 	int prevIdx = count - 1;
 
 	for (int curIdx = 0; curIdx < count; curIdx++) {
-		const float *prev = pSrc->aVerts[prevIdx];
-		const float *cur = pSrc->aVerts[curIdx];
+		const float *prev = src->verts[prevIdx];
+		const float *cur = src->verts[curIdx];
 
 		bool prevInside = keepGreater ? (prev[1] >= (double)plane) : (prev[1] <= (double)plane);
 		bool curInside = keepGreater ? (cur[1] >= (double)plane) : (cur[1] <= (double)plane);
@@ -993,10 +993,10 @@ int RenderDroid::ClipModule::clipDepth(const RdClipPoly *pSrc, int count, RdClip
 				if (!canAddVertex(outCount))
 					return 0;
 
-				pDst->aVerts[outCount][1] = plane;
-				pDst->aVerts[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
-				pDst->aVerts[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
-				interpolateAttributes(pSrc, prevIdx, curIdx, pDst, outCount, t);
+				dst->verts[outCount][1] = plane;
+				dst->verts[outCount][2] = (float)(((double)cur[2] - prev[2]) * t + prev[2]);
+				dst->verts[outCount][0] = (float)(((double)cur[0] - prev[0]) * t + prev[0]);
+				interpolateAttributes(src, prevIdx, curIdx, dst, outCount, t);
 				outCount++;
 				_faceStatus |= status;
 			}
@@ -1005,7 +1005,7 @@ int RenderDroid::ClipModule::clipDepth(const RdClipPoly *pSrc, int count, RdClip
 				if (!canAddVertex(outCount))
 					return 0;
 
-				copyVertex(pSrc, curIdx, pDst, outCount);
+				copyVertex(src, curIdx, dst, outCount);
 				outCount++;
 			}
 		}

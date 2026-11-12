@@ -39,131 +39,131 @@
 namespace Grim {
 
 SmushPlay::SmushPlay(bool remastered) :
-		_pHS(nullptr), _pVideo(nullptr), _bInitialized(0), _bStarted(0), _bTimerInstalled(0), _bMovieIsPlaying(0), _movieFlags(0),
-		_pInternalBitmap(nullptr), _pTranslationTable(nullptr), _colorLookupConfig(0) {
+		_hs(nullptr), _video(nullptr), _initialized(0), _started(0), _timerInstalled(0), _movieIsPlaying(0), _movieFlags(0),
+		_internalBitmapPointer(nullptr), _translationTable(nullptr), _colorLookupConfig(0) {
 	memset(&_movieInfo, 0, sizeof(_movieInfo));
 	memset(_curFileName, 0, sizeof(_curFileName));
 	memset(&_frameRect, 0, sizeof(_frameRect));
 	memset(&_srcRect, 0, sizeof(_srcRect));
 	memset(&_internalBitmap, 0, sizeof(_internalBitmap));
 
-	_pDecoder = new SmushDecoder();
-	_pTimer = new SmushTimer();
-	_pDriver = new SmushDriver(_pTimer, remastered);
-	_pSound = new SmushSound(_pTimer, _pDriver);
-	_pWave = new SmushWave(_pSound);
-	_pAnimPlay = new SmushAnimPlay(_pTimer, _pSound);
-	_pAnimator = new SmushAnimator(_pDecoder);
-	_pDecoder->setWave(_pWave);
+	_decoder = new SmushDecoder();
+	_timer = new SmushTimer();
+	_driver = new SmushDriver(_timer, remastered);
+	_sound = new SmushSound(_timer, _driver);
+	_wave = new SmushWave(_sound);
+	_animPlay = new SmushAnimPlay(_timer, _sound);
+	_animator = new SmushAnimator(_decoder);
+	_decoder->setWave(_wave);
 }
 
 SmushPlay::~SmushPlay() {
-	if (_bStarted)
+	if (_started)
 		sysShutdown();
 
 	Common::StackLock lock(_mutex);
 
-	delete _pAnimPlay;
-	_pAnimPlay = nullptr;
-	delete _pAnimator;
-	_pAnimator = nullptr;
-	delete _pWave;
-	_pWave = nullptr;
-	delete _pSound;
-	_pSound = nullptr;
-	delete _pDriver;
-	_pDriver = nullptr;
-	delete _pTimer;
-	_pTimer = nullptr;
-	delete _pDecoder;
-	_pDecoder = nullptr;
+	delete _animPlay;
+	_animPlay = nullptr;
+	delete _animator;
+	_animator = nullptr;
+	delete _wave;
+	_wave = nullptr;
+	delete _sound;
+	_sound = nullptr;
+	delete _driver;
+	_driver = nullptr;
+	delete _timer;
+	_timer = nullptr;
+	delete _decoder;
+	_decoder = nullptr;
 }
 
-int SmushPlay::sysInitialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SmushPlay::sysInitialize(SysStruct *hs) {
+	_hs = hs;
 
-	if (_bInitialized)
+	if (_initialized)
 		return 1;
 
-	_bInitialized = 1;
+	_initialized = 1;
 
 	return 0;
 }
 
 void SmushPlay::sysTerminate() {
-	_bInitialized = 0;
+	_initialized = 0;
 }
 
 int SmushPlay::sysStartup() {
-	if (!_bInitialized || _bStarted)
+	if (!_initialized || _started)
 		return 1;
 
 	{
 		Common::StackLock lock(_mutex);
 
-		if (_pTimer->moduleStartup())
+		if (_timer->moduleStartup())
 			return 1;
 
-		if (_pSound->moduleStartup()) {
-			_pTimer->moduleShutdown();
+		if (_sound->moduleStartup()) {
+			_timer->moduleShutdown();
 			return 1;
 		}
 
-		if (_pWave->moduleStartup()) {
-			_pSound->moduleShutdown();
-			_pTimer->moduleShutdown();
+		if (_wave->moduleStartup()) {
+			_sound->moduleShutdown();
+			_timer->moduleShutdown();
 			return 1;
 		}
 	}
 
 	g_system->getTimerManager()->installTimerProc(&timerCallback, 10000, this, "smushPlay");
-	_bTimerInstalled = 1;
-	_bStarted = 1;
+	_timerInstalled = 1;
+	_started = 1;
 
 	return 0;
 }
 
 void SmushPlay::sysShutdown() {
-	if (!_bStarted)
+	if (!_started)
 		return;
 
-	if (_bTimerInstalled) {
+	if (_timerInstalled) {
 		g_system->getTimerManager()->removeTimerProc(&timerCallback);
-		_bTimerInstalled = 0;
+		_timerInstalled = 0;
 	}
 
 	Common::StackLock lock(_mutex);
 
-	_pWave->moduleShutdown();
-	_pSound->moduleShutdown();
-	_pTimer->moduleShutdown();
-	_bStarted = 0;
+	_wave->moduleShutdown();
+	_sound->moduleShutdown();
+	_timer->moduleShutdown();
+	_started = 0;
 }
 
-void SmushPlay::sysSetVideoCallbacks(SmushPlayVideo *pVideo) {
-	_pVideo = pVideo;
+void SmushPlay::sysSetVideoCallbacks(SmushPlayVideo *video) {
+	_video = video;
 }
 
 void SmushPlay::sysConfigureColorLookup(int config) {
 	_colorLookupConfig = config;
 }
 
-void SmushPlay::timerCallback(void *pContext) {
-	SmushPlay *pPlay = static_cast<SmushPlay *>(pContext);
-	Common::StackLock lock(pPlay->_mutex);
+void SmushPlay::timerCallback(void *context) {
+	SmushPlay *play = static_cast<SmushPlay *>(context);
+	Common::StackLock lock(play->_mutex);
 
-	pPlay->_pTimer->timerThread();
+	play->_timer->timerThread();
 }
 
 int SmushPlay::startMovie(const char *name, int flags, int bufferBytes, int x, int y, int width, int height, int offset, int pixelFormat) {
 	Common::StackLock lock(_mutex);
 
-	if (!_pVideo)
+	if (!_video)
 		return 1;
 
-	Common::SeekableReadStream *pStream = openFile(name);
+	Common::SeekableReadStream *stream = openFile(name);
 
-	if (!pStream)
+	if (!stream)
 		return 1;
 
 	if (strlen(name) >= sizeof(_curFileName))
@@ -172,23 +172,23 @@ int SmushPlay::startMovie(const char *name, int flags, int bufferBytes, int x, i
 	strncpy(_curFileName, name, sizeof(_curFileName) - 1);
 	_curFileName[sizeof(_curFileName) - 1] = '\0';
 
-	pStream->seek(offset, SEEK_CUR);
+	stream->seek(offset, SEEK_CUR);
 
-	if (getInfo(pStream, &_movieInfo)) {
-		delete pStream;
+	if (getInfo(stream, &_movieInfo)) {
+		delete stream;
 		return 1;
 	}
 
-	delete pStream;
-	pStream = nullptr;
+	delete stream;
+	stream = nullptr;
 
-	if (_pVideo->startVideo(width, height, 16, pixelFormat))
+	if (_video->startVideo(width, height, 16, pixelFormat))
 		return 1;
 
 	_movieFlags = flags & 0xFFFFFFF;
 
 	if (openAnim(name, 15)) {
-		_pVideo->stopVideo();
+		_video->stopVideo();
 		return 1;
 	}
 
@@ -204,7 +204,7 @@ int SmushPlay::startMovie(const char *name, int flags, int bufferBytes, int x, i
 
 	_frameRect.width = _movieInfo.width;
 	_frameRect.height = _movieInfo.height;
-	_bMovieIsPlaying = 1;
+	_movieIsPlaying = 1;
 
 	return 0;
 }
@@ -212,21 +212,21 @@ int SmushPlay::startMovie(const char *name, int flags, int bufferBytes, int x, i
 int SmushPlay::stopMovie() {
 	Common::StackLock lock(_mutex);
 
-	if (_bMovieIsPlaying) {
+	if (_movieIsPlaying) {
 		closeAnim();
-		_pSound->souEngineStopAll();
-		_pInternalBitmap = nullptr;
+		_sound->souEngineStopAll();
+		_internalBitmapPointer = nullptr;
 	}
 
-	_bMovieIsPlaying = 0;
+	_movieIsPlaying = 0;
 
-	if (_pVideo)
-		_pVideo->stopVideo();
+	if (_video)
+		_video->stopVideo();
 
 	return 0;
 }
 
-int SmushPlay::updateMovie(int *pFinished) {
+int SmushPlay::updateMovie(int *finished) {
 	Common::StackLock lock(_mutex);
 	LecBitmap bitmap;
 	StdRect rect;
@@ -234,25 +234,25 @@ int SmushPlay::updateMovie(int *pFinished) {
 	memset(&bitmap, 0, sizeof(bitmap));
 	memset(&rect, 0, sizeof(rect));
 
-	if (!_pVideo) {
+	if (!_video) {
 		warning("SmushPlay::updateMovie(): the video callbacks are not set");
-		*pFinished = 1;
+		*finished = 1;
 		return 1;
 	}
 
-	int state = _pAnimPlay->anmRender(this);
+	int state = _animPlay->anmRender(this);
 
-	if (!_pVideo->lockMovieBuffer(&bitmap, &rect)) {
-		blit(&bitmap, _pInternalBitmap, &rect);
-		_pVideo->unlockMovieBuffer(&bitmap, &rect);
+	if (!_video->lockMovieBuffer(&bitmap, &rect)) {
+		blit(&bitmap, _internalBitmapPointer, &rect);
+		_video->unlockMovieBuffer(&bitmap, &rect);
 	}
 
 	if (state < 0 || state == 4) {
-		_pAnimPlay->anmStop();
-		_pInternalBitmap = nullptr;
+		_animPlay->anmStop();
+		_internalBitmapPointer = nullptr;
 
 		if (_movieFlags & 0x10) {
-			*pFinished = 0;
+			*finished = 0;
 
 			int fps = 15;
 
@@ -260,15 +260,15 @@ int SmushPlay::updateMovie(int *pFinished) {
 				fps = (_movieInfo.frameDelay / 2 + 1000000) / _movieInfo.frameDelay;
 
 			restartAnim(fps);
-			_bMovieIsPlaying = 1;
+			_movieIsPlaying = 1;
 		} else {
-			*pFinished = 1;
-			_pDecoder->close();
-			_bMovieIsPlaying = 0;
+			*finished = 1;
+			_decoder->close();
+			_movieIsPlaying = 0;
 		}
 	} else {
-		*pFinished = 0;
-		_bMovieIsPlaying = 1;
+		*finished = 0;
+		_movieIsPlaying = 1;
 	}
 
 	return 0;
@@ -277,8 +277,8 @@ int SmushPlay::updateMovie(int *pFinished) {
 int SmushPlay::pauseMovie() {
 	Common::StackLock lock(_mutex);
 
-	if (_bMovieIsPlaying)
-		_pAnimator->animatorPause(true);
+	if (_movieIsPlaying)
+		_animator->animatorPause(true);
 
 	return 0;
 }
@@ -286,8 +286,8 @@ int SmushPlay::pauseMovie() {
 int SmushPlay::resumeMovie() {
 	Common::StackLock lock(_mutex);
 
-	if (_bMovieIsPlaying)
-		_pAnimator->animatorPause(false);
+	if (_movieIsPlaying)
+		_animator->animatorPause(false);
 
 	return 0;
 }
@@ -295,161 +295,161 @@ int SmushPlay::resumeMovie() {
 int SmushPlay::getMovieTime() {
 	Common::StackLock lock(_mutex);
 
-	if (_bInitialized && _bStarted && _bMovieIsPlaying)
-		return _pSound->souEngineQueryTime(0);
+	if (_initialized && _started && _movieIsPlaying)
+		return _sound->souEngineQueryTime(0);
 
 	return 0;
 }
 
-void SmushPlay::setTranslationTable(const uint16 *pTable) {
-	_pTranslationTable = pTable;
+void SmushPlay::setTranslationTable(const uint16 *table) {
+	_translationTable = table;
 }
 
-void SmushPlay::getFrameRect(StdRect *pFrameRect, StdRect *pSrcRect) {
-	if (pFrameRect)
-		*pFrameRect = _frameRect;
+void SmushPlay::getFrameRect(StdRect *frameRect, StdRect *srcRect) {
+	if (frameRect)
+		*frameRect = _frameRect;
 
-	if (pSrcRect)
-		*pSrcRect = _srcRect;
+	if (srcRect)
+		*srcRect = _srcRect;
 }
 
 int SmushPlay::getMovieLength(const char *path) {
-	Common::SeekableReadStream *pStream = openFile(path);
+	Common::SeekableReadStream *stream = openFile(path);
 
-	if (!pStream)
+	if (!stream)
 		return 0;
 
 	SmushMovieInfo info;
 
 	memset(&info, 0, sizeof(info));
-	getInfo(pStream, &info);
-	delete pStream;
-	pStream = nullptr;
+	getInfo(stream, &info);
+	delete stream;
+	stream = nullptr;
 
 	return (int)((double)info.frames * 66.666664);
 }
 
 int SmushPlay::animatorRender(int flags) {
-	int state = _pAnimator->animatorRender(flags);
+	int state = _animator->animatorRender(flags);
 
 	if (state < 0)
 		return state;
 
-	const Graphics::Surface *pSurface = _pDecoder->getFrameSurface();
+	const Graphics::Surface *surface = _decoder->getFrameSurface();
 
-	_internalBitmap.pPixels = (byte *)pSurface->getPixels();
-	_internalBitmap.width = pSurface->w;
-	_internalBitmap.height = pSurface->h;
-	_internalBitmap.bytesPerPixel = pSurface->format.bytesPerPixel;
+	_internalBitmap.pixels = (byte *)surface->getPixels();
+	_internalBitmap.width = surface->w;
+	_internalBitmap.height = surface->h;
+	_internalBitmap.bytesPerPixel = surface->format.bytesPerPixel;
 	_internalBitmap.bitsPerPixel = 16;
-	_internalBitmap.pitchInBytes = pSurface->pitch;
+	_internalBitmap.pitchInBytes = surface->pitch;
 	fakeBlit(&_internalBitmap, nullptr);
 
 	return state;
 }
 
 void SmushPlay::resetFrameCounter() {
-	_pDecoder->resetBlocky16Frames();
+	_decoder->resetBlocky16Frames();
 }
 
 int SmushPlay::getFrameCounter() {
-	return _pDecoder->getBlocky16Frames();
+	return _decoder->getBlocky16Frames();
 }
 
 Common::SeekableReadStream *SmushPlay::openFile(const char *path) {
-	if (!_pHS) {
+	if (!_hs) {
 		warning("SmushPlay::openFile(): the module is not initialized");
 		return nullptr;
 	}
 
-	Common::SeekableReadStream *pStream = _pHS->openFile(path);
+	Common::SeekableReadStream *stream = _hs->openFile(path);
 
-	if (!pStream)
+	if (!stream)
 		return nullptr;
 
-	return Common::wrapCompressedReadStream(pStream);
+	return Common::wrapCompressedReadStream(stream);
 }
 
-int SmushPlay::getInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInfo) {
-	if (!pStream)
+int SmushPlay::getInfo(Common::SeekableReadStream *stream, SmushMovieInfo *info) {
+	if (!stream)
 		return 0;
 
-	int32 position = pStream->pos();
+	int32 position = stream->pos();
 
-	pStream->seek(16, SEEK_SET);
-	pInfo->version0 = pStream->readByte();
-	pInfo->version1 = pStream->readByte();
-	pInfo->frames = pStream->readSint16LE();
-	pInfo->x = pStream->readSint16LE();
-	pInfo->y = pStream->readSint16LE();
-	pInfo->width = pStream->readSint16LE();
-	pInfo->height = pStream->readSint16LE();
-	pInfo->reserved12 = pStream->readSint16LE();
-	pInfo->frameDelay = pStream->readSint32LE();
-	pInfo->maxFrameSize = pStream->readSint32LE();
-	pStream->read(pInfo->palette, sizeof(pInfo->palette));
-	pInfo->reserved1046 = pStream->readSint16LE();
+	stream->seek(16, SEEK_SET);
+	info->version0 = stream->readByte();
+	info->version1 = stream->readByte();
+	info->frames = stream->readSint16LE();
+	info->x = stream->readSint16LE();
+	info->y = stream->readSint16LE();
+	info->width = stream->readSint16LE();
+	info->height = stream->readSint16LE();
+	info->reserved12 = stream->readSint16LE();
+	info->frameDelay = stream->readSint32LE();
+	info->maxFrameSize = stream->readSint32LE();
+	stream->read(info->palette, sizeof(info->palette));
+	info->reserved1046 = stream->readSint16LE();
 
-	if (pInfo->width <= 0 || pInfo->height <= 0 || pInfo->maxFrameSize <= 0)
+	if (info->width <= 0 || info->height <= 0 || info->maxFrameSize <= 0)
 		return -2;
 
-	pStream->seek(position, SEEK_SET);
+	stream->seek(position, SEEK_SET);
 
 	return 0;
 }
 
 int SmushPlay::openAnim(const char *path, int fps) {
-	Common::SeekableReadStream *pStream = openFile(path);
+	Common::SeekableReadStream *stream = openFile(path);
 
-	if (!pStream)
+	if (!stream)
 		return 1;
 
-	if (!_pDecoder->loadStream(pStream))
+	if (!_decoder->loadStream(stream))
 		return 1;
 
-	_pDecoder->start();
+	_decoder->start();
 
-	if (_pAnimPlay->anmStart(fps)) {
-		_pDecoder->close();
+	if (_animPlay->anmStart(fps)) {
+		_decoder->close();
 		return 1;
 	}
 
-	_pAnimator->animatorNewAnim();
+	_animator->animatorNewAnim();
 
 	return 0;
 }
 
 void SmushPlay::restartAnim(int fps) {
-	_pDecoder->rewind();
-	_pDecoder->start();
-	_pAnimPlay->anmStart(fps);
-	_pAnimator->animatorNewAnim();
+	_decoder->rewind();
+	_decoder->start();
+	_animPlay->anmStart(fps);
+	_animator->animatorNewAnim();
 }
 
 void SmushPlay::closeAnim() {
-	_pAnimPlay->anmStop();
-	_pDecoder->close();
+	_animPlay->anmStop();
+	_decoder->close();
 }
 
-int SmushPlay::fakeBlit(LecBitmap *pBitmap, const uint16 *pTable) {
-	_pInternalBitmap = pBitmap;
+int SmushPlay::fakeBlit(LecBitmap *bitmap, const uint16 *table) {
+	_internalBitmapPointer = bitmap;
 
-	if (!_pTranslationTable)
-		_pTranslationTable = pTable;
+	if (!_translationTable)
+		_translationTable = table;
 
 	return 0;
 }
 
-int SmushPlay::blit(LecBitmap *pDest, LecBitmap *pSource, StdRect *pRect) {
-	if (!pDest || !pSource)
+int SmushPlay::blit(LecBitmap *dest, LecBitmap *source, StdRect *rect) {
+	if (!dest || !source)
 		return 0;
 
 	if (_movieFlags & 1) {
 		_movieFlags &= ~6;
 
-		if (_frameRect.width <= pRect->width / 2)
+		if (_frameRect.width <= rect->width / 2)
 			_movieFlags |= 4;
-		else if (_frameRect.height < pRect->height)
+		else if (_frameRect.height < rect->height)
 			_movieFlags |= 2;
 	}
 
@@ -460,99 +460,99 @@ int SmushPlay::blit(LecBitmap *pDest, LecBitmap *pSource, StdRect *pRect) {
 	int width = _frameRect.width * columnScale;
 	int height = rowScale * _frameRect.height;
 
-	if (x < pRect->x) {
-		width += x - pRect->x;
-		x = pRect->x;
+	if (x < rect->x) {
+		width += x - rect->x;
+		x = rect->x;
 	}
 
-	if (x + width > pRect->x + pRect->width)
-		width = pRect->x + pRect->width - x;
+	if (x + width > rect->x + rect->width)
+		width = rect->x + rect->width - x;
 
-	if (y < pRect->y) {
-		height += y - pRect->y;
-		y = pRect->y;
+	if (y < rect->y) {
+		height += y - rect->y;
+		y = rect->y;
 	}
 
-	if (y + height > pRect->y + pRect->height)
-		height = pRect->y + pRect->height - y;
+	if (y + height > rect->y + rect->height)
+		height = rect->y + rect->height - y;
 
 	int rows = height / rowScale;
-	int rowBytes = pSource->bytesPerPixel * (width / columnScale);
+	int rowBytes = source->bytesPerPixel * (width / columnScale);
 
 	if (rows < 0 || rowBytes < 0) {
 		warning("SmushPlay::blit(): the movie is outside of the target");
 		return 0;
 	}
 
-	byte *pDestPixels = pDest->pPixels + pDest->pitchInBytes * rowScale * y + columnScale * x * pDest->bytesPerPixel;
+	byte *destPixels = dest->pixels + dest->pitchInBytes * rowScale * y + columnScale * x * dest->bytesPerPixel;
 
 	if (_movieFlags & 4)
-		blitDouble(pSource->pPixels, pSource->pitchInBytes, pDestPixels, pDest->pitchInBytes, rowBytes, rows);
+		blitDouble(source->pixels, source->pitchInBytes, destPixels, dest->pitchInBytes, rowBytes, rows);
 	else if (_movieFlags & 2)
-		blitDoubleRows(pSource->pPixels, pSource->pitchInBytes, pDestPixels, pDest->pitchInBytes, rowBytes, rows);
+		blitDoubleRows(source->pixels, source->pitchInBytes, destPixels, dest->pitchInBytes, rowBytes, rows);
 	else
-		blitCopy(pSource->pPixels, pSource->pitchInBytes, pDestPixels, pDest->pitchInBytes, rowBytes, rows);
+		blitCopy(source->pixels, source->pitchInBytes, destPixels, dest->pitchInBytes, rowBytes, rows);
 
 	return 0;
 }
 
-void SmushPlay::blitDouble(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows) {
+void SmushPlay::blitDouble(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows) {
 	if (rows == 0)
 		return;
 
 	for (int row = 0; row < rows; row++) {
-		const byte *pSourceEnd = pSource + rowBytes;
+		const byte *sourceEnd = source + rowBytes;
 
 		do {
-			uint32 value = READ_LE_UINT32(pSource);
+			uint32 value = READ_LE_UINT32(source);
 			uint32 low = (value & 0xFF) | ((value << 8) & 0xFF0000);
 			uint32 high = (value >> 8) & 0xFF00;
 			uint32 top = value & 0xFF000000;
 			uint32 first = low | (low << 8);
 			uint32 second = ((high | top) >> 8) | high | top;
 
-			WRITE_LE_UINT32(pDest, first);
-			WRITE_LE_UINT32(pDest + destPitch, first);
-			WRITE_LE_UINT32(pDest + 4, second);
-			WRITE_LE_UINT32(pDest + destPitch + 4, second);
-			pSource += 4;
-			pDest += 8;
-		} while (pSource < pSourceEnd);
+			WRITE_LE_UINT32(dest, first);
+			WRITE_LE_UINT32(dest + destPitch, first);
+			WRITE_LE_UINT32(dest + 4, second);
+			WRITE_LE_UINT32(dest + destPitch + 4, second);
+			source += 4;
+			dest += 8;
+		} while (source < sourceEnd);
 
-		pSource += sourcePitch - rowBytes;
-		pDest += 2 * destPitch - 2 * rowBytes;
+		source += sourcePitch - rowBytes;
+		dest += 2 * destPitch - 2 * rowBytes;
 	}
 }
 
-void SmushPlay::blitDoubleRows(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows) {
+void SmushPlay::blitDoubleRows(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows) {
 	int numDwords = rowBytes >> 2;
 
 	for (int row = 0; row < rows; row++) {
 		for (int i = 0; i < numDwords; i++) {
-			uint32 value = READ_UINT32(pSource + 4 * i);
+			uint32 value = READ_UINT32(source + 4 * i);
 
-			WRITE_UINT32(pDest + 4 * i, value);
-			WRITE_UINT32(pDest + destPitch + 4 * i, value);
+			WRITE_UINT32(dest + 4 * i, value);
+			WRITE_UINT32(dest + destPitch + 4 * i, value);
 		}
 
-		pSource += sourcePitch;
-		pDest += 2 * destPitch;
+		source += sourcePitch;
+		dest += 2 * destPitch;
 	}
 }
 
-void SmushPlay::blitCopy(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows) {
+void SmushPlay::blitCopy(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows) {
 	int numPixels = (rowBytes >> 2) * 2;
 
 	for (int row = 0; row < rows; row++) {
-		const uint16 *pSourceRow = (const uint16 *)(pSource + sourcePitch * row);
-		uint16 *pDestRow = (uint16 *)(pDest + destPitch * row);
+		const uint16 *sourceRow = (const uint16 *)(source + sourcePitch * row);
+		uint16 *destRow = (uint16 *)(dest + destPitch * row);
 
-		if (_pTranslationTable) {
+		if (_translationTable) {
 			for (int i = 0; i < numPixels; i++)
-				pDestRow[i] = _pTranslationTable[pSourceRow[i]];
+				destRow[i] = _translationTable[sourceRow[i]];
 		} else {
 			for (int i = 0; i < numPixels; i++)
-				pDestRow[i] = pSourceRow[i];
+				destRow[i] = sourceRow[i];
 		}
 	}
 }

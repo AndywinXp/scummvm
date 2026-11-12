@@ -37,63 +37,63 @@ void Layer::set16BitFix(EmiEngine *engine, bool enable) {
 	engine->_layer16BitFix = enable;
 }
 
-void Layer::saveRestoreNextId(EmiEngine *engine, tSaveRestoreAccess *access) {
+void Layer::saveRestoreNextId(EmiEngine *engine, SaveRestoreAccess *access) {
 	access(&engine->_nextLayerId, sizeof(engine->_nextLayerId));
 }
 
-Layer::Layer(EmiEngine *engine, const char *layerName, int layerSortOrder, int layerFrame, int layerId) : tiledScene(engine), background(engine), _engine(engine) {
+Layer::Layer(EmiEngine *engine, const char *layerName, int layerSortOrder, int layerFrame, int layerId) : _tiledScene(engine), _background(engine), _engine(engine) {
 	if (layerId == -1) {
-		id = _engine->_nextLayerId;
+		_id = _engine->_nextLayerId;
 		_engine->_nextLayerId++;
 	} else {
-		id = layerId;
+		_id = layerId;
 	}
 
-	frame = 0;
-	sortOrder = 0;
+	_frame = 0;
+	_sortOrder = 0;
 
 	if (strlen(layerName) >= kNameSize)
 		warning("Layer::Layer(): the name is too long");
 
-	Common::strlcpy(name, layerName, kNameSize);
-	sortOrder = layerSortOrder;
-	frame = layerFrame;
+	Common::strlcpy(_name, layerName, kNameSize);
+	_sortOrder = layerSortOrder;
+	_frame = layerFrame;
 
 	LString resourceName = LString::format("BG%s", layerName);
 
-	background.resource = _engine->getResourceManager()->findResource(resourceName.c_str());
+	_background._resource = _engine->getResourceManager()->findResource(resourceName.c_str());
 
-	if (!background.resource) {
-		background.resource = _engine->getResourceManager()->createResource(resourceName.c_str());
+	if (!_background._resource) {
+		_background._resource = _engine->getResourceManager()->createResource(resourceName.c_str());
 
-		if (!background.resource)
-			background.allocateResource();
+		if (!_background._resource)
+			_background.allocateResource();
 
-		if (background.resource) {
-			background.resource->resSetName(resourceName.c_str());
-			_engine->getResourceManager()->addResource(background.resource);
+		if (_background._resource) {
+			_background._resource->resSetName(resourceName.c_str());
+			_engine->getResourceManager()->addResource(_background._resource);
 		}
 	}
 
-	background.setResource(background.resource);
+	_background.setResource(_background._resource);
 
 	resourceName = LString::format("TS%s", layerName);
 
-	tiledScene.resource = _engine->getResourceManager()->findResource(resourceName.c_str());
+	_tiledScene._resource = _engine->getResourceManager()->findResource(resourceName.c_str());
 
-	if (!tiledScene.resource) {
-		tiledScene.resource = _engine->getResourceManager()->createResource(resourceName.c_str());
+	if (!_tiledScene._resource) {
+		_tiledScene._resource = _engine->getResourceManager()->createResource(resourceName.c_str());
 
-		if (!tiledScene.resource)
-			tiledScene.allocateResource();
+		if (!_tiledScene._resource)
+			_tiledScene.allocateResource();
 
-		if (tiledScene.resource) {
-			tiledScene.resource->resSetName(resourceName.c_str());
-			_engine->getResourceManager()->addResource(tiledScene.resource);
+		if (_tiledScene._resource) {
+			_tiledScene._resource->resSetName(resourceName.c_str());
+			_engine->getResourceManager()->addResource(_tiledScene._resource);
 		}
 	}
 
-	tiledScene.setResource(tiledScene.resource);
+	_tiledScene.setResource(_tiledScene._resource);
 }
 
 Layer::~Layer() {
@@ -112,11 +112,11 @@ int Layer::draw(CDrawContext *context) {
 
 	Background *backgroundData = nullptr;
 
-	if (background.lock())
-		backgroundData = background.typed;
+	if (_background.lock())
+		backgroundData = _background._typed;
 
-	if (tiledScene.lock()) {
-		TiledScene *scene = tiledScene.typed;
+	if (_tiledScene.lock()) {
+		TiledScene *scene = _tiledScene._typed;
 
 		if (scene) {
 			context->setOrtho(-1.0f, 1.0f, -1.0f, 1.0f);
@@ -125,12 +125,12 @@ int Layer::draw(CDrawContext *context) {
 
 			if (frameCount > 0) {
 				// The disasm wraps the frame in place
-				while (frame < 0)
-					frame += frameCount;
+				while (_frame < 0)
+					_frame += frameCount;
 
-				int frameIndex = frame % frameCount;
-				int firstBatch = scene->frames[2 * frameIndex];
-				int batchCount = scene->frames[2 * frameIndex + 1];
+				int frameIndex = _frame % frameCount;
+				int firstBatch = scene->_frames[2 * frameIndex];
+				int batchCount = scene->_frames[2 * frameIndex + 1];
 
 				if (batchCount > 0 && !backgroundData) {
 					warning("Layer::draw(): the background is not available");
@@ -142,21 +142,21 @@ int Layer::draw(CDrawContext *context) {
 						quadsFlags = kPs2QuadsFlags;
 
 					for (int batch = firstBatch; batch < firstBatch + batchCount; batch++) {
-						if (batch < 0 || batch >= scene->header[TiledScene::kHeaderNumBatches]) {
+						if (batch < 0 || batch >= scene->_header[TiledScene::kHeaderNumBatches]) {
 							warning("Layer::draw(): invalid batch %d", batch);
 							break;
 						}
 
-						const int *entry = &scene->batches[3 * batch];
+						const int *entry = &scene->_batches[3 * batch];
 						CTexture *texture = backgroundData->getTexture(entry[0]);
 
-						context->drawQuads(quadsFlags, texture, entry[1], entry[2], &scene->vertices);
+						context->drawQuads(quadsFlags, texture, entry[1], entry[2], &scene->_vertices);
 					}
 				}
 			}
 
-			tiledScene.unlock();
-			background.unlock();
+			_tiledScene.unlock();
+			_background.unlock();
 		}
 	}
 

@@ -114,7 +114,7 @@ static int findChoreIndex(const LegacyCostumeLayout &layout, int32 oldId) {
 	return -1;
 }
 
-static bool getTrackStatus(const LegacyAnimState &anim, uint *pStatus) {
+static bool getTrackStatus(const LegacyAnimState &anim, uint *statusPointer) {
 	uint status = kTrackInUse | kTrackPlaying;
 
 	if (anim.repeatMode == kLegacyRepeatOnce)
@@ -136,7 +136,7 @@ static bool getTrackStatus(const LegacyAnimState &anim, uint *pStatus) {
 	if (anim.paused)
 		status |= kTrackPaused;
 
-	*pStatus = status;
+	*statusPointer = status;
 
 	return true;
 }
@@ -145,8 +145,8 @@ namespace {
 
 class LegacyActorImporter {
 public:
-	LegacyActorImporter(LegacyImporter *pImporter, SputActorModule *pActors, SputCostume *pSputCostume, SputRoom *pSputRoom,
-			Res *pRes, SputResource *pSputResource, WalkSystem *pWalkSystem);
+	LegacyActorImporter(LegacyImporter *importer, SputActorModule *actors, SputCostume *sputCostume, SputRoom *sputRoom,
+			Res *res, SputResource *sputResource, WalkSystem *walkSystem);
 
 	void run();
 
@@ -154,48 +154,48 @@ private:
 	typedef Common::HashMap<Common::String, LegacyCostumeLayout> LayoutCache;
 
 	bool importActor(const LegacyActor &actor);
-	void importPlacement(const LegacyActor &actor, SputActor *pActor);
-	bool importCostumes(const LegacyActor &actor, SputActor *pActor, Common::Array<CostumeNode *> &nodes, Common::Array<const LegacyCostumeLayout *> &layouts);
-	void importCostumeState(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, SputActor *pActor, CostumeNode *pNode);
-	void importChores(const LegacyCostume &costume, const LegacyCostumeLayout &layout, int hInst);
-	void importComponents(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, int hInst);
-	void importMesh(const LegacyComponent &comp, MeshInstData *pMesh);
-	void importMaterial(const LegacyComponent &comp, MaterialInst *pMaterial);
-	void importSprite(const LegacyComponent &comp, ModelInst *pSprite);
-	void importKeyframe(const LegacyActor &actor, const LegacyCostume &costume, const LegacyComponent &comp, KeyframeInst *pKeyframe);
-	void importHead(const LegacyCostume &costume, SputActor *pActor, CostumeNode *pNode);
-	void importColormap(const LegacyActor &actor, SputActor *pActor);
+	void importPlacement(const LegacyActor &actor, SputActor *actorPointer);
+	bool importCostumes(const LegacyActor &actor, SputActor *actorPointer, Common::Array<CostumeNode *> &nodes, Common::Array<const LegacyCostumeLayout *> &layouts);
+	void importCostumeState(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, SputActor *actorPointer, CostumeNode *node);
+	void importChores(const LegacyCostume &costume, const LegacyCostumeLayout &layout, int inst);
+	void importComponents(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, int inst);
+	void importMesh(const LegacyComponent &comp, MeshInstData *mesh);
+	void importMaterial(const LegacyComponent &comp, MaterialInst *material);
+	void importSprite(const LegacyComponent &comp, ModelInst *sprite);
+	void importKeyframe(const LegacyActor &actor, const LegacyCostume &costume, const LegacyComponent &comp, KeyframeInst *keyframe);
+	void importHead(const LegacyCostume &costume, SputActor *actor, CostumeNode *node);
+	void importColormap(const LegacyActor &actor, SputActor *actorPointer);
 	void importActionChores(const LegacyActor &actor, const Common::Array<CostumeNode *> &nodes, const Common::Array<const LegacyCostumeLayout *> &layouts);
-	void importWalk(const LegacyActor &actor, SputActor *pActor);
-	void importShadows(const LegacyActor &actor, SputActor *pActor);
-	void importShadow(const LegacyActor &actor, int slot, const LegacyActorShadow &shadow, SputActor *pActor);
+	void importWalk(const LegacyActor &actor, SputActor *actorPointer);
+	void importShadows(const LegacyActor &actor, SputActor *actorPointer);
+	void importShadow(const LegacyActor &actor, int slot, const LegacyActorShadow &shadow, SputActor *actorPointer);
 
 	const LegacyCostumeLayout *getLayout(const Common::String &fileName);
-	void mapComponents(int hInst, const LegacyCostumeLayout &layout, Common::Array<int> &newIndices);
+	void mapComponents(int inst, const LegacyCostumeLayout &layout, Common::Array<int> &newIndices);
 	bool isCurrentSet(const Common::String &setName);
 	// The chore index of a node and the node itself, -1 if the action chore points to nothing
 	int resolveActionChore(const LegacyActor &actor, const LegacyActionChore &chore, const Common::Array<CostumeNode *> &nodes,
-			const Common::Array<const LegacyCostumeLayout *> &layouts, CostumeNode **ppNode);
+			const Common::Array<const LegacyCostumeLayout *> &layouts, CostumeNode **node);
 
-	LegacyImporter *_pImporter;
-	SputActorModule *_pActors;
-	SputCostume *_pSputCostume;
-	SputRoom *_pSputRoom;
-	Res *_pRes;
-	SputResource *_pSputResource;
-	WalkSystem *_pWalkSystem;
-	Cos *_pCos;
+	LegacyImporter *_importer;
+	SputActorModule *_actors;
+	SputCostume *_sputCostume;
+	SputRoom *_sputRoom;
+	Res *_res;
+	SputResource *_sputResource;
+	WalkSystem *_walkSystem;
+	Cos *_cos;
 	LayoutCache _layouts;
 };
 
-LegacyActorImporter::LegacyActorImporter(LegacyImporter *pImporter, SputActorModule *pActors, SputCostume *pSputCostume, SputRoom *pSputRoom,
-		Res *pRes, SputResource *pSputResource, WalkSystem *pWalkSystem) :
-		_pImporter(pImporter), _pActors(pActors), _pSputCostume(pSputCostume), _pSputRoom(pSputRoom), _pRes(pRes),
-		_pSputResource(pSputResource), _pWalkSystem(pWalkSystem), _pCos(pSputCostume->getCos()) {
+LegacyActorImporter::LegacyActorImporter(LegacyImporter *importer, SputActorModule *actors, SputCostume *sputCostume, SputRoom *sputRoom,
+		Res *res, SputResource *sputResource, WalkSystem *walkSystem) :
+		_importer(importer), _actors(actors), _sputCostume(sputCostume), _sputRoom(sputRoom), _res(res),
+		_sputResource(sputResource), _walkSystem(walkSystem), _cos(sputCostume->getCos()) {
 }
 
 void LegacyActorImporter::run() {
-	const Common::Array<LegacyActor> &actors = _pImporter->getData().actors;
+	const Common::Array<LegacyActor> &actors = _importer->getData().actors;
 	Common::HashMap<int32, uint> positions;
 	Common::Array<int32> ids;
 
@@ -224,87 +224,87 @@ void LegacyActorImporter::run() {
 }
 
 bool LegacyActorImporter::importActor(const LegacyActor &actor) {
-	int index = _pActors->allocateActor();
-	SputActor *pActor = _pActors->actorDeref(index);
+	int index = _actors->allocateActor();
+	SputActor *actorPointer = _actors->actorDeref(index);
 
-	if (!pActor)
+	if (!actorPointer)
 		return false;
 
-	importPlacement(actor, pActor);
+	importPlacement(actor, actorPointer);
 
 	Common::Array<CostumeNode *> nodes;
 	Common::Array<const LegacyCostumeLayout *> layouts;
 
-	if (!importCostumes(actor, pActor, nodes, layouts)) {
+	if (!importCostumes(actor, actorPointer, nodes, layouts)) {
 		warning("LegacyImporter::importActors(): the actor %d (%s) is skipped", actor.id, actor.name.c_str());
 
-		while (pActor->pCostumeStack)
-			_pActors->popCostume(pActor, 1);
+		while (actorPointer->costumeStack)
+			_actors->popCostume(actorPointer, 1);
 
-		_pActors->freeActor(pActor);
+		_actors->freeActor(actorPointer);
 
 		return false;
 	}
 
-	importColormap(actor, pActor);
+	importColormap(actor, actorPointer);
 	importActionChores(actor, nodes, layouts);
-	importWalk(actor, pActor);
-	importShadows(actor, pActor);
+	importWalk(actor, actorPointer);
+	importShadows(actor, actorPointer);
 
-	_pImporter->getContext().actorIndices.setVal(actor.id, index);
+	_importer->getContext().actorIndices.setVal(actor.id, index);
 
 	return true;
 }
 
-void LegacyActorImporter::importPlacement(const LegacyActor &actor, SputActor *pActor) {
-	pActor->actorPos[0] = actor.pos.x;
-	pActor->actorPos[1] = actor.pos.y;
-	pActor->actorPos[2] = actor.pos.z;
-	pActor->prevPosition[0] = actor.pos.x;
-	pActor->prevPosition[1] = actor.pos.y;
-	pActor->prevPosition[2] = actor.pos.z;
-	pActor->actorRot[0] = actor.pitch;
-	pActor->actorRot[1] = actor.yaw;
-	pActor->actorRot[2] = actor.roll;
-	pActor->scale = actor.scale;
-	pActor->matrixValid = 0;
+void LegacyActorImporter::importPlacement(const LegacyActor &actor, SputActor *actorPointer) {
+	actorPointer->actorPos[0] = actor.pos.x;
+	actorPointer->actorPos[1] = actor.pos.y;
+	actorPointer->actorPos[2] = actor.pos.z;
+	actorPointer->prevPosition[0] = actor.pos.x;
+	actorPointer->prevPosition[1] = actor.pos.y;
+	actorPointer->prevPosition[2] = actor.pos.z;
+	actorPointer->actorRot[0] = actor.pitch;
+	actorPointer->actorRot[1] = actor.yaw;
+	actorPointer->actorRot[2] = actor.roll;
+	actorPointer->scale = actor.scale;
+	actorPointer->matrixValid = 0;
 
 	if (!actor.visible)
-		pActor->flags |= kActorHidden;
+		actorPointer->flags |= kActorHidden;
 
 	if (actor.puckOrient)
-		pActor->flags |= kActorPuckOrient;
+		actorPointer->flags |= kActorPuckOrient;
 
 	if (!actor.setName.empty()) {
 		if (actor.setName.size() >= kMaxSetNameSize)
 			warning("LegacyImporter::importActors(): the set name %s of the actor %d is too long, the actor is in no set", actor.setName.c_str(), actor.id);
 		else
-			_pSputRoom->addActor(actor.setName.c_str(), pActor);
+			_sputRoom->addActor(actor.setName.c_str(), actorPointer);
 	}
 
-	_pActors->allocateActorExtra(pActor);
+	_actors->allocateActorExtra(actorPointer);
 
-	Extra *pExtra = pActor->pExtra;
+	Extra *extra = actorPointer->extra;
 
-	pExtra->walkRate = actor.walkRate;
-	pExtra->turnRate = actor.turnRate;
-	pExtra->reflectionAngle = actor.reflectionAngle;
-	pExtra->timeScale = actor.timeScale;
-	pExtra->talkColor = packColor(actor.talkColor);
-	pExtra->collisionScale = actor.collisionScale;
+	extra->walkRate = actor.walkRate;
+	extra->turnRate = actor.turnRate;
+	extra->reflectionAngle = actor.reflectionAngle;
+	extra->timeScale = actor.timeScale;
+	extra->talkColor = packColor(actor.talkColor);
+	extra->collisionScale = actor.collisionScale;
 
 	if (actor.collisionMode > (uint32)kLegacyMaxCollisionMode) {
 		warning("LegacyImporter::importActors(): the actor %d has the collision mode %u, it is switched off", actor.id, actor.collisionMode);
-		pExtra->collisionMode = 0;
+		extra->collisionMode = 0;
 	} else {
-		pExtra->collisionMode = (int)actor.collisionMode;
+		extra->collisionMode = (int)actor.collisionMode;
 	}
 
 	if (actor.lookingMode) {
-		pExtra->lookCarrot[0] = actor.lookAtVector.x;
-		pExtra->lookCarrot[1] = actor.lookAtVector.y;
-		pExtra->lookCarrot[2] = actor.lookAtVector.z;
-		pActor->mode |= kActorLooking;
+		extra->lookCarrot[0] = actor.lookAtVector.x;
+		extra->lookCarrot[1] = actor.lookAtVector.y;
+		extra->lookCarrot[2] = actor.lookAtVector.z;
+		actorPointer->mode |= kActorLooking;
 	}
 }
 
@@ -318,18 +318,18 @@ const LegacyCostumeLayout *LegacyActorImporter::getLayout(const Common::String &
 	if (it != _layouts.end())
 		return &it->_value;
 
-	Common::SeekableReadStream *pStream = _pImporter->openCostumeFile(fileName);
+	Common::SeekableReadStream *stream = _importer->openCostumeFile(fileName);
 
-	if (!pStream) {
+	if (!stream) {
 		warning("LegacyImporter::importActors(): cannot open the costume file %s", fileName.c_str());
 		return nullptr;
 	}
 
 	LegacyCostumeLayout layout;
-	bool parsed = parseLegacyCostumeFile(pStream, fileName, layout);
+	bool parsed = parseLegacyCostumeFile(stream, fileName, layout);
 
-	delete pStream;
-	pStream = nullptr;
+	delete stream;
+	stream = nullptr;
 
 	if (!parsed)
 		return nullptr;
@@ -339,7 +339,7 @@ const LegacyCostumeLayout *LegacyActorImporter::getLayout(const Common::String &
 	return &_layouts.find(key)->_value;
 }
 
-bool LegacyActorImporter::importCostumes(const LegacyActor &actor, SputActor *pActor, Common::Array<CostumeNode *> &nodes,
+bool LegacyActorImporter::importCostumes(const LegacyActor &actor, SputActor *actorPointer, Common::Array<CostumeNode *> &nodes,
 		Common::Array<const LegacyCostumeLayout *> &layouts) {
 	// The cache must not grow while the layouts are in use
 	for (uint i = 0; i < actor.costumes.size(); i++) {
@@ -349,52 +349,52 @@ bool LegacyActorImporter::importCostumes(const LegacyActor &actor, SputActor *pA
 
 	for (uint i = 0; i < actor.costumes.size(); i++) {
 		const LegacyCostume &costume = actor.costumes[i];
-		const LegacyCostumeLayout *pLayout = getLayout(costume.fileName);
-		int bPushed;
+		const LegacyCostumeLayout *layout = getLayout(costume.fileName);
+		int pushed;
 
 		if (i == 0)
-			bPushed = _pActors->setCostume(pActor, costume.fileName.c_str(), 0);
+			pushed = _actors->setCostume(actorPointer, costume.fileName.c_str(), 0);
 		else
-			bPushed = _pActors->pushCostume(pActor, costume.fileName.c_str(), 0);
+			pushed = _actors->pushCostume(actorPointer, costume.fileName.c_str(), 0);
 
-		CostumeNode *pNode = pActor->pCostumeStack;
+		CostumeNode *node = actorPointer->costumeStack;
 
-		if (!bPushed || !pNode || !pNode->hCostumeInstance) {
+		if (!pushed || !node || !node->costumeInstance) {
 			warning("LegacyImporter::importActors(): the actor %d cannot load the costume %s", actor.id, costume.fileName.c_str());
 			return false;
 		}
 
-		nodes.push_back(pNode);
-		layouts.push_back(pLayout);
+		nodes.push_back(node);
+		layouts.push_back(layout);
 
-		if (pNode->rCostume.valid) {
+		if (node->rCostume.valid) {
 			Common::String key = costume.fileName;
 
 			key.toLowercase();
-			_pImporter->getContext().costumeSerials.setVal(key, pNode->rCostume.serial);
+			_importer->getContext().costumeSerials.setVal(key, node->rCostume.serial);
 		}
 
-		importCostumeState(actor, costume, *pLayout, pActor, pNode);
+		importCostumeState(actor, costume, *layout, actorPointer, node);
 	}
 
 	return true;
 }
 
-void LegacyActorImporter::importCostumeState(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, SputActor *pActor, CostumeNode *pNode) {
-	int hInst = pNode->hCostumeInstance;
+void LegacyActorImporter::importCostumeState(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, SputActor *actorPointer, CostumeNode *node) {
+	int inst = node->costumeInstance;
 
-	if (_pCos->instCountChores(hInst) != (int)layout.chores.size()) {
+	if (_cos->instCountChores(inst) != (int)layout.chores.size()) {
 		warning("LegacyImporter::importActors(): the costume %s of the actor %d has %d chores in the game data and %u in the savegame, its state is skipped",
-			costume.fileName.c_str(), actor.id, _pCos->instCountChores(hInst), layout.chores.size());
+			costume.fileName.c_str(), actor.id, _cos->instCountChores(inst), layout.chores.size());
 		return;
 	}
 
-	importChores(costume, layout, hInst);
-	importComponents(actor, costume, layout, hInst);
-	importHead(costume, pActor, pNode);
+	importChores(costume, layout, inst);
+	importComponents(actor, costume, layout, inst);
+	importHead(costume, actorPointer, node);
 }
 
-void LegacyActorImporter::importChores(const LegacyCostume &costume, const LegacyCostumeLayout &layout, int hInst) {
+void LegacyActorImporter::importChores(const LegacyCostume &costume, const LegacyCostumeLayout &layout, int inst) {
 	for (uint i = 0; i < layout.chores.size(); i++) {
 		int32 oldId = layout.chores[i].id;
 
@@ -419,11 +419,11 @@ void LegacyActorImporter::importChores(const LegacyCostume &costume, const Legac
 				time = chore.currTime;
 		}
 
-		LegacyImporter::setChoreInstance(_pCos, hInst, (int)i, state, time);
+		LegacyImporter::setChoreInstance(_cos, inst, (int)i, state, time);
 	}
 }
 
-void LegacyActorImporter::mapComponents(int hInst, const LegacyCostumeLayout &layout, Common::Array<int> &newIndices) {
+void LegacyActorImporter::mapComponents(int inst, const LegacyCostumeLayout &layout, Common::Array<int> &newIndices) {
 	uint numLegacy = layout.components.size();
 	Common::Array<uint> depths;
 
@@ -440,7 +440,7 @@ void LegacyActorImporter::mapComponents(int hInst, const LegacyCostumeLayout &la
 		newIndices.push_back(-1);
 	}
 
-	int numNew = _pCos->instCountComponents(hInst);
+	int numNew = _cos->instCountComponents(inst);
 
 	// The new loader adds the components by depth in the tree and numbers the ones with the same name in that order
 	for (uint i = 0; i < numLegacy; i++) {
@@ -459,9 +459,9 @@ void LegacyActorImporter::mapComponents(int hInst, const LegacyCostumeLayout &la
 
 		for (int j = 0; j < numNew; j++) {
 			int fourcc = 0;
-			CosComponent *pComp = _pCos->instComponentInfo(hInst, j, &fourcc, nullptr, nullptr);
+			CosComponent *comp = _cos->instComponentInfo(inst, j, &fourcc, nullptr, nullptr);
 
-			if (pComp && pComp->depthIdx == rank && tagsMatch(fourcc, tag) && namesMatch(pComp->name, name)) {
+			if (comp && comp->depthIdx == rank && tagsMatch(fourcc, tag) && namesMatch(comp->name, name)) {
 				newIndices[i] = j;
 				break;
 			}
@@ -469,10 +469,10 @@ void LegacyActorImporter::mapComponents(int hInst, const LegacyCostumeLayout &la
 	}
 }
 
-void LegacyActorImporter::importComponents(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, int hInst) {
+void LegacyActorImporter::importComponents(const LegacyActor &actor, const LegacyCostume &costume, const LegacyCostumeLayout &layout, int inst) {
 	Common::Array<int> newIndices;
 
-	mapComponents(hInst, layout, newIndices);
+	mapComponents(inst, layout, newIndices);
 
 	for (uint i = 0; i < costume.components.size(); i++) {
 		const LegacyComponent &comp = costume.components[i];
@@ -485,86 +485,86 @@ void LegacyActorImporter::importComponents(const LegacyActor &actor, const Legac
 			continue;
 		}
 
-		void *pData = _pCos->instGetInstanceData(hInst, newIndices[comp.index], nullptr);
+		void *data = _cos->instGetInstanceData(inst, newIndices[comp.index], nullptr);
 
-		if (!pData) {
+		if (!data) {
 			warning("LegacyImporter::importActors(): the component %d of the costume %s of the actor %d has no instance", comp.index, costume.fileName.c_str(), actor.id);
 			continue;
 		}
 
 		if (comp.tag == kTagMainModel || comp.tag == kTagModel)
-			static_cast<ModelInst *>(pData)->bVisible = comp.visible ? 1 : 0;
+			static_cast<ModelInst *>(data)->visible = comp.visible ? 1 : 0;
 		else if (comp.tag == kTagMesh)
-			importMesh(comp, static_cast<MeshInstData *>(pData));
+			importMesh(comp, static_cast<MeshInstData *>(data));
 		else if (comp.tag == kTagMaterial)
-			importMaterial(comp, static_cast<MaterialInst *>(pData));
+			importMaterial(comp, static_cast<MaterialInst *>(data));
 		else if (comp.tag == kTagSprite)
-			importSprite(comp, static_cast<ModelInst *>(pData));
+			importSprite(comp, static_cast<ModelInst *>(data));
 		else if (comp.tag == kTagKeyframe)
-			importKeyframe(actor, costume, comp, static_cast<KeyframeInst *>(pData));
+			importKeyframe(actor, costume, comp, static_cast<KeyframeInst *>(data));
 	}
 }
 
-void LegacyActorImporter::importMesh(const LegacyComponent &comp, MeshInstData *pMesh) {
-	RdThing *pThing = pMesh->pModelInst ? pMesh->pModelInst->pThing : nullptr;
+void LegacyActorImporter::importMesh(const LegacyComponent &comp, MeshInstData *mesh) {
+	RdThing *thing = mesh->modelInst ? mesh->modelInst->thing : nullptr;
 
-	if (!pThing || pThing->type != 1 || !pThing->abMeshVisible || pMesh->meshIndex < 0 || (uint)pMesh->meshIndex >= pThing->data.pModel3->numHNodes) {
+	if (!thing || thing->type != 1 || !thing->abMeshVisible || mesh->meshIndex < 0 || (uint)mesh->meshIndex >= thing->data.model3->numHNodes) {
 		warning("LegacyImporter::importActors(): the mesh component %d has no mesh", comp.index);
 		return;
 	}
 
-	pMesh->bVisible = comp.meshVisible ? 1 : 0;
-	pThing->abMeshVisible[pMesh->meshIndex] = pMesh->bVisible;
+	mesh->visible = comp.meshVisible ? 1 : 0;
+	thing->abMeshVisible[mesh->meshIndex] = mesh->visible;
 }
 
-void LegacyActorImporter::importMaterial(const LegacyComponent &comp, MaterialInst *pMaterial) {
-	RdThing *pThing = pMaterial->pModelInst ? pMaterial->pModelInst->pThing : nullptr;
+void LegacyActorImporter::importMaterial(const LegacyComponent &comp, MaterialInst *material) {
+	RdThing *thing = material->modelInst ? material->modelInst->thing : nullptr;
 
-	if (!pThing || pThing->type != 1) {
+	if (!thing || thing->type != 1) {
 		warning("LegacyImporter::importActors(): the material component %d has no model", comp.index);
 		return;
 	}
 
-	RdModel3 *pModel = pThing->data.pModel3;
-	uint materialIndex = (uint)(intptr)pMaterial->pCompRes;
+	RdModel3 *model = thing->data.model3;
+	uint materialIndex = (uint)(intptr)material->compRes;
 
-	if (materialIndex >= pModel->numMaterials || !pModel->apMaterials[materialIndex]) {
+	if (materialIndex >= model->numMaterials || !model->materials[materialIndex]) {
 		warning("LegacyImporter::importActors(): the material component %d has no material", comp.index);
 		return;
 	}
 
-	if (comp.activeTexture < 0 || (uint)comp.activeTexture >= pModel->apMaterials[materialIndex]->numCels) {
-		warning("LegacyImporter::importActors(): the material component %d has the texture %d, the material has %u", comp.index, comp.activeTexture, pModel->apMaterials[materialIndex]->numCels);
+	if (comp.activeTexture < 0 || (uint)comp.activeTexture >= model->materials[materialIndex]->numCels) {
+		warning("LegacyImporter::importActors(): the material component %d has the texture %d, the material has %u", comp.index, comp.activeTexture, model->materials[materialIndex]->numCels);
 		return;
 	}
 
-	pMaterial->key = comp.activeTexture;
+	material->key = comp.activeTexture;
 }
 
-void LegacyActorImporter::importSprite(const LegacyComponent &comp, ModelInst *pSprite) {
-	if (!pSprite->pSprite || !pSprite->pSprite->face.pMaterial) {
+void LegacyActorImporter::importSprite(const LegacyComponent &comp, ModelInst *sprite) {
+	if (!sprite->sprite || !sprite->sprite->face.material) {
 		warning("LegacyImporter::importActors(): the sprite component %d has no sprite", comp.index);
 		return;
 	}
 
-	RdMaterial *pMaterial = pSprite->pSprite->face.pMaterial;
+	RdMaterial *material = sprite->sprite->face.material;
 
-	pSprite->bVisible = comp.spriteVisible ? 1 : 0;
+	sprite->visible = comp.spriteVisible ? 1 : 0;
 
-	if (comp.activeTexture < 0 || (uint)comp.activeTexture >= pMaterial->numCels)
-		warning("LegacyImporter::importActors(): the sprite component %d has the texture %d, the sprite has %u", comp.index, comp.activeTexture, pMaterial->numCels);
+	if (comp.activeTexture < 0 || (uint)comp.activeTexture >= material->numCels)
+		warning("LegacyImporter::importActors(): the sprite component %d has the texture %d, the sprite has %u", comp.index, comp.activeTexture, material->numCels);
 	else
-		pMaterial->curCel = comp.activeTexture;
+		material->curCel = comp.activeTexture;
 }
 
-void LegacyActorImporter::importKeyframe(const LegacyActor &actor, const LegacyCostume &costume, const LegacyComponent &comp, KeyframeInst *pKeyframe) {
+void LegacyActorImporter::importKeyframe(const LegacyActor &actor, const LegacyCostume &costume, const LegacyComponent &comp, KeyframeInst *keyframe) {
 	const LegacyAnimState &anim = comp.anim;
 
 	// Only the animations that are in the list of the model have a track
 	if (!anim.active)
 		return;
 
-	if (!pKeyframe->pModelInst || !pKeyframe->ref.valid) {
+	if (!keyframe->modelInst || !keyframe->ref.valid) {
 		warning("LegacyImporter::importActors(): the keyframe component %d of the costume %s of the actor %d has no keyframe", comp.index, costume.fileName.c_str(), actor.id);
 		return;
 	}
@@ -577,14 +577,14 @@ void LegacyActorImporter::importKeyframe(const LegacyActor &actor, const LegacyC
 		return;
 	}
 
-	RdKeyframe *pData = static_cast<RdKeyframe *>(pKeyframe->ref.handle);
+	RdKeyframe *data = static_cast<RdKeyframe *>(keyframe->ref.handle);
 	float frame = 0.0f;
 
-	if (anim.time > 0 && pData->fps > 0.0f) {
-		frame = (float)((double)anim.time * pData->fps / 1000.0);
+	if (anim.time > 0 && data->fps > 0.0f) {
+		frame = (float)((double)anim.time * data->fps / 1000.0);
 
-		if (frame > (float)pData->numFrames)
-			frame = (float)pData->numFrames;
+		if (frame > (float)data->numFrames)
+			frame = (float)data->numFrames;
 	}
 
 	// The legacy animation sets the fade to 1 at every update when it does not fade
@@ -602,25 +602,25 @@ void LegacyActorImporter::importKeyframe(const LegacyActor &actor, const LegacyC
 		}
 	}
 
-	if (LegacyImporter::addPuppetTrack(_pActors, pKeyframe->pModelInst, pData, pKeyframe->priority, pKeyframe->priorityMasked, status, frame, fade, fadeSpeed) < 0)
-		warning("LegacyImporter::importActors(): the animation %s of the costume %s of the actor %d is lost", pData->aName, costume.fileName.c_str(), actor.id);
+	if (LegacyImporter::addPuppetTrack(_actors, keyframe->modelInst, data, keyframe->priority, keyframe->priorityMasked, status, frame, fade, fadeSpeed) < 0)
+		warning("LegacyImporter::importActors(): the animation %s of the costume %s of the actor %d is lost", data->name, costume.fileName.c_str(), actor.id);
 }
 
-void LegacyActorImporter::importHead(const LegacyCostume &costume, SputActor *pActor, CostumeNode *pNode) {
+void LegacyActorImporter::importHead(const LegacyCostume &costume, SputActor *actor, CostumeNode *node) {
 	const LegacyHead &head = costume.head;
 
-	pNode->headTurnRate = costume.lookAtRate;
+	node->headTurnRate = costume.lookAtRate;
 
 	// A costume without head has -1 in the joints
 	if (head.joint1Node < 0 || head.joint2Node < 0 || head.joint3Node < 0)
 		return;
 
-	if (!pNode->pHeadThing || pNode->pHeadThing->type != 1) {
+	if (!node->headThing || node->headThing->type != 1) {
 		warning("LegacyImporter::importActors(): the costume %s has a head and no model", costume.fileName.c_str());
 		return;
 	}
 
-	uint numHNodes = pNode->pHeadThing->data.pModel3->numHNodes;
+	uint numHNodes = node->headThing->data.model3->numHNodes;
 
 	if ((uint)head.joint1Node >= numHNodes || (uint)head.joint2Node >= numHNodes || (uint)head.joint3Node >= numHNodes) {
 		warning("LegacyImporter::importActors(): the head joints of the costume %s are out of the model", costume.fileName.c_str());
@@ -628,10 +628,10 @@ void LegacyActorImporter::importHead(const LegacyCostume &costume, SputActor *pA
 	}
 
 	// The same call as the script opcode, the node is the top of the stack
-	_pActors->setActorHead(pActor, (uint)head.joint1Node, (uint)head.joint2Node, (uint)head.joint3Node, head.maxRoll, head.maxPitch, head.maxYaw);
+	_actors->setActorHead(actor, (uint)head.joint1Node, (uint)head.joint2Node, (uint)head.joint3Node, head.maxRoll, head.maxPitch, head.maxYaw);
 }
 
-void LegacyActorImporter::importColormap(const LegacyActor &actor, SputActor *pActor) {
+void LegacyActorImporter::importColormap(const LegacyActor &actor, SputActor *actorPointer) {
 	int found = -1;
 
 	for (uint i = 0; i < actor.costumes.size(); i++) {
@@ -650,19 +650,19 @@ void LegacyActorImporter::importColormap(const LegacyActor &actor, SputActor *pA
 			warning("LegacyImporter::importActors(): the actor %d has more than one colormap, %s is used", actor.id, name.c_str());
 	}
 
-	void *handle = _pSputResource->alloc(kSputTagCmap, name.c_str());
+	void *handle = _sputResource->alloc(kSputTagCmap, name.c_str());
 
 	if (!handle) {
 		warning("LegacyImporter::importActors(): the colormap %s of the actor %d cannot be loaded", name.c_str(), actor.id);
 		return;
 	}
 
-	_pRes->setReference(pActor->pColorMap, handle);
+	_res->setReference(actorPointer->colorMap, handle);
 }
 
 int LegacyActorImporter::resolveActionChore(const LegacyActor &actor, const LegacyActionChore &chore, const Common::Array<CostumeNode *> &nodes,
-		const Common::Array<const LegacyCostumeLayout *> &layouts, CostumeNode **ppNode) {
-	*ppNode = nullptr;
+		const Common::Array<const LegacyCostumeLayout *> &layouts, CostumeNode **node) {
+	*node = nullptr;
 
 	if (!chore.hasCostume || chore.chore < 0)
 		return -1;
@@ -678,7 +678,7 @@ int LegacyActorImporter::resolveActionChore(const LegacyActor &actor, const Lega
 			return -1;
 		}
 
-		*ppNode = nodes[i];
+		*node = nodes[i];
 
 		return index;
 	}
@@ -689,105 +689,105 @@ int LegacyActorImporter::resolveActionChore(const LegacyActor &actor, const Lega
 }
 
 void LegacyActorImporter::importActionChores(const LegacyActor &actor, const Common::Array<CostumeNode *> &nodes, const Common::Array<const LegacyCostumeLayout *> &layouts) {
-	CostumeNode *pNode;
+	CostumeNode *node;
 	int index;
 
-	index = resolveActionChore(actor, actor.restChore, nodes, layouts, &pNode);
+	index = resolveActionChore(actor, actor.restChore, nodes, layouts, &node);
 
-	if (pNode)
-		pNode->restChore = index;
+	if (node)
+		node->restChore = index;
 
-	index = resolveActionChore(actor, actor.walkChore, nodes, layouts, &pNode);
+	index = resolveActionChore(actor, actor.walkChore, nodes, layouts, &node);
 
-	if (pNode)
-		pNode->walkChore = index;
+	if (node)
+		node->walkChore = index;
 
-	index = resolveActionChore(actor, actor.leftTurnChore, nodes, layouts, &pNode);
+	index = resolveActionChore(actor, actor.leftTurnChore, nodes, layouts, &node);
 
-	if (pNode)
-		pNode->turnLeftChore = index;
+	if (node)
+		node->turnLeftChore = index;
 
-	index = resolveActionChore(actor, actor.rightTurnChore, nodes, layouts, &pNode);
+	index = resolveActionChore(actor, actor.rightTurnChore, nodes, layouts, &node);
 
-	if (pNode)
-		pNode->turnRightChore = index;
+	if (node)
+		node->turnRightChore = index;
 
-	index = resolveActionChore(actor, actor.mumbleChore, nodes, layouts, &pNode);
+	index = resolveActionChore(actor, actor.mumbleChore, nodes, layouts, &node);
 
-	if (pNode)
-		pNode->mumbleChore = index;
+	if (node)
+		node->mumbleChore = index;
 
 	for (int i = 0; i < kNumTalkChores; i++) {
-		index = resolveActionChore(actor, actor.talkChores[i], nodes, layouts, &pNode);
+		index = resolveActionChore(actor, actor.talkChores[i], nodes, layouts, &node);
 
-		if (pNode)
-			pNode->aChore[i] = index;
+		if (node)
+			node->chore[i] = index;
 	}
 }
 
 bool LegacyActorImporter::isCurrentSet(const Common::String &setName) {
-	return setName.equalsIgnoreCase(_pSputRoom->getCurrentRoomName());
+	return setName.equalsIgnoreCase(_sputRoom->getCurrentRoomName());
 }
 
-void LegacyActorImporter::importWalk(const LegacyActor &actor, SputActor *pActor) {
-	Extra *pExtra = pActor->pExtra;
-	bool bWalks = actor.walking && !actor.path.empty();
+void LegacyActorImporter::importWalk(const LegacyActor &actor, SputActor *actorPointer) {
+	Extra *extra = actorPointer->extra;
+	bool walks = actor.walking && !actor.path.empty();
 
 	// The path of the legacy actor is the list of the points still to go, the last one first. The new one starts with the start point
-	if (bWalks && actor.path.size() >= (uint)kMaxPathPoints) {
+	if (walks && actor.path.size() >= (uint)kMaxPathPoints) {
 		warning("LegacyImporter::importActors(): the actor %d has a path of %u points, it stops", actor.id, actor.path.size());
-		bWalks = false;
+		walks = false;
 	}
 
-	if (!actor.followBoxes && !bWalks)
+	if (!actor.followBoxes && !walks)
 		return;
 
 	if (actor.followBoxes)
-		pExtra->inBoxes = 1;
+		extra->inBoxes = 1;
 
-	_pActors->enablePuck(pActor, 1);
+	_actors->enablePuck(actorPointer, 1);
 
 	// The walk planes are the ones of the current room, an actor in another room is checked when it comes in
 	if (actor.followBoxes && isCurrentSet(actor.setName))
-		pExtra->puck->validate();
+		extra->puck->validate();
 
-	if (!bWalks)
+	if (!walks)
 		return;
 
 	uint numPoints = actor.path.size();
 
-	pExtra->numPathPoints = (int)numPoints + 1;
-	pExtra->aPath[0][0] = pActor->actorPos[0];
-	pExtra->aPath[0][1] = pActor->actorPos[1];
-	pExtra->aPath[0][2] = pActor->actorPos[2];
+	extra->numPathPoints = (int)numPoints + 1;
+	extra->path[0][0] = actorPointer->actorPos[0];
+	extra->path[0][1] = actorPointer->actorPos[1];
+	extra->path[0][2] = actorPointer->actorPos[2];
 
 	for (uint i = 0; i < numPoints; i++) {
 		const LegacyVector3 &point = actor.path[numPoints - 1 - i];
 
-		pExtra->aPath[i + 1][0] = point.x;
-		pExtra->aPath[i + 1][1] = point.y;
-		pExtra->aPath[i + 1][2] = point.z;
+		extra->path[i + 1][0] = point.x;
+		extra->path[i + 1][1] = point.y;
+		extra->path[i + 1][2] = point.z;
 	}
 
-	pExtra->pathIndex = 1;
-	pExtra->walkTarget[0] = pExtra->aPath[1][0];
-	pExtra->walkTarget[1] = pExtra->aPath[1][1];
-	pExtra->walkTarget[2] = pExtra->aPath[1][2];
-	pExtra->goal[0] = actor.destPos.x;
-	pExtra->goal[1] = actor.destPos.y;
-	pExtra->goal[2] = actor.destPos.z;
-	pActor->mode |= kActorWalking;
+	extra->pathIndex = 1;
+	extra->walkTarget[0] = extra->path[1][0];
+	extra->walkTarget[1] = extra->path[1][1];
+	extra->walkTarget[2] = extra->path[1][2];
+	extra->goal[0] = actor.destPos.x;
+	extra->goal[1] = actor.destPos.y;
+	extra->goal[2] = actor.destPos.z;
+	actorPointer->mode |= kActorWalking;
 }
 
-void LegacyActorImporter::importShadows(const LegacyActor &actor, SputActor *pActor) {
-	bool bHasShadow = false;
+void LegacyActorImporter::importShadows(const LegacyActor &actor, SputActor *actorPointer) {
+	bool hasShadow = false;
 
 	for (uint i = 0; i < actor.shadows.size(); i++) {
 		if (!actor.shadows[i].name.empty() && !actor.shadows[i].planes.empty())
-			bHasShadow = true;
+			hasShadow = true;
 	}
 
-	if (!bHasShadow)
+	if (!hasShadow)
 		return;
 
 	// The planes are found by name in the walk planes of the current room only
@@ -808,47 +808,47 @@ void LegacyActorImporter::importShadows(const LegacyActor &actor, SputActor *pAc
 			continue;
 		}
 
-		importShadow(actor, (int)i, shadow, pActor);
+		importShadow(actor, (int)i, shadow, actorPointer);
 	}
 
 	if (actor.activeShadowSlot >= 0 && actor.activeShadowSlot < kNumShadows)
-		pActor->pExtra->activeShadow = actor.activeShadowSlot;
+		actorPointer->extra->activeShadow = actor.activeShadowSlot;
 	else
-		pActor->pExtra->activeShadow = 0;
+		actorPointer->extra->activeShadow = 0;
 }
 
-void LegacyActorImporter::importShadow(const LegacyActor &actor, int slot, const LegacyActorShadow &shadow, SputActor *pActor) {
-	if (!_pWalkSystem->planeNamed(shadow.name.c_str())) {
+void LegacyActorImporter::importShadow(const LegacyActor &actor, int slot, const LegacyActorShadow &shadow, SputActor *actorPointer) {
+	if (!_walkSystem->planeNamed(shadow.name.c_str())) {
 		warning("LegacyImporter::importActors(): the shadow %d of the actor %d is lost, the plane %s is not in the current room", slot, actor.id, shadow.name.c_str());
 		return;
 	}
 
 	// The same calls as the script opcodes, in the order of the scripts
-	pActor->pExtra->activeShadow = slot;
-	_pActors->setShadowPoint(pActor, shadow.pos.x, shadow.pos.y, shadow.pos.z);
-	_pActors->setShadowPlane(pActor, shadow.name.c_str());
+	actorPointer->extra->activeShadow = slot;
+	_actors->setShadowPoint(actorPointer, shadow.pos.x, shadow.pos.y, shadow.pos.z);
+	_actors->setShadowPlane(actorPointer, shadow.name.c_str());
 
 	for (uint i = 0; i < shadow.planes.size(); i++) {
 		const LegacyShadowPlane &plane = shadow.planes[i];
 
-		if (!isCurrentSet(plane.setName) || !_pWalkSystem->planeNamed(plane.sectorName.c_str())) {
+		if (!isCurrentSet(plane.setName) || !_walkSystem->planeNamed(plane.sectorName.c_str())) {
 			warning("LegacyImporter::importActors(): the plane %s of the shadow %d of the actor %d is lost", plane.sectorName.c_str(), slot, actor.id);
 			continue;
 		}
 
-		_pActors->addShadowClipPlane(pActor, slot, plane.sectorName.c_str());
+		_actors->addShadowClipPlane(actorPointer, slot, plane.sectorName.c_str());
 	}
 
 	if (shadow.dontNegate)
-		_pActors->setShadowValid(pActor, slot, -1);
+		_actors->setShadowValid(actorPointer, slot, -1);
 
-	_pActors->activateActorShadow(pActor, slot, shadow.active ? 1 : 0);
+	_actors->activateActorShadow(actorPointer, slot, shadow.active ? 1 : 0);
 }
 
 } // End of anonymous namespace
 
 bool LegacyImporter::importActors() {
-	LegacyActorImporter importer(this, _pGrim->_pSputActor, _pGrim->_pSputCostume, _pGrim->_pSputRoom, _pGrim->_pRes, _pGrim->_pSputResource, _pGrim->_pWalkSystem);
+	LegacyActorImporter importer(this, _grim->_sputActor, _grim->_sputCostume, _grim->_sputRoom, _grim->_res, _grim->_sputResource, _grim->_walkSystem);
 
 	importer.run();
 

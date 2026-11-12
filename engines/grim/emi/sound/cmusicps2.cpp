@@ -54,7 +54,7 @@ static const uint32 kStartOffsetDivisor = 28000;
 static const uint kScxLoopOffset = 0x0C;
 static const uint kScxHeaderReadSize = 0x10;
 
-const CMusicPs2::StateEntry CMusicPs2::stateTable[CMusicPs2::kStateCount] = {
+const CMusicPs2::StateEntry CMusicPs2::kStateTable[CMusicPs2::kStateCount] = {
 	{ "", 0, 0, 0 },
 	{ "1115.scx", 1, 0, 127 },
 	{ "1170.scx", 2, 0, 127 },
@@ -185,9 +185,9 @@ const CMusicPs2::StateEntry CMusicPs2::stateTable[CMusicPs2::kStateCount] = {
 
 CMusicPs2::CMusicPs2(Sounds *sounds) {
 	_sounds = sounds;
-	count = 0;
-	states = nullptr;
-	loaded = false;
+	_count = 0;
+	_states = nullptr;
+	_loaded = false;
 
 	_masterVolume = 1.0f;
 	_currentFadeRate = 1.0f;
@@ -219,37 +219,37 @@ void CMusicPs2::operator delete(void *block) {
 }
 
 void CMusicPs2::initStates() {
-	count = kStateCount;
-	states = (MusicState *)_sounds->getEngine()->getMemoryServices()->mallocImpl(count * sizeof(MusicState));
+	_count = kStateCount;
+	_states = (MusicState *)_sounds->getEngine()->getMemoryServices()->mallocImpl(_count * sizeof(MusicState));
 
-	if (!states) {
+	if (!_states) {
 		warning("CMusicPs2::initStates(): out of memory");
-		count = 0;
+		_count = 0;
 
 		return;
 	}
 
-	for (int i = 0; i < count; i++)
-		constructState(&states[i]);
+	for (int i = 0; i < _count; i++)
+		constructState(&_states[i]);
 
-	for (int i = 0; i < count; i++)
-		initState(&states[i], stateTable[i].fileName, stateTable[i].sync, stateTable[i].episode, stateTable[i].trim);
+	for (int i = 0; i < _count; i++)
+		initState(&_states[i], kStateTable[i].fileName, kStateTable[i].sync, kStateTable[i].episode, kStateTable[i].trim);
 }
 
 void CMusicPs2::resetStartOffsets() {
-	if (!states)
+	if (!_states)
 		return;
 
-	for (int i = 1; i < count; i++)
-		states[i].startOffsetMs = 0.0f;
+	for (int i = 1; i < _count; i++)
+		_states[i].startOffsetMs = 0.0f;
 }
 
 void CMusicPs2::closeStreams() {
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	for (int i = 0; i < count; i++) {
-		MusicState *state = &states[i];
+	for (int i = 0; i < _count; i++) {
+		MusicState *state = &_states[i];
 
 		if (state->handle) {
 			closeStream();
@@ -292,30 +292,30 @@ void CMusicPs2::initState(MusicState *state, const char *fileName, const int &sy
 }
 
 bool CMusicPs2::openMusicTable() {
-	if (loaded)
+	if (_loaded)
 		return false;
 
 	initStates();
 	resetStartOffsets();
 
-	loaded = true;
+	_loaded = true;
 
 	return true;
 }
 
 void CMusicPs2::closeMusicTable() {
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	closeStreams();
 
-	if (states) {
-		_sounds->getEngine()->getMemoryServices()->freeImpl(states);
-		states = nullptr;
+	if (_states) {
+		_sounds->getEngine()->getMemoryServices()->freeImpl(_states);
+		_states = nullptr;
 	}
 
-	count = 0;
-	loaded = false;
+	_count = 0;
+	_loaded = false;
 }
 
 void CMusicPs2::setMusicTableVolume(float volume) {
@@ -326,13 +326,13 @@ void CMusicPs2::setMusicTableVolume(float volume) {
 	else if (volume > 1.0f)
 		clamped = 1.0f;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	_masterVolume = clamped;
 
-	for (int16 i = 0; i < count; i++) {
-		MusicState *state = &states[i];
+	for (int16 i = 0; i < _count; i++) {
+		MusicState *state = &_states[i];
 
 		if (state->handle)
 			setStreamVolume(toStreamVolume(state->trim * (state->fadeVolume * _masterVolume)));
@@ -340,7 +340,7 @@ void CMusicPs2::setMusicTableVolume(float volume) {
 }
 
 void CMusicPs2::startState(const int &id, const int &startMs, const bool &immediate) {
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	int target = remapState(id);
@@ -349,8 +349,8 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 
 	_pendingState = -1;
 
-	for (int16 i = 0; i < count; i++) {
-		MusicState *state = &states[i];
+	for (int16 i = 0; i < _count; i++) {
+		MusicState *state = &_states[i];
 
 		if (!state->handle || i == target)
 			continue;
@@ -388,16 +388,16 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 		return;
 	}
 
-	if (target <= 0 || count < target)
+	if (target <= 0 || _count < target)
 		return;
 
-	if (target == count) {
+	if (target == _count) {
 		warning("CMusicPs2::startState(): state %d past end of table", target);
 
 		return;
 	}
 
-	MusicState *state = &states[target];
+	MusicState *state = &_states[target];
 
 	if (!state->handle) {
 		state->handle = kStreamHandle;
@@ -430,7 +430,7 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 }
 
 bool CMusicPs2::consumeStateFlags(const int &id, bool &looped, bool &ended) {
-	if (!loaded)
+	if (!_loaded)
 		return false;
 
 	int target = remapState(id);
@@ -438,16 +438,16 @@ bool CMusicPs2::consumeStateFlags(const int &id, bool &looped, bool &ended) {
 	looped = false;
 	ended = false;
 
-	if (target <= 0 || count < target)
+	if (target <= 0 || _count < target)
 		return false;
 
-	if (target == count) {
+	if (target == _count) {
 		warning("CMusicPs2::consumeStateFlags(): state %d past end of table", target);
 
 		return false;
 	}
 
-	MusicState *state = &states[target];
+	MusicState *state = &_states[target];
 
 	looped = state->looped;
 	ended = state->ended;
@@ -473,13 +473,13 @@ void CMusicPs2::updateStates() {
 
 	float elapsed = kElapsedScale * (float)(int)(now - previous);
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	int fadingOut = 0;
 
-	for (int16 i = 0; i < count; i++) {
-		MusicState *state = &states[i];
+	for (int16 i = 0; i < _count; i++) {
+		MusicState *state = &_states[i];
 
 		if (!state->handle)
 			continue;
@@ -534,22 +534,22 @@ void CMusicPs2::updateStates() {
 }
 
 int CMusicPs2::getStatePositionMs(const int &id, const bool &relative) {
-	if (!loaded)
+	if (!_loaded)
 		return 0;
 
 	int target = remapState(id);
 	int position = -1;
 
-	if (target <= 0 || count < target)
+	if (target <= 0 || _count < target)
 		return 0;
 
-	if (target == count) {
+	if (target == _count) {
 		warning("CMusicPs2::getStatePositionMs(): state %d past end of table", target);
 
 		return 0;
 	}
 
-	MusicState *state = &states[target];
+	MusicState *state = &_states[target];
 
 	if (state->handle) {
 		position = getStreamMsPosition();
@@ -566,11 +566,11 @@ int CMusicPs2::getStatePositionMs(const int &id, const bool &relative) {
 }
 
 void CMusicPs2::closeAllStates() {
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	for (int16 i = 0; i < count; i++) {
-		MusicState *state = &states[i];
+	for (int16 i = 0; i < _count; i++) {
+		MusicState *state = &_states[i];
 
 		if (state->handle) {
 			closeStream();
@@ -581,19 +581,19 @@ void CMusicPs2::closeAllStates() {
 }
 
 bool CMusicPs2::isSameFile(int id, int otherId) {
-	if (!loaded)
+	if (!_loaded)
 		return true;
 
 	if (id == otherId)
 		return true;
 
-	if (id < 0 || id >= count || otherId < 0 || otherId >= count) {
+	if (id < 0 || id >= _count || otherId < 0 || otherId >= _count) {
 		warning("CMusicPs2::isSameFile(): state %d or %d out of table", id, otherId);
 
 		return false;
 	}
 
-	return scumm_stricmp(states[id].fileName, states[otherId].fileName) == 0;
+	return scumm_stricmp(_states[id].fileName, _states[otherId].fileName) == 0;
 }
 
 const char *CMusicPs2::findAudioFile(const char *fileName) {
@@ -739,7 +739,7 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	// The IOP replaces a stream that is already open on the music channel
 	closeStream();
 
-	int channels = scxFile.numChannels;
+	int channels = scxFile._numChannels;
 	int frameBytes = channels * (int)sizeof(int16);
 	int format = EMIMilesDriver::kFormat16Bit;
 
@@ -749,13 +749,13 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	_streamSample = sample;
 	_streamSound = sound;
 	_streamChannels = channels;
-	_streamRate = (int)scxFile.rate;
+	_streamRate = (int)scxFile._rate;
 
 	driver->initSample(sample);
 
 	// The music stream plays on core 1, which has no reverb
 	driver->setSampleEffectSend(sample, false);
-	driver->setSampleAddress(sample, sound->samples, sound->dataSize);
+	driver->setSampleAddress(sample, sound->_samples, sound->_dataSize);
 	driver->setSampleType(sample, format);
 	driver->setSampleRate(sample, _streamRate);
 
@@ -765,12 +765,12 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	} else {
 		uint loopStart = 0;
 		int loopEnd = -1;
-		uint dataEnd = scxFile.vagSize[0] / CScxFile::kAdpcmBlockSize * CScxFile::kAdpcmBlockSamples * frameBytes;
+		uint dataEnd = scxFile._vagSize[0] / CScxFile::kAdpcmBlockSize * CScxFile::kAdpcmBlockSamples * frameBytes;
 
 		if (loopOffset >= CScxFile::kVagHeaderSize)
 			loopStart = (loopOffset - CScxFile::kVagHeaderSize) / CScxFile::kAdpcmBlockSize * CScxFile::kAdpcmBlockSamples * frameBytes;
 
-		if (dataEnd < sound->dataSize)
+		if (dataEnd < sound->_dataSize)
 			loopEnd = (int)dataEnd;
 
 		driver->setSampleLoopCount(sample, loopCount);
@@ -783,7 +783,7 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	if (channelOffset >= CScxFile::kVagHeaderSize)
 		startPosition = (channelOffset - CScxFile::kVagHeaderSize) / CScxFile::kAdpcmBlockSize * CScxFile::kAdpcmBlockSamples * frameBytes;
 
-	if (startPosition >= sound->dataSize) {
+	if (startPosition >= sound->_dataSize) {
 		warning("CMusicPs2::openStream(): start offset %u past end of %s", byteOffset, fileName);
 		startPosition = 0;
 	}

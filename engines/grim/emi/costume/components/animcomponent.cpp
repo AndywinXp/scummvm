@@ -37,18 +37,18 @@ AnimComponent::~AnimComponent() {
 }
 
 uint AnimComponent::resSizeOfItem() {
-	uint size = sizeof(AnimComponent) + sizeof(AnimEntry) * entries.size();
+	uint size = sizeof(AnimComponent) + sizeof(AnimEntry) * _entries.size();
 
-	for (uint i = 0; i < entries.size(); i++) {
-		if (entries[i].track)
-			size += entries[i].track->getSize();
+	for (uint i = 0; i < _entries.size(); i++) {
+		if (_entries[i].track)
+			size += _entries[i].track->getSize();
 	}
 
 	return size;
 }
 
 ComponentInstance *AnimComponent::createInstance(Actor *owner) {
-	return new AnimInstance(LResource::_engine, LResource::name, owner);
+	return new AnimInstance(LResource::_engine, LResource::_name, owner);
 }
 
 bool AnimComponent::resLoadItem(const char *itemName) {

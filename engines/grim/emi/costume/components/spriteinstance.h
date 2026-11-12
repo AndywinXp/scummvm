@@ -36,8 +36,8 @@ public:
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	Actor *owner;
-	CSpriteInstance *spriteInstance;
+	Actor *_owner;
+	CSpriteInstance *_spriteInstance;
 };
 
 } // End of namespace Grim

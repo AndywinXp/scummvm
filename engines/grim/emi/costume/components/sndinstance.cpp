@@ -29,17 +29,17 @@ namespace Grim {
 
 SndInstance::SndInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	_engine = engine;
-	owner = actor;
-	soundHandle = 0;
+	_owner = actor;
+	_soundHandle = 0;
 
 	if (componentName.size() >= Component::kNamePrefixSize)
-		soundHandle = _engine->getSounds()->loadSound(componentName.c_str() + Component::kNamePrefixSize, 1);
+		_soundHandle = _engine->getSounds()->loadSound(componentName.c_str() + Component::kNamePrefixSize, 1);
 	else
 		warning("SndInstance::SndInstance(): invalid component name %s", componentName.c_str());
 }
 
 SndInstance::~SndInstance() {
-	_engine->getSounds()->stopSound(soundHandle);
+	_engine->getSounds()->stopSound(_soundHandle);
 }
 
 bool SndInstance::isReplayable() {
@@ -47,7 +47,7 @@ bool SndInstance::isReplayable() {
 }
 
 void SndInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!soundHandle)
+	if (!_soundHandle)
 		return;
 
 	Sounds *sounds = _engine->getSounds();
@@ -55,20 +55,20 @@ void SndInstance::setKey(float value, float elapsed, float nextValue, float rema
 
 	switch ((int)value) {
 	case 0:
-		sounds->stopSoundPlayback(soundHandle);
+		sounds->stopSoundPlayback(_soundHandle);
 		break;
 	case 1:
 		loop = true;
 		// Fall through
 	case 2:
-		if (sounds->isSoundPaused(soundHandle))
-			sounds->resumeSound(soundHandle);
-		else if (!sounds->isSoundPlaying(soundHandle))
-			sounds->startSound(soundHandle, 0, loop, 100);
+		if (sounds->isSoundPaused(_soundHandle))
+			sounds->resumeSound(_soundHandle);
+		else if (!sounds->isSoundPlaying(_soundHandle))
+			sounds->startSound(_soundHandle, 0, loop, 100);
 
 		break;
 	case 3:
-		sounds->pauseSound(soundHandle);
+		sounds->pauseSound(_soundHandle);
 		break;
 	default:
 		break;

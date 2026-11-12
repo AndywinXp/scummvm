@@ -60,29 +60,29 @@ typedef int (*SputRenderPaletteFunc)(byte *, int);
 typedef int (*SputRenderPageFlipFunc)();
 
 struct DirtyRect {
-	DirtyRect *pNext;
-	DirtyRect *pPrev;
+	DirtyRect *next;
+	DirtyRect *prev;
 	int page;
 	int serial;
 	uint pageIndex;
 	StdRect rect;
-	DirtyRect *pNextFree;
+	DirtyRect *nextFree;
 };
 
 struct CacheRect {
 	int magic;
 	StdRect rect;
-	StdVBuffer *pColor;
-	StdVBuffer *pZ;
-	CacheRect *pNext;
+	StdVBuffer *color;
+	StdVBuffer *z;
+	CacheRect *next;
 };
 
 // Only the demo has these: bitmaps of animation components that are drawn as primitives
 struct AnimationBitmap {
 	ResRef bitmapRef;
 	int layer;
-	AnimationBitmap *pPrev;
-	AnimationBitmap *pNext;
+	AnimationBitmap *prev;
+	AnimationBitmap *next;
 };
 
 struct ActorSortInfo {
@@ -95,49 +95,49 @@ class SputRender : public SputControlCallback {
 	friend class LegacyImporter;
 
 public:
-	SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-			SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer,
-			SputTime *pSputTime, SputControl *pSputControl);
+	SputRender(RenderDroid *rd, StdDisplay *stdDisplay, StdBitmap *stdBitmap, Res *res, SputResource *sputResource,
+			SputPrimitive *sputPrimitive, WalkSystem *walkSystem, SputRoom *sputRoom, StdVBuffer *backBuffer, StdVBuffer *mainGfxBuffer,
+			SputTime *sputTime, SputControl *sputControl);
 
-	void setActors(SputActor *aActors) { _aActors = aActors; }
-	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
-	void setSputText(SputText *pSputText) { _pSputText = pSputText; }
-	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
-	void setSputSmush(SputSmush *pSputSmush) { _pSputSmush = pSputSmush; }
-	void setStdControl(StdControl *pStdControl) { _pStdControl = pStdControl; }
-	void setStd3D(Std3D *pStd3D) { _pStd3D = pStd3D; }
-	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
-	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
+	void setActors(SputActor *actors) { _actors = actors; }
+	void setSputActor(SputActorModule *sputActor) { _sputActor = sputActor; }
+	void setSputText(SputText *sputText) { _sputText = sputText; }
+	void setBlastText(BlastText *blastText) { _blastText = blastText; }
+	void setSputSmush(SputSmush *sputSmush) { _sputSmush = sputSmush; }
+	void setStdControl(StdControl *stdControl) { _stdControl = stdControl; }
+	void setStd3D(Std3D *std3D) { _std3D = std3D; }
+	void setGrimEngine(GrimEngine *grim) { _grim = grim; }
+	void setLua(Lua_V1 *lua) { _lua = lua; }
 
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int terminate();
 	int startup();
 	int shutdown();
-	int save(Common::WriteStream *pStream);
-	int restore(Common::ReadStream *pStream);
+	int save(Common::WriteStream *stream);
+	int restore(Common::ReadStream *stream);
 	int open();
 	void close();
-	int setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int *pOptions);
+	int setDisplay(StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int *options);
 	int queryDisplayState();
 	void using3DHardware(int b3D);
 	int is3DHardware() const { return _b3DAcceleration; }
 	void pageCountIs(int numPages);
-	void setPaletteCallback(SputRenderPaletteFunc pFunc);
-	void setPageFlipCallback(SputRenderPageFlipFunc pFunc);
+	void setPaletteCallback(SputRenderPaletteFunc func);
+	void setPageFlipCallback(SputRenderPageFlipFunc func);
 	SputRenderPaletteFunc getPaletteFunc();
 	void setPageFlip(int enable);
 	int pageFlip();
-	int setRenderOptions(const int *pOptions);
+	int setRenderOptions(const int *options);
 	int controlCallback(float frameTime) override;
 	void forceRefresh();
 
-	void markDirtyRect(const StdRect *pRect, int page);
-	void markAllPagesDirty(const StdRect *pRect, int page);
+	void markDirtyRect(const StdRect *rectPointer, int page);
+	void markAllPagesDirty(const StdRect *rectPointer, int page);
 	void freeCacheRects();
 	CacheRect *createCacheRect(int x, int y, int width, int height);
 	void restoreCacheRect();
-	void addAnimationBitmap(void *pBitmap, int layer);
-	void removeAnimationBitmap(void *pBitmap);
+	void addAnimationBitmap(void *bitmap, int layer);
+	void removeAnimationBitmap(void *bitmap);
 	void freeBuffers();
 
 	StdVBuffer *drawBuffer();
@@ -145,16 +145,16 @@ public:
 	StdVBuffer *cleanZBuffer();
 	int copyGFXBuffer();
 	int cleanDrawBuffer();
-	void fillDrawBuffer(StdVBuffer *pSrc);
+	void fillDrawBuffer(StdVBuffer *src);
 	StdVBuffer *screenShot(int width, int height);
 	void saveScreen(const char *path);
 	void saveZBuffer(const char *path);
 	void saveDrawBuffer(const char *path);
 
-	void buildGammaTable(const StdColorFormat *pFormat, float gamma);
-	void colorCorrect(uint16 *pColors, int count);
+	void buildGammaTable(const StdColorFormat *format, float gamma);
+	void colorCorrect(uint16 *colors, int count);
 	void setGamma(float gamma);
-	void dim(int bForce, char shift);
+	void dim(int force, char shift);
 	void dimRegion(int x, int y, int width, int height, float scale);
 
 	void getIris(float percent, int x, int y);
@@ -168,90 +168,90 @@ public:
 	void drawLoadingImage();
 
 	void drawDebuggingToggle();
-	void syncCamera(Room *pRoom, int setup);
-	void useSetup(Room *pRoom, int setup);
+	void syncCamera(Room *room, int setup);
+	void useSetup(Room *room, int setup);
 	void update();
-	int loadSetupBackground(const StdColorFormat *pFormat);
-	void preRendered(int bBitmap, int bZBuffer);
-	void reverseProject(int x, int y, float *pOut);
-	int buildShadowBitmap(float *pOut, float *pA, float *pB, float a, float b, float c, float d);
-	void restoreDirtyRects(StdVBuffer *pDst, StdVBuffer *pZBuffer);
+	int loadSetupBackground(const StdColorFormat *format);
+	void preRendered(int bitmap, int zBuffer);
+	void reverseProject(int x, int y, float *out);
+	int buildShadowBitmap(float *out, float *pointA, float *pointB, float a, float b, float c, float d);
+	void restoreDirtyRects(StdVBuffer *dst, StdVBuffer *zBuffer);
 	void drawPrimitives(int layerMask);
 	void drawAnimationBitmaps(int layer);
 	void sortActors();
 	void sortActorsDemo();
 	void resetActorSortList();
 	ActorSortInfo *allocActorSortEntry();
-	static int compareActorDepth(const void *pA, const void *pB);
-	void drawActor(SputActor *pActor);
-	void drawActorDebug(SputActor *pActor);
+	static int compareActorDepth(const void *a, const void *b);
+	void drawActor(SputActor *actor);
+	void drawActorDebug(SputActor *actor);
 	void drawRoomDebug();
-	void drawCameraDebug(Room *pRoom);
-	void drawActorBoxes(Room *pRoom, uint setup);
-	void drawActorBox(RoomSetup *pSetup);
+	void drawCameraDebug(Room *room);
+	void drawActorBoxes(Room *room, uint setup);
+	void drawActorBox(RoomSetup *setup);
 	void drawBoundingBox();
 	void drawWalkPlanes();
 
-	StdVBuffer *getCleanBuffer() const { return _pCleanBuffer; }
+	StdVBuffer *getCleanBuffer() const { return _cleanBuffer; }
 	int getRenderFlags() const { return _renderFlags; }
-	uint16 *getColors() { return _aColors; }
-	void setSkipPrimitives(int bSkip) { _bSkipPrimitives = bSkip; }
-	int getCamActorIndex() const { return _gCamActorIndex; }
-	RoomCamera *getCamera() const { return _pCamera; }
+	uint16 *getColors() { return _colors; }
+	void setSkipPrimitives(int skip) { _skipPrimitives = skip; }
+	int getCamActorIndex() const { return _camActorIndex; }
+	RoomCamera *getCamera() const { return _camera; }
 	const uint16 *getColorLookup() const { return _colorLookup; }
 
 private:
-	void markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex);
+	void markDirtyRectInternal(StdRect *rect, int page, uint pageIndex);
 
-	RenderDroid *_pRd;
-	StdDisplay *_pStdDisplay;
-	StdBitmap *_pStdBitmap;
-	Res *_pRes;
-	SputResource *_pSputResource;
-	SputPrimitive *_pSputPrimitive;
-	WalkSystem *_pWalkSystem;
-	SputRoom *_pSputRoom;
-	StdVBuffer *_pBackBuffer;
-	StdVBuffer *_pMainGfxBuffer;
+	RenderDroid *_rd;
+	StdDisplay *_stdDisplay;
+	StdBitmap *_stdBitmap;
+	Res *_res;
+	SputResource *_sputResource;
+	SputPrimitive *_sputPrimitive;
+	WalkSystem *_walkSystem;
+	SputRoom *_sputRoom;
+	StdVBuffer *_backBuffer;
+	StdVBuffer *_mainGfxBuffer;
 
-	SputActorModule *_pSputActor;
-	SputActor *_aActors;
-	SputText *_pSputText;
-	BlastText *_pBlastText;
-	SputSmush *_pSputSmush;
-	SputTime *_pSputTime;
-	SputControl *_pSputControl;
-	StdControl *_pStdControl;
-	Std3D *_pStd3D = nullptr;
-	GrimEngine *_pGrim;
-	Lua_V1 *_pLua = nullptr;
+	SputActorModule *_sputActor;
+	SputActor *_actors;
+	SputText *_sputText;
+	BlastText *_blastText;
+	SputSmush *_sputSmush;
+	SputTime *_sputTime;
+	SputControl *_sputControl;
+	StdControl *_stdControl;
+	Std3D *_std3D = nullptr;
+	GrimEngine *_grim;
+	Lua_V1 *_lua = nullptr;
 
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
 
 	int _renderVars[7];
 	uint16 _colorLookup[65536];
 	float _gammaCorrection;
-	StdColorFormat *_pColorInfo;
+	StdColorFormat *_colorInfo;
 	int _b3DAcceleration;
-	int _bAcceleratedZBuffers;
+	int _acceleratedZBuffers;
 
-	StdVBuffer *_pDrawBuffer;
-	StdVBuffer *_pZBuffer;
-	RdCanvas *_pCanvas;
-	StdVBuffer *_pCleanBuffer;
-	StdVBuffer *_pCleanArtBuffer;
-	StdVBuffer *_pCleanZBuffer;
-	int _pDecompressionBuffer;
+	StdVBuffer *_drawBuffer;
+	StdVBuffer *_zBuffer;
+	RdCanvas *_canvas;
+	StdVBuffer *_cleanBuffer;
+	StdVBuffer *_cleanArtBuffer;
+	StdVBuffer *_cleanZBuffer;
+	int _decompressionBuffer;
 
 	int _numPages;
-	DirtyRect *_pDirtyRectQueue;
-	DirtyRect *_pFreeDirtyRects;
+	DirtyRect *_dirtyRectQueue;
+	DirtyRect *_freeDirtyRects;
 	int _numDirtyRects;
 	int _nextSerialNumber;
-	CacheRect *_pCacheRectList;
-	AnimationBitmap *_pAnimationList;
+	CacheRect *_cacheRectList;
+	AnimationBitmap *_animationList;
 	int _reset;
 
 	int _irisStart;
@@ -259,20 +259,20 @@ private:
 	int _irisCenterX;
 	int _irisCenterY;
 	int _renderFlags;
-	int _bSkipPrimitives;
+	int _skipPrimitives;
 
-	SputRenderPaletteFunc _pSetPaletteFunc;
-	SputRenderPageFlipFunc _pPageFlipFunc;
+	SputRenderPaletteFunc _setPaletteFunc;
+	SputRenderPageFlipFunc _pageFlipFunc;
 	int _pageFlipEnable;
 	int _movieJustFinished;
-	int _gCamActorIndex;
+	int _camActorIndex;
 
 	int _debugFlags;
-	int _bDebugKey1Down;
-	int _bDebugKey2Down;
-	int _bDebugKey4Down;
-	int _bDebugKey8Down;
-	int _bDebugKey10Down;
+	int _debugKey1Down;
+	int _debugKey2Down;
+	int _debugKey4Down;
+	int _debugKey8Down;
+	int _debugKey10Down;
 
 	int _renderEnable;
 	int _loadImageAllowed;
@@ -283,14 +283,14 @@ private:
 
 	float _ambient;
 	int _curView;
-	Room *_pLastRoom;
-	RoomCamera *_pCamera;
-	uint16 _aColors[24];
+	Room *_lastRoom;
+	RoomCamera *_camera;
+	uint16 _colors[24];
 	uint16 _dirtyRectColor;
-	int _bPrintLuaStack;
+	int _printLuaStack;
 	int _numSortActors;
-	ActorSortInfo _aActorSortInfo[128];
-	ActorSortInfo *_aSortedActors[128];
+	ActorSortInfo _actorSortInfo[128];
+	ActorSortInfo *_sortedActors[128];
 };
 
 } // End of namespace Grim

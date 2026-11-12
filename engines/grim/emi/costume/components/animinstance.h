@@ -44,8 +44,8 @@ public:
 	void bindAnimation();
 	void unbindAnimation();
 
-	Actor *owner;
-	bool bound;
+	Actor *_owner;
+	bool _bound;
 
 private:
 	EmiEngine *_engine;

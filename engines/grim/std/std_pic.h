@@ -37,17 +37,17 @@ struct StdBitmapStruct;
 
 class StdPic {
 public:
-	StdPic(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS);
+	StdPic(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs);
 
-	StdBitmapStruct *load(const char *path, int bVideoMemory, int bNoZ);
-	int loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ);
+	StdBitmapStruct *load(const char *path, int videoMemory, int noZ);
+	int loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory, int noZ);
 
 private:
-	void readChannels(Common::SeekableReadStream *pFile, int packet, const int *pChannelPacket, byte *pPixel);
+	void readChannels(Common::SeekableReadStream *file, int packet, const int *channelPacket, byte *pixel);
 
 	StdDisplay *_stdDisplay;
 	StdFile *_stdFile;
-	SysStruct *_pHS;
+	SysStruct *_hs;
 };
 
 } // End of namespace Grim

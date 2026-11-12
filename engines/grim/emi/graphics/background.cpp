@@ -35,39 +35,39 @@
 namespace Grim {
 
 Background::Background() {
-	bmData = nullptr;
+	_bmData = nullptr;
 
 	for (int i = 0; i < kMaxTextures; i++)
-		textures[i] = nullptr;
+		_textures[i] = nullptr;
 }
 
 Background::~Background() {
-	if (bmData)
-		BmData::free(_engine, bmData);
+	if (_bmData)
+		BmData::free(_engine, _bmData);
 
-	bmData = nullptr;
+	_bmData = nullptr;
 
 	CDrawContext *drawContext = _engine->getDrawContext();
 
 	for (int i = 0; i < kMaxTextures; i++) {
-		if (!textures[i])
+		if (!_textures[i])
 			continue;
 
-		if (drawContext && textures[i] == drawContext->defaultTexture)
+		if (drawContext && _textures[i] == drawContext->_defaultTexture)
 			warning("Background::~Background(): texture is the default texture");
 		else
-			delete textures[i];
+			delete _textures[i];
 
-		textures[i] = nullptr;
+		_textures[i] = nullptr;
 	}
 }
 
 uint Background::resSizeOfItem() {
-	uint size = BmData::getSize(bmData) + sizeof(Background);
+	uint size = BmData::getSize(_bmData) + sizeof(Background);
 
 	for (int i = 0; i < kMaxTextures; i++) {
-		if (textures[i])
-			size += textures[i]->getSize();
+		if (_textures[i])
+			size += _textures[i]->getSize();
 	}
 
 	return size;
@@ -82,7 +82,7 @@ CTexture *Background::getTexture(int index) {
 		return nullptr;
 	}
 
-	return textures[slot];
+	return _textures[slot];
 }
 
 bool Background::resLoadItem(const char *itemName) {
@@ -169,61 +169,61 @@ bool Background::resLoadItem(const char *itemName) {
 
 	file->seek(READ_LE_INT32(headerBytes + 4 * TiledScene::kHeaderTablesSize), 0);
 
-	bmData = (BmData *)_engine->getMemoryServices()->mallocImpl(sizeof(BmData));
+	_bmData = (BmData *)_engine->getMemoryServices()->mallocImpl(sizeof(BmData));
 
-	if (bmData) {
-		Common::strlcpy((char *)bmData->itemName, itemName, sizeof(bmData->itemName));
+	if (_bmData) {
+		Common::strlcpy((char *)_bmData->itemName, itemName, sizeof(_bmData->itemName));
 
-		char *extension = strrchr((char *)bmData->itemName, '.');
+		char *extension = strrchr((char *)_bmData->itemName, '.');
 
 		if (extension)
 			*extension = 0;
 
-		if (!bmData->load(_engine, file)) {
-			_engine->getMemoryServices()->freeImpl(bmData);
-			bmData = nullptr;
+		if (!_bmData->load(_engine, file)) {
+			_engine->getMemoryServices()->freeImpl(_bmData);
+			_bmData = nullptr;
 		}
 	}
 
 	zFileServices->closeZFile(file);
 
-	if (!bmData) {
+	if (!_bmData) {
 		if (isPS2 && console)
 			console->logDebug("No background art available for this setup!\n");
 
 		return false;
 	}
 
-	for (uint i = 0; i < bmData->numImages; i++) {
+	for (uint i = 0; i < _bmData->numImages; i++) {
 		if (i == kMaxTextures)
 			break;
 
-		if (textures[i])
+		if (_textures[i])
 			continue;
 
-		if (isPS2 && bmData->bitsPerPixel != 32) {
-			int width = bmData->images[i].width;
-			int height = bmData->images[i].height;
-			LABitmap bitmap(_engine, width, height, LColorFormat::format9, nullptr, false);
+		if (isPS2 && _bmData->bitsPerPixel != 32) {
+			int width = _bmData->images[i].width;
+			int height = _bmData->images[i].height;
+			LABitmap bitmap(_engine, width, height, LColorFormat::kFormat9, nullptr, false);
 
-			convertPs2Pixels(bmData->images[i].data, width * height, (byte *)bitmap.getPixels());
-			textures[i] = drawContext->createTexture(&bitmap);
+			convertPs2Pixels(_bmData->images[i].data, width * height, (byte *)bitmap.getPixels());
+			_textures[i] = drawContext->createTexture(&bitmap);
 		} else {
-			LABitmap bitmap(_engine, bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
+			LABitmap bitmap(_engine, _bmData->images[i].width, _bmData->images[i].height, LColorFormat::kFormat9, _bmData->images[i].data, false);
 
-			if (drawContext->displayMode.bpp == 16 && _engine->_layer16BitFix)
+			if (drawContext->_displayMode.bpp == 16 && _engine->_layer16BitFix)
 				bitmap.ditherPixels();
 
-			textures[i] = drawContext->createTexture(&bitmap);
+			_textures[i] = drawContext->createTexture(&bitmap);
 		}
 
-		if (textures[i]) {
-			textures[i]->flags = isPS2 ? 0x04 : 0x84;
-			textures[i]->applyFlags();
+		if (_textures[i]) {
+			_textures[i]->_flags = isPS2 ? 0x04 : 0x84;
+			_textures[i]->applyFlags();
 		}
 	}
 
-	BmData::free(_engine, bmData);
+	BmData::free(_engine, _bmData);
 
 	return true;
 }

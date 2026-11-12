@@ -35,7 +35,7 @@ uint SndComponent::resSizeOfItem() {
 }
 
 ComponentInstance *SndComponent::createInstance(Actor *owner) {
-	return new SndInstance(_engine, name, nullptr);
+	return new SndInstance(_engine, _name, nullptr);
 }
 
 bool SndComponent::resLoadItem(const char *itemName) {

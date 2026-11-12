@@ -36,7 +36,7 @@
 
 namespace Grim {
 
-static const LipSyncEntry g_lipSyncAnimTable[46] = {
+static const LipSyncEntry lipSyncAnimTable[46] = {
 	{ 95, 0 }, { 593, 1 }, { 97, 1 }, { 230, 1 }, { 652, 8 }, { 596, 1 }, { 601, 1 }, { 98, 6 },
 	{ 679, 2 }, { 100, 2 }, { 240, 5 }, { 603, 8 }, { 616, 8 }, { 602, 9 }, { 605, 9 }, { 101, 1 },
 	{ 102, 4 }, { 103, 8 }, { 609, 8 }, { 104, 8 }, { 618, 8 }, { 105, 3 }, { 676, 2 }, { 107, 2 },
@@ -45,135 +45,135 @@ static const LipSyncEntry g_lipSyncAnimTable[46] = {
 	{ 117, 9 }, { 118, 4 }, { 119, 9 }, { 106, 8 }, { 122, 2 }, { 658, 2 }
 };
 
-SputActorModule::SputActorModule(Res *pRes, RenderDroid *pRd, StdMath *pStdMath, StdDisplay *pStdDisplay, WalkSystem *pWalkSystem,
-		SputResource *pSputResource, SputRoom *pSputRoom, SputRender *pSputRender, SputCostume *pSputCostume, SputText *pSputText,
-		SputTime *pSputTime) :
-		_pRes(pRes), _pRd(pRd), _pStdMath(pStdMath), _pStdDisplay(pStdDisplay), _pWalkSystem(pWalkSystem), _pSputResource(pSputResource),
-		_pSputRoom(pSputRoom), _pSputRender(pSputRender), _pSputCostume(pSputCostume), _pSputText(pSputText), _pSputTime(pSputTime),
-		_pGrim(nullptr), _pCos(pSputCostume->getCos()),
-		_pHS(nullptr), _bInitialized(0), _bStarted(0), _aActors(nullptr), _maxActors(1024), _numActors(0), _pSelectedActor(nullptr),
+SputActorModule::SputActorModule(Res *res, RenderDroid *rd, StdMath *stdMath, StdDisplay *stdDisplay, WalkSystem *walkSystem,
+		SputResource *sputResource, SputRoom *sputRoom, SputRender *sputRender, SputCostume *sputCostume, SputText *sputText,
+		SputTime *sputTime) :
+		_res(res), _rd(rd), _stdMath(stdMath), _stdDisplay(stdDisplay), _walkSystem(walkSystem), _sputResource(sputResource),
+		_sputRoom(sputRoom), _sputRender(sputRender), _sputCostume(sputCostume), _sputText(sputText), _sputTime(sputTime),
+		_grim(nullptr), _cos(sputCostume->getCos()),
+		_hs(nullptr), _initialized(0), _started(0), _actors(nullptr), _maxActors(1024), _numActors(0), _selectedActor(nullptr),
 		_numActorsTalking(0), _numCollisionActors(0), _speechMode(2), _textRate(6), _walkSystemFadeTime(130), _numLipSyncAnims(46),
-		_pShadowMaterial(nullptr) {
-	memset(_apTalkingActors, 0, sizeof(_apTalkingActors));
-	memset(_apCollisionActors, 0, sizeof(_apCollisionActors));
+		_shadowMaterial(nullptr) {
+	memset(_talkingActors, 0, sizeof(_talkingActors));
+	memset(_collisionActors, 0, sizeof(_collisionActors));
 	memset(_collisionImpact, 0, sizeof(_collisionImpact));
 	memset(_collisionOut, 0, sizeof(_collisionOut));
 	memset(_collisionIn, 0, sizeof(_collisionIn));
-	memcpy(_aLipSyncAnims, g_lipSyncAnimTable, sizeof(_aLipSyncAnims));
+	memcpy(_lipSyncAnims, lipSyncAnimTable, sizeof(_lipSyncAnims));
 
 	// The demo has no shadow material, its shadows are one solid cel
 	memset(&_demoShadowMaterial, 0, sizeof(_demoShadowMaterial));
 	memset(&_demoShadowCel, 0, sizeof(_demoShadowCel));
-	Common::strlcpy(_demoShadowMaterial.aName, "Default shadow material", 32);
+	Common::strlcpy(_demoShadowMaterial.name, "Default shadow material", 32);
 	_demoShadowMaterial.numCels = 1;
-	_demoShadowMaterial.apCels[0] = &_demoShadowCel;
+	_demoShadowMaterial.cels[0] = &_demoShadowCel;
 }
 
 void SputActorModule::publishActors() {
-	_pSputRoom->setActors(_aActors);
-	_pSputRender->setActors(_aActors);
-	_pSputCostume->setActors(_aActors);
+	_sputRoom->setActors(_actors);
+	_sputRender->setActors(_actors);
+	_sputCostume->setActors(_actors);
 }
 
 void SputActorModule::nukeCostumeStacks() {
 	for (int i = 0; i < _maxActors; i++) {
-		if (!_aActors[i].bInUse)
+		if (!_actors[i].inUse)
 			continue;
 
-		if (_aActors[i].pCostumeStack)
-			_pSputCostume->printCostumeInfo(_aActors[i].pCostumeStack);
+		if (_actors[i].costumeStack)
+			_sputCostume->printCostumeInfo(_actors[i].costumeStack);
 
-		_pSputCostume->freeCostumeNodes(_aActors[i].pCostumeStack, 1);
-		_aActors[i].pCostumeStack = nullptr;
+		_sputCostume->freeCostumeNodes(_actors[i].costumeStack, 1);
+		_actors[i].costumeStack = nullptr;
 	}
 }
 
-int SputActorModule::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputActorModule::initialize(SysStruct *hs) {
+	_hs = hs;
 
 	for (int i = 0; i < 4; i++)
-		_apTalkingActors[i] = nullptr;
+		_talkingActors[i] = nullptr;
 
-	_bInitialized = 1;
+	_initialized = 1;
 
 	return 0;
 }
 
 int SputActorModule::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputActorModule::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	_aActors = new SputActor[_maxActors]();
+	_actors = new SputActor[_maxActors]();
 	publishActors();
 
-	Grim::sort(_aLipSyncAnims, _numLipSyncAnims, sizeof(LipSyncEntry), compareAnimEntry);
+	Grim::sort(_lipSyncAnims, _numLipSyncAnims, sizeof(LipSyncEntry), compareAnimEntry);
 
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
 
 void SputActorModule::shutdown() {
 	for (int i = 0; i < _maxActors; i++)
-		freeActor(&_aActors[i]);
+		freeActor(&_actors[i]);
 
-	delete[] _aActors;
-	_aActors = nullptr;
+	delete[] _actors;
+	_actors = nullptr;
 	publishActors();
 
-	_bStarted = 0;
+	_started = 0;
 }
 
 int SputActorModule::getNumActorsTalking() {
 	return _numActorsTalking;
 }
 
-int SputActorModule::setCostume(SputActor *pActor, const char *costumeName, int hInstance) {
-	CostumeNode *pNode;
+int SputActorModule::setCostume(SputActor *actor, const char *costumeName, int instance) {
+	CostumeNode *node;
 
-	if (!costumeName || hInstance) {
-		pNode = _pSputCostume->setCostume(pActor->pCostumeStack, 0, hInstance);
+	if (!costumeName || instance) {
+		node = _sputCostume->setCostume(actor->costumeStack, 0, instance);
 	} else {
-		int hCostume = (int)(intptr)_pSputResource->alloc(kSputTagCost, costumeName);
+		int costume = (int)(intptr)_sputResource->alloc(kSputTagCost, costumeName);
 
-		if (!hCostume)
+		if (!costume)
 			return 0;
 
-		pNode = _pSputCostume->setCostume(pActor->pCostumeStack, hCostume, 0);
+		node = _sputCostume->setCostume(actor->costumeStack, costume, 0);
 	}
 
-	pActor->pCostumeStack = pNode;
-	_pCos->instSetUserData(pActor->pCostumeStack->hCostumeInstance, (int)(pActor - _aActors));
-	setFrustrumCull(pActor, ((uint)~pActor->flags >> 2) & 1);
+	actor->costumeStack = node;
+	_cos->instSetUserData(actor->costumeStack->costumeInstance, (int)(actor - _actors));
+	setFrustrumCull(actor, ((uint)~actor->flags >> 2) & 1);
 
 	return 1;
 }
 
-void SputActorModule::setActorHead(SputActor *pActor, uint joint1, uint joint2, uint joint3, float maxAngle, float yawLimit, float pitchLimit) {
-	CostumeNode *pNode = pActor->pCostumeStack;
+void SputActorModule::setActorHead(SputActor *actor, uint joint1, uint joint2, uint joint3, float maxAngle, float yawLimit, float pitchLimit) {
+	CostumeNode *node = actor->costumeStack;
 
-	if (!pNode || !pNode->pHeadThing)
+	if (!node || !node->headThing)
 		return;
 
-	uint numHNodes = pNode->pHeadThing->data.pModel3->numHNodes;
+	uint numHNodes = node->headThing->data.model3->numHNodes;
 
 	if (joint1 > numHNodes || joint2 > numHNodes || joint3 > numHNodes)
 		return;
 
-	pNode->aHeadJoint[0] = joint1;
-	pNode->aHeadJoint[1] = joint2;
-	pNode->headYawLimit = yawLimit;
-	pNode->aHeadJoint[2] = joint3;
-	pNode->headPitchLimit = pitchLimit;
+	node->headJoint[0] = joint1;
+	node->headJoint[1] = joint2;
+	node->headYawLimit = yawLimit;
+	node->headJoint[2] = joint3;
+	node->headPitchLimit = pitchLimit;
 
 	if (maxAngle < 0.0f)
 		maxAngle = -maxAngle;
@@ -181,17 +181,17 @@ void SputActorModule::setActorHead(SputActor *pActor, uint joint1, uint joint2, 
 	float halfAngle = (float)((double)maxAngle * 0.5);
 	float sinValue;
 
-	_pStdMath->sinCos(halfAngle, &sinValue, &pNode->headLookRef);
+	_stdMath->sinCos(halfAngle, &sinValue, &node->headLookRef);
 }
 
 int SputActorModule::setSelectedActor(int handle) {
 	int result = -1;
 
-	if (_pSelectedActor)
-		result = getActorHandle(_pSelectedActor);
+	if (_selectedActor)
+		result = getActorHandle(_selectedActor);
 
 	if (handle >= 0 && handle < _maxActors)
-		_pSelectedActor = &_aActors[handle];
+		_selectedActor = &_actors[handle];
 
 	return result;
 }
@@ -202,56 +202,56 @@ SputActor *SputActorModule::actorDeref(int handle) {
 		return nullptr;
 	}
 
-	return &_aActors[handle];
+	return &_actors[handle];
 }
 
-int SputActorModule::getActorHandle(SputActor *pActor) {
-	return (int)(pActor - _aActors);
+int SputActorModule::getActorHandle(SputActor *actor) {
+	return (int)(actor - _actors);
 }
 
 int SputActorModule::allocateActor() {
-	SputActor *pActor = nullptr;
+	SputActor *actor = nullptr;
 
 	for (int i = 0; i < _maxActors; i++) {
-		if (!_aActors[i].bInUse) {
-			pActor = &_aActors[i];
+		if (!_actors[i].inUse) {
+			actor = &_actors[i];
 			break;
 		}
 	}
 
-	if (!pActor) {
-		int aTalkingIndex[4];
+	if (!actor) {
+		int talkingIndex[4];
 		int selectedIndex = -1;
 
 		for (int i = 0; i < 4; i++) {
-			aTalkingIndex[i] = -1;
+			talkingIndex[i] = -1;
 
-			if (_apTalkingActors[i])
-				aTalkingIndex[i] = (int)(_apTalkingActors[i] - _aActors);
+			if (_talkingActors[i])
+				talkingIndex[i] = (int)(_talkingActors[i] - _actors);
 		}
 
-		if (_pSelectedActor)
-			selectedIndex = (int)(_pSelectedActor - _aActors);
+		if (_selectedActor)
+			selectedIndex = (int)(_selectedActor - _actors);
 
-		SputActor *pNewActors = new SputActor[_maxActors + 32]();
+		SputActor *newActors = new SputActor[_maxActors + 32]();
 
-		memcpy(pNewActors, _aActors, _maxActors * sizeof(SputActor));
-		delete[] _aActors;
-		_aActors = pNewActors;
+		memcpy(newActors, _actors, _maxActors * sizeof(SputActor));
+		delete[] _actors;
+		_actors = newActors;
 		_maxActors += 32;
-		pActor = &_aActors[_maxActors - 32];
+		actor = &_actors[_maxActors - 32];
 
 		for (int i = 0; i < 4; i++) {
-			if (_apTalkingActors[i])
-				_apTalkingActors[i] = &_aActors[aTalkingIndex[i]];
+			if (_talkingActors[i])
+				_talkingActors[i] = &_actors[talkingIndex[i]];
 		}
 
-		if (_pSelectedActor)
-			_pSelectedActor = &_aActors[selectedIndex];
+		if (_selectedActor)
+			_selectedActor = &_actors[selectedIndex];
 
 		for (int i = 0; i < _maxActors - 32; i++) {
-			if (_aActors[i].bInUse && _aActors[i].pExtra && _aActors[i].pExtra->pSayText)
-				_aActors[i].pExtra->pSayText->pActor = &_aActors[i];
+			if (_actors[i].inUse && _actors[i].extra && _actors[i].extra->sayText)
+				_actors[i].extra->sayText->actor = &_actors[i];
 		}
 
 		publishActors();
@@ -259,374 +259,374 @@ int SputActorModule::allocateActor() {
 
 	_numActors++;
 
-	memset(pActor, 0, sizeof(SputActor));
-	pActor->matrixValid = 1;
-	_pRd->identity34(pActor->orientMatrix);
-	pActor->scale = 1.0f;
-	pActor->pCostumeStack = nullptr;
-	pActor->pColorMap = new ResRef();
-	pActor->bInUse = 1;
+	memset(actor, 0, sizeof(SputActor));
+	actor->matrixValid = 1;
+	_rd->identity34(actor->orientMatrix);
+	actor->scale = 1.0f;
+	actor->costumeStack = nullptr;
+	actor->colorMap = new ResRef();
+	actor->inUse = 1;
 
-	return (int)(pActor - _aActors);
+	return (int)(actor - _actors);
 }
 
-void SputActorModule::allocateActorExtra(SputActor *pActor) {
-	if (!pActor || pActor->pExtra) {
+void SputActorModule::allocateActorExtra(SputActor *actor) {
+	if (!actor || actor->extra) {
 		warning("SputActorModule::allocateActorExtra(): no actor or the actor already has an extra");
 		return;
 	}
 
-	pActor->pExtra = new Extra();
-	pActor->pExtra->walkRate = 0.40000001f;
-	pActor->pExtra->turnRate = 135.0f;
-	pActor->pExtra->walkDominate = 0;
-	pActor->pExtra->reflectionAngle = 60.0f;
-	pActor->pExtra->collisionScale = 1.0f;
-	pActor->pExtra->timeScale = 1.0f;
-	pActor->pExtra->talkColor = 0xFFFFFF;
-	pActor->pExtra->subClipNode = -1;
-	pActor->pExtra->clipPlaneNorm[0] = 0.0f;
-	pActor->pExtra->clipPlaneNorm[1] = 0.0f;
-	pActor->pExtra->clipPlaneNorm[2] = 1.0f;
+	actor->extra = new Extra();
+	actor->extra->walkRate = 0.40000001f;
+	actor->extra->turnRate = 135.0f;
+	actor->extra->walkDominate = 0;
+	actor->extra->reflectionAngle = 60.0f;
+	actor->extra->collisionScale = 1.0f;
+	actor->extra->timeScale = 1.0f;
+	actor->extra->talkColor = 0xFFFFFF;
+	actor->extra->subClipNode = -1;
+	actor->extra->clipPlaneNorm[0] = 0.0f;
+	actor->extra->clipPlaneNorm[1] = 0.0f;
+	actor->extra->clipPlaneNorm[2] = 1.0f;
 }
 
-void SputActorModule::enableWalkSystem(SputActor *pActor, int bEnable) {
-	if (!pActor->pExtra)
-		allocateActorExtra(pActor);
+void SputActorModule::enableWalkSystem(SputActor *actor, int enable) {
+	if (!actor->extra)
+		allocateActorExtra(actor);
 
-	if (bEnable) {
-		pActor->pExtra->inBoxes = 1;
-		enablePuck(pActor, 1);
-		pActor->pExtra->puck->validate();
+	if (enable) {
+		actor->extra->inBoxes = 1;
+		enablePuck(actor, 1);
+		actor->extra->puck->validate();
 	} else {
-		pActor->pExtra->inBoxes = 0;
+		actor->extra->inBoxes = 0;
 
-		if (pActor->pExtra->puck)
-			pActor->pExtra->puck->pPlane = nullptr;
+		if (actor->extra->puck)
+			actor->extra->puck->_plane = nullptr;
 	}
 }
 
-void SputActorModule::enablePuck(SputActor *pActor, int bEnable) {
-	Extra *pExtra = pActor->pExtra;
+void SputActorModule::enablePuck(SputActor *actor, int enable) {
+	Extra *extra = actor->extra;
 
-	if (bEnable || !pExtra->puck) {
-		if (!pExtra->puck) {
-			Puck *pPuck = new Puck(_pWalkSystem, pExtra->reflectionAngle);
+	if (enable || !extra->puck) {
+		if (!extra->puck) {
+			Puck *puck = new Puck(_walkSystem, extra->reflectionAngle);
 
-			pPuck->setPos(pActor->actorPos);
+			puck->setPos(actor->actorPos);
 
-			float *pForward = getOrientMatrix(pActor)[1];
+			float *forward = getOrientMatrix(actor)[1];
 			RdVector3 demoForward;
 			RdVector3 target;
 
 			// The demo reads the three values after the matrix (walking, turn direction, resting) as floats
-			if (_pGrim->getGameFlags() & ADGF_DEMO) {
-				memcpy(&demoForward[0], &pExtra->bWalking, sizeof(float));
-				memcpy(&demoForward[1], &pExtra->turnDir, sizeof(float));
-				memcpy(&demoForward[2], &pExtra->resting, sizeof(float));
-				pForward = demoForward;
+			if (_grim->getGameFlags() & ADGF_DEMO) {
+				memcpy(&demoForward[0], &extra->walking, sizeof(float));
+				memcpy(&demoForward[1], &extra->turnDir, sizeof(float));
+				memcpy(&demoForward[2], &extra->resting, sizeof(float));
+				forward = demoForward;
 			}
 
-			target[0] = pForward[0] + pActor->actorPos[0];
-			target[1] = pActor->actorPos[1] + pForward[1];
-			target[2] = pActor->actorPos[2] + pForward[2];
-			pPuck->pointAt(target, 3.4028235e38f);
-			pExtra->puck = pPuck;
+			target[0] = forward[0] + actor->actorPos[0];
+			target[1] = actor->actorPos[1] + forward[1];
+			target[2] = actor->actorPos[2] + forward[2];
+			puck->pointAt(target, 3.4028235e38f);
+			extra->puck = puck;
 		}
 	} else {
-		delete pExtra->puck;
-		pExtra->puck = nullptr;
+		delete extra->puck;
+		extra->puck = nullptr;
 	}
 }
 
-void SputActorModule::setActorPosition(SputActor *pActor, float *pPos) {
-	Puck *pPuck = nullptr;
+void SputActorModule::setActorPosition(SputActor *actor, float *pos) {
+	Puck *puck = nullptr;
 
-	if (pActor->pExtra)
-		pPuck = pActor->pExtra->puck;
+	if (actor->extra)
+		puck = actor->extra->puck;
 
-	pActor->mode &= ~1;
+	actor->mode &= ~1;
 
-	if (pPuck) {
-		pPuck->setPos(pPos);
+	if (puck) {
+		puck->setPos(pos);
 
-		if (pActor->pExtra->inBoxes)
-			pPuck->validate();
+		if (actor->extra->inBoxes)
+			puck->validate();
 
-		pActor->actorPos[0] = pPuck->pos[0];
-		pActor->actorPos[1] = pPuck->pos[1];
-		pActor->actorPos[2] = pPuck->pos[2];
+		actor->actorPos[0] = puck->_pos[0];
+		actor->actorPos[1] = puck->_pos[1];
+		actor->actorPos[2] = puck->_pos[2];
 	} else {
-		pActor->actorPos[0] = pPos[0];
-		pActor->actorPos[1] = pPos[1];
-		pActor->actorPos[2] = pPos[2];
+		actor->actorPos[0] = pos[0];
+		actor->actorPos[1] = pos[1];
+		actor->actorPos[2] = pos[2];
 	}
 
-	pActor->matrixValid = 0;
+	actor->matrixValid = 0;
 }
 
-void SputActorModule::setActorRotation(SputActor *pActor, float *pRot, int bFlipTurn) {
-	Extra *pExtra = pActor->pExtra;
+void SputActorModule::setActorRotation(SputActor *actor, float *rot, int flipTurn) {
+	Extra *extra = actor->extra;
 
-	pActor->mode &= ~1;
+	actor->mode &= ~1;
 
-	if (pExtra && pExtra->puck) {
-		Puck *pPuck = pExtra->puck;
+	if (extra && extra->puck) {
+		Puck *puck = extra->puck;
 		RdMatrix34 matrix;
 
-		_pRd->buildRotate34(matrix, pRot);
-		matrix[1][0] = matrix[1][0] + pPuck->pos[0];
-		matrix[1][1] = pPuck->pos[1] + matrix[1][1];
-		matrix[1][2] = pPuck->pos[2] + matrix[1][2];
-		pPuck->invXform(matrix[1]);
+		_rd->buildRotate34(matrix, rot);
+		matrix[1][0] = matrix[1][0] + puck->_pos[0];
+		matrix[1][1] = puck->_pos[1] + matrix[1][1];
+		matrix[1][2] = puck->_pos[2] + matrix[1][2];
+		puck->invXform(matrix[1]);
 		matrix[1][2] = 0.0f;
-		_pRd->normalize3Acc(matrix[1]);
+		_rd->normalize3Acc(matrix[1]);
 
-		float angle = (float)(90.0 - _pStdMath->arcSin3(matrix[1][1]));
+		float angle = (float)(90.0 - _stdMath->arcSin3(matrix[1][1]));
 
 		if (!(matrix[1][0] > 0.0f))
-			pPuck->rotate(angle);
+			puck->rotate(angle);
 		else
-			pPuck->rotate(-angle);
+			puck->rotate(-angle);
 
-		if (pActor->pExtra->turnRate > 0.0f) {
-			if (bFlipTurn)
-				pActor->pExtra->turnRate = pActor->pExtra->turnRate * -1.0f;
+		if (actor->extra->turnRate > 0.0f) {
+			if (flipTurn)
+				actor->extra->turnRate = actor->extra->turnRate * -1.0f;
 		}
 
-		pActor->pExtra->alignOff = angle;
+		actor->extra->alignOff = angle;
 
 		// The demo leaves the rotation of the actor alone here
-		if (!(_pGrim->getGameFlags() & ADGF_DEMO)) {
-			pActor->actorRot[2] = pRot[2];
-			pActor->actorRot[0] = pRot[0];
-			pActor->matrixValid = 0;
+		if (!(_grim->getGameFlags() & ADGF_DEMO)) {
+			actor->actorRot[2] = rot[2];
+			actor->actorRot[0] = rot[0];
+			actor->matrixValid = 0;
 		}
 	} else {
-		pActor->actorRot[0] = pRot[0];
-		pActor->actorRot[1] = pRot[1];
-		pActor->actorRot[2] = pRot[2];
-		pActor->matrixValid = 0;
+		actor->actorRot[0] = rot[0];
+		actor->actorRot[1] = rot[1];
+		actor->actorRot[2] = rot[2];
+		actor->matrixValid = 0;
 	}
 }
 
-void SputActorModule::setReflection(SputActor *pActor, float angle) {
-	Puck *pPuck = pActor->pExtra->puck;
+void SputActorModule::setReflection(SputActor *actor, float angle) {
+	Puck *puck = actor->extra->puck;
 
-	if (pPuck)
-		pPuck->reflectionAngle = angle;
+	if (puck)
+		puck->_reflectionAngle = angle;
 }
 
-void SputActorModule::setWalkChore(SputActor *pActor, int choreIndex, CostumeNode *pNode) {
-	CostumeNode *pCurrent = pActor->pCostumeStack;
+void SputActorModule::setWalkChore(SputActor *actor, int choreIndex, CostumeNode *node) {
+	CostumeNode *current = actor->costumeStack;
 
-	if (!pCurrent)
+	if (!current)
 		return;
 
-	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+	bool demo = (_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 	// The demo has no costume parameter, the chore stays in the node where it was found
-	CostumeNode *pTarget = bDemo ? nullptr : pNode;
+	CostumeNode *target = demo ? nullptr : node;
 
-	if (!pTarget)
-		pTarget = pActor->pCostumeStack;
+	if (!target)
+		target = actor->costumeStack;
 
-	RdThing *pHeadThing = pCurrent->pHeadThing;
+	RdThing *headThing = current->headThing;
 
 	do {
-		if (pCurrent->pHeadThing != pHeadThing)
+		if (current->headThing != headThing)
 			break;
 
-		if (pCurrent->walkChore >= 0)
+		if (current->walkChore >= 0)
 			break;
 
-		pCurrent = pCurrent->pNext;
-	} while (pCurrent);
+		current = current->next;
+	} while (current);
 
-	if (pCurrent && pCurrent->pHeadThing == pHeadThing) {
-		if (choreIndex != pCurrent->walkChore) {
-			int status = _pCos->instChoreStatus(pCurrent->hCostumeInstance, pCurrent->walkChore);
+	if (current && current->headThing == headThing) {
+		if (choreIndex != current->walkChore) {
+			int status = _cos->instChoreStatus(current->costumeInstance, current->walkChore);
 
 			if (status) {
-				fadeOutChore(pCurrent->hCostumeInstance, pCurrent->walkChore, _walkSystemFadeTime);
+				fadeOutChore(current->costumeInstance, current->walkChore, _walkSystemFadeTime);
 
 				if (choreIndex != -1) {
-					_pCos->instPlayChore(pCurrent->hCostumeInstance, choreIndex, status & 2, ((uint)~status >> 2) & 1);
-					_pCos->instUpdateChore(pCurrent->hCostumeInstance, choreIndex, 100);
-					_pSputCostume->fadeKeysIn(pCurrent->hCostumeInstance, choreIndex, _walkSystemFadeTime);
+					_cos->instPlayChore(current->costumeInstance, choreIndex, status & 2, ((uint)~status >> 2) & 1);
+					_cos->instUpdateChore(current->costumeInstance, choreIndex, 100);
+					_sputCostume->fadeKeysIn(current->costumeInstance, choreIndex, _walkSystemFadeTime);
 				}
 			}
 
-			if (bDemo) {
-				pCurrent->walkChore = choreIndex;
+			if (demo) {
+				current->walkChore = choreIndex;
 			} else {
-				pCurrent->walkChore = -1;
-				pTarget->walkChore = choreIndex;
+				current->walkChore = -1;
+				target->walkChore = choreIndex;
 			}
 		}
 	} else {
-		pTarget->walkChore = choreIndex;
+		target->walkChore = choreIndex;
 	}
 }
 
-void SputActorModule::setTurnChores(SputActor *pActor, int leftChore, int rightChore, CostumeNode *pNode) {
-	CostumeNode *pCurrent = pActor->pCostumeStack;
+void SputActorModule::setTurnChores(SputActor *actor, int leftChore, int rightChore, CostumeNode *node) {
+	CostumeNode *current = actor->costumeStack;
 
-	if (!pCurrent)
+	if (!current)
 		return;
 
-	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+	bool demo = (_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 	// The demo has no costume parameter, the chores stay in the node where they were found
-	CostumeNode *pTarget = bDemo ? nullptr : pNode;
+	CostumeNode *target = demo ? nullptr : node;
 
-	if (!pTarget)
-		pTarget = pActor->pCostumeStack;
+	if (!target)
+		target = actor->costumeStack;
 
-	RdThing *pHeadThing = pCurrent->pHeadThing;
+	RdThing *headThing = current->headThing;
 
 	do {
-		if (pCurrent->pHeadThing != pHeadThing)
+		if (current->headThing != headThing)
 			break;
 
-		if (pCurrent->turnLeftChore >= 0)
+		if (current->turnLeftChore >= 0)
 			break;
 
-		pCurrent = pCurrent->pNext;
-	} while (pCurrent);
+		current = current->next;
+	} while (current);
 
-	if (pCurrent && pCurrent->pHeadThing == pHeadThing) {
-		if (leftChore != pCurrent->turnLeftChore) {
-			int status = _pCos->instChoreStatus(pCurrent->hCostumeInstance, pCurrent->turnLeftChore);
+	if (current && current->headThing == headThing) {
+		if (leftChore != current->turnLeftChore) {
+			int status = _cos->instChoreStatus(current->costumeInstance, current->turnLeftChore);
 
 			if (status) {
-				_pCos->instStopChore(pCurrent->hCostumeInstance, pCurrent->turnLeftChore);
+				_cos->instStopChore(current->costumeInstance, current->turnLeftChore);
 
 				if (leftChore != -1)
-					_pCos->instPlayChore(pCurrent->hCostumeInstance, leftChore, status & 2, ((uint)~status >> 2) & 1);
+					_cos->instPlayChore(current->costumeInstance, leftChore, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			if (bDemo) {
-				pCurrent->turnLeftChore = leftChore;
+			if (demo) {
+				current->turnLeftChore = leftChore;
 			} else {
-				pCurrent->turnLeftChore = -1;
-				pTarget->turnLeftChore = leftChore;
+				current->turnLeftChore = -1;
+				target->turnLeftChore = leftChore;
 			}
 		}
 
-		if (rightChore != pCurrent->turnRightChore) {
-			int status = _pCos->instChoreStatus(pCurrent->hCostumeInstance, pCurrent->turnRightChore);
+		if (rightChore != current->turnRightChore) {
+			int status = _cos->instChoreStatus(current->costumeInstance, current->turnRightChore);
 
 			if (status) {
-				_pCos->instStopChore(pCurrent->hCostumeInstance, pCurrent->turnRightChore);
+				_cos->instStopChore(current->costumeInstance, current->turnRightChore);
 
 				if (leftChore != -1)
-					_pCos->instPlayChore(pCurrent->hCostumeInstance, rightChore, status & 2, ((uint)~status >> 2) & 1);
+					_cos->instPlayChore(current->costumeInstance, rightChore, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			if (bDemo) {
-				pCurrent->turnRightChore = rightChore;
+			if (demo) {
+				current->turnRightChore = rightChore;
 			} else {
-				pCurrent->turnRightChore = -1;
-				pTarget->turnRightChore = rightChore;
+				current->turnRightChore = -1;
+				target->turnRightChore = rightChore;
 			}
 		}
 	} else {
-		pTarget->turnLeftChore = leftChore;
-		pTarget->turnRightChore = rightChore;
+		target->turnLeftChore = leftChore;
+		target->turnRightChore = rightChore;
 	}
 }
 
-void SputActorModule::setRestChore(SputActor *pActor, int choreIndex, CostumeNode *pNode) {
-	CostumeNode *pCurrent = pActor->pCostumeStack;
+void SputActorModule::setRestChore(SputActor *actor, int choreIndex, CostumeNode *node) {
+	CostumeNode *current = actor->costumeStack;
 
-	if (!pCurrent)
+	if (!current)
 		return;
 
-	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+	bool demo = (_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 	// The demo has no costume parameter, the chore stays in the node where it was found
-	CostumeNode *pTarget = bDemo ? nullptr : pNode;
+	CostumeNode *target = demo ? nullptr : node;
 
-	if (!pTarget)
-		pTarget = pActor->pCostumeStack;
+	if (!target)
+		target = actor->costumeStack;
 
-	RdThing *pHeadThing = pCurrent->pHeadThing;
+	RdThing *headThing = current->headThing;
 
 	do {
-		if (pCurrent->pHeadThing != pHeadThing)
+		if (current->headThing != headThing)
 			break;
 
 		// The demo looks for the node by the left turn chore
-		if (bDemo ? pCurrent->turnLeftChore >= 0 : pCurrent->restChore >= 0)
+		if (demo ? current->turnLeftChore >= 0 : current->restChore >= 0)
 			break;
 
-		pCurrent = pCurrent->pNext;
-	} while (pCurrent);
+		current = current->next;
+	} while (current);
 
-	if (pCurrent && pCurrent->pHeadThing == pHeadThing) {
-		if (choreIndex != pCurrent->restChore) {
-			int status = _pCos->instChoreStatus(pCurrent->hCostumeInstance, pCurrent->restChore);
+	if (current && current->headThing == headThing) {
+		if (choreIndex != current->restChore) {
+			int status = _cos->instChoreStatus(current->costumeInstance, current->restChore);
 
 			if (status) {
-				_pCos->instStopChore(pCurrent->hCostumeInstance, pCurrent->restChore);
+				_cos->instStopChore(current->costumeInstance, current->restChore);
 
 				if (choreIndex != -1)
-					_pCos->instPlayChore(pCurrent->hCostumeInstance, choreIndex, status & 2, ((uint)~status >> 2) & 1);
+					_cos->instPlayChore(current->costumeInstance, choreIndex, status & 2, ((uint)~status >> 2) & 1);
 			}
 
-			if (bDemo) {
-				pCurrent->restChore = choreIndex;
+			if (demo) {
+				current->restChore = choreIndex;
 			} else {
-				pCurrent->restChore = -1;
-				pTarget->restChore = choreIndex;
+				current->restChore = -1;
+				target->restChore = choreIndex;
 			}
 		}
 	} else {
-		pTarget->restChore = choreIndex;
+		target->restChore = choreIndex;
 	}
 }
 
-int SputActorModule::pushCostume(SputActor *pActor, const char *costumeName, int hInstance) {
-	CostumeNode *pNode;
+int SputActorModule::pushCostume(SputActor *actor, const char *costumeName, int instance) {
+	CostumeNode *node;
 
-	if (!costumeName || hInstance) {
-		pNode = _pSputCostume->pushCostume(pActor->pCostumeStack, 0, hInstance);
+	if (!costumeName || instance) {
+		node = _sputCostume->pushCostume(actor->costumeStack, 0, instance);
 	} else {
-		int hCostume = (int)(intptr)_pSputResource->alloc(kSputTagCost, costumeName);
+		int costume = (int)(intptr)_sputResource->alloc(kSputTagCost, costumeName);
 
-		if (!hCostume)
+		if (!costume)
 			return 0;
 
-		pNode = _pSputCostume->pushCostume(pActor->pCostumeStack, hCostume, 0);
+		node = _sputCostume->pushCostume(actor->costumeStack, costume, 0);
 	}
 
-	pActor->pCostumeStack = pNode;
-	_pCos->instSetUserData(pActor->pCostumeStack->hCostumeInstance, (int)(pActor - _aActors));
-	setFrustrumCull(pActor, ((uint)~pActor->flags >> 2) & 1);
+	actor->costumeStack = node;
+	_cos->instSetUserData(actor->costumeStack->costumeInstance, (int)(actor - _actors));
+	setFrustrumCull(actor, ((uint)~actor->flags >> 2) & 1);
 
 	return 1;
 }
 
-void SputActorModule::popCostume(SputActor *pActor, int bFreeInstance) {
-	pActor->pCostumeStack = _pSputCostume->popCostume(pActor->pCostumeStack, bFreeInstance);
+void SputActorModule::popCostume(SputActor *actor, int freeInstance) {
+	actor->costumeStack = _sputCostume->popCostume(actor->costumeStack, freeInstance);
 }
 
-void SputActorModule::fadeInChore(int hInst, int choreIndex, int fadeMs) {
-	_pCos->instPlayChore(hInst, choreIndex, 1, 0);
-	_pCos->instUpdateChore(hInst, choreIndex, 70);
-	_pSputCostume->fadeKeysIn(hInst, choreIndex, fadeMs);
+void SputActorModule::fadeInChore(int inst, int choreIndex, int fadeMs) {
+	_cos->instPlayChore(inst, choreIndex, 1, 0);
+	_cos->instUpdateChore(inst, choreIndex, 70);
+	_sputCostume->fadeKeysIn(inst, choreIndex, fadeMs);
 }
 
-void SputActorModule::fadeOutChore(int hInst, int choreIndex, int fadeMs) {
+void SputActorModule::fadeOutChore(int inst, int choreIndex, int fadeMs) {
 	if (choreIndex == -1) {
-		int numChores = _pCos->instCountChores(hInst);
+		int numChores = _cos->instCountChores(inst);
 
 		for (int i = 0; i < numChores; i++)
-			fadeOutChore(hInst, i, fadeMs);
+			fadeOutChore(inst, i, fadeMs);
 	} else {
-		_pSputCostume->fadeKeysOut(hInst, choreIndex, fadeMs);
-		_pCos->instStopChore(hInst, choreIndex);
+		_sputCostume->fadeKeysOut(inst, choreIndex, fadeMs);
+		_cos->instStopChore(inst, choreIndex);
 	}
 }
 
@@ -639,36 +639,36 @@ int SputActorModule::getSpeechMode() {
 	return _speechMode;
 }
 
-void SputActorModule::setWalkDominate(SputActor *pActor, int bDominate) {
-	pActor->pExtra->walkDominate = bDominate;
+void SputActorModule::setWalkDominate(SputActor *actor, int dominate) {
+	actor->extra->walkDominate = dominate;
 }
 
-int SputActorModule::countCostumes(SputActor *pActor) {
+int SputActorModule::countCostumes(SputActor *actor) {
 	int count = 0;
 
-	for (CostumeNode *pNode = pActor->pCostumeStack; pNode; pNode = pNode->pNext)
+	for (CostumeNode *node = actor->costumeStack; node; node = node->next)
 		count++;
 
 	return count;
 }
 
-void SputActorModule::setClipPlane(SputActor *pActor, float *pNormal, float *pPoint) {
-	if (!pActor->pExtra)
-		allocateActorExtra(pActor);
+void SputActorModule::setClipPlane(SputActor *actor, float *normal, float *point) {
+	if (!actor->extra)
+		allocateActorExtra(actor);
 
-	pActor->pExtra->clipPlaneNorm[0] = pNormal[0];
-	pActor->pExtra->clipPlaneNorm[1] = pNormal[1];
-	pActor->pExtra->clipPlaneNorm[2] = pNormal[2];
-	pActor->pExtra->clipPlanePt[0] = pPoint[0];
-	pActor->pExtra->clipPlanePt[1] = pPoint[1];
-	pActor->pExtra->clipPlanePt[2] = pPoint[2];
+	actor->extra->clipPlaneNorm[0] = normal[0];
+	actor->extra->clipPlaneNorm[1] = normal[1];
+	actor->extra->clipPlaneNorm[2] = normal[2];
+	actor->extra->clipPlanePt[0] = point[0];
+	actor->extra->clipPlanePt[1] = point[1];
+	actor->extra->clipPlanePt[2] = point[2];
 }
 
-void SputActorModule::setClipPlaneActive(SputActor *pActor, int bActive) {
-	if (!pActor->pExtra)
-		allocateActorExtra(pActor);
+void SputActorModule::setClipPlaneActive(SputActor *actor, int active) {
+	if (!actor->extra)
+		allocateActorExtra(actor);
 
-	pActor->pExtra->clipPlaneActive = bActive;
+	actor->extra->clipPlaneActive = active;
 }
 
 int SputActorModule::getActorTextRate() {
@@ -686,43 +686,43 @@ void SputActorModule::setActorTextRate(int rate) {
 	}
 }
 
-void SputActorModule::setFrustrumCull(SputActor *pActor, int bCull) {
-	if (!pActor)
+void SputActorModule::setFrustrumCull(SputActor *actor, int cull) {
+	if (!actor)
 		return;
 
-	if (bCull)
-		pActor->flags |= 4;
+	if (cull)
+		actor->flags |= 4;
 	else
-		pActor->flags &= ~4;
+		actor->flags &= ~4;
 
-	if (pActor->pCostumeStack) {
-		for (ModelInst *pModelInst = pActor->pCostumeStack->pHeadList; pModelInst; pModelInst = pModelInst->pNext)
-			pModelInst->pThing->frustrumCull = bCull;
+	if (actor->costumeStack) {
+		for (ModelInst *modelInst = actor->costumeStack->headList; modelInst; modelInst = modelInst->next)
+			modelInst->thing->frustrumCull = cull;
 	}
 }
 
-void SputActorModule::freeActor(SputActor *pActor) {
-	if (pActor->curSetName[0])
-		_pSputRoom->removeActor(pActor->curSetName, pActor);
+void SputActorModule::freeActor(SputActor *actor) {
+	if (actor->curSetName[0])
+		_sputRoom->removeActor(actor->curSetName, actor);
 
-	resetShadows(pActor);
-	_pSputCostume->freeCostumeNodes(pActor->pCostumeStack, 0);
-	pActor->pCostumeStack = nullptr;
+	resetShadows(actor);
+	_sputCostume->freeCostumeNodes(actor->costumeStack, 0);
+	actor->costumeStack = nullptr;
 
-	if (pActor->pExtra) {
-		delete pActor->pExtra->puck;
-		pActor->pExtra->puck = nullptr;
-		delete pActor->pExtra;
-		pActor->pExtra = nullptr;
+	if (actor->extra) {
+		delete actor->extra->puck;
+		actor->extra->puck = nullptr;
+		delete actor->extra;
+		actor->extra = nullptr;
 	}
 
-	if (pActor->pColorMap) {
-		_pRes->removeReference(pActor->pColorMap);
-		delete pActor->pColorMap;
-		pActor->pColorMap = nullptr;
+	if (actor->colorMap) {
+		_res->removeReference(actor->colorMap);
+		delete actor->colorMap;
+		actor->colorMap = nullptr;
 	}
 
-	pActor->bInUse = 0;
+	actor->inUse = 0;
 	_numActors--;
 }
 
@@ -731,31 +731,31 @@ void SputActorModule::setWalkSystemFadeTime(int fadeMs) {
 }
 
 CostumeNode *SputActorModule::allocCostumeNode() {
-	CostumeNode *pNode = new CostumeNode();
+	CostumeNode *node = new CostumeNode();
 
-	initCostumeNode(pNode);
+	initCostumeNode(node);
 
-	return pNode;
+	return node;
 }
 
-void SputActorModule::initCostumeNode(CostumeNode *pNode) {
-	pNode->hCostumeInstance = 0;
-	pNode->aHeadJoint[0] = -1;
-	pNode->aHeadJoint[1] = -1;
-	pNode->aHeadJoint[2] = -1;
-	pNode->headYawLimit = 30.0f;
-	pNode->headPitchLimit = 90.0f;
-	pNode->headLookRef = -0.35f;
-	pNode->headTurnRate = 360.0f;
-	pNode->walkChore = -1;
-	pNode->turnLeftChore = -1;
-	pNode->turnRightChore = -1;
-	pNode->restChore = -1;
-	pNode->mumbleChore = -1;
-	memset(pNode->aChore, 0xFF, sizeof(pNode->aChore));
-	memset(&pNode->rCostume, 0, sizeof(pNode->rCostume));
-	pNode->pHeadList = nullptr;
-	pNode->pNext = nullptr;
+void SputActorModule::initCostumeNode(CostumeNode *node) {
+	node->costumeInstance = 0;
+	node->headJoint[0] = -1;
+	node->headJoint[1] = -1;
+	node->headJoint[2] = -1;
+	node->headYawLimit = 30.0f;
+	node->headPitchLimit = 90.0f;
+	node->headLookRef = -0.35f;
+	node->headTurnRate = 360.0f;
+	node->walkChore = -1;
+	node->turnLeftChore = -1;
+	node->turnRightChore = -1;
+	node->restChore = -1;
+	node->mumbleChore = -1;
+	memset(node->chore, 0xFF, sizeof(node->chore));
+	memset(&node->rCostume, 0, sizeof(node->rCostume));
+	node->headList = nullptr;
+	node->next = nullptr;
 }
 
 } // End of namespace Grim

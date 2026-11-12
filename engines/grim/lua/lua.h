@@ -58,14 +58,14 @@ public:
 	void seek(int32 pos, int whence = 0);
 };
 
-typedef int tSaveRestoreAccess(void *buffer, int size);
-typedef int32 (*lua_SaveRestoreUserHFunction)(int32 tag, int32 pItem, tSaveRestoreAccess *saveFunc);
+typedef int SaveRestoreAccess(void *buffer, int size);
+typedef int32 (*lua_SaveRestoreUserHFunction)(int32 tag, int32 item, SaveRestoreAccess *saveFunc);
 
 extern lua_SaveRestoreUserHFunction lua_savehook;
 extern lua_SaveRestoreUserHFunction lua_restorehook;
 
-int lua_Save(tSaveRestoreAccess *saveFunc);
-int lua_Restore(tSaveRestoreAccess *restoreFunc);
+int lua_Save(SaveRestoreAccess *saveFunc);
+int lua_Restore(SaveRestoreAccess *restoreFunc);
 
 uint32 lua_FuncPtrToID(lua_CFunction func);
 lua_CFunction lua_IDToFuncPtr(uint32 id);

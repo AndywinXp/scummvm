@@ -35,233 +35,233 @@
 
 namespace Grim {
 
-int SputActorModule::save(Common::WriteStream *pStream) {
-	pStream->writeSint32LE(_maxActors);
-	pStream->writeSint32LE(_numActors);
+int SputActorModule::save(Common::WriteStream *stream) {
+	stream->writeSint32LE(_maxActors);
+	stream->writeSint32LE(_numActors);
 
 	for (int actorIndex = 0; actorIndex < _maxActors; actorIndex++) {
-		SputActor *pActor = &_aActors[actorIndex];
+		SputActor *actor = &_actors[actorIndex];
 
-		if (!pActor->bInUse)
+		if (!actor->inUse)
 			continue;
 
-		pStream->writeSint32LE(actorIndex);
-		pStream->writeSint32LE(pActor->pColorMap->valid ? _pRes->serialFromHandle(pActor->pColorMap->handle) : pActor->pColorMap->serial);
-		pStream->writeSint32LE(pActor->flags);
-		pStream->writeSint32LE(pActor->mode);
+		stream->writeSint32LE(actorIndex);
+		stream->writeSint32LE(actor->colorMap->valid ? _res->serialFromHandle(actor->colorMap->handle) : actor->colorMap->serial);
+		stream->writeSint32LE(actor->flags);
+		stream->writeSint32LE(actor->mode);
 
 		for (int i = 0; i < 3; i++)
-			pStream->writeFloatLE(pActor->actorPos[i]);
+			stream->writeFloatLE(actor->actorPos[i]);
 
 		for (int i = 0; i < 3; i++)
-			pStream->writeFloatLE(pActor->prevPosition[i]);
+			stream->writeFloatLE(actor->prevPosition[i]);
 
 		for (int i = 0; i < 3; i++)
-			pStream->writeFloatLE(pActor->actorRot[i]);
+			stream->writeFloatLE(actor->actorRot[i]);
 
-		pStream->writeFloatLE(pActor->scale);
-		pStream->writeSint32LE(pActor->matrixValid);
+		stream->writeFloatLE(actor->scale);
+		stream->writeSint32LE(actor->matrixValid);
 
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 3; j++)
-				pStream->writeFloatLE(pActor->orientMatrix[i][j]);
+				stream->writeFloatLE(actor->orientMatrix[i][j]);
 		}
 
-		pStream->writeSint32LE(pActor->onScreen);
-		pStream->writeSint32LE(pActor->drawnRect.x);
-		pStream->writeSint32LE(pActor->drawnRect.y);
-		pStream->writeSint32LE(pActor->drawnRect.width);
-		pStream->writeSint32LE(pActor->drawnRect.height);
-		pStream->write(pActor->curSetName, 32);
-		pStream->writeSint32LE(pActor->pExtra != nullptr);
+		stream->writeSint32LE(actor->onScreen);
+		stream->writeSint32LE(actor->drawnRect.x);
+		stream->writeSint32LE(actor->drawnRect.y);
+		stream->writeSint32LE(actor->drawnRect.width);
+		stream->writeSint32LE(actor->drawnRect.height);
+		stream->write(actor->curSetName, 32);
+		stream->writeSint32LE(actor->extra != nullptr);
 
-		int numCostumes = countCostumes(pActor);
+		int numCostumes = countCostumes(actor);
 
-		pStream->writeSint32LE(numCostumes);
+		stream->writeSint32LE(numCostumes);
 
-		CostumeNode **apNodes = new CostumeNode *[numCostumes + 1];
-		CostumeNode *pNode = pActor->pCostumeStack;
+		CostumeNode **nodes = new CostumeNode *[numCostumes + 1];
+		CostumeNode *node = actor->costumeStack;
 
 		for (int i = numCostumes - 1; i >= 0; i--) {
-			apNodes[i] = pNode;
-			pNode = pNode->pNext;
+			nodes[i] = node;
+			node = node->next;
 		}
 
 		for (int i = 0; i < numCostumes; i++) {
-			CostumeNode *pSaved = apNodes[i];
+			CostumeNode *saved = nodes[i];
 
-			pStream->writeSint32LE(pSaved->hCostumeInstance);
+			stream->writeSint32LE(saved->costumeInstance);
 
 			for (int j = 0; j < 3; j++)
-				pStream->writeSint32LE(pSaved->aHeadJoint[j]);
+				stream->writeSint32LE(saved->headJoint[j]);
 
-			pStream->writeFloatLE(pSaved->headTurnRate);
-			pStream->writeFloatLE(pSaved->headYawLimit);
-			pStream->writeFloatLE(pSaved->headPitchLimit);
-			pStream->writeFloatLE(pSaved->headLookRef);
-			pStream->writeSint32LE(pSaved->walkChore);
-			pStream->writeSint32LE(pSaved->turnLeftChore);
-			pStream->writeSint32LE(pSaved->turnRightChore);
-			pStream->writeSint32LE(pSaved->restChore);
+			stream->writeFloatLE(saved->headTurnRate);
+			stream->writeFloatLE(saved->headYawLimit);
+			stream->writeFloatLE(saved->headPitchLimit);
+			stream->writeFloatLE(saved->headLookRef);
+			stream->writeSint32LE(saved->walkChore);
+			stream->writeSint32LE(saved->turnLeftChore);
+			stream->writeSint32LE(saved->turnRightChore);
+			stream->writeSint32LE(saved->restChore);
 
 			for (int j = 0; j < 16; j++)
-				pStream->writeSint32LE(pSaved->aChore[j]);
+				stream->writeSint32LE(saved->chore[j]);
 
-			pStream->writeSint32LE(pSaved->mumbleChore);
+			stream->writeSint32LE(saved->mumbleChore);
 
-			if (!pSaved->rCostume.valid)
+			if (!saved->rCostume.valid)
 				warning("SputActorModule::save(): the costume reference is not valid");
 
-			pStream->writeSint32LE(pSaved->rCostume.valid ? _pRes->serialFromHandle(pSaved->rCostume.handle) : pSaved->rCostume.serial);
-			_pCos->saveInstance(pSaved->hCostumeInstance, pStream);
+			stream->writeSint32LE(saved->rCostume.valid ? _res->serialFromHandle(saved->rCostume.handle) : saved->rCostume.serial);
+			_cos->saveInstance(saved->costumeInstance, stream);
 		}
 
-		delete[] apNodes;
+		delete[] nodes;
 
-		if (pActor->pCostumeStack) {
+		if (actor->costumeStack) {
 			int numModels = 0;
 
-			for (ModelInst *pModelInst = pActor->pCostumeStack->pHeadList; pModelInst; pModelInst = pModelInst->pNext)
+			for (ModelInst *modelInst = actor->costumeStack->headList; modelInst; modelInst = modelInst->next)
 				numModels++;
 
-			pStream->writeSint32LE(numModels);
+			stream->writeSint32LE(numModels);
 
-			for (ModelInst *pModelInst = pActor->pCostumeStack->pHeadList; pModelInst; pModelInst = pModelInst->pNext) {
-				pStream->writeSint32LE(pModelInst->bVisible);
-				pStream->writeSint32LE(pModelInst->resolveParentOffset);
-				pStream->writeSint32LE(pModelInst->parentMeshIdx);
+			for (ModelInst *modelInst = actor->costumeStack->headList; modelInst; modelInst = modelInst->next) {
+				stream->writeSint32LE(modelInst->visible);
+				stream->writeSint32LE(modelInst->resolveParentOffset);
+				stream->writeSint32LE(modelInst->parentMeshIdx);
 
-				if (pModelInst->pThing->type == 1) {
-					if (!pModelInst->modelRef.valid)
+				if (modelInst->thing->type == 1) {
+					if (!modelInst->modelRef.valid)
 						warning("SputActorModule::save(): Bad model Reference");
 
-					RdModel3 *pModel3 = static_cast<RdModel3 *>(pModelInst->modelRef.handle);
+					RdModel3 *model3 = static_cast<RdModel3 *>(modelInst->modelRef.handle);
 
-					for (uint i = 0; i < pModel3->numHNodes; i++)
-						pStream->writeSint32LE(pModelInst->pThing->abMeshVisible[i]);
+					for (uint i = 0; i < model3->numHNodes; i++)
+						stream->writeSint32LE(modelInst->thing->abMeshVisible[i]);
 				}
 
 				int numTracks = 0;
-				RdPuppet *pPuppet = pModelInst->pThing->pPuppet;
+				RdPuppet *puppet = modelInst->thing->puppet;
 
-				if (pPuppet) {
+				if (puppet) {
 					for (int i = 0; i < 6; i++) {
-						if (pPuppet->aTracks[i].pKeyframe)
+						if (puppet->tracks[i].keyframe)
 							numTracks++;
 					}
 
-					pStream->writeSint32LE(numTracks);
+					stream->writeSint32LE(numTracks);
 
 					for (int i = 0; i < 6; i++) {
-						RdPuppetTrack *pTrack = &pPuppet->aTracks[i];
+						RdPuppetTrack *track = &puppet->tracks[i];
 
-						if (!pTrack->pKeyframe)
+						if (!track->keyframe)
 							continue;
 
-						pStream->write(pTrack->pKeyframe->aName, 32);
-						pStream->writeSint32LE(pTrack->priority);
-						pStream->writeSint32LE(pTrack->priorityMasked);
-						pStream->writeUint32LE(pTrack->status);
-						pStream->writeFloatLE(pTrack->curFrame);
-						pStream->writeFloatLE(pTrack->prevFrame);
-						pStream->writeFloatLE(pTrack->fade);
-						pStream->writeFloatLE(pTrack->fadeSpeed);
+						stream->write(track->keyframe->name, 32);
+						stream->writeSint32LE(track->priority);
+						stream->writeSint32LE(track->priorityMasked);
+						stream->writeUint32LE(track->status);
+						stream->writeFloatLE(track->curFrame);
+						stream->writeFloatLE(track->prevFrame);
+						stream->writeFloatLE(track->fade);
+						stream->writeFloatLE(track->fadeSpeed);
 					}
 				} else {
-					pStream->writeSint32LE(numTracks);
+					stream->writeSint32LE(numTracks);
 				}
 			}
 		}
 
-		Extra *pExtra = pActor->pExtra;
+		Extra *extra = actor->extra;
 
-		if (pExtra) {
+		if (extra) {
 			for (int i = 0; i < 3; i++)
-				pStream->writeFloatLE(pExtra->lookCarrot[i]);
+				stream->writeFloatLE(extra->lookCarrot[i]);
 
-			pStream->writeSint32LE(pExtra->bWalking);
-			pStream->writeSint32LE(pExtra->turnDir);
-			pStream->writeSint32LE(pExtra->resting);
-			pStream->writeFloatLE(pExtra->walkRate);
-			pStream->writeFloatLE(pExtra->turnRate);
-			pStream->writeSint32LE(pExtra->aligned);
-			pStream->writeFloatLE(pExtra->offsetYaw);
-			pStream->writeFloatLE(pExtra->alignOff);
-
-			for (int i = 0; i < 3; i++)
-				pStream->writeFloatLE(pExtra->walkTarget[i]);
+			stream->writeSint32LE(extra->walking);
+			stream->writeSint32LE(extra->turnDir);
+			stream->writeSint32LE(extra->resting);
+			stream->writeFloatLE(extra->walkRate);
+			stream->writeFloatLE(extra->turnRate);
+			stream->writeSint32LE(extra->aligned);
+			stream->writeFloatLE(extra->offsetYaw);
+			stream->writeFloatLE(extra->alignOff);
 
 			for (int i = 0; i < 3; i++)
-				pStream->writeFloatLE(pExtra->goal[i]);
+				stream->writeFloatLE(extra->walkTarget[i]);
 
-			pStream->writeSint32LE(pExtra->numPathPoints);
+			for (int i = 0; i < 3; i++)
+				stream->writeFloatLE(extra->goal[i]);
+
+			stream->writeSint32LE(extra->numPathPoints);
 
 			for (int i = 0; i < 30; i++) {
 				for (int j = 0; j < 3; j++)
-					pStream->writeFloatLE(pExtra->aPath[i][j]);
+					stream->writeFloatLE(extra->path[i][j]);
 			}
 
-			pStream->writeSint32LE(pExtra->pathIndex);
-			pStream->writeSint32LE(pExtra->puck != nullptr);
-			pStream->writeSint32LE(pExtra->inBoxes);
-			pStream->writeSint32LE(pExtra->walkDominate);
-			pStream->writeFloatLE(pExtra->reflectionAngle);
-			pStream->writeSint32LE(pExtra->talking);
-			pStream->writeSint32LE(pExtra->soundId);
-			pStream->writeSint32LE(pExtra->talkTimerMs);
-			pStream->write(pExtra->sayLineId, 12);
-			pStream->write(pExtra->voiceName, 15);
+			stream->writeSint32LE(extra->pathIndex);
+			stream->writeSint32LE(extra->puck != nullptr);
+			stream->writeSint32LE(extra->inBoxes);
+			stream->writeSint32LE(extra->walkDominate);
+			stream->writeFloatLE(extra->reflectionAngle);
+			stream->writeSint32LE(extra->talking);
+			stream->writeSint32LE(extra->soundId);
+			stream->writeSint32LE(extra->talkTimerMs);
+			stream->write(extra->sayLineId, 12);
+			stream->write(extra->voiceName, 15);
 
-			if (pExtra->pSayText)
-				pStream->writeSint32LE(pExtra->pSayText->serial);
+			if (extra->sayText)
+				stream->writeSint32LE(extra->sayText->serial);
 			else
-				pStream->writeSint32LE(0);
+				stream->writeSint32LE(0);
 
-			pStream->writeSint32LE(pExtra->phoneme);
-			pStream->writeSint32LE(pExtra->activeShadow);
-			pStream->writeSint32LE(pExtra->collisionMode);
-			pStream->writeFloatLE(pExtra->collisionScale);
-			pStream->writeSint32LE(pExtra->collided);
-			pStream->writeSint32LE(pExtra->clipPlaneActive);
-
-			for (int i = 0; i < 3; i++)
-				pStream->writeFloatLE(pExtra->clipPlaneNorm[i]);
+			stream->writeSint32LE(extra->phoneme);
+			stream->writeSint32LE(extra->activeShadow);
+			stream->writeSint32LE(extra->collisionMode);
+			stream->writeFloatLE(extra->collisionScale);
+			stream->writeSint32LE(extra->collided);
+			stream->writeSint32LE(extra->clipPlaneActive);
 
 			for (int i = 0; i < 3; i++)
-				pStream->writeFloatLE(pExtra->clipPlanePt[i]);
+				stream->writeFloatLE(extra->clipPlaneNorm[i]);
 
-			pStream->writeSint32LE(pExtra->talkColor);
-			pStream->writeFloatLE(pExtra->timeScale);
-			pStream->writeSint32LE(pExtra->subClipNode);
+			for (int i = 0; i < 3; i++)
+				stream->writeFloatLE(extra->clipPlanePt[i]);
 
-			if (!_pSputRoom->getCurrentRoom())
-				resetShadows(pActor);
+			stream->writeSint32LE(extra->talkColor);
+			stream->writeFloatLE(extra->timeScale);
+			stream->writeSint32LE(extra->subClipNode);
+
+			if (!_sputRoom->getCurrentRoom())
+				resetShadows(actor);
 
 			for (int i = 0; i < 6; i++) {
-				ActorShadow *pShadow = &pExtra->aShadows[i];
+				ActorShadow *shadow = &extra->shadows[i];
 				int numClipPlanes = 0;
 
-				pStream->writeSint32LE(pShadow->bActive);
-				pStream->writeSint32LE(pShadow->side);
+				stream->writeSint32LE(shadow->active);
+				stream->writeSint32LE(shadow->side);
 
 				for (int j = 0; j < 3; j++)
-					pStream->writeFloatLE(pShadow->normal[j]);
+					stream->writeFloatLE(shadow->normal[j]);
 
-				pStream->writeFloatLE(pShadow->planeD);
+				stream->writeFloatLE(shadow->planeD);
 
 				for (int j = 0; j < 3; j++)
-					pStream->writeFloatLE(pShadow->lightPos[j]);
+					stream->writeFloatLE(shadow->lightPos[j]);
 
 				for (int j = 0; j < 12; j++) {
-					if (pShadow->apClipPlane[j])
+					if (shadow->clipPlane[j])
 						numClipPlanes++;
 				}
 
-				pStream->writeSint32LE(numClipPlanes);
+				stream->writeSint32LE(numClipPlanes);
 
 				for (int j = 0; j < 12; j++) {
-					if (pShadow->apClipPlane[j])
-						pStream->write(pShadow->apClipPlane[j]->name, 32);
+					if (shadow->clipPlane[j])
+						stream->write(shadow->clipPlane[j]->_name, 32);
 				}
 			}
 		}
@@ -269,12 +269,12 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 
 	int selectedIndex = -1;
 
-	if (_pSelectedActor)
-		selectedIndex = (int)(_pSelectedActor - _aActors);
+	if (_selectedActor)
+		selectedIndex = (int)(_selectedActor - _actors);
 
-	pStream->writeSint32LE(selectedIndex);
+	stream->writeSint32LE(selectedIndex);
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputActorModule::save(): failed to write the actors");
 		return 1;
 	}
@@ -282,98 +282,98 @@ int SputActorModule::save(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int SputActorModule::restore(Common::ReadStream *pStream) {
+int SputActorModule::restore(Common::ReadStream *stream) {
 	for (int i = 0; i < 4; i++)
-		_apTalkingActors[i] = nullptr;
+		_talkingActors[i] = nullptr;
 
 	_numActorsTalking = 0;
 
 	for (int i = 0; i < _maxActors; i++)
-		freeActor(&_aActors[i]);
+		freeActor(&_actors[i]);
 
-	int savedMaxActors = pStream->readSint32LE();
+	int savedMaxActors = stream->readSint32LE();
 
 	if (savedMaxActors > _maxActors) {
-		SputActor *pNewActors = new SputActor[savedMaxActors]();
+		SputActor *newActors = new SputActor[savedMaxActors]();
 
-		memcpy(pNewActors, _aActors, _maxActors * sizeof(SputActor));
-		delete[] _aActors;
-		_aActors = pNewActors;
+		memcpy(newActors, _actors, _maxActors * sizeof(SputActor));
+		delete[] _actors;
+		_actors = newActors;
 		_maxActors = savedMaxActors;
 		publishActors();
 	}
 
-	_numActors = pStream->readSint32LE();
+	_numActors = stream->readSint32LE();
 
 	for (int actorCount = 0; actorCount < _numActors; actorCount++) {
-		int actorIndex = pStream->readSint32LE();
+		int actorIndex = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos() || actorIndex < 0 || actorIndex >= _maxActors) {
+		if (stream->err() || stream->eos() || actorIndex < 0 || actorIndex >= _maxActors) {
 			warning("SputActorModule::restore(): invalid actor index %d", actorIndex);
 			return 1;
 		}
 
-		SputActor *pActor = &_aActors[actorIndex];
+		SputActor *actor = &_actors[actorIndex];
 
-		pActor->bInUse = 1;
+		actor->inUse = 1;
 
-		if (!pActor->pColorMap)
-			pActor->pColorMap = new ResRef();
+		if (!actor->colorMap)
+			actor->colorMap = new ResRef();
 
-		pActor->pColorMap->serial = pStream->readSint32LE();
-		pActor->flags = pStream->readSint32LE();
-		pActor->mode = pStream->readSint32LE();
-
-		for (int i = 0; i < 3; i++)
-			pActor->actorPos[i] = pStream->readFloatLE();
+		actor->colorMap->serial = stream->readSint32LE();
+		actor->flags = stream->readSint32LE();
+		actor->mode = stream->readSint32LE();
 
 		for (int i = 0; i < 3; i++)
-			pActor->prevPosition[i] = pStream->readFloatLE();
+			actor->actorPos[i] = stream->readFloatLE();
 
 		for (int i = 0; i < 3; i++)
-			pActor->actorRot[i] = pStream->readFloatLE();
+			actor->prevPosition[i] = stream->readFloatLE();
 
-		pActor->scale = pStream->readFloatLE();
-		pActor->matrixValid = pStream->readSint32LE();
-		pActor->matrixValid = 0;
+		for (int i = 0; i < 3; i++)
+			actor->actorRot[i] = stream->readFloatLE();
+
+		actor->scale = stream->readFloatLE();
+		actor->matrixValid = stream->readSint32LE();
+		actor->matrixValid = 0;
 
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 3; j++)
-				pActor->orientMatrix[i][j] = pStream->readFloatLE();
+				actor->orientMatrix[i][j] = stream->readFloatLE();
 		}
 
-		pActor->onScreen = pStream->readSint32LE();
-		pActor->drawnRect.x = pStream->readSint32LE();
-		pActor->drawnRect.y = pStream->readSint32LE();
-		pActor->drawnRect.width = pStream->readSint32LE();
-		pActor->drawnRect.height = pStream->readSint32LE();
-		pStream->read(pActor->curSetName, 32);
-		pActor->curSetName[31] = 0;
+		actor->onScreen = stream->readSint32LE();
+		actor->drawnRect.x = stream->readSint32LE();
+		actor->drawnRect.y = stream->readSint32LE();
+		actor->drawnRect.width = stream->readSint32LE();
+		actor->drawnRect.height = stream->readSint32LE();
+		stream->read(actor->curSetName, 32);
+		actor->curSetName[31] = 0;
 
-		int bHasExtra = pStream->readSint32LE();
+		int hasExtra = stream->readSint32LE();
 
-		_pRes->resolveToSerialNumber(pActor->pColorMap);
+		_res->resolveToSerialNumber(actor->colorMap);
 
-		if (pActor->curSetName[0]) {
+		if (actor->curSetName[0]) {
 			char roomName[64];
 
-			Common::strlcpy(roomName, pActor->curSetName, sizeof(roomName));
-			pActor->curSetName[0] = 0;
-			_pSputRoom->addActor(roomName, pActor);
+			Common::strlcpy(roomName, actor->curSetName, sizeof(roomName));
+			actor->curSetName[0] = 0;
+			_sputRoom->addActor(roomName, actor);
 		}
 
-		pActor->pCostumeStack = nullptr;
+		actor->costumeStack = nullptr;
 
-		int numCostumes = pStream->readSint32LE();
+		int numCostumes = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos() || numCostumes < 0) {
+		if (stream->err() || stream->eos() || numCostumes < 0) {
 			warning("SputActorModule::restore(): invalid costume count");
 			return 1;
 		}
 
 		for (int costumeIndex = 0; costumeIndex < numCostumes; costumeIndex++) {
-			int savedInstance = pStream->readSint32LE();
-			int aHeadJoint[3];
+			int savedInstance = stream->readSint32LE();
+			int headJoint[3];
 			float headTurnRate;
 			float headYawLimit;
 			float headPitchLimit;
@@ -382,213 +382,213 @@ int SputActorModule::restore(Common::ReadStream *pStream) {
 			int turnLeftChore;
 			int turnRightChore;
 			int restChore;
-			int aChore[16];
+			int chore[16];
 			int mumbleChore;
 			ResRef costumeRef;
 
 			(void)savedInstance;
 
 			for (int i = 0; i < 3; i++)
-				aHeadJoint[i] = pStream->readSint32LE();
+				headJoint[i] = stream->readSint32LE();
 
-			headTurnRate = pStream->readFloatLE();
-			headYawLimit = pStream->readFloatLE();
-			headPitchLimit = pStream->readFloatLE();
-			headLookRef = pStream->readFloatLE();
-			walkChore = pStream->readSint32LE();
-			turnLeftChore = pStream->readSint32LE();
-			turnRightChore = pStream->readSint32LE();
-			restChore = pStream->readSint32LE();
+			headTurnRate = stream->readFloatLE();
+			headYawLimit = stream->readFloatLE();
+			headPitchLimit = stream->readFloatLE();
+			headLookRef = stream->readFloatLE();
+			walkChore = stream->readSint32LE();
+			turnLeftChore = stream->readSint32LE();
+			turnRightChore = stream->readSint32LE();
+			restChore = stream->readSint32LE();
 
 			for (int i = 0; i < 16; i++)
-				aChore[i] = pStream->readSint32LE();
+				chore[i] = stream->readSint32LE();
 
-			mumbleChore = pStream->readSint32LE();
+			mumbleChore = stream->readSint32LE();
 
 			memset(&costumeRef, 0, sizeof(costumeRef));
-			costumeRef.serial = pStream->readSint32LE();
-			_pRes->resolveToSerialNumber(&costumeRef);
+			costumeRef.serial = stream->readSint32LE();
+			_res->resolveToSerialNumber(&costumeRef);
 
 			if (!costumeRef.valid) {
 				warning("SputActorModule::restore(): Bad costume Reference");
 				return 1;
 			}
 
-			CosCostume *pCostume = _pCos->ptrFromHandle(costumeRef.serial);
-			int bPushed;
+			CosCostume *costume = _cos->ptrFromHandle(costumeRef.serial);
+			int pushed;
 
 			if (costumeIndex)
-				bPushed = pushCostume(pActor, pCostume->name, 0);
+				pushed = pushCostume(actor, costume->name, 0);
 			else
-				bPushed = setCostume(pActor, pCostume->name, 0);
+				pushed = setCostume(actor, costume->name, 0);
 
-			if (!bPushed) {
-				warning("SputActorModule::restore(): failed to load the costume %s", pCostume->name);
-				_pRes->removeReference(&costumeRef);
+			if (!pushed) {
+				warning("SputActorModule::restore(): failed to load the costume %s", costume->name);
+				_res->removeReference(&costumeRef);
 				return 1;
 			}
 
-			_pCos->restoreInstance(pActor->pCostumeStack->hCostumeInstance, pStream);
+			_cos->restoreInstance(actor->costumeStack->costumeInstance, stream);
 
-			CostumeNode *pNode = pActor->pCostumeStack;
+			CostumeNode *node = actor->costumeStack;
 
-			pNode->aHeadJoint[0] = aHeadJoint[0];
-			pNode->aHeadJoint[1] = aHeadJoint[1];
-			pNode->aHeadJoint[2] = aHeadJoint[2];
-			pNode->headTurnRate = headTurnRate;
-			pNode->headYawLimit = headYawLimit;
-			pNode->headPitchLimit = headPitchLimit;
-			pNode->headLookRef = headLookRef;
-			pNode->walkChore = walkChore;
-			pNode->turnLeftChore = turnLeftChore;
-			pNode->turnRightChore = turnRightChore;
-			pNode->restChore = restChore;
-			memcpy(pNode->aChore, aChore, sizeof(pNode->aChore));
-			pNode->mumbleChore = mumbleChore;
-			_pRes->removeReference(&costumeRef);
+			node->headJoint[0] = headJoint[0];
+			node->headJoint[1] = headJoint[1];
+			node->headJoint[2] = headJoint[2];
+			node->headTurnRate = headTurnRate;
+			node->headYawLimit = headYawLimit;
+			node->headPitchLimit = headPitchLimit;
+			node->headLookRef = headLookRef;
+			node->walkChore = walkChore;
+			node->turnLeftChore = turnLeftChore;
+			node->turnRightChore = turnRightChore;
+			node->restChore = restChore;
+			memcpy(node->chore, chore, sizeof(node->chore));
+			node->mumbleChore = mumbleChore;
+			_res->removeReference(&costumeRef);
 		}
 
-		if (pActor->pCostumeStack) {
-			ModelInst *pModelInst = pActor->pCostumeStack->pHeadList;
-			int numModels = pStream->readSint32LE();
+		if (actor->costumeStack) {
+			ModelInst *modelInst = actor->costumeStack->headList;
+			int numModels = stream->readSint32LE();
 
 			if (numModels > 0) {
-				while (pModelInst) {
-					pModelInst->bVisible = pStream->readSint32LE();
-					pModelInst->resolveParentOffset = pStream->readSint32LE();
-					pModelInst->parentMeshIdx = pStream->readSint32LE();
+				while (modelInst) {
+					modelInst->visible = stream->readSint32LE();
+					modelInst->resolveParentOffset = stream->readSint32LE();
+					modelInst->parentMeshIdx = stream->readSint32LE();
 
-					if (pModelInst->pThing->type == 1) {
-						if (!pModelInst->modelRef.valid) {
+					if (modelInst->thing->type == 1) {
+						if (!modelInst->modelRef.valid) {
 							warning("SputActorModule::restore(): Bad model Reference");
 							return 1;
 						}
 
-						RdModel3 *pModel3 = static_cast<RdModel3 *>(pModelInst->modelRef.handle);
+						RdModel3 *model3 = static_cast<RdModel3 *>(modelInst->modelRef.handle);
 
-						for (uint i = 0; i < pModel3->numHNodes; i++)
-							pModelInst->pThing->abMeshVisible[i] = pStream->readSint32LE();
+						for (uint i = 0; i < model3->numHNodes; i++)
+							modelInst->thing->abMeshVisible[i] = stream->readSint32LE();
 					}
 
-					int numTracks = pStream->readSint32LE();
+					int numTracks = stream->readSint32LE();
 
 					for (int i = 0; i < numTracks; i++) {
-						RdPuppet *pPuppet = pModelInst->pThing->pPuppet;
+						RdPuppet *puppet = modelInst->thing->puppet;
 						char keyframeName[33];
 
-						pStream->read(keyframeName, 32);
+						stream->read(keyframeName, 32);
 						keyframeName[32] = 0;
 
-						if (!pPuppet) {
+						if (!puppet) {
 							warning("SputActorModule::restore(): the model has no puppet for the track %s", keyframeName);
 							return 1;
 						}
 
-						RdKeyframe *pKeyframe = static_cast<RdKeyframe *>(_pSputResource->alloc(kSputTagKeyf, keyframeName));
+						RdKeyframe *keyframe = static_cast<RdKeyframe *>(_sputResource->alloc(kSputTagKeyf, keyframeName));
 
-						if (pKeyframe) {
-							int priority = pStream->readSint32LE();
-							int priorityMasked = pStream->readSint32LE();
-							int trackNum = _pRd->_puppet.addTrack(pPuppet, pKeyframe, priority, priorityMasked);
-							uint status = pStream->readUint32LE();
-							float curFrame = pStream->readFloatLE();
-							float prevFrame = pStream->readFloatLE();
-							float fade = pStream->readFloatLE();
-							float fadeSpeed = pStream->readFloatLE();
+						if (keyframe) {
+							int priority = stream->readSint32LE();
+							int priorityMasked = stream->readSint32LE();
+							int trackNum = _rd->_puppet.addTrack(puppet, keyframe, priority, priorityMasked);
+							uint status = stream->readUint32LE();
+							float curFrame = stream->readFloatLE();
+							float prevFrame = stream->readFloatLE();
+							float fade = stream->readFloatLE();
+							float fadeSpeed = stream->readFloatLE();
 
 							if (trackNum >= 0 && trackNum < 6) {
-								pPuppet->aTracks[trackNum].status = status;
-								pPuppet->aTracks[trackNum].curFrame = curFrame;
-								pPuppet->aTracks[trackNum].prevFrame = prevFrame;
-								pPuppet->aTracks[trackNum].fade = fade;
-								pPuppet->aTracks[trackNum].fadeSpeed = fadeSpeed;
+								puppet->tracks[trackNum].status = status;
+								puppet->tracks[trackNum].curFrame = curFrame;
+								puppet->tracks[trackNum].prevFrame = prevFrame;
+								puppet->tracks[trackNum].fade = fade;
+								puppet->tracks[trackNum].fadeSpeed = fadeSpeed;
 							} else {
 								warning("SputActorModule::restore(): the keyframe %s could not be added to the puppet", keyframeName);
 							}
 						}
 					}
 
-					pModelInst = pModelInst->pNext;
+					modelInst = modelInst->next;
 				}
 			}
 		}
 
-		if (bHasExtra) {
-			pActor->pExtra = nullptr;
-			allocateActorExtra(pActor);
+		if (hasExtra) {
+			actor->extra = nullptr;
+			allocateActorExtra(actor);
 
-			Extra *pExtra = pActor->pExtra;
-
-			for (int i = 0; i < 3; i++)
-				pExtra->lookCarrot[i] = pStream->readFloatLE();
-
-			pExtra->bWalking = pStream->readSint32LE();
-			pExtra->turnDir = pStream->readSint32LE();
-			pExtra->resting = pStream->readSint32LE();
-			pExtra->walkRate = pStream->readFloatLE();
-			pExtra->turnRate = pStream->readFloatLE();
-			pExtra->aligned = pStream->readSint32LE();
-			pExtra->offsetYaw = pStream->readFloatLE();
-			pExtra->alignOff = pStream->readFloatLE();
+			Extra *extra = actor->extra;
 
 			for (int i = 0; i < 3; i++)
-				pExtra->walkTarget[i] = pStream->readFloatLE();
+				extra->lookCarrot[i] = stream->readFloatLE();
+
+			extra->walking = stream->readSint32LE();
+			extra->turnDir = stream->readSint32LE();
+			extra->resting = stream->readSint32LE();
+			extra->walkRate = stream->readFloatLE();
+			extra->turnRate = stream->readFloatLE();
+			extra->aligned = stream->readSint32LE();
+			extra->offsetYaw = stream->readFloatLE();
+			extra->alignOff = stream->readFloatLE();
 
 			for (int i = 0; i < 3; i++)
-				pExtra->goal[i] = pStream->readFloatLE();
+				extra->walkTarget[i] = stream->readFloatLE();
 
-			pExtra->numPathPoints = pStream->readSint32LE();
+			for (int i = 0; i < 3; i++)
+				extra->goal[i] = stream->readFloatLE();
+
+			extra->numPathPoints = stream->readSint32LE();
 
 			for (int i = 0; i < 30; i++) {
 				for (int j = 0; j < 3; j++)
-					pExtra->aPath[i][j] = pStream->readFloatLE();
+					extra->path[i][j] = stream->readFloatLE();
 			}
 
-			pExtra->pathIndex = pStream->readSint32LE();
+			extra->pathIndex = stream->readSint32LE();
 
-			int bHasPuck = pStream->readSint32LE();
+			int hasPuck = stream->readSint32LE();
 
-			pExtra->inBoxes = pStream->readSint32LE();
-			pExtra->walkDominate = pStream->readSint32LE();
-			pExtra->reflectionAngle = pStream->readFloatLE();
-			pExtra->talking = pStream->readSint32LE();
-			pExtra->soundId = pStream->readSint32LE();
-			pExtra->talkTimerMs = pStream->readSint32LE();
-			pStream->read(pExtra->sayLineId, 12);
-			pStream->read(pExtra->voiceName, 15);
-			pExtra->voiceName[15] = 0;
+			extra->inBoxes = stream->readSint32LE();
+			extra->walkDominate = stream->readSint32LE();
+			extra->reflectionAngle = stream->readFloatLE();
+			extra->talking = stream->readSint32LE();
+			extra->soundId = stream->readSint32LE();
+			extra->talkTimerMs = stream->readSint32LE();
+			stream->read(extra->sayLineId, 12);
+			stream->read(extra->voiceName, 15);
+			extra->voiceName[15] = 0;
 
-			int sayTextSerial = pStream->readSint32LE();
+			int sayTextSerial = stream->readSint32LE();
 
-			pExtra->phoneme = pStream->readSint32LE();
-			pExtra->activeShadow = pStream->readSint32LE();
-			pExtra->collisionMode = pStream->readSint32LE();
-			pExtra->collisionScale = pStream->readFloatLE();
-			pExtra->collided = pStream->readSint32LE();
-			pExtra->clipPlaneActive = pStream->readSint32LE();
-
-			for (int i = 0; i < 3; i++)
-				pExtra->clipPlaneNorm[i] = pStream->readFloatLE();
+			extra->phoneme = stream->readSint32LE();
+			extra->activeShadow = stream->readSint32LE();
+			extra->collisionMode = stream->readSint32LE();
+			extra->collisionScale = stream->readFloatLE();
+			extra->collided = stream->readSint32LE();
+			extra->clipPlaneActive = stream->readSint32LE();
 
 			for (int i = 0; i < 3; i++)
-				pExtra->clipPlanePt[i] = pStream->readFloatLE();
+				extra->clipPlaneNorm[i] = stream->readFloatLE();
 
-			pExtra->talkColor = pStream->readSint32LE();
-			pExtra->timeScale = pStream->readFloatLE();
-			pExtra->subClipNode = pStream->readSint32LE();
+			for (int i = 0; i < 3; i++)
+				extra->clipPlanePt[i] = stream->readFloatLE();
 
-			if (bHasPuck) {
-				pExtra->puck = nullptr;
-				enablePuck(pActor, 1);
+			extra->talkColor = stream->readSint32LE();
+			extra->timeScale = stream->readFloatLE();
+			extra->subClipNode = stream->readSint32LE();
 
-				if (pActor->pExtra->inBoxes)
-					pActor->pExtra->puck->validate();
+			if (hasPuck) {
+				extra->puck = nullptr;
+				enablePuck(actor, 1);
+
+				if (actor->extra->inBoxes)
+					actor->extra->puck->validate();
 			}
 
-			if (pActor->pExtra->talking) {
+			if (actor->extra->talking) {
 				for (int i = 0; i < 4; i++) {
-					if (!_apTalkingActors[i]) {
-						_apTalkingActors[i] = pActor;
+					if (!_talkingActors[i]) {
+						_talkingActors[i] = actor;
 						_numActorsTalking++;
 						break;
 					}
@@ -596,29 +596,29 @@ int SputActorModule::restore(Common::ReadStream *pStream) {
 			}
 
 			if (sayTextSerial) {
-				pActor->pExtra->pSayText = _pSputText->findSerialNumber(sayTextSerial);
+				actor->extra->sayText = _sputText->findSerialNumber(sayTextSerial);
 
-				if (pActor->pExtra->pSayText)
-					pActor->pExtra->pSayText->pActor = pActor;
+				if (actor->extra->sayText)
+					actor->extra->sayText->actor = actor;
 			}
 
-			resetShadows(pActor);
+			resetShadows(actor);
 
 			for (int i = 0; i < 6; i++) {
-				ActorShadow *pShadow = &pActor->pExtra->aShadows[i];
+				ActorShadow *shadow = &actor->extra->shadows[i];
 
-				pShadow->bActive = pStream->readSint32LE();
-				pShadow->side = pStream->readSint32LE();
-
-				for (int j = 0; j < 3; j++)
-					pShadow->normal[j] = pStream->readFloatLE();
-
-				pShadow->planeD = pStream->readFloatLE();
+				shadow->active = stream->readSint32LE();
+				shadow->side = stream->readSint32LE();
 
 				for (int j = 0; j < 3; j++)
-					pShadow->lightPos[j] = pStream->readFloatLE();
+					shadow->normal[j] = stream->readFloatLE();
 
-				int numClipPlanes = pStream->readSint32LE();
+				shadow->planeD = stream->readFloatLE();
+
+				for (int j = 0; j < 3; j++)
+					shadow->lightPos[j] = stream->readFloatLE();
+
+				int numClipPlanes = stream->readSint32LE();
 
 				if (numClipPlanes < 0 || numClipPlanes >= 12) {
 					warning("SputActorModule::restore(): invalid shadow clip plane count %d", numClipPlanes);
@@ -629,26 +629,26 @@ int SputActorModule::restore(Common::ReadStream *pStream) {
 					char planeName[33];
 
 					planeName[0] = 0;
-					pStream->read(planeName, 32);
+					stream->read(planeName, 32);
 					planeName[32] = 0;
-					pShadow->apClipPlane[j] = _pWalkSystem->planeNamed(planeName);
+					shadow->clipPlane[j] = _walkSystem->planeNamed(planeName);
 				}
 			}
 		}
 
-		if (pStream->err() || pStream->eos()) {
+		if (stream->err() || stream->eos()) {
 			warning("SputActorModule::restore(): failed to read the actor %d", actorIndex);
 			return 1;
 		}
 	}
 
-	_pSelectedActor = nullptr;
+	_selectedActor = nullptr;
 
-	int selectedIndex = pStream->readSint32LE();
+	int selectedIndex = stream->readSint32LE();
 
 	if (selectedIndex != -1) {
 		if (selectedIndex >= 0 && selectedIndex < _maxActors)
-			_pSelectedActor = &_aActors[selectedIndex];
+			_selectedActor = &_actors[selectedIndex];
 		else
 			warning("SputActorModule::restore(): invalid selected actor %d", selectedIndex);
 	}

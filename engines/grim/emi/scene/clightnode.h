@@ -39,9 +39,9 @@ public:
 	void setLight(CLight *newLight);
 	void setActive(bool newActive);
 
-	bool active;
-	bool savedActive;
-	CLight *light;
+	bool _active;
+	bool _savedActive;
+	CLight *_light;
 
 private:
 	EmiEngine *_engine;

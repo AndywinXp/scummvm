@@ -26,10 +26,10 @@
 
 namespace Grim {
 
-typedef int (*SortCompare)(const void *pA, const void *pB);
+typedef int (*SortCompare)(const void *a, const void *b);
 
-void sort(void *pBase, size_t num, size_t width, SortCompare compare);
-void *binarySearch(const void *pKey, const void *pBase, size_t num, size_t width, SortCompare compare);
+void sort(void *base, size_t num, size_t width, SortCompare compare);
+void *binarySearch(const void *key, const void *base, size_t num, size_t width, SortCompare compare);
 
 } // End of namespace Grim
 

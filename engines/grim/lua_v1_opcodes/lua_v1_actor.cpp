@@ -41,23 +41,23 @@ bool Lua_V1::isSputActor(lua_Object obj) {
 }
 
 SputActor *Lua_V1::getSputActor(lua_Object obj) {
-	return g_grim->_pSputActor->actorDeref(lua_getuserdata(obj));
+	return g_grim->_sputActor->actorDeref(lua_getuserdata(obj));
 }
 
 void Lua_V1::pushSputActor(int handle) {
 	lua_pushusertag(handle, MKTAG('R','T','C','A'));
 }
 
-bool Lua_V1::hasActorExtra(SputActor *pActor, const char *opcode) {
-	if (pActor->pExtra)
+bool Lua_V1::hasActorExtra(SputActor *actor, const char *opcode) {
+	if (actor->extra)
 		return true;
 
 	warning("%s(): the actor has no extra data", opcode);
 	return false;
 }
 
-bool Lua_V1::findCostumeInStack(lua_Object obj, CostumeNode *pStack, CostumeNode **ppFound) {
-	*ppFound = pStack;
+bool Lua_V1::findCostumeInStack(lua_Object obj, CostumeNode *stack, CostumeNode **found) {
+	*found = stack;
 
 	if (lua_isnil(obj))
 		return true;
@@ -65,42 +65,42 @@ bool Lua_V1::findCostumeInStack(lua_Object obj, CostumeNode *pStack, CostumeNode
 	if (lua_isnumber(obj)) {
 		int depth = luaFtol(lua_getnumber(obj));
 
-		if (*ppFound) {
+		if (*found) {
 			while (depth > 0) {
 				depth--;
-				*ppFound = (*ppFound)->pNext;
+				*found = (*found)->next;
 
-				if (!*ppFound)
+				if (!*found)
 					return false;
 			}
 		}
 
-		return *ppFound != nullptr;
+		return *found != nullptr;
 	}
 
 	if (lua_isstring(obj)) {
 		const char *costumeName = lua_getstring(obj);
-		bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
+		bool demo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
 
-		if (*ppFound) {
+		if (*found) {
 			do {
-				CosCostume *pCostume = g_grim->_pSputCostume->getCos()->instGetCostume((*ppFound)->hCostumeInstance, nullptr);
+				CosCostume *costume = g_grim->_sputCostume->getCos()->instGetCostume((*found)->costumeInstance, nullptr);
 
-				if (pCostume && !(bDemo ? strcmp(pCostume->name, costumeName) : scumm_stricmp(pCostume->name, costumeName)))
+				if (costume && !(demo ? strcmp(costume->name, costumeName) : scumm_stricmp(costume->name, costumeName)))
 					break;
 
-				*ppFound = (*ppFound)->pNext;
-			} while (*ppFound);
+				*found = (*found)->next;
+			} while (*found);
 		}
 
-		return *ppFound != nullptr;
+		return *found != nullptr;
 	}
 
 	return false;
 }
 
 void Lua_V1::LoadActor() {
-	int handle = g_grim->_pSputActor->allocateActor();
+	int handle = g_grim->_sputActor->allocateActor();
 
 	if (handle < 0)
 		lua_pushnil();
@@ -114,15 +114,15 @@ void Lua_V1::GetActorTimeScale() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	lua_pushnumber(pActor->pExtra->timeScale);
+	lua_pushnumber(actor->extra->timeScale);
 }
 
 void Lua_V1::SetSelectedActor() {
@@ -130,7 +130,7 @@ void Lua_V1::SetSelectedActor() {
 	if (!lua_isuserdata(actorObj) || lua_tag(actorObj) != MKTAG('R','T','C','A'))
 		return;
 
-	int handle = g_grim->_pSputActor->setSelectedActor(lua_getuserdata(actorObj));
+	int handle = g_grim->_sputActor->setSelectedActor(lua_getuserdata(actorObj));
 
 	if (handle < 0)
 		lua_pushnil();
@@ -139,7 +139,7 @@ void Lua_V1::SetSelectedActor() {
 }
 
 void Lua_V1::GetCameraActor() {
-	pushSputActor(g_grim->_pSputRender->getCamActorIndex());
+	pushSputActor(g_grim->_sputRender->getCamActorIndex());
 }
 
 void Lua_V1::SetActorTalkColor() {
@@ -147,26 +147,26 @@ void Lua_V1::SetActorTalkColor() {
 	lua_Object colorObj = lua_getparam(2);
 
 	if (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('R','T','C','A')) {
-		SputActor *actor = g_grim->_pSputActor->actorDeref(lua_getuserdata(actorObj));
+		SputActor *actor = g_grim->_sputActor->actorDeref(lua_getuserdata(actorObj));
 
 		if (!actor)
 			return;
 
-		if (!actor->pExtra)
-			g_grim->_pSputActor->allocateActorExtra(actor);
+		if (!actor->extra)
+			g_grim->_sputActor->allocateActorExtra(actor);
 
 		if (lua_isuserdata(colorObj) && lua_tag(colorObj) == MKTAG('R','L','O','C'))
-			actor->pExtra->talkColor = lua_getuserdata(colorObj);
+			actor->extra->talkColor = lua_getuserdata(colorObj);
 	}
 }
 
 void Lua_V1::GetActorTalkColor() {
 	lua_Object actorObj = lua_getparam(1);
 	if (lua_isuserdata(actorObj) && lua_tag(actorObj) == MKTAG('R','T','C','A')) {
-		SputActor *actor = g_grim->_pSputActor->actorDeref(lua_getuserdata(actorObj));
+		SputActor *actor = g_grim->_sputActor->actorDeref(lua_getuserdata(actorObj));
 
-		if (actor && actor->pExtra) {
-			lua_pushusertag(actor->pExtra->talkColor, MKTAG('R','L','O','C'));
+		if (actor && actor->extra) {
+			lua_pushusertag(actor->extra->talkColor, MKTAG('R','L','O','C'));
 			return;
 		}
 	}
@@ -177,21 +177,21 @@ void Lua_V1::SetActorRestChore() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
-	CostumeNode *pNode;
+	CostumeNode *node;
 	int chore;
 
 	if (!isSputActor(actorObj) || (!lua_isnumber(choreObj) && !lua_isnil(choreObj)))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	// The demo has no costume parameter
 	if (g_grim->getGameFlags() & ADGF_DEMO)
-		pNode = nullptr;
-	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		node = nullptr;
+	else if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
 	if (lua_isnil(choreObj))
@@ -199,30 +199,30 @@ void Lua_V1::SetActorRestChore() {
 	else
 		chore = luaFtol(lua_getnumber(choreObj));
 
-	g_grim->_pSputActor->setRestChore(pActor, chore, pNode);
+	g_grim->_sputActor->setRestChore(actor, chore, node);
 }
 
 void Lua_V1::SetActorWalkChore() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
-	CostumeNode *pNode;
+	CostumeNode *node;
 	int chore;
 
-	bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
+	bool demo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 	// The demo does not accept nil and has no costume parameter
-	if (!isSputActor(actorObj) || (!lua_isnumber(choreObj) && (bDemo || !lua_isnil(choreObj))))
+	if (!isSputActor(actorObj) || (!lua_isnumber(choreObj) && (demo || !lua_isnil(choreObj))))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (bDemo)
-		pNode = nullptr;
-	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (demo)
+		node = nullptr;
+	else if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
 	if (lua_isnumber(choreObj))
@@ -230,7 +230,7 @@ void Lua_V1::SetActorWalkChore() {
 	else
 		chore = -1;
 
-	g_grim->_pSputActor->setWalkChore(pActor, chore, pNode);
+	g_grim->_sputActor->setWalkChore(actor, chore, node);
 }
 
 void Lua_V1::SetActorTurnChores() {
@@ -238,26 +238,26 @@ void Lua_V1::SetActorTurnChores() {
 	lua_Object leftChoreObj = lua_getparam(2);
 	lua_Object rightChoreObj = lua_getparam(3);
 	lua_Object costumeObj = lua_getparam(4);
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj) || !lua_isnumber(leftChoreObj) || !lua_isnumber(rightChoreObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	// The demo has no costume parameter
 	if (g_grim->getGameFlags() & ADGF_DEMO)
-		pNode = nullptr;
-	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		node = nullptr;
+	else if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
 	int rightChore = luaFtol(lua_getnumber(rightChoreObj));
 	int leftChore = luaFtol(lua_getnumber(leftChoreObj));
 
-	g_grim->_pSputActor->setTurnChores(pActor, leftChore, rightChore, pNode);
+	g_grim->_sputActor->setTurnChores(actor, leftChore, rightChore, node);
 }
 
 void Lua_V1::SetActorTalkChore() {
@@ -265,7 +265,7 @@ void Lua_V1::SetActorTalkChore() {
 	lua_Object indexObj = lua_getparam(2);
 	lua_Object choreObj = lua_getparam(3);
 	lua_Object costumeObj = lua_getparam(4);
-	CostumeNode *pNode;
+	CostumeNode *node;
 	int chore;
 
 	if (!isSputActor(actorObj) || !lua_isnumber(indexObj) || (!lua_isnumber(choreObj) && !lua_isnil(choreObj)))
@@ -276,18 +276,18 @@ void Lua_V1::SetActorTalkChore() {
 	if (index < 1 || index > 16)
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	// The demo has no costume parameter
 	if (g_grim->getGameFlags() & ADGF_DEMO)
-		pNode = pActor->pCostumeStack;
-	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		node = actor->costumeStack;
+	else if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (!pNode)
+	if (!node)
 		return;
 
 	if (lua_isnumber(choreObj))
@@ -295,34 +295,34 @@ void Lua_V1::SetActorTalkChore() {
 	else
 		chore = -1;
 
-	pNode->aChore[index - 1] = chore;
+	node->chore[index - 1] = chore;
 }
 
 void Lua_V1::SetActorMumblechore() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj) || !lua_isnumber(choreObj))
 		return;
 
 	int chore = luaFtol(lua_getnumber(choreObj));
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	// The demo has no costume parameter
 	if (g_grim->getGameFlags() & ADGF_DEMO)
-		pNode = pActor->pCostumeStack;
-	else if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+		node = actor->costumeStack;
+	else if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (!pNode)
+	if (!node)
 		return;
 
-	pNode->mumbleChore = chore;
+	node->mumbleChore = chore;
 }
 
 void Lua_V1::SetActorVisibility() {
@@ -332,15 +332,15 @@ void Lua_V1::SetActorVisibility() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isnil(visibleObj))
-		pActor->flags |= 2;
+		actor->flags |= 2;
 	else
-		pActor->flags &= ~2;
+		actor->flags &= ~2;
 }
 
 void Lua_V1::SetActorScale() {
@@ -350,15 +350,15 @@ void Lua_V1::SetActorScale() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isnumber(scaleObj))
-		pActor->scale = lua_getnumber(scaleObj);
+		actor->scale = lua_getnumber(scaleObj);
 	else
-		pActor->scale = 1.0f;
+		actor->scale = 1.0f;
 }
 
 void Lua_V1::GetActorScale() {
@@ -371,12 +371,12 @@ void Lua_V1::GetActorScale() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	lua_pushnumber(pActor->scale);
+	lua_pushnumber(actor->scale);
 }
 
 void Lua_V1::SetActorTimeScale() {
@@ -386,21 +386,21 @@ void Lua_V1::SetActorTimeScale() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
 	if (lua_isnumber(scaleObj))
-		pActor->pExtra->timeScale = lua_getnumber(scaleObj);
+		actor->extra->timeScale = lua_getnumber(scaleObj);
 	else
-		pActor->pExtra->timeScale = 1.0f;
+		actor->extra->timeScale = 1.0f;
 
-	if (!(pActor->pExtra->timeScale >= 0.0f))
-		pActor->pExtra->timeScale = -pActor->pExtra->timeScale;
+	if (!(actor->extra->timeScale >= 0.0f))
+		actor->extra->timeScale = -actor->extra->timeScale;
 }
 
 void Lua_V1::SetActorCollisionMode() {
@@ -412,17 +412,17 @@ void Lua_V1::SetActorCollisionMode() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pActor->pExtra->collisionMode = luaFtol(lua_getnumber(modeObj));
+	actor->extra->collisionMode = luaFtol(lua_getnumber(modeObj));
 }
 
 void Lua_V1::SetActorCollisionScale() {
@@ -434,17 +434,17 @@ void Lua_V1::SetActorCollisionScale() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pActor->pExtra->collisionScale = lua_getnumber(scaleObj);
+	actor->extra->collisionScale = lua_getnumber(scaleObj);
 }
 
 void Lua_V1::PutActorAt() {
@@ -456,16 +456,16 @@ void Lua_V1::PutActorAt() {
 	if (!isSputActor(actorObj) || !lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	RdVector3 pos;
 	pos[0] = lua_getnumber(xObj);
 	pos[1] = lua_getnumber(yObj);
 	pos[2] = lua_getnumber(zObj);
-	g_grim->_pSputActor->setActorPosition(pActor, pos);
+	g_grim->_sputActor->setActorPosition(actor, pos);
 }
 
 void Lua_V1::GetActorPos() {
@@ -474,14 +474,14 @@ void Lua_V1::GetActorPos() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	lua_pushnumber(pActor->actorPos[0]);
-	lua_pushnumber(pActor->actorPos[1]);
-	lua_pushnumber(pActor->actorPos[2]);
+	lua_pushnumber(actor->actorPos[0]);
+	lua_pushnumber(actor->actorPos[1]);
+	lua_pushnumber(actor->actorPos[2]);
 }
 
 void Lua_V1::SetActorRot() {
@@ -494,16 +494,16 @@ void Lua_V1::SetActorRot() {
 	if (!isSputActor(actorObj) || !lua_isnumber(pitchObj) || !lua_isnumber(yawObj) || !lua_isnumber(rollObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	RdVector3 rot;
 	rot[0] = lua_getnumber(pitchObj);
 	rot[1] = lua_getnumber(yawObj);
 	rot[2] = lua_getnumber(rollObj);
-	g_grim->_pSputActor->setActorRotation(pActor, rot, lua_isnil(flipObj));
+	g_grim->_sputActor->setActorRotation(actor, rot, lua_isnil(flipObj));
 }
 
 void Lua_V1::GetActorRot() {
@@ -512,14 +512,14 @@ void Lua_V1::GetActorRot() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	lua_pushnumber(pActor->actorRot[0]);
-	lua_pushnumber(pActor->actorRot[1]);
-	lua_pushnumber(pActor->actorRot[2]);
+	lua_pushnumber(actor->actorRot[0]);
+	lua_pushnumber(actor->actorRot[1]);
+	lua_pushnumber(actor->actorRot[2]);
 }
 
 void Lua_V1::IsActorTurning() {
@@ -528,15 +528,15 @@ void Lua_V1::IsActorTurning() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	if (pActor->pExtra->alignOff != 0.0f)
+	if (actor->extra->alignOff != 0.0f)
 		lua_pushnumber(1.0f);
 
 	lua_pushnil();
@@ -551,34 +551,34 @@ void Lua_V1::GetAngleBetweenActors() {
 		return;
 	}
 
-	SputActor *pActor1 = getSputActor(actor1Obj);
-	SputActor *pActor2 = getSputActor(actor2Obj);
+	SputActor *actor1 = getSputActor(actor1Obj);
+	SputActor *actor2 = getSputActor(actor2Obj);
 
-	if (!pActor1 || !pActor2 || !hasActorExtra(pActor1, "GetAngleBetweenActors") || !pActor1->pExtra->puck) {
+	if (!actor1 || !actor2 || !hasActorExtra(actor1, "GetAngleBetweenActors") || !actor1->extra->puck) {
 		lua_pushnil();
 		return;
 	}
 
-	float *pLook = pActor1->pExtra->puck->orient[1];
+	float *look = actor1->extra->puck->_orient[1];
 	RdVector3 lookVec;
 	RdVector3 targetVec;
 
-	lookVec[0] = pLook[0];
-	lookVec[1] = pLook[1];
-	lookVec[2] = pLook[2];
-	targetVec[0] = pActor2->actorPos[0];
-	targetVec[1] = pActor2->actorPos[1];
+	lookVec[0] = look[0];
+	lookVec[1] = look[1];
+	lookVec[2] = look[2];
+	targetVec[0] = actor2->actorPos[0];
+	targetVec[1] = actor2->actorPos[1];
 	targetVec[2] = lookVec[2];
-	targetVec[0] = (float)((double)targetVec[0] - pActor1->actorPos[0]);
-	targetVec[1] = (float)((double)targetVec[1] - pActor1->actorPos[1]);
-	targetVec[2] = (float)((double)lookVec[2] - pActor1->actorPos[2]);
+	targetVec[0] = (float)((double)targetVec[0] - actor1->actorPos[0]);
+	targetVec[1] = (float)((double)targetVec[1] - actor1->actorPos[1]);
+	targetVec[2] = (float)((double)lookVec[2] - actor1->actorPos[2]);
 
-	g_grim->_pRd->normalize3Acc(lookVec);
-	g_grim->_pRd->normalize3Acc(targetVec);
+	g_grim->_rd->normalize3Acc(lookVec);
+	g_grim->_rd->normalize3Acc(targetVec);
 
 	float dot = (float)(((double)targetVec[0] * lookVec[0] + (double)targetVec[1] * lookVec[1]) + (double)targetVec[2] * lookVec[2]);
 
-	lua_pushnumber((float)(90.0f - (double)g_grim->_pStdMath->arcSin3(dot)));
+	lua_pushnumber((float)(90.0f - (double)g_grim->_stdMath->arcSin3(dot)));
 }
 
 void Lua_V1::GetActorYawToPoint() {
@@ -591,9 +591,9 @@ void Lua_V1::GetActorYawToPoint() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
@@ -620,13 +620,13 @@ void Lua_V1::GetActorYawToPoint() {
 	target[1] = lua_getnumber(yObj);
 	target[2] = lua_getnumber(zObj);
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	if (!pActor->pExtra->puck)
-		g_grim->_pSputActor->enablePuck(pActor, 1);
+	if (!actor->extra->puck)
+		g_grim->_sputActor->enablePuck(actor, 1);
 
-	lua_pushnumber((float)pActor->pExtra->puck->getYawToPoint(target));
+	lua_pushnumber((float)actor->extra->puck->getYawToPoint(target));
 }
 
 /* Changes the set that an actor is associated with,
@@ -640,9 +640,9 @@ void Lua_V1::PutActorInSet() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (!lua_isstring(setObj) && !lua_isnil(setObj))
@@ -651,18 +651,18 @@ void Lua_V1::PutActorInSet() {
 	// The demo only stores the name of the set
 	if (g_grim->getGameFlags() & ADGF_DEMO) {
 		if (lua_isstring(setObj))
-			Common::strlcpy(pActor->curSetName, lua_getstring(setObj), sizeof(pActor->curSetName));
+			Common::strlcpy(actor->curSetName, lua_getstring(setObj), sizeof(actor->curSetName));
 		else
-			pActor->curSetName[0] = 0;
+			actor->curSetName[0] = 0;
 
 		return;
 	}
 
-	g_grim->_pSputRoom->addActor(lua_getstring(setObj), pActor);
+	g_grim->_sputRoom->addActor(lua_getstring(setObj), actor);
 
-	if (pActor->pExtra && lua_isstring(setObj) && pActor->pExtra->puck && pActor->pExtra->inBoxes) {
-		if (g_grim->_pRes->loaded(kSputTagSet, lua_getstring(setObj)))
-			pActor->pExtra->puck->validate();
+	if (actor->extra && lua_isstring(setObj) && actor->extra->puck && actor->extra->inBoxes) {
+		if (g_grim->_res->loaded(kSputTagSet, lua_getstring(setObj)))
+			actor->extra->puck->validate();
 	}
 }
 
@@ -673,15 +673,15 @@ void Lua_V1::SetActorWalkRate() {
 	if (!isSputActor(actorObj) || !lua_isnumber(rateObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pActor->pExtra->walkRate = lua_getnumber(rateObj);
+	actor->extra->walkRate = lua_getnumber(rateObj);
 }
 
 void Lua_V1::GetActorWalkRate() {
@@ -690,15 +690,15 @@ void Lua_V1::GetActorWalkRate() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	lua_pushnumber(pActor->pExtra->walkRate);
+	lua_pushnumber(actor->extra->walkRate);
 }
 
 void Lua_V1::SetActorTurnRate() {
@@ -709,19 +709,19 @@ void Lua_V1::SetActorTurnRate() {
 		return;
 
 	float rate = lua_getnumber(rateObj);
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
 	// The demo stores the rate as it is
-	if (!(pActor->pExtra->turnRate >= 0.0f) && !(g_grim->getGameFlags() & ADGF_DEMO))
+	if (!(actor->extra->turnRate >= 0.0f) && !(g_grim->getGameFlags() & ADGF_DEMO))
 		rate = rate * -1.0f;
 
-	pActor->pExtra->turnRate = rate;
+	actor->extra->turnRate = rate;
 }
 
 void Lua_V1::WalkActorForward() {
@@ -730,13 +730,13 @@ void Lua_V1::WalkActorForward() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "WalkActorForward"))
+	if (!actor || !hasActorExtra(actor, "WalkActorForward"))
 		return;
 
-	pActor->mode &= ~1;
-	g_grim->_pSputActor->forward(pActor);
+	actor->mode &= ~1;
+	g_grim->_sputActor->forward(actor);
 }
 
 void Lua_V1::SetActorReflection() {
@@ -748,12 +748,12 @@ void Lua_V1::SetActorReflection() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputActor->setReflection(pActor, lua_getnumber(angleObj));
+	g_grim->_sputActor->setReflection(actor, lua_getnumber(angleObj));
 }
 
 void Lua_V1::GetActorPuckVector() {
@@ -765,32 +765,32 @@ void Lua_V1::GetActorPuckVector() {
 		return;
 	}
 
-	int bAddToPos = !lua_isnil(addObj);
-	SputActor *pActor = getSputActor(actorObj);
+	int addToPos = !lua_isnil(addObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	Puck *pPuck = pActor->pExtra->puck;
+	Puck *puck = actor->extra->puck;
 
-	if (!pPuck) {
+	if (!puck) {
 		lua_pushnil();
 		return;
 	}
 
-	float x = pPuck->orient[1][0];
-	float y = pPuck->orient[1][1];
-	float z = pPuck->orient[1][2];
+	float x = puck->_orient[1][0];
+	float y = puck->_orient[1][1];
+	float z = puck->_orient[1][2];
 
-	if (bAddToPos) {
-		x = x + pPuck->pos[0];
-		y = pPuck->pos[1] + y;
-		z = pPuck->pos[2] + z;
+	if (addToPos) {
+		x = x + puck->_pos[0];
+		y = puck->_pos[1] + y;
+		z = puck->_pos[2] + z;
 	}
 
 	lua_pushnumber(x);
@@ -805,15 +805,15 @@ void Lua_V1::ActorPuckOrient() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isnil(orientObj) || !luaFtol(lua_getnumber(orientObj)))
-		pActor->flags &= ~0x10;
+		actor->flags &= ~0x10;
 	else
-		pActor->flags |= 0x10;
+		actor->flags |= 0x10;
 }
 
 void Lua_V1::WalkActorTo() {
@@ -828,9 +828,9 @@ void Lua_V1::WalkActorTo() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isnumber(xObj)) {
@@ -838,14 +838,14 @@ void Lua_V1::WalkActorTo() {
 		pos[1] = lua_getnumber(yObj);
 		pos[2] = lua_getnumber(zObj);
 	} else if (isSputActor(xObj)) {
-		SputActor *pDestActor = getSputActor(xObj);
+		SputActor *destActor = getSputActor(xObj);
 
-		if (!pDestActor)
+		if (!destActor)
 			return;
 
-		pos[0] = pDestActor->actorPos[0];
-		pos[1] = pDestActor->actorPos[1];
-		pos[2] = pDestActor->actorPos[2];
+		pos[0] = destActor->actorPos[0];
+		pos[1] = destActor->actorPos[1];
+		pos[2] = destActor->actorPos[2];
 	} else {
 		return;
 	}
@@ -854,10 +854,10 @@ void Lua_V1::WalkActorTo() {
 	goal[1] = lua_getnumber(goalObj);
 	goal[2] = lua_getnumber(goalObj);
 
-	if (!hasActorExtra(pActor, "WalkActorTo"))
+	if (!hasActorExtra(actor, "WalkActorTo"))
 		return;
 
-	g_grim->_pSputActor->actorWalkTo(pActor, pos, goal, nullptr);
+	g_grim->_sputActor->actorWalkTo(actor, pos, goal, nullptr);
 }
 
 void Lua_V1::WalkActorToAvoiding() {
@@ -873,10 +873,10 @@ void Lua_V1::WalkActorToAvoiding() {
 	if (!isSputActor(actorObj) || !isSputActor(avoidObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
-	SputActor *pAvoidActor = getSputActor(avoidObj);
+	SputActor *actor = getSputActor(actorObj);
+	SputActor *avoidActor = getSputActor(avoidObj);
 
-	if (!pActor || !pAvoidActor)
+	if (!actor || !avoidActor)
 		return;
 
 	if (lua_isnumber(xObj)) {
@@ -884,14 +884,14 @@ void Lua_V1::WalkActorToAvoiding() {
 		pos[1] = lua_getnumber(yObj);
 		pos[2] = lua_getnumber(zObj);
 	} else if (isSputActor(xObj)) {
-		SputActor *pDestActor = getSputActor(xObj);
+		SputActor *destActor = getSputActor(xObj);
 
-		if (!pDestActor)
+		if (!destActor)
 			return;
 
-		pos[0] = pDestActor->actorPos[0];
-		pos[1] = pDestActor->actorPos[1];
-		pos[2] = pDestActor->actorPos[2];
+		pos[0] = destActor->actorPos[0];
+		pos[1] = destActor->actorPos[1];
+		pos[2] = destActor->actorPos[2];
 	} else {
 		return;
 	}
@@ -900,10 +900,10 @@ void Lua_V1::WalkActorToAvoiding() {
 	goal[1] = lua_getnumber(goalObj);
 	goal[2] = lua_getnumber(goalObj);
 
-	if (!hasActorExtra(pActor, "WalkActorToAvoiding"))
+	if (!hasActorExtra(actor, "WalkActorToAvoiding"))
 		return;
 
-	g_grim->_pSputActor->actorWalkTo(pActor, pos, goal, pAvoidActor);
+	g_grim->_sputActor->actorWalkTo(actor, pos, goal, avoidActor);
 }
 
 /* This draw an actor to an offscreen buffer.
@@ -922,12 +922,12 @@ void Lua_V1::ActorToClean() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputActor->drawToClean(pActor);
+	g_grim->_sputActor->drawToClean(actor);
 }
 
 void Lua_V1::IsActorMoving() {
@@ -936,12 +936,12 @@ void Lua_V1::IsActorMoving() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	pushbool((pActor->mode & 1) != 0);
+	pushbool((actor->mode & 1) != 0);
 }
 
 void Lua_V1::IsActorResting() {
@@ -950,15 +950,15 @@ void Lua_V1::IsActorResting() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pushbool(pActor->pExtra->resting != 0);
+	pushbool(actor->extra->resting != 0);
 }
 
 /* Get the location of one of the actor's nodes, this is
@@ -978,32 +978,32 @@ void Lua_V1::GetActorNodeLocation() {
 	if (!lua_isnumber(nodeObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	CostumeNode *pNode = pActor->pCostumeStack;
+	CostumeNode *node = actor->costumeStack;
 
-	if (!pNode || !pNode->pHeadThing)
+	if (!node || !node->headThing)
 		return;
 
-	bool bDemo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
+	bool demo = (g_grim->getGameFlags() & ADGF_DEMO) != 0;
 
 	// The demo uses the joint matrices of the last frame
-	if (!pActor->onScreen && !bDemo)
-		g_grim->_pRd->_puppet.buildJointMatrices(pNode->pHeadThing, g_grim->_pSputActor->getOrientMatrix(pActor));
+	if (!actor->onScreen && !demo)
+		g_grim->_rd->_puppet.buildJointMatrices(node->headThing, g_grim->_sputActor->getOrientMatrix(actor));
 
 	uint nodeNum = (uint)luaFtol(lua_getnumber(nodeObj));
 	RdMatrix34 meshMatrix;
 
-	if (!g_grim->_pRd->_model3.getMeshMatrix(pNode->pHeadThing, g_grim->_pSputActor->getOrientMatrix(pActor), nodeNum, meshMatrix)) {
+	if (!g_grim->_rd->_model3.getMeshMatrix(node->headThing, g_grim->_sputActor->getOrientMatrix(actor), nodeNum, meshMatrix)) {
 		warning("GetActorNodeLocation(): invalid node %u", nodeNum);
 		return;
 	}
 
 	// The demo returns the position of the mesh matrix as it is
-	if (bDemo) {
+	if (demo) {
 		lua_pushnumber(meshMatrix[3][0]);
 		lua_pushnumber(meshMatrix[3][1]);
 		lua_pushnumber(meshMatrix[3][2]);
@@ -1012,10 +1012,10 @@ void Lua_V1::GetActorNodeLocation() {
 
 	RdVector3 location;
 
-	location[0] = pNode->pHeadThing->data.pModel3->aHNodes[nodeNum].pivot[0];
-	location[1] = pNode->pHeadThing->data.pModel3->aHNodes[nodeNum].pivot[1];
-	location[2] = pNode->pHeadThing->data.pModel3->aHNodes[nodeNum].pivot[2];
-	g_grim->_pRd->transformVector34Acc(location, meshMatrix);
+	location[0] = node->headThing->data.model3->hNodes[nodeNum].pivot[0];
+	location[1] = node->headThing->data.model3->hNodes[nodeNum].pivot[1];
+	location[2] = node->headThing->data.model3->hNodes[nodeNum].pivot[2];
+	g_grim->_rd->transformVector34Acc(location, meshMatrix);
 
 	location[0] = (float)((double)location[0] + meshMatrix[3][0]);
 	location[1] = (float)((double)location[1] + meshMatrix[3][1]);
@@ -1033,18 +1033,18 @@ void Lua_V1::SetActorWalkDominate() {
 	if (!isSputActor(actorObj))
 		return;
 
-	int bDominate = lua_isnil(modeObj);
-	SputActor *pActor = getSputActor(actorObj);
+	int dominate = lua_isnil(modeObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra) {
+	if (!actor->extra) {
 		warning("SetActorWalkDominate(): the actor has no extra data");
 		return;
 	}
 
-	g_grim->_pSputActor->setWalkDominate(pActor, bDominate);
+	g_grim->_sputActor->setWalkDominate(actor, dominate);
 }
 
 void Lua_V1::SetActorColormap() {
@@ -1054,25 +1054,25 @@ void Lua_V1::SetActorColormap() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pColorMap) {
+	if (!actor->colorMap) {
 		warning("SetActorColormap(): the actor has no colormap reference");
 		return;
 	}
 
 	if (lua_isstring(nameObj)) {
-		void *hColormap = g_grim->_pSputResource->alloc(kSputTagCmap, lua_getstring(nameObj));
+		void *colormap = g_grim->_sputResource->alloc(kSputTagCmap, lua_getstring(nameObj));
 
-		if (!pActor->pColorMap->valid || pActor->pColorMap->serial != (int)(intptr)hColormap) {
-			g_grim->_pRes->removeReference(pActor->pColorMap);
-			g_grim->_pRes->setReference(pActor->pColorMap, hColormap);
+		if (!actor->colorMap->valid || actor->colorMap->serial != (int)(intptr)colormap) {
+			g_grim->_res->removeReference(actor->colorMap);
+			g_grim->_res->setReference(actor->colorMap, colormap);
 		}
 	} else if (lua_isnil(nameObj)) {
-		g_grim->_pRes->removeReference(pActor->pColorMap);
+		g_grim->_res->removeReference(actor->colorMap);
 	}
 }
 
@@ -1083,13 +1083,13 @@ void Lua_V1::TurnActor() {
 	if (!isSputActor(actorObj) || !lua_isnumber(dirObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "TurnActor"))
+	if (!actor || !hasActorExtra(actor, "TurnActor"))
 		return;
 
-	pActor->mode &= ~1;
-	g_grim->_pSputActor->turn(pActor, lua_getnumber(dirObj));
+	actor->mode &= ~1;
+	g_grim->_sputActor->turn(actor, lua_getnumber(dirObj));
 }
 
 void Lua_V1::PushActorCostume() {
@@ -1099,13 +1099,13 @@ void Lua_V1::PushActorCostume() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isstring(nameObj))
-		g_grim->_pSputActor->pushCostume(pActor, lua_getstring(nameObj), 0);
+		g_grim->_sputActor->pushCostume(actor, lua_getstring(nameObj), 0);
 }
 
 void Lua_V1::SetActorCostume() {
@@ -1117,16 +1117,16 @@ void Lua_V1::SetActorCostume() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (lua_isstring(costumeObj)) {
-		result = g_grim->_pSputActor->setCostume(pActor, lua_getstring(costumeObj), 0);
+		result = g_grim->_sputActor->setCostume(actor, lua_getstring(costumeObj), 0);
 	} else if (lua_isnil(costumeObj)) {
-		while (pActor->pCostumeStack)
-			g_grim->_pSputActor->popCostume(pActor, 1);
+		while (actor->costumeStack)
+			g_grim->_sputActor->popCostume(actor, 1);
 
 		result = 1;
 	}
@@ -1146,14 +1146,14 @@ void Lua_V1::GetActorCostume() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	CostumeNode *pNode = pActor->pCostumeStack;
+	CostumeNode *node = actor->costumeStack;
 
 	if (!lua_isnil(costumeObj)) {
 		if (!lua_isnumber(costumeObj))
@@ -1161,17 +1161,17 @@ void Lua_V1::GetActorCostume() {
 
 		int depth = luaFtol(lua_getnumber(costumeObj));
 
-		while (pNode && depth > 0) {
+		while (node && depth > 0) {
 			depth--;
-			pNode = pNode->pNext;
+			node = node->next;
 		}
 	}
 
-	if (pNode) {
-		CosCostume *pCostume = g_grim->_pSputCostume->getCos()->instGetCostume(pNode->hCostumeInstance, nullptr);
+	if (node) {
+		CosCostume *costume = g_grim->_sputCostume->getCos()->instGetCostume(node->costumeInstance, nullptr);
 
-		if (pCostume) {
-			lua_pushstring(pCostume->name);
+		if (costume) {
+			lua_pushstring(costume->name);
 			return;
 		}
 	}
@@ -1184,22 +1184,22 @@ void Lua_V1::PopActorCostume() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	CosCostume *pCostume = nullptr;
+	CosCostume *costume = nullptr;
 
-	if (pActor->pCostumeStack)
-		pCostume = g_grim->_pSputCostume->getCos()->instGetCostume(pActor->pCostumeStack->hCostumeInstance, nullptr);
+	if (actor->costumeStack)
+		costume = g_grim->_sputCostume->getCos()->instGetCostume(actor->costumeStack->costumeInstance, nullptr);
 
-	if (pCostume)
-		lua_pushstring(pCostume->name);
+	if (costume)
+		lua_pushstring(costume->name);
 	else
 		lua_pushnil();
 
-	g_grim->_pSputActor->popCostume(pActor, 1);
+	g_grim->_sputActor->popCostume(actor, 1);
 }
 
 void Lua_V1::GetActorCostumeDepth() {
@@ -1210,14 +1210,14 @@ void Lua_V1::GetActorCostumeDepth() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	lua_pushnumber(g_grim->_pSputActor->countCostumes(pActor));
+	lua_pushnumber(g_grim->_sputActor->countCostumes(actor));
 }
 
 void Lua_V1::PrintActorCostumes() {
@@ -1226,19 +1226,19 @@ void Lua_V1::PrintActorCostumes() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputCostume->printCostumeInfo(pActor->pCostumeStack);
+	g_grim->_sputCostume->printCostumeInfo(actor->costumeStack);
 }
 
 void Lua_V1::LoadCostume() {
 	lua_Object nameObj = lua_getparam(1);
 
 	if (lua_isstring(nameObj))
-		g_grim->_pSputResource->alloc(kSputTagCost, lua_getstring(nameObj));
+		g_grim->_sputResource->alloc(kSputTagCost, lua_getstring(nameObj));
 	else
 		lua_pushnil();
 }
@@ -1248,20 +1248,20 @@ void Lua_V1::PlayActorChore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (pNode && lua_isnumber(choreObj) && g_grim->_pSputCostume->getCos()->instPlayChore(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj)), 0, 0))
+	if (node && lua_isnumber(choreObj) && g_grim->_sputCostume->getCos()->instPlayChore(node->costumeInstance, luaFtol(lua_getnumber(choreObj)), 0, 0))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -1272,20 +1272,20 @@ void Lua_V1::CompleteActorChore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (pNode && lua_isnumber(choreObj) && g_grim->_pSputCostume->getCos()->instCompleteChore(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj))))
+	if (node && lua_isnumber(choreObj) && g_grim->_sputCostume->getCos()->instCompleteChore(node->costumeInstance, luaFtol(lua_getnumber(choreObj))))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -1296,20 +1296,20 @@ void Lua_V1::PlayActorChoreLooping() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (pNode && lua_isnumber(choreObj) && g_grim->_pSputCostume->getCos()->instPlayChore(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj)), 1, 0))
+	if (node && lua_isnumber(choreObj) && g_grim->_sputCostume->getCos()->instPlayChore(node->costumeInstance, luaFtol(lua_getnumber(choreObj)), 1, 0))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -1320,28 +1320,28 @@ void Lua_V1::SetActorChoreLooping() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object loopObj = lua_getparam(3);
 	lua_Object costumeObj = lua_getparam(4);
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode) || !pNode)
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node) || !node)
 		return;
 
-	Cos *pCos = g_grim->_pSputCostume->getCos();
+	Cos *cos = g_grim->_sputCostume->getCos();
 
 	if (lua_isnumber(choreObj)) {
-		pCos->instSetChoreLoop(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj)), !lua_isnil(loopObj));
+		cos->instSetChoreLoop(node->costumeInstance, luaFtol(lua_getnumber(choreObj)), !lua_isnil(loopObj));
 	} else if (lua_isnil(choreObj)) {
-		int numChores = pCos->instCountChores(pNode->hCostumeInstance);
+		int numChores = cos->instCountChores(node->costumeInstance);
 
 		for (int i = 0; i < numChores; i++)
-			pCos->instSetChoreLoop(pNode->hCostumeInstance, i, !lua_isnil(loopObj));
+			cos->instSetChoreLoop(node->costumeInstance, i, !lua_isnil(loopObj));
 	}
 }
 
@@ -1350,23 +1350,23 @@ void Lua_V1::StopActorChore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object costumeObj = lua_getparam(3);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode) || !pNode)
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node) || !node)
 		return;
 
 	if (lua_isnumber(choreObj))
-		g_grim->_pSputCostume->getCos()->instStopChore(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj)));
+		g_grim->_sputCostume->getCos()->instStopChore(node->costumeInstance, luaFtol(lua_getnumber(choreObj)));
 	else if (lua_isnil(choreObj))
-		g_grim->_pSputCostume->getCos()->instStopChores(pNode->hCostumeInstance);
+		g_grim->_sputCostume->getCos()->instStopChores(node->costumeInstance);
 }
 
 void Lua_V1::FadeOutChore() {
@@ -1375,21 +1375,21 @@ void Lua_V1::FadeOutChore() {
 	lua_Object choreObj = lua_getparam(3);
 	lua_Object timeObj = lua_getparam(4);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	int choreIndex = luaFtol(lua_getnumber(choreObj));
 	int timeMs = luaFtol(lua_getnumber(timeObj));
 
-	if ((lua_isstring(costumeObj) || lua_isnumber(costumeObj)) && findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
-		g_grim->_pSputCostume->fadeKeysOut(pNode->hCostumeInstance, choreIndex, timeMs);
+	if ((lua_isstring(costumeObj) || lua_isnumber(costumeObj)) && findCostumeInStack(costumeObj, actor->costumeStack, &node))
+		g_grim->_sputCostume->fadeKeysOut(node->costumeInstance, choreIndex, timeMs);
 }
 
 void Lua_V1::FadeInChore() {
@@ -1398,23 +1398,23 @@ void Lua_V1::FadeInChore() {
 	lua_Object choreObj = lua_getparam(3);
 	lua_Object timeObj = lua_getparam(4);
 
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	int choreIndex = luaFtol(lua_getnumber(choreObj));
 	int timeMs = luaFtol(lua_getnumber(timeObj));
 
-	if ((lua_isstring(costumeObj) || lua_isnumber(costumeObj)) && findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode)) {
-		g_grim->_pSputCostume->getCos()->instPlayChore(pNode->hCostumeInstance, choreIndex, 0, 0);
-		g_grim->_pSputCostume->getCos()->instUpdateChore(pNode->hCostumeInstance, choreIndex, 100);
-		g_grim->_pSputCostume->fadeKeysIn(pNode->hCostumeInstance, choreIndex, timeMs);
+	if ((lua_isstring(costumeObj) || lua_isnumber(costumeObj)) && findCostumeInStack(costumeObj, actor->costumeStack, &node)) {
+		g_grim->_sputCostume->getCos()->instPlayChore(node->costumeInstance, choreIndex, 0, 0);
+		g_grim->_sputCostume->getCos()->instUpdateChore(node->costumeInstance, choreIndex, 100);
+		g_grim->_sputCostume->fadeKeysIn(node->costumeInstance, choreIndex, timeMs);
 	}
 }
 
@@ -1423,31 +1423,31 @@ void Lua_V1::IsActorChoring() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object ignoreLoopingObj = lua_getparam(3);
 	lua_Object costumeObj = lua_getparam(4);
-	CostumeNode *pNode;
+	CostumeNode *node;
 	int foundChore = -1;
 
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
 	bool ignoreLooping = !lua_isnil(ignoreLoopingObj);
 
-	if (!pNode) {
+	if (!node) {
 		lua_pushnil();
 		return;
 	}
 
-	Cos *pCos = g_grim->_pSputCostume->getCos();
+	Cos *cos = g_grim->_sputCostume->getCos();
 
 	if (lua_isnumber(choreObj)) {
-		int status = pCos->instChoreStatus(pNode->hCostumeInstance, luaFtol(lua_getnumber(choreObj)));
+		int status = cos->instChoreStatus(node->costumeInstance, luaFtol(lua_getnumber(choreObj)));
 
 		if (!(status & kCosChoreStatePlaying)) {
 			lua_pushnil();
@@ -1464,10 +1464,10 @@ void Lua_V1::IsActorChoring() {
 	}
 
 	if (lua_isnil(choreObj)) {
-		int numChores = pCos->instCountChores(pNode->hCostumeInstance);
+		int numChores = cos->instCountChores(node->costumeInstance);
 
 		for (int i = 0; i < numChores; i++) {
-			int status = pCos->instChoreStatus(pNode->hCostumeInstance, i);
+			int status = cos->instChoreStatus(node->costumeInstance, i);
 
 			if ((status & kCosChoreStatePlaying) && (!ignoreLooping || !(status & kCosChoreStateLooping))) {
 				foundChore = i;
@@ -1494,35 +1494,35 @@ void Lua_V1::IsActorChoring() {
 void Lua_V1::GetActorChores() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object costumeObj = lua_getparam(2);
-	CostumeNode *pNode;
+	CostumeNode *node;
 
 	if (!isSputActor(actorObj)) {
 		lua_pushnil();
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor) {
+	if (!actor) {
 		lua_pushnil();
 		return;
 	}
 
-	if (!findCostumeInStack(costumeObj, pActor->pCostumeStack, &pNode))
+	if (!findCostumeInStack(costumeObj, actor->costumeStack, &node))
 		return;
 
-	if (!pNode) {
+	if (!node) {
 		lua_pushnil();
 		return;
 	}
 
-	Cos *pCos = g_grim->_pSputCostume->getCos();
+	Cos *cos = g_grim->_sputCostume->getCos();
 	lua_Object choreTable = lua_createtable();
-	int numChores = pCos->instCountChores(pNode->hCostumeInstance);
+	int numChores = cos->instCountChores(node->costumeInstance);
 	int playingCount = 0;
 
 	for (int i = 0; i < numChores; i++) {
-		if (pCos->instChoreStatus(pNode->hCostumeInstance, i) & kCosChoreStatePlaying) {
+		if (cos->instChoreStatus(node->costumeInstance, i) & kCosChoreStatePlaying) {
 			lua_pushobject(choreTable);
 			lua_pushnumber((float)i);
 			lua_pushnumber((float)i);
@@ -1549,61 +1549,61 @@ void Lua_V1::ActorLookAt() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	if (!pActor->pCostumeStack)
+	if (!actor->costumeStack)
 		return;
 
-	Extra *pExtra = pActor->pExtra;
+	Extra *extra = actor->extra;
 
 	if (lua_isnumber(rateObj))
-		pActor->pCostumeStack->headTurnRate = lua_getnumber(rateObj);
+		actor->costumeStack->headTurnRate = lua_getnumber(rateObj);
 
 	if (lua_isnil(xObj)) {
-		if (pExtra->lookCarrot[0] != 0.0f || pExtra->lookCarrot[1] != 0.0f || pExtra->lookCarrot[2] != 0.0f) {
-			pExtra->lookCarrot[0] = 0.0f;
-			pExtra->lookCarrot[1] = 0.0f;
-			pExtra->lookCarrot[2] = 0.0f;
+		if (extra->lookCarrot[0] != 0.0f || extra->lookCarrot[1] != 0.0f || extra->lookCarrot[2] != 0.0f) {
+			extra->lookCarrot[0] = 0.0f;
+			extra->lookCarrot[1] = 0.0f;
+			extra->lookCarrot[2] = 0.0f;
 
 			if (lua_isnumber(yObj))
-				pActor->pCostumeStack->headTurnRate = lua_getnumber(yObj);
+				actor->costumeStack->headTurnRate = lua_getnumber(yObj);
 
-			pActor->mode |= 2;
+			actor->mode |= 2;
 		}
 	} else if (lua_isnumber(xObj)) {
-		pExtra->lookCarrot[0] = lua_getnumber(xObj);
+		extra->lookCarrot[0] = lua_getnumber(xObj);
 
 		if (lua_isnumber(yObj))
-			pExtra->lookCarrot[1] = lua_getnumber(yObj);
+			extra->lookCarrot[1] = lua_getnumber(yObj);
 		else
-			pExtra->lookCarrot[1] = 0.0f;
+			extra->lookCarrot[1] = 0.0f;
 
 		if (lua_isnumber(zObj))
-			pExtra->lookCarrot[2] = lua_getnumber(zObj);
+			extra->lookCarrot[2] = lua_getnumber(zObj);
 		else
-			pExtra->lookCarrot[2] = 0.0f;
+			extra->lookCarrot[2] = 0.0f;
 
-		pActor->mode |= 2;
+		actor->mode |= 2;
 	} else if (isSputActor(xObj)) {
-		SputActor *pLookedActor = getSputActor(xObj);
+		SputActor *lookedActor = getSputActor(xObj);
 
-		if (!pLookedActor)
+		if (!lookedActor)
 			return;
 
-		pExtra->lookCarrot[0] = pLookedActor->actorPos[0];
-		pExtra->lookCarrot[1] = pLookedActor->actorPos[1];
-		pExtra->lookCarrot[2] = pLookedActor->actorPos[2];
+		extra->lookCarrot[0] = lookedActor->actorPos[0];
+		extra->lookCarrot[1] = lookedActor->actorPos[1];
+		extra->lookCarrot[2] = lookedActor->actorPos[2];
 
 		if (lua_isnumber(yObj))
-			pActor->pCostumeStack->headTurnRate = lua_getnumber(yObj);
+			actor->costumeStack->headTurnRate = lua_getnumber(yObj);
 
-		pActor->mode |= 2;
+		actor->mode |= 2;
 	}
 }
 
@@ -1627,40 +1627,40 @@ void Lua_V1::TurnActorTo() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "TurnActorTo")) {
+	if (!actor || !hasActorExtra(actor, "TurnActorTo")) {
 		lua_pushnil();
 		return;
 	}
 
 	if (isSputActor(xObj)) {
-		SputActor *pTargetActor = getSputActor(xObj);
+		SputActor *targetActor = getSputActor(xObj);
 
-		if (!pTargetActor) {
+		if (!targetActor) {
 			lua_pushnil();
 			return;
 		}
 
-		target[0] = pTargetActor->actorPos[0];
-		target[1] = pTargetActor->actorPos[1];
-		target[2] = pTargetActor->actorPos[2];
+		target[0] = targetActor->actorPos[0];
+		target[1] = targetActor->actorPos[1];
+		target[2] = targetActor->actorPos[2];
 	} else {
 		target[0] = lua_getnumber(xObj);
 		target[1] = lua_getnumber(yObj);
 		target[2] = lua_getnumber(zObj);
 	}
 
-	if (!pActor->pExtra->puck)
-		g_grim->_pSputActor->enablePuck(pActor, 1);
+	if (!actor->extra->puck)
+		g_grim->_sputActor->enablePuck(actor, 1);
 
-	float turnRate = pActor->pExtra->turnRate;
+	float turnRate = actor->extra->turnRate;
 
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
-	float maxAngle = (float)((double)g_grim->_pSputTime->getFrameTimeFlex() * turnRate);
-	double turned = pActor->pExtra->puck->pointAt(target, maxAngle);
+	float maxAngle = (float)((double)g_grim->_sputTime->getFrameTimeFlex() * turnRate);
+	double turned = actor->extra->puck->pointAt(target, maxAngle);
 
 	if (turned < 0.0)
 		turned = -turned;
@@ -1683,33 +1683,33 @@ void Lua_V1::PointActorAt() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "PointActorAt"))
+	if (!actor || !hasActorExtra(actor, "PointActorAt"))
 		return;
 
 	if (isSputActor(xObj)) {
-		SputActor *pTargetActor = getSputActor(xObj);
+		SputActor *targetActor = getSputActor(xObj);
 
-		if (!pTargetActor)
+		if (!targetActor)
 			return;
 
-		target[0] = pTargetActor->actorPos[0];
-		target[1] = pTargetActor->actorPos[1];
-		target[2] = pTargetActor->actorPos[2];
+		target[0] = targetActor->actorPos[0];
+		target[1] = targetActor->actorPos[1];
+		target[2] = targetActor->actorPos[2];
 	} else {
 		target[0] = lua_getnumber(xObj);
 		target[1] = lua_getnumber(yObj);
 		target[2] = lua_getnumber(zObj);
 	}
 
-	if (!pActor->pExtra->puck)
-		g_grim->_pSputActor->enablePuck(pActor, 1);
+	if (!actor->extra->puck)
+		g_grim->_sputActor->enablePuck(actor, 1);
 
-	pActor->pExtra->puck->pointAt(target, 3.4028235e38f);
+	actor->extra->puck->pointAt(target, 3.4028235e38f);
 
-	if (pActor->pExtra->turnRate > 0.0f)
-		pActor->pExtra->turnRate = pActor->pExtra->turnRate * -1.0f;
+	if (actor->extra->turnRate > 0.0f)
+		actor->extra->turnRate = actor->extra->turnRate * -1.0f;
 }
 
 void Lua_V1::WalkActorVector() {
@@ -1723,13 +1723,13 @@ void Lua_V1::WalkActorVector() {
 	if (!isSputActor(actorObj) || !isSputActor(refObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
-	SputActor *pRefActor = getSputActor(refObj);
+	SputActor *actor = getSputActor(actorObj);
+	SputActor *refActor = getSputActor(refObj);
 
-	if (!pActor || !pRefActor || !hasActorExtra(pActor, "WalkActorVector"))
+	if (!actor || !refActor || !hasActorExtra(actor, "WalkActorVector"))
 		return;
 
-	if (!pActor->pExtra->puck) {
+	if (!actor->extra->puck) {
 		warning("WalkActorVector(): the actor has no puck");
 		return;
 	}
@@ -1740,7 +1740,7 @@ void Lua_V1::WalkActorVector() {
 	target[0] = lua_getnumber(xObj);
 	target[1] = lua_getnumber(yObj);
 	target[2] = lua_getnumber(zObj);
-	memcpy(refMatrix, g_grim->_pSputActor->getOrientMatrix(pRefActor), sizeof(RdMatrix34));
+	memcpy(refMatrix, g_grim->_sputActor->getOrientMatrix(refActor), sizeof(RdMatrix34));
 
 	if (lua_isnumber(adjustObj)) {
 		RdVector3 adjust;
@@ -1755,38 +1755,38 @@ void Lua_V1::WalkActorVector() {
 		refMatrix[3][0] = 0.0f;
 		refMatrix[3][1] = 0.0f;
 		refMatrix[3][2] = 0.0f;
-		g_grim->_pRd->preRotate34(refMatrix, adjust);
+		g_grim->_rd->preRotate34(refMatrix, adjust);
 		refMatrix[3][0] = savedPos[0];
 		refMatrix[3][1] = savedPos[1];
 		refMatrix[3][2] = savedPos[2];
 	}
 
-	g_grim->_pRd->transformVector34Acc(target, refMatrix);
+	g_grim->_rd->transformVector34Acc(target, refMatrix);
 
 	for (int i = 0; i < 3; i++)
-		target[i] = (float)((double)pActor->actorPos[i] + target[i]);
+		target[i] = (float)((double)actor->actorPos[i] + target[i]);
 
 	RdVector3 localTarget;
 
 	localTarget[0] = target[0];
 	localTarget[1] = target[1];
 	localTarget[2] = target[2];
-	pActor->pExtra->puck->invXform(localTarget);
-	g_grim->_pRd->normalize3Acc(localTarget);
+	actor->extra->puck->invXform(localTarget);
+	g_grim->_rd->normalize3Acc(localTarget);
 
-	float turnAngle = (float)(90.0f - (double)g_grim->_pStdMath->arcSin3(localTarget[1]));
-	float turnRate = pActor->pExtra->turnRate;
+	float turnAngle = (float)(90.0f - (double)g_grim->_stdMath->arcSin3(localTarget[1]));
+	float turnRate = actor->extra->turnRate;
 
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
-	double turnStep = (double)g_grim->_pSputTime->getFrameTimeFlex() * turnRate;
+	double turnStep = (double)g_grim->_sputTime->getFrameTimeFlex() * turnRate;
 
-	pActor->pExtra->puck->pointAt(target, (float)(turnStep + turnStep));
+	actor->extra->puck->pointAt(target, (float)(turnStep + turnStep));
 
 	if (!(turnAngle >= 90.0f)) {
-		pActor->mode &= ~1;
-		g_grim->_pSputActor->forward(pActor);
+		actor->mode &= ~1;
+		g_grim->_sputActor->forward(actor);
 	}
 }
 
@@ -1802,13 +1802,13 @@ void Lua_V1::SetActorPitch() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	pActor->actorRot[0] = lua_getnumber(pitchObj);
-	pActor->matrixValid = 0;
+	actor->actorRot[0] = lua_getnumber(pitchObj);
+	actor->matrixValid = 0;
 }
 
 void Lua_V1::SetActorRoll() {
@@ -1818,13 +1818,13 @@ void Lua_V1::SetActorRoll() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	pActor->actorRot[2] = lua_getnumber(rollObj);
-	pActor->matrixValid = 0;
+	actor->actorRot[2] = lua_getnumber(rollObj);
+	actor->matrixValid = 0;
 }
 
 void Lua_V1::SetActorLookRate() {
@@ -1834,13 +1834,13 @@ void Lua_V1::SetActorLookRate() {
 	if (!isSputActor(actorObj) || !lua_isnumber(rateObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (pActor->pCostumeStack)
-		pActor->pCostumeStack->headTurnRate = lua_getnumber(rateObj);
+	if (actor->costumeStack)
+		actor->costumeStack->headTurnRate = lua_getnumber(rateObj);
 }
 
 void Lua_V1::GetActorLookRate() {
@@ -1851,10 +1851,10 @@ void Lua_V1::GetActorLookRate() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (pActor && pActor->pCostumeStack)
-		lua_pushnumber(pActor->pCostumeStack->headTurnRate);
+	if (actor && actor->costumeStack)
+		lua_pushnumber(actor->costumeStack->headTurnRate);
 	else
 		lua_pushnil();
 }
@@ -1874,9 +1874,9 @@ void Lua_V1::SetActorHead() {
 			!lua_isnumber(maxRollObj) || !lua_isnumber(maxPitchObj) || !lua_isnumber(maxYawObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	float maxYaw = lua_getnumber(maxYawObj);
@@ -1886,7 +1886,7 @@ void Lua_V1::SetActorHead() {
 	uint joint2 = (uint)luaFtol(lua_getnumber(joint2Obj));
 	uint joint1 = (uint)luaFtol(lua_getnumber(joint1Obj));
 
-	g_grim->_pSputActor->setActorHead(pActor, joint1, joint2, joint3, maxRoll, maxPitch, maxYaw);
+	g_grim->_sputActor->setActorHead(actor, joint1, joint2, joint3, maxRoll, maxPitch, maxYaw);
 }
 
 void Lua_V1::PutActorAtInterest() {
@@ -1895,19 +1895,19 @@ void Lua_V1::PutActorAtInterest() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+	Room *room = g_grim->_sputRoom->getCurrentRoom();
 
-	if (pRoom) {
+	if (room) {
 		RdVector3 interest;
-		interest[0] = pRoom->pSetups[pRoom->curSetup].camera.interest[0];
-		interest[1] = pRoom->pSetups[pRoom->curSetup].camera.interest[1];
-		interest[2] = pRoom->pSetups[pRoom->curSetup].camera.interest[2];
-		g_grim->_pSputActor->setActorPosition(pActor, interest);
+		interest[0] = room->setups[room->curSetup].camera.interest[0];
+		interest[1] = room->setups[room->curSetup].camera.interest[1];
+		interest[2] = room->setups[room->curSetup].camera.interest[2];
+		g_grim->_sputActor->setActorPosition(actor, interest);
 	}
 }
 
@@ -1918,17 +1918,17 @@ void Lua_V1::SetActorFollowBoxes() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	int bFollow = 1;
+	int follow = 1;
 
 	if (lua_isnil(followObj))
-		bFollow = 0;
+		follow = 0;
 
-	g_grim->_pSputActor->enableWalkSystem(pActor, bFollow);
+	g_grim->_sputActor->enableWalkSystem(actor, follow);
 }
 
 void Lua_V1::SetActorConstrain() {
@@ -1938,34 +1938,34 @@ void Lua_V1::SetActorConstrain() {
 	if (!isSputActor(actorObj))
 		return;
 
-	int bConstrain = !lua_isnil(constrainObj);
-	SputActor *pActor = getSputActor(actorObj);
+	int constrain = !lua_isnil(constrainObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra) {
+	if (!actor->extra) {
 		warning("SetActorConstrain(): the actor has no extra data");
 		return;
 	}
 
-	g_grim->_pSputActor->setActorConstrain(pActor, bConstrain);
+	g_grim->_sputActor->setActorConstrain(actor, constrain);
 }
 
 void Lua_V1::GetVisibleThings() {
 	lua_Object actorObj = lua_getparam(1);
-	SputActor *pActor = nullptr;
+	SputActor *actor = nullptr;
 
 	if (lua_isnil(actorObj)) {
-		pActor = g_grim->_pSputActor->getSelectedActor();
+		actor = g_grim->_sputActor->getSelectedActor();
 
-		if (!pActor)
+		if (!actor)
 			return;
 	} else if (isSputActor(actorObj)) {
-		pActor = getSputActor(actorObj);
+		actor = getSputActor(actorObj);
 	}
 
-	if (!pActor) {
+	if (!actor) {
 		warning("GetVisibleThings(): the parameter is not an actor");
 		return;
 	}
@@ -1974,15 +1974,15 @@ void Lua_V1::GetVisibleThings() {
 
 	// The demo checks all the actors, not the ones linked to the set
 	if (g_grim->getGameFlags() & ADGF_DEMO) {
-		int numActors = g_grim->_pSputActor->getNumActors();
+		int numActors = g_grim->_sputActor->getNumActors();
 
 		for (int i = 0; i < numActors; i++) {
-			SputActor *pTestActor = &g_grim->_pSputActor->getActors()[i];
+			SputActor *testActor = &g_grim->_sputActor->getActors()[i];
 			float distance;
 
-			if (pTestActor != pActor && !(pActor->flags & 1) && g_grim->_pSputActor->canActorSeeActor(pActor, pTestActor, &distance)) {
+			if (testActor != actor && !(actor->flags & 1) && g_grim->_sputActor->canActorSeeActor(actor, testActor, &distance)) {
 				lua_pushobject(result);
-				pushSputActor(g_grim->_pSputActor->getActorHandle(pTestActor));
+				pushSputActor(g_grim->_sputActor->getActorHandle(testActor));
 				lua_pushnumber(1.0f);
 				lua_settable();
 			}
@@ -1992,26 +1992,26 @@ void Lua_V1::GetVisibleThings() {
 		return;
 	}
 
-	if (!pActor->curSetName[0])
+	if (!actor->curSetName[0])
 		lua_pushobject(result);
 
-	RoomActorLink *pLink = g_grim->_pSputRoom->getRoomActors(pActor->curSetName);
+	RoomActorLink *link = g_grim->_sputRoom->getRoomActors(actor->curSetName);
 
-	while (pLink) {
-		SputActor *pTestActor = &g_grim->_pSputActor->getActors()[pLink->actorIndex];
+	while (link) {
+		SputActor *testActor = &g_grim->_sputActor->getActors()[link->actorIndex];
 
-		if (pTestActor != pActor && !(pActor->flags & 1)) {
+		if (testActor != actor && !(actor->flags & 1)) {
 			float distance;
 
-			if (g_grim->_pSputActor->canActorSeeActor(pActor, pTestActor, &distance)) {
+			if (g_grim->_sputActor->canActorSeeActor(actor, testActor, &distance)) {
 				lua_pushobject(result);
-				pushSputActor(g_grim->_pSputActor->getActorHandle(pTestActor));
+				pushSputActor(g_grim->_sputActor->getActorHandle(testActor));
 				lua_pushnumber(1.0f);
 				lua_settable();
 			}
 		}
 
-		pLink = pLink->pNext;
+		link = link->next;
 	}
 
 	lua_pushobject(result);
@@ -2022,7 +2022,7 @@ void Lua_V1::SetShadowColor() {
 	int g = luaFtol(lua_getnumber(lua_getparam(2)));
 	int b = luaFtol(lua_getnumber(lua_getparam(3)));
 
-	g_grim->_pSputCostume->setShadowColor(r, g, b);
+	g_grim->_sputCostume->setShadowColor(r, g, b);
 }
 
 void Lua_V1::SetShadowColorDemo() {
@@ -2037,12 +2037,12 @@ void Lua_V1::KillActorShadows() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputActor->resetShadows(pActor);
+	g_grim->_sputActor->resetShadows(actor);
 }
 
 void Lua_V1::SetActiveShadow() {
@@ -2054,15 +2054,15 @@ void Lua_V1::SetActiveShadow() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pActor->pExtra->activeShadow = luaFtol(lua_getnumber(shadowIdObj));
+	actor->extra->activeShadow = luaFtol(lua_getnumber(shadowIdObj));
 }
 
 void Lua_V1::SetActorShadowPoint() {
@@ -2076,16 +2076,16 @@ void Lua_V1::SetActorShadowPoint() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "SetActorShadowPoint"))
+	if (!actor || !hasActorExtra(actor, "SetActorShadowPoint"))
 		return;
 
 	float z = lua_getnumber(zObj);
 	float y = lua_getnumber(yObj);
 	float x = lua_getnumber(xObj);
 
-	g_grim->_pSputActor->setShadowPoint(pActor, x, y, z);
+	g_grim->_sputActor->setShadowPoint(actor, x, y, z);
 }
 
 void Lua_V1::SetActorShadowPlane() {
@@ -2097,9 +2097,9 @@ void Lua_V1::SetActorShadowPlane() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "SetActorShadowPlane"))
+	if (!actor || !hasActorExtra(actor, "SetActorShadowPlane"))
 		return;
 
 	const char *name = lua_getstring(nameObj);
@@ -2109,7 +2109,7 @@ void Lua_V1::SetActorShadowPlane() {
 		return;
 	}
 
-	g_grim->_pSputActor->setShadowPlane(pActor, name);
+	g_grim->_sputActor->setShadowPlane(actor, name);
 }
 
 void Lua_V1::AddShadowPlane() {
@@ -2121,13 +2121,13 @@ void Lua_V1::AddShadowPlane() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
 	const char *name = lua_getstring(nameObj);
 
@@ -2136,7 +2136,7 @@ void Lua_V1::AddShadowPlane() {
 		return;
 	}
 
-	g_grim->_pSputActor->addShadowClipPlane(pActor, pActor->pExtra->activeShadow, name);
+	g_grim->_sputActor->addShadowClipPlane(actor, actor->extra->activeShadow, name);
 }
 
 void Lua_V1::ActivateActorShadow() {
@@ -2149,14 +2149,14 @@ void Lua_V1::ActivateActorShadow() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor || !hasActorExtra(pActor, "ActivateActorShadow"))
+	if (!actor || !hasActorExtra(actor, "ActivateActorShadow"))
 		return;
 
-	int bActive = !lua_isnil(stateObj);
+	int active = !lua_isnil(stateObj);
 
-	g_grim->_pSputActor->activateActorShadow(pActor, luaFtol(lua_getnumber(shadowIdObj)), bActive);
+	g_grim->_sputActor->activateActorShadow(actor, luaFtol(lua_getnumber(shadowIdObj)), active);
 }
 
 void Lua_V1::SetActorShadowValid() {
@@ -2168,15 +2168,15 @@ void Lua_V1::SetActorShadowValid() {
 		return;
 	}
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	g_grim->_pSputActor->setShadowValid(pActor, pActor->pExtra->activeShadow, luaFtol(lua_getnumber(numObj)));
+	g_grim->_sputActor->setShadowValid(actor, actor->extra->activeShadow, luaFtol(lua_getnumber(numObj)));
 }
 
 void Lua_V1::GetActorRect() {
@@ -2185,13 +2185,13 @@ void Lua_V1::GetActorRect() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (pActor && pActor->onScreen) {
-		lua_pushnumber((float)pActor->drawnRect.x);
-		lua_pushnumber((float)pActor->drawnRect.y);
-		lua_pushnumber((float)pActor->drawnRect.width);
-		lua_pushnumber((float)pActor->drawnRect.height);
+	if (actor && actor->onScreen) {
+		lua_pushnumber((float)actor->drawnRect.x);
+		lua_pushnumber((float)actor->drawnRect.y);
+		lua_pushnumber((float)actor->drawnRect.width);
+		lua_pushnumber((float)actor->drawnRect.height);
 	} else {
 		lua_pushnil();
 	}
@@ -2211,15 +2211,15 @@ void Lua_V1::SetActorInvClipNode() {
 	else
 		nodeId = luaFtol(lua_getnumber(nodeObj));
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	if (!pActor->pExtra)
-		g_grim->_pSputActor->allocateActorExtra(pActor);
+	if (!actor->extra)
+		g_grim->_sputActor->allocateActorExtra(actor);
 
-	pActor->pExtra->subClipNode = nodeId;
+	actor->extra->subClipNode = nodeId;
 }
 
 void Lua_V1::SetActorClipPlane() {
@@ -2234,9 +2234,9 @@ void Lua_V1::SetActorClipPlane() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
 	if (!lua_isnumber(normalXObj) || !lua_isnumber(normalYObj) || !lua_isnumber(normalZObj) ||
@@ -2249,13 +2249,13 @@ void Lua_V1::SetActorClipPlane() {
 	normal[0] = lua_getnumber(normalXObj);
 	normal[1] = lua_getnumber(normalYObj);
 	normal[2] = lua_getnumber(normalZObj);
-	g_grim->_pRd->normalize3Acc(normal);
+	g_grim->_rd->normalize3Acc(normal);
 
 	point[0] = lua_getnumber(pointXObj);
 	point[1] = lua_getnumber(pointYObj);
 	point[2] = lua_getnumber(pointZObj);
 
-	g_grim->_pSputActor->setClipPlane(pActor, normal, point);
+	g_grim->_sputActor->setClipPlane(actor, normal, point);
 }
 
 void Lua_V1::SetActorClipActive() {
@@ -2265,12 +2265,12 @@ void Lua_V1::SetActorClipActive() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputActor->setClipPlaneActive(pActor, luaFtol(lua_getnumber(stateObj)));
+	g_grim->_sputActor->setClipPlaneActive(actor, luaFtol(lua_getnumber(stateObj)));
 }
 
 void Lua_V1::SetActorFrustrumCull() {
@@ -2280,12 +2280,12 @@ void Lua_V1::SetActorFrustrumCull() {
 	if (!isSputActor(actorObj))
 		return;
 
-	SputActor *pActor = getSputActor(actorObj);
+	SputActor *actor = getSputActor(actorObj);
 
-	if (!pActor)
+	if (!actor)
 		return;
 
-	g_grim->_pSputActor->setFrustrumCull(pActor, luaFtol(lua_getnumber(stateObj)));
+	g_grim->_sputActor->setFrustrumCull(actor, luaFtol(lua_getnumber(stateObj)));
 }
 
 void Lua_V1::DriveActorTo() {

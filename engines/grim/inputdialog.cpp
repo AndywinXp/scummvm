@@ -33,7 +33,7 @@ namespace Grim {
 
 InputDialog::InputDialog(const Common::String &message, const Common::String &string, bool hasTextField) :
 		GUI::Dialog(30, 20, 260, 124), _hasTextField(hasTextField),
-		m_text(nullptr) {
+		_text(nullptr) {
 
 	const int screenW = g_system->getOverlayWidth();
 	const int screenH = g_system->getOverlayHeight();
@@ -76,7 +76,7 @@ InputDialog::InputDialog(const Common::String &message, const Common::String &st
 	}
 	height += 10;
 	if (_hasTextField) {
-		m_text = new GUI::EditTextWidget(this, 10, height, _w - 20, kLineHeight, Common::U32String(string), _("Input text"));
+		_text = new GUI::EditTextWidget(this, 10, height, _w - 20, kLineHeight, Common::U32String(string), _("Input text"));
 		height += kLineHeight + 10;
 	}
 
@@ -85,7 +85,7 @@ InputDialog::InputDialog(const Common::String &message, const Common::String &st
 }
 
 Common::String InputDialog::getString() {
-	return m_text->getEditString();
+	return _text->getEditString();
 }
 
 void InputDialog::handleKeyDown(Common::KeyState state) {

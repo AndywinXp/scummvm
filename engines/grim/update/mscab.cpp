@@ -85,16 +85,16 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 
 	//CFFOLDERs PARSING
 	for (uint16 i = 0; i < numFolders; ++i) {
-		FolderEntry fEntry;
+		FolderEntry entry;
 
-		fEntry.offset = _data->readUint32LE();
-		fEntry.num_blocks = _data->readUint16LE();
-		fEntry.comp_type = _data->readUint16LE();
+		entry.offset = _data->readUint32LE();
+		entry.num_blocks = _data->readUint16LE();
+		entry.comp_type = _data->readUint16LE();
 
 		if (_data->err())
 			return;
 
-		_folderMap[i] = fEntry;
+		_folderMap[i] = entry;
 	}
 
 	// CFFILEs PARSING
@@ -103,11 +103,11 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 		return;
 
 	for (uint16 i = 0; i < numFiles; ++i) {
-		FileEntry fEntry;
+		FileEntry entry;
 
-		fEntry.length = _data->readUint32LE();
-		fEntry.folderOffset = _data->readUint32LE();
-		uint16 iFolder = _data->readUint16LE();
+		entry.length = _data->readUint32LE();
+		entry.folderOffset = _data->readUint32LE();
+		uint16 folder = _data->readUint16LE();
 		/* uint16 date = */ _data->readUint16LE();
 		/* uint16 time = */ _data->readUint16LE();
 		/* uint16 attribs = */ _data->readUint16LE();
@@ -121,14 +121,14 @@ MsCabinet::MsCabinet(Common::SeekableReadStream *data) :
 			return;
 		}
 
-		if (_folderMap.contains(iFolder))
-			fEntry.folder = &_folderMap[iFolder];
+		if (_folderMap.contains(folder))
+			entry.folder = &_folderMap[folder];
 		else {
 			_fileMap.clear();
 			return;
 		}
 
-		_fileMap[Common::Path(name, '/')] = fEntry;
+		_fileMap[Common::Path(name, '/')] = entry;
 	}
 }
 

@@ -45,7 +45,7 @@ public:
 	void setup(LABitmap *bitmap) override;
 	int getSize() override;
 
-	GLuint glId;
+	GLuint _glId;
 
 private:
 	void uploadBlankImage(int width, int height);

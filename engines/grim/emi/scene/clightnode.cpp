@@ -25,9 +25,9 @@
 namespace Grim {
 
 CLightNode::CLightNode(EmiEngine *engine) : _engine(engine) {
-	active = false;
-	savedActive = false;
-	light = nullptr;
+	_active = false;
+	_savedActive = false;
+	_light = nullptr;
 }
 
 CLightNode::~CLightNode() {
@@ -35,16 +35,16 @@ CLightNode::~CLightNode() {
 }
 
 void CLightNode::setLight(CLight *newLight) {
-	light = newLight;
+	_light = newLight;
 }
 
 void CLightNode::setActive(bool newActive) {
 	if (newActive) {
-		if (!active) {
+		if (!_active) {
 			_engine->_activeLights.push_back(this);
-			active = true;
+			_active = true;
 		}
-	} else if (active) {
+	} else if (_active) {
 		Common::List<CLightNode *>::iterator it = _engine->_activeLights.begin();
 
 		while (it != _engine->_activeLights.end()) {
@@ -54,7 +54,7 @@ void CLightNode::setActive(bool newActive) {
 				++it;
 		}
 
-		active = false;
+		_active = false;
 	}
 }
 

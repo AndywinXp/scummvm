@@ -31,7 +31,7 @@ namespace Grim {
 struct WuRegistryValue {
 	Common::String name;
 	uint type;
-	bool bInConfMan;
+	bool inConfMan;
 	Common::Array<byte> data;
 };
 
@@ -55,24 +55,24 @@ public:
 	int saveFloat(const char *valueName, float value);
 	int getInt(const char *valueName, int defaultValue);
 	float getFloat(const char *valueName, float defaultValue);
-	int saveBinary(const char *valueName, const byte *pData, uint size);
-	int getBinary(const char *valueName, byte *pData, uint size);
-	int saveStr(const char *valueName, const char *pData);
-	int getStr(const char *valueName, char *pData, uint size, const char *pDefault);
+	int saveBinary(const char *valueName, const byte *data, uint size);
+	int getBinary(const char *valueName, byte *data, uint size);
+	int saveStr(const char *valueName, const char *data);
+	int getStr(const char *valueName, char *data, uint size, const char *defaultValue);
 	uint queryType(const char *valueName);
 
-	static int compareNames(const void *pA, const void *pB);
+	static int compareNames(const void *a, const void *b);
 
 private:
 	int findValue(const char *valueName) const;
-	bool claimKey(const char *valueName, uint type, Common::String *pKey);
-	bool findConfKey(const char *valueName, Common::String *pKey) const;
-	void setValue(const char *valueName, uint type, const byte *pData, uint size);
-	bool queryValue(const char *valueName, uint *pType, byte *pData, uint *pSize) const;
+	bool claimKey(const char *valueName, uint type, Common::String *key);
+	bool findConfKey(const char *valueName, Common::String *key) const;
+	void setValue(const char *valueName, uint type, const byte *data, uint size);
+	bool queryValue(const char *valueName, uint *type, byte *data, uint *size) const;
 
-	int _bStarted;
+	int _started;
 	Common::Array<WuRegistryValue> _values;
-	char **_aValueNames;
+	char **_valueNames;
 	uint _numValues;
 };
 

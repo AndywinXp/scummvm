@@ -26,8 +26,8 @@
 namespace Grim {
 
 LSound::LSound() {
-	inUse = false;
-	purgeOnFree = true;
+	_inUse = false;
+	_purgeOnFree = true;
 }
 
 void LSound::reset() {
@@ -41,19 +41,19 @@ int LSound::getType() {
 }
 
 bool LSound::setInUse() {
-	inUse = true;
+	_inUse = true;
 
 	return true;
 }
 
 bool LSound::clearInUse() {
-	inUse = false;
+	_inUse = false;
 
 	return false;
 }
 
 bool LSound::isInUse() {
-	return inUse;
+	return _inUse;
 }
 
 } // End of namespace Grim

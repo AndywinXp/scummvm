@@ -88,21 +88,21 @@ static bool openStreams(const char *path, const char *mode, Common::SeekableRead
 }
 
 LFile::LFile(EmiEngine *engine) : _engine(engine) {
-	readStream = nullptr;
-	writeStream = nullptr;
-	openFlags = 17;
-	memData = nullptr;
-	memCursor = nullptr;
-	memSize = 0;
+	_readStream = nullptr;
+	_writeStream = nullptr;
+	_openFlags = 17;
+	_memData = nullptr;
+	_memCursor = nullptr;
+	_memSize = 0;
 }
 
 LFile::~LFile() {
-	if (memData)
-		_engine->getMemoryServices()->freeImpl(memData);
+	if (_memData)
+		_engine->getMemoryServices()->freeImpl(_memData);
 
-	memData = nullptr;
-	memCursor = nullptr;
-	memSize = 0;
+	_memData = nullptr;
+	_memCursor = nullptr;
+	_memSize = 0;
 
 	closeStreams();
 }
@@ -116,32 +116,32 @@ void LFile::operator delete(void *block) {
 }
 
 bool LFile::isOpen() const {
-	return readStream || writeStream;
+	return _readStream || _writeStream;
 }
 
 void LFile::closeStreams() {
-	delete readStream;
-	delete writeStream;
-	readStream = nullptr;
-	writeStream = nullptr;
+	delete _readStream;
+	delete _writeStream;
+	_readStream = nullptr;
+	_writeStream = nullptr;
 }
 
 void LFile::reset() {
-	readStream = nullptr;
-	writeStream = nullptr;
-	openFlags = 17;
-	memData = nullptr;
-	memCursor = nullptr;
-	memSize = 0;
-	fileName.clear();
-	name.clear();
+	_readStream = nullptr;
+	_writeStream = nullptr;
+	_openFlags = 17;
+	_memData = nullptr;
+	_memCursor = nullptr;
+	_memSize = 0;
+	_fileName.clear();
+	_name.clear();
 }
 
 uint LFile::read(void *buffer, uint size) {
-	if (!memData)
-		return readStream ? readStream->read(buffer, size) : 0;
+	if (!_memData)
+		return _readStream ? _readStream->read(buffer, size) : 0;
 
-	int available = (int)memSize - (int)(memCursor - memData);
+	int available = (int)_memSize - (int)(_memCursor - _memData);
 	if (available < 0)
 		available = 0;
 
@@ -150,8 +150,8 @@ uint LFile::read(void *buffer, uint size) {
 		size = available;
 	}
 
-	memcpy(buffer, memCursor, size);
-	memCursor += size;
+	memcpy(buffer, _memCursor, size);
+	_memCursor += size;
 
 	return size;
 }
@@ -214,28 +214,28 @@ char *LFile::readLine(char *buffer, int maxCount) {
 }
 
 uint LFile::write(const void *buffer, uint size) {
-	if (memData)
+	if (_memData)
 		return 0;
 
-	return writeStream ? writeStream->write(buffer, size) : 0;
+	return _writeStream ? _writeStream->write(buffer, size) : 0;
 }
 
 int LFile::eof() {
-	if (memData)
-		return (uint)(memCursor - memData) >= memSize;
+	if (_memData)
+		return (uint)(_memCursor - _memData) >= _memSize;
 
-	return readStream && readStream->eos();
+	return _readStream && _readStream->eos();
 }
 
 int LFile::tell() {
-	if (memData)
-		return memCursor - memData;
+	if (_memData)
+		return _memCursor - _memData;
 
-	if (readStream)
-		return readStream->pos();
+	if (_readStream)
+		return _readStream->pos();
 
-	if (writeStream)
-		return writeStream->pos();
+	if (_writeStream)
+		return _writeStream->pos();
 
 	warning("LFile::tell(): file not open");
 
@@ -243,15 +243,15 @@ int LFile::tell() {
 }
 
 int LFile::seek(int offset, int whence) {
-	if (!memData) {
+	if (!_memData) {
 		if (whence != 0 && whence != 1 && whence != 2)
 			return 0;
 
-		if (readStream)
-			return readStream->seek(offset, whence) ? 0 : -1;
+		if (_readStream)
+			return _readStream->seek(offset, whence) ? 0 : -1;
 
-		if (writeStream) {
-			Common::SeekableWriteStream *seekableStream = dynamic_cast<Common::SeekableWriteStream *>(writeStream);
+		if (_writeStream) {
+			Common::SeekableWriteStream *seekableStream = dynamic_cast<Common::SeekableWriteStream *>(_writeStream);
 
 			if (seekableStream)
 				return seekableStream->seek(offset, whence) ? 0 : -1;
@@ -267,19 +267,19 @@ int LFile::seek(int offset, int whence) {
 	}
 
 	if (whence == 0) {
-		if ((uint)offset > memSize)
+		if ((uint)offset > _memSize)
 			return 1;
 
-		memCursor = memData + offset;
+		_memCursor = _memData + offset;
 
 		return 0;
 	}
 
 	if (whence == 1) {
-		int position = (int)(memCursor - memData) + offset;
+		int position = (int)(_memCursor - _memData) + offset;
 
-		if ((uint)position <= memSize && position >= 0) {
-			memCursor += offset;
+		if ((uint)position <= _memSize && position >= 0) {
+			_memCursor += offset;
 
 			return 0;
 		}
@@ -288,8 +288,8 @@ int LFile::seek(int offset, int whence) {
 	}
 
 	if (whence == 2) {
-		if ((uint)offset <= memSize) {
-			memCursor = memData + memSize - offset;
+		if ((uint)offset <= _memSize) {
+			_memCursor = _memData + _memSize - offset;
 
 			return 0;
 		}
@@ -301,10 +301,10 @@ int LFile::seek(int offset, int whence) {
 }
 
 int LFile::writeFormat(const char *format, ...) {
-	if (memData)
+	if (_memData)
 		return 0;
 
-	if (!writeStream) {
+	if (!_writeStream) {
 		warning("LFile::writeFormat(): file not open for writing");
 
 		return -1;
@@ -315,31 +315,31 @@ int LFile::writeFormat(const char *format, ...) {
 	LString text = LString::vformat(format, args);
 	va_end(args);
 
-	writeStream->write(text.c_str(), text.size());
+	_writeStream->write(text.c_str(), text.size());
 
 	return text.size();
 }
 
 int LFile::unreadChar(int character) {
-	if (!memData) {
-		if (!readStream || character == -1 || readStream->pos() == 0)
+	if (!_memData) {
+		if (!_readStream || character == -1 || _readStream->pos() == 0)
 			return -1;
 
-		readStream->seek(-1, SEEK_CUR);
+		_readStream->seek(-1, SEEK_CUR);
 
 		return character;
 	}
 
-	if (memCursor - memData <= 0)
+	if (_memCursor - _memData <= 0)
 		return 0;
 
-	memCursor--;
+	_memCursor--;
 
 	return character;
 }
 
 uint LFile::loadAll() {
-	if (!readStream) {
+	if (!_readStream) {
 		warning("LFile::loadAll(): file not open for reading");
 
 		return 0;
@@ -349,12 +349,12 @@ uint LFile::loadAll() {
 	uint size = tell() + 1;
 	seek(0, 0);
 
-	memData = (char *)_engine->getMemoryServices()->mallocImpl(size);
-	memCursor = memData;
-	memSize = readStream->read(memData, size);
-	memData[size - 1] = 0;
+	_memData = (char *)_engine->getMemoryServices()->mallocImpl(size);
+	_memCursor = _memData;
+	_memSize = _readStream->read(_memData, size);
+	_memData[size - 1] = 0;
 
-	return memSize;
+	return _memSize;
 }
 
 const char *LFile::getName() {
@@ -368,8 +368,8 @@ char *LFile::getString(char *buffer, int maxCount) {
 		return nullptr;
 	}
 
-	if (!memData) {
-		if (!readStream)
+	if (!_memData) {
+		if (!_readStream)
 			return nullptr;
 
 		int count = 0;
@@ -377,7 +377,7 @@ char *LFile::getString(char *buffer, int maxCount) {
 		while (count < maxCount - 1) {
 			byte character;
 
-			if (readStream->read(&character, 1) != 1)
+			if (_readStream->read(&character, 1) != 1)
 				break;
 
 			buffer[count++] = character;
@@ -394,20 +394,20 @@ char *LFile::getString(char *buffer, int maxCount) {
 		return buffer;
 	}
 
-	if ((uint)(memCursor - memData) >= memSize)
+	if ((uint)(_memCursor - _memData) >= _memSize)
 		return nullptr;
 
-	char *end = strchr(memCursor, '\n');
+	char *end = strchr(_memCursor, '\n');
 	if (!end)
-		end = strchr(memCursor, 0);
+		end = strchr(_memCursor, 0);
 
-	int length = end - memCursor + 1;
+	int length = end - _memCursor + 1;
 	if (length >= maxCount)
 		length = maxCount - 1;
 
-	memcpy(buffer, memCursor, length);
+	memcpy(buffer, _memCursor, length);
 	buffer[length] = 0;
-	memCursor += length;
+	_memCursor += length;
 
 	return buffer;
 }
@@ -443,10 +443,10 @@ void LFileServices::openInto(LFile *file, const char *path, const char *mode) {
 		return;
 	}
 
-	file->readStream = readStream;
-	file->writeStream = writeStream;
-	file->openFlags = flags;
-	file->fileName = path;
+	file->_readStream = readStream;
+	file->_writeStream = writeStream;
+	file->_openFlags = flags;
+	file->_fileName = path;
 }
 
 LFile *LFileServices::open(const char *path, const char *mode) {
@@ -458,10 +458,10 @@ LFile *LFileServices::open(const char *path, const char *mode) {
 		return nullptr;
 
 	LFile *file = new LFile(_engine);
-	file->openFlags = flags;
-	file->readStream = readStream;
-	file->writeStream = writeStream;
-	file->fileName = path;
+	file->_openFlags = flags;
+	file->_readStream = readStream;
+	file->_writeStream = writeStream;
+	file->_fileName = path;
 
 	return file;
 }

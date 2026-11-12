@@ -79,62 +79,62 @@ Glyph::Glyph(EmiEngine *engine) : alpha(engine) {
 }
 
 CTextFont::CTextFont() {
-	lineHeight = 0;
-	header52 = 0;
-	header56 = 0;
-	header60 = 0;
-	minHeight = 0;
-	maxHeight = 0;
-	firstChar = 0;
-	lastChar = 0;
-	numGlyphs = 0;
-	blobSize = 0;
-	charIndex = nullptr;
-	glyphs = nullptr;
-	blob = nullptr;
+	_lineHeight = 0;
+	_header52 = 0;
+	_header56 = 0;
+	_header60 = 0;
+	_minHeight = 0;
+	_maxHeight = 0;
+	_firstChar = 0;
+	_lastChar = 0;
+	_numGlyphs = 0;
+	_blobSize = 0;
+	_charIndex = nullptr;
+	_glyphs = nullptr;
+	_blob = nullptr;
 }
 
 CTextFont::~CTextFont() {
 	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (drawContext) {
-		for (uint i = 0; i < pages.size(); i++)
-			drawContext->freeTexture(pages[i]);
+		for (uint i = 0; i < _pages.size(); i++)
+			drawContext->freeTexture(_pages[i]);
 	}
 
-	pages.clear();
+	_pages.clear();
 
-	if (blob)
-		_engine->getMemoryServices()->freeImpl(blob);
+	if (_blob)
+		_engine->getMemoryServices()->freeImpl(_blob);
 
-	blob = nullptr;
+	_blob = nullptr;
 
-	if (glyphs) {
-		for (int i = 0; i < numGlyphs; i++)
-			glyphs[i].~Glyph();
+	if (_glyphs) {
+		for (int i = 0; i < _numGlyphs; i++)
+			_glyphs[i].~Glyph();
 
-		_engine->getMemoryServices()->freeImpl(glyphs);
+		_engine->getMemoryServices()->freeImpl(_glyphs);
 	}
 
-	glyphs = nullptr;
+	_glyphs = nullptr;
 
-	if (charIndex)
-		_engine->getMemoryServices()->freeImpl(charIndex);
+	if (_charIndex)
+		_engine->getMemoryServices()->freeImpl(_charIndex);
 
-	charIndex = nullptr;
+	_charIndex = nullptr;
 }
 
 uint CTextFont::resSizeOfItem() {
-	uint size = sizeof(CTextFont) + fileName.size() + numGlyphs * (sizeof(Glyph) + sizeof(uint16));
+	uint size = sizeof(CTextFont) + _fileName.size() + _numGlyphs * (sizeof(Glyph) + sizeof(uint16));
 
-	for (int i = 0; i < numGlyphs; i++)
-		size += glyphs[i].alpha.getSizeBytes();
+	for (int i = 0; i < _numGlyphs; i++)
+		size += _glyphs[i].alpha.getSizeBytes();
 
-	size += blobSize + pages.size() * sizeof(CTexture *);
+	size += _blobSize + _pages.size() * sizeof(CTexture *);
 
-	for (uint i = 0; i < pages.size(); i++) {
-		if (pages[i])
-			size += pages[i]->getSize();
+	for (uint i = 0; i < _pages.size(); i++) {
+		if (_pages[i])
+			size += _pages[i]->getSize();
 	}
 
 	return size;
@@ -145,7 +145,7 @@ bool CTextFont::resLoadItem(const char *itemName) {
 
 	if (result) {
 		resSetName(itemName);
-		loaded = true;
+		_loaded = true;
 
 		if (_engine->getDrawContext())
 			buildTextures(_engine->getDrawContext());
@@ -157,19 +157,19 @@ bool CTextFont::resLoadItem(const char *itemName) {
 }
 
 CTexture *CTextFont::getTexture(CDrawContext *ctx, uint page) {
-	if (page >= pages.size()) {
+	if (page >= _pages.size()) {
 		warning("CTextFont::getTexture(): page %u out of range", page);
 
 		return nullptr;
 	}
 
-	CTexture *result = pages[page];
+	CTexture *result = _pages[page];
 
 	if (!result) {
 		buildTextures(ctx);
 
-		if (page < pages.size())
-			return pages[page];
+		if (page < _pages.size())
+			return _pages[page];
 
 		return nullptr;
 	}
@@ -184,37 +184,37 @@ bool CTextFont::loadFile(const char *path) {
 	if (!file)
 		return false;
 
-	fileName = path;
+	_fileName = path;
 
-	if (!readInt(file, &numGlyphs) || !readInt(file, &blobSize) || !readInt(file, &lineHeight) ||
-			!readInt(file, &header52) || !readInt(file, &header56) || !readInt(file, &header60) ||
-			!readInt(file, &firstChar) || !readInt(file, &lastChar)) {
+	if (!readInt(file, &_numGlyphs) || !readInt(file, &_blobSize) || !readInt(file, &_lineHeight) ||
+			!readInt(file, &_header52) || !readInt(file, &_header56) || !readInt(file, &_header60) ||
+			!readInt(file, &_firstChar) || !readInt(file, &_lastChar)) {
 		warning("CTextFont::loadFile(): unexpected end of file");
 		fileServices->close(file, true);
 
 		return false;
 	}
 
-	numGlyphs = lastChar - firstChar + 1;
+	_numGlyphs = _lastChar - _firstChar + 1;
 
-	if (numGlyphs <= 0 || numGlyphs > kMaxGlyphs || blobSize < 0) {
+	if (_numGlyphs <= 0 || _numGlyphs > kMaxGlyphs || _blobSize < 0) {
 		warning("CTextFont::loadFile(): invalid header");
-		numGlyphs = 0;
+		_numGlyphs = 0;
 		fileServices->close(file, true);
 
 		return false;
 	}
 
-	charIndex = (uint16 *)_engine->getMemoryServices()->mallocImpl(numGlyphs * sizeof(uint16));
+	_charIndex = (uint16 *)_engine->getMemoryServices()->mallocImpl(_numGlyphs * sizeof(uint16));
 
-	if (!charIndex) {
+	if (!_charIndex) {
 		fileServices->close(file, true);
 
 		return false;
 	}
 
-	for (int i = 0; i < numGlyphs; i++) {
-		if (!readWord(file, &charIndex[i])) {
+	for (int i = 0; i < _numGlyphs; i++) {
+		if (!readWord(file, &_charIndex[i])) {
 			warning("CTextFont::loadFile(): unexpected end of file");
 			fileServices->close(file, true);
 
@@ -222,19 +222,19 @@ bool CTextFont::loadFile(const char *path) {
 		}
 	}
 
-	glyphs = (Glyph *)_engine->getMemoryServices()->mallocImpl(numGlyphs * sizeof(Glyph));
+	_glyphs = (Glyph *)_engine->getMemoryServices()->mallocImpl(_numGlyphs * sizeof(Glyph));
 
-	if (!glyphs) {
+	if (!_glyphs) {
 		fileServices->close(file, true);
 
 		return false;
 	}
 
-	for (int i = 0; i < numGlyphs; i++)
-		new (&glyphs[i]) Glyph(_engine);
+	for (int i = 0; i < _numGlyphs; i++)
+		new (&_glyphs[i]) Glyph(_engine);
 
-	for (int i = 0; i < numGlyphs; i++) {
-		Glyph &glyph = glyphs[i];
+	for (int i = 0; i < _numGlyphs; i++) {
+		Glyph &glyph = _glyphs[i];
 		int width;
 		int height;
 
@@ -247,20 +247,20 @@ bool CTextFont::loadFile(const char *path) {
 			return false;
 		}
 
-		glyph.alpha.create(width, height, LColorFormat::format2, nullptr);
+		glyph.alpha.create(width, height, LColorFormat::kFormat2, nullptr);
 		glyph.page = 0;
 		glyph.v0 = 0.0f;
 		glyph.u0 = 0.0f;
 		glyph.v1 = 1.0f;
 		glyph.u1 = 1.0f;
 
-		minHeight = MIN<int>(minHeight, glyph.offsetY);
-		maxHeight = MAX<int>(maxHeight, glyph.offsetY + height);
+		_minHeight = MIN<int>(_minHeight, glyph.offsetY);
+		_maxHeight = MAX<int>(_maxHeight, glyph.offsetY + height);
 	}
 
-	blob = (byte *)_engine->getMemoryServices()->mallocImpl(blobSize * sizeof(byte));
+	_blob = (byte *)_engine->getMemoryServices()->mallocImpl(_blobSize * sizeof(byte));
 
-	if (file->read(blob, blobSize) != (uint)blobSize) {
+	if (file->read(_blob, _blobSize) != (uint)_blobSize) {
 		warning("CTextFont::loadFile(): unexpected end of file");
 		fileServices->close(file, true);
 
@@ -273,9 +273,9 @@ bool CTextFont::loadFile(const char *path) {
 }
 
 void CTextFont::buildTextures(CDrawContext *ctx) {
-	int glyphsToPack = lastChar - firstChar + 1;
+	int glyphsToPack = _lastChar - _firstChar + 1;
 
-	if (glyphsToPack <= 0 || glyphsToPack > numGlyphs || !glyphs) {
+	if (glyphsToPack <= 0 || glyphsToPack > _numGlyphs || !_glyphs) {
 		warning("CTextFont::buildTextures(): no glyphs");
 
 		return;
@@ -284,9 +284,9 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 	LColorFormat format(9);
 	LABitmap *bitmap = new LABitmap(_engine, kPageSize, kPageSize, format, nullptr, false);
 
-	bitmap->bitmapName = fileName;
+	bitmap->_bitmapName = _fileName;
 
-	Glyph *cursor = glyphs;
+	Glyph *cursor = _glyphs;
 	int packed = 0;
 	bool done = false;
 
@@ -315,10 +315,10 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 						break;
 				}
 
-				if (cursor->blobOffset < 0 || (int64)cursor->blobOffset + (int64)glyphWidth * glyphHeight > blobSize) {
+				if (cursor->blobOffset < 0 || (int64)cursor->blobOffset + (int64)glyphWidth * glyphHeight > _blobSize) {
 					warning("CTextFont::buildTextures(): glyph %d is outside the pixel data", packed);
 				} else {
-					cursor->alpha.setPixels(blob + cursor->blobOffset);
+					cursor->alpha.setPixels(_blob + cursor->blobOffset);
 
 					const byte *source = (const byte *)cursor->alpha.getPixels();
 					uint bitmapWidth = bitmap->getWidth();
@@ -366,15 +366,15 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 		CTexture *texture = ctx->createTexture(bitmap);
 
 		if (texture) {
-			texture->flags = (texture->flags & 0xFFFFFFFC) | 0x84;
+			texture->_flags = (texture->_flags & 0xFFFFFFFC) | 0x84;
 			texture->applyFlags();
-			pages.push_back(texture);
+			_pages.push_back(texture);
 
 			float widthInverse = (float)(1.0 / (double)bitmap->getWidth());
 			float heightInverse = (float)(1.0 / (double)bitmap->getHeight());
 
 			for (Glyph *glyph = pageStart; glyph != cursor; glyph++) {
-				glyph->page = pages.size() - 1;
+				glyph->page = _pages.size() - 1;
 				glyph->u0 = (float)((double)widthInverse * (double)glyph->u0);
 				glyph->v0 = (float)((double)heightInverse * (double)glyph->v0);
 				glyph->u1 = (float)((double)widthInverse * (double)glyph->u1);
@@ -393,7 +393,7 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 			break;
 
 		bitmap = new LABitmap(_engine, kPageSize, kPageSize, format, nullptr, false);
-		bitmap->bitmapName = fileName;
+		bitmap->_bitmapName = _fileName;
 	}
 }
 

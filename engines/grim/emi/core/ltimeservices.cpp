@@ -28,33 +28,33 @@ namespace Grim {
 static const double kFrequency = 1000.0;
 
 LTimeStamp::LTimeStamp() {
-	seconds = 0.0;
+	_seconds = 0.0;
 }
 
 LTimeStamp::operator double() const {
-	return seconds;
+	return _seconds;
 }
 
 LTimeStamp &LTimeStamp::operator+=(const LTimeStamp &other) {
-	seconds = other.seconds + seconds;
+	_seconds = other._seconds + _seconds;
 
 	return *this;
 }
 
 LTimeStamp &LTimeStamp::operator-=(const LTimeStamp &other) {
-	seconds = seconds - other.seconds;
+	_seconds = _seconds - other._seconds;
 
 	return *this;
 }
 
 LTimeStamp &LTimeStamp::operator=(const LTimeStamp &other) {
-	seconds = other.seconds;
+	_seconds = other._seconds;
 
 	return *this;
 }
 
 void LTimeStamp::stamp() {
-	seconds = (double)g_system->getMillis() * (1.0 / kFrequency);
+	_seconds = (double)g_system->getMillis() * (1.0 / kFrequency);
 }
 
 double LTimeServices::getCounter() {

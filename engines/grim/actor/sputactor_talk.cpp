@@ -34,230 +34,230 @@
 
 namespace Grim {
 
-void SputActorModule::sayLineDemo(SputActor *pActor, const char *msgId) {
+void SputActorModule::sayLineDemo(SputActor *actor, const char *msgId) {
 	int speechText = _speechMode & 1;
 	int speechVoice = _speechMode & 2;
 	char translation[32];
 	char voiceFile[36];
 
-	if (!pActor->pExtra)
-		allocateActorExtra(pActor);
+	if (!actor->extra)
+		allocateActorExtra(actor);
 
-	Extra *pExtra = pActor->pExtra;
+	Extra *extra = actor->extra;
 
 	translation[0] = 0;
 	voiceFile[0] = 0;
 
-	const char *pText = _pSputText->extractSayLineData(msgId, translation);
+	const char *text = _sputText->extractSayLineData(msgId, translation);
 
 	if (translation[0]) {
-		static const char *const aExtensions[4] = { "wvc", "wav", "imc", "imu" };
+		static const char *const extensions[4] = { "wvc", "wav", "imc", "imu" };
 
 		for (int i = 0; i < 4 && !voiceFile[0]; i++) {
-			Common::String fileName = Common::String::format("%s.%s", translation, aExtensions[i]);
-			Common::SeekableReadStream *pFile = _pHS->openFile(fileName.c_str());
+			Common::String fileName = Common::String::format("%s.%s", translation, extensions[i]);
+			Common::SeekableReadStream *file = _hs->openFile(fileName.c_str());
 
-			if (pFile) {
-				delete pFile;
+			if (file) {
+				delete file;
 				Common::strlcpy(voiceFile, fileName.c_str(), sizeof(voiceFile));
 			}
 		}
 	}
 
-	if (pExtra->talking) {
+	if (extra->talking) {
 		if (translation[0]) {
 			char currentId[13];
 
-			memcpy(currentId, pExtra->sayLineId, 12);
+			memcpy(currentId, extra->sayLineId, 12);
 			currentId[12] = 0;
 
 			if (!strcmp(currentId, translation))
 				return;
 		}
 
-		shutUpDemo(pActor);
+		shutUpDemo(actor);
 	}
 
-	pExtra->talkTimerMs = 0;
-	pExtra->talking = 1;
-	strncpy(pExtra->sayLineId, translation, 12);
+	extra->talkTimerMs = 0;
+	extra->talking = 1;
+	strncpy(extra->sayLineId, translation, 12);
 	_numActorsTalking++;
-	pExtra->phoneme = 0;
+	extra->phoneme = 0;
 
 	if (speechVoice) {
 		if (voiceFile[0]) {
 			g_grim->getImuse()->soundStartVoiceStream(voiceFile, 127, 64);
-			Common::strlcpy(pExtra->voiceName, voiceFile, sizeof(pExtra->voiceName));
+			Common::strlcpy(extra->voiceName, voiceFile, sizeof(extra->voiceName));
 		} else {
-			pExtra->voiceName[0] = 0;
+			extra->voiceName[0] = 0;
 		}
 
-		pExtra->talkTimerMs = -1;
+		extra->talkTimerMs = -1;
 	}
 
-	if (speechText || !pExtra->voiceName[0]) {
-		SputTextEvent *pEvent = _pSputText->createActorTextDemo(pActor, pText);
+	if (speechText || !extra->voiceName[0]) {
+		SputTextEvent *event = _sputText->createActorTextDemo(actor, text);
 
-		pExtra->pSayText = pEvent;
+		extra->sayText = event;
 
-		if (!pExtra->voiceName[0])
-			pExtra->talkTimerMs = 48 * (int)strlen(pText) + 640;
+		if (!extra->voiceName[0])
+			extra->talkTimerMs = 48 * (int)strlen(text) + 640;
 
-		if (pEvent)
-			_pSputText->addToQueue(pEvent, -1, 5);
+		if (event)
+			_sputText->addToQueue(event, -1, 5);
 	}
 
 	// There is no lip sync data in the demo, so the mumble chore always plays
-	CostumeNode *pNode = pActor->pCostumeStack;
+	CostumeNode *node = actor->costumeStack;
 
-	if (pNode) {
-		RdThing *pHeadThing = pNode->pHeadThing;
+	if (node) {
+		RdThing *headThing = node->headThing;
 
 		do {
-			if (pNode->pHeadThing != pHeadThing)
+			if (node->headThing != headThing)
 				break;
 
-			if (pNode->mumbleChore >= 0)
+			if (node->mumbleChore >= 0)
 				break;
 
-			pNode = pNode->pNext;
-		} while (pNode);
+			node = node->next;
+		} while (node);
 
-		if (pNode && pNode->pHeadThing == pHeadThing && pNode->mumbleChore >= 0)
-			_pCos->instPlayChore(pNode->hCostumeInstance, pNode->mumbleChore, 1, 0);
+		if (node && node->headThing == headThing && node->mumbleChore >= 0)
+			_cos->instPlayChore(node->costumeInstance, node->mumbleChore, 1, 0);
 	}
 }
 
-void SputActorModule::shutUpDemo(SputActor *pActor) {
-	if (!pActor) {
+void SputActorModule::shutUpDemo(SputActor *actor) {
+	if (!actor) {
 		warning("SputActorModule::shutUpDemo(): no actor");
 		return;
 	}
 
-	CostumeNode *pNode = pActor->pCostumeStack;
-	Extra *pExtra = pActor->pExtra;
+	CostumeNode *node = actor->costumeStack;
+	Extra *extra = actor->extra;
 
-	if (!pNode || !pExtra)
+	if (!node || !extra)
 		return;
 
-	if (pExtra->voiceName[0])
+	if (extra->voiceName[0])
 		g_grim->getImuse()->soundStopVoiceStream();
 
-	if (pExtra->pSayText)
-		_pSputText->killEvent(pExtra->pSayText);
+	if (extra->sayText)
+		_sputText->killEvent(extra->sayText);
 
-	RdThing *pHeadThing = pNode->pHeadThing;
-
-	do {
-		if (pNode->pHeadThing != pHeadThing)
-			break;
-
-		if (pNode->mumbleChore >= 0)
-			break;
-
-		pNode = pNode->pNext;
-	} while (pNode);
-
-	if (pNode && pNode->pHeadThing == pHeadThing && pNode->mumbleChore >= 0 && _pCos->instChoreStatus(pNode->hCostumeInstance, pNode->mumbleChore))
-		_pCos->instStopChore(pNode->hCostumeInstance, pNode->mumbleChore);
-
-	pNode = pActor->pCostumeStack;
-	pHeadThing = pNode->pHeadThing;
+	RdThing *headThing = node->headThing;
 
 	do {
-		if (pNode->pHeadThing != pHeadThing)
+		if (node->headThing != headThing)
 			break;
 
-		if (pNode->aChore[0] >= 0)
+		if (node->mumbleChore >= 0)
 			break;
 
-		pNode = pNode->pNext;
-	} while (pNode);
+		node = node->next;
+	} while (node);
 
-	if (pNode && pNode->pHeadThing == pHeadThing && pNode->aChore[0] >= 0)
-		_pCos->instCompleteChore(pNode->hCostumeInstance, pNode->aChore[0]);
+	if (node && node->headThing == headThing && node->mumbleChore >= 0 && _cos->instChoreStatus(node->costumeInstance, node->mumbleChore))
+		_cos->instStopChore(node->costumeInstance, node->mumbleChore);
 
-	pExtra->phoneme = 0;
-	pExtra->voiceName[0] = 0;
-	pExtra->pSayText = nullptr;
-	pExtra->sayLineId[0] = 0;
-	pExtra->talking = 0;
+	node = actor->costumeStack;
+	headThing = node->headThing;
+
+	do {
+		if (node->headThing != headThing)
+			break;
+
+		if (node->chore[0] >= 0)
+			break;
+
+		node = node->next;
+	} while (node);
+
+	if (node && node->headThing == headThing && node->chore[0] >= 0)
+		_cos->instCompleteChore(node->costumeInstance, node->chore[0]);
+
+	extra->phoneme = 0;
+	extra->voiceName[0] = 0;
+	extra->sayText = nullptr;
+	extra->sayLineId[0] = 0;
+	extra->talking = 0;
 
 	if (_numActorsTalking > 0)
 		_numActorsTalking--;
 }
 
-int SputActorModule::isVoicePlayingDemo(SputActor *pActor) {
-	return pActor->pExtra->voiceName[0] && g_grim->getImuse()->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
+int SputActorModule::isVoicePlayingDemo(SputActor *actor) {
+	return actor->extra->voiceName[0] && g_grim->getImuse()->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
 }
 
-void SputActorModule::stopActorDemo(SputActor *pActor) {
-	CostumeNode *pNode = pActor->pCostumeStack;
+void SputActorModule::stopActorDemo(SputActor *actor) {
+	CostumeNode *node = actor->costumeStack;
 
-	if (pNode) {
-		if (pNode->rCostume.valid)
-			_pCos->instRescue(pNode->hCostumeInstance, pNode->rCostume.serial);
+	if (node) {
+		if (node->rCostume.valid)
+			_cos->instRescue(node->costumeInstance, node->rCostume.serial);
 
-		_pSputCostume->resetCostume(pNode->hCostumeInstance);
+		_sputCostume->resetCostume(node->costumeInstance);
 	}
 
-	if (pActor->pExtra && pActor->pExtra->talking)
-		shutUpDemo(pActor);
+	if (actor->extra && actor->extra->talking)
+		shutUpDemo(actor);
 }
 
 void SputActorModule::updateSpeechOnly(float delta) {
-	if (_pGrim->getGameFlags() & ADGF_DEMO)
+	if (_grim->getGameFlags() & ADGF_DEMO)
 		return;
 
 	for (int i = 0; i < 4; i++) {
-		if (_apTalkingActors[i])
-			updateActorSpeech(_apTalkingActors[i], delta);
+		if (_talkingActors[i])
+			updateActorSpeech(_talkingActors[i], delta);
 	}
 }
 
-void SputActorModule::updateActorSpeech(SputActor *pActor, float delta) {
-	Extra *pExtra = pActor->pExtra;
+void SputActorModule::updateActorSpeech(SputActor *actor, float delta) {
+	Extra *extra = actor->extra;
 
-	if (!pExtra->talking)
+	if (!extra->talking)
 		return;
 
-	if (pExtra->voiceName[0] && pExtra->phoneme && pActor->pCostumeStack) {
-		int phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pExtra->soundId, 0);
+	if (extra->voiceName[0] && extra->phoneme && actor->costumeStack) {
+		int phoneme = g_grim->getImuse()->iMUSEGetPhoneme(extra->soundId, 0);
 
 		if (phoneme) {
-			int mouthChore = matchPhonemeWithAnim(pActor, phoneme);
-			CostumeNode *pNode = pActor->pCostumeStack;
-			RdThing *pHeadThing = pNode->pHeadThing;
+			int mouthChore = matchPhonemeWithAnim(actor, phoneme);
+			CostumeNode *node = actor->costumeStack;
+			RdThing *headThing = node->headThing;
 
 			do {
-				if (pNode->pHeadThing != pHeadThing)
+				if (node->headThing != headThing)
 					break;
 
-				if (pNode->aChore[mouthChore] >= 0)
+				if (node->chore[mouthChore] >= 0)
 					break;
 
-				pNode = pNode->pNext;
-			} while (pNode);
+				node = node->next;
+			} while (node);
 
-			if (pNode && pNode->pHeadThing == pHeadThing)
-				_pCos->instCompleteChore(pNode->hCostumeInstance, pNode->aChore[mouthChore]);
+			if (node && node->headThing == headThing)
+				_cos->instCompleteChore(node->costumeInstance, node->chore[mouthChore]);
 		} else {
-			shutUp(pActor);
+			shutUp(actor);
 		}
 	}
 
 	double elapsed = (double)delta * -1000.0;
 
 	if (elapsed > -9.0e18 && elapsed < 9.0e18)
-		pActor->pExtra->talkTimerMs += (int)(int64)elapsed;
+		actor->extra->talkTimerMs += (int)(int64)elapsed;
 	else
 		warning("SputActorModule::updateActorSpeech(): the time delta is out of range");
 
-	if ((pActor->pExtra->voiceName[0] && !isVoicePlaying(pActor)) || (!pActor->pExtra->voiceName[0] && pActor->pExtra->talkTimerMs < 0))
-		shutUp(pActor);
+	if ((actor->extra->voiceName[0] && !isVoicePlaying(actor)) || (!actor->extra->voiceName[0] && actor->extra->talkTimerMs < 0))
+		shutUp(actor);
 }
 
-int SputActorModule::matchPhonemeWithAnim(SputActor *pActor, int phoneme) {
+int SputActorModule::matchPhonemeWithAnim(SputActor *actor, int phoneme) {
 	if (phoneme == 95)
 		return 0;
 
@@ -266,21 +266,21 @@ int SputActorModule::matchPhonemeWithAnim(SputActor *pActor, int phoneme) {
 	key.phoneme = phoneme;
 	key.mouthAnim = 0;
 
-	LipSyncEntry *pEntry = (LipSyncEntry *)bsearch(&key, _aLipSyncAnims, _numLipSyncAnims, sizeof(LipSyncEntry), compareAnimEntry);
+	LipSyncEntry *entry = (LipSyncEntry *)bsearch(&key, _lipSyncAnims, _numLipSyncAnims, sizeof(LipSyncEntry), compareAnimEntry);
 
-	if (pEntry)
-		return pEntry->mouthAnim;
+	if (entry)
+		return entry->mouthAnim;
 
 	return 1;
 }
 
-int SputActorModule::compareAnimEntry(const void *pKey, const void *pEntry) {
-	return *(const int *)pKey - *(const int *)pEntry;
+int SputActorModule::compareAnimEntry(const void *key, const void *entry) {
+	return *(const int *)key - *(const int *)entry;
 }
 
-void SputActorModule::sayLine(SputActor *pActor, const char *msgId, int bVoiceStream, int volume, int pan, int x, int y) {
-	if (!pActor->pExtra)
-		allocateActorExtra(pActor);
+void SputActorModule::sayLine(SputActor *actor, const char *msgId, int voiceStream, int volume, int pan, int x, int y) {
+	if (!actor->extra)
+		allocateActorExtra(actor);
 
 	int speechText = _speechMode & 1;
 	int speechVoice = _speechMode & 2;
@@ -288,115 +288,115 @@ void SputActorModule::sayLine(SputActor *pActor, const char *msgId, int bVoiceSt
 
 	translation[0] = 0;
 
-	const char *pText = _pSputText->extractSayLineData(msgId, translation);
+	const char *text = _sputText->extractSayLineData(msgId, translation);
 	char voiceFile[36];
 
 	voiceFile[0] = 0;
 
 	if (translation[0]) {
-		static const char *const aExtensions[4] = { "wvc", "wav", "imc", "imu" };
-		bool bFound = false;
+		static const char *const extensions[4] = { "wvc", "wav", "imc", "imu" };
+		bool found = false;
 
-		for (int i = 0; i < 4 && !bFound; i++) {
-			Common::String fileName = Common::String::format("%s.%s", translation, aExtensions[i]);
-			Common::SeekableReadStream *pFile = _pHS->openFile(fileName.c_str());
+		for (int i = 0; i < 4 && !found; i++) {
+			Common::String fileName = Common::String::format("%s.%s", translation, extensions[i]);
+			Common::SeekableReadStream *file = _hs->openFile(fileName.c_str());
 
-			if (pFile) {
-				delete pFile;
+			if (file) {
+				delete file;
 				Common::strlcpy(voiceFile, fileName.c_str(), sizeof(voiceFile));
-				bFound = true;
+				found = true;
 			}
 		}
 
-		if (!bFound)
+		if (!found)
 			voiceFile[0] = 0;
 	}
 
-	if (pActor->pExtra->talking) {
+	if (actor->extra->talking) {
 		if (translation[0]) {
 			char currentId[13];
 
-			memcpy(currentId, pActor->pExtra->sayLineId, 12);
+			memcpy(currentId, actor->extra->sayLineId, 12);
 			currentId[12] = 0;
 
 			if (!strcmp(currentId, translation))
 				return;
 		}
 
-		shutUp(pActor);
+		shutUp(actor);
 	}
 
-	pActor->pExtra->talkTimerMs = 0;
-	pActor->pExtra->talking = 1;
-	strncpy(pActor->pExtra->sayLineId, translation, 12);
+	actor->extra->talkTimerMs = 0;
+	actor->extra->talking = 1;
+	strncpy(actor->extra->sayLineId, translation, 12);
 	_numActorsTalking++;
 
 	for (int i = 0; i < 4; i++) {
-		if (!_apTalkingActors[i]) {
-			_apTalkingActors[i] = pActor;
+		if (!_talkingActors[i]) {
+			_talkingActors[i] = actor;
 			break;
 		}
 	}
 
 	if (speechVoice) {
 		if (voiceFile[0]) {
-			if (!bVoiceStream) {
-				pActor->pExtra->soundId = g_grim->getImuse()->soundsLoadProcessStartSound(voiceFile, 127, 2);
+			if (!voiceStream) {
+				actor->extra->soundId = g_grim->getImuse()->soundsLoadProcessStartSound(voiceFile, 127, 2);
 
-				if (!pActor->pExtra->soundId) {
-					pActor->pExtra->voiceName[0] = 0;
+				if (!actor->extra->soundId) {
+					actor->extra->voiceName[0] = 0;
 				} else {
-					g_grim->getImuse()->soundsSetParam((const char *)(intptr)pActor->pExtra->soundId, IMUSE_P_VOLUME, volume);
+					g_grim->getImuse()->soundsSetParam((const char *)(intptr)actor->extra->soundId, IMUSE_P_VOLUME, volume);
 
-					if (pActor->flags & 8)
-						_pSputRoom->setSoundPosition((const char *)(intptr)pActor->pExtra->soundId, pActor->actorPos, 20, 127, 8.0f, 0.80000001f);
+					if (actor->flags & 8)
+						_sputRoom->setSoundPosition((const char *)(intptr)actor->extra->soundId, actor->actorPos, 20, 127, 8.0f, 0.80000001f);
 
-					Common::strlcpy(pActor->pExtra->voiceName, voiceFile, sizeof(pActor->pExtra->voiceName));
-					pActor->pExtra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
+					Common::strlcpy(actor->extra->voiceName, voiceFile, sizeof(actor->extra->voiceName));
+					actor->extra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(actor->extra->soundId, 0);
 				}
 			} else if (!g_grim->getImuse()->soundStartVoiceStream(voiceFile, volume, pan)) {
-				pActor->pExtra->soundId = kTalkSoundID;
+				actor->extra->soundId = kTalkSoundID;
 
-				if (pActor->flags & 8)
-					_pSputRoom->setSoundPosition((const char *)(intptr)kTalkSoundID, pActor->actorPos, 20, 127, 8.0f, 0.80000001f);
+				if (actor->flags & 8)
+					_sputRoom->setSoundPosition((const char *)(intptr)kTalkSoundID, actor->actorPos, 20, 127, 8.0f, 0.80000001f);
 
-				Common::strlcpy(pActor->pExtra->voiceName, voiceFile, sizeof(pActor->pExtra->voiceName));
-				pActor->pExtra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
+				Common::strlcpy(actor->extra->voiceName, voiceFile, sizeof(actor->extra->voiceName));
+				actor->extra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(actor->extra->soundId, 0);
 			} else {
-				pActor->pExtra->voiceName[0] = 0;
+				actor->extra->voiceName[0] = 0;
 			}
 		} else {
-			pActor->pExtra->voiceName[0] = 0;
+			actor->extra->voiceName[0] = 0;
 		}
 
-		pActor->pExtra->talkTimerMs = -1;
+		actor->extra->talkTimerMs = -1;
 	}
 
-	if (speechText || !pActor->pExtra->voiceName[0]) {
-		SputTextEvent *pEvent = _pSputText->createActorText(pActor, pText, x, y);
+	if (speechText || !actor->extra->voiceName[0]) {
+		SputTextEvent *event = _sputText->createActorText(actor, text, x, y);
 
-		pActor->pExtra->pSayText = pEvent;
+		actor->extra->sayText = event;
 
-		if (!pActor->pExtra->voiceName[0])
-			pActor->pExtra->talkTimerMs = 15 * (11 - _textRate) * (int)strlen(pText) + 640;
+		if (!actor->extra->voiceName[0])
+			actor->extra->talkTimerMs = 15 * (11 - _textRate) * (int)strlen(text) + 640;
 
-		if (pEvent)
-			_pSputText->addToQueue(pEvent, -1, 13);
+		if (event)
+			_sputText->addToQueue(event, -1, 13);
 
-		if (bVoiceStream) {
+		if (voiceStream) {
 			for (int i = 0; i < 4; i++) {
-				SputActor *pOther = _apTalkingActors[i];
+				SputActor *other = _talkingActors[i];
 
-				if (pOther && pOther != pActor && pOther->pExtra->pSayText)
-					pOther->pExtra->pSayText->flags |= 2;
+				if (other && other != actor && other->extra->sayText)
+					other->extra->sayText->flags |= 2;
 			}
 		} else {
 			for (int i = 0; i < 4; i++) {
-				SputActor *pOther = _apTalkingActors[i];
+				SputActor *other = _talkingActors[i];
 
-				if (pOther && pOther != pActor && pOther->pExtra->pSayText && pOther->pExtra->soundId == kTalkSoundID) {
-					if (pActor->pExtra->pSayText)
-						pActor->pExtra->pSayText->flags |= 2;
+				if (other && other != actor && other->extra->sayText && other->extra->soundId == kTalkSoundID) {
+					if (actor->extra->sayText)
+						actor->extra->sayText->flags |= 2;
 
 					break;
 				}
@@ -404,134 +404,134 @@ void SputActorModule::sayLine(SputActor *pActor, const char *msgId, int bVoiceSt
 		}
 	}
 
-	Extra *pExtra = pActor->pExtra;
-	CostumeNode *pNode = pActor->pCostumeStack;
+	Extra *extra = actor->extra;
+	CostumeNode *node = actor->costumeStack;
 
-	if (pNode && pExtra->phoneme) {
-		RdThing *pHeadThing = pNode->pHeadThing;
+	if (node && extra->phoneme) {
+		RdThing *headThing = node->headThing;
 
 		do {
-			if (pNode->pHeadThing != pHeadThing)
+			if (node->headThing != headThing)
 				break;
 
 			int i = 1;
 
-			while (i <= 9 && pNode->aChore[i] < 0)
+			while (i <= 9 && node->chore[i] < 0)
 				i++;
 
 			if (i <= 9)
 				break;
 
-			pNode = pNode->pNext;
-		} while (pNode);
+			node = node->next;
+		} while (node);
 
-		if (!pNode || pNode->pHeadThing != pHeadThing)
-			pExtra->phoneme = 0;
+		if (!node || node->headThing != headThing)
+			extra->phoneme = 0;
 	}
 
-	if (!pActor->pExtra->voiceName[0] || !pActor->pExtra->phoneme) {
-		pNode = pActor->pCostumeStack;
+	if (!actor->extra->voiceName[0] || !actor->extra->phoneme) {
+		node = actor->costumeStack;
 
-		if (pNode) {
-			RdThing *pHeadThing = pNode->pHeadThing;
+		if (node) {
+			RdThing *headThing = node->headThing;
 
 			do {
-				if (pNode->pHeadThing != pHeadThing)
+				if (node->headThing != headThing)
 					break;
 
-				if (pNode->mumbleChore >= 0)
+				if (node->mumbleChore >= 0)
 					break;
 
-				pNode = pNode->pNext;
-			} while (pNode);
+				node = node->next;
+			} while (node);
 
-			if (pNode && pNode->pHeadThing == pHeadThing) {
-				if (pNode->mumbleChore >= 0)
-					_pCos->instPlayChore(pNode->hCostumeInstance, pNode->mumbleChore, 1, 0);
+			if (node && node->headThing == headThing) {
+				if (node->mumbleChore >= 0)
+					_cos->instPlayChore(node->costumeInstance, node->mumbleChore, 1, 0);
 			}
 		}
 	}
 }
 
-void SputActorModule::shutUp(SputActor *pActor) {
-	if (!pActor)
+void SputActorModule::shutUp(SputActor *actor) {
+	if (!actor)
 		return;
 
-	Extra *pExtra = pActor->pExtra;
+	Extra *extra = actor->extra;
 
-	if (!pExtra)
+	if (!extra)
 		return;
 
-	if (pExtra->voiceName[0]) {
-		if (pExtra->soundId == kTalkSoundID)
+	if (extra->voiceName[0]) {
+		if (extra->soundId == kTalkSoundID)
 			g_grim->getImuse()->soundStopVoiceStream();
 		else
-			g_grim->getImuse()->soundsStopSound((const char *)(intptr)pExtra->soundId);
+			g_grim->getImuse()->soundsStopSound((const char *)(intptr)extra->soundId);
 	}
 
-	if (pActor->pExtra->pSayText)
-		_pSputText->killEvent(pActor->pExtra->pSayText);
+	if (actor->extra->sayText)
+		_sputText->killEvent(actor->extra->sayText);
 
-	CostumeNode *pNode = pActor->pCostumeStack;
+	CostumeNode *node = actor->costumeStack;
 
-	if (pNode) {
-		RdThing *pHeadThing = pNode->pHeadThing;
-
-		do {
-			if (pNode->pHeadThing != pHeadThing)
-				break;
-
-			if (pNode->mumbleChore >= 0)
-				break;
-
-			pNode = pNode->pNext;
-		} while (pNode);
-
-		if (pNode && pNode->pHeadThing == pHeadThing && pNode->mumbleChore >= 0 && _pCos->instChoreStatus(pNode->hCostumeInstance, pNode->mumbleChore))
-			_pCos->instStopChore(pNode->hCostumeInstance, pNode->mumbleChore);
-
-		pNode = pActor->pCostumeStack;
-		pHeadThing = pNode->pHeadThing;
+	if (node) {
+		RdThing *headThing = node->headThing;
 
 		do {
-			if (pNode->pHeadThing != pHeadThing)
+			if (node->headThing != headThing)
 				break;
 
-			if (pNode->aChore[0] >= 0)
+			if (node->mumbleChore >= 0)
 				break;
 
-			pNode = pNode->pNext;
-		} while (pNode);
+			node = node->next;
+		} while (node);
 
-		if (pNode && pNode->pHeadThing == pHeadThing && pNode->aChore[0] >= 0)
-			_pCos->instCompleteChore(pNode->hCostumeInstance, pNode->aChore[0]);
+		if (node && node->headThing == headThing && node->mumbleChore >= 0 && _cos->instChoreStatus(node->costumeInstance, node->mumbleChore))
+			_cos->instStopChore(node->costumeInstance, node->mumbleChore);
+
+		node = actor->costumeStack;
+		headThing = node->headThing;
+
+		do {
+			if (node->headThing != headThing)
+				break;
+
+			if (node->chore[0] >= 0)
+				break;
+
+			node = node->next;
+		} while (node);
+
+		if (node && node->headThing == headThing && node->chore[0] >= 0)
+			_cos->instCompleteChore(node->costumeInstance, node->chore[0]);
 	}
 
 	for (int i = 0; i < 4; i++) {
-		if (_apTalkingActors[i] == pActor)
-			_apTalkingActors[i] = nullptr;
+		if (_talkingActors[i] == actor)
+			_talkingActors[i] = nullptr;
 	}
 
-	pActor->pExtra->phoneme = 0;
-	pActor->pExtra->voiceName[0] = 0;
-	pActor->pExtra->pSayText = nullptr;
-	pActor->pExtra->sayLineId[0] = 0;
-	pActor->pExtra->talking = 0;
+	actor->extra->phoneme = 0;
+	actor->extra->voiceName[0] = 0;
+	actor->extra->sayText = nullptr;
+	actor->extra->sayLineId[0] = 0;
+	actor->extra->talking = 0;
 
 	if (_numActorsTalking > 0)
 		_numActorsTalking--;
 }
 
-int SputActorModule::isVoicePlaying(SputActor *pActor) {
-	Extra *pExtra = pActor->pExtra;
+int SputActorModule::isVoicePlaying(SputActor *actor) {
+	Extra *extra = actor->extra;
 
-	if (!pExtra->voiceName[0])
+	if (!extra->voiceName[0])
 		return 0;
 
-	if (pExtra->soundId == kTalkSoundID)
+	if (extra->soundId == kTalkSoundID)
 		return g_grim->getImuse()->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
 
-	return g_grim->getImuse()->soundsIsSoundPlaying(pExtra->voiceName);
+	return g_grim->getImuse()->soundsIsSoundPlaying(extra->voiceName);
 }
 
 } // End of namespace Grim

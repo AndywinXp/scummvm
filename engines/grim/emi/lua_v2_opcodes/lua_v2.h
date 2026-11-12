@@ -69,10 +69,10 @@ public:
 	int doCharacterCallback(int character) override;
 	bool callPrefsInit();
 	using Lua_V1::saveGameCallback;
-	void saveGameCallback(tSaveRestoreAccess *writer);
+	void saveGameCallback(SaveRestoreAccess *writer);
 	void getVersion(LString &version);
-	void saveLocks(tSaveRestoreAccess *writer);
-	void restoreLocks(tSaveRestoreAccess *reader);
+	void saveLocks(SaveRestoreAccess *writer);
+	void restoreLocks(SaveRestoreAccess *reader);
 	void toggleStatsOverlay(bool hide);
 	static uint getClockUniqueUint();
 	void obsoleteFunctionPs2();
@@ -82,7 +82,7 @@ public:
 		kStatsProfilerFlag = 0x40
 	};
 
-	uint statsOverlayFlags;
+	uint _statsOverlayFlags;
 
 protected:
 	void typeOverride() override;
@@ -400,7 +400,7 @@ private:
 	void dumpResources(int mode);
 	void purgeResources(int mode);
 
-	static int32 identityHook(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc);
+	static int32 identityHook(int32 tag, int32 data, SaveRestoreAccess *saveFunc);
 	static lua_Object getTableField(lua_Object table, const char *key);
 	static bool getColorField(lua_Object table, Color &color);
 	static bool getLayerField(lua_Object table, int *layer);
@@ -413,13 +413,13 @@ private:
 	Common::Array<LString> _lockedBackgrounds;
 	Common::Array<uint> _lockedSounds;
 	int _saveDataSize;
-	tSaveRestoreAccess *_saveWriter;
+	SaveRestoreAccess *_saveWriter;
 
 	EmiEngine *_engine;
 	int _fieldRefs[kNumFieldRefs];
-	FileUtilFind *_pFind;
+	FileUtilFind *_find;
 	float _gcTimer;
-	bool _bStarted;
+	bool _started;
 };
 
 } // end of namespace Grim

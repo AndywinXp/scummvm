@@ -58,7 +58,7 @@ public:
 	int seek(int offset, int whence) override;
 	virtual uint writeCompressed(const void *buffer, uint size);
 
-	GzStream *gzFile;
+	GzStream *_gzFile;
 
 private:
 	ZFileServices *_services;

@@ -98,22 +98,22 @@ public:
 	static void releaseLoadingIconPs2(EmiEngine *engine);
 	static bool drawLoadingIconPs2(EmiEngine *engine);
 
-	LString fileName;
-	bool finished;
-	bool frameReady;
-	SubtitleEntry subtitles[kMaxSubtitles];
-	int numSubtitles;
-	int subtitleIndex;
-	TextEvent *subtitleEvent;
-	bool i9nBundleOpen;
-	bool subtitlesOn;
-	bool flag6194;
-	bool flag6195;
-	bool useDirectDraw;
-	int clearCount;
-	Video::BinkDecoder *bink;
-	const Graphics::Surface *frameSurface;
-	bool paused;
+	LString _fileName;
+	bool _finished;
+	bool _frameReady;
+	SubtitleEntry _subtitles[kMaxSubtitles];
+	int _numSubtitles;
+	int _subtitleIndex;
+	TextEvent *_subtitleEvent;
+	bool _i9nBundleOpen;
+	bool _subtitlesOn;
+	bool _flag6194;
+	bool _flag6195;
+	bool _useDirectDraw;
+	int _clearCount;
+	Video::BinkDecoder *_bink;
+	const Graphics::Surface *_frameSurface;
+	bool _paused;
 };
 
 } // End of namespace Grim

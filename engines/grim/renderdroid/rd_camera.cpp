@@ -27,17 +27,17 @@
 
 namespace Grim {
 
-RdCamera *RenderDroid::CameraModule::create(float fov, int bClipFar, float zNear, float zFar, float aspectRatio) {
-	RdCamera *pCamera = new RdCamera;
+RdCamera *RenderDroid::CameraModule::create(float fov, int clipFar, float zNear, float zFar, float aspectRatio) {
+	RdCamera *camera = new RdCamera;
 
-	if (!newEntry(pCamera, fov, bClipFar, zNear, zFar, aspectRatio))
+	if (!newEntry(camera, fov, clipFar, zNear, zFar, aspectRatio))
 		return nullptr;
 
-	return pCamera;
+	return camera;
 }
 
-int RenderDroid::CameraModule::newEntry(RdCamera *pCamera, float fov, int bClipFar, float zNear, float zFar, float aspectRatio) {
-	pCamera->pClipFrustum = new RdClipFrustum;
+int RenderDroid::CameraModule::newEntry(RdCamera *camera, float fov, int clipFar, float zNear, float zFar, float aspectRatio) {
+	camera->clipFrustum = new RdClipFrustum;
 
 	double clampedFov;
 	if (fov < 5.0)
@@ -47,52 +47,52 @@ int RenderDroid::CameraModule::newEntry(RdCamera *pCamera, float fov, int bClipF
 	else
 		clampedFov = fov;
 
-	pCamera->fov = (float)clampedFov;
-	pCamera->pClipFrustum->bClipFar = bClipFar;
-	pCamera->pClipFrustum->zNear = zNear;
-	pCamera->pClipFrustum->zFar = zFar;
-	pCamera->aspectRatio = aspectRatio;
-	pCamera->orthoScale = 1.0f;
-	pCamera->pCanvas = nullptr;
-	pCamera->ambientLight = 0.0f;
-	pCamera->numLights = 0;
-	pCamera->attenuationMin = 0.2f;
-	pCamera->attenuationMax = 0.1f;
-	setProjectType(pCamera, 1);
+	camera->fov = (float)clampedFov;
+	camera->clipFrustum->clipFar = clipFar;
+	camera->clipFrustum->zNear = zNear;
+	camera->clipFrustum->zFar = zFar;
+	camera->aspectRatio = aspectRatio;
+	camera->orthoScale = 1.0f;
+	camera->canvas = nullptr;
+	camera->ambientLight = 0.0f;
+	camera->numLights = 0;
+	camera->attenuationMin = 0.2f;
+	camera->attenuationMax = 0.1f;
+	setProjectType(camera, 1);
 
 	return 1;
 }
 
-void RenderDroid::CameraModule::destroy(RdCamera *&pCamera) {
-	if (pCamera) {
-		freeEntry(pCamera);
-		delete pCamera;
-		pCamera = nullptr;
+void RenderDroid::CameraModule::destroy(RdCamera *&camera) {
+	if (camera) {
+		freeEntry(camera);
+		delete camera;
+		camera = nullptr;
 	}
 }
 
-void RenderDroid::CameraModule::freeEntry(RdCamera *pCamera) {
-	if (pCamera->pClipFrustum) {
-		delete pCamera->pClipFrustum;
-		pCamera->pClipFrustum = nullptr;
+void RenderDroid::CameraModule::freeEntry(RdCamera *camera) {
+	if (camera->clipFrustum) {
+		delete camera->clipFrustum;
+		camera->clipFrustum = nullptr;
 	}
 }
 
-int RenderDroid::CameraModule::setCanvas(RdCamera *pCamera, RdCanvas *pCanvas) {
-	pCamera->pCanvas = pCanvas;
-	buildFOV(pCamera);
+int RenderDroid::CameraModule::setCanvas(RdCamera *camera, RdCanvas *canvas) {
+	camera->canvas = canvas;
+	buildFOV(camera);
 
 	return 1;
 }
 
-int RenderDroid::CameraModule::setCurrent(RdCamera *pCamera) {
-	if (_pCurCamera != pCamera)
-		_pCurCamera = pCamera;
+int RenderDroid::CameraModule::setCurrent(RdCamera *camera) {
+	if (_curCamera != camera)
+		_curCamera = camera;
 
 	return 1;
 }
 
-int RenderDroid::CameraModule::setFOV(RdCamera *pCamera, float fov) {
+int RenderDroid::CameraModule::setFOV(RdCamera *camera, float fov) {
 	double clampedFov;
 
 	if (fov < 5.0)
@@ -102,253 +102,253 @@ int RenderDroid::CameraModule::setFOV(RdCamera *pCamera, float fov) {
 	else
 		clampedFov = fov;
 
-	pCamera->fov = (float)clampedFov;
-	buildFOV(pCamera);
+	camera->fov = (float)clampedFov;
+	buildFOV(camera);
 
 	return 1;
 }
 
-int RenderDroid::CameraModule::setProjectType(RdCamera *pCamera, int projectType) {
-	pCamera->projectType = projectType;
+int RenderDroid::CameraModule::setProjectType(RdCamera *camera, int projectType) {
+	camera->projectType = projectType;
 
 	if (projectType == 0) {
-		if (pCamera->aspectRatio == 1.0f) {
-			pCamera->pfProject = &CameraModule::orthoProjectSquare;
-			pCamera->pfProjectLst = &CameraModule::orthoProjectSquareLst;
+		if (camera->aspectRatio == 1.0f) {
+			camera->project = &CameraModule::orthoProjectSquare;
+			camera->projectLst = &CameraModule::orthoProjectSquareLst;
 		} else {
-			pCamera->pfProject = &CameraModule::orthoProject;
-			pCamera->pfProjectLst = &CameraModule::orthoProjectLst;
+			camera->project = &CameraModule::orthoProject;
+			camera->projectLst = &CameraModule::orthoProjectLst;
 		}
 	} else if (projectType == 1) {
-		if (pCamera->aspectRatio == 1.0f) {
-			pCamera->pfProject = &CameraModule::perspProjectSquare;
-			pCamera->pfProjectLst = &CameraModule::perspProjectSquareLst;
+		if (camera->aspectRatio == 1.0f) {
+			camera->project = &CameraModule::perspProjectSquare;
+			camera->projectLst = &CameraModule::perspProjectSquareLst;
 		} else {
-			pCamera->pfProject = &CameraModule::perspProject;
-			pCamera->pfProjectLst = &CameraModule::perspProjectLst;
+			camera->project = &CameraModule::perspProject;
+			camera->projectLst = &CameraModule::perspProjectLst;
 		}
 	}
 
-	if (pCamera->pCanvas)
-		buildFOV(pCamera);
+	if (camera->canvas)
+		buildFOV(camera);
 
 	return 1;
 }
 
-int RenderDroid::CameraModule::setAspectRatio(RdCamera *pCamera, float aspectRatio) {
-	pCamera->aspectRatio = aspectRatio;
+int RenderDroid::CameraModule::setAspectRatio(RdCamera *camera, float aspectRatio) {
+	camera->aspectRatio = aspectRatio;
 
-	if (pCamera->projectType == 0) {
+	if (camera->projectType == 0) {
 		if (aspectRatio == 1.0) {
-			pCamera->pfProject = &CameraModule::orthoProjectSquare;
-			pCamera->pfProjectLst = &CameraModule::orthoProjectSquareLst;
+			camera->project = &CameraModule::orthoProjectSquare;
+			camera->projectLst = &CameraModule::orthoProjectSquareLst;
 		} else {
-			pCamera->pfProject = &CameraModule::orthoProject;
-			pCamera->pfProjectLst = &CameraModule::orthoProjectLst;
+			camera->project = &CameraModule::orthoProject;
+			camera->projectLst = &CameraModule::orthoProjectLst;
 		}
-	} else if (pCamera->projectType == 1) {
+	} else if (camera->projectType == 1) {
 		if (aspectRatio == 1.0) {
-			pCamera->pfProject = &CameraModule::perspProjectSquare;
-			pCamera->pfProjectLst = &CameraModule::perspProjectSquareLst;
+			camera->project = &CameraModule::perspProjectSquare;
+			camera->projectLst = &CameraModule::perspProjectSquareLst;
 		} else {
-			pCamera->pfProject = &CameraModule::perspProject;
-			pCamera->pfProjectLst = &CameraModule::perspProjectLst;
+			camera->project = &CameraModule::perspProject;
+			camera->projectLst = &CameraModule::perspProjectLst;
 		}
 	}
 
-	buildFOV(pCamera);
+	buildFOV(camera);
 
 	return 1;
 }
 
-int RenderDroid::CameraModule::buildFOV(RdCamera *pCamera) {
-	RdCanvas *pCanvas = pCamera->pCanvas;
+int RenderDroid::CameraModule::buildFOV(RdCamera *camera) {
+	RdCanvas *canvas = camera->canvas;
 
-	if (!pCanvas)
+	if (!canvas)
 		return 0;
 
-	if (pCamera->projectType == 0) {
-		int height = pCanvas->yEnd - pCanvas->yStart;
-		double halfWidth = (double)(pCanvas->xEnd - pCanvas->xStart) * 0.5;
+	if (camera->projectType == 0) {
+		int height = canvas->yEnd - canvas->yStart;
+		double halfWidth = (double)(canvas->xEnd - canvas->xStart) * 0.5;
 
-		pCamera->pClipFrustum->orthoLeft = (float)-(halfWidth / pCamera->orthoScale);
+		camera->clipFrustum->orthoLeft = (float)-(halfWidth / camera->orthoScale);
 		float halfHeight = (float)((double)height * 0.5);
-		pCamera->pClipFrustum->orthoTop = (float)((double)halfHeight / pCamera->orthoScale / pCamera->aspectRatio);
-		pCamera->pClipFrustum->orthoRight = (float)(halfWidth / pCamera->orthoScale);
-		pCamera->pClipFrustum->orthoBottom = (float)(-((double)halfHeight / pCamera->orthoScale) / pCamera->aspectRatio);
-		pCamera->focalLen = 0.0f;
-		pCamera->pClipFrustum->top = 0.0f;
-		pCamera->pClipFrustum->bottom = 0.0f;
-		pCamera->pClipFrustum->left = 0.0f;
-		pCamera->pClipFrustum->right = 0.0f;
-	} else if (pCamera->projectType == 1) {
-		float halfWidth = (float)((double)(pCanvas->xEnd - pCanvas->xStart) * 0.5);
-		float halfHeight = (float)((double)(pCanvas->yEnd - pCanvas->yStart) * 0.5);
-		float halfFov = (float)((double)pCamera->fov * 0.5);
+		camera->clipFrustum->orthoTop = (float)((double)halfHeight / camera->orthoScale / camera->aspectRatio);
+		camera->clipFrustum->orthoRight = (float)(halfWidth / camera->orthoScale);
+		camera->clipFrustum->orthoBottom = (float)(-((double)halfHeight / camera->orthoScale) / camera->aspectRatio);
+		camera->focalLen = 0.0f;
+		camera->clipFrustum->top = 0.0f;
+		camera->clipFrustum->bottom = 0.0f;
+		camera->clipFrustum->left = 0.0f;
+		camera->clipFrustum->right = 0.0f;
+	} else if (camera->projectType == 1) {
+		float halfWidth = (float)((double)(canvas->xEnd - canvas->xStart) * 0.5);
+		float halfHeight = (float)((double)(canvas->yEnd - canvas->yStart) * 0.5);
+		float halfFov = (float)((double)camera->fov * 0.5);
 		float tangent = _rd->_stdMath->tan(halfFov);
 		float focalLen = (float)((double)halfWidth / tangent);
 
-		pCamera->focalLen = focalLen;
-		pCamera->pClipFrustum->top = (float)((double)halfHeight / focalLen / pCamera->aspectRatio);
-		pCamera->pClipFrustum->left = (float)(-(double)halfWidth / pCamera->focalLen);
-		pCamera->pClipFrustum->bottom = (float)(-(double)halfHeight / pCamera->focalLen / pCamera->aspectRatio);
-		pCamera->pClipFrustum->right = (float)((double)halfWidth / pCamera->focalLen);
-		pCamera->pClipFrustum->guardTop = (float)(((double)halfHeight - -1.0) / pCamera->focalLen / pCamera->aspectRatio);
-		pCamera->pClipFrustum->guardLeft = (float)(-((double)halfWidth - -1.0) / pCamera->focalLen);
+		camera->focalLen = focalLen;
+		camera->clipFrustum->top = (float)((double)halfHeight / focalLen / camera->aspectRatio);
+		camera->clipFrustum->left = (float)(-(double)halfWidth / camera->focalLen);
+		camera->clipFrustum->bottom = (float)(-(double)halfHeight / camera->focalLen / camera->aspectRatio);
+		camera->clipFrustum->right = (float)((double)halfWidth / camera->focalLen);
+		camera->clipFrustum->guardTop = (float)(((double)halfHeight - -1.0) / camera->focalLen / camera->aspectRatio);
+		camera->clipFrustum->guardLeft = (float)(-((double)halfWidth - -1.0) / camera->focalLen);
 	}
 
 	return 1;
 }
 
 void RenderDroid::CameraModule::update(RdMatrix34 mat) {
-	_rd->invertOrtho34(_pCurCamera->viewMatrix, mat);
+	_rd->invertOrtho34(_curCamera->viewMatrix, mat);
 	memcpy(_camMatrix, mat, sizeof(RdMatrix34));
 	_rd->extractAngles34(_camMatrix, _camPYR);
 }
 
-void RenderDroid::CameraModule::orthoProject(RdVector3 pOut, RdVector3 pIn) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
+void RenderDroid::CameraModule::orthoProject(RdVector3 out, RdVector3 in) {
+	RdCanvas *canvas = _curCamera->canvas;
 
-	pOut[0] = (float)((double)_pCurCamera->orthoScale * pIn[0] + pCanvas->xCenter);
-	pOut[1] = (float)(-((double)pIn[2] * _pCurCamera->orthoScale) * _pCurCamera->aspectRatio + pCanvas->yCenter);
-	pOut[2] = pIn[1];
+	out[0] = (float)((double)_curCamera->orthoScale * in[0] + canvas->xCenter);
+	out[1] = (float)(-((double)in[2] * _curCamera->orthoScale) * _curCamera->aspectRatio + canvas->yCenter);
+	out[2] = in[1];
 }
 
-void RenderDroid::CameraModule::orthoProjectLst(RdVector3 *aOut, RdVector3 *aIn, int num) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
-	float orthoScale = _pCurCamera->orthoScale;
-	float yCenter = pCanvas->yCenter;
-	float xCenter = pCanvas->xCenter;
-	float scaledAspect = (float)((double)_pCurCamera->aspectRatio * orthoScale);
+void RenderDroid::CameraModule::orthoProjectLst(RdVector3 *out, RdVector3 *in, int num) {
+	RdCanvas *canvas = _curCamera->canvas;
+	float orthoScale = _curCamera->orthoScale;
+	float yCenter = canvas->yCenter;
+	float xCenter = canvas->xCenter;
+	float scaledAspect = (float)((double)_curCamera->aspectRatio * orthoScale);
 
 	for (int i = 0; i < num; i++) {
-		double scaledX = (double)orthoScale * aIn[i][0];
+		double scaledX = (double)orthoScale * in[i][0];
 
-		aOut[i][0] = (float)(scaledX + xCenter);
-		aOut[i][1] = (float)((double)yCenter - (double)aIn[i][2] * scaledAspect);
-		aOut[i][2] = aIn[i][1];
+		out[i][0] = (float)(scaledX + xCenter);
+		out[i][1] = (float)((double)yCenter - (double)in[i][2] * scaledAspect);
+		out[i][2] = in[i][1];
 	}
 }
 
-void RenderDroid::CameraModule::orthoProjectSquare(RdVector3 pOut, RdVector3 pIn) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
+void RenderDroid::CameraModule::orthoProjectSquare(RdVector3 out, RdVector3 in) {
+	RdCanvas *canvas = _curCamera->canvas;
 
-	pOut[0] = (float)((double)_pCurCamera->orthoScale * pIn[0] + pCanvas->xCenter);
-	pOut[1] = (float)((double)pCanvas->yCenter - (double)pIn[2] * _pCurCamera->orthoScale);
-	pOut[2] = pIn[1];
+	out[0] = (float)((double)_curCamera->orthoScale * in[0] + canvas->xCenter);
+	out[1] = (float)((double)canvas->yCenter - (double)in[2] * _curCamera->orthoScale);
+	out[2] = in[1];
 }
 
-void RenderDroid::CameraModule::orthoProjectSquareLst(RdVector3 *aOut, RdVector3 *aIn, int num) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
-	float orthoScale = _pCurCamera->orthoScale;
-	float yCenter = pCanvas->yCenter;
-	float xCenter = pCanvas->xCenter;
+void RenderDroid::CameraModule::orthoProjectSquareLst(RdVector3 *out, RdVector3 *in, int num) {
+	RdCanvas *canvas = _curCamera->canvas;
+	float orthoScale = _curCamera->orthoScale;
+	float yCenter = canvas->yCenter;
+	float xCenter = canvas->xCenter;
 
 	for (int i = 0; i < num; i++) {
-		double scaledX = (double)orthoScale * aIn[i][0];
+		double scaledX = (double)orthoScale * in[i][0];
 
-		aOut[i][0] = (float)(scaledX + xCenter);
-		aOut[i][1] = (float)((double)yCenter - (double)aIn[i][2] * orthoScale);
-		aOut[i][2] = aIn[i][1];
+		out[i][0] = (float)(scaledX + xCenter);
+		out[i][1] = (float)((double)yCenter - (double)in[i][2] * orthoScale);
+		out[i][2] = in[i][1];
 	}
 }
 
-void RenderDroid::CameraModule::perspProject(RdVector3 pOut, RdVector3 pIn) {
-	double scale = (double)_pCurCamera->focalLen / pIn[1];
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
-	double scaledX = scale * pIn[0];
-	double scaledY = scale * _pCurCamera->aspectRatio;
+void RenderDroid::CameraModule::perspProject(RdVector3 out, RdVector3 in) {
+	double scale = (double)_curCamera->focalLen / in[1];
+	RdCanvas *canvas = _curCamera->canvas;
+	double scaledX = scale * in[0];
+	double scaledY = scale * _curCamera->aspectRatio;
 
-	pOut[0] = (float)(scaledX + pCanvas->xCenter);
-	pOut[1] = (float)((double)pCanvas->yCenter - (double)pIn[2] * scaledY);
-	pOut[2] = pIn[1];
+	out[0] = (float)(scaledX + canvas->xCenter);
+	out[1] = (float)((double)canvas->yCenter - (double)in[2] * scaledY);
+	out[2] = in[1];
 }
 
-void RenderDroid::CameraModule::perspProjectLst(RdVector3 *aOut, RdVector3 *aIn, int num) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
-	float xCenter = pCanvas->xCenter;
-	float yCenter = pCanvas->yCenter;
+void RenderDroid::CameraModule::perspProjectLst(RdVector3 *out, RdVector3 *in, int num) {
+	RdCanvas *canvas = _curCamera->canvas;
+	float xCenter = canvas->xCenter;
+	float yCenter = canvas->yCenter;
 
 	for (int i = 0; i < num; i++) {
-		double scale = (double)_pCurCamera->focalLen / aIn[i][1];
-		double scaledX = scale * aIn[i][0];
-		double scaledY = scale * _pCurCamera->aspectRatio;
+		double scale = (double)_curCamera->focalLen / in[i][1];
+		double scaledX = scale * in[i][0];
+		double scaledY = scale * _curCamera->aspectRatio;
 
-		aOut[i][0] = (float)(scaledX + xCenter);
-		aOut[i][1] = (float)((double)yCenter - (double)aIn[i][2] * scaledY);
-		aOut[i][2] = aIn[i][1];
+		out[i][0] = (float)(scaledX + xCenter);
+		out[i][1] = (float)((double)yCenter - (double)in[i][2] * scaledY);
+		out[i][2] = in[i][1];
 	}
 }
 
-void RenderDroid::CameraModule::perspProjectSquare(RdVector3 pOut, RdVector3 pIn) {
-	double scale = (double)_pCurCamera->focalLen / pIn[1];
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
+void RenderDroid::CameraModule::perspProjectSquare(RdVector3 out, RdVector3 in) {
+	double scale = (double)_curCamera->focalLen / in[1];
+	RdCanvas *canvas = _curCamera->canvas;
 
-	pOut[0] = (float)(scale * pIn[0] + pCanvas->xCenter);
-	pOut[1] = (float)((double)pCanvas->yCenter - (double)pIn[2] * scale);
-	pOut[2] = pIn[1];
+	out[0] = (float)(scale * in[0] + canvas->xCenter);
+	out[1] = (float)((double)canvas->yCenter - (double)in[2] * scale);
+	out[2] = in[1];
 }
 
-void RenderDroid::CameraModule::perspProjectSquareLst(RdVector3 *aOut, RdVector3 *aIn, int num) {
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
-	float xCenter = pCanvas->xCenter;
-	float yCenter = pCanvas->yCenter;
+void RenderDroid::CameraModule::perspProjectSquareLst(RdVector3 *out, RdVector3 *in, int num) {
+	RdCanvas *canvas = _curCamera->canvas;
+	float xCenter = canvas->xCenter;
+	float yCenter = canvas->yCenter;
 
 	for (int i = 0; i < num; i++) {
-		double scale = (double)_pCurCamera->focalLen / aIn[i][1];
+		double scale = (double)_curCamera->focalLen / in[i][1];
 
-		aOut[i][0] = (float)(scale * aIn[i][0] + xCenter);
-		aOut[i][1] = (float)((double)yCenter - (double)aIn[i][2] * scale);
-		aOut[i][2] = aIn[i][1];
+		out[i][0] = (float)(scale * in[i][0] + xCenter);
+		out[i][1] = (float)((double)yCenter - (double)in[i][2] * scale);
+		out[i][2] = in[i][1];
 	}
 }
 
-void RenderDroid::CameraModule::setAmbientLight(RdCamera *pCamera, float ambient) {
-	pCamera->ambientLight = ambient;
+void RenderDroid::CameraModule::setAmbientLight(RdCamera *camera, float ambient) {
+	camera->ambientLight = ambient;
 }
 
-int RenderDroid::CameraModule::addLight(RdCamera *pCamera, RdLight *pLight, RdVector3 *pPos) {
-	if (pCamera->numLights >= 64) {
+int RenderDroid::CameraModule::addLight(RdCamera *camera, RdLight *light, RdVector3 *pos) {
+	if (camera->numLights >= 64) {
 		warning("RenderDroid::CameraModule::addLight(): too many lights");
 		return 0;
 	}
 
-	pLight->id = pCamera->numLights;
-	pCamera->apLights[pCamera->numLights] = pLight;
-	pCamera->aLightPos[pCamera->numLights][0] = (*pPos)[0];
-	pCamera->aLightPos[pCamera->numLights][1] = (*pPos)[1];
-	pCamera->aLightPos[pCamera->numLights][2] = (*pPos)[2];
-	pLight->falloffMin = (float)((double)pLight->intensity / pCamera->attenuationMin);
-	pLight->falloffMax = (float)((double)pLight->intensity / pCamera->attenuationMax);
-	pCamera->numLights++;
+	light->id = camera->numLights;
+	camera->lights[camera->numLights] = light;
+	camera->lightPos[camera->numLights][0] = (*pos)[0];
+	camera->lightPos[camera->numLights][1] = (*pos)[1];
+	camera->lightPos[camera->numLights][2] = (*pos)[2];
+	light->falloffMin = (float)((double)light->intensity / camera->attenuationMin);
+	light->falloffMax = (float)((double)light->intensity / camera->attenuationMax);
+	camera->numLights++;
 
 	return 1;
 }
 
 void RenderDroid::CameraModule::advanceFrame() {
-	if (!_pCurCamera)
+	if (!_curCamera)
 		return;
 
-	RdCanvas *pCanvas = _pCurCamera->pCanvas;
+	RdCanvas *canvas = _curCamera->canvas;
 
-	if ((_rd->_curRenderOptions & 0x100) && (pCanvas->flags & 2)) {
+	if ((_rd->_curRenderOptions & 0x100) && (canvas->flags & 2)) {
 		if (_rd->_curAcceleration > 0) {
 #if defined(GRIM_STD3D)
-			_rd->_pStd3D->clearZBuffer();
+			_rd->_std3D->clearZBuffer();
 #endif
 			return;
 		}
 
-		if (pCanvas->flags & 1) {
+		if (canvas->flags & 1) {
 			StdRect rect;
 
-			rect.x = pCanvas->xStart;
-			rect.y = pCanvas->yStart;
-			rect.width = pCanvas->xEnd - pCanvas->xStart + 1;
-			rect.height = pCanvas->yEnd - pCanvas->yStart + 1;
-			_rd->_stdDisplay->vBufferFill(pCanvas->pZBuffer, 0, &rect);
+			rect.x = canvas->xStart;
+			rect.y = canvas->yStart;
+			rect.width = canvas->xEnd - canvas->xStart + 1;
+			rect.height = canvas->yEnd - canvas->yStart + 1;
+			_rd->_stdDisplay->vBufferFill(canvas->zBuffer, 0, &rect);
 		} else {
-			_rd->_stdDisplay->vBufferFill(pCanvas->pZBuffer, 0, nullptr);
+			_rd->_stdDisplay->vBufferFill(canvas->zBuffer, 0, nullptr);
 		}
 	}
 }

@@ -38,10 +38,10 @@ public:
 	void getRGB(byte *r, byte *g, byte *b) const;
 	Color *setRGB(int newR, int newG, int newB);
 
-	int a;
-	int r;
-	int g;
-	int b;
+	int _a;
+	int _r;
+	int _g;
+	int _b;
 
 	static const Color kWhite;
 	static const Color kYellow;
@@ -56,10 +56,10 @@ public:
 	PackedColor *modulate(PackedColor *out, const PackedColor *other);
 	uint32 pack() const;
 
-	byte b;
-	byte g;
-	byte r;
-	byte a;
+	byte _b;
+	byte _g;
+	byte _r;
+	byte _a;
 };
 
 } // End of namespace Grim

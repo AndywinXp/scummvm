@@ -33,7 +33,7 @@ public:
 	Polyglot();
 	virtual ~Polyglot() {}
 
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int startup();
 	virtual void shutdown();
 	virtual void configure(const char *tabFile);
@@ -41,9 +41,9 @@ public:
 	virtual const char *getTranslation(const char *msg);
 
 private:
-	SysStruct *_pHS;
-	char *_pLanguageMalloc;
-	char **_ppLanguageLine;
+	SysStruct *_hs;
+	char *_languageMalloc;
+	char **_languageLine;
 	int _lineCount;
 };
 

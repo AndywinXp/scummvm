@@ -33,16 +33,16 @@ struct StdBitmapStruct;
 
 class StdBmp {
 public:
-	StdBmp(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS);
+	StdBmp(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs);
 
-	StdBitmapStruct *load(const char *path, int bVideoMemory, int bNoZ);
-	int loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ);
-	int write(const char *path, StdBitmapStruct *pBitmap);
+	StdBitmapStruct *load(const char *path, int videoMemory, int noZ);
+	int loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory, int noZ);
+	int write(const char *path, StdBitmapStruct *bitmap);
 
 private:
 	StdDisplay *_stdDisplay;
 	StdFile *_stdFile;
-	SysStruct *_pHS;
+	SysStruct *_hs;
 };
 
 } // End of namespace Grim

@@ -51,7 +51,7 @@ struct StdPcxHeader {
 	int16 vDpi;
 	byte colorMap[48];
 	byte reserved;
-	byte nPlanes;
+	byte planes;
 	int16 bytesPerLine;
 	int16 paletteInfo;
 	byte filler[58];
@@ -59,20 +59,20 @@ struct StdPcxHeader {
 
 class StdPcx {
 public:
-	StdPcx(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *pHS);
+	StdPcx(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *hs);
 
-	StdBitmapStruct *load(const char *path, int bVideoMemory, int bNoZ);
-	int write(const char *path, StdBitmapStruct *pBitmap);
+	StdBitmapStruct *load(const char *path, int videoMemory, int noZ);
+	int write(const char *path, StdBitmapStruct *bitmap);
 
 private:
-	StdBitmapStruct *loadFailed(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap);
-	void readHeader(Common::ReadStream *pStream, StdPcxHeader *pHeader);
-	void writeHeader(Common::WriteStream *pStream, const StdPcxHeader *pHeader);
+	StdBitmapStruct *loadFailed(Common::SeekableReadStream *file, StdBitmapStruct *bitmap);
+	void readHeader(Common::ReadStream *stream, StdPcxHeader *header);
+	void writeHeader(Common::WriteStream *stream, const StdPcxHeader *header);
 
 	StdDisplay *_stdDisplay;
 	StdFile *_stdFile;
 	StdBitmap *_stdBitmap;
-	SysStruct *_pHS;
+	SysStruct *_hs;
 };
 
 } // End of namespace Grim

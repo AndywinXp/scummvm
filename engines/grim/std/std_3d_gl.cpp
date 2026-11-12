@@ -162,22 +162,22 @@ static byte expand6(uint value) {
 	return (byte)((value << 2) | (value >> 4));
 }
 
-static Std3DGlSurface *glData(const Std3DSurface *pSurface) {
-	return (Std3DGlSurface *)pSurface->pBackendData;
+static Std3DGlSurface *glData(const Std3DSurface *surface) {
+	return (Std3DGlSurface *)surface->backendData;
 }
 
-Std3DGlBackend::Std3DGlBackend() : _bGlReady(0), _bFragDepthSupported(0), _pTlShader(nullptr), _pBlitShader(nullptr), _pDepthShader(nullptr),
+Std3DGlBackend::Std3DGlBackend() : _glReady(0), _fragDepthSupported(0), _tlShader(nullptr), _blitShader(nullptr), _depthShader(nullptr),
 	_vertexVbo(0), _indexVbo(0), _quadVbo(0), _depthTexture(0) {
 }
 
 Std3DGlBackend::~Std3DGlBackend() {
-	if (_bGlReady && OpenGLContext.type != OpenGL::kContextNone) {
-		delete _pTlShader;
-		_pTlShader = nullptr;
-		delete _pBlitShader;
-		_pBlitShader = nullptr;
-		delete _pDepthShader;
-		_pDepthShader = nullptr;
+	if (_glReady && OpenGLContext.type != OpenGL::kContextNone) {
+		delete _tlShader;
+		_tlShader = nullptr;
+		delete _blitShader;
+		_blitShader = nullptr;
+		delete _depthShader;
+		_depthShader = nullptr;
 
 		OpenGL::Shader::freeBuffer(_vertexVbo);
 		OpenGL::Shader::freeBuffer(_indexVbo);
@@ -199,8 +199,8 @@ int Std3DGlBackend::openGraphicsMode(int width, int height) {
 	return 1;
 }
 
-void Std3DGlBackend::fillDeviceDesc(Std3DDeviceDesc *pDesc) {
-	(void)pDesc;
+void Std3DGlBackend::fillDeviceDesc(Std3DDeviceDesc *desc) {
+	(void)desc;
 }
 
 int Std3DGlBackend::isSupported() {
@@ -231,7 +231,7 @@ uint Std3DGlBackend::getTextureBudget() {
 	return kStd3DTextureMemory;
 }
 
-OpenGL::Shader *Std3DGlBackend::createShader(const char *name, const char *vertexSource, const char *fragmentSource, const char *const *attributes, int bDepthOutput) {
+OpenGL::Shader *Std3DGlBackend::createShader(const char *name, const char *vertexSource, const char *fragmentSource, const char *const *attributes, int depthOutput) {
 	Common::String vertexHeader;
 	Common::String fragmentHeader;
 
@@ -239,7 +239,7 @@ OpenGL::Shader *Std3DGlBackend::createShader(const char *name, const char *verte
 		vertexHeader = "#version 100\n";
 		fragmentHeader = "#version 100\n";
 
-		if (bDepthOutput)
+		if (depthOutput)
 			fragmentHeader += "#extension GL_EXT_frag_depth : enable\n#define DEPTH_OUT gl_FragDepthEXT\n";
 
 		fragmentHeader += "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n";
@@ -247,93 +247,93 @@ OpenGL::Shader *Std3DGlBackend::createShader(const char *name, const char *verte
 		vertexHeader = "#version 120\n";
 		fragmentHeader = "#version 120\n";
 
-		if (bDepthOutput)
+		if (depthOutput)
 			fragmentHeader += "#define DEPTH_OUT gl_FragDepth\n";
 	}
 
 	const char *vertexParts[2] = { vertexHeader.c_str(), vertexSource };
 	const char *fragmentParts[2] = { fragmentHeader.c_str(), fragmentSource };
 
-	OpenGL::Shader *pShader = new OpenGL::Shader();
+	OpenGL::Shader *shader = new OpenGL::Shader();
 
-	if (!pShader->loadFromStringsArray(name, 2, vertexParts, 2, fragmentParts, attributes)) {
+	if (!shader->loadFromStringsArray(name, 2, vertexParts, 2, fragmentParts, attributes)) {
 		warning("Std3DGlBackend::createShader(): could not create shader %s", name);
-		delete pShader;
+		delete shader;
 		return nullptr;
 	}
 
-	return pShader;
+	return shader;
 }
 
 int Std3DGlBackend::ensureReady() {
-	if (_bGlReady)
+	if (_glReady)
 		return 1;
 
 	if (!isSupported())
 		return 0;
 
-	_pTlShader = createShader("std3d_tl", tlVertexSource, tlFragmentSource, tlAttributes, 0);
-	_pBlitShader = createShader("std3d_blit", quadVertexSource, blitFragmentSource, quadAttributes, 0);
+	_tlShader = createShader("std3d_tl", tlVertexSource, tlFragmentSource, tlAttributes, 0);
+	_blitShader = createShader("std3d_blit", quadVertexSource, blitFragmentSource, quadAttributes, 0);
 
-	if (!_pTlShader || !_pBlitShader) {
-		delete _pTlShader;
-		_pTlShader = nullptr;
-		delete _pBlitShader;
-		_pBlitShader = nullptr;
+	if (!_tlShader || !_blitShader) {
+		delete _tlShader;
+		_tlShader = nullptr;
+		delete _blitShader;
+		_blitShader = nullptr;
 		return 0;
 	}
 
-	_bFragDepthSupported = 1;
+	_fragDepthSupported = 1;
 
 	if (OpenGLContext.type == OpenGL::kContextGLES2) {
-		const char *pExtensions = (const char *)glGetString(GL_EXTENSIONS);
-		_bFragDepthSupported = pExtensions && strstr(pExtensions, "GL_EXT_frag_depth") != nullptr;
+		const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
+		_fragDepthSupported = extensions && strstr(extensions, "GL_EXT_frag_depth") != nullptr;
 	}
 
-	if (_bFragDepthSupported)
-		_pDepthShader = createShader("std3d_depth", quadVertexSource, depthFragmentSource, quadAttributes, 1);
+	if (_fragDepthSupported)
+		_depthShader = createShader("std3d_depth", quadVertexSource, depthFragmentSource, quadAttributes, 1);
 
 	_vertexVbo = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, 0, nullptr, GL_STREAM_DRAW);
 	_indexVbo = OpenGL::Shader::createBuffer(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_STREAM_DRAW);
 	_quadVbo = OpenGL::Shader::createBuffer(GL_ARRAY_BUFFER, 16 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 
-	_pTlShader->enableVertexAttribute("position", _vertexVbo, 4, GL_FLOAT, GL_FALSE, sizeof(Std3DGlVertex), 0);
-	_pTlShader->enableVertexAttribute("color", _vertexVbo, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Std3DGlVertex), 16);
-	_pTlShader->enableVertexAttribute("texcoord", _vertexVbo, 2, GL_FLOAT, GL_FALSE, sizeof(Std3DGlVertex), 20);
+	_tlShader->enableVertexAttribute("position", _vertexVbo, 4, GL_FLOAT, GL_FALSE, sizeof(Std3DGlVertex), 0);
+	_tlShader->enableVertexAttribute("color", _vertexVbo, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Std3DGlVertex), 16);
+	_tlShader->enableVertexAttribute("texcoord", _vertexVbo, 2, GL_FLOAT, GL_FALSE, sizeof(Std3DGlVertex), 20);
 
-	_pBlitShader->enableVertexAttribute("position", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-	_pBlitShader->enableVertexAttribute("texcoord", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+	_blitShader->enableVertexAttribute("position", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+	_blitShader->enableVertexAttribute("texcoord", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
 
-	if (_pDepthShader) {
-		_pDepthShader->enableVertexAttribute("position", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-		_pDepthShader->enableVertexAttribute("texcoord", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+	if (_depthShader) {
+		_depthShader->enableVertexAttribute("position", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+		_depthShader->enableVertexAttribute("texcoord", _quadVbo, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
 	}
 
-	_bGlReady = 1;
+	_glReady = 1;
 	return 1;
 }
 
-void Std3DGlBackend::saveGlState(Std3DGlState *pState) {
+void Std3DGlBackend::saveGlState(Std3DGlState *state) {
 	GLint framebuffer = 0;
 	GLint viewport[4];
 
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebuffer);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	pState->framebuffer = framebuffer;
+	state->framebuffer = framebuffer;
 
 	for (int i = 0; i < 4; i++)
-		pState->viewport[i] = viewport[i];
+		state->viewport[i] = viewport[i];
 }
 
-void Std3DGlBackend::restoreGlState(const Std3DGlState *pState) {
-	glBindFramebuffer(GL_FRAMEBUFFER, pState->framebuffer);
-	glViewport(pState->viewport[0], pState->viewport[1], pState->viewport[2], pState->viewport[3]);
+void Std3DGlBackend::restoreGlState(const Std3DGlState *state) {
+	glBindFramebuffer(GL_FRAMEBUFFER, state->framebuffer);
+	glViewport(state->viewport[0], state->viewport[1], state->viewport[2], state->viewport[3]);
 }
 
-void Std3DGlBackend::bindSurface(Std3DSurface *pSurface) {
-	glBindFramebuffer(GL_FRAMEBUFFER, glData(pSurface)->framebuffer);
-	glViewport(0, 0, pSurface->width, pSurface->height);
+void Std3DGlBackend::bindSurface(Std3DSurface *surface) {
+	glBindFramebuffer(GL_FRAMEBUFFER, glData(surface)->framebuffer);
+	glViewport(0, 0, surface->width, surface->height);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -342,27 +342,27 @@ void Std3DGlBackend::bindSurface(Std3DSurface *pSurface) {
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
-int Std3DGlBackend::attachDepth(Std3DSurface *pSurface, int zBufferBitDepth) {
+int Std3DGlBackend::attachDepth(Std3DSurface *surface, int zBufferBitDepth) {
 	Std3DGlState savedState;
 	GLuint renderbuffer = 0;
 
 	saveGlState(&savedState);
-	glBindFramebuffer(GL_FRAMEBUFFER, glData(pSurface)->framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, glData(surface)->framebuffer);
 	glGenRenderbuffers(1, &renderbuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
 
 #if defined(GL_DEPTH_COMPONENT24)
 	if (zBufferBitDepth == 32) {
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, pSurface->width, pSurface->height);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, surface->width, surface->height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, pSurface->width, pSurface->height);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, surface->width, surface->height);
 	} else {
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, pSurface->width, pSurface->height);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, surface->width, surface->height);
 	}
 #else
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, pSurface->width, pSurface->height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, surface->width, surface->height);
 #endif
 
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
@@ -376,54 +376,54 @@ int Std3DGlBackend::attachDepth(Std3DSurface *pSurface, int zBufferBitDepth) {
 		return 0;
 	}
 
-	glData(pSurface)->depthRenderbuffer = renderbuffer;
+	glData(surface)->depthRenderbuffer = renderbuffer;
 	restoreGlState(&savedState);
 	return 1;
 }
 
-void Std3DGlBackend::detachDepth(Std3DSurface *pSurface) {
-	Std3DGlSurface *pData = glData(pSurface);
+void Std3DGlBackend::detachDepth(Std3DSurface *surface) {
+	Std3DGlSurface *data = glData(surface);
 
-	if (!pData->depthRenderbuffer)
+	if (!data->depthRenderbuffer)
 		return;
 
 	Std3DGlState savedState;
-	GLuint renderbuffer = pData->depthRenderbuffer;
+	GLuint renderbuffer = data->depthRenderbuffer;
 
 	saveGlState(&savedState);
-	glBindFramebuffer(GL_FRAMEBUFFER, pData->framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, data->framebuffer);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
 	glDeleteRenderbuffers(1, &renderbuffer);
-	pData->depthRenderbuffer = 0;
+	data->depthRenderbuffer = 0;
 	restoreGlState(&savedState);
 }
 
-int Std3DGlBackend::hasDepth(const Std3DSurface *pSurface) {
-	Std3DGlSurface *pData = glData(pSurface);
+int Std3DGlBackend::hasDepth(const Std3DSurface *surface) {
+	Std3DGlSurface *data = glData(surface);
 
-	return pData && pData->depthRenderbuffer != 0;
+	return data && data->depthRenderbuffer != 0;
 }
 
-int Std3DGlBackend::supportsDepthUpload(const Std3DSurface *pSurface) {
-	return hasDepth(pSurface) && _pDepthShader;
+int Std3DGlBackend::supportsDepthUpload(const Std3DSurface *surface) {
+	return hasDepth(surface) && _depthShader;
 }
 
-void Std3DGlBackend::drawQuad(const float *pQuad) {
+void Std3DGlBackend::drawQuad(const float *quad) {
 	glBindBuffer(GL_ARRAY_BUFFER, _quadVbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(float), pQuad);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(float), quad);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-int Std3DGlBackend::createSurface(Std3DSurface *pSurface, int bHasDepth, int zBufferBitDepth) {
-	Std3DGlSurface *pData = new Std3DGlSurface;
+int Std3DGlBackend::createSurface(Std3DSurface *surface, int hasDepth, int zBufferBitDepth) {
+	Std3DGlSurface *data = new Std3DGlSurface;
 	Std3DGlState savedState;
 	GLuint texture = 0;
 	GLuint framebuffer = 0;
-	int width = pSurface->width;
-	int height = pSurface->height;
+	int width = surface->width;
+	int height = surface->height;
 
-	memset(pData, 0, sizeof(Std3DGlSurface));
-	pSurface->pBackendData = pData;
+	memset(data, 0, sizeof(Std3DGlSurface));
+	surface->backendData = data;
 
 	saveGlState(&savedState);
 
@@ -436,27 +436,27 @@ int Std3DGlBackend::createSurface(Std3DSurface *pSurface, int bHasDepth, int zBu
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	pData->colorTexture = texture;
+	data->colorTexture = texture;
 
 	glGenFramebuffers(1, &framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-	pData->framebuffer = framebuffer;
+	data->framebuffer = framebuffer;
 
-	int bComplete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+	int complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 
-	if (!bComplete)
+	if (!complete)
 		warning("Std3DGlBackend::createSurface(): incomplete framebuffer");
 
-	if (bComplete && bHasDepth && !attachDepth(pSurface, zBufferBitDepth))
-		bComplete = 0;
+	if (complete && hasDepth && !attachDepth(surface, zBufferBitDepth))
+		complete = 0;
 
-	if (!bComplete) {
+	if (!complete) {
 		glDeleteFramebuffers(1, &framebuffer);
 		glDeleteTextures(1, &texture);
 		restoreGlState(&savedState);
-		delete pData;
-		pSurface->pBackendData = nullptr;
+		delete data;
+		surface->backendData = nullptr;
 		return 0;
 	}
 
@@ -471,88 +471,88 @@ int Std3DGlBackend::createSurface(Std3DSurface *pSurface, int bHasDepth, int zBu
 	return 1;
 }
 
-void Std3DGlBackend::destroySurface(Std3DSurface *pSurface) {
-	Std3DGlSurface *pData = glData(pSurface);
+void Std3DGlBackend::destroySurface(Std3DSurface *surface) {
+	Std3DGlSurface *data = glData(surface);
 
-	if (!pData)
+	if (!data)
 		return;
 
-	if (_bGlReady && OpenGLContext.type != OpenGL::kContextNone) {
-		detachDepth(pSurface);
+	if (_glReady && OpenGLContext.type != OpenGL::kContextNone) {
+		detachDepth(surface);
 
-		GLuint framebuffer = pData->framebuffer;
-		GLuint texture = pData->colorTexture;
+		GLuint framebuffer = data->framebuffer;
+		GLuint texture = data->colorTexture;
 
 		glDeleteFramebuffers(1, &framebuffer);
 		glDeleteTextures(1, &texture);
 	}
 
-	delete pData;
-	pSurface->pBackendData = nullptr;
+	delete data;
+	surface->backendData = nullptr;
 }
 
-int Std3DGlBackend::uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes) {
-	const StdRect &rect = *pRect;
-	byte *pRgba = new byte[rect.width * rect.height * 4];
+int Std3DGlBackend::uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes) {
+	const StdRect &rect = *rectPointer;
+	byte *rgba = new byte[rect.width * rect.height * 4];
 
 	for (int y = 0; y < rect.height; y++) {
-		const byte *pRow = pPixels + y * pitchInBytes;
-		byte *pOut = &pRgba[y * rect.width * 4];
+		const byte *row = pixels + y * pitchInBytes;
+		byte *out = &rgba[y * rect.width * 4];
 
 		for (int x = 0; x < rect.width; x++) {
-			uint value = READ_LE_UINT16(pRow + 2 * x);
+			uint value = READ_LE_UINT16(row + 2 * x);
 
-			pOut[0] = expand5((value >> 11) & 0x1F);
-			pOut[1] = expand6((value >> 5) & 0x3F);
-			pOut[2] = expand5(value & 0x1F);
-			pOut[3] = 255;
-			pOut += 4;
+			out[0] = expand5((value >> 11) & 0x1F);
+			out[1] = expand6((value >> 5) & 0x3F);
+			out[2] = expand5(value & 0x1F);
+			out[3] = 255;
+			out += 4;
 		}
 	}
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, glData(pSurface)->colorTexture);
+	glBindTexture(GL_TEXTURE_2D, glData(surface)->colorTexture);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x, rect.y, rect.width, rect.height, GL_RGBA, GL_UNSIGNED_BYTE, pRgba);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x, rect.y, rect.width, rect.height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	delete[] pRgba;
+	delete[] rgba;
 	return 1;
 }
 
-int Std3DGlBackend::readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes) {
-	const StdRect &rect = *pRect;
-	byte *pRgba = new byte[rect.width * rect.height * 4];
+int Std3DGlBackend::readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes) {
+	const StdRect &rect = *rectPointer;
+	byte *rgba = new byte[rect.width * rect.height * 4];
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	glBindFramebuffer(GL_FRAMEBUFFER, glData(pSurface)->framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, glData(surface)->framebuffer);
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
-	glReadPixels(rect.x, rect.y, rect.width, rect.height, GL_RGBA, GL_UNSIGNED_BYTE, pRgba);
+	glReadPixels(rect.x, rect.y, rect.width, rect.height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 	restoreGlState(&savedState);
 
 	for (int y = 0; y < rect.height; y++) {
-		const byte *pIn = &pRgba[y * rect.width * 4];
-		byte *pRow = pOut + y * pitchInBytes;
+		const byte *in = &rgba[y * rect.width * 4];
+		byte *row = out + y * pitchInBytes;
 
 		for (int x = 0; x < rect.width; x++) {
-			uint value = ((pIn[0] >> 3) << 11) | ((pIn[1] >> 2) << 5) | (pIn[2] >> 3);
+			uint value = ((in[0] >> 3) << 11) | ((in[1] >> 2) << 5) | (in[2] >> 3);
 
-			WRITE_LE_UINT16(pRow + 2 * x, value);
-			pIn += 4;
+			WRITE_LE_UINT16(row + 2 * x, value);
+			in += 4;
 		}
 	}
 
-	delete[] pRgba;
+	delete[] rgba;
 	return 1;
 }
 
-int Std3DGlBackend::fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color) {
-	const StdRect &rect = *pRect;
+int Std3DGlBackend::fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color) {
+	const StdRect &rect = *rectPointer;
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	bindSurface(pSurface);
+	bindSurface(surface);
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(rect.x, rect.y, rect.width, rect.height);
 	glClearColor(expand5((color >> 11) & 0x1F) / 255.0f, expand6((color >> 5) & 0x3F) / 255.0f, expand5(color & 0x1F) / 255.0f, 1.0f);
@@ -566,20 +566,20 @@ int Std3DGlBackend::canBlitOntoSelf() {
 	return 0;
 }
 
-int Std3DGlBackend::blit(Std3DSurface *pDst, Std3DSurface *pSrc, int srcX, int srcY, int width, int height, int dstX, int dstY, int bColorKey, uint16 colorKey) {
+int Std3DGlBackend::blit(Std3DSurface *dst, Std3DSurface *src, int srcX, int srcY, int width, int height, int dstX, int dstY, int colorKeyFlag, uint16 colorKey) {
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	bindSurface(pDst);
+	bindSurface(dst);
 
 	float left = (float)dstX;
 	float top = (float)dstY;
 	float right = (float)(dstX + width);
 	float bottom = (float)(dstY + height);
-	float s0 = (float)srcX / (float)pSrc->width;
-	float t0 = (float)srcY / (float)pSrc->height;
-	float s1 = (float)(srcX + width) / (float)pSrc->width;
-	float t1 = (float)(srcY + height) / (float)pSrc->height;
+	float s0 = (float)srcX / (float)src->width;
+	float t0 = (float)srcY / (float)src->height;
+	float s1 = (float)(srcX + width) / (float)src->width;
+	float t1 = (float)(srcY + height) / (float)src->height;
 	float quad[16] = {
 		left, top, s0, t0,
 		right, top, s1, t0,
@@ -588,30 +588,30 @@ int Std3DGlBackend::blit(Std3DSurface *pDst, Std3DSurface *pSrc, int srcX, int s
 	};
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, glData(pSrc)->colorTexture);
+	glBindTexture(GL_TEXTURE_2D, glData(src)->colorTexture);
 
-	_pBlitShader->use(true);
-	_pBlitShader->setUniform("targetSize", Math::Vector2d((float)pDst->width, (float)pDst->height));
-	_pBlitShader->setUniform1f("flipY", 1.0f);
-	_pBlitShader->setUniform("tex", 0u);
-	_pBlitShader->setUniform("useKey", bColorKey != 0 ? 1u : 0u);
-	_pBlitShader->setUniform("keyColor", Math::Vector3d(expand5((colorKey >> 11) & 0x1F) / 255.0f, expand6((colorKey >> 5) & 0x3F) / 255.0f, expand5(colorKey & 0x1F) / 255.0f));
+	_blitShader->use(true);
+	_blitShader->setUniform("targetSize", Math::Vector2d((float)dst->width, (float)dst->height));
+	_blitShader->setUniform1f("flipY", 1.0f);
+	_blitShader->setUniform("tex", 0u);
+	_blitShader->setUniform("useKey", colorKeyFlag != 0 ? 1u : 0u);
+	_blitShader->setUniform("keyColor", Math::Vector3d(expand5((colorKey >> 11) & 0x1F) / 255.0f, expand6((colorKey >> 5) & 0x3F) / 255.0f, expand5(colorKey & 0x1F) / 255.0f));
 
 	drawQuad(quad);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	_pBlitShader->unbind();
+	_blitShader->unbind();
 	restoreGlState(&savedState);
 	return 1;
 }
 
-int Std3DGlBackend::clearDepth(Std3DSurface *pSurface, const StdRect *pRect, float depthValue) {
+int Std3DGlBackend::clearDepth(Std3DSurface *surface, const StdRect *rect, float depthValue) {
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	bindSurface(pSurface);
+	bindSurface(surface);
 	glEnable(GL_SCISSOR_TEST);
-	glScissor(pRect->x, pRect->y, pRect->width, pRect->height);
+	glScissor(rect->x, rect->y, rect->width, rect->height);
 	glDepthMask(GL_TRUE);
 
 #if USE_FORCED_GLES2
@@ -631,22 +631,22 @@ int Std3DGlBackend::clearDepth(Std3DSurface *pSurface, const StdRect *pRect, flo
 	return 1;
 }
 
-int Std3DGlBackend::uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes) {
-	const StdRect &rect = *pRect;
-	byte *pData = new byte[rect.width * rect.height * 4];
+int Std3DGlBackend::uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes) {
+	const StdRect &rect = *rectPointer;
+	byte *data = new byte[rect.width * rect.height * 4];
 
 	for (int y = 0; y < rect.height; y++) {
-		const byte *pRow = pZData + y * pitchInBytes;
-		byte *pOut = &pData[y * rect.width * 4];
+		const byte *row = zData + y * pitchInBytes;
+		byte *out = &data[y * rect.width * 4];
 
 		for (int x = 0; x < rect.width; x++) {
-			uint value = READ_LE_UINT16(pRow + 2 * x);
+			uint value = READ_LE_UINT16(row + 2 * x);
 
-			pOut[0] = value & 0xFF;
-			pOut[1] = value >> 8;
-			pOut[2] = 0;
-			pOut[3] = 255;
-			pOut += 4;
+			out[0] = value & 0xFF;
+			out[1] = value >> 8;
+			out[2] = 0;
+			out[3] = 255;
+			out += 4;
 		}
 	}
 
@@ -660,14 +660,14 @@ int Std3DGlBackend::uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, co
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rect.width, rect.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rect.width, rect.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-	delete[] pData;
+	delete[] data;
 
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	bindSurface(pSurface);
+	bindSurface(surface);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_ALWAYS);
 	glDepthMask(GL_TRUE);
@@ -684,22 +684,22 @@ int Std3DGlBackend::uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, co
 		right, bottom, 1.0f, 1.0f
 	};
 
-	_pDepthShader->use(true);
-	_pDepthShader->setUniform("targetSize", Math::Vector2d((float)pSurface->width, (float)pSurface->height));
-	_pDepthShader->setUniform1f("flipY", 1.0f);
-	_pDepthShader->setUniform("tex", 0u);
+	_depthShader->use(true);
+	_depthShader->setUniform("targetSize", Math::Vector2d((float)surface->width, (float)surface->height));
+	_depthShader->setUniform1f("flipY", 1.0f);
+	_depthShader->setUniform("tex", 0u);
 
 	drawQuad(quad);
 
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glDisable(GL_DEPTH_TEST);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	_pDepthShader->unbind();
+	_depthShader->unbind();
 	restoreGlState(&savedState);
 	return 1;
 }
 
-int Std3DGlBackend::presentSurface(Std3DSurface *pSurface) {
+int Std3DGlBackend::presentSurface(Std3DSurface *surface) {
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
@@ -710,8 +710,8 @@ int Std3DGlBackend::presentSurface(Std3DSurface *pSurface) {
 	glDisable(GL_DEPTH_TEST);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-	float right = (float)pSurface->width;
-	float bottom = (float)pSurface->height;
+	float right = (float)surface->width;
+	float bottom = (float)surface->height;
 	float quad[16] = {
 		0.0f, 0.0f, 0.0f, 0.0f,
 		right, 0.0f, 1.0f, 0.0f,
@@ -720,24 +720,24 @@ int Std3DGlBackend::presentSurface(Std3DSurface *pSurface) {
 	};
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, glData(pSurface)->colorTexture);
+	glBindTexture(GL_TEXTURE_2D, glData(surface)->colorTexture);
 
-	_pBlitShader->use(true);
-	_pBlitShader->setUniform("targetSize", Math::Vector2d(right, bottom));
-	_pBlitShader->setUniform1f("flipY", -1.0f);
-	_pBlitShader->setUniform("tex", 0u);
-	_pBlitShader->setUniform("useKey", 0u);
-	_pBlitShader->setUniform("keyColor", Math::Vector3d(0.0f, 0.0f, 0.0f));
+	_blitShader->use(true);
+	_blitShader->setUniform("targetSize", Math::Vector2d(right, bottom));
+	_blitShader->setUniform1f("flipY", -1.0f);
+	_blitShader->setUniform("tex", 0u);
+	_blitShader->setUniform("useKey", 0u);
+	_blitShader->setUniform("keyColor", Math::Vector3d(0.0f, 0.0f, 0.0f));
 
 	drawQuad(quad);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	_pBlitShader->unbind();
+	_blitShader->unbind();
 	restoreGlState(&savedState);
 	return 1;
 }
 
-uint Std3DGlBackend::createTexture(const byte *pRgba, int width, int height, int bMagLinear, int bMinLinear) {
+uint Std3DGlBackend::createTexture(const byte *rgba, int width, int height, int magLinear, int minLinear) {
 	GLuint texture = 0;
 
 	glGenTextures(1, &texture);
@@ -745,27 +745,27 @@ uint Std3DGlBackend::createTexture(const byte *pRgba, int width, int height, int
 	if (!texture)
 		return 0;
 
-	int bPowerOfTwo = ((uint)width & ((uint)width - 1)) == 0 && ((uint)height & ((uint)height - 1)) == 0;
+	int powerOfTwo = ((uint)width & ((uint)width - 1)) == 0 && ((uint)height & ((uint)height - 1)) == 0;
 	GLint wrapMode = GL_REPEAT;
 
-	if (!bPowerOfTwo && OpenGLContext.type == OpenGL::kContextGLES2)
+	if (!powerOfTwo && OpenGLContext.type == OpenGL::kContextGLES2)
 		wrapMode = GL_CLAMP_TO_EDGE;
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bMinLinear ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bMagLinear ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minLinear ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magLinear ? GL_LINEAR : GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRgba);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return texture;
 }
 
-void Std3DGlBackend::deleteTexture(uint hTexture) {
-	if (hTexture && _bGlReady && OpenGLContext.type != OpenGL::kContextNone) {
-		GLuint texture = hTexture;
+void Std3DGlBackend::deleteTexture(uint textureHandle) {
+	if (textureHandle && _glReady && OpenGLContext.type != OpenGL::kContextNone) {
+		GLuint texture = textureHandle;
 		glDeleteTextures(1, &texture);
 	}
 }
@@ -794,7 +794,7 @@ uint Std3DGlBackend::glCompareFunc(uint d3dFunc) {
 	}
 }
 
-void Std3DGlBackend::applyRenderState(const Std3DDrawList *pList, uint flags) {
+void Std3DGlBackend::applyRenderState(const Std3DDrawList *list, uint flags) {
 	if (flags & (kStd3DRsAlphaBlend | kStd3DRsAlphaTexture)) {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -802,13 +802,13 @@ void Std3DGlBackend::applyRenderState(const Std3DDrawList *pList, uint flags) {
 		glDisable(GL_BLEND);
 	}
 
-	_pTlShader->setUniform("modulateAlpha", (flags & kStd3DRsAlphaTexture) != 0 ? 1u : 0u);
+	_tlShader->setUniform("modulateAlpha", (flags & kStd3DRsAlphaTexture) != 0 ? 1u : 0u);
 
-	if (pList->bZEnable) {
+	if (list->zEnable) {
 		glEnable(GL_DEPTH_TEST);
 
 		if (flags & kStd3DRsZTest)
-			glDepthFunc(glCompareFunc(pList->zCompareFunc));
+			glDepthFunc(glCompareFunc(list->zCompareFunc));
 		else
 			glDepthFunc(GL_ALWAYS);
 
@@ -818,20 +818,20 @@ void Std3DGlBackend::applyRenderState(const Std3DDrawList *pList, uint flags) {
 		glDepthMask(GL_FALSE);
 	}
 
-	_pTlShader->setUniform("fogEnabled", (flags & kStd3DRsFog) != 0 ? 1u : 0u);
+	_tlShader->setUniform("fogEnabled", (flags & kStd3DRsFog) != 0 ? 1u : 0u);
 }
 
-int Std3DGlBackend::drawList(const Std3DDrawList *pList) {
+int Std3DGlBackend::drawList(const Std3DDrawList *list) {
 	Std3DGlState savedState;
 
 	saveGlState(&savedState);
-	bindSurface(pList->pTarget);
+	bindSurface(list->target);
 	glDisable(GL_DITHER);
 
 	Common::Array<Std3DGlVertex> glVertices;
 
-	for (uint i = 0; i < pList->numVertices; i++) {
-		const Std3DVertex &vertex = pList->pVertices[i];
+	for (uint i = 0; i < list->numVertices; i++) {
+		const Std3DVertex &vertex = list->vertices[i];
 		Std3DGlVertex glVertex;
 
 		glVertex.x = vertex.sx;
@@ -850,32 +850,32 @@ int Std3DGlBackend::drawList(const Std3DDrawList *pList) {
 	glBindBuffer(GL_ARRAY_BUFFER, _vertexVbo);
 	glBufferData(GL_ARRAY_BUFFER, glVertices.size() * sizeof(Std3DGlVertex), glVertices.empty() ? nullptr : &glVertices[0], GL_STREAM_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indexVbo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, pList->numIndices * sizeof(uint16), pList->numIndices == 0 ? nullptr : pList->pIndices, GL_STREAM_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, list->numIndices * sizeof(uint16), list->numIndices == 0 ? nullptr : list->indices, GL_STREAM_DRAW);
 
-	_pTlShader->use(true);
-	_pTlShader->setUniform("targetSize", Math::Vector2d((float)pList->pTarget->width, (float)pList->pTarget->height));
-	_pTlShader->setUniform("tex", 0u);
-	_pTlShader->setUniform("textured", 0u);
-	_pTlShader->setUniform("texHasAlpha", 0u);
-	_pTlShader->setUniform("alphaFunc", pList->alphaFunc);
-	_pTlShader->setUniform("fogColor", Math::Vector3d(pList->fogRed / 255.0f, pList->fogGreen / 255.0f, pList->fogBlue / 255.0f));
-	_pTlShader->setUniform("fogRange", Math::Vector2d(pList->fogStart, pList->fogEnd));
+	_tlShader->use(true);
+	_tlShader->setUniform("targetSize", Math::Vector2d((float)list->target->width, (float)list->target->height));
+	_tlShader->setUniform("tex", 0u);
+	_tlShader->setUniform("textured", 0u);
+	_tlShader->setUniform("texHasAlpha", 0u);
+	_tlShader->setUniform("alphaFunc", list->alphaFunc);
+	_tlShader->setUniform("fogColor", Math::Vector3d(list->fogRed / 255.0f, list->fogGreen / 255.0f, list->fogBlue / 255.0f));
+	_tlShader->setUniform("fogRange", Math::Vector2d(list->fogStart, list->fogEnd));
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	applyRenderState(pList, pList->initialRenderState);
+	applyRenderState(list, list->initialRenderState);
 
-	for (uint i = 0; i < pList->numCommands; i++) {
-		const Std3DCommand &command = pList->pCommands[i];
+	for (uint i = 0; i < list->numCommands; i++) {
+		const Std3DCommand &command = list->commands[i];
 
 		switch (command.type) {
 		case kStd3DCommandRenderState:
-			applyRenderState(pList, command.flags);
+			applyRenderState(list, command.flags);
 			break;
 		case kStd3DCommandTexture:
 			glBindTexture(GL_TEXTURE_2D, command.texture);
-			_pTlShader->setUniform("textured", command.texture != 0 ? 1u : 0u);
-			_pTlShader->setUniform("texHasAlpha", command.bTextureAlpha != 0 ? 1u : 0u);
+			_tlShader->setUniform("textured", command.texture != 0 ? 1u : 0u);
+			_tlShader->setUniform("texHasAlpha", command.textureAlpha != 0 ? 1u : 0u);
 			break;
 		case kStd3DCommandTriangles:
 			glDrawElements(GL_TRIANGLES, command.numIndices, GL_UNSIGNED_SHORT, (const void *)(uintptr)(command.firstIndex * sizeof(uint16)));
@@ -889,7 +889,7 @@ int Std3DGlBackend::drawList(const Std3DDrawList *pList) {
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
-	_pTlShader->unbind();
+	_tlShader->unbind();
 	restoreGlState(&savedState);
 	return 1;
 }

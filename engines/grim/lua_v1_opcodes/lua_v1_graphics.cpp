@@ -34,11 +34,11 @@
 namespace Grim {
 
 static int getScreenColor(int32 color) {
-	const StdColorFormat *pFormat = g_grim->getColorInfo();
+	const StdColorFormat *format = g_grim->getColorInfo();
 	uint value = (uint)color;
-	uint red = (value & 0xFF) >> pFormat->redLoss << pFormat->redShift;
-	uint green = ((value >> 8) & 0xFF) >> pFormat->greenLoss << pFormat->greenShift;
-	uint blue = ((value >> 16) & 0xFF) >> pFormat->blueLoss << pFormat->blueShift;
+	uint red = (value & 0xFF) >> format->redLoss << format->redShift;
+	uint green = ((value >> 8) & 0xFF) >> format->greenLoss << format->greenShift;
+	uint blue = ((value >> 16) & 0xFF) >> format->blueLoss << format->blueShift;
 
 	return (int)((uint16)green | (uint16)blue | (uint16)red);
 }
@@ -60,10 +60,10 @@ int Lua_V1::findImage(lua_Object obj) {
 	return -1;
 }
 
-void Lua_V1::pushImage(StdVBuffer *pImage) {
+void Lua_V1::pushImage(StdVBuffer *image) {
 	for (int i = 0; i < kMaxImages; i++) {
 		if (!_images[i]) {
-			_images[i] = pImage;
+			_images[i] = image;
 			_imageHandles[i] = _nextImageHandle++;
 			lua_pushusertag(_imageHandles[i], MKTAG('F','U','B','V'));
 			return;
@@ -72,7 +72,7 @@ void Lua_V1::pushImage(StdVBuffer *pImage) {
 
 	warning("Lua_V1::pushImage(): too many images");
 
-	g_grim->_pStdDisplay->vBufferFree(pImage);
+	g_grim->_stdDisplay->vBufferFree(image);
 	lua_pushnil();
 }
 
@@ -81,30 +81,30 @@ void Lua_V1::GetImage() {
 
 	if (lua_isstring(nameObj)) {
 		Common::String path(lua_getstring(nameObj));
-		StdBitmapStruct *pBitmap = g_grim->_pStdBitmap->loadImage(path, 0, 0);
+		StdBitmapStruct *bitmap = g_grim->_stdBitmap->loadImage(path, 0, 0);
 
-		if (pBitmap) {
-			if (!pBitmap->apFrames || pBitmap->numFrames == 0 || !pBitmap->apFrames[0]) {
+		if (bitmap) {
+			if (!bitmap->frames || bitmap->numFrames == 0 || !bitmap->frames[0]) {
 				warning("Lua_V1::GetImage(): the image has no frames");
-				g_grim->_pStdBitmap->unloadBitmap(pBitmap);
+				g_grim->_stdBitmap->unloadBitmap(bitmap);
 				lua_pushnil();
 				return;
 			}
 
-			StdVBuffer *pImage = pBitmap->apFrames[0];
+			StdVBuffer *image = bitmap->frames[0];
 
-			pImage->colorKey = 63519;
-			pBitmap->apFrames[0] = nullptr;
-			g_grim->_pStdBitmap->unloadBitmap(pBitmap);
+			image->colorKey = 63519;
+			bitmap->frames[0] = nullptr;
+			g_grim->_stdBitmap->unloadBitmap(bitmap);
 
-			if (pImage->tex.format.bpp == 16) {
-				g_grim->_pSputRender->colorCorrect((uint16 *)pImage->pPixels, pImage->tex.width * pImage->tex.height);
-				g_grim->_pSputRender->colorCorrect((uint16 *)&pImage->colorKey, 1);
+			if (image->tex.format.bpp == 16) {
+				g_grim->_sputRender->colorCorrect((uint16 *)image->pixels, image->tex.width * image->tex.height);
+				g_grim->_sputRender->colorCorrect((uint16 *)&image->colorKey, 1);
 			} else {
 				warning("Lua_V1::GetImage(): the image is not 16 bpp");
 			}
 
-			pushImage(pImage);
+			pushImage(image);
 			return;
 		}
 	}
@@ -119,7 +119,7 @@ void Lua_V1::FreeImage() {
 		int slot = findImage(imageObj);
 
 		if (slot >= 0) {
-			g_grim->_pStdDisplay->vBufferFree(_images[slot]);
+			g_grim->_stdDisplay->vBufferFree(_images[slot]);
 			_imageHandles[slot] = 0;
 		}
 	}
@@ -130,7 +130,7 @@ void Lua_V1::BlastImage() {
 	lua_Object xObj = lua_getparam(2);
 	lua_Object yObj = lua_getparam(3);
 	lua_Object modeObj = lua_getparam(4);
-	char bColorKey = (char)(lua_isnil(modeObj) == 0);
+	char colorKey = (char)(lua_isnil(modeObj) == 0);
 
 	if (isImage(imageObj) && lua_isnumber(xObj) && lua_isnumber(yObj)) {
 		int slot = findImage(imageObj);
@@ -138,20 +138,20 @@ void Lua_V1::BlastImage() {
 		if (slot >= 0) {
 			int x = luaFtol(lua_getnumber(xObj));
 			int y = luaFtol(lua_getnumber(yObj));
-			StdVBuffer *pDst = g_grim->_pSputRender->drawBuffer();
+			StdVBuffer *dst = g_grim->_sputRender->drawBuffer();
 
-			if (!pDst) {
+			if (!dst) {
 				warning("Lua_V1::BlastImage(): the display is not set");
 				return;
 			}
 
-			g_grim->_pStdDisplay->vBufferCopy(pDst, _images[slot], x, y, nullptr, bColorKey);
+			g_grim->_stdDisplay->vBufferCopy(dst, _images[slot], x, y, nullptr, colorKey);
 		}
 	}
 }
 
 void Lua_V1::CleanBuffer() {
-	g_grim->_pSputRender->cleanDrawBuffer();
+	g_grim->_sputRender->cleanDrawBuffer();
 }
 
 void Lua_V1::StartFullscreenMovie() {
@@ -216,7 +216,7 @@ void Lua_V1::StartMovieDemo() {
 }
 
 void Lua_V1::IsFullscreenMoviePlaying() {
-	pushbool(g_grim->_pSputSmush->moviePlaying() != 0);
+	pushbool(g_grim->_sputSmush->moviePlaying() != 0);
 }
 
 void Lua_V1::IsFullscreenMoviePlayingDemo() {
@@ -224,26 +224,26 @@ void Lua_V1::IsFullscreenMoviePlayingDemo() {
 }
 
 void Lua_V1::IsMoviePlaying() {
-	pushbool(g_grim->_pSputSmush->moviePlaying() != 0);
+	pushbool(g_grim->_sputSmush->moviePlaying() != 0);
 }
 
 void Lua_V1::StopMovie() {
-	g_grim->_pSputSmush->stopMovie();
+	g_grim->_sputSmush->stopMovie();
 }
 
 void Lua_V1::PauseMovie() {
-	g_grim->_pSputSmush->pause(lua_isnil(lua_getparam(1)));
+	g_grim->_sputSmush->pause(lua_isnil(lua_getparam(1)));
 }
 
 void Lua_V1::PurgePrimitiveQueue() {
-	PrimitiveQueue *pQueue = g_grim->_pSputPrimitive->getCurrent();
+	PrimitiveQueue *queue = g_grim->_sputPrimitive->getCurrent();
 
-	pQueue->purge();
-	pQueue->resetId();
+	queue->purge();
+	queue->resetId();
 }
 
 void Lua_V1::DrawPolygon() {
-	PrimitiveQueue *pQueue = g_grim->_pSputPrimitive->getCurrent();
+	PrimitiveQueue *queue = g_grim->_sputPrimitive->getCurrent();
 	int layer = 2;
 	int color = 0;
 	lua_Object pointsObj = lua_getparam(1);
@@ -287,35 +287,35 @@ void Lua_V1::DrawPolygon() {
 		return;
 	}
 
-	int *pPoints = new int[numPoints * 2]();
+	int *points = new int[numPoints * 2]();
 
 	index = 1;
 	for (int i = 0; i < numPoints; i++) {
 		lua_pushobject(pointsObj);
 		lua_pushnumber((float)index);
 		index++;
-		pPoints[i * 2] = luaFtol(lua_getnumber(lua_gettable()));
+		points[i * 2] = luaFtol(lua_getnumber(lua_gettable()));
 
 		lua_pushobject(pointsObj);
 		lua_pushnumber((float)index);
 		index++;
 		lua_Object yObj = lua_gettable();
 		if (!lua_isnil(yObj))
-			pPoints[i * 2 + 1] = luaFtol(lua_getnumber(yObj));
+			points[i * 2 + 1] = luaFtol(lua_getnumber(yObj));
 		else
-			pPoints[i * 2 + 1] = 0;
+			points[i * 2 + 1] = 0;
 	}
 
-	int id = pQueue->addPolygon(numPoints, pPoints, color, layer);
+	int id = queue->addPolygon(numPoints, points, color, layer);
 
-	delete[] pPoints;
-	pPoints = nullptr;
+	delete[] points;
+	points = nullptr;
 
 	lua_pushnumber((float)(uint)id);
 }
 
 void Lua_V1::DrawLine() {
-	PrimitiveQueue *pQueue = g_grim->_pSputPrimitive->getCurrent();
+	PrimitiveQueue *queue = g_grim->_sputPrimitive->getCurrent();
 	int layer = 2;
 	int color = 0;
 	lua_Object x1Obj = lua_getparam(1);
@@ -348,11 +348,11 @@ void Lua_V1::DrawLine() {
 			layer = luaFtol(lua_getnumber(layerObj));
 	}
 
-	lua_pushnumber((float)(uint)pQueue->addLine(x1, y1, x2, y2, color, layer));
+	lua_pushnumber((float)(uint)queue->addLine(x1, y1, x2, y2, color, layer));
 }
 
 void Lua_V1::ChangePrimitive() {
-	PrimitiveQueue *pQueue = g_grim->_pSputPrimitive->getCurrent();
+	PrimitiveQueue *queue = g_grim->_sputPrimitive->getCurrent();
 	lua_Object idObj = lua_getparam(1);
 	lua_Object tableObj = lua_getparam(2);
 
@@ -365,13 +365,13 @@ void Lua_V1::ChangePrimitive() {
 	lua_pushstring("color");
 	lua_Object colorObj = lua_gettable();
 	if (lua_isuserdata(colorObj) && lua_tag(colorObj) == MKTAG('R','L','O','C'))
-		pQueue->changeColor(id, getScreenColor(lua_getuserdata(colorObj)));
+		queue->changeColor(id, getScreenColor(lua_getuserdata(colorObj)));
 
 	lua_pushobject(tableObj);
 	lua_pushstring("layer");
 	lua_Object layerObj = lua_gettable();
 	if (lua_isnumber(layerObj))
-		pQueue->changeLayer(id, luaFtol(lua_getnumber(layerObj)));
+		queue->changeLayer(id, luaFtol(lua_getnumber(layerObj)));
 
 	lua_pushobject(tableObj);
 	lua_pushstring("xoffset");
@@ -386,7 +386,7 @@ void Lua_V1::ChangePrimitive() {
 			x = luaFtol(lua_getnumber(xObj));
 		if (lua_isnumber(yObj))
 			y = luaFtol(lua_getnumber(yObj));
-		pQueue->move(id, x, y);
+		queue->move(id, x, y);
 	}
 
 	lua_pushobject(tableObj);
@@ -402,7 +402,7 @@ void Lua_V1::ChangePrimitive() {
 			x = luaFtol(lua_getnumber(xObj));
 		if (lua_isnumber(yObj))
 			y = luaFtol(lua_getnumber(yObj));
-		pQueue->moveTo(id, x, y);
+		queue->moveTo(id, x, y);
 	}
 
 	lua_pushobject(tableObj);
@@ -418,7 +418,7 @@ void Lua_V1::ChangePrimitive() {
 			x = luaFtol(lua_getnumber(xObj));
 		if (lua_isnumber(yObj))
 			y = luaFtol(lua_getnumber(yObj));
-		pQueue->moveEndpoint(id, x, y);
+		queue->moveEndpoint(id, x, y);
 	}
 
 	lua_pushobject(tableObj);
@@ -434,12 +434,12 @@ void Lua_V1::ChangePrimitive() {
 			w = luaFtol(lua_getnumber(width));
 		if (lua_isnumber(height))
 			h = luaFtol(lua_getnumber(height));
-		pQueue->changeDimensions(id, w, h);
+		queue->changeDimensions(id, w, h);
 	}
 }
 
 void Lua_V1::DrawRectangle() {
-	PrimitiveQueue *pQueue = g_grim->_pSputPrimitive->getCurrent();
+	PrimitiveQueue *queue = g_grim->_sputPrimitive->getCurrent();
 	int layer = 2;
 	int color = 0;
 	int filled = 0;
@@ -479,7 +479,7 @@ void Lua_V1::DrawRectangle() {
 			layer = luaFtol(lua_getnumber(layerObj));
 	}
 
-	lua_pushnumber((float)(uint)pQueue->addRect(x1, y1, x2, y2, color, filled, layer));
+	lua_pushnumber((float)(uint)queue->addRect(x1, y1, x2, y2, color, filled, layer));
 }
 
 void Lua_V1::BlastRect() {
@@ -509,7 +509,7 @@ void Lua_V1::BlastRect() {
 			uint value = (uint)lua_getuserdata(colorObj);
 
 			color = (uint16)(((value >> 19) & 0x1F) | (((value >> 10) & 0x3F) << 5) | (((value >> 3) & 0x1F) << 11));
-			g_grim->_pSputRender->colorCorrect(&color, 1);
+			g_grim->_sputRender->colorCorrect(&color, 1);
 		}
 
 		lua_pushobject(tableObj);
@@ -522,9 +522,9 @@ void Lua_V1::BlastRect() {
 	if (x2 < x1 || y2 < y1 || x1 < 0 || y1 < 0 || x2 > 639 || y2 > 479)
 		return;
 
-	StdVBuffer *pBuffer = g_grim->_pSputRender->drawBuffer();
+	StdVBuffer *buffer = g_grim->_sputRender->drawBuffer();
 
-	if (!pBuffer || pBuffer->tex.format.bpp != 16 || pBuffer->tex.width < 640 || pBuffer->tex.height < 480) {
+	if (!buffer || buffer->tex.format.bpp != 16 || buffer->tex.width < 640 || buffer->tex.height < 480) {
 		warning("Lua_V1::BlastRect(): unsupported draw buffer");
 		return;
 	}
@@ -532,56 +532,56 @@ void Lua_V1::BlastRect() {
 	int width = x2 - x1 + 1;
 	int height = y2 - y1 + 1;
 
-	g_grim->_pStdDisplay->vBufferLock(pBuffer);
+	g_grim->_stdDisplay->vBufferLock(buffer);
 
-	if (!pBuffer->pPixels) {
+	if (!buffer->pixels) {
 		warning("Lua_V1::BlastRect(): the draw buffer could not be locked");
-		g_grim->_pStdDisplay->vBufferUnlock(pBuffer);
+		g_grim->_stdDisplay->vBufferUnlock(buffer);
 		return;
 	}
 
-	int pitch = pBuffer->tex.pitchInBytes;
-	byte *pRow = pBuffer->pPixels + pitch * y1 + x1 * 2;
-	uint16 *pPixel = (uint16 *)pRow;
+	int pitch = buffer->tex.pitchInBytes;
+	byte *rowPointer = buffer->pixels + pitch * y1 + x1 * 2;
+	uint16 *pixel = (uint16 *)rowPointer;
 
 	for (int i = 0; i < width; i++)
-		pPixel[i] = color;
+		pixel[i] = color;
 
 	if (height > 2) {
 		for (int row = 0; row < height - 2; row++) {
-			pRow += pitch;
-			pPixel = (uint16 *)pRow;
+			rowPointer += pitch;
+			pixel = (uint16 *)rowPointer;
 
 			int count = filled ? width - 1 : 1;
 
 			for (int i = 0; i < count; i++)
-				pPixel[i] = color;
+				pixel[i] = color;
 
-			pPixel[width - 1] = color;
+			pixel[width - 1] = color;
 		}
 	}
 
 	if (height > 1) {
-		pRow += pitch;
-		pPixel = (uint16 *)pRow;
+		rowPointer += pitch;
+		pixel = (uint16 *)rowPointer;
 
 		for (int i = 0; i < width; i++)
-			pPixel[i] = color;
+			pixel[i] = color;
 	}
 
-	g_grim->_pStdDisplay->vBufferUnlock(pBuffer);
+	g_grim->_stdDisplay->vBufferUnlock(buffer);
 }
 
 void Lua_V1::KillPrimitive() {
 	lua_Object idObj = lua_getparam(1);
 
 	if (lua_isnumber(idObj))
-		g_grim->_pSputPrimitive->getCurrent()->deletePrimitive(luaFtol(lua_getnumber(idObj)));
+		g_grim->_sputPrimitive->getCurrent()->deletePrimitive(luaFtol(lua_getnumber(idObj)));
 }
 
 void Lua_V1::DimScreen() {
 	// The demo dims to half, not to a quarter
-	g_grim->_pSputRender->dim(0, (g_grim->getGameFlags() & ADGF_DEMO) ? 1 : 2);
+	g_grim->_sputRender->dim(0, (g_grim->getGameFlags() & ADGF_DEMO) ? 1 : 2);
 }
 
 void Lua_V1::DimRegion() {
@@ -595,7 +595,7 @@ void Lua_V1::DimRegion() {
 	int width = luaFtol(lua_getnumber(widthObj));
 	int height = luaFtol(lua_getnumber(heightObj));
 
-	g_grim->_pSputRender->dimRegion(x, y, width, height, lua_getnumber(scaleObj));
+	g_grim->_sputRender->dimRegion(x, y, width, height, lua_getnumber(scaleObj));
 }
 
 void Lua_V1::ScreenShot() {
@@ -610,10 +610,10 @@ void Lua_V1::ScreenShot() {
 	if (!lua_isnil(heightObj) && lua_isnumber(heightObj))
 		height = luaFtol(lua_getnumber(heightObj));
 
-	StdVBuffer *pImage = g_grim->_pSputRender->screenShot(width, height);
+	StdVBuffer *image = g_grim->_sputRender->screenShot(width, height);
 
-	if (pImage)
-		pushImage(pImage);
+	if (image)
+		pushImage(image);
 	else
 		lua_pushnil();
 }
@@ -625,32 +625,32 @@ void Lua_V1::SetGamma() {
 		return;
 
 	if (g_grim->getLibMode() != 4)
-		g_grim->_pSputRender->setGamma(lua_getnumber(levelObj));
+		g_grim->_sputRender->setGamma(lua_getnumber(levelObj));
 }
 
 void Lua_V1::Display() {
-	g_grim->_pSputRender->pageFlip();
+	g_grim->_sputRender->pageFlip();
 }
 
 void Lua_V1::EngineDisplay() {
-	g_grim->_pSputRender->setPageFlip(luaFtol(lua_getnumber(lua_getparam(1))));
+	g_grim->_sputRender->setPageFlip(luaFtol(lua_getnumber(lua_getparam(1))));
 }
 
 void Lua_V1::ForceRefresh() {
-	g_grim->_pSputRender->forceRefresh();
+	g_grim->_sputRender->forceRefresh();
 }
 
 void Lua_V1::RenderModeUser() {
 	lua_Object modeObj = lua_getparam(1);
 
 	if (lua_isnil(modeObj) && g_grim->getLibMode() == 4) {
-		g_grim->_pSputSmush->pause(0);
-		g_grim->_pSputRender->forceRefresh();
+		g_grim->_sputSmush->pause(0);
+		g_grim->_sputRender->forceRefresh();
 		g_grim->setLibMode(g_grim->getPrevMode());
 	} else if ((!lua_isnil(modeObj) || (g_grim->getGameFlags() & ADGF_DEMO)) && g_grim->getLibMode() != 4) {
 		// The demo enters the user mode also when the argument is nil
 		g_grim->setPrevMode(g_grim->getLibMode());
-		g_grim->_pSputSmush->pause(1);
+		g_grim->_sputSmush->pause(1);
 		g_grim->setLibMode(4);
 	}
 }
@@ -663,7 +663,7 @@ void Lua_V1::IrisUp() {
 	int y = luaFtol(lua_getnumber(yObj));
 	int x = luaFtol(lua_getnumber(xObj));
 
-	g_grim->_pSputRender->irisUp(x, y, time);
+	g_grim->_sputRender->irisUp(x, y, time);
 }
 
 void Lua_V1::IrisDown() {
@@ -674,21 +674,21 @@ void Lua_V1::IrisDown() {
 	int y = luaFtol(lua_getnumber(yObj));
 	int x = luaFtol(lua_getnumber(xObj));
 
-	g_grim->_pSputRender->irisDown(x, y, time);
+	g_grim->_sputRender->irisDown(x, y, time);
 }
 
 void Lua_V1::IrisClear() {
-	g_grim->_pSputRender->clearIris();
+	g_grim->_sputRender->clearIris();
 }
 
 void Lua_V1::PreRender() {
-	g_grim->_pSputRender->preRendered(getbool(1), getbool(2));
+	g_grim->_sputRender->preRendered(getbool(1), getbool(2));
 }
 
 void Lua_V1::ResetTextures() {
 #if defined(GRIM_STD3D)
-	if (g_grim->_pStd3D)
-		g_grim->_pStd3D->purgeTextureCache();
+	if (g_grim->_std3D)
+		g_grim->_std3D->purgeTextureCache();
 #endif
 }
 

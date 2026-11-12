@@ -56,14 +56,14 @@ struct StdLbmBmhd {
 
 class StdLbm {
 public:
-	StdLbm(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *pHS);
+	StdLbm(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *hs);
 
-	StdBitmapStruct *load(const char *path, int bVideoMemory, int bNoZ);
-	int write(const char *path, StdBitmapStruct *pBitmap);
-	uint32 packRow(Common::WriteStream *pStream, const byte *pPixels, int width, byte *pBuffer);
+	StdBitmapStruct *load(const char *path, int videoMemory, int noZ);
+	int write(const char *path, StdBitmapStruct *bitmap);
+	uint32 packRow(Common::WriteStream *stream, const byte *pixels, int width, byte *buffer);
 	void packByte(byte value);
 	uint swapLong(uint value);
-	void swapBMHD(StdLbmBmhd *pBmhd);
+	void swapBMHD(StdLbmBmhd *bmhd);
 	uint16 swapShort(uint16 value);
 	const char *stripPath(const char *path);
 	const char *getExtension(const char *path);
@@ -71,14 +71,14 @@ public:
 	char *copyBaseName(char *dst, int size, const char *path);
 
 private:
-	StdBitmapStruct *loadFailed(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap);
-	void readBmhd(Common::ReadStream *pStream, StdLbmBmhd *pBmhd);
-	void writeBmhd(Common::WriteStream *pStream, const StdLbmBmhd *pBmhd);
+	StdBitmapStruct *loadFailed(Common::SeekableReadStream *file, StdBitmapStruct *bitmap);
+	void readBmhd(Common::ReadStream *stream, StdLbmBmhd *bmhd);
+	void writeBmhd(Common::WriteStream *stream, const StdLbmBmhd *bmhd);
 
 	StdDisplay *_stdDisplay;
 	StdFile *_stdFile;
 	StdBitmap *_stdBitmap;
-	SysStruct *_pHS;
+	SysStruct *_hs;
 
 	byte _packLastByte;
 	int _packSize;

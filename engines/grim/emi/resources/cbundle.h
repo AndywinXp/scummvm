@@ -75,11 +75,11 @@ public:
 	virtual bool isDirectoryFile();
 	virtual void fillLookup(LFileServices *services, CBundle *bundle, BundleLookup *lookup);
 
-	uint hash;
-	const char *name;
-	int flags;
-	uint offset;
-	uint size;
+	uint _hash;
+	const char *_name;
+	int _flags;
+	uint _offset;
+	uint _size;
 };
 
 class PBundleFileEntry : public PBundleDirectoryEntry {
@@ -112,17 +112,17 @@ public:
 	static uint hashPath(const char *path, char *normalized);
 	static int decodeName(char *name);
 
-	CBundle *prev;
-	CBundle *next;
-	Common::String name;
-	LFile *file;
-	int fileSize;
-	int type;
-	int numEntries;
-	Common::Array<PBundleDirectoryEntry *> entries;
-	char *nameTable;
-	int nameTableSize;
-	BundleHashIndex *hashIndex;
+	CBundle *_prev;
+	CBundle *_next;
+	Common::String _name;
+	LFile *_file;
+	int _fileSize;
+	int _type;
+	int _numEntries;
+	Common::Array<PBundleDirectoryEntry *> _entries;
+	char *_nameTable;
+	int _nameTableSize;
+	BundleHashIndex *_hashIndex;
 
 private:
 	EmiEngine *_engine;
@@ -147,16 +147,16 @@ public:
 	void fillBuffer();
 	uint readAt(void *dest, int position, uint count);
 
-	int filePos;
-	int bufPos;
-	uint bufAvail;
-	int memberSize;
-	int baseOffset;
-	bool atEnd;
-	bool unbuffered;
-	uint bufCapacity;
-	char openMode[8];
-	byte cache[kBundleFileBufferSize];
+	int _filePos;
+	int _bufPos;
+	uint _bufAvail;
+	int _memberSize;
+	int _baseOffset;
+	bool _atEnd;
+	bool _unbuffered;
+	uint _bufCapacity;
+	char _openMode[8];
+	byte _cache[kBundleFileBufferSize];
 };
 
 class CBundleServices : public LFileServices {
@@ -185,12 +185,12 @@ public:
 	bool openCommonBundles();
 	bool resetBundles();
 
-	LBundleFile *files[kBundleMaxOpenFiles];
-	LFileServices *inner;
-	int numBundles;
-	CBundle *head;
-	CBundle *tail;
-	LFile *logFile;
+	LBundleFile *_files[kBundleMaxOpenFiles];
+	LFileServices *_inner;
+	int _numBundles;
+	CBundle *_head;
+	CBundle *_tail;
+	LFile *_logFile;
 
 	static bool init(EmiEngine *engine, bool isInternational);
 

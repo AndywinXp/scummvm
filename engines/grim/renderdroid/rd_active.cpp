@@ -36,25 +36,25 @@ uint alignEdgeX(uint x) {
 
 } // End of anonymous namespace
 
-typedef void (RenderDroid::AFRasterModule::*RdSetupFunc)(RdActiveFace *pFace, RdMatCel *pCel);
-typedef void (RenderDroid::AFRasterModule::*RdSetupLightFunc)(RdActiveFace *pFace, RdMatCel *pCel, float light);
+typedef void (RenderDroid::AFRasterModule::*RdSetupFunc)(RdActiveFace *face, RdMatCel *cel);
+typedef void (RenderDroid::AFRasterModule::*RdSetupLightFunc)(RdActiveFace *face, RdMatCel *cel, float light);
 
 RenderDroid::ActiveModule::ActiveModule(RenderDroid *rd) : Module(rd), _drawnFaces(0), _numActiveEdges(0), _numActiveFaces(0), _numActiveSpans(0), _yCurScanLine(0), _yMaxEdge(0), _yMinEdge(0) {
-	_aActiveEdges = new RdActiveEdge[4096]();
-	_aActiveFaces = new RdActiveFace[1024]();
-	_aActiveSpans = new RdActiveSpan[2048]();
-	_pActiveEdgeHead = new RdActiveEdge();
-	_pActiveEdgeTail = new RdActiveEdge();
-	memset(_apNewActiveEdges, 0, sizeof(_apNewActiveEdges));
-	memset(_apRemoveActiveEdges, 0, sizeof(_apRemoveActiveEdges));
+	_activeEdges = new RdActiveEdge[4096]();
+	_activeFaces = new RdActiveFace[1024]();
+	_activeSpans = new RdActiveSpan[2048]();
+	_activeEdgeHead = new RdActiveEdge();
+	_activeEdgeTail = new RdActiveEdge();
+	memset(_newActiveEdges, 0, sizeof(_newActiveEdges));
+	memset(_removeActiveEdges, 0, sizeof(_removeActiveEdges));
 }
 
 RenderDroid::ActiveModule::~ActiveModule() {
-	delete[] _aActiveEdges;
-	delete[] _aActiveFaces;
-	delete[] _aActiveSpans;
-	delete _pActiveEdgeHead;
-	delete _pActiveEdgeTail;
+	delete[] _activeEdges;
+	delete[] _activeFaces;
+	delete[] _activeSpans;
+	delete _activeEdgeHead;
+	delete _activeEdgeTail;
 }
 
 int RenderDroid::ActiveModule::startup() {
@@ -62,26 +62,26 @@ int RenderDroid::ActiveModule::startup() {
 }
 
 int RenderDroid::ActiveModule::advanceFrame() {
-	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
-	int yStart = pCanvas->yStart;
-	int numLines = pCanvas->yEnd - yStart + 1;
+	RdCanvas *canvas = _rd->_camera.getCurrent()->canvas;
+	int yStart = canvas->yStart;
+	int numLines = canvas->yEnd - yStart + 1;
 
 	if (yStart < 0 || numLines < 0 || yStart + numLines > 1024) {
-		warning("RenderDroid::ActiveModule::advanceFrame(): canvas lines %d..%d out of range", yStart, pCanvas->yEnd);
+		warning("RenderDroid::ActiveModule::advanceFrame(): canvas lines %d..%d out of range", yStart, canvas->yEnd);
 		yStart = 0;
 		numLines = 0;
 	}
 
-	_pActiveEdgeHead->x = -65536;
-	_pActiveEdgeHead->pNext = _pActiveEdgeTail;
-	_pActiveEdgeTail->pPrev = _pActiveEdgeHead;
-	memset(&_apNewActiveEdges[yStart], 0, sizeof(RdActiveEdge *) * numLines);
-	memset(&_apRemoveActiveEdges[yStart], 0, sizeof(RdActiveEdge *) * numLines);
+	_activeEdgeHead->x = -65536;
+	_activeEdgeHead->next = _activeEdgeTail;
+	_activeEdgeTail->prev = _activeEdgeHead;
+	memset(&_newActiveEdges[yStart], 0, sizeof(RdActiveEdge *) * numLines);
+	memset(&_removeActiveEdges[yStart], 0, sizeof(RdActiveEdge *) * numLines);
 	_yMinEdge = 0x7FFFFFFF;
 	_yMaxEdge = 0;
-	_pActiveEdgeHead->pPrev = nullptr;
-	_pActiveEdgeTail->x = 0x7FFFFFFF;
-	_pActiveEdgeTail->pNext = nullptr;
+	_activeEdgeHead->prev = nullptr;
+	_activeEdgeTail->x = 0x7FFFFFFF;
+	_activeEdgeTail->next = nullptr;
 	_numActiveFaces = 0;
 	_numActiveEdges = 0;
 	_numActiveSpans = 0;
@@ -98,72 +98,72 @@ uint RenderDroid::ActiveModule::drawScene() {
 	_yCurScanLine = _yMinEdge;
 
 	if (_yMinEdge <= _yMaxEdge) {
-		RdActiveEdge *pNext = _pActiveEdgeHead->pNext;
+		RdActiveEdge *next = _activeEdgeHead->next;
 
 		do {
-			RdActiveEdge *pNewEdge = _apNewActiveEdges[_yCurScanLine];
+			RdActiveEdge *newEdge = _newActiveEdges[_yCurScanLine];
 
-			while (pNewEdge) {
-				int x = pNewEdge->x;
-				RdActiveEdge *pFollowing = pNewEdge->pNext;
+			while (newEdge) {
+				int x = newEdge->x;
+				RdActiveEdge *following = newEdge->next;
 
-				while (x > pNext->x)
-					pNext = pNext->pNext;
+				while (x > next->x)
+					next = next->next;
 
-				pNewEdge->pNext = pNext;
-				pNewEdge->pPrev = pNext->pPrev;
-				pNext->pPrev->pNext = pNewEdge;
-				pNext->pPrev = pNewEdge;
+				newEdge->next = next;
+				newEdge->prev = next->prev;
+				next->prev->next = newEdge;
+				next->prev = newEdge;
 
-				if (pNewEdge->bLeft)
-					pNewEdge->pFace->pLeftEdge = pNewEdge;
+				if (newEdge->left)
+					newEdge->face->leftEdge = newEdge;
 				else
-					pNewEdge->pFace->pRightEdge = pNewEdge;
+					newEdge->face->rightEdge = newEdge;
 
-				pNewEdge = pFollowing;
+				newEdge = following;
 			}
 
 			buildSpans();
 
-			for (RdActiveEdge *pRemove = _apRemoveActiveEdges[_yCurScanLine]; pRemove; pRemove = pRemove->pNextRemove) {
-				pRemove->pNext->pPrev = pRemove->pPrev;
-				pRemove->pPrev->pNext = pRemove->pNext;
+			for (RdActiveEdge *remove = _removeActiveEdges[_yCurScanLine]; remove; remove = remove->nextRemove) {
+				remove->next->prev = remove->prev;
+				remove->prev->next = remove->next;
 			}
 
-			pNext = _pActiveEdgeHead->pNext;
+			next = _activeEdgeHead->next;
 
-			RdActiveEdge *pEdge = _pActiveEdgeHead->pNext;
+			RdActiveEdge *edge = _activeEdgeHead->next;
 
-			while (pEdge != _pActiveEdgeTail) {
-				(_rd->_afRaster.*pEdge->pfStep)(pEdge);
+			while (edge != _activeEdgeTail) {
+				(_rd->_afRaster.*edge->step)(edge);
 
-				RdActiveEdge *pPrev = pEdge->pPrev;
+				RdActiveEdge *prev = edge->prev;
 
-				if (pEdge->x >= pPrev->x) {
-					pEdge = pEdge->pNext;
+				if (edge->x >= prev->x) {
+					edge = edge->next;
 				} else {
-					RdActiveEdge *pAfter = pEdge->pNext;
+					RdActiveEdge *after = edge->next;
 
-					pAfter->pPrev = pPrev;
-					pEdge->pPrev->pNext = pAfter;
+					after->prev = prev;
+					edge->prev->next = after;
 
-					int x = pEdge->x;
-					RdActiveEdge *pSearch = pEdge->pPrev->pPrev;
+					int x = edge->x;
+					RdActiveEdge *search = edge->prev->prev;
 
-					while (x < pSearch->x)
-						pSearch = pSearch->pPrev;
+					while (x < search->x)
+						search = search->prev;
 
-					RdActiveEdge *pInsertBefore = pSearch->pNext;
+					RdActiveEdge *insertBefore = search->next;
 
-					pEdge->pPrev = pSearch;
-					pEdge->pNext = pInsertBefore;
-					pInsertBefore->pPrev = pEdge;
-					pSearch->pNext = pEdge;
-					pEdge = pAfter;
+					edge->prev = search;
+					edge->next = insertBefore;
+					insertBefore->prev = edge;
+					search->next = edge;
+					edge = after;
 				}
 			}
 
-			pNext = _pActiveEdgeHead->pNext;
+			next = _activeEdgeHead->next;
 			_yCurScanLine++;
 		} while (_yCurScanLine <= _yMaxEdge);
 	}
@@ -173,12 +173,12 @@ uint RenderDroid::ActiveModule::drawScene() {
 
 uint RenderDroid::ActiveModule::flushSpans() {
 	for (uint i = 0; i < _numActiveFaces; i++) {
-		RdActiveFace *pFace = &_aActiveFaces[i];
+		RdActiveFace *face = &_activeFaces[i];
 
-		if (pFace->pFirstSpan) {
-			(_rd->_afRaster.*pFace->pfDrawSpans)(pFace);
-			pFace->pFirstSpan = nullptr;
-			pFace->pLastSpan = nullptr;
+		if (face->firstSpan) {
+			(_rd->_afRaster.*face->drawSpans)(face);
+			face->firstSpan = nullptr;
+			face->lastSpan = nullptr;
 		}
 	}
 
@@ -188,18 +188,18 @@ uint RenderDroid::ActiveModule::flushSpans() {
 }
 
 uint RenderDroid::ActiveModule::buildEdges() {
-	RdProcFace *aProcFaces = _rd->_cache.getProcFaces();
+	RdProcFace *procFaces = _rd->_cache.getProcFaces();
 	size_t numProcFaces = _rd->_cache.getNumProcFaces();
 
 	for (size_t i = 0; i < numProcFaces; i++)
-		addActiveFace(&aProcFaces[i]);
+		addActiveFace(&procFaces[i]);
 
-	RdActiveEdge *pEdge = _aActiveEdges;
+	RdActiveEdge *edge = _activeEdges;
 
 	for (uint f = 0; f < _numActiveFaces; f++) {
-		RdActiveFace *pFace = &_aActiveFaces[f];
-		RdProcFace *pProcFace = pFace->pProcFace;
-		uint numVertices = pProcFace->numVertices;
+		RdActiveFace *face = &_activeFaces[f];
+		RdProcFace *procFace = face->procFace;
+		uint numVertices = procFace->numVertices;
 
 		for (uint v = 0; v < numVertices; v++) {
 			int next = numVertices - 1 >= v + 1 ? v + 1 : 0;
@@ -210,45 +210,45 @@ uint RenderDroid::ActiveModule::buildEdges() {
 				return f;
 			}
 
-			if (pFace->pProcFace->bBackface)
-				result = (_rd->_afRaster.*pFace->pfSetupEdge)(pEdge, pFace, next, v);
+			if (face->procFace->backface)
+				result = (_rd->_afRaster.*face->setupEdge)(edge, face, next, v);
 			else
-				result = (_rd->_afRaster.*pFace->pfSetupEdge)(pEdge, pFace, v, next);
+				result = (_rd->_afRaster.*face->setupEdge)(edge, face, v, next);
 
 			if (!result)
 				continue;
 
-			int yStart = pEdge->yStart;
-			uint yEnd = pEdge->numLines + yStart - 1;
+			int yStart = edge->yStart;
+			uint yEnd = edge->numLines + yStart - 1;
 
 			if (yStart < 0 || yStart >= 1024 || yEnd >= 1024) {
 				warning("RenderDroid::ActiveModule::buildEdges(): edge lines %d..%u out of range", yStart, yEnd);
 				continue;
 			}
 
-			pEdge->pFace = pFace;
+			edge->face = face;
 
-			RdActiveEdge *pList = _apNewActiveEdges[yStart];
+			RdActiveEdge *list = _newActiveEdges[yStart];
 
-			if (pList && pEdge->x > pList->x) {
-				int x = pEdge->x;
+			if (list && edge->x > list->x) {
+				int x = edge->x;
 
-				for (RdActiveEdge *pSearch = pList->pNext; pSearch; pSearch = pSearch->pNext) {
-					if (pSearch->x >= x)
+				for (RdActiveEdge *search = list->next; search; search = search->next) {
+					if (search->x >= x)
 						break;
 
-					pList = pSearch;
+					list = search;
 				}
 
-				pEdge->pNext = pList->pNext;
-				pList->pNext = pEdge;
+				edge->next = list->next;
+				list->next = edge;
 			} else {
-				pEdge->pNext = pList;
-				_apNewActiveEdges[yStart] = pEdge;
+				edge->next = list;
+				_newActiveEdges[yStart] = edge;
 			}
 
-			pEdge->pNextRemove = _apRemoveActiveEdges[yEnd];
-			_apRemoveActiveEdges[yEnd] = pEdge;
+			edge->nextRemove = _removeActiveEdges[yEnd];
+			_removeActiveEdges[yEnd] = edge;
 
 			if ((uint)yStart < _yMinEdge)
 				_yMinEdge = yStart;
@@ -256,7 +256,7 @@ uint RenderDroid::ActiveModule::buildEdges() {
 			if (yEnd > _yMaxEdge)
 				_yMaxEdge = yEnd;
 
-			pEdge++;
+			edge++;
 			_numActiveEdges++;
 		}
 	}
@@ -264,8 +264,8 @@ uint RenderDroid::ActiveModule::buildEdges() {
 	return _numActiveFaces;
 }
 
-void RenderDroid::ActiveModule::addSpan(RdActiveFace *pFace, uint alignedEndX) {
-	int width = (int)(alignedEndX - pFace->curX) >> 16;
+void RenderDroid::ActiveModule::addSpan(RdActiveFace *face, uint alignedEndX) {
+	int width = (int)(alignedEndX - face->curX) >> 16;
 
 	if (width <= 0)
 		return;
@@ -273,19 +273,19 @@ void RenderDroid::ActiveModule::addSpan(RdActiveFace *pFace, uint alignedEndX) {
 	if (_numActiveSpans >= 0x800)
 		flushSpans();
 
-	RdActiveSpan *pSpan = &_aActiveSpans[_numActiveSpans];
-	RdActiveEdge *pLeft = pFace->pLeftEdge;
-	RdActiveEdge *pRight = pFace->pRightEdge;
+	RdActiveSpan *span = &_activeSpans[_numActiveSpans];
+	RdActiveEdge *left = face->leftEdge;
+	RdActiveEdge *right = face->rightEdge;
 
 	_numActiveSpans++;
 
-	pSpan->x = pFace->curX >> 16;
-	pSpan->width = width;
-	pSpan->y = _yCurScanLine;
-	pSpan->pNext = nullptr;
+	span->x = face->curX >> 16;
+	span->width = width;
+	span->y = _yCurScanLine;
+	span->next = nullptr;
 
-	uint edgeWidth = (alignEdgeX(pRight->x) - alignEdgeX(pLeft->x)) >> 16;
-	int offset = pFace->curX - pLeft->x;
+	uint edgeWidth = (alignEdgeX(right->x) - alignEdgeX(left->x)) >> 16;
+	int offset = face->curX - left->x;
 	float fraction = (float)((double)offset * (1.0 / 65536.0));
 
 	if (edgeWidth >= 2048) {
@@ -293,190 +293,190 @@ void RenderDroid::ActiveModule::addSpan(RdActiveFace *pFace, uint alignedEndX) {
 		edgeWidth = 0;
 	}
 
-	pSpan->oneOverZ = (float)(pFace->dOneOverZdX * fraction + pLeft->oneOverZ);
+	span->oneOverZ = (float)(face->dOneOverZdX * fraction + left->oneOverZ);
 
-	if (pFace->pProcFace->geometryMode == 4) {
-		int textureMode = pFace->pProcFace->textureMode;
+	if (face->procFace->geometryMode == 4) {
+		int textureMode = face->procFace->textureMode;
 
 		if (textureMode) {
 			if (textureMode == 1) {
-				pSpan->uOverZ = (float)(pFace->dUOverZdX * fraction + pLeft->uOverZ);
-				pSpan->vOverZ = (float)(pFace->dVOverZdX * fraction + pLeft->vOverZ);
+				span->uOverZ = (float)(face->dUOverZdX * fraction + left->uOverZ);
+				span->vOverZ = (float)(face->dVOverZdX * fraction + left->vOverZ);
 			}
 		} else {
 			int64 oneOverN = _rd->_raster.getOneOverNFixed(edgeWidth);
-			int du = (int)((uint64)(oneOverN * (int64)(pRight->u - pLeft->u)) >> 16);
+			int du = (int)((uint64)(oneOverN * (int64)(right->u - left->u)) >> 16);
 			int dv;
 
-			pSpan->du = du >> pFace->mipLevel;
-			pSpan->u = (int)(((uint64)((int64)du * offset) >> 16) + pLeft->u) >> pFace->mipLevel;
-			dv = (int)((uint64)(oneOverN * (int64)(pRight->v - pLeft->v)) >> 16);
-			pSpan->dv = dv >> pFace->mipLevel;
-			pSpan->v = (int)(((uint64)((int64)dv * offset) >> 16) + pLeft->v) >> pFace->mipLevel;
+			span->du = du >> face->mipLevel;
+			span->u = (int)(((uint64)((int64)du * offset) >> 16) + left->u) >> face->mipLevel;
+			dv = (int)((uint64)(oneOverN * (int64)(right->v - left->v)) >> 16);
+			span->dv = dv >> face->mipLevel;
+			span->v = (int)(((uint64)((int64)dv * offset) >> 16) + left->v) >> face->mipLevel;
 		}
 	} else {
-		pSpan->u = pFace->colorIndex;
+		span->u = face->colorIndex;
 	}
 
-	if (pFace->pProcFace->lightingMode == 3) {
-		uint dIntensity = (uint)((uint64)((int64)_rd->_raster.getOneOverNFixed(edgeWidth) * (int64)(pRight->intensity - pLeft->intensity)) >> 16);
+	if (face->procFace->lightingMode == 3) {
+		uint dIntensity = (uint)((uint64)((int64)_rd->_raster.getOneOverNFixed(edgeWidth) * (int64)(right->intensity - left->intensity)) >> 16);
 
-		pSpan->dIntensity = dIntensity;
+		span->dIntensity = dIntensity;
 
 		if (dIntensity > 0xFFFFFAE2)
-			pSpan->dIntensity = 0;
+			span->dIntensity = 0;
 
-		pSpan->intensity = (int)(((uint64)((int64)pSpan->dIntensity * offset) >> 16) + pLeft->intensity);
+		span->intensity = (int)(((uint64)((int64)span->dIntensity * offset) >> 16) + left->intensity);
 	}
 
-	if (pFace->pFirstSpan)
-		pFace->pLastSpan->pNext = pSpan;
+	if (face->firstSpan)
+		face->lastSpan->next = span;
 	else
-		pFace->pFirstSpan = pSpan;
+		face->firstSpan = span;
 
-	pFace->pLastSpan = pSpan;
+	face->lastSpan = span;
 }
 
 int RenderDroid::ActiveModule::buildSpans() {
 	if (!_numActiveEdges)
 		return 0;
 
-	RdActiveEdge *pEdge = _pActiveEdgeHead->pNext;
-	RdActiveFace *pTop = nullptr;
+	RdActiveEdge *edge = _activeEdgeHead->next;
+	RdActiveFace *top = nullptr;
 
-	while (pEdge != _pActiveEdgeTail) {
-		RdActiveFace *pFace = pEdge->pFace;
+	while (edge != _activeEdgeTail) {
+		RdActiveFace *face = edge->face;
 
-		if (!pEdge->bLeft) {
-			pFace->activeEdgeCount--;
+		if (!edge->left) {
+			face->activeEdgeCount--;
 
-			if (!pFace->activeEdgeCount) {
-				if (pFace == pTop) {
-					uint alignedX = alignEdgeX(pEdge->x);
+			if (!face->activeEdgeCount) {
+				if (face == top) {
+					uint alignedX = alignEdgeX(edge->x);
 
-					addSpan(pTop, alignedX);
+					addSpan(top, alignedX);
 
-					pTop = pTop->pNextFace;
+					top = top->nextFace;
 
-					if (pTop) {
-						pTop->curX = alignedX;
-						pTop->pPrevFace = nullptr;
+					if (top) {
+						top->curX = alignedX;
+						top->prevFace = nullptr;
 					}
 				} else {
-					if (pFace->pNextFace)
-						pFace->pNextFace->pPrevFace = pFace->pPrevFace;
+					if (face->nextFace)
+						face->nextFace->prevFace = face->prevFace;
 
-					if (pFace->pPrevFace)
-						pFace->pPrevFace->pNextFace = pFace->pNextFace;
+					if (face->prevFace)
+						face->prevFace->nextFace = face->nextFace;
 				}
 			}
 		} else {
-			pFace->activeEdgeCount++;
+			face->activeEdgeCount++;
 
-			if (pFace->activeEdgeCount == 1) {
-				if (pFace->pProcFace->geometryMode != 4 || pFace->pProcFace->textureMode != 1) {
-					RdActiveEdge *pRightEdge = pFace->pRightEdge;
-					RdActiveEdge *pLeftEdge = pFace->pLeftEdge;
-					uint edgeWidth = (alignEdgeX(pRightEdge->x) - alignEdgeX(pLeftEdge->x)) >> 16;
+			if (face->activeEdgeCount == 1) {
+				if (face->procFace->geometryMode != 4 || face->procFace->textureMode != 1) {
+					RdActiveEdge *rightEdge = face->rightEdge;
+					RdActiveEdge *leftEdge = face->leftEdge;
+					uint edgeWidth = (alignEdgeX(rightEdge->x) - alignEdgeX(leftEdge->x)) >> 16;
 
 					if (edgeWidth >= 2048) {
 						warning("RenderDroid::ActiveModule::buildSpans(): edge width %u out of range", edgeWidth);
 						edgeWidth = 0;
 					}
 
-					double step = ((double)pRightEdge->oneOverZ - pLeftEdge->oneOverZ) * _rd->_raster.getOneOverNFlex(edgeWidth);
+					double step = ((double)rightEdge->oneOverZ - leftEdge->oneOverZ) * _rd->_raster.getOneOverNFlex(edgeWidth);
 
-					pFace->dOneOverZdX = (float)step;
-					pFace->dOneOverZdXFixed = (int)floor((double)(float)(step * 65536.0));
+					face->dOneOverZdX = (float)step;
+					face->dOneOverZdXFixed = (int)floor((double)(float)(step * 65536.0));
 				}
 
-				if (!pTop) {
-					pFace->pPrevFace = nullptr;
-					pFace->pNextFace = nullptr;
-					pTop = pFace;
-					pFace->curX = alignEdgeX(pEdge->x);
+				if (!top) {
+					face->prevFace = nullptr;
+					face->nextFace = nullptr;
+					top = face;
+					face->curX = alignEdgeX(edge->x);
 				} else {
-					uint userData = pFace->pProcFace->userData;
-					uint topUserData = pTop->pProcFace->userData;
+					uint userData = face->procFace->userData;
+					uint topUserData = top->procFace->userData;
 					bool inFront;
 
 					if ((uint16)userData != (uint16)topUserData || (userData >> 16) == (topUserData >> 16)) {
-						double topDepth = (double)(pEdge->x - pTop->pLeftEdge->x) * (1.0 / 65536.0) * pTop->dOneOverZdX + pTop->pLeftEdge->oneOverZ;
+						double topDepth = (double)(edge->x - top->leftEdge->x) * (1.0 / 65536.0) * top->dOneOverZdX + top->leftEdge->oneOverZ;
 
-						inFront = pEdge->oneOverZ > topDepth || (pEdge->oneOverZ == topDepth && pFace->dOneOverZdX > (double)pTop->dOneOverZdX);
+						inFront = edge->oneOverZ > topDepth || (edge->oneOverZ == topDepth && face->dOneOverZdX > (double)top->dOneOverZdX);
 					} else {
 						inFront = (userData >> 16) > (topUserData >> 16);
 					}
 
 					if (inFront) {
-						uint alignedX = alignEdgeX(pEdge->x);
+						uint alignedX = alignEdgeX(edge->x);
 
-						addSpan(pTop, alignedX);
-						pFace->pNextFace = pTop;
-						pTop->pPrevFace = pFace;
-						pFace->pPrevFace = nullptr;
-						pTop = pFace;
-						pFace->curX = alignedX;
+						addSpan(top, alignedX);
+						face->nextFace = top;
+						top->prevFace = face;
+						face->prevFace = nullptr;
+						top = face;
+						face->curX = alignedX;
 					} else {
-						RdActiveFace *pNextFace = pTop->pNextFace;
-						RdActiveFace *pPrevFace = pTop;
-						float edgeDepth = pEdge->oneOverZ;
+						RdActiveFace *nextFace = top->nextFace;
+						RdActiveFace *prevFace = top;
+						float edgeDepth = edge->oneOverZ;
 
-						while (pNextFace) {
-							uint nextUserData = pNextFace->pProcFace->userData;
+						while (nextFace) {
+							uint nextUserData = nextFace->procFace->userData;
 							bool front;
 
 							if ((uint16)userData == (uint16)nextUserData && (userData >> 16) != (nextUserData >> 16)) {
 								front = (userData >> 16) > (nextUserData >> 16);
 							} else {
-								double nextDepth = (double)(pEdge->x - pNextFace->pLeftEdge->x) * (1.0 / 65536.0) * pNextFace->dOneOverZdX + pNextFace->pLeftEdge->oneOverZ;
+								double nextDepth = (double)(edge->x - nextFace->leftEdge->x) * (1.0 / 65536.0) * nextFace->dOneOverZdX + nextFace->leftEdge->oneOverZ;
 
-								front = edgeDepth > nextDepth || (edgeDepth == nextDepth && pFace->dOneOverZdX > (double)pNextFace->dOneOverZdX);
+								front = edgeDepth > nextDepth || (edgeDepth == nextDepth && face->dOneOverZdX > (double)nextFace->dOneOverZdX);
 							}
 
 							if (front)
 								break;
 
-							pPrevFace = pNextFace;
-							pNextFace = pNextFace->pNextFace;
+							prevFace = nextFace;
+							nextFace = nextFace->nextFace;
 						}
 
-						if (pNextFace) {
-							pFace->pPrevFace = pPrevFace;
-							pPrevFace->pNextFace = pFace;
-							pNextFace->pPrevFace = pFace;
-							pFace->pNextFace = pNextFace;
+						if (nextFace) {
+							face->prevFace = prevFace;
+							prevFace->nextFace = face;
+							nextFace->prevFace = face;
+							face->nextFace = nextFace;
 						} else {
-							pPrevFace->pNextFace = pFace;
-							pFace->pPrevFace = pPrevFace;
-							pFace->pNextFace = nullptr;
+							prevFace->nextFace = face;
+							face->prevFace = prevFace;
+							face->nextFace = nullptr;
 						}
 					}
 				}
 			}
 		}
 
-		pEdge = pEdge->pNext;
+		edge = edge->next;
 	}
 
 	return 0;
 }
 
-int RenderDroid::ActiveModule::addActiveFace(RdProcFace *pProcFace) {
+int RenderDroid::ActiveModule::addActiveFace(RdProcFace *procFace) {
 	if (_numActiveFaces >= 0x400)
 		return 0;
 
-	int geometryMode = pProcFace->geometryMode;
+	int geometryMode = procFace->geometryMode;
 
 	if (geometryMode >= _rd->_curGeometryMode)
 		geometryMode = _rd->_curGeometryMode;
 
-	int lightingMode = pProcFace->lightingMode;
+	int lightingMode = procFace->lightingMode;
 
 	if (lightingMode >= _rd->_curLightingMode)
 		lightingMode = _rd->_curLightingMode;
 
-	int textureMode = pProcFace->textureMode;
+	int textureMode = procFace->textureMode;
 
 	if (textureMode >= _rd->_curTextureMode)
 		textureMode = _rd->_curTextureMode;
@@ -484,97 +484,97 @@ int RenderDroid::ActiveModule::addActiveFace(RdProcFace *pProcFace) {
 	if (!geometryMode)
 		return 0;
 
-	RdActiveFace *pFace = &_aActiveFaces[_numActiveFaces];
+	RdActiveFace *face = &_activeFaces[_numActiveFaces];
 
-	pFace->pProcFace = pProcFace;
-	pFace->pFirstSpan = nullptr;
-	pFace->pLastSpan = nullptr;
-	pFace->pLeftEdge = nullptr;
-	pFace->pRightEdge = nullptr;
-	pFace->activeEdgeCount = 0;
+	face->procFace = procFace;
+	face->firstSpan = nullptr;
+	face->lastSpan = nullptr;
+	face->leftEdge = nullptr;
+	face->rightEdge = nullptr;
+	face->activeEdgeCount = 0;
 
-	RdMatCel *pCel = _rd->_cache.selectCel(pProcFace);
+	RdMatCel *cel = _rd->_cache.selectCel(procFace);
 
-	if (!pCel && !(pProcFace->flags & 1)) {
+	if (!cel && !(procFace->flags & 1)) {
 		warning("RenderDroid::ActiveModule::addActiveFace(): face without a material cel");
 		return 0;
 	}
 
 	int effectiveMode = geometryMode;
 
-	if (pCel && effectiveMode == 4 && !(pCel->flags & 8))
+	if (cel && effectiveMode == 4 && !(cel->flags & 8))
 		effectiveMode = 3;
 
 	float ambientLight = 0.0f;
 
 	if (_rd->_curRenderOptions & 2)
-		ambientLight = pProcFace->ambientLight;
+		ambientLight = procFace->ambientLight;
 
 	if (effectiveMode == 2) {
 		if ((uint)lightingMode <= 4) {
-			if (pProcFace->flags & 1)
-				pProcFace->pfUserSetup(pFace, pCel, 0.0f);
+			if (procFace->flags & 1)
+				procFace->userSetup(face, cel, 0.0f);
 			else if (_rd->_curZBufferMethod == 1)
-				_rd->_afRaster.setupNGonLW(pFace, pCel);
+				_rd->_afRaster.setupNGonLW(face, cel);
 		}
 	} else if (effectiveMode == 3 || effectiveMode == 4) {
-		RdSetupFunc pfNone = nullptr;
-		RdSetupLightFunc pfLight = nullptr;
-		RdSetupFunc pfVertex = nullptr;
+		RdSetupFunc none = nullptr;
+		RdSetupLightFunc lightFunction = nullptr;
+		RdSetupFunc vertex = nullptr;
 
 		if (effectiveMode == 3) {
-			pfNone = &RenderDroid::AFRasterModule::setupNGonLS;
-			pfLight = &RenderDroid::AFRasterModule::setupNGonFS;
-			pfVertex = &RenderDroid::AFRasterModule::setupNGonGS;
-		} else if (pCel->pTexture->flags & 1) {
+			none = &RenderDroid::AFRasterModule::setupNGonLS;
+			lightFunction = &RenderDroid::AFRasterModule::setupNGonFS;
+			vertex = &RenderDroid::AFRasterModule::setupNGonGS;
+		} else if (cel->texture->flags & 1) {
 			if (textureMode == 0) {
-				pfNone = &RenderDroid::AFRasterModule::setupNGonMLAT;
-				pfLight = &RenderDroid::AFRasterModule::setupNGonMFAT;
-				pfVertex = &RenderDroid::AFRasterModule::setupNGonMGAT;
+				none = &RenderDroid::AFRasterModule::setupNGonMLAT;
+				lightFunction = &RenderDroid::AFRasterModule::setupNGonMFAT;
+				vertex = &RenderDroid::AFRasterModule::setupNGonMGAT;
 			} else if (textureMode > 0 && textureMode <= 2) {
-				pfNone = &RenderDroid::AFRasterModule::setupNGonMLIT;
-				pfLight = &RenderDroid::AFRasterModule::setupNGonMFIT;
-				pfVertex = &RenderDroid::AFRasterModule::setupNGonMGIT;
+				none = &RenderDroid::AFRasterModule::setupNGonMLIT;
+				lightFunction = &RenderDroid::AFRasterModule::setupNGonMFIT;
+				vertex = &RenderDroid::AFRasterModule::setupNGonMGIT;
 			}
 		} else {
 			if (textureMode == 0) {
-				pfNone = &RenderDroid::AFRasterModule::setupNGonLAT;
-				pfLight = &RenderDroid::AFRasterModule::setupNGonFAT;
-				pfVertex = &RenderDroid::AFRasterModule::setupNGonGAT;
+				none = &RenderDroid::AFRasterModule::setupNGonLAT;
+				lightFunction = &RenderDroid::AFRasterModule::setupNGonFAT;
+				vertex = &RenderDroid::AFRasterModule::setupNGonGAT;
 			} else if (textureMode > 0 && textureMode <= 2) {
-				pfNone = &RenderDroid::AFRasterModule::setupNGonLIT;
-				pfLight = &RenderDroid::AFRasterModule::setupNGonFIT;
-				pfVertex = &RenderDroid::AFRasterModule::setupNGonGIT;
+				none = &RenderDroid::AFRasterModule::setupNGonLIT;
+				lightFunction = &RenderDroid::AFRasterModule::setupNGonFIT;
+				vertex = &RenderDroid::AFRasterModule::setupNGonGIT;
 			}
 		}
 
-		if (pfNone) {
+		if (none) {
 			float light;
 
 			switch (lightingMode) {
 			case 0:
-				if (pProcFace->flags & 1)
-					pProcFace->pfUserSetup(pFace, pCel, 0.0f);
+				if (procFace->flags & 1)
+					procFace->userSetup(face, cel, 0.0f);
 				else if (_rd->_curZBufferMethod == 1)
-					(_rd->_afRaster.*pfNone)(pFace, pCel);
+					(_rd->_afRaster.*none)(face, cel);
 				break;
 			case 1:
 			case 2:
-				light = _rd->_cache.calcFaceLight(pProcFace, lightingMode, ambientLight);
-				pProcFace->diffuseLight = light;
+				light = _rd->_cache.calcFaceLight(procFace, lightingMode, ambientLight);
+				procFace->diffuseLight = light;
 
-				if (pProcFace->flags & 1)
-					pProcFace->pfUserSetup(pFace, pCel, light);
+				if (procFace->flags & 1)
+					procFace->userSetup(face, cel, light);
 				else if (_rd->_curZBufferMethod == 1)
-					(_rd->_afRaster.*pfLight)(pFace, pCel, light);
+					(_rd->_afRaster.*lightFunction)(face, cel, light);
 				break;
 			case 3:
-				_rd->_cache.calcVertexLights(pProcFace, ambientLight);
+				_rd->_cache.calcVertexLights(procFace, ambientLight);
 
-				if (pProcFace->flags & 1)
-					pProcFace->pfUserSetup(pFace, pCel, 0.0f);
+				if (procFace->flags & 1)
+					procFace->userSetup(face, cel, 0.0f);
 				else if (_rd->_curZBufferMethod == 1)
-					(_rd->_afRaster.*pfVertex)(pFace, pCel);
+					(_rd->_afRaster.*vertex)(face, cel);
 				break;
 			default:
 				break;

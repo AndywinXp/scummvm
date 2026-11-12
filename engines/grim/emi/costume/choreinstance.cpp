@@ -30,47 +30,47 @@
 namespace Grim {
 
 ChoreInstance::ChoreInstance(EmiEngine *engine, Actor *actor, uint instanceId) : LResourceHandle<ChoreSet>(engine) {
-	id = instanceId;
-	_engine->_choreInstances[id] = this;
-	owner = actor;
-	flags = 0;
-	time = 0.0f;
-	stopTime = 0.0f;
+	_id = instanceId;
+	_engine->_choreInstances[_id] = this;
+	_owner = actor;
+	_flags = 0;
+	_time = 0.0f;
+	_stopTime = 0.0f;
 
-	resource = getManager()->findResource("");
+	_resource = getManager()->findResource("");
 
-	if (!resource) {
-		resource = getManager()->createResource("");
+	if (!_resource) {
+		_resource = getManager()->createResource("");
 
-		if (!resource)
+		if (!_resource)
 			allocateResource();
 
-		resource->resSetName("");
-		getManager()->addResource(resource);
+		_resource->resSetName("");
+		getManager()->addResource(_resource);
 	}
 
-	setResource(resource);
+	setResource(_resource);
 }
 
 ChoreInstance::ChoreInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName) : LResourceHandle<ChoreSet>(engine) {
-	id = _engine->_nextChoreInstanceId++;
-	_engine->_choreInstances[id] = this;
-	flags = 0;
-	owner = actor;
-	time = 0.0f;
-	stopTime = 0.0f;
+	_id = _engine->_nextChoreInstanceId++;
+	_engine->_choreInstances[_id] = this;
+	_flags = 0;
+	_owner = actor;
+	_time = 0.0f;
+	_stopTime = 0.0f;
 
 	bind(newChoreName, choreSetName);
 }
 
 ChoreInstance::~ChoreInstance() {
-	for (uint i = 0; i < instances.size(); i++) {
-		delete instances[i];
-		instances[i] = nullptr;
+	for (uint i = 0; i < _instances.size(); i++) {
+		delete _instances[i];
+		_instances[i] = nullptr;
 	}
 
-	instances.clear();
-	_engine->_choreInstances.erase(id);
+	_instances.clear();
+	_engine->_choreInstances.erase(_id);
 }
 
 void *ChoreInstance::operator new(size_t size) {
@@ -82,78 +82,78 @@ void ChoreInstance::operator delete(void *block) {
 }
 
 void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetName) {
-	choreName = newChoreName;
+	_choreName = newChoreName;
 
 	{
 		LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
-		setResource(choreSetHandle.resource);
+		setResource(choreSetHandle._resource);
 	}
 
 	Chore *chore = nullptr;
 
-	if (lock() && typed)
-		chore = typed->findChore(choreName);
+	if (lock() && _typed)
+		chore = _typed->findChore(_choreName);
 
 	if (chore) {
-		for (uint i = 0; i < chore->tracks.size(); i++) {
-			ChoreTrack *track = chore->tracks[i];
+		for (uint i = 0; i < chore->_tracks.size(); i++) {
+			ChoreTrack *track = chore->_tracks[i];
 
 			if (!track) {
 				warning("ChoreInstance::bind(): missing track %u", i);
-				instances.push_back(nullptr);
+				_instances.push_back(nullptr);
 				continue;
 			}
 
-			LResourceHandle<Component> componentHandle(_engine, track->resourceName);
+			LResourceHandle<Component> componentHandle(_engine, track->_resourceName);
 
-			if (componentHandle.lock() && componentHandle.typed)
-				instances.push_back(componentHandle.typed->createInstance(owner));
+			if (componentHandle.lock() && componentHandle._typed)
+				_instances.push_back(componentHandle._typed->createInstance(_owner));
 			else
-				instances.push_back(nullptr);
+				_instances.push_back(nullptr);
 
 			componentHandle.unlock();
 		}
 
-		for (uint i = 0; i < chore->tracks.size(); i++) {
-			ChoreTrack *track = chore->tracks[i];
+		for (uint i = 0; i < chore->_tracks.size(); i++) {
+			ChoreTrack *track = chore->_tracks[i];
 
-			if (!track || track->parentId < 0)
+			if (!track || track->_parentId < 0)
 				continue;
 
-			int parentIndex = chore->findTrackIndex(track->parentId);
+			int parentIndex = chore->findTrackIndex(track->_parentId);
 
 			if (parentIndex < 0)
 				continue;
 
-			if (i >= instances.size() || (uint)parentIndex >= instances.size() || !instances[i]) {
+			if (i >= _instances.size() || (uint)parentIndex >= _instances.size() || !_instances[i]) {
 				warning("ChoreInstance::bind(): missing instance for track %u", i);
 				continue;
 			}
 
-			instances[i]->setParent(instances[parentIndex]);
+			_instances[i]->setParent(_instances[parentIndex]);
 		}
 	} else {
-		flags = kFinished;
+		_flags = kFinished;
 	}
 
 	unlock();
 }
 
 bool ChoreInstance::isPlaying() {
-	return (flags & kPlaying) != 0;
+	return (_flags & kPlaying) != 0;
 }
 
 bool ChoreInstance::isFinished() {
-	return (flags & kFinished) != 0;
+	return (_flags & kFinished) != 0;
 }
 
 bool ChoreInstance::isLooping() {
-	return (flags & kLooping) != 0;
+	return (_flags & kLooping) != 0;
 }
 
 bool ChoreInstance::setPlaying() {
-	flags |= kPlaying;
+	_flags |= kPlaying;
 
 	return true;
 }
@@ -165,9 +165,9 @@ bool ChoreInstance::fadeIn(float seconds) {
 	if (!(seconds > 0.0f))
 		return false;
 
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i])
-			instances[i]->fadeIn(seconds);
+	for (uint i = 0; i < _instances.size(); i++) {
+		if (_instances[i])
+			_instances[i]->fadeIn(seconds);
 	}
 
 	setPlaying();
@@ -185,16 +185,16 @@ bool ChoreInstance::fadeOut(float seconds) {
 	ChoreSet *choreSet = nullptr;
 
 	if (lock())
-		choreSet = typed;
+		choreSet = _typed;
 
 	Chore *chore = nullptr;
 
 	if (choreSet)
-		chore = choreSet->findChore(choreName);
+		chore = choreSet->findChore(_choreName);
 	else
 		warning("ChoreInstance::fadeOut(): no chore set");
 
-	if (chore && !(chore->length > seconds)) {
+	if (chore && !(chore->_length > seconds)) {
 		stop();
 		unlock();
 
@@ -203,51 +203,51 @@ bool ChoreInstance::fadeOut(float seconds) {
 
 	unlock();
 
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i])
-			instances[i]->fadeOut(seconds);
+	for (uint i = 0; i < _instances.size(); i++) {
+		if (_instances[i])
+			_instances[i]->fadeOut(seconds);
 	}
 
-	stopTime = (float)((double)seconds + (double)time);
+	_stopTime = (float)((double)seconds + (double)_time);
 
 	return true;
 }
 
 bool ChoreInstance::stop() {
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i])
-			instances[i]->reset();
+	for (uint i = 0; i < _instances.size(); i++) {
+		if (_instances[i])
+			_instances[i]->reset();
 	}
 
-	stopTime = -1.0f;
-	flags = kFinished;
+	_stopTime = -1.0f;
+	_flags = kFinished;
 
 	return true;
 }
 
 bool ChoreInstance::pause() {
-	flags &= ~kPlaying;
+	_flags &= ~kPlaying;
 
 	return true;
 }
 
 bool ChoreInstance::complete() {
-	flags = kPlaying;
+	_flags = kPlaying;
 
 	ChoreSet *choreSet = nullptr;
 
 	if (lock())
-		choreSet = typed;
+		choreSet = _typed;
 
 	Chore *chore = nullptr;
 
 	if (choreSet)
-		chore = choreSet->findChore(choreName);
+		chore = choreSet->findChore(_choreName);
 	else
 		warning("ChoreInstance::complete(): no chore set");
 
 	if (chore)
-		update((float)((double)chore->length - (double)time), false);
+		update((float)((double)chore->_length - (double)_time), false);
 
 	unlock();
 
@@ -266,39 +266,39 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 	if (!lock())
 		return false;
 
-	if (!typed)
+	if (!_typed)
 		return false;
 
-	Chore *chore = typed->findChore(choreName);
+	Chore *chore = _typed->findChore(_choreName);
 
 	if (!chore)
 		return false;
 
 	float fullDeltaTime = deltaTime;
 
-	if (stopTime > 0.0f && (double)deltaTime + (double)time > (double)stopTime) {
-		stopTime = 0.0f;
+	if (_stopTime > 0.0f && (double)deltaTime + (double)_time > (double)_stopTime) {
+		_stopTime = 0.0f;
 		stopRequested = true;
 	}
 
 	while (true) {
-		for (uint i = 0; i < chore->tracks.size(); i++) {
-			ChoreTrack *track = chore->tracks[i];
+		for (uint i = 0; i < chore->_tracks.size(); i++) {
+			ChoreTrack *track = chore->_tracks[i];
 
 			if (!track) {
 				warning("ChoreInstance::update(): missing track %u", i);
 				continue;
 			}
 
-			if (track->keys.empty())
+			if (track->_keys.empty())
 				continue;
 
-			if (i >= instances.size()) {
+			if (i >= _instances.size()) {
 				warning("ChoreInstance::update(): missing instance for track %u", i);
 				continue;
 			}
 
-			ComponentInstance *instance = instances[i];
+			ComponentInstance *instance = _instances[i];
 
 			if (!instance)
 				continue;
@@ -306,34 +306,34 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 			if (replay && !instance->isReplayable())
 				continue;
 
-			Common::List<ChoreKey *>::iterator current = track->keys.begin();
+			Common::List<ChoreKey *>::iterator current = track->_keys.begin();
 
-			while (current != track->keys.end() && !((*current)->time >= time))
+			while (current != track->_keys.end() && !((*current)->time >= _time))
 				++current;
 
 			Common::List<ChoreKey *>::iterator next = current;
 
-			if (next != track->keys.end())
+			if (next != track->_keys.end())
 				++next;
 
-			while (current != track->keys.end()) {
+			while (current != track->_keys.end()) {
 				ChoreKey *key = *current;
-				float limitTime = (float)((double)deltaTime + (double)time);
+				float limitTime = (float)((double)deltaTime + (double)_time);
 
 				if ((double)key->time > (double)limitTime)
 					break;
 
-				if (next == track->keys.end()) {
+				if (next == track->_keys.end()) {
 					if (isLooping()) {
-						ChoreKey *firstKey = *track->keys.begin();
-						double loopEnd = (double)chore->length + (double)firstKey->time;
+						ChoreKey *firstKey = *track->_keys.begin();
+						double loopEnd = (double)chore->_length + (double)firstKey->time;
 
 						if (loopEnd > (double)limitTime)
 							instance->setKey(key->value, (float)((double)limitTime - (double)key->time), firstKey->value, (float)(loopEnd - (double)limitTime), true);
 						else
 							instance->setKey(key->value, 0.0f, firstKey->value, (float)(loopEnd - (double)key->time), false);
 					} else {
-						double fullTime = (double)deltaTime + (double)time;
+						double fullTime = (double)deltaTime + (double)_time;
 
 						instance->setKey(key->value, (float)(fullTime - (double)key->time), key->value, (float)((double)key->time - fullTime), true);
 					}
@@ -351,38 +351,38 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 			}
 		}
 
-		double newTime = (double)deltaTime + (double)time;
+		double newTime = (double)deltaTime + (double)_time;
 
-		time = (float)newTime;
+		_time = (float)newTime;
 
-		if (!(newTime >= (double)chore->length))
+		if (!(newTime >= (double)chore->_length))
 			break;
 
 		if (!isLooping()) {
-			flags = kFinished;
+			_flags = kFinished;
 			break;
 		}
 
-		if (!(chore->length > 0.0f)) {
+		if (!(chore->_length > 0.0f)) {
 			warning("ChoreInstance::update(): looping chore with no length");
 			break;
 		}
 
-		deltaTime = (float)((double)time - (double)chore->length);
-		time = 0.0f;
+		deltaTime = (float)((double)_time - (double)chore->_length);
+		_time = 0.0f;
 
-		if (!(chore->length >= stopTime))
-			stopTime = (float)((double)stopTime - (double)chore->length);
+		if (!(chore->_length >= _stopTime))
+			_stopTime = (float)((double)_stopTime - (double)chore->_length);
 	}
 
-	for (uint i = 0; i < chore->tracks.size(); i++) {
-		if (i >= instances.size()) {
+	for (uint i = 0; i < chore->_tracks.size(); i++) {
+		if (i >= _instances.size()) {
 			warning("ChoreInstance::update(): missing instance for track %u", i);
 			continue;
 		}
 
-		if (instances[i])
-			instances[i]->update(fullDeltaTime);
+		if (_instances[i])
+			_instances[i]->update(fullDeltaTime);
 	}
 
 	unlock();
@@ -395,18 +395,18 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 
 bool ChoreInstance::setLooping(bool looping) {
 	if (looping)
-		flags |= kLooping;
+		_flags |= kLooping;
 	else
-		flags &= ~kLooping;
+		_flags &= ~kLooping;
 
 	return true;
 }
 
-bool ChoreInstance::save(tSaveRestoreAccess *access) {
+bool ChoreInstance::save(SaveRestoreAccess *access) {
 	LString choreSetName;
 
-	if (resource)
-		choreSetName = resource->name;
+	if (_resource)
+		choreSetName = _resource->_name;
 	else
 		warning("ChoreInstance::save(): no chore set");
 
@@ -415,18 +415,18 @@ bool ChoreInstance::save(tSaveRestoreAccess *access) {
 	access(&length, sizeof(length));
 	access((void *)choreSetName.c_str(), length);
 
-	length = (int)choreName.size() + 1;
+	length = (int)_choreName.size() + 1;
 
 	access(&length, sizeof(length));
-	access((void *)choreName.c_str(), length);
-	access(&time, sizeof(time));
-	access(&stopTime, sizeof(stopTime));
-	access(&flags, sizeof(flags));
+	access((void *)_choreName.c_str(), length);
+	access(&_time, sizeof(_time));
+	access(&_stopTime, sizeof(_stopTime));
+	access(&_flags, sizeof(_flags));
 
 	return true;
 }
 
-bool ChoreInstance::restore(tSaveRestoreAccess *access) {
+bool ChoreInstance::restore(SaveRestoreAccess *access) {
 	char buffer[kRestoreBufferSize + 1];
 	int length;
 	LString choreSetName;
@@ -461,14 +461,14 @@ bool ChoreInstance::restore(tSaveRestoreAccess *access) {
 	bind(restoredChoreName, choreSetName);
 
 	access(&savedTime, sizeof(savedTime));
-	access(&stopTime, sizeof(stopTime));
+	access(&_stopTime, sizeof(_stopTime));
 	access(&savedFlags, sizeof(savedFlags));
 
-	flags = kPlaying;
+	_flags = kPlaying;
 
 	bool result = update(savedTime, true);
 
-	flags = savedFlags;
+	_flags = savedFlags;
 
 	return result;
 }
@@ -476,7 +476,7 @@ bool ChoreInstance::restore(tSaveRestoreAccess *access) {
 uint ChoreInstance::newInstanceWithId(EmiEngine *engine, Actor *actor, uint instanceId) {
 	ChoreInstance *instance = new ChoreInstance(engine, actor, instanceId);
 
-	return instance->id;
+	return instance->_id;
 }
 
 uint ChoreInstance::newInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName) {
@@ -485,7 +485,7 @@ uint ChoreInstance::newInstance(EmiEngine *engine, Actor *actor, const LString &
 
 	ChoreInstance *instance = new ChoreInstance(engine, actor, newChoreName, choreSetName);
 
-	return instance->id;
+	return instance->_id;
 }
 
 ChoreInstance *ChoreInstance::getInstance(EmiEngine *engine, uint instanceId) {

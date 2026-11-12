@@ -314,7 +314,7 @@ const ControlEntry SputControl_v2::kPs2ControlTable[SputControl_v2::kNumControls
 };
 
 SputControl_v2::SputControl_v2(EmiEngine *engine) : _engine(engine), _keyEventMapper(nullptr), _started(false), _opened(false) {
-	memset(controlTable, 0, sizeof(controlTable));
+	memset(_controlTable, 0, sizeof(_controlTable));
 }
 
 SputControl_v2::~SputControl_v2() {
@@ -327,9 +327,9 @@ int SputControl_v2::startup() {
 		return 0;
 
 	if (_engine->getGamePlatform() == Common::kPlatformPS2)
-		memcpy(controlTable, kPs2ControlTable, sizeof(controlTable));
+		memcpy(_controlTable, kPs2ControlTable, sizeof(_controlTable));
 	else
-		memcpy(controlTable, kPcControlTable, sizeof(controlTable));
+		memcpy(_controlTable, kPcControlTable, sizeof(_controlTable));
 
 	clearAll();
 
@@ -352,12 +352,12 @@ void SputControl_v2::shutdown() {
 
 void SputControl_v2::clearAll() {
 	for (int i = 0; i < kNumControls; i++) {
-		controlTable[i].flags &= ~(uint)ControlEntry::kEnabled;
+		_controlTable[i].flags &= ~(uint)ControlEntry::kEnabled;
 
-		if (controlTable[i].flags & ControlEntry::kAxis)
-			controlTable[i].axisValue = 0.0f;
+		if (_controlTable[i].flags & ControlEntry::kAxis)
+			_controlTable[i].axisValue = 0.0f;
 		else
-			controlTable[i].state = 0;
+			_controlTable[i].state = 0;
 	}
 
 	_engine->getJoystick()->resetControls();
@@ -373,7 +373,7 @@ void SputControl_v2::enableControl(uint index) {
 		return;
 	}
 
-	ControlEntry *control = &controlTable[index];
+	ControlEntry *control = &_controlTable[index];
 
 	if (control->flags & ControlEntry::kEnabled)
 		return;
@@ -400,7 +400,7 @@ void SputControl_v2::disableControl(uint index) {
 		return;
 	}
 
-	ControlEntry *control = &controlTable[index];
+	ControlEntry *control = &_controlTable[index];
 
 	if (control->flags & ControlEntry::kEnabled)
 		control->flags &= ~(uint)ControlEntry::kEnabled;
@@ -443,8 +443,8 @@ void SputControl_v2::update() {
 
 void SputControl_v2::clearKeyStates() {
 	for (int i = 0; i < kNumControls; i++) {
-		if (controlTable[i].flags & ControlEntry::kKey)
-			controlTable[i].state = 0;
+		if (_controlTable[i].flags & ControlEntry::kKey)
+			_controlTable[i].state = 0;
 	}
 }
 

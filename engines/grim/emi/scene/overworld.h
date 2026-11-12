@@ -44,9 +44,9 @@ public:
 	void removeLight(CLightNode *light);
 	void setLightsActive(bool active);
 
-	Common::List<CLightNode *> lights;
-	bool enabled;
-	Common::List<Actor *> actors;
+	Common::List<CLightNode *> _lights;
+	bool _enabled;
+	Common::List<Actor *> _actors;
 
 private:
 	EmiEngine *_engine;

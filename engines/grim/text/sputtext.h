@@ -50,73 +50,73 @@ class Text;
 struct SputActor;
 
 struct SputTextEvent {
-	SputTextEvent *pNext;
-	SputTextEvent *pPrev;
+	SputTextEvent *next;
+	SputTextEvent *prev;
 	char text[512];
 	TextParams params;
 	int x;
 	int y;
 	StdRect clip;
 	int duration;
-	SputActor *pActor;
+	SputActor *actor;
 	int flags;
 	int serial;
 };
 
 class SputText {
 public:
-	SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText, SputTime *pSputTime, Polyglot *pPolyglot);
+	SputText(Res *res, RenderDroid *rd, NormalText *normalText, Text *text, BlastText *blastText, SputTime *sputTime, Polyglot *polyglot);
 
-	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
-	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
-	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
-	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
+	void setSputRender(SputRender *sputRender) { _sputRender = sputRender; }
+	void setSputRoom(SputRoom *sputRoom) { _sputRoom = sputRoom; }
+	void setGrimEngine(GrimEngine *grim) { _grim = grim; }
+	void setLua(Lua_V1 *lua) { _lua = lua; }
 
-	void killEvent(SputTextEvent *pEvent);
-	void update(int bForce);
-	int initialize(SysStruct *pHS);
+	void killEvent(SputTextEvent *event);
+	void update(int force);
+	int initialize(SysStruct *hs);
 	void pause();
 	void resume();
-	SputTextEvent *createActorText(SputActor *pActor, const char *pText, int x, int y);
-	SputTextEvent *createActorTextDemo(SputActor *pActor, const char *pText);
-	SputTextEvent *addToQueue(SputTextEvent *pEvent, int duration, int flags);
+	SputTextEvent *createActorText(SputActor *actor, const char *text, int x, int y);
+	SputTextEvent *createActorTextDemo(SputActor *actor, const char *text);
+	SputTextEvent *addToQueue(SputTextEvent *event, int duration, int flags);
 	int release();
 	int startup();
 	int shutdown();
-	SputTextEvent *allocEvent(const TextParams *pParams, const char *pText);
+	SputTextEvent *allocEvent(const TextParams *params, const char *text);
 	const char *extractSayLineData(const char *msgId, char *translation);
-	void drawTextEvent(SputTextEvent *pEvent, int bMarkDirty);
+	void drawTextEvent(SputTextEvent *event, int markDirty);
 	SputTextEvent *findSerialNumber(int serial);
-	int getTextObjectParams(TextParams *pParams, lua_Object tableObj, SputTextEvent *pEvent);
-	void parseSayLineTable(lua_Object tableObj, int *pBackground, int *pVolume, int *pPan, int *pX, int *pY);
+	int getTextObjectParams(TextParams *params, lua_Object tableObj, SputTextEvent *event);
+	void parseSayLineTable(lua_Object tableObj, int *background, int *volume, int *pan, int *x, int *y);
 	TextParams *getDefaultTextParams() { return &_defaultTextParams; }
-	int save(Common::WriteStream *pStream);
-	int restore(Common::ReadStream *pStream);
+	int save(Common::WriteStream *stream);
+	int restore(Common::ReadStream *stream);
 
 private:
 	friend class Lua_V1;
 	friend class LegacyImporter;
 
-	Res *_pRes;
-	RenderDroid *_pRd;
-	NormalText *_pNormalText;
-	Text *_pText;
-	BlastText *_pBlastText;
-	SputTime *_pSputTime;
-	Polyglot *_pPolyglot;
-	SputRender *_pSputRender;
-	SputRoom *_pSputRoom;
-	GrimEngine *_pGrim;
-	Lua_V1 *_pLua = nullptr;
+	Res *_res;
+	RenderDroid *_rd;
+	NormalText *_normalText;
+	Text *_text;
+	BlastText *_blastText;
+	SputTime *_sputTime;
+	Polyglot *_polyglot;
+	SputRender *_sputRender;
+	SputRoom *_sputRoom;
+	GrimEngine *_grim;
+	Lua_V1 *_lua = nullptr;
 
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
-	int _bLocked;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
+	int _locked;
 
-	SputTextEvent *_pTextQueue;
-	BlastTextFont *_pFont;
-	BlastTextFont *_pEmergencyFont;
+	SputTextEvent *_textQueue;
+	BlastTextFont *_font;
+	BlastTextFont *_emergencyFont;
 	int _translationMode;
 
 	int _centerValue;

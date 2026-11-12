@@ -41,7 +41,7 @@ uint SpriteComponent::resSizeOfItem() {
 }
 
 ComponentInstance *SpriteComponent::createInstance(Actor *owner) {
-	return new SpriteInstance(LResource::_engine, LResource::name, owner);
+	return new SpriteInstance(LResource::_engine, LResource::_name, owner);
 }
 
 bool SpriteComponent::resLoadItem(const char *itemName) {
@@ -82,7 +82,7 @@ bool SpriteComponent::resLoadItem(const char *itemName) {
 		}
 
 		engine->getFileServices()->close(file, true);
-		CPrimitive::name = fileName;
+		CPrimitive::_name = fileName;
 		saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
 		if (engine->getConsoleServices())

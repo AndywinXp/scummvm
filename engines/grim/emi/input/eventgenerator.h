@@ -42,7 +42,7 @@ public:
 	virtual void poll() = 0;
 	virtual void clearEvents();
 
-	int priority;
+	int _priority;
 
 	static void postEvent(EmiEngine *engine, Event *event);
 	static void dispatchEvents(EmiEngine *engine);

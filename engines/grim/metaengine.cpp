@@ -54,26 +54,26 @@ static void correctSaveImageGamma(Common::Array<byte> &pixels, float gamma) {
 	}
 }
 
-static bool readSaveStrings(Common::SeekableReadStream *pStream, Common::Array<Common::String> &strings) {
-	if (LegacySaveFile::isLegacySave(pStream))
-		return legacyReadSaveStrings(pStream, strings);
+static bool readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings) {
+	if (LegacySaveFile::isLegacySave(stream))
+		return legacyReadSaveStrings(stream, strings);
 
 	strings.clear();
 
-	int32 totalBytes = pStream->readSint32LE();
+	int32 totalBytes = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || totalBytes < 0 || totalBytes > pStream->size() - 4)
+	if (stream->err() || stream->eos() || totalBytes < 0 || totalBytes > stream->size() - 4)
 		return false;
 
 	while (totalBytes > 0) {
-		int32 length = pStream->readSint32LE();
+		int32 length = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos() || length < 1 || length > totalBytes - 4)
+		if (stream->err() || stream->eos() || length < 1 || length > totalBytes - 4)
 			return false;
 
 		Common::Array<char> text(length);
 
-		if (pStream->read(text.data(), length) != (uint32)length)
+		if (stream->read(text.data(), length) != (uint32)length)
 			return false;
 
 		text[length - 1] = '\0';
@@ -84,25 +84,25 @@ static bool readSaveStrings(Common::SeekableReadStream *pStream, Common::Array<C
 	return true;
 }
 
-static bool readSaveThumbnail(Common::SeekableReadStream *pStream, Common::Array<byte> &pixels) {
-	if (LegacySaveFile::isLegacySave(pStream))
-		return legacyReadThumbnail(pStream, pixels);
+static bool readSaveThumbnail(Common::SeekableReadStream *stream, Common::Array<byte> &pixels) {
+	if (LegacySaveFile::isLegacySave(stream))
+		return legacyReadThumbnail(stream, pixels);
 
-	int32 blockSize = pStream->readSint32LE();
+	int32 blockSize = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || blockSize < 0 || blockSize > pStream->size() - 8)
+	if (stream->err() || stream->eos() || blockSize < 0 || blockSize > stream->size() - 8)
 		return false;
 
-	pStream->seek(blockSize, SEEK_CUR);
+	stream->seek(blockSize, SEEK_CUR);
 
-	int32 imageSize = pStream->readSint32LE();
+	int32 imageSize = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || imageSize != kSaveImageWidth * kSaveImageHeight * 2)
+	if (stream->err() || stream->eos() || imageSize != kSaveImageWidth * kSaveImageHeight * 2)
 		return false;
 
 	pixels.resize(imageSize);
 
-	return pStream->read(pixels.data(), imageSize) == (uint32)imageSize;
+	return stream->read(pixels.data(), imageSize) == (uint32)imageSize;
 }
 
 static const ADExtraGuiOptionsMap gameGuiOptions[] = {
@@ -351,17 +351,17 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 		int slotNum = atoi(file->c_str() + (isPs2 && gameId == "monkey4" ? 8 : 4));
 
 		if (slotNum >= 0) {
-			Common::SeekableReadStream *pFile = saveFileMan->openForLoading(*file);
+			Common::SeekableReadStream *filePointer = saveFileMan->openForLoading(*file);
 			Common::Array<Common::String> strings;
 
-			if (pFile && gameId == "monkey4") {
-				if (EmiEngine::readSaveStrings(pFile, strings))
+			if (filePointer && gameId == "monkey4") {
+				if (EmiEngine::readSaveStrings(filePointer, strings))
 					saveList.push_back(SaveStateDescriptor(this, slotNum, EmiEngine::getSaveDescription(strings, slotNum)));
-			} else if (pFile && readSaveStrings(pFile, strings)) {
+			} else if (filePointer && readSaveStrings(filePointer, strings)) {
 				saveList.push_back(SaveStateDescriptor(this, slotNum, strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0]));
 			}
 
-			delete pFile;
+			delete filePointer;
 		}
 	}
 
@@ -374,56 +374,56 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::String fileName = getSavegameFile(slot, target);
 
-	Common::SeekableReadStream *pFile = saveFileMan->openForLoading(fileName);
+	Common::SeekableReadStream *file = saveFileMan->openForLoading(fileName);
 	Common::Array<Common::String> strings;
 
-	if (!pFile)
+	if (!file)
 		return SaveStateDescriptor();
 
 	if (gameId == "monkey4") {
-		if (!EmiEngine::readSaveStrings(pFile, strings)) {
-			delete pFile;
+		if (!EmiEngine::readSaveStrings(file, strings)) {
+			delete file;
 			return SaveStateDescriptor();
 		}
 
 		SaveStateDescriptor emiDesc(this, slot, EmiEngine::getSaveDescription(strings, slot));
 		bool isPs2 = Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
-		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(pFile, isPs2);
+		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(file, isPs2);
 
 		if (emiThumbnail)
 			emiDesc.setThumbnail(emiThumbnail);
 
-		delete pFile;
+		delete file;
 		return emiDesc;
 	}
 
-	if (!readSaveStrings(pFile, strings)) {
-		delete pFile;
+	if (!readSaveStrings(file, strings)) {
+		delete file;
 		return SaveStateDescriptor();
 	}
 
 	SaveStateDescriptor desc(this, slot, strings.empty() ? Common::String::format("Slot %d", slot) : strings[0]);
 	Common::Array<byte> pixels;
 
-	pFile->seek(0);
+	file->seek(0);
 
-	if (readSaveThumbnail(pFile, pixels)) {
+	if (readSaveThumbnail(file, pixels)) {
 		if (ConfMan.hasKey("grim_gamma", target))
 			correctSaveImageGamma(pixels, ConfMan.getFloat("grim_gamma", target));
 
-		Graphics::Surface *pThumbnail = new Graphics::Surface();
+		Graphics::Surface *thumbnail = new Graphics::Surface();
 
-		pThumbnail->create(kSaveImageWidth, kSaveImageHeight, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
-		memcpy(pThumbnail->getPixels(), pixels.data(), pixels.size());
+		thumbnail->create(kSaveImageWidth, kSaveImageHeight, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
+		memcpy(thumbnail->getPixels(), pixels.data(), pixels.size());
 
-		Graphics::Surface *pScaled = pThumbnail->scale(kLauncherThumbnailWidth, kLauncherThumbnailHeight, true);
+		Graphics::Surface *scaled = thumbnail->scale(kLauncherThumbnailWidth, kLauncherThumbnailHeight, true);
 
-		pThumbnail->free();
-		delete pThumbnail;
-		desc.setThumbnail(pScaled);
+		thumbnail->free();
+		delete thumbnail;
+		desc.setThumbnail(scaled);
 	}
 
-	delete pFile;
+	delete file;
 	return desc;
 }
 

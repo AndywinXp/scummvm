@@ -60,61 +60,61 @@ class SputCostume {
 	friend class LuaVarHandler;
 
 public:
-	SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry);
+	SputCostume(Res *res, RenderDroid *rd, SputResource *sputResource, SputRender *sputRender, SputRoom *sputRoom, StdLbm *stdLbm, WuRegistry *wuRegistry);
 
-	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
-	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
-	void setActors(SputActor *aActors) { _aActors = aActors; }
-	void setSputActor(SputActorModule *pSputActor) { _pSputActor = pSputActor; }
+	void setGrimEngine(GrimEngine *grim) { _grim = grim; }
+	void setLua(Lua_V1 *lua) { _lua = lua; }
+	void setActors(SputActor *actors) { _actors = actors; }
+	void setSputActor(SputActorModule *sputActor) { _sputActor = sputActor; }
 	Cos *getCos() { return &_cos; }
-	RdColormap *getShadowColormap() const { return _pShadowColormap; }
-	void setShadowColormap(RdColormap *pColormap) { _pShadowColormap = pColormap; }
+	RdColormap *getShadowColormap() const { return _shadowColormap; }
+	void setShadowColormap(RdColormap *colormap) { _shadowColormap = colormap; }
 
 	void setShadowColor(int red, int green, int blue);
-	void printCostumeInfo(CostumeNode *pNode);
-	void freeCostumeNodes(CostumeNode *pNode, int bFreeInstance);
-	CostumeNode *popCostume(CostumeNode *pNode, int bFreeInstance);
-	CostumeNode *setCostume(CostumeNode *pNode, int hCostume, int hInstance);
-	CostumeNode *pushCostume(CostumeNode *pPrev, int hCostume, int hInstance);
-	RdThing *getMainThing(int hInst);
-	void update(CostumeNode *pNode, float delta);
-	void resetCostume(int hInst);
-	int initialize(SysStruct *pHS);
+	void printCostumeInfo(CostumeNode *node);
+	void freeCostumeNodes(CostumeNode *node, int freeInstance);
+	CostumeNode *popCostume(CostumeNode *node, int freeInstance);
+	CostumeNode *setCostume(CostumeNode *node, int costume, int instance);
+	CostumeNode *pushCostume(CostumeNode *prev, int costume, int instance);
+	RdThing *getMainThing(int inst);
+	void update(CostumeNode *node, float delta);
+	void resetCostume(int inst);
+	int initialize(SysStruct *hs);
 	void terminate();
 	int startup();
 	int shutdown();
-	int saveHook(const char *path, int hCostume, const char *header);
-	int instanceHook(int hInst);
-	void puppetHook(ModelInst *pModel, int trackNum, int markerType);
-	void fadeKeysIn(int hInst, int choreIndex, int timeMs);
-	void fadeKeysOut(int hInst, int choreIndex, int timeMs);
-	void getDataPath(const char *valueName, char *pData, const char *defaultDirectory);
-	void writeRegistryValue(const char *valueName, const char *pData);
+	int saveHook(const char *path, int costume, const char *header);
+	int instanceHook(int inst);
+	void puppetHook(ModelInst *model, int trackNum, int markerType);
+	void fadeKeysIn(int inst, int choreIndex, int timeMs);
+	void fadeKeysOut(int inst, int choreIndex, int timeMs);
+	void getDataPath(const char *valueName, char *data, const char *defaultDirectory);
+	void writeRegistryValue(const char *valueName, const char *data);
 	void nullSub1();
 	int stub();
 
 	static void puppetHookCallback(void *userArg, int trackNum, int markerType);
 
 private:
-	Res *_pRes;
-	RenderDroid *_pRd;
-	SputResource *_pSputResource;
-	SputRender *_pSputRender;
-	SputRoom *_pSputRoom;
-	StdLbm *_pStdLbm;
-	WuRegistry *_pWuRegistry;
-	GrimEngine *_pGrim;
-	Lua_V1 *_pLua = nullptr;
-	SputActorModule *_pSputActor;
-	SputActor *_aActors;
-	SysStruct *_pHS;
+	Res *_res;
+	RenderDroid *_rd;
+	SputResource *_sputResource;
+	SputRender *_sputRender;
+	SputRoom *_sputRoom;
+	StdLbm *_stdLbm;
+	WuRegistry *_wuRegistry;
+	GrimEngine *_grim;
+	Lua_V1 *_lua = nullptr;
+	SputActorModule *_sputActor;
+	SputActor *_actors;
+	SysStruct *_hs;
 	Cos _cos;
 
-	int _bInitialized;
-	int _bStarted;
-	RdColormap *_pShadowColormap;
-	CosStateBitmapDesc *_aLECBitmaps;
-	void *_pLastBitmap;
+	int _initialized;
+	int _started;
+	RdColormap *_shadowColormap;
+	CosStateBitmapDesc *_lecBitmaps;
+	void *_lastBitmap;
 	CosInstanceHook _oldInstanceHook;
 	CosSaveHook _oldSaveHook;
 	char _keyframePath[128];

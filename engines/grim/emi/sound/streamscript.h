@@ -73,9 +73,9 @@ public:
 	bool consumeMusicStreamFlags(const uint &id, bool &looped, bool &ended);
 	int getMusicStreamPositionMs(const uint &id, const bool &relative);
 
-	LString fileName;
-	CueEntry *head;
-	bool loaded;
+	LString _fileName;
+	CueEntry *_head;
+	bool _loaded;
 
 	static const int kMaxSearchDirs = 16;
 

@@ -50,17 +50,17 @@ static const uint kRawReadHeight = 480;
 
 COGLContext::COGLContext(EmiEngine *engine) : CDrawContext(engine) {
 	_vertexColors = nullptr;
-	extensionsQueried = false;
-	hasPackedPixels = false;
-	currentVertexArray = nullptr;
-	numClipPlanes = 0;
-	swapCount = 0;
-	depthTestEnabled = false;
-	blendEnabled = false;
-	alphaTestEnabled = false;
-	shadeModel = 0;
-	texture2dEnabled = false;
-	texEnvMode = 0;
+	_extensionsQueried = false;
+	_hasPackedPixels = false;
+	_currentVertexArray = nullptr;
+	_numClipPlanes = 0;
+	_swapCount = 0;
+	_depthTestEnabled = false;
+	_blendEnabled = false;
+	_alphaTestEnabled = false;
+	_shadeModel = 0;
+	_texture2dEnabled = false;
+	_texEnvMode = 0;
 	_frameCopy = nullptr;
 	_gammaFrame = nullptr;
 	_frameSize = 0;
@@ -75,9 +75,9 @@ COGLContext::~COGLContext() {
 }
 
 bool COGLContext::open(const DisplayMode *mode) {
-	displayMode = *mode;
+	_displayMode = *mode;
 
-	initGraphics3d(displayMode.width, displayMode.height);
+	initGraphics3d(_displayMode.width, _displayMode.height);
 
 	if (OpenGLContext.type != OpenGL::kContextGL) {
 		warning("COGLContext::open(): the OpenGL context is not available");
@@ -85,13 +85,13 @@ bool COGLContext::open(const DisplayMode *mode) {
 		return false;
 	}
 
-	_frameSize = displayMode.width * displayMode.height * 3;
+	_frameSize = _displayMode.width * _displayMode.height * 3;
 	delete[] _frameCopy;
 	delete[] _gammaFrame;
 	_frameCopy = new byte[_frameSize]();
 	_gammaFrame = new byte[_frameSize]();
 
-	setViewport(0, 0, displayMode.width, displayMode.height);
+	setViewport(0, 0, _displayMode.width, _displayMode.height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
@@ -102,8 +102,8 @@ bool COGLContext::open(const DisplayMode *mode) {
 	checkExtensions();
 	initGLState();
 
-	drawListA.ctx = this;
-	drawListB.ctx = this;
+	_drawListA._ctx = this;
+	_drawListB._ctx = this;
 
 	return true;
 }
@@ -151,9 +151,9 @@ int COGLContext::present(bool vsync) {
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 	g_system->updateScreen();
-	swapCount++;
+	_swapCount++;
 
-	return swapCount;
+	return _swapCount;
 }
 
 void COGLContext::clear(bool color, bool depth) {
@@ -224,7 +224,7 @@ void COGLContext::setOrtho(float left, float right, float bottom, float top) {
 }
 
 void COGLContext::setGamma(float gamma) {
-	if (!hasGammaCtl)
+	if (!_hasGammaCtl)
 		return;
 
 	for (int i = 0; i < 256; i++) {
@@ -249,23 +249,23 @@ int COGLContext::getMaxClipPlanes() {
 
 void COGLContext::addClipPlane(float a, float b, float c, float d) {
 	GLdouble equation[4];
-	GLenum plane = GL_CLIP_PLANE0 + numClipPlanes;
+	GLenum plane = GL_CLIP_PLANE0 + _numClipPlanes;
 
 	equation[0] = a;
 	equation[1] = b;
 	equation[2] = c;
 	equation[3] = d;
-	numClipPlanes++;
+	_numClipPlanes++;
 
 	glClipPlane(plane, equation);
 	glEnable(plane);
 }
 
 void COGLContext::clearClipPlanes() {
-	for (int i = 0; i < numClipPlanes; i++)
+	for (int i = 0; i < _numClipPlanes; i++)
 		glDisable(GL_CLIP_PLANE0 + i);
 
-	numClipPlanes = 0;
+	_numClipPlanes = 0;
 }
 
 void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
@@ -277,10 +277,10 @@ void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->_numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
-		for (int i = 0; i < vertexArray->numVerts; i++) {
+		for (int i = 0; i < vertexArray->_numVerts; i++) {
 			uint32 color = vertices[i].color;
 
 			_vertexColors[4 * i] = (color >> 16) & 0xFF;
@@ -294,20 +294,20 @@ void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	glTexCoordPointer(2, GL_FLOAT, sizeof(CDCVertex), &vertices->u);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	currentVertexArray = vertexArray;
-	counter8 += vertexArray->numVerts;
+	_currentVertexArray = vertexArray;
+	_counter8 += vertexArray->_numVerts;
 
 	_engine->_oglSubmitVerticesTimer.stop();
 }
 
 void COGLContext::releaseVertices() {
-	if (!currentVertexArray) {
+	if (!_currentVertexArray) {
 		warning("COGLContext::releaseVertices(): no vertex array submitted");
 
 		return;
 	}
 
-	currentVertexArray->unlock();
+	_currentVertexArray->unlock();
 	_engine->getMemoryServices()->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 }
@@ -325,7 +325,7 @@ void COGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, const 
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, indices);
 		_engine->_oglDrawElementsTimer.stop();
 
-		trianglesDrawn += numIndices / 3;
+		_trianglesDrawn += numIndices / 3;
 	}
 
 	_engine->_oglDrawTrianglesTimer.stop();
@@ -363,7 +363,7 @@ void COGLContext::drawQuads(int flags, CTexture *tex, int first, int count, cons
 
 		glEnd();
 
-		trianglesDrawn += count / 4;
+		_trianglesDrawn += count / 4;
 	}
 
 	_engine->_oglDrawQuadsTimer.stop();
@@ -416,7 +416,7 @@ int COGLContext::outputDrawPoly(DrawPoly *poly) {
 	}
 
 	glEnd();
-	trianglesDrawn++;
+	_trianglesDrawn++;
 
 	_engine->_oglOutputDrawPolyTimer.stop();
 
@@ -449,63 +449,63 @@ void COGLContext::drawPrim2D(int flags, DrawVertex *verts, int count, bool fille
 }
 
 void COGLContext::setColor(const Color *color) {
-	glColor4ub(color->r, color->g, color->b, color->a);
+	glColor4ub(color->_r, color->_g, color->_b, color->_a);
 }
 
 void COGLContext::setPolyOptions(int flags) {
 	_engine->_oglSetPolyOptionsTimer.start();
 
 	if (flags & 0x100) {
-		if (!depthTestEnabled) {
+		if (!_depthTestEnabled) {
 			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_TRUE);
 			glDepthFunc(GL_LEQUAL);
-			depthTestEnabled = true;
+			_depthTestEnabled = true;
 		}
-	} else if (depthTestEnabled) {
+	} else if (_depthTestEnabled) {
 		glDisable(GL_DEPTH_TEST);
-		depthTestEnabled = false;
+		_depthTestEnabled = false;
 	}
 
-	if ((flags & 3) != 0 && shadeModel != 1) {
-		shadeModel = 1;
+	if ((flags & 3) != 0 && _shadeModel != 1) {
+		_shadeModel = 1;
 		glShadeModel(GL_FLAT);
 	}
 
 	if (flags & 1)
 		glColor3ub(255, 255, 255);
 
-	if ((flags & 4) != 0 && shadeModel != 2) {
-		shadeModel = 2;
+	if ((flags & 4) != 0 && _shadeModel != 2) {
+		_shadeModel = 2;
 		glShadeModel(GL_SMOOTH);
 	}
 
 	if (flags & 0x10000) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			glEnable(GL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 1) {
+		if (_blendMode != 1) {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			blendMode = 1;
+			_blendMode = 1;
 		}
-	} else if (blendEnabled) {
+	} else if (_blendEnabled) {
 		glDisable(GL_BLEND);
-		blendEnabled = false;
+		_blendEnabled = false;
 	}
 
 	if (flags & 0x20000) {
-		if (!alphaTestEnabled) {
+		if (!_alphaTestEnabled) {
 			glEnable(GL_ALPHA_TEST);
-			alphaTestEnabled = true;
+			_alphaTestEnabled = true;
 		}
-	} else if (alphaTestEnabled) {
+	} else if (_alphaTestEnabled) {
 		glDisable(GL_ALPHA_TEST);
-		alphaTestEnabled = false;
+		_alphaTestEnabled = false;
 	}
 
-	polyOptions = flags;
+	_polyOptions = flags;
 
 	_engine->_oglSetPolyOptionsTimer.stop();
 }
@@ -514,48 +514,48 @@ void COGLContext::setTextures(CTexture *tex, int flags) {
 	_engine->_oglSetTexturesTimer.start();
 
 	if (!tex) {
-		texture2dEnabled = false;
+		_texture2dEnabled = false;
 		glDisable(GL_TEXTURE_2D);
 		_engine->_oglSetTexturesTimer.stop();
 
 		return;
 	}
 
-	uint textureFlags = tex->flags;
+	uint textureFlags = tex->_flags;
 
-	glBindTexture(GL_TEXTURE_2D, static_cast<COGLTexture *>(tex)->glId);
+	glBindTexture(GL_TEXTURE_2D, static_cast<COGLTexture *>(tex)->_glId);
 
-	if (texEnvMode != 2) {
-		texEnvMode = 2;
+	if (_texEnvMode != 2) {
+		_texEnvMode = 2;
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	}
 
 	if ((textureFlags & 0x80) || (flags & 0x10000)) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			glEnable(GL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 1) {
+		if (_blendMode != 1) {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			blendMode = 1;
+			_blendMode = 1;
 		}
 	}
 
 	if (textureFlags & 0x400) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			glEnable(GL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 4) {
+		if (_blendMode != 4) {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-			blendMode = 4;
+			_blendMode = 4;
 		}
 	}
 
-	if (!texture2dEnabled) {
-		texture2dEnabled = true;
+	if (!_texture2dEnabled) {
+		_texture2dEnabled = true;
 		glEnable(GL_TEXTURE_2D);
 	}
 
@@ -563,8 +563,8 @@ void COGLContext::setTextures(CTexture *tex, int flags) {
 }
 
 void COGLContext::readBackBuffer(LABitmap *bitmap) {
-	int width = displayMode.width;
-	int height = displayMode.height;
+	int width = _displayMode.width;
+	int height = _displayMode.height;
 	LColorFormat format(6);
 
 	bitmap->create(width, height, format, nullptr);
@@ -582,9 +582,9 @@ void COGLContext::readBackBuffer(LABitmap *bitmap) {
 }
 
 void COGLContext::readBackBufferRaw(char *dest, uint size) {
-	uint bytesPerPixel = displayMode.bpp >> 3;
+	uint bytesPerPixel = _displayMode.bpp >> 3;
 
-	if (!_frameCopy || displayMode.width < (int)kRawReadWidth || displayMode.height < (int)kRawReadHeight) {
+	if (!_frameCopy || _displayMode.width < (int)kRawReadWidth || _displayMode.height < (int)kRawReadHeight) {
 		warning("COGLContext::readBackBufferRaw(): no frame available");
 
 		return;
@@ -597,7 +597,7 @@ void COGLContext::readBackBufferRaw(char *dest, uint size) {
 	}
 
 	for (int y = kRawReadHeight - 1; y >= 0; y--) {
-		const byte *source = _frameCopy + y * displayMode.width * 3;
+		const byte *source = _frameCopy + y * _displayMode.width * 3;
 		byte *destination = (byte *)dest;
 
 		for (uint x = 0; x < kRawReadWidth; x++) {
@@ -655,41 +655,41 @@ CTexture *COGLContext::createTexture(LABitmap *bitmap) {
 
 	if (((width - 1) & bitmap->getWidth()) != 0) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("COGLContext::createTexture(): texture not a power of two in width: %s", bitmap->bitmapName.c_str());
+			warning("COGLContext::createTexture(): texture not a power of two in width: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	int height = bitmap->getHeight();
 
 	if (((height - 1) & bitmap->getHeight()) != 0) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("COGLContext::createTexture(): texture not a power of two in height: %s", bitmap->bitmapName.c_str());
+			warning("COGLContext::createTexture(): texture not a power of two in height: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	if (width == 0 || height == 0) {
 		// The original could divide by zero here, let's avoid that...
-		warning("COGLContext::createTexture(): empty texture: %s", bitmap->bitmapName.c_str());
+		warning("COGLContext::createTexture(): empty texture: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	if ((uint)width / (uint)height > 8 || (uint)height / (uint)width > 8) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("COGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->bitmapName.c_str());
+			warning("COGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
-	return new COGLTexture(this, bitmap, textureFlag);
+	return new COGLTexture(this, bitmap, _textureFlag);
 }
 
 CTexture *COGLContext::createTexture(int width, int height, const LColorFormat &format, byte *pixels, const char *name) {
@@ -699,14 +699,14 @@ CTexture *COGLContext::createTexture(int width, int height, const LColorFormat &
 }
 
 int COGLContext::getTextureCost(CTexture *tex) {
-	if (!tex || tex == defaultTexture)
+	if (!tex || tex == _defaultTexture)
 		return 0;
 
 	return sizeof(COGLTexture);
 }
 
 void COGLContext::prepareDialog() {
-	if (swapCount & 1)
+	if (_swapCount & 1)
 		present(false);
 }
 
@@ -770,47 +770,47 @@ void COGLContext::initGLState() {
 	glDepthFunc(GL_LEQUAL);
 	glAlphaFunc(GL_GEQUAL, 0.1f);
 
-	depthTestEnabled = true;
-	blendEnabled = false;
-	alphaTestEnabled = false;
-	blendMode = 0;
-	shadeModel = 2;
+	_depthTestEnabled = true;
+	_blendEnabled = false;
+	_alphaTestEnabled = false;
+	_blendMode = 0;
+	_shadeModel = 2;
 	glShadeModel(GL_SMOOTH);
-	texture2dEnabled = false;
-	texEnvMode = 0;
-	hasGammaCtl = true;
+	_texture2dEnabled = false;
+	_texEnvMode = 0;
+	_hasGammaCtl = true;
 }
 
 void COGLContext::queryGLInfo() {
 	const char *text = (const char *)glGetString(GL_RENDERER);
 
 	if (text)
-		glRenderer = text;
+		_glRenderer = text;
 
 	text = (const char *)glGetString(GL_VENDOR);
 
 	if (text)
-		glVendor = text;
+		_glVendor = text;
 
 	text = (const char *)glGetString(GL_VERSION);
 
 	if (text)
-		glVersion = text;
+		_glVersion = text;
 
 	text = (const char *)glGetString(GL_EXTENSIONS);
 
 	if (text)
-		glExtensions = text;
+		_glExtensions = text;
 }
 
 void COGLContext::checkExtensions() {
 	const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
 
 	if (extensions) {
-		extensionsQueried = true;
+		_extensionsQueried = true;
 
 		if (strstr(extensions, "GL_EXT_packed_pixels"))
-			hasPackedPixels = true;
+			_hasPackedPixels = true;
 	}
 }
 
@@ -821,7 +821,7 @@ void COGLContext::captureFrame() {
 	g_system->presentBuffer();
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	glReadPixels(0, 0, displayMode.width, displayMode.height, GL_RGB, GL_UNSIGNED_BYTE, _frameCopy);
+	glReadPixels(0, 0, _displayMode.width, _displayMode.height, GL_RGB, GL_UNSIGNED_BYTE, _frameCopy);
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 }
 
@@ -861,7 +861,7 @@ void COGLContext::applyGamma() {
 void COGLContext::drawFrame(const byte *rgbPixels) {
 	glRasterPos2f(-1.0f, -1.0f);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glDrawPixels(displayMode.width, displayMode.height, GL_RGB, GL_UNSIGNED_BYTE, rgbPixels);
+	glDrawPixels(_displayMode.width, _displayMode.height, GL_RGB, GL_UNSIGNED_BYTE, rgbPixels);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 

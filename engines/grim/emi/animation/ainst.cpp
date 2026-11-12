@@ -27,14 +27,14 @@
 namespace Grim {
 
 AInst::AInst(EmiEngine *engine) : _engine(engine) {
-	length = 0.0f;
-	fadeRate = 0.0f;
-	time = 0.0f;
-	prevTime = 0.0f;
-	prevWeight = 0.0f;
-	speed = 1.0f;
-	weight = 1.0f;
-	flags = 0;
+	_length = 0.0f;
+	_fadeRate = 0.0f;
+	_time = 0.0f;
+	_prevTime = 0.0f;
+	_prevWeight = 0.0f;
+	_speed = 1.0f;
+	_weight = 1.0f;
+	_flags = 0;
 	_engine->_animInstances.push_back(this);
 }
 
@@ -48,43 +48,43 @@ AInst::~AInst() {
 			++it;
 	}
 
-	while (!channels.empty()) {
-		uint previousCount = channels.size();
+	while (!_channels.empty()) {
+		uint previousCount = _channels.size();
 
-		channels.front()->detach(this);
+		_channels.front()->detach(this);
 
-		if (channels.size() == previousCount) {
+		if (_channels.size() == previousCount) {
 			warning("AInst::~AInst(): a channel did not release the instance");
 			break;
 		}
 	}
 
-	channels.clear();
+	_channels.clear();
 }
 
 void AInst::onFinished(int code) {
 }
 
 void AInst::play() {
-	if ((flags & kPlaying) == 0) {
-		bool notAttached = (flags & kAttached) == 0;
+	if ((_flags & kPlaying) == 0) {
+		bool notAttached = (_flags & kAttached) == 0;
 
-		if ((flags & kPaused) != 0)
-			flags &= ~kPaused;
+		if ((_flags & kPaused) != 0)
+			_flags &= ~kPaused;
 		else
-			time = 0.0f;
+			_time = 0.0f;
 
-		if ((flags & (kFadingIn | kFadingOut)) == 0)
-			weight = 1.0f;
+		if ((_flags & (kFadingIn | kFadingOut)) == 0)
+			_weight = 1.0f;
 
-		flags |= kPlaying;
+		_flags |= kPlaying;
 
 		if (notAttached) {
-			flags |= kAttached;
+			_flags |= kAttached;
 
 			Common::List<AChannelHandle *>::iterator it;
 
-			for (it = channels.begin(); it != channels.end(); ++it)
+			for (it = _channels.begin(); it != _channels.end(); ++it)
 				(*it)->activate(this);
 		}
 	}
@@ -92,131 +92,131 @@ void AInst::play() {
 
 void AInst::setLoop(bool loop) {
 	if (loop)
-		flags |= kLooping;
+		_flags |= kLooping;
 	else
-		flags &= ~kLooping;
+		_flags &= ~kLooping;
 }
 
 void AInst::pause() {
-	if ((flags & kPaused) == 0) {
-		bool notAttached = (flags & kAttached) == 0;
+	if ((_flags & kPaused) == 0) {
+		bool notAttached = (_flags & kAttached) == 0;
 
-		flags = (flags & ~(kPlaying | kPaused)) | kPaused;
+		_flags = (_flags & ~(kPlaying | kPaused)) | kPaused;
 
 		if (notAttached) {
-			flags |= kAttached;
+			_flags |= kAttached;
 
 			Common::List<AChannelHandle *>::iterator it;
 
-			for (it = channels.begin(); it != channels.end(); ++it)
+			for (it = _channels.begin(); it != _channels.end(); ++it)
 				(*it)->activate(this);
 		}
 	}
 }
 
 void AInst::stop() {
-	uint oldFlags = flags;
+	uint oldFlags = _flags;
 
-	flags = 0;
+	_flags = 0;
 
 	if ((oldFlags & kAttached) != 0) {
 		Common::List<AChannelHandle *>::iterator it;
 
-		for (it = channels.begin(); it != channels.end(); ++it)
+		for (it = _channels.begin(); it != _channels.end(); ++it)
 			(*it)->deactivate(this);
 	}
 }
 
 void AInst::fadeIn(float seconds) {
-	if ((flags & kFadingIn) == 0) {
-		weight = 0.0f;
-		flags = (flags & ~(kFadingIn | kFadingOut)) | kFadingIn;
+	if ((_flags & kFadingIn) == 0) {
+		_weight = 0.0f;
+		_flags = (_flags & ~(kFadingIn | kFadingOut)) | kFadingIn;
 
 		// The original could divide by zero here, let's avoid that...
-		fadeRate = seconds != 0.0f ? (float)(1.0 / seconds) : 0.0f;
+		_fadeRate = seconds != 0.0f ? (float)(1.0 / seconds) : 0.0f;
 	}
 }
 
 void AInst::fadeOut(float seconds) {
-	if ((flags & kFadingOut) == 0) {
+	if ((_flags & kFadingOut) == 0) {
 		// The original could divide by zero here, let's avoid that...
-		double rate = seconds != 0.0f ? (double)weight / seconds : 0.0;
+		double rate = seconds != 0.0f ? (double)_weight / seconds : 0.0;
 
-		flags = (flags & ~(kFadingIn | kFadingOut)) | kFadingOut;
-		fadeRate = (float)rate;
+		_flags = (_flags & ~(kFadingIn | kFadingOut)) | kFadingOut;
+		_fadeRate = (float)rate;
 	}
 }
 
 void AInst::finish() {
 	onFinished(1);
 
-	uint oldFlags = flags;
+	uint oldFlags = _flags;
 
-	flags = 0;
+	_flags = 0;
 
 	if ((oldFlags & kAttached) != 0) {
 		Common::List<AChannelHandle *>::iterator it;
 
-		for (it = channels.begin(); it != channels.end(); ++it)
+		for (it = _channels.begin(); it != _channels.end(); ++it)
 			(*it)->deactivate(this);
 	}
 }
 
 void AInst::update(float deltaTime) {
-	prevWeight = weight;
-	prevTime = time;
+	_prevWeight = _weight;
+	_prevTime = _time;
 
-	uint oldFlags = flags;
+	uint oldFlags = _flags;
 
 	if ((oldFlags & kFadingIn) != 0) {
-		double newWeight = (double)deltaTime * fadeRate + weight;
+		double newWeight = (double)deltaTime * _fadeRate + _weight;
 
-		weight = (float)newWeight;
+		_weight = (float)newWeight;
 
 		if (newWeight > 1.0) {
-			weight = 1.0f;
-			flags = oldFlags & ~kFadingIn;
+			_weight = 1.0f;
+			_flags = oldFlags & ~kFadingIn;
 		}
 	} else if ((oldFlags & kFadingOut) != 0) {
-		double newWeight = (double)weight - (double)deltaTime * fadeRate;
+		double newWeight = (double)_weight - (double)deltaTime * _fadeRate;
 
-		weight = (float)newWeight;
+		_weight = (float)newWeight;
 
 		if (newWeight < 0.0) {
-			weight = 0.0f;
-			flags = oldFlags & ~kFadingOut;
+			_weight = 0.0f;
+			_flags = oldFlags & ~kFadingOut;
 		}
 	}
 
-	uint currentFlags = flags;
+	uint currentFlags = _flags;
 
 	if ((currentFlags & kPlaying) != 0) {
-		double newTime = (double)deltaTime * speed + time;
+		double newTime = (double)deltaTime * _speed + _time;
 
-		time = (float)newTime;
+		_time = (float)newTime;
 
 		if (newTime < 0.0) {
 			if ((currentFlags & kLooping) != 0)
-				time = (float)(newTime + length);
+				_time = (float)(newTime + _length);
 			else
 				finish();
-		} else if (newTime > length) {
+		} else if (newTime > _length) {
 			if ((currentFlags & kLooping) != 0) {
-				double current = time;
+				double current = _time;
 				double reduced;
 
-				if (length <= 0.0f) {
+				if (_length <= 0.0f) {
 					warning("AInst::update(): looping instance with no length");
 
 					return;
 				}
 
 				do {
-					reduced = current - length;
+					reduced = current - _length;
 					current = reduced;
-				} while (reduced > length);
+				} while (reduced > _length);
 
-				time = (float)reduced;
+				_time = (float)reduced;
 			} else {
 				finish();
 			}

@@ -23,90 +23,90 @@
 
 namespace Grim {
 
-static void swap(char *pA, char *pB, size_t width) {
-	if (pA == pB)
+static void swap(char *a, char *b, size_t width) {
+	if (a == b)
 		return;
 
 	for (size_t i = 0; i < width; i++) {
-		char tmp = pA[i];
-		pA[i] = pB[i];
-		pB[i] = tmp;
+		char tmp = a[i];
+		a[i] = b[i];
+		b[i] = tmp;
 	}
 }
 
-static void shortsort(char *pLo, char *pHi, size_t width, SortCompare compare) {
-	while (pHi > pLo) {
-		char *pMax = pLo;
+static void shortsort(char *lo, char *hi, size_t width, SortCompare compare) {
+	while (hi > lo) {
+		char *maxPointer = lo;
 
-		for (char *pCur = pLo + width; pCur <= pHi; pCur += width) {
-			if (compare(pCur, pMax) > 0)
-				pMax = pCur;
+		for (char *cur = lo + width; cur <= hi; cur += width) {
+			if (compare(cur, maxPointer) > 0)
+				maxPointer = cur;
 		}
 
-		swap(pMax, pHi, width);
-		pHi -= width;
+		swap(maxPointer, hi, width);
+		hi -= width;
 	}
 }
 
 // qsort is redefined because the order of equal elements depends on the algorithm used by the executable
-void sort(void *pBase, size_t num, size_t width, SortCompare compare) {
+void sort(void *base, size_t num, size_t width, SortCompare compare) {
 	if (num < 2 || !width)
 		return;
 
-	char *pLo = (char *)pBase;
-	char *pHi = pLo + width * (num - 1);
-	char *aLoStack[30];
-	char *aHiStack[30];
+	char *lo = (char *)base;
+	char *hi = lo + width * (num - 1);
+	char *loStack[30];
+	char *hiStack[30];
 	int stackPtr = 0;
 
 	while (true) {
-		size_t count = (pHi - pLo) / width + 1;
+		size_t count = (hi - lo) / width + 1;
 
 		if (count <= 8) {
-			shortsort(pLo, pHi, width, compare);
+			shortsort(lo, hi, width, compare);
 		} else {
-			swap(pLo + width * (count >> 1), pLo, width);
+			swap(lo + width * (count >> 1), lo, width);
 
-			char *pLeft = pLo;
-			char *pRight = pHi + width;
+			char *left = lo;
+			char *right = hi + width;
 
 			while (true) {
 				do {
-					pLeft += width;
-				} while (pLeft <= pHi && compare(pLeft, pLo) <= 0);
+					left += width;
+				} while (left <= hi && compare(left, lo) <= 0);
 
 				do {
-					pRight -= width;
-				} while (pRight > pLo && compare(pRight, pLo) >= 0);
+					right -= width;
+				} while (right > lo && compare(right, lo) >= 0);
 
-				if (pRight < pLeft)
+				if (right < left)
 					break;
 
-				swap(pLeft, pRight, width);
+				swap(left, right, width);
 			}
 
-			swap(pLo, pRight, width);
+			swap(lo, right, width);
 
-			if (pRight - pLo - 1 >= pHi - pLeft) {
-				if (pLo + width < pRight) {
-					aLoStack[stackPtr] = pLo;
-					aHiStack[stackPtr] = pRight - width;
+			if (right - lo - 1 >= hi - left) {
+				if (lo + width < right) {
+					loStack[stackPtr] = lo;
+					hiStack[stackPtr] = right - width;
 					stackPtr++;
 				}
 
-				if (pLeft < pHi) {
-					pLo = pLeft;
+				if (left < hi) {
+					lo = left;
 					continue;
 				}
 			} else {
-				if (pLeft < pHi) {
-					aLoStack[stackPtr] = pLeft;
-					aHiStack[stackPtr] = pHi;
+				if (left < hi) {
+					loStack[stackPtr] = left;
+					hiStack[stackPtr] = hi;
 					stackPtr++;
 				}
 
-				if (pLo + width < pRight) {
-					pHi = pRight - width;
+				if (lo + width < right) {
+					hi = right - width;
 					continue;
 				}
 			}
@@ -116,32 +116,32 @@ void sort(void *pBase, size_t num, size_t width, SortCompare compare) {
 			return;
 
 		stackPtr--;
-		pLo = aLoStack[stackPtr];
-		pHi = aHiStack[stackPtr];
+		lo = loStack[stackPtr];
+		hi = hiStack[stackPtr];
 	}
 }
 
 // bsearch is redefined because the element found among equal ones depends on the algorithm used by the executable
-void *binarySearch(const void *pKey, const void *pBase, size_t num, size_t width, SortCompare compare) {
-	const char *pLo = (const char *)pBase;
+void *binarySearch(const void *key, const void *base, size_t num, size_t width, SortCompare compare) {
+	const char *lo = (const char *)base;
 
 	while (num) {
 		size_t half = num >> 1;
 
 		if (!half)
-			return compare(pKey, pLo) == 0 ? (void *)pLo : nullptr;
+			return compare(key, lo) == 0 ? (void *)lo : nullptr;
 
 		size_t mid = (num & 1) ? half : half - 1;
-		const char *pMid = pLo + mid * width;
-		int result = compare(pKey, pMid);
+		const char *midPointer = lo + mid * width;
+		int result = compare(key, midPointer);
 
 		if (result == 0)
-			return (void *)pMid;
+			return (void *)midPointer;
 
 		if (result < 0) {
 			num = mid;
 		} else {
-			pLo = pMid + width;
+			lo = midPointer + width;
 			num = half;
 		}
 	}

@@ -45,7 +45,7 @@ public:
 	virtual void fadeOut(float time);
 	virtual void reset();
 
-	LResourceHandle<Component> handle;
+	LResourceHandle<Component> _handle;
 
 protected:
 	EmiEngine *_engine;

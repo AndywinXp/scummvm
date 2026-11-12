@@ -32,15 +32,15 @@ namespace Grim {
 RenderDroid::CacheModule::CacheModule(RenderDroid *rd) : Module(rd), _numProcFaces(0), _numUsedVertices(0), _numUsedTexVertices(0), _numUsedIntensities(0), _drawnFaces(0),
 		_totalNormalTris(0), _totalSolidTris(0), _totalVerts(0) {
 	memset(_viewportRect, 0, sizeof(_viewportRect));
-	_aHWVertices = new Std3DVertex[32768]();
-	_aHWNormalTris = new Std3DTri[1024]();
-	_aHWSolidTris = new Std3DTri[1024]();
+	_hwVertices = new Std3DVertex[32768]();
+	_hwNormalTris = new Std3DTri[1024]();
+	_hwSolidTris = new Std3DTri[1024]();
 }
 
 RenderDroid::CacheModule::~CacheModule() {
-	delete[] _aHWVertices;
-	delete[] _aHWNormalTris;
-	delete[] _aHWSolidTris;
+	delete[] _hwVertices;
+	delete[] _hwNormalTris;
+	delete[] _hwSolidTris;
 }
 
 int RenderDroid::CacheModule::startup() {
@@ -52,7 +52,7 @@ int RenderDroid::CacheModule::finishFrame() {
 
 #if defined(GRIM_STD3D)
 	if (result > 0)
-		return _rd->_pStd3D->endScene();
+		return _rd->_std3D->endScene();
 #endif
 
 	return result;
@@ -96,16 +96,16 @@ RdProcFace *RenderDroid::CacheModule::getProcEntry() {
 	if (0x8000 - _numUsedIntensities < 0x20)
 		return nullptr;
 
-	RdProcFace *pProcFace = &_aProcFaces[numProcFaces];
+	RdProcFace *procFace = &_procFaces[numProcFaces];
 
-	pProcFace->aVertices = (RdVector3 *)&_aVertices[3 * _numUsedVertices];
-	pProcFace->aTexVertices = (RdVector2 *)&_aTexVertices[2 * _numUsedTexVertices];
-	pProcFace->aIntensities = &_aIntensities[_numUsedIntensities];
-	pProcFace->aRedIntensities = &_aIntensities[_numUsedIntensities];
-	pProcFace->aGreenIntensities = &_aGreenIntensities[_numUsedIntensities];
-	pProcFace->aBlueIntensities = &_aBlueIntensities[_numUsedIntensities];
+	procFace->vertices = (RdVector3 *)&_vertices[3 * _numUsedVertices];
+	procFace->texVertices = (RdVector2 *)&_texVertices[2 * _numUsedTexVertices];
+	procFace->intensities = &_intensities[_numUsedIntensities];
+	procFace->redIntensities = &_intensities[_numUsedIntensities];
+	procFace->greenIntensities = &_greenIntensities[_numUsedIntensities];
+	procFace->blueIntensities = &_blueIntensities[_numUsedIntensities];
 
-	return pProcFace;
+	return procFace;
 }
 
 int RenderDroid::CacheModule::flush() {
@@ -115,16 +115,16 @@ int RenderDroid::CacheModule::flush() {
 		return result;
 
 	if (_rd->_curSortingMethod == 2) {
-		sort(_aProcFaces, _numProcFaces, sizeof(RdProcFace), procFaceCompare);
+		sort(_procFaces, _numProcFaces, sizeof(RdProcFace), procFaceCompare);
 	}
 
 	if (_rd->_curAcceleration <= 0) {
-		StdVBuffer *pLockedBuffer = nullptr;
-		RdCamera *pCamera = _rd->_camera.getCurrent();
+		StdVBuffer *lockedBuffer = nullptr;
+		RdCamera *camera = _rd->_camera.getCurrent();
 
-		if (pCamera && pCamera->pCanvas && pCamera->pCanvas->pVBuffer && pCamera->pCanvas->pVBuffer->type == 1) {
-			if (_rd->_stdDisplay->vBufferLock(pCamera->pCanvas->pVBuffer))
-				pLockedBuffer = pCamera->pCanvas->pVBuffer;
+		if (camera && camera->canvas && camera->canvas->vBuffer && camera->canvas->vBuffer->type == 1) {
+			if (_rd->_stdDisplay->vBufferLock(camera->canvas->vBuffer))
+				lockedBuffer = camera->canvas->vBuffer;
 		}
 
 		if (_rd->_curOcclusionMethod) {
@@ -135,23 +135,23 @@ int RenderDroid::CacheModule::flush() {
 		} else if (_rd->_curZBufferMethod) {
 			if (_rd->_curZBufferMethod == 2) {
 				for (size_t i = 0; i < _numProcFaces; i++) {
-					if (_aProcFaces[i].flags & 1)
-						drawFaceUser(&_aProcFaces[i]);
+					if (_procFaces[i].flags & 1)
+						drawFaceUser(&_procFaces[i]);
 					else
-						drawFaceZ(&_aProcFaces[i]);
+						drawFaceZ(&_procFaces[i]);
 				}
 			}
 		} else {
 			for (size_t i = 0; i < _numProcFaces; i++) {
-				if (_aProcFaces[i].flags & 1)
-					drawFaceUser(&_aProcFaces[i]);
+				if (_procFaces[i].flags & 1)
+					drawFaceUser(&_procFaces[i]);
 				else
-					drawFaceN(&_aProcFaces[i]);
+					drawFaceN(&_procFaces[i]);
 			}
 		}
 
-		if (pLockedBuffer)
-			_rd->_stdDisplay->vBufferUnlock(pLockedBuffer);
+		if (lockedBuffer)
+			_rd->_stdDisplay->vBufferUnlock(lockedBuffer);
 	} else {
 #if defined(GRIM_STD3D)
 		sendFaceListToHardware();
@@ -167,27 +167,27 @@ int RenderDroid::CacheModule::addProcFace(uint flags, uint numVertices, char buf
 	if (_numProcFaces >= 0x400)
 		return 0;
 
-	RdProcFace *pProcFace = &_aProcFaces[_numProcFaces];
-	const float *aVerts = (const float *)pProcFace->aVertices;
+	RdProcFace *procFace = &_procFaces[_numProcFaces];
+	const float *verts = (const float *)procFace->vertices;
 
-	pProcFace->flags = flags;
-	pProcFace->numVertices = numVertices;
-	pProcFace->userData = _rd->_curProcFaceUserData;
+	procFace->flags = flags;
+	procFace->numVertices = numVertices;
+	procFace->userData = _rd->_curProcFaceUserData;
 
-	float xMax = aVerts[0];
+	float xMax = verts[0];
 	float xMin = xMax;
-	double yMin = aVerts[1];
-	float yMax = aVerts[1];
+	double yMin = verts[1];
+	float yMax = verts[1];
 
-	pProcFace->yMaxIdx = 0;
-	pProcFace->yMinIdx = 0;
-	pProcFace->zMax = aVerts[2];
-	pProcFace->zMin = aVerts[2];
+	procFace->yMaxIdx = 0;
+	procFace->yMinIdx = 0;
+	procFace->zMax = verts[2];
+	procFace->zMin = verts[2];
 
 	for (uint i = 1; i < numVertices; i++) {
-		float x = aVerts[3 * i];
-		float y = aVerts[3 * i + 1];
-		float z = aVerts[3 * i + 2];
+		float x = verts[3 * i];
+		float y = verts[3 * i + 1];
+		float z = verts[3 * i + 2];
 
 		if (x >= xMin) {
 			if (x > xMax)
@@ -198,19 +198,19 @@ int RenderDroid::CacheModule::addProcFace(uint flags, uint numVertices, char buf
 
 		if (y >= yMin) {
 			if (y > (double)yMax) {
-				pProcFace->yMaxIdx = i;
+				procFace->yMaxIdx = i;
 				yMax = y;
 			}
 		} else {
 			yMin = y;
-			pProcFace->yMinIdx = i;
+			procFace->yMinIdx = i;
 		}
 
-		if (z >= (double)pProcFace->zMin) {
-			if (z > (double)pProcFace->zMax)
-				pProcFace->zMax = z;
+		if (z >= (double)procFace->zMin) {
+			if (z > (double)procFace->zMax)
+				procFace->zMax = z;
 		} else {
-			pProcFace->zMin = z;
+			procFace->zMin = z;
 		}
 	}
 
@@ -220,10 +220,10 @@ int RenderDroid::CacheModule::addProcFace(uint flags, uint numVertices, char buf
 	if (yMin >= yMax)
 		return 0;
 
-	pProcFace->xMin = (int)(float)ceil((double)xMin);
-	pProcFace->xMax = (int)(float)ceil((double)xMax);
-	pProcFace->yMin = (int)(float)ceil((double)(float)yMin);
-	pProcFace->yMax = (int)(float)ceil((double)yMax);
+	procFace->xMin = (int)(float)ceil((double)xMin);
+	procFace->xMax = (int)(float)ceil((double)xMax);
+	procFace->yMin = (int)(float)ceil((double)(float)yMin);
+	procFace->yMax = (int)(float)ceil((double)yMax);
 
 	if (bufferFlags & 1)
 		_numUsedVertices += numVertices;
@@ -234,66 +234,66 @@ int RenderDroid::CacheModule::addProcFace(uint flags, uint numVertices, char buf
 	if (bufferFlags & 4)
 		_numUsedIntensities += numVertices;
 
-	pProcFace->pColormap = _rd->_colormap.getCurrent();
+	procFace->colormap = _rd->_colormap.getCurrent();
 	_numProcFaces++;
 
-	if ((uint)pProcFace->xMin < (uint)_viewportRect[0])
-		_viewportRect[0] = pProcFace->xMin;
+	if ((uint)procFace->xMin < (uint)_viewportRect[0])
+		_viewportRect[0] = procFace->xMin;
 
-	if ((uint)pProcFace->xMax > (uint)_viewportRect[2])
-		_viewportRect[2] = pProcFace->xMax;
+	if ((uint)procFace->xMax > (uint)_viewportRect[2])
+		_viewportRect[2] = procFace->xMax;
 
-	if ((uint)pProcFace->yMin < (uint)_viewportRect[1])
-		_viewportRect[1] = pProcFace->yMin;
+	if ((uint)procFace->yMin < (uint)_viewportRect[1])
+		_viewportRect[1] = procFace->yMin;
 
-	if ((uint)pProcFace->yMax > (uint)_viewportRect[3])
-		_viewportRect[3] = pProcFace->yMax;
+	if ((uint)procFace->yMax > (uint)_viewportRect[3])
+		_viewportRect[3] = procFace->yMax;
 
 	return 1;
 }
 
-int RenderDroid::CacheModule::procFaceCompare(const void *pA, const void *pB) {
-	const RdProcFace *pFaceA = (const RdProcFace *)pA;
-	const RdProcFace *pFaceB = (const RdProcFace *)pB;
+int RenderDroid::CacheModule::procFaceCompare(const void *a, const void *b) {
+	const RdProcFace *faceA = (const RdProcFace *)a;
+	const RdProcFace *faceB = (const RdProcFace *)b;
 
-	if (pFaceA->zMin == pFaceB->zMin)
+	if (faceA->zMin == faceB->zMin)
 		return 0;
 
-	if (pFaceA->zMin >= (double)pFaceB->zMin)
+	if (faceA->zMin >= (double)faceB->zMin)
 		return -1;
 
 	return 1;
 }
 
-RdMatCel *RenderDroid::CacheModule::selectCel(const RdProcFace *pProcFace) {
-	RdMaterial *pMaterial = pProcFace->pMaterial;
+RdMatCel *RenderDroid::CacheModule::selectCel(const RdProcFace *procFace) {
+	RdMaterial *material = procFace->material;
 
-	if (!pMaterial)
+	if (!material)
 		return nullptr;
 
-	if (!pMaterial->numCels) {
-		warning("RenderDroid::CacheModule::selectCel(): material %s has no cels", pMaterial->aName);
+	if (!material->numCels) {
+		warning("RenderDroid::CacheModule::selectCel(): material %s has no cels", material->name);
 		return nullptr;
 	}
 
-	int curCel = pProcFace->curCel;
+	int curCel = procFace->curCel;
 
 	if (curCel == -1)
-		curCel = pMaterial->curCel;
+		curCel = material->curCel;
 
 	if (curCel < 0)
 		curCel = 0;
-	else if (curCel > (int)(pMaterial->numCels - 1))
-		curCel = pMaterial->numCels - 1;
+	else if (curCel > (int)(material->numCels - 1))
+		curCel = material->numCels - 1;
 
-	return pMaterial->apCels[curCel];
+	return material->cels[curCel];
 }
 
-float RenderDroid::CacheModule::calcFaceLight(const RdProcFace *pProcFace, int lightingMode, float ambientLight) {
-	float light = pProcFace->extraLight;
+float RenderDroid::CacheModule::calcFaceLight(const RdProcFace *procFace, int lightingMode, float ambientLight) {
+	float light = procFace->extraLight;
 
 	if (lightingMode == 2)
-		light = (float)((double)pProcFace->extraLight + pProcFace->diffuseLight);
+		light = (float)((double)procFace->extraLight + procFace->diffuseLight);
 
 	double clamped = light;
 
@@ -308,9 +308,9 @@ float RenderDroid::CacheModule::calcFaceLight(const RdProcFace *pProcFace, int l
 	return (float)(clamped * 63.0);
 }
 
-void RenderDroid::CacheModule::calcVertexLights(RdProcFace *pProcFace, float ambientLight) {
-	for (uint i = 0; i < pProcFace->numVertices; i++) {
-		float light = (float)((double)pProcFace->extraLight + pProcFace->aIntensities[i]);
+void RenderDroid::CacheModule::calcVertexLights(RdProcFace *procFace, float ambientLight) {
+	for (uint i = 0; i < procFace->numVertices; i++) {
+		float light = (float)((double)procFace->extraLight + procFace->intensities[i]);
 		double clamped = light;
 
 		if (light < 0.0)
@@ -321,22 +321,22 @@ void RenderDroid::CacheModule::calcVertexLights(RdProcFace *pProcFace, float amb
 		if (clamped <= ambientLight)
 			clamped = ambientLight;
 
-		pProcFace->aIntensities[i] = (float)(clamped * 63.0);
+		procFace->intensities[i] = (float)(clamped * 63.0);
 	}
 }
 
-int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
-	int geometryMode = pProcFace->geometryMode;
+int RenderDroid::CacheModule::drawFaceUser(RdProcFace *procFace) {
+	int geometryMode = procFace->geometryMode;
 
 	if (geometryMode >= _rd->_curGeometryMode)
 		geometryMode = _rd->_curGeometryMode;
 
-	int lightingMode = pProcFace->lightingMode;
+	int lightingMode = procFace->lightingMode;
 
 	if (lightingMode >= _rd->_curLightingMode)
 		lightingMode = _rd->_curLightingMode;
 
-	int textureMode = pProcFace->textureMode;
+	int textureMode = procFace->textureMode;
 
 	if (textureMode >= _rd->_curTextureMode)
 		textureMode = _rd->_curTextureMode;
@@ -344,15 +344,15 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 	if (!geometryMode)
 		return 0;
 
-	RdMatCel *pCel = selectCel(pProcFace);
+	RdMatCel *cel = selectCel(procFace);
 
-	if (pCel && geometryMode == 4 && !(pCel->flags & 8))
+	if (cel && geometryMode == 4 && !(cel->flags & 8))
 		geometryMode = 3;
 
 	float ambientLight = 0.0f;
 
 	if (_rd->_curRenderOptions & 2)
-		ambientLight = pProcFace->ambientLight;
+		ambientLight = procFace->ambientLight;
 
 	float light;
 
@@ -360,7 +360,7 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 	case 1:
 	case 2:
 		if ((uint)lightingMode <= 4)
-			pProcFace->pfUserDraw(pProcFace, pCel, 0.0f);
+			procFace->userDraw(procFace, cel, 0.0f);
 		break;
 	case 3:
 	case 4:
@@ -370,17 +370,17 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 
 		switch (lightingMode) {
 		case 0:
-			pProcFace->pfUserDraw(pProcFace, pCel, 0.0f);
+			procFace->userDraw(procFace, cel, 0.0f);
 			break;
 		case 1:
 		case 2:
-			light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-			pProcFace->diffuseLight = light;
-			pProcFace->pfUserDraw(pProcFace, pCel, light);
+			light = calcFaceLight(procFace, lightingMode, ambientLight);
+			procFace->diffuseLight = light;
+			procFace->userDraw(procFace, cel, light);
 			break;
 		case 3:
-			calcVertexLights(pProcFace, ambientLight);
-			pProcFace->pfUserDraw(pProcFace, pCel, 0.0f);
+			calcVertexLights(procFace, ambientLight);
+			procFace->userDraw(procFace, cel, 0.0f);
 			break;
 		default:
 			break;
@@ -392,23 +392,23 @@ int RenderDroid::CacheModule::drawFaceUser(RdProcFace *pProcFace) {
 
 	// The demo draws the wireframe over the face when the option is set
 	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
-		_rd->_nRaster.drawNGonLW(pProcFace, pCel);
+		_rd->_nRaster.drawNGonLW(procFace, cel);
 
 	return 1;
 }
 
-int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
-	int geometryMode = pProcFace->geometryMode;
+int RenderDroid::CacheModule::drawFaceN(RdProcFace *procFace) {
+	int geometryMode = procFace->geometryMode;
 
 	if (geometryMode >= _rd->_curGeometryMode)
 		geometryMode = _rd->_curGeometryMode;
 
-	int lightingMode = pProcFace->lightingMode;
+	int lightingMode = procFace->lightingMode;
 
 	if (lightingMode >= _rd->_curLightingMode)
 		lightingMode = _rd->_curLightingMode;
 
-	int textureMode = pProcFace->textureMode;
+	int textureMode = procFace->textureMode;
 
 	if (textureMode >= _rd->_curTextureMode)
 		textureMode = _rd->_curTextureMode;
@@ -416,12 +416,12 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 	if (!geometryMode)
 		return 0;
 
-	RdMatCel *pCel = selectCel(pProcFace);
+	RdMatCel *cel = selectCel(procFace);
 
-	if (pCel && geometryMode == 4 && !(pCel->flags & 8))
+	if (cel && geometryMode == 4 && !(cel->flags & 8))
 		geometryMode = 3;
 
-	if (!pCel) {
+	if (!cel) {
 		warning("RenderDroid::CacheModule::drawFaceN(): face without a material cel");
 		return 1;
 	}
@@ -429,44 +429,44 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 	float ambientLight = 0.0f;
 
 	if (_rd->_curRenderOptions & 2)
-		ambientLight = pProcFace->ambientLight;
+		ambientLight = procFace->ambientLight;
 
 	float light;
 
 	switch (geometryMode) {
 	case 1:
 		if ((uint)lightingMode <= 4)
-			_rd->_nRaster.drawNGonLV(pProcFace, pCel);
+			_rd->_nRaster.drawNGonLV(procFace, cel);
 		break;
 	case 2:
 		if ((uint)lightingMode <= 4)
-			_rd->_nRaster.drawNGonLW(pProcFace, pCel);
+			_rd->_nRaster.drawNGonLW(procFace, cel);
 		break;
 	case 3:
 		switch (lightingMode) {
 		case 0:
-			if (pProcFace->type & 2)
-				_rd->_nRaster.drawNGonTLS(pProcFace, pCel);
+			if (procFace->type & 2)
+				_rd->_nRaster.drawNGonTLS(procFace, cel);
 			else
-				_rd->_nRaster.drawNGonLS(pProcFace, pCel);
+				_rd->_nRaster.drawNGonLS(procFace, cel);
 			break;
 		case 1:
 		case 2:
-			light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-			pProcFace->diffuseLight = light;
+			light = calcFaceLight(procFace, lightingMode, ambientLight);
+			procFace->diffuseLight = light;
 
-			if (pProcFace->type & 2)
-				_rd->_nRaster.drawNGonTFS(pProcFace, pCel, light);
+			if (procFace->type & 2)
+				_rd->_nRaster.drawNGonTFS(procFace, cel, light);
 			else
-				_rd->_nRaster.drawNGonFS(pProcFace, pCel, light);
+				_rd->_nRaster.drawNGonFS(procFace, cel, light);
 			break;
 		case 3:
-			calcVertexLights(pProcFace, ambientLight);
+			calcVertexLights(procFace, ambientLight);
 
-			if (pProcFace->type & 2)
-				_rd->_nRaster.drawNGonTGS(pProcFace, pCel);
+			if (procFace->type & 2)
+				_rd->_nRaster.drawNGonTGS(procFace, cel);
 			else
-				_rd->_nRaster.drawNGonGS(pProcFace, pCel);
+				_rd->_nRaster.drawNGonGS(procFace, cel);
 			break;
 		default:
 			break;
@@ -476,48 +476,48 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 		if (textureMode == 0) {
 			switch (lightingMode) {
 			case 0:
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTLAT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTLAT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonMLAT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonMLAT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTLAT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTLAT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonLAT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonLAT(procFace, cel);
 				}
 				break;
 			case 1:
 			case 2:
-				light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-				pProcFace->diffuseLight = light;
+				light = calcFaceLight(procFace, lightingMode, ambientLight);
+				procFace->diffuseLight = light;
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTFAT(pProcFace, pCel, light);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTFAT(procFace, cel, light);
 					else
-						_rd->_nRaster.drawNGonMFAT(pProcFace, pCel, light);
+						_rd->_nRaster.drawNGonMFAT(procFace, cel, light);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTFAT(pProcFace, pCel, light);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTFAT(procFace, cel, light);
 					else
-						_rd->_nRaster.drawNGonFAT(pProcFace, pCel, light);
+						_rd->_nRaster.drawNGonFAT(procFace, cel, light);
 				}
 				break;
 			case 3:
-				calcVertexLights(pProcFace, ambientLight);
+				calcVertexLights(procFace, ambientLight);
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTGAT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTGAT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonMGAT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonMGAT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTGAT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTGAT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonGAT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonGAT(procFace, cel);
 				}
 				break;
 			default:
@@ -526,48 +526,48 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 		} else if (textureMode == 1) {
 			switch (lightingMode) {
 			case 0:
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTLIT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTLIT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonMLIT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonMLIT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTLIT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTLIT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonLIT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonLIT(procFace, cel);
 				}
 				break;
 			case 1:
 			case 2:
-				light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-				pProcFace->diffuseLight = light;
+				light = calcFaceLight(procFace, lightingMode, ambientLight);
+				procFace->diffuseLight = light;
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTFIT(pProcFace, pCel, light);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTFIT(procFace, cel, light);
 					else
-						_rd->_nRaster.drawNGonMFIT(pProcFace, pCel, light);
+						_rd->_nRaster.drawNGonMFIT(procFace, cel, light);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTFIT(pProcFace, pCel, light);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTFIT(procFace, cel, light);
 					else
-						_rd->_nRaster.drawNGonFIT(pProcFace, pCel, light);
+						_rd->_nRaster.drawNGonFIT(procFace, cel, light);
 				}
 				break;
 			case 3:
-				calcVertexLights(pProcFace, ambientLight);
+				calcVertexLights(procFace, ambientLight);
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonMTGIT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonMTGIT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonMGIT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonMGIT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_nRaster.drawNGonTGIT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_nRaster.drawNGonTGIT(procFace, cel);
 					else
-						_rd->_nRaster.drawNGonGIT(pProcFace, pCel);
+						_rd->_nRaster.drawNGonGIT(procFace, cel);
 				}
 				break;
 			default:
@@ -581,23 +581,23 @@ int RenderDroid::CacheModule::drawFaceN(RdProcFace *pProcFace) {
 
 	// The demo draws the wireframe over the face when the option is set
 	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
-		_rd->_nRaster.drawNGonLW(pProcFace, pCel);
+		_rd->_nRaster.drawNGonLW(procFace, cel);
 
 	return 1;
 }
 
-int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
-	int geometryMode = pProcFace->geometryMode;
+int RenderDroid::CacheModule::drawFaceZ(RdProcFace *procFace) {
+	int geometryMode = procFace->geometryMode;
 
 	if (geometryMode >= _rd->_curGeometryMode)
 		geometryMode = _rd->_curGeometryMode;
 
-	int lightingMode = pProcFace->lightingMode;
+	int lightingMode = procFace->lightingMode;
 
 	if (lightingMode >= _rd->_curLightingMode)
 		lightingMode = _rd->_curLightingMode;
 
-	int textureMode = pProcFace->textureMode;
+	int textureMode = procFace->textureMode;
 
 	if (textureMode >= _rd->_curTextureMode)
 		textureMode = _rd->_curTextureMode;
@@ -605,12 +605,12 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 	if (!geometryMode)
 		return 0;
 
-	RdMatCel *pCel = selectCel(pProcFace);
+	RdMatCel *cel = selectCel(procFace);
 
-	if (pCel && geometryMode == 4 && !(pCel->flags & 8))
+	if (cel && geometryMode == 4 && !(cel->flags & 8))
 		geometryMode = 3;
 
-	if (!pCel) {
+	if (!cel) {
 		warning("RenderDroid::CacheModule::drawFaceZ(): face without a material cel");
 		return 1;
 	}
@@ -618,51 +618,51 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 	float ambientLight = 0.0f;
 
 	if (_rd->_curRenderOptions & 2)
-		ambientLight = pProcFace->ambientLight;
+		ambientLight = procFace->ambientLight;
 
 	float light;
 
 	switch (geometryMode) {
 	case 1:
 		if ((uint)lightingMode <= 4)
-			_rd->_zRaster.drawNGonLV(pProcFace, pCel);
+			_rd->_zRaster.drawNGonLV(procFace, cel);
 		break;
 	case 2:
 		if ((uint)lightingMode <= 4)
-			_rd->_zRaster.drawNGonLW(pProcFace, pCel);
+			_rd->_zRaster.drawNGonLW(procFace, cel);
 		break;
 	case 3:
 		switch (lightingMode) {
 		case 0:
-			if (pProcFace->type & 2)
-				_rd->_zRaster.drawNGonTLS(pProcFace, pCel);
+			if (procFace->type & 2)
+				_rd->_zRaster.drawNGonTLS(procFace, cel);
 			else
-				_rd->_zRaster.drawNGonLS(pProcFace, pCel);
+				_rd->_zRaster.drawNGonLS(procFace, cel);
 			break;
 		case 1:
-			pProcFace->diffuseLight = 0.0f;
+			procFace->diffuseLight = 0.0f;
 
-			if (pProcFace->type & 2)
-				_rd->_zRaster.drawNGonTFS(pProcFace, pCel, 0.0f);
+			if (procFace->type & 2)
+				_rd->_zRaster.drawNGonTFS(procFace, cel, 0.0f);
 			else
-				_rd->_zRaster.drawNGonFS(pProcFace, pCel, 0.0f);
+				_rd->_zRaster.drawNGonFS(procFace, cel, 0.0f);
 			break;
 		case 2:
-			light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-			pProcFace->diffuseLight = light;
+			light = calcFaceLight(procFace, lightingMode, ambientLight);
+			procFace->diffuseLight = light;
 
-			if (pProcFace->type & 2)
-				_rd->_zRaster.drawNGonTFS(pProcFace, pCel, light);
+			if (procFace->type & 2)
+				_rd->_zRaster.drawNGonTFS(procFace, cel, light);
 			else
-				_rd->_zRaster.drawNGonFS(pProcFace, pCel, light);
+				_rd->_zRaster.drawNGonFS(procFace, cel, light);
 			break;
 		case 3:
-			calcVertexLights(pProcFace, ambientLight);
+			calcVertexLights(procFace, ambientLight);
 
-			if (pProcFace->type & 2)
-				_rd->_zRaster.drawNGonTGS(pProcFace, pCel);
+			if (procFace->type & 2)
+				_rd->_zRaster.drawNGonTGS(procFace, cel);
 			else
-				_rd->_zRaster.drawNGonGS(pProcFace, pCel);
+				_rd->_zRaster.drawNGonGS(procFace, cel);
 			break;
 		default:
 			break;
@@ -672,48 +672,48 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 		if (textureMode == 0) {
 			switch (lightingMode) {
 			case 0:
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTLAT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTLAT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonMLAT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonMLAT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTLAT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTLAT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonLAT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonLAT(procFace, cel);
 				}
 				break;
 			case 1:
 			case 2:
-				light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-				pProcFace->diffuseLight = light;
+				light = calcFaceLight(procFace, lightingMode, ambientLight);
+				procFace->diffuseLight = light;
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTFAT(pProcFace, pCel, light);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTFAT(procFace, cel, light);
 					else
-						_rd->_zRaster.drawNGonMFAT(pProcFace, pCel, light);
+						_rd->_zRaster.drawNGonMFAT(procFace, cel, light);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTFAT(pProcFace, pCel, light);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTFAT(procFace, cel, light);
 					else
-						_rd->_zRaster.drawNGonFAT(pProcFace, pCel, light);
+						_rd->_zRaster.drawNGonFAT(procFace, cel, light);
 				}
 				break;
 			case 3:
-				calcVertexLights(pProcFace, ambientLight);
+				calcVertexLights(procFace, ambientLight);
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTGAT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTGAT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonMGAT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonMGAT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTGAT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTGAT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonGAT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonGAT(procFace, cel);
 				}
 				break;
 			default:
@@ -722,48 +722,48 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 		} else if (textureMode == 1) {
 			switch (lightingMode) {
 			case 0:
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTLIT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTLIT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonMLIT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonMLIT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTLIT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTLIT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonLIT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonLIT(procFace, cel);
 				}
 				break;
 			case 1:
 			case 2:
-				light = calcFaceLight(pProcFace, lightingMode, ambientLight);
-				pProcFace->diffuseLight = light;
+				light = calcFaceLight(procFace, lightingMode, ambientLight);
+				procFace->diffuseLight = light;
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTFIT(pProcFace, pCel, light);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTFIT(procFace, cel, light);
 					else
-						_rd->_zRaster.drawNGonMFIT(pProcFace, pCel, light);
+						_rd->_zRaster.drawNGonMFIT(procFace, cel, light);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTFIT(pProcFace, pCel, light);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTFIT(procFace, cel, light);
 					else
-						_rd->_zRaster.drawNGonFIT(pProcFace, pCel, light);
+						_rd->_zRaster.drawNGonFIT(procFace, cel, light);
 				}
 				break;
 			case 3:
-				calcVertexLights(pProcFace, ambientLight);
+				calcVertexLights(procFace, ambientLight);
 
-				if (pCel->pTexture->flags & 1) {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonMTGIT(pProcFace, pCel);
+				if (cel->texture->flags & 1) {
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonMTGIT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonMGIT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonMGIT(procFace, cel);
 				} else {
-					if (pProcFace->type & 2)
-						_rd->_zRaster.drawNGonTGIT(pProcFace, pCel);
+					if (procFace->type & 2)
+						_rd->_zRaster.drawNGonTGIT(procFace, cel);
 					else
-						_rd->_zRaster.drawNGonGIT(pProcFace, pCel);
+						_rd->_zRaster.drawNGonGIT(procFace, cel);
 				}
 				break;
 			default:
@@ -777,7 +777,7 @@ int RenderDroid::CacheModule::drawFaceZ(RdProcFace *pProcFace) {
 
 	// The demo draws the wireframe over the face when the option is set
 	if (_rd->isDemo() && (_rd->_curRenderOptions & 0x40))
-		_rd->_zRaster.drawNGonLW(pProcFace, pCel);
+		_rd->_zRaster.drawNGonLW(procFace, cel);
 
 	return 1;
 }

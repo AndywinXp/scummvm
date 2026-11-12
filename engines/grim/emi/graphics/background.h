@@ -43,8 +43,8 @@ public:
 
 	static void convertPs2Pixels(const byte *source, int count, byte *dest);
 
-	BmData *bmData;
-	CTexture *textures[kMaxTextures];
+	BmData *_bmData;
+	CTexture *_textures[kMaxTextures];
 
 protected:
 	bool resLoadItem(const char *itemName) override;

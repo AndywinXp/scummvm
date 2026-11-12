@@ -46,51 +46,51 @@ static bool isValidShift(int shift) {
 	return shift >= 0 && shift < 32;
 }
 
-StdBitmap::StdBitmap(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _pHS(pHS),
+StdBitmap::StdBitmap(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _hs(hs),
 		_stdLbm(nullptr), _stdPcx(nullptr), _stdGif(nullptr), _stdPic(nullptr), _stdBmp(nullptr), _ditherCounter(0) {
 }
 
-StdBitmapStruct *StdBitmap::zbmLoad(const char *path, int bVideoMemory, int bNoZ) {
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+StdBitmapStruct *StdBitmap::zbmLoad(const char *path, int videoMemory, int noZ) {
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 
-	if (readData(path, pBitmap, bVideoMemory, bNoZ))
-		return pBitmap;
+	if (readData(path, bitmap, videoMemory, noZ))
+		return bitmap;
 
-	delete pBitmap;
+	delete bitmap;
 
 	return nullptr;
 }
 
-int StdBitmap::readData(const char *fileName, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(fileName);
+int StdBitmap::readData(const char *fileName, StdBitmapStruct *bitmap, int videoMemory, int noZ) {
+	Common::SeekableReadStream *file = _hs->openFile(fileName);
 
-	if (!pFile)
+	if (!file)
 		return 0;
 
-	int result = loadBitmapData(pFile, pBitmap, bVideoMemory, bNoZ);
+	int result = loadBitmapData(file, bitmap, videoMemory, noZ);
 
-	strncpy(pBitmap->aName, _stdFile->fromPath(fileName), 31);
-	pBitmap->aName[31] = 0;
-	delete pFile;
+	strncpy(bitmap->name, _stdFile->fromPath(fileName), 31);
+	bitmap->name[31] = 0;
+	delete file;
 
 	return result;
 }
 
-int StdBitmap::loadBitmapData(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ) {
+int StdBitmap::loadBitmapData(Common::SeekableReadStream *file, StdBitmapStruct *bitmap, int videoMemory, int noZ) {
 	StdBitmapFileHeader hdr;
 
-	pFile->read(hdr.magic, 4);
-	hdr.version = pFile->readSint32LE();
-	hdr.encoding = pFile->readSint32LE();
-	hdr.flags = pFile->readUint32LE();
-	hdr.numFrames = pFile->readSint32LE();
-	hdr.xPos = pFile->readSint32LE();
-	hdr.yPos = pFile->readSint32LE();
-	hdr.colorKey = pFile->readSint32LE();
-	readColorFormat(pFile, &hdr.format);
-	pFile->read(hdr.pad, 40);
+	file->read(hdr.magic, 4);
+	hdr.version = file->readSint32LE();
+	hdr.encoding = file->readSint32LE();
+	hdr.flags = file->readUint32LE();
+	hdr.numFrames = file->readSint32LE();
+	hdr.xPos = file->readSint32LE();
+	hdr.yPos = file->readSint32LE();
+	hdr.colorKey = file->readSint32LE();
+	readColorFormat(file, &hdr.format);
+	file->read(hdr.pad, 40);
 
-	if (pFile->eos()) {
+	if (file->eos()) {
 		warning("StdBitmap::loadBitmapData(): file shorter than the bitmap header");
 		return 0;
 	}
@@ -101,227 +101,227 @@ int StdBitmap::loadBitmapData(Common::SeekableReadStream *pFile, StdBitmapStruct
 	if (hdr.version != 70)
 		return 0;
 
-	if ((int64)hdr.numFrames * 8 > pFile->size() - pFile->pos()) {
+	if ((int64)hdr.numFrames * 8 > file->size() - file->pos()) {
 		warning("StdBitmap::loadBitmapData(): frame count larger than the file");
 		return 0;
 	}
 
-	if (!prepareBitmaps(pBitmap, hdr.numFrames, nullptr, hdr.encoding, hdr.flags, &hdr.format))
+	if (!prepareBitmaps(bitmap, hdr.numFrames, nullptr, hdr.encoding, hdr.flags, &hdr.format))
 		return 0;
 
-	pBitmap->xPos = hdr.xPos;
-	pBitmap->colorKey = hdr.colorKey;
-	pBitmap->yPos = hdr.yPos;
+	bitmap->xPos = hdr.xPos;
+	bitmap->colorKey = hdr.colorKey;
+	bitmap->yPos = hdr.yPos;
 
 	StdVBufferTexFmt format;
 	memset(&format, 0, sizeof(format));
 
-	for (uint index = 0; index < pBitmap->numFrames; index++) {
-		int frameWidth = pFile->readSint32LE();
-		uint frameHeight = pFile->readUint32LE();
+	for (uint index = 0; index < bitmap->numFrames; index++) {
+		int frameWidth = file->readSint32LE();
+		uint frameHeight = file->readUint32LE();
 
-		if (frameWidth < 0 || (int)frameHeight < 0 || (int64)frameWidth * (int64)frameHeight * (int64)((uint)pBitmap->format.bpp >> 3) > 0x7FFFFFFF) {
+		if (frameWidth < 0 || (int)frameHeight < 0 || (int64)frameWidth * (int64)frameHeight * (int64)((uint)bitmap->format.bpp >> 3) > 0x7FFFFFFF) {
 			warning("StdBitmap::loadBitmapData(): invalid frame size");
 			return 0;
 		}
 
 		format.height = frameHeight;
 		format.width = frameWidth;
-		format.format = pBitmap->format;
+		format.format = bitmap->format;
 
-		StdVBuffer *pFrame = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, nullptr);
+		StdVBuffer *frame = _stdDisplay->vBufferNew(&format, videoMemory, noZ, nullptr);
 
-		if (!pFrame)
+		if (!frame)
 			return 0;
 
-		addFrame(pBitmap, index, pFrame);
-		_stdDisplay->vBufferLock(pFrame);
+		addFrame(bitmap, index, frame);
+		_stdDisplay->vBufferLock(frame);
 
-		if (pBitmap->encoding == 0) {
-			byte *pRow = pFrame->pPixels;
-			uint rowBytes = pFrame->tex.width * ((uint)pFrame->tex.format.bpp >> 3);
+		if (bitmap->encoding == 0) {
+			byte *rowPointer = frame->pixels;
+			uint rowBytes = frame->tex.width * ((uint)frame->tex.format.bpp >> 3);
 
 			for (uint row = 0; row < frameHeight; row++) {
-				pFile->read(pRow, rowBytes);
-				pRow += pFrame->tex.pitchInBytes;
+				file->read(rowPointer, rowBytes);
+				rowPointer += frame->tex.pitchInBytes;
 			}
-		} else if (pBitmap->encoding == 1) {
-			byte *pOut = pFrame->pPixels;
+		} else if (bitmap->encoding == 1) {
+			byte *out = frame->pixels;
 
-			if (pFrame->tex.sizeInBytes) {
+			if (frame->tex.sizeInBytes) {
 				do {
-					byte value = pFile->readByte();
+					byte value = file->readByte();
 
 					if ((value & 0xC0) == 0xC0) {
 						int count = value & 0x3F;
-						byte fill = pFile->readByte();
+						byte fill = file->readByte();
 
-						if (count > pFrame->tex.sizeInBytes - (int)(pOut - pFrame->pPixels)) {
+						if (count > frame->tex.sizeInBytes - (int)(out - frame->pixels)) {
 							warning("StdBitmap::loadBitmapData(): run goes past the end of the frame");
-							count = pFrame->tex.sizeInBytes - (int)(pOut - pFrame->pPixels);
+							count = frame->tex.sizeInBytes - (int)(out - frame->pixels);
 						}
 
 						if (count) {
-							memset(pOut, fill, count);
-							pOut += count;
+							memset(out, fill, count);
+							out += count;
 						}
 					} else {
-						*pOut++ = value;
+						*out++ = value;
 					}
-				} while ((uint)(pOut - pFrame->pPixels) < (uint)pFrame->tex.sizeInBytes);
+				} while ((uint)(out - frame->pixels) < (uint)frame->tex.sizeInBytes);
 			}
-		} else if (pBitmap->encoding == 3) {
-			uint compressedSize = pFile->readUint32LE();
+		} else if (bitmap->encoding == 3) {
+			uint compressedSize = file->readUint32LE();
 
-			if (compressedSize < (uint)pFrame->tex.sizeInBytes) {
-				byte *pCompressed = new byte[compressedSize];
+			if (compressedSize < (uint)frame->tex.sizeInBytes) {
+				byte *compressed = new byte[compressedSize];
 
-				pFile->read(pCompressed, compressedSize);
-				pFrame->type = 2;
-				pFrame->tex.sizeInBytes = compressedSize;
-				delete[] pFrame->pPixels;
-				pFrame->pPixels = pCompressed;
+				file->read(compressed, compressedSize);
+				frame->type = 2;
+				frame->tex.sizeInBytes = compressedSize;
+				delete[] frame->pixels;
+				frame->pixels = compressed;
 			}
 		}
 
-		_stdDisplay->vBufferUnlock(pFrame);
+		_stdDisplay->vBufferUnlock(frame);
 
-		if (pBitmap->flags & 1)
-			_stdDisplay->vBufferSetColorKey(pFrame, pBitmap->colorKey);
+		if (bitmap->flags & 1)
+			_stdDisplay->vBufferSetColorKey(frame, bitmap->colorKey);
 	}
 
-	if (pBitmap->flags & 2) {
-		pBitmap->pPalette = new byte[768];
-		pFile->read(pBitmap->pPalette, 768);
+	if (bitmap->flags & 2) {
+		bitmap->palette = new byte[768];
+		file->read(bitmap->palette, 768);
 	}
 
 	return 1;
 }
 
-void StdBitmap::unloadBitmap(StdBitmapStruct *&pBitmap) {
-	freeEntry(pBitmap);
-	delete pBitmap;
-	pBitmap = nullptr;
+void StdBitmap::unloadBitmap(StdBitmapStruct *&bitmap) {
+	freeEntry(bitmap);
+	delete bitmap;
+	bitmap = nullptr;
 }
 
-void StdBitmap::freeEntry(StdBitmapStruct *pBitmap) {
-	if (pBitmap->apFrames) {
-		for (uint i = 0; i < pBitmap->numFrames; i++) {
-			if (pBitmap->apFrames[i])
-				_stdDisplay->vBufferFree(pBitmap->apFrames[i]);
+void StdBitmap::freeEntry(StdBitmapStruct *bitmap) {
+	if (bitmap->frames) {
+		for (uint i = 0; i < bitmap->numFrames; i++) {
+			if (bitmap->frames[i])
+				_stdDisplay->vBufferFree(bitmap->frames[i]);
 		}
 
-		delete[] pBitmap->apFrames;
-		pBitmap->apFrames = nullptr;
+		delete[] bitmap->frames;
+		bitmap->frames = nullptr;
 	}
 
-	if (pBitmap->pPalette) {
-		delete[] pBitmap->pPalette;
-		pBitmap->pPalette = nullptr;
+	if (bitmap->palette) {
+		delete[] bitmap->palette;
+		bitmap->palette = nullptr;
 	}
 }
 
-int StdBitmap::appendToFile(Common::WriteStream *pStream, StdBitmapStruct *pBitmap) {
+int StdBitmap::appendToFile(Common::WriteStream *stream, StdBitmapStruct *bitmap) {
 	StdBitmapFileHeader hdr;
 
 	memset(&hdr, 0, sizeof(hdr));
 	strncpy(hdr.magic, "BM  ", 4);
 	hdr.version = 70;
-	hdr.encoding = pBitmap->encoding;
-	hdr.flags = pBitmap->flags;
-	hdr.numFrames = pBitmap->numFrames;
-	hdr.xPos = pBitmap->xPos;
-	hdr.yPos = pBitmap->yPos;
-	hdr.colorKey = pBitmap->colorKey;
-	hdr.format = pBitmap->format;
+	hdr.encoding = bitmap->encoding;
+	hdr.flags = bitmap->flags;
+	hdr.numFrames = bitmap->numFrames;
+	hdr.xPos = bitmap->xPos;
+	hdr.yPos = bitmap->yPos;
+	hdr.colorKey = bitmap->colorKey;
+	hdr.format = bitmap->format;
 
-	pStream->write(hdr.magic, 4);
-	pStream->writeSint32LE(hdr.version);
-	pStream->writeSint32LE(hdr.encoding);
-	pStream->writeUint32LE(hdr.flags);
-	pStream->writeSint32LE(hdr.numFrames);
-	pStream->writeSint32LE(hdr.xPos);
-	pStream->writeSint32LE(hdr.yPos);
-	pStream->writeSint32LE(hdr.colorKey);
-	writeColorFormat(pStream, &hdr.format);
-	pStream->write(hdr.pad, 40);
+	stream->write(hdr.magic, 4);
+	stream->writeSint32LE(hdr.version);
+	stream->writeSint32LE(hdr.encoding);
+	stream->writeUint32LE(hdr.flags);
+	stream->writeSint32LE(hdr.numFrames);
+	stream->writeSint32LE(hdr.xPos);
+	stream->writeSint32LE(hdr.yPos);
+	stream->writeSint32LE(hdr.colorKey);
+	writeColorFormat(stream, &hdr.format);
+	stream->write(hdr.pad, 40);
 
-	if (pStream->err())
+	if (stream->err())
 		return 0;
 
-	for (uint i = 0; i < pBitmap->numFrames; i++) {
-		StdVBuffer *pFrame = pBitmap->apFrames[i];
-		int width = pFrame->tex.width;
-		uint height = pFrame->tex.height;
+	for (uint i = 0; i < bitmap->numFrames; i++) {
+		StdVBuffer *frame = bitmap->frames[i];
+		int width = frame->tex.width;
+		uint height = frame->tex.height;
 
-		pStream->writeSint32LE(width);
-		pStream->writeUint32LE(height);
+		stream->writeSint32LE(width);
+		stream->writeUint32LE(height);
 
-		if (pStream->err())
+		if (stream->err())
 			return 0;
 
 		if (hdr.encoding == 0) {
-			_stdDisplay->vBufferLock(pFrame);
+			_stdDisplay->vBufferLock(frame);
 
-			byte *pPixels = pFrame->pPixels;
-			uint rowBytes = ((uint)pFrame->tex.format.bpp >> 3) * width;
+			byte *pixels = frame->pixels;
+			uint rowBytes = ((uint)frame->tex.format.bpp >> 3) * width;
 
 			for (uint row = 0; row < height; row++) {
-				if (pStream->write(pPixels, rowBytes) != rowBytes)
+				if (stream->write(pixels, rowBytes) != rowBytes)
 					return 0;
 
-				pPixels += pFrame->tex.pitchInBytes;
+				pixels += frame->tex.pitchInBytes;
 			}
 
-			_stdDisplay->vBufferUnlock(pFrame);
+			_stdDisplay->vBufferUnlock(frame);
 		} else if (hdr.encoding == 1) {
-			byte *pPixels = pFrame->pPixels;
+			byte *pixels = frame->pixels;
 
-			for (uint y = 0; y < (uint)pFrame->tex.height; y++) {
-				uint rowWidth = pFrame->tex.width;
-				byte *pRow = pPixels + y * rowWidth;
+			for (uint y = 0; y < (uint)frame->tex.height; y++) {
+				uint rowWidth = frame->tex.width;
+				byte *rowPointer = pixels + y * rowWidth;
 				uint x = 0;
 
 				while (x < rowWidth) {
-					byte value = pRow[x];
+					byte value = rowPointer[x];
 					byte run = 1;
 
-					while (run < 63 && x + run < rowWidth && pRow[x + run] == value)
+					while (run < 63 && x + run < rowWidth && rowPointer[x + run] == value)
 						run++;
 
 					if (run > 1 || value > 0xBF)
-						pStream->writeByte(run | 0xC0);
+						stream->writeByte(run | 0xC0);
 
-					pStream->writeByte(value);
+					stream->writeByte(value);
 					x += run;
 				}
 			}
 		} else if (hdr.encoding == 3) {
-			_stdDisplay->vBufferLock(pFrame);
+			_stdDisplay->vBufferLock(frame);
 
-			uint sizeInBytes = pFrame->tex.sizeInBytes;
+			uint sizeInBytes = frame->tex.sizeInBytes;
 
-			pStream->writeUint32LE(sizeInBytes);
-			pStream->write(pFrame->pPixels, sizeInBytes);
-			_stdDisplay->vBufferUnlock(pFrame);
+			stream->writeUint32LE(sizeInBytes);
+			stream->write(frame->pixels, sizeInBytes);
+			_stdDisplay->vBufferUnlock(frame);
 		}
 	}
 
-	if (pBitmap->flags & 2) {
-		if (pStream->write(pBitmap->pPalette, 768) != 768)
+	if (bitmap->flags & 2) {
+		if (stream->write(bitmap->palette, 768) != 768)
 			return 0;
 	}
 
 	return 1;
 }
 
-int StdBitmap::write(const char *path, StdBitmapStruct *pBitmap) {
+int StdBitmap::write(const char *path, StdBitmapStruct *bitmap) {
 	Common::DumpFile file;
 
 	if (!file.open(path))
 		return 0;
 
-	if (appendToFile(&file, pBitmap)) {
+	if (appendToFile(&file, bitmap)) {
 		file.close();
 		return 1;
 	}
@@ -331,109 +331,109 @@ int StdBitmap::write(const char *path, StdBitmapStruct *pBitmap) {
 	return 0;
 }
 
-void StdBitmap::convertColorFormat(StdColorFormat *pFormat, StdBitmapStruct *pBitmap) {
-	if (!memcmp(pFormat, &pBitmap->format, sizeof(StdColorFormat)))
+void StdBitmap::convertColorFormat(StdColorFormat *format, StdBitmapStruct *bitmap) {
+	if (!memcmp(format, &bitmap->format, sizeof(StdColorFormat)))
 		return;
 
-	if (!pBitmap->format.colorMode && !pFormat->colorMode)
+	if (!bitmap->format.colorMode && !format->colorMode)
 		return;
 
-	for (int i = 0; i < (int)pBitmap->numFrames; i++) {
-		if (pBitmap->apFrames[i]->type != 2) {
-			pBitmap->apFrames[i] = _stdDisplay->vBufferConvertColorFormat(pFormat, pBitmap->apFrames[i]);
+	for (int i = 0; i < (int)bitmap->numFrames; i++) {
+		if (bitmap->frames[i]->type != 2) {
+			bitmap->frames[i] = _stdDisplay->vBufferConvertColorFormat(format, bitmap->frames[i]);
 
-			if (!pBitmap->apFrames[i])
+			if (!bitmap->frames[i])
 				error("Unable to allocate a new frame when converting image from 24 to 16bpp.");
 
-			if (pBitmap->flags & 1)
-				_stdDisplay->vBufferSetColorKey(pBitmap->apFrames[i], pBitmap->apFrames[i]->colorKey);
+			if (bitmap->flags & 1)
+				_stdDisplay->vBufferSetColorKey(bitmap->frames[i], bitmap->frames[i]->colorKey);
 		}
 	}
 
-	if (pBitmap->flags & 1)
-		pBitmap->colorKey = convertColor(pFormat, pBitmap->colorKey, &pBitmap->format);
+	if (bitmap->flags & 1)
+		bitmap->colorKey = convertColor(format, bitmap->colorKey, &bitmap->format);
 
-	pBitmap->format = *pFormat;
+	bitmap->format = *format;
 }
 
-StdBitmapStruct *StdBitmap::vBufferToBitmap(StdVBuffer *pSrc, int bVideoMemory, int bNoZ) {
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+StdBitmapStruct *StdBitmap::vBufferToBitmap(StdVBuffer *src, int videoMemory, int noZ) {
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 
-	pBitmap->encoding = 0;
+	bitmap->encoding = 0;
 
-	if (pSrc->pPaletteRGB)
-		pBitmap->flags = 2;
+	if (src->paletteRGB)
+		bitmap->flags = 2;
 	else
-		pBitmap->flags = 0;
+		bitmap->flags = 0;
 
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
-	pBitmap->xPos = 0;
-	pBitmap->yPos = 0;
-	pBitmap->apFrames = new StdVBuffer *[1];
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&pSrc->tex, bVideoMemory, bNoZ, nullptr);
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
+	bitmap->xPos = 0;
+	bitmap->yPos = 0;
+	bitmap->frames = new StdVBuffer *[1];
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&src->tex, videoMemory, noZ, nullptr);
 
-	if (!pBitmap->apFrames[0])
+	if (!bitmap->frames[0])
 		return nullptr;
 
-	_stdDisplay->vBufferCopy(pBitmap->apFrames[0], pSrc, 0, 0, nullptr, 0);
-	_stdDisplay->vBufferUnlock(pSrc);
-	pBitmap->format = pBitmap->apFrames[0]->tex.format;
+	_stdDisplay->vBufferCopy(bitmap->frames[0], src, 0, 0, nullptr, 0);
+	_stdDisplay->vBufferUnlock(src);
+	bitmap->format = bitmap->frames[0]->tex.format;
 
-	if (pBitmap->flags & 2) {
-		pBitmap->pPalette = new byte[768];
-		memcpy(pBitmap->pPalette, pSrc->pPaletteRGB, 768);
+	if (bitmap->flags & 2) {
+		bitmap->palette = new byte[768];
+		memcpy(bitmap->palette, src->paletteRGB, 768);
 	} else {
-		pBitmap->pPalette = nullptr;
+		bitmap->palette = nullptr;
 	}
 
-	return pBitmap;
+	return bitmap;
 }
 
-int StdBitmap::prepareBitmaps(StdBitmapStruct *pBitmap, int numFrames, byte *pPalette, int encoding, uint flags, const StdColorFormat *pFormat) {
-	memset(pBitmap, 0, sizeof(StdBitmapStruct));
+int StdBitmap::prepareBitmaps(StdBitmapStruct *bitmap, int numFrames, byte *palette, int encoding, uint flags, const StdColorFormat *format) {
+	memset(bitmap, 0, sizeof(StdBitmapStruct));
 
 	if (numFrames < 0) {
 		warning("StdBitmap::prepareBitmaps(): negative frame count");
 		return 0;
 	}
 
-	pBitmap->apFrames = new StdVBuffer *[numFrames]();
-	pBitmap->flags = flags;
-	pBitmap->encoding = encoding;
-	pBitmap->format = *pFormat;
-	pBitmap->numFrames = numFrames;
-	pBitmap->pPalette = pPalette;
+	bitmap->frames = new StdVBuffer *[numFrames]();
+	bitmap->flags = flags;
+	bitmap->encoding = encoding;
+	bitmap->format = *format;
+	bitmap->numFrames = numFrames;
+	bitmap->palette = palette;
 
 	return 1;
 }
 
-void StdBitmap::addFrame(StdBitmapStruct *pBitmap, int index, StdVBuffer *pFrame) {
-	pBitmap->apFrames[index] = pFrame;
+void StdBitmap::addFrame(StdBitmapStruct *bitmap, int index, StdVBuffer *frame) {
+	bitmap->frames[index] = frame;
 }
 
-int StdBitmap::memUsage(StdBitmapStruct *pBitmap) {
+int StdBitmap::memUsage(StdBitmapStruct *bitmap) {
 	int size = 0;
 
-	for (int i = 0; i < (int)pBitmap->numFrames; i++) {
-		if (!pBitmap->apFrames[i]->bVideoMemory)
-			size += pBitmap->apFrames[i]->tex.sizeInBytes;
+	for (int i = 0; i < (int)bitmap->numFrames; i++) {
+		if (!bitmap->frames[i]->videoMemory)
+			size += bitmap->frames[i]->tex.sizeInBytes;
 	}
 
 	return size + 124;
 }
 
-void StdBitmap::deCompress(StdBitmapStruct *pBitmap) {
-	for (int i = 0; i < (int)pBitmap->numFrames; i++)
-		_stdDisplay->vBufferDeCompress(pBitmap->apFrames[i]);
+void StdBitmap::deCompress(StdBitmapStruct *bitmap) {
+	for (int i = 0; i < (int)bitmap->numFrames; i++)
+		_stdDisplay->vBufferDeCompress(bitmap->frames[i]);
 
-	pBitmap->encoding = 0;
+	bitmap->encoding = 0;
 }
 
-void StdBitmap::applyGamma(byte *pDst, const byte *pSrc, int count, double gamma) {
+void StdBitmap::applyGamma(byte *dst, const byte *src, int count, double gamma) {
 	for (int i = 0; i < count; i++) {
 		for (int component = 0; component < 3; component++) {
-			double value = pow((double)*pSrc * 0.00392156862745098, gamma) * 255.0;
+			double value = pow((double)*src * 0.00392156862745098, gamma) * 255.0;
 
 			if (value > 255.0)
 				value = 255.0;
@@ -443,88 +443,88 @@ void StdBitmap::applyGamma(byte *pDst, const byte *pSrc, int count, double gamma
 				value = 0.0;
 			}
 
-			*pDst = (byte)(int)value;
-			pSrc++;
-			pDst++;
+			*dst = (byte)(int)value;
+			src++;
+			dst++;
 		}
 	}
 }
 
-int StdBitmap::buildPaletteOpaque(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat) {
-	if (!isValidShift(pFormat->redLoss) || !isValidShift(pFormat->greenLoss) || !isValidShift(pFormat->blueLoss) ||
-		!isValidShift(pFormat->redShift) || !isValidShift(pFormat->greenShift) || !isValidShift(pFormat->blueShift)) {
+int StdBitmap::buildPaletteOpaque(const byte *palette, uint16 *table, const StdColorFormat *format) {
+	if (!isValidShift(format->redLoss) || !isValidShift(format->greenLoss) || !isValidShift(format->blueLoss) ||
+		!isValidShift(format->redShift) || !isValidShift(format->greenShift) || !isValidShift(format->blueShift)) {
 		warning("StdBitmap::buildPaletteOpaque(): invalid color format");
 		return 0;
 	}
 
 	for (int i = 0; i < 256; i++) {
-		uint red = pPalette[0] >> pFormat->redLoss;
-		uint green = pPalette[1] >> pFormat->greenLoss;
-		uint blue = pPalette[2] >> pFormat->blueLoss;
+		uint red = palette[0] >> format->redLoss;
+		uint green = palette[1] >> format->greenLoss;
+		uint blue = palette[2] >> format->blueLoss;
 
-		pPalette += 3;
-		pTable[i] = (uint16)((blue << pFormat->blueShift) | (green << pFormat->greenShift) | (red << pFormat->redShift));
+		palette += 3;
+		table[i] = (uint16)((blue << format->blueShift) | (green << format->greenShift) | (red << format->redShift));
 	}
 
 	return 1;
 }
 
-int StdBitmap::buildPaletteAlpha(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat) {
-	if (!isValidShift(pFormat->redLoss) || !isValidShift(pFormat->greenLoss) || !isValidShift(pFormat->blueLoss) ||
-		!isValidShift(pFormat->redShift) || !isValidShift(pFormat->greenShift) || !isValidShift(pFormat->blueShift) ||
-		!isValidShift(pFormat->alphaLoss) || !isValidShift(pFormat->alphaShift)) {
+int StdBitmap::buildPaletteAlpha(const byte *palette, uint16 *table, const StdColorFormat *format) {
+	if (!isValidShift(format->redLoss) || !isValidShift(format->greenLoss) || !isValidShift(format->blueLoss) ||
+		!isValidShift(format->redShift) || !isValidShift(format->greenShift) || !isValidShift(format->blueShift) ||
+		!isValidShift(format->alphaLoss) || !isValidShift(format->alphaShift)) {
 		warning("StdBitmap::buildPaletteAlpha(): invalid color format");
 		return 0;
 	}
 
 	for (int i = 0; i < 256; i++) {
-		uint red = pPalette[0] >> pFormat->redLoss;
-		uint green = pPalette[1] >> pFormat->greenLoss;
-		uint blue = pPalette[2] >> pFormat->blueLoss;
+		uint red = palette[0] >> format->redLoss;
+		uint green = palette[1] >> format->greenLoss;
+		uint blue = palette[2] >> format->blueLoss;
 		byte alpha = 0;
 
 		if (i != 0)
 			alpha = 0xFF;
 
-		pPalette += 3;
-		pTable[i] = (uint16)((blue << pFormat->blueShift) | (green << pFormat->greenShift) | (red << pFormat->redShift) | (((uint)alpha >> pFormat->alphaLoss) << pFormat->alphaShift));
+		palette += 3;
+		table[i] = (uint16)((blue << format->blueShift) | (green << format->greenShift) | (red << format->redShift) | (((uint)alpha >> format->alphaLoss) << format->alphaShift));
 	}
 
 	return 1;
 }
 
-int StdBitmap::buildPaletteColorKey(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat, byte alpha) {
-	if (!isValidShift(pFormat->redLoss) || !isValidShift(pFormat->greenLoss) || !isValidShift(pFormat->blueLoss) ||
-		!isValidShift(pFormat->redShift) || !isValidShift(pFormat->greenShift) || !isValidShift(pFormat->blueShift) ||
-		!isValidShift(pFormat->alphaLoss) || !isValidShift(pFormat->alphaShift)) {
+int StdBitmap::buildPaletteColorKey(const byte *palette, uint16 *table, const StdColorFormat *format, byte alpha) {
+	if (!isValidShift(format->redLoss) || !isValidShift(format->greenLoss) || !isValidShift(format->blueLoss) ||
+		!isValidShift(format->redShift) || !isValidShift(format->greenShift) || !isValidShift(format->blueShift) ||
+		!isValidShift(format->alphaLoss) || !isValidShift(format->alphaShift)) {
 		warning("StdBitmap::buildPaletteColorKey(): invalid color format");
 		return 0;
 	}
 
 	for (int i = 0; i < 256; i++) {
-		uint red = pPalette[0] >> pFormat->redLoss;
-		uint green = pPalette[1] >> pFormat->greenLoss;
-		uint blue = pPalette[2] >> pFormat->blueLoss;
+		uint red = palette[0] >> format->redLoss;
+		uint green = palette[1] >> format->greenLoss;
+		uint blue = palette[2] >> format->blueLoss;
 		uint entryAlpha = 0;
 
 		if (i != 0)
 			entryAlpha = alpha;
 
-		pPalette += 3;
-		pTable[i] = (uint16)((blue << pFormat->blueShift) | (green << pFormat->greenShift) | (red << pFormat->redShift) | ((entryAlpha >> pFormat->alphaLoss) << pFormat->alphaShift));
+		palette += 3;
+		table[i] = (uint16)((blue << format->blueShift) | (green << format->greenShift) | (red << format->redShift) | ((entryAlpha >> format->alphaLoss) << format->alphaShift));
 	}
 
 	return 1;
 }
 
-void StdBitmap::convertPixelRow(byte *pDst, StdColorFormat *pDstFormat, const byte *pSrc, StdColorFormat *pSrcFormat, int width) {
+void StdBitmap::convertPixelRow(byte *dst, StdColorFormat *dstFormat, const byte *src, StdColorFormat *srcFormat, int width) {
 	_ditherCounter++;
 
-	bool bRgb24To16 = pSrcFormat->bpp == 24 && pDstFormat->bpp == 16;
-	bool bRgb16To16 = pSrcFormat->bpp == 16 && pDstFormat->bpp == 16;
-	bool bRgb16To24 = pSrcFormat->bpp == 16 && pDstFormat->bpp == 24;
+	bool rgb24To16 = srcFormat->bpp == 24 && dstFormat->bpp == 16;
+	bool rgb16To16 = srcFormat->bpp == 16 && dstFormat->bpp == 16;
+	bool rgb16To24 = srcFormat->bpp == 16 && dstFormat->bpp == 24;
 
-	if (!bRgb24To16 && !bRgb16To16 && !bRgb16To24)
+	if (!rgb24To16 && !rgb16To16 && !rgb16To24)
 		return;
 
 	if (width <= 0) {
@@ -532,109 +532,109 @@ void StdBitmap::convertPixelRow(byte *pDst, StdColorFormat *pDstFormat, const by
 		return;
 	}
 
-	if (pSrcFormat->redBits < 1 || pSrcFormat->redBits > 30 || pSrcFormat->greenBits < 1 || pSrcFormat->greenBits > 30 || pSrcFormat->blueBits < 1 || pSrcFormat->blueBits > 30 ||
-		pDstFormat->redBits < 0 || pDstFormat->redBits > 15 || pDstFormat->greenBits < 0 || pDstFormat->greenBits > 15 || pDstFormat->blueBits < 0 || pDstFormat->blueBits > 15) {
+	if (srcFormat->redBits < 1 || srcFormat->redBits > 30 || srcFormat->greenBits < 1 || srcFormat->greenBits > 30 || srcFormat->blueBits < 1 || srcFormat->blueBits > 30 ||
+		dstFormat->redBits < 0 || dstFormat->redBits > 15 || dstFormat->greenBits < 0 || dstFormat->greenBits > 15 || dstFormat->blueBits < 0 || dstFormat->blueBits > 15) {
 		warning("StdBitmap::convertPixelRow(): invalid color bits");
 		return;
 	}
 
-	uint redScale = (int)((double)((1 << pDstFormat->redBits) - 1) * (1.0 / (double)((1 << pSrcFormat->redBits) - 1)) * 65536.0);
-	uint greenScale = (int)((double)((1 << pDstFormat->greenBits) - 1) * (1.0 / (double)((1 << pSrcFormat->greenBits) - 1)) * 65536.0);
-	uint blueScale = (int)((double)((1 << pDstFormat->blueBits) - 1) * (1.0 / (double)((1 << pSrcFormat->blueBits) - 1)) * 65536.0);
-	int redShift = pDstFormat->redShift;
-	int greenShift = pDstFormat->greenShift;
-	const byte *pIn = pSrc;
-	byte *pOut = pDst;
+	uint redScale = (int)((double)((1 << dstFormat->redBits) - 1) * (1.0 / (double)((1 << srcFormat->redBits) - 1)) * 65536.0);
+	uint greenScale = (int)((double)((1 << dstFormat->greenBits) - 1) * (1.0 / (double)((1 << srcFormat->greenBits) - 1)) * 65536.0);
+	uint blueScale = (int)((double)((1 << dstFormat->blueBits) - 1) * (1.0 / (double)((1 << srcFormat->blueBits) - 1)) * 65536.0);
+	int redShift = dstFormat->redShift;
+	int greenShift = dstFormat->greenShift;
+	const byte *in = src;
+	byte *out = dst;
 	int remaining = width;
 
-	if (bRgb24To16) {
+	if (rgb24To16) {
 		if (!isValidShift(redShift) || !isValidShift(greenShift)) {
 			warning("StdBitmap::convertPixelRow(): invalid color shift");
 			return;
 		}
 
-		const uint *pDither = &ditherTable[(_ditherCounter & 3) * 4];
+		const uint *ditherPointer = &ditherTable[(_ditherCounter & 3) * 4];
 
 		do {
-			uint dither = pDither[remaining & 3];
-			uint red = (pIn[0] * redScale + dither) >> 16;
-			uint green = (pIn[1] * greenScale + dither) >> 16;
-			uint blue = (pIn[2] * blueScale + dither) >> 16;
+			uint dither = ditherPointer[remaining & 3];
+			uint red = (in[0] * redScale + dither) >> 16;
+			uint green = (in[1] * greenScale + dither) >> 16;
+			uint blue = (in[2] * blueScale + dither) >> 16;
 
-			WRITE_LE_UINT16(pOut, (uint16)((red << redShift) | (green << greenShift) | blue));
-			pIn += 3;
-			pOut += 2;
+			WRITE_LE_UINT16(out, (uint16)((red << redShift) | (green << greenShift) | blue));
+			in += 3;
+			out += 2;
 			remaining--;
 		} while (remaining);
-	} else if (bRgb16To16) {
-		if (!isValidShift(redShift) || !isValidShift(greenShift) || !isValidShift(pSrcFormat->redShift) || !isValidShift(pSrcFormat->greenShift)) {
+	} else if (rgb16To16) {
+		if (!isValidShift(redShift) || !isValidShift(greenShift) || !isValidShift(srcFormat->redShift) || !isValidShift(srcFormat->greenShift)) {
 			warning("StdBitmap::convertPixelRow(): invalid color shift");
 			return;
 		}
 
-		uint redMask = 0xFFFFFFFF >> (32 - pSrcFormat->redBits);
-		uint greenMask = 0xFFFFFFFF >> (32 - pSrcFormat->greenBits);
-		uint blueMask = 0xFFFFFFFF >> (32 - pSrcFormat->blueBits);
+		uint redMask = 0xFFFFFFFF >> (32 - srcFormat->redBits);
+		uint greenMask = 0xFFFFFFFF >> (32 - srcFormat->greenBits);
+		uint blueMask = 0xFFFFFFFF >> (32 - srcFormat->blueBits);
 
 		do {
-			uint pixel = READ_LE_UINT16(pIn);
-			uint red = (redScale * (redMask & (pixel >> pSrcFormat->redShift))) >> 16;
-			uint green = (greenScale * (greenMask & (pixel >> pSrcFormat->greenShift))) >> 16;
+			uint pixel = READ_LE_UINT16(in);
+			uint red = (redScale * (redMask & (pixel >> srcFormat->redShift))) >> 16;
+			uint green = (greenScale * (greenMask & (pixel >> srcFormat->greenShift))) >> 16;
 			uint blue = (blueScale * (blueMask & pixel)) >> 16;
 
-			WRITE_LE_UINT16(pOut, (uint16)((red << redShift) | (green << greenShift) | blue));
-			pIn += 2;
-			pOut += 2;
+			WRITE_LE_UINT16(out, (uint16)((red << redShift) | (green << greenShift) | blue));
+			in += 2;
+			out += 2;
 			remaining--;
 		} while (remaining);
 	} else {
-		if (!isValidShift(pSrcFormat->redShift) || !isValidShift(pSrcFormat->greenShift) ||
-			!isValidShift(pSrcFormat->redLoss) || !isValidShift(pSrcFormat->greenLoss) || !isValidShift(pSrcFormat->blueLoss)) {
+		if (!isValidShift(srcFormat->redShift) || !isValidShift(srcFormat->greenShift) ||
+			!isValidShift(srcFormat->redLoss) || !isValidShift(srcFormat->greenLoss) || !isValidShift(srcFormat->blueLoss)) {
 			warning("StdBitmap::convertPixelRow(): invalid color shift");
 			return;
 		}
 
-		uint redMask = 0xFFFFFFFF >> (32 - pSrcFormat->redBits);
-		uint greenMask = 0xFFFFFFFF >> (32 - pSrcFormat->greenBits);
-		uint blueMask = 0xFFFFFFFF >> (32 - pSrcFormat->blueBits);
+		uint redMask = 0xFFFFFFFF >> (32 - srcFormat->redBits);
+		uint greenMask = 0xFFFFFFFF >> (32 - srcFormat->greenBits);
+		uint blueMask = 0xFFFFFFFF >> (32 - srcFormat->blueBits);
 
 		do {
-			uint pixel = READ_LE_UINT16(pIn);
-			byte red = (byte)(pixel >> pSrcFormat->redShift) & (byte)redMask;
-			byte green = (byte)(pixel >> pSrcFormat->greenShift) & (byte)greenMask;
+			uint pixel = READ_LE_UINT16(in);
+			byte red = (byte)(pixel >> srcFormat->redShift) & (byte)redMask;
+			byte green = (byte)(pixel >> srcFormat->greenShift) & (byte)greenMask;
 			byte blue = (byte)pixel & (byte)blueMask;
 
-			pOut[0] = (byte)(red << pSrcFormat->redLoss);
-			pOut[1] = (byte)(green << pSrcFormat->greenLoss);
-			pOut[2] = (byte)(blue << pSrcFormat->blueLoss);
-			pIn += 2;
-			pOut += 3;
+			out[0] = (byte)(red << srcFormat->redLoss);
+			out[1] = (byte)(green << srcFormat->greenLoss);
+			out[2] = (byte)(blue << srcFormat->blueLoss);
+			in += 2;
+			out += 3;
 			remaining--;
 		} while (remaining);
 	}
 }
 
-int StdBitmap::convertColor(StdColorFormat *pDstFormat, int color, StdColorFormat *pSrcFormat) {
+int StdBitmap::convertColor(StdColorFormat *dstFormat, int color, StdColorFormat *srcFormat) {
 	byte srcColor[4];
 	byte dstColor[4];
 
 	WRITE_LE_UINT32(srcColor, color);
 	memset(dstColor, 0, sizeof(dstColor));
-	convertPixelRow(dstColor, pDstFormat, srcColor, pSrcFormat, 1);
+	convertPixelRow(dstColor, dstFormat, srcColor, srcFormat, 1);
 
 	return READ_LE_INT32(dstColor);
 }
 
-StdBitmapStruct *StdBitmap::loadImage(Common::String &path, int bVideoMemory, int bNoZ) {
-	StdBitmapStruct *pBitmap = loadLbm(path, bVideoMemory, bNoZ);
+StdBitmapStruct *StdBitmap::loadImage(Common::String &path, int videoMemory, int noZ) {
+	StdBitmapStruct *bitmap = loadLbm(path, videoMemory, noZ);
 
-	if (pBitmap)
-		deCompress(pBitmap);
+	if (bitmap)
+		deCompress(bitmap);
 
-	return pBitmap;
+	return bitmap;
 }
 
-StdBitmapStruct *StdBitmap::loadLbm(Common::String &path, int bVideoMemory, int bNoZ) {
+StdBitmapStruct *StdBitmap::loadLbm(Common::String &path, int videoMemory, int noZ) {
 	// TODO: verify the supported games need the .lbm/.pcx/.gif/.pic/.bmp loaders
 	Common::String extension;
 	size_t dot = path.findLastOf('.');
@@ -647,96 +647,96 @@ StdBitmapStruct *StdBitmap::loadLbm(Common::String &path, int bVideoMemory, int 
 	}
 
 	if (extension.equalsIgnoreCase(".lbm"))
-		return _stdLbm->load(path.c_str(), bVideoMemory, bNoZ);
+		return _stdLbm->load(path.c_str(), videoMemory, noZ);
 
 	if (extension.equalsIgnoreCase(".pcx"))
-		return _stdPcx->load(path.c_str(), bVideoMemory, bNoZ);
+		return _stdPcx->load(path.c_str(), videoMemory, noZ);
 
 	if (extension.equalsIgnoreCase(".gif"))
-		return _stdGif->load(path.c_str(), bVideoMemory, bNoZ);
+		return _stdGif->load(path.c_str(), videoMemory, noZ);
 
 	if (extension.equalsIgnoreCase(".bm") || extension.equalsIgnoreCase(".zbm"))
-		return zbmLoad(path.c_str(), bVideoMemory, bNoZ);
+		return zbmLoad(path.c_str(), videoMemory, noZ);
 
 	if (extension.equalsIgnoreCase(".pic"))
-		return _stdPic->load(path.c_str(), bVideoMemory, bNoZ);
+		return _stdPic->load(path.c_str(), videoMemory, noZ);
 
 	if (extension.equalsIgnoreCase(".bmp"))
-		return _stdBmp->load(path.c_str(), bVideoMemory, bNoZ);
+		return _stdBmp->load(path.c_str(), videoMemory, noZ);
 
 	return nullptr;
 }
 
-int StdBitmap::loadLbm2(Common::String &path, StdBitmapStruct *pBitmap) {
+int StdBitmap::loadLbm2(Common::String &path, StdBitmapStruct *bitmap) {
 	Common::String extension;
-	const char *pExtension = _stdLbm->getExtension(path.c_str());
+	const char *extensionPointer = _stdLbm->getExtension(path.c_str());
 
-	if (!pExtension) {
+	if (!extensionPointer) {
 		path += ".lbm";
 		extension = ".lbm";
 	} else {
-		extension = Common::String(pExtension).substr(0, 4);
+		extension = Common::String(extensionPointer).substr(0, 4);
 	}
 
 	if (!extension.equalsIgnoreCase("bm") && !extension.equalsIgnoreCase("zbm"))
-		deCompress(pBitmap);
+		deCompress(bitmap);
 
 	if (extension.equalsIgnoreCase("lbm"))
-		return _stdLbm->write(path.c_str(), pBitmap) != 0;
+		return _stdLbm->write(path.c_str(), bitmap) != 0;
 
 	if (extension.equalsIgnoreCase("pcx"))
-		return _stdPcx->write(path.c_str(), pBitmap) != 0;
+		return _stdPcx->write(path.c_str(), bitmap) != 0;
 
 	if (extension.equalsIgnoreCase("gif"))
-		return _stdGif->write(path.c_str(), pBitmap) != 0;
+		return _stdGif->write(path.c_str(), bitmap) != 0;
 
 	if (extension.equalsIgnoreCase("bm"))
-		return write(path.c_str(), pBitmap) != 0;
+		return write(path.c_str(), bitmap) != 0;
 
 	if (extension.equalsIgnoreCase("zbm")) {
-		pBitmap->format.colorMode = 5;
+		bitmap->format.colorMode = 5;
 
-		for (int i = 0; i < (int)pBitmap->numFrames; i++)
-			pBitmap->apFrames[i]->tex.format.colorMode = 5;
+		for (int i = 0; i < (int)bitmap->numFrames; i++)
+			bitmap->frames[i]->tex.format.colorMode = 5;
 
-		return write(path.c_str(), pBitmap) != 0;
+		return write(path.c_str(), bitmap) != 0;
 	}
 
-	return extension.equalsIgnoreCase("bmp") && _stdBmp->write(path.c_str(), pBitmap) != 0;
+	return extension.equalsIgnoreCase("bmp") && _stdBmp->write(path.c_str(), bitmap) != 0;
 }
 
-void StdBitmap::readColorFormat(Common::ReadStream *pStream, StdColorFormat *pFormat) {
-	pFormat->colorMode = pStream->readSint32LE();
-	pFormat->bpp = pStream->readSint32LE();
-	pFormat->redBits = pStream->readSint32LE();
-	pFormat->greenBits = pStream->readSint32LE();
-	pFormat->blueBits = pStream->readSint32LE();
-	pFormat->redShift = pStream->readSint32LE();
-	pFormat->greenShift = pStream->readSint32LE();
-	pFormat->blueShift = pStream->readSint32LE();
-	pFormat->redLoss = pStream->readSint32LE();
-	pFormat->greenLoss = pStream->readSint32LE();
-	pFormat->blueLoss = pStream->readSint32LE();
-	pFormat->alphaBits = pStream->readSint32LE();
-	pFormat->alphaShift = pStream->readSint32LE();
-	pFormat->alphaLoss = pStream->readSint32LE();
+void StdBitmap::readColorFormat(Common::ReadStream *stream, StdColorFormat *format) {
+	format->colorMode = stream->readSint32LE();
+	format->bpp = stream->readSint32LE();
+	format->redBits = stream->readSint32LE();
+	format->greenBits = stream->readSint32LE();
+	format->blueBits = stream->readSint32LE();
+	format->redShift = stream->readSint32LE();
+	format->greenShift = stream->readSint32LE();
+	format->blueShift = stream->readSint32LE();
+	format->redLoss = stream->readSint32LE();
+	format->greenLoss = stream->readSint32LE();
+	format->blueLoss = stream->readSint32LE();
+	format->alphaBits = stream->readSint32LE();
+	format->alphaShift = stream->readSint32LE();
+	format->alphaLoss = stream->readSint32LE();
 }
 
-void StdBitmap::writeColorFormat(Common::WriteStream *pStream, const StdColorFormat *pFormat) {
-	pStream->writeSint32LE(pFormat->colorMode);
-	pStream->writeSint32LE(pFormat->bpp);
-	pStream->writeSint32LE(pFormat->redBits);
-	pStream->writeSint32LE(pFormat->greenBits);
-	pStream->writeSint32LE(pFormat->blueBits);
-	pStream->writeSint32LE(pFormat->redShift);
-	pStream->writeSint32LE(pFormat->greenShift);
-	pStream->writeSint32LE(pFormat->blueShift);
-	pStream->writeSint32LE(pFormat->redLoss);
-	pStream->writeSint32LE(pFormat->greenLoss);
-	pStream->writeSint32LE(pFormat->blueLoss);
-	pStream->writeSint32LE(pFormat->alphaBits);
-	pStream->writeSint32LE(pFormat->alphaShift);
-	pStream->writeSint32LE(pFormat->alphaLoss);
+void StdBitmap::writeColorFormat(Common::WriteStream *stream, const StdColorFormat *format) {
+	stream->writeSint32LE(format->colorMode);
+	stream->writeSint32LE(format->bpp);
+	stream->writeSint32LE(format->redBits);
+	stream->writeSint32LE(format->greenBits);
+	stream->writeSint32LE(format->blueBits);
+	stream->writeSint32LE(format->redShift);
+	stream->writeSint32LE(format->greenShift);
+	stream->writeSint32LE(format->blueShift);
+	stream->writeSint32LE(format->redLoss);
+	stream->writeSint32LE(format->greenLoss);
+	stream->writeSint32LE(format->blueLoss);
+	stream->writeSint32LE(format->alphaBits);
+	stream->writeSint32LE(format->alphaShift);
+	stream->writeSint32LE(format->alphaLoss);
 }
 
 } // End of namespace Grim

@@ -26,9 +26,9 @@
 namespace Grim {
 
 CNodeRef::CNodeRef(CNode *observedNode) {
-	prev = nullptr;
-	next = nullptr;
-	node = observedNode;
+	_prev = nullptr;
+	_next = nullptr;
+	_node = observedNode;
 	linkToNode();
 }
 
@@ -41,71 +41,71 @@ void CNodeRef::onNodeDestroyed() {
 
 void CNodeRef::setNode(CNode *newNode) {
 	unlinkFromNode();
-	node = newNode;
+	_node = newNode;
 	linkToNode();
 }
 
 void CNodeRef::linkToNode() {
-	if (!node)
+	if (!_node)
 		return;
 
-	if (node->observerTail)
-		node->observerTail->next = this;
+	if (_node->_observerTail)
+		_node->_observerTail->_next = this;
 
-	next = nullptr;
-	prev = node->observerTail;
+	_next = nullptr;
+	_prev = _node->_observerTail;
 
-	CNodeRef *oldHead = node->observerHead;
+	CNodeRef *oldHead = _node->_observerHead;
 
-	node->observerTail = this;
+	_node->_observerTail = this;
 
 	if (!oldHead)
-		node->observerHead = this;
+		_node->_observerHead = this;
 
-	node->observerCount++;
+	_node->_observerCount++;
 }
 
 void CNodeRef::unlinkFromNode() {
-	if (!node)
+	if (!_node)
 		return;
 
-	CNodeRef *head = node->observerHead;
+	CNodeRef *head = _node->_observerHead;
 
 	if (this == head) {
-		node->observerHead = head->next;
+		_node->_observerHead = head->_next;
 
-		if (head->next)
-			head->next->prev = nullptr;
+		if (head->_next)
+			head->_next->_prev = nullptr;
 		else
-			node->observerTail = nullptr;
+			_node->_observerTail = nullptr;
 
-		head->prev = nullptr;
-		head->next = nullptr;
-	} else if (this == node->observerTail) {
-		CNodeRef *tail = node->observerTail;
+		head->_prev = nullptr;
+		head->_next = nullptr;
+	} else if (this == _node->_observerTail) {
+		CNodeRef *tail = _node->_observerTail;
 
-		node->observerTail = tail->prev;
+		_node->_observerTail = tail->_prev;
 
-		if (tail->prev)
-			tail->prev->next = nullptr;
+		if (tail->_prev)
+			tail->_prev->_next = nullptr;
 		else
-			node->observerHead = nullptr;
+			_node->_observerHead = nullptr;
 
-		tail->prev = nullptr;
-		tail->next = nullptr;
-	} else if (next && prev) {
-		next->prev = prev;
-		prev->next = next;
+		tail->_prev = nullptr;
+		tail->_next = nullptr;
+	} else if (_next && _prev) {
+		_next->_prev = _prev;
+		_prev->_next = _next;
 	} else {
-		if (next || prev)
+		if (_next || _prev)
 			warning("CNodeRef::unlinkFromNode(): inconsistent observer list");
 
 		return;
 	}
 
-	node->observerCount--;
-	prev = nullptr;
-	next = nullptr;
+	_node->_observerCount--;
+	_prev = nullptr;
+	_next = nullptr;
 }
 
 } // End of namespace Grim

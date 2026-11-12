@@ -38,13 +38,13 @@ static const int kDefaultViewportHeight = 480;
 static const float kDefaultFov = 90.0f;
 
 Camera::Camera(CDrawContext *drawContext) : _drawContext(drawContext) {
-	nearClip = 0.0f;
-	farClip = 0.0f;
+	_nearClip = 0.0f;
+	_farClip = 0.0f;
 
-	view.rot.setIdentity();
-	view.pos.x = 0.0f;
-	view.pos.y = 0.0f;
-	view.pos.z = 0.0f;
+	_view._rot.setIdentity();
+	_view._pos._x = 0.0f;
+	_view._pos._y = 0.0f;
+	_view._pos._z = 0.0f;
 
 	IRect viewport;
 
@@ -56,8 +56,8 @@ Camera::Camera(CDrawContext *drawContext) : _drawContext(drawContext) {
 	setViewport(&viewport, kDefaultFov);
 	updateViewMatrix();
 
-	reserved368 = nullptr;
-	reserved372 = false;
+	_reserved368 = nullptr;
+	_reserved372 = false;
 }
 
 Camera::~Camera() {
@@ -69,38 +69,38 @@ CDrawContext *Camera::getDrawContext() const {
 
 void Camera::applyProjection() {
 	if (_drawContext)
-		_drawContext->setPerspective(fovX, fovY, nearClip, farClip);
+		_drawContext->setPerspective(_fovX, _fovY, _nearClip, _farClip);
 }
 
 void Camera::updateViewMatrix() {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	float negX = -world.pos.x;
-	float negY = -world.pos.y;
-	float negZ = -world.pos.z;
+	const float *m = _world._rot._m;
+	float negX = -_world._pos._x;
+	float negY = -_world._pos._y;
+	float negZ = -_world._pos._z;
 	float posX = (float)((double)negZ * m[2] + (double)negY * m[1] + (double)negX * m[0]);
 	float posY = (float)((double)negX * m[3] + (double)negZ * m[5] + (double)negY * m[4]);
 	float posZ = (float)((double)negZ * m[8] + (double)negY * m[7] + (double)negX * m[6]);
 
-	view.rot.m[0] = m[0];
-	view.rot.m[1] = m[3];
-	view.rot.m[2] = m[6];
-	view.rot.m[3] = m[1];
-	view.rot.m[4] = m[4];
-	view.rot.m[5] = m[7];
-	view.rot.m[6] = m[2];
-	view.rot.m[7] = m[5];
-	view.rot.m[8] = m[8];
-	view.pos.x = posX;
-	view.pos.y = posY;
-	view.pos.z = posZ;
+	_view._rot._m[0] = m[0];
+	_view._rot._m[1] = m[3];
+	_view._rot._m[2] = m[6];
+	_view._rot._m[3] = m[1];
+	_view._rot._m[4] = m[4];
+	_view._rot._m[5] = m[7];
+	_view._rot._m[6] = m[2];
+	_view._rot._m[7] = m[5];
+	_view._rot._m[8] = m[8];
+	_view._pos._x = posX;
+	_view._pos._y = posY;
+	_view._pos._z = posZ;
 }
 
 void Camera::setFov(float newFovX, float newFovY) {
-	fovX = newFovX;
-	fovY = newFovY;
+	_fovX = newFovX;
+	_fovY = newFovY;
 
 	double tanHalfX = tan((double)newFovX * 0.5 * kDegreesToRadians);
 	double tanHalfY = tan((double)newFovY * 0.5 * kDegreesToRadians);
@@ -108,26 +108,26 @@ void Camera::setFov(float newFovX, float newFovY) {
 	if (tanHalfX == 0.0) {
 		// The original could divide by zero here, let's avoid that...
 		warning("Camera::setFov(): invalid horizontal field of view");
-		invTanHalfFovX = 0.0f;
+		_invTanHalfFovX = 0.0f;
 	} else {
-		invTanHalfFovX = (float)(1.0 / tanHalfX);
+		_invTanHalfFovX = (float)(1.0 / tanHalfX);
 	}
 
 	if (tanHalfY == 0.0) {
 		// The original could divide by zero here, let's avoid that...
 		warning("Camera::setFov(): invalid vertical field of view");
-		invTanHalfFovY = 0.0f;
+		_invTanHalfFovY = 0.0f;
 	} else {
-		invTanHalfFovY = (float)(1.0 / tanHalfY);
+		_invTanHalfFovY = (float)(1.0 / tanHalfY);
 	}
 
-	focalX = (float)((double)halfWidth * invTanHalfFovX);
-	focalY = (float)((double)halfHeight * invTanHalfFovY);
+	_focalX = (float)((double)_halfWidth * _invTanHalfFovX);
+	_focalY = (float)((double)_halfHeight * _invTanHalfFovY);
 }
 
 void Camera::setViewport(const IRect *rect, float newFovX) {
-	halfWidth = (float)((double)rect->w * 0.5);
-	halfHeight = (float)((double)rect->h * 0.5);
+	_halfWidth = (float)((double)rect->w * 0.5);
+	_halfHeight = (float)((double)rect->h * 0.5);
 
 	if (newFovX != 0.0f) {
 		if (rect->w == 0) {

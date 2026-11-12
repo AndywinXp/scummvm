@@ -42,10 +42,10 @@ public:
 	CQuaternion operator*(float scale) const;
 	CQuaternion &operator+=(const CQuaternion &other);
 
-	float x;
-	float y;
-	float z;
-	float w;
+	float _x;
+	float _y;
+	float _z;
+	float _w;
 };
 
 } // End of namespace Grim

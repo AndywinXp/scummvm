@@ -35,7 +35,7 @@ uint AnimWgtComponent::resSizeOfItem() {
 }
 
 ComponentInstance *AnimWgtComponent::createInstance(Actor *owner) {
-	return new AnimWgtInstance(_engine, name);
+	return new AnimWgtInstance(_engine, _name);
 }
 
 bool AnimWgtComponent::resLoadItem(const char *itemName) {

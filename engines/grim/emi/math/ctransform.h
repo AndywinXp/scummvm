@@ -29,8 +29,8 @@ namespace Grim {
 
 class CTransform {
 public:
-	CMatrix rot;
-	CVector pos;
+	CMatrix _rot;
+	CVector _pos;
 };
 
 } // End of namespace Grim

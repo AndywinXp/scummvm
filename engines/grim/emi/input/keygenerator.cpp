@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-KeyGenerator::KeyGenerator(EmiEngine *engine) : EventGenerator(engine, 0), modifiers(0) {
+KeyGenerator::KeyGenerator(EmiEngine *engine) : EventGenerator(engine, 0), _modifiers(0) {
 }
 
 KeyGenerator::~KeyGenerator() {
@@ -41,26 +41,26 @@ void KeyGenerator::keyDown(int vk, int keyFlags, int timestamp) {
 		if (keyFlags & kFlagExtended)
 			code = 13;
 
-		modifiers |= Event::kModifierCapsLock;
+		_modifiers |= Event::kModifierCapsLock;
 		break;
 	case 16:
-		modifiers |= Event::kModifierShift;
+		_modifiers |= Event::kModifierShift;
 		break;
 	case 17:
-		modifiers |= Event::kModifierControl;
+		_modifiers |= Event::kModifierControl;
 		break;
 	case 18:
-		modifiers |= Event::kModifierAlt;
+		_modifiers |= Event::kModifierAlt;
 		break;
 	case 20:
-		modifiers |= Event::kModifierCapsLock;
+		_modifiers |= Event::kModifierCapsLock;
 		break;
 	case 91:
 	case 92:
-		modifiers |= Event::kModifierWin;
+		_modifiers |= Event::kModifierWin;
 		break;
 	case 93:
-		modifiers |= Event::kModifierApps;
+		_modifiers |= Event::kModifierApps;
 		break;
 	default:
 		break;
@@ -71,10 +71,10 @@ void KeyGenerator::keyDown(int vk, int keyFlags, int timestamp) {
 	event->type = Event::kKeyDown;
 	event->vk = code;
 	event->timestamp = (uint)timestamp;
-	event->modifiers = modifiers;
+	event->modifiers = _modifiers;
 
 	if (keyFlags & kFlagRepeat)
-		event->modifiers = modifiers | Event::kModifierRepeat;
+		event->modifiers = _modifiers | Event::kModifierRepeat;
 
 	postEvent(_engine, event);
 }
@@ -82,23 +82,23 @@ void KeyGenerator::keyDown(int vk, int keyFlags, int timestamp) {
 void KeyGenerator::keyUp(int vk, int keyFlags, int timestamp) {
 	switch (vk) {
 	case 16:
-		modifiers &= ~(uint)Event::kModifierShift;
+		_modifiers &= ~(uint)Event::kModifierShift;
 		break;
 	case 17:
-		modifiers &= ~(uint)Event::kModifierControl;
+		_modifiers &= ~(uint)Event::kModifierControl;
 		break;
 	case 18:
-		modifiers &= ~(uint)Event::kModifierAlt;
+		_modifiers &= ~(uint)Event::kModifierAlt;
 		break;
 	case 20:
-		modifiers &= ~(uint)Event::kModifierCapsLock;
+		_modifiers &= ~(uint)Event::kModifierCapsLock;
 		break;
 	case 91:
 	case 92:
-		modifiers &= ~(uint)Event::kModifierWin;
+		_modifiers &= ~(uint)Event::kModifierWin;
 		break;
 	case 93:
-		modifiers &= ~(uint)Event::kModifierApps;
+		_modifiers &= ~(uint)Event::kModifierApps;
 		break;
 	default:
 		break;
@@ -109,7 +109,7 @@ void KeyGenerator::keyUp(int vk, int keyFlags, int timestamp) {
 	event->type = Event::kKeyUp;
 	event->vk = vk;
 	event->timestamp = (uint)timestamp;
-	event->modifiers = modifiers;
+	event->modifiers = _modifiers;
 
 	postEvent(_engine, event);
 }

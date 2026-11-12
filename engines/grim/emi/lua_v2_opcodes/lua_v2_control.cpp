@@ -41,14 +41,14 @@ void Lua_V2::makeControlsTable(int ref) {
 
 	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
 		lua_pushobject(controlsTable);
-		lua_pushstring(_engine->getControl()->controlTable[i].name);
+		lua_pushstring(_engine->getControl()->_controlTable[i].name);
 		lua_pushnumber((float)i);
 		lua_settable();
 	}
 
 	lua_pushobject(controlsTable);
 	lua_pushstring("joy_selected");
-	lua_pushnumber((float)(int)_engine->getJoystick()->joyId);
+	lua_pushnumber((float)(int)_engine->getJoystick()->_joyId);
 	lua_settable();
 }
 
@@ -97,7 +97,7 @@ void Lua_V2::GetControlState() {
 		return;
 	}
 
-	ControlEntry *control = &_engine->getControl()->controlTable[index];
+	ControlEntry *control = &_engine->getControl()->_controlTable[index];
 
 	if (control->flags & ControlEntry::kAxis)
 		lua_pushnumber(control->axisValue);
@@ -114,7 +114,7 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 	lua_Object function;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("buttonHandler");
 
 	lua_Object handler = lua_gettable();
@@ -151,11 +151,11 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 
 	uint index = 0;
 
-	while (index < (uint)SputControl_v2::kNumControls && vk != (int)_engine->getControl()->controlTable[index].code)
+	while (index < (uint)SputControl_v2::kNumControls && vk != (int)_engine->getControl()->_controlTable[index].code)
 		index++;
 
 	if (index < (uint)SputControl_v2::kNumControls) {
-		ControlEntry *control = &_engine->getControl()->controlTable[index];
+		ControlEntry *control = &_engine->getControl()->_controlTable[index];
 
 		if (_engine->getControl()->isModifierKey(vk) && control->state == (byte)down) {
 			index = SputControl_v2::kNumControls;
@@ -198,7 +198,7 @@ void Lua_V2::axisHandler() {
 	lua_Object function = LUA_NOOBJECT;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("axisHandler");
 
 	lua_Object handler = lua_gettable();
@@ -230,7 +230,7 @@ void Lua_V2::axisHandler() {
 	}
 
 	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
-		ControlEntry *control = &_engine->getControl()->controlTable[i];
+		ControlEntry *control = &_engine->getControl()->_controlTable[i];
 
 		if (!(control->flags & ControlEntry::kEnabled))
 			continue;
@@ -267,7 +267,7 @@ void Lua_V2::updateJoySelected() {
 
 	lua_pushobject(controlsTable);
 	lua_pushstring("joy_selected");
-	lua_pushnumber((float)(int)_engine->getJoystick()->joyId);
+	lua_pushnumber((float)(int)_engine->getJoystick()->_joyId);
 	lua_settable();
 }
 

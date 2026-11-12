@@ -62,8 +62,8 @@ public:
 	void releaseAllSounds();
 	void releaseUnlockedSounds();
 	void soundCueLipCallback(const char *soundName, CSoundCue *cue);
-	void saveSounds(tSaveRestoreAccess *access);
-	void restoreSounds(tSaveRestoreAccess *access);
+	void saveSounds(SaveRestoreAccess *access);
+	void restoreSounds(SaveRestoreAccess *access);
 	void setSoundSystemEnabled(bool enabled);
 	void setMusicSystemEnabled(bool enabled);
 	uint loadSound(const char *soundName, int category);
@@ -107,8 +107,8 @@ public:
 	int stopMusic();
 	void setMusicVolume(float volume);
 	void setMusicState(int newState, int startMs, const bool &immediate);
-	void saveMusicState(tSaveRestoreAccess *access);
-	void restoreMusicState(tSaveRestoreAccess *access);
+	void saveMusicState(SaveRestoreAccess *access);
+	void restoreMusicState(SaveRestoreAccess *access);
 	void pauseMusicStreams();
 	void resumeMusicStreams();
 	void stopAllMusic();

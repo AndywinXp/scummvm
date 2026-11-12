@@ -33,89 +33,89 @@ namespace Grim {
 
 static const int tableLimit = 4096;
 static const int hashSize = 5003;
-static const byte aKeepMask[8] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F };
-static const byte aSetMask[8] = { 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80 };
+static const byte keepMask[8] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F };
+static const byte setMask[8] = { 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80 };
 static const int interlaceStart[4] = { 0, 4, 2, 1 };
 static const int interlaceStep[4] = { 8, 8, 4, 2 };
 
-StdGif::StdGif(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _pHS(pHS),
-		_oldCode(0), _initCodeSize(0), _firstFree(0), _nextFree(0), _clearCode(0), _endCode(0), _curCodeSize(0), _firstChar(0), _bFresh(0), _bitOffset(0), _codeMask(0), _bitBuffer(0),
-		_blockPos(0), _blockSize(0), _aBlockBuf(), _pStack(_aStack), _aStack(), _aPrefix(), _aSuffix(),
-		_encOutCount(0), _encPrefix(0), _encHash(0), _encFreeEnt(0), _encHashShift(0), _aHashTable(), _aHashCode() {
+StdGif::StdGif(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _hs(hs),
+		_oldCode(0), _initCodeSize(0), _firstFree(0), _nextFree(0), _clearCode(0), _endCode(0), _curCodeSize(0), _firstChar(0), _fresh(0), _bitOffset(0), _codeMask(0), _bitBuffer(0),
+		_blockPos(0), _blockSize(0), _blockBuf(), _stack(_stackArray), _stackArray(), _prefix(), _suffix(),
+		_encOutCount(0), _encPrefix(0), _encHash(0), _encFreeEnt(0), _encHashShift(0), _hashTable(), _hashCode() {
 }
 
-StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+StdBitmapStruct *StdGif::load(const char *path, int videoMemory, int noZ) {
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return nullptr;
 
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 	byte signature[3];
 
 	memset(signature, 0, sizeof(signature));
-	pFile->read(signature, 3);
+	file->read(signature, 3);
 
 	if (toupper(signature[0]) != 'G' || toupper(signature[1]) != 'I' || toupper(signature[2]) != 'F')
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 
 	byte version[3];
 
 	memset(version, 0, sizeof(version));
-	pFile->read(version, 3);
-	pFile->skip(4);
+	file->read(version, 3);
+	file->skip(4);
 
-	byte screenFlags = pFile->readByte();
+	byte screenFlags = file->readByte();
 
-	pFile->skip(2);
+	file->skip(2);
 
 	if (screenFlags & 0x80) {
 		int numColors = 1 << ((screenFlags & 7) + 1);
 
-		pBitmap->pPalette = new byte[768];
-		pFile->read(pBitmap->pPalette, 3 * numColors);
+		bitmap->palette = new byte[768];
+		file->read(bitmap->palette, 3 * numColors);
 	}
 
 	int separator;
 
 	if (version[0] == '8' && version[1] == '9' && toupper(version[2]) == 'A') {
-		separator = (signed char)pFile->readByte();
+		separator = (signed char)file->readByte();
 
 		while (separator == '!') {
 			byte data;
 
 			do {
-				data = pFile->readByte();
+				data = file->readByte();
 			} while (data);
 
-			separator = (signed char)pFile->readByte();
+			separator = (signed char)file->readByte();
 		}
 	} else {
-		separator = (signed char)pFile->readByte();
+		separator = (signed char)file->readByte();
 	}
 
 	if (separator != ',')
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 
 	byte descriptor[9];
 
 	memset(descriptor, 0, sizeof(descriptor));
-	pFile->read(descriptor, 9);
+	file->read(descriptor, 9);
 
 	int left = READ_LE_INT16(descriptor);
 	int imageWidth = READ_LE_INT16(descriptor + 4);
 	int imageHeight = READ_LE_INT16(descriptor + 6);
 	byte imageFlags = descriptor[8];
 
-	strncpy(pBitmap->aName, _stdFile->fromPath(path), 31);
-	pBitmap->aName[31] = 0;
-	pBitmap->encoding = 0;
-	pBitmap->flags = 2;
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
-	pBitmap->format.colorMode = 0;
-	pBitmap->format.bpp = 8;
-	pBitmap->apFrames = new StdVBuffer *[1]();
+	strncpy(bitmap->name, _stdFile->fromPath(path), 31);
+	bitmap->name[31] = 0;
+	bitmap->encoding = 0;
+	bitmap->flags = 2;
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
+	bitmap->format.colorMode = 0;
+	bitmap->format.bpp = 8;
+	bitmap->frames = new StdVBuffer *[1]();
 
 	StdVBufferTexFmt format;
 
@@ -127,32 +127,32 @@ StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
 
 	if (left < 0 || imageWidth < 0 || imageHeight < 0 || (int64)imageWidth * (int64)imageHeight > 0x7FFFFFFF) {
 		warning("StdGif::load(): invalid image descriptor");
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 	}
 
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, nullptr);
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&format, videoMemory, noZ, nullptr);
 
-	if (!pBitmap->apFrames[0])
-		return loadFailed(pFile, pBitmap);
+	if (!bitmap->frames[0])
+		return loadFailed(file, bitmap);
 
 	if (imageFlags & 0x80) {
 		int numColors = 1 << ((imageFlags & 7) + 1);
 
-		if (!pBitmap->pPalette)
-			pBitmap->pPalette = new byte[768];
+		if (!bitmap->palette)
+			bitmap->palette = new byte[768];
 
-		pFile->read(pBitmap->pPalette, 3 * numColors);
+		file->read(bitmap->palette, 3 * numColors);
 	}
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
-	byte *pRowBuffer = new byte[left + pFrame->tex.width];
-	byte minCodeSize = pFile->readByte();
+	StdVBuffer *frame = bitmap->frames[0];
+	byte *rowBuffer = new byte[left + frame->tex.width];
+	byte minCodeSize = file->readByte();
 
 	if (lzwInitDecoder((signed char)minCodeSize)) {
-		delete[] pRowBuffer;
-		pRowBuffer = nullptr;
+		delete[] rowBuffer;
+		rowBuffer = nullptr;
 
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 	}
 
 	int row = 0;
@@ -163,12 +163,12 @@ StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
 	else
 		step = 1;
 
-	_stdDisplay->vBufferLock(pFrame);
+	_stdDisplay->vBufferLock(frame);
 
 	int pass = 0;
 	int rowsDecoded = 0;
-	int width = pFrame->tex.width;
-	int height = pFrame->tex.height;
+	int width = frame->tex.width;
+	int height = frame->tex.height;
 
 	if (height > 0) {
 		do {
@@ -176,7 +176,7 @@ StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
 
 			if (left + width > 0) {
 				do {
-					pRowBuffer[x] = (byte)lzwDecodeByte(pFile);
+					rowBuffer[x] = (byte)lzwDecodeByte(file);
 					x++;
 				} while (x < left + width);
 			}
@@ -185,7 +185,7 @@ StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
 				warning("StdGif::load(): row past the end of the image");
 			} else if (row < height) {
 				for (int i = 0; i < width; i++)
-					pFrame->pPixels[width * row + i] = pRowBuffer[i + left];
+					frame->pixels[width * row + i] = rowBuffer[i + left];
 			}
 
 			row += step;
@@ -203,17 +203,17 @@ StdBitmapStruct *StdGif::load(const char *path, int bVideoMemory, int bNoZ) {
 		} while (rowsDecoded < height);
 	}
 
-	_stdDisplay->vBufferUnlock(pFrame);
-	delete[] pRowBuffer;
-	pRowBuffer = nullptr;
-	pFile->readByte();
-	delete pFile;
+	_stdDisplay->vBufferUnlock(frame);
+	delete[] rowBuffer;
+	rowBuffer = nullptr;
+	file->readByte();
+	delete file;
 
-	return pBitmap;
+	return bitmap;
 }
 
-int StdGif::write(const char *path, StdBitmapStruct *pBitmap) {
-	if (!pBitmap->pPalette) {
+int StdGif::write(const char *path, StdBitmapStruct *bitmap) {
+	if (!bitmap->palette) {
 		warning("StdGif::write(): bitmap without a palette");
 		return 0;
 	}
@@ -223,21 +223,21 @@ int StdGif::write(const char *path, StdBitmapStruct *pBitmap) {
 	if (!file.open(path))
 		return 0;
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+	StdVBuffer *frame = bitmap->frames[0];
 
 	file.write("GIF", 3);
 	file.write("89a", 3);
-	file.writeSint16LE((int16)pFrame->tex.width);
-	file.writeSint16LE((int16)pFrame->tex.height);
+	file.writeSint16LE((int16)frame->tex.width);
+	file.writeSint16LE((int16)frame->tex.height);
 	file.writeByte(0xF7);
 	file.writeByte(0);
 	file.writeByte(0);
-	file.write(pBitmap->pPalette, 768);
+	file.write(bitmap->palette, 768);
 	file.writeByte(',');
 	file.writeSint16LE(0);
 	file.writeSint16LE(0);
-	file.writeSint16LE((int16)pFrame->tex.width);
-	file.writeSint16LE((int16)pFrame->tex.height);
+	file.writeSint16LE((int16)frame->tex.width);
+	file.writeSint16LE((int16)frame->tex.height);
 
 	byte imageFlags = 0;
 
@@ -262,17 +262,17 @@ int StdGif::write(const char *path, StdBitmapStruct *pBitmap) {
 		return 0;
 	}
 
-	byte *pRow = new byte[pFrame->tex.width];
+	byte *row = new byte[frame->tex.width];
 
-	_stdDisplay->vBufferLock(pFrame);
+	_stdDisplay->vBufferLock(frame);
 
-	for (int y = 0; y < pFrame->tex.height; y++) {
-		memcpy(pRow, pFrame->pPixels + pFrame->tex.width * y, pFrame->tex.width);
+	for (int y = 0; y < frame->tex.height; y++) {
+		memcpy(row, frame->pixels + frame->tex.width * y, frame->tex.width);
 
-		for (int x = 0; x < pFrame->tex.width; x++) {
-			if (lzwCompressRun(&file, pRow[x])) {
-				delete[] pRow;
-				pRow = nullptr;
+		for (int x = 0; x < frame->tex.width; x++) {
+			if (lzwCompressRun(&file, row[x])) {
+				delete[] row;
+				row = nullptr;
 				file.close();
 
 				return 0;
@@ -280,7 +280,7 @@ int StdGif::write(const char *path, StdBitmapStruct *pBitmap) {
 		}
 	}
 
-	_stdDisplay->vBufferUnlock(pFrame);
+	_stdDisplay->vBufferUnlock(frame);
 	lzwFinish(&file);
 
 	byte terminator = 0;
@@ -289,8 +289,8 @@ int StdGif::write(const char *path, StdBitmapStruct *pBitmap) {
 		terminator = 59;
 
 		if (file.write(&terminator, 1) == 1) {
-			delete[] pRow;
-			pRow = nullptr;
+			delete[] row;
+			row = nullptr;
 			file.close();
 
 			return 1;
@@ -309,39 +309,39 @@ int StdGif::lzwInitDecoder(int minCodeSize) {
 	}
 
 	_initCodeSize = minCodeSize + 1;
-	_bFresh = 0;
+	_fresh = 0;
 	_clearCode = 1 << minCodeSize;
 	_endCode = _clearCode + 1;
 	_firstFree = _clearCode + 2;
 	_curCodeSize = minCodeSize + 1;
 	_codeMask = (1 << _initCodeSize) - 1;
-	memset(_aPrefix, 0, 0x400);
+	memset(_prefix, 0, 0x400);
 
 	for (int i = 255; i >= 0; i--)
-		_aSuffix[i] = (byte)i;
+		_suffix[i] = (byte)i;
 
 	_nextFree = _firstFree;
-	_pStack = _aStack;
+	_stack = _stackArray;
 	_blockPos = _blockSize;
 	_bitOffset = 0;
 
 	return 0;
 }
 
-int StdGif::lzwDecodeByte(Common::SeekableReadStream *pFile) {
-	if (_pStack != _aStack) {
-		_pStack--;
+int StdGif::lzwDecodeByte(Common::SeekableReadStream *file) {
+	if (_stack != _stackArray) {
+		_stack--;
 
-		return *_pStack;
+		return *_stack;
 	}
 
-	int code = lzwGetCode(pFile);
+	int code = lzwGetCode(file);
 
 	if (code == _clearCode) {
-		memset(_aPrefix, 0, 0x400);
-		_bFresh = 1;
+		memset(_prefix, 0, 0x400);
+		_fresh = 1;
 		_nextFree = _firstFree - 1;
-		code = lzwGetCode(pFile);
+		code = lzwGetCode(file);
 	}
 
 	if (code == _endCode)
@@ -350,39 +350,39 @@ int StdGif::lzwDecodeByte(Common::SeekableReadStream *pFile) {
 	int newCode = code;
 
 	if (code >= _nextFree) {
-		*_pStack = (byte)_firstChar;
-		_pStack++;
+		*_stack = (byte)_firstChar;
+		_stack++;
 		code = _oldCode;
 	}
 
 	while (code >= _endCode) {
-		if (_pStack - _aStack >= (int)sizeof(_aStack) - 2) {
+		if (_stack - _stackArray >= (int)sizeof(_stackArray) - 2) {
 			warning("StdGif::lzwDecodeByte(): code chain too long");
 			break;
 		}
 
-		*_pStack = _aSuffix[code];
-		_pStack++;
-		code = _aPrefix[code];
+		*_stack = _suffix[code];
+		_stack++;
+		code = _prefix[code];
 	}
 
-	_firstChar = _aSuffix[code];
-	*_pStack = (byte)_firstChar;
-	_pStack++;
+	_firstChar = _suffix[code];
+	*_stack = (byte)_firstChar;
+	_stack++;
 
 	if (_nextFree < tableLimit) {
-		_aPrefix[_nextFree] = (uint16)_oldCode;
-		_aSuffix[_nextFree] = (byte)_firstChar;
+		_prefix[_nextFree] = (uint16)_oldCode;
+		_suffix[_nextFree] = (byte)_firstChar;
 		_nextFree++;
 	}
 
 	_oldCode = newCode;
-	_pStack--;
+	_stack--;
 
-	return *_pStack;
+	return *_stack;
 }
 
-int StdGif::lzwGetCode(Common::SeekableReadStream *pFile) {
+int StdGif::lzwGetCode(Common::SeekableReadStream *file) {
 	if (_nextFree > _codeMask) {
 		_curCodeSize++;
 
@@ -392,16 +392,16 @@ int StdGif::lzwGetCode(Common::SeekableReadStream *pFile) {
 			_codeMask = (1 << _curCodeSize) - 1;
 	}
 
-	if (_bFresh > 0) {
+	if (_fresh > 0) {
 		_curCodeSize = _initCodeSize;
-		_bFresh = 0;
+		_fresh = 0;
 		_codeMask = (1 << _initCodeSize) - 1;
 	}
 
 	byte current;
 
 	if (_bitOffset == 0) {
-		current = (byte)readBlockByte(pFile);
+		current = (byte)readBlockByte(file);
 		_bitBuffer = current;
 	} else {
 		current = _bitBuffer;
@@ -413,7 +413,7 @@ int StdGif::lzwGetCode(Common::SeekableReadStream *pFile) {
 	int remaining = bitInByte + _curCodeSize - 8;
 
 	if (remaining >= 8) {
-		byte next = (byte)readBlockByte(pFile);
+		byte next = (byte)readBlockByte(file);
 
 		_bitBuffer = next;
 		code |= (uint)next << shift;
@@ -422,10 +422,10 @@ int StdGif::lzwGetCode(Common::SeekableReadStream *pFile) {
 	}
 
 	if (remaining > 0) {
-		byte next = (byte)readBlockByte(pFile);
+		byte next = (byte)readBlockByte(file);
 
 		_bitBuffer = next;
-		code |= (uint)(next & aKeepMask[remaining]) << shift;
+		code |= (uint)(next & keepMask[remaining]) << shift;
 	}
 
 	_bitOffset = (_curCodeSize + _bitOffset) & 7;
@@ -433,7 +433,7 @@ int StdGif::lzwGetCode(Common::SeekableReadStream *pFile) {
 	return code & ((1 << _curCodeSize) - 1);
 }
 
-int StdGif::readBlockByte(Common::SeekableReadStream *pFile) {
+int StdGif::readBlockByte(Common::SeekableReadStream *file) {
 	int pos = _blockPos;
 
 	if (_blockPos == _blockSize) {
@@ -441,31 +441,31 @@ int StdGif::readBlockByte(Common::SeekableReadStream *pFile) {
 
 		_blockSize = 0;
 
-		if (pFile->read(&size, 1) != 1)
+		if (file->read(&size, 1) != 1)
 			return -1;
 
 		_blockSize = size;
 
-		if (pFile->read(_aBlockBuf, _blockSize) != (uint32)_blockSize)
+		if (file->read(_blockBuf, _blockSize) != (uint32)_blockSize)
 			return -1;
 
 		pos = 0;
 	}
 
-	if (pos >= (int)sizeof(_aBlockBuf)) {
+	if (pos >= (int)sizeof(_blockBuf)) {
 		warning("StdGif::readBlockByte(): read past the end of the block");
 		return -1;
 	}
 
 	_blockPos = pos + 1;
 
-	return _aBlockBuf[pos];
+	return _blockBuf[pos];
 }
 
-int StdGif::lzwCompress(Common::WriteStream *pStream, int minCodeSize) {
+int StdGif::lzwCompress(Common::WriteStream *stream, int minCodeSize) {
 	_encOutCount = 0;
 	_bitOffset = 0;
-	_bFresh = 0;
+	_fresh = 0;
 	_initCodeSize = minCodeSize + 1;
 	_curCodeSize = minCodeSize + 1;
 	_clearCode = 1 << minCodeSize;
@@ -475,63 +475,63 @@ int StdGif::lzwCompress(Common::WriteStream *pStream, int minCodeSize) {
 	_codeMask = (1 << _initCodeSize) - 1;
 
 	for (int i = 0; i < hashSize; i++)
-		_aHashTable[i] = -1;
+		_hashTable[i] = -1;
 
 	_encFreeEnt = 1;
 
 	byte codeSize = (byte)minCodeSize;
 
-	if (pStream->write(&codeSize, 1) != 1)
+	if (stream->write(&codeSize, 1) != 1)
 		return 1;
 
-	lzwEncodeCode(pStream, _clearCode);
+	lzwEncodeCode(stream, _clearCode);
 
 	return _encOutCount;
 }
 
-void StdGif::lzwEncodeCode(Common::WriteStream *pStream, int code) {
+void StdGif::lzwEncodeCode(Common::WriteStream *stream, int code) {
 	int bitInByte = _bitOffset & 7;
 	int index = (_bitOffset >> 3) + 1;
 
 	_bitOffset += _curCodeSize;
-	_aBlockBuf[index] = (byte)((_aBlockBuf[index] & aKeepMask[bitInByte]) | (aSetMask[bitInByte] & (byte)((byte)code << bitInByte)));
+	_blockBuf[index] = (byte)((_blockBuf[index] & keepMask[bitInByte]) | (setMask[bitInByte] & (byte)((byte)code << bitInByte)));
 	index++;
 
 	int remaining = bitInByte + _curCodeSize - 8;
 	int bits = (int16)code >> (8 - bitInByte);
 
 	if (remaining >= 8) {
-		_aBlockBuf[index] = (byte)bits;
+		_blockBuf[index] = (byte)bits;
 		index++;
 		bits >>= 8;
 		remaining -= 8;
 	}
 
 	if (index == 256) {
-		writeBlock(pStream, 255);
+		writeBlock(stream, 255);
 		_bitOffset -= 2040;
 		index = 1;
 	}
 
 	if (remaining > 0) {
 		if (index == 255) {
-			writeBlock(pStream, 254);
+			writeBlock(stream, 254);
 			_bitOffset -= 2032;
 			index = 1;
 		}
 
-		_aBlockBuf[index] = (byte)bits;
+		_blockBuf[index] = (byte)bits;
 	}
 
 	if (_bitOffset == 2032) {
-		writeBlock(pStream, 254);
+		writeBlock(stream, 254);
 		_bitOffset = 0;
 	}
 
-	if (_nextFree > _codeMask || _bFresh > 0) {
-		if (_bFresh) {
+	if (_nextFree > _codeMask || _fresh > 0) {
+		if (_fresh) {
 			_curCodeSize = _initCodeSize;
-			_bFresh = 0;
+			_fresh = 0;
 			_codeMask = (1 << _initCodeSize) - 1;
 		} else {
 			_curCodeSize++;
@@ -544,7 +544,7 @@ void StdGif::lzwEncodeCode(Common::WriteStream *pStream, int code) {
 	}
 }
 
-int StdGif::lzwCompressRun(Common::WriteStream *pStream, byte pixel) {
+int StdGif::lzwCompressRun(Common::WriteStream *stream, byte pixel) {
 	_encOutCount = 0;
 
 	if (_encFreeEnt) {
@@ -570,13 +570,13 @@ int StdGif::lzwCompressRun(Common::WriteStream *pStream, byte pixel) {
 
 	_encHash = fcode;
 
-	if (_aHashTable[index] == fcode) {
-		_encPrefix = _aHashCode[index];
+	if (_hashTable[index] == fcode) {
+		_encPrefix = _hashCode[index];
 
 		return 0;
 	}
 
-	if (_aHashTable[index] >= 0) {
+	if (_hashTable[index] >= 0) {
 		int displacement = hashSize - index;
 
 		if (index == 0)
@@ -588,61 +588,61 @@ int StdGif::lzwCompressRun(Common::WriteStream *pStream, byte pixel) {
 			if (index < 0)
 				index += hashSize;
 
-			if (_aHashTable[index] == fcode) {
-				_encPrefix = _aHashCode[index];
+			if (_hashTable[index] == fcode) {
+				_encPrefix = _hashCode[index];
 
 				return 0;
 			}
 
-			if (_aHashTable[index] <= 0)
+			if (_hashTable[index] <= 0)
 				break;
 		}
 	}
 
-	lzwEncodeCode(pStream, _encPrefix);
+	lzwEncodeCode(stream, _encPrefix);
 
 	int nextFree = _nextFree;
 
 	_encPrefix = pixel;
 
 	if (nextFree >= tableLimit) {
-		lzwInitEncoder(pStream);
+		lzwInitEncoder(stream);
 
 		return _encOutCount;
 	}
 
-	_aHashCode[index] = (uint16)nextFree;
-	_aHashTable[index] = _encHash;
+	_hashCode[index] = (uint16)nextFree;
+	_hashTable[index] = _encHash;
 	_nextFree = nextFree + 1;
 
 	return _encOutCount;
 }
 
-void StdGif::lzwInitEncoder(Common::WriteStream *pStream) {
-	_bFresh = 1;
+void StdGif::lzwInitEncoder(Common::WriteStream *stream) {
+	_fresh = 1;
 
 	for (int i = 0; i < hashSize; i++)
-		_aHashTable[i] = -1;
+		_hashTable[i] = -1;
 
 	_nextFree = _firstFree;
-	lzwEncodeCode(pStream, _clearCode);
+	lzwEncodeCode(stream, _clearCode);
 }
 
-int StdGif::lzwFinish(Common::WriteStream *pStream) {
+int StdGif::lzwFinish(Common::WriteStream *stream) {
 	_encOutCount = 0;
-	lzwEncodeCode(pStream, _encPrefix);
-	lzwEncodeCode(pStream, _endCode);
+	lzwEncodeCode(stream, _encPrefix);
+	lzwEncodeCode(stream, _endCode);
 
 	if (_bitOffset != 1)
-		writeBlock(pStream, (_bitOffset + 7) >> 3);
+		writeBlock(stream, (_bitOffset + 7) >> 3);
 
 	return _encOutCount;
 }
 
-uint32 StdGif::writeBlock(Common::WriteStream *pStream, int count) {
-	_aBlockBuf[0] = (byte)count;
+uint32 StdGif::writeBlock(Common::WriteStream *stream, int count) {
+	_blockBuf[0] = (byte)count;
 
-	uint32 result = pStream->write(_aBlockBuf, count + 1);
+	uint32 result = stream->write(_blockBuf, count + 1);
 
 	if (result != (uint32)(count + 1))
 		_encOutCount++;
@@ -650,9 +650,9 @@ uint32 StdGif::writeBlock(Common::WriteStream *pStream, int count) {
 	return result;
 }
 
-StdBitmapStruct *StdGif::loadFailed(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap) {
-	delete pFile;
-	_stdBitmap->unloadBitmap(pBitmap);
+StdBitmapStruct *StdGif::loadFailed(Common::SeekableReadStream *file, StdBitmapStruct *bitmap) {
+	delete file;
+	_stdBitmap->unloadBitmap(bitmap);
 
 	return nullptr;
 }

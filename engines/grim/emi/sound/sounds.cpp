@@ -155,7 +155,7 @@ uint16 Sounds::registerSound(CSoundCue *cue) {
 	uint16 handle = _soundCounter;
 
 	_soundMap[handle] = cue;
-	cue->handle = _soundCounter;
+	cue->_handle = _soundCounter;
 	_soundCounter++;
 
 	return handle;
@@ -252,7 +252,7 @@ void Sounds::startSounds(bool startMusicNow) {
 
 	_audioSystem = new AudioSystem(this);
 
-	if (_audioSystem->audioAvailable) {
+	if (_audioSystem->_audioAvailable) {
 		restoreMasterGain();
 
 		if (_musicEnabled && _musicCategoryEnabled && startMusicNow)
@@ -276,7 +276,7 @@ void Sounds::startSounds(bool startMusicNow) {
 }
 
 bool Sounds::isAudioActive() const {
-	return _audioSystem && _audioSystem->audioAvailable;
+	return _audioSystem && _audioSystem->_audioAvailable;
 }
 
 void Sounds::shutdownSounds() {
@@ -346,13 +346,13 @@ void Sounds::soundCueLipCallback(const char *soundName, CSoundCue *cue) {
 		cue->setLipData(lipData, lipSize);
 }
 
-void Sounds::saveSounds(tSaveRestoreAccess *access) {
+void Sounds::saveSounds(SaveRestoreAccess *access) {
 	access(&_soundCounter, sizeof(_soundCounter));
 	_audioSystem->saveAudioSettings(access);
 	CSoundCue::saveCues(this, access);
 }
 
-void Sounds::restoreSounds(tSaveRestoreAccess *access) {
+void Sounds::restoreSounds(SaveRestoreAccess *access) {
 	access(&_soundCounter, sizeof(_soundCounter));
 	_audioSystem->restoreAudioSettings(access);
 	CSoundCue::restoreCues(this, access, &_soundMap);
@@ -490,17 +490,17 @@ void Sounds::startSound(uint soundHandle, int startMode, bool loop, int volume) 
 	if (!cue)
 		return;
 
-	if (cue->category == 1) {
+	if (cue->_category == 1) {
 		if (!_sfxEnabled)
 			return;
-	} else if (cue->category == 2 && !_voiceEnabled) {
+	} else if (cue->_category == 2 && !_voiceEnabled) {
 		return;
 	}
 
 	if (loop)
-		cue->flags |= CSoundCue::kFlagLoop;
+		cue->_flags |= CSoundCue::kFlagLoop;
 	else
-		cue->flags &= ~CSoundCue::kFlagLoop;
+		cue->_flags &= ~CSoundCue::kFlagLoop;
 
 	cue->setVolume(soundVolumeToGain(volume));
 
@@ -509,7 +509,7 @@ void Sounds::startSound(uint soundHandle, int startMode, bool loop, int volume) 
 	if (cue->start(startMode != 0))
 		return;
 
-	if (cue->category == 2) {
+	if (cue->_category == 2) {
 		while (attempts < kMaxStartAttempts) {
 			CSoundCue::stopCueToFreeChannel(this, true, true);
 			attempts++;
@@ -541,7 +541,7 @@ void Sounds::stopSoundPlayback(uint soundHandle) {
 	CSoundCue *cue = findSoundCue(soundHandle);
 
 	if (cue) {
-		if ((cue->flags & CSoundCue::kFlagReleaseWhenDone) != 0)
+		if ((cue->_flags & CSoundCue::kFlagReleaseWhenDone) != 0)
 			unregisterSound((uint16)soundHandle);
 
 		cue->stop();
@@ -553,7 +553,7 @@ void Sounds::releaseSoundWhenDone(uint soundHandle) {
 
 	if (cue) {
 		if (cue->getState() == CSoundCue::kStatePlaying) {
-			cue->flags |= CSoundCue::kFlagReleaseWhenDone;
+			cue->_flags |= CSoundCue::kFlagReleaseWhenDone;
 			unregisterSound((uint16)soundHandle);
 
 			return;
@@ -606,10 +606,10 @@ void Sounds::setSoundPosition(uint soundHandle, float x, float y, float z) {
 	if (!cue)
 		return;
 
-	if (cue->category == 1) {
+	if (cue->_category == 1) {
 		if (!_sfxEnabled)
 			return;
-	} else if (cue->category == 2 && !_voiceEnabled) {
+	} else if (cue->_category == 2 && !_voiceEnabled) {
 		return;
 	}
 
@@ -667,7 +667,7 @@ LipData *Sounds::getSoundLipData(uint soundHandle) {
 	if (!cue)
 		return nullptr;
 
-	return cue->lipData;
+	return cue->_lipData;
 }
 
 bool Sounds::setCategoryVolume(int category, int volume) {
@@ -857,37 +857,37 @@ void Sounds::setSoundListener(CNode *listener) {
 
 void Sounds::suspendAudio() {
 	if (isAudioActive()) {
-		if (!_audioSystem->digitalHandleReleased) {
-			if (_audioSystem->device)
-				_audioSystem->device->releaseDigitalHandle();
+		if (!_audioSystem->_digitalHandleReleased) {
+			if (_audioSystem->_device)
+				_audioSystem->_device->releaseDigitalHandle();
 
-			_audioSystem->digitalHandleReleased = true;
+			_audioSystem->_digitalHandleReleased = true;
 		}
 	}
 }
 
 void Sounds::resumeAudio() {
 	if (isAudioActive()) {
-		if (_audioSystem->digitalHandleReleased) {
-			if (_audioSystem->device)
-				_audioSystem->device->reacquireDigitalHandle();
+		if (_audioSystem->_digitalHandleReleased) {
+			if (_audioSystem->_device)
+				_audioSystem->_device->reacquireDigitalHandle();
 
-			_audioSystem->digitalHandleReleased = false;
+			_audioSystem->_digitalHandleReleased = false;
 		}
 	}
 }
 
 void Sounds::pauseAll() {
 	if (isAudioActive()) {
-		if (_audioSystem->device)
-			_audioSystem->device->pauseAll();
+		if (_audioSystem->_device)
+			_audioSystem->_device->pauseAll();
 	}
 }
 
 void Sounds::resumeAll() {
 	if (isAudioActive()) {
-		if (_audioSystem->device)
-			_audioSystem->device->resumeAll();
+		if (_audioSystem->_device)
+			_audioSystem->_device->resumeAll();
 	}
 }
 
@@ -1025,14 +1025,14 @@ void Sounds::setMusicState(int newState, int startMs, const bool &immediate) {
 	}
 }
 
-void Sounds::saveMusicState(tSaveRestoreAccess *access) {
+void Sounds::saveMusicState(SaveRestoreAccess *access) {
 	access(&_musicVolume, sizeof(_musicVolume));
 	access(&_musicState, sizeof(_musicState));
 	access(&_pushedMusicState, sizeof(_pushedMusicState));
 	access(&_pushedMusicPosition, sizeof(_pushedMusicPosition));
 }
 
-void Sounds::restoreMusicState(tSaveRestoreAccess *access) {
+void Sounds::restoreMusicState(SaveRestoreAccess *access) {
 	access(&_musicVolume, sizeof(_musicVolume));
 
 	setMusicVolume(_musicVolume);
@@ -1173,17 +1173,17 @@ void Sounds::stopAllForLoad() {
 }
 
 void Sounds::clearSpuMemory() {
-	if (!isAudioActive() || !_audioSystem->device)
+	if (!isAudioActive() || !_audioSystem->_device)
 		return;
 
-	CWaveAudioDevice *device = dynamic_cast<CWaveAudioDevice *>(_audioSystem->device);
+	CWaveAudioDevice *device = dynamic_cast<CWaveAudioDevice *>(_audioSystem->_device);
 
 	if (!device)
 		return;
 
-	for (uint i = 0; i < device->channels.size(); i++) {
-		if (device->channels[i])
-			device->channels[i]->endSpuSample();
+	for (uint i = 0; i < device->_channels.size(); i++) {
+		if (device->_channels[i])
+			device->_channels[i]->endSpuSample();
 	}
 }
 
@@ -1201,7 +1201,7 @@ void Sounds::fadeLoadingLoop(int direction) {
 	_loadingLoopFadeMs = g_system->getMillis();
 
 	if (_loadingLoopFade == 1) {
-		_loadingLoopCue->flags |= CSoundCue::kFlagLoop;
+		_loadingLoopCue->_flags |= CSoundCue::kFlagLoop;
 		_loadingLoopCue->setVolume(0.0f);
 		_loadingLoopCue->play(false);
 	}
@@ -1213,7 +1213,7 @@ void Sounds::updateLoadingLoop() {
 
 	uint now = g_system->getMillis();
 	float step = (float)(now - _loadingLoopFadeMs) / 1000.0f / kLoadingLoopFadeSeconds;
-	float volume = _loadingLoopCue->volume;
+	float volume = _loadingLoopCue->_volume;
 
 	if (_loadingLoopFade > 0) {
 		volume += step;
@@ -1248,7 +1248,7 @@ void Sounds::setStereoAudio(bool stereo) {
 	if (!_audioSystem)
 		return;
 
-	CWaveAudioDevice *device = dynamic_cast<CWaveAudioDevice *>(_audioSystem->device);
+	CWaveAudioDevice *device = dynamic_cast<CWaveAudioDevice *>(_audioSystem->_device);
 
 	if (device)
 		device->setSpuStereo(stereo);

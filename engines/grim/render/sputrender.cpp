@@ -34,54 +34,54 @@
 
 namespace Grim {
 
-SputRender::SputRender(RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, Res *pRes, SputResource *pSputResource,
-		SputPrimitive *pSputPrimitive, WalkSystem *pWalkSystem, SputRoom *pSputRoom, StdVBuffer *pBackBuffer, StdVBuffer *pMainGfxBuffer,
-		SputTime *pSputTime, SputControl *pSputControl) :
-		_pRd(pRd), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pRes(pRes), _pSputResource(pSputResource),
-		_pSputPrimitive(pSputPrimitive), _pWalkSystem(pWalkSystem), _pSputRoom(pSputRoom), _pBackBuffer(pBackBuffer), _pMainGfxBuffer(pMainGfxBuffer),
-		_pSputActor(nullptr), _aActors(nullptr), _pSputText(nullptr), _pBlastText(nullptr), _pSputSmush(nullptr), _pSputTime(pSputTime),
-		_pSputControl(pSputControl), _pStdControl(nullptr), _pGrim(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0),
-		_gammaCorrection(1.0f), _pColorInfo(nullptr), _b3DAcceleration(0), _bAcceleratedZBuffers(1),
-		_pDrawBuffer(nullptr), _pZBuffer(nullptr), _pCanvas(nullptr), _pCleanBuffer(nullptr), _pCleanArtBuffer(nullptr),
-		_pCleanZBuffer(nullptr), _pDecompressionBuffer(0), _numPages(1), _pDirtyRectQueue(nullptr), _pFreeDirtyRects(nullptr), _numDirtyRects(0),
-		_nextSerialNumber(0), _pCacheRectList(nullptr), _pAnimationList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),
-		_irisCenterY(240), _renderFlags(0), _bSkipPrimitives(0), _pSetPaletteFunc(nullptr), _pPageFlipFunc(nullptr),
-		_pageFlipEnable(1), _movieJustFinished(0), _gCamActorIndex(0), _debugFlags(8), _bDebugKey1Down(0),
-		_bDebugKey2Down(0), _bDebugKey4Down(0), _bDebugKey8Down(0), _bDebugKey10Down(0), _renderEnable(1),
+SputRender::SputRender(RenderDroid *rd, StdDisplay *stdDisplay, StdBitmap *stdBitmap, Res *res, SputResource *sputResource,
+		SputPrimitive *sputPrimitive, WalkSystem *walkSystem, SputRoom *sputRoom, StdVBuffer *backBuffer, StdVBuffer *mainGfxBuffer,
+		SputTime *sputTime, SputControl *sputControl) :
+		_rd(rd), _stdDisplay(stdDisplay), _stdBitmap(stdBitmap), _res(res), _sputResource(sputResource),
+		_sputPrimitive(sputPrimitive), _walkSystem(walkSystem), _sputRoom(sputRoom), _backBuffer(backBuffer), _mainGfxBuffer(mainGfxBuffer),
+		_sputActor(nullptr), _actors(nullptr), _sputText(nullptr), _blastText(nullptr), _sputSmush(nullptr), _sputTime(sputTime),
+		_sputControl(sputControl), _stdControl(nullptr), _grim(nullptr), _hs(nullptr), _initialized(0), _started(0),
+		_gammaCorrection(1.0f), _colorInfo(nullptr), _b3DAcceleration(0), _acceleratedZBuffers(1),
+		_drawBuffer(nullptr), _zBuffer(nullptr), _canvas(nullptr), _cleanBuffer(nullptr), _cleanArtBuffer(nullptr),
+		_cleanZBuffer(nullptr), _decompressionBuffer(0), _numPages(1), _dirtyRectQueue(nullptr), _freeDirtyRects(nullptr), _numDirtyRects(0),
+		_nextSerialNumber(0), _cacheRectList(nullptr), _animationList(nullptr), _reset(0), _irisStart(0), _irisDuration(0.0f), _irisCenterX(320),
+		_irisCenterY(240), _renderFlags(0), _skipPrimitives(0), _setPaletteFunc(nullptr), _pageFlipFunc(nullptr),
+		_pageFlipEnable(1), _movieJustFinished(0), _camActorIndex(0), _debugFlags(8), _debugKey1Down(0),
+		_debugKey2Down(0), _debugKey4Down(0), _debugKey8Down(0), _debugKey10Down(0), _renderEnable(1),
 		_loadImageAllowed(1), _perfCounter(0), _waitBitmapTimerMs(0), _waitBitmapFrame(0),
-		_ambient(0.2f), _curView(-1), _pLastRoom(nullptr), _pCamera(nullptr), _dirtyRectColor(0), _bPrintLuaStack(0),
+		_ambient(0.2f), _curView(-1), _lastRoom(nullptr), _camera(nullptr), _dirtyRectColor(0), _printLuaStack(0),
 		_numSortActors(0) {
 	memset(_renderVars, 0, sizeof(_renderVars));
 	memset(_colorLookup, 0, sizeof(_colorLookup));
 	memset(&_waitBitmapRef, 0, sizeof(_waitBitmapRef));
-	memset(_aColors, 0, sizeof(_aColors));
-	memset(_aActorSortInfo, 0, sizeof(_aActorSortInfo));
-	memset(_aSortedActors, 0, sizeof(_aSortedActors));
+	memset(_colors, 0, sizeof(_colors));
+	memset(_actorSortInfo, 0, sizeof(_actorSortInfo));
+	memset(_sortedActors, 0, sizeof(_sortedActors));
 }
 
-int SputRender::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputRender::initialize(SysStruct *hs) {
+	_hs = hs;
 
-	_pSputControl->addCallback(this);
-	_bInitialized = 1;
+	_sputControl->addCallback(this);
+	_initialized = 1;
 
 	return 0;
 }
 
 int SputRender::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputRender::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	_bStarted = 1;
+	_started = 1;
 	_renderVars[0] = 4;
 	_renderVars[1] = 3;
 	_renderVars[2] = 1;
@@ -96,39 +96,39 @@ int SputRender::startup() {
 int SputRender::shutdown() {
 	freeBuffers();
 
-	while (_pDirtyRectQueue) {
-		DirtyRect *pNext = _pDirtyRectQueue->pNext;
+	while (_dirtyRectQueue) {
+		DirtyRect *next = _dirtyRectQueue->next;
 
-		delete _pDirtyRectQueue;
-		_pDirtyRectQueue = pNext;
+		delete _dirtyRectQueue;
+		_dirtyRectQueue = next;
 	}
 
 	_numDirtyRects = 0;
 
-	while (_pFreeDirtyRects) {
-		DirtyRect *pNext = _pFreeDirtyRects->pNextFree;
+	while (_freeDirtyRects) {
+		DirtyRect *next = _freeDirtyRects->nextFree;
 
-		delete _pFreeDirtyRects;
-		_pFreeDirtyRects = pNext;
+		delete _freeDirtyRects;
+		_freeDirtyRects = next;
 	}
 
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
 
-int SputRender::save(Common::WriteStream *pStream) {
-	pStream->writeSint32LE(_irisStart);
-	pStream->writeFloatLE(_irisDuration);
-	pStream->writeSint32LE(_irisCenterX);
-	pStream->writeSint32LE(_irisCenterY);
-	pStream->writeFloatLE(_gammaCorrection);
-	pStream->writeSint32LE(_renderFlags);
-	pStream->writeSint32LE(_pageFlipEnable);
-	pStream->writeSint32LE(_gCamActorIndex);
-	pStream->writeSint32LE(_movieJustFinished);
+int SputRender::save(Common::WriteStream *stream) {
+	stream->writeSint32LE(_irisStart);
+	stream->writeFloatLE(_irisDuration);
+	stream->writeSint32LE(_irisCenterX);
+	stream->writeSint32LE(_irisCenterY);
+	stream->writeFloatLE(_gammaCorrection);
+	stream->writeSint32LE(_renderFlags);
+	stream->writeSint32LE(_pageFlipEnable);
+	stream->writeSint32LE(_camActorIndex);
+	stream->writeSint32LE(_movieJustFinished);
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputRender::save(): failed to write the render state");
 		return 1;
 	}
@@ -136,18 +136,18 @@ int SputRender::save(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int SputRender::restore(Common::ReadStream *pStream) {
-	_irisStart = pStream->readSint32LE();
-	_irisDuration = pStream->readFloatLE();
-	_irisCenterX = pStream->readSint32LE();
-	_irisCenterY = pStream->readSint32LE();
-	_gammaCorrection = pStream->readFloatLE();
-	_renderFlags = pStream->readSint32LE();
-	_pageFlipEnable = pStream->readSint32LE();
-	_gCamActorIndex = pStream->readSint32LE();
-	_movieJustFinished = pStream->readSint32LE();
+int SputRender::restore(Common::ReadStream *stream) {
+	_irisStart = stream->readSint32LE();
+	_irisDuration = stream->readFloatLE();
+	_irisCenterX = stream->readSint32LE();
+	_irisCenterY = stream->readSint32LE();
+	_gammaCorrection = stream->readFloatLE();
+	_renderFlags = stream->readSint32LE();
+	_pageFlipEnable = stream->readSint32LE();
+	_camActorIndex = stream->readSint32LE();
+	_movieJustFinished = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos()) {
+	if (stream->err() || stream->eos()) {
 		warning("SputRender::restore(): failed to read the render state");
 		return 1;
 	}
@@ -156,90 +156,90 @@ int SputRender::restore(Common::ReadStream *pStream) {
 }
 
 int SputRender::open() {
-	_gCamActorIndex = _pSputActor->allocateActor();
-	_pSputActor->actorDeref(_gCamActorIndex)->flags |= 1;
+	_camActorIndex = _sputActor->allocateActor();
+	_sputActor->actorDeref(_camActorIndex)->flags |= 1;
 
 	return 1;
 }
 
 void SputRender::close() {
-	if (_pCanvas)
-		_pRd->_canvas.destroy(_pCanvas);
+	if (_canvas)
+		_rd->_canvas.destroy(_canvas);
 
-	if (_pCleanArtBuffer)
-		_pStdDisplay->vBufferFree(_pCleanArtBuffer);
+	if (_cleanArtBuffer)
+		_stdDisplay->vBufferFree(_cleanArtBuffer);
 
-	if (_pCleanZBuffer)
-		_pStdDisplay->vBufferFree(_pCleanZBuffer);
+	if (_cleanZBuffer)
+		_stdDisplay->vBufferFree(_cleanZBuffer);
 
-	if (_pCleanBuffer)
-		_pStdDisplay->vBufferFree(_pCleanBuffer);
+	if (_cleanBuffer)
+		_stdDisplay->vBufferFree(_cleanBuffer);
 
-	_pDecompressionBuffer = 0;
+	_decompressionBuffer = 0;
 }
 
-int SputRender::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int *pOptions) {
+int SputRender::setDisplay(StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int *options) {
 	close();
 
-	_pCanvas = _pRd->_canvas.create(1, pVBuffer, pZBuffer, xStart, yStart, xEnd, yEnd, 0);
-	_pZBuffer = pZBuffer;
-	_pDrawBuffer = pVBuffer;
+	_canvas = _rd->_canvas.create(1, vBuffer, zBuffer, xStart, yStart, xEnd, yEnd, 0);
+	_zBuffer = zBuffer;
+	_drawBuffer = vBuffer;
 
-	StdVBufferTexFmt format = pVBuffer->tex;
+	StdVBufferTexFmt format = vBuffer->tex;
 
-	_pCleanBuffer = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+	_cleanBuffer = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
-	if (pVBuffer->bVideoMemory)
-		_pCleanArtBuffer = _pStdDisplay->vBufferNew(&format, 1, 1, nullptr);
+	if (vBuffer->videoMemory)
+		_cleanArtBuffer = _stdDisplay->vBufferNew(&format, 1, 1, nullptr);
 	else
-		_pCleanArtBuffer = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+		_cleanArtBuffer = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
 	// The demo always keeps the clean Z buffer in system memory
-	int bVideoMemory = (_b3DAcceleration && !_bAcceleratedZBuffers && !(_pGrim->getGameFlags() & ADGF_DEMO)) ? 1 : 0;
+	int videoMemory = (_b3DAcceleration && !_acceleratedZBuffers && !(_grim->getGameFlags() & ADGF_DEMO)) ? 1 : 0;
 
-	_pCleanZBuffer = _pStdDisplay->vBufferNew(&format, bVideoMemory, bVideoMemory, nullptr);
+	_cleanZBuffer = _stdDisplay->vBufferNew(&format, videoMemory, videoMemory, nullptr);
 
-	if (!_pCleanArtBuffer || !_pCleanZBuffer)
+	if (!_cleanArtBuffer || !_cleanZBuffer)
 		return 0;
 
-	BlastTextSurface *pTextSurface = _pBlastText->getSurface();
+	BlastTextSurface *textSurface = _blastText->getSurface();
 
-	pTextSurface->pPixels = _pBackBuffer->pPixels;
-	pTextSurface->bytesPerPixel = (uint)_pBackBuffer->tex.format.bpp >> 3;
-	pTextSurface->height = _pBackBuffer->tex.height;
-	pTextSurface->pitch = _pBackBuffer->tex.pitchInBytes;
-	pTextSurface->width = _pDrawBuffer->tex.width;
+	textSurface->pixels = _backBuffer->pixels;
+	textSurface->bytesPerPixel = (uint)_backBuffer->tex.format.bpp >> 3;
+	textSurface->height = _backBuffer->tex.height;
+	textSurface->pitch = _backBuffer->tex.pitchInBytes;
+	textSurface->width = _drawBuffer->tex.width;
 
-	pOptions[3] |= 2;
-	setRenderOptions(pOptions);
+	options[3] |= 2;
+	setRenderOptions(options);
 
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 
-	if (pRoom)
-		_pRd->_camera.setAmbientLight(pRoom->pSetups[pRoom->curSetup].camera.prdCamera, _ambient);
+	if (room)
+		_rd->_camera.setAmbientLight(room->setups[room->curSetup].camera.prdCamera, _ambient);
 
-	_pColorInfo = &_pBackBuffer->tex.format;
-	loadSetupBackground(_pGrim->getColorInfo());
-	_pDecompressionBuffer = 1;
+	_colorInfo = &_backBuffer->tex.format;
+	loadSetupBackground(_grim->getColorInfo());
+	_decompressionBuffer = 1;
 
-	pRoom = _pSputRoom->getCurrentRoom();
+	room = _sputRoom->getCurrentRoom();
 
-	if (pRoom)
-		useSetup(pRoom, pRoom->curSetup);
+	if (room)
+		useSetup(room, room->curSetup);
 
-	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
+	if (!(_grim->getGameFlags() & ADGF_DEMO))
 		forceRefresh();
 
 	return 1;
 }
 
 int SputRender::queryDisplayState() {
-	if (!_pCanvas) {
+	if (!_canvas) {
 		warning("SputRender::queryDisplayState(): the display is not set");
 		return 0;
 	}
 
-	return _pCanvas->pVBuffer->type == 1;
+	return _canvas->vBuffer->type == 1;
 }
 
 void SputRender::using3DHardware(int b3D) {
@@ -253,16 +253,16 @@ void SputRender::pageCountIs(int numPages) {
 		_numPages = numPages;
 }
 
-void SputRender::setPaletteCallback(SputRenderPaletteFunc pFunc) {
-	_pSetPaletteFunc = pFunc;
+void SputRender::setPaletteCallback(SputRenderPaletteFunc func) {
+	_setPaletteFunc = func;
 }
 
-void SputRender::setPageFlipCallback(SputRenderPageFlipFunc pFunc) {
-	_pPageFlipFunc = pFunc;
+void SputRender::setPageFlipCallback(SputRenderPageFlipFunc func) {
+	_pageFlipFunc = func;
 }
 
 SputRenderPaletteFunc SputRender::getPaletteFunc() {
-	return _pSetPaletteFunc;
+	return _setPaletteFunc;
 }
 
 void SputRender::setPageFlip(int enable) {
@@ -275,8 +275,8 @@ int SputRender::pageFlip() {
 	if (_pageFlipEnable) {
 		result = _movieJustFinished;
 
-		if (!_movieJustFinished && _pPageFlipFunc)
-			result = _pPageFlipFunc();
+		if (!_movieJustFinished && _pageFlipFunc)
+			result = _pageFlipFunc();
 	}
 
 	_movieJustFinished = 0;
@@ -284,109 +284,109 @@ int SputRender::pageFlip() {
 	return result;
 }
 
-int SputRender::setRenderOptions(const int *pOptions) {
-	memcpy(_renderVars, pOptions, sizeof(_renderVars));
+int SputRender::setRenderOptions(const int *options) {
+	memcpy(_renderVars, options, sizeof(_renderVars));
 
-	_pRd->setGeometryMode(_renderVars[0]);
-	_pRd->setLightingMode(_renderVars[1]);
-	_pRd->setTextureMode(_renderVars[2]);
-	_pRd->setRenderOptions(_renderVars[3]);
-	_pRd->setSortingMethod(_renderVars[4]);
-	_pRd->setOcclusionMethod(_renderVars[5]);
+	_rd->setGeometryMode(_renderVars[0]);
+	_rd->setLightingMode(_renderVars[1]);
+	_rd->setTextureMode(_renderVars[2]);
+	_rd->setRenderOptions(_renderVars[3]);
+	_rd->setSortingMethod(_renderVars[4]);
+	_rd->setOcclusionMethod(_renderVars[5]);
 
-	return _pRd->setZBufferMethod(_renderVars[6]);
+	return _rd->setZBufferMethod(_renderVars[6]);
 }
 
 int SputRender::controlCallback(float frameTime) {
 	int result = 0;
-	int bKeyDown;
+	int keyDown;
 
-	bKeyDown = _pGrim->getDebugKeys();
-	if (!bKeyDown)
+	keyDown = _grim->getDebugKeys();
+	if (!keyDown)
 		return 0;
 
-	bKeyDown = _pStdControl->readKey(29, nullptr, nullptr);
-	if (!bKeyDown)
+	keyDown = _stdControl->readKey(29, nullptr, nullptr);
+	if (!keyDown)
 		return result;
 
-	bKeyDown = _pStdControl->readKey(32, nullptr, nullptr);
-	if (!bKeyDown)
+	keyDown = _stdControl->readKey(32, nullptr, nullptr);
+	if (!keyDown)
 		return result;
 
 	result = 1;
 
-	bKeyDown = _pStdControl->readKey(57, nullptr, nullptr);
-	if (bKeyDown) {
-		if (!_bDebugKey1Down) {
+	keyDown = _stdControl->readKey(57, nullptr, nullptr);
+	if (keyDown) {
+		if (!_debugKey1Down) {
 			drawDebuggingToggle();
-			_bDebugKey1Down = 1;
+			_debugKey1Down = 1;
 		}
 	} else {
-		_bDebugKey1Down = 0;
+		_debugKey1Down = 0;
 	}
 
 	if ((_debugFlags & 1) == 0)
 		return result;
 
-	bKeyDown = _pStdControl->readKey(48, nullptr, nullptr);
-	if (bKeyDown) {
-		if (!_bDebugKey8Down) {
+	keyDown = _stdControl->readKey(48, nullptr, nullptr);
+	if (keyDown) {
+		if (!_debugKey8Down) {
 			if (_debugFlags & 8) {
-				_bDebugKey8Down = 1;
+				_debugKey8Down = 1;
 				_debugFlags &= ~8;
 			} else {
-				_bDebugKey8Down = 1;
+				_debugKey8Down = 1;
 				_debugFlags |= 8;
 			}
 		}
 	} else {
-		_bDebugKey8Down = 0;
+		_debugKey8Down = 0;
 	}
 
-	bKeyDown = _pStdControl->readKey(38, nullptr, nullptr);
-	if (bKeyDown) {
-		if (!_bDebugKey2Down) {
+	keyDown = _stdControl->readKey(38, nullptr, nullptr);
+	if (keyDown) {
+		if (!_debugKey2Down) {
 			if (_debugFlags & 2) {
-				_bDebugKey2Down = 1;
+				_debugKey2Down = 1;
 				_debugFlags &= ~2;
 			} else {
-				_bDebugKey2Down = 1;
+				_debugKey2Down = 1;
 				_debugFlags |= 2;
 			}
 		}
 	} else {
-		_bDebugKey2Down = 0;
+		_debugKey2Down = 0;
 	}
 
-	bKeyDown = _pStdControl->readKey(46, nullptr, nullptr);
-	if (bKeyDown) {
-		if (!_bDebugKey4Down) {
+	keyDown = _stdControl->readKey(46, nullptr, nullptr);
+	if (keyDown) {
+		if (!_debugKey4Down) {
 			if (_debugFlags & 4) {
-				_bDebugKey4Down = 1;
+				_debugKey4Down = 1;
 				_debugFlags &= ~4;
 			} else {
-				_bDebugKey4Down = 1;
+				_debugKey4Down = 1;
 				_debugFlags |= 4;
 			}
 		}
 	} else {
-		_bDebugKey4Down = 0;
+		_debugKey4Down = 0;
 	}
 
-	bKeyDown = _pStdControl->readKey(19, nullptr, nullptr);
-	if (!bKeyDown) {
-		_bDebugKey10Down = 0;
+	keyDown = _stdControl->readKey(19, nullptr, nullptr);
+	if (!keyDown) {
+		_debugKey10Down = 0;
 		return result;
 	}
 
-	if (_bDebugKey10Down)
+	if (_debugKey10Down)
 		return result;
 
 	if (_debugFlags & 0x10) {
-		_bDebugKey10Down = 1;
+		_debugKey10Down = 1;
 		_debugFlags &= ~0x10;
 	} else {
-		_bDebugKey10Down = 1;
+		_debugKey10Down = 1;
 		_debugFlags |= 0x10;
 	}
 
@@ -397,8 +397,8 @@ void SputRender::forceRefresh() {
 	_reset = 1;
 }
 
-void SputRender::markDirtyRect(const StdRect *pRect, int page) {
-	StdRect rect = *pRect;
+void SputRender::markDirtyRect(const StdRect *rectPointer, int page) {
+	StdRect rect = *rectPointer;
 
 	if (rect.width > 0 && rect.height > 0) {
 		int width = rect.x % 4 + rect.width;
@@ -413,8 +413,8 @@ void SputRender::markDirtyRect(const StdRect *pRect, int page) {
 	}
 }
 
-void SputRender::markAllPagesDirty(const StdRect *pRect, int page) {
-	StdRect rect = *pRect;
+void SputRender::markAllPagesDirty(const StdRect *rectPointer, int page) {
+	StdRect rect = *rectPointer;
 
 	if (rect.width > 0 && rect.height > 0) {
 		int width = rect.x % 4 + rect.width;
@@ -430,53 +430,53 @@ void SputRender::markAllPagesDirty(const StdRect *pRect, int page) {
 	}
 }
 
-void SputRender::markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex) {
-	int left = pRect->x;
-	int right = pRect->x + pRect->width;
-	int top = pRect->y;
-	int bottom = pRect->y + pRect->height;
-	DirtyRect *pNode = _pDirtyRectQueue;
+void SputRender::markDirtyRectInternal(StdRect *rect, int page, uint pageIndex) {
+	int left = rect->x;
+	int right = rect->x + rect->width;
+	int top = rect->y;
+	int bottom = rect->y + rect->height;
+	DirtyRect *node = _dirtyRectQueue;
 
-	while (pNode) {
-		if (pNode->pageIndex != pageIndex) {
-			pNode = pNode->pNext;
+	while (node) {
+		if (node->pageIndex != pageIndex) {
+			node = node->next;
 			continue;
 		}
 
-		int nodeLeft = pNode->rect.x;
-		int nodeTop = pNode->rect.y;
-		int nodeRight = nodeLeft + pNode->rect.width;
-		int nodeBottom = nodeTop + pNode->rect.height;
+		int nodeLeft = node->rect.x;
+		int nodeTop = node->rect.y;
+		int nodeRight = nodeLeft + node->rect.width;
+		int nodeBottom = nodeTop + node->rect.height;
 
 		if (left >= nodeRight || right <= nodeLeft || top >= nodeBottom || bottom <= nodeTop) {
-			pNode = pNode->pNext;
+			node = node->next;
 			continue;
 		}
 
 		if (left >= nodeLeft && top >= nodeTop && right <= nodeRight && bottom <= nodeBottom) {
-			if (page > pNode->page)
-				pNode->page = page;
+			if (page > node->page)
+				node->page = page;
 
 			return;
 		}
 
-		if (pNode->pNext)
-			pNode->pNext->pPrev = pNode->pPrev;
+		if (node->next)
+			node->next->prev = node->prev;
 
-		if (pNode->pPrev)
-			pNode->pPrev->pNext = pNode->pNext;
+		if (node->prev)
+			node->prev->next = node->next;
 		else
-			_pDirtyRectQueue = pNode->pNext;
+			_dirtyRectQueue = node->next;
 
-		if (pNode->page > page)
-			page = pNode->page;
+		if (node->page > page)
+			page = node->page;
 
-		DirtyRect *pFreed = pNode;
+		DirtyRect *freed = node;
 
-		pNode = pNode->pNext;
+		node = node->next;
 		_numDirtyRects--;
-		pFreed->pNextFree = _pFreeDirtyRects;
-		_pFreeDirtyRects = pFreed;
+		freed->nextFree = _freeDirtyRects;
+		_freeDirtyRects = freed;
 
 		if (nodeLeft >= left && nodeLeft <= right && nodeTop >= top && nodeTop <= bottom &&
 				nodeRight >= left && nodeRight <= right && nodeBottom >= top && nodeBottom <= bottom)
@@ -489,9 +489,9 @@ void SputRender::markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex)
 		strip.width = MAX(nodeRight, right) - strip.x;
 		strip.height = MIN(nodeBottom, bottom) - strip.y;
 
-		int bDirty = page != 0 || (pNode && pNode->page != 0);
+		int dirty = page != 0 || (node && node->page != 0);
 
-		markDirtyRectInternal(&strip, bDirty, pageIndex);
+		markDirtyRectInternal(&strip, dirty, pageIndex);
 
 		StdRect piece;
 
@@ -508,9 +508,9 @@ void SputRender::markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex)
 				piece.height = strip.y - top;
 			}
 
-			bDirty = page != 0 || (pNode && pNode->page != 0);
+			dirty = page != 0 || (node && node->page != 0);
 
-			markDirtyRectInternal(&piece, bDirty, pageIndex);
+			markDirtyRectInternal(&piece, dirty, pageIndex);
 		}
 
 		if (nodeBottom != bottom) {
@@ -528,48 +528,48 @@ void SputRender::markDirtyRectInternal(StdRect *pRect, int page, uint pageIndex)
 				piece.height = bottom - stripBottom;
 			}
 
-			bDirty = page != 0 || (pNode && pNode->page != 0);
+			dirty = page != 0 || (node && node->page != 0);
 
-			markDirtyRectInternal(&piece, bDirty, pageIndex);
+			markDirtyRectInternal(&piece, dirty, pageIndex);
 		}
 
 		return;
 	}
 
-	DirtyRect *pNew;
+	DirtyRect *newObject;
 
-	if (_pFreeDirtyRects) {
-		pNew = _pFreeDirtyRects;
-		_pFreeDirtyRects = pNew->pNextFree;
-		pNew->pNextFree = nullptr;
+	if (_freeDirtyRects) {
+		newObject = _freeDirtyRects;
+		_freeDirtyRects = newObject->nextFree;
+		newObject->nextFree = nullptr;
 	} else {
-		pNew = new DirtyRect();
+		newObject = new DirtyRect();
 	}
 
 	_numDirtyRects++;
-	pNew->rect = *pRect;
-	pNew->page = page;
-	pNew->serial = _nextSerialNumber++;
-	pNew->pageIndex = pageIndex;
-	pNew->pNext = _pDirtyRectQueue;
+	newObject->rect = *rect;
+	newObject->page = page;
+	newObject->serial = _nextSerialNumber++;
+	newObject->pageIndex = pageIndex;
+	newObject->next = _dirtyRectQueue;
 
-	if (_pDirtyRectQueue)
-		_pDirtyRectQueue->pPrev = pNew;
+	if (_dirtyRectQueue)
+		_dirtyRectQueue->prev = newObject;
 
-	pNew->pPrev = nullptr;
-	_pDirtyRectQueue = pNew;
+	newObject->prev = nullptr;
+	_dirtyRectQueue = newObject;
 }
 
 void SputRender::freeCacheRects() {
-	DirtyRect *pNode = _pDirtyRectQueue;
+	DirtyRect *node = _dirtyRectQueue;
 
-	while (pNode) {
-		DirtyRect *pNext = pNode->pNext;
+	while (node) {
+		DirtyRect *next = node->next;
 
-		pNode->pNextFree = _pFreeDirtyRects;
-		_pFreeDirtyRects = pNode;
-		pNode = pNext;
-		_pDirtyRectQueue = pNext;
+		node->nextFree = _freeDirtyRects;
+		_freeDirtyRects = node;
+		node = next;
+		_dirtyRectQueue = next;
 	}
 
 	_numDirtyRects = 0;

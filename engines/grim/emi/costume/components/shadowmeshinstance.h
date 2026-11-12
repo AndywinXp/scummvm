@@ -36,8 +36,8 @@ public:
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	Actor *owner;
-	RMeshInstance *meshInstance;
+	Actor *_owner;
+	RMeshInstance *_meshInstance;
 };
 
 } // End of namespace Grim

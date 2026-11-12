@@ -31,14 +31,14 @@
 
 namespace Grim {
 
-bool LegacyImporter::mapUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int32 *pNewId) {
+bool LegacyImporter::mapUserdata(int32 oldTag, int32 oldId, int32 *newTag, int32 *newId) {
 	if (oldTag == kLegacyLuaTagActor) {
-		*pNewTag = kLuaTagActor;
+		*newTag = kLuaTagActor;
 
 		if (_ctx.actorIndices.contains(oldId))
-			*pNewId = _ctx.actorIndices.getVal(oldId);
+			*newId = _ctx.actorIndices.getVal(oldId);
 		else
-			*pNewId = _ctx.getDeadId(_ctx.deadActors, oldId);
+			*newId = _ctx.getDeadId(_ctx.deadActors, oldId);
 
 		return true;
 	}
@@ -47,59 +47,59 @@ bool LegacyImporter::mapUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int3
 		// The legacy payload is r << 16 | g << 8 | b, MakeColor() makes r | g << 8 | b << 16 | a << 24 with a = 0
 		uint32 color = (uint32)oldId;
 
-		*pNewTag = kLuaTagColor;
-		*pNewId = (int32)(((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16));
+		*newTag = kLuaTagColor;
+		*newId = (int32)(((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16));
 
 		return true;
 	}
 
 	if (oldTag == kLegacyLuaTagFont) {
-		*pNewTag = kSputTagFont;
+		*newTag = kSputTagFont;
 
 		if (_ctx.fontSerials.contains(oldId))
-			*pNewId = _ctx.fontSerials.getVal(oldId);
+			*newId = _ctx.fontSerials.getVal(oldId);
 		else
-			*pNewId = _ctx.getDeadId(_ctx.deadFonts, oldId);
+			*newId = _ctx.getDeadId(_ctx.deadFonts, oldId);
 
 		return true;
 	}
 
 	if (oldTag == kLegacyLuaTagTtfFont) {
-		*pNewTag = kSputTagFont;
-		*pNewId = _ctx.getDeadId(_ctx.deadTtfFonts, oldId);
+		*newTag = kSputTagFont;
+		*newId = _ctx.getDeadId(_ctx.deadTtfFonts, oldId);
 
 		return true;
 	}
 
 	if (oldTag == kLegacyLuaTagTextObject) {
-		*pNewTag = kLuaTagTextObject;
-		*pNewId = _ctx.getDeadId(_ctx.deadTextObjects, oldId);
+		*newTag = kLuaTagTextObject;
+		*newId = _ctx.getDeadId(_ctx.deadTextObjects, oldId);
 
 		return true;
 	}
 
 	if (oldTag == kLegacyLuaTagObjectState) {
-		*pNewTag = kLuaTagObjectState;
+		*newTag = kLuaTagObjectState;
 
 		if (_ctx.objectStates.contains(oldId))
-			*pNewId = _ctx.objectStates.getVal(oldId).luaHandle;
+			*newId = _ctx.objectStates.getVal(oldId).luaHandle;
 		else
-			*pNewId = _ctx.getDeadId(_ctx.deadObjectStates, oldId);
+			*newId = _ctx.getDeadId(_ctx.deadObjectStates, oldId);
 
 		return true;
 	}
 
 	if (oldTag == kLegacyLuaTagBitmap) {
-		*pNewTag = kLuaTagImage;
-		*pNewId = _ctx.getDeadId(_ctx.deadBitmaps, oldId);
+		*newTag = kLuaTagImage;
+		*newId = _ctx.getDeadId(_ctx.deadBitmaps, oldId);
 
 		return true;
 	}
 
 	// The new engine keeps the primitives as numbers, nothing knows this tag, so the userdata stays as it is
 	if (oldTag == kLegacyLuaTagPrimitive || oldTag == kLegacyLuaTagNone || oldTag == kLegacyLuaTagIoFile || oldTag == kLegacyLuaTagIoClosedFile) {
-		*pNewTag = oldTag;
-		*pNewId = oldId;
+		*newTag = oldTag;
+		*newId = oldId;
 
 		return true;
 	}
@@ -108,7 +108,7 @@ bool LegacyImporter::mapUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int3
 }
 
 bool LegacyImporter::importLua() {
-	if (!legacyRestoreLua(_pLuaStream, _data.minorVersion, this))
+	if (!legacyRestoreLua(_luaStream, _data.minorVersion, this))
 		return false;
 
 	LegacyLuaRefs engineRefs;
@@ -124,19 +124,19 @@ bool LegacyImporter::importLua() {
 }
 
 void LegacyImporter::applyDeveloperMode() {
-	WuRegistry *pWuRegistry = _pGrim->_pWuRegistry;
-	uint type = pWuRegistry->queryType("good_times");
+	WuRegistry *wuRegistry = _grim->_wuRegistry;
+	uint type = wuRegistry->queryType("good_times");
 
 	lua_beginblock();
 
 	// The same value as developerMode = ReadRegistryValue("good_times") in the scripts
 	if (type == WuRegistry::kValueBinary) {
-		lua_pushnumber(pWuRegistry->getFloat("good_times", 0.0f));
+		lua_pushnumber(wuRegistry->getFloat("good_times", 0.0f));
 	} else if (type == WuRegistry::kValueString) {
 		char value[256];
 
 		value[0] = '\0';
-		pWuRegistry->getStr("good_times", value, sizeof(value) - 1, "");
+		wuRegistry->getStr("good_times", value, sizeof(value) - 1, "");
 		lua_pushstring(value);
 	} else {
 		lua_pushnil();

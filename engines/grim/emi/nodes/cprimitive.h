@@ -38,10 +38,10 @@ public:
 	virtual bool restore(LFile *file);
 	virtual void computeBounds();
 
-	LString name;
-	CVector center;
-	float radius;
-	BBox box;
+	LString _name;
+	CVector _center;
+	float _radius;
+	BBox _box;
 };
 
 } // End of namespace Grim

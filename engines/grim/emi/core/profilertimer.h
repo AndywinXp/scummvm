@@ -56,25 +56,25 @@ public:
 	static void linkChildren(EmiEngine *engine);
 	static double getSecondsPerTick(EmiEngine *engine);
 
-	uint64 startTicks;
-	uint64 ticks[kMaxContexts];
-	uint64 ticksShown[kMaxContexts];
-	ProfilerTimer *parent[kMaxContexts];
-	int parentContext[kMaxContexts];
-	int calls[kMaxContexts];
-	int frames[kMaxContexts];
-	int callsShown[kMaxContexts];
-	int framesShown[kMaxContexts];
-	int numContexts;
-	bool contextsWarned;
-	int currentContext;
-	int flags;
-	char name[kNameSize];
-	Common::List<ProfilerTimer *> children;
+	uint64 _startTicks;
+	uint64 _ticks[kMaxContexts];
+	uint64 _ticksShown[kMaxContexts];
+	ProfilerTimer *_parent[kMaxContexts];
+	int _parentContext[kMaxContexts];
+	int _calls[kMaxContexts];
+	int _frames[kMaxContexts];
+	int _callsShown[kMaxContexts];
+	int _framesShown[kMaxContexts];
+	int _numContexts;
+	bool _contextsWarned;
+	int _currentContext;
+	int _flags;
+	char _name[kNameSize];
+	Common::List<ProfilerTimer *> _children;
 
 	// next points to the older timer, prev to the newer one
-	ProfilerTimer *next;
-	ProfilerTimer *prev;
+	ProfilerTimer *_next;
+	ProfilerTimer *_prev;
 
 private:
 	static Common::String padColumn(const char *text, int width);

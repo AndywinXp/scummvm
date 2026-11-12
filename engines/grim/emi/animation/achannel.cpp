@@ -40,11 +40,11 @@ void ChannelNode::operator delete(void *block) {
 }
 
 static void removeChannel(AInst *inst, AChannelHandle *channel) {
-	Common::List<AChannelHandle *>::iterator it = inst->channels.begin();
+	Common::List<AChannelHandle *>::iterator it = inst->_channels.begin();
 
-	while (it != inst->channels.end()) {
+	while (it != inst->_channels.end()) {
 		if (*it == channel)
-			it = inst->channels.erase(it);
+			it = inst->_channels.erase(it);
 		else
 			++it;
 	}
@@ -53,8 +53,8 @@ static void removeChannel(AInst *inst, AChannelHandle *channel) {
 static void accumulateGroup(CQuaternion *accumulator, ChannelNode *from, ChannelNode *to, float scale) {
 	for (ChannelNode *node = from; node != to; node = node->next) {
 		ATrackData<CQuaternion> *track = static_cast<ATrackData<CQuaternion> *>(node->track);
-		double factor = (double)node->inst->weight * scale;
-		CQuaternion contribution((float)(factor * track->value.x), (float)(factor * track->value.y), (float)(factor * track->value.z), (float)(factor * track->value.w));
+		double factor = (double)node->inst->_weight * scale;
+		CQuaternion contribution((float)(factor * track->_value._x), (float)(factor * track->_value._y), (float)(factor * track->_value._z), (float)(factor * track->_value._w));
 
 		if (accumulator->dot(contribution) < 0.0f)
 			contribution = contribution * -1.0f;
@@ -64,50 +64,50 @@ static void accumulateGroup(CQuaternion *accumulator, ChannelNode *from, Channel
 }
 
 ChannelList::ChannelList() {
-	tail = nullptr;
-	head = nullptr;
-	count = 0;
+	_tail = nullptr;
+	_head = nullptr;
+	_count = 0;
 }
 
 void ChannelList::popFront() {
-	ChannelNode *oldHead = head;
+	ChannelNode *oldHead = _head;
 
-	head = oldHead->next;
+	_head = oldHead->next;
 
-	if (head)
-		head->prev = nullptr;
+	if (_head)
+		_head->prev = nullptr;
 	else
-		tail = nullptr;
+		_tail = nullptr;
 
 	oldHead->prev = nullptr;
 	oldHead->next = nullptr;
-	count--;
+	_count--;
 }
 
 void ChannelList::popBack() {
-	ChannelNode *oldTail = tail;
+	ChannelNode *oldTail = _tail;
 
-	tail = oldTail->prev;
+	_tail = oldTail->prev;
 
-	if (!tail)
-		head = nullptr;
+	if (!_tail)
+		_head = nullptr;
 	else
-		tail->next = nullptr;
+		_tail->next = nullptr;
 
 	oldTail->prev = nullptr;
 	oldTail->next = nullptr;
-	count--;
+	_count--;
 }
 
 void ChannelList::remove(ChannelNode *node) {
-	if (node == head) {
+	if (node == _head) {
 		popFront();
-	} else if (node == tail) {
+	} else if (node == _tail) {
 		popBack();
 	} else if (node->next || node->prev) {
 		node->next->prev = node->prev;
 		node->prev->next = node->next;
-		count--;
+		_count--;
 	} else {
 		return;
 	}
@@ -117,24 +117,24 @@ void ChannelList::remove(ChannelNode *node) {
 }
 
 void ChannelList::pushBack(ChannelNode *node) {
-	if (tail)
-		tail->next = node;
+	if (_tail)
+		_tail->next = node;
 
 	node->next = nullptr;
-	node->prev = tail;
+	node->prev = _tail;
 
-	if (!head)
-		head = node;
+	if (!_head)
+		_head = node;
 
-	tail = node;
-	count++;
+	_tail = node;
+	_count++;
 }
 
 void ChannelList::insertByPriority(ChannelNode *node) {
-	ChannelNode *cursor = head;
+	ChannelNode *cursor = _head;
 
 	if (cursor) {
-		while (cursor->track->priority > node->track->priority) {
+		while (cursor->track->_priority > node->track->_priority) {
 			cursor = cursor->next;
 
 			if (!cursor) {
@@ -144,14 +144,14 @@ void ChannelList::insertByPriority(ChannelNode *node) {
 			}
 		}
 
-		if (cursor == head) {
-			head->prev = node;
+		if (cursor == _head) {
+			_head->prev = node;
 			node->prev = nullptr;
-			node->next = head;
-			head = node;
+			node->next = _head;
+			_head = node;
 
-			if (!tail)
-				tail = node;
+			if (!_tail)
+				_tail = node;
 		} else {
 			node->next = cursor;
 			node->prev = cursor->prev;
@@ -159,7 +159,7 @@ void ChannelList::insertByPriority(ChannelNode *node) {
 			cursor->prev = node;
 		}
 
-		count++;
+		_count++;
 	} else {
 		pushBack(node);
 	}
@@ -167,36 +167,36 @@ void ChannelList::insertByPriority(ChannelNode *node) {
 
 template<class T>
 AChannel<T>::AChannel() {
-	dirty = false;
+	_dirty = false;
 }
 
 template<class T>
 AChannel<T>::~AChannel() {
-	for (ChannelNode *node = active.head; node; node = node->next)
+	for (ChannelNode *node = _active._head; node; node = node->next)
 		removeChannel(node->inst, this);
 
-	for (ChannelNode *node = inactive.head; node; node = node->next)
+	for (ChannelNode *node = _inactive._head; node; node = node->next)
 		removeChannel(node->inst, this);
 
-	while (active.head) {
-		ChannelNode *node = active.head;
+	while (_active._head) {
+		ChannelNode *node = _active._head;
 
-		active.popFront();
+		_active.popFront();
 		delete node;
 	}
 
-	while (inactive.head) {
-		ChannelNode *node = inactive.head;
+	while (_inactive._head) {
+		ChannelNode *node = _inactive._head;
 
-		inactive.popFront();
+		_inactive.popFront();
 		delete node;
 	}
 }
 
 template<class T>
 bool AChannel<T>::detach(AInst *inst) {
-	ChannelList *list = (inst->flags & AInst::kAttached) == 0 ? &inactive : &active;
-	ChannelNode *node = list->head;
+	ChannelList *list = (inst->_flags & AInst::kAttached) == 0 ? &_inactive : &_active;
+	ChannelNode *node = list->_head;
 
 	while (node) {
 		ChannelNode *next = node->next;
@@ -215,7 +215,7 @@ bool AChannel<T>::detach(AInst *inst) {
 
 template<class T>
 void AChannel<T>::activate(AInst *inst) {
-	ChannelNode *node = inactive.head;
+	ChannelNode *node = _inactive._head;
 
 	while (node && node->inst != inst)
 		node = node->next;
@@ -226,13 +226,13 @@ void AChannel<T>::activate(AInst *inst) {
 		return;
 	}
 
-	inactive.remove(node);
-	active.insertByPriority(node);
+	_inactive.remove(node);
+	_active.insertByPriority(node);
 }
 
 template<class T>
 void AChannel<T>::deactivate(AInst *inst) {
-	ChannelNode *node = active.head;
+	ChannelNode *node = _active._head;
 
 	while (node && node->inst != inst)
 		node = node->next;
@@ -243,8 +243,8 @@ void AChannel<T>::deactivate(AInst *inst) {
 		return;
 	}
 
-	active.remove(node);
-	inactive.pushBack(node);
+	_active.remove(node);
+	_inactive.pushBack(node);
 }
 
 template<class T>
@@ -261,34 +261,34 @@ bool AChannel<T>::addTrack(AInst *inst, ATrack *track) {
 	node->inst = inst;
 	node->track = track;
 
-	if ((inst->flags & AInst::kAttached) != 0)
-		active.insertByPriority(node);
+	if ((inst->_flags & AInst::kAttached) != 0)
+		_active.insertByPriority(node);
 	else
-		inactive.pushBack(node);
+		_inactive.pushBack(node);
 
-	inst->channels.push_back(this);
+	inst->_channels.push_back(this);
 
 	return true;
 }
 
 template<>
 bool AChannel<CQuaternion>::evaluate(CQuaternion *out) {
-	if (active.count == 0)
+	if (_active._count == 0)
 		return true;
 
 	CQuaternion groupValue[kMaxGroups];
 	float groupSum[kMaxGroups];
 	int group = 0;
-	ChannelNode *start = active.head;
+	ChannelNode *start = _active._head;
 	ChannelNode *node = start;
-	int groupPriority = start->track->priority;
+	int groupPriority = start->track->_priority;
 
 	groupSum[0] = 0.0f;
 
 	while (node) {
 		ATrackData<CQuaternion> *track = static_cast<ATrackData<CQuaternion> *>(node->track);
 
-		if (track->priority < groupPriority) {
+		if (track->_priority < groupPriority) {
 			if (groupSum[group] >= 1.0f)
 				break;
 
@@ -302,15 +302,15 @@ bool AChannel<CQuaternion>::evaluate(CQuaternion *out) {
 			accumulateGroup(&groupValue[group], start, node, scale);
 			start = node;
 			group++;
-			groupPriority = track->priority;
+			groupPriority = track->_priority;
 			groupSum[group] = 0.0f;
 		}
 
 		AInst *inst = node->inst;
 
-		track->sample(node->lastTime, inst->time, &track->value, this);
-		groupSum[group] = inst->weight + groupSum[group];
-		node->lastTime = inst->time;
+		track->sample(node->lastTime, inst->_time, &track->_value, this);
+		groupSum[group] = inst->_weight + groupSum[group];
+		node->lastTime = inst->_time;
 		node = node->next;
 	}
 
@@ -323,22 +323,22 @@ bool AChannel<CQuaternion>::evaluate(CQuaternion *out) {
 			*out = groupValue[i];
 		} else {
 			double weight = groupSum[i];
-			CQuaternion scaled((float)(weight * groupValue[i].x), (float)(weight * groupValue[i].y), (float)(weight * groupValue[i].z), (float)(weight * groupValue[i].w));
+			CQuaternion scaled((float)(weight * groupValue[i]._x), (float)(weight * groupValue[i]._y), (float)(weight * groupValue[i]._z), (float)(weight * groupValue[i]._w));
 			double remaining = 1.0 - groupSum[i];
-			float remainingW = (float)(remaining * out->w);
-			float remainingZ = (float)(remaining * out->z);
-			float remainingY = (float)(remaining * out->y);
-			float remainingX = (float)(remaining * out->x);
+			float remainingW = (float)(remaining * out->_w);
+			float remainingZ = (float)(remaining * out->_z);
+			float remainingY = (float)(remaining * out->_y);
+			float remainingX = (float)(remaining * out->_x);
 
 			*out = CQuaternion(remainingX, remainingY, remainingZ, remainingW);
 
 			if (out->dot(scaled) < 0.0f)
-				scaled = CQuaternion((float)(scaled.x * -1.0), (float)(scaled.y * -1.0), (float)(scaled.z * -1.0), (float)(scaled.w * -1.0));
+				scaled = CQuaternion((float)(scaled._x * -1.0), (float)(scaled._y * -1.0), (float)(scaled._z * -1.0), (float)(scaled._w * -1.0));
 
-			out->x = scaled.x + out->x;
-			out->y = scaled.y + out->y;
-			out->z = scaled.z + out->z;
-			out->w = scaled.w + out->w;
+			out->_x = scaled._x + out->_x;
+			out->_y = scaled._y + out->_y;
+			out->_z = scaled._z + out->_z;
+			out->_w = scaled._w + out->_w;
 		}
 	}
 

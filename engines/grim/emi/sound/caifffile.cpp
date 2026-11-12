@@ -74,7 +74,7 @@ bool CAiffFile::read(LFile *file, CWaveSound *sound) {
 }
 
 bool CAiffFile::write(LFile *file, CWaveSound *sound) {
-	uint bytesPerFrame = (uint)(sound->bitsPerSample >> 3) * sound->numChannels;
+	uint bytesPerFrame = (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels;
 
 	// The original divides by zero here
 	if (!bytesPerFrame) {
@@ -95,28 +95,28 @@ bool CAiffFile::write(LFile *file, CWaveSound *sound) {
 
 	memset(header, 0, sizeof(header));
 
-	if (sound->loopEnd < sound->dataSize) {
-		loopStartFrame = sound->loopStart / bytesPerFrame;
+	if (sound->_loopEnd < sound->_dataSize) {
+		loopStartFrame = sound->_loopStart / bytesPerFrame;
 		hasLoop = 1;
-		loopEndFrame = sound->loopEnd / bytesPerFrame;
+		loopEndFrame = sound->_loopEnd / bytesPerFrame;
 	}
 
 	memcpy(header + size, "FORM", 4);
 	size += 4;
-	WRITE_BE_UINT32(header + size, sound->dataSize + 54 * hasLoop + 64);
+	WRITE_BE_UINT32(header + size, sound->_dataSize + 54 * hasLoop + 64);
 	size += 4;
 	memcpy(header + size, "AIFCCOMM", 8);
 	size += 8;
 	WRITE_BE_UINT32(header + size, 24);
 	size += 4;
-	WRITE_BE_UINT16(header + size, sound->numChannels);
+	WRITE_BE_UINT16(header + size, sound->_numChannels);
 	size += 2;
-	WRITE_BE_UINT32(header + size, sound->dataSize / bytesPerFrame);
+	WRITE_BE_UINT32(header + size, sound->_dataSize / bytesPerFrame);
 	size += 4;
-	WRITE_BE_UINT16(header + size, sound->bitsPerSample);
+	WRITE_BE_UINT16(header + size, sound->_bitsPerSample);
 	size += 2;
 
-	int sampleRate = (int)sound->sampleRate;
+	int sampleRate = (int)sound->_sampleRate;
 
 	if (sampleRate == 11025)
 		memcpy(header + size, extended11025, kExtendedSize);
@@ -175,7 +175,7 @@ bool CAiffFile::write(LFile *file, CWaveSound *sound) {
 
 	memcpy(header + size, "SSND", 4);
 	size += 4;
-	WRITE_BE_UINT32(header + size, sound->dataSize + 8);
+	WRITE_BE_UINT32(header + size, sound->_dataSize + 8);
 	size += 4;
 	size += 8;
 
@@ -183,11 +183,11 @@ bool CAiffFile::write(LFile *file, CWaveSound *sound) {
 
 	char chunk[kWriteChunkSize];
 	uint position = 0;
-	uint remaining = sound->dataSize;
+	uint remaining = sound->_dataSize;
 	bool swapBytes = false;
 
-	if (sound->bitsPerSample == 16)
-		swapBytes = sound->littleEndian;
+	if (sound->_bitsPerSample == 16)
+		swapBytes = sound->_littleEndian;
 
 	while (remaining) {
 		uint count = kWriteChunkSize;
@@ -219,9 +219,9 @@ bool CAiffFile::parse(LFile *file, CWaveSound *sound, int *dataPosition, uint *d
 	AiffHeader header;
 	uint32 chunk[2] = { 0, 0 };
 
-	numMarkers = 0;
-	loopEndId = 0;
-	loopBeginId = 0;
+	_numMarkers = 0;
+	_loopEndId = 0;
+	_loopBeginId = 0;
 
 	header.formSize = 0;
 	header.isAifc = false;
@@ -280,18 +280,18 @@ bool CAiffFile::parse(LFile *file, CWaveSound *sound, int *dataPosition, uint *d
 	}
 
 	uint beginPosition = 0;
-	uint endPosition = sound->dataSize;
+	uint endPosition = sound->_dataSize;
 
-	for (int i = 0; i < numMarkers; i++) {
-		if (markerId[i] == loopBeginId)
-			beginPosition = markerPos[i];
+	for (int i = 0; i < _numMarkers; i++) {
+		if (_markerId[i] == _loopBeginId)
+			beginPosition = _markerPos[i];
 
-		if (markerId[i] == loopEndId)
-			endPosition = markerPos[i];
+		if (_markerId[i] == _loopEndId)
+			endPosition = _markerPos[i];
 	}
 
-	sound->loopStart = beginPosition;
-	sound->loopEnd = endPosition;
+	sound->_loopStart = beginPosition;
+	sound->_loopEnd = endPosition;
 
 	return result;
 }
@@ -300,7 +300,7 @@ bool CAiffFile::readMarkers(LFile *file, CWaveSound *sound, int chunkSize) {
 	uint16 count = readBigEndian16(file);
 	int remaining = chunkSize - 2;
 
-	numMarkers = 0;
+	_numMarkers = 0;
 
 	for (uint16 i = 0; i < count; i++) {
 		if (remaining < kMarkerHeaderSize)
@@ -308,7 +308,7 @@ bool CAiffFile::readMarkers(LFile *file, CWaveSound *sound, int chunkSize) {
 
 		uint16 id = readBigEndian16(file);
 		uint32 frame = readBigEndian32(file);
-		uint position = frame * (uint)(sound->bitsPerSample >> 3) * sound->numChannels;
+		uint position = frame * (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels;
 		byte nameLength = 0;
 
 		file->read(&nameLength, 1);
@@ -334,9 +334,9 @@ bool CAiffFile::readMarkers(LFile *file, CWaveSound *sound, int chunkSize) {
 			remaining -= nameLength;
 
 			if (!scumm_strnicmp(name, "beg", 3))
-				loopBeginId = id;
+				_loopBeginId = id;
 			else if (!scumm_strnicmp(name, "end", 3))
-				loopEndId = id;
+				_loopEndId = id;
 		}
 
 		if (((nameLength - 1) & 1) != 0) {
@@ -345,10 +345,10 @@ bool CAiffFile::readMarkers(LFile *file, CWaveSound *sound, int chunkSize) {
 		}
 
 		// The disasm does not check the number of markers
-		if (numMarkers < kMaxMarkers) {
-			markerId[numMarkers] = id;
-			markerPos[numMarkers] = position;
-			numMarkers++;
+		if (_numMarkers < kMaxMarkers) {
+			_markerId[_numMarkers] = id;
+			_markerPos[_numMarkers] = position;
+			_numMarkers++;
 		} else {
 			warning("CAiffFile::readMarkers(): too many markers");
 		}
@@ -368,15 +368,15 @@ bool CAiffFile::readInstrument(LFile *file, CWaveSound *sound) {
 	readLoop(file, releaseLoop);
 
 	if (sustainLoop[0]) {
-		loopBeginId = sustainLoop[1];
-		loopEndId = sustainLoop[2];
+		_loopBeginId = sustainLoop[1];
+		_loopEndId = sustainLoop[2];
 
 		return true;
 	}
 
 	if (releaseLoop[0]) {
-		loopBeginId = releaseLoop[1];
-		loopEndId = releaseLoop[2];
+		_loopBeginId = releaseLoop[1];
+		_loopEndId = releaseLoop[2];
 	}
 
 	return true;
@@ -419,36 +419,36 @@ bool CAiffFile::readChunkHeader(LFile *file, uint32 *header) {
 }
 
 bool CAiffFile::readCommonChunk(LFile *file, const int *chunkSize, const AiffHeader *header, CWaveSound *sound) {
-	sound->numChannels = readBigEndian16(file);
+	sound->_numChannels = readBigEndian16(file);
 
 	uint32 frames = readBigEndian32(file);
 
-	sound->bitsPerSample = readBigEndian16(file);
+	sound->_bitsPerSample = readBigEndian16(file);
 
 	byte extended[kExtendedSize] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	file->read(extended, kExtendedSize);
 
-	sound->sampleRate = extendedToDouble(extended);
+	sound->_sampleRate = extendedToDouble(extended);
 
 	if (header->isAifc) {
 		uint32 compression = readBigEndian32(file);
 
 		switch (compression) {
 		case kCompressionNone:
-			sound->formatTag = CWaveSound::kFormatPcm;
-			sound->dataSize = (uint)(sound->bitsPerSample >> 3) * sound->numChannels * frames;
+			sound->_formatTag = CWaveSound::kFormatPcm;
+			sound->_dataSize = (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels * frames;
 
 			break;
 
 		case kCompressionSmsh:
-			sound->formatTag = CWaveSound::kFormatSmsh;
-			sound->dataSize = (uint)(sound->bitsPerSample >> 3) * sound->numChannels * frames;
+			sound->_formatTag = CWaveSound::kFormatSmsh;
+			sound->_dataSize = (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels * frames;
 
 			break;
 
 		case kCompressionVima:
-			sound->formatTag = CWaveSound::kFormatVima;
+			sound->_formatTag = CWaveSound::kFormatVima;
 
 			break;
 
@@ -468,8 +468,8 @@ bool CAiffFile::readCommonChunk(LFile *file, const int *chunkSize, const AiffHea
 		return true;
 	}
 
-	sound->dataSize = (uint)(sound->bitsPerSample >> 3) * sound->numChannels * frames;
-	sound->formatTag = CWaveSound::kFormatPcm;
+	sound->_dataSize = (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels * frames;
+	sound->_formatTag = CWaveSound::kFormatPcm;
 
 	file->seek(*chunkSize - kCommonChunkSize, SEEK_CUR);
 
@@ -477,7 +477,7 @@ bool CAiffFile::readCommonChunk(LFile *file, const int *chunkSize, const AiffHea
 }
 
 bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int *dataPosition, uint *dataSizeOut) {
-	uint bytesPerFrame = (uint)(sound->bitsPerSample >> 3) * sound->numChannels;
+	uint bytesPerFrame = (uint)(sound->_bitsPerSample >> 3) * sound->_numChannels;
 
 	// The original divides by zero here
 	if (!bytesPerFrame) {
@@ -486,7 +486,7 @@ bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int
 		return false;
 	}
 
-	uint frames = sound->dataSize / bytesPerFrame;
+	uint frames = sound->_dataSize / bytesPerFrame;
 	int dataBytes = chunkSize - 8;
 
 	if (readBigEndian32(file) != 0)
@@ -508,7 +508,7 @@ bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int
 		return true;
 	}
 
-	if (sound->formatTag == CWaveSound::kFormatVima) {
+	if (sound->_formatTag == CWaveSound::kFormatVima) {
 		uint compressedSize = readBigEndian32(file);
 		uint decompressedSize = readBigEndian32(file);
 
@@ -525,13 +525,13 @@ bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int
 		file->read(block, compressedSize);
 
 		sound->reallocData(decompressedSize);
-		sound->dataSize = decompressedSize;
+		sound->_dataSize = decompressedSize;
 
-		decodeVimaBlockReset(sound->samples, block, decompressedSize);
+		decodeVimaBlockReset(sound->_samples, block, decompressedSize);
 
 		delete[] block;
 
-		sound->formatTag = CWaveSound::kFormatPcm;
+		sound->_formatTag = CWaveSound::kFormatPcm;
 
 		return true;
 	}
@@ -543,24 +543,24 @@ bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int
 	}
 
 	sound->reallocData(dataBytes);
-	file->read(sound->samples, sound->allocatedSize);
+	file->read(sound->_samples, sound->_allocatedSize);
 
 	// The disasm seeks to the absolute offset of the padding
 	if (dataBytes & 1)
 		file->seek(1, SEEK_SET);
 
-	if (sound->formatTag != CWaveSound::kFormatPcm)
+	if (sound->_formatTag != CWaveSound::kFormatPcm)
 		return true;
 
-	if (sound->bitsPerSample <= 8) {
+	if (sound->_bitsPerSample <= 8) {
 		uint count = frames;
 
-		if (count > sound->allocatedSize) {
+		if (count > sound->_allocatedSize) {
 			warning("CAiffFile::readSoundData(): more frames than data");
-			count = sound->allocatedSize;
+			count = sound->_allocatedSize;
 		}
 
-		byte *sample = sound->samples;
+		byte *sample = sound->_samples;
 
 		while (count) {
 			*sample ^= 0x80;
@@ -571,17 +571,17 @@ bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int
 		return true;
 	}
 
-	if (sound->bitsPerSample > 16)
+	if (sound->_bitsPerSample > 16)
 		return false;
 
-	uint numWords = (uint)sound->numChannels * frames;
+	uint numWords = (uint)sound->_numChannels * frames;
 
-	if (numWords > sound->allocatedSize / 2) {
+	if (numWords > sound->_allocatedSize / 2) {
 		warning("CAiffFile::readSoundData(): more frames than data");
-		numWords = sound->allocatedSize / 2;
+		numWords = sound->_allocatedSize / 2;
 	}
 
-	byte *sample = sound->samples;
+	byte *sample = sound->_samples;
 
 	for (uint i = 0; i < numWords; i++) {
 		byte temp = sample[0];

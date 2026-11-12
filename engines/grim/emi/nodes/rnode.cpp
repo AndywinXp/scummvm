@@ -44,22 +44,22 @@ static void setLineColor(DrawVertex *line, const Color *color) {
 }
 
 RNode::RNode() {
-	lastFrame = 0;
-	drawFlags = 0;
+	_lastFrame = 0;
+	_drawFlags = 0;
 }
 
 RNode::~RNode() {
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i])
-			delete instances[i];
+	for (uint i = 0; i < _instances.size(); i++) {
+		if (_instances[i])
+			delete _instances[i];
 	}
 
-	instances.clear();
+	_instances.clear();
 }
 
 int RNode::findPrimitiveInstance(RPrimitiveInstance *instance) {
-	for (uint i = 0; i < instances.size(); i++) {
-		if (instances[i] == instance)
+	for (uint i = 0; i < _instances.size(); i++) {
+		if (_instances[i] == instance)
 			return i;
 	}
 
@@ -67,8 +67,8 @@ int RNode::findPrimitiveInstance(RPrimitiveInstance *instance) {
 }
 
 void RNode::removePrimitiveInstance(int index) {
-	if (index >= 0 && (uint)index < instances.size())
-		instances.remove_at(index);
+	if (index >= 0 && (uint)index < _instances.size())
+		_instances.remove_at(index);
 }
 
 void RNode::draw(Camera *camera) {
@@ -79,22 +79,22 @@ void RNode::draw(Camera *camera) {
 		return;
 	}
 
-	if (lastFrame == ctx->frameCounter || instances.empty())
+	if (_lastFrame == ctx->_frameCounter || _instances.empty())
 		return;
 
-	lastFrame = ctx->frameCounter;
+	_lastFrame = ctx->_frameCounter;
 
-	if (drawFlags & kDebugEnabled)
+	if (_drawFlags & kDebugEnabled)
 		drawDebug(camera);
 
-	for (uint i = 0; i < instances.size(); i++) {
-		RPrimitiveInstance *instance = instances[i];
+	for (uint i = 0; i < _instances.size(); i++) {
+		RPrimitiveInstance *instance = _instances[i];
 
 		if (instance && instance->isVisible(this, camera)) {
-			if (drawFlags & kDebugEnabled)
+			if (_drawFlags & kDebugEnabled)
 				instance->drawBounds(this, camera);
 
-			if ((drawFlags & kNoOutput) == 0)
+			if ((_drawFlags & kNoOutput) == 0)
 				instance->output(this, camera);
 		}
 	}
@@ -104,25 +104,25 @@ void RNode::drawDebug(Camera *camera) {
 	DrawVertex parentLine[2];
 	DrawVertex axisLine[2];
 
-	const float *v = camera->view.rot.m;
-	const CVector &viewPos = camera->view.pos;
+	const float *v = camera->_view._rot._m;
+	const CVector &viewPos = camera->_view._pos;
 
-	drawFlags &= ~kDebugEnabled;
+	_drawFlags &= ~kDebugEnabled;
 
-	if ((drawFlags & (kDebugParentLine | kDebugEnabled)) != 0 && parent) {
-		if ((nodeFlags & kWorldValid) == 0)
+	if ((_drawFlags & (kDebugParentLine | kDebugEnabled)) != 0 && _parent) {
+		if ((_nodeFlags & kWorldValid) == 0)
 			updateWorldTransform();
 
-		parentLine[0].x = world.pos.x;
-		parentLine[0].y = world.pos.y;
-		parentLine[0].z = world.pos.z;
+		parentLine[0].x = _world._pos._x;
+		parentLine[0].y = _world._pos._y;
+		parentLine[0].z = _world._pos._z;
 
-		if ((parent->nodeFlags & kWorldValid) == 0)
-			parent->updateWorldTransform();
+		if ((_parent->_nodeFlags & kWorldValid) == 0)
+			_parent->updateWorldTransform();
 
-		parentLine[1].x = parent->world.pos.x;
-		parentLine[1].y = parent->world.pos.y;
-		parentLine[1].z = parent->world.pos.z;
+		parentLine[1].x = _parent->_world._pos._x;
+		parentLine[1].y = _parent->_world._pos._y;
+		parentLine[1].z = _parent->_world._pos._z;
 
 		setLineColor(parentLine, &Color::kCyan);
 
@@ -134,30 +134,30 @@ void RNode::drawDebug(Camera *camera) {
 			float viewY = (float)((double)z * v[7] + (double)y * v[4] + (double)x * v[1]);
 			float viewZ = (float)((double)z * v[8] + (double)y * v[5] + (double)x * v[2]);
 
-			parentLine[i].x = (float)((double)viewX + viewPos.x);
-			parentLine[i].y = (float)((double)viewY + viewPos.y);
-			parentLine[i].z = (float)((double)viewZ + viewPos.z);
+			parentLine[i].x = (float)((double)viewX + viewPos._x);
+			parentLine[i].y = (float)((double)viewY + viewPos._y);
+			parentLine[i].z = (float)((double)viewZ + viewPos._z);
 		}
 
 		camera->drawLineLoop(parentLine, 2);
 	}
 
-	if ((drawFlags & (kDebugEnabled | kDebugAxes)) != 0) {
-		if ((nodeFlags & kWorldValid) == 0)
+	if ((_drawFlags & (kDebugEnabled | kDebugAxes)) != 0) {
+		if ((_nodeFlags & kWorldValid) == 0)
 			updateWorldTransform();
 
-		double nodeViewX = (double)v[3] * world.pos.y + (double)v[6] * world.pos.z + (double)v[0] * world.pos.x;
-		float nodeViewY = (float)((double)v[4] * world.pos.y + (double)v[1] * world.pos.x + (double)v[7] * world.pos.z);
-		float nodeViewZ = (float)((double)v[5] * world.pos.y + (double)v[2] * world.pos.x + (double)v[8] * world.pos.z);
-		float originX = (float)(nodeViewX + viewPos.x);
-		float originY = (float)((double)nodeViewY + viewPos.y);
-		float originZ = (float)((double)nodeViewZ + viewPos.z);
+		double nodeViewX = (double)v[3] * _world._pos._y + (double)v[6] * _world._pos._z + (double)v[0] * _world._pos._x;
+		float nodeViewY = (float)((double)v[4] * _world._pos._y + (double)v[1] * _world._pos._x + (double)v[7] * _world._pos._z);
+		float nodeViewZ = (float)((double)v[5] * _world._pos._y + (double)v[2] * _world._pos._x + (double)v[8] * _world._pos._z);
+		float originX = (float)(nodeViewX + viewPos._x);
+		float originY = (float)((double)nodeViewY + viewPos._y);
+		float originZ = (float)((double)nodeViewZ + viewPos._z);
 
 		CMatrix combined;
 
-		world.rot.multiply(&combined, &camera->view.rot);
+		_world._rot.multiply(&combined, &camera->_view._rot);
 
-		const float *a = combined.m;
+		const float *a = combined._m;
 		const Color *axisColors[kNumDebugAxes] = { &Color::kRed, &Color::kGreen, &Color::kBlue };
 
 		for (int axis = 0; axis < kNumDebugAxes; axis++) {
@@ -184,7 +184,7 @@ void RNode::drawDebug(Camera *camera) {
 		}
 	}
 
-	drawFlags |= kDebugEnabled;
+	_drawFlags |= kDebugEnabled;
 }
 
 } // End of namespace Grim

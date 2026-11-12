@@ -49,18 +49,18 @@ public:
 	virtual void output(RNode *node, Camera *camera) {}
 	virtual void update(RNode *node, Camera *camera) {}
 	virtual int getSaveSize();
-	virtual bool saveState(tSaveRestoreAccess *access);
-	virtual bool restoreState(tSaveRestoreAccess *access);
+	virtual bool saveState(SaveRestoreAccess *access);
+	virtual bool restoreState(SaveRestoreAccess *access);
 	virtual bool isVisible(RNode *node, Camera *camera);
 	virtual void drawBounds(RNode *node, Camera *camera);
 
-	RPrimitive *prim;
-	bool visible;
-	bool stateRestored;
-	int globalAlphaMode;
-	float globalAlpha;
-	int matAlphaMode;
-	Common::HashMap<int, float> matAlpha;
+	RPrimitive *_prim;
+	bool _visible;
+	bool _stateRestored;
+	int _globalAlphaMode;
+	float _globalAlpha;
+	int _matAlphaMode;
+	Common::HashMap<int, float> _matAlpha;
 };
 
 } // End of namespace Grim

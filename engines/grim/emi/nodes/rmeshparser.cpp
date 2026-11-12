@@ -36,7 +36,7 @@ static const int kDefaultDrawFlags = 772;
 static const int kMaxTriangles = 0x7FFFFFFF / 3;
 
 RMeshParser::RMeshParser(EmiEngine *engine) : LFormatParser(engine) {
-	mesh = nullptr;
+	_mesh = nullptr;
 
 	addKeyword("NumVerts", kKeywordNumVerts, 1);
 	addKeyword("VertFlags", kKeywordVertFlags, 1);
@@ -73,18 +73,18 @@ bool RMeshParser::handleKeyword(int id, int numArgs, KeywordArg *args) {
 }
 
 bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
-	if (!mesh) {
+	if (!_mesh) {
 		warning("RMeshParser::parseBasePrim(): no mesh");
 
 		return false;
 	}
 
-	bool result = readEntry(kKeywordTotTxSets, &mesh->numTextureSets);
+	bool result = readEntry(kKeywordTotTxSets, &_mesh->_numTextureSets);
 
 	if (!result)
 		return result;
 
-	if (mesh->numTextureSets > 0) {
+	if (_mesh->_numTextureSets > 0) {
 		int setType = 0;
 		int numTextures = 0;
 
@@ -97,42 +97,42 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 			numTextures = 0;
 		}
 
-		mesh->matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
-		mesh->texFlags.resize(numTextures, 0);
-		mesh->materials.resize(numTextures, nullptr);
+		_mesh->_matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
+		_mesh->_texFlags.resize(numTextures, 0);
+		_mesh->_materials.resize(numTextures, nullptr);
 
 		for (int i = 0; i < numTextures; i++) {
 			char textureName[kTokenSize];
-			LResourceHandle<CMaterial> *handle = &mesh->matHandles[i];
+			LResourceHandle<CMaterial> *handle = &_mesh->_matHandles[i];
 
 			textureName[0] = 0;
-			readEntry(kKeywordTextureName, textureName, &mesh->texFlags[i]);
+			readEntry(kKeywordTextureName, textureName, &_mesh->_texFlags[i]);
 
-			handle->resource = _engine->getResourceManager()->findResource(textureName);
+			handle->_resource = _engine->getResourceManager()->findResource(textureName);
 
-			if (!handle->resource) {
-				handle->resource = _engine->getResourceManager()->createResource(textureName);
+			if (!handle->_resource) {
+				handle->_resource = _engine->getResourceManager()->createResource(textureName);
 
-				if (!handle->resource)
+				if (!handle->_resource)
 					handle->allocateResource();
 
-				if (handle->resource) {
-					handle->resource->resSetName(textureName);
-					_engine->getResourceManager()->addResource(handle->resource);
+				if (handle->_resource) {
+					handle->_resource->resSetName(textureName);
+					_engine->getResourceManager()->addResource(handle->_resource);
 				}
 			}
 
-			handle->setResource(handle->resource);
+			handle->setResource(handle->_resource);
 
 			CMaterial *material = nullptr;
 
-			if (handle->resource && handle->lock())
-				material = handle->typed;
+			if (handle->_resource && handle->lock())
+				material = handle->_typed;
 
-			mesh->materials[i] = material;
+			_mesh->_materials[i] = material;
 
 			if (material)
-				material->addFlags(mesh->texFlags[i]);
+				material->addFlags(_mesh->_texFlags[i]);
 		}
 
 		readEndOfSection();
@@ -176,7 +176,7 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 			return false;
 	}
 
-	result = readEntry(kKeywordVertFlags, &mesh->vertFlags);
+	result = readEntry(kKeywordVertFlags, &_mesh->_vertFlags);
 
 	if (!result)
 		return result;
@@ -188,39 +188,39 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 	if (!result)
 		return result;
 
-	mesh->allocVertexData(mesh->vertFlags, numVerts);
+	_mesh->allocVertexData(_mesh->_vertFlags, numVerts);
 
-	for (int i = 0; i < mesh->numVerts; i++)
-		readEntry(kKeywordVector, &mesh->pos[i * 3], &mesh->pos[i * 3 + 1], &mesh->pos[i * 3 + 2]);
+	for (int i = 0; i < _mesh->_numVerts; i++)
+		readEntry(kKeywordVector, &_mesh->_pos[i * 3], &_mesh->_pos[i * 3 + 1], &_mesh->_pos[i * 3 + 2]);
 
-	if (mesh->vertFlags & 1) {
-		for (int i = 0; i < mesh->numVerts; i++)
-			readEntry(kKeywordVector, &mesh->normals[i * 3], &mesh->normals[i * 3 + 1], &mesh->normals[i * 3 + 2]);
+	if (_mesh->_vertFlags & 1) {
+		for (int i = 0; i < _mesh->_numVerts; i++)
+			readEntry(kKeywordVector, &_mesh->_normals[i * 3], &_mesh->_normals[i * 3 + 1], &_mesh->_normals[i * 3 + 2]);
 	}
 
-	if (mesh->vertFlags & 2) {
-		for (int i = 0; i < mesh->numVerts; i++) {
+	if (_mesh->_vertFlags & 2) {
+		for (int i = 0; i < _mesh->_numVerts; i++) {
 			int red = 0;
 			int green = 0;
 			int blue = 0;
 			int alpha = 0;
 
 			readEntry(kKeywordColor, &red, &green, &blue, &alpha);
-			mesh->colors[i].r = red;
-			mesh->colors[i].g = green;
-			mesh->colors[i].b = blue;
-			mesh->colors[i].a = alpha;
+			_mesh->_colors[i]._r = red;
+			_mesh->_colors[i]._g = green;
+			_mesh->_colors[i]._b = blue;
+			_mesh->_colors[i]._a = alpha;
 		}
 	}
 
-	if (mesh->vertFlags & 4) {
-		for (int i = 0; i < mesh->numVerts; i++)
-			readEntry(kKeywordVertIndex, &mesh->vertIndex[i]);
+	if (_mesh->_vertFlags & 4) {
+		for (int i = 0; i < _mesh->_numVerts; i++)
+			readEntry(kKeywordVertIndex, &_mesh->_vertIndex[i]);
 	}
 
-	if (mesh->vertFlags & 0x10) {
-		for (int i = 0; i < mesh->numVerts; i++)
-			readEntry(kKeywordTexCoord, &mesh->uv[i * 2], &mesh->uv[i * 2 + 1]);
+	if (_mesh->_vertFlags & 0x10) {
+		for (int i = 0; i < _mesh->_numVerts; i++)
+			readEntry(kKeywordTexCoord, &_mesh->_uv[i * 2], &_mesh->_uv[i * 2 + 1]);
 	}
 
 	int numTriSets = 0;
@@ -233,12 +233,12 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 		numTriSets = 0;
 	}
 
-	mesh->trisets.resize(numTriSets, nullptr);
+	_mesh->_trisets.resize(numTriSets, nullptr);
 
 	for (int i = 0; i < numTriSets; i++) {
 		TriSet *triset = new TriSet();
 
-		mesh->trisets[i] = triset;
+		_mesh->_trisets[i] = triset;
 
 		readEntry(kKeywordTsDrawFlags, &triset->drawFlags);
 
@@ -277,7 +277,7 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 }
 
 bool RMeshParser::parseDeformPrim(int token, int numArgs, KeywordArg *args) {
-	if (!mesh) {
+	if (!_mesh) {
 		warning("RMeshParser::parseDeformPrim(): no mesh");
 
 		return false;
@@ -285,8 +285,8 @@ bool RMeshParser::parseDeformPrim(int token, int numArgs, KeywordArg *args) {
 
 	CWeightMap *weightMap = new CWeightMap(_engine);
 
-	weightMap->restore(file);
-	mesh->weightMap = weightMap;
+	weightMap->restore(_file);
+	_mesh->_weightMap = weightMap;
 
 	return true;
 }

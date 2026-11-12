@@ -42,7 +42,7 @@ struct ControlSymbol {
 	uint flags;
 	int code;
 	int lastValue;
-	const char *pName;
+	const char *name;
 };
 
 class SputControlCallback {
@@ -54,41 +54,41 @@ public:
 
 class SputControl : public SputControlCallback {
 public:
-	SputControl(RenderDroid *pRd, SputRoom *pSputRoom, StdControl *pStdControl);
+	SputControl(RenderDroid *rd, SputRoom *sputRoom, StdControl *stdControl);
 
-	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setGrimEngine(GrimEngine *grim) { _grim = grim; }
 
 	int controlCallback(float frameTime) override;
 	void resetSymbols();
 	void enableControl(uint index);
 	void disableControl(uint index);
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int open();
 	int close();
-	int addCallback(SputControlCallback *pCallback);
+	int addCallback(SputControlCallback *callback);
 	void update(float frameTime);
 	int terminate();
 	int startup();
 	int shutdown();
 
-	ControlSymbol *getSymbols() { return _aControlSymbols; }
+	ControlSymbol *getSymbols() { return _controlSymbols; }
 	int getNumSymbols() const { return kNumControlSymbols; }
 
 private:
 	int standardHandler();
 	int changeFOV(double step);
 
-	RenderDroid *_pRd;
-	SputRoom *_pSputRoom;
-	StdControl *_pStdControl;
-	GrimEngine *_pGrim;
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
-	int _bControlOpen;
+	RenderDroid *_rd;
+	SputRoom *_sputRoom;
+	StdControl *_stdControl;
+	GrimEngine *_grim;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
+	int _controlOpen;
 	int _numCallbacks;
-	SputControlCallback *_apCallbacks[kMaxControlCallbacks];
-	ControlSymbol _aControlSymbols[kNumControlSymbols];
+	SputControlCallback *_callbacks[kMaxControlCallbacks];
+	ControlSymbol _controlSymbols[kNumControlSymbols];
 };
 
 } // End of namespace Grim

@@ -119,19 +119,19 @@ void vimaInit(uint16 *destTable) {
 
 void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable, bool isSmush) {
 	int numChannels = 1;
-	byte sBytes[2];
-	int16 sWords[2];
+	byte bytes[2];
+	int16 words[2];
 
-	sBytes[0] = *src++;
-	if (sBytes[0] & 0x80) {
-		sBytes[0] = ~sBytes[0];
+	bytes[0] = *src++;
+	if (bytes[0] & 0x80) {
+		bytes[0] = ~bytes[0];
 		numChannels = 2;
 	}
-	sWords[0] = READ_BE_UINT16(src);
+	words[0] = READ_BE_UINT16(src);
 	src += 2;
 	if (numChannels > 1) {
-		sBytes[1] = *src++;
-		sWords[1] = READ_BE_UINT16(src);
+		bytes[1] = *src++;
+		words[1] = READ_BE_UINT16(src);
 		src += 2;
 	}
 
@@ -197,8 +197,8 @@ void decompressVima(const byte *src, int16 *dest, int destLen, uint16 *destTable
 
 	for (int channel = 0; channel < numChannels; channel++) {
 		int16 *destPos = dest + channel;
-		int currTablePos = sBytes[channel];
-		int outputWord = sWords[channel];
+		int currTablePos = bytes[channel];
+		int outputWord = words[channel];
 
 		for (int sample = 0; sample < numSamples; sample++) {
 			int numBits = imcTable2[currTablePos];

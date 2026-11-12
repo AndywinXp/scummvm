@@ -34,21 +34,21 @@ enum {
 };
 
 ANode::ANode(EmiEngine *engine) : _engine(engine) {
-	boundTracks = 0;
-	dirty = true;
-	posChannel = new AChannel<CVector>();
-	rotChannel = new AChannel<CQuaternion>();
+	_boundTracks = 0;
+	_dirty = true;
+	_posChannel = new AChannel<CVector>();
+	_rotChannel = new AChannel<CQuaternion>();
 }
 
 ANode::~ANode() {
-	if (posChannel) {
-		delete posChannel;
-		posChannel = nullptr;
+	if (_posChannel) {
+		delete _posChannel;
+		_posChannel = nullptr;
 	}
 
-	if (rotChannel) {
-		delete rotChannel;
-		rotChannel = nullptr;
+	if (_rotChannel) {
+		delete _rotChannel;
+		_rotChannel = nullptr;
 	}
 }
 
@@ -61,27 +61,27 @@ void ANode::operator delete(void *block) {
 }
 
 void ANode::bindTrack(AInst *inst, ATrack *track) {
-	boundTracks++;
+	_boundTracks++;
 
-	if (track->dataType == ATrack::kDataVector)
-		posChannel->addTrack(inst, track);
-	else if (track->dataType == ATrack::kDataQuaternion)
-		rotChannel->addTrack(inst, track);
+	if (track->_dataType == ATrack::kDataVector)
+		_posChannel->addTrack(inst, track);
+	else if (track->_dataType == ATrack::kDataQuaternion)
+		_rotChannel->addTrack(inst, track);
 }
 
 void ANode::unbindTrack(AInst *inst, ATrack *track) {
-	boundTracks--;
+	_boundTracks--;
 
-	if (track->dataType == ATrack::kDataVector)
-		posChannel->detach(inst);
-	else if (track->dataType == ATrack::kDataQuaternion)
-		rotChannel->detach(inst);
+	if (track->_dataType == ATrack::kDataVector)
+		_posChannel->detach(inst);
+	else if (track->_dataType == ATrack::kDataQuaternion)
+		_rotChannel->detach(inst);
 }
 
 void ANode::updateANode() {
 	_engine->_updateANodeTimer.start();
 
-	if (!dirty || boundTracks <= 0) {
+	if (!_dirty || _boundTracks <= 0) {
 		_engine->_updateANodeTimer.stop();
 
 		return;
@@ -92,20 +92,20 @@ void ANode::updateANode() {
 	double resultZ = 0.0;
 	CQuaternion rotation;
 
-	if (posChannel->active.count) {
+	if (_posChannel->_active._count) {
 		CVector groupValue[kMaxGroups];
 		float groupSum[kMaxGroups];
 		int group = 0;
-		ChannelNode *start = posChannel->active.head;
+		ChannelNode *start = _posChannel->_active._head;
 		ChannelNode *node = start;
-		int groupPriority = start->track->priority;
+		int groupPriority = start->track->_priority;
 
 		groupSum[0] = 0.0f;
 
 		while (node) {
 			ATrackData<CVector> *track = static_cast<ATrackData<CVector> *>(node->track);
 
-			if (track->priority < groupPriority) {
+			if (track->_priority < groupPriority) {
 				if (groupSum[group] >= 1.0f)
 					break;
 
@@ -118,26 +118,26 @@ void ANode::updateANode() {
 
 				for (ChannelNode *member = start; member != node; member = member->next) {
 					ATrackData<CVector> *memberTrack = static_cast<ATrackData<CVector> *>(member->track);
-					double factor = (double)member->inst->weight * groupScale;
-					float addedZ = (float)(factor * memberTrack->value.z);
-					float addedY = (float)(factor * memberTrack->value.y);
+					double factor = (double)member->inst->_weight * groupScale;
+					float addedZ = (float)(factor * memberTrack->_value._z);
+					float addedY = (float)(factor * memberTrack->_value._y);
 
-					groupValue[group].x = (float)(factor * memberTrack->value.x + groupValue[group].x);
-					groupValue[group].y = (float)((double)addedY + groupValue[group].y);
-					groupValue[group].z = (float)((double)addedZ + groupValue[group].z);
+					groupValue[group]._x = (float)(factor * memberTrack->_value._x + groupValue[group]._x);
+					groupValue[group]._y = (float)((double)addedY + groupValue[group]._y);
+					groupValue[group]._z = (float)((double)addedZ + groupValue[group]._z);
 				}
 
 				start = node;
 				group++;
-				groupPriority = track->priority;
+				groupPriority = track->_priority;
 				groupSum[group] = 0.0f;
 			}
 
 			AInst *inst = node->inst;
 
-			track->sample(node->lastTime, inst->time, &track->value, posChannel);
-			groupSum[group] = inst->weight + groupSum[group];
-			node->lastTime = inst->time;
+			track->sample(node->lastTime, inst->_time, &track->_value, _posChannel);
+			groupSum[group] = inst->_weight + groupSum[group];
+			node->lastTime = inst->_time;
 			node = node->next;
 		}
 
@@ -145,25 +145,25 @@ void ANode::updateANode() {
 
 		for (ChannelNode *member = start; member != node; member = member->next) {
 			ATrackData<CVector> *memberTrack = static_cast<ATrackData<CVector> *>(member->track);
-			double factor = (double)member->inst->weight * lastScale;
-			float addedZ = (float)(factor * memberTrack->value.z);
-			float addedY = (float)(factor * memberTrack->value.y);
+			double factor = (double)member->inst->_weight * lastScale;
+			float addedZ = (float)(factor * memberTrack->_value._z);
+			float addedY = (float)(factor * memberTrack->_value._y);
 
-			groupValue[group].x = (float)(factor * memberTrack->value.x + groupValue[group].x);
-			groupValue[group].y = (float)((double)addedY + groupValue[group].y);
-			groupValue[group].z = (float)((double)addedZ + groupValue[group].z);
+			groupValue[group]._x = (float)(factor * memberTrack->_value._x + groupValue[group]._x);
+			groupValue[group]._y = (float)((double)addedY + groupValue[group]._y);
+			groupValue[group]._z = (float)((double)addedZ + groupValue[group]._z);
 		}
 
 		for (int i = group; i >= 0; i--) {
 			if (groupSum[i] >= 1.0f) {
-				resultX = groupValue[i].x;
-				resultY = groupValue[i].y;
-				resultZ = groupValue[i].z;
+				resultX = groupValue[i]._x;
+				resultY = groupValue[i]._y;
+				resultZ = groupValue[i]._z;
 			} else {
 				double weight = groupSum[i];
-				float scaledZ = (float)(weight * groupValue[i].z);
-				float scaledY = (float)(weight * groupValue[i].y);
-				float scaledX = (float)(weight * groupValue[i].x);
+				float scaledZ = (float)(weight * groupValue[i]._z);
+				float scaledY = (float)(weight * groupValue[i]._y);
+				float scaledX = (float)(weight * groupValue[i]._x);
 				float remaining = (float)(1.0 - groupSum[i]);
 				float previousZ = (float)(resultZ * remaining);
 				float previousY = (float)(resultY * remaining);
@@ -175,16 +175,16 @@ void ANode::updateANode() {
 		}
 	}
 
-	rotChannel->evaluate(&rotation);
+	_rotChannel->evaluate(&rotation);
 
-	pos.x = (float)resultX;
-	pos.y = (float)resultY;
-	pos.z = (float)resultZ;
-	nodeFlags |= kPositionValid | kLocalSet;
+	_pos._x = (float)resultX;
+	_pos._y = (float)resultY;
+	_pos._z = (float)resultZ;
+	_nodeFlags |= kPositionValid | kLocalSet;
 	updateLocalState();
 
-	quat = rotation;
-	nodeFlags = (nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kQuaternionValid | kLocalSet;
+	_quat = rotation;
+	_nodeFlags = (_nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kQuaternionValid | kLocalSet;
 	updateLocalState();
 
 	_engine->_updateANodeTimer.stop();

@@ -27,412 +27,412 @@
 
 namespace Grim {
 
-CosUtil::CosUtil(Cos *pCos) : _pCos(pCos) {
+CosUtil::CosUtil(Cos *cos) : _cos(cos) {
 }
 
-CosComponent *CosUtil::compPtrFromHandle(CosCostume *pCostume, int compIndex) {
-	if (!pCostume) {
+CosComponent *CosUtil::compPtrFromHandle(CosCostume *costume, int compIndex) {
+	if (!costume) {
 		warning("CosUtil::compPtrFromHandle(): null costume");
 		return nullptr;
 	}
 
-	if (compIndex < 0 || compIndex >= pCostume->numComponents)
+	if (compIndex < 0 || compIndex >= costume->numComponents)
 		return nullptr;
 
-	return &pCostume->aComponents[compIndex];
+	return &costume->components[compIndex];
 }
 
-int CosUtil::adjustComponent(CosCostume *pCostume, int whichComponent) {
-	if (!pCostume || whichComponent < 0 || whichComponent >= pCostume->numComponents) {
+int CosUtil::adjustComponent(CosCostume *costume, int whichComponent) {
+	if (!costume || whichComponent < 0 || whichComponent >= costume->numComponents) {
 		warning("CosUtil::adjustComponent(): invalid costume or component %d", whichComponent);
 		return 0;
 	}
 
-	CosComponent *pComp = &pCostume->aComponents[whichComponent];
+	CosComponent *comp = &costume->components[whichComponent];
 
-	if (pComp->classIdx < 0 || pComp->classIdx >= _pCos->_numClasses) {
-		warning("CosUtil::adjustComponent(): invalid tag index %d", pComp->classIdx);
+	if (comp->classIdx < 0 || comp->classIdx >= _cos->_numClasses) {
+		warning("CosUtil::adjustComponent(): invalid tag index %d", comp->classIdx);
 		return 0;
 	}
 
-	CosComponentClass *pClass = &_pCos->_aClasses[pComp->classIdx];
+	CosComponentClass *classInfo = &_cos->_classes[comp->classIdx];
 
-	if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat) {
-		warning("CosUtil::adjustComponent(): invalid tag type %d", pClass->type);
+	if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat) {
+		warning("CosUtil::adjustComponent(): invalid tag type %d", classInfo->type);
 		return 0;
 	}
 
-	if (!pClass->pHandler || !pClass->pHandler->hasAdjuster()) {
-		warning("CosUtil::adjustComponent(): tag %s has no adjuster", pClass->name);
+	if (!classInfo->handler || !classInfo->handler->hasAdjuster()) {
+		warning("CosUtil::adjustComponent(): tag %s has no adjuster", classInfo->name);
 		return 0;
 	}
 
-	return pClass->pHandler->adjust(&pComp->id, pComp->name, 32);
+	return classInfo->handler->adjust(&comp->id, comp->name, 32);
 }
 
-int CosUtil::componentHasAdjuster(CosCostume *pCostume, int whichComponent) {
-	if (!pCostume || whichComponent < 0 || whichComponent >= pCostume->numComponents) {
+int CosUtil::componentHasAdjuster(CosCostume *costume, int whichComponent) {
+	if (!costume || whichComponent < 0 || whichComponent >= costume->numComponents) {
 		warning("CosUtil::componentHasAdjuster(): invalid costume or component %d", whichComponent);
 		return 0;
 	}
 
-	CosComponent *pComp = &pCostume->aComponents[whichComponent];
+	CosComponent *comp = &costume->components[whichComponent];
 
-	if (pComp->classIdx < 0 || pComp->classIdx >= _pCos->_numClasses) {
-		warning("CosUtil::componentHasAdjuster(): invalid tag index %d", pComp->classIdx);
+	if (comp->classIdx < 0 || comp->classIdx >= _cos->_numClasses) {
+		warning("CosUtil::componentHasAdjuster(): invalid tag index %d", comp->classIdx);
 		return 0;
 	}
 
-	CosComponentClass *pClass = &_pCos->_aClasses[pComp->classIdx];
+	CosComponentClass *classInfo = &_cos->_classes[comp->classIdx];
 
-	if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat)
+	if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat)
 		return 0;
 
-	if (pClass->pHandler && pClass->pHandler->hasAdjuster())
+	if (classInfo->handler && classInfo->handler->hasAdjuster())
 		return 1;
 
 	return 0;
 }
 
-int CosUtil::addChore(CosCostume *pCostume) {
-	if (!pCostume) {
+int CosUtil::addChore(CosCostume *costume) {
+	if (!costume) {
 		warning("CosUtil::addChore(): null costume");
 		return -1;
 	}
 
-	CosChore *aChores = new CosChore[pCostume->numChores + 1]();
+	CosChore *chores = new CosChore[costume->numChores + 1]();
 
-	for (int i = 0; i < pCostume->numChores; i++)
-		aChores[i] = pCostume->aChores[i];
+	for (int i = 0; i < costume->numChores; i++)
+		chores[i] = costume->chores[i];
 
-	delete[] pCostume->aChores;
-	pCostume->aChores = aChores;
-	pCostume->numChores++;
-	_pCos->initChore(&aChores[pCostume->numChores - 1]);
+	delete[] costume->chores;
+	costume->chores = chores;
+	costume->numChores++;
+	_cos->initChore(&chores[costume->numChores - 1]);
 
-	return pCostume->numChores - 1;
+	return costume->numChores - 1;
 }
 
-void CosUtil::deleteChore(CosCostume *pCostume, int choreNum) {
-	if (!pCostume || choreNum < 0 || choreNum >= pCostume->numChores) {
+void CosUtil::deleteChore(CosCostume *costume, int choreNum) {
+	if (!costume || choreNum < 0 || choreNum >= costume->numChores) {
 		warning("CosUtil::deleteChore(): invalid costume or chore number %d", choreNum);
 		return;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreNum];
+	CosChore *chore = &costume->chores[choreNum];
 
-	if (pChore->numTracks) {
-		for (int t = 0; t < pChore->numTracks; t++) {
-			if (pChore->aTracks[t].numKeys) {
-				delete[] pChore->aTracks[t].aKeys;
-				pChore->aTracks[t].aKeys = nullptr;
+	if (chore->numTracks) {
+		for (int t = 0; t < chore->numTracks; t++) {
+			if (chore->tracks[t].numKeys) {
+				delete[] chore->tracks[t].keys;
+				chore->tracks[t].keys = nullptr;
 			}
 		}
 
-		delete[] pChore->aTracks;
-		pChore->aTracks = nullptr;
+		delete[] chore->tracks;
+		chore->tracks = nullptr;
 	}
 
-	int newNumChores = pCostume->numChores - 1;
-	CosChore *aChores = nullptr;
+	int newNumChores = costume->numChores - 1;
+	CosChore *chores = nullptr;
 
 	if (newNumChores > 0) {
-		aChores = new CosChore[newNumChores]();
+		chores = new CosChore[newNumChores]();
 
 		for (int i = 0; i < choreNum; i++)
-			aChores[i] = pCostume->aChores[i];
+			chores[i] = costume->chores[i];
 
-		for (int i = choreNum + 1; i < pCostume->numChores; i++)
-			aChores[i - 1] = pCostume->aChores[i];
+		for (int i = choreNum + 1; i < costume->numChores; i++)
+			chores[i - 1] = costume->chores[i];
 	}
 
-	delete[] pCostume->aChores;
-	pCostume->aChores = aChores;
-	pCostume->numChores = newNumChores;
+	delete[] costume->chores;
+	costume->chores = chores;
+	costume->numChores = newNumChores;
 }
 
-void CosUtil::nameChore(CosCostume *pCostume, int choreNum, const char *name) {
-	if (!pCostume || !name || choreNum < 0 || choreNum >= pCostume->numChores) {
+void CosUtil::nameChore(CosCostume *costume, int choreNum, const char *name) {
+	if (!costume || !name || choreNum < 0 || choreNum >= costume->numChores) {
 		warning("CosUtil::nameChore(): invalid costume, name or chore number %d", choreNum);
 		return;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreNum];
+	CosChore *chore = &costume->chores[choreNum];
 	size_t length = strlen(name);
 
 	if (length < 32) {
-		Common::strlcpy(pChore->name, name, 32);
+		Common::strlcpy(chore->name, name, 32);
 
 		for (size_t i = 0; i < length; i++) {
-			if (pChore->name[i] == ' ')
-				pChore->name[i] = '_';
+			if (chore->name[i] == ' ')
+				chore->name[i] = '_';
 		}
 	}
 }
 
-int CosUtil::deleteKey(CosCostume *pCostume, int whichChore, int whichComponent, int time) {
-	if (!pCostume || whichChore < 0 || whichChore >= pCostume->numChores
-			|| whichComponent < 0 || whichComponent >= pCostume->numComponents) {
+int CosUtil::deleteKey(CosCostume *costume, int whichChore, int whichComponent, int time) {
+	if (!costume || whichChore < 0 || whichChore >= costume->numChores
+			|| whichComponent < 0 || whichComponent >= costume->numComponents) {
 		warning("CosUtil::deleteKey(): invalid costume, chore %d or component %d", whichChore, whichComponent);
 		return 0;
 	}
 
-	CosChore *pChore = &pCostume->aChores[whichChore];
+	CosChore *chore = &costume->chores[whichChore];
 	int trackIndex = 0;
 
-	while (trackIndex < pChore->numTracks && pChore->aTracks[trackIndex].compIndex != whichComponent)
+	while (trackIndex < chore->numTracks && chore->tracks[trackIndex].compIndex != whichComponent)
 		trackIndex++;
 
-	if (trackIndex == pChore->numTracks)
+	if (trackIndex == chore->numTracks)
 		return 0;
 
-	CosChoreTrack *pTrack = &pChore->aTracks[trackIndex];
+	CosChoreTrack *track = &chore->tracks[trackIndex];
 	int keyIndex = 0;
 
-	while (keyIndex < pTrack->numKeys && pTrack->aKeys[keyIndex].time != time)
+	while (keyIndex < track->numKeys && track->keys[keyIndex].time != time)
 		keyIndex++;
 
-	if (keyIndex >= pTrack->numKeys)
+	if (keyIndex >= track->numKeys)
 		return 0;
 
-	int newNumKeys = pTrack->numKeys - 1;
-	CosChoreKey *aKeys = nullptr;
+	int newNumKeys = track->numKeys - 1;
+	CosChoreKey *keys = nullptr;
 
 	if (newNumKeys) {
-		aKeys = new CosChoreKey[newNumKeys]();
+		keys = new CosChoreKey[newNumKeys]();
 
 		for (int i = 0; i < keyIndex; i++)
-			aKeys[i] = pTrack->aKeys[i];
+			keys[i] = track->keys[i];
 
-		for (int i = keyIndex + 1; i < pTrack->numKeys; i++)
-			aKeys[i - 1] = pTrack->aKeys[i];
+		for (int i = keyIndex + 1; i < track->numKeys; i++)
+			keys[i - 1] = track->keys[i];
 	}
 
-	delete[] pTrack->aKeys;
-	pTrack->aKeys = aKeys;
-	pTrack->numKeys = newNumKeys;
+	delete[] track->keys;
+	track->keys = keys;
+	track->numKeys = newNumKeys;
 
 	return 1;
 }
 
-CosChoreKey *CosUtil::queryValueAtTime(CosCostume *pCostume, int whichChore, int whichComponent, int time) {
-	if (!pCostume || whichChore < 0 || whichChore >= pCostume->numChores
-			|| whichComponent < 0 || whichComponent >= pCostume->numComponents) {
+CosChoreKey *CosUtil::queryValueAtTime(CosCostume *costume, int whichChore, int whichComponent, int time) {
+	if (!costume || whichChore < 0 || whichChore >= costume->numChores
+			|| whichComponent < 0 || whichComponent >= costume->numComponents) {
 		warning("CosUtil::queryValueAtTime(): invalid costume, chore %d or component %d", whichChore, whichComponent);
 		return nullptr;
 	}
 
-	CosChore *pChore = &pCostume->aChores[whichChore];
+	CosChore *chore = &costume->chores[whichChore];
 	int trackIndex = 0;
 
-	while (trackIndex < pChore->numTracks && pChore->aTracks[trackIndex].compIndex != whichComponent)
+	while (trackIndex < chore->numTracks && chore->tracks[trackIndex].compIndex != whichComponent)
 		trackIndex++;
 
-	if (trackIndex == pChore->numTracks)
+	if (trackIndex == chore->numTracks)
 		return nullptr;
 
-	CosChoreTrack *pTrack = &pChore->aTracks[trackIndex];
+	CosChoreTrack *track = &chore->tracks[trackIndex];
 
-	for (int k = 0; k < pTrack->numKeys; k++) {
-		if ((uint32)pTrack->aKeys[k].time == (uint32)time)
-			return &pTrack->aKeys[k];
+	for (int k = 0; k < track->numKeys; k++) {
+		if ((uint32)track->keys[k].time == (uint32)time)
+			return &track->keys[k];
 
-		if ((uint32)pTrack->aKeys[k].time > (uint32)time) {
+		if ((uint32)track->keys[k].time > (uint32)time) {
 			if (k == 0)
 				return nullptr;
 
-			return &pTrack->aKeys[k - 1];
+			return &track->keys[k - 1];
 		}
 	}
 
-	if (pTrack->numKeys == 0)
+	if (track->numKeys == 0)
 		return nullptr;
 
-	return &pTrack->aKeys[pTrack->numKeys - 1];
+	return &track->keys[track->numKeys - 1];
 }
 
-int CosUtil::addFSKey(CosCostume *pCostume, int choreNum, int compNum, int time, int value) {
-	if (!pCostume || compNum < 0 || compNum >= pCostume->numComponents) {
+int CosUtil::addFSKey(CosCostume *costume, int choreNum, int compNum, int time, int value) {
+	if (!costume || compNum < 0 || compNum >= costume->numComponents) {
 		warning("CosUtil::addFSKey(): invalid costume or component %d", compNum);
 		return 0;
 	}
 
-	int classIdx = pCostume->aComponents[compNum].classIdx;
+	int classIdx = costume->components[compNum].classIdx;
 
-	if (classIdx < 0 || classIdx >= _pCos->_numClasses) {
+	if (classIdx < 0 || classIdx >= _cos->_numClasses) {
 		warning("CosUtil::addFSKey(): invalid tag index %d", classIdx);
 		return 0;
 	}
 
-	if (_pCos->_aClasses[classIdx].type != kCosTagStateBased)
+	if (_cos->_classes[classIdx].type != kCosTagStateBased)
 		return 0;
 
-	CosChoreKey *pKey = addKey(pCostume, choreNum, compNum, time);
+	CosChoreKey *key = addKey(costume, choreNum, compNum, time);
 
-	if (!pKey)
+	if (!key)
 		return 0;
 
-	pKey->value = value;
+	key->value = value;
 
 	return 1;
 }
 
-int CosUtil::addIntKey(CosCostume *pCostume, int choreNum, int compNum, int time, int value) {
-	if (!pCostume || compNum < 0 || compNum >= pCostume->numComponents) {
+int CosUtil::addIntKey(CosCostume *costume, int choreNum, int compNum, int time, int value) {
+	if (!costume || compNum < 0 || compNum >= costume->numComponents) {
 		warning("CosUtil::addIntKey(): invalid costume or component %d", compNum);
 		return 0;
 	}
 
-	int classIdx = pCostume->aComponents[compNum].classIdx;
+	int classIdx = costume->components[compNum].classIdx;
 
-	if (classIdx < 0 || classIdx >= _pCos->_numClasses) {
+	if (classIdx < 0 || classIdx >= _cos->_numClasses) {
 		warning("CosUtil::addIntKey(): invalid tag index %d", classIdx);
 		return 0;
 	}
 
-	if (_pCos->_aClasses[classIdx].type != kCosTagInt)
+	if (_cos->_classes[classIdx].type != kCosTagInt)
 		return 0;
 
-	CosChoreKey *pKey = addKey(pCostume, choreNum, compNum, time);
+	CosChoreKey *key = addKey(costume, choreNum, compNum, time);
 
-	if (!pKey)
+	if (!key)
 		return 0;
 
-	pKey->value = value;
+	key->value = value;
 
 	return 1;
 }
 
-int CosUtil::addFloatKey(CosCostume *pCostume, int choreNum, int compNum, int time, float value) {
-	if (!pCostume || compNum < 0 || compNum >= pCostume->numComponents) {
+int CosUtil::addFloatKey(CosCostume *costume, int choreNum, int compNum, int time, float value) {
+	if (!costume || compNum < 0 || compNum >= costume->numComponents) {
 		warning("CosUtil::addFloatKey(): invalid costume or component %d", compNum);
 		return 0;
 	}
 
-	int classIdx = pCostume->aComponents[compNum].classIdx;
+	int classIdx = costume->components[compNum].classIdx;
 
-	if (classIdx < 0 || classIdx >= _pCos->_numClasses) {
+	if (classIdx < 0 || classIdx >= _cos->_numClasses) {
 		warning("CosUtil::addFloatKey(): invalid tag index %d", classIdx);
 		return 0;
 	}
 
-	if (_pCos->_aClasses[classIdx].type != kCosTagFloat)
+	if (_cos->_classes[classIdx].type != kCosTagFloat)
 		return 0;
 
-	CosChoreKey *pKey = addKey(pCostume, choreNum, compNum, time);
+	CosChoreKey *key = addKey(costume, choreNum, compNum, time);
 
-	if (!pKey)
+	if (!key)
 		return 0;
 
-	memcpy(&pKey->value, &value, sizeof(pKey->value));
+	memcpy(&key->value, &value, sizeof(key->value));
 
 	return 1;
 }
 
-int CosUtil::countChores(CosCostume *pCostume) {
-	if (!pCostume) {
+int CosUtil::countChores(CosCostume *costume) {
+	if (!costume) {
 		warning("CosUtil::countChores(): null costume");
 		return 0;
 	}
 
-	return pCostume->numChores;
+	return costume->numChores;
 }
 
-const char *CosUtil::choreName(CosCostume *pCostume, int choreNum) {
-	if (!pCostume || choreNum < 0 || choreNum >= pCostume->numChores) {
+const char *CosUtil::choreName(CosCostume *costume, int choreNum) {
+	if (!costume || choreNum < 0 || choreNum >= costume->numChores) {
 		warning("CosUtil::choreName(): invalid costume or chore number %d", choreNum);
 		return nullptr;
 	}
 
-	return pCostume->aChores[choreNum].name;
+	return costume->chores[choreNum].name;
 }
 
 int CosUtil::countTags() {
-	return _pCos->_numClasses;
+	return _cos->_numClasses;
 }
 
-const char *CosUtil::tagInfo(int whichTag, int *pFourcc) {
-	if (whichTag < 0 || whichTag >= _pCos->_numClasses) {
+const char *CosUtil::tagInfo(int whichTag, int *fourcc) {
+	if (whichTag < 0 || whichTag >= _cos->_numClasses) {
 		warning("CosUtil::tagInfo(): invalid tag number %d", whichTag);
 		return nullptr;
 	}
 
-	if (pFourcc)
-		*pFourcc = _pCos->_aClasses[whichTag].fourcc;
+	if (fourcc)
+		*fourcc = _cos->_classes[whichTag].fourcc;
 
-	return _pCos->_aClasses[whichTag].name;
+	return _cos->_classes[whichTag].name;
 }
 
-CosChoreKey *CosUtil::addKey(CosCostume *pCostume, int choreNum, int compNum, int time) {
-	if (!pCostume || choreNum < 0 || choreNum >= pCostume->numChores) {
+CosChoreKey *CosUtil::addKey(CosCostume *costume, int choreNum, int compNum, int time) {
+	if (!costume || choreNum < 0 || choreNum >= costume->numChores) {
 		warning("CosUtil::addKey(): invalid costume or chore number %d", choreNum);
 		return nullptr;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreNum];
+	CosChore *chore = &costume->chores[choreNum];
 	int trackIndex = 0;
 
-	while (trackIndex < pChore->numTracks && pChore->aTracks[trackIndex].compIndex != compNum)
+	while (trackIndex < chore->numTracks && chore->tracks[trackIndex].compIndex != compNum)
 		trackIndex++;
 
-	if (trackIndex == pChore->numTracks) {
-		CosChoreTrack *aTracks = new CosChoreTrack[pChore->numTracks + 1]();
+	if (trackIndex == chore->numTracks) {
+		CosChoreTrack *tracks = new CosChoreTrack[chore->numTracks + 1]();
 
-		for (int t = 0; t < pChore->numTracks; t++)
-			aTracks[t] = pChore->aTracks[t];
+		for (int t = 0; t < chore->numTracks; t++)
+			tracks[t] = chore->tracks[t];
 
-		delete[] pChore->aTracks;
-		pChore->aTracks = aTracks;
-		pChore->numTracks++;
+		delete[] chore->tracks;
+		chore->tracks = tracks;
+		chore->numTracks++;
 
-		aTracks[trackIndex].numKeys = 0;
-		aTracks[trackIndex].aKeys = nullptr;
-		aTracks[trackIndex].length = 0;
-		aTracks[trackIndex].compIndex = compNum;
+		tracks[trackIndex].numKeys = 0;
+		tracks[trackIndex].keys = nullptr;
+		tracks[trackIndex].length = 0;
+		tracks[trackIndex].compIndex = compNum;
 	}
 
-	CosChoreTrack *pTrack = &pChore->aTracks[trackIndex];
+	CosChoreTrack *track = &chore->tracks[trackIndex];
 	CosChoreKey searchKey;
 	searchKey.time = time;
 	searchKey.value = 0;
 
-	CosChoreKey *pKey = nullptr;
+	CosChoreKey *key = nullptr;
 
-	if (pTrack->numKeys)
-		pKey = (CosChoreKey *)bsearch(&searchKey, pTrack->aKeys, pTrack->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
+	if (track->numKeys)
+		key = (CosChoreKey *)bsearch(&searchKey, track->keys, track->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
 
-	if (!pKey) {
-		CosChoreKey *aKeys = new CosChoreKey[pTrack->numKeys + 1]();
+	if (!key) {
+		CosChoreKey *keys = new CosChoreKey[track->numKeys + 1]();
 
-		for (int k = 0; k < pTrack->numKeys; k++)
-			aKeys[k] = pTrack->aKeys[k];
+		for (int k = 0; k < track->numKeys; k++)
+			keys[k] = track->keys[k];
 
-		delete[] pTrack->aKeys;
-		pTrack->aKeys = aKeys;
-		pTrack->numKeys++;
-		pKey = &aKeys[pTrack->numKeys - 1];
+		delete[] track->keys;
+		track->keys = keys;
+		track->numKeys++;
+		key = &keys[track->numKeys - 1];
 	}
 
-	pKey->time = time;
+	key->time = time;
 
-	if ((uint32)time > (uint32)pTrack->length)
-		pTrack->length = time;
+	if ((uint32)time > (uint32)track->length)
+		track->length = time;
 
 	uint32 minLength = time ? (uint32)time : 1;
 
-	if (minLength > (uint32)pChore->length)
-		pChore->length = (int)minLength;
+	if (minLength > (uint32)chore->length)
+		chore->length = (int)minLength;
 
-	sort(pTrack->aKeys, pTrack->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
+	sort(track->keys, track->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
 
-	for (int i = 0; i < pChore->numTracks; i++) {
-		for (int j = 0; j < pChore->numTracks; j++) {
-			if (i != j && pChore->aTracks[i].compIndex == pChore->aTracks[j].compIndex)
+	for (int i = 0; i < chore->numTracks; i++) {
+		for (int j = 0; j < chore->numTracks; j++) {
+			if (i != j && chore->tracks[i].compIndex == chore->tracks[j].compIndex)
 				return nullptr;
 		}
 	}
 
-	return (CosChoreKey *)bsearch(&searchKey, pTrack->aKeys, pTrack->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
+	return (CosChoreKey *)bsearch(&searchKey, track->keys, track->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
 }
 
 } // End of namespace Grim

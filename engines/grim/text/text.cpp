@@ -27,25 +27,25 @@
 
 namespace Grim {
 
-static void freeFontMemory(BlastTextFont *&pFont) {
-	delete[] pFont->aCharMap;
-	pFont->aCharMap = nullptr;
-	delete[] pFont->aGlyphs;
-	pFont->aGlyphs = nullptr;
-	delete[] pFont->pPixels;
-	pFont->pPixels = nullptr;
-	delete pFont;
-	pFont = nullptr;
+static void freeFontMemory(BlastTextFont *&font) {
+	delete[] font->charMap;
+	font->charMap = nullptr;
+	delete[] font->glyphs;
+	font->glyphs = nullptr;
+	delete[] font->pixels;
+	font->pixels = nullptr;
+	delete font;
+	font = nullptr;
 }
 
-Text::Text() : _pBlastText(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSystemFont(nullptr) {
+Text::Text() : _blastText(nullptr), _hs(nullptr), _initialized(0), _started(0), _systemFont(nullptr) {
 }
 
-int Text::sysInitialize(SysStruct *pHS) {
-	_pHS = pHS;
+int Text::sysInitialize(SysStruct *hs) {
+	_hs = hs;
 
-	if (!_bInitialized) {
-		_bInitialized = 1;
+	if (!_initialized) {
+		_initialized = 1;
 
 		return 0;
 	}
@@ -54,47 +54,47 @@ int Text::sysInitialize(SysStruct *pHS) {
 }
 
 void Text::sysTerminate() {
-	_bInitialized = 0;
+	_initialized = 0;
 }
 
 int Text::sysStartup() {
-	if (_bInitialized && !_bStarted) {
-		_bStarted = 1;
+	if (_initialized && !_started) {
+		_started = 1;
 
 		for (int i = 0; i < 255; i++)
-			_pBlastText->_aCharMap[i] = i;
+			_blastText->_charMap[i] = i;
 
-		return _pBlastText->initFont(_pSystemFont);
+		return _blastText->initFont(_systemFont);
 	}
 
 	return 1;
 }
 
 int Text::sysShutdown() {
-	if (_pSystemFont)
-		freeFontMemory(_pSystemFont);
+	if (_systemFont)
+		freeFontMemory(_systemFont);
 
-	_bStarted = 0;
-
-	return 0;
-}
-
-int Text::sysSave(Common::WriteStream *pStream) {
-	pStream->writeSint32LE(MKTAG('B', 't', 'x', 'T'));
-	pStream->writeSint32LE(1);
-	pStream->writeSint32LE(0);
+	_started = 0;
 
 	return 0;
 }
 
-int Text::sysRestore(Common::ReadStream *pStream) {
-	int tag = pStream->readSint32LE();
+int Text::sysSave(Common::WriteStream *stream) {
+	stream->writeSint32LE(MKTAG('B', 't', 'x', 'T'));
+	stream->writeSint32LE(1);
+	stream->writeSint32LE(0);
+
+	return 0;
+}
+
+int Text::sysRestore(Common::ReadStream *stream) {
+	int tag = stream->readSint32LE();
 
 	if (tag == MKTAG('B', 't', 'x', 'T')) {
-		int version = pStream->readSint32LE();
+		int version = stream->readSint32LE();
 
 		if (version == 1) {
-			int value = pStream->readSint32LE();
+			int value = stream->readSint32LE();
 
 			return value != 0;
 		}
@@ -104,78 +104,78 @@ int Text::sysRestore(Common::ReadStream *pStream) {
 }
 
 BlastTextFont *Text::getSystemFont() {
-	return _pSystemFont;
+	return _systemFont;
 }
 
-void Text::freeFont(BlastTextFont *&pFont) {
-	if (pFont && pFont != _pSystemFont)
-		freeFontMemory(pFont);
+void Text::freeFont(BlastTextFont *&font) {
+	if (font && font != _systemFont)
+		freeFontMemory(font);
 }
 
-int Text::getNextChar(const char **ppText) {
-	if (!*ppText) {
+int Text::getNextChar(const char **text) {
+	if (!*text) {
 		warning("Text::getNextChar(): no text");
 		return 0;
 	}
 
-	int c = *(const byte *)*ppText;
+	int c = *(const byte *)*text;
 
-	*ppText = (c != 0) ? *ppText + 1 : nullptr;
+	*text = (c != 0) ? *text + 1 : nullptr;
 
 	return c;
 }
 
-int Text::getCharKernedWidth(const TextParams *pParams, int c) {
-	BlastTextFont *pFont = pParams->pFont;
+int Text::getCharKernedWidth(const TextParams *params, int c) {
+	BlastTextFont *font = params->font;
 
-	if (!pFont) {
+	if (!font) {
 		warning("Text::getCharKernedWidth(): no font");
 		return 0;
 	}
 
-	return _pBlastText->charPositionHelper(pParams, pFont, (byte)c);
+	return _blastText->charPositionHelper(params, font, (byte)c);
 }
 
-int Text::getStringWidth(const TextParams *pParams, const char *pText) {
-	TextParams params = *pParams;
-	BlastTextFont *pFont = pParams->pFont;
+int Text::getStringWidth(const TextParams *paramsPointer, const char *text) {
+	TextParams params = *paramsPointer;
+	BlastTextFont *font = paramsPointer->font;
 	int maxWidth = 0;
 	int width = 0;
 
-	if (!pFont) {
+	if (!font) {
 		warning("Text::getStringWidth(): no font");
 		return 0;
 	}
 
 	do {
-		pText = _pBlastText->measureString(&params, pFont, pText, &width, nullptr, 1);
+		text = _blastText->measureString(&params, font, text, &width, nullptr, 1);
 
 		if (maxWidth <= width)
 			maxWidth = width;
-	} while (pText);
+	} while (text);
 
 	return maxWidth;
 }
 
-int Text::getStringHeight(const TextParams *pParams, const char *pText) {
-	TextParams params = *pParams;
-	BlastTextFont *pFont = pParams->pFont;
+int Text::getStringHeight(const TextParams *paramsPointer, const char *text) {
+	TextParams params = *paramsPointer;
+	BlastTextFont *font = paramsPointer->font;
 	int height = 0;
 
-	if (!pFont) {
+	if (!font) {
 		warning("Text::getStringHeight(): no font");
 		return 0;
 	}
 
 	do {
-		pText = _pBlastText->measureString(&params, pFont, pText, nullptr, nullptr, 1);
-		height += (pParams->scaleY * (uint)pFont->lineHeight + 0xFFFF) >> 16;
-	} while (pText);
+		text = _blastText->measureString(&params, font, text, nullptr, nullptr, 1);
+		height += (paramsPointer->scaleY * (uint)font->lineHeight + 0xFFFF) >> 16;
+	} while (text);
 
 	return height;
 }
 
-int Text::printText(TextParams *pParams, const char *format, ...) {
+int Text::printText(TextParams *params, const char *format, ...) {
 	char buffer[1004];
 
 	if (!format)
@@ -192,14 +192,14 @@ int Text::printText(TextParams *pParams, const char *format, ...) {
 		written = sizeof(buffer) - 1;
 	}
 
-	BlastTextFont *pFont = pParams->pFont;
+	BlastTextFont *font = params->font;
 
-	if (!pFont) {
+	if (!font) {
 		warning("Text::printText(): no font");
 		return written;
 	}
 
-	_pBlastText->drawString(pParams, pFont, buffer);
+	_blastText->drawString(params, font, buffer);
 
 	return written;
 }

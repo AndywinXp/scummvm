@@ -40,16 +40,16 @@ bool CMp3File::read(LFile *file, CWaveSound *sound) {
 
 	file->seek(0, SEEK_SET);
 
-	sound->sampleRate = kMp3SampleRate;
-	sound->formatTag = CWaveSound::kFormatMp3;
-	sound->bitsPerSample = 16;
-	sound->numChannels = 2;
-	sound->littleEndian = true;
-	sound->dataSize = kMp3PcmRatio * size;
+	sound->_sampleRate = kMp3SampleRate;
+	sound->_formatTag = CWaveSound::kFormatMp3;
+	sound->_bitsPerSample = 16;
+	sound->_numChannels = 2;
+	sound->_littleEndian = true;
+	sound->_dataSize = kMp3PcmRatio * size;
 
 	sound->reallocData(size + kMp3HeaderSize);
 
-	byte *samples = sound->samples;
+	byte *samples = sound->_samples;
 
 	if (!samples)
 		return false;

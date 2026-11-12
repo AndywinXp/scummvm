@@ -84,14 +84,14 @@ struct Std3DDeviceDesc {
 };
 
 struct Std3DDevice {
-	int bHardware;
-	int bPerspectiveCorrect;
-	int bZBuffer;
-	int bTransparency;
-	int bAlphaTexture;
-	int bAlphaStipple;
-	int bAlphaBlend;
-	int bSquareTexturesOnly;
+	int hardware;
+	int perspectiveCorrect;
+	int zBuffer;
+	int transparency;
+	int alphaTexture;
+	int alphaStipple;
+	int alphaBlend;
+	int squareTexturesOnly;
 	int reserved32;
 	int colorModelFlags;
 	int renderBitDepthMask;
@@ -102,8 +102,8 @@ struct Std3DDevice {
 	int maxTexHeight;
 	int maxBufferSize;
 	int maxVertexCount;
-	char aName[128];
-	char aDescription[128];
+	char name[128];
+	char description[128];
 	uint texMemTotal;
 	uint texMemFree;
 	Std3DDeviceDesc desc;
@@ -136,9 +136,9 @@ struct Std3DVertex {
 };
 
 struct Std3DTri {
-	int aIdx[3];
+	int idx[3];
 	uint flags;
-	RdTexCacheEntry *pTexture;
+	RdTexCacheEntry *texture;
 };
 
 struct Std3DSurface {
@@ -150,8 +150,8 @@ struct Std3DSurface {
 	int dirtyRight;
 	int dirtyBottom;
 	int shadowValid;
-	byte *pReference;
-	void *pBackendData;
+	byte *reference;
+	void *backendData;
 };
 
 enum Std3DCommandType {
@@ -164,14 +164,14 @@ struct Std3DCommand {
 	int type;
 	uint flags;
 	uint texture;
-	int bTextureAlpha;
+	int textureAlpha;
 	uint firstIndex;
 	uint numIndices;
 };
 
 class Std3D {
 public:
-	Std3D(StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
+	Std3D(StdDisplay *stdDisplay, StdBitmap *stdBitmap);
 	~Std3D();
 
 	static int isBackendCompiled(Std3DBackendKind kind);
@@ -181,101 +181,101 @@ public:
 	int openBackend(Std3DBackendKind kind, int width, int height);
 	void closeBackend();
 	Std3DBackendKind getBackendKind() { return _backendKind; }
-	int hasBackend() { return _pBackend != nullptr; }
+	int hasBackend() { return _backend != nullptr; }
 
-	void setDisplayMode(const StdVBufferTexFmt *pTex);
-	void setRenderTarget(Std3DSurface *pSurface);
-	Std3DSurface *getRenderTarget() { return _pRenderTarget; }
+	void setDisplayMode(const StdVBufferTexFmt *tex);
+	void setRenderTarget(Std3DSurface *surface);
+	Std3DSurface *getRenderTarget() { return _renderTarget; }
 	StdVBuffer *getZBuffer() { return &_zBuffer; }
 	uint getNumDevices() { return _numDevices; }
-	Std3DDevice *getDevices() { return _aDevices; }
-	Std3DDevice *getCurDevice() { return _pCurDevice; }
+	Std3DDevice *getDevices() { return _devices; }
+	Std3DDevice *getCurDevice() { return _curDevice; }
 	int getCurDeviceIndex() { return _curDeviceIndex; }
-	int getHardware() { return _bHardware; }
+	int getHardware() { return _hardware; }
 	uint getZBufferMode() { return _zBufferMode; }
 	uint getMaxVertices() { return _maxVertices; }
 
 	int enumerateDevices();
 	void releaseDirect3D();
 	int isAvailable();
-	int startup(uint deviceIndex, int bHardware);
+	int startup(uint deviceIndex, int hardware);
 	void shutdown();
 	void setDimensionLimits(uint minWidth, uint minHeight, uint maxWidth, uint maxHeight);
 	int beginScene();
 	int endScene();
 	int resetRenderList();
-	int addRenderListVertices(const Std3DVertex *pVertices, uint count);
+	int addRenderListVertices(const Std3DVertex *vertices, uint count);
 	int beginRenderList();
-	int addRenderListTris(const Std3DTri *pTris, uint count);
+	int addRenderListTris(const Std3DTri *tris, uint count);
 	int drawRenderList();
 	void setMaterialRenderState(uint flags);
-	int setCurrentPalette(const byte *pPalette, byte alpha);
-	void getValidDimensions(uint width, uint height, uint *pWidth, uint *pHeight);
+	int setCurrentPalette(const byte *palette, byte alpha);
+	void getValidDimensions(uint width, uint height, uint *widthPointer, uint *heightPointer);
 	void purgeTextureCache();
-	int addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlpha, int bColorKey);
+	int addToTextureCache(StdVBuffer *src, RdTexCacheEntry *entry, int alpha, int colorKey);
 	void flushTextureCache();
-	void cacheListAppend(RdTexCacheEntry *pEntry);
-	void cacheListRemove(RdTexCacheEntry *pEntry);
-	int getTextureMemory(uint *pTotal, uint *pFree);
-	void cacheListTouch(RdTexCacheEntry *pEntry);
+	void cacheListAppend(RdTexCacheEntry *entry);
+	void cacheListRemove(RdTexCacheEntry *entry);
+	int getTextureMemory(uint *total, uint *free);
+	void cacheListTouch(RdTexCacheEntry *entry);
 	int clearZBuffer();
-	uint findClosestDevice(const Std3DDevice *pWanted, const Std3DDevice *aDevices, uint numDevices);
-	uint findClosestMode(const StdColorFormat *pWanted, const Std3DTexFormat *aFormats, uint numFormats);
-	int setActiveRect(const StdRect *pRect);
+	uint findClosestDevice(const Std3DDevice *wanted, const Std3DDevice *devices, uint numDevices);
+	uint findClosestMode(const StdColorFormat *wanted, const Std3DTexFormat *formats, uint numFormats);
+	int setActiveRect(const StdRect *rect);
 	int createExecuteBuffer();
 	int createViewport(int width, int height);
 	int createDevice(int width, int height);
-	int enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName, const Std3DDeviceDesc *pHWDesc, const Std3DDeviceDesc *pHELDesc);
-	int enumTextureFormatsCallback(const Std3DPixelFormat *pPixelFormat);
+	int enumDevicesCallback(const byte *guid, const char *description, const char *name, const Std3DDeviceDesc *hwDesc, const Std3DDeviceDesc *helDesc);
+	int enumTextureFormatsCallback(const Std3DPixelFormat *pixelFormat);
 	uint convertBitDepthCaps(uint bitDepthFlags);
 	uint convertZCmpCaps(uint zCmpCaps);
 	uint zCmpMaskToFunc(uint zCmpMask);
 	int evictTextures(uint size);
 
-	void releaseTexture(RdTexCacheEntry *pEntry);
+	void releaseTexture(RdTexCacheEntry *entry);
 
-	Std3DSurface *createSurface(int width, int height, int bHasDepth);
-	void destroySurface(Std3DSurface *&pSurface);
-	int uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes);
-	int readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes);
-	int fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color);
-	int blit(Std3DSurface *pDst, Std3DSurface *pSrc, const StdRect *pSrcRect, int dstX, int dstY, int bColorKey, uint16 colorKey);
-	int uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes);
-	int presentSurface(Std3DSurface *pSurface);
+	Std3DSurface *createSurface(int width, int height, int hasDepth);
+	void destroySurface(Std3DSurface *&surface);
+	int uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes);
+	int readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes);
+	int fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color);
+	int blit(Std3DSurface *dst, Std3DSurface *src, const StdRect *srcRectPointer, int dstX, int dstY, int colorKeyFlag, uint16 colorKey);
+	int uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes);
+	int presentSurface(Std3DSurface *surface);
 
 private:
 	int ensureBackend();
-	static void markGpuDirty(Std3DSurface *pSurface, int x, int y, int width, int height);
+	static void markGpuDirty(Std3DSurface *surface, int x, int y, int width, int height);
 
-	StdDisplay *_pStdDisplay;
-	StdBitmap *_pStdBitmap;
-	Std3DBackend *_pBackend;
+	StdDisplay *_stdDisplay;
+	StdBitmap *_stdBitmap;
+	Std3DBackend *_backend;
 	Std3DBackendKind _backendKind;
-	const StdVBufferTexFmt *_pDisplayModeTex;
-	Std3DSurface *_pRenderTarget;
-	int _bDepthFromDevice;
+	const StdVBufferTexFmt *_displayModeTex;
+	Std3DSurface *_renderTarget;
+	int _depthFromDevice;
 
-	int _bAvailable;
-	int _bStarted;
-	int _bHardware;
-	int _bSceneBegun;
+	int _available;
+	int _started;
+	int _hardware;
+	int _sceneBegun;
 	uint _enumFlags;
 	uint _numDevices;
-	Std3DDevice _aDevices[kStd3DMaxDevices];
-	Std3DDevice *_pCurDevice;
+	Std3DDevice _devices[kStd3DMaxDevices];
+	Std3DDevice *_curDevice;
 	int _curDeviceIndex;
 	uint _zBufferMode;
 	int _zBufferBitDepth;
 	StdVBuffer _zBuffer;
 	uint _numTexFormats;
-	Std3DTexFormat _aTexFormats[kStd3DMaxTexFormats];
+	Std3DTexFormat _texFormats[kStd3DMaxTexFormats];
 	uint _opaqueFormatIndex;
 	uint _alphaFormatIndex;
 	uint _colorKeyFormatIndex;
-	Std3DTexFormat *_pTexFormatOpaque;
-	Std3DTexFormat *_pTexFormatAlpha;
-	Std3DTexFormat *_pTexFormatColorKey;
-	StdVBuffer *_pFrameBuffer;
+	Std3DTexFormat *_texFormatOpaque;
+	Std3DTexFormat *_texFormatAlpha;
+	Std3DTexFormat *_texFormatColorKey;
+	StdVBuffer *_frameBuffer;
 	uint _maxVertices;
 	uint _frameCounter;
 	uint _numCachedTextures;
@@ -283,12 +283,12 @@ private:
 	uint _minTexHeight;
 	uint _maxTexWidth;
 	uint _maxTexHeight;
-	RdTexCacheEntry *_pCacheHead;
-	RdTexCacheEntry *_pCacheTail;
-	byte _aPalette[768];
-	uint16 _aOpaquePaletteTable[256];
-	uint16 _aAlphaPaletteTable[256];
-	uint16 _aColorKeyPaletteTable[256];
+	RdTexCacheEntry *_cacheHead;
+	RdTexCacheEntry *_cacheTail;
+	byte _palette[768];
+	uint16 _opaquePaletteTable[256];
+	uint16 _alphaPaletteTable[256];
+	uint16 _colorKeyPaletteTable[256];
 	StdRect _activeRect;
 	uint _curRenderState;
 	float _fogStart;
@@ -297,19 +297,19 @@ private:
 	uint _fogGreen;
 	uint _fogBlue;
 	uint _alphaFunc;
-	int _bZEnable;
-	int _bTexMagLinear;
-	int _bTexMinLinear;
+	int _zEnable;
+	int _texMagLinear;
+	int _texMinLinear;
 
 	uint _numVertices;
 	uint _numTriangles;
-	Std3DVertex *_aVertices;
+	Std3DVertex *_vertices;
 	Common::Array<Std3DCommand> _commands;
 	Common::Array<uint16> _indices;
 	uint _listStart;
 	uint _listStartRenderState;
-	RdTexCacheEntry *_pCurTexture;
-	int _bCurTextureValid;
+	RdTexCacheEntry *_curTexture;
+	int _curTextureValid;
 };
 
 } // End of namespace Grim

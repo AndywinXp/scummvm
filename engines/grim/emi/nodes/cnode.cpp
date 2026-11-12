@@ -35,58 +35,58 @@ static const float kPi = 3.14159274f;
 static const float kHalfTurnDegrees = 180.0f;
 
 CNode::CNode() {
-	bindRot.setIdentity();
-	bindPos.x = 0.0f;
-	bindPos.y = 0.0f;
-	bindPos.z = 0.0f;
-	skinRot.setIdentity();
-	skinPos.x = 0.0f;
-	skinPos.y = 0.0f;
-	skinPos.z = 0.0f;
-	scale.z = 0.0f;
-	scale.y = 0.0f;
-	scale.x = 0.0f;
-	pos.z = 0.0f;
-	pos.y = 0.0f;
-	pos.x = 0.0f;
-	eulerDeg.z = 0.0f;
-	eulerDeg.y = 0.0f;
-	eulerDeg.x = 0.0f;
-	world.rot.setIdentity();
-	world.pos.x = 0.0f;
-	world.pos.y = 0.0f;
-	world.pos.z = 0.0f;
-	observerCount = 0;
-	observerHead = nullptr;
-	observerTail = nullptr;
-	pos.x = 0.0f;
-	pos.y = 0.0f;
-	pos.z = 0.0f;
-	quat.setEuler(0.0f, 0.0f, 0.0f);
-	eulerDeg.x = 0.0f;
-	eulerDeg.y = 0.0f;
-	eulerDeg.z = 0.0f;
-	nodeFlags = 15;
-	childCount = 0;
-	prevSibling = nullptr;
-	nextSibling = nullptr;
-	firstChild = nullptr;
-	parent = nullptr;
-	name[0] = 0;
-	scale.x = 1.0f;
-	scale.y = 1.0f;
-	scale.z = 1.0f;
+	_bindRot.setIdentity();
+	_bindPos._x = 0.0f;
+	_bindPos._y = 0.0f;
+	_bindPos._z = 0.0f;
+	_skinRot.setIdentity();
+	_skinPos._x = 0.0f;
+	_skinPos._y = 0.0f;
+	_skinPos._z = 0.0f;
+	_scale._z = 0.0f;
+	_scale._y = 0.0f;
+	_scale._x = 0.0f;
+	_pos._z = 0.0f;
+	_pos._y = 0.0f;
+	_pos._x = 0.0f;
+	_eulerDeg._z = 0.0f;
+	_eulerDeg._y = 0.0f;
+	_eulerDeg._x = 0.0f;
+	_world._rot.setIdentity();
+	_world._pos._x = 0.0f;
+	_world._pos._y = 0.0f;
+	_world._pos._z = 0.0f;
+	_observerCount = 0;
+	_observerHead = nullptr;
+	_observerTail = nullptr;
+	_pos._x = 0.0f;
+	_pos._y = 0.0f;
+	_pos._z = 0.0f;
+	_quat.setEuler(0.0f, 0.0f, 0.0f);
+	_eulerDeg._x = 0.0f;
+	_eulerDeg._y = 0.0f;
+	_eulerDeg._z = 0.0f;
+	_nodeFlags = 15;
+	_childCount = 0;
+	_prevSibling = nullptr;
+	_nextSibling = nullptr;
+	_firstChild = nullptr;
+	_parent = nullptr;
+	_name[0] = 0;
+	_scale._x = 1.0f;
+	_scale._y = 1.0f;
+	_scale._z = 1.0f;
 }
 
 CNode::~CNode() {
-	CNodeRef *observer = observerHead;
+	CNodeRef *observer = _observerHead;
 
 	while (observer) {
 		CNodeRef *current = observer;
 
-		observer = observer->next;
+		observer = observer->_next;
 		current->onNodeDestroyed();
-		current->node = nullptr;
+		current->_node = nullptr;
 	}
 
 	detachFromParent();
@@ -101,91 +101,91 @@ void CNode::operator delete(void *block) {
 }
 
 void CNode::updateLocalState() {
-	if ((nodeFlags & kWorldValid) != 0)
+	if ((_nodeFlags & kWorldValid) != 0)
 		updateChildrenLocalTransforms();
 
-	if ((nodeFlags & kPositionValid) == 0)
+	if ((_nodeFlags & kPositionValid) == 0)
 		computeLocalPositionFromWorld();
 
-	if ((nodeFlags & (kEulerValid | kQuaternionValid)) == 0)
+	if ((_nodeFlags & (kEulerValid | kQuaternionValid)) == 0)
 		updateLocalQuaternion();
 
-	nodeFlags = (nodeFlags & ~(kWorldValid | kLocalSet)) | kLocalSet;
+	_nodeFlags = (_nodeFlags & ~(kWorldValid | kLocalSet)) | kLocalSet;
 }
 
 CQuaternion CNode::getWorldOrientation() {
 	CQuaternion orientation;
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	world.rot.toQuaternion(&orientation);
+	_world._rot.toQuaternion(&orientation);
 
 	return orientation;
 }
 
 void CNode::setLocalPosition(const CVector &position) {
-	pos = position;
-	nodeFlags |= kPositionValid | kLocalSet;
+	_pos = position;
+	_nodeFlags |= kPositionValid | kLocalSet;
 	updateLocalState();
 }
 
 void CNode::setLocalTransform(const CVector &position, const CQuaternion &rotation) {
-	pos = position;
-	nodeFlags |= kPositionValid | kLocalSet;
+	_pos = position;
+	_nodeFlags |= kPositionValid | kLocalSet;
 	updateLocalState();
 
-	quat.x = rotation.x;
-	nodeFlags = (nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kQuaternionValid | kLocalSet;
-	quat.y = rotation.y;
-	quat.z = rotation.z;
-	quat.w = rotation.w;
+	_quat._x = rotation._x;
+	_nodeFlags = (_nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kQuaternionValid | kLocalSet;
+	_quat._y = rotation._y;
+	_quat._z = rotation._z;
+	_quat._w = rotation._w;
 	updateLocalState();
 }
 
 void CNode::localToWorld(CVector *point) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	float newY = (float)((double)m[7] * point->z + (double)m[1] * point->x + (double)m[4] * point->y);
-	float newZ = (float)((double)m[8] * point->z + (double)m[2] * point->x + (double)m[5] * point->y);
-	double newX = (double)m[6] * point->z + (double)m[3] * point->y + (double)m[0] * point->x + world.pos.x;
-	float storedY = (float)((double)newY + world.pos.y);
-	float storedZ = (float)((double)newZ + world.pos.z);
+	const float *m = _world._rot._m;
+	float newY = (float)((double)m[7] * point->_z + (double)m[1] * point->_x + (double)m[4] * point->_y);
+	float newZ = (float)((double)m[8] * point->_z + (double)m[2] * point->_x + (double)m[5] * point->_y);
+	double newX = (double)m[6] * point->_z + (double)m[3] * point->_y + (double)m[0] * point->_x + _world._pos._x;
+	float storedY = (float)((double)newY + _world._pos._y);
+	float storedZ = (float)((double)newZ + _world._pos._z);
 
-	point->y = storedY;
-	point->x = (float)newX;
-	point->z = storedZ;
+	point->_y = storedY;
+	point->_x = (float)newX;
+	point->_z = storedZ;
 }
 
 CVector *CNode::localToWorld(const CVector *point, CVector *out) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	float newY = (float)((double)m[1] * point->x + (double)m[7] * point->z + (double)m[4] * point->y);
-	float newZ = (float)((double)m[2] * point->x + (double)m[8] * point->z + (double)m[5] * point->y);
-	double sumY = (double)newY + world.pos.y;
-	float storedZ = (float)((double)newZ + world.pos.z);
+	const float *m = _world._rot._m;
+	float newY = (float)((double)m[1] * point->_x + (double)m[7] * point->_z + (double)m[4] * point->_y);
+	float newZ = (float)((double)m[2] * point->_x + (double)m[8] * point->_z + (double)m[5] * point->_y);
+	double sumY = (double)newY + _world._pos._y;
+	float storedZ = (float)((double)newZ + _world._pos._z);
 
-	out->x = (float)((double)m[6] * point->z + (double)m[3] * point->y + (double)m[0] * point->x + world.pos.x);
-	out->z = storedZ;
-	out->y = (float)sumY;
+	out->_x = (float)((double)m[6] * point->_z + (double)m[3] * point->_y + (double)m[0] * point->_x + _world._pos._x);
+	out->_z = storedZ;
+	out->_y = (float)sumY;
 
 	return out;
 }
 
 float *CNode::worldToLocal(const float *worldX, const float *worldY, const float *worldZ, float *localX, float *localY, float *localZ) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
+	const float *m = _world._rot._m;
 
-	*localX = *worldX - world.pos.x;
-	*localY = *worldY - world.pos.y;
+	*localX = *worldX - _world._pos._x;
+	*localY = *worldY - _world._pos._y;
 
-	double deltaZ = (double)*worldZ - world.pos.z;
+	double deltaZ = (double)*worldZ - _world._pos._z;
 
 	*localZ = (float)deltaZ;
 
@@ -200,58 +200,58 @@ float *CNode::worldToLocal(const float *worldX, const float *worldY, const float
 }
 
 CVector *CNode::worldToLocal(CVector *point) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	double deltaX = (double)point->x - world.pos.x;
-	float deltaY = (float)((double)point->y - world.pos.y);
-	double deltaZ = (double)point->z - world.pos.z;
+	const float *m = _world._rot._m;
+	double deltaX = (double)point->_x - _world._pos._x;
+	float deltaY = (float)((double)point->_y - _world._pos._y);
+	double deltaZ = (double)point->_z - _world._pos._z;
 	float deltaZStored = (float)deltaZ;
 	float newY = (float)(deltaX * m[3] + (double)deltaZStored * m[5] + (double)deltaY * m[4]);
 	double newX = deltaZ * m[2] + (double)deltaY * m[1] + deltaX * m[0];
 	double partialZ = deltaX * m[6] + (double)deltaZStored * m[8];
 	double partialY = (double)deltaY * m[7];
 
-	point->y = newY;
+	point->_y = newY;
 	float newZ = (float)(partialZ + partialY);
-	point->x = (float)newX;
-	point->z = newZ;
+	point->_x = (float)newX;
+	point->_z = newZ;
 
 	return point;
 }
 
 CVector *CNode::worldToLocal(const CVector *point, CVector *out) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	double deltaX = (double)point->x - world.pos.x;
-	float deltaY = (float)((double)point->y - world.pos.y);
-	double deltaZ = (double)point->z - world.pos.z;
+	const float *m = _world._rot._m;
+	double deltaX = (double)point->_x - _world._pos._x;
+	float deltaY = (float)((double)point->_y - _world._pos._y);
+	double deltaZ = (double)point->_z - _world._pos._z;
 	float deltaZStored = (float)deltaZ;
 	float newX = (float)(deltaZ * m[2] + (double)deltaY * m[1] + deltaX * m[0]);
 	double newY = deltaX * m[3] + (double)deltaZStored * m[5] + (double)deltaY * m[4];
 	float newZ = (float)(deltaX * m[6] + (double)deltaZStored * m[8] + (double)deltaY * m[7]);
 
-	out->x = newX;
-	out->z = newZ;
-	out->y = (float)newY;
+	out->_x = newX;
+	out->_z = newZ;
+	out->_y = (float)newY;
 
 	return out;
 }
 
 CVector *CNode::localToWorldDirection(const CVector *direction, CVector *out) {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *m = world.rot.m;
-	double newY = (double)m[1] * direction->x + (double)m[7] * direction->z + (double)m[4] * direction->y;
-	float newZ = (float)((double)m[2] * direction->x + (double)m[8] * direction->z + (double)m[5] * direction->y);
+	const float *m = _world._rot._m;
+	double newY = (double)m[1] * direction->_x + (double)m[7] * direction->_z + (double)m[4] * direction->_y;
+	float newZ = (float)((double)m[2] * direction->_x + (double)m[8] * direction->_z + (double)m[5] * direction->_y);
 
-	out->x = (float)((double)m[6] * direction->z + (double)m[3] * direction->y + (double)m[0] * direction->x);
-	out->z = newZ;
-	out->y = (float)newY;
+	out->_x = (float)((double)m[6] * direction->_z + (double)m[3] * direction->_y + (double)m[0] * direction->_x);
+	out->_z = newZ;
+	out->_y = (float)newY;
 
 	return out;
 }
@@ -259,139 +259,139 @@ CVector *CNode::localToWorldDirection(const CVector *direction, CVector *out) {
 void CNode::updateWorldTransform() {
 	CMatrix rotation;
 
-	if ((nodeFlags & kQuaternionValid) != 0) {
-		rotation.setFromQuaternion(quat);
-		world.rot = rotation;
-		world.pos.x = pos.x;
-		world.pos.y = pos.y;
-		world.pos.z = pos.z;
-	} else if ((nodeFlags & kEulerValid) != 0) {
-		rotation = *rotation.setFromEuler(eulerDeg);
-		world.rot = rotation;
-		world.pos.x = pos.x;
-		world.pos.y = pos.y;
-		world.pos.z = pos.z;
+	if ((_nodeFlags & kQuaternionValid) != 0) {
+		rotation.setFromQuaternion(_quat);
+		_world._rot = rotation;
+		_world._pos._x = _pos._x;
+		_world._pos._y = _pos._y;
+		_world._pos._z = _pos._z;
+	} else if ((_nodeFlags & kEulerValid) != 0) {
+		rotation = *rotation.setFromEuler(_eulerDeg);
+		_world._rot = rotation;
+		_world._pos._x = _pos._x;
+		_world._pos._y = _pos._y;
+		_world._pos._z = _pos._z;
 	}
 
-	if (parent) {
-		if ((parent->nodeFlags & kWorldValid) == 0)
-			parent->updateWorldTransform();
+	if (_parent) {
+		if ((_parent->_nodeFlags & kWorldValid) == 0)
+			_parent->updateWorldTransform();
 
-		const float *p = parent->world.rot.m;
-		const float *w = world.rot.m;
-		const CVector &wp = world.pos;
-		const CVector &pp = parent->world.pos;
-		float posY = (float)((double)p[1] * wp.x + (double)wp.z * p[7] + (double)wp.y * p[4]);
-		float posZ = (float)((double)wp.z * p[8] + (double)wp.y * p[5] + (double)wp.x * p[2]);
-		double posX = (double)wp.z * p[6] + (double)p[0] * wp.x + (double)wp.y * p[3] + pp.x;
-		float worldY = (float)((double)posY + pp.y);
-		float worldZ = (float)((double)posZ + pp.z);
+		const float *p = _parent->_world._rot._m;
+		const float *w = _world._rot._m;
+		const CVector &wp = _world._pos;
+		const CVector &pp = _parent->_world._pos;
+		float posY = (float)((double)p[1] * wp._x + (double)wp._z * p[7] + (double)wp._y * p[4]);
+		float posZ = (float)((double)wp._z * p[8] + (double)wp._y * p[5] + (double)wp._x * p[2]);
+		double posX = (double)wp._z * p[6] + (double)p[0] * wp._x + (double)wp._y * p[3] + pp._x;
+		float worldY = (float)((double)posY + pp._y);
+		float worldZ = (float)((double)posZ + pp._z);
 
-		rotation.m[0] = (float)((double)p[0] * w[0] + (double)p[6] * w[2] + (double)p[3] * w[1]);
-		rotation.m[1] = (float)((double)p[1] * w[0] + (double)p[7] * w[2] + (double)p[4] * w[1]);
-		rotation.m[2] = (float)((double)p[8] * w[2] + (double)p[5] * w[1] + (double)w[0] * p[2]);
-		rotation.m[3] = (float)((double)p[6] * w[5] + (double)w[4] * p[3] + (double)w[3] * p[0]);
-		rotation.m[4] = (float)((double)w[3] * p[1] + (double)w[5] * p[7] + (double)w[4] * p[4]);
-		rotation.m[5] = (float)((double)w[5] * p[8] + (double)w[4] * p[5] + (double)w[3] * p[2]);
-		rotation.m[6] = (float)((double)w[7] * p[3] + (double)p[0] * w[6] + (double)p[6] * w[8]);
-		rotation.m[7] = (float)((double)p[7] * w[8] + (double)p[4] * w[7] + (double)w[6] * p[1]);
-		rotation.m[8] = (float)((double)w[8] * p[8] + (double)w[7] * p[5] + (double)w[6] * p[2]);
+		rotation._m[0] = (float)((double)p[0] * w[0] + (double)p[6] * w[2] + (double)p[3] * w[1]);
+		rotation._m[1] = (float)((double)p[1] * w[0] + (double)p[7] * w[2] + (double)p[4] * w[1]);
+		rotation._m[2] = (float)((double)p[8] * w[2] + (double)p[5] * w[1] + (double)w[0] * p[2]);
+		rotation._m[3] = (float)((double)p[6] * w[5] + (double)w[4] * p[3] + (double)w[3] * p[0]);
+		rotation._m[4] = (float)((double)w[3] * p[1] + (double)w[5] * p[7] + (double)w[4] * p[4]);
+		rotation._m[5] = (float)((double)w[5] * p[8] + (double)w[4] * p[5] + (double)w[3] * p[2]);
+		rotation._m[6] = (float)((double)w[7] * p[3] + (double)p[0] * w[6] + (double)p[6] * w[8]);
+		rotation._m[7] = (float)((double)p[7] * w[8] + (double)p[4] * w[7] + (double)w[6] * p[1]);
+		rotation._m[8] = (float)((double)w[8] * p[8] + (double)w[7] * p[5] + (double)w[6] * p[2]);
 
-		world.rot = rotation;
-		world.pos.x = (float)posX;
-		world.pos.y = worldY;
-		world.pos.z = worldZ;
-		nodeFlags |= kWorldValid;
+		_world._rot = rotation;
+		_world._pos._x = (float)posX;
+		_world._pos._y = worldY;
+		_world._pos._z = worldZ;
+		_nodeFlags |= kWorldValid;
 	} else {
-		nodeFlags |= kWorldValid;
+		_nodeFlags |= kWorldValid;
 	}
 }
 
 void CNode::computeLocalMatrixFromWorld() {
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	if (parent) {
-		const float *p = parent->world.rot.m;
-		const float *w = world.rot.m;
+	if (_parent) {
+		const float *p = _parent->_world._rot._m;
+		const float *w = _world._rot._m;
 		CMatrix local;
 
-		local.m[0] = (float)((double)p[2] * w[2] + (double)p[1] * w[1] + (double)p[0] * w[0]);
-		local.m[1] = (float)((double)p[5] * w[2] + (double)p[4] * w[1] + (double)p[3] * w[0]);
-		local.m[2] = (float)((double)p[8] * w[2] + (double)p[7] * w[1] + (double)p[6] * w[0]);
-		local.m[3] = (float)((double)p[0] * w[3] + (double)p[2] * w[5] + (double)p[1] * w[4]);
-		local.m[4] = (float)((double)p[3] * w[3] + (double)p[5] * w[5] + (double)p[4] * w[4]);
-		local.m[5] = (float)((double)p[6] * w[3] + (double)p[8] * w[5] + (double)p[7] * w[4]);
-		local.m[6] = (float)((double)p[0] * w[6] + (double)p[2] * w[8] + (double)p[1] * w[7]);
-		local.m[7] = (float)((double)p[3] * w[6] + (double)p[5] * w[8] + (double)p[4] * w[7]);
-		local.m[8] = (float)((double)p[6] * w[6] + (double)p[8] * w[8] + (double)p[7] * w[7]);
-		local.toEuler(&eulerDeg);
+		local._m[0] = (float)((double)p[2] * w[2] + (double)p[1] * w[1] + (double)p[0] * w[0]);
+		local._m[1] = (float)((double)p[5] * w[2] + (double)p[4] * w[1] + (double)p[3] * w[0]);
+		local._m[2] = (float)((double)p[8] * w[2] + (double)p[7] * w[1] + (double)p[6] * w[0]);
+		local._m[3] = (float)((double)p[0] * w[3] + (double)p[2] * w[5] + (double)p[1] * w[4]);
+		local._m[4] = (float)((double)p[3] * w[3] + (double)p[5] * w[5] + (double)p[4] * w[4]);
+		local._m[5] = (float)((double)p[6] * w[3] + (double)p[8] * w[5] + (double)p[7] * w[4]);
+		local._m[6] = (float)((double)p[0] * w[6] + (double)p[2] * w[8] + (double)p[1] * w[7]);
+		local._m[7] = (float)((double)p[3] * w[6] + (double)p[5] * w[8] + (double)p[4] * w[7]);
+		local._m[8] = (float)((double)p[6] * w[6] + (double)p[8] * w[8] + (double)p[7] * w[7]);
+		local.toEuler(&_eulerDeg);
 	} else {
-		world.rot.toEuler(&eulerDeg);
+		_world._rot.toEuler(&_eulerDeg);
 	}
 
-	nodeFlags |= kEulerValid;
+	_nodeFlags |= kEulerValid;
 }
 
 void CNode::updateLocalQuaternion() {
-	if ((nodeFlags & kEulerValid) != 0) {
-		quat = CQuaternion(eulerDeg);
-		nodeFlags |= kQuaternionValid;
+	if ((_nodeFlags & kEulerValid) != 0) {
+		_quat = CQuaternion(_eulerDeg);
+		_nodeFlags |= kQuaternionValid;
 	} else {
-		if ((nodeFlags & kWorldValid) == 0)
+		if ((_nodeFlags & kWorldValid) == 0)
 			updateWorldTransform();
 
-		if (parent) {
-			const float *p = parent->world.rot.m;
-			const float *w = world.rot.m;
+		if (_parent) {
+			const float *p = _parent->_world._rot._m;
+			const float *w = _world._rot._m;
 			CMatrix local;
 
-			local.m[0] = (float)((double)p[0] * w[0] + (double)p[2] * w[2] + (double)p[1] * w[1]);
-			local.m[1] = (float)((double)p[3] * w[0] + (double)p[5] * w[2] + (double)p[4] * w[1]);
-			local.m[2] = (float)((double)p[6] * w[0] + (double)p[8] * w[2] + (double)p[7] * w[1]);
-			local.m[3] = (float)((double)p[0] * w[3] + (double)p[2] * w[5] + (double)p[1] * w[4]);
-			local.m[4] = (float)((double)p[3] * w[3] + (double)p[5] * w[5] + (double)p[4] * w[4]);
-			local.m[5] = (float)((double)p[6] * w[3] + (double)p[8] * w[5] + (double)p[7] * w[4]);
-			local.m[6] = (float)((double)p[2] * w[8] + (double)p[1] * w[7] + (double)p[0] * w[6]);
-			local.m[7] = (float)((double)p[5] * w[8] + (double)p[4] * w[7] + (double)p[3] * w[6]);
-			local.m[8] = (float)((double)p[8] * w[8] + (double)p[7] * w[7] + (double)p[6] * w[6]);
-			local.toQuaternion(&quat);
+			local._m[0] = (float)((double)p[0] * w[0] + (double)p[2] * w[2] + (double)p[1] * w[1]);
+			local._m[1] = (float)((double)p[3] * w[0] + (double)p[5] * w[2] + (double)p[4] * w[1]);
+			local._m[2] = (float)((double)p[6] * w[0] + (double)p[8] * w[2] + (double)p[7] * w[1]);
+			local._m[3] = (float)((double)p[0] * w[3] + (double)p[2] * w[5] + (double)p[1] * w[4]);
+			local._m[4] = (float)((double)p[3] * w[3] + (double)p[5] * w[5] + (double)p[4] * w[4]);
+			local._m[5] = (float)((double)p[6] * w[3] + (double)p[8] * w[5] + (double)p[7] * w[4]);
+			local._m[6] = (float)((double)p[2] * w[8] + (double)p[1] * w[7] + (double)p[0] * w[6]);
+			local._m[7] = (float)((double)p[5] * w[8] + (double)p[4] * w[7] + (double)p[3] * w[6]);
+			local._m[8] = (float)((double)p[8] * w[8] + (double)p[7] * w[7] + (double)p[6] * w[6]);
+			local.toQuaternion(&_quat);
 		} else {
-			world.rot.toQuaternion(&quat);
+			_world._rot.toQuaternion(&_quat);
 		}
 
-		nodeFlags |= kQuaternionValid;
+		_nodeFlags |= kQuaternionValid;
 	}
 }
 
 void CNode::computeLocalPositionFromWorld() {
-	pos = world.pos;
+	_pos = _world._pos;
 
-	if (parent) {
-		if ((parent->nodeFlags & kWorldValid) == 0)
-			parent->updateWorldTransform();
+	if (_parent) {
+		if ((_parent->_nodeFlags & kWorldValid) == 0)
+			_parent->updateWorldTransform();
 
-		const float *p = parent->world.rot.m;
-		double deltaX = (double)pos.x - parent->world.pos.x;
-		float deltaY = (float)((double)pos.y - parent->world.pos.y);
-		double deltaZ = (double)pos.z - parent->world.pos.z;
+		const float *p = _parent->_world._rot._m;
+		double deltaX = (double)_pos._x - _parent->_world._pos._x;
+		float deltaY = (float)((double)_pos._y - _parent->_world._pos._y);
+		double deltaZ = (double)_pos._z - _parent->_world._pos._z;
 		float deltaZStored = (float)deltaZ;
 		double newX = deltaZ * p[2] + (double)deltaY * p[1] + deltaX * p[0];
 		float newY = (float)((double)deltaZStored * p[5] + deltaX * p[3] + (double)deltaY * p[4]);
 		double partialZ = (double)deltaZStored * p[8] + deltaX * p[6];
 		double partialY = (double)deltaY * p[7];
 
-		pos.y = newY;
+		_pos._y = newY;
 		float newZ = (float)(partialZ + partialY);
-		pos.x = (float)newX;
-		pos.z = newZ;
+		_pos._x = (float)newX;
+		_pos._z = newZ;
 	}
 
-	nodeFlags |= kPositionValid;
+	_nodeFlags |= kPositionValid;
 }
 
 void CNode::updateChildrenLocalTransforms() {
-	for (CNode *child = firstChild; child; child = child->nextSibling)
+	for (CNode *child = _firstChild; child; child = child->_nextSibling)
 		child->updateLocalState();
 }
 
@@ -402,62 +402,62 @@ void CNode::setParent(CNode *newParent) {
 		return;
 	}
 
-	if (parent)
+	if (_parent)
 		detachFromParent();
 
-	parent = newParent;
-	prevSibling = nullptr;
-	nextSibling = newParent->firstChild;
+	_parent = newParent;
+	_prevSibling = nullptr;
+	_nextSibling = newParent->_firstChild;
 
-	if (nextSibling)
-		nextSibling->prevSibling = this;
+	if (_nextSibling)
+		_nextSibling->_prevSibling = this;
 
-	parent->childCount++;
-	parent->firstChild = this;
+	_parent->_childCount++;
+	_parent->_firstChild = this;
 	updateLocalState();
 }
 
 void CNode::detachFromParent() {
-	if (!parent)
+	if (!_parent)
 		return;
 
-	parent->childCount--;
+	_parent->_childCount--;
 
-	if (!prevSibling)
-		parent->firstChild = nextSibling;
+	if (!_prevSibling)
+		_parent->_firstChild = _nextSibling;
 
-	if (prevSibling)
-		prevSibling->nextSibling = nextSibling;
+	if (_prevSibling)
+		_prevSibling->_nextSibling = _nextSibling;
 
-	if (nextSibling)
-		nextSibling->prevSibling = prevSibling;
+	if (_nextSibling)
+		_nextSibling->_prevSibling = _prevSibling;
 
-	nextSibling = nullptr;
-	prevSibling = nullptr;
-	parent = nullptr;
+	_nextSibling = nullptr;
+	_prevSibling = nullptr;
+	_parent = nullptr;
 	updateLocalState();
 }
 
 CNode *CNode::findNode(const char *nodeName) {
 	CNode *node = this;
 
-	if (!scumm_strnicmp(name, nodeName, kNameSize))
+	if (!scumm_strnicmp(_name, nodeName, kNameSize))
 		return node;
 
 	while (true) {
-		if (node->firstChild) {
-			CNode *result = node->firstChild->findNode(nodeName);
+		if (node->_firstChild) {
+			CNode *result = node->_firstChild->findNode(nodeName);
 
 			if (result)
 				return result;
 		}
 
-		node = node->nextSibling;
+		node = node->_nextSibling;
 
 		if (!node)
 			return nullptr;
 
-		if (!scumm_strnicmp(node->name, nodeName, kNameSize))
+		if (!scumm_strnicmp(node->_name, nodeName, kNameSize))
 			return node;
 	}
 }
@@ -469,52 +469,52 @@ CNode *CNode::findNode(const LString &nodeName) {
 void CNode::lookAt(const CVector &target) {
 	CVector localTarget = target;
 
-	if (parent) {
-		if ((parent->nodeFlags & kWorldValid) == 0)
-			parent->updateWorldTransform();
+	if (_parent) {
+		if ((_parent->_nodeFlags & kWorldValid) == 0)
+			_parent->updateWorldTransform();
 
-		const float *p = parent->world.rot.m;
-		double deltaX = (double)localTarget.x - parent->world.pos.x;
-		float deltaY = (float)((double)localTarget.y - parent->world.pos.y);
-		double deltaZ = (double)localTarget.z - parent->world.pos.z;
+		const float *p = _parent->_world._rot._m;
+		double deltaX = (double)localTarget._x - _parent->_world._pos._x;
+		float deltaY = (float)((double)localTarget._y - _parent->_world._pos._y);
+		double deltaZ = (double)localTarget._z - _parent->_world._pos._z;
 		float deltaZStored = (float)deltaZ;
 		float newY = (float)((double)deltaZStored * p[5] + (double)deltaY * p[4] + deltaX * p[3]);
 		float newZ = (float)((double)deltaZStored * p[8] + (double)deltaY * p[7] + deltaX * p[6]);
 
-		localTarget.y = newY;
-		localTarget.x = (float)(deltaZ * p[2] + (double)deltaY * p[1] + deltaX * p[0]);
-		localTarget.z = newZ;
+		localTarget._y = newY;
+		localTarget._x = (float)(deltaZ * p[2] + (double)deltaY * p[1] + deltaX * p[0]);
+		localTarget._z = newZ;
 	}
 
-	if ((nodeFlags & kPositionValid) == 0)
+	if ((_nodeFlags & kPositionValid) == 0)
 		computeLocalPositionFromWorld();
 
 	CVector direction;
 
-	direction.x = localTarget.x - pos.x;
-	direction.y = localTarget.y - pos.y;
-	direction.z = localTarget.z - pos.z;
+	direction._x = localTarget._x - _pos._x;
+	direction._y = localTarget._y - _pos._y;
+	direction._z = localTarget._z - _pos._z;
 
 	CVector unit = direction;
-	double length = sqrt((double)direction.z * direction.z + (double)direction.y * direction.y + (double)direction.x * direction.x);
+	double length = sqrt((double)direction._z * direction._z + (double)direction._y * direction._y + (double)direction._x * direction._x);
 
 	if (length >= (double)kMinLength) {
 		double inverse = 1.0 / length;
 
-		unit.x = (float)(direction.x * inverse);
-		unit.y = (float)(inverse * direction.y);
-		unit.z = (float)(inverse * direction.z);
+		unit._x = (float)(direction._x * inverse);
+		unit._y = (float)(inverse * direction._y);
+		unit._z = (float)(inverse * direction._z);
 	}
 
 	float factor = (float)((double)kHalfTurnDegrees / kPi);
 
-	eulerDeg.z = 0.0f;
+	_eulerDeg._z = 0.0f;
 
-	float yaw = (float)(atan2(unit.x, unit.z) * factor);
+	float yaw = (float)(atan2(unit._x, unit._z) * factor);
 
-	eulerDeg.x = (float)(-asin(unit.y) * factor);
-	eulerDeg.y = yaw;
-	nodeFlags = (nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kEulerValid | kLocalSet;
+	_eulerDeg._x = (float)(-asin(unit._y) * factor);
+	_eulerDeg._y = yaw;
+	_nodeFlags = (_nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kEulerValid | kLocalSet;
 	updateLocalState();
 }
 

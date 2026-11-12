@@ -27,31 +27,31 @@ namespace Grim {
 
 LResourceHandleBase::LResourceHandleBase() {
 	_engine = nullptr;
-	lockCount = 0;
-	resource = nullptr;
+	_lockCount = 0;
+	_resource = nullptr;
 }
 
 LResourceHandleBase::LResourceHandleBase(const LResourceHandleBase &other) {
 	_engine = other._engine;
-	lockCount = 0;
-	resource = other.resource;
+	_lockCount = 0;
+	_resource = other._resource;
 
-	if (resource)
-		resource->addHandle(*this);
+	if (_resource)
+		_resource->addHandle(*this);
 }
 
 LResourceHandleBase::~LResourceHandleBase() {
-	if (resource)
-		resource->removeHandle(*this);
+	if (_resource)
+		_resource->removeHandle(*this);
 
-	resource = nullptr;
+	_resource = nullptr;
 }
 
 void LResourceHandleBase::setResource(LResource *newResource) {
-	if (resource)
-		resource->removeHandle(*this);
+	if (_resource)
+		_resource->removeHandle(*this);
 
-	resource = newResource;
+	_resource = newResource;
 
 	if (newResource)
 		newResource->addHandle(*this);
@@ -59,7 +59,7 @@ void LResourceHandleBase::setResource(LResource *newResource) {
 
 LResourceHandleBase &LResourceHandleBase::operator=(const LResourceHandleBase &other) {
 	_engine = other._engine;
-	setResource(other.resource);
+	setResource(other._resource);
 
 	return *this;
 }
@@ -73,44 +73,44 @@ LResourceManager *LResourceHandleBase::getManager() const {
 }
 
 bool LResourceHandleBase::lock() {
-	if (!resource)
+	if (!_resource)
 		return false;
 
-	LResourceManager *manager = resource->getEngine()->getResourceManager();
+	LResourceManager *manager = _resource->getEngine()->getResourceManager();
 
-	lockCount++;
-	resource->lockCount++;
-	manager->lockResource(resource);
+	_lockCount++;
+	_resource->_lockCount++;
+	manager->lockResource(_resource);
 
-	if (resource->loaded || resource->loadResourceItem(resource->name)) {
-		resource->loaded = true;
+	if (_resource->_loaded || _resource->loadResourceItem(_resource->_name)) {
+		_resource->_loaded = true;
 
 		return true;
 	}
 
-	lockCount--;
+	_lockCount--;
 
-	LResource *failedResource = resource;
-	failedResource->lockCount--;
+	LResource *failedResource = _resource;
+	failedResource->_lockCount--;
 	manager->unlockResource(failedResource);
 
-	if (failedResource->lockCount == 0 && failedResource->purgeOnFree)
+	if (failedResource->_lockCount == 0 && failedResource->_purgeOnFree)
 		manager->purgeResource(failedResource, true);
 
 	return false;
 }
 
 void LResourceHandleBase::unlock() {
-	LResource *lockedResource = resource;
+	LResource *lockedResource = _resource;
 
-	if (lockedResource && lockedResource->loaded) {
+	if (lockedResource && lockedResource->_loaded) {
 		LResourceManager *manager = lockedResource->getEngine()->getResourceManager();
 
-		lockCount--;
-		lockedResource->lockCount--;
+		_lockCount--;
+		lockedResource->_lockCount--;
 		manager->unlockResource(lockedResource);
 
-		if (lockedResource->lockCount == 0 && lockedResource->purgeOnFree)
+		if (lockedResource->_lockCount == 0 && lockedResource->_purgeOnFree)
 			manager->purgeResource(lockedResource, true);
 	}
 }

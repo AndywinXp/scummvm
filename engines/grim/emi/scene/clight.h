@@ -46,13 +46,13 @@ public:
 	float evaluate(const float *lightTransform, const float *position, const float *normal);
 	bool isOutOfRange(const float *lightTransform, const BBox *box);
 
-	int type;
-	float intensity;
-	Color color;
-	float focusDistance;
-	float spreadDistance;
-	float umbraAngle;
-	float penumbraAngle;
+	int _type;
+	float _intensity;
+	Color _color;
+	float _focusDistance;
+	float _spreadDistance;
+	float _umbraAngle;
+	float _penumbraAngle;
 };
 
 } // End of namespace Grim

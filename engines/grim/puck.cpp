@@ -27,126 +27,126 @@
 
 namespace Grim {
 
-Puck::Puck(WalkSystem *pSystem, float angle) {
-	_pSystem = pSystem;
+Puck::Puck(WalkSystem *system, float angle) {
+	_system = system;
 
-	pos[0] = 0.0f;
-	pos[1] = 0.0f;
-	pos[2] = 0.0f;
-	_pSystem->_pRd->build34(orient, pos, pos);
+	_pos[0] = 0.0f;
+	_pos[1] = 0.0f;
+	_pos[2] = 0.0f;
+	_system->_rd->build34(_orient, _pos, _pos);
 
-	constraint[1] = 1.0f;
-	reflectionAngle = angle;
-	pPlane = nullptr;
-	forwardDist = 0.0f;
-	bConstrained = 0;
-	constraint[0] = 0.0f;
-	constraint[2] = 0.0f;
-	pNext = nullptr;
-	pPrev = nullptr;
+	_constraint[1] = 1.0f;
+	_reflectionAngle = angle;
+	_plane = nullptr;
+	_forwardDist = 0.0f;
+	_constrained = 0;
+	_constraint[0] = 0.0f;
+	_constraint[2] = 0.0f;
+	_next = nullptr;
+	_prev = nullptr;
 
-	pNext = _pSystem->_pPuckHead;
+	_next = _system->_puckHead;
 
-	if (_pSystem->_pPuckHead)
-		_pSystem->_pPuckHead->pPrev = this;
+	if (_system->_puckHead)
+		_system->_puckHead->_prev = this;
 
-	_pSystem->_pPuckHead = this;
+	_system->_puckHead = this;
 }
 
 Puck::~Puck() {
-	if (this == _pSystem->_pPuckHead)
-		_pSystem->_pPuckHead = pNext;
+	if (this == _system->_puckHead)
+		_system->_puckHead = _next;
 
-	if (pPrev)
-		pPrev->pNext = pNext;
+	if (_prev)
+		_prev->_next = _next;
 
-	if (pNext)
-		pNext->pPrev = pPrev;
+	if (_next)
+		_next->_prev = _prev;
 }
 
 float *Puck::rot() {
-	_pSystem->_pRd->extractAngles34(orient, _rot);
+	_system->_rd->extractAngles34(_orient, _rot);
 
 	return _rot;
 }
 
 WalkPlane *Puck::validate() {
-	pPlane = _pSystem->planeClosest(pos, 4096);
+	_plane = _system->planeClosest(_pos, 4096);
 
-	if (pPlane) {
-		if (!pPlane->within(pos, 1)) {
-			pPlane->closestPoint(pos);
-			setPos(pos);
+	if (_plane) {
+		if (!_plane->within(_pos, 1)) {
+			_plane->closestPoint(_pos);
+			setPos(_pos);
 		}
 
-		orientToPlane(pPlane);
+		orientToPlane(_plane);
 	}
 
-	return pPlane;
+	return _plane;
 }
 
-void Puck::setPos(float *pPos) {
-	pos[0] = pPos[0];
-	pos[1] = pPos[1];
-	pos[2] = pPos[2];
+void Puck::setPos(float *pos) {
+	_pos[0] = pos[0];
+	_pos[1] = pos[1];
+	_pos[2] = pos[2];
 
-	orient[3][0] = pPos[0];
-	orient[3][1] = pPos[1];
-	orient[3][2] = pPos[2];
+	_orient[3][0] = pos[0];
+	_orient[3][1] = pos[1];
+	_orient[3][2] = pos[2];
 }
 
-void Puck::xform(float *pVec) {
-	_pSystem->_pRd->transformPoint34Acc(pVec, orient);
+void Puck::xform(float *vec) {
+	_system->_rd->transformPoint34Acc(vec, _orient);
 }
 
-void Puck::invXform(float *pVec) {
+void Puck::invXform(float *vec) {
 	RdVector3 out;
 
-	pVec[0] = (float)((double)pVec[0] - pos[0]);
-	pVec[1] = (float)((double)pVec[1] - pos[1]);
-	pVec[2] = (float)((double)pVec[2] - pos[2]);
+	vec[0] = (float)((double)vec[0] - _pos[0]);
+	vec[1] = (float)((double)vec[1] - _pos[1]);
+	vec[2] = (float)((double)vec[2] - _pos[2]);
 
-	_pSystem->_pRd->transformVectorOrtho34(out, pVec, orient);
+	_system->_rd->transformVectorOrtho34(out, vec, _orient);
 
-	pVec[0] = out[0];
-	pVec[1] = out[1];
-	pVec[2] = out[2];
+	vec[0] = out[0];
+	vec[1] = out[1];
+	vec[2] = out[2];
 }
 
 void Puck::rotate(float angle) {
 	RdMatrix34 out;
 
-	_pSystem->_pRd->buildFromVectorAngle34(out, orient[2], angle);
-	_pSystem->_pRd->transformVector34Acc(orient[1], out);
+	_system->_rd->buildFromVectorAngle34(out, _orient[2], angle);
+	_system->_rd->transformVector34Acc(_orient[1], out);
 
-	orient[1][0] = (float)((double)orient[1][0] + orient[3][0]);
-	orient[1][1] = (float)((double)orient[3][1] + orient[1][1]);
-	orient[1][2] = (float)((double)orient[3][2] + orient[1][2]);
+	_orient[1][0] = (float)((double)_orient[1][0] + _orient[3][0]);
+	_orient[1][1] = (float)((double)_orient[3][1] + _orient[1][1]);
+	_orient[1][2] = (float)((double)_orient[3][2] + _orient[1][2]);
 
-	if (pPlane)
-		pPlane->snapTo(orient[1]);
+	if (_plane)
+		_plane->snapTo(_orient[1]);
 
-	orient[1][0] = (float)((double)orient[1][0] - orient[3][0]);
-	orient[1][1] = (float)((double)orient[1][1] - orient[3][1]);
-	orient[1][2] = (float)((double)orient[1][2] - orient[3][2]);
+	_orient[1][0] = (float)((double)_orient[1][0] - _orient[3][0]);
+	_orient[1][1] = (float)((double)_orient[1][1] - _orient[3][1]);
+	_orient[1][2] = (float)((double)_orient[1][2] - _orient[3][2]);
 
 	normalize();
 }
 
-float Puck::pointAt(float *pTarget, float maxAngle) {
+float Puck::pointAt(float *target, float maxAngle) {
 	RdVector3 vec;
 
-	vec[0] = pTarget[0];
-	vec[1] = pTarget[1];
-	vec[2] = pTarget[2];
+	vec[0] = target[0];
+	vec[1] = target[1];
+	vec[2] = target[2];
 
-	if (pPlane)
-		pPlane->project(vec);
+	if (_plane)
+		_plane->project(vec);
 
 	invXform(vec);
-	_pSystem->_pRd->normalize3Acc(vec);
+	_system->_rd->normalize3Acc(vec);
 
-	float angle = (float)(90.0 - _pSystem->_pStdMath->arcSin3(vec[1]));
+	float angle = (float)(90.0 - _system->_stdMath->arcSin3(vec[1]));
 
 	if (maxAngle < angle)
 		angle = maxAngle;
@@ -159,20 +159,20 @@ float Puck::pointAt(float *pTarget, float maxAngle) {
 	return angle;
 }
 
-double Puck::getYawToPoint(float *pTarget) {
+double Puck::getYawToPoint(float *target) {
 	RdVector3 vec;
 
-	vec[0] = pTarget[0];
-	vec[1] = pTarget[1];
-	vec[2] = pTarget[2];
+	vec[0] = target[0];
+	vec[1] = target[1];
+	vec[2] = target[2];
 
-	if (pPlane)
-		pPlane->project(vec);
+	if (_plane)
+		_plane->project(vec);
 
 	invXform(vec);
-	_pSystem->_pRd->normalize3Acc(vec);
+	_system->_rd->normalize3Acc(vec);
 
-	float angle = (float)(90.0 - _pSystem->_pStdMath->arcSin3(vec[1]));
+	float angle = (float)(90.0 - _system->_stdMath->arcSin3(vec[1]));
 
 	if (vec[0] > 0.0f)
 		angle = -angle;
@@ -180,218 +180,218 @@ double Puck::getYawToPoint(float *pTarget) {
 	return (double)rot()[1] + angle;
 }
 
-void Puck::constrain(int bEnable) {
-	bConstrained = 0;
+void Puck::constrain(int enable) {
+	_constrained = 0;
 
-	if (pPlane && bEnable) {
-		float *pConstraint = pPlane->getConstraintVector(this);
+	if (_plane && enable) {
+		float *constraintPointer = _plane->getConstraintVector(this);
 
-		if (pConstraint) {
-			constraint[0] = pConstraint[0];
-			constraint[1] = pConstraint[1];
-			constraint[2] = pConstraint[2];
+		if (constraintPointer) {
+			_constraint[0] = constraintPointer[0];
+			_constraint[1] = constraintPointer[1];
+			_constraint[2] = constraintPointer[2];
 
-			orient[1][0] = pConstraint[0];
-			orient[1][1] = pConstraint[1];
-			orient[1][2] = pConstraint[2];
+			_orient[1][0] = constraintPointer[0];
+			_orient[1][1] = constraintPointer[1];
+			_orient[1][2] = constraintPointer[2];
 
 			normalize();
-			bConstrained = 1;
+			_constrained = 1;
 		}
 	}
 }
 
-int Puck::forwardDemo(float dist, int bAllowLeft, int bAllowRight) {
+int Puck::forwardDemo(float dist, int allowLeft, int allowRight) {
 	float value = 0.0f;
 
-	if (_pSystem->_forwardCounter == 0)
-		forwardDist = dist;
+	if (_system->_forwardCounter == 0)
+		_forwardDist = dist;
 
-	_pSystem->_forwardCounter++;
+	_system->_forwardCounter++;
 
-	if (bConstrained) {
-		float dot = _pSystem->_pRd->dot3(orient[0], constraint);
-		double angleDelta = (90.0 - _pSystem->_pStdMath->arcSin3(dot)) - 90.0;
+	if (_constrained) {
+		float dot = _system->_rd->dot3(_orient[0], _constraint);
+		double angleDelta = (90.0 - _system->_stdMath->arcSin3(dot)) - 90.0;
 
 		value = (float)angleDelta;
 
-		if (fabs(angleDelta) > reflectionAngle)
+		if (fabs(angleDelta) > _reflectionAngle)
 			return 0;
 
-		if (_pSystem->_pRd->dot3(orient[1], constraint) <= 0.0f)
+		if (_system->_rd->dot3(_orient[1], _constraint) <= 0.0f)
 			rotate(-value);
 		else
 			rotate(value);
 	}
 
-	RdVector3 pPoint;
+	RdVector3 point;
 
-	pPoint[0] = 0.0f;
-	pPoint[1] = dist;
-	pPoint[2] = 0.0f;
+	point[0] = 0.0f;
+	point[1] = dist;
+	point[2] = 0.0f;
 
-	xform(pPoint);
+	xform(point);
 
-	if (!pPlane || pPlane->within(pPoint, 1)) {
-		setPos(pPoint);
-		_pSystem->_forwardCounter = 0;
+	if (!_plane || _plane->within(point, 1)) {
+		setPos(point);
+		_system->_forwardCounter = 0;
 
 		return 1;
 	}
 
-	if (_pSystem->_forwardCounter > 8) {
-		_pSystem->_forwardCounter = 0;
+	if (_system->_forwardCounter > 8) {
+		_system->_forwardCounter = 0;
 
 		return 0;
 	}
 
-	WalkPlane *pOldPlane = pPlane;
-	RdVector3 pOut;
+	WalkPlane *oldPlane = _plane;
+	RdVector3 out;
 
-	value = (float)pOldPlane->intersection(pos, pPoint, pOut);
-	pOldPlane->bEnabled = 0;
+	value = (float)oldPlane->intersection(_pos, point, out);
+	oldPlane->_enabled = 0;
 
 	RdVector3 local;
 
-	local[0] = pOut[0];
-	local[1] = pOut[1];
-	local[2] = pOut[2];
+	local[0] = out[0];
+	local[1] = out[1];
+	local[2] = out[2];
 
 	invXform(local);
 
 	dist = (float)((double)dist - local[1]);
 
-	WalkPlane *pNewPlane = _pSystem->planeAt(pOut, 4096);
+	WalkPlane *newPlane = _system->planeAt(out, 4096);
 
-	if (pNewPlane) {
-		setPos(pOut);
-		pPlane = pNewPlane;
-		orientToPlane(pNewPlane);
+	if (newPlane) {
+		setPos(out);
+		_plane = newPlane;
+		orientToPlane(newPlane);
 
 		if (dist >= 0.02f)
 			dist = 0.02f;
 
 		int result = forwardDemo(dist, 1, 1);
 
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 
 		return result;
 	}
 
-	setPos(pOut);
+	setPos(out);
 
-	if (fabs((double)value) >= reflectionAngle) {
-		forwardDist = (float)((double)forwardDist - dist);
-	} else if ((value > 0.0f && bAllowLeft) || (value < 0.0f && bAllowRight)) {
+	if (fabs((double)value) >= _reflectionAngle) {
+		_forwardDist = (float)((double)_forwardDist - dist);
+	} else if ((value > 0.0f && allowLeft) || (value < 0.0f && allowRight)) {
 		rotate(value);
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 
 		int result = forwardDemo(dist, 1, 1);
 
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 
 		return result;
 	}
 
-	pOldPlane->bEnabled = 1;
+	oldPlane->_enabled = 1;
 
 	return 0;
 }
 
-int Puck::forward(float dist, int bAllowLeft, int bAllowRight) {
-	if (_pSystem->_bDemo)
-		return forwardDemo(dist, bAllowLeft, bAllowRight);
+int Puck::forward(float dist, int allowLeft, int allowRight) {
+	if (_system->_demo)
+		return forwardDemo(dist, allowLeft, allowRight);
 
 	int result = 0;
 	float value = 0.0f;
 
-	if (_pSystem->_forwardCounter == 0)
-		forwardDist = dist;
+	if (_system->_forwardCounter == 0)
+		_forwardDist = dist;
 
-	_pSystem->_forwardCounter++;
+	_system->_forwardCounter++;
 
-	if (bConstrained) {
-		float dot = _pSystem->_pRd->dot3(orient[0], constraint);
-		double angleDelta = (90.0 - _pSystem->_pStdMath->arcSin3(dot)) - 90.0;
+	if (_constrained) {
+		float dot = _system->_rd->dot3(_orient[0], _constraint);
+		double angleDelta = (90.0 - _system->_stdMath->arcSin3(dot)) - 90.0;
 
 		value = (float)angleDelta;
 
-		if (fabs(angleDelta) > reflectionAngle)
+		if (fabs(angleDelta) > _reflectionAngle)
 			return 0;
 
-		if (_pSystem->_pRd->dot3(orient[1], constraint) <= 0.0f)
+		if (_system->_rd->dot3(_orient[1], _constraint) <= 0.0f)
 			rotate(-value);
 		else
 			rotate(value);
 	}
 
-	RdVector3 pPoint;
+	RdVector3 point;
 
-	pPoint[0] = 0.0f;
-	pPoint[1] = dist;
-	pPoint[2] = 0.0f;
+	point[0] = 0.0f;
+	point[1] = dist;
+	point[2] = 0.0f;
 
-	xform(pPoint);
+	xform(point);
 
-	if (!pPlane || pPlane->within(pPoint, 1)) {
-		setPos(pPoint);
-		_pSystem->_forwardCounter = 0;
+	if (!_plane || _plane->within(point, 1)) {
+		setPos(point);
+		_system->_forwardCounter = 0;
 
 		return 1;
 	}
 
-	if (_pSystem->_forwardCounter > 8) {
-		_pSystem->_forwardCounter = 0;
+	if (_system->_forwardCounter > 8) {
+		_system->_forwardCounter = 0;
 
 		return 0;
 	}
 
-	WalkPlane *pOldPlane = pPlane;
-	RdVector3 pOut;
+	WalkPlane *oldPlane = _plane;
+	RdVector3 out;
 
-	value = (float)pOldPlane->intersection(pos, pPoint, pOut);
-	pOldPlane->bEnabled = 0;
+	value = (float)oldPlane->intersection(_pos, point, out);
+	oldPlane->_enabled = 0;
 
 	RdVector3 local;
 
-	local[0] = pOut[0];
-	local[1] = pOut[1];
-	local[2] = pOut[2];
+	local[0] = out[0];
+	local[1] = out[1];
+	local[2] = out[2];
 
 	invXform(local);
 
 	dist = (float)((double)dist - local[1]);
 
-	WalkPlane *pNewPlane = _pSystem->planeAt(pOut, 4096);
+	WalkPlane *newPlane = _system->planeAt(out, 4096);
 
-	if (pNewPlane) {
-		setPos(pOut);
-		pPlane = pNewPlane;
-		orientToPlane(pNewPlane);
+	if (newPlane) {
+		setPos(out);
+		_plane = newPlane;
+		orientToPlane(newPlane);
 
 		if (dist >= 0.02f)
 			dist = 0.02f;
 
 		result = forward(dist, 1, 1);
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 
 		return result;
 	}
 
-	setPos(pOut);
+	setPos(out);
 
-	if ((pPlane->type & 0x100) != 0) {
-		int quadAxis = pPlane->quadAxis;
+	if ((_plane->_type & 0x100) != 0) {
+		int quadAxis = _plane->_quadAxis;
 
-		if ((quadAxis + 1) % pPlane->numVerts == pPlane->hitEdge)
+		if ((quadAxis + 1) % _plane->_numVerts == _plane->_hitEdge)
 			return 0;
 
-		float *pVert = &pPlane->apVerts[quadAxis]->x;
+		float *vert = &_plane->_verts[quadAxis]->x;
 		RdVector3 vertLocal;
 
-		vertLocal[0] = pVert[0];
-		vertLocal[1] = pVert[1];
-		vertLocal[2] = pVert[2];
+		vertLocal[0] = vert[0];
+		vertLocal[1] = vert[1];
+		vertLocal[2] = vert[2];
 
 		invXform(vertLocal);
 
@@ -404,62 +404,62 @@ int Puck::forward(float dist, int bAllowLeft, int bAllowRight) {
 
 		rotate(value);
 		result = forward(dist, 1, 1);
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 
 		return result;
 	}
 
-	if (fabs((double)value) >= reflectionAngle || bConstrained) {
-		forwardDist = (float)((double)forwardDist - dist);
-	} else if ((value > 0.0f && bAllowLeft) || (value < 0.0f && bAllowRight)) {
+	if (fabs((double)value) >= _reflectionAngle || _constrained) {
+		_forwardDist = (float)((double)_forwardDist - dist);
+	} else if ((value > 0.0f && allowLeft) || (value < 0.0f && allowRight)) {
 		rotate(value);
-		pOldPlane->bEnabled = 1;
+		oldPlane->_enabled = 1;
 		result = forward(dist, 1, 1);
 	}
 
-	if (bConstrained) {
+	if (_constrained) {
 		rotate(value);
-		bConstrained = 1;
-		constraint[0] = orient[1][0];
-		constraint[1] = orient[1][1];
-		constraint[2] = orient[1][2];
+		_constrained = 1;
+		_constraint[0] = _orient[1][0];
+		_constraint[1] = _orient[1][1];
+		_constraint[2] = _orient[1][2];
 	}
 
-	pOldPlane->bEnabled = 1;
+	oldPlane->_enabled = 1;
 
 	return result;
 }
 
-void Puck::orientToPlane(WalkPlane *pTargetPlane) {
-	double forwardX = orient[1][0];
-	double forwardY = orient[1][1];
-	double forwardZ = orient[1][2];
+void Puck::orientToPlane(WalkPlane *targetPlane) {
+	double forwardX = _orient[1][0];
+	double forwardY = _orient[1][1];
+	double forwardZ = _orient[1][2];
 
-	orient[2][0] = pTargetPlane->normal[0];
-	orient[2][1] = pTargetPlane->normal[1];
-	orient[2][2] = pTargetPlane->normal[2];
+	_orient[2][0] = targetPlane->_normal[0];
+	_orient[2][1] = targetPlane->_normal[1];
+	_orient[2][2] = targetPlane->_normal[2];
 
-	orient[0][0] = (float)(forwardY * orient[2][2] - forwardZ * orient[2][1]);
-	orient[0][1] = (float)((double)orient[2][0] * forwardZ - forwardX * orient[2][2]);
-	orient[0][2] = (float)(forwardX * orient[2][1] - forwardY * orient[2][0]);
+	_orient[0][0] = (float)(forwardY * _orient[2][2] - forwardZ * _orient[2][1]);
+	_orient[0][1] = (float)((double)_orient[2][0] * forwardZ - forwardX * _orient[2][2]);
+	_orient[0][2] = (float)(forwardX * _orient[2][1] - forwardY * _orient[2][0]);
 
-	_pSystem->_pRd->normalize3Acc(orient[0]);
+	_system->_rd->normalize3Acc(_orient[0]);
 
-	orient[1][0] = (float)((double)orient[0][2] * orient[2][1] - (double)orient[0][1] * orient[2][2]);
-	orient[1][1] = (float)((double)orient[2][2] * orient[0][0] - (double)orient[0][2] * orient[2][0]);
-	orient[1][2] = (float)((double)orient[0][1] * orient[2][0] - (double)orient[2][1] * orient[0][0]);
+	_orient[1][0] = (float)((double)_orient[0][2] * _orient[2][1] - (double)_orient[0][1] * _orient[2][2]);
+	_orient[1][1] = (float)((double)_orient[2][2] * _orient[0][0] - (double)_orient[0][2] * _orient[2][0]);
+	_orient[1][2] = (float)((double)_orient[0][1] * _orient[2][0] - (double)_orient[2][1] * _orient[0][0]);
 
-	_pSystem->_pRd->normalize3Acc(orient[1]);
+	_system->_rd->normalize3Acc(_orient[1]);
 }
 
 void Puck::normalize() {
-	_pSystem->_pRd->normalize3Acc(orient[1]);
+	_system->_rd->normalize3Acc(_orient[1]);
 
-	orient[0][0] = (float)((double)orient[2][2] * orient[1][1] - (double)orient[1][2] * orient[2][1]);
-	orient[0][1] = (float)((double)orient[1][2] * orient[2][0] - (double)orient[2][2] * orient[1][0]);
-	orient[0][2] = (float)((double)orient[1][0] * orient[2][1] - (double)orient[1][1] * orient[2][0]);
+	_orient[0][0] = (float)((double)_orient[2][2] * _orient[1][1] - (double)_orient[1][2] * _orient[2][1]);
+	_orient[0][1] = (float)((double)_orient[1][2] * _orient[2][0] - (double)_orient[2][2] * _orient[1][0]);
+	_orient[0][2] = (float)((double)_orient[1][0] * _orient[2][1] - (double)_orient[1][1] * _orient[2][0]);
 
-	_pSystem->_pRd->normalize3Acc(orient[0]);
+	_system->_rd->normalize3Acc(_orient[0]);
 }
 
 int Puck::draw(uint16 color) {
@@ -474,7 +474,7 @@ int Puck::draw(uint16 color) {
 	p1[2] = 0.0f;
 	xform(p0);
 	xform(p1);
-	_pSystem->_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
+	_system->_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
 
 	p0[0] = 0.05f;
 	p0[1] = 0.05f;
@@ -484,7 +484,7 @@ int Puck::draw(uint16 color) {
 	p1[2] = 0.0f;
 	xform(p0);
 	xform(p1);
-	_pSystem->_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
+	_system->_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
 
 	p0[0] = -0.05f;
 	p0[1] = 0.05f;
@@ -494,7 +494,7 @@ int Puck::draw(uint16 color) {
 	p1[2] = 0.0f;
 	xform(p0);
 	xform(p1);
-	_pSystem->_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
+	_system->_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
 
 	p0[0] = 0.0f;
 	p0[1] = 0.0f;
@@ -505,7 +505,7 @@ int Puck::draw(uint16 color) {
 	xform(p0);
 	xform(p1);
 
-	return _pSystem->_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
+	return _system->_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, color, 0xFFFFFFFF);
 }
 
 } // End of namespace Grim

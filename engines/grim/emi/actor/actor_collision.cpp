@@ -39,8 +39,8 @@ static const float kCollisionMinLength = 1e-20f;
 static const int kCollisionAnyPlane = -1;
 
 static double calcCollisionRadius(const RPrimitive *prim) {
-	double extentX = (double)prim->box.max.x - prim->box.min.x;
-	double extentZ = (double)prim->box.max.z - prim->box.min.z;
+	double extentX = (double)prim->_box._max._x - prim->_box._min._x;
+	double extentZ = (double)prim->_box._max._z - prim->_box._min._z;
 
 	return sqrt((extentZ * extentZ) * 0.25 + (extentX * extentX) * 0.25);
 }
@@ -164,9 +164,9 @@ bool Actor::testCollision(EmiEngine *engine, float startX, float startY, float s
 			float hitZ = (float)((double)hitDeltaZ + localStartZ);
 
 			if (hitX > box[0] && hitX < box[3]) {
-				engine->_hitPoint.x = hitX;
-				engine->_hitPoint.y = hitY;
-				engine->_hitPoint.z = hitZ;
+				engine->_hitPoint._x = hitX;
+				engine->_hitPoint._y = hitY;
+				engine->_hitPoint._z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -184,9 +184,9 @@ bool Actor::testCollision(EmiEngine *engine, float startX, float startY, float s
 			float hitZ = (float)((double)hitDeltaZ + localStartZ);
 
 			if (hitX > box[0] && hitX < box[3]) {
-				engine->_hitPoint.x = hitX;
-				engine->_hitPoint.y = hitY;
-				engine->_hitPoint.z = hitZ;
+				engine->_hitPoint._x = hitX;
+				engine->_hitPoint._y = hitY;
+				engine->_hitPoint._z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -205,9 +205,9 @@ bool Actor::testCollision(EmiEngine *engine, float startX, float startY, float s
 			float hitZ = (float)hitZExact;
 
 			if (hitZExact > box[2] && hitZ < box[5]) {
-				engine->_hitPoint.x = hitX;
-				engine->_hitPoint.y = hitY;
-				engine->_hitPoint.z = hitZ;
+				engine->_hitPoint._x = hitX;
+				engine->_hitPoint._y = hitY;
+				engine->_hitPoint._z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -226,9 +226,9 @@ bool Actor::testCollision(EmiEngine *engine, float startX, float startY, float s
 			float hitZ = (float)hitZExact;
 
 			if (hitZExact > box[2] && hitZ < box[5]) {
-				engine->_hitPoint.x = hitX;
-				engine->_hitPoint.y = hitY;
-				engine->_hitPoint.z = hitZ;
+				engine->_hitPoint._x = hitX;
+				engine->_hitPoint._y = hitY;
+				engine->_hitPoint._z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -278,8 +278,8 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 	goal[1] = 0.0f;
 	goal[2] = 0.0f;
 
-	if (!other || !other->extra || !extra) {
-		if (other && other->extra)
+	if (!other || !other->_extra || !_extra) {
+		if (other && other->_extra)
 			warning("Actor::buildAvoidingPath(): the actor has no extra data");
 
 		for (int i = 0; i < count; i++) {
@@ -300,25 +300,25 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 
 	double thisRadius = 0.5;
 
-	if (!instances.empty() && instances[0]) {
-		if (instances[0]->prim)
-			thisRadius = calcCollisionRadius(instances[0]->prim);
+	if (!_instances.empty() && _instances[0]) {
+		if (_instances[0]->_prim)
+			thisRadius = calcCollisionRadius(_instances[0]->_prim);
 		else
 			warning("Actor::buildAvoidingPath(): primitive instance without primitive");
 	}
 
-	thisRadius = thisRadius * extra->collisionScale;
+	thisRadius = thisRadius * _extra->_collisionScale;
 
 	double otherRadius = 0.5;
 
-	if (!other->instances.empty() && other->instances[0]) {
-		if (other->instances[0]->prim)
-			otherRadius = calcCollisionRadius(other->instances[0]->prim);
+	if (!other->_instances.empty() && other->_instances[0]) {
+		if (other->_instances[0]->_prim)
+			otherRadius = calcCollisionRadius(other->_instances[0]->_prim);
 		else
 			warning("Actor::buildAvoidingPath(): primitive instance without primitive");
 	}
 
-	double radius = thisRadius + otherRadius * other->extra->collisionScale;
+	double radius = thisRadius + otherRadius * other->_extra->_collisionScale;
 	float radiusFloat = (float)radius;
 	float negativeRadius = (float)-radius;
 	float box[6];
@@ -330,39 +330,39 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 	box[4] = radiusFloat;
 	box[5] = radiusFloat;
 
-	if ((other->nodeFlags & kPositionValid) == 0)
+	if ((other->_nodeFlags & kPositionValid) == 0)
 		other->computeLocalPositionFromWorld();
 
-	if ((other->nodeFlags & kWorldValid) == 0)
+	if ((other->_nodeFlags & kWorldValid) == 0)
 		other->updateWorldTransform();
 
 	float *lastPoint = &path[3 * count - 3];
 
-	getOuttaTheBox(lastPoint, box, other->world.rot.m);
+	getOuttaTheBox(lastPoint, box, other->_world._rot._m);
 
-	if ((other->nodeFlags & kPositionValid) == 0)
+	if ((other->_nodeFlags & kPositionValid) == 0)
 		other->computeLocalPositionFromWorld();
 
-	if ((other->nodeFlags & kWorldValid) == 0)
+	if ((other->_nodeFlags & kWorldValid) == 0)
 		other->updateWorldTransform();
 
-	getOuttaTheBox(path, box, other->world.rot.m);
+	getOuttaTheBox(path, box, other->_world._rot._m);
 
 	goal[0] = lastPoint[0];
 	goal[1] = lastPoint[1];
 	goal[2] = lastPoint[2];
 
-	bool locked = room.lock();
-	Room_v2 *currentRoom = locked ? room.typed : nullptr;
+	bool locked = _room.lock();
+	Room_v2 *currentRoom = locked ? _room._typed : nullptr;
 	WalkPlaneCollection *planes = nullptr;
 
 	if (currentRoom)
-		planes = currentRoom->walkPlanes;
+		planes = currentRoom->_walkPlanes;
 	else
 		warning("Actor::buildAvoidingPath(): the room could not be locked");
 
 	if (locked)
-		room.unlock();
+		_room.unlock();
 
 	if (!planes) {
 		warning("Actor::buildAvoidingPath(): the room has no walk planes");
@@ -389,10 +389,10 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		outPath[3 * outCount + 2] = path[3 * index + 2];
 		outCount++;
 
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		if (testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)) {
+		if (testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->_world._rot._m)) {
 			collided = true;
 
 			break;
@@ -417,21 +417,21 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 
 	float hit[3];
 
-	hit[0] = _engine->_hitPoint.x;
-	hit[1] = _engine->_hitPoint.y;
-	hit[2] = _engine->_hitPoint.z;
+	hit[0] = _engine->_hitPoint._x;
+	hit[1] = _engine->_hitPoint._y;
+	hit[2] = _engine->_hitPoint._z;
 
-	if ((other->nodeFlags & kWorldValid) == 0)
+	if ((other->_nodeFlags & kWorldValid) == 0)
 		other->updateWorldTransform();
 
-	const float *matrix = other->world.rot.m;
+	const float *matrix = other->_world._rot._m;
 	double hitWorldX = ((double)hit[1] * matrix[3] + (double)hit[2] * matrix[6]) + (double)hit[0] * matrix[0];
 	float hitOffsetY = (float)(((double)hit[1] * matrix[4] + (double)hit[2] * matrix[7]) + (double)hit[0] * matrix[1]);
 	float hitOffsetZ = (float)(((double)hit[1] * matrix[5] + (double)hit[2] * matrix[8]) + (double)hit[0] * matrix[2]);
 
-	hit[0] = (float)(hitWorldX + other->world.pos.x);
-	hit[1] = (float)((double)hitOffsetY + other->world.pos.y);
-	hit[2] = (float)((double)hitOffsetZ + other->world.pos.z);
+	hit[0] = (float)(hitWorldX + other->_world._pos._x);
+	hit[1] = (float)((double)hitOffsetY + other->_world._pos._y);
+	hit[2] = (float)((double)hitOffsetZ + other->_world._pos._z);
 
 	WalkPlane_v2 *closestPlane = planes->planeClosest(hit, kCollisionAnyPlane);
 
@@ -456,27 +456,27 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 	for (int k = 0; k < ObjectCorners_v2::kNumCorners; k++) {
 		float *corner = corners.corner[k];
 
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		matrix = other->world.rot.m;
+		matrix = other->_world._rot._m;
 
 		double cornerWorldX = ((double)matrix[6] * corner[2] + (double)matrix[3] * corner[1]) + (double)corner[0] * matrix[0];
 		float cornerOffsetZ = (float)(((double)matrix[8] * corner[2] + (double)matrix[5] * corner[1]) + (double)matrix[2] * corner[0]);
 
-		corner[0] = (float)(cornerWorldX + other->world.pos.x);
+		corner[0] = (float)(cornerWorldX + other->_world._pos._x);
 		corner[1] = hit[1];
-		corner[2] = (float)((double)cornerOffsetZ + other->world.pos.z);
+		corner[2] = (float)((double)cornerOffsetZ + other->_world._pos._z);
 
 		corners.valid[k] = 0;
 		endX = corner[0];
 		endY = corner[1];
 		endZ = corner[2];
 
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		if (!testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+		if (!testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->_world._rot._m)
 			&& planes->buildPath(&path[3 * index], corner, false))
 			corners.valid[k] = 1;
 	}
@@ -500,13 +500,13 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 
 	corners.valid[closest] = 0;
 
-	if ((other->nodeFlags & kWorldValid) == 0)
+	if ((other->_nodeFlags & kWorldValid) == 0)
 		other->updateWorldTransform();
 
 	float *lastOutPoint = &outPath[3 * outCount - 3];
 	float *nextOutPoint = &outPath[3 * outCount];
 
-	if (!testCollision(_engine, lastOutPoint[0], lastOutPoint[1], lastOutPoint[2], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+	if (!testCollision(_engine, lastOutPoint[0], lastOutPoint[1], lastOutPoint[2], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->_world._rot._m)
 		&& planes->buildPath(lastOutPoint, goal, true)) {
 		pathCount = planes->getPath(&pathPoints);
 
@@ -566,10 +566,10 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 	}
 
 	for (;;) {
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		bool blocked = testCollision(_engine, nextOutPoint[-3], nextOutPoint[-2], nextOutPoint[-1], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m);
+		bool blocked = testCollision(_engine, nextOutPoint[-3], nextOutPoint[-2], nextOutPoint[-1], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->_world._rot._m);
 
 		if (!blocked || current == closest)
 			break;
@@ -590,10 +590,10 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 }
 
 bool Actor::resolveCollisions() {
-	if (instances.empty())
+	if (_instances.empty())
 		return true;
 
-	RPrimitiveInstance *instance = instances[0];
+	RPrimitiveInstance *instance = _instances[0];
 
 	if (!instance) {
 		warning("Actor::resolveCollisions(): missing primitive instance");
@@ -601,35 +601,35 @@ bool Actor::resolveCollisions() {
 		return true;
 	}
 
-	RPrimitive *prim = instance->prim;
+	RPrimitive *prim = instance->_prim;
 
 	if (!prim)
 		return true;
 
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::resolveCollisions(): the actor has no extra data");
 
 		return true;
 	}
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	const float *matrix = world.rot.m;
-	float offsetX = (float)(((double)matrix[3] * prim->center.y + (double)matrix[6] * prim->center.z) + (double)matrix[0] * prim->center.x);
-	float offsetY = (float)(((double)matrix[4] * prim->center.y + (double)matrix[7] * prim->center.z) + (double)matrix[1] * prim->center.x);
-	float offsetZ = (float)(((double)matrix[5] * prim->center.y + (double)matrix[8] * prim->center.z) + (double)matrix[2] * prim->center.x);
+	const float *matrix = _world._rot._m;
+	float offsetX = (float)(((double)matrix[3] * prim->_center._y + (double)matrix[6] * prim->_center._z) + (double)matrix[0] * prim->_center._x);
+	float offsetY = (float)(((double)matrix[4] * prim->_center._y + (double)matrix[7] * prim->_center._z) + (double)matrix[1] * prim->_center._x);
+	float offsetZ = (float)(((double)matrix[5] * prim->_center._y + (double)matrix[8] * prim->_center._z) + (double)matrix[2] * prim->_center._x);
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	float centerX = (float)((double)offsetX + world.pos.x);
-	float centerY = (float)((double)offsetY + world.pos.y);
-	float centerZ = (float)((double)offsetZ + world.pos.z);
-	float radius = (float)(calcCollisionRadius(prim) * extra->collisionScale);
+	float centerX = (float)((double)offsetX + _world._pos._x);
+	float centerY = (float)((double)offsetY + _world._pos._y);
+	float centerZ = (float)((double)offsetZ + _world._pos._z);
+	float radius = (float)(calcCollisionRadius(prim) * _extra->_collisionScale);
 
 	// The disasm handles the collision modes 1 and 2 of this actor in the same way
-	if (extra->collisionMode == 0)
+	if (_extra->_collisionMode == 0)
 		return true;
 
 	for (int i = 0; i < _engine->_collisionCount; i++) {
@@ -638,18 +638,18 @@ bool Actor::resolveCollisions() {
 		if (!other || other == this)
 			continue;
 
-		Extra_v2 *otherExtra = other->extra;
+		Extra_v2 *otherExtra = other->_extra;
 
 		if (!otherExtra)
 			continue;
 
-		if (otherExtra->collisionMode == 0)
+		if (otherExtra->_collisionMode == 0)
 			continue;
 
-		if (other->instances.empty())
+		if (other->_instances.empty())
 			continue;
 
-		RPrimitiveInstance *otherInstance = other->instances[0];
+		RPrimitiveInstance *otherInstance = other->_instances[0];
 
 		if (!otherInstance) {
 			warning("Actor::resolveCollisions(): missing primitive instance");
@@ -657,26 +657,26 @@ bool Actor::resolveCollisions() {
 			continue;
 		}
 
-		RPrimitive *otherPrim = otherInstance->prim;
+		RPrimitive *otherPrim = otherInstance->_prim;
 
 		if (!otherPrim)
 			continue;
 
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		const float *otherMatrix = other->world.rot.m;
-		float otherOffsetX = (float)(((double)otherMatrix[6] * otherPrim->center.z + (double)otherMatrix[3] * otherPrim->center.y) + (double)otherPrim->center.x * otherMatrix[0]);
-		float otherOffsetY = (float)(((double)otherMatrix[7] * otherPrim->center.z + (double)otherMatrix[1] * otherPrim->center.x) + (double)otherMatrix[4] * otherPrim->center.y);
-		float otherOffsetZ = (float)(((double)otherMatrix[8] * otherPrim->center.z + (double)otherMatrix[2] * otherPrim->center.x) + (double)otherMatrix[5] * otherPrim->center.y);
+		const float *otherMatrix = other->_world._rot._m;
+		float otherOffsetX = (float)(((double)otherMatrix[6] * otherPrim->_center._z + (double)otherMatrix[3] * otherPrim->_center._y) + (double)otherPrim->_center._x * otherMatrix[0]);
+		float otherOffsetY = (float)(((double)otherMatrix[7] * otherPrim->_center._z + (double)otherMatrix[1] * otherPrim->_center._x) + (double)otherMatrix[4] * otherPrim->_center._y);
+		float otherOffsetZ = (float)(((double)otherMatrix[8] * otherPrim->_center._z + (double)otherMatrix[2] * otherPrim->_center._x) + (double)otherMatrix[5] * otherPrim->_center._y);
 
-		if ((other->nodeFlags & kWorldValid) == 0)
+		if ((other->_nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		double otherCenterX = (double)otherOffsetX + other->world.pos.x;
-		double otherCenterY = (double)otherOffsetY + other->world.pos.y;
-		double otherCenterZ = (double)otherOffsetZ + other->world.pos.z;
-		float otherRadius = (float)(calcCollisionRadius(otherPrim) * otherExtra->collisionScale);
+		double otherCenterX = (double)otherOffsetX + other->_world._pos._x;
+		double otherCenterY = (double)otherOffsetY + other->_world._pos._y;
+		double otherCenterZ = (double)otherOffsetZ + other->_world._pos._z;
+		float otherRadius = (float)(calcCollisionRadius(otherPrim) * otherExtra->_collisionScale);
 
 		float deltaZ = (float)((double)centerZ - otherCenterZ);
 		float deltaY = (float)((double)centerY - otherCenterY);
@@ -686,7 +686,7 @@ bool Actor::resolveCollisions() {
 		if (!((double)otherRadius + radius > distance))
 			continue;
 
-		if (otherExtra->collisionMode != 2)
+		if (otherExtra->_collisionMode != 2)
 			continue;
 
 		if (radius == 0.0f) {
@@ -696,15 +696,15 @@ bool Actor::resolveCollisions() {
 			continue;
 		}
 
-		extra->inCollision = true;
-		otherExtra->inCollision = true;
+		_extra->_inCollision = true;
+		otherExtra->_inCollision = true;
 
-		if ((nodeFlags & kPositionValid) == 0)
+		if ((_nodeFlags & kPositionValid) == 0)
 			computeLocalPositionFromWorld();
 
-		_engine->_collisionOldPosition.x = pos.x;
-		_engine->_collisionOldPosition.y = pos.y;
-		_engine->_collisionOldPosition.z = pos.z;
+		_engine->_collisionOldPosition._x = _pos._x;
+		_engine->_collisionOldPosition._y = _pos._y;
+		_engine->_collisionOldPosition._z = _pos._z;
 
 		double directionLength = sqrt(((double)deltaX * deltaX + (double)deltaZ * deltaZ) + (double)deltaY * deltaY);
 		double directionX = deltaX;
@@ -734,26 +734,26 @@ bool Actor::resolveCollisions() {
 
 		setActorPosition(newPosition);
 
-		if ((nodeFlags & kPositionValid) == 0)
+		if ((_nodeFlags & kPositionValid) == 0)
 			computeLocalPositionFromWorld();
 
-		_engine->_collisionNewPosition.x = pos.x;
-		_engine->_collisionNewPosition.y = pos.y;
-		_engine->_collisionNewPosition.z = pos.z;
-		_engine->_hitPoint.x = _engine->_collisionNewPosition.x;
-		_engine->_hitPoint.y = _engine->_collisionNewPosition.y;
-		_engine->_hitPoint.z = _engine->_collisionNewPosition.z;
+		_engine->_collisionNewPosition._x = _pos._x;
+		_engine->_collisionNewPosition._y = _pos._y;
+		_engine->_collisionNewPosition._z = _pos._z;
+		_engine->_hitPoint._x = _engine->_collisionNewPosition._x;
+		_engine->_hitPoint._y = _engine->_collisionNewPosition._y;
+		_engine->_hitPoint._z = _engine->_collisionNewPosition._z;
 
-		_engine->getLua()->callCollisionHandler(this, other, _engine->_collisionOldPosition.x, _engine->_collisionOldPosition.y, _engine->_collisionOldPosition.z,
-			_engine->_hitPoint.x, _engine->_hitPoint.y, _engine->_hitPoint.z, _engine->_collisionNewPosition.x, _engine->_collisionNewPosition.y, _engine->_collisionNewPosition.z);
+		_engine->getLua()->callCollisionHandler(this, other, _engine->_collisionOldPosition._x, _engine->_collisionOldPosition._y, _engine->_collisionOldPosition._z,
+			_engine->_hitPoint._x, _engine->_hitPoint._y, _engine->_hitPoint._z, _engine->_collisionNewPosition._x, _engine->_collisionNewPosition._y, _engine->_collisionNewPosition._z);
 	}
 
-	if ((nodeFlags & kPositionValid) == 0)
+	if ((_nodeFlags & kPositionValid) == 0)
 		computeLocalPositionFromWorld();
 
-	prevPos.x = pos.x;
-	prevPos.y = pos.y;
-	prevPos.z = pos.z;
+	_prevPos._x = _pos._x;
+	_prevPos._y = _pos._y;
+	_prevPos._z = _pos._z;
 
 	return true;
 }

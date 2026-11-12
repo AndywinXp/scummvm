@@ -36,114 +36,114 @@ LBitmap::~LBitmap() {
 }
 
 void LBitmap::setColorFormat(const LColorFormat &format) {
-	colorFormat = format;
+	_colorFormat = format;
 }
 
 LString &LBitmap::getName() {
-	return bitmapName;
+	return _bitmapName;
 }
 
 void LBitmap::setName(const char *newName) {
-	bitmapName = newName;
+	_bitmapName = newName;
 }
 
 LABitmap::LABitmap(EmiEngine *engine) : LBitmap(engine) {
-	ownedPixels = nullptr;
-	pixels = nullptr;
-	width = 0;
-	height = 0;
-	stride = 0;
-	sizeBytes = 0;
+	_ownedPixels = nullptr;
+	_pixels = nullptr;
+	_width = 0;
+	_height = 0;
+	_stride = 0;
+	_sizeBytes = 0;
 }
 
 LABitmap::LABitmap(EmiEngine *engine, int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels) : LBitmap(engine) {
-	colorFormat = format;
-	width = bitmapWidth;
-	height = bitmapHeight;
-	stride = bitmapWidth * format.bytesPerPixel;
-	sizeBytes = bitmapHeight * stride;
+	_colorFormat = format;
+	_width = bitmapWidth;
+	_height = bitmapHeight;
+	_stride = bitmapWidth * format._bytesPerPixel;
+	_sizeBytes = bitmapHeight * _stride;
 
 	if (useExternalPixels) {
-		ownedPixels = nullptr;
-		pixels = bitmapPixels;
+		_ownedPixels = nullptr;
+		_pixels = bitmapPixels;
 	} else {
-		ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)sizeBytes * sizeof(byte));
-		pixels = ownedPixels;
+		_ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)_sizeBytes * sizeof(byte));
+		_pixels = _ownedPixels;
 
-		if (ownedPixels) {
+		if (_ownedPixels) {
 			if (bitmapPixels)
-				_engine->getMemoryServices()->memcpyImpl(pixels, bitmapPixels, sizeBytes);
+				_engine->getMemoryServices()->memcpyImpl(_pixels, bitmapPixels, _sizeBytes);
 			else
-				_engine->getMemoryServices()->memsetImpl(pixels, 0, sizeBytes);
+				_engine->getMemoryServices()->memsetImpl(_pixels, 0, _sizeBytes);
 		}
 	}
 }
 
 LABitmap::~LABitmap() {
-	if (ownedPixels) {
-		_engine->getMemoryServices()->freeImpl(ownedPixels);
-		ownedPixels = nullptr;
+	if (_ownedPixels) {
+		_engine->getMemoryServices()->freeImpl(_ownedPixels);
+		_ownedPixels = nullptr;
 	}
 }
 
 int LABitmap::getWidth() {
-	return width;
+	return _width;
 }
 
 int LABitmap::getHeight() {
-	return height;
+	return _height;
 }
 
 int LABitmap::getStride() {
-	return stride;
+	return _stride;
 }
 
 void *LABitmap::getPixels() {
-	return pixels;
+	return _pixels;
 }
 
 void LABitmap::create(int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels) {
-	width = bitmapWidth;
-	height = bitmapHeight;
-	colorFormat = format;
-	stride = width * colorFormat.bytesPerPixel;
-	sizeBytes = height * stride;
+	_width = bitmapWidth;
+	_height = bitmapHeight;
+	_colorFormat = format;
+	_stride = _width * _colorFormat._bytesPerPixel;
+	_sizeBytes = _height * _stride;
 
-	if (ownedPixels)
-		_engine->getMemoryServices()->freeImpl(ownedPixels);
+	if (_ownedPixels)
+		_engine->getMemoryServices()->freeImpl(_ownedPixels);
 
 	if (bitmapPixels) {
-		pixels = bitmapPixels;
-		ownedPixels = nullptr;
+		_pixels = bitmapPixels;
+		_ownedPixels = nullptr;
 	} else {
-		ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)sizeBytes * sizeof(byte));
-		pixels = ownedPixels;
+		_ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)_sizeBytes * sizeof(byte));
+		_pixels = _ownedPixels;
 	}
 
-	if (pixels)
-		_engine->getMemoryServices()->memsetImpl(pixels, 0, sizeBytes);
+	if (_pixels)
+		_engine->getMemoryServices()->memsetImpl(_pixels, 0, _sizeBytes);
 }
 
 void LABitmap::convertFrom(LBitmap *source, const LColorFormat &format) {
-	if (ownedPixels)
-		_engine->getMemoryServices()->freeImpl(ownedPixels);
+	if (_ownedPixels)
+		_engine->getMemoryServices()->freeImpl(_ownedPixels);
 
-	width = source->getWidth();
-	height = source->getHeight();
-	colorFormat = format;
-	stride = width * colorFormat.bytesPerPixel;
-	sizeBytes = height * stride;
+	_width = source->getWidth();
+	_height = source->getHeight();
+	_colorFormat = format;
+	_stride = _width * _colorFormat._bytesPerPixel;
+	_sizeBytes = _height * _stride;
 
-	ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(width * height * format.bytesPerPixel) * sizeof(byte));
-	pixels = ownedPixels;
+	_ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(_width * _height * format._bytesPerPixel) * sizeof(byte));
+	_pixels = _ownedPixels;
 
-	if (!ownedPixels)
+	if (!_ownedPixels)
 		return;
 
-	if (format.formatId == source->colorFormat.formatId)
-		_engine->getMemoryServices()->memcpyImpl(pixels, source->getPixels(), source->colorFormat.bytesPerPixel * height * width);
+	if (format._formatId == source->_colorFormat._formatId)
+		_engine->getMemoryServices()->memcpyImpl(_pixels, source->getPixels(), source->_colorFormat._bytesPerPixel * _height * _width);
 	else
-		source->colorFormat.convertPixels((const byte *)source->getPixels(), height * width, format, ownedPixels);
+		source->_colorFormat.convertPixels((const byte *)source->getPixels(), _height * _width, format, _ownedPixels);
 }
 
 int LABitmap::scanAlphaRaw(uint rawWidth, uint rawHeight, const LColorFormat &format, const byte *rawPixels) {
@@ -163,7 +163,7 @@ int LABitmap::scanAlphaRaw(uint rawWidth, uint rawHeight, const LColorFormat &fo
 			if (hasPartialAlpha)
 				break;
 
-			byte alpha = rawPixels[format.bytesPerPixel * (rowStart + i) + 3];
+			byte alpha = rawPixels[format._bytesPerPixel * (rowStart + i) + 3];
 
 			if (alpha)
 				hasPartialAlpha = alpha != 255;
@@ -201,7 +201,7 @@ int LABitmap::scanAlpha() {
 			if (hasPartialAlpha)
 				break;
 
-			byte alpha = (byte)colorFormat.getAlpha(&bitmapPixels[colorFormat.bytesPerPixel * (i + rowStart)]);
+			byte alpha = (byte)_colorFormat.getAlpha(&bitmapPixels[_colorFormat._bytesPerPixel * (i + rowStart)]);
 
 			if (alpha)
 				hasPartialAlpha = alpha != 255;
@@ -220,16 +220,16 @@ int LABitmap::scanAlpha() {
 }
 
 void LABitmap::ditherPixels() {
-	byte *rowStart = (byte *)pixels;
+	byte *rowStart = (byte *)_pixels;
 
-	for (int y = 0; y < height; y++) {
+	for (int y = 0; y < _height; y++) {
 		byte *pixel = rowStart;
 
-		for (int x = 0; x < width; x++) {
-			int red = colorFormat.getRed(pixel);
-			int green = colorFormat.getGreen(pixel);
-			int blue = colorFormat.getBlue(pixel);
-			int alpha = colorFormat.getAlpha(pixel);
+		for (int x = 0; x < _width; x++) {
+			int red = _colorFormat.getRed(pixel);
+			int green = _colorFormat.getGreen(pixel);
+			int blue = _colorFormat.getBlue(pixel);
+			int alpha = _colorFormat.getAlpha(pixel);
 			int dither = kDitherTable[4 * (y & 3) + (x & 3)];
 
 			red += dither;
@@ -244,49 +244,49 @@ void LABitmap::ditherPixels() {
 			if (blue > 255)
 				blue = 255;
 
-			colorFormat.packPixel(pixel, alpha, red, green, blue);
+			_colorFormat.packPixel(pixel, alpha, red, green, blue);
 
-			pixel += colorFormat.bytesPerPixel;
+			pixel += _colorFormat._bytesPerPixel;
 		}
 
-		rowStart += colorFormat.bytesPerPixel * width;
+		rowStart += _colorFormat._bytesPerPixel * _width;
 	}
 }
 
 void LABitmap::convertFormat(const LColorFormat &format) {
-	if (format.formatId == colorFormat.formatId)
+	if (format._formatId == _colorFormat._formatId)
 		return;
 
-	byte *newPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(height * format.bytesPerPixel * width) * sizeof(byte));
+	byte *newPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(_height * format._bytesPerPixel * _width) * sizeof(byte));
 
 	if (!newPixels)
 		return;
 
-	_engine->getMemoryServices()->memsetImpl(newPixels, 0, height * width * format.bytesPerPixel);
-	colorFormat.convertPixels((const byte *)pixels, height * width, format, newPixels);
+	_engine->getMemoryServices()->memsetImpl(newPixels, 0, _height * _width * format._bytesPerPixel);
+	_colorFormat.convertPixels((const byte *)_pixels, _height * _width, format, newPixels);
 
-	if (ownedPixels)
-		_engine->getMemoryServices()->freeImpl(ownedPixels);
+	if (_ownedPixels)
+		_engine->getMemoryServices()->freeImpl(_ownedPixels);
 
-	pixels = newPixels;
-	ownedPixels = newPixels;
+	_pixels = newPixels;
+	_ownedPixels = newPixels;
 
-	colorFormat.setFormat(format.formatId);
+	_colorFormat.setFormat(format._formatId);
 
-	stride = width * colorFormat.bytesPerPixel;
-	sizeBytes = height * stride;
+	_stride = _width * _colorFormat._bytesPerPixel;
+	_sizeBytes = _height * _stride;
 }
 
 int LABitmap::getSizeBytes() {
-	return sizeBytes;
+	return _sizeBytes;
 }
 
 void LABitmap::setPixels(void *newPixels) {
-	pixels = newPixels;
+	_pixels = newPixels;
 }
 
 void LABitmap::setHeight(int newHeight) {
-	height = newHeight;
+	_height = newHeight;
 }
 
 } // End of namespace Grim

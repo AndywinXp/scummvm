@@ -31,23 +31,23 @@
 
 namespace Grim {
 
-StdBmp::StdBmp(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _pHS(pHS) {
+StdBmp::StdBmp(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _hs(hs) {
 }
 
-StdBitmapStruct *StdBmp::load(const char *path, int bVideoMemory, int bNoZ) {
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+StdBitmapStruct *StdBmp::load(const char *path, int videoMemory, int noZ) {
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 
-	if (loadEntry(path, pBitmap, bVideoMemory, bNoZ))
-		return pBitmap;
+	if (loadEntry(path, bitmap, videoMemory, noZ))
+		return bitmap;
 
 	return nullptr;
 }
 
-int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ) {
-	byte *pPalette = nullptr;
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+int StdBmp::loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory, int noZ) {
+	byte *palette = nullptr;
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return 0;
 
 	byte fileHeader[14];
@@ -56,9 +56,9 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	memset(fileHeader, 0, sizeof(fileHeader));
 	memset(infoHeader, 0, sizeof(infoHeader));
 
-	uint32 numRead = pFile->read(fileHeader, 14);
+	uint32 numRead = file->read(fileHeader, 14);
 
-	if (pFile->read(infoHeader, 40) + numRead != 54)
+	if (file->read(infoHeader, 40) + numRead != 54)
 		return 0;
 
 	uint16 bfType = READ_LE_UINT16(fileHeader);
@@ -76,39 +76,39 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	if (biBitCount < 8) {
 		uint32 paletteSize = 4 * (1 << biBitCount);
 
-		pPalette = new byte[paletteSize + 44];
+		palette = new byte[paletteSize + 44];
 
-		if (pFile->read(pPalette, paletteSize) != paletteSize)
+		if (file->read(palette, paletteSize) != paletteSize)
 			error("Unable to read the palette.  Your file is corrupted.");
 	}
 
-	memset(pBitmap, 0, sizeof(StdBitmapStruct));
-	strncpy(pBitmap->aName, _stdFile->fromPath(path), 31);
-	pBitmap->aName[31] = 0;
-	pBitmap->encoding = 0;
-	pBitmap->flags = 0;
-	pBitmap->pPalette = pPalette;
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
+	memset(bitmap, 0, sizeof(StdBitmapStruct));
+	strncpy(bitmap->name, _stdFile->fromPath(path), 31);
+	bitmap->name[31] = 0;
+	bitmap->encoding = 0;
+	bitmap->flags = 0;
+	bitmap->palette = palette;
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
 
 	switch (biBitCount) {
 	case 8:
-		pBitmap->flags = 2;
-		pBitmap->format.bpp = biBitCount;
-		pBitmap->format.colorMode = 0;
+		bitmap->flags = 2;
+		bitmap->format.bpp = biBitCount;
+		bitmap->format.colorMode = 0;
 		break;
 	case 16:
 		error("16 bit-per-pixel BMP not yet supported.");
 		break;
 	case 24:
-		pBitmap->format.colorMode = 1;
-		pBitmap->format.bpp = 24;
-		pBitmap->format.redBits = 8;
-		pBitmap->format.greenBits = 8;
-		pBitmap->format.blueBits = 8;
-		pBitmap->format.redShift = 16;
-		pBitmap->format.greenShift = 8;
-		pBitmap->format.blueShift = 0;
+		bitmap->format.colorMode = 1;
+		bitmap->format.bpp = 24;
+		bitmap->format.redBits = 8;
+		bitmap->format.greenBits = 8;
+		bitmap->format.blueBits = 8;
+		bitmap->format.redShift = 16;
+		bitmap->format.greenShift = 8;
+		bitmap->format.blueShift = 0;
 		break;
 	case 32:
 		error("32bit-per-pixel BMP not yet supported.");
@@ -118,7 +118,7 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 		break;
 	}
 
-	pBitmap->apFrames = new StdVBuffer *[pBitmap->numFrames]();
+	bitmap->frames = new StdVBuffer *[bitmap->numFrames]();
 
 	if (biWidth < 0 || biHeight == (int32)0x80000000) {
 		warning("StdBmp::loadEntry(): invalid image size");
@@ -128,7 +128,7 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	StdVBufferTexFmt format;
 
 	memset(&format, 0, sizeof(format));
-	format.format = pBitmap->format;
+	format.format = bitmap->format;
 	format.width = biWidth;
 
 	if (biHeight < 0)
@@ -136,85 +136,85 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	else
 		format.height = biHeight;
 
-	if ((int64)format.width * (int64)format.height * (int64)(pBitmap->format.bpp >> 3) > 0x7FFFFFFF) {
+	if ((int64)format.width * (int64)format.height * (int64)(bitmap->format.bpp >> 3) > 0x7FFFFFFF) {
 		warning("StdBmp::loadEntry(): invalid image size");
 		return 0;
 	}
 
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, pPalette);
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&format, videoMemory, noZ, palette);
 
-	if (!pBitmap->apFrames[0])
+	if (!bitmap->frames[0])
 		error("Unable to allocate memory.");
 
-	if (!_stdDisplay->vBufferLock(pBitmap->apFrames[0]))
+	if (!_stdDisplay->vBufferLock(bitmap->frames[0]))
 		error("Unable to lock VBuffer memory.");
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
-	int height = pFrame->tex.height;
-	byte *pDstRow = pFrame->pPixels;
-	int pitchInBytes = pFrame->tex.pitchInBytes;
-	byte *pPixels = pDstRow;
+	StdVBuffer *frame = bitmap->frames[0];
+	int height = frame->tex.height;
+	byte *dstRow = frame->pixels;
+	int pitchInBytes = frame->tex.pitchInBytes;
+	byte *pixels = dstRow;
 
 	for (int row = 0; row < height; row++) {
-		if (pFile->read(pPixels, pFrame->tex.pitchInBytes) != (uint32)pFrame->tex.pitchInBytes)
+		if (file->read(pixels, frame->tex.pitchInBytes) != (uint32)frame->tex.pitchInBytes)
 			error("Unable to read all the data from your BMP file.  It may be corrupted.");
 
-		pFile->seek(((pitchInBytes + 3) & ~3) - pitchInBytes, SEEK_CUR);
+		file->seek(((pitchInBytes + 3) & ~3) - pitchInBytes, SEEK_CUR);
 
-		if (pFrame->tex.format.bpp == 24) {
-			byte *pPixel = pPixels;
+		if (frame->tex.format.bpp == 24) {
+			byte *pixel = pixels;
 
-			for (int x = 0; x < pFrame->tex.width; x++) {
-				byte swap = pPixel[0];
+			for (int x = 0; x < frame->tex.width; x++) {
+				byte swap = pixel[0];
 
-				pPixel[0] = pPixel[2];
-				pPixel[2] = swap;
-				pPixel += 3;
+				pixel[0] = pixel[2];
+				pixel[2] = swap;
+				pixel += 3;
 			}
 		}
 
-		pPixels += pitchInBytes;
+		pixels += pitchInBytes;
 	}
 
 	if (biHeight > 0) {
 		for (int row = 0; row < height / 2; row++) {
-			byte *pTop = pDstRow + row * pitchInBytes;
-			byte *pBottom = pDstRow + (height - 1 - row) * pitchInBytes;
+			byte *top = dstRow + row * pitchInBytes;
+			byte *bottom = dstRow + (height - 1 - row) * pitchInBytes;
 
 			for (int x = 0; x < pitchInBytes; x++) {
-				byte swap = pTop[x];
+				byte swap = top[x];
 
-				pTop[x] = pBottom[x];
-				pBottom[x] = swap;
+				top[x] = bottom[x];
+				bottom[x] = swap;
 			}
 		}
 	}
 
-	_stdDisplay->vBufferUnlock(pBitmap->apFrames[0]);
-	delete pFile;
+	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
+	delete file;
 
 	return 1;
 }
 
-int StdBmp::write(const char *path, StdBitmapStruct *pBitmap) {
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+int StdBmp::write(const char *path, StdBitmapStruct *bitmap) {
+	StdVBuffer *frame = bitmap->frames[0];
 	int paletteSize;
 
-	if (pFrame->tex.format.colorMode) {
-		if (pFrame->tex.format.bpp != 24)
+	if (frame->tex.format.colorMode) {
+		if (frame->tex.format.bpp != 24)
 			error("Only 24bpp supported");
 
 		paletteSize = 0;
 	} else {
-		if (pFrame->tex.format.bpp < 1 || pFrame->tex.format.bpp > 8) {
+		if (frame->tex.format.bpp < 1 || frame->tex.format.bpp > 8) {
 			warning("StdBmp::write(): unsupported bits per pixel for a palettized image");
 			return 0;
 		}
 
-		paletteSize = 4 * (1 << pFrame->tex.format.bpp);
+		paletteSize = 4 * (1 << frame->tex.format.bpp);
 	}
 
-	uint32 imageSize = (uint32)pFrame->tex.format.bpp * (uint32)pFrame->tex.height * (uint32)pFrame->tex.width;
+	uint32 imageSize = (uint32)frame->tex.format.bpp * (uint32)frame->tex.height * (uint32)frame->tex.width;
 	byte fileHeader[14];
 	byte infoHeader[40];
 
@@ -226,10 +226,10 @@ int StdBmp::write(const char *path, StdBitmapStruct *pBitmap) {
 	WRITE_LE_UINT32(fileHeader + 10, paletteSize + 54);
 	memset(infoHeader, 0, sizeof(infoHeader));
 	WRITE_LE_UINT32(infoHeader, 40);
-	WRITE_LE_INT32(infoHeader + 4, pFrame->tex.width);
-	WRITE_LE_INT32(infoHeader + 8, pFrame->tex.height);
+	WRITE_LE_INT32(infoHeader + 4, frame->tex.width);
+	WRITE_LE_INT32(infoHeader + 8, frame->tex.height);
 	WRITE_LE_UINT16(infoHeader + 12, 1);
-	WRITE_LE_UINT16(infoHeader + 14, pFrame->tex.format.bpp);
+	WRITE_LE_UINT16(infoHeader + 14, frame->tex.format.bpp);
 	WRITE_LE_UINT32(infoHeader + 16, 0);
 	WRITE_LE_UINT32(infoHeader + 20, imageSize);
 	WRITE_LE_UINT32(infoHeader + 24, 2834);
@@ -240,12 +240,12 @@ int StdBmp::write(const char *path, StdBitmapStruct *pBitmap) {
 	if (!file.open(path))
 		return 0;
 
-	bool bWritten = file.write(fileHeader, 14) == 14 && file.write(infoHeader, 40) == 40;
+	bool written = file.write(fileHeader, 14) == 14 && file.write(infoHeader, 40) == 40;
 
-	if (bWritten && paletteSize > 0) {
+	if (written && paletteSize > 0) {
 		int copySize = paletteSize;
 
-		if (!pBitmap->pPalette) {
+		if (!bitmap->palette) {
 			warning("StdBmp::write(): bitmap without a palette");
 			copySize = 0;
 		} else if (copySize > 768) {
@@ -254,31 +254,31 @@ int StdBmp::write(const char *path, StdBitmapStruct *pBitmap) {
 		}
 
 		if (copySize > 0)
-			bWritten = file.write(pBitmap->pPalette, copySize) == (uint32)copySize;
+			written = file.write(bitmap->palette, copySize) == (uint32)copySize;
 
-		for (int i = copySize; bWritten && i < paletteSize; i++)
+		for (int i = copySize; written && i < paletteSize; i++)
 			file.writeByte(0);
 	}
 
-	if (bWritten) {
-		int rowBytes = ((uint32)pFrame->tex.format.bpp * (uint32)pFrame->tex.width) >> 3;
+	if (written) {
+		int rowBytes = ((uint32)frame->tex.format.bpp * (uint32)frame->tex.width) >> 3;
 
-		for (int y = pFrame->tex.height - 1; y >= 0; y--) {
-			byte *pRow = pFrame->pPixels + pFrame->tex.pitchInBytes * y;
+		for (int y = frame->tex.height - 1; y >= 0; y--) {
+			byte *row = frame->pixels + frame->tex.pitchInBytes * y;
 
-			if (pFrame->tex.format.bpp == 24) {
-				byte *pPixel = pRow;
+			if (frame->tex.format.bpp == 24) {
+				byte *pixel = row;
 
-				for (int x = 0; x < pFrame->tex.width; x++) {
-					byte swap = pPixel[0];
+				for (int x = 0; x < frame->tex.width; x++) {
+					byte swap = pixel[0];
 
-					pPixel[0] = pPixel[2];
-					pPixel[2] = swap;
-					pPixel += 3;
+					pixel[0] = pixel[2];
+					pixel[2] = swap;
+					pixel += 3;
 				}
 			}
 
-			if (file.write(pRow, rowBytes) != (uint32)rowBytes) {
+			if (file.write(row, rowBytes) != (uint32)rowBytes) {
 				file.close();
 				return 0;
 			}

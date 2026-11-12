@@ -45,66 +45,66 @@ void RenderDroid::Model3Module::setClipPlane(RdVector3 norm, RdVector3 pt) {
 	_clipPt[2] = pt[2];
 }
 
-int RenderDroid::Model3Module::newEntry(RdModel3 *pModel3) {
-	memset(pModel3, 0, sizeof(RdModel3));
-	Common::strlcpy(pModel3->aName, "UNKNOWN", 32);
-	pModel3->curGeoSet = 0;
+int RenderDroid::Model3Module::newEntry(RdModel3 *model3) {
+	memset(model3, 0, sizeof(RdModel3));
+	Common::strlcpy(model3->name, "UNKNOWN", 32);
+	model3->curGeoSet = 0;
 
 	return 0;
 }
 
-void RenderDroid::Model3Module::calcBoundingBoxes(RdModel3 *pModel3) {
-	pModel3->bound.min[0] = 3.4e38f;
-	pModel3->bound.min[1] = 3.4e38f;
-	pModel3->bound.min[2] = 3.4e38f;
-	pModel3->bound.max[0] = -3.4e38f;
-	pModel3->bound.max[1] = -3.4e38f;
-	pModel3->bound.max[2] = -3.4e38f;
+void RenderDroid::Model3Module::calcBoundingBoxes(RdModel3 *model3) {
+	model3->bound.min[0] = 3.4e38f;
+	model3->bound.min[1] = 3.4e38f;
+	model3->bound.min[2] = 3.4e38f;
+	model3->bound.max[0] = -3.4e38f;
+	model3->bound.max[1] = -3.4e38f;
+	model3->bound.max[2] = -3.4e38f;
 
-	for (uint i = 0; i < pModel3->numGeos; i++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[i];
+	for (uint i = 0; i < model3->numGeos; i++) {
+		RdModel3Geo *geo = &model3->geo[i];
 
-		for (uint j = 0; j < pGeo->numMeshes; j++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[j];
+		for (uint j = 0; j < geo->numMeshes; j++) {
+			RdModel3Mesh *mesh = &geo->meshes[j];
 
-			pMesh->bound.min[0] = 3.4e38f;
-			pMesh->bound.min[1] = 3.4e38f;
-			pMesh->bound.min[2] = 3.4e38f;
-			pMesh->bound.max[0] = -3.4e38f;
-			pMesh->bound.max[1] = -3.4e38f;
-			pMesh->bound.max[2] = -3.4e38f;
+			mesh->bound.min[0] = 3.4e38f;
+			mesh->bound.min[1] = 3.4e38f;
+			mesh->bound.min[2] = 3.4e38f;
+			mesh->bound.max[0] = -3.4e38f;
+			mesh->bound.max[1] = -3.4e38f;
+			mesh->bound.max[2] = -3.4e38f;
 
-			for (uint k = 0; k < pMesh->numVertices; k++) {
-				float *pVertex = pMesh->aVertices[k];
+			for (uint k = 0; k < mesh->numVertices; k++) {
+				float *vertex = mesh->vertices[k];
 
-				if (pVertex[0] < (double)pMesh->bound.min[0])
-					pMesh->bound.min[0] = pVertex[0];
-				if (pVertex[1] < (double)pMesh->bound.min[1])
-					pMesh->bound.min[1] = pVertex[1];
-				if (pVertex[2] < (double)pMesh->bound.min[2])
-					pMesh->bound.min[2] = pVertex[2];
-				if (pVertex[0] > (double)pMesh->bound.max[0])
-					pMesh->bound.max[0] = pVertex[0];
-				if (pVertex[1] > (double)pMesh->bound.max[1])
-					pMesh->bound.max[1] = pVertex[1];
-				if (pVertex[2] > (double)pMesh->bound.max[2])
-					pMesh->bound.max[2] = pVertex[2];
+				if (vertex[0] < (double)mesh->bound.min[0])
+					mesh->bound.min[0] = vertex[0];
+				if (vertex[1] < (double)mesh->bound.min[1])
+					mesh->bound.min[1] = vertex[1];
+				if (vertex[2] < (double)mesh->bound.min[2])
+					mesh->bound.min[2] = vertex[2];
+				if (vertex[0] > (double)mesh->bound.max[0])
+					mesh->bound.max[0] = vertex[0];
+				if (vertex[1] > (double)mesh->bound.max[1])
+					mesh->bound.max[1] = vertex[1];
+				if (vertex[2] > (double)mesh->bound.max[2])
+					mesh->bound.max[2] = vertex[2];
 			}
 
 			// The demo takes the box of the model from the boxes of the meshes
 			if (_rd->isDemo()) {
-				if (pMesh->bound.min[0] < (double)pModel3->bound.min[0])
-					pModel3->bound.min[0] = pMesh->bound.min[0];
-				if (pMesh->bound.min[1] < (double)pModel3->bound.min[1])
-					pModel3->bound.min[1] = pMesh->bound.min[1];
-				if (pMesh->bound.min[2] < (double)pModel3->bound.min[2])
-					pModel3->bound.min[2] = pMesh->bound.min[2];
-				if (pMesh->bound.max[0] > (double)pModel3->bound.max[0])
-					pModel3->bound.max[0] = pMesh->bound.max[0];
-				if (pMesh->bound.max[1] > (double)pModel3->bound.max[1])
-					pModel3->bound.max[1] = pMesh->bound.max[1];
-				if (pMesh->bound.max[2] > (double)pModel3->bound.max[2])
-					pModel3->bound.max[2] = pMesh->bound.max[2];
+				if (mesh->bound.min[0] < (double)model3->bound.min[0])
+					model3->bound.min[0] = mesh->bound.min[0];
+				if (mesh->bound.min[1] < (double)model3->bound.min[1])
+					model3->bound.min[1] = mesh->bound.min[1];
+				if (mesh->bound.min[2] < (double)model3->bound.min[2])
+					model3->bound.min[2] = mesh->bound.min[2];
+				if (mesh->bound.max[0] > (double)model3->bound.max[0])
+					model3->bound.max[0] = mesh->bound.max[0];
+				if (mesh->bound.max[1] > (double)model3->bound.max[1])
+					model3->bound.max[1] = mesh->bound.max[1];
+				if (mesh->bound.max[2] > (double)model3->bound.max[2])
+					model3->bound.max[2] = mesh->bound.max[2];
 			}
 		}
 	}
@@ -113,37 +113,37 @@ void RenderDroid::Model3Module::calcBoundingBoxes(RdModel3 *pModel3) {
 	if (_rd->isDemo())
 		return;
 
-	pModel3->bound.min[0] = 3.4e38f;
-	pModel3->bound.min[1] = 3.4e38f;
-	pModel3->bound.min[2] = 3.4e38f;
-	pModel3->bound.max[0] = -3.4e38f;
-	pModel3->bound.max[1] = -3.4e38f;
-	pModel3->bound.max[2] = -3.4e38f;
-	calcModelBoundingBox(pModel3, pModel3->aHNodes, _rd->_identMatrix34);
+	model3->bound.min[0] = 3.4e38f;
+	model3->bound.min[1] = 3.4e38f;
+	model3->bound.min[2] = 3.4e38f;
+	model3->bound.max[0] = -3.4e38f;
+	model3->bound.max[1] = -3.4e38f;
+	model3->bound.max[2] = -3.4e38f;
+	calcModelBoundingBox(model3, model3->hNodes, _rd->_identMatrix34);
 
-	double dy = (double)pModel3->bound.min[1] - pModel3->bound.max[1];
-	double dx = (double)pModel3->bound.min[0] - pModel3->bound.max[0];
-	double dz = (double)pModel3->bound.min[2] - pModel3->bound.max[2];
+	double dy = (double)model3->bound.min[1] - model3->bound.max[1];
+	double dx = (double)model3->bound.min[0] - model3->bound.max[0];
+	double dz = (double)model3->bound.min[2] - model3->bound.max[2];
 	float dxStored = (float)dx;
 	double dxSquared = dx * dxStored;
 	float dzStored = (float)dz;
-	double centerY = ((double)pModel3->bound.max[1] - pModel3->bound.min[1]) * 0.5 + pModel3->bound.min[1];
-	double centerZ = ((double)pModel3->bound.max[2] - pModel3->bound.min[2]) * 0.5 + pModel3->bound.min[2];
+	double centerY = ((double)model3->bound.max[1] - model3->bound.min[1]) * 0.5 + model3->bound.min[1];
+	double centerZ = ((double)model3->bound.max[2] - model3->bound.min[2]) * 0.5 + model3->bound.min[2];
 
-	pModel3->geomCenter[0] = (float)(((double)pModel3->bound.max[0] - pModel3->bound.min[0]) * 0.5 + pModel3->bound.min[0]);
-	pModel3->geomCenter[1] = (float)centerY;
-	pModel3->geomCenter[2] = (float)centerZ;
-	pModel3->radius = (float)(sqrt(dxSquared + dy * dy + dz * dzStored) * 0.5);
+	model3->geomCenter[0] = (float)(((double)model3->bound.max[0] - model3->bound.min[0]) * 0.5 + model3->bound.min[0]);
+	model3->geomCenter[1] = (float)centerY;
+	model3->geomCenter[2] = (float)centerZ;
+	model3->radius = (float)(sqrt(dxSquared + dy * dy + dz * dzStored) * 0.5);
 }
 
-void RenderDroid::Model3Module::calcRadii(RdModel3 *pModel3) {
-	for (uint i = 0; i < pModel3->aGeo[0].numMeshes; i++) {
-		RdModel3Mesh *pMesh = &pModel3->aGeo[0].aMeshes[i];
+void RenderDroid::Model3Module::calcRadii(RdModel3 *model3) {
+	for (uint i = 0; i < model3->geo[0].numMeshes; i++) {
+		RdModel3Mesh *mesh = &model3->geo[0].meshes[i];
 		double maxLength = 0.0;
 
-		for (uint j = 0; j < pMesh->numVertices; j++) {
-			float *pVertex = pMesh->aVertices[j];
-			double length = sqrt((double)pVertex[1] * pVertex[1] + (double)pVertex[2] * pVertex[2] + (double)pVertex[0] * pVertex[0]);
+		for (uint j = 0; j < mesh->numVertices; j++) {
+			float *vertex = mesh->vertices[j];
+			double length = sqrt((double)vertex[1] * vertex[1] + (double)vertex[2] * vertex[2] + (double)vertex[0] * vertex[0]);
 
 			if (length > maxLength) {
 				float stored = (float)length;
@@ -151,37 +151,37 @@ void RenderDroid::Model3Module::calcRadii(RdModel3 *pModel3) {
 			}
 		}
 
-		pMesh->radius = (float)(maxLength * 0.1 + maxLength);
+		mesh->radius = (float)(maxLength * 0.1 + maxLength);
 	}
 
 	_maxGeoRadius = 0.0f;
-	buildExpandedRadius(pModel3, pModel3->aHNodes, _rd->_identMatrix34);
+	buildExpandedRadius(model3, model3->hNodes, _rd->_identMatrix34);
 
 	// The demo replaces the radius of the model with the expanded one
 	if (_rd->isDemo())
-		pModel3->radius = (float)((double)_maxGeoRadius * 0.1 + _maxGeoRadius);
+		model3->radius = (float)((double)_maxGeoRadius * 0.1 + _maxGeoRadius);
 }
 
-void RenderDroid::Model3Module::calcNodeDepths(RdModel3 *pModel3) {
-	for (uint i = 0; i < pModel3->numHNodes; i++) {
-		RdModel3HNode *pHNode = &pModel3->aHNodes[i];
+void RenderDroid::Model3Module::calcNodeDepths(RdModel3 *model3) {
+	for (uint i = 0; i < model3->numHNodes; i++) {
+		RdModel3HNode *hNode = &model3->hNodes[i];
 
-		pHNode->depth = 0;
-		for (RdModel3HNode *pParent = pHNode->pParentNode; pParent; pParent = pParent->pParentNode)
-			pHNode->depth++;
+		hNode->depth = 0;
+		for (RdModel3HNode *parent = hNode->parentNode; parent; parent = parent->parentNode)
+			hNode->depth++;
 	}
 }
 
-void RenderDroid::Model3Module::calcFaceNormals(RdModel3 *pModel3) {
-	for (uint i = 0; i < pModel3->numGeos; i++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[i];
+void RenderDroid::Model3Module::calcFaceNormals(RdModel3 *model3) {
+	for (uint i = 0; i < model3->numGeos; i++) {
+		RdModel3Geo *geo = &model3->geo[i];
 
-		for (uint j = 0; j < pGeo->numMeshes; j++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[j];
+		for (uint j = 0; j < geo->numMeshes; j++) {
+			RdModel3Mesh *mesh = &geo->meshes[j];
 
-			for (uint k = 0; k < pMesh->numFaces; k++) {
-				RdFace3 *pFace = &pMesh->aFaces[k];
-				int numVertices = pFace->numVertices;
+			for (uint k = 0; k < mesh->numFaces; k++) {
+				RdFace3 *face = &mesh->faces[k];
+				int numVertices = face->numVertices;
 				int vertex = 0;
 				uint previous = 0;
 				uint next = 0;
@@ -196,30 +196,30 @@ void RenderDroid::Model3Module::calcFaceNormals(RdModel3 *pModel3) {
 						following = vertex + 1;
 						next = following % numVertices;
 
-						if (!_rd->pointsCollinear(pMesh->aVertices[pFace->aVertices[vertex]], pMesh->aVertices[pFace->aVertices[next]], pMesh->aVertices[pFace->aVertices[previous]]))
+						if (!_rd->pointsCollinear(mesh->vertices[face->vertices[vertex]], mesh->vertices[face->vertices[next]], mesh->vertices[face->vertices[previous]]))
 							break;
 
-						numVertices = pFace->numVertices;
+						numVertices = face->numVertices;
 						vertex++;
-					} while (following < (int)pFace->numVertices);
+					} while (following < (int)face->numVertices);
 				}
 
-				if (vertex < (int)pFace->numVertices)
-					_rd->calcSurfaceNormal(pFace->normal, pMesh->aVertices[pFace->aVertices[vertex]], pMesh->aVertices[pFace->aVertices[next]], pMesh->aVertices[pFace->aVertices[previous]]);
+				if (vertex < (int)face->numVertices)
+					_rd->calcSurfaceNormal(face->normal, mesh->vertices[face->vertices[vertex]], mesh->vertices[face->vertices[next]], mesh->vertices[face->vertices[previous]]);
 			}
 		}
 	}
 }
 
-void RenderDroid::Model3Module::calcVertexNormals(RdModel3 *pModel3) {
-	for (uint i = 0; i < pModel3->numGeos; i++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[i];
+void RenderDroid::Model3Module::calcVertexNormals(RdModel3 *model3) {
+	for (uint i = 0; i < model3->numGeos; i++) {
+		RdModel3Geo *geo = &model3->geo[i];
 
-		for (uint j = 0; j < pGeo->numMeshes; j++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[j];
-			float *pNormal = pMesh->aVertexNormals[0];
+		for (uint j = 0; j < geo->numMeshes; j++) {
+			RdModel3Mesh *mesh = &geo->meshes[j];
+			float *normal = mesh->vertexNormals[0];
 
-			for (uint vertex = 0; vertex < pMesh->numVertices; vertex++) {
+			for (uint vertex = 0; vertex < mesh->numVertices; vertex++) {
 				double sumX = 0.0;
 				double sumY = 0.0;
 				double sumZ = 0.0;
@@ -228,15 +228,15 @@ void RenderDroid::Model3Module::calcVertexNormals(RdModel3 *pModel3) {
 				float sumYStored = 0.0f;
 				float sumZStored = 0.0f;
 
-				if (pMesh->numFaces) {
-					for (uint k = 0; k < pMesh->numFaces; k++) {
-						RdFace3 *pFace = &pMesh->aFaces[k];
+				if (mesh->numFaces) {
+					for (uint k = 0; k < mesh->numFaces; k++) {
+						RdFace3 *face = &mesh->faces[k];
 
-						for (uint m = 0; m < pFace->numVertices; m++) {
-							if ((uint)pFace->aVertices[m] == vertex) {
-								sumX = sumX + pFace->normal[0];
-								sumY = sumY + pFace->normal[1];
-								sumZ = sumZ + pFace->normal[2];
+						for (uint m = 0; m < face->numVertices; m++) {
+							if ((uint)face->vertices[m] == vertex) {
+								sumX = sumX + face->normal[0];
+								sumY = sumY + face->normal[1];
+								sumZ = sumZ + face->normal[2];
 								count = count - -1.0;
 								break;
 							}
@@ -249,75 +249,75 @@ void RenderDroid::Model3Module::calcVertexNormals(RdModel3 *pModel3) {
 				}
 
 				if (countStored == 0.0) {
-					pNormal[0] = 1.0f;
-					pNormal[1] = 0.0f;
-					pNormal[2] = 0.0f;
+					normal[0] = 1.0f;
+					normal[1] = 0.0f;
+					normal[2] = 0.0f;
 				} else {
 					if (countStored == 1.0) {
-						RdFace3 *pFirstFace = &pMesh->aFaces[0];
-						uint numFaceVertices = pFirstFace->numVertices;
-						float *pPrevious = pMesh->aVertices[pFirstFace->aVertices[numFaceVertices - 1]];
-						float *pNext = pMesh->aVertices[pFirstFace->aVertices[1 % numFaceVertices]];
-						float *pFirst = pMesh->aVertices[0];
-						float dyPrevious = (float)((double)pFirst[1] - pPrevious[1]);
-						double dzNext = (double)pFirst[2] - pNext[2];
-						double dxNext = (double)pFirst[0] - pNext[0];
-						float dzPrevious = (float)((double)pFirst[2] - pPrevious[2]);
-						double dxPrevious = (double)pFirst[0] - pPrevious[0];
+						RdFace3 *firstFace = &mesh->faces[0];
+						uint numFaceVertices = firstFace->numVertices;
+						float *previous = mesh->vertices[firstFace->vertices[numFaceVertices - 1]];
+						float *next = mesh->vertices[firstFace->vertices[1 % numFaceVertices]];
+						float *first = mesh->vertices[0];
+						float dyPrevious = (float)((double)first[1] - previous[1]);
+						double dzNext = (double)first[2] - next[2];
+						double dxNext = (double)first[0] - next[0];
+						float dzPrevious = (float)((double)first[2] - previous[2]);
+						double dxPrevious = (double)first[0] - previous[0];
 
-						pNormal[1] = (float)(((double)pFirst[1] - pNext[1]) + dyPrevious);
-						pNormal[2] = (float)(dzNext + dzPrevious);
-						pNormal[0] = (float)(dxNext + dxPrevious);
+						normal[1] = (float)(((double)first[1] - next[1]) + dyPrevious);
+						normal[2] = (float)(dzNext + dzPrevious);
+						normal[0] = (float)(dxNext + dxPrevious);
 					} else {
-						pNormal[0] = (float)(sumX / countStored);
-						pNormal[1] = (float)((double)sumYStored / countStored);
-						pNormal[2] = (float)((double)sumZStored / countStored);
+						normal[0] = (float)(sumX / countStored);
+						normal[1] = (float)((double)sumYStored / countStored);
+						normal[2] = (float)((double)sumZStored / countStored);
 					}
 
-					_rd->normalize3Acc(pNormal);
+					_rd->normalize3Acc(normal);
 				}
 
-				pNormal += 3;
+				normal += 3;
 			}
 		}
 	}
 }
 
-int RenderDroid::Model3Module::getMeshMatrix(RdThing *pThing, RdMatrix34 orient, uint nodeNum, RdMatrix34 meshOrient) {
-	if (nodeNum >= pThing->data.pModel3->numHNodes)
+int RenderDroid::Model3Module::getMeshMatrix(RdThing *thing, RdMatrix34 orient, uint nodeNum, RdMatrix34 meshOrient) {
+	if (nodeNum >= thing->data.model3->numHNodes)
 		return 0;
 
-	memcpy(meshOrient, pThing->aJointMatrices[nodeNum], sizeof(RdMatrix34));
+	memcpy(meshOrient, thing->jointMatrices[nodeNum], sizeof(RdMatrix34));
 
 	return 1;
 }
 
-void RenderDroid::Model3Module::buildExpandedRadius(RdModel3 *pModel3, RdModel3HNode *pHNode, RdMatrix34 parentMatrix) {
+void RenderDroid::Model3Module::buildExpandedRadius(RdModel3 *model3, RdModel3HNode *hNode, RdMatrix34 parentMatrix) {
 	RdMatrix34 nodeMatrix;
 	RdMatrix34 translation;
 	RdMatrix34 accumulated;
 
-	_rd->build34(nodeMatrix, pHNode->pyr, pHNode->xyz);
-	_rd->buildTranslate34(translation, pHNode->pivot);
+	_rd->build34(nodeMatrix, hNode->pyr, hNode->xyz);
+	_rd->buildTranslate34(translation, hNode->pivot);
 	_rd->postMultiply34(translation, nodeMatrix);
 
-	if (pHNode->pParentNode) {
+	if (hNode->parentNode) {
 		RdVector3 negatedPivot;
-		negatedPivot[0] = -pHNode->pParentNode->pivot[0];
-		negatedPivot[1] = -pHNode->pParentNode->pivot[1];
-		negatedPivot[2] = -pHNode->pParentNode->pivot[2];
+		negatedPivot[0] = -hNode->parentNode->pivot[0];
+		negatedPivot[1] = -hNode->parentNode->pivot[1];
+		negatedPivot[2] = -hNode->parentNode->pivot[2];
 		_rd->postTranslate34(translation, negatedPivot);
 	}
 
 	_rd->multiply34(accumulated, parentMatrix, translation);
 
-	if (pHNode->meshNodeIndex != -1) {
-		RdModel3Mesh *pMesh = &pModel3->aGeo[0].aMeshes[pHNode->meshNodeIndex];
+	if (hNode->meshNodeIndex != -1) {
+		RdModel3Mesh *mesh = &model3->geo[0].meshes[hNode->meshNodeIndex];
 
-		for (uint i = 0; i < pMesh->numVertices; i++) {
+		for (uint i = 0; i < mesh->numVertices; i++) {
 			RdVector3 transformed;
 
-			_rd->transformPoint34(transformed, pMesh->aVertices[i], accumulated);
+			_rd->transformPoint34(transformed, mesh->vertices[i], accumulated);
 
 			double length = sqrt((double)transformed[0] * transformed[0] + (double)transformed[1] * transformed[1] + (double)transformed[2] * transformed[2]);
 			if (length > _maxGeoRadius)
@@ -325,129 +325,129 @@ void RenderDroid::Model3Module::buildExpandedRadius(RdModel3 *pModel3, RdModel3H
 		}
 	}
 
-	if (pHNode->numChildren) {
-		RdModel3HNode *pChild = pHNode->pFirstChildNode;
+	if (hNode->numChildren) {
+		RdModel3HNode *child = hNode->firstChildNode;
 
-		for (uint i = 0; i < pHNode->numChildren; i++) {
-			buildExpandedRadius(pModel3, pChild, accumulated);
-			pChild = pChild->pSiblingNode;
+		for (uint i = 0; i < hNode->numChildren; i++) {
+			buildExpandedRadius(model3, child, accumulated);
+			child = child->siblingNode;
 		}
 	}
 }
 
-void RenderDroid::Model3Module::calcModelBoundingBox(RdModel3 *pModel3, RdModel3HNode *pHNode, RdMatrix34 parentMatrix) {
+void RenderDroid::Model3Module::calcModelBoundingBox(RdModel3 *model3, RdModel3HNode *hNode, RdMatrix34 parentMatrix) {
 	RdMatrix34 nodeMatrix;
 	RdMatrix34 translation;
 	RdMatrix34 accumulated;
 
-	_rd->build34(nodeMatrix, pHNode->pyr, pHNode->xyz);
-	_rd->buildTranslate34(translation, pHNode->pivot);
+	_rd->build34(nodeMatrix, hNode->pyr, hNode->xyz);
+	_rd->buildTranslate34(translation, hNode->pivot);
 	_rd->postMultiply34(translation, nodeMatrix);
 
-	if (pHNode->pParentNode) {
+	if (hNode->parentNode) {
 		RdVector3 negatedPivot;
-		negatedPivot[0] = -pHNode->pParentNode->pivot[0];
-		negatedPivot[1] = -pHNode->pParentNode->pivot[1];
-		negatedPivot[2] = -pHNode->pParentNode->pivot[2];
+		negatedPivot[0] = -hNode->parentNode->pivot[0];
+		negatedPivot[1] = -hNode->parentNode->pivot[1];
+		negatedPivot[2] = -hNode->parentNode->pivot[2];
 		_rd->postTranslate34(translation, negatedPivot);
 	}
 
 	_rd->multiply34(accumulated, parentMatrix, translation);
 
-	if (pHNode->meshNodeIndex != -1) {
-		RdModel3Mesh *pMesh = &pModel3->aGeo[0].aMeshes[pHNode->meshNodeIndex];
+	if (hNode->meshNodeIndex != -1) {
+		RdModel3Mesh *mesh = &model3->geo[0].meshes[hNode->meshNodeIndex];
 
-		for (uint i = 0; i < pMesh->numVertices; i++) {
+		for (uint i = 0; i < mesh->numVertices; i++) {
 			RdVector3 transformed;
 
-			_rd->transformPoint34(transformed, pMesh->aVertices[i], accumulated);
+			_rd->transformPoint34(transformed, mesh->vertices[i], accumulated);
 
-			if (transformed[0] > (double)pModel3->bound.max[0])
-				pModel3->bound.max[0] = transformed[0];
-			if (transformed[1] > (double)pModel3->bound.max[1])
-				pModel3->bound.max[1] = transformed[1];
-			if (transformed[2] > (double)pModel3->bound.max[2])
-				pModel3->bound.max[2] = transformed[2];
-			if (transformed[0] < (double)pModel3->bound.min[0])
-				pModel3->bound.min[0] = transformed[0];
-			if (transformed[1] < (double)pModel3->bound.min[1])
-				pModel3->bound.min[1] = transformed[1];
-			if (transformed[2] < (double)pModel3->bound.min[2])
-				pModel3->bound.min[2] = transformed[2];
+			if (transformed[0] > (double)model3->bound.max[0])
+				model3->bound.max[0] = transformed[0];
+			if (transformed[1] > (double)model3->bound.max[1])
+				model3->bound.max[1] = transformed[1];
+			if (transformed[2] > (double)model3->bound.max[2])
+				model3->bound.max[2] = transformed[2];
+			if (transformed[0] < (double)model3->bound.min[0])
+				model3->bound.min[0] = transformed[0];
+			if (transformed[1] < (double)model3->bound.min[1])
+				model3->bound.min[1] = transformed[1];
+			if (transformed[2] < (double)model3->bound.min[2])
+				model3->bound.min[2] = transformed[2];
 		}
 	}
 
-	if (pHNode->numChildren) {
-		RdModel3HNode *pChild = pHNode->pFirstChildNode;
+	if (hNode->numChildren) {
+		RdModel3HNode *child = hNode->firstChildNode;
 
-		for (uint i = 0; i < pHNode->numChildren; i++) {
-			calcModelBoundingBox(pModel3, pChild, accumulated);
-			pChild = pChild->pSiblingNode;
+		for (uint i = 0; i < hNode->numChildren; i++) {
+			calcModelBoundingBox(model3, child, accumulated);
+			child = child->siblingNode;
 		}
 	}
 }
 
-int RenderDroid::Model3Module::hasBytes(Common::SeekableReadStream *pFile, uint count, uint elementSize) {
-	return (uint64)count * elementSize <= (uint64)(pFile->size() - pFile->pos());
+int RenderDroid::Model3Module::hasBytes(Common::SeekableReadStream *file, uint count, uint elementSize) {
+	return (uint64)count * elementSize <= (uint64)(file->size() - file->pos());
 }
 
-RdModel3 *RenderDroid::Model3Module::load(char *pFilename) {
-	RdModel3 *pModel3 = new RdModel3;
-	memset(pModel3, 0, sizeof(RdModel3));
+RdModel3 *RenderDroid::Model3Module::load(char *filename) {
+	RdModel3 *model3 = new RdModel3;
+	memset(model3, 0, sizeof(RdModel3));
 
-	if (loadEntry(pFilename, pModel3)) {
-		loadPostProcess(pModel3);
-		return pModel3;
+	if (loadEntry(filename, model3)) {
+		loadPostProcess(model3);
+		return model3;
 	}
 
-	destroy(pModel3);
+	destroy(model3);
 	return nullptr;
 }
 
-int RenderDroid::Model3Module::loadEntry(char *pFilename, RdModel3 *pModel3) {
-	Common::SeekableReadStream *pFile = _rd->_pHS->openFile(pFilename);
+int RenderDroid::Model3Module::loadEntry(char *filename, RdModel3 *model3) {
+	Common::SeekableReadStream *file = _rd->_hs->openFile(filename);
 
-	if (!pFile)
+	if (!file)
 		return 0;
 
-	uint32 magic = pFile->readUint32LE();
+	uint32 magic = file->readUint32LE();
 
 	if (magic == 0x4D4F444C) {
-		int result = loadEntryBinary(pFile, pModel3);
-		delete pFile;
+		int result = loadEntryBinary(file, model3);
+		delete file;
 		return result;
 	}
 
-	delete pFile;
-	return loadEntryText(pFilename, pModel3);
+	delete file;
+	return loadEntryText(filename, model3);
 }
 
-int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *pFile, RdModel3 *pModel3) {
+int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file, RdModel3 *model3) {
 	Common::Array<int> faceMaterialIndices;
-	char *aMaterialNames = nullptr;
+	char *materialNames = nullptr;
 	bool ok = true;
 
-	newEntry(pModel3);
+	newEntry(model3);
 
-	uint numMaterials = pFile->readUint32LE();
+	uint numMaterials = file->readUint32LE();
 
-	if (!hasBytes(pFile, numMaterials, 32)) {
+	if (!hasBytes(file, numMaterials, 32)) {
 		warning("RenderDroid::Model3Module::loadEntryBinary(): invalid material count");
 		return 0;
 	}
 
-	pModel3->numMaterials = numMaterials;
-	pModel3->apMaterials = nullptr;
+	model3->numMaterials = numMaterials;
+	model3->materials = nullptr;
 
 	if (numMaterials) {
-		aMaterialNames = new char[32 * numMaterials];
-		pFile->read(aMaterialNames, 32 * numMaterials);
+		materialNames = new char[32 * numMaterials];
+		file->read(materialNames, 32 * numMaterials);
 	}
 
-	pFile->read(pModel3->aName, 32);
-	pModel3->aName[31] = 0;
-	pModel3->index = pFile->readSint32LE();
-	uint numGeos = pFile->readUint32LE();
+	file->read(model3->name, 32);
+	model3->name[31] = 0;
+	model3->index = file->readSint32LE();
+	uint numGeos = file->readUint32LE();
 
 	if (numGeos > 4) {
 		warning("RenderDroid::Model3Module::loadEntryBinary(): invalid geoset count");
@@ -455,123 +455,123 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *pFile
 		numGeos = 0;
 	}
 
-	pModel3->numGeos = numGeos;
+	model3->numGeos = numGeos;
 
 	for (uint g = 0; g < numGeos && ok; g++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[g];
-		uint numMeshes = pFile->readUint32LE();
+		RdModel3Geo *geo = &model3->geo[g];
+		uint numMeshes = file->readUint32LE();
 
-		if (!hasBytes(pFile, numMeshes, 60)) {
+		if (!hasBytes(file, numMeshes, 60)) {
 			warning("RenderDroid::Model3Module::loadEntryBinary(): invalid mesh count");
 			ok = false;
 			break;
 		}
 
-		pGeo->aMeshes = new RdModel3Mesh[numMeshes];
-		memset(pGeo->aMeshes, 0, sizeof(RdModel3Mesh) * numMeshes);
-		pGeo->numMeshes = numMeshes;
+		geo->meshes = new RdModel3Mesh[numMeshes];
+		memset(geo->meshes, 0, sizeof(RdModel3Mesh) * numMeshes);
+		geo->numMeshes = numMeshes;
 
 		for (uint m = 0; m < numMeshes && ok; m++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+			RdModel3Mesh *mesh = &geo->meshes[m];
 
-			pFile->read(pMesh->aName, 32);
-			pMesh->aName[31] = 0;
-			pMesh->num = pFile->readUint32LE();
-			pMesh->geometryMode = pFile->readSint32LE();
-			pMesh->lightingMode = pFile->readSint32LE();
-			pMesh->textureMode = pFile->readSint32LE();
-			uint numVertices = pFile->readUint32LE();
-			uint numTexVertices = pFile->readUint32LE();
-			uint numFaces = pFile->readUint32LE();
+			file->read(mesh->name, 32);
+			mesh->name[31] = 0;
+			mesh->num = file->readUint32LE();
+			mesh->geometryMode = file->readSint32LE();
+			mesh->lightingMode = file->readSint32LE();
+			mesh->textureMode = file->readSint32LE();
+			uint numVertices = file->readUint32LE();
+			uint numTexVertices = file->readUint32LE();
+			uint numFaces = file->readUint32LE();
 
-			if (!hasBytes(pFile, numVertices, 32) || !hasBytes(pFile, numTexVertices, 8) || !hasBytes(pFile, numFaces, 76)) {
+			if (!hasBytes(file, numVertices, 32) || !hasBytes(file, numTexVertices, 8) || !hasBytes(file, numFaces, 76)) {
 				warning("RenderDroid::Model3Module::loadEntryBinary(): invalid mesh size");
 				ok = false;
 				break;
 			}
 
-			pMesh->numVertices = numVertices;
-			pMesh->numTexVertices = numTexVertices;
+			mesh->numVertices = numVertices;
+			mesh->numTexVertices = numTexVertices;
 
 			if (numVertices) {
-				pMesh->aVertices = new RdVector3[numVertices];
-				pMesh->aStaticVertexIntensities = new float[numVertices];
-				pMesh->aDynamicVertexIntensities = new float[numVertices];
+				mesh->vertices = new RdVector3[numVertices];
+				mesh->staticVertexIntensities = new float[numVertices];
+				mesh->dynamicVertexIntensities = new float[numVertices];
 			}
 
 			if (numTexVertices)
-				pMesh->aTexVertices = new RdVector2[numTexVertices];
+				mesh->texVertices = new RdVector2[numTexVertices];
 
 			for (uint i = 0; i < numVertices; i++) {
-				pMesh->aVertices[i][0] = pFile->readFloatLE();
-				pMesh->aVertices[i][1] = pFile->readFloatLE();
-				pMesh->aVertices[i][2] = pFile->readFloatLE();
+				mesh->vertices[i][0] = file->readFloatLE();
+				mesh->vertices[i][1] = file->readFloatLE();
+				mesh->vertices[i][2] = file->readFloatLE();
 			}
 
 			for (uint i = 0; i < numTexVertices; i++) {
-				pMesh->aTexVertices[i][0] = pFile->readFloatLE();
-				pMesh->aTexVertices[i][1] = pFile->readFloatLE();
+				mesh->texVertices[i][0] = file->readFloatLE();
+				mesh->texVertices[i][1] = file->readFloatLE();
 			}
 
 			for (uint i = 0; i < numVertices; i++)
-				pMesh->aStaticVertexIntensities[i] = pFile->readFloatLE();
+				mesh->staticVertexIntensities[i] = file->readFloatLE();
 
 			for (uint i = 0; i < numVertices; i++)
-				pMesh->aDynamicVertexIntensities[i] = pFile->readFloatLE();
+				mesh->dynamicVertexIntensities[i] = file->readFloatLE();
 
 			if (numFaces) {
-				pMesh->aFaces = new RdFace3[numFaces];
-				memset(pMesh->aFaces, 0, sizeof(RdFace3) * numFaces);
-				pMesh->numFaces = numFaces;
+				mesh->faces = new RdFace3[numFaces];
+				memset(mesh->faces, 0, sizeof(RdFace3) * numFaces);
+				mesh->numFaces = numFaces;
 			}
 
 			for (uint f = 0; f < numFaces && ok; f++) {
-				RdFace3 *pFace = &pMesh->aFaces[f];
+				RdFace3 *face = &mesh->faces[f];
 
-				pFace->num = pFile->readUint32LE();
-				pFace->type = pFile->readUint32LE();
-				pFace->geometryMode = pFile->readSint32LE();
-				pFace->lightingMode = pFile->readSint32LE();
-				pFace->textureMode = pFile->readSint32LE();
-				uint faceVertices = pFile->readUint32LE();
-				pFile->skip(4);
-				uint hasTexVertices = pFile->readUint32LE();
-				uint hasMaterial = pFile->readUint32LE();
-				pFace->curCel = pFile->readSint32LE();
-				pFace->uvDelta[0] = pFile->readFloatLE();
-				pFace->uvDelta[1] = pFile->readFloatLE();
-				pFace->extraLight = pFile->readFloatLE();
-				pFace->reserved52 = pFile->readSint32LE();
-				pFace->reserved56 = pFile->readSint32LE();
-				pFace->reserved60 = pFile->readSint32LE();
-				pFace->normal[0] = pFile->readFloatLE();
-				pFace->normal[1] = pFile->readFloatLE();
-				pFace->normal[2] = pFile->readFloatLE();
+				face->num = file->readUint32LE();
+				face->type = file->readUint32LE();
+				face->geometryMode = file->readSint32LE();
+				face->lightingMode = file->readSint32LE();
+				face->textureMode = file->readSint32LE();
+				uint faceVertices = file->readUint32LE();
+				file->skip(4);
+				uint hasTexVertices = file->readUint32LE();
+				uint hasMaterial = file->readUint32LE();
+				face->curCel = file->readSint32LE();
+				face->uvDelta[0] = file->readFloatLE();
+				face->uvDelta[1] = file->readFloatLE();
+				face->extraLight = file->readFloatLE();
+				face->reserved52 = file->readSint32LE();
+				face->reserved56 = file->readSint32LE();
+				face->reserved60 = file->readSint32LE();
+				face->normal[0] = file->readFloatLE();
+				face->normal[1] = file->readFloatLE();
+				face->normal[2] = file->readFloatLE();
 
-				if (!hasBytes(pFile, faceVertices, hasTexVertices ? 8 : 4)) {
+				if (!hasBytes(file, faceVertices, hasTexVertices ? 8 : 4)) {
 					warning("RenderDroid::Model3Module::loadEntryBinary(): invalid face size");
 					ok = false;
 					break;
 				}
 
-				pFace->numVertices = faceVertices;
+				face->numVertices = faceVertices;
 
 				if (faceVertices) {
-					pFace->aVertices = new int[faceVertices];
+					face->vertices = new int[faceVertices];
 
 					for (uint i = 0; i < faceVertices; i++)
-						pFace->aVertices[i] = pFile->readSint32LE();
+						face->vertices[i] = file->readSint32LE();
 				}
 
 				if (hasTexVertices) {
-					pFace->aTexVertices = new int[faceVertices];
+					face->texVertices = new int[faceVertices];
 
 					for (uint i = 0; i < faceVertices; i++)
-						pFace->aTexVertices[i] = pFile->readSint32LE();
+						face->texVertices[i] = file->readSint32LE();
 				}
 
 				if (hasMaterial)
-					faceMaterialIndices.push_back(pFile->readSint32LE());
+					faceMaterialIndices.push_back(file->readSint32LE());
 				else
 					faceMaterialIndices.push_back(-1);
 			}
@@ -580,175 +580,175 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *pFile
 				break;
 
 			if (numVertices) {
-				pMesh->aVertexNormals = new RdVector3[numVertices];
+				mesh->vertexNormals = new RdVector3[numVertices];
 
 				for (uint i = 0; i < numVertices; i++) {
-					pMesh->aVertexNormals[i][0] = pFile->readFloatLE();
-					pMesh->aVertexNormals[i][1] = pFile->readFloatLE();
-					pMesh->aVertexNormals[i][2] = pFile->readFloatLE();
+					mesh->vertexNormals[i][0] = file->readFloatLE();
+					mesh->vertexNormals[i][1] = file->readFloatLE();
+					mesh->vertexNormals[i][2] = file->readFloatLE();
 				}
 			}
 
-			pMesh->castShadow = pFile->readSint32LE();
-			pMesh->userLightValue = pFile->readFloatLE();
-			pMesh->radius = pFile->readFloatLE();
+			mesh->castShadow = file->readSint32LE();
+			mesh->userLightValue = file->readFloatLE();
+			mesh->radius = file->readFloatLE();
 
 			for (uint i = 0; i < 3; i++)
-				pMesh->bound.min[i] = pFile->readFloatLE();
+				mesh->bound.min[i] = file->readFloatLE();
 
 			for (uint i = 0; i < 3; i++)
-				pMesh->bound.max[i] = pFile->readFloatLE();
+				mesh->bound.max[i] = file->readFloatLE();
 		}
 	}
 
 	if (ok) {
-		pModel3->curGeoSet = pFile->readUint32LE();
-		uint numHNodes = pFile->readUint32LE();
+		model3->curGeoSet = file->readUint32LE();
+		uint numHNodes = file->readUint32LE();
 
-		if (!hasBytes(pFile, numHNodes, 184)) {
+		if (!hasBytes(file, numHNodes, 184)) {
 			warning("RenderDroid::Model3Module::loadEntryBinary(): invalid hierarchy node count");
 			ok = false;
 		} else {
-			pModel3->aHNodes = new RdModel3HNode[numHNodes];
-			memset(pModel3->aHNodes, 0, sizeof(RdModel3HNode) * numHNodes);
-			pModel3->numHNodes = numHNodes;
+			model3->hNodes = new RdModel3HNode[numHNodes];
+			memset(model3->hNodes, 0, sizeof(RdModel3HNode) * numHNodes);
+			model3->numHNodes = numHNodes;
 		}
 
-		for (uint i = 0; i < pModel3->numHNodes && ok; i++) {
-			RdModel3HNode *pHNode = &pModel3->aHNodes[i];
+		for (uint i = 0; i < model3->numHNodes && ok; i++) {
+			RdModel3HNode *hNode = &model3->hNodes[i];
 
-			pFile->read(pHNode->aName, 64);
-			pHNode->aName[63] = 0;
-			pHNode->flags = pFile->readUint32LE();
-			pHNode->num = pFile->readUint32LE();
-			pHNode->type = pFile->readUint32LE();
-			pHNode->meshNodeIndex = pFile->readSint32LE();
-			pHNode->depth = pFile->readUint32LE();
-			uint hasParent = pFile->readUint32LE();
-			pHNode->numChildren = pFile->readUint32LE();
-			uint hasFirstChild = pFile->readUint32LE();
-			uint hasSibling = pFile->readUint32LE();
-
-			for (uint k = 0; k < 3; k++)
-				pHNode->pivot[k] = pFile->readFloatLE();
+			file->read(hNode->name, 64);
+			hNode->name[63] = 0;
+			hNode->flags = file->readUint32LE();
+			hNode->num = file->readUint32LE();
+			hNode->type = file->readUint32LE();
+			hNode->meshNodeIndex = file->readSint32LE();
+			hNode->depth = file->readUint32LE();
+			uint hasParent = file->readUint32LE();
+			hNode->numChildren = file->readUint32LE();
+			uint hasFirstChild = file->readUint32LE();
+			uint hasSibling = file->readUint32LE();
 
 			for (uint k = 0; k < 3; k++)
-				pHNode->xyz[k] = pFile->readFloatLE();
+				hNode->pivot[k] = file->readFloatLE();
 
 			for (uint k = 0; k < 3; k++)
-				pHNode->pyr[k] = pFile->readFloatLE();
+				hNode->xyz[k] = file->readFloatLE();
+
+			for (uint k = 0; k < 3; k++)
+				hNode->pyr[k] = file->readFloatLE();
 
 			for (uint row = 0; row < 4; row++) {
 				for (uint col = 0; col < 3; col++)
-					pHNode->mat[row][col] = pFile->readFloatLE();
+					hNode->mat[row][col] = file->readFloatLE();
 			}
 
 			if (hasParent) {
-				uint index = pFile->readUint32LE();
+				uint index = file->readUint32LE();
 
-				if (index >= pModel3->numHNodes) {
+				if (index >= model3->numHNodes) {
 					warning("RenderDroid::Model3Module::loadEntryBinary(): invalid parent node index");
 					ok = false;
 					break;
 				}
 
-				pHNode->pParentNode = &pModel3->aHNodes[index];
+				hNode->parentNode = &model3->hNodes[index];
 			}
 
 			if (hasFirstChild) {
-				uint index = pFile->readUint32LE();
+				uint index = file->readUint32LE();
 
-				if (index >= pModel3->numHNodes) {
+				if (index >= model3->numHNodes) {
 					warning("RenderDroid::Model3Module::loadEntryBinary(): invalid child node index");
 					ok = false;
 					break;
 				}
 
-				pHNode->pFirstChildNode = &pModel3->aHNodes[index];
+				hNode->firstChildNode = &model3->hNodes[index];
 			}
 
 			if (hasSibling) {
-				uint index = pFile->readUint32LE();
+				uint index = file->readUint32LE();
 
-				if (index >= pModel3->numHNodes) {
+				if (index >= model3->numHNodes) {
 					warning("RenderDroid::Model3Module::loadEntryBinary(): invalid sibling node index");
 					ok = false;
 					break;
 				}
 
-				pHNode->pSiblingNode = &pModel3->aHNodes[index];
+				hNode->siblingNode = &model3->hNodes[index];
 			}
 		}
 	}
 
 	if (ok) {
-		pModel3->radius = pFile->readFloatLE();
+		model3->radius = file->readFloatLE();
 
 		for (uint i = 0; i < 3; i++)
-			pModel3->bound.min[i] = pFile->readFloatLE();
+			model3->bound.min[i] = file->readFloatLE();
 
 		for (uint i = 0; i < 3; i++)
-			pModel3->bound.max[i] = pFile->readFloatLE();
+			model3->bound.max[i] = file->readFloatLE();
 
 		for (uint i = 0; i < 3; i++)
-			pModel3->geomCenter[i] = pFile->readFloatLE();
+			model3->geomCenter[i] = file->readFloatLE();
 
 		for (uint i = 0; i < 3; i++)
-			pModel3->insertOffset[i] = pFile->readFloatLE();
+			model3->insertOffset[i] = file->readFloatLE();
 
 		if (numMaterials) {
-			pModel3->apMaterials = new RdMaterial *[numMaterials];
-			memset(pModel3->apMaterials, 0, sizeof(RdMaterial *) * numMaterials);
+			model3->materials = new RdMaterial *[numMaterials];
+			memset(model3->materials, 0, sizeof(RdMaterial *) * numMaterials);
 		}
 
 		for (uint i = 0; i < numMaterials; i++) {
 			char materialName[33];
-			memcpy(materialName, aMaterialNames + 32 * i, 32);
+			memcpy(materialName, materialNames + 32 * i, 32);
 			materialName[32] = 0;
-			pModel3->apMaterials[i] = _rd->_material.load(materialName, 0, 0);
+			model3->materials[i] = _rd->_material.load(materialName, 0, 0);
 		}
 
 		uint faceIndex = 0;
 
-		for (uint g = 0; g < pModel3->numGeos; g++) {
-			RdModel3Geo *pGeo = &pModel3->aGeo[g];
+		for (uint g = 0; g < model3->numGeos; g++) {
+			RdModel3Geo *geo = &model3->geo[g];
 
-			for (uint m = 0; m < pGeo->numMeshes; m++) {
-				RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+			for (uint m = 0; m < geo->numMeshes; m++) {
+				RdModel3Mesh *mesh = &geo->meshes[m];
 
-				for (uint f = 0; f < pMesh->numFaces; f++) {
+				for (uint f = 0; f < mesh->numFaces; f++) {
 					int materialIndex = faceMaterialIndices[faceIndex++];
-					RdFace3 *pFace = &pMesh->aFaces[f];
+					RdFace3 *face = &mesh->faces[f];
 
 					if (materialIndex >= 0 && (uint)materialIndex < numMaterials) {
-						pFace->pMaterial = pModel3->apMaterials[materialIndex];
+						face->material = model3->materials[materialIndex];
 					} else {
 						if (materialIndex >= 0)
 							warning("RenderDroid::Model3Module::loadEntryBinary(): invalid face material index");
 
-						pFace->pMaterial = nullptr;
+						face->material = nullptr;
 					}
 				}
 			}
 		}
 	}
 
-	delete[] aMaterialNames;
+	delete[] materialNames;
 
 	return ok ? 1 : 0;
 }
 
-int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3) {
+int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 	StdConffile *conffile = _rd->_stdConffile;
 	char section[1024];
 	char name[1024];
 	char faceLine[1024];
 	bool success = false;
 
-	newEntry(pModel3);
-	Common::strlcpy(pModel3->aName, _rd->_stdFile->fromPath(pFilename), 32);
+	newEntry(model3);
+	Common::strlcpy(model3->name, _rd->_stdFile->fromPath(filename), 32);
 
-	if (!conffile->open(pFilename))
+	if (!conffile->open(filename))
 		return 0;
 
 	do {
@@ -771,16 +771,16 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 
 		if (numMaterials) {
 			if (numMaterials >= 0x80) {
-				warning("RenderDroid::Model3Module::loadEntryText(): too many materials in %s", pFilename);
+				warning("RenderDroid::Model3Module::loadEntryText(): too many materials in %s", filename);
 				break;
 			}
 
-			pModel3->apMaterials = new RdMaterial *[numMaterials];
-			memset(pModel3->apMaterials, 0, sizeof(RdMaterial *) * numMaterials);
-			pModel3->numMaterials = numMaterials;
+			model3->materials = new RdMaterial *[numMaterials];
+			memset(model3->materials, 0, sizeof(RdMaterial *) * numMaterials);
+			model3->numMaterials = numMaterials;
 
-			char *aPaths = new char[1024 * numMaterials];
-			memset(aPaths, 0, 1024 * numMaterials);
+			char *paths = new char[1024 * numMaterials];
+			memset(paths, 0, 1024 * numMaterials);
 			bool pathsOk = true;
 
 			for (uint i = 0; i < numMaterials; i++) {
@@ -792,28 +792,28 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				}
 
 				if (index < 0 || (uint)index >= numMaterials) {
-					warning("RenderDroid::Model3Module::loadEntryText(): invalid material index in %s", pFilename);
+					warning("RenderDroid::Model3Module::loadEntryText(): invalid material index in %s", filename);
 					pathsOk = false;
 					break;
 				}
 
-				Common::strlcpy(&aPaths[1024 * index], name, 1024);
+				Common::strlcpy(&paths[1024 * index], name, 1024);
 			}
 
 			for (uint i = 0; i < numMaterials && pathsOk; i++) {
-				pModel3->apMaterials[i] = _rd->_material.load(&aPaths[1024 * i], 0, 0);
+				model3->materials[i] = _rd->_material.load(&paths[1024 * i], 0, 0);
 
-				if (!pModel3->apMaterials[i])
+				if (!model3->materials[i])
 					pathsOk = false;
 			}
 
-			delete[] aPaths;
+			delete[] paths;
 
 			if (!pathsOk)
 				break;
 		}
 
-		pModel3->numMaterials = numMaterials;
+		model3->numMaterials = numMaterials;
 
 		float radius;
 
@@ -821,7 +821,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				!conffile->readLine() || sscanf(conffile->getLine(), " radius %f", &radius) != 1)
 			break;
 
-		pModel3->radius = radius;
+		model3->radius = radius;
 
 		float offsetX;
 		float offsetY;
@@ -830,9 +830,9 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 		if (!conffile->readLine() || sscanf(conffile->getLine(), " insert offset %f %f %f", &offsetX, &offsetY, &offsetZ) != 3)
 			break;
 
-		pModel3->insertOffset[0] = offsetX;
-		pModel3->insertOffset[1] = offsetY;
-		pModel3->insertOffset[2] = offsetZ;
+		model3->insertOffset[0] = offsetX;
+		model3->insertOffset[1] = offsetY;
+		model3->insertOffset[2] = offsetZ;
 
 		uint numGeos;
 
@@ -840,15 +840,15 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 			break;
 
 		if (numGeos > 4) {
-			warning("RenderDroid::Model3Module::loadEntryText(): too many geosets in %s", pFilename);
+			warning("RenderDroid::Model3Module::loadEntryText(): too many geosets in %s", filename);
 			break;
 		}
 
-		pModel3->numGeos = numGeos;
+		model3->numGeos = numGeos;
 		bool ok = true;
 
 		for (uint g = 0; g < numGeos && ok; g++) {
-			RdModel3Geo *pGeo = &pModel3->aGeo[g];
+			RdModel3Geo *geo = &model3->geo[g];
 			int geosetIndex;
 			uint numMeshes;
 
@@ -858,19 +858,19 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				break;
 			}
 
-			pGeo->aMeshes = new RdModel3Mesh[numMeshes];
-			memset(pGeo->aMeshes, 0, sizeof(RdModel3Mesh) * numMeshes);
-			pGeo->numMeshes = numMeshes;
+			geo->meshes = new RdModel3Mesh[numMeshes];
+			memset(geo->meshes, 0, sizeof(RdModel3Mesh) * numMeshes);
+			geo->numMeshes = numMeshes;
 
 			for (uint m = 0; m < numMeshes && ok; m++) {
-				RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+				RdModel3Mesh *mesh = &geo->meshes[m];
 				int meshIndex;
 				int castShadow;
 				uint numVertices;
 				uint numTexVertices;
 				uint numFaces;
 
-				pMesh->num = m;
+				mesh->num = m;
 
 				if (!conffile->readLine() || sscanf(conffile->getLine(), " mesh %d", &meshIndex) != 1 ||
 						!conffile->readLine() || sscanf(conffile->getLine(), " name %s", name) != 1) {
@@ -878,16 +878,16 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 					break;
 				}
 
-				Common::strlcpy(pMesh->aName, name, 32);
+				Common::strlcpy(mesh->name, name, 32);
 
-				if (!conffile->readLine() || sscanf(conffile->getLine(), " radius %f", &pMesh->radius) != 1 ||
+				if (!conffile->readLine() || sscanf(conffile->getLine(), " radius %f", &mesh->radius) != 1 ||
 						!conffile->readLine()) {
 					ok = false;
 					break;
 				}
 
 				if (sscanf(conffile->getLine(), " shadow %d", &castShadow) == 1) {
-					pMesh->castShadow = castShadow;
+					mesh->castShadow = castShadow;
 
 					if (!conffile->readLine()) {
 						ok = false;
@@ -895,9 +895,9 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 					}
 				}
 
-				if (sscanf(conffile->getLine(), " geometrymode %d", &pMesh->geometryMode) != 1 ||
-						!conffile->readLine() || sscanf(conffile->getLine(), " lightingmode %d", &pMesh->lightingMode) != 1 ||
-						!conffile->readLine() || sscanf(conffile->getLine(), " texturemode %d", &pMesh->textureMode) != 1 ||
+				if (sscanf(conffile->getLine(), " geometrymode %d", &mesh->geometryMode) != 1 ||
+						!conffile->readLine() || sscanf(conffile->getLine(), " lightingmode %d", &mesh->lightingMode) != 1 ||
+						!conffile->readLine() || sscanf(conffile->getLine(), " texturemode %d", &mesh->textureMode) != 1 ||
 						!conffile->readLine() || sscanf(conffile->getLine(), " vertices %d", &numVertices) != 1 ||
 						numVertices > 0x200) {
 					ok = false;
@@ -905,10 +905,10 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				}
 
 				if (numVertices) {
-					pMesh->aVertices = new RdVector3[numVertices];
-					pMesh->aStaticVertexIntensities = new float[numVertices];
-					pMesh->aDynamicVertexIntensities = new float[numVertices];
-					memset(pMesh->aDynamicVertexIntensities, 0, numVertices);
+					mesh->vertices = new RdVector3[numVertices];
+					mesh->staticVertexIntensities = new float[numVertices];
+					mesh->dynamicVertexIntensities = new float[numVertices];
+					memset(mesh->dynamicVertexIntensities, 0, numVertices);
 				}
 
 				for (uint i = 0; i < numVertices; i++) {
@@ -923,16 +923,16 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pMesh->aVertices[i][0] = x;
-					pMesh->aVertices[i][1] = y;
-					pMesh->aVertices[i][2] = z;
-					pMesh->aStaticVertexIntensities[i] = intensity;
+					mesh->vertices[i][0] = x;
+					mesh->vertices[i][1] = y;
+					mesh->vertices[i][2] = z;
+					mesh->staticVertexIntensities[i] = intensity;
 				}
 
 				if (!ok)
 					break;
 
-				pMesh->numVertices = numVertices;
+				mesh->numVertices = numVertices;
 
 				if (!conffile->readLine() || sscanf(conffile->getLine(), " texture vertices %d", &numTexVertices) != 1 ||
 						numTexVertices > 0x300) {
@@ -941,7 +941,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				}
 
 				if (numTexVertices)
-					pMesh->aTexVertices = new RdVector2[numTexVertices];
+					mesh->texVertices = new RdVector2[numTexVertices];
 
 				for (uint i = 0; i < numTexVertices; i++) {
 					int index;
@@ -953,14 +953,14 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pMesh->aTexVertices[i][0] = u;
-					pMesh->aTexVertices[i][1] = v;
+					mesh->texVertices[i][0] = u;
+					mesh->texVertices[i][1] = v;
 				}
 
 				if (!ok)
 					break;
 
-				pMesh->numTexVertices = numTexVertices;
+				mesh->numTexVertices = numTexVertices;
 
 				if (!conffile->readLine()) {
 					ok = false;
@@ -968,7 +968,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				}
 
 				if (numVertices)
-					pMesh->aVertexNormals = new RdVector3[numVertices];
+					mesh->vertexNormals = new RdVector3[numVertices];
 
 				for (uint i = 0; i < numVertices; i++) {
 					int index;
@@ -981,9 +981,9 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pMesh->aVertexNormals[i][0] = x;
-					pMesh->aVertexNormals[i][1] = y;
-					pMesh->aVertexNormals[i][2] = z;
+					mesh->vertexNormals[i][0] = x;
+					mesh->vertexNormals[i][1] = y;
+					mesh->vertexNormals[i][2] = z;
 				}
 
 				if (!ok)
@@ -995,14 +995,14 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				}
 
 				if (numFaces) {
-					pMesh->aFaces = new RdFace3[numFaces];
-					memset(pMesh->aFaces, 0, sizeof(RdFace3) * numFaces);
+					mesh->faces = new RdFace3[numFaces];
+					memset(mesh->faces, 0, sizeof(RdFace3) * numFaces);
 				}
 
-				pMesh->numFaces = numFaces;
+				mesh->numFaces = numFaces;
 
 				for (uint f = 0; f < numFaces && ok; f++) {
-					RdFace3 *pFace = &pMesh->aFaces[f];
+					RdFace3 *face = &mesh->faces[f];
 					int materialIndex;
 					int extraLightValid;
 					float extraLight = 0.0f;
@@ -1013,7 +1013,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					_rd->_face.newEntry(pFace);
+					_rd->_face.newEntry(face);
 					Common::strlcpy(faceLine, conffile->getLine(), 1024);
 
 					strtok(faceLine, " \t");
@@ -1025,38 +1025,38 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 					}
 
 					materialIndex = atoi(token);
-					pFace->num = f;
+					face->num = f;
 
 					if (materialIndex == -1) {
-						pFace->pMaterial = nullptr;
-					} else if (materialIndex < 0 || (uint)materialIndex >= pModel3->numMaterials) {
-						warning("RenderDroid::Model3Module::loadEntryText(): invalid face material index in %s", pFilename);
+						face->material = nullptr;
+					} else if (materialIndex < 0 || (uint)materialIndex >= model3->numMaterials) {
+						warning("RenderDroid::Model3Module::loadEntryText(): invalid face material index in %s", filename);
 						ok = false;
 						break;
 					} else {
-						pFace->pMaterial = pModel3->apMaterials[materialIndex];
+						face->material = model3->materials[materialIndex];
 					}
 
 					token = strtok(nullptr, " \t");
-					if (!token || sscanf(token, "%x", &pFace->type) != 1) {
+					if (!token || sscanf(token, "%x", &face->type) != 1) {
 						ok = false;
 						break;
 					}
 
 					token = strtok(nullptr, " \t");
-					if (!token || sscanf(token, "%d", &pFace->geometryMode) != 1) {
+					if (!token || sscanf(token, "%d", &face->geometryMode) != 1) {
 						ok = false;
 						break;
 					}
 
 					token = strtok(nullptr, " \t");
-					if (!token || sscanf(token, "%d", &pFace->lightingMode) != 1) {
+					if (!token || sscanf(token, "%d", &face->lightingMode) != 1) {
 						ok = false;
 						break;
 					}
 
 					token = strtok(nullptr, " \t");
-					if (!token || sscanf(token, "%d", &pFace->textureMode) != 1) {
+					if (!token || sscanf(token, "%d", &face->textureMode) != 1) {
 						ok = false;
 						break;
 					}
@@ -1068,7 +1068,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pFace->extraLight = extraLight;
+					face->extraLight = extraLight;
 
 					token = strtok(nullptr, " \t");
 					if (!token) {
@@ -1082,11 +1082,11 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pFace->numVertices = faceVertices;
-					pFace->aVertices = new int[faceVertices];
+					face->numVertices = faceVertices;
+					face->vertices = new int[faceVertices];
 
-					if (pFace->pMaterial && (pFace->pMaterial->flags & 2)) {
-						pFace->aTexVertices = new int[faceVertices];
+					if (face->material && (face->material->flags & 2)) {
+						face->texVertices = new int[faceVertices];
 
 						for (uint i = 0; i < faceVertices; i++) {
 							token = strtok(nullptr, " \t,");
@@ -1094,14 +1094,14 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 								ok = false;
 								break;
 							}
-							pFace->aVertices[i] = atoi(token);
+							face->vertices[i] = atoi(token);
 
 							token = strtok(nullptr, " \t,");
 							if (!token) {
 								ok = false;
 								break;
 							}
-							pFace->aTexVertices[i] = atoi(token);
+							face->texVertices[i] = atoi(token);
 						}
 					} else {
 						for (uint i = 0; i < faceVertices; i++) {
@@ -1110,7 +1110,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 								ok = false;
 								break;
 							}
-							pFace->aVertices[i] = atoi(token);
+							face->vertices[i] = atoi(token);
 
 							if (!strtok(nullptr, " \t,")) {
 								ok = false;
@@ -1128,7 +1128,7 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 					break;
 				}
 
-				for (uint f = 0; f < pMesh->numFaces; f++) {
+				for (uint f = 0; f < mesh->numFaces; f++) {
 					int index;
 					float x;
 					float y;
@@ -1139,9 +1139,9 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 						break;
 					}
 
-					pMesh->aFaces[f].normal[0] = x;
-					pMesh->aFaces[f].normal[1] = y;
-					pMesh->aFaces[f].normal[2] = z;
+					mesh->faces[f].normal[0] = x;
+					mesh->faces[f].normal[1] = y;
+					mesh->faces[f].normal[2] = z;
 				}
 			}
 		}
@@ -1155,12 +1155,12 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 				!conffile->readLine() || sscanf(conffile->getLine(), " hierarchy nodes %d", &numHNodes) != 1)
 			break;
 
-		pModel3->aHNodes = new RdModel3HNode[numHNodes];
-		memset(pModel3->aHNodes, 0, sizeof(RdModel3HNode) * numHNodes);
-		pModel3->numHNodes = numHNodes;
+		model3->hNodes = new RdModel3HNode[numHNodes];
+		memset(model3->hNodes, 0, sizeof(RdModel3HNode) * numHNodes);
+		model3->numHNodes = numHNodes;
 
 		for (uint i = 0; i < numHNodes && ok; i++) {
-			RdModel3HNode *pHNode = &pModel3->aHNodes[i];
+			RdModel3HNode *hNode = &model3->hNodes[i];
 			int index;
 			int parentIndex;
 			int firstChildIndex;
@@ -1175,42 +1175,42 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 			float pivotY;
 			float pivotZ;
 
-			pHNode->num = i;
+			hNode->num = i;
 
 			if (!conffile->readLine() || sscanf(conffile->getLine(), " %d: %x %x %d %d %d %d %d %f %f %f %f %f %f %f %f %f %63s",
-					&index, &pHNode->flags, &pHNode->type, &pHNode->meshNodeIndex, &parentIndex, &firstChildIndex,
-					&siblingIndex, &pHNode->numChildren, &x, &y, &z, &pitch, &yaw, &roll, &pivotX, &pivotY, &pivotZ,
-					pHNode->aName) != 18) {
+					&index, &hNode->flags, &hNode->type, &hNode->meshNodeIndex, &parentIndex, &firstChildIndex,
+					&siblingIndex, &hNode->numChildren, &x, &y, &z, &pitch, &yaw, &roll, &pivotX, &pivotY, &pivotZ,
+					hNode->name) != 18) {
 				ok = false;
 				break;
 			}
 
 			if (parentIndex < -1 || parentIndex >= (int)numHNodes || firstChildIndex < -1 || firstChildIndex >= (int)numHNodes ||
 					siblingIndex < -1 || siblingIndex >= (int)numHNodes) {
-				warning("RenderDroid::Model3Module::loadEntryText(): invalid node index in %s", pFilename);
+				warning("RenderDroid::Model3Module::loadEntryText(): invalid node index in %s", filename);
 				ok = false;
 				break;
 			}
 
-			pHNode->pParentNode = parentIndex == -1 ? nullptr : &pModel3->aHNodes[parentIndex];
-			pHNode->pFirstChildNode = firstChildIndex == -1 ? nullptr : &pModel3->aHNodes[firstChildIndex];
-			pHNode->pSiblingNode = siblingIndex == -1 ? nullptr : &pModel3->aHNodes[siblingIndex];
+			hNode->parentNode = parentIndex == -1 ? nullptr : &model3->hNodes[parentIndex];
+			hNode->firstChildNode = firstChildIndex == -1 ? nullptr : &model3->hNodes[firstChildIndex];
+			hNode->siblingNode = siblingIndex == -1 ? nullptr : &model3->hNodes[siblingIndex];
 
-			pHNode->xyz[0] = x;
-			pHNode->xyz[1] = y;
-			pHNode->xyz[2] = z;
-			pHNode->pyr[0] = pitch;
-			pHNode->pyr[1] = yaw;
-			pHNode->pyr[2] = roll;
-			pHNode->pivot[0] = pivotX;
-			pHNode->pivot[1] = pivotY;
-			pHNode->pivot[2] = pivotZ;
+			hNode->xyz[0] = x;
+			hNode->xyz[1] = y;
+			hNode->xyz[2] = z;
+			hNode->pyr[0] = pitch;
+			hNode->pyr[1] = yaw;
+			hNode->pyr[2] = roll;
+			hNode->pivot[0] = pivotX;
+			hNode->pivot[1] = pivotY;
+			hNode->pivot[2] = pivotZ;
 		}
 
 		if (!ok)
 			break;
 
-		calcNodeDepths(pModel3);
+		calcNodeDepths(model3);
 		success = true;
 	} while (false);
 
@@ -1219,32 +1219,32 @@ int RenderDroid::Model3Module::loadEntryText(char *pFilename, RdModel3 *pModel3)
 	return success ? 1 : 0;
 }
 
-void RenderDroid::Model3Module::loadPostProcess(RdModel3 *pModel3) {
-	calcBoundingBoxes(pModel3);
-	calcRadii(pModel3);
-	calcFaceNormals(pModel3);
-	calcVertexNormals(pModel3);
-	calcNodeDepths(pModel3);
-	buildShadowModel(pModel3);
+void RenderDroid::Model3Module::loadPostProcess(RdModel3 *model3) {
+	calcBoundingBoxes(model3);
+	calcRadii(model3);
+	calcFaceNormals(model3);
+	calcVertexNormals(model3);
+	calcNodeDepths(model3);
+	buildShadowModel(model3);
 
-	if (_rd->isDemo() && !validate(pModel3))
+	if (_rd->isDemo() && !validate(model3))
 		error("RenderDroid::Model3Module::loadPostProcess(): rdModel3_Validate(pModel3)");
 }
 
-int RenderDroid::Model3Module::validate(RdModel3 *pModel3) {
-	for (uint g = 0; g < pModel3->numGeos; g++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[g];
+int RenderDroid::Model3Module::validate(RdModel3 *model3) {
+	for (uint g = 0; g < model3->numGeos; g++) {
+		RdModel3Geo *geo = &model3->geo[g];
 
-		for (uint m = 0; m < pGeo->numMeshes; m++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+		for (uint m = 0; m < geo->numMeshes; m++) {
+			RdModel3Mesh *mesh = &geo->meshes[m];
 
-			for (uint f = 0; f < pMesh->numFaces; f++) {
-				RdFace3 *pFace = &pMesh->aFaces[f];
+			for (uint f = 0; f < mesh->numFaces; f++) {
+				RdFace3 *face = &mesh->faces[f];
 
-				if (pFace->pMaterial) {
-					if (!(pFace->pMaterial->flags & 2) && pFace->geometryMode > 3)
+				if (face->material) {
+					if (!(face->material->flags & 2) && face->geometryMode > 3)
 						return 0;
-				} else if (pFace->geometryMode > 0) {
+				} else if (face->geometryMode > 0) {
 					return 0;
 				}
 			}
@@ -1254,87 +1254,87 @@ int RenderDroid::Model3Module::validate(RdModel3 *pModel3) {
 	return 1;
 }
 
-void RenderDroid::Model3Module::destroy(RdModel3 *&pModel3) {
-	if (pModel3) {
-		freeEntry(pModel3);
-		delete pModel3;
-		pModel3 = nullptr;
+void RenderDroid::Model3Module::destroy(RdModel3 *&model3) {
+	if (model3) {
+		freeEntry(model3);
+		delete model3;
+		model3 = nullptr;
 	} else {
 		warning("RenderDroid::Model3Module::destroy(): attempt to free NULL model ptr");
 	}
 }
 
-void RenderDroid::Model3Module::freeEntry(RdModel3 *pModel3) {
-	for (uint g = 0; g < pModel3->numGeos; g++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[g];
+void RenderDroid::Model3Module::freeEntry(RdModel3 *model3) {
+	for (uint g = 0; g < model3->numGeos; g++) {
+		RdModel3Geo *geo = &model3->geo[g];
 
-		for (uint m = 0; m < pGeo->numMeshes; m++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+		for (uint m = 0; m < geo->numMeshes; m++) {
+			RdModel3Mesh *mesh = &geo->meshes[m];
 
-			delete[] pMesh->aVertices;
-			pMesh->aVertices = nullptr;
+			delete[] mesh->vertices;
+			mesh->vertices = nullptr;
 
-			delete[] pMesh->aTexVertices;
-			pMesh->aTexVertices = nullptr;
+			delete[] mesh->texVertices;
+			mesh->texVertices = nullptr;
 
-			if (pMesh->aFaces) {
-				for (uint f = 0; f < pMesh->numFaces; f++)
-					_rd->_face.freeEntry(&pMesh->aFaces[f]);
+			if (mesh->faces) {
+				for (uint f = 0; f < mesh->numFaces; f++)
+					_rd->_face.freeEntry(&mesh->faces[f]);
 
-				delete[] pMesh->aFaces;
-				pMesh->aFaces = nullptr;
+				delete[] mesh->faces;
+				mesh->faces = nullptr;
 			}
 
-			delete[] pMesh->aStaticVertexIntensities;
-			pMesh->aStaticVertexIntensities = nullptr;
+			delete[] mesh->staticVertexIntensities;
+			mesh->staticVertexIntensities = nullptr;
 
-			delete[] pMesh->aDynamicVertexIntensities;
-			pMesh->aDynamicVertexIntensities = nullptr;
+			delete[] mesh->dynamicVertexIntensities;
+			mesh->dynamicVertexIntensities = nullptr;
 
-			delete[] pMesh->aVertexNormals;
-			pMesh->aVertexNormals = nullptr;
+			delete[] mesh->vertexNormals;
+			mesh->vertexNormals = nullptr;
 
-			delete[] pMesh->aShadowVerts;
-			pMesh->aShadowVerts = nullptr;
+			delete[] mesh->shadowVerts;
+			mesh->shadowVerts = nullptr;
 		}
 
-		delete[] pGeo->aMeshes;
-		pGeo->aMeshes = nullptr;
+		delete[] geo->meshes;
+		geo->meshes = nullptr;
 	}
 
-	delete[] pModel3->aHNodes;
-	pModel3->aHNodes = nullptr;
+	delete[] model3->hNodes;
+	model3->hNodes = nullptr;
 
-	if (pModel3->apMaterials) {
-		for (uint i = 0; i < pModel3->numMaterials; i++) {
-			if (pModel3->apMaterials[i])
-				_rd->_material.destroy(pModel3->apMaterials[i]);
+	if (model3->materials) {
+		for (uint i = 0; i < model3->numMaterials; i++) {
+			if (model3->materials[i])
+				_rd->_material.destroy(model3->materials[i]);
 		}
 
-		delete[] pModel3->apMaterials;
-		pModel3->apMaterials = nullptr;
+		delete[] model3->materials;
+		model3->materials = nullptr;
 	}
 }
 
-int RenderDroid::Model3Module::draw(RdThing *pThing, RdMatrix34 mat) {
-	RdCamera *pCamera = _rd->_camera.getCurrent();
+int RenderDroid::Model3Module::draw(RdThing *thing, RdMatrix34 mat) {
+	RdCamera *camera = _rd->_camera.getCurrent();
 	RdVector3 center;
 
-	_pCurThing = pThing;
-	_pCurModel3 = pThing->data.pModel3;
+	_curThing = thing;
+	_curModel3 = thing->data.model3;
 	if (_rd->isDemo()) {
 		// The demo tests the origin of the model, not its geometric center
-		_rd->transformPoint34(center, mat[3], pCamera->viewMatrix);
+		_rd->transformPoint34(center, mat[3], camera->viewMatrix);
 	} else {
-		_rd->transformPoint34(center, _pCurModel3->geomCenter, mat);
-		_rd->transformPoint34Acc(center, pCamera->viewMatrix);
+		_rd->transformPoint34(center, _curModel3->geomCenter, mat);
+		_rd->transformPoint34Acc(center, camera->viewMatrix);
 	}
 
 	// The demo uses the culling flags of the renderer, not the field of the thing
-	bool bCull = _rd->isDemo() ? (_rd->_curCullFlags & 2) != 0 : pThing->frustrumCull != 0;
+	bool cull = _rd->isDemo() ? (_rd->_curCullFlags & 2) != 0 : thing->frustrumCull != 0;
 
-	if (bCull)
-		_thingFrustrumCull = _rd->_clip.sphereInFrustrum(pCamera->pClipFrustum, center, _pCurModel3->radius);
+	if (cull)
+		_thingFrustrumCull = _rd->_clip.sphereInFrustrum(camera->clipFrustum, center, _curModel3->radius);
 	else
 		_thingFrustrumCull = 1;
 
@@ -1345,37 +1345,37 @@ int RenderDroid::Model3Module::draw(RdThing *pThing, RdMatrix34 mat) {
 
 	uint curGeoSet;
 
-	if (pThing->curGeoSet == -1)
-		curGeoSet = _pCurModel3->curGeoSet;
+	if (thing->curGeoSet == -1)
+		curGeoSet = _curModel3->curGeoSet;
 	else
-		curGeoSet = _pCurThing->curGeoSet;
+		curGeoSet = _curThing->curGeoSet;
 
 	if (curGeoSet >= 4) {
 		warning("RenderDroid::Model3Module::draw(): invalid geoset %u", curGeoSet);
 		return 0;
 	}
 
-	_pCurGeo = &_pCurModel3->aGeo[curGeoSet];
+	_curGeo = &_curModel3->geo[curGeoSet];
 
 	// The demo builds the joint matrices once per frame
-	if (!_rd->isDemo() || _pCurThing->jointsFrame != _rd->getFrameTrue())
-		_rd->_puppet.buildJointMatrices(_pCurThing, mat);
+	if (!_rd->isDemo() || _curThing->jointsFrame != _rd->getFrameTrue())
+		_rd->_puppet.buildJointMatrices(_curThing, mat);
 
-	_curGeometryMode = _pCurThing->curGeometryMode;
+	_curGeometryMode = _curThing->curGeometryMode;
 
 	if (_curGeometryMode >= _rd->_curGeometryMode)
 		_curGeometryMode = _rd->_curGeometryMode;
 
-	if ((_rd->_curRenderOptions & 2) && pCamera->ambientLight >= 1.0f) {
+	if ((_rd->_curRenderOptions & 2) && camera->ambientLight >= 1.0f) {
 		_curLightingMode = 0;
 	} else {
-		_curLightingMode = _pCurThing->curLightingMode;
+		_curLightingMode = _curThing->curLightingMode;
 
 		if (_curLightingMode >= _rd->_curLightingMode)
 			_curLightingMode = _rd->_curLightingMode;
 	}
 
-	_curTextureMode = _pCurThing->curTextureMode;
+	_curTextureMode = _curThing->curTextureMode;
 
 	if (_curTextureMode >= _rd->_curTextureMode)
 		_curTextureMode = _rd->_curTextureMode;
@@ -1383,87 +1383,87 @@ int RenderDroid::Model3Module::draw(RdThing *pThing, RdMatrix34 mat) {
 	if (_curLightingMode > 1) {
 		_numGeoLights = 0;
 
-		for (uint i = 0; i < pCamera->numLights; i++) {
-			RdLight *pLight = pCamera->apLights[i];
+		for (uint i = 0; i < camera->numLights; i++) {
+			RdLight *light = camera->lights[i];
 
-			if (!pLight->bActive)
+			if (!light->active)
 				continue;
 
 			double distSquared;
 
-			if (pLight->type >= 2) {
-				double dy = (double)mat[3][1] - pCamera->aLightPos[i][1];
-				double dz = (double)mat[3][2] - pCamera->aLightPos[i][2];
-				double dx = (double)mat[3][0] - pCamera->aLightPos[i][0];
+			if (light->type >= 2) {
+				double dy = (double)mat[3][1] - camera->lightPos[i][1];
+				double dz = (double)mat[3][2] - camera->lightPos[i][2];
+				double dx = (double)mat[3][0] - camera->lightPos[i][0];
 				distSquared = dx * dx + dy * dy + dz * dz;
 			} else {
 				distSquared = 0.0;
 			}
 
-			double range = (double)pLight->falloffMin + _pCurModel3->radius;
+			double range = (double)light->falloffMin + _curModel3->radius;
 
 			if (distSquared < range * range) {
-				_apGeoLights[_numGeoLights] = pLight;
+				_geoLights[_numGeoLights] = light;
 				_numGeoLights++;
 			}
 		}
 	}
 
-	drawHNode(_pCurModel3->aHNodes);
+	drawHNode(_curModel3->hNodes);
 	_numDrawnModels++;
 
 	return 1;
 }
 
-void RenderDroid::Model3Module::drawHNode(RdModel3HNode *pHNode) {
-	int meshNodeIndex = pHNode->meshNodeIndex;
+void RenderDroid::Model3Module::drawHNode(RdModel3HNode *hNode) {
+	int meshNodeIndex = hNode->meshNodeIndex;
 
-	if (meshNodeIndex != -1 && _pCurThing->abMeshVisible[pHNode->num]) {
-		if (pHNode->flags & 2) {
-			RdModel3HNode *pAncestor = pHNode->pParentNode;
+	if (meshNodeIndex != -1 && _curThing->abMeshVisible[hNode->num]) {
+		if (hNode->flags & 2) {
+			RdModel3HNode *ancestor = hNode->parentNode;
 
-			while (pAncestor->flags & 2)
-				pAncestor = pAncestor->pParentNode;
+			while (ancestor->flags & 2)
+				ancestor = ancestor->parentNode;
 
-			_pCurGeo->aMeshes[meshNodeIndex].lightingMode = 6;
-			_pCurGeo->aMeshes[pHNode->meshNodeIndex].userLightValue = _pCurGeo->aMeshes[pAncestor->meshNodeIndex].userLightValue;
+			_curGeo->meshes[meshNodeIndex].lightingMode = 6;
+			_curGeo->meshes[hNode->meshNodeIndex].userLightValue = _curGeo->meshes[ancestor->meshNodeIndex].userLightValue;
 		}
 
-		drawMesh(&_pCurGeo->aMeshes[pHNode->meshNodeIndex], _pCurThing->aJointMatrices[pHNode->num]);
+		drawMesh(&_curGeo->meshes[hNode->meshNodeIndex], _curThing->jointMatrices[hNode->num]);
 	}
 
-	if (pHNode->numChildren) {
-		RdModel3HNode *pChild = pHNode->pFirstChildNode;
+	if (hNode->numChildren) {
+		RdModel3HNode *child = hNode->firstChildNode;
 
-		for (uint i = 0; i < pHNode->numChildren; i++) {
-			if (!_pCurThing->abJointAmputate[pChild->num])
-				drawHNode(pChild);
+		for (uint i = 0; i < hNode->numChildren; i++) {
+			if (!_curThing->abJointAmputate[child->num])
+				drawHNode(child);
 
-			pChild = pChild->pSiblingNode;
+			child = child->siblingNode;
 		}
 	}
 }
 
-void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
-	RdCamera *pCamera = _rd->_camera.getCurrent();
+void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *mesh, RdMatrix34 mat) {
+	RdCamera *camera = _rd->_camera.getCurrent();
 	RdVector3 center;
 	RdMatrix34 modelView;
 	RdMatrix34 inverse;
 
-	_pCurMesh = pMesh;
+	_curMesh = mesh;
 
-	if (!pMesh->geometryMode)
+	if (!mesh->geometryMode)
 		return;
 
-	if (pMesh->numVertices > 512) {
-		warning("RenderDroid::Model3Module::drawMesh(): too many vertices in mesh %s", pMesh->aName);
+	if (mesh->numVertices > 512) {
+		warning("RenderDroid::Model3Module::drawMesh(): too many vertices in mesh %s", mesh->name);
 		return;
 	}
 
-	_rd->transformPoint34(center, mat[3], pCamera->viewMatrix);
+	_rd->transformPoint34(center, mat[3], camera->viewMatrix);
 
 	if (_thingFrustrumCull)
-		_meshFrustrumCull = (_rd->_curCullFlags & 1) ? _rd->_clip.sphereInFrustrum(pCamera->pClipFrustum, center, _pCurMesh->radius) : 1;
+		_meshFrustrumCull = (_rd->_curCullFlags & 1) ? _rd->_clip.sphereInFrustrum(camera->clipFrustum, center, _curMesh->radius) : 1;
 	else
 		_meshFrustrumCull = 0;
 
@@ -1473,48 +1473,48 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 	if (_clipPlaneActive) {
 		double side = ((double)mat[3][1] - _clipPt[1]) * _clipNorm[1] + ((double)mat[3][2] - _clipPt[2]) * _clipNorm[2] + ((double)mat[3][0] - _clipPt[0]) * _clipNorm[0];
 
-		if (!(-_pCurMesh->radius <= side))
+		if (!(-_curMesh->radius <= side))
 			return;
 	}
 
-	_rd->multiply34(modelView, pCamera->viewMatrix, mat);
-	_rd->transformPointLst34(modelView, _pCurMesh->aVertices, _aView, _pCurMesh->numVertices);
+	_rd->multiply34(modelView, camera->viewMatrix, mat);
+	_rd->transformPointLst34(modelView, _curMesh->vertices, _view, _curMesh->numVertices);
 	_rd->invertOrtho34(inverse, mat);
 
-	_geometryMode = _pCurMesh->geometryMode;
+	_geometryMode = _curMesh->geometryMode;
 
 	if (_geometryMode >= _curGeometryMode)
 		_geometryMode = _curGeometryMode;
 
-	_textureMode = _pCurMesh->textureMode;
+	_textureMode = _curMesh->textureMode;
 
 	if (_textureMode >= _curTextureMode)
 		_textureMode = _curTextureMode;
 
-	int lightingMode = _pCurMesh->lightingMode;
+	int lightingMode = _curMesh->lightingMode;
 
 	if (lightingMode != 6 && lightingMode >= _curLightingMode)
 		lightingMode = _curLightingMode;
 
 	_lightingMode = lightingMode;
 
-	_vertexSrc.aVertices = _aView;
-	_vertexSrc.aTexVertices = _pCurMesh->aTexVertices;
-	_vertexSrc.aIntensities = _pCurMesh->aDynamicVertexIntensities;
-	_vertexSrc.aAddedIntensities = nullptr;
-	_vertexDst.aVertices = _aFaceVerts;
+	_vertexSrc.vertices = _view;
+	_vertexSrc.texVertices = _curMesh->texVertices;
+	_vertexSrc.intensities = _curMesh->dynamicVertexIntensities;
+	_vertexSrc.addedIntensities = nullptr;
+	_vertexDst.vertices = _faceVerts;
 
 	if (lightingMode == 2 || lightingMode == 3) {
 		_numMeshLights = 0;
 
 		for (uint i = 0; i < _numGeoLights; i++) {
-			RdLight *pLight = _apGeoLights[i];
+			RdLight *light = _geoLights[i];
 
-			if (!pLight->bActive)
+			if (!light->active)
 				continue;
 
-			const float *lightPos = pCamera->aLightPos[pLight->id];
-			bool bInRange;
+			const float *lightPos = camera->lightPos[light->id];
+			bool inRange;
 
 			if (lightingMode == 2) {
 				double dx = (double)lightPos[0] - mat[3][0];
@@ -1522,13 +1522,13 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 				float dyStored = (float)dy;
 				float dzStored = (float)((double)lightPos[2] - mat[3][2]);
 				double distance = sqrt(dx * dx + dy * dyStored + (double)dzStored * dzStored);
-				double range = (double)pLight->falloffMin + _pCurMesh->radius;
+				double range = (double)light->falloffMin + _curMesh->radius;
 
-				bInRange = range > distance;
+				inRange = range > distance;
 			} else {
 				double distSquared;
 
-				if (pLight->type >= 2) {
+				if (light->type >= 2) {
 					double dx = (double)lightPos[0] - mat[3][0];
 					double dy = (double)lightPos[1] - mat[3][1];
 					double dz = (double)lightPos[2] - mat[3][2];
@@ -1537,18 +1537,18 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 					distSquared = 0.0;
 				}
 
-				double range = (double)pLight->falloffMin + _pCurMesh->radius;
+				double range = (double)light->falloffMin + _curMesh->radius;
 
-				bInRange = distSquared < range * range;
+				inRange = distSquared < range * range;
 			}
 
-			if (!bInRange)
+			if (!inRange)
 				continue;
 
-			_apMeshLights[_numMeshLights] = pLight;
-			_rd->transformPoint34(_aLocalLightPos[_numMeshLights], pCamera->aLightPos[pLight->id], inverse);
+			_meshLights[_numMeshLights] = light;
+			_rd->transformPoint34(_localLightPos[_numMeshLights], camera->lightPos[light->id], inverse);
 
-			if (pLight->type != 2) {
+			if (light->type != 2) {
 				float translation[3];
 				RdVector3 direction;
 
@@ -1558,10 +1558,10 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 				inverse[3][0] = 0.0f;
 				inverse[3][1] = 0.0f;
 				inverse[3][2] = 0.0f;
-				direction[0] = -pLight->direction[0];
-				direction[1] = -pLight->direction[1];
-				direction[2] = -pLight->direction[2];
-				_rd->transformPoint34(_aLocalLightDir[_numMeshLights], direction, inverse);
+				direction[0] = -light->direction[0];
+				direction[1] = -light->direction[1];
+				direction[2] = -light->direction[2];
+				_rd->transformPoint34(_localLightDir[_numMeshLights], direction, inverse);
 				inverse[3][0] = translation[0];
 				inverse[3][1] = translation[1];
 				inverse[3][2] = translation[2];
@@ -1571,11 +1571,11 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 		}
 
 		if (lightingMode == 3) {
-			pMesh->userLightValue = _rd->_light.calcVertexIntensities(_apMeshLights, _aLocalLightPos, _aLocalLightDir, _numMeshLights, _pCurMesh->aVertexNormals, _pCurMesh->aVertices, _pCurMesh->aStaticVertexIntensities, _pCurMesh->aDynamicVertexIntensities, _pCurMesh->numVertices, pCamera->attenuationMin);
+			mesh->userLightValue = _rd->_light.calcVertexIntensities(_meshLights, _localLightPos, _localLightDir, _numMeshLights, _curMesh->vertexNormals, _curMesh->vertices, _curMesh->staticVertexIntensities, _curMesh->dynamicVertexIntensities, _curMesh->numVertices, camera->attenuationMin);
 		}
 	} else if (lightingMode == 6) {
-		for (uint i = 0; i < pMesh->numFaces; i++)
-			pMesh->aFaces[i].extraLight = pMesh->userLightValue;
+		for (uint i = 0; i < mesh->numFaces; i++)
+			mesh->faces[i].extraLight = mesh->userLightValue;
 	}
 
 	RdVector3 cameraPosition;
@@ -1583,72 +1583,72 @@ void RenderDroid::Model3Module::drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat) {
 	_rd->_camera.getPosition(cameraPosition);
 	_rd->transformPoint34(_localCamera, cameraPosition, inverse);
 
-	for (uint i = 0; i < pMesh->numFaces; i++) {
-		RdFace3 *pFace = &pMesh->aFaces[i];
-		const float *vertex = _pCurMesh->aVertices[pFace->aVertices[0]];
+	for (uint i = 0; i < mesh->numFaces; i++) {
+		RdFace3 *face = &mesh->faces[i];
+		const float *vertex = _curMesh->vertices[face->vertices[0]];
 		double facing;
 
 		// The demo adds the terms in z, y, x order
 		if (_rd->isDemo())
-			facing = ((double)_localCamera[2] - vertex[2]) * pFace->normal[2] + ((double)_localCamera[1] - vertex[1]) * pFace->normal[1] + ((double)_localCamera[0] - vertex[0]) * pFace->normal[0];
+			facing = ((double)_localCamera[2] - vertex[2]) * face->normal[2] + ((double)_localCamera[1] - vertex[1]) * face->normal[1] + ((double)_localCamera[0] - vertex[0]) * face->normal[0];
 		else
-			facing = ((double)_localCamera[2] - vertex[2]) * pFace->normal[2] + ((double)_localCamera[0] - vertex[0]) * pFace->normal[0] + ((double)_localCamera[1] - vertex[1]) * pFace->normal[1];
+			facing = ((double)_localCamera[2] - vertex[2]) * face->normal[2] + ((double)_localCamera[0] - vertex[0]) * face->normal[0] + ((double)_localCamera[1] - vertex[1]) * face->normal[1];
 
-		int bBackface = 0;
+		int backface = 0;
 
 		if (facing <= 0.0) {
-			bBackface = 1;
+			backface = 1;
 
-			if (!(pFace->type & 1) && (_rd->_curRenderOptions & 1))
+			if (!(face->type & 1) && (_rd->_curRenderOptions & 1))
 				continue;
 		}
 
-		drawFace(pFace, bBackface);
+		drawFace(face, backface);
 	}
 }
 
-int RenderDroid::Model3Module::drawFace(RdFace3 *pFace, int bBackface) {
-	RdCamera *pCamera = _rd->_camera.getCurrent();
-	RdProcFace *pProcFace = _rd->_cache.getProcEntry();
+int RenderDroid::Model3Module::drawFace(RdFace3 *face, int backface) {
+	RdCamera *camera = _rd->_camera.getCurrent();
+	RdProcFace *procFace = _rd->_cache.getProcEntry();
 
-	if (!pProcFace)
+	if (!procFace)
 		return 0;
 
-	int geometryMode = pFace->geometryMode;
+	int geometryMode = face->geometryMode;
 
 	if (_geometryMode < geometryMode)
 		geometryMode = _geometryMode;
 
-	pProcFace->geometryMode = geometryMode;
+	procFace->geometryMode = geometryMode;
 
-	int lightingMode = pFace->lightingMode;
+	int lightingMode = face->lightingMode;
 
 	if (_lightingMode < lightingMode)
 		lightingMode = _lightingMode;
 
-	pProcFace->lightingMode = lightingMode;
+	procFace->lightingMode = lightingMode;
 
-	int textureMode = pFace->textureMode;
+	int textureMode = face->textureMode;
 
 	if (_textureMode < textureMode)
 		textureMode = _textureMode;
 
-	pProcFace->textureMode = textureMode;
+	procFace->textureMode = textureMode;
 
-	if (pFace->type & 0x10)
-		pProcFace->lightingMode = 1;
+	if (face->type & 0x10)
+		procFace->lightingMode = 1;
 
-	_vertexDst.aScreen = pProcFace->aVertices;
-	_vertexDst.aTexVertices = pProcFace->aTexVertices;
-	_vertexDst.aIntensities = pProcFace->aIntensities;
-	_vertexSrc.numVertices = pFace->numVertices;
-	_vertexSrc.aVertIndices = pFace->aVertices;
-	_vertexSrc.aTexIndices = pFace->aTexVertices;
+	_vertexDst.screen = procFace->vertices;
+	_vertexDst.texVertices = procFace->texVertices;
+	_vertexDst.intensities = procFace->intensities;
+	_vertexSrc.numVertices = face->numVertices;
+	_vertexSrc.vertIndices = face->vertices;
+	_vertexSrc.texIndices = face->texVertices;
 
 	if (_meshFrustrumCull)
-		_rd->_primit3.clipFace(pCamera->pClipFrustum, pProcFace->geometryMode, pProcFace->lightingMode, pProcFace->textureMode, &_vertexSrc, &_vertexDst, pFace->uvDelta);
+		_rd->_primit3.clipFace(camera->clipFrustum, procFace->geometryMode, procFace->lightingMode, procFace->textureMode, &_vertexSrc, &_vertexDst, face->uvDelta);
 	else
-		_rd->_primit3.noClipFace(pProcFace->geometryMode, pProcFace->lightingMode, pProcFace->textureMode, &_vertexSrc, &_vertexDst, pFace->uvDelta);
+		_rd->_primit3.noClipFace(procFace->geometryMode, procFace->lightingMode, procFace->textureMode, &_vertexSrc, &_vertexDst, face->uvDelta);
 
 	if (_vertexDst.numVertices < 3)
 		return 0;
@@ -1657,65 +1657,65 @@ int RenderDroid::Model3Module::drawFace(RdFace3 *pFace, int bBackface) {
 		RdVector3 planeNormal;
 		RdVector3 planePoint;
 
-		_rd->transformVector34(planeNormal, _clipNorm, pCamera->viewMatrix);
-		_rd->transformPoint34(planePoint, _clipPt, pCamera->viewMatrix);
+		_rd->transformVector34(planeNormal, _clipNorm, camera->viewMatrix);
+		_rd->transformPoint34(planePoint, _clipPt, camera->viewMatrix);
 
-		int numClipped = _rd->_clip.faceToPlane(planeNormal, planePoint, _vertexDst.aVertices, _vertexDst.aTexVertices, _vertexDst.aIntensities, _vertexDst.numVertices);
+		int numClipped = _rd->_clip.faceToPlane(planeNormal, planePoint, _vertexDst.vertices, _vertexDst.texVertices, _vertexDst.intensities, _vertexDst.numVertices);
 
 		if (numClipped < 2)
 			return 0;
 
 		_vertexDst.numVertices = numClipped;
-		pProcFace->numVertices = numClipped;
+		procFace->numVertices = numClipped;
 	}
 
-	if (pProcFace->lightingMode == 2) {
+	if (procFace->lightingMode == 2) {
 		RdVector3 normal;
 
-		if (bBackface) {
-			normal[0] = -pFace->normal[0];
-			normal[1] = -pFace->normal[1];
-			normal[2] = -pFace->normal[2];
+		if (backface) {
+			normal[0] = -face->normal[0];
+			normal[1] = -face->normal[1];
+			normal[2] = -face->normal[2];
 		} else {
-			normal[0] = pFace->normal[0];
-			normal[1] = pFace->normal[1];
-			normal[2] = pFace->normal[2];
+			normal[0] = face->normal[0];
+			normal[1] = face->normal[1];
+			normal[2] = face->normal[2];
 		}
 
-		pProcFace->diffuseLight = _rd->_light.calcFaceIntensity(_apMeshLights, _aLocalLightPos, _aLocalLightDir, _numMeshLights, pFace, normal, _pCurMesh->aVertices, pCamera->attenuationMin);
+		procFace->diffuseLight = _rd->_light.calcFaceIntensity(_meshLights, _localLightPos, _localLightDir, _numMeshLights, face, normal, _curMesh->vertices, camera->attenuationMin);
 	}
 
-	(_rd->_camera.*pCamera->pfProjectLst)(_vertexDst.aScreen, _vertexDst.aVertices, _vertexDst.numVertices);
+	(_rd->_camera.*camera->projectLst)(_vertexDst.screen, _vertexDst.vertices, _vertexDst.numVertices);
 
 	if (_rd->_curRenderOptions & 2)
-		pProcFace->ambientLight = pCamera->ambientLight;
+		procFace->ambientLight = camera->ambientLight;
 	else
-		pProcFace->ambientLight = 0.0f;
+		procFace->ambientLight = 0.0f;
 
-	int curCel = pFace->curCel;
+	int curCel = face->curCel;
 
-	if (curCel == -1 && pFace->pMaterial)
-		curCel = pFace->pMaterial->curCel;
+	if (curCel == -1 && face->material)
+		curCel = face->material->curCel;
 
-	pProcFace->curCel = curCel;
+	procFace->curCel = curCel;
 
-	RdColormap *pCurMap = _rd->_colormap.getCurrent();
-	RdColormap *pIdentityMap = _rd->_colormap.getIdentity();
+	RdColormap *curMap = _rd->_colormap.getCurrent();
+	RdColormap *identityMap = _rd->_colormap.getIdentity();
 
-	if (pProcFace->ambientLight < 1.0f) {
-		int procLightingMode = pProcFace->lightingMode;
+	if (procFace->ambientLight < 1.0f) {
+		int procLightingMode = procFace->lightingMode;
 
 		if (procLightingMode == 2) {
-			if (pProcFace->diffuseLight >= 1.0f && pCurMap == pIdentityMap)
-				pProcFace->lightingMode = 0;
-			else if (pProcFace->diffuseLight <= 0.0f)
-				pProcFace->lightingMode = 1;
+			if (procFace->diffuseLight >= 1.0f && curMap == identityMap)
+				procFace->lightingMode = 0;
+			else if (procFace->diffuseLight <= 0.0f)
+				procFace->lightingMode = 1;
 		} else if (procLightingMode == 3) {
-			float first = pProcFace->aIntensities[0];
+			float first = procFace->intensities[0];
 			uint same = 1;
 
 			while (same < _vertexDst.numVertices) {
-				double difference = (double)pProcFace->aIntensities[same] - first;
+				double difference = (double)procFace->intensities[same] - first;
 
 				if (difference < 0.0)
 					difference = -difference;
@@ -1729,95 +1729,95 @@ int RenderDroid::Model3Module::drawFace(RdFace3 *pFace, int bBackface) {
 			if (same == _vertexDst.numVertices) {
 				if (first != 1.0f) {
 					if (first == 0.0f) {
-						pProcFace->lightingMode = 1;
-						pProcFace->diffuseLight = 0.0f;
+						procFace->lightingMode = 1;
+						procFace->diffuseLight = 0.0f;
 					} else {
-						pProcFace->lightingMode = 2;
-						pProcFace->diffuseLight = first;
+						procFace->lightingMode = 2;
+						procFace->diffuseLight = first;
 					}
-				} else if (pCurMap == pIdentityMap) {
-					pProcFace->lightingMode = 0;
+				} else if (curMap == identityMap) {
+					procFace->lightingMode = 0;
 				} else {
-					pProcFace->lightingMode = 2;
-					pProcFace->diffuseLight = 1.0f;
+					procFace->lightingMode = 2;
+					procFace->diffuseLight = 1.0f;
 				}
 			}
 		}
-	} else if (pCurMap != pIdentityMap) {
-		pProcFace->lightingMode = 2;
-		pProcFace->diffuseLight = 1.0f;
+	} else if (curMap != identityMap) {
+		procFace->lightingMode = 2;
+		procFace->diffuseLight = 1.0f;
 	} else {
-		pProcFace->lightingMode = 0;
+		procFace->lightingMode = 0;
 	}
 
 	char bufferFlags = 1;
 
-	if (pProcFace->geometryMode >= 4)
+	if (procFace->geometryMode >= 4)
 		bufferFlags = 3;
 
-	if (pProcFace->lightingMode >= 3)
+	if (procFace->lightingMode >= 3)
 		bufferFlags |= 4;
 
-	pProcFace->bBackface = bBackface;
-	pProcFace->type = pFace->type;
-	pProcFace->extraLight = pFace->extraLight;
-	pProcFace->pMaterial = pFace->pMaterial;
+	procFace->backface = backface;
+	procFace->type = face->type;
+	procFace->extraLight = face->extraLight;
+	procFace->material = face->material;
 	_rd->_cache.addProcFace(0, _vertexDst.numVertices, bufferFlags);
 
 	return 1;
 }
 
-int RenderDroid::Model3Module::drawPolyline(RdThing *pThing, RdMatrix34 mat) {
-	RdPolyline *pPolyline = pThing->data.pPolyline;
-	RdCamera *pCamera = _rd->_camera.getCurrent();
+int RenderDroid::Model3Module::drawPolyline(RdThing *thing, RdMatrix34 mat) {
+	RdPolyline *polyline = thing->data.polyline;
+	RdCamera *camera = _rd->_camera.getCurrent();
 	RdMatrix34 modelView;
 	RdVector3 localEnd;
 	RdVector3 end;
 	RdVertexLists src;
 
 	memset(&src, 0, sizeof(RdVertexLists));
-	src.aVertices = (RdVector3 *)_polylineVerts;
+	src.vertices = (RdVector3 *)_polylineVerts;
 
-	_rd->multiply34(modelView, pCamera->viewMatrix, mat);
+	_rd->multiply34(modelView, camera->viewMatrix, mat);
 
 	localEnd[0] = 0.0f;
-	localEnd[1] = pPolyline->length;
+	localEnd[1] = polyline->length;
 	localEnd[2] = 0.0f;
 	_rd->transformPoint34(end, localEnd, modelView);
 
 	float endY = (float)((double)end[1] - -0.001f);
 
-	_polylineVerts[0] = (float)((double)end[0] - pPolyline->endWidth);
+	_polylineVerts[0] = (float)((double)end[0] - polyline->endWidth);
 	_polylineVerts[1] = endY;
-	_polylineVerts[2] = (float)((double)end[2] - pPolyline->endWidth);
-	_polylineVerts[3] = (float)((double)end[0] + pPolyline->endWidth);
+	_polylineVerts[2] = (float)((double)end[2] - polyline->endWidth);
+	_polylineVerts[3] = (float)((double)end[0] + polyline->endWidth);
 	_polylineVerts[4] = endY;
-	_polylineVerts[5] = (float)((double)end[2] - pPolyline->endWidth);
-	_polylineVerts[6] = (float)((double)end[0] + pPolyline->endWidth);
+	_polylineVerts[5] = (float)((double)end[2] - polyline->endWidth);
+	_polylineVerts[6] = (float)((double)end[0] + polyline->endWidth);
 	_polylineVerts[7] = endY;
-	_polylineVerts[8] = (float)((double)end[2] + pPolyline->endWidth);
-	_polylineVerts[9] = (float)((double)end[0] - pPolyline->endWidth);
+	_polylineVerts[8] = (float)((double)end[2] + polyline->endWidth);
+	_polylineVerts[9] = (float)((double)end[0] - polyline->endWidth);
 	_polylineVerts[10] = endY;
-	_polylineVerts[11] = (float)((double)end[2] + pPolyline->endWidth);
-	src.aTexVertices = pPolyline->aTexVertsEnd;
-	_rd->_primit3.drawPolylineFace(pThing, &pPolyline->faceEnd, (RdVector3 *)_polylineVerts, &src);
+	_polylineVerts[11] = (float)((double)end[2] + polyline->endWidth);
+	src.texVertices = polyline->texVertsEnd;
+	_rd->_primit3.drawPolylineFace(thing, &polyline->faceEnd, (RdVector3 *)_polylineVerts, &src);
 
 	float startY = (float)((double)modelView[3][1] - -0.001f);
 
-	_polylineVerts[0] = (float)((double)modelView[3][0] - pPolyline->startWidth);
+	_polylineVerts[0] = (float)((double)modelView[3][0] - polyline->startWidth);
 	_polylineVerts[1] = startY;
-	_polylineVerts[2] = (float)((double)modelView[3][2] - pPolyline->startWidth);
-	_polylineVerts[3] = (float)((double)modelView[3][0] + pPolyline->startWidth);
+	_polylineVerts[2] = (float)((double)modelView[3][2] - polyline->startWidth);
+	_polylineVerts[3] = (float)((double)modelView[3][0] + polyline->startWidth);
 	_polylineVerts[4] = startY;
-	_polylineVerts[5] = (float)((double)modelView[3][2] - pPolyline->startWidth);
-	_polylineVerts[6] = (float)((double)modelView[3][0] + pPolyline->startWidth);
+	_polylineVerts[5] = (float)((double)modelView[3][2] - polyline->startWidth);
+	_polylineVerts[6] = (float)((double)modelView[3][0] + polyline->startWidth);
 	_polylineVerts[7] = startY;
-	_polylineVerts[8] = (float)((double)modelView[3][2] + pPolyline->startWidth);
-	_polylineVerts[9] = (float)((double)modelView[3][0] - pPolyline->startWidth);
+	_polylineVerts[8] = (float)((double)modelView[3][2] + polyline->startWidth);
+	_polylineVerts[9] = (float)((double)modelView[3][0] - polyline->startWidth);
 	_polylineVerts[10] = startY;
-	_polylineVerts[11] = (float)((double)modelView[3][2] + pPolyline->startWidth);
-	src.aTexVertices = pPolyline->aTexVertsEnd;
-	_rd->_primit3.drawPolylineFace(pThing, &pPolyline->faceEnd, (RdVector3 *)_polylineVerts, &src);
+	_polylineVerts[11] = (float)((double)modelView[3][2] + polyline->startWidth);
+	src.texVertices = polyline->texVertsEnd;
+	_rd->_primit3.drawPolylineFace(thing, &polyline->faceEnd, (RdVector3 *)_polylineVerts, &src);
 
 	float dx = (float)((double)end[0] - modelView[3][0]);
 	double dz = (double)end[2] - modelView[3][2];
@@ -1839,8 +1839,8 @@ int RenderDroid::Model3Module::drawPolyline(RdThing *pThing, RdMatrix34 mat) {
 
 	float sinLength = (float)((double)sinAngle * length);
 	float cosLength = (float)((double)cosAngle * length);
-	double endWidth = pPolyline->endWidth;
-	double startWidth = pPolyline->startWidth;
+	double endWidth = polyline->endWidth;
+	double startWidth = polyline->startWidth;
 
 	_polylineVerts[1] = end[1];
 	_polylineVerts[0] = (float)(endWidth * cosAngle - sinLength + modelView[3][0]);
@@ -1854,65 +1854,65 @@ int RenderDroid::Model3Module::drawPolyline(RdThing *pThing, RdMatrix34 mat) {
 	_polylineVerts[9] = (float)(startWidth * cosAngle - 0.0 + modelView[3][0]);
 	_polylineVerts[10] = modelView[3][1];
 	_polylineVerts[11] = (float)(startWidth * sinAngle + 0.0 + modelView[3][2]);
-	src.aTexVertices = pPolyline->aTexVertsBody;
-	_rd->_primit3.drawPolylineFace(pThing, &pPolyline->faceBody, (RdVector3 *)_polylineVerts, &src);
+	src.texVertices = polyline->texVertsBody;
+	_rd->_primit3.drawPolylineFace(thing, &polyline->faceBody, (RdVector3 *)_polylineVerts, &src);
 
 	return 1;
 }
 
-int RenderDroid::Model3Module::drawParticle(RdThing *pThing, RdMatrix34 mat) {
-	RdParticleCloud *pParticle = pThing->data.pParticle;
-	RdCamera *pCamera = _rd->_camera.getCurrent();
+int RenderDroid::Model3Module::drawParticle(RdThing *thing, RdMatrix34 mat) {
+	RdParticleCloud *particlePointer = thing->data.particle;
+	RdCamera *camera = _rd->_camera.getCurrent();
 	RdVector3 center;
 	RdMatrix34 modelView;
 	int frustrumCull;
 
-	if (pParticle->numParticles > 256) {
-		warning("RenderDroid::Model3Module::drawParticle(): too many particles (%u)", pParticle->numParticles);
+	if (particlePointer->numParticles > 256) {
+		warning("RenderDroid::Model3Module::drawParticle(): too many particles (%u)", particlePointer->numParticles);
 		return 0;
 	}
 
-	_rd->transformPoint34(center, mat[3], pCamera->viewMatrix);
+	_rd->transformPoint34(center, mat[3], camera->viewMatrix);
 
 	if (_rd->_curCullFlags & 2)
-		frustrumCull = _rd->_clip.sphereInFrustrum(pCamera->pClipFrustum, center, pParticle->radius);
+		frustrumCull = _rd->_clip.sphereInFrustrum(camera->clipFrustum, center, particlePointer->radius);
 	else
-		frustrumCull = pThing->frustrumCull;
+		frustrumCull = thing->frustrumCull;
 
 	if (frustrumCull == 2)
 		return 0;
 
-	_rd->multiply34(modelView, pCamera->viewMatrix, mat);
+	_rd->multiply34(modelView, camera->viewMatrix, mat);
 
 	float ambientLight = 0.0f;
 
 	if (_rd->_curRenderOptions & 2)
-		ambientLight = pCamera->ambientLight;
+		ambientLight = camera->ambientLight;
 
 	int lightingMode;
 
 	if (ambientLight < 1.0f) {
 		if (ambientLight > 0.0f)
-			lightingMode = pParticle->lightingMode;
+			lightingMode = particlePointer->lightingMode;
 		else
 			lightingMode = 1;
 	} else {
 		lightingMode = 0;
 	}
 
-	if (lightingMode >= pParticle->lightingMode)
-		lightingMode = pParticle->lightingMode;
+	if (lightingMode >= particlePointer->lightingMode)
+		lightingMode = particlePointer->lightingMode;
 
-	_rd->transformPointLst34(modelView, pParticle->aPositions, _particleTransformed, pParticle->numParticles);
+	_rd->transformPointLst34(modelView, particlePointer->positions, _particleTransformed, particlePointer->numParticles);
 
-	for (uint i = 0; i < pParticle->numParticles; i++) {
-		RdProcFace *pProcFace = _rd->_cache.getProcEntry();
+	for (uint i = 0; i < particlePointer->numParticles; i++) {
+		RdProcFace *procFace = _rd->_cache.getProcEntry();
 
-		if (!pProcFace)
+		if (!procFace)
 			return 0;
 
 		const float *particle = _particleTransformed[i];
-		double size = pParticle->size;
+		double size = particlePointer->size;
 
 		_particleVerts[0] = (float)((double)particle[0] - size);
 		_particleVerts[1] = particle[1];
@@ -1927,17 +1927,17 @@ int RenderDroid::Model3Module::drawParticle(RdThing *pThing, RdMatrix34 mat) {
 		_particleVerts[10] = particle[1];
 		_particleVerts[11] = (float)((double)particle[2] + size);
 
-		int numClipped = _rd->_clip.face3S(pCamera->pClipFrustum, (RdVector3 *)_particleVerts, 4);
+		int numClipped = _rd->_clip.face3S(camera->clipFrustum, (RdVector3 *)_particleVerts, 4);
 
 		if (numClipped >= 3) {
-			(_rd->_camera.*pCamera->pfProjectLst)(pProcFace->aVertices, (RdVector3 *)_particleVerts, numClipped);
-			pProcFace->lightingMode = lightingMode;
-			pProcFace->ambientLight = ambientLight;
-			pProcFace->geometryMode = 3;
-			pProcFace->type = 0;
-			pProcFace->pMaterial = pParticle->pMaterial;
-			pProcFace->curCel = pParticle->aCels[i];
-			pProcFace->bBackface = 0;
+			(_rd->_camera.*camera->projectLst)(procFace->vertices, (RdVector3 *)_particleVerts, numClipped);
+			procFace->lightingMode = lightingMode;
+			procFace->ambientLight = ambientLight;
+			procFace->geometryMode = 3;
+			procFace->type = 0;
+			procFace->material = particlePointer->material;
+			procFace->curCel = particlePointer->cels[i];
+			procFace->backface = 0;
 			_rd->_cache.addProcFace(0, numClipped, 1);
 		}
 	}
@@ -1945,29 +1945,29 @@ int RenderDroid::Model3Module::drawParticle(RdThing *pThing, RdMatrix34 mat) {
 	return 1;
 }
 
-void RenderDroid::Model3Module::buildShadowModel(RdModel3 *pModel3) {
-	static const byte aCorners[16][3] = {
+void RenderDroid::Model3Module::buildShadowModel(RdModel3 *model3) {
+	static const byte corners[16][3] = {
 		{1, 1, 1}, {1, 0, 1}, {0, 0, 1}, {0, 1, 1},
 		{1, 1, 0}, {1, 0, 0}, {0, 0, 0}, {0, 1, 0},
 		{0, 0, 0}, {1, 1, 0}, {1, 1, 1}, {0, 0, 1},
 		{0, 1, 0}, {1, 0, 0}, {1, 0, 1}, {0, 1, 1}
 	};
 
-	for (uint g = 0; g < pModel3->numGeos; g++) {
-		RdModel3Geo *pGeo = &pModel3->aGeo[g];
+	for (uint g = 0; g < model3->numGeos; g++) {
+		RdModel3Geo *geo = &model3->geo[g];
 
-		for (uint m = 0; m < pGeo->numMeshes; m++) {
-			RdModel3Mesh *pMesh = &pGeo->aMeshes[m];
+		for (uint m = 0; m < geo->numMeshes; m++) {
+			RdModel3Mesh *mesh = &geo->meshes[m];
 
-			if (!pMesh->castShadow)
+			if (!mesh->castShadow)
 				continue;
 
-			delete[] pMesh->aShadowVerts;
-			pMesh->aShadowVerts = new RdVector3[16];
+			delete[] mesh->shadowVerts;
+			mesh->shadowVerts = new RdVector3[16];
 
 			for (uint v = 0; v < 16; v++) {
 				for (uint k = 0; k < 3; k++)
-					pMesh->aShadowVerts[v][k] = aCorners[v][k] ? pMesh->bound.max[k] : pMesh->bound.min[k];
+					mesh->shadowVerts[v][k] = corners[v][k] ? mesh->bound.max[k] : mesh->bound.min[k];
 			}
 		}
 	}

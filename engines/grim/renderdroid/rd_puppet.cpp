@@ -25,83 +25,83 @@
 
 namespace Grim {
 
-RdPuppet *RenderDroid::PuppetModule::create(RdThing *pThing) {
-	RdPuppet *pPuppet = new RdPuppet;
+RdPuppet *RenderDroid::PuppetModule::create(RdThing *thing) {
+	RdPuppet *puppet = new RdPuppet;
 
-	memset(pPuppet, 0, sizeof(RdPuppet));
-	if (!newEntry(pPuppet, pThing))
+	memset(puppet, 0, sizeof(RdPuppet));
+	if (!newEntry(puppet, thing))
 		return nullptr;
 
-	pThing->pPuppet = pPuppet;
-	return pPuppet;
+	thing->puppet = puppet;
+	return puppet;
 }
 
-int RenderDroid::PuppetModule::newEntry(RdPuppet *pPuppet, RdThing *pThing) {
-	pPuppet->bPaused = 0;
-	pPuppet->pThing = pThing;
+int RenderDroid::PuppetModule::newEntry(RdPuppet *puppet, RdThing *thing) {
+	puppet->paused = 0;
+	puppet->thing = thing;
 
 	for (int i = 0; i < _numTracks; i++) {
-		pPuppet->aTracks[i].curFrame = 0.0f;
-		pPuppet->aTracks[i].prevFrame = 0.0f;
-		removeTrack(pPuppet, i);
+		puppet->tracks[i].curFrame = 0.0f;
+		puppet->tracks[i].prevFrame = 0.0f;
+		removeTrack(puppet, i);
 	}
 
 	return 1;
 }
 
-int RenderDroid::PuppetModule::addTrack(RdPuppet *pPuppet, RdKeyframe *pKeyframe, int priority, int priorityMasked) {
+int RenderDroid::PuppetModule::addTrack(RdPuppet *puppet, RdKeyframe *keyframe, int priority, int priorityMasked) {
 	int slot = 0;
 
-	while (slot < _numTracks && pPuppet->aTracks[slot].status != 0)
+	while (slot < _numTracks && puppet->tracks[slot].status != 0)
 		slot++;
 
 	if (slot >= _numTracks) {
 		slot = 0;
-		while (slot < _numTracks && ((pPuppet->aTracks[slot].status & 8) == 0 || (pPuppet->aTracks[slot].status & 0x140) != 0))
+		while (slot < _numTracks && ((puppet->tracks[slot].status & 8) == 0 || (puppet->tracks[slot].status & 0x140) != 0))
 			slot++;
 
 		if (slot >= _numTracks)
 			return -1;
 
-		removeTrack(pPuppet, slot);
+		removeTrack(puppet, slot);
 	}
 
-	RdPuppetTrack *track = &pPuppet->aTracks[slot];
-	track->pKeyframe = pKeyframe;
+	RdPuppetTrack *track = &puppet->tracks[slot];
+	track->keyframe = keyframe;
 	track->priority = priority;
-	track->fps = pKeyframe->fps;
+	track->fps = keyframe->fps;
 	track->fade = 0.0f;
 	track->priorityMasked = priorityMasked;
 	track->status |= 1;
-	resetTrack(pPuppet, slot);
+	resetTrack(puppet, slot);
 
 	return slot;
 }
 
-int RenderDroid::PuppetModule::removeTrack(RdPuppet *pPuppet, int trackNum) {
-	RdPuppetTrackCallback callback = pPuppet->aTracks[trackNum].pfCallback;
+int RenderDroid::PuppetModule::removeTrack(RdPuppet *puppet, int trackNum) {
+	RdPuppetTrackCallback callback = puppet->tracks[trackNum].callback;
 
 	if (callback)
-		callback(pPuppet->pThing->userArg, trackNum, 0);
+		callback(puppet->thing->userArg, trackNum, 0);
 
-	pPuppet->aTracks[trackNum].status = 0;
-	pPuppet->aTracks[trackNum].pKeyframe = nullptr;
-	pPuppet->aTracks[trackNum].pfCallback = nullptr;
+	puppet->tracks[trackNum].status = 0;
+	puppet->tracks[trackNum].keyframe = nullptr;
+	puppet->tracks[trackNum].callback = nullptr;
 
 	return 1;
 }
 
-int RenderDroid::PuppetModule::setStatus(RdPuppet *pPuppet, int trackNum, uint status) {
-	pPuppet->aTracks[trackNum].status |= status;
+int RenderDroid::PuppetModule::setStatus(RdPuppet *puppet, int trackNum, uint status) {
+	puppet->tracks[trackNum].status |= status;
 	return 1;
 }
 
-void RenderDroid::PuppetModule::setCallback(RdPuppet *pPuppet, int trackNum, RdPuppetTrackCallback pfCallback) {
-	pPuppet->aTracks[trackNum].pfCallback = pfCallback;
+void RenderDroid::PuppetModule::setCallback(RdPuppet *puppet, int trackNum, RdPuppetTrackCallback callback) {
+	puppet->tracks[trackNum].callback = callback;
 }
 
-int RenderDroid::PuppetModule::playTrack(RdPuppet *pPuppet, int trackNum) {
-	RdPuppetTrack *track = &pPuppet->aTracks[trackNum];
+int RenderDroid::PuppetModule::playTrack(RdPuppet *puppet, int trackNum) {
+	RdPuppetTrack *track = &puppet->tracks[trackNum];
 
 	track->status = (track->status & 0xFFFFFFED) | 2;
 	track->fade = 1.0f;
@@ -109,8 +109,8 @@ int RenderDroid::PuppetModule::playTrack(RdPuppet *pPuppet, int trackNum) {
 	return 1;
 }
 
-int RenderDroid::PuppetModule::fadeInTrack(RdPuppet *pPuppet, int trackNum, float time) {
-	RdPuppetTrack *track = &pPuppet->aTracks[trackNum];
+int RenderDroid::PuppetModule::fadeInTrack(RdPuppet *puppet, int trackNum, float time) {
+	RdPuppetTrack *track = &puppet->tracks[trackNum];
 
 	track->status = (track->status & 0xFFFFFFF1) | 6;
 	if (time <= 0.0)
@@ -121,8 +121,8 @@ int RenderDroid::PuppetModule::fadeInTrack(RdPuppet *pPuppet, int trackNum, floa
 	return 1;
 }
 
-int RenderDroid::PuppetModule::fadeOutTrack(RdPuppet *pPuppet, int trackNum, float time) {
-	RdPuppetTrack *track = &pPuppet->aTracks[trackNum];
+int RenderDroid::PuppetModule::fadeOutTrack(RdPuppet *puppet, int trackNum, float time) {
+	RdPuppetTrack *track = &puppet->tracks[trackNum];
 
 	track->status = (track->status & 0xFFFFFFF3) | 8;
 	if (time <= 0.0)
@@ -133,9 +133,9 @@ int RenderDroid::PuppetModule::fadeOutTrack(RdPuppet *pPuppet, int trackNum, flo
 	return 1;
 }
 
-void RenderDroid::PuppetModule::advanceTrack(RdPuppet *pPuppet, int trackNum, float delta) {
-	RdPuppetTrack *track = &pPuppet->aTracks[trackNum];
-	RdKeyframe *keyframe = track->pKeyframe;
+void RenderDroid::PuppetModule::advanceTrack(RdPuppet *puppet, int trackNum, float delta) {
+	RdPuppetTrack *track = &puppet->tracks[trackNum];
+	RdKeyframe *keyframe = track->keyframe;
 	float wraps = 0.0f;
 	int finished = 0;
 
@@ -158,63 +158,63 @@ void RenderDroid::PuppetModule::advanceTrack(RdPuppet *pPuppet, int trackNum, fl
 		} else if ((status & 0x80) == 0) {
 			float turns = (float)((double)newFrame / numFrames);
 			wraps = _rd->_stdMath->rint(turns);
-			track->curFrame = (float)((double)track->curFrame - (double)track->pKeyframe->numFrames * wraps);
+			track->curFrame = (float)((double)track->curFrame - (double)track->keyframe->numFrames * wraps);
 
-			uint numHNodes = pPuppet->pThing->data.pModel3->numHNodes;
+			uint numHNodes = puppet->thing->data.model3->numHNodes;
 			if (numHNodes >= 64)
 				numHNodes = 64;
-			memset(track->aEntryIdx, 0, 4 * numHNodes);
+			memset(track->entryIdx, 0, 4 * numHNodes);
 		} else {
 			track->curFrame = (float)numFrames;
-			fadeOutTrack(pPuppet, trackNum, 0.25f);
+			fadeOutTrack(puppet, trackNum, 0.25f);
 			track->status |= 0x10;
 		}
 	}
 
-	if (track->pfCallback) {
-		keyframe = track->pKeyframe;
+	if (track->callback) {
+		keyframe = track->keyframe;
 
 		if (keyframe->numMarkers) {
 			if (wraps == 0.0) {
 				for (uint i = 0; i < keyframe->numMarkers; i++) {
-					if (keyframe->aMarkerFrame[i] > (double)track->curFrame)
+					if (keyframe->markerFrame[i] > (double)track->curFrame)
 						break;
 
-					if (keyframe->aMarkerFrame[i] > (double)track->prevFrame || track->prevFrame == 0.0)
-						track->pfCallback(pPuppet->pThing->userArg, trackNum, keyframe->aMarkerType[i]);
+					if (keyframe->markerFrame[i] > (double)track->prevFrame || track->prevFrame == 0.0)
+						track->callback(puppet->thing->userArg, trackNum, keyframe->markerType[i]);
 
-					keyframe = track->pKeyframe;
+					keyframe = track->keyframe;
 				}
 			} else if (wraps <= 1.0) {
 				for (uint i = 0; i < keyframe->numMarkers; i++) {
-					if (keyframe->aMarkerFrame[i] > (double)track->prevFrame || keyframe->aMarkerFrame[i] <= (double)track->curFrame)
-						track->pfCallback(pPuppet->pThing->userArg, trackNum, keyframe->aMarkerType[i]);
+					if (keyframe->markerFrame[i] > (double)track->prevFrame || keyframe->markerFrame[i] <= (double)track->curFrame)
+						track->callback(puppet->thing->userArg, trackNum, keyframe->markerType[i]);
 
-					keyframe = track->pKeyframe;
+					keyframe = track->keyframe;
 				}
 			} else {
 				for (uint i = 0; i < keyframe->numMarkers; i++) {
-					track->pfCallback(pPuppet->pThing->userArg, trackNum, keyframe->aMarkerType[i]);
-					keyframe = track->pKeyframe;
+					track->callback(puppet->thing->userArg, trackNum, keyframe->markerType[i]);
+					keyframe = track->keyframe;
 				}
 			}
 		}
 	}
 
 	if (finished)
-		removeTrack(pPuppet, trackNum);
+		removeTrack(puppet, trackNum);
 	else
 		track->prevFrame = track->curFrame;
 }
 
-int RenderDroid::PuppetModule::updateTracks(RdPuppet *pPuppet, float delta) {
+int RenderDroid::PuppetModule::updateTracks(RdPuppet *puppet, float delta) {
 	int activeTracks = 0;
 
-	if (pPuppet->bPaused)
+	if (puppet->paused)
 		return activeTracks;
 
 	for (int i = 0; i < _numTracks; i++) {
-		RdPuppetTrack *track = &pPuppet->aTracks[i];
+		RdPuppetTrack *track = &puppet->tracks[i];
 
 		if (!track->status)
 			continue;
@@ -224,7 +224,7 @@ int RenderDroid::PuppetModule::updateTracks(RdPuppet *pPuppet, float delta) {
 			continue;
 
 		if ((track->status & 0x10) == 0)
-			advanceTrack(pPuppet, i, (float)((double)track->fps * delta));
+			advanceTrack(puppet, i, (float)((double)track->fps * delta));
 
 		if (track->status & 4) {
 			double fade = (double)track->fadeSpeed * delta + track->fade;
@@ -242,7 +242,7 @@ int RenderDroid::PuppetModule::updateTracks(RdPuppet *pPuppet, float delta) {
 				if (track->status & 0x100)
 					track->status = (track->status & 0xFFFFFFF7) | 0x10;
 				else
-					removeTrack(pPuppet, i);
+					removeTrack(puppet, i);
 			}
 		}
 	}
@@ -250,14 +250,14 @@ int RenderDroid::PuppetModule::updateTracks(RdPuppet *pPuppet, float delta) {
 	return activeTracks;
 }
 
-int RenderDroid::PuppetModule::resetTrack(RdPuppet *pPuppet, int trackNum) {
-	RdPuppetTrack *track = &pPuppet->aTracks[trackNum];
-	uint numHNodes = pPuppet->pThing->data.pModel3->numHNodes;
+int RenderDroid::PuppetModule::resetTrack(RdPuppet *puppet, int trackNum) {
+	RdPuppetTrack *track = &puppet->tracks[trackNum];
+	uint numHNodes = puppet->thing->data.model3->numHNodes;
 
 	if (numHNodes >= 64)
 		numHNodes = 64;
 
-	memset(track->aEntryIdx, 0, 4 * numHNodes);
+	memset(track->entryIdx, 0, 4 * numHNodes);
 	track->curFrame = 0.0f;
 	track->prevFrame = 0.0f;
 	track->status = 3;
@@ -265,36 +265,36 @@ int RenderDroid::PuppetModule::resetTrack(RdPuppet *pPuppet, int trackNum) {
 	return 0;
 }
 
-void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 pBase) {
-	RdModel3 *pModel3 = pThing->data.pModel3;
-	RdPuppet *pPuppet = pThing->pPuppet;
+void RenderDroid::PuppetModule::buildJointMatrices(RdThing *thing, RdMatrix34 base) {
+	RdModel3 *model3 = thing->data.model3;
+	RdPuppet *puppet = thing->puppet;
 
-	if (pThing->bJointsLocked)
+	if (thing->jointsLocked)
 		return;
 
-	if (!pPuppet || pPuppet->bPaused) {
-		for (uint i = 0; i < pModel3->numHNodes; i++)
-			memcpy(pThing->aJointMatrices[i], pModel3->aHNodes[i].mat, sizeof(RdMatrix34));
+	if (!puppet || puppet->paused) {
+		for (uint i = 0; i < model3->numHNodes; i++)
+			memcpy(thing->jointMatrices[i], model3->hNodes[i].mat, sizeof(RdMatrix34));
 	} else {
 		for (int t = 0; t < _numTracks; t++) {
-			RdPuppetTrack *pTrack = &pPuppet->aTracks[t];
+			RdPuppetTrack *track = &puppet->tracks[t];
 
-			if (!pTrack->status)
+			if (!track->status)
 				continue;
 
-			RdKeyframe *pKeyframe = pTrack->pKeyframe;
+			RdKeyframe *keyframe = track->keyframe;
 
-			for (uint n = 0; n < pKeyframe->numNodes; n++) {
-				RdKeyframeNode *pNode = &pKeyframe->paNodes[n];
+			for (uint n = 0; n < keyframe->numNodes; n++) {
+				RdKeyframeNode *node = &keyframe->paNodes[n];
 
-				if (!pNode->numEntries)
+				if (!node->numEntries)
 					continue;
 
-				int index = pNode->nodeNum >= 0x40 ? 0 : pTrack->aEntryIdx[pNode->nodeNum];
-				int last = pNode->numEntries - 1;
+				int index = node->nodeNum >= 0x40 ? 0 : track->entryIdx[node->nodeNum];
+				int last = node->numEntries - 1;
 
 				if (index < 0 || index > last) {
-					warning("RenderDroid::PuppetModule::buildJointMatrices(): stale entry index %d for node %s", index, pNode->aName);
+					warning("RenderDroid::PuppetModule::buildJointMatrices(): stale entry index %d for node %s", index, node->name);
 					continue;
 				}
 
@@ -303,18 +303,18 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 
 				int next = index + 1;
 
-				if (pTrack->curFrame >= (double)pNode->paEntries[next].frame) {
-					while (next != last && pTrack->curFrame >= (double)pNode->paEntries[next + 1].frame)
+				if (track->curFrame >= (double)node->paEntries[next].frame) {
+					while (next != last && track->curFrame >= (double)node->paEntries[next + 1].frame)
 						next++;
 
 					if (n < 0x40)
-						pTrack->aEntryIdx[n] = next;
+						track->entryIdx[n] = next;
 				}
 			}
 		}
 
-		for (uint i = 0; i < pModel3->numHNodes; i++) {
-			RdModel3HNode *pHNode = &pModel3->aHNodes[i];
+		for (uint i = 0; i < model3->numHNodes; i++) {
+			RdModel3HNode *hNode = &model3->hNodes[i];
 			float topPos[3] = { 0.0f, 0.0f, 0.0f };
 			float topPyr[3] = { 0.0f, 0.0f, 0.0f };
 			float secondPos[3] = { 0.0f, 0.0f, 0.0f };
@@ -325,28 +325,28 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 			int secondPriority = 0;
 
 			for (int t = 0; t < _numTracks; t++) {
-				RdPuppetTrack *pTrack = &pPuppet->aTracks[t];
-				RdKeyframe *pKeyframe = pTrack->pKeyframe;
+				RdPuppetTrack *track = &puppet->tracks[t];
+				RdKeyframe *keyframe = track->keyframe;
 
-				if (!pKeyframe)
+				if (!keyframe)
 					continue;
 
 				int priority;
 
-				if (pKeyframe->type & pHNode->type)
-					priority = pTrack->priorityMasked;
+				if (keyframe->type & hNode->type)
+					priority = track->priorityMasked;
 				else
-					priority = pTrack->priority;
+					priority = track->priority;
 
-				if (!(pTrack->status & 2))
+				if (!(track->status & 2))
 					continue;
 
-				if (pHNode->num >= pKeyframe->numNodes)
+				if (hNode->num >= keyframe->numNodes)
 					continue;
 
-				RdKeyframeNode *pNode = &pKeyframe->paNodes[pHNode->num];
+				RdKeyframeNode *node = &keyframe->paNodes[hNode->num];
 
-				if (!pNode->numEntries)
+				if (!node->numEntries)
 					continue;
 
 				if (priority < secondPriority)
@@ -355,56 +355,56 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 				if (!(priority >= topPriority || topFade < 1.0f))
 					continue;
 
-				if (pHNode->num >= 0x40) {
-					warning("RenderDroid::PuppetModule::buildJointMatrices(): node index %u out of range", pHNode->num);
+				if (hNode->num >= 0x40) {
+					warning("RenderDroid::PuppetModule::buildJointMatrices(): node index %u out of range", hNode->num);
 					continue;
 				}
 
-				RdKeyframeEntry *pEntry = &pNode->paEntries[pTrack->aEntryIdx[pHNode->num]];
+				RdKeyframeEntry *entry = &node->paEntries[track->entryIdx[hNode->num]];
 				double delta;
 
-				if (pKeyframe->flags & 0x100)
+				if (keyframe->flags & 0x100)
 					delta = 0.0;
 				else
-					delta = (double)pTrack->curFrame - pEntry->frame;
+					delta = (double)track->curFrame - entry->frame;
 
 				float curPos[3];
 				float curPyr[3];
 
-				if (pEntry->flags & 1) {
-					curPos[0] = (float)(pEntry->dpos[0] * delta + pEntry->pos[0]);
-					curPos[1] = (float)(pEntry->dpos[1] * delta + pEntry->pos[1]);
-					curPos[2] = (float)(pEntry->dpos[2] * delta + pEntry->pos[2]);
+				if (entry->flags & 1) {
+					curPos[0] = (float)(entry->dpos[0] * delta + entry->pos[0]);
+					curPos[1] = (float)(entry->dpos[1] * delta + entry->pos[1]);
+					curPos[2] = (float)(entry->dpos[2] * delta + entry->pos[2]);
 				} else {
-					curPos[0] = pEntry->pos[0];
-					curPos[1] = pEntry->pos[1];
-					curPos[2] = pEntry->pos[2];
+					curPos[0] = entry->pos[0];
+					curPos[1] = entry->pos[1];
+					curPos[2] = entry->pos[2];
 				}
 
-				if (pEntry->flags & 2) {
-					curPyr[0] = (float)(pEntry->dpyr[0] * delta + pEntry->pyr[0]);
-					curPyr[1] = (float)(pEntry->dpyr[1] * delta + pEntry->pyr[1]);
-					curPyr[2] = (float)(pEntry->dpyr[2] * delta + pEntry->pyr[2]);
+				if (entry->flags & 2) {
+					curPyr[0] = (float)(entry->dpyr[0] * delta + entry->pyr[0]);
+					curPyr[1] = (float)(entry->dpyr[1] * delta + entry->pyr[1]);
+					curPyr[2] = (float)(entry->dpyr[2] * delta + entry->pyr[2]);
 				} else {
-					curPyr[0] = pEntry->pyr[0];
-					curPyr[1] = pEntry->pyr[1];
-					curPyr[2] = pEntry->pyr[2];
+					curPyr[0] = entry->pyr[0];
+					curPyr[1] = entry->pyr[1];
+					curPyr[2] = entry->pyr[2];
 				}
 
-				curPos[0] = (float)((double)curPos[0] - pHNode->xyz[0]);
-				curPos[1] = (float)((double)curPos[1] - pHNode->xyz[1]);
-				curPos[2] = (float)((double)curPos[2] - pHNode->xyz[2]);
-				curPyr[0] = (float)((double)curPyr[0] - pHNode->pyr[0]);
-				curPyr[1] = (float)((double)curPyr[1] - pHNode->pyr[1]);
-				curPyr[2] = (float)((double)curPyr[2] - pHNode->pyr[2]);
+				curPos[0] = (float)((double)curPos[0] - hNode->xyz[0]);
+				curPos[1] = (float)((double)curPos[1] - hNode->xyz[1]);
+				curPos[2] = (float)((double)curPos[2] - hNode->xyz[2]);
+				curPyr[0] = (float)((double)curPyr[0] - hNode->pyr[0]);
+				curPyr[1] = (float)((double)curPyr[1] - hNode->pyr[1]);
+				curPyr[2] = (float)((double)curPyr[2] - hNode->pyr[2]);
 				curPyr[0] = _rd->_stdMath->normalizeAngleAcute(curPyr[0]);
 				curPyr[1] = _rd->_stdMath->normalizeAngleAcute(curPyr[1]);
 				curPyr[2] = _rd->_stdMath->normalizeAngleAcute(curPyr[2]);
 
-				if (pTrack->fade < 1.0f) {
+				if (track->fade < 1.0f) {
 					for (int k = 0; k < 3; k++) {
-						curPos[k] = (float)((double)pTrack->fade * curPos[k]);
-						curPyr[k] = (float)((double)pTrack->fade * curPyr[k]);
+						curPos[k] = (float)((double)track->fade * curPos[k]);
+						curPyr[k] = (float)((double)track->fade * curPyr[k]);
 					}
 				}
 
@@ -414,7 +414,7 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 						topPyr[k] = (float)((double)curPyr[k] + topPyr[k]);
 					}
 
-					topFade = (float)((double)topFade + pTrack->fade);
+					topFade = (float)((double)topFade + track->fade);
 				} else if (priority < topPriority) {
 					if (priority <= secondPriority) {
 						for (int k = 0; k < 3; k++) {
@@ -422,14 +422,14 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 							secondPyr[k] = (float)((double)curPyr[k] + secondPyr[k]);
 						}
 
-						secondFade = (float)((double)secondFade + pTrack->fade);
+						secondFade = (float)((double)secondFade + track->fade);
 					} else {
 						for (int k = 0; k < 3; k++) {
 							secondPos[k] = curPos[k];
 							secondPyr[k] = curPyr[k];
 						}
 
-						secondFade = pTrack->fade;
+						secondFade = track->fade;
 						secondPriority = priority;
 					}
 				} else {
@@ -445,7 +445,7 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 					secondFade = topFade;
 					topPriority = priority;
 					secondPriority = previousTopPriority;
-					topFade = pTrack->fade;
+					topFade = track->fade;
 				}
 			}
 
@@ -481,21 +481,21 @@ void RenderDroid::PuppetModule::buildJointMatrices(RdThing *pThing, RdMatrix34 p
 			topPyr[2] = _rd->_stdMath->normalizeAngleAcute(topPyr[2]);
 
 			for (int k = 0; k < 3; k++) {
-				topPos[k] = (float)((double)pHNode->xyz[k] + topPos[k]);
-				topPyr[k] = (float)((double)pHNode->pyr[k] + topPyr[k]);
+				topPos[k] = (float)((double)hNode->xyz[k] + topPos[k]);
+				topPyr[k] = (float)((double)hNode->pyr[k] + topPyr[k]);
 			}
 
-			_rd->build34(pThing->aJointMatrices[i], topPyr, topPos);
+			_rd->build34(thing->jointMatrices[i], topPyr, topPos);
 
-			const float *jointPyr = pThing->aJointPyr[i];
+			const float *jointPyr = thing->jointPyr[i];
 
 			if (jointPyr[0] != 0.0f || jointPyr[1] != 0.0f || jointPyr[2] != 0.0f)
-				_rd->preRotate34(pThing->aJointMatrices[i], pThing->aJointPyr[i]);
+				_rd->preRotate34(thing->jointMatrices[i], thing->jointPyr[i]);
 		}
 	}
 
-	_rd->_thing.accumulateMatrices(pThing, pModel3->aHNodes, pBase);
-	pThing->jointsFrame = _rd->_frameTrue;
+	_rd->_thing.accumulateMatrices(thing, model3->hNodes, base);
+	thing->jointsFrame = _rd->_frameTrue;
 }
 
 } // End of namespace Grim

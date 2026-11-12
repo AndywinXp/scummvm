@@ -49,7 +49,7 @@ enum SputResourceTags {
 };
 
 struct ResMemBlock {
-	byte *pData;
+	byte *data;
 	int size;
 };
 
@@ -62,23 +62,23 @@ class WuRegistry;
 
 class SputResource : public ResHandler {
 public:
-	SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap);
+	SputResource(Res *res, RenderDroid *rd, StdDisplay *stdDisplay, StdBitmap *stdBitmap);
 
-	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
-	void setSputRoom(SputRoom *pSputRoom) { _pSputRoom = pSputRoom; }
-	void setCos(Cos *pCos) { _pCos = pCos; }
-	void setText(Text *pText) { _pText = pText; }
-	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
-	void setWuRegistry(WuRegistry *pWuRegistry) { _pWuRegistry = pWuRegistry; }
+	void setSputRender(SputRender *sputRender) { _sputRender = sputRender; }
+	void setSputRoom(SputRoom *sputRoom) { _sputRoom = sputRoom; }
+	void setCos(Cos *cos) { _cos = cos; }
+	void setText(Text *text) { _text = text; }
+	void setBlastText(BlastText *blastText) { _blastText = blastText; }
+	void setWuRegistry(WuRegistry *wuRegistry) { _wuRegistry = wuRegistry; }
 
-	int handler(ResHandlerMsg *pMsg);
+	int handler(ResHandlerMsg *msg);
 
 	int stopPurge(int state);
 	void *alloc(int resType, const char *name);
 	int closeResources();
 	int findResources();
 	int addResourcePath(const char *path);
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int logToFile(const char *path);
 	int terminate();
 	int startup();
@@ -86,41 +86,41 @@ public:
 	int shutdown();
 	int registerHandlers();
 	int setMemoryUsage(int totalAllowedLimit, int purgeAmount);
-	int loadResSync(ResHandlerMsg *pMsg);
-	int loadResBknd(ResHandlerMsg *pMsg);
+	int loadResSync(ResHandlerMsg *msg);
+	int loadResBknd(ResHandlerMsg *msg);
 	void loadBknd();
-	int loadResCost(ResHandlerMsg *pMsg);
-	int loadResCmap(ResHandlerMsg *pMsg);
-	int loadResFont(ResHandlerMsg *pMsg);
-	int loadResKeyf(ResHandlerMsg *pMsg);
-	int loadResMat(ResHandlerMsg *pMsg);
-	int loadResModl(ResHandlerMsg *pMsg);
-	int loadResSet(ResHandlerMsg *pMsg);
-	int loadResSnd(ResHandlerMsg *pMsg);
-	int loadResZbuf(ResHandlerMsg *pMsg);
-	int loadResMem(ResHandlerMsg *pMsg);
+	int loadResCost(ResHandlerMsg *msg);
+	int loadResCmap(ResHandlerMsg *msg);
+	int loadResFont(ResHandlerMsg *msg);
+	int loadResKeyf(ResHandlerMsg *msg);
+	int loadResMat(ResHandlerMsg *msg);
+	int loadResModl(ResHandlerMsg *msg);
+	int loadResSet(ResHandlerMsg *msg);
+	int loadResSnd(ResHandlerMsg *msg);
+	int loadResZbuf(ResHandlerMsg *msg);
+	int loadResMem(ResHandlerMsg *msg);
 	int cmap();
-	RdMaterial *mat(char *path, int bVideoMemory, int bVideoMemoryOnly);
-	int unlock(RdMaterial *pMaterial);
+	RdMaterial *mat(char *path, int videoMemory, int videoMemoryOnly);
+	int unlock(RdMaterial *material);
 	int reportAllocations();
 
 private:
 	int addResourcePathInternal(const char *path);
 
-	Res *_pRes;
-	RenderDroid *_pRd;
-	StdDisplay *_pStdDisplay;
-	StdBitmap *_pStdBitmap;
-	SputRender *_pSputRender;
-	SputRoom *_pSputRoom;
-	Cos *_pCos;
-	Text *_pText;
-	BlastText *_pBlastText;
-	WuRegistry *_pWuRegistry;
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
-	int _bLoaderLocked;
+	Res *_res;
+	RenderDroid *_rd;
+	StdDisplay *_stdDisplay;
+	StdBitmap *_stdBitmap;
+	SputRender *_sputRender;
+	SputRoom *_sputRoom;
+	Cos *_cos;
+	Text *_text;
+	BlastText *_blastText;
+	WuRegistry *_wuRegistry;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
+	int _loaderLocked;
 	int _totalAllowedLimit;
 	int _purgeAmount;
 	Common::String _extraDataPath;

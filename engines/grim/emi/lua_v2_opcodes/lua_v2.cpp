@@ -373,7 +373,7 @@ static const struct luaL_reg monkeyPrimitiveOpcodes[] = {
 	{ "PurgePrimitiveQueue", LUA_OPCODE(Lua_V2, PurgePrimitiveQueue) }
 };
 
-Lua_V2::Lua_V2(EmiEngine *engine) : Lua_V1(true), statsOverlayFlags(8), _saveDataSize(0), _saveWriter(nullptr), _engine(engine), _pFind(nullptr), _gcTimer(0.0f), _bStarted(false) {
+Lua_V2::Lua_V2(EmiEngine *engine) : Lua_V1(true), _statsOverlayFlags(8), _saveDataSize(0), _saveWriter(nullptr), _engine(engine), _find(nullptr), _gcTimer(0.0f), _started(false) {
 	for (int i = 0; i < kNumFieldRefs; i++)
 		_fieldRefs[i] = 0;
 }
@@ -394,7 +394,7 @@ void Lua_V2::recognizeOpcodes() {
 }
 
 int Lua_V2::startup() {
-	if (_bStarted)
+	if (_started)
 		return 0;
 
 	registerMainOpcodes();
@@ -424,25 +424,25 @@ int Lua_V2::startup() {
 	_lockedRooms.clear();
 	_lockedBackgrounds.clear();
 
-	_bStarted = true;
+	_started = true;
 
 	return 1;
 }
 
 int Lua_V2::shutdown() {
-	if (!_bStarted)
+	if (!_started)
 		return 0;
 
 	for (int i = 0; i < kNumFieldRefs; i++)
 		lua_unref(_fieldRefs[i]);
 
-	if (_pFind)
-		FileUtilFind::disposeFind(_pFind);
+	if (_find)
+		FileUtilFind::disposeFind(_find);
 
-	lua_unref(refSystemTable);
+	lua_unref(_refSystemTable);
 	lua_savehook = nullptr;
 	lua_restorehook = nullptr;
-	_bStarted = false;
+	_started = false;
 
 	return 0;
 }
@@ -474,7 +474,7 @@ void Lua_V2::update(float seconds) {
 	float frameTime = (float)((double)seconds * 1000.0);
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("frameTime");
 	lua_pushnumber(frameTime);
 	lua_settable();
@@ -589,8 +589,8 @@ Common::SeekableReadStream *Lua_V2::openBundleStream(const char *path) {
 	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
 }
 
-int32 Lua_V2::identityHook(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc) {
-	return hData;
+int32 Lua_V2::identityHook(int32 tag, int32 data, SaveRestoreAccess *saveFunc) {
+	return data;
 }
 
 void Lua_V2::makeSystemTable() {
@@ -600,30 +600,30 @@ void Lua_V2::makeSystemTable() {
 	lua_setglobal("system");
 
 	lua_pushobject(systemTable);
-	refSystemTable = lua_ref(1);
+	_refSystemTable = lua_ref(1);
 
-	makeControlsTable(refSystemTable);
+	makeControlsTable(_refSystemTable);
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("axisHandler");
 	lua_pushcfunction(LUA_OPCODE(Lua_V2, EmptyFunction));
 	lua_settable();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("buttonHandler");
 	lua_pushcfunction(LUA_OPCODE(Lua_V2, EmptyFunction));
 	lua_settable();
 }
 
 void Lua_V2::callCameraChange(int oldSetup, int newSetup) {
-	if (!_bStarted) {
+	if (!_started) {
 		warning("Lua_V2::callCameraChange(): the system table is not ready");
 
 		return;
 	}
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("camChangeHandler");
 
 	lua_Object handler = lua_gettable();
@@ -638,14 +638,14 @@ void Lua_V2::callCameraChange(int oldSetup, int newSetup) {
 }
 
 void Lua_V2::callPostCameraChange(int setup) {
-	if (!_bStarted) {
+	if (!_started) {
 		warning("Lua_V2::callPostCameraChange(): the system table is not ready");
 
 		return;
 	}
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("postCamChangeHandler");
 
 	lua_Object handler = lua_gettable();
@@ -659,7 +659,7 @@ void Lua_V2::callPostCameraChange(int setup) {
 }
 
 void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2) {
-	if (!_bStarted) {
+	if (!_started) {
 		warning("Lua_V2::callCollisionHandler(): the system table is not ready");
 
 		return;
@@ -674,7 +674,7 @@ void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y
 	LConsoleServices *console = _engine->getConsoleServices();
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("collisionHandler");
 
 	lua_Object handler = lua_gettable();
@@ -713,8 +713,8 @@ void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y
 		return;
 	}
 
-	lua_pushusertag(first->id, MKTAG('R', 'T', 'C', 'A'));
-	lua_pushusertag(second->id, MKTAG('R', 'T', 'C', 'A'));
+	lua_pushusertag(first->_id, MKTAG('R', 'T', 'C', 'A'));
+	lua_pushusertag(second->_id, MKTAG('R', 'T', 'C', 'A'));
 	lua_pushnumber(x0);
 	lua_pushnumber(y0);
 	lua_pushnumber(z0);
@@ -747,7 +747,7 @@ void Lua_V2::typeOverride() {
 		}
 	}
 
-	lua_Object oldType = lua_getref(refTypeOverride);
+	lua_Object oldType = lua_getref(_refTypeOverride);
 
 	lua_pushobject(data);
 	lua_callfunction(oldType);
@@ -783,7 +783,7 @@ void Lua_V2::concatFallback() {
 		} else {
 			lua_pushobject(params[0]);
 			lua_pushobject(params[1]);
-			lua_callfunction(lua_getref(refOldConcatFallback));
+			lua_callfunction(lua_getref(_refOldConcatFallback));
 			lua_pushobject(lua_getresult(1));
 			return;
 		}

@@ -39,9 +39,9 @@ public:
 
 	static void freeNodeTree(CNode *node);
 
-	bool active;
-	Actor *owner;
-	CNode *rootNode;
+	bool _active;
+	Actor *_owner;
+	CNode *_rootNode;
 };
 
 } // End of namespace Grim

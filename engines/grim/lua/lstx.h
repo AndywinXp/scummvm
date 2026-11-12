@@ -7,10 +7,10 @@ namespace Grim {
 typedef union {
 	int vInt;
 	float vReal;
-	char *pChar;
+	char *charPointer;
 	long vLong;
-	TaggedString *pTStr;
-	TProtoFunc *pFunc;
+	TaggedString *tStr;
+	TProtoFunc *func;
 } YYSTYPE;
 
 #define	WRONGTOKEN	258

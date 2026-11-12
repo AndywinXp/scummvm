@@ -33,8 +33,8 @@ public:
 	void set(float x, float y, float z);
 	void clear();
 
-	bool valid;
-	CVector pos;
+	bool _valid;
+	CVector _pos;
 };
 
 } // End of namespace Grim

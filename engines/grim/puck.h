@@ -33,36 +33,36 @@ class WalkSystem;
 
 class Puck {
 public:
-	Puck(WalkSystem *pSystem, float angle);
+	Puck(WalkSystem *system, float angle);
 	~Puck();
 
 	float *rot();
 	WalkPlane *validate();
-	void setPos(float *pPos);
-	void xform(float *pVec);
-	void invXform(float *pVec);
+	void setPos(float *pos);
+	void xform(float *vec);
+	void invXform(float *vec);
 	void rotate(float angle);
-	float pointAt(float *pTarget, float maxAngle);
-	double getYawToPoint(float *pTarget);
-	void constrain(int bEnable);
-	int forward(float dist, int bAllowLeft, int bAllowRight);
-	int forwardDemo(float dist, int bAllowLeft, int bAllowRight);
-	void orientToPlane(WalkPlane *pTargetPlane);
+	float pointAt(float *target, float maxAngle);
+	double getYawToPoint(float *target);
+	void constrain(int enable);
+	int forward(float dist, int allowLeft, int allowRight);
+	int forwardDemo(float dist, int allowLeft, int allowRight);
+	void orientToPlane(WalkPlane *targetPlane);
 	void normalize();
 	int draw(uint16 color);
 
-	RdVector3 pos;
-	RdMatrix34 orient;
-	float reflectionAngle;
-	float forwardDist;
-	RdVector3 constraint;
-	int bConstrained;
-	Puck *pPrev;
-	Puck *pNext;
-	WalkPlane *pPlane;
+	RdVector3 _pos;
+	RdMatrix34 _orient;
+	float _reflectionAngle;
+	float _forwardDist;
+	RdVector3 _constraint;
+	int _constrained;
+	Puck *_prev;
+	Puck *_next;
+	WalkPlane *_plane;
 
 private:
-	WalkSystem *_pSystem;
+	WalkSystem *_system;
 	RdVector3 _rot;
 };
 

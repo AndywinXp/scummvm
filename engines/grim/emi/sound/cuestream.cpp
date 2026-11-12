@@ -25,39 +25,39 @@
 namespace Grim {
 
 CueStream::CueStream() {
-	musicStream = nullptr;
+	_musicStream = nullptr;
 }
 
 CueStream::~CueStream() {
-	if (musicStream) {
-		delete musicStream;
-		musicStream = nullptr;
+	if (_musicStream) {
+		delete _musicStream;
+		_musicStream = nullptr;
 	}
 }
 
 void CueStream::reset() {
 	for (int i = 0; i < 2; i++) {
-		jumps[i].srcMs = -1.0;
-		jumps[i].dstMs = 0.0;
-		jumps[i].field16 = 0;
+		_jumps[i].srcMs = -1.0;
+		_jumps[i].dstMs = 0.0;
+		_jumps[i].field16 = 0;
 	}
 
-	musicStream = nullptr;
-	paused = 0;
-	ratio = 1.0;
-	invRatio = 1.0;
-	pcmBytesPerMs = 0.0;
-	invPcmBytesPerMs = 0.0;
-	startByte = 0;
-	srcByte = -1;
-	dstByte = 0;
-	loopCount = 1;
-	fileName.clear();
-	trim = 1.0f;
-	field43c = 0;
-	start = 0.0;
-	end = -1.0;
-	hasJump = 0;
+	_musicStream = nullptr;
+	_paused = 0;
+	_ratio = 1.0;
+	_invRatio = 1.0;
+	_pcmBytesPerMs = 0.0;
+	_invPcmBytesPerMs = 0.0;
+	_startByte = 0;
+	_srcByte = -1;
+	_dstByte = 0;
+	_loopCount = 1;
+	_fileName.clear();
+	_trim = 1.0f;
+	_field43c = 0;
+	_start = 0.0;
+	_end = -1.0;
+	_hasJump = 0;
 }
 
 } // End of namespace Grim

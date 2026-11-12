@@ -114,14 +114,14 @@ enum {
 };
 
 struct PerfCounter {
-	const char *pName;
+	const char *name;
 	double start;
 	double elapsed;
 };
 
 struct GrimVideoDevice {
 	uint numModes;
-	StdDisplayMode *aModes;
+	StdDisplayMode *modes;
 	uint num3DDevices;
 	Std3DDevice *a3DDevices;
 };
@@ -147,22 +147,22 @@ public:
 	bool canLoadGameStateCurrently(Common::U32String *msg = nullptr) override { return true; }
 	Common::Error loadGameState(int slot) override;
 	bool isRemastered() const { return !!(_gameFlags & ADGF_REMASTERED); }
-	bool useRemasterFixes() const { return _bRemasterFixes != 0; }
+	bool useRemasterFixes() const { return _remasterFixes != 0; }
 
 	void clearEventQueue();
 
 	// sputMain module
-	int sputInitialize(SysStruct *pHS);
+	int sputInitialize(SysStruct *hs);
 	int sputTerminate();
 	int sputStartup();
 	int sputShutdown();
-	int callRegisterModules(SysStruct *pHS, int firstModule, int count);
+	int callRegisterModules(SysStruct *hs, int firstModule, int count);
 	int runInitTable(int firstModule, int count);
 	int callTableFunc(int firstModule, int count);
 	int callRelease(int firstModule, int count);
 	int bundleDofile();
 	int startEngine(int saveGameResume, const char *bootParam);
-	int loop(int bRender, int manualTicks);
+	int loop(int render, int manualTicks);
 	void timedPageFlip();
 	void setPerfCounter(uint slot);
 	int queryPerfCounterDiff(uint slot);
@@ -175,44 +175,44 @@ public:
 	int getPrevMode() const;
 	void imuseSave();
 	void imuseRestore();
-	PerfCounter *getPerfCounters() { return _aPerfCounters; }
+	PerfCounter *getPerfCounters() { return _perfCounters; }
 	IMuse *getImuse() const { return _imuse; }
-	SputCostume *getSputCostume() const { return _pSputCostume; }
-	SputResource *getSputResource() const { return _pSputResource; }
+	SputCostume *getSputCostume() const { return _sputCostume; }
+	SputResource *getSputResource() const { return _sputResource; }
 
 	// grimlib module
-	void overrideSelectedActorCostume(int hInstance);
+	void overrideSelectedActorCostume(int instance);
 	void restoreSelectedActorCostume();
-	int setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer);
+	int setDisplay(StdVBuffer *vBuffer, StdVBuffer *zBuffer);
 	int unsetDisplay();
 	void makeCurrentSet(const char *name);
 	void close();
-	void setDebugToggleCallback(void (*pFunc)(int));
-	void setPaletteCallback(int (*pFunc)(byte *, int));
-	void setShutdownCallback(int (*pFunc)(int));
-	void setPageFlipCallback(int (*pFunc)());
+	void setDebugToggleCallback(void (*func)(int));
+	void setPaletteCallback(int (*func)(byte *, int));
+	void setShutdownCallback(int (*func)(int));
+	void setPageFlipCallback(int (*func)());
 	void using3DHardware(int b3D);
 	int addResourcePath(const char *path);
 	int findResources();
-	void markDirtyRect(const StdRect *pRect, int page);
+	void markDirtyRect(const StdRect *rectPointer, int page);
 	void makeCurrentSetupLib(uint setup);
 	void nextSetup();
 	void previousSetup();
 	int confirmClose();
 	void requestShutdown(int arg);
-	void setPause(int bPause);
+	void setPause(int pause);
 	int doPauseCallback();
 	int characterCallback(int character);
 	int setImuseState(int state);
-	int playMovie(const char *name, int bFullscreen, int bLooping, int x, int y);
+	int playMovie(const char *name, int fullscreen, int looping, int x, int y);
 	int userPaint();
 	void saveLib(const char *fileName);
 	void loadLib(const char *fileName);
 	int justLoaded();
 	int getLibMode() const { return _libMode; }
 	void setLibMode(int mode) { _libMode = mode; }
-	int getDebugKeys() const { return _bDebugKeys; }
-	void setDebugKeys(int bDebugKeys) { _bDebugKeys = bDebugKeys; }
+	int getDebugKeys() const { return _debugKeys; }
+	void setDebugKeys(int debugKeys) { _debugKeys = debugKeys; }
 	const StdColorFormat *getColorInfo() const { return &_colorInfoCopy; }
 
 	// grim module
@@ -242,12 +242,12 @@ protected:
 	Common::Language _gameLanguage;
 
 	// sputMain and grimlib modules
-	int initializeModule(int module, SysStruct *pHS);
+	int initializeModule(int module, SysStruct *hs);
 	int startupModule(int module);
 	void shutdownModule(int module);
 	void terminateModule(int module);
-	void soundsSave(Common::WriteStream *pStream);
-	void soundsRestore(Common::SeekableReadStream *pStream, bool legacyLayout = false);
+	void soundsSave(Common::WriteStream *stream);
+	void soundsRestore(Common::SeekableReadStream *stream, bool legacyLayout = false);
 	void restorePrologue();
 	void restoreEpilogue();
 	void restoreLegacy();
@@ -271,9 +271,9 @@ protected:
 	int initDisplay();
 	void freeVideoDevices();
 	int initDisplayAndDevice();
-	int selectFallbackDisplay(int failedDevice, int bWant3D);
-	int loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice);
-	int chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice);
+	int selectFallbackDisplay(int failedDevice, int want3D);
+	int loadDisplaySettings(int *devicePointer, int *mode, int *p3DDevice);
+	int chooseDefaultDisplay(int preferWindowed, int want3D, int *devicePointer, int *mode, int *p3DDevice);
 	int selectDisplayMode(int deviceIndex, int modeIndex, int threeDIndex);
 	int select3DDevice(int index);
 	void shutdown3D();
@@ -283,42 +283,42 @@ protected:
 	int isHardware3D();
 	void loadSplash();
 	void pumpEvents();
-	void handleFocus(int bHasFocus);
-	void handleKey(Common::EventType type, const Common::KeyState &key, bool bRepeat);
+	void handleFocus(int hasFocus);
+	void handleKey(Common::EventType type, const Common::KeyState &key, bool repeat);
 	void handleKeyDebug(const Common::KeyState &key);
 	void addKeyboardEvent(uint offset, int data);
 	void addMouseButtonEvent(uint offset, int data);
 	static int shutdownCallback(int arg);
-	static int paletteCallback(byte *pPalette, int alpha);
+	static int paletteCallback(byte *palette, int alpha);
 	static int pageFlipCallback();
 
-	StdMath *_pStdMath = nullptr;
-	StdFile *_pStdFile = nullptr;
-	StdConffile *_pStdConffile = nullptr;
-	StdBitmap *_pStdBitmap = nullptr;
-	StdLbm *_pStdLbm = nullptr;
-	StdPcx *_pStdPcx = nullptr;
-	StdGif *_pStdGif = nullptr;
-	StdPic *_pStdPic = nullptr;
-	StdBmp *_pStdBmp = nullptr;
-	RenderDroid *_pRd = nullptr;
-	StdControl *_pStdControl = nullptr;
-	WuRegistry *_pWuRegistry = nullptr;
-	Polyglot *_pPolyglot = nullptr;
-	Text *_pText = nullptr;
-	BlastText *_pBlastText = nullptr;
-	NormalText *_pNormalText = nullptr;
-	StdVBuffer *_pBackBuffer = nullptr;
-	StdVBuffer *_pZBuffer = nullptr;
+	StdMath *_stdMath = nullptr;
+	StdFile *_stdFile = nullptr;
+	StdConffile *_stdConffile = nullptr;
+	StdBitmap *_stdBitmap = nullptr;
+	StdLbm *_stdLbm = nullptr;
+	StdPcx *_stdPcx = nullptr;
+	StdGif *_stdGif = nullptr;
+	StdPic *_stdPic = nullptr;
+	StdBmp *_stdBmp = nullptr;
+	RenderDroid *_rd = nullptr;
+	StdControl *_stdControl = nullptr;
+	WuRegistry *_wuRegistry = nullptr;
+	Polyglot *_polyglotV1 = nullptr;
+	Text *_text = nullptr;
+	BlastText *_blastText = nullptr;
+	NormalText *_normalText = nullptr;
+	StdVBuffer *_backBuffer = nullptr;
+	StdVBuffer *_zBuffer = nullptr;
 	StdColorFormat _colorInfoCopy = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
 	int _numDrawBuffers = 1;
-	int _bHasFocus = 1;
-	int _bFirstFrame = 0;
-	int _bQuit = 0;
-	int _bDisplayOpen = 0;
-	int _bShowDebugOverlay = 0;
-	int _bBackspaceHeld = 0;
-	int _bEnginePaused = 0;
+	int _hasFocus = 1;
+	int _firstFrameFlag = 0;
+	int _quit = 0;
+	int _displayOpen = 0;
+	int _showDebugOverlay = 0;
+	int _backspaceHeldFlag = 0;
+	int _enginePaused = 0;
 	int _saveGameToResume = 0;
 	int _grimFrameCount = 0;
 	int _grimLastFpsFrame = 0;
@@ -326,63 +326,63 @@ protected:
 	double _grimFps = 0.0;
 	int _screenshotCounter = 0;
 	int _zbufShotCounter = 0;
-	int _bEnumerateVideo = 0;
-	int _bShow = 0;
-	int _bUseHardware = 0;
+	int _enumerateVideo = 0;
+	int _show = 0;
+	int _useHardware = 0;
 	uint _hardwareBackends = 0;
 	int _preferredBackend = kStdDisplayBackendNone;
-	int _bRemasterFixes = 0;
+	int _remasterFixes = 0;
 	int _pendingDevice = 0;
 	int _pendingMode = 0;
 	int _pending3DDevice = -1;
-	int _bDisplayChangePending = 0;
-	Std3D *_pStd3D = nullptr;
-	GrimVideoDevice _aVideoDevices[kStdDisplayMaxDevices] = {};
+	int _displayChangePending = 0;
+	Std3D *_std3D = nullptr;
+	GrimVideoDevice _videoDevices[kStdDisplayMaxDevices] = {};
 	StdDisplayMode _videoDeviceConfig = {};
 
-	Res *_pRes = nullptr;
-	StdDisplay *_pStdDisplay = nullptr;
-	SputResource *_pSputResource = nullptr;
-	SputRoom *_pSputRoom = nullptr;
-	SputTime *_pSputTime = nullptr;
-	SputCostume *_pSputCostume = nullptr;
-	SputActorModule *_pSputActor = nullptr;
-	SputControl *_pSputControl = nullptr;
-	SputRender *_pSputRender = nullptr;
-	SputText *_pSputText = nullptr;
-	SputPrimitive *_pSputPrimitive = nullptr;
-	SputSmush *_pSputSmush = nullptr;
-	Lua_V1 *_pLua = nullptr;
-	WalkSystem *_pWalkSystem = nullptr;
-	StdVBuffer *_pMainGfxBuffer = nullptr;
+	Res *_res = nullptr;
+	StdDisplay *_stdDisplay = nullptr;
+	SputResource *_sputResource = nullptr;
+	SputRoom *_sputRoom = nullptr;
+	SputTime *_sputTime = nullptr;
+	SputCostume *_sputCostume = nullptr;
+	SputActorModule *_sputActor = nullptr;
+	SputControl *_sputControl = nullptr;
+	SputRender *_sputRender = nullptr;
+	SputText *_sputText = nullptr;
+	SputPrimitive *_sputPrimitive = nullptr;
+	SputSmush *_sputSmush = nullptr;
+	Lua_V1 *_luaV1 = nullptr;
+	WalkSystem *_walkSystem = nullptr;
+	StdVBuffer *_mainGfxBuffer = nullptr;
 
-	SysStruct *_pSputHS = nullptr;
-	int _bSputInitialized = 0;
-	int _bSputStarted = 0;
+	SysStruct *_sputHS = nullptr;
+	int _sputInitialized = 0;
+	int _sputStarted = 0;
 	int _loopCount = 0;
-	int _bRenderPending = 0;
-	int _bRunLua = 1;
+	int _renderPending = 0;
+	int _runLua = 1;
 	int _sputPrevMode = 0;
-	PerfCounter _aPerfCounters[kNumPerfCounters] = {
+	PerfCounter _perfCounters[kNumPerfCounters] = {
 		{ "Grimlib", 0.0, 0.0 }, { "Controls", 0.0, 0.0 }, { "Lua", 0.0, 0.0 }, { "Actors", 0.0, 0.0 }, { "Rects", 0.0, 0.0 },
 		{ "2D", 0.0, 0.0 }, { "3D", 0.0, 0.0 }, { "Rasterize", 0.0, 0.0 }, { "Display", 0.0, 0.0 }, { "ISO", 0.0, 0.0 },
 		{ "Sound", 0.0, 0.0 }, { "Shadows", 0.0, 0.0 }, { "WAITICON", 0.0, 0.0 }
 	};
-	Common::WriteStream *_pSaveWriteStream = nullptr;
-	Common::SeekableReadStream *_pSaveReadStream = nullptr;
+	Common::WriteStream *_saveWriteStream = nullptr;
+	Common::SeekableReadStream *_saveReadStream = nullptr;
 
 	int _libMode = 0;
 	int _libPauseOldMode = 0;
 	int _libPauseSavedMode = 0;
 	int _libPauseSavedOldMode = 0;
-	int _bDebugKeys = 0;
-	int _bSputOpen = 0;
+	int _debugKeys = 0;
+	int _sputOpen = 0;
 	int _libSaveRequest = 0;
 	int _libLoadRequest = 0;
 	Common::String _libSaveGameFileName;
 	int _libJustLoaded = 0;
 	int _libImuseState = -1;
-	int (*_pShutdownCallback)(int) = nullptr;
+	int (*_shutdownCallback)(int) = nullptr;
 	int _libRenderOptions[8] = { 4, 3, 1, 1, 0, 0, 2, 0 };
 
 private:

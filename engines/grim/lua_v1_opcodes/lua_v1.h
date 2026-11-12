@@ -58,7 +58,7 @@ public:
 
 	Lua_V1(bool isEmi);
 
-	virtual int initialize(SysStruct *pHS);
+	virtual int initialize(SysStruct *hs);
 	virtual int terminate();
 	virtual int startup();
 	virtual int shutdown();
@@ -73,12 +73,12 @@ public:
 	virtual void registerCostumeOpcodes();
 
 	int controlCallback(float frameTime) override;
-	virtual void setDebugToggleCallback(void (*pFunc)(int));
+	virtual void setDebugToggleCallback(void (*func)(int));
 	virtual void cameraChange(int oldSetup, int newSetup);
 	virtual void postCameraChange(int setup);
-	virtual void collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2);
-	virtual void doCostumeOverrideCallback(SputActor *pActor, int bOverride);
-	virtual void doCostumeMarkerCallback(SputActor *pActor, int markerType);
+	virtual void collisionHandler(SputActor *actor, SputActor *other, const float *pos0, const float *pos1, const float *pos2);
+	virtual void doCostumeOverrideCallback(SputActor *actor, int override);
+	virtual void doCostumeMarkerCallback(SputActor *actor, int markerType);
 	virtual void doUserPaintCallback();
 	virtual int doExitCallback();
 	virtual int doPauseCallback();
@@ -408,7 +408,7 @@ protected:
 
 protected:
 	void registerControls();
-	bool getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf);
+	bool getSystemHandler(const char *name, bool allowTable, lua_Object *funcPointer, lua_Object *self);
 
 private:
 	enum {
@@ -420,20 +420,20 @@ private:
 	bool isSputActor(lua_Object obj);
 	SputActor *getSputActor(lua_Object obj);
 	void pushSputActor(int handle);
-	bool hasActorExtra(SputActor *pActor, const char *opcode);
-	bool findCostumeInStack(lua_Object obj, CostumeNode *pStack, CostumeNode **ppFound);
+	bool hasActorExtra(SputActor *actor, const char *opcode);
+	bool findCostumeInStack(lua_Object obj, CostumeNode *stack, CostumeNode **found);
 	bool isImage(lua_Object obj);
 	int findImage(lua_Object obj);
-	void pushImage(StdVBuffer *pImage);
-	static int getObjectStateHandle(SputObjectState *pState);
-	static SputObjectState *findObjectState(int handle, int *pSetup, int *pIndex);
+	void pushImage(StdVBuffer *image);
+	static int getObjectStateHandle(SputObjectState *state);
+	static SputObjectState *findObjectState(int handle, int *setupPointer, int *indexPointer);
 
-	static int32 saveIndirector(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc);
-	static int32 restoreIndirector(int32 tag, int32 hData, tSaveRestoreAccess *restoreFunc);
+	static int32 saveIndirector(int32 tag, int32 data, SaveRestoreAccess *saveFunc);
+	static int32 restoreIndirector(int32 tag, int32 data, SaveRestoreAccess *restoreFunc);
 
-	SysStruct *_pHS;
-	int _bInitialized;
-	void (*_pDebugToggleFunc)(int);
+	SysStruct *_hs;
+	int _initialized;
+	void (*_debugToggleFunc)(int);
 	int _totSaveBytes;
 	int _imageHandles[kMaxImages];
 	StdVBuffer *_images[kMaxImages];

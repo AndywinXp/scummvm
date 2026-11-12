@@ -43,8 +43,8 @@ public:
 	void setFlags(int newFlags);
 	void addFlags(int addedFlags);
 
-	Common::Array<CTexture *> textures;
-	int flags;
+	Common::Array<CTexture *> _textures;
+	int _flags;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

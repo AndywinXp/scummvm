@@ -63,11 +63,11 @@ public:
 
 	static void decodeAdpcmBlock(const byte *block, int16 *out, int *history1, int *history2);
 
-	int numChannels;
-	uint interleave;
-	uint headerOffset;
-	uint rate;
-	uint vagSize[kMaxChannels];
+	int _numChannels;
+	uint _interleave;
+	uint _headerOffset;
+	uint _rate;
+	uint _vagSize[kMaxChannels];
 };
 
 } // End of namespace Grim

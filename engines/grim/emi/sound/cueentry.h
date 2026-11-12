@@ -36,18 +36,18 @@ public:
 	void *operator new(size_t size);
 	void operator delete(void *block);
 
-	int id;
-	LString description;
-	int sync;
-	bool isEpisode;
-	int lastPositionMs;
-	bool looped;
-	bool ended;
-	float fadeRate;
-	float fadeVolume;
-	int state;
-	CueStream stream;
-	CueEntry *next;
+	int _id;
+	LString _description;
+	int _sync;
+	bool _isEpisode;
+	int _lastPositionMs;
+	bool _looped;
+	bool _ended;
+	float _fadeRate;
+	float _fadeVolume;
+	int _state;
+	CueStream _stream;
+	CueEntry *_next;
 };
 
 } // End of namespace Grim

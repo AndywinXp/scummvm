@@ -61,7 +61,7 @@ public:
 	bool parseBasePrim(int token, int numArgs, KeywordArg *args);
 	bool parseDeformPrim(int token, int numArgs, KeywordArg *args);
 
-	RMesh *mesh;
+	RMesh *_mesh;
 };
 
 } // End of namespace Grim

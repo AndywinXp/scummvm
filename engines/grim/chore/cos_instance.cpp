@@ -25,262 +25,262 @@
 
 namespace Grim {
 
-int Cos::createCosInstance(int hCostume, int userData) {
-	int costumeIndex = handleToIndex(hCostume);
+int Cos::createCosInstance(int costumeHandle, int userData) {
+	int costumeIndex = handleToIndex(costumeHandle);
 
 	if (costumeIndex < 0 || costumeIndex >= _maxCostumes)
 		return 0;
 
-	CosCostume *pCostume = &_aCostumes[costumeIndex];
+	CosCostume *costume = &_costumes[costumeIndex];
 	int slot = allocInstanceSlot();
-	_aInstances[slot].costume = costumeIndex;
+	_instances[slot].costume = costumeIndex;
 
-	if (pCostume->numChores)
-		_aInstances[slot].aChoreInstances = new CosChoreInstance[pCostume->numChores]();
+	if (costume->numChores)
+		_instances[slot].choreInstances = new CosChoreInstance[costume->numChores]();
 	else
-		_aInstances[slot].aChoreInstances = nullptr;
+		_instances[slot].choreInstances = nullptr;
 
-	initChoreInstances(pCostume->aChores, _aInstances[slot].aChoreInstances, pCostume->numChores);
+	initChoreInstances(costume->chores, _instances[slot].choreInstances, costume->numChores);
 
-	if (pCostume->numComponents) {
-		_aInstances[slot].aInstanceData = new void *[pCostume->numComponents]();
+	if (costume->numComponents) {
+		_instances[slot].instanceData = new void *[costume->numComponents]();
 
-		for (int i = 0; i < pCostume->numComponents; i++)
-			_aInstances[slot].aInstanceData[i] = pCostume->aComponents[i].id;
+		for (int i = 0; i < costume->numComponents; i++)
+			_instances[slot].instanceData[i] = costume->components[i].id;
 	} else {
-		_aInstances[slot].aInstanceData = nullptr;
+		_instances[slot].instanceData = nullptr;
 	}
 
-	_aInstances[slot].userData = userData;
-	int hInst = instIndexToHandle(slot);
+	_instances[slot].userData = userData;
+	int inst = instIndexToHandle(slot);
 
-	int *aTreeDepths = nullptr;
+	int *treeDepths = nullptr;
 
-	if (pCostume->numComponents)
-		aTreeDepths = new int[pCostume->numComponents];
+	if (costume->numComponents)
+		treeDepths = new int[costume->numComponents];
 
 	int maxDepth = 0;
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		int parent = pCostume->aComponents[i].parent;
+	for (int i = 0; i < costume->numComponents; i++) {
+		int parent = costume->components[i].parent;
 		int depth = 0;
 
 		while (parent != -1) {
-			if (parent < 0 || parent >= pCostume->numComponents || depth > pCostume->numComponents) {
+			if (parent < 0 || parent >= costume->numComponents || depth > costume->numComponents) {
 				warning("Cos::createCosInstance(): invalid parent chain at component %d", i);
 				break;
 			}
 
-			parent = pCostume->aComponents[parent].parent;
+			parent = costume->components[parent].parent;
 			depth++;
 		}
 
-		aTreeDepths[i] = depth;
+		treeDepths[i] = depth;
 
 		if (maxDepth <= depth)
 			maxDepth = depth;
 	}
 
 	for (int depth = 0; depth <= maxDepth; depth++) {
-		for (int i = 0; i < pCostume->numComponents; i++) {
-			if (aTreeDepths[i] != depth)
+		for (int i = 0; i < costume->numComponents; i++) {
+			if (treeDepths[i] != depth)
 				continue;
 
-			CosComponentClass *pClass = &_aClasses[pCostume->aComponents[i].classIdx];
-			void *pData = nullptr;
+			CosComponentClass *classInfo = &_classes[costume->components[i].classIdx];
+			void *data = nullptr;
 
-			if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat)
-				warning("Cos::createCosInstance(): invalid tag type %d", pClass->type);
+			if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat)
+				warning("Cos::createCosInstance(): invalid tag type %d", classInfo->type);
 			else
-				pData = pClass->pHandler->instance(hInst, i, 1);
+				data = classInfo->handler->instance(inst, i, 1);
 
-			if (pData)
-				_aInstances[slot].aInstanceData[i] = pData;
+			if (data)
+				_instances[slot].instanceData[i] = data;
 		}
 	}
 
-	delete[] aTreeDepths;
+	delete[] treeDepths;
 
-	if (_pInstanceHook) {
-		if (!_pInstanceHook(hInst, 1)) {
-			freeCosInstance(hInst);
+	if (_instanceHook) {
+		if (!_instanceHook(inst, 1)) {
+			freeCosInstance(inst);
 			return 0;
 		}
 	} else {
-		_aInstances[slot].userData = 0;
+		_instances[slot].userData = 0;
 	}
 
-	return hInst;
+	return inst;
 }
 
-int Cos::freeCosInstance(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::freeCosInstance(int inst) {
+	int index = instHandleToIndex(inst);
 
 	if (index < 0 || index >= _maxInstances) {
-		warning("Cos::freeCosInstance(): invalid instance handle %d", hInst);
+		warning("Cos::freeCosInstance(): invalid instance handle %d", inst);
 		return _numInstances;
 	}
 
-	if (_pInstanceHook)
-		_pInstanceHook(hInst, 0);
+	if (_instanceHook)
+		_instanceHook(inst, 0);
 
 	freeInstance(index);
-	_aInstances[index].bFree = 1;
+	_instances[index].free = 1;
 
 	return --_numInstances;
 }
 
 void Cos::freeInstance(int index) {
-	CosInstance *pInstance = &_aInstances[index];
-	int hInst = instIndexToHandle(index);
+	CosInstance *instance = &_instances[index];
+	int inst = instIndexToHandle(index);
 
-	if (pInstance->bFree)
+	if (instance->free)
 		return;
 
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponentClass *pClass = &_aClasses[pCostume->aComponents[i].classIdx];
-		void *pData = nullptr;
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponentClass *classInfo = &_classes[costume->components[i].classIdx];
+		void *data = nullptr;
 
-		if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat)
-			warning("Cos::freeInstance(): invalid tag type %d", pClass->type);
+		if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat)
+			warning("Cos::freeInstance(): invalid tag type %d", classInfo->type);
 		else
-			pData = pClass->pHandler->instance(hInst, i, 0);
+			data = classInfo->handler->instance(inst, i, 0);
 
-		if (pData)
-			pInstance->aInstanceData[i] = pData;
+		if (data)
+			instance->instanceData[i] = data;
 	}
 
-	delete[] pInstance->aChoreInstances;
-	delete[] pInstance->aInstanceData;
+	delete[] instance->choreInstances;
+	delete[] instance->instanceData;
 
-	pInstance->costume = 0;
-	pInstance->aChoreInstances = nullptr;
-	pInstance->userData = 0;
-	pInstance->aInstanceData = nullptr;
-	pInstance->bFree = 0;
-	pInstance->costume = -1;
-	pInstance->bFree = 1;
+	instance->costume = 0;
+	instance->choreInstances = nullptr;
+	instance->userData = 0;
+	instance->instanceData = nullptr;
+	instance->free = 0;
+	instance->costume = -1;
+	instance->free = 1;
 }
 
-void Cos::instRescue(int hInst, int hCostume) {
-	int costumeIndex = handleToIndex(hCostume);
+void Cos::instRescue(int inst, int costume) {
+	int costumeIndex = handleToIndex(costume);
 
 	if (costumeIndex >= 0) {
-		int instIndex = instHandleToIndex(hInst);
+		int instIndex = instHandleToIndex(inst);
 
 		if (instIndex >= 0 && instIndex < _maxInstances)
-			_aInstances[instIndex].costume = costumeIndex;
+			_instances[instIndex].costume = costumeIndex;
 	}
 }
 
-void *Cos::instGetInstanceData(int hInst, int compIndex, int *pFourcc) {
-	int index = instHandleToIndex(hInst);
+void *Cos::instGetInstanceData(int inst, int compIndex, int *fourcc) {
+	int index = instHandleToIndex(inst);
 
 	if (index < 0 || index >= _maxInstances || compIndex < 0)
 		return nullptr;
 
-	if (_aInstances[index].bFree) {
-		warning("Cos::instGetInstanceData(): instance %d is not in use", hInst);
+	if (_instances[index].free) {
+		warning("Cos::instGetInstanceData(): instance %d is not in use", inst);
 		return nullptr;
 	}
 
-	CosCostume *pCostume = &_aCostumes[_aInstances[index].costume];
+	CosCostume *costume = &_costumes[_instances[index].costume];
 
-	if (compIndex >= pCostume->numComponents)
+	if (compIndex >= costume->numComponents)
 		return nullptr;
 
-	if (pFourcc)
-		*pFourcc = _aClasses[pCostume->aComponents[compIndex].classIdx].fourcc;
+	if (fourcc)
+		*fourcc = _classes[costume->components[compIndex].classIdx].fourcc;
 
-	return _aInstances[index].aInstanceData[compIndex];
+	return _instances[index].instanceData[compIndex];
 }
 
-int Cos::instGetUserData(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instGetUserData(int inst) {
+	int index = instHandleToIndex(inst);
 
 	if (index < 0 || index >= _maxInstances)
 		return 0;
 
-	return _aInstances[index].userData;
+	return _instances[index].userData;
 }
 
-void Cos::instSetUserData(int hInst, int userData) {
-	int index = instHandleToIndex(hInst);
+void Cos::instSetUserData(int inst, int userData) {
+	int index = instHandleToIndex(inst);
 
 	if (index >= 0 && index < _maxInstances)
-		_aInstances[index].userData = userData;
+		_instances[index].userData = userData;
 }
 
-int Cos::instCountComponents(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instCountComponents(int inst) {
+	int index = instHandleToIndex(inst);
 
 	if (index < 0)
 		return 0;
 
-	if (index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instCountComponents(): invalid instance handle %d", hInst);
+	if (index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instCountComponents(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	return countComponents(&_aCostumes[_aInstances[index].costume]);
+	return countComponents(&_costumes[_instances[index].costume]);
 }
 
-CosComponent *Cos::instComponentInfo(int hInst, int compNum, int *pFourcc, void **pId, int *pParent) {
-	int index = instHandleToIndex(hInst);
+CosComponent *Cos::instComponentInfo(int inst, int compNum, int *fourcc, void **id, int *parent) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instComponentInfo(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instComponentInfo(): invalid instance handle %d", inst);
 		return nullptr;
 	}
 
-	return componentInfo(&_aCostumes[_aInstances[index].costume], compNum, pFourcc, pId, pParent, nullptr);
+	return componentInfo(&_costumes[_instances[index].costume], compNum, fourcc, id, parent, nullptr);
 }
 
-int Cos::instCountChores(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instCountChores(int inst) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instCountChores(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instCountChores(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	return _aCostumes[_aInstances[index].costume].numChores;
+	return _costumes[_instances[index].costume].numChores;
 }
 
-CosCostume *Cos::instGetCostume(int hInst, int *pHandle) {
-	int index = instHandleToIndex(hInst);
+CosCostume *Cos::instGetCostume(int inst, int *handle) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instGetCostume(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instGetCostume(): invalid instance handle %d", inst);
 		return nullptr;
 	}
 
-	int costumeIndex = _aInstances[index].costume;
+	int costumeIndex = _instances[index].costume;
 
-	if (pHandle)
-		*pHandle = indexToHandle(costumeIndex);
+	if (handle)
+		*handle = indexToHandle(costumeIndex);
 
-	return &_aCostumes[costumeIndex];
+	return &_costumes[costumeIndex];
 }
 
-const char *Cos::instChoreName(int hInst, int choreIndex) {
-	int index = instHandleToIndex(hInst);
+const char *Cos::instChoreName(int inst, int choreIndex) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instChoreName(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instChoreName(): invalid instance handle %d", inst);
 		return nullptr;
 	}
 
-	CosCostume *pCostume = &_aCostumes[_aInstances[index].costume];
+	CosCostume *costume = &_costumes[_instances[index].costume];
 
-	if (choreIndex < 0 || choreIndex >= pCostume->numChores) {
+	if (choreIndex < 0 || choreIndex >= costume->numChores) {
 		warning("Cos::instChoreName(): chore number %d is out of range", choreIndex);
 		return nullptr;
 	}
 
-	return pCostume->aChores[choreIndex].name;
+	return costume->chores[choreIndex].name;
 }
 
 } // End of namespace Grim

@@ -32,13 +32,13 @@ static const float kMinLength = 1e-20f;
 static const float kNoLight = -1.0f;
 
 CLight::CLight(Color lightColor, float lightIntensity, float lightFocusDistance, float lightSpreadDistance) {
-	type = kTypeOmni;
-	color = lightColor;
-	spreadDistance = lightSpreadDistance;
-	intensity = lightIntensity;
-	umbraAngle = 0.0f;
-	penumbraAngle = 0.0f;
-	focusDistance = lightFocusDistance;
+	_type = kTypeOmni;
+	_color = lightColor;
+	_spreadDistance = lightSpreadDistance;
+	_intensity = lightIntensity;
+	_umbraAngle = 0.0f;
+	_penumbraAngle = 0.0f;
+	_focusDistance = lightFocusDistance;
 }
 
 void *CLight::operator new(size_t size) {
@@ -50,9 +50,9 @@ void CLight::operator delete(void *block) {
 }
 
 void CLight::setColor(int newR, int newG, int newB) {
-	color.r = newR;
-	color.g = newG;
-	color.b = newB;
+	_color._r = newR;
+	_color._g = newG;
+	_color._b = newB;
 }
 
 void CLight::addLighting(Color *accumulator, const float *lightTransform, const float *position, const float *normal) {
@@ -60,23 +60,23 @@ void CLight::addLighting(Color *accumulator, const float *lightTransform, const 
 	float factorStored = (float)factor;
 
 	if (factor >= 0.0) {
-		float addedR = (float)((double)(uint)color.r * factorStored);
+		float addedR = (float)((double)(uint)_color._r * factorStored);
 
-		accumulator->r += (int)lrint(addedR);
+		accumulator->_r += (int)lrint(addedR);
 
-		float addedG = (float)((double)(uint)color.g * factorStored);
+		float addedG = (float)((double)(uint)_color._g * factorStored);
 
-		accumulator->g += (int)lrint(addedG);
+		accumulator->_g += (int)lrint(addedG);
 
-		float addedB = (float)((double)(uint)color.b * factorStored);
+		float addedB = (float)((double)(uint)_color._b * factorStored);
 
-		accumulator->b += (int)lrint(addedB);
+		accumulator->_b += (int)lrint(addedB);
 	}
 }
 
 float CLight::evaluate(const float *lightTransform, const float *position, const float *normal) {
 	// The original could divide by zero in this function, let's avoid that...
-	switch (type) {
+	switch (_type) {
 	case kTypeOmni: {
 		float dirX = lightTransform[9] - position[0];
 		float dirY = lightTransform[10] - position[1];
@@ -95,7 +95,7 @@ float CLight::evaluate(const float *lightTransform, const float *position, const
 
 		float distanceStored = (float)distance;
 
-		if (distance > spreadDistance)
+		if (distance > _spreadDistance)
 			return kNoLight;
 
 		double dotProduct = (double)dirY * normal[1] + (double)dirZ * normal[2] + (double)dirX * normal[0];
@@ -103,10 +103,10 @@ float CLight::evaluate(const float *lightTransform, const float *position, const
 		if (dotProduct < 0.0)
 			return kNoLight;
 
-		if (distanceStored > (double)focusDistance && spreadDistance != focusDistance)
-			dotProduct = dotProduct * (((double)spreadDistance - distanceStored) / ((double)spreadDistance - focusDistance));
+		if (distanceStored > (double)_focusDistance && _spreadDistance != _focusDistance)
+			dotProduct = dotProduct * (((double)_spreadDistance - distanceStored) / ((double)_spreadDistance - _focusDistance));
 
-		return (float)(dotProduct * intensity);
+		return (float)(dotProduct * _intensity);
 	}
 	case kTypeSpot: {
 		float axisX = -lightTransform[6];
@@ -117,7 +117,7 @@ float CLight::evaluate(const float *lightTransform, const float *position, const
 		double dirZ = (double)lightTransform[11] - position[2];
 		float distance = (float)sqrt((double)dirYStored * dirYStored + dirZ * dirZ + dirX * dirX);
 
-		if (distance > (double)spreadDistance)
+		if (distance > (double)_spreadDistance)
 			return kNoLight;
 
 		if (distance == 0.0f)
@@ -136,40 +136,40 @@ float CLight::evaluate(const float *lightTransform, const float *position, const
 		float angleCosine = (float)(unitZ * axisZ + (double)unitY * axisY + (double)axisX * unitX);
 		float angle = (float)acos(angleCosine);
 
-		if (angle > penumbraAngle)
+		if (angle > _penumbraAngle)
 			return kNoLight;
 
 		double result;
 
-		if (angle <= (double)umbraAngle)
+		if (angle <= (double)_umbraAngle)
 			result = cosineStored;
-		else if (penumbraAngle != umbraAngle)
-			result = ((double)penumbraAngle - angle) / ((double)penumbraAngle - umbraAngle) * cosineStored;
+		else if (_penumbraAngle != _umbraAngle)
+			result = ((double)_penumbraAngle - angle) / ((double)_penumbraAngle - _umbraAngle) * cosineStored;
 		else
 			result = cosineStored;
 
-		if (distance > (double)focusDistance && spreadDistance != focusDistance)
-			result = result * (((double)spreadDistance - distance) / ((double)spreadDistance - focusDistance));
+		if (distance > (double)_focusDistance && _spreadDistance != _focusDistance)
+			result = result * (((double)_spreadDistance - distance) / ((double)_spreadDistance - _focusDistance));
 
-		return (float)(result * intensity);
+		return (float)(result * _intensity);
 	}
 	case kTypeDirect: {
 		double result = (double)-lightTransform[8] * normal[2] + (double)-lightTransform[7] * normal[1] + (double)-lightTransform[6] * normal[0];
 
 		if (result >= 0.0)
-			return (float)(result * intensity);
+			return (float)(result * _intensity);
 
 		return kNoLight;
 	}
 	case kTypeAmbient:
-		return intensity;
+		return _intensity;
 	default:
 		return kNoLight;
 	}
 }
 
 bool CLight::isOutOfRange(const float *lightTransform, const BBox *box) {
-	if (type != kTypeOmni && type != kTypeSpot)
+	if (_type != kTypeOmni && _type != kTypeSpot)
 		return false;
 
 	double squaredDistance = 0.0;
@@ -177,43 +177,43 @@ bool CLight::isOutOfRange(const float *lightTransform, const BBox *box) {
 	float posY = lightTransform[10];
 	float posZ = lightTransform[11];
 
-	if (posX >= box->min.x) {
-		if (posX > box->max.x) {
-			double delta = (double)posX - box->max.x;
+	if (posX >= box->_min._x) {
+		if (posX > box->_max._x) {
+			double delta = (double)posX - box->_max._x;
 
 			squaredDistance = delta * delta;
 		}
 	} else {
-		double delta = (double)posX - box->min.x;
+		double delta = (double)posX - box->_min._x;
 
 		squaredDistance = delta * delta;
 	}
 
-	if (posY >= box->min.y) {
-		if (posY > box->max.y) {
-			double delta = (double)posY - box->max.y;
+	if (posY >= box->_min._y) {
+		if (posY > box->_max._y) {
+			double delta = (double)posY - box->_max._y;
 
 			squaredDistance = squaredDistance + delta * delta;
 		}
 	} else {
-		double delta = (double)posY - box->min.y;
+		double delta = (double)posY - box->_min._y;
 
 		squaredDistance = squaredDistance + delta * delta;
 	}
 
-	if (posZ >= box->min.z) {
-		if (posZ > box->max.z) {
-			double delta = (double)posZ - box->max.z;
+	if (posZ >= box->_min._z) {
+		if (posZ > box->_max._z) {
+			double delta = (double)posZ - box->_max._z;
 
 			squaredDistance = squaredDistance + delta * delta;
 		}
 	} else {
-		double delta = (double)posZ - box->min.z;
+		double delta = (double)posZ - box->_min._z;
 
 		squaredDistance = squaredDistance + delta * delta;
 	}
 
-	return squaredDistance > (double)spreadDistance * spreadDistance;
+	return squaredDistance > (double)_spreadDistance * _spreadDistance;
 }
 
 } // End of namespace Grim

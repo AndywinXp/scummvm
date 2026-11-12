@@ -28,87 +28,87 @@
 
 namespace Grim {
 
-SputPrimitive::SputPrimitive(RenderDroid *pRd) : _pSputRender(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _current(pRd) {
+SputPrimitive::SputPrimitive(RenderDroid *rd) : _sputRender(nullptr), _hs(nullptr), _initialized(0), _started(0), _current(rd) {
 }
 
 SputPrimitive::~SputPrimitive() {
 	_current.purge();
 }
 
-void SputPrimitive::setSputRender(SputRender *pSputRender) {
-	_pSputRender = pSputRender;
-	_current.setSputRender(pSputRender);
+void SputPrimitive::setSputRender(SputRender *sputRender) {
+	_sputRender = sputRender;
+	_current.setSputRender(sputRender);
 }
 
-int SputPrimitive::initialize(SysStruct *pHS) {
-	_pHS = pHS;
-	_bInitialized = 1;
+int SputPrimitive::initialize(SysStruct *hs) {
+	_hs = hs;
+	_initialized = 1;
 
 	return 0;
 }
 
 void SputPrimitive::pause() {
 	_current.markAllDirty(3);
-	_pSputRender->setSkipPrimitives(1);
+	_sputRender->setSkipPrimitives(1);
 }
 
 void SputPrimitive::resume() {
-	_pSputRender->setSkipPrimitives(0);
+	_sputRender->setSkipPrimitives(0);
 }
 
 int SputPrimitive::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputPrimitive::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	_pLua->registerPrimitiveOpcodes();
-	_bStarted = 1;
+	_lua->registerPrimitiveOpcodes();
+	_started = 1;
 
 	return 0;
 }
 
 int SputPrimitive::shutdown() {
 	_current.purge();
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
 
-int SputPrimitive::save(Common::WriteStream *pStream) {
+int SputPrimitive::save(Common::WriteStream *stream) {
 	int numPrimitives = 0;
 
-	for (SputPrimitiveObject *pObj = _current.getHead(); pObj; pObj = pObj->pNext)
+	for (SputPrimitiveObject *obj = _current.getHead(); obj; obj = obj->next)
 		numPrimitives++;
 
-	pStream->writeSint32LE(numPrimitives);
+	stream->writeSint32LE(numPrimitives);
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputPrimitive::save(): failed to write the primitive count");
 		return 1;
 	}
 
-	for (SputPrimitiveObject *pObj = _current.getHead(); pObj; pObj = pObj->pNext) {
-		pStream->writeSint32LE(pObj->shape);
-		pStream->writeSint32LE(pObj->id);
-		pStream->writeSint32LE(pObj->layer);
-		pStream->writeSint32LE(pObj->x1);
-		pStream->writeSint32LE(pObj->y1);
-		pStream->writeSint32LE(pObj->x2);
-		pStream->writeSint32LE(pObj->y2);
-		pStream->writeSint32LE(pObj->color);
-		pStream->writeSint32LE(pObj->pattern);
-		pStream->writeSint32LE(pObj->bFilled);
+	for (SputPrimitiveObject *obj = _current.getHead(); obj; obj = obj->next) {
+		stream->writeSint32LE(obj->shape);
+		stream->writeSint32LE(obj->id);
+		stream->writeSint32LE(obj->layer);
+		stream->writeSint32LE(obj->x1);
+		stream->writeSint32LE(obj->y1);
+		stream->writeSint32LE(obj->x2);
+		stream->writeSint32LE(obj->y2);
+		stream->writeSint32LE(obj->color);
+		stream->writeSint32LE(obj->pattern);
+		stream->writeSint32LE(obj->filled);
 
-		if (pStream->err()) {
-			warning("SputPrimitive::save(): failed to write primitive %d", pObj->id);
+		if (stream->err()) {
+			warning("SputPrimitive::save(): failed to write primitive %d", obj->id);
 			return 1;
 		}
 	}
@@ -116,12 +116,12 @@ int SputPrimitive::save(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int SputPrimitive::restore(Common::ReadStream *pStream) {
+int SputPrimitive::restore(Common::ReadStream *stream) {
 	_current.purge();
 
-	int numPrimitives = pStream->readSint32LE();
+	int numPrimitives = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos()) {
+	if (stream->err() || stream->eos()) {
 		warning("SputPrimitive::restore(): failed to read the primitive count");
 		return 1;
 	}
@@ -132,32 +132,32 @@ int SputPrimitive::restore(Common::ReadStream *pStream) {
 	}
 
 	for (int i = 0; i < numPrimitives; i++) {
-		int shape = pStream->readSint32LE();
-		int id = pStream->readSint32LE();
-		int layer = pStream->readSint32LE();
-		int x1 = pStream->readSint32LE();
-		int y1 = pStream->readSint32LE();
-		int x2 = pStream->readSint32LE();
-		int y2 = pStream->readSint32LE();
-		int color = pStream->readSint32LE();
-		int pattern = pStream->readSint32LE();
-		int bFilled = pStream->readSint32LE();
+		int shape = stream->readSint32LE();
+		int id = stream->readSint32LE();
+		int layer = stream->readSint32LE();
+		int x1 = stream->readSint32LE();
+		int y1 = stream->readSint32LE();
+		int x2 = stream->readSint32LE();
+		int y2 = stream->readSint32LE();
+		int color = stream->readSint32LE();
+		int pattern = stream->readSint32LE();
+		int filled = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos()) {
+		if (stream->err() || stream->eos()) {
 			warning("SputPrimitive::restore(): failed to read primitive %d of %d", i + 1, numPrimitives);
 			return 1;
 		}
 
-		SputPrimitiveObject *pObj = _current.addObject(id, layer);
+		SputPrimitiveObject *obj = _current.addObject(id, layer);
 
-		pObj->shape = shape;
-		pObj->x1 = x1;
-		pObj->y1 = y1;
-		pObj->x2 = x2;
-		pObj->y2 = y2;
-		pObj->color = color;
-		pObj->pattern = pattern;
-		pObj->bFilled = bFilled;
+		obj->shape = shape;
+		obj->x1 = x1;
+		obj->y1 = y1;
+		obj->x2 = x2;
+		obj->y2 = y2;
+		obj->color = color;
+		obj->pattern = pattern;
+		obj->filled = filled;
 
 		_current._nextId = id + 1;
 	}

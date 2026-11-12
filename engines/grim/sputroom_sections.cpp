@@ -36,15 +36,15 @@ int SputRoom::readSections() {
 	readSectionFunc("lights", &SputRoom::parseLights);
 	readSectionFunc("sectors", &SputRoom::parseSectors);
 
-	if (_pGrim->getGameFlags() & ADGF_DEMO)
+	if (_grim->getGameFlags() & ADGF_DEMO)
 		readSectionFunc("objectstates", &SputRoom::readObjectsSection);
 
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
 
-int SputRoom::readSectionFunc(const char *name, SectionFunc pfnRead) {
+int SputRoom::readSectionFunc(const char *name, SectionFunc read) {
 	int index = sectionNameCompare(name);
 
 	if (index == -1) {
@@ -54,8 +54,8 @@ int SputRoom::readSectionFunc(const char *name, SectionFunc pfnRead) {
 		index = _numSections++;
 	}
 
-	Common::strlcpy(_aSections[index].name, name, 32);
-	_aSections[index].handler = pfnRead;
+	Common::strlcpy(_sections[index].name, name, 32);
+	_sections[index].handler = read;
 
 	return 1;
 }
@@ -66,7 +66,7 @@ int SputRoom::sectionNameCompare(const char *name) {
 
 	int index = 0;
 
-	while (scumm_stricmp(_aSections[index].name, name)) {
+	while (scumm_stricmp(_sections[index].name, name)) {
 		if (++index >= _numSections)
 			return -1;
 	}
@@ -77,22 +77,22 @@ int SputRoom::sectionNameCompare(const char *name) {
 int SputRoom::loadSections(const char *fileName) {
 	char name[1024];
 
-	if (!_pStdConffile->open(fileName))
+	if (!_stdConffile->open(fileName))
 		return 0;
 
-	if (_pStdConffile->readLine()) {
-		while (sscanf(_pStdConffile->getLine(), "section: %s", name) != 1 || findSectionHandler(name)) {
-			if (!_pStdConffile->readLine()) {
-				_pStdConffile->close();
+	if (_stdConffile->readLine()) {
+		while (sscanf(_stdConffile->getLine(), "section: %s", name) != 1 || findSectionHandler(name)) {
+			if (!_stdConffile->readLine()) {
+				_stdConffile->close();
 				return 1;
 			}
 		}
 
-		_pStdConffile->close();
+		_stdConffile->close();
 		return 0;
 	}
 
-	_pStdConffile->close();
+	_stdConffile->close();
 
 	return 1;
 }
@@ -100,23 +100,23 @@ int SputRoom::loadSections(const char *fileName) {
 int SputRoom::findSectionHandler(const char *name) {
 	int index = sectionNameCompare(name);
 
-	return index == -1 || (this->*_aSections[index].handler)() != 0;
+	return index == -1 || (this->*_sections[index].handler)() != 0;
 }
 
 int SputRoom::parseLights() {
-	Room *pRoom = _pLoadingRoom;
-	RoomLight *pLight = nullptr;
+	Room *room = _loadingRoom;
+	RoomLight *light = nullptr;
 	int lightIndex = -1;
-	bool bNumLights = false;
+	bool numLightsFlag = false;
 	char name[1024];
 
-	pRoom->numLights = 0;
+	room->numLights = 0;
 
-	if (!_pStdConffile->readLine())
+	if (!_stdConffile->readLine())
 		return 1;
 
 	while (true) {
-		const char *line = _pStdConffile->getLine();
+		const char *line = _stdConffile->getLine();
 
 		if (*line) {
 			int numLights;
@@ -132,78 +132,78 @@ int SputRoom::parseLights() {
 					numLights = CLIP(numLights, 0, 64);
 				}
 
-				pRoom->numLights = numLights;
-				bNumLights = true;
-				pLight = nullptr;
+				room->numLights = numLights;
+				numLightsFlag = true;
+				light = nullptr;
 				lightIndex = -1;
-				memset(pRoom->aLights, 0, sizeof(pRoom->aLights));
-			} else if (bNumLights) {
+				memset(room->lights, 0, sizeof(room->lights));
+			} else if (numLightsFlag) {
 				if (sscanf(line, " light %s", name) == 1) {
 					lightIndex++;
 
 					if (lightIndex >= 64) {
 						warning("SputRoom::parseLights(): more than 64 lights");
-						pLight = nullptr;
+						light = nullptr;
 					} else {
-						pLight = &pRoom->aLights[lightIndex];
-						_pRd->_light.newEntry(&pLight->light);
+						light = &room->lights[lightIndex];
+						_rd->_light.newEntry(&light->light);
 
 						if (strlen(name) >= 32)
 							warning("SputRoom::parseLights(): light name %s is too long", name);
 
-						Common::strlcpy(pLight->aName, name, 32);
+						Common::strlcpy(light->name, name, 32);
 					}
 				}
 
-				if (!pLight) {
+				if (!light) {
 					warning("SputRoom::parseLights(): line outside a light ignored");
 				} else {
 					if (sscanf(line, " type %s", name) == 1) {
 						if (!scumm_stricmp(name, "omni"))
-							pLight->light.type = 2;
+							light->light.type = 2;
 						else if (!strcmp(name, "spot"))
-							pLight->light.type = 3;
+							light->light.type = 3;
 						else
-							pLight->light.type = 0;
+							light->light.type = 0;
 					}
 
-					if (sscanf(line, " direction %f %f %f", &pLight->light.direction[0], &pLight->light.direction[1], &pLight->light.direction[2]) == 3)
-						_pRd->normalize3Acc(pLight->light.direction);
+					if (sscanf(line, " direction %f %f %f", &light->light.direction[0], &light->light.direction[1], &light->light.direction[2]) == 3)
+						_rd->normalize3Acc(light->light.direction);
 
-					sscanf(line, " position %f %f %f", &pLight->position[0], &pLight->position[1], &pLight->position[2]);
-					sscanf(line, " intensity %f", &pLight->light.intensity);
-					sscanf(line, " umbraangle %f", &pLight->light.angleX);
-					sscanf(line, " penumbraangle %f", &pLight->light.angleY);
+					sscanf(line, " position %f %f %f", &light->position[0], &light->position[1], &light->position[2]);
+					sscanf(line, " intensity %f", &light->light.intensity);
+					sscanf(line, " umbraangle %f", &light->light.angleX);
+					sscanf(line, " penumbraangle %f", &light->light.angleY);
 
 					int red;
 					int green;
 					int blue;
 
 					if (sscanf(line, " color %d %d %d", &red, &green, &blue) == 3)
-						pLight->light.color = (uint)(blue | ((green | (red << 8)) << 8));
+						light->light.color = (uint)(blue | ((green | (red << 8)) << 8));
 				}
 			}
 		}
 
-		if (!_pStdConffile->readLine())
+		if (!_stdConffile->readLine())
 			return 1;
 	}
 }
 
 int SputRoom::parseSetups() {
-	Room *pRoom = _pLoadingRoom;
-	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+	Room *room = _loadingRoom;
+	bool demo = (_grim->getGameFlags() & ADGF_DEMO) != 0;
 	int setupIndex = -1;
 	char name[1024];
 	char fileName[1024];
 
-	pRoom->pSetups = nullptr;
+	room->setups = nullptr;
 
-	if (!_pStdConffile->readLine())
+	if (!_stdConffile->readLine())
 		return 1;
 
 	while (true) {
-		const char *line = _pStdConffile->getLine();
+		const char *line = _stdConffile->getLine();
 
 		if (*line) {
 			int numSetups;
@@ -219,98 +219,98 @@ int SputRoom::parseSetups() {
 					return 0;
 				}
 
-				pRoom->numSetups = numSetups;
-				pRoom->pSetups = new RoomSetup[numSetups];
-				memset(pRoom->pSetups, 0, sizeof(RoomSetup) * numSetups);
+				room->numSetups = numSetups;
+				room->setups = new RoomSetup[numSetups];
+				memset(room->setups, 0, sizeof(RoomSetup) * numSetups);
 				setupIndex = -1;
 
-				if (bDemo && pRoom->numObjects) {
+				if (demo && room->numObjects) {
 					for (int i = 0; i < numSetups; i++) {
-						pRoom->pSetups[i].pObjectArt = new RoomObjectArt[pRoom->numObjects];
-						memset(pRoom->pSetups[i].pObjectArt, 0, sizeof(RoomObjectArt) * pRoom->numObjects);
+						room->setups[i].objectArt = new RoomObjectArt[room->numObjects];
+						memset(room->setups[i].objectArt, 0, sizeof(RoomObjectArt) * room->numObjects);
 					}
 				}
 			} else {
-				if (!pRoom->pSetups)
+				if (!room->setups)
 					return 0;
 
 				if (sscanf(line, " setup %s", name) == 1) {
 					setupIndex++;
 
-					if (setupIndex >= (int)pRoom->numSetups)
+					if (setupIndex >= (int)room->numSetups)
 						return 0;
 
 					if (strlen(name) >= 32)
 						warning("SputRoom::parseSetups(): setup name %s is too long", name);
 
-					Common::strlcpy(pRoom->pSetups[setupIndex].aName, name, 32);
+					Common::strlcpy(room->setups[setupIndex].name, name, 32);
 				} else if (setupIndex < 0) {
 					return 0;
 				} else {
-					RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
+					RoomSetup *setup = &room->setups[setupIndex];
 
-					if (bDemo && sscanf(line, " object_art %s %s", name, fileName) == 2) {
-						for (uint i = 0; i < pRoom->numObjects; i++) {
-							if (strcmp(name, pRoom->pObjects[i].name))
+					if (demo && sscanf(line, " object_art %s %s", name, fileName) == 2) {
+						for (uint i = 0; i < room->numObjects; i++) {
+							if (strcmp(name, room->objects[i].name))
 								continue;
 
 							if (strlen(fileName) >= 32)
 								warning("SputRoom::parseSetups(): object art name %s is too long", fileName);
 
-							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
-							Common::strlcpy(pSetup->pObjectArt[i].aBitmapName, fileName, 32);
+							Common::strlcpy(setup->objectArt[i].name, name, 32);
+							Common::strlcpy(setup->objectArt[i].bitmapName, fileName, 32);
 						}
-					} else if (bDemo && sscanf(line, " object_z %s %s", name, fileName) == 2) {
-						for (uint i = 0; i < pRoom->numObjects; i++) {
-							if (strcmp(name, pRoom->pObjects[i].name))
+					} else if (demo && sscanf(line, " object_z %s %s", name, fileName) == 2) {
+						for (uint i = 0; i < room->numObjects; i++) {
+							if (strcmp(name, room->objects[i].name))
 								continue;
 
 							if (strlen(fileName) >= 32)
 								warning("SputRoom::parseSetups(): object z buffer name %s is too long", fileName);
 
-							Common::strlcpy(pSetup->pObjectArt[i].name, name, 32);
-							Common::strlcpy(pSetup->pObjectArt[i].aZBufferName, fileName, 32);
+							Common::strlcpy(setup->objectArt[i].name, name, 32);
+							Common::strlcpy(setup->objectArt[i].zBufferName, fileName, 32);
 						}
 					} else if (sscanf(line, " background %s", name) == 1) {
 						if (strlen(name) >= 32)
 							warning("SputRoom::parseSetups(): background name %s is too long", name);
 
-						Common::strlcpy(pSetup->aBitmapName, name, 32);
+						Common::strlcpy(setup->bitmapName, name, 32);
 					} else if (sscanf(line, " zbuffer %s", name) == 1) {
 						if (strlen(name) >= 32)
 							warning("SputRoom::parseSetups(): zbuffer name %s is too long", name);
 
-						Common::strlcpy(pSetup->aZBufferName, name, 32);
-					} else if (sscanf(line, " position %f %f %f", &pSetup->camera.position[0], &pSetup->camera.position[1], &pSetup->camera.position[2]) != 3 &&
-							sscanf(line, " interest %f %f %f", &pSetup->camera.interest[0], &pSetup->camera.interest[1], &pSetup->camera.interest[2]) != 3 &&
-							sscanf(line, " roll %f", &pSetup->camera.roll) != 1 &&
-							sscanf(line, " fov %f", &pSetup->camera.fov) != 1 &&
-							sscanf(line, " nclip %f", &pSetup->camera.nearClip) != 1 &&
-							sscanf(line, " fclip %f", &pSetup->camera.farClip) != 1) {
+						Common::strlcpy(setup->zBufferName, name, 32);
+					} else if (sscanf(line, " position %f %f %f", &setup->camera.position[0], &setup->camera.position[1], &setup->camera.position[2]) != 3 &&
+							sscanf(line, " interest %f %f %f", &setup->camera.interest[0], &setup->camera.interest[1], &setup->camera.interest[2]) != 3 &&
+							sscanf(line, " roll %f", &setup->camera.roll) != 1 &&
+							sscanf(line, " fov %f", &setup->camera.fov) != 1 &&
+							sscanf(line, " nclip %f", &setup->camera.nearClip) != 1 &&
+							sscanf(line, " fclip %f", &setup->camera.farClip) != 1) {
 						return 0;
 					}
 				}
 			}
 		}
 
-		if (!_pStdConffile->readLine())
+		if (!_stdConffile->readLine())
 			return 1;
 	}
 }
 
 int SputRoom::readObjectsSection() {
-	Room *pRoom = _pLoadingRoom;
-	RoomObject *pObject = nullptr;
+	Room *room = _loadingRoom;
+	RoomObject *object = nullptr;
 	char name[1024];
 
-	pRoom->numObjects = 0;
-	pRoom->pObjects = nullptr;
+	room->numObjects = 0;
+	room->objects = nullptr;
 
-	if (!_pStdConffile->readLine())
+	if (!_stdConffile->readLine())
 		return 1;
 
 	while (true) {
-		const char *line = _pStdConffile->getLine();
+		const char *line = _stdConffile->getLine();
 
 		if (*line) {
 			int numObjects;
@@ -322,60 +322,60 @@ int SputRoom::readObjectsSection() {
 					return 0;
 			} else {
 				if (sscanf(line, " tot_objects %d\n", &numObjects) == 1) {
-					delete[] pRoom->pObjects;
-					pRoom->pObjects = nullptr;
-					pRoom->numObjects = 0;
+					delete[] room->objects;
+					room->objects = nullptr;
+					room->numObjects = 0;
 
 					if (numObjects > 0) {
-						pRoom->numObjects = numObjects;
-						pRoom->pObjects = new RoomObject[numObjects];
-						memset(pRoom->pObjects, 0, sizeof(RoomObject) * numObjects);
+						room->numObjects = numObjects;
+						room->objects = new RoomObject[numObjects];
+						memset(room->objects, 0, sizeof(RoomObject) * numObjects);
 					}
 
-					pObject = pRoom->pObjects;
+					object = room->objects;
 				}
 
-				if (pObject) {
+				if (object) {
 					RdVector3 position;
 
 					if (sscanf(line, " object %s %f %f %f\n", name, &position[0], &position[1], &position[2]) == 4) {
-						if ((uint)(pObject - pRoom->pObjects) >= pRoom->numObjects) {
-							warning("SputRoom::readObjectsSection(): more than %u objects", pRoom->numObjects);
+						if ((uint)(object - room->objects) >= room->numObjects) {
+							warning("SputRoom::readObjectsSection(): more than %u objects", room->numObjects);
 							return 0;
 						}
 
 						if (strlen(name) >= 32)
 							warning("SputRoom::readObjectsSection(): object name %s is too long", name);
 
-						Common::strlcpy(pObject->name, name, 32);
-						memcpy(pObject->position, position, sizeof(RdVector3));
-						pObject++;
+						Common::strlcpy(object->name, name, 32);
+						memcpy(object->position, position, sizeof(RdVector3));
+						object++;
 					}
 				}
 			}
 		}
 
-		if (!_pStdConffile->readLine())
+		if (!_stdConffile->readLine())
 			return 1;
 	}
 }
 
 int SputRoom::parseColormaps() {
-	Room *pRoom = _pLoadingRoom;
+	Room *room = _loadingRoom;
 	char name[1024];
 
-	if (pRoom->apColormaps)
+	if (room->colormaps)
 		warning("SputRoom::parseColormaps(): pRoom->apColormaps == NULL");
 
-	if (!_pStdConffile->readLine())
+	if (!_stdConffile->readLine())
 		return 1;
 
 	while (true) {
-		const char *line = _pStdConffile->getLine();
+		const char *line = _stdConffile->getLine();
 
 		if (*line) {
 			int numColormaps;
-			bool bReadName = true;
+			bool readName = true;
 
 			name[0] = 0;
 
@@ -389,37 +389,37 @@ int SputRoom::parseColormaps() {
 						return 0;
 					}
 
-					pRoom->numcolormaps = numColormaps;
+					room->numcolormaps = numColormaps;
 
 					if (numColormaps) {
-						pRoom->apColormaps = new ResRef[numColormaps];
-						memset(pRoom->apColormaps, 0, sizeof(ResRef) * numColormaps);
+						room->colormaps = new ResRef[numColormaps];
+						memset(room->colormaps, 0, sizeof(ResRef) * numColormaps);
 					} else {
-						bReadName = false;
+						readName = false;
 					}
 				}
 
-				if (bReadName && pRoom->apColormaps) {
+				if (readName && room->colormaps) {
 					if (sscanf(line, " colormap %s", name) == 1) {
 						if (strlen(name) >= 32)
 							warning("SputRoom::parseColormaps(): colormap name %s is too long", name);
 
-						Common::strlcpy(pRoom->colormapName, name, 32);
+						Common::strlcpy(room->colormapName, name, 32);
 					}
 				}
 			}
 		}
 
-		if (!_pStdConffile->readLine())
+		if (!_stdConffile->readLine())
 			return 1;
 	}
 }
 
 int SputRoom::parseSectors() {
-	const char *pNextSection = _pWalkSystem->parseCollection(_pLoadingRoom->name);
+	const char *nextSection = _walkSystem->parseCollection(_loadingRoom->name);
 
-	if (pNextSection)
-		findSectionHandler(pNextSection);
+	if (nextSection)
+		findSectionHandler(nextSection);
 
 	return 1;
 }

@@ -36,14 +36,14 @@ public:
 	int lock();
 	void unlock();
 
-	int lockCount;
+	int _lockCount;
 };
 
 class ThreadLock {
 public:
 	~ThreadLock();
 
-	ThreadBase *base;
+	ThreadBase *_base;
 };
 
 struct LAllocation {
@@ -88,8 +88,8 @@ public:
 	bool registerMemoryHandler(LMemoryHandler *handler);
 	bool unregisterMemoryHandler(LMemoryHandler *handler);
 
-	ThreadBase threadBase;
-	uint bytesAllocated;
+	ThreadBase _threadBase;
+	uint _bytesAllocated;
 
 protected:
 	uint _hardCap;
@@ -114,10 +114,10 @@ public:
 	bool dumpAllocations(LFile *file) override;
 	bool dumpLeaks(const char *fileName) override;
 
-	uint numAllocations;
-	uint bytesWithOverhead;
-	int maxBytes;
-	LAllocation *newestAllocation;
+	uint _numAllocations;
+	uint _bytesWithOverhead;
+	int _maxBytes;
+	LAllocation *_newestAllocation;
 
 private:
 	uint _allocationId;

@@ -42,8 +42,8 @@ public:
 };
 
 CPrimitive::CPrimitive() {
-	radius = 0.0f;
-	name = "<unnamed primitive>";
+	_radius = 0.0f;
+	_name = "<unnamed primitive>";
 }
 
 CPrimitive::~CPrimitive() {
@@ -54,11 +54,11 @@ bool CPrimitive::save(LFile *file) {
 
 	parser.setFile(file);
 	parser.writeVersion(1, 0);
-	parser.writeEntry(kKeywordName, name.c_str());
+	parser.writeEntry(kKeywordName, _name.c_str());
 	parser.writeComment("sphere - radius,x,y,z");
-	parser.writeEntry(kKeywordSphere, radius, center.x, center.y, center.z);
+	parser.writeEntry(kKeywordSphere, _radius, _center._x, _center._y, _center._z);
 	parser.writeComment("box - min x,y,z  max x,y,z");
-	parser.writeEntry(kKeywordBox, box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z);
+	parser.writeEntry(kKeywordBox, _box._min._x, _box._min._y, _box._min._z, _box._max._x, _box._max._y, _box._max._z);
 	parser.writeEndOfSection();
 
 	return true;
@@ -75,9 +75,9 @@ bool CPrimitive::restore(LFile *file) {
 
 	token[0] = 0;
 	parser.readEntry(kKeywordName, token);
-	name = token;
-	parser.readEntry(kKeywordSphere, &radius, &center.x, &center.y, &center.z);
-	parser.readEntry(kKeywordBox, &box.min.x, &box.min.y, &box.min.z, &box.max.x, &box.max.y, &box.max.z);
+	_name = token;
+	parser.readEntry(kKeywordSphere, &_radius, &_center._x, &_center._y, &_center._z);
+	parser.readEntry(kKeywordBox, &_box._min._x, &_box._min._y, &_box._min._z, &_box._max._x, &_box._max._y, &_box._max._z);
 	parser.readEndOfSection();
 
 	return true;

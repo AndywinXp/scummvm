@@ -57,25 +57,25 @@ struct CosChoreTrack {
 	int compIndex;
 	int length;
 	int numKeys;
-	CosChoreKey *aKeys;
+	CosChoreKey *keys;
 };
 
 struct CosChore {
 	char name[32];
 	int numTracks;
-	CosChoreTrack *aTracks;
+	CosChoreTrack *tracks;
 	int length;
 };
 
 struct CosStateBitmapDesc {
-	byte *pPixels;
+	byte *pixels;
 	int width;
 	int height;
 	int reserved12;
 };
 
 struct CosStateBitmap {
-	byte *pPixels;
+	byte *pixels;
 	int width;
 	int height;
 	int reserved12;
@@ -84,10 +84,10 @@ struct CosStateBitmap {
 
 struct CosComponentNames {
 	int numNames;
-	const int *aNameIds;
-	const char *const *aNames;
-	const CosStateBitmapDesc *aStateBitmaps;
-	const int *aBitmapExtra;
+	const int *nameIds;
+	const char *const *names;
+	const CosStateBitmapDesc *stateBitmaps;
+	const int *bitmapExtra;
 };
 
 struct CosComponent {
@@ -97,9 +97,9 @@ struct CosComponent {
 	int depthIdx;
 	int parent;
 	int numNames;
-	int *aNameIds;
-	char **aNames;
-	CosStateBitmap **apStateBitmaps;
+	int *nameIds;
+	char **names;
+	CosStateBitmap **stateBitmaps;
 };
 
 struct CosCostume {
@@ -107,10 +107,10 @@ struct CosCostume {
 	int reserved32;
 	int uniqueId;
 	int numComponents;
-	CosComponent *aComponents;
+	CosComponent *components;
 	int numChores;
-	CosChore *aChores;
-	int bFree;
+	CosChore *chores;
+	int free;
 };
 
 struct CosChoreInstance {
@@ -121,24 +121,24 @@ struct CosChoreInstance {
 
 struct CosInstance {
 	int costume;
-	CosChoreInstance *aChoreInstances;
+	CosChoreInstance *choreInstances;
 	int userData;
-	void **aInstanceData;
-	int bFree;
+	void **instanceData;
+	int free;
 };
 
 class CosComponentHandler {
 public:
 	virtual ~CosComponentHandler() {}
 
-	virtual void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {}
-	virtual int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) { return 0; }
-	virtual void freeComponent(int hCostume, int fourcc, void *pCompRes) {}
-	virtual void stop(void *pInstData) {}
-	virtual int adjust(void **ppCompRes, char *args, int argsSize) { return 0; }
+	virtual void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {}
+	virtual int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) { return 0; }
+	virtual void freeComponent(int costume, int fourcc, void *compRes) {}
+	virtual void stop(void *instData) {}
+	virtual int adjust(void **compRes, char *args, int argsSize) { return 0; }
 	virtual bool hasAdjuster() const { return false; }
-	virtual void *instance(int hInst, int compIndex, int bCreate) { return nullptr; }
-	virtual void saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) {}
+	virtual void *instance(int instHandle, int compIndex, int create) { return nullptr; }
+	virtual void saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) {}
 };
 
 struct CosComponentClass {
@@ -146,15 +146,15 @@ struct CosComponentClass {
 	int type;
 	char name[32];
 	int param;
-	CosComponentHandler *pHandler;
+	CosComponentHandler *handler;
 	int reserved72[5];
 };
 
-typedef int (*CosInstanceHook)(int hInst, int bCreate);
-typedef int (*CosSaveHook)(const char *path, int hCostume, const char *header);
+typedef int (*CosInstanceHook)(int inst, int create);
+typedef int (*CosSaveHook)(const char *path, int costume, const char *header);
 typedef int (*CosSaveVerify)(const char *costumeName);
-typedef int (*CosCompNotifier)(CosCostume *pCostume, CosComponent *pComp, int compIndex, int bAdded);
-typedef int (*CosBitmapMunger)(const CosStateBitmapDesc *pDesc, int extra);
+typedef int (*CosCompNotifier)(CosCostume *costume, CosComponent *comp, int compIndex, int added);
+typedef int (*CosBitmapMunger)(const CosStateBitmapDesc *desc, int extra);
 
 class Cos {
 	friend class CosUtil;
@@ -163,68 +163,68 @@ class Cos {
 public:
 	Cos();
 
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int terminate();
 	int startup();
 	int shutdown();
 
 	int newCostume();
 	int load(const char *path);
-	int loadEntry(const char *path, int hCostume);
-	int freeCostume(int hCostume);
-	const char *getCostumeName(int hCostume);
+	int loadEntry(const char *path, int costumeHandle);
+	int freeCostume(int costume);
+	const char *getCostumeName(int costume);
 
-	int createCosInstance(int hCostume, int userData);
-	int freeCosInstance(int hInst);
+	int createCosInstance(int costumeHandle, int userData);
+	int freeCosInstance(int inst);
 
-	int newStateBasedTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param);
-	int newIntTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param);
-	int newFloatTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param);
-	int registerComponent(int hCostume, const char *name, void *id, int fourcc, void *pParentId, int parentFourcc, const CosComponentNames *pNames);
-	int removeComponent(int hCostume, int fourcc, void *id);
+	int newStateBasedTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param);
+	int newIntTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param);
+	int newFloatTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param);
+	int registerComponent(int costumeHandle, const char *name, void *id, int fourcc, void *parentId, int parentFourcc, const CosComponentNames *names);
+	int removeComponent(int costumeHandle, int fourcc, void *id);
 
-	CosInstanceHook registerInstanceHook(CosInstanceHook pHook);
-	CosSaveHook registerSaveHook(CosSaveHook pHook);
-	CosSaveVerify registerSaveVerify(CosSaveVerify pVerify);
-	CosCompNotifier registerCompNotifier(CosCompNotifier pNotifier);
-	CosBitmapMunger registerBitmapMunger(CosBitmapMunger pMunger);
+	CosInstanceHook registerInstanceHook(CosInstanceHook hook);
+	CosSaveHook registerSaveHook(CosSaveHook hook);
+	CosSaveVerify registerSaveVerify(CosSaveVerify verify);
+	CosCompNotifier registerCompNotifier(CosCompNotifier notifier);
+	CosBitmapMunger registerBitmapMunger(CosBitmapMunger munger);
 
-	void instRescue(int hInst, int hCostume);
-	void *instGetInstanceData(int hInst, int compIndex, int *pFourcc);
-	int instGetUserData(int hInst);
-	void instSetUserData(int hInst, int userData);
-	int instCountComponents(int hInst);
-	CosComponent *instComponentInfo(int hInst, int compNum, int *pFourcc, void **pId, int *pParent);
-	int instCountChores(int hInst);
-	CosCostume *instGetCostume(int hInst, int *pHandle);
-	const char *instChoreName(int hInst, int choreIndex);
+	void instRescue(int inst, int costume);
+	void *instGetInstanceData(int inst, int compIndex, int *fourcc);
+	int instGetUserData(int inst);
+	void instSetUserData(int inst, int userData);
+	int instCountComponents(int inst);
+	CosComponent *instComponentInfo(int inst, int compNum, int *fourcc, void **id, int *parent);
+	int instCountChores(int inst);
+	CosCostume *instGetCostume(int inst, int *handle);
+	const char *instChoreName(int inst, int choreIndex);
 
-	int instStopChores(int hInst);
-	int instStopChore(int hInst, int choreIndex);
-	int instPauseChores(int hInst);
-	int instPauseChore(int hInst, int choreIndex);
-	int instCompleteChore(int hInst, int choreIndex);
-	int instCompleteChores(int hInst);
-	int instPlayChore(int hInst, int choreIndex, int bLoop, int bAdvance);
-	int instUpdateChore(int hInst, int choreIndex, int deltaMs);
-	int instUpdateChores(int hInst, int deltaMs);
-	int instSetChoreLoop(int hInst, int choreIndex, int bLoop);
-	int instSetChoreAdv(int hInst, int choreIndex, int bAdvance);
-	int instChoreStatus(int hInst, int choreIndex);
+	int instStopChores(int inst);
+	int instStopChore(int inst, int choreIndex);
+	int instPauseChores(int inst);
+	int instPauseChore(int inst, int choreIndex);
+	int instCompleteChore(int inst, int choreIndex);
+	int instCompleteChores(int inst);
+	int instPlayChore(int inst, int choreIndex, int loop, int advance);
+	int instUpdateChore(int inst, int choreIndex, int deltaMs);
+	int instUpdateChores(int inst, int deltaMs);
+	int instSetChoreLoop(int inst, int choreIndex, int loop);
+	int instSetChoreAdv(int inst, int choreIndex, int advance);
+	int instChoreStatus(int inst, int choreIndex);
 
-	int save(Common::WriteStream *pStream);
-	int restore(Common::ReadStream *pStream);
-	int saveInstance(int hInst, Common::WriteStream *pStream);
-	int restoreInstance(int hInst, Common::ReadStream *pStream);
+	int save(Common::WriteStream *stream);
+	int restore(Common::ReadStream *stream);
+	int saveInstance(int inst, Common::WriteStream *stream);
+	int restoreInstance(int inst, Common::ReadStream *stream);
 
-	CosCostume *ptrFromHandle(int hCostume);
-	void setChoreLength(CosCostume *pCostume, int choreNum, int length);
-	int deleteComponent(int hCostume, int compIndex);
-	int addComponent(int hCostume, CosComponent *pComp, int fourcc, void *pParentId, int parentFourcc);
-	int countComponents(CosCostume *pCostume);
-	CosComponent *componentInfo(CosCostume *pCostume, int compNum, int *pFourcc, void **pId, int *pParent, int *pType);
+	CosCostume *ptrFromHandle(int costume);
+	void setChoreLength(CosCostume *costume, int choreNum, int length);
+	int deleteComponent(int costumeHandle, int compIndex);
+	int addComponent(int costume, CosComponent *comp, int fourcc, void *parentId, int parentFourcc);
+	int countComponents(CosCostume *costume);
+	CosComponent *componentInfo(CosCostume *costume, int compNum, int *fourcc, void **id, int *parent, int *type);
 
-	static int compareFunction(const void *pA, const void *pB);
+	static int compareFunction(const void *a, const void *b);
 
 private:
 	int handleToIndex(int handle);
@@ -237,58 +237,58 @@ private:
 	int allocTagSlot();
 	CosComponentClass *newTag(int fourcc, const char *name, int param);
 
-	void initCostume(CosCostume *pCostume);
-	int initComponent(CosCostume *pCostume, CosComponent *pComp, const char *name, int classIdx, void *id, int parent);
-	void setComponentNames(CosComponent *pComp, const CosComponentNames *pNames);
-	void initChore(CosChore *pChore);
-	void initChoreInstances(CosChore *aChores, CosChoreInstance *aInst, int count);
+	void initCostume(CosCostume *costume);
+	int initComponent(CosCostume *costume, CosComponent *comp, const char *name, int classIdx, void *id, int parent);
+	void setComponentNames(CosComponent *comp, const CosComponentNames *names);
+	void initChore(CosChore *chore);
+	void initChoreInstances(CosChore *chores, CosChoreInstance *inst, int count);
 
-	void freeCostumeData(int hCostume);
-	void freeComponent(int hCostume, CosComponentClass *pClass, CosComponent *pComp);
+	void freeCostumeData(int costumeHandle);
+	void freeComponent(int costume, CosComponentClass *classInfo, CosComponent *comp);
 	void freeInstance(int index);
 
 	int findClass(int fourcc, const char *name, int type);
-	int findComponent(CosCostume *pCostume, int fourcc, int depthIdx, const char *name);
-	int findComponentByParent(CosCostume *pCostume, int fourcc, int depthIdx, const char *name, int parent);
+	int findComponent(CosCostume *costume, int fourcc, int depthIdx, const char *name);
+	int findComponentByParent(CosCostume *costume, int fourcc, int depthIdx, const char *name, int parent);
 
-	int readLine(Common::SeekableReadStream *pFile, char *pBuffer, int size);
-	int parseTags(Common::SeekableReadStream *pFile);
-	int parseComponents(Common::SeekableReadStream *pFile, int hCostume);
-	int parseChores(Common::SeekableReadStream *pFile, CosCostume *pCostume);
-	int parseKeys(Common::SeekableReadStream *pFile, CosCostume *pCostume);
+	int readLine(Common::SeekableReadStream *file, char *buffer, int size);
+	int parseTags(Common::SeekableReadStream *file);
+	int parseComponents(Common::SeekableReadStream *file, int costumeHandle);
+	int parseChores(Common::SeekableReadStream *file, CosCostume *costume);
+	int parseKeys(Common::SeekableReadStream *file, CosCostume *costume);
 
-	int updateChoreInstance(CosCostume *pCostume, CosInstance *pInstance, int choreIndex, int deltaMs, int hInst);
-	void changeComponent(int op, CosComponentClass *pClass, void *pInstData, CosChoreKey *pKey, int timeOffset, CosChoreKey *pNextKey, int arg7, int hInst);
+	int updateChoreInstance(CosCostume *costume, CosInstance *instance, int choreIndex, int deltaMs, int inst);
+	void changeComponent(int op, CosComponentClass *classInfo, void *instData, CosChoreKey *key, int timeOffset, CosChoreKey *nextKey, int arg7, int inst);
 
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
 
 	int _numCostumes;
 	int _maxCostumes;
-	CosCostume *_aCostumes;
+	CosCostume *_costumes;
 	int _nextCostumeId;
 
 	int _numClasses;
 	int _maxClasses;
-	CosComponentClass *_aClasses;
+	CosComponentClass *_classes;
 
 	int _numInstances;
 	int _maxInstances;
-	CosInstance *_aInstances;
+	CosInstance *_instances;
 
-	int *_aCompMap;
+	int *_compMap;
 	int _compMapSize;
-	int _aTagMap[100];
+	int _tagMap[100];
 
 	char _lineBuffer[1024];
 	int _lineNumber;
 
-	CosInstanceHook _pInstanceHook;
-	CosSaveHook _pSaveHook;
-	CosSaveVerify _pSaveVerify;
-	CosCompNotifier _pCompNotifier;
-	CosBitmapMunger _pBitmapMunger;
+	CosInstanceHook _instanceHook;
+	CosSaveHook _saveHook;
+	CosSaveVerify _saveVerify;
+	CosCompNotifier _compNotifier;
+	CosBitmapMunger _bitmapMunger;
 };
 
 } // End of namespace Grim

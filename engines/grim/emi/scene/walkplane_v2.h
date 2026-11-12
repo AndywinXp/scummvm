@@ -51,7 +51,7 @@ public:
 	bool addNeighbor(int planeNumber);
 	bool touches(WalkPlane_v2 *other, bool both);
 	float *getGatePoint(float *out, WalkPlane_v2 *other, const float *from, const float *target);
-	void serialize(tSaveRestoreAccess *access);
+	void serialize(SaveRestoreAccess *access);
 	void setType(int newType);
 	bool within(const float *point, bool checkActive);
 	void closestPoint(float *point);
@@ -65,24 +65,24 @@ public:
 
 	static const float kRadiansToDegrees;
 
-	LString name;
-	int number;
-	int type;
-	bool active;
-	bool enabled;
-	float tolerance;
-	int numSortOrders;
-	int sortOrder[kMaxSortOrders];
-	int numVerts;
-	wpVertex *verts[kMaxVertices];
-	int hitEdge;
-	int quadAxis;
-	WalkPlaneCollection *collection;
-	float normal[3];
-	float d;
-	Common::Array<int> neighbors;
-	int bfsState;
-	WalkPlane_v2 *bfsParent;
+	LString _name;
+	int _number;
+	int _type;
+	bool _active;
+	bool _enabled;
+	float _tolerance;
+	int _numSortOrders;
+	int _sortOrder[kMaxSortOrders];
+	int _numVerts;
+	wpVertex *_verts[kMaxVertices];
+	int _hitEdge;
+	int _quadAxis;
+	WalkPlaneCollection *_collection;
+	float _normal[3];
+	float _d;
+	Common::Array<int> _neighbors;
+	int _bfsState;
+	WalkPlane_v2 *_bfsParent;
 
 private:
 	EmiEngine *_engine;

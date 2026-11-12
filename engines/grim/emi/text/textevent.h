@@ -68,8 +68,8 @@ public:
 	int getHeight();
 	int getCharWidth(uint16 character);
 	void draw(CDrawContext *drawContext);
-	bool save(tSaveRestoreAccess *access);
-	bool restore(tSaveRestoreAccess *access);
+	bool save(SaveRestoreAccess *access);
+	bool restore(SaveRestoreAccess *access);
 	bool setFont(const char *fontName);
 	bool setFont(LResourceHandle<CTextFont> newFont);
 
@@ -80,32 +80,32 @@ public:
 	static const char *translate(EmiEngine *engine, const char *msg, char *buffer);
 	static void holdAll(EmiEngine *engine);
 	static void releaseAll(EmiEngine *engine);
-	static bool saveAll(EmiEngine *engine, tSaveRestoreAccess *access);
-	static bool restoreAll(EmiEngine *engine, tSaveRestoreAccess *access);
+	static bool saveAll(EmiEngine *engine, SaveRestoreAccess *access);
+	static bool restoreAll(EmiEngine *engine, SaveRestoreAccess *access);
 
-	LString text;
-	float duration;
-	uint flags;
-	int actorId;
-	int clipRect[4];
-	LResourceHandle<CTextFont> font;
-	int x;
-	int y;
-	int layer;
-	int hold;
-	Color color;
-	Color outlineColor;
-	float scaleX;
-	float scaleY;
-	byte justify;
-	bool geometryReady;
-	int id;
-	Common::Array<TextRun> runs;
-	int vertexCount;
-	float *positions;
-	float *normals;
-	byte *colors;
-	float *uvs;
+	LString _text;
+	float _duration;
+	uint _flags;
+	int _actorId;
+	int _clipRect[4];
+	LResourceHandle<CTextFont> _font;
+	int _x;
+	int _y;
+	int _layer;
+	int _hold;
+	Color _color;
+	Color _outlineColor;
+	float _scaleX;
+	float _scaleY;
+	byte _justify;
+	bool _geometryReady;
+	int _id;
+	Common::Array<TextRun> _runs;
+	int _vertexCount;
+	float *_positions;
+	float *_normals;
+	byte *_colors;
+	float *_uvs;
 
 private:
 	EmiEngine *_engine;

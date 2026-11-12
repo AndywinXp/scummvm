@@ -121,12 +121,12 @@ public:
 	virtual float getFirstKeyTime() = 0;
 	virtual float getLastKeyTime() = 0;
 
-	int priority;
-	int trackFlags;
-	int trackType;
-	int dataType;
-	int capacity;
-	int numSamples;
+	int _priority;
+	int _trackFlags;
+	int _trackType;
+	int _dataType;
+	int _capacity;
+	int _numSamples;
 
 protected:
 	EmiEngine *_engine;
@@ -145,7 +145,7 @@ public:
 	virtual void sample(float previousTime, float time, T *out, AChannelHandle *channel) = 0;
 	virtual bool findKey(float *time, float limit, Key **key) = 0;
 
-	T value;
+	T _value;
 };
 
 template<class T>
@@ -167,10 +167,10 @@ public:
 
 	void allocateKeys(int count);
 
-	using ATrackData<T>::capacity;
-	using ATrackData<T>::numSamples;
+	using ATrackData<T>::_capacity;
+	using ATrackData<T>::_numSamples;
 
-	Key *keys;
+	Key *_keys;
 
 protected:
 	using ATrackData<T>::_engine;

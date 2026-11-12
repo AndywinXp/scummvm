@@ -65,7 +65,7 @@ float StdMath::normalizeAngleAcute(float angle) {
 	return result;
 }
 
-void StdMath::sinCos(float angle, float *pSin, float *pCos) {
+void StdMath::sinCos(float angle, float *sin, float *cos) {
 	float normalized = normalizeAngle(angle);
 	int quadrant;
 
@@ -82,7 +82,7 @@ void StdMath::sinCos(float angle, float *pSin, float *pCos) {
 	float fraction = (float)((double)value - rint(value));
 	int index = (int)value;
 	int next = index + 1;
-	const float *table = aSinCosTable;
+	const float *table = kSinCosTable;
 	float nextSin;
 	float nextCos;
 	float curSin;
@@ -91,33 +91,33 @@ void StdMath::sinCos(float angle, float *pSin, float *pCos) {
 	switch (quadrant) {
 	case 0:
 		nextSin = (next < 4096) ? table[next] : table[4095 - (index - 4095)];
-		*pSin = (float)(((double)nextSin - table[index]) * fraction + table[index]);
+		*sin = (float)(((double)nextSin - table[index]) * fraction + table[index]);
 		nextCos = (next < 4096) ? table[4095 - next] : -table[next - 4096];
-		*pCos = (float)(((double)nextCos - table[4095 - index]) * fraction + table[4095 - index]);
+		*cos = (float)(((double)nextCos - table[4095 - index]) * fraction + table[4095 - index]);
 		break;
 	case 1:
 		nextSin = (next < 0x2000) ? table[4095 - (index - 4095)] : -table[next - 8192];
 		curSin = table[4095 - (index - 4096)];
-		*pSin = (float)(((double)nextSin - curSin) * fraction + curSin);
+		*sin = (float)(((double)nextSin - curSin) * fraction + curSin);
 		nextCos = (next < 0x2000) ? -table[next - 4096] : -table[4095 - (index - 0x1FFF)];
 		curCos = -table[index - 4096];
-		*pCos = (float)(((double)nextCos - curCos) * fraction + curCos);
+		*cos = (float)(((double)nextCos - curCos) * fraction + curCos);
 		break;
 	case 2:
 		nextSin = (next < 12288) ? -table[next - 8192] : -table[4095 - (index - 12287)];
 		curSin = -table[index - 8192];
-		*pSin = (float)(((double)nextSin - curSin) * fraction + curSin);
+		*sin = (float)(((double)nextSin - curSin) * fraction + curSin);
 		nextCos = (next < 12288) ? -table[4095 - (index - 0x1FFF)] : table[next - 12288];
 		curCos = -table[4095 - (index - 0x2000)];
-		*pCos = (float)(((double)nextCos - curCos) * fraction + curCos);
+		*cos = (float)(((double)nextCos - curCos) * fraction + curCos);
 		break;
 	case 3:
 		nextSin = (next < 0x4000) ? -table[4095 - (index - 12287)] : table[next - 16384];
 		curSin = -table[4095 - (index - 12288)];
-		*pSin = (float)(((double)nextSin - curSin) * fraction + curSin);
+		*sin = (float)(((double)nextSin - curSin) * fraction + curSin);
 		nextCos = (next < 0x4000) ? table[next - 12288] : table[4095 - (index - 0x3FFF)];
 		curCos = table[index - 12288];
-		*pCos = (float)(((double)nextCos - curCos) * fraction + curCos);
+		*cos = (float)(((double)nextCos - curCos) * fraction + curCos);
 		break;
 	default:
 		break;
@@ -141,7 +141,7 @@ float StdMath::tan(float angle) {
 	float fraction = (float)((double)scaled - rint(scaled));
 	int index = (int)scaled;
 	int next = index + 1;
-	const float *table = aTanTable;
+	const float *table = kTanTable;
 	float nextValue;
 	float curValue;
 	float result = 0.0f;

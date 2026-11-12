@@ -675,10 +675,10 @@ TProtoFunc *luaY_parser (ZIO *z) {
 typedef union {
 	int vInt;
 	float vReal;
-	char *pChar;
+	char *charPointer;
 	long vLong;
-	TaggedString *pTStr;
-	TProtoFunc *pFunc;
+	TaggedString *tStr;
+	TProtoFunc *func;
 } YYSTYPE;
 
 #define	YYFINAL		181
@@ -1157,7 +1157,7 @@ case 19:
 	{ lua_pushvar(yyvsp[0].vLong); ;
 	break;}
 case 20:
-	{ code_string(yyvsp[0].pTStr); ;
+	{ code_string(yyvsp[0].tStr); ;
 	break;}
 case 21:
 	{ func_onstack(close_func()); ;
@@ -1247,7 +1247,7 @@ case 50:
 	{ code_number(yyvsp[0].vReal); yyval.vLong = 0; ;
 	break;}
 case 51:
-	{ code_string(yyvsp[0].pTStr); yyval.vLong = 0; ;
+	{ code_string(yyvsp[0].tStr); yyval.vLong = 0; ;
 	break;}
 case 52:
 	{ adjuststack(-1); yyval.vLong = 0; ;
@@ -1271,7 +1271,7 @@ case 58:
 	{ lua_pushvar(yyvsp[0].vLong); yyval.vLong = 0; ;
 	break;}
 case 59:
-	{ pushupvalue(yyvsp[0].pTStr); yyval.vLong = 0; ;
+	{ pushupvalue(yyvsp[0].tStr); yyval.vLong = 0; ;
 	break;}
 case 60:
 	{ yyval.vLong = yyvsp[0].vLong; ;
@@ -1283,10 +1283,10 @@ case 62:
 	{ yyval.vLong = 0; ;
 	break;}
 case 63:
-	{ yyval.vLong = (-string_constant(yyvsp[0].pTStr, lua_state->currState))-1; ;
+	{ yyval.vLong = (-string_constant(yyvsp[0].tStr, lua_state->currState))-1; ;
 	break;}
 case 64:
-	{ yyval.vLong = singlevar(yyvsp[0].pTStr, lua_state->currState); ;
+	{ yyval.vLong = singlevar(yyvsp[0].tStr, lua_state->currState); ;
 	break;}
 case 65:
 	{ fix_opcode(yyvsp[-2].vInt, CREATEARRAY, 2, yyvsp[-1].vInt); ;
@@ -1304,7 +1304,7 @@ case 67:
 	break;}
 case 68:
 	{
-		code_oparg(PUSHSELF, 8, string_constant(yyvsp[0].pTStr, lua_state->currState), 1);
+		code_oparg(PUSHSELF, 8, string_constant(yyvsp[0].tStr, lua_state->currState), 1);
 		yyval.vInt = 1;
 		;
 		break;}
@@ -1315,7 +1315,7 @@ case 70:
 	{ yyval.vInt = 1; ;
 	break;}
 case 71:
-	{ code_string(yyvsp[0].pTStr); yyval.vInt = 1; ;
+	{ code_string(yyvsp[0].tStr); yyval.vInt = 1; ;
 	break;}
 case 72:
 	{ yyval.vLong = 0; ;
@@ -1408,10 +1408,10 @@ case 98:
 	{ add_varbuffer(yyvsp[0].vLong, yyvsp[-2].vInt); yyval.vInt = yyvsp[-2].vInt+1; ;
 	break;}
 case 99:
-	{store_localvar(yyvsp[0].pTStr, 0); yyval.vInt = 1;;
+	{store_localvar(yyvsp[0].tStr, 0); yyval.vInt = 1;;
 	break;}
 case 100:
-	{ store_localvar(yyvsp[0].pTStr, yyvsp[-2].vInt); yyval.vInt = yyvsp[-2].vInt+1; ;
+	{ store_localvar(yyvsp[0].tStr, yyvsp[-2].vInt); yyval.vInt = yyvsp[-2].vInt+1; ;
 	break;}
 case 101:
 	{ yyval.vInt = 0; ;

@@ -181,10 +181,10 @@ bool EmiEngine::onCharacter(byte character) {
 
 void EmiEngine::pauseEngineIntern(bool pause) {
 	if (pause) {
-		_bEnginePaused = _mode != kModePaused;
+		_enginePaused = _mode != kModePaused;
 		setPause(true);
-	} else if (_bEnginePaused) {
-		_bEnginePaused = 0;
+	} else if (_enginePaused) {
+		_enginePaused = 0;
 		setPause(false);
 	}
 }

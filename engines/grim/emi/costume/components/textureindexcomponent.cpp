@@ -35,7 +35,7 @@ uint TextureIndexComponent::resSizeOfItem() {
 }
 
 ComponentInstance *TextureIndexComponent::createInstance(Actor *owner) {
-	return new TextureIndexInstance(_engine, name, owner);
+	return new TextureIndexInstance(_engine, _name, owner);
 }
 
 bool TextureIndexComponent::resLoadItem(const char *itemName) {

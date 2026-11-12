@@ -148,36 +148,36 @@ static void writeString(LFile *file, const LString &text) {
 }
 
 RMesh::RMesh(EmiEngine *engine) : _engine(engine) {
-	vertFlags = 0;
-	numTextureSets = 0;
-	numVerts = 0;
-	pos = nullptr;
-	normals = nullptr;
-	vertIndex = nullptr;
-	colors = nullptr;
-	uv = nullptr;
-	weightMap = nullptr;
+	_vertFlags = 0;
+	_numTextureSets = 0;
+	_numVerts = 0;
+	_pos = nullptr;
+	_normals = nullptr;
+	_vertIndex = nullptr;
+	_colors = nullptr;
+	_uv = nullptr;
+	_weightMap = nullptr;
 }
 
 RMesh::~RMesh() {
 	freeVertexData();
 
-	for (uint i = 0; i < matHandles.size(); i++)
-		matHandles[i].unlock();
+	for (uint i = 0; i < _matHandles.size(); i++)
+		_matHandles[i].unlock();
 
-	matHandles.clear();
-	materials.clear();
-	texFlags.clear();
+	_matHandles.clear();
+	_materials.clear();
+	_texFlags.clear();
 
-	for (uint i = 0; i < trisets.size(); i++) {
-		delete trisets[i];
-		trisets[i] = nullptr;
+	for (uint i = 0; i < _trisets.size(); i++) {
+		delete _trisets[i];
+		_trisets[i] = nullptr;
 	}
 
-	trisets.clear();
+	_trisets.clear();
 
-	delete weightMap;
-	weightMap = nullptr;
+	delete _weightMap;
+	_weightMap = nullptr;
 }
 
 EmiEngine *RMesh::getEngine() const {
@@ -194,65 +194,65 @@ void RMesh::allocVertexData(int flags, int count) {
 		count = 0;
 	}
 
-	vertFlags = flags;
-	numVerts = count;
+	_vertFlags = flags;
+	_numVerts = count;
 
-	pos = (float *)_engine->getMemoryServices()->mallocImpl(count * 3 * sizeof(float));
+	_pos = (float *)_engine->getMemoryServices()->mallocImpl(count * 3 * sizeof(float));
 
-	if (pos)
-		memset(pos, 0, count * 3 * sizeof(float));
+	if (_pos)
+		memset(_pos, 0, count * 3 * sizeof(float));
 
 	if (flags & 1) {
-		normals = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 3 * sizeof(float));
+		_normals = (float *)_engine->getMemoryServices()->mallocImpl(_numVerts * 3 * sizeof(float));
 
-		if (normals)
-			memset(normals, 0, numVerts * 3 * sizeof(float));
+		if (_normals)
+			memset(_normals, 0, _numVerts * 3 * sizeof(float));
 	}
 
 	if (flags & 2) {
-		colors = (PackedColor *)_engine->getMemoryServices()->mallocImpl(numVerts * sizeof(PackedColor));
+		_colors = (PackedColor *)_engine->getMemoryServices()->mallocImpl(_numVerts * sizeof(PackedColor));
 
-		if (colors)
-			memset(colors, 0, numVerts * sizeof(PackedColor));
+		if (_colors)
+			memset(_colors, 0, _numVerts * sizeof(PackedColor));
 	}
 
 	if (flags & 4)
-		vertIndex = (int *)_engine->getMemoryServices()->mallocImpl(numVerts * sizeof(int));
+		_vertIndex = (int *)_engine->getMemoryServices()->mallocImpl(_numVerts * sizeof(int));
 
 	if (flags & 0x10) {
-		uv = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 2 * sizeof(float));
+		_uv = (float *)_engine->getMemoryServices()->mallocImpl(_numVerts * 2 * sizeof(float));
 
-		if (uv)
-			memset(uv, 0, numVerts * 2 * sizeof(float));
+		if (_uv)
+			memset(_uv, 0, _numVerts * 2 * sizeof(float));
 	}
 }
 
 void RMesh::freeVertexData() {
-	numVerts = 0;
+	_numVerts = 0;
 
-	if (pos) {
-		_engine->getMemoryServices()->freeImpl(pos);
-		pos = nullptr;
+	if (_pos) {
+		_engine->getMemoryServices()->freeImpl(_pos);
+		_pos = nullptr;
 	}
 
-	if (normals) {
-		_engine->getMemoryServices()->freeImpl(normals);
-		normals = nullptr;
+	if (_normals) {
+		_engine->getMemoryServices()->freeImpl(_normals);
+		_normals = nullptr;
 	}
 
-	if (vertIndex) {
-		_engine->getMemoryServices()->freeImpl(vertIndex);
-		vertIndex = nullptr;
+	if (_vertIndex) {
+		_engine->getMemoryServices()->freeImpl(_vertIndex);
+		_vertIndex = nullptr;
 	}
 
-	if (colors) {
-		_engine->getMemoryServices()->freeImpl(colors);
-		colors = nullptr;
+	if (_colors) {
+		_engine->getMemoryServices()->freeImpl(_colors);
+		_colors = nullptr;
 	}
 
-	if (uv) {
-		_engine->getMemoryServices()->freeImpl(uv);
-		uv = nullptr;
+	if (_uv) {
+		_engine->getMemoryServices()->freeImpl(_uv);
+		_uv = nullptr;
 	}
 }
 
@@ -278,25 +278,25 @@ void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *ver
 		if (!lightNode)
 			continue;
 
-		CLight *light = lightNode->light;
+		CLight *light = lightNode->_light;
 
 		if (!light) {
 			warning("RMesh::lightVertices(): light node without a light");
 			continue;
 		}
 
-		if (light->type == CLight::kTypeAmbient) {
+		if (light->_type == CLight::kTypeAmbient) {
 			ambientLight = light;
 			continue;
 		}
 
-		if ((lightNode->nodeFlags & CNode::kWorldValid) == 0)
+		if ((lightNode->_nodeFlags & CNode::kWorldValid) == 0)
 			lightNode->updateWorldTransform();
 
-		const float *r = transform->rot.m;
-		double deltaX = (double)lightNode->world.pos.x - transform->pos.x;
-		double deltaY = (double)lightNode->world.pos.y - transform->pos.y;
-		double deltaZ = (double)lightNode->world.pos.z - transform->pos.z;
+		const float *r = transform->_rot._m;
+		double deltaX = (double)lightNode->_world._pos._x - transform->_pos._x;
+		double deltaY = (double)lightNode->_world._pos._y - transform->_pos._y;
+		double deltaZ = (double)lightNode->_world._pos._z - transform->_pos._z;
 		float localX = (float)(deltaY * r[1] + deltaZ * r[2] + deltaX * r[0]);
 		float localY = (float)(deltaY * r[4] + deltaZ * r[5] + deltaX * r[3]);
 		float localZ = (float)(deltaY * r[7] + deltaZ * r[8] + deltaX * r[6]);
@@ -304,22 +304,22 @@ void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *ver
 		CMatrix product;
 		float lightTransform[12];
 
-		transform->rot.transpose(&transposed);
-		lightNode->world.rot.multiply(&product, &transposed);
+		transform->_rot.transpose(&transposed);
+		lightNode->_world._rot.multiply(&product, &transposed);
 
 		for (int i = 0; i < 9; i++)
-			lightTransform[i] = product.m[i];
+			lightTransform[i] = product._m[i];
 
 		lightTransform[9] = localX;
 		lightTransform[10] = localY;
 		lightTransform[11] = localZ;
 
-		if (light->isOutOfRange(lightTransform, &box))
+		if (light->isOutOfRange(lightTransform, &_box))
 			continue;
 
-		double sumX = (double)box.max.x + box.min.x;
-		float sumY = (float)((double)box.max.y + box.min.y);
-		float sumZ = (float)((double)box.max.z + box.min.z);
+		double sumX = (double)_box._max._x + _box._min._x;
+		float sumY = (float)((double)_box._max._y + _box._min._y);
+		float sumZ = (float)((double)_box._max._z + _box._min._z);
 		double centerX = sumX * kHalf;
 		float centerY = (float)((double)sumY * kHalf);
 		float centerZ = (float)((double)sumZ * kHalf);
@@ -353,28 +353,28 @@ void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *ver
 	float actorTransform[12];
 
 	for (int i = 0; i < 9; i++)
-		actorTransform[i] = transform->rot.m[i];
+		actorTransform[i] = transform->_rot._m[i];
 
-	actorTransform[9] = transform->pos.x;
-	actorTransform[10] = transform->pos.y;
-	actorTransform[11] = transform->pos.z;
+	actorTransform[9] = transform->_pos._x;
+	actorTransform[10] = transform->_pos._y;
+	actorTransform[11] = transform->_pos._z;
 
 	Color ambient;
 
 	ambient.setRGB(0, 0, 0);
 
 	if (ambientLight)
-		ambientLight->addLighting(&ambient, actorTransform, &kZeroVector.x, &kZeroVector.x);
+		ambientLight->addLighting(&ambient, actorTransform, &kZeroVector._x, &kZeroVector._x);
 	else
 		ambient.setRGB(kDefaultAmbient, kDefaultAmbient, kDefaultAmbient);
 
 	Color color;
 	PackedColor lit;
 
-	lit.b = 0;
-	lit.g = 0;
-	lit.r = 0;
-	lit.a = 0;
+	lit._b = 0;
+	lit._g = 0;
+	lit._r = 0;
+	lit._a = 0;
 
 	for (int i = 0; i < count; i++) {
 		color = ambient;
@@ -384,27 +384,27 @@ void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *ver
 
 		color.clamp();
 
-		lit.r = 255;
+		lit._r = 255;
 
-		if ((uint)color.r <= 0xFF)
-			lit.r = color.r;
+		if ((uint)color._r <= 0xFF)
+			lit._r = color._r;
 
-		lit.g = 255;
+		lit._g = 255;
 
-		if ((uint)color.g <= 0xFF)
-			lit.g = color.g;
+		if ((uint)color._g <= 0xFF)
+			lit._g = color._g;
 
-		lit.b = 255;
+		lit._b = 255;
 
-		if ((uint)color.b <= 0xFF)
-			lit.b = color.b;
+		if ((uint)color._b <= 0xFF)
+			lit._b = color._b;
 
-		lit.a = 255;
+		lit._a = 255;
 
-		if (colors) {
+		if (_colors) {
 			PackedColor modulated;
 
-			colors[i].modulate(&modulated, &lit);
+			_colors[i].modulate(&modulated, &lit);
 			vertices[i].color = modulated.pack();
 		} else {
 			vertices[i].color = lit.pack();
@@ -436,25 +436,25 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 		if (!lightNode)
 			continue;
 
-		CLight *light = lightNode->light;
+		CLight *light = lightNode->_light;
 
 		if (!light) {
 			warning("RMesh::lightVerticesAmbientCube(): light node without a light");
 			continue;
 		}
 
-		if (light->type == CLight::kTypeAmbient) {
+		if (light->_type == CLight::kTypeAmbient) {
 			ambientLight = light;
 			continue;
 		}
 
-		if ((lightNode->nodeFlags & CNode::kWorldValid) == 0)
+		if ((lightNode->_nodeFlags & CNode::kWorldValid) == 0)
 			lightNode->updateWorldTransform();
 
-		const float *r = transform->rot.m;
-		double deltaX = (double)lightNode->world.pos.x - transform->pos.x;
-		double deltaY = (double)lightNode->world.pos.y - transform->pos.y;
-		double deltaZ = (double)lightNode->world.pos.z - transform->pos.z;
+		const float *r = transform->_rot._m;
+		double deltaX = (double)lightNode->_world._pos._x - transform->_pos._x;
+		double deltaY = (double)lightNode->_world._pos._y - transform->_pos._y;
+		double deltaZ = (double)lightNode->_world._pos._z - transform->_pos._z;
 		float localX = (float)(deltaY * r[1] + deltaZ * r[2] + deltaX * r[0]);
 		float localY = (float)(deltaY * r[4] + deltaZ * r[5] + deltaX * r[3]);
 		float localZ = (float)(deltaY * r[7] + deltaZ * r[8] + deltaX * r[6]);
@@ -462,22 +462,22 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 		CMatrix product;
 		float lightTransform[12];
 
-		transform->rot.transpose(&transposed);
-		lightNode->world.rot.multiply(&product, &transposed);
+		transform->_rot.transpose(&transposed);
+		lightNode->_world._rot.multiply(&product, &transposed);
 
 		for (int i = 0; i < 9; i++)
-			lightTransform[i] = product.m[i];
+			lightTransform[i] = product._m[i];
 
 		lightTransform[9] = localX;
 		lightTransform[10] = localY;
 		lightTransform[11] = localZ;
 
-		if (light->isOutOfRange(lightTransform, &box))
+		if (light->isOutOfRange(lightTransform, &_box))
 			continue;
 
-		double sumX = (double)box.min.x + box.max.x;
-		float sumY = (float)((double)box.max.y + box.min.y);
-		float sumZ = (float)((double)box.max.z + box.min.z);
+		double sumX = (double)_box._min._x + _box._max._x;
+		float sumY = (float)((double)_box._max._y + _box._min._y);
+		float sumZ = (float)((double)_box._max._z + _box._min._z);
 		double centerX = sumX * kHalf;
 		float centerY = (float)((double)sumY * kHalf);
 		float centerZ = (float)((double)sumZ * kHalf);
@@ -511,18 +511,18 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 	float actorTransform[12];
 
 	for (int i = 0; i < 9; i++)
-		actorTransform[i] = transform->rot.m[i];
+		actorTransform[i] = transform->_rot._m[i];
 
-	actorTransform[9] = transform->pos.x;
-	actorTransform[10] = transform->pos.y;
-	actorTransform[11] = transform->pos.z;
+	actorTransform[9] = transform->_pos._x;
+	actorTransform[10] = transform->_pos._y;
+	actorTransform[11] = transform->_pos._z;
 
 	Color ambient;
 
 	ambient.setRGB(0, 0, 0);
 
 	if (ambientLight)
-		ambientLight->addLighting(&ambient, actorTransform, &kZeroVector.x, &kZeroVector.x);
+		ambientLight->addLighting(&ambient, actorTransform, &kZeroVector._x, &kZeroVector._x);
 	else
 		ambient.setRGB(kDefaultAmbient, kDefaultAmbient, kDefaultAmbient);
 
@@ -532,20 +532,20 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 		cube[face] = ambient;
 
 		for (int j = 0; j < numLights; j++) {
-			float factor = lightList[j]->evaluate(lightTransforms[j], &center.x, kCubeDirections[face]);
+			float factor = lightList[j]->evaluate(lightTransforms[j], &_center._x, kCubeDirections[face]);
 
 			if (factor > 0.0f) {
-				const Color &lightColor = lightList[j]->color;
+				const Color &lightColor = lightList[j]->_color;
 
 				// The disasm rounds the products to the nearest integer here
-				float addedR = (float)((double)(uint)lightColor.r * factor);
-				cube[face].r += (int)lrint(addedR);
+				float addedR = (float)((double)(uint)lightColor._r * factor);
+				cube[face]._r += (int)lrint(addedR);
 
-				float addedG = (float)((double)(uint)lightColor.g * factor);
-				cube[face].g += (int)lrint(addedG);
+				float addedG = (float)((double)(uint)lightColor._g * factor);
+				cube[face]._g += (int)lrint(addedG);
 
-				float addedB = (float)((double)(uint)lightColor.b * factor);
-				cube[face].b += (int)lrint(addedB);
+				float addedB = (float)((double)(uint)lightColor._b * factor);
+				cube[face]._b += (int)lrint(addedB);
 			}
 		}
 
@@ -554,10 +554,10 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 
 	PackedColor lit;
 
-	lit.b = 0;
-	lit.g = 0;
-	lit.r = 0;
-	lit.a = 0;
+	lit._b = 0;
+	lit._g = 0;
+	lit._r = 0;
+	lit._a = 0;
 
 	for (int i = 0; i < count; i++) {
 		float normalX = vertexNormals[i * 3];
@@ -579,37 +579,37 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 		const Color &faceY = cube[2 + (bitsY >> 31)];
 		const Color &faceZ = cube[4 + (bitsZ >> 31)];
 
-		sum.r += (int)lrint((float)((double)(uint)faceX.r * weightX));
-		sum.g += (int)lrint((float)((double)(uint)faceX.g * weightX));
-		sum.b += (int)lrint((float)((double)(uint)faceX.b * weightX));
-		sum.r += (int)lrint((float)((double)(uint)faceY.r * weightY));
-		sum.g += (int)lrint((float)((double)(uint)faceY.g * weightY));
-		sum.b += (int)lrint((float)((double)(uint)faceY.b * weightY));
-		sum.r += (int)lrint((float)((double)(uint)faceZ.r * weightZ));
-		sum.g += (int)lrint((float)((double)(uint)faceZ.g * weightZ));
-		sum.b += (int)lrint((float)((double)(uint)faceZ.b * weightZ));
+		sum._r += (int)lrint((float)((double)(uint)faceX._r * weightX));
+		sum._g += (int)lrint((float)((double)(uint)faceX._g * weightX));
+		sum._b += (int)lrint((float)((double)(uint)faceX._b * weightX));
+		sum._r += (int)lrint((float)((double)(uint)faceY._r * weightY));
+		sum._g += (int)lrint((float)((double)(uint)faceY._g * weightY));
+		sum._b += (int)lrint((float)((double)(uint)faceY._b * weightY));
+		sum._r += (int)lrint((float)((double)(uint)faceZ._r * weightZ));
+		sum._g += (int)lrint((float)((double)(uint)faceZ._g * weightZ));
+		sum._b += (int)lrint((float)((double)(uint)faceZ._b * weightZ));
 
-		lit.r = 255;
+		lit._r = 255;
 
-		if ((uint)sum.r <= 0xFF)
-			lit.r = sum.r;
+		if ((uint)sum._r <= 0xFF)
+			lit._r = sum._r;
 
-		lit.g = 255;
+		lit._g = 255;
 
-		if ((uint)sum.g <= 0xFF)
-			lit.g = sum.g;
+		if ((uint)sum._g <= 0xFF)
+			lit._g = sum._g;
 
-		lit.b = 255;
+		lit._b = 255;
 
-		if ((uint)sum.b <= 0xFF)
-			lit.b = sum.b;
+		if ((uint)sum._b <= 0xFF)
+			lit._b = sum._b;
 
-		lit.a = 255;
+		lit._a = 255;
 
-		if (colors) {
+		if (_colors) {
 			PackedColor modulated;
 
-			colors[i].modulate(&modulated, &lit);
+			_colors[i].modulate(&modulated, &lit);
 			vertices[i].color = modulated.pack();
 		} else {
 			vertices[i].color = lit.pack();
@@ -620,25 +620,25 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 }
 
 void RMesh::computeBounds() {
-	if (numVerts) {
-		box.init(pos);
+	if (_numVerts) {
+		_box.init(_pos);
 
-		for (int i = 1; i < numVerts; i++)
-			box.expand(&pos[i * 3]);
+		for (int i = 1; i < _numVerts; i++)
+			_box.expand(&_pos[i * 3]);
 
-		double sumX = (double)box.max.x + box.min.x;
-		float sumY = (float)((double)box.min.y + box.max.y);
-		float sumZ = (float)((double)box.min.z + box.max.z);
+		double sumX = (double)_box._max._x + _box._min._x;
+		float sumY = (float)((double)_box._min._y + _box._max._y);
+		float sumZ = (float)((double)_box._min._z + _box._max._z);
 
-		center.y = (float)((double)sumY * kHalf);
-		center.x = (float)(sumX * kHalf);
-		center.z = (float)((double)sumZ * kHalf);
+		_center._y = (float)((double)sumY * kHalf);
+		_center._x = (float)(sumX * kHalf);
+		_center._z = (float)((double)sumZ * kHalf);
 
-		double sizeZ = (double)box.max.z - box.min.z;
-		double sizeY = (double)box.max.y - box.min.y;
-		double sizeX = (double)box.max.x - box.min.x;
+		double sizeZ = (double)_box._max._z - _box._min._z;
+		double sizeY = (double)_box._max._y - _box._min._y;
+		double sizeX = (double)_box._max._x - _box._min._x;
 
-		radius = (float)(sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ) * kHalf);
+		_radius = (float)(sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ) * kHalf);
 	}
 }
 
@@ -652,19 +652,19 @@ bool RMesh::save(LFile *file) {
 	parser.writeComment("RMesh primitive");
 	parser.writeEntry(RMeshParser::kKeywordBasePrim);
 	parser.writeComment("Texture sets");
-	parser.writeEntry(RMeshParser::kKeywordTotTxSets, numTextureSets);
+	parser.writeEntry(RMeshParser::kKeywordTotTxSets, _numTextureSets);
 
-	if (numTextureSets) {
+	if (_numTextureSets) {
 		parser.writeVersion(2, 0);
 		parser.writeComment("Material Set");
 		parser.writeEntry(RMeshParser::kKeywordSetType, 0);
-		parser.writeEntry(RMeshParser::kKeywordNumTextures, (int)matHandles.size());
+		parser.writeEntry(RMeshParser::kKeywordNumTextures, (int)_matHandles.size());
 
-		for (uint i = 0; i < matHandles.size(); i++) {
+		for (uint i = 0; i < _matHandles.size(); i++) {
 			LString materialName;
 
-			if (matHandles[i].resource)
-				materialName = matHandles[i].resource->name;
+			if (_matHandles[i]._resource)
+				materialName = _matHandles[i]._resource->_name;
 			else
 				warning("RMesh::save(): material %u has no resource", i);
 
@@ -679,8 +679,8 @@ bool RMesh::save(LFile *file) {
 
 			int flags = 0;
 
-			if (i < texFlags.size())
-				flags = texFlags[i];
+			if (i < _texFlags.size())
+				flags = _texFlags[i];
 			else
 				warning("RMesh::save(): material %u has no texture flags", i);
 
@@ -694,46 +694,46 @@ bool RMesh::save(LFile *file) {
 	parser.writeEntry(RMeshParser::kKeywordNumFaces, 0);
 	parser.writeEntry(RMeshParser::kKeywordNumFaceNormals, 0);
 	parser.writeComment("Vertex arrays");
-	parser.writeEntry(RMeshParser::kKeywordVertFlags, vertFlags);
-	parser.writeEntry(RMeshParser::kKeywordNumVerts, numVerts);
+	parser.writeEntry(RMeshParser::kKeywordVertFlags, _vertFlags);
+	parser.writeEntry(RMeshParser::kKeywordNumVerts, _numVerts);
 	parser.writeComment("Vert x y z");
 
-	for (int i = 0; i < numVerts; i++)
-		parser.writeEntry(RMeshParser::kKeywordVector, pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
+	for (int i = 0; i < _numVerts; i++)
+		parser.writeEntry(RMeshParser::kKeywordVector, _pos[i * 3], _pos[i * 3 + 1], _pos[i * 3 + 2]);
 
-	if (vertFlags & 1) {
+	if (_vertFlags & 1) {
 		parser.writeComment("Normal x y z");
 
-		for (int i = 0; i < numVerts; i++)
-			parser.writeEntry(RMeshParser::kKeywordNormal, normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]);
+		for (int i = 0; i < _numVerts; i++)
+			parser.writeEntry(RMeshParser::kKeywordNormal, _normals[i * 3], _normals[i * 3 + 1], _normals[i * 3 + 2]);
 	}
 
-	if (vertFlags & 2) {
+	if (_vertFlags & 2) {
 		parser.writeComment("Color r g b");
 
-		for (int i = 0; i < numVerts; i++)
-			parser.writeEntry(RMeshParser::kKeywordColor, colors[i].r, colors[i].g, colors[i].b, colors[i].a);
+		for (int i = 0; i < _numVerts; i++)
+			parser.writeEntry(RMeshParser::kKeywordColor, _colors[i]._r, _colors[i]._g, _colors[i]._b, _colors[i]._a);
 	}
 
-	if (vertFlags & 4) {
+	if (_vertFlags & 4) {
 		parser.writeComment("VertIndex");
 
-		for (int i = 0; i < numVerts; i++)
-			parser.writeEntry(RMeshParser::kKeywordVertIndex, vertIndex[i]);
+		for (int i = 0; i < _numVerts; i++)
+			parser.writeEntry(RMeshParser::kKeywordVertIndex, _vertIndex[i]);
 	}
 
-	if (vertFlags & 0x10) {
+	if (_vertFlags & 0x10) {
 		parser.writeComment("TextCoord u v");
 
-		for (int i = 0; i < numVerts; i++)
-			parser.writeEntry(RMeshParser::kKeywordTexCoord, uv[i * 2], uv[i * 2 + 1]);
+		for (int i = 0; i < _numVerts; i++)
+			parser.writeEntry(RMeshParser::kKeywordTexCoord, _uv[i * 2], _uv[i * 2 + 1]);
 	}
 
 	parser.writeComment("Triangle sets");
-	parser.writeEntry(RMeshParser::kKeywordNumTriSets, (int)trisets.size());
+	parser.writeEntry(RMeshParser::kKeywordNumTriSets, (int)_trisets.size());
 
-	for (uint i = 0; i < trisets.size(); i++) {
-		TriSet *triset = trisets[i];
+	for (uint i = 0; i < _trisets.size(); i++) {
+		TriSet *triset = _trisets[i];
 		int numIndices = (int)triset->indices.size();
 
 		parser.writeEntry(RMeshParser::kKeywordTsDrawFlags, triset->drawFlags);
@@ -744,9 +744,9 @@ bool RMesh::save(LFile *file) {
 			parser.writeEntry(RMeshParser::kKeywordTsTriangle, triset->indices[j], triset->indices[j + 1], triset->indices[j + 2]);
 	}
 
-	if (weightMap) {
+	if (_weightMap) {
 		parser.writeEntry(RMeshParser::kKeywordDeformPrim);
-		weightMap->save(file);
+		_weightMap->save(file);
 	}
 
 	parser.writeEndOfSection();
@@ -760,19 +760,19 @@ bool RMesh::restore(LFile *file) {
 	RMeshParser parser(_engine);
 
 	parser.setFile(file);
-	parser.mesh = this;
+	parser._mesh = this;
 
 	bool result = parser.parseRemaining(2, 1);
 
-	if (result && weightMap && vertIndex) {
-		weightMap->remapVertexLists(numVerts, vertIndex);
-		weightMap->flattenWeights();
+	if (result && _weightMap && _vertIndex) {
+		_weightMap->remapVertexLists(_numVerts, _vertIndex);
+		_weightMap->flattenWeights();
 	}
 
-	if (vertIndex) {
-		_engine->getMemoryServices()->freeImpl(vertIndex);
-		vertIndex = nullptr;
-		vertFlags &= ~4;
+	if (_vertIndex) {
+		_engine->getMemoryServices()->freeImpl(_vertIndex);
+		_vertIndex = nullptr;
+		_vertFlags &= ~4;
 	}
 
 	return result;
@@ -786,26 +786,26 @@ bool RMesh::loadBinary(const char *path) {
 
 	int fileSize = _engine->getFileServices()->getSize(path);
 	byte bounds[kBoundsSize];
-	bool valid = readString(file, fileSize, &name);
+	bool valid = readString(file, fileSize, &_name);
 
 	valid = valid && readBytes(file, bounds, sizeof(bounds));
 
 	if (valid) {
-		radius = READ_LE_FLOAT32(bounds);
-		center.x = READ_LE_FLOAT32(bounds + 4);
-		center.y = READ_LE_FLOAT32(bounds + 8);
-		center.z = READ_LE_FLOAT32(bounds + 12);
-		box.min.x = READ_LE_FLOAT32(bounds + 16);
-		box.min.y = READ_LE_FLOAT32(bounds + 20);
-		box.min.z = READ_LE_FLOAT32(bounds + 24);
-		box.max.x = READ_LE_FLOAT32(bounds + 28);
-		box.max.y = READ_LE_FLOAT32(bounds + 32);
-		box.max.z = READ_LE_FLOAT32(bounds + 36);
+		_radius = READ_LE_FLOAT32(bounds);
+		_center._x = READ_LE_FLOAT32(bounds + 4);
+		_center._y = READ_LE_FLOAT32(bounds + 8);
+		_center._z = READ_LE_FLOAT32(bounds + 12);
+		_box._min._x = READ_LE_FLOAT32(bounds + 16);
+		_box._min._y = READ_LE_FLOAT32(bounds + 20);
+		_box._min._z = READ_LE_FLOAT32(bounds + 24);
+		_box._max._x = READ_LE_FLOAT32(bounds + 28);
+		_box._max._y = READ_LE_FLOAT32(bounds + 32);
+		_box._max._z = READ_LE_FLOAT32(bounds + 36);
 	}
 
-	valid = valid && readInt(file, &numTextureSets);
+	valid = valid && readInt(file, &_numTextureSets);
 
-	if (valid && numTextureSets > 0) {
+	if (valid && _numTextureSets > 0) {
 		int setType = 0;
 		int numTextures = 0;
 
@@ -817,50 +817,50 @@ bool RMesh::loadBinary(const char *path) {
 		}
 
 		if (valid) {
-			matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
-			texFlags.resize(numTextures, 0);
-			materials.resize(numTextures, nullptr);
+			_matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
+			_texFlags.resize(numTextures, 0);
+			_materials.resize(numTextures, nullptr);
 		}
 
 		for (int i = 0; valid && i < numTextures; i++) {
 			LString materialName;
 
-			valid = readString(file, fileSize, &materialName) && readInt(file, &texFlags[i]);
+			valid = readString(file, fileSize, &materialName) && readInt(file, &_texFlags[i]);
 
 			if (!valid)
 				break;
 
 			LResourceHandle<CMaterial> foundMaterial(_engine);
 
-			foundMaterial.resource = _engine->getResourceManager()->findResource(materialName);
+			foundMaterial._resource = _engine->getResourceManager()->findResource(materialName);
 
-			if (!foundMaterial.resource) {
-				foundMaterial.resource = _engine->getResourceManager()->createResource(materialName);
+			if (!foundMaterial._resource) {
+				foundMaterial._resource = _engine->getResourceManager()->createResource(materialName);
 
-				if (!foundMaterial.resource)
+				if (!foundMaterial._resource)
 					foundMaterial.allocateResource();
 
-				if (foundMaterial.resource) {
-					foundMaterial.resource->resSetName(materialName.c_str());
-					_engine->getResourceManager()->addResource(foundMaterial.resource);
+				if (foundMaterial._resource) {
+					foundMaterial._resource->resSetName(materialName.c_str());
+					_engine->getResourceManager()->addResource(foundMaterial._resource);
 				}
 			}
 
-			foundMaterial.setResource(foundMaterial.resource);
-			matHandles[i].setResource(foundMaterial.resource);
+			foundMaterial.setResource(foundMaterial._resource);
+			_matHandles[i].setResource(foundMaterial._resource);
 
-			if (matHandles[i].lock() && matHandles[i].typed) {
-				materials[i] = matHandles[i].typed;
-				materials[i]->addFlags(texFlags[i]);
+			if (_matHandles[i].lock() && _matHandles[i]._typed) {
+				_materials[i] = _matHandles[i]._typed;
+				_materials[i]->addFlags(_texFlags[i]);
 			} else {
-				materials[i] = nullptr;
+				_materials[i] = nullptr;
 			}
 		}
 	}
 
 	int vertexCount = 0;
 
-	valid = valid && readInt(file, &vertFlags) && readInt(file, &vertexCount);
+	valid = valid && readInt(file, &_vertFlags) && readInt(file, &vertexCount);
 
 	if (valid && !isCountValid(vertexCount, 12, fileSize)) {
 		warning("RMesh::loadBinary(): invalid vertex count %d", vertexCount);
@@ -868,31 +868,31 @@ bool RMesh::loadBinary(const char *path) {
 	}
 
 	if (valid) {
-		allocVertexData(vertFlags, vertexCount);
-		valid = readFloats(file, pos, 3 * numVerts);
+		allocVertexData(_vertFlags, vertexCount);
+		valid = readFloats(file, _pos, 3 * _numVerts);
 	}
 
-	if (valid && (vertFlags & 1))
-		valid = readFloats(file, normals, 3 * numVerts);
+	if (valid && (_vertFlags & 1))
+		valid = readFloats(file, _normals, 3 * _numVerts);
 
-	if (valid && (vertFlags & 2) && numVerts > 0) {
-		Common::Array<byte> rgba(numVerts * sizeof(PackedColor));
+	if (valid && (_vertFlags & 2) && _numVerts > 0) {
+		Common::Array<byte> rgba(_numVerts * sizeof(PackedColor));
 
 		valid = readBytes(file, &rgba[0], rgba.size());
 
-		for (int i = 0; valid && i < numVerts; i++) {
-			colors[i].r = rgba[i * 4];
-			colors[i].g = rgba[i * 4 + 1];
-			colors[i].b = rgba[i * 4 + 2];
-			colors[i].a = rgba[i * 4 + 3];
+		for (int i = 0; valid && i < _numVerts; i++) {
+			_colors[i]._r = rgba[i * 4];
+			_colors[i]._g = rgba[i * 4 + 1];
+			_colors[i]._b = rgba[i * 4 + 2];
+			_colors[i]._a = rgba[i * 4 + 3];
 		}
 	}
 
-	if (valid && (vertFlags & 4))
-		valid = readInts(file, vertIndex, numVerts);
+	if (valid && (_vertFlags & 4))
+		valid = readInts(file, _vertIndex, _numVerts);
 
-	if (valid && (vertFlags & 0x10))
-		valid = readFloats(file, uv, 2 * numVerts);
+	if (valid && (_vertFlags & 0x10))
+		valid = readFloats(file, _uv, 2 * _numVerts);
 
 	int numTriSets = 0;
 	bool isPS2 = _engine->getGamePlatform() == Common::kPlatformPS2;
@@ -906,13 +906,13 @@ bool RMesh::loadBinary(const char *path) {
 	}
 
 	if (valid)
-		trisets.resize(numTriSets, nullptr);
+		_trisets.resize(numTriSets, nullptr);
 
 	for (int i = 0; valid && i < numTriSets; i++) {
 		TriSet *triset = new TriSet();
 		int numIndices = 0;
 
-		trisets[i] = triset;
+		_trisets[i] = triset;
 		valid = readInt(file, &triset->drawFlags);
 
 		if (valid && !triset->drawFlags)
@@ -962,7 +962,7 @@ bool RMesh::loadBinary(const char *path) {
 		int numNodes = 0;
 		int numWeights = 0;
 
-		weightMap = new CWeightMap(_engine);
+		_weightMap = new CWeightMap(_engine);
 		valid = readInt(file, &numNodes);
 
 		if (valid && !isCountValid(numNodes, 4, fileSize)) {
@@ -971,10 +971,10 @@ bool RMesh::loadBinary(const char *path) {
 		}
 
 		if (valid)
-			weightMap->nodeNames.resize(numNodes);
+			_weightMap->_nodeNames.resize(numNodes);
 
 		for (int i = 0; valid && i < numNodes; i++)
-			valid = readString(file, fileSize, &weightMap->nodeNames[i]);
+			valid = readString(file, fileSize, &_weightMap->_nodeNames[i]);
 
 		valid = valid && readInt(file, &numWeights);
 
@@ -989,12 +989,12 @@ bool RMesh::loadBinary(const char *path) {
 			valid = readBytes(file, &bytes[0], bytes.size());
 
 			if (valid) {
-				weightMap->weights.resize(numWeights);
+				_weightMap->_weights.resize(numWeights);
 
 				for (int i = 0; i < numWeights; i++) {
-					weightMap->weights[i].first = (byte)READ_LE_UINT32(&bytes[i * 12]);
-					weightMap->weights[i].node = READ_LE_INT32(&bytes[i * 12 + 4]);
-					weightMap->weights[i].weight = READ_LE_FLOAT32(&bytes[i * 12 + 8]);
+					_weightMap->_weights[i].first = (byte)READ_LE_UINT32(&bytes[i * 12]);
+					_weightMap->_weights[i].node = READ_LE_INT32(&bytes[i * 12 + 4]);
+					_weightMap->_weights[i].weight = READ_LE_FLOAT32(&bytes[i * 12 + 8]);
 				}
 			}
 		}
@@ -1014,36 +1014,36 @@ bool RMesh::saveBinary(const char *path) {
 	if (!file)
 		return false;
 
-	writeString(file, name);
-	writeFloat(file, radius);
-	writeFloat(file, center.x);
-	writeFloat(file, center.y);
-	writeFloat(file, center.z);
-	writeFloat(file, box.min.x);
-	writeFloat(file, box.min.y);
-	writeFloat(file, box.min.z);
-	writeFloat(file, box.max.x);
-	writeFloat(file, box.max.y);
-	writeFloat(file, box.max.z);
-	writeInt(file, numTextureSets);
+	writeString(file, _name);
+	writeFloat(file, _radius);
+	writeFloat(file, _center._x);
+	writeFloat(file, _center._y);
+	writeFloat(file, _center._z);
+	writeFloat(file, _box._min._x);
+	writeFloat(file, _box._min._y);
+	writeFloat(file, _box._min._z);
+	writeFloat(file, _box._max._x);
+	writeFloat(file, _box._max._y);
+	writeFloat(file, _box._max._z);
+	writeInt(file, _numTextureSets);
 
-	if (numTextureSets > 0) {
+	if (_numTextureSets > 0) {
 		// The disasm writes an uninitialised stack value here
 		writeInt(file, 0);
-		writeInt(file, (int)matHandles.size());
+		writeInt(file, (int)_matHandles.size());
 
-		for (uint i = 0; i < matHandles.size(); i++) {
+		for (uint i = 0; i < _matHandles.size(); i++) {
 			LString materialName;
 
-			if (matHandles[i].resource)
-				materialName = matHandles[i].resource->name;
+			if (_matHandles[i]._resource)
+				materialName = _matHandles[i]._resource->_name;
 			else
 				warning("RMesh::saveBinary(): material %u has no resource", i);
 
 			writeString(file, materialName);
 
-			if (i < texFlags.size()) {
-				writeInt(file, texFlags[i]);
+			if (i < _texFlags.size()) {
+				writeInt(file, _texFlags[i]);
 			} else {
 				warning("RMesh::saveBinary(): material %u has no texture flags", i);
 				writeInt(file, 0);
@@ -1051,45 +1051,45 @@ bool RMesh::saveBinary(const char *path) {
 		}
 	}
 
-	writeInt(file, vertFlags);
-	writeInt(file, numVerts);
+	writeInt(file, _vertFlags);
+	writeInt(file, _numVerts);
 
-	for (int i = 0; i < 3 * numVerts; i++)
-		writeFloat(file, pos[i]);
+	for (int i = 0; i < 3 * _numVerts; i++)
+		writeFloat(file, _pos[i]);
 
-	if (vertFlags & 1) {
-		for (int i = 0; i < 3 * numVerts; i++)
-			writeFloat(file, normals[i]);
+	if (_vertFlags & 1) {
+		for (int i = 0; i < 3 * _numVerts; i++)
+			writeFloat(file, _normals[i]);
 	}
 
-	if (vertFlags & 2) {
-		Common::Array<byte> rgba(numVerts * sizeof(PackedColor));
+	if (_vertFlags & 2) {
+		Common::Array<byte> rgba(_numVerts * sizeof(PackedColor));
 
-		for (int i = 0; i < numVerts; i++) {
-			rgba[i * 4] = colors[i].r;
-			rgba[i * 4 + 1] = colors[i].g;
-			rgba[i * 4 + 2] = colors[i].b;
-			rgba[i * 4 + 3] = colors[i].a;
+		for (int i = 0; i < _numVerts; i++) {
+			rgba[i * 4] = _colors[i]._r;
+			rgba[i * 4 + 1] = _colors[i]._g;
+			rgba[i * 4 + 2] = _colors[i]._b;
+			rgba[i * 4 + 3] = _colors[i]._a;
 		}
 
-		if (numVerts > 0)
+		if (_numVerts > 0)
 			writeBytes(file, &rgba[0], rgba.size());
 	}
 
-	if (vertFlags & 4) {
-		for (int i = 0; i < numVerts; i++)
-			writeInt(file, vertIndex[i]);
+	if (_vertFlags & 4) {
+		for (int i = 0; i < _numVerts; i++)
+			writeInt(file, _vertIndex[i]);
 	}
 
-	if (vertFlags & 0x10) {
-		for (int i = 0; i < 2 * numVerts; i++)
-			writeFloat(file, uv[i]);
+	if (_vertFlags & 0x10) {
+		for (int i = 0; i < 2 * _numVerts; i++)
+			writeFloat(file, _uv[i]);
 	}
 
-	writeInt(file, (int)trisets.size());
+	writeInt(file, (int)_trisets.size());
 
-	for (uint i = 0; i < trisets.size(); i++) {
-		TriSet *triset = trisets[i];
+	for (uint i = 0; i < _trisets.size(); i++) {
+		TriSet *triset = _trisets[i];
 
 		writeInt(file, triset->drawFlags);
 		writeInt(file, triset->numMaterials);
@@ -1107,19 +1107,19 @@ bool RMesh::saveBinary(const char *path) {
 		}
 	}
 
-	if (weightMap) {
+	if (_weightMap) {
 		writeInt(file, 1);
-		writeInt(file, (int)weightMap->nodeNames.size());
+		writeInt(file, (int)_weightMap->_nodeNames.size());
 
-		for (uint i = 0; i < weightMap->nodeNames.size(); i++)
-			writeString(file, weightMap->nodeNames[i]);
+		for (uint i = 0; i < _weightMap->_nodeNames.size(); i++)
+			writeString(file, _weightMap->_nodeNames[i]);
 
-		writeInt(file, (int)weightMap->weights.size());
+		writeInt(file, (int)_weightMap->_weights.size());
 
-		for (uint i = 0; i < weightMap->weights.size(); i++) {
-			writeInt(file, weightMap->weights[i].first);
-			writeInt(file, weightMap->weights[i].node);
-			writeFloat(file, weightMap->weights[i].weight);
+		for (uint i = 0; i < _weightMap->_weights.size(); i++) {
+			writeInt(file, _weightMap->_weights[i].first);
+			writeInt(file, _weightMap->_weights[i].node);
+			writeFloat(file, _weightMap->_weights[i].weight);
 		}
 	} else {
 		writeInt(file, 0);

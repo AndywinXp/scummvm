@@ -66,11 +66,11 @@ public:
 
 	static bool getAttenuatedVolumes(float volume, float balance, int *left, int *right);
 
-	bool started;
-	EMIMilesSample *hSample;
-	CSoundCue *cue;
-	float spuVolume;
-	float spuBalance;
+	bool _started;
+	EMIMilesSample *_sample;
+	CSoundCue *_cue;
+	float _spuVolume;
+	float _spuBalance;
 
 private:
 	CWaveAudioDevice *_device;

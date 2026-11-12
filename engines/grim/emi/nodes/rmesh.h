@@ -62,19 +62,19 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	int vertFlags;
-	int numVerts;
-	float *pos;
-	float *normals;
-	int *vertIndex;
-	PackedColor *colors;
-	float *uv;
-	int numTextureSets;
-	Common::Array<int> texFlags;
-	Common::Array<LResourceHandle<CMaterial> > matHandles;
-	Common::Array<CMaterial *> materials;
-	CWeightMap *weightMap;
-	Common::Array<TriSet *> trisets;
+	int _vertFlags;
+	int _numVerts;
+	float *_pos;
+	float *_normals;
+	int *_vertIndex;
+	PackedColor *_colors;
+	float *_uv;
+	int _numTextureSets;
+	Common::Array<int> _texFlags;
+	Common::Array<LResourceHandle<CMaterial> > _matHandles;
+	Common::Array<CMaterial *> _materials;
+	CWeightMap *_weightMap;
+	Common::Array<TriSet *> _trisets;
 
 private:
 	EmiEngine *_engine;

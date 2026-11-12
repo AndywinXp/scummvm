@@ -65,21 +65,21 @@ public:
 	void buildTextures(CDrawContext *ctx);
 	bool loadFile(const char *path);
 
-	int lineHeight;
-	int header52;
-	int header56;
-	int header60;
-	int minHeight;
-	int maxHeight;
-	int firstChar;
-	int lastChar;
-	int numGlyphs;
-	int blobSize;
-	Common::Array<CTexture *> pages;
-	uint16 *charIndex;
-	Glyph *glyphs;
-	byte *blob;
-	LString fileName;
+	int _lineHeight;
+	int _header52;
+	int _header56;
+	int _header60;
+	int _minHeight;
+	int _maxHeight;
+	int _firstChar;
+	int _lastChar;
+	int _numGlyphs;
+	int _blobSize;
+	Common::Array<CTexture *> _pages;
+	uint16 *_charIndex;
+	Glyph *_glyphs;
+	byte *_blob;
+	LString _fileName;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

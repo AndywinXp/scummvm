@@ -28,204 +28,204 @@
 
 namespace Grim {
 
-static BlastTextGlyph *findGlyph(BlastTextFont *pFont, int c) {
-	if (c > pFont->lastChar)
+static BlastTextGlyph *findGlyph(BlastTextFont *font, int c) {
+	if (c > font->lastChar)
 		return nullptr;
 
-	if (c < pFont->firstChar) {
+	if (c < font->firstChar) {
 		warning("BlastText: character %d is below the first character of the font", c);
 		return nullptr;
 	}
 
-	return &pFont->aGlyphs[pFont->aCharMap[c - pFont->firstChar]];
+	return &font->glyphs[font->charMap[c - font->firstChar]];
 }
 
-BlastText::BlastText(Text *pText) : _pText(pText) {
+BlastText::BlastText(Text *text) : _text(text) {
 	memset(&_surface, 0, sizeof(_surface));
-	memset(_aCharMap, 0, sizeof(_aCharMap));
+	memset(_charMap, 0, sizeof(_charMap));
 }
 
-int BlastText::load(const char *fileName, BlastTextFont *&pFont) {
+int BlastText::load(const char *fileName, BlastTextFont *&font) {
 	int result = 1;
 
-	if (!_pText->_pHS) {
+	if (!_text->_hs) {
 		warning("BlastText::load(): the text system is not initialized");
 		return result;
 	}
 
-	Common::SeekableReadStream *pFile = _pText->_pHS->openFile(fileName);
+	Common::SeekableReadStream *file = _text->_hs->openFile(fileName);
 
-	if (pFile) {
-		result = read(pFile, pFont);
-		delete pFile;
-		pFile = nullptr;
+	if (file) {
+		result = read(file, font);
+		delete file;
+		file = nullptr;
 	}
 
 	return result;
 }
 
-int BlastText::initFont(BlastTextFont *&pFont) {
-	const byte *pData = g_systemFontData;
-	int numGlyphs = READ_LE_UINT16(pData);
-	const byte aMap[2] = { 0, 255 };
+int BlastText::initFont(BlastTextFont *&font) {
+	const byte *data = systemFontData;
+	int numGlyphs = READ_LE_UINT16(data);
+	const byte map[2] = { 0, 255 };
 
-	BlastTextFont *pNewFont = new BlastTextFont();
+	BlastTextFont *newFont = new BlastTextFont();
 
-	pNewFont->lineHeight = pData[2];
-	pNewFont->baseLine = pData[2] - 1;
-	pNewFont->reserved12 = 0;
-	pNewFont->reserved16 = 1;
-	pNewFont->firstChar = 0;
-	pNewFont->lastChar = numGlyphs;
+	newFont->lineHeight = data[2];
+	newFont->baseLine = data[2] - 1;
+	newFont->reserved12 = 0;
+	newFont->reserved16 = 1;
+	newFont->firstChar = 0;
+	newFont->lastChar = numGlyphs;
 
 	int numPixels = 0;
 
 	for (int i = 0; i < numGlyphs; i++) {
-		uint32 offset = READ_LE_UINT32(pData + 4 + 4 * i);
+		uint32 offset = READ_LE_UINT32(data + 4 + 4 * i);
 
 		if (offset)
-			numPixels += pData[offset] * pData[offset + 1];
+			numPixels += data[offset] * data[offset + 1];
 	}
 
-	pNewFont->aCharMap = new uint16[numGlyphs + 1];
+	newFont->charMap = new uint16[numGlyphs + 1];
 
 	for (int i = 0; i < numGlyphs; i++)
-		pNewFont->aCharMap[i] = i;
+		newFont->charMap[i] = i;
 
-	pNewFont->aCharMap[numGlyphs] = 0;
-	pNewFont->aGlyphs = new BlastTextGlyph[numGlyphs]();
-	pNewFont->pPixels = new byte[numPixels]();
+	newFont->charMap[numGlyphs] = 0;
+	newFont->glyphs = new BlastTextGlyph[numGlyphs]();
+	newFont->pixels = new byte[numPixels]();
 
 	int pixelOffset = 0;
 
 	for (int i = 0; i < numGlyphs; i++) {
-		uint32 offset = READ_LE_UINT32(pData + 4 + 4 * i);
+		uint32 offset = READ_LE_UINT32(data + 4 + 4 * i);
 
 		if (offset) {
-			BlastTextGlyph *pGlyph = &pNewFont->aGlyphs[i];
-			signed char xOffset = pData[offset + 2];
+			BlastTextGlyph *glyph = &newFont->glyphs[i];
+			signed char xOffset = data[offset + 2];
 
-			pGlyph->width = pData[offset];
-			pGlyph->height = pData[offset + 1];
-			pGlyph->xOffset = xOffset;
-			pGlyph->advance = (signed char)(xOffset + (signed char)pGlyph->width);
-			pGlyph->reserved20 = 1;
-			pGlyph->yOffset = (signed char)((signed char)pData[offset + 3] - (signed char)pNewFont->baseLine);
-			pGlyph->dataOffset = pixelOffset;
-			pGlyph->pPixels = pNewFont->pPixels + pixelOffset;
+			glyph->width = data[offset];
+			glyph->height = data[offset + 1];
+			glyph->xOffset = xOffset;
+			glyph->advance = (signed char)(xOffset + (signed char)glyph->width);
+			glyph->reserved20 = 1;
+			glyph->yOffset = (signed char)((signed char)data[offset + 3] - (signed char)newFont->baseLine);
+			glyph->dataOffset = pixelOffset;
+			glyph->pixels = newFont->pixels + pixelOffset;
 
-			if (pNewFont->minY > pGlyph->yOffset)
-				pNewFont->minY = pGlyph->yOffset;
+			if (newFont->minY > glyph->yOffset)
+				newFont->minY = glyph->yOffset;
 
-			uint bottom = pGlyph->height + (uint)(int)pGlyph->yOffset;
+			uint bottom = glyph->height + (uint)(int)glyph->yOffset;
 
-			if (pNewFont->maxY > bottom)
-				bottom = pNewFont->maxY;
+			if (newFont->maxY > bottom)
+				bottom = newFont->maxY;
 
-			pNewFont->maxY = bottom;
+			newFont->maxY = bottom;
 
-			initFontHelper(pData + 4 + offset, pGlyph, 1, aMap);
+			initFontHelper(data + 4 + offset, glyph, 1, map);
 
-			pixelOffset += pGlyph->height * pGlyph->width;
+			pixelOffset += glyph->height * glyph->width;
 		}
 	}
 
-	pFont = pNewFont;
+	font = newFont;
 
 	return 0;
 }
 
-void BlastText::initFontHelper(const byte *pSource, BlastTextGlyph *pGlyph, int bitsPerPixel, const byte *pMap) {
-	byte *pDest = pGlyph->pPixels;
+void BlastText::initFontHelper(const byte *source, BlastTextGlyph *glyph, int bitsPerPixel, const byte *map) {
+	byte *dest = glyph->pixels;
 	int bitPosition = -1;
 	int bits = 0;
 
-	for (uint row = 0; row < pGlyph->height; row++) {
-		for (uint column = 0; column < pGlyph->width; column++) {
+	for (uint row = 0; row < glyph->height; row++) {
+		for (uint column = 0; column < glyph->width; column++) {
 			if (bitPosition < 0) {
-				bits = *pSource++;
+				bits = *source++;
 				bitPosition = 8 - bitsPerPixel;
 			}
 
-			*pDest++ = pMap[(255 >> (8 - bitsPerPixel)) & (bits >> bitPosition)];
+			*dest++ = map[(255 >> (8 - bitsPerPixel)) & (bits >> bitPosition)];
 			bitPosition -= bitsPerPixel;
 		}
 	}
 }
 
-int BlastText::read(Common::SeekableReadStream *pFile, BlastTextFont *&pFont) {
-	pFile->readSint32LE();
-	int dataSize = pFile->readSint32LE();
+int BlastText::read(Common::SeekableReadStream *file, BlastTextFont *&font) {
+	file->readSint32LE();
+	int dataSize = file->readSint32LE();
 
-	BlastTextFont *pNewFont = new BlastTextFont();
+	BlastTextFont *newFont = new BlastTextFont();
 
-	pNewFont->lineHeight = pFile->readSint32LE();
-	pNewFont->baseLine = pFile->readSint32LE();
-	pNewFont->reserved12 = pFile->readSint32LE();
-	pNewFont->reserved16 = pFile->readSint32LE();
-	pNewFont->firstChar = pFile->readSint32LE();
-	pNewFont->lastChar = pFile->readSint32LE();
+	newFont->lineHeight = file->readSint32LE();
+	newFont->baseLine = file->readSint32LE();
+	newFont->reserved12 = file->readSint32LE();
+	newFont->reserved16 = file->readSint32LE();
+	newFont->firstChar = file->readSint32LE();
+	newFont->lastChar = file->readSint32LE();
 
-	int numGlyphs = pNewFont->lastChar - pNewFont->firstChar + 1;
+	int numGlyphs = newFont->lastChar - newFont->firstChar + 1;
 
-	if (numGlyphs < 0 || numGlyphs > 65536 || dataSize < 0 || dataSize > 0x1000000 || (int64)numGlyphs * 18 > pFile->size() - pFile->pos()) {
+	if (numGlyphs < 0 || numGlyphs > 65536 || dataSize < 0 || dataSize > 0x1000000 || (int64)numGlyphs * 18 > file->size() - file->pos()) {
 		warning("BlastText::read(): invalid font header");
-		delete pNewFont;
-		pNewFont = nullptr;
+		delete newFont;
+		newFont = nullptr;
 
 		return 1;
 	}
 
-	pNewFont->aCharMap = new uint16[numGlyphs + 1];
+	newFont->charMap = new uint16[numGlyphs + 1];
 
 	for (int i = 0; i < numGlyphs; i++)
-		pNewFont->aCharMap[i] = pFile->readUint16LE();
+		newFont->charMap[i] = file->readUint16LE();
 
-	pNewFont->aCharMap[numGlyphs] = 0;
-	pNewFont->aGlyphs = new BlastTextGlyph[numGlyphs]();
+	newFont->charMap[numGlyphs] = 0;
+	newFont->glyphs = new BlastTextGlyph[numGlyphs]();
 
 	for (int i = 0; i < numGlyphs; i++) {
-		BlastTextGlyph *pGlyph = &pNewFont->aGlyphs[i];
+		BlastTextGlyph *glyph = &newFont->glyphs[i];
 
-		pGlyph->dataOffset = pFile->readSint32LE();
-		pGlyph->advance = pFile->readSByte();
-		pGlyph->xOffset = pFile->readSByte();
-		pGlyph->yOffset = pFile->readSByte();
-		pGlyph->pad = pFile->readByte();
-		pGlyph->width = pFile->readUint32LE();
-		pGlyph->height = pFile->readUint32LE();
-		pGlyph->reserved20 = 1;
+		glyph->dataOffset = file->readSint32LE();
+		glyph->advance = file->readSByte();
+		glyph->xOffset = file->readSByte();
+		glyph->yOffset = file->readSByte();
+		glyph->pad = file->readByte();
+		glyph->width = file->readUint32LE();
+		glyph->height = file->readUint32LE();
+		glyph->reserved20 = 1;
 
-		if (pNewFont->minY > pGlyph->yOffset)
-			pNewFont->minY = pGlyph->yOffset;
+		if (newFont->minY > glyph->yOffset)
+			newFont->minY = glyph->yOffset;
 
-		uint bottom = pGlyph->height + (uint)(int)pGlyph->yOffset;
+		uint bottom = glyph->height + (uint)(int)glyph->yOffset;
 
-		if (pNewFont->maxY > bottom)
-			bottom = pNewFont->maxY;
+		if (newFont->maxY > bottom)
+			bottom = newFont->maxY;
 
-		pNewFont->maxY = bottom;
+		newFont->maxY = bottom;
 	}
 
-	pNewFont->pPixels = new byte[dataSize]();
-	pFile->read(pNewFont->pPixels, dataSize);
+	newFont->pixels = new byte[dataSize]();
+	file->read(newFont->pixels, dataSize);
 
-	pFont = pNewFont;
+	font = newFont;
 
 	return 0;
 }
 
-const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, const char *pText, int *pWidth, int *pCount, int bAdvance) {
-	StdRect *pClip = pParams->pClip;
+const char *BlastText::measureString(TextParams *params, BlastTextFont *font, const char *text, int *width, int *count, int advance) {
+	StdRect *clip = params->clip;
 
-	if (!pClip) {
+	if (!clip) {
 		warning("BlastText::measureString(): no clip rectangle");
 		return nullptr;
 	}
 
-	int flags = pParams->flags;
-	int leftSpace = pParams->x - pClip->x;
-	int rightSpace = pClip->x + pClip->width - pParams->x;
+	int flags = params->flags;
+	int leftSpace = params->x - clip->x;
+	int rightSpace = clip->x + clip->width - params->x;
 	int available;
 
 	if (flags & 1) {
@@ -239,14 +239,14 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 		available = rightSpace;
 	}
 
-	const char *pSavedText = pText;
+	const char *savedText = text;
 	int spaceWidth = 0;
 	int spaceCount = 0;
 	int wordWidth = 0;
 	int wordChars = 0;
 	int lineWidth = 0;
 	int lineChars = 0;
-	int c = _pText->getNextChar(&pText);
+	int c = _text->getNextChar(&text);
 
 	if (c != 0) {
 		for (;;) {
@@ -255,7 +255,7 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 
 				if (total > available) {
 					if (lineChars) {
-						pText = pSavedText;
+						text = savedText;
 					} else {
 						lineWidth += spaceWidth + wordWidth;
 						lineChars = spaceCount + wordChars;
@@ -266,12 +266,12 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 
 				lineWidth = total;
 				lineChars += spaceCount + wordChars;
-				spaceWidth = charWidth(pParams, pFont, c);
+				spaceWidth = charWidth(params, font, c);
 				wordWidth = 0;
 				wordChars = 0;
 				spaceCount = 1;
-				pSavedText = pText;
-				c = _pText->getNextChar(&pText);
+				savedText = text;
+				c = _text->getNextChar(&text);
 
 				if (c == 0) {
 					lineWidth += spaceWidth;
@@ -280,10 +280,10 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 				}
 
 				while (c == 32 || c == 254) {
-					spaceWidth += charWidth(pParams, pFont, c);
+					spaceWidth += charWidth(params, font, c);
 					spaceCount++;
-					pSavedText = pText;
-					c = _pText->getNextChar(&pText);
+					savedText = text;
+					c = _text->getNextChar(&text);
 
 					if (c == 0)
 						break;
@@ -300,31 +300,31 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 				int total = lineWidth + spaceWidth + wordWidth;
 
 				if (total > available && (flags & 4)) {
-					pText = pSavedText;
+					text = savedText;
 				} else {
 					lineWidth = total;
 					lineChars += spaceCount + wordChars;
 
-					if (c == 13 && *pText == 10)
-						pText++;
+					if (c == 13 && *text == 10)
+						text++;
 				}
 
 				break;
 			}
 
-			wordWidth += charWidth(pParams, pFont, c);
+			wordWidth += charWidth(params, font, c);
 			wordChars++;
-			c = _pText->getNextChar(&pText);
+			c = _text->getNextChar(&text);
 
 			if (c == 0)
 				break;
 		}
 	}
 
-	const char *pNext;
+	const char *next;
 
 	if (c != 0) {
-		pNext = pText;
+		next = text;
 	} else {
 		spaceWidth += wordWidth;
 
@@ -332,131 +332,131 @@ const char *BlastText::measureString(TextParams *pParams, BlastTextFont *pFont, 
 
 		if (total > available && (flags & 4)) {
 			if (lineChars) {
-				pNext = pSavedText;
+				next = savedText;
 			} else {
 				lineWidth = total;
 				lineChars = spaceCount + wordChars;
-				pNext = nullptr;
+				next = nullptr;
 			}
 		} else {
 			lineWidth = total;
 			lineChars += spaceCount + wordChars;
-			pNext = nullptr;
+			next = nullptr;
 		}
 	}
 
-	if (bAdvance) {
-		int x = pParams->x;
+	if (advance) {
+		int x = params->x;
 
-		if (pNext)
-			pParams->y += (pParams->scaleY * (uint)pFont->lineHeight + 0xFFFF) >> 16;
+		if (next)
+			params->y += (params->scaleY * (uint)font->lineHeight + 0xFFFF) >> 16;
 		else if (flags & 1)
-			pParams->x = x + lineWidth / 2;
+			params->x = x + lineWidth / 2;
 		else if (flags & 2)
-			pParams->x = x - lineWidth;
+			params->x = x - lineWidth;
 		else
-			pParams->x = x + lineWidth;
+			params->x = x + lineWidth;
 	}
 
-	if (pCount)
-		*pCount = lineChars;
+	if (count)
+		*count = lineChars;
 
-	if (pWidth)
-		*pWidth = lineWidth;
+	if (width)
+		*width = lineWidth;
 
-	return pNext;
+	return next;
 }
 
-uint BlastText::charWidth(const TextParams *pParams, BlastTextFont *pFont, int c) {
-	BlastTextGlyph *pGlyph = findGlyph(pFont, c);
+uint BlastText::charWidth(const TextParams *params, BlastTextFont *font, int c) {
+	BlastTextGlyph *glyph = findGlyph(font, c);
 
-	if (!pGlyph)
+	if (!glyph)
 		return 0;
 
-	uint width = (uint)(int)pGlyph->advance;
+	uint width = (uint)(int)glyph->advance;
 
-	if (width <= pGlyph->width)
-		width = pGlyph->width;
+	if (width <= glyph->width)
+		width = glyph->width;
 
-	return (width * pParams->scaleX + 0xFFFF) >> 16;
+	return (width * params->scaleX + 0xFFFF) >> 16;
 }
 
-uint BlastText::charPositionHelper(const TextParams *pParams, BlastTextFont *pFont, byte c) {
-	BlastTextGlyph *pGlyph = findGlyph(pFont, c);
+uint BlastText::charPositionHelper(const TextParams *params, BlastTextFont *font, byte c) {
+	BlastTextGlyph *glyph = findGlyph(font, c);
 
-	if (!pGlyph)
+	if (!glyph)
 		return 0;
 
-	return (pParams->scaleX * (uint)(int)pGlyph->advance + 0xFFFF) >> 16;
+	return (params->scaleX * (uint)(int)glyph->advance + 0xFFFF) >> 16;
 }
 
-void BlastText::drawString(TextParams *pParams, BlastTextFont *pFont, const char *pText) {
+void BlastText::drawString(TextParams *params, BlastTextFont *font, const char *text) {
 	int previousChar = 0;
-	int savedFlags = pParams->flags;
+	int savedFlags = params->flags;
 
-	pParams->flags = savedFlags & ~8;
-	_aCharMap[0] = (byte)pParams->bgColor;
-	_aCharMap[128] = (byte)pParams->fxColor;
-	_aCharMap[255] = (byte)pParams->fgColor;
+	params->flags = savedFlags & ~8;
+	_charMap[0] = (byte)params->bgColor;
+	_charMap[128] = (byte)params->fxColor;
+	_charMap[255] = (byte)params->fgColor;
 
-	if (pText) {
-		int bCenter = savedFlags & 1;
-		const char *pNext;
+	if (text) {
+		int center = savedFlags & 1;
+		const char *next;
 
 		do {
 			int width;
 			int count;
 
-			pNext = measureString(pParams, pFont, pText, &width, &count, 0);
+			next = measureString(params, font, text, &width, &count, 0);
 
-			int x = pParams->x;
-			int y = pParams->y;
+			int x = params->x;
+			int y = params->y;
 
-			if (bCenter)
-				pParams->x = x - width / 2;
+			if (center)
+				params->x = x - width / 2;
 			else if (savedFlags & 2)
-				pParams->x = x - width;
+				params->x = x - width;
 
 			for (int i = 0; i < count; i++) {
-				int c = _pText->getNextChar(&pText);
+				int c = _text->getNextChar(&text);
 
 				if (previousChar != 10 || c != 13)
-					drawChars(pParams, pFont, c);
+					drawChars(params, font, c);
 
 				previousChar = c;
 			}
 
-			if (pNext) {
-				pParams->x = x;
-				pParams->y = y + ((pFont->lineHeight * pParams->scaleY + 0xFFFF) >> 16);
+			if (next) {
+				params->x = x;
+				params->y = y + ((font->lineHeight * params->scaleY + 0xFFFF) >> 16);
 			}
 
-			pText = pNext;
-		} while (pNext);
+			text = next;
+		} while (next);
 	}
 
-	pParams->flags = savedFlags;
+	params->flags = savedFlags;
 }
 
-void BlastText::drawChars(TextParams *pParams, BlastTextFont *pFont, int c) {
+void BlastText::drawChars(TextParams *params, BlastTextFont *font, int c) {
 	int mode = 0;
-	uint scaleX = pParams->scaleX;
-	uint scaleY = pParams->scaleY;
-	int penY = pParams->y;
-	StdRect *pClip = pParams->pClip;
-	int penX = pParams->x;
+	uint scaleX = params->scaleX;
+	uint scaleY = params->scaleY;
+	int penY = params->y;
+	StdRect *clip = params->clip;
+	int penX = params->x;
 
-	if (!pClip) {
+	if (!clip) {
 		warning("BlastText::drawChars(): no clip rectangle");
 		return;
 	}
 
-	BlastTextGlyph *pGlyph = findGlyph(pFont, c);
+	BlastTextGlyph *glyph = findGlyph(font, c);
 
-	if (!pGlyph)
+	if (!glyph)
 		return;
 
-	pGlyph->pPixels = pFont->pPixels + pGlyph->dataOffset;
+	glyph->pixels = font->pixels + glyph->dataOffset;
 
 	int x;
 	int y;
@@ -464,164 +464,164 @@ void BlastText::drawChars(TextParams *pParams, BlastTextFont *pFont, int c) {
 	int height;
 
 	if (scaleX == 0x10000 && scaleY == 0x10000) {
-		width = pGlyph->width;
-		height = pGlyph->height;
-		x = pGlyph->xOffset + penX;
-		y = pGlyph->yOffset + penY;
+		width = glyph->width;
+		height = glyph->height;
+		x = glyph->xOffset + penX;
+		y = glyph->yOffset + penY;
 	} else {
-		x = (int)((scaleX * (uint)(int)pGlyph->xOffset + 0xFFFF) >> 16) + penX;
-		width = (int)((scaleX * pGlyph->width + 0xFFFF) >> 16);
-		height = (int)((scaleY * pGlyph->height + 0xFFFF) >> 16);
+		x = (int)((scaleX * (uint)(int)glyph->xOffset + 0xFFFF) >> 16) + penX;
+		width = (int)((scaleX * glyph->width + 0xFFFF) >> 16);
+		height = (int)((scaleY * glyph->height + 0xFFFF) >> 16);
 		mode = 1;
-		y = (int)((scaleY * (uint)(int)pGlyph->yOffset + 0xFFFF) >> 16) + penY;
+		y = (int)((scaleY * (uint)(int)glyph->yOffset + 0xFFFF) >> 16) + penY;
 	}
 
-	if (!(x >= pClip->x && y >= pClip->y && x + width < pClip->x + pClip->width && y + height < pClip->y + pClip->height))
+	if (!(x >= clip->x && y >= clip->y && x + width < clip->x + clip->width && y + height < clip->y + clip->height))
 		mode |= 2;
 
-	if (pParams->flags & 8)
+	if (params->flags & 8)
 		mode |= 4;
 
-	if (!pParams->pSurface || !pParams->pSurface->pPixels) {
+	if (!params->surface || !params->surface->pixels) {
 		warning("BlastText::drawChars(): no surface");
 	} else {
 		switch (mode) {
 		case 0:
-			drawCharsCase0(pGlyph, pFont, pParams);
+			drawCharsCase0(glyph, font, params);
 			break;
 		case 2:
-			drawCharsCase1(pGlyph, pFont, pParams);
+			drawCharsCase1(glyph, font, params);
 			break;
 		case 4:
-			drawCharsCase4(pGlyph, pFont, pParams);
+			drawCharsCase4(glyph, font, params);
 			break;
 		case 6:
-			drawCharsCase6(pGlyph, pFont, pParams);
+			drawCharsCase6(glyph, font, params);
 			break;
 		default:
 			break;
 		}
 	}
 
-	pParams->x = (int)((scaleX * (uint)(int)pGlyph->advance + 0xFFFF) >> 16) + pParams->x;
+	params->x = (int)((scaleX * (uint)(int)glyph->advance + 0xFFFF) >> 16) + params->x;
 }
 
-void BlastText::drawCharsCase0(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams) {
-	uint height = pGlyph->height;
-	int width = pGlyph->width;
-	const byte *pSource = pGlyph->pPixels;
-	BlastTextSurface *pSurface = pParams->pSurface;
-	int bytesPerPixel = pSurface->bytesPerPixel;
-	int pitch = pSurface->pitch;
-	byte *pRow = pSurface->pPixels + pitch * (pParams->y + pGlyph->yOffset) + bytesPerPixel * (pParams->x + pGlyph->xOffset);
-	const byte *pMap = pParams->pColorMap;
+void BlastText::drawCharsCase0(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params) {
+	uint height = glyph->height;
+	int width = glyph->width;
+	const byte *source = glyph->pixels;
+	BlastTextSurface *surface = params->surface;
+	int bytesPerPixel = surface->bytesPerPixel;
+	int pitch = surface->pitch;
+	byte *rowPointer = surface->pixels + pitch * (params->y + glyph->yOffset) + bytesPerPixel * (params->x + glyph->xOffset);
+	const byte *map = params->colorMap;
 
-	if (!pMap)
-		pMap = _aCharMap;
+	if (!map)
+		map = _charMap;
 
-	const byte *pForeground = pMap + bytesPerPixel * pParams->fgColor;
-	const byte *pEffect = pMap + bytesPerPixel * pParams->fxColor;
+	const byte *foreground = map + bytesPerPixel * params->fgColor;
+	const byte *effect = map + bytesPerPixel * params->fxColor;
 
 	for (uint row = 0; row < height; row++) {
-		byte *pDest = pRow;
+		byte *dest = rowPointer;
 
 		if (width > 0) {
 			for (int column = 0; column < width; column++) {
-				int value = *pSource++;
+				int value = *source++;
 
 				if (value == 0) {
-					pDest += bytesPerPixel;
+					dest += bytesPerPixel;
 				} else if (value == 128) {
-					WRITE_UINT16(pDest, READ_UINT16(pEffect));
-					pDest += bytesPerPixel;
+					WRITE_UINT16(dest, READ_UINT16(effect));
+					dest += bytesPerPixel;
 				} else if (value == 255) {
-					WRITE_UINT16(pDest, READ_UINT16(pForeground));
-					pDest += bytesPerPixel;
+					WRITE_UINT16(dest, READ_UINT16(foreground));
+					dest += bytesPerPixel;
 				}
 			}
 		}
 
-		pRow += pitch;
+		rowPointer += pitch;
 	}
 }
 
-void BlastText::drawCharsCase4(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams) {
-	int height = pGlyph->height;
-	int width = pGlyph->width;
-	const byte *pSource = pGlyph->pPixels;
-	BlastTextSurface *pSurface = pParams->pSurface;
-	int pitch = pSurface->pitch;
-	int topPadding = pGlyph->yOffset - pFont->minY;
-	byte *pDest = pSurface->pPixels + pitch * (pParams->y + pFont->minY) + pGlyph->xOffset + pParams->x;
-	const byte *pMap = pParams->pColorMap;
+void BlastText::drawCharsCase4(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params) {
+	int height = glyph->height;
+	int width = glyph->width;
+	const byte *source = glyph->pixels;
+	BlastTextSurface *surface = params->surface;
+	int pitch = surface->pitch;
+	int topPadding = glyph->yOffset - font->minY;
+	byte *dest = surface->pixels + pitch * (params->y + font->minY) + glyph->xOffset + params->x;
+	const byte *map = params->colorMap;
 
-	if (!pMap)
-		pMap = _aCharMap;
+	if (!map)
+		map = _charMap;
 
 	for (int row = 0; row < topPadding; row++) {
-		byte *pCell = pDest;
+		byte *cell = dest;
 
 		for (int column = 0; column < width; column++)
-			*pCell++ = *pMap;
+			*cell++ = *map;
 
-		pDest += pitch;
+		dest += pitch;
 	}
 
-	int bottomPadding = (int)(pFont->maxY - pGlyph->height - (uint)(int)pGlyph->yOffset);
+	int bottomPadding = (int)(font->maxY - glyph->height - (uint)(int)glyph->yOffset);
 
 	for (int row = 0; row < height; row++) {
-		byte *pCell = pDest;
+		byte *cell = dest;
 
 		for (int column = 0; column < width; column++)
-			*pCell++ = pMap[*pSource++];
+			*cell++ = map[*source++];
 
-		pDest += pitch;
+		dest += pitch;
 	}
 
 	for (int row = 0; row < bottomPadding; row++) {
-		byte *pCell = pDest;
+		byte *cell = dest;
 
 		for (int column = 0; column < width; column++)
-			*pCell++ = *pMap;
+			*cell++ = *map;
 
-		pDest += pitch;
+		dest += pitch;
 	}
 }
 
-void BlastText::drawCharsCase1(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams) {
-	int xOffset = pGlyph->xOffset;
-	int yOffset = pGlyph->yOffset;
-	int glyphWidth = pGlyph->width;
-	BlastTextSurface *pSurface = pParams->pSurface;
-	int bytesPerPixel = pSurface->bytesPerPixel;
-	int pitch = pSurface->pitch;
-	StdRect *pClip = pParams->pClip;
-	int startY = yOffset + pParams->y;
-	int startX = xOffset + pParams->x;
+void BlastText::drawCharsCase1(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params) {
+	int xOffset = glyph->xOffset;
+	int yOffset = glyph->yOffset;
+	int glyphWidth = glyph->width;
+	BlastTextSurface *surface = params->surface;
+	int bytesPerPixel = surface->bytesPerPixel;
+	int pitch = surface->pitch;
+	StdRect *clip = params->clip;
+	int startY = yOffset + params->y;
+	int startX = xOffset + params->x;
 
 	int left = startX;
 
-	if (left <= pClip->x)
-		left = pClip->x;
+	if (left <= clip->x)
+		left = clip->x;
 
 	left -= startX;
 
 	int top = startY;
 
-	if (top <= pClip->y)
-		top = pClip->y;
+	if (top <= clip->y)
+		top = clip->y;
 
 	top -= startY;
 
 	int rightLimit = startX + glyphWidth;
 
-	if (rightLimit >= pClip->x + pClip->width)
-		rightLimit = pClip->x + pClip->width;
+	if (rightLimit >= clip->x + clip->width)
+		rightLimit = clip->x + clip->width;
 
 	rightLimit -= startX;
 
-	int glyphHeight = pGlyph->height;
-	int bottomLimit = pClip->y + pClip->height;
+	int glyphHeight = glyph->height;
+	int bottomLimit = clip->y + clip->height;
 
 	if (startY + glyphHeight < bottomLimit)
 		bottomLimit = startY + glyphHeight;
@@ -629,78 +629,78 @@ void BlastText::drawCharsCase1(BlastTextGlyph *pGlyph, BlastTextFont *pFont, Tex
 	bottomLimit -= startY;
 
 	if (left < rightLimit && top < bottomLimit) {
-		const byte *pSourceRow = pGlyph->pPixels + top * glyphWidth + left;
-		byte *pDestRow = pSurface->pPixels + (left + startX) * bytesPerPixel + pitch * startY;
-		const byte *pMap = pParams->pColorMap;
+		const byte *sourceRow = glyph->pixels + top * glyphWidth + left;
+		byte *destRow = surface->pixels + (left + startX) * bytesPerPixel + pitch * startY;
+		const byte *map = params->colorMap;
 
-		if (!pMap)
-			pMap = _aCharMap;
+		if (!map)
+			map = _charMap;
 
-		const byte *pForeground = pMap + pParams->fgColor * bytesPerPixel;
-		const byte *pEffect = pMap + pParams->fxColor * bytesPerPixel;
+		const byte *foreground = map + params->fgColor * bytesPerPixel;
+		const byte *effect = map + params->fxColor * bytesPerPixel;
 		int visibleWidth = rightLimit - left;
 		int rows = bottomLimit - top;
 		int y = startY;
 
 		for (int row = 0; row < rows; row++) {
-			if (y >= pClip->y && y < pClip->y + pClip->height && visibleWidth > 0) {
-				const byte *pSource = pSourceRow;
-				byte *pDest = pDestRow;
+			if (y >= clip->y && y < clip->y + clip->height && visibleWidth > 0) {
+				const byte *source = sourceRow;
+				byte *dest = destRow;
 
 				for (int column = 0; column < visibleWidth; column++) {
-					int value = *pSource++;
+					int value = *source++;
 
 					if (value == 0) {
-						pDest += bytesPerPixel;
+						dest += bytesPerPixel;
 					} else if (value == 128) {
-						WRITE_UINT16(pDest, READ_UINT16(pEffect));
-						pDest += bytesPerPixel;
+						WRITE_UINT16(dest, READ_UINT16(effect));
+						dest += bytesPerPixel;
 					} else if (value == 255) {
-						WRITE_UINT16(pDest, READ_UINT16(pForeground));
-						pDest += bytesPerPixel;
+						WRITE_UINT16(dest, READ_UINT16(foreground));
+						dest += bytesPerPixel;
 					}
 				}
 			}
 
-			pDestRow += pitch;
-			pSourceRow += glyphWidth;
+			destRow += pitch;
+			sourceRow += glyphWidth;
 			y++;
 		}
 	}
 }
 
-void BlastText::drawCharsCase6(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams) {
-	int glyphWidth = pGlyph->width;
-	int glyphHeight = pGlyph->height;
-	BlastTextSurface *pSurface = pParams->pSurface;
-	StdRect *pClip = pParams->pClip;
-	int pitch = pSurface->pitch;
-	int startX = pParams->x + pGlyph->xOffset;
-	int topPadding = pGlyph->yOffset - pFont->minY;
-	int startY = pFont->minY + pParams->y;
+void BlastText::drawCharsCase6(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params) {
+	int glyphWidth = glyph->width;
+	int glyphHeight = glyph->height;
+	BlastTextSurface *surface = params->surface;
+	StdRect *clip = params->clip;
+	int pitch = surface->pitch;
+	int startX = params->x + glyph->xOffset;
+	int topPadding = glyph->yOffset - font->minY;
+	int startY = font->minY + params->y;
 
 	int left = startX;
 
-	if (left <= pClip->x)
-		left = pClip->x;
+	if (left <= clip->x)
+		left = clip->x;
 
 	left -= startX;
 
 	int top = startY;
 
-	if (top <= pClip->y)
-		top = pClip->y;
+	if (top <= clip->y)
+		top = clip->y;
 
 	top -= startY;
 
 	int rightLimit = startX + glyphWidth;
 
-	if (rightLimit >= pClip->x + pClip->width)
-		rightLimit = pClip->x + pClip->width;
+	if (rightLimit >= clip->x + clip->width)
+		rightLimit = clip->x + clip->width;
 
 	rightLimit -= startX;
 
-	int bottomLimit = pClip->y + pClip->height;
+	int bottomLimit = clip->y + clip->height;
 
 	if (startY + glyphHeight < bottomLimit)
 		bottomLimit = startY + glyphHeight;
@@ -708,53 +708,53 @@ void BlastText::drawCharsCase6(BlastTextGlyph *pGlyph, BlastTextFont *pFont, Tex
 	bottomLimit -= startY;
 
 	if (left < rightLimit && top < bottomLimit) {
-		const byte *pSourceRow = pGlyph->pPixels + left;
-		byte *pDest = pSurface->pPixels + pitch * startY + left + startX;
-		const byte *pMap = pParams->pColorMap;
+		const byte *sourceRow = glyph->pixels + left;
+		byte *dest = surface->pixels + pitch * startY + left + startX;
+		const byte *map = params->colorMap;
 
-		if (!pMap)
-			pMap = _aCharMap;
+		if (!map)
+			map = _charMap;
 
 		int visibleWidth = rightLimit - left;
 		int y = startY;
 
 		for (int row = 0; row < topPadding; row++) {
-			if (y >= pClip->y && y < pClip->y + pClip->height && visibleWidth > 0) {
-				byte *pCell = pDest;
+			if (y >= clip->y && y < clip->y + clip->height && visibleWidth > 0) {
+				byte *cell = dest;
 
 				for (int column = 0; column < visibleWidth; column++)
-					*pCell++ = *pMap;
+					*cell++ = *map;
 			}
 
-			pDest += pitch;
+			dest += pitch;
 			y++;
 		}
 
-		int bottomPadding = (int)(pFont->maxY - (uint)glyphHeight - (uint)(int)pGlyph->yOffset);
+		int bottomPadding = (int)(font->maxY - (uint)glyphHeight - (uint)(int)glyph->yOffset);
 
 		for (int row = 0; row < glyphHeight; row++) {
-			if (y >= pClip->y && y < pClip->y + pClip->height && visibleWidth > 0) {
-				const byte *pSource = pSourceRow;
-				byte *pCell = pDest;
+			if (y >= clip->y && y < clip->y + clip->height && visibleWidth > 0) {
+				const byte *source = sourceRow;
+				byte *cell = dest;
 
 				for (int column = 0; column < visibleWidth; column++)
-					*pCell++ = pMap[*pSource++];
+					*cell++ = map[*source++];
 			}
 
-			pSourceRow += glyphWidth;
-			pDest += pitch;
+			sourceRow += glyphWidth;
+			dest += pitch;
 			y++;
 		}
 
 		for (int row = 0; row < bottomPadding; row++) {
-			if (y >= pClip->y && y < pClip->y + pClip->height && visibleWidth > 0) {
-				byte *pCell = pDest;
+			if (y >= clip->y && y < clip->y + clip->height && visibleWidth > 0) {
+				byte *cell = dest;
 
 				for (int column = 0; column < visibleWidth; column++)
-					*pCell++ = *pMap;
+					*cell++ = *map;
 			}
 
-			pDest += pitch;
+			dest += pitch;
 			y++;
 		}
 	}

@@ -63,7 +63,7 @@ void Lua_V2::SetReplayMode() {
 
 void Lua_V2::GetReplayMode() {
 	if (_engine->getInputRecorder())
-		lua_pushnumber((float)_engine->getInputRecorder()->mode);
+		lua_pushnumber((float)_engine->getInputRecorder()->_mode);
 }
 
 void Lua_V2::GetNextDemoNum() {
@@ -135,12 +135,12 @@ void Lua_V2::SetActorTessellation() {
 
 	// Only the GS renderer reads it
 	if (lua_isnil(modeObj)) {
-		actor->drawFlags &= ~(uint)RNode::kTessellation;
+		actor->_drawFlags &= ~(uint)RNode::kTessellation;
 	} else if (lua_isnumber(modeObj)) {
 		if (luaFtol(lua_getnumber(modeObj)) != 0)
-			actor->drawFlags |= RNode::kTessellation;
+			actor->_drawFlags |= RNode::kTessellation;
 		else
-			actor->drawFlags &= ~(uint)RNode::kTessellation;
+			actor->_drawFlags &= ~(uint)RNode::kTessellation;
 	} else if (_engine->getConsoleServices()) {
 		_engine->getConsoleServices()->logDebug("SetActorTessellation: Invalid parameter.\n");
 	}
@@ -236,8 +236,8 @@ void Lua_V2::OverWorldToScreen() {
 	Camera camera(_engine->getDrawContext());
 
 	camera.setLocalPosition(CVector());
-	camera.nearClip = kOverworldNearClip;
-	camera.farClip = kOverworldFarClip;
+	camera._nearClip = kOverworldNearClip;
+	camera._farClip = kOverworldFarClip;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
 		if (_engine->getConsoleServices())
@@ -252,10 +252,10 @@ void Lua_V2::OverWorldToScreen() {
 
 	camera.updateViewMatrix();
 
-	const float *m = camera.view.rot.m;
-	float pointX = ((x * m[0] + y * m[3]) + z * m[6]) + camera.view.pos.x;
-	float pointY = ((x * m[1] + y * m[4]) + z * m[7]) + camera.view.pos.y;
-	float depth = ((x * m[2] + y * m[5]) + z * m[8]) + camera.view.pos.z;
+	const float *m = camera._view._rot._m;
+	float pointX = ((x * m[0] + y * m[3]) + z * m[6]) + camera._view._pos._x;
+	float pointY = ((x * m[1] + y * m[4]) + z * m[7]) + camera._view._pos._y;
+	float depth = ((x * m[2] + y * m[5]) + z * m[8]) + camera._view._pos._z;
 
 	if (depth == 0.0f) {
 		warning("Lua_V2::OverWorldToScreen(): point is on the camera plane");
@@ -266,8 +266,8 @@ void Lua_V2::OverWorldToScreen() {
 	}
 
 	float inverseDepth = 1.0f / depth;
-	float screenX = camera.halfWidth + inverseDepth * (pointX * camera.focalX);
-	float screenY = camera.halfHeight + inverseDepth * (-pointY * camera.focalY);
+	float screenX = camera._halfWidth + inverseDepth * (pointX * camera._focalX);
+	float screenY = camera._halfHeight + inverseDepth * (-pointY * camera._focalY);
 
 	if (!_engine->getDrawContext() || screenX < 0.0f || !(screenX <= kPs2ScreenWidth) || screenY < 0.0f || !(screenY <= kPs2ScreenHeight)) {
 		lua_pushnil();

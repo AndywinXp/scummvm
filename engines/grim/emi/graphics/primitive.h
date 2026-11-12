@@ -51,21 +51,21 @@ public:
 
 	void drawNode(CDrawContext *drawContext);
 
-	Primitive *next;
-	Primitive *prev;
-	int type;
-	int id;
-	int layer;
-	float x1;
-	float y1;
-	float z1;
-	float x2;
-	float y2;
-	float z2;
-	int polyCount;
-	Color color;
-	int reserved64;
-	bool filled;
+	Primitive *_next;
+	Primitive *_prev;
+	int _type;
+	int _id;
+	int _layer;
+	float _x1;
+	float _y1;
+	float _z1;
+	float _x2;
+	float _y2;
+	float _z2;
+	int _polyCount;
+	Color _color;
+	int _reserved64;
+	bool _filled;
 };
 
 } // End of namespace Grim

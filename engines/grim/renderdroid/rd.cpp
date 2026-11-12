@@ -32,18 +32,18 @@ RenderDroid::RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *
 		_face(this), _keyframe(this), _light(this), _material(this), _model3(this),
 		_primit2(this), _primit3(this, isDemo), _puppet(this, isDemo), _sprite(this), _thing(this),
 		_active(this), _cache(this), _raster(this), _afRaster(this), _nRaster(this),
-		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile), _pStd3D(nullptr),
-		_pHS(nullptr), _bStarted(0), _bOpened(0),
+		_zRaster(this), _stdMath(stdMath), _stdDisplay(stdDisplay), _stdConffile(stdConffile), _stdFile(stdFile), _std3D(nullptr),
+		_hs(nullptr), _started(0), _opened(0),
 		_frameTrue(0), _curAcceleration(0), _curRenderOptions(0), _curGeometryMode(0),
 		_curLightingMode(0), _curTextureMode(0), _curSortingMethod(0), _curOcclusionMethod(0),
-		_curZBufferMethod(0), _curVertexColorMode(0), _curCullFlags(0), _curProcFaceUserData(0), _bDemo(isDemo) {
+		_curZBufferMethod(0), _curVertexColorMode(0), _curCullFlags(0), _curProcFaceUserData(0), _demo(isDemo) {
 	memset(&_colorInfo, 0, sizeof(StdColorFormat));
 	memset(&_curColorEffects, 0, sizeof(RdColorEffects));
 
-	_aMipDistances[0] = 10.0f;
-	_aMipDistances[1] = 20.0f;
-	_aMipDistances[2] = 40.0f;
-	_aMipDistances[3] = 80.0f;
+	_mipDistances[0] = 10.0f;
+	_mipDistances[1] = 20.0f;
+	_mipDistances[2] = 40.0f;
+	_mipDistances[3] = 80.0f;
 
 	memset(_identMatrix34, 0, sizeof(RdMatrix34));
 	_identMatrix34[0][0] = 1.0f;
@@ -58,8 +58,8 @@ void RenderDroid::setColorInfo(const StdColorFormat &colorInfo) {
 	_colorInfo = colorInfo;
 }
 
-void RenderDroid::setStd3D(Std3D *pStd3D) {
-	_pStd3D = pStd3D;
+void RenderDroid::setStd3D(Std3D *std3D) {
+	_std3D = std3D;
 }
 
 int RenderDroid::getAcceleration() const {
@@ -67,7 +67,7 @@ int RenderDroid::getAcceleration() const {
 }
 
 void RenderDroid::setAcceleration(int acceleration) {
-	if (acceleration > 0 && !_pStd3D) {
+	if (acceleration > 0 && !_std3D) {
 		warning("RenderDroid::setAcceleration(): no 3D device set");
 		acceleration = 0;
 	}
@@ -75,41 +75,41 @@ void RenderDroid::setAcceleration(int acceleration) {
 	_curAcceleration = acceleration;
 }
 
-int RenderDroid::startup(SysStruct *pHS) {
-	if (_bStarted)
+int RenderDroid::startup(SysStruct *hs) {
+	if (_started)
 		return 1;
 
-	_pHS = pHS;
+	_hs = hs;
 	_active.startup();
 	_cache.startup();
 	_raster.startup();
-	_bStarted = 1;
+	_started = 1;
 
 	return 1;
 }
 
 void RenderDroid::shutdown() {
-	if (_bStarted == 1)
-		_bStarted = 0;
+	if (_started == 1)
+		_started = 0;
 }
 
 int RenderDroid::open(int acceleration) {
-	if (!_bOpened) {
+	if (!_opened) {
 		_curGeometryMode = 5;
 		_curLightingMode = 5;
 		_curTextureMode = 3;
 		_curRenderOptions = 1;
 		_curSortingMethod = 0;
 		_curOcclusionMethod = 0;
-		_curCullFlags = _bDemo ? 3 : 1;
+		_curCullFlags = _demo ? 3 : 1;
 		_curProcFaceUserData = 0;
 		_colorEffects.clear(&_curColorEffects);
 		_curVertexColorMode = 0;
 		_frameTrue = 0;
 		clearPreStatistics();
-		_bOpened = 1;
+		_opened = 1;
 
-		if (acceleration > 0 && !_pStd3D) {
+		if (acceleration > 0 && !_std3D) {
 			warning("RenderDroid::open(): no 3D device set");
 			acceleration = 0;
 		}
@@ -121,10 +121,10 @@ int RenderDroid::open(int acceleration) {
 }
 
 int RenderDroid::close() {
-	int wasOpened = _bOpened;
+	int wasOpened = _opened;
 
-	if (_bOpened)
-		_bOpened = 0;
+	if (_opened)
+		_opened = 0;
 
 	return wasOpened;
 }
@@ -189,7 +189,7 @@ int RenderDroid::beginHardwareScene() {
 
 #if defined(GRIM_STD3D)
 	if (result > 0)
-		return _pStd3D->beginScene();
+		return _std3D->beginScene();
 #endif
 
 	return result;

@@ -68,7 +68,7 @@ struct RdBound3 {
 
 struct RdModel3Geo {
 	uint numMeshes;
-	RdModel3Mesh *aMeshes;
+	RdModel3Mesh *meshes;
 };
 
 struct RdFace3 {
@@ -78,9 +78,9 @@ struct RdFace3 {
 	int lightingMode;
 	int textureMode;
 	uint numVertices;
-	int *aVertices;
-	int *aTexVertices;
-	RdMaterial *pMaterial;
+	int *vertices;
+	int *texVertices;
+	RdMaterial *material;
 	int curCel;
 	RdVector2 uvDelta;
 	float extraLight;
@@ -91,38 +91,38 @@ struct RdFace3 {
 };
 
 struct RdModel3Mesh {
-	char aName[32];
+	char name[32];
 	uint num;
 	int geometryMode;
 	int lightingMode;
 	int textureMode;
-	RdVector3 *aVertices;
-	RdVector2 *aTexVertices;
-	float *aStaticVertexIntensities;
-	float *aDynamicVertexIntensities;
-	RdFace3 *aFaces;
-	RdVector3 *aVertexNormals;
+	RdVector3 *vertices;
+	RdVector2 *texVertices;
+	float *staticVertexIntensities;
+	float *dynamicVertexIntensities;
+	RdFace3 *faces;
+	RdVector3 *vertexNormals;
 	uint numVertices;
 	uint numTexVertices;
 	uint numFaces;
 	int castShadow;
-	RdVector3 *aShadowVerts;
+	RdVector3 *shadowVerts;
 	float userLightValue;
 	float radius;
 	RdBound3 bound;
 };
 
 struct RdModel3HNode {
-	char aName[64];
+	char name[64];
 	uint flags;
 	uint num;
 	uint type;
 	int meshNodeIndex;
 	uint depth;
-	RdModel3HNode *pParentNode;
+	RdModel3HNode *parentNode;
 	uint numChildren;
-	RdModel3HNode *pFirstChildNode;
-	RdModel3HNode *pSiblingNode;
+	RdModel3HNode *firstChildNode;
+	RdModel3HNode *siblingNode;
 	RdVector3 pivot;
 	RdVector3 xyz;
 	RdVector3 pyr;
@@ -130,15 +130,15 @@ struct RdModel3HNode {
 };
 
 struct RdModel3 {
-	char aName[32];
+	char name[32];
 	int index;
-	RdModel3Geo aGeo[4];
+	RdModel3Geo geo[4];
 	uint numGeos;
-	RdMaterial **apMaterials;
+	RdMaterial **materials;
 	uint numMaterials;
 	uint curGeoSet;
 	uint numHNodes;
-	RdModel3HNode *aHNodes;
+	RdModel3HNode *hNodes;
 	float radius;
 	RdBound3 bound;
 	RdVector3 geomCenter;
@@ -153,19 +153,19 @@ struct RdMatCel {
 	int reserved16;
 	int reserved20;
 	int reserved24;
-	RdTexture *pTexture;
+	RdTexture *texture;
 };
 
 struct RdTexCacheEntry {
-	uint hTexture;
-	int bInCache;
-	int bColorKey;
+	uint texture;
+	int inCache;
+	int colorKey;
 	uint width;
 	uint height;
 	uint size;
 	uint lastFrame;
-	RdTexCacheEntry *pPrev;
-	RdTexCacheEntry *pNext;
+	RdTexCacheEntry *prev;
+	RdTexCacheEntry *next;
 };
 
 struct RdTexture {
@@ -176,26 +176,26 @@ struct RdTexture {
 	int widthMask;
 	int heightMask;
 	uint numMips;
-	StdVBuffer *apMips[4];
-	RdTexCacheEntry aCache[2][4];
+	StdVBuffer *mips[4];
+	RdTexCacheEntry cache[2][4];
 };
 
 struct RdMaterial {
 	uint flags;
-	char aName[32];
+	char name[32];
 	int lockCount;
 	StdColorFormat format;
 	uint numCels;
 	int curCel;
-	RdMatCel *apCels[16];
+	RdMatCel *cels[16];
 	uint numTextures;
-	RdTexture *aTextures;
+	RdTexture *textures;
 };
 
 struct RdLight {
 	int id;
 	int type;
-	int bActive;
+	int active;
 	RdVector3 direction;
 	float intensity;
 	uint color;
@@ -210,22 +210,22 @@ struct RdLight {
 
 struct RdVertexLists {
 	uint numVertices;
-	int *aVertIndices;
-	int *aTexIndices;
-	RdVector3 *aVertices;
-	RdVector2 *aTexVertices;
-	float *aIntensities;
-	float *aAddedIntensities;
-	float *aRedIntensities;
-	float *aGreenIntensities;
-	float *aBlueIntensities;
-	RdVector3 *aScreen;
+	int *vertIndices;
+	int *texIndices;
+	RdVector3 *vertices;
+	RdVector2 *texVertices;
+	float *intensities;
+	float *addedIntensities;
+	float *redIntensities;
+	float *greenIntensities;
+	float *blueIntensities;
+	RdVector3 *screen;
 };
 
 struct RdClipPoly {
-	RdVector3 *aVerts;
-	RdVector2 *aTexVerts;
-	float *aIntensities;
+	RdVector3 *verts;
+	RdVector2 *texVerts;
+	float *intensities;
 };
 
 struct RdKeyframeEntry {
@@ -238,14 +238,14 @@ struct RdKeyframeEntry {
 };
 
 struct RdKeyframeNode {
-	char aName[32];
+	char name[32];
 	uint nodeNum;
 	uint numEntries;
 	RdKeyframeEntry *paEntries;
 };
 
 struct RdKeyframe {
-	char aName[32];
+	char name[32];
 	int reserved32;
 	uint flags;
 	uint numJoints;
@@ -255,8 +255,8 @@ struct RdKeyframe {
 	uint numNodes;
 	RdKeyframeNode *paNodes;
 	uint numMarkers;
-	float aMarkerFrame[8];
-	int aMarkerType[8];
+	float markerFrame[8];
+	int markerType[8];
 };
 
 typedef void (*RdPuppetTrackCallback)(void *userArg, int trackNum, int markerType);
@@ -270,26 +270,26 @@ struct RdPuppetTrack {
 	float noise;
 	float fade;
 	float fadeSpeed;
-	int aEntryIdx[64];
+	int entryIdx[64];
 	float curFrame;
 	float prevFrame;
-	RdKeyframe *pKeyframe;
-	RdPuppetTrackCallback pfCallback;
+	RdKeyframe *keyframe;
+	RdPuppetTrackCallback callback;
 	int reserved304;
 };
 
 struct RdPuppet {
-	int bPaused;
-	RdThing *pThing;
-	RdPuppetTrack aTracks[6];
+	int paused;
+	RdThing *thing;
+	RdPuppetTrack tracks[6];
 };
 
 struct RdCanvas {
 	uint flags;
-	StdVBuffer *pVBuffer;
+	StdVBuffer *vBuffer;
 	float xCenter;
 	float yCenter;
-	StdVBuffer *pZBuffer;
+	StdVBuffer *zBuffer;
 	int zScaleShift;
 	int xStart;
 	int yStart;
@@ -298,7 +298,7 @@ struct RdCanvas {
 };
 
 struct RdClipFrustum {
-	int bClipFar;
+	int clipFar;
 	float zNear;
 	float zFar;
 	float orthoLeft;
@@ -314,7 +314,7 @@ struct RdClipFrustum {
 };
 
 struct RdSprite {
-	char aName[32];
+	char name[32];
 	int type;
 	float radius;
 	byte reserved40[36];
@@ -323,53 +323,53 @@ struct RdSprite {
 	float halfWidth;
 	float halfHeight;
 	RdFace3 face;
-	float *aTexVerts;
+	float *texVerts;
 	RdVector3 offset;
 };
 
 struct RdPolyline {
-	char aName[32];
+	char name[32];
 	float length;
 	float startWidth;
 	float endWidth;
 	byte reserved44[12];
 	RdFace3 faceBody;
 	RdFace3 faceEnd;
-	RdVector2 *aTexVertsBody;
-	RdVector2 *aTexVertsEnd;
+	RdVector2 *texVertsBody;
+	RdVector2 *texVertsEnd;
 };
 
 struct RdParticleCloud {
-	char aName[32];
+	char name[32];
 	int lightingMode;
 	uint numParticles;
-	RdVector3 *aPositions;
-	int *aCels;
+	RdVector3 *positions;
+	int *cels;
 	int reserved48;
 	float size;
-	RdMaterial *pMaterial;
+	RdMaterial *material;
 	float radius;
 };
 
 struct RdThing {
 	int type;
 	union {
-		RdModel3 *pModel3;
-		RdCamera *pCamera;
-		RdLight *pLight;
-		RdSprite *pSprite;
-		RdPolyline *pPolyline;
-		RdParticleCloud *pParticle;
-		void *pData;
+		RdModel3 *model3;
+		RdCamera *camera;
+		RdLight *light;
+		RdSprite *sprite;
+		RdPolyline *polyline;
+		RdParticleCloud *particle;
+		void *dataPointer;
 	} data;
 	int geometryMode;
 	int lightingMode;
 	int textureMode;
-	RdPuppet *pPuppet;
-	int bJointsLocked;
+	RdPuppet *puppet;
+	int jointsLocked;
 	int jointsFrame;
-	RdMatrix34 *aJointMatrices;
-	RdVector3 *aJointPyr;
+	RdMatrix34 *jointMatrices;
+	RdVector3 *jointPyr;
 	int *abJointAmputate;
 	int *abMeshVisible;
 	int curCel;
@@ -382,22 +382,22 @@ struct RdThing {
 };
 
 struct RdColormap {
-	char aName[32];
+	char name[32];
 	uint flags;
 	RdVector3 tint;
-	byte aColors[768];
-	byte *pLightLevel;
-	byte *pLightLevelAlloc;
-	byte *pTransparency;
-	byte *pTransparencyAlloc;
+	byte colors[768];
+	byte *lightLevel;
+	byte *lightLevelAlloc;
+	byte *transparency;
+	byte *transparencyAlloc;
 	int reserved832;
 	int reserved836;
-	byte *pRGB16;
-	byte *pRGB16Alpha;
+	byte *rgb16;
+	byte *rgb16Alpha;
 };
 
-typedef void (*RdProcFaceDrawFunc)(RdProcFace *pFace, RdMatCel *pCel, float light);
-typedef void (*RdProcFaceSetupFunc)(RdActiveFace *pFace, RdMatCel *pCel, float light);
+typedef void (*RdProcFaceDrawFunc)(RdProcFace *face, RdMatCel *cel, float light);
+typedef void (*RdProcFaceSetupFunc)(RdActiveFace *face, RdMatCel *cel, float light);
 
 struct RdProcFace {
 	uint flags;
@@ -405,22 +405,22 @@ struct RdProcFace {
 	int geometryMode;
 	int lightingMode;
 	int textureMode;
-	RdProcFaceDrawFunc pfUserDraw;
-	RdProcFaceSetupFunc pfUserSetup;
+	RdProcFaceDrawFunc userDraw;
+	RdProcFaceSetupFunc userSetup;
 	uint numVertices;
-	RdVector3 *aVertices;
-	RdVector2 *aTexVertices;
-	float *aIntensities;
-	float *aRedIntensities;
-	float *aGreenIntensities;
-	float *aBlueIntensities;
-	RdMaterial *pMaterial;
+	RdVector3 *vertices;
+	RdVector2 *texVertices;
+	float *intensities;
+	float *redIntensities;
+	float *greenIntensities;
+	float *blueIntensities;
+	RdMaterial *material;
 	int curCel;
 	float ambientLight;
 	float diffuseLight;
 	float extraLight;
-	RdColormap *pColormap;
-	int bBackface;
+	RdColormap *colormap;
+	int backface;
 	int xMin;
 	int xMax;
 	int yMin;
@@ -440,7 +440,7 @@ struct RdColorEffects {
 };
 
 typedef RdMaterial *(*RdMaterialLoaderFunc)(char *path, int a2, int a3);
-typedef int (*RdMaterialUnloaderFunc)(RdMaterial *pMaterial);
+typedef int (*RdMaterialUnloaderFunc)(RdMaterial *material);
 
 struct RdNRasterEdge {
 	int x;
@@ -469,7 +469,7 @@ public:
 	RenderDroid(StdMath *stdMath, StdDisplay *stdDisplay, StdConffile *stdConffile, StdFile *stdFile, bool isDemo);
 	~RenderDroid();
 
-	int startup(SysStruct *pHS);
+	int startup(SysStruct *hs);
 	void shutdown();
 	int open(int acceleration);
 	int close();
@@ -482,12 +482,12 @@ public:
 	int setZBufferMethod(int method);
 	int advanceFrame();
 	int getFrameTrue() const { return _frameTrue; }
-	bool isDemo() const { return _bDemo; }
+	bool isDemo() const { return _demo; }
 	void finishFrame();
 	void clearPreStatistics();
 	int beginHardwareScene();
 	void setColorInfo(const StdColorFormat &colorInfo);
-	void setStd3D(Std3D *pStd3D);
+	void setStd3D(Std3D *std3D);
 	int getAcceleration() const;
 	void setAcceleration(int acceleration);
 
@@ -521,7 +521,7 @@ public:
 	void preScale34(RdMatrix34 mat, RdVector3 scale);
 	void transformPoint34(RdVector3 out, RdVector3 pt, RdMatrix34 mat);
 	void transformPoint34Acc(RdVector3 pt, RdMatrix34 mat);
-	void transformPointLst34(RdMatrix34 mat, RdVector3 *aIn, RdVector3 *aOut, uint num);
+	void transformPointLst34(RdMatrix34 mat, RdVector3 *in, RdVector3 *out, uint num);
 	void transformVector34(RdVector3 out, RdVector3 vec, RdMatrix34 mat);
 	void transformVector34Acc(RdVector3 vec, RdMatrix34 mat);
 	void transformVectorOrtho34(RdVector3 out, RdVector3 vec, RdMatrix34 mat);
@@ -534,35 +534,35 @@ public:
 
 	class CameraModule : public Module {
 	public:
-		explicit CameraModule(RenderDroid *rd) : Module(rd), _pCurCamera(nullptr) {}
-		RdCamera *getCurrent() const { return _pCurCamera; }
+		explicit CameraModule(RenderDroid *rd) : Module(rd), _curCamera(nullptr) {}
+		RdCamera *getCurrent() const { return _curCamera; }
 		void getPosition(RdVector3 out) const { out[0] = _camMatrix[3][0]; out[1] = _camMatrix[3][1]; out[2] = _camMatrix[3][2]; }
-		RdCamera *create(float fov, int bClipFar, float zNear, float zFar, float aspectRatio);
-		int newEntry(RdCamera *pCamera, float fov, int bClipFar, float zNear, float zFar, float aspectRatio);
-		void destroy(RdCamera *&pCamera);
-		void freeEntry(RdCamera *pCamera);
-		int setCanvas(RdCamera *pCamera, RdCanvas *pCanvas);
-		int setCurrent(RdCamera *pCamera);
-		int setFOV(RdCamera *pCamera, float fov);
-		int setProjectType(RdCamera *pCamera, int projectType);
-		int setAspectRatio(RdCamera *pCamera, float aspectRatio);
-		int buildFOV(RdCamera *pCamera);
+		RdCamera *create(float fov, int clipFar, float zNear, float zFar, float aspectRatio);
+		int newEntry(RdCamera *camera, float fov, int clipFar, float zNear, float zFar, float aspectRatio);
+		void destroy(RdCamera *&camera);
+		void freeEntry(RdCamera *camera);
+		int setCanvas(RdCamera *camera, RdCanvas *canvas);
+		int setCurrent(RdCamera *camera);
+		int setFOV(RdCamera *camera, float fov);
+		int setProjectType(RdCamera *camera, int projectType);
+		int setAspectRatio(RdCamera *camera, float aspectRatio);
+		int buildFOV(RdCamera *camera);
 		void update(RdMatrix34 mat);
-		void orthoProject(RdVector3 pOut, RdVector3 pIn);
-		void orthoProjectLst(RdVector3 *aOut, RdVector3 *aIn, int num);
-		void orthoProjectSquare(RdVector3 pOut, RdVector3 pIn);
-		void orthoProjectSquareLst(RdVector3 *aOut, RdVector3 *aIn, int num);
-		void perspProject(RdVector3 pOut, RdVector3 pIn);
-		void perspProjectLst(RdVector3 *aOut, RdVector3 *aIn, int num);
-		void perspProjectSquare(RdVector3 pOut, RdVector3 pIn);
-		void perspProjectSquareLst(RdVector3 *aOut, RdVector3 *aIn, int num);
-		void setAmbientLight(RdCamera *pCamera, float ambient);
-		int addLight(RdCamera *pCamera, RdLight *pLight, RdVector3 *pPos);
+		void orthoProject(RdVector3 out, RdVector3 in);
+		void orthoProjectLst(RdVector3 *out, RdVector3 *in, int num);
+		void orthoProjectSquare(RdVector3 out, RdVector3 in);
+		void orthoProjectSquareLst(RdVector3 *out, RdVector3 *in, int num);
+		void perspProject(RdVector3 out, RdVector3 in);
+		void perspProjectLst(RdVector3 *out, RdVector3 *in, int num);
+		void perspProjectSquare(RdVector3 out, RdVector3 in);
+		void perspProjectSquareLst(RdVector3 *out, RdVector3 *in, int num);
+		void setAmbientLight(RdCamera *camera, float ambient);
+		int addLight(RdCamera *camera, RdLight *light, RdVector3 *pos);
 		void advanceFrame();
 
 	private:
 		friend class RenderDroid;
-		RdCamera *_pCurCamera;
+		RdCamera *_curCamera;
 		RdMatrix34 _camMatrix;
 		RdVector3 _camPYR;
 	};
@@ -570,43 +570,43 @@ public:
 	class CanvasModule : public Module {
 	public:
 		explicit CanvasModule(RenderDroid *rd) : Module(rd) {}
-		RdCanvas *create(uint flags, StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int a8);
-		int newEntry(RdCanvas *pCanvas, uint flags, StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int a9);
-		void destroy(RdCanvas *&pCanvas);
+		RdCanvas *create(uint flags, StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int a8);
+		int newEntry(RdCanvas *canvas, uint flags, StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int a9);
+		void destroy(RdCanvas *&canvas);
 	};
 
 	class ClipModule : public Module {
 	public:
 		explicit ClipModule(RenderDroid *rd) : Module(rd), _faceStatus(0) {}
-		int line2(RdCanvas *pCanvas, int *x0, int *y0, int *x1, int *y1);
-		int calcOutcode2(RdCanvas *pCanvas, int x, int y);
-		int point3(RdClipFrustum *pClip, RdVector3 pt);
-		int line3(RdClipFrustum *pClip, RdVector3 v0, RdVector3 v1, int *pClipped0, int *pClipped1);
-		int face3W(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts);
-		int face3WOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts);
-		int face3S(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts);
-		int face3SOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, int numVerts);
-		int face3GS(RdClipFrustum *pClip, RdVector3 *aVerts, float *aIntensities, int numVerts);
-		int face3GSOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, float *aIntensities, int numVerts);
-		int face3T(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, int numVerts);
-		int face3TOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, int numVerts);
-		int face3GT(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts);
-		int face3GTOrtho(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts);
-		int sphereInFrustrum(RdClipFrustum *pClip, RdVector3 center, float radius);
-		int faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts);
+		int line2(RdCanvas *canvas, int *x0, int *y0, int *x1, int *y1);
+		int calcOutcode2(RdCanvas *canvas, int x, int y);
+		int point3(RdClipFrustum *clip, RdVector3 pt);
+		int line3(RdClipFrustum *clip, RdVector3 v0, RdVector3 v1, int *clipped0, int *clipped1);
+		int face3W(RdClipFrustum *clip, RdVector3 *verts, int numVerts);
+		int face3WOrtho(RdClipFrustum *clip, RdVector3 *verts, int numVerts);
+		int face3S(RdClipFrustum *clip, RdVector3 *verts, int numVerts);
+		int face3SOrtho(RdClipFrustum *clip, RdVector3 *verts, int numVerts);
+		int face3GS(RdClipFrustum *clip, RdVector3 *verts, float *intensities, int numVerts);
+		int face3GSOrtho(RdClipFrustum *clip, RdVector3 *verts, float *intensities, int numVerts);
+		int face3T(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, int numVerts);
+		int face3TOrtho(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, int numVerts);
+		int face3GT(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts);
+		int face3GTOrtho(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts);
+		int sphereInFrustrum(RdClipFrustum *clip, RdVector3 center, float radius);
+		int faceToPlane(RdVector3 norm, RdVector3 pt, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts);
 
 	private:
 		friend class RenderDroid;
-		int clipFace(RdClipFrustum *pClip, RdVector3 *aVerts, RdVector2 *aTexVerts, float *aIntensities, int numVerts, bool bGuard, bool bOrtho);
-		int clipPerspectiveX(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float slope, bool keepGreater, uint status);
-		int clipPerspectiveZ(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float slope, bool keepGreater, uint status);
-		int clipOrtho(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, int axis, float bound, bool keepGreater, uint status);
-		int clipDepth(const RdClipPoly *pSrc, int count, RdClipPoly *pDst, float plane, bool keepGreater, uint status);
-		void copyVertex(const RdClipPoly *pSrc, int srcIdx, RdClipPoly *pDst, int dstIdx);
-		void interpolateAttributes(const RdClipPoly *pSrc, int prevIdx, int curIdx, RdClipPoly *pDst, int dstIdx, double t);
+		int clipFace(RdClipFrustum *clip, RdVector3 *verts, RdVector2 *texVerts, float *intensities, int numVerts, bool guard, bool ortho);
+		int clipPerspectiveX(const RdClipPoly *src, int count, RdClipPoly *dst, float slope, bool keepGreater, uint status);
+		int clipPerspectiveZ(const RdClipPoly *src, int count, RdClipPoly *dst, float slope, bool keepGreater, uint status);
+		int clipOrtho(const RdClipPoly *src, int count, RdClipPoly *dst, int axis, float bound, bool keepGreater, uint status);
+		int clipDepth(const RdClipPoly *src, int count, RdClipPoly *dst, float plane, bool keepGreater, uint status);
+		void copyVertex(const RdClipPoly *src, int srcIdx, RdClipPoly *dst, int dstIdx);
+		void interpolateAttributes(const RdClipPoly *src, int prevIdx, int curIdx, RdClipPoly *dst, int dstIdx, double t);
 		bool canAddVertex(int count);
 
-		RdVector3 _aVertBufferA[64];
+		RdVector3 _vertBufferA[64];
 		RdVector2 _workTVerts[64];
 		float _workIVerts[64];
 		uint _faceStatus;
@@ -615,82 +615,82 @@ public:
 	class ColormapModule : public Module {
 	public:
 		// The colormaps of the demo have a light level table after the colors
-		ColormapModule(RenderDroid *rd, bool isDemo) : Module(rd), _pCurMap(nullptr), _pIdentityMap(nullptr), _bDemoFormat(isDemo) {}
-		RdColormap *getCurrent() const { return _pCurMap; }
-		RdColormap *getIdentity() const { return _pIdentityMap; }
+		ColormapModule(RenderDroid *rd, bool isDemo) : Module(rd), _curMap(nullptr), _identityMap(nullptr), _demoFormat(isDemo) {}
+		RdColormap *getCurrent() const { return _curMap; }
+		RdColormap *getIdentity() const { return _identityMap; }
 		RdColormap *load(char *path);
-		int loadEntry(char *path, RdColormap *pColormap);
-		void destroy(RdColormap *&pColormap);
-		void freeEntry(RdColormap *pColormap);
-		int setCurrent(RdColormap *pColormap);
-		int setIdentity(RdColormap *pColormap);
-		int buildRGB16(byte *pDst, byte *pPalette, byte r, byte g, byte b, StdColorFormat *pColorFormat);
-		int buildGrayRamp(RdColormap *pColormap);
-		int size(RdColormap *pColormap);
+		int loadEntry(char *path, RdColormap *colormap);
+		void destroy(RdColormap *&colormap);
+		void freeEntry(RdColormap *colormap);
+		int setCurrent(RdColormap *colormap);
+		int setIdentity(RdColormap *colormap);
+		int buildRGB16(byte *dst, byte *palette, byte r, byte g, byte b, StdColorFormat *colorFormat);
+		int buildGrayRamp(RdColormap *colormap);
+		int size(RdColormap *colormap);
 
 	private:
 		friend class RenderDroid;
-		RdColormap *_pCurMap;
-		RdColormap *_pIdentityMap;
-		bool _bDemoFormat;
+		RdColormap *_curMap;
+		RdColormap *_identityMap;
+		bool _demoFormat;
 	};
 
 	class ColorEffectsModule : public Module {
 	public:
 		explicit ColorEffectsModule(RenderDroid *rd) : Module(rd) {}
-		void clear(RdColorEffects *pEffects);
+		void clear(RdColorEffects *effects);
 	};
 
 	class FaceModule : public Module {
 	public:
 		explicit FaceModule(RenderDroid *rd) : Module(rd) {}
-		int newEntry(RdFace3 *pFace);
-		void freeEntry(RdFace3 *pFace);
+		int newEntry(RdFace3 *face);
+		void freeEntry(RdFace3 *face);
 	};
 
 	class KeyframeModule : public Module {
 	public:
 		explicit KeyframeModule(RenderDroid *rd) : Module(rd) {}
 		RdKeyframe *load(char *path);
-		int loadEntry(char *path, RdKeyframe *pKeyframe);
-		int loadHeader(Common::SeekableReadStream *pFile, RdKeyframe *pKeyframe);
-		void newEntry(RdKeyframe *pKeyframe);
-		void destroy(RdKeyframe *&pKeyframe);
-		void freeEntry(RdKeyframe *pKeyframe);
+		int loadEntry(char *path, RdKeyframe *keyframe);
+		int loadHeader(Common::SeekableReadStream *file, RdKeyframe *keyframe);
+		void newEntry(RdKeyframe *keyframe);
+		void destroy(RdKeyframe *&keyframe);
+		void freeEntry(RdKeyframe *keyframe);
 	};
 
 	class LightModule : public Module {
 	public:
 		explicit LightModule(RenderDroid *rd) : Module(rd) {}
-		int newEntry(RdLight *pLight);
-		void setAngles(RdLight *pLight, float angleX, float angleY);
-		float calcVertexIntensities(RdLight **apLights, RdVector3 *aLightPos, RdVector3 *aLightDir, uint numLights, RdVector3 *aNormals, RdVector3 *aVertices, float *aStaticIntensities, float *aDynamicIntensities, uint numVertices, float attenuation);
-		float calcFaceIntensity(RdLight **apLights, RdVector3 *aLightPos, RdVector3 *aLightDir, uint numLights, RdFace3 *pFace, RdVector3 normal, RdVector3 *aVertices, float attenuation);
+		int newEntry(RdLight *light);
+		void setAngles(RdLight *light, float angleX, float angleY);
+		float calcVertexIntensities(RdLight **lights, RdVector3 *lightPos, RdVector3 *lightDir, uint numLights, RdVector3 *normals, RdVector3 *vertices, float *staticIntensities, float *dynamicIntensities, uint numVertices, float attenuation);
+		float calcFaceIntensity(RdLight **lights, RdVector3 *lightPos, RdVector3 *lightDir, uint numLights, RdFace3 *face, RdVector3 normal, RdVector3 *vertices, float attenuation);
 	};
 
 	class MaterialModule : public Module {
 	public:
-		explicit MaterialModule(RenderDroid *rd) : Module(rd), _pfLoader(nullptr), _pfUnloader(nullptr) {}
-		RdMaterialLoaderFunc registerLoader(RdMaterialLoaderFunc pfLoader);
-		RdMaterialUnloaderFunc registerUnloader(RdMaterialUnloaderFunc pfUnloader);
-		RdMaterial *load(char *path, int bVideoMemory, int bVideoMemoryOnly);
-		int loadEntry(char *path, RdMaterial *pMaterial, int bVideoMemory, int bVideoMemoryOnly);
-		int destroy(RdMaterial *&pMaterial);
-		void freeEntry(RdMaterial *pMaterial);
-		int addToTextureCache(RdMaterial *pMaterial, RdTexture *pTexture, int mipLevel, int alt);
+		explicit MaterialModule(RenderDroid *rd) : Module(rd), _loader(nullptr), _unloader(nullptr) {}
+		RdMaterialLoaderFunc registerLoader(RdMaterialLoaderFunc loader);
+		RdMaterialUnloaderFunc registerUnloader(RdMaterialUnloaderFunc unloader);
+		RdMaterial *load(char *path, int videoMemory, int videoMemoryOnly);
+		int loadEntry(char *path, RdMaterial *material, int videoMemory, int videoMemoryOnly);
+		int destroy(RdMaterial *&material);
+		void freeEntry(RdMaterial *material);
+		int addToTextureCache(RdMaterial *material, RdTexture *texture, int mipLevel, int alt);
 
 	private:
-		RdMaterialLoaderFunc _pfLoader;
-		RdMaterialUnloaderFunc _pfUnloader;
+		RdMaterialLoaderFunc _loader;
+		RdMaterialUnloaderFunc _unloader;
 	};
 
 	class Model3Module : public Module {
 	public:
-		explicit Model3Module(RenderDroid *rd) : Module(rd), _pCurThing(nullptr), _pCurModel3(nullptr), _pCurGeo(nullptr), _pCurMesh(nullptr), _thingFrustrumCull(0), _meshFrustrumCull(0),
+		explicit Model3Module(RenderDroid *rd) : Module(rd), _curThing(nullptr), _curModel3(nullptr), _curGeo(nullptr), _curMesh(nullptr), _thingFrustrumCull(0), _meshFrustrumCull(0),
 				_curGeometryMode(0), _curLightingMode(0), _curTextureMode(0), _geometryMode(0), _lightingMode(0), _textureMode(0),
 				_numGeoLights(0), _numMeshLights(0), _numDrawnModels(0), _clipPlaneActive(0), _maxGeoRadius(0.0f) {
-			memset(_apGeoLights, 0, sizeof(_apGeoLights));
-			memset(_apMeshLights, 0, sizeof(_apMeshLights));
+			memset(_geoLights, 0, sizeof(_geoLights));
+			memset(_meshLights, 0, sizeof(_meshLights));
 			memset(&_vertexSrc, 0, sizeof(_vertexSrc));
 			memset(&_vertexDst, 0, sizeof(_vertexDst));
 			memset(_clipNorm, 0, sizeof(_clipNorm));
@@ -701,39 +701,39 @@ public:
 		void clearFrameCounters();
 		void activateClipPlane(int onOff);
 		void setClipPlane(RdVector3 norm, RdVector3 pt);
-		int newEntry(RdModel3 *pModel3);
-		RdModel3 *load(char *pFilename);
-		int loadEntry(char *pFilename, RdModel3 *pModel3);
-		int loadEntryText(char *pFilename, RdModel3 *pModel3);
-		int loadEntryBinary(Common::SeekableReadStream *pFile, RdModel3 *pModel3);
-		void loadPostProcess(RdModel3 *pModel3);
-		int validate(RdModel3 *pModel3);
-		void destroy(RdModel3 *&pModel3);
-		void freeEntry(RdModel3 *pModel3);
-		void buildShadowModel(RdModel3 *pModel3);
-		void calcBoundingBoxes(RdModel3 *pModel3);
-		void calcModelBoundingBox(RdModel3 *pModel3, RdModel3HNode *pHNode, RdMatrix34 parentMatrix);
-		void calcRadii(RdModel3 *pModel3);
-		void buildExpandedRadius(RdModel3 *pModel3, RdModel3HNode *pHNode, RdMatrix34 parentMatrix);
-		void calcNodeDepths(RdModel3 *pModel3);
-		void calcFaceNormals(RdModel3 *pModel3);
-		void calcVertexNormals(RdModel3 *pModel3);
-		int getMeshMatrix(RdThing *pThing, RdMatrix34 orient, uint nodeNum, RdMatrix34 meshOrient);
-		int draw(RdThing *pThing, RdMatrix34 mat);
-		void drawHNode(RdModel3HNode *pHNode);
-		void drawMesh(RdModel3Mesh *pMesh, RdMatrix34 mat);
-		int drawFace(RdFace3 *pFace, int bBackface);
-		int drawPolyline(RdThing *pThing, RdMatrix34 mat);
-		int drawParticle(RdThing *pThing, RdMatrix34 mat);
+		int newEntry(RdModel3 *model3);
+		RdModel3 *load(char *filename);
+		int loadEntry(char *filename, RdModel3 *model3);
+		int loadEntryText(char *filename, RdModel3 *model3);
+		int loadEntryBinary(Common::SeekableReadStream *file, RdModel3 *model3);
+		void loadPostProcess(RdModel3 *model3);
+		int validate(RdModel3 *model3);
+		void destroy(RdModel3 *&model3);
+		void freeEntry(RdModel3 *model3);
+		void buildShadowModel(RdModel3 *model3);
+		void calcBoundingBoxes(RdModel3 *model3);
+		void calcModelBoundingBox(RdModel3 *model3, RdModel3HNode *hNode, RdMatrix34 parentMatrix);
+		void calcRadii(RdModel3 *model3);
+		void buildExpandedRadius(RdModel3 *model3, RdModel3HNode *hNode, RdMatrix34 parentMatrix);
+		void calcNodeDepths(RdModel3 *model3);
+		void calcFaceNormals(RdModel3 *model3);
+		void calcVertexNormals(RdModel3 *model3);
+		int getMeshMatrix(RdThing *thing, RdMatrix34 orient, uint nodeNum, RdMatrix34 meshOrient);
+		int draw(RdThing *thing, RdMatrix34 mat);
+		void drawHNode(RdModel3HNode *hNode);
+		void drawMesh(RdModel3Mesh *mesh, RdMatrix34 mat);
+		int drawFace(RdFace3 *face, int backface);
+		int drawPolyline(RdThing *thing, RdMatrix34 mat);
+		int drawParticle(RdThing *thing, RdMatrix34 mat);
 
 	private:
 		friend class RenderDroid;
-		int hasBytes(Common::SeekableReadStream *pFile, uint count, uint elementSize);
+		int hasBytes(Common::SeekableReadStream *file, uint count, uint elementSize);
 
-		RdThing *_pCurThing;
-		RdModel3 *_pCurModel3;
-		RdModel3Geo *_pCurGeo;
-		RdModel3Mesh *_pCurMesh;
+		RdThing *_curThing;
+		RdModel3 *_curModel3;
+		RdModel3Geo *_curGeo;
+		RdModel3Mesh *_curMesh;
 		int _thingFrustrumCull;
 		int _meshFrustrumCull;
 		int _curGeometryMode;
@@ -744,12 +744,12 @@ public:
 		int _textureMode;
 		uint _numGeoLights;
 		uint _numMeshLights;
-		RdLight *_apGeoLights[64];
-		RdLight *_apMeshLights[64];
-		RdVector3 _aLocalLightPos[64];
-		RdVector3 _aLocalLightDir[64];
-		RdVector3 _aView[512];
-		RdVector3 _aFaceVerts[32];
+		RdLight *_geoLights[64];
+		RdLight *_meshLights[64];
+		RdVector3 _localLightPos[64];
+		RdVector3 _localLightDir[64];
+		RdVector3 _view[512];
+		RdVector3 _faceVerts[32];
 		RdVector3 _localCamera;
 		RdVertexLists _vertexSrc;
 		RdVertexLists _vertexDst;
@@ -766,32 +766,32 @@ public:
 	class Primit2Module : public Module {
 	public:
 		explicit Primit2Module(RenderDroid *rd) : Module(rd) {}
-		void drawLine(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
-		int drawClippedLine(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
-		void drawCircle(RdCanvas *pCanvas, int cx, int cy, float radius, float angleStep, uint16 color, uint pattern);
-		void drawRectangle(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
+		void drawLine(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
+		int drawClippedLine(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
+		void drawCircle(RdCanvas *canvas, int cx, int cy, float radius, float angleStep, uint16 color, uint pattern);
+		void drawRectangle(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
 
 	private:
-		void plot(RdCanvas *pCanvas, int x, int y, uint16 color);
-		void drawBresenham(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
+		void plot(RdCanvas *canvas, int x, int y, uint16 color);
+		void drawBresenham(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern);
 	};
 
 	class Primit3Module : public Module {
 	public:
-		Primit3Module(RenderDroid *rd, bool isDemo) : Module(rd), _bDemo(isDemo) {}
-		RdProcFace *drawPolygon(RdVector3 *aVerts, int numVerts, RdMaterial *pMaterial);
-		int getScreenCoord(RdVector3 pt, int *pScreen);
-		int drawLine(RdVector3 p0, RdVector3 p1, int *pScreen0, int *pScreen1, int *pClipped0, int *pClipped1, uint16 color, uint pattern);
+		Primit3Module(RenderDroid *rd, bool isDemo) : Module(rd), _demo(isDemo) {}
+		RdProcFace *drawPolygon(RdVector3 *verts, int numVerts, RdMaterial *material);
+		int getScreenCoord(RdVector3 pt, int *screen);
+		int drawLine(RdVector3 p0, RdVector3 p1, int *screen0, int *screen1, int *clipped0, int *clipped1, uint16 color, uint pattern);
 		void drawPoint(RdVector3 pt, float radius, float angleStep, uint16 color, uint pattern);
-		int clipFace(RdClipFrustum *pClip, int geometryMode, int lightingMode, int textureMode, RdVertexLists *pSrc, RdVertexLists *pDst, RdVector2 uvDelta);
-		int noClipFace(int geometryMode, int lightingMode, int textureMode, RdVertexLists *pSrc, RdVertexLists *pDst, RdVector2 uvDelta);
+		int clipFace(RdClipFrustum *clip, int geometryMode, int lightingMode, int textureMode, RdVertexLists *src, RdVertexLists *dst, RdVector2 uvDelta);
+		int noClipFace(int geometryMode, int lightingMode, int textureMode, RdVertexLists *src, RdVertexLists *dst, RdVector2 uvDelta);
 		void clearFrameCounters();
-		int drawPolylineFace(RdThing *pThing, RdFace3 *pFace, RdVector3 *aVerts, RdVertexLists *pSrc);
+		int drawPolylineFace(RdThing *thing, RdFace3 *face, RdVector3 *verts, RdVertexLists *src);
 
 	private:
 		friend class RenderDroid;
 		RdVector3 _work[32];
-		bool _bDemo;
+		bool _demo;
 	};
 
 	class PuppetModule : public Module {
@@ -799,19 +799,19 @@ public:
 		// The demo puppets have 4 tracks, the retail ones 6
 		PuppetModule(RenderDroid *rd, bool isDemo) : Module(rd), _numTracks(isDemo ? 4 : 6) {}
 		int getNumTracks() const { return _numTracks; }
-		RdPuppet *create(RdThing *pThing);
-		int newEntry(RdPuppet *pPuppet, RdThing *pThing);
-		int addTrack(RdPuppet *pPuppet, RdKeyframe *pKeyframe, int priority, int priorityMasked);
-		int removeTrack(RdPuppet *pPuppet, int trackNum);
-		int setStatus(RdPuppet *pPuppet, int trackNum, uint status);
-		void setCallback(RdPuppet *pPuppet, int trackNum, RdPuppetTrackCallback pfCallback);
-		int playTrack(RdPuppet *pPuppet, int trackNum);
-		int fadeInTrack(RdPuppet *pPuppet, int trackNum, float time);
-		int fadeOutTrack(RdPuppet *pPuppet, int trackNum, float time);
-		void advanceTrack(RdPuppet *pPuppet, int trackNum, float delta);
-		int updateTracks(RdPuppet *pPuppet, float delta);
-		int resetTrack(RdPuppet *pPuppet, int trackNum);
-		void buildJointMatrices(RdThing *pThing, RdMatrix34 pBase);
+		RdPuppet *create(RdThing *thing);
+		int newEntry(RdPuppet *puppet, RdThing *thing);
+		int addTrack(RdPuppet *puppet, RdKeyframe *keyframe, int priority, int priorityMasked);
+		int removeTrack(RdPuppet *puppet, int trackNum);
+		int setStatus(RdPuppet *puppet, int trackNum, uint status);
+		void setCallback(RdPuppet *puppet, int trackNum, RdPuppetTrackCallback callback);
+		int playTrack(RdPuppet *puppet, int trackNum);
+		int fadeInTrack(RdPuppet *puppet, int trackNum, float time);
+		int fadeOutTrack(RdPuppet *puppet, int trackNum, float time);
+		void advanceTrack(RdPuppet *puppet, int trackNum, float delta);
+		int updateTracks(RdPuppet *puppet, float delta);
+		int resetTrack(RdPuppet *puppet, int trackNum);
+		void buildJointMatrices(RdThing *thing, RdMatrix34 base);
 
 	private:
 		int _numTracks;
@@ -820,11 +820,11 @@ public:
 	class SpriteModule : public Module {
 	public:
 		explicit SpriteModule(RenderDroid *rd) : Module(rd) {}
-		RdSprite *create(int type, char *name, char *matFilename, float width, float height, int geometryMode, int lightingMode, int textureMode, float extraLight, RdVector3 *pOffset);
-		int newEntry(RdSprite *pSprite, char *name, int type, char *matFilename, float width, float height, int geometryMode, int lightingMode, int textureMode, float extraLight, RdVector3 *pOffset);
-		void destroy(RdSprite *&pSprite);
-		void freeEntry(RdSprite *pSprite);
-		int draw(RdThing *pThing, RdMatrix34 mat);
+		RdSprite *create(int type, char *name, char *matFilename, float width, float height, int geometryMode, int lightingMode, int textureMode, float extraLight, RdVector3 *offset);
+		int newEntry(RdSprite *sprite, char *name, int type, char *matFilename, float width, float height, int geometryMode, int lightingMode, int textureMode, float extraLight, RdVector3 *offset);
+		void destroy(RdSprite *&sprite);
+		void freeEntry(RdSprite *sprite);
+		int draw(RdThing *thing, RdMatrix34 mat);
 
 	private:
 		friend class RenderDroid;
@@ -836,14 +836,14 @@ public:
 	public:
 		explicit ThingModule(RenderDroid *rd) : Module(rd) {}
 		RdThing *create(void *userArg);
-		int newEntry(RdThing *pThing, void *userArg);
-		void destroy(RdThing *&pThing);
-		void freeEntry(RdThing *pThing);
-		int setModel3(RdThing *pThing, RdModel3 *pModel3);
-		int setCamera(RdThing *pThing, RdCamera *pCamera);
-		int setSprite3(RdThing *pThing, RdSprite *pSprite);
-		int draw(RdThing *pThing, RdMatrix34 mat);
-		void accumulateMatrices(RdThing *pThing, RdModel3HNode *pHNode, RdMatrix34 pParent);
+		int newEntry(RdThing *thing, void *userArg);
+		void destroy(RdThing *&thing);
+		void freeEntry(RdThing *thing);
+		int setModel3(RdThing *thing, RdModel3 *model3);
+		int setCamera(RdThing *thing, RdCamera *camera);
+		int setSprite3(RdThing *thing, RdSprite *sprite);
+		int draw(RdThing *thing, RdMatrix34 mat);
+		void accumulateMatrices(RdThing *thing, RdModel3HNode *hNode, RdMatrix34 parent);
 	};
 
 	class ActiveModule : public Module {
@@ -857,18 +857,18 @@ public:
 		int buildSpans();
 		uint flushSpans();
 		uint buildEdges();
-		int addActiveFace(RdProcFace *pProcFace);
+		int addActiveFace(RdProcFace *procFace);
 
 	private:
 		friend class RenderDroid;
-		void addSpan(RdActiveFace *pFace, uint alignedEndX);
-		RdActiveEdge *_aActiveEdges;
-		RdActiveFace *_aActiveFaces;
-		RdActiveSpan *_aActiveSpans;
-		RdActiveEdge *_pActiveEdgeHead;
-		RdActiveEdge *_pActiveEdgeTail;
-		RdActiveEdge *_apNewActiveEdges[1024];
-		RdActiveEdge *_apRemoveActiveEdges[1024];
+		void addSpan(RdActiveFace *face, uint alignedEndX);
+		RdActiveEdge *_activeEdges;
+		RdActiveFace *_activeFaces;
+		RdActiveSpan *_activeSpans;
+		RdActiveEdge *_activeEdgeHead;
+		RdActiveEdge *_activeEdgeTail;
+		RdActiveEdge *_newActiveEdges[1024];
+		RdActiveEdge *_removeActiveEdges[1024];
 		uint _drawnFaces;
 		uint _numActiveEdges;
 		uint _numActiveFaces;
@@ -883,11 +883,11 @@ public:
 		explicit CacheModule(RenderDroid *rd);
 		~CacheModule();
 		int *getViewportRect() { return _viewportRect; }
-		RdProcFace *getProcFaces() { return _aProcFaces; }
+		RdProcFace *getProcFaces() { return _procFaces; }
 		size_t getNumProcFaces() const { return _numProcFaces; }
-		RdMatCel *selectCel(const RdProcFace *pProcFace);
-		float calcFaceLight(const RdProcFace *pProcFace, int lightingMode, float ambientLight);
-		void calcVertexLights(RdProcFace *pProcFace, float ambientLight);
+		RdMatCel *selectCel(const RdProcFace *procFace);
+		float calcFaceLight(const RdProcFace *procFace, int lightingMode, float ambientLight);
+		void calcVertexLights(RdProcFace *procFace, float ambientLight);
 		int startup();
 		int finishFrame();
 		int reset();
@@ -895,32 +895,32 @@ public:
 		RdProcFace *getProcEntry();
 		int flush();
 		int addProcFace(uint flags, uint numVertices, char bufferFlags);
-		int drawFaceN(RdProcFace *pProcFace);
-		int drawFaceZ(RdProcFace *pProcFace);
-		int drawFaceUser(RdProcFace *pProcFace);
-		static int procFaceCompare(const void *pA, const void *pB);
+		int drawFaceN(RdProcFace *procFace);
+		int drawFaceZ(RdProcFace *procFace);
+		int drawFaceUser(RdProcFace *procFace);
+		static int procFaceCompare(const void *a, const void *b);
 		int sendFaceListToHardware();
 		int resetRenderList();
 		uint drawRenderList();
-		static int hwTriCompare(const void *pA, const void *pB);
+		static int hwTriCompare(const void *a, const void *b);
 
 	private:
 		friend class RenderDroid;
-		float _aVertices[98304];
-		float _aTexVertices[65536];
-		float _aIntensities[32768];
-		float _aGreenIntensities[32768];
-		float _aBlueIntensities[32768];
-		RdProcFace _aProcFaces[1024];
+		float _vertices[98304];
+		float _texVertices[65536];
+		float _intensities[32768];
+		float _greenIntensities[32768];
+		float _blueIntensities[32768];
+		RdProcFace _procFaces[1024];
 		size_t _numProcFaces;
 		uint _numUsedVertices;
 		uint _numUsedTexVertices;
 		uint _numUsedIntensities;
 		uint _drawnFaces;
 		int _viewportRect[4];
-		Std3DVertex *_aHWVertices;
-		Std3DTri *_aHWNormalTris;
-		Std3DTri *_aHWSolidTris;
+		Std3DVertex *_hwVertices;
+		Std3DTri *_hwNormalTris;
+		Std3DTri *_hwSolidTris;
 		uint _totalNormalTris;
 		uint _totalSolidTris;
 		uint _totalVerts;
@@ -930,195 +930,195 @@ public:
 	public:
 		explicit RasterModule(RenderDroid *rd) : Module(rd), _fixedScale(65536.0f) {}
 		void startup();
-		float getOneOverNFlex(int index) const { return _aOneOverNFlex[index]; }
-		int getOneOverNFixed(int index) const { return _aOneOverNFixed[index]; }
+		float getOneOverNFlex(int index) const { return _oneOverNFlex[index]; }
+		int getOneOverNFixed(int index) const { return _oneOverNFixed[index]; }
 
 	private:
 		friend class RenderDroid;
-		int _aOneOverNFixed[2048];
-		float _aOneOverNFixedF[16];
-		float _aOneOverNFlex[2048];
+		int _oneOverNFixed[2048];
+		float _oneOverNFixedF[16];
+		float _oneOverNFlex[2048];
 		float _fixedScale;
 	};
 
 	class AFRasterModule : public Module {
 	public:
-		typedef void (AFRasterModule::*DrawSpanFunc)(RdActiveSpan *pSpan);
-		typedef void (AFRasterModule::*DrawFaceFunc)(RdActiveFace *pFace);
-		typedef void (AFRasterModule::*StepEdgeFunc)(RdActiveEdge *pEdge);
-		typedef int (AFRasterModule::*SetupEdgeFunc)(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
+		typedef void (AFRasterModule::*DrawSpanFunc)(RdActiveSpan *span);
+		typedef void (AFRasterModule::*DrawFaceFunc)(RdActiveFace *face);
+		typedef void (AFRasterModule::*StepEdgeFunc)(RdActiveEdge *edge);
+		typedef int (AFRasterModule::*SetupEdgeFunc)(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
 
-		explicit AFRasterModule(RenderDroid *rd) : Module(rd), _mipMapNum(0), _texRowShift(0), _texPitch(0), _uWrap(0), _vWrap(0), _dUdXModifier(0), _dVdXModifier(0), _dOneOverZdXFixed(0), _dOneOverZdX(0.0f), _dUOverZdX(0.0f), _dVOverZdX(0.0f), _oneOverZStep(0.0f), _uOverZStep(0.0f), _vOverZStep(0.0f), _pPixels(nullptr), _aMonoMap(nullptr), _aRGBMap(nullptr), _color(0), _RGBcolor(0), _pfDrawSpan(nullptr), _bLowPrecision(false), _spanU(0), _spanV(0), _spanDU(0), _spanDV(0) {}
+		explicit AFRasterModule(RenderDroid *rd) : Module(rd), _mipMapNum(0), _texRowShift(0), _texPitch(0), _uWrap(0), _vWrap(0), _dUdXModifier(0), _dVdXModifier(0), _dOneOverZdXFixed(0), _dOneOverZdX(0.0f), _dUOverZdX(0.0f), _dVOverZdX(0.0f), _oneOverZStep(0.0f), _uOverZStep(0.0f), _vOverZStep(0.0f), _pixels(nullptr), _monoMap(nullptr), _rgbMap(nullptr), _color(0), _RGBcolor(0), _drawSpan(nullptr), _lowPrecision(false), _spanU(0), _spanV(0), _spanDU(0), _spanDV(0) {}
 
-		void calcAffineGradients(RdActiveFace *pFace, int refVert);
-		void calcPerspGradients(RdActiveFace *pFace, int refVert);
+		void calcAffineGradients(RdActiveFace *face, int refVert);
+		void calcPerspGradients(RdActiveFace *face, int refVert);
 
-		void setupNGonLW(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonLS(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonFS(RdActiveFace *pFace, RdMatCel *pCel, float light);
-		void setupNGonGS(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonLAT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonMLAT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonFAT(RdActiveFace *pFace, RdMatCel *pCel, float light);
-		void setupNGonMFAT(RdActiveFace *pFace, RdMatCel *pCel, float light);
-		void setupNGonGAT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonMGAT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonLIT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonMLIT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonFIT(RdActiveFace *pFace, RdMatCel *pCel, float light);
-		void setupNGonMFIT(RdActiveFace *pFace, RdMatCel *pCel, float light);
-		void setupNGonGIT(RdActiveFace *pFace, RdMatCel *pCel);
-		void setupNGonMGIT(RdActiveFace *pFace, RdMatCel *pCel);
+		void setupNGonLW(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonLS(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonFS(RdActiveFace *face, RdMatCel *cel, float light);
+		void setupNGonGS(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonLAT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonMLAT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonFAT(RdActiveFace *face, RdMatCel *cel, float light);
+		void setupNGonMFAT(RdActiveFace *face, RdMatCel *cel, float light);
+		void setupNGonGAT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonMGAT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonLIT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonMLIT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonFIT(RdActiveFace *face, RdMatCel *cel, float light);
+		void setupNGonMFIT(RdActiveFace *face, RdMatCel *cel, float light);
+		void setupNGonGIT(RdActiveFace *face, RdMatCel *cel);
+		void setupNGonMGIT(RdActiveFace *face, RdMatCel *cel);
 
-		void drawNGonLW(RdActiveFace *pFace);
-		void drawNGonLS(RdActiveFace *pFace);
-		void drawNGonFS(RdActiveFace *pFace);
-		void drawNGonGS(RdActiveFace *pFace);
-		void drawNGonLAT(RdActiveFace *pFace);
-		void drawNGonMLAT(RdActiveFace *pFace);
-		void drawNGonFAT(RdActiveFace *pFace);
-		void drawNGonMFAT(RdActiveFace *pFace);
-		void drawNGonGAT(RdActiveFace *pFace);
-		void drawNGonMGAT(RdActiveFace *pFace);
-		void drawNGonLIT(RdActiveFace *pFace);
-		void drawNGonMLIT(RdActiveFace *pFace);
-		void drawNGonFIT(RdActiveFace *pFace);
-		void drawNGonMFIT(RdActiveFace *pFace);
-		void drawNGonGIT(RdActiveFace *pFace);
-		void drawNGonMGIT(RdActiveFace *pFace);
+		void drawNGonLW(RdActiveFace *face);
+		void drawNGonLS(RdActiveFace *face);
+		void drawNGonFS(RdActiveFace *face);
+		void drawNGonGS(RdActiveFace *face);
+		void drawNGonLAT(RdActiveFace *face);
+		void drawNGonMLAT(RdActiveFace *face);
+		void drawNGonFAT(RdActiveFace *face);
+		void drawNGonMFAT(RdActiveFace *face);
+		void drawNGonGAT(RdActiveFace *face);
+		void drawNGonMGAT(RdActiveFace *face);
+		void drawNGonLIT(RdActiveFace *face);
+		void drawNGonMLIT(RdActiveFace *face);
+		void drawNGonFIT(RdActiveFace *face);
+		void drawNGonMFIT(RdActiveFace *face);
+		void drawNGonGIT(RdActiveFace *face);
+		void drawNGonMGIT(RdActiveFace *face);
 
-		int setupEdgeNGonLW(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonLS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonFS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonGS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonLAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonFAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonGAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonPerspective(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, int variant);
-		void setEdgePerspectiveValues(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, float dy, double xOffset, int variant);
-		int setupEdgeNGonLIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonFIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-		int setupEdgeNGonGIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
+		int setupEdgeNGonLW(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonLS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonFS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonGS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonLAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonFAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonGAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonPerspective(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1, int variant);
+		void setEdgePerspectiveValues(RdActiveEdge *edge, RdActiveFace *face, int v0, float dy, double xOffset, int variant);
+		int setupEdgeNGonLIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonFIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+		int setupEdgeNGonGIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
 
-		void advanceEdgeNGonLS(RdActiveEdge *pEdge);
-		void advanceEdgeNGonGS(RdActiveEdge *pEdge);
-		void advanceLeftEdgeNGonFAT(RdActiveEdge *pEdge);
-		void advanceLeftEdgeNGonGAT(RdActiveEdge *pEdge);
-		void advanceLeftEdgeNGonFIT(RdActiveEdge *pEdge);
-		void advanceRightEdgeNGonLIT(RdActiveEdge *pEdge);
-		void advanceEdgeNGonGIT(RdActiveEdge *pEdge);
-		void advanceLeftEdgeNGonGIT(RdActiveEdge *pEdge);
+		void advanceEdgeNGonLS(RdActiveEdge *edge);
+		void advanceEdgeNGonGS(RdActiveEdge *edge);
+		void advanceLeftEdgeNGonFAT(RdActiveEdge *edge);
+		void advanceLeftEdgeNGonGAT(RdActiveEdge *edge);
+		void advanceLeftEdgeNGonFIT(RdActiveEdge *edge);
+		void advanceRightEdgeNGonLIT(RdActiveEdge *edge);
+		void advanceEdgeNGonGIT(RdActiveEdge *edge);
+		void advanceLeftEdgeNGonGIT(RdActiveEdge *edge);
 
-		void drawSpanNGonLW_8(RdActiveSpan *pSpan);
-		void drawSpanNGonLW_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMLAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMLAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMFAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMFAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMGAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMGAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMLIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMLIT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMFIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMFIT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonMGIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonMGIT_16(RdActiveSpan *pSpan);
+		void drawSpanNGonLW_8(RdActiveSpan *span);
+		void drawSpanNGonLW_16(RdActiveSpan *span);
+		void drawSpanNGonMLAT_8(RdActiveSpan *span);
+		void drawSpanNGonMLAT_16(RdActiveSpan *span);
+		void drawSpanNGonMFAT_8(RdActiveSpan *span);
+		void drawSpanNGonMFAT_16(RdActiveSpan *span);
+		void drawSpanNGonMGAT_8(RdActiveSpan *span);
+		void drawSpanNGonMGAT_16(RdActiveSpan *span);
+		void drawSpanNGonMLIT_8(RdActiveSpan *span);
+		void drawSpanNGonMLIT_16(RdActiveSpan *span);
+		void drawSpanNGonMFIT_8(RdActiveSpan *span);
+		void drawSpanNGonMFIT_16(RdActiveSpan *span);
+		void drawSpanNGonMGIT_8(RdActiveSpan *span);
+		void drawSpanNGonMGIT_16(RdActiveSpan *span);
 
-		void drawSpanNGonLAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_16_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_16_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_16_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_16_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_16_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_16_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_16(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonLAT_16_W256(RdActiveSpan *span);
+		void drawSpanNGonFAT_16(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonFAT_16_W256(RdActiveSpan *span);
+		void drawSpanNGonGAT_16(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonGAT_16_W256(RdActiveSpan *span);
+		void drawSpanNGonLIT_16(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonLIT_16_W256(RdActiveSpan *span);
+		void drawSpanNGonFIT_16(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonFIT_16_W256(RdActiveSpan *span);
+		void drawSpanNGonGIT_16(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W8(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W16(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W32(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W64(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W128(RdActiveSpan *span);
+		void drawSpanNGonGIT_16_W256(RdActiveSpan *span);
 
-		void drawSpanNGonLAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonLAT_8_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonFAT_8_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonGAT_8_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonLIT_8_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonFIT_8_W256(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W8(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W16(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W32(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W64(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W128(RdActiveSpan *pSpan);
-		void drawSpanNGonGIT_8_W256(RdActiveSpan *pSpan);
+		void drawSpanNGonLAT_8(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonLAT_8_W256(RdActiveSpan *span);
+		void drawSpanNGonFAT_8(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonFAT_8_W256(RdActiveSpan *span);
+		void drawSpanNGonGAT_8(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonGAT_8_W256(RdActiveSpan *span);
+		void drawSpanNGonLIT_8(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonLIT_8_W256(RdActiveSpan *span);
+		void drawSpanNGonFIT_8(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonFIT_8_W256(RdActiveSpan *span);
+		void drawSpanNGonGIT_8(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W8(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W16(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W32(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W64(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W128(RdActiveSpan *span);
+		void drawSpanNGonGIT_8_W256(RdActiveSpan *span);
 
-		void drawZSpan(RdActiveSpan *pSpan);
-		void drawZSpanShifted(RdActiveSpan *pSpan);
+		void drawZSpan(RdActiveSpan *span);
+		void drawZSpanShifted(RdActiveSpan *span);
 
 	private:
 		friend class RenderDroid;
 
 		struct SpanRun {
-			byte *pDst;
-			uint16 *pZ;
+			byte *dst;
+			uint16 *zPointer;
 			int z;
 			int dz;
 			int zShift;
@@ -1133,26 +1133,26 @@ public:
 		};
 
 		int wrapVertex(int index, int lastVertex);
-		int selectRefVertex(RdProcFace *pProcFace, int *pYMinVert, int *pYMaxVert);
-		void selectMipLevel(RdActiveFace *pFace, int refVert);
-		int getZShift(RdCanvas *pCanvas);
-		void drawZSpans(RdActiveFace *pFace);
-		void drawTexturedSpans(RdActiveFace *pFace);
-		DrawSpanFunc selectWidthSpan(int texPitch, const DrawSpanFunc *apWidthSpans, DrawSpanFunc pfDefault);
-		void setupFlat(RdActiveFace *pFace, RdMatCel *pCel, DrawFaceFunc pfDrawSpans, SetupEdgeFunc pfSetupEdge);
-		void setupTextured(RdActiveFace *pFace, RdMatCel *pCel, bool bPersp, int lightKind, float light, DrawFaceFunc pfDrawSpans, SetupEdgeFunc pfSetupEdge);
-		int setupEdgeAffine(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, bool bTexture, bool bIntensity, StepEdgeFunc pfStep);
-		void loadPerspState(RdActiveFace *pFace);
+		int selectRefVertex(RdProcFace *procFace, int *yMinVertPointer, int *yMaxVertPointer);
+		void selectMipLevel(RdActiveFace *face, int refVert);
+		int getZShift(RdCanvas *canvas);
+		void drawZSpans(RdActiveFace *face);
+		void drawTexturedSpans(RdActiveFace *face);
+		DrawSpanFunc selectWidthSpan(int texPitch, const DrawSpanFunc *widthSpans, DrawSpanFunc defaultFunction);
+		void setupFlat(RdActiveFace *face, RdMatCel *cel, DrawFaceFunc drawSpans, SetupEdgeFunc setupEdge);
+		void setupTextured(RdActiveFace *face, RdMatCel *cel, bool persp, int lightKind, float light, DrawFaceFunc drawSpans, SetupEdgeFunc setupEdge);
+		int setupEdgeAffine(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1, bool texture, bool intensity, StepEdgeFunc step);
+		void loadPerspState(RdActiveFace *face);
 		void plotMaskedRun(SpanRun &run, int count, bool bpp16, int lightKind);
-		void drawSpanMaskedAffine(RdActiveSpan *pSpan, bool bpp16, int lightKind);
-		void drawSpanMaskedPersp(RdActiveSpan *pSpan, bool bpp16, int lightKind);
-		void plotRun16(SpanRun &run, int count, bool bIntensity);
-		void plotRun8(SpanRun &run, int count, int lightKind, bool bPairedIntensity);
-		void plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool bChunk);
-		void drawSpanAffine16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
-		void drawSpanAffine8(RdActiveSpan *pSpan, int vShift, int lightKind);
-		void drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity);
-		void drawSpanPersp(RdActiveSpan *pSpan, int uMask, int vShift, int lightKind, bool bpp16);
+		void drawSpanMaskedAffine(RdActiveSpan *span, bool bpp16, int lightKind);
+		void drawSpanMaskedPersp(RdActiveSpan *span, bool bpp16, int lightKind);
+		void plotRun16(SpanRun &run, int count, bool intensity);
+		void plotRun8(SpanRun &run, int count, int lightKind, bool pairedIntensity);
+		void plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool chunk);
+		void drawSpanAffine16(RdActiveSpan *span, int uMask, int vShift, bool intensity);
+		void drawSpanAffine8(RdActiveSpan *span, int vShift, int lightKind);
+		void drawSpanPersp16(RdActiveSpan *span, int uMask, int vShift, bool intensity);
+		void drawSpanPersp(RdActiveSpan *span, int uMask, int vShift, int lightKind, bool bpp16);
 		double fpuRound(double value);
 		double fpuAdd(double a, double b);
 		double fpuSub(double a, double b);
@@ -1173,13 +1173,13 @@ public:
 		float _oneOverZStep;
 		float _uOverZStep;
 		float _vOverZStep;
-		byte *_pPixels;
-		byte *_aMonoMap;
-		byte *_aRGBMap;
+		byte *_pixels;
+		byte *_monoMap;
+		byte *_rgbMap;
 		byte _color;
 		uint16 _RGBcolor;
-		DrawSpanFunc _pfDrawSpan;
-		bool _bLowPrecision;
+		DrawSpanFunc _drawSpan;
+		bool _lowPrecision;
 		int _spanU;
 		int _spanV;
 		int _spanDU;
@@ -1193,109 +1193,109 @@ public:
 		void calcAffineGradients(float z);
 		void calcPerspGradients(float z);
 
-		int drawNGonLV(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLS(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTLS(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonFS(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonTFS(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonGS(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTGS(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMTLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonMFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonMTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMTGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMTLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonMFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonMTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		int drawNGonGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonTGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonMTGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonLS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonFS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonLS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTFS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonGS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonGS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonTGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		void drawScanLineNGonMTGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight);
-		int setupLeftEdgeNGonLS(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonLS(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonFS(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonFS(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonGS(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonGS(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonLAT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonLAT(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonFAT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonFAT(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonGAT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonGAT(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonLIT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonLIT(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonFIT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonFIT(RdNRasterEdge *pEdge);
-		int setupLeftEdgeNGonGIT(RdNRasterEdge *pEdge);
-		int setupRightEdgeNGonGIT(RdNRasterEdge *pEdge);
+		int drawNGonLV(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLW(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLS(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTLS(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonFS(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonTFS(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonGS(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTGS(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTLAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMLAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMTLAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonTFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonMFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonMTFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonGAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTGAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMGAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMTGAT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTLIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMLIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMTLIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonTFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonMFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonMTFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		int drawNGonGIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonTGIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMGIT(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonMTGIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonLS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonFS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonLS_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLS_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTFS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonGS_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonGS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGS_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGS_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonLAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonLAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMLAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMLAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTLAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTLAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonFAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTFAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTFAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMFAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMFAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTFAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTFAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonGAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMGAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMGAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTGAT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTGAT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonLIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTLIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMLIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMLIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTLIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTLIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonFIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTFIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTFIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMFIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMFIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTFIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTFIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonGIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonTGIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMGIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMGIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTGIT_8(RdNRasterEdge *left, RdNRasterEdge *right);
+		void drawScanLineNGonMTGIT_16(RdNRasterEdge *left, RdNRasterEdge *right);
+		int setupLeftEdgeNGonLS(RdNRasterEdge *edge);
+		int setupRightEdgeNGonLS(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonFS(RdNRasterEdge *edge);
+		int setupRightEdgeNGonFS(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonGS(RdNRasterEdge *edge);
+		int setupRightEdgeNGonGS(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonLAT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonLAT(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonFAT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonFAT(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonGAT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonGAT(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonLIT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonLIT(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonFIT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonFIT(RdNRasterEdge *edge);
+		int setupLeftEdgeNGonGIT(RdNRasterEdge *edge);
+		int setupRightEdgeNGonGIT(RdNRasterEdge *edge);
 
 	private:
 		friend class RenderDroid;
@@ -1335,9 +1335,9 @@ public:
 			Blend blend;
 			int bpp;
 			bool perspective;
-			byte *pDest8;
-			uint16 *pDest16;
-			const byte *pBackdrop;
+			byte *dest8;
+			uint16 *dest16;
+			const byte *backdrop;
 		};
 
 		struct SpanRun {
@@ -1363,43 +1363,43 @@ public:
 		int selectGradientVertex();
 		void selectMipLevel(float z);
 
-		int setupEdge(RdNRasterEdge *pEdge, int step, EdgeKind kind);
+		int setupEdge(RdNRasterEdge *edge, int step, EdgeKind kind);
 		EdgeKind getEdgeKind(Geometry geometry, Lighting lighting, bool isLeft);
-		void advanceEdge(RdNRasterEdge *pEdge, Geometry geometry, Lighting lighting, bool isLeft);
+		void advanceEdge(RdNRasterEdge *edge, Geometry geometry, Lighting lighting, bool isLeft);
 
-		void setupFace(RdProcFace *pProcFace);
-		void setupSolidColors(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, Lighting lighting, Blend blend);
-		bool setupTexture(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, Geometry geometry, Lighting lighting, Blend blend);
-		int drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, float light, Geometry geometry, Lighting lighting, Blend blend);
+		void setupFace(RdProcFace *procFace);
+		void setupSolidColors(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, Lighting lighting, Blend blend);
+		bool setupTexture(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, Geometry geometry, Lighting lighting, Blend blend);
+		int drawNGon(RdProcFace *procFace, RdMatCel *cel, float light, Geometry geometry, Lighting lighting, Blend blend);
 
-		void drawScanLine(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Geometry geometry, Lighting lighting, Blend blend, int bpp);
-		void drawScanLineSolid(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp);
-		void drawScanLineAffine(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp);
-		void drawScanLinePerspective(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp);
-		int calcSpan(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, int *pXStart);
-		void calcSpanIntensity(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, int width, int subPixel, int *pIntensity, int *pDIntensity);
-		bool beginSpanPlot(SpanPlot *pPlot, int y, int xStart, Lighting lighting, Blend blend, int bpp, bool perspective, bool bufferedDestination);
-		void plotPixel(SpanPlot *pPlot, byte texel, int intensity);
+		void drawScanLine(RdNRasterEdge *left, RdNRasterEdge *right, Geometry geometry, Lighting lighting, Blend blend, int bpp);
+		void drawScanLineSolid(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp);
+		void drawScanLineAffine(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp);
+		void drawScanLinePerspective(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp);
+		int calcSpan(RdNRasterEdge *left, RdNRasterEdge *right, int *xStart);
+		void calcSpanIntensity(RdNRasterEdge *left, RdNRasterEdge *right, int width, int subPixel, int *intensity, int *dIntensityPointer);
+		bool beginSpanPlot(SpanPlot *plot, int y, int xStart, Lighting lighting, Blend blend, int bpp, bool perspective, bool bufferedDestination);
+		void plotPixel(SpanPlot *plot, byte texel, int intensity);
 		byte lightTexel(Lighting lighting, byte texel, int intensity);
 		byte fetchTexel(int u, int v);
 		byte fetchTexelByRows(int u, int v);
-		void startRun(SpanRun *pRun, float u, float v, float uStepFixed, float vStepFixed);
-		void plotRun(SpanPlot *pPlot, SpanRun *pRun, int count);
+		void startRun(SpanRun *run, float u, float v, float uStepFixed, float vStepFixed);
+		void plotRun(SpanPlot *plot, SpanRun *run, int count);
 
 		uint _numVertices;
 		int _yMinVert;
 		int _yMaxVert;
 		int _leftVertexStep;
 		int _rightVertexStep;
-		float _aOneOverZ[32];
-		float _aUOverZ[32];
-		float _aVOverZ[32];
-		RdVector3 *_aVertices;
-		RdVector2 *_aTexVertices;
-		float *_aIntensities;
-		byte *_pDest;
-		uint16 *_pWDest;
-		byte *_pPixels;
+		float _oneOverZ[32];
+		float _uOverZ[32];
+		float _vOverZ[32];
+		RdVector3 *_vertices;
+		RdVector2 *_texVertices;
+		float *_intensities;
+		byte *_dest;
+		uint16 *_wDest;
+		byte *_pixels;
 		int _mipMapNum;
 		int _maxMipMap;
 		int _texPitch;
@@ -1421,10 +1421,10 @@ public:
 		float _oneOverZStep;
 		float _uOverZStep;
 		float _vOverZStep;
-		byte *_aAlphaMap;
-		byte *_aMonoMap;
-		uint16 *_aRGBMap;
-		byte *_aRGBToPalette;
+		byte *_alphaMap;
+		byte *_monoMap;
+		uint16 *_rgbMap;
+		byte *_rgbToPalette;
 		uint16 _RGBcolor;
 		byte _color;
 	};
@@ -1434,203 +1434,203 @@ public:
 		explicit ZRasterModule(RenderDroid *rd);
 		void calcAffineGradients(float z);
 		void calcPerspGradients(float z);
-		int drawNGonLV(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel);
-		int drawNGonLS(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonLS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonLS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonLS(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonLS(RdZRasterEdge *pEdge);
-		int setupLeftEdgeNGonFS(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonFS(RdZRasterEdge *pEdge);
-		int drawNGonTLS(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTLS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTLS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonFS(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonFS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonFS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTFS(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonTFS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTFS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonGS(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonGS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonGS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonGS(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonGS(RdZRasterEdge *pEdge);
-		int drawNGonTGS(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTGS_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTGS_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonLAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonLAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTLAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTLAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMLAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMLAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTLAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMTLAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTLAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonLAT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonLAT(RdZRasterEdge *pEdge);
-		int drawNGonFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonFAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonFAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonTFAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTFAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonMFAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMFAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonMTFAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTFAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonFAT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonFAT(RdZRasterEdge *pEdge);
-		int drawNGonGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonGAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonGAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTGAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTGAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMGAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMGAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTGAT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMTGAT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTGAT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonGAT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonGAT(RdZRasterEdge *pEdge);
-		int drawNGonLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonLIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonLIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTLIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTLIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMLIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMLIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTLIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMTLIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTLIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonLIT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonLIT(RdZRasterEdge *pEdge);
-		int drawNGonFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonFIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonFIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonTFIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTFIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonMFIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMFIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light);
-		void drawScanLineNGonMTFIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTFIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonFIT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonFIT(RdZRasterEdge *pEdge);
-		int drawNGonGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonGIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonGIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonTGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonTGIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonTGIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMGIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMGIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int drawNGonMTGIT(RdProcFace *pProcFace, RdMatCel *pCel);
-		void drawScanLineNGonMTGIT_8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawScanLineNGonMTGIT_16(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		int setupLeftEdgeNGonGIT(RdZRasterEdge *pEdge);
-		int setupRightEdgeNGonGIT(RdZRasterEdge *pEdge);
-		void drawNGonLAT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_Case7(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_Case7(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		int drawNGonLV(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLW(RdProcFace *procFace, RdMatCel *cel);
+		int drawNGonLS(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonLS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonLS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonLS(RdZRasterEdge *edge);
+		int setupRightEdgeNGonLS(RdZRasterEdge *edge);
+		int setupLeftEdgeNGonFS(RdZRasterEdge *edge);
+		int setupRightEdgeNGonFS(RdZRasterEdge *edge);
+		int drawNGonTLS(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTLS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTLS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonFS(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonFS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonFS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTFS(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonTFS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTFS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonGS(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonGS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonGS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonGS(RdZRasterEdge *edge);
+		int setupRightEdgeNGonGS(RdZRasterEdge *edge);
+		int drawNGonTGS(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTGS_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTGS_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonLAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonLAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonLAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTLAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTLAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTLAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMLAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMLAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMLAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTLAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMTLAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTLAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonLAT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonLAT(RdZRasterEdge *edge);
+		int drawNGonFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonFAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonFAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonTFAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTFAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonMFAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMFAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTFAT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonMTFAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTFAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonFAT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonFAT(RdZRasterEdge *edge);
+		int drawNGonGAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonGAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonGAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTGAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTGAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTGAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMGAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMGAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMGAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTGAT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMTGAT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTGAT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonGAT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonGAT(RdZRasterEdge *edge);
+		int drawNGonLIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonLIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonLIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTLIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTLIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTLIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMLIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMLIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMLIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTLIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMTLIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTLIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonLIT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonLIT(RdZRasterEdge *edge);
+		int drawNGonFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonFIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonFIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonTFIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTFIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonMFIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMFIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTFIT(RdProcFace *procFace, RdMatCel *cel, float light);
+		void drawScanLineNGonMTFIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTFIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonFIT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonFIT(RdZRasterEdge *edge);
+		int drawNGonGIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonGIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonGIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonTGIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonTGIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonTGIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMGIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMGIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMGIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int drawNGonMTGIT(RdProcFace *procFace, RdMatCel *cel);
+		void drawScanLineNGonMTGIT_8(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawScanLineNGonMTGIT_16(RdZRasterEdge *left, RdZRasterEdge *right);
+		int setupLeftEdgeNGonGIT(RdZRasterEdge *edge);
+		int setupRightEdgeNGonGIT(RdZRasterEdge *edge);
+		void drawNGonLAT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_Case7(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_Case7(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
 
-		void drawNGonLAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGAT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonLIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonFIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case0(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case1(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case2(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case3(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case4(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case5(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
-		void drawNGonGIT_8_Case6(RdZRasterEdge *pLeft, RdZRasterEdge *pRight);
+		void drawNGonLAT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLAT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFAT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGAT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonLIT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonFIT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case0(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case1(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case2(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case3(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case4(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case5(RdZRasterEdge *left, RdZRasterEdge *right);
+		void drawNGonGIT_8_Case6(RdZRasterEdge *left, RdZRasterEdge *right);
 
 	private:
 		friend class RenderDroid;
@@ -1672,8 +1672,8 @@ public:
 			int xStart;
 			int x;
 			int numPixels;
-			byte *pDest;
-			uint16 *pZ;
+			byte *dest;
+			uint16 *zPointer;
 			int z;
 			int zStep;
 			int intensity;
@@ -1682,7 +1682,7 @@ public:
 			int v;
 			int uStep;
 			int vStep;
-			bool bDither;
+			bool dither;
 			int ditherX;
 			int ditherY;
 		};
@@ -1691,48 +1691,48 @@ public:
 		float truncToFloat(double value);
 		int toFixed(double value);
 		int wrapVertex(int index, int last);
-		void selectGradientVertices(int *pVertA, int *pVertB, int *pRefVert);
+		void selectGradientVertices(int *vertA, int *vertB, int *refVertPointer);
 		void selectMipLevel(float z);
 		int gradientModifier(double dX, double dY);
-		bool findEdgeSegment(RdZRasterEdge *pEdge, int vertexStep, uint *pVertIdx, uint *pNextIdx, float *pYStart, int *pNumLines);
-		int interpolateEdgeValue(float from, float to, float invDy, float yOffset, int *pStep);
-		int setupEdgeLinear(RdZRasterEdge *pEdge, int vertexStep, bool textured, bool gouraud);
-		int setupLeftEdgePerspective(RdZRasterEdge *pEdge, int shading);
-		int setupRightEdgePerspective(RdZRasterEdge *pEdge, bool gouraud);
-		int setupLeftEdge(RdZRasterEdge *pEdge, int mapping, int shading);
-		int setupRightEdge(RdZRasterEdge *pEdge, int mapping, int shading);
-		void stepEdge(RdZRasterEdge *pEdge, int mapping, int shading, bool isLeft);
-		bool beginScanLine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, bool signedEnd, ScanState *pState);
-		void setupLinearZ(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
-		void setupLinearIntensity(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
+		bool findEdgeSegment(RdZRasterEdge *edge, int vertexStep, uint *vertIdxPointer, uint *nextIdxPointer, float *yStartPointer, int *numLinesPointer);
+		int interpolateEdgeValue(float from, float to, float invDy, float yOffset, int *step);
+		int setupEdgeLinear(RdZRasterEdge *edge, int vertexStep, bool textured, bool gouraud);
+		int setupLeftEdgePerspective(RdZRasterEdge *edge, int shading);
+		int setupRightEdgePerspective(RdZRasterEdge *edge, bool gouraud);
+		int setupLeftEdge(RdZRasterEdge *edge, int mapping, int shading);
+		int setupRightEdge(RdZRasterEdge *edge, int mapping, int shading);
+		void stepEdge(RdZRasterEdge *edge, int mapping, int shading, bool isLeft);
+		bool beginScanLine(RdZRasterEdge *left, RdZRasterEdge *right, int bpp, bool signedEnd, ScanState *state);
+		void setupLinearZ(RdZRasterEdge *left, RdZRasterEdge *right, ScanState *state);
+		void setupLinearIntensity(RdZRasterEdge *left, RdZRasterEdge *right, ScanState *state);
 		int lightIndex(int index, bool gouraud);
 		int readRGB(int index);
-		bool plotTexel(const PixelMode &mode, byte *pDest, byte texel, int lightBase);
-		void drawTextureRun(int count, ScanState *pState, const ScanParams &params);
-		void scanLineSolid(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int bpp, int shading, int flags);
+		bool plotTexel(const PixelMode &mode, byte *dest, byte texel, int lightBase);
+		void drawTextureRun(int count, ScanState *state, const ScanParams &params);
+		void scanLineSolid(RdZRasterEdge *left, RdZRasterEdge *right, int bpp, int shading, int flags);
 		ScanParams makeScanParams(int bpp, int shading, int flags, bool perspective);
-		void setupAffineRun(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, ScanState *pState);
-		void scanLineAffine(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
-		void setRunSteps(ScanState *pState, float uEnd, float vEnd, float uStart, float vStart, double stepScale);
-		void setIdleRunCoords(ScanState *pState, const ScanParams &params, float oneOverZ, float uStart, float vStart);
-		void scanLinePerspective(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, const ScanParams &params);
-		void scanLineCase(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch);
+		void setupAffineRun(RdZRasterEdge *left, RdZRasterEdge *right, ScanState *state);
+		void scanLineAffine(RdZRasterEdge *left, RdZRasterEdge *right, const ScanParams &params);
+		void setRunSteps(ScanState *state, float uEnd, float vEnd, float uStart, float vStart, double stepScale);
+		void setIdleRunCoords(ScanState *state, const ScanParams &params, float oneOverZ, float uStart, float vStart);
+		void scanLinePerspective(RdZRasterEdge *left, RdZRasterEdge *right, const ScanParams &params);
+		void scanLineCase(RdZRasterEdge *left, RdZRasterEdge *right, int mapping, int shading, int pitch);
 		int roundToInt(double value);
 		void setCaseRun(float uStart, float vStart, double uEnd, double vEnd, double stepScale, int shift);
-		uint zTestMask(ScanState *pState, int count);
+		uint zTestMask(ScanState *state, int count);
 		byte fetchTexel8(int u, int v, int vShift);
 		byte shadeTexel8(int shading, byte texel, uint intensity);
-		void drawPixels8(ScanState *pState, int count, uint mask, int shading, int vShift);
-		void drawBlock8(ScanState *pState, uint mask, int shading, int vShift);
-		void scanLineAffineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift);
-		void scanLinePerspectiveCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int shading, int vShift, bool blockShiftFromTable);
-		void scanLineCase8(RdZRasterEdge *pLeft, RdZRasterEdge *pRight, int mapping, int shading, int pitch);
-		bool setupGeometry(RdProcFace *pProcFace);
-		bool setupSolidFace(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, int shading, int flags);
-		bool setupTexturedFace(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, int mapping, int shading, int flags);
+		void drawPixels8(ScanState *state, int count, uint mask, int shading, int vShift);
+		void drawBlock8(ScanState *state, uint mask, int shading, int vShift);
+		void scanLineAffineCase8(RdZRasterEdge *left, RdZRasterEdge *right, int shading, int vShift);
+		void scanLinePerspectiveCase8(RdZRasterEdge *left, RdZRasterEdge *right, int shading, int vShift, bool blockShiftFromTable);
+		void scanLineCase8(RdZRasterEdge *left, RdZRasterEdge *right, int mapping, int shading, int pitch);
+		bool setupGeometry(RdProcFace *procFace);
+		bool setupSolidFace(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, int shading, int flags);
+		bool setupTexturedFace(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, int mapping, int shading, int flags);
 		int selectCasePitch(int mapping, int shading);
 		int selectCasePitch8();
-		int drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, float light, int mapping, int shading, int flags);
+		int drawNGon(RdProcFace *procFace, RdMatCel *cel, float light, int mapping, int shading, int flags);
 
 		uint _numVertices;
 		int _maxMipMap;
@@ -1740,14 +1740,14 @@ public:
 		int _yMaxVert;
 		int _leftVertexStep;
 		int _rightVertexStep;
-		float *_aIntensities;
-		RdVector3 *_aVertices;
-		RdVector2 *_aTexVertices;
-		byte *_aRGBToPalette;
-		byte *_aRGBMap;
-		byte *_aMonoMap;
-		byte *_aAlphaMap;
-		byte *_pPixels;
+		float *_intensities;
+		RdVector3 *_vertices;
+		RdVector2 *_texVertices;
+		byte *_rgbToPalette;
+		byte *_rgbMap;
+		byte *_monoMap;
+		byte *_alphaMap;
+		byte *_pixels;
 		int _uWrap;
 		int _vWrap;
 		int _mipMapNum;
@@ -1772,9 +1772,9 @@ public:
 		int _caseV;
 		int _caseUStep;
 		int _caseVStep;
-		float _aOneOverZ[32];
-		float _aUOverZ[32];
-		float _aVOverZ[32];
+		float _oneOverZ[32];
+		float _uOverZ[32];
+		float _vOverZ[32];
 	};
 
 	CameraModule _camera;
@@ -1804,10 +1804,10 @@ private:
 	StdDisplay *_stdDisplay;
 	StdConffile *_stdConffile;
 	StdFile *_stdFile;
-	Std3D *_pStd3D;
-	SysStruct *_pHS;
-	int _bStarted;
-	int _bOpened;
+	Std3D *_std3D;
+	SysStruct *_hs;
+	int _started;
+	int _opened;
 	int _frameTrue;
 	int _curAcceleration;
 	int _curRenderOptions;
@@ -1820,23 +1820,23 @@ private:
 	int _curVertexColorMode;
 	int _curCullFlags;
 	int _curProcFaceUserData;
-	bool _bDemo;
+	bool _demo;
 	StdColorFormat _colorInfo;
 	RdColorEffects _curColorEffects;
-	float _aMipDistances[4];
+	float _mipDistances[4];
 	RdMatrix34 _identMatrix34;
 };
 
-typedef void (RenderDroid::CameraModule::*RdProjectFunc)(RdVector3 pOut, RdVector3 pIn);
-typedef void (RenderDroid::CameraModule::*RdProjectLstFunc)(RdVector3 *aOut, RdVector3 *aIn, int num);
+typedef void (RenderDroid::CameraModule::*RdProjectFunc)(RdVector3 out, RdVector3 in);
+typedef void (RenderDroid::CameraModule::*RdProjectLstFunc)(RdVector3 *out, RdVector3 *in, int num);
 
-typedef void (RenderDroid::AFRasterModule::*RdActiveEdgeStepFunc)(RdActiveEdge *pEdge);
-typedef int (RenderDroid::AFRasterModule::*RdActiveSetupEdgeFunc)(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1);
-typedef void (RenderDroid::AFRasterModule::*RdActiveSpanFunc)(RdActiveFace *pFace);
+typedef void (RenderDroid::AFRasterModule::*RdActiveEdgeStepFunc)(RdActiveEdge *edge);
+typedef int (RenderDroid::AFRasterModule::*RdActiveSetupEdgeFunc)(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1);
+typedef void (RenderDroid::AFRasterModule::*RdActiveSpanFunc)(RdActiveFace *face);
 
 struct RdActiveEdge {
-	int bLeft;
-	RdActiveFace *pFace;
+	int left;
+	RdActiveFace *face;
 	int yStart;
 	int numLines;
 	float oneOverZ;
@@ -1853,10 +1853,10 @@ struct RdActiveEdge {
 	int dv;
 	int intensity;
 	int dIntensity;
-	RdActiveEdgeStepFunc pfStep;
-	RdActiveEdge *pPrev;
-	RdActiveEdge *pNext;
-	RdActiveEdge *pNextRemove;
+	RdActiveEdgeStepFunc step;
+	RdActiveEdge *prev;
+	RdActiveEdge *next;
+	RdActiveEdge *nextRemove;
 };
 
 struct RdActiveSpan {
@@ -1876,14 +1876,14 @@ struct RdActiveSpan {
 	float oneOverZ;
 	int intensity;
 	int dIntensity;
-	RdActiveSpan *pNext;
+	RdActiveSpan *next;
 };
 
 struct RdActiveFace {
-	RdProcFace *pProcFace;
-	float aOneOverZ[32];
-	float aUOverZ[32];
-	float aVOverZ[32];
+	RdProcFace *procFace;
+	float oneOverZ[32];
+	float uOverZ[32];
+	float vOverZ[32];
 	float dOneOverZdX;
 	float dOneOverZdY;
 	float dUOverZdX;
@@ -1896,43 +1896,43 @@ struct RdActiveFace {
 	float dOneOverZdX16;
 	float dUOverZdX16;
 	float dVOverZdX16;
-	RdActiveSpanFunc pfDrawSpans;
-	RdActiveSpan *pFirstSpan;
-	RdActiveSpan *pLastSpan;
+	RdActiveSpanFunc drawSpans;
+	RdActiveSpan *firstSpan;
+	RdActiveSpan *lastSpan;
 	int mipLevel;
-	byte *pTexPixels;
+	byte *texPixels;
 	int texShift;
 	int texPitch;
 	int colorIndex;
 	int uWrap;
 	int vWrap;
-	byte *pLightLevel;
-	byte *pRGB16;
+	byte *lightLevel;
+	byte *rgb16;
 	int reserved484;
-	RdActiveSetupEdgeFunc pfSetupEdge;
-	RdActiveEdge *pLeftEdge;
-	RdActiveEdge *pRightEdge;
+	RdActiveSetupEdgeFunc setupEdge;
+	RdActiveEdge *leftEdge;
+	RdActiveEdge *rightEdge;
 	int curX;
 	int activeEdgeCount;
-	RdActiveFace *pPrevFace;
-	RdActiveFace *pNextFace;
+	RdActiveFace *prevFace;
+	RdActiveFace *nextFace;
 };
 
 struct RdCamera {
 	int projectType;
-	RdCanvas *pCanvas;
+	RdCanvas *canvas;
 	RdMatrix34 viewMatrix;
 	float fov;
 	float focalLen;
 	float aspectRatio;
 	float orthoScale;
-	RdClipFrustum *pClipFrustum;
-	RdProjectFunc pfProject;
-	RdProjectLstFunc pfProjectLst;
+	RdClipFrustum *clipFrustum;
+	RdProjectFunc project;
+	RdProjectLstFunc projectLst;
 	float ambientLight;
 	uint numLights;
-	RdLight *apLights[64];
-	RdVector3 aLightPos[64];
+	RdLight *lights[64];
+	RdVector3 lightPos[64];
 	float attenuationMin;
 	float attenuationMax;
 };

@@ -51,8 +51,8 @@ int VertexStreams::getDataSize() const {
 }
 
 CDCVertexArray::CDCVertexArray() {
-	numVerts = 0;
-	lockCount = 0;
+	_numVerts = 0;
+	_lockCount = 0;
 }
 
 CDCVertexArray::~CDCVertexArray() {

@@ -98,19 +98,19 @@ void ChoreKey::operator delete(void *block) {
 }
 
 ChoreTrack::ChoreTrack() {
-	id = -1;
-	parentId = -1;
+	_id = -1;
+	_parentId = -1;
 }
 
 ChoreTrack::~ChoreTrack() {
 	Common::List<ChoreKey *>::iterator it;
 
-	for (it = keys.begin(); it != keys.end(); ++it) {
+	for (it = _keys.begin(); it != _keys.end(); ++it) {
 		delete *it;
 		*it = nullptr;
 	}
 
-	keys.clear();
+	_keys.clear();
 }
 
 void *ChoreTrack::operator new(size_t size) {
@@ -122,28 +122,28 @@ void ChoreTrack::operator delete(void *block) {
 }
 
 int ChoreTrack::getSize() {
-	return (int)(resourceName.size() + 3 * sizeof(void *) * (keys.size() + 3));
+	return (int)(_resourceName.size() + 3 * sizeof(void *) * (_keys.size() + 3));
 }
 
 void ChoreTrack::addKey(ChoreKey *key) {
 	if (key)
-		keys.push_back(key);
+		_keys.push_back(key);
 }
 
 Chore::Chore(EmiEngine *engine) {
 	_engine = engine;
-	length = 0.0f;
-	name = "<unnamed chore>";
+	_length = 0.0f;
+	_name = "<unnamed chore>";
 }
 
 Chore::~Chore() {
-	for (uint i = 0; i < tracks.size(); i++) {
-		delete tracks[i];
-		tracks[i] = nullptr;
+	for (uint i = 0; i < _tracks.size(); i++) {
+		delete _tracks[i];
+		_tracks[i] = nullptr;
 	}
 
-	tracks.clear();
-	name.clear();
+	_tracks.clear();
+	_name.clear();
 }
 
 void *Chore::operator new(size_t size) {
@@ -155,11 +155,11 @@ void Chore::operator delete(void *block) {
 }
 
 int Chore::getSize() {
-	int size = (int)(sizeof(Chore) + name.size() + tracks.size() * sizeof(ChoreTrack *));
+	int size = (int)(sizeof(Chore) + _name.size() + _tracks.size() * sizeof(ChoreTrack *));
 
-	for (uint i = 0; i < tracks.size(); i++) {
-		if (tracks[i])
-			size += tracks[i]->getSize();
+	for (uint i = 0; i < _tracks.size(); i++) {
+		if (_tracks[i])
+			size += _tracks[i]->getSize();
 	}
 
 	return size;
@@ -168,16 +168,16 @@ int Chore::getSize() {
 ChoreTrack *Chore::addTrack(const LString &trackResourceName) {
 	ChoreTrack *track = new ChoreTrack();
 
-	track->resourceName = trackResourceName;
-	tracks.push_back(track);
+	track->_resourceName = trackResourceName;
+	_tracks.push_back(track);
 
 	return track;
 }
 
 int Chore::findTrackIndex(int trackId) {
 	if (trackId >= 0) {
-		for (uint i = 0; i < tracks.size(); i++) {
-			if (tracks[i]->id == trackId)
+		for (uint i = 0; i < _tracks.size(); i++) {
+			if (_tracks[i]->_id == trackId)
 				return i;
 		}
 	}
@@ -188,8 +188,8 @@ int Chore::findTrackIndex(int trackId) {
 void Chore::lockComponents() {
 	LResourceHandle<Component> handle;
 
-	for (uint i = 0; i < tracks.size(); i++) {
-		ChoreTrack *track = tracks[i];
+	for (uint i = 0; i < _tracks.size(); i++) {
+		ChoreTrack *track = _tracks[i];
 
 		if (!track) {
 			warning("Chore::lockComponents(): missing track %u", i);
@@ -197,13 +197,13 @@ void Chore::lockComponents() {
 		}
 
 		{
-			LResourceHandle<Component> trackHandle(_engine, track->resourceName);
+			LResourceHandle<Component> trackHandle(_engine, track->_resourceName);
 
-			handle.setResource(trackHandle.resource);
+			handle.setResource(trackHandle._resource);
 		}
 
-		if (handle.lock() && handle.typed)
-			handle.typed->resLock();
+		if (handle.lock() && handle._typed)
+			handle._typed->resLock();
 
 		handle.unlock();
 	}
@@ -212,8 +212,8 @@ void Chore::lockComponents() {
 void Chore::unlockComponents() {
 	LResourceHandle<Component> handle;
 
-	for (uint i = 0; i < tracks.size(); i++) {
-		ChoreTrack *track = tracks[i];
+	for (uint i = 0; i < _tracks.size(); i++) {
+		ChoreTrack *track = _tracks[i];
 
 		if (!track) {
 			warning("Chore::unlockComponents(): missing track %u", i);
@@ -221,13 +221,13 @@ void Chore::unlockComponents() {
 		}
 
 		{
-			LResourceHandle<Component> trackHandle(_engine, track->resourceName);
+			LResourceHandle<Component> trackHandle(_engine, track->_resourceName);
 
-			handle.setResource(trackHandle.resource);
+			handle.setResource(trackHandle._resource);
 		}
 
-		if (handle.lock() && handle.typed)
-			handle.typed->resUnlock();
+		if (handle.lock() && handle._typed)
+			handle._typed->resUnlock();
 
 		handle.unlock();
 	}
@@ -237,27 +237,27 @@ ChoreSet::ChoreSet() {
 }
 
 ChoreSet::~ChoreSet() {
-	for (uint i = 0; i < chores.size(); i++) {
-		delete chores[i];
-		chores[i] = nullptr;
+	for (uint i = 0; i < _chores.size(); i++) {
+		delete _chores[i];
+		_chores[i] = nullptr;
 	}
 
-	chores.clear();
+	_chores.clear();
 }
 
 uint ChoreSet::resSizeOfItem() {
-	uint size = sizeof(ChoreSet) + chores.size() * sizeof(Chore *);
+	uint size = sizeof(ChoreSet) + _chores.size() * sizeof(Chore *);
 
-	for (uint i = 0; i < chores.size(); i++)
-		size += chores[i]->getSize();
+	for (uint i = 0; i < _chores.size(); i++)
+		size += _chores[i]->getSize();
 
 	return size;
 }
 
 Chore *ChoreSet::findChore(const LString &choreName) {
-	for (uint i = 0; i < chores.size(); i++) {
-		if (chores[i] && chores[i]->name == choreName)
-			return chores[i];
+	for (uint i = 0; i < _chores.size(); i++) {
+		if (_chores[i] && _chores[i]->_name == choreName)
+			return _chores[i];
 	}
 
 	return nullptr;
@@ -371,9 +371,9 @@ bool ChoreSet::parseChores(LFile *file) {
 				return false;
 		} else if (sscanf(lineBuffer, " chore %127s %f", section, &length) == 2) {
 			currentChore = new Chore(_engine);
-			currentChore->name = section;
-			currentChore->length = length;
-			chores.push_back(currentChore);
+			currentChore->_name = section;
+			currentChore->_length = length;
+			_chores.push_back(currentChore);
 		} else {
 			if (!currentChore) {
 				logChoreError("Unrecognized line in choreset file: '%s'\n", lineBuffer);
@@ -392,8 +392,8 @@ bool ChoreSet::parseChores(LFile *file) {
 				LString resourceName = LString("!") + tag + trackName;
 
 				currentTrack = currentChore->addTrack(resourceName);
-				currentTrack->id = trackId;
-				currentTrack->parentId = parentId;
+				currentTrack->_id = trackId;
+				currentTrack->_parentId = parentId;
 			} else if (currentTrack && sscanf(lineBuffer, " %f %f", &timeValue, &keyValue) == 2) {
 				ChoreKey *key = new ChoreKey();
 
@@ -432,16 +432,16 @@ bool ChoreSet::loadBinary(const char *path) {
 		int trackCount;
 		Chore *chore = new Chore(_engine);
 
-		chores.push_back(chore);
+		_chores.push_back(chore);
 
-		if (!readName(file, buffer) || !readFloat(file, &chore->length) || !readInt(file, &trackCount)) {
+		if (!readName(file, buffer) || !readFloat(file, &chore->_length) || !readInt(file, &trackCount)) {
 			warning("ChoreSet::loadBinary(): invalid chore");
 			_engine->getFileServices()->close(file, true);
 
 			return false;
 		}
 
-		chore->name = buffer;
+		chore->_name = buffer;
 
 		for (int j = 0; j < trackCount; j++) {
 			int keyCount;
@@ -455,7 +455,7 @@ bool ChoreSet::loadBinary(const char *path) {
 
 			ChoreTrack *track = chore->addTrack(LString(buffer));
 
-			if (!readInt(file, &track->id) || !readInt(file, &track->parentId) || !readInt(file, &keyCount)) {
+			if (!readInt(file, &track->_id) || !readInt(file, &track->_parentId) || !readInt(file, &keyCount)) {
 				warning("ChoreSet::loadBinary(): unexpected end of file");
 				_engine->getFileServices()->close(file, true);
 
@@ -492,28 +492,28 @@ bool ChoreSet::saveBinary(const char *path) {
 	if (!file)
 		return false;
 
-	writeInt(file, (int)chores.size());
+	writeInt(file, (int)_chores.size());
 
-	for (uint i = 0; i < chores.size(); i++) {
-		Chore *chore = chores[i];
+	for (uint i = 0; i < _chores.size(); i++) {
+		Chore *chore = _chores[i];
 
-		writeInt(file, (int)chore->name.size() + 1);
-		file->write(chore->name.c_str(), chore->name.size() + 1);
-		writeFloat(file, chore->length);
-		writeInt(file, (int)chore->tracks.size());
+		writeInt(file, (int)chore->_name.size() + 1);
+		file->write(chore->_name.c_str(), chore->_name.size() + 1);
+		writeFloat(file, chore->_length);
+		writeInt(file, (int)chore->_tracks.size());
 
-		for (uint j = 0; j < chore->tracks.size(); j++) {
-			ChoreTrack *track = chore->tracks[j];
+		for (uint j = 0; j < chore->_tracks.size(); j++) {
+			ChoreTrack *track = chore->_tracks[j];
 
-			writeInt(file, (int)track->resourceName.size() + 1);
-			file->write(track->resourceName.c_str(), track->resourceName.size() + 1);
-			writeInt(file, track->id);
-			writeInt(file, track->parentId);
-			writeInt(file, (int)track->keys.size());
+			writeInt(file, (int)track->_resourceName.size() + 1);
+			file->write(track->_resourceName.c_str(), track->_resourceName.size() + 1);
+			writeInt(file, track->_id);
+			writeInt(file, track->_parentId);
+			writeInt(file, (int)track->_keys.size());
 
 			Common::List<ChoreKey *>::iterator it;
 
-			for (it = track->keys.begin(); it != track->keys.end(); ++it) {
+			for (it = track->_keys.begin(); it != track->_keys.end(); ++it) {
 				writeFloat(file, (*it)->time);
 				writeFloat(file, (*it)->value);
 			}

@@ -57,14 +57,14 @@ public:
 	int addLayer(const char *layerName, int layerSortOrder, int layerFrame, int layerId);
 	void removeLayer(Layer *layer);
 	void removeLayerById(int layerId);
-	bool save(tSaveRestoreAccess *access);
-	bool restore(tSaveRestoreAccess *access);
+	bool save(SaveRestoreAccess *access);
+	bool restore(SaveRestoreAccess *access);
 
-	char name[kNameSize];
-	Camera camera;
-	Common::List<Layer *> layers;
-	LString backgroundName;
-	bool layersBuilt;
+	char _name[kNameSize];
+	Camera _camera;
+	Common::List<Layer *> _layers;
+	LString _backgroundName;
+	bool _layersBuilt;
 
 private:
 	enum {

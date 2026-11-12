@@ -80,12 +80,12 @@ byte clamp_color(int c) {
 }
 
 Common::String getLuaMessage() {
-	lua_Object strObj = lua_getparam(1);
-	if (lua_isnil(strObj))
+	lua_Object obj = lua_getparam(1);
+	if (lua_isnil(obj))
 		return "(nil)";
-	if (!lua_isstring(strObj))
+	if (!lua_isstring(obj))
 		return {};
-	Common::String msg(lua_getstring(strObj));
+	Common::String msg(lua_getstring(obj));
 	// Our print functions will handle the newline
 	if (msg[msg.size() - 1] == '\n')
 		msg.deleteLastChar();
@@ -156,15 +156,15 @@ void Lua_V1::FunctionName() {
 }
 
 void Lua_V1::CheckForFile() {
-	lua_Object strObj = lua_getparam(1);
+	lua_Object obj = lua_getparam(1);
 
-	if (!lua_isstring(strObj))
+	if (!lua_isstring(obj))
 		return;
 
-	Common::SeekableReadStream *pFile = g_grim->openFile(lua_getstring(strObj));
+	Common::SeekableReadStream *file = g_grim->openFile(lua_getstring(obj));
 
-	if (pFile) {
-		delete pFile;
+	if (file) {
+		delete file;
 		lua_pushnumber(1.0f);
 	} else {
 		lua_pushnil();
@@ -217,16 +217,16 @@ void Lua_V1::ReadRegistryValue() {
 		return;
 	}
 	const char *key = lua_getstring(keyObj);
-	WuRegistry *pWuRegistry = g_grim->_pWuRegistry;
+	WuRegistry *wuRegistry = g_grim->_wuRegistry;
 
-	uint type = pWuRegistry->queryType(key);
+	uint type = wuRegistry->queryType(key);
 	if (type == WuRegistry::kValueBinary) {
-		lua_pushnumber(pWuRegistry->getFloat(key, 0.0f));
+		lua_pushnumber(wuRegistry->getFloat(key, 0.0f));
 	} else if (type == WuRegistry::kValueString) {
 		char value[256];
 
 		value[0] = '\0';
-		pWuRegistry->getStr(key, value, 255, "");
+		wuRegistry->getStr(key, value, 255, "");
 		lua_pushstring(value);
 	} else {
 		lua_pushnil();
@@ -241,12 +241,12 @@ void Lua_V1::WriteRegistryValue() {
 
 	const char *key = lua_getstring(keyObj);
 	lua_Object valObj = lua_getparam(2);
-	WuRegistry *pWuRegistry = g_grim->_pWuRegistry;
+	WuRegistry *wuRegistry = g_grim->_wuRegistry;
 
 	if (lua_isstring(valObj))
-		pWuRegistry->saveStr(key, lua_getstring(valObj));
+		wuRegistry->saveStr(key, lua_getstring(valObj));
 	else if (lua_isnumber(valObj))
-		pWuRegistry->saveFloat(key, lua_getnumber(valObj));
+		wuRegistry->saveFloat(key, lua_getnumber(valObj));
 }
 
 void Lua_V1::GetAngleBetweenVectors() {
@@ -280,12 +280,12 @@ void Lua_V1::GetAngleBetweenVectors() {
 	lua_pushstring("z");
 	vec2[2] = lua_getnumber(lua_gettable());
 
-	g_grim->_pRd->normalize3Acc(vec1);
-	g_grim->_pRd->normalize3Acc(vec2);
+	g_grim->_rd->normalize3Acc(vec1);
+	g_grim->_rd->normalize3Acc(vec2);
 
 	float dot = (float)(((double)vec2[0] * vec1[0] + (double)vec2[1] * vec1[1]) + (double)vec2[2] * vec1[2]);
 
-	lua_pushnumber((float)(90.0f - (double)g_grim->_pStdMath->arcSin3(dot)));
+	lua_pushnumber((float)(90.0f - (double)g_grim->_stdMath->arcSin3(dot)));
 }
 
 void Lua_V1::GetAngleBetweenVectorsDemo() {
@@ -319,7 +319,7 @@ void Lua_V1::GetAngleBetweenVectorsDemo() {
 
 	float dot = (float)(((double)x2 * x1 + (double)y2 * y1) + z2 * z1);
 
-	lua_pushnumber((float)(90.0 - (double)g_grim->_pStdMath->arcSin3(dot)));
+	lua_pushnumber((float)(90.0 - (double)g_grim->_stdMath->arcSin3(dot)));
 }
 
 void Lua_V1::Is3DHardwareEnabled() {
@@ -333,12 +333,12 @@ void Lua_V1::SetHardwareState() {
 	lua_Object stateObj = lua_getparam(1);
 	int curDevice = g_grim->getCurVideoDeviceIndex();
 	int cur3DDevice = g_grim->getCur3DDeviceIndex();
-	int bWant3D = lua_isnil(stateObj) == 0;
+	int want3D = lua_isnil(stateObj) == 0;
 
-	g_grim->chooseDefaultDisplay(0, bWant3D, &g_grim->_pendingDevice, &g_grim->_pendingMode, &g_grim->_pending3DDevice);
+	g_grim->chooseDefaultDisplay(0, want3D, &g_grim->_pendingDevice, &g_grim->_pendingMode, &g_grim->_pending3DDevice);
 
 	if (g_grim->_pendingDevice != curDevice || g_grim->_pending3DDevice != cur3DDevice)
-		g_grim->_bDisplayChangePending = 1;
+		g_grim->_displayChangePending = 1;
 }
 
 void Lua_V1::SetVideoDevices() {
@@ -349,12 +349,12 @@ void Lua_V1::SetVideoDevices() {
 
 	g_grim->_pendingDevice = luaFtol(lua_getnumber(deviceObj));
 
-	int numDevices = (int)g_grim->_pStdDisplay->getNumDevices();
+	int numDevices = (int)g_grim->_stdDisplay->getNumDevices();
 
 	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < numDevices) {
-		GrimVideoDevice *pVideoDevice = &g_grim->_aVideoDevices[g_grim->_pendingDevice];
+		GrimVideoDevice *videoDevice = &g_grim->_videoDevices[g_grim->_pendingDevice];
 
-		g_grim->_pendingMode = g_grim->_pStdDisplay->findClosestMode(&g_grim->_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
+		g_grim->_pendingMode = g_grim->_stdDisplay->findClosestMode(&g_grim->_videoDeviceConfig, videoDevice->modes, videoDevice->numModes);
 	} else {
 		g_grim->_pendingMode = 0;
 	}
@@ -364,10 +364,10 @@ void Lua_V1::SetVideoDevices() {
 	g_grim->_pending3DDevice = mode3D;
 
 	if (g_grim->_pendingDevice >= 0 && g_grim->_pendingDevice < numDevices &&
-		g_grim->_pStdDisplay->getDevices()[g_grim->_pendingDevice].bUsable &&
-		mode3D >= -1 && mode3D < (int)g_grim->_aVideoDevices[g_grim->_pendingDevice].num3DDevices &&
+		g_grim->_stdDisplay->getDevices()[g_grim->_pendingDevice].usable &&
+		mode3D >= -1 && mode3D < (int)g_grim->_videoDevices[g_grim->_pendingDevice].num3DDevices &&
 		(g_grim->_pendingDevice != curDevice || mode3D != cur3DDevice))
-		g_grim->_bDisplayChangePending = 1;
+		g_grim->_displayChangePending = 1;
 }
 
 void Lua_V1::GetVideoDevices() {
@@ -377,18 +377,18 @@ void Lua_V1::GetVideoDevices() {
 
 void Lua_V1::EnumerateVideoDevices() {
 	lua_Object result = lua_createtable();
-	int firstDevice = g_grim->_bEnumerateVideo == 0 ? 1 : 0;
-	int numDevices = (int)g_grim->_pStdDisplay->getNumDevices();
-	StdDisplayDevice *aDevices = g_grim->_pStdDisplay->getDevices();
+	int firstDevice = g_grim->_enumerateVideo == 0 ? 1 : 0;
+	int numDevices = (int)g_grim->_stdDisplay->getNumDevices();
+	StdDisplayDevice *devices = g_grim->_stdDisplay->getDevices();
 	int numListed = 0;
 
 	for (int i = firstDevice; i < numDevices; i++) {
-		if (aDevices[i].type == 1 && !aDevices[i].bUsable)
+		if (devices[i].type == 1 && !devices[i].usable)
 			continue;
 
 		lua_pushobject(result);
 		lua_pushnumber((float)i);
-		lua_pushstring(aDevices[i].aDescription);
+		lua_pushstring(devices[i].description);
 		lua_settable();
 		numListed++;
 	}
@@ -397,7 +397,7 @@ void Lua_V1::EnumerateVideoDevices() {
 	if (!numListed && numDevices > 0) {
 		lua_pushobject(result);
 		lua_pushnumber(0.0f);
-		lua_pushstring(aDevices[0].aDescription);
+		lua_pushstring(devices[0].description);
 		lua_settable();
 	}
 
@@ -412,34 +412,34 @@ void Lua_V1::Enumerate3DDevices() {
 	int deviceIndex = luaFtol(lua_getnumber(numObj));
 	lua_Object result = lua_createtable();
 
-	if (deviceIndex < 0 || deviceIndex >= (int)g_grim->_pStdDisplay->getNumDevices()) {
+	if (deviceIndex < 0 || deviceIndex >= (int)g_grim->_stdDisplay->getNumDevices()) {
 		warning("Lua_V1::Enumerate3DDevices(): invalid display device %d", deviceIndex);
 		lua_pushobject(result);
 		return;
 	}
 
-	StdDisplayDevice *pDevice = &g_grim->_pStdDisplay->getDevices()[deviceIndex];
-	GrimVideoDevice *pVideoDevice = &g_grim->_aVideoDevices[deviceIndex];
-	int bList;
+	StdDisplayDevice *device = &g_grim->_stdDisplay->getDevices()[deviceIndex];
+	GrimVideoDevice *videoDevice = &g_grim->_videoDevices[deviceIndex];
+	int list;
 
-	if (!pDevice->bPrimary && pDevice->b3D) {
-		bList = 1;
+	if (!device->primary && device->b3D) {
+		list = 1;
 	} else {
 		lua_pushobject(result);
 		lua_pushnumber(-1.0);
 		lua_pushstring("/engn003/Software");
 		lua_settable();
-		bList = pDevice->b3D;
+		list = device->b3D;
 	}
 
-	if (bList) {
-		for (uint i = 0; i < pVideoDevice->num3DDevices; i++) {
-			if (!pVideoDevice->a3DDevices[i].bHardware)
+	if (list) {
+		for (uint i = 0; i < videoDevice->num3DDevices; i++) {
+			if (!videoDevice->a3DDevices[i].hardware)
 				continue;
 
 			lua_pushobject(result);
 			lua_pushnumber((float)i);
-			lua_pushstring(pVideoDevice->a3DDevices[i].aDescription);
+			lua_pushstring(videoDevice->a3DDevices[i].description);
 			lua_settable();
 		}
 	}
@@ -485,7 +485,7 @@ void Lua_V1::RotateVector() {
 	lua_pushstring("z");
 	rot[2] = lua_getnumber(lua_gettable());
 
-	g_grim->_pRd->rotate3Acc(vec, rot);
+	g_grim->_rd->rotate3Acc(vec, rot);
 
 	lua_Object resObj = lua_createtable();
 	lua_pushobject(resObj);
@@ -518,7 +518,7 @@ void Lua_V1::WorldToScreen() {
 	worldPos[1] = lua_getnumber(worldY);
 	worldPos[2] = lua_getnumber(worldZ);
 
-	if (g_grim->_pRd->_primit3.getScreenCoord(worldPos, screen)) {
+	if (g_grim->_rd->_primit3.getScreenCoord(worldPos, screen)) {
 		lua_pushnumber((float)screen[0]);
 		lua_pushnumber((float)screen[1]);
 	} else {
@@ -569,7 +569,7 @@ void Lua_V1::FileFindFirst() {
 
 void Lua_V1::PerSecond() {
 	lua_Object rateObj = lua_getparam(1);
-	float frameTime = g_grim->_pSputTime->getFrameTimeFlex();
+	float frameTime = g_grim->_sputTime->getFrameTimeFlex();
 
 	lua_pushnumber((float)((double)lua_getnumber(rateObj) * frameTime));
 }
@@ -581,7 +581,7 @@ void Lua_V1::EnableControl() {
 		lua_pushnil();
 		return;
 	}
-	g_grim->_pSputControl->enableControl((uint)(int)lua_getnumber(numObj));
+	g_grim->_sputControl->enableControl((uint)(int)lua_getnumber(numObj));
 }
 
 void Lua_V1::DisableControl() {
@@ -591,7 +591,7 @@ void Lua_V1::DisableControl() {
 		lua_pushnil();
 		return;
 	}
-	g_grim->_pSputControl->disableControl((uint)(int)lua_getnumber(numObj));
+	g_grim->_sputControl->disableControl((uint)(int)lua_getnumber(numObj));
 }
 
 void Lua_V1::GetControlState() {
@@ -602,16 +602,16 @@ void Lua_V1::GetControlState() {
 
 	uint index = (uint)(int)lua_getnumber(numObj);
 
-	if (index >= (uint)g_grim->_pSputControl->getNumSymbols())
+	if (index >= (uint)g_grim->_sputControl->getNumSymbols())
 		return;
 
-	ControlSymbol *pSymbol = &g_grim->_pSputControl->getSymbols()[index];
+	ControlSymbol *symbol = &g_grim->_sputControl->getSymbols()[index];
 
-	if (pSymbol->flags & 4) {
+	if (symbol->flags & 4) {
 		int pressCount = 0;
 		int doubleClick = 0;
 
-		if (g_grim->_pStdControl->readKey(pSymbol->code, &pressCount, &doubleClick))
+		if (g_grim->_stdControl->readKey(symbol->code, &pressCount, &doubleClick))
 			lua_pushnumber(1.0f);
 		else
 			lua_pushnil();
@@ -621,9 +621,9 @@ void Lua_V1::GetControlState() {
 		else
 			lua_pushnil();
 	} else {
-		float axis = g_grim->_pStdControl->readAxis(pSymbol->code);
+		float axis = g_grim->_stdControl->readAxis(symbol->code);
 
-		if (pSymbol->flags & 8)
+		if (symbol->flags & 8)
 			axis = -axis;
 
 		lua_pushnumber(axis);
@@ -648,11 +648,11 @@ void Lua_V1::SetSpeechMode() {
 	int mode = (int)lua_getnumber(modeObj);
 
 	if (mode >= 1 && mode <= 3)
-		g_grim->_pSputActor->setSpeechMode(mode);
+		g_grim->_sputActor->setSpeechMode(mode);
 }
 
 void Lua_V1::GetSpeechMode() {
-	int mode = g_grim->_pSputActor->getSpeechMode();
+	int mode = g_grim->_sputActor->getSpeechMode();
 
 	if (mode & 2) {
 		if (mode & 1) {
@@ -679,11 +679,11 @@ void Lua_V1::GetSaveGameImage() {
 	lua_Object nameObj = lua_getparam(1);
 
 	if (lua_isstring(nameObj)) {
-		StdVBuffer *pImage = g_grim->getSaveGameImage(lua_getstring(nameObj));
+		StdVBuffer *image = g_grim->getSaveGameImage(lua_getstring(nameObj));
 
-		if (pImage) {
-			g_grim->_pSputRender->colorCorrect((uint16 *)pImage->pPixels, pImage->tex.width * pImage->tex.height);
-			pushImage(pImage);
+		if (image) {
+			g_grim->_sputRender->colorCorrect((uint16 *)image->pixels, image->tex.width * image->tex.height);
+			pushImage(image);
 			return;
 		}
 	}
@@ -695,7 +695,7 @@ void Lua_V1::SubmitSaveGameData() {
 	lua_Object tableObj = lua_getparam(1);
 	int index = 0;
 
-	if (!g_grim->_pSaveWriteStream) {
+	if (!g_grim->_saveWriteStream) {
 		warning("Lua_V1::SubmitSaveGameData(): no save in progress");
 		return;
 	}
@@ -752,15 +752,15 @@ void Lua_V1::GetSaveGameData() {
 	lua_Object param = lua_getparam(1);
 	if (!lua_isstring(param))
 		return;
-	Common::SeekableReadStream *pFile = g_system->getSavefileManager()->openForLoading(lua_getstring(param));
+	Common::SeekableReadStream *file = g_system->getSavefileManager()->openForLoading(lua_getstring(param));
 
-	if (!pFile)
+	if (!file)
 		return;
 
-	if (LegacySaveFile::isLegacySave(pFile)) {
+	if (LegacySaveFile::isLegacySave(file)) {
 		Common::Array<Common::String> strings;
 
-		if (legacyReadSaveStrings(pFile, strings)) {
+		if (legacyReadSaveStrings(file, strings)) {
 			lua_Object legacyResult = lua_createtable();
 
 			for (uint i = 0; i < strings.size(); i++) {
@@ -773,40 +773,40 @@ void Lua_V1::GetSaveGameData() {
 			lua_pushobject(legacyResult);
 		}
 
-		delete pFile;
+		delete file;
 		return;
 	}
 
 	lua_Object result = lua_createtable();
 	char str[1024];
 	int index = 0;
-	int totalBytes = pFile->readSint32LE();
+	int totalBytes = file->readSint32LE();
 
 	while (totalBytes > 0) {
-		int strSize = pFile->readSint32LE();
+		int size = file->readSint32LE();
 
-		if (pFile->err() || pFile->eos() || strSize < 1 || strSize > (int)sizeof(str)) {
-			warning("Lua_V1::GetSaveGameData(): invalid string size %d", strSize);
+		if (file->err() || file->eos() || size < 1 || size > (int)sizeof(str)) {
+			warning("Lua_V1::GetSaveGameData(): invalid string size %d", size);
 			break;
 		}
 
-		if (pFile->read(str, strSize) != (uint32)strSize) {
+		if (file->read(str, size) != (uint32)size) {
 			warning("Lua_V1::GetSaveGameData(): unexpected end of file");
 			break;
 		}
 
-		str[strSize - 1] = '\0';
+		str[size - 1] = '\0';
 
 		lua_pushobject(result);
 		lua_pushnumber((float)index);
 		lua_pushstring(str);
 		lua_settable();
 		index++;
-		totalBytes -= strSize + 4;
+		totalBytes -= size + 4;
 	}
 
 	lua_pushobject(result);
-	delete pFile;
+	delete file;
 }
 
 void Lua_V1::Load() {
@@ -839,21 +839,21 @@ void Lua_V1::Remove() {
 void Lua_V1::LockFont() {
 	lua_Object param1 = lua_getparam(1);
 	if (lua_isstring(param1)) {
-		void *pFont = g_grim->_pSputResource->alloc(kSputTagFont, lua_getstring(param1));
+		void *font = g_grim->_sputResource->alloc(kSputTagFont, lua_getstring(param1));
 
-		if (pFont) {
-			ResNode *pNode = g_grim->_pRes->checkAllocatedRes(pFont);
+		if (font) {
+			ResNode *node = g_grim->_res->checkAllocatedRes(font);
 
-			if (pNode) {
+			if (node) {
 				if (g_grim->getGameFlags() & ADGF_DEMO) {
-					ResRef *pRef = new ResRef();
+					ResRef *ref = new ResRef();
 
-					memset(pRef, 0, sizeof(ResRef));
-					g_grim->_pRes->setReference(pRef, pFont);
-					_lockedFontRefs.push_back(pRef);
+					memset(ref, 0, sizeof(ResRef));
+					g_grim->_res->setReference(ref, font);
+					_lockedFontRefs.push_back(ref);
 				}
 
-				lua_pushusertag(pNode->serial, kSputTagFont);
+				lua_pushusertag(node->serial, kSputTagFont);
 				return;
 			}
 
@@ -872,14 +872,14 @@ void Lua_V1::UnLockFontDemo() {
 		return;
 	}
 
-	void *handle = g_grim->_pRes->handleFromSerialNumber(lua_getuserdata(param1));
+	void *handle = g_grim->_res->handleFromSerialNumber(lua_getuserdata(param1));
 
 	for (uint i = 0; i < _lockedFontRefs.size(); i++) {
-		ResRef *pRef = _lockedFontRefs[i];
+		ResRef *ref = _lockedFontRefs[i];
 
-		if (pRef->handle == handle) {
-			g_grim->_pRes->removeReference(pRef);
-			delete pRef;
+		if (ref->handle == handle) {
+			g_grim->_res->removeReference(ref);
+			delete ref;
 			_lockedFontRefs.remove_at(i);
 			return;
 		}
@@ -898,12 +898,12 @@ void Lua_V1::JustLoaded() {
 void Lua_V1::EnableDebugKeys() {
 	g_grim->setDebugKeys(1);
 
-	if (_pDebugToggleFunc && !(g_grim->getGameFlags() & ADGF_DEMO))
-		_pDebugToggleFunc(1);
+	if (_debugToggleFunc && !(g_grim->getGameFlags() & ADGF_DEMO))
+		_debugToggleFunc(1);
 }
 
 void Lua_V1::FlushControls() {
-	g_grim->_pStdControl->flush();
+	g_grim->_stdControl->flush();
 }
 
 void Lua_V1::LightMgrSetChange() {
@@ -920,37 +920,37 @@ void Lua_V1::LightMgrShutdown() {
 
 void Lua_V1::SetEmergencyFont() {
 	lua_Object fontObj = lua_getparam(1);
-	SputText *pSputText = g_grim->_pSputText;
+	SputText *sputText = g_grim->_sputText;
 
 	if (lua_isstring(fontObj)) {
-		if (pSputText->_pEmergencyFont) {
-			g_grim->_pText->freeFont(pSputText->_pEmergencyFont);
-			pSputText->_pEmergencyFont = nullptr;
+		if (sputText->_emergencyFont) {
+			g_grim->_text->freeFont(sputText->_emergencyFont);
+			sputText->_emergencyFont = nullptr;
 		}
 
-		g_grim->_pBlastText->load(lua_getstring(fontObj), pSputText->_pEmergencyFont);
-	} else if (lua_isnil(fontObj) && pSputText->_pEmergencyFont) {
-		g_grim->_pText->freeFont(pSputText->_pEmergencyFont);
-		pSputText->_pEmergencyFont = nullptr;
+		g_grim->_blastText->load(lua_getstring(fontObj), sputText->_emergencyFont);
+	} else if (lua_isnil(fontObj) && sputText->_emergencyFont) {
+		g_grim->_text->freeFont(sputText->_emergencyFont);
+		sputText->_emergencyFont = nullptr;
 	}
 }
 
 void Lua_V1::NukeResources() {
-	g_grim->_pSputRoom->setCurrentRoom(nullptr);
-	g_grim->_pSputActor->nukeCostumeStacks();
-	g_grim->_pRes->freeAll();
-	g_grim->_pSputActor->clearShadowMaterial();
+	g_grim->_sputRoom->setCurrentRoom(nullptr);
+	g_grim->_sputActor->nukeCostumeStacks();
+	g_grim->_res->freeAll();
+	g_grim->_sputActor->clearShadowMaterial();
 }
 
 void Lua_V1::AttachToResources() {
-	g_grim->_pSputResource->closeResources();
+	g_grim->_sputResource->closeResources();
 	g_grim->findResources();
 }
 
 void Lua_V1::DetachFromResources() {
-	g_grim->_pSputSmush->stopMovie();
+	g_grim->_sputSmush->stopMovie();
 	g_grim->getImuse()->soundsCloseVoiceFile();
-	g_grim->_pSputResource->closeResources();
+	g_grim->_sputResource->closeResources();
 }
 
 void Lua_V1::SpewStartup() {
@@ -959,7 +959,7 @@ void Lua_V1::SpewStartup() {
 }
 
 void Lua_V1::GetMemoryUsage() {
-	lua_pushnumber((float)g_grim->_pRes->totalAllocated());
+	lua_pushnumber((float)g_grim->_res->totalAllocated());
 }
 
 void Lua_V1::GetFontDimensions() {
@@ -1749,7 +1749,7 @@ struct luaL_reg grimDemoCostumeOpcodes[] = {
 	{ "GetKeyLength", LUA_OPCODE(Lua_V1, GetKeyLength) }
 };
 
-Lua_V1::Lua_V1(bool isEmi) : LuaBase(isEmi), _pHS(nullptr), _bInitialized(0), _pDebugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1), _nextObjectStateHandle(1) {
+Lua_V1::Lua_V1(bool isEmi) : LuaBase(isEmi), _hs(nullptr), _initialized(0), _debugToggleFunc(nullptr), _totSaveBytes(0), _nextImageHandle(1), _nextObjectStateHandle(1) {
 	for (int i = 0; i < kMaxImages; i++) {
 		_imageHandles[i] = 0;
 		_images[i] = nullptr;
@@ -1791,24 +1791,24 @@ void Lua_V1::registerHardwareOpcodes() {
 	luaL_openlib(grimHardwareOpcodes, ARRAYSIZE(grimHardwareOpcodes));
 }
 
-int Lua_V1::initialize(SysStruct *pHS) {
-	_pHS = pHS;
-	_bInitialized = 1;
+int Lua_V1::initialize(SysStruct *hs) {
+	_hs = hs;
+	_initialized = 1;
 
 	return 0;
 }
 
 int Lua_V1::terminate() {
 	for (uint i = 0; i < _lockedFontRefs.size(); i++) {
-		g_grim->_pRes->removeReference(_lockedFontRefs[i]);
+		g_grim->_res->removeReference(_lockedFontRefs[i]);
 		delete _lockedFontRefs[i];
 	}
 
 	_lockedFontRefs.clear();
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
@@ -1828,7 +1828,7 @@ int Lua_V1::startup() {
 	lua_savehook = saveIndirector;
 	lua_restorehook = restoreIndirector;
 
-	g_grim->_pSputControl->addCallback(this);
+	g_grim->_sputControl->addCallback(this);
 
 	return 0;
 }
@@ -1836,7 +1836,7 @@ int Lua_V1::startup() {
 int Lua_V1::shutdown() {
 	FileFindDispose();
 
-	lua_unref(refSystemTable);
+	lua_unref(_refSystemTable);
 	lua_savehook = nullptr;
 	lua_restorehook = nullptr;
 
@@ -1862,8 +1862,8 @@ int Lua_V1::boot(int saveGameResume, const char *bootParam) {
 }
 
 void Lua_V1::update() {
-	int movieTime = g_grim->_pSputSmush->getMovieTime();
-	int frameTime = g_grim->_pSputTime->getFrameTime();
+	int movieTime = g_grim->_sputSmush->getMovieTime();
+	int frameTime = g_grim->_sputTime->getFrameTime();
 
 	LuaBase::update(frameTime, movieTime);
 }
@@ -1874,21 +1874,21 @@ void Lua_V1::makeSystemTable() {
 	lua_setglobal("system");
 
 	lua_pushobject(systemTable);
-	refSystemTable = lua_ref(1);
+	_refSystemTable = lua_ref(1);
 
 	registerControls();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("camChangeHandler");
 	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
 	lua_settable();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("axisHandler");
 	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
 	lua_settable();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("buttonHandler");
 	lua_pushcfunction(LUA_OPCODE(LuaBase, dummyHandler));
 	lua_settable();
@@ -1897,31 +1897,31 @@ void Lua_V1::makeSystemTable() {
 void Lua_V1::registerControls() {
 	lua_Object controlsTable = lua_createtable();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("controls");
 	lua_pushobject(controlsTable);
 	lua_settable();
 
-	ControlSymbol *aSymbols = g_grim->_pSputControl->getSymbols();
-	int numSymbols = g_grim->_pSputControl->getNumSymbols();
+	ControlSymbol *symbols = g_grim->_sputControl->getSymbols();
+	int numSymbols = g_grim->_sputControl->getNumSymbols();
 
 	for (int i = 0; i < numSymbols; i++) {
 		lua_pushobject(controlsTable);
-		lua_pushstring(aSymbols[i].pName);
+		lua_pushstring(symbols[i].name);
 		lua_pushnumber((float)i);
 		lua_settable();
 	}
 }
 
-bool Lua_V1::getSystemHandler(const char *name, bool bAllowTable, lua_Object *pFunc, lua_Object *pSelf) {
-	*pFunc = LUA_NOOBJECT;
-	*pSelf = LUA_NOOBJECT;
+bool Lua_V1::getSystemHandler(const char *name, bool allowTable, lua_Object *funcPointer, lua_Object *self) {
+	*funcPointer = LUA_NOOBJECT;
+	*self = LUA_NOOBJECT;
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring(name);
 	lua_Object handler = lua_gettable();
 
-	if (bAllowTable && lua_istable(handler)) {
+	if (allowTable && lua_istable(handler)) {
 		lua_pushobject(handler);
 		lua_pushstring(name);
 		lua_Object func = lua_gettable();
@@ -1929,14 +1929,14 @@ bool Lua_V1::getSystemHandler(const char *name, bool bAllowTable, lua_Object *pF
 		if (!lua_isfunction(func))
 			return false;
 
-		*pFunc = func;
-		*pSelf = handler;
+		*funcPointer = func;
+		*self = handler;
 
 		return true;
 	}
 
 	if (lua_isfunction(handler)) {
-		*pFunc = handler;
+		*funcPointer = handler;
 
 		return true;
 	}
@@ -1945,9 +1945,9 @@ bool Lua_V1::getSystemHandler(const char *name, bool bAllowTable, lua_Object *pF
 }
 
 int Lua_V1::controlCallback(float frameTime) {
-	StdControl *pStdControl = g_grim->_pStdControl;
-	ControlSymbol *aSymbols = g_grim->_pSputControl->getSymbols();
-	int numSymbols = g_grim->_pSputControl->getNumSymbols();
+	StdControl *stdControl = g_grim->_stdControl;
+	ControlSymbol *symbols = g_grim->_sputControl->getSymbols();
+	int numSymbols = g_grim->_sputControl->getNumSymbols();
 	lua_Object buttonFunc;
 	lua_Object buttonSelf;
 	lua_Object axisFunc;
@@ -1955,21 +1955,21 @@ int Lua_V1::controlCallback(float frameTime) {
 
 	lua_beginblock();
 
-	bool bButtonHandler = getSystemHandler("buttonHandler", true, &buttonFunc, &buttonSelf);
-	bool bAxisHandler = getSystemHandler("axisHandler", true, &axisFunc, &axisSelf);
+	bool buttonHandler = getSystemHandler("buttonHandler", true, &buttonFunc, &buttonSelf);
+	bool axisHandler = getSystemHandler("axisHandler", true, &axisFunc, &axisSelf);
 
 	for (int i = 0; i < numSymbols; i++) {
-		ControlSymbol *pSymbol = &aSymbols[i];
+		ControlSymbol *symbol = &symbols[i];
 
-		if (!(pSymbol->flags & 1))
+		if (!(symbol->flags & 1))
 			continue;
 
-		if (pSymbol->flags & 4) {
+		if (symbol->flags & 4) {
 			int pressCount = 0;
 			int doubleClick = 0;
-			int value = pStdControl->readKey(pSymbol->code, &pressCount, &doubleClick);
+			int value = stdControl->readKey(symbol->code, &pressCount, &doubleClick);
 
-			if (value != pSymbol->lastValue && bButtonHandler) {
+			if (value != symbol->lastValue && buttonHandler) {
 				if (buttonSelf != LUA_NOOBJECT)
 					lua_pushobject(buttonSelf);
 
@@ -1983,25 +1983,25 @@ int Lua_V1::controlCallback(float frameTime) {
 				lua_pushnumber((float)(uint)pressCount);
 				lua_pushnumber((float)doubleClick);
 				lua_callfunction(buttonFunc);
-				pSymbol->lastValue = value;
+				symbol->lastValue = value;
 			}
 		} else {
-			float value = pStdControl->readAxis(pSymbol->code);
+			float value = stdControl->readAxis(symbol->code);
 			float lastValue;
 
-			if (pSymbol->flags & 8)
+			if (symbol->flags & 8)
 				value = -value;
 
-			memcpy(&lastValue, &pSymbol->lastValue, sizeof(lastValue));
+			memcpy(&lastValue, &symbol->lastValue, sizeof(lastValue));
 
-			if (value != lastValue && bAxisHandler) {
+			if (value != lastValue && axisHandler) {
 				if (axisSelf != LUA_NOOBJECT)
 					lua_pushobject(axisSelf);
 
 				lua_pushnumber((float)i);
 				lua_pushnumber(value);
 				lua_callfunction(axisFunc);
-				memcpy(&pSymbol->lastValue, &value, sizeof(value));
+				memcpy(&symbol->lastValue, &value, sizeof(value));
 			}
 		}
 	}
@@ -2011,8 +2011,8 @@ int Lua_V1::controlCallback(float frameTime) {
 	return 0;
 }
 
-void Lua_V1::setDebugToggleCallback(void (*pFunc)(int)) {
-	_pDebugToggleFunc = pFunc;
+void Lua_V1::setDebugToggleCallback(void (*func)(int)) {
+	_debugToggleFunc = func;
 }
 
 void Lua_V1::cameraChange(int oldSetup, int newSetup) {
@@ -2044,7 +2044,7 @@ void Lua_V1::postCameraChange(int setup) {
 	lua_endblock();
 }
 
-void Lua_V1::collisionHandler(SputActor *pActor, SputActor *pOther, const float *pPos0, const float *pPos1, const float *pPos2) {
+void Lua_V1::collisionHandler(SputActor *actor, SputActor *other, const float *pos0, const float *pos1, const float *pos2) {
 	lua_Object func;
 	lua_Object self;
 
@@ -2054,38 +2054,38 @@ void Lua_V1::collisionHandler(SputActor *pActor, SputActor *pOther, const float 
 		if (self != LUA_NOOBJECT)
 			lua_pushobject(self);
 
-		lua_pushusertag(g_grim->_pSputActor->getActorHandle(pActor), MKTAG('R','T','C','A'));
-		lua_pushusertag(g_grim->_pSputActor->getActorHandle(pOther), MKTAG('R','T','C','A'));
-		lua_pushnumber(pPos0[0]);
-		lua_pushnumber(pPos0[1]);
-		lua_pushnumber(pPos0[2]);
-		lua_pushnumber(pPos1[0]);
-		lua_pushnumber(pPos1[1]);
-		lua_pushnumber(pPos1[2]);
-		lua_pushnumber(pPos2[0]);
-		lua_pushnumber(pPos2[1]);
-		lua_pushnumber(pPos2[2]);
+		lua_pushusertag(g_grim->_sputActor->getActorHandle(actor), MKTAG('R','T','C','A'));
+		lua_pushusertag(g_grim->_sputActor->getActorHandle(other), MKTAG('R','T','C','A'));
+		lua_pushnumber(pos0[0]);
+		lua_pushnumber(pos0[1]);
+		lua_pushnumber(pos0[2]);
+		lua_pushnumber(pos1[0]);
+		lua_pushnumber(pos1[1]);
+		lua_pushnumber(pos1[2]);
+		lua_pushnumber(pos2[0]);
+		lua_pushnumber(pos2[1]);
+		lua_pushnumber(pos2[2]);
 		lua_callfunction(func);
 	}
 
 	lua_endblock();
 }
 
-void Lua_V1::doCostumeOverrideCallback(SputActor *pActor, int bOverride) {
+void Lua_V1::doCostumeOverrideCallback(SputActor *actor, int override) {
 	lua_Object func;
 	lua_Object self;
 
 	lua_beginblock();
 
-	int hActor = g_grim->_pSputActor->getActorHandle(pActor);
+	int actorHandle = g_grim->_sputActor->getActorHandle(actor);
 
 	if (getSystemHandler("costumeOverrideHandler", true, &func, &self)) {
 		if (self != LUA_NOOBJECT)
 			lua_pushobject(self);
 
-		lua_pushusertag(hActor, MKTAG('R','T','C','A'));
+		lua_pushusertag(actorHandle, MKTAG('R','T','C','A'));
 
-		if (bOverride)
+		if (override)
 			lua_pushnumber(1);
 		else
 			lua_pushnil();
@@ -2096,14 +2096,14 @@ void Lua_V1::doCostumeOverrideCallback(SputActor *pActor, int bOverride) {
 	lua_endblock();
 }
 
-void Lua_V1::doCostumeMarkerCallback(SputActor *pActor, int markerType) {
+void Lua_V1::doCostumeMarkerCallback(SputActor *actor, int markerType) {
 	lua_Object func;
 	lua_Object self;
 
 	if (!markerType)
 		return;
 
-	int hActor = g_grim->_pSputActor->getActorHandle(pActor);
+	int actorHandle = g_grim->_sputActor->getActorHandle(actor);
 
 	lua_beginblock();
 
@@ -2111,7 +2111,7 @@ void Lua_V1::doCostumeMarkerCallback(SputActor *pActor, int markerType) {
 		if (self != LUA_NOOBJECT)
 			lua_pushobject(self);
 
-		lua_pushusertag(hActor, MKTAG('R','T','C','A'));
+		lua_pushusertag(actorHandle, MKTAG('R','T','C','A'));
 		lua_pushnumber((float)(uint)markerType);
 		lua_callfunction(func);
 	}
@@ -2141,9 +2141,9 @@ int Lua_V1::doExitCallback() {
 
 	lua_beginblock();
 
-	bool bFound = getSystemHandler("exitHandler", true, &func, &self);
+	bool found = getSystemHandler("exitHandler", true, &func, &self);
 
-	if (bFound) {
+	if (found) {
 		if (self != LUA_NOOBJECT)
 			lua_pushobject(self);
 
@@ -2152,7 +2152,7 @@ int Lua_V1::doExitCallback() {
 
 	lua_endblock();
 
-	return bFound;
+	return found;
 }
 
 int Lua_V1::doPauseCallback() {
@@ -2161,9 +2161,9 @@ int Lua_V1::doPauseCallback() {
 
 	lua_beginblock();
 
-	bool bFound = getSystemHandler("pauseHandler", true, &func, &self);
+	bool found = getSystemHandler("pauseHandler", true, &func, &self);
 
-	if (bFound) {
+	if (found) {
 		if (self != LUA_NOOBJECT)
 			lua_pushobject(self);
 
@@ -2172,7 +2172,7 @@ int Lua_V1::doPauseCallback() {
 
 	lua_endblock();
 
-	return bFound;
+	return found;
 }
 
 int Lua_V1::doCharacterCallback(int character) {
@@ -2222,58 +2222,58 @@ void Lua_V1::saveGameCallback() {
 	lua_endblock();
 }
 
-int32 Lua_V1::saveIndirector(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc) {
+int32 Lua_V1::saveIndirector(int32 tag, int32 data, SaveRestoreAccess *saveFunc) {
 	if (tag == MKTAG('T', 'A', 'T', 'S')) {
 		int setup;
 		int index;
 
-		if (!g_grim->_pSputRoom->getCurrentRoom() || !findObjectState(hData, &setup, &index))
+		if (!g_grim->_sputRoom->getCurrentRoom() || !findObjectState(data, &setup, &index))
 			return -1;
 
 		return index | (setup << 16);
 	}
 
-	return hData;
+	return data;
 }
 
-int32 Lua_V1::restoreIndirector(int32 tag, int32 hData, tSaveRestoreAccess *restoreFunc) {
+int32 Lua_V1::restoreIndirector(int32 tag, int32 data, SaveRestoreAccess *restoreFunc) {
 	if (tag == MKTAG('T', 'A', 'T', 'S')) {
-		Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+		Room *room = g_grim->_sputRoom->getCurrentRoom();
 
-		if (hData == -1 || !pRoom)
+		if (data == -1 || !room)
 			return 0;
 
-		uint setup = (uint)hData >> 16;
-		uint index = (uint)hData & 0xFFFF;
+		uint setup = (uint)data >> 16;
+		uint index = (uint)data & 0xFFFF;
 
-		if (setup >= pRoom->numSetups) {
+		if (setup >= room->numSetups) {
 			warning("Lua_V1::restoreIndirector(): invalid setup %u for an object state", setup);
 			return 0;
 		}
 
-		SputObjectState *pState = pRoom->pSetups[setup].ObjectStates;
+		SputObjectState *state = room->setups[setup].ObjectStates;
 
-		while (pState && index) {
-			pState = pState->pNext;
+		while (state && index) {
+			state = state->next;
 			index--;
 		}
 
-		if (!pState) {
+		if (!state) {
 			warning("Lua_V1::restoreIndirector(): object state not found");
 			return 0;
 		}
 
-		return getObjectStateHandle(pState);
+		return getObjectStateHandle(state);
 	}
 
 	if (tag == MKTAG('T', 'X', 'E', 'T')) {
-		if (g_grim->_pSputText->findSerialNumber(hData))
-			return hData;
+		if (g_grim->_sputText->findSerialNumber(data))
+			return data;
 
 		return 0;
 	}
 
-	return hData;
+	return data;
 }
 
 } // end of namespace Grim

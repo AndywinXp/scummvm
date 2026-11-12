@@ -42,8 +42,8 @@ static const int kCenterPan = 64;
 
 StreamScript::StreamScript(Sounds *sounds) {
 	_sounds = sounds;
-	head = nullptr;
-	loaded = false;
+	_head = nullptr;
+	_loaded = false;
 
 	_firstUpdateMs = 0;
 	_lastUpdateMs = 0;
@@ -72,34 +72,34 @@ void StreamScript::closeStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			cue->stream.musicStream->pause(true);
+		if (!cue->_stream._fileName.empty() && cue->_stream._musicStream) {
+			cue->_stream._musicStream->pause(true);
 
-			delete cue->stream.musicStream;
-			cue->stream.musicStream = nullptr;
-			cue->state = 0;
+			delete cue->_stream._musicStream;
+			cue->_stream._musicStream = nullptr;
+			cue->_state = 0;
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
 bool StreamScript::openStreamScript(const char *scriptFileName) {
-	if (loaded)
+	if (_loaded)
 		return false;
 
-	fileName = scriptFileName;
+	_fileName = scriptFileName;
 
 	Common::SeekableReadStream *script = openAudioFile(scriptFileName);
 
 	if (!script) {
-		fileName.clear();
+		_fileName.clear();
 
 		return false;
 	}
@@ -155,7 +155,7 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 			CueEntry *cue = new CueEntry(quoted.c_str(), &cueId, &cueSync, lastCue, strcmp(typeText, "episode") == 0);
 
 			lastCue = cue;
-			head = cue;
+			_head = cue;
 		} else if (strcmp(token, ".playFile") == 0) {
 			if (!lastCue)
 				continue;
@@ -176,15 +176,15 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 				quoted = quote;
 			}
 
-			if (!lastCue->stream.fileName.empty())
+			if (!lastCue->_stream._fileName.empty())
 				continue;
 
-			CueStream &cueStream = lastCue->stream;
+			CueStream &cueStream = lastCue->_stream;
 
-			cueStream.fileName = findAudioFile(quoted.c_str());
-			cueStream.trim = (float)((double)trim * (double)0.0078739999f);
+			cueStream._fileName = findAudioFile(quoted.c_str());
+			cueStream._trim = (float)((double)trim * (double)0.0078739999f);
 
-			LString jmmPath = cueStream.fileName;
+			LString jmmPath = cueStream._fileName;
 			uint dotPosition = jmmPath.rfind('.');
 
 			if (dotPosition != LString::npos)
@@ -195,11 +195,11 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 			Common::SeekableReadStream *jmm = openStream(jmmPath.c_str());
 
 			if (!jmm) {
-				cueStream.start = 0.0;
-				cueStream.jumps[0].srcMs = -1.0;
-				cueStream.jumps[0].dstMs = 0.0;
-				cueStream.jumps[0].field16 = 0;
-				cueStream.hasJump = 1;
+				cueStream._start = 0.0;
+				cueStream._jumps[0].srcMs = -1.0;
+				cueStream._jumps[0].dstMs = 0.0;
+				cueStream._jumps[0].field16 = 0;
+				cueStream._hasJump = 1;
 
 				continue;
 			}
@@ -212,7 +212,7 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 
 				if (strcmp(token, ".start") == 0) {
 					sscanf(jmmLine, " %s %f", token, &parsedStart);
-					cueStream.start = (double)parsedStart;
+					cueStream._start = (double)parsedStart;
 				} else if (strcmp(token, ".jump") == 0) {
 					int assigned = sscanf(jmmLine, " %s %f %f %d %lf %lf %d %d %d", token, &parsedJumpSrc, &parsedJumpDst, &parsedField16, &parsedRatio, &parsedPcm, &parsedSrcByte, &parsedDstByte, &parsedLoopCount);
 
@@ -225,36 +225,36 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 						memcpy(&parsedPcm, &pcmBits, sizeof(pcmBits));
 					}
 
-					cueStream.jumps[0].srcMs = (double)parsedJumpSrc;
-					cueStream.jumps[0].dstMs = (double)parsedJumpDst;
-					cueStream.jumps[0].field16 = (int16)parsedField16;
-					cueStream.hasJump = 1;
+					cueStream._jumps[0].srcMs = (double)parsedJumpSrc;
+					cueStream._jumps[0].dstMs = (double)parsedJumpDst;
+					cueStream._jumps[0].field16 = (int16)parsedField16;
+					cueStream._hasJump = 1;
 
 					if (parsedRatio > 0.0) {
-						cueStream.ratio = parsedRatio;
-						cueStream.invRatio = 1.0 / parsedRatio;
+						cueStream._ratio = parsedRatio;
+						cueStream._invRatio = 1.0 / parsedRatio;
 					} else {
-						cueStream.ratio = 1.0;
-						cueStream.invRatio = 1.0;
+						cueStream._ratio = 1.0;
+						cueStream._invRatio = 1.0;
 					}
 
 					if (parsedPcm > 0.0) {
-						cueStream.pcmBytesPerMs = parsedPcm;
-						cueStream.invPcmBytesPerMs = 1.0 / parsedPcm;
+						cueStream._pcmBytesPerMs = parsedPcm;
+						cueStream._invPcmBytesPerMs = 1.0 / parsedPcm;
 					} else {
-						cueStream.pcmBytesPerMs = 1.0;
-						cueStream.invPcmBytesPerMs = 1.0;
+						cueStream._pcmBytesPerMs = 1.0;
+						cueStream._invPcmBytesPerMs = 1.0;
 					}
 
-					cueStream.startByte = (int)(parsedPcm * cueStream.start + 0.5);
-					cueStream.srcByte = parsedSrcByte;
-					cueStream.dstByte = parsedDstByte;
-					cueStream.loopCount = (int16)parsedLoopCount;
+					cueStream._startByte = (int)(parsedPcm * cueStream._start + 0.5);
+					cueStream._srcByte = parsedSrcByte;
+					cueStream._dstByte = parsedDstByte;
+					cueStream._loopCount = (int16)parsedLoopCount;
 
 					break;
 				} else if (strcmp(token, ".end") == 0) {
 					sscanf(jmmLine, " %s %f", token, &parsedEnd);
-					cueStream.end = (double)parsedEnd;
+					cueStream._end = (double)parsedEnd;
 
 					break;
 				}
@@ -265,26 +265,26 @@ bool StreamScript::openStreamScript(const char *scriptFileName) {
 	}
 
 	delete script;
-	loaded = true;
+	_loaded = true;
 
 	return true;
 }
 
 void StreamScript::closeStreamScript() {
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	closeStreams();
 
-	while (head) {
-		CueEntry *next = head->next;
+	while (_head) {
+		CueEntry *next = _head->_next;
 
-		delete head;
-		head = next;
+		delete _head;
+		_head = next;
 	}
 
-	loaded = false;
-	fileName.clear();
+	_loaded = false;
+	_fileName.clear();
 }
 
 void StreamScript::setStreamScriptVolume(float volume) {
@@ -298,21 +298,21 @@ void StreamScript::setStreamScriptVolume(float volume) {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
 	_masterVolume = clamped;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			int streamVolume = (int)((double)cue->stream.trim * (double)cue->fadeVolume * (double)_masterVolume * 127.0 + (double)0.5f);
+		if (!cue->_stream._fileName.empty() && cue->_stream._musicStream) {
+			int streamVolume = (int)((double)cue->_stream._trim * (double)cue->_fadeVolume * (double)_masterVolume * 127.0 + (double)0.5f);
 
-			cue->stream.musicStream->setVolume(streamVolume);
+			cue->_stream._musicStream->setVolume(streamVolume);
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
@@ -320,10 +320,10 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 	CueEntry *keptCue = nullptr;
 	bool otherPlaying = false;
 	int otherSync = 0;
@@ -333,7 +333,7 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 	double otherMsPerByte = 0.0;
 
 	while (cue) {
-		if ((uint)cue->id != id && !cue->stream.fileName.empty() && cue->stream.musicStream) {
+		if ((uint)cue->_id != id && !cue->_stream._fileName.empty() && cue->_stream._musicStream) {
 			CueEntry *closedCue = nullptr;
 
 			otherPlaying = true;
@@ -341,63 +341,63 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 			if (keptCue) {
 				closedCue = keptCue;
 
-				if (!(keptCue->fadeVolume >= cue->fadeVolume))
+				if (!(keptCue->_fadeVolume >= cue->_fadeVolume))
 					keptCue = cue;
 				else
 					closedCue = cue;
 
-				closedCue->fadeVolume = 0.0f;
-				closedCue->stream.musicStream->pause(true);
+				closedCue->_fadeVolume = 0.0f;
+				closedCue->_stream._musicStream->pause(true);
 
 				// The original would use the closed stream for the sync position
-				if (otherStream == closedCue->stream.musicStream) {
+				if (otherStream == closedCue->_stream._musicStream) {
 					otherStream = nullptr;
 					otherStreamClosed = true;
 				}
 
-				delete closedCue->stream.musicStream;
-				closedCue->stream.musicStream = nullptr;
-				closedCue->state = 0;
+				delete closedCue->_stream._musicStream;
+				closedCue->_stream._musicStream = nullptr;
+				closedCue->_state = 0;
 			} else {
 				keptCue = cue;
 			}
 
 			if (closedCue != cue) {
-				cue->state = 2;
+				cue->_state = 2;
 
-				if (cue->sync > 0) {
-					otherSync = cue->sync;
-					otherStream = cue->stream.musicStream;
+				if (cue->_sync > 0) {
+					otherSync = cue->_sync;
+					otherStream = cue->_stream._musicStream;
 					otherStreamClosed = false;
-					otherStart = cue->stream.start;
-					otherMsPerByte = cue->stream.invPcmBytesPerMs * cue->stream.ratio;
+					otherStart = cue->_stream._start;
+					otherMsPerByte = cue->_stream._invPcmBytesPerMs * cue->_stream._ratio;
 				}
 			}
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 
-	cue = head;
+	cue = _head;
 
 	while (cue) {
-		if ((uint)cue->id == id && !cue->stream.fileName.empty()) {
-			if (!cue->stream.musicStream) {
-				cue->stream.musicStream = MusicStream::open(this, cue->stream.fileName);
+		if ((uint)cue->_id == id && !cue->_stream._fileName.empty()) {
+			if (!cue->_stream._musicStream) {
+				cue->_stream._musicStream = MusicStream::open(this, cue->_stream._fileName);
 
-				if (cue->stream.musicStream) {
-					MusicStream *musicStream = cue->stream.musicStream;
+				if (cue->_stream._musicStream) {
+					MusicStream *musicStream = cue->_stream._musicStream;
 
-					_currentFadeRate = cue->fadeRate;
-					cue->looped = false;
-					cue->lastPositionMs = 0;
-					cue->ended = false;
+					_currentFadeRate = cue->_fadeRate;
+					cue->_looped = false;
+					cue->_lastPositionMs = 0;
+					cue->_ended = false;
 
-					int startPosition = cue->stream.startByte;
+					int startPosition = cue->_stream._startByte;
 					bool synced = false;
 					uint syncStamp = 0;
 
-					if (otherSync > 0 && otherStream && cue->sync == otherSync) {
+					if (otherSync > 0 && otherStream && cue->_sync == otherSync) {
 						int otherPosition = otherStream->getPositionStamped(&syncStamp);
 
 						synced = true;
@@ -406,20 +406,20 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 						if (!(offsetMs >= 0.0))
 							offsetMs = 0.0;
 
-						startPosition += (int)(offsetMs * cue->stream.pcmBytesPerMs + (double)0.05f);
-					} else if (otherSync > 0 && otherStreamClosed && cue->sync == otherSync) {
+						startPosition += (int)(offsetMs * cue->_stream._pcmBytesPerMs + (double)0.05f);
+					} else if (otherSync > 0 && otherStreamClosed && cue->_sync == otherSync) {
 						// The original would sync with the closed stream here
 						warning("StreamScript::startStream(): the stream to sync with has been closed");
 					}
 
-					musicStream->setLoopBlock(cue->stream.dstByte, cue->stream.srcByte);
-					musicStream->setLoopCount(cue->stream.loopCount);
+					musicStream->setLoopBlock(cue->_stream._dstByte, cue->_stream._srcByte);
+					musicStream->setLoopCount(cue->_stream._loopCount);
 
-					int bytePosition = (int)((double)startPosition * cue->stream.invRatio + 0.5);
+					int bytePosition = (int)((double)startPosition * cue->_stream._invRatio + 0.5);
 
 					if (startMs >= 0) {
 						musicStream->setMsPosition(startMs);
-						cue->lastPositionMs = startMs;
+						cue->_lastPositionMs = startMs;
 					} else if (synced) {
 						musicStream->setPositionSynced(bytePosition, syncStamp);
 					} else {
@@ -427,13 +427,13 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 					}
 
 					if (immediate)
-						cue->fadeVolume = 1.0f;
+						cue->_fadeVolume = 1.0f;
 					else if (!otherPlaying && startMs < 0)
-						cue->fadeVolume = 1.0f;
+						cue->_fadeVolume = 1.0f;
 					else
-						cue->fadeVolume = 0.0f;
+						cue->_fadeVolume = 0.0f;
 
-					int streamVolume = (int)((double)_masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
+					int streamVolume = (int)((double)_masterVolume * (double)cue->_stream._trim * (double)cue->_fadeVolume * 127.0 + (double)0.5f);
 
 					musicStream->setVolume(streamVolume);
 					musicStream->setPan(kCenterPan);
@@ -441,10 +441,10 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 				}
 			}
 
-			cue->state = 1;
+			cue->_state = 1;
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
@@ -452,25 +452,25 @@ bool StreamScript::consumeStreamFlags(const uint &id, bool &looped, bool &ended)
 	if (!isStreamingEnabled())
 		return false;
 
-	if (!loaded)
+	if (!_loaded)
 		return false;
 
 	looped = false;
 	ended = false;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if ((uint)cue->id == id) {
-			looped = cue->looped;
-			ended = cue->ended;
-			cue->looped = false;
-			cue->ended = false;
+		if ((uint)cue->_id == id) {
+			looped = cue->_looped;
+			ended = cue->_ended;
+			cue->_looped = false;
+			cue->_ended = false;
 
 			return true;
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 
 	return false;
@@ -495,64 +495,64 @@ void StreamScript::updateStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		MusicStream *musicStream = cue->stream.musicStream;
+		MusicStream *musicStream = cue->_stream._musicStream;
 
 		if (musicStream) {
-			if (!cue->looped) {
+			if (!cue->_looped) {
 				int current = 0;
 
 				musicStream->getMsPosition(nullptr, &current);
 
-				if (current < cue->lastPositionMs)
-					cue->looped = true;
+				if (current < cue->_lastPositionMs)
+					cue->_looped = true;
 
-				cue->lastPositionMs = current;
+				cue->_lastPositionMs = current;
 			}
 
-			if (!cue->ended) {
+			if (!cue->_ended) {
 				if (musicStream->getStatus() == MusicStream::kStatusDone)
-					cue->ended = true;
+					cue->_ended = true;
 			}
 
-			if (cue->state != 0) {
+			if (cue->_state != 0) {
 				double change = (double)_currentFadeRate * (double)elapsed;
 				float fade;
 
-				if (cue->state == 1)
-					fade = (float)(change + (double)cue->fadeVolume);
+				if (cue->_state == 1)
+					fade = (float)(change + (double)cue->_fadeVolume);
 				else
-					fade = (float)((double)cue->fadeVolume - change);
+					fade = (float)((double)cue->_fadeVolume - change);
 
-				cue->fadeVolume = fade;
+				cue->_fadeVolume = fade;
 
 				if (!(fade >= 0.0f)) {
-					cue->fadeVolume = 0.0f;
+					cue->_fadeVolume = 0.0f;
 
 					musicStream->pause(true);
 
 					delete musicStream;
-					cue->stream.musicStream = nullptr;
-					cue->state = 0;
+					cue->_stream._musicStream = nullptr;
+					cue->_state = 0;
 				} else {
 					if (fade > 1.0f) {
-						cue->fadeVolume = 1.0f;
-						cue->state = 0;
+						cue->_fadeVolume = 1.0f;
+						cue->_state = 0;
 					}
 
-					int streamVolume = (int)((double)_masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
+					int streamVolume = (int)((double)_masterVolume * (double)cue->_stream._trim * (double)cue->_fadeVolume * 127.0 + (double)0.5f);
 
 					musicStream->setVolume(streamVolume);
 				}
 			}
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
@@ -560,22 +560,22 @@ void StreamScript::pauseStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			int status = cue->stream.musicStream->getStatus();
+		if (!cue->_stream._fileName.empty() && cue->_stream._musicStream) {
+			int status = cue->_stream._musicStream->getStatus();
 
-			if (status == MusicStream::kStatusPlaying || cue->stream.paused != 0) {
-				cue->stream.paused = 1;
-				cue->stream.musicStream->pause(true);
+			if (status == MusicStream::kStatusPlaying || cue->_stream._paused != 0) {
+				cue->_stream._paused = 1;
+				cue->_stream._musicStream->pause(true);
 			}
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
@@ -583,22 +583,22 @@ void StreamScript::resumeStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			int status = cue->stream.musicStream->getStatus();
+		if (!cue->_stream._fileName.empty() && cue->_stream._musicStream) {
+			int status = cue->_stream._musicStream->getStatus();
 
-			if (status != MusicStream::kStatusPlaying && cue->stream.paused != 0) {
-				cue->stream.musicStream->pause(false);
-				cue->stream.paused = 0;
+			if (status != MusicStream::kStatusPlaying && cue->_stream._paused != 0) {
+				cue->_stream._musicStream->pause(false);
+				cue->_stream._paused = 0;
 			}
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 
@@ -606,20 +606,20 @@ int StreamScript::getStreamPositionMs(const uint &id, const bool &relative) {
 	if (!isStreamingEnabled())
 		return 0;
 
-	if (!loaded)
+	if (!_loaded)
 		return 0;
 
 	int result = -1;
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if ((uint)cue->id == id && !cue->stream.fileName.empty() && cue->stream.musicStream) {
+		if ((uint)cue->_id == id && !cue->_stream._fileName.empty() && cue->_stream._musicStream) {
 			int position = 0;
 
-			cue->stream.musicStream->getMsPosition(nullptr, &position);
+			cue->_stream._musicStream->getMsPosition(nullptr, &position);
 
 			if (relative) {
-				position = (int)((double)position - cue->stream.start + 0.5);
+				position = (int)((double)position - cue->_stream._start + 0.5);
 
 				if (position < 0)
 					position = 0;
@@ -628,7 +628,7 @@ int StreamScript::getStreamPositionMs(const uint &id, const bool &relative) {
 			result = position;
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 
 	return result;
@@ -638,21 +638,21 @@ void StreamScript::closeAllStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!loaded)
+	if (!_loaded)
 		return;
 
-	CueEntry *cue = head;
+	CueEntry *cue = _head;
 
 	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			cue->stream.musicStream->pause(true);
+		if (!cue->_stream._fileName.empty() && cue->_stream._musicStream) {
+			cue->_stream._musicStream->pause(true);
 
-			delete cue->stream.musicStream;
-			cue->stream.musicStream = nullptr;
-			cue->state = 0;
+			delete cue->_stream._musicStream;
+			cue->_stream._musicStream = nullptr;
+			cue->_state = 0;
 		}
 
-		cue = cue->next;
+		cue = cue->_next;
 	}
 }
 

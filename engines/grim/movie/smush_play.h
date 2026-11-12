@@ -43,7 +43,7 @@ class SmushTimer;
 class SmushWave;
 
 struct LecBitmap {
-	byte *pPixels;
+	byte *pixels;
 	int width;
 	int height;
 	int bytesPerPixel;
@@ -72,9 +72,9 @@ public:
 
 	virtual int startVideo(int width, int height, int depth, int pixelFormat) = 0;
 	virtual int stopVideo() = 0;
-	virtual int lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) = 0;
-	virtual int unlockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) = 0;
-	virtual int setVideoPalette(uint32 *pPalette, int start, int count) = 0;
+	virtual int lockMovieBuffer(LecBitmap *bitmap, StdRect *rect) = 0;
+	virtual int unlockMovieBuffer(LecBitmap *bitmap, StdRect *rect) = 0;
+	virtual int setVideoPalette(uint32 *palette, int start, int count) = 0;
 };
 
 class SmushPlay : public SmushAnimClient {
@@ -82,62 +82,62 @@ public:
 	SmushPlay(bool remastered);
 	~SmushPlay();
 
-	int sysInitialize(SysStruct *pHS);
+	int sysInitialize(SysStruct *hs);
 	void sysTerminate();
 	int sysStartup();
 	void sysShutdown();
-	void sysSetVideoCallbacks(SmushPlayVideo *pVideo);
+	void sysSetVideoCallbacks(SmushPlayVideo *video);
 	void sysConfigureColorLookup(int config);
 	int startMovie(const char *name, int flags, int bufferBytes, int x, int y, int width, int height, int offset, int pixelFormat);
 	int stopMovie();
-	int updateMovie(int *pFinished);
+	int updateMovie(int *finished);
 	int pauseMovie();
 	int resumeMovie();
 	int getMovieTime();
-	void setTranslationTable(const uint16 *pTable);
-	void getFrameRect(StdRect *pFrameRect, StdRect *pSrcRect);
+	void setTranslationTable(const uint16 *table);
+	void getFrameRect(StdRect *frameRect, StdRect *srcRect);
 	int getMovieLength(const char *path);
 
 private:
-	static void timerCallback(void *pContext);
+	static void timerCallback(void *context);
 
 	int animatorRender(int flags) override;
 	void resetFrameCounter() override;
 	int getFrameCounter() override;
 
 	Common::SeekableReadStream *openFile(const char *path);
-	int getInfo(Common::SeekableReadStream *pStream, SmushMovieInfo *pInfo);
+	int getInfo(Common::SeekableReadStream *stream, SmushMovieInfo *info);
 	int openAnim(const char *path, int fps);
 	void restartAnim(int fps);
 	void closeAnim();
-	int fakeBlit(LecBitmap *pBitmap, const uint16 *pTable);
-	int blit(LecBitmap *pDest, LecBitmap *pSource, StdRect *pRect);
-	void blitDouble(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows);
-	void blitDoubleRows(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows);
-	void blitCopy(const byte *pSource, int sourcePitch, byte *pDest, int destPitch, int rowBytes, int rows);
+	int fakeBlit(LecBitmap *bitmap, const uint16 *table);
+	int blit(LecBitmap *dest, LecBitmap *source, StdRect *rect);
+	void blitDouble(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows);
+	void blitDoubleRows(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows);
+	void blitCopy(const byte *source, int sourcePitch, byte *dest, int destPitch, int rowBytes, int rows);
 
-	SysStruct *_pHS;
-	SmushPlayVideo *_pVideo;
-	SmushTimer *_pTimer;
-	SmushDriver *_pDriver;
-	SmushSound *_pSound;
-	SmushWave *_pWave;
-	SmushDecoder *_pDecoder;
-	SmushAnimPlay *_pAnimPlay;
-	SmushAnimator *_pAnimator;
+	SysStruct *_hs;
+	SmushPlayVideo *_video;
+	SmushTimer *_timer;
+	SmushDriver *_driver;
+	SmushSound *_sound;
+	SmushWave *_wave;
+	SmushDecoder *_decoder;
+	SmushAnimPlay *_animPlay;
+	SmushAnimator *_animator;
 	Common::Mutex _mutex;
-	int _bInitialized;
-	int _bStarted;
-	int _bTimerInstalled;
-	int _bMovieIsPlaying;
+	int _initialized;
+	int _started;
+	int _timerInstalled;
+	int _movieIsPlaying;
 	int _movieFlags;
 	SmushMovieInfo _movieInfo;
 	char _curFileName[260];
 	StdRect _frameRect;
 	StdRect _srcRect;
 	LecBitmap _internalBitmap;
-	LecBitmap *_pInternalBitmap;
-	const uint16 *_pTranslationTable;
+	LecBitmap *_internalBitmapPointer;
+	const uint16 *_translationTable;
 	int _colorLookupConfig;
 };
 

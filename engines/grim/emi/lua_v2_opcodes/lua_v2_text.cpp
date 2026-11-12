@@ -62,8 +62,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 
 	int screenWidth = _engine->_textScreenRect[2];
 	int screenHeight = _engine->_textScreenRect[3];
-	int x = event->x;
-	int y = event->y;
+	int x = event->_x;
+	int y = event->_y;
 	bool xChanged = false;
 	bool yChanged = false;
 	lua_Object valueObj;
@@ -91,9 +91,9 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	}
 
 	if (xChanged || yChanged) {
-		event->x = x;
-		event->y = y;
-		event->geometryReady = false;
+		event->_x = x;
+		event->_y = y;
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -108,7 +108,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 		LResourceHandle<CTextFont> lockedFont;
 
 		if (locked)
-			lockedFont.setResource(fontHandle.typed);
+			lockedFont.setResource(fontHandle._typed);
 		else
 			lockedFont.setResource(nullptr);
 
@@ -122,7 +122,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isnumber(valueObj))
-		event->clipRect[2] = truncateToInt((double)lua_getnumber(valueObj) * (double)screenWidth);
+		event->_clipRect[2] = truncateToInt((double)lua_getnumber(valueObj) * (double)screenWidth);
 
 	lua_pushobject(table);
 	lua_pushobject(lua_getref(_fieldRefs[kFieldHeight]));
@@ -130,7 +130,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isnumber(valueObj))
-		event->clipRect[3] = truncateToInt((double)lua_getnumber(valueObj) * (double)screenHeight);
+		event->_clipRect[3] = truncateToInt((double)lua_getnumber(valueObj) * (double)screenHeight);
 
 	lua_pushobject(table);
 	lua_pushobject(lua_getref(_fieldRefs[kFieldFgcolor]));
@@ -138,8 +138,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isuserdata(valueObj) && lua_tag(valueObj) == kColorTag) {
-		event->color = Color((uint)lua_getuserdata(valueObj));
-		event->geometryReady = false;
+		event->_color = Color((uint)lua_getuserdata(valueObj));
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -148,8 +148,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isuserdata(valueObj) && lua_tag(valueObj) == kColorTag) {
-		event->outlineColor = Color((uint)lua_getuserdata(valueObj));
-		event->geometryReady = false;
+		event->_outlineColor = Color((uint)lua_getuserdata(valueObj));
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -158,8 +158,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && !lua_isnil(valueObj)) {
-		event->justify = 6;
-		event->geometryReady = false;
+		event->_justify = 6;
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -168,8 +168,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && !lua_isnil(valueObj)) {
-		event->justify = 4;
-		event->geometryReady = false;
+		event->_justify = 4;
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -178,8 +178,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && !lua_isnil(valueObj)) {
-		event->justify = 5;
-		event->geometryReady = false;
+		event->_justify = 5;
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -188,8 +188,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isnumber(valueObj)) {
-		event->layer = luaFtol(lua_getnumber(valueObj));
-		event->geometryReady = false;
+		event->_layer = luaFtol(lua_getnumber(valueObj));
+		event->_geometryReady = false;
 	}
 
 	lua_pushobject(table);
@@ -198,7 +198,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	valueObj = lua_gettable();
 
 	if (valueObj && lua_isnumber(valueObj))
-		event->duration = (float)((double)luaFtol(lua_getnumber(valueObj)) * (double)kMillisecondsToSeconds);
+		event->_duration = (float)((double)luaFtol(lua_getnumber(valueObj)) * (double)kMillisecondsToSeconds);
 }
 
 void Lua_V2::readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y) {
@@ -259,7 +259,7 @@ void Lua_V2::IsMessageGoing() {
 	if (isActor(actorObj)) {
 		Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-		if (actor && actor->extra && actor->extra->talking) {
+		if (actor && actor->_extra && actor->_extra->_talking) {
 			lua_pushnumber(1.0f);
 
 			return;
@@ -274,7 +274,7 @@ void Lua_V2::IsMessageGoing() {
 		Common::List<TextEvent *>::iterator it;
 
 		for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
-			if (!((*it)->flags & 1)) {
+			if (!((*it)->_flags & 1)) {
 				lua_pushnumber(1.0f);
 
 				return;
@@ -312,11 +312,11 @@ void Lua_V2::SetActorTalkColor() {
 		return;
 	}
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
 	if (lua_isuserdata(colorObj) && lua_tag(colorObj) == kColorTag)
-		actor->extra->talkColor = Color((uint)lua_getuserdata(colorObj));
+		actor->_extra->_talkColor = Color((uint)lua_getuserdata(colorObj));
 }
 
 void Lua_V2::GetActorTalkColor() {
@@ -341,18 +341,18 @@ void Lua_V2::GetActorTalkColor() {
 		return;
 	}
 
-	if (!actor->extra) {
+	if (!actor->_extra) {
 		lua_pushnil();
 
 		return;
 	}
 
-	const Color &talkColor = actor->extra->talkColor;
-	uint packed = (uint)talkColor.a;
+	const Color &talkColor = actor->_extra->_talkColor;
+	uint packed = (uint)talkColor._a;
 
-	packed = (packed << 8) | (uint)talkColor.r;
-	packed = (packed << 8) | (uint)talkColor.g;
-	packed = (packed << 8) | (uint)talkColor.b;
+	packed = (packed << 8) | (uint)talkColor._r;
+	packed = (packed << 8) | (uint)talkColor._g;
+	packed = (packed << 8) | (uint)talkColor._b;
 
 	lua_pushusertag((int32)packed, kColorTag);
 }
@@ -412,7 +412,7 @@ void Lua_V2::MakeTextObject() {
 	if (tableObj && lua_istable(tableObj))
 		applyTextTable(tableObj, event);
 
-	lua_pushusertag(event->id, kTextTag);
+	lua_pushusertag(event->_id, kTextTag);
 	lua_pushnumber((float)event->getWidth());
 	lua_pushnumber((float)event->getHeight());
 
@@ -426,7 +426,7 @@ void Lua_V2::KillTextObject() {
 		TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
 		if (event)
-			event->flags &= ~1u;
+			event->_flags &= ~1u;
 	}
 }
 
@@ -459,8 +459,8 @@ void Lua_V2::ChangeTextObject() {
 			break;
 
 		if (lua_isstring(paramObj)) {
-			event->text = TextEvent::translate(_engine, lua_getstring(paramObj), nullptr);
-			event->geometryReady = false;
+			event->_text = TextEvent::translate(_engine, lua_getstring(paramObj), nullptr);
+			event->_geometryReady = false;
 		} else {
 			if (!lua_istable(paramObj))
 				break;
@@ -526,15 +526,15 @@ void Lua_V2::ExpireText() {
 
 		++it;
 
-		event->duration = -1.0f;
+		event->_duration = -1.0f;
 
-		if (event->flags & 4) {
-			event->flags &= ~5u;
+		if (event->_flags & 4) {
+			event->_flags &= ~5u;
 
-			Actor *actor = Actor::actorDeref(_engine, event->actorId);
+			Actor *actor = Actor::actorDeref(_engine, event->_actorId);
 
-			if (actor && actor->extra)
-				actor->extra->textEventId = 0;
+			if (actor && actor->_extra)
+				actor->_extra->_textEventId = 0;
 
 			delete event;
 		}
@@ -548,9 +548,9 @@ void Lua_V2::PurgeText() {
 	for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
 
-		if (lua_isnil(keepHeldObj) || !event->hold) {
-			event->duration = -1.0f;
-			event->flags &= ~1u;
+		if (lua_isnil(keepHeldObj) || !event->_hold) {
+			event->_duration = -1.0f;
+			event->_flags &= ~1u;
 		}
 	}
 }
@@ -630,9 +630,9 @@ void Lua_V2::GetColorComponents() {
 	lua_Object colorObj = lua_getparam(1);
 	Color color((uint)lua_getuserdata(colorObj));
 
-	lua_pushnumber((float)(uint)color.r);
-	lua_pushnumber((float)(uint)color.g);
-	lua_pushnumber((float)(uint)color.b);
+	lua_pushnumber((float)(uint)color._r);
+	lua_pushnumber((float)(uint)color._g);
+	lua_pushnumber((float)(uint)color._b);
 }
 
 void Lua_V2::SetTranslationMode() {
@@ -699,7 +699,7 @@ void Lua_V2::GetFontDimensions() {
 	CTextFont *font = nullptr;
 
 	if (fontHandle.lock())
-		font = fontHandle.typed;
+		font = fontHandle._typed;
 
 	if (!font) {
 		// The original reads the dimensions of the missing font
@@ -709,10 +709,10 @@ void Lua_V2::GetFontDimensions() {
 		return;
 	}
 
-	int lineHeight = font->lineHeight;
-	int header52 = font->header52;
-	int header56 = font->header56;
-	int header60 = font->header60;
+	int lineHeight = font->_lineHeight;
+	int header52 = font->_header52;
+	int header56 = font->_header56;
+	int header60 = font->_header60;
 
 	fontHandle.unlock();
 
@@ -746,10 +746,10 @@ void Lua_V2::GetTextCharPosition() {
 	int width = 0;
 
 	for (int i = 0; i < count; i++) {
-		if ((uint)i >= event->text.size())
+		if ((uint)i >= event->_text.size())
 			break;
 
-		width += event->getCharWidth((byte)event->text[i]);
+		width += event->getCharWidth((byte)event->_text[i]);
 	}
 
 	int screenWidth = _engine->_textScreenRect[2];

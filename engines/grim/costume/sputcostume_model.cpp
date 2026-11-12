@@ -41,279 +41,279 @@ static const int colormapKeyValues[1] = { 0 };
 static const char *const colormapKeyNames[1] = { "Exist" };
 static const CosComponentNames colormapKeyDesc = { 1, colormapKeyValues, colormapKeyNames, nullptr, nullptr };
 
-void ThingHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	ModelInst *pInst = static_cast<ModelInst *>(pInstData);
+void ThingHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	ModelInst *inst = static_cast<ModelInst *>(instData);
 
 	if (keyValue < 0 || keyValue >= 2) {
 		warning("ThingHandler::change(): invalid key %d", keyValue);
 		return;
 	}
 
-	pInst->bVisible = mainThingKeyValues[keyValue] != 0;
+	inst->visible = mainThingKeyValues[keyValue] != 0;
 }
 
-int ThingHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int ThingHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 	int resolveParentOffset = 1;
 
 	memset(name, 0, sizeof(name));
 
-	if (pParentId && parentFourcc != kSputCostumeTagMesh)
+	if (parentId && parentFourcc != kSputCostumeTagMesh)
 		return 0;
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 
 	Common::strlcpy(name, args, 32);
 
-	char *pModelName = strtok(name, ",");
-	char *pFlag = strtok(nullptr, ",");
+	char *modelName = strtok(name, ",");
+	char *flag = strtok(nullptr, ",");
 
-	if (!pModelName) {
+	if (!modelName) {
 		warning("ThingHandler::request(): empty model name");
 		return 0;
 	}
 
-	void *hModel = _pSputCostume->_pSputResource->alloc(kSputTagModl, pModelName);
+	void *model = _sputCostume->_sputResource->alloc(kSputTagModl, modelName);
 
-	if (pFlag)
-		resolveParentOffset = atoi(pFlag);
+	if (flag)
+		resolveParentOffset = atoi(flag);
 
-	if (!hModel)
+	if (!model)
 		return 0;
 
-	ThingCompRes *pRes = new ThingCompRes();
+	ThingCompRes *res = new ThingCompRes();
 
-	_pSputCostume->_pRes->setReference(&pRes->ref, hModel);
-	pRes->resolveParentOffset = resolveParentOffset;
+	_sputCostume->_res->setReference(&res->ref, model);
+	res->resolveParentOffset = resolveParentOffset;
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, pParentId, parentFourcc, &mainThingKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, parentFourcc, &mainThingKeyDesc) != 0;
 }
 
-void ThingHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	ThingCompRes *pRes = static_cast<ThingCompRes *>(pCompRes);
+void ThingHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	ThingCompRes *res = static_cast<ThingCompRes *>(compRes);
 
-	_pSputCostume->_pRes->removeReference(&pRes->ref);
-	delete pRes;
+	_sputCostume->_res->removeReference(&res->ref);
+	delete res;
 }
 
-void ThingHandler::stop(void *pInstData) {
-	ModelInst *pInst = static_cast<ModelInst *>(pInstData);
+void ThingHandler::stop(void *instData) {
+	ModelInst *inst = static_cast<ModelInst *>(instData);
 
-	pInst->bVisible = pInst->pParentModel == nullptr;
+	inst->visible = inst->parentModel == nullptr;
 }
 
-int ThingHandler::adjust(void **ppCompRes, char *args, int argsSize) {
-	ThingCompRes *pRes = static_cast<ThingCompRes *>(*ppCompRes);
-	int value = pRes->resolveParentOffset != 0;
+int ThingHandler::adjust(void **compRes, char *args, int argsSize) {
+	ThingCompRes *res = static_cast<ThingCompRes *>(*compRes);
+	int value = res->resolveParentOffset != 0;
 	int accepted = 0; // TODO: grimPlat_ControlPanel("Resolve parent offset (0 = off)")
 
 	if (!accepted)
 		return 0;
 
-	char *pToken = strtok(args, ",");
+	char *token = strtok(args, ",");
 
-	if (!pToken) {
+	if (!token) {
 		warning("ThingHandler::adjust(): empty component name");
 		return 0;
 	}
 
-	pRes->resolveParentOffset = value;
+	res->resolveParentOffset = value;
 
 	char text[32];
 
-	snprintf(text, sizeof(text), "%s,%d", pToken, value);
-	Common::strlcpy(pToken, text, 32);
+	snprintf(text, sizeof(text), "%s,%d", token, value);
+	Common::strlcpy(token, text, 32);
 
 	return 1;
 }
 
-void *ThingHandler::instance(int hInst, int compIndex, int bCreate) {
-	Cos *pCos = &_pSputCostume->_cos;
+void *ThingHandler::instance(int instHandle, int compIndex, int create) {
+	Cos *cos = &_sputCostume->_cos;
 
-	if (!bCreate) {
-		ModelInst *pModelInst = static_cast<ModelInst *>(pCos->instGetInstanceData(hInst, compIndex, nullptr));
+	if (!create) {
+		ModelInst *modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		if (!pModelInst) {
+		if (!modelInst) {
 			warning("ThingHandler::instance(): no instance data for component %d", compIndex);
 			return nullptr;
 		}
 
-		pModelInst->refCount--;
+		modelInst->refCount--;
 
-		if (!pModelInst->refCount) {
-			_pSputCostume->_pRes->removeReference(&pModelInst->modelRef);
-			_pSputCostume->_pRd->_thing.destroy(pModelInst->pThing);
-			delete pModelInst;
+		if (!modelInst->refCount) {
+			_sputCostume->_res->removeReference(&modelInst->modelRef);
+			_sputCostume->_rd->_thing.destroy(modelInst->thing);
+			delete modelInst;
 		}
 
 		return nullptr;
 	}
 
 	int fourcc = 0;
-	void *pId = nullptr;
+	void *id = nullptr;
 	int parentIndex = -1;
-	CosComponent *pComp = pCos->instComponentInfo(hInst, compIndex, &fourcc, &pId, &parentIndex);
+	CosComponent *comp = cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
-	if (!pComp) {
+	if (!comp) {
 		warning("ThingHandler::instance(): invalid component %d", compIndex);
 		return nullptr;
 	}
 
-	int hParentInst = pCos->instGetUserData(hInst);
+	int parentInst = cos->instGetUserData(instHandle);
 
-	if (hParentInst) {
-		int numComponents = pCos->instCountComponents(hParentInst);
+	if (parentInst) {
+		int numComponents = cos->instCountComponents(parentInst);
 
 		for (int i = 0; i < numComponents; i++) {
 			int parentFourcc = 0;
-			CosComponent *pParentComp = pCos->instComponentInfo(hParentInst, i, &parentFourcc, nullptr, nullptr);
+			CosComponent *parentComp = cos->instComponentInfo(parentInst, i, &parentFourcc, nullptr, nullptr);
 
-			if (parentFourcc == fourcc && pParentComp && !scumm_stricmp(pParentComp->name, pComp->name)) {
-				ModelInst *pShared = static_cast<ModelInst *>(pCos->instGetInstanceData(hParentInst, i, nullptr));
+			if (parentFourcc == fourcc && parentComp && !scumm_stricmp(parentComp->name, comp->name)) {
+				ModelInst *shared = static_cast<ModelInst *>(cos->instGetInstanceData(parentInst, i, nullptr));
 
-				pShared->refCount++;
+				shared->refCount++;
 
-				return pShared;
+				return shared;
 			}
 		}
 	}
 
-	ThingCompRes *pRes = static_cast<ThingCompRes *>(pId);
+	ThingCompRes *res = static_cast<ThingCompRes *>(id);
 
-	if (!pRes->ref.valid) {
+	if (!res->ref.valid) {
 		warning("ThingHandler::instance(): Bad model Reference");
 		return nullptr;
 	}
 
-	RdModel3 *pModel3 = static_cast<RdModel3 *>(pRes->ref.handle);
-	ModelInst *pModelInst = new ModelInst();
+	RdModel3 *model3 = static_cast<RdModel3 *>(res->ref.handle);
+	ModelInst *modelInst = new ModelInst();
 
-	_pSputCostume->_pRes->setReference(&pModelInst->modelRef, pModel3);
+	_sputCostume->_res->setReference(&modelInst->modelRef, model3);
 
-	RdThing *pThing = _pSputCostume->_pRd->_thing.create(0);
+	RdThing *thing = _sputCostume->_rd->_thing.create(0);
 
-	_pSputCostume->_pRd->_thing.setModel3(pThing, pModel3);
-	pThing->pPuppet = _pSputCostume->_pRd->_puppet.create(pThing);
-	pModelInst->pThing = pThing;
-	pModelInst->resolveParentOffset = pRes->resolveParentOffset;
+	_sputCostume->_rd->_thing.setModel3(thing, model3);
+	thing->puppet = _sputCostume->_rd->_puppet.create(thing);
+	modelInst->thing = thing;
+	modelInst->resolveParentOffset = res->resolveParentOffset;
 
 	if (parentIndex < 0) {
-		pModelInst->pParentModel = nullptr;
-		pModelInst->parentMeshIdx = -1;
-		pModelInst->bVisible = 1;
+		modelInst->parentModel = nullptr;
+		modelInst->parentMeshIdx = -1;
+		modelInst->visible = 1;
 	} else {
-		MeshInstData *pMeshInst = static_cast<MeshInstData *>(pCos->instGetInstanceData(hInst, parentIndex, nullptr));
+		MeshInstData *meshInst = static_cast<MeshInstData *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
 
-		pModelInst->pParentModel = pMeshInst->pModelInst;
-		pModelInst->parentMeshIdx = pMeshInst->meshIndex;
-		pModelInst->bVisible = 0;
+		modelInst->parentModel = meshInst->modelInst;
+		modelInst->parentMeshIdx = meshInst->meshIndex;
+		modelInst->visible = 0;
 	}
 
-	pModelInst->refCount++;
+	modelInst->refCount++;
 
-	return pModelInst;
+	return modelInst;
 }
 
-void MeshHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	MeshInstData *pInst = static_cast<MeshInstData *>(pInstData);
+void MeshHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	MeshInstData *inst = static_cast<MeshInstData *>(instData);
 
 	if (keyValue < 0 || keyValue >= 2) {
 		warning("MeshHandler::change(): invalid key %d", keyValue);
 		return;
 	}
 
-	RdThing *pThing = pInst->pModelInst->pThing;
-	int bVisible = thingMeshKeyValues[keyValue] != 0;
+	RdThing *thing = inst->modelInst->thing;
+	int visible = thingMeshKeyValues[keyValue] != 0;
 
-	pInst->bVisible = bVisible;
-	pThing->abMeshVisible[pInst->meshIndex] = bVisible;
+	inst->visible = visible;
+	thing->abMeshVisible[inst->meshIndex] = visible;
 }
 
-int MeshHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
-	if (!pParentId || (parentFourcc != kSputCostumeTagThing && parentFourcc != kSputCostumeTagMainThing))
+int MeshHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
+	if (!parentId || (parentFourcc != kSputCostumeTagThing && parentFourcc != kSputCostumeTagMainThing))
 		return 0;
 
-	ThingCompRes *pParentRes = static_cast<ThingCompRes *>(pParentId);
+	ThingCompRes *parentRes = static_cast<ThingCompRes *>(parentId);
 
-	if (!pParentRes->ref.valid) {
+	if (!parentRes->ref.valid) {
 		warning("MeshHandler::request(): Bad model Reference");
 		return 0;
 	}
 
-	RdModel3 *pModel3 = static_cast<RdModel3 *>(pParentRes->ref.handle);
+	RdModel3 *model3 = static_cast<RdModel3 *>(parentRes->ref.handle);
 
 	// TODO: grimPlat_TreeSelectDialog branch (args == NULL)
-	const char *args = pComp->name;
-	const char *pDigit = args;
+	const char *args = comp->name;
+	const char *digit = args;
 
-	while (*pDigit && !Common::isDigit(*pDigit))
-		pDigit++;
+	while (*digit && !Common::isDigit(*digit))
+		digit++;
 
-	if (!Common::isDigit(*pDigit))
+	if (!Common::isDigit(*digit))
 		return 0;
 
-	int meshIndex = atoi(pDigit);
+	int meshIndex = atoi(digit);
 
-	if (meshIndex < 0 || meshIndex >= (int)pModel3->numHNodes)
+	if (meshIndex < 0 || meshIndex >= (int)model3->numHNodes)
 		warning("Mesh number out of range for thing!");
 
 	char name[45];
 
 	Common::strlcpy(name, args, sizeof(name));
 
-	uint id = ((uint)(uintptr)pParentId & 0xffff) | ((uint)meshIndex << 16);
+	uint id = ((uint)(uintptr)parentId & 0xffff) | ((uint)meshIndex << 16);
 
-	return _pSputCostume->_cos.registerComponent(hCostume, name, (void *)(uintptr)id, fourcc, pParentId, parentFourcc, &thingMeshKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, name, (void *)(uintptr)id, fourcc, parentId, parentFourcc, &thingMeshKeyDesc) != 0;
 }
 
-void MeshHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	_pSputCostume->stub();
+void MeshHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	_sputCostume->stub();
 }
 
-void MeshHandler::stop(void *pInstData) {
-	MeshInstData *pInst = static_cast<MeshInstData *>(pInstData);
+void MeshHandler::stop(void *instData) {
+	MeshInstData *inst = static_cast<MeshInstData *>(instData);
 
-	pInst->bVisible = 1;
+	inst->visible = 1;
 }
 
-int MeshHandler::adjust(void **ppCompRes, char *args, int argsSize) {
+int MeshHandler::adjust(void **compRes, char *args, int argsSize) {
 	return strchr(args, ')') == nullptr;
 }
 
-void *MeshHandler::instance(int hInst, int compIndex, int bCreate) {
-	Cos *pCos = &_pSputCostume->_cos;
+void *MeshHandler::instance(int instHandle, int compIndex, int create) {
+	Cos *cos = &_sputCostume->_cos;
 
-	if (!bCreate) {
-		MeshInstData *pMeshInst = static_cast<MeshInstData *>(pCos->instGetInstanceData(hInst, compIndex, nullptr));
+	if (!create) {
+		MeshInstData *meshInst = static_cast<MeshInstData *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		delete pMeshInst;
+		delete meshInst;
 
 		return nullptr;
 	}
 
 	int fourcc = 0;
-	void *pId = nullptr;
+	void *id = nullptr;
 	int parentIndex = -1;
 
-	pCos->instComponentInfo(hInst, compIndex, &fourcc, &pId, &parentIndex);
+	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
-	MeshInstData *pMeshInst = new MeshInstData();
+	MeshInstData *meshInst = new MeshInstData();
 
-	pMeshInst->meshIndex = (int)(intptr)pId >> 16;
-	pMeshInst->pModelInst = static_cast<ModelInst *>(pCos->instGetInstanceData(hInst, parentIndex, nullptr));
-	pMeshInst->bVisible = 1;
+	meshInst->meshIndex = (int)(intptr)id >> 16;
+	meshInst->modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
+	meshInst->visible = 1;
 
-	return pMeshInst;
+	return meshInst;
 }
 
-void MaterialHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	MaterialInst *pInst = static_cast<MaterialInst *>(pInstData);
+void MaterialHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	MaterialInst *inst = static_cast<MaterialInst *>(instData);
 
-	pInst->key = keyValue;
+	inst->key = keyValue;
 }
 
-int MaterialHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int MaterialHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	if (parentFourcc == kSputCostumeTagSprite) {
 		warning("MaterialHandler::request(): a material cannot be attached to a sprite");
 		return 0;
@@ -322,172 +322,172 @@ int MaterialHandler::request(int hCostume, int fourcc, void *pParentId, int pare
 	if (parentFourcc != kSputCostumeTagThing && parentFourcc != kSputCostumeTagMainThing)
 		return 0;
 
-	if (!pParentId) {
+	if (!parentId) {
 		warning("MaterialHandler::request(): no parent component");
 		return 0;
 	}
 
-	ThingCompRes *pParentRes = static_cast<ThingCompRes *>(pParentId);
+	ThingCompRes *parentRes = static_cast<ThingCompRes *>(parentId);
 
-	if (!pParentRes->ref.valid) {
+	if (!parentRes->ref.valid) {
 		warning("MaterialHandler::request(): Bad model Reference");
 		return 0;
 	}
 
-	RdModel3 *pModel3 = static_cast<RdModel3 *>(pParentRes->ref.handle);
+	RdModel3 *model3 = static_cast<RdModel3 *>(parentRes->ref.handle);
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 	uint materialIndex = 0;
 
-	if (pModel3->numMaterials) {
+	if (model3->numMaterials) {
 		do {
-			RdMaterial *pMaterial = pModel3->apMaterials[materialIndex];
+			RdMaterial *material = model3->materials[materialIndex];
 
-			if (pMaterial && !scumm_stricmp(args, pMaterial->aName))
+			if (material && !scumm_stricmp(args, material->name))
 				break;
 
 			materialIndex++;
-		} while (materialIndex < pModel3->numMaterials);
+		} while (materialIndex < model3->numMaterials);
 	}
 
-	if (materialIndex == pModel3->numMaterials)
+	if (materialIndex == model3->numMaterials)
 		return 0;
 
-	RdMaterial *pMaterial = pModel3->apMaterials[materialIndex];
+	RdMaterial *material = model3->materials[materialIndex];
 
-	if (_pSputCostume->_aLECBitmaps)
-		delete[] _pSputCostume->_aLECBitmaps;
+	if (_sputCostume->_lecBitmaps)
+		delete[] _sputCostume->_lecBitmaps;
 
-	_pSputCostume->_aLECBitmaps = new CosStateBitmapDesc[pMaterial->numCels]();
+	_sputCostume->_lecBitmaps = new CosStateBitmapDesc[material->numCels]();
 
-	for (uint i = 0; i < pMaterial->numCels; i++) {
-		RdMatCel *pCel = pMaterial->apCels[i];
+	for (uint i = 0; i < material->numCels; i++) {
+		RdMatCel *cel = material->cels[i];
 
-		if (!pCel || !pCel->pTexture || !pCel->pTexture->apMips[0]) {
-			warning("MaterialHandler::request(): cel %u of %s has no texture", i, pMaterial->aName);
+		if (!cel || !cel->texture || !cel->texture->mips[0]) {
+			warning("MaterialHandler::request(): cel %u of %s has no texture", i, material->name);
 			continue;
 		}
 
-		StdVBuffer *pFrame = pCel->pTexture->apMips[0];
+		StdVBuffer *frame = cel->texture->mips[0];
 
-		_pSputCostume->_aLECBitmaps[i].pPixels = pFrame->pPixels;
-		_pSputCostume->_aLECBitmaps[i].width = pFrame->tex.width;
-		_pSputCostume->_aLECBitmaps[i].height = pFrame->tex.height;
-		_pSputCostume->_aLECBitmaps[i].reserved12 = 1;
+		_sputCostume->_lecBitmaps[i].pixels = frame->pixels;
+		_sputCostume->_lecBitmaps[i].width = frame->tex.width;
+		_sputCostume->_lecBitmaps[i].height = frame->tex.height;
+		_sputCostume->_lecBitmaps[i].reserved12 = 1;
 	}
 
-	CosComponentNames keyDesc = { (int)pMaterial->numCels, nullptr, nullptr, _pSputCostume->_aLECBitmaps, nullptr };
+	CosComponentNames keyDesc = { (int)material->numCels, nullptr, nullptr, _sputCostume->_lecBitmaps, nullptr };
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, (void *)(uintptr)materialIndex, fourcc, pParentId, parentFourcc, &keyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, (void *)(uintptr)materialIndex, fourcc, parentId, parentFourcc, &keyDesc) != 0;
 }
 
-void MaterialHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	_pSputCostume->stub();
+void MaterialHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	_sputCostume->stub();
 }
 
-void *MaterialHandler::instance(int hInst, int compIndex, int bCreate) {
-	Cos *pCos = &_pSputCostume->_cos;
+void *MaterialHandler::instance(int instHandle, int compIndex, int create) {
+	Cos *cos = &_sputCostume->_cos;
 
-	if (!bCreate) {
-		MaterialInst *pInst = static_cast<MaterialInst *>(pCos->instGetInstanceData(hInst, compIndex, nullptr));
+	if (!create) {
+		MaterialInst *inst = static_cast<MaterialInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		delete pInst;
+		delete inst;
 
 		return nullptr;
 	}
 
-	MaterialInst *pInst = new MaterialInst();
+	MaterialInst *inst = new MaterialInst();
 	int fourcc = 0;
 	int parentIndex = -1;
 
-	pCos->instComponentInfo(hInst, compIndex, &fourcc, &pInst->pCompRes, &parentIndex);
-	pInst->pModelInst = static_cast<ModelInst *>(pCos->instGetInstanceData(hInst, parentIndex, nullptr));
-	pInst->key = 0;
+	cos->instComponentInfo(instHandle, compIndex, &fourcc, &inst->compRes, &parentIndex);
+	inst->modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
+	inst->key = 0;
 
-	return pInst;
+	return inst;
 }
 
-void MaterialHandler::saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) {
-	MaterialInst *pInst = static_cast<MaterialInst *>(pInstData);
+void MaterialHandler::saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) {
+	MaterialInst *inst = static_cast<MaterialInst *>(instData);
 
-	if (bSave)
-		pWrite->writeSint32LE(pInst->key);
+	if (save)
+		write->writeSint32LE(inst->key);
 	else
-		pInst->key = pRead->readSint32LE();
+		inst->key = read->readSint32LE();
 }
 
-void ColormapHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	_pSputCostume->nullSub1();
+void ColormapHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	_sputCostume->nullSub1();
 }
 
-int ColormapHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int ColormapHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	if (parentFourcc != kSputCostumeTagThing && parentFourcc != kSputCostumeTagMainThing && parentFourcc != kSputCostumeTagSprite)
 		return 0;
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
-	void *hColormap = _pSputCostume->_pSputResource->alloc(kSputTagCmap, args);
+	const char *args = comp->name;
+	void *colormap = _sputCostume->_sputResource->alloc(kSputTagCmap, args);
 
-	if (!hColormap)
+	if (!colormap)
 		return 0;
 
-	ResRef *pRes = new ResRef();
+	ResRef *res = new ResRef();
 
-	_pSputCostume->_pRes->setReference(pRes, hColormap);
+	_sputCostume->_res->setReference(res, colormap);
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, pParentId, parentFourcc, &colormapKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, parentFourcc, &colormapKeyDesc) != 0;
 }
 
-void ColormapHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	ResRef *pRes = static_cast<ResRef *>(pCompRes);
+void ColormapHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	ResRef *res = static_cast<ResRef *>(compRes);
 
-	_pSputCostume->_pRes->removeReference(pRes);
-	delete pRes;
+	_sputCostume->_res->removeReference(res);
+	delete res;
 }
 
-void *ColormapHandler::instance(int hInst, int compIndex, int bCreate) {
-	Cos *pCos = &_pSputCostume->_cos;
+void *ColormapHandler::instance(int instHandle, int compIndex, int create) {
+	Cos *cos = &_sputCostume->_cos;
 
-	if (!bCreate) {
-		ColormapInst *pInst = static_cast<ColormapInst *>(pCos->instGetInstanceData(hInst, compIndex, nullptr));
+	if (!create) {
+		ColormapInst *inst = static_cast<ColormapInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		_pSputCostume->_pRes->removeReference(&pInst->ref);
-		delete pInst;
+		_sputCostume->_res->removeReference(&inst->ref);
+		delete inst;
 
 		return nullptr;
 	}
 
-	ColormapInst *pInst = new ColormapInst();
+	ColormapInst *inst = new ColormapInst();
 	int fourcc = 0;
-	void *pId = nullptr;
+	void *id = nullptr;
 	int parentIndex = -1;
 
-	pCos->instComponentInfo(hInst, compIndex, &fourcc, &pId, &parentIndex);
+	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
-	ResRef *pRes = static_cast<ResRef *>(pId);
+	ResRef *res = static_cast<ResRef *>(id);
 
-	if (!pRes->valid)
+	if (!res->valid)
 		warning("ColormapHandler::instance(): Bad Colormap Reference");
 
-	_pSputCostume->_pRes->setReference(&pInst->ref, pRes->handle);
-	pInst->pModelInst = static_cast<ModelInst *>(pCos->instGetInstanceData(hInst, parentIndex, nullptr));
+	_sputCostume->_res->setReference(&inst->ref, res->handle);
+	inst->modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
 
-	return pInst;
+	return inst;
 }
 
-void SpriteHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	ModelInst *pInst = static_cast<ModelInst *>(pInstData);
+void SpriteHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	ModelInst *inst = static_cast<ModelInst *>(instData);
 
 	if (keyValue) {
-		pInst->bVisible = 1;
-		pInst->pSprite->face.pMaterial->curCel = keyValue - 1;
+		inst->visible = 1;
+		inst->sprite->face.material->curCel = keyValue - 1;
 	} else {
-		pInst->bVisible = 0;
+		inst->visible = 0;
 	}
 }
 
-int SpriteHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int SpriteHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 	float width = 0.0f;
 	float height = 0.0f;
@@ -497,157 +497,157 @@ int SpriteHandler::request(int hCostume, int fourcc, void *pParentId, int parent
 
 	memset(name, 0, sizeof(name));
 
-	if (!pParentId || parentFourcc != kSputCostumeTagMesh)
+	if (!parentId || parentFourcc != kSputCostumeTagMesh)
 		return 0;
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 
 	Common::strlcpy(name, args, 32);
 	strtok(name, ",");
 
-	char *pToken = strtok(nullptr, ",");
+	char *token = strtok(nullptr, ",");
 
-	if (pToken) {
-		width = (float)((double)atoi(pToken) * (double)0.01f);
+	if (token) {
+		width = (float)((double)atoi(token) * (double)0.01f);
 
-		const char *aTokens[4];
+		const char *tokens[4];
 
 		for (int i = 0; i < 4; i++) {
-			aTokens[i] = strtok(nullptr, ",");
+			tokens[i] = strtok(nullptr, ",");
 
-			if (!aTokens[i])
+			if (!tokens[i])
 				warning("SpriteHandler::request(): missing sprite parameter in %s", args);
 		}
 
-		if (aTokens[0])
-			height = (float)((double)atoi(aTokens[0]) * (double)0.01f);
+		if (tokens[0])
+			height = (float)((double)atoi(tokens[0]) * (double)0.01f);
 
-		if (aTokens[1])
-			offsetX = (float)((double)atoi(aTokens[1]) * (double)0.01f);
+		if (tokens[1])
+			offsetX = (float)((double)atoi(tokens[1]) * (double)0.01f);
 
-		if (aTokens[2])
-			offsetY = (float)((double)atoi(aTokens[2]) * (double)0.01f);
+		if (tokens[2])
+			offsetY = (float)((double)atoi(tokens[2]) * (double)0.01f);
 
-		if (aTokens[3])
-			offsetZ = (float)((double)atoi(aTokens[3]) * (double)0.01f);
+		if (tokens[3])
+			offsetZ = (float)((double)atoi(tokens[3]) * (double)0.01f);
 	}
 
-	SpriteCompRes *pRes = new SpriteCompRes();
+	SpriteCompRes *res = new SpriteCompRes();
 	RdVector3 offset;
 
 	offset[0] = offsetX;
 	offset[1] = offsetY;
 	offset[2] = offsetZ;
 
-	pRes->pSprite = _pSputCostume->_pRd->_sprite.create(0, name, name, width, height, 5, 0, 1, 0.0f, &offset);
-	Common::strlcpy(pRes->name, name, 32);
+	res->sprite = _sputCostume->_rd->_sprite.create(0, name, name, width, height, 5, 0, 1, 0.0f, &offset);
+	Common::strlcpy(res->name, name, 32);
 
-	if (!pRes->pSprite || !pRes->pSprite->face.pMaterial) {
+	if (!res->sprite || !res->sprite->face.material) {
 		warning("SpriteHandler::request(): sprite %s has no material", name);
 		return 0;
 	}
 
-	CosComponentNames keyDesc = { (int)pRes->pSprite->face.pMaterial->numCels + 1, nullptr, nullptr, nullptr, nullptr };
+	CosComponentNames keyDesc = { (int)res->sprite->face.material->numCels + 1, nullptr, nullptr, nullptr, nullptr };
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, pParentId, kSputCostumeTagMesh, &keyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, kSputCostumeTagMesh, &keyDesc) != 0;
 }
 
-void SpriteHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	SpriteCompRes *pRes = static_cast<SpriteCompRes *>(pCompRes);
+void SpriteHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	SpriteCompRes *res = static_cast<SpriteCompRes *>(compRes);
 
-	_pSputCostume->_pRd->_material.destroy(pRes->pSprite->face.pMaterial);
-	_pSputCostume->_pRd->_sprite.destroy(pRes->pSprite);
-	delete pRes;
+	_sputCostume->_rd->_material.destroy(res->sprite->face.material);
+	_sputCostume->_rd->_sprite.destroy(res->sprite);
+	delete res;
 }
 
-int SpriteHandler::adjust(void **ppCompRes, char *args, int argsSize) {
-	SpriteCompRes *pRes = static_cast<SpriteCompRes *>(*ppCompRes);
-	RdSprite *pSprite = pRes->pSprite;
-	int aValues[5];
+int SpriteHandler::adjust(void **compRes, char *args, int argsSize) {
+	SpriteCompRes *res = static_cast<SpriteCompRes *>(*compRes);
+	RdSprite *sprite = res->sprite;
+	int values[5];
 
-	aValues[0] = (int)(int64)((double)pSprite->width * 100.0 - (double)-0.2f);
-	aValues[1] = (int)(int64)((double)pSprite->height * 100.0 - (double)-0.2f);
-	aValues[2] = (int)(int64)((double)pSprite->offset[0] * 100.0 - (double)-0.2f);
-	aValues[3] = (int)(int64)((double)pSprite->offset[1] * 100.0 - (double)-0.2f);
-	aValues[4] = (int)(int64)((double)pSprite->offset[2] * 100.0 - (double)-0.2f);
+	values[0] = (int)(int64)((double)sprite->width * 100.0 - (double)-0.2f);
+	values[1] = (int)(int64)((double)sprite->height * 100.0 - (double)-0.2f);
+	values[2] = (int)(int64)((double)sprite->offset[0] * 100.0 - (double)-0.2f);
+	values[3] = (int)(int64)((double)sprite->offset[1] * 100.0 - (double)-0.2f);
+	values[4] = (int)(int64)((double)sprite->offset[2] * 100.0 - (double)-0.2f);
 
 	int accepted = 0; // TODO: grimPlat_ControlPanel("Width", "Height", "X", "Y", "Z")
 
 	if (!accepted)
 		return 0;
 
-	pSprite->width = (float)((double)aValues[0] * (double)0.01f);
-	pSprite->height = (float)((double)aValues[1] * (double)0.01f);
-	pSprite->halfWidth = (float)((double)pSprite->width * (double)0.5f);
-	pSprite->halfHeight = (float)((double)pSprite->height * (double)0.5f);
-	pSprite->offset[0] = (float)((double)aValues[2] * (double)0.01f);
-	pSprite->offset[1] = (float)((double)aValues[3] * (double)0.01f);
-	pSprite->offset[2] = (float)((double)aValues[4] * (double)0.01f);
+	sprite->width = (float)((double)values[0] * (double)0.01f);
+	sprite->height = (float)((double)values[1] * (double)0.01f);
+	sprite->halfWidth = (float)((double)sprite->width * (double)0.5f);
+	sprite->halfHeight = (float)((double)sprite->height * (double)0.5f);
+	sprite->offset[0] = (float)((double)values[2] * (double)0.01f);
+	sprite->offset[1] = (float)((double)values[3] * (double)0.01f);
+	sprite->offset[2] = (float)((double)values[4] * (double)0.01f);
 
-	char *pToken = strtok(args, ",");
+	char *token = strtok(args, ",");
 
-	if (!pToken) {
+	if (!token) {
 		warning("SpriteHandler::adjust(): empty component name");
 		return 0;
 	}
 
 	char text[32];
 
-	snprintf(text, sizeof(text), "%s,%d,%d,%d,%d,%d", pToken, aValues[0], aValues[1], aValues[2], aValues[3], aValues[4]);
-	Common::strlcpy(pToken, text, 32);
+	snprintf(text, sizeof(text), "%s,%d,%d,%d,%d,%d", token, values[0], values[1], values[2], values[3], values[4]);
+	Common::strlcpy(token, text, 32);
 
 	return 1;
 }
 
-void *SpriteHandler::instance(int hInst, int compIndex, int bCreate) {
-	Cos *pCos = &_pSputCostume->_cos;
+void *SpriteHandler::instance(int instHandle, int compIndex, int create) {
+	Cos *cos = &_sputCostume->_cos;
 
-	if (!bCreate) {
-		ModelInst *pModelInst = static_cast<ModelInst *>(pCos->instGetInstanceData(hInst, compIndex, nullptr));
+	if (!create) {
+		ModelInst *modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		pModelInst->refCount--;
+		modelInst->refCount--;
 
-		if (!pModelInst->refCount) {
-			_pSputCostume->_pRd->_thing.destroy(pModelInst->pThing);
-			delete pModelInst;
+		if (!modelInst->refCount) {
+			_sputCostume->_rd->_thing.destroy(modelInst->thing);
+			delete modelInst;
 		}
 
 		return nullptr;
 	}
 
 	int fourcc = 0;
-	void *pId = nullptr;
+	void *id = nullptr;
 	int parentIndex = -1;
 
-	pCos->instComponentInfo(hInst, compIndex, &fourcc, &pId, &parentIndex);
+	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
-	SpriteCompRes *pRes = static_cast<SpriteCompRes *>(pId);
-	ModelInst *pModelInst = new ModelInst();
+	SpriteCompRes *res = static_cast<SpriteCompRes *>(id);
+	ModelInst *modelInst = new ModelInst();
 
-	pModelInst->pSprite = pRes->pSprite;
+	modelInst->sprite = res->sprite;
 
-	RdThing *pThing = _pSputCostume->_pRd->_thing.create(0);
+	RdThing *thing = _sputCostume->_rd->_thing.create(0);
 
-	pModelInst->pThing = pThing;
-	pThing->curCel = 0;
-	_pSputCostume->_pRd->_thing.setSprite3(pThing, pRes->pSprite);
+	modelInst->thing = thing;
+	thing->curCel = 0;
+	_sputCostume->_rd->_thing.setSprite3(thing, res->sprite);
 
 	if (parentIndex < 0) {
-		pModelInst->pParentModel = nullptr;
-		pModelInst->refCount++;
-		pModelInst->parentMeshIdx = -1;
-		pModelInst->bVisible = 1;
+		modelInst->parentModel = nullptr;
+		modelInst->refCount++;
+		modelInst->parentMeshIdx = -1;
+		modelInst->visible = 1;
 	} else {
-		MeshInstData *pMeshInst = static_cast<MeshInstData *>(pCos->instGetInstanceData(hInst, parentIndex, nullptr));
+		MeshInstData *meshInst = static_cast<MeshInstData *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
 
-		pModelInst->pParentModel = pMeshInst->pModelInst;
-		pModelInst->parentMeshIdx = pMeshInst->meshIndex;
-		pModelInst->refCount++;
-		pModelInst->bVisible = 0;
+		modelInst->parentModel = meshInst->modelInst;
+		modelInst->parentMeshIdx = meshInst->meshIndex;
+		modelInst->refCount++;
+		modelInst->visible = 0;
 	}
 
-	return pModelInst;
+	return modelInst;
 }
 
 } // End of namespace Grim

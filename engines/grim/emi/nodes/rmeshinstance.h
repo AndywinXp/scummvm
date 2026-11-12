@@ -43,18 +43,18 @@ public:
 	void output(RNode *node, Camera *camera) override;
 	void update(RNode *node, Camera *camera) override;
 	int getSaveSize() override;
-	bool saveState(tSaveRestoreAccess *access) override;
-	bool restoreState(tSaveRestoreAccess *access) override;
+	bool saveState(SaveRestoreAccess *access) override;
+	bool restoreState(SaveRestoreAccess *access) override;
 
 	void setMaterialTextureIndex(int materialIndex, int textureIndex);
 
-	Common::Array<int> texIndex;
-	CDCVertexArray *vertexArray;
-	bool ownsVertexBuf;
-	float *vertexBuf;
-	CNode **boneNodes;
-	bool staticLightingDone;
-	int lastFrame;
+	Common::Array<int> _texIndex;
+	CDCVertexArray *_vertexArray;
+	bool _ownsVertexBuf;
+	float *_vertexBuf;
+	CNode **_boneNodes;
+	bool _staticLightingDone;
+	int _lastFrame;
 
 private:
 	EmiEngine *_engine;

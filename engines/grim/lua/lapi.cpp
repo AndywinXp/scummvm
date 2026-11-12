@@ -72,8 +72,8 @@ int32 luaA_passresults() {
 	return lua_state->Cstack.num;
 }
 
-static void checkCparams(int32 nParams) {
-	if (lua_state->stack.top - lua_state->stack.stack < lua_state->Cstack.base + nParams)
+static void checkCparams(int32 params) {
+	if (lua_state->stack.top - lua_state->stack.stack < lua_state->Cstack.base + params)
 		lua_error("API error - wrong number of arguments in C2lua stack");
 }
 
@@ -537,13 +537,13 @@ lua_Object lua_getref(int32 r) {
 ** API: set a function as a fallback
 */
 
-static void do_unprotectedrun(lua_CFunction f, int32 nParams, int32 nResults) {
-	StkId base = (lua_state->stack.top - lua_state->stack.stack) - nParams;
-	luaD_openstack(nParams);
+static void do_unprotectedrun(lua_CFunction f, int32 params, int32 results) {
+	StkId base = (lua_state->stack.top - lua_state->stack.stack) - params;
+	luaD_openstack(params);
 	lua_state->stack.stack[base].ttype = LUA_T_CPROTO;
 	lua_state->stack.stack[base].value.f = f;
 	lua_state->preventBreakCounter++;
-	luaD_call(base + 1, nResults);
+	luaD_call(base + 1, results);
 	lua_state->preventBreakCounter--;
 }
 
@@ -851,31 +851,31 @@ struct LuaFuncIdEntry {
 	int group;
 };
 
-static const LuaFuncIdList *s_lists = luaFuncIdLists;
-static int s_numLists = kNumLists;
-static const LuaFuncIdAlias *s_aliases = luaFuncIdAliases;
-static int s_numAliases = ARRAYSIZE(luaFuncIdAliases);
+static const LuaFuncIdList *lists = luaFuncIdLists;
+static int activeListCount = kNumLists;
+static const LuaFuncIdAlias *aliases = luaFuncIdAliases;
+static int numAliases = ARRAYSIZE(luaFuncIdAliases);
 
-static Common::Array<LuaFuncIdEntry> s_entries[kNumLists];
-static Common::Array<lua_CFunction> s_groupFuncs[kNumGroups];
-static int s_claimedLists[kNumLists];
-static int s_numLiveLists = 0;
-static bool s_isBuilt = false;
-static luaL_libList *s_builtHead = nullptr;
-static int s_builtNumLists = 0;
-static int s_builtNumEntries = 0;
+static Common::Array<LuaFuncIdEntry> funcIdEntries[kNumLists];
+static Common::Array<lua_CFunction> groupFuncs[kNumGroups];
+static int claimedLists[kNumLists];
+static int numLiveLists = 0;
+static bool isBuilt = false;
+static luaL_libList *builtHead = nullptr;
+static int builtNumLists = 0;
+static int builtNumEntries = 0;
 
-static Common::Array<uint32> s_reportedIds;
-static Common::Array<lua_CFunction> s_reportedFuncs;
+static Common::Array<uint32> reportedIds;
+static Common::Array<lua_CFunction> reportedFuncs;
 
-static void getLiveSignature(luaL_libList **pHead, int *pNumLists, int *pNumEntries) {
-	*pHead = list_of_libs;
-	*pNumLists = 0;
-	*pNumEntries = 0;
+static void getLiveSignature(luaL_libList **head, int *numLists, int *numEntries) {
+	*head = list_of_libs;
+	*numLists = 0;
+	*numEntries = 0;
 
 	for (luaL_libList *list = list_of_libs; list; list = list->next) {
-		(*pNumLists)++;
-		*pNumEntries += list->number;
+		(*numLists)++;
+		*numEntries += list->number;
 	}
 }
 
@@ -928,38 +928,38 @@ static void buildFuncIdLists() {
 		claimed.push_back(false);
 	}
 
-	s_numLiveLists = live.size();
+	numLiveLists = live.size();
 
 	if (luaIsEmi) {
-		s_lists = luaFuncIdListsEmi;
-		s_numLists = kNumListsEmi;
-		s_aliases = luaFuncIdAliasesEmi;
-		s_numAliases = ARRAYSIZE(luaFuncIdAliasesEmi);
+		lists = luaFuncIdListsEmi;
+		activeListCount = kNumListsEmi;
+		aliases = luaFuncIdAliasesEmi;
+		numAliases = ARRAYSIZE(luaFuncIdAliasesEmi);
 	} else {
-		s_lists = luaFuncIdLists;
-		s_numLists = kNumLists;
-		s_aliases = luaFuncIdAliases;
-		s_numAliases = ARRAYSIZE(luaFuncIdAliases);
+		lists = luaFuncIdLists;
+		activeListCount = kNumLists;
+		aliases = luaFuncIdAliases;
+		numAliases = ARRAYSIZE(luaFuncIdAliases);
 	}
 
-	for (int i = 0; i < s_numLists; i++) {
-		s_claimedLists[i] = -1;
+	for (int i = 0; i < activeListCount; i++) {
+		claimedLists[i] = -1;
 
-		if (!s_lists[i].isEngine)
+		if (!lists[i].isEngine)
 			continue;
 
-		int liveIndex = findLiveEngineList(live, claimed, s_lists[i]);
+		int liveIndex = findLiveEngineList(live, claimed, lists[i]);
 
 		if (liveIndex >= 0) {
-			s_claimedLists[i] = liveIndex;
+			claimedLists[i] = liveIndex;
 			claimed[liveIndex] = true;
 		}
 	}
 
-	for (int i = 0; i < s_numLists; i++) {
-		const LuaFuncIdList &model = s_lists[i];
+	for (int i = 0; i < activeListCount; i++) {
+		const LuaFuncIdList &model = lists[i];
 
-		s_entries[i].clear();
+		funcIdEntries[i].clear();
 
 		for (int j = 0; j < model.count; j++) {
 			LuaFuncIdEntry entry;
@@ -968,24 +968,24 @@ static void buildFuncIdLists() {
 
 			if (!model.isEngine)
 				entry.func = findLibraryFunction(live, claimed, model.names[j]);
-			else if (s_claimedLists[i] >= 0)
-				entry.func = findInLiveList(live[s_claimedLists[i]], model.names[j], j);
+			else if (claimedLists[i] >= 0)
+				entry.func = findInLiveList(live[claimedLists[i]], model.names[j], j);
 
-			s_entries[i].push_back(entry);
+			funcIdEntries[i].push_back(entry);
 		}
 	}
 
 	for (int i = 0; i < kNumGroups; i++)
-		s_groupFuncs[i].clear();
+		groupFuncs[i].clear();
 
-	for (int i = 0; i < s_numAliases; i++) {
-		const LuaFuncIdAlias &alias = s_aliases[i];
-		const LuaFuncIdList &model = s_lists[alias.list];
+	for (int i = 0; i < numAliases; i++) {
+		const LuaFuncIdAlias &alias = aliases[i];
+		const LuaFuncIdList &model = lists[alias.list];
 		bool isFound = false;
 
 		for (int j = 0; j < model.count; j++) {
 			if (strcmp(model.names[j], alias.name) == 0) {
-				s_entries[alias.list][j].group = alias.group;
+				funcIdEntries[alias.list][j].group = alias.group;
 				isFound = true;
 				break;
 			}
@@ -995,38 +995,38 @@ static void buildFuncIdLists() {
 			warning("buildFuncIdLists(): the alias '%s' is not in the list %s", alias.name, model.title);
 	}
 
-	for (int i = 0; i < s_numLists; i++) {
-		for (uint j = 0; j < s_entries[i].size(); j++) {
-			const LuaFuncIdEntry &entry = s_entries[i][j];
+	for (int i = 0; i < activeListCount; i++) {
+		for (uint j = 0; j < funcIdEntries[i].size(); j++) {
+			const LuaFuncIdEntry &entry = funcIdEntries[i][j];
 
 			if (entry.group == kGroupNone || !entry.func)
 				continue;
 
 			bool isKnown = false;
 
-			for (uint k = 0; k < s_groupFuncs[entry.group].size(); k++) {
-				if (s_groupFuncs[entry.group][k] == entry.func)
+			for (uint k = 0; k < groupFuncs[entry.group].size(); k++) {
+				if (groupFuncs[entry.group][k] == entry.func)
 					isKnown = true;
 			}
 
 			if (!isKnown)
-				s_groupFuncs[entry.group].push_back(entry.func);
+				groupFuncs[entry.group].push_back(entry.func);
 		}
 	}
 
-	getLiveSignature(&s_builtHead, &s_builtNumLists, &s_builtNumEntries);
-	s_isBuilt = true;
+	getLiveSignature(&builtHead, &builtNumLists, &builtNumEntries);
+	isBuilt = true;
 }
 
 static void ensureFuncIdLists() {
-	if (s_isBuilt) {
+	if (isBuilt) {
 		luaL_libList *head;
 		int numLists;
 		int numEntries;
 
 		getLiveSignature(&head, &numLists, &numEntries);
 
-		if (head == s_builtHead && numLists == s_builtNumLists && numEntries == s_builtNumEntries)
+		if (head == builtHead && numLists == builtNumLists && numEntries == builtNumEntries)
 			return;
 	}
 
@@ -1040,8 +1040,8 @@ static bool entryMatches(const LuaFuncIdEntry &entry, lua_CFunction func) {
 	if (entry.group == kGroupNone)
 		return false;
 
-	for (uint i = 0; i < s_groupFuncs[entry.group].size(); i++) {
-		if (s_groupFuncs[entry.group][i] == func)
+	for (uint i = 0; i < groupFuncs[entry.group].size(); i++) {
+		if (groupFuncs[entry.group][i] == func)
 			return true;
 	}
 
@@ -1052,24 +1052,24 @@ static lua_CFunction getEntryFunction(const LuaFuncIdEntry &entry) {
 	if (entry.func)
 		return entry.func;
 
-	if (entry.group != kGroupNone && !s_groupFuncs[entry.group].empty())
-		return s_groupFuncs[entry.group][0];
+	if (entry.group != kGroupNone && !groupFuncs[entry.group].empty())
+		return groupFuncs[entry.group][0];
 
 	return nullptr;
 }
 
-static bool findFunctionId(lua_CFunction func, uint32 *pId) {
+static bool findFunctionId(lua_CFunction func, uint32 *id) {
 	ensureFuncIdLists();
 
 	if (!func)
 		return false;
 
-	for (int depth = 0; depth < s_numLists; depth++) {
-		const Common::Array<LuaFuncIdEntry> &entries = s_entries[s_numLists - 1 - depth];
+	for (int depth = 0; depth < activeListCount; depth++) {
+		const Common::Array<LuaFuncIdEntry> &entries = funcIdEntries[activeListCount - 1 - depth];
 
 		for (uint index = 0; index < entries.size(); index++) {
 			if (entryMatches(entries[index], func)) {
-				*pId = ((uint32)depth << 16) | index;
+				*id = ((uint32)depth << 16) | index;
 				return true;
 			}
 		}
@@ -1078,23 +1078,23 @@ static bool findFunctionId(lua_CFunction func, uint32 *pId) {
 	return false;
 }
 
-static const LuaFuncIdEntry *findEntryOfId(uint32 id, int *pListIndex) {
+static const LuaFuncIdEntry *findEntryOfId(uint32 id, int *listIndexPointer) {
 	ensureFuncIdLists();
 
 	uint32 depth = id >> 16;
 	uint32 index = id & 0xffff;
 
-	if (depth >= (uint32)s_numLists)
+	if (depth >= (uint32)activeListCount)
 		return nullptr;
 
-	int listIndex = s_numLists - 1 - (int)depth;
+	int listIndex = activeListCount - 1 - (int)depth;
 
-	if (index >= s_entries[listIndex].size())
+	if (index >= funcIdEntries[listIndex].size())
 		return nullptr;
 
-	*pListIndex = listIndex;
+	*listIndexPointer = listIndex;
 
-	return &s_entries[listIndex][index];
+	return &funcIdEntries[listIndex][index];
 }
 
 static const char *findLiveFunctionName(lua_CFunction func) {
@@ -1114,12 +1114,12 @@ uint32 lua_FuncPtrToID(lua_CFunction func) {
 	if (findFunctionId(func, &id))
 		return id;
 
-	for (uint i = 0; i < s_reportedFuncs.size(); i++) {
-		if (s_reportedFuncs[i] == func)
+	for (uint i = 0; i < reportedFuncs.size(); i++) {
+		if (reportedFuncs[i] == func)
 			return 0;
 	}
 
-	s_reportedFuncs.push_back(func);
+	reportedFuncs.push_back(func);
 
 	const char *name = findLiveFunctionName(func);
 	warning("lua_FuncPtrToID(): the function '%s' has no id, 0 is returned", name ? name : "?");
@@ -1135,18 +1135,18 @@ lua_CFunction lua_IDToFuncPtr(uint32 id) {
 	if (func)
 		return func;
 
-	for (uint i = 0; i < s_reportedIds.size(); i++) {
-		if (s_reportedIds[i] == id)
+	for (uint i = 0; i < reportedIds.size(); i++) {
+		if (reportedIds[i] == id)
 			return nullptr;
 	}
 
-	s_reportedIds.push_back(id);
+	reportedIds.push_back(id);
 
 	if (!entry)
 		warning("lua_IDToFuncPtr(): no function with the id %08x", id);
 	else
 		warning("lua_IDToFuncPtr(): the function '%s' of the list %s (id %08x) is not in the running Lua",
-			s_lists[listIndex].names[id & 0xffff], s_lists[listIndex].title, id);
+			lists[listIndex].names[id & 0xffff], lists[listIndex].title, id);
 
 	return nullptr;
 }
@@ -1158,9 +1158,9 @@ bool lua_FuncPtrHasID(lua_CFunction func) {
 }
 
 void lua_FuncIDsInvalidate() {
-	s_isBuilt = false;
-	s_reportedIds.clear();
-	s_reportedFuncs.clear();
+	isBuilt = false;
+	reportedIds.clear();
+	reportedFuncs.clear();
 }
 
 } // end of namespace Grim

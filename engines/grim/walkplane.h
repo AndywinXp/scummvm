@@ -41,15 +41,15 @@ struct WpVertex {
 };
 
 struct WpCollection {
-	WalkPlane *pHead;
+	WalkPlane *head;
 	char name[36];
 };
 
 struct WpCachePlane {
-	WalkPlane *pPlane;
+	WalkPlane *plane;
 	int numVerts;
-	int aVertIdx[10];
-	int bActive;
+	int vertIdx[10];
+	int active;
 };
 
 struct WpCacheVert {
@@ -59,46 +59,46 @@ struct WpCacheVert {
 
 class WalkPlane {
 public:
-	WalkPlane(WalkSystem *pSystem, float (*pVerts)[3], int numPoints, const char *collection);
+	WalkPlane(WalkSystem *system, float (*verts)[3], int numPoints, const char *collection);
 	~WalkPlane();
 
-	void setName(const char *pName);
+	void setName(const char *name);
 	void setType(int newType);
-	int within(float *pPoint, uint flags);
-	int closestPoint(float *pPoint);
-	double intersection(float *pA, float *pB, float *pOut);
-	void snapTo(float *pPoint);
-	void project(float *pPoint);
+	int within(float *point, uint flags);
+	int closestPoint(float *point);
+	double intersection(float *a, float *b, float *out);
+	void snapTo(float *point);
+	void project(float *point);
 	void draw(uint16 color);
-	void jumpOut(Puck *pPuck);
-	float *getConstraintVector(Puck *pPuck);
-	int clipPoly(const float *pPoly, int numPoly, float *pOut);
-	double distToEdge(int edge, float *pPoint);
+	void jumpOut(Puck *puck);
+	float *getConstraintVector(Puck *puck);
+	int clipPoly(const float *poly, int numPoly, float *out);
+	double distToEdge(int edge, float *point);
 	int removeShortEdge();
 
-	char name[32];
-	int number;
-	int type;
-	int bActive;
-	int bEnabled;
-	float tolerance;
-	int numVerts;
-	WpVertex *apVerts[10];
-	float normal[3];
-	WalkPlane *pPrev;
-	WalkPlane *pNext;
-	int hitEdge;
-	int quadAxis;
-	int axisU;
-	int axisV;
+	char _name[32];
+	int _number;
+	int _type;
+	int _active;
+	int _enabled;
+	float _tolerance;
+	int _numVerts;
+	WpVertex *_verts[10];
+	float _normal[3];
+	WalkPlane *_prev;
+	WalkPlane *_next;
+	int _hitEdge;
+	int _quadAxis;
+	int _axisU;
+	int _axisV;
 
 private:
-	WalkSystem *_pSystem;
+	WalkSystem *_system;
 };
 
 class WalkSystem {
 public:
-	WalkSystem(RenderDroid *pRd, StdMath *pStdMath, StdConffile *pStdConffile, bool isDemo);
+	WalkSystem(RenderDroid *rd, StdMath *stdMath, StdConffile *stdConffile, bool isDemo);
 	~WalkSystem();
 
 	void buildCache();
@@ -106,58 +106,58 @@ public:
 	void restoreCache();
 	void killCollection(const char *collection);
 	void setCollection(const char *name);
-	WalkPlane *planeAt(float *pPoint, int flags);
+	WalkPlane *planeAt(float *point, int flags);
 	WalkPlane *planeNamed(const char *name);
 	WalkPlane *planeNumbered(int index);
-	WalkPlane *planeClosest(float *pPoint, int flags);
+	WalkPlane *planeClosest(float *point, int flags);
 	void allActive();
-	WpVertex *addVertex(WalkPlane *pPlane, float *pPos);
-	void removeVertex(WpVertex *pVert);
+	WpVertex *addVertex(WalkPlane *plane, float *pos);
+	void removeVertex(WpVertex *vert);
 	const char *parseCollection(const char *collection);
-	int closestVertWithin(WalkPlane *pA, WalkPlane *pB, float *pTarget, float *pOut);
-	WalkPlane *planeContaining(float *pA, float *pB);
-	int getPath(float **ppPath);
-	int buildPath(float *pFrom, float *pTo, int bTighten);
-	int findPath(float *pFrom, float *pTo, WalkPlane *pExclude);
-	int findExitPoints(WalkPlane *pPlane, float *pFrom, float *pOut);
+	int closestVertWithin(WalkPlane *a, WalkPlane *b, float *target, float *out);
+	WalkPlane *planeContaining(float *a, float *b);
+	int getPath(float **path);
+	int buildPath(float *from, float *to, int tighten);
+	int findPath(float *from, float *to, WalkPlane *exclude);
+	int findExitPoints(WalkPlane *plane, float *from, float *out);
 	void tightenPath();
 	void shrinkBoxes(float amount);
 
-	WalkPlane *getHead() const { return _pWpHead; }
-	Puck *getPuckHead() const { return _pPuckHead; }
+	WalkPlane *getHead() const { return _wpHead; }
+	Puck *getPuckHead() const { return _puckHead; }
 	const char *getCurCollection() const { return _curCollection; }
 
 private:
 	friend class WalkPlane;
 	friend class Puck;
 
-	WalkPlane *newPlane(float (*pVerts)[3], int numPoints, const char *collection, const char *sectorName, int id, int bVisible, int type);
-	WpVertex *addVertexDemo(float *pPos);
+	WalkPlane *newPlane(float (*verts)[3], int numPoints, const char *collection, const char *sectorName, int id, int visible, int type);
+	WpVertex *addVertexDemo(float *pos);
 
-	RenderDroid *_pRd;
-	StdMath *_pStdMath;
-	StdConffile *_pStdConffile;
+	RenderDroid *_rd;
+	StdMath *_stdMath;
+	StdConffile *_stdConffile;
 
-	WpVertex _aVertDb[2048];
+	WpVertex _vertDb[2048];
 	int _totVerts;
 	int _numDemoVerts;
-	WalkPlane *_pWpHead;
+	WalkPlane *_wpHead;
 	char *_curCollection;
-	WpCollection _aCollection[140];
-	Puck *_pPuckHead;
+	WpCollection _collection[140];
+	Puck *_puckHead;
 	int _forwardCounter;
-	bool _bDemo;
+	bool _demo;
 
-	float _aPath[30][3];
+	float _path[30][3];
 	int _numPathPoints;
 	float _constraintVector[3];
 	char _sectionName[48];
 
-	WpCachePlane *_pCache;
-	WpCacheVert *_pVertCache;
+	WpCachePlane *_cache;
+	WpCacheVert *_vertCache;
 	int _numPlanes;
 	int _numCacheVerts;
-	int _bCacheBuilt;
+	int _cacheBuilt;
 };
 
 } // End of namespace Grim

@@ -70,14 +70,14 @@ public:
 	static bool skipCopyrightBanner(LFile *file);
 	static bool writeCopyrightBanner(LFile *file);
 
-	LFile *file;
-	Common::Array<LFile *> fileStack;
-	bool reading;
-	bool binaryData;
-	int numTokens;
-	char *tokens[16];
-	char lineBuffer[256];
-	Common::HashMap<int, KeywordInfo> keywords;
+	LFile *_file;
+	Common::Array<LFile *> _fileStack;
+	bool _reading;
+	bool _binaryData;
+	int _numTokens;
+	char *_tokens[16];
+	char _lineBuffer[256];
+	Common::HashMap<int, KeywordInfo> _keywords;
 
 protected:
 	~LFormatParser();

@@ -40,29 +40,29 @@ class SputRender;
 
 class SputPrimitive {
 public:
-	explicit SputPrimitive(RenderDroid *pRd);
+	explicit SputPrimitive(RenderDroid *rd);
 	~SputPrimitive();
 
-	void setSputRender(SputRender *pSputRender);
-	void setLua(Lua_V1 *pLua) { _pLua = pLua; }
+	void setSputRender(SputRender *sputRender);
+	void setLua(Lua_V1 *lua) { _lua = lua; }
 
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	void pause();
 	void resume();
 	int terminate();
 	int startup();
 	int shutdown();
-	int save(Common::WriteStream *pStream);
-	int restore(Common::ReadStream *pStream);
+	int save(Common::WriteStream *stream);
+	int restore(Common::ReadStream *stream);
 
 	PrimitiveQueue *getCurrent() { return &_current; }
 
 private:
-	SputRender *_pSputRender;
-	Lua_V1 *_pLua = nullptr;
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
+	SputRender *_sputRender;
+	Lua_V1 *_lua = nullptr;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
 	PrimitiveQueue _current;
 };
 

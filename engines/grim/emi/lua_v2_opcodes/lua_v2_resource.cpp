@@ -133,8 +133,8 @@ void Lua_V2::NukeAllScriptLocks() {
 	for (uint i = 0; i < _lockedChores.size(); i++) {
 		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChores[i].choreSetName);
 
-		if (choreSetHandle.lock() && choreSetHandle.typed) {
-			Chore *chore = choreSetHandle.typed->findChore(_lockedChores[i].choreName);
+		if (choreSetHandle.lock() && choreSetHandle._typed) {
+			Chore *chore = choreSetHandle._typed->findChore(_lockedChores[i].choreName);
 
 			if (chore)
 				chore->unlockComponents();
@@ -148,9 +148,9 @@ void Lua_V2::NukeAllScriptLocks() {
 	for (uint i = 0; i < _lockedChoreSets.size(); i++) {
 		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChoreSets[i]);
 
-		if (choreSetHandle.lock() && choreSetHandle.typed) {
-			for (uint j = 0; j < choreSetHandle.typed->chores.size(); j++) {
-				Chore *chore = choreSetHandle.typed->chores[j];
+		if (choreSetHandle.lock() && choreSetHandle._typed) {
+			for (uint j = 0; j < choreSetHandle._typed->_chores.size(); j++) {
+				Chore *chore = choreSetHandle._typed->_chores[j];
 
 				if (chore)
 					chore->unlockComponents();
@@ -165,13 +165,13 @@ void Lua_V2::NukeAllScriptLocks() {
 	for (uint i = 0; i < _lockedRooms.size(); i++) {
 		LResourceHandle<Room_v2> roomHandle(_engine, _lockedRooms[i]);
 
-		if (roomHandle.lock() && roomHandle.typed) {
-			Room_v2 *room = roomHandle.typed;
+		if (roomHandle.lock() && roomHandle._typed) {
+			Room_v2 *room = roomHandle._typed;
 
-			room->lockCount--;
+			room->_lockCount--;
 			_engine->getResourceManager()->unlockResource(room);
 
-			if (room->lockCount == 0 && room->purgeOnFree)
+			if (room->_lockCount == 0 && room->_purgeOnFree)
 				_engine->getResourceManager()->purgeResource(room, true);
 		}
 
@@ -183,13 +183,13 @@ void Lua_V2::NukeAllScriptLocks() {
 	for (uint i = 0; i < _lockedBackgrounds.size(); i++) {
 		LResourceHandle<Background> backgroundHandle(_engine, _lockedBackgrounds[i]);
 
-		if (backgroundHandle.lock() && backgroundHandle.typed) {
-			Background *background = backgroundHandle.typed;
+		if (backgroundHandle.lock() && backgroundHandle._typed) {
+			Background *background = backgroundHandle._typed;
 
-			background->lockCount--;
+			background->_lockCount--;
 			_engine->getResourceManager()->unlockResource(background);
 
-			if (background->lockCount == 0 && background->purgeOnFree)
+			if (background->_lockCount == 0 && background->_purgeOnFree)
 				_engine->getResourceManager()->purgeResource(background, true);
 		}
 

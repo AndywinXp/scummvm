@@ -33,22 +33,22 @@ class SputRender;
 class SputResource;
 
 struct ObjectStateImage {
-	ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo, bool isZ, int *pFrameCount);
+	ObjectStateImage(Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, SputRender *sputRender, bool isDemo, bool isZ, int *frameCount);
 	~ObjectStateImage();
 
 	void clear();
 	void setFile(const char *fileName);
-	void load(int bLoad);
+	void load(int load);
 	StdVBuffer *vBuffer();
-	void setClean(StdVBuffer *pSrc);
-	void draw(StdVBuffer *pDst);
+	void setClean(StdVBuffer *src);
+	void draw(StdVBuffer *dst);
 	int inSync();
 
 	int memUsage;
 	StdRect rect;
-	char aFileName[32];
+	char fileNameArray[32];
 	ResRef bitmapRef;
-	StdVBuffer *pVBuffer;
+	StdVBuffer *vBufferPointer;
 	int curFrame;
 	int copyMode;
 	int cleanSaved;
@@ -56,27 +56,27 @@ struct ObjectStateImage {
 private:
 	void loadDemo();
 
-	bool _bDemo;
-	bool _bZ;
-	int *_pFrameCount;
-	Res *_pRes;
-	SputResource *_pSputResource;
-	StdDisplay *_pStdDisplay;
-	StdBitmap *_pStdBitmap;
-	SputRender *_pSputRender;
+	bool demo;
+	bool z;
+	int *frameCount;
+	Res *res;
+	SputResource *sputResource;
+	StdDisplay *stdDisplay;
+	StdBitmap *stdBitmap;
+	SputRender *sputRender;
 };
 
 struct SputObjectState {
-	SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo);
+	SputObjectState(SputObjectState *head, const char *colorFile, const char *zFile, int objectType, Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, SputRender *sputRender, bool isDemo);
 	~SputObjectState();
 
 	void loadResources();
 	void unLoadResources();
-	void reset(StdVBuffer *pColor, StdVBuffer *pZ);
-	void update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ);
+	void reset(StdVBuffer *color, StdVBuffer *z);
+	void update(int updateType, StdVBuffer *color, StdVBuffer *z);
 	void setCopyMode(int mode);
-	SputObjectState *moveToBack(SputObjectState *pOther);
-	SputObjectState *moveToFront(SputObjectState *pOther);
+	SputObjectState *moveToBack(SputObjectState *other);
+	SputObjectState *moveToFront(SputObjectState *other);
 
 	int size;
 	int type;
@@ -85,12 +85,12 @@ struct SputObjectState {
 	int frameCount;
 	ObjectStateImage colorImage;
 	ObjectStateImage zImage;
-	SputObjectState *pPrev;
-	SputObjectState *pNext;
+	SputObjectState *prev;
+	SputObjectState *next;
 
 private:
-	SputRender *_pSputRender;
-	bool _bDemo;
+	SputRender *sputRender;
+	bool demo;
 };
 
 } // End of namespace Grim

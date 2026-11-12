@@ -43,45 +43,45 @@ DrawVertex::DrawVertex() {
 }
 
 CDrawList::CDrawList(CDrawContext *owner, int listCapacity) {
-	polyPending = false;
-	deferAll = 0;
-	ctx = owner;
-	polys = (DrawPoly **)ctx->_engine->getMemoryServices()->mallocImpl(listCapacity * sizeof(DrawPoly *));
-	pool = (DrawPoly *)ctx->_engine->getMemoryServices()->mallocImpl((listCapacity + 1) * sizeof(DrawPoly));
-	capacity = listCapacity;
+	_polyPending = false;
+	_deferAll = 0;
+	_ctx = owner;
+	_polys = (DrawPoly **)_ctx->_engine->getMemoryServices()->mallocImpl(listCapacity * sizeof(DrawPoly *));
+	_pool = (DrawPoly *)_ctx->_engine->getMemoryServices()->mallocImpl((listCapacity + 1) * sizeof(DrawPoly));
+	_capacity = listCapacity;
 
-	for (int i = 0; i < capacity; i++)
-		polys[i] = &pool[i];
+	for (int i = 0; i < _capacity; i++)
+		_polys[i] = &_pool[i];
 
 	reset();
-	ctx->_listCount++;
+	_ctx->_listCount++;
 }
 
 CDrawList::~CDrawList() {
-	for (int i = 0; i < count; i++)
-		recyclePoly(polys[i]);
+	for (int i = 0; i < _count; i++)
+		recyclePoly(_polys[i]);
 
-	ctx->_engine->getMemoryServices()->freeImpl(polys);
-	polys = nullptr;
-	ctx->_engine->getMemoryServices()->freeImpl(pool);
-	pool = nullptr;
+	_ctx->_engine->getMemoryServices()->freeImpl(_polys);
+	_polys = nullptr;
+	_ctx->_engine->getMemoryServices()->freeImpl(_pool);
+	_pool = nullptr;
 
-	ctx->_listCount--;
+	_ctx->_listCount--;
 
-	if (ctx->_listCount == 0) {
-		for (uint i = 0; i < ctx->_vertexPool.size(); i++) {
-			ctx->_engine->getMemoryServices()->freeImpl(ctx->_vertexPool[i]);
-			ctx->_vertexPool[i] = nullptr;
+	if (_ctx->_listCount == 0) {
+		for (uint i = 0; i < _ctx->_vertexPool.size(); i++) {
+			_ctx->_engine->getMemoryServices()->freeImpl(_ctx->_vertexPool[i]);
+			_ctx->_vertexPool[i] = nullptr;
 		}
 
-		ctx->_vertexPool.clear();
+		_ctx->_vertexPool.clear();
 	}
 }
 
 void CDrawList::reset() {
-	count = 0;
-	deferAll = 0;
-	polyPending = false;
+	_count = 0;
+	_deferAll = 0;
+	_polyPending = false;
 }
 
 bool CDrawList::drawPolyLess(const DrawPoly *first, const DrawPoly *second) {
@@ -154,11 +154,11 @@ void CDrawList::sortRange(DrawPoly **first, DrawPoly **last) {
 }
 
 void CDrawList::sort() {
-	DrawPoly **first = polys;
-	DrawPoly **last = polys + count;
+	DrawPoly **first = _polys;
+	DrawPoly **last = _polys + _count;
 	DrawPoly **limit = last;
 
-	if (count > kSortThreshold) {
+	if (_count > kSortThreshold) {
 		sortRange(first, last);
 		limit = first + kSortThreshold;
 	}
@@ -210,7 +210,7 @@ void CDrawList::sort() {
 }
 
 DrawPoly *CDrawList::newPoly(int numVerts) {
-	DrawPoly *poly = polys[count];
+	DrawPoly *poly = _polys[_count];
 
 	poly->flags = 4;
 	poly->inUse = 0;
@@ -229,13 +229,13 @@ DrawPoly *CDrawList::newPoly(int numVerts) {
 		poly->numVerts++;
 	}
 
-	polyPending = true;
+	_polyPending = true;
 
 	return poly;
 }
 
 void CDrawList::finishImmediatePoly(DrawPoly *poly) {
-	polyPending = false;
+	_polyPending = false;
 	recyclePoly(poly);
 }
 
@@ -246,7 +246,7 @@ void CDrawList::recyclePoly(DrawPoly *poly) {
 		DrawVertex *vertex = poly->verts[poly->numVerts - 1];
 
 		if (!(vertex->flags & 1))
-			ctx->_vertexPool.push_back(vertex);
+			_ctx->_vertexPool.push_back(vertex);
 
 		poly->numVerts--;
 	}
@@ -256,7 +256,7 @@ bool CDrawList::addPoly(DrawPoly *poly) {
 	CTexture *texture = poly->tex;
 	int numVerts = poly->numVerts;
 
-	if (texture && (texture->flags & 0x480))
+	if (texture && (texture->_flags & 0x480))
 		poly->flags |= 0x10400;
 
 	if (poly->flags & 0x800)
@@ -278,28 +278,28 @@ bool CDrawList::addPoly(DrawPoly *poly) {
 		}
 	}
 
-	if (deferAll || transparent) {
-		polyPending = false;
+	if (_deferAll || transparent) {
+		_polyPending = false;
 		poly->inUse = 1;
 
-		if (count >= capacity - 1) {
-			LConsoleServices *console = ctx->getEngine()->getConsoleServices();
+		if (_count >= _capacity - 1) {
+			LConsoleServices *console = _ctx->getEngine()->getConsoleServices();
 
 			if (console)
 				console->logStatus("Draw List overflow!\n");
 			else
 				warning("CDrawList::addPoly(): draw list overflow");
 
-			ctx->flushDrawLists();
+			_ctx->flushDrawLists();
 		} else {
-			count++;
+			_count++;
 		}
 
 		return true;
 	}
 
-	polyPending = true;
-	ctx->outputDrawPoly(poly);
+	_polyPending = true;
+	_ctx->outputDrawPoly(poly);
 	finishImmediatePoly(poly);
 
 	return true;
@@ -308,11 +308,11 @@ bool CDrawList::addPoly(DrawPoly *poly) {
 DrawVertex *CDrawList::allocVertex() {
 	DrawVertex *vertex;
 
-	if (!ctx->_vertexPool.empty()) {
-		vertex = ctx->_vertexPool.back();
-		ctx->_vertexPool.pop_back();
+	if (!_ctx->_vertexPool.empty()) {
+		vertex = _ctx->_vertexPool.back();
+		_ctx->_vertexPool.pop_back();
 	} else {
-		vertex = (DrawVertex *)ctx->_engine->getMemoryServices()->mallocImpl(sizeof(DrawVertex));
+		vertex = (DrawVertex *)_ctx->_engine->getMemoryServices()->mallocImpl(sizeof(DrawVertex));
 
 		if (!vertex)
 			return nullptr;

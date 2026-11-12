@@ -67,36 +67,36 @@ static double clampLight(double sum, float stored, float ambientLight) {
 	return stored;
 }
 
-static void scaleVertexLight(float *pLight, float extraLight, float ambientLight, double scale) {
-	double sum = (double)extraLight + (double)*pLight;
+static void scaleVertexLight(float *light, float extraLight, float ambientLight, double scale) {
+	double sum = (double)extraLight + (double)*light;
 
-	*pLight = (float)(clampLight(sum, (float)sum, ambientLight) * scale);
+	*light = (float)(clampLight(sum, (float)sum, ambientLight) * scale);
 }
 
-static void scaleFaceLight(RdProcFace *pProcFace, int lightingMode, float ambientLight, int vertexColorMode, double scale, int bSolid) {
+static void scaleFaceLight(RdProcFace *procFace, int lightingMode, float ambientLight, int vertexColorMode, double scale, int solid) {
 	switch (lightingMode) {
 	case 1:
-		pProcFace->diffuseLight = (float)(clampLight(pProcFace->extraLight, pProcFace->extraLight, ambientLight) * scale);
+		procFace->diffuseLight = (float)(clampLight(procFace->extraLight, procFace->extraLight, ambientLight) * scale);
 		break;
 	case 2: {
-		double sum = (double)pProcFace->extraLight + (double)pProcFace->diffuseLight;
+		double sum = (double)procFace->extraLight + (double)procFace->diffuseLight;
 
-		pProcFace->diffuseLight = (float)(clampLight(sum, (float)sum, ambientLight) * scale);
+		procFace->diffuseLight = (float)(clampLight(sum, (float)sum, ambientLight) * scale);
 		break;
 	}
 	case 3:
 		if (vertexColorMode == 1) {
-			for (uint i = 0; i < pProcFace->numVertices; i++) {
-				if (bSolid)
-					scaleVertexLight(&pProcFace->aIntensities[i], pProcFace->extraLight, ambientLight, scale);
+			for (uint i = 0; i < procFace->numVertices; i++) {
+				if (solid)
+					scaleVertexLight(&procFace->intensities[i], procFace->extraLight, ambientLight, scale);
 
-				scaleVertexLight(&pProcFace->aRedIntensities[i], pProcFace->extraLight, ambientLight, scale);
-				scaleVertexLight(&pProcFace->aGreenIntensities[i], pProcFace->extraLight, ambientLight, scale);
-				scaleVertexLight(&pProcFace->aBlueIntensities[i], pProcFace->extraLight, ambientLight, scale);
+				scaleVertexLight(&procFace->redIntensities[i], procFace->extraLight, ambientLight, scale);
+				scaleVertexLight(&procFace->greenIntensities[i], procFace->extraLight, ambientLight, scale);
+				scaleVertexLight(&procFace->blueIntensities[i], procFace->extraLight, ambientLight, scale);
 			}
 		} else {
-			for (uint i = 0; i < pProcFace->numVertices; i++)
-				scaleVertexLight(&pProcFace->aIntensities[i], pProcFace->extraLight, ambientLight, scale);
+			for (uint i = 0; i < procFace->numVertices; i++)
+				scaleVertexLight(&procFace->intensities[i], procFace->extraLight, ambientLight, scale);
 		}
 		break;
 	default:
@@ -104,8 +104,8 @@ static void scaleFaceLight(RdProcFace *pProcFace, int lightingMode, float ambien
 	}
 }
 
-static uint32 packVertexColor(int &red, int &green, int &blue, uint alpha, int bHasTint, int bHasFilter, const float *aFilterGain, const RdColorEffects &effects) {
-	if (bHasTint) {
+static uint32 packVertexColor(int &red, int &green, int &blue, uint alpha, int hasTint, int hasFilter, const float *filterGain, const RdColorEffects &effects) {
+	if (hasTint) {
 		if (!effects.tint[0])
 			red = 0;
 
@@ -116,10 +116,10 @@ static uint32 packVertexColor(int &red, int &green, int &blue, uint alpha, int b
 			blue = 0;
 	}
 
-	if (bHasFilter) {
-		red += truncateToInt((double)red * (double)aFilterGain[0]);
-		green += truncateToInt((double)green * (double)aFilterGain[1]);
-		blue += truncateToInt((double)blue * (double)aFilterGain[2]);
+	if (hasFilter) {
+		red += truncateToInt((double)red * (double)filterGain[0]);
+		green += truncateToInt((double)green * (double)filterGain[1]);
+		blue += truncateToInt((double)blue * (double)filterGain[2]);
 	}
 
 	if (!(effects.fade >= 1.0f)) {
@@ -150,21 +150,21 @@ static uint32 packVertexColor(int &red, int &green, int &blue, uint alpha, int b
 	return (alpha << 24) | ((uint)red << 16) | ((uint)green << 8) | (uint)blue;
 }
 
-static void addTriangles(Std3DTri *aTris, uint *pTotal, uint numVertices, uint firstVertex, uint flags, RdTexCacheEntry *pTexture) {
+static void addTriangles(Std3DTri *tris, uint *total, uint numVertices, uint firstVertex, uint flags, RdTexCacheEntry *texture) {
 	if (numVertices < 3) {
 		warning("RenderDroid::CacheModule::sendFaceListToHardware(): face with %u vertices", numVertices);
 		return;
 	}
 
 	if (numVertices == 3) {
-		Std3DTri *pTri = &aTris[*pTotal];
+		Std3DTri *tri = &tris[*total];
 
-		pTri->aIdx[2] = firstVertex;
-		pTri->aIdx[1] = firstVertex + 1;
-		pTri->aIdx[0] = firstVertex + 2;
-		pTri->flags = flags;
-		pTri->pTexture = pTexture;
-		(*pTotal)++;
+		tri->idx[2] = firstVertex;
+		tri->idx[1] = firstVertex + 1;
+		tri->idx[0] = firstVertex + 2;
+		tri->flags = flags;
+		tri->texture = texture;
+		(*total)++;
 		return;
 	}
 
@@ -172,16 +172,16 @@ static void addTriangles(Std3DTri *aTris, uint *pTotal, uint numVertices, uint f
 	uint first = 0;
 	uint second = 1;
 	uint last = numVertices - 1;
-	Std3DTri *pTri = &aTris[*pTotal];
+	Std3DTri *tri = &tris[*total];
 
-	*pTotal += numTris;
+	*total += numTris;
 
 	for (uint i = 0; i < numTris; i++) {
-		pTri->aIdx[2] = firstVertex + first;
-		pTri->aIdx[1] = firstVertex + second;
-		pTri->aIdx[0] = firstVertex + last;
-		pTri->flags = flags;
-		pTri->pTexture = pTexture;
+		tri->idx[2] = firstVertex + first;
+		tri->idx[1] = firstVertex + second;
+		tri->idx[0] = firstVertex + last;
+		tri->flags = flags;
+		tri->texture = texture;
 
 		if (!(i & 1)) {
 			first = second;
@@ -191,28 +191,28 @@ static void addTriangles(Std3DTri *aTris, uint *pTotal, uint numVertices, uint f
 			last--;
 		}
 
-		pTri++;
+		tri++;
 	}
 }
 
 int RenderDroid::CacheModule::sendFaceListToHardware() {
-	Std3D *pStd3D = _rd->_pStd3D;
-	Std3DDevice *pDevice = pStd3D->getCurDevice();
+	Std3D *std3D = _rd->_std3D;
+	Std3DDevice *device = std3D->getCurDevice();
 
-	if (!pDevice) {
+	if (!device) {
 		warning("RenderDroid::CacheModule::sendFaceListToHardware(): no 3D device");
 		return 0;
 	}
 
 	const RdColorEffects &effects = _rd->_curColorEffects;
-	int bHasFilter = 0;
-	int bHasTint = 0;
+	int hasFilter = 0;
+	int hasTint = 0;
 	int alt = 0;
 	int mipLevel = 0;
 	int colorRed = 0;
 	int colorGreen = 0;
 	int colorBlue = 0;
-	float aFilterGain[3] = { 0.0f, 0.0f, 0.0f };
+	float filterGain[3] = { 0.0f, 0.0f, 0.0f };
 	uint baseFlags = 0x33;
 
 	switch (_rd->_curZBufferMethod) {
@@ -234,31 +234,31 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 		double halfBlue = (double)effects.filter[2] * 0.5;
 		float halfRed = (float)((double)effects.filter[0] * 0.5);
 
-		bHasFilter = 1;
-		aFilterGain[0] = (float)((double)effects.filter[0] - (halfBlue + halfGreen));
-		aFilterGain[1] = (float)((double)effects.filter[1] - ((double)halfRed + halfBlue));
-		aFilterGain[2] = (float)((double)effects.filter[2] - ((double)halfRed + halfGreen));
+		hasFilter = 1;
+		filterGain[0] = (float)((double)effects.filter[0] - (halfBlue + halfGreen));
+		filterGain[1] = (float)((double)effects.filter[1] - ((double)halfRed + halfBlue));
+		filterGain[2] = (float)((double)effects.filter[2] - ((double)halfRed + halfGreen));
 	}
 
 	if (effects.tint[0] || effects.tint[1] || effects.tint[2])
-		bHasTint = 1;
+		hasTint = 1;
 
-	if (bHasFilter || bHasTint || _rd->_curVertexColorMode == 1)
+	if (hasFilter || hasTint || _rd->_curVertexColorMode == 1)
 		baseFlags |= 0x8000;
 
 	resetRenderList();
 
 	for (size_t faceIndex = 0; faceIndex < _numProcFaces; faceIndex++) {
-		RdProcFace *pProcFace = &_aProcFaces[faceIndex];
+		RdProcFace *procFace = &_procFaces[faceIndex];
 		float ambientLight = 0.0f;
 
 		if (_rd->_curRenderOptions & 2)
-			ambientLight = pProcFace->ambientLight;
+			ambientLight = procFace->ambientLight;
 
-		uint numVertices = pProcFace->numVertices;
+		uint numVertices = procFace->numVertices;
 		uint numTris = numVertices > 3 ? numVertices - 2 : 1;
 
-		if (numVertices + _totalVerts >= pStd3D->getMaxVertices()) {
+		if (numVertices + _totalVerts >= std3D->getMaxVertices()) {
 			drawRenderList();
 			resetRenderList();
 		} else if (_totalVerts + numVertices > kMaxHWVertices || _totalSolidTris + numTris > kMaxHWTris || _totalNormalTris + numTris > kMaxHWTris) {
@@ -268,12 +268,12 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 		}
 
 		uint firstVertex = _totalVerts;
-		int geometryMode = pProcFace->geometryMode;
+		int geometryMode = procFace->geometryMode;
 
 		if (geometryMode >= _rd->_curGeometryMode)
 			geometryMode = _rd->_curGeometryMode;
 
-		int lightingMode = pProcFace->lightingMode;
+		int lightingMode = procFace->lightingMode;
 
 		if (lightingMode >= _rd->_curLightingMode)
 			lightingMode = _rd->_curLightingMode;
@@ -281,56 +281,56 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 		uint flags = baseFlags;
 		uint alpha = 255;
 
-		if (pProcFace->type & 2) {
+		if (procFace->type & 2) {
 			flags |= 0x200;
 			alpha = _rd->isDemo() ? 90 : 200;
 		}
 
-		if (alpha != 255 && !pDevice->bAlphaBlend && !pDevice->bAlphaStipple) {
+		if (alpha != 255 && !device->alphaBlend && !device->alphaStipple) {
 			alpha = 255;
 			alt = 1;
 		}
 
-		RdMaterial *pMaterial = pProcFace->pMaterial;
+		RdMaterial *material = procFace->material;
 
-		if (!pMaterial)
+		if (!material)
 			continue;
 
-		RdMatCel *pCel = selectCel(pProcFace);
+		RdMatCel *cel = selectCel(procFace);
 
-		if (!pCel && (geometryMode == 3 || geometryMode == 4)) {
+		if (!cel && (geometryMode == 3 || geometryMode == 4)) {
 			warning("RenderDroid::CacheModule::sendFaceListToHardware(): face without a material cel");
 			continue;
 		}
 
-		if (pCel && geometryMode == 4 && !(pCel->flags & 8))
+		if (cel && geometryMode == 4 && !(cel->flags & 8))
 			geometryMode = 3;
 
-		RdTexCacheEntry *pCacheEntry = nullptr;
+		RdTexCacheEntry *cacheEntry = nullptr;
 		float texWidth = 0.0f;
 		float texHeight = 0.0f;
 
-		if (pCel && (pCel->flags & 8)) {
-			RdTexture *pTexture = pCel->pTexture;
+		if (cel && (cel->flags & 8)) {
+			RdTexture *texture = cel->texture;
 
-			if (!pProcFace->pColormap) {
+			if (!procFace->colormap) {
 				warning("RenderDroid::CacheModule::sendFaceListToHardware(): face without a colormap");
 				continue;
 			}
 
-			switch (pTexture->numMips) {
+			switch (texture->numMips) {
 			case 1:
 				mipLevel = 0;
 				break;
 			case 2:
-				if (pProcFace->zMin > (double)_rd->_aMipDistances[1])
+				if (procFace->zMin > (double)_rd->_mipDistances[1])
 					mipLevel = 1;
 				else
 					mipLevel = 0;
 				break;
 			case 3:
-				if (pProcFace->zMin > (double)_rd->_aMipDistances[0]) {
-					if (pProcFace->zMin <= (double)_rd->_aMipDistances[1])
+				if (procFace->zMin > (double)_rd->_mipDistances[0]) {
+					if (procFace->zMin <= (double)_rd->_mipDistances[1])
 						mipLevel = 1;
 					else
 						mipLevel = 2;
@@ -339,9 +339,9 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 				}
 				break;
 			case 4:
-				if (pProcFace->zMin > (double)_rd->_aMipDistances[0]) {
-					if (pProcFace->zMin > (double)_rd->_aMipDistances[1]) {
-						if (pProcFace->zMin > (double)_rd->_aMipDistances[2])
+				if (procFace->zMin > (double)_rd->_mipDistances[0]) {
+					if (procFace->zMin > (double)_rd->_mipDistances[1]) {
+						if (procFace->zMin > (double)_rd->_mipDistances[2])
 							mipLevel = 3;
 						else
 							mipLevel = 2;
@@ -356,115 +356,115 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 				break;
 			}
 
-			if (mipLevel < 0 || mipLevel >= 4 || !pTexture->apMips[mipLevel]) {
+			if (mipLevel < 0 || mipLevel >= 4 || !texture->mips[mipLevel]) {
 				warning("RenderDroid::CacheModule::sendFaceListToHardware(): invalid mip level %d", mipLevel);
 				continue;
 			}
 
-			if ((pTexture->flags & 1) && pDevice->bAlphaTexture)
+			if ((texture->flags & 1) && device->alphaTexture)
 				flags |= 0x400;
 
 			// The demo sets the palette only when the identity colormap changes
-			if (!_rd->isDemo() && !pTexture->aCache[0][mipLevel].bInCache)
-				pStd3D->setCurrentPalette(pProcFace->pColormap->aColors, 90);
+			if (!_rd->isDemo() && !texture->cache[0][mipLevel].inCache)
+				std3D->setCurrentPalette(procFace->colormap->colors, 90);
 
-			if (!_rd->_material.addToTextureCache(pMaterial, pTexture, mipLevel, alt)) {
+			if (!_rd->_material.addToTextureCache(material, texture, mipLevel, alt)) {
 				drawRenderList();
 				resetRenderList();
 
 				if (!_rd->isDemo())
-					pStd3D->purgeTextureCache();
+					std3D->purgeTextureCache();
 
 				firstVertex = _totalVerts;
 				warning("RenderDroid::CacheModule::sendFaceListToHardware(): texture cache full, render list flushed");
 
-				if (!_rd->_material.addToTextureCache(pMaterial, pTexture, mipLevel, alt))
+				if (!_rd->_material.addToTextureCache(material, texture, mipLevel, alt))
 					return 0;
 			}
 
-			pCacheEntry = &pTexture->aCache[alt ? 1 : 0][mipLevel];
+			cacheEntry = &texture->cache[alt ? 1 : 0][mipLevel];
 
 			uint validWidth;
 			uint validHeight;
 
-			pStd3D->getValidDimensions(pTexture->apMips[mipLevel]->tex.width, pTexture->apMips[mipLevel]->tex.height, &validWidth, &validHeight);
+			std3D->getValidDimensions(texture->mips[mipLevel]->tex.width, texture->mips[mipLevel]->tex.height, &validWidth, &validHeight);
 			texWidth = (float)(uint)(validWidth << mipLevel);
 			texHeight = (float)(uint)(validHeight << mipLevel);
 		}
 
 		if (geometryMode == 3) {
-			if (!pProcFace->pColormap || pCel->colorIndex < 0 || pCel->colorIndex > 255) {
+			if (!procFace->colormap || cel->colorIndex < 0 || cel->colorIndex > 255) {
 				warning("RenderDroid::CacheModule::sendFaceListToHardware(): invalid face colour");
 				continue;
 			}
 
-			const byte *pColor = &pProcFace->pColormap->aColors[3 * pCel->colorIndex];
+			const byte *color = &procFace->colormap->colors[3 * cel->colorIndex];
 
-			scaleFaceLight(pProcFace, lightingMode, ambientLight, _rd->_curVertexColorMode, 63.0, 1);
+			scaleFaceLight(procFace, lightingMode, ambientLight, _rd->_curVertexColorMode, 63.0, 1);
 
-			for (uint i = 0; i < pProcFace->numVertices; i++) {
-				Std3DVertex *pVertex = &_aHWVertices[_totalVerts];
-				float *pPos = pProcFace->aVertices[i];
+			for (uint i = 0; i < procFace->numVertices; i++) {
+				Std3DVertex *vertex = &_hwVertices[_totalVerts];
+				float *pos = procFace->vertices[i];
 
-				pVertex->sx = (float)ceil((double)pPos[0]);
-				pVertex->sy = (float)ceil((double)pPos[1]);
+				vertex->sx = (float)ceil((double)pos[0]);
+				vertex->sy = (float)ceil((double)pos[1]);
 
 				double invZ;
 
 				if (_rd->isDemo()) {
 					// The demo uses 1 / (z + 1), reversed when the z buffer is not 16
-					if (pPos[2] == 0.0f)
+					if (pos[2] == 0.0f)
 						invZ = 0.0;
 					else
-						invZ = 1.0 / ((double)pPos[2] - -1.0);
+						invZ = 1.0 / ((double)pos[2] - -1.0);
 
-					pVertex->sz = (float)(pStd3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
+					vertex->sz = (float)(std3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
 				} else {
-					if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
+					if (!(pos[2] < 0.0f || pos[2] > 0.0f)) {
 						invZ = 0.0;
 					} else {
 						int zBias = -1;
 
-						if (pStd3D->getZBufferMode() == 16)
+						if (std3D->getZBufferMode() == 16)
 							zBias = 1;
 
-						invZ = 1.0 / ((double)zBias + (double)pPos[2]);
+						invZ = 1.0 / ((double)zBias + (double)pos[2]);
 					}
 
-					pVertex->sz = (float)invZ;
+					vertex->sz = (float)invZ;
 				}
 
-				pVertex->rhw = (float)(invZ * 0.03125);
-				pVertex->specular = 0;
+				vertex->rhw = (float)(invZ * 0.03125);
+				vertex->specular = 0;
 
 				if (_rd->isDemo()) {
 					// The demo takes the colors from the palette through the light table of the colormap
-					const byte *pPalette = pProcFace->pColormap->aColors;
-					const byte *pLightLevel = pProcFace->pColormap->pLightLevel;
-					int paletteIndex = 3 * pCel->colorIndex;
-					bool bColorMode = false;
+					const byte *palette = procFace->colormap->colors;
+					const byte *lightLevel = procFace->colormap->lightLevel;
+					int paletteIndex = 3 * cel->colorIndex;
+					bool colorMode = false;
 
 					if (lightingMode == 3 && _rd->_curVertexColorMode == 1) {
-						bColorMode = true;
-						paletteIndex = 3 * pLightLevel[pCel->colorIndex];
+						colorMode = true;
+						paletteIndex = 3 * lightLevel[cel->colorIndex];
 					} else if (lightingMode == 3) {
-						int level = truncateToInt(pProcFace->aIntensities[i]) & 0x3F;
+						int level = truncateToInt(procFace->intensities[i]) & 0x3F;
 
-						paletteIndex = 3 * pLightLevel[(level << 8) + pCel->colorIndex];
+						paletteIndex = 3 * lightLevel[(level << 8) + cel->colorIndex];
 					} else if (lightingMode != 0) {
-						int level = truncateToInt(pProcFace->diffuseLight) & 0x3F;
+						int level = truncateToInt(procFace->diffuseLight) & 0x3F;
 
-						paletteIndex = 3 * pLightLevel[(level << 8) + pCel->colorIndex];
+						paletteIndex = 3 * lightLevel[(level << 8) + cel->colorIndex];
 					}
 
-					colorRed = pPalette[paletteIndex];
-					colorGreen = pPalette[paletteIndex + 1];
-					colorBlue = pPalette[paletteIndex + 2];
+					colorRed = palette[paletteIndex];
+					colorGreen = palette[paletteIndex + 1];
+					colorBlue = palette[paletteIndex + 2];
 
-					if (bColorMode) {
-						colorRed += truncateToInt((double)pProcFace->aRedIntensities[i] * 255.0 - -0.5);
-						colorGreen += truncateToInt((double)pProcFace->aGreenIntensities[i] * 255.0 - -0.5);
-						colorBlue += truncateToInt((double)pProcFace->aBlueIntensities[i] * 255.0 - -0.5);
+					if (colorMode) {
+						colorRed += truncateToInt((double)procFace->redIntensities[i] * 255.0 - -0.5);
+						colorGreen += truncateToInt((double)procFace->greenIntensities[i] * 255.0 - -0.5);
+						colorBlue += truncateToInt((double)procFace->blueIntensities[i] * 255.0 - -0.5);
 
 						if (colorRed < 0)
 							colorRed = 0;
@@ -482,77 +482,77 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 							colorBlue = 255;
 					}
 				} else if (lightingMode == 0) {
-					colorRed = pColor[0];
-					colorGreen = pColor[1];
-					colorBlue = pColor[2];
+					colorRed = color[0];
+					colorGreen = color[1];
+					colorBlue = color[2];
 				} else if (lightingMode == 3) {
 					if (_rd->_curVertexColorMode != 1) {
-						double scale = (double)pProcFace->aIntensities[i] * 0.015625;
+						double scale = (double)procFace->intensities[i] * 0.015625;
 
-						colorRed = truncateToInt((double)pColor[0] * scale);
-						colorGreen = truncateToInt((double)pColor[1] * scale);
-						colorBlue = truncateToInt((double)pColor[2] * scale);
+						colorRed = truncateToInt((double)color[0] * scale);
+						colorGreen = truncateToInt((double)color[1] * scale);
+						colorBlue = truncateToInt((double)color[2] * scale);
 					}
 				} else {
-					double scale = (double)pProcFace->diffuseLight * 0.015625;
+					double scale = (double)procFace->diffuseLight * 0.015625;
 
-					colorRed = truncateToInt((double)pColor[0] * scale);
-					colorGreen = truncateToInt((double)pColor[1] * scale);
-					colorBlue = truncateToInt((double)pColor[2] * scale);
+					colorRed = truncateToInt((double)color[0] * scale);
+					colorGreen = truncateToInt((double)color[1] * scale);
+					colorBlue = truncateToInt((double)color[2] * scale);
 				}
 
-				if (pProcFace->pColormap != _rd->_colormap.getIdentity()) {
-					colorRed = truncateToInt((double)pProcFace->pColormap->tint[0] * (double)colorRed) & 0xFF;
-					colorGreen = truncateToInt((double)pProcFace->pColormap->tint[1] * (double)colorGreen) & 0xFF;
-					colorBlue = truncateToInt((double)pProcFace->pColormap->tint[2] * (double)colorBlue) & 0xFF;
+				if (procFace->colormap != _rd->_colormap.getIdentity()) {
+					colorRed = truncateToInt((double)procFace->colormap->tint[0] * (double)colorRed) & 0xFF;
+					colorGreen = truncateToInt((double)procFace->colormap->tint[1] * (double)colorGreen) & 0xFF;
+					colorBlue = truncateToInt((double)procFace->colormap->tint[2] * (double)colorBlue) & 0xFF;
 				}
 
 				flags |= 0x8000;
-				pVertex->color = packVertexColor(colorRed, colorGreen, colorBlue, alpha, bHasTint, bHasFilter, aFilterGain, effects);
-				pVertex->tu = 0.0f;
-				pVertex->tv = 0.0f;
+				vertex->color = packVertexColor(colorRed, colorGreen, colorBlue, alpha, hasTint, hasFilter, filterGain, effects);
+				vertex->tu = 0.0f;
+				vertex->tv = 0.0f;
 				_totalVerts++;
 			}
 
-			addTriangles(_aHWSolidTris, &_totalSolidTris, pProcFace->numVertices, firstVertex, flags, nullptr);
+			addTriangles(_hwSolidTris, &_totalSolidTris, procFace->numVertices, firstVertex, flags, nullptr);
 		} else if (geometryMode == 4) {
-			scaleFaceLight(pProcFace, lightingMode, ambientLight, _rd->_curVertexColorMode, 255.0, 0);
+			scaleFaceLight(procFace, lightingMode, ambientLight, _rd->_curVertexColorMode, 255.0, 0);
 
-			for (uint i = 0; i < pProcFace->numVertices; i++) {
-				Std3DVertex *pVertex = &_aHWVertices[_totalVerts];
-				float *pPos = pProcFace->aVertices[i];
+			for (uint i = 0; i < procFace->numVertices; i++) {
+				Std3DVertex *vertex = &_hwVertices[_totalVerts];
+				float *pos = procFace->vertices[i];
 
-				pVertex->sx = (float)ceil((double)pPos[0]);
-				pVertex->sy = (float)ceil((double)pPos[1]);
+				vertex->sx = (float)ceil((double)pos[0]);
+				vertex->sy = (float)ceil((double)pos[1]);
 
 				double invZ;
 
 				if (_rd->isDemo()) {
 					// The demo uses 1 / (z + 1), reversed when the z buffer is not 16
-					if (pPos[2] == 0.0f)
+					if (pos[2] == 0.0f)
 						invZ = 0.0;
 					else
-						invZ = 1.0 / ((double)pPos[2] - -1.0);
+						invZ = 1.0 / ((double)pos[2] - -1.0);
 
-					pVertex->sz = (float)(pStd3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
+					vertex->sz = (float)(std3D->getZBufferMode() == 16 ? invZ : 1.0 - invZ);
 				} else {
-					if (!(pPos[2] < 0.0f || pPos[2] > 0.0f)) {
+					if (!(pos[2] < 0.0f || pos[2] > 0.0f)) {
 						invZ = 0.0;
 					} else {
 						int zBias = -1;
 
-						if (pStd3D->getZBufferMode() == 16)
+						if (std3D->getZBufferMode() == 16)
 							zBias = 1;
 
-						pPos[2] = (float)((double)zBias + (double)pPos[2]);
-						invZ = 1.0 / (double)pPos[2];
+						pos[2] = (float)((double)zBias + (double)pos[2]);
+						invZ = 1.0 / (double)pos[2];
 					}
 
-					pVertex->sz = (float)invZ;
+					vertex->sz = (float)invZ;
 				}
 
-				pVertex->rhw = (float)invZ;
-				pVertex->specular = 0;
+				vertex->rhw = (float)invZ;
+				vertex->specular = 0;
 
 				if (lightingMode == 0) {
 					colorRed = 255;
@@ -560,34 +560,34 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 					colorBlue = 255;
 				} else if (lightingMode == 3) {
 					if (_rd->_curVertexColorMode == 1) {
-						colorRed = truncateToInt(pProcFace->aRedIntensities[i]);
-						colorGreen = truncateToInt(pProcFace->aGreenIntensities[i]);
-						colorBlue = truncateToInt(pProcFace->aBlueIntensities[i]);
+						colorRed = truncateToInt(procFace->redIntensities[i]);
+						colorGreen = truncateToInt(procFace->greenIntensities[i]);
+						colorBlue = truncateToInt(procFace->blueIntensities[i]);
 					} else {
-						colorRed = truncateToInt(pProcFace->aIntensities[i]);
+						colorRed = truncateToInt(procFace->intensities[i]);
 						colorGreen = colorRed;
 						colorBlue = colorRed;
 					}
 				} else {
-					colorRed = truncateToInt(pProcFace->diffuseLight);
+					colorRed = truncateToInt(procFace->diffuseLight);
 					colorGreen = colorRed;
 					colorBlue = colorRed;
 				}
 
-				if (pProcFace->pColormap != _rd->_colormap.getIdentity()) {
-					colorRed = truncateToInt((double)pProcFace->pColormap->tint[0] * (double)colorRed) & 0xFF;
-					colorGreen = truncateToInt((double)pProcFace->pColormap->tint[1] * (double)colorGreen) & 0xFF;
-					colorBlue = truncateToInt((double)pProcFace->pColormap->tint[2] * (double)colorBlue) & 0xFF;
+				if (procFace->colormap != _rd->_colormap.getIdentity()) {
+					colorRed = truncateToInt((double)procFace->colormap->tint[0] * (double)colorRed) & 0xFF;
+					colorGreen = truncateToInt((double)procFace->colormap->tint[1] * (double)colorGreen) & 0xFF;
+					colorBlue = truncateToInt((double)procFace->colormap->tint[2] * (double)colorBlue) & 0xFF;
 					flags |= 0x8000;
 				}
 
-				pVertex->color = packVertexColor(colorRed, colorGreen, colorBlue, alpha, bHasTint, bHasFilter, aFilterGain, effects);
-				pVertex->tu = (float)((double)pProcFace->aTexVertices[i][0] / (double)texWidth);
-				pVertex->tv = (float)((double)pProcFace->aTexVertices[i][1] / (double)texHeight);
+				vertex->color = packVertexColor(colorRed, colorGreen, colorBlue, alpha, hasTint, hasFilter, filterGain, effects);
+				vertex->tu = (float)((double)procFace->texVertices[i][0] / (double)texWidth);
+				vertex->tv = (float)((double)procFace->texVertices[i][1] / (double)texHeight);
 				_totalVerts++;
 			}
 
-			addTriangles(_aHWNormalTris, &_totalNormalTris, pProcFace->numVertices, firstVertex, flags, pCacheEntry);
+			addTriangles(_hwNormalTris, &_totalNormalTris, procFace->numVertices, firstVertex, flags, cacheEntry);
 		}
 	}
 
@@ -597,7 +597,7 @@ int RenderDroid::CacheModule::sendFaceListToHardware() {
 }
 
 int RenderDroid::CacheModule::resetRenderList() {
-	_rd->_pStd3D->resetRenderList();
+	_rd->_std3D->resetRenderList();
 	_totalNormalTris = 0;
 	_totalSolidTris = 0;
 	_totalVerts = 0;
@@ -606,45 +606,45 @@ int RenderDroid::CacheModule::resetRenderList() {
 }
 
 uint RenderDroid::CacheModule::drawRenderList() {
-	Std3D *pStd3D = _rd->_pStd3D;
+	Std3D *std3D = _rd->_std3D;
 
 	if (!_totalVerts)
 		return _totalVerts;
 
-	if (!pStd3D->addRenderListVertices(_aHWVertices, _totalVerts)) {
-		pStd3D->drawRenderList();
-		pStd3D->addRenderListVertices(_aHWVertices, _totalVerts);
+	if (!std3D->addRenderListVertices(_hwVertices, _totalVerts)) {
+		std3D->drawRenderList();
+		std3D->addRenderListVertices(_hwVertices, _totalVerts);
 	}
 
-	pStd3D->beginRenderList();
+	std3D->beginRenderList();
 
 	if (_rd->_curZBufferMethod == 2)
-		sort(_aHWNormalTris, _totalNormalTris, sizeof(Std3DTri), hwTriCompare);
+		sort(_hwNormalTris, _totalNormalTris, sizeof(Std3DTri), hwTriCompare);
 
 	if (_totalSolidTris)
-		pStd3D->addRenderListTris(_aHWSolidTris, _totalSolidTris);
+		std3D->addRenderListTris(_hwSolidTris, _totalSolidTris);
 
 	if (_totalNormalTris)
-		pStd3D->addRenderListTris(_aHWNormalTris, _totalNormalTris);
+		std3D->addRenderListTris(_hwNormalTris, _totalNormalTris);
 
-	return pStd3D->drawRenderList();
+	return std3D->drawRenderList();
 }
 
-int RenderDroid::CacheModule::hwTriCompare(const void *pA, const void *pB) {
-	const RdTexCacheEntry *pTextureA = ((const Std3DTri *)pA)->pTexture;
-	const RdTexCacheEntry *pTextureB = ((const Std3DTri *)pB)->pTexture;
+int RenderDroid::CacheModule::hwTriCompare(const void *a, const void *b) {
+	const RdTexCacheEntry *textureA = ((const Std3DTri *)a)->texture;
+	const RdTexCacheEntry *textureB = ((const Std3DTri *)b)->texture;
 
-	if (pTextureA->bColorKey != pTextureB->bColorKey) {
-		if (pTextureA->bColorKey)
+	if (textureA->colorKey != textureB->colorKey) {
+		if (textureA->colorKey)
 			return 1;
 
 		return -1;
 	}
 
-	if ((uintptr)pTextureA < (uintptr)pTextureB)
+	if ((uintptr)textureA < (uintptr)textureB)
 		return -1;
 
-	if ((uintptr)pTextureA > (uintptr)pTextureB)
+	if ((uintptr)textureA > (uintptr)textureB)
 		return 1;
 
 	return 0;

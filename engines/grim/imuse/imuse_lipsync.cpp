@@ -36,36 +36,36 @@ IMuseLipSync *IMuse::grimSoundLipSyncLoad(const char *source) {
 	if (!res)
 		return nullptr;
 
-	IMuseLipSync *pLipSync = new IMuseLipSync();
+	IMuseLipSync *lipSync = new IMuseLipSync();
 
-	memset(pLipSync, 0, sizeof(IMuseLipSync));
-	strncpy(pLipSync->filename, source, 31);
-	pLipSync->filename[31] = 0;
+	memset(lipSync, 0, sizeof(IMuseLipSync));
+	strncpy(lipSync->filename, source, 31);
+	lipSync->filename[31] = 0;
 
 	soundsFileSeek(res, 0, SEEK_END);
 	int32 size = soundsFileTell(res);
 	soundsFileSeek(res, 0, SEEK_SET);
 
-	pLipSync->size = size;
-	pLipSync->ptr = new uint8[size];
-	copyDataFromResource(res, pLipSync->ptr, size);
+	lipSync->size = size;
+	lipSync->ptr = new uint8[size];
+	copyDataFromResource(res, lipSync->ptr, size);
 	soundsCloseFile(res);
 
-	return pLipSync;
+	return lipSync;
 }
 
-void IMuse::grimSoundLipSyncFree(IMuseLipSync *pLipSync) {
-	if (!pLipSync) {
+void IMuse::grimSoundLipSyncFree(IMuseLipSync *lipSync) {
+	if (!lipSync) {
 		warning("IMuse::grimSoundLipSyncFree(): no lipsync data");
 		return;
 	}
 
-	if (pLipSync->ptr) {
-		delete[] pLipSync->ptr;
-		pLipSync->ptr = nullptr;
+	if (lipSync->ptr) {
+		delete[] lipSync->ptr;
+		lipSync->ptr = nullptr;
 	}
 
-	delete pLipSync;
+	delete lipSync;
 }
 
 } // End of namespace Grim

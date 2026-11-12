@@ -30,34 +30,34 @@ namespace Grim {
 
 class StdConffile {
 public:
-	explicit StdConffile(SysStruct *pHS);
+	explicit StdConffile(SysStruct *hs);
 	~StdConffile();
 
 	int open(const char *path);
 	int fOpen(const char *path);
 	void close();
 	int readLine();
-	const char *getLine() const { return _aLine; }
+	const char *getLine() const { return _line; }
 	int getLineNumber() const { return _linenum; }
 
 private:
 	void pushState();
 	void popState();
-	char *getsFile(Common::SeekableReadStream *pFile, char *pBuffer, int size);
+	char *getsFile(Common::SeekableReadStream *file, char *buffer, int size);
 
-	SysStruct *_pHS;
+	SysStruct *_hs;
 	int _linenum;
-	int _bOpen;
+	int _open;
 	Common::SeekableReadStream *_openFile;
 	int _stackLevel;
-	char _pFilename[128];
-	char *_aLine;
+	char _filename[128];
+	char *_line;
 	byte _entry[1028];
 
-	char _aFilenameStack[20][128];
-	char *_apBufferStack[20];
+	char _filenameStack[20][128];
+	char *_bufferStack[20];
 	int _linenumStack[20];
-	byte _aLineStack[20][1028];
+	byte _lineStack[20][1028];
 	Common::SeekableReadStream *_openFileStack[20];
 };
 

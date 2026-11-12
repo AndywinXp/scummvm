@@ -42,8 +42,8 @@ static const int kShadowVertexCapacity = 2000;
 static const float kMinClipLength = 1e-20f;
 
 uint Actor::findShadowPrimitive(RPrimitiveInstance *instance) {
-	for (uint i = 0; i < shadowMeshes.size(); i++) {
-		if (shadowMeshes[i] == instance)
+	for (uint i = 0; i < _shadowMeshes.size(); i++) {
+		if (_shadowMeshes[i] == instance)
 			return i;
 	}
 
@@ -51,25 +51,25 @@ uint Actor::findShadowPrimitive(RPrimitiveInstance *instance) {
 }
 
 void Actor::removeShadowPrimitive(int index) {
-	if (index >= 0 && (uint)index < shadowMeshes.size())
-		shadowMeshes.remove_at(index);
+	if (index >= 0 && (uint)index < _shadowMeshes.size())
+		_shadowMeshes.remove_at(index);
 }
 
 void Actor::activateShadow(bool active, Shadow_v2 *shadow) {
 	if (active) {
 		if (shadow) {
 			if (findShadowIndex(shadow) < 0)
-				shadows.push_back(shadow);
+				_shadows.push_back(shadow);
 		} else {
-			shadows.clear();
+			_shadows.clear();
 
-			bool locked = room.lock();
-			Room_v2 *currentRoom = locked ? room.typed : nullptr;
+			bool locked = _room.lock();
+			Room_v2 *currentRoom = locked ? _room._typed : nullptr;
 
 			if (currentRoom) {
 				Common::List<Shadow_v2 *>::iterator it;
 
-				for (it = currentRoom->shadows.begin(); it != currentRoom->shadows.end(); ++it) {
+				for (it = currentRoom->_shadows.begin(); it != currentRoom->_shadows.end(); ++it) {
 					if (*it)
 						activateShadow(active, *it);
 				}
@@ -77,21 +77,21 @@ void Actor::activateShadow(bool active, Shadow_v2 *shadow) {
 				warning("Actor::activateShadow(): the room could not be locked");
 			}
 
-			room.unlock();
+			_room.unlock();
 		}
 	} else if (shadow) {
 		int index = findShadowIndex(shadow);
 
 		if (index >= 0)
-			shadows.remove_at(index);
+			_shadows.remove_at(index);
 	} else {
-		shadows.clear();
+		_shadows.clear();
 	}
 }
 
 int Actor::findShadowIndex(Shadow_v2 *shadow) {
-	for (uint i = 0; i < shadows.size(); i++) {
-		if (shadows[i] == shadow)
+	for (uint i = 0; i < _shadows.size(); i++) {
+		if (_shadows[i] == shadow)
 			return i;
 	}
 
@@ -103,7 +103,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 
 	CDrawContext *drawContext = _engine->getDrawContext();
 
-	if (!onScreen) {
+	if (!_onScreen) {
 		_engine->_actorDrawShadowTimer.stop();
 
 		return 0;
@@ -116,7 +116,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 		return 0;
 	}
 
-	drawContext->setCameraMatrix(reinterpret_cast<const float *>(&camera->view));
+	drawContext->setCameraMatrix(reinterpret_cast<const float *>(&camera->_view));
 
 	float shadowPoint[3];
 	float *position = shadow->getPosition(shadowPoint);
@@ -124,14 +124,14 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 	float shadowY = position[1];
 	float shadowZ = position[2];
 
-	Color shadowColor(shadow->color);
+	Color shadowColor(shadow->_color);
 
-	Common::Array<RPrimitiveInstance *> *meshInstances = &instances;
+	Common::Array<RPrimitiveInstance *> *meshInstances = &_instances;
 
-	if (shadowMeshes.size() > 0)
-		meshInstances = &shadowMeshes;
+	if (_shadowMeshes.size() > 0)
+		meshInstances = &_shadowMeshes;
 
-	if (shadow->sectors.empty() || !shadow->sectors[0]) {
+	if (shadow->_sectors.empty() || !shadow->_sectors[0]) {
 		warning("Actor::drawShadow(): shadow without sectors");
 		drawContext->resetCameraMatrix();
 		_engine->_actorDrawShadowTimer.stop();
@@ -139,22 +139,22 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 		return 0;
 	}
 
-	WalkPlane_v2 *firstSector = shadow->sectors[0];
-	float planeNormalX = firstSector->normal[0];
-	float planeNormalY = firstSector->normal[1];
-	float planeD = firstSector->d;
-	float planeNormalZ = firstSector->normal[2];
+	WalkPlane_v2 *firstSector = shadow->_sectors[0];
+	float planeNormalX = firstSector->_normal[0];
+	float planeNormalY = firstSector->_normal[1];
+	float planeD = firstSector->_d;
+	float planeNormalZ = firstSector->_normal[2];
 
 	for (uint i = 0; i < meshInstances->size(); i++) {
 		RPrimitiveInstance *instance = (*meshInstances)[i];
 
-		if (!instance || !instance->prim) {
+		if (!instance || !instance->_prim) {
 			warning("Actor::drawShadow(): primitive instance without primitive");
 
 			continue;
 		}
 
-		RMesh *mesh = dynamic_cast<RMesh *>(instance->prim);
+		RMesh *mesh = dynamic_cast<RMesh *>(instance->_prim);
 
 		if (!mesh)
 			continue;
@@ -163,22 +163,22 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 
 		RMeshInstance *meshInstance = static_cast<RMeshInstance *>((*meshInstances)[i]);
 
-		if (!meshInstance->vertexArray) {
+		if (!meshInstance->_vertexArray) {
 			warning("Actor::drawShadow(): mesh instance without vertex array");
 
 			continue;
 		}
 
-		if (meshInstance->vertexArray->numVerts > kShadowVertexCapacity) {
+		if (meshInstance->_vertexArray->_numVerts > kShadowVertexCapacity) {
 			warning("Actor::drawShadow(): too many vertices for the shadow vertex array");
 
 			continue;
 		}
 
-		_engine->_shadowVertices->numVerts = meshInstance->vertexArray->numVerts;
+		_engine->_shadowVertices->_numVerts = meshInstance->_vertexArray->_numVerts;
 
 		CDCVertex *destination = static_cast<CDCVertex *>(_engine->_shadowVertices->lock());
-		CDCVertex *source = static_cast<CDCVertex *>(meshInstance->vertexArray->lock());
+		CDCVertex *source = static_cast<CDCVertex *>(meshInstance->_vertexArray->lock());
 
 		if (!destination || !source) {
 			warning("Actor::drawShadow(): could not lock the vertex arrays");
@@ -186,19 +186,19 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 			continue;
 		}
 
-		for (int v = 0; v < _engine->_shadowVertices->numVerts; v++) {
+		for (int v = 0; v < _engine->_shadowVertices->_numVerts; v++) {
 			CVector localPoint;
 			CVector worldPoint;
 
-			localPoint.x = source[v].x;
-			localPoint.y = source[v].y;
-			localPoint.z = source[v].z;
+			localPoint._x = source[v].x;
+			localPoint._y = source[v].y;
+			localPoint._z = source[v].z;
 
 			localToWorld(&localPoint, &worldPoint);
 
-			destination[v].x = worldPoint.x;
-			destination[v].y = worldPoint.y;
-			destination[v].z = worldPoint.z;
+			destination[v].x = worldPoint._x;
+			destination[v].y = worldPoint._y;
+			destination[v].z = worldPoint._z;
 
 			double deltaX = (double)destination[v].x - shadowX;
 			float deltaY = (float)((double)destination[v].y - shadowY);
@@ -215,19 +215,19 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 			destination[v].y = (float)(offsetY + destination[v].y);
 			destination[v].z = (float)(offsetZ + destination[v].z);
 
-			uint red = (uint)shadowColor.r <= 0xFFu ? (uint)shadowColor.r : 0xFFu;
-			uint green = (uint)shadowColor.g <= 0xFFu ? (uint)shadowColor.g : 0xFFu;
-			uint blue = (uint)shadowColor.b <= 0xFFu ? (uint)shadowColor.b : 0xFFu;
-			uint alpha = (uint)shadowColor.a <= 0xFFu ? (uint)shadowColor.a : 0xFFu;
+			uint red = (uint)shadowColor._r <= 0xFFu ? (uint)shadowColor._r : 0xFFu;
+			uint green = (uint)shadowColor._g <= 0xFFu ? (uint)shadowColor._g : 0xFFu;
+			uint blue = (uint)shadowColor._b <= 0xFFu ? (uint)shadowColor._b : 0xFFu;
+			uint alpha = (uint)shadowColor._a <= 0xFFu ? (uint)shadowColor._a : 0xFFu;
 
 			destination[v].color = (alpha << 24) | (red << 16) | (green << 8) | blue;
 		}
 
-		meshInstance->vertexArray->unlock();
+		meshInstance->_vertexArray->unlock();
 		_engine->_shadowVertices->unlock();
 
-		for (uint s = 0; s < shadow->sectors.size(); s++) {
-			WalkPlane_v2 *sector = shadow->sectors[s];
+		for (uint s = 0; s < shadow->_sectors.size(); s++) {
+			WalkPlane_v2 *sector = shadow->_sectors[s];
 
 			if (!sector) {
 				warning("Actor::drawShadow(): unresolved shadow sector");
@@ -235,14 +235,14 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 				continue;
 			}
 
-			if (sector->numVerts > drawContext->getMaxClipPlanes())
+			if (sector->_numVerts > drawContext->getMaxClipPlanes())
 				continue;
 
-			int numVerts = sector->numVerts;
+			int numVerts = sector->_numVerts;
 
 			for (int e = 0; e < numVerts; e++) {
-				wpVertex *start = sector->verts[e];
-				wpVertex *end = sector->verts[(e + 1) % numVerts];
+				wpVertex *start = sector->_verts[e];
+				wpVertex *end = sector->_verts[(e + 1) % numVerts];
 
 				double toShadowX = (double)shadowX - start->x;
 				double toShadowY = (double)shadowY - start->y;
@@ -273,8 +273,8 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 
 			drawContext->submitVertices(_engine->_shadowVertices);
 
-			for (uint t = 0; t < mesh->trisets.size(); t++) {
-				TriSet *triset = mesh->trisets[t];
+			for (uint t = 0; t < mesh->_trisets.size(); t++) {
+				TriSet *triset = mesh->_trisets[t];
 
 				if (triset)
 					drawContext->drawTriangles(kShadowTriangleFlags, nullptr, (int)triset->indices.size(), triset->indices.data());

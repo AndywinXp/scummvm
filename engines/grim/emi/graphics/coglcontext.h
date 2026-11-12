@@ -77,21 +77,21 @@ public:
 	void queryGLInfo();
 	void checkExtensions();
 
-	LString glRenderer;
-	LString glVendor;
-	LString glVersion;
-	LString glExtensions;
-	bool extensionsQueried;
-	bool hasPackedPixels;
-	CDCVertexArray *currentVertexArray;
-	int numClipPlanes;
-	int swapCount;
-	bool depthTestEnabled;
-	bool blendEnabled;
-	bool alphaTestEnabled;
-	int shadeModel;
-	bool texture2dEnabled;
-	int texEnvMode;
+	LString _glRenderer;
+	LString _glVendor;
+	LString _glVersion;
+	LString _glExtensions;
+	bool _extensionsQueried;
+	bool _hasPackedPixels;
+	CDCVertexArray *_currentVertexArray;
+	int _numClipPlanes;
+	int _swapCount;
+	bool _depthTestEnabled;
+	bool _blendEnabled;
+	bool _alphaTestEnabled;
+	int _shadeModel;
+	bool _texture2dEnabled;
+	int _texEnvMode;
 
 private:
 	void captureFrame();

@@ -43,7 +43,7 @@ protected:
 
 private:
 	bool _hasTextField;
-	GUI::EditTextWidget *m_text;
+	GUI::EditTextWidget *_text;
 };
 
 }

@@ -26,58 +26,58 @@
 namespace Grim {
 
 Extra_v2::Extra_v2(EmiEngine *engine) : _engine(engine) {
-	lookAtActive = false;
-	lookAtHasTarget = false;
-	lookTargetActorId = 0;
+	_lookAtActive = false;
+	_lookAtHasTarget = false;
+	_lookTargetActorId = 0;
 
 	for (int i = 0; i < kNumLookLimits; i++) {
-		lookLimits[i].x = 0.0f;
-		lookLimits[i].y = 0.0f;
-		lookLimits[i].z = 1.0f;
+		_lookLimits[i]._x = 0.0f;
+		_lookLimits[i]._y = 0.0f;
+		_lookLimits[i]._z = 1.0f;
 	}
 
-	lookCosFov = 0.5f;
-	lookRate = Actor::kDegreesToRadians * 270.0f;
-	collisionScale = 1.0f;
-	timeScale = 1.0f;
-	walkRate = 0.4f;
-	turnRate = 135.0f;
-	walkDominate = false;
-	reflectionAngle = 60.0f;
+	_lookCosFov = 0.5f;
+	_lookRate = Actor::kDegreesToRadians * 270.0f;
+	_collisionScale = 1.0f;
+	_timeScale = 1.0f;
+	_walkRate = 0.4f;
+	_turnRate = 135.0f;
+	_walkDominate = false;
+	_reflectionAngle = 60.0f;
 
 	Color white;
 
-	white.r = 255;
-	white.g = 255;
-	white.b = 255;
-	talkColor = white;
+	white._r = 255;
+	white._g = 255;
+	white._b = 255;
+	_talkColor = white;
 
-	walking = false;
-	turnDir = 0;
-	resting = false;
-	aligned = false;
-	snapTurn = false;
-	offsetYaw = 0.0f;
-	alignOff = 0.0f;
-	numPathPoints = 0;
-	pathIndex = 0;
-	puck = nullptr;
-	inBoxes = false;
-	talking = false;
-	soundHandle = 0;
-	talkTimerMs = 0;
-	sayLineId[0] = 0;
-	textEventId = 0;
-	lipsyncActive = false;
-	visemeCurrent = 0;
-	collisionMode = 0;
-	inCollision = false;
+	_walking = false;
+	_turnDir = 0;
+	_resting = false;
+	_aligned = false;
+	_snapTurn = false;
+	_offsetYaw = 0.0f;
+	_alignOff = 0.0f;
+	_numPathPoints = 0;
+	_pathIndex = 0;
+	_puck = nullptr;
+	_inBoxes = false;
+	_talking = false;
+	_soundHandle = 0;
+	_talkTimerMs = 0;
+	_sayLineId[0] = 0;
+	_textEventId = 0;
+	_lipsyncActive = false;
+	_visemeCurrent = 0;
+	_collisionMode = 0;
+	_inCollision = false;
 
 	// The disasm leaves visemeMs and the tail of sayLineId uninitialized
-	visemeMs = 0;
+	_visemeMs = 0;
 
 	for (int i = 1; i < kSayLineIdSize; i++)
-		sayLineId[i] = 0;
+		_sayLineId[i] = 0;
 }
 
 void *Extra_v2::operator new(size_t size) {

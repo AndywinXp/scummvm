@@ -67,7 +67,7 @@ public:
 	bool parseStDelay(int id, int numArgs, KeywordArg *args);
 	bool parseRndDelay(int id, int numArgs, KeywordArg *args);
 
-	CSnd *snd;
+	CSnd *_snd;
 };
 
 } // End of namespace Grim

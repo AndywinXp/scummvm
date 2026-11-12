@@ -75,25 +75,25 @@ public:
 
 	void updateLocalState();
 
-	CMatrix bindRot;
-	CVector bindPos;
-	CMatrix skinRot;
-	CVector skinPos;
-	char name[kNameSize];
-	CVector scale;
-	uint nodeFlags;
-	CVector pos;
-	CQuaternion quat;
-	CVector eulerDeg;
-	CTransform world;
-	int observerCount;
-	CNodeRef *observerHead;
-	CNodeRef *observerTail;
-	int childCount;
-	CNode *parent;
-	CNode *firstChild;
-	CNode *nextSibling;
-	CNode *prevSibling;
+	CMatrix _bindRot;
+	CVector _bindPos;
+	CMatrix _skinRot;
+	CVector _skinPos;
+	char _name[kNameSize];
+	CVector _scale;
+	uint _nodeFlags;
+	CVector _pos;
+	CQuaternion _quat;
+	CVector _eulerDeg;
+	CTransform _world;
+	int _observerCount;
+	CNodeRef *_observerHead;
+	CNodeRef *_observerTail;
+	int _childCount;
+	CNode *_parent;
+	CNode *_firstChild;
+	CNode *_nextSibling;
+	CNode *_prevSibling;
 };
 
 } // End of namespace Grim

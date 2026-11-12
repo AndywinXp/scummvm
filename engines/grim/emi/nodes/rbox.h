@@ -39,9 +39,9 @@ public:
 
 	void setSize(float width, float height, float depth);
 
-	float sizeX;
-	float sizeY;
-	float sizeZ;
+	float _sizeX;
+	float _sizeY;
+	float _sizeZ;
 };
 
 class RBoxInstance : public RPrimitiveInstance {

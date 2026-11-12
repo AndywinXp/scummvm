@@ -47,12 +47,12 @@ public:
 	virtual void setPixels(void *newPixels);
 	virtual void setHeight(int newHeight);
 
-	byte *ownedPixels;
-	void *pixels;
-	int width;
-	int height;
-	int stride;
-	int sizeBytes;
+	byte *_ownedPixels;
+	void *_pixels;
+	int _width;
+	int _height;
+	int _stride;
+	int _sizeBytes;
 };
 
 } // End of namespace Grim

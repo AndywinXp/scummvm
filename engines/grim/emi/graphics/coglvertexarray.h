@@ -36,7 +36,7 @@ public:
 	void *lock() override;
 	void unlock() override;
 
-	CDCVertex *data;
+	CDCVertex *_data;
 };
 
 } // End of namespace Grim

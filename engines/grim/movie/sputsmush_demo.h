@@ -34,23 +34,23 @@ class SmushDemoDriver;
 // of the target with a palette table when a frame is shown
 class SputSmushDemo : public SputSmush, public SmushDemoVideo {
 public:
-	SputSmushDemo(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry);
+	SputSmushDemo(Res *res, StdDisplay *stdDisplay, SputRender *sputRender, StdVBuffer *mainGfxBuffer, WuRegistry *wuRegistry);
 	~SputSmushDemo() override;
 
-	void setGrimEngine(GrimEngine *pGrim) { _pGrim = pGrim; }
+	void setGrimEngine(GrimEngine *grim) { _grim = grim; }
 
 	int getMovieTime() override;
-	int initialize(SysStruct *pHS) override;
+	int initialize(SysStruct *hs) override;
 	int startup() override;
 	int shutdown() override;
 	int terminate() override;
 	int periodic() override;
-	int setTarget(StdVBuffer *pBuffer) override;
-	int startMovie(const char *name, int bLooping, int x, int y) override;
+	int setTarget(StdVBuffer *buffer) override;
+	int startMovie(const char *name, int looping, int x, int y) override;
 	int stopMovie() override;
 	int getMovieLength(const char *name) override;
 	int moviePlaying() override;
-	int pause(int bPause) override;
+	int pause(int pause) override;
 	void blitFrame() override;
 
 	int videoStart(int width, int height, int depth) override;
@@ -60,15 +60,15 @@ public:
 	void videoSetPalette(const uint32 *palette, int start, int count) override;
 
 private:
-	GrimEngine *_pGrim;
-	SmushDemoDriver *_pDriver;
-	SmushDemoPlayer *_pPlayer;
-	StdVBuffer *_pMovieBuffer;
-	uint16 _aPaletteTable[256];
-	byte _aMoviePalette[768];
-	int _bDemoPlaying;
-	int _bDemoPaused;
-	int _bFinished;
+	GrimEngine *_grim;
+	SmushDemoDriver *_driver;
+	SmushDemoPlayer *_player;
+	StdVBuffer *_movieBuffer;
+	uint16 _paletteTable[256];
+	byte _moviePalette[768];
+	int _demoPlaying;
+	int _demoPaused;
+	int _finished;
 };
 
 } // End of namespace Grim

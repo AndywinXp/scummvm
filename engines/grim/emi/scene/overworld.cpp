@@ -39,78 +39,78 @@ static const float kProjectionNearClip = 0.05f;
 static const float kProjectionFarClip = 20.0f;
 
 Overworld::Overworld(EmiEngine *engine) : _engine(engine) {
-	enabled = true;
+	_enabled = true;
 
 	CLightNode *ambientNode = new CLightNode(_engine);
 
 	addLight(ambientNode);
-	memset(ambientNode->name, 0, sizeof(ambientNode->name));
-	Common::strlcpy(ambientNode->name, "ambient", CNode::kNameSize);
+	memset(ambientNode->_name, 0, sizeof(ambientNode->_name));
+	Common::strlcpy(ambientNode->_name, "ambient", CNode::kNameSize);
 
 	CLight *ambientLight = new CLight(Color(4u), 1.0f, 10.0f, 10.0f);
 
-	ambientLight->intensity = 0.4f;
+	ambientLight->_intensity = 0.4f;
 	ambientLight->setColor(255, 255, 255);
 	ambientNode->setLight(ambientLight);
 
 	CLightNode *pointNode = new CLightNode(_engine);
 
 	addLight(pointNode);
-	memset(pointNode->name, 0, sizeof(pointNode->name));
-	Common::strlcpy(pointNode->name, "point1", CNode::kNameSize);
+	memset(pointNode->_name, 0, sizeof(pointNode->_name));
+	Common::strlcpy(pointNode->_name, "point1", CNode::kNameSize);
 
 	CVector pointPosition;
 
-	pointPosition.x = -1.0f;
-	pointPosition.y = 0.7f;
-	pointPosition.z = 0.0f;
+	pointPosition._x = -1.0f;
+	pointPosition._y = 0.7f;
+	pointPosition._z = 0.0f;
 	pointNode->setLocalPosition(pointPosition);
 
 	CLight *pointLight = new CLight(Color(1u), 1.0f, 2.0f, 4.0f);
 
-	pointLight->intensity = 1.0f;
+	pointLight->_intensity = 1.0f;
 	pointLight->setColor(255, 255, 255);
 	pointNode->setLight(pointLight);
 }
 
 Overworld::~Overworld() {
-	while (!lights.empty()) {
-		CLightNode *node = lights.front();
+	while (!_lights.empty()) {
+		CLightNode *node = _lights.front();
 
 		if (!node) {
 			warning("Overworld::~Overworld(): null light in the list");
-			lights.pop_front();
+			_lights.pop_front();
 
 			continue;
 		}
 
 		removeLight(node);
-		delete node->light;
+		delete node->_light;
 		delete node;
 	}
 
-	actors.clear();
+	_actors.clear();
 }
 
 int Overworld::draw(CDrawContext *drawContext) {
-	if (!enabled)
+	if (!_enabled)
 		return 0;
 
 	Camera camera(drawContext);
 
 	camera.setLocalPosition(CVector());
-	camera.nearClip = kProjectionNearClip;
-	camera.farClip = kProjectionFarClip;
+	camera._nearClip = kProjectionNearClip;
+	camera._farClip = kProjectionFarClip;
 	drawContext->clear(false, true);
 
 	Common::List<Actor *>::iterator it;
 
-	for (it = actors.begin(); it != actors.end(); ++it) {
+	for (it = _actors.begin(); it != _actors.end(); ++it) {
 		Actor *actor = *it;
 
 		if (actor) {
 			camera.applyProjection();
-			actor->onScreen = true;
+			actor->_onScreen = true;
 			actor->drawActor(&camera);
 		}
 	}
@@ -128,14 +128,14 @@ void Overworld::putActor(Actor *actor) {
 	int occurrences = 0;
 	Common::List<Actor *>::iterator it;
 
-	for (it = actors.begin(); it != actors.end(); ++it) {
+	for (it = _actors.begin(); it != _actors.end(); ++it) {
 		if (*it == actor)
 			occurrences++;
 	}
 
 	if (occurrences == 0) {
-		actors.push_back(actor);
-		actor->inOverworld = true;
+		_actors.push_back(actor);
+		actor->_inOverworld = true;
 	}
 }
 
@@ -149,37 +149,37 @@ int Overworld::removeActor(Actor *actor) {
 	int occurrences = 0;
 	Common::List<Actor *>::iterator it;
 
-	for (it = actors.begin(); it != actors.end(); ++it) {
+	for (it = _actors.begin(); it != _actors.end(); ++it) {
 		if (*it == actor)
 			occurrences++;
 	}
 
-	it = actors.begin();
+	it = _actors.begin();
 
-	while (it != actors.end()) {
+	while (it != _actors.end()) {
 		if (*it == actor)
-			it = actors.erase(it);
+			it = _actors.erase(it);
 		else
 			++it;
 	}
 
-	actor->inOverworld = false;
+	actor->_inOverworld = false;
 
 	return occurrences;
 }
 
 int Overworld::clearActors() {
-	int count = (int)actors.size();
+	int count = (int)_actors.size();
 	Common::List<Actor *>::iterator it;
 
-	for (it = actors.begin(); it != actors.end(); ++it) {
+	for (it = _actors.begin(); it != _actors.end(); ++it) {
 		if (*it)
-			(*it)->inOverworld = false;
+			(*it)->_inOverworld = false;
 		else
 			warning("Overworld::clearActors(): null actor in the list");
 	}
 
-	actors.clear();
+	_actors.clear();
 
 	return count;
 }
@@ -187,12 +187,12 @@ int Overworld::clearActors() {
 void Overworld::addLight(CLightNode *light) {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it == light)
 			return;
 	}
 
-	lights.push_back(light);
+	_lights.push_back(light);
 }
 
 void Overworld::removeLight(CLightNode *light) {
@@ -204,11 +204,11 @@ void Overworld::removeLight(CLightNode *light) {
 
 	light->setActive(false);
 
-	Common::List<CLightNode *>::iterator it = lights.begin();
+	Common::List<CLightNode *>::iterator it = _lights.begin();
 
-	while (it != lights.end()) {
+	while (it != _lights.end()) {
 		if (*it == light)
-			it = lights.erase(it);
+			it = _lights.erase(it);
 		else
 			++it;
 	}
@@ -217,7 +217,7 @@ void Overworld::removeLight(CLightNode *light) {
 void Overworld::setLightsActive(bool active) {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
 			(*it)->setActive(active);
 	}

@@ -35,7 +35,7 @@ uint LuaCommandComponent::resSizeOfItem() {
 }
 
 ComponentInstance *LuaCommandComponent::createInstance(Actor *owner) {
-	return new LuaCommandInstance(_engine, name, owner);
+	return new LuaCommandInstance(_engine, _name, owner);
 }
 
 bool LuaCommandComponent::resLoadItem(const char *itemName) {

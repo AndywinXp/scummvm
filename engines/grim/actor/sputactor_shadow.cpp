@@ -32,80 +32,80 @@
 
 namespace Grim {
 
-int SputActorModule::actorHasShadow(SputActor *pActor) {
+int SputActorModule::actorHasShadow(SputActor *actor) {
 	for (int i = 0; i < 6; i++) {
-		if (pActor->pExtra->aShadows[i].bActive)
+		if (actor->extra->shadows[i].active)
 			return 1;
 	}
 
 	return 0;
 }
 
-void SputActorModule::activateActorShadow(SputActor *pActor, int shadowIdx, int bActive) {
+void SputActorModule::activateActorShadow(SputActor *actor, int shadowIdx, int active) {
 	if (shadowIdx < 0 || shadowIdx >= 6) {
 		warning("SputActorModule::activateActorShadow(): invalid shadow index %d", shadowIdx);
 		return;
 	}
 
-	pActor->pExtra->aShadows[shadowIdx].bActive = bActive;
+	actor->extra->shadows[shadowIdx].active = active;
 }
 
-void SputActorModule::setShadowPlane(SputActor *pActor, const char *planeName) {
-	int shadowIdx = pActor->pExtra->activeShadow;
+void SputActorModule::setShadowPlane(SputActor *actor, const char *planeName) {
+	int shadowIdx = actor->extra->activeShadow;
 
 	if (shadowIdx < 0 || shadowIdx >= 6) {
 		warning("SputActorModule::setShadowPlane(): invalid active shadow %d", shadowIdx);
 		return;
 	}
 
-	ActorShadow *pShadow = &pActor->pExtra->aShadows[shadowIdx];
-	WalkPlane *pPlane = _pWalkSystem->planeNamed(planeName);
+	ActorShadow *shadow = &actor->extra->shadows[shadowIdx];
+	WalkPlane *plane = _walkSystem->planeNamed(planeName);
 
-	if (!pPlane)
+	if (!plane)
 		return;
 
-	pShadow->normal[0] = pPlane->normal[0];
-	pShadow->normal[1] = pPlane->normal[1];
-	pShadow->normal[2] = pPlane->normal[2];
+	shadow->normal[0] = plane->_normal[0];
+	shadow->normal[1] = plane->_normal[1];
+	shadow->normal[2] = plane->_normal[2];
 
-	WpVertex *pVertex = pPlane->apVerts[0];
-	double zTerm = (double)pVertex->z * pShadow->normal[2];
-	double yTerm = (double)pVertex->y * pShadow->normal[1];
-	double xTerm = (double)pVertex->x * pShadow->normal[0];
+	WpVertex *vertex = plane->_verts[0];
+	double zTerm = (double)vertex->z * shadow->normal[2];
+	double yTerm = (double)vertex->y * shadow->normal[1];
+	double xTerm = (double)vertex->x * shadow->normal[0];
 
-	pShadow->bActive = 1;
-	pShadow->side = 0;
-	pShadow->planeD = (float)-(xTerm + (yTerm + zTerm));
+	shadow->active = 1;
+	shadow->side = 0;
+	shadow->planeD = (float)-(xTerm + (yTerm + zTerm));
 }
 
-void SputActorModule::setShadowPoint(SputActor *pActor, float x, float y, float z) {
-	int shadowIdx = pActor->pExtra->activeShadow;
+void SputActorModule::setShadowPoint(SputActor *actor, float x, float y, float z) {
+	int shadowIdx = actor->extra->activeShadow;
 
 	if (shadowIdx < 0 || shadowIdx >= 6) {
 		warning("SputActorModule::setShadowPoint(): invalid active shadow %d", shadowIdx);
 		return;
 	}
 
-	ActorShadow *pShadow = &pActor->pExtra->aShadows[shadowIdx];
+	ActorShadow *shadow = &actor->extra->shadows[shadowIdx];
 
-	pShadow->lightPos[0] = x;
-	pShadow->lightPos[1] = y;
-	pShadow->lightPos[2] = z;
+	shadow->lightPos[0] = x;
+	shadow->lightPos[1] = y;
+	shadow->lightPos[2] = z;
 }
 
-void SputActorModule::setShadowValid(SputActor *pActor, int shadowIdx, int side) {
+void SputActorModule::setShadowValid(SputActor *actor, int shadowIdx, int side) {
 	if (shadowIdx < 0 || shadowIdx >= 6) {
 		warning("SputActorModule::setShadowValid(): invalid shadow index %d", shadowIdx);
 		return;
 	}
 
-	pActor->pExtra->aShadows[shadowIdx].side = side;
+	actor->extra->shadows[shadowIdx].side = side;
 }
 
-void SputActorModule::addShadowClipPlane(SputActor *pActor, int shadowIdx, const char *planeName) {
-	WalkPlane *pPlane = _pWalkSystem->planeNamed(planeName);
+void SputActorModule::addShadowClipPlane(SputActor *actor, int shadowIdx, const char *planeName) {
+	WalkPlane *plane = _walkSystem->planeNamed(planeName);
 
-	if (!pPlane)
+	if (!plane)
 		return;
 
 	if (shadowIdx < 0 || shadowIdx >= 6) {
@@ -113,96 +113,96 @@ void SputActorModule::addShadowClipPlane(SputActor *pActor, int shadowIdx, const
 		return;
 	}
 
-	ActorShadow *pShadow = &pActor->pExtra->aShadows[shadowIdx];
+	ActorShadow *shadow = &actor->extra->shadows[shadowIdx];
 
 	for (int i = 0; i < 12; i++) {
-		if (!pShadow->apClipPlane[i]) {
-			pShadow->apClipPlane[i] = pPlane;
+		if (!shadow->clipPlane[i]) {
+			shadow->clipPlane[i] = plane;
 			return;
 		}
 	}
 }
 
-void SputActorModule::resetShadows(SputActor *pActor) {
-	if (pActor && pActor->pExtra)
-		memset(pActor->pExtra->aShadows, 0, sizeof(pActor->pExtra->aShadows));
+void SputActorModule::resetShadows(SputActor *actor) {
+	if (actor && actor->extra)
+		memset(actor->extra->shadows, 0, sizeof(actor->extra->shadows));
 }
 
-void SputActorModule::loadShadowResources(SputActor *pActor) {
-	if (!pActor->pExtra)
+void SputActorModule::loadShadowResources(SputActor *actor) {
+	if (!actor->extra)
 		return;
 
-	_pGrim->setPerfCounter(11);
+	_grim->setPerfCounter(11);
 
 	for (int i = 0; i < 6; i++) {
-		ActorShadow *pShadow = &pActor->pExtra->aShadows[i];
+		ActorShadow *shadow = &actor->extra->shadows[i];
 
-		if (!pShadow->bActive)
+		if (!shadow->active)
 			continue;
 
-		int side = pShadow->side;
-		bool bInit = true;
+		int side = shadow->side;
+		bool init = true;
 
 		if (side) {
-			double distance = (double)pActor->actorPos[0] * pShadow->normal[0] + (double)pActor->actorPos[2] * pShadow->normal[2];
+			double distance = (double)actor->actorPos[0] * shadow->normal[0] + (double)actor->actorPos[2] * shadow->normal[2];
 
-			distance = distance + (double)pActor->actorPos[1] * pShadow->normal[1];
-			distance = distance + pShadow->planeD;
+			distance = distance + (double)actor->actorPos[1] * shadow->normal[1];
+			distance = distance + shadow->planeD;
 
 			if (side == -1 && distance > 0.0)
-				bInit = false;
+				init = false;
 			else if (side == 1 && distance < 0.0)
-				bInit = false;
+				init = false;
 		}
 
-		if (bInit)
-			initShadow(pActor->pCostumeStack, pShadow);
+		if (init)
+			initShadow(actor->costumeStack, shadow);
 	}
 
-	_pGrim->queryPerfCounterDiff(11);
+	_grim->queryPerfCounterDiff(11);
 }
 
-void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
-	if (!pNode)
+void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) {
+	if (!nodePointer)
 		return;
 
-	float aMin[2] = { 640.0f, 480.0f };
-	float aMax[2] = { 0.0f, 0.0f };
-	bool bDemo = (_pGrim->getGameFlags() & ADGF_DEMO) != 0;
+	float minArray[2] = { 640.0f, 480.0f };
+	float maxArray[2] = { 0.0f, 0.0f };
+	bool demo = (_grim->getGameFlags() & ADGF_DEMO) != 0;
 
-	for (ModelInst *pModelInst = pNode->pHeadList; pModelInst; pModelInst = pModelInst->pNext) {
-		RdThing *pThing = pModelInst->pThing;
+	for (ModelInst *modelInst = nodePointer->headList; modelInst; modelInst = modelInst->next) {
+		RdThing *thing = modelInst->thing;
 
-		if (!pModelInst->bVisible || pModelInst->pSprite)
+		if (!modelInst->visible || modelInst->sprite)
 			continue;
 
-		RdModel3 *pModel3 = pThing->data.pModel3;
+		RdModel3 *model3 = thing->data.model3;
 
-		for (uint node = 0; node < pModel3->numHNodes; node++) {
-			int meshNodeIndex = pModel3->aHNodes[node].meshNodeIndex;
+		for (uint node = 0; node < model3->numHNodes; node++) {
+			int meshNodeIndex = model3->hNodes[node].meshNodeIndex;
 
 			if (meshNodeIndex == -1)
 				continue;
 
-			RdModel3Mesh *pMesh = &pModel3->aGeo[0].aMeshes[meshNodeIndex];
+			RdModel3Mesh *mesh = &model3->geo[0].meshes[meshNodeIndex];
 
-			if (!pMesh->castShadow || !pThing->abMeshVisible[meshNodeIndex])
+			if (!mesh->castShadow || !thing->abMeshVisible[meshNodeIndex])
 				continue;
 
-			RdVector3 aQuads[16];
+			RdVector3 quads[16];
 			int vertex = 0;
 
 			while (vertex < 16) {
 				// The shadows of the demo have three quads, the second one is missing
-				if (bDemo && vertex == 4) {
+				if (demo && vertex == 4) {
 					vertex = 8;
 					continue;
 				}
 
-				_pRd->transformPoint34(aQuads[vertex], pMesh->aShadowVerts[vertex], pThing->aJointMatrices[node]);
+				_rd->transformPoint34(quads[vertex], mesh->shadowVerts[vertex], thing->jointMatrices[node]);
 
 				// The demo goes on when the projection fails
-				if (!_pSputRender->buildShadowBitmap(aQuads[vertex], pShadow->lightPos, aQuads[vertex], pShadow->normal[0], pShadow->normal[1], pShadow->normal[2], pShadow->planeD) && !bDemo)
+				if (!_sputRender->buildShadowBitmap(quads[vertex], shadow->lightPos, quads[vertex], shadow->normal[0], shadow->normal[1], shadow->normal[2], shadow->planeD) && !demo)
 					break;
 
 				vertex++;
@@ -211,104 +211,104 @@ void SputActorModule::initShadow(CostumeNode *pNode, ActorShadow *pShadow) {
 			if (vertex < 16)
 				continue;
 
-			if (!_pShadowMaterial) {
-				if (bDemo) {
-					_pShadowMaterial = &_demoShadowMaterial;
+			if (!_shadowMaterial) {
+				if (demo) {
+					_shadowMaterial = &_demoShadowMaterial;
 				} else {
 					char materialName[] = "shadow.mat";
 
-					_pShadowMaterial = _pRd->_material.load(materialName, 0, 0);
+					_shadowMaterial = _rd->_material.load(materialName, 0, 0);
 				}
 			}
 
-			RdColormap *pColormap = _pSputCostume->getShadowColormap();
+			RdColormap *colormap = _sputCostume->getShadowColormap();
 
-			if (!pColormap && bDemo) {
-				_pSputCostume->setShadowColor(0, 0, 0);
-				pColormap = _pSputCostume->getShadowColormap();
-			} else if (!pColormap) {
+			if (!colormap && demo) {
+				_sputCostume->setShadowColor(0, 0, 0);
+				colormap = _sputCostume->getShadowColormap();
+			} else if (!colormap) {
 				char colormapName[] = "shadow.cmp";
 
-				pColormap = _pRd->_colormap.load(colormapName);
-				_pSputCostume->setShadowColormap(pColormap);
+				colormap = _rd->_colormap.load(colormapName);
+				_sputCostume->setShadowColormap(colormap);
 			}
 
-			if (_pShadowMaterial) {
-				_pRd->_colormap.setCurrent(pColormap);
+			if (_shadowMaterial) {
+				_rd->_colormap.setCurrent(colormap);
 
 #if defined(GRIM_STD3D)
-				if (_pSputRender->is3DHardware()) {
-					if (pColormap)
-						_pStd3D->setCurrentPalette(pColormap->aColors, 0);
+				if (_sputRender->is3DHardware()) {
+					if (colormap)
+						_std3D->setCurrentPalette(colormap->colors, 0);
 					else
 						warning("SputActorModule::initShadow(): the shadow colormap could not be loaded");
 				}
 #endif
 
-				drawShadowPolygon(aQuads[0], 4, aMin, aMax, pShadow);
+				drawShadowPolygon(quads[0], 4, minArray, maxArray, shadow);
 
-				if (!bDemo)
-					drawShadowPolygon(aQuads[4], 4, aMin, aMax, pShadow);
+				if (!demo)
+					drawShadowPolygon(quads[4], 4, minArray, maxArray, shadow);
 
-				drawShadowPolygon(aQuads[8], 4, aMin, aMax, pShadow);
-				drawShadowPolygon(aQuads[12], 4, aMin, aMax, pShadow);
+				drawShadowPolygon(quads[8], 4, minArray, maxArray, shadow);
+				drawShadowPolygon(quads[12], 4, minArray, maxArray, shadow);
 			}
 		}
 	}
 
-	if (!(aMax[0] < aMin[0])) {
+	if (!(maxArray[0] < minArray[0])) {
 		StdRect rect;
 
-		rect.x = (int)aMin[0];
-		rect.y = (int)aMin[1];
-		rect.width = (int)(aMax[0] - aMin[0]);
-		rect.height = (int)(aMax[1] - aMin[1]);
-		_pSputRender->markDirtyRect(&rect, 1);
+		rect.x = (int)minArray[0];
+		rect.y = (int)minArray[1];
+		rect.width = (int)(maxArray[0] - minArray[0]);
+		rect.height = (int)(maxArray[1] - minArray[1]);
+		_sputRender->markDirtyRect(&rect, 1);
 	}
 }
 
-void SputActorModule::drawShadowPolygon(const float *pPoly, int numPoly, float *pMin, float *pMax, ActorShadow *pShadow) {
-	RdVector3 aClipped[12];
+void SputActorModule::drawShadowPolygon(const float *poly, int numPoly, float *minPointer, float *maxPointer, ActorShadow *shadow) {
+	RdVector3 clipped[12];
 
 	for (int i = 0; i < 12; i++) {
-		WalkPlane *pPlane = pShadow->apClipPlane[i];
+		WalkPlane *plane = shadow->clipPlane[i];
 
-		if (!pPlane)
+		if (!plane)
 			break;
 
-		int numClipped = pPlane->clipPoly(pPoly, numPoly, aClipped[0]);
+		int numClipped = plane->clipPoly(poly, numPoly, clipped[0]);
 
 		if (numClipped > 2) {
-			RdProcFace *pFace = _pRd->_primit3.drawPolygon(aClipped, numClipped, _pShadowMaterial);
+			RdProcFace *face = _rd->_primit3.drawPolygon(clipped, numClipped, _shadowMaterial);
 
-			if (pFace) {
-				double xMin = (double)(uint)pFace->xMin;
+			if (face) {
+				double xMin = (double)(uint)face->xMin;
 
-				if (xMin > pMin[0])
-					xMin = pMin[0];
+				if (xMin > minPointer[0])
+					xMin = minPointer[0];
 
-				pMin[0] = (float)xMin;
+				minPointer[0] = (float)xMin;
 
-				double yMin = (double)(uint)pFace->yMin;
+				double yMin = (double)(uint)face->yMin;
 
-				if (pMin[1] < yMin)
-					yMin = pMin[1];
+				if (minPointer[1] < yMin)
+					yMin = minPointer[1];
 
-				pMin[1] = (float)yMin;
+				minPointer[1] = (float)yMin;
 
-				double xMax = (double)(uint)pFace->xMax;
+				double xMax = (double)(uint)face->xMax;
 
-				if (xMax < pMax[0])
-					xMax = pMax[0];
+				if (xMax < maxPointer[0])
+					xMax = maxPointer[0];
 
-				pMax[0] = (float)xMax;
+				maxPointer[0] = (float)xMax;
 
-				double yMax = (double)(uint)pFace->yMax;
+				double yMax = (double)(uint)face->yMax;
 
-				if (pMax[1] > yMax)
-					yMax = pMax[1];
+				if (maxPointer[1] > yMax)
+					yMax = maxPointer[1];
 
-				pMax[1] = (float)yMax;
+				maxPointer[1] = (float)yMax;
 			}
 		}
 	}

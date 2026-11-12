@@ -67,8 +67,8 @@ public:
 	bool complete();
 	bool update(float deltaTime, bool replay);
 	bool setLooping(bool looping);
-	bool save(tSaveRestoreAccess *access);
-	bool restore(tSaveRestoreAccess *access);
+	bool save(SaveRestoreAccess *access);
+	bool restore(SaveRestoreAccess *access);
 
 	static uint newInstanceWithId(EmiEngine *engine, Actor *actor, uint instanceId);
 	static uint newInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName);
@@ -77,13 +77,13 @@ public:
 	static bool startup(EmiEngine *engine);
 	static void shutdown(EmiEngine *engine);
 
-	uint flags;
-	float time;
-	float stopTime;
-	LString choreName;
-	Common::Array<ComponentInstance *> instances;
-	uint id;
-	Actor *owner;
+	uint _flags;
+	float _time;
+	float _stopTime;
+	LString _choreName;
+	Common::Array<ComponentInstance *> _instances;
+	uint _id;
+	Actor *_owner;
 
 private:
 	typedef Common::HashMap<uint, ChoreInstance *> InstanceMap;

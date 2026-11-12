@@ -46,146 +46,146 @@ RMeshInstance::RMeshInstance(RMesh *meshPrimitive) : RPrimitiveInstance(meshPrim
 	Common::Array<uint32> packedColors;
 	const uint32 *colorData = nullptr;
 
-	vertexArray = nullptr;
-	ownsVertexBuf = false;
-	vertexBuf = nullptr;
-	boneNodes = nullptr;
-	staticLightingDone = false;
-	lastFrame = 0;
+	_vertexArray = nullptr;
+	_ownsVertexBuf = false;
+	_vertexBuf = nullptr;
+	_boneNodes = nullptr;
+	_staticLightingDone = false;
+	_lastFrame = 0;
 
-	if (meshPrimitive->colors && meshPrimitive->numVerts > 0) {
-		packedColors.resize(meshPrimitive->numVerts);
+	if (meshPrimitive->_colors && meshPrimitive->_numVerts > 0) {
+		packedColors.resize(meshPrimitive->_numVerts);
 
-		for (int i = 0; i < meshPrimitive->numVerts; i++)
-			packedColors[i] = meshPrimitive->colors[i].pack();
+		for (int i = 0; i < meshPrimitive->_numVerts; i++)
+			packedColors[i] = meshPrimitive->_colors[i].pack();
 
 		colorData = &packedColors[0];
 	}
 
 	if (ctx)
-		vertexArray = ctx->createVertexArray(meshPrimitive->numVerts, meshPrimitive->pos, colorData, meshPrimitive->uv);
+		_vertexArray = ctx->createVertexArray(meshPrimitive->_numVerts, meshPrimitive->_pos, colorData, meshPrimitive->_uv);
 	else
 		warning("RMeshInstance::RMeshInstance(): no draw context");
 
-	for (uint i = 0; i < meshPrimitive->matHandles.size(); i++)
-		texIndex.push_back(0);
+	for (uint i = 0; i < meshPrimitive->_matHandles.size(); i++)
+		_texIndex.push_back(0);
 
-	if (!meshPrimitive->weightMap) {
-		ownsVertexBuf = false;
-		vertexBuf = meshPrimitive->normals;
+	if (!meshPrimitive->_weightMap) {
+		_ownsVertexBuf = false;
+		_vertexBuf = meshPrimitive->_normals;
 	} else {
-		int numVerts = vertexArray ? vertexArray->numVerts : 0;
+		int numVerts = _vertexArray ? _vertexArray->_numVerts : 0;
 
-		vertexBuf = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 3 * sizeof(float));
+		_vertexBuf = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 3 * sizeof(float));
 
-		if (vertexBuf)
-			memset(vertexBuf, 0, numVerts * 3 * sizeof(float));
+		if (_vertexBuf)
+			memset(_vertexBuf, 0, numVerts * 3 * sizeof(float));
 
-		ownsVertexBuf = true;
+		_ownsVertexBuf = true;
 	}
 }
 
 RMeshInstance::~RMeshInstance() {
-	delete vertexArray;
-	vertexArray = nullptr;
+	delete _vertexArray;
+	_vertexArray = nullptr;
 
-	if (ownsVertexBuf && vertexBuf) {
-		_engine->getMemoryServices()->freeImpl(vertexBuf);
-		vertexBuf = nullptr;
+	if (_ownsVertexBuf && _vertexBuf) {
+		_engine->getMemoryServices()->freeImpl(_vertexBuf);
+		_vertexBuf = nullptr;
 	}
 
-	if (boneNodes) {
-		_engine->getMemoryServices()->freeImpl(boneNodes);
-		boneNodes = nullptr;
+	if (_boneNodes) {
+		_engine->getMemoryServices()->freeImpl(_boneNodes);
+		_boneNodes = nullptr;
 	}
 
-	texIndex.clear();
+	_texIndex.clear();
 }
 
 void RMeshInstance::setMaterialTextureIndex(int materialIndex, int textureIndex) {
-	if (materialIndex < 0 || materialIndex >= (int)texIndex.size()) {
+	if (materialIndex < 0 || materialIndex >= (int)_texIndex.size()) {
 		warning("RMeshInstance::setMaterialTextureIndex(): invalid material index %d", materialIndex);
 
 		return;
 	}
 
-	texIndex[materialIndex] = textureIndex;
+	_texIndex[materialIndex] = textureIndex;
 }
 
 void RMeshInstance::update(RNode *node, Camera *camera) {
 	_engine->_rmeshUpdateTimer.start();
 
-	RMesh *mesh = static_cast<RMesh *>(prim);
+	RMesh *mesh = static_cast<RMesh *>(_prim);
 	CDrawContext *ctx = camera->getDrawContext();
 
-	if (!ctx || !vertexArray) {
+	if (!ctx || !_vertexArray) {
 		warning("RMeshInstance::update(): no draw context or vertex array");
 		_engine->_rmeshUpdateTimer.stop();
 
 		return;
 	}
 
-	int frameCounter = ctx->frameCounter;
-	CDCVertex *vertices = static_cast<CDCVertex *>(vertexArray->lock());
+	int frameCounter = ctx->_frameCounter;
+	CDCVertex *vertices = static_cast<CDCVertex *>(_vertexArray->lock());
 
-	if (!staticLightingDone) {
-		if (mesh->normals && (node->drawFlags & kStaticLightingMask) == 0) {
-			if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if (!_staticLightingDone) {
+		if (mesh->_normals && (node->_drawFlags & kStaticLightingMask) == 0) {
+			if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 				node->updateWorldTransform();
 
-			mesh->lightVertices(&node->world, vertexArray->numVerts, vertices, vertexBuf, kStaticLights);
+			mesh->lightVertices(&node->_world, _vertexArray->_numVerts, vertices, _vertexBuf, kStaticLights);
 		}
 
-		staticLightingDone = true;
+		_staticLightingDone = true;
 	}
 
-	if (lastFrame != frameCounter) {
-		lastFrame = frameCounter;
+	if (_lastFrame != frameCounter) {
+		_lastFrame = frameCounter;
 
-		if (mesh->weightMap) {
+		if (mesh->_weightMap) {
 			_engine->_rmeshComputeTransformsTimer.start();
 
 			CTransform identity;
 
-			identity.rot.setIdentity();
-			mesh->weightMap->computeTransforms(node, &identity);
+			identity._rot.setIdentity();
+			mesh->_weightMap->computeTransforms(node, &identity);
 			_engine->_rmeshComputeTransformsTimer.stop();
 
 			VertexSource source;
 
-			source.count = mesh->numVerts;
-			source.positions = mesh->pos;
-			source.normals = mesh->normals;
+			source.count = mesh->_numVerts;
+			source.positions = mesh->_pos;
+			source.normals = mesh->_normals;
 
-			if (boneNodes)
-				mesh->weightMap->deformVerts(&source, &vertices->x, vertexBuf, boneNodes);
+			if (_boneNodes)
+				mesh->_weightMap->deformVerts(&source, &vertices->x, _vertexBuf, _boneNodes);
 			else
 				warning("RMeshInstance::update(): the bone nodes are not bound");
 		}
 
-		if (mesh->normals) {
-			uint flags = node->drawFlags;
+		if (mesh->_normals) {
+			uint flags = node->_drawFlags;
 
 			if ((flags & RNode::kNoLighting) == 0 && (flags & RNode::kDynamicLighting) != 0) {
-				if ((node->nodeFlags & CNode::kWorldValid) == 0)
+				if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 					node->updateWorldTransform();
 
 				if ((flags & RNode::kAmbientCube) == 0)
-					mesh->lightVertices(&node->world, vertexArray->numVerts, vertices, vertexBuf, kDynamicLights);
+					mesh->lightVertices(&node->_world, _vertexArray->_numVerts, vertices, _vertexBuf, kDynamicLights);
 				else
-					mesh->lightVerticesAmbientCube(&node->world, vertexArray->numVerts, vertices, vertexBuf, kDynamicLights);
+					mesh->lightVerticesAmbientCube(&node->_world, _vertexArray->_numVerts, vertices, _vertexBuf, kDynamicLights);
 			}
 		}
 
-		if (globalAlphaMode == kAlphaSet) {
-			for (int i = 0; i < vertexArray->numVerts; i++) {
-				uint32 alpha = (uint32)(int)((double)globalAlpha * kAlphaScale) & 0xFF;
+		if (_globalAlphaMode == kAlphaSet) {
+			for (int i = 0; i < _vertexArray->_numVerts; i++) {
+				uint32 alpha = (uint32)(int)((double)_globalAlpha * kAlphaScale) & 0xFF;
 
 				vertices[i].color = (vertices[i].color & kAlphaMask) | (alpha << kAlphaShift);
 			}
-		} else if (globalAlphaMode == kAlphaModulate) {
-			for (int i = 0; i < vertexArray->numVerts; i++) {
-				int scale = (int)((double)globalAlpha * kAlphaScale);
+		} else if (_globalAlphaMode == kAlphaModulate) {
+			for (int i = 0; i < _vertexArray->_numVerts; i++) {
+				int scale = (int)((double)_globalAlpha * kAlphaScale);
 				int vertexAlpha = vertices[i].color >> kAlphaShift;
 				int product = (int)((uint32)scale * (uint32)vertexAlpha);
 				uint32 alpha = (uint32)(product / 255) & 0xFF;
@@ -194,9 +194,9 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 			}
 		}
 
-		if (matAlphaMode == kAlphaSet || matAlphaMode == kAlphaModulate) {
-			for (Common::HashMap<int, float>::const_iterator it = matAlpha.begin(); it != matAlpha.end(); ++it) {
-				if (it->_key < 0 || it->_key >= vertexArray->numVerts) {
+		if (_matAlphaMode == kAlphaSet || _matAlphaMode == kAlphaModulate) {
+			for (Common::HashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it) {
+				if (it->_key < 0 || it->_key >= _vertexArray->_numVerts) {
 					warning("RMeshInstance::update(): invalid vertex index %d", it->_key);
 					continue;
 				}
@@ -205,7 +205,7 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 				int scale = (int)((double)it->_value * kAlphaScale);
 				uint32 alpha;
 
-				if (matAlphaMode == kAlphaSet) {
+				if (_matAlphaMode == kAlphaSet) {
 					alpha = (uint32)scale & 0xFF;
 				} else {
 					int vertexAlpha = vertex->color >> kAlphaShift;
@@ -219,23 +219,23 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 		}
 	}
 
-	vertexArray->unlock();
+	_vertexArray->unlock();
 	_engine->_rmeshUpdateTimer.stop();
 }
 
 void RMeshInstance::output(RNode *node, Camera *camera) {
 	_engine->_rmeshOutputTimer.start();
 
-	if (!visible) {
+	if (!_visible) {
 		_engine->_rmeshOutputTimer.stop();
 
 		return;
 	}
 
 	CDrawContext *ctx = camera->getDrawContext();
-	RMesh *mesh = static_cast<RMesh *>(prim);
+	RMesh *mesh = static_cast<RMesh *>(_prim);
 
-	if (!ctx || !vertexArray) {
+	if (!ctx || !_vertexArray) {
 		warning("RMeshInstance::output(): no draw context or vertex array");
 		_engine->_rmeshOutputTimer.stop();
 
@@ -244,27 +244,27 @@ void RMeshInstance::output(RNode *node, Camera *camera) {
 
 	CTexture *texture = nullptr;
 
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	const float *v = camera->view.rot.m;
-	const CVector &nodePos = node->world.pos;
-	const CVector &viewPos = camera->view.pos;
+	const float *v = camera->_view._rot._m;
+	const CVector &nodePos = node->_world._pos;
+	const CVector &viewPos = camera->_view._pos;
 
-	double pendingZ = (double)v[2] * nodePos.x + (double)v[8] * nodePos.z + (double)v[5] * nodePos.y;
-	float rotatedY = (float)((double)v[1] * nodePos.x + (double)v[7] * nodePos.z + (double)v[4] * nodePos.y);
-	float rotatedX = (float)((double)v[6] * nodePos.z + (double)v[3] * nodePos.y + (double)nodePos.x * v[0]);
-	float viewX = (float)((double)rotatedX + viewPos.x);
-	float viewY = (float)((double)rotatedY + viewPos.y);
-	float viewZ = (float)(pendingZ + viewPos.z);
+	double pendingZ = (double)v[2] * nodePos._x + (double)v[8] * nodePos._z + (double)v[5] * nodePos._y;
+	float rotatedY = (float)((double)v[1] * nodePos._x + (double)v[7] * nodePos._z + (double)v[4] * nodePos._y);
+	float rotatedX = (float)((double)v[6] * nodePos._z + (double)v[3] * nodePos._y + (double)nodePos._x * v[0]);
+	float viewX = (float)((double)rotatedX + viewPos._x);
+	float viewY = (float)((double)rotatedY + viewPos._y);
+	float viewZ = (float)(pendingZ + viewPos._z);
 	CMatrix rotation;
 
-	node->world.rot.multiply(&rotation, &camera->view.rot);
+	node->_world._rot.multiply(&rotation, &camera->_view._rot);
 
 	float matrix[12];
 
 	for (int i = 0; i < 9; i++)
-		matrix[i] = rotation.m[i];
+		matrix[i] = rotation._m[i];
 
 	matrix[9] = viewX;
 	matrix[10] = viewY;
@@ -272,25 +272,25 @@ void RMeshInstance::output(RNode *node, Camera *camera) {
 
 	ctx->setCameraMatrix(matrix);
 	update(node, camera);
-	ctx->submitVertices(vertexArray);
+	ctx->submitVertices(_vertexArray);
 
-	for (uint i = 0; i < mesh->trisets.size(); i++) {
+	for (uint i = 0; i < mesh->_trisets.size(); i++) {
 		_engine->_rmeshFutzingTimer.start();
 
-		TriSet *triset = mesh->trisets[i];
+		TriSet *triset = mesh->_trisets[i];
 		int flags = triset->drawFlags;
 
-		if (globalAlphaMode || matAlphaMode)
+		if (_globalAlphaMode || _matAlphaMode)
 			flags |= kBlendFlag;
 
 		// The disasm keeps the texture of the previous triangle set when the material index is -1
-		if (!mesh->matHandles.empty() && triset->materialIdx != -1) {
+		if (!mesh->_matHandles.empty() && triset->materialIdx != -1) {
 			int materialIdx = triset->materialIdx;
 
-			if (materialIdx < 0 || materialIdx >= (int)mesh->materials.size() || materialIdx >= (int)texIndex.size() || !mesh->materials[materialIdx])
+			if (materialIdx < 0 || materialIdx >= (int)mesh->_materials.size() || materialIdx >= (int)_texIndex.size() || !mesh->_materials[materialIdx])
 				warning("RMeshInstance::output(): invalid material index %d", materialIdx);
 			else
-				texture = mesh->materials[materialIdx]->getTexture(texIndex[materialIdx]);
+				texture = mesh->_materials[materialIdx]->getTexture(_texIndex[materialIdx]);
 		}
 
 		_engine->_rmeshFutzingTimer.stop();
@@ -303,23 +303,23 @@ void RMeshInstance::output(RNode *node, Camera *camera) {
 }
 
 int RMeshInstance::getSaveSize() {
-	return RPrimitiveInstance::getSaveSize() + (int)sizeof(int) + (int)(texIndex.size() * sizeof(int));
+	return RPrimitiveInstance::getSaveSize() + (int)sizeof(int) + (int)(_texIndex.size() * sizeof(int));
 }
 
-bool RMeshInstance::saveState(tSaveRestoreAccess *access) {
+bool RMeshInstance::saveState(SaveRestoreAccess *access) {
 	RPrimitiveInstance::saveState(access);
 
-	int count = (int)texIndex.size();
+	int count = (int)_texIndex.size();
 
 	access(&count, sizeof(count));
 
 	for (int i = 0; i < count; i++)
-		access(&texIndex[i], sizeof(int));
+		access(&_texIndex[i], sizeof(int));
 
 	return true;
 }
 
-bool RMeshInstance::restoreState(tSaveRestoreAccess *access) {
+bool RMeshInstance::restoreState(SaveRestoreAccess *access) {
 	RPrimitiveInstance::restoreState(access);
 
 	int count = 0;
@@ -331,10 +331,10 @@ bool RMeshInstance::restoreState(tSaveRestoreAccess *access) {
 		count = 0;
 	}
 
-	texIndex.resize(count, 0);
+	_texIndex.resize(count, 0);
 
 	for (int i = 0; i < count; i++)
-		access(&texIndex[i], sizeof(int));
+		access(&_texIndex[i], sizeof(int));
 
 	return true;
 }

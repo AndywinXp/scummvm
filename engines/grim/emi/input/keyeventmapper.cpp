@@ -26,7 +26,7 @@
 namespace Grim {
 
 KeyEventMapper::KeyEventMapper(EmiEngine *engine) : EventHandler(engine, 500) {
-	typeMask = 3;
+	_typeMask = 3;
 }
 
 KeyEventMapper::~KeyEventMapper() {

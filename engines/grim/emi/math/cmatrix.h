@@ -37,7 +37,7 @@ public:
 	CMatrix *transpose(CMatrix *out) const;
 	CMatrix *multiply(CMatrix *out, const CMatrix *other) const;
 
-	float m[9];
+	float _m[9];
 };
 
 } // End of namespace Grim

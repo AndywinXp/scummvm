@@ -94,7 +94,7 @@ public:
 
 	LuaBase(bool isEmi);
 	virtual ~LuaBase();
-	inline static LuaBase *instance() { return s_instance; }
+	inline static LuaBase *instance() { return _instance; }
 
 	virtual int dofile(const char *filename);
 
@@ -164,14 +164,14 @@ protected:
 	DECLARE_LUA_OPCODE(typeOverride);
 	DECLARE_LUA_OPCODE(concatFallback);
 
-	int refSystemTable;
-	int refTypeOverride;
-	int refOldConcatFallback;
+	int _refSystemTable;
+	int _refTypeOverride;
+	int _refOldConcatFallback;
 
 private:
 	unsigned int _frameTimeCollection;
 
-	static LuaBase *s_instance;
+	static LuaBase *_instance;
 
 	friend class LuaObjects;
 };

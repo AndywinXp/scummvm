@@ -74,12 +74,12 @@ void AChannelHandle::operator delete(void *block) {
 }
 
 ATrack::ATrack(EmiEngine *engine) : _engine(engine) {
-	trackType = 0;
-	dataType = 0;
-	priority = 0;
-	numSamples = 0;
-	capacity = 0;
-	trackFlags = 0;
+	_trackType = 0;
+	_dataType = 0;
+	_priority = 0;
+	_numSamples = 0;
+	_capacity = 0;
+	_trackFlags = 0;
 }
 
 ATrack::~ATrack() {
@@ -101,19 +101,19 @@ bool ATrack::save(LFile *file) {
 	ATrackParser parser(_engine);
 
 	parser.setFile(file);
-	parser.writeEntry(kKeywordPriority, priority);
-	parser.writeEntry(kKeywordTrackType, trackType);
-	parser.writeEntry(kKeywordDataType, dataType);
-	parser.writeEntry(kKeywordTrackFlags, trackFlags);
-	parser.writeEntry(kKeywordNumSamples, numSamples);
+	parser.writeEntry(kKeywordPriority, _priority);
+	parser.writeEntry(kKeywordTrackType, _trackType);
+	parser.writeEntry(kKeywordDataType, _dataType);
+	parser.writeEntry(kKeywordTrackFlags, _trackFlags);
+	parser.writeEntry(kKeywordNumSamples, _numSamples);
 
-	switch (dataType) {
+	switch (_dataType) {
 	case kDataFloat: {
 		ATrackKeyframeData<float> *data = dynamic_cast<ATrackKeyframeData<float> *>(this);
 
 		if (data) {
-			for (int i = 0; i < numSamples; i++)
-				parser.writeEntry(kKeywordFloat, data->keys[i].time, data->keys[i].value);
+			for (int i = 0; i < _numSamples; i++)
+				parser.writeEntry(kKeywordFloat, data->_keys[i].time, data->_keys[i].value);
 		}
 
 		break;
@@ -122,8 +122,8 @@ bool ATrack::save(LFile *file) {
 		ATrackKeyframeData<int> *data = dynamic_cast<ATrackKeyframeData<int> *>(this);
 
 		if (data) {
-			for (int i = 0; i < numSamples; i++)
-				parser.writeEntry(kKeywordInt, data->keys[i].time, data->keys[i].getInt());
+			for (int i = 0; i < _numSamples; i++)
+				parser.writeEntry(kKeywordInt, data->_keys[i].time, data->_keys[i].getInt());
 		}
 
 		break;
@@ -132,8 +132,8 @@ bool ATrack::save(LFile *file) {
 		ATrackKeyframeData<CVector> *data = dynamic_cast<ATrackKeyframeData<CVector> *>(this);
 
 		if (data) {
-			for (int i = 0; i < numSamples; i++)
-				parser.writeEntry(kKeywordVector, data->keys[i].time, data->keys[i].v.x, data->keys[i].v.y, data->keys[i].v.z);
+			for (int i = 0; i < _numSamples; i++)
+				parser.writeEntry(kKeywordVector, data->_keys[i].time, data->_keys[i].v._x, data->_keys[i].v._y, data->_keys[i].v._z);
 		}
 
 		break;
@@ -142,8 +142,8 @@ bool ATrack::save(LFile *file) {
 		ATrackKeyframeData<CQuaternion> *data = dynamic_cast<ATrackKeyframeData<CQuaternion> *>(this);
 
 		if (data) {
-			for (int i = 0; i < numSamples; i++)
-				parser.writeEntry(kKeywordQuat, data->keys[i].time, data->keys[i].q.x, data->keys[i].q.y, data->keys[i].q.z, data->keys[i].q.w);
+			for (int i = 0; i < _numSamples; i++)
+				parser.writeEntry(kKeywordQuat, data->_keys[i].time, data->_keys[i].q._x, data->_keys[i].q._y, data->_keys[i].q._z, data->_keys[i].q._w);
 		}
 
 		break;
@@ -159,18 +159,18 @@ bool ATrack::restore(LFile *file) {
 	ATrackParser parser(_engine);
 
 	parser.setFile(file);
-	parser.readEntry(kKeywordPriority, &priority);
-	parser.readEntry(kKeywordTrackType, &trackType);
-	parser.readEntry(kKeywordDataType, &dataType);
-	parser.readEntry(kKeywordTrackFlags, &trackFlags);
-	parser.readEntry(kKeywordNumSamples, &numSamples);
+	parser.readEntry(kKeywordPriority, &_priority);
+	parser.readEntry(kKeywordTrackType, &_trackType);
+	parser.readEntry(kKeywordDataType, &_dataType);
+	parser.readEntry(kKeywordTrackFlags, &_trackFlags);
+	parser.readEntry(kKeywordNumSamples, &_numSamples);
 
-	if (numSamples < 0) {
-		warning("ATrack::restore(): invalid sample count %d", numSamples);
-		numSamples = 0;
+	if (_numSamples < 0) {
+		warning("ATrack::restore(): invalid sample count %d", _numSamples);
+		_numSamples = 0;
 	}
 
-	switch (dataType) {
+	switch (_dataType) {
 	case kDataFloat: {
 		ATrackKeyframeData<float> *data = dynamic_cast<ATrackKeyframeData<float> *>(this);
 
@@ -179,15 +179,15 @@ bool ATrack::restore(LFile *file) {
 			break;
 		}
 
-		data->allocateKeys(numSamples);
+		data->allocateKeys(_numSamples);
 
-		if (numSamples > 0 && !data->keys) {
-			numSamples = 0;
+		if (_numSamples > 0 && !data->_keys) {
+			_numSamples = 0;
 			break;
 		}
 
-		for (int i = 0; i < numSamples; i++)
-			parser.readEntry(kKeywordFloat, &data->keys[i].time, &data->keys[i].value);
+		for (int i = 0; i < _numSamples; i++)
+			parser.readEntry(kKeywordFloat, &data->_keys[i].time, &data->_keys[i].value);
 
 		break;
 	}
@@ -199,18 +199,18 @@ bool ATrack::restore(LFile *file) {
 			break;
 		}
 
-		data->allocateKeys(numSamples);
+		data->allocateKeys(_numSamples);
 
-		if (numSamples > 0 && !data->keys) {
-			numSamples = 0;
+		if (_numSamples > 0 && !data->_keys) {
+			_numSamples = 0;
 			break;
 		}
 
-		for (int i = 0; i < numSamples; i++) {
+		for (int i = 0; i < _numSamples; i++) {
 			int intValue = 0;
 
-			parser.readEntry(kKeywordInt, &data->keys[i].time, &intValue);
-			data->keys[i].setInt(intValue);
+			parser.readEntry(kKeywordInt, &data->_keys[i].time, &intValue);
+			data->_keys[i].setInt(intValue);
 		}
 
 		break;
@@ -223,15 +223,15 @@ bool ATrack::restore(LFile *file) {
 			break;
 		}
 
-		data->allocateKeys(numSamples);
+		data->allocateKeys(_numSamples);
 
-		if (numSamples > 0 && !data->keys) {
-			numSamples = 0;
+		if (_numSamples > 0 && !data->_keys) {
+			_numSamples = 0;
 			break;
 		}
 
-		for (int i = 0; i < numSamples; i++)
-			parser.readEntry(kKeywordVector, &data->keys[i].time, &data->keys[i].v.x, &data->keys[i].v.y, &data->keys[i].v.z);
+		for (int i = 0; i < _numSamples; i++)
+			parser.readEntry(kKeywordVector, &data->_keys[i].time, &data->_keys[i].v._x, &data->_keys[i].v._y, &data->_keys[i].v._z);
 
 		break;
 	}
@@ -243,15 +243,15 @@ bool ATrack::restore(LFile *file) {
 			break;
 		}
 
-		data->allocateKeys(numSamples);
+		data->allocateKeys(_numSamples);
 
-		if (numSamples > 0 && !data->keys) {
-			numSamples = 0;
+		if (_numSamples > 0 && !data->_keys) {
+			_numSamples = 0;
 			break;
 		}
 
-		for (int i = 0; i < numSamples; i++)
-			parser.readEntry(kKeywordQuat, &data->keys[i].time, &data->keys[i].q.x, &data->keys[i].q.y, &data->keys[i].q.z, &data->keys[i].q.w);
+		for (int i = 0; i < _numSamples; i++)
+			parser.readEntry(kKeywordQuat, &data->_keys[i].time, &data->_keys[i].q._x, &data->_keys[i].q._y, &data->_keys[i].q._z, &data->_keys[i].q._w);
 
 		break;
 	}
@@ -264,7 +264,7 @@ bool ATrack::restore(LFile *file) {
 
 template<class T>
 ATrackData<T>::ATrackData(EmiEngine *engine) : ATrack(engine) {
-	value = T();
+	_value = T();
 }
 
 template<class T>
@@ -278,76 +278,76 @@ int ATrackData<T>::getSize() {
 
 template<class T>
 ATrackKeyframeData<T>::ATrackKeyframeData(EmiEngine *engine) : ATrackData<T>(engine) {
-	keys = nullptr;
+	_keys = nullptr;
 }
 
 template<class T>
 ATrackKeyframeData<T>::~ATrackKeyframeData() {
-	if (keys) {
-		_engine->getMemoryServices()->freeImpl(keys);
-		keys = nullptr;
+	if (_keys) {
+		_engine->getMemoryServices()->freeImpl(_keys);
+		_keys = nullptr;
 	}
 }
 
 template<class T>
 int ATrackKeyframeData<T>::getSize() {
-	return (int)(sizeof(ATrackKeyframeData<T>) + numSamples * (sizeof(Key) + sizeof(int)));
+	return (int)(sizeof(ATrackKeyframeData<T>) + _numSamples * (sizeof(Key) + sizeof(int)));
 }
 
 template<class T>
 void ATrackKeyframeData<T>::allocateKeys(int count) {
-	capacity = count;
-	keys = (Key *)_engine->getMemoryServices()->mallocImpl(count * sizeof(Key));
+	_capacity = count;
+	_keys = (Key *)_engine->getMemoryServices()->mallocImpl(count * sizeof(Key));
 
-	if (keys)
-		memset(keys, 0, count * sizeof(Key));
+	if (_keys)
+		memset(_keys, 0, count * sizeof(Key));
 }
 
 template<class T>
 float ATrackKeyframeData<T>::getFirstKeyTime() {
-	if (numSamples <= 0 || !keys) {
+	if (_numSamples <= 0 || !_keys) {
 		warning("ATrackKeyframeData::getFirstKeyTime(): the track has no keys");
 
 		return 0.0f;
 	}
 
-	return keys[0].time;
+	return _keys[0].time;
 }
 
 template<class T>
 float ATrackKeyframeData<T>::getLastKeyTime() {
-	if (numSamples <= 0 || !keys) {
+	if (_numSamples <= 0 || !_keys) {
 		warning("ATrackKeyframeData::getLastKeyTime(): the track has no keys");
 
 		return 0.0f;
 	}
 
-	return keys[numSamples - 1].time;
+	return _keys[_numSamples - 1].time;
 }
 
 template<class T>
 void ATrackKeyframeData<T>::shiftTimes(float offset) {
-	for (int i = 0; i < numSamples; i++)
-		keys[i].time = offset + keys[i].time;
+	for (int i = 0; i < _numSamples; i++)
+		_keys[i].time = offset + _keys[i].time;
 }
 
 template<class T>
 bool ATrackKeyframeData<T>::findKey(float *time, float limit, Key **key) {
 	int index = 0;
 
-	if (numSamples <= 0)
+	if (_numSamples <= 0)
 		return false;
 
-	while (keys[index].time <= *time) {
-		if (++index >= numSamples)
+	while (_keys[index].time <= *time) {
+		if (++index >= _numSamples)
 			return false;
 	}
 
-	if (keys[index].time > limit)
+	if (_keys[index].time > limit)
 		return false;
 
-	*key = &keys[index];
-	*time = keys[index].time;
+	*key = &_keys[index];
+	*time = _keys[index].time;
 
 	return true;
 }
@@ -356,13 +356,13 @@ template<>
 void ATrackKeyframeData<float>::removeRedundantKeys() {
 	int index = 0;
 
-	while (index < numSamples - 1) {
-		if (keys[index + 1].value == keys[index].value) {
+	while (index < _numSamples - 1) {
+		if (_keys[index + 1].value == _keys[index].value) {
 			// The disasm copies one key past the end here, let's avoid that...
-			for (int shift = index + 2; shift < numSamples; shift++)
-				keys[shift - 1] = keys[shift];
+			for (int shift = index + 2; shift < _numSamples; shift++)
+				_keys[shift - 1] = _keys[shift];
 
-			numSamples--;
+			_numSamples--;
 		} else {
 			index++;
 		}
@@ -371,27 +371,27 @@ void ATrackKeyframeData<float>::removeRedundantKeys() {
 
 template<>
 void ATrackKeyframeData<float>::blend(float time, float weight, float *out) {
-	if (numSamples == 0 || weight == 0.0f)
+	if (_numSamples == 0 || weight == 0.0f)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			do {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
 				next++;
-			} while (next < numSamples);
+			} while (next < _numSamples);
 		}
 
 		int previous = next - 1;
-		double elapsed = (double)time - keys[previous].time;
-		double span = (double)keys[next].time - keys[previous].time;
+		double elapsed = (double)time - _keys[previous].time;
+		double span = (double)_keys[next].time - _keys[previous].time;
 		double fraction = 0.0;
 
 		// The original could divide by zero here, let's avoid that...
@@ -399,56 +399,56 @@ void ATrackKeyframeData<float>::blend(float time, float weight, float *out) {
 			fraction = elapsed / span;
 
 		if (weight >= 1.0f) {
-			*out = (float)(((double)keys[next].value - keys[previous].value) * fraction + keys[previous].value);
+			*out = (float)(((double)_keys[next].value - _keys[previous].value) * fraction + _keys[previous].value);
 		} else {
-			*out = (float)((((double)keys[next].value - keys[previous].value) * fraction + keys[previous].value - *out) * weight + *out);
+			*out = (float)((((double)_keys[next].value - _keys[previous].value) * fraction + _keys[previous].value - *out) * weight + *out);
 		}
 	} else {
-		*out = (float)(((double)*out - keys[numSamples - 1].value) * (1.0 - weight) + keys[numSamples - 1].value);
+		*out = (float)(((double)*out - _keys[_numSamples - 1].value) * (1.0 - weight) + _keys[_numSamples - 1].value);
 	}
 }
 
 template<>
 void ATrackKeyframeData<float>::sample(float previousTime, float time, float *out, AChannelHandle *channel) {
-	if (numSamples == 0)
+	if (_numSamples == 0)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			while (true) {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
-				if (channel && keys[next].time > previousTime)
-					channel->onKey(this, keys[next].time, &keys[next]);
+				if (channel && _keys[next].time > previousTime)
+					channel->onKey(this, _keys[next].time, &_keys[next]);
 
-				if (++next >= numSamples)
+				if (++next >= _numSamples)
 					return;
 			}
 
-			double span = (double)keys[next].time - keys[next - 1].time;
+			double span = (double)_keys[next].time - _keys[next - 1].time;
 			double fraction = 0.0;
 
 			// The original could divide by zero here, let's avoid that...
 			if (span != 0.0)
-				fraction = ((double)time - keys[next - 1].time) / span;
+				fraction = ((double)time - _keys[next - 1].time) / span;
 
-			*out = (float)(fraction * ((double)keys[next].value - keys[next - 1].value) + keys[next - 1].value);
+			*out = (float)(fraction * ((double)_keys[next].value - _keys[next - 1].value) + _keys[next - 1].value);
 		}
 	} else {
 		if (channel) {
-			float lastTime = keys[numSamples - 1].time;
+			float lastTime = _keys[_numSamples - 1].time;
 
 			if (previousTime < lastTime)
-				channel->onKey(this, lastTime, &keys[numSamples - 1]);
+				channel->onKey(this, lastTime, &_keys[_numSamples - 1]);
 		}
 
-		*out = keys[numSamples - 1].value;
+		*out = _keys[_numSamples - 1].value;
 	}
 }
 
@@ -456,13 +456,13 @@ template<>
 void ATrackKeyframeData<int>::removeRedundantKeys() {
 	int index = 0;
 
-	while (index < numSamples - 1) {
-		if (keys[index + 1].getInt() == keys[index].getInt()) {
+	while (index < _numSamples - 1) {
+		if (_keys[index + 1].getInt() == _keys[index].getInt()) {
 			// The disasm copies one key past the end here, let's avoid that...
-			for (int shift = index + 2; shift < numSamples; shift++)
-				keys[shift - 1] = keys[shift];
+			for (int shift = index + 2; shift < _numSamples; shift++)
+				_keys[shift - 1] = _keys[shift];
 
-			numSamples--;
+			_numSamples--;
 		} else {
 			index++;
 		}
@@ -471,93 +471,93 @@ void ATrackKeyframeData<int>::removeRedundantKeys() {
 
 template<>
 void ATrackKeyframeData<int>::blend(float time, float weight, int *out) {
-	if (numSamples == 0 || weight == 0.0f)
+	if (_numSamples == 0 || weight == 0.0f)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			do {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
 				next++;
-			} while (next < numSamples);
+			} while (next < _numSamples);
 		}
 
 		int previous = next - 1;
-		double elapsed = (double)time - keys[previous].time;
-		double span = (double)keys[next].time - keys[previous].time;
+		double elapsed = (double)time - _keys[previous].time;
+		double span = (double)_keys[next].time - _keys[previous].time;
 		double fraction = 0.0;
 
 		// The original could divide by zero here, let's avoid that...
 		if (span != 0.0)
 			fraction = elapsed / span;
 
-		int difference = (int)((uint)keys[next].getInt() - (uint)keys[previous].getInt());
+		int difference = (int)((uint)_keys[next].getInt() - (uint)_keys[previous].getInt());
 
 		if (weight >= 1.0f) {
-			*out = doubleToInt((double)difference * fraction + (double)keys[previous].getInt());
+			*out = doubleToInt((double)difference * fraction + (double)_keys[previous].getInt());
 		} else {
-			int interpolated = doubleToInt((double)difference * fraction + (double)keys[previous].getInt());
+			int interpolated = doubleToInt((double)difference * fraction + (double)_keys[previous].getInt());
 			int delta = (int)((uint)interpolated - (uint)*out);
 
 			*out = doubleToInt((double)delta * weight + (double)*out);
 		}
 	} else {
-		int delta = (int)((uint)*out - (uint)keys[numSamples - 1].getInt());
+		int delta = (int)((uint)*out - (uint)_keys[_numSamples - 1].getInt());
 
-		*out = doubleToInt((double)delta * (1.0 - weight) + (double)keys[numSamples - 1].getInt());
+		*out = doubleToInt((double)delta * (1.0 - weight) + (double)_keys[_numSamples - 1].getInt());
 	}
 }
 
 template<>
 void ATrackKeyframeData<int>::sample(float previousTime, float time, int *out, AChannelHandle *channel) {
-	if (numSamples == 0)
+	if (_numSamples == 0)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			while (true) {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
-				if (channel && keys[next].time > previousTime)
-					channel->onKey(this, keys[next].time, &keys[next]);
+				if (channel && _keys[next].time > previousTime)
+					channel->onKey(this, _keys[next].time, &_keys[next]);
 
-				if (++next >= numSamples)
+				if (++next >= _numSamples)
 					return;
 			}
 
-			double span = (double)keys[next].time - keys[next - 1].time;
+			double span = (double)_keys[next].time - _keys[next - 1].time;
 			double fraction = 0.0;
 
 			// The original could divide by zero here, let's avoid that...
 			if (span != 0.0)
-				fraction = ((double)time - keys[next - 1].time) / span;
+				fraction = ((double)time - _keys[next - 1].time) / span;
 
-			int difference = (int)((uint)keys[next].getInt() - (uint)keys[next - 1].getInt());
+			int difference = (int)((uint)_keys[next].getInt() - (uint)_keys[next - 1].getInt());
 
-			*out = doubleToInt(fraction * (double)difference + (double)keys[next - 1].getInt());
+			*out = doubleToInt(fraction * (double)difference + (double)_keys[next - 1].getInt());
 		}
 	} else {
 		if (channel) {
-			float lastTime = keys[numSamples - 1].time;
+			float lastTime = _keys[_numSamples - 1].time;
 
 			if (previousTime < lastTime)
-				channel->onKey(this, lastTime, &keys[numSamples - 1]);
+				channel->onKey(this, lastTime, &_keys[_numSamples - 1]);
 		}
 
-		*out = keys[numSamples - 1].getInt();
+		*out = _keys[_numSamples - 1].getInt();
 	}
 }
 
@@ -565,13 +565,13 @@ template<>
 void ATrackKeyframeData<CVector>::removeRedundantKeys() {
 	int index = 0;
 
-	while (index < numSamples - 1) {
-		if (keys[index + 1].v.x == keys[index].v.x && keys[index + 1].v.y == keys[index].v.y && keys[index + 1].v.z == keys[index].v.z) {
+	while (index < _numSamples - 1) {
+		if (_keys[index + 1].v._x == _keys[index].v._x && _keys[index + 1].v._y == _keys[index].v._y && _keys[index + 1].v._z == _keys[index].v._z) {
 			// The disasm copies one key past the end here, let's avoid that...
-			for (int shift = index + 2; shift < numSamples; shift++)
-				keys[shift - 1] = keys[shift];
+			for (int shift = index + 2; shift < _numSamples; shift++)
+				_keys[shift - 1] = _keys[shift];
 
-			numSamples--;
+			_numSamples--;
 		} else {
 			index++;
 		}
@@ -580,107 +580,107 @@ void ATrackKeyframeData<CVector>::removeRedundantKeys() {
 
 template<>
 void ATrackKeyframeData<CVector>::blend(float time, float weight, CVector *out) {
-	if (numSamples == 0 || weight == 0.0f)
+	if (_numSamples == 0 || weight == 0.0f)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			do {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
 				next++;
-			} while (next < numSamples);
+			} while (next < _numSamples);
 		}
 
 		int previous = next - 1;
-		double span = (double)keys[next].time - keys[previous].time;
+		double span = (double)_keys[next].time - _keys[previous].time;
 		float fraction = 0.0f;
 
 		// The original could divide by zero here, let's avoid that...
 		if (span != 0.0)
-			fraction = (float)(((double)time - keys[previous].time) / span);
+			fraction = (float)(((double)time - _keys[previous].time) / span);
 
-		const CVector &from = keys[previous].v;
-		const CVector &to = keys[next].v;
+		const CVector &from = _keys[previous].v;
+		const CVector &to = _keys[next].v;
 
 		if (weight >= 1.0f) {
-			out->x = (float)(((double)to.x - from.x) * fraction + from.x);
-			out->y = (float)(((double)to.y - from.y) * fraction + from.y);
-			out->z = (float)(((double)to.z - from.z) * fraction + from.z);
+			out->_x = (float)(((double)to._x - from._x) * fraction + from._x);
+			out->_y = (float)(((double)to._y - from._y) * fraction + from._y);
+			out->_z = (float)(((double)to._z - from._z) * fraction + from._z);
 		} else {
-			float oldY = out->y;
-			float oldZ = out->z;
-			float interpolatedY = (float)(((double)to.y - from.y) * fraction + from.y);
-			float interpolatedZ = (float)(((double)to.z - from.z) * fraction + from.z);
+			float oldY = out->_y;
+			float oldZ = out->_z;
+			float interpolatedY = (float)(((double)to._y - from._y) * fraction + from._y);
+			float interpolatedZ = (float)(((double)to._z - from._z) * fraction + from._z);
 
-			out->x = (float)((((double)to.x - from.x) * fraction + from.x - out->x) * weight + out->x);
-			out->y = (float)(((double)interpolatedY - oldY) * weight + oldY);
-			out->z = (float)(((double)interpolatedZ - oldZ) * weight + oldZ);
+			out->_x = (float)((((double)to._x - from._x) * fraction + from._x - out->_x) * weight + out->_x);
+			out->_y = (float)(((double)interpolatedY - oldY) * weight + oldY);
+			out->_z = (float)(((double)interpolatedZ - oldZ) * weight + oldZ);
 		}
 	} else {
-		const CVector &last = keys[numSamples - 1].v;
+		const CVector &last = _keys[_numSamples - 1].v;
 		double remaining = 1.0 - weight;
 
-		out->x = (float)(((double)out->x - last.x) * remaining + last.x);
-		out->y = (float)(((double)out->y - last.y) * remaining + last.y);
-		out->z = (float)(((double)out->z - last.z) * remaining + last.z);
+		out->_x = (float)(((double)out->_x - last._x) * remaining + last._x);
+		out->_y = (float)(((double)out->_y - last._y) * remaining + last._y);
+		out->_z = (float)(((double)out->_z - last._z) * remaining + last._z);
 	}
 }
 
 template<>
 void ATrackKeyframeData<CVector>::sample(float previousTime, float time, CVector *out, AChannelHandle *channel) {
-	if (numSamples == 0)
+	if (_numSamples == 0)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			while (true) {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
-				if (channel && keys[next].time > previousTime)
-					channel->onKey(this, keys[next].time, &keys[next]);
+				if (channel && _keys[next].time > previousTime)
+					channel->onKey(this, _keys[next].time, &_keys[next]);
 
-				if (++next >= numSamples)
+				if (++next >= _numSamples)
 					return;
 			}
 
-			double span = (double)keys[next].time - keys[next - 1].time;
+			double span = (double)_keys[next].time - _keys[next - 1].time;
 			double fraction = 0.0;
 
 			// The original could divide by zero here, let's avoid that...
 			if (span != 0.0)
-				fraction = ((double)time - keys[next - 1].time) / span;
+				fraction = ((double)time - _keys[next - 1].time) / span;
 
-			const CVector &from = keys[next - 1].v;
-			const CVector &to = keys[next].v;
+			const CVector &from = _keys[next - 1].v;
+			const CVector &to = _keys[next].v;
 
-			out->x = (float)(((double)to.x - from.x) * fraction + from.x);
-			out->y = (float)(((double)to.y - from.y) * fraction + from.y);
-			out->z = (float)(((double)to.z - from.z) * fraction + from.z);
+			out->_x = (float)(((double)to._x - from._x) * fraction + from._x);
+			out->_y = (float)(((double)to._y - from._y) * fraction + from._y);
+			out->_z = (float)(((double)to._z - from._z) * fraction + from._z);
 		}
 	} else {
 		if (channel) {
-			float lastTime = keys[numSamples - 1].time;
+			float lastTime = _keys[_numSamples - 1].time;
 
 			if (previousTime < lastTime)
-				channel->onKey(this, lastTime, &keys[numSamples - 1]);
+				channel->onKey(this, lastTime, &_keys[_numSamples - 1]);
 		}
 
-		out->x = keys[numSamples - 1].v.x;
-		out->y = keys[numSamples - 1].v.y;
-		out->z = keys[numSamples - 1].v.z;
+		out->_x = _keys[_numSamples - 1].v._x;
+		out->_y = _keys[_numSamples - 1].v._y;
+		out->_z = _keys[_numSamples - 1].v._z;
 	}
 }
 
@@ -688,13 +688,13 @@ template<>
 void ATrackKeyframeData<CQuaternion>::removeRedundantKeys() {
 	int index = 0;
 
-	while (index < numSamples - 1) {
-		if (keys[index + 1].q.x == keys[index].q.x && keys[index + 1].q.y == keys[index].q.y && keys[index + 1].q.z == keys[index].q.z && keys[index + 1].q.w == keys[index].q.w) {
+	while (index < _numSamples - 1) {
+		if (_keys[index + 1].q._x == _keys[index].q._x && _keys[index + 1].q._y == _keys[index].q._y && _keys[index + 1].q._z == _keys[index].q._z && _keys[index + 1].q._w == _keys[index].q._w) {
 			// The disasm copies one key past the end here, let's avoid that...
-			for (int shift = index + 2; shift < numSamples; shift++)
-				keys[shift - 1] = keys[shift];
+			for (int shift = index + 2; shift < _numSamples; shift++)
+				_keys[shift - 1] = _keys[shift];
 
-			numSamples--;
+			_numSamples--;
 		} else {
 			index++;
 		}
@@ -703,90 +703,90 @@ void ATrackKeyframeData<CQuaternion>::removeRedundantKeys() {
 
 template<>
 void ATrackKeyframeData<CQuaternion>::blend(float time, float weight, CQuaternion *out) {
-	if (numSamples == 0 || weight == 0.0f)
+	if (_numSamples == 0 || weight == 0.0f)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			do {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
 				next++;
-			} while (next < numSamples);
+			} while (next < _numSamples);
 		}
 
 		int previous = next - 1;
-		double span = (double)keys[next].time - keys[previous].time;
+		double span = (double)_keys[next].time - _keys[previous].time;
 		float fraction = 0.0f;
 
 		// The original could divide by zero here, let's avoid that...
 		if (span != 0.0)
-			fraction = (float)(((double)time - keys[previous].time) / span);
+			fraction = (float)(((double)time - _keys[previous].time) / span);
 
 		if (weight >= 1.0f) {
-			keys[previous].q.slerp(keys[next].q, fraction, out);
+			_keys[previous].q.slerp(_keys[next].q, fraction, out);
 		} else {
 			CQuaternion oldValue;
 			CQuaternion interpolated;
 
 			oldValue = *out;
-			keys[previous].q.slerp(keys[next].q, fraction, &interpolated);
+			_keys[previous].q.slerp(_keys[next].q, fraction, &interpolated);
 			oldValue.slerp(interpolated, weight, out);
 		}
 	} else {
 		float remaining = (float)(1.0 - weight);
 
-		keys[numSamples - 1].q.slerp(*out, remaining, out);
+		_keys[_numSamples - 1].q.slerp(*out, remaining, out);
 	}
 }
 
 template<>
 void ATrackKeyframeData<CQuaternion>::sample(float previousTime, float time, CQuaternion *out, AChannelHandle *channel) {
-	if (numSamples == 0)
+	if (_numSamples == 0)
 		return;
 
-	if (time < keys[0].time)
+	if (time < _keys[0].time)
 		return;
 
-	if (time < keys[numSamples - 1].time) {
+	if (time < _keys[_numSamples - 1].time) {
 		int next = 1;
 
-		if (numSamples > 1) {
+		if (_numSamples > 1) {
 			while (true) {
-				if (keys[next].time >= time)
+				if (_keys[next].time >= time)
 					break;
 
-				if (channel && keys[next].time > previousTime)
-					channel->onKey(this, keys[next].time, &keys[next]);
+				if (channel && _keys[next].time > previousTime)
+					channel->onKey(this, _keys[next].time, &_keys[next]);
 
-				if (++next >= numSamples)
+				if (++next >= _numSamples)
 					return;
 			}
 
-			double span = (double)keys[next].time - keys[next - 1].time;
+			double span = (double)_keys[next].time - _keys[next - 1].time;
 			float fraction = 0.0f;
 
 			// The original could divide by zero here, let's avoid that...
 			if (span != 0.0)
-				fraction = (float)(((double)time - keys[next - 1].time) / span);
+				fraction = (float)(((double)time - _keys[next - 1].time) / span);
 
-			keys[next - 1].q.slerp(keys[next].q, fraction, out);
+			_keys[next - 1].q.slerp(_keys[next].q, fraction, out);
 		}
 	} else {
 		if (channel) {
-			float lastTime = keys[numSamples - 1].time;
+			float lastTime = _keys[_numSamples - 1].time;
 
 			if (previousTime < lastTime)
-				channel->onKey(this, lastTime, &keys[numSamples - 1]);
+				channel->onKey(this, lastTime, &_keys[_numSamples - 1]);
 		}
 
-		*out = keys[numSamples - 1].q;
+		*out = _keys[_numSamples - 1].q;
 	}
 }
 

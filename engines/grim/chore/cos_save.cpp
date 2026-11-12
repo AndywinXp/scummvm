@@ -26,104 +26,104 @@
 
 namespace Grim {
 
-int Cos::save(Common::WriteStream *pStream) {
+int Cos::save(Common::WriteStream *stream) {
 	int numSaved = 0;
 
-	pStream->writeSint32LE(_maxCostumes);
+	stream->writeSint32LE(_maxCostumes);
 
 	for (int i = 0; i < _maxCostumes; i++) {
-		if (!_aCostumes[i].bFree && (!_pSaveVerify || _pSaveVerify(_aCostumes[i].name)))
+		if (!_costumes[i].free && (!_saveVerify || _saveVerify(_costumes[i].name)))
 			numSaved++;
 	}
 
-	pStream->writeSint32LE(numSaved);
+	stream->writeSint32LE(numSaved);
 
 	for (int i = 0; i < _maxCostumes; i++) {
-		if (!_aCostumes[i].bFree && (!_pSaveVerify || _pSaveVerify(_aCostumes[i].name))) {
-			pStream->writeSint32LE(indexToHandle(i));
-			pStream->write(_aCostumes[i].name, 32);
+		if (!_costumes[i].free && (!_saveVerify || _saveVerify(_costumes[i].name))) {
+			stream->writeSint32LE(indexToHandle(i));
+			stream->write(_costumes[i].name, 32);
 		}
 	}
 
-	pStream->writeSint32LE(_maxInstances);
+	stream->writeSint32LE(_maxInstances);
 
 	return 0;
 }
 
-int Cos::restore(Common::ReadStream *pStream) {
+int Cos::restore(Common::ReadStream *stream) {
 	for (int i = 0; i < _maxCostumes; i++) {
-		if (!_aCostumes[i].bFree)
+		if (!_costumes[i].free)
 			freeCostume(indexToHandle(i));
 	}
 
-	int newMaxCostumes = pStream->readSint32LE();
+	int newMaxCostumes = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || newMaxCostumes < 0) {
+	if (stream->err() || stream->eos() || newMaxCostumes < 0) {
 		warning("Cos::restore(): invalid costume table size");
 		return 0;
 	}
 
 	if (newMaxCostumes > _maxCostumes) {
-		CosCostume *aCostumes = new CosCostume[newMaxCostumes]();
+		CosCostume *costumes = new CosCostume[newMaxCostumes]();
 
 		for (int i = 0; i < _maxCostumes; i++)
-			aCostumes[i] = _aCostumes[i];
+			costumes[i] = _costumes[i];
 
-		delete[] _aCostumes;
-		_aCostumes = aCostumes;
+		delete[] _costumes;
+		_costumes = costumes;
 
 		for (int i = _maxCostumes; i < newMaxCostumes; i++)
-			_aCostumes[i].bFree = 1;
+			_costumes[i].free = 1;
 
 		_maxCostumes = newMaxCostumes;
 	}
 
-	int numSaved = pStream->readSint32LE();
+	int numSaved = stream->readSint32LE();
 
 	for (int i = 0; i < numSaved; i++) {
 		char name[32];
-		int hCostume = pStream->readSint32LE();
-		pStream->read(name, 32);
+		int costume = stream->readSint32LE();
+		stream->read(name, 32);
 
-		if (pStream->err() || pStream->eos()) {
+		if (stream->err() || stream->eos()) {
 			warning("Cos::restore(): truncated costume list");
 			return 0;
 		}
 
 		name[31] = 0;
-		loadEntry(name, hCostume);
+		loadEntry(name, costume);
 
-		int index = handleToIndex(hCostume);
+		int index = handleToIndex(costume);
 
 		if (index < 0 || index >= _maxCostumes)
-			warning("Cos::restore(): invalid costume handle %d", hCostume);
+			warning("Cos::restore(): invalid costume handle %d", costume);
 		else
-			_aCostumes[index].bFree = 0;
+			_costumes[index].free = 0;
 
 		_numCostumes++;
 	}
 
-	int newMaxInstances = pStream->readSint32LE();
+	int newMaxInstances = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || newMaxInstances < 0) {
+	if (stream->err() || stream->eos() || newMaxInstances < 0) {
 		warning("Cos::restore(): invalid instance table size");
 		return 0;
 	}
 
 	if (newMaxInstances > _maxInstances) {
-		delete[] _aInstances;
-		_aInstances = new CosInstance[newMaxInstances]();
+		delete[] _instances;
+		_instances = new CosInstance[newMaxInstances]();
 		_maxInstances = newMaxInstances;
 	}
 
 	for (int i = 0; i < _maxInstances; i++) {
-		CosInstance *pInstance = &_aInstances[i];
-		pInstance->costume = 0;
-		pInstance->aChoreInstances = nullptr;
-		pInstance->userData = 0;
-		pInstance->aInstanceData = nullptr;
-		pInstance->bFree = 0;
-		pInstance->bFree = 1;
+		CosInstance *instance = &_instances[i];
+		instance->costume = 0;
+		instance->choreInstances = nullptr;
+		instance->userData = 0;
+		instance->instanceData = nullptr;
+		instance->free = 0;
+		instance->free = 1;
 	}
 
 	_maxInstances = newMaxInstances;
@@ -131,57 +131,57 @@ int Cos::restore(Common::ReadStream *pStream) {
 	return 0;
 }
 
-int Cos::saveInstance(int hInst, Common::WriteStream *pStream) {
-	int index = instHandleToIndex(hInst);
+int Cos::saveInstance(int inst, Common::WriteStream *stream) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::saveInstance(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::saveInstance(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponentClass *pClass = &_aClasses[pCostume->aComponents[i].classIdx];
-		pClass->pHandler->saveLoad(hInst, i, 1, pInstance->aInstanceData[i], pStream, nullptr);
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponentClass *classInfo = &_classes[costume->components[i].classIdx];
+		classInfo->handler->saveLoad(inst, i, 1, instance->instanceData[i], stream, nullptr);
 	}
 
-	for (int i = 0; i < pCostume->numChores; i++) {
-		CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[i];
-		pStream->writeUint32LE(pChoreInst->state);
-		pStream->writeUint32LE(pChoreInst->choreIndex);
-		pStream->writeSint32LE(pChoreInst->time);
+	for (int i = 0; i < costume->numChores; i++) {
+		CosChoreInstance *choreInst = &instance->choreInstances[i];
+		stream->writeUint32LE(choreInst->state);
+		stream->writeUint32LE(choreInst->choreIndex);
+		stream->writeSint32LE(choreInst->time);
 	}
 
 	return 0;
 }
 
-int Cos::restoreInstance(int hInst, Common::ReadStream *pStream) {
-	int index = instHandleToIndex(hInst);
+int Cos::restoreInstance(int inst, Common::ReadStream *stream) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::restoreInstance(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::restoreInstance(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponentClass *pClass = &_aClasses[pCostume->aComponents[i].classIdx];
-		pClass->pHandler->saveLoad(hInst, i, 0, pInstance->aInstanceData[i], nullptr, pStream);
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponentClass *classInfo = &_classes[costume->components[i].classIdx];
+		classInfo->handler->saveLoad(inst, i, 0, instance->instanceData[i], nullptr, stream);
 	}
 
-	for (int i = 0; i < pCostume->numChores; i++) {
-		CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[i];
-		pChoreInst->state = pStream->readUint32LE();
-		pChoreInst->choreIndex = pStream->readUint32LE();
-		pChoreInst->time = pStream->readSint32LE();
+	for (int i = 0; i < costume->numChores; i++) {
+		CosChoreInstance *choreInst = &instance->choreInstances[i];
+		choreInst->state = stream->readUint32LE();
+		choreInst->choreIndex = stream->readUint32LE();
+		choreInst->time = stream->readSint32LE();
 
-		if (pChoreInst->choreIndex >= (uint32)pCostume->numChores) {
-			warning("Cos::restoreInstance(): chore instance %d refers to the invalid chore %u", i, pChoreInst->choreIndex);
-			pChoreInst->choreIndex = i;
+		if (choreInst->choreIndex >= (uint32)costume->numChores) {
+			warning("Cos::restoreInstance(): chore instance %d refers to the invalid chore %u", i, choreInst->choreIndex);
+			choreInst->choreIndex = i;
 		}
 	}
 

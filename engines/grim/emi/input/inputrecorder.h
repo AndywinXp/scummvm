@@ -66,11 +66,11 @@ public:
 	float replayFrame();
 	void recordFrame(float frameTime);
 
-	int mode;
-	float dt;
-	int keyCode;
-	byte character;
-	int lastRecordType;
+	int _mode;
+	float _dt;
+	int _keyCode;
+	byte _character;
+	int _lastRecordType;
 
 private:
 	EmiEngine *_engine;

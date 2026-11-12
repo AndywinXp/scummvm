@@ -30,11 +30,11 @@
 
 namespace Grim {
 
-Polyglot::Polyglot() : _pHS(nullptr), _pLanguageMalloc(nullptr), _ppLanguageLine(nullptr), _lineCount(0) {
+Polyglot::Polyglot() : _hs(nullptr), _languageMalloc(nullptr), _languageLine(nullptr), _lineCount(0) {
 }
 
-int Polyglot::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int Polyglot::initialize(SysStruct *hs) {
+	_hs = hs;
 
 	return 0;
 }
@@ -44,83 +44,83 @@ int Polyglot::startup() {
 }
 
 void Polyglot::shutdown() {
-	delete[] _pLanguageMalloc;
-	_pLanguageMalloc = nullptr;
+	delete[] _languageMalloc;
+	_languageMalloc = nullptr;
 
-	delete[] _ppLanguageLine;
-	_ppLanguageLine = nullptr;
+	delete[] _languageLine;
+	_languageLine = nullptr;
 }
 
 void Polyglot::configure(const char *tabFile) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(tabFile);
+	Common::SeekableReadStream *file = _hs->openFile(tabFile);
 
-	if (!pFile)
+	if (!file)
 		return;
 
-	int size = pFile->size();
+	int size = file->size();
 	uint32 magic = 0;
 
 	if (size >= 4)
-		magic = pFile->readUint32LE();
+		magic = file->readUint32LE();
 
-	pFile->seek(0);
+	file->seek(0);
 
-	_pLanguageMalloc = new char[size + 3];
-	memset(_pLanguageMalloc + size, 0, 3);
-	pFile->read(_pLanguageMalloc, size);
-	delete pFile;
+	_languageMalloc = new char[size + 3];
+	memset(_languageMalloc + size, 0, 3);
+	file->read(_languageMalloc, size);
+	delete file;
 
 	if (magic == MKTAG('E', 'N', 'C', 'R')) {
 		size -= 4;
 
 		for (int i = 0; i < size; i++)
-			_pLanguageMalloc[i] = _pLanguageMalloc[i + 4] ^ 0xDD;
+			_languageMalloc[i] = _languageMalloc[i + 4] ^ 0xDD;
 	}
 
-	char *pLine = _pLanguageMalloc;
+	char *line = _languageMalloc;
 
 	do {
-		pLine = findChar(pLine, 13) + 2;
+		line = findChar(line, 13) + 2;
 		_lineCount++;
-	} while (pLine - _pLanguageMalloc < size - 1);
+	} while (line - _languageMalloc < size - 1);
 
-	_ppLanguageLine = new char *[_lineCount];
+	_languageLine = new char *[_lineCount];
 
-	pLine = _pLanguageMalloc;
+	line = _languageMalloc;
 	int lineIndex = 0;
 
 	do {
-		char *pLineEnd = findChar(pLine, 13);
+		char *lineEnd = findChar(line, 13);
 
-		*pLineEnd = 0;
+		*lineEnd = 0;
 
-		char *pTab = strchr(pLine, 9);
+		char *tab = strchr(line, 9);
 
-		if (pTab)
-			*pTab = 0;
+		if (tab)
+			*tab = 0;
 
-		for (char *p = pLine; *p; p++) {
+		for (char *p = line; *p; p++) {
 			if (*p >= 'a' && *p <= 'z')
 				*p -= 0x20;
 		}
 
-		_ppLanguageLine[lineIndex] = pLine;
-		pLine = pLineEnd + 2;
+		_languageLine[lineIndex] = line;
+		line = lineEnd + 2;
 		lineIndex++;
-	} while (pLine - _pLanguageMalloc < size - 1);
+	} while (line - _languageMalloc < size - 1);
 
-	sort(_ppLanguageLine, _lineCount, sizeof(char *), WuRegistry::compareNames);
+	sort(_languageLine, _lineCount, sizeof(char *), WuRegistry::compareNames);
 }
 
 char *Polyglot::findChar(char *s, int c) {
-	char *pResult = s;
+	char *result = s;
 
-	for (char i = *s; i; i = *++pResult) {
+	for (char i = *s; i; i = *++result) {
 		if (i == c)
 			break;
 	}
 
-	return pResult;
+	return result;
 }
 
 const char *Polyglot::getTranslation(const char *msg) {
@@ -132,45 +132,45 @@ const char *Polyglot::getTranslation(const char *msg) {
 	if (*msg != '/')
 		return msg;
 
-	const char *pText = strchr(msg + 1, '/');
+	const char *text = strchr(msg + 1, '/');
 
-	if (pText) {
-		pText++;
+	if (text) {
+		text++;
 	} else {
 		warning("Polyglot::getTranslation(): the message has no closing slash");
-		pText = msg;
+		text = msg;
 	}
 
-	if (!_pLanguageMalloc)
-		return pText;
+	if (!_languageMalloc)
+		return text;
 
 	if (strlen(msg + 1) >= sizeof(key))
 		warning("Polyglot::getTranslation(): the message is too long, truncated");
 
 	Common::strlcpy(key, msg + 1, sizeof(key));
 
-	char *pSlash = strchr(key, '/');
+	char *slash = strchr(key, '/');
 
-	if (pSlash)
-		*pSlash = 0;
+	if (slash)
+		*slash = 0;
 
 	for (char *p = key; *p; p++) {
 		if (*p >= 'a' && *p <= 'z')
 			*p -= 0x20;
 	}
 
-	const char *pKey = key;
-	char **ppFound = (char **)binarySearch(&pKey, _ppLanguageLine, _lineCount, sizeof(char *), WuRegistry::compareNames);
+	const char *keyPointer = key;
+	char **found = (char **)binarySearch(&keyPointer, _languageLine, _lineCount, sizeof(char *), WuRegistry::compareNames);
 
-	if (!ppFound)
-		return pText;
+	if (!found)
+		return text;
 
-	const char *pTranslation = *ppFound + strlen(*ppFound) + 1;
+	const char *translation = *found + strlen(*found) + 1;
 
-	if (!*pTranslation)
+	if (!*translation)
 		return msg;
 
-	return pTranslation;
+	return translation;
 }
 
 } // End of namespace Grim

@@ -42,31 +42,31 @@ Common::String ProfilerTimer::padColumn(const char *text, int width) {
 
 ProfilerTimer::ProfilerTimer(EmiEngine *engine, const char *timerName, int timerFlags) {
 	_engine = engine;
-	startTicks = 0;
+	_startTicks = 0;
 
 	for (int i = 0; i < kMaxContexts; i++) {
-		ticks[i] = 0;
-		ticksShown[i] = 0;
+		_ticks[i] = 0;
+		_ticksShown[i] = 0;
 	}
 
-	Common::strlcpy(name, timerName, kNameSize);
+	Common::strlcpy(_name, timerName, kNameSize);
 
-	next = _engine->_profilerNewest;
+	_next = _engine->_profilerNewest;
 
 	if (_engine->_profilerNewest)
-		_engine->_profilerNewest->prev = this;
+		_engine->_profilerNewest->_prev = this;
 
-	prev = nullptr;
+	_prev = nullptr;
 	_engine->_profilerNewest = this;
 
 	if (!_engine->_profilerOldest)
 		_engine->_profilerOldest = this;
 
 	_engine->_profilerTimerCount++;
-	flags = timerFlags;
-	numContexts = 0;
-	contextsWarned = false;
-	currentContext = -1;
+	_flags = timerFlags;
+	_numContexts = 0;
+	_contextsWarned = false;
+	_currentContext = -1;
 }
 
 ProfilerTimer::~ProfilerTimer() {
@@ -75,39 +75,39 @@ ProfilerTimer::~ProfilerTimer() {
 	if (this == _engine->_profilerOldest) {
 		ProfilerTimer *timer = _engine->_profilerOldest;
 
-		_engine->_profilerOldest = _engine->_profilerOldest->prev;
+		_engine->_profilerOldest = _engine->_profilerOldest->_prev;
 
 		if (_engine->_profilerOldest)
-			_engine->_profilerOldest->next = nullptr;
+			_engine->_profilerOldest->_next = nullptr;
 		else
 			_engine->_profilerNewest = nullptr;
 
-		timer->next = nullptr;
-		timer->prev = nullptr;
+		timer->_next = nullptr;
+		timer->_prev = nullptr;
 		unlinked = true;
 	} else if (this == _engine->_profilerNewest) {
 		ProfilerTimer *timer = _engine->_profilerNewest;
 
-		_engine->_profilerNewest = timer->next;
+		_engine->_profilerNewest = timer->_next;
 
 		if (_engine->_profilerNewest)
-			_engine->_profilerNewest->prev = nullptr;
+			_engine->_profilerNewest->_prev = nullptr;
 		else
 			_engine->_profilerOldest = nullptr;
 
-		timer->next = nullptr;
-		timer->prev = nullptr;
+		timer->_next = nullptr;
+		timer->_prev = nullptr;
 		unlinked = true;
-	} else if (prev || next) {
-		prev->next = next;
-		next->prev = prev;
+	} else if (_prev || _next) {
+		_prev->_next = _next;
+		_next->_prev = _prev;
 		unlinked = true;
 	}
 
 	if (unlinked) {
 		_engine->_profilerTimerCount--;
-		next = nullptr;
-		prev = nullptr;
+		_next = nullptr;
+		_prev = nullptr;
 	}
 }
 
@@ -116,111 +116,111 @@ void ProfilerTimer::start() {
 	if (gDebugLevel < 1)
 		return;
 
-	if ((flags & kTrackNesting) && _engine->_profilerCallStackDepth > 0) {
+	if ((_flags & kTrackNesting) && _engine->_profilerCallStackDepth > 0) {
 		ProfilerTimer *top = _engine->_profilerCallStack[_engine->_profilerCallStackDepth - 1];
 		int context = 0;
 
-		while (context < numContexts) {
-			if (top == parent[context] && top->currentContext == parentContext[context])
+		while (context < _numContexts) {
+			if (top == _parent[context] && top->_currentContext == _parentContext[context])
 				break;
 
 			context++;
 		}
 
-		if (context == numContexts) {
-			if (numContexts < kMaxContexts) {
-				parent[context] = top;
-				parentContext[context] = top->currentContext;
-				ticks[context] = 0;
-				calls[context] = 0;
-				frames[context] = 0;
-				ticksShown[context] = 0;
-				callsShown[context] = 0;
-				framesShown[context] = 0;
-				numContexts++;
+		if (context == _numContexts) {
+			if (_numContexts < kMaxContexts) {
+				_parent[context] = top;
+				_parentContext[context] = top->_currentContext;
+				_ticks[context] = 0;
+				_calls[context] = 0;
+				_frames[context] = 0;
+				_ticksShown[context] = 0;
+				_callsShown[context] = 0;
+				_framesShown[context] = 0;
+				_numContexts++;
 			} else {
-				if (!contextsWarned) {
-					warning("ProfilerTimer::start(): too many contexts for '%s'", name);
-					contextsWarned = true;
+				if (!_contextsWarned) {
+					warning("ProfilerTimer::start(): too many contexts for '%s'", _name);
+					_contextsWarned = true;
 				}
 
 				context = kMaxContexts - 1;
 			}
 		}
 
-		currentContext = context;
+		_currentContext = context;
 	} else {
-		if (!numContexts) {
-			ticks[0] = 0;
-			ticksShown[0] = 0;
-			parent[0] = &_engine->_rootTimer;
-			parentContext[0] = 0;
-			calls[0] = 0;
-			frames[0] = 0;
-			callsShown[0] = 0;
-			framesShown[0] = 0;
-			numContexts = 1;
+		if (!_numContexts) {
+			_ticks[0] = 0;
+			_ticksShown[0] = 0;
+			_parent[0] = &_engine->_rootTimer;
+			_parentContext[0] = 0;
+			_calls[0] = 0;
+			_frames[0] = 0;
+			_callsShown[0] = 0;
+			_framesShown[0] = 0;
+			_numContexts = 1;
 		}
 
-		currentContext = 0;
+		_currentContext = 0;
 	}
 
-	if (flags & kTrackNesting) {
+	if (_flags & kTrackNesting) {
 		if (_engine->_profilerCallStackDepth < kMaxCallStack) {
 			_engine->_profilerCallStack[_engine->_profilerCallStackDepth] = this;
 			_engine->_profilerCallStackDepth++;
 		}
 	}
 
-	startTicks = g_system->getMillis();
+	_startTicks = g_system->getMillis();
 }
 
 void ProfilerTimer::stop() {
 	uint64 now = g_system->getMillis();
 
-	if (currentContext != -1) {
-		ticks[currentContext] += now - startTicks;
-		calls[currentContext]++;
+	if (_currentContext != -1) {
+		_ticks[_currentContext] += now - _startTicks;
+		_calls[_currentContext]++;
 
-		if (flags & kTrackNesting)
+		if (_flags & kTrackNesting)
 			_engine->_profilerCallStackDepth--;
 
-		currentContext = -1;
+		_currentContext = -1;
 	}
 }
 
 void ProfilerTimer::snapshot() {
-	for (int i = 0; i < numContexts; i++) {
-		ticksShown[i] = ticks[i];
-		callsShown[i] = calls[i];
-		framesShown[i] = frames[i];
+	for (int i = 0; i < _numContexts; i++) {
+		_ticksShown[i] = _ticks[i];
+		_callsShown[i] = _calls[i];
+		_framesShown[i] = _frames[i];
 	}
 }
 
 void ProfilerTimer::reset() {
-	for (int i = 0; i < numContexts; i++) {
-		ticks[i] = 0;
-		calls[i] = 0;
-		frames[i] = 0;
+	for (int i = 0; i < _numContexts; i++) {
+		_ticks[i] = 0;
+		_calls[i] = 0;
+		_frames[i] = 0;
 	}
 }
 
 void ProfilerTimer::printStats(ProfilerTimer *parentTimer, int parentContextIndex, double parentMillis, int depth) {
 	int context = 0;
 
-	while (context < numContexts) {
-		if (parentTimer == parent[context] && parentContextIndex == parentContext[context])
+	while (context < _numContexts) {
+		if (parentTimer == _parent[context] && parentContextIndex == _parentContext[context])
 			break;
 
 		context++;
 	}
 
-	if (context == numContexts || !framesShown[context])
+	if (context == _numContexts || !_framesShown[context])
 		return;
 
-	double frameCount = (double)framesShown[context];
-	double millis = getSecondsPerTick(_engine) * ((double)(int64)ticksShown[context] / frameCount) * 1000.0;
-	double callsPerFrame = (double)callsShown[context] / frameCount;
+	double frameCount = (double)_framesShown[context];
+	double millis = getSecondsPerTick(_engine) * ((double)(int64)_ticksShown[context] / frameCount) * 1000.0;
+	double callsPerFrame = (double)_callsShown[context] / frameCount;
 	double percent = 100.0;
 
 	if (parentMillis == 0.0)
@@ -230,28 +230,28 @@ void ProfilerTimer::printStats(ProfilerTimer *parentTimer, int parentContextInde
 		percent = millis / parentMillis * 100.0;
 
 	Common::String indent = padColumn("", 2 * depth);
-	Common::String label = padColumn(name, 45 - 2 * depth);
+	Common::String label = padColumn(_name, 45 - 2 * depth);
 
 	_engine->getConsoleServices()->logStatus("%s%s %6.02fms %4.1f %4.1f\n", indent.c_str(), label.c_str(), millis, percent, callsPerFrame);
 
 	Common::List<ProfilerTimer *>::iterator child;
 
-	for (child = children.begin(); child != children.end(); ++child)
+	for (child = _children.begin(); child != _children.end(); ++child)
 		(*child)->printStats(this, context, parentMillis, depth + 1);
 
-	if (flags & kPrintOther) {
+	if (_flags & kPrintOther) {
 		uint64 childTicks = 0;
 
-		for (child = children.begin(); child != children.end(); ++child) {
+		for (child = _children.begin(); child != _children.end(); ++child) {
 			ProfilerTimer *childTimer = *child;
 
-			for (int i = 0; i < childTimer->numContexts; i++) {
-				if (this == childTimer->parent[i] && context == childTimer->parentContext[i])
-					childTicks += childTimer->ticksShown[i];
+			for (int i = 0; i < childTimer->_numContexts; i++) {
+				if (this == childTimer->_parent[i] && context == childTimer->_parentContext[i])
+					childTicks += childTimer->_ticksShown[i];
 			}
 		}
 
-		double otherMillis = millis - getSecondsPerTick(_engine) *((double)(int64)childTicks / (double)framesShown[context]) * 1000.0;
+		double otherMillis = millis - getSecondsPerTick(_engine) *((double)(int64)childTicks / (double)_framesShown[context]) * 1000.0;
 
 		if (parentTimer)
 			percent = otherMillis / parentMillis * 100.0;
@@ -264,19 +264,19 @@ void ProfilerTimer::printStats(ProfilerTimer *parentTimer, int parentContextInde
 }
 
 void ProfilerTimer::endFrame(EmiEngine *engine) {
-	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->prev) {
-		for (int i = 0; i < timer->numContexts; i++)
-			timer->frames[i]++;
+	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev) {
+		for (int i = 0; i < timer->_numContexts; i++)
+			timer->_frames[i]++;
 	}
 
 	engine->_profilerFrameCounter++;
 
 	if (engine->_profilerFrameCounter >= engine->_profilerSnapshotInterval) {
-		for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->prev)
+		for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev)
 			timer->snapshot();
 
 		if (engine->_profilerSnapshotInterval) {
-			for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->prev)
+			for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev)
 				timer->reset();
 		}
 
@@ -292,26 +292,26 @@ void ProfilerTimer::printAllStats(EmiEngine *engine) {
 
 	Common::List<ProfilerTimer *>::iterator child;
 
-	for (child = engine->_rootTimer.children.begin(); child != engine->_rootTimer.children.end(); ++child)
+	for (child = engine->_rootTimer._children.begin(); child != engine->_rootTimer._children.end(); ++child)
 		(*child)->printStats(&engine->_rootTimer, 0, 0.0, 0);
 }
 
 void ProfilerTimer::linkChildren(EmiEngine *engine) {
-	engine->_rootTimer.children.clear();
+	engine->_rootTimer._children.clear();
 
-	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->prev)
-		timer->children.clear();
+	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev)
+		timer->_children.clear();
 
-	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->prev) {
-		for (int i = 0; i < timer->numContexts; i++) {
-			ProfilerTimer *parentTimer = timer->parent[i];
-			Common::List<ProfilerTimer *>::iterator child = parentTimer->children.begin();
+	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev) {
+		for (int i = 0; i < timer->_numContexts; i++) {
+			ProfilerTimer *parentTimer = timer->_parent[i];
+			Common::List<ProfilerTimer *>::iterator child = parentTimer->_children.begin();
 
-			while (child != parentTimer->children.end() && *child != timer)
+			while (child != parentTimer->_children.end() && *child != timer)
 				++child;
 
-			if (child == parentTimer->children.end())
-				parentTimer->children.push_back(timer);
+			if (child == parentTimer->_children.end())
+				parentTimer->_children.push_back(timer);
 		}
 	}
 }
@@ -323,7 +323,7 @@ double ProfilerTimer::getSecondsPerTick(EmiEngine *engine) {
 
 		now.stamp();
 
-		double elapsedSeconds = now.seconds - engine->_profilerCalibrationSeconds;
+		double elapsedSeconds = now._seconds - engine->_profilerCalibrationSeconds;
 
 		// The original could divide by zero here, let's avoid that...
 		if ((double)elapsedTicks != 0.0)
