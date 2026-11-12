@@ -30,6 +30,9 @@
 
 namespace Grim {
 
+class EmiEngine;
+class LTimeServices;
+
 class InputRecorder {
 public:
 	enum {
@@ -47,7 +50,7 @@ public:
 		kRecordChar = 5
 	};
 
-	InputRecorder(int recorderMode);
+	InputRecorder(EmiEngine *engine, int recorderMode);
 	~InputRecorder();
 
 	void *operator new(size_t size);
@@ -63,18 +66,15 @@ public:
 	float replayFrame();
 	void recordFrame(float frameTime);
 
-	static void createInputRecorder(int recorderMode);
-	static void destroyInputRecorder();
-
 	int mode;
 	float dt;
 	int keyCode;
 	byte character;
 	int lastRecordType;
 
-	static InputRecorder *instance;
-
 private:
+	EmiEngine *_engine;
+	LTimeServices *_timeServices;
 	Common::DumpFile *_writeFile;
 	Common::SeekableReadStream *_readFile;
 };

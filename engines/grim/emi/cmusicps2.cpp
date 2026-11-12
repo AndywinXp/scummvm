@@ -26,14 +26,16 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/cmusicps2.h"
 #include "engines/grim/emi/cscxfile.h"
-#include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
+#include "engines/grim/emi/sounds.h"
 
 namespace Grim {
 
@@ -181,67 +183,44 @@ const CMusicPs2::StateEntry CMusicPs2::stateTable[CMusicPs2::kStateCount] = {
 	{ "1215.scx", 0, 1, 127 }
 };
 
-CMusicPs2 *CMusicPs2::activeTable = nullptr;
-int16 CMusicPs2::instanceCount = 0;
-float CMusicPs2::masterVolume = 1.0f;
-float CMusicPs2::currentFadeRate = 1.0f;
-int CMusicPs2::pendingState = -1;
-int CMusicPs2::pendingStartMs = 0;
-bool CMusicPs2::pendingImmediate = false;
-int CMusicPs2::fadeOutGate = 0;
-uint CMusicPs2::firstUpdateMs = 0;
-uint CMusicPs2::lastUpdateMs = 0;
-int CMusicPs2::searchDirCount = 0;
-int CMusicPs2::findMissCount = 0;
-EMIMilesSample *CMusicPs2::streamSample = nullptr;
-CWaveSound *CMusicPs2::streamSound = nullptr;
-int CMusicPs2::streamChannels = 0;
-int CMusicPs2::streamRate = 0;
-
-CMusicPs2::CMusicPs2() {
+CMusicPs2::CMusicPs2(Sounds *sounds) {
+	_sounds = sounds;
 	count = 0;
 	states = nullptr;
 	loaded = false;
 
-	instanceCount++;
-
-	if (instanceCount < 2) {
-		loaded = false;
-		states = nullptr;
-
-		initStates();
-		resetStartOffsets();
-
-		loaded = true;
-	}
+	_masterVolume = 1.0f;
+	_currentFadeRate = 1.0f;
+	_pendingState = -1;
+	_pendingStartMs = 0;
+	_pendingImmediate = false;
+	_fadeOutGate = 0;
+	_firstUpdateMs = 0;
+	_lastUpdateMs = 0;
+	_searchDirCount = 0;
+	_findMissCount = 0;
+	_streamSample = nullptr;
+	_streamSound = nullptr;
+	_streamChannels = 0;
+	_streamRate = 0;
 }
 
 CMusicPs2::~CMusicPs2() {
-	instanceCount--;
-
-	if (instanceCount <= 0) {
-		closeStreams();
-
-		if (states) {
-			gpMemoryServices->freeImpl(states);
-			states = nullptr;
-		}
-
-		loaded = false;
-	}
+	closeMusicTable();
+	closeStream();
 }
 
 void *CMusicPs2::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CMusicPs2::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void CMusicPs2::initStates() {
 	count = kStateCount;
-	states = (MusicState *)gpMemoryServices->mallocImpl(count * sizeof(MusicState));
+	states = (MusicState *)_sounds->getEngine()->getMemoryServices()->mallocImpl(count * sizeof(MusicState));
 
 	if (!states) {
 		warning("CMusicPs2::initStates(): out of memory");
@@ -313,28 +292,30 @@ void CMusicPs2::initState(MusicState *state, const char *fileName, const int &sy
 }
 
 bool CMusicPs2::openMusicTable() {
-	if (activeTable)
+	if (loaded)
 		return false;
 
-	CMusicPs2 *table = new CMusicPs2();
+	initStates();
+	resetStartOffsets();
 
-	activeTable = table;
-
-	if (!table->loaded) {
-		delete table;
-		activeTable = nullptr;
-
-		return false;
-	}
+	loaded = true;
 
 	return true;
 }
 
 void CMusicPs2::closeMusicTable() {
-	if (activeTable) {
-		delete activeTable;
-		activeTable = nullptr;
+	if (!loaded)
+		return;
+
+	closeStreams();
+
+	if (states) {
+		_sounds->getEngine()->getMemoryServices()->freeImpl(states);
+		states = nullptr;
 	}
+
+	count = 0;
+	loaded = false;
 }
 
 void CMusicPs2::setMusicTableVolume(float volume) {
@@ -345,35 +326,31 @@ void CMusicPs2::setMusicTableVolume(float volume) {
 	else if (volume > 1.0f)
 		clamped = 1.0f;
 
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return;
 
-	masterVolume = clamped;
+	_masterVolume = clamped;
 
-	for (int16 i = 0; i < table->count; i++) {
-		MusicState *state = &table->states[i];
+	for (int16 i = 0; i < count; i++) {
+		MusicState *state = &states[i];
 
 		if (state->handle)
-			setStreamVolume(toStreamVolume(state->trim * (state->fadeVolume * masterVolume)));
+			setStreamVolume(toStreamVolume(state->trim * (state->fadeVolume * _masterVolume)));
 	}
 }
 
 void CMusicPs2::startState(const int &id, const int &startMs, const bool &immediate) {
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return;
 
 	int target = remapState(id);
 	MusicState *keptState = nullptr;
 	bool otherOpen = false;
 
-	pendingState = -1;
+	_pendingState = -1;
 
-	for (int16 i = 0; i < table->count; i++) {
-		MusicState *state = &table->states[i];
+	for (int16 i = 0; i < count; i++) {
+		MusicState *state = &states[i];
 
 		if (!state->handle || i == target)
 			continue;
@@ -404,30 +381,30 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 
 	// The next state waits for the fade-out
 	if (otherOpen) {
-		pendingState = target;
-		pendingStartMs = startMs;
-		pendingImmediate = immediate;
+		_pendingState = target;
+		_pendingStartMs = startMs;
+		_pendingImmediate = immediate;
 
 		return;
 	}
 
-	if (target <= 0 || table->count < target)
+	if (target <= 0 || count < target)
 		return;
 
-	if (target == table->count) {
+	if (target == count) {
 		warning("CMusicPs2::startState(): state %d past end of table", target);
 
 		return;
 	}
 
-	MusicState *state = &table->states[target];
+	MusicState *state = &states[target];
 
 	if (!state->handle) {
 		state->handle = kStreamHandle;
 		state->lastPositionMs = 0;
 		state->looped = false;
 		state->ended = false;
-		currentFadeRate = state->fadeRate;
+		_currentFadeRate = state->fadeRate;
 
 		if (startMs > 0)
 			state->lastPositionMs = startMs;
@@ -439,11 +416,13 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 		else
 			state->fadeVolume = 1.0f;
 
-		float volume = state->trim * (state->fadeVolume * masterVolume);
+		float volume = state->trim * (state->fadeVolume * _masterVolume);
 
 		if (openStream(state->fileName, startMs > 0 ? startMs : 0, state->loopCount, volume)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("AIL_open_stream: FAILED\n");
+			LConsoleServices *console = _sounds->getEngine()->getConsoleServices();
+
+			if (console)
+				console->logError("AIL_open_stream: FAILED\n");
 		}
 	}
 
@@ -451,9 +430,7 @@ void CMusicPs2::startState(const int &id, const int &startMs, const bool &immedi
 }
 
 bool CMusicPs2::consumeStateFlags(const int &id, bool &looped, bool &ended) {
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return false;
 
 	int target = remapState(id);
@@ -461,16 +438,16 @@ bool CMusicPs2::consumeStateFlags(const int &id, bool &looped, bool &ended) {
 	looped = false;
 	ended = false;
 
-	if (target <= 0 || table->count < target)
+	if (target <= 0 || count < target)
 		return false;
 
-	if (target == table->count) {
+	if (target == count) {
 		warning("CMusicPs2::consumeStateFlags(): state %d past end of table", target);
 
 		return false;
 	}
 
-	MusicState *state = &table->states[target];
+	MusicState *state = &states[target];
 
 	looped = state->looped;
 	ended = state->ended;
@@ -483,27 +460,26 @@ bool CMusicPs2::consumeStateFlags(const int &id, bool &looped, bool &ended) {
 void CMusicPs2::updateStates() {
 	uint now = g_system->getMillis();
 
-	if (firstUpdateMs == 0) {
-		firstUpdateMs = now;
-		lastUpdateMs = now;
+	if (_firstUpdateMs == 0) {
+		_firstUpdateMs = now;
+		_lastUpdateMs = now;
 
 		return;
 	}
 
-	uint previous = lastUpdateMs;
+	uint previous = _lastUpdateMs;
 
-	lastUpdateMs = now;
+	_lastUpdateMs = now;
 
 	float elapsed = kElapsedScale * (float)(int)(now - previous);
-	CMusicPs2 *table = activeTable;
 
-	if (!table)
+	if (!loaded)
 		return;
 
 	int fadingOut = 0;
 
-	for (int16 i = 0; i < table->count; i++) {
-		MusicState *state = &table->states[i];
+	for (int16 i = 0; i < count; i++) {
+		MusicState *state = &states[i];
 
 		if (!state->handle)
 			continue;
@@ -524,15 +500,15 @@ void CMusicPs2::updateStates() {
 			continue;
 
 		if (state->fadeState == kFadeIn) {
-			state->fadeVolume = state->fadeVolume + currentFadeRate * elapsed;
+			state->fadeVolume = state->fadeVolume + _currentFadeRate * elapsed;
 		} else {
 			fadingOut = kFadeOut;
 
 			// The fade-out starts one update late
-			if (!fadeOutGate)
+			if (!_fadeOutGate)
 				continue;
 
-			state->fadeVolume = state->fadeVolume - currentFadeRate * elapsed;
+			state->fadeVolume = state->fadeVolume - _currentFadeRate * elapsed;
 		}
 
 		if (state->fadeVolume <= 0.0f) {
@@ -541,7 +517,7 @@ void CMusicPs2::updateStates() {
 			state->handle = 0;
 			state->fadeState = kFadeNone;
 
-			startState(pendingState, pendingStartMs, pendingImmediate);
+			startState(_pendingState, _pendingStartMs, _pendingImmediate);
 
 			continue;
 		}
@@ -551,31 +527,29 @@ void CMusicPs2::updateStates() {
 			state->fadeState = kFadeNone;
 		}
 
-		setStreamVolume(toStreamVolume(state->trim * (state->fadeVolume * masterVolume)));
+		setStreamVolume(toStreamVolume(state->trim * (state->fadeVolume * _masterVolume)));
 	}
 
-	fadeOutGate = fadingOut;
+	_fadeOutGate = fadingOut;
 }
 
 int CMusicPs2::getStatePositionMs(const int &id, const bool &relative) {
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return 0;
 
 	int target = remapState(id);
 	int position = -1;
 
-	if (target <= 0 || table->count < target)
+	if (target <= 0 || count < target)
 		return 0;
 
-	if (target == table->count) {
+	if (target == count) {
 		warning("CMusicPs2::getStatePositionMs(): state %d past end of table", target);
 
 		return 0;
 	}
 
-	MusicState *state = &table->states[target];
+	MusicState *state = &states[target];
 
 	if (state->handle) {
 		position = getStreamMsPosition();
@@ -592,13 +566,11 @@ int CMusicPs2::getStatePositionMs(const int &id, const bool &relative) {
 }
 
 void CMusicPs2::closeAllStates() {
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return;
 
-	for (int16 i = 0; i < table->count; i++) {
-		MusicState *state = &table->states[i];
+	for (int16 i = 0; i < count; i++) {
+		MusicState *state = &states[i];
 
 		if (state->handle) {
 			closeStream();
@@ -609,21 +581,19 @@ void CMusicPs2::closeAllStates() {
 }
 
 bool CMusicPs2::isSameFile(int id, int otherId) {
-	CMusicPs2 *table = activeTable;
-
-	if (!table)
+	if (!loaded)
 		return true;
 
 	if (id == otherId)
 		return true;
 
-	if (id < 0 || id >= table->count || otherId < 0 || otherId >= table->count) {
+	if (id < 0 || id >= count || otherId < 0 || otherId >= count) {
 		warning("CMusicPs2::isSameFile(): state %d or %d out of table", id, otherId);
 
 		return false;
 	}
 
-	return scumm_stricmp(table->states[id].fileName, table->states[otherId].fileName) == 0;
+	return scumm_stricmp(states[id].fileName, states[otherId].fileName) == 0;
 }
 
 const char *CMusicPs2::findAudioFile(const char *fileName) {
@@ -633,18 +603,20 @@ const char *CMusicPs2::findAudioFile(const char *fileName) {
 	if (Common::File::exists(Common::Path(fileName)))
 		return fileName;
 
-	int misses = findMissCount;
+	int misses = _findMissCount;
 
-	findMissCount++;
+	_findMissCount++;
 
-	if (misses < kMaxMissMessages && gpConsoleServices)
-		gpConsoleServices->logError("Error: File '%s' could not be found.\n", fileName);
+	LConsoleServices *console = _sounds->getEngine()->getConsoleServices();
+
+	if (misses < kMaxMissMessages && console)
+		console->logError("Error: File '%s' could not be found.\n", fileName);
 
 	return fileName;
 }
 
 void CMusicPs2::clearAudioSearchDirs() {
-	searchDirCount = 0;
+	_searchDirCount = 0;
 }
 
 int CMusicPs2::remapState(const int &id) {
@@ -698,23 +670,6 @@ int CMusicPs2::toStreamVolume(float volume) {
 	return (int)((float)kMaxAilVolume * volume + 0.5f);
 }
 
-void CMusicPs2::resetModule() {
-	closeMusicTable();
-	closeStream();
-
-	instanceCount = 0;
-	masterVolume = 1.0f;
-	currentFadeRate = 1.0f;
-	pendingState = -1;
-	pendingStartMs = 0;
-	pendingImmediate = false;
-	fadeOutGate = 0;
-	firstUpdateMs = 0;
-	lastUpdateMs = 0;
-	searchDirCount = 0;
-	findMissCount = 0;
-}
-
 bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, float volume) {
 	// Wraps above 5592 ms, like the original
 	uint32 byteOffset = kStartOffsetScale * (uint32)startMs / kStartOffsetDivisor;
@@ -723,7 +678,9 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	if (*fileName == '@')
 		fileName++;
 
-	LFile *file = gpFileServices->open(fileName, "rb");
+	EmiEngine *engine = _sounds->getEngine();
+	LFileServices *fileServices = engine->getFileServices();
+	LFile *file = fileServices->open(fileName, "rb");
 
 	if (!file)
 		return true;
@@ -738,9 +695,12 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 
 	CScxFile scxFile;
 	CWaveSound *sound = new CWaveSound();
+
+	sound->bindEngine(engine);
+
 	bool parsed = scxFile.read(file, sound);
 
-	gpFileServices->close(file, true);
+	fileServices->close(file, true);
 
 	if (!parsed) {
 		warning("CMusicPs2::openStream(): can't parse %s", fileName);
@@ -766,7 +726,7 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 		return true;
 	}
 
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	EMIMilesDriver *driver = getMilesDriver();
 	EMIMilesSample *sample = driver ? driver->allocateSample() : nullptr;
 
 	if (!sample) {
@@ -786,10 +746,10 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	if (channels == 2)
 		format |= EMIMilesDriver::kFormatStereo;
 
-	streamSample = sample;
-	streamSound = sound;
-	streamChannels = channels;
-	streamRate = (int)scxFile.rate;
+	_streamSample = sample;
+	_streamSound = sound;
+	_streamChannels = channels;
+	_streamRate = (int)scxFile.rate;
 
 	driver->initSample(sample);
 
@@ -797,7 +757,7 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	driver->setSampleEffectSend(sample, false);
 	driver->setSampleAddress(sample, sound->samples, sound->dataSize);
 	driver->setSampleType(sample, format);
-	driver->setSampleRate(sample, streamRate);
+	driver->setSampleRate(sample, _streamRate);
 
 	// The IOP loops at the header offset and ignores the ADPCM flags
 	if (loopCount == 1) {
@@ -838,28 +798,30 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 }
 
 void CMusicPs2::closeStream() {
-	if (streamSample) {
-		EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	if (_streamSample) {
+		EMIMilesDriver *driver = getMilesDriver();
 
 		if (driver)
-			driver->releaseSample(streamSample);
+			driver->releaseSample(_streamSample);
 
-		streamSample = nullptr;
+		_streamSample = nullptr;
 	}
 
-	if (streamSound) {
-		delete streamSound;
-		streamSound = nullptr;
+	if (_streamSound) {
+		delete _streamSound;
+		_streamSound = nullptr;
 	}
 
-	streamChannels = 0;
-	streamRate = 0;
+	_streamChannels = 0;
+	_streamRate = 0;
 }
 
 void CMusicPs2::setStreamVolume(int volume) {
+	LConsoleServices *console = _sounds->getEngine()->getConsoleServices();
+
 	if ((uint)volume >= kMaxAilValue) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("AIL_set_stream_volume: volume out of range\n");
+		if (console)
+			console->logError("AIL_set_stream_volume: volume out of range\n");
 
 		return;
 	}
@@ -867,8 +829,8 @@ void CMusicPs2::setStreamVolume(int volume) {
 	float streamVolume = kMusicStreamGain * ((float)volume / (float)kMaxAilVolume);
 
 	if (!(streamVolume >= 0.0f && streamVolume <= 1.0f)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("AIL_set_stream_volume: volume out of range: %f\n", streamVolume);
+		if (console)
+			console->logError("AIL_set_stream_volume: volume out of range: %f\n", streamVolume);
 
 		return;
 	}
@@ -882,46 +844,55 @@ void CMusicPs2::setStreamVolume(int volume) {
 		return;
 	}
 
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	EMIMilesDriver *driver = getMilesDriver();
 
-	if (driver && streamSample)
-		driver->setSampleSpuVolume(streamSample, level, level);
+	if (driver && _streamSample)
+		driver->setSampleSpuVolume(_streamSample, level, level);
 }
 
 int CMusicPs2::getStreamMsPosition() {
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	EMIMilesDriver *driver = getMilesDriver();
 
-	if (!driver || !streamSample || !streamChannels || !streamRate)
+	if (!driver || !_streamSample || !_streamChannels || !_streamRate)
 		return 0;
 
-	uint frames = (uint)driver->getSamplePosition(streamSample) / (uint)(streamChannels * (int)sizeof(int16));
+	uint frames = (uint)driver->getSamplePosition(_streamSample) / (uint)(_streamChannels * (int)sizeof(int16));
 	uint channelBytes = CScxFile::kVagHeaderSize + frames * CScxFile::kAdpcmBlockSize / CScxFile::kAdpcmBlockSamples;
-	uint position = channelBytes * (uint)streamChannels;
-	float milliseconds = (1000.0f / (float)streamRate) * (((float)position - 1.0f) * kStreamBlockScale);
+	uint position = channelBytes * (uint)_streamChannels;
+	float milliseconds = (1000.0f / (float)_streamRate) * (((float)position - 1.0f) * kStreamBlockScale);
 	uint result = milliseconds > 0.0f ? (uint)(int)milliseconds : 0;
 
-	return (int)(result / (uint)streamChannels);
+	return (int)(result / (uint)_streamChannels);
 }
 
 int CMusicPs2::getStreamStatus() {
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	EMIMilesDriver *driver = getMilesDriver();
 
-	if (!driver || !streamSample)
+	if (!driver || !_streamSample)
 		return 0;
 
-	return driver->getSampleStatus(streamSample);
+	return driver->getSampleStatus(_streamSample);
 }
 
 uint CMusicPs2::getStreamPosition() {
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+	EMIMilesDriver *driver = getMilesDriver();
 
-	if (!driver || !streamSample || !streamChannels)
+	if (!driver || !_streamSample || !_streamChannels)
 		return 0;
 
-	uint frames = (uint)driver->getSamplePosition(streamSample) / (uint)(streamChannels * (int)sizeof(int16));
+	uint frames = (uint)driver->getSamplePosition(_streamSample) / (uint)(_streamChannels * (int)sizeof(int16));
 	uint channelBytes = CScxFile::kVagHeaderSize + frames * CScxFile::kAdpcmBlockSize / CScxFile::kAdpcmBlockSamples;
 
-	return channelBytes * (uint)streamChannels;
+	return channelBytes * (uint)_streamChannels;
+}
+
+EMIMilesDriver *CMusicPs2::getMilesDriver() {
+	AudioSystem *audioSystem = _sounds->getAudioSystem();
+
+	if (!audioSystem)
+		return nullptr;
+
+	return audioSystem->getMilesDriver();
 }
 
 } // End of namespace Grim

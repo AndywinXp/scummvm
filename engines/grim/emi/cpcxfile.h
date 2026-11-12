@@ -28,6 +28,7 @@
 
 namespace Grim {
 
+class EmiEngine;
 class LBitmap;
 
 struct PcxHeader {
@@ -52,10 +53,13 @@ struct PcxHeader {
 };
 
 struct PcxReader {
+	explicit PcxReader(EmiEngine *owner);
+
 	bool readHeader(PcxHeader *header);
 	int decodeLine(byte *dest, int length);
 	void loadFile(LFile *file);
 
+	EmiEngine *engine;
 	byte *base;
 	byte *cursor;
 	byte *end;
@@ -65,7 +69,7 @@ struct PcxReader {
 
 class CPCXFile {
 public:
-	CPCXFile();
+	explicit CPCXFile(EmiEngine *engine);
 
 	virtual bool readImage(LFile *file, LBitmap *image, int unused);
 	virtual int readPalette(LFile *file, int *palette);
@@ -75,6 +79,9 @@ public:
 	static int encodeLine(const byte *source, byte *dest, int length);
 
 	LBitmap *bitmap;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

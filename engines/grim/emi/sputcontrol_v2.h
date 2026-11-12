@@ -43,32 +43,39 @@ struct ControlEntry {
 	const char *name;
 };
 
+class EmiEngine;
+
 class SputControl_v2 {
 public:
 	enum {
 		kNumControls = 137
 	};
 
-	static int startup();
-	static void shutdown();
-	static void clearAll();
-	static void enableControl(uint index);
-	static void disableControl(uint index);
-	static bool open();
-	static bool close();
-	static void update();
-	static void clearKeyStates();
+	explicit SputControl_v2(EmiEngine *engine);
+	~SputControl_v2();
+
+	int startup();
+	void shutdown();
+	void clearAll();
+	void enableControl(uint index);
+	void disableControl(uint index);
+	bool open();
+	bool close();
+	void update();
+	void clearKeyStates();
 	static bool isModifierKey(int vk);
 
-	static ControlEntry controlTable[kNumControls];
-	static const ControlEntry pcControlTable[kNumControls];
-	static const ControlEntry ps2ControlTable[kNumControls];
-	static const KeyBinding defaultBinding;
+	ControlEntry controlTable[kNumControls];
 
 private:
-	static KeyEventMapper *_keyEventMapper;
-	static bool _started;
-	static bool _opened;
+	static const ControlEntry kPcControlTable[kNumControls];
+	static const ControlEntry kPs2ControlTable[kNumControls];
+	static const KeyBinding kDefaultBinding;
+
+	EmiEngine *_engine;
+	KeyEventMapper *_keyEventMapper;
+	bool _started;
+	bool _opened;
 };
 
 } // End of namespace Grim

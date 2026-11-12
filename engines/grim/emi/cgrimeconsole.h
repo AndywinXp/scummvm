@@ -31,22 +31,23 @@ namespace Grim {
 
 class CGrimeConsole : public LConsoleServices {
 public:
+	explicit CGrimeConsole(EmiEngine *engine);
+
 	int logStatus(const char *format, ...) override;
 	int logWarning(const char *format, ...) override;
 	int logError(const char *format, ...) override;
 	int logDebug(const char *format, ...) override;
 
-	static void writeDebugLog(const char *text);
-	static void setDebugLog(bool enable);
-	static bool initDebugConsole();
+	void writeDebugLog(const char *text);
+	void setDebugLog(bool enable);
+	bool initDebugConsole();
 
 private:
-	static int logPrintfStub(const char *text);
+	int logPrintfStub(const char *text);
 
-	static bool _debugLogEnabled;
-	static LFile *_debugLogFile;
-	static bool _debugConsoleReady;
-	static int (*_logPrintf)(const char *text);
+	bool _debugLogEnabled;
+	LFile *_debugLogFile;
+	bool _debugConsoleReady;
 };
 
 } // End of namespace Grim

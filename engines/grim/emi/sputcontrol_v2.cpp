@@ -21,27 +21,19 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/eventgenerator.h"
 #include "engines/grim/emi/joystick.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/sputcontrol_v2.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
-static ProfilerTimer controlUpdateTimer("sputControl_Update()", ProfilerTimer::kTrackNesting);
+const KeyBinding SputControl_v2::kDefaultBinding = { 0, 3, 0 };
 
-KeyEventMapper *SputControl_v2::_keyEventMapper = nullptr;
-bool SputControl_v2::_started = false;
-bool SputControl_v2::_opened = false;
-
-const KeyBinding SputControl_v2::defaultBinding = { 0, 3, 0 };
-
-ControlEntry SputControl_v2::controlTable[SputControl_v2::kNumControls];
-
-const ControlEntry SputControl_v2::pcControlTable[SputControl_v2::kNumControls] = {
+const ControlEntry SputControl_v2::kPcControlTable[SputControl_v2::kNumControls] = {
 	{ 4, 0x1B, 0, 0.0f, "KEY_ESCAPE" },
 	{ 4, 0x31, 0, 0.0f, "KEY_1" },
 	{ 4, 0x32, 0, 0.0f, "KEY_2" },
@@ -181,7 +173,7 @@ const ControlEntry SputControl_v2::pcControlTable[SputControl_v2::kNumControls] 
 	{ 2, 0xB, 0, 0.0f, "AXIS_JOY2_V" }
 };
 
-const ControlEntry SputControl_v2::ps2ControlTable[SputControl_v2::kNumControls] = {
+const ControlEntry SputControl_v2::kPs2ControlTable[SputControl_v2::kNumControls] = {
 	{ 4, 0x1B, 0, 0.0f, "KEY_ESCAPE" },
 	{ 4, 0x31, 0, 0.0f, "KEY_1" },
 	{ 4, 0x32, 0, 0.0f, "KEY_2" },
@@ -321,20 +313,29 @@ const ControlEntry SputControl_v2::ps2ControlTable[SputControl_v2::kNumControls]
 	{ 2, 0x7, 0, 0.0f, "AXIS_JOY2_R" }
 };
 
+SputControl_v2::SputControl_v2(EmiEngine *engine) : _engine(engine), _keyEventMapper(nullptr), _started(false), _opened(false) {
+	memset(controlTable, 0, sizeof(controlTable));
+}
+
+SputControl_v2::~SputControl_v2() {
+	delete _keyEventMapper;
+	_keyEventMapper = nullptr;
+}
+
 int SputControl_v2::startup() {
 	if (_started)
 		return 0;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
-		memcpy(controlTable, ps2ControlTable, sizeof(controlTable));
+	if (_engine->getGamePlatform() == Common::kPlatformPS2)
+		memcpy(controlTable, kPs2ControlTable, sizeof(controlTable));
 	else
-		memcpy(controlTable, pcControlTable, sizeof(controlTable));
+		memcpy(controlTable, kPcControlTable, sizeof(controlTable));
 
 	clearAll();
 
-	_keyEventMapper = new KeyEventMapper();
+	_keyEventMapper = new KeyEventMapper(_engine);
 
-	Joystick::startup();
+	_engine->getJoystick()->startup();
 
 	_started = true;
 
@@ -342,7 +343,7 @@ int SputControl_v2::startup() {
 }
 
 void SputControl_v2::shutdown() {
-	Joystick::shutdown();
+	_engine->getJoystick()->shutdown();
 
 	delete _keyEventMapper;
 	_keyEventMapper = nullptr;
@@ -359,13 +360,13 @@ void SputControl_v2::clearAll() {
 			controlTable[i].state = 0;
 	}
 
-	Joystick::resetControls();
+	_engine->getJoystick()->resetControls();
 }
 
 void SputControl_v2::enableControl(uint index) {
 	if (index >= (uint)kNumControls) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Invalid control %d; will not be enabled\n", (int)index);
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Invalid control %d; will not be enabled\n", (int)index);
 		else
 			warning("Invalid control %d; will not be enabled", (int)index);
 
@@ -380,10 +381,10 @@ void SputControl_v2::enableControl(uint index) {
 	control->flags |= ControlEntry::kEnabled;
 
 	if (control->flags & ControlEntry::kAxis) {
-		Joystick::enableControl(control->code);
+		_engine->getJoystick()->enableControl(control->code);
 	} else if (control->flags & ControlEntry::kKey) {
 		if (_keyEventMapper)
-			_keyEventMapper->bindKey(control->code, &defaultBinding);
+			_keyEventMapper->bindKey(control->code, &kDefaultBinding);
 		else
 			warning("SputControl_v2::enableControl(): the key mapper does not exist");
 	}
@@ -391,8 +392,8 @@ void SputControl_v2::enableControl(uint index) {
 
 void SputControl_v2::disableControl(uint index) {
 	if (index >= (uint)kNumControls) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Not a valid control: %d\n", (int)index);
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Not a valid control: %d\n", (int)index);
 		else
 			warning("Not a valid control: %d", (int)index);
 
@@ -406,7 +407,7 @@ void SputControl_v2::disableControl(uint index) {
 }
 
 bool SputControl_v2::open() {
-	bool result = Joystick::open();
+	bool result = _engine->getJoystick()->open();
 
 	if (result)
 		_opened = true;
@@ -418,9 +419,9 @@ bool SputControl_v2::close() {
 	if (!_opened)
 		return false;
 
-	if (!Joystick::close()) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("std control system close failed.\n");
+	if (!_engine->getJoystick()->close()) {
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("std control system close failed.\n");
 		else
 			warning("std control system close failed.");
 
@@ -433,11 +434,11 @@ bool SputControl_v2::close() {
 }
 
 void SputControl_v2::update() {
-	controlUpdateTimer.start();
-	EventGenerator::dispatchEvents();
-	Joystick::update();
-	Lua_V2::axisHandler();
-	controlUpdateTimer.stop();
+	_engine->_controlUpdateTimer.start();
+	EventGenerator::dispatchEvents(_engine);
+	_engine->getJoystick()->update();
+	_engine->getLua()->axisHandler();
+	_engine->_controlUpdateTimer.stop();
 }
 
 void SputControl_v2::clearKeyStates() {

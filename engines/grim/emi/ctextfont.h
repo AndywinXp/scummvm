@@ -31,12 +31,10 @@
 namespace Grim {
 
 class CDrawContext;
+class EmiEngine;
 
 struct Glyph {
-	Glyph();
-
-	void *operator new[](size_t size);
-	void operator delete[](void *block);
+	explicit Glyph(EmiEngine *engine);
 
 	int blobOffset;
 	signed char advance;

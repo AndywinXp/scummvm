@@ -25,6 +25,7 @@
 
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/cwavfile.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/movie/codecs/vima.h"
 
@@ -51,10 +52,18 @@ static const uint kMcmpPadding = 8;
 static const byte kMaxVimaStep = 88;
 static const uint32 kMaxChunkSkip = 0x7FFFFFFF;
 
-uint16 CWavFile::vimaTable[CWavFile::kVimaTableSize];
-bool CWavFile::vimaTableReady = false;
-byte CWavFile::mcmpReadBuffer[CWavFile::kMcmpReadBufferSize];
-byte CWavFile::mcmpDecodeBuffer[CWavFile::kMcmpDecodeBufferSize];
+CWavFile::CWavFile(EmiEngine *engine) : _engine(engine), _vimaTableReady(false) {
+	_mcmpReadBuffer = new byte[kMcmpReadBufferSize]();
+	_mcmpDecodeBuffer = new byte[kMcmpDecodeBufferSize]();
+}
+
+CWavFile::~CWavFile() {
+	delete[] _mcmpReadBuffer;
+	_mcmpReadBuffer = nullptr;
+
+	delete[] _mcmpDecodeBuffer;
+	_mcmpDecodeBuffer = nullptr;
+}
 
 bool CWavFile::read(LFile *file, CWaveSound *sound) {
 	bool formatRead = false;
@@ -185,7 +194,7 @@ bool CWavFile::readMcmp(LFile *file, CWaveSound *sound) {
 	}
 
 	uint size = kMcmpRatio * (endPosition - position);
-	byte *buffer = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
+	byte *buffer = (byte *)_engine->getMemoryServices()->mallocImpl(size * sizeof(byte));
 
 	if (!buffer)
 		return false;
@@ -193,14 +202,14 @@ bool CWavFile::readMcmp(LFile *file, CWaveSound *sound) {
 	uint decodedSize = 0;
 
 	if (decompressMcmp(file, buffer, size, &decodedSize)) {
-		gpMemoryServices->freeImpl(buffer);
+		_engine->getMemoryServices()->freeImpl(buffer);
 
 		return false;
 	}
 
 	bool result = parseWav(buffer, decodedSize, sound);
 
-	gpMemoryServices->freeImpl(buffer);
+	_engine->getMemoryServices()->freeImpl(buffer);
 
 	return result;
 }
@@ -536,15 +545,15 @@ int CWavFile::decompressMcmpFromPath(LFile *file, byte *output, uint outputSize,
 	if (!stream.open(Common::Path(name)))
 		return 1;
 
-	stream.read(mcmpReadBuffer, kMcmpReadBufferSize);
+	stream.read(_mcmpReadBuffer, kMcmpReadBufferSize);
 
-	if (memcmp(mcmpReadBuffer, "MCMP", 4) != 0) {
+	if (memcmp(_mcmpReadBuffer, "MCMP", 4) != 0) {
 		stream.close();
 
 		return 3;
 	}
 
-	uint numBlocks = READ_BE_UINT16(mcmpReadBuffer + 4);
+	uint numBlocks = READ_BE_UINT16(_mcmpReadBuffer + 4);
 
 	if (kMcmpHeaderSize + numBlocks * kMcmpEntrySize > (uint)kMcmpReadBufferSize) {
 		warning("CWavFile::decompressMcmpFromPath(): too many blocks");
@@ -557,7 +566,7 @@ int CWavFile::decompressMcmpFromPath(LFile *file, byte *output, uint outputSize,
 	uint offset = kMcmpEntrySize * numBlocks + kMcmpDataBase;
 
 	for (uint i = 0; i < numBlocks; i++) {
-		const byte *entry = mcmpReadBuffer + kMcmpHeaderSize + i * kMcmpEntrySize;
+		const byte *entry = _mcmpReadBuffer + kMcmpHeaderSize + i * kMcmpEntrySize;
 
 		blocks[i].decompSize = READ_BE_UINT32(entry + 1);
 		blocks[i].compSize = READ_BE_UINT32(entry + 5);
@@ -581,10 +590,10 @@ int CWavFile::decompressMcmpFromPath(LFile *file, byte *output, uint outputSize,
 		}
 
 		stream.seek(blocks[i].offset, SEEK_SET);
-		stream.read(mcmpReadBuffer, compSize);
+		stream.read(_mcmpReadBuffer, compSize);
 
 		if (compSize == decompSize) {
-			memcpy(output + position, mcmpReadBuffer, decompSize);
+			memcpy(output + position, _mcmpReadBuffer, decompSize);
 		} else {
 			if (decompSize > (uint)kMcmpDecodeBufferSize || (uint64)compSize + (uint64)decompSize * 2 + kMcmpPadding > (uint64)kMcmpReadBufferSize) {
 				warning("CWavFile::decompressMcmpFromPath(): block %u does not fit the buffers", i);
@@ -593,8 +602,8 @@ int CWavFile::decompressMcmpFromPath(LFile *file, byte *output, uint outputSize,
 				break;
 			}
 
-			decodeMcmpBlock(mcmpDecodeBuffer, mcmpReadBuffer, decompSize);
-			memcpy(output + position, mcmpDecodeBuffer, decompSize);
+			decodeMcmpBlock(_mcmpDecodeBuffer, _mcmpReadBuffer, decompSize);
+			memcpy(output + position, _mcmpDecodeBuffer, decompSize);
 		}
 
 		position += decompSize;
@@ -622,9 +631,9 @@ void CWavFile::decodeMcmpBlock(byte *dest, const byte *source, uint size) {
 		return;
 	}
 
-	if (!vimaTableReady) {
-		vimaInit(vimaTable);
-		vimaTableReady = true;
+	if (!_vimaTableReady) {
+		vimaInit(_vimaTable);
+		_vimaTableReady = true;
 	}
 
 	uint numSamples = size / 2 + 1;
@@ -632,7 +641,7 @@ void CWavFile::decodeMcmpBlock(byte *dest, const byte *source, uint size) {
 
 	memset(decoded, 0, numSamples * sizeof(int16));
 
-	decompressVima(source, decoded, size, vimaTable, false);
+	decompressVima(source, decoded, size, _vimaTable, false);
 
 	memcpy(dest, decoded, size);
 

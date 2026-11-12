@@ -55,7 +55,7 @@ public:
 		kKeywordTextureName = 22
 	};
 
-	RMeshParser();
+	explicit RMeshParser(EmiEngine *engine);
 
 	bool handleKeyword(int id, int numArgs, KeywordArg *args) override;
 	bool parseBasePrim(int token, int numArgs, KeywordArg *args);

@@ -21,6 +21,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/irect.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/setup.h"
@@ -33,7 +34,7 @@ static const int kViewportHeight = 480;
 static const float kViewportFov = 90.0f;
 static const int kLayerSortStep = 10;
 
-Setup::Setup() {
+Setup::Setup(EmiEngine *engine) : camera(engine->getDrawContext()), _engine(engine) {
 	name[0] = 0;
 	layersBuilt = false;
 
@@ -55,26 +56,55 @@ Setup::~Setup() {
 }
 
 void *Setup::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Setup::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
+}
+
+void *Setup::operator new(size_t, void *where) {
+	return where;
+}
+
+void Setup::operator delete(void *, void *) {
 }
 
 void *Setup::operator new[](size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Setup::operator delete[](void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
+}
+
+Setup *Setup::newArray(EmiEngine *engine, int count) {
+	byte *block = static_cast<byte *>(Setup::operator new[](kArrayHeaderSize + (size_t)count * sizeof(Setup)));
+	Setup *array = reinterpret_cast<Setup *>(block + kArrayHeaderSize);
+
+	*reinterpret_cast<int *>(block) = count;
+
+	for (int i = 0; i < count; i++)
+		new (&array[i]) Setup(engine);
+
+	return array;
+}
+
+void Setup::deleteArray(Setup *array) {
+	byte *block = reinterpret_cast<byte *>(array) - kArrayHeaderSize;
+	int count = *reinterpret_cast<int *>(block);
+
+	for (int i = count; i > 0; i--)
+		array[i - 1].~Setup();
+
+	Setup::operator delete[](block);
 }
 
 void Setup::buildLayers() {
 	if (layersBuilt)
 		return;
 
-	Layer *firstLayer = new Layer(backgroundName.c_str(), 0, 0, -1);
+	Layer *firstLayer = new Layer(_engine, backgroundName.c_str(), 0, 0, -1);
 	TiledScene *scene = nullptr;
 
 	if (firstLayer->tiledScene.lock())
@@ -103,7 +133,7 @@ int Setup::getSize() {
 }
 
 int Setup::addLayer(const char *layerName, int layerSortOrder, int layerFrame, int layerId) {
-	Layer *layer = new Layer(layerName, layerSortOrder, layerFrame, layerId);
+	Layer *layer = new Layer(_engine, layerName, layerSortOrder, layerFrame, layerId);
 
 	layers.push_back(layer);
 

@@ -29,6 +29,7 @@
 namespace Grim {
 
 class CDrawContext;
+class EmiEngine;
 
 class DimRegion {
 public:
@@ -37,23 +38,17 @@ public:
 	void *operator new(size_t size);
 	void operator delete(void *block);
 
-	static int dimScreen(int reserved, float alpha);
-	static int dimRegion(FRect *region, float alpha);
-	static bool undimRegion(int regionId);
-	static void undimAll();
-	static int drawDimRegions(CDrawContext *drawContext);
+	static int dimScreen(EmiEngine *engine, int reserved, float alpha);
+	static int dimRegion(EmiEngine *engine, FRect *region, float alpha);
+	static bool undimRegion(EmiEngine *engine, int regionId);
+	static void undimAll(EmiEngine *engine);
+	static int drawDimRegions(EmiEngine *engine, CDrawContext *drawContext);
 
 	DimRegion *prev;
 	DimRegion *next;
 	FRect rect;
 	float alpha;
 	int id;
-
-private:
-	static DimRegion *_head;
-	static DimRegion *_tail;
-	static int _count;
-	static int _nextId;
 };
 
 } // End of namespace Grim

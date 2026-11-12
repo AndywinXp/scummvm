@@ -30,7 +30,7 @@ class AnimInstance;
 
 class AnimWgtInstance : public ComponentInstance {
 public:
-	AnimWgtInstance(const LString &componentName);
+	AnimWgtInstance(EmiEngine *engine, const LString &componentName);
 	~AnimWgtInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

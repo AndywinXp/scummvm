@@ -29,6 +29,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 struct AnimEntry {
 	AnimEntry() : track(nullptr) {}
 
@@ -38,7 +40,7 @@ struct AnimEntry {
 
 class Animation {
 public:
-	Animation();
+	explicit Animation(EmiEngine *engine);
 	virtual ~Animation();
 
 	virtual bool save(LFile *file);
@@ -52,6 +54,12 @@ public:
 	int trackCount;
 	int entryCount;
 	float length;
+
+protected:
+	EmiEngine *_engine;
+
+private:
+	bool failLoad(LFile *file, const char *reason);
 };
 
 } // End of namespace Grim

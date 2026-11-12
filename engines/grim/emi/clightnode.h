@@ -29,9 +29,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class CLightNode : public CNode {
 public:
-	CLightNode();
+	explicit CLightNode(EmiEngine *engine);
 	virtual ~CLightNode();
 
 	void setLight(CLight *newLight);
@@ -41,7 +43,8 @@ public:
 	bool savedActive;
 	CLight *light;
 
-	static Common::List<CLightNode *> activeLights;
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

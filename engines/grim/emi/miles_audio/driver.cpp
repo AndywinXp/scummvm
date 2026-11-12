@@ -37,7 +37,8 @@ static const int kSpuDepthStep = 100;
 static const float kSpuMaxDepth = 32767.0f;
 static const float kSpuMaxDelay = 127.0f;
 
-EMIMilesDriver::EMIMilesDriver(bool isPs2) {
+EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2) {
+	_memoryServices = memoryServices;
 	_isPs2 = isPs2;
 
 	// SPU2 mixes at 48 kHz, while Miles on PC mixes at 22050 Hz
@@ -98,11 +99,11 @@ EMIMilesDriver::~EMIMilesDriver() {
 }
 
 void *EMIMilesDriver::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void EMIMilesDriver::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool EMIMilesDriver::open(Audio::Mixer *mixer) {
@@ -466,7 +467,7 @@ void EMIMilesDriver::setSampleFilter(EMIMilesSample *sample, bool enabled) {
 	destroyFilter(sample);
 
 	if (enabled)
-		sample->filter = EMIMilesFilter::create(_outputRate);
+		sample->filter = EMIMilesFilter::create(_memoryServices, _outputRate);
 }
 
 void EMIMilesDriver::setSampleFilterEnvironment(EMIMilesSample *sample, float environment) {

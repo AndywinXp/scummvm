@@ -40,7 +40,7 @@ public:
 		kMaxClipVertices = kMaxClipPlanes + 4
 	};
 
-	CTinyGLContext();
+	explicit CTinyGLContext(EmiEngine *engine);
 	~CTinyGLContext() override;
 
 	bool open(const DisplayMode *mode) override;

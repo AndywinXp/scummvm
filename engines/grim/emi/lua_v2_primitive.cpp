@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/color.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/primitivequeue_v2.h"
@@ -110,7 +111,7 @@ void Lua_V2::Draw3DLine() {
 	}
 
 	// The disasm queues the line with Color(0), not with the color read above
-	int primitiveId = PrimitiveQueue_v2::queue.add3DLine(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], Color(0u), layer);
+	int primitiveId = _engine->getPrimitiveQueue()->add3DLine(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], Color(0u), layer);
 
 	lua_pushnumber((float)(uint)primitiveId);
 }
@@ -142,7 +143,7 @@ void Lua_V2::DrawLine() {
 		getLayerField(optionsObj, &layer);
 	}
 
-	int primitiveId = PrimitiveQueue_v2::queue.addLine(coords[0], coords[1], coords[2], coords[3], lineColor, layer);
+	int primitiveId = _engine->getPrimitiveQueue()->addLine(coords[0], coords[1], coords[2], coords[3], lineColor, layer);
 
 	lua_pushnumber((float)(uint)primitiveId);
 }
@@ -186,7 +187,7 @@ void Lua_V2::DrawPolygon() {
 		return;
 	}
 
-	float *points = (float *)gpMemoryServices->mallocImpl(numPoints * 3 * sizeof(float));
+	float *points = (float *)_engine->getMemoryServices()->mallocImpl(numPoints * 3 * sizeof(float));
 
 	if (!points) {
 		warning("Lua_V2::DrawPolygon(): out of memory");
@@ -222,7 +223,7 @@ void Lua_V2::DrawPolygon() {
 	}
 
 	// The disasm never frees the points
-	int primitiveId = PrimitiveQueue_v2::queue.addPolygon(numPoints, points, polygonColor, layer);
+	int primitiveId = _engine->getPrimitiveQueue()->addPolygon(numPoints, points, polygonColor, layer);
 
 	lua_pushnumber((float)(uint)primitiveId);
 }
@@ -261,7 +262,7 @@ void Lua_V2::DrawRectangle() {
 		getLayerField(optionsObj, &layer);
 	}
 
-	int primitiveId = PrimitiveQueue_v2::queue.addRectangle(coords[0], coords[1], coords[2], coords[3], rectangleColor, filled, layer);
+	int primitiveId = _engine->getPrimitiveQueue()->addRectangle(coords[0], coords[1], coords[2], coords[3], rectangleColor, filled, layer);
 
 	lua_pushnumber((float)(uint)primitiveId);
 }
@@ -280,37 +281,37 @@ void Lua_V2::ChangePrimitive() {
 	float second;
 
 	if (getColorField(changesObj, newColor))
-		PrimitiveQueue_v2::queue.setColor(primitiveId, newColor);
+		_engine->getPrimitiveQueue()->setColor(primitiveId, newColor);
 
 	if (getLayerField(changesObj, &newLayer))
-		PrimitiveQueue_v2::queue.setLayer(primitiveId, newLayer);
+		_engine->getPrimitiveQueue()->setLayer(primitiveId, newLayer);
 
 	if (getFloatPairFields(changesObj, "xoffset", "yoffset", 0.0f, &first, &second))
-		PrimitiveQueue_v2::queue.moveBy(primitiveId, first, second);
+		_engine->getPrimitiveQueue()->moveBy(primitiveId, first, second);
 
 	if (getFloatPairFields(changesObj, "xmove", "ymove", kNoChange, &first, &second))
-		PrimitiveQueue_v2::queue.moveTo(primitiveId, first, second);
+		_engine->getPrimitiveQueue()->moveTo(primitiveId, first, second);
 
 	if (getFloatPairFields(changesObj, "x", "y", kNoChange, &first, &second))
-		PrimitiveQueue_v2::queue.setEnd(primitiveId, first, second);
+		_engine->getPrimitiveQueue()->setEnd(primitiveId, first, second);
 
 	if (getFloatPairFields(changesObj, "x2", "y2", kNoChange, &first, &second))
-		PrimitiveQueue_v2::queue.setEnd(primitiveId, first, second);
+		_engine->getPrimitiveQueue()->setEnd(primitiveId, first, second);
 
 	if (getFloatPairFields(changesObj, "width", "height", kNoChange, &first, &second))
-		PrimitiveQueue_v2::queue.setEndRelative(primitiveId, first, second);
+		_engine->getPrimitiveQueue()->setEndRelative(primitiveId, first, second);
 }
 
 void Lua_V2::KillPrimitive() {
 	lua_Object primitiveObj = lua_getparam(1);
 
 	if (lua_isnumber(primitiveObj))
-		PrimitiveQueue_v2::queue.kill(luaFtol(lua_getnumber(primitiveObj)));
+		_engine->getPrimitiveQueue()->kill(luaFtol(lua_getnumber(primitiveObj)));
 }
 
 void Lua_V2::PurgePrimitiveQueue() {
-	PrimitiveQueue_v2::queue.clear();
-	PrimitiveQueue_v2::resetIds();
+	_engine->getPrimitiveQueue()->clear();
+	_engine->getPrimitiveQueue()->resetIds();
 }
 
 } // End of namespace Grim

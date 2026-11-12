@@ -29,7 +29,6 @@
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/textevent.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -69,11 +68,11 @@ void Actor::updateActorSpeech(float deltaTime) {
 	if (extra->soundHandle && extra->lipsyncActive) {
 		int mouthShape;
 
-		if (EmiEngine::isDumpingFrames()) {
-			mouthShape = LipData::getLipMouthShape((uint)extra->soundHandle, extra->visemeMs);
+		if (_engine->isDumpingFrames()) {
+			mouthShape = LipData::getLipMouthShape(_engine, (uint)extra->soundHandle, extra->visemeMs);
 			extra->visemeMs = truncateSpeechTime((double)deltaTime * 1000.0 + (double)extra->visemeMs);
 		} else {
-			mouthShape = LipData::getLipMouthShape((uint)extra->soundHandle, -1);
+			mouthShape = LipData::getLipMouthShape(_engine, (uint)extra->soundHandle, -1);
 		}
 
 		if (mouthShape == 0) {
@@ -87,8 +86,8 @@ void Actor::updateActorSpeech(float deltaTime) {
 				if (currentShape < 0 || currentShape >= kNumChoreSlots) {
 					warning("Actor::updateActorSpeech(): invalid current mouth shape %d", currentShape);
 				} else {
-					if (ChoreInstance::isInstanceValid(choreSlotIds[currentShape]))
-						ChoreInstance::getInstance(choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+					if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[currentShape]))
+						ChoreInstance::getInstance(_engine, choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
 
 					choreSlotIds[currentShape] = 0;
 				}
@@ -99,8 +98,8 @@ void Actor::updateActorSpeech(float deltaTime) {
 			startChore(&startedId, choreSlotNames[mouthShape], choreSlotSetNames[mouthShape]);
 			choreSlotIds[mouthShape] = startedId;
 
-			if (ChoreInstance::isInstanceValid(startedId))
-				ChoreInstance::getInstance(choreSlotIds[mouthShape])->fadeIn(kVisemeFadeTime);
+			if (ChoreInstance::isInstanceValid(_engine, startedId))
+				ChoreInstance::getInstance(_engine, choreSlotIds[mouthShape])->fadeIn(kVisemeFadeTime);
 
 			extra->visemeCurrent = mouthShape;
 		}
@@ -124,31 +123,31 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 	if (!extra)
 		allocateActorExtra();
 
-	bool textEnabled = (_speechMode & 1) != 0;
-	bool voiceEnabled = (_speechMode & 2) != 0;
+	bool textEnabled = (_engine->_speechMode & 1) != 0;
+	bool voiceEnabled = (_engine->_speechMode & 2) != 0;
 	char voiceId[kVoiceIdSize];
 	char voicePath[kVoicePathSize];
-	const char *lineText = TextEvent::translate(text, voiceId);
+	const char *lineText = TextEvent::translate(_engine, text, voiceId);
 
 	voicePath[0] = 0;
 
-	if (voiceId[0] && g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (voiceId[0] && _engine->getGamePlatform() == Common::kPlatformPS2) {
 		Common::sprintf_s(voicePath, "%s.SCX", voiceId);
 
-		if (!gpFileServices->exists(voicePath))
+		if (!_engine->getFileServices()->exists(voicePath))
 			voicePath[0] = 0;
 	} else if (voiceId[0]) {
 		Common::sprintf_s(voicePath, "%s.wvc", voiceId);
 
-		LFile *voiceFile = gpFileServices->open(voicePath, "rb");
+		LFile *voiceFile = _engine->getFileServices()->open(voicePath, "rb");
 
 		if (!voiceFile) {
 			Common::sprintf_s(voicePath, "%s.wav", voiceId);
-			voiceFile = gpFileServices->open(voicePath, "rb");
+			voiceFile = _engine->getFileServices()->open(voicePath, "rb");
 		}
 
 		if (voiceFile)
-			gpFileServices->close(voiceFile, true);
+			_engine->getFileServices()->close(voiceFile, true);
 		else
 			voicePath[0] = 0;
 	}
@@ -179,26 +178,26 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 		idLength++;
 	}
 
-	_numSpeakers++;
+	_engine->_numSpeakers++;
 
 	int speakerSlot = 0;
 
-	while (speakerSlot < kNumSpeakers && _speakers[speakerSlot])
+	while (speakerSlot < kNumSpeakers && _engine->_speakers[speakerSlot])
 		speakerSlot++;
 
 	if (speakerSlot < kNumSpeakers)
-		_speakers[speakerSlot] = this;
+		_engine->_speakers[speakerSlot] = this;
 
 	bool createText = textEnabled;
 
 	if (voiceEnabled) {
 		if (voicePath[0]) {
-			extra->soundHandle = (int)Sounds::loadSound(voicePath, kVoiceSoundMode);
+			extra->soundHandle = (int)_engine->getSounds()->loadSound(voicePath, kVoiceSoundMode);
 
 			if (extra->soundHandle)
-				Sounds::startSound((uint)extra->soundHandle, 0, false, volume);
+				_engine->getSounds()->startSound((uint)extra->soundHandle, 0, false, volume);
 
-			extra->lipsyncActive = Sounds::getSoundLipData((uint)extra->soundHandle) != nullptr;
+			extra->lipsyncActive = _engine->getSounds()->getSoundLipData((uint)extra->soundHandle) != nullptr;
 
 			if (extra->lipsyncActive)
 				extra->visemeMs = 0;
@@ -217,7 +216,7 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 		extra->textEventId = textEvent->id;
 
 		if (!extra->soundHandle)
-			extra->talkTimerMs = (int)(10u * ((uint)(11 - _actorTextRate) * (uint)strlen(lineText) + 64u));
+			extra->talkTimerMs = (int)(10u * ((uint)(11 - _engine->_actorTextRate) * (uint)strlen(lineText) + 64u));
 
 		textEvent->activate(-1.0f, kSpeechTextFlags);
 	}
@@ -238,19 +237,19 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 		startChore(&startedId, choreSlotNames[kMouthSlot], choreSlotSetNames[kMouthSlot]);
 		choreSlotIds[kMouthSlot] = startedId;
 
-		if (ChoreInstance::isInstanceValid(startedId))
-			ChoreInstance::getInstance(choreSlotIds[kMouthSlot])->setPlaying();
+		if (ChoreInstance::isInstanceValid(_engine, startedId))
+			ChoreInstance::getInstance(_engine, choreSlotIds[kMouthSlot])->setPlaying();
 	}
 }
 
 TextEvent *Actor::createActorText(const LString &text, int x, int y) {
-	TextEvent *textEvent = new TextEvent(text);
+	TextEvent *textEvent = new TextEvent(_engine, text);
 
 	textEvent->geometryReady = false;
-	textEvent->clipRect[0] = TextEvent::screenRect[0];
-	textEvent->clipRect[1] = TextEvent::screenRect[1];
-	textEvent->clipRect[2] = TextEvent::screenRect[2];
-	textEvent->clipRect[3] = TextEvent::screenRect[3];
+	textEvent->clipRect[0] = _engine->_textScreenRect[0];
+	textEvent->clipRect[1] = _engine->_textScreenRect[1];
+	textEvent->clipRect[2] = _engine->_textScreenRect[2];
+	textEvent->clipRect[3] = _engine->_textScreenRect[3];
 
 	if (extra)
 		textEvent->color = extra->talkColor;
@@ -264,10 +263,10 @@ TextEvent *Actor::createActorText(const LString &text, int x, int y) {
 	int rectY;
 	int rectWidth;
 
-	if (!onScreen || EmiEngine::getMode() == EmiEngine::kModeMovie) {
-		rectX = offscreenTextRect.x;
-		rectY = offscreenTextRect.y;
-		rectWidth = offscreenTextRect.w;
+	if (!onScreen || _engine->getMode() == EmiEngine::kModeMovie) {
+		rectX = _engine->_offscreenTextRect.x;
+		rectY = _engine->_offscreenTextRect.y;
+		rectWidth = _engine->_offscreenTextRect.w;
 	} else {
 		rectX = drawnRect[0];
 		rectY = drawnRect[1];
@@ -283,8 +282,8 @@ TextEvent *Actor::createActorText(const LString &text, int x, int y) {
 	if (textX - halfWidth < kTextMarginX)
 		textX = halfWidth + kTextMarginX;
 
-	if (textX + halfWidth > TextEvent::screenRect[2] - kTextMarginX)
-		textX = TextEvent::screenRect[2] - halfWidth - kTextMarginX;
+	if (textX + halfWidth > _engine->_textScreenRect[2] - kTextMarginX)
+		textX = _engine->_textScreenRect[2] - halfWidth - kTextMarginX;
 
 	textEvent->x = textX;
 	textEvent->y = 0;
@@ -299,8 +298,8 @@ TextEvent *Actor::createActorText(const LString &text, int x, int y) {
 	if (textY < kTextMarginY)
 		textY = kTextMarginY;
 
-	if (textY + height > TextEvent::screenRect[3] - kTextMarginY)
-		textY = TextEvent::screenRect[3] - height - kTextMarginY;
+	if (textY + height > _engine->_textScreenRect[3] - kTextMarginY)
+		textY = _engine->_textScreenRect[3] - height - kTextMarginY;
 
 	textEvent->x = textX;
 	textEvent->y = textY;
@@ -317,22 +316,22 @@ void Actor::shutUp(bool stopNow) {
 
 	if (extra->soundHandle) {
 		if (stopNow)
-			Sounds::stopSound((uint)extra->soundHandle);
+			_engine->getSounds()->stopSound((uint)extra->soundHandle);
 		else
-			Sounds::releaseSoundWhenDone((uint)extra->soundHandle);
+			_engine->getSounds()->releaseSoundWhenDone((uint)extra->soundHandle);
 
 		extra->soundHandle = 0;
 	}
 
 	if (extra->textEventId) {
-		TextEvent *textEvent = TextEvent::getEvent(extra->textEventId);
+		TextEvent *textEvent = TextEvent::getEvent(_engine, extra->textEventId);
 
 		if (textEvent)
 			delete textEvent;
 	}
 
-	if (ChoreInstance::isInstanceValid(choreSlotIds[kMouthSlot]))
-		ChoreInstance::getInstance(choreSlotIds[kMouthSlot])->stop();
+	if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[kMouthSlot]))
+		ChoreInstance::getInstance(_engine, choreSlotIds[kMouthSlot])->stop();
 
 	choreSlotIds[kMouthSlot] = 0;
 
@@ -342,8 +341,8 @@ void Actor::shutUp(bool stopNow) {
 		if (currentShape < 0 || currentShape >= kNumChoreSlots) {
 			warning("Actor::shutUp(): invalid current mouth shape %d", currentShape);
 		} else {
-			if (ChoreInstance::isInstanceValid(choreSlotIds[currentShape]))
-				ChoreInstance::getInstance(choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+			if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[currentShape]))
+				ChoreInstance::getInstance(_engine, choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
 
 			choreSlotIds[currentShape] = 0;
 		}
@@ -352,18 +351,18 @@ void Actor::shutUp(bool stopNow) {
 	}
 
 	for (int slot = kFirstVisemeSlot; slot <= kLastVisemeSlot; slot++) {
-		if (ChoreInstance::isInstanceValid(choreSlotIds[slot])) {
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[slot])) {
 			// The disasm passes the string object itself as the %s argument, let's use the name...
 			Common::String message = Common::String::format("%s still talk choring", actorName.c_str());
 
 			warning("%s", message.c_str());
-			EmiEngine::showMessage(message.c_str(), "Warning:");
+			_engine->showMessage(message.c_str(), "Warning:");
 		}
 	}
 
 	for (int i = 0; i < kNumSpeakers; i++) {
-		if (_speakers[i] == this)
-			_speakers[i] = nullptr;
+		if (_engine->_speakers[i] == this)
+			_engine->_speakers[i] = nullptr;
 	}
 
 	extra->lipsyncActive = false;
@@ -371,8 +370,8 @@ void Actor::shutUp(bool stopNow) {
 	extra->sayLineId[0] = 0;
 	extra->talking = false;
 
-	if (_numSpeakers > 0)
-		_numSpeakers--;
+	if (_engine->_numSpeakers > 0)
+		_engine->_numSpeakers--;
 }
 
 bool Actor::isVoicePlaying() {
@@ -385,37 +384,37 @@ bool Actor::isVoicePlaying() {
 	if (!extra->soundHandle)
 		return false;
 
-	return Sounds::isSoundPlayingNoFiniteLoop((uint)extra->soundHandle);
+	return _engine->getSounds()->isSoundPlayingNoFiniteLoop((uint)extra->soundHandle);
 }
 
-int Actor::getNumActorsTalking() {
-	return _numSpeakers;
+int Actor::getNumActorsTalking(EmiEngine *engine) {
+	return engine->_numSpeakers;
 }
 
-int Actor::setSpeechMode(int newSpeechMode) {
-	if (newSpeechMode != _speechMode && (newSpeechMode & 3) != 0)
-		_speechMode = newSpeechMode;
+int Actor::setSpeechMode(EmiEngine *engine, int newSpeechMode) {
+	if (newSpeechMode != engine->_speechMode && (newSpeechMode & 3) != 0)
+		engine->_speechMode = newSpeechMode;
 
 	return newSpeechMode;
 }
 
-int Actor::getSpeechMode() {
-	return _speechMode;
+int Actor::getSpeechMode(EmiEngine *engine) {
+	return engine->_speechMode;
 }
 
-int Actor::setActorTextRate(int newTextRate) {
+int Actor::setActorTextRate(EmiEngine *engine, int newTextRate) {
 	if (newTextRate < kMinTextRate)
 		newTextRate = kMinTextRate;
 	else if (newTextRate > kMaxTextRate)
 		newTextRate = kMaxTextRate;
 
-	_actorTextRate = newTextRate;
+	engine->_actorTextRate = newTextRate;
 
 	return newTextRate;
 }
 
-int Actor::getActorTextRate() {
-	return _actorTextRate;
+int Actor::getActorTextRate(EmiEngine *engine) {
+	return engine->_actorTextRate;
 }
 
 } // End of namespace Grim

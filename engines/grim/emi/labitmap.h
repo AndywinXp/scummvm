@@ -28,8 +28,8 @@ namespace Grim {
 
 class LABitmap : public LBitmap {
 public:
-	LABitmap();
-	LABitmap(int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels);
+	explicit LABitmap(EmiEngine *engine);
+	LABitmap(EmiEngine *engine, int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels);
 	~LABitmap();
 
 	int getWidth() override;

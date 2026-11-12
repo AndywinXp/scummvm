@@ -24,6 +24,8 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
@@ -31,24 +33,19 @@ namespace Grim {
 
 static const uint kBlockHeaderSize = 16;
 
-uint LMemoryServices::mHardCap = 0x1000000;
-uint LMemoryServices::mDesiredCap = 0xC00000;
-bool LMemoryServices::mbCapLimitsActive = true;
-LMemoryServices::LMemoryHandler **LMemoryServices::mMemHandlers = nullptr;
-uint LMemoryServices::mNHandlers = 0;
-uint LMemoryServices::mMemHandlersArraySize = 0;
+LMemoryServices *LMemoryServices::getCurrent() {
+	if (!g_grim)
+		return nullptr;
 
-uint LDebugMemoryServices::allocationId = 0;
-
-static LMemoryServices gDefaultMemoryServices;
-LMemoryServices *gpMemoryServices = &gDefaultMemoryServices;
+	return static_cast<EmiEngine *>(g_grim)->getMemoryServices();
+}
 
 void *LMemoryServices::LMemoryHandler::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LMemoryServices::LMemoryHandler::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 ThreadBase::ThreadBase() {
@@ -71,17 +68,15 @@ ThreadLock::~ThreadLock() {
 	base->unlock();
 }
 
-LMemoryServices::LMemoryServices() {
+LMemoryServices::LMemoryServices() : _hardCap(0x1000000), _desiredCap(0xC00000), _capLimitsActive(true),
+		_memHandlers(nullptr), _handlerCount(0), _memHandlersArraySize(4) {
 	bytesAllocated = 0;
-	mMemHandlersArraySize = 4;
-	mNHandlers = 0;
-	mMemHandlers = (LMemoryHandler **)gpMemoryServices->mallocImpl(mMemHandlersArraySize * sizeof(LMemoryHandler *));
-	mbCapLimitsActive = true;
+	_memHandlers = (LMemoryHandler **)LMemoryServices::mallocImpl(_memHandlersArraySize * sizeof(LMemoryHandler *));
 }
 
 LMemoryServices::~LMemoryServices() {
-	gpMemoryServices->freeImpl(mMemHandlers);
-	mMemHandlers = nullptr;
+	LMemoryServices::freeImpl(_memHandlers);
+	_memHandlers = nullptr;
 }
 
 void *LMemoryServices::mallocImpl(uint size) {
@@ -172,44 +167,44 @@ bool LMemoryServices::dumpLeaks(const char *fileName) {
 }
 
 void LMemoryServices::setHardMemoryCap(uint cap) {
-	mHardCap = cap;
+	_hardCap = cap;
 }
 
 const uint &LMemoryServices::getHardMemoryCap() {
-	return mHardCap;
+	return _hardCap;
 }
 
 const uint &LMemoryServices::getDesiredMemoryCap() {
-	return mDesiredCap;
+	return _desiredCap;
 }
 
 void LMemoryServices::activateMemoryCaps(bool active) {
-	mbCapLimitsActive = active;
+	_capLimitsActive = active;
 }
 
 bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 	threadBase.lock();
 
-	if (mNHandlers >= mMemHandlersArraySize) {
-		LMemoryHandler **oldHandlers = mMemHandlers;
-		uint newSize = mMemHandlersArraySize + 4;
+	if (_handlerCount >= _memHandlersArraySize) {
+		LMemoryHandler **oldHandlers = _memHandlers;
+		uint newSize = _memHandlersArraySize + 4;
 
-		LMemoryHandler **newHandlers = (LMemoryHandler **)gpMemoryServices->mallocImpl(newSize * sizeof(LMemoryHandler *));
-		mMemHandlers = newHandlers;
+		LMemoryHandler **newHandlers = (LMemoryHandler **)LMemoryServices::mallocImpl(newSize * sizeof(LMemoryHandler *));
+		_memHandlers = newHandlers;
 		if (!newHandlers) {
-			mMemHandlers = oldHandlers;
+			_memHandlers = oldHandlers;
 			threadBase.unlock();
 			return false;
 		}
 
 		memset(newHandlers, 0, newSize * sizeof(LMemoryHandler *));
-		memcpy(newHandlers, oldHandlers, mMemHandlersArraySize * sizeof(LMemoryHandler *));
-		gpMemoryServices->freeImpl(oldHandlers);
-		mMemHandlersArraySize = newSize;
+		memcpy(newHandlers, oldHandlers, _memHandlersArraySize * sizeof(LMemoryHandler *));
+		LMemoryServices::freeImpl(oldHandlers);
+		_memHandlersArraySize = newSize;
 	}
 
-	mMemHandlers[mNHandlers] = handler;
-	mNHandlers++;
+	_memHandlers[_handlerCount] = handler;
+	_handlerCount++;
 	threadBase.unlock();
 
 	return true;
@@ -221,18 +216,18 @@ bool LMemoryServices::unregisterMemoryHandler(LMemoryHandler *handler) {
 	bool result = false;
 	uint index = 0;
 
-	if (mNHandlers != 0) {
-		while (mMemHandlers[index] != handler) {
+	if (_handlerCount != 0) {
+		while (_memHandlers[index] != handler) {
 			index++;
-			if (index >= mNHandlers) {
+			if (index >= _handlerCount) {
 				threadBase.unlock();
 				return false;
 			}
 		}
 
-		memmove(&mMemHandlers[index], &mMemHandlers[index + 1], (mNHandlers - index - 1) * sizeof(LMemoryHandler *));
+		memmove(&_memHandlers[index], &_memHandlers[index + 1], (_handlerCount - index - 1) * sizeof(LMemoryHandler *));
 		result = true;
-		mNHandlers--;
+		_handlerCount--;
 	}
 
 	threadBase.unlock();
@@ -240,7 +235,7 @@ bool LMemoryServices::unregisterMemoryHandler(LMemoryHandler *handler) {
 	return result;
 }
 
-LDebugMemoryServices::LDebugMemoryServices() {
+LDebugMemoryServices::LDebugMemoryServices() : _allocationId(0) {
 	numAllocations = 0;
 	bytesAllocated = 0;
 	bytesWithOverhead = 0;
@@ -257,24 +252,24 @@ void *LDebugMemoryServices::mallocImpl(uint size) {
 
 	threadBase.lock();
 
-	if (mbCapLimitsActive) {
+	if (_capLimitsActive) {
 		uint overhead = bytesWithOverhead;
 
-		if (overhead + size >= mHardCap) {
+		if (overhead + size >= _hardCap) {
 			uint freed = 0;
-			uint needed = size + overhead - mHardCap;
+			uint needed = size + overhead - _hardCap;
 			uint totalFreed = 0;
 
-			if (mNHandlers != 0) {
+			if (_handlerCount != 0) {
 				while (needed > freed) {
 					uint before = overhead;
 
-					mMemHandlers[handlerIndex]->purgeAmount(needed - freed);
+					_memHandlers[handlerIndex]->purgeAmount(needed - freed);
 					overhead = bytesWithOverhead;
 					handlerIndex++;
 					totalFreed += before - overhead;
 
-					if (handlerIndex >= mNHandlers)
+					if (handlerIndex >= _handlerCount)
 						break;
 
 					freed = totalFreed;
@@ -292,11 +287,11 @@ void *LDebugMemoryServices::mallocImpl(uint size) {
 
 	allocation->newer = nullptr;
 	allocation->older = newestAllocation;
-	allocation->id = allocationId;
+	allocation->id = _allocationId;
 	allocation->size = size;
 	allocation->guard = 0x12345678;
 
-	allocationId++;
+	_allocationId++;
 	numAllocations++;
 	bytesAllocated += size;
 	bytesWithOverhead += size + sizeof(LAllocation);

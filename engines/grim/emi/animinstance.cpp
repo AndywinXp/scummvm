@@ -28,7 +28,7 @@
 
 namespace Grim {
 
-AnimInstance::AnimInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+AnimInstance::AnimInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName), AInst(engine), _engine(engine) {
 	owner = actor;
 	bound = false;
 	bindAnimation();

@@ -35,7 +35,7 @@ uint GlobalAlphaComponent::resSizeOfItem() {
 }
 
 ComponentInstance *GlobalAlphaComponent::createInstance(Actor *owner) {
-	return new GlobalAlphaInstance(name, owner);
+	return new GlobalAlphaInstance(_engine, name, owner);
 }
 
 bool GlobalAlphaComponent::resLoadItem(const char *itemName) {

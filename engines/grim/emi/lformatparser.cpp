@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lformatparser.h"
 
@@ -43,7 +44,8 @@ void KeywordInfo::set(const char *keywordName, int keywordId, int keywordArgMask
 	argMask = keywordArgMask;
 }
 
-LFormatParser::LFormatParser() {
+LFormatParser::LFormatParser(EmiEngine *engine) {
+	_engine = engine;
 	file = nullptr;
 	reading = true;
 	binaryData = false;
@@ -85,8 +87,8 @@ bool LFormatParser::readEndOfSection() {
 	if (scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
 		return true;
 
-	if (gpConsoleServices)
-		gpConsoleServices->logError("Expected EOF/EOS reading of %s\n", file->fileName.c_str());
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logError("Expected EOF/EOS reading of %s\n", file->fileName.c_str());
 	else
 		warning("LFormatParser::readEndOfSection(): expected EOF/EOS reading of %s", file->fileName.c_str());
 
@@ -151,8 +153,8 @@ bool LFormatParser::readVersion(int versionMajor, int versionMinor) {
 	if (file->readLine(lineBuffer, kLineBufferSize) || scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
 		return true;
 
-	if (gpConsoleServices)
-		gpConsoleServices->logError("Unexpected EOF/EOS reading version of %s\n", file->fileName.c_str());
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading version of %s\n", file->fileName.c_str());
 	else
 		warning("LFormatParser::readVersion(): unexpected EOF/EOS reading version of %s", file->fileName.c_str());
 
@@ -162,8 +164,8 @@ bool LFormatParser::readVersion(int versionMajor, int versionMinor) {
 bool LFormatParser::readEntry(int id, ...) {
 	do {
 		if (!file->readLine(lineBuffer, kLineBufferSize) || scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Unexpected EOF/EOS reading token from %s\n", file->fileName.c_str());
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading token from %s\n", file->fileName.c_str());
 			else
 				warning("LFormatParser::readEntry(): unexpected EOF/EOS reading token from %s", file->fileName.c_str());
 
@@ -238,7 +240,7 @@ bool LFormatParser::parseFile(const char *path, int versionMajor, int versionMin
 
 	bool result = parse(versionMajor, versionMinor);
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return result;
 }
@@ -246,7 +248,7 @@ bool LFormatParser::parseFile(const char *path, int versionMajor, int versionMin
 LFile *LFormatParser::openFile(const char *path, bool readMode) {
 	reading = readMode;
 
-	LFile *opened = gpFileServices->open(path, readMode ? "rb" : "wb");
+	LFile *opened = _engine->getFileServices()->open(path, readMode ? "rb" : "wb");
 
 	if (!opened)
 		return nullptr;
@@ -260,7 +262,7 @@ LFile *LFormatParser::openFile(const char *path, bool readMode) {
 		byte banner[kCopyrightBannerSize];
 
 		if (opened->read(banner, kCopyrightBannerSize) != kCopyrightBannerSize) {
-			gpFileServices->close(opened, true);
+			_engine->getFileServices()->close(opened, true);
 			return nullptr;
 		}
 	}
@@ -269,7 +271,7 @@ LFile *LFormatParser::openFile(const char *path, bool readMode) {
 
 	if (reading) {
 		if (opened->read(magic, kBinaryMagicSize) != kBinaryMagicSize) {
-			gpFileServices->close(opened, true);
+			_engine->getFileServices()->close(opened, true);
 			return nullptr;
 		}
 
@@ -309,8 +311,8 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 	KeywordArg args[kMaxTokens];
 
 	if (!file->readLine(lineBuffer, kLineBufferSize)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Unexpected EOF in file\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Unexpected EOF in file\n");
 		else
 			warning("LFormatParser::parse(): unexpected EOF in file");
 
@@ -346,7 +348,7 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 
 						if (file) {
 							includeResult = parse(versionMajor, versionMinor);
-							gpFileServices->close(file, true);
+							_engine->getFileServices()->close(file, true);
 						} else {
 							includeResult = false;
 						}
@@ -355,8 +357,8 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 						fileStack.pop_back();
 
 						if (!includeResult) {
-							if (gpConsoleServices)
-								gpConsoleServices->logError("Failed to include <%s>, while parsing file: %s\n", tokens[1], file->fileName.c_str());
+							if (_engine->getConsoleServices())
+								_engine->getConsoleServices()->logError("Failed to include <%s>, while parsing file: %s\n", tokens[1], file->fileName.c_str());
 							else
 								warning("LFormatParser::parse(): failed to include <%s>, while parsing file: %s", tokens[1], file->fileName.c_str());
 						}

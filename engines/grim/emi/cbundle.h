@@ -31,6 +31,7 @@
 namespace Grim {
 
 class CBundle;
+class EmiEngine;
 class PBundleDirectoryEntry;
 
 enum {
@@ -92,7 +93,7 @@ typedef Common::HashMap<uint, Common::Array<PBundleDirectoryEntry *> > BundleHas
 
 class CBundle {
 public:
-	CBundle();
+	CBundle(EmiEngine *engine);
 	~CBundle();
 
 	void *operator new(size_t size);
@@ -122,11 +123,14 @@ public:
 	char *nameTable;
 	int nameTableSize;
 	BundleHashIndex *hashIndex;
+
+private:
+	EmiEngine *_engine;
 };
 
 class LBundleFile : public LFile {
 public:
-	LBundleFile();
+	explicit LBundleFile(EmiEngine *engine);
 	~LBundleFile() override;
 
 	void reset() override;
@@ -157,7 +161,7 @@ public:
 
 class CBundleServices : public LFileServices {
 public:
-	CBundleServices(LFileServices *innerServices);
+	CBundleServices(EmiEngine *engine, LFileServices *innerServices);
 	~CBundleServices() override;
 
 	LFile *open(const char *path, const char *mode) override;
@@ -181,27 +185,26 @@ public:
 	bool openCommonBundles();
 	bool resetBundles();
 
-	LBundleFile files[kBundleMaxOpenFiles];
+	LBundleFile *files[kBundleMaxOpenFiles];
 	LFileServices *inner;
 	int numBundles;
 	CBundle *head;
 	CBundle *tail;
 	LFile *logFile;
 
-	static bool init(bool isInternational);
-	static bool isI9nBundleOpen();
-	static bool openIslandBundles(const char *island);
-	static void closeIslandBundles(const char *island);
-	static bool isIslandBundleOpen(const char *island);
-	static bool openSetBundle(const char *roomName);
-	static bool setDiscBundles(int disc);
+	static bool init(EmiEngine *engine, bool isInternational);
+
+	bool isI9nBundleOpen();
+	bool openIslandBundles(const char *island);
+	void closeIslandBundles(const char *island);
+	bool isIslandBundleOpen(const char *island);
+	bool openSetBundle(const char *roomName);
+	bool setDiscBundles(int disc);
 
 private:
-	static Common::String _currentIsland;
-	static Common::String _currentSetBundle;
+	Common::String _currentIsland;
+	Common::String _currentSetBundle;
 };
-
-extern CBundleServices *gpBundleServices;
 
 } // End of namespace Grim
 

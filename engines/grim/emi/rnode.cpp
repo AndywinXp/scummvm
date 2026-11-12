@@ -72,7 +72,7 @@ void RNode::removePrimitiveInstance(int index) {
 }
 
 void RNode::draw(Camera *camera) {
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = camera->getDrawContext();
 
 	if (!ctx) {
 		warning("RNode::draw(): no draw context");
@@ -139,7 +139,7 @@ void RNode::drawDebug(Camera *camera) {
 			parentLine[i].z = (float)((double)viewZ + viewPos.z);
 		}
 
-		Camera::drawLineLoop(parentLine, 2);
+		camera->drawLineLoop(parentLine, 2);
 	}
 
 	if ((drawFlags & (kDebugEnabled | kDebugAxes)) != 0) {
@@ -180,7 +180,7 @@ void RNode::drawDebug(Camera *camera) {
 			}
 
 			setLineColor(axisLine, axisColors[axis]);
-			Camera::drawLineLoop(axisLine, 2);
+			camera->drawLineLoop(axisLine, 2);
 		}
 	}
 

@@ -25,17 +25,12 @@
 
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cpathingfileservices.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/filefind.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
-
-CBundleServices *gpBundleServices = nullptr;
-
-Common::String CBundleServices::_currentIsland;
-Common::String CBundleServices::_currentSetBundle;
 
 BundleLookup::BundleLookup() {
 	file = nullptr;
@@ -51,11 +46,11 @@ PBundleDirectoryEntry::PBundleDirectoryEntry() {
 }
 
 void *PBundleDirectoryEntry::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void PBundleDirectoryEntry::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void PBundleDirectoryEntry::reset() {
@@ -100,7 +95,7 @@ void PBundleFileEntry::fillLookup(LFileServices *services, CBundle *bundle, Bund
 	lookup->bundle = bundle;
 }
 
-CBundle::CBundle() {
+CBundle::CBundle(EmiEngine *engine) : _engine(engine) {
 	prev = nullptr;
 	next = nullptr;
 	reset();
@@ -111,11 +106,11 @@ CBundle::~CBundle() {
 }
 
 void *CBundle::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CBundle::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void CBundle::reset() {
@@ -132,7 +127,7 @@ void CBundle::reset() {
 
 void CBundle::close() {
 	if (file)
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 	for (uint i = 0; i < entries.size(); i++)
 		delete entries[i];
@@ -140,7 +135,7 @@ void CBundle::close() {
 	entries.clear();
 
 	if (nameTable) {
-		gpMemoryServices->freeImpl(nameTable);
+		_engine->getMemoryServices()->freeImpl(nameTable);
 		nameTable = nullptr;
 	}
 
@@ -187,7 +182,7 @@ bool CBundle::openDirectory(const char *directory) {
 	type = kBundleTypeDirectory;
 	numEntries = fileNames.size();
 
-	nameTable = (char *)gpMemoryServices->mallocImpl(nameBytes * sizeof(char));
+	nameTable = (char *)_engine->getMemoryServices()->mallocImpl(nameBytes * sizeof(char));
 	if (!nameTable) {
 		close();
 
@@ -218,17 +213,18 @@ bool CBundle::openBundleFile(const char *fileName) {
 	Common::String path = ".\\";
 	path += fileName;
 
-	LFile *bundleFile = gpFileServices->open(path.c_str(), "rb");
+	LConsoleServices *console = _engine->getConsoleServices();
+	LFile *bundleFile = _engine->getFileServices()->open(path.c_str(), "rb");
 	if (!bundleFile) {
-		if (g_grim->getGamePlatform() == Common::kPlatformPS2 && gpConsoleServices)
-			gpConsoleServices->logWarning("OpenBundle: Unable to open file <%s>.\n", fileName);
+		if (_engine->getGamePlatform() == Common::kPlatformPS2 && console)
+			console->logWarning("OpenBundle: Unable to open file <%s>.\n", fileName);
 
 		return false;
 	}
 
 	name = fileName;
 	file = bundleFile;
-	fileSize = gpFileServices->getSize(fileName);
+	fileSize = _engine->getFileServices()->getSize(fileName);
 	type = kBundleTypeFile;
 	entries.clear();
 	nameTable = nullptr;
@@ -239,8 +235,8 @@ bool CBundle::openBundleFile(const char *fileName) {
 	if (success) {
 		buildHashIndex();
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Unable to open bundle %s. It is not a valid bundle?\n", fileName);
+		if (console)
+			console->logError("Unable to open bundle %s. It is not a valid bundle?\n", fileName);
 		else
 			warning("CBundle::openBundleFile(): unable to open bundle %s, it is not a valid bundle?", fileName);
 
@@ -301,7 +297,7 @@ bool CBundle::readHeader() {
 	for (uint i = 0; i < numFiles; i++)
 		entries.push_back(new PBundleFileEntry());
 
-	nameTable = (char *)gpMemoryServices->mallocImpl(tableSize * sizeof(char));
+	nameTable = (char *)_engine->getMemoryServices()->mallocImpl(tableSize * sizeof(char));
 	if (!nameTable) {
 		close();
 
@@ -436,7 +432,7 @@ bool CBundle::findHashedEntry(LFileServices *services, const char *normalizedNam
 	return false;
 }
 
-LBundleFile::LBundleFile() {
+LBundleFile::LBundleFile(EmiEngine *engine) : LFile(engine) {
 	reset();
 }
 
@@ -650,7 +646,7 @@ uint LBundleFile::loadAll() {
 
 	uint allocSize = memberSize + 1;
 
-	char *data = (char *)gpMemoryServices->mallocImpl(allocSize * sizeof(char));
+	char *data = (char *)_engine->getMemoryServices()->mallocImpl(allocSize * sizeof(char));
 	if (!data) {
 		warning("LBundleFile::loadAll(): cannot allocate the buffer");
 
@@ -712,15 +708,18 @@ uint LBundleFile::readAt(void *dest, int position, uint count) {
 	return LFile::read(dest, toRead);
 }
 
-CBundleServices::CBundleServices(LFileServices *innerServices) {
+CBundleServices::CBundleServices(EmiEngine *engine, LFileServices *innerServices) : LFileServices(engine), _currentIsland("unknown") {
 	numBundles = 0;
 	head = nullptr;
 	tail = nullptr;
 	logFile = nullptr;
 	inner = innerServices;
 
-	if (!gpBundleServices)
-		gpBundleServices = this;
+	for (uint i = 0; i < kBundleMaxOpenFiles; i++)
+		files[i] = new LBundleFile(engine);
+
+	if (!_engine->getBundleServices())
+		_engine->setBundleServices(this);
 }
 
 CBundleServices::~CBundleServices() {
@@ -744,30 +743,37 @@ CBundleServices::~CBundleServices() {
 
 	closeLog();
 
-	if (gpBundleServices == this)
-		gpBundleServices = nullptr;
+	for (uint i = 0; i < kBundleMaxOpenFiles; i++) {
+		delete files[i];
+		files[i] = nullptr;
+	}
+
+	if (_engine->getBundleServices() == this)
+		_engine->setBundleServices(nullptr);
 }
 
 LFile *CBundleServices::open(const char *path, const char *mode) {
 	uint index = 0;
 
 	while (index < kBundleMaxOpenFiles) {
-		if (!files[index].isOpen())
+		if (!files[index]->isOpen())
 			break;
 
 		index++;
 	}
 
 	if (index == kBundleMaxOpenFiles) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Cannot open %s, too many files open!\n", path);
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("Cannot open %s, too many files open!\n", path);
 		else
 			warning("CBundleServices::open(): cannot open %s, too many files open!", path);
 
 		return nullptr;
 	}
 
-	LBundleFile *slot = &files[index];
+	LBundleFile *slot = files[index];
 
 	slot->reset();
 	slot->bufCapacity = kBundleFileBufferSize;
@@ -816,9 +822,9 @@ LFile *CBundleServices::open(const char *path, const char *mode) {
 	inner->openInto(slot, path, mode);
 
 	if (!slot->isOpen()) {
-		CPathingFileServices::suspendCdPath();
+		_engine->getPathingFileServices()->suspendCdPath();
 		inner->openInto(slot, path, mode);
-		CPathingFileServices::resumeCdPath();
+		_engine->getPathingFileServices()->resumeCdPath();
 
 		if (!slot->isOpen())
 			return nullptr;
@@ -871,8 +877,8 @@ void CBundleServices::close(LFile *file, bool destroy) {
 	LBundleFile *slot = nullptr;
 
 	for (uint i = 0; i < kBundleMaxOpenFiles; i++) {
-		if (file == &files[i]) {
-			slot = &files[i];
+		if (file == files[i]) {
+			slot = files[i];
 
 			break;
 		}
@@ -891,7 +897,7 @@ void CBundleServices::close(LFile *file, bool destroy) {
 		inner->close(slot, false);
 
 	if (slot->memData) {
-		gpMemoryServices->freeImpl(slot->memData);
+		_engine->getMemoryServices()->freeImpl(slot->memData);
 		slot->memData = nullptr;
 		slot->memCursor = nullptr;
 		slot->memSize = 0;
@@ -1087,7 +1093,7 @@ CBundle *CBundleServices::findBundle(const char *name) {
 }
 
 CBundle *CBundleServices::newBundle() {
-	CBundle *bundle = new CBundle();
+	CBundle *bundle = new CBundle(_engine);
 
 	if (head)
 		head->prev = bundle;
@@ -1239,64 +1245,57 @@ int CBundle::decodeName(char *name) {
 	return count;
 }
 
-bool CBundleServices::init(bool isInternational) {
-	if (gpBundleServices)
+bool CBundleServices::init(EmiEngine *engine, bool isInternational) {
+	if (engine->getBundleServices())
 		return true;
 
-	_currentIsland = "unknown";
-	_currentSetBundle.clear();
-
-	CBundleServices *services = new CBundleServices(gpFileServices);
+	CBundleServices *services = new CBundleServices(engine, engine->getFileServices());
 	bool localOpened = services->openLocalBundles();
 
 	services->openCommonBundles();
 
 	// The English disasm refuses i9n.m4b, the international one does not check it
-	if (!localOpened || (!isInternational && isI9nBundleOpen())) {
+	if (!localOpened || (!isInternational && services->isI9nBundleOpen())) {
 		delete services;
 
 		return false;
 	}
 
-	LFileServices::pushServices(services);
+	engine->pushFileServices(services);
 
 	return true;
 }
 
 bool CBundleServices::isI9nBundleOpen() {
-	return gpBundleServices && gpBundleServices->findBundle("i9n.m4b") != nullptr;
+	return findBundle("i9n.m4b") != nullptr;
 }
 
 bool CBundleServices::openIslandBundles(const char *island) {
 	bool failed = false;
-
-	if (!gpBundleServices)
-		return false;
-
-	bool isPs2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+	bool isPs2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 
 	if (scumm_stricmp(island, "melee") == 0) {
-		bool musicFailed = isPs2 && gpBundleServices->openBundle("music1.m4b") == nullptr;
-		bool voiceFailed = gpBundleServices->openBundle("voiceMel.m4b") == nullptr;
-		CBundle *art = gpBundleServices->openBundle("artMel.m4b");
+		bool musicFailed = isPs2 && openBundle("music1.m4b") == nullptr;
+		bool voiceFailed = openBundle("voiceMel.m4b") == nullptr;
+		CBundle *art = openBundle("artMel.m4b");
 
 		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "lucre") == 0) {
-		bool musicFailed = isPs2 && gpBundleServices->openBundle("music1.m4b") == nullptr;
-		bool voiceFailed = gpBundleServices->openBundle("voiceLuc.m4b") == nullptr;
-		CBundle *art = gpBundleServices->openBundle("artLuc.m4b");
+		bool musicFailed = isPs2 && openBundle("music1.m4b") == nullptr;
+		bool voiceFailed = openBundle("voiceLuc.m4b") == nullptr;
+		CBundle *art = openBundle("artLuc.m4b");
 
 		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "jambalaya") == 0) {
-		bool musicFailed = isPs2 && gpBundleServices->openBundle("music2.m4b") == nullptr;
-		bool voiceFailed = gpBundleServices->openBundle("voiceJam.m4b") == nullptr;
-		CBundle *art = gpBundleServices->openBundle("artJam.m4b");
+		bool musicFailed = isPs2 && openBundle("music2.m4b") == nullptr;
+		bool voiceFailed = openBundle("voiceJam.m4b") == nullptr;
+		CBundle *art = openBundle("artJam.m4b");
 
 		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "monkey") == 0) {
-		bool musicFailed = isPs2 && gpBundleServices->openBundle("music2.m4b") == nullptr;
-		bool voiceFailed = gpBundleServices->openBundle("voiceMon.m4b") == nullptr;
-		CBundle *art = gpBundleServices->openBundle("artMon.m4b");
+		bool musicFailed = isPs2 && openBundle("music2.m4b") == nullptr;
+		bool voiceFailed = openBundle("voiceMon.m4b") == nullptr;
+		CBundle *art = openBundle("artMon.m4b");
 
 		failed = art == nullptr || voiceFailed || musicFailed;
 	}
@@ -1304,62 +1303,56 @@ bool CBundleServices::openIslandBundles(const char *island) {
 	if (failed)
 		return false;
 
-	gpBundleServices->moveBundleToFront("i9n.m4b");
-	gpBundleServices->moveBundleToFront("patch.m4b");
+	moveBundleToFront("i9n.m4b");
+	moveBundleToFront("patch.m4b");
 	_currentIsland = island;
 
 	return true;
 }
 
 void CBundleServices::closeIslandBundles(const char *island) {
-	if (!gpBundleServices)
-		return;
-
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (scumm_stricmp(island, "melee") == 0 || scumm_stricmp(island, "lucre") == 0)
-			gpBundleServices->closeBundle("music1.m4b");
+			closeBundle("music1.m4b");
 		else if (scumm_stricmp(island, "jambalaya") == 0 || scumm_stricmp(island, "monkey") == 0)
-			gpBundleServices->closeBundle("music2.m4b");
+			closeBundle("music2.m4b");
 	}
 
 	if (scumm_stricmp(island, "melee") == 0) {
-		gpBundleServices->closeBundle("voiceMel.m4b");
-		gpBundleServices->closeBundle("artMel.m4b");
+		closeBundle("voiceMel.m4b");
+		closeBundle("artMel.m4b");
 	} else if (scumm_stricmp(island, "lucre") == 0) {
-		gpBundleServices->closeBundle("voiceLuc.m4b");
-		gpBundleServices->closeBundle("artLuc.m4b");
+		closeBundle("voiceLuc.m4b");
+		closeBundle("artLuc.m4b");
 	} else if (scumm_stricmp(island, "jambalaya") == 0) {
-		gpBundleServices->closeBundle("voiceJam.m4b");
-		gpBundleServices->closeBundle("artJam.m4b");
+		closeBundle("voiceJam.m4b");
+		closeBundle("artJam.m4b");
 	} else if (scumm_stricmp(island, "monkey") == 0) {
-		gpBundleServices->closeBundle("voiceMon.m4b");
-		gpBundleServices->closeBundle("artMon.m4b");
+		closeBundle("voiceMon.m4b");
+		closeBundle("artMon.m4b");
 	}
 
 	_currentIsland = "unknown";
 }
 
 bool CBundleServices::isIslandBundleOpen(const char *island) {
-	if (!gpBundleServices)
-		return false;
-
 	if (scumm_stricmp(island, "melee") == 0)
-		return gpBundleServices->findBundle("artMel.m4b") != nullptr;
+		return findBundle("artMel.m4b") != nullptr;
 
 	if (scumm_stricmp(island, "lucre") == 0)
-		return gpBundleServices->findBundle("artLuc.m4b") != nullptr;
+		return findBundle("artLuc.m4b") != nullptr;
 
 	if (scumm_stricmp(island, "jambalaya") == 0)
-		return gpBundleServices->findBundle("artJam.m4b") != nullptr;
+		return findBundle("artJam.m4b") != nullptr;
 
 	if (scumm_stricmp(island, "monkey") == 0)
-		return gpBundleServices->findBundle("artMon.m4b") != nullptr;
+		return findBundle("artMon.m4b") != nullptr;
 
-	return gpBundleServices->findBundle(island) != nullptr;
+	return findBundle(island) != nullptr;
 }
 
 bool CBundleServices::openSetBundle(const char *roomName) {
-	if (!gpBundleServices || _currentIsland == "unknown")
+	if (_currentIsland == "unknown")
 		return false;
 
 	// Island folder names are cut to 8 characters (jambalay)
@@ -1377,28 +1370,25 @@ bool CBundleServices::openSetBundle(const char *roomName) {
 	}
 
 	if (!_currentSetBundle.empty()) {
-		gpBundleServices->closeBundle(_currentSetBundle.c_str());
+		closeBundle(_currentSetBundle.c_str());
 		_currentSetBundle.clear();
 	}
 
-	if (!gpBundleServices->openBundle(path.c_str()))
+	if (!openBundle(path.c_str()))
 		return false;
 
-	gpBundleServices->moveBundleToFront("i9n.m4b");
-	gpBundleServices->moveBundleToFront("patch.m4b");
+	moveBundleToFront("i9n.m4b");
+	moveBundleToFront("patch.m4b");
 	_currentSetBundle = path;
 
 	return true;
 }
 
 bool CBundleServices::setDiscBundles(int disc) {
-	if (!gpBundleServices)
-		return true;
-
 	if (disc)
-		return gpBundleServices->openCommonBundles();
+		return openCommonBundles();
 
-	return gpBundleServices->resetBundles();
+	return resetBundles();
 }
 
 } // End of namespace Grim

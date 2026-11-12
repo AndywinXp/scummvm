@@ -33,7 +33,7 @@ namespace Grim {
 
 class COGLContext : public CDrawContext {
 public:
-	COGLContext();
+	explicit COGLContext(EmiEngine *engine);
 	~COGLContext() override;
 
 	bool open(const DisplayMode *mode) override;
@@ -104,7 +104,7 @@ private:
 	uint16 _gammaRamp[256];
 	bool _gammaActive;
 
-	static byte *_vertexColors;
+	byte *_vertexColors;
 };
 
 } // End of namespace Grim

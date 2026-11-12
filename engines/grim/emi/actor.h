@@ -41,6 +41,7 @@ class ANode;
 class Camera;
 class CDrawContext;
 class CDCVertexArray;
+class EmiEngine;
 class Puck_v2;
 class RPrimitiveInstance;
 class TextEvent;
@@ -54,23 +55,22 @@ public:
 		kMaxCollisionActors = 256
 	};
 
-	explicit Actor(const char *newActorName);
+	Actor(EmiEngine *engine, const char *newActorName);
 	~Actor() override;
 
 	static const float kDegreesToRadians;
-	static IRect offscreenTextRect;
 
-	static int allocateActor(const char *newActorName);
-	static void freeActor(int actorId);
+	static int allocateActor(EmiEngine *engine, const char *newActorName);
+	static void freeActor(EmiEngine *engine, int actorId);
 	void allocateActorExtra();
 	bool putInSet(const char *roomName);
-	static bool startup(CDrawContext *drawContext);
-	static void shutdown();
-	static void freeAllActors();
-	static int setSelectedActor(int actorId);
-	static Actor *getSelectedActor();
-	static Actor *actorDeref(int actorId);
-	static int getActorHandle(Actor *actor);
+	static bool startup(EmiEngine *engine, CDrawContext *drawContext);
+	static void shutdown(EmiEngine *engine);
+	static void freeAllActors(EmiEngine *engine);
+	static int setSelectedActor(EmiEngine *engine, int actorId);
+	static Actor *getSelectedActor(EmiEngine *engine);
+	static Actor *actorDeref(EmiEngine *engine, int actorId);
+	static int getActorHandle(EmiEngine *engine, Actor *actor);
 
 	void removeFinishedChores();
 	uint *findChoreInstance(uint *outId, uint previousId);
@@ -91,24 +91,24 @@ public:
 	uint findShadowPrimitive(RPrimitiveInstance *instance);
 	void removeShadowPrimitive(int index);
 
-	static void updateAllActors(float deltaTime);
+	static void updateAllActors(EmiEngine *engine, float deltaTime);
 	void update(float deltaTime);
 	void followPath(float deltaTime);
 	void updateWalk(float deltaTime);
 	bool alignToPuck(Puck_v2 *puck);
 	void turn(float degrees);
 	void forward();
-	static void updateSpeechOnly(float deltaTime);
+	static void updateSpeechOnly(EmiEngine *engine, float deltaTime);
 	void updateActorSpeech(float deltaTime);
 	void sayLine(const char *text, int volume, int pan, int x, int y);
 	TextEvent *createActorText(const LString &text, int x, int y);
 	void shutUp(bool stopNow);
 	bool isVoicePlaying();
-	static int getNumActorsTalking();
-	static int setSpeechMode(int newSpeechMode);
-	static int getSpeechMode();
-	static int setActorTextRate(int newTextRate);
-	static int getActorTextRate();
+	static int getNumActorsTalking(EmiEngine *engine);
+	static int setSpeechMode(EmiEngine *engine, int newSpeechMode);
+	static int getSpeechMode(EmiEngine *engine);
+	static int setActorTextRate(EmiEngine *engine, int newTextRate);
+	static int getActorTextRate(EmiEngine *engine);
 
 	void enableWalkSystem(bool enable);
 	void enablePuck(bool enable);
@@ -121,9 +121,9 @@ public:
 	int buildAvoidingPath(Actor *other, float *path, int count, float *outPath);
 
 	static void getOuttaTheBox(float *point, const float *box, const float *transform);
-	static bool testCollision(float startX, float startY, float startZ, float endX, float endY, float endZ, float originX, float originY, float originZ, const float *box, const float *transform);
+	static bool testCollision(EmiEngine *engine, float startX, float startY, float startZ, float endX, float endY, float endZ, float originX, float originY, float originZ, const float *box, const float *transform);
 	static int findClosestCandidate(float startX, float startY, float startZ, float goalX, float goalY, float goalZ, const ObjectCorners_v2 *corners);
-	static bool updatePositions();
+	static bool updatePositions(EmiEngine *engine);
 	bool resolveCollisions();
 
 	int getSortOrder(int setupIndex);
@@ -141,8 +141,8 @@ public:
 
 	bool save(tSaveRestoreAccess *access);
 	bool restore(tSaveRestoreAccess *access);
-	static void saveActors(tSaveRestoreAccess *access);
-	static void restoreActors(tSaveRestoreAccess *access);
+	static void saveActors(EmiEngine *engine, tSaveRestoreAccess *access);
+	static void restoreActors(EmiEngine *engine, tSaveRestoreAccess *access);
 
 	unsigned int actorFlags;
 	unsigned int mode;
@@ -167,21 +167,7 @@ public:
 	LString actorName;
 
 private:
-	static CVector _hitPoint;
-	static CVector _collisionOldPosition;
-	static CVector _collisionNewPosition;
-
-	static int _nextId;
-	static Common::List<Actor *> _actors;
-	static Actor *_selectedActor;
-	static Actor *_speakers[kNumSpeakers];
-	static int _numSpeakers;
-	static int _speechMode;
-	static int _actorTextRate;
-	static Actor *_collisionActors[kMaxCollisionActors];
-	static int _collisionCount;
-	static CDrawContext *_drawContext;
-	static CDCVertexArray *_shadowVertices;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

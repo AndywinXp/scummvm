@@ -31,19 +31,26 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class Setup {
 public:
 	enum {
 		kNameSize = 128
 	};
 
-	Setup();
+	Setup(EmiEngine *engine);
 	~Setup();
 
 	void *operator new(size_t size);
 	void operator delete(void *block);
+	void *operator new(size_t size, void *where);
+	void operator delete(void *block, void *where);
 	void *operator new[](size_t size);
 	void operator delete[](void *block);
+
+	static Setup *newArray(EmiEngine *engine, int count);
+	static void deleteArray(Setup *array);
 
 	void buildLayers();
 	int getSize();
@@ -58,6 +65,13 @@ public:
 	Common::List<Layer *> layers;
 	LString backgroundName;
 	bool layersBuilt;
+
+private:
+	enum {
+		kArrayHeaderSize = 16
+	};
+
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

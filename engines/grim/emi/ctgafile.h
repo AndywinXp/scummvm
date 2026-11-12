@@ -28,11 +28,12 @@
 
 namespace Grim {
 
+class EmiEngine;
 class LBitmap;
 
 class CTGAFile {
 public:
-	CTGAFile();
+	explicit CTGAFile(EmiEngine *engine);
 
 	virtual bool readImage(LFile *file, LBitmap *image, int unused);
 	virtual int readPalette(LFile *file, int *palette);
@@ -95,6 +96,8 @@ public:
 	float pixelAspect;
 
 private:
+	EmiEngine *_engine;
+
 	void flipImage(int bytesPerPixel);
 };
 

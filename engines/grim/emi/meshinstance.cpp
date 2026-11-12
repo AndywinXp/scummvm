@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/meshcomponent.h"
 #include "engines/grim/emi/meshinstance.h"
@@ -30,7 +31,7 @@
 
 namespace Grim {
 
-MeshInstance::MeshInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+MeshInstance::MeshInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	owner = actor;
 	meshInstance = nullptr;
 
@@ -52,7 +53,7 @@ MeshInstance::MeshInstance(const LString &componentName, Actor *actor) : Compone
 			if (component->weightMap) {
 				uint numNodes = component->weightMap->nodeNames.size();
 
-				meshInstance->boneNodes = (CNode **)gpMemoryServices->mallocImpl(numNodes * sizeof(CNode *));
+				meshInstance->boneNodes = (CNode **)_engine->getMemoryServices()->mallocImpl(numNodes * sizeof(CNode *));
 
 				// The disasm leaves the bones it cannot find uninitialized
 				if (meshInstance->boneNodes)

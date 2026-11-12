@@ -82,8 +82,8 @@ void Actor::followPath(float deltaTime) {
 		if (extra->pathIndex == extra->numPathPoints) {
 			mode &= ~1U;
 
-			if (ChoreInstance::isInstanceValid(choreSlotIds[1]))
-				ChoreInstance::getInstance(choreSlotIds[1])->stop();
+			if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[1]))
+				ChoreInstance::getInstance(_engine, choreSlotIds[1])->stop();
 
 			choreSlotIds[1] = 0;
 
@@ -183,7 +183,7 @@ bool Actor::alignToPuck(Puck_v2 *puck) {
 	extra->alignOff = alignAngle;
 
 	if (!extra->snapTurn) {
-		float frameTime = EmiEngine::getFrameTime();
+		float frameTime = _engine->getFrameTime();
 
 		turnStep = (double)frameTime * extra->timeScale * extra->turnRate;
 	}
@@ -289,7 +289,7 @@ void Actor::enablePuck(bool enable) {
 			const float maxAngle = 3.4028235e38f;
 			float target[3];
 
-			Puck_v2 *newPuck = new Puck_v2(extra->reflectionAngle);
+			Puck_v2 *newPuck = new Puck_v2(_engine, extra->reflectionAngle);
 
 			newPuck->actorName = actorName;
 
@@ -503,7 +503,7 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 
 		if (collection->buildPath(start, target, true)) {
 			float (*pathPoints)[3];
-			int pointCount = WalkPlaneCollection::getPath(&pathPoints);
+			int pointCount = collection->getPath(&pathPoints);
 
 			for (int i = 0; i < pointCount; i++) {
 				inputPath[i][0] = pathPoints[i][0];

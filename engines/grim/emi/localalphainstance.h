@@ -30,7 +30,7 @@ class Actor;
 
 class LocalAlphaInstance : public ComponentInstance {
 public:
-	LocalAlphaInstance(const LString &componentName, Actor *actor);
+	LocalAlphaInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~LocalAlphaInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

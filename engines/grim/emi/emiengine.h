@@ -23,9 +23,17 @@
 #define GRIM_EMI_EMIENGINE_H
 
 #include "common/array.h"
+#include "common/hashmap.h"
+#include "common/list.h"
 #include "common/str.h"
 
+#include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/cvector.h"
+#include "engines/grim/emi/irect.h"
 #include "engines/grim/emi/lfile.h"
+#include "engines/grim/emi/lipdata.h"
+#include "engines/grim/emi/lresourcehandle.h"
+#include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/grim.h"
 
 namespace Graphics {
@@ -34,14 +42,49 @@ struct Surface;
 
 namespace Grim {
 
+class AInst;
+class ANode;
+class Background;
+class CBundleServices;
+class CDCVertexArray;
 class CDrawContext;
+class CGrimeConsole;
+class ChoreInstance;
+class CLightNode;
+class COGLContext;
+class CPathingFileServices;
+class CTexture;
+class CTinyGLContext;
+class CWeightMap;
 struct DisplayMode;
+class DimRegion;
+class EmiRegistry;
+struct Event;
+class EventGenerator;
+class EventHandler;
+class InputRecorder;
+class Joystick;
 class KeyGenerator;
 class LABitmap;
+class LConsoleServices;
+class LFileServices;
+class LMemoryServices;
+class Layer;
 class Lua_V2;
+class Movie;
+class Overworld;
 class Polyglot_v2;
+class PrimitiveQueue_v2;
+class Puck_v2;
+class ResourceManager;
+class RMesh;
+class RMeshInstance;
+class Room_v2;
+class Sounds;
+class SputControl_v2;
 class TextEvent;
 class ZFile;
+class ZFileServices;
 
 class EmiEngine : public GrimEngine {
 public:
@@ -66,48 +109,80 @@ public:
 	EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language);
 	~EmiEngine() override;
 
+	LMemoryServices *getMemoryServices();
+	LConsoleServices *getConsoleServices();
+	LFileServices *getFileServices();
+	CPathingFileServices *getPathingFileServices();
+	ZFileServices *getZFileServices();
+	CBundleServices *getBundleServices();
+	LResourceManager *getResourceManager();
+	ResourceManager *getGameResourceManager();
+	CDrawContext *getDrawContext();
+	Overworld *getOverworld();
+	InputRecorder *getInputRecorder();
+	Lua_V2 *getLua();
+	KeyGenerator *getKeyGenerator();
+	Polyglot_v2 *getPolyglot();
+	Sounds *getSounds();
+	SputControl_v2 *getControl();
+	Joystick *getJoystick();
+	PrimitiveQueue_v2 *getPrimitiveQueue();
+	const Common::List<CLightNode *> &getActiveLights() const;
+
+	int registerConsole(LConsoleServices *console);
+	void deleteAllConsoles();
+	int pushFileServices(LFileServices *services);
+	LFileServices *popFileServices();
+	uint getNumFileServices();
+	void deleteAllFileServices();
+	void setResourceManager(LResourceManager *manager);
+	void setBundleServices(CBundleServices *services);
+	void createInputRecorder(int mode);
+	void destroyInputRecorder();
+	void destroyOverworld();
+	void setDrawContext(CDrawContext *drawContext);
+
 	int renderUpdate(CDrawContext *drawContext);
 	int updateManual(CDrawContext *drawContext, bool draw, int manualMs);
 
-	static int getMode();
-	static void setMode(int newMode);
-	static int getSavedMode();
-	static void setSavedMode(int newMode);
-	static int getCpuSpeed();
-	static void setCpuSpeed(int newSpeed);
-	static bool hasGammaControl();
-	static void setGamma(float gamma);
-	static bool setIsland(const char *island);
-	static float getFrameTime();
-	static bool isDumpingFrames();
-	static void setSaveLoadIdle(bool idle);
-	static Polyglot_v2 *getPolyglot();
-	static void setPause(bool pause);
-	static int getDiscNumber();
-	static bool findDisc(int disc);
+	int getMode();
+	void setMode(int newMode);
+	int getSavedMode();
+	void setSavedMode(int newMode);
+	int getCpuSpeed();
+	void setCpuSpeed(int newSpeed);
+	bool hasGammaControl();
+	void setGamma(float gamma);
+	bool setIsland(const char *island);
+	float getFrameTime();
+	bool isDumpingFrames();
+	void setSaveLoadIdle(bool idle);
+	void setPause(bool pause);
+	int getDiscNumber();
+	bool findDisc(int disc);
 	static uint getTotalPhysMem();
 	static int messageBox(const char *caption, const char *text, uint flags);
 	static bool inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText);
-	static void saveScreenshot();
-	static bool buildSpecScreenTextures(int index);
+	void saveScreenshot();
+	bool buildSpecScreenTextures(int index);
 	static void readScreenRegion(LABitmap *bitmap, const char *buffer, int bytesPerPixel, float startX, float endX, float startY, float endY);
-	static bool grabScreen();
-	static bool makeThumbnailTexture(int index, bool fromScreen);
-	static bool loadThumbnailTexture(int index, const char *fileName);
-	static bool clearTextureSlot(int index);
-	static LFile *openSaveFile(const char *fileName, const char *mode);
-	static void closeSaveFile(LFile *file);
-	static void beginFrameDump(const char *path);
-	static void endFrameDump();
-	static bool playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
-	static void setPendingMusicState(int musicState);
-	static void showMessage(const char *text, const char *caption);
-	static bool onCharacter(byte character);
-	static bool callExitHook();
-	static bool startupModules(CDrawContext *drawContext);
-	static void shutdownModules();
-	static bool openGameview(const char *bootParam);
-	static void closeGameview();
+	bool grabScreen();
+	bool makeThumbnailTexture(int index, bool fromScreen);
+	bool loadThumbnailTexture(int index, const char *fileName);
+	bool clearTextureSlot(int index);
+	LFile *openSaveFile(const char *fileName, const char *mode);
+	void closeSaveFile(LFile *file);
+	void beginFrameDump(const char *path);
+	void endFrameDump();
+	bool playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
+	void setPendingMusicState(int musicState);
+	void showMessage(const char *text, const char *caption);
+	bool onCharacter(byte character);
+	bool callExitHook();
+	bool startupModules(CDrawContext *drawContext);
+	void shutdownModules();
+	bool openGameview(const char *bootParam);
+	void closeGameview();
 
 	static Common::Array<Common::Keymap *> initKeymapsEmi(const char *target);
 	static bool readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings);
@@ -116,8 +191,8 @@ public:
 	static bool isLegacySaveFile(const Common::String &fileName);
 	static uint getMemoryCardId();
 	static bool hasMemoryCardSaves();
-	static bool deleteSaveFile(const char *fileName);
-	static bool copySaveFile(const char *sourceName, const char *targetName);
+	bool deleteSaveFile(const char *fileName);
+	bool copySaveFile(const char *sourceName, const char *targetName);
 
 	const char *justLoadedFileName();
 	bool justSaved();
@@ -139,6 +214,33 @@ protected:
 	void pauseEngineIntern(bool pause) override;
 
 private:
+	friend class Actor;
+	friend class ANode;
+	friend class AInst;
+	friend class Background;
+	friend class ChoreInstance;
+	friend class CLightNode;
+	friend class COGLContext;
+	friend class CTinyGLContext;
+	friend class CWeightMap;
+	friend class DimRegion;
+	friend class EmiRegistry;
+	friend class EventGenerator;
+	friend class EventHandler;
+	friend class LConsoleServices;
+	friend class Layer;
+	friend struct LipData;
+	friend class Lua_V2;
+	friend class Movie;
+	friend class ProfilerTimer;
+	friend class Puck_v2;
+	friend class RMesh;
+	friend class RMeshInstance;
+	friend class Room_v2;
+	friend class Sounds;
+	friend class SputControl_v2;
+	friend class TextEvent;
+
 	enum {
 		kNumStatsEvents = 5
 	};
@@ -161,61 +263,214 @@ private:
 	void applyPendingGameSettings(int manualMs);
 	void applyPendingMusicState();
 
-	static CDrawContext *createDrawContext();
+	CDrawContext *createDrawContext();
 	static bool openDrawContext(CDrawContext *drawContext, DisplayMode *mode);
-	static void saveTga(const char *path);
+	void saveTga(const char *path);
 
 	static int writeSaveData(void *data, int bytes);
 	static int readSaveData(void *data, int bytes);
 	static void halveBitmap(LABitmap *source, LABitmap *destination);
 	static void scaleToThumbnail(LABitmap *source, LABitmap *destination);
-	static LABitmap *getScreenBitmap();
-	static Common::String getSaveFileName(const char *path);
-	static bool readSavedText(char *buffer, int bufferSize);
+	LABitmap *getScreenBitmap();
+	Common::String getSaveFileName(const char *path);
+	bool readSavedText(char *buffer, int bufferSize);
 	static bool writeMemoryCardId(uint id);
 
-	static void updateSounds(bool force);
-	static bool updateMovie(float frameTime);
-	static void startupMovies(CDrawContext *drawContext);
-	static void releaseSubtitleFont();
-	static void setMusicState(int musicState, int startMs);
+	void updateSounds(bool force);
+	bool updateMovie(float frameTime);
+	void startupMovies();
+	void releaseSubtitleFont();
+	void setMusicState(int musicState, int startMs);
 
-	static bool _modulesStarted;
-	static bool _gameviewOpen;
-	static Lua_V2 *_lua;
-	static KeyGenerator *_keyGenerator;
-	static int _screenshotCount;
-	static int _frameCount;
-	static float _rawFrameTime;
-	static double _lastStamp;
-	static bool _firstFrame;
-	static bool _backspaceHeld;
-	static bool _controlHeld;
-	static TextEvent *_statsEvents[kNumStatsEvents];
-	static ZFile *_saveFile;
-	static LABitmap *_screenBitmap;
+	// Memory service, created first and deleted last
+	LMemoryServices *_memoryServices;
 
-	static Polyglot_v2 *_polyglot;
-	static int _mode;
-	static int _pausedMode;
-	static int _discNumber;
-	static int _frameDumpCount;
-	static LString _frameDumpPath;
-	static int _savedMode;
-	static int _cpuSpeed;
-	static LString _island;
-	static float _frameTime;
-	static bool _dumpingFrames;
-	static bool _saveLoadIdle;
-	static int _frontCopyCount;
-	static int _pendingMusicState;
-	static bool _gameSettingsPending;
-	static int _controlSkipFrames;
+	// Services
+	LConsoleServices *_consoleServices;
+	LConsoleServices **_consoles;
+	uint _consoleCount;
+	uint _consoleArraySize;
+	CGrimeConsole *_grimeConsole;
+	bool _logToFileEnabled;
+	char _logToFileName[32];
+	Common::Array<LFileServices *> _fileServicesStack;
+	LFileServices *_fileServices;
+	CPathingFileServices *_pathingFileServices;
+	ZFileServices *_zFileServices;
+	CBundleServices *_bundleServices;
+	LResourceManager _defaultResourceManager;
+	LResourceManager *_resourceManager;
+	ResourceManager *_gameResourceManager;
+	CDrawContext *_drawContext;
+	Overworld *_overworld;
+	InputRecorder *_inputRecorder;
+	Lua_V2 *_lua;
+	KeyGenerator *_keyGenerator;
+	Polyglot_v2 *_polyglot;
+
+	// Instance modules
+	Sounds *_sounds;
+	SputControl_v2 *_control;
+	Joystick *_joystick;
+	PrimitiveQueue_v2 *_primitiveQueue;
+
+	// Engine state
+	bool _modulesStarted;
+	bool _gameviewOpen;
+	int _screenshotCount;
+	int _frameCount;
+	float _rawFrameTime;
+	double _lastStamp;
+	bool _firstFrame;
+	bool _backspaceHeld;
+	bool _controlHeld;
+	TextEvent *_statsEvents[kNumStatsEvents];
+	ZFile *_saveFile;
+	LABitmap *_screenBitmap;
+	int _mode;
+	int _pausedMode;
+	int _discNumber;
+	int _frameDumpCount;
+	LString _frameDumpPath;
+	int _savedMode;
+	int _cpuSpeed;
+	LString _island;
+	float _frameTime;
+	bool _dumpingFrames;
+	bool _saveLoadIdle;
+	int _frontCopyCount;
+	int _pendingMusicState;
+	bool _gameSettingsPending;
+	int _controlSkipFrames;
 
 	int _libJustSaved = 0;
 	int _soundRestartFrames = 0;
 	int _setChangeFrames = 0;
 	bool _spuClearArmed = false;
+
+	// Registry
+	Common::String _registrySyncedSnapshot;
+
+	// Actor
+	Common::List<Actor *> _actors;
+	int _nextActorId;
+	Actor *_selectedActor;
+	Actor *_speakers[Actor::kNumSpeakers];
+	int _numSpeakers;
+	int _speechMode;
+	int _actorTextRate;
+	IRect _offscreenTextRect;
+	Actor *_collisionActors[Actor::kMaxCollisionActors];
+	int _collisionCount;
+	CDCVertexArray *_shadowVertices;
+	CVector _hitPoint;
+	CVector _collisionOldPosition;
+	CVector _collisionNewPosition;
+
+	// Puck
+	int _puckRecursionDepth;
+
+	// Chore instances
+	Common::HashMap<uint, ChoreInstance *> _choreInstances;
+	uint _nextChoreInstanceId;
+	bool _choreInstancesStarted;
+
+	// Rooms
+	bool _roomsStarted;
+	Room_v2 *_currentRoom;
+	LResourceHandle<Room_v2> _currentRoomHandle;
+	Room_v2 *_lastDrawnRoom;
+	int _lastDrawnSetup;
+
+	// Text events
+	Common::List<TextEvent *> _textEvents;
+	TextEvent *_defaultTextEvent;
+	int _textMode;
+	int _textScreenRect[4];
+	int _nextTextEventId;
+	bool _textEventsStarted;
+
+	// Movies
+	Movie *_currentMovie;
+	int _movieFirstFrame;
+	bool _ps2MovieRequested;
+	LString _ps2MovieName;
+	Common::WriteStream *_ps2StateWriter;
+	Common::ReadStream *_ps2StateReader;
+	CTexture *_loadingIconPs2;
+
+	// Events
+	Common::List<EventGenerator *> _eventGenerators;
+	Common::List<Event *> _eventQueue;
+	Common::List<EventHandler *> _eventHandlers;
+
+	// Dim regions
+	DimRegion *_dimRegionHead;
+	DimRegion *_dimRegionTail;
+	int _dimRegionCount;
+	int _nextDimRegionId;
+
+	// Animation instances
+	Common::List<AInst *> _animInstances;
+
+	// Lights
+	Common::List<CLightNode *> _activeLights;
+
+	// Layers
+	int _nextLayerId;
+	bool _layer16BitFix;
+
+	// Lip data
+	byte _lipBuffer[LipData::kBufferSize];
+	LipData::MouthEntry _lipMouthTable[LipData::kMouthTableSize];
+
+	// Profiler
+	ProfilerTimer *_profilerOldest;
+	ProfilerTimer *_profilerNewest;
+	int _profilerTimerCount;
+	ProfilerTimer *_profilerCallStack[ProfilerTimer::kMaxCallStack];
+	int _profilerCallStackDepth;
+	int _profilerFrameCounter;
+	int _profilerSnapshotInterval;
+	uint64 _profilerCalibrationTicks;
+	double _profilerCalibrationSeconds;
+	double _profilerSecondsPerTick;
+	int _profilerSecondsPerTickCalls;
+	ProfilerTimer _rootTimer;
+
+	// Timers, constructed in this order
+	ProfilerTimer _actorCalcOnScreenTimer;
+	ProfilerTimer _actorDrawTimer;
+	ProfilerTimer _actorDrawShadowTimer;
+	ProfilerTimer _updateAllActorsTimer;
+	ProfilerTimer _updateANodeTimer;
+	ProfilerTimer _oglOutputDrawPolyTimer;
+	ProfilerTimer _oglSetPolyOptionsTimer;
+	ProfilerTimer _oglSetTexturesTimer;
+	ProfilerTimer _oglSubmitVerticesTimer;
+	ProfilerTimer _oglDrawTrianglesTimer;
+	ProfilerTimer _oglDrawQuadsTimer;
+	ProfilerTimer _oglDrawElementsTimer;
+	ProfilerTimer _tinyglOutputDrawPolyTimer;
+	ProfilerTimer _tinyglSetPolyOptionsTimer;
+	ProfilerTimer _tinyglSetTexturesTimer;
+	ProfilerTimer _tinyglSubmitVerticesTimer;
+	ProfilerTimer _tinyglDrawTrianglesTimer;
+	ProfilerTimer _tinyglDrawQuadsTimer;
+	ProfilerTimer _tinyglDrawElementsTimer;
+	ProfilerTimer _weightMapDeformTimer;
+	ProfilerTimer _updateManualTimer;
+	ProfilerTimer _renderUpdateTimer;
+	ProfilerTimer _layerDrawTimer;
+	ProfilerTimer _rmeshLightingTimer;
+	ProfilerTimer _rmeshOutputTimer;
+	ProfilerTimer _rmeshUpdateTimer;
+	ProfilerTimer _rmeshComputeTransformsTimer;
+	ProfilerTimer _rmeshFutzingTimer;
+	ProfilerTimer _roomDrawTimer;
+	ProfilerTimer _soundsUpdateTimer;
+	ProfilerTimer _controlUpdateTimer;
+	ProfilerTimer _textUpdateTimer;
 };
 
 } // End of namespace Grim

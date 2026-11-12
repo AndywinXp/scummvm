@@ -19,17 +19,20 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/lresourcehandle.h"
 
 namespace Grim {
 
 LResourceHandleBase::LResourceHandleBase() {
+	_engine = nullptr;
 	lockCount = 0;
 	resource = nullptr;
 }
 
 LResourceHandleBase::LResourceHandleBase(const LResourceHandleBase &other) {
+	_engine = other._engine;
 	lockCount = 0;
 	resource = other.resource;
 
@@ -55,18 +58,29 @@ void LResourceHandleBase::setResource(LResource *newResource) {
 }
 
 LResourceHandleBase &LResourceHandleBase::operator=(const LResourceHandleBase &other) {
+	_engine = other._engine;
 	setResource(other.resource);
 
 	return *this;
+}
+
+void LResourceHandleBase::bindEngine(EmiEngine *engine) {
+	_engine = engine;
+}
+
+LResourceManager *LResourceHandleBase::getManager() const {
+	return _engine->getResourceManager();
 }
 
 bool LResourceHandleBase::lock() {
 	if (!resource)
 		return false;
 
+	LResourceManager *manager = resource->getEngine()->getResourceManager();
+
 	lockCount++;
 	resource->lockCount++;
-	gpResourceManager->lockResource(resource);
+	manager->lockResource(resource);
 
 	if (resource->loaded || resource->loadResourceItem(resource->name)) {
 		resource->loaded = true;
@@ -78,10 +92,10 @@ bool LResourceHandleBase::lock() {
 
 	LResource *failedResource = resource;
 	failedResource->lockCount--;
-	gpResourceManager->unlockResource(failedResource);
+	manager->unlockResource(failedResource);
 
 	if (failedResource->lockCount == 0 && failedResource->purgeOnFree)
-		gpResourceManager->purgeResource(failedResource, true);
+		manager->purgeResource(failedResource, true);
 
 	return false;
 }
@@ -90,12 +104,14 @@ void LResourceHandleBase::unlock() {
 	LResource *lockedResource = resource;
 
 	if (lockedResource && lockedResource->loaded) {
+		LResourceManager *manager = lockedResource->getEngine()->getResourceManager();
+
 		lockCount--;
 		lockedResource->lockCount--;
-		gpResourceManager->unlockResource(lockedResource);
+		manager->unlockResource(lockedResource);
 
 		if (lockedResource->lockCount == 0 && lockedResource->purgeOnFree)
-			gpResourceManager->purgeResource(lockedResource, true);
+			manager->purgeResource(lockedResource, true);
 	}
 }
 

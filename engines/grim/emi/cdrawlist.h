@@ -66,7 +66,7 @@ public:
 		kSortThreshold = 16
 	};
 
-	CDrawList(int listCapacity);
+	CDrawList(CDrawContext *owner, int listCapacity);
 	~CDrawList();
 
 	void reset();
@@ -89,9 +89,6 @@ public:
 
 private:
 	static void sortRange(DrawPoly **first, DrawPoly **last);
-
-	static Common::Array<DrawVertex *> _vertexPool;
-	static int _listCount;
 };
 
 } // End of namespace Grim

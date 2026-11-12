@@ -36,6 +36,7 @@
 namespace Grim {
 
 class CWeightMap;
+class EmiEngine;
 
 class RMesh : public RPrimitive {
 public:
@@ -44,8 +45,10 @@ public:
 		kNumCubeFaces = 6
 	};
 
-	RMesh();
+	explicit RMesh(EmiEngine *engine);
 	~RMesh() override;
+
+	EmiEngine *getEngine() const;
 
 	RPrimitiveInstance *createInstance() override;
 	bool save(LFile *file) override;
@@ -73,10 +76,8 @@ public:
 	CWeightMap *weightMap;
 	Common::Array<TriSet *> trisets;
 
-	static int numLights;
-	static float lightDistances[kMaxLights];
-	static CLight *lightList[kMaxLights];
-	static float lightTransforms[kMaxLights][12];
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

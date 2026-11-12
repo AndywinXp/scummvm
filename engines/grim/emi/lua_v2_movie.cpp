@@ -37,10 +37,10 @@ void Lua_V2::StartMovie() {
 	bool flag6195 = true;
 	int startFrame = 1;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (!lua_isstring(nameObj)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logStatus("StartMovie: Argument must be a string.");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logStatus("StartMovie: Argument must be a string.");
 
 			lua_pushnil();
 
@@ -48,7 +48,7 @@ void Lua_V2::StartMovie() {
 		}
 
 		// PS2 reads the other arguments without using them and returns nothing
-		Movie::requestMoviePs2(lua_getstring(nameObj));
+		Movie::requestMoviePs2(_engine, lua_getstring(nameObj));
 
 		return;
 	}
@@ -78,24 +78,24 @@ void Lua_V2::StartMovie() {
 	if (lua_isnumber(frameObj))
 		startFrame = luaFtol(lua_getnumber(frameObj));
 
-	if (EmiEngine::playMovie(lua_getstring(nameObj), subtitles, flag6194, flag6195, startFrame))
+	if (_engine->playMovie(lua_getstring(nameObj), subtitles, flag6194, flag6195, startFrame))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
 }
 
 void Lua_V2::StopMovie() {
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		obsoleteFunctionPs2();
 
 		return;
 	}
 
-	Movie::stopMovie();
+	Movie::stopMovie(_engine);
 }
 
 void Lua_V2::PauseMovie() {
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		obsoleteFunctionPs2();
 
 		return;
@@ -104,29 +104,29 @@ void Lua_V2::PauseMovie() {
 	lua_Object pauseObj = lua_getparam(1);
 
 	if (lua_isnil(pauseObj))
-		Movie::resumeCurrent();
+		Movie::resumeCurrent(_engine);
 	else
-		Movie::pauseCurrent();
+		Movie::pauseCurrent(_engine);
 }
 
 void Lua_V2::EscapeMovie() {
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		obsoleteFunctionPs2();
 
 		return;
 	}
 
-	Movie::skipCurrent();
+	Movie::skipCurrent(_engine);
 }
 
 void Lua_V2::IsMoviePlaying() {
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		obsoleteFunctionPs2();
 
 		return;
 	}
 
-	if (EmiEngine::getMode() == EmiEngine::kModeMovie)
+	if (_engine->getMode() == EmiEngine::kModeMovie)
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();

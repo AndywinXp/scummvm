@@ -209,7 +209,7 @@ static void io_readfrom() {
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		inFile = saveFileMan->openForLoading(fileName);
 		if (luaIsEmi && EmiRegistry::isPrefsFile(fileName))
-			inFile = EmiRegistry::openPrefsForReading(inFile);
+			inFile = LuaBase::instance()->openPrefsForReading(inFile);
 		if (!inFile) {
 			if (luaIsEmi) {
 				LuaBase *lua = LuaBase::instance();
@@ -256,7 +256,7 @@ static void io_writeto() {
 		Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 		outFile = saveFileMan->openForSaving(s, false);
 		if (luaIsEmi && EmiRegistry::isPrefsFile(s))
-			outFile = EmiRegistry::openPrefsForWriting(outFile);
+			outFile = LuaBase::instance()->openPrefsForWriting(outFile);
 		if (!outFile) {
 			pushresult(0);
 			return;

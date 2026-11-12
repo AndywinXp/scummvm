@@ -67,7 +67,9 @@ public:
 	};
 
 	LMemoryServices();
-	~LMemoryServices();
+	virtual ~LMemoryServices();
+
+	static LMemoryServices *getCurrent();
 
 	virtual void *mallocImpl(uint size);
 	virtual void *reallocImpl(void *block, uint size);
@@ -89,12 +91,13 @@ public:
 	ThreadBase threadBase;
 	uint bytesAllocated;
 
-	static uint mHardCap;
-	static uint mDesiredCap;
-	static bool mbCapLimitsActive;
-	static LMemoryHandler **mMemHandlers;
-	static uint mNHandlers;
-	static uint mMemHandlersArraySize;
+protected:
+	uint _hardCap;
+	uint _desiredCap;
+	bool _capLimitsActive;
+	LMemoryHandler **_memHandlers;
+	uint _handlerCount;
+	uint _memHandlersArraySize;
 };
 
 class LDebugMemoryServices : public LMemoryServices {
@@ -116,10 +119,9 @@ public:
 	int maxBytes;
 	LAllocation *newestAllocation;
 
-	static uint allocationId;
+private:
+	uint _allocationId;
 };
-
-extern LMemoryServices *gpMemoryServices;
 
 } // End of namespace Grim
 

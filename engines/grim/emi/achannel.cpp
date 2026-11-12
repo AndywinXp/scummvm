@@ -32,11 +32,11 @@ enum {
 };
 
 void *ChannelNode::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ChannelNode::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 static void removeChannel(AInst *inst, AChannelHandle *channel) {

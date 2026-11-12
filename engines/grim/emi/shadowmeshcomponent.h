@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class ShadowMeshComponent : public Component, public RMesh {
 public:
-	ShadowMeshComponent();
+	explicit ShadowMeshComponent(EmiEngine *engine);
 	~ShadowMeshComponent() override;
 
 	uint resSizeOfItem() override;

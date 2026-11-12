@@ -38,7 +38,6 @@
 #include "engines/grim/emi/cpathingfileservices.h"
 #include "engines/grim/emi/ctinyglcontext.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/keygenerator.h"
 #include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -60,10 +59,11 @@ Common::Error EmiEngine::run() {
 
 	mountEmiPatchArchives();
 
-	new CPathingFileServices();
-	new LConsoleServices();
+	_pathingFileServices = new CPathingFileServices(this);
+	new LConsoleServices(this);
+	_zFileServices = new ZFileServices(this);
 
-	_keyGenerator = new KeyGenerator();
+	_keyGenerator = new KeyGenerator(this);
 
 	bool initialized = initialize();
 
@@ -87,8 +87,14 @@ Common::Error EmiEngine::run() {
 	}
 
 	shutdown();
-	LConsoleServices::deleteAllConsoles();
-	LFileServices::deleteAllServices();
+
+	delete _zFileServices;
+	_zFileServices = nullptr;
+
+	deleteAllConsoles();
+	_grimeConsole = nullptr;
+	deleteAllFileServices();
+	_pathingFileServices = nullptr;
 
 	delete _keyGenerator;
 	_keyGenerator = nullptr;
@@ -105,17 +111,17 @@ CDrawContext *EmiEngine::createDrawContext() {
 
 #if defined(USE_TINYGL)
 	if (desiredType == Graphics::kRendererTypeTinyGL && (availableTypes & Graphics::kRendererTypeTinyGL))
-		return new CTinyGLContext();
+		return new CTinyGLContext(this);
 #endif
 
 #if defined(USE_OPENGL_GAME)
 	if (availableTypes & Graphics::kRendererTypeOpenGL)
-		return new COGLContext();
+		return new COGLContext(this);
 #endif
 
 #if defined(USE_TINYGL)
 	if (availableTypes & Graphics::kRendererTypeTinyGL)
-		return new CTinyGLContext();
+		return new CTinyGLContext(this);
 #endif
 
 	return nullptr;
@@ -151,7 +157,7 @@ bool EmiEngine::initialize() {
 		return false;
 	}
 
-	CDrawContext::context = drawContext;
+	setDrawContext(drawContext);
 	drawContext->enumerateDevices();
 
 	DisplayMode mode;
@@ -173,8 +179,8 @@ bool EmiEngine::initialize() {
 		warning("EmiEngine::initialize(): the OpenGL context could not be opened, using the software renderer");
 
 		delete drawContext;
-		drawContext = new CTinyGLContext();
-		CDrawContext::context = drawContext;
+		drawContext = new CTinyGLContext(this);
+		setDrawContext(drawContext);
 		drawContext->enumerateDevices();
 		opened = openDrawContext(drawContext, &mode);
 	}
@@ -192,15 +198,16 @@ bool EmiEngine::initialize() {
 
 	drawContext->setTextureFlag(false);
 	CursorMan.showMouse(false);
-	CGrimeConsole::setDebugLog(true);
+	_grimeConsole = new CGrimeConsole(this);
+	_grimeConsole->setDebugLog(true);
 
 	if (!startupModules(drawContext))
 		return false;
 
 	if (_showFps)
-		Lua_V2::statsOverlayFlags |= Lua_V2::kStatsOverlayFlag;
+		_lua->statsOverlayFlags |= Lua_V2::kStatsOverlayFlag;
 
-	if (!CBundleServices::init(getGameLanguage() != Common::EN_ANY)) {
+	if (!CBundleServices::init(this, getGameLanguage() != Common::EN_ANY)) {
 		showMessage("/NO_FILES/Could not find files!", "/ERROR/Error!");
 
 		return false;
@@ -208,15 +215,15 @@ bool EmiEngine::initialize() {
 
 	// PS2 loads the loading icon in startupModules, which it runs after opening the bundles
 	if (getGamePlatform() == Common::kPlatformPS2)
-		Movie::loadLoadingIconPs2();
+		Movie::loadLoadingIconPs2(this);
 
-	ZFile *defaultFile = ZFileServices::get()->open("default.tga", "rb");
+	ZFile *defaultFile = _zFileServices->open("default.tga", "rb");
 
 	if (defaultFile) {
-		LABitmap *defaultBitmap = new LABitmap();
+		LABitmap *defaultBitmap = new LABitmap(this);
 		bool loaded = defaultBitmap->loadFile("default.tga");
 
-		ZFileServices::get()->closeZFile(defaultFile);
+		_zFileServices->closeZFile(defaultFile);
 
 		if (loaded)
 			drawContext->defaultTexture = drawContext->createTexture(defaultBitmap);
@@ -224,7 +231,7 @@ bool EmiEngine::initialize() {
 		delete defaultBitmap;
 	}
 
-	LABitmap whiteBitmap;
+	LABitmap whiteBitmap(this);
 
 	whiteBitmap.create(2, 2, LColorFormat(9), nullptr);
 
@@ -307,7 +314,7 @@ void EmiEngine::playAspyrLogo(CDrawContext *drawContext) {
 }
 
 void EmiEngine::showLoadScreenPs2(CDrawContext *drawContext) {
-	LABitmap *bitmap = new LABitmap();
+	LABitmap *bitmap = new LABitmap(this);
 
 	if (bitmap->loadFile("LOAD.TGA")) {
 		int width = bitmap->getWidth();
@@ -349,11 +356,14 @@ void EmiEngine::showLoadScreenPs2(CDrawContext *drawContext) {
 void EmiEngine::shutdown() {
 	closeGameview();
 	shutdownModules();
-	CGrimeConsole::setDebugLog(false);
-	InputRecorder::destroyInputRecorder();
 
-	delete CDrawContext::context;
-	CDrawContext::context = nullptr;
+	if (_grimeConsole)
+		_grimeConsole->setDebugLog(false);
+
+	destroyInputRecorder();
+
+	delete _drawContext;
+	_drawContext = nullptr;
 
 	delete _screenBitmap;
 	_screenBitmap = nullptr;

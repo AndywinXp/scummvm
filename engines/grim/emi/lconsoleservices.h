@@ -26,9 +26,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class LConsoleServices {
 public:
-	LConsoleServices();
+	explicit LConsoleServices(EmiEngine *engine);
 	virtual ~LConsoleServices();
 
 	void *operator new(size_t size);
@@ -40,11 +42,9 @@ public:
 	virtual int logDebug(const char *format, ...);
 	virtual int logToFile(const char *format, ...);
 
-	static void deleteAllConsoles();
-	static int registerConsole(LConsoleServices *console);
+protected:
+	EmiEngine *_engine;
 };
-
-extern LConsoleServices *gpConsoleServices;
 
 } // End of namespace Grim
 

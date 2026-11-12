@@ -33,6 +33,7 @@ namespace Grim {
 
 class Actor;
 class ComponentInstance;
+class EmiEngine;
 
 class ChoreInstance : public LResourceHandle<ChoreSet> {
 public:
@@ -47,8 +48,8 @@ public:
 		kRestoreBufferSize = 512
 	};
 
-	ChoreInstance(Actor *actor, uint instanceId);
-	ChoreInstance(Actor *actor, const LString &newChoreName, const LString &choreSetName);
+	ChoreInstance(EmiEngine *engine, Actor *actor, uint instanceId);
+	ChoreInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName);
 	~ChoreInstance() override;
 
 	void *operator new(size_t size);
@@ -69,12 +70,12 @@ public:
 	bool save(tSaveRestoreAccess *access);
 	bool restore(tSaveRestoreAccess *access);
 
-	static uint newInstanceWithId(Actor *actor, uint instanceId);
-	static uint newInstance(Actor *actor, const LString &newChoreName, const LString &choreSetName);
-	static ChoreInstance *getInstance(uint instanceId);
-	static bool isInstanceValid(uint instanceId);
-	static bool startup();
-	static void shutdown();
+	static uint newInstanceWithId(EmiEngine *engine, Actor *actor, uint instanceId);
+	static uint newInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName);
+	static ChoreInstance *getInstance(EmiEngine *engine, uint instanceId);
+	static bool isInstanceValid(EmiEngine *engine, uint instanceId);
+	static bool startup(EmiEngine *engine);
+	static void shutdown(EmiEngine *engine);
 
 	uint flags;
 	float time;
@@ -85,13 +86,7 @@ public:
 	Actor *owner;
 
 private:
-	friend class Actor;
-
 	typedef Common::HashMap<uint, ChoreInstance *> InstanceMap;
-
-	static InstanceMap _registry;
-	static uint _nextId;
-	static bool _started;
 };
 
 } // End of namespace Grim

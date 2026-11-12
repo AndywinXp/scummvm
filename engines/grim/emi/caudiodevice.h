@@ -28,10 +28,11 @@ namespace Grim {
 
 class CAudioChannel;
 class CSoundCue;
+class EmiEngine;
 
 class CAudioDevice {
 public:
-	CAudioDevice();
+	explicit CAudioDevice(EmiEngine *engine);
 	virtual ~CAudioDevice();
 
 	virtual int getType() = 0;
@@ -53,6 +54,11 @@ public:
 	virtual int getCPUPercent();
 	virtual int getLatency();
 	virtual int getActiveSampleCount();
+
+	EmiEngine *getEngine() const;
+
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

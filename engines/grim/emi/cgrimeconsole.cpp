@@ -24,14 +24,13 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cgrimeconsole.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lfile.h"
 
 namespace Grim {
 
-bool CGrimeConsole::_debugLogEnabled = false;
-LFile *CGrimeConsole::_debugLogFile = nullptr;
-bool CGrimeConsole::_debugConsoleReady = false;
-int (*CGrimeConsole::_logPrintf)(const char *text) = nullptr;
+CGrimeConsole::CGrimeConsole(EmiEngine *engine) : LConsoleServices(engine), _debugLogEnabled(false), _debugLogFile(nullptr), _debugConsoleReady(false) {
+}
 
 int CGrimeConsole::logPrintfStub(const char *text) {
 	Common::String message(text + 2);
@@ -61,7 +60,7 @@ int CGrimeConsole::logStatus(const char *format, ...) {
 	}
 
 	Common::String output = "S:" + message;
-	_logPrintf(output.c_str());
+	logPrintfStub(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -81,7 +80,7 @@ int CGrimeConsole::logDebug(const char *format, ...) {
 	}
 
 	Common::String output = "D:" + message;
-	_logPrintf(output.c_str());
+	logPrintfStub(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -101,7 +100,7 @@ int CGrimeConsole::logWarning(const char *format, ...) {
 	}
 
 	Common::String output = "W:" + message;
-	_logPrintf(output.c_str());
+	logPrintfStub(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -121,7 +120,7 @@ int CGrimeConsole::logError(const char *format, ...) {
 	}
 
 	Common::String output = "E:" + message;
-	_logPrintf(output.c_str());
+	logPrintfStub(output.c_str());
 	writeDebugLog(output.c_str());
 
 	return length;
@@ -138,7 +137,7 @@ void CGrimeConsole::setDebugLog(bool enable) {
 			return;
 
 		if (_debugLogEnabled) {
-			_debugLogFile = gpFileServices->open("debug.log", "w");
+			_debugLogFile = _engine->getFileServices()->open("debug.log", "w");
 
 			if (!_debugLogFile)
 				return;
@@ -147,17 +146,13 @@ void CGrimeConsole::setDebugLog(bool enable) {
 		initDebugConsole();
 		_debugConsoleReady = true;
 	} else if (_debugConsoleReady && _debugLogFile) {
-		gpFileServices->close(_debugLogFile, true);
+		_engine->getFileServices()->close(_debugLogFile, true);
 		_debugLogFile = nullptr;
 	}
 }
 
 bool CGrimeConsole::initDebugConsole() {
-	_logPrintf = logPrintfStub;
-
-	CGrimeConsole *console = new CGrimeConsole();
-
-	LConsoleServices::registerConsole(console);
+	_engine->registerConsole(this);
 
 	return true;
 }

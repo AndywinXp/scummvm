@@ -31,7 +31,7 @@ namespace Grim {
 
 class Polyglot_v2 : public Polyglot {
 public:
-	Polyglot_v2();
+	explicit Polyglot_v2(EmiEngine *engine);
 	~Polyglot_v2() override;
 
 	void shutdown() override;
@@ -42,6 +42,7 @@ private:
 	int nextKeyByte();
 	LFile *openFileNoBundle(const char *path, const char *mode);
 
+	EmiEngine *_engine;
 	char *_table;
 	char **_lines;
 	int _lineCount;

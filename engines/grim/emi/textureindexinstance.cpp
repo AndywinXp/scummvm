@@ -30,7 +30,7 @@
 
 namespace Grim {
 
-TextureIndexInstance::TextureIndexInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+TextureIndexInstance::TextureIndexInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	owner = actor;
 
 	if (componentName.size() >= Component::kNamePrefixSize)
@@ -85,7 +85,7 @@ void TextureIndexInstance::setKey(float value, float elapsed, float nextValue, f
 		}
 
 		int textureIndex = (int)value;
-		LResourceHandle<CMaterial> materialHandle(filter);
+		LResourceHandle<CMaterial> materialHandle(_engine, filter);
 		CMaterial *material = materialHandle.lock() ? materialHandle.typed : nullptr;
 
 		if (!material) {

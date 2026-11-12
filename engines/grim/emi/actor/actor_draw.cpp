@@ -23,7 +23,7 @@
 
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/camera.h"
-#include "engines/grim/emi/profilertimer.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/puck_v2.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rprimitiveinstance.h"
@@ -31,9 +31,6 @@
 #include "engines/grim/emi/walkplanecollection.h"
 
 namespace Grim {
-
-static ProfilerTimer actorCalcOnScreenTimer("Actor::CalcOnScreen()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer actorDrawTimer("Actor::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 
 static const int kSortOrderSetups = 32;
 static const int kSortWalkPlaneMask = 0x1000;
@@ -56,7 +53,7 @@ int Actor::getSortOrder(int setupIndex) {
 			if (sortActor->sortOrder != -2)
 				break;
 
-			Actor *parentActor = actorDeref(sortActor->parentActorId);
+			Actor *parentActor = actorDeref(_engine, sortActor->parentActorId);
 
 			if (!parentActor)
 				break;
@@ -109,7 +106,7 @@ int Actor::getSortOrder(int setupIndex) {
 }
 
 bool Actor::calcOnScreen(Camera *camera) {
-	actorCalcOnScreenTimer.start();
+	_engine->_actorCalcOnScreenTimer.start();
 
 	CVector point;
 
@@ -191,18 +188,18 @@ bool Actor::calcOnScreen(Camera *camera) {
 		|| drawnRect[1] > viewBottom)
 		visible = false;
 
-	actorCalcOnScreenTimer.stop();
+	_engine->_actorCalcOnScreenTimer.stop();
 
 	return visible;
 }
 
 int Actor::drawActor(Camera *camera) {
-	actorDrawTimer.start();
+	_engine->_actorDrawTimer.start();
 
 	if (onScreen)
 		draw(camera);
 
-	actorDrawTimer.stop();
+	_engine->_actorDrawTimer.stop();
 
 	return 0;
 }

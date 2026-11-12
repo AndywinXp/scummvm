@@ -43,8 +43,15 @@ public:
 	bool lock();
 	void unlock();
 
+	void bindEngine(EmiEngine *engine);
+
 	int lockCount;
 	LResource *resource;
+
+protected:
+	LResourceManager *getManager() const;
+
+	EmiEngine *_engine;
 };
 
 template<class T>
@@ -54,19 +61,25 @@ public:
 		typed = nullptr;
 	}
 
-	explicit LResourceHandle(const LString &name) {
+	explicit LResourceHandle(EmiEngine *engine) {
+		_engine = engine;
 		typed = nullptr;
-		resource = gpResourceManager->findResource(name);
+	}
+
+	explicit LResourceHandle(EmiEngine *engine, const LString &name) {
+		_engine = engine;
+		typed = nullptr;
+		resource = getManager()->findResource(name);
 
 		if (!resource) {
-			resource = gpResourceManager->createResource(name);
+			resource = getManager()->createResource(name);
 
 			if (!resource)
 				allocateResource();
 
 			if (resource) {
 				resource->resSetName(name.c_str());
-				gpResourceManager->addResource(resource);
+				getManager()->addResource(resource);
 			}
 		}
 
@@ -91,6 +104,7 @@ public:
 	bool allocateResource() override {
 		T *created = new T();
 
+		created->bindEngine(_engine);
 		resource = created;
 		setResource(created);
 

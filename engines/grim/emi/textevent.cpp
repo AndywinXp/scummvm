@@ -35,15 +35,6 @@ namespace Grim {
 
 static const int kQuadsFlags = 0x20004;
 
-static ProfilerTimer textUpdateTimer("TextEvent::Update()", ProfilerTimer::kTrackNesting);
-
-Common::List<TextEvent *> TextEvent::events;
-TextEvent *TextEvent::defaultEvent = nullptr;
-int TextEvent::textMode = 0;
-int TextEvent::screenRect[4] = { 0, 0, 0, 0 };
-int TextEvent::_nextId = 1;
-bool TextEvent::_started = false;
-
 static Glyph *findGlyph(CTextFont *textFont, int character) {
 	if (!textFont || !textFont->charIndex || !textFont->glyphs)
 		return nullptr;
@@ -68,7 +59,7 @@ static Glyph *findGlyph(CTextFont *textFont, int character) {
 	return &textFont->glyphs[index];
 }
 
-TextEvent::TextEvent() {
+TextEvent::TextEvent(EmiEngine *engine) : font(engine), _engine(engine) {
 	clipRect[0] = 0;
 	clipRect[1] = 0;
 	clipRect[2] = 0;
@@ -77,7 +68,7 @@ TextEvent::TextEvent() {
 	init();
 }
 
-TextEvent::TextEvent(const LString &newText) {
+TextEvent::TextEvent(EmiEngine *engine, const LString &newText) : font(engine), _engine(engine) {
 	clipRect[0] = 0;
 	clipRect[1] = 0;
 	clipRect[2] = 0;
@@ -89,7 +80,7 @@ TextEvent::TextEvent(const LString &newText) {
 	geometryReady = false;
 }
 
-TextEvent::TextEvent(const char *newText) {
+TextEvent::TextEvent(EmiEngine *engine, const char *newText) : font(engine), _engine(engine) {
 	clipRect[0] = 0;
 	clipRect[1] = 0;
 	clipRect[2] = 0;
@@ -106,11 +97,11 @@ TextEvent::TextEvent(const char *newText) {
 }
 
 TextEvent::~TextEvent() {
-	Common::List<TextEvent *>::iterator it = events.begin();
+	Common::List<TextEvent *>::iterator it = _engine->_textEvents.begin();
 
-	while (it != events.end()) {
+	while (it != _engine->_textEvents.end()) {
 		if (*it == this)
-			it = events.erase(it);
+			it = _engine->_textEvents.erase(it);
 		else
 			++it;
 	}
@@ -119,11 +110,11 @@ TextEvent::~TextEvent() {
 }
 
 void *TextEvent::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void TextEvent::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void TextEvent::init() {
@@ -132,8 +123,10 @@ void TextEvent::init() {
 	layer = 0;
 	actorId = 0;
 	hold = 0;
-	id = _nextId;
-	_nextId++;
+	id = _engine->_nextTextEventId;
+	_engine->_nextTextEventId++;
+
+	TextEvent *defaultEvent = _engine->_defaultTextEvent;
 
 	if (defaultEvent) {
 		clipRect[0] = defaultEvent->clipRect[0];
@@ -144,7 +137,7 @@ void TextEvent::init() {
 		y = defaultEvent->y;
 		geometryReady = false;
 
-		LResourceHandle<CTextFont> defaultFont;
+		LResourceHandle<CTextFont> defaultFont(_engine);
 
 		defaultFont.setResource(defaultEvent->font.resource);
 		setFont(defaultFont);
@@ -168,8 +161,8 @@ void TextEvent::init() {
 	} else {
 		clipRect[0] = 0;
 		clipRect[1] = 0;
-		clipRect[2] = screenRect[2];
-		clipRect[3] = screenRect[3];
+		clipRect[2] = _engine->_textScreenRect[2];
+		clipRect[3] = _engine->_textScreenRect[3];
 		x = 0;
 		y = 0;
 		geometryReady = false;
@@ -197,31 +190,31 @@ void TextEvent::init() {
 int TextEvent::activate(float newDuration, int newFlags) {
 	duration = newDuration;
 	flags = newFlags;
-	events.push_back(this);
+	_engine->_textEvents.push_back(this);
 
-	return events.size();
+	return _engine->_textEvents.size();
 }
 
 void TextEvent::freeGeometry() {
 	vertexCount = 0;
 
 	if (positions)
-		gpMemoryServices->freeImpl(positions);
+		_engine->getMemoryServices()->freeImpl(positions);
 
 	positions = nullptr;
 
 	if (normals)
-		gpMemoryServices->freeImpl(normals);
+		_engine->getMemoryServices()->freeImpl(normals);
 
 	normals = nullptr;
 
 	if (colors)
-		gpMemoryServices->freeImpl(colors);
+		_engine->getMemoryServices()->freeImpl(colors);
 
 	colors = nullptr;
 
 	if (uvs)
-		gpMemoryServices->freeImpl(uvs);
+		_engine->getMemoryServices()->freeImpl(uvs);
 
 	uvs = nullptr;
 	runs.clear();
@@ -236,9 +229,9 @@ void TextEvent::buildGeometry() {
 
 	vertexCount = 4 * length;
 
-	positions = (float *)gpMemoryServices->mallocImpl(vertexCount * 3 * sizeof(float));
-	colors = (byte *)gpMemoryServices->mallocImpl(vertexCount * 4 * sizeof(byte));
-	uvs = (float *)gpMemoryServices->mallocImpl(vertexCount * 2 * sizeof(float));
+	positions = (float *)_engine->getMemoryServices()->mallocImpl(vertexCount * 3 * sizeof(float));
+	colors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexCount * 4 * sizeof(byte));
+	uvs = (float *)_engine->getMemoryServices()->mallocImpl(vertexCount * 2 * sizeof(float));
 
 	// The disasm never checks, an empty text gets no memory (size 0) and builds nothing
 	if (vertexCount != 0 && (!positions || !colors || !uvs)) {
@@ -323,8 +316,8 @@ void TextEvent::buildGeometry() {
 				float bottom = (float)((double)(uint)glyph->alpha.getHeight() * (double)scaleY + (double)top);
 
 				if (left < right && top < bottom) {
-					float halfWidth = (float)(uint)(screenRect[2] / 2);
-					float halfHeight = (float)(uint)(screenRect[3] / 2);
+					float halfWidth = (float)(uint)(_engine->_textScreenRect[2] / 2);
+					float halfHeight = (float)(uint)(_engine->_textScreenRect[3] / 2);
 
 					if (halfWidth == 0.0f || halfHeight == 0.0f) {
 						// The original could divide by zero here, let's avoid that...
@@ -729,7 +722,7 @@ bool TextEvent::restore(tSaveRestoreAccess *access) {
 	if (fontName.empty()) {
 		font.setResource(nullptr);
 	} else {
-		LResourceHandle<CTextFont> restoredFont(fontName);
+		LResourceHandle<CTextFont> restoredFont(_engine, fontName);
 
 		font.setResource(restoredFont.resource);
 	}
@@ -754,7 +747,7 @@ bool TextEvent::setFont(const char *fontName) {
 	}
 
 	LString fontLabel = fontName;
-	LResourceHandle<CTextFont> newFont(fontLabel);
+	LResourceHandle<CTextFont> newFont(_engine, fontLabel);
 
 	if (newFont.lock() && newFont.typed) {
 		newFont.unlock();
@@ -786,15 +779,15 @@ bool TextEvent::setFont(LResourceHandle<CTextFont> newFont) {
 	return true;
 }
 
-int TextEvent::update(CDrawContext *drawContext, bool drawAll) {
-	if (EmiEngine::isDumpingFrames())
+int TextEvent::update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll) {
+	if (engine->isDumpingFrames())
 		return 0;
 
-	textUpdateTimer.start();
+	engine->_textUpdateTimer.start();
 
-	Common::List<TextEvent *>::iterator it = events.begin();
+	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
 
-	while (it != events.end()) {
+	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;
 
 		++it;
@@ -806,7 +799,7 @@ int TextEvent::update(CDrawContext *drawContext, bool drawAll) {
 				if (((eventFlags & 8) || drawAll) && !(eventFlags & 2))
 					event->draw(drawContext);
 
-				event->duration = (float)((double)event->duration - (double)EmiEngine::getFrameTime());
+				event->duration = (float)((double)event->duration - (double)engine->getFrameTime());
 			} else {
 				delete event;
 			}
@@ -815,35 +808,35 @@ int TextEvent::update(CDrawContext *drawContext, bool drawAll) {
 
 	int result = drawContext->flushDrawLists();
 
-	textUpdateTimer.stop();
+	engine->_textUpdateTimer.stop();
 
 	return result;
 }
 
-bool TextEvent::startup(CDrawContext *drawContext) {
-	if (_started)
+bool TextEvent::startup(EmiEngine *engine, CDrawContext *drawContext) {
+	if (engine->_textEventsStarted)
 		return false;
 
 	int viewport[4];
 	int *rect = drawContext->getViewportRect(viewport);
 
-	screenRect[0] = rect[0];
-	screenRect[1] = rect[1];
-	screenRect[2] = rect[2];
-	screenRect[3] = rect[3];
+	engine->_textScreenRect[0] = rect[0];
+	engine->_textScreenRect[1] = rect[1];
+	engine->_textScreenRect[2] = rect[2];
+	engine->_textScreenRect[3] = rect[3];
 
-	events.clear();
-	defaultEvent = new TextEvent();
-	defaultEvent->flags = 0;
-	_started = true;
+	engine->_textEvents.clear();
+	engine->_defaultTextEvent = new TextEvent(engine);
+	engine->_defaultTextEvent->flags = 0;
+	engine->_textEventsStarted = true;
 
 	return true;
 }
 
-void TextEvent::shutdown() {
-	Common::List<TextEvent *>::iterator it = events.begin();
+void TextEvent::shutdown(EmiEngine *engine) {
+	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
 
-	while (it != events.end()) {
+	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;
 
 		++it;
@@ -852,20 +845,20 @@ void TextEvent::shutdown() {
 			delete event;
 	}
 
-	events.clear();
+	engine->_textEvents.clear();
 
-	if (defaultEvent) {
-		delete defaultEvent;
-		defaultEvent = nullptr;
+	if (engine->_defaultTextEvent) {
+		delete engine->_defaultTextEvent;
+		engine->_defaultTextEvent = nullptr;
 	}
 
-	_started = false;
+	engine->_textEventsStarted = false;
 }
 
-TextEvent *TextEvent::getEvent(int eventId) {
+TextEvent *TextEvent::getEvent(EmiEngine *engine, int eventId) {
 	Common::List<TextEvent *>::iterator it;
 
-	for (it = events.begin(); it != events.end(); ++it) {
+	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
 		if ((*it)->id == eventId)
 			return *it;
 	}
@@ -873,14 +866,14 @@ TextEvent *TextEvent::getEvent(int eventId) {
 	return nullptr;
 }
 
-const char *TextEvent::translate(const char *msg, char *buffer) {
+const char *TextEvent::translate(EmiEngine *engine, const char *msg, char *buffer) {
 	const char *tagEnd = nullptr;
 	const char *translated;
 
 	if (buffer)
 		*buffer = 0;
 
-	Polyglot_v2 *polyglot = EmiEngine::getPolyglot();
+	Polyglot_v2 *polyglot = engine->getPolyglot();
 
 	if (polyglot) {
 		translated = polyglot->getTranslation(msg);
@@ -907,7 +900,7 @@ const char *TextEvent::translate(const char *msg, char *buffer) {
 		}
 	}
 
-	if (textMode == 1) {
+	if (engine->_textMode == 1) {
 		if (tagEnd)
 			return tagEnd + 1;
 
@@ -916,23 +909,23 @@ const char *TextEvent::translate(const char *msg, char *buffer) {
 		return translated;
 	}
 
-	if (textMode != 2)
+	if (engine->_textMode != 2)
 		return translated;
 
 	return msg;
 }
 
-void TextEvent::holdAll() {
+void TextEvent::holdAll(EmiEngine *engine) {
 	Common::List<TextEvent *>::iterator it;
 
-	for (it = events.begin(); it != events.end(); ++it)
+	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it)
 		(*it)->hold++;
 }
 
-void TextEvent::releaseAll() {
+void TextEvent::releaseAll(EmiEngine *engine) {
 	Common::List<TextEvent *>::iterator it;
 
-	for (it = events.begin(); it != events.end(); ++it) {
+	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
 
 		event->hold--;
@@ -942,31 +935,31 @@ void TextEvent::releaseAll() {
 	}
 }
 
-bool TextEvent::saveAll(tSaveRestoreAccess *access) {
-	uint count = events.size();
+bool TextEvent::saveAll(EmiEngine *engine, tSaveRestoreAccess *access) {
+	uint count = engine->_textEvents.size();
 
 	access(&count, sizeof(count));
 
 	Common::List<TextEvent *>::iterator it;
 
-	for (it = events.begin(); it != events.end(); ++it)
+	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it)
 		(*it)->save(access);
 
-	access(&_nextId, sizeof(_nextId));
-	access(&textMode, sizeof(textMode));
+	access(&engine->_nextTextEventId, sizeof(engine->_nextTextEventId));
+	access(&engine->_textMode, sizeof(engine->_textMode));
 
-	if (defaultEvent)
-		defaultEvent->save(access);
+	if (engine->_defaultTextEvent)
+		engine->_defaultTextEvent->save(access);
 	else
 		warning("TextEvent::saveAll(): no default event");
 
 	return true;
 }
 
-bool TextEvent::restoreAll(tSaveRestoreAccess *access) {
-	Common::List<TextEvent *>::iterator it = events.begin();
+bool TextEvent::restoreAll(EmiEngine *engine, tSaveRestoreAccess *access) {
+	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
 
-	while (it != events.end()) {
+	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;
 
 		++it;
@@ -975,14 +968,14 @@ bool TextEvent::restoreAll(tSaveRestoreAccess *access) {
 			delete event;
 	}
 
-	events.clear();
+	engine->_textEvents.clear();
 
 	int count;
 
 	access(&count, sizeof(count));
 
 	for (int i = 0; i < count; i++) {
-		TextEvent *event = new TextEvent();
+		TextEvent *event = new TextEvent(engine);
 
 		if (!event->restore(access)) {
 			delete event;
@@ -990,14 +983,14 @@ bool TextEvent::restoreAll(tSaveRestoreAccess *access) {
 			return false;
 		}
 
-		events.push_back(event);
+		engine->_textEvents.push_back(event);
 	}
 
-	access(&_nextId, sizeof(_nextId));
-	access(&textMode, sizeof(textMode));
+	access(&engine->_nextTextEventId, sizeof(engine->_nextTextEventId));
+	access(&engine->_textMode, sizeof(engine->_textMode));
 
-	if (defaultEvent)
-		defaultEvent->restore(access);
+	if (engine->_defaultTextEvent)
+		engine->_defaultTextEvent->restore(access);
 	else
 		warning("TextEvent::restoreAll(): no default event");
 

@@ -29,12 +29,11 @@ namespace Grim {
 
 static const float kNoChange = -10000.0f;
 
-PrimitiveQueue_v2 PrimitiveQueue_v2::queue;
-bool PrimitiveQueue_v2::_started = false;
-bool PrimitiveQueue_v2::_drawDisabled = false;
-int PrimitiveQueue_v2::_nextId = 1;
-
-PrimitiveQueue_v2::PrimitiveQueue_v2() {
+PrimitiveQueue_v2::PrimitiveQueue_v2(EmiEngine *engine) {
+	_engine = engine;
+	_started = false;
+	_drawDisabled = false;
+	_nextId = 1;
 	head2D = nullptr;
 	tail2D = nullptr;
 	head3D = nullptr;
@@ -51,7 +50,7 @@ bool PrimitiveQueue_v2::startup() {
 }
 
 void PrimitiveQueue_v2::shutdown() {
-	queue.clear();
+	clear();
 	_started = false;
 }
 
@@ -61,7 +60,7 @@ void PrimitiveQueue_v2::resetIds() {
 
 void PrimitiveQueue_v2::drawQueue(CDrawContext *drawContext, int layers) {
 	if (!_drawDisabled)
-		queue.draw(drawContext, layers);
+		draw(drawContext, layers);
 }
 
 void PrimitiveQueue_v2::clear() {

@@ -24,13 +24,11 @@
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/cdrawlist.h"
 #include "engines/grim/emi/ctexture.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
-
-Common::Array<DrawVertex *> CDrawList::_vertexPool;
-int CDrawList::_listCount = 0;
 
 DrawVertex::DrawVertex() {
 	x = 0.0f;
@@ -44,39 +42,39 @@ DrawVertex::DrawVertex() {
 	v = 0.0f;
 }
 
-CDrawList::CDrawList(int listCapacity) {
+CDrawList::CDrawList(CDrawContext *owner, int listCapacity) {
 	polyPending = false;
 	deferAll = 0;
-	ctx = nullptr;
-	polys = (DrawPoly **)gpMemoryServices->mallocImpl(listCapacity * sizeof(DrawPoly *));
-	pool = (DrawPoly *)gpMemoryServices->mallocImpl((listCapacity + 1) * sizeof(DrawPoly));
+	ctx = owner;
+	polys = (DrawPoly **)ctx->_engine->getMemoryServices()->mallocImpl(listCapacity * sizeof(DrawPoly *));
+	pool = (DrawPoly *)ctx->_engine->getMemoryServices()->mallocImpl((listCapacity + 1) * sizeof(DrawPoly));
 	capacity = listCapacity;
 
 	for (int i = 0; i < capacity; i++)
 		polys[i] = &pool[i];
 
 	reset();
-	_listCount++;
+	ctx->_listCount++;
 }
 
 CDrawList::~CDrawList() {
 	for (int i = 0; i < count; i++)
 		recyclePoly(polys[i]);
 
-	gpMemoryServices->freeImpl(polys);
+	ctx->_engine->getMemoryServices()->freeImpl(polys);
 	polys = nullptr;
-	gpMemoryServices->freeImpl(pool);
+	ctx->_engine->getMemoryServices()->freeImpl(pool);
 	pool = nullptr;
 
-	_listCount--;
+	ctx->_listCount--;
 
-	if (_listCount == 0) {
-		for (uint i = 0; i < _vertexPool.size(); i++) {
-			gpMemoryServices->freeImpl(_vertexPool[i]);
-			_vertexPool[i] = nullptr;
+	if (ctx->_listCount == 0) {
+		for (uint i = 0; i < ctx->_vertexPool.size(); i++) {
+			ctx->_engine->getMemoryServices()->freeImpl(ctx->_vertexPool[i]);
+			ctx->_vertexPool[i] = nullptr;
 		}
 
-		_vertexPool.clear();
+		ctx->_vertexPool.clear();
 	}
 }
 
@@ -248,7 +246,7 @@ void CDrawList::recyclePoly(DrawPoly *poly) {
 		DrawVertex *vertex = poly->verts[poly->numVerts - 1];
 
 		if (!(vertex->flags & 1))
-			_vertexPool.push_back(vertex);
+			ctx->_vertexPool.push_back(vertex);
 
 		poly->numVerts--;
 	}
@@ -285,8 +283,10 @@ bool CDrawList::addPoly(DrawPoly *poly) {
 		poly->inUse = 1;
 
 		if (count >= capacity - 1) {
-			if (gpConsoleServices)
-				gpConsoleServices->logStatus("Draw List overflow!\n");
+			LConsoleServices *console = ctx->getEngine()->getConsoleServices();
+
+			if (console)
+				console->logStatus("Draw List overflow!\n");
 			else
 				warning("CDrawList::addPoly(): draw list overflow");
 
@@ -308,11 +308,11 @@ bool CDrawList::addPoly(DrawPoly *poly) {
 DrawVertex *CDrawList::allocVertex() {
 	DrawVertex *vertex;
 
-	if (!_vertexPool.empty()) {
-		vertex = _vertexPool.back();
-		_vertexPool.pop_back();
+	if (!ctx->_vertexPool.empty()) {
+		vertex = ctx->_vertexPool.back();
+		ctx->_vertexPool.pop_back();
 	} else {
-		vertex = (DrawVertex *)gpMemoryServices->mallocImpl(sizeof(DrawVertex));
+		vertex = (DrawVertex *)ctx->_engine->getMemoryServices()->mallocImpl(sizeof(DrawVertex));
 
 		if (!vertex)
 			return nullptr;

@@ -33,10 +33,11 @@
 namespace Grim {
 
 class CTinyGLContext;
+class EmiEngine;
 
 class CTinyGLTexture : public CTexture {
 public:
-	CTinyGLTexture(CTinyGLContext *ctx, LABitmap *bitmap, bool textureFlag);
+	CTinyGLTexture(CTinyGLContext *owner, LABitmap *bitmap, bool textureFlag);
 	~CTinyGLTexture() override;
 
 	void applyFlags() override;
@@ -53,7 +54,8 @@ private:
 	void store16BitPixels(const byte *source, int width, int height, int bytesPerPixel, int alphaKind);
 	void upload();
 
-	CTinyGLContext *_context;
+	CTinyGLContext *_owner;
+	EmiEngine *_engine;
 	byte *_pixels;
 	int _width;
 	int _height;

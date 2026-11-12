@@ -30,10 +30,11 @@
 namespace Grim {
 
 class CDrawContext;
+class EmiEngine;
 
 class PrimitiveQueue_v2 {
 public:
-	PrimitiveQueue_v2();
+	explicit PrimitiveQueue_v2(EmiEngine *engine);
 
 	void clear();
 	int add3DLine(float startX, float startY, float startZ, float endX, float endY, float endZ, const Color &lineColor, int layer);
@@ -52,22 +53,21 @@ public:
 	void draw(CDrawContext *drawContext, int layers);
 	Primitive *findNext(int primitiveId, Primitive *previous);
 
-	static bool startup();
-	static void shutdown();
-	static void resetIds();
-	static void drawQueue(CDrawContext *drawContext, int layers);
+	bool startup();
+	void shutdown();
+	void resetIds();
+	void drawQueue(CDrawContext *drawContext, int layers);
 
 	Primitive *head2D;
 	Primitive *tail2D;
 	Primitive *head3D;
 	Primitive *tail3D;
 
-	static PrimitiveQueue_v2 queue;
-
 private:
-	static bool _started;
-	static bool _drawDisabled;
-	static int _nextId;
+	EmiEngine *_engine;
+	bool _started;
+	bool _drawDisabled;
+	int _nextId;
 };
 
 } // End of namespace Grim

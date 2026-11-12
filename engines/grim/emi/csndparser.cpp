@@ -34,7 +34,7 @@ enum {
 	kArgMaskTwoFloats = 10
 };
 
-CSndParser::CSndParser() {
+CSndParser::CSndParser(EmiEngine *engine) : LFormatParser(engine) {
 	snd = nullptr;
 
 	addKeyword("SOUND", kKeywordSound, kArgMaskString);
@@ -57,11 +57,11 @@ CSndParser::~CSndParser() {
 }
 
 void *CSndParser::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CSndParser::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool CSndParser::handleKeyword(int id, int numArgs, KeywordArg *args) {
@@ -153,7 +153,7 @@ bool CSndParser::parseSound(int id, int numArgs, KeywordArg *args) {
 		return false;
 
 	// The disasm never frees this handle
-	LResourceHandle<CWaveSound> *waveHandle = new LResourceHandle<CWaveSound>(LString(args[0].stringValue));
+	LResourceHandle<CWaveSound> *waveHandle = new LResourceHandle<CWaveSound>(_engine, LString(args[0].stringValue));
 	LResourceHandle<CWaveSound> handle;
 
 	handle.setResource(waveHandle->resource);

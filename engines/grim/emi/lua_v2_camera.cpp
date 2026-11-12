@@ -51,11 +51,11 @@ void Lua_V2::WorldToScreen() {
 	lua_Object yObj = lua_getparam(2);
 	lua_Object zObj = lua_getparam(3);
 
-	bool isPs2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+	bool isPs2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
-		if (isPs2 && gpConsoleServices)
-			gpConsoleServices->logDebug("WorldToScreen: Parameters must be x, y, z coords.\n");
+		if (isPs2 && _engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("WorldToScreen: Parameters must be x, y, z coords.\n");
 
 		return;
 	}
@@ -63,7 +63,7 @@ void Lua_V2::WorldToScreen() {
 	float z = lua_getnumber(zObj);
 	float y = lua_getnumber(yObj);
 	float x = lua_getnumber(xObj);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom)
 		return;
@@ -97,7 +97,7 @@ void Lua_V2::WorldToScreen() {
 		float ps2ScreenX = camera->halfWidth + inverseDepth * (pointX * camera->focalX);
 		float ps2ScreenY = camera->halfHeight + inverseDepth * (-pointY * camera->focalY);
 
-		if (!CDrawContext::context || ps2ScreenX < 0.0f || !(ps2ScreenX <= kPs2ScreenWidth) || ps2ScreenY < 0.0f || !(ps2ScreenY <= kPs2ScreenHeight)) {
+		if (!_engine->getDrawContext() || ps2ScreenX < 0.0f || !(ps2ScreenX <= kPs2ScreenWidth) || ps2ScreenY < 0.0f || !(ps2ScreenY <= kPs2ScreenHeight)) {
 			lua_pushnil();
 			lua_pushnil();
 
@@ -127,7 +127,7 @@ void Lua_V2::WorldToScreen() {
 	float screenX = (float)((((viewX + view[9]) * camera->focalX) * inverseDepth) + camera->halfWidth);
 	float screenY = (float)((double)camera->halfHeight - (((double)screenYTerm * camera->focalY) * inverseDepth));
 
-	if (!CDrawContext::context) {
+	if (!_engine->getDrawContext()) {
 		lua_pushnil();
 		lua_pushnil();
 
@@ -135,7 +135,7 @@ void Lua_V2::WorldToScreen() {
 	}
 
 	int rectBuffer[4];
-	int *rect = CDrawContext::context->getViewportRect(rectBuffer);
+	int *rect = _engine->getDrawContext()->getViewportRect(rectBuffer);
 	int width = rect[2];
 	int height = rect[3];
 
@@ -154,7 +154,7 @@ void Lua_V2::WorldToScreen() {
 }
 
 void Lua_V2::GetCameraPosition() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -188,7 +188,7 @@ void Lua_V2::GetCameraPosition() {
 }
 
 void Lua_V2::SetCameraPosition() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -224,7 +224,7 @@ void Lua_V2::SetCameraPosition() {
 }
 
 void Lua_V2::CameraLookAt() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -260,7 +260,7 @@ void Lua_V2::CameraLookAt() {
 }
 
 void Lua_V2::GetCameraFOV() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -281,7 +281,7 @@ void Lua_V2::GetCameraFOV() {
 }
 
 void Lua_V2::SetCameraFOV() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -297,7 +297,7 @@ void Lua_V2::SetCameraFOV() {
 		return;
 	}
 
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (!drawContext) {
 		warning("Lua_V2::SetCameraFOV(): there is no draw context");
@@ -329,7 +329,7 @@ void Lua_V2::SetCameraFOV() {
 }
 
 void Lua_V2::GetCameraYaw() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -353,7 +353,7 @@ void Lua_V2::GetCameraYaw() {
 }
 
 void Lua_V2::YawCamera() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -403,7 +403,7 @@ void Lua_V2::YawCamera() {
 }
 
 void Lua_V2::GetCameraPitch() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -427,7 +427,7 @@ void Lua_V2::GetCameraPitch() {
 }
 
 void Lua_V2::PitchCamera() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -477,7 +477,7 @@ void Lua_V2::PitchCamera() {
 }
 
 void Lua_V2::GetCameraRoll() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -501,7 +501,7 @@ void Lua_V2::GetCameraRoll() {
 }
 
 void Lua_V2::RollCamera() {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -552,7 +552,7 @@ void Lua_V2::RollCamera() {
 
 void Lua_V2::GetCameraLookVector() {
 	lua_Object setupObj = lua_getparam(1);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -619,7 +619,7 @@ void Lua_V2::PerSecond() {
 	if (!lua_isnumber(valueObj))
 		lua_pushnil();
 
-	float frameTime = EmiEngine::getFrameTime();
+	float frameTime = _engine->getFrameTime();
 
 	lua_pushnumber((float)((double)lua_getnumber(valueObj) * frameTime));
 }
@@ -629,7 +629,7 @@ void Lua_V2::SnapToPlane() {
 	lua_Object xObj = lua_getparam(2);
 	lua_Object yObj = lua_getparam(3);
 	lua_Object zObj = lua_getparam(4);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes || !lua_isstring(planeObj)) {
 		warning("Lua_V2::SnapToPlane(): missing walk planes or plane name");

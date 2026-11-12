@@ -26,6 +26,7 @@
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/cplane.h"
 #include "engines/grim/emi/cquaternion.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 
 namespace Grim {
@@ -230,7 +231,7 @@ void Actor::setLookAtJoints(float deltaTime) {
 		return;
 
 	if (extra->lookTargetActorId != 0) {
-		Actor *targetActor = actorDeref(extra->lookTargetActorId);
+		Actor *targetActor = actorDeref(_engine, extra->lookTargetActorId);
 
 		if (targetActor) {
 			if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
@@ -240,8 +241,10 @@ void Actor::setLookAtJoints(float deltaTime) {
 			extra->lookTarget.y = targetActor->world.pos.y;
 			extra->lookTarget.z = targetActor->world.pos.z;
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("SetLookAtJoints trying to look at deleted actor!!");
+			LConsoleServices *consoleServices = _engine->getConsoleServices();
+
+			if (consoleServices)
+				consoleServices->logError("SetLookAtJoints trying to look at deleted actor!!");
 			else
 				warning("SetLookAtJoints trying to look at deleted actor!!");
 

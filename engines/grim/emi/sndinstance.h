@@ -27,10 +27,11 @@
 namespace Grim {
 
 class Actor;
+class EmiEngine;
 
 class SndInstance : public ComponentInstance {
 public:
-	SndInstance(const LString &componentName, Actor *actor);
+	SndInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~SndInstance() override;
 
 	bool isReplayable() override;
@@ -38,6 +39,9 @@ public:
 
 	Actor *owner;
 	uint soundHandle;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

@@ -31,7 +31,7 @@ class RMeshInstance;
 
 class ShadowMeshInstance : public ComponentInstance {
 public:
-	ShadowMeshInstance(const LString &componentName, Actor *actor);
+	ShadowMeshInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~ShadowMeshInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

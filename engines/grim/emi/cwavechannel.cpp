@@ -23,11 +23,12 @@
 
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/csoundcue.h"
+#include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -38,15 +39,12 @@ static const uint kMaxAilValue = 0x80;
 static const float kSpuRegisterScale = 16383.0f;
 static const float kSpuVoiceStreamGain = 0.55f;
 
-bool CWaveChannel::spuStereo = true;
-
-CWaveChannel::CWaveChannel(EMIMilesDriver *driver) {
+CWaveChannel::CWaveChannel(CWaveAudioDevice *device) : CAudioChannel(device->getEngine()), _device(device), _driver(device->getMilesDriver()) {
 	started = false;
 	hSample = nullptr;
 	cue = nullptr;
 	spuVolume = 0.0f;
 	spuBalance = 0.0f;
-	_driver = driver;
 
 	if (_driver) {
 		hSample = _driver->allocateSample();
@@ -64,11 +62,11 @@ CWaveChannel::~CWaveChannel() {
 }
 
 void *CWaveChannel::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CWaveChannel::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int CWaveChannel::update() {
@@ -269,7 +267,7 @@ void CWaveChannel::setVolume(float volume) {
 	if (!hSample)
 		return;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (!cue)
 			return;
 
@@ -309,7 +307,7 @@ void CWaveChannel::setPan(float pan) {
 	if (!hSample)
 		return;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (!cue)
 			return;
 
@@ -398,7 +396,7 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 		return;
 
 	// PS2 only sets the loop flag; the SPU jumps to the loop address given by the ADPCM flags
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if ((newCue->flags & CSoundCue::kFlagLoop) != 0) {
 			setLoopCount(0);
 
@@ -419,7 +417,7 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 	float reverbFourth = 0.0f;
 	float reverbFifth = 0.0f;
 
-	AudioSystem::getGlobalReverb(&preset, &reverbFirst, &reverbSecond, &reverbThird, &reverbFourth, &reverbFifth);
+	_device->getAudioSystem()->getGlobalReverb(&preset, &reverbFirst, &reverbSecond, &reverbThird, &reverbFourth, &reverbFifth);
 	setReverb(preset, reverbFirst, reverbSecond, reverbThird, reverbFourth, reverbFifth);
 	setCutoff(newCue->getCutoffNear(), newCue->getCutoffFar());
 
@@ -529,15 +527,11 @@ void CWaveChannel::setSpuSamplePan(int pan) {
 	spuBalance = ((float)pan - 64.0f) / 64.0f;
 
 	// In mono output every pan is centered
-	if (!spuStereo)
+	if (!_device->getSpuStereo())
 		spuBalance = 0.0f;
 
 	if (getAttenuatedVolumes(spuVolume, spuBalance, &left, &right))
 		_driver->setSampleSpuVolume(hSample, left, right);
-}
-
-void CWaveChannel::setSpuStereo(bool stereo) {
-	spuStereo = stereo;
 }
 
 void CWaveChannel::setSpuStreamVolume(int volume) {

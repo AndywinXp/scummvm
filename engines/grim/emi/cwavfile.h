@@ -22,6 +22,7 @@
 #ifndef GRIM_EMI_CWAVFILE_H
 #define GRIM_EMI_CWAVFILE_H
 
+#include "common/noncopyable.h"
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/lfile.h"
@@ -29,8 +30,9 @@
 namespace Grim {
 
 class CWaveSound;
+class EmiEngine;
 
-class CWavFile {
+class CWavFile : public Common::NonCopyable {
 public:
 	enum {
 		kVimaTableSize = 89 * 64,
@@ -39,6 +41,9 @@ public:
 		kPathBufferSize = 1000000,
 		kMaxPathLength = 259
 	};
+
+	explicit CWavFile(EmiEngine *engine);
+	virtual ~CWavFile();
 
 	virtual bool read(LFile *file, CWaveSound *sound);
 	virtual bool readMcmpFromPath(LFile *file, CWaveSound *sound);
@@ -50,15 +55,17 @@ public:
 	static bool readChunkHeaderMem(const byte *buffer, uint bufferSize, int *position, uint32 *header);
 	static void memRead(const byte *buffer, uint bufferSize, int *position, void *dest, uint count);
 	static int memSeek(int *position, uint limit, uint offset, int whence);
-	static int decompressMcmp(LFile *file, byte *output, uint outputSize, uint *decodedSize);
-	static int decompressMcmpFromPath(LFile *file, byte *output, uint outputSize, uint *decodedSize);
+	int decompressMcmp(LFile *file, byte *output, uint outputSize, uint *decodedSize);
+	int decompressMcmpFromPath(LFile *file, byte *output, uint outputSize, uint *decodedSize);
 	static const char *getFilePath(LFile *file);
-	static void decodeMcmpBlock(byte *dest, const byte *source, uint size);
+	void decodeMcmpBlock(byte *dest, const byte *source, uint size);
 
-	static uint16 vimaTable[kVimaTableSize];
-	static bool vimaTableReady;
-	static byte mcmpReadBuffer[kMcmpReadBufferSize];
-	static byte mcmpDecodeBuffer[kMcmpDecodeBufferSize];
+private:
+	EmiEngine *_engine;
+	uint16 _vimaTable[kVimaTableSize];
+	bool _vimaTableReady;
+	byte *_mcmpReadBuffer;
+	byte *_mcmpDecodeBuffer;
 };
 
 } // End of namespace Grim

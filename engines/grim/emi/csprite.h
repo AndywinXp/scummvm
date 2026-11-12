@@ -32,6 +32,7 @@
 namespace Grim {
 
 class Camera;
+class EmiEngine;
 class RNode;
 
 class CSprite : public RPrimitive {
@@ -40,7 +41,7 @@ public:
 		kNumCorners = 4
 	};
 
-	CSprite();
+	explicit CSprite(EmiEngine *engine);
 	virtual ~CSprite();
 
 	virtual RPrimitiveInstance *createInstance();
@@ -49,6 +50,8 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
+	EmiEngine *getEngine() const;
+
 	LResourceHandle<CMaterial> material;
 	float width;
 	float height;
@@ -56,6 +59,9 @@ public:
 	Color corners[kNumCorners];
 	float uv[kNumCorners * 2];
 	int drawFlags;
+
+protected:
+	EmiEngine *_engine;
 };
 
 class CSpriteInstance : public RPrimitiveInstance {
@@ -69,6 +75,9 @@ public:
 	virtual bool restoreState(tSaveRestoreAccess *access);
 
 	int textureIndex;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

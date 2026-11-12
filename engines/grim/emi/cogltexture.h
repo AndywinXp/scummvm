@@ -33,10 +33,11 @@
 namespace Grim {
 
 class COGLContext;
+class EmiEngine;
 
 class COGLTexture : public CTexture {
 public:
-	COGLTexture(COGLContext *ctx, LABitmap *bitmap, bool textureFlag);
+	COGLTexture(COGLContext *owner, LABitmap *bitmap, bool textureFlag);
 	~COGLTexture() override;
 
 	void applyFlags() override;
@@ -48,6 +49,9 @@ public:
 
 private:
 	void uploadBlankImage(int width, int height);
+
+	COGLContext *_owner;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

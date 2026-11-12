@@ -30,7 +30,7 @@ class Actor;
 
 class TextureIndexInstance : public ComponentInstance {
 public:
-	TextureIndexInstance(const LString &componentName, Actor *actor);
+	TextureIndexInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 

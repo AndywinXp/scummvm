@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-CAudioChannel::CAudioChannel() {
+CAudioChannel::CAudioChannel(EmiEngine *engine) : _engine(engine) {
 	paused = false;
 }
 

@@ -24,102 +24,28 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-LConsoleServices *gpConsoleServices = nullptr;
-
-static LConsoleServices **gConsoles = nullptr;
-static uint gNConsoles = 0;
-static uint gConsolesArraySize = 0;
-
-static bool gLogToFileEnabled = false;
-static char gLogToFileName[32] = { 0 };
-
-LConsoleServices::LConsoleServices() {
-	if (!gpConsoleServices) {
-		registerConsole(this);
-		gpConsoleServices = this;
-	}
+LConsoleServices::LConsoleServices(EmiEngine *engine) : _engine(engine) {
+	if (!_engine->_consoleServices)
+		_engine->registerConsole(this);
 }
 
 LConsoleServices::~LConsoleServices() {
-	if (gpConsoleServices == this)
-		gpConsoleServices = nullptr;
+	if (_engine->_consoleServices == this)
+		_engine->_consoleServices = nullptr;
 }
 
 void *LConsoleServices::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LConsoleServices::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
-}
-
-void LConsoleServices::deleteAllConsoles() {
-	uint i;
-
-	for (i = 0; i < gNConsoles; i++) {
-		LConsoleServices *console = gConsoles[i];
-
-		if (console) {
-			delete console;
-
-			for (uint j = i; j < gNConsoles; j++) {
-				if (gConsoles[j] == console)
-					gConsoles[j] = nullptr;
-			}
-		}
-	}
-
-	gpMemoryServices->freeImpl(gConsoles);
-	gConsoles = nullptr;
-	gpConsoleServices = nullptr;
-}
-
-int LConsoleServices::registerConsole(LConsoleServices *console) {
-	LConsoleServices **oldConsoles = gConsoles;
-	int result;
-	uint i;
-
-	if (oldConsoles) {
-		result = gNConsoles;
-
-		if (gNConsoles >= gConsolesArraySize) {
-			if (gNConsoles == gConsolesArraySize) {
-				gConsoles = (LConsoleServices **)gpMemoryServices->mallocImpl((gConsolesArraySize + 4) * sizeof(LConsoleServices *));
-
-				for (i = 0; i < gConsolesArraySize; i++)
-					gConsoles[i] = oldConsoles[i];
-
-				gConsolesArraySize += 4;
-				gpMemoryServices->freeImpl(oldConsoles);
-				gConsoles[gNConsoles] = console;
-				gpConsoleServices = console;
-				gNConsoles++;
-
-				return gNConsoles;
-			} else {
-				gpConsoleServices = console;
-			}
-		} else {
-			gConsoles[gNConsoles] = console;
-			result = gNConsoles + 1;
-			gpConsoleServices = console;
-			gNConsoles++;
-		}
-	} else {
-		gConsolesArraySize = 4;
-		gConsoles = (LConsoleServices **)gpMemoryServices->mallocImpl(gConsolesArraySize * sizeof(LConsoleServices *));
-		gNConsoles = 1;
-		gConsoles[0] = console;
-		result = gNConsoles;
-		gpConsoleServices = console;
-	}
-
-	return result;
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int LConsoleServices::logStatus(const char *format, ...) {
@@ -229,11 +155,11 @@ int LConsoleServices::logDebug(const char *format, ...) {
 int LConsoleServices::logToFile(const char *format, ...) {
 	va_list args;
 
-	if (!gLogToFileEnabled)
+	if (!_engine->_logToFileEnabled)
 		return 0;
 
 	Common::DumpFile file;
-	if (file.open(Common::Path(gLogToFileName))) {
+	if (file.open(Common::Path(_engine->_logToFileName))) {
 		va_start(args, format);
 		Common::String text = Common::String::vformat(format, args);
 		va_end(args);

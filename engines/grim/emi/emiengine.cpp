@@ -40,10 +40,15 @@
 #include "engines/grim/emi/choreinstance.h"
 #include "engines/grim/emi/emi_registry.h"
 #include "engines/grim/emi/emidebugger.h"
+#include "engines/grim/emi/inputrecorder.h"
+#include "engines/grim/emi/joystick.h"
+#include "engines/grim/emi/keygenerator.h"
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/movie.h"
+#include "engines/grim/emi/overworld.h"
 #include "engines/grim/emi/polyglot_v2.h"
 #include "engines/grim/emi/primitivequeue_v2.h"
 #include "engines/grim/emi/resourcemanager.h"
@@ -52,6 +57,7 @@
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/sputcontrol_v2.h"
 #include "engines/grim/emi/textevent.h"
+#include "engines/grim/emi/zfile.h"
 #include "engines/grim/inputdialog.h"
 #include "engines/grim/lab.h"
 #include "engines/grim/update/update.h"
@@ -61,48 +67,335 @@ namespace Grim {
 static const uint kMaxHardCap = 0x4000000;
 static const uint kReservedMemory = 0x800000;
 
-bool EmiEngine::_modulesStarted = false;
-bool EmiEngine::_gameviewOpen = false;
-Lua_V2 *EmiEngine::_lua = nullptr;
-KeyGenerator *EmiEngine::_keyGenerator = nullptr;
-int EmiEngine::_screenshotCount = 0;
-int EmiEngine::_frameCount = 0;
-float EmiEngine::_rawFrameTime = 0.0f;
-double EmiEngine::_lastStamp = 0.0;
-bool EmiEngine::_firstFrame = true;
-bool EmiEngine::_backspaceHeld = false;
-bool EmiEngine::_controlHeld = false;
-TextEvent *EmiEngine::_statsEvents[EmiEngine::kNumStatsEvents] = { nullptr, nullptr, nullptr, nullptr, nullptr };
-int EmiEngine::_mode = 0;
-int EmiEngine::_pausedMode = 0;
-int EmiEngine::_discNumber = 0;
-int EmiEngine::_frameDumpCount = 0;
-LString EmiEngine::_frameDumpPath;
-int EmiEngine::_savedMode = 0;
-int EmiEngine::_cpuSpeed = 1000;
-LString EmiEngine::_island;
-float EmiEngine::_frameTime = 0.0f;
-bool EmiEngine::_dumpingFrames = false;
-bool EmiEngine::_saveLoadIdle = true;
-int EmiEngine::_frontCopyCount = 0;
-int EmiEngine::_pendingMusicState = -1;
-bool EmiEngine::_gameSettingsPending = false;
-int EmiEngine::_controlSkipFrames = 0;
-Polyglot_v2 *EmiEngine::_polyglot = nullptr;
-
 EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
-		GrimEngine(syst, gameFlags, gameType, platform, language) {
+		GrimEngine(syst, gameFlags, gameType, platform, language),
+		_memoryServices(new LMemoryServices()),
+		_consoleServices(nullptr), _consoles(nullptr), _consoleCount(0), _consoleArraySize(0), _grimeConsole(nullptr),
+		_logToFileEnabled(false), _logToFileName(),
+		_fileServicesStack(), _fileServices(nullptr), _pathingFileServices(nullptr), _zFileServices(nullptr),
+		_bundleServices(nullptr),
+		_defaultResourceManager(), _resourceManager(&_defaultResourceManager), _gameResourceManager(nullptr),
+		_drawContext(nullptr), _overworld(nullptr), _inputRecorder(nullptr), _lua(nullptr), _keyGenerator(nullptr),
+		_polyglot(nullptr),
+		_sounds(nullptr), _control(nullptr), _joystick(nullptr), _primitiveQueue(nullptr),
+		_modulesStarted(false), _gameviewOpen(false), _screenshotCount(0), _frameCount(0), _rawFrameTime(0.0f),
+		_lastStamp(0.0), _firstFrame(true), _backspaceHeld(false), _controlHeld(false), _statsEvents(),
+		_saveFile(nullptr), _screenBitmap(nullptr), _mode(0), _pausedMode(0), _discNumber(0), _frameDumpCount(0),
+		_frameDumpPath(), _savedMode(0), _cpuSpeed(1000), _island(), _frameTime(0.0f), _dumpingFrames(false),
+		_saveLoadIdle(true), _frontCopyCount(0), _pendingMusicState(-1), _gameSettingsPending(false),
+		_controlSkipFrames(0),
+		_registrySyncedSnapshot(),
+		_actors(), _nextActorId(1), _selectedActor(nullptr), _speakers(), _numSpeakers(0), _speechMode(2),
+		_actorTextRate(6), _offscreenTextRect(), _collisionActors(), _collisionCount(0), _shadowVertices(nullptr),
+		_hitPoint(), _collisionOldPosition(), _collisionNewPosition(),
+		_puckRecursionDepth(0),
+		_choreInstances(), _nextChoreInstanceId(1), _choreInstancesStarted(false),
+		_roomsStarted(false), _currentRoom(nullptr), _currentRoomHandle(this), _lastDrawnRoom(nullptr),
+		_lastDrawnSetup(-1),
+		_textEvents(), _defaultTextEvent(nullptr), _textMode(0), _textScreenRect(), _nextTextEventId(1),
+		_textEventsStarted(false),
+		_currentMovie(nullptr), _movieFirstFrame(1), _ps2MovieRequested(false), _ps2MovieName(),
+		_ps2StateWriter(nullptr), _ps2StateReader(nullptr), _loadingIconPs2(nullptr),
+		_eventGenerators(), _eventQueue(), _eventHandlers(),
+		_dimRegionHead(nullptr), _dimRegionTail(nullptr), _dimRegionCount(0), _nextDimRegionId(0),
+		_animInstances(),
+		_activeLights(),
+		_nextLayerId(1), _layer16BitFix(true),
+		_lipBuffer(), _lipMouthTable(),
+		_profilerOldest(nullptr), _profilerNewest(nullptr), _profilerTimerCount(0), _profilerCallStack(),
+		_profilerCallStackDepth(0), _profilerFrameCounter(0), _profilerSnapshotInterval(5),
+		_profilerCalibrationTicks(0), _profilerCalibrationSeconds(0.0), _profilerSecondsPerTick(0.0),
+		_profilerSecondsPerTickCalls(0),
+		_rootTimer(this, "Root", 0),
+		_actorCalcOnScreenTimer(this, "Actor::CalcOnScreen()", ProfilerTimer::kTrackNesting),
+		_actorDrawTimer(this, "Actor::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_actorDrawShadowTimer(this, "Actor::DrawShadow()", ProfilerTimer::kTrackNesting),
+		_updateAllActorsTimer(this, "Actor::UpdateAllActors()", ProfilerTimer::kTrackNesting),
+		_updateANodeTimer(this, "ANode::UpdateANode()", ProfilerTimer::kTrackNesting),
+		_oglOutputDrawPolyTimer(this, "OGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_oglSetPolyOptionsTimer(this, "OGL::SetPolyOptions()", ProfilerTimer::kTrackNesting),
+		_oglSetTexturesTimer(this, "OGL::SetTextures()", ProfilerTimer::kTrackNesting),
+		_oglSubmitVerticesTimer(this, "OGL::SubmitVertices()", ProfilerTimer::kTrackNesting),
+		_oglDrawTrianglesTimer(this, "OGL::DrawTriangles()", ProfilerTimer::kTrackNesting),
+		_oglDrawQuadsTimer(this, "OGL::DrawQuads()", ProfilerTimer::kTrackNesting),
+		_oglDrawElementsTimer(this, "glDrawElements()", ProfilerTimer::kTrackNesting),
+		_tinyglOutputDrawPolyTimer(this, "TinyGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_tinyglSetPolyOptionsTimer(this, "TinyGL::SetPolyOptions()", ProfilerTimer::kTrackNesting),
+		_tinyglSetTexturesTimer(this, "TinyGL::SetTextures()", ProfilerTimer::kTrackNesting),
+		_tinyglSubmitVerticesTimer(this, "TinyGL::SubmitVertices()", ProfilerTimer::kTrackNesting),
+		_tinyglDrawTrianglesTimer(this, "TinyGL::DrawTriangles()", ProfilerTimer::kTrackNesting),
+		_tinyglDrawQuadsTimer(this, "TinyGL::DrawQuads()", ProfilerTimer::kTrackNesting),
+		_tinyglDrawElementsTimer(this, "tglDrawElements()", ProfilerTimer::kTrackNesting),
+		_weightMapDeformTimer(this, "CWeightMap::DeformVerts()", ProfilerTimer::kTrackNesting),
+		_updateManualTimer(this, "grimlib_UpdateManual()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_renderUpdateTimer(this, "sputRender_Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_layerDrawTimer(this, "Layer::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_rmeshLightingTimer(this, "Lighting", ProfilerTimer::kTrackNesting),
+		_rmeshOutputTimer(this, "RMesh::Output()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_rmeshUpdateTimer(this, "RMesh::Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_rmeshComputeTransformsTimer(this, "CWeightMap::ComputeTransforms()", ProfilerTimer::kTrackNesting),
+		_rmeshFutzingTimer(this, "Futzing", ProfilerTimer::kTrackNesting),
+		_roomDrawTimer(this, "Room::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther),
+		_soundsUpdateTimer(this, "SoundsUpdate()", ProfilerTimer::kTrackNesting),
+		_controlUpdateTimer(this, "sputControl_Update()", ProfilerTimer::kTrackNesting),
+		_textUpdateTimer(this, "TextEvent::Update()", ProfilerTimer::kTrackNesting) {
 	setDebugger(new EmiDebugger());
 
 	EmiRegistry::registerDefaults();
+	LipData::initMouthTable(this);
 	syncSoundSettings();
 
-	_polyglot = new Polyglot_v2();
+	_polyglot = new Polyglot_v2(this);
 }
 
 EmiEngine::~EmiEngine() {
 	delete _polyglot;
 	_polyglot = nullptr;
+
+	// Normally everything below is already gone after shutdown()
+	delete _lua;
+	_lua = nullptr;
+	delete _primitiveQueue;
+	_primitiveQueue = nullptr;
+	delete _control;
+	_control = nullptr;
+	delete _joystick;
+	_joystick = nullptr;
+	delete _gameResourceManager;
+	_gameResourceManager = nullptr;
+	delete _sounds;
+	_sounds = nullptr;
+
+	destroyOverworld();
+	destroyInputRecorder();
+
+	delete _drawContext;
+	_drawContext = nullptr;
+
+	delete _zFileServices;
+	_zFileServices = nullptr;
+
+	deleteAllConsoles();
+	deleteAllFileServices();
+	_pathingFileServices = nullptr;
+
+	delete _keyGenerator;
+	_keyGenerator = nullptr;
+
+	delete _memoryServices;
+}
+
+LMemoryServices *EmiEngine::getMemoryServices() {
+	return _memoryServices;
+}
+
+LConsoleServices *EmiEngine::getConsoleServices() {
+	return _consoleServices;
+}
+
+LFileServices *EmiEngine::getFileServices() {
+	return _fileServices;
+}
+
+CPathingFileServices *EmiEngine::getPathingFileServices() {
+	return _pathingFileServices;
+}
+
+ZFileServices *EmiEngine::getZFileServices() {
+	return _zFileServices;
+}
+
+CBundleServices *EmiEngine::getBundleServices() {
+	return _bundleServices;
+}
+
+LResourceManager *EmiEngine::getResourceManager() {
+	return _resourceManager;
+}
+
+ResourceManager *EmiEngine::getGameResourceManager() {
+	return _gameResourceManager;
+}
+
+CDrawContext *EmiEngine::getDrawContext() {
+	return _drawContext;
+}
+
+Overworld *EmiEngine::getOverworld() {
+	if (!_overworld)
+		_overworld = new Overworld(this);
+
+	return _overworld;
+}
+
+InputRecorder *EmiEngine::getInputRecorder() {
+	return _inputRecorder;
+}
+
+Lua_V2 *EmiEngine::getLua() {
+	return _lua;
+}
+
+KeyGenerator *EmiEngine::getKeyGenerator() {
+	return _keyGenerator;
+}
+
+Sounds *EmiEngine::getSounds() {
+	return _sounds;
+}
+
+SputControl_v2 *EmiEngine::getControl() {
+	return _control;
+}
+
+Joystick *EmiEngine::getJoystick() {
+	return _joystick;
+}
+
+PrimitiveQueue_v2 *EmiEngine::getPrimitiveQueue() {
+	return _primitiveQueue;
+}
+
+const Common::List<CLightNode *> &EmiEngine::getActiveLights() const {
+	return _activeLights;
+}
+
+int EmiEngine::registerConsole(LConsoleServices *console) {
+	LConsoleServices **oldConsoles = _consoles;
+	int result;
+	uint i;
+
+	if (oldConsoles) {
+		result = _consoleCount;
+
+		if (_consoleCount >= _consoleArraySize) {
+			if (_consoleCount == _consoleArraySize) {
+				_consoles = (LConsoleServices **)_memoryServices->mallocImpl((_consoleArraySize + 4) * sizeof(LConsoleServices *));
+
+				for (i = 0; i < _consoleArraySize; i++)
+					_consoles[i] = oldConsoles[i];
+
+				_consoleArraySize += 4;
+				_memoryServices->freeImpl(oldConsoles);
+				_consoles[_consoleCount] = console;
+				_consoleServices = console;
+				_consoleCount++;
+
+				return _consoleCount;
+			} else {
+				_consoleServices = console;
+			}
+		} else {
+			_consoles[_consoleCount] = console;
+			result = _consoleCount + 1;
+			_consoleServices = console;
+			_consoleCount++;
+		}
+	} else {
+		_consoleArraySize = 4;
+		_consoles = (LConsoleServices **)_memoryServices->mallocImpl(_consoleArraySize * sizeof(LConsoleServices *));
+		_consoleCount = 1;
+		_consoles[0] = console;
+		result = _consoleCount;
+		_consoleServices = console;
+	}
+
+	return result;
+}
+
+void EmiEngine::deleteAllConsoles() {
+	uint i;
+
+	for (i = 0; i < _consoleCount; i++) {
+		LConsoleServices *console = _consoles[i];
+
+		if (console) {
+			delete console;
+
+			for (uint j = i; j < _consoleCount; j++) {
+				if (_consoles[j] == console)
+					_consoles[j] = nullptr;
+			}
+		}
+	}
+
+	_memoryServices->freeImpl(_consoles);
+	_consoles = nullptr;
+	_consoleCount = 0;
+	_consoleArraySize = 0;
+	_consoleServices = nullptr;
+	_grimeConsole = nullptr;
+}
+
+int EmiEngine::pushFileServices(LFileServices *services) {
+	_fileServicesStack.push_back(services);
+	_fileServices = services;
+
+	return _fileServicesStack.size();
+}
+
+LFileServices *EmiEngine::popFileServices() {
+	if (_fileServicesStack.empty())
+		return nullptr;
+
+	LFileServices *services = _fileServicesStack.back();
+	_fileServicesStack.pop_back();
+
+	if (_fileServicesStack.empty()) {
+		warning("EmiEngine::popFileServices(): no services left");
+		_fileServices = nullptr;
+	} else {
+		_fileServices = _fileServicesStack.back();
+	}
+
+	return services;
+}
+
+uint EmiEngine::getNumFileServices() {
+	return _fileServicesStack.size();
+}
+
+void EmiEngine::deleteAllFileServices() {
+	while (!_fileServicesStack.empty()) {
+		LFileServices *services = _fileServicesStack.back();
+		_fileServicesStack.pop_back();
+
+		delete services;
+	}
+
+	_fileServices = nullptr;
+}
+
+void EmiEngine::setResourceManager(LResourceManager *manager) {
+	_resourceManager = manager;
+}
+
+void EmiEngine::setBundleServices(CBundleServices *services) {
+	_bundleServices = services;
+}
+
+void EmiEngine::createInputRecorder(int mode) {
+	if (_inputRecorder)
+		return;
+
+	_inputRecorder = new InputRecorder(this, mode);
+}
+
+void EmiEngine::destroyInputRecorder() {
+	if (!_inputRecorder)
+		return;
+
+	delete _inputRecorder;
+	_inputRecorder = nullptr;
+}
+
+void EmiEngine::destroyOverworld() {
+	delete _overworld;
+	_overworld = nullptr;
+}
+
+void EmiEngine::setDrawContext(CDrawContext *drawContext) {
+	_drawContext = drawContext;
 }
 
 void EmiEngine::syncSoundSettings() {
@@ -121,7 +414,7 @@ void EmiEngine::syncSoundSettings() {
 }
 
 void EmiEngine::applyGameSettings() {
-	if (EmiRegistry::changedSinceSync())
+	if (EmiRegistry::changedSinceSync(this))
 		_gameSettingsPending = true;
 }
 
@@ -223,12 +516,12 @@ void EmiEngine::setPause(bool pause) {
 
 		_pausedMode = _mode;
 		_mode = kModePaused;
-		Sounds::pauseMusicStreams();
-		Movie::pauseCurrent();
+		_sounds->pauseMusicStreams();
+		Movie::pauseCurrent(this);
 	} else if (_mode == kModePaused) {
 		_mode = _pausedMode;
-		Sounds::resumeMusicStreams();
-		Movie::resumeCurrent();
+		_sounds->resumeMusicStreams();
+		Movie::resumeCurrent(this);
 	}
 }
 
@@ -241,7 +534,7 @@ bool EmiEngine::findDisc(int disc) {
 		return false;
 
 	// There is no CD, the disc is always found and the CD path is the game directory
-	CPathingFileServices::setCdPath(".");
+	_pathingFileServices->setCdPath(".");
 	_discNumber = disc;
 
 	return true;
@@ -300,8 +593,8 @@ int EmiEngine::messageBox(const char *caption, const char *text, uint flags) {
 }
 
 void EmiEngine::showMessage(const char *text, const char *caption) {
-	if (CDrawContext::context)
-		CDrawContext::context->prepareDialog();
+	if (_drawContext)
+		_drawContext->prepareDialog();
 
 	const char *translatedCaption = _polyglot->getTranslation(caption);
 	const char *translatedText = _polyglot->getTranslation(text);
@@ -338,10 +631,10 @@ bool EmiEngine::playMovie(const char *fileName, bool subtitles, bool flag6194, b
 
 	LString resolvedName;
 
-	if (!gpFileServices->resolvePath(resolvedName, name.c_str()))
+	if (!_fileServices->resolvePath(resolvedName, name.c_str()))
 		return false;
 
-	if (!Movie::startMovie(resolvedName.c_str(), subtitles, flag6194, flag6195, startFrame))
+	if (!Movie::startMovie(this, resolvedName.c_str(), subtitles, flag6194, flag6195, startFrame))
 		return false;
 
 	_mode = kModeMovie;
@@ -378,25 +671,23 @@ void EmiEngine::setCpuSpeed(int newSpeed) {
 }
 
 bool EmiEngine::hasGammaControl() {
-	return CDrawContext::context && CDrawContext::context->hasGammaControl();
+	return _drawContext && _drawContext->hasGammaControl();
 }
 
 void EmiEngine::setGamma(float gamma) {
-	if (CDrawContext::context)
-		CDrawContext::context->setGamma(gamma);
+	if (_drawContext)
+		_drawContext->setGamma(gamma);
 }
 
 bool EmiEngine::setIsland(const char *island) {
-	if (CBundleServices::isIslandBundleOpen(island))
+	if (_bundleServices->isIslandBundleOpen(island))
 		return true;
 
 	if (!_island.empty()) {
-		CBundleServices::closeIslandBundles(_island.c_str());
+		_bundleServices->closeIslandBundles(_island.c_str());
 
-		ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
-
-		if (resourceManager)
-			resourceManager->purgeAll();
+		if (_gameResourceManager)
+			_gameResourceManager->purgeAll();
 	}
 
 	_island = island;
@@ -404,7 +695,7 @@ bool EmiEngine::setIsland(const char *island) {
 	if (_island.empty())
 		return true;
 
-	return CBundleServices::openIslandBundles(_island.c_str());
+	return _bundleServices->openIslandBundles(_island.c_str());
 }
 
 float EmiEngine::getFrameTime() {
@@ -423,20 +714,30 @@ bool EmiEngine::startupModules(CDrawContext *drawContext) {
 	if (_modulesStarted)
 		return false;
 
-	ResourceManager::startup();
-	Room_v2::startup();
-	SputControl_v2::startup();
+	_sounds = new Sounds(this);
 
-	_lua = new Lua_V2();
+	_gameResourceManager = new ResourceManager(this);
+	_gameResourceManager->startup();
+	Room_v2::startup(this);
+
+	_joystick = new Joystick(this);
+	_control = new SputControl_v2(this);
+	_control->startup();
+
+	_lua = new Lua_V2(this);
 	_lua->startup();
 
-	TextEvent::startup(drawContext);
-	ChoreInstance::startup();
-	Actor::startup(drawContext);
-	if (PrimitiveQueue_v2::startup())
+	TextEvent::startup(this, drawContext);
+	ChoreInstance::startup(this);
+	Actor::startup(this, drawContext);
+
+	_primitiveQueue = new PrimitiveQueue_v2(this);
+
+	if (_primitiveQueue->startup())
 		_lua->registerPrimitiveOpcodes();
-	Sounds::startSounds(false);
-	startupMovies(drawContext);
+
+	_sounds->startSounds(false);
+	startupMovies();
 
 	uint physicalMemory = getTotalPhysMem();
 	uint hardCap = kMaxHardCap;
@@ -444,7 +745,7 @@ bool EmiEngine::startupModules(CDrawContext *drawContext) {
 	if (hardCap >= physicalMemory - kReservedMemory)
 		hardCap = getTotalPhysMem() - kReservedMemory;
 
-	LMemoryServices::mHardCap = hardCap;
+	_memoryServices->setHardMemoryCap(hardCap);
 	_modulesStarted = true;
 
 	return true;
@@ -454,29 +755,42 @@ void EmiEngine::shutdownModules() {
 	if (!_modulesStarted)
 		return;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
-		Movie::releaseLoadingIconPs2();
+	if (getGamePlatform() == Common::kPlatformPS2)
+		Movie::releaseLoadingIconPs2(this);
 
-	SputControl_v2::shutdown();
-	Sounds::shutdownSounds();
-	Actor::shutdown();
-	ChoreInstance::shutdown();
-	TextEvent::shutdown();
+	_control->shutdown();
+	_sounds->shutdownSounds();
+	Actor::shutdown(this);
+	ChoreInstance::shutdown(this);
+	TextEvent::shutdown(this);
 
 	_lua->shutdown();
 	delete _lua;
 	_lua = nullptr;
 
-	Room_v2::shutdown();
-	PrimitiveQueue_v2::shutdown();
-	ResourceManager::shutdown();
+	Room_v2::shutdown(this);
+	_primitiveQueue->shutdown();
+
+	_gameResourceManager->shutdown();
+	delete _gameResourceManager;
+	_gameResourceManager = nullptr;
+
+	// The sound module is deleted last because the component instances stop their sounds when they are destroyed
+	delete _control;
+	_control = nullptr;
+	delete _joystick;
+	_joystick = nullptr;
+	delete _primitiveQueue;
+	_primitiveQueue = nullptr;
+	delete _sounds;
+	_sounds = nullptr;
 
 	_modulesStarted = false;
 }
 
 bool EmiEngine::openGameview(const char *bootParam) {
 	if (_gameviewOpen) {
-		gpConsoleServices->logError("Game is already running.\n");
+		_consoleServices->logError("Game is already running.\n");
 
 		return false;
 	}
@@ -486,7 +800,7 @@ bool EmiEngine::openGameview(const char *bootParam) {
 
 	_mode = kModeGame;
 
-	if (!SputControl_v2::open())
+	if (!_control->open())
 		return false;
 
 	_gameviewOpen = true;
@@ -496,14 +810,14 @@ bool EmiEngine::openGameview(const char *bootParam) {
 
 void EmiEngine::closeGameview() {
 	if (!_gameviewOpen) {
-		gpConsoleServices->logError("Gameview not open.\n");
+		_consoleServices->logError("Gameview not open.\n");
 
 		return;
 	}
 
 	_mode = kModeNone;
-	SputControl_v2::close();
-	Room_v2::loadRoom(nullptr);
+	_control->close();
+	Room_v2::loadRoom(this, nullptr);
 	releaseSubtitleFont();
 	_gameviewOpen = false;
 }
@@ -519,15 +833,15 @@ bool EmiEngine::callExitHook() {
 }
 
 void EmiEngine::updateSounds(bool force) {
-	Sounds::soundsUpdate(&force);
+	_sounds->soundsUpdate(&force);
 }
 
 bool EmiEngine::updateMovie(float frameTime) {
-	return Movie::updateMovie();
+	return Movie::updateMovie(this);
 }
 
-void EmiEngine::startupMovies(CDrawContext *drawContext) {
-	Movie::startupMovies(drawContext);
+void EmiEngine::startupMovies() {
+	Movie::startupMovies(this);
 }
 
 void EmiEngine::releaseSubtitleFont() {
@@ -537,7 +851,7 @@ void EmiEngine::releaseSubtitleFont() {
 void EmiEngine::setMusicState(int musicState, int startMs) {
 	bool immediate = false;
 
-	Sounds::setMusicState(musicState, startMs, immediate);
+	_sounds->setMusicState(musicState, startMs, immediate);
 }
 
 } // End of namespace Grim

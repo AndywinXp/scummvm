@@ -20,13 +20,14 @@
  */
 
 #include "engines/grim/emi/componentinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-ComponentInstance::ComponentInstance(const LString &componentName) {
+ComponentInstance::ComponentInstance(EmiEngine *engine, const LString &componentName) : handle(engine), _engine(engine) {
 	{
-		LResourceHandle<Component> componentHandle(componentName);
+		LResourceHandle<Component> componentHandle(engine, componentName);
 
 		handle.setResource(componentHandle.resource);
 	}
@@ -39,11 +40,11 @@ ComponentInstance::~ComponentInstance() {
 }
 
 void *ComponentInstance::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ComponentInstance::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void ComponentInstance::update(float deltaTime) {

@@ -39,7 +39,8 @@ class CAudioChannel;
 class CNode;
 class CSnd;
 class CWaveSound;
-class LipData;
+class Sounds;
+struct LipData;
 
 class CSoundCue {
 public:
@@ -63,8 +64,8 @@ public:
 
 	typedef Common::HashMap<uint16, CSoundCue *> SoundCueMap;
 
-	CSoundCue(LResourceHandle<CSnd> *sndHandle, CNode *node);
-	CSoundCue(const LString &name, CNode *node);
+	CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *node);
+	CSoundCue(Sounds *sounds, const LString &name, CNode *node);
 	virtual ~CSoundCue();
 
 	void *operator new(size_t size);
@@ -75,15 +76,15 @@ public:
 	virtual bool startPlay();
 	virtual bool update();
 
-	static CSoundCue *newSoundCue(LResourceHandle<CSnd> *sndHandle, int category, CNode *node);
-	static CSoundCue *newSoundCue(const LString &name, int category, CNode *node);
+	static CSoundCue *newSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, int category, CNode *node);
+	static CSoundCue *newSoundCue(Sounds *sounds, const LString &name, int category, CNode *node);
 	static void deleteSoundCue(CSoundCue *cue);
-	static void releaseAllCues();
-	static void releaseUnlockedCues();
-	static void updateSoundCues();
-	static bool stopCueToFreeChannel(bool finiteLoopsFirst, bool anyNonLooping);
-	static bool saveCues(tSaveRestoreAccess *access);
-	static bool restoreCues(tSaveRestoreAccess *access, SoundCueMap *cueMap);
+	static void releaseAllCues(Sounds *sounds);
+	static void releaseUnlockedCues(Sounds *sounds);
+	static void updateSoundCues(Sounds *sounds);
+	static bool stopCueToFreeChannel(Sounds *sounds, bool finiteLoopsFirst, bool anyNonLooping);
+	static bool saveCues(Sounds *sounds, tSaveRestoreAccess *access);
+	static bool restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCueMap *cueMap);
 
 	int getSoundType();
 	bool start(bool releaseWhenDone);
@@ -139,12 +140,8 @@ public:
 	int category;
 	LResourceHandle<LSound> soundHandle;
 
-	static CSoundCue *firstCue;
-	static CSoundCue *lastCue;
-	static int cueCount;
-	static uint createdCount;
-	static uint destroyedCount;
-	static uint updatedCount;
+private:
+	Sounds *_sounds;
 };
 
 } // End of namespace Grim

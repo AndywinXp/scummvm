@@ -28,24 +28,22 @@ namespace Grim {
 
 static const float kMinAxisValue = 0.0000099999997f;
 
-uint Joystick::joyId = 0xFFFFFFFF;
-bool Joystick::_started = false;
-bool Joystick::_opened = false;
-bool Joystick::_anyRequested = false;
-uint Joystick::_lastPollTime = 0;
-bool Joystick::_present[Joystick::kMaxJoysticks];
-bool Joystick::_hasPov[Joystick::kMaxJoysticks];
-bool Joystick::_requested[Joystick::kMaxJoysticks];
-uint Joystick::_numButtons[Joystick::kMaxJoysticks];
-uint Joystick::_returnFlags[Joystick::kMaxJoysticks];
-Joystick::AxisRange Joystick::_axisRanges[Joystick::kNumAxes];
-int Joystick::_axisValues[Joystick::kNumAxes];
-byte Joystick::_controlStates[Joystick::kNumControlStates];
-Joystick::DeviceState Joystick::_deviceState = {
-	{ kDeviceAxisCenter, kDeviceAxisCenter, kDeviceAxisCenter, kDeviceAxisCenter, kDeviceAxisCenter, kDeviceAxisCenter },
-	0,
-	kPovCentered
-};
+Joystick::Joystick(EmiEngine *engine) : joyId(0xFFFFFFFF), _engine(engine), _started(false), _opened(false), _anyRequested(false), _lastPollTime(0) {
+	memset(_present, 0, sizeof(_present));
+	memset(_hasPov, 0, sizeof(_hasPov));
+	memset(_requested, 0, sizeof(_requested));
+	memset(_numButtons, 0, sizeof(_numButtons));
+	memset(_returnFlags, 0, sizeof(_returnFlags));
+	memset(_axisRanges, 0, sizeof(_axisRanges));
+	memset(_axisValues, 0, sizeof(_axisValues));
+	memset(_controlStates, 0, sizeof(_controlStates));
+
+	for (int i = 0; i < kAxesPerJoystick; i++)
+		_deviceState.axisPosition[i] = kDeviceAxisCenter;
+
+	_deviceState.buttons = 0;
+	_deviceState.pov = kPovCentered;
+}
 
 bool Joystick::startup() {
 	memset(_axisRanges, 0, sizeof(_axisRanges));

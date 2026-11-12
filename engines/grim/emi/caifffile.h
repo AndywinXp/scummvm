@@ -65,9 +65,6 @@ public:
 	uint16 markerId[kMaxMarkers];
 	uint markerPos[kMaxMarkers];
 
-	static uint16 vimaTable[kVimaTableSize];
-	static bool vimaTableReady;
-
 private:
 	static uint16 readBigEndian16(LFile *file);
 	static uint32 readBigEndian32(LFile *file);

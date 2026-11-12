@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cskeleton.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 
 namespace Grim {
@@ -40,7 +41,7 @@ static const int kBinaryNodeSize = 92;
 
 class CSkeletonParser : public LFormatParser {
 public:
-	CSkeletonParser() {
+	explicit CSkeletonParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("NUMNODES", kKeywordNumNodes, 1);
 		addKeyword("NAME", kKeywordName, 3);
 		addKeyword("PARENT", kKeywordParent, 3);
@@ -61,14 +62,14 @@ SkeletonNode::SkeletonNode() {
 	memset(parent, 0, sizeof(parent));
 }
 
-CSkeleton::CSkeleton() {
+CSkeleton::CSkeleton(EmiEngine *engine) : _engine(engine) {
 }
 
 CSkeleton::~CSkeleton() {
 }
 
 bool CSkeleton::save(LFile *file) {
-	CSkeletonParser parser;
+	CSkeletonParser parser(_engine);
 
 	parser.setFile(file);
 	parser.writeVersion(0, 0);
@@ -88,7 +89,7 @@ bool CSkeleton::save(LFile *file) {
 }
 
 bool CSkeleton::restore(LFile *file) {
-	CSkeletonParser parser;
+	CSkeletonParser parser(_engine);
 	int count = 0;
 	char token[kTokenSize];
 
@@ -121,7 +122,7 @@ bool CSkeleton::restore(LFile *file) {
 }
 
 bool CSkeleton::loadBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+	LFile *file = _engine->getFileServices()->open(path, "rb");
 
 	if (!file)
 		return false;
@@ -130,17 +131,17 @@ bool CSkeleton::loadBinary(const char *path) {
 
 	if (file->read(countBytes, sizeof(countBytes)) != sizeof(countBytes)) {
 		warning("CSkeleton::loadBinary(): cannot read the node count");
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return false;
 	}
 
 	int count = READ_LE_INT32(countBytes);
-	int fileSize = gpFileServices->getSize(path);
+	int fileSize = _engine->getFileServices()->getSize(path);
 
 	if (count < 0 || (fileSize > 0 && count > (fileSize - 4) / kBinaryNodeSize)) {
 		warning("CSkeleton::loadBinary(): invalid node count %d", count);
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return false;
 	}
@@ -152,7 +153,7 @@ bool CSkeleton::loadBinary(const char *path) {
 
 		if (file->read(record, sizeof(record)) != sizeof(record)) {
 			warning("CSkeleton::loadBinary(): unexpected end of file");
-			gpFileServices->close(file, true);
+			_engine->getFileServices()->close(file, true);
 
 			return false;
 		}
@@ -168,13 +169,13 @@ bool CSkeleton::loadBinary(const char *path) {
 		nodes[i].quat.w = READ_LE_FLOAT32(record + 88);
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool CSkeleton::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -197,7 +198,7 @@ bool CSkeleton::saveBinary(const char *path) {
 		file->write(record, sizeof(record));
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }

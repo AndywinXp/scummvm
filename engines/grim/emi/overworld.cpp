@@ -38,24 +38,10 @@ namespace Grim {
 static const float kProjectionNearClip = 0.05f;
 static const float kProjectionFarClip = 20.0f;
 
-Overworld *Overworld::_instance = nullptr;
-
-Overworld *Overworld::getInstance() {
-	if (!_instance)
-		_instance = new Overworld();
-
-	return _instance;
-}
-
-void Overworld::destroyInstance() {
-	delete _instance;
-	_instance = nullptr;
-}
-
-Overworld::Overworld() {
+Overworld::Overworld(EmiEngine *engine) : _engine(engine) {
 	enabled = true;
 
-	CLightNode *ambientNode = new CLightNode();
+	CLightNode *ambientNode = new CLightNode(_engine);
 
 	addLight(ambientNode);
 	memset(ambientNode->name, 0, sizeof(ambientNode->name));
@@ -67,7 +53,7 @@ Overworld::Overworld() {
 	ambientLight->setColor(255, 255, 255);
 	ambientNode->setLight(ambientLight);
 
-	CLightNode *pointNode = new CLightNode();
+	CLightNode *pointNode = new CLightNode(_engine);
 
 	addLight(pointNode);
 	memset(pointNode->name, 0, sizeof(pointNode->name));
@@ -110,7 +96,7 @@ int Overworld::draw(CDrawContext *drawContext) {
 	if (!enabled)
 		return 0;
 
-	Camera camera;
+	Camera camera(drawContext);
 
 	camera.setLocalPosition(CVector());
 	camera.nearClip = kProjectionNearClip;

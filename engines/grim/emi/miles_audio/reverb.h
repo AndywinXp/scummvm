@@ -27,6 +27,7 @@
 namespace Grim {
 
 class EMIMilesDriver;
+class LMemoryServices;
 
 class EMIMilesFilter {
 public:
@@ -35,7 +36,7 @@ public:
 		kLineCount = 6
 	};
 
-	static EMIMilesFilter *create(int driverRate);
+	static EMIMilesFilter *create(LMemoryServices *memoryServices, int driverRate);
 	~EMIMilesFilter();
 
 	void *operator new(size_t size);
@@ -50,10 +51,11 @@ public:
 	bool process(const byte **src, uint32 *srcFract, const byte *srcEnd, int32 **dst, const int32 *dstEnd, int32 *prevL, int32 *prevR, int ratio, int scaleL, int scaleR, int reverbScale, EMIMilesDriver *mixer, uint flags);
 
 private:
-	explicit EMIMilesFilter(int driverRate);
+	EMIMilesFilter(LMemoryServices *memoryServices, int driverRate);
 
 	void recomputeParameters();
 
+	LMemoryServices *_memoryServices;
 	float _rate;
 	bool _active;
 	float _timeMs;

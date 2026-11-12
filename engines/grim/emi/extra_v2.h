@@ -29,6 +29,7 @@
 
 namespace Grim {
 
+class EmiEngine;
 class Puck_v2;
 
 class Extra_v2 {
@@ -39,7 +40,7 @@ public:
 		kSayLineIdSize = 12
 	};
 
-	Extra_v2();
+	explicit Extra_v2(EmiEngine *engine);
 
 	void *operator new(size_t size);
 	void operator delete(void *block);
@@ -87,6 +88,9 @@ public:
 	bool inCollision;
 	Color talkColor;
 	float timeScale;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

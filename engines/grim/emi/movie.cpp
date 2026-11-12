@@ -39,6 +39,7 @@
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdcvertexarray.h"
 #include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/joystick.h"
 #include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -84,17 +85,8 @@ static const float kLoadingIconUvs[] = {
 	0.0f, 1.0f
 };
 
-Movie *Movie::current = nullptr;
-int Movie::firstFrame = 1;
-CDrawContext *Movie::drawContext = nullptr;
-bool Movie::ps2MovieRequested = false;
-LString Movie::ps2MovieName;
-Common::WriteStream *Movie::ps2StateWriter = nullptr;
-Common::ReadStream *Movie::ps2StateReader = nullptr;
-CTexture *Movie::loadingIconPs2 = nullptr;
-
-Movie::Movie(const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(0) {
-	Sounds::lowerMasterGainForMovie();
+Movie::Movie(EmiEngine *engine, const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(engine, 0) {
+	_engine->getSounds()->lowerMasterGainForMovie();
 
 	fileName = name;
 
@@ -112,11 +104,11 @@ Movie::Movie(const char *name, bool newSubtitles, bool newFlag6194, bool newFlag
 	numSubtitles = 0;
 	subtitleIndex = 0;
 	subtitleEvent = nullptr;
-	i9nBundleOpen = CBundleServices::isI9nBundleOpen();
+	i9nBundleOpen = _engine->getBundleServices()->isI9nBundleOpen();
 	subtitlesOn = newSubtitles;
 	flag6194 = newFlag6194;
 	flag6195 = newFlag6195;
-	firstFrame = frame;
+	_engine->_movieFirstFrame = frame;
 	// The disasm draws on the surface directly only on its full screen Direct3D path, the one reproduced here
 	useDirectDraw = !subtitlesOn && !flag6194;
 	clearCount = 0;
@@ -138,7 +130,7 @@ Movie::~Movie() {
 	bink = nullptr;
 	frameSurface = nullptr;
 
-	Sounds::restoreMasterGain();
+	_engine->getSounds()->restoreMasterGain();
 }
 
 bool Movie::handleEvent(const Event *event) {
@@ -223,7 +215,7 @@ void Movie::presentFrame() {
 }
 
 uint Movie::readHeader() {
-	LFile *file = gpFileServices->open(fileName.c_str(), "rb");
+	LFile *file = _engine->getFileServices()->open(fileName.c_str(), "rb");
 
 	if (!file)
 		return 0;
@@ -298,7 +290,7 @@ uint Movie::readHeader() {
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 	numSubtitles = count;
 
 	return size;
@@ -314,7 +306,7 @@ bool Movie::loadSubtitles() {
 	path.erase(extension);
 	path += ".sub";
 
-	LFile *file = gpFileServices->open(path.c_str(), "r");
+	LFile *file = _engine->getFileServices()->open(path.c_str(), "r");
 
 	if (!file)
 		return false;
@@ -327,7 +319,7 @@ bool Movie::loadSubtitles() {
 			if (line[0] != '#') {
 				// The disasm reads the key without a size limit
 				if (sscanf(line, "%d\t%d\t%15s\t", &subtitles[count].start, &subtitles[count].end, subtitles[count].text) != 3) {
-					gpFileServices->close(file, true);
+					_engine->getFileServices()->close(file, true);
 
 					return false;
 				}
@@ -341,7 +333,7 @@ bool Movie::loadSubtitles() {
 	}
 
 	numSubtitles = count;
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
@@ -369,7 +361,7 @@ void Movie::updateSubtitle(int frame) {
 	if (subtitleEvent)
 		return;
 
-	const char *translated = TextEvent::translate(entry->text, nullptr);
+	const char *translated = TextEvent::translate(_engine, entry->text, nullptr);
 	LString text;
 
 	if (translated)
@@ -377,7 +369,7 @@ void Movie::updateSubtitle(int frame) {
 	else
 		warning("Movie::updateSubtitle(): no text for the subtitle");
 
-	subtitleEvent = new TextEvent(text);
+	subtitleEvent = new TextEvent(_engine, text);
 
 	if (i9nBundleOpen)
 		subtitleEvent->setFont("subtitle.laf");
@@ -392,6 +384,8 @@ void Movie::updateSubtitle(int frame) {
 
 bool Movie::open() {
 #ifdef USE_BINK
+	CDrawContext *drawContext = _engine->getDrawContext();
+
 	if (!drawContext) {
 		warning("Movie::open(): the movies are not started");
 
@@ -403,7 +397,7 @@ bool Movie::open() {
 	if (slash != LString::npos) {
 		LString movieName = LString(".\\Movies\\") + fileName.substr(slash + 1);
 
-		if (fileExists(movieName.c_str()))
+		if (fileExists(_engine, movieName.c_str()))
 			fileName = movieName;
 	}
 
@@ -412,7 +406,7 @@ bool Movie::open() {
 	if (subtitlesOn && !header && !loadSubtitles())
 		subtitlesOn = false;
 
-	LFile *file = gpFileServices->open(fileName.c_str(), "rb");
+	LFile *file = _engine->getFileServices()->open(fileName.c_str(), "rb");
 
 	if (!file)
 		return false;
@@ -420,7 +414,7 @@ bool Movie::open() {
 	Common::SeekableReadStream *stream = file->readStream;
 
 	file->readStream = nullptr;
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	if (!stream || header > stream->size()) {
 		warning("Movie::open(): the movie header is bigger than the file");
@@ -443,7 +437,7 @@ bool Movie::open() {
 	if (!bink->setOutputPixelFormat(drawContext->getMovieFormat()))
 		warning("Movie::open(): the decoder cannot use the format of the draw context");
 
-	float gain = Sounds::soundVolumeToGain(Sounds::getCategoryVolume(kVoiceCategory));
+	float gain = Sounds::soundVolumeToGain(_engine->getSounds()->getCategoryVolume(kVoiceCategory));
 
 	// The disasm turns NaN into 0
 	if (gain > 1.0f)
@@ -459,11 +453,11 @@ bool Movie::open() {
 	finished = false;
 	frameReady = false;
 
-	if (firstFrame != 1) {
-		if (firstFrame < 1 || firstFrame > (int)bink->getFrameCount())
-			warning("Movie::open(): the first frame %d is not in the movie", firstFrame);
-		else if (!bink->seekToFrame(firstFrame - 1))
-			warning("Movie::open(): cannot go to the frame %d", firstFrame);
+	if (_engine->_movieFirstFrame != 1) {
+		if (_engine->_movieFirstFrame < 1 || _engine->_movieFirstFrame > (int)bink->getFrameCount())
+			warning("Movie::open(): the first frame %d is not in the movie", _engine->_movieFirstFrame);
+		else if (!bink->seekToFrame(_engine->_movieFirstFrame - 1))
+			warning("Movie::open(): cannot go to the frame %d", _engine->_movieFirstFrame);
 	}
 
 	bink->start();
@@ -477,6 +471,8 @@ bool Movie::open() {
 }
 
 void Movie::drawFrame() {
+	CDrawContext *drawContext = _engine->getDrawContext();
+
 	if (!drawContext || !frameSurface) {
 		warning("Movie::drawFrame(): nothing to draw");
 
@@ -501,22 +497,22 @@ void Movie::drawFrame() {
 	drawContext->drawMovieFrame(*frameSurface);
 
 	if (!useDirectDraw)
-		TextEvent::update(drawContext, true);
+		TextEvent::update(_engine, drawContext, true);
 
 	drawContext->endScene();
 	drawContext->present(true);
 }
 
-bool Movie::startMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int frame) {
-	if (current) {
+bool Movie::startMovie(EmiEngine *engine, const char *fileName, bool subtitles, bool flag6194, bool flag6195, int frame) {
+	if (engine->_currentMovie) {
 		warning("Movie::startMovie(): a movie is already playing");
-		stopMovie();
+		stopMovie(engine);
 	}
 
-	current = new Movie(fileName, subtitles, flag6194, flag6195, frame);
+	engine->_currentMovie = new Movie(engine, fileName, subtitles, flag6194, flag6195, frame);
 
-	if (!current->open()) {
-		stopMovie();
+	if (!engine->_currentMovie->open()) {
+		stopMovie(engine);
 
 		return false;
 	}
@@ -524,68 +520,67 @@ bool Movie::startMovie(const char *fileName, bool subtitles, bool flag6194, bool
 	return true;
 }
 
-void Movie::stopMovie() {
-	if (!current)
+void Movie::stopMovie(EmiEngine *engine) {
+	if (!engine->_currentMovie)
 		return;
 
-	pauseCurrent();
-	delete current;
-	current = nullptr;
+	pauseCurrent(engine);
+	delete engine->_currentMovie;
+	engine->_currentMovie = nullptr;
 }
 
-bool Movie::updateMovie() {
-	if (!current) {
+bool Movie::updateMovie(EmiEngine *engine) {
+	if (!engine->_currentMovie) {
 		warning("Movie::updateMovie(): no movie is playing");
 
 		return true;
 	}
 
-	bool movieFinished = current->update();
+	bool movieFinished = engine->_currentMovie->update();
 
 	if (movieFinished)
-		stopMovie();
+		stopMovie(engine);
 
 	return movieFinished;
 }
 
-void Movie::presentCurrent() {
-	if (current)
-		current->presentFrame();
+void Movie::presentCurrent(EmiEngine *engine) {
+	if (engine->_currentMovie)
+		engine->_currentMovie->presentFrame();
 }
 
-void Movie::pauseCurrent() {
-	if (current)
-		current->pause();
+void Movie::pauseCurrent(EmiEngine *engine) {
+	if (engine->_currentMovie)
+		engine->_currentMovie->pause();
 }
 
-void Movie::resumeCurrent() {
-	if (current)
-		current->resume();
+void Movie::resumeCurrent(EmiEngine *engine) {
+	if (engine->_currentMovie)
+		engine->_currentMovie->resume();
 }
 
-void Movie::skipCurrent() {
-	if (current)
-		current->finished = true;
+void Movie::skipCurrent(EmiEngine *engine) {
+	if (engine->_currentMovie)
+		engine->_currentMovie->finished = true;
 }
 
-void Movie::startupMovies(CDrawContext *newDrawContext) {
-	drawContext = newDrawContext;
-	ps2MovieRequested = false;
-	ps2MovieName.clear();
-	loadingIconPs2 = nullptr;
+void Movie::startupMovies(EmiEngine *engine) {
+	engine->_ps2MovieRequested = false;
+	engine->_ps2MovieName.clear();
+	engine->_loadingIconPs2 = nullptr;
 }
 
 void Movie::releaseSubtitleFont() {
 	// The subtitles are text events, there is no font to release
 }
 
-bool Movie::fileExists(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+bool Movie::fileExists(EmiEngine *engine, const char *path) {
+	LFile *file = engine->getFileServices()->open(path, "rb");
 
 	if (!file)
 		return false;
 
-	gpFileServices->close(file, true);
+	engine->getFileServices()->close(file, true);
 
 	return true;
 }
@@ -595,38 +590,40 @@ void Movie::xorDecryptD2(byte *data, int size) {
 		data[i] ^= kXorKey;
 }
 
-void Movie::requestMoviePs2(const char *name) {
-	ps2MovieRequested = true;
-	ps2MovieName = name;
+void Movie::requestMoviePs2(EmiEngine *engine, const char *name) {
+	engine->_ps2MovieRequested = true;
+	engine->_ps2MovieName = name;
 }
 
-bool Movie::isMovieRequestedPs2() {
-	return ps2MovieRequested;
+bool Movie::isMovieRequestedPs2(EmiEngine *engine) {
+	return engine->_ps2MovieRequested;
 }
 
-bool Movie::playRequestedMoviePs2() {
-	ps2MovieRequested = false;
+bool Movie::playRequestedMoviePs2(EmiEngine *engine) {
+	Sounds *sounds = engine->getSounds();
+
+	engine->_ps2MovieRequested = false;
 
 	// PS2 saves the game state to RAM and reloads it after the movie; we only restore sound and music
 	Common::MemoryWriteStreamDynamic state(DisposeAfterUse::YES);
 
-	ps2StateWriter = &state;
-	Sounds::saveSounds(writePs2State);
-	Sounds::saveMusicState(writePs2State);
-	ps2StateWriter = nullptr;
+	engine->_ps2StateWriter = &state;
+	sounds->saveSounds(writePs2State);
+	sounds->saveMusicState(writePs2State);
+	engine->_ps2StateWriter = nullptr;
 
-	Sounds::stopAllForLoad();
+	sounds->stopAllForLoad();
 
 	// Unloading the room waits for the music, like a set change
-	if (Room_v2::getCurrentRoom())
-		Sounds::killMusicForSet(nullptr);
+	if (Room_v2::getCurrentRoom(engine))
+		sounds->killMusicForSet(nullptr);
 
-	bool played = playMoviePs2(ps2MovieName.c_str());
-	bool iconShown = drawLoadingIconPs2();
+	bool played = playMoviePs2(engine, engine->_ps2MovieName.c_str());
+	bool iconShown = drawLoadingIconPs2(engine);
 	uint iconMs = g_system->getMillis();
 
 	// The reload unloads everything again, but the room is already gone by then
-	Sounds::stopAllForLoad();
+	sounds->stopAllForLoad();
 
 	// Our reload is instant while PS2 takes a while, so the icon stays on screen for at least 500 ms
 	if (iconShown) {
@@ -638,42 +635,51 @@ bool Movie::playRequestedMoviePs2() {
 
 	Common::MemoryReadStream reader(state.getData(), state.size());
 
-	ps2StateReader = &reader;
-	Sounds::restoreSounds(readPs2State);
-	Sounds::restoreMusicState(readPs2State);
-	ps2StateReader = nullptr;
+	engine->_ps2StateReader = &reader;
+	sounds->restoreSounds(readPs2State);
+	sounds->restoreMusicState(readPs2State);
+	engine->_ps2StateReader = nullptr;
 
 	return played;
 }
 
+// The sound code takes plain function pointers, so these two reach the engine through g_grim
 int Movie::writePs2State(void *data, int bytes) {
-	if (bytes && ps2StateWriter)
-		ps2StateWriter->write(data, bytes);
+	EmiEngine *engine = static_cast<EmiEngine *>(g_grim);
+
+	if (bytes && engine->_ps2StateWriter)
+		engine->_ps2StateWriter->write(data, bytes);
 
 	return 1;
 }
 
 int Movie::readPs2State(void *data, int bytes) {
-	if (bytes && ps2StateReader)
-		ps2StateReader->read(data, bytes);
+	EmiEngine *engine = static_cast<EmiEngine *>(g_grim);
+
+	if (bytes && engine->_ps2StateReader)
+		engine->_ps2StateReader->read(data, bytes);
 
 	return 1;
 }
 
-bool Movie::playMoviePs2(const char *name) {
-	if (gpConsoleServices)
-		gpConsoleServices->logDebug("Movie::Startup\n");
+bool Movie::playMoviePs2(EmiEngine *engine, const char *name) {
+	LConsoleServices *console = engine->getConsoleServices();
 
-	float gain = Sounds::soundVolumeToGain(Sounds::getCategoryVolume(kVoiceCategory));
+	if (console)
+		console->logDebug("Movie::Startup\n");
+
+	float gain = Sounds::soundVolumeToGain(engine->getSounds()->getCategoryVolume(kVoiceCategory));
 
 	if (gain < 0.0f || !(gain <= 1.0f))
 		return false;
 
-	if (gpConsoleServices)
-		gpConsoleServices->logDebug("Movie::PlayMovie(%s, volume: %f)\n", name, gain);
+	if (console)
+		console->logDebug("Movie::PlayMovie(%s, volume: %f)\n", name, gain);
 
 	if (!name[0])
 		return false;
+
+	CDrawContext *drawContext = engine->getDrawContext();
 
 	if (!drawContext) {
 		warning("Movie::playMoviePs2(): movies are not started");
@@ -682,18 +688,18 @@ bool Movie::playMoviePs2(const char *name) {
 	}
 
 	LString path = LString("VIDEO\\") + name + ".PSS";
-	Common::SeekableReadStream *stream = openMoviePs2(path);
+	Common::SeekableReadStream *stream = openMoviePs2(engine, path);
 
 	if (!stream) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Could not find Video: %s\n", path.c_str());
+		if (console)
+			console->logError("Could not find Video: %s\n", path.c_str());
 
 		path = "VIDEO\\DEFAULT.PSS";
-		stream = openMoviePs2(path);
+		stream = openMoviePs2(engine, path);
 
 		if (!stream) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Could not find DEFAULT Video: %s\n", path.c_str());
+			if (console)
+				console->logError("Could not find DEFAULT Video: %s\n", path.c_str());
 
 			return false;
 		}
@@ -718,24 +724,24 @@ bool Movie::playMoviePs2(const char *name) {
 
 	decoder.start((byte)(gain * 255.0f + 0.5f));
 
-	while (!g_grim->shouldQuit() && !skipped && !decoder.isFinished()) {
+	while (!engine->shouldQuit() && !skipped && !decoder.isFinished()) {
 		const Graphics::Surface *frame = decoder.update();
 
 		if (frame) {
-			drawFramePs2(*frame, screen);
+			drawFramePs2(engine, *frame, screen);
 			framesShown++;
 		}
 
 		while (eventManager->pollEvent(event)) {
-			if (isSkipEventPs2(event) && framesShown >= kPs2MinFramesBeforeSkip)
+			if (isSkipEventPs2(engine, event) && framesShown >= kPs2MinFramesBeforeSkip)
 				skipped = true;
 		}
 
 		g_system->delayMillis(kPs2LoopDelayMs);
 	}
 
-	if (gpConsoleServices)
-		gpConsoleServices->logDebug("Movie ended after %u frames: clock %u ms, wall clock %u ms\n", decoder.getFramesDecoded(), decoder.getTime(), g_system->getMillis() - startMs);
+	if (console)
+		console->logDebug("Movie ended after %u frames: clock %u ms, wall clock %u ms\n", decoder.getFramesDecoded(), decoder.getTime(), g_system->getMillis() - startMs);
 
 	decoder.stop();
 	screen.free();
@@ -749,8 +755,8 @@ bool Movie::playMoviePs2(const char *name) {
 #endif
 }
 
-Common::SeekableReadStream *Movie::openMoviePs2(const LString &path) {
-	LFile *file = gpFileServices->open(path.c_str(), "rb");
+Common::SeekableReadStream *Movie::openMoviePs2(EmiEngine *engine, const LString &path) {
+	LFile *file = engine->getFileServices()->open(path.c_str(), "rb");
 
 	if (!file)
 		return nullptr;
@@ -758,12 +764,13 @@ Common::SeekableReadStream *Movie::openMoviePs2(const LString &path) {
 	Common::SeekableReadStream *stream = file->readStream;
 
 	file->readStream = nullptr;
-	gpFileServices->close(file, true);
+	engine->getFileServices()->close(file, true);
 
 	return stream;
 }
 
-void Movie::drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &screen) {
+void Movie::drawFramePs2(EmiEngine *engine, const Graphics::Surface &frame, Graphics::Surface &screen) {
+	CDrawContext *drawContext = engine->getDrawContext();
 	int width = drawContext->displayMode.width;
 	int height = drawContext->displayMode.height;
 	const Graphics::Surface *output = &frame;
@@ -788,8 +795,8 @@ void Movie::drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &scre
 	drawContext->present(true);
 }
 
-void Movie::loadLoadingIconPs2() {
-	LABitmap bitmap;
+void Movie::loadLoadingIconPs2(EmiEngine *engine) {
+	LABitmap bitmap(engine);
 
 	// PS2 creates the texture even when the file is missing, and then divides by zero
 	if (!bitmap.loadFile("FX\\LOADING.TGA")) {
@@ -798,21 +805,23 @@ void Movie::loadLoadingIconPs2() {
 		return;
 	}
 
-	loadingIconPs2 = drawContext->createTexture(&bitmap);
+	engine->_loadingIconPs2 = engine->getDrawContext()->createTexture(&bitmap);
 }
 
-void Movie::releaseLoadingIconPs2() {
-	drawContext->freeTexture(loadingIconPs2);
-	loadingIconPs2 = nullptr;
+void Movie::releaseLoadingIconPs2(EmiEngine *engine) {
+	engine->getDrawContext()->freeTexture(engine->_loadingIconPs2);
+	engine->_loadingIconPs2 = nullptr;
 }
 
-bool Movie::drawLoadingIconPs2() {
-	if (!loadingIconPs2)
+bool Movie::drawLoadingIconPs2(EmiEngine *engine) {
+	if (!engine->_loadingIconPs2)
 		return false;
+
+	CDrawContext *drawContext = engine->getDrawContext();
 
 	drawContext->copyFrontToBack();
 
-	Camera camera;
+	Camera camera(drawContext);
 
 	camera.setLocalPosition(CVector());
 	camera.nearClip = kLoadingIconNearClip;
@@ -828,21 +837,21 @@ bool Movie::drawLoadingIconPs2() {
 	streams.uvs = kLoadingIconUvs;
 
 	drawContext->beginScene();
-	drawContext->drawQuads(kLoadingIconQuadsFlags, loadingIconPs2, 0, kLoadingIconVertices, &streams);
+	drawContext->drawQuads(kLoadingIconQuadsFlags, engine->_loadingIconPs2, 0, kLoadingIconVertices, &streams);
 	drawContext->endScene();
 	drawContext->present(true);
 
 	return true;
 }
 
-bool Movie::isSkipEventPs2(const Common::Event &event) {
+bool Movie::isSkipEventPs2(EmiEngine *engine, const Common::Event &event) {
 	// SELECT skips the movie on PS2; Escape does too, for keyboard players
 	if (event.type == Common::EVENT_KEYDOWN)
 		return event.kbd.keycode == Common::KEYCODE_ESCAPE && !event.kbdRepeat;
 
 	if (event.type == Common::EVENT_JOYBUTTON_DOWN) {
 		for (int i = 0; i < SputControl_v2::kNumControls; i++) {
-			const ControlEntry &control = SputControl_v2::controlTable[i];
+			const ControlEntry &control = engine->getControl()->controlTable[i];
 
 			if (control.name && !strcmp(control.name, "KEY_JOY1_SELECT"))
 				return event.joystick.button == (int)(control.code - Joystick::kButtonBase);

@@ -31,7 +31,7 @@ class CNode;
 
 class SkeletonInstance : public ComponentInstance {
 public:
-	SkeletonInstance(const LString &componentName, Actor *actor);
+	SkeletonInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~SkeletonInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

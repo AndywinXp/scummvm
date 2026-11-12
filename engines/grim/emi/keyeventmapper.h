@@ -41,9 +41,11 @@ struct KeyBinding {
 	int reserved8;
 };
 
+class EmiEngine;
+
 class KeyEventMapper : public EventHandler {
 public:
-	KeyEventMapper();
+	explicit KeyEventMapper(EmiEngine *engine);
 	~KeyEventMapper() override;
 
 	bool handleEvent(const Event *event) override;

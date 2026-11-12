@@ -28,11 +28,13 @@
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/ctinyglcontext.h"
 #include "engines/grim/emi/ctinygltexture.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
-CTinyGLTexture::CTinyGLTexture(CTinyGLContext *ctx, LABitmap *bitmap, bool textureFlag) {
-	_context = ctx;
+CTinyGLTexture::CTinyGLTexture(CTinyGLContext *owner, LABitmap *bitmap, bool textureFlag) {
+	_owner = owner;
+	_engine = owner->getEngine();
 	_pixels = nullptr;
 	_width = 0;
 	_height = 0;
@@ -45,15 +47,12 @@ CTinyGLTexture::CTinyGLTexture(CTinyGLContext *ctx, LABitmap *bitmap, bool textu
 
 	tglGenTextures(1, &glId);
 
-	if (ctx)
-		CDrawContext::context = ctx;
-
 	setup(bitmap);
 }
 
 CTinyGLTexture::~CTinyGLTexture() {
 	// TinyGL frees its textures together with the context
-	if (CDrawContext::context)
+	if (_engine->getDrawContext())
 		tglDeleteTextures(1, &glId);
 
 	delete[] _pixels;
@@ -61,8 +60,9 @@ CTinyGLTexture::~CTinyGLTexture() {
 }
 
 int CTinyGLTexture::getSize() {
-	if (CDrawContext::context)
-		return CDrawContext::context->getTextureCost(this);
+	// The owner is gone once the engine has no draw context
+	if (_engine->getDrawContext())
+		return _owner->getTextureCost(this);
 
 	return 0;
 }
@@ -77,8 +77,8 @@ void CTinyGLTexture::applyFlags() {
 
 void CTinyGLTexture::upload() {
 	// TinyGL draws are queued: they must not see the new pixels
-	if (_context && boundFlush == _context->flushCount)
-		_context->flushDrawCalls();
+	if (boundFlush == _owner->flushCount)
+		_owner->flushDrawCalls();
 
 	tglBindTexture(TGL_TEXTURE_2D, glId);
 	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_MIN_FILTER, (flags & 2) ? TGL_LINEAR : TGL_NEAREST);
@@ -196,7 +196,7 @@ void CTinyGLTexture::setup(LABitmap *bitmap) {
 	int bytesPerPixel = (formatId == 9) ? 4 : 3;
 
 	// TinyGL has no GL_RGB5/GL_RGBA4: the 16 bit precision is applied by hand
-	if (!CDrawContext::context || CDrawContext::context->displayMode.bpp == 32)
+	if (_owner->displayMode.bpp == 32)
 		store8BitPixels(source, width, height, bytesPerPixel);
 	else
 		store16BitPixels(source, width, height, bytesPerPixel, bitmap->scanAlpha());

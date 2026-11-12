@@ -27,7 +27,7 @@
 
 namespace Grim {
 
-GlobalAlphaInstance::GlobalAlphaInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+GlobalAlphaInstance::GlobalAlphaInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	owner = actor;
 
 	if (componentName.size() >= Component::kNamePrefixSize)

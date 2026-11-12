@@ -145,6 +145,14 @@ Common::SeekableReadStream *LuaBase::openBundleStream(const char *path) {
 	return nullptr;
 }
 
+Common::SeekableReadStream *LuaBase::openPrefsForReading(Common::SeekableReadStream *realFile) {
+	return realFile;
+}
+
+Common::WriteStream *LuaBase::openPrefsForWriting(Common::WriteStream *realFile) {
+	return realFile;
+}
+
 struct luaL_reg baseOpcodes[] = {
 	{ "  concatfallback", LUA_OPCODE(LuaBase, concatFallback) },
 	{ "  typeoverride", LUA_OPCODE(LuaBase, typeOverride) },

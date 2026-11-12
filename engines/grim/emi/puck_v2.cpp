@@ -23,6 +23,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/puck_v2.h"
 #include "engines/grim/emi/walkplane_v2.h"
 #include "engines/grim/emi/walkplanecollection.h"
@@ -43,9 +44,7 @@ static const float kQuarterTurnDegrees = 90.0f;
 static const float kMinConstraintAlignment = 0.5f;
 static const float kFunnelAngleLimit = 3.0f;
 
-int Puck_v2::_recursionDepth = 0;
-
-Puck_v2::Puck_v2(float newReflectionAngle) {
+Puck_v2::Puck_v2(EmiEngine *engine, float newReflectionAngle) : _engine(engine) {
 	constraint[0] = 0.0f;
 	constraint[1] = 0.0f;
 	constraint[2] = 0.0f;
@@ -212,7 +211,7 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 
 	// The disasm ignores allowLeft and allowRight
 
-	_recursionDepth++;
+	_engine->_puckRecursionDepth++;
 
 	if (constrained) {
 		if (!constrain(nullptr))
@@ -241,7 +240,7 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 		newPosition.x = (float)((double)step[0] + world.pos.x);
 		newPosition.z = (float)((double)step[2] + world.pos.z);
 		setLocalPosition(newPosition);
-		_recursionDepth = 0;
+		_engine->_puckRecursionDepth = 0;
 
 		return true;
 	}
@@ -310,13 +309,13 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 		newPosition.y = target[1];
 		newPosition.z = target[2];
 		setLocalPosition(newPosition);
-		_recursionDepth = 0;
+		_engine->_puckRecursionDepth = 0;
 
 		return true;
 	}
 
-	if (_recursionDepth > kMaxRecursionDepth) {
-		_recursionDepth = 0;
+	if (_engine->_puckRecursionDepth > kMaxRecursionDepth) {
+		_engine->_puckRecursionDepth = 0;
 
 		return false;
 	}

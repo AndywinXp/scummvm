@@ -27,7 +27,7 @@
 
 namespace Grim {
 
-SkeletonInstance::SkeletonInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+SkeletonInstance::SkeletonInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	active = false;
 	owner = actor;
 	rootNode = nullptr;

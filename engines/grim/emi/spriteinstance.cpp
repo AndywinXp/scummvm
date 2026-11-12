@@ -27,7 +27,7 @@
 
 namespace Grim {
 
-SpriteInstance::SpriteInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+SpriteInstance::SpriteInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	owner = actor;
 	spriteInstance = nullptr;
 

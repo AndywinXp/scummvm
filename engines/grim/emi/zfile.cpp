@@ -22,11 +22,10 @@
 #include "common/compression/deflate.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/zfile.h"
 
 namespace Grim {
-
-ZFileServices *ZFileServices::_instance = nullptr;
 
 namespace {
 
@@ -114,7 +113,10 @@ GzStream::GzStream() {
 	totalOut = 0;
 }
 
-static void checkHeader(GzStream *s) {
+ZFileServices::ZFileServices(EmiEngine *engine) : LFileServices(engine) {
+}
+
+void ZFileServices::checkHeader(GzStream *s) {
 	LFileReadStream *raw = new LFileReadStream(s->file);
 
 	s->rawStream = raw;
@@ -138,7 +140,7 @@ static void checkHeader(GzStream *s) {
 	s->zErr = 0;
 }
 
-static int destroy(GzStream *s) {
+int ZFileServices::gzDestroy(GzStream *s) {
 	int result = 0;
 
 	if (!s)
@@ -152,7 +154,7 @@ static int destroy(GzStream *s) {
 	delete s->rawStream;
 
 	if (s->file)
-		gpFileServices->close(s->file, true);
+		_engine->getFileServices()->close(s->file, true);
 
 	if (s->zErr < 0)
 		result = s->zErr;
@@ -162,7 +164,7 @@ static int destroy(GzStream *s) {
 	return result;
 }
 
-static char parseMode(const char *mode, Common::String &openMode) {
+char ZFileServices::parseMode(const char *mode, Common::String &openMode) {
 	char result = 0;
 
 	for (const char *p = mode; *p; p++) {
@@ -180,7 +182,7 @@ static char parseMode(const char *mode, Common::String &openMode) {
 	return result;
 }
 
-static GzStream *gzOpenFile(LFile *file, const char *mode) {
+GzStream *ZFileServices::gzOpenFile(LFile *file, const char *mode) {
 	Common::String openMode;
 	char gzMode = parseMode(mode, openMode);
 
@@ -204,27 +206,29 @@ static GzStream *gzOpenFile(LFile *file, const char *mode) {
 	return s;
 }
 
-static GzStream *gzOpen(const char *path, const char *mode) {
+GzStream *ZFileServices::gzOpen(const char *path, const char *mode) {
 	Common::String openMode;
 
 	if (!path || !mode)
 		return nullptr;
 
-	if (!parseMode(mode, openMode) || !gpFileServices)
+	LFileServices *fileServices = _engine->getFileServices();
+
+	if (!parseMode(mode, openMode) || !fileServices)
 		return nullptr;
 
-	LFile *file = gpFileServices->open(path, openMode.c_str());
+	LFile *file = fileServices->open(path, openMode.c_str());
 	if (!file)
 		return nullptr;
 
 	return gzOpenFile(file, mode);
 }
 
-static GzStream *gzopen(const char *path, const char *mode) {
+GzStream *ZFileServices::gzopen(const char *path, const char *mode) {
 	return gzOpen(path, mode);
 }
 
-static int gzread(GzStream *file, void *buffer, uint size) {
+int ZFileServices::gzRead(GzStream *file, void *buffer, uint size) {
 	if (!file || file->mode != 'r')
 		return -2;
 
@@ -253,7 +257,7 @@ static int gzread(GzStream *file, void *buffer, uint size) {
 	return count;
 }
 
-static int gzwrite(GzStream *file, const void *buffer, uint size) {
+int ZFileServices::gzWrite(GzStream *file, const void *buffer, uint size) {
 	if (!file || file->mode != 'w')
 		return -2;
 
@@ -270,7 +274,7 @@ static int gzwrite(GzStream *file, const void *buffer, uint size) {
 	return count;
 }
 
-static int gzrewind(GzStream *file) {
+int ZFileServices::gzRewind(GzStream *file) {
 	if (!file || file->mode != 'r')
 		return -1;
 
@@ -282,7 +286,7 @@ static int gzrewind(GzStream *file) {
 	return file->readStream->seek(0, SEEK_SET) ? 0 : -1;
 }
 
-static int gzseek(GzStream *file, int offset, int whence) {
+int ZFileServices::gzSeek(GzStream *file, int offset, int whence) {
 	byte skipBuffer[0x4000];
 
 	if (!file)
@@ -307,7 +311,7 @@ static int gzseek(GzStream *file, int offset, int whence) {
 
 		while (toWrite > 0) {
 			uint chunk = toWrite < 0x4000 ? toWrite : 0x4000;
-			int written = gzwrite(file, skipBuffer, chunk);
+			int written = gzWrite(file, skipBuffer, chunk);
 
 			if (!written)
 				return -1;
@@ -337,7 +341,7 @@ static int gzseek(GzStream *file, int offset, int whence) {
 	}
 
 	if ((uint)target < file->totalOut) {
-		if (gzrewind(file) < 0)
+		if (gzRewind(file) < 0)
 			return -1;
 	} else {
 		target -= file->totalOut;
@@ -348,7 +352,7 @@ static int gzseek(GzStream *file, int offset, int whence) {
 
 	while (target > 0) {
 		uint chunk = target < 0x4000 ? target : 0x4000;
-		int count = gzread(file, skipBuffer, chunk);
+		int count = gzRead(file, skipBuffer, chunk);
 
 		if (count <= 0)
 			return -1;
@@ -359,35 +363,35 @@ static int gzseek(GzStream *file, int offset, int whence) {
 	return file->totalOut;
 }
 
-static int gzclose(GzStream *file) {
+int ZFileServices::gzClose(GzStream *file) {
 	if (!file)
 		return -2;
 
-	return destroy(file);
+	return gzDestroy(file);
 }
 
-ZFile::ZFile() {
+ZFile::ZFile(ZFileServices *services) : LFile(services->_engine), _services(services) {
 	gzFile = nullptr;
 }
 
 ZFile::~ZFile() {
 	if (gzFile) {
 		warning("ZFile::~ZFile(): file not closed");
-		gzclose(gzFile);
+		_services->gzClose(gzFile);
 		gzFile = nullptr;
 	}
 }
 
 uint ZFile::read(void *buffer, uint size) {
-	return gzread(gzFile, buffer, size);
+	return ZFileServices::gzRead(gzFile, buffer, size);
 }
 
 int ZFile::seek(int offset, int whence) {
-	return gzseek(gzFile, offset, whence);
+	return ZFileServices::gzSeek(gzFile, offset, whence);
 }
 
 uint ZFile::writeCompressed(const void *buffer, uint size) {
-	return gzwrite(gzFile, buffer, size);
+	return ZFileServices::gzWrite(gzFile, buffer, size);
 }
 
 ZFile *ZFileServices::open(const char *path, const char *mode) {
@@ -396,14 +400,14 @@ ZFile *ZFileServices::open(const char *path, const char *mode) {
 	if (!stream) {
 		LString resolved;
 
-		if (gpFileServices->resolvePath(resolved, path))
+		if (_engine->getFileServices()->resolvePath(resolved, path))
 			stream = gzopen(resolved.c_str(), mode);
 
 		if (!stream)
 			return nullptr;
 	}
 
-	ZFile *file = new ZFile();
+	ZFile *file = new ZFile(this);
 	file->gzFile = stream;
 
 	return file;
@@ -414,7 +418,7 @@ ZFile *ZFileServices::createZFile(LFile *file, const char *mode) {
 	if (!stream)
 		return nullptr;
 
-	ZFile *zFile = new ZFile();
+	ZFile *zFile = new ZFile(this);
 	zFile->gzFile = stream;
 
 	return zFile;
@@ -431,16 +435,9 @@ void ZFileServices::closeZFile(ZFile *file) {
 		return;
 	}
 
-	gzclose(file->gzFile);
+	gzClose(file->gzFile);
 	file->gzFile = nullptr;
 	delete file;
-}
-
-ZFileServices *ZFileServices::get() {
-	if (!_instance)
-		_instance = new ZFileServices();
-
-	return _instance;
 }
 
 } // End of namespace Grim

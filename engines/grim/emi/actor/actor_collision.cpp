@@ -24,6 +24,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rprimitiveinstance.h"
@@ -124,7 +125,7 @@ void Actor::getOuttaTheBox(float *point, const float *box, const float *transfor
 	}
 }
 
-bool Actor::testCollision(float startX, float startY, float startZ, float endX, float endY, float endZ, float originX, float originY, float originZ, const float *box, const float *transform) {
+bool Actor::testCollision(EmiEngine *engine, float startX, float startY, float startZ, float endX, float endY, float endZ, float originX, float originY, float originZ, const float *box, const float *transform) {
 	float best = 1.0f;
 
 	double startDeltaX = ((double)startX - originX) - transform[9];
@@ -163,9 +164,9 @@ bool Actor::testCollision(float startX, float startY, float startZ, float endX, 
 			float hitZ = (float)((double)hitDeltaZ + localStartZ);
 
 			if (hitX > box[0] && hitX < box[3]) {
-				_hitPoint.x = hitX;
-				_hitPoint.y = hitY;
-				_hitPoint.z = hitZ;
+				engine->_hitPoint.x = hitX;
+				engine->_hitPoint.y = hitY;
+				engine->_hitPoint.z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -183,9 +184,9 @@ bool Actor::testCollision(float startX, float startY, float startZ, float endX, 
 			float hitZ = (float)((double)hitDeltaZ + localStartZ);
 
 			if (hitX > box[0] && hitX < box[3]) {
-				_hitPoint.x = hitX;
-				_hitPoint.y = hitY;
-				_hitPoint.z = hitZ;
+				engine->_hitPoint.x = hitX;
+				engine->_hitPoint.y = hitY;
+				engine->_hitPoint.z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -204,9 +205,9 @@ bool Actor::testCollision(float startX, float startY, float startZ, float endX, 
 			float hitZ = (float)hitZExact;
 
 			if (hitZExact > box[2] && hitZ < box[5]) {
-				_hitPoint.x = hitX;
-				_hitPoint.y = hitY;
-				_hitPoint.z = hitZ;
+				engine->_hitPoint.x = hitX;
+				engine->_hitPoint.y = hitY;
+				engine->_hitPoint.z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -225,9 +226,9 @@ bool Actor::testCollision(float startX, float startY, float startZ, float endX, 
 			float hitZ = (float)hitZExact;
 
 			if (hitZExact > box[2] && hitZ < box[5]) {
-				_hitPoint.x = hitX;
-				_hitPoint.y = hitY;
-				_hitPoint.z = hitZ;
+				engine->_hitPoint.x = hitX;
+				engine->_hitPoint.y = hitY;
+				engine->_hitPoint.z = hitZ;
 				best = fractionFloat;
 			}
 		}
@@ -391,7 +392,7 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		if ((other->nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		if (testCollision(startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)) {
+		if (testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)) {
 			collided = true;
 
 			break;
@@ -416,9 +417,9 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 
 	float hit[3];
 
-	hit[0] = _hitPoint.x;
-	hit[1] = _hitPoint.y;
-	hit[2] = _hitPoint.z;
+	hit[0] = _engine->_hitPoint.x;
+	hit[1] = _engine->_hitPoint.y;
+	hit[2] = _engine->_hitPoint.z;
 
 	if ((other->nodeFlags & kWorldValid) == 0)
 		other->updateWorldTransform();
@@ -475,7 +476,7 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		if ((other->nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		if (!testCollision(startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+		if (!testCollision(_engine, startX, startY, startZ, endX, endY, endZ, 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
 			&& planes->buildPath(&path[3 * index], corner, false))
 			corners.valid[k] = 1;
 	}
@@ -486,7 +487,7 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		return outCount;
 
 	float (*pathPoints)[3];
-	int pathCount = WalkPlaneCollection::getPath(&pathPoints);
+	int pathCount = planes->getPath(&pathPoints);
 
 	if (pathCount > 1) {
 		for (int j = 1; j < pathCount; j++) {
@@ -505,9 +506,9 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 	float *lastOutPoint = &outPath[3 * outCount - 3];
 	float *nextOutPoint = &outPath[3 * outCount];
 
-	if (!testCollision(lastOutPoint[0], lastOutPoint[1], lastOutPoint[2], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
+	if (!testCollision(_engine, lastOutPoint[0], lastOutPoint[1], lastOutPoint[2], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m)
 		&& planes->buildPath(lastOutPoint, goal, true)) {
-		pathCount = WalkPlaneCollection::getPath(&pathPoints);
+		pathCount = planes->getPath(&pathPoints);
 
 		if (pathCount > 1) {
 			for (int j = 1; j < pathCount; j++) {
@@ -568,7 +569,7 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		if ((other->nodeFlags & kWorldValid) == 0)
 			other->updateWorldTransform();
 
-		bool blocked = testCollision(nextOutPoint[-3], nextOutPoint[-2], nextOutPoint[-1], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m);
+		bool blocked = testCollision(_engine, nextOutPoint[-3], nextOutPoint[-2], nextOutPoint[-1], goal[0], goal[1], goal[2], 0.0f, 0.0f, 0.0f, box, other->world.rot.m);
 
 		if (!blocked || current == closest)
 			break;
@@ -631,8 +632,8 @@ bool Actor::resolveCollisions() {
 	if (extra->collisionMode == 0)
 		return true;
 
-	for (int i = 0; i < _collisionCount; i++) {
-		Actor *other = _collisionActors[i];
+	for (int i = 0; i < _engine->_collisionCount; i++) {
+		Actor *other = _engine->_collisionActors[i];
 
 		if (!other || other == this)
 			continue;
@@ -701,9 +702,9 @@ bool Actor::resolveCollisions() {
 		if ((nodeFlags & kPositionValid) == 0)
 			computeLocalPositionFromWorld();
 
-		_collisionOldPosition.x = pos.x;
-		_collisionOldPosition.y = pos.y;
-		_collisionOldPosition.z = pos.z;
+		_engine->_collisionOldPosition.x = pos.x;
+		_engine->_collisionOldPosition.y = pos.y;
+		_engine->_collisionOldPosition.z = pos.z;
 
 		double directionLength = sqrt(((double)deltaX * deltaX + (double)deltaZ * deltaZ) + (double)deltaY * deltaY);
 		double directionX = deltaX;
@@ -736,15 +737,15 @@ bool Actor::resolveCollisions() {
 		if ((nodeFlags & kPositionValid) == 0)
 			computeLocalPositionFromWorld();
 
-		_collisionNewPosition.x = pos.x;
-		_collisionNewPosition.y = pos.y;
-		_collisionNewPosition.z = pos.z;
-		_hitPoint.x = _collisionNewPosition.x;
-		_hitPoint.y = _collisionNewPosition.y;
-		_hitPoint.z = _collisionNewPosition.z;
+		_engine->_collisionNewPosition.x = pos.x;
+		_engine->_collisionNewPosition.y = pos.y;
+		_engine->_collisionNewPosition.z = pos.z;
+		_engine->_hitPoint.x = _engine->_collisionNewPosition.x;
+		_engine->_hitPoint.y = _engine->_collisionNewPosition.y;
+		_engine->_hitPoint.z = _engine->_collisionNewPosition.z;
 
-		Lua_V2::callCollisionHandler(this, other, _collisionOldPosition.x, _collisionOldPosition.y, _collisionOldPosition.z,
-			_hitPoint.x, _hitPoint.y, _hitPoint.z, _collisionNewPosition.x, _collisionNewPosition.y, _collisionNewPosition.z);
+		_engine->getLua()->callCollisionHandler(this, other, _engine->_collisionOldPosition.x, _engine->_collisionOldPosition.y, _engine->_collisionOldPosition.z,
+			_engine->_hitPoint.x, _engine->_hitPoint.y, _engine->_hitPoint.z, _engine->_collisionNewPosition.x, _engine->_collisionNewPosition.y, _engine->_collisionNewPosition.z);
 	}
 
 	if ((nodeFlags & kPositionValid) == 0)

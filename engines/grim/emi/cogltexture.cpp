@@ -28,14 +28,15 @@
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/coglcontext.h"
 #include "engines/grim/emi/cogltexture.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
-COGLTexture::COGLTexture(COGLContext *ctx, LABitmap *bitmap, bool textureFlag) {
-	glGenTextures(1, &glId);
+COGLTexture::COGLTexture(COGLContext *owner, LABitmap *bitmap, bool textureFlag) {
+	_owner = owner;
+	_engine = owner->getEngine();
 
-	if (ctx)
-		CDrawContext::context = ctx;
+	glGenTextures(1, &glId);
 
 	setup(bitmap);
 }
@@ -45,8 +46,9 @@ COGLTexture::~COGLTexture() {
 }
 
 int COGLTexture::getSize() {
-	if (CDrawContext::context)
-		return CDrawContext::context->getTextureCost(this);
+	// The owner is gone once the engine has no draw context
+	if (_engine->getDrawContext())
+		return _owner->getTextureCost(this);
 
 	return 0;
 }
@@ -105,7 +107,7 @@ void COGLTexture::setup(LABitmap *bitmap) {
 
 	GLint internalFormat;
 
-	if (!CDrawContext::context || CDrawContext::context->displayMode.bpp == 32) {
+	if (_owner->displayMode.bpp == 32) {
 		internalFormat = GL_RGBA8;
 	} else {
 		int alphaKind = bitmap->scanAlpha();

@@ -34,6 +34,7 @@ namespace Grim {
 class EMIMilesDriver;
 class EMIMilesFilter;
 class EMISpu2Reverb;
+class LMemoryServices;
 struct EMIMilesStream;
 
 struct EMIMilesSample {
@@ -164,7 +165,7 @@ public:
 		kStreamBufferMilliseconds = 250
 	};
 
-	EMIMilesDriver(bool isPs2);
+	EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2);
 	~EMIMilesDriver() override;
 
 	void *operator new(size_t size);
@@ -292,6 +293,7 @@ private:
 	static int scanFrames(const byte *data, int size, int start, int *offsets, int *bitrate, int *rate, bool *stereo, int *samples);
 
 	Common::Mutex _mutex;
+	LMemoryServices *_memoryServices;
 	bool _isPs2;
 	int _outputRate;
 	int _segmentFrames;

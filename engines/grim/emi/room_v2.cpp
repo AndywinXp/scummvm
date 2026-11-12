@@ -36,20 +36,12 @@
 #include "engines/grim/emi/irect.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
-#include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/room_v2.h"
 #include "engines/grim/emi/sounds.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
 static const uint kSavedRoomNameSize = 128;
-
-bool Room_v2::_started = false;
-Room_v2 *Room_v2::_currentRoom = nullptr;
-LResourceHandle<Room_v2> Room_v2::_currentHandle;
-Room_v2 *Room_v2::_lastDrawnRoom = nullptr;
-int Room_v2::_lastDrawnSetup = -1;
 
 enum {
 	kDrawLayer = 0,
@@ -65,8 +57,6 @@ struct DrawItem {
 	void *object;
 	int index;
 };
-
-static ProfilerTimer roomDrawTimer("Room::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 
 static void mergeDrawItems(Common::Array<DrawItem> &first, Common::Array<DrawItem> &second) {
 	Common::Array<DrawItem> merged;
@@ -222,21 +212,23 @@ uint Room_v2::resSizeOfItem() {
 bool Room_v2::resLoadItem(const char *itemName) {
 	LString textPath(itemName);
 	LString binaryPath = textPath + "b";
-	bool binaryExists = gpFileServices->exists(binaryPath.c_str());
-	bool textExists = gpFileServices->exists(textPath.c_str());
+	LFileServices *fileServices = _engine->getFileServices();
+	LConsoleServices *consoleServices = _engine->getConsoleServices();
+	bool binaryExists = fileServices->exists(binaryPath.c_str());
+	bool textExists = fileServices->exists(textPath.c_str());
 	bool useText = true;
 
 	if (binaryExists) {
 		if (!textExists)
 			useText = false;
-		else if (gpFileServices->getModTime(binaryPath.c_str()) >= gpFileServices->getModTime(textPath.c_str()))
+		else if (fileServices->getModTime(binaryPath.c_str()) >= fileServices->getModTime(textPath.c_str()))
 			useText = false;
 	}
 
 	if (useText) {
 		if (!loadText(itemName)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Parse problem in file '%s'.\n", itemName);
+			if (consoleServices)
+				consoleServices->logError("Parse problem in file '%s'.\n", itemName);
 			else
 				warning("Parse problem in file '%s'.", itemName);
 
@@ -254,8 +246,8 @@ bool Room_v2::resLoadItem(const char *itemName) {
 
 		saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
+		if (consoleServices)
+			consoleServices->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
 		else
 			warning("Parse problem in file '%s'.", binaryPath.c_str());
 
@@ -284,7 +276,7 @@ void Room_v2::setSetup(int setupIndex) {
 
 	if (index != oldSetup) {
 		currentSetup = index;
-		Lua_V2::callCameraChange(oldSetup, index);
+		_engine->getLua()->callCameraChange(oldSetup, index);
 	}
 }
 
@@ -304,11 +296,11 @@ Camera *Room_v2::getSetupCamera(int setupIndex) {
 }
 
 int Room_v2::draw(CDrawContext *drawContext) {
-	roomDrawTimer.start();
+	_engine->_roomDrawTimer.start();
 
 	if (!setups || currentSetup < 0 || currentSetup >= numSetups) {
 		warning("Room_v2::draw(): invalid setup %d", currentSetup);
-		roomDrawTimer.stop();
+		_engine->_roomDrawTimer.stop();
 
 		return 0;
 	}
@@ -318,8 +310,8 @@ int Room_v2::draw(CDrawContext *drawContext) {
 	camera->updateViewMatrix();
 	CTransform view = camera->view;
 
-	if (_lastDrawnRoom == this && _lastDrawnSetup == currentSetup) {
-		Setup *setup = &setups[_lastDrawnSetup];
+	if (_engine->_lastDrawnRoom == this && _engine->_lastDrawnSetup == currentSetup) {
+		Setup *setup = &setups[_engine->_lastDrawnSetup];
 		drawContext->clear(false, true);
 
 		Common::Array<DrawItem> items;
@@ -352,7 +344,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 
 			if (!actor->instances.empty()) {
 				DrawItem item;
-				item.key = actor->getSortOrder(_lastDrawnSetup);
+				item.key = actor->getSortOrder(_engine->_lastDrawnSetup);
 				item.depth = depth;
 				item.type = kDrawActor;
 				item.object = actor;
@@ -362,7 +354,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 
 			for (uint i = 0; i < actor->shadows.size(); i++) {
 				DrawItem item;
-				item.key = actor->getSortOrder(_lastDrawnSetup);
+				item.key = actor->getSortOrder(_engine->_lastDrawnSetup);
 				item.type = kDrawShadow;
 				item.depth = depth;
 				item.object = actor;
@@ -392,17 +384,17 @@ int Room_v2::draw(CDrawContext *drawContext) {
 			}
 		}
 
-		roomDrawTimer.stop();
+		_engine->_roomDrawTimer.stop();
 
 		return layersDrawn;
 	}
 
-	_lastDrawnRoom = this;
-	_lastDrawnSetup = currentSetup;
-	setups[_lastDrawnSetup].buildLayers();
-	Sounds::setSoundListener(camera);
-	Lua_V2::callPostCameraChange(_lastDrawnSetup);
-	roomDrawTimer.stop();
+	_engine->_lastDrawnRoom = this;
+	_engine->_lastDrawnSetup = currentSetup;
+	setups[_engine->_lastDrawnSetup].buildLayers();
+	_engine->getSounds()->setSoundListener(camera);
+	_engine->getLua()->callPostCameraChange(_engine->_lastDrawnSetup);
+	_engine->_roomDrawTimer.stop();
 
 	return -1;
 }
@@ -501,7 +493,7 @@ Shadow_v2 *Room_v2::findShadow(const LString &shadowName) {
 }
 
 Shadow_v2 *Room_v2::newShadow() {
-	Shadow_v2 *shadow = new Shadow_v2();
+	Shadow_v2 *shadow = new Shadow_v2(_engine);
 
 	shadows.push_back(shadow);
 
@@ -615,7 +607,7 @@ bool Room_v2::restore(tSaveRestoreAccess *access) {
 
 void Room_v2::freeSetups() {
 	if (numSetups > 0 && setups) {
-		delete[] setups;
+		Setup::deleteArray(setups);
 		setups = nullptr;
 		numSetups = 0;
 	} else {
@@ -624,37 +616,38 @@ void Room_v2::freeSetups() {
 	}
 }
 
-bool Room_v2::startup() {
-	if (_started)
+bool Room_v2::startup(EmiEngine *engine) {
+	if (engine->_roomsStarted)
 		return false;
 
-	_currentHandle.setResource(nullptr);
-	_started = true;
+	engine->_currentRoomHandle.bindEngine(engine);
+	engine->_currentRoomHandle.setResource(nullptr);
+	engine->_roomsStarted = true;
 
 	return true;
 }
 
-void Room_v2::shutdown() {
-	_started = false;
+void Room_v2::shutdown(EmiEngine *engine) {
+	engine->_roomsStarted = false;
 }
 
-void Room_v2::saveCurrentRoom(tSaveRestoreAccess *access) {
-	if (_currentRoom) {
-		uint length = _currentRoom->name.size() + 1;
+void Room_v2::saveCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) {
+	if (engine->_currentRoom) {
+		uint length = engine->_currentRoom->name.size() + 1;
 
 		access(&length, sizeof(length));
-		access((void *)_currentRoom->name.c_str(), length);
-		_currentRoom->save(access);
-		Layer::saveRestoreNextId(access);
+		access((void *)engine->_currentRoom->name.c_str(), length);
+		engine->_currentRoom->save(access);
+		Layer::saveRestoreNextId(engine, access);
 	} else {
 		int noRoom = 0;
 
 		access(&noRoom, sizeof(noRoom));
-		Layer::saveRestoreNextId(access);
+		Layer::saveRestoreNextId(engine, access);
 	}
 }
 
-void Room_v2::restoreCurrentRoom(tSaveRestoreAccess *access) {
+void Room_v2::restoreCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) {
 	char buffer[kSavedRoomNameSize + 1];
 	uint length = 0;
 
@@ -669,25 +662,27 @@ void Room_v2::restoreCurrentRoom(tSaveRestoreAccess *access) {
 
 		access(buffer, length);
 		buffer[length] = 0;
-		loadRoom(buffer);
+		loadRoom(engine, buffer);
 
-		if (_currentRoom)
-			_currentRoom->restore(access);
+		if (engine->_currentRoom)
+			engine->_currentRoom->restore(access);
 		else
 			warning("Room_v2::restoreCurrentRoom(): the room could not be loaded");
 	}
 
-	Layer::saveRestoreNextId(access);
+	Layer::saveRestoreNextId(engine, access);
 }
 
-Layer *Room_v2::findLayerById(int layerId) {
-	if (!_currentRoom || !_currentRoom->setups)
+Layer *Room_v2::findLayerById(EmiEngine *engine, int layerId) {
+	Room_v2 *room = engine->_currentRoom;
+
+	if (!room || !room->setups)
 		return nullptr;
 
-	for (int i = 0; i < _currentRoom->numSetups; i++) {
+	for (int i = 0; i < room->numSetups; i++) {
 		Common::List<Layer *>::iterator it;
 
-		for (it = _currentRoom->setups[i].layers.begin(); it != _currentRoom->setups[i].layers.end(); ++it) {
+		for (it = room->setups[i].layers.begin(); it != room->setups[i].layers.end(); ++it) {
 			if ((*it)->id == layerId)
 				return *it;
 		}
@@ -696,84 +691,84 @@ Layer *Room_v2::findLayerById(int layerId) {
 	return nullptr;
 }
 
-void Room_v2::loadRoom(const char *roomName) {
-	if (_currentRoom) {
-		if (roomName && _currentRoom->name == roomName)
+void Room_v2::loadRoom(EmiEngine *engine, const char *roomName) {
+	if (engine->_currentRoom) {
+		if (roomName && engine->_currentRoom->name == roomName)
 			return;
 
-		_currentRoom->setLightsActive(false);
-		_currentHandle.unlock();
+		engine->_currentRoom->setLightsActive(false);
+		engine->_currentRoomHandle.unlock();
 
 		Common::List<Actor *>::iterator it;
 
-		for (it = _currentRoom->actors.begin(); it != _currentRoom->actors.end(); ++it) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Actor '%s' left in room.\n", (*it)->actorName.c_str());
+		for (it = engine->_currentRoom->actors.begin(); it != engine->_currentRoom->actors.end(); ++it) {
+			if (engine->getConsoleServices())
+				engine->getConsoleServices()->logError("Actor '%s' left in room.\n", (*it)->actorName.c_str());
 			else
 				warning("Actor '%s' left in room.", (*it)->actorName.c_str());
 		}
 
-		_currentHandle.setResource(nullptr);
-		_currentRoom = nullptr;
-		Sounds::setSoundListener(nullptr);
+		engine->_currentRoomHandle.setResource(nullptr);
+		engine->_currentRoom = nullptr;
+		engine->getSounds()->setSoundListener(nullptr);
 
-		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
-			Sounds::killMusicForSet(roomName);
+		if (engine->getGamePlatform() == Common::kPlatformPS2)
+			engine->getSounds()->killMusicForSet(roomName);
 	}
 
 	if (!roomName)
 		return;
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
-		CBundleServices::openSetBundle(roomName);
-		static_cast<EmiEngine *>(g_grim)->startSetChangeFrames();
+	if (engine->getGamePlatform() == Common::kPlatformPS2) {
+		engine->getBundleServices()->openSetBundle(roomName);
+		engine->startSetChangeFrames();
 	}
 
-	_currentHandle.resource = gpResourceManager->findResource(roomName);
+	engine->_currentRoomHandle.resource = engine->getResourceManager()->findResource(roomName);
 
-	if (!_currentHandle.resource) {
-		_currentHandle.resource = gpResourceManager->createResource(roomName);
+	if (!engine->_currentRoomHandle.resource) {
+		engine->_currentRoomHandle.resource = engine->getResourceManager()->createResource(roomName);
 
-		if (!_currentHandle.resource)
-			_currentHandle.allocateResource();
+		if (!engine->_currentRoomHandle.resource)
+			engine->_currentRoomHandle.allocateResource();
 
-		if (_currentHandle.resource) {
-			_currentHandle.resource->resSetName(roomName);
-			gpResourceManager->addResource(_currentHandle.resource);
+		if (engine->_currentRoomHandle.resource) {
+			engine->_currentRoomHandle.resource->resSetName(roomName);
+			engine->getResourceManager()->addResource(engine->_currentRoomHandle.resource);
 		}
 	}
 
-	_currentHandle.setResource(_currentHandle.resource);
+	engine->_currentRoomHandle.setResource(engine->_currentRoomHandle.resource);
 
-	if (_currentHandle.lock())
-		_currentRoom = _currentHandle.typed;
+	if (engine->_currentRoomHandle.lock())
+		engine->_currentRoom = engine->_currentRoomHandle.typed;
 	else
-		_currentRoom = nullptr;
+		engine->_currentRoom = nullptr;
 
-	if (!_currentRoom) {
+	if (!engine->_currentRoom) {
 		warning("Room_v2::loadRoom(): could not load room '%s'", roomName);
 
 		return;
 	}
 
-	_currentRoom->setSoundParameters(8.0f, 20, 127, 1.5f, 0.8f);
-	_currentRoom->setLightsActive(true);
+	engine->_currentRoom->setSoundParameters(8.0f, 20, 127, 1.5f, 0.8f);
+	engine->_currentRoom->setLightsActive(true);
 
-	if (InputRecorder::instance)
-		InputRecorder::instance->recordRoom(roomName);
+	if (engine->getInputRecorder())
+		engine->getInputRecorder()->recordRoom(roomName);
 	else
 		warning("Room_v2::loadRoom(): there is no input recorder");
 }
 
-Room_v2 *Room_v2::getCurrentRoom() {
-	return _currentRoom;
+Room_v2 *Room_v2::getCurrentRoom(EmiEngine *engine) {
+	return engine->_currentRoom;
 }
 
-const char *Room_v2::getCurrentRoomName() {
-	if (!_currentRoom)
+const char *Room_v2::getCurrentRoomName(EmiEngine *engine) {
+	if (!engine->_currentRoom)
 		return nullptr;
 
-	return _currentRoom->name.c_str();
+	return engine->_currentRoom->name.c_str();
 }
 
 static const float kDegToRad = 3.14159274f * 0.00555555569f;
@@ -781,11 +776,9 @@ static const int kTokenSize = 256;
 static const int kBinaryStringSize = 256;
 static const int kMaxSetups = 4096;
 
-char Room_v2::_lineBuffer[Room_v2::kLineBufferSize];
-
-static void logLoaderError(const LString &message) {
-	if (gpConsoleServices)
-		gpConsoleServices->logError("%s", message.c_str());
+void Room_v2::logLoaderError(const LString &message) {
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logError("%s", message.c_str());
 	else
 		warning("%s", message.c_str());
 }
@@ -868,9 +861,9 @@ static bool readBinaryString(LFile *file, char *buffer) {
 	return true;
 }
 
-static bool failBinaryLoad(LFile *file, const char *reason) {
+bool Room_v2::failBinaryLoad(LFile *file, const char *reason) {
 	warning("Room_v2::loadBinary(): %s", reason);
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return false;
 }
@@ -916,7 +909,8 @@ static void writeBinaryString(LFile *file, const LString &string) {
 
 bool Room_v2::loadText(const char *path) {
 	char section[128];
-	LFile *file = gpFileServices->open(path, "rt");
+	char lineBuffer[kLineBufferSize];
+	LFile *file = _engine->getFileServices()->open(path, "rt");
 
 	if (!file || !file->isOpen()) {
 		logLoaderError(LString::format("Error: Invalid load filename '%s'.\n", path));
@@ -926,18 +920,18 @@ bool Room_v2::loadText(const char *path) {
 
 	section[0] = 0;
 
-	while (file->readLine(_lineBuffer, kLineBufferSize)) {
-		if (sscanf(_lineBuffer, "section: %127s", section) == 1) {
+	while (file->readLine(lineBuffer, kLineBufferSize)) {
+		if (sscanf(lineBuffer, "section: %127s", section) == 1) {
 			if (!parseSection(file, section)) {
 				logLoaderError(LString::format("Load of file %s failed due to syntax errors.\n", path));
-				gpFileServices->close(file, true);
+				_engine->getFileServices()->close(file, true);
 
 				return false;
 			}
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
@@ -971,6 +965,7 @@ bool Room_v2::parseSection(LFile *file, const char *sectionName) {
 bool Room_v2::parseSetups(LFile *file) {
 	char token[kTokenSize];
 	char backgroundToken[Setup::kNameSize];
+	char lineBuffer[kLineBufferSize];
 	CVector interest;
 	int currentIndex = -1;
 
@@ -978,16 +973,16 @@ bool Room_v2::parseSetups(LFile *file) {
 	backgroundToken[0] = 0;
 	setups = nullptr;
 
-	if (!file->readLine(_lineBuffer, kLineBufferSize))
+	if (!file->readLine(lineBuffer, kLineBufferSize))
 		return true;
 
 	while (true) {
 		int count;
 
-		if (sscanf(_lineBuffer, " section: %255s\n", token) != 0) {
+		if (sscanf(lineBuffer, " section: %255s\n", token) != 0) {
 			if (!parseSection(file, token))
 				return false;
-		} else if (sscanf(_lineBuffer, " numsetups %d\n", &count) == 1) {
+		} else if (sscanf(lineBuffer, " numsetups %d\n", &count) == 1) {
 			if (count < 0 || count > kMaxSetups) {
 				warning("Room_v2::parseSetups(): invalid number of setups %d", count);
 
@@ -995,13 +990,13 @@ bool Room_v2::parseSetups(LFile *file) {
 			}
 
 			numSetups = count;
-			setups = new Setup[count];
+			setups = Setup::newArray(_engine, count);
 			currentIndex = -1;
 		} else {
 			if (!setups)
 				return false;
 
-			if (sscanf(_lineBuffer, " setup %255s", token) == 1) {
+			if (sscanf(lineBuffer, " setup %255s", token) == 1) {
 				currentIndex++;
 
 				if (currentIndex >= numSetups) {
@@ -1015,7 +1010,7 @@ bool Room_v2::parseSetups(LFile *file) {
 
 				Common::strlcpy(setups[currentIndex].name, token, Setup::kNameSize);
 			} else if (currentIndex < 0) {
-				logLoaderError(LString::format("Error parsing setups: Expected 'setup <name>', but got '%s'.\n", _lineBuffer));
+				logLoaderError(LString::format("Error parsing setups: Expected 'setup <name>', but got '%s'.\n", lineBuffer));
 
 				return false;
 			} else {
@@ -1030,20 +1025,20 @@ bool Room_v2::parseSetups(LFile *file) {
 				float fov;
 
 				// The disasm reads the background name and then ignores it
-				if (sscanf(_lineBuffer, " background %127s", backgroundToken) == 1) {
-				} else if (sscanf(_lineBuffer, " tiledscene %127s", backgroundToken) == 1) {
+				if (sscanf(lineBuffer, " background %127s", backgroundToken) == 1) {
+				} else if (sscanf(lineBuffer, " tiledscene %127s", backgroundToken) == 1) {
 					setup->backgroundName = backgroundToken;
-				} else if (sscanf(_lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
+				} else if (sscanf(lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
 					vector.x = x;
 					vector.y = y;
 					vector.z = z;
 					camera->setLocalPosition(vector);
-				} else if (sscanf(_lineBuffer, " interest %f %f %f", &x, &y, &z) == 3) {
+				} else if (sscanf(lineBuffer, " interest %f %f %f", &x, &y, &z) == 3) {
 					interest.x = x;
 					interest.y = y;
 					interest.z = z;
 					camera->lookAt(interest);
-				} else if (sscanf(_lineBuffer, " roll %f", &roll) == 1) {
+				} else if (sscanf(lineBuffer, " roll %f", &roll) == 1) {
 					float angle = -(kDegToRad * roll);
 					CVector axis;
 
@@ -1063,9 +1058,9 @@ bool Room_v2::parseSetups(LFile *file) {
 					float newX = (float)((double)rollRotation.z * current.y + (double)rollRotation.x * current.w + (double)rollRotation.w * current.x - (double)rollRotation.y * current.z);
 
 					setNodeRotation(camera, CQuaternion(newX, newY, newZ, newW));
-				} else if (sscanf(_lineBuffer, " direction %f %f %f %f", &x, &y, &z, &w) == 4) {
+				} else if (sscanf(lineBuffer, " direction %f %f %f %f", &x, &y, &z, &w) == 4) {
 					setNodeRotation(camera, CQuaternion(x, y, z, w));
-				} else if (sscanf(_lineBuffer, " fov %f", &fov) == 1) {
+				} else if (sscanf(lineBuffer, " fov %f", &fov) == 1) {
 					IRect viewport;
 
 					viewport.x = 0;
@@ -1073,23 +1068,24 @@ bool Room_v2::parseSetups(LFile *file) {
 					viewport.w = 640;
 					viewport.h = 480;
 					camera->setViewport(&viewport, fov);
-				} else if (sscanf(_lineBuffer, " nclip %f", &camera->nearClip) == 1) {
-				} else if (sscanf(_lineBuffer, " fclip %f", &camera->farClip) == 1) {
+				} else if (sscanf(lineBuffer, " nclip %f", &camera->nearClip) == 1) {
+				} else if (sscanf(lineBuffer, " fclip %f", &camera->farClip) == 1) {
 				} else {
-					logLoaderError(LString::format("Unrecognized line in set file: '%s'\n", _lineBuffer));
+					logLoaderError(LString::format("Unrecognized line in set file: '%s'\n", lineBuffer));
 
 					return false;
 				}
 			}
 		}
 
-		if (!file->readLine(_lineBuffer, kLineBufferSize))
+		if (!file->readLine(lineBuffer, kLineBufferSize))
 			return true;
 	}
 }
 
 bool Room_v2::parseLights(LFile *file) {
 	char token[kTokenSize];
+	char lineBuffer[kLineBufferSize];
 	CLightNode *lightNode = nullptr;
 	CLight *light = nullptr;
 	float x;
@@ -1102,23 +1098,23 @@ bool Room_v2::parseLights(LFile *file) {
 
 	token[0] = 0;
 
-	if (!file->readLine(_lineBuffer, kLineBufferSize))
+	if (!file->readLine(lineBuffer, kLineBufferSize))
 		return true;
 
 	while (true) {
-		if (sscanf(_lineBuffer, " section: %255s\n", token) != 0) {
+		if (sscanf(lineBuffer, " section: %255s\n", token) != 0) {
 			if (!parseSection(file, token))
 				return false;
-		} else if (sscanf(_lineBuffer, " light %255s", token) == 1) {
-			lightNode = new CLightNode();
+		} else if (sscanf(lineBuffer, " light %255s", token) == 1) {
+			lightNode = new CLightNode(_engine);
 			addLight(lightNode);
 			setLightNodeName(lightNode, token);
 			light = new CLight(Color(1u), 1.0f, 10.0f, 10.0f);
 			lightNode->setLight(light);
 			lightNode->setActive(true);
 		} else if (!lightNode || !light) {
-			warning("Room_v2::parseLights(): the line '%s' comes before any light", _lineBuffer);
-		} else if (sscanf(_lineBuffer, " type %255s", token) == 1) {
+			warning("Room_v2::parseLights(): the line '%s' comes before any light", lineBuffer);
+		} else if (sscanf(lineBuffer, " type %255s", token) == 1) {
 			if (strcmp(token, "omni") == 0)
 				light->type = CLight::kTypeOmni;
 			else if (strcmp(token, "spot") == 0)
@@ -1127,40 +1123,41 @@ bool Room_v2::parseLights(LFile *file) {
 				light->type = CLight::kTypeDirect;
 			else
 				light->type = CLight::kTypeAmbient;
-		} else if (sscanf(_lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
+		} else if (sscanf(lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
 			CVector position;
 
 			position.x = x;
 			position.y = y;
 			position.z = z;
 			lightNode->setLocalPosition(position);
-		} else if (sscanf(_lineBuffer, " direction %f %f %f", &x, &y, &z) == 3) {
+		} else if (sscanf(lineBuffer, " direction %f %f %f", &x, &y, &z) == 3) {
 			CVector euler;
 
 			euler.x = x;
 			euler.y = y;
 			euler.z = z;
 			setNodeEuler(lightNode, euler);
-		} else if (sscanf(_lineBuffer, " orientation %f %f %f %f", &x, &y, &z, &w) == 4) {
+		} else if (sscanf(lineBuffer, " orientation %f %f %f %f", &x, &y, &z, &w) == 4) {
 			setNodeRotation(lightNode, CQuaternion(x, y, z, w));
-		} else if (sscanf(_lineBuffer, " intensity %f", &light->intensity) == 1) {
-		} else if (sscanf(_lineBuffer, " umbraangle %f", &x) == 1) {
+		} else if (sscanf(lineBuffer, " intensity %f", &light->intensity) == 1) {
+		} else if (sscanf(lineBuffer, " umbraangle %f", &x) == 1) {
 			light->umbraAngle = kDegToRad * x;
-		} else if (sscanf(_lineBuffer, " penumbraangle %f", &x) == 1) {
+		} else if (sscanf(lineBuffer, " penumbraangle %f", &x) == 1) {
 			light->penumbraAngle = kDegToRad * x;
-		} else if (sscanf(_lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
+		} else if (sscanf(lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
 			light->setColor(red, green, blue);
-		} else if (sscanf(_lineBuffer, " focusdistance %f", &light->focusDistance) != 1) {
-			sscanf(_lineBuffer, " spreaddistance %f", &light->spreadDistance);
+		} else if (sscanf(lineBuffer, " focusdistance %f", &light->focusDistance) != 1) {
+			sscanf(lineBuffer, " spreaddistance %f", &light->spreadDistance);
 		}
 
-		if (!file->readLine(_lineBuffer, kLineBufferSize))
+		if (!file->readLine(lineBuffer, kLineBufferSize))
 			return true;
 	}
 }
 
 bool Room_v2::parseShadows(LFile *file) {
 	char token[kTokenSize];
+	char lineBuffer[kLineBufferSize];
 	Shadow_v2 *shadow = nullptr;
 	float x;
 	float y;
@@ -1171,40 +1168,40 @@ bool Room_v2::parseShadows(LFile *file) {
 
 	token[0] = 0;
 
-	if (!file->readLine(_lineBuffer, kLineBufferSize))
+	if (!file->readLine(lineBuffer, kLineBufferSize))
 		return true;
 
 	while (true) {
-		if (sscanf(_lineBuffer, " section: %255s\n", token) != 0) {
+		if (sscanf(lineBuffer, " section: %255s\n", token) != 0) {
 			if (!parseSection(file, token))
 				return false;
-		} else if (sscanf(_lineBuffer, " shadow %255s", token) == 1) {
+		} else if (sscanf(lineBuffer, " shadow %255s", token) == 1) {
 			shadow = newShadow();
 			shadow->setName(LString(token));
 		} else if (!shadow) {
-			warning("Room_v2::parseShadows(): the line '%s' comes before any shadow", _lineBuffer);
-		} else if (sscanf(_lineBuffer, " light %255s", token) == 1) {
+			warning("Room_v2::parseShadows(): the line '%s' comes before any shadow", lineBuffer);
+		} else if (sscanf(lineBuffer, " light %255s", token) == 1) {
 			shadow->setLightName(LString(token));
-		} else if (sscanf(_lineBuffer, " point %f %f %f", &x, &y, &z) == 3) {
+		} else if (sscanf(lineBuffer, " point %f %f %f", &x, &y, &z) == 3) {
 			shadow->point[0] = x;
 			shadow->point[1] = y;
 			shadow->point[2] = z;
-		} else if (sscanf(_lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
+		} else if (sscanf(lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
 			Color shadowColor;
 
 			shadowColor.setRGB(red, green, blue);
 			shadow->setColor(shadowColor);
-		} else if (sscanf(_lineBuffer, " sector %255s", token) == 1) {
+		} else if (sscanf(lineBuffer, " sector %255s", token) == 1) {
 			shadow->addSector(LString(token));
 		}
 
-		if (!file->readLine(_lineBuffer, kLineBufferSize))
+		if (!file->readLine(lineBuffer, kLineBufferSize))
 			return true;
 	}
 }
 
 bool Room_v2::parseSectors(LFile *file) {
-	walkPlanes = new WalkPlaneCollection();
+	walkPlanes = new WalkPlaneCollection(_engine);
 
 	char *nextSection = walkPlanes->parseCollection(file);
 
@@ -1218,7 +1215,7 @@ bool Room_v2::parseSectors(LFile *file) {
 }
 
 bool Room_v2::loadBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+	LFile *file = _engine->getFileServices()->open(path, "rb");
 
 	if (!file)
 		return false;
@@ -1233,7 +1230,7 @@ bool Room_v2::loadBinary(const char *path) {
 		return failBinaryLoad(file, "invalid number of setups");
 
 	numSetups = count;
-	setups = new Setup[count];
+	setups = Setup::newArray(_engine, count);
 
 	for (int i = 0; i < numSetups; i++) {
 		Setup *setup = &setups[i];
@@ -1280,7 +1277,7 @@ bool Room_v2::loadBinary(const char *path) {
 		return failBinaryLoad(file, "unexpected end of file");
 
 	for (int i = 0; i < count; i++) {
-		CLightNode *lightNode = new CLightNode();
+		CLightNode *lightNode = new CLightNode(_engine);
 		CVector position;
 		CQuaternion rotation;
 
@@ -1321,7 +1318,7 @@ bool Room_v2::loadBinary(const char *path) {
 	if (count > 0) {
 		float vertices[WalkPlane_v2::kMaxVertices * 3];
 
-		walkPlanes = new WalkPlaneCollection();
+		walkPlanes = new WalkPlaneCollection(_engine);
 		memset(vertices, 0, sizeof(vertices));
 
 		for (int i = 0; i < count; i++) {
@@ -1338,7 +1335,7 @@ bool Room_v2::loadBinary(const char *path) {
 					return failBinaryLoad(file, "invalid sector vertices");
 			}
 
-			WalkPlane_v2 *plane = new WalkPlane_v2(vertices, vertexCount, walkPlanes);
+			WalkPlane_v2 *plane = new WalkPlane_v2(_engine, vertices, vertexCount, walkPlanes);
 			int planeType;
 			byte activeByte;
 			float tolerance;
@@ -1421,13 +1418,13 @@ bool Room_v2::loadBinary(const char *path) {
 			return failBinaryLoad(file, "invalid shadow color");
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool Room_v2::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -1560,7 +1557,7 @@ bool Room_v2::saveBinary(const char *path) {
 		writeBinaryColor(file, shadow->color);
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }

@@ -23,8 +23,11 @@
 #define GRIM_EMI_PROFILERTIMER_H
 
 #include "common/list.h"
+#include "common/str.h"
 
 namespace Grim {
+
+class EmiEngine;
 
 class ProfilerTimer {
 public:
@@ -39,7 +42,7 @@ public:
 		kPrintOther = 2
 	};
 
-	ProfilerTimer(const char *timerName, int timerFlags);
+	ProfilerTimer(EmiEngine *engine, const char *timerName, int timerFlags);
 	~ProfilerTimer();
 
 	void start();
@@ -48,10 +51,10 @@ public:
 	void reset();
 	void printStats(ProfilerTimer *parentTimer, int parentContextIndex, double parentMillis, int depth);
 
-	static void endFrame();
-	static void printAllStats();
-	static void linkChildren();
-	static double getSecondsPerTick();
+	static void endFrame(EmiEngine *engine);
+	static void printAllStats(EmiEngine *engine);
+	static void linkChildren(EmiEngine *engine);
+	static double getSecondsPerTick(EmiEngine *engine);
 
 	uint64 startTicks;
 	uint64 ticks[kMaxContexts];
@@ -74,18 +77,9 @@ public:
 	ProfilerTimer *prev;
 
 private:
-	static ProfilerTimer *oldest;
-	static ProfilerTimer *newest;
-	static int timerCount;
-	static ProfilerTimer *callStack[kMaxCallStack];
-	static int callStackDepth;
-	static int frameCounter;
-	static int snapshotInterval;
-	static ProfilerTimer rootTimer;
-	static uint64 calibrationTicks;
-	static double calibrationSeconds;
-	static double secondsPerTick;
-	static int secondsPerTickCalls;
+	static Common::String padColumn(const char *text, int width);
+
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

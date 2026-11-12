@@ -29,10 +29,11 @@ namespace Grim {
 class Actor;
 class CDrawContext;
 class CLightNode;
+class EmiEngine;
 
 class Overworld {
 public:
-	Overworld();
+	explicit Overworld(EmiEngine *engine);
 	~Overworld();
 
 	int draw(CDrawContext *drawContext);
@@ -43,15 +44,12 @@ public:
 	void removeLight(CLightNode *light);
 	void setLightsActive(bool active);
 
-	static Overworld *getInstance();
-	static void destroyInstance();
-
 	Common::List<CLightNode *> lights;
 	bool enabled;
 	Common::List<Actor *> actors;
 
 private:
-	static Overworld *_instance;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

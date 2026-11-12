@@ -31,7 +31,7 @@ class CSpriteInstance;
 
 class SpriteInstance : public ComponentInstance {
 public:
-	SpriteInstance(const LString &componentName, Actor *actor);
+	SpriteInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~SpriteInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

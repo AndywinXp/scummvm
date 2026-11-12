@@ -27,6 +27,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 struct Event {
 	enum {
 		kKeyDown = 1,
@@ -54,7 +56,7 @@ struct Event {
 
 class EventHandler {
 public:
-	EventHandler(int handlerPriority);
+	EventHandler(EmiEngine *engine, int handlerPriority);
 	virtual ~EventHandler();
 
 	void *operator new(size_t size);
@@ -65,7 +67,8 @@ public:
 	uint typeMask;
 	int priority;
 
-	static Common::List<EventHandler *> handlers;
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

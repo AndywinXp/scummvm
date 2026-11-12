@@ -30,7 +30,7 @@
 
 namespace Grim {
 
-Shadow_v2::Shadow_v2() {
+Shadow_v2::Shadow_v2(EmiEngine *engine) : _engine(engine) {
 	point[0] = 0.0f;
 	point[1] = 0.0f;
 	point[2] = 0.0f;
@@ -44,11 +44,11 @@ Shadow_v2::~Shadow_v2() {
 }
 
 void *Shadow_v2::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Shadow_v2::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int Shadow_v2::getSize() {
@@ -65,7 +65,7 @@ void Shadow_v2::resolveSectors(WalkPlaneCollection *collection) {
 
 float *Shadow_v2::getPosition(float *out) {
 	if (!lightName.empty()) {
-		Room_v2 *room = Room_v2::getCurrentRoom();
+		Room_v2 *room = Room_v2::getCurrentRoom(_engine);
 		CLightNode *light = nullptr;
 
 		if (room)

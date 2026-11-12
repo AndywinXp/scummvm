@@ -35,8 +35,8 @@ void Actor::removeFinishedChores() {
 
 		++next;
 
-		if (ChoreInstance::isInstanceValid(choreId)) {
-			if (!ChoreInstance::isInstanceValid(choreId) || ChoreInstance::getInstance(choreId)->isFinished()) {
+		if (ChoreInstance::isInstanceValid(_engine, choreId)) {
+			if (!ChoreInstance::isInstanceValid(_engine, choreId) || ChoreInstance::getInstance(_engine, choreId)->isFinished()) {
 				Common::List<uint>::iterator removeIt = choreIds.begin();
 
 				while (removeIt != choreIds.end()) {
@@ -52,8 +52,8 @@ void Actor::removeFinishedChores() {
 					}
 				}
 
-				if (ChoreInstance::isInstanceValid(choreId)) {
-					ChoreInstance *instance = ChoreInstance::getInstance(choreId);
+				if (ChoreInstance::isInstanceValid(_engine, choreId)) {
+					ChoreInstance *instance = ChoreInstance::getInstance(_engine, choreId);
 
 					if (instance)
 						delete instance;
@@ -101,9 +101,9 @@ uint *Actor::findChoreInstance(uint *outId, uint previousId) {
 }
 
 uint *Actor::startChore(uint *outId, const LString &choreName, const LString &choreSetName) {
-	uint newId = ChoreInstance::newInstance(this, choreName, choreSetName);
+	uint newId = ChoreInstance::newInstance(_engine, this, choreName, choreSetName);
 
-	if (ChoreInstance::isInstanceValid(newId))
+	if (ChoreInstance::isInstanceValid(_engine, newId))
 		choreIds.push_back(newId);
 
 	*outId = newId;
@@ -115,9 +115,9 @@ void Actor::stopChores(bool skipLooping) {
 	Common::List<uint>::iterator it;
 
 	for (it = choreIds.begin(); it != choreIds.end(); ++it) {
-		if (!skipLooping || !ChoreInstance::isInstanceValid(*it) || !ChoreInstance::getInstance(*it)->isLooping()) {
-			if (ChoreInstance::isInstanceValid(*it))
-				ChoreInstance::getInstance(*it)->stop();
+		if (!skipLooping || !ChoreInstance::isInstanceValid(_engine, *it) || !ChoreInstance::getInstance(_engine, *it)->isLooping()) {
+			if (ChoreInstance::isInstanceValid(_engine, *it))
+				ChoreInstance::getInstance(_engine, *it)->stop();
 		}
 	}
 }
@@ -133,19 +133,19 @@ void Actor::setChore(int slot, LString choreName, LString choreSetName) {
 		if (choreName == choreSlotNames[slot] && choreSetName == choreSlotSetNames[slot])
 			return;
 
-		if (ChoreInstance::isInstanceValid(choreSlotIds[slot])) {
-			ChoreInstance::getInstance(choreSlotIds[slot])->stop();
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[slot])) {
+			ChoreInstance::getInstance(_engine, choreSlotIds[slot])->stop();
 
 			uint startedId;
 
 			startChore(&startedId, choreName, choreSetName);
 			choreSlotIds[slot] = startedId;
 
-			if (ChoreInstance::isInstanceValid(startedId))
-				ChoreInstance::getInstance(choreSlotIds[slot])->setPlaying();
+			if (ChoreInstance::isInstanceValid(_engine, startedId))
+				ChoreInstance::getInstance(_engine, choreSlotIds[slot])->setPlaying();
 
-			if (ChoreInstance::isInstanceValid(choreSlotIds[slot]))
-				ChoreInstance::getInstance(choreSlotIds[slot])->setLooping(true);
+			if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[slot]))
+				ChoreInstance::getInstance(_engine, choreSlotIds[slot])->setLooping(true);
 		}
 	}
 
@@ -177,15 +177,15 @@ void Actor::setTalkChore(int index, LString choreName, LString choreSetName) {
 void Actor::updateWalkChores() {
 	uint startedId;
 
-	if (!ChoreInstance::isInstanceValid(choreSlotIds[0])) {
+	if (!ChoreInstance::isInstanceValid(_engine, choreSlotIds[0])) {
 		startChore(&startedId, choreSlotNames[0], choreSlotSetNames[0]);
 		choreSlotIds[0] = startedId;
 
-		if (ChoreInstance::isInstanceValid(startedId))
-			ChoreInstance::getInstance(choreSlotIds[0])->setPlaying();
+		if (ChoreInstance::isInstanceValid(_engine, startedId))
+			ChoreInstance::getInstance(_engine, choreSlotIds[0])->setPlaying();
 
-		if (ChoreInstance::isInstanceValid(choreSlotIds[0]))
-			ChoreInstance::getInstance(choreSlotIds[0])->setLooping(true);
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[0]))
+			ChoreInstance::getInstance(_engine, choreSlotIds[0])->setLooping(true);
 	}
 
 	if (!extra)
@@ -194,54 +194,54 @@ void Actor::updateWalkChores() {
 	if (extra->walking) {
 		extra->turnDir = 0;
 
-		if (!ChoreInstance::isInstanceValid(choreSlotIds[1])) {
+		if (!ChoreInstance::isInstanceValid(_engine, choreSlotIds[1])) {
 			extra->resting = false;
 			startChore(&startedId, choreSlotNames[1], choreSlotSetNames[1]);
 			choreSlotIds[1] = startedId;
 
-			if (ChoreInstance::isInstanceValid(startedId))
-				ChoreInstance::getInstance(choreSlotIds[1])->fadeIn(0.25f);
+			if (ChoreInstance::isInstanceValid(_engine, startedId))
+				ChoreInstance::getInstance(_engine, choreSlotIds[1])->fadeIn(0.25f);
 
-			if (ChoreInstance::isInstanceValid(choreSlotIds[1]))
-				ChoreInstance::getInstance(choreSlotIds[1])->setLooping(true);
+			if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[1]))
+				ChoreInstance::getInstance(_engine, choreSlotIds[1])->setLooping(true);
 		}
-	} else if (ChoreInstance::isInstanceValid(choreSlotIds[1]) && (mode & 1) == 0) {
-		ChoreInstance::getInstance(choreSlotIds[1])->fadeOut(0.25f);
+	} else if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[1]) && (mode & 1) == 0) {
+		ChoreInstance::getInstance(_engine, choreSlotIds[1])->fadeOut(0.25f);
 		choreSlotIds[1] = 0;
 	}
 
 	if (extra->turnDir <= 0) {
-		if (ChoreInstance::isInstanceValid(choreSlotIds[2]))
-			ChoreInstance::getInstance(choreSlotIds[2])->fadeOut(0.25f);
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[2]))
+			ChoreInstance::getInstance(_engine, choreSlotIds[2])->fadeOut(0.25f);
 
 		choreSlotIds[2] = 0;
-	} else if (!ChoreInstance::isInstanceValid(choreSlotIds[2])) {
+	} else if (!ChoreInstance::isInstanceValid(_engine, choreSlotIds[2])) {
 		extra->resting = false;
 		startChore(&startedId, choreSlotNames[2], choreSlotSetNames[2]);
 		choreSlotIds[2] = startedId;
 
-		if (ChoreInstance::isInstanceValid(startedId))
-			ChoreInstance::getInstance(choreSlotIds[2])->fadeIn(0.25f);
+		if (ChoreInstance::isInstanceValid(_engine, startedId))
+			ChoreInstance::getInstance(_engine, choreSlotIds[2])->fadeIn(0.25f);
 
-		if (ChoreInstance::isInstanceValid(choreSlotIds[2]))
-			ChoreInstance::getInstance(choreSlotIds[2])->setLooping(true);
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[2]))
+			ChoreInstance::getInstance(_engine, choreSlotIds[2])->setLooping(true);
 	}
 
 	if (extra->turnDir >= 0) {
-		if (ChoreInstance::isInstanceValid(choreSlotIds[3]))
-			ChoreInstance::getInstance(choreSlotIds[3])->fadeOut(0.25f);
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[3]))
+			ChoreInstance::getInstance(_engine, choreSlotIds[3])->fadeOut(0.25f);
 
 		choreSlotIds[3] = 0;
-	} else if (!ChoreInstance::isInstanceValid(choreSlotIds[3])) {
+	} else if (!ChoreInstance::isInstanceValid(_engine, choreSlotIds[3])) {
 		extra->resting = false;
 		startChore(&startedId, choreSlotNames[3], choreSlotSetNames[3]);
 		choreSlotIds[3] = startedId;
 
-		if (ChoreInstance::isInstanceValid(startedId))
-			ChoreInstance::getInstance(choreSlotIds[3])->fadeIn(0.25f);
+		if (ChoreInstance::isInstanceValid(_engine, startedId))
+			ChoreInstance::getInstance(_engine, choreSlotIds[3])->fadeIn(0.25f);
 
-		if (ChoreInstance::isInstanceValid(choreSlotIds[3]))
-			ChoreInstance::getInstance(choreSlotIds[3])->setLooping(true);
+		if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[3]))
+			ChoreInstance::getInstance(_engine, choreSlotIds[3])->setLooping(true);
 	}
 
 	if (!extra->walking && !extra->turnDir)

@@ -30,6 +30,7 @@
 
 namespace Grim {
 
+class EmiEngine;
 class Puck_v2;
 class WalkPlaneCollection;
 
@@ -40,7 +41,7 @@ public:
 		kMaxSortOrders = 32
 	};
 
-	WalkPlane_v2(const float *vertices, int vertexCount, WalkPlaneCollection *owner);
+	WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexCount, WalkPlaneCollection *owner);
 	~WalkPlane_v2();
 
 	void *operator new(size_t size);
@@ -84,7 +85,8 @@ public:
 	WalkPlane_v2 *bfsParent;
 
 private:
-	static float _constraintVector[3];
+	EmiEngine *_engine;
+	float _constraintVector[3];
 };
 
 } // End of namespace Grim

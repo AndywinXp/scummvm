@@ -29,6 +29,7 @@
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/globalalphacomponent.h"
 #include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/localalphacomponent.h"
 #include "engines/grim/emi/lresourcehandle.h"
 #include "engines/grim/emi/luacommandcomponent.h"
@@ -45,25 +46,34 @@
 
 namespace Grim {
 
-static ResourceManager gResourceManager;
-static LResourceManager *gPreviousResourceManager = nullptr;
-static MemoryHandler *gMemoryHandler = nullptr;
-static float gUpdateTime = 0.0f;
-static bool gLockedMessageShown = false;
+MemoryHandler::MemoryHandler(ResourceManager *manager) {
+	_manager = manager;
+}
 
 uint MemoryHandler::purgeAmount(uint bytes) {
-	if (gpResourceManager != &gResourceManager)
+	EmiEngine *engine = _manager->getEngine();
+
+	if (engine->getResourceManager() != _manager)
 		return 0;
 
-	LMemoryServices::mbCapLimitsActive = false;
-	uint result = gResourceManager.purgeAmount(bytes);
-	LMemoryServices::mbCapLimitsActive = true;
+	engine->getMemoryServices()->activateMemoryCaps(false);
+	uint result = _manager->purgeAmount(bytes);
+	engine->getMemoryServices()->activateMemoryCaps(true);
 
 	return result;
 }
 
-ResourceManager::ResourceManager() {
+ResourceManager::ResourceManager(EmiEngine *engine) {
+	_engine = engine;
+	_previousResourceManager = nullptr;
+	_memoryHandler = nullptr;
+	_updateTime = 0.0f;
+	_lockedMessageShown = false;
 	logFile = nullptr;
+}
+
+EmiEngine *ResourceManager::getEngine() const {
+	return _engine;
 }
 
 bool ResourceManager::resourceLoaded(LResource *resource, bool success) {
@@ -129,8 +139,10 @@ void ResourceManager::resourceNameChange(LResource *resource, const LString &new
 	resourcesByName.erase(resource->name);
 
 	if (resourcesByName.contains(newName)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("ResourceManager::ResNameChange - Resource name %s is not unique!\n", newName.c_str());
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("ResourceManager::ResNameChange - Resource name %s is not unique!\n", newName.c_str());
 		else
 			warning("ResourceManager::resourceNameChange(): resource name %s is not unique", newName.c_str());
 	} else {
@@ -140,56 +152,47 @@ void ResourceManager::resourceNameChange(LResource *resource, const LString &new
 
 LResource *ResourceManager::createResource(const LString &name) {
 	const char *resourceName = name.c_str();
+	LResource *created = nullptr;
 
 	if (*resourceName == '!') {
 		const char *tag = resourceName + 1;
 
 		if (!scumm_strnicmp(tag, "anim", 4))
-			return new AnimComponent();
-
-		if (!scumm_strnicmp(tag, "awgt", 4))
-			return new AnimWgtComponent();
-
-		if (!scumm_strnicmp(tag, "cube", 4))
-			return new CubeComponent();
-
-		if (!scumm_strnicmp(tag, "galp", 4))
-			return new GlobalAlphaComponent();
-
-		if (!scumm_strnicmp(tag, "lalp", 4))
-			return new LocalAlphaComponent();
-
-		if (!scumm_strnicmp(tag, "luac", 4))
-			return new LuaCommandComponent();
-
-		if (!scumm_strnicmp(tag, "luav", 4))
-			return new LuaVarComponent();
-
-		if (!scumm_strnicmp(tag, "mesh", 4))
-			return new MeshComponent();
-
-		if (!scumm_strnicmp(tag, "shad", 4))
-			return new ShadowMeshComponent();
-
-		if (!scumm_strnicmp(tag, "skel", 4))
-			return new SkeletonComponent();
-
-		if (!scumm_strnicmp(tag, "snd2", 4))
-			return new SndComponent();
-
-		if (!scumm_strnicmp(tag, "snd3", 4))
-			return new Snd3DComponent();
-
-		if (!scumm_strnicmp(tag, "sprt", 4))
-			return new SpriteComponent();
-
-		if (!scumm_strnicmp(tag, "texi", 4))
-			return new TextureIndexComponent();
+			created = new AnimComponent(_engine);
+		else if (!scumm_strnicmp(tag, "awgt", 4))
+			created = new AnimWgtComponent();
+		else if (!scumm_strnicmp(tag, "cube", 4))
+			created = new CubeComponent();
+		else if (!scumm_strnicmp(tag, "galp", 4))
+			created = new GlobalAlphaComponent();
+		else if (!scumm_strnicmp(tag, "lalp", 4))
+			created = new LocalAlphaComponent();
+		else if (!scumm_strnicmp(tag, "luac", 4))
+			created = new LuaCommandComponent();
+		else if (!scumm_strnicmp(tag, "luav", 4))
+			created = new LuaVarComponent();
+		else if (!scumm_strnicmp(tag, "mesh", 4))
+			created = new MeshComponent(_engine);
+		else if (!scumm_strnicmp(tag, "shad", 4))
+			created = new ShadowMeshComponent(_engine);
+		else if (!scumm_strnicmp(tag, "skel", 4))
+			created = new SkeletonComponent(_engine);
+		else if (!scumm_strnicmp(tag, "snd2", 4))
+			created = new SndComponent();
+		else if (!scumm_strnicmp(tag, "snd3", 4))
+			created = new Snd3DComponent();
+		else if (!scumm_strnicmp(tag, "sprt", 4))
+			created = new SpriteComponent(_engine);
+		else if (!scumm_strnicmp(tag, "texi", 4))
+			created = new TextureIndexComponent();
 	} else if (*resourceName == '@') {
-		return Sounds::createWaveSoundResource();
+		created = _engine->getSounds()->createWaveSoundResource();
 	}
 
-	return nullptr;
+	if (created)
+		created->bindEngine(_engine);
+
+	return created;
 }
 
 LResource *ResourceManager::createResource(const char *name) {
@@ -198,6 +201,7 @@ LResource *ResourceManager::createResource(const char *name) {
 
 int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 	uint replaceDelta = 0;
+	LMemoryServices *memoryServices = _engine->getMemoryServices();
 
 	if (resource->lockCount)
 		return -1;
@@ -206,16 +210,17 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 		return -1;
 
 	if (resource->handleCount() != 0) {
-		uint bytesBefore = gpMemoryServices->bytesAllocated;
+		uint bytesBefore = memoryServices->bytesAllocated;
 
 		removeResource(resource);
 
 		LResourceHandleBase *handle = resource->firstHandle();
 		handle->setResource(nullptr);
 
-		LResource *replacement = gpResourceManager->createResource(resource->name);
+		LResource *replacement = _engine->getResourceManager()->createResource(resource->name);
 
 		if (!replacement) {
+			handle->bindEngine(_engine);
 			handle->allocateResource();
 			replacement = handle->resource;
 		}
@@ -224,11 +229,11 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 		resource->resReplaceResource(*replacement);
 		addResource(replacement);
 
-		replaceDelta = bytesBefore - gpMemoryServices->bytesAllocated;
+		replaceDelta = bytesBefore - memoryServices->bytesAllocated;
 	}
 
 	LString resourceName = resource->name;
-	uint bytesAfterReplace = gpMemoryServices->bytesAllocated + replaceDelta;
+	uint bytesAfterReplace = memoryServices->bytesAllocated + replaceDelta;
 
 	Common::List<LResource *>::iterator it = lruResources.begin();
 
@@ -241,7 +246,7 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 
 	delete resource;
 
-	int reclaimed = (int)(bytesAfterReplace - gpMemoryServices->bytesAllocated);
+	int reclaimed = (int)(bytesAfterReplace - memoryServices->bytesAllocated);
 
 	if (logPurge && logFile)
 		logFile->writeFormat("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
@@ -307,8 +312,10 @@ int ResourceManager::purgeAll() {
 		total += reclaimed;
 
 	if (allResources.size() != 0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("ResourceManager::PurgeAll(): Remaining resources are locked or have dangling handles!\n");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("ResourceManager::PurgeAll(): Remaining resources are locked or have dangling handles!\n");
 		else
 			warning("ResourceManager::purgeAll(): remaining resources are locked or have dangling handles");
 
@@ -316,8 +323,8 @@ int ResourceManager::purgeAll() {
 			total += reclaimed;
 
 		if (allResources.size() != 0) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("ResourceManager::PurgeAll(): Remaining resources are locked!\n");
+			if (console)
+				console->logError("ResourceManager::PurgeAll(): Remaining resources are locked!\n");
 			else
 				warning("ResourceManager::purgeAll(): remaining resources are locked");
 		}
@@ -529,53 +536,53 @@ void ResourceManager::dumpUnused(const LResourceType *type) {
 }
 
 bool ResourceManager::startup() {
-	gPreviousResourceManager = gpResourceManager;
-	gpResourceManager = &gResourceManager;
+	_previousResourceManager = _engine->getResourceManager();
+	_engine->setResourceManager(this);
 
-	gMemoryHandler = new MemoryHandler();
-	gpMemoryServices->registerMemoryHandler(gMemoryHandler);
+	_memoryHandler = new MemoryHandler(this);
+	_engine->getMemoryServices()->registerMemoryHandler(_memoryHandler);
 
 	return true;
 }
 
 void ResourceManager::shutdown() {
-	gpMemoryServices->unregisterMemoryHandler(gMemoryHandler);
-	gResourceManager.purgeAll();
+	_engine->getMemoryServices()->unregisterMemoryHandler(_memoryHandler);
+	purgeAll();
 
-	delete gMemoryHandler;
-	gMemoryHandler = nullptr;
+	delete _memoryHandler;
+	_memoryHandler = nullptr;
 
-	gpResourceManager = gPreviousResourceManager;
+	_engine->setResourceManager(_previousResourceManager);
 }
 
 void ResourceManager::update(float frameTime) {
-	uint bytes = gpMemoryServices->bytesAllocated;
+	uint bytes = _engine->getMemoryServices()->bytesAllocated;
 
-	if (bytes > 0xC00000 && gResourceManager.purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !gLockedMessageShown) {
-		EmiEngine::showMessage("More than 12MB of resources have been left locked.\n"
+	if (bytes > 0xC00000 && purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !_lockedMessageShown) {
+		_engine->showMessage("More than 12MB of resources have been left locked.\n"
 				"Please record your location, report this to the proper authorities, and exit the game.\n"
 				"\n"
 				"\n"
 				"(Then get back to work.)",
 				"Congratulations, you have found a bug!");
-		gLockedMessageShown = true;
+		_lockedMessageShown = true;
 	}
 
-	double elapsed = gUpdateTime + frameTime;
-	gUpdateTime = (float)elapsed;
+	double elapsed = _updateTime + frameTime;
+	_updateTime = (float)elapsed;
 
 	if (elapsed > 10.0) {
-		Common::List<LResource *>::iterator it = gResourceManager.allResources.begin();
+		Common::List<LResource *>::iterator it = allResources.begin();
 
-		while (it != gResourceManager.allResources.end()) {
+		while (it != allResources.end()) {
 			LResource *resource = *it;
 			++it;
 
 			if (resource && resource->purgeOnFree && !resource->loaded && resource->handles.empty())
-				gResourceManager.purgeResource(resource, false);
+				purgeResource(resource, false);
 		}
 
-		gUpdateTime = 0.0f;
+		_updateTime = 0.0f;
 	}
 }
 

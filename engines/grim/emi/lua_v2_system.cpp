@@ -33,15 +33,15 @@
 namespace Grim {
 
 void Lua_V2::EnginePause() {
-	EmiEngine::setPause(true);
+	_engine->setPause(true);
 }
 
 void Lua_V2::EngineResume() {
-	EmiEngine::setPause(false);
+	_engine->setPause(false);
 }
 
 void Lua_V2::GetPhysicalBytes() {
-	lua_pushnumber((float)(int)EmiEngine::getTotalPhysMem());
+	lua_pushnumber((float)(int)_engine->getTotalPhysMem());
 }
 
 void Lua_V2::GetMemoryUsage() {
@@ -53,7 +53,7 @@ void Lua_V2::SetMemoryUsage() {
 
 	lua_getparam(2);
 
-	LMemoryServices::mHardCap = (uint)luaFtol(lua_getnumber(limitObj));
+	_engine->getMemoryServices()->setHardMemoryCap((uint)luaFtol(lua_getnumber(limitObj)));
 }
 
 void Lua_V2::SetActiveCD() {
@@ -62,7 +62,7 @@ void Lua_V2::SetActiveCD() {
 	if (disc != 1 && disc != 2)
 		return;
 
-	int currentDisc = EmiEngine::getDiscNumber();
+	int currentDisc = _engine->getDiscNumber();
 
 	if (disc == currentDisc) {
 		lua_pushnumber(1.0f);
@@ -71,27 +71,27 @@ void Lua_V2::SetActiveCD() {
 	}
 
 	if (currentDisc) {
-		Sounds::shutdownSounds();
-		CBundleServices::setDiscBundles(0);
+		_engine->getSounds()->shutdownSounds();
+		_engine->getBundleServices()->setDiscBundles(0);
 	}
 
-	if (EmiEngine::findDisc(disc) && CBundleServices::setDiscBundles(disc)) {
-		Sounds::startSounds(true);
+	if (_engine->findDisc(disc) && _engine->getBundleServices()->setDiscBundles(disc)) {
+		_engine->getSounds()->startSounds(true);
 		lua_pushnumber(1.0f);
 	}
 }
 
 void Lua_V2::GetActiveCD() {
-	int disc = EmiEngine::getDiscNumber();
+	int disc = _engine->getDiscNumber();
 
-	CBundleServices::setDiscBundles(disc);
+	_engine->getBundleServices()->setDiscBundles(disc);
 
 	if (disc)
 		lua_pushnumber((float)disc);
 }
 
 void Lua_V2::AreWeInternational() {
-	if (CBundleServices::isI9nBundleOpen())
+	if (_engine->getBundleServices()->isI9nBundleOpen())
 		lua_pushnumber(1.0f);
 }
 
@@ -170,7 +170,7 @@ void Lua_V2::TextFileGetLineCount() {
 		return;
 	}
 
-	LFile *file = gpFileServices->open(fileName, "rt");
+	LFile *file = _engine->getFileServices()->open(fileName, "rt");
 
 	if (!file) {
 		lua_pushnil();
@@ -189,7 +189,7 @@ void Lua_V2::TextFileGetLineCount() {
 		lineCount++;
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	lua_pushobject(linesTable);
 	lua_pushstring("count");
@@ -218,7 +218,7 @@ void Lua_V2::TextFileGetLine() {
 		return;
 	}
 
-	LFile *file = gpFileServices->open(fileName, "rt");
+	LFile *file = _engine->getFileServices()->open(fileName, "rt");
 
 	if (!file) {
 		lua_pushnil();
@@ -230,7 +230,7 @@ void Lua_V2::TextFileGetLine() {
 
 	buffer[0] = 0;
 	file->readLine(buffer, sizeof(buffer));
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	lua_pushstring(buffer);
 }
@@ -256,12 +256,12 @@ void Lua_V2::InputDialog() {
 
 	memset(buffer, 0, sizeof(buffer));
 
-	if (EmiEngine::inputBox(caption, prompt, buffer, sizeof(buffer), defaultText))
+	if (_engine->inputBox(caption, prompt, buffer, sizeof(buffer), defaultText))
 		lua_pushstring(buffer);
 	else
 		lua_pushnil();
 
-	SputControl_v2::clearKeyStates();
+	_engine->getControl()->clearKeyStates();
 }
 
 void Lua_V2::QueryDialog() {
@@ -277,7 +277,7 @@ void Lua_V2::QueryDialog() {
 		if (lua_isnil(cancelObj))
 			flags = EmiEngine::kMessageBoxYesNo;
 
-		int result = EmiEngine::messageBox(caption, text, flags);
+		int result = _engine->messageBox(caption, text, flags);
 
 		if (result == EmiEngine::kMessageBoxCancel) {
 			lua_pushnumber(0.0f);
@@ -296,18 +296,19 @@ void Lua_V2::QueryDialog() {
 }
 
 void Lua_V2::ScreenShot() {
-	EmiEngine::saveScreenshot();
+	_engine->saveScreenshot();
 }
 
 void Lua_V2::MakeScreenTextures() {
 	lua_Object indexObj = lua_getparam(1);
+	LConsoleServices *console = _engine->getConsoleServices();
 
 	if (lua_isnil(indexObj) || !lua_isnumber(indexObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("sputLua_MakeScreenTextures: First parameter must be a specialty texture index. Operation aborted.\n");
+		if (console)
+			console->logError("sputLua_MakeScreenTextures: First parameter must be a specialty texture index. Operation aborted.\n");
 		else
 			warning("sputLua_MakeScreenTextures: First parameter must be a specialty texture index. Operation aborted.");
-	} else if (EmiEngine::buildSpecScreenTextures(luaFtol(lua_getnumber(indexObj)))) {
+	} else if (_engine->buildSpecScreenTextures(luaFtol(lua_getnumber(indexObj)))) {
 		lua_pushnumber(1.0f);
 
 		return;
@@ -334,8 +335,10 @@ void Lua_V2::SubmitSaveGameData() {
 			break;
 
 		if (!lua_isstring(entryObj)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Savegame table must contain only strings!\n");
+			LConsoleServices *console = _engine->getConsoleServices();
+
+			if (console)
+				console->logError("Savegame table must contain only strings!\n");
 			else
 				warning("Savegame table must contain only strings!");
 
@@ -383,7 +386,7 @@ void Lua_V2::GetSaveGameData() {
 	if (!lua_isstring(nameObj))
 		return;
 
-	LFile *file = EmiEngine::openSaveFile(lua_getstring(nameObj), "rb");
+	LFile *file = _engine->openSaveFile(lua_getstring(nameObj), "rb");
 
 	if (file) {
 		lua_Object linesTable = lua_createtable();
@@ -426,25 +429,25 @@ void Lua_V2::GetSaveGameData() {
 		lua_pushobject(linesTable);
 	}
 
-	EmiEngine::closeSaveFile(file);
+	_engine->closeSaveFile(file);
 }
 
 void Lua_V2::JustLoaded() {
-	if (g_grim->getGamePlatform() != Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() != Common::kPlatformPS2) {
 		Lua_V1::JustLoaded();
 
 		return;
 	}
 
 	// PS2 returns the loaded file name, and scripts keep it as the save slot
-	const char *fileName = static_cast<EmiEngine *>(g_grim)->justLoadedFileName();
+	const char *fileName = _engine->justLoadedFileName();
 
 	if (fileName)
 		lua_pushstring(fileName);
 }
 
 void Lua_V2::ScreenshotForSavegame() {
-	if (EmiEngine::grabScreen())
+	if (_engine->grabScreen())
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -452,13 +455,14 @@ void Lua_V2::ScreenshotForSavegame() {
 
 void Lua_V2::ThumbnailFromScreen() {
 	lua_Object indexObj = lua_getparam(1);
+	LConsoleServices *console = _engine->getConsoleServices();
 
 	if (lua_isnil(indexObj) || !lua_isnumber(indexObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("sputLua_ThumbnailFromScreen: First parameter must be a specialty texture index. Operation aborted.\n");
+		if (console)
+			console->logError("sputLua_ThumbnailFromScreen: First parameter must be a specialty texture index. Operation aborted.\n");
 		else
 			warning("sputLua_ThumbnailFromScreen: First parameter must be a specialty texture index. Operation aborted.");
-	} else if (EmiEngine::makeThumbnailTexture(luaFtol(lua_getnumber(indexObj)), true)) {
+	} else if (_engine->makeThumbnailTexture(luaFtol(lua_getnumber(indexObj)), true)) {
 		lua_pushnumber(1.0f);
 
 		return;
@@ -470,16 +474,17 @@ void Lua_V2::ThumbnailFromScreen() {
 void Lua_V2::ThumbnailFromFile() {
 	lua_Object indexObj = lua_getparam(1);
 	lua_Object nameObj = lua_getparam(2);
+	LConsoleServices *console = _engine->getConsoleServices();
 
 	if (lua_isnil(indexObj) || !lua_isnumber(indexObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("sputLua_ThumbnailFromFile: First parameter must be a specialty texture index. Operation aborted.\n");
+		if (console)
+			console->logError("sputLua_ThumbnailFromFile: First parameter must be a specialty texture index. Operation aborted.\n");
 		else
 			warning("sputLua_ThumbnailFromFile: First parameter must be a specialty texture index. Operation aborted.");
 	} else {
 		if (lua_isnil(nameObj) || !lua_isstring(nameObj)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("sputLua_ThumbnailFromFile: First parameter must be a filename. Operation aborted.\n");
+			if (console)
+				console->logError("sputLua_ThumbnailFromFile: First parameter must be a filename. Operation aborted.\n");
 			else
 				warning("sputLua_ThumbnailFromFile: First parameter must be a filename. Operation aborted.");
 
@@ -488,7 +493,7 @@ void Lua_V2::ThumbnailFromFile() {
 			return;
 		}
 
-		if (EmiEngine::loadThumbnailTexture(luaFtol(lua_getnumber(indexObj)), lua_getstring(nameObj))) {
+		if (_engine->loadThumbnailTexture(luaFtol(lua_getnumber(indexObj)), lua_getstring(nameObj))) {
 			lua_pushnumber(1.0f);
 
 			return;
@@ -500,13 +505,14 @@ void Lua_V2::ThumbnailFromFile() {
 
 void Lua_V2::ClearSpecialtyTexture() {
 	lua_Object indexObj = lua_getparam(1);
+	LConsoleServices *console = _engine->getConsoleServices();
 
 	if (lua_isnil(indexObj) || !lua_isnumber(indexObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("sputLua_ClearSpecialtyTexture: First parameter must be a specialty texture index. Operation aborted.\n");
+		if (console)
+			console->logError("sputLua_ClearSpecialtyTexture: First parameter must be a specialty texture index. Operation aborted.\n");
 		else
 			warning("sputLua_ClearSpecialtyTexture: First parameter must be a specialty texture index. Operation aborted.");
-	} else if (EmiEngine::clearTextureSlot(luaFtol(lua_getnumber(indexObj)))) {
+	} else if (_engine->clearTextureSlot(luaFtol(lua_getnumber(indexObj)))) {
 		lua_pushnumber(1.0f);
 
 		return;

@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/ainst.h"
 #include "engines/grim/emi/anode.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
 
@@ -32,9 +33,7 @@ enum {
 	kMaxGroups = 5
 };
 
-static ProfilerTimer updateANodeTimer("ANode::UpdateANode()", ProfilerTimer::kTrackNesting);
-
-ANode::ANode() {
+ANode::ANode(EmiEngine *engine) : _engine(engine) {
 	boundTracks = 0;
 	dirty = true;
 	posChannel = new AChannel<CVector>();
@@ -54,11 +53,11 @@ ANode::~ANode() {
 }
 
 void *ANode::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ANode::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void ANode::bindTrack(AInst *inst, ATrack *track) {
@@ -80,10 +79,10 @@ void ANode::unbindTrack(AInst *inst, ATrack *track) {
 }
 
 void ANode::updateANode() {
-	updateANodeTimer.start();
+	_engine->_updateANodeTimer.start();
 
 	if (!dirty || boundTracks <= 0) {
-		updateANodeTimer.stop();
+		_engine->_updateANodeTimer.stop();
 
 		return;
 	}
@@ -188,7 +187,7 @@ void ANode::updateANode() {
 	nodeFlags = (nodeFlags & ~(kEulerValid | kQuaternionValid | kLocalSet)) | kQuaternionValid | kLocalSet;
 	updateLocalState();
 
-	updateANodeTimer.stop();
+	_engine->_updateANodeTimer.stop();
 }
 
 } // End of namespace Grim

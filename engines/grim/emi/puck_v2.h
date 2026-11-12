@@ -27,12 +27,13 @@
 
 namespace Grim {
 
+class EmiEngine;
 class WalkPlane_v2;
 class WalkPlaneCollection;
 
 class Puck_v2 : public CNode {
 public:
-	explicit Puck_v2(float newReflectionAngle);
+	Puck_v2(EmiEngine *engine, float newReflectionAngle);
 	virtual ~Puck_v2();
 
 	void reset();
@@ -54,7 +55,7 @@ public:
 	WalkPlaneCollection *planes;
 
 private:
-	static int _recursionDepth;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

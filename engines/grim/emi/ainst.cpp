@@ -22,12 +22,11 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/ainst.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
-Common::List<AInst *> AInst::_instances;
-
-AInst::AInst() {
+AInst::AInst(EmiEngine *engine) : _engine(engine) {
 	length = 0.0f;
 	fadeRate = 0.0f;
 	time = 0.0f;
@@ -36,15 +35,15 @@ AInst::AInst() {
 	speed = 1.0f;
 	weight = 1.0f;
 	flags = 0;
-	_instances.push_back(this);
+	_engine->_animInstances.push_back(this);
 }
 
 AInst::~AInst() {
-	Common::List<AInst *>::iterator it = _instances.begin();
+	Common::List<AInst *>::iterator it = _engine->_animInstances.begin();
 
-	while (it != _instances.end()) {
+	while (it != _engine->_animInstances.end()) {
 		if (*it == this)
-			it = _instances.erase(it);
+			it = _engine->_animInstances.erase(it);
 		else
 			++it;
 	}

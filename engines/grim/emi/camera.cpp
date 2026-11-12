@@ -37,7 +37,7 @@ static const int kDefaultViewportWidth = 640;
 static const int kDefaultViewportHeight = 480;
 static const float kDefaultFov = 90.0f;
 
-Camera::Camera() {
+Camera::Camera(CDrawContext *drawContext) : _drawContext(drawContext) {
 	nearClip = 0.0f;
 	farClip = 0.0f;
 
@@ -63,9 +63,13 @@ Camera::Camera() {
 Camera::~Camera() {
 }
 
+CDrawContext *Camera::getDrawContext() const {
+	return _drawContext;
+}
+
 void Camera::applyProjection() {
-	if (CDrawContext::context)
-		CDrawContext::context->setPerspective(fovX, fovY, nearClip, farClip);
+	if (_drawContext)
+		_drawContext->setPerspective(fovX, fovY, nearClip, farClip);
 }
 
 void Camera::updateViewMatrix() {
@@ -143,8 +147,8 @@ IRect Camera::getViewportRect() {
 	int rect[4] = { 0, 0, 0, 0 };
 	IRect result;
 
-	if (CDrawContext::context)
-		CDrawContext::context->getViewportRect(rect);
+	if (_drawContext)
+		_drawContext->getViewportRect(rect);
 	else
 		warning("Camera::getViewportRect(): no draw context");
 
@@ -157,8 +161,8 @@ IRect Camera::getViewportRect() {
 }
 
 void Camera::drawLineLoop(DrawVertex *vertices, int count) {
-	if (CDrawContext::context)
-		CDrawContext::context->drawPrim(4, vertices, count, false);
+	if (_drawContext)
+		_drawContext->drawPrim(4, vertices, count, false);
 }
 
 } // End of namespace Grim

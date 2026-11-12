@@ -25,7 +25,7 @@
 
 namespace Grim {
 
-Extra_v2::Extra_v2() {
+Extra_v2::Extra_v2(EmiEngine *engine) : _engine(engine) {
 	lookAtActive = false;
 	lookAtHasTarget = false;
 	lookTargetActorId = 0;
@@ -81,11 +81,11 @@ Extra_v2::Extra_v2() {
 }
 
 void *Extra_v2::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Extra_v2::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 } // End of namespace Grim

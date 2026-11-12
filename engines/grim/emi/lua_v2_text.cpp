@@ -27,6 +27,7 @@
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/color.h"
 #include "engines/grim/emi/ctextfont.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lresourcehandle.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -59,8 +60,8 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 	if (!event)
 		return;
 
-	int screenWidth = TextEvent::screenRect[2];
-	int screenHeight = TextEvent::screenRect[3];
+	int screenWidth = _engine->_textScreenRect[2];
+	int screenHeight = _engine->_textScreenRect[3];
 	int x = event->x;
 	int y = event->y;
 	bool xChanged = false;
@@ -102,7 +103,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 
 	if (valueObj && lua_isstring(valueObj)) {
 		LString fontName = lua_getstring(valueObj);
-		LResourceHandle<CTextFont> fontHandle(fontName);
+		LResourceHandle<CTextFont> fontHandle(_engine, fontName);
 		bool locked = fontHandle.lock();
 		LResourceHandle<CTextFont> lockedFont;
 
@@ -201,7 +202,7 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 }
 
 void Lua_V2::readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y) {
-	int screenWidth = TextEvent::screenRect[2];
+	int screenWidth = _engine->_textScreenRect[2];
 	lua_Object valueObj;
 
 	lua_pushobject(table);
@@ -242,11 +243,11 @@ void Lua_V2::SetTextSpeed() {
 	lua_Object speedObj = lua_getparam(1);
 
 	if (lua_isnumber(speedObj))
-		Actor::setActorTextRate(luaFtol(lua_getnumber(speedObj)));
+		Actor::setActorTextRate(_engine, luaFtol(lua_getnumber(speedObj)));
 }
 
 void Lua_V2::GetTextSpeed() {
-	lua_pushnumber((float)Actor::getActorTextRate());
+	lua_pushnumber((float)Actor::getActorTextRate(_engine));
 }
 
 void Lua_V2::IsMessageGoing() {
@@ -256,7 +257,7 @@ void Lua_V2::IsMessageGoing() {
 		return;
 
 	if (isActor(actorObj)) {
-		Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+		Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 		if (actor && actor->extra && actor->extra->talking) {
 			lua_pushnumber(1.0f);
@@ -264,7 +265,7 @@ void Lua_V2::IsMessageGoing() {
 			return;
 		}
 	} else {
-		if (Actor::getNumActorsTalking()) {
+		if (Actor::getNumActorsTalking(_engine)) {
 			lua_pushnumber(1.0f);
 
 			return;
@@ -272,7 +273,7 @@ void Lua_V2::IsMessageGoing() {
 
 		Common::List<TextEvent *>::iterator it;
 
-		for (it = TextEvent::events.begin(); it != TextEvent::events.end(); ++it) {
+		for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 			if (!((*it)->flags & 1)) {
 				lua_pushnumber(1.0f);
 
@@ -288,7 +289,7 @@ void Lua_V2::SetSayLineDefaults() {
 	lua_Object tableObj = lua_getparam(1);
 
 	if (tableObj && lua_istable(tableObj))
-		applyTextTable(tableObj, TextEvent::defaultEvent);
+		applyTextTable(tableObj, _engine->_defaultTextEvent);
 }
 
 void Lua_V2::SetActorTalkColor() {
@@ -298,11 +299,13 @@ void Lua_V2::SetActorTalkColor() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetActorTalkColor: Actor is invalid.\n");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("SetActorTalkColor: Actor is invalid.\n");
 		else
 			warning("SetActorTalkColor: Actor is invalid.");
 
@@ -325,11 +328,13 @@ void Lua_V2::GetActorTalkColor() {
 		return;
 	}
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetActorTalkColor: Actor is invalid.\n");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("GetActorTalkColor: Actor is invalid.\n");
 		else
 			warning("GetActorTalkColor: Actor is invalid.");
 
@@ -364,10 +369,10 @@ void Lua_V2::SayLine() {
 	if (!isActor(lineObj) && !lua_isstring(lineObj) && !lua_istable(lineObj))
 		return;
 
-	Actor *actor = Actor::getSelectedActor();
+	Actor *actor = Actor::getSelectedActor(_engine);
 
 	if (isActor(lineObj)) {
-		actor = Actor::actorDeref(lua_getuserdata(lineObj));
+		actor = Actor::actorDeref(_engine, lua_getuserdata(lineObj));
 		index = 3;
 		lineObj = lua_getparam(2);
 	}
@@ -400,8 +405,8 @@ void Lua_V2::MakeTextObject() {
 	if (!lua_isstring(textObj))
 		return;
 
-	const char *translated = TextEvent::translate(lua_getstring(textObj), tag);
-	TextEvent *event = new TextEvent(LString(translated));
+	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
+	TextEvent *event = new TextEvent(_engine, LString(translated));
 	lua_Object tableObj = lua_getparam(2);
 
 	if (tableObj && lua_istable(tableObj))
@@ -418,7 +423,7 @@ void Lua_V2::KillTextObject() {
 	lua_Object textObj = lua_getparam(1);
 
 	if (textObj && lua_isuserdata(textObj) && lua_tag(textObj) == kTextTag) {
-		TextEvent *event = TextEvent::getEvent(lua_getuserdata(textObj));
+		TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
 		if (event)
 			event->flags &= ~1u;
@@ -432,11 +437,13 @@ void Lua_V2::ChangeTextObject() {
 	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
 		return;
 
-	TextEvent *event = TextEvent::getEvent(lua_getuserdata(textObj));
+	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
 	if (!event) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("ChangeTextObject: text object is invalid");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("ChangeTextObject: text object is invalid");
 		else
 			warning("ChangeTextObject: text object is invalid");
 
@@ -452,7 +459,7 @@ void Lua_V2::ChangeTextObject() {
 			break;
 
 		if (lua_isstring(paramObj)) {
-			event->text = TextEvent::translate(lua_getstring(paramObj), nullptr);
+			event->text = TextEvent::translate(_engine, lua_getstring(paramObj), nullptr);
 			event->geometryReady = false;
 		} else {
 			if (!lua_istable(paramObj))
@@ -472,22 +479,24 @@ void Lua_V2::GetTextObjectDimensions() {
 	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
 		return;
 
-	TextEvent *event = TextEvent::getEvent(lua_getuserdata(textObj));
+	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
 	if (!event) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetTextObjectDimensions: text object is invalid");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("GetTextObjectDimensions: text object is invalid");
 		else
 			warning("GetTextObjectDimensions: text object is invalid");
 
 		return;
 	}
 
-	int screenWidth = TextEvent::screenRect[2];
+	int screenWidth = _engine->_textScreenRect[2];
 
 	lua_pushnumber((float)((double)event->getWidth() / (double)(screenWidth / 2)));
 
-	int screenHeight = TextEvent::screenRect[3];
+	int screenHeight = _engine->_textScreenRect[3];
 
 	lua_pushnumber((float)((double)event->getHeight() / (double)(screenHeight / 2)));
 }
@@ -499,8 +508,8 @@ void Lua_V2::BlastText() {
 	if (!lua_isstring(textObj))
 		return;
 
-	const char *translated = TextEvent::translate(lua_getstring(textObj), tag);
-	TextEvent *event = new TextEvent(LString(translated));
+	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
+	TextEvent *event = new TextEvent(_engine, LString(translated));
 	lua_Object tableObj = lua_getparam(2);
 
 	if (tableObj && lua_istable(tableObj))
@@ -510,9 +519,9 @@ void Lua_V2::BlastText() {
 }
 
 void Lua_V2::ExpireText() {
-	Common::List<TextEvent *>::iterator it = TextEvent::events.begin();
+	Common::List<TextEvent *>::iterator it = _engine->_textEvents.begin();
 
-	while (it != TextEvent::events.end()) {
+	while (it != _engine->_textEvents.end()) {
 		TextEvent *event = *it;
 
 		++it;
@@ -522,7 +531,7 @@ void Lua_V2::ExpireText() {
 		if (event->flags & 4) {
 			event->flags &= ~5u;
 
-			Actor *actor = Actor::actorDeref(event->actorId);
+			Actor *actor = Actor::actorDeref(_engine, event->actorId);
 
 			if (actor && actor->extra)
 				actor->extra->textEventId = 0;
@@ -536,7 +545,7 @@ void Lua_V2::PurgeText() {
 	lua_Object keepHeldObj = lua_getparam(1);
 	Common::List<TextEvent *>::iterator it;
 
-	for (it = TextEvent::events.begin(); it != TextEvent::events.end(); ++it) {
+	for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
 
 		if (lua_isnil(keepHeldObj) || !event->hold) {
@@ -547,11 +556,11 @@ void Lua_V2::PurgeText() {
 }
 
 void Lua_V2::PushText() {
-	TextEvent::holdAll();
+	TextEvent::holdAll(_engine);
 }
 
 void Lua_V2::PopText() {
-	TextEvent::releaseAll();
+	TextEvent::releaseAll(_engine);
 }
 
 void Lua_V2::MakeColor() {
@@ -630,7 +639,7 @@ void Lua_V2::SetTranslationMode() {
 	lua_Object modeObj = lua_getparam(1);
 
 	if (lua_isnil(modeObj)) {
-		TextEvent::textMode = 0;
+		_engine->_textMode = 0;
 
 		return;
 	}
@@ -641,15 +650,15 @@ void Lua_V2::SetTranslationMode() {
 	int mode = luaFtol(lua_getnumber(modeObj));
 
 	if (mode < 0)
-		TextEvent::textMode = 0;
+		_engine->_textMode = 0;
 	else if (mode > 2)
-		TextEvent::textMode = 2;
+		_engine->_textMode = 2;
 	else
-		TextEvent::textMode = mode;
+		_engine->_textMode = mode;
 }
 
 void Lua_V2::GetTranslationMode() {
-	lua_pushnumber((float)TextEvent::textMode);
+	lua_pushnumber((float)_engine->_textMode);
 }
 
 void Lua_V2::LocalizeString() {
@@ -661,7 +670,7 @@ void Lua_V2::LocalizeString() {
 	if (!lua_isstring(textObj))
 		return;
 
-	const char *translated = TextEvent::translate(lua_getstring(textObj), tag);
+	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
 	Common::String result;
 
 	if (tag[0])
@@ -686,7 +695,7 @@ void Lua_V2::GetFontDimensions() {
 		return;
 
 	LString fontName = lua_getstring(fontObj);
-	LResourceHandle<CTextFont> fontHandle(fontName);
+	LResourceHandle<CTextFont> fontHandle(_engine, fontName);
 	CTextFont *font = nullptr;
 
 	if (fontHandle.lock())
@@ -720,11 +729,13 @@ void Lua_V2::GetTextCharPosition() {
 	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
 		return;
 
-	TextEvent *event = TextEvent::getEvent(lua_getuserdata(textObj));
+	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
 	if (!event) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetTextCharPosition: text object is invalid");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("GetTextCharPosition: text object is invalid");
 		else
 			warning("GetTextCharPosition: text object is invalid");
 
@@ -741,7 +752,7 @@ void Lua_V2::GetTextCharPosition() {
 		width += event->getCharWidth((byte)event->text[i]);
 	}
 
-	int screenWidth = TextEvent::screenRect[2];
+	int screenWidth = _engine->_textScreenRect[2];
 
 	lua_pushnumber((float)((double)width / (double)(screenWidth / 2)));
 }
@@ -762,11 +773,11 @@ void Lua_V2::SetOffscreenTextPos() {
 	else
 		y = 0.875;
 
-	int screenWidth = TextEvent::screenRect[2];
-	int screenHeight = TextEvent::screenRect[3];
+	int screenWidth = _engine->_textScreenRect[2];
+	int screenHeight = _engine->_textScreenRect[3];
 
-	Actor::offscreenTextRect.x = truncateToInt((double)screenWidth * (double)x * (double)kHalf + (double)(screenWidth / 2));
-	Actor::offscreenTextRect.y = truncateToInt((double)(screenHeight / 2) - (double)screenHeight * y * (double)kHalf);
+	_engine->_offscreenTextRect.x = truncateToInt((double)screenWidth * (double)x * (double)kHalf + (double)(screenWidth / 2));
+	_engine->_offscreenTextRect.y =truncateToInt((double)(screenHeight / 2) - (double)screenHeight * y * (double)kHalf);
 }
 
 } // end of namespace Grim

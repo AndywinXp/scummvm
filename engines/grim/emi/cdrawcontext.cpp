@@ -22,14 +22,13 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-CDrawContext *CDrawContext::context = nullptr;
-
-CDrawContext::CDrawContext() : drawListA(5000), drawListB(5000) {
+CDrawContext::CDrawContext(EmiEngine *engine) : _engine(engine), _listCount(0), drawListA(this, 5000), drawListB(this, 5000) {
 	displayMode.width = 800;
 	displayMode.height = 600;
 	displayMode.bpp = 16;
@@ -56,8 +55,8 @@ CDrawContext::CDrawContext() : drawListA(5000), drawListB(5000) {
 }
 
 CDrawContext::~CDrawContext() {
-	if (context == this)
-		context = nullptr;
+	if (_engine->getDrawContext() == this)
+		_engine->setDrawContext(nullptr);
 
 	delete defaultTexture;
 	defaultTexture = nullptr;
@@ -69,11 +68,15 @@ CDrawContext::~CDrawContext() {
 }
 
 void *CDrawContext::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CDrawContext::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
+}
+
+EmiEngine *CDrawContext::getEngine() const {
+	return _engine;
 }
 
 bool CDrawContext::hasGammaControl() {
@@ -102,8 +105,8 @@ Graphics::PixelFormat CDrawContext::getMovieFormat() {
 
 bool CDrawContext::beginScene() {
 	if (sceneBegun) {
-		if (gpConsoleServices)
-			gpConsoleServices->logWarning("CDrawContext::BeginScene -- BeginScene already called this frame!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logWarning("CDrawContext::BeginScene -- BeginScene already called this frame!\n");
 		else
 			warning("CDrawContext::beginScene(): beginScene already called this frame");
 
@@ -124,8 +127,8 @@ bool CDrawContext::beginScene() {
 
 bool CDrawContext::endScene() {
 	if (!sceneBegun) {
-		if (gpConsoleServices)
-			gpConsoleServices->logWarning("CDrawContext::EndScene -- No previous call to BeginScene!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logWarning("CDrawContext::EndScene -- No previous call to BeginScene!\n");
 		else
 			warning("CDrawContext::endScene(): no previous call to beginScene");
 
@@ -172,7 +175,7 @@ int CDrawContext::outputDrawList(CDrawList *list) {
 		total += outputDrawPoly(list->polys[i]);
 
 	list->~CDrawList();
-	gpMemoryServices->freeImpl(list);
+	_engine->getMemoryServices()->freeImpl(list);
 
 	return total;
 }
@@ -223,7 +226,7 @@ bool CDrawContext::setCachedTexture(int slot, int width, int height, const LColo
 		return false;
 
 	if (textureCache[slot]) {
-		LABitmap bitmap(width, height, format, pixels, false);
+		LABitmap bitmap(_engine, width, height, format, pixels, false);
 
 		textureCache[slot]->setup(&bitmap);
 	} else {

@@ -56,11 +56,11 @@ RPrimitiveInstance::~RPrimitiveInstance() {
 }
 
 void *RPrimitiveInstance::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void RPrimitiveInstance::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int RPrimitiveInstance::getSaveSize() {
@@ -125,7 +125,7 @@ bool RPrimitiveInstance::restoreState(tSaveRestoreAccess *access) {
 }
 
 bool RPrimitiveInstance::isVisible(RNode *node, Camera *camera) {
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = camera->getDrawContext();
 
 	if (!ctx) {
 		warning("RPrimitiveInstance::isVisible(): no draw context");
@@ -254,7 +254,7 @@ void RPrimitiveInstance::drawBounds(RNode *node, Camera *camera) {
 		line[1].y = corners[kBoxEdges[i][1]][1];
 		line[1].z = corners[kBoxEdges[i][1]][2];
 
-		Camera::drawLineLoop(line, 2);
+		camera->drawLineLoop(line, 2);
 	}
 }
 

@@ -22,6 +22,7 @@
 #include "common/endian.h"
 #include "common/str.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/polyglot_v2.h"
 #include "engines/grim/std/std_sort.h"
@@ -29,7 +30,7 @@
 
 namespace Grim {
 
-Polyglot_v2::Polyglot_v2() : _table(nullptr), _lines(nullptr), _lineCount(0), _randomSeed(0) {
+Polyglot_v2::Polyglot_v2(EmiEngine *engine) : _engine(engine), _table(nullptr), _lines(nullptr), _lineCount(0), _randomSeed(0) {
 }
 
 Polyglot_v2::~Polyglot_v2() {
@@ -46,12 +47,12 @@ int Polyglot_v2::nextKeyByte() {
 
 void Polyglot_v2::shutdown() {
 	if (_table) {
-		gpMemoryServices->freeImpl(_table);
+		_engine->getMemoryServices()->freeImpl(_table);
 		_table = nullptr;
 	}
 
 	if (_lines) {
-		gpMemoryServices->freeImpl(_lines);
+		_engine->getMemoryServices()->freeImpl(_lines);
 		_lines = nullptr;
 	}
 
@@ -61,13 +62,13 @@ void Polyglot_v2::shutdown() {
 LFile *Polyglot_v2::openFileNoBundle(const char *path, const char *mode) {
 	LFileServices *services = nullptr;
 
-	if (LFileServices::getNumServices() > 1)
-		services = LFileServices::popServices();
+	if (_engine->getNumFileServices() > 1)
+		services = _engine->popFileServices();
 
-	LFile *file = gpFileServices->open(path, mode);
+	LFile *file = _engine->getFileServices()->open(path, mode);
 
 	if (services)
-		LFileServices::pushServices(services);
+		_engine->pushFileServices(services);
 
 	return file;
 }
@@ -76,7 +77,7 @@ void Polyglot_v2::configure(const char *tabFile) {
 	LFile *file = openFileNoBundle(tabFile, "rb");
 
 	if (!file) {
-		file = gpFileServices->open(tabFile, "rb");
+		file = _engine->getFileServices()->open(tabFile, "rb");
 
 		if (!file)
 			return;
@@ -90,11 +91,11 @@ void Polyglot_v2::configure(const char *tabFile) {
 	file->seek(0, SEEK_SET);
 
 	// Extra byte for the terminator
-	_table = (char *)gpMemoryServices->mallocImpl((size + 1) * sizeof(char));
+	_table = (char *)_engine->getMemoryServices()->mallocImpl((size + 1) * sizeof(char));
 	file->read(_table, size);
 	_table[size] = 0;
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	if (READ_LE_UINT32(header) == MKTAG('E', 'N', 'C', 'R')) {
 		_randomSeed = 22;
@@ -111,7 +112,7 @@ void Polyglot_v2::configure(const char *tabFile) {
 		_lineCount++;
 	} while (position < size - 1);
 
-	_lines = (char **)gpMemoryServices->mallocImpl(_lineCount * sizeof(char *));
+	_lines = (char **)_engine->getMemoryServices()->mallocImpl(_lineCount * sizeof(char *));
 
 	position = 0;
 	int lineIndex = 0;
@@ -171,8 +172,8 @@ const char *Polyglot_v2::getTranslation(const char *msg) {
 			*p -= 0x20;
 	}
 
-	const char *pKey = key;
-	char **found = (char **)binarySearch(&pKey, _lines, _lineCount, sizeof(char *), WuRegistry::compareNames);
+	const char *keyString = key;
+	char **found = (char **)binarySearch(&keyString, _lines, _lineCount, sizeof(char *), WuRegistry::compareNames);
 
 	if (!found)
 		return text;

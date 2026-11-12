@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/walkplanecollection.h"
@@ -36,21 +37,23 @@ static const float kDefaultTolerance = 0.005f;
 static const float kUnsetHeight = 12345.0f;
 static const double kSameVertexDistance = 1e-8;
 
-float WalkPlaneCollection::_rawPoints[WalkPlaneCollection::kMaxPathPoints][3];
-int WalkPlaneCollection::_rawCount = 0;
-float WalkPlaneCollection::_tightPoints[WalkPlaneCollection::kMaxPathPoints][3];
-int WalkPlaneCollection::_tightCount = 0;
-Common::Array<WalkPlane_v2 *> WalkPlaneCollection::_planePath;
-char WalkPlaneCollection::_sectionName[WalkPlaneCollection::kSectionNameSize];
+WalkPlaneCollection::WalkPlaneCollection(EmiEngine *engine) {
+	_engine = engine;
+	_rawCount = 0;
+	_tightCount = 0;
 
-static void logCollectionError(const char *message) {
-	if (gpConsoleServices)
-		gpConsoleServices->logError("%s", message);
-	else
-		warning("%s", message);
+	memset(_rawPoints, 0, sizeof(_rawPoints));
+	memset(_tightPoints, 0, sizeof(_tightPoints));
+	memset(_sectionName, 0, sizeof(_sectionName));
 }
 
-WalkPlaneCollection::WalkPlaneCollection() {
+void WalkPlaneCollection::logCollectionError(const char *message) {
+	LConsoleServices *console = _engine->getConsoleServices();
+
+	if (console)
+		console->logError("%s", message);
+	else
+		warning("%s", message);
 }
 
 WalkPlaneCollection::~WalkPlaneCollection() {
@@ -68,7 +71,7 @@ WalkPlaneCollection::~WalkPlaneCollection() {
 	Common::List<wpVertex *>::iterator vertexIt;
 
 	for (vertexIt = vertices.begin(); vertexIt != vertices.end(); ++vertexIt) {
-		gpMemoryServices->freeImpl(*vertexIt);
+		_engine->getMemoryServices()->freeImpl(*vertexIt);
 		*vertexIt = nullptr;
 	}
 
@@ -76,11 +79,11 @@ WalkPlaneCollection::~WalkPlaneCollection() {
 }
 
 void *WalkPlaneCollection::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void WalkPlaneCollection::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int WalkPlaneCollection::getPath(float (**path)[3]) {
@@ -393,7 +396,7 @@ wpVertex *WalkPlaneCollection::addVertex(const float *position) {
 		}
 	}
 
-	wpVertex *newVertex = (wpVertex *)gpMemoryServices->mallocImpl(sizeof(wpVertex));
+	wpVertex *newVertex = (wpVertex *)_engine->getMemoryServices()->mallocImpl(sizeof(wpVertex));
 
 	newVertex->x = 0.0f;
 	newVertex->y = 0.0f;
@@ -421,7 +424,7 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 					++it;
 			}
 
-			gpMemoryServices->freeImpl(vertex);
+			_engine->getMemoryServices()->freeImpl(vertex);
 		}
 	}
 }
@@ -512,7 +515,7 @@ void WalkPlaneCollection::addParsedPlane(const float *planeVertices, int vertexC
 		count = WalkPlane_v2::kMaxVertices;
 	}
 
-	WalkPlane_v2 *plane = new WalkPlane_v2(planeVertices, count, this);
+	WalkPlane_v2 *plane = new WalkPlane_v2(_engine, planeVertices, count, this);
 
 	planes.push_back(plane);
 	plane->name = planeName;

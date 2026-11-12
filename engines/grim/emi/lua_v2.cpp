@@ -26,12 +26,12 @@
 #include "common/util.h"
 
 #include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/emi_registry.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/fileutil.h"
-#include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lua_v2.h"
-#include "engines/grim/emi/textevent.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
@@ -44,15 +44,6 @@ static const char *const fieldNames[] = {
 	"fxcolor", "duration", "layer", "center", "ljustify", "rjustify", "volume", "pan"
 };
 
-uint Lua_V2::statsOverlayFlags = 8;
-Common::Array<Lua_V2::LockedChore> Lua_V2::_lockedChores;
-Common::Array<LString> Lua_V2::_lockedChoreSets;
-Common::Array<LString> Lua_V2::_lockedRooms;
-Common::Array<LString> Lua_V2::_lockedBackgrounds;
-Common::Array<uint> Lua_V2::_lockedSounds;
-int Lua_V2::_saveDataSize = 0;
-tSaveRestoreAccess *Lua_V2::_saveWriter = nullptr;
-
 bool Lua_V2::isSoundLocked(int soundHandle) {
 	for (uint i = 0; i < _lockedSounds.size(); i++) {
 		if ((int)_lockedSounds[i] == soundHandle)
@@ -62,7 +53,7 @@ bool Lua_V2::isSoundLocked(int soundHandle) {
 	return false;
 }
 
-static struct luaL_reg monkeyMainOpcodes[] = {
+static const struct luaL_reg monkeyMainOpcodes[] = {
 	{ "EnginePause", LUA_OPCODE(Lua_V2, EnginePause) },
 	{ "EngineResume", LUA_OPCODE(Lua_V2, EngineResume) },
 	{ "EngineDisplay", LUA_OPCODE(Lua_V2, EmptyFunction) },
@@ -339,7 +330,7 @@ static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "ImSetMusicVol", LUA_OPCODE(Lua_V2, UnimplementedFunction) }
 };
 
-static struct luaL_reg monkeyPs2Opcodes[] = {
+static const struct luaL_reg monkeyPs2Opcodes[] = {
 	{ "SetReplayMode", LUA_OPCODE(Lua_V2, SetReplayMode) },
 	{ "GetReplayMode", LUA_OPCODE(Lua_V2, GetReplayMode) },
 	{ "GetNextDemoNum", LUA_OPCODE(Lua_V2, GetNextDemoNum) },
@@ -366,13 +357,13 @@ static struct luaL_reg monkeyPs2Opcodes[] = {
 	{ "GLReport", LUA_OPCODE(Lua_V2, UnimplementedFunctionPs2) }
 };
 
-static struct luaL_reg monkeyEntryOpcodes[] = {
+static const struct luaL_reg monkeyEntryOpcodes[] = {
 	{ "  concatfallback", LUA_OPCODE(LuaBase, concatFallback) },
 	{ "  typeoverride", LUA_OPCODE(LuaBase, typeOverride) },
 	{ "  dfltcontrol", LUA_OPCODE(Lua_V2, EmptyFunction) }
 };
 
-static struct luaL_reg monkeyPrimitiveOpcodes[] = {
+static const struct luaL_reg monkeyPrimitiveOpcodes[] = {
 	{ "Draw3DLine", LUA_OPCODE(Lua_V2, Draw3DLine) },
 	{ "DrawLine", LUA_OPCODE(Lua_V2, DrawLine) },
 	{ "DrawPolygon", LUA_OPCODE(Lua_V2, DrawPolygon) },
@@ -382,7 +373,7 @@ static struct luaL_reg monkeyPrimitiveOpcodes[] = {
 	{ "PurgePrimitiveQueue", LUA_OPCODE(Lua_V2, PurgePrimitiveQueue) }
 };
 
-Lua_V2::Lua_V2() : Lua_V1(true), _pFind(nullptr), _gcTimer(0.0f), _bStarted(false) {
+Lua_V2::Lua_V2(EmiEngine *engine) : Lua_V1(true), statsOverlayFlags(8), _saveDataSize(0), _saveWriter(nullptr), _engine(engine), _pFind(nullptr), _gcTimer(0.0f), _bStarted(false) {
 	for (int i = 0; i < kNumFieldRefs; i++)
 		_fieldRefs[i] = 0;
 }
@@ -390,7 +381,7 @@ Lua_V2::Lua_V2() : Lua_V1(true), _pFind(nullptr), _gcTimer(0.0f), _bStarted(fals
 void Lua_V2::registerMainOpcodes() {
 	luaL_openlib(monkeyMainOpcodes, ARRAYSIZE(monkeyMainOpcodes));
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+	if (_engine->getGamePlatform() == Common::kPlatformPS2)
 		luaL_openlib(monkeyPs2Opcodes, ARRAYSIZE(monkeyPs2Opcodes));
 }
 
@@ -421,12 +412,12 @@ int Lua_V2::startup() {
 		_fieldRefs[i] = lua_ref(1);
 	}
 
-	Actor::offscreenTextRect.x = TextEvent::screenRect[2] / 2;
-	Actor::offscreenTextRect.y = truncateToInt((double)(TextEvent::screenRect[3] / 2) - (double)TextEvent::screenRect[3] * (double)0.4375f);
-	Actor::offscreenTextRect.w = 0;
-	Actor::offscreenTextRect.h = 0;
+	_engine->_offscreenTextRect.x = _engine->_textScreenRect[2] / 2;
+	_engine->_offscreenTextRect.y = truncateToInt((double)(_engine->_textScreenRect[3] / 2) - (double)_engine->_textScreenRect[3] * (double)0.4375f);
+	_engine->_offscreenTextRect.w = 0;
+	_engine->_offscreenTextRect.h = 0;
 
-	InputRecorder::createInputRecorder(0);
+	_engine->createInputRecorder(0);
 
 	_lockedChores.clear();
 	_lockedChoreSets.clear();
@@ -493,7 +484,7 @@ void Lua_V2::update(float seconds) {
 }
 
 int Lua_V2::dofile(const char *filename) {
-	LFile *file = gpFileServices->open(filename, "rb");
+	LFile *file = _engine->getFileServices()->open(filename, "rb");
 
 	if (!file)
 		return 2;
@@ -511,7 +502,7 @@ int Lua_V2::dofile(const char *filename) {
 	int count = file->read(buffer, size);
 
 	buffer[count] = 0;
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	Common::String patchName(filename);
 
@@ -545,19 +536,31 @@ int Lua_V2::dofile(const char *filename) {
 }
 
 bool Lua_V2::logError(const char *message) {
-	if (!gpConsoleServices)
+	LConsoleServices *console = _engine->getConsoleServices();
+
+	if (!console)
 		return false;
 
-	gpConsoleServices->logError("%s", message);
+	console->logError("%s", message);
 
 	return true;
 }
 
+Common::SeekableReadStream *Lua_V2::openPrefsForReading(Common::SeekableReadStream *realFile) {
+	return EmiRegistry::openPrefsForReading(_engine, realFile);
+}
+
+Common::WriteStream *Lua_V2::openPrefsForWriting(Common::WriteStream *realFile) {
+	return EmiRegistry::openPrefsForWriting(_engine, realFile);
+}
+
 Common::SeekableReadStream *Lua_V2::openBundleStream(const char *path) {
-	if (!gpFileServices)
+	LFileServices *fileServices = _engine->getFileServices();
+
+	if (!fileServices)
 		return nullptr;
 
-	LFile *file = gpFileServices->open(path, "r");
+	LFile *file = fileServices->open(path, "r");
 
 	if (!file)
 		return nullptr;
@@ -581,7 +584,7 @@ Common::SeekableReadStream *Lua_V2::openBundleStream(const char *path) {
 		size -= count;
 	}
 
-	gpFileServices->close(file, true);
+	fileServices->close(file, true);
 
 	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
 }
@@ -613,16 +616,14 @@ void Lua_V2::makeSystemTable() {
 }
 
 void Lua_V2::callCameraChange(int oldSetup, int newSetup) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua || !lua->_bStarted) {
+	if (!_bStarted) {
 		warning("Lua_V2::callCameraChange(): the system table is not ready");
 
 		return;
 	}
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("camChangeHandler");
 
 	lua_Object handler = lua_gettable();
@@ -637,16 +638,14 @@ void Lua_V2::callCameraChange(int oldSetup, int newSetup) {
 }
 
 void Lua_V2::callPostCameraChange(int setup) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua || !lua->_bStarted) {
+	if (!_bStarted) {
 		warning("Lua_V2::callPostCameraChange(): the system table is not ready");
 
 		return;
 	}
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("postCamChangeHandler");
 
 	lua_Object handler = lua_gettable();
@@ -660,9 +659,7 @@ void Lua_V2::callPostCameraChange(int setup) {
 }
 
 void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua || !lua->_bStarted) {
+	if (!_bStarted) {
 		warning("Lua_V2::callCollisionHandler(): the system table is not ready");
 
 		return;
@@ -674,8 +671,10 @@ void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y
 		return;
 	}
 
+	LConsoleServices *console = _engine->getConsoleServices();
+
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("collisionHandler");
 
 	lua_Object handler = lua_gettable();
@@ -688,8 +687,8 @@ void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y
 		function = lua_gettable();
 
 		if (!lua_isfunction(function)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Installed collision handler handler has no member func '%s'\n", "collisionHandler");
+			if (console)
+				console->logError("Installed collision handler handler has no member func '%s'\n", "collisionHandler");
 			else
 				warning("Installed collision handler handler has no member func '%s'", "collisionHandler");
 
@@ -703,8 +702,8 @@ void Lua_V2::callCollisionHandler(Actor *first, Actor *second, float x0, float y
 		function = handler;
 	} else {
 		if (!lua_isnil(handler)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Installed costume marker handler is invalid.\n");
+			if (console)
+				console->logError("Installed costume marker handler is invalid.\n");
 			else
 				warning("Installed costume marker handler is invalid.");
 		}

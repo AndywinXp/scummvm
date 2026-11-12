@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/cmaterial.h"
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rmeshparser.h"
@@ -34,7 +35,7 @@ static const int kTokenSize = 256;
 static const int kDefaultDrawFlags = 772;
 static const int kMaxTriangles = 0x7FFFFFFF / 3;
 
-RMeshParser::RMeshParser() {
+RMeshParser::RMeshParser(EmiEngine *engine) : LFormatParser(engine) {
 	mesh = nullptr;
 
 	addKeyword("NumVerts", kKeywordNumVerts, 1);
@@ -96,7 +97,7 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 			numTextures = 0;
 		}
 
-		mesh->matHandles.resize(numTextures);
+		mesh->matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
 		mesh->texFlags.resize(numTextures, 0);
 		mesh->materials.resize(numTextures, nullptr);
 
@@ -107,17 +108,17 @@ bool RMeshParser::parseBasePrim(int token, int numArgs, KeywordArg *args) {
 			textureName[0] = 0;
 			readEntry(kKeywordTextureName, textureName, &mesh->texFlags[i]);
 
-			handle->resource = gpResourceManager->findResource(textureName);
+			handle->resource = _engine->getResourceManager()->findResource(textureName);
 
 			if (!handle->resource) {
-				handle->resource = gpResourceManager->createResource(textureName);
+				handle->resource = _engine->getResourceManager()->createResource(textureName);
 
 				if (!handle->resource)
 					handle->allocateResource();
 
 				if (handle->resource) {
 					handle->resource->resSetName(textureName);
-					gpResourceManager->addResource(handle->resource);
+					_engine->getResourceManager()->addResource(handle->resource);
 				}
 			}
 
@@ -282,7 +283,7 @@ bool RMeshParser::parseDeformPrim(int token, int numArgs, KeywordArg *args) {
 		return false;
 	}
 
-	CWeightMap *weightMap = new CWeightMap();
+	CWeightMap *weightMap = new CWeightMap(_engine);
 
 	weightMap->restore(file);
 	mesh->weightMap = weightMap;

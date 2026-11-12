@@ -20,12 +20,11 @@
  */
 
 #include "engines/grim/emi/clightnode.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
-Common::List<CLightNode *> CLightNode::activeLights;
-
-CLightNode::CLightNode() {
+CLightNode::CLightNode(EmiEngine *engine) : _engine(engine) {
 	active = false;
 	savedActive = false;
 	light = nullptr;
@@ -42,15 +41,15 @@ void CLightNode::setLight(CLight *newLight) {
 void CLightNode::setActive(bool newActive) {
 	if (newActive) {
 		if (!active) {
-			activeLights.push_back(this);
+			_engine->_activeLights.push_back(this);
 			active = true;
 		}
 	} else if (active) {
-		Common::List<CLightNode *>::iterator it = activeLights.begin();
+		Common::List<CLightNode *>::iterator it = _engine->_activeLights.begin();
 
-		while (it != activeLights.end()) {
+		while (it != _engine->_activeLights.end()) {
 			if (*it == this)
-				it = activeLights.erase(it);
+				it = _engine->_activeLights.erase(it);
 			else
 				++it;
 		}

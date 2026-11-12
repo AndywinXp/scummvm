@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
@@ -38,11 +39,9 @@ enum {
 
 static const int kTokenSize = 256;
 
-static ProfilerTimer deformVertsTimer("CWeightMap::DeformVerts()", ProfilerTimer::kTrackNesting);
-
 class CWeightMapParser : public LFormatParser {
 public:
-	CWeightMapParser() {
+	explicit CWeightMapParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("NUMNODES", kKeywordNumNodes, 1);
 		addKeyword("NODENAME", kKeywordNodeName, 3);
 		addKeyword("NUMVERTS", kKeywordNumVerts, 1);
@@ -52,14 +51,14 @@ public:
 };
 
 void *WeightData::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void WeightData::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
-CWeightMap::CWeightMap() {
+CWeightMap::CWeightMap(EmiEngine *engine) : _engine(engine) {
 	bound = false;
 }
 
@@ -76,11 +75,11 @@ CWeightMap::~CWeightMap() {
 }
 
 void *CWeightMap::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CWeightMap::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int CWeightMap::getSize() {
@@ -96,7 +95,7 @@ bool CWeightMap::save(LFile *file) {
 	if (!file)
 		return false;
 
-	CWeightMapParser parser;
+	CWeightMapParser parser(_engine);
 
 	parser.setFile(file);
 	parser.writeVersion(2, 0);
@@ -137,7 +136,7 @@ bool CWeightMap::restore(LFile *file) {
 	if (!file)
 		return false;
 
-	CWeightMapParser parser;
+	CWeightMapParser parser(_engine);
 	char token[kTokenSize];
 	int nodeCount = 0;
 	int vertexCount = 0;
@@ -380,10 +379,10 @@ void CWeightMap::computeTransforms(CNode *node, const CTransform *parentTransfor
 }
 
 void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, float *outNormals, CNode **nodes) {
-	deformVertsTimer.start();
+	_engine->_weightMapDeformTimer.start();
 
 	if (!bound) {
-		deformVertsTimer.stop();
+		_engine->_weightMapDeformTimer.stop();
 
 		return;
 	}
@@ -474,7 +473,7 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 		}
 	}
 
-	deformVertsTimer.stop();
+	_engine->_weightMapDeformTimer.stop();
 }
 
 } // End of namespace Grim

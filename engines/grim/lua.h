@@ -27,6 +27,7 @@
 
 namespace Common {
 class SeekableReadStream;
+class WriteStream;
 }
 
 namespace Grim {
@@ -134,6 +135,22 @@ public:
 	 * @return A stream owned by the caller, or nullptr if the host has no such file.
 	 */
 	virtual Common::SeekableReadStream *openBundleStream(const char *path);
+
+	/**
+	 * Wrap a preferences file opened for reading by the interpreter's file library.
+	 *
+	 * @param realFile The stream of the file on disk, or nullptr.
+	 * @return The stream the interpreter should read, owned by the caller.
+	 */
+	virtual Common::SeekableReadStream *openPrefsForReading(Common::SeekableReadStream *realFile);
+
+	/**
+	 * Wrap a preferences file opened for writing by the interpreter's file library.
+	 *
+	 * @param realFile The stream of the file on disk, or nullptr.
+	 * @return The stream the interpreter should write, owned by the caller.
+	 */
+	virtual Common::WriteStream *openPrefsForWriting(Common::WriteStream *realFile);
 
 protected:
 	bool getbool(int num);

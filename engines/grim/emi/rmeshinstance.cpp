@@ -25,8 +25,8 @@
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/cmaterial.h"
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
-#include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rmeshinstance.h"
 #include "engines/grim/emi/rnode.h"
@@ -41,13 +41,8 @@ static const float kAlphaScale = 255.0f;
 static const int kAlphaShift = 24;
 static const uint32 kAlphaMask = 0x00FFFFFF;
 
-static ProfilerTimer outputTimer("RMesh::Output()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-static ProfilerTimer updateTimer("RMesh::Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-static ProfilerTimer computeTransformsTimer("CWeightMap::ComputeTransforms()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer futzingTimer("Futzing", ProfilerTimer::kTrackNesting);
-
-RMeshInstance::RMeshInstance(RMesh *meshPrimitive) : RPrimitiveInstance(meshPrimitive) {
-	CDrawContext *ctx = CDrawContext::context;
+RMeshInstance::RMeshInstance(RMesh *meshPrimitive) : RPrimitiveInstance(meshPrimitive), _engine(meshPrimitive->getEngine()) {
+	CDrawContext *ctx = _engine->getDrawContext();
 	Common::Array<uint32> packedColors;
 	const uint32 *colorData = nullptr;
 
@@ -81,7 +76,7 @@ RMeshInstance::RMeshInstance(RMesh *meshPrimitive) : RPrimitiveInstance(meshPrim
 	} else {
 		int numVerts = vertexArray ? vertexArray->numVerts : 0;
 
-		vertexBuf = (float *)gpMemoryServices->mallocImpl(numVerts * 3 * sizeof(float));
+		vertexBuf = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 3 * sizeof(float));
 
 		if (vertexBuf)
 			memset(vertexBuf, 0, numVerts * 3 * sizeof(float));
@@ -95,12 +90,12 @@ RMeshInstance::~RMeshInstance() {
 	vertexArray = nullptr;
 
 	if (ownsVertexBuf && vertexBuf) {
-		gpMemoryServices->freeImpl(vertexBuf);
+		_engine->getMemoryServices()->freeImpl(vertexBuf);
 		vertexBuf = nullptr;
 	}
 
 	if (boneNodes) {
-		gpMemoryServices->freeImpl(boneNodes);
+		_engine->getMemoryServices()->freeImpl(boneNodes);
 		boneNodes = nullptr;
 	}
 
@@ -118,14 +113,14 @@ void RMeshInstance::setMaterialTextureIndex(int materialIndex, int textureIndex)
 }
 
 void RMeshInstance::update(RNode *node, Camera *camera) {
-	updateTimer.start();
+	_engine->_rmeshUpdateTimer.start();
 
 	RMesh *mesh = static_cast<RMesh *>(prim);
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = camera->getDrawContext();
 
 	if (!ctx || !vertexArray) {
 		warning("RMeshInstance::update(): no draw context or vertex array");
-		updateTimer.stop();
+		_engine->_rmeshUpdateTimer.stop();
 
 		return;
 	}
@@ -148,13 +143,13 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 		lastFrame = frameCounter;
 
 		if (mesh->weightMap) {
-			computeTransformsTimer.start();
+			_engine->_rmeshComputeTransformsTimer.start();
 
 			CTransform identity;
 
 			identity.rot.setIdentity();
 			mesh->weightMap->computeTransforms(node, &identity);
-			computeTransformsTimer.stop();
+			_engine->_rmeshComputeTransformsTimer.stop();
 
 			VertexSource source;
 
@@ -225,24 +220,24 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 	}
 
 	vertexArray->unlock();
-	updateTimer.stop();
+	_engine->_rmeshUpdateTimer.stop();
 }
 
 void RMeshInstance::output(RNode *node, Camera *camera) {
-	outputTimer.start();
+	_engine->_rmeshOutputTimer.start();
 
 	if (!visible) {
-		outputTimer.stop();
+		_engine->_rmeshOutputTimer.stop();
 
 		return;
 	}
 
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = camera->getDrawContext();
 	RMesh *mesh = static_cast<RMesh *>(prim);
 
 	if (!ctx || !vertexArray) {
 		warning("RMeshInstance::output(): no draw context or vertex array");
-		outputTimer.stop();
+		_engine->_rmeshOutputTimer.stop();
 
 		return;
 	}
@@ -280,7 +275,7 @@ void RMeshInstance::output(RNode *node, Camera *camera) {
 	ctx->submitVertices(vertexArray);
 
 	for (uint i = 0; i < mesh->trisets.size(); i++) {
-		futzingTimer.start();
+		_engine->_rmeshFutzingTimer.start();
 
 		TriSet *triset = mesh->trisets[i];
 		int flags = triset->drawFlags;
@@ -298,13 +293,13 @@ void RMeshInstance::output(RNode *node, Camera *camera) {
 				texture = mesh->materials[materialIdx]->getTexture(texIndex[materialIdx]);
 		}
 
-		futzingTimer.stop();
+		_engine->_rmeshFutzingTimer.stop();
 		ctx->drawTriangles(flags, texture, (int)triset->indices.size(), triset->indices.data());
 	}
 
 	ctx->releaseVertices();
 	ctx->resetCameraMatrix();
-	outputTimer.stop();
+	_engine->_rmeshOutputTimer.stop();
 }
 
 int RMeshInstance::getSaveSize() {

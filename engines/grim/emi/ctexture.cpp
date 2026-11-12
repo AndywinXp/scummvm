@@ -32,11 +32,11 @@ CTexture::~CTexture() {
 }
 
 void *CTexture::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CTexture::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void CTexture::applyFlags() {

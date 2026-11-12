@@ -29,12 +29,14 @@
 
 namespace Grim {
 
+class AudioSystem;
 class CWaveChannel;
 class EMIMilesDriver;
+class Sounds;
 
 class CWaveAudioDevice : public CAudioDevice {
 public:
-	CWaveAudioDevice(int channelCount);
+	CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int channelCount);
 	~CWaveAudioDevice() override;
 
 	void *operator new(size_t size);
@@ -61,9 +63,12 @@ public:
 	int getActiveSampleCount() override;
 
 	bool setSonyRoomType(int type, int depth, int delay, int feedback);
+	void setSpuStereo(bool stereo);
+	bool getSpuStereo() const;
+	AudioSystem *getAudioSystem() const;
 
-	static int getMilesDigitalDriver();
-	static EMIMilesDriver *getMilesDriver();
+	int getMilesDigitalDriver();
+	EMIMilesDriver *getMilesDriver();
 
 	bool lost;
 	Common::Array<CWaveChannel *> channels;
@@ -71,6 +76,8 @@ public:
 	int lastCheckMs;
 
 private:
+	AudioSystem *_audioSystem;
+	bool _spuStereo;
 	EMIMilesDriver *_driver;
 };
 

@@ -20,19 +20,16 @@
  */
 
 #include "common/archive.h"
-#include "common/array.h"
 #include "common/file.h"
 #include "common/path.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
-
-static Common::Array<LFileServices *> gServices;
-LFileServices *gpFileServices = nullptr;
 
 static LString normalizePath(const char *path) {
 	LString result(path);
@@ -90,7 +87,7 @@ static bool openStreams(const char *path, const char *mode, Common::SeekableRead
 	return readStream || writeStream;
 }
 
-LFile::LFile() {
+LFile::LFile(EmiEngine *engine) : _engine(engine) {
 	readStream = nullptr;
 	writeStream = nullptr;
 	openFlags = 17;
@@ -101,7 +98,7 @@ LFile::LFile() {
 
 LFile::~LFile() {
 	if (memData)
-		gpMemoryServices->freeImpl(memData);
+		_engine->getMemoryServices()->freeImpl(memData);
 
 	memData = nullptr;
 	memCursor = nullptr;
@@ -111,11 +108,11 @@ LFile::~LFile() {
 }
 
 void *LFile::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LFile::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool LFile::isOpen() const {
@@ -352,7 +349,7 @@ uint LFile::loadAll() {
 	uint size = tell() + 1;
 	seek(0, 0);
 
-	memData = (char *)gpMemoryServices->mallocImpl(size);
+	memData = (char *)_engine->getMemoryServices()->mallocImpl(size);
 	memCursor = memData;
 	memSize = readStream->read(memData, size);
 	memData[size - 1] = 0;
@@ -415,61 +412,20 @@ char *LFile::getString(char *buffer, int maxCount) {
 	return buffer;
 }
 
-LFileServices::LFileServices() {
-	if (!gpFileServices) {
-		gServices.push_back(this);
-		gpFileServices = this;
-	}
+LFileServices::LFileServices(EmiEngine *engine) : _engine(engine) {
+	if (!engine->getFileServices())
+		engine->pushFileServices(this);
 }
 
 LFileServices::~LFileServices() {
 }
 
 void *LFileServices::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LFileServices::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
-}
-
-void LFileServices::deleteAllServices() {
-	while (!gServices.empty()) {
-		LFileServices *services = gServices.back();
-		gServices.pop_back();
-
-		delete services;
-	}
-
-	gpFileServices = nullptr;
-}
-
-int LFileServices::pushServices(LFileServices *services) {
-	gServices.push_back(services);
-	gpFileServices = services;
-
-	return gServices.size();
-}
-
-LFileServices *LFileServices::popServices() {
-	if (gServices.empty())
-		return nullptr;
-
-	LFileServices *services = gServices.back();
-	gServices.pop_back();
-
-	if (gServices.empty()) {
-		warning("LFileServices::popServices(): no services left");
-		gpFileServices = nullptr;
-	} else {
-		gpFileServices = gServices.back();
-	}
-
-	return services;
-}
-
-uint LFileServices::getNumServices() {
-	return gServices.size();
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void LFileServices::openInto(LFile *file, const char *path, const char *mode) {
@@ -501,7 +457,7 @@ LFile *LFileServices::open(const char *path, const char *mode) {
 	if (!openStreams(path, mode, readStream, writeStream))
 		return nullptr;
 
-	LFile *file = new LFile();
+	LFile *file = new LFile(_engine);
 	file->openFlags = flags;
 	file->readStream = readStream;
 	file->writeStream = writeStream;

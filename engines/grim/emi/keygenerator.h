@@ -36,7 +36,7 @@ public:
 		kFlagRepeat = 0x40000000
 	};
 
-	KeyGenerator();
+	explicit KeyGenerator(EmiEngine *engine);
 	~KeyGenerator() override;
 
 	void poll() override;

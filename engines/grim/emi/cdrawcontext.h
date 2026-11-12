@@ -22,6 +22,7 @@
 #ifndef GRIM_EMI_CDRAWCONTEXT_H
 #define GRIM_EMI_CDRAWCONTEXT_H
 
+#include "common/array.h"
 #include "common/scummsys.h"
 
 #include "graphics/pixelformat.h"
@@ -40,6 +41,8 @@ struct Surface;
 
 namespace Grim {
 
+class EmiEngine;
+
 struct DisplayMode {
 	int width;
 	int height;
@@ -54,7 +57,7 @@ public:
 		kNumCachedTextures = 32
 	};
 
-	CDrawContext();
+	explicit CDrawContext(EmiEngine *engine);
 	virtual ~CDrawContext();
 
 	void *operator new(size_t size);
@@ -131,9 +134,16 @@ public:
 	bool setCachedTexture(int slot, int width, int height, const LColorFormat &format, byte *pixels, const char *name);
 	bool setCachedTexture(int slot, LABitmap *bitmap);
 	CTexture *getCachedTexture(int slot);
+	EmiEngine *getEngine() const;
 
-	static CDrawContext *context;
+protected:
+	friend class CDrawList;
 
+	EmiEngine *_engine;
+	Common::Array<DrawVertex *> _vertexPool;
+	int _listCount;
+
+public:
 	int trianglesDrawn;
 	int counter8;
 	int counter12;

@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class AnimComponent : public Component, public Animation {
 public:
-	AnimComponent();
+	explicit AnimComponent(EmiEngine *engine);
 	~AnimComponent() override;
 
 	uint resSizeOfItem() override;

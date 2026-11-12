@@ -50,11 +50,11 @@ Primitive::Primitive(int primitiveId, int primitiveType) : color(0u) {
 }
 
 void *Primitive::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Primitive::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void Primitive::drawNode(CDrawContext *drawContext) {

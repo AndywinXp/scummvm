@@ -27,6 +27,7 @@
 #include "engines/grim/emi/cdcvertexarray.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/overworld.h"
@@ -37,23 +38,7 @@ namespace Grim {
 
 const float Actor::kDegreesToRadians = 3.14159274f * 0.00555555569f;
 
-int Actor::_nextId = 1;
-Common::List<Actor *> Actor::_actors;
-Actor *Actor::_selectedActor = nullptr;
-Actor *Actor::_speakers[Actor::kNumSpeakers];
-int Actor::_numSpeakers = 0;
-int Actor::_speechMode = 2;
-int Actor::_actorTextRate = 6;
-IRect Actor::offscreenTextRect;
-Actor *Actor::_collisionActors[Actor::kMaxCollisionActors];
-int Actor::_collisionCount = 0;
-CDrawContext *Actor::_drawContext = nullptr;
-CDCVertexArray *Actor::_shadowVertices = nullptr;
-CVector Actor::_hitPoint;
-CVector Actor::_collisionOldPosition;
-CVector Actor::_collisionNewPosition;
-
-Actor::Actor(const char *newActorName) {
+Actor::Actor(EmiEngine *engine, const char *newActorName) : room(engine), _engine(engine) {
 	prevPos.x = 0.0f;
 	prevPos.y = 0.0f;
 	prevPos.z = 0.0f;
@@ -63,8 +48,8 @@ Actor::Actor(const char *newActorName) {
 	drawnRect[3] = 0;
 	memset(choreSlotIds, 0, kNumChoreSlots * sizeof(uint));
 
-	id = _nextId++;
-	_actors.push_back(this);
+	id = _engine->_nextActorId++;
+	_engine->_actors.push_back(this);
 
 	if (newActorName)
 		actorName = newActorName;
@@ -111,8 +96,8 @@ Actor::~Actor() {
 	Common::List<uint>::iterator choreIt;
 
 	for (choreIt = choreIds.begin(); choreIt != choreIds.end(); ++choreIt) {
-		if (ChoreInstance::isInstanceValid(*choreIt)) {
-			ChoreInstance *instance = ChoreInstance::getInstance(*choreIt);
+		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
+			ChoreInstance *instance = ChoreInstance::getInstance(_engine, *choreIt);
 
 			if (instance)
 				delete instance;
@@ -131,11 +116,11 @@ Actor::~Actor() {
 		extra = nullptr;
 	}
 
-	Common::List<Actor *>::iterator actorIt = _actors.begin();
+	Common::List<Actor *>::iterator actorIt = _engine->_actors.begin();
 
-	while (actorIt != _actors.end()) {
+	while (actorIt != _engine->_actors.end()) {
 		if (*actorIt == this)
-			actorIt = _actors.erase(actorIt);
+			actorIt = _engine->_actors.erase(actorIt);
 		else
 			++actorIt;
 	}
@@ -143,21 +128,21 @@ Actor::~Actor() {
 	// The disasm leaves the actor in the overworld list and in the selected/speaker slots
 }
 
-int Actor::allocateActor(const char *newActorName) {
-	Actor *actor = new Actor(newActorName);
+int Actor::allocateActor(EmiEngine *engine, const char *newActorName) {
+	Actor *actor = new Actor(engine, newActorName);
 
 	return actor->id;
 }
 
-void Actor::freeActor(int actorId) {
-	Actor *actor = actorDeref(actorId);
+void Actor::freeActor(EmiEngine *engine, int actorId) {
+	Actor *actor = actorDeref(engine, actorId);
 
 	if (actor)
 		delete actor;
 }
 
 void Actor::allocateActorExtra() {
-	extra = new Extra_v2();
+	extra = new Extra_v2(_engine);
 }
 
 bool Actor::putInSet(const char *roomName) {
@@ -197,10 +182,10 @@ bool Actor::putInSet(const char *roomName) {
 		return true;
 	}
 
-	room.resource = gpResourceManager->findResource(roomName);
+	room.resource = _engine->getResourceManager()->findResource(roomName);
 
 	if (!room.resource) {
-		room.resource = gpResourceManager->createResource(roomName);
+		room.resource = _engine->getResourceManager()->createResource(roomName);
 
 		if (!room.resource)
 			room.allocateResource();
@@ -212,7 +197,7 @@ bool Actor::putInSet(const char *roomName) {
 		}
 
 		room.resource->resSetName(roomName);
-		gpResourceManager->addResource(room.resource);
+		_engine->getResourceManager()->addResource(room.resource);
 	}
 
 	room.setResource(room.resource);
@@ -238,51 +223,49 @@ bool Actor::putInSet(const char *roomName) {
 	return true;
 }
 
-bool Actor::startup(CDrawContext *drawContext) {
-	_drawContext = drawContext;
-
+bool Actor::startup(EmiEngine *engine, CDrawContext *drawContext) {
 	if (drawContext)
-		_shadowVertices = drawContext->createVertexArray(2000, nullptr, nullptr, nullptr);
+		engine->_shadowVertices = drawContext->createVertexArray(2000, nullptr, nullptr, nullptr);
 
 	for (int i = 0; i < kNumSpeakers; i++)
-		_speakers[i] = nullptr;
+		engine->_speakers[i] = nullptr;
 
-	LipData::sortMouthTable();
+	LipData::sortMouthTable(engine);
 
 	return true;
 }
 
-void Actor::shutdown() {
+void Actor::shutdown(EmiEngine *engine) {
 	// The disasm leaves dangling actor pointers at shutdown, let's clear them first
-	Overworld::getInstance()->clearActors();
+	engine->getOverworld()->clearActors();
 
-	_selectedActor = nullptr;
+	engine->_selectedActor = nullptr;
 
 	for (int i = 0; i < kNumSpeakers; i++)
-		_speakers[i] = nullptr;
+		engine->_speakers[i] = nullptr;
 
-	_numSpeakers = 0;
+	engine->_numSpeakers = 0;
 
-	freeAllActors();
+	freeAllActors(engine);
 
-	if (_drawContext && _shadowVertices)
-		delete _shadowVertices;
+	// The vertex array only exists when startup() got a draw context
+	if (engine->_shadowVertices)
+		delete engine->_shadowVertices;
 
-	_shadowVertices = nullptr;
-	_drawContext = nullptr;
+	engine->_shadowVertices = nullptr;
 
-	Overworld::destroyInstance();
+	engine->destroyOverworld();
 }
 
-void Actor::freeAllActors() {
+void Actor::freeAllActors(EmiEngine *engine) {
 	Common::List<Actor *>::iterator it;
 
-	for (it = _actors.begin(); it != _actors.end(); ++it)
+	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it)
 		(*it)->detachFromParent();
 
-	it = _actors.begin();
+	it = engine->_actors.begin();
 
-	while (it != _actors.end()) {
+	while (it != engine->_actors.end()) {
 		Actor *actor = *it;
 
 		++it;
@@ -291,29 +274,29 @@ void Actor::freeAllActors() {
 			delete actor;
 	}
 
-	_actors.clear();
+	engine->_actors.clear();
 }
 
-int Actor::setSelectedActor(int actorId) {
+int Actor::setSelectedActor(EmiEngine *engine, int actorId) {
 	int previousId = -1;
 
-	if (_selectedActor)
-		previousId = _selectedActor->id;
+	if (engine->_selectedActor)
+		previousId = engine->_selectedActor->id;
 
 	if (actorId >= 0)
-		_selectedActor = actorDeref(actorId);
+		engine->_selectedActor = actorDeref(engine, actorId);
 
 	return previousId;
 }
 
-Actor *Actor::getSelectedActor() {
-	return _selectedActor;
+Actor *Actor::getSelectedActor(EmiEngine *engine) {
+	return engine->_selectedActor;
 }
 
-Actor *Actor::actorDeref(int actorId) {
+Actor *Actor::actorDeref(EmiEngine *engine, int actorId) {
 	Common::List<Actor *>::iterator it;
 
-	for (it = _actors.begin(); it != _actors.end(); ++it) {
+	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it) {
 		if (*it && (*it)->id == actorId)
 			return *it;
 	}
@@ -321,7 +304,7 @@ Actor *Actor::actorDeref(int actorId) {
 	return nullptr;
 }
 
-int Actor::getActorHandle(Actor *actor) {
+int Actor::getActorHandle(EmiEngine *, Actor *actor) {
 	if (actor)
 		return actor->id;
 
