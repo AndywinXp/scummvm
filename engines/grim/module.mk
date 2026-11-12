@@ -23,10 +23,8 @@ MODULE_OBJS := \
 	emi/ainst.o \
 	emi/animation.o \
 	emi/animcomponent.o \
-	emi/animcomponenttype.o \
 	emi/animinstance.o \
 	emi/animwgtcomponent.o \
-	emi/animwgtcomponenttype.o \
 	emi/animwgtinstance.o \
 	emi/anode.o \
 	emi/atrack.o \
@@ -61,7 +59,6 @@ MODULE_OBJS := \
 	emi/color.o \
 	emi/component.o \
 	emi/componentinstance.o \
-	emi/componenttype.o \
 	emi/cpathingfileservices.o \
 	emi/cpcxfile.o \
 	emi/cplane.o \
@@ -79,7 +76,6 @@ MODULE_OBJS := \
 	emi/ctinyglcontext.o \
 	emi/ctinygltexture.o \
 	emi/cubecomponent.o \
-	emi/cubecomponenttype.o \
 	emi/cubeinstance.o \
 	emi/cueentry.o \
 	emi/cuestream.o \
@@ -101,13 +97,10 @@ MODULE_OBJS := \
 	emi/extra_v2.o \
 	emi/filefind.o \
 	emi/fileutil.o \
-	emi/floatcomponenttype.o \
 	emi/frect.o \
 	emi/globalalphacomponent.o \
-	emi/globalalphacomponenttype.o \
 	emi/globalalphainstance.o \
 	emi/inputrecorder.o \
-	emi/integercomponenttype.o \
 	emi/irect.o \
 	emi/joystick.o \
 	emi/keyeventmapper.o \
@@ -122,7 +115,6 @@ MODULE_OBJS := \
 	emi/lipdata.o \
 	emi/lmemoryservices.o \
 	emi/localalphacomponent.o \
-	emi/localalphacomponenttype.o \
 	emi/localalphainstance.o \
 	emi/lresource.o \
 	emi/lresourcehandle.o \
@@ -147,13 +139,10 @@ MODULE_OBJS := \
 	emi/lua_v2_system.o \
 	emi/lua_v2_text.o \
 	emi/luacommandcomponent.o \
-	emi/luacommandcomponenttype.o \
 	emi/luacommandinstance.o \
 	emi/luavarcomponent.o \
-	emi/luavarcomponenttype.o \
 	emi/luavarinstance.o \
 	emi/meshcomponent.o \
-	emi/meshcomponenttype.o \
 	emi/meshinstance.o \
 	emi/miles_audio/driver.o \
 	emi/miles_audio/mixer.o \
@@ -181,27 +170,20 @@ MODULE_OBJS := \
 	emi/setup.o \
 	emi/shadow_v2.o \
 	emi/shadowmeshcomponent.o \
-	emi/shadowmeshcomponenttype.o \
 	emi/shadowmeshinstance.o \
 	emi/skeletoncomponent.o \
-	emi/skeletoncomponenttype.o \
 	emi/skeletoninstance.o \
 	emi/snd3dcomponent.o \
-	emi/snd3dcomponenttype.o \
 	emi/sndcomponent.o \
-	emi/sndcomponenttype.o \
 	emi/sndinstance.o \
 	emi/soundposition.o \
 	emi/sounds.o \
 	emi/spritecomponent.o \
-	emi/spritecomponenttype.o \
 	emi/spriteinstance.o \
 	emi/sputcontrol_v2.o \
-	emi/statecomponenttype.o \
 	emi/streamscript.o \
 	emi/textevent.o \
 	emi/textureindexcomponent.o \
-	emi/textureindexcomponenttype.o \
 	emi/textureindexinstance.o \
 	emi/tiledscene.o \
 	emi/triset.o \

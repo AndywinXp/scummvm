@@ -35,7 +35,7 @@ public:
 	Color &operator=(const Color &other);
 
 	void clamp();
-	void getRGB(byte *r, byte *g, byte *b);
+	void getRGB(byte *r, byte *g, byte *b) const;
 	Color *setRGB(int newR, int newG, int newB);
 
 	int a;
@@ -43,12 +43,12 @@ public:
 	int g;
 	int b;
 
-	static Color kWhite;
-	static Color kYellow;
-	static Color kGreen;
-	static Color kRed;
-	static Color kCyan;
-	static Color kBlue;
+	static const Color kWhite;
+	static const Color kYellow;
+	static const Color kGreen;
+	static const Color kRed;
+	static const Color kCyan;
+	static const Color kBlue;
 };
 
 class PackedColor {

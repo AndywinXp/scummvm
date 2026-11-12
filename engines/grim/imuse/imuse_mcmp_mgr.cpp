@@ -27,8 +27,6 @@
 
 namespace Grim {
 
-uint16 imuseDestTable[5786];
-
 McmpMgr::McmpMgr() {
 	_compTable = nullptr;
 	_numCompItems = 0;
@@ -37,6 +35,7 @@ McmpMgr::McmpMgr() {
 	_outputSize = 0;
 	_file = nullptr;
 	_lastBlock = -1;
+	vimaInit(_destTable);
 }
 
 McmpMgr::~McmpMgr() {
@@ -135,7 +134,7 @@ int32 McmpMgr::decompressSample(int32 offset, int32 size, byte **comp_final) {
 				_file->read(_compOutput, _compTable[i].compSize);
 			} else {
 				_file->read(_compInput, _compTable[i].compSize);
-				decompressVima(_compInput, (int16 *)_compOutput, _compTable[i].decompSize, imuseDestTable, false);
+				decompressVima(_compInput, (int16 *)_compOutput, _compTable[i].decompSize, _destTable, false);
 			}
 			_outputSize = _compTable[i].decompSize;
 			if (_outputSize > 0x2000) {

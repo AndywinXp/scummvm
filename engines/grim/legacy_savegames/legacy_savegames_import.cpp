@@ -338,7 +338,7 @@ void LegacyImporter::importSounds() {
 	int32 stateIndex = stream.readSint32LE();
 	int32 seqIndex = stream.readSint32LE();
 
-	_pGrim->_pImuse->soundsRestoreLegacy(stateIndex, seqIndex);
+	_pGrim->getImuse()->soundsRestoreLegacy(stateIndex, seqIndex);
 }
 
 void LegacyImporter::remapControls() {

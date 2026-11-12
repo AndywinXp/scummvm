@@ -112,7 +112,7 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 		return;
 	}
 
-	Color *faceColors[kNumBoxFaces] = {
+	const Color *faceColors[kNumBoxFaces] = {
 		&Color::kWhite, &Color::kGreen, &Color::kBlue, &Color::kRed, &Color::kYellow, &Color::kCyan
 	};
 

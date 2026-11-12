@@ -544,6 +544,48 @@ int Lua_V2::dofile(const char *filename) {
 	return result;
 }
 
+bool Lua_V2::logError(const char *message) {
+	if (!gpConsoleServices)
+		return false;
+
+	gpConsoleServices->logError("%s", message);
+
+	return true;
+}
+
+Common::SeekableReadStream *Lua_V2::openBundleStream(const char *path) {
+	if (!gpFileServices)
+		return nullptr;
+
+	LFile *file = gpFileServices->open(path, "r");
+
+	if (!file)
+		return nullptr;
+
+	file->seek(0, SEEK_END);
+
+	int size = file->tell();
+
+	file->seek(0, SEEK_SET);
+
+	Common::MemoryWriteStreamDynamic data(DisposeAfterUse::NO);
+	byte buffer[1024];
+
+	while (size > 0) {
+		uint count = file->read(buffer, MIN(size, 1024));
+
+		if (!count)
+			break;
+
+		data.write(buffer, count);
+		size -= count;
+	}
+
+	gpFileServices->close(file, true);
+
+	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
+}
+
 int32 Lua_V2::identityHook(int32 tag, int32 hData, tSaveRestoreAccess *saveFunc) {
 	return hData;
 }

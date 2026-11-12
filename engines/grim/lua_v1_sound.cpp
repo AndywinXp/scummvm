@@ -54,7 +54,7 @@ void Lua_V1::ImStartSound() {
 	int priority = luaFtol(lua_getnumber(priorityObj));
 	int group = luaFtol(lua_getnumber(groupObj));
 
-	int result = g_imuse->soundsLoadStartSound(soundName, priority, group);
+	int result = g_grim->getImuse()->soundsLoadStartSound(soundName, priority, group);
 
 	// The demo doesn't return anything
 	if (!(g_grim->getGameFlags() & ADGF_DEMO))
@@ -69,19 +69,19 @@ void Lua_V1::ImStopSound() {
 		return;
 	}
 
-	g_imuse->soundsStopSound(getSoundKey(nameObj));
+	g_grim->getImuse()->soundsStopSound(getSoundKey(nameObj));
 }
 
 void Lua_V1::ImStopAllSounds() {
-	g_imuse->imStopAllSounds();
+	g_grim->getImuse()->imStopAllSounds();
 }
 
 void Lua_V1::ImPause() {
-	g_imuse->imPause();
+	g_grim->getImuse()->imPause();
 }
 
 void Lua_V1::ImResume() {
-	g_imuse->imResume();
+	g_grim->getImuse()->imResume();
 }
 
 void Lua_V1::ImSetVoiceEffect() {
@@ -96,40 +96,40 @@ void Lua_V1::ImSetVoiceEffect() {
 		return;
 	}
 
-	g_imuse->iMUSESetVoiceEffect(effectName);
+	g_grim->getImuse()->iMUSESetVoiceEffect(effectName);
 }
 
 void Lua_V1::ImSetMusicVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setMusicGroupVol(luaFtol(lua_getnumber(volObj)));
+	g_grim->getImuse()->setMusicGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetMusicVol() {
-	lua_pushnumber(g_imuse->getMusicGroupVol());
+	lua_pushnumber(g_grim->getImuse()->getMusicGroupVol());
 }
 
 void Lua_V1::ImSetVoiceVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setVoiceGroupVol(luaFtol(lua_getnumber(volObj)));
+	g_grim->getImuse()->setVoiceGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetVoiceVol() {
-	lua_pushnumber(g_imuse->getVoiceGroupVol());
+	lua_pushnumber(g_grim->getImuse()->getVoiceGroupVol());
 }
 
 void Lua_V1::ImSetSfxVol() {
 	lua_Object volObj = lua_getparam(1);
 	if (!lua_isnumber(volObj))
 		return;
-	g_imuse->setSFXGroupVol(luaFtol(lua_getnumber(volObj)));
+	g_grim->getImuse()->setSFXGroupVol(luaFtol(lua_getnumber(volObj)));
 }
 
 void Lua_V1::ImGetSfxVol() {
-	lua_pushnumber(g_imuse->getSFXGroupVol());
+	lua_pushnumber(g_grim->getImuse()->getSFXGroupVol());
 }
 
 void Lua_V1::ImSetParam() {
@@ -154,7 +154,7 @@ void Lua_V1::ImSetParam() {
 	if (value < 0 && !(g_grim->getGameFlags() & ADGF_DEMO))
 		value = 0;
 
-	g_imuse->soundsSetParam(getSoundKey(nameObj), param, value);
+	g_grim->getImuse()->soundsSetParam(getSoundKey(nameObj), param, value);
 }
 
 void Lua_V1::ImGetParam() {
@@ -173,7 +173,7 @@ void Lua_V1::ImGetParam() {
 	}
 
 	int param = luaFtol(lua_getnumber(paramObj));
-	lua_pushnumber(g_imuse->soundsGetParam(getSoundKey(nameObj), param));
+	lua_pushnumber(g_grim->getImuse()->soundsGetParam(getSoundKey(nameObj), param));
 }
 
 void Lua_V1::ImFadeParam() {
@@ -202,7 +202,7 @@ void Lua_V1::ImFadeParam() {
 		value = 0;
 	int duration = luaFtol(lua_getnumber(durationObj));
 
-	g_imuse->soundsFadeParam(getSoundKey(nameObj), opcode, value, duration);
+	g_grim->getImuse()->soundsFadeParam(getSoundKey(nameObj), opcode, value, duration);
 }
 
 void Lua_V1::ImSetState() {
@@ -212,7 +212,7 @@ void Lua_V1::ImSetState() {
 
 	// The demo sets the state right away and returns the new one
 	if (g_grim->getGameFlags() & ADGF_DEMO) {
-		lua_pushnumber(g_imuse->imSetState(luaFtol(lua_getnumber(stateObj))));
+		lua_pushnumber(g_grim->getImuse()->imSetState(luaFtol(lua_getnumber(stateObj))));
 		return;
 	}
 
@@ -225,7 +225,7 @@ void Lua_V1::ImSetSequence() {
 		return;
 
 	int state = luaFtol(lua_getnumber(stateObj));
-	lua_pushnumber(g_imuse->imSetSequence(state));
+	lua_pushnumber(g_grim->getImuse()->imSetSequence(state));
 }
 
 void Lua_V1::SaveIMuse() {
@@ -395,8 +395,8 @@ void Lua_V1::SetSoundPositionDemo() {
 
 	const char *name = lua_getstring(nameObj);
 
-	g_imuse->soundsSetParam(name, IMUSE_P_VOLUME, volume);
-	g_imuse->soundsSetParam(name, IMUSE_P_PAN, pan);
+	g_grim->getImuse()->soundsSetParam(name, IMUSE_P_VOLUME, volume);
+	g_grim->getImuse()->soundsSetParam(name, IMUSE_P_PAN, pan);
 }
 
 void Lua_V1::IsSoundPlaying() {

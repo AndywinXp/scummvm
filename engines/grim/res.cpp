@@ -25,6 +25,7 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/lab.h"
 #include "engines/grim/res.h"
@@ -308,8 +309,8 @@ int Res::freeResources(uint bytesWanted, uint *pBytesFreed) {
 				while (*pBytesFreed < bytesWanted) {
 					numVisited++;
 
-					if (g_imuse && !(numVisited % 5))
-						g_imuse->soundsPeriodic();
+					if (g_grim->getImuse() && !(numVisited % 5))
+						g_grim->getImuse()->soundsPeriodic();
 
 					ResNode *pPrev = pNode->pPrev;
 
@@ -501,8 +502,8 @@ ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
 	else
 		*pResult = loadFileData(&msg);
 
-	if (g_imuse && !_bDemo)
-		g_imuse->soundsPeriodic();
+	if (g_grim->getImuse() && !_bDemo)
+		g_grim->getImuse()->soundsPeriodic();
 
 	if (*pResult == 1) {
 		pNode = checkList1(tag, name);

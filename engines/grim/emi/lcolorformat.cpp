@@ -26,20 +26,20 @@
 
 namespace Grim {
 
-LColorFormat LColorFormat::format1(1);
-LColorFormat LColorFormat::format2(2);
-LColorFormat LColorFormat::format3(3);
-LColorFormat LColorFormat::format4(4);
-LColorFormat LColorFormat::format5(5);
-LColorFormat LColorFormat::format6(6);
-LColorFormat LColorFormat::format9(9);
-LColorFormat LColorFormat::format10(10);
-LColorFormat LColorFormat::format11(11);
-LColorFormat LColorFormat::format12(12);
-LColorFormat LColorFormat::format13(13);
-LColorFormat LColorFormat::format14(14);
-LColorFormat LColorFormat::format15(15);
-LColorFormat LColorFormat::format16(16);
+const LColorFormat LColorFormat::format1(1);
+const LColorFormat LColorFormat::format2(2);
+const LColorFormat LColorFormat::format3(3);
+const LColorFormat LColorFormat::format4(4);
+const LColorFormat LColorFormat::format5(5);
+const LColorFormat LColorFormat::format6(6);
+const LColorFormat LColorFormat::format9(9);
+const LColorFormat LColorFormat::format10(10);
+const LColorFormat LColorFormat::format11(11);
+const LColorFormat LColorFormat::format12(12);
+const LColorFormat LColorFormat::format13(13);
+const LColorFormat LColorFormat::format14(14);
+const LColorFormat LColorFormat::format15(15);
+const LColorFormat LColorFormat::format16(16);
 
 LColorFormat::LColorFormat() {
 }

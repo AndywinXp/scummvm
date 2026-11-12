@@ -46,8 +46,8 @@ Debugger::~Debugger() {
 void Debugger::onFrame() {
 	GUI::Debugger::onFrame();
 
-	if (g_imuse)
-		g_imuse->imProcessStreams();
+	if (g_grim->getImuse())
+		g_grim->getImuse()->imProcessStreams();
 }
 
 bool Debugger::cmd_checkFiles(int argc, const char **argv) {
@@ -111,7 +111,7 @@ bool Debugger::cmd_load(int argc, const char **argv) {
 }
 
 bool Debugger::cmd_imuse(int argc, const char **argv) {
-	if (!g_imuse) {
+	if (!g_grim->getImuse()) {
 		debugPrintf("No Digital iMUSE engine is active.\n");
 		return true;
 	}
@@ -120,10 +120,10 @@ bool Debugger::cmd_imuse(int argc, const char **argv) {
 		if (!strcmp(argv[1], "stop")) {
 			if (argc > 2 && (!strcmp(argv[2], "all") || atoi(argv[2]) != 0)) {
 				if (!strcmp(argv[2], "all")) {
-					g_imuse->imStopAllSounds();
+					g_grim->getImuse()->imStopAllSounds();
 					debugPrintf("Stopping all sounds.\n");
 				} else {
-					g_imuse->imStopSound(atoi(argv[2]));
+					g_grim->getImuse()->imStopSound(atoi(argv[2]));
 					debugPrintf("Attempted to stop sound %d.\n", atoi(argv[2]));
 				}
 			} else {
@@ -132,15 +132,15 @@ bool Debugger::cmd_imuse(int argc, const char **argv) {
 			return true;
 		} else if (!strcmp(argv[1], "stopSpeech")) {
 			debugPrintf("Attempting to stop the currently playing speech file, if any.\n");
-			g_imuse->imStopSound(kTalkSoundID);
+			g_grim->getImuse()->imStopSound(kTalkSoundID);
 			return true;
 		} else if (!strcmp(argv[1], "list") || !strcmp(argv[1], "tracks")) {
-			g_imuse->listTracks();
+			g_grim->getImuse()->listTracks();
 			return true;
 		} else if (!strcmp(argv[1], "playSfx")) {
 			if (argc > 2 && atoi(argv[2]) >= 100 && atoi(argv[2]) < 100 + IMUSE_MAX_CACHED_SOUNDS) {
 				debugPrintf("Attempting to play SFX %d...\n", atoi(argv[2]));
-				g_imuse->imStartSound(atoi(argv[2]), 126);
+				g_grim->getImuse()->imStartSound(atoi(argv[2]), 126);
 			} else {
 				debugPrintf("Specify a SFX soundId from 100-%d.\n", 100 + IMUSE_MAX_CACHED_SOUNDS - 1);
 			}
@@ -148,19 +148,19 @@ bool Debugger::cmd_imuse(int argc, const char **argv) {
 		} else if (!strcmp(argv[1], "playState") || !strcmp(argv[1], "setState")) {
 			if (argc > 2 && atoi(argv[2]) >= 0) {
 				debugPrintf("Attempting to play state %d...\n", atoi(argv[2]));
-				g_imuse->imSetState(atoi(argv[2]));
+				g_grim->getImuse()->imSetState(atoi(argv[2]));
 			} else {
 				debugPrintf("Specify a valid stateId; available states for this game:\n");
-				g_imuse->listStates();
+				g_grim->getImuse()->listStates();
 			}
 			return true;
 		} else if (!strcmp(argv[1], "playSeq") || !strcmp(argv[1], "setSeq")) {
 			if (argc > 2 && atoi(argv[2]) >= 0) {
 				debugPrintf("Attempting to play sequence %d...\n", atoi(argv[2]));
-				g_imuse->imSetSequence(atoi(argv[2]));
+				g_grim->getImuse()->imSetSequence(atoi(argv[2]));
 			} else {
 				debugPrintf("Specify a valid seqId; available sequences for this game:\n");
-				g_imuse->listSeqs();
+				g_grim->getImuse()->listSeqs();
 			}
 			return true;
 		} else if (!strcmp(argv[1], "playCue") || !strcmp(argv[1], "setCue")) {
@@ -169,29 +169,29 @@ bool Debugger::cmd_imuse(int argc, const char **argv) {
 		} else if (!strcmp(argv[1], "hook")) {
 			if (argc > 3 && atoi(argv[3]) != 0) {
 				debugPrintf("Attempting to set hookId %d for sound %d...\n", atoi(argv[2]), atoi(argv[3]));
-				g_imuse->imSetHook(atoi(argv[3]), atoi(argv[2]));
+				g_grim->getImuse()->imSetHook(atoi(argv[3]), atoi(argv[2]));
 			} else {
 				debugPrintf("Specify a hookId and a soundId;\nuse \"list\" to get a list of currently playing sounds.\n");
 			}
 			return true;
 		} else if (!strcmp(argv[1], "states")) {
 			debugPrintf("Available states for this game:\n");
-			g_imuse->listStates();
+			g_grim->getImuse()->listStates();
 			return true;
 		} else if (!strcmp(argv[1], "seqs")) {
 			debugPrintf("Available sequences for this game:\n");
-			g_imuse->listSeqs();
+			g_grim->getImuse()->listSeqs();
 			return true;
 		} else if (!strcmp(argv[1], "cues")) {
 			debugPrintf("Available cues for this game:\n");
-			g_imuse->listCues();
+			g_grim->getImuse()->listCues();
 			return true;
 		} else if (!strcmp(argv[1], "groups") || !strcmp(argv[1], "vols")) {
-			g_imuse->listGroups();
+			g_grim->getImuse()->listGroups();
 			return true;
 		} else if (!strcmp(argv[1], "getParam")) {
 			if (argc > 3) {
-				int result = g_imuse->imGetParam(atoi(argv[2]), strtol(argv[3], nullptr, 16));
+				int result = g_grim->getImuse()->imGetParam(atoi(argv[2]), strtol(argv[3], nullptr, 16));
 				if (result != -5 && result != -4 && result != -1) {
 					debugPrintf("Parameter value for sound %d: %d\n", atoi(argv[2]), result);
 					return true;
@@ -214,7 +214,7 @@ bool Debugger::cmd_imuse(int argc, const char **argv) {
 			return true;
 		} else if (!strcmp(argv[1], "setParam")) {
 			if (argc > 4) {
-				int result = g_imuse->imSetParam(atoi(argv[2]), strtol(argv[3], nullptr, 16), atoi(argv[4]));
+				int result = g_grim->getImuse()->imSetParam(atoi(argv[2]), strtol(argv[3], nullptr, 16), atoi(argv[4]));
 				if (result != -5)
 					return true;
 

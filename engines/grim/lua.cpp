@@ -99,6 +99,11 @@ LuaBase::~LuaBase() {
 	lua_removelibslists();
 	lua_close();
 	lua_iolibclose();
+
+	lua_callhook = nullptr;
+	lua_linehook = nullptr;
+	lua_savehook = nullptr;
+	lua_restorehook = nullptr;
 }
 
 void LuaBase::registerTypeOverride() {
@@ -130,6 +135,14 @@ void LuaBase::registerConcatFallback() {
 void LuaBase::forceDemo() {
 	lua_pushnumber(1);
 	lua_setglobal("DEMO");
+}
+
+bool LuaBase::logError(const char *message) {
+	return false;
+}
+
+Common::SeekableReadStream *LuaBase::openBundleStream(const char *path) {
+	return nullptr;
 }
 
 struct luaL_reg baseOpcodes[] = {

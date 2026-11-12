@@ -1159,6 +1159,8 @@ bool lua_FuncPtrHasID(lua_CFunction func) {
 
 void lua_FuncIDsInvalidate() {
 	s_isBuilt = false;
+	s_reportedIds.clear();
+	s_reportedFuncs.clear();
 }
 
 } // end of namespace Grim

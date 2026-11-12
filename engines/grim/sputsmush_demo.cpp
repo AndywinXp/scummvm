@@ -113,7 +113,7 @@ int SputSmushDemo::setTarget(StdVBuffer *pBuffer) {
 int SputSmushDemo::startMovie(const char *name, int bLooping, int x, int y) {
 	char path[128];
 
-	g_imuse->soundsFloodMusicBuffer();
+	g_grim->getImuse()->soundsFloodMusicBuffer();
 
 	// Not finding the file is not a failure for the caller, as in the EXE
 	if (_pRes->findExternalFile(name, path, sizeof(path)) != 1)

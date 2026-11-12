@@ -407,10 +407,10 @@ void Lua_V1::GetShrinkPos() {
 }
 
 int Lua_V1::getObjectStateHandle(SputObjectState *pState) {
-	static int nextHandle = 1;
+	Lua_V1 *lua = g_grim->_pLua;
 
 	if (!pState->luaHandle)
-		pState->luaHandle = nextHandle++;
+		pState->luaHandle = lua->_nextObjectStateHandle++;
 
 	return pState->luaHandle;
 }

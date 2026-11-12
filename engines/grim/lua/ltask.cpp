@@ -8,7 +8,7 @@
 #include "engines/grim/lua/ldo.h"
 #include "engines/grim/lua/lvm.h"
 
-#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/lua.h"
 
 #include "common/textconsole.h"
 
@@ -58,8 +58,9 @@ void start_script() {
 
 	if (luaIsEmi) {
 		if (!lua_isfunction(paramObj)) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("startscript: First parameter must be a function!\n");
+			LuaBase *lua = LuaBase::instance();
+			if (lua)
+				lua->logError("startscript: First parameter must be a function!\n");
 
 			return;
 		}
@@ -151,8 +152,9 @@ static void stop_script_v2() {
 			if (!isSameFunction(&state->taskFunc, &function)) {
 				state = state->next;
 			} else if (state == lua_state) {
-				if (gpConsoleServices)
-					gpConsoleServices->logError("stopscript: Batch stop can't stop active task, skipping.\n");
+				LuaBase *lua = LuaBase::instance();
+				if (lua)
+					lua->logError("stopscript: Batch stop can't stop active task, skipping.\n");
 
 				state = state->next;
 			} else {
@@ -175,8 +177,9 @@ static void stop_script_v2() {
 	}
 
 	if (!state) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("stopscript: Task is no longer active.\n");
+		LuaBase *lua = LuaBase::instance();
+		if (lua)
+			lua->logError("stopscript: Task is no longer active.\n");
 
 		lua_pushnumber(1.0f);
 	} else if (state == lua_state) {
@@ -407,8 +410,10 @@ void pause_script() {
 		if (taskState) {
 			taskState->pauseSticky = true;
 			taskState->paused = true;
-		} else if (gpConsoleServices) {
-			gpConsoleServices->logError("pausescript: Task is no longer active.\n");
+		} else {
+			LuaBase *lua = LuaBase::instance();
+			if (lua)
+				lua->logError("pausescript: Task is no longer active.\n");
 		}
 
 		return;
@@ -484,8 +489,10 @@ void unpause_script() {
 		if (taskState) {
 			taskState->pauseSticky = false;
 			taskState->paused = false;
-		} else if (gpConsoleServices) {
-			gpConsoleServices->logError("unpausescript: Task is no longer active.\n");
+		} else {
+			LuaBase *lua = LuaBase::instance();
+			if (lua)
+				lua->logError("unpausescript: Task is no longer active.\n");
 		}
 
 		return;
@@ -552,8 +559,10 @@ void sleep_for() {
 	if (lua_isnumber(msObj)) {
 		int ms = (int)lua_getnumber(msObj);
 		lua_state->sleepFor = ms;
-	} else if (luaIsEmi && gpConsoleServices) {
-		gpConsoleServices->logError("sleep_for: not passed a valid time in ms");
+	} else if (luaIsEmi) {
+		LuaBase *lua = LuaBase::instance();
+		if (lua)
+			lua->logError("sleep_for: not passed a valid time in ms");
 	}
 }
 

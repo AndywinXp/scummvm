@@ -28,6 +28,7 @@
 
 #include "engines/grim/blasttext.h"
 #include "engines/grim/chore/cos.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/sputrender.h"
 #include "engines/grim/sputresource.h"
@@ -44,18 +45,16 @@ static const char *const g_resourceDirectories[] = {
 	"DEBUG_Movies", "DEBUG_Objects", "DEBUG_Scripts", "DEBUG_Sets", "DEBUG_Voices", "DEBUG_Footsteps", "DEBUG_SFX", "DEBUG_Loops"
 };
 
-static SputResource *g_pSputResource = nullptr;
-
-static RdMaterial *materialLoader(char *path, int bVideoMemory, int bVideoMemoryOnly) {
-	return g_pSputResource->mat(path, bVideoMemory, bVideoMemoryOnly);
+static RdMaterial *materialLoader(char *path, int videoMemory, int videoMemoryOnly) {
+	return g_grim->getSputResource()->mat(path, videoMemory, videoMemoryOnly);
 }
 
-static int materialUnloader(RdMaterial *pMaterial) {
-	return g_pSputResource->unlock(pMaterial);
+static int materialUnloader(RdMaterial *material) {
+	return g_grim->getSputResource()->unlock(material);
 }
 
 static int saveVerifier(const char *fileName) {
-	return g_pSputResource->saveVerifyCallback(fileName);
+	return g_grim->getSputResource()->saveVerifyCallback(fileName);
 }
 
 SputResource::SputResource(Res *pRes, RenderDroid *pRd, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap) : _pRes(pRes), _pRd(pRd),
@@ -244,7 +243,6 @@ int SputResource::startup() {
 	if (!_pRes->sysStartup())
 		_bStarted = registerHandlers();
 
-	g_pSputResource = this;
 	_oldMatLoader = _pRd->_material.registerLoader(materialLoader);
 	_oldMatUnloader = _pRd->_material.registerUnloader(materialUnloader);
 	_pCos->registerSaveVerify(saveVerifier);
@@ -296,7 +294,7 @@ int SputResource::loadResSync(ResHandlerMsg *pMsg) {
 
 	switch (pMsg->op) {
 	case 1: {
-		IMuseLipSync *pLipSync = g_imuse->grimSoundLipSyncLoad(pMsg->pName);
+		IMuseLipSync *pLipSync = g_grim->getImuse()->grimSoundLipSyncLoad(pMsg->pName);
 
 		if (!pLipSync)
 			return 0;
@@ -304,7 +302,7 @@ int SputResource::loadResSync(ResHandlerMsg *pMsg) {
 		return _pRes->allocCompletion(pMsg->tag, pMsg->pName, pLipSync);
 	}
 	case 2:
-		g_imuse->grimSoundLipSyncFree(static_cast<IMuseLipSync *>(pMsg->data));
+		g_grim->getImuse()->grimSoundLipSyncFree(static_cast<IMuseLipSync *>(pMsg->data));
 
 		return 1;
 	case 3: {

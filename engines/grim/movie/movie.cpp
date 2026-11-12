@@ -33,8 +33,6 @@
 
 namespace Grim {
 
-MoviePlayer *g_movie;
-
 MoviePlayer::MoviePlayer() {
 	_channels = -1;
 	_freq = 22050;

@@ -15,7 +15,7 @@
 #include "engines/grim/lua/ltm.h"
 #include "engines/grim/lua/lapi.h"
 
-#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/lua.h"
 
 namespace Grim {
 
@@ -161,13 +161,18 @@ const char *luaT_travtagmethods(int32 (*fn)(TObject *)) {
 void errorFB() {
 	lua_Object o = lua_getparam(1);
 
-	if (luaIsEmi && gpConsoleServices) {
-		if (lua_isstring(o))
-			gpConsoleServices->logError("lua: %s\n", lua_getstring(o));
-		else
-			gpConsoleServices->logError("lua: unknown error\n");
+	if (luaIsEmi) {
+		LuaBase *lua = LuaBase::instance();
+		if (lua) {
+			Common::String message;
+			if (lua_isstring(o))
+				message = Common::String::format("lua: %s\n", lua_getstring(o));
+			else
+				message = "lua: unknown error\n";
 
-		return;
+			if (lua->logError(message.c_str()))
+				return;
+		}
 	}
 
 	if (lua_isstring(o))

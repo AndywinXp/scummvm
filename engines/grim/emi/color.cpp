@@ -23,12 +23,12 @@
 
 namespace Grim {
 
-Color Color::kWhite(0xFFFFFFFF);
-Color Color::kYellow(0xFFFFFF00);
-Color Color::kGreen(0xFF00FF00);
-Color Color::kRed(0xFFFF0000);
-Color Color::kCyan(0xFF00FFFF);
-Color Color::kBlue(0xFF0000FF);
+const Color Color::kWhite(0xFFFFFFFF);
+const Color Color::kYellow(0xFFFFFF00);
+const Color Color::kGreen(0xFF00FF00);
+const Color Color::kRed(0xFFFF0000);
+const Color Color::kCyan(0xFF00FFFF);
+const Color Color::kBlue(0xFF0000FF);
 
 Color::Color() {
 	b = 0;
@@ -82,7 +82,7 @@ void Color::clamp() {
 	}
 }
 
-void Color::getRGB(byte *outR, byte *outG, byte *outB) {
+void Color::getRGB(byte *outR, byte *outG, byte *outB) const {
 	uint red = r;
 
 	if (red > 0xFF)

@@ -245,6 +245,7 @@ void lua_close() {
 	IMtable = nullptr;
 	refArray = nullptr;
 	lua_rootState = lua_state = nullptr;
+	globalTaskSerialId = 0;
 
 #ifdef LUA_DEBUG
 	printf("total de blocos: %ld\n", numblocks);

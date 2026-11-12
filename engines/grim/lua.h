@@ -25,6 +25,10 @@
 #include "common/str.h"
 #include "common/list.h"
 
+namespace Common {
+class SeekableReadStream;
+}
+
 namespace Grim {
 
 typedef uint32 lua_Object; // from lua/lua.h
@@ -114,6 +118,22 @@ public:
 	 * @param objects The arguments to be passed to the function.
 	 */
 	bool callback(const char *name, const LuaObjects &objects);
+
+	/**
+	 * Report an interpreter error to the host's log.
+	 *
+	 * @param message The fully formatted message.
+	 * @return true if the host handled the message.
+	 */
+	virtual bool logError(const char *message);
+
+	/**
+	 * Open a file from the host's bundles for the interpreter's file library.
+	 *
+	 * @param path The path of the file.
+	 * @return A stream owned by the caller, or nullptr if the host has no such file.
+	 */
+	virtual Common::SeekableReadStream *openBundleStream(const char *path);
 
 protected:
 	bool getbool(int num);

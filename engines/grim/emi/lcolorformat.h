@@ -40,20 +40,20 @@ public:
 	void packPixel(byte *dest, uint alpha, uint red, uint green, uint blue) const;
 	void convertPixels(const byte *source, int count, const LColorFormat &destFormat, byte *dest) const;
 
-	static LColorFormat format1;
-	static LColorFormat format2;
-	static LColorFormat format3;
-	static LColorFormat format4;
-	static LColorFormat format5;
-	static LColorFormat format6;
-	static LColorFormat format9;
-	static LColorFormat format10;
-	static LColorFormat format11;
-	static LColorFormat format12;
-	static LColorFormat format13;
-	static LColorFormat format14;
-	static LColorFormat format15;
-	static LColorFormat format16;
+	static const LColorFormat format1;
+	static const LColorFormat format2;
+	static const LColorFormat format3;
+	static const LColorFormat format4;
+	static const LColorFormat format5;
+	static const LColorFormat format6;
+	static const LColorFormat format9;
+	static const LColorFormat format10;
+	static const LColorFormat format11;
+	static const LColorFormat format12;
+	static const LColorFormat format13;
+	static const LColorFormat format14;
+	static const LColorFormat format15;
+	static const LColorFormat format16;
 
 	int formatId;
 	int bytesPerPixel;

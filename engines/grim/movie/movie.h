@@ -187,7 +187,6 @@ MoviePlayer *CreateMpegPlayer();
 // LEGACY: MoviePlayer *CreateSmushPlayer(bool demo);
 MoviePlayer *CreateBinkPlayer(bool demo);
 MoviePlayer *CreateQuickTimePlayer();
-extern MoviePlayer *g_movie;
 
 } // end of namespace Grim
 

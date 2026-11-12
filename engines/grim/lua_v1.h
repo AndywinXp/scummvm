@@ -438,6 +438,7 @@ private:
 	int _imageHandles[kMaxImages];
 	StdVBuffer *_images[kMaxImages];
 	int _nextImageHandle;
+	int _nextObjectStateHandle;
 	Common::Array<ResRef *> _lockedFontRefs;
 };
 

@@ -171,7 +171,7 @@ void Lua_V1::StartMovie() {
 	lua_Object yObj = lua_getparam(4);
 
 	if (lua_isstring(nameObj)) {
-		g_imuse->soundsFloodMusicBuffer();
+		g_grim->getImuse()->soundsFloodMusicBuffer();
 
 		int y = lua_isnumber(yObj) ? luaFtol(lua_getnumber(yObj)) : -1;
 		int x = lua_isnumber(xObj) ? luaFtol(lua_getnumber(xObj)) : -1;
