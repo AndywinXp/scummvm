@@ -429,6 +429,20 @@ void Lua_V2::GetSaveGameData() {
 	EmiEngine::closeSaveFile(file);
 }
 
+void Lua_V2::JustLoaded() {
+	if (g_grim->getGamePlatform() != Common::kPlatformPS2) {
+		Lua_V1::JustLoaded();
+
+		return;
+	}
+
+	// PS2 returns the loaded file name, and scripts keep it as the save slot
+	const char *fileName = static_cast<EmiEngine *>(g_grim)->justLoadedFileName();
+
+	if (fileName)
+		lua_pushstring(fileName);
+}
+
 void Lua_V2::ScreenshotForSavegame() {
 	if (EmiEngine::grabScreen())
 		lua_pushnumber(1.0f);

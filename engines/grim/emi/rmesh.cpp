@@ -34,6 +34,7 @@
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rmeshinstance.h"
 #include "engines/grim/emi/rmeshparser.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -890,6 +891,8 @@ bool RMesh::loadBinary(const char *path) {
 		valid = readFloats(file, uv, 2 * numVerts);
 
 	int numTriSets = 0;
+	bool isPS2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+	int indexSize = isPS2 ? (int)sizeof(uint32) : (int)sizeof(uint16);
 
 	valid = valid && readInt(file, &numTriSets);
 
@@ -918,21 +921,31 @@ bool RMesh::loadBinary(const char *path) {
 
 		valid = valid && readInt(file, &numIndices);
 
-		if (valid && !isCountValid(numIndices, 2, fileSize)) {
+		if (valid && !isCountValid(numIndices, indexSize, fileSize)) {
 			warning("RMesh::loadBinary(): invalid index count %d", numIndices);
 			valid = false;
 		}
 
 		if (valid && numIndices > 0) {
-			Common::Array<byte> bytes(numIndices * sizeof(uint16));
+			Common::Array<byte> bytes(numIndices * indexSize);
 
 			valid = readBytes(file, &bytes[0], bytes.size());
 
 			if (valid) {
 				triset->indices.resize(numIndices);
 
-				for (int j = 0; j < numIndices; j++)
-					triset->indices[j] = READ_LE_UINT16(&bytes[j * sizeof(uint16)]);
+				for (int j = 0; j < numIndices; j++) {
+					if (isPS2) {
+						uint32 index = READ_LE_UINT32(&bytes[j * indexSize]);
+
+						if (index > 0xFFFF)
+							warning("RMesh::loadBinary(): index %u does not fit in 16 bits in %s", index, path);
+
+						triset->indices[j] = (uint16)index;
+					} else {
+						triset->indices[j] = READ_LE_UINT16(&bytes[j * indexSize]);
+					}
+				}
 			}
 		}
 	}

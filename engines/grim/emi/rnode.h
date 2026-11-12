@@ -39,6 +39,7 @@ public:
 		kDebugParentLine = 0x04,
 		kNoOutput = 0x80,
 		kDynamicLighting = 0x1000,
+		kTessellation = 0x2000,
 		kAmbientCube = 0x20000,
 		kNoLighting = 0x40000
 	};

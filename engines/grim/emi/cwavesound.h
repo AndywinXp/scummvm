@@ -70,6 +70,8 @@ public:
 	byte *samples;
 	char *decodedBlock;
 	int decodedBlockIndex;
+	bool spuLoops;
+	uint spuLoopStart;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

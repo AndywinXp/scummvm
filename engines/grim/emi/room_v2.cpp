@@ -26,10 +26,12 @@
 #include "common/array.h"
 
 #include "engines/grim/emi/actor.h"
+#include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/clight.h"
 #include "engines/grim/emi/color.h"
 #include "engines/grim/emi/cquaternion.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/irect.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -37,6 +39,7 @@
 #include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/room_v2.h"
 #include "engines/grim/emi/sounds.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -713,10 +716,18 @@ void Room_v2::loadRoom(const char *roomName) {
 		_currentHandle.setResource(nullptr);
 		_currentRoom = nullptr;
 		Sounds::setSoundListener(nullptr);
+
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			Sounds::killMusicForSet(roomName);
 	}
 
 	if (!roomName)
 		return;
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		CBundleServices::openSetBundle(roomName);
+		static_cast<EmiEngine *>(g_grim)->startSetChangeFrames();
+	}
 
 	_currentHandle.resource = gpResourceManager->findResource(roomName);
 

@@ -61,6 +61,8 @@ public:
 	static bool isModifierKey(int vk);
 
 	static ControlEntry controlTable[kNumControls];
+	static const ControlEntry pcControlTable[kNumControls];
+	static const ControlEntry ps2ControlTable[kNumControls];
 	static const KeyBinding defaultBinding;
 
 private:

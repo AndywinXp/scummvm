@@ -23,20 +23,26 @@
 
 #include "common/algorithm.h"
 #include "common/array.h"
+#include "common/str.h"
 #include "common/stream.h"
 #include "common/system.h"
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/caudiodevice.h"
+#include "engines/grim/emi/cmusicps2.h"
 #include "engines/grim/emi/cpathingfileservices.h"
+#include "engines/grim/emi/cwaveaudiodevice.h"
+#include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/emiengine.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/lstring.h"
 #include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/streamscript.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -47,6 +53,7 @@ static const uint kUpdateIntervalMs = 30;
 static const uint kThrottledUpdateIntervalMs = 100;
 static const int kMaxStartAttempts = 16;
 static const int kReverbPresetCount = 28;
+static const float kLoadingLoopFadeSeconds = 0.5f;
 static const int kReverbPresets[kReverbPresetCount] = {
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 	14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
@@ -76,6 +83,9 @@ float Sounds::invDbStep = (float)(1.0 / (double)Sounds::dbStep);
 float Sounds::unityGain = (float)pow(10.0, (double)0.0f * (double)0.05f);
 float Sounds::defaultMasterGain = (float)pow(10.0, (double)0.0f * (double)0.05f);
 float Sounds::movieMasterGain = (float)pow(10.0, (double)-4.0f * (double)0.05f);
+CSoundCue *Sounds::loadingLoopCue = nullptr;
+int Sounds::loadingLoopFade = 0;
+uint Sounds::loadingLoopFadeMs = 0;
 
 LResource *Sounds::createWaveSoundResource() {
 	return new CWaveSound();
@@ -140,6 +150,24 @@ bool Sounds::isCueRegistered(CSoundCue *cue) {
 bool Sounds::soundsUpdate(const bool *force) {
 	soundsUpdateTimer.start();
 
+	// PS2 updates sounds on every call, without an interval
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (!audioSystem) {
+			soundsUpdateTimer.stop();
+
+			return false;
+		}
+
+		updateLoadingLoop();
+		CSoundCue::updateSoundCues();
+		setAudioMixAhead(&audioMixAhead, false);
+		AudioSystem::updateAudioDevice();
+		updateMusic();
+		soundsUpdateTimer.stop();
+
+		return true;
+	}
+
 	if (audioSystem) {
 		uint now = g_system->getMillis();
 
@@ -190,6 +218,14 @@ void Sounds::startSounds(bool startMusicNow) {
 
 		if (musicEnabled && musicCategoryEnabled && startMusicNow)
 			startMusic(-1);
+
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+			loadingLoopCue = CSoundCue::newSoundCue(LString("@LOADLOOP.SCX"), 1, nullptr);
+
+			// PS2 keeps this cue out of the cue table, so it is never saved, released or updated with the others
+			if (loadingLoopCue)
+				loadingLoopCue->unlinkFromCueList();
+		}
 	} else {
 		delete audioSystem;
 		audioSystem = nullptr;
@@ -204,7 +240,19 @@ void Sounds::startSounds(bool startMusicNow) {
 void Sounds::shutdownSounds() {
 	if (audioSystem) {
 		stopMusic();
+
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			CMusicPs2::resetModule();
+
 		releaseAllSounds();
+
+		// PS2 never frees it, but we must so that the engine can be restarted
+		if (loadingLoopCue) {
+			CSoundCue::deleteSoundCue(loadingLoopCue);
+			loadingLoopCue = nullptr;
+		}
+
+		loadingLoopFade = 0;
 
 		delete audioSystem;
 		audioSystem = nullptr;
@@ -212,6 +260,14 @@ void Sounds::shutdownSounds() {
 }
 
 void Sounds::releaseAllSounds() {
+	// PS2 only deletes the cues in the cue table
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		soundMap.clear();
+		CSoundCue::releaseAllCues();
+
+		return;
+	}
+
 	Common::Array<uint16> handles;
 
 	for (CSoundCue::SoundCueMap::iterator it = soundMap.begin(); it != soundMap.end(); ++it)
@@ -315,6 +371,9 @@ uint Sounds::loadSound(const LString &soundName, int category) {
 		break;
 	}
 
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		defaultExtension = ".SCX";
+
 	if (!hasDot)
 		fullName += defaultExtension;
 
@@ -351,7 +410,7 @@ void Sounds::playSound(const LString &soundName, int volume) {
 	fullName += soundName;
 
 	if (soundName.find('.') == LString::npos)
-		fullName += ".aif";
+		fullName += g_grim->getGamePlatform() == Common::kPlatformPS2 ? ".SCX" : ".aif";
 
 	CSoundCue *cue = CSoundCue::newSoundCue(fullName, 1, nullptr);
 
@@ -362,6 +421,10 @@ void Sounds::playSound(const LString &soundName, int volume) {
 }
 
 void Sounds::playSoundFrom(const LString &soundName, float x, float y, float z, int16 volume) {
+	// PS2 ignores positional sounds for two frames after a set change
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2 && static_cast<EmiEngine *>(g_grim)->isSetChanging())
+		return;
+
 	uint soundHandle = loadSound(soundName, 1);
 
 	if (soundHandle) {
@@ -767,13 +830,35 @@ void Sounds::stopAllSounds() {
 }
 
 void Sounds::updateMusic() {
-	if (musicActive)
-		StreamScript::updateStreams();
+	if (musicActive) {
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			CMusicPs2::updateStates();
+		else
+			StreamScript::updateStreams();
+	}
 }
 
 void Sounds::startMusic(int newState) {
 	if (musicActive)
 		return;
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (!CMusicPs2::openMusicTable()) {
+			CMusicPs2::clearAudioSearchDirs();
+
+			return;
+		}
+
+		musicActive = true;
+
+		if (newState != -1) {
+			bool immediate = false;
+
+			setMusicState(newState, -1, immediate);
+		}
+
+		return;
+	}
 
 	const char *setDirectory = musicSet ? "Mego\\" : "Spago\\";
 	Common::SeekableReadStream *secrets = StreamScript::openStream("Textures\\secrets.m4b");
@@ -828,8 +913,13 @@ void Sounds::startMusic(int newState) {
 
 int Sounds::stopMusic() {
 	if (musicActive) {
-		StreamScript::closeStreamScript();
-		StreamScript::clearAudioSearchDirs();
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+			CMusicPs2::closeMusicTable();
+			CMusicPs2::clearAudioSearchDirs();
+		} else {
+			StreamScript::closeStreamScript();
+			StreamScript::clearAudioSearchDirs();
+		}
 
 		musicActive = false;
 	}
@@ -841,11 +931,24 @@ void Sounds::setMusicVolume(float volume) {
 	if (musicActive) {
 		musicVolume = volume;
 
-		StreamScript::setMusicStreamVolume(volume);
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			CMusicPs2::setMusicTableVolume(volume);
+		else
+			StreamScript::setMusicStreamVolume(volume);
 	}
 }
 
 void Sounds::setMusicState(int newState, int startMs, const bool &immediate) {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (musicActive && !CMusicPs2::isSameFile(newState, musicState)) {
+			musicState = newState;
+
+			CMusicPs2::startState(newState, startMs, immediate);
+		}
+
+		return;
+	}
+
 	if (musicActive) {
 		uint stateId = (uint)newState;
 
@@ -873,11 +976,18 @@ void Sounds::restoreMusicState(tSaveRestoreAccess *access) {
 }
 
 void Sounds::pauseMusicStreams() {
+	// PS2 has no music pause
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		return;
+
 	if (musicActive)
 		StreamScript::pauseStreams();
 }
 
 void Sounds::resumeMusicStreams() {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		return;
+
 	if (musicActive)
 		StreamScript::resumeStreams();
 }
@@ -886,7 +996,10 @@ void Sounds::stopAllMusic() {
 	if (musicActive) {
 		musicState = 0;
 
-		StreamScript::closeAllStreams();
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			CMusicPs2::closeAllStates();
+		else
+			StreamScript::closeAllStreams();
 	}
 }
 
@@ -902,6 +1015,12 @@ void Sounds::selectMusicSet(int16 set) {
 }
 
 bool Sounds::consumeMusicFlags(const uint &musicId, bool &looped, bool &ended) {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		int stateId = (int)musicId;
+
+		return CMusicPs2::consumeStateFlags(stateId, looped, ended);
+	}
+
 	return StreamScript::consumeMusicStreamFlags(musicId, looped, ended);
 }
 
@@ -911,7 +1030,11 @@ void Sounds::pushMusicState(int musicId, const bool &immediate) {
 		bool relative = false;
 
 		pushedMusicState = musicState;
-		pushedMusicPosition = StreamScript::getMusicStreamPositionMs(stateId, relative);
+
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+			pushedMusicPosition = CMusicPs2::getStatePositionMs(musicState, relative);
+		else
+			pushedMusicPosition = StreamScript::getMusicStreamPositionMs(stateId, relative);
 
 		setMusicState(musicId, -1, immediate);
 	}
@@ -932,7 +1055,127 @@ void Sounds::flushMusicStateStack() {
 int Sounds::getMusicPositionMs(const uint &musicId) {
 	bool relative = true;
 
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		int stateId = (int)musicId;
+
+		return CMusicPs2::getStatePositionMs(stateId, relative);
+	}
+
 	return StreamScript::getMusicStreamPositionMs(musicId, relative);
+}
+
+void Sounds::killMusicAndWait(bool loadingLoop) {
+	bool immediate = false;
+	bool force = true;
+
+	setMusicState(0, -1, immediate);
+
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("SOUNDS WAITING FOR MUSIC TO FADE!!\n");
+
+	if (loadingLoop && CMusicPs2::getStreamPosition())
+		fadeLoadingLoop(1);
+
+	while (CMusicPs2::getStreamPosition())
+		soundsUpdate(&force);
+
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("SOUNDS DONE WAITING FOR MUSIC FADE.\n");
+}
+
+void Sounds::killMusicForSet(const char *setName) {
+	// The first set change only arms the SPU clear
+	if (static_cast<EmiEngine *>(g_grim)->armSpuClear())
+		clearSpuMemory();
+
+	killMusicAndWait(setName && scumm_stricmp(setName, "blank.set") != 0);
+}
+
+void Sounds::stopAllForLoad() {
+	stopAllMusic();
+	releaseAllSounds();
+
+	if (static_cast<EmiEngine *>(g_grim)->isSpuClearArmed())
+		clearSpuMemory();
+
+	// The IOP closes streams asynchronously and waits, while ours close immediately
+	CMusicPs2::closeStream();
+}
+
+void Sounds::clearSpuMemory() {
+	if (!audioSystem || !AudioSystem::device)
+		return;
+
+	CWaveAudioDevice *device = dynamic_cast<CWaveAudioDevice *>(AudioSystem::device);
+
+	if (!device)
+		return;
+
+	for (uint i = 0; i < device->channels.size(); i++) {
+		if (device->channels[i])
+			device->channels[i]->endSpuSample();
+	}
+}
+
+void Sounds::fadeLoadingLoop(int direction) {
+	if (!loadingLoopCue)
+		return;
+
+	if (direction != 1 && direction != -1)
+		return;
+
+	if (direction == -1 && loadingLoopCue->getState() != CSoundCue::kStatePlaying)
+		return;
+
+	loadingLoopFade = direction;
+	loadingLoopFadeMs = g_system->getMillis();
+
+	if (loadingLoopFade == 1) {
+		loadingLoopCue->flags |= CSoundCue::kFlagLoop;
+		loadingLoopCue->setVolume(0.0f);
+		loadingLoopCue->play(false);
+	}
+}
+
+void Sounds::updateLoadingLoop() {
+	if (!loadingLoopFade)
+		return;
+
+	uint now = g_system->getMillis();
+	float step = (float)(now - loadingLoopFadeMs) / 1000.0f / kLoadingLoopFadeSeconds;
+	float volume = loadingLoopCue->volume;
+
+	if (loadingLoopFade > 0) {
+		volume += step;
+
+		if (!(volume <= 1.0f))
+			volume = 1.0f;
+
+		if (volume == 1.0f)
+			loadingLoopFade = 0;
+	} else if (loadingLoopFade == -1) {
+		// The fade-out starts one update late
+		loadingLoopFade = -2;
+	} else {
+		volume -= step;
+
+		if (volume < 0.0f)
+			volume = 0.0f;
+
+		if (volume == 0.0f) {
+			loadingLoopCue->stop();
+			loadingLoopFade = 0;
+		}
+	}
+
+	loadingLoopCue->setVolume(volume);
+
+	if (loadingLoopFade)
+		loadingLoopFadeMs = now;
+}
+
+void Sounds::setStereoAudio(bool stereo) {
+	CWaveChannel::setSpuStereo(stereo);
 }
 
 } // End of namespace Grim

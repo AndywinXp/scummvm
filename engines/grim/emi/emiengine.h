@@ -90,6 +90,7 @@ public:
 	static bool inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText);
 	static void saveScreenshot();
 	static bool buildSpecScreenTextures(int index);
+	static void readScreenRegion(LABitmap *bitmap, const char *buffer, int bytesPerPixel, float startX, float endX, float startY, float endY);
 	static bool grabScreen();
 	static bool makeThumbnailTexture(int index, bool fromScreen);
 	static bool loadThumbnailTexture(int index, const char *fileName);
@@ -110,9 +111,20 @@ public:
 
 	static Common::Array<Common::Keymap *> initKeymapsEmi(const char *target);
 	static bool readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings);
-	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream);
+	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream, bool fullTexture = false);
 	static Common::String getSaveDescription(const Common::Array<Common::String> &strings, int slot);
 	static bool isLegacySaveFile(const Common::String &fileName);
+	static uint getMemoryCardId();
+	static bool hasMemoryCardSaves();
+	static bool deleteSaveFile(const char *fileName);
+	static bool copySaveFile(const char *sourceName, const char *targetName);
+
+	const char *justLoadedFileName();
+	bool justSaved();
+	bool armSpuClear();
+	bool isSpuClearArmed();
+	void startSetChangeFrames();
+	bool isSetChanging();
 
 	const char *getUpdateFilename() override;
 	Common::Error loadGameState(int slot) override;
@@ -146,6 +158,7 @@ private:
 	void drawStatsOverlay(CDrawContext *drawContext);
 	void dumpFrame();
 	void applyPendingGameSettings(int manualMs);
+	void applyPendingMusicState();
 
 	static CDrawContext *createDrawContext();
 	static bool openDrawContext(CDrawContext *drawContext, DisplayMode *mode);
@@ -154,9 +167,11 @@ private:
 	static int writeSaveData(void *data, int bytes);
 	static int readSaveData(void *data, int bytes);
 	static void halveBitmap(LABitmap *source, LABitmap *destination);
+	static void scaleToThumbnail(LABitmap *source, LABitmap *destination);
 	static LABitmap *getScreenBitmap();
 	static Common::String getSaveFileName(const char *path);
 	static bool readSavedText(char *buffer, int bufferSize);
+	static bool writeMemoryCardId(uint id);
 
 	static void updateSounds(bool force);
 	static bool updateMovie(float frameTime);
@@ -194,6 +209,12 @@ private:
 	static int _frontCopyCount;
 	static int _pendingMusicState;
 	static bool _gameSettingsPending;
+	static int _controlSkipFrames;
+
+	int _libJustSaved = 0;
+	int _soundRestartFrames = 0;
+	int _setChangeFrames = 0;
+	bool _spuClearArmed = false;
 };
 
 } // End of namespace Grim

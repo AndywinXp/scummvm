@@ -27,17 +27,25 @@
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
 static const int kMaxSampleVolume = 127;
 static const uint kSilentTailHeadroom = 4;
 static const int kSilentTailLoopCount = (int)(2.5 / (double)0.0005f + 0.5);
+static const uint kMaxAilValue = 0x80;
+static const float kSpuRegisterScale = 16383.0f;
+static const float kSpuVoiceStreamGain = 0.55f;
+
+bool CWaveChannel::spuStereo = true;
 
 CWaveChannel::CWaveChannel(EMIMilesDriver *driver) {
 	started = false;
 	hSample = nullptr;
 	cue = nullptr;
+	spuVolume = 0.0f;
+	spuBalance = 0.0f;
 	_driver = driver;
 
 	if (_driver) {
@@ -261,6 +269,25 @@ void CWaveChannel::setVolume(float volume) {
 	if (!hSample)
 		return;
 
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (!cue)
+			return;
+
+		float limited = volume < 1.0f ? volume : 1.0f;
+
+		if (limited <= 0.0f)
+			limited = 0.0f;
+
+		int ailVolume = (int)(limited * 127.0f);
+
+		if (cue->category == 1)
+			setSpuSampleVolume(ailVolume);
+		else
+			setSpuStreamVolume(ailVolume);
+
+		return;
+	}
+
 	float clamped;
 
 	if (volume >= 1.0f)
@@ -281,6 +308,29 @@ void CWaveChannel::setPlaybackRate(int rate) {
 void CWaveChannel::setPan(float pan) {
 	if (!hSample)
 		return;
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (!cue)
+			return;
+
+		float limited = pan < 1.0f ? pan : 1.0f;
+
+		if (limited <= -1.0f)
+			limited = -1.0f;
+
+		float ailPan;
+
+		if (limited < 0.0f)
+			ailPan = 64.0f + 64.0f * limited;
+		else
+			ailPan = 63.0f + 64.0f * limited;
+
+		// A voice stream ignores the pan
+		if (cue->category == 1)
+			setSpuSamplePan((int)ailPan);
+
+		return;
+	}
 
 	float clamped;
 
@@ -346,6 +396,18 @@ void CWaveChannel::setCutoff(float nearDistance, float farDistance) {
 void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 	if (!newCue || !hSample)
 		return;
+
+	// PS2 only sets the loop flag; the SPU jumps to the loop address given by the ADPCM flags
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if ((newCue->flags & CSoundCue::kFlagLoop) != 0) {
+			setLoopCount(0);
+
+			if (newCue->sound)
+				_driver->setSampleLoopBlock(hSample, (int)newCue->sound->spuLoopStart, -1);
+		}
+
+		return;
+	}
 
 	setVolume(newCue->getVolume());
 	setPan(newCue->getPan());
@@ -436,6 +498,97 @@ void CWaveChannel::updateSpatialization() {
 		if (cue->position.valid)
 			cue->updateSpatialization();
 	}
+}
+
+void CWaveChannel::setSpuSampleVolume(int volume) {
+	if ((uint)volume >= kMaxAilValue) {
+		warning("CWaveChannel::setSpuSampleVolume(): volume %d out of range", volume);
+
+		return;
+	}
+
+	int left = 0;
+	int right = 0;
+
+	spuVolume = (float)volume / 127.0f;
+
+	if (getAttenuatedVolumes(spuVolume, spuBalance, &left, &right))
+		_driver->setSampleSpuVolume(hSample, left, right);
+}
+
+void CWaveChannel::setSpuSamplePan(int pan) {
+	if ((uint)pan >= kMaxAilValue) {
+		warning("CWaveChannel::setSpuSamplePan(): pan %d out of range", pan);
+
+		return;
+	}
+
+	int left = 0;
+	int right = 0;
+
+	spuBalance = ((float)pan - 64.0f) / 64.0f;
+
+	// In mono output every pan is centered
+	if (!spuStereo)
+		spuBalance = 0.0f;
+
+	if (getAttenuatedVolumes(spuVolume, spuBalance, &left, &right))
+		_driver->setSampleSpuVolume(hSample, left, right);
+}
+
+void CWaveChannel::setSpuStereo(bool stereo) {
+	spuStereo = stereo;
+}
+
+void CWaveChannel::setSpuStreamVolume(int volume) {
+	if ((uint)volume >= kMaxAilValue) {
+		warning("CWaveChannel::setSpuStreamVolume(): volume %d out of range", volume);
+
+		return;
+	}
+
+	float scaled = kSpuRegisterScale * (kSpuVoiceStreamGain * ((float)volume / 127.0f));
+	int level = scaled > 0.0f ? (int)scaled : 0;
+
+	_driver->setSampleSpuVolume(hSample, level, level);
+}
+
+void CWaveChannel::endSpuSample() {
+	// On PS2, voices are IOP streams, not SPU samples
+	if (!hSample || !started || (cue && cue->category == 2))
+		return;
+
+	_driver->endSample(hSample);
+}
+
+bool CWaveChannel::getAttenuatedVolumes(float volume, float balance, int *left, int *right) {
+	if (!(balance <= 1.0f && balance >= -1.0f)) {
+		warning("CWaveChannel::getAttenuatedVolumes(): balance %f out of range", balance);
+
+		return false;
+	}
+
+	if (!(volume <= 1.0f && volume >= 0.0f)) {
+		warning("CWaveChannel::getAttenuatedVolumes(): volume %f out of range", volume);
+
+		return false;
+	}
+
+	float leftFactor = 1.0f;
+	float rightFactor = 1.0f;
+
+	if (balance < 0.0f)
+		rightFactor = 1.0f + balance;
+	else if (balance > 0.0f)
+		leftFactor = 1.0f - balance;
+
+	float scaledLeft = kSpuRegisterScale * (leftFactor * volume);
+	float scaledRight = kSpuRegisterScale * (rightFactor * volume);
+
+	*left = scaledLeft > 0.0f ? (int)scaledLeft : 0;
+	*right = scaledRight > 0.0f ? (int)scaledRight : 0;
+
+	return true;
 }
 
 } // End of namespace Grim

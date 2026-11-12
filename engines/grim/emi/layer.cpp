@@ -27,10 +27,12 @@
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/profilertimer.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
 static const int kQuadsFlags = 0x10001;
+static const int kPs2QuadsFlags = 0x20001;
 
 static ProfilerTimer layerDrawTimer("Layer::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 
@@ -139,6 +141,12 @@ int Layer::draw(CDrawContext *context) {
 				if (batchCount > 0 && !backgroundData) {
 					warning("Layer::draw(): the background is not available");
 				} else if (batchCount > 0) {
+					// PS2 alpha-tests the tiles instead of blending them
+					int quadsFlags = kQuadsFlags;
+
+					if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+						quadsFlags = kPs2QuadsFlags;
+
 					for (int batch = firstBatch; batch < firstBatch + batchCount; batch++) {
 						if (batch < 0 || batch >= scene->header[TiledScene::kHeaderNumBatches]) {
 							warning("Layer::draw(): invalid batch %d", batch);
@@ -148,7 +156,7 @@ int Layer::draw(CDrawContext *context) {
 						const int *entry = &scene->batches[3 * batch];
 						CTexture *texture = backgroundData->getTexture(entry[0]);
 
-						context->drawQuads(kQuadsFlags, texture, entry[1], entry[2], &scene->vertices);
+						context->drawQuads(quadsFlags, texture, entry[1], entry[2], &scene->vertices);
 					}
 				}
 			}

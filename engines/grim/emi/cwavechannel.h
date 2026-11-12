@@ -58,10 +58,21 @@ public:
 	void applyCueSettings(CSoundCue *newCue) override;
 
 	void updateSpatialization();
+	void setSpuSampleVolume(int volume);
+	void setSpuSamplePan(int pan);
+	void setSpuStreamVolume(int volume);
+	void endSpuSample();
+
+	static bool getAttenuatedVolumes(float volume, float balance, int *left, int *right);
+	static void setSpuStereo(bool stereo);
+
+	static bool spuStereo;
 
 	bool started;
 	EMIMilesSample *hSample;
 	CSoundCue *cue;
+	float spuVolume;
+	float spuBalance;
 
 private:
 	EMIMilesDriver *_driver;

@@ -589,7 +589,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::EN_ANY,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_EMI
+			GUIO0()
 		},
 		GType_MONKEY4
 	},
@@ -602,7 +602,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::DE_DEU,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_EMI
+			GUIO0()
 		},
 		GType_MONKEY4
 	},
@@ -615,7 +615,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::IT_ITA,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_EMI
+			GUIO0()
 		},
 		GType_MONKEY4
 	},
@@ -628,7 +628,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::ES_ESP,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_EMI
+			GUIO0()
 		},
 		GType_MONKEY4
 	},
@@ -641,7 +641,7 @@ static const GrimGameDescription gameDescriptions[] = {
 			Common::FR_FRA,
 			Common::kPlatformPS2,
 			ADGF_UNSTABLE,
-			GUI_OPTIONS_EMI
+			GUIO0()
 		},
 		GType_MONKEY4
 	},

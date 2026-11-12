@@ -690,6 +690,7 @@ static const LuaFuncIdList luaFuncIdLists[kNumLists] = {
 };
 
 enum {
+	kListEmiPs2,
 	kListEmiInternal,
 	kListEmiState,
 	kListEmiIo,
@@ -754,7 +755,14 @@ static const char *const luaFuncIdNamesPrimitivesEmi[] = {
 	"Draw3DLine", "DrawLine", "DrawPolygon", "DrawRectangle", "ChangePrimitive", "KillPrimitive", "PurgePrimitiveQueue"
 };
 
+static const char *const luaFuncIdNamesPs2Emi[] = {
+	"SetReplayMode", "GetReplayMode", "GetNextDemoNum", "NotifyGameState", "DeleteSavedGame", "CopySavedGame", "JustSaved", "GetMemoryCardId", "GetUniqueUint", "FormatMemoryCard",
+	"SetActorTessellation", "IsActorChoring", "ApplyForceFeedback", "EnableSoakText", "SetStereoAudio", "pspu", "dsnd", "KillMusicAndWait", "OverWorldToScreen", "SetVScanOffsets",
+	"MemDump", "AllocDump", "LuaMemDump", "GLReport"
+};
+
 static const LuaFuncIdList luaFuncIdListsEmi[kNumListsEmi] = {
+	{ "ps2", luaFuncIdNamesPs2Emi, ARRAYSIZE(luaFuncIdNamesPs2Emi), 24, true },
 	{ "int_funcs", luaFuncIdNamesInternalEmi, ARRAYSIZE(luaFuncIdNamesInternalEmi), 39, false },
 	{ "stateFuncs", luaFuncIdNamesState, ARRAYSIZE(luaFuncIdNamesState), 1, false },
 	{ "iolib", luaFuncIdNamesIoEmi, ARRAYSIZE(luaFuncIdNamesIoEmi), 9, false },

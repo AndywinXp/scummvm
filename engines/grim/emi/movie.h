@@ -27,6 +27,13 @@
 #include "engines/grim/emi/eventhandler.h"
 #include "engines/grim/emi/lfile.h"
 
+namespace Common {
+struct Event;
+class ReadStream;
+class SeekableReadStream;
+class WriteStream;
+}
+
 namespace Graphics {
 struct Surface;
 }
@@ -78,6 +85,15 @@ public:
 	static void releaseSubtitleFont();
 	static bool fileExists(const char *path);
 	static void xorDecryptD2(byte *data, int size);
+	static void requestMoviePs2(const char *name);
+	static bool isMovieRequestedPs2();
+	static bool playRequestedMoviePs2();
+	static bool playMoviePs2(const char *name);
+	static Common::SeekableReadStream *openMoviePs2(const LString &path);
+	static void drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &screen);
+	static bool isSkipEventPs2(const Common::Event &event);
+	static int writePs2State(void *data, int bytes);
+	static int readPs2State(void *data, int bytes);
 
 	LString fileName;
 	bool finished;
@@ -99,6 +115,10 @@ public:
 	static Movie *current;
 	static int firstFrame;
 	static CDrawContext *drawContext;
+	static bool ps2MovieRequested;
+	static LString ps2MovieName;
+	static Common::WriteStream *ps2StateWriter;
+	static Common::ReadStream *ps2StateReader;
 };
 
 } // End of namespace Grim

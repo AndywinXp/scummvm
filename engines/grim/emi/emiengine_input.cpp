@@ -131,7 +131,8 @@ void EmiEngine::handleDebugKeys(int virtualKey) {
 		_controlHeld = true;
 		break;
 	case kVirtualKeyPause:
-		if (_lua)
+		// PS2 has no pause handler
+		if (_lua && getGamePlatform() != Common::kPlatformPS2)
 			_lua->doPauseCallback();
 
 		break;
@@ -165,6 +166,10 @@ bool EmiEngine::onCharacter(byte character) {
 
 		return false;
 	}
+
+	// PS2 has no character handler
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		return false;
 
 	bool handled = _lua->doCharacterCallback(character) != 0;
 

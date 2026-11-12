@@ -57,6 +57,7 @@ static const int kStatsTextX = 10;
 static const int kStatsTextFirstY = 20;
 static const int kStatsTextRowHeight = 20;
 static const byte kStatsTextJustify = 16;
+static const int kMovieControlSkipFrames = 5;
 
 static ProfilerTimer updateManualTimer("grimlib_UpdateManual()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
 static ProfilerTimer renderUpdateTimer("sputRender_Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
@@ -68,8 +69,13 @@ bool EmiEngine::runFrame() {
 }
 
 int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) {
+	// PS2 updates sounds once per frame, after Lua
+	bool isPs2 = getGamePlatform() == Common::kPlatformPS2;
+
 	updateManualTimer.start();
-	updateSounds(false);
+
+	if (!isPs2)
+		updateSounds(false);
 
 	if (_libSaveRequest)
 		saveGame(drawContext);
@@ -86,34 +92,67 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 
 	if (InputRecorder::instance && InputRecorder::instance->mode == InputRecorder::kModeReplay)
 		InputRecorder::instance->replayKeys();
+	else if (_controlSkipFrames != 0)
+		_controlSkipFrames--;
 	else
 		SputControl_v2::update();
 
 	float frameTime = updateFrameTime(manualMs);
 
 	ResourceManager::update(frameTime);
-	updateSounds(false);
+
+	if (!isPs2)
+		updateSounds(false);
 
 	if (_mode != kModePaused || manualMs != 0) {
 		_frameCount++;
 		_lua->update(frameTime);
-		updateSounds(false);
+
+		if (isPs2) {
+			updateSounds(true);
+			applyPendingMusicState();
+		} else {
+			updateSounds(false);
+		}
+
+		// PS2 plays the requested movie here and skips the rest of the frame
+		if (isPs2 && Movie::isMovieRequestedPs2()) {
+			Movie::playRequestedMoviePs2();
+			_controlSkipFrames = kMovieControlSkipFrames;
+			updateManualTimer.stop();
+
+			return 0;
+		}
+
+		if (isPs2 && _soundRestartFrames != 0) {
+			_soundRestartFrames--;
+
+			if (_soundRestartFrames == 0)
+				Sounds::resumeAll();
+		}
 
 		if (_mode == kModeMovie) {
 			if (updateMovie(frameTime))
 				_mode = kModeGame;
 		} else if (_mode != kModeOverworld) {
 			Actor::updateAllActors(frameTime);
-			updateSounds(false);
+
+			if (!isPs2)
+				updateSounds(false);
+		}
+
+		if (isPs2 && _setChangeFrames > 0) {
+			_setChangeFrames++;
+
+			if (_setChangeFrames == 3)
+				_setChangeFrames = 0;
 		}
 	}
 
-	if (_pendingMusicState != -1) {
-		setMusicState(_pendingMusicState, -1);
-		_pendingMusicState = -1;
-	}
+	applyPendingMusicState();
 
-	updateSounds(false);
+	if (!isPs2)
+		updateSounds(false);
 
 	int result = 0;
 
@@ -127,6 +166,19 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 		dumpFrame();
 
 	return result;
+}
+
+void EmiEngine::applyPendingMusicState() {
+	if (_pendingMusicState == -1)
+		return;
+
+	setMusicState(_pendingMusicState, -1);
+
+	// On PS2, a new music state fades out the loading loop
+	if (getGamePlatform() == Common::kPlatformPS2 && _pendingMusicState != 0)
+		Sounds::fadeLoadingLoop(-1);
+
+	_pendingMusicState = -1;
 }
 
 float EmiEngine::updateFrameTime(int manualMs) {

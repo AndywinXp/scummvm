@@ -31,6 +31,7 @@
 #include "engines/grim/emi/cvector.h"
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/irect.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/room_v2.h"
 #include "engines/grim/emi/walkplane_v2.h"
@@ -40,14 +41,24 @@ namespace Grim {
 
 static const float kMinVectorLength = 1e-20f;
 static const float kFlatDotLimit = 1.000001f;
+static const float kPs2ScreenWidth = 640.0f;
+static const float kPs2ScreenHeight = 480.0f;
+static const float kPs2HalfScreenWidth = 320.0f;
+static const float kPs2HalfScreenHeight = 240.0f;
 
 void Lua_V2::WorldToScreen() {
 	lua_Object xObj = lua_getparam(1);
 	lua_Object yObj = lua_getparam(2);
 	lua_Object zObj = lua_getparam(3);
 
-	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+	bool isPs2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		if (isPs2 && gpConsoleServices)
+			gpConsoleServices->logDebug("WorldToScreen: Parameters must be x, y, z coords.\n");
+
 		return;
+	}
 
 	float z = lua_getnumber(zObj);
 	float y = lua_getnumber(yObj);
@@ -66,6 +77,38 @@ void Lua_V2::WorldToScreen() {
 	}
 
 	camera->updateViewMatrix();
+
+	// PS2 computes in floats on a fixed 640x480 screen
+	if (isPs2) {
+		const float *m = camera->view.rot.m;
+		float pointX = ((x * m[0] + y * m[3]) + z * m[6]) + camera->view.pos.x;
+		float pointY = ((x * m[1] + y * m[4]) + z * m[7]) + camera->view.pos.y;
+		float depth = ((x * m[2] + y * m[5]) + z * m[8]) + camera->view.pos.z;
+
+		if (depth == 0.0f) {
+			warning("Lua_V2::WorldToScreen(): point is on the camera plane");
+			lua_pushnil();
+			lua_pushnil();
+
+			return;
+		}
+
+		float inverseDepth = 1.0f / depth;
+		float ps2ScreenX = camera->halfWidth + inverseDepth * (pointX * camera->focalX);
+		float ps2ScreenY = camera->halfHeight + inverseDepth * (-pointY * camera->focalY);
+
+		if (!CDrawContext::context || ps2ScreenX < 0.0f || !(ps2ScreenX <= kPs2ScreenWidth) || ps2ScreenY < 0.0f || !(ps2ScreenY <= kPs2ScreenHeight)) {
+			lua_pushnil();
+			lua_pushnil();
+
+			return;
+		}
+
+		lua_pushnumber((ps2ScreenX - kPs2HalfScreenWidth) / kPs2HalfScreenWidth);
+		lua_pushnumber((kPs2HalfScreenHeight - ps2ScreenY) / kPs2HalfScreenHeight);
+
+		return;
+	}
 
 	float view[12];
 

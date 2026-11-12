@@ -51,6 +51,7 @@ MODULE_OBJS := \
 	emi/cmaterial.o \
 	emi/cmatrix.o \
 	emi/cmp3file.o \
+	emi/cmusicps2.o \
 	emi/cnode.o \
 	emi/cnoderef.o \
 	emi/cnoderef_soundcue.o \
@@ -66,6 +67,7 @@ MODULE_OBJS := \
 	emi/cplane.o \
 	emi/cprimitive.o \
 	emi/cquaternion.o \
+	emi/cscxfile.o \
 	emi/cskeleton.o \
 	emi/csnd.o \
 	emi/csndparser.o \
@@ -136,6 +138,7 @@ MODULE_OBJS := \
 	emi/lua_v2_layer.o \
 	emi/lua_v2_movie.o \
 	emi/lua_v2_primitive.o \
+	emi/lua_v2_ps2.o \
 	emi/lua_v2_render.o \
 	emi/lua_v2_resource.o \
 	emi/lua_v2_save.o \
@@ -157,6 +160,7 @@ MODULE_OBJS := \
 	emi/miles_audio/reverb.o \
 	emi/miles_audio/stream.o \
 	emi/movie.o \
+	emi/movie/pss/pssdecoder.o \
 	emi/musicstream.o \
 	emi/overworld.o \
 	emi/polyglot_v2.o \

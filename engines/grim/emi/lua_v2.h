@@ -69,6 +69,8 @@ public:
 	static void saveLocks(tSaveRestoreAccess *writer);
 	static void restoreLocks(tSaveRestoreAccess *reader);
 	static void toggleStatsOverlay(bool hide);
+	static uint getClockUniqueUint();
+	static void obsoleteFunctionPs2();
 
 	enum {
 		kStatsOverlayFlag = 0x20,
@@ -111,6 +113,7 @@ protected:
 	DECLARE_LUA_OPCODE(MakeScreenTextures);
 	DECLARE_LUA_OPCODE(SubmitSaveGameData) override;
 	DECLARE_LUA_OPCODE(GetSaveGameData) override;
+	DECLARE_LUA_OPCODE(JustLoaded) override;
 	DECLARE_LUA_OPCODE(ScreenshotForSavegame);
 	DECLARE_LUA_OPCODE(ThumbnailFromScreen);
 	DECLARE_LUA_OPCODE(ThumbnailFromFile);
@@ -331,6 +334,28 @@ protected:
 	DECLARE_LUA_OPCODE(ImPopState);
 	DECLARE_LUA_OPCODE(ImFlushStack);
 	DECLARE_LUA_OPCODE(ImGetMillisecondPosition);
+
+	DECLARE_LUA_OPCODE(SetReplayMode);
+	DECLARE_LUA_OPCODE(GetReplayMode);
+	DECLARE_LUA_OPCODE(GetNextDemoNum);
+	DECLARE_LUA_OPCODE(NotifyGameState);
+	DECLARE_LUA_OPCODE(DeleteSavedGame);
+	DECLARE_LUA_OPCODE(CopySavedGame);
+	DECLARE_LUA_OPCODE(JustSaved);
+	DECLARE_LUA_OPCODE(GetMemoryCardId);
+	DECLARE_LUA_OPCODE(GetUniqueUint);
+	DECLARE_LUA_OPCODE(FormatMemoryCard);
+	DECLARE_LUA_OPCODE(SetActorTessellation);
+	DECLARE_LUA_OPCODE(IsActorChoring) override;
+	DECLARE_LUA_OPCODE(ApplyForceFeedback);
+	DECLARE_LUA_OPCODE(EnableSoakText);
+	DECLARE_LUA_OPCODE(SetStereoAudio);
+	DECLARE_LUA_OPCODE(pspu);
+	DECLARE_LUA_OPCODE(dsnd);
+	DECLARE_LUA_OPCODE(KillMusicAndWait);
+	DECLARE_LUA_OPCODE(OverWorldToScreen);
+	DECLARE_LUA_OPCODE(SetVScanOffsets);
+	DECLARE_LUA_OPCODE(UnimplementedFunctionPs2);
 
 protected:
 	bool isActor(lua_Object object);

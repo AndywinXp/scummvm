@@ -25,6 +25,7 @@
 #include "engines/grim/emi/lstring.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/sounds.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -343,6 +344,10 @@ void Lua_V2::ImSetState() {
 }
 
 void Lua_V2::ImSelectSet() {
+	// PS2 has no music sets
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		return;
+
 	lua_Object setObj = lua_getparam(1);
 
 	if (lua_isnumber(setObj))

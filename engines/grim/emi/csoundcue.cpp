@@ -914,6 +914,25 @@ void CSoundCue::releaseChannel() {
 	channel = nullptr;
 }
 
+void CSoundCue::unlinkFromCueList() {
+	if (firstCue != this && !prev)
+		return;
+
+	if (prev)
+		prev->next = next;
+	else
+		firstCue = next;
+
+	if (next)
+		next->prev = prev;
+	else
+		lastCue = prev;
+
+	prev = nullptr;
+	next = nullptr;
+	cueCount--;
+}
+
 int CSoundCue::getState() {
 	int channelStatus = 0;
 
