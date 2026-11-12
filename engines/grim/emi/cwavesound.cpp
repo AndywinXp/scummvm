@@ -275,7 +275,7 @@ void CWaveSound::decodeBlock(uint block) {
 
 	uint numBlocks = READ_LE_UINT32(samples) >> kDecodedBlockShift;
 
-	// The original could divide by zero here, let's avoid that...
+	// The original divides by zero here
 	if (numBlocks == 0) {
 		warning("CWaveSound::decodeBlock(): the sound has no blocks");
 

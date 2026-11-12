@@ -22,26 +22,17 @@
 #ifndef GRIM_EMI_CWAVECHANNEL_H
 #define GRIM_EMI_CWAVECHANNEL_H
 
-#include "audio/audiostream.h"
-#include "audio/mixer.h"
-
 #include "engines/grim/emi/caudiochannel.h"
 
 namespace Grim {
 
 class CSoundCue;
+class EMIMilesDriver;
+struct EMIMilesSample;
 
 class CWaveChannel : public CAudioChannel {
 public:
-	enum {
-		kSampleFree = 1,
-		kSampleDone = 2,
-		kSamplePlaying = 4,
-		kSampleStopped = 8,
-		kSamplePlayingReleased = 16
-	};
-
-	CWaveChannel();
+	CWaveChannel(EMIMilesDriver *driver);
 	~CWaveChannel() override;
 
 	void *operator new(size_t size);
@@ -67,72 +58,13 @@ public:
 	void applyCueSettings(CSoundCue *newCue) override;
 
 	void updateSpatialization();
-	void refreshMixerVolume();
-	bool isSampleActive();
-	void releaseDigitalOutput();
-	void reacquireDigitalOutput();
 
 	bool started;
-	bool hasSample;
+	EMIMilesSample *hSample;
 	CSoundCue *cue;
 
-	static int silentTailLoopCount;
-
-	static int panToBalance(int pan);
-	static int volumeToMixer(int volume);
-
 private:
-	void initSample();
-	void releaseSample();
-	void setSampleAddress(const byte *address, uint size);
-	void setSampleType(int format);
-	void setSampleLoopBlock(uint start, uint end);
-	void startSample();
-	void stopSample();
-	void resumeSample();
-	void endSample();
-	int getSampleStatus();
-	int getSampleLoopCount();
-	void setSampleMsPosition(int milliseconds);
-	uint getSamplePositionMs();
-	uint getSampleLengthMs();
-	void getSampleState(uint64 elapsedBytes, uint *position, int *loopCount, bool *finished);
-	void rebaseSample();
-	void finishSample();
-	uint64 getElapsedBytes();
-	static int getPanScale(int index);
-	int getMixerVolume();
-	int getMixerBalance();
-	uint getFrameSize();
-	uint getBytesPerSecond();
-	uint msToBytes(uint milliseconds);
-	uint bytesToMs(uint bytes);
-	void getLoopBlock(uint *start, uint *end);
-	void playMixerStream();
-	void stopMixerStream();
-	void pauseMixerStream(bool pauseIt);
-	Audio::AudioStream *makeLoopingStream(uint offset, byte rawFlags);
-
-	int sampleStatus;
-	const byte *sampleAddress;
-	uint sampleSize;
-	bool sampleStereo;
-	bool sample16Bit;
-	int sampleRate;
-	int sampleVolume;
-	int samplePan;
-	int sampleLoopCount;
-	uint sampleLoopStart;
-	uint sampleLoopEnd;
-	bool silentTail;
-	uint samplePosition;
-	uint runStartMs;
-	Audio::SoundHandle soundHandle;
-	bool reverbActive;
-	int reverbEnvironment;
-	float reverbTime;
-	float reverbMix;
-	float reverbDamping;
+	EMIMilesDriver *_driver;
 };
 
 } // End of namespace Grim

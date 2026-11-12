@@ -19,61 +19,40 @@
  *
  */
 
-#include "common/system.h"
 #include "common/textconsole.h"
-
-#include "audio/decoders/raw.h"
 
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/csoundcue.h"
-#include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/emi/miles_audio/driver.h"
 
 namespace Grim {
 
 static const int kMaxSampleVolume = 127;
-static const int kCenterPan = 64;
-static const int kDefaultSampleRate = 11025;
-static const int kPanScaleLimit = 128;
 static const uint kSilentTailHeadroom = 4;
+static const int kSilentTailLoopCount = (int)(2.5 / (double)0.0005f + 0.5);
 
-int CWaveChannel::silentTailLoopCount = (int)(2.5 / (double)0.0005f + 0.5);
-
-CWaveChannel::CWaveChannel() {
+CWaveChannel::CWaveChannel(EMIMilesDriver *driver) {
 	started = false;
-	hasSample = false;
+	hSample = nullptr;
 	cue = nullptr;
-	sampleStatus = kSampleFree;
-	sampleAddress = nullptr;
-	sampleSize = 0;
-	sampleStereo = false;
-	sample16Bit = true;
-	sampleRate = 0;
-	sampleVolume = kMaxSampleVolume;
-	samplePan = kCenterPan;
-	sampleLoopCount = 1;
-	sampleLoopStart = 0;
-	sampleLoopEnd = 0xFFFFFFFF;
-	silentTail = false;
-	samplePosition = 0;
-	runStartMs = 0;
-	reverbActive = false;
-	reverbEnvironment = 0;
-	reverbTime = -1.0f;
-	reverbMix = -1.0f;
-	reverbDamping = -1.0f;
+	_driver = driver;
 
-	if (CWaveAudioDevice::digitalDriverOpen) {
-		hasSample = true;
-		initSample();
+	if (_driver) {
+		hSample = _driver->allocateSample();
+
+		if (hSample)
+			_driver->initSample(hSample);
 	}
 }
 
 CWaveChannel::~CWaveChannel() {
-	if (hasSample)
-		releaseSample();
+	if (hSample) {
+		_driver->releaseSample(hSample);
+		hSample = nullptr;
+	}
 }
 
 void *CWaveChannel::operator new(size_t size) {
@@ -100,13 +79,13 @@ int CWaveChannel::update() {
 }
 
 bool CWaveChannel::assignToSample(CSoundCue *newCue) {
-	if (!hasSample)
+	if (!hSample)
 		warning("CWaveChannel::assignToSample(): the sample is missing");
 
 	if (cue)
 		warning("CWaveChannel::assignToSample(): the channel already has a cue");
 
-	if (!hasSample)
+	if (!hSample)
 		return false;
 
 	if (!newCue)
@@ -127,9 +106,9 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 
 	if (waveSound->getType() == CWaveSound::kTypeWave) {
 		started = false;
-		reverbActive = false;
-		initSample();
-		setSampleAddress(waveSound->samples, waveSound->allocatedSize);
+		_driver->setSampleFilter(hSample, false);
+		_driver->initSample(hSample);
+		_driver->setSampleAddress(hSample, waveSound->samples, waveSound->allocatedSize);
 
 		int format = 1;
 
@@ -158,7 +137,7 @@ bool CWaveChannel::assignToSample(CSoundCue *newCue) {
 			break;
 		}
 
-		setSampleType(format);
+		_driver->setSampleType(hSample, format);
 
 		double rate = waveSound->sampleRate;
 
@@ -181,18 +160,18 @@ void CWaveChannel::release() {
 		cue = nullptr;
 	}
 
-	if (hasSample) {
-		reverbActive = false;
-		initSample();
+	if (hSample) {
+		_driver->setSampleFilter(hSample, false);
+		_driver->initSample(hSample);
 	}
 
 	started = false;
 }
 
 void CWaveChannel::start() {
-	if (hasSample) {
+	if (hSample) {
 		if (cue) {
-			startSample();
+			_driver->startSample(hSample);
 			cue->state = CSoundCue::kStatePlaying;
 			started = true;
 		}
@@ -200,11 +179,11 @@ void CWaveChannel::start() {
 }
 
 void CWaveChannel::stop() {
-	if (!hasSample)
+	if (!hSample)
 		warning("CWaveChannel::stop(): the sample is missing");
 
-	if (hasSample) {
-		endSample();
+	if (hSample) {
+		_driver->endSample(hSample);
 
 		if (cue)
 			cue->state = CSoundCue::kStateStopped;
@@ -214,9 +193,9 @@ void CWaveChannel::stop() {
 }
 
 void CWaveChannel::pause() {
-	if (hasSample) {
-		paused = getSampleStatus() == kSamplePlaying || paused;
-		stopSample();
+	if (hSample) {
+		paused = _driver->getSampleStatus(hSample) == EMIMilesDriver::kSamplePlaying || paused;
+		_driver->stopSample(hSample);
 
 		if (cue)
 			cue->state = CSoundCue::kStatePaused;
@@ -224,9 +203,9 @@ void CWaveChannel::pause() {
 }
 
 void CWaveChannel::resume() {
-	if (hasSample) {
+	if (hSample) {
 		if (paused) {
-			resumeSample();
+			_driver->resumeSample(hSample);
 			paused = false;
 
 			if (cue)
@@ -236,23 +215,23 @@ void CWaveChannel::resume() {
 }
 
 int CWaveChannel::getStatus() {
-	if (!hasSample)
+	if (!hSample)
 		return 0;
 
-	switch (getSampleStatus()) {
-	case kSampleFree:
+	switch (_driver->getSampleStatus(hSample)) {
+	case EMIMilesDriver::kSampleFree:
 		return 1;
 
-	case kSampleDone:
+	case EMIMilesDriver::kSampleDone:
 		return 2;
 
-	case kSamplePlaying:
+	case EMIMilesDriver::kSamplePlaying:
 		return 3;
 
-	case kSamplePlayingReleased:
+	case EMIMilesDriver::kSamplePlayingReleased:
 		return 4;
 
-	case kSampleStopped:
+	case EMIMilesDriver::kSampleStopped:
 		return 5;
 
 	default:
@@ -263,22 +242,23 @@ int CWaveChannel::getStatus() {
 }
 
 int CWaveChannel::getPositionMs(int *totalMs) {
-	if (!hasSample)
+	if (!hSample)
 		return -1;
 
-	if (totalMs)
-		*totalMs = (int)getSampleLengthMs();
+	int currentMs = 0;
 
-	return (int)getSamplePositionMs();
+	_driver->getSampleMsPosition(hSample, totalMs, &currentMs);
+
+	return currentMs;
 }
 
 void CWaveChannel::setPositionMs(int milliseconds) {
-	if (hasSample)
-		setSampleMsPosition(milliseconds);
+	if (hSample)
+		_driver->setSampleMsPosition(hSample, milliseconds);
 }
 
 void CWaveChannel::setVolume(float volume) {
-	if (!hasSample)
+	if (!hSample)
 		return;
 
 	float clamped;
@@ -290,17 +270,16 @@ void CWaveChannel::setVolume(float volume) {
 	else
 		clamped = volume;
 
-	sampleVolume = (int)((double)clamped * 127.0);
-	refreshMixerVolume();
+	_driver->setSampleVolume(hSample, (int)((double)clamped * (double)kMaxSampleVolume));
 }
 
 void CWaveChannel::setPlaybackRate(int rate) {
-	if (hasSample)
-		sampleRate = rate;
+	if (hSample)
+		_driver->setSampleRate(hSample, rate);
 }
 
 void CWaveChannel::setPan(float pan) {
-	if (!hasSample)
+	if (!hSample)
 		return;
 
 	float clamped;
@@ -312,16 +291,11 @@ void CWaveChannel::setPan(float pan) {
 	else
 		clamped = pan;
 
-	samplePan = (int)((double)clamped * 64.0 + 64.0);
-
-	if (samplePan > kMaxSampleVolume)
-		samplePan = kMaxSampleVolume;
-
-	refreshMixerVolume();
+	_driver->setSamplePan(hSample, (int)((double)clamped * 64.0 + 64.0));
 }
 
 bool CWaveChannel::setReverb(int preset, float time, float mix, float unusedFirst, float damping, float unusedSecond) {
-	if (!hasSample)
+	if (!hSample)
 		return false;
 
 	if (!(time >= 0.01f && time <= 8000.0f))
@@ -334,51 +308,43 @@ bool CWaveChannel::setReverb(int preset, float time, float mix, float unusedFirs
 		damping = -1.0f;
 
 	if (preset != 0 || !(time < 0.0f) || !(mix < 0.0f) || !(damping < 0.0f)) {
-		reverbActive = true;
-		reverbEnvironment = preset;
+		_driver->setSampleFilter(hSample, true);
+		_driver->setSampleFilterEnvironment(hSample, (float)preset);
 
 		if (time >= 0.0f)
-			reverbTime = time;
+			_driver->setSampleFilterTime(hSample, time);
 
 		if (mix >= 0.0f)
-			reverbMix = mix;
+			_driver->setSampleFilterMix(hSample, mix);
 
 		if (damping >= 0.0f)
-			reverbDamping = damping;
+			_driver->setSampleFilterDamping(hSample, damping);
 	} else {
-		reverbActive = false;
+		_driver->setSampleFilter(hSample, false);
 	}
 
 	return true;
 }
 
 bool CWaveChannel::hasFiniteLoopCount() {
-	if (!hasSample)
+	if (!hSample)
 		return false;
 
-	int count = getSampleLoopCount();
+	int count = _driver->getSampleLoopCount(hSample);
 
-	return count > 1 && count < silentTailLoopCount;
+	return count > 1 && count < kSilentTailLoopCount;
 }
 
 void CWaveChannel::setLoopCount(int count) {
-	if (!hasSample)
-		return;
-
-	if (count < 0) {
-		warning("CWaveChannel::setLoopCount(): invalid loop count %d", count);
-		count = 1;
-	}
-
-	rebaseSample();
-	sampleLoopCount = count;
+	if (hSample)
+		_driver->setSampleLoopCount(hSample, count);
 }
 
 void CWaveChannel::setCutoff(float nearDistance, float farDistance) {
 }
 
 void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
-	if (!newCue || !hasSample)
+	if (!newCue || !hSample)
 		return;
 
 	setVolume(newCue->getVolume());
@@ -399,13 +365,11 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 
 	if ((newCue->flags & CSoundCue::kFlagLoop) != 0) {
 		setLoopCount(0);
-		silentTail = false;
 
 		if (waveSound)
-			setSampleLoopBlock(waveSound->loopStart, waveSound->loopEnd);
+			_driver->setSampleLoopBlock(hSample, (int)waveSound->loopStart, (int)waveSound->loopEnd);
 	} else {
-		setLoopCount(silentTailLoopCount);
-		silentTail = true;
+		setLoopCount(kSilentTailLoopCount);
 
 		if (waveSound) {
 			int frameBytes = 0;
@@ -441,7 +405,6 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 			if (frameBytes == 0) {
 				warning("CWaveChannel::applyCueSettings(): illegal sample format");
 				setLoopCount(1);
-				silentTail = false;
 
 				return;
 			}
@@ -449,7 +412,6 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 			if (!waveSound->samples || waveSound->allocatedSize == 0) {
 				warning("CWaveChannel::applyCueSettings(): the sound has no samples");
 				setLoopCount(1);
-				silentTail = false;
 
 				return;
 			}
@@ -464,7 +426,7 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 			if (silentStart < lastByte)
 				memset(waveSound->samples + silentStart, silence, lastByte - silentStart);
 
-			setSampleLoopBlock(silentStart + kSilentTailHeadroom, lastByte - 1);
+			_driver->setSampleLoopBlock(hSample, silentStart + (int)kSilentTailHeadroom, lastByte - 1);
 		}
 	}
 }
@@ -474,574 +436,6 @@ void CWaveChannel::updateSpatialization() {
 		if (cue->position.valid)
 			cue->updateSpatialization();
 	}
-}
-
-void CWaveChannel::refreshMixerVolume() {
-	Audio::Mixer *mixer = g_system->getMixer();
-
-	if (!mixer || !mixer->isSoundHandleActive(soundHandle))
-		return;
-
-	mixer->setChannelVolume(soundHandle, (byte)getMixerVolume());
-	mixer->setChannelBalance(soundHandle, (int8)getMixerBalance());
-}
-
-bool CWaveChannel::isSampleActive() {
-	int status = getSampleStatus();
-
-	return status == kSamplePlaying || status == kSamplePlayingReleased;
-}
-
-void CWaveChannel::releaseDigitalOutput() {
-	rebaseSample();
-
-	if (sampleStatus != kSamplePlaying)
-		return;
-
-	stopMixerStream();
-
-	sampleStatus = kSamplePlayingReleased;
-}
-
-void CWaveChannel::reacquireDigitalOutput() {
-	if (sampleStatus != kSamplePlayingReleased)
-		return;
-
-	sampleStatus = kSamplePlaying;
-	runStartMs = g_system->getMillis();
-
-	stopMixerStream();
-	playMixerStream();
-}
-
-void CWaveChannel::initSample() {
-	stopMixerStream();
-
-	sampleStatus = kSampleDone;
-	sampleAddress = nullptr;
-	sampleSize = 0;
-	sampleStereo = false;
-	sample16Bit = false;
-	sampleRate = kDefaultSampleRate;
-	sampleVolume = kMaxSampleVolume;
-	samplePan = kCenterPan;
-	sampleLoopCount = 1;
-	sampleLoopStart = 0;
-	sampleLoopEnd = 0xFFFFFFFF;
-	silentTail = false;
-	samplePosition = 0;
-	runStartMs = 0;
-}
-
-void CWaveChannel::releaseSample() {
-	stopMixerStream();
-
-	sampleStatus = kSampleFree;
-	hasSample = false;
-}
-
-void CWaveChannel::setSampleAddress(const byte *address, uint size) {
-	sampleAddress = address;
-	sampleSize = size;
-}
-
-void CWaveChannel::setSampleType(int format) {
-	sampleStereo = (format & 2) != 0;
-	sample16Bit = (format & 1) != 0;
-}
-
-void CWaveChannel::setSampleLoopBlock(uint start, uint end) {
-	rebaseSample();
-
-	// The disasm rounds the start to the nearest frame
-	uint frameSize = getFrameSize();
-	uint64 rounded = ((uint64)start + frameSize / 2) / frameSize * frameSize;
-
-	if (rounded > 0xFFFFFFFF)
-		rounded = 0xFFFFFFFF;
-
-	sampleLoopStart = (uint)rounded;
-	sampleLoopEnd = end;
-}
-
-void CWaveChannel::startSample() {
-	if (sampleStatus == kSampleFree)
-		return;
-
-	if (!sampleAddress || sampleSize == 0)
-		return;
-
-	rebaseSample();
-
-	stopMixerStream();
-
-	samplePosition = 0;
-
-	if (CWaveAudioDevice::handleReleased) {
-		sampleStatus = kSamplePlayingReleased;
-
-		return;
-	}
-
-	sampleStatus = kSamplePlaying;
-	runStartMs = g_system->getMillis();
-
-	playMixerStream();
-}
-
-void CWaveChannel::stopSample() {
-	if (getSampleStatus() != kSamplePlaying)
-		return;
-
-	rebaseSample();
-
-	if (sampleStatus != kSamplePlaying)
-		return;
-
-	sampleStatus = kSampleStopped;
-
-	pauseMixerStream(true);
-}
-
-void CWaveChannel::resumeSample() {
-	if (sampleStatus == kSampleStopped) {
-		if (CWaveAudioDevice::handleReleased) {
-			sampleStatus = kSamplePlayingReleased;
-		} else {
-			sampleStatus = kSamplePlaying;
-			runStartMs = g_system->getMillis();
-
-			pauseMixerStream(false);
-		}
-	} else if (sampleStatus == kSampleDone) {
-		if (!sampleAddress || sampleSize == 0)
-			return;
-
-		if (CWaveAudioDevice::handleReleased) {
-			sampleStatus = kSamplePlayingReleased;
-		} else {
-			sampleStatus = kSamplePlaying;
-			runStartMs = g_system->getMillis();
-
-			playMixerStream();
-		}
-	}
-}
-
-void CWaveChannel::endSample() {
-	if (sampleStatus == kSampleFree || sampleStatus == kSampleDone)
-		return;
-
-	rebaseSample();
-	stopMixerStream();
-
-	sampleStatus = kSampleDone;
-}
-
-int CWaveChannel::getSampleStatus() {
-	if (sampleStatus == kSamplePlaying) {
-		uint position = 0;
-		int loopCount = 0;
-		bool finished = false;
-
-		getSampleState(getElapsedBytes(), &position, &loopCount, &finished);
-
-		if (finished)
-			finishSample();
-	}
-
-	return sampleStatus;
-}
-
-int CWaveChannel::getSampleLoopCount() {
-	if (getSampleStatus() != kSamplePlaying)
-		return sampleLoopCount;
-
-	uint position = 0;
-	int loopCount = 0;
-	bool finished = false;
-
-	getSampleState(getElapsedBytes(), &position, &loopCount, &finished);
-
-	return loopCount;
-}
-
-void CWaveChannel::setSampleMsPosition(int milliseconds) {
-	if (milliseconds < 0)
-		milliseconds = 0;
-
-	uint bytes = msToBytes((uint)milliseconds);
-
-	if (bytes > sampleSize) {
-		warning("CWaveChannel::setSampleMsPosition(): position %d ms is past the end of the sample", milliseconds);
-		bytes = sampleSize;
-	}
-
-	rebaseSample();
-
-	if (sampleStatus == kSamplePlaying || sampleStatus == kSampleStopped) {
-		stopMixerStream();
-
-		samplePosition = bytes;
-
-		if (sampleStatus == kSamplePlaying)
-			runStartMs = g_system->getMillis();
-
-		playMixerStream();
-
-		if (sampleStatus == kSampleStopped)
-			pauseMixerStream(true);
-	} else {
-		samplePosition = bytes;
-	}
-}
-
-uint CWaveChannel::getSamplePositionMs() {
-	uint bytes = samplePosition;
-
-	if (getSampleStatus() == kSamplePlaying) {
-		int loopCount = 0;
-		bool finished = false;
-
-		getSampleState(getElapsedBytes(), &bytes, &loopCount, &finished);
-	}
-
-	if (bytes > sampleSize)
-		bytes = sampleSize;
-
-	return bytesToMs(bytes);
-}
-
-uint CWaveChannel::getSampleLengthMs() {
-	return bytesToMs(sampleSize);
-}
-
-void CWaveChannel::getSampleState(uint64 elapsedBytes, uint *position, int *loopCount, bool *finished) {
-	uint blockStart = 0;
-	uint blockEnd = 0;
-
-	getLoopBlock(&blockStart, &blockEnd);
-
-	*finished = false;
-
-	if (blockEnd <= blockStart) {
-		*position = sampleSize;
-		*loopCount = 1;
-		*finished = true;
-
-		return;
-	}
-
-	// The disasm ignores the loop end when the count is one
-	uint segmentEnd = sampleLoopCount != 1 ? blockEnd : sampleSize;
-	uint64 firstSegment = 0;
-
-	if (samplePosition < segmentEnd)
-		firstSegment = segmentEnd - samplePosition;
-
-	if (elapsedBytes < firstSegment) {
-		*position = samplePosition + (uint)elapsedBytes;
-		*loopCount = sampleLoopCount;
-
-		return;
-	}
-
-	if (sampleLoopCount == 1) {
-		*position = sampleSize;
-		*loopCount = 1;
-		*finished = true;
-
-		return;
-	}
-
-	uint64 elapsed = elapsedBytes - firstSegment;
-	uint64 cycle = blockEnd - blockStart;
-
-	if (sampleLoopCount == 0) {
-		*position = blockStart + (uint)(elapsed % cycle);
-		*loopCount = 0;
-
-		return;
-	}
-
-	uint64 middle = (uint64)(sampleLoopCount - 2) * cycle;
-
-	if (elapsed < middle) {
-		*position = blockStart + (uint)(elapsed % cycle);
-		*loopCount = sampleLoopCount - 1 - (int)(elapsed / cycle);
-
-		return;
-	}
-
-	uint64 lastPosition = blockStart + (elapsed - middle);
-
-	*loopCount = 1;
-
-	if (lastPosition >= sampleSize) {
-		*position = sampleSize;
-		*finished = true;
-	} else {
-		*position = (uint)lastPosition;
-	}
-}
-
-void CWaveChannel::rebaseSample() {
-	if (sampleStatus != kSamplePlaying)
-		return;
-
-	uint position = 0;
-	int loopCount = 0;
-	bool finished = false;
-
-	getSampleState(getElapsedBytes(), &position, &loopCount, &finished);
-
-	if (finished) {
-		finishSample();
-
-		return;
-	}
-
-	samplePosition = position;
-	sampleLoopCount = loopCount;
-	runStartMs = g_system->getMillis();
-}
-
-void CWaveChannel::finishSample() {
-	stopMixerStream();
-
-	sampleStatus = kSampleDone;
-	samplePosition = sampleSize;
-	sampleLoopCount = 1;
-}
-
-uint64 CWaveChannel::getElapsedBytes() {
-	if (sampleStatus != kSamplePlaying || sampleRate <= 0)
-		return 0;
-
-	uint elapsedMs = g_system->getMillis() - runStartMs;
-	uint64 frames = (uint64)elapsedMs * (uint)sampleRate / 1000;
-
-	return frames * getFrameSize();
-}
-
-int CWaveChannel::getPanScale(int index) {
-	if (index <= 62)
-		return index * 2;
-
-	return kPanScaleLimit;
-}
-
-int CWaveChannel::panToBalance(int pan) {
-	if (pan < 0)
-		pan = 0;
-
-	if (pan > kMaxSampleVolume)
-		pan = kMaxSampleVolume;
-
-	int left = getPanScale(kMaxSampleVolume - pan);
-	int right = getPanScale(pan);
-
-	if (left > right)
-		return -((127 * (left - right) + left / 2) / left);
-
-	if (right > left)
-		return (127 * (right - left) + right / 2) / right;
-
-	return 0;
-}
-
-int CWaveChannel::volumeToMixer(int volume) {
-	if (volume < 0)
-		volume = 0;
-
-	if (volume > kMaxSampleVolume)
-		volume = kMaxSampleVolume;
-
-	int effective = volume * CWaveAudioDevice::masterVolume / kMaxSampleVolume;
-
-	if (effective < 0)
-		effective = 0;
-
-	if (effective > kMaxSampleVolume)
-		effective = kMaxSampleVolume;
-
-	int scale = 16 * effective;
-
-	if (scale >= 2032)
-		scale = 2047;
-
-	return (scale * Audio::Mixer::kMaxChannelVolume + 1024) / 2048;
-}
-
-int CWaveChannel::getMixerVolume() {
-	return volumeToMixer(sampleVolume);
-}
-
-int CWaveChannel::getMixerBalance() {
-	return panToBalance(samplePan);
-}
-
-uint CWaveChannel::getFrameSize() {
-	uint frameSize = sample16Bit ? 2 : 1;
-
-	if (sampleStereo)
-		frameSize *= 2;
-
-	return frameSize;
-}
-
-uint CWaveChannel::getBytesPerSecond() {
-	if (sampleRate <= 0)
-		return 0;
-
-	return (uint)sampleRate * getFrameSize();
-}
-
-uint CWaveChannel::msToBytes(uint milliseconds) {
-	if (sampleRate <= 0)
-		return 0;
-
-	uint frameSize = getFrameSize();
-	uint64 bytes = (uint64)((double)((uint)sampleRate * frameSize) * (double)milliseconds * 0.001);
-
-	bytes = (bytes + frameSize / 2) / frameSize * frameSize;
-
-	if (bytes > 0xFFFFFFFF)
-		return 0xFFFFFFFF;
-
-	return (uint)bytes;
-}
-
-uint CWaveChannel::bytesToMs(uint bytes) {
-	uint bytesPerSecond = getBytesPerSecond();
-
-	if (bytesPerSecond == 0)
-		return 0;
-
-	return (uint)((uint64)bytes * 1000 / bytesPerSecond);
-}
-
-void CWaveChannel::getLoopBlock(uint *start, uint *end) {
-	uint frameSize = getFrameSize();
-	uint blockStart = sampleLoopStart;
-	uint blockEnd = sampleLoopEnd;
-
-	if (blockEnd >= sampleSize)
-		blockEnd = sampleSize;
-	else
-		blockEnd -= blockEnd % frameSize;
-
-	if (blockStart >= sampleSize || blockEnd <= blockStart) {
-		blockStart = 0;
-		blockEnd = sampleSize;
-	}
-
-	*start = blockStart;
-	*end = blockEnd;
-}
-
-void CWaveChannel::playMixerStream() {
-	Audio::Mixer *mixer = g_system->getMixer();
-
-	if (!mixer || !sampleAddress || sampleSize == 0)
-		return;
-
-	if (sampleRate <= 0) {
-		warning("CWaveChannel::playMixerStream(): invalid playback rate %d", sampleRate);
-
-		return;
-	}
-
-	uint offset = samplePosition;
-
-	if (offset >= sampleSize)
-		return;
-
-	byte rawFlags = 0;
-
-	if (sample16Bit)
-		rawFlags |= Audio::FLAG_16BITS | Audio::FLAG_LITTLE_ENDIAN;
-	else
-		rawFlags |= Audio::FLAG_UNSIGNED;
-
-	if (sampleStereo)
-		rawFlags |= Audio::FLAG_STEREO;
-
-	Audio::AudioStream *stream = nullptr;
-
-	if (silentTail || sampleLoopCount == 1)
-		stream = Audio::makeRawStream(sampleAddress + offset, sampleSize - offset, sampleRate, rawFlags, DisposeAfterUse::NO);
-	else
-		stream = makeLoopingStream(offset, rawFlags);
-
-	if (!stream)
-		return;
-
-	Audio::Mixer::SoundType type = Audio::Mixer::kSFXSoundType;
-
-	if (cue) {
-		if (cue->category == 2)
-			type = Audio::Mixer::kSpeechSoundType;
-		else if (cue->category == 3)
-			type = Audio::Mixer::kMusicSoundType;
-	}
-
-	mixer->playStream(type, &soundHandle, stream, -1, (byte)getMixerVolume(), (int8)getMixerBalance(), DisposeAfterUse::YES);
-}
-
-void CWaveChannel::stopMixerStream() {
-	Audio::Mixer *mixer = g_system->getMixer();
-
-	if (mixer)
-		mixer->stopHandle(soundHandle);
-
-	soundHandle = Audio::SoundHandle();
-}
-
-void CWaveChannel::pauseMixerStream(bool pauseIt) {
-	Audio::Mixer *mixer = g_system->getMixer();
-
-	if (mixer)
-		mixer->pauseHandle(soundHandle, pauseIt);
-}
-
-Audio::AudioStream *CWaveChannel::makeLoopingStream(uint offset, byte rawFlags) {
-	uint blockStart = 0;
-	uint blockEnd = 0;
-
-	getLoopBlock(&blockStart, &blockEnd);
-
-	Audio::QueuingAudioStream *queue = Audio::makeQueuingAudioStream(sampleRate, sampleStereo);
-
-	if (offset < blockEnd) {
-		Audio::SeekableAudioStream *first = Audio::makeRawStream(sampleAddress + offset, blockEnd - offset, sampleRate, rawFlags, DisposeAfterUse::NO);
-
-		queue->queueAudioStream(first, DisposeAfterUse::YES);
-	}
-
-	if (sampleLoopCount == 0) {
-		Audio::SeekableAudioStream *block = Audio::makeRawStream(sampleAddress + blockStart, blockEnd - blockStart, sampleRate, rawFlags, DisposeAfterUse::NO);
-		Audio::AudioStream *forever = Audio::makeLoopingAudioStream(block, 0);
-
-		queue->queueAudioStream(forever, DisposeAfterUse::YES);
-	} else {
-		uint repeats = (uint)sampleLoopCount - 2;
-
-		if (repeats > 0) {
-			Audio::SeekableAudioStream *block = Audio::makeRawStream(sampleAddress + blockStart, blockEnd - blockStart, sampleRate, rawFlags, DisposeAfterUse::NO);
-			Audio::AudioStream *looped = Audio::makeLoopingAudioStream(block, repeats);
-
-			queue->queueAudioStream(looped, DisposeAfterUse::YES);
-		}
-
-		Audio::SeekableAudioStream *last = Audio::makeRawStream(sampleAddress + blockStart, sampleSize - blockStart, sampleRate, rawFlags, DisposeAfterUse::NO);
-
-		queue->queueAudioStream(last, DisposeAfterUse::YES);
-	}
-
-	queue->finish();
-
-	return queue;
 }
 
 } // End of namespace Grim

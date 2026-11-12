@@ -76,8 +76,6 @@ public:
 	static void skipCurrent();
 	static void startupMovies(CDrawContext *newDrawContext);
 	static void releaseSubtitleFont();
-	static void setMovieAudioGate(int (*gate)());
-	static int isMovieAudioEnabled();
 	static bool fileExists(const char *path);
 	static void xorDecryptD2(byte *data, int size);
 
@@ -101,7 +99,6 @@ public:
 	static Movie *current;
 	static int firstFrame;
 	static CDrawContext *drawContext;
-	static int (*movieAudioGate)();
 };
 
 } // End of namespace Grim
