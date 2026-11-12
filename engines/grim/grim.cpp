@@ -205,80 +205,137 @@ Common::KeymapArray GrimEngine::initKeymapsGrim(const char *target) {
 	Keymap *engineKeyMap = new Keymap(Keymap::kKeymapTypeGame, "grim", "Grim Fandango");
 	Action *act;
 
-	act = new Action(kStandardActionMoveUp, _("Up"));
-	act->setKeyEvent(KEYCODE_UP);
-	act->addDefaultInputMapping("JOY_UP");
-	engineKeyMap->addAction(act);
+	engineKeyMap->setPartialMatchAllowed(false);
 
-	act = new Action(kStandardActionMoveDown, _("Down"));
-	act->setKeyEvent(KEYCODE_DOWN);
-	act->addDefaultInputMapping("JOY_DOWN");
-	engineKeyMap->addAction(act);
+	addKeyAction(engineKeyMap, kStandardActionMoveUp, _("Up"), KeyState(KEYCODE_UP), "UP", "JOY_UP");
+	addKeyAction(engineKeyMap, kStandardActionMoveDown, _("Down"), KeyState(KEYCODE_DOWN), "DOWN", "JOY_DOWN");
+	addKeyAction(engineKeyMap, kStandardActionMoveLeft, _("Left"), KeyState(KEYCODE_LEFT), "LEFT", "JOY_LEFT");
+	addKeyAction(engineKeyMap, kStandardActionMoveRight, _("Right"), KeyState(KEYCODE_RIGHT), "RIGHT", "JOY_RIGHT");
+	addKeyAction(engineKeyMap, "MVNW", _("Up left"), KeyState(KEYCODE_KP7, '7'), "KP7", nullptr);
+	addKeyAction(engineKeyMap, "MVNE", _("Up right"), KeyState(KEYCODE_KP9, '9'), "KP9", nullptr);
+	addKeyAction(engineKeyMap, "MVSW", _("Down left"), KeyState(KEYCODE_KP1, '1'), "KP1", nullptr);
+	addKeyAction(engineKeyMap, "MVSE", _("Down right"), KeyState(KEYCODE_KP3, '3'), "KP3", nullptr);
 
-	act = new Action(kStandardActionMoveLeft, _("Left"));
-	act->setKeyEvent(KEYCODE_LEFT);
-	act->addDefaultInputMapping("JOY_LEFT");
-	engineKeyMap->addAction(act);
+	addKeyAction(engineKeyMap, "BRUN", _("Run"), KeyState(KEYCODE_LSHIFT), "LSHIFT", "JOY_RIGHT_TRIGGER");
+	addKeyAction(engineKeyMap, "EXAM", _("Examine"), KeyState(KEYCODE_e, 'e'), "e", "JOY_B");
+	addKeyAction(engineKeyMap, "EXAMALT", _("Examine (alternative)"), KeyState(KEYCODE_s, 's'), "s", nullptr);
+	addKeyAction(engineKeyMap, "BUSE", _("Use / Talk"), KeyState(KEYCODE_u, 'u'), "u", "JOY_Y");
+	addKeyAction(engineKeyMap, "USEALT", _("Use / Talk (alternative)"), KeyState(KEYCODE_w, 'w'), "w", nullptr);
+	addKeyAction(engineKeyMap, "PICK", _("Pick up / Put away"), KeyState(KEYCODE_p, 'p'), "p", "JOY_X");
+	addKeyAction(engineKeyMap, "PICKALT", _("Pick up / Put away (alternative)"), KeyState(KEYCODE_a, 'a'), "a", nullptr);
+	addKeyAction(engineKeyMap, "INVT", _("Inventory"), KeyState(KEYCODE_i, 'i'), "i", "JOY_LEFT_TRIGGER");
+	addKeyAction(engineKeyMap, "INVTALT", _("Inventory (alternative)"), KeyState(KEYCODE_d, 'd'), "d", nullptr);
+	addKeyAction(engineKeyMap, "SKLI", _("Skip dialog lines"), KeyState(KEYCODE_PERIOD, '.'), "PERIOD", "JOY_LEFT_SHOULDER");
+	addKeyAction(engineKeyMap, "GAZE", _("Change gaze"), KeyState(KEYCODE_DELETE), "DELETE", "JOY_LEFT_STICK");
+	addKeyAction(engineKeyMap, "RETURN", _("Confirm"), KeyState(KEYCODE_RETURN, ASCII_RETURN), "RETURN", "JOY_A", "JOY_RIGHT_STICK");
+	addKeyAction(engineKeyMap, "RETURNKP", _("Confirm (keypad)"), KeyState(KEYCODE_KP_ENTER, ASCII_RETURN), "KP_ENTER", nullptr);
+	addKeyAction(engineKeyMap, "PGUP", _("Page up"), KeyState(KEYCODE_PAGEUP), "PAGEUP", "JOY_RIGHT_SHOULDER");
+	addKeyAction(engineKeyMap, "PGDN", _("Page down"), KeyState(KEYCODE_PAGEDOWN), "PAGEDOWN", nullptr);
+	addKeyAction(engineKeyMap, "PGHM", _("Page home"), KeyState(KEYCODE_HOME), "HOME", nullptr);
+	addKeyAction(engineKeyMap, "PGEN", _("Page end"), KeyState(KEYCODE_END), "END", nullptr);
 
-	act = new Action(kStandardActionMoveRight, _("Right"));
-	act->setKeyEvent(KEYCODE_RIGHT);
-	act->addDefaultInputMapping("JOY_RIGHT");
-	engineKeyMap->addAction(act);
+	// I18N: Skipping cutscene playback
+	addKeyAction(engineKeyMap, kStandardActionSkip, _("Skip"), KeyState(KEYCODE_ESCAPE, ASCII_ESCAPE), "ESCAPE", "JOY_BACK");
+	addKeyAction(engineKeyMap, kStandardActionOpenMainMenu, _("Game menu"), KeyState(KEYCODE_F1), "F1", "JOY_START");
+	addKeyAction(engineKeyMap, kStandardActionPause, _("Pause"), KeyState(KEYCODE_PAUSE), "PAUSE", nullptr);
 
-	act = new Action("BRUN", _("Run"));
-	act->setKeyEvent(KeyState(KEYCODE_LSHIFT));
-	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
-	engineKeyMap->addAction(act);
-
-	act = new Action("EXAM", _("Examine"));
-	act->setKeyEvent(KeyState(KEYCODE_e, 'e'));
-	act->addDefaultInputMapping("JOY_X");
-	engineKeyMap->addAction(act);
-
-	act = new Action("BUSE", _("Use / Talk"));
-	act->setKeyEvent(KeyState(KEYCODE_u, 'u'));
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	act = new Action("PICK", _("Pick up / Put away"));
-	act->setKeyEvent(KeyState(KEYCODE_p, 'p'));
-	act->addDefaultInputMapping("JOY_B");
-	engineKeyMap->addAction(act);
-
-	act = new Action("INVT", _("Inventory"));
-	act->setKeyEvent(KeyState(KEYCODE_i, 'i'));
-	act->addDefaultInputMapping("JOY_Y");
-	engineKeyMap->addAction(act);
-
-	act = new Action("SKLI", _("Skip dialog lines"));
-	act->setKeyEvent(KeyState(KEYCODE_PERIOD, '.'));
-	act->addDefaultInputMapping("PERIOD");
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	// I18N: Skipping cutscene plaback
-	act = new Action(kStandardActionSkip, _("Skip"));
-	act->setKeyEvent(KeyState(KEYCODE_ESCAPE, ASCII_ESCAPE));
-	act->addDefaultInputMapping("ESCAPE");
-	act->addDefaultInputMapping("JOY_B");
-	engineKeyMap->addAction(act);
-
-	act = new Action("RETURN", _("Confirm"));
-	act->setKeyEvent(KeyState(KEYCODE_RETURN, ASCII_RETURN));
-	act->addDefaultInputMapping("RETURN");
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	act = new Action("GMNU", _("Menu"));
-	act->setKeyEvent(KeyState(KEYCODE_F1));
+	act = new Action("GMM", _("Global Main Menu"));
+	act->setEvent(EVENT_MAINMENU);
+	act->addDefaultInputMapping("C+F5");
 	act->addDefaultInputMapping("JOY_GUIDE");
 	engineKeyMap->addAction(act);
 
-	act = new Action("PAUSE", _("Pause"));
-	act->setKeyEvent(KeyState(KEYCODE_PAUSE));
-	engineKeyMap->addAction(act);
+	addStickActions(engineKeyMap);
 
 	return Keymap::arrayOf(engineKeyMap);
+}
+
+void GrimEngine::addKeyAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, const Common::KeyState &key, const char *keyboardInput, const char *padInput, const char *padInput2) {
+	Common::Action *act = new Common::Action(id, label);
+
+	act->setKeyEvent(key);
+
+	if (keyboardInput) {
+		act->addDefaultInputMapping(keyboardInput);
+		act->allowKbdRepeats();
+	}
+
+	if (padInput)
+		act->addDefaultInputMapping(padInput);
+
+	if (padInput2)
+		act->addDefaultInputMapping(padInput2);
+
+	keymap->addAction(act);
+}
+
+void GrimEngine::addStickAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, int stickAction, const char *input) {
+	Common::Action *act = new Common::Action(id, label);
+
+	act->setCustomBackendActionAxisEvent(kStickActionFirst + stickAction);
+	act->addDefaultInputMapping(input);
+	keymap->addAction(act);
+}
+
+void GrimEngine::addStickActions(Common::Keymap *keymap) {
+	addStickAction(keymap, "LSLEFT", _("Left stick left"), 0, "JOY_LEFT_STICK_X-");
+	addStickAction(keymap, "LSRIGHT", _("Left stick right"), 1, "JOY_LEFT_STICK_X+");
+	addStickAction(keymap, "LSUP", _("Left stick up"), 2, "JOY_LEFT_STICK_Y-");
+	addStickAction(keymap, "LSDOWN", _("Left stick down"), 3, "JOY_LEFT_STICK_Y+");
+	addStickAction(keymap, "RSLEFT", _("Right stick left"), 4, "JOY_RIGHT_STICK_X-");
+	addStickAction(keymap, "RSRIGHT", _("Right stick right"), 5, "JOY_RIGHT_STICK_X+");
+	addStickAction(keymap, "RSUP", _("Right stick up"), 6, "JOY_RIGHT_STICK_Y-");
+	addStickAction(keymap, "RSDOWN", _("Right stick down"), 7, "JOY_RIGHT_STICK_Y+");
+}
+
+int GrimEngine::applyStickAction(int *axes, const Common::Event &event) {
+	int offset = (int)event.customType - kStickActionFirst;
+
+	if (offset < 0 || offset >= kNumStickAxes * 2)
+		return -1;
+
+	int axis = offset / 2;
+	bool positive = (offset & 1) != 0;
+	int magnitude = event.joystick.position;
+
+	// The magnitude of the minimum position does not fit in the event
+	if (magnitude < 0)
+		magnitude = Common::JOYAXIS_MAX;
+
+	if (magnitude != 0)
+		axes[axis] = positive ? magnitude : -magnitude;
+	else if ((positive && axes[axis] > 0) || (!positive && axes[axis] < 0))
+		axes[axis] = 0;
+
+	return axis;
+}
+
+int GrimEngine::getJoystickButtonIndex(int button) {
+	// Generic gamepad button order
+	switch (button) {
+	case Common::JOYSTICK_BUTTON_A:
+		return 0;
+	case Common::JOYSTICK_BUTTON_B:
+		return 1;
+	case Common::JOYSTICK_BUTTON_X:
+		return 2;
+	case Common::JOYSTICK_BUTTON_Y:
+		return 3;
+	case Common::JOYSTICK_BUTTON_LEFT_SHOULDER:
+		return 4;
+	case Common::JOYSTICK_BUTTON_RIGHT_SHOULDER:
+		return 5;
+	case Common::JOYSTICK_BUTTON_BACK:
+		return 6;
+	case Common::JOYSTICK_BUTTON_START:
+		return 7;
+	case Common::JOYSTICK_BUTTON_LEFT_STICK:
+		return 8;
+	case Common::JOYSTICK_BUTTON_RIGHT_STICK:
+		return 9;
+	default:
+		return -1;
+	}
 }
 
 Common::Error GrimEngine::loadGameState(int slot) {
@@ -2602,16 +2659,30 @@ void GrimEngine::pumpEvents() {
 				input->joyState[0].axisPos[event.joystick.axis] = event.joystick.position;
 
 			break;
-		case Common::EVENT_JOYBUTTON_DOWN:
-			if (event.joystick.button < 10)
-				input->joyState[0].buttons |= 1 << event.joystick.button;
+		case Common::EVENT_CUSTOM_BACKEND_ACTION_AXIS: {
+			int axis = applyStickAction(_stickAxes, event);
+
+			if (axis >= 0)
+				input->joyState[0].axisPos[axis] = _stickAxes[axis];
 
 			break;
-		case Common::EVENT_JOYBUTTON_UP:
-			if (event.joystick.button < 10)
-				input->joyState[0].buttons &= ~(1 << event.joystick.button);
+		}
+		case Common::EVENT_JOYBUTTON_DOWN: {
+			int button = getJoystickButtonIndex(event.joystick.button);
+
+			if (button >= 0)
+				input->joyState[0].buttons |= 1 << button;
 
 			break;
+		}
+		case Common::EVENT_JOYBUTTON_UP: {
+			int button = getJoystickButtonIndex(event.joystick.button);
+
+			if (button >= 0)
+				input->joyState[0].buttons &= ~(1 << button);
+
+			break;
+		}
 		default:
 			break;
 		}

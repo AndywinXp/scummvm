@@ -19,8 +19,10 @@
  *
  */
 
+#include "common/config-manager.h"
 #include "common/events.h"
 #include "common/keyboard.h"
+#include "common/platform.h"
 #include "common/system.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
@@ -74,15 +76,67 @@ void EmiEngine::pumpEvents() {
 		case Common::EVENT_JOYAXIS_MOTION:
 			_joystick->setDeviceAxis(event.joystick.axis, event.joystick.position);
 			break;
+		case Common::EVENT_CUSTOM_BACKEND_ACTION_AXIS: {
+			int axis = applyStickAction(_stickAxes, event);
+
+			if (axis >= 0)
+				_joystick->setDeviceAxis(axis, _stickAxes[axis]);
+
+			break;
+		}
 		case Common::EVENT_JOYBUTTON_DOWN:
-			_joystick->setDeviceButton(event.joystick.button, true);
+			_joystick->setDeviceButton(mapPadButton(event.joystick.button), true);
 			break;
 		case Common::EVENT_JOYBUTTON_UP:
-			_joystick->setDeviceButton(event.joystick.button, false);
+			_joystick->setDeviceButton(mapPadButton(event.joystick.button), false);
+			break;
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+			_joystick->setDeviceButton((int)event.customType, true);
+			break;
+		case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+			_joystick->setDeviceButton((int)event.customType, false);
 			break;
 		default:
 			break;
 		}
+	}
+}
+
+int EmiEngine::mapPadButton(int button) {
+	if (getGamePlatform() != Common::kPlatformPS2)
+		return getJoystickButtonIndex(button);
+
+	switch (button) {
+	case Common::JOYSTICK_BUTTON_A:
+		return kPadCross;
+	case Common::JOYSTICK_BUTTON_B:
+		return kPadCircle;
+	case Common::JOYSTICK_BUTTON_X:
+		return kPadSquare;
+	case Common::JOYSTICK_BUTTON_Y:
+		return kPadTriangle;
+	case Common::JOYSTICK_BUTTON_BACK:
+		return kPadSelect;
+	case Common::JOYSTICK_BUTTON_START:
+		return kPadStart;
+	case Common::JOYSTICK_BUTTON_LEFT_STICK:
+		return kPadLeftStick;
+	case Common::JOYSTICK_BUTTON_RIGHT_STICK:
+		return kPadRightStick;
+	case Common::JOYSTICK_BUTTON_LEFT_SHOULDER:
+		return kPadL1;
+	case Common::JOYSTICK_BUTTON_RIGHT_SHOULDER:
+		return kPadR1;
+	case Common::JOYSTICK_BUTTON_DPAD_UP:
+		return kPadDpadUp;
+	case Common::JOYSTICK_BUTTON_DPAD_DOWN:
+		return kPadDpadDown;
+	case Common::JOYSTICK_BUTTON_DPAD_LEFT:
+		return kPadDpadLeft;
+	case Common::JOYSTICK_BUTTON_DPAD_RIGHT:
+		return kPadDpadRight;
+	default:
+		return -1;
 	}
 }
 
@@ -193,94 +247,82 @@ Common::Array<Common::Keymap *> EmiEngine::initKeymapsEmi(const char *target) {
 	Common::Keymap *engineKeyMap = new Common::Keymap(Common::Keymap::kKeymapTypeGame, "monkey4", "Escape from Monkey Island");
 	Common::Action *act;
 
-	act = new Common::Action(Common::kStandardActionMoveUp, _("Up"));
-	act->setKeyEvent(Common::KEYCODE_UP);
-	act->addDefaultInputMapping("JOY_UP");
-	engineKeyMap->addAction(act);
+	engineKeyMap->setPartialMatchAllowed(false);
 
-	act = new Common::Action(Common::kStandardActionMoveDown, _("Down"));
-	act->setKeyEvent(Common::KEYCODE_DOWN);
-	act->addDefaultInputMapping("JOY_DOWN");
-	engineKeyMap->addAction(act);
+	if (Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2)
+		addPadActionsPs2(engineKeyMap);
+	else
+		addKeyActionsPc(engineKeyMap);
 
-	act = new Common::Action(Common::kStandardActionMoveLeft, _("Left"));
-	act->setKeyEvent(Common::KEYCODE_LEFT);
-	act->addDefaultInputMapping("JOY_LEFT");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action(Common::kStandardActionMoveRight, _("Right"));
-	act->setKeyEvent(Common::KEYCODE_RIGHT);
-	act->addDefaultInputMapping("JOY_RIGHT");
-	engineKeyMap->addAction(act);
-
-	// I18N: Cycle means rotate through
-	act = new Common::Action("COUP", _("Cycle objects up"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_PAGEUP));
-	act->addDefaultInputMapping("JOY_LEFT_TRIGGER");
-	engineKeyMap->addAction(act);
-
-	// I18N: Cycle means rotate through
-	act = new Common::Action("CODW", _("Cycle objects down"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_PAGEDOWN));
-	act->addDefaultInputMapping("JOY_RIGHT_TRIGGER");
-	engineKeyMap->addAction(act);
-
-	// I18N: Run is a movement type
-	act = new Common::Action("BRUN", _("Run"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_LSHIFT));
-	act->addDefaultInputMapping("JOY_RIGHT_SHOULDER");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("QEXT", _("Quick room exit"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_o, 'o'));
-	act->addDefaultInputMapping("JOY_LEFT_SHOULDER");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("EXAM", _("Examine / Look"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_e, 'e'));
-	act->addDefaultInputMapping("JOY_X");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("BUSE", _("Use / Talk"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_u, 'u'));
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("PICK", _("Pick up / Put away"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_KP_PLUS, '+'));
-	act->addDefaultInputMapping("JOY_B");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("INVT", _("Inventory"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_INSERT, 'i'));
-	act->addDefaultInputMapping("JOY_Y");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("SKLI", _("Skip dialog lines"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_PERIOD, '.'));
-	act->addDefaultInputMapping("PERIOD");
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	// I18N: Skipping cutscene playback
-	act = new Common::Action(Common::kStandardActionSkip, _("Skip"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_ESCAPE, Common::ASCII_ESCAPE));
-	act->addDefaultInputMapping("ESCAPE");
-	act->addDefaultInputMapping("JOY_B");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("RETURN", _("Confirm"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_RETURN, Common::ASCII_RETURN));
-	act->addDefaultInputMapping("RETURN");
-	act->addDefaultInputMapping("JOY_A");
-	engineKeyMap->addAction(act);
-
-	act = new Common::Action("GMNU", _("Menu"));
-	act->setKeyEvent(Common::KeyState(Common::KEYCODE_F1, 0));
+	act = new Common::Action("GMM", _("Global Main Menu"));
+	act->setEvent(Common::EVENT_MAINMENU);
+	act->addDefaultInputMapping("C+F5");
 	act->addDefaultInputMapping("JOY_GUIDE");
 	engineKeyMap->addAction(act);
 
+	addStickActions(engineKeyMap);
+
 	return Common::Keymap::arrayOf(engineKeyMap);
+}
+
+void EmiEngine::addPadAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, int padButton, const char *input) {
+	Common::Action *act = new Common::Action(id, label);
+
+	act->setCustomEngineActionEvent(padButton);
+	act->addDefaultInputMapping(input);
+	keymap->addAction(act);
+}
+
+void EmiEngine::addPadActionsPs2(Common::Keymap *keymap) {
+	addPadAction(keymap, "SQUARE", _("Square"), kPadSquare, "JOY_X");
+	addPadAction(keymap, "TRIANGLE", _("Triangle"), kPadTriangle, "JOY_Y");
+	addPadAction(keymap, "CIRCLE", _("Circle"), kPadCircle, "JOY_B");
+	addPadAction(keymap, "CROSS", _("Cross"), kPadCross, "JOY_A");
+	addPadAction(keymap, "R1", _("R1"), kPadR1, "JOY_RIGHT_SHOULDER");
+	addPadAction(keymap, "L1", _("L1"), kPadL1, "JOY_LEFT_SHOULDER");
+	addPadAction(keymap, "R2", _("R2"), kPadR2, "JOY_RIGHT_TRIGGER");
+	addPadAction(keymap, "L2", _("L2"), kPadL2, "JOY_LEFT_TRIGGER");
+	addPadAction(keymap, "START", _("Start"), kPadStart, "JOY_START");
+	addPadAction(keymap, "SELECT", _("Select"), kPadSelect, "JOY_BACK");
+	addPadAction(keymap, "DPADUP", _("D-pad up"), kPadDpadUp, "JOY_UP");
+	addPadAction(keymap, "DPADDOWN", _("D-pad down"), kPadDpadDown, "JOY_DOWN");
+	addPadAction(keymap, "DPADLEFT", _("D-pad left"), kPadDpadLeft, "JOY_LEFT");
+	addPadAction(keymap, "DPADRIGHT", _("D-pad right"), kPadDpadRight, "JOY_RIGHT");
+	addPadAction(keymap, "L3", _("L3"), kPadLeftStick, "JOY_LEFT_STICK");
+	addPadAction(keymap, "R3", _("R3"), kPadRightStick, "JOY_RIGHT_STICK");
+}
+
+void EmiEngine::addKeyActionsPc(Common::Keymap *keymap) {
+	addKeyAction(keymap, Common::kStandardActionMoveUp, _("Up"), Common::KeyState(Common::KEYCODE_UP), "UP", "JOY_UP");
+	addKeyAction(keymap, Common::kStandardActionMoveDown, _("Down"), Common::KeyState(Common::KEYCODE_DOWN), "DOWN", "JOY_DOWN");
+	addKeyAction(keymap, Common::kStandardActionMoveLeft, _("Left"), Common::KeyState(Common::KEYCODE_LEFT), "LEFT", "JOY_LEFT");
+	addKeyAction(keymap, Common::kStandardActionMoveRight, _("Right"), Common::KeyState(Common::KEYCODE_RIGHT), "RIGHT", "JOY_RIGHT");
+
+	// I18N: Run is a movement type
+	addKeyAction(keymap, "BRUN", _("Run"), Common::KeyState(Common::KEYCODE_LSHIFT), "LSHIFT", "JOY_RIGHT_TRIGGER");
+	addKeyAction(keymap, "EXAM", _("Examine / Look"), Common::KeyState(Common::KEYCODE_e, 'e'), "e", "JOY_B");
+	addKeyAction(keymap, "EXAMALT", _("Examine / Look (alternative)"), Common::KeyState(Common::KEYCODE_l, 'l'), "l", nullptr);
+	addKeyAction(keymap, "BUSE", _("Use / Talk"), Common::KeyState(Common::KEYCODE_u, 'u'), "u", "JOY_Y");
+	addKeyAction(keymap, "PICK", _("Pick up / Put away"), Common::KeyState(Common::KEYCODE_KP_PLUS, '+'), "KP_PLUS", "JOY_X");
+	addKeyAction(keymap, "PICKALT", _("Pick up / Put away (alternative)"), Common::KeyState(Common::KEYCODE_p, 'p'), "p", nullptr);
+	addKeyAction(keymap, "INVT", _("Inventory"), Common::KeyState(Common::KEYCODE_INSERT), "INSERT", "JOY_LEFT_TRIGGER");
+	addKeyAction(keymap, "INVTALT", _("Inventory (alternative)"), Common::KeyState(Common::KEYCODE_i, 'i'), "i", nullptr);
+	addKeyAction(keymap, "SKLI", _("Skip dialog lines"), Common::KeyState(Common::KEYCODE_PERIOD, '.'), "PERIOD", "JOY_LEFT_SHOULDER");
+	addKeyAction(keymap, "SKLIALT", _("Skip dialog lines (alternative)"), Common::KeyState(Common::KEYCODE_DELETE), "DELETE", nullptr);
+	addKeyAction(keymap, "QEXT", _("Quick room exit"), Common::KeyState(Common::KEYCODE_o, 'o'), "o", "JOY_LEFT_STICK");
+	addKeyAction(keymap, "RETURN", _("Confirm"), Common::KeyState(Common::KEYCODE_RETURN, Common::ASCII_RETURN), "RETURN", "JOY_A", "JOY_RIGHT_STICK");
+	addKeyAction(keymap, "RETURNKP", _("Confirm (keypad)"), Common::KeyState(Common::KEYCODE_KP_ENTER, Common::ASCII_RETURN), "KP_ENTER", nullptr);
+
+	// I18N: Cycle means rotate through
+	addKeyAction(keymap, "COUP", _("Cycle objects up"), Common::KeyState(Common::KEYCODE_PAGEUP), "PAGEUP", "JOY_RIGHT_SHOULDER");
+
+	// I18N: Cycle means rotate through
+	addKeyAction(keymap, "CODW", _("Cycle objects down"), Common::KeyState(Common::KEYCODE_PAGEDOWN), "PAGEDOWN", nullptr);
+
+	// I18N: Skipping cutscene playback
+	addKeyAction(keymap, Common::kStandardActionSkip, _("Skip"), Common::KeyState(Common::KEYCODE_ESCAPE, Common::ASCII_ESCAPE), "ESCAPE", "JOY_BACK");
+	addKeyAction(keymap, Common::kStandardActionOpenMainMenu, _("Game menu"), Common::KeyState(Common::KEYCODE_F1, 0), "F1", "JOY_START");
+	addKeyAction(keymap, Common::kStandardActionPause, _("Pause"), Common::KeyState(Common::KEYCODE_SPACE, ' '), "SPACE", nullptr);
 }
 
 } // End of namespace Grim

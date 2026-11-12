@@ -195,6 +195,7 @@ void Lua_V2::axisHandler() {
 	bool pushSelf = false;
 	bool callHandler = false;
 	bool buttonHandled = false;
+	bool isPs2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 	lua_Object function = LUA_NOOBJECT;
 
 	lua_beginblock();
@@ -238,16 +239,20 @@ void Lua_V2::axisHandler() {
 		if (control->flags & ControlEntry::kAxis) {
 			float value = _engine->getJoystick()->getAxis((int)control->code);
 
-			if (value != control->axisValue && callHandler) {
+			// PS2 calls the handler on every update, PC only when the value changes
+			bool callNow = callHandler && (isPs2 || value != control->axisValue);
+
+			if (callNow) {
 				if (pushSelf)
 					lua_pushobject(handler);
 
 				lua_pushnumber((float)i);
 				lua_pushnumber(value);
 				lua_callfunction(function);
-
-				control->axisValue = value;
 			}
+
+			if (callNow || isPs2)
+				control->axisValue = value;
 		} else if (control->flags & ControlEntry::kJoystickButton) {
 			bool state = _engine->getJoystick()->getControlState((int)control->code);
 
