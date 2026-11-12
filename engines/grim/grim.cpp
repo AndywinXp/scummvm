@@ -72,7 +72,6 @@
 #include "engines/grim/text/blasttext.h"
 #include "engines/grim/chore/cos.h"
 #include "engines/grim/text/normaltext.h"
-#include "engines/grim/patchr.h"
 #include "engines/grim/text/polyglot.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/res.h"
