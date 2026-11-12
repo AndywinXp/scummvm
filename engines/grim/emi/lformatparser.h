@@ -29,6 +29,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 struct KeywordInfo {
 	void set(const char *keywordName, int keywordId, int keywordArgMask);
 
@@ -45,7 +47,7 @@ union KeywordArg {
 
 class LFormatParser {
 public:
-	LFormatParser();
+	explicit LFormatParser(EmiEngine *engine);
 
 	virtual bool handleKeyword(int id, int numArgs, KeywordArg *args);
 
@@ -79,6 +81,8 @@ public:
 
 protected:
 	~LFormatParser();
+
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

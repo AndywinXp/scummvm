@@ -18,7 +18,7 @@ struct luaL_reg {
 };
 
 struct luaL_libList {
-	luaL_reg *list;
+	const luaL_reg *list;
 	int32 number;
 	luaL_libList *next;
 };
@@ -27,8 +27,8 @@ extern luaL_libList *list_of_libs;
 
 #define luaL_arg_check(cond, numarg, extramsg) if (!(cond)) luaL_argerror(numarg,extramsg)
 
-void luaL_openlib(luaL_reg *l, int32 n);
-void luaL_addlibtolist(luaL_reg *l, int32 n);
+void luaL_openlib(const luaL_reg *l, int32 n);
+void luaL_addlibtolist(const luaL_reg *l, int32 n);
 void luaL_argerror(int32 numarg, const char *extramsg);
 const char *luaL_check_string(int32 numArg);
 const char *luaL_opt_string(int32 numArg, const char *def);

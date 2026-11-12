@@ -53,9 +53,6 @@ static const uint kHeaderBufferSize = 160;
 static const uint kVimaPadding = 8;
 static const byte kMaxVimaStep = 88;
 
-uint16 CAiffFile::vimaTable[CAiffFile::kVimaTableSize];
-bool CAiffFile::vimaTableReady = false;
-
 uint16 CAiffFile::readBigEndian16(LFile *file) {
 	byte raw[2] = { 0, 0 };
 
@@ -647,10 +644,9 @@ void CAiffFile::decodeVimaBlock(byte *dest, const byte *source, uint size) {
 		return;
 	}
 
-	if (!vimaTableReady) {
-		vimaInit(vimaTable);
-		vimaTableReady = true;
-	}
+	uint16 vimaTable[kVimaTableSize];
+
+	vimaInit(vimaTable);
 
 	decompressVima(source, (int16 *)dest, size, vimaTable, false);
 }

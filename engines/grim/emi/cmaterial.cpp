@@ -24,6 +24,7 @@
 
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/cmaterial.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 
 namespace Grim {
@@ -34,7 +35,7 @@ static const int kSpecialtyPrefixSize = 9;
 
 class CMaterialParser : public LFormatParser {
 public:
-	CMaterialParser() {
+	explicit CMaterialParser(EmiEngine *engine) : LFormatParser(engine) {
 		material = nullptr;
 		addKeyword("TEX", kKeywordTexture, 3);
 	}
@@ -55,17 +56,18 @@ bool CMaterialParser::parseTexture(int token, int numArgs, KeywordArg *args) {
 	if (!material || numArgs < 1)
 		return false;
 
-	LABitmap bitmap;
+	LABitmap bitmap(_engine);
 	CTexture *texture;
 	const char *name = args[0].stringValue;
+	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (!scumm_strnicmp(name, kSpecialtyPrefix, kSpecialtyPrefixSize)) {
-		texture = CDrawContext::context->getCachedTexture(atoi(name + kSpecialtyPrefixSize));
+		texture = drawContext->getCachedTexture(atoi(name + kSpecialtyPrefixSize));
 	} else {
 		if (bitmap.loadFile(name))
-			texture = CDrawContext::context->createTexture(&bitmap);
+			texture = drawContext->createTexture(&bitmap);
 		else
-			texture = CDrawContext::context->defaultTexture;
+			texture = drawContext->defaultTexture;
 
 		if (bitmap.scanAlpha())
 			material->flags |= 0x80;
@@ -81,10 +83,12 @@ CMaterial::CMaterial() {
 }
 
 CMaterial::~CMaterial() {
-	if (CDrawContext::context) {
+	CDrawContext *drawContext = _engine->getDrawContext();
+
+	if (drawContext) {
 		for (uint i = 0; i < textures.size(); i++) {
 			if (textures[i])
-				CDrawContext::context->freeTexture(textures[i]);
+				drawContext->freeTexture(textures[i]);
 		}
 	}
 
@@ -128,7 +132,7 @@ void CMaterial::addFlags(int addedFlags) {
 uint CMaterial::resSizeOfItem() {
 	uint size = sizeof(CMaterial) + textures.size() * sizeof(CTexture *);
 
-	if (CDrawContext::context) {
+	if (_engine->getDrawContext()) {
 		for (uint i = 0; i < textures.size(); i++) {
 			if (textures[i])
 				size += textures[i]->getSize();
@@ -139,7 +143,9 @@ uint CMaterial::resSizeOfItem() {
 }
 
 bool CMaterial::resLoadItem(const char *itemName) {
-	if (!CDrawContext::context) {
+	CDrawContext *drawContext = _engine->getDrawContext();
+
+	if (!drawContext) {
 		warning("CMaterial::resLoadItem(): no draw context");
 
 		return false;
@@ -149,15 +155,15 @@ bool CMaterial::resLoadItem(const char *itemName) {
 
 	if (!path.contains(".sur") && !path.contains(".SUR")) {
 		if (!scumm_strnicmp(itemName, kSpecialtyPrefix, kSpecialtyPrefixSize)) {
-			textures.push_back(CDrawContext::context->getCachedTexture(atoi(itemName + kSpecialtyPrefixSize)));
+			textures.push_back(drawContext->getCachedTexture(atoi(itemName + kSpecialtyPrefixSize)));
 		} else {
-			LABitmap bitmap;
+			LABitmap bitmap(_engine);
 			CTexture *texture;
 
 			if (bitmap.loadFile(path.c_str()))
-				texture = CDrawContext::context->createTexture(&bitmap);
+				texture = drawContext->createTexture(&bitmap);
 			else
-				texture = CDrawContext::context->defaultTexture;
+				texture = drawContext->defaultTexture;
 
 			if (bitmap.scanAlpha())
 				flags |= 0x80;
@@ -165,7 +171,7 @@ bool CMaterial::resLoadItem(const char *itemName) {
 			textures.push_back(texture);
 		}
 	} else {
-		CMaterialParser parser;
+		CMaterialParser parser(_engine);
 
 		parser.material = this;
 

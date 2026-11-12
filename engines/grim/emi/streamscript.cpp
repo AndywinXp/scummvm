@@ -27,9 +27,11 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/cueentry.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/musicstream.h"
+#include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/streamscript.h"
 
 namespace Grim {
@@ -38,34 +40,69 @@ static const int kLineSize = 1024;
 static const int kGameDirectoryDepth = 4;
 static const int kCenterPan = 64;
 
-StreamScript *StreamScript::activeScript = nullptr;
-int (*StreamScript::streamingGate)() = nullptr;
-int16 StreamScript::instanceCount = 0;
-uint StreamScript::firstUpdateMs = 0;
-uint StreamScript::lastUpdateMs = 0;
-float StreamScript::masterVolume = 1.0f;
-float StreamScript::currentFadeRate = 1.0f;
-LString StreamScript::searchDirs[StreamScript::kMaxSearchDirs];
-int StreamScript::searchDirCount = 0;
-int StreamScript::openMissCount = 0;
-int StreamScript::findMissCount = 0;
-Common::FSDirectory *StreamScript::gameDirectory = nullptr;
-
-StreamScript::StreamScript(const char *scriptFileName) {
+StreamScript::StreamScript(Sounds *sounds) {
+	_sounds = sounds;
 	head = nullptr;
 	loaded = false;
 
-	instanceCount++;
+	_firstUpdateMs = 0;
+	_lastUpdateMs = 0;
+	_masterVolume = 1.0f;
+	_currentFadeRate = 1.0f;
+	_searchDirCount = 0;
+	_openMissCount = 0;
+	_findMissCount = 0;
+	_gameDirectory = nullptr;
+}
 
-	if (instanceCount > 1)
+StreamScript::~StreamScript() {
+	closeStreamScript();
+	clearAudioSearchDirs();
+}
+
+void *StreamScript::operator new(size_t size) {
+	return LMemoryServices::getCurrent()->mallocImpl(size);
+}
+
+void StreamScript::operator delete(void *block) {
+	LMemoryServices::getCurrent()->freeImpl(block);
+}
+
+void StreamScript::closeStreams() {
+	if (!isStreamingEnabled())
 		return;
+
+	if (!loaded)
+		return;
+
+	CueEntry *cue = head;
+
+	while (cue) {
+		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
+			cue->stream.musicStream->pause(true);
+
+			delete cue->stream.musicStream;
+			cue->stream.musicStream = nullptr;
+			cue->state = 0;
+		}
+
+		cue = cue->next;
+	}
+}
+
+bool StreamScript::openStreamScript(const char *scriptFileName) {
+	if (loaded)
+		return false;
 
 	fileName = scriptFileName;
 
 	Common::SeekableReadStream *script = openAudioFile(scriptFileName);
 
-	if (!script)
-		return;
+	if (!script) {
+		fileName.clear();
+
+		return false;
+	}
 
 	CueEntry *lastCue = nullptr;
 	LString quoted;
@@ -229,12 +266,12 @@ StreamScript::StreamScript(const char *scriptFileName) {
 
 	delete script;
 	loaded = true;
+
+	return true;
 }
 
-StreamScript::~StreamScript() {
-	instanceCount--;
-
-	if (instanceCount > 0)
+void StreamScript::closeStreamScript() {
+	if (!loaded)
 		return;
 
 	closeStreams();
@@ -250,63 +287,6 @@ StreamScript::~StreamScript() {
 	fileName.clear();
 }
 
-void *StreamScript::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
-}
-
-void StreamScript::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
-}
-
-void StreamScript::closeStreams() {
-	if (!isStreamingEnabled())
-		return;
-
-	if (!loaded)
-		return;
-
-	CueEntry *cue = head;
-
-	while (cue) {
-		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			cue->stream.musicStream->pause(true);
-
-			delete cue->stream.musicStream;
-			cue->stream.musicStream = nullptr;
-			cue->state = 0;
-		}
-
-		cue = cue->next;
-	}
-}
-
-bool StreamScript::openStreamScript(const char *scriptFileName) {
-	if (activeScript)
-		return false;
-
-	StreamScript *script = new StreamScript(scriptFileName);
-
-	activeScript = script;
-
-	if (!script->loaded) {
-		delete script;
-		activeScript = nullptr;
-
-		return false;
-	}
-
-	return true;
-}
-
-void StreamScript::closeStreamScript() {
-	StreamScript *script = activeScript;
-
-	if (script) {
-		delete script;
-		activeScript = nullptr;
-	}
-}
-
 void StreamScript::setStreamScriptVolume(float volume) {
 	float clamped = volume;
 
@@ -318,16 +298,16 @@ void StreamScript::setStreamScriptVolume(float volume) {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	masterVolume = clamped;
+	_masterVolume = clamped;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
-			int streamVolume = (int)((double)cue->stream.trim * (double)cue->fadeVolume * (double)masterVolume * 127.0 + (double)0.5f);
+			int streamVolume = (int)((double)cue->stream.trim * (double)cue->fadeVolume * (double)_masterVolume * 127.0 + (double)0.5f);
 
 			cue->stream.musicStream->setVolume(streamVolume);
 		}
@@ -340,10 +320,10 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 	CueEntry *keptCue = nullptr;
 	bool otherPlaying = false;
 	int otherSync = 0;
@@ -398,17 +378,17 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 		cue = cue->next;
 	}
 
-	cue = activeScript->head;
+	cue = head;
 
 	while (cue) {
 		if ((uint)cue->id == id && !cue->stream.fileName.empty()) {
 			if (!cue->stream.musicStream) {
-				cue->stream.musicStream = MusicStream::open(cue->stream.fileName);
+				cue->stream.musicStream = MusicStream::open(this, cue->stream.fileName);
 
 				if (cue->stream.musicStream) {
 					MusicStream *musicStream = cue->stream.musicStream;
 
-					currentFadeRate = cue->fadeRate;
+					_currentFadeRate = cue->fadeRate;
 					cue->looped = false;
 					cue->lastPositionMs = 0;
 					cue->ended = false;
@@ -453,7 +433,7 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 					else
 						cue->fadeVolume = 0.0f;
 
-					int streamVolume = (int)((double)masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
+					int streamVolume = (int)((double)_masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
 
 					musicStream->setVolume(streamVolume);
 					musicStream->setPan(kCenterPan);
@@ -472,13 +452,13 @@ bool StreamScript::consumeStreamFlags(const uint &id, bool &looped, bool &ended)
 	if (!isStreamingEnabled())
 		return false;
 
-	if (!activeScript)
+	if (!loaded)
 		return false;
 
 	looped = false;
 	ended = false;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if ((uint)cue->id == id) {
@@ -499,26 +479,26 @@ bool StreamScript::consumeStreamFlags(const uint &id, bool &looped, bool &ended)
 void StreamScript::updateStreams() {
 	uint now = g_system->getMillis();
 
-	if (firstUpdateMs == 0) {
-		firstUpdateMs = now;
-		lastUpdateMs = now;
+	if (_firstUpdateMs == 0) {
+		_firstUpdateMs = now;
+		_lastUpdateMs = now;
 
 		return;
 	}
 
-	int delta = (int)(now - lastUpdateMs);
+	int delta = (int)(now - _lastUpdateMs);
 
-	lastUpdateMs = now;
+	_lastUpdateMs = now;
 
 	float elapsed = (float)((double)delta * (double)0.001f);
 
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		MusicStream *musicStream = cue->stream.musicStream;
@@ -541,7 +521,7 @@ void StreamScript::updateStreams() {
 			}
 
 			if (cue->state != 0) {
-				double change = (double)currentFadeRate * (double)elapsed;
+				double change = (double)_currentFadeRate * (double)elapsed;
 				float fade;
 
 				if (cue->state == 1)
@@ -565,7 +545,7 @@ void StreamScript::updateStreams() {
 						cue->state = 0;
 					}
 
-					int streamVolume = (int)((double)masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
+					int streamVolume = (int)((double)_masterVolume * (double)cue->stream.trim * (double)cue->fadeVolume * 127.0 + (double)0.5f);
 
 					musicStream->setVolume(streamVolume);
 				}
@@ -580,10 +560,10 @@ void StreamScript::pauseStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
@@ -603,10 +583,10 @@ void StreamScript::resumeStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
@@ -626,11 +606,11 @@ int StreamScript::getStreamPositionMs(const uint &id, const bool &relative) {
 	if (!isStreamingEnabled())
 		return 0;
 
-	if (!activeScript)
+	if (!loaded)
 		return 0;
 
 	int result = -1;
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if ((uint)cue->id == id && !cue->stream.fileName.empty() && cue->stream.musicStream) {
@@ -658,10 +638,10 @@ void StreamScript::closeAllStreams() {
 	if (!isStreamingEnabled())
 		return;
 
-	if (!activeScript)
+	if (!loaded)
 		return;
 
-	CueEntry *cue = activeScript->head;
+	CueEntry *cue = head;
 
 	while (cue) {
 		if (!cue->stream.fileName.empty() && cue->stream.musicStream) {
@@ -676,15 +656,17 @@ void StreamScript::closeAllStreams() {
 	}
 }
 
-void StreamScript::setStreamingGate(int (*gate)()) {
-	streamingGate = gate;
+int StreamScript::isStreamingEnabled() {
+	return getMilesDriver() ? 1 : 0;
 }
 
-int StreamScript::isStreamingEnabled() {
-	if (streamingGate)
-		return streamingGate();
+EMIMilesDriver *StreamScript::getMilesDriver() {
+	AudioSystem *audioSystem = _sounds->getAudioSystem();
 
-	return 0;
+	if (!audioSystem)
+		return nullptr;
+
+	return audioSystem->getMilesDriver();
 }
 
 Common::SeekableReadStream *StreamScript::openStream(const char *path) {
@@ -698,10 +680,10 @@ Common::SeekableReadStream *StreamScript::openStream(const char *path) {
 	if (stream)
 		return stream;
 
-	if (!gameDirectory)
-		gameDirectory = new Common::FSDirectory(Common::FSNode(ConfMan.getPath("path")), kGameDirectoryDepth, false, true);
+	if (!_gameDirectory)
+		_gameDirectory = new Common::FSDirectory(Common::FSNode(ConfMan.getPath("path")), kGameDirectoryDepth, false, true);
 
-	return gameDirectory->createReadStreamForMember(filePath);
+	return _gameDirectory->createReadStreamForMember(filePath);
 }
 
 Common::SeekableReadStream *StreamScript::openAudioFile(const char *audioFileName) {
@@ -710,8 +692,8 @@ Common::SeekableReadStream *StreamScript::openAudioFile(const char *audioFileNam
 	if (stream)
 		return stream;
 
-	for (int i = 0; i < searchDirCount; i++) {
-		LString path = searchDirs[i] + audioFileName;
+	for (int i = 0; i < _searchDirCount; i++) {
+		LString path = _searchDirs[i] + audioFileName;
 
 		stream = openStream(path.c_str());
 
@@ -719,7 +701,7 @@ Common::SeekableReadStream *StreamScript::openAudioFile(const char *audioFileNam
 			return stream;
 	}
 
-	openMissCount++;
+	_openMissCount++;
 
 	return nullptr;
 }
@@ -733,8 +715,8 @@ LString StreamScript::findAudioFile(const char *audioFileName) {
 		return LString(audioFileName);
 	}
 
-	for (int i = 0; i < searchDirCount; i++) {
-		LString path = searchDirs[i] + audioFileName;
+	for (int i = 0; i < _searchDirCount; i++) {
+		LString path = _searchDirs[i] + audioFileName;
 
 		stream = openStream(path.c_str());
 
@@ -745,7 +727,7 @@ LString StreamScript::findAudioFile(const char *audioFileName) {
 		}
 	}
 
-	findMissCount++;
+	_findMissCount++;
 
 	return LString(audioFileName);
 }
@@ -759,8 +741,8 @@ bool StreamScript::hasAudioFile(const char *audioFileName) {
 		return true;
 	}
 
-	for (int i = 0; i < searchDirCount; i++) {
-		LString path = searchDirs[i] + audioFileName;
+	for (int i = 0; i < _searchDirCount; i++) {
+		LString path = _searchDirs[i] + audioFileName;
 
 		stream = openStream(path.c_str());
 
@@ -775,24 +757,24 @@ bool StreamScript::hasAudioFile(const char *audioFileName) {
 }
 
 void StreamScript::pushAudioSearchDir(const char *directory) {
-	LString &slot = searchDirs[searchDirCount];
+	LString &slot = _searchDirs[_searchDirCount];
 
 	slot = directory;
 
 	if (slot.lastChar() != '\\')
 		slot += '\\';
 
-	searchDirCount++;
+	_searchDirCount++;
 
-	if (searchDirCount >= kMaxSearchDirs)
-		searchDirCount = kMaxSearchDirs - 1;
+	if (_searchDirCount >= kMaxSearchDirs)
+		_searchDirCount = kMaxSearchDirs - 1;
 }
 
 void StreamScript::clearAudioSearchDirs() {
-	searchDirCount = 0;
+	_searchDirCount = 0;
 
-	delete gameDirectory;
-	gameDirectory = nullptr;
+	delete _gameDirectory;
+	_gameDirectory = nullptr;
 }
 
 bool StreamScript::openMusicScript(const char *scriptFileName) {

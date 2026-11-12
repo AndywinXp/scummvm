@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class ANode : public CNode {
 public:
-	ANode();
+	explicit ANode(EmiEngine *engine);
 	virtual ~ANode();
 
 	void *operator new(size_t size);
@@ -43,6 +45,9 @@ public:
 	bool dirty;
 	AChannel<CVector> *posChannel;
 	AChannel<CQuaternion> *rotChannel;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

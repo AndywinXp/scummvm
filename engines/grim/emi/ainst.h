@@ -28,6 +28,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class AInst {
 public:
 	enum {
@@ -39,7 +41,7 @@ public:
 		kLooping = 0x20
 	};
 
-	AInst();
+	explicit AInst(EmiEngine *engine);
 	virtual ~AInst();
 
 	virtual void onFinished(int code);
@@ -65,7 +67,7 @@ public:
 private:
 	void finish();
 
-	static Common::List<AInst *> _instances;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

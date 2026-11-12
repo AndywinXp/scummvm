@@ -27,14 +27,16 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class EmiRegistry {
 public:
 	static bool isPrefsFile(const Common::String &fileName);
-	static Common::SeekableReadStream *openPrefsForReading(Common::SeekableReadStream *realFile);
-	static Common::WriteStream *openPrefsForWriting(Common::WriteStream *realFile);
+	static Common::SeekableReadStream *openPrefsForReading(EmiEngine *engine, Common::SeekableReadStream *realFile);
+	static Common::WriteStream *openPrefsForWriting(EmiEngine *engine, Common::WriteStream *realFile);
 	static void registerDefaults();
-	static void setFromText(const Common::String &text);
-	static bool changedSinceSync();
+	static void setFromText(EmiEngine *engine, const Common::String &text);
+	static bool changedSinceSync(EmiEngine *engine);
 
 private:
 	enum {
@@ -63,7 +65,6 @@ private:
 	};
 
 	static const Entry _entries[kNumEntries];
-	static Common::String _syncedSnapshot;
 
 	static Common::String buildSnapshot();
 	static int findEntry(const Common::String &key);
@@ -85,7 +86,7 @@ private:
 
 class EmiPrefsFile : public Common::WriteStream {
 public:
-	explicit EmiPrefsFile(Common::WriteStream *realFile);
+	EmiPrefsFile(EmiEngine *engine, Common::WriteStream *realFile);
 	~EmiPrefsFile() override;
 
 	void *operator new(size_t size);
@@ -99,6 +100,7 @@ public:
 	void clearErr() override;
 
 private:
+	EmiEngine *_engine;
 	Common::WriteStream *_realFile;
 	Common::String _text;
 };

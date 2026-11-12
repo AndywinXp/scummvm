@@ -25,6 +25,7 @@
 
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/ctextfont.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
@@ -64,7 +65,7 @@ static bool readWord(LFile *file, uint16 *value) {
 	return true;
 }
 
-Glyph::Glyph() {
+Glyph::Glyph(EmiEngine *engine) : alpha(engine) {
 	blobOffset = 0;
 	advance = 0;
 	offsetX = 0;
@@ -75,14 +76,6 @@ Glyph::Glyph() {
 	u1 = 0.0f;
 	v1 = 0.0f;
 	page = 0;
-}
-
-void *Glyph::operator new[](size_t size) {
-	return gpMemoryServices->mallocImpl(size);
-}
-
-void Glyph::operator delete[](void *block) {
-	gpMemoryServices->freeImpl(block);
 }
 
 CTextFont::CTextFont() {
@@ -102,23 +95,31 @@ CTextFont::CTextFont() {
 }
 
 CTextFont::~CTextFont() {
-	if (CDrawContext::context) {
+	CDrawContext *drawContext = _engine->getDrawContext();
+
+	if (drawContext) {
 		for (uint i = 0; i < pages.size(); i++)
-			CDrawContext::context->freeTexture(pages[i]);
+			drawContext->freeTexture(pages[i]);
 	}
 
 	pages.clear();
 
 	if (blob)
-		gpMemoryServices->freeImpl(blob);
+		_engine->getMemoryServices()->freeImpl(blob);
 
 	blob = nullptr;
 
-	delete[] glyphs;
+	if (glyphs) {
+		for (int i = 0; i < numGlyphs; i++)
+			glyphs[i].~Glyph();
+
+		_engine->getMemoryServices()->freeImpl(glyphs);
+	}
+
 	glyphs = nullptr;
 
 	if (charIndex)
-		gpMemoryServices->freeImpl(charIndex);
+		_engine->getMemoryServices()->freeImpl(charIndex);
 
 	charIndex = nullptr;
 }
@@ -146,8 +147,8 @@ bool CTextFont::resLoadItem(const char *itemName) {
 		resSetName(itemName);
 		loaded = true;
 
-		if (CDrawContext::context)
-			buildTextures(CDrawContext::context);
+		if (_engine->getDrawContext())
+			buildTextures(_engine->getDrawContext());
 		else
 			warning("CTextFont::resLoadItem(): no draw context");
 	}
@@ -177,7 +178,8 @@ CTexture *CTextFont::getTexture(CDrawContext *ctx, uint page) {
 }
 
 bool CTextFont::loadFile(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+	LFileServices *fileServices = _engine->getFileServices();
+	LFile *file = fileServices->open(path, "rb");
 
 	if (!file)
 		return false;
@@ -188,7 +190,7 @@ bool CTextFont::loadFile(const char *path) {
 			!readInt(file, &header52) || !readInt(file, &header56) || !readInt(file, &header60) ||
 			!readInt(file, &firstChar) || !readInt(file, &lastChar)) {
 		warning("CTextFont::loadFile(): unexpected end of file");
-		gpFileServices->close(file, true);
+		fileServices->close(file, true);
 
 		return false;
 	}
@@ -198,15 +200,15 @@ bool CTextFont::loadFile(const char *path) {
 	if (numGlyphs <= 0 || numGlyphs > kMaxGlyphs || blobSize < 0) {
 		warning("CTextFont::loadFile(): invalid header");
 		numGlyphs = 0;
-		gpFileServices->close(file, true);
+		fileServices->close(file, true);
 
 		return false;
 	}
 
-	charIndex = (uint16 *)gpMemoryServices->mallocImpl(numGlyphs * sizeof(uint16));
+	charIndex = (uint16 *)_engine->getMemoryServices()->mallocImpl(numGlyphs * sizeof(uint16));
 
 	if (!charIndex) {
-		gpFileServices->close(file, true);
+		fileServices->close(file, true);
 
 		return false;
 	}
@@ -214,13 +216,22 @@ bool CTextFont::loadFile(const char *path) {
 	for (int i = 0; i < numGlyphs; i++) {
 		if (!readWord(file, &charIndex[i])) {
 			warning("CTextFont::loadFile(): unexpected end of file");
-			gpFileServices->close(file, true);
+			fileServices->close(file, true);
 
 			return false;
 		}
 	}
 
-	glyphs = new Glyph[numGlyphs];
+	glyphs = (Glyph *)_engine->getMemoryServices()->mallocImpl(numGlyphs * sizeof(Glyph));
+
+	if (!glyphs) {
+		fileServices->close(file, true);
+
+		return false;
+	}
+
+	for (int i = 0; i < numGlyphs; i++)
+		new (&glyphs[i]) Glyph(_engine);
 
 	for (int i = 0; i < numGlyphs; i++) {
 		Glyph &glyph = glyphs[i];
@@ -231,7 +242,7 @@ bool CTextFont::loadFile(const char *path) {
 				!readByte(file, &glyph.offsetY) || !readByte(file, &glyph.reserved7) || !readInt(file, &width) ||
 				!readInt(file, &height) || width < 0 || height < 0) {
 			warning("CTextFont::loadFile(): invalid glyph");
-			gpFileServices->close(file, true);
+			fileServices->close(file, true);
 
 			return false;
 		}
@@ -247,16 +258,16 @@ bool CTextFont::loadFile(const char *path) {
 		maxHeight = MAX<int>(maxHeight, glyph.offsetY + height);
 	}
 
-	blob = (byte *)gpMemoryServices->mallocImpl(blobSize * sizeof(byte));
+	blob = (byte *)_engine->getMemoryServices()->mallocImpl(blobSize * sizeof(byte));
 
 	if (file->read(blob, blobSize) != (uint)blobSize) {
 		warning("CTextFont::loadFile(): unexpected end of file");
-		gpFileServices->close(file, true);
+		fileServices->close(file, true);
 
 		return false;
 	}
 
-	gpFileServices->close(file, true);
+	fileServices->close(file, true);
 
 	return true;
 }
@@ -271,7 +282,7 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 	}
 
 	LColorFormat format(9);
-	LABitmap *bitmap = new LABitmap(kPageSize, kPageSize, format, nullptr, false);
+	LABitmap *bitmap = new LABitmap(_engine, kPageSize, kPageSize, format, nullptr, false);
 
 	bitmap->bitmapName = fileName;
 
@@ -369,8 +380,8 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 				glyph->u1 = (float)((double)widthInverse * (double)glyph->u1);
 				glyph->v1 = (float)((double)heightInverse * (double)glyph->v1);
 			}
-		} else if (gpConsoleServices) {
-			gpConsoleServices->logError("Error allocating font texture!!\n");
+		} else if (_engine->getConsoleServices()) {
+			_engine->getConsoleServices()->logError("Error allocating font texture!!\n");
 		} else {
 			warning("CTextFont::buildTextures(): error allocating font texture");
 		}
@@ -381,7 +392,7 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 		if (done)
 			break;
 
-		bitmap = new LABitmap(kPageSize, kPageSize, format, nullptr, false);
+		bitmap = new LABitmap(_engine, kPageSize, kPageSize, format, nullptr, false);
 		bitmap->bitmapName = fileName;
 	}
 }

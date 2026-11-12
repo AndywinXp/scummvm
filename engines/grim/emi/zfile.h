@@ -29,6 +29,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 struct GzStream {
 	GzStream();
 
@@ -45,9 +47,11 @@ struct GzStream {
 	uint totalOut;
 };
 
+class ZFileServices;
+
 class ZFile : public LFile {
 public:
-	ZFile();
+	explicit ZFile(ZFileServices *services);
 	~ZFile() override;
 
 	uint read(void *buffer, uint size) override;
@@ -55,19 +59,35 @@ public:
 	virtual uint writeCompressed(const void *buffer, uint size);
 
 	GzStream *gzFile;
+
+private:
+	ZFileServices *_services;
 };
 
 class ZFileServices : public LFileServices {
 public:
+	explicit ZFileServices(EmiEngine *engine);
+
 	ZFile *open(const char *path, const char *mode) override;
 	LFile *openExtended(const char *path, const char *mode, int unused1, int unused2) override;
 	virtual void closeZFile(ZFile *file);
 	ZFile *createZFile(LFile *file, const char *mode);
 
-	static ZFileServices *get();
-
 private:
-	static ZFileServices *_instance;
+	friend class ZFile;
+
+	static void checkHeader(GzStream *stream);
+	static char parseMode(const char *mode, Common::String &openMode);
+	static GzStream *gzOpenFile(LFile *file, const char *mode);
+	static int gzRead(GzStream *file, void *buffer, uint size);
+	static int gzWrite(GzStream *file, const void *buffer, uint size);
+	static int gzRewind(GzStream *file);
+	static int gzSeek(GzStream *file, int offset, int whence);
+
+	int gzDestroy(GzStream *stream);
+	GzStream *gzOpen(const char *path, const char *mode);
+	GzStream *gzopen(const char *path, const char *mode);
+	int gzClose(GzStream *file);
 };
 
 } // End of namespace Grim

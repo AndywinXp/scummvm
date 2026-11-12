@@ -47,7 +47,7 @@ public:
 		kKeywordRndDelay = 15
 	};
 
-	CSndParser();
+	explicit CSndParser(EmiEngine *engine);
 	~CSndParser();
 
 	void *operator new(size_t size);

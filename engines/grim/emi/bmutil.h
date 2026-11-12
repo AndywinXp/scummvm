@@ -28,6 +28,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 static const uint kBmMaxImages = 32;
 
 struct BmImage {
@@ -37,9 +39,9 @@ struct BmImage {
 };
 
 struct BmData {
-	bool load(LFile *file);
+	bool load(EmiEngine *engine, LFile *file);
 	static int getSize(const BmData *bm);
-	static void free(BmData *&bm);
+	static void free(EmiEngine *engine, BmData *&bm);
 	static int decompressCodec3(byte *dest, uint destSize, const byte *source, uint sourceSize);
 
 	byte itemName[128];

@@ -31,7 +31,7 @@ class RBoxInstance;
 
 class CubeInstance : public ComponentInstance {
 public:
-	CubeInstance(const LString &componentName, Actor *actor);
+	CubeInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~CubeInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

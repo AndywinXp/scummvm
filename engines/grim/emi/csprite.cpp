@@ -26,6 +26,7 @@
 #include "engines/grim/emi/camera.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/csprite.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/rnode.h"
@@ -50,7 +51,7 @@ static const float kAlphaScale = 255.0f;
 
 class CSpriteParser : public LFormatParser {
 public:
-	CSpriteParser() {
+	explicit CSpriteParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("TextureName", kKeywordTextureName, 7);
 		addKeyword("Drawflags", kKeywordDrawFlags, 1);
 		addKeyword("Dimensions", kKeywordDimensions, 10);
@@ -107,7 +108,7 @@ static void writeString(LFile *file, const LString &text) {
 	file->write(text.c_str(), text.size() + 1);
 }
 
-CSprite::CSprite() {
+CSprite::CSprite(EmiEngine *engine) : material(engine), _engine(engine) {
 	width = 1.0f;
 	height = 1.0f;
 	drawFlags = 0;
@@ -124,6 +125,10 @@ CSprite::~CSprite() {
 	material.setResource(nullptr);
 }
 
+EmiEngine *CSprite::getEngine() const {
+	return _engine;
+}
+
 RPrimitiveInstance *CSprite::createInstance() {
 	return new CSpriteInstance(this);
 }
@@ -131,7 +136,7 @@ RPrimitiveInstance *CSprite::createInstance() {
 bool CSprite::restore(LFile *file) {
 	CPrimitive::restore(file);
 
-	CSpriteParser parser;
+	CSpriteParser parser(_engine);
 	char textureName[kTokenSize];
 	int textureFlags = 0;
 
@@ -141,17 +146,17 @@ bool CSprite::restore(LFile *file) {
 	if (!parser.readEntry(kKeywordTextureName, textureName, &textureFlags))
 		return false;
 
-	material.resource = gpResourceManager->findResource(textureName);
+	material.resource = _engine->getResourceManager()->findResource(textureName);
 
 	if (!material.resource) {
-		material.resource = gpResourceManager->createResource(textureName);
+		material.resource = _engine->getResourceManager()->createResource(textureName);
 
 		if (!material.resource)
 			material.allocateResource();
 
 		if (material.resource) {
 			material.resource->resSetName(textureName);
-			gpResourceManager->addResource(material.resource);
+			_engine->getResourceManager()->addResource(material.resource);
 		}
 	}
 
@@ -186,12 +191,12 @@ bool CSprite::restore(LFile *file) {
 }
 
 bool CSprite::loadBinary(const char *path) {
-	LFile *file = gpFileServices->openAndLoad(path, "rb");
+	LFile *file = _engine->getFileServices()->openAndLoad(path, "rb");
 
 	if (!file)
 		return false;
 
-	int fileSize = gpFileServices->getSize(path);
+	int fileSize = _engine->getFileServices()->getSize(path);
 	LString spriteName;
 	LString materialName;
 	byte header[kBinaryHeaderSize];
@@ -206,7 +211,7 @@ bool CSprite::loadBinary(const char *path) {
 
 	if (!valid) {
 		warning("CSprite::loadBinary(): unexpected end of file");
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return false;
 	}
@@ -223,19 +228,19 @@ bool CSprite::loadBinary(const char *path) {
 	box.max.y = READ_LE_FLOAT32(header + 32);
 	box.max.z = READ_LE_FLOAT32(header + 36);
 
-	LResourceHandle<CMaterial> foundMaterial;
+	LResourceHandle<CMaterial> foundMaterial(_engine);
 
-	foundMaterial.resource = gpResourceManager->findResource(materialName);
+	foundMaterial.resource = _engine->getResourceManager()->findResource(materialName);
 
 	if (!foundMaterial.resource) {
-		foundMaterial.resource = gpResourceManager->createResource(materialName);
+		foundMaterial.resource = _engine->getResourceManager()->createResource(materialName);
 
 		if (!foundMaterial.resource)
 			foundMaterial.allocateResource();
 
 		if (foundMaterial.resource) {
 			foundMaterial.resource->resSetName(materialName.c_str());
-			gpResourceManager->addResource(foundMaterial.resource);
+			_engine->getResourceManager()->addResource(foundMaterial.resource);
 		}
 	}
 
@@ -270,13 +275,13 @@ bool CSprite::loadBinary(const char *path) {
 
 	drawFlags = READ_LE_INT32(tail + 116);
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool CSprite::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -328,12 +333,12 @@ bool CSprite::saveBinary(const char *path) {
 
 	writeInt(file, drawFlags);
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
-CSpriteInstance::CSpriteInstance(CSprite *spritePrimitive) : RPrimitiveInstance(spritePrimitive) {
+CSpriteInstance::CSpriteInstance(CSprite *spritePrimitive) : RPrimitiveInstance(spritePrimitive), _engine(spritePrimitive->getEngine()) {
 	textureIndex = 0;
 }
 
@@ -359,7 +364,7 @@ bool CSpriteInstance::restoreState(tSaveRestoreAccess *access) {
 }
 
 void CSpriteInstance::output(RNode *node, Camera *camera) {
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = _engine->getDrawContext();
 
 	if (!visible)
 		return;

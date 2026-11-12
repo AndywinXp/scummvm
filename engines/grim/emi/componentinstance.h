@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class ComponentInstance {
 public:
-	ComponentInstance(const LString &componentName);
+	ComponentInstance(EmiEngine *engine, const LString &componentName);
 	virtual ~ComponentInstance();
 
 	void *operator new(size_t size);
@@ -44,6 +46,9 @@ public:
 	virtual void reset();
 
 	LResourceHandle<Component> handle;
+
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

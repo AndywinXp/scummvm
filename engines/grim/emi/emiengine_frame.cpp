@@ -59,11 +59,8 @@ static const int kStatsTextRowHeight = 20;
 static const byte kStatsTextJustify = 16;
 static const int kMovieControlSkipFrames = 5;
 
-static ProfilerTimer updateManualTimer("grimlib_UpdateManual()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-static ProfilerTimer renderUpdateTimer("sputRender_Update()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-
 bool EmiEngine::runFrame() {
-	updateManual(CDrawContext::context, true, 0);
+	updateManual(_drawContext, true, 0);
 
 	return !_bQuit;
 }
@@ -72,7 +69,7 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 	// PS2 updates sounds once per frame, before Lua
 	bool isPs2 = getGamePlatform() == Common::kPlatformPS2;
 
-	updateManualTimer.start();
+	_updateManualTimer.start();
 
 	if (!isPs2)
 		updateSounds(false);
@@ -90,16 +87,16 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 	// Not in the disasm, the options changed from the ScummVM menu
 	applyPendingGameSettings(manualMs);
 
-	if (InputRecorder::instance && InputRecorder::instance->mode == InputRecorder::kModeReplay)
-		InputRecorder::instance->replayKeys();
+	if (_inputRecorder && _inputRecorder->mode == InputRecorder::kModeReplay)
+		_inputRecorder->replayKeys();
 	else if (_controlSkipFrames != 0)
 		_controlSkipFrames--;
 	else
-		SputControl_v2::update();
+		_control->update();
 
 	float frameTime = updateFrameTime(manualMs);
 
-	ResourceManager::update(frameTime);
+	_gameResourceManager->update(frameTime);
 
 	if (!isPs2)
 		updateSounds(false);
@@ -119,10 +116,10 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 			updateSounds(false);
 
 		// PS2 plays the requested movie here and skips the rest of the frame
-		if (isPs2 && Movie::isMovieRequestedPs2()) {
-			Movie::playRequestedMoviePs2();
+		if (isPs2 && Movie::isMovieRequestedPs2(this)) {
+			Movie::playRequestedMoviePs2(this);
 			_controlSkipFrames = kMovieControlSkipFrames;
-			updateManualTimer.stop();
+			_updateManualTimer.stop();
 
 			return 0;
 		}
@@ -131,14 +128,14 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 			_soundRestartFrames--;
 
 			if (_soundRestartFrames == 0)
-				Sounds::resumeAll();
+				_sounds->resumeAll();
 		}
 
 		if (_mode == kModeMovie) {
 			if (updateMovie(frameTime))
 				_mode = kModeGame;
 		} else if (_mode != kModeOverworld) {
-			Actor::updateAllActors(frameTime);
+			Actor::updateAllActors(this, frameTime);
 
 			if (!isPs2)
 				updateSounds(false);
@@ -162,7 +159,7 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 	if (draw && (_mode != kModePaused || manualMs != 0))
 		result = renderUpdate(drawContext);
 
-	updateManualTimer.stop();
+	_updateManualTimer.stop();
 	drawStatsOverlay(drawContext);
 
 	if (_dumpingFrames)
@@ -179,7 +176,7 @@ void EmiEngine::applyPendingMusicState() {
 
 	// On PS2, a new music state fades out the loading loop
 	if (getGamePlatform() == Common::kPlatformPS2 && _pendingMusicState != 0)
-		Sounds::fadeLoadingLoop(-1);
+		_sounds->fadeLoadingLoop(-1);
 
 	_pendingMusicState = -1;
 }
@@ -189,8 +186,8 @@ float EmiEngine::updateFrameTime(int manualMs) {
 
 	stamp.stamp();
 
-	if (InputRecorder::instance && InputRecorder::instance->mode == InputRecorder::kModeReplay) {
-		_frameTime = InputRecorder::instance->replayFrame();
+	if (_inputRecorder && _inputRecorder->mode == InputRecorder::kModeReplay) {
+		_frameTime = _inputRecorder->replayFrame();
 
 		return _frameTime;
 	}
@@ -218,40 +215,40 @@ float EmiEngine::updateFrameTime(int manualMs) {
 	_lastStamp = stamp.seconds;
 	_frameTime = elapsed;
 
-	if (InputRecorder::instance)
-		InputRecorder::instance->recordFrame(elapsed);
+	if (_inputRecorder)
+		_inputRecorder->recordFrame(elapsed);
 
 	return elapsed;
 }
 
 int EmiEngine::renderUpdate(CDrawContext *drawContext) {
-	renderUpdateTimer.start();
+	_renderUpdateTimer.start();
 
 	int result = 0;
 
 	if (getMode() == kModeNone) {
-		renderUpdateTimer.stop();
+		_renderUpdateTimer.stop();
 
 		return 0;
 	}
 
 	if (getMode() == kModeMovie) {
-		Movie::presentCurrent();
+		Movie::presentCurrent(this);
 
-		renderUpdateTimer.stop();
+		_renderUpdateTimer.stop();
 
 		return 0;
 	}
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(this);
 
 	if (!currentRoom) {
-		renderUpdateTimer.stop();
+		_renderUpdateTimer.stop();
 
 		return 0;
 	}
 
-	Overworld *overworld = Overworld::getInstance();
+	Overworld *overworld = getOverworld();
 
 	if (getMode() != kModeOverworld) {
 		_frontCopyCount = 0;
@@ -262,8 +259,8 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 			if (roomResult < 0) {
 				drawContext->endScene();
 			} else {
-				PrimitiveQueue_v2::drawQueue(drawContext, kPrimitiveLayers);
-				result = DimRegion::drawDimRegions(drawContext) + roomResult;
+				_primitiveQueue->drawQueue(drawContext, kPrimitiveLayers);
+				result = DimRegion::drawDimRegions(this, drawContext) + roomResult;
 
 				if (overworld->enabled) {
 					currentRoom->saveLightStates();
@@ -274,7 +271,7 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 					currentRoom->restoreLightStates();
 				}
 
-				result += TextEvent::update(drawContext, true);
+				result += TextEvent::update(this, drawContext, true);
 				drawContext->endScene();
 				drawContext->present(true);
 			}
@@ -296,31 +293,31 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 			currentRoom->restoreLightStates();
 		}
 
-		result += TextEvent::update(drawContext, true);
+		result += TextEvent::update(this, drawContext, true);
 		drawContext->endScene();
 		drawContext->present(true);
 	}
 
-	renderUpdateTimer.stop();
+	_renderUpdateTimer.stop();
 
 	return result;
 }
 
 void EmiEngine::pixelTest() {
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext->beginScene())
 		return;
 
-	Layer::set16BitFix(false);
+	Layer::set16BitFix(this, false);
 
-	Layer *layer = new Layer("pixeltest.til", 0, 0, -1);
+	Layer *layer = new Layer(this, "pixeltest.til", 0, 0, -1);
 
 	layer->draw(drawContext);
 	drawContext->endScene();
-	Layer::set16BitFix(true);
+	Layer::set16BitFix(this, true);
 
-	LABitmap bitmap;
+	LABitmap bitmap(this);
 
 	drawContext->readBackBuffer(&bitmap);
 	bitmap.convertFormat(LColorFormat(6));
@@ -358,7 +355,7 @@ void EmiEngine::saveScreenshot() {
 }
 
 void EmiEngine::saveTga(const char *path) {
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext) {
 		warning("EmiEngine::saveTga(): no draw context");
@@ -366,13 +363,13 @@ void EmiEngine::saveTga(const char *path) {
 		return;
 	}
 
-	LABitmap bitmap;
+	LABitmap bitmap(this);
 
 	drawContext->readBackBuffer(&bitmap);
 	bitmap.convertFormat(LColorFormat(6));
 
-	CTGAFile tgaFile;
-	ZFile *file = ZFileServices::get()->open(path, "wb");
+	CTGAFile tgaFile(this);
+	ZFile *file = _zFileServices->open(path, "wb");
 
 	if (!file) {
 		warning("EmiEngine::saveTga(): could not create %s", path);
@@ -381,7 +378,7 @@ void EmiEngine::saveTga(const char *path) {
 	}
 
 	tgaFile.writeImage(file, &bitmap, nullptr);
-	ZFileServices::get()->closeZFile(file);
+	_zFileServices->closeZFile(file);
 }
 
 void EmiEngine::dumpFrame() {
@@ -398,19 +395,19 @@ void EmiEngine::beginFrameDump(const char *path) {
 
 	// TODO write the frames to the ScummVM screenshot path
 	Common::FSNode(Common::Path(path, '/')).createDirectory();
-	Sounds::suspendAudio();
+	_sounds->suspendAudio();
 }
 
 void EmiEngine::endFrameDump() {
 	_dumpingFrames = false;
-	Sounds::resumeAudio();
+	_sounds->resumeAudio();
 }
 
 void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(this);
 	bool skipTexts = false;
 
-	if (currentRoom && (Lua_V2::statsOverlayFlags & Lua_V2::kStatsOverlayFlag) != 0) {
+	if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsOverlayFlag) != 0) {
 		double framesPerSecond = 0.0;
 
 		// The original could divide by zero here, let's avoid that...
@@ -431,9 +428,9 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 				TextEvent *event;
 
 				if (i == 1)
-					event = new TextEvent(frameTimeText);
+					event = new TextEvent(this, frameTimeText);
 				else
-					event = new TextEvent(framesText);
+					event = new TextEvent(this, framesText);
 
 				_statsEvents[i] = event;
 				event->setFont("comicsans18.laf");
@@ -447,7 +444,7 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 				event->activate(0.0f, 1);
 			}
 		}
-	} else if (currentRoom && (Lua_V2::statsOverlayFlags & Lua_V2::kStatsOverlayFlag) == 0) {
+	} else if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsOverlayFlag) == 0) {
 		if (_statsEvents[0]) {
 			for (int i = 0; i < kNumStatsEvents; i++) {
 				_statsEvents[i]->flags &= ~1u;
@@ -460,7 +457,7 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 
 	if (!skipTexts) {
 		if (_statsEvents[2]) {
-			_statsEvents[2]->text = Common::String::format("mem: %d, polys: %d", (int)gpMemoryServices->bytesAllocated, drawContext->trianglesDrawn);
+			_statsEvents[2]->text = Common::String::format("mem: %d, polys: %d", (int)_memoryServices->bytesAllocated, drawContext->trianglesDrawn);
 			_statsEvents[2]->geometryReady = false;
 		}
 
@@ -476,11 +473,11 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 		}
 	}
 
-	ProfilerTimer::endFrame();
+	ProfilerTimer::endFrame(this);
 
-	if (currentRoom && (Lua_V2::statsOverlayFlags & Lua_V2::kStatsProfilerFlag) != 0) {
-		ProfilerTimer::printAllStats();
-		Lua_V2::statsOverlayFlags &= ~(uint)Lua_V2::kStatsProfilerFlag;
+	if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsProfilerFlag) != 0) {
+		ProfilerTimer::printAllStats(this);
+		_lua->statsOverlayFlags &= ~(uint)Lua_V2::kStatsProfilerFlag;
 	}
 }
 

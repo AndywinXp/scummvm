@@ -29,10 +29,14 @@
 
 namespace Grim {
 
+class CDrawContext;
+
 class Camera : public CNode {
 public:
-	Camera();
+	Camera(CDrawContext *drawContext);
 	virtual ~Camera();
+
+	CDrawContext *getDrawContext() const;
 
 	void applyProjection();
 	void updateViewMatrix();
@@ -40,7 +44,7 @@ public:
 	void setViewport(const IRect *rect, float newFovX);
 	IRect getViewportRect();
 
-	static void drawLineLoop(DrawVertex *vertices, int count);
+	void drawLineLoop(DrawVertex *vertices, int count);
 
 	float nearClip;
 	float farClip;
@@ -55,6 +59,9 @@ public:
 	CTransform view;
 	void *reserved368;
 	bool reserved372;
+
+private:
+	CDrawContext *_drawContext;
 };
 
 } // End of namespace Grim

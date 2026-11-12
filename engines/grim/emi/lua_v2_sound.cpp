@@ -25,7 +25,6 @@
 #include "engines/grim/emi/lstring.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/sounds.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -45,24 +44,24 @@ void Lua_V2::PlaySound() {
 	LStringUtil::stringToLower(soundName);
 
 	if (lua_isnumber(volumeObj))
-		Sounds::playSound(soundName.c_str(), luaFtol(lua_getnumber(volumeObj)));
+		_engine->getSounds()->playSound(soundName.c_str(), luaFtol(lua_getnumber(volumeObj)));
 	else
-		Sounds::playSound(soundName.c_str(), kDefaultSoundVolume);
+		_engine->getSounds()->playSound(soundName.c_str(), kDefaultSoundVolume);
 }
 
 void Lua_V2::StopSound() {
 	lua_Object soundObj = lua_getparam(1);
 
 	if (lua_isuserdata(soundObj) && lua_tag(soundObj) == kSoundTag)
-		Sounds::stopSoundPlayback((uint)lua_getuserdata(soundObj));
+		_engine->getSounds()->stopSoundPlayback((uint)lua_getuserdata(soundObj));
 }
 
 void Lua_V2::StopAllSounds() {
 	for (uint i = 0; i < _lockedSounds.size(); i++)
-		Sounds::stopSound(_lockedSounds[i]);
+		_engine->getSounds()->stopSound(_lockedSounds[i]);
 
 	_lockedSounds.clear();
-	Sounds::stopAllSounds();
+	_engine->getSounds()->stopAllSounds();
 }
 
 void Lua_V2::LoadSound() {
@@ -75,7 +74,7 @@ void Lua_V2::LoadSound() {
 
 	LStringUtil::stringToLower(soundName);
 
-	uint soundHandle = Sounds::loadSound(soundName.c_str(), kSfxSoundMode);
+	uint soundHandle = _engine->getSounds()->loadSound(soundName.c_str(), kSfxSoundMode);
 
 	if (soundHandle != 0) {
 		_lockedSounds.push_back(soundHandle);
@@ -101,7 +100,7 @@ void Lua_V2::FreeSound() {
 		}
 	}
 
-	Sounds::stopSound(soundHandle);
+	_engine->getSounds()->stopSound(soundHandle);
 }
 
 void Lua_V2::PlayLoadedSound() {
@@ -121,10 +120,10 @@ void Lua_V2::PlayLoadedSound() {
 	if (lua_isnumber(volumeObj))
 		volume = luaFtol(lua_getnumber(volumeObj));
 
-	Sounds::startSound(soundHandle, release ? 1 : 0, loop, volume);
+	_engine->getSounds()->startSound(soundHandle, release ? 1 : 0, loop, volume);
 
 	if (release && !loop)
-		Sounds::unregisterSound((uint16)soundHandle);
+		_engine->getSounds()->unregisterSound((uint16)soundHandle);
 }
 
 void Lua_V2::IsSoundPlaying() {
@@ -133,7 +132,7 @@ void Lua_V2::IsSoundPlaying() {
 	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
 		return;
 
-	if (Sounds::isSoundPlayingNoFiniteLoop((uint)lua_getuserdata(soundObj)))
+	if (_engine->getSounds()->isSoundPlayingNoFiniteLoop((uint)lua_getuserdata(soundObj)))
 		lua_pushnumber(1.0f);
 }
 
@@ -141,7 +140,7 @@ void Lua_V2::GetGroupVolume() {
 	lua_Object groupObj = lua_getparam(1);
 
 	if (lua_isnumber(groupObj)) {
-		int volume = Sounds::getCategoryVolume(luaFtol(lua_getnumber(groupObj)));
+		int volume = _engine->getSounds()->getCategoryVolume(luaFtol(lua_getnumber(groupObj)));
 
 		lua_pushnumber((float)volume);
 	}
@@ -160,7 +159,7 @@ void Lua_V2::SetGroupVolume() {
 	if (lua_isnumber(volumeObj))
 		volume = luaFtol(lua_getnumber(volumeObj));
 
-	Sounds::setCategoryVolume(group, volume);
+	_engine->getSounds()->setCategoryVolume(group, volume);
 }
 
 void Lua_V2::GetSoundVolume() {
@@ -171,7 +170,7 @@ void Lua_V2::GetSoundVolume() {
 
 	int volume = 0;
 
-	if (Sounds::getSoundVolume((uint)lua_getuserdata(soundObj), &volume))
+	if (_engine->getSounds()->getSoundVolume((uint)lua_getuserdata(soundObj), &volume))
 		lua_pushnumber((float)volume);
 }
 
@@ -188,7 +187,7 @@ void Lua_V2::SetSoundVolume() {
 	if (lua_isnumber(volumeObj))
 		volume = luaFtol(lua_getnumber(volumeObj));
 
-	Sounds::setSoundVolume(soundHandle, volume);
+	_engine->getSounds()->setSoundVolume(soundHandle, volume);
 }
 
 void Lua_V2::EnableAudioGroup() {
@@ -201,14 +200,14 @@ void Lua_V2::EnableAudioGroup() {
 	int group = luaFtol(lua_getnumber(groupObj));
 	bool enabled = lua_isnil(enabledObj) == 0;
 
-	Sounds::setCategoryEnabled(group, enabled);
+	_engine->getSounds()->setCategoryEnabled(group, enabled);
 }
 
 void Lua_V2::EnableVoiceFX() {
 	lua_Object enabledObj = lua_getparam(1);
 
 	// The disasm passes the stack slot with only its low byte written
-	Sounds::setVoiceFxEnabled(lua_isnil(enabledObj) ? 0 : 1);
+	_engine->getSounds()->setVoiceFxEnabled(lua_isnil(enabledObj) ? 0 : 1);
 }
 
 void Lua_V2::SetAudioMixAhead() {
@@ -217,7 +216,7 @@ void Lua_V2::SetAudioMixAhead() {
 	if (lua_isnumber(mixAheadObj)) {
 		int16 mixAhead = (int16)luaFtol(lua_getnumber(mixAheadObj));
 
-		Sounds::setAudioMixAhead(&mixAhead, true);
+		_engine->getSounds()->setAudioMixAhead(&mixAhead, true);
 	}
 }
 
@@ -246,7 +245,7 @@ void Lua_V2::PlaySoundFrom() {
 	if (lua_isnumber(volumeObj))
 		volume = luaFtol(lua_getnumber(volumeObj));
 
-	Sounds::playSoundFrom(soundName.c_str(), x, y, z, (int16)volume);
+	_engine->getSounds()->playSoundFrom(soundName.c_str(), x, y, z, (int16)volume);
 }
 
 void Lua_V2::PlayLoadedSoundFrom() {
@@ -274,7 +273,7 @@ void Lua_V2::PlayLoadedSoundFrom() {
 	if (lua_isnumber(volumeObj))
 		volume = luaFtol(lua_getnumber(volumeObj));
 
-	Sounds::playLoadedSoundFrom(soundHandle, x, y, z, loop, (int16)volume);
+	_engine->getSounds()->playLoadedSoundFrom(soundHandle, x, y, z, loop, (int16)volume);
 }
 
 void Lua_V2::SetReverb() {
@@ -284,7 +283,7 @@ void Lua_V2::SetReverb() {
 	};
 
 	// PS2 maps the script parameters to the SPU2 room type, depth (mix), delay (predelay) and feedback (decay)
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		lua_Object typeObj = lua_getparam(1);
 		lua_Object depthObj = lua_getparam(3);
 		lua_Object feedbackObj = lua_getparam(2);
@@ -306,7 +305,7 @@ void Lua_V2::SetReverb() {
 		if (lua_isnumber(feedbackObj))
 			feedback = luaFtol(lua_getnumber(feedbackObj));
 
-		Sounds::setSonyReverb(type, depth, delay, feedback);
+		_engine->getSounds()->setSonyReverb(type, depth, delay, feedback);
 
 		return;
 	}
@@ -340,7 +339,7 @@ void Lua_V2::SetReverb() {
 			params[i] = lua_getnumber(paramObjs[i]);
 	}
 
-	Sounds::setReverb(preset, &params[0], &params[1], &params[2], &params[3], &params[4]);
+	_engine->getSounds()->setReverb(preset, &params[0], &params[1], &params[2], &params[3], &params[4]);
 }
 
 void Lua_V2::UpdateSoundPosition() {
@@ -361,25 +360,25 @@ void Lua_V2::UpdateSoundPosition() {
 	float y = lua_getnumber(yObj);
 	float z = lua_getnumber(zObj);
 
-	Sounds::setSoundPosition(soundHandle, x, y, z);
+	_engine->getSounds()->setSoundPosition(soundHandle, x, y, z);
 }
 
 void Lua_V2::ImSetState() {
 	lua_Object stateObj = lua_getparam(1);
 
 	if (lua_isnumber(stateObj))
-		EmiEngine::setPendingMusicState(luaFtol(lua_getnumber(stateObj)));
+		_engine->setPendingMusicState(luaFtol(lua_getnumber(stateObj)));
 }
 
 void Lua_V2::ImSelectSet() {
 	// PS2 has no music sets
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+	if (_engine->getGamePlatform() == Common::kPlatformPS2)
 		return;
 
 	lua_Object setObj = lua_getparam(1);
 
 	if (lua_isnumber(setObj))
-		Sounds::selectMusicSet((int16)luaFtol(lua_getnumber(setObj)));
+		_engine->getSounds()->selectMusicSet((int16)luaFtol(lua_getnumber(setObj)));
 }
 
 void Lua_V2::ImStateHasLooped() {
@@ -393,7 +392,7 @@ void Lua_V2::ImStateHasLooped() {
 	bool ended = false;
 
 	// The disasm leaves both flags uninitialised when the music is not playing
-	Sounds::consumeMusicFlags(musicId, looped, ended);
+	_engine->getSounds()->consumeMusicFlags(musicId, looped, ended);
 
 	if (looped)
 		lua_pushnumber(1.0f);
@@ -412,7 +411,7 @@ void Lua_V2::ImStateHasEnded() {
 	bool ended = false;
 
 	// The disasm leaves both flags uninitialised when the music is not playing
-	Sounds::consumeMusicFlags(musicId, looped, ended);
+	_engine->getSounds()->consumeMusicFlags(musicId, looped, ended);
 
 	if (ended)
 		lua_pushnumber(1.0f);
@@ -429,18 +428,18 @@ void Lua_V2::ImPushState() {
 
 	bool flag = lua_isnil(flagObj) == 0;
 
-	Sounds::pushMusicState(luaFtol(lua_getnumber(musicObj)), flag);
+	_engine->getSounds()->pushMusicState(luaFtol(lua_getnumber(musicObj)), flag);
 }
 
 void Lua_V2::ImPopState() {
 	lua_Object flagObj = lua_getparam(1);
 	bool flag = lua_isnil(flagObj) == 0;
 
-	Sounds::popMusicState(flag);
+	_engine->getSounds()->popMusicState(flag);
 }
 
 void Lua_V2::ImFlushStack() {
-	Sounds::flushMusicStateStack();
+	_engine->getSounds()->flushMusicStateStack();
 }
 
 void Lua_V2::ImGetMillisecondPosition() {
@@ -450,7 +449,7 @@ void Lua_V2::ImGetMillisecondPosition() {
 		return;
 
 	uint musicId = (uint)luaFtol(lua_getnumber(musicObj));
-	int position = Sounds::getMusicPositionMs(musicId);
+	int position = _engine->getSounds()->getMusicPositionMs(musicId);
 
 	lua_pushnumber((float)position);
 }

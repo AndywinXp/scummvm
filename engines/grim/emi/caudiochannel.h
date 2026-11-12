@@ -27,10 +27,11 @@
 namespace Grim {
 
 class CSoundCue;
+class EmiEngine;
 
 class CAudioChannel {
 public:
-	CAudioChannel();
+	explicit CAudioChannel(EmiEngine *engine);
 	virtual ~CAudioChannel();
 
 	virtual int update() = 0;
@@ -55,6 +56,9 @@ public:
 	virtual void applyCueSettings(CSoundCue *newCue) = 0;
 
 	bool paused;
+
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

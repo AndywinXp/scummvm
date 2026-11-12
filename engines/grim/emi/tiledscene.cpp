@@ -22,6 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/tiledscene.h"
@@ -53,18 +54,18 @@ TiledScene::TiledScene() {
 
 TiledScene::~TiledScene() {
 	if (data)
-		gpMemoryServices->freeImpl(data);
+		_engine->getMemoryServices()->freeImpl(data);
 
 	data = nullptr;
 	dataSize = 0;
 
 	if (quads)
-		gpMemoryServices->freeImpl(quads);
+		_engine->getMemoryServices()->freeImpl(quads);
 
 	quads = nullptr;
 
 	if (uvs)
-		gpMemoryServices->freeImpl(uvs);
+		_engine->getMemoryServices()->freeImpl(uvs);
 
 	uvs = nullptr;
 }
@@ -85,14 +86,16 @@ bool TiledScene::resLoadItem(const char *itemName) {
 	}
 
 	const char *fileName = itemName + 2;
-	ZFile *file = ZFileServices::get()->open(fileName, "rb");
+	ZFileServices *zFileServices = _engine->getZFileServices();
+	LConsoleServices *console = _engine->getConsoleServices();
+	ZFile *file = zFileServices->open(fileName, "rb");
 
 	if (!file) {
 		if (scumm_stricmp(fileName, "dfltroom.til") != 0)
 			return resLoadItem("XXdfltroom.til");
 
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Failed miserably.\n");
+		if (console)
+			console->logError("Failed miserably.\n");
 		else
 			warning("TiledScene::resLoadItem(): failed miserably");
 
@@ -103,7 +106,7 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	if (file->read(signature, sizeof(signature)) != sizeof(signature)) {
 		warning("TiledScene::resLoadItem(): unexpected end of file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
@@ -112,7 +115,7 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	if (READ_LE_UINT32(signature) != kSignature) {
 		warning("TiledScene::resLoadItem(): wrong signature");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return true;
 	}
@@ -121,7 +124,7 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	if (file->read(headerBytes, sizeof(headerBytes)) != sizeof(headerBytes)) {
 		warning("TiledScene::resLoadItem(): unexpected end of file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
@@ -137,7 +140,7 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	if (header[kHeaderTablesSize] < kHeaderBytes || numTiles < 0 || numFrames < 0 || numBatches < 0) {
 		warning("TiledScene::resLoadItem(): invalid header");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
@@ -146,24 +149,24 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	if ((int64)kHeaderBytes + 16 * (int64)numTiles + 8 * (int64)numFrames + 12 * (int64)numBatches > dataSize) {
 		warning("TiledScene::resLoadItem(): the tables do not fit in the file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
 
-	data = (byte *)gpMemoryServices->mallocImpl(dataSize * sizeof(byte));
+	data = (byte *)_engine->getMemoryServices()->mallocImpl(dataSize * sizeof(byte));
 
 	if (file->read(data, dataSize) != (uint)dataSize) {
 		warning("TiledScene::resLoadItem(): unexpected end of file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
 
-	ZFileServices::get()->closeZFile(file);
+	zFileServices->closeZFile(file);
 
-	quads = (float *)gpMemoryServices->mallocImpl(numTiles * 3 * sizeof(float));
-	uvs = (QuadRange *)gpMemoryServices->mallocImpl(numTiles * sizeof(QuadRange));
+	quads = (float *)_engine->getMemoryServices()->mallocImpl(numTiles * 3 * sizeof(float));
+	uvs = (QuadRange *)_engine->getMemoryServices()->mallocImpl(numTiles * sizeof(QuadRange));
 	frames = (int *)(data + kHeaderBytes + 16 * numTiles);
 	batches = (int *)(data + kHeaderBytes + 16 * numTiles + 8 * numFrames);
 

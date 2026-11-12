@@ -30,6 +30,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class SkeletonNode {
 public:
 	enum {
@@ -46,7 +48,7 @@ public:
 
 class CSkeleton {
 public:
-	CSkeleton();
+	explicit CSkeleton(EmiEngine *engine);
 	virtual ~CSkeleton();
 
 	virtual bool save(LFile *file);
@@ -56,6 +58,9 @@ public:
 	bool saveBinary(const char *path);
 
 	Common::Array<SkeletonNode> nodes;
+
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

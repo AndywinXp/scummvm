@@ -28,6 +28,8 @@ namespace Grim {
 
 class CPathingFileServices : public LFileServices {
 public:
+	explicit CPathingFileServices(EmiEngine *engine);
+
 	void openInto(LFile *file, const char *path, const char *mode) override;
 	LFile *open(const char *path, const char *mode) override;
 	LFile *openExtended(const char *path, const char *mode, int unused1, int unused2) override;
@@ -36,14 +38,14 @@ public:
 	bool resolvePath(LString &outPath, const char *name) override;
 
 	static const char *getTypeDirectory(const char *extension);
-	static char *getCdPath();
-	static void setCdPath(const char *path);
-	static void suspendCdPath();
-	static void resumeCdPath();
+	char *getCdPath();
+	void setCdPath(const char *path);
+	void suspendCdPath();
+	void resumeCdPath();
 
 private:
-	static char _cdPath[260];
-	static char _suspendedCdPath[260];
+	char _cdPath[260];
+	char _suspendedCdPath[260];
 };
 
 } // End of namespace Grim

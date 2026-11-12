@@ -22,20 +22,19 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/miles_audio/driver.h"
 #include "engines/grim/emi/musicstream.h"
 #include "engines/grim/emi/streamscript.h"
 
 namespace Grim {
 
-MusicStream *MusicStream::open(const LString &fileName) {
-	EMIMilesDriver *driver = CWaveAudioDevice::getMilesDriver();
+MusicStream *MusicStream::open(StreamScript *script, const LString &fileName) {
+	EMIMilesDriver *driver = script->getMilesDriver();
 
 	if (!driver)
 		return nullptr;
 
-	Common::SeekableReadStream *file = StreamScript::openStream(fileName.c_str());
+	Common::SeekableReadStream *file = script->openStream(fileName.c_str());
 
 	if (!file)
 		return nullptr;
@@ -48,16 +47,17 @@ MusicStream *MusicStream::open(const LString &fileName) {
 		return nullptr;
 	}
 
-	return new MusicStream(driver, stream);
+	return new MusicStream(script, driver, stream);
 }
 
-MusicStream::MusicStream(EMIMilesDriver *driver, EMIMilesStream *stream) {
+MusicStream::MusicStream(StreamScript *script, EMIMilesDriver *driver, EMIMilesStream *stream) {
+	_script = script;
 	_driver = driver;
 	_stream = stream;
 }
 
 MusicStream::~MusicStream() {
-	if (_driver == CWaveAudioDevice::getMilesDriver())
+	if (_driver == _script->getMilesDriver())
 		_driver->closeStream(_stream);
 
 	_stream = nullptr;

@@ -33,13 +33,14 @@ struct FileUtilFind;
 class Actor;
 class CLightNode;
 class Color;
+class EmiEngine;
 class TextEvent;
 
 class Lua_V2 : public Lua_V1 {
 public:
 	typedef Lua_V2 LuaClass;
 
-	Lua_V2();
+	explicit Lua_V2(EmiEngine *engine);
 
 	int startup() override;
 	int shutdown() override;
@@ -49,37 +50,39 @@ public:
 	int dofile(const char *filename) override;
 	bool logError(const char *message) override;
 	Common::SeekableReadStream *openBundleStream(const char *path) override;
+	Common::SeekableReadStream *openPrefsForReading(Common::SeekableReadStream *realFile) override;
+	Common::WriteStream *openPrefsForWriting(Common::WriteStream *realFile) override;
 	void recognizeOpcodes() override;
 	void registerMainOpcodes() override;
 	void registerPrimitiveOpcodes() override;
 
-	static void callCameraChange(int oldSetup, int newSetup);
-	static void callPostCameraChange(int setup);
-	static bool isSoundLocked(int soundHandle);
-	static void callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2);
-	static bool buttonHandler(int vk, bool down);
-	static void axisHandler();
-	static void updateJoySelected();
+	void callCameraChange(int oldSetup, int newSetup);
+	void callPostCameraChange(int setup);
+	bool isSoundLocked(int soundHandle);
+	void callCollisionHandler(Actor *first, Actor *second, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2);
+	bool buttonHandler(int vk, bool down);
+	void axisHandler();
+	void updateJoySelected();
 
 	int doExitCallback() override;
 	int doPauseCallback() override;
 	int doCharacterCallback(int character) override;
 	bool callPrefsInit();
 	using Lua_V1::saveGameCallback;
-	static void saveGameCallback(tSaveRestoreAccess *writer);
-	static void getVersion(LString &version);
-	static void saveLocks(tSaveRestoreAccess *writer);
-	static void restoreLocks(tSaveRestoreAccess *reader);
-	static void toggleStatsOverlay(bool hide);
+	void saveGameCallback(tSaveRestoreAccess *writer);
+	void getVersion(LString &version);
+	void saveLocks(tSaveRestoreAccess *writer);
+	void restoreLocks(tSaveRestoreAccess *reader);
+	void toggleStatsOverlay(bool hide);
 	static uint getClockUniqueUint();
-	static void obsoleteFunctionPs2();
+	void obsoleteFunctionPs2();
 
 	enum {
 		kStatsOverlayFlag = 0x20,
 		kStatsProfilerFlag = 0x40
 	};
 
-	static uint statsOverlayFlags;
+	uint statsOverlayFlags;
 
 protected:
 	void typeOverride() override;
@@ -391,7 +394,7 @@ private:
 	};
 
 	void makeSystemTable();
-	static void makeControlsTable(int ref);
+	void makeControlsTable(int ref);
 	void applyTextTable(lua_Object table, TextEvent *event);
 	void readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y);
 	void dumpResources(int mode);
@@ -404,14 +407,15 @@ private:
 	static bool getFloatPairFields(lua_Object table, const char *firstKey, const char *secondKey, float defaultValue, float *first, float *second);
 	static int truncateToInt(double value);
 
-	static Common::Array<LockedChore> _lockedChores;
-	static Common::Array<LString> _lockedChoreSets;
-	static Common::Array<LString> _lockedRooms;
-	static Common::Array<LString> _lockedBackgrounds;
-	static Common::Array<uint> _lockedSounds;
-	static int _saveDataSize;
-	static tSaveRestoreAccess *_saveWriter;
+	Common::Array<LockedChore> _lockedChores;
+	Common::Array<LString> _lockedChoreSets;
+	Common::Array<LString> _lockedRooms;
+	Common::Array<LString> _lockedBackgrounds;
+	Common::Array<uint> _lockedSounds;
+	int _saveDataSize;
+	tSaveRestoreAccess *_saveWriter;
 
+	EmiEngine *_engine;
 	int _fieldRefs[kNumFieldRefs];
 	FileUtilFind *_pFind;
 	float _gcTimer;

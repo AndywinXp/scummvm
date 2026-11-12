@@ -105,7 +105,7 @@ bool Actor::save(tSaveRestoreAccess *access) {
 	writeSavedFlag(access, onScreen);
 	access(&sortOrder, sizeof(sortOrder));
 
-	if (parentActorId && !actorDeref(parentActorId))
+	if (parentActorId && !actorDeref(_engine, parentActorId))
 		parentActorId = 0;
 
 	access(&parentActorId, sizeof(parentActorId));
@@ -156,8 +156,8 @@ bool Actor::save(tSaveRestoreAccess *access) {
 
 		access(&choreId, sizeof(choreId));
 
-		if (ChoreInstance::isInstanceValid(choreId)) {
-			ChoreInstance *instance = ChoreInstance::getInstance(choreId);
+		if (ChoreInstance::isInstanceValid(_engine, choreId)) {
+			ChoreInstance *instance = ChoreInstance::getInstance(_engine, choreId);
 
 			if (instance)
 				instance->save(access);
@@ -308,7 +308,7 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 		return false;
 
 	if (savedRoomName == kOverworldRoomName)
-		Overworld::getInstance()->putActor(this);
+		_engine->getOverworld()->putActor(this);
 	else if (!savedRoomName.empty())
 		putInSet(savedRoomName.c_str());
 	else
@@ -323,17 +323,17 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 
 		access(&choreId, sizeof(choreId));
 
-		if (ChoreInstance::isInstanceValid(choreId)) {
-			ChoreInstance *existing = ChoreInstance::getInstance(choreId);
+		if (ChoreInstance::isInstanceValid(_engine, choreId)) {
+			ChoreInstance *existing = ChoreInstance::getInstance(_engine, choreId);
 
 			if (existing)
 				delete existing;
 		}
 
-		choreId = ChoreInstance::newInstanceWithId(this, choreId);
+		choreId = ChoreInstance::newInstanceWithId(_engine, this, choreId);
 
-		if (ChoreInstance::isInstanceValid(choreId)) {
-			ChoreInstance *instance = ChoreInstance::getInstance(choreId);
+		if (ChoreInstance::isInstanceValid(_engine, choreId)) {
+			ChoreInstance *instance = ChoreInstance::getInstance(_engine, choreId);
 
 			if (instance)
 				instance->restore(access);
@@ -381,7 +381,7 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 			Common::String message = Common::String::format("Could not find file %s.", primitiveName.c_str());
 
 			warning("%s", message.c_str());
-			EmiEngine::showMessage(message.c_str(), "Error!");
+			_engine->showMessage(message.c_str(), "Error!");
 			access(&stateSize, sizeof(stateSize));
 
 			if (stateSize > kMaxSkippedStateSize) {
@@ -481,7 +481,7 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 		access(&extra->timeScale, sizeof(float));
 
 		if (hasPuck) {
-			Puck_v2 *puck = new Puck_v2(extra->reflectionAngle);
+			Puck_v2 *puck = new Puck_v2(_engine, extra->reflectionAngle);
 			CVector puckVector;
 
 			extra->puck = puck;
@@ -518,9 +518,9 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 
 		if (extra->talking) {
 			for (int i = 0; i < kNumSpeakers; i++) {
-				if (!_speakers[i]) {
-					_speakers[i] = this;
-					_numSpeakers++;
+				if (!_engine->_speakers[i]) {
+					_engine->_speakers[i] = this;
+					_engine->_numSpeakers++;
 
 					break;
 				}
@@ -533,32 +533,32 @@ bool Actor::restore(tSaveRestoreAccess *access) {
 	return true;
 }
 
-void Actor::saveActors(tSaveRestoreAccess *access) {
+void Actor::saveActors(EmiEngine *engine, tSaveRestoreAccess *access) {
 	int selectedId = -1;
 
-	if (_selectedActor)
-		selectedId = _selectedActor->id;
+	if (engine->_selectedActor)
+		selectedId = engine->_selectedActor->id;
 
 	access(&selectedId, sizeof(selectedId));
 
-	int actorCount = (int)_actors.size();
+	int actorCount = (int)engine->_actors.size();
 
 	access(&actorCount, sizeof(actorCount));
 
 	Common::List<Actor *>::iterator it;
 
-	for (it = _actors.begin(); it != _actors.end(); ++it)
+	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it)
 		(*it)->save(access);
 
-	access(&ChoreInstance::_nextId, sizeof(ChoreInstance::_nextId));
-	access(&_nextId, sizeof(_nextId));
+	access(&engine->_nextChoreInstanceId, sizeof(engine->_nextChoreInstanceId));
+	access(&engine->_nextActorId, sizeof(engine->_nextActorId));
 }
 
-void Actor::restoreActors(tSaveRestoreAccess *access) {
+void Actor::restoreActors(EmiEngine *engine, tSaveRestoreAccess *access) {
 	for (int i = 0; i < kNumSpeakers; i++)
-		_speakers[i] = nullptr;
+		engine->_speakers[i] = nullptr;
 
-	_numSpeakers = 0;
+	engine->_numSpeakers = 0;
 
 	int selectedId = 0;
 	int actorCount = 0;
@@ -567,28 +567,28 @@ void Actor::restoreActors(tSaveRestoreAccess *access) {
 	access(&actorCount, sizeof(actorCount));
 
 	for (int i = 0; i < actorCount; i++) {
-		Actor *actor = new Actor("Restored");
+		Actor *actor = new Actor(engine, "Restored");
 
 		actor->restore(access);
 	}
 
-	access(&ChoreInstance::_nextId, sizeof(ChoreInstance::_nextId));
-	access(&_nextId, sizeof(_nextId));
+	access(&engine->_nextChoreInstanceId, sizeof(engine->_nextChoreInstanceId));
+	access(&engine->_nextActorId, sizeof(engine->_nextActorId));
 
-	_selectedActor = nullptr;
+	engine->_selectedActor = nullptr;
 
 	if (selectedId >= 0)
-		_selectedActor = actorDeref(selectedId);
+		engine->_selectedActor = actorDeref(engine, selectedId);
 
 	Common::List<Actor *>::iterator it;
 
-	for (it = _actors.begin(); it != _actors.end(); ++it) {
+	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it) {
 		Actor *actor = *it;
 
 		if (!actor->parentActorId)
 			continue;
 
-		Actor *parentActor = actorDeref(actor->parentActorId);
+		Actor *parentActor = actorDeref(engine, actor->parentActorId);
 
 		if (parentActor) {
 			char nodeName[CNode::kNameSize + 1];

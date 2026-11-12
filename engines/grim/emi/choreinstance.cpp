@@ -24,40 +24,37 @@
 #include "engines/grim/emi/choreinstance.h"
 #include "engines/grim/emi/component.h"
 #include "engines/grim/emi/componentinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-ChoreInstance::InstanceMap ChoreInstance::_registry;
-uint ChoreInstance::_nextId = 1;
-bool ChoreInstance::_started = false;
-
-ChoreInstance::ChoreInstance(Actor *actor, uint instanceId) {
+ChoreInstance::ChoreInstance(EmiEngine *engine, Actor *actor, uint instanceId) : LResourceHandle<ChoreSet>(engine) {
 	id = instanceId;
-	_registry[id] = this;
+	_engine->_choreInstances[id] = this;
 	owner = actor;
 	flags = 0;
 	time = 0.0f;
 	stopTime = 0.0f;
 
-	resource = gpResourceManager->findResource("");
+	resource = getManager()->findResource("");
 
 	if (!resource) {
-		resource = gpResourceManager->createResource("");
+		resource = getManager()->createResource("");
 
 		if (!resource)
 			allocateResource();
 
 		resource->resSetName("");
-		gpResourceManager->addResource(resource);
+		getManager()->addResource(resource);
 	}
 
 	setResource(resource);
 }
 
-ChoreInstance::ChoreInstance(Actor *actor, const LString &newChoreName, const LString &choreSetName) {
-	id = _nextId++;
-	_registry[id] = this;
+ChoreInstance::ChoreInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName) : LResourceHandle<ChoreSet>(engine) {
+	id = _engine->_nextChoreInstanceId++;
+	_engine->_choreInstances[id] = this;
 	flags = 0;
 	owner = actor;
 	time = 0.0f;
@@ -73,22 +70,22 @@ ChoreInstance::~ChoreInstance() {
 	}
 
 	instances.clear();
-	_registry.erase(id);
+	_engine->_choreInstances.erase(id);
 }
 
 void *ChoreInstance::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ChoreInstance::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetName) {
 	choreName = newChoreName;
 
 	{
-		LResourceHandle<ChoreSet> choreSetHandle(choreSetName);
+		LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
 		setResource(choreSetHandle.resource);
 	}
@@ -108,7 +105,7 @@ void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetNam
 				continue;
 			}
 
-			LResourceHandle<Component> componentHandle(track->resourceName);
+			LResourceHandle<Component> componentHandle(_engine, track->resourceName);
 
 			if (componentHandle.lock() && componentHandle.typed)
 				instances.push_back(componentHandle.typed->createInstance(owner));
@@ -476,58 +473,58 @@ bool ChoreInstance::restore(tSaveRestoreAccess *access) {
 	return result;
 }
 
-uint ChoreInstance::newInstanceWithId(Actor *actor, uint instanceId) {
-	ChoreInstance *instance = new ChoreInstance(actor, instanceId);
+uint ChoreInstance::newInstanceWithId(EmiEngine *engine, Actor *actor, uint instanceId) {
+	ChoreInstance *instance = new ChoreInstance(engine, actor, instanceId);
 
 	return instance->id;
 }
 
-uint ChoreInstance::newInstance(Actor *actor, const LString &newChoreName, const LString &choreSetName) {
+uint ChoreInstance::newInstance(EmiEngine *engine, Actor *actor, const LString &newChoreName, const LString &choreSetName) {
 	if (newChoreName.empty() || choreSetName.empty())
 		return 0;
 
-	ChoreInstance *instance = new ChoreInstance(actor, newChoreName, choreSetName);
+	ChoreInstance *instance = new ChoreInstance(engine, actor, newChoreName, choreSetName);
 
 	return instance->id;
 }
 
-ChoreInstance *ChoreInstance::getInstance(uint instanceId) {
-	InstanceMap::iterator it = _registry.find(instanceId);
+ChoreInstance *ChoreInstance::getInstance(EmiEngine *engine, uint instanceId) {
+	InstanceMap::iterator it = engine->_choreInstances.find(instanceId);
 
-	if (it == _registry.end())
+	if (it == engine->_choreInstances.end())
 		return nullptr;
 
 	return it->_value;
 }
 
-bool ChoreInstance::isInstanceValid(uint instanceId) {
+bool ChoreInstance::isInstanceValid(EmiEngine *engine, uint instanceId) {
 	if (instanceId == 0)
 		return false;
 
-	InstanceMap::iterator it = _registry.find(instanceId);
+	InstanceMap::iterator it = engine->_choreInstances.find(instanceId);
 
-	if (it == _registry.end())
+	if (it == engine->_choreInstances.end())
 		return false;
 
 	if (it->_value)
 		return true;
 
-	_registry.erase(instanceId);
+	engine->_choreInstances.erase(instanceId);
 
 	return false;
 }
 
-bool ChoreInstance::startup() {
-	if (_started)
+bool ChoreInstance::startup(EmiEngine *engine) {
+	if (engine->_choreInstancesStarted)
 		return false;
 
-	_started = true;
+	engine->_choreInstancesStarted = true;
 
 	return true;
 }
 
-void ChoreInstance::shutdown() {
-	_started = false;
+void ChoreInstance::shutdown(EmiEngine *engine) {
+	engine->_choreInstancesStarted = false;
 }
 
 } // End of namespace Grim

@@ -26,7 +26,7 @@
 
 namespace Grim {
 
-LuaVarInstance::LuaVarInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+LuaVarInstance::LuaVarInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	if (componentName.size() >= Component::kNamePrefixSize)
 		variableName = componentName.c_str() + Component::kNamePrefixSize;
 	else

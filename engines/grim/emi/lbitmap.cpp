@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/cpcxfile.h"
 #include "engines/grim/emi/ctgafile.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lbitmap.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
@@ -30,21 +31,21 @@
 
 namespace Grim {
 
-static LResourceType gBitmapTypePcx("PCX");
-static LResourceType gBitmapTypeTga("TGA");
-static LResourceType gBitmapTypePic("PIC");
-static LResourceType gBitmapTypeSgi("SGI");
-static LResourceType gBitmapTypePng("PNG");
+static const LResourceType kBitmapTypePcx("PCX");
+static const LResourceType kBitmapTypeTga("TGA");
+static const LResourceType kBitmapTypePic("PIC");
+static const LResourceType kBitmapTypeSgi("SGI");
+static const LResourceType kBitmapTypePng("PNG");
 
-LBitmap::LBitmap() {
+LBitmap::LBitmap(EmiEngine *engine) : _engine(engine) {
 }
 
 void *LBitmap::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LBitmap::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void LBitmap::create(int width, int height, const LColorFormat &format, void *pixels) {
@@ -70,37 +71,37 @@ bool LBitmap::loadFile(const char *path) {
 
 	LResourceType type(dot + 1);
 
-	if (type == gBitmapTypePcx) {
-		CPCXFile pcxFile;
-		LFile *file = gpFileServices->open(path, "rb");
+	if (type == kBitmapTypePcx) {
+		CPCXFile pcxFile(_engine);
+		LFile *file = _engine->getFileServices()->open(path, "rb");
 
 		if (!file)
 			return false;
 
 		bool result = pcxFile.readImage(file, this, 0);
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return result;
 	}
 
-	if (type == gBitmapTypeTga) {
-		CTGAFile tgaFile;
-		ZFile *file = ZFileServices::get()->open(path, "rb");
+	if (type == kBitmapTypeTga) {
+		CTGAFile tgaFile(_engine);
+		ZFile *file = _engine->getZFileServices()->open(path, "rb");
 
 		if (!file)
 			return false;
 
 		bool result = tgaFile.readImage(file, this, 0);
-		ZFileServices::get()->closeZFile(file);
+		_engine->getZFileServices()->closeZFile(file);
 
 		return result;
 	}
 
-	if (type == gBitmapTypePic)
+	if (type == kBitmapTypePic)
 		warning("LBitmap::loadFile(): PIC images are not supported (%s)", path);
-	else if (type == gBitmapTypeSgi)
+	else if (type == kBitmapTypeSgi)
 		warning("LBitmap::loadFile(): SGI images are not supported (%s)", path);
-	else if (type == gBitmapTypePng)
+	else if (type == kBitmapTypePng)
 		warning("LBitmap::loadFile(): PNG images are not supported (%s)", path);
 	else
 		warning("LBitmap::loadFile(): unknown image type (%s)", path);

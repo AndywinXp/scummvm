@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class SpriteComponent : public Component, public CSprite {
 public:
-	SpriteComponent();
+	explicit SpriteComponent(EmiEngine *engine);
 	~SpriteComponent() override;
 
 	uint resSizeOfItem() override;

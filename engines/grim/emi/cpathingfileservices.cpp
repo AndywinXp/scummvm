@@ -54,8 +54,10 @@ static const TypeDirectory kTypeDirectories[20] = {
 	{ ".m4b", ".\\" }
 };
 
-char CPathingFileServices::_cdPath[260] = { 0 };
-char CPathingFileServices::_suspendedCdPath[260] = { 0 };
+CPathingFileServices::CPathingFileServices(EmiEngine *engine) : LFileServices(engine) {
+	memset(_cdPath, 0, sizeof(_cdPath));
+	memset(_suspendedCdPath, 0, sizeof(_suspendedCdPath));
+}
 
 const char *CPathingFileServices::getTypeDirectory(const char *extension) {
 	for (int i = 0; i < 20; i++) {

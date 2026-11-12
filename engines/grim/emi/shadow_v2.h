@@ -29,12 +29,13 @@
 
 namespace Grim {
 
+class EmiEngine;
 class WalkPlane_v2;
 class WalkPlaneCollection;
 
 class Shadow_v2 {
 public:
-	Shadow_v2();
+	explicit Shadow_v2(EmiEngine *engine);
 	~Shadow_v2();
 
 	void *operator new(size_t size);
@@ -54,6 +55,9 @@ public:
 	Common::Array<WalkPlane_v2 *> sectors;
 	Common::Array<LString> sectorNames;
 	Color color;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

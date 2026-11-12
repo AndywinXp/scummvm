@@ -44,8 +44,7 @@ class BinkDecoder;
 
 namespace Grim {
 
-class CDrawContext;
-class CTexture;
+class EmiEngine;
 class TextEvent;
 
 class Movie : public EventHandler {
@@ -61,7 +60,7 @@ public:
 		char text[kSubtitleKeySize];
 	};
 
-	Movie(const char *name, bool subtitles, bool newFlag6194, bool newFlag6195, int frame);
+	Movie(EmiEngine *engine, const char *name, bool subtitles, bool newFlag6194, bool newFlag6195, int frame);
 	~Movie() override;
 
 	bool handleEvent(const Event *event) override;
@@ -75,29 +74,29 @@ public:
 	bool open();
 	void drawFrame();
 
-	static bool startMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int frame);
-	static void stopMovie();
-	static bool updateMovie();
-	static void presentCurrent();
-	static void pauseCurrent();
-	static void resumeCurrent();
-	static void skipCurrent();
-	static void startupMovies(CDrawContext *newDrawContext);
+	static bool startMovie(EmiEngine *engine, const char *fileName, bool subtitles, bool flag6194, bool flag6195, int frame);
+	static void stopMovie(EmiEngine *engine);
+	static bool updateMovie(EmiEngine *engine);
+	static void presentCurrent(EmiEngine *engine);
+	static void pauseCurrent(EmiEngine *engine);
+	static void resumeCurrent(EmiEngine *engine);
+	static void skipCurrent(EmiEngine *engine);
+	static void startupMovies(EmiEngine *engine);
 	static void releaseSubtitleFont();
-	static bool fileExists(const char *path);
+	static bool fileExists(EmiEngine *engine, const char *path);
 	static void xorDecryptD2(byte *data, int size);
-	static void requestMoviePs2(const char *name);
-	static bool isMovieRequestedPs2();
-	static bool playRequestedMoviePs2();
-	static bool playMoviePs2(const char *name);
-	static Common::SeekableReadStream *openMoviePs2(const LString &path);
-	static void drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &screen);
-	static bool isSkipEventPs2(const Common::Event &event);
+	static void requestMoviePs2(EmiEngine *engine, const char *name);
+	static bool isMovieRequestedPs2(EmiEngine *engine);
+	static bool playRequestedMoviePs2(EmiEngine *engine);
+	static bool playMoviePs2(EmiEngine *engine, const char *name);
+	static Common::SeekableReadStream *openMoviePs2(EmiEngine *engine, const LString &path);
+	static void drawFramePs2(EmiEngine *engine, const Graphics::Surface &frame, Graphics::Surface &screen);
+	static bool isSkipEventPs2(EmiEngine *engine, const Common::Event &event);
 	static int writePs2State(void *data, int bytes);
 	static int readPs2State(void *data, int bytes);
-	static void loadLoadingIconPs2();
-	static void releaseLoadingIconPs2();
-	static bool drawLoadingIconPs2();
+	static void loadLoadingIconPs2(EmiEngine *engine);
+	static void releaseLoadingIconPs2(EmiEngine *engine);
+	static bool drawLoadingIconPs2(EmiEngine *engine);
 
 	LString fileName;
 	bool finished;
@@ -115,15 +114,6 @@ public:
 	Video::BinkDecoder *bink;
 	const Graphics::Surface *frameSurface;
 	bool paused;
-
-	static Movie *current;
-	static int firstFrame;
-	static CDrawContext *drawContext;
-	static bool ps2MovieRequested;
-	static LString ps2MovieName;
-	static Common::WriteStream *ps2StateWriter;
-	static Common::ReadStream *ps2StateReader;
-	static CTexture *loadingIconPs2;
 };
 
 } // End of namespace Grim

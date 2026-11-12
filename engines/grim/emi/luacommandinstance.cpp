@@ -26,7 +26,7 @@
 
 namespace Grim {
 
-LuaCommandInstance::LuaCommandInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+LuaCommandInstance::LuaCommandInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	if (componentName.size() >= Component::kNamePrefixSize)
 		command = componentName.c_str() + Component::kNamePrefixSize;
 	else

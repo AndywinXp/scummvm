@@ -26,6 +26,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class Joystick {
 public:
 	enum {
@@ -79,39 +81,42 @@ public:
 		uint pov;
 	};
 
-	static bool startup();
-	static void shutdown();
-	static bool open();
-	static bool close();
-	static void resetControls();
-	static void update();
-	static void detect();
-	static void poll();
-	static void setAxisRange(int axis, int min, int max, float deadZone);
-	static bool enableControl(uint code);
-	static void requestAxis(uint axis);
-	static float getAxis(int axis);
-	static bool getControlState(int code);
+	explicit Joystick(EmiEngine *engine);
 
-	static void setDeviceAxis(int axis, int position);
-	static void setDeviceButton(int button, bool pressed);
+	bool startup();
+	void shutdown();
+	bool open();
+	bool close();
+	void resetControls();
+	void update();
+	void detect();
+	void poll();
+	void setAxisRange(int axis, int min, int max, float deadZone);
+	bool enableControl(uint code);
+	void requestAxis(uint axis);
+	float getAxis(int axis);
+	bool getControlState(int code);
 
-	static uint joyId;
+	void setDeviceAxis(int axis, int position);
+	void setDeviceButton(int button, bool pressed);
+
+	uint joyId;
 
 private:
-	static bool _started;
-	static bool _opened;
-	static bool _anyRequested;
-	static uint _lastPollTime;
-	static bool _present[kMaxJoysticks];
-	static bool _hasPov[kMaxJoysticks];
-	static bool _requested[kMaxJoysticks];
-	static uint _numButtons[kMaxJoysticks];
-	static uint _returnFlags[kMaxJoysticks];
-	static AxisRange _axisRanges[kNumAxes];
-	static int _axisValues[kNumAxes];
-	static byte _controlStates[kNumControlStates];
-	static DeviceState _deviceState;
+	EmiEngine *_engine;
+	bool _started;
+	bool _opened;
+	bool _anyRequested;
+	uint _lastPollTime;
+	bool _present[kMaxJoysticks];
+	bool _hasPov[kMaxJoysticks];
+	bool _requested[kMaxJoysticks];
+	uint _numButtons[kMaxJoysticks];
+	uint _returnFlags[kMaxJoysticks];
+	AxisRange _axisRanges[kNumAxes];
+	int _axisValues[kNumAxes];
+	byte _controlStates[kNumControlStates];
+	DeviceState _deviceState;
 };
 
 } // End of namespace Grim

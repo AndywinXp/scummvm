@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/atrack.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
@@ -41,7 +42,7 @@ enum {
 
 class ATrackParser : public LFormatParser {
 public:
-	ATrackParser() {
+	explicit ATrackParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("TRACKTYPE", kKeywordTrackType, 1);
 		addKeyword("PRIORITY", kKeywordPriority, 1);
 		addKeyword("DATATYPE", kKeywordDataType, 1);
@@ -65,14 +66,14 @@ static int doubleToInt(double value) {
 }
 
 void *AChannelHandle::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void AChannelHandle::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
-ATrack::ATrack() {
+ATrack::ATrack(EmiEngine *engine) : _engine(engine) {
 	trackType = 0;
 	dataType = 0;
 	priority = 0;
@@ -85,11 +86,11 @@ ATrack::~ATrack() {
 }
 
 void *ATrack::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ATrack::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int ATrack::getSize() {
@@ -97,7 +98,7 @@ int ATrack::getSize() {
 }
 
 bool ATrack::save(LFile *file) {
-	ATrackParser parser;
+	ATrackParser parser(_engine);
 
 	parser.setFile(file);
 	parser.writeEntry(kKeywordPriority, priority);
@@ -155,7 +156,7 @@ bool ATrack::save(LFile *file) {
 }
 
 bool ATrack::restore(LFile *file) {
-	ATrackParser parser;
+	ATrackParser parser(_engine);
 
 	parser.setFile(file);
 	parser.readEntry(kKeywordPriority, &priority);
@@ -262,7 +263,7 @@ bool ATrack::restore(LFile *file) {
 }
 
 template<class T>
-ATrackData<T>::ATrackData() {
+ATrackData<T>::ATrackData(EmiEngine *engine) : ATrack(engine) {
 	value = T();
 }
 
@@ -276,14 +277,14 @@ int ATrackData<T>::getSize() {
 }
 
 template<class T>
-ATrackKeyframeData<T>::ATrackKeyframeData() {
+ATrackKeyframeData<T>::ATrackKeyframeData(EmiEngine *engine) : ATrackData<T>(engine) {
 	keys = nullptr;
 }
 
 template<class T>
 ATrackKeyframeData<T>::~ATrackKeyframeData() {
 	if (keys) {
-		gpMemoryServices->freeImpl(keys);
+		_engine->getMemoryServices()->freeImpl(keys);
 		keys = nullptr;
 	}
 }
@@ -296,7 +297,7 @@ int ATrackKeyframeData<T>::getSize() {
 template<class T>
 void ATrackKeyframeData<T>::allocateKeys(int count) {
 	capacity = count;
-	keys = (Key *)gpMemoryServices->mallocImpl(count * sizeof(Key));
+	keys = (Key *)_engine->getMemoryServices()->mallocImpl(count * sizeof(Key));
 
 	if (keys)
 		memset(keys, 0, count * sizeof(Key));

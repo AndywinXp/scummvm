@@ -27,14 +27,13 @@
 
 #include "engines/grim/emi/clightnode.h"
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
-#include "engines/grim/emi/profilertimer.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rmeshinstance.h"
 #include "engines/grim/emi/rmeshparser.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -52,13 +51,6 @@ static const float kCubeDirections[RMesh::kNumCubeFaces][3] = {
 	{ 0.0f, 0.0f, 1.0f },
 	{ 0.0f, 0.0f, -1.0f }
 };
-
-static ProfilerTimer lightingTimer("Lighting", ProfilerTimer::kTrackNesting);
-
-int RMesh::numLights = 0;
-float RMesh::lightDistances[RMesh::kMaxLights];
-CLight *RMesh::lightList[RMesh::kMaxLights];
-float RMesh::lightTransforms[RMesh::kMaxLights][12];
 
 static bool readBytes(LFile *file, void *buffer, uint size) {
 	return file->read(buffer, size) == size;
@@ -155,7 +147,7 @@ static void writeString(LFile *file, const LString &text) {
 	writeBytes(file, text.c_str(), text.size() + 1);
 }
 
-RMesh::RMesh() {
+RMesh::RMesh(EmiEngine *engine) : _engine(engine) {
 	vertFlags = 0;
 	numTextureSets = 0;
 	numVerts = 0;
@@ -188,6 +180,10 @@ RMesh::~RMesh() {
 	weightMap = nullptr;
 }
 
+EmiEngine *RMesh::getEngine() const {
+	return _engine;
+}
+
 RPrimitiveInstance *RMesh::createInstance() {
 	return new RMeshInstance(this);
 }
@@ -201,30 +197,30 @@ void RMesh::allocVertexData(int flags, int count) {
 	vertFlags = flags;
 	numVerts = count;
 
-	pos = (float *)gpMemoryServices->mallocImpl(count * 3 * sizeof(float));
+	pos = (float *)_engine->getMemoryServices()->mallocImpl(count * 3 * sizeof(float));
 
 	if (pos)
 		memset(pos, 0, count * 3 * sizeof(float));
 
 	if (flags & 1) {
-		normals = (float *)gpMemoryServices->mallocImpl(numVerts * 3 * sizeof(float));
+		normals = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 3 * sizeof(float));
 
 		if (normals)
 			memset(normals, 0, numVerts * 3 * sizeof(float));
 	}
 
 	if (flags & 2) {
-		colors = (PackedColor *)gpMemoryServices->mallocImpl(numVerts * sizeof(PackedColor));
+		colors = (PackedColor *)_engine->getMemoryServices()->mallocImpl(numVerts * sizeof(PackedColor));
 
 		if (colors)
 			memset(colors, 0, numVerts * sizeof(PackedColor));
 	}
 
 	if (flags & 4)
-		vertIndex = (int *)gpMemoryServices->mallocImpl(numVerts * sizeof(int));
+		vertIndex = (int *)_engine->getMemoryServices()->mallocImpl(numVerts * sizeof(int));
 
 	if (flags & 0x10) {
-		uv = (float *)gpMemoryServices->mallocImpl(numVerts * 2 * sizeof(float));
+		uv = (float *)_engine->getMemoryServices()->mallocImpl(numVerts * 2 * sizeof(float));
 
 		if (uv)
 			memset(uv, 0, numVerts * 2 * sizeof(float));
@@ -235,44 +231,48 @@ void RMesh::freeVertexData() {
 	numVerts = 0;
 
 	if (pos) {
-		gpMemoryServices->freeImpl(pos);
+		_engine->getMemoryServices()->freeImpl(pos);
 		pos = nullptr;
 	}
 
 	if (normals) {
-		gpMemoryServices->freeImpl(normals);
+		_engine->getMemoryServices()->freeImpl(normals);
 		normals = nullptr;
 	}
 
 	if (vertIndex) {
-		gpMemoryServices->freeImpl(vertIndex);
+		_engine->getMemoryServices()->freeImpl(vertIndex);
 		vertIndex = nullptr;
 	}
 
 	if (colors) {
-		gpMemoryServices->freeImpl(colors);
+		_engine->getMemoryServices()->freeImpl(colors);
 		colors = nullptr;
 	}
 
 	if (uv) {
-		gpMemoryServices->freeImpl(uv);
+		_engine->getMemoryServices()->freeImpl(uv);
 		uv = nullptr;
 	}
 }
 
 void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *vertices, const float *vertexNormals, int maxLights) {
-	lightingTimer.start();
+	_engine->_rmeshLightingTimer.start();
 
 	if (maxLights > kMaxLights) {
 		warning("RMesh::lightVertices(): too many lights requested (%d)", maxLights);
 		maxLights = kMaxLights;
 	}
 
-	numLights = 0;
+	int numLights = 0;
+	float lightDistances[kMaxLights] = { 0.0f };
+	CLight *lightList[kMaxLights];
+	float lightTransforms[kMaxLights][12];
 
 	CLight *ambientLight = nullptr;
+	const Common::List<CLightNode *> &activeLights = _engine->getActiveLights();
 
-	for (Common::List<CLightNode *>::iterator it = CLightNode::activeLights.begin(); it != CLightNode::activeLights.end(); ++it) {
+	for (Common::List<CLightNode *>::const_iterator it = activeLights.begin(); it != activeLights.end(); ++it) {
 		CLightNode *lightNode = *it;
 
 		if (!lightNode)
@@ -411,22 +411,26 @@ void RMesh::lightVertices(const CTransform *transform, int count, CDCVertex *ver
 		}
 	}
 
-	lightingTimer.stop();
+	_engine->_rmeshLightingTimer.stop();
 }
 
 void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDCVertex *vertices, const float *vertexNormals, int maxLights) {
-	lightingTimer.start();
+	_engine->_rmeshLightingTimer.start();
 
 	if (maxLights > kMaxLights) {
 		warning("RMesh::lightVerticesAmbientCube(): too many lights requested (%d)", maxLights);
 		maxLights = kMaxLights;
 	}
 
-	numLights = 0;
+	int numLights = 0;
+	float lightDistances[kMaxLights] = { 0.0f };
+	CLight *lightList[kMaxLights];
+	float lightTransforms[kMaxLights][12];
 
 	CLight *ambientLight = nullptr;
+	const Common::List<CLightNode *> &activeLights = _engine->getActiveLights();
 
-	for (Common::List<CLightNode *>::iterator it = CLightNode::activeLights.begin(); it != CLightNode::activeLights.end(); ++it) {
+	for (Common::List<CLightNode *>::const_iterator it = activeLights.begin(); it != activeLights.end(); ++it) {
 		CLightNode *lightNode = *it;
 
 		if (!lightNode)
@@ -612,7 +616,7 @@ void RMesh::lightVerticesAmbientCube(const CTransform *transform, int count, CDC
 		}
 	}
 
-	lightingTimer.stop();
+	_engine->_rmeshLightingTimer.stop();
 }
 
 void RMesh::computeBounds() {
@@ -641,7 +645,7 @@ void RMesh::computeBounds() {
 bool RMesh::save(LFile *file) {
 	CPrimitive::save(file);
 
-	RMeshParser parser;
+	RMeshParser parser(_engine);
 
 	parser.setFile(file);
 	parser.writeVersion(2, 1);
@@ -753,7 +757,7 @@ bool RMesh::save(LFile *file) {
 bool RMesh::restore(LFile *file) {
 	CPrimitive::restore(file);
 
-	RMeshParser parser;
+	RMeshParser parser(_engine);
 
 	parser.setFile(file);
 	parser.mesh = this;
@@ -766,7 +770,7 @@ bool RMesh::restore(LFile *file) {
 	}
 
 	if (vertIndex) {
-		gpMemoryServices->freeImpl(vertIndex);
+		_engine->getMemoryServices()->freeImpl(vertIndex);
 		vertIndex = nullptr;
 		vertFlags &= ~4;
 	}
@@ -775,12 +779,12 @@ bool RMesh::restore(LFile *file) {
 }
 
 bool RMesh::loadBinary(const char *path) {
-	LFile *file = gpFileServices->openAndLoad(path, "rb");
+	LFile *file = _engine->getFileServices()->openAndLoad(path, "rb");
 
 	if (!file)
 		return false;
 
-	int fileSize = gpFileServices->getSize(path);
+	int fileSize = _engine->getFileServices()->getSize(path);
 	byte bounds[kBoundsSize];
 	bool valid = readString(file, fileSize, &name);
 
@@ -813,7 +817,7 @@ bool RMesh::loadBinary(const char *path) {
 		}
 
 		if (valid) {
-			matHandles.resize(numTextures);
+			matHandles.resize(numTextures, LResourceHandle<CMaterial>(_engine));
 			texFlags.resize(numTextures, 0);
 			materials.resize(numTextures, nullptr);
 		}
@@ -826,19 +830,19 @@ bool RMesh::loadBinary(const char *path) {
 			if (!valid)
 				break;
 
-			LResourceHandle<CMaterial> foundMaterial;
+			LResourceHandle<CMaterial> foundMaterial(_engine);
 
-			foundMaterial.resource = gpResourceManager->findResource(materialName);
+			foundMaterial.resource = _engine->getResourceManager()->findResource(materialName);
 
 			if (!foundMaterial.resource) {
-				foundMaterial.resource = gpResourceManager->createResource(materialName);
+				foundMaterial.resource = _engine->getResourceManager()->createResource(materialName);
 
 				if (!foundMaterial.resource)
 					foundMaterial.allocateResource();
 
 				if (foundMaterial.resource) {
 					foundMaterial.resource->resSetName(materialName.c_str());
-					gpResourceManager->addResource(foundMaterial.resource);
+					_engine->getResourceManager()->addResource(foundMaterial.resource);
 				}
 			}
 
@@ -891,7 +895,7 @@ bool RMesh::loadBinary(const char *path) {
 		valid = readFloats(file, uv, 2 * numVerts);
 
 	int numTriSets = 0;
-	bool isPS2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+	bool isPS2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 	int indexSize = isPS2 ? (int)sizeof(uint32) : (int)sizeof(uint16);
 
 	valid = valid && readInt(file, &numTriSets);
@@ -958,7 +962,7 @@ bool RMesh::loadBinary(const char *path) {
 		int numNodes = 0;
 		int numWeights = 0;
 
-		weightMap = new CWeightMap();
+		weightMap = new CWeightMap(_engine);
 		valid = readInt(file, &numNodes);
 
 		if (valid && !isCountValid(numNodes, 4, fileSize)) {
@@ -999,13 +1003,13 @@ bool RMesh::loadBinary(const char *path) {
 	if (!valid)
 		warning("RMesh::loadBinary(): unexpected end of file in %s", path);
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return valid;
 }
 
 bool RMesh::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -1121,7 +1125,7 @@ bool RMesh::saveBinary(const char *path) {
 		writeInt(file, 0);
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }

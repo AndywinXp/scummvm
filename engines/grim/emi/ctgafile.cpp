@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/ctgafile.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lbitmap.h"
 #include "engines/grim/emi/lcolorformat.h"
 #include "engines/grim/emi/lmemoryservices.h"
@@ -35,7 +36,7 @@ static const uint kExtensionSize = 495;
 static const char kFooterSignature[] = "TRUEVISION-XFILE";
 static const uint kSignatureSize = 16;
 
-CTGAFile::CTGAFile() {
+CTGAFile::CTGAFile(EmiEngine *engine) : _engine(engine) {
 	init();
 }
 
@@ -162,7 +163,7 @@ int CTGAFile::writeImage(LFile *file, LBitmap *image, const byte *palette) {
 
 	file->write(header, kHeaderSize);
 
-	byte *buffer = (byte *)gpMemoryServices->mallocImpl(dataSize * sizeof(byte));
+	byte *buffer = (byte *)_engine->getMemoryServices()->mallocImpl(dataSize * sizeof(byte));
 
 	if (!buffer) {
 		warning("CTGAFile::writeImage(): cannot allocate %u bytes", dataSize);
@@ -194,13 +195,13 @@ int CTGAFile::writeImage(LFile *file, LBitmap *image, const byte *palette) {
 	}
 
 	if (file->write(buffer, dataSize) == dataSize) {
-		gpMemoryServices->freeImpl(buffer);
+		_engine->getMemoryServices()->freeImpl(buffer);
 		bitmap = nullptr;
 
 		return 1;
 	}
 
-	gpMemoryServices->freeImpl(buffer);
+	_engine->getMemoryServices()->freeImpl(buffer);
 
 	return 0;
 }

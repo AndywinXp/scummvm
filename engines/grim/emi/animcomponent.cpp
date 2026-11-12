@@ -23,12 +23,14 @@
 
 #include "engines/grim/emi/animcomponent.h"
 #include "engines/grim/emi/animinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lformatparser.h"
 
 namespace Grim {
 
-AnimComponent::AnimComponent() {
+AnimComponent::AnimComponent(EmiEngine *engine) : Animation(engine) {
+	bindEngine(engine);
 }
 
 AnimComponent::~AnimComponent() {
@@ -46,7 +48,7 @@ uint AnimComponent::resSizeOfItem() {
 }
 
 ComponentInstance *AnimComponent::createInstance(Actor *owner) {
-	return new AnimInstance(LResource::name, owner);
+	return new AnimInstance(LResource::_engine, LResource::name, owner);
 }
 
 bool AnimComponent::resLoadItem(const char *itemName) {
@@ -56,40 +58,41 @@ bool AnimComponent::resLoadItem(const char *itemName) {
 		return false;
 	}
 
+	EmiEngine *engine = LResource::_engine;
 	const char *fileName = itemName + Component::kNamePrefixSize;
 	LString textPath(fileName);
 	LString binaryPath = textPath + "b";
-	bool binaryExists = gpFileServices->exists(binaryPath.c_str());
-	bool textExists = gpFileServices->exists(textPath.c_str());
+	bool binaryExists = engine->getFileServices()->exists(binaryPath.c_str());
+	bool textExists = engine->getFileServices()->exists(textPath.c_str());
 	bool loadText = !binaryExists;
 
 	if (binaryExists && textExists) {
-		int binaryTime = gpFileServices->getModTime(binaryPath.c_str());
-		int textTime = gpFileServices->getModTime(textPath.c_str());
+		int binaryTime = engine->getFileServices()->getModTime(binaryPath.c_str());
+		int textTime = engine->getFileServices()->getModTime(textPath.c_str());
 
 		loadText = binaryTime < textTime;
 	}
 
 	if (loadText) {
-		LFile *file = gpFileServices->open(fileName, "rt");
+		LFile *file = engine->getFileServices()->open(fileName, "rt");
 
 		if (!file || !LFormatParser::skipCopyrightBanner(file) || !restore(file)) {
 			if (file)
-				gpFileServices->close(file, true);
+				engine->getFileServices()->close(file, true);
 
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Parse problem in file '%s'.\n", fileName);
+			if (engine->getConsoleServices())
+				engine->getConsoleServices()->logError("Parse problem in file '%s'.\n", fileName);
 			else
 				warning("AnimComponent::resLoadItem(): parse problem in file '%s'", fileName);
 
 			return false;
 		}
 
-		gpFileServices->close(file, true);
+		engine->getFileServices()->close(file, true);
 		saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
+		if (engine->getConsoleServices())
+			engine->getConsoleServices()->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
 		else
 			warning("AnimComponent::resLoadItem(): parse problem in file '%s'", binaryPath.c_str());
 

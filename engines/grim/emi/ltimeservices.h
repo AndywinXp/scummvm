@@ -42,7 +42,7 @@ public:
 
 class LTimeServices {
 public:
-	LTimeServices();
+	virtual ~LTimeServices() {}
 
 	virtual double getCounter();
 	virtual double getElapsedMillis(const double *from);
@@ -50,8 +50,6 @@ public:
 	virtual double getElapsedSeconds(const double *from);
 	virtual double getSecondsBetween(const double *from, const double *to);
 };
-
-extern LTimeServices *gpTimeServices;
 
 } // End of namespace Grim
 

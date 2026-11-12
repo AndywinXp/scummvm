@@ -46,11 +46,11 @@ CScxFile::CScxFile() {
 }
 
 void *CScxFile::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CScxFile::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool CScxFile::read(LFile *file, CWaveSound *sound) {

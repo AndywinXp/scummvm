@@ -33,16 +33,26 @@
 
 namespace Grim {
 
+class EmiEngine;
+class ResourceManager;
+
 class MemoryHandler : public LMemoryServices::LMemoryHandler {
 public:
+	explicit MemoryHandler(ResourceManager *manager);
+
 	uint purgeAmount(uint bytes) override;
+
+private:
+	ResourceManager *_manager;
 };
 
 class ResourceManager : public LResourceManager {
 public:
 	typedef Common::HashMap<LString, LResource *> ResourceMap;
 
-	ResourceManager();
+	explicit ResourceManager(EmiEngine *engine);
+
+	EmiEngine *getEngine() const;
 
 	bool resourceLoaded(LResource *resource, bool success) override;
 	bool addResource(LResource *resource) override;
@@ -67,15 +77,22 @@ public:
 	void dumpUsed(const LResourceType *type);
 	void dumpUnused(const LResourceType *type);
 
-	static bool startup();
-	static void shutdown();
-	static void update(float frameTime);
-	static int dumpResource(LResource *resource, LFile *file);
+	bool startup();
+	void shutdown();
+	void update(float frameTime);
+	int dumpResource(LResource *resource, LFile *file);
 
 	LFile *logFile;
 	Common::List<LResource *> allResources;
 	Common::List<LResource *> lruResources;
 	ResourceMap resourcesByName;
+
+private:
+	EmiEngine *_engine;
+	LResourceManager *_previousResourceManager;
+	MemoryHandler *_memoryHandler;
+	float _updateTime;
+	bool _lockedMessageShown;
 };
 
 } // End of namespace Grim

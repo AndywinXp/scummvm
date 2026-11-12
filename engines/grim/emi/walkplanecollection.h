@@ -32,13 +32,15 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class WalkPlaneCollection {
 public:
 	enum {
 		kMaxPathPoints = 30
 	};
 
-	WalkPlaneCollection();
+	explicit WalkPlaneCollection(EmiEngine *engine);
 	~WalkPlaneCollection();
 
 	void *operator new(size_t size);
@@ -61,7 +63,7 @@ public:
 	void allActive();
 	char *parseCollection(LFile *file);
 
-	static int getPath(float (**path)[3]);
+	int getPath(float (**path)[3]);
 
 	Common::List<wpVertex *> vertices;
 	Common::List<WalkPlane_v2 *> planes;
@@ -73,13 +75,15 @@ private:
 	};
 
 	void addParsedPlane(const float *planeVertices, int vertexCount, const char *planeName, int planeNumber, int planeType, bool visible, int sortOrderCount, const int *sortOrders, float height);
+	void logCollectionError(const char *message);
 
-	static float _rawPoints[kMaxPathPoints][3];
-	static int _rawCount;
-	static float _tightPoints[kMaxPathPoints][3];
-	static int _tightCount;
-	static Common::Array<WalkPlane_v2 *> _planePath;
-	static char _sectionName[kSectionNameSize];
+	EmiEngine *_engine;
+	float _rawPoints[kMaxPathPoints][3];
+	int _rawCount;
+	float _tightPoints[kMaxPathPoints][3];
+	int _tightCount;
+	Common::Array<WalkPlane_v2 *> _planePath;
+	char _sectionName[kSectionNameSize];
 };
 
 } // End of namespace Grim

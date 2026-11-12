@@ -21,16 +21,16 @@
 
 #include "common/system.h"
 
-#include "engines/grim/grim.h"
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/csoundcue.h"
 #include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/miles_audio/driver.h"
-#include "engines/grim/emi/streamscript.h"
+#include "engines/grim/emi/sounds.h"
 
 namespace Grim {
 
@@ -39,13 +39,12 @@ static const uint kReacquireIntervalMs = 5000;
 static const int kSonyRoomTypeCount = 10;
 static const int kSonyMaxValue = 100;
 
-CWaveAudioDevice::CWaveAudioDevice(int channelCount) {
+CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int channelCount) : CAudioDevice(sounds->getEngine()), _audioSystem(audioSystem), _spuStereo(true), _driver(nullptr) {
 	lost = false;
 	numChannels = 0;
 	lastCheckMs = 0;
-	_driver = nullptr;
 
-	EMIMilesDriver *driver = new EMIMilesDriver(g_grim->getGamePlatform() == Common::kPlatformPS2);
+	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getMemoryServices(), _engine->getGamePlatform() == Common::kPlatformPS2);
 
 	if (!driver->open(g_system->getMixer())) {
 		delete driver;
@@ -55,12 +54,10 @@ CWaveAudioDevice::CWaveAudioDevice(int channelCount) {
 
 	_driver = driver;
 
-	StreamScript::setStreamingGate(getMilesDigitalDriver);
-
 	int created = 0;
 
 	for (int i = 0; i < channelCount; i++) {
-		CWaveChannel *channel = new CWaveChannel(_driver);
+		CWaveChannel *channel = new CWaveChannel(this);
 
 		if (!channel->hSample) {
 			delete channel;
@@ -92,11 +89,11 @@ CWaveAudioDevice::~CWaveAudioDevice() {
 }
 
 void *CWaveAudioDevice::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CWaveAudioDevice::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int CWaveAudioDevice::getType() {
@@ -246,7 +243,7 @@ float CWaveAudioDevice::getMasterVolume() {
 }
 
 float CWaveAudioDevice::setCategoryVolume(int category) {
-	float gain = AudioSystem::getCategoryGain(category);
+	float gain = _audioSystem->getCategoryGain(category);
 
 	if (category != 1 && category != 2 && category != 3)
 		return gain;
@@ -272,31 +269,33 @@ bool CWaveAudioDevice::setReverb(const int *preset, const float *time, const flo
 }
 
 bool CWaveAudioDevice::setSonyRoomType(int type, int depth, int delay, int feedback) {
+	LConsoleServices *console = _engine->getConsoleServices();
+
 	if (type < 0 || type >= kSonyRoomTypeCount) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetSonyRoomType: Type out of range (%d)\n", type);
+		if (console)
+			console->logError("SetSonyRoomType: Type out of range (%d)\n", type);
 
 		return false;
 	}
 
 	if (depth < 0 || depth > kSonyMaxValue) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetSonyRoomType: Depth out of range (%d)\n", depth);
+		if (console)
+			console->logError("SetSonyRoomType: Depth out of range (%d)\n", depth);
 
 		return false;
 	}
 
 	if (delay < 0 || delay > kSonyMaxValue) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetSonyRoomType: Delay out of range (%d)\n", delay);
+		if (console)
+			console->logError("SetSonyRoomType: Delay out of range (%d)\n", delay);
 
 		return false;
 	}
 
 	// The original checks the depth instead of the feedback for negative values
 	if (depth < 0 || feedback > kSonyMaxValue) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetSonyRoomType: Feedback out of range (%d)\n", feedback);
+		if (console)
+			console->logError("SetSonyRoomType: Feedback out of range (%d)\n", feedback);
 
 		return false;
 	}
@@ -307,13 +306,25 @@ bool CWaveAudioDevice::setSonyRoomType(int type, int depth, int delay, int feedb
 	float depthValue = (float)depth / 100.0f;
 
 	if (_driver->setSpuReverb(type, 0, depthValue, depthValue, (float)delay / 100.0f, (float)feedback / 100.0f)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Cannot set reverb.\n");
+		if (console)
+			console->logError("Cannot set reverb.\n");
 
 		return false;
 	}
 
 	return true;
+}
+
+void CWaveAudioDevice::setSpuStereo(bool stereo) {
+	_spuStereo = stereo;
+}
+
+bool CWaveAudioDevice::getSpuStereo() const {
+	return _spuStereo;
+}
+
+AudioSystem *CWaveAudioDevice::getAudioSystem() const {
+	return _audioSystem;
 }
 
 int CWaveAudioDevice::getCPUPercent() {
@@ -336,12 +347,7 @@ int CWaveAudioDevice::getMilesDigitalDriver() {
 }
 
 EMIMilesDriver *CWaveAudioDevice::getMilesDriver() {
-	CAudioDevice *device = AudioSystem::device;
-
-	if (!device || device->getType() != CWaveSound::kTypeWave)
-		return nullptr;
-
-	return static_cast<CWaveAudioDevice *>(device)->_driver;
+	return _driver;
 }
 
 } // End of namespace Grim

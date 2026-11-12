@@ -34,7 +34,7 @@ static const int kTokenSize = 256;
 
 class CPrimitiveParser : public LFormatParser {
 public:
-	CPrimitiveParser() {
+	explicit CPrimitiveParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("NAME", kKeywordName, 3);
 		addKeyword("SPHERE", kKeywordSphere, 170);
 		addKeyword("BOX", kKeywordBox, 2730);
@@ -50,7 +50,7 @@ CPrimitive::~CPrimitive() {
 }
 
 bool CPrimitive::save(LFile *file) {
-	CPrimitiveParser parser;
+	CPrimitiveParser parser(file->getEngine());
 
 	parser.setFile(file);
 	parser.writeVersion(1, 0);
@@ -65,7 +65,7 @@ bool CPrimitive::save(LFile *file) {
 }
 
 bool CPrimitive::restore(LFile *file) {
-	CPrimitiveParser parser;
+	CPrimitiveParser parser(file->getEngine());
 	char token[kTokenSize];
 
 	parser.setFile(file);

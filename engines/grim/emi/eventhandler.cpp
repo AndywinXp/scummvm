@@ -19,47 +19,46 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/eventhandler.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-Common::List<EventHandler *> EventHandler::handlers;
-
 void *Event::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Event::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
-EventHandler::EventHandler(int handlerPriority) : typeMask(0xFFFFFFFF), priority(handlerPriority) {
-	Common::List<EventHandler *>::iterator it = handlers.begin();
+EventHandler::EventHandler(EmiEngine *engine, int handlerPriority) : typeMask(0xFFFFFFFF), priority(handlerPriority), _engine(engine) {
+	Common::List<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
 
-	while (it != handlers.end() && (*it)->priority >= handlerPriority)
+	while (it != _engine->_eventHandlers.end() && (*it)->priority >= handlerPriority)
 		++it;
 
-	handlers.insert(it, this);
+	_engine->_eventHandlers.insert(it, this);
 }
 
 EventHandler::~EventHandler() {
-	Common::List<EventHandler *>::iterator it = handlers.begin();
+	Common::List<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
 
-	while (it != handlers.end()) {
+	while (it != _engine->_eventHandlers.end()) {
 		if (*it == this)
-			it = handlers.erase(it);
+			it = _engine->_eventHandlers.erase(it);
 		else
 			++it;
 	}
 }
 
 void *EventHandler::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void EventHandler::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 } // End of namespace Grim

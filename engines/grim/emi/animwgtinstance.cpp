@@ -24,7 +24,7 @@
 
 namespace Grim {
 
-AnimWgtInstance::AnimWgtInstance(const LString &componentName) : ComponentInstance(componentName) {
+AnimWgtInstance::AnimWgtInstance(EmiEngine *engine, const LString &componentName) : ComponentInstance(engine, componentName) {
 	anim = nullptr;
 }
 

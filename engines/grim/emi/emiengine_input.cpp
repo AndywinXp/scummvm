@@ -72,13 +72,13 @@ void EmiEngine::pumpEvents() {
 			handleKeyRelease(event.kbd);
 			break;
 		case Common::EVENT_JOYAXIS_MOTION:
-			Joystick::setDeviceAxis(event.joystick.axis, event.joystick.position);
+			_joystick->setDeviceAxis(event.joystick.axis, event.joystick.position);
 			break;
 		case Common::EVENT_JOYBUTTON_DOWN:
-			Joystick::setDeviceButton(event.joystick.button, true);
+			_joystick->setDeviceButton(event.joystick.button, true);
 			break;
 		case Common::EVENT_JOYBUTTON_UP:
-			Joystick::setDeviceButton(event.joystick.button, false);
+			_joystick->setDeviceButton(event.joystick.button, false);
 			break;
 		default:
 			break;
@@ -138,7 +138,7 @@ void EmiEngine::handleDebugKeys(int virtualKey) {
 		break;
 	case kVirtualKeyF:
 		if (_showFps && _backspaceHeld && _controlHeld)
-			Lua_V2::toggleStatsOverlay(false);
+			_lua->toggleStatsOverlay(false);
 
 		break;
 	default:
@@ -150,11 +150,11 @@ void EmiEngine::handleActivation(bool active) {
 	if (active) {
 		if (_keyGenerator) {
 			_keyGenerator->clearEvents();
-			SputControl_v2::clearKeyStates();
+			_control->clearKeyStates();
 		}
 
-		if (CDrawContext::context)
-			CDrawContext::context->restoreDisplay();
+		if (_drawContext)
+			_drawContext->restoreDisplay();
 	} else if (_keyGenerator) {
 		_keyGenerator->clearEvents();
 	}
@@ -168,13 +168,13 @@ bool EmiEngine::onCharacter(byte character) {
 	}
 
 	// PS2 has no character handler
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+	if (getGamePlatform() == Common::kPlatformPS2)
 		return false;
 
 	bool handled = _lua->doCharacterCallback(character) != 0;
 
-	if (handled && InputRecorder::instance)
-		InputRecorder::instance->recordChar(character);
+	if (handled && _inputRecorder)
+		_inputRecorder->recordChar(character);
 
 	return handled;
 }

@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/animation.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
@@ -43,7 +44,7 @@ static const int kQuaternionKeySize = 20;
 
 class AnimationParser : public LFormatParser {
 public:
-	AnimationParser() {
+	explicit AnimationParser(EmiEngine *engine) : LFormatParser(engine) {
 		addKeyword("ANIMNAME", kKeywordAnimName, 3);
 		addKeyword("ANIMENTRIES", kKeywordAnimEntries, 1);
 		addKeyword("ANIMLENGTH", kKeywordAnimLength, 2);
@@ -87,13 +88,6 @@ static void writeFloat(LFile *file, float value) {
 	file->write(bytes, sizeof(bytes));
 }
 
-static bool failLoad(LFile *file, const char *reason) {
-	warning("Animation::loadBinary(): %s", reason);
-	gpFileServices->close(file, true);
-
-	return false;
-}
-
 static bool readTrackHeader(LFile *file, ATrack *track, int dataType, int fileSize, int keySize) {
 	track->dataType = dataType;
 
@@ -116,7 +110,7 @@ static byte *readKeyData(LFile *file, int count, int keySize) {
 	return raw;
 }
 
-Animation::Animation() {
+Animation::Animation(EmiEngine *engine) : _engine(engine) {
 	length = 0.0f;
 	trackCount = 0;
 	entryCount = 0;
@@ -135,8 +129,15 @@ Animation::~Animation() {
 	name.clear();
 }
 
+bool Animation::failLoad(LFile *file, const char *reason) {
+	warning("Animation::loadBinary(): %s", reason);
+	_engine->getFileServices()->close(file, true);
+
+	return false;
+}
+
 bool Animation::save(LFile *file) {
-	AnimationParser parser;
+	AnimationParser parser(_engine);
 	int writtenTracks = 0;
 
 	for (int i = 0; i < entryCount; i++) {
@@ -180,13 +181,13 @@ bool Animation::save(LFile *file) {
 	parser.writeEndOfSection();
 
 	// The disasm closes the file here
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool Animation::restore(LFile *file) {
-	AnimationParser parser;
+	AnimationParser parser(_engine);
 	char nameBuffer[kNameBufferSize];
 	char entryName[kNameBufferSize];
 	int count = 0;
@@ -222,19 +223,19 @@ bool Animation::restore(LFile *file) {
 		switch (dataType) {
 		case ATrack::kDataFloat:
 			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<float>();
+			entries[i].track = new ATrackKeyframeData<float>(_engine);
 			break;
 		case ATrack::kDataInt:
 			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<int>();
+			entries[i].track = new ATrackKeyframeData<int>(_engine);
 			break;
 		case ATrack::kDataVector:
 			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<CVector>();
+			entries[i].track = new ATrackKeyframeData<CVector>(_engine);
 			break;
 		case ATrack::kDataQuaternion:
 			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<CQuaternion>();
+			entries[i].track = new ATrackKeyframeData<CQuaternion>(_engine);
 			break;
 		default:
 			break;
@@ -252,12 +253,12 @@ bool Animation::restore(LFile *file) {
 }
 
 bool Animation::loadBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+	LFile *file = _engine->getFileServices()->open(path, "rb");
 
 	if (!file)
 		return false;
 
-	int fileSize = gpFileServices->getSize(path);
+	int fileSize = _engine->getFileServices()->getSize(path);
 	char buffer[kNameBufferSize];
 	int nameLength;
 	int count;
@@ -303,7 +304,7 @@ bool Animation::loadBinary(const char *path) {
 
 		switch (dataType) {
 		case ATrack::kDataFloat: {
-			ATrackKeyframeData<float> *track = new ATrackKeyframeData<float>();
+			ATrackKeyframeData<float> *track = new ATrackKeyframeData<float>(_engine);
 
 			entries[i].track = track;
 
@@ -329,7 +330,7 @@ bool Animation::loadBinary(const char *path) {
 			break;
 		}
 		case ATrack::kDataInt: {
-			ATrackKeyframeData<int> *track = new ATrackKeyframeData<int>();
+			ATrackKeyframeData<int> *track = new ATrackKeyframeData<int>(_engine);
 
 			entries[i].track = track;
 
@@ -355,7 +356,7 @@ bool Animation::loadBinary(const char *path) {
 			break;
 		}
 		case ATrack::kDataVector: {
-			ATrackKeyframeData<CVector> *track = new ATrackKeyframeData<CVector>();
+			ATrackKeyframeData<CVector> *track = new ATrackKeyframeData<CVector>(_engine);
 
 			entries[i].track = track;
 
@@ -383,7 +384,7 @@ bool Animation::loadBinary(const char *path) {
 			break;
 		}
 		case ATrack::kDataQuaternion: {
-			ATrackKeyframeData<CQuaternion> *track = new ATrackKeyframeData<CQuaternion>();
+			ATrackKeyframeData<CQuaternion> *track = new ATrackKeyframeData<CQuaternion>(_engine);
 
 			entries[i].track = track;
 
@@ -416,13 +417,13 @@ bool Animation::loadBinary(const char *path) {
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool Animation::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -511,7 +512,7 @@ bool Animation::saveBinary(const char *path) {
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }

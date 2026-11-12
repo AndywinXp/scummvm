@@ -29,6 +29,7 @@
 #include "engines/grim/emi/csnd.h"
 #include "engines/grim/emi/csoundcue.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lstring.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -40,14 +41,7 @@ static const uint kSndFlagsMask = 0x003FFFFF;
 static const int kSavedPositionSize = 16;
 static const int kSavedPositionOffset = 4;
 
-CSoundCue *CSoundCue::firstCue = nullptr;
-CSoundCue *CSoundCue::lastCue = nullptr;
-int CSoundCue::cueCount = 0;
-uint CSoundCue::createdCount = 0;
-uint CSoundCue::destroyedCount = 0;
-uint CSoundCue::updatedCount = 0;
-
-CSoundCue::CSoundCue(LResourceHandle<CSnd> *sndHandle, CNode *node) {
+CSoundCue::CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *node) : soundHandle(sounds->getEngine()), _sounds(sounds) {
 	prev = nullptr;
 	next = nullptr;
 	sound = nullptr;
@@ -91,20 +85,20 @@ CSoundCue::CSoundCue(LResourceHandle<CSnd> *sndHandle, CNode *node) {
 
 	nodeRef.cue = this;
 
-	if (firstCue)
-		firstCue->prev = this;
+	if (_sounds->_firstCue)
+		_sounds->_firstCue->prev = this;
 
 	prev = nullptr;
-	next = firstCue;
-	firstCue = this;
+	next = _sounds->_firstCue;
+	_sounds->_firstCue = this;
 
-	if (!lastCue)
-		lastCue = this;
+	if (!_sounds->_lastCue)
+		_sounds->_lastCue = this;
 
-	cueCount++;
+	_sounds->_cueCount++;
 }
 
-CSoundCue::CSoundCue(const LString &name, CNode *node) {
+CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : soundHandle(sounds->getEngine()), _sounds(sounds) {
 	prev = nullptr;
 	next = nullptr;
 	sound = nullptr;
@@ -137,7 +131,7 @@ CSoundCue::CSoundCue(const LString &name, CNode *node) {
 	if (upperName.find(".SND") == LString::npos) {
 		initDefaults(node);
 
-		LResourceHandle<LSound> rawHandle(name);
+		LResourceHandle<LSound> rawHandle(_sounds->getEngine(), name);
 
 		soundHandle.setResource(rawHandle.resource);
 
@@ -146,7 +140,7 @@ CSoundCue::CSoundCue(const LString &name, CNode *node) {
 		else
 			sound = nullptr;
 	} else {
-		LResourceHandle<CSnd> sndHandle(name);
+		LResourceHandle<CSnd> sndHandle(_sounds->getEngine(), name);
 
 		if (sndHandle.lock() && sndHandle.typed) {
 			CSnd *snd = sndHandle.typed;
@@ -167,17 +161,17 @@ CSoundCue::CSoundCue(const LString &name, CNode *node) {
 
 	nodeRef.cue = this;
 
-	if (firstCue)
-		firstCue->prev = this;
+	if (_sounds->_firstCue)
+		_sounds->_firstCue->prev = this;
 
 	prev = nullptr;
-	next = firstCue;
-	firstCue = this;
+	next = _sounds->_firstCue;
+	_sounds->_firstCue = this;
 
-	if (!lastCue)
-		lastCue = this;
+	if (!_sounds->_lastCue)
+		_sounds->_lastCue = this;
 
-	cueCount++;
+	_sounds->_cueCount++;
 }
 
 CSoundCue::~CSoundCue() {
@@ -190,51 +184,51 @@ CSoundCue::~CSoundCue() {
 
 	lipData = nullptr;
 
-	if (this == firstCue) {
-		CSoundCue *oldFirst = firstCue;
+	if (this == _sounds->_firstCue) {
+		CSoundCue *oldFirst = _sounds->_firstCue;
 
-		firstCue = firstCue->next;
+		_sounds->_firstCue = _sounds->_firstCue->next;
 
-		if (firstCue)
-			firstCue->prev = nullptr;
+		if (_sounds->_firstCue)
+			_sounds->_firstCue->prev = nullptr;
 		else
-			lastCue = nullptr;
+			_sounds->_lastCue = nullptr;
 
 		oldFirst->prev = nullptr;
 		oldFirst->next = nullptr;
-		cueCount--;
-	} else if (this == lastCue) {
-		CSoundCue *oldLast = lastCue;
+		_sounds->_cueCount--;
+	} else if (this == _sounds->_lastCue) {
+		CSoundCue *oldLast = _sounds->_lastCue;
 
-		lastCue = lastCue->prev;
+		_sounds->_lastCue = _sounds->_lastCue->prev;
 
-		if (lastCue)
-			lastCue->next = nullptr;
+		if (_sounds->_lastCue)
+			_sounds->_lastCue->next = nullptr;
 		else
-			firstCue = nullptr;
+			_sounds->_firstCue = nullptr;
 
 		oldLast->next = nullptr;
 		oldLast->prev = nullptr;
-		cueCount--;
+		_sounds->_cueCount--;
 	} else if (next && prev) {
 		next->prev = prev;
 		prev->next = next;
-		cueCount--;
+		_sounds->_cueCount--;
 		prev = nullptr;
 		next = nullptr;
 	} else if (next || prev) {
 		warning("CSoundCue::~CSoundCue(): inconsistent cue list");
 	}
 
-	destroyedCount++;
+	_sounds->_destroyedCount++;
 }
 
 void *CSoundCue::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void CSoundCue::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool CSoundCue::play(bool releaseWhenDone) {
@@ -251,12 +245,14 @@ bool CSoundCue::play(bool releaseWhenDone) {
 }
 
 bool CSoundCue::startPlay(bool startPaused) {
+	AudioSystem *audioSystem = _sounds->getAudioSystem();
+
 	releaseChannel();
 
-	if (!AudioSystem::isCueInRange(this))
+	if (!audioSystem->isCueInRange(this))
 		return channel != nullptr;
 
-	channel = AudioSystem::allocateAudioChannel(this);
+	channel = audioSystem->allocateAudioChannel(this);
 
 	if (!channel) {
 		state = kStateWaiting;
@@ -283,7 +279,7 @@ bool CSoundCue::startPlay(bool startPaused) {
 	releaseChannel();
 	state = kStateWaiting;
 
-	if (AudioSystem::debugLevel > 1) {
+	if (audioSystem->debugLevel > 1) {
 		const char *failedName = "<file_error>";
 
 		if (soundHandle.resource)
@@ -296,12 +292,14 @@ bool CSoundCue::startPlay(bool startPaused) {
 }
 
 bool CSoundCue::startPlay() {
+	AudioSystem *audioSystem = _sounds->getAudioSystem();
+
 	releaseChannel();
 
-	if (!AudioSystem::isCueInRange(this))
+	if (!audioSystem->isCueInRange(this))
 		return channel != nullptr;
 
-	channel = AudioSystem::allocateAudioChannel(this);
+	channel = audioSystem->allocateAudioChannel(this);
 
 	if (!channel) {
 		state = kStateWaiting;
@@ -318,7 +316,7 @@ bool CSoundCue::startPlay() {
 	releaseChannel();
 	state = kStateWaiting;
 
-	if (AudioSystem::debugLevel > 1) {
+	if (audioSystem->debugLevel > 1) {
 		const char *failedName = "<file_error>";
 
 		if (soundHandle.resource)
@@ -332,7 +330,7 @@ bool CSoundCue::startPlay() {
 
 bool CSoundCue::update() {
 	if ((flags & kFlagStartInRange) != 0) {
-		bool inRange = AudioSystem::isCueInRange(this);
+		bool inRange = _sounds->getAudioSystem()->isCueInRange(this);
 
 		if (inRange) {
 			flags |= kFlagInRange;
@@ -355,13 +353,13 @@ bool CSoundCue::update() {
 	return true;
 }
 
-CSoundCue *CSoundCue::newSoundCue(LResourceHandle<CSnd> *sndHandle, int category, CNode *node) {
+CSoundCue *CSoundCue::newSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, int category, CNode *node) {
 	CSoundCue *cue = nullptr;
 
 	if (category == 0)
 		warning("CSoundCue::newSoundCue(): the default category is not supported");
 	else
-		cue = new CSoundCue(sndHandle, node);
+		cue = new CSoundCue(sounds, sndHandle, node);
 
 	if (cue)
 		cue->category = category;
@@ -374,7 +372,7 @@ CSoundCue *CSoundCue::newSoundCue(LResourceHandle<CSnd> *sndHandle, int category
 	return nullptr;
 }
 
-CSoundCue *CSoundCue::newSoundCue(const LString &name, int category, CNode *node) {
+CSoundCue *CSoundCue::newSoundCue(Sounds *sounds, const LString &name, int category, CNode *node) {
 	CSoundCue *cue = nullptr;
 
 	if (name.empty())
@@ -393,9 +391,9 @@ CSoundCue *CSoundCue::newSoundCue(const LString &name, int category, CNode *node
 	}
 
 	if (extension == "SND") {
-		LResourceHandle<CSnd> sndHandle(fullName);
+		LResourceHandle<CSnd> sndHandle(sounds->getEngine(), fullName);
 
-		cue = newSoundCue(&sndHandle, category, node);
+		cue = newSoundCue(sounds, &sndHandle, category, node);
 	} else {
 		switch (category) {
 		case 0:
@@ -404,7 +402,7 @@ CSoundCue *CSoundCue::newSoundCue(const LString &name, int category, CNode *node
 			break;
 
 		case 2:
-			cue = new CSoundCue(name, node);
+			cue = new CSoundCue(sounds, name, node);
 			cue->category = 2;
 
 			break;
@@ -418,7 +416,7 @@ CSoundCue *CSoundCue::newSoundCue(const LString &name, int category, CNode *node
 			break;
 
 		default:
-			cue = new CSoundCue(name, node);
+			cue = new CSoundCue(sounds, name, node);
 			cue->category = category;
 
 			break;
@@ -442,58 +440,58 @@ void CSoundCue::deleteSoundCue(CSoundCue *cue) {
 	}
 }
 
-void CSoundCue::releaseAllCues() {
-	while (cueCount) {
-		if (!firstCue) {
+void CSoundCue::releaseAllCues(Sounds *sounds) {
+	while (sounds->_cueCount) {
+		if (!sounds->_firstCue) {
 			warning("CSoundCue::releaseAllCues(): inconsistent cue list");
 
 			break;
 		}
 
-		delete firstCue;
+		delete sounds->_firstCue;
 	}
 }
 
-void CSoundCue::releaseUnlockedCues() {
-	CSoundCue *cue = firstCue;
+void CSoundCue::releaseUnlockedCues(Sounds *sounds) {
+	CSoundCue *cue = sounds->_firstCue;
 
 	while (cue) {
 		CSoundCue *current = cue;
 
 		cue = cue->next;
 
-		if (!Lua_V2::isSoundLocked((int16)current->handle)) {
+		if (!sounds->getEngine()->getLua()->isSoundLocked((int16)current->handle)) {
 			CAudioChannel *currentChannel = current->channel;
 
 			if (!currentChannel || !currentChannel->isPaused()) {
-				Sounds::unregisterSound(current->handle);
+				sounds->unregisterSound(current->handle);
 				deleteSoundCue(current);
 			}
 		}
 	}
 }
 
-void CSoundCue::updateSoundCues() {
-	CSoundCue *cue = firstCue;
+void CSoundCue::updateSoundCues(Sounds *sounds) {
+	CSoundCue *cue = sounds->_firstCue;
 
-	updatedCount = 0;
+	sounds->_updatedCount = 0;
 
 	while (cue) {
 		CSoundCue *current = cue;
 
-		updatedCount++;
+		sounds->_updatedCount++;
 		cue = cue->next;
 
-		if (!current->update() && !Sounds::isCueRegistered(current))
+		if (!current->update() && !sounds->isCueRegistered(current))
 			deleteSoundCue(current);
 	}
 }
 
-bool CSoundCue::stopCueToFreeChannel(bool finiteLoopsFirst, bool anyNonLooping) {
+bool CSoundCue::stopCueToFreeChannel(Sounds *sounds, bool finiteLoopsFirst, bool anyNonLooping) {
 	CSoundCue *found = nullptr;
 
 	if (finiteLoopsFirst) {
-		CSoundCue *cue = firstCue;
+		CSoundCue *cue = sounds->_firstCue;
 
 		while (cue) {
 			CSoundCue *current = cue;
@@ -512,7 +510,7 @@ bool CSoundCue::stopCueToFreeChannel(bool finiteLoopsFirst, bool anyNonLooping) 
 		if (!anyNonLooping)
 			return false;
 
-		CSoundCue *cue = firstCue;
+		CSoundCue *cue = sounds->_firstCue;
 
 		while (cue) {
 			CSoundCue *current = cue;
@@ -535,9 +533,9 @@ bool CSoundCue::stopCueToFreeChannel(bool finiteLoopsFirst, bool anyNonLooping) 
 	return true;
 }
 
-bool CSoundCue::saveCues(tSaveRestoreAccess *access) {
-	int16 savedCount = (int16)cueCount;
-	CSoundCue *cue = firstCue;
+bool CSoundCue::saveCues(Sounds *sounds, tSaveRestoreAccess *access) {
+	int16 savedCount = (int16)sounds->_cueCount;
+	CSoundCue *cue = sounds->_firstCue;
 
 	access(&savedCount, sizeof(savedCount));
 
@@ -551,7 +549,7 @@ bool CSoundCue::saveCues(tSaveRestoreAccess *access) {
 	return true;
 }
 
-bool CSoundCue::restoreCues(tSaveRestoreAccess *access, SoundCueMap *cueMap) {
+bool CSoundCue::restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCueMap *cueMap) {
 	LString cueName;
 	int16 restoredCount = 0;
 	int16 nameLength = 0;
@@ -592,7 +590,7 @@ bool CSoundCue::restoreCues(tSaveRestoreAccess *access, SoundCueMap *cueMap) {
 		access(&restoredPan, sizeof(restoredPan));
 		access(&restoredHandle, sizeof(restoredHandle));
 
-		CSoundCue *cue = newSoundCue(cueName, category, nullptr);
+		CSoundCue *cue = newSoundCue(sounds, cueName, category, nullptr);
 
 		if (!cue)
 			continue;
@@ -611,8 +609,8 @@ bool CSoundCue::restoreCues(tSaveRestoreAccess *access, SoundCueMap *cueMap) {
 			cue->channel->setPaused(false);
 		}
 
-		if (AudioSystem::lipCallback && cue->category == 2)
-			AudioSystem::lipCallback(cueName.c_str(), cue);
+		if (cue->category == 2)
+			sounds->soundCueLipCallback(cueName.c_str(), cue);
 
 		SoundPosition restoredPosition;
 
@@ -697,13 +695,13 @@ float CSoundCue::getCutoffFar() {
 float CSoundCue::getCategoryGain() {
 	switch (category) {
 	case 1:
-		return AudioSystem::getCategoryGain(1);
+		return _sounds->getAudioSystem()->getCategoryGain(1);
 
 	case 2:
-		return AudioSystem::getCategoryGain(2);
+		return _sounds->getAudioSystem()->getCategoryGain(2);
 
 	case 3:
-		return AudioSystem::getCategoryGain(3);
+		return _sounds->getAudioSystem()->getCategoryGain(3);
 
 	default:
 		break;
@@ -755,8 +753,10 @@ bool CSoundCue::updateSpatialization() {
 	float panValue;
 	float volumeFactor = 1.0f;
 
-	if (AudioSystem::listener.node)
-		AudioSystem::listener.node->worldToLocal(&worldX, &worldY, &worldZ, &localX, &localY, &localZ);
+	CNode *listenerNode = _sounds->getAudioSystem()->listener.node;
+
+	if (listenerNode)
+		listenerNode->worldToLocal(&worldX, &worldY, &worldZ, &localX, &localY, &localZ);
 
 	if (localZ < 0.0f || localZ > 0.0f) {
 		double ratio = (double)localX / (double)localZ;
@@ -869,9 +869,9 @@ int CSoundCue::initDefaults(CNode *node) {
 		flags |= kFlagPositional;
 	}
 
-	createdCount++;
+	_sounds->_createdCount++;
 
-	return (int)createdCount;
+	return (int)_sounds->_createdCount;
 }
 
 void CSoundCue::initFromSnd(CSnd *snd, CNode *node) {
@@ -915,22 +915,22 @@ void CSoundCue::releaseChannel() {
 }
 
 void CSoundCue::unlinkFromCueList() {
-	if (firstCue != this && !prev)
+	if (_sounds->_firstCue != this && !prev)
 		return;
 
 	if (prev)
 		prev->next = next;
 	else
-		firstCue = next;
+		_sounds->_firstCue = next;
 
 	if (next)
 		next->prev = prev;
 	else
-		lastCue = prev;
+		_sounds->_lastCue = prev;
 
 	prev = nullptr;
 	next = nullptr;
-	cueCount--;
+	_sounds->_cueCount--;
 }
 
 int CSoundCue::getState() {

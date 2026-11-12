@@ -30,6 +30,7 @@ namespace Grim {
 
 class EMIMilesDriver;
 struct EMIMilesStream;
+class StreamScript;
 
 class MusicStream {
 public:
@@ -38,7 +39,7 @@ public:
 		kStatusPlaying = 4
 	};
 
-	static MusicStream *open(const LString &fileName);
+	static MusicStream *open(StreamScript *script, const LString &fileName);
 	~MusicStream();
 
 	void start();
@@ -56,8 +57,9 @@ public:
 	void getMsPosition(int *total, int *current);
 
 private:
-	MusicStream(EMIMilesDriver *driver, EMIMilesStream *stream);
+	MusicStream(StreamScript *script, EMIMilesDriver *driver, EMIMilesStream *stream);
 
+	StreamScript *_script;
 	EMIMilesDriver *_driver;
 	EMIMilesStream *_stream;
 };

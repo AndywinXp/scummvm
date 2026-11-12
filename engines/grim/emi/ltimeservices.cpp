@@ -19,16 +19,11 @@
  *
  */
 
-#include "common/array.h"
 #include "common/system.h"
 
 #include "engines/grim/emi/ltimeservices.h"
 
 namespace Grim {
-
-LTimeServices *gpTimeServices = nullptr;
-
-static Common::Array<LTimeServices *> gTimeServicesStack;
 
 static const double kFrequency = 1000.0;
 
@@ -60,13 +55,6 @@ LTimeStamp &LTimeStamp::operator=(const LTimeStamp &other) {
 
 void LTimeStamp::stamp() {
 	seconds = (double)g_system->getMillis() * (1.0 / kFrequency);
-}
-
-LTimeServices::LTimeServices() {
-	if (!gpTimeServices) {
-		gTimeServicesStack.push_back(this);
-		gpTimeServices = this;
-	}
 }
 
 double LTimeServices::getCounter() {

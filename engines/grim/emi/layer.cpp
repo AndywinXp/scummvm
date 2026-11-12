@@ -23,34 +23,28 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/layer.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
-#include "engines/grim/emi/profilertimer.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
 static const int kQuadsFlags = 0x10001;
 static const int kPs2QuadsFlags = 0x20001;
 
-static ProfilerTimer layerDrawTimer("Layer::Draw()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-
-bool Layer::fix16Bit = true;
-int Layer::_nextId = 1;
-
-void Layer::set16BitFix(bool enable) {
-	fix16Bit = enable;
+void Layer::set16BitFix(EmiEngine *engine, bool enable) {
+	engine->_layer16BitFix = enable;
 }
 
-void Layer::saveRestoreNextId(tSaveRestoreAccess *access) {
-	access(&_nextId, sizeof(_nextId));
+void Layer::saveRestoreNextId(EmiEngine *engine, tSaveRestoreAccess *access) {
+	access(&engine->_nextLayerId, sizeof(engine->_nextLayerId));
 }
 
-Layer::Layer(const char *layerName, int layerSortOrder, int layerFrame, int layerId) {
+Layer::Layer(EmiEngine *engine, const char *layerName, int layerSortOrder, int layerFrame, int layerId) : tiledScene(engine), background(engine), _engine(engine) {
 	if (layerId == -1) {
-		id = _nextId;
-		_nextId++;
+		id = _engine->_nextLayerId;
+		_engine->_nextLayerId++;
 	} else {
 		id = layerId;
 	}
@@ -67,17 +61,17 @@ Layer::Layer(const char *layerName, int layerSortOrder, int layerFrame, int laye
 
 	LString resourceName = LString::format("BG%s", layerName);
 
-	background.resource = gpResourceManager->findResource(resourceName.c_str());
+	background.resource = _engine->getResourceManager()->findResource(resourceName.c_str());
 
 	if (!background.resource) {
-		background.resource = gpResourceManager->createResource(resourceName.c_str());
+		background.resource = _engine->getResourceManager()->createResource(resourceName.c_str());
 
 		if (!background.resource)
 			background.allocateResource();
 
 		if (background.resource) {
 			background.resource->resSetName(resourceName.c_str());
-			gpResourceManager->addResource(background.resource);
+			_engine->getResourceManager()->addResource(background.resource);
 		}
 	}
 
@@ -85,17 +79,17 @@ Layer::Layer(const char *layerName, int layerSortOrder, int layerFrame, int laye
 
 	resourceName = LString::format("TS%s", layerName);
 
-	tiledScene.resource = gpResourceManager->findResource(resourceName.c_str());
+	tiledScene.resource = _engine->getResourceManager()->findResource(resourceName.c_str());
 
 	if (!tiledScene.resource) {
-		tiledScene.resource = gpResourceManager->createResource(resourceName.c_str());
+		tiledScene.resource = _engine->getResourceManager()->createResource(resourceName.c_str());
 
 		if (!tiledScene.resource)
 			tiledScene.allocateResource();
 
 		if (tiledScene.resource) {
 			tiledScene.resource->resSetName(resourceName.c_str());
-			gpResourceManager->addResource(tiledScene.resource);
+			_engine->getResourceManager()->addResource(tiledScene.resource);
 		}
 	}
 
@@ -106,15 +100,15 @@ Layer::~Layer() {
 }
 
 void *Layer::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Layer::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int Layer::draw(CDrawContext *context) {
-	layerDrawTimer.start();
+	_engine->_layerDrawTimer.start();
 
 	Background *backgroundData = nullptr;
 
@@ -144,7 +138,7 @@ int Layer::draw(CDrawContext *context) {
 					// PS2 alpha-tests the tiles instead of blending them
 					int quadsFlags = kQuadsFlags;
 
-					if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+					if (_engine->getGamePlatform() == Common::kPlatformPS2)
 						quadsFlags = kPs2QuadsFlags;
 
 					for (int batch = firstBatch; batch < firstBatch + batchCount; batch++) {
@@ -166,7 +160,7 @@ int Layer::draw(CDrawContext *context) {
 		}
 	}
 
-	layerDrawTimer.stop();
+	_engine->_layerDrawTimer.stop();
 
 	return 0;
 }

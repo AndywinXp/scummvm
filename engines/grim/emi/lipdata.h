@@ -31,33 +31,32 @@ struct LipEntry {
 	byte code[2];
 };
 
-class LipData {
-public:
+class EmiEngine;
+
+// Byte image of a .lip file, never constructed: the module data live in EmiEngine
+struct LipData {
 	enum {
 		kBufferSize = 2000,
 		kMouthTableSize = 46
 	};
 
-	static int readFile(const char *name, LipData **lipData);
-	static int codeToMouthShape(int code);
+	struct MouthEntry {
+		uint32 code;
+		uint32 shape;
+	};
+
+	static void initMouthTable(EmiEngine *engine);
+	static int readFile(EmiEngine *engine, const char *name, LipData **lipData);
+	static int codeToMouthShape(EmiEngine *engine, int code);
 	static int compareMouthEntries(const void *first, const void *second);
-	static void sortMouthTable();
-	static int getLipMouthShape(uint soundHandle, int position);
+	static void sortMouthTable(EmiEngine *engine);
+	static int getLipMouthShape(EmiEngine *engine, uint soundHandle, int position);
 
 	int findCode(int position) const;
 
 	byte reserved0[4];
 	byte count[4];
 	LipEntry entries[1];
-
-private:
-	struct MouthEntry {
-		uint32 code;
-		uint32 shape;
-	};
-
-	static byte _buffer[kBufferSize];
-	static MouthEntry _mouthTable[kMouthTableSize];
 };
 
 } // End of namespace Grim

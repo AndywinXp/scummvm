@@ -884,7 +884,7 @@ static int findLiveEngineList(const Common::Array<luaL_libList *> &live, const C
 		if (claimed[i] || live[i]->number != model.count)
 			continue;
 
-		luaL_reg *regs = live[i]->list;
+		const luaL_reg *regs = live[i]->list;
 
 		if (strcmp(regs[0].name, model.names[0]) == 0 && strcmp(regs[model.count - 1].name, model.names[model.count - 1]) == 0)
 			return i;

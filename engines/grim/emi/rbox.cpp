@@ -105,7 +105,7 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 	if (!visible)
 		return;
 
-	CDrawContext *ctx = CDrawContext::context;
+	CDrawContext *ctx = camera->getDrawContext();
 
 	if (!ctx) {
 		warning("RBoxInstance::output(): no draw context");

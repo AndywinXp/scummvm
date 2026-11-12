@@ -19,71 +19,69 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/eventgenerator.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
 
-Common::List<EventGenerator *> EventGenerator::generators;
-Common::List<Event *> EventGenerator::eventQueue;
+EventGenerator::EventGenerator(EmiEngine *engine, int generatorPriority) : priority(generatorPriority), _engine(engine) {
+	Common::List<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
 
-EventGenerator::EventGenerator(int generatorPriority) : priority(generatorPriority) {
-	Common::List<EventGenerator *>::iterator it = generators.begin();
-
-	while (it != generators.end() && (*it)->priority >= generatorPriority)
+	while (it != _engine->_eventGenerators.end() && (*it)->priority >= generatorPriority)
 		++it;
 
-	generators.insert(it, this);
+	_engine->_eventGenerators.insert(it, this);
 }
 
 EventGenerator::~EventGenerator() {
-	Common::List<EventGenerator *>::iterator it = generators.begin();
+	Common::List<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
 
-	while (it != generators.end()) {
+	while (it != _engine->_eventGenerators.end()) {
 		if (*it == this)
-			it = generators.erase(it);
+			it = _engine->_eventGenerators.erase(it);
 		else
 			++it;
 	}
 }
 
 void *EventGenerator::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void EventGenerator::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void EventGenerator::clearEvents() {
-	clearEventQueue();
+	clearEventQueue(_engine);
 }
 
-void EventGenerator::postEvent(Event *event) {
-	eventQueue.push_back(event);
+void EventGenerator::postEvent(EmiEngine *engine, Event *event) {
+	engine->_eventQueue.push_back(event);
 }
 
-void EventGenerator::dispatchEvents() {
+void EventGenerator::dispatchEvents(EmiEngine *engine) {
 	Common::List<EventGenerator *>::iterator generatorIt;
 
-	for (generatorIt = generators.begin(); generatorIt != generators.end(); ++generatorIt)
+	for (generatorIt = engine->_eventGenerators.begin(); generatorIt != engine->_eventGenerators.end(); ++generatorIt)
 		(*generatorIt)->poll();
 
-	if (eventQueue.empty())
+	if (engine->_eventQueue.empty())
 		return;
 
 	bool handled;
 
 	do {
-		Event *event = eventQueue.front();
+		Event *event = engine->_eventQueue.front();
 
-		eventQueue.pop_front();
+		engine->_eventQueue.pop_front();
 
 		handled = false;
 
 		Common::List<EventHandler *>::iterator handlerIt;
 
-		for (handlerIt = EventHandler::handlers.begin(); handlerIt != EventHandler::handlers.end(); ++handlerIt) {
+		for (handlerIt = engine->_eventHandlers.begin(); handlerIt != engine->_eventHandlers.end(); ++handlerIt) {
 			EventHandler *handler = *handlerIt;
 
 			if ((handler->typeMask & (uint)event->type) != 0 && handler->handleEvent(event))
@@ -91,16 +89,16 @@ void EventGenerator::dispatchEvents() {
 		}
 
 		delete event;
-	} while (!handled && !eventQueue.empty());
+	} while (!handled && !engine->_eventQueue.empty());
 }
 
-void EventGenerator::clearEventQueue() {
+void EventGenerator::clearEventQueue(EmiEngine *engine) {
 	Common::List<Event *>::iterator it;
 
-	for (it = eventQueue.begin(); it != eventQueue.end(); ++it)
+	for (it = engine->_eventQueue.begin(); it != engine->_eventQueue.end(); ++it)
 		delete *it;
 
-	eventQueue.clear();
+	engine->_eventQueue.clear();
 }
 
 } // End of namespace Grim

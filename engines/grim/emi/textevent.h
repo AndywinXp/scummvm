@@ -35,6 +35,7 @@
 namespace Grim {
 
 class CDrawContext;
+class EmiEngine;
 
 class TextEvent {
 public:
@@ -49,9 +50,9 @@ public:
 		kTagBufferSize = 32
 	};
 
-	TextEvent();
-	explicit TextEvent(const LString &newText);
-	explicit TextEvent(const char *newText);
+	explicit TextEvent(EmiEngine *engine);
+	TextEvent(EmiEngine *engine, const LString &newText);
+	TextEvent(EmiEngine *engine, const char *newText);
 	~TextEvent();
 
 	void *operator new(size_t size);
@@ -72,15 +73,15 @@ public:
 	bool setFont(const char *fontName);
 	bool setFont(LResourceHandle<CTextFont> newFont);
 
-	static int update(CDrawContext *drawContext, bool drawAll);
-	static bool startup(CDrawContext *drawContext);
-	static void shutdown();
-	static TextEvent *getEvent(int eventId);
-	static const char *translate(const char *msg, char *buffer);
-	static void holdAll();
-	static void releaseAll();
-	static bool saveAll(tSaveRestoreAccess *access);
-	static bool restoreAll(tSaveRestoreAccess *access);
+	static int update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll);
+	static bool startup(EmiEngine *engine, CDrawContext *drawContext);
+	static void shutdown(EmiEngine *engine);
+	static TextEvent *getEvent(EmiEngine *engine, int eventId);
+	static const char *translate(EmiEngine *engine, const char *msg, char *buffer);
+	static void holdAll(EmiEngine *engine);
+	static void releaseAll(EmiEngine *engine);
+	static bool saveAll(EmiEngine *engine, tSaveRestoreAccess *access);
+	static bool restoreAll(EmiEngine *engine, tSaveRestoreAccess *access);
 
 	LString text;
 	float duration;
@@ -106,14 +107,8 @@ public:
 	byte *colors;
 	float *uvs;
 
-	static Common::List<TextEvent *> events;
-	static TextEvent *defaultEvent;
-	static int textMode;
-	static int screenRect[4];
-
 private:
-	static int _nextId;
-	static bool _started;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

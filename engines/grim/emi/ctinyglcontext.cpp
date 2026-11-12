@@ -36,6 +36,7 @@
 #include "engines/grim/emi/coglvertexarray.h"
 #include "engines/grim/emi/ctinyglcontext.h"
 #include "engines/grim/emi/ctinygltexture.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
@@ -52,15 +53,7 @@ static const uint kQueueFlushThreshold = 6 * 1024 * 1024;
 static const uint kBytesPerVertex = 152;
 static const uint kBytesPerDrawCall = 512;
 
-static ProfilerTimer outputDrawPolyTimer("TinyGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-static ProfilerTimer setPolyOptionsTimer("TinyGL::SetPolyOptions()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer setTexturesTimer("TinyGL::SetTextures()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer submitVerticesTimer("TinyGL::SubmitVertices()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawTrianglesTimer("TinyGL::DrawTriangles()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawQuadsTimer("TinyGL::DrawQuads()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawElementsTimer("tglDrawElements()", ProfilerTimer::kTrackNesting);
-
-CTinyGLContext::CTinyGLContext() {
+CTinyGLContext::CTinyGLContext(EmiEngine *engine) : CDrawContext(engine) {
 	currentVertexArray = nullptr;
 	numClipPlanes = 0;
 	swapCount = 0;
@@ -137,8 +130,8 @@ bool CTinyGLContext::close() {
 		delete defaultTexture;
 		defaultTexture = nullptr;
 
-		if (context == this)
-			context = nullptr;
+		if (_engine->getDrawContext() == this)
+			_engine->setDrawContext(nullptr);
 
 		TinyGL::destroyContext(_contextHandle);
 		_contextHandle = nullptr;
@@ -280,7 +273,7 @@ void CTinyGLContext::clearClipPlanes() {
 }
 
 void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
-	submitVerticesTimer.start();
+	_engine->_tinyglSubmitVerticesTimer.start();
 
 	CDCVertex *vertices = (CDCVertex *)vertexArray->lock();
 
@@ -292,7 +285,7 @@ void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	tglEnableClientState(TGL_VERTEX_ARRAY);
 	tglEnableClientState(TGL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)gpMemoryServices->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
 		for (int i = 0; i < vertexArray->numVerts; i++) {
@@ -314,7 +307,7 @@ void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	_lockedVertices = vertices;
 	counter8 += vertexArray->numVerts;
 
-	submitVerticesTimer.stop();
+	_engine->_tinyglSubmitVerticesTimer.stop();
 }
 
 void CTinyGLContext::releaseVertices() {
@@ -325,13 +318,13 @@ void CTinyGLContext::releaseVertices() {
 	}
 
 	currentVertexArray->unlock();
-	gpMemoryServices->freeImpl(_vertexColors);
+	_engine->getMemoryServices()->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 	_lockedVertices = nullptr;
 }
 
 void CTinyGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, const uint16 *indices) {
-	drawTrianglesTimer.start();
+	_engine->_tinyglDrawTrianglesTimer.start();
 
 	if (numIndices) {
 		setPolyOptions(flags);
@@ -339,7 +332,7 @@ void CTinyGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, con
 		tglFrontFace(TGL_CW);
 		setTextures(tex, flags);
 
-		drawElementsTimer.start();
+		_engine->_tinyglDrawElementsTimer.start();
 
 		if (numClipPlanes > 0) {
 			drawClippedTriangles(numIndices, indices);
@@ -348,16 +341,16 @@ void CTinyGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, con
 			tglDrawElements(TGL_TRIANGLES, numIndices, TGL_UNSIGNED_SHORT, indices);
 		}
 
-		drawElementsTimer.stop();
+		_engine->_tinyglDrawElementsTimer.stop();
 
 		trianglesDrawn += numIndices / 3;
 	}
 
-	drawTrianglesTimer.stop();
+	_engine->_tinyglDrawTrianglesTimer.stop();
 }
 
 void CTinyGLContext::drawQuads(int flags, CTexture *tex, int first, int count, const VertexStreams *streams) {
-	drawQuadsTimer.start();
+	_engine->_tinyglDrawQuadsTimer.start();
 
 	if (count) {
 		reserveVertices(count);
@@ -392,11 +385,11 @@ void CTinyGLContext::drawQuads(int flags, CTexture *tex, int first, int count, c
 		trianglesDrawn += count / 4;
 	}
 
-	drawQuadsTimer.stop();
+	_engine->_tinyglDrawQuadsTimer.stop();
 }
 
 int CTinyGLContext::outputDrawPoly(DrawPoly *poly) {
-	outputDrawPolyTimer.start();
+	_engine->_tinyglOutputDrawPolyTimer.start();
 
 	reserveVertices(poly->numVerts);
 
@@ -446,7 +439,7 @@ int CTinyGLContext::outputDrawPoly(DrawPoly *poly) {
 	tglEnd();
 	trianglesDrawn++;
 
-	outputDrawPolyTimer.stop();
+	_engine->_tinyglOutputDrawPolyTimer.stop();
 
 	return 1;
 }
@@ -482,7 +475,7 @@ void CTinyGLContext::setColor(const Color *color) {
 }
 
 void CTinyGLContext::setPolyOptions(int flags) {
-	setPolyOptionsTimer.start();
+	_engine->_tinyglSetPolyOptionsTimer.start();
 
 	if (flags & 0x100) {
 		if (!depthTestEnabled) {
@@ -536,16 +529,16 @@ void CTinyGLContext::setPolyOptions(int flags) {
 
 	polyOptions = flags;
 
-	setPolyOptionsTimer.stop();
+	_engine->_tinyglSetPolyOptionsTimer.stop();
 }
 
 void CTinyGLContext::setTextures(CTexture *tex, int flags) {
-	setTexturesTimer.start();
+	_engine->_tinyglSetTexturesTimer.start();
 
 	if (!tex) {
 		texture2dEnabled = false;
 		tglDisable(TGL_TEXTURE_2D);
-		setTexturesTimer.stop();
+		_engine->_tinyglSetTexturesTimer.stop();
 
 		return;
 	}
@@ -594,7 +587,7 @@ void CTinyGLContext::setTextures(CTexture *tex, int flags) {
 		tglEnable(TGL_TEXTURE_2D);
 	}
 
-	setTexturesTimer.stop();
+	_engine->_tinyglSetTexturesTimer.stop();
 }
 
 void CTinyGLContext::readBackBuffer(LABitmap *bitmap) {
@@ -712,8 +705,8 @@ CTexture *CTinyGLContext::createTexture(LABitmap *bitmap) {
 	int width = bitmap->getWidth();
 
 	if (((width - 1) & bitmap->getWidth()) != 0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("CTinyGLContext::createTexture(): texture not a power of two in width: %s", bitmap->bitmapName.c_str());
 
@@ -723,8 +716,8 @@ CTexture *CTinyGLContext::createTexture(LABitmap *bitmap) {
 	int height = bitmap->getHeight();
 
 	if (((height - 1) & bitmap->getHeight()) != 0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("CTinyGLContext::createTexture(): texture not a power of two in height: %s", bitmap->bitmapName.c_str());
 
@@ -739,8 +732,8 @@ CTexture *CTinyGLContext::createTexture(LABitmap *bitmap) {
 	}
 
 	if ((uint)width / (uint)height > 8 || (uint)height / (uint)width > 8) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("CTinyGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->bitmapName.c_str());
 
@@ -751,7 +744,7 @@ CTexture *CTinyGLContext::createTexture(LABitmap *bitmap) {
 }
 
 CTexture *CTinyGLContext::createTexture(int width, int height, const LColorFormat &format, byte *pixels, const char *name) {
-	LABitmap bitmap(width, height, format, pixels, true);
+	LABitmap bitmap(_engine, width, height, format, pixels, true);
 
 	return createTexture(&bitmap);
 }

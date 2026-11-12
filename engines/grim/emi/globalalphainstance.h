@@ -30,7 +30,7 @@ class Actor;
 
 class GlobalAlphaInstance : public ComponentInstance {
 public:
-	GlobalAlphaInstance(const LString &componentName, Actor *actor);
+	GlobalAlphaInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~GlobalAlphaInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

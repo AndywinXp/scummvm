@@ -31,7 +31,7 @@ class RMeshInstance;
 
 class MeshInstance : public ComponentInstance {
 public:
-	MeshInstance(const LString &componentName, Actor *actor);
+	MeshInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~MeshInstance() override;
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

@@ -25,13 +25,12 @@
 
 #include "engines/grim/emi/background.h"
 #include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
-#include "engines/grim/emi/layer.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/tiledscene.h"
 #include "engines/grim/emi/zfile.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -44,15 +43,17 @@ Background::Background() {
 
 Background::~Background() {
 	if (bmData)
-		BmData::free(bmData);
+		BmData::free(_engine, bmData);
 
 	bmData = nullptr;
+
+	CDrawContext *drawContext = _engine->getDrawContext();
 
 	for (int i = 0; i < kMaxTextures; i++) {
 		if (!textures[i])
 			continue;
 
-		if (CDrawContext::context && textures[i] == CDrawContext::context->defaultTexture)
+		if (drawContext && textures[i] == drawContext->defaultTexture)
 			warning("Background::~Background(): texture is the default texture");
 		else
 			delete textures[i];
@@ -91,43 +92,49 @@ bool Background::resLoadItem(const char *itemName) {
 		return false;
 	}
 
-	if (!CDrawContext::context) {
+	CDrawContext *drawContext = _engine->getDrawContext();
+	LConsoleServices *console = _engine->getConsoleServices();
+	ZFileServices *zFileServices = _engine->getZFileServices();
+
+	if (!drawContext) {
 		warning("Background::resLoadItem(): no draw context");
 
 		return false;
 	}
 
-	bool isPS2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+	bool isPS2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 
 	// PS2 doesn't update sounds while loading backgrounds
 	if (!isPS2) {
-		if (Sounds::audioMixAhead < 64) {
+		Sounds *sounds = _engine->getSounds();
+
+		if (sounds->getAudioMixAhead() < 64) {
 			int16 mixAhead = 64;
 
-			Sounds::setAudioMixAhead(&mixAhead, false);
+			sounds->setAudioMixAhead(&mixAhead, false);
 		}
 
 		bool forceUpdate = false;
 
-		Sounds::soundsUpdateThrottled(&forceUpdate);
+		sounds->soundsUpdateThrottled(&forceUpdate);
 	}
 
 	const char *fileName = itemName + 2;
-	ZFile *file = ZFileServices::get()->open(fileName, "rb");
+	ZFile *file = zFileServices->open(fileName, "rb");
 
 	if (!file) {
-		if (isPS2 && gpConsoleServices)
-			gpConsoleServices->logWarning("Cannot find file %s.\n", fileName);
+		if (isPS2 && console)
+			console->logWarning("Cannot find file %s.\n", fileName);
 
 		if (scumm_stricmp(fileName, "dfltroom.til") != 0) {
-			if (isPS2 && gpConsoleServices)
-				gpConsoleServices->logWarning("Trying default .TIL file %s.\n", "dfltroom.til");
+			if (isPS2 && console)
+				console->logWarning("Trying default .TIL file %s.\n", "dfltroom.til");
 
 			return resLoadItem("XXdfltroom.til");
 		}
 
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Failed miserably.\n");
+		if (console)
+			console->logError("Failed miserably.\n");
 		else
 			warning("Background::resLoadItem(): failed miserably");
 
@@ -138,7 +145,7 @@ bool Background::resLoadItem(const char *itemName) {
 
 	if (file->read(signature, sizeof(signature)) != sizeof(signature)) {
 		warning("Background::resLoadItem(): unexpected end of file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
@@ -146,7 +153,7 @@ bool Background::resLoadItem(const char *itemName) {
 	file->seek(0, 0);
 
 	if (READ_LE_UINT32(signature) != TiledScene::kSignature) {
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
@@ -155,14 +162,14 @@ bool Background::resLoadItem(const char *itemName) {
 
 	if (file->read(headerBytes, sizeof(headerBytes)) != sizeof(headerBytes)) {
 		warning("Background::resLoadItem(): unexpected end of file");
-		ZFileServices::get()->closeZFile(file);
+		zFileServices->closeZFile(file);
 
 		return false;
 	}
 
 	file->seek(READ_LE_INT32(headerBytes + 4 * TiledScene::kHeaderTablesSize), 0);
 
-	bmData = (BmData *)gpMemoryServices->mallocImpl(sizeof(BmData));
+	bmData = (BmData *)_engine->getMemoryServices()->mallocImpl(sizeof(BmData));
 
 	if (bmData) {
 		Common::strlcpy((char *)bmData->itemName, itemName, sizeof(bmData->itemName));
@@ -172,17 +179,17 @@ bool Background::resLoadItem(const char *itemName) {
 		if (extension)
 			*extension = 0;
 
-		if (!bmData->load(file)) {
-			gpMemoryServices->freeImpl(bmData);
+		if (!bmData->load(_engine, file)) {
+			_engine->getMemoryServices()->freeImpl(bmData);
 			bmData = nullptr;
 		}
 	}
 
-	ZFileServices::get()->closeZFile(file);
+	zFileServices->closeZFile(file);
 
 	if (!bmData) {
-		if (isPS2 && gpConsoleServices)
-			gpConsoleServices->logDebug("No background art available for this setup!\n");
+		if (isPS2 && console)
+			console->logDebug("No background art available for this setup!\n");
 
 		return false;
 	}
@@ -197,17 +204,17 @@ bool Background::resLoadItem(const char *itemName) {
 		if (isPS2 && bmData->bitsPerPixel != 32) {
 			int width = bmData->images[i].width;
 			int height = bmData->images[i].height;
-			LABitmap bitmap(width, height, LColorFormat::format9, nullptr, false);
+			LABitmap bitmap(_engine, width, height, LColorFormat::format9, nullptr, false);
 
 			convertPs2Pixels(bmData->images[i].data, width * height, (byte *)bitmap.getPixels());
-			textures[i] = CDrawContext::context->createTexture(&bitmap);
+			textures[i] = drawContext->createTexture(&bitmap);
 		} else {
-			LABitmap bitmap(bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
+			LABitmap bitmap(_engine, bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
 
-			if (CDrawContext::context->displayMode.bpp == 16 && Layer::fix16Bit)
+			if (drawContext->displayMode.bpp == 16 && _engine->_layer16BitFix)
 				bitmap.ditherPixels();
 
-			textures[i] = CDrawContext::context->createTexture(&bitmap);
+			textures[i] = drawContext->createTexture(&bitmap);
 		}
 
 		if (textures[i]) {
@@ -216,7 +223,7 @@ bool Background::resLoadItem(const char *itemName) {
 		}
 	}
 
-	BmData::free(bmData);
+	BmData::free(_engine, bmData);
 
 	return true;
 }

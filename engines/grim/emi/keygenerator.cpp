@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-KeyGenerator::KeyGenerator() : EventGenerator(0), modifiers(0) {
+KeyGenerator::KeyGenerator(EmiEngine *engine) : EventGenerator(engine, 0), modifiers(0) {
 }
 
 KeyGenerator::~KeyGenerator() {
@@ -76,7 +76,7 @@ void KeyGenerator::keyDown(int vk, int keyFlags, int timestamp) {
 	if (keyFlags & kFlagRepeat)
 		event->modifiers = modifiers | Event::kModifierRepeat;
 
-	postEvent(event);
+	postEvent(_engine, event);
 }
 
 void KeyGenerator::keyUp(int vk, int keyFlags, int timestamp) {
@@ -111,7 +111,7 @@ void KeyGenerator::keyUp(int vk, int keyFlags, int timestamp) {
 	event->timestamp = (uint)timestamp;
 	event->modifiers = modifiers;
 
-	postEvent(event);
+	postEvent(_engine, event);
 }
 
 int KeyGenerator::keyCodeToVirtualKey(Common::KeyCode keyCode) {

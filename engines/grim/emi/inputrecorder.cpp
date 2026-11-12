@@ -33,10 +33,8 @@ namespace Grim {
 
 static const char *const kReplayFileName = "Replay.log";
 
-InputRecorder *InputRecorder::instance = nullptr;
-
-InputRecorder::InputRecorder(int recorderMode) : mode(recorderMode), dt(0.0f), keyCode(0), character(0),
-		lastRecordType(kRecordNone), _writeFile(nullptr), _readFile(nullptr) {
+InputRecorder::InputRecorder(EmiEngine *engine, int recorderMode) : mode(recorderMode), dt(0.0f), keyCode(0), character(0),
+		lastRecordType(kRecordNone), _engine(engine), _timeServices(new LTimeServices()), _writeFile(nullptr), _readFile(nullptr) {
 	if (mode == kModeRecord) {
 		_writeFile = new Common::DumpFile();
 
@@ -61,6 +59,8 @@ InputRecorder::InputRecorder(int recorderMode) : mode(recorderMode), dt(0.0f), k
 }
 
 InputRecorder::~InputRecorder() {
+	delete _timeServices;
+	_timeServices = nullptr;
 	delete _writeFile;
 	_writeFile = nullptr;
 	delete _readFile;
@@ -68,28 +68,11 @@ InputRecorder::~InputRecorder() {
 }
 
 void *InputRecorder::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void InputRecorder::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
-}
-
-void InputRecorder::createInputRecorder(int recorderMode) {
-	if (instance)
-		return;
-
-	instance = new InputRecorder(recorderMode);
-
-	new LTimeServices();
-}
-
-void InputRecorder::destroyInputRecorder() {
-	if (!instance)
-		return;
-
-	delete instance;
-	instance = nullptr;
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void InputRecorder::recordKey(const ControlEntry *control, bool down) {
@@ -140,11 +123,11 @@ void InputRecorder::replayKeys() {
 }
 
 bool InputRecorder::replayKey() {
-	return Lua_V2::buttonHandler(keyCode, lastRecordType == kRecordKeyDown);
+	return _engine->getLua()->buttonHandler(keyCode, lastRecordType == kRecordKeyDown);
 }
 
 bool InputRecorder::replayChar() {
-	return EmiEngine::onCharacter(character);
+	return _engine->onCharacter(character);
 }
 
 void InputRecorder::readNext() {

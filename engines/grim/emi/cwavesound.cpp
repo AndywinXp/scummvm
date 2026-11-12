@@ -29,6 +29,7 @@
 #include "engines/grim/emi/cscxfile.h"
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/cwavfile.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 
 namespace Grim {
@@ -256,8 +257,8 @@ void CWaveSound::copyData(char *dest, uint sourceOffset, uint count) {
 	} else {
 		memset(dest, 0, count);
 
-		if (gpConsoleServices)
-			gpConsoleServices->logError("CWaveSound::CopyData   Unknown wave format: %c%c%c%c (%08x)", (int)((formatTag >> 24) & 0xFF), (int)((formatTag >> 16) & 0xFF), (int)((formatTag >> 8) & 0xFF), (int)(formatTag & 0xFF), formatTag);
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("CWaveSound::CopyData   Unknown wave format: %c%c%c%c (%08x)", (int)((formatTag >> 24) & 0xFF), (int)((formatTag >> 16) & 0xFF), (int)((formatTag >> 8) & 0xFF), (int)(formatTag & 0xFF), formatTag);
 		else
 			warning("CWaveSound::copyData(): unknown wave format %08x", formatTag);
 	}
@@ -393,21 +394,21 @@ bool CWaveSound::resLoadItem(const char *itemName) {
 	const char *extension = dot + 1;
 
 	if (!scumm_strnicmp(extension, "AIF", 3)) {
-		LFile *file = gpFileServices->open(fileName, "rb");
+		LFile *file = _engine->getFileServices()->open(fileName, "rb");
 
 		if (file) {
 			CAiffFile aiffFile;
 
 			result = aiffFile.read(file, this);
-			gpFileServices->close(file, true);
+			_engine->getFileServices()->close(file, true);
 		}
 
 		return result;
 	}
 
 	if (!scumm_strnicmp(extension, "WAV", 3) || !scumm_strnicmp(extension, "wVC", 3)) {
-		CWavFile wavFile;
-		LFile *file = gpFileServices->open(fileName, "rb");
+		CWavFile wavFile(_engine);
+		LFile *file = _engine->getFileServices()->open(fileName, "rb");
 
 		if (!file)
 			return result;
@@ -425,18 +426,18 @@ bool CWaveSound::resLoadItem(const char *itemName) {
 			}
 		}
 
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return result;
 	}
 
 	if (!scumm_strnicmp(extension, "MP3", 3)) {
 		CMp3File mp3File;
-		LFile *file = gpFileServices->open(fileName, "rb");
+		LFile *file = _engine->getFileServices()->open(fileName, "rb");
 
 		if (file) {
 			result = mp3File.read(file, this);
-			gpFileServices->close(file, true);
+			_engine->getFileServices()->close(file, true);
 		}
 
 		return result;
@@ -444,11 +445,11 @@ bool CWaveSound::resLoadItem(const char *itemName) {
 
 	if (!scumm_strnicmp(extension, "SCX", 3)) {
 		CScxFile scxFile;
-		LFile *file = gpFileServices->open(fileName, "rb");
+		LFile *file = _engine->getFileServices()->open(fileName, "rb");
 
 		if (file) {
 			result = scxFile.read(file, this);
-			gpFileServices->close(file, true);
+			_engine->getFileServices()->close(file, true);
 
 			if (!result)
 				warning("CWaveSound::resLoadItem(): can't parse sound data of %s", itemName);

@@ -31,6 +31,7 @@ namespace Grim {
 
 class AInst;
 class ATrack;
+class EmiEngine;
 
 struct ScalarKey {
 	int getInt() const {
@@ -106,7 +107,7 @@ public:
 		kDataQuaternion = 4
 	};
 
-	ATrack();
+	explicit ATrack(EmiEngine *engine);
 	virtual ~ATrack();
 
 	void *operator new(size_t size);
@@ -126,6 +127,9 @@ public:
 	int dataType;
 	int capacity;
 	int numSamples;
+
+protected:
+	EmiEngine *_engine;
 };
 
 template<class T>
@@ -133,7 +137,7 @@ class ATrackData : public ATrack {
 public:
 	typedef typename ATrackKey<T>::Type Key;
 
-	ATrackData();
+	explicit ATrackData(EmiEngine *engine);
 	virtual ~ATrackData();
 
 	virtual int getSize();
@@ -149,7 +153,7 @@ class ATrackKeyframeData : public ATrackData<T> {
 public:
 	typedef typename ATrackKey<T>::Type Key;
 
-	ATrackKeyframeData();
+	explicit ATrackKeyframeData(EmiEngine *engine);
 	virtual ~ATrackKeyframeData();
 
 	virtual int getSize();
@@ -167,6 +171,9 @@ public:
 	using ATrackData<T>::numSamples;
 
 	Key *keys;
+
+protected:
+	using ATrackData<T>::_engine;
 };
 
 template<> void ATrackKeyframeData<float>::removeRedundantKeys();

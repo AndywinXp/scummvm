@@ -34,7 +34,7 @@ void Lua_V2::IsChoreValid() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId))
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnumber(0.0f);
@@ -48,7 +48,7 @@ void Lua_V2::IsChorePlaying() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId) && ChoreInstance::getInstance(instanceId)->isPlaying())
+	if (ChoreInstance::isInstanceValid(_engine, instanceId) && ChoreInstance::getInstance(_engine, instanceId)->isPlaying())
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -62,7 +62,7 @@ void Lua_V2::IsChoreLooping() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId) && ChoreInstance::getInstance(instanceId)->isLooping())
+	if (ChoreInstance::isInstanceValid(_engine, instanceId) && ChoreInstance::getInstance(_engine, instanceId)->isLooping())
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -78,8 +78,8 @@ void Lua_V2::SetChoreLooping() {
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 	bool looping = lua_isnil(loopObj) == 0;
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->setLooping(looping);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->setLooping(looping);
 }
 
 void Lua_V2::PlayChore() {
@@ -90,8 +90,8 @@ void Lua_V2::PlayChore() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->setPlaying();
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->setPlaying();
 }
 
 void Lua_V2::FadeInChore() {
@@ -104,8 +104,8 @@ void Lua_V2::FadeInChore() {
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 	float seconds = lua_getnumber(secondsObj);
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->fadeIn(seconds);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->fadeIn(seconds);
 }
 
 void Lua_V2::FadeOutChore() {
@@ -118,8 +118,8 @@ void Lua_V2::FadeOutChore() {
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 	float seconds = lua_getnumber(secondsObj);
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->fadeOut(seconds);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->fadeOut(seconds);
 }
 
 void Lua_V2::StopChore() {
@@ -136,10 +136,10 @@ void Lua_V2::StopChore() {
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
 	if (!(seconds > 0.0f)) {
-		if (ChoreInstance::isInstanceValid(instanceId))
-			ChoreInstance::getInstance(instanceId)->stop();
-	} else if (ChoreInstance::isInstanceValid(instanceId)) {
-		ChoreInstance::getInstance(instanceId)->fadeOut(seconds);
+		if (ChoreInstance::isInstanceValid(_engine, instanceId))
+			ChoreInstance::getInstance(_engine, instanceId)->stop();
+	} else if (ChoreInstance::isInstanceValid(_engine, instanceId)) {
+		ChoreInstance::getInstance(_engine, instanceId)->fadeOut(seconds);
 	}
 }
 
@@ -151,8 +151,8 @@ void Lua_V2::PauseChore() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->pause();
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->pause();
 }
 
 void Lua_V2::AdvanceChore() {
@@ -165,8 +165,8 @@ void Lua_V2::AdvanceChore() {
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 	float seconds = lua_getnumber(secondsObj);
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->update(seconds, false);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->update(seconds, false);
 }
 
 void Lua_V2::CompleteChore() {
@@ -177,8 +177,8 @@ void Lua_V2::CompleteChore() {
 
 	uint instanceId = (uint)luaFtol(lua_getnumber(idObj));
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->complete();
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->complete();
 }
 
 void Lua_V2::LockChore() {
@@ -192,7 +192,7 @@ void Lua_V2::LockChore() {
 	}
 
 	LString choreSetName = lua_getstring(choreSetObj);
-	LResourceHandle<ChoreSet> choreSetHandle(choreSetName);
+	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
 	if (choreSetHandle.lock() && choreSetHandle.typed) {
 		LString choreName = lua_getstring(choreObj);
@@ -222,7 +222,7 @@ void Lua_V2::UnlockChore() {
 	}
 
 	LString choreSetName = lua_getstring(choreSetObj);
-	LResourceHandle<ChoreSet> choreSetHandle(choreSetName);
+	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
 	if (choreSetHandle.lock() && choreSetHandle.typed) {
 		LString choreName = lua_getstring(choreObj);
@@ -254,7 +254,7 @@ void Lua_V2::LockChoreSet() {
 	}
 
 	LString choreSetName = lua_getstring(choreSetObj);
-	LResourceHandle<ChoreSet> choreSetHandle(choreSetName);
+	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
 	_lockedChoreSets.push_back(choreSetName);
 
@@ -280,7 +280,7 @@ void Lua_V2::UnlockChoreSet() {
 	}
 
 	LString choreSetName = lua_getstring(choreSetObj);
-	LResourceHandle<ChoreSet> choreSetHandle(choreSetName);
+	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
 	for (uint i = 0; i < _lockedChoreSets.size(); i++) {
 		if (_lockedChoreSets[i] == choreSetName) {

@@ -30,7 +30,7 @@ class Actor;
 
 class LuaVarInstance : public ComponentInstance {
 public:
-	LuaVarInstance(const LString &componentName, Actor *actor);
+	LuaVarInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 
 	bool isReplayable() override;
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;

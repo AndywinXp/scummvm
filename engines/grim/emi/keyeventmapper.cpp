@@ -19,12 +19,13 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/keyeventmapper.h"
 #include "engines/grim/emi/lua_v2.h"
 
 namespace Grim {
 
-KeyEventMapper::KeyEventMapper() : EventHandler(500) {
+KeyEventMapper::KeyEventMapper(EmiEngine *engine) : EventHandler(engine, 500) {
 	typeMask = 3;
 }
 
@@ -50,7 +51,7 @@ bool KeyEventMapper::handleEvent(const Event *event) {
 			if ((_bindings[i].binding->flags & KeyBinding::kIgnoreRepeat) && (event->modifiers & Event::kModifierRepeat))
 				return false;
 
-			return Lua_V2::buttonHandler(vk, true);
+			return _engine->getLua()->buttonHandler(vk, true);
 		}
 
 		return false;
@@ -60,7 +61,7 @@ bool KeyEventMapper::handleEvent(const Event *event) {
 		if (_bindings[i].vk != vk || !(_bindings[i].binding->flags & KeyBinding::kOnKeyUp))
 			continue;
 
-		return Lua_V2::buttonHandler(vk, false);
+		return _engine->getLua()->buttonHandler(vk, false);
 	}
 
 	return false;

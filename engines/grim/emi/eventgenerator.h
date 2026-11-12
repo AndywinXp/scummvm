@@ -29,9 +29,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class EventGenerator {
 public:
-	EventGenerator(int generatorPriority);
+	EventGenerator(EmiEngine *engine, int generatorPriority);
 	virtual ~EventGenerator();
 
 	void *operator new(size_t size);
@@ -42,12 +44,12 @@ public:
 
 	int priority;
 
-	static void postEvent(Event *event);
-	static void dispatchEvents();
-	static void clearEventQueue();
+	static void postEvent(EmiEngine *engine, Event *event);
+	static void dispatchEvents(EmiEngine *engine);
+	static void clearEventQueue(EmiEngine *engine);
 
-	static Common::List<EventGenerator *> generators;
-	static Common::List<Event *> eventQueue;
+protected:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

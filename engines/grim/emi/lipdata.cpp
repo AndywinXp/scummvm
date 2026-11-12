@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/sounds.h"
@@ -35,9 +36,7 @@ static const int kLipRestCode = 95;
 static const int kLipRestShape = 5;
 static const int kLipUnknownShape = 6;
 
-byte LipData::_buffer[kBufferSize];
-
-LipData::MouthEntry LipData::_mouthTable[kMouthTableSize] = {
+static const LipData::MouthEntry kInitialMouthTable[LipData::kMouthTableSize] = {
 	{ 95, 5 }, { 593, 6 }, { 97, 6 }, { 230, 6 }, { 652, 13 }, { 596, 6 }, { 601, 6 }, { 98, 11 },
 	{ 679, 7 }, { 100, 7 }, { 240, 10 }, { 603, 13 }, { 616, 13 }, { 602, 14 }, { 605, 14 }, { 101, 6 },
 	{ 102, 9 }, { 103, 13 }, { 609, 13 }, { 104, 13 }, { 618, 13 }, { 105, 8 }, { 676, 7 }, { 107, 7 },
@@ -46,7 +45,12 @@ LipData::MouthEntry LipData::_mouthTable[kMouthTableSize] = {
 	{ 117, 14 }, { 118, 9 }, { 119, 14 }, { 106, 13 }, { 122, 7 }, { 658, 7 }
 };
 
-int LipData::readFile(const char *name, LipData **lipData) {
+void LipData::initMouthTable(EmiEngine *engine) {
+	for (int i = 0; i < kMouthTableSize; i++)
+		engine->_lipMouthTable[i] = kInitialMouthTable[i];
+}
+
+int LipData::readFile(EmiEngine *engine, const char *name, LipData **lipData) {
 	const char *source = name;
 	int result = 0;
 
@@ -61,23 +65,23 @@ int LipData::readFile(const char *name, LipData **lipData) {
 
 	path += ".lip";
 
-	LFile *file = gpFileServices->open(path.c_str(), "rb");
+	LFile *file = engine->getFileServices()->open(path.c_str(), "rb");
 
 	if (file) {
-		int readCount = file->read(_buffer, kBufferSize);
+		int readCount = file->read(engine->_lipBuffer, kBufferSize);
 
 		if (file->eof())
 			result = readCount;
 
-		gpFileServices->close(file, true);
+		engine->getFileServices()->close(file, true);
 	}
 
-	*lipData = (LipData *)_buffer;
+	*lipData = (LipData *)engine->_lipBuffer;
 
 	return result;
 }
 
-int LipData::codeToMouthShape(int code) {
+int LipData::codeToMouthShape(EmiEngine *engine, int code) {
 	if (code == kLipRestCode)
 		return kLipRestShape;
 
@@ -86,7 +90,7 @@ int LipData::codeToMouthShape(int code) {
 	key.code = code;
 	key.shape = 0;
 
-	const MouthEntry *found = (const MouthEntry *)bsearch(&key, _mouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
+	const MouthEntry *found = (const MouthEntry *)bsearch(&key, engine->_lipMouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
 
 	if (found)
 		return (uint16)found->shape;
@@ -120,12 +124,13 @@ int LipData::findCode(int position) const {
 	return kLipRestCode;
 }
 
-void LipData::sortMouthTable() {
-	qsort(_mouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
+void LipData::sortMouthTable(EmiEngine *engine) {
+	qsort(engine->_lipMouthTable, kMouthTableSize, sizeof(MouthEntry), compareMouthEntries);
 }
 
-int LipData::getLipMouthShape(uint soundHandle, int position) {
-	LipData *lipData = Sounds::getSoundLipData(soundHandle);
+int LipData::getLipMouthShape(EmiEngine *engine, uint soundHandle, int position) {
+	Sounds *sounds = engine->getSounds();
+	LipData *lipData = sounds->getSoundLipData(soundHandle);
 
 	if (!lipData)
 		return 0;
@@ -133,11 +138,11 @@ int LipData::getLipMouthShape(uint soundHandle, int position) {
 	int soundPosition = position;
 
 	if (position < 0)
-		soundPosition = Sounds::getSoundPosition(soundHandle);
-	else if (position > Sounds::getSoundLength(soundHandle))
+		soundPosition = sounds->getSoundPosition(soundHandle);
+	else if (position > sounds->getSoundLength(soundHandle))
 		return 0;
 
-	return codeToMouthShape(lipData->findCode(soundPosition));
+	return codeToMouthShape(engine, lipData->findCode(soundPosition));
 }
 
 } // End of namespace Grim

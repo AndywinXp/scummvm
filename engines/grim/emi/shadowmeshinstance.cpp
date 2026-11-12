@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/actor.h"
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/rmeshinstance.h"
 #include "engines/grim/emi/shadowmeshcomponent.h"
@@ -30,7 +31,7 @@
 
 namespace Grim {
 
-ShadowMeshInstance::ShadowMeshInstance(const LString &componentName, Actor *actor) : ComponentInstance(componentName) {
+ShadowMeshInstance::ShadowMeshInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	owner = actor;
 	meshInstance = nullptr;
 
@@ -52,7 +53,7 @@ ShadowMeshInstance::ShadowMeshInstance(const LString &componentName, Actor *acto
 			if (component->weightMap) {
 				uint numNodes = component->weightMap->nodeNames.size();
 
-				meshInstance->boneNodes = (CNode **)gpMemoryServices->mallocImpl(numNodes * sizeof(CNode *));
+				meshInstance->boneNodes = (CNode **)_engine->getMemoryServices()->mallocImpl(numNodes * sizeof(CNode *));
 
 				// The disasm leaves the bones it cannot find uninitialized
 				if (meshInstance->boneNodes)
@@ -63,7 +64,7 @@ ShadowMeshInstance::ShadowMeshInstance(const LString &componentName, Actor *acto
 
 			// The disasm frees the normals of the shared mesh
 			if (component->normals) {
-				gpMemoryServices->freeImpl(component->normals);
+				_engine->getMemoryServices()->freeImpl(component->normals);
 				component->normals = nullptr;
 			}
 

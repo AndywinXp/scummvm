@@ -23,7 +23,7 @@
 
 namespace Grim {
 
-CAudioDevice::CAudioDevice() {
+CAudioDevice::CAudioDevice(EmiEngine *engine) : _engine(engine) {
 }
 
 CAudioDevice::~CAudioDevice() {
@@ -39,6 +39,10 @@ int CAudioDevice::getLatency() {
 
 int CAudioDevice::getActiveSampleCount() {
 	return 0;
+}
+
+EmiEngine *CAudioDevice::getEngine() const {
+	return _engine;
 }
 
 } // End of namespace Grim

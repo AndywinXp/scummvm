@@ -53,9 +53,11 @@ struct VertexWeight {
 	float weight;
 };
 
+class EmiEngine;
+
 class CWeightMap : public CPrimitive {
 public:
-	CWeightMap();
+	explicit CWeightMap(EmiEngine *engine);
 	virtual ~CWeightMap();
 
 	void *operator new(size_t size);
@@ -79,6 +81,9 @@ public:
 	Common::Array<VertexWeight> weights;
 	Common::Array<WeightData *> weightBlocks;
 	Common::Array<WeightData *> vertexLists;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

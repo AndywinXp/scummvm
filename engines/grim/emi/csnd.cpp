@@ -23,8 +23,8 @@
 
 #include "engines/grim/emi/csnd.h"
 #include "engines/grim/emi/csndparser.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lformatparser.h"
-#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -182,7 +182,7 @@ bool CSnd::save(LFile *file) {
 	if (!file)
 		return false;
 
-	CSndParser parser;
+	CSndParser parser(_engine);
 
 	parser.setFile(file);
 	LFormatParser::writeCopyrightBanner(file);
@@ -234,7 +234,7 @@ bool CSnd::save(LFile *file) {
 }
 
 bool CSnd::resLoadItem(const char *itemName) {
-	CSndParser *parser = new CSndParser();
+	CSndParser *parser = new CSndParser(_engine);
 
 	parser->snd = this;
 
@@ -251,7 +251,7 @@ bool CSnd::resLoadItem(const char *itemName) {
 		if (dot != LString::npos)
 			aifName = aifName.substr(0, dot);
 
-		aifName += g_grim->getGamePlatform() == Common::kPlatformPS2 ? ".SCX" : ".aif";
+		aifName += _engine->getGamePlatform() ==Common::kPlatformPS2 ? ".SCX" : ".aif";
 
 		KeywordArg argument;
 

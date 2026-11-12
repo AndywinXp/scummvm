@@ -22,6 +22,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cweightmap.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lformatparser.h"
 #include "engines/grim/emi/shadowmeshcomponent.h"
@@ -29,7 +30,8 @@
 
 namespace Grim {
 
-ShadowMeshComponent::ShadowMeshComponent() {
+ShadowMeshComponent::ShadowMeshComponent(EmiEngine *engine) : RMesh(engine) {
+	bindEngine(engine);
 }
 
 ShadowMeshComponent::~ShadowMeshComponent() {
@@ -68,7 +70,7 @@ uint ShadowMeshComponent::resSizeOfItem() {
 }
 
 ComponentInstance *ShadowMeshComponent::createInstance(Actor *owner) {
-	return new ShadowMeshInstance(LResource::name, owner);
+	return new ShadowMeshInstance(LResource::_engine, LResource::name, owner);
 }
 
 bool ShadowMeshComponent::resLoadItem(const char *itemName) {
@@ -78,41 +80,42 @@ bool ShadowMeshComponent::resLoadItem(const char *itemName) {
 		return false;
 	}
 
+	EmiEngine *engine = LResource::_engine;
 	const char *fileName = itemName + Component::kNamePrefixSize;
 	LString textPath(fileName);
 	LString binaryPath = textPath + "b";
-	bool binaryExists = gpFileServices->exists(binaryPath.c_str());
-	bool textExists = gpFileServices->exists(textPath.c_str());
+	bool binaryExists = engine->getFileServices()->exists(binaryPath.c_str());
+	bool textExists = engine->getFileServices()->exists(textPath.c_str());
 	bool loadText = !binaryExists;
 
 	if (binaryExists && textExists) {
-		int binaryTime = gpFileServices->getModTime(binaryPath.c_str());
-		int textTime = gpFileServices->getModTime(textPath.c_str());
+		int binaryTime = engine->getFileServices()->getModTime(binaryPath.c_str());
+		int textTime = engine->getFileServices()->getModTime(textPath.c_str());
 
 		loadText = binaryTime < textTime;
 	}
 
 	if (loadText) {
-		LFile *file = gpFileServices->open(fileName, "rt");
+		LFile *file = engine->getFileServices()->open(fileName, "rt");
 
 		if (!file || !LFormatParser::skipCopyrightBanner(file) || !restore(file)) {
 			if (file)
-				gpFileServices->close(file, true);
+				engine->getFileServices()->close(file, true);
 
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Parse problem in file '%s'.\n", fileName);
+			if (engine->getConsoleServices())
+				engine->getConsoleServices()->logError("Parse problem in file '%s'.\n", fileName);
 			else
 				warning("ShadowMeshComponent::resLoadItem(): parse problem in file '%s'", fileName);
 
 			return false;
 		}
 
-		gpFileServices->close(file, true);
+		engine->getFileServices()->close(file, true);
 		CPrimitive::name = fileName;
 		saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
+		if (engine->getConsoleServices())
+			engine->getConsoleServices()->logError("Parse problem in file '%s'.\n", binaryPath.c_str());
 		else
 			warning("ShadowMeshComponent::resLoadItem(): parse problem in file '%s'", binaryPath.c_str());
 

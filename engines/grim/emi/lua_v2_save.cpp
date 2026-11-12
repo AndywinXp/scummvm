@@ -24,6 +24,7 @@
 #include "engines/grim/emi/background.h"
 #include "engines/grim/emi/choreinstance.h"
 #include "engines/grim/emi/choreset.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lresourcehandle.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -74,19 +75,11 @@ static bool readSavedLockCount(tSaveRestoreAccess *reader, int *count) {
 }
 
 void Lua_V2::saveGameCallback(tSaveRestoreAccess *writer) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua) {
-		warning("Lua_V2::saveGameCallback(): the system table is not ready");
-
-		return;
-	}
-
 	_saveWriter = writer;
 	_saveDataSize = 0;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("saveGameCallback");
 
 	lua_Object handler = lua_gettable();
@@ -101,12 +94,12 @@ void Lua_V2::saveGameCallback(tSaveRestoreAccess *writer) {
 			lua_pushobject(handler);
 			lua_callfunction(function);
 		} else {
-			gpConsoleServices->logError("Installed savegame handler has no member func '%s'\n", "saveGameCallback");
+			_engine->getConsoleServices()->logError("Installed savegame handler has no member func '%s'\n", "saveGameCallback");
 		}
 	} else if (lua_isfunction(handler)) {
 		lua_callfunction(handler);
 	} else if (!lua_isnil(handler)) {
-		gpConsoleServices->logError("Installed save game callback is invalid.\n");
+		_engine->getConsoleServices()->logError("Installed save game callback is invalid.\n");
 	}
 
 	if (_saveDataSize == 0)
@@ -116,17 +109,8 @@ void Lua_V2::saveGameCallback(tSaveRestoreAccess *writer) {
 }
 
 void Lua_V2::getVersion(LString &version) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua) {
-		warning("Lua_V2::getVersion(): the system table is not ready");
-		version.clear();
-
-		return;
-	}
-
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("version");
 
 	lua_Object versionObject = lua_gettable();
@@ -191,7 +175,7 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 		if (!readSavedString(reader, _lockedChores[i].choreName))
 			return;
 
-		LResourceHandle<ChoreSet> choreSetHandle(_lockedChores[i].choreSetName);
+		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChores[i].choreSetName);
 
 		if (choreSetHandle.lock() && choreSetHandle.typed) {
 			Chore *chore = choreSetHandle.typed->findChore(_lockedChores[i].choreName);
@@ -212,7 +196,7 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 		if (!readSavedString(reader, _lockedChoreSets[i]))
 			return;
 
-		LResourceHandle<ChoreSet> choreSetHandle(_lockedChoreSets[i]);
+		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChoreSets[i]);
 
 		if (choreSetHandle.lock() && choreSetHandle.typed) {
 			for (uint j = 0; j < choreSetHandle.typed->chores.size(); j++) {
@@ -235,11 +219,11 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 		if (!readSavedString(reader, _lockedRooms[i]))
 			return;
 
-		LResourceHandle<Room_v2> roomHandle(_lockedRooms[i]);
+		LResourceHandle<Room_v2> roomHandle(_engine, _lockedRooms[i]);
 
 		if (roomHandle.lock() && roomHandle.typed) {
 			roomHandle.typed->lockCount++;
-			gpResourceManager->lockResource(roomHandle.typed);
+			_engine->getResourceManager()->lockResource(roomHandle.typed);
 		}
 
 		roomHandle.unlock();
@@ -254,11 +238,11 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 		if (!readSavedString(reader, _lockedBackgrounds[i]))
 			return;
 
-		LResourceHandle<Background> backgroundHandle(_lockedBackgrounds[i]);
+		LResourceHandle<Background> backgroundHandle(_engine, _lockedBackgrounds[i]);
 
 		if (backgroundHandle.lock() && backgroundHandle.typed) {
 			backgroundHandle.typed->lockCount++;
-			gpResourceManager->lockResource(backgroundHandle.typed);
+			_engine->getResourceManager()->lockResource(backgroundHandle.typed);
 		}
 
 		backgroundHandle.unlock();

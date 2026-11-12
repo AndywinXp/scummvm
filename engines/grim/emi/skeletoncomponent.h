@@ -28,10 +28,11 @@
 namespace Grim {
 
 class CNode;
+class EmiEngine;
 
 class SkeletonComponent : public Component, public CSkeleton {
 public:
-	SkeletonComponent();
+	explicit SkeletonComponent(EmiEngine *engine);
 	~SkeletonComponent() override;
 
 	uint resSizeOfItem() override;

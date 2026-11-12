@@ -27,12 +27,13 @@
 namespace Grim {
 
 class CSoundCue;
+class CWaveAudioDevice;
 class EMIMilesDriver;
 struct EMIMilesSample;
 
 class CWaveChannel : public CAudioChannel {
 public:
-	CWaveChannel(EMIMilesDriver *driver);
+	explicit CWaveChannel(CWaveAudioDevice *device);
 	~CWaveChannel() override;
 
 	void *operator new(size_t size);
@@ -64,9 +65,6 @@ public:
 	void endSpuSample();
 
 	static bool getAttenuatedVolumes(float volume, float balance, int *left, int *right);
-	static void setSpuStereo(bool stereo);
-
-	static bool spuStereo;
 
 	bool started;
 	EMIMilesSample *hSample;
@@ -75,6 +73,7 @@ public:
 	float spuBalance;
 
 private:
+	CWaveAudioDevice *_device;
 	EMIMilesDriver *_driver;
 };
 

@@ -22,6 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/layer.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
@@ -35,7 +36,7 @@ void Lua_V2::NewLayer() {
 	lua_Object sortOrderObj = lua_getparam(2);
 	// The disasm reads the first parameter again where the frame should be
 	lua_Object frameObj = lua_getparam(1);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		lua_pushnil();
@@ -64,7 +65,7 @@ void Lua_V2::FreeLayer() {
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
 		int layerId = lua_getuserdata(layerObj);
-		Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom) {
 			if (!currentRoom->setups || currentRoom->currentSetup < 0 || currentRoom->currentSetup >= currentRoom->numSetups) {
@@ -76,8 +77,8 @@ void Lua_V2::FreeLayer() {
 			currentRoom->setups[currentRoom->currentSetup].removeLayerById(layerId);
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("FreeLayer first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("FreeLayer first parm must be a layer");
 		else
 			warning("FreeLayer first parm must be a layer");
 	}
@@ -87,21 +88,21 @@ void Lua_V2::SetLayerSortOrder() {
 	lua_Object layerObj = lua_getparam(1);
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
-		Layer *layer = Room_v2::findLayerById(lua_getuserdata(layerObj));
+		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
 			lua_Object sortOrderObj = lua_getparam(2);
 
 			layer->sortOrder = luaFtol(lua_getnumber(sortOrderObj));
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("SetLayerSortOrder layer not found.\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("SetLayerSortOrder layer not found.\n");
 			else
 				warning("SetLayerSortOrder layer not found.");
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetLayerSortOrder first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("SetLayerSortOrder first parm must be a layer");
 		else
 			warning("SetLayerSortOrder first parm must be a layer");
 	}
@@ -111,19 +112,19 @@ void Lua_V2::GetLayerSortOrder() {
 	lua_Object layerObj = lua_getparam(1);
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
-		Layer *layer = Room_v2::findLayerById(lua_getuserdata(layerObj));
+		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
 			lua_pushnumber((float)layer->sortOrder);
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("GetLayerSortOrder: layer not found.\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("GetLayerSortOrder: layer not found.\n");
 			else
 				warning("GetLayerSortOrder: layer not found.");
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetLayerSortOrder first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("GetLayerSortOrder first parm must be a layer");
 		else
 			warning("GetLayerSortOrder first parm must be a layer");
 	}
@@ -133,19 +134,19 @@ void Lua_V2::GetLayerFrame() {
 	lua_Object layerObj = lua_getparam(1);
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
-		Layer *layer = Room_v2::findLayerById(lua_getuserdata(layerObj));
+		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
 			lua_pushnumber((float)layer->frame);
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("GetLayerCurFrame: layer not found.\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("GetLayerCurFrame: layer not found.\n");
 			else
 				warning("GetLayerCurFrame: layer not found.");
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetLayerCurFrame first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("GetLayerCurFrame first parm must be a layer");
 		else
 			warning("GetLayerCurFrame first parm must be a layer");
 	}
@@ -155,21 +156,21 @@ void Lua_V2::SetLayerFrame() {
 	lua_Object layerObj = lua_getparam(1);
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
-		Layer *layer = Room_v2::findLayerById(lua_getuserdata(layerObj));
+		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
 			lua_Object frameObj = lua_getparam(2);
 
 			layer->frame = luaFtol(lua_getnumber(frameObj));
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("SetLayerCurFrame: layer not found.\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("SetLayerCurFrame: layer not found.\n");
 			else
 				warning("SetLayerCurFrame: layer not found.");
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetLayerCurFrame first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("SetLayerCurFrame first parm must be a layer");
 		else
 			warning("SetLayerCurFrame first parm must be a layer");
 	}
@@ -179,21 +180,21 @@ void Lua_V2::AdvanceLayerFrame() {
 	lua_Object layerObj = lua_getparam(1);
 
 	if (lua_isuserdata(layerObj) && lua_tag(layerObj) == MKTAG('R', 'Y', 'A', 'L')) {
-		Layer *layer = Room_v2::findLayerById(lua_getuserdata(layerObj));
+		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
 			lua_Object frameObj = lua_getparam(2);
 
 			layer->frame += luaFtol(lua_getnumber(frameObj));
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("AdvanceLayerCurFrame: layer not found.\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("AdvanceLayerCurFrame: layer not found.\n");
 			else
 				warning("AdvanceLayerCurFrame: layer not found.");
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("AdvanceLayerCurFrame: first parm must be a layer");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("AdvanceLayerCurFrame: first parm must be a layer");
 		else
 			warning("AdvanceLayerCurFrame: first parm must be a layer");
 	}

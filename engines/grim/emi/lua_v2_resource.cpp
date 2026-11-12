@@ -37,9 +37,9 @@ void Lua_V2::dumpResources(int mode) {
 	lua_Object fileNameObj = lua_getparam(1);
 
 	if (lua_isstring(fileNameObj))
-		logFile = gpFileServices->open(lua_getstring(fileNameObj), "w");
+		logFile = _engine->getFileServices()->open(lua_getstring(fileNameObj), "w");
 
-	ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
+	ResourceManager *resourceManager = _engine->getGameResourceManager();
 
 	if (resourceManager) {
 		resourceManager->setLogFile(logFile);
@@ -69,11 +69,11 @@ void Lua_V2::dumpResources(int mode) {
 	}
 
 	if (logFile)
-		gpFileServices->close(logFile, true);
+		_engine->getFileServices()->close(logFile, true);
 }
 
 void Lua_V2::purgeResources(int mode) {
-	ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
+	ResourceManager *resourceManager = _engine->getGameResourceManager();
 
 	if (!resourceManager)
 		return;
@@ -104,7 +104,7 @@ void Lua_V2::ReportUnusedResources() {
 
 void Lua_V2::PurgeAmount() {
 	lua_Object amountObj = lua_getparam(1);
-	ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
+	ResourceManager *resourceManager = _engine->getGameResourceManager();
 
 	if (resourceManager && !lua_isnil(amountObj)) {
 		if (lua_isnumber(amountObj))
@@ -126,12 +126,12 @@ void Lua_V2::PurgeUnlockedResources() {
 
 void Lua_V2::NukeAllScriptLocks() {
 	for (uint i = 0; i < _lockedSounds.size(); i++)
-		Sounds::stopSound(_lockedSounds[i]);
+		_engine->getSounds()->stopSound(_lockedSounds[i]);
 
 	_lockedSounds.clear();
 
 	for (uint i = 0; i < _lockedChores.size(); i++) {
-		LResourceHandle<ChoreSet> choreSetHandle(_lockedChores[i].choreSetName);
+		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChores[i].choreSetName);
 
 		if (choreSetHandle.lock() && choreSetHandle.typed) {
 			Chore *chore = choreSetHandle.typed->findChore(_lockedChores[i].choreName);
@@ -146,7 +146,7 @@ void Lua_V2::NukeAllScriptLocks() {
 	_lockedChores.clear();
 
 	for (uint i = 0; i < _lockedChoreSets.size(); i++) {
-		LResourceHandle<ChoreSet> choreSetHandle(_lockedChoreSets[i]);
+		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChoreSets[i]);
 
 		if (choreSetHandle.lock() && choreSetHandle.typed) {
 			for (uint j = 0; j < choreSetHandle.typed->chores.size(); j++) {
@@ -163,16 +163,16 @@ void Lua_V2::NukeAllScriptLocks() {
 	_lockedChoreSets.clear();
 
 	for (uint i = 0; i < _lockedRooms.size(); i++) {
-		LResourceHandle<Room_v2> roomHandle(_lockedRooms[i]);
+		LResourceHandle<Room_v2> roomHandle(_engine, _lockedRooms[i]);
 
 		if (roomHandle.lock() && roomHandle.typed) {
 			Room_v2 *room = roomHandle.typed;
 
 			room->lockCount--;
-			gpResourceManager->unlockResource(room);
+			_engine->getResourceManager()->unlockResource(room);
 
 			if (room->lockCount == 0 && room->purgeOnFree)
-				gpResourceManager->purgeResource(room, true);
+				_engine->getResourceManager()->purgeResource(room, true);
 		}
 
 		roomHandle.unlock();
@@ -181,16 +181,16 @@ void Lua_V2::NukeAllScriptLocks() {
 	_lockedRooms.clear();
 
 	for (uint i = 0; i < _lockedBackgrounds.size(); i++) {
-		LResourceHandle<Background> backgroundHandle(_lockedBackgrounds[i]);
+		LResourceHandle<Background> backgroundHandle(_engine, _lockedBackgrounds[i]);
 
 		if (backgroundHandle.lock() && backgroundHandle.typed) {
 			Background *background = backgroundHandle.typed;
 
 			background->lockCount--;
-			gpResourceManager->unlockResource(background);
+			_engine->getResourceManager()->unlockResource(background);
 
 			if (background->lockCount == 0 && background->purgeOnFree)
-				gpResourceManager->purgeResource(background, true);
+				_engine->getResourceManager()->purgeResource(background, true);
 		}
 
 		backgroundHandle.unlock();
@@ -206,11 +206,11 @@ void Lua_V2::FRUTEY_Begin() {
 	if (lua_isstring(pathObj))
 		path = lua_getstring(pathObj);
 
-	EmiEngine::beginFrameDump(path);
+	_engine->beginFrameDump(path);
 }
 
 void Lua_V2::FRUTEY_End() {
-	EmiEngine::endFrameDump();
+	_engine->endFrameDump();
 }
 
 } // end of namespace Grim

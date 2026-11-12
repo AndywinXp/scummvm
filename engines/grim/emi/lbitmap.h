@@ -27,9 +27,11 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 class LBitmap {
 public:
-	LBitmap();
+	explicit LBitmap(EmiEngine *engine);
 
 	void *operator new(size_t size);
 	void operator delete(void *block);
@@ -52,6 +54,8 @@ public:
 
 protected:
 	~LBitmap();
+
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

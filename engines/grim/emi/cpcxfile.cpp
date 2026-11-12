@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cpcxfile.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lbitmap.h"
 #include "engines/grim/emi/lcolorformat.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -33,12 +34,12 @@ namespace Grim {
 static const uint kHeaderSize = 128;
 static const int kMaxPlanes = 3;
 
-CPCXFile::CPCXFile() {
+CPCXFile::CPCXFile(EmiEngine *engine) : _engine(engine) {
 	bitmap = nullptr;
 }
 
 bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
-	PcxReader reader;
+	PcxReader reader(_engine);
 	PcxHeader header;
 	bool result = false;
 
@@ -53,11 +54,11 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 		if (imageWidth <= 0 || imageHeight <= 0 || numPlanes > kMaxPlanes) {
 			warning("CPCXFile::readImage(): unsupported image geometry");
 
-			if (gpConsoleServices)
-				gpConsoleServices->logError("PCX::ReadImage: FAIL!!!\n");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("PCX::ReadImage: FAIL!!!\n");
 		} else {
 			int rowBytes = (int16)(header.bytesPerLine * header.numPlanes);
-			byte *rowBuffer = (byte *)gpMemoryServices->mallocImpl((uint)rowBytes * sizeof(byte));
+			byte *rowBuffer = (byte *)_engine->getMemoryServices()->mallocImpl((uint)rowBytes * sizeof(byte));
 			int bytesPerPixel = header.numPlanes * header.bitsPerPixel / 8;
 
 			bitmap->create(imageWidth, imageHeight, LColorFormat::format6, nullptr);
@@ -90,11 +91,11 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 				}
 			}
 
-			if (reader.overrun && gpConsoleServices)
-				gpConsoleServices->logWarning("PCX::ReadImage: EOF during read!\n");
+			if (reader.overrun && _engine->getConsoleServices())
+				_engine->getConsoleServices()->logWarning("PCX::ReadImage: EOF during read!\n");
 
 			if (rowBuffer)
-				gpMemoryServices->freeImpl(rowBuffer);
+				_engine->getMemoryServices()->freeImpl(rowBuffer);
 
 			result = true;
 
@@ -104,12 +105,12 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 				bitmap->getColorFormat().setFormat(6);
 		}
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("PCX::ReadImage: FAIL!!!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("PCX::ReadImage: FAIL!!!\n");
 	}
 
 	if (reader.base) {
-		gpMemoryServices->freeImpl(reader.base);
+		_engine->getMemoryServices()->freeImpl(reader.base);
 		reader.base = nullptr;
 	}
 
@@ -124,8 +125,8 @@ int CPCXFile::readPalette(LFile *file, int *palette) {
 	file->read(&marker, 1);
 
 	if (marker != 0xC0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("PCX::ReadPal: PCX Pal header not valid\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("PCX::ReadPal: PCX Pal header not valid\n");
 
 		return 0;
 	}
@@ -143,8 +144,8 @@ int CPCXFile::readPalette(LFile *file, int *palette) {
 		palette[i] = red | green | blue;
 
 		if (i != 255 && file->eof()) {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("PCX::ReadPal: Only got %d rgb triplets on the read\n", i);
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("PCX::ReadPal: Only got %d rgb triplets on the read\n", i);
 
 			return 0;
 		}
@@ -179,7 +180,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 
 	writeHeader(file, &header);
 
-	byte *lineBuffer = (byte *)gpMemoryServices->mallocImpl((uint)(2 * bitmap->getWidth()) * sizeof(byte));
+	byte *lineBuffer = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(2 * bitmap->getWidth()) * sizeof(byte));
 
 	if (lineBuffer) {
 		const byte *pixels = (const byte *)bitmap->getPixels();
@@ -196,7 +197,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 			warning("CPCXFile::writeImage(): bitmap has no pixels");
 		}
 
-		gpMemoryServices->freeImpl(lineBuffer);
+		_engine->getMemoryServices()->freeImpl(lineBuffer);
 	}
 
 	if (palette) {
@@ -219,6 +220,9 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 	return 1;
 }
 
+PcxReader::PcxReader(EmiEngine *owner) : engine(owner) {
+}
+
 bool PcxReader::readHeader(PcxHeader *header) {
 	if (end - cursor < (int)kHeaderSize) {
 		warning("PcxReader::readHeader(): file too short");
@@ -232,8 +236,8 @@ bool PcxReader::readHeader(PcxHeader *header) {
 	cursor += 1;
 
 	if (header->id != 10) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("PCX::ReadHeader: Header ID number not valid\n");
+		if (engine->getConsoleServices())
+			engine->getConsoleServices()->logError("PCX::ReadHeader: Header ID number not valid\n");
 
 		return false;
 	}
@@ -242,8 +246,8 @@ bool PcxReader::readHeader(PcxHeader *header) {
 	cursor += 1;
 
 	if (header->version != 0 && header->version != 2 && header->version != 3 && header->version != 4 && header->version != 5) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("PCX::ReadHeader: <%d> is not a valid pcx version number.\n", header->version);
+		if (engine->getConsoleServices())
+			engine->getConsoleServices()->logError("PCX::ReadHeader: <%d> is not a valid pcx version number.\n", header->version);
 
 		return false;
 	}
@@ -381,8 +385,8 @@ int PcxReader::decodeLine(byte *dest, int length) {
 			break;
 	}
 
-	if (overrun && gpConsoleServices)
-		gpConsoleServices->logWarning("PCX::DecodeRow: EOF during read!\n");
+	if (overrun && engine->getConsoleServices())
+		engine->getConsoleServices()->logWarning("PCX::DecodeRow: EOF during read!\n");
 
 	return decoded;
 }
@@ -395,7 +399,7 @@ void PcxReader::loadFile(LFile *file) {
 	file->seek(0, SEEK_SET);
 
 	overrun = false;
-	base = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
+	base = (byte *)engine->getMemoryServices()->mallocImpl(size * sizeof(byte));
 
 	if (!base) {
 		warning("PcxReader::loadFile(): cannot allocate %u bytes", size);

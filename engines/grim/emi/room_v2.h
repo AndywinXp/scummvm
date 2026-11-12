@@ -39,6 +39,7 @@ namespace Grim {
 
 class Actor;
 class CDrawContext;
+class EmiEngine;
 
 class Room_v2 : public LResource {
 public:
@@ -74,14 +75,14 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	static bool startup();
-	static void shutdown();
-	static void saveCurrentRoom(tSaveRestoreAccess *access);
-	static void restoreCurrentRoom(tSaveRestoreAccess *access);
-	static Layer *findLayerById(int layerId);
-	static void loadRoom(const char *roomName);
-	static Room_v2 *getCurrentRoom();
-	static const char *getCurrentRoomName();
+	static bool startup(EmiEngine *engine);
+	static void shutdown(EmiEngine *engine);
+	static void saveCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access);
+	static void restoreCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access);
+	static Layer *findLayerById(EmiEngine *engine, int layerId);
+	static void loadRoom(EmiEngine *engine, const char *roomName);
+	static Room_v2 *getCurrentRoom(EmiEngine *engine);
+	static const char *getCurrentRoomName(EmiEngine *engine);
 
 	Setup *setups;
 	int numSetups;
@@ -100,17 +101,12 @@ protected:
 	virtual bool resLoadItem(const char *itemName);
 
 private:
-	static bool _started;
-	static Room_v2 *_currentRoom;
-	static LResourceHandle<Room_v2> _currentHandle;
-	static Room_v2 *_lastDrawnRoom;
-	static int _lastDrawnSetup;
-
 	enum {
 		kLineBufferSize = 256
 	};
 
-	static char _lineBuffer[kLineBufferSize];
+	void logLoaderError(const LString &message);
+	bool failBinaryLoad(LFile *file, const char *reason);
 };
 
 } // End of namespace Grim

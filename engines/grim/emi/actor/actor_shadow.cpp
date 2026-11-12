@@ -28,7 +28,7 @@
 #include "engines/grim/emi/cdcvertexarray.h"
 #include "engines/grim/emi/cdrawcontext.h"
 #include "engines/grim/emi/color.h"
-#include "engines/grim/emi/profilertimer.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/rmesh.h"
 #include "engines/grim/emi/rmeshinstance.h"
 #include "engines/grim/emi/rprimitiveinstance.h"
@@ -36,8 +36,6 @@
 #include "engines/grim/emi/wpvertex.h"
 
 namespace Grim {
-
-static ProfilerTimer actorDrawShadowTimer("Actor::DrawShadow()", ProfilerTimer::kTrackNesting);
 
 static const int kShadowTriangleFlags = 0x301;
 static const int kShadowVertexCapacity = 2000;
@@ -101,19 +99,19 @@ int Actor::findShadowIndex(Shadow_v2 *shadow) {
 }
 
 int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
-	actorDrawShadowTimer.start();
+	_engine->_actorDrawShadowTimer.start();
 
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (!onScreen) {
-		actorDrawShadowTimer.stop();
+		_engine->_actorDrawShadowTimer.stop();
 
 		return 0;
 	}
 
-	if (!drawContext || !_shadowVertices) {
+	if (!drawContext || !_engine->_shadowVertices) {
 		warning("Actor::drawShadow(): no draw context or shadow vertices");
-		actorDrawShadowTimer.stop();
+		_engine->_actorDrawShadowTimer.stop();
 
 		return 0;
 	}
@@ -136,7 +134,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 	if (shadow->sectors.empty() || !shadow->sectors[0]) {
 		warning("Actor::drawShadow(): shadow without sectors");
 		drawContext->resetCameraMatrix();
-		actorDrawShadowTimer.stop();
+		_engine->_actorDrawShadowTimer.stop();
 
 		return 0;
 	}
@@ -177,9 +175,9 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 			continue;
 		}
 
-		_shadowVertices->numVerts = meshInstance->vertexArray->numVerts;
+		_engine->_shadowVertices->numVerts = meshInstance->vertexArray->numVerts;
 
-		CDCVertex *destination = static_cast<CDCVertex *>(_shadowVertices->lock());
+		CDCVertex *destination = static_cast<CDCVertex *>(_engine->_shadowVertices->lock());
 		CDCVertex *source = static_cast<CDCVertex *>(meshInstance->vertexArray->lock());
 
 		if (!destination || !source) {
@@ -188,7 +186,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 			continue;
 		}
 
-		for (int v = 0; v < _shadowVertices->numVerts; v++) {
+		for (int v = 0; v < _engine->_shadowVertices->numVerts; v++) {
 			CVector localPoint;
 			CVector worldPoint;
 
@@ -226,7 +224,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 		}
 
 		meshInstance->vertexArray->unlock();
-		_shadowVertices->unlock();
+		_engine->_shadowVertices->unlock();
 
 		for (uint s = 0; s < shadow->sectors.size(); s++) {
 			WalkPlane_v2 *sector = shadow->sectors[s];
@@ -273,7 +271,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 				drawContext->addClipPlane(clipX, clipY, clipZ, clipD);
 			}
 
-			drawContext->submitVertices(_shadowVertices);
+			drawContext->submitVertices(_engine->_shadowVertices);
 
 			for (uint t = 0; t < mesh->trisets.size(); t++) {
 				TriSet *triset = mesh->trisets[t];
@@ -289,7 +287,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 
 	drawContext->resetCameraMatrix();
 
-	actorDrawShadowTimer.stop();
+	_engine->_actorDrawShadowTimer.stop();
 
 	return 0;
 }

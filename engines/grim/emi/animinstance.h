@@ -28,10 +28,11 @@
 namespace Grim {
 
 class Actor;
+class EmiEngine;
 
 class AnimInstance : public ComponentInstance, public AInst {
 public:
-	AnimInstance(const LString &componentName, Actor *actor);
+	AnimInstance(EmiEngine *engine, const LString &componentName, Actor *actor);
 	~AnimInstance() override;
 
 	void update(float deltaTime) override;
@@ -45,6 +46,9 @@ public:
 
 	Actor *owner;
 	bool bound;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

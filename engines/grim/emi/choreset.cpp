@@ -25,6 +25,7 @@
 
 #include "engines/grim/emi/choreset.h"
 #include "engines/grim/emi/component.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresourcehandle.h"
@@ -35,8 +36,6 @@ static const int kNameBufferSize = 256;
 static const int kTextTokenSize = 128;
 static const int kTagSize = 4;
 static const int kBinaryKeySize = 8;
-
-char ChoreSet::_lineBuffer[kLineBufferSize];
 
 static bool readInt(LFile *file, int *value) {
 	byte bytes[4];
@@ -90,21 +89,12 @@ static void writeFloat(LFile *file, float value) {
 	file->write(bytes, sizeof(bytes));
 }
 
-static void logChoreError(const char *format, const char *argument) {
-	LString message = LString::format(format, argument);
-
-	if (gpConsoleServices)
-		gpConsoleServices->logError("%s", message.c_str());
-	else
-		warning("%s", message.c_str());
-}
-
 void *ChoreKey::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ChoreKey::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 ChoreTrack::ChoreTrack() {
@@ -124,11 +114,11 @@ ChoreTrack::~ChoreTrack() {
 }
 
 void *ChoreTrack::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void ChoreTrack::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int ChoreTrack::getSize() {
@@ -140,7 +130,8 @@ void ChoreTrack::addKey(ChoreKey *key) {
 		keys.push_back(key);
 }
 
-Chore::Chore() {
+Chore::Chore(EmiEngine *engine) {
+	_engine = engine;
 	length = 0.0f;
 	name = "<unnamed chore>";
 }
@@ -156,11 +147,11 @@ Chore::~Chore() {
 }
 
 void *Chore::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void Chore::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int Chore::getSize() {
@@ -206,7 +197,7 @@ void Chore::lockComponents() {
 		}
 
 		{
-			LResourceHandle<Component> trackHandle(track->resourceName);
+			LResourceHandle<Component> trackHandle(_engine, track->resourceName);
 
 			handle.setResource(trackHandle.resource);
 		}
@@ -230,7 +221,7 @@ void Chore::unlockComponents() {
 		}
 
 		{
-			LResourceHandle<Component> trackHandle(track->resourceName);
+			LResourceHandle<Component> trackHandle(_engine, track->resourceName);
 
 			handle.setResource(trackHandle.resource);
 		}
@@ -272,14 +263,24 @@ Chore *ChoreSet::findChore(const LString &choreName) {
 	return nullptr;
 }
 
+void ChoreSet::logChoreError(const char *format, const char *argument) {
+	LString message = LString::format(format, argument);
+	LConsoleServices *console = _engine->getConsoleServices();
+
+	if (console)
+		console->logError("%s", message.c_str());
+	else
+		warning("%s", message.c_str());
+}
+
 bool ChoreSet::resLoadItem(const char *itemName) {
 	LString textPath(itemName);
 	LString binaryPath = textPath + "b";
-	bool binaryExists = gpFileServices->exists(binaryPath.c_str());
-	bool textExists = gpFileServices->exists(textPath.c_str());
+	bool binaryExists = _engine->getFileServices()->exists(binaryPath.c_str());
+	bool textExists = _engine->getFileServices()->exists(textPath.c_str());
 
 	if (binaryExists) {
-		if (!textExists || gpFileServices->getModTime(binaryPath.c_str()) >= gpFileServices->getModTime(textPath.c_str())) {
+		if (!textExists || _engine->getFileServices()->getModTime(binaryPath.c_str()) >= _engine->getFileServices()->getModTime(textPath.c_str())) {
 			if (!loadBinary(binaryPath.c_str())) {
 				logChoreError("Parse problem in file '%s'.\n", binaryPath.c_str());
 
@@ -303,7 +304,8 @@ bool ChoreSet::resLoadItem(const char *itemName) {
 
 bool ChoreSet::loadText(const char *path) {
 	char section[kTextTokenSize];
-	LFile *file = gpFileServices->open(path, "rt");
+	char lineBuffer[kLineBufferSize];
+	LFile *file = _engine->getFileServices()->open(path, "rt");
 
 	if (!file || !file->isOpen()) {
 		logChoreError("Error: Invalid load filename '%s'.\n", path);
@@ -313,22 +315,22 @@ bool ChoreSet::loadText(const char *path) {
 
 	section[0] = 0;
 
-	if (file->readLine(_lineBuffer, kLineBufferSize)) {
-		while (sscanf(_lineBuffer, " section: %127s", section) != 1 || parseSection(file, section)) {
-			if (!file->readLine(_lineBuffer, kLineBufferSize)) {
-				gpFileServices->close(file, true);
+	if (file->readLine(lineBuffer, kLineBufferSize)) {
+		while (sscanf(lineBuffer, " section: %127s", section) != 1 || parseSection(file, section)) {
+			if (!file->readLine(lineBuffer, kLineBufferSize)) {
+				_engine->getFileServices()->close(file, true);
 
 				return true;
 			}
 		}
 
 		logChoreError("Load of file %s failed due to syntax errors.\n", path);
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return false;
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
@@ -351,6 +353,7 @@ bool ChoreSet::parseChores(LFile *file) {
 	char section[kTextTokenSize];
 	char tag[kTextTokenSize];
 	char trackName[kTextTokenSize];
+	char lineBuffer[kLineBufferSize];
 	int trackId;
 	int parentId;
 	float timeValue;
@@ -359,26 +362,26 @@ bool ChoreSet::parseChores(LFile *file) {
 
 	section[0] = 0;
 
-	if (!file->readLine(_lineBuffer, kLineBufferSize))
+	if (!file->readLine(lineBuffer, kLineBufferSize))
 		return true;
 
 	while (true) {
-		if (sscanf(_lineBuffer, " section: %127s\n", section) != 0) {
+		if (sscanf(lineBuffer, " section: %127s\n", section) != 0) {
 			if (!parseSection(file, section))
 				return false;
-		} else if (sscanf(_lineBuffer, " chore %127s %f", section, &length) == 2) {
-			currentChore = new Chore();
+		} else if (sscanf(lineBuffer, " chore %127s %f", section, &length) == 2) {
+			currentChore = new Chore(_engine);
 			currentChore->name = section;
 			currentChore->length = length;
 			chores.push_back(currentChore);
 		} else {
 			if (!currentChore) {
-				logChoreError("Unrecognized line in choreset file: '%s'\n", _lineBuffer);
+				logChoreError("Unrecognized line in choreset file: '%s'\n", lineBuffer);
 
 				return false;
 			}
 
-			if (sscanf(_lineBuffer, " track %d %d %127s %127s", &trackId, &parentId, tag, trackName) == 4) {
+			if (sscanf(lineBuffer, " track %d %d %127s %127s", &trackId, &parentId, tag, trackName) == 4) {
 				tag[kTagSize] = 0;
 
 				int tagLength = strlen(tag);
@@ -391,26 +394,26 @@ bool ChoreSet::parseChores(LFile *file) {
 				currentTrack = currentChore->addTrack(resourceName);
 				currentTrack->id = trackId;
 				currentTrack->parentId = parentId;
-			} else if (currentTrack && sscanf(_lineBuffer, " %f %f", &timeValue, &keyValue) == 2) {
+			} else if (currentTrack && sscanf(lineBuffer, " %f %f", &timeValue, &keyValue) == 2) {
 				ChoreKey *key = new ChoreKey();
 
 				key->time = timeValue;
 				key->value = keyValue;
 				currentTrack->addKey(key);
 			} else {
-				logChoreError("Unrecognized line in choreset file: '%s'\n", _lineBuffer);
+				logChoreError("Unrecognized line in choreset file: '%s'\n", lineBuffer);
 
 				return false;
 			}
 		}
 
-		if (!file->readLine(_lineBuffer, kLineBufferSize))
+		if (!file->readLine(lineBuffer, kLineBufferSize))
 			return true;
 	}
 }
 
 bool ChoreSet::loadBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "rb");
+	LFile *file = _engine->getFileServices()->open(path, "rb");
 
 	if (!file)
 		return false;
@@ -420,20 +423,20 @@ bool ChoreSet::loadBinary(const char *path) {
 
 	if (!readInt(file, &choreCount)) {
 		warning("ChoreSet::loadBinary(): unexpected end of file");
-		gpFileServices->close(file, true);
+		_engine->getFileServices()->close(file, true);
 
 		return false;
 	}
 
 	for (int i = 0; i < choreCount; i++) {
 		int trackCount;
-		Chore *chore = new Chore();
+		Chore *chore = new Chore(_engine);
 
 		chores.push_back(chore);
 
 		if (!readName(file, buffer) || !readFloat(file, &chore->length) || !readInt(file, &trackCount)) {
 			warning("ChoreSet::loadBinary(): invalid chore");
-			gpFileServices->close(file, true);
+			_engine->getFileServices()->close(file, true);
 
 			return false;
 		}
@@ -445,7 +448,7 @@ bool ChoreSet::loadBinary(const char *path) {
 
 			if (!readName(file, buffer)) {
 				warning("ChoreSet::loadBinary(): invalid track name");
-				gpFileServices->close(file, true);
+				_engine->getFileServices()->close(file, true);
 
 				return false;
 			}
@@ -454,7 +457,7 @@ bool ChoreSet::loadBinary(const char *path) {
 
 			if (!readInt(file, &track->id) || !readInt(file, &track->parentId) || !readInt(file, &keyCount)) {
 				warning("ChoreSet::loadBinary(): unexpected end of file");
-				gpFileServices->close(file, true);
+				_engine->getFileServices()->close(file, true);
 
 				return false;
 			}
@@ -464,7 +467,7 @@ bool ChoreSet::loadBinary(const char *path) {
 
 				if (file->read(raw, sizeof(raw)) != sizeof(raw)) {
 					warning("ChoreSet::loadBinary(): unexpected end of file");
-					gpFileServices->close(file, true);
+					_engine->getFileServices()->close(file, true);
 
 					return false;
 				}
@@ -478,13 +481,13 @@ bool ChoreSet::loadBinary(const char *path) {
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 bool ChoreSet::saveBinary(const char *path) {
-	LFile *file = gpFileServices->open(path, "wb");
+	LFile *file = _engine->getFileServices()->open(path, "wb");
 
 	if (!file)
 		return false;
@@ -517,7 +520,7 @@ bool ChoreSet::saveBinary(const char *path) {
 		}
 	}
 
-	gpFileServices->close(file, true);
+	_engine->getFileServices()->close(file, true);
 
 	return true;
 }

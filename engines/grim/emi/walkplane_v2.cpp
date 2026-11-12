@@ -24,6 +24,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/cnode.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/puck_v2.h"
@@ -46,9 +47,12 @@ static const float kJumpOutDistance = -10.0f;
 static const float kConstraintDistance = -100.0f;
 
 const float WalkPlane_v2::kRadiansToDegrees = (float)(180.0 / (double)3.14159274f);
-float WalkPlane_v2::_constraintVector[3] = { 0.0f, 0.0f, 0.0f };
 
-WalkPlane_v2::WalkPlane_v2(const float *vertices, int vertexCount, WalkPlaneCollection *owner) {
+WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexCount, WalkPlaneCollection *owner) {
+	_engine = engine;
+	_constraintVector[0] = 0.0f;
+	_constraintVector[1] = 0.0f;
+	_constraintVector[2] = 0.0f;
 	normal[0] = 0.0f;
 	normal[1] = 0.0f;
 	normal[2] = 0.0f;
@@ -138,11 +142,11 @@ WalkPlane_v2::~WalkPlane_v2() {
 }
 
 void *WalkPlane_v2::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void WalkPlane_v2::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 int WalkPlane_v2::getSize() {
@@ -218,8 +222,10 @@ void WalkPlane_v2::setType(int newType) {
 		return;
 
 	if (numVerts != 4) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Funnel boxes must have 4 sides!\n");
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("Funnel boxes must have 4 sides!\n");
 		else
 			warning("Funnel boxes must have 4 sides!");
 

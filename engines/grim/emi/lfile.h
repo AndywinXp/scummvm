@@ -30,9 +30,11 @@ namespace Grim {
 
 typedef Common::String LString;
 
+class EmiEngine;
+
 class LFile {
 public:
-	LFile();
+	explicit LFile(EmiEngine *engine);
 	virtual ~LFile();
 
 	void *operator new(size_t size);
@@ -53,6 +55,7 @@ public:
 
 	bool isOpen() const;
 	void closeStreams();
+	EmiEngine *getEngine() const { return _engine; }
 
 	Common::SeekableReadStream *readStream;
 	Common::WriteStream *writeStream;
@@ -62,11 +65,14 @@ public:
 	char *memCursor;
 	uint memSize;
 	byte openFlags;
+
+protected:
+	EmiEngine *_engine;
 };
 
 class LFileServices {
 public:
-	LFileServices();
+	explicit LFileServices(EmiEngine *engine);
 	virtual ~LFileServices();
 
 	void *operator new(size_t size);
@@ -84,13 +90,9 @@ public:
 	virtual int getSize(const char *path);
 	virtual bool resolvePath(LString &outPath, const char *name);
 
-	static void deleteAllServices();
-	static int pushServices(LFileServices *services);
-	static LFileServices *popServices();
-	static uint getNumServices();
+protected:
+	EmiEngine *_engine;
 };
-
-extern LFileServices *gpFileServices;
 
 } // End of namespace Grim
 

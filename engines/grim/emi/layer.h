@@ -30,6 +30,7 @@
 namespace Grim {
 
 class CDrawContext;
+class EmiEngine;
 
 class Layer {
 public:
@@ -37,7 +38,7 @@ public:
 		kNameSize = 128
 	};
 
-	Layer(const char *layerName, int layerSortOrder, int layerFrame, int layerId);
+	Layer(EmiEngine *engine, const char *layerName, int layerSortOrder, int layerFrame, int layerId);
 	~Layer();
 
 	void *operator new(size_t size);
@@ -45,8 +46,8 @@ public:
 
 	int draw(CDrawContext *context);
 
-	static void set16BitFix(bool enable);
-	static void saveRestoreNextId(tSaveRestoreAccess *access);
+	static void set16BitFix(EmiEngine *engine, bool enable);
+	static void saveRestoreNextId(EmiEngine *engine, tSaveRestoreAccess *access);
 
 	int id;
 	int sortOrder;
@@ -55,10 +56,8 @@ public:
 	LResourceHandle<TiledScene> tiledScene;
 	LResourceHandle<Background> background;
 
-	static bool fix16Bit;
-
 private:
-	static int _nextId;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

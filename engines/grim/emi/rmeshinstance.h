@@ -31,6 +31,7 @@
 namespace Grim {
 
 class Camera;
+class EmiEngine;
 class RMesh;
 class RNode;
 
@@ -54,6 +55,9 @@ public:
 	CNode **boneNodes;
 	bool staticLightingDone;
 	int lastFrame;
+
+private:
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

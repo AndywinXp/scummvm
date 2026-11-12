@@ -30,6 +30,8 @@
 
 namespace Grim {
 
+class EmiEngine;
+
 struct ChoreKey {
 	void *operator new(size_t size);
 	void operator delete(void *block);
@@ -57,7 +59,7 @@ public:
 
 class Chore {
 public:
-	Chore();
+	explicit Chore(EmiEngine *engine);
 	~Chore();
 
 	void *operator new(size_t size);
@@ -72,6 +74,9 @@ public:
 	LString name;
 	Common::Array<ChoreTrack *> tracks;
 	float length;
+
+private:
+	EmiEngine *_engine;
 };
 
 class ChoreSet : public LResource {
@@ -98,7 +103,7 @@ protected:
 	virtual bool resLoadItem(const char *itemName);
 
 private:
-	static char _lineBuffer[kLineBufferSize];
+	void logChoreError(const char *format, const char *argument);
 };
 
 } // End of namespace Grim

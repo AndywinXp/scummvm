@@ -21,15 +21,13 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lresource.h"
 #include "engines/grim/emi/lresourcehandle.h"
 
 namespace Grim {
-
-static LResourceManager gDefaultResourceManager;
-LResourceManager *gpResourceManager = &gDefaultResourceManager;
 
 LResourceType::LResourceType() {
 	id = 0;
@@ -63,6 +61,7 @@ bool LResourceType::operator==(const LResourceType &other) const {
 }
 
 LResource::LResource() {
+	_engine = nullptr;
 	lockCount = 0;
 	loaded = false;
 	byte29 = 0;
@@ -75,7 +74,7 @@ LResource::~LResource() {
 	if (lockCount != 0)
 		warning("LResource::~LResource(): resource is still locked");
 
-	gpResourceManager->removeResource(this);
+	_engine->getResourceManager()->removeResource(this);
 
 	Common::List<LResourceHandleBase *>::iterator it;
 
@@ -88,11 +87,11 @@ LResource::~LResource() {
 }
 
 void *LResource::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void LResource::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 void LResource::initializeRes() {
@@ -115,13 +114,15 @@ bool LResource::loadResourceItem(const char *itemName) {
 	if (result) {
 		loaded = true;
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("LResource::LoadResourceItem - Failed to load %s\n", name.c_str());
+		LConsoleServices *console = _engine->getConsoleServices();
+
+		if (console)
+			console->logError("LResource::LoadResourceItem - Failed to load %s\n", name.c_str());
 		else
 			warning("LResource::loadResourceItem(): failed to load %s", name.c_str());
 	}
 
-	gpResourceManager->resourceLoaded(this, result);
+	_engine->getResourceManager()->resourceLoaded(this, result);
 
 	return result;
 }
@@ -190,17 +191,17 @@ uint LResource::handleCount() const {
 
 LResource *LResource::resLock() {
 	lockCount++;
-	gpResourceManager->lockResource(this);
+	_engine->getResourceManager()->lockResource(this);
 
 	return this;
 }
 
 void LResource::resUnlock() {
 	lockCount--;
-	gpResourceManager->unlockResource(this);
+	_engine->getResourceManager()->unlockResource(this);
 
 	if (lockCount == 0 && purgeOnFree)
-		gpResourceManager->purgeResource(this, true);
+		_engine->getResourceManager()->purgeResource(this, true);
 }
 
 int LResource::resLockCount() const {
@@ -239,13 +240,13 @@ void LResource::removeHandle(LResourceHandleBase &handle) {
 void LResource::resSetName(const char *newName) {
 	LString newNameString(newName);
 
-	gpResourceManager->resourceNameChange(this, newNameString);
+	_engine->getResourceManager()->resourceNameChange(this, newNameString);
 
 	name = newName;
 }
 
 void LResource::resSetType(const LResourceType &newType) {
-	gpResourceManager->resourceTypeChange(this, newType);
+	_engine->getResourceManager()->resourceTypeChange(this, newType);
 
 	type = newType;
 }
@@ -262,6 +263,14 @@ void LResource::resReplaceResource(LResource &other) {
 
 		handle->setResource(&other);
 	}
+}
+
+void LResource::bindEngine(EmiEngine *engine) {
+	_engine = engine;
+}
+
+EmiEngine *LResource::getEngine() const {
+	return _engine;
 }
 
 LResourceManager::~LResourceManager() {

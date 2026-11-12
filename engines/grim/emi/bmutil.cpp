@@ -24,6 +24,7 @@
 #include "common/util.h"
 
 #include "engines/grim/emi/bmutil.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
@@ -84,7 +85,7 @@ struct Codec3State {
 
 } // End of anonymous namespace
 
-bool BmData::load(LFile *file) {
+bool BmData::load(EmiEngine *engine, LFile *file) {
 	byte header[kHeaderSize];
 
 	if (file->read(header, kHeaderSize) != kHeaderSize)
@@ -138,7 +139,7 @@ bool BmData::load(LFile *file) {
 		}
 
 		uint size = bytesPerPixel * height * width;
-		byte *pixels = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
+		byte *pixels = (byte *)engine->getMemoryServices()->mallocImpl(size * sizeof(byte));
 
 		if (!pixels)
 			return false;
@@ -165,7 +166,7 @@ bool BmData::load(LFile *file) {
 			}
 
 			if ((uint)compressedSize < size) {
-				byte *compressed = (byte *)gpMemoryServices->mallocImpl((uint)compressedSize * sizeof(byte));
+				byte *compressed = (byte *)engine->getMemoryServices()->mallocImpl((uint)compressedSize * sizeof(byte));
 
 				if (!compressed)
 					return false;
@@ -174,7 +175,7 @@ bool BmData::load(LFile *file) {
 				decompressCodec3(pixels, size, compressed, compressedSize);
 
 				// The disasm frees the decompressed pixels and keeps the compressed ones
-				gpMemoryServices->freeImpl(pixels);
+				engine->getMemoryServices()->freeImpl(pixels);
 				pixels = compressed;
 			} else {
 				warning("BmData::load(): codec 3 image stored uncompressed, pixels not read");
@@ -204,23 +205,23 @@ int BmData::getSize(const BmData *bm) {
 	return (bits >> 3) + (int)sizeof(BmData);
 }
 
-void BmData::free(BmData *&bm) {
+void BmData::free(EmiEngine *engine, BmData *&bm) {
 	if (!bm)
 		return;
 
 	for (uint i = 0; i < bm->numImages; i++) {
 		if (bm->images[i].data) {
-			gpMemoryServices->freeImpl(bm->images[i].data);
+			engine->getMemoryServices()->freeImpl(bm->images[i].data);
 			bm->images[i].data = nullptr;
 		}
 	}
 
 	if (bm->extraData) {
-		gpMemoryServices->freeImpl(bm->extraData);
+		engine->getMemoryServices()->freeImpl(bm->extraData);
 		bm->extraData = nullptr;
 	}
 
-	gpMemoryServices->freeImpl(bm);
+	engine->getMemoryServices()->freeImpl(bm);
 	bm = nullptr;
 }
 

@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
@@ -46,7 +47,7 @@ void LBitmap::setName(const char *newName) {
 	bitmapName = newName;
 }
 
-LABitmap::LABitmap() {
+LABitmap::LABitmap(EmiEngine *engine) : LBitmap(engine) {
 	ownedPixels = nullptr;
 	pixels = nullptr;
 	width = 0;
@@ -55,7 +56,7 @@ LABitmap::LABitmap() {
 	sizeBytes = 0;
 }
 
-LABitmap::LABitmap(int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels) {
+LABitmap::LABitmap(EmiEngine *engine, int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels) : LBitmap(engine) {
 	colorFormat = format;
 	width = bitmapWidth;
 	height = bitmapHeight;
@@ -66,21 +67,21 @@ LABitmap::LABitmap(int bitmapWidth, int bitmapHeight, const LColorFormat &format
 		ownedPixels = nullptr;
 		pixels = bitmapPixels;
 	} else {
-		ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)sizeBytes * sizeof(byte));
+		ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)sizeBytes * sizeof(byte));
 		pixels = ownedPixels;
 
 		if (ownedPixels) {
 			if (bitmapPixels)
-				gpMemoryServices->memcpyImpl(pixels, bitmapPixels, sizeBytes);
+				_engine->getMemoryServices()->memcpyImpl(pixels, bitmapPixels, sizeBytes);
 			else
-				gpMemoryServices->memsetImpl(pixels, 0, sizeBytes);
+				_engine->getMemoryServices()->memsetImpl(pixels, 0, sizeBytes);
 		}
 	}
 }
 
 LABitmap::~LABitmap() {
 	if (ownedPixels) {
-		gpMemoryServices->freeImpl(ownedPixels);
+		_engine->getMemoryServices()->freeImpl(ownedPixels);
 		ownedPixels = nullptr;
 	}
 }
@@ -109,23 +110,23 @@ void LABitmap::create(int bitmapWidth, int bitmapHeight, const LColorFormat &for
 	sizeBytes = height * stride;
 
 	if (ownedPixels)
-		gpMemoryServices->freeImpl(ownedPixels);
+		_engine->getMemoryServices()->freeImpl(ownedPixels);
 
 	if (bitmapPixels) {
 		pixels = bitmapPixels;
 		ownedPixels = nullptr;
 	} else {
-		ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)sizeBytes * sizeof(byte));
+		ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)sizeBytes * sizeof(byte));
 		pixels = ownedPixels;
 	}
 
 	if (pixels)
-		gpMemoryServices->memsetImpl(pixels, 0, sizeBytes);
+		_engine->getMemoryServices()->memsetImpl(pixels, 0, sizeBytes);
 }
 
 void LABitmap::convertFrom(LBitmap *source, const LColorFormat &format) {
 	if (ownedPixels)
-		gpMemoryServices->freeImpl(ownedPixels);
+		_engine->getMemoryServices()->freeImpl(ownedPixels);
 
 	width = source->getWidth();
 	height = source->getHeight();
@@ -133,14 +134,14 @@ void LABitmap::convertFrom(LBitmap *source, const LColorFormat &format) {
 	stride = width * colorFormat.bytesPerPixel;
 	sizeBytes = height * stride;
 
-	ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)(width * height * format.bytesPerPixel) * sizeof(byte));
+	ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(width * height * format.bytesPerPixel) * sizeof(byte));
 	pixels = ownedPixels;
 
 	if (!ownedPixels)
 		return;
 
 	if (format.formatId == source->colorFormat.formatId)
-		gpMemoryServices->memcpyImpl(pixels, source->getPixels(), source->colorFormat.bytesPerPixel * height * width);
+		_engine->getMemoryServices()->memcpyImpl(pixels, source->getPixels(), source->colorFormat.bytesPerPixel * height * width);
 	else
 		source->colorFormat.convertPixels((const byte *)source->getPixels(), height * width, format, ownedPixels);
 }
@@ -256,16 +257,16 @@ void LABitmap::convertFormat(const LColorFormat &format) {
 	if (format.formatId == colorFormat.formatId)
 		return;
 
-	byte *newPixels = (byte *)gpMemoryServices->mallocImpl((uint)(height * format.bytesPerPixel * width) * sizeof(byte));
+	byte *newPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)(height * format.bytesPerPixel * width) * sizeof(byte));
 
 	if (!newPixels)
 		return;
 
-	gpMemoryServices->memsetImpl(newPixels, 0, height * width * format.bytesPerPixel);
+	_engine->getMemoryServices()->memsetImpl(newPixels, 0, height * width * format.bytesPerPixel);
 	colorFormat.convertPixels((const byte *)pixels, height * width, format, newPixels);
 
 	if (ownedPixels)
-		gpMemoryServices->freeImpl(ownedPixels);
+		_engine->getMemoryServices()->freeImpl(ownedPixels);
 
 	pixels = newPixels;
 	ownedPixels = newPixels;

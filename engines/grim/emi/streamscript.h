@@ -34,10 +34,12 @@ class SeekableReadStream;
 namespace Grim {
 
 class CueEntry;
+class EMIMilesDriver;
+class Sounds;
 
 class StreamScript {
 public:
-	StreamScript(const char *scriptFileName);
+	explicit StreamScript(Sounds *sounds);
 	~StreamScript();
 
 	void *operator new(size_t size);
@@ -45,50 +47,49 @@ public:
 
 	void closeStreams();
 
-	static bool openStreamScript(const char *scriptFileName);
-	static void closeStreamScript();
-	static void setStreamScriptVolume(float volume);
-	static void startStream(const uint &id, const int &startMs, const bool &immediate);
-	static bool consumeStreamFlags(const uint &id, bool &looped, bool &ended);
-	static void updateStreams();
-	static void pauseStreams();
-	static void resumeStreams();
-	static int getStreamPositionMs(const uint &id, const bool &relative);
-	static void closeAllStreams();
-	static void setStreamingGate(int (*gate)());
-	static int isStreamingEnabled();
+	bool openStreamScript(const char *scriptFileName);
+	void closeStreamScript();
+	void setStreamScriptVolume(float volume);
+	void startStream(const uint &id, const int &startMs, const bool &immediate);
+	bool consumeStreamFlags(const uint &id, bool &looped, bool &ended);
+	void updateStreams();
+	void pauseStreams();
+	void resumeStreams();
+	int getStreamPositionMs(const uint &id, const bool &relative);
+	void closeAllStreams();
+	int isStreamingEnabled();
+	EMIMilesDriver *getMilesDriver();
 
-	static Common::SeekableReadStream *openStream(const char *path);
-	static Common::SeekableReadStream *openAudioFile(const char *fileName);
-	static LString findAudioFile(const char *fileName);
-	static bool hasAudioFile(const char *fileName);
-	static void pushAudioSearchDir(const char *directory);
-	static void clearAudioSearchDirs();
+	Common::SeekableReadStream *openStream(const char *path);
+	Common::SeekableReadStream *openAudioFile(const char *fileName);
+	LString findAudioFile(const char *fileName);
+	bool hasAudioFile(const char *fileName);
+	void pushAudioSearchDir(const char *directory);
+	void clearAudioSearchDirs();
 
-	static bool openMusicScript(const char *scriptFileName);
-	static void setMusicStreamVolume(float volume);
-	static void startMusicStream(const uint &id, const int &startMs, const bool &immediate);
-	static bool consumeMusicStreamFlags(const uint &id, bool &looped, bool &ended);
-	static int getMusicStreamPositionMs(const uint &id, const bool &relative);
+	bool openMusicScript(const char *scriptFileName);
+	void setMusicStreamVolume(float volume);
+	void startMusicStream(const uint &id, const int &startMs, const bool &immediate);
+	bool consumeMusicStreamFlags(const uint &id, bool &looped, bool &ended);
+	int getMusicStreamPositionMs(const uint &id, const bool &relative);
 
 	LString fileName;
 	CueEntry *head;
 	bool loaded;
 
-	static StreamScript *activeScript;
-	static int (*streamingGate)();
-	static int16 instanceCount;
-	static uint firstUpdateMs;
-	static uint lastUpdateMs;
-	static float masterVolume;
-	static float currentFadeRate;
-
 	static const int kMaxSearchDirs = 16;
-	static LString searchDirs[kMaxSearchDirs];
-	static int searchDirCount;
-	static int openMissCount;
-	static int findMissCount;
-	static Common::FSDirectory *gameDirectory;
+
+private:
+	Sounds *_sounds;
+	uint _firstUpdateMs;
+	uint _lastUpdateMs;
+	float _masterVolume;
+	float _currentFadeRate;
+	LString _searchDirs[kMaxSearchDirs];
+	int _searchDirCount;
+	int _openMissCount;
+	int _findMissCount;
+	Common::FSDirectory *_gameDirectory;
 };
 
 } // End of namespace Grim

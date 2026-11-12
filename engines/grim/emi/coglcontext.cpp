@@ -36,6 +36,7 @@
 #include "engines/grim/emi/coglcontext.h"
 #include "engines/grim/emi/cogltexture.h"
 #include "engines/grim/emi/coglvertexarray.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/profilertimer.h"
@@ -47,17 +48,8 @@ static const double kDegreesToHalfRadians = 0.002777777777777778;
 static const uint kRawReadWidth = 640;
 static const uint kRawReadHeight = 480;
 
-static ProfilerTimer outputDrawPolyTimer("OGL::OutputDrawPoly()", ProfilerTimer::kTrackNesting | ProfilerTimer::kPrintOther);
-static ProfilerTimer setPolyOptionsTimer("OGL::SetPolyOptions()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer setTexturesTimer("OGL::SetTextures()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer submitVerticesTimer("OGL::SubmitVertices()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawTrianglesTimer("OGL::DrawTriangles()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawQuadsTimer("OGL::DrawQuads()", ProfilerTimer::kTrackNesting);
-static ProfilerTimer drawElementsTimer("glDrawElements()", ProfilerTimer::kTrackNesting);
-
-byte *COGLContext::_vertexColors = nullptr;
-
-COGLContext::COGLContext() {
+COGLContext::COGLContext(EmiEngine *engine) : CDrawContext(engine) {
+	_vertexColors = nullptr;
 	extensionsQueried = false;
 	hasPackedPixels = false;
 	currentVertexArray = nullptr;
@@ -277,7 +269,7 @@ void COGLContext::clearClipPlanes() {
 }
 
 void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
-	submitVerticesTimer.start();
+	_engine->_oglSubmitVerticesTimer.start();
 
 	CDCVertex *vertices = (CDCVertex *)vertexArray->lock();
 
@@ -285,7 +277,7 @@ void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)gpMemoryServices->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
 		for (int i = 0; i < vertexArray->numVerts; i++) {
@@ -305,7 +297,7 @@ void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	currentVertexArray = vertexArray;
 	counter8 += vertexArray->numVerts;
 
-	submitVerticesTimer.stop();
+	_engine->_oglSubmitVerticesTimer.stop();
 }
 
 void COGLContext::releaseVertices() {
@@ -316,12 +308,12 @@ void COGLContext::releaseVertices() {
 	}
 
 	currentVertexArray->unlock();
-	gpMemoryServices->freeImpl(_vertexColors);
+	_engine->getMemoryServices()->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 }
 
 void COGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, const uint16 *indices) {
-	drawTrianglesTimer.start();
+	_engine->_oglDrawTrianglesTimer.start();
 
 	if (numIndices) {
 		setPolyOptions(flags);
@@ -329,18 +321,18 @@ void COGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, const 
 		glFrontFace(GL_CW);
 		setTextures(tex, flags);
 
-		drawElementsTimer.start();
+		_engine->_oglDrawElementsTimer.start();
 		glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, indices);
-		drawElementsTimer.stop();
+		_engine->_oglDrawElementsTimer.stop();
 
 		trianglesDrawn += numIndices / 3;
 	}
 
-	drawTrianglesTimer.stop();
+	_engine->_oglDrawTrianglesTimer.stop();
 }
 
 void COGLContext::drawQuads(int flags, CTexture *tex, int first, int count, const VertexStreams *streams) {
-	drawQuadsTimer.start();
+	_engine->_oglDrawQuadsTimer.start();
 
 	if (count) {
 		setPolyOptions(flags);
@@ -374,11 +366,11 @@ void COGLContext::drawQuads(int flags, CTexture *tex, int first, int count, cons
 		trianglesDrawn += count / 4;
 	}
 
-	drawQuadsTimer.stop();
+	_engine->_oglDrawQuadsTimer.stop();
 }
 
 int COGLContext::outputDrawPoly(DrawPoly *poly) {
-	outputDrawPolyTimer.start();
+	_engine->_oglOutputDrawPolyTimer.start();
 
 	poly->flags &= 0xFFFFFF0F;
 
@@ -426,7 +418,7 @@ int COGLContext::outputDrawPoly(DrawPoly *poly) {
 	glEnd();
 	trianglesDrawn++;
 
-	outputDrawPolyTimer.stop();
+	_engine->_oglOutputDrawPolyTimer.stop();
 
 	return 1;
 }
@@ -461,7 +453,7 @@ void COGLContext::setColor(const Color *color) {
 }
 
 void COGLContext::setPolyOptions(int flags) {
-	setPolyOptionsTimer.start();
+	_engine->_oglSetPolyOptionsTimer.start();
 
 	if (flags & 0x100) {
 		if (!depthTestEnabled) {
@@ -515,16 +507,16 @@ void COGLContext::setPolyOptions(int flags) {
 
 	polyOptions = flags;
 
-	setPolyOptionsTimer.stop();
+	_engine->_oglSetPolyOptionsTimer.stop();
 }
 
 void COGLContext::setTextures(CTexture *tex, int flags) {
-	setTexturesTimer.start();
+	_engine->_oglSetTexturesTimer.start();
 
 	if (!tex) {
 		texture2dEnabled = false;
 		glDisable(GL_TEXTURE_2D);
-		setTexturesTimer.stop();
+		_engine->_oglSetTexturesTimer.stop();
 
 		return;
 	}
@@ -567,7 +559,7 @@ void COGLContext::setTextures(CTexture *tex, int flags) {
 		glEnable(GL_TEXTURE_2D);
 	}
 
-	setTexturesTimer.stop();
+	_engine->_oglSetTexturesTimer.stop();
 }
 
 void COGLContext::readBackBuffer(LABitmap *bitmap) {
@@ -662,8 +654,8 @@ CTexture *COGLContext::createTexture(LABitmap *bitmap) {
 	int width = bitmap->getWidth();
 
 	if (((width - 1) & bitmap->getWidth()) != 0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("COGLContext::createTexture(): texture not a power of two in width: %s", bitmap->bitmapName.c_str());
 
@@ -673,8 +665,8 @@ CTexture *COGLContext::createTexture(LABitmap *bitmap) {
 	int height = bitmap->getHeight();
 
 	if (((height - 1) & bitmap->getHeight()) != 0) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("COGLContext::createTexture(): texture not a power of two in height: %s", bitmap->bitmapName.c_str());
 
@@ -689,8 +681,8 @@ CTexture *COGLContext::createTexture(LABitmap *bitmap) {
 	}
 
 	if ((uint)width / (uint)height > 8 || (uint)height / (uint)width > 8) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
 		else
 			warning("COGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->bitmapName.c_str());
 
@@ -701,7 +693,7 @@ CTexture *COGLContext::createTexture(LABitmap *bitmap) {
 }
 
 CTexture *COGLContext::createTexture(int width, int height, const LColorFormat &format, byte *pixels, const char *name) {
-	LABitmap bitmap(width, height, format, pixels, true);
+	LABitmap bitmap(_engine, width, height, format, pixels, true);
 
 	return createTexture(&bitmap);
 }

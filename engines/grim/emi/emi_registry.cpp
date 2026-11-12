@@ -27,6 +27,7 @@
 #include "common/util.h"
 
 #include "engines/grim/emi/emi_registry.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lmemoryservices.h"
 
 namespace Grim {
@@ -49,13 +50,11 @@ const EmiRegistry::Entry EmiRegistry::_entries[kNumEntries] = {
 	{ "vocfx",            "audio_effects",        kKindBool,         1.0f }
 };
 
-Common::String EmiRegistry::_syncedSnapshot;
-
 bool EmiRegistry::isPrefsFile(const Common::String &fileName) {
 	return fileName.equalsIgnoreCase("efmi.cfg");
 }
 
-Common::SeekableReadStream *EmiRegistry::openPrefsForReading(Common::SeekableReadStream *realFile) {
+Common::SeekableReadStream *EmiRegistry::openPrefsForReading(EmiEngine *engine, Common::SeekableReadStream *realFile) {
 	Common::String text;
 	bool hadFile = realFile != nullptr;
 
@@ -112,7 +111,7 @@ Common::SeekableReadStream *EmiRegistry::openPrefsForReading(Common::SeekableRea
 			result += Common::String(_entries[i].key) + ":" + formatEntry(_entries[i], value) + "\n";
 	}
 
-	_syncedSnapshot = buildSnapshot();
+	engine->_registrySyncedSnapshot = buildSnapshot();
 
 	if (!hadFile && result.empty())
 		return nullptr;
@@ -124,11 +123,11 @@ Common::SeekableReadStream *EmiRegistry::openPrefsForReading(Common::SeekableRea
 	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
 }
 
-Common::WriteStream *EmiRegistry::openPrefsForWriting(Common::WriteStream *realFile) {
+Common::WriteStream *EmiRegistry::openPrefsForWriting(EmiEngine *engine, Common::WriteStream *realFile) {
 	if (!realFile)
 		return nullptr;
 
-	return new EmiPrefsFile(realFile);
+	return new EmiPrefsFile(engine, realFile);
 }
 
 void EmiRegistry::registerDefaults() {
@@ -136,7 +135,7 @@ void EmiRegistry::registerDefaults() {
 		writeEntry(_entries[i], _entries[i].defaultValue, true);
 }
 
-void EmiRegistry::setFromText(const Common::String &text) {
+void EmiRegistry::setFromText(EmiEngine *engine, const Common::String &text) {
 	bool changed = false;
 	Common::String line;
 	uint start = 0;
@@ -166,11 +165,11 @@ void EmiRegistry::setFromText(const Common::String &text) {
 	if (changed)
 		ConfMan.flushToDisk();
 
-	_syncedSnapshot = buildSnapshot();
+	engine->_registrySyncedSnapshot = buildSnapshot();
 }
 
-bool EmiRegistry::changedSinceSync() {
-	return buildSnapshot() != _syncedSnapshot;
+bool EmiRegistry::changedSinceSync(EmiEngine *engine) {
+	return buildSnapshot() != engine->_registrySyncedSnapshot;
 }
 
 Common::String EmiRegistry::buildSnapshot() {
@@ -409,14 +408,14 @@ int EmiRegistry::convertSpeechModeFromConf(bool subtitles, bool speechMute) {
 }
 
 void *EmiPrefsFile::operator new(size_t size) {
-	return gpMemoryServices->mallocImpl(size);
+	return LMemoryServices::getCurrent()->mallocImpl(size);
 }
 
 void EmiPrefsFile::operator delete(void *block) {
-	gpMemoryServices->freeImpl(block);
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
-EmiPrefsFile::EmiPrefsFile(Common::WriteStream *realFile) : _realFile(realFile) {
+EmiPrefsFile::EmiPrefsFile(EmiEngine *engine, Common::WriteStream *realFile) : _engine(engine), _realFile(realFile) {
 }
 
 EmiPrefsFile::~EmiPrefsFile() {
@@ -424,7 +423,7 @@ EmiPrefsFile::~EmiPrefsFile() {
 	delete _realFile;
 	_realFile = nullptr;
 
-	EmiRegistry::setFromText(_text);
+	EmiRegistry::setFromText(_engine, _text);
 }
 
 uint32 EmiPrefsFile::write(const void *dataPtr, uint32 dataSize) {

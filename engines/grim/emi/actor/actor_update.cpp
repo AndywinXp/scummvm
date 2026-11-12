@@ -25,27 +25,25 @@
 #include "engines/grim/emi/anode.h"
 #include "engines/grim/emi/camera.h"
 #include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/overworld.h"
-#include "engines/grim/emi/profilertimer.h"
 
 namespace Grim {
 
-static ProfilerTimer updateAllActorsTimer("Actor::UpdateAllActors()", ProfilerTimer::kTrackNesting);
+void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
+	engine->_updateAllActorsTimer.start();
 
-void Actor::updateAllActors(float deltaTime) {
-	updateAllActorsTimer.start();
+	engine->_collisionCount = 0;
 
-	_collisionCount = 0;
-
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(engine);
 
 	if (!currentRoom) {
-		updateAllActorsTimer.stop();
+		engine->_updateAllActorsTimer.stop();
 
 		return;
 	}
 
-	updateSpeechOnly(deltaTime);
+	updateSpeechOnly(engine, deltaTime);
 
 	Common::List<Actor *>::iterator it;
 
@@ -59,9 +57,9 @@ void Actor::updateAllActors(float deltaTime) {
 			current->extra->inCollision = false;
 
 		if (!current->instances.empty()) {
-			if (_collisionCount < kMaxCollisionActors) {
-				_collisionActors[_collisionCount] = current;
-				_collisionCount++;
+			if (engine->_collisionCount < kMaxCollisionActors) {
+				engine->_collisionActors[engine->_collisionCount] = current;
+				engine->_collisionCount++;
 			} else {
 				warning("Actor::updateAllActors(): too many actors in the collision list");
 			}
@@ -75,7 +73,7 @@ void Actor::updateAllActors(float deltaTime) {
 		current->update(deltaTime);
 	}
 
-	Overworld *overworld = Overworld::getInstance();
+	Overworld *overworld = engine->getOverworld();
 
 	for (it = overworld->actors.begin(); it != overworld->actors.end(); ++it) {
 		Actor *current = *it;
@@ -84,9 +82,9 @@ void Actor::updateAllActors(float deltaTime) {
 			continue;
 
 		if (!current->instances.empty()) {
-			if (_collisionCount < kMaxCollisionActors) {
-				_collisionActors[_collisionCount] = current;
-				_collisionCount++;
+			if (engine->_collisionCount < kMaxCollisionActors) {
+				engine->_collisionActors[engine->_collisionCount] = current;
+				engine->_collisionCount++;
 			} else {
 				warning("Actor::updateAllActors(): too many actors in the collision list");
 			}
@@ -96,14 +94,14 @@ void Actor::updateAllActors(float deltaTime) {
 		current->update(deltaTime);
 	}
 
-	updatePositions();
-	updateAllActorsTimer.stop();
+	updatePositions(engine);
+	engine->_updateAllActorsTimer.stop();
 }
 
-void Actor::updateSpeechOnly(float deltaTime) {
+void Actor::updateSpeechOnly(EmiEngine *engine, float deltaTime) {
 	for (int i = 0; i < kNumSpeakers; i++) {
-		if (_speakers[i])
-			_speakers[i]->updateActorSpeech(deltaTime);
+		if (engine->_speakers[i])
+			engine->_speakers[i]->updateActorSpeech(deltaTime);
 	}
 }
 
@@ -123,8 +121,8 @@ void Actor::update(float deltaTime) {
 	Common::List<uint>::iterator choreIt;
 
 	for (choreIt = choreIds.begin(); choreIt != choreIds.end(); ++choreIt) {
-		if (ChoreInstance::isInstanceValid(*choreIt)) {
-			ChoreInstance *instance = ChoreInstance::getInstance(*choreIt);
+		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
+			ChoreInstance *instance = ChoreInstance::getInstance(_engine, *choreIt);
 
 			instance->update(deltaTime, false);
 		}
@@ -141,9 +139,9 @@ void Actor::update(float deltaTime) {
 	}
 }
 
-bool Actor::updatePositions() {
-	for (int i = 0; i < _collisionCount; i++) {
-		Actor *current = _collisionActors[i];
+bool Actor::updatePositions(EmiEngine *engine) {
+	for (int i = 0; i < engine->_collisionCount; i++) {
+		Actor *current = engine->_collisionActors[i];
 
 		if (current->extra) {
 			if ((current->nodeFlags & kWorldValid) == 0)

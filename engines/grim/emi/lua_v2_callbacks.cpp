@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
 
@@ -44,13 +45,13 @@ int Lua_V2::doExitCallback() {
 			lua_pushobject(handler);
 			lua_callfunction(function);
 		} else {
-			gpConsoleServices->logError("Installed exitHandler has no member func '%s'\n", "exitHandler");
+			_engine->getConsoleServices()->logError("Installed exitHandler has no member func '%s'\n", "exitHandler");
 		}
 	} else if (lua_isfunction(handler)) {
 		called = true;
 		lua_callfunction(handler);
 	} else if (!lua_isnil(handler)) {
-		gpConsoleServices->logError("Installed exitHandler is invalid.\n");
+		_engine->getConsoleServices()->logError("Installed exitHandler is invalid.\n");
 	}
 
 	lua_endblock();
@@ -78,13 +79,13 @@ int Lua_V2::doPauseCallback() {
 			lua_pushobject(handler);
 			lua_callfunction(function);
 		} else {
-			gpConsoleServices->logError("Installed pauseHandler has no member func '%s'\n", "pauseHandler");
+			_engine->getConsoleServices()->logError("Installed pauseHandler has no member func '%s'\n", "pauseHandler");
 		}
 	} else if (lua_isfunction(handler)) {
 		called = true;
 		lua_callfunction(handler);
 	} else if (!lua_isnil(handler)) {
-		gpConsoleServices->logError("Installed pauseHandler is invalid.\n");
+		_engine->getConsoleServices()->logError("Installed pauseHandler is invalid.\n");
 	}
 
 	lua_endblock();
@@ -114,14 +115,14 @@ int Lua_V2::doCharacterCallback(int character) {
 			callHandler = true;
 			lua_pushobject(handler);
 		} else {
-			gpConsoleServices->logError("Installed characterHandler has no member func '%s'\n", "characterHandler");
+			_engine->getConsoleServices()->logError("Installed characterHandler has no member func '%s'\n", "characterHandler");
 		}
 	} else if (lua_isfunction(handler)) {
 		function = handler;
 		called = true;
 		callHandler = true;
 	} else if (!lua_isnil(handler)) {
-		gpConsoleServices->logError("Installed character handler is invalid.\n");
+		_engine->getConsoleServices()->logError("Installed character handler is invalid.\n");
 	}
 
 	if (callHandler) {

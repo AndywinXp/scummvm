@@ -59,7 +59,7 @@ bool Lua_V2::isActor(lua_Object object) {
 
 Actor *Lua_V2::getActor(lua_Object object, const char *opcodeName) {
 	int actorId = lua_getuserdata(object);
-	Actor *actor = Actor::actorDeref(actorId);
+	Actor *actor = Actor::actorDeref(_engine, actorId);
 
 	if (!actor)
 		warning("Lua_V2::%s(): the actor %d does not exist", opcodeName, actorId);
@@ -73,7 +73,7 @@ void Lua_V2::LoadActor() {
 	if (!lua_isstring(nameObj))
 		return;
 
-	int actorId = Actor::allocateActor(lua_getstring(nameObj));
+	int actorId = Actor::allocateActor(_engine, lua_getstring(nameObj));
 
 	if (actorId < 0)
 		lua_pushnil();
@@ -85,7 +85,7 @@ void Lua_V2::UnloadActor() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (isActor(actorObj))
-		Actor::freeActor(lua_getuserdata(actorObj));
+		Actor::freeActor(_engine, lua_getuserdata(actorObj));
 }
 
 void Lua_V2::GetActorTimeScale() {
@@ -155,7 +155,7 @@ void Lua_V2::SetSelectedActor() {
 	if (!isActor(actorObj))
 		return;
 
-	int previousId = Actor::setSelectedActor(lua_getuserdata(actorObj));
+	int previousId = Actor::setSelectedActor(_engine, lua_getuserdata(actorObj));
 
 	if (previousId < 0)
 		lua_pushnil();
@@ -379,7 +379,7 @@ void Lua_V2::GetActorPos() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -406,7 +406,7 @@ void Lua_V2::GetActorWorldPos() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -438,7 +438,7 @@ void Lua_V2::GetActorPuckVector() {
 	}
 
 	bool addPosition = !lua_isnil(addObj);
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
 		lua_pushnil();
@@ -496,7 +496,7 @@ void Lua_V2::GetActorYawToPoint() {
 		return;
 	}
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 	lua_Object xObj;
 	lua_Object yObj;
 	lua_Object zObj;
@@ -564,7 +564,7 @@ void Lua_V2::PutActorInSet() {
 		return;
 	}
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
 		lua_pushnil();
@@ -625,10 +625,10 @@ void Lua_V2::PutActorInOverworld() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
-		Overworld::getInstance()->putActor(actor);
+		_engine->getOverworld()->putActor(actor);
 }
 
 void Lua_V2::RemoveActorFromOverworld() {
@@ -637,14 +637,14 @@ void Lua_V2::RemoveActorFromOverworld() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
-		Overworld::getInstance()->removeActor(actor);
+		_engine->getOverworld()->removeActor(actor);
 }
 
 void Lua_V2::ClearOverworld() {
-	Overworld::getInstance()->clearActors();
+	_engine->getOverworld()->clearActors();
 }
 
 void Lua_V2::ToggleOverworld() {
@@ -654,7 +654,7 @@ void Lua_V2::ToggleOverworld() {
 	if (!lua_isnil(enableObj))
 		enable = luaFtol(lua_getnumber(enableObj)) != 0;
 
-	Overworld::getInstance()->enabled = enable;
+	_engine->getOverworld()->enabled = enable;
 }
 
 void Lua_V2::WalkActorVector() {
@@ -663,7 +663,7 @@ void Lua_V2::WalkActorVector() {
 	lua_Object yObj = lua_getparam(3);
 	lua_Object zObj = lua_getparam(4);
 	lua_Object yawObj = lua_getparam(5);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !isActor(actorObj))
 		return;
@@ -728,7 +728,7 @@ void Lua_V2::WalkActorVector() {
 	}
 
 	// PS2 does no angle check: it turns fully and always walks forward
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if ((actor->nodeFlags & CNode::kPositionValid) == 0)
 			actor->computeLocalPositionFromWorld();
 
@@ -778,7 +778,7 @@ void Lua_V2::WalkActorVector() {
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
-	float turnStep = EmiEngine::getFrameTime() * turnRate;
+	float turnStep = _engine->getFrameTime() * turnRate;
 
 	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
@@ -949,7 +949,7 @@ void Lua_V2::WalkActorToAvoiding() {
 		return;
 
 	Actor *actor = getActor(actorObj, "WalkActorToAvoiding");
-	Actor *avoidedActor = Actor::actorDeref(lua_getuserdata(avoidedObj));
+	Actor *avoidedActor = Actor::actorDeref(_engine, lua_getuserdata(avoidedObj));
 
 	if (!actor)
 		return;
@@ -1153,7 +1153,7 @@ void Lua_V2::GetVisibleThings() {
 	Actor *viewer;
 
 	if (lua_isnil(actorObj)) {
-		viewer = Actor::getSelectedActor();
+		viewer = Actor::getSelectedActor(_engine);
 
 		if (!viewer)
 			return;
@@ -1187,7 +1187,7 @@ void Lua_V2::GetVisibleThings() {
 
 				if (other && other != viewer && (viewer->actorFlags & 1) == 0 && viewer->canActorSeeActor(other, &distance)) {
 					lua_pushobject(table);
-					lua_pushusertag(Actor::getActorHandle(other), MKTAG('R', 'T', 'C', 'A'));
+					lua_pushusertag(Actor::getActorHandle(_engine, other), MKTAG('R', 'T', 'C', 'A'));
 					lua_pushnumber(1.0f);
 					lua_settable();
 				}
@@ -1206,7 +1206,7 @@ void Lua_V2::SetActorLighting() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -1236,7 +1236,7 @@ void Lua_V2::SetActorHead() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -1274,7 +1274,7 @@ void Lua_V2::SetActorHeadLimits() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -1334,7 +1334,7 @@ void Lua_V2::ActorActivateShadow() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -1344,7 +1344,7 @@ void Lua_V2::ActorActivateShadow() {
 
 	if (lua_isstring(shadowObj)) {
 		LString shadowName = lua_getstring(shadowObj);
-		Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (!currentRoom) {
 			warning("Lua_V2::ActorActivateShadow(): there is no current room");
@@ -1364,7 +1364,7 @@ void Lua_V2::ShutUpActor() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		actor->shutUp(true);
@@ -1377,7 +1377,7 @@ void Lua_V2::EnableActorPuck() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		actor->enablePuck(luaFtol(lua_getnumber(enableObj)) != 0);
@@ -1391,14 +1391,14 @@ void Lua_V2::SetActorGlobalAlpha() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
 
 	if (actor->instances.empty()) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetActorGlobalAlpha: Actor isn't wearing any primitives!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("SetActorGlobalAlpha: Actor isn't wearing any primitives!\n");
 		else
 			warning("SetActorGlobalAlpha: Actor isn't wearing any primitives!");
 
@@ -1450,14 +1450,14 @@ void Lua_V2::SetActorLocalAlpha() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
 
 	if (actor->instances.empty()) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("SetActorLocalAlpha: Actor isn't wearing any primitives!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("SetActorLocalAlpha: Actor isn't wearing any primitives!\n");
 		else
 			warning("SetActorLocalAlpha: Actor isn't wearing any primitives!");
 
@@ -1569,7 +1569,7 @@ void Lua_V2::GetActorSortOrder() {
 		return;
 
 	Actor *actor = getActor(actorObj, "GetActorSortOrder");
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!actor)
 		return;
@@ -1591,8 +1591,8 @@ void Lua_V2::AttachActor() {
 	if (!isActor(actorObj) || !isActor(parentObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
-	Actor *parent = Actor::actorDeref(lua_getuserdata(parentObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
+	Actor *parent = Actor::actorDeref(_engine, lua_getuserdata(parentObj));
 
 	if (!actor || !parent)
 		return;
@@ -1636,7 +1636,7 @@ void Lua_V2::DetachActor() {
 	lua_Object actorObj = lua_getparam(1);
 
 	// The disasm does not check the type of the parameter
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -1654,10 +1654,10 @@ void Lua_V2::DetachActor() {
 	actor->nodeFlags = (actor->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	actor->updateLocalState();
 
-	Actor *parent = Actor::actorDeref(actor->parentActorId);
+	Actor *parent = Actor::actorDeref(_engine, actor->parentActorId);
 
 	if (parent) {
-		Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom)
 			actor->sortOrder = parent->getSortOrder(currentRoom->currentSetup);
@@ -1684,7 +1684,7 @@ void Lua_V2::IsActorInSector() {
 
 	Actor *actor = getActor(actorObj, "IsActorInSector");
 	LString planeName = lua_getstring(nameObj);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!actor || !currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::IsActorInSector(): missing actor or walk planes");
@@ -1720,7 +1720,7 @@ void Lua_V2::GetActorSector() {
 	if (!isActor(actorObj) || !lua_isnumber(typeObj))
 		return;
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 	Actor *actor = getActor(actorObj, "GetActorSector");
 
 	if (!actor || !currentRoom || !currentRoom->walkPlanes) {
@@ -1764,7 +1764,7 @@ void Lua_V2::IsPointInSector() {
 	point[1] = lua_getnumber(yObj);
 	point[2] = lua_getnumber(zObj);
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::IsPointInSector(): missing walk planes");
@@ -1809,7 +1809,7 @@ void Lua_V2::GetPointSector() {
 	point[1] = lua_getnumber(yObj);
 	point[2] = lua_getnumber(zObj);
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::GetPointSector(): missing walk planes");
@@ -1851,7 +1851,7 @@ void Lua_V2::GetActorRot() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor)
 		return;
@@ -2103,7 +2103,7 @@ void Lua_V2::TurnActorTo() {
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
-	float turnStep = EmiEngine::getFrameTime() * turnRate;
+	float turnStep = _engine->getFrameTime() * turnRate;
 	float turned = actor->extra->puck->pointAt(target, turnStep);
 
 	if (turned < 0.0f)
@@ -2127,7 +2127,7 @@ void Lua_V2::PlayActorChore() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!lua_isstring(choreObj) || !lua_isstring(choreSetObj)) {
 		lua_pushnil();
@@ -2156,14 +2156,14 @@ void Lua_V2::PlayActorChore() {
 	uint instanceId = *actor->startChore(&startedId, choreName, choreSetName);
 
 	if (!(fadeSeconds > 0.0f)) {
-		if (ChoreInstance::isInstanceValid(instanceId))
-			ChoreInstance::getInstance(instanceId)->setPlaying();
-	} else if (ChoreInstance::isInstanceValid(instanceId)) {
-		ChoreInstance::getInstance(instanceId)->fadeIn(fadeSeconds);
+		if (ChoreInstance::isInstanceValid(_engine, instanceId))
+			ChoreInstance::getInstance(_engine, instanceId)->setPlaying();
+	} else if (ChoreInstance::isInstanceValid(_engine, instanceId)) {
+		ChoreInstance::getInstance(_engine, instanceId)->fadeIn(fadeSeconds);
 	}
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->setLooping(looping);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->setLooping(looping);
 
 	lua_pushnumber((float)instanceId);
 }
@@ -2176,7 +2176,7 @@ void Lua_V2::PlayActorChoreLooping() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!lua_isstring(choreObj) || !lua_isstring(choreSetObj)) {
 		lua_pushnil();
@@ -2195,11 +2195,11 @@ void Lua_V2::PlayActorChoreLooping() {
 	uint startedId;
 	uint instanceId = *actor->startChore(&startedId, choreName, choreSetName);
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->setPlaying();
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->setPlaying();
 
-	if (ChoreInstance::isInstanceValid(instanceId))
-		ChoreInstance::getInstance(instanceId)->setLooping(true);
+	if (ChoreInstance::isInstanceValid(_engine, instanceId))
+		ChoreInstance::getInstance(_engine, instanceId)->setLooping(true);
 
 	lua_pushnumber((float)instanceId);
 }
@@ -2250,7 +2250,7 @@ void Lua_V2::GetActorChores() {
 		return;
 	}
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
 		lua_pushnil();
@@ -2284,7 +2284,7 @@ void Lua_V2::StopActorChores() {
 	if (!isActor(actorObj))
 		return;
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		actor->stopChores(!lua_isnil(skipLoopingObj));
@@ -2294,7 +2294,7 @@ void Lua_V2::IsSectorActive() {
 	lua_Object sectorObj = lua_getparam(1);
 
 	if (lua_isnumber(sectorObj) || lua_isstring(sectorObj)) {
-		Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom && currentRoom->walkPlanes) {
 			WalkPlane_v2 *plane;
@@ -2325,7 +2325,7 @@ void Lua_V2::MakeSectorActive() {
 		return;
 
 	lua_Object activeObj = lua_getparam(2);
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::MakeSectorActive(): missing room or walk planes");
@@ -2364,7 +2364,7 @@ void Lua_V2::GetSectorOppositeEdge() {
 		return;
 	}
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::GetSectorOppositeEdge(): missing room or walk planes");
@@ -2398,8 +2398,8 @@ void Lua_V2::GetSectorName() {
 	point[2] = 0.0f;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetSectorName: one or more of x, y, z is not a number!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("GetSectorName: one or more of x, y, z is not a number!\n");
 		else
 			warning("GetSectorName: one or more of x, y, z is not a number!");
 
@@ -2412,7 +2412,7 @@ void Lua_V2::GetSectorName() {
 	point[1] = lua_getnumber(yObj);
 	point[2] = lua_getnumber(zObj);
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom || !currentRoom->walkPlanes) {
 		warning("Lua_V2::GetSectorName(): missing room or walk planes");
@@ -2442,8 +2442,8 @@ void Lua_V2::GetAngleBetweenActors() {
 		return;
 	}
 
-	Actor *first = Actor::actorDeref(lua_getuserdata(firstObj));
-	Actor *second = Actor::actorDeref(lua_getuserdata(secondObj));
+	Actor *first = Actor::actorDeref(_engine, lua_getuserdata(firstObj));
+	Actor *second = Actor::actorDeref(_engine, lua_getuserdata(secondObj));
 
 	if (!first || !second) {
 		lua_pushnil();

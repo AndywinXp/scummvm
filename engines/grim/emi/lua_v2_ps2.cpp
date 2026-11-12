@@ -58,12 +58,12 @@ void Lua_V2::SetReplayMode() {
 		return;
 	}
 
-	Sounds::killMusicAndWait(false);
+	_engine->getSounds()->killMusicAndWait(false);
 }
 
 void Lua_V2::GetReplayMode() {
-	if (InputRecorder::instance)
-		lua_pushnumber((float)InputRecorder::instance->mode);
+	if (_engine->getInputRecorder())
+		lua_pushnumber((float)_engine->getInputRecorder()->mode);
 }
 
 void Lua_V2::GetNextDemoNum() {
@@ -81,7 +81,7 @@ void Lua_V2::DeleteSavedGame() {
 		return;
 
 	// When the last save is deleted the card id goes back to 2, like a removed folder
-	if (EmiEngine::deleteSaveFile(lua_getstring(nameObj)))
+	if (_engine->deleteSaveFile(lua_getstring(nameObj)))
 		lua_pushnumber(1.0f);
 }
 
@@ -92,17 +92,17 @@ void Lua_V2::CopySavedGame() {
 	if (!lua_isstring(sourceObj) || !lua_isstring(targetObj))
 		return;
 
-	if (EmiEngine::copySaveFile(lua_getstring(sourceObj), lua_getstring(targetObj)))
+	if (_engine->copySaveFile(lua_getstring(sourceObj), lua_getstring(targetObj)))
 		lua_pushnumber(1.0f);
 }
 
 void Lua_V2::JustSaved() {
-	if (static_cast<EmiEngine *>(g_grim)->justSaved())
+	if (_engine->justSaved())
 		lua_pushnumber(1.0f);
 }
 
 void Lua_V2::GetMemoryCardId() {
-	lua_pushnumber((float)EmiEngine::getMemoryCardId());
+	lua_pushnumber((float)_engine->getMemoryCardId());
 }
 
 void Lua_V2::GetUniqueUint() {
@@ -118,17 +118,17 @@ void Lua_V2::SetActorTessellation() {
 	lua_Object modeObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logDebug("SetActorTessellation: Invalid parameter.\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("SetActorTessellation: Invalid parameter.\n");
 
 		return;
 	}
 
-	Actor *actor = Actor::actorDeref(lua_getuserdata(actorObj));
+	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
-		if (gpConsoleServices)
-			gpConsoleServices->logDebug("SetActorTessellation: Invalid Actor handle.\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("SetActorTessellation: Invalid Actor handle.\n");
 
 		return;
 	}
@@ -141,8 +141,8 @@ void Lua_V2::SetActorTessellation() {
 			actor->drawFlags |= RNode::kTessellation;
 		else
 			actor->drawFlags &= ~(uint)RNode::kTessellation;
-	} else if (gpConsoleServices) {
-		gpConsoleServices->logDebug("SetActorTessellation: Invalid parameter.\n");
+	} else if (_engine->getConsoleServices()) {
+		_engine->getConsoleServices()->logDebug("SetActorTessellation: Invalid parameter.\n");
 	}
 }
 
@@ -152,11 +152,11 @@ void Lua_V2::IsActorChoring() {
 	Actor *actor = nullptr;
 
 	if (isActor(actorObj))
-		actor = Actor::actorDeref(lua_getuserdata(actorObj));
+		actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
-		if (gpConsoleServices)
-			gpConsoleServices->logDebug("GetActorChores: Invalid actor handle.\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("GetActorChores: Invalid actor handle.\n");
 
 		lua_pushnil();
 
@@ -174,10 +174,10 @@ void Lua_V2::IsActorChoring() {
 		if (!choreId)
 			break;
 
-		if (!ChoreInstance::isInstanceValid(choreId) || !ChoreInstance::getInstance(choreId)->isPlaying())
+		if (!ChoreInstance::isInstanceValid(_engine, choreId) || !ChoreInstance::getInstance(_engine, choreId)->isPlaying())
 			continue;
 
-		if (!ChoreInstance::isInstanceValid(choreId) || !ChoreInstance::getInstance(choreId)->isLooping() || !skipLooping)
+		if (!ChoreInstance::isInstanceValid(_engine, choreId) || !ChoreInstance::getInstance(_engine, choreId)->isLooping() || !skipLooping)
 			choring = true;
 	}
 
@@ -191,8 +191,8 @@ void Lua_V2::ApplyForceFeedback() {
 	lua_Object controllerObj = lua_getparam(1);
 
 	if (!lua_isnumber(controllerObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logDebug("GetControlState: Invalid control (non-numerical).\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("GetControlState: Invalid control (non-numerical).\n");
 
 		return;
 	}
@@ -211,7 +211,7 @@ void Lua_V2::SetStereoAudio() {
 	if (!lua_isnil(stereoObj))
 		stereo = lua_getnumber(stereoObj) != 0.0f;
 
-	Sounds::setStereoAudio(stereo);
+	_engine->getSounds()->setStereoAudio(stereo);
 }
 
 void Lua_V2::pspu() {
@@ -219,29 +219,29 @@ void Lua_V2::pspu() {
 }
 
 void Lua_V2::dsnd() {
-	if (gpConsoleServices)
-		gpConsoleServices->logDebug("Debug LECAudio:  0->off, 1->Level 1, 2->Level 2 (streams), 3->Level 3\n");
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logDebug("Debug LECAudio:  0->off, 1->Level 1, 2->Level 2 (streams), 3->Level 3\n");
 
 	// The IOP debug level is not ported
 }
 
 void Lua_V2::KillMusicAndWait() {
-	Sounds::killMusicAndWait(lua_isnil(lua_getparam(1)));
+	_engine->getSounds()->killMusicAndWait(lua_isnil(lua_getparam(1)));
 }
 
 void Lua_V2::OverWorldToScreen() {
 	lua_Object xObj = lua_getparam(1);
 	lua_Object yObj = lua_getparam(2);
 	lua_Object zObj = lua_getparam(3);
-	Camera camera;
+	Camera camera(_engine->getDrawContext());
 
 	camera.setLocalPosition(CVector());
 	camera.nearClip = kOverworldNearClip;
 	camera.farClip = kOverworldFarClip;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logDebug("OverworldWorldToScreen: Parameters must be x, y, z coords.\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("OverworldWorldToScreen: Parameters must be x, y, z coords.\n");
 
 		return;
 	}
@@ -269,7 +269,7 @@ void Lua_V2::OverWorldToScreen() {
 	float screenX = camera.halfWidth + inverseDepth * (pointX * camera.focalX);
 	float screenY = camera.halfHeight + inverseDepth * (-pointY * camera.focalY);
 
-	if (!CDrawContext::context || screenX < 0.0f || !(screenX <= kPs2ScreenWidth) || screenY < 0.0f || !(screenY <= kPs2ScreenHeight)) {
+	if (!_engine->getDrawContext() || screenX < 0.0f || !(screenX <= kPs2ScreenWidth) || screenY < 0.0f || !(screenY <= kPs2ScreenHeight)) {
 		lua_pushnil();
 		lua_pushnil();
 
@@ -285,8 +285,8 @@ void Lua_V2::SetVScanOffsets() {
 	lua_Object yObj = lua_getparam(2);
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj)) {
-		if (gpConsoleServices)
-			gpConsoleServices->logWarning("SetVScanOffsets() - invalid params");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logWarning("SetVScanOffsets() - invalid params");
 
 		return;
 	}
@@ -304,8 +304,8 @@ void Lua_V2::UnimplementedFunctionPs2() {
 		name = "";
 	}
 
-	if (gpConsoleServices)
-		gpConsoleServices->logWarning("UNIMPLEMENTED FUNCTION: %s\n", name);
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logWarning("UNIMPLEMENTED FUNCTION: %s\n", name);
 
 	lua_printstack(nullptr);
 }
@@ -320,8 +320,8 @@ void Lua_V2::obsoleteFunctionPs2() {
 		name = "";
 	}
 
-	if (gpConsoleServices)
-		gpConsoleServices->logWarning("OBSOLETE FUNCTION: %s\n", name);
+	if (_engine->getConsoleServices())
+		_engine->getConsoleServices()->logWarning("OBSOLETE FUNCTION: %s\n", name);
 
 	lua_printstack(nullptr);
 }

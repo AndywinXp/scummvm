@@ -33,53 +33,58 @@ class CAudioChannel;
 class CAudioDevice;
 class CNode;
 class CSoundCue;
+class EmiEngine;
+class EMIMilesDriver;
+class Sounds;
 
 class AudioSystem {
 public:
-	typedef void LipCallback(const char *soundName, CSoundCue *cue);
-
-	AudioSystem();
+	explicit AudioSystem(Sounds *sounds);
 	~AudioSystem();
 
 	void *operator new(size_t size);
 	void operator delete(void *block);
 
-	static bool createAudioDevice();
-	static void destroyAudioDevice();
-	static void updateAudioDevice();
-	static CAudioChannel *allocateAudioChannel(CSoundCue *cue);
-	static void setAudioListener(CNode *node);
-	static bool isCueInRange(CSoundCue *cue);
-	static float setMasterGain(float gain);
-	static float getMasterGain();
-	static float setCategoryGain(int category, float gain);
-	static float getCategoryGain(int category);
-	static void setGlobalReverbEnabled(int enabled);
-	static bool setGlobalReverb(int preset, const float *first, const float *second, const float *third, const float *fourth, const float *fifth);
-	static bool getGlobalReverb(int *preset, float *first, float *second, float *third, float *fourth, float *fifth);
-	static bool setSonyReverb(int type, int depth, int delay, int feedback);
-	static bool setAudioDevicePreference(const uint16 *preference);
-	static void stopAllChannels();
-	static bool saveAudioSettings(tSaveRestoreAccess *access);
-	static bool restoreAudioSettings(tSaveRestoreAccess *access);
+	bool createAudioDevice();
+	void destroyAudioDevice();
+	void updateAudioDevice();
+	CAudioChannel *allocateAudioChannel(CSoundCue *cue);
+	void setAudioListener(CNode *node);
+	bool isCueInRange(CSoundCue *cue);
+	float setMasterGain(float gain);
+	float getMasterGain();
+	float setCategoryGain(int category, float gain);
+	float getCategoryGain(int category);
+	void setGlobalReverbEnabled(int enabled);
+	bool setGlobalReverb(int preset, const float *first, const float *second, const float *third, const float *fourth, const float *fifth);
+	bool getGlobalReverb(int *preset, float *first, float *second, float *third, float *fourth, float *fifth);
+	bool setSonyReverb(int type, int depth, int delay, int feedback);
+	bool setAudioDevicePreference(const uint16 *preference);
+	void stopAllChannels();
+	bool saveAudioSettings(tSaveRestoreAccess *access);
+	bool restoreAudioSettings(tSaveRestoreAccess *access);
+	EMIMilesDriver *getMilesDriver();
 
-	static int16 refCount;
-	static LipCallback *lipCallback;
-	static int debugLevel;
-	static bool audioAvailable;
-	static bool digitalHandleReleased;
-	static CAudioDevice *device;
-	static int reverbPreset;
-	static float reverbValues[5];
-	static byte reverbEnabled;
-	static int sonyReverbType;
-	static int sonyReverbDepth;
-	static int sonyReverbDelay;
-	static int sonyReverbFeedback;
-	static CNodeRef listener;
-	static float masterGain;
-	static float categoryGain[3];
-	static uint16 devicePreference;
+	int16 refCount;
+	int debugLevel;
+	bool audioAvailable;
+	bool digitalHandleReleased;
+	CAudioDevice *device;
+	int reverbPreset;
+	float reverbValues[5];
+	byte reverbEnabled;
+	int sonyReverbType;
+	int sonyReverbDepth;
+	int sonyReverbDelay;
+	int sonyReverbFeedback;
+	CNodeRef listener;
+	float masterGain;
+	float categoryGain[3];
+	uint16 devicePreference;
+
+private:
+	Sounds *_sounds;
+	EmiEngine *_engine;
 };
 
 } // End of namespace Grim

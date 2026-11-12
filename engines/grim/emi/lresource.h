@@ -29,6 +29,7 @@
 
 namespace Grim {
 
+class EmiEngine;
 class LResourceHandleBase;
 
 class LResourceType {
@@ -77,6 +78,9 @@ public:
 	void resSetType(const LResourceType &newType);
 	void resReplaceResource(LResource &other);
 
+	void bindEngine(EmiEngine *engine);
+	EmiEngine *getEngine() const;
+
 	LResourceType type;
 	LString name;
 	Common::List<LResourceHandleBase *> handles;
@@ -89,6 +93,8 @@ public:
 
 protected:
 	virtual bool resLoadItem(const char *itemName);
+
+	EmiEngine *_engine;
 };
 
 class LResourceManager {
@@ -109,8 +115,6 @@ public:
 	virtual void lockResource(LResource *resource);
 	virtual void unlockResource(LResource *resource);
 };
-
-extern LResourceManager *gpResourceManager;
 
 } // End of namespace Grim
 

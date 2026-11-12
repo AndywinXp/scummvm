@@ -104,9 +104,6 @@ static const Ps2ScreenRegion kPs2ScreenRegions[kNumPs2ScreenTextures] = {
 	{ 128, 256, 0.6f, 1.0f, 0.0f, 1.0f }
 };
 
-ZFile *EmiEngine::_saveFile = nullptr;
-LABitmap *EmiEngine::_screenBitmap = nullptr;
-
 Common::Error EmiEngine::loadGameState(int slot) {
 	assert(slot >= 0);
 
@@ -133,7 +130,7 @@ Common::String EmiEngine::getSaveFileName(const char *path) {
 	if (name.hasPrefixIgnoreCase("saves/"))
 		name = name.substr(6);
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (getGamePlatform() == Common::kPlatformPS2) {
 		// Scripts use slot names like efmi000 without an extension; PS2 files get their own prefix so they never clash with PC saves
 		if (name.size() > 4 && name.hasPrefixIgnoreCase("efmi") && Common::isDigit(name[4]))
 			name = "efmi-ps2" + name.substr(4);
@@ -154,7 +151,7 @@ LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
 
 	Common::String saveName = getSaveFileName(fileName);
 	Common::SaveFileManager *saveFileManager = g_system->getSavefileManager();
-	LFile *file = new LFile();
+	LFile *file = new LFile(this);
 
 	if (strchr(mode, 'w')) {
 		file->writeStream = saveFileManager->openForSaving(saveName, false);
@@ -171,7 +168,7 @@ LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
 
 	file->fileName = saveName;
 
-	ZFile *zFile = ZFileServices::get()->createZFile(file, mode);
+	ZFile *zFile = _zFileServices->createZFile(file, mode);
 
 	if (!zFile) {
 		delete file;
@@ -184,32 +181,37 @@ LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
 
 void EmiEngine::closeSaveFile(LFile *file) {
 	if (file)
-		ZFileServices::get()->closeZFile(static_cast<ZFile *>(file));
+		_zFileServices->closeZFile(static_cast<ZFile *>(file));
 }
 
+// The Lua and sound code take plain function pointers, so these two reach the engine through g_grim
 int EmiEngine::writeSaveData(void *data, int bytes) {
+	EmiEngine *engine = static_cast<EmiEngine *>(g_grim);
+
 	if (bytes) {
-		if (!_saveFile) {
+		if (!engine->_saveFile) {
 			warning("EmiEngine::writeSaveData(): no save file");
 
 			return 1;
 		}
 
-		_saveFile->writeCompressed(data, bytes);
+		engine->_saveFile->writeCompressed(data, bytes);
 	}
 
 	return 1;
 }
 
 int EmiEngine::readSaveData(void *data, int bytes) {
+	EmiEngine *engine = static_cast<EmiEngine *>(g_grim);
+
 	if (bytes) {
-		if (!_saveFile) {
+		if (!engine->_saveFile) {
 			warning("EmiEngine::readSaveData(): no save file");
 
 			return 1;
 		}
 
-		_saveFile->read(data, bytes);
+		engine->_saveFile->read(data, bytes);
 	}
 
 	return 1;
@@ -241,7 +243,7 @@ bool EmiEngine::readSavedText(char *buffer, int bufferSize) {
 
 LABitmap *EmiEngine::getScreenBitmap() {
 	if (!_screenBitmap)
-		_screenBitmap = new LABitmap();
+		_screenBitmap = new LABitmap(this);
 
 	return _screenBitmap;
 }
@@ -332,7 +334,7 @@ void EmiEngine::scaleToThumbnail(LABitmap *source, LABitmap *destination) {
 }
 
 bool EmiEngine::grabScreen() {
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext) {
 		warning("EmiEngine::grabScreen(): no draw context");
@@ -346,7 +348,7 @@ bool EmiEngine::grabScreen() {
 }
 
 bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext) {
 		warning("EmiEngine::makeThumbnailTexture(): no draw context");
@@ -354,7 +356,7 @@ bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
 		return false;
 	}
 
-	LABitmap screen;
+	LABitmap screen(this);
 	LColorFormat rgbFormat(6);
 
 	drawContext->readBackBuffer(&screen);
@@ -364,7 +366,7 @@ bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
 
 	screen.convertFormat(rgbFormat);
 
-	LABitmap halved;
+	LABitmap halved(this);
 
 	halveBitmap(&screen, &halved);
 	halveBitmap(&halved, &screen);
@@ -379,7 +381,7 @@ bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
 	while (height < screen.height)
 		height *= 2;
 
-	LABitmap texture(width, height, screen.colorFormat, nullptr, false);
+	LABitmap texture(this, width, height, screen.colorFormat, nullptr, false);
 	const byte *sourcePixels = (const byte *)screen.pixels;
 	byte *targetPixels = (byte *)texture.pixels;
 
@@ -396,7 +398,7 @@ bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
 }
 
 bool EmiEngine::loadThumbnailTexture(int index, const char *fileName) {
-	LABitmap bitmap;
+	LABitmap bitmap(this);
 	LColorFormat rgbFormat(6);
 
 	bitmap.create(kThumbnailTextureWidth, kThumbnailTextureHeight, rgbFormat, nullptr);
@@ -426,19 +428,19 @@ bool EmiEngine::loadThumbnailTexture(int index, const char *fileName) {
 	closeSaveFile(_saveFile);
 	_saveFile = nullptr;
 
-	if (!CDrawContext::context) {
+	if (!_drawContext) {
 		warning("EmiEngine::loadThumbnailTexture(): no draw context");
 
 		return false;
 	}
 
-	CDrawContext::context->setCachedTexture(index, &bitmap);
+	_drawContext->setCachedTexture(index, &bitmap);
 
 	return true;
 }
 
 bool EmiEngine::buildSpecScreenTextures(int index) {
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext) {
 		warning("EmiEngine::buildSpecScreenTextures(): no draw context");
@@ -448,7 +450,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 
 	int bytesPerPixel = drawContext->displayMode.bpp / 8;
 	uint bufferSize = (uint)(kScreenWidth * kScreenBufferHeight * bytesPerPixel) * sizeof(char);
-	char *buffer = (char *)gpMemoryServices->mallocImpl(bufferSize);
+	char *buffer = (char *)_memoryServices->mallocImpl(bufferSize);
 
 	if (!buffer) {
 		warning("EmiEngine::buildSpecScreenTextures(): out of memory");
@@ -462,16 +464,16 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 
 	LColorFormat format(bytesPerPixel == 4 ? LColorFormat::format9 : LColorFormat::format5);
 
-	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+	if (getGamePlatform() == Common::kPlatformPS2) {
 		for (int i = 0; i < kNumPs2ScreenTextures; i++) {
 			const Ps2ScreenRegion &region = kPs2ScreenRegions[i];
-			LABitmap bitmap(region.width, region.height, format, nullptr, false);
+			LABitmap bitmap(this, region.width, region.height, format, nullptr, false);
 
 			readScreenRegion(&bitmap, buffer, bytesPerPixel, region.startX, region.endX, region.startY, region.endY);
 			drawContext->setCachedTexture(index + i, &bitmap);
 		}
 
-		gpMemoryServices->freeImpl(buffer);
+		_memoryServices->freeImpl(buffer);
 
 		return true;
 	}
@@ -491,7 +493,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 		}
 	}
 
-	gpMemoryServices->freeImpl(buffer);
+	_memoryServices->freeImpl(buffer);
 
 	return true;
 }
@@ -529,13 +531,13 @@ void EmiEngine::readScreenRegion(LABitmap *bitmap, const char *buffer, int bytes
 }
 
 bool EmiEngine::clearTextureSlot(int index) {
-	if (!CDrawContext::context) {
+	if (!_drawContext) {
 		warning("EmiEngine::clearTextureSlot(): no draw context");
 
 		return false;
 	}
 
-	LABitmap bitmap;
+	LABitmap bitmap(this);
 	LColorFormat format(9);
 
 	bitmap.create(2, 2, format, nullptr);
@@ -547,7 +549,7 @@ bool EmiEngine::clearTextureSlot(int index) {
 			pixels[i] = 0xFFFFFFFF;
 	}
 
-	return CDrawContext::context->setCachedTexture(index, &bitmap);
+	return _drawContext->setCachedTexture(index, &bitmap);
 }
 
 void EmiEngine::saveGame(CDrawContext *drawContext) {
@@ -562,11 +564,11 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 	bool fileOpened = _saveFile != nullptr;
 
 	if (_saveFile) {
-		Lua_V2::saveGameCallback(writeSaveData);
+		_lua->saveGameCallback(writeSaveData);
 
 		LString version;
 
-		Lua_V2::getVersion(version);
+		_lua->getVersion(version);
 
 		int length = (int)version.size() + 1;
 
@@ -579,7 +581,7 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 		screen->convertFormat(rgbFormat);
 
 		if (isPs2) {
-			LABitmap thumbnail;
+			LABitmap thumbnail(this);
 
 			scaleToThumbnail(screen, &thumbnail);
 
@@ -588,7 +590,7 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 			writeSaveData(&imageSize, sizeof(imageSize));
 			writeSaveData(thumbnail.pixels, imageSize);
 		} else {
-			LABitmap halved;
+			LABitmap halved(this);
 
 			halveBitmap(screen, &halved);
 			halveBitmap(&halved, screen);
@@ -603,7 +605,7 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 			while (height < screen->height)
 				height *= 2;
 
-			LABitmap thumbnail(width, height, screen->colorFormat, nullptr, false);
+			LABitmap thumbnail(this, width, height, screen->colorFormat, nullptr, false);
 			const byte *sourcePixels = (const byte *)screen->pixels;
 			byte *targetPixels = (byte *)thumbnail.pixels;
 
@@ -625,12 +627,12 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 		writeSaveData(&length, sizeof(length));
 		writeSaveData((void *)_island.c_str(), length);
 
-		Room_v2::saveCurrentRoom(writeSaveData);
-		Actor::saveActors(writeSaveData);
-		TextEvent::saveAll(writeSaveData);
-		Sounds::saveSounds(writeSaveData);
-		Sounds::saveMusicState(writeSaveData);
-		Lua_V2::saveLocks(writeSaveData);
+		Room_v2::saveCurrentRoom(this, writeSaveData);
+		Actor::saveActors(this, writeSaveData);
+		TextEvent::saveAll(this, writeSaveData);
+		_sounds->saveSounds(writeSaveData);
+		_sounds->saveMusicState(writeSaveData);
+		_lua->saveLocks(writeSaveData);
 		lua_Save(writeSaveData);
 	}
 
@@ -640,14 +642,14 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 	if (isPs2) {
 		// The card id is created with the first save, like the card folder on PS2
 		if (!fileOpened) {
-			if (gpConsoleServices)
-				gpConsoleServices->logDebug("ERROR: could not access memory card\n");
+			if (_consoleServices)
+				_consoleServices->logDebug("ERROR: could not access memory card\n");
 		} else if (cardWasEmpty && !writeMemoryCardId(Lua_V2::getClockUniqueUint())) {
-			if (gpConsoleServices)
-				gpConsoleServices->logDebug("ERROR: Save to memory card FAILED\n");
+			if (_consoleServices)
+				_consoleServices->logDebug("ERROR: Save to memory card FAILED\n");
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logDebug("Save to memory card SUCCESS\n");
+			if (_consoleServices)
+				_consoleServices->logDebug("Save to memory card SUCCESS\n");
 
 			_libJustSaved = 1;
 		}
@@ -672,21 +674,21 @@ void EmiEngine::loadGame(CDrawContext *drawContext) {
 		Lua_V2::static_NukeAllScriptLocks();
 
 		if (getGamePlatform() == Common::kPlatformPS2) {
-			Sounds::stopAllForLoad();
+			_sounds->stopAllForLoad();
 		} else {
-			Sounds::stopAllMusic();
-			Sounds::releaseAllSounds();
+			_sounds->stopAllMusic();
+			_sounds->releaseAllSounds();
 		}
 
-		ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
+		ResourceManager *resourceManager = _gameResourceManager;
 
 		if (resourceManager) {
-			Overworld::getInstance()->clearActors();
-			Actor::freeAllActors();
-			Room_v2::loadRoom(nullptr);
+			getOverworld()->clearActors();
+			Actor::freeAllActors(this);
+			Room_v2::loadRoom(this, nullptr);
 
 			if (!_island.empty())
-				CBundleServices::closeIslandBundles(_island.c_str());
+				_bundleServices->closeIslandBundles(_island.c_str());
 
 			resourceManager->purgeAll();
 
@@ -698,21 +700,21 @@ void EmiEngine::loadGame(CDrawContext *drawContext) {
 			_island = text;
 
 			if (!_island.empty())
-				CBundleServices::openIslandBundles(_island.c_str());
+				_bundleServices->openIslandBundles(_island.c_str());
 
-			Room_v2::restoreCurrentRoom(readSaveData);
-			Actor::restoreActors(readSaveData);
-			TextEvent::restoreAll(readSaveData);
-			Sounds::restoreSounds(readSaveData);
-			Sounds::restoreMusicState(readSaveData);
-			Lua_V2::restoreLocks(readSaveData);
+			Room_v2::restoreCurrentRoom(this, readSaveData);
+			Actor::restoreActors(this, readSaveData);
+			TextEvent::restoreAll(this, readSaveData);
+			_sounds->restoreSounds(readSaveData);
+			_sounds->restoreMusicState(readSaveData);
+			_lua->restoreLocks(readSaveData);
 
 			// PS2 load keeps restored sounds unlocked
 			if (getGamePlatform() != Common::kPlatformPS2)
-				Sounds::releaseUnlockedSounds();
+				_sounds->releaseUnlockedSounds();
 
 			lua_Restore(readSaveData);
-			Lua_V2::updateJoySelected();
+			_lua->updateJoySelected();
 			_libJustLoaded = 1;
 		}
 	}
@@ -855,8 +857,8 @@ bool EmiEngine::justSaved() {
 	if (!_libJustSaved)
 		return false;
 
-	if (gpConsoleServices)
-		gpConsoleServices->logDebug("SAVEGAME: telling scripts just saved.\n");
+	if (_consoleServices)
+		_consoleServices->logDebug("SAVEGAME: telling scripts just saved.\n");
 
 	_libJustSaved = 0;
 

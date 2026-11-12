@@ -39,7 +39,7 @@ namespace Grim {
 static const float kDefaultDimAlpha = 0.7f;
 
 CLightNode *Lua_V2::getLightArg(int paramNumber, const char *opcodeName) {
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
 		warning("%s: no current room!", opcodeName);
@@ -104,7 +104,7 @@ void Lua_V2::SetLightPosition() {
 }
 
 void Lua_V2::GammaEnabled() {
-	if (EmiEngine::hasGammaControl())
+	if (_engine->hasGammaControl())
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -114,7 +114,7 @@ void Lua_V2::SetGamma() {
 	lua_Object gammaObj = lua_getparam(1);
 
 	if (lua_isnumber(gammaObj))
-		EmiEngine::setGamma(lua_getnumber(gammaObj));
+		_engine->setGamma(lua_getnumber(gammaObj));
 }
 
 void Lua_V2::SetPixelCenter() {
@@ -123,7 +123,7 @@ void Lua_V2::SetPixelCenter() {
 	if (!lua_isnumber(centerObj))
 		return;
 
-	Room_v2 *currentRoom = Room_v2::getCurrentRoom();
+	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom)
 		return;
@@ -131,7 +131,7 @@ void Lua_V2::SetPixelCenter() {
 	if (!currentRoom->getSetupCamera(-1))
 		return;
 
-	CDrawContext *drawContext = CDrawContext::context;
+	CDrawContext *drawContext = _engine->getDrawContext();
 
 	if (!drawContext)
 		return;
@@ -156,7 +156,7 @@ void Lua_V2::LoadBundle() {
 		return;
 	}
 
-	if (EmiEngine::setIsland(islandName))
+	if (_engine->setIsland(islandName))
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -165,23 +165,23 @@ void Lua_V2::LoadBundle() {
 void Lua_V2::RenderModeUser() {
 	lua_Object modeObj = lua_getparam(1);
 	lua_Object soundObj = lua_getparam(2);
-	int mode = EmiEngine::getMode();
+	int mode = _engine->getMode();
 
 	if (lua_isnil(modeObj) && mode == EmiEngine::kModeOverworld) {
-		Movie::resumeCurrent();
+		Movie::resumeCurrent(_engine);
 
 		if (lua_isnil(soundObj))
-			Sounds::resumeAll();
+			_engine->getSounds()->resumeAll();
 
-		EmiEngine::setMode(EmiEngine::getSavedMode());
+		_engine->setMode(_engine->getSavedMode());
 	} else if (!lua_isnil(modeObj) && mode != EmiEngine::kModeOverworld) {
-		EmiEngine::setSavedMode(mode);
-		Movie::pauseCurrent();
+		_engine->setSavedMode(mode);
+		Movie::pauseCurrent(_engine);
 
 		if (lua_isnil(soundObj))
-			Sounds::pauseAll();
+			_engine->getSounds()->pauseAll();
 
-		EmiEngine::setMode(EmiEngine::kModeOverworld);
+		_engine->setMode(EmiEngine::kModeOverworld);
 		toggleStatsOverlay(true);
 	}
 }
@@ -198,9 +198,9 @@ void Lua_V2::DimScreen() {
 	int regionId;
 
 	if (lua_isnumber(alphaObj))
-		regionId = Grim::DimRegion::dimScreen(0, lua_getnumber(alphaObj));
+		regionId = Grim::DimRegion::dimScreen(_engine, 0, lua_getnumber(alphaObj));
 	else
-		regionId = Grim::DimRegion::dimScreen(0, kDefaultDimAlpha);
+		regionId = Grim::DimRegion::dimScreen(_engine, 0, kDefaultDimAlpha);
 
 	lua_pushnumber((float)(uint)regionId);
 }
@@ -220,21 +220,21 @@ void Lua_V2::DimRegion() {
 
 	float alpha = lua_getnumber(alphaObj);
 
-	lua_pushnumber((float)(uint)Grim::DimRegion::dimRegion(&region, alpha));
+	lua_pushnumber((float)(uint)Grim::DimRegion::dimRegion(_engine, &region, alpha));
 }
 
 void Lua_V2::UndimAll() {
-	Grim::DimRegion::undimAll();
+	Grim::DimRegion::undimAll(_engine);
 }
 
 void Lua_V2::UndimRegion() {
 	lua_Object regionObj = lua_getparam(1);
 
 	if (lua_isnumber(regionObj)) {
-		Grim::DimRegion::undimRegion(luaFtol(lua_getnumber(regionObj)));
+		Grim::DimRegion::undimRegion(_engine, luaFtol(lua_getnumber(regionObj)));
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("UndimRegion() - argument is not a dimregion id");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("UndimRegion() - argument is not a dimregion id");
 		else
 			warning("UndimRegion() - argument is not a dimregion id");
 
@@ -251,11 +251,11 @@ void Lua_V2::SetSpeechMode() {
 	int mode = luaFtol(lua_getnumber(modeObj));
 
 	if (mode >= 1 && mode <= 3)
-		Actor::setSpeechMode(mode);
+		Actor::setSpeechMode(_engine, mode);
 }
 
 void Lua_V2::GetSpeechMode() {
-	int mode = Actor::getSpeechMode();
+	int mode = Actor::getSpeechMode(_engine);
 
 	if ((mode & 2) != 0) {
 		if ((mode & 1) != 0) {
@@ -273,7 +273,7 @@ void Lua_V2::GetSpeechMode() {
 }
 
 void Lua_V2::GetCPUSpeed() {
-	lua_pushnumber((float)EmiEngine::getCpuSpeed());
+	lua_pushnumber((float)_engine->getCpuSpeed());
 }
 
 } // end of namespace Grim

@@ -21,6 +21,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/inputrecorder.h"
 #include "engines/grim/emi/joystick.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -40,14 +41,14 @@ void Lua_V2::makeControlsTable(int ref) {
 
 	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
 		lua_pushobject(controlsTable);
-		lua_pushstring(SputControl_v2::controlTable[i].name);
+		lua_pushstring(_engine->getControl()->controlTable[i].name);
 		lua_pushnumber((float)i);
 		lua_settable();
 	}
 
 	lua_pushobject(controlsTable);
 	lua_pushstring("joy_selected");
-	lua_pushnumber((float)(int)Joystick::joyId);
+	lua_pushnumber((float)(int)_engine->getJoystick()->joyId);
 	lua_settable();
 }
 
@@ -60,7 +61,7 @@ void Lua_V2::EnableControl() {
 		return;
 	}
 
-	SputControl_v2::enableControl((uint)luaFtol(lua_getnumber(controlObj)));
+	_engine->getControl()->enableControl((uint)luaFtol(lua_getnumber(controlObj)));
 }
 
 void Lua_V2::DisableControl() {
@@ -72,15 +73,15 @@ void Lua_V2::DisableControl() {
 		return;
 	}
 
-	SputControl_v2::disableControl((uint)luaFtol(lua_getnumber(controlObj)));
+	_engine->getControl()->disableControl((uint)luaFtol(lua_getnumber(controlObj)));
 }
 
 void Lua_V2::GetControlState() {
 	lua_Object controlObj = lua_getparam(1);
 
 	if (!lua_isnumber(controlObj)) {
-		if (g_grim->getGamePlatform() == Common::kPlatformPS2 && gpConsoleServices)
-			gpConsoleServices->logDebug("GetControlState: Invalid control (non-numerical).\n");
+		if (_engine->getGamePlatform() == Common::kPlatformPS2 && _engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("GetControlState: Invalid control (non-numerical).\n");
 
 		return;
 	}
@@ -88,15 +89,15 @@ void Lua_V2::GetControlState() {
 	int index = luaFtol(lua_getnumber(controlObj));
 
 	if ((uint)index >= (uint)SputControl_v2::kNumControls) {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("GetControlState: Invalid control %d.\n", index);
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("GetControlState: Invalid control %d.\n", index);
 		else
 			warning("GetControlState: Invalid control %d.", index);
 
 		return;
 	}
 
-	ControlEntry *control = &SputControl_v2::controlTable[index];
+	ControlEntry *control = &_engine->getControl()->controlTable[index];
 
 	if (control->flags & ControlEntry::kAxis)
 		lua_pushnumber(control->axisValue);
@@ -107,21 +108,13 @@ void Lua_V2::GetControlState() {
 }
 
 bool Lua_V2::buttonHandler(int vk, bool down) {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua) {
-		warning("Lua_V2::buttonHandler(): the system table is not ready");
-
-		return false;
-	}
-
 	bool pushSelf = false;
 	bool callHandler;
 	bool handled = false;
 	lua_Object function;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("buttonHandler");
 
 	lua_Object handler = lua_gettable();
@@ -136,8 +129,8 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 			pushSelf = true;
 			callHandler = true;
 		} else {
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Installed button handler table has no member func '%s'!\n", "buttonHandler");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("Installed button handler table has no member func '%s'!\n", "buttonHandler");
 			else
 				warning("Installed button handler table has no member func '%s'!", "buttonHandler");
 
@@ -147,8 +140,8 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 		function = handler;
 		callHandler = true;
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Installed button handler is invalid!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Installed button handler is invalid!\n");
 		else
 			warning("Installed button handler is invalid!");
 
@@ -158,19 +151,19 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 
 	uint index = 0;
 
-	while (index < (uint)SputControl_v2::kNumControls && vk != (int)SputControl_v2::controlTable[index].code)
+	while (index < (uint)SputControl_v2::kNumControls && vk != (int)_engine->getControl()->controlTable[index].code)
 		index++;
 
 	if (index < (uint)SputControl_v2::kNumControls) {
-		ControlEntry *control = &SputControl_v2::controlTable[index];
+		ControlEntry *control = &_engine->getControl()->controlTable[index];
 
-		if (SputControl_v2::isModifierKey(vk) && control->state == (byte)down) {
+		if (_engine->getControl()->isModifierKey(vk) && control->state == (byte)down) {
 			index = SputControl_v2::kNumControls;
 		} else {
 			control->state = down;
 
-			if (InputRecorder::instance)
-				InputRecorder::instance->recordKey(control, down);
+			if (_engine->getInputRecorder())
+				_engine->getInputRecorder()->recordKey(control, down);
 			else
 				warning("Lua_V2::buttonHandler(): there is no input recorder");
 		}
@@ -189,7 +182,7 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 
 		lua_callfunction(function);
 
-		if (!SputControl_v2::isModifierKey(vk))
+		if (!_engine->getControl()->isModifierKey(vk))
 			handled = true;
 	}
 
@@ -199,21 +192,13 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 }
 
 void Lua_V2::axisHandler() {
-	Lua_V2 *lua = dynamic_cast<Lua_V2 *>(LuaBase::instance());
-
-	if (!lua) {
-		warning("Lua_V2::axisHandler(): the system table is not ready");
-
-		return;
-	}
-
 	bool pushSelf = false;
 	bool callHandler = false;
 	bool buttonHandled = false;
 	lua_Object function = LUA_NOOBJECT;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(lua->refSystemTable));
+	lua_pushobject(lua_getref(refSystemTable));
 	lua_pushstring("axisHandler");
 
 	lua_Object handler = lua_gettable();
@@ -229,8 +214,8 @@ void Lua_V2::axisHandler() {
 			callHandler = true;
 		} else {
 			// The disasm leaves the flag uninitialized here
-			if (gpConsoleServices)
-				gpConsoleServices->logError("Installed axis handler table has no member func '%s'!\n", "axisHandler");
+			if (_engine->getConsoleServices())
+				_engine->getConsoleServices()->logError("Installed axis handler table has no member func '%s'!\n", "axisHandler");
 			else
 				warning("Installed axis handler table has no member func '%s'!", "axisHandler");
 		}
@@ -238,20 +223,20 @@ void Lua_V2::axisHandler() {
 		function = handler;
 		callHandler = true;
 	} else {
-		if (gpConsoleServices)
-			gpConsoleServices->logError("Installed axis handler is invalid!\n");
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logError("Installed axis handler is invalid!\n");
 		else
 			warning("Installed axis handler is invalid!");
 	}
 
 	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
-		ControlEntry *control = &SputControl_v2::controlTable[i];
+		ControlEntry *control = &_engine->getControl()->controlTable[i];
 
 		if (!(control->flags & ControlEntry::kEnabled))
 			continue;
 
 		if (control->flags & ControlEntry::kAxis) {
-			float value = Joystick::getAxis((int)control->code);
+			float value = _engine->getJoystick()->getAxis((int)control->code);
 
 			if (value != control->axisValue && callHandler) {
 				if (pushSelf)
@@ -264,7 +249,7 @@ void Lua_V2::axisHandler() {
 				control->axisValue = value;
 			}
 		} else if (control->flags & ControlEntry::kJoystickButton) {
-			bool state = Joystick::getControlState((int)control->code);
+			bool state = _engine->getJoystick()->getControlState((int)control->code);
 
 			if ((byte)state != control->state && !buttonHandled)
 				buttonHandled = buttonHandler((int)control->code, state);
@@ -282,7 +267,7 @@ void Lua_V2::updateJoySelected() {
 
 	lua_pushobject(controlsTable);
 	lua_pushstring("joy_selected");
-	lua_pushnumber((float)(int)Joystick::joyId);
+	lua_pushnumber((float)(int)_engine->getJoystick()->joyId);
 	lua_settable();
 }
 
