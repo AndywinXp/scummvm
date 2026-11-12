@@ -23,43 +23,43 @@
 
 namespace Grim {
 
-RdCanvas *RenderDroid::CanvasModule::create(uint flags, StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int a8) {
-	RdCanvas *pCanvas = new RdCanvas;
+RdCanvas *RenderDroid::CanvasModule::create(uint flags, StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int a8) {
+	RdCanvas *canvas = new RdCanvas;
 
-	newEntry(pCanvas, flags, pVBuffer, pZBuffer, xStart, yStart, xEnd, yEnd, a8);
+	newEntry(canvas, flags, vBuffer, zBuffer, xStart, yStart, xEnd, yEnd, a8);
 
-	return pCanvas;
+	return canvas;
 }
 
-int RenderDroid::CanvasModule::newEntry(RdCanvas *pCanvas, uint flags, StdVBuffer *pVBuffer, StdVBuffer *pZBuffer, int xStart, int yStart, int xEnd, int yEnd, int a9) {
-	pCanvas->pZBuffer = pZBuffer;
-	pCanvas->flags = flags;
-	pCanvas->pVBuffer = pVBuffer;
-	pCanvas->zScaleShift = a9;
+int RenderDroid::CanvasModule::newEntry(RdCanvas *canvas, uint flags, StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int a9) {
+	canvas->zBuffer = zBuffer;
+	canvas->flags = flags;
+	canvas->vBuffer = vBuffer;
+	canvas->zScaleShift = a9;
 
 	if (flags & 1) {
-		pCanvas->xStart = xStart;
-		pCanvas->yStart = yStart;
-		pCanvas->xEnd = xEnd;
-		pCanvas->yEnd = yEnd;
+		canvas->xStart = xStart;
+		canvas->yStart = yStart;
+		canvas->xEnd = xEnd;
+		canvas->yEnd = yEnd;
 	} else {
-		pCanvas->xStart = 0;
-		pCanvas->yStart = 0;
-		pCanvas->xEnd = pVBuffer->tex.width - 1;
-		pCanvas->yEnd = pVBuffer->tex.height - 1;
+		canvas->xStart = 0;
+		canvas->yStart = 0;
+		canvas->xEnd = vBuffer->tex.width - 1;
+		canvas->yEnd = vBuffer->tex.height - 1;
 	}
 
-	double yCenter = (double)(pCanvas->yEnd - pCanvas->yStart + 1) * 0.5 + (double)pCanvas->yStart;
-	pCanvas->xCenter = (float)((double)(pCanvas->xEnd - pCanvas->xStart + 1) * 0.5 + (double)pCanvas->xStart);
-	pCanvas->yCenter = (float)yCenter;
+	double yCenter = (double)(canvas->yEnd - canvas->yStart + 1) * 0.5 + (double)canvas->yStart;
+	canvas->xCenter = (float)((double)(canvas->xEnd - canvas->xStart + 1) * 0.5 + (double)canvas->xStart);
+	canvas->yCenter = (float)yCenter;
 
 	return 1;
 }
 
-void RenderDroid::CanvasModule::destroy(RdCanvas *&pCanvas) {
-	if (pCanvas) {
-		delete pCanvas;
-		pCanvas = nullptr;
+void RenderDroid::CanvasModule::destroy(RdCanvas *&canvas) {
+	if (canvas) {
+		delete canvas;
+		canvas = nullptr;
 	}
 }
 

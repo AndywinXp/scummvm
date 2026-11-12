@@ -24,42 +24,42 @@
 namespace Grim {
 
 FRect::FRect() {
-	x = 0.0f;
-	y = 0.0f;
-	w = 0.0f;
-	h = 0.0f;
+	_x = 0.0f;
+	_y = 0.0f;
+	_w = 0.0f;
+	_h = 0.0f;
 }
 
 float FRect::getX() {
-	return x;
+	return _x;
 }
 
 float FRect::getY() {
-	return y;
+	return _y;
 }
 
 float FRect::getWidth() {
-	return w;
+	return _w;
 }
 
 float FRect::getHeight() {
-	return h;
+	return _h;
 }
 
 void FRect::setX(float newX) {
-	x = newX;
+	_x = newX;
 }
 
 void FRect::setY(float newY) {
-	y = newY;
+	_y = newY;
 }
 
 void FRect::setWidth(float newWidth) {
-	w = newWidth;
+	_w = newWidth;
 }
 
 void FRect::setHeight(float newHeight) {
-	h = newHeight;
+	_h = newHeight;
 }
 
 } // End of namespace Grim

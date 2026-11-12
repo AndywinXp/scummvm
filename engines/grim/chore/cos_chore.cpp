@@ -25,344 +25,344 @@
 
 namespace Grim {
 
-int Cos::instStopChores(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instStopChores(int inst) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instStopChores(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instStopChores(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numChores; i++) {
-		CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[i];
-		uint32 choreIndex = pChoreInst->choreIndex;
-		pChoreInst->state = 0;
-		pChoreInst->time = 0;
+	for (int i = 0; i < costume->numChores; i++) {
+		CosChoreInstance *choreInst = &instance->choreInstances[i];
+		uint32 choreIndex = choreInst->choreIndex;
+		choreInst->state = 0;
+		choreInst->time = 0;
 
-		if (choreIndex >= (uint32)pCostume->numChores) {
+		if (choreIndex >= (uint32)costume->numChores) {
 			warning("Cos::instStopChores(): chore instance %d refers to the invalid chore %u", i, choreIndex);
 			continue;
 		}
 
-		CosChore *pChore = &pCostume->aChores[choreIndex];
+		CosChore *chore = &costume->chores[choreIndex];
 
-		for (int t = 0; t < pChore->numTracks; t++) {
-			int compIndex = pChore->aTracks[t].compIndex;
-			CosComponentClass *pClass = &_aClasses[pCostume->aComponents[compIndex].classIdx];
-			pClass->pHandler->stop(pInstance->aInstanceData[compIndex]);
+		for (int t = 0; t < chore->numTracks; t++) {
+			int compIndex = chore->tracks[t].compIndex;
+			CosComponentClass *classInfo = &_classes[costume->components[compIndex].classIdx];
+			classInfo->handler->stop(instance->instanceData[compIndex]);
 		}
 	}
 
 	return 1;
 }
 
-int Cos::instStopChore(int hInst, int choreIndex) {
-	int index = instHandleToIndex(hInst);
+int Cos::instStopChore(int inst, int choreIndex) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instStopChore(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instStopChore(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	if (choreIndex < 0 || choreIndex >= pCostume->numChores)
+	if (choreIndex < 0 || choreIndex >= costume->numChores)
 		return 0;
 
-	CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[choreIndex];
-	pChoreInst->state = 0;
-	pChoreInst->time = 0;
+	CosChoreInstance *choreInst = &instance->choreInstances[choreIndex];
+	choreInst->state = 0;
+	choreInst->time = 0;
 
-	if (pChoreInst->choreIndex >= (uint32)pCostume->numChores) {
-		warning("Cos::instStopChore(): chore instance %d refers to the invalid chore %u", choreIndex, pChoreInst->choreIndex);
+	if (choreInst->choreIndex >= (uint32)costume->numChores) {
+		warning("Cos::instStopChore(): chore instance %d refers to the invalid chore %u", choreIndex, choreInst->choreIndex);
 		return 1;
 	}
 
-	CosChore *pChore = &pCostume->aChores[pChoreInst->choreIndex];
+	CosChore *chore = &costume->chores[choreInst->choreIndex];
 
-	for (int t = 0; t < pChore->numTracks; t++) {
-		int compIndex = pChore->aTracks[t].compIndex;
-		CosComponentClass *pClass = &_aClasses[pCostume->aComponents[compIndex].classIdx];
-		pClass->pHandler->stop(pInstance->aInstanceData[compIndex]);
+	for (int t = 0; t < chore->numTracks; t++) {
+		int compIndex = chore->tracks[t].compIndex;
+		CosComponentClass *classInfo = &_classes[costume->components[compIndex].classIdx];
+		classInfo->handler->stop(instance->instanceData[compIndex]);
 	}
 
 	return 1;
 }
 
-int Cos::instPauseChores(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instPauseChores(int inst) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instPauseChores(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instPauseChores(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numChores; i++)
-		pInstance->aChoreInstances[i].state &= ~kCosChoreStatePlaying;
+	for (int i = 0; i < costume->numChores; i++)
+		instance->choreInstances[i].state &= ~kCosChoreStatePlaying;
 
 	return 1;
 }
 
-int Cos::instPauseChore(int hInst, int choreIndex) {
-	int index = instHandleToIndex(hInst);
+int Cos::instPauseChore(int inst, int choreIndex) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instPauseChore(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instPauseChore(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	pInstance->aChoreInstances[choreIndex].state &= ~kCosChoreStatePlaying;
+	instance->choreInstances[choreIndex].state &= ~kCosChoreStatePlaying;
 
 	return 1;
 }
 
-int Cos::instCompleteChore(int hInst, int choreIndex) {
-	int index = instHandleToIndex(hInst);
+int Cos::instCompleteChore(int inst, int choreIndex) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instCompleteChore(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instCompleteChore(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	if (choreIndex < 0 || choreIndex >= pCostume->numChores)
+	if (choreIndex < 0 || choreIndex >= costume->numChores)
 		return 0;
 
-	pInstance->aChoreInstances[choreIndex].state = kCosChoreStatePlaying;
-	updateChoreInstance(pCostume, pInstance, choreIndex, pCostume->aChores[choreIndex].length - pInstance->aChoreInstances[choreIndex].time, hInst);
+	instance->choreInstances[choreIndex].state = kCosChoreStatePlaying;
+	updateChoreInstance(costume, instance, choreIndex, costume->chores[choreIndex].length - instance->choreInstances[choreIndex].time, inst);
 
 	return 1;
 }
 
-int Cos::instCompleteChores(int hInst) {
-	int index = instHandleToIndex(hInst);
+int Cos::instCompleteChores(int inst) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instCompleteChores(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instCompleteChores(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numChores; i++) {
-		CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[i];
+	for (int i = 0; i < costume->numChores; i++) {
+		CosChoreInstance *choreInst = &instance->choreInstances[i];
 
-		if (pChoreInst->state & kCosChoreStatePlaying)
-			updateChoreInstance(pCostume, pInstance, i, pCostume->aChores[i].length - pChoreInst->time, hInst);
+		if (choreInst->state & kCosChoreStatePlaying)
+			updateChoreInstance(costume, instance, i, costume->chores[i].length - choreInst->time, inst);
 	}
 
 	return 1;
 }
 
-int Cos::instPlayChore(int hInst, int choreIndex, int bLoop, int bAdvance) {
-	int index = instHandleToIndex(hInst);
+int Cos::instPlayChore(int inst, int choreIndex, int loop, int advance) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instPlayChore(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instPlayChore(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[choreIndex];
-	pChoreInst->state = kCosChoreStatePlaying;
+	CosChoreInstance *choreInst = &instance->choreInstances[choreIndex];
+	choreInst->state = kCosChoreStatePlaying;
 
-	if (bLoop)
-		pChoreInst->state = kCosChoreStatePlaying | kCosChoreStateLooping;
+	if (loop)
+		choreInst->state = kCosChoreStatePlaying | kCosChoreStateLooping;
 
-	if (!bAdvance)
-		pChoreInst->state |= kCosChoreStateNoAdvance;
+	if (!advance)
+		choreInst->state |= kCosChoreStateNoAdvance;
 
 	return 1;
 }
 
-int Cos::instUpdateChore(int hInst, int choreIndex, int deltaMs) {
-	int index = instHandleToIndex(hInst);
+int Cos::instUpdateChore(int inst, int choreIndex, int deltaMs) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instUpdateChore(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instUpdateChore(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	if (pInstance->aChoreInstances[choreIndex].state & kCosChoreStatePlaying)
-		updateChoreInstance(&_aCostumes[pInstance->costume], pInstance, choreIndex, deltaMs, hInst);
+	if (instance->choreInstances[choreIndex].state & kCosChoreStatePlaying)
+		updateChoreInstance(&_costumes[instance->costume], instance, choreIndex, deltaMs, inst);
 
 	return 1;
 }
 
-int Cos::instUpdateChores(int hInst, int deltaMs) {
-	int index = instHandleToIndex(hInst);
+int Cos::instUpdateChores(int inst, int deltaMs) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instUpdateChores(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instUpdateChores(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
-	CosCostume *pCostume = &_aCostumes[pInstance->costume];
+	CosInstance *instance = &_instances[index];
+	CosCostume *costume = &_costumes[instance->costume];
 
-	for (int i = 0; i < pCostume->numChores; i++) {
-		uint32 state = pInstance->aChoreInstances[i].state;
+	for (int i = 0; i < costume->numChores; i++) {
+		uint32 state = instance->choreInstances[i].state;
 
 		if ((state & kCosChoreStatePlaying) && (state & kCosChoreStateNoAdvance))
-			updateChoreInstance(pCostume, pInstance, i, deltaMs, hInst);
+			updateChoreInstance(costume, instance, i, deltaMs, inst);
 	}
 
 	return 1;
 }
 
-int Cos::instSetChoreLoop(int hInst, int choreIndex, int bLoop) {
-	int index = instHandleToIndex(hInst);
+int Cos::instSetChoreLoop(int inst, int choreIndex, int loop) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instSetChoreLoop(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instSetChoreLoop(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[choreIndex];
+	CosChoreInstance *choreInst = &instance->choreInstances[choreIndex];
 
-	if (bLoop)
-		pChoreInst->state |= kCosChoreStateLooping;
+	if (loop)
+		choreInst->state |= kCosChoreStateLooping;
 	else
-		pChoreInst->state &= ~kCosChoreStateLooping;
+		choreInst->state &= ~kCosChoreStateLooping;
 
 	return 1;
 }
 
-int Cos::instSetChoreAdv(int hInst, int choreIndex, int bAdvance) {
-	int index = instHandleToIndex(hInst);
+int Cos::instSetChoreAdv(int inst, int choreIndex, int advance) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instSetChoreAdv(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instSetChoreAdv(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[choreIndex];
+	CosChoreInstance *choreInst = &instance->choreInstances[choreIndex];
 
-	if (bAdvance)
-		pChoreInst->state &= ~kCosChoreStateNoAdvance;
+	if (advance)
+		choreInst->state &= ~kCosChoreStateNoAdvance;
 	else
-		pChoreInst->state |= kCosChoreStateNoAdvance;
+		choreInst->state |= kCosChoreStateNoAdvance;
 
 	return 1;
 }
 
-int Cos::instChoreStatus(int hInst, int choreIndex) {
-	int index = instHandleToIndex(hInst);
+int Cos::instChoreStatus(int inst, int choreIndex) {
+	int index = instHandleToIndex(inst);
 
-	if (index < 0 || index >= _maxInstances || _aInstances[index].bFree) {
-		warning("Cos::instChoreStatus(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= _maxInstances || _instances[index].free) {
+		warning("Cos::instChoreStatus(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &_aInstances[index];
+	CosInstance *instance = &_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= _aCostumes[pInstance->costume].numChores)
+	if (choreIndex < 0 || choreIndex >= _costumes[instance->costume].numChores)
 		return 0;
 
-	return pInstance->aChoreInstances[choreIndex].state;
+	return instance->choreInstances[choreIndex].state;
 }
 
-int Cos::updateChoreInstance(CosCostume *pCostume, CosInstance *pInstance, int choreIndex, int deltaMs, int hInst) {
-	CosChore *pChore = &pCostume->aChores[choreIndex];
-	CosChoreInstance *pChoreInst = &pInstance->aChoreInstances[choreIndex];
+int Cos::updateChoreInstance(CosCostume *costume, CosInstance *instance, int choreIndex, int deltaMs, int inst) {
+	CosChore *chore = &costume->chores[choreIndex];
+	CosChoreInstance *choreInst = &instance->choreInstances[choreIndex];
 	int result = 0;
 
 	if (deltaMs == 0)
 		return result;
 
 	while (true) {
-		for (int t = 0; t < pChore->numTracks; t++) {
-			CosChoreTrack *pTrack = &pChore->aTracks[t];
+		for (int t = 0; t < chore->numTracks; t++) {
+			CosChoreTrack *track = &chore->tracks[t];
 			int k = 0;
 
-			if (pTrack->numKeys == 0)
+			if (track->numKeys == 0)
 				continue;
 
-			while (k < pTrack->numKeys && pTrack->aKeys[k].time < pChoreInst->time)
+			while (k < track->numKeys && track->keys[k].time < choreInst->time)
 				k++;
 
-			while (k < pTrack->numKeys) {
-				CosChoreKey *pKey = &pTrack->aKeys[k];
-				int endTime = (int)((uint32)pChoreInst->time + (uint32)deltaMs);
+			while (k < track->numKeys) {
+				CosChoreKey *key = &track->keys[k];
+				int endTime = (int)((uint32)choreInst->time + (uint32)deltaMs);
 
-				if (pKey->time >= endTime)
+				if (key->time >= endTime)
 					break;
 
-				int compIndex = pTrack->compIndex;
-				changeComponent(2, &_aClasses[pCostume->aComponents[compIndex].classIdx], pInstance->aInstanceData[compIndex], pKey,
-					(int)((uint32)endTime - (uint32)pKey->time), pKey, 0, hInst);
+				int compIndex = track->compIndex;
+				changeComponent(2, &_classes[costume->components[compIndex].classIdx], instance->instanceData[compIndex], key,
+					(int)((uint32)endTime - (uint32)key->time), key, 0, inst);
 				k++;
 			}
 		}
 
-		int newTime = (int)((uint32)deltaMs + (uint32)pChoreInst->time);
-		pChoreInst->time = newTime;
+		int newTime = (int)((uint32)deltaMs + (uint32)choreInst->time);
+		choreInst->time = newTime;
 		result = newTime;
 
-		if (newTime < pChore->length)
+		if (newTime < chore->length)
 			break;
 
-		if ((pChoreInst->state & kCosChoreStateLooping) == 0) {
-			pChoreInst->state = 0;
-			pChoreInst->time = 0;
+		if ((choreInst->state & kCosChoreStateLooping) == 0) {
+			choreInst->state = 0;
+			choreInst->time = 0;
 			return result;
 		}
 
-		if (pChore->length <= 0) {
+		if (chore->length <= 0) {
 			warning("Cos::updateChoreInstance(): looping chore %d has no length", choreIndex);
-			pChoreInst->state = 0;
-			pChoreInst->time = 0;
+			choreInst->state = 0;
+			choreInst->time = 0;
 			return result;
 		}
 
-		deltaMs = (int)((uint32)newTime - (uint32)pChore->length);
-		pChoreInst->time = 0;
+		deltaMs = (int)((uint32)newTime - (uint32)chore->length);
+		choreInst->time = 0;
 	}
 
 	return result;
 }
 
-void Cos::changeComponent(int op, CosComponentClass *pClass, void *pInstData, CosChoreKey *pKey, int timeOffset, CosChoreKey *pNextKey, int arg7, int hInst) {
-	if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat) {
-		warning("Cos::changeComponent(): invalid tag type %d", pClass->type);
+void Cos::changeComponent(int op, CosComponentClass *classInfo, void *instData, CosChoreKey *key, int timeOffset, CosChoreKey *nextKey, int arg7, int inst) {
+	if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat) {
+		warning("Cos::changeComponent(): invalid tag type %d", classInfo->type);
 		return;
 	}
 
-	pClass->pHandler->change(pClass->fourcc, pInstData, op, pKey->value, timeOffset, pNextKey->value, arg7, hInst);
+	classInfo->handler->change(classInfo->fourcc, instData, op, key->value, timeOffset, nextKey->value, arg7, inst);
 }
 
 } // End of namespace Grim

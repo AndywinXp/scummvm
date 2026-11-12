@@ -24,18 +24,18 @@
 namespace Grim {
 
 CAudioChannel::CAudioChannel(EmiEngine *engine) : _engine(engine) {
-	paused = false;
+	_paused = false;
 }
 
 CAudioChannel::~CAudioChannel() {
 }
 
 bool CAudioChannel::isPaused() {
-	return paused;
+	return _paused;
 }
 
 void CAudioChannel::setPaused(bool value) {
-	paused = value;
+	_paused = value;
 }
 
 } // End of namespace Grim

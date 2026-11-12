@@ -28,7 +28,7 @@ namespace Grim {
 
 static const float kMinAxisValue = 0.0000099999997f;
 
-Joystick::Joystick(EmiEngine *engine) : joyId(0xFFFFFFFF), _engine(engine), _started(false), _opened(false), _anyRequested(false), _lastPollTime(0) {
+Joystick::Joystick(EmiEngine *engine) : _joyId(0xFFFFFFFF), _engine(engine), _started(false), _opened(false), _anyRequested(false), _lastPollTime(0) {
 	memset(_present, 0, sizeof(_present));
 	memset(_hasPov, 0, sizeof(_hasPov));
 	memset(_requested, 0, sizeof(_requested));
@@ -119,8 +119,8 @@ void Joystick::detect() {
 	for (uint id = 0; id < numDevices; id++) {
 		int base = axisBase;
 
-		if ((int)joyId < 0)
-			joyId = id;
+		if ((int)_joyId < 0)
+			_joyId = id;
 
 		axisBase += kAxesPerJoystick;
 		_present[id] = true;
@@ -153,19 +153,19 @@ void Joystick::detect() {
 }
 
 void Joystick::poll() {
-	if ((int)joyId < 0)
+	if ((int)_joyId < 0)
 		return;
 
-	if (joyId >= (uint)kMaxJoysticks) {
-		warning("Joystick::poll(): invalid joystick %u", joyId);
+	if (_joyId >= (uint)kMaxJoysticks) {
+		warning("Joystick::poll(): invalid joystick %u", _joyId);
 
 		return;
 	}
 
-	if (!_requested[joyId] || !_present[joyId])
+	if (!_requested[_joyId] || !_present[_joyId])
 		return;
 
-	uint flags = _returnFlags[joyId];
+	uint flags = _returnFlags[_joyId];
 
 	_axisValues[0] = (flags & kReturnX) ? _deviceState.axisPosition[0] : 0;
 	_axisValues[1] = (flags & kReturnY) ? _deviceState.axisPosition[1] : 0;
@@ -187,7 +187,7 @@ void Joystick::poll() {
 	if (flags & kReturnButtons)
 		buttons = _deviceState.buttons;
 
-	uint numButtons = _numButtons[joyId];
+	uint numButtons = _numButtons[_joyId];
 	uint mask = 1;
 
 	// The disasm reads one button more than the device has
@@ -252,33 +252,33 @@ void Joystick::requestAxis(uint axis) {
 	if (axis > 0xB)
 		return;
 
-	if (joyId >= (uint)kMaxJoysticks) {
-		warning("Joystick::requestAxis(): invalid joystick %u", joyId);
+	if (_joyId >= (uint)kMaxJoysticks) {
+		warning("Joystick::requestAxis(): invalid joystick %u", _joyId);
 
 		return;
 	}
 
 	_anyRequested = true;
-	_requested[joyId] = true;
+	_requested[_joyId] = true;
 
 	switch (axis) {
 	case 0:
-		_returnFlags[joyId] |= kReturnX;
+		_returnFlags[_joyId] |= kReturnX;
 		break;
 	case 1:
-		_returnFlags[joyId] |= kReturnY;
+		_returnFlags[_joyId] |= kReturnY;
 		break;
 	case 2:
-		_returnFlags[joyId] |= kReturnZ;
+		_returnFlags[_joyId] |= kReturnZ;
 		break;
 	case 3:
-		_returnFlags[joyId] |= kReturnR;
+		_returnFlags[_joyId] |= kReturnR;
 		break;
 	case 4:
-		_returnFlags[joyId] |= kReturnU;
+		_returnFlags[_joyId] |= kReturnU;
 		break;
 	case 5:
-		_returnFlags[joyId] |= kReturnV;
+		_returnFlags[_joyId] |= kReturnV;
 		break;
 	default:
 		break;

@@ -75,13 +75,13 @@ public:
 	virtual ~LegacyLuaMapper() {}
 
 	// false = unknown, the userdata is kept as it is
-	virtual bool mapUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int32 *pNewId) = 0;
+	virtual bool mapUserdata(int32 oldTag, int32 oldId, int32 *newTag, int32 *newId) = 0;
 };
 
 // Old list depth and index in, function out (nullptr = missing, the hook reports it)
 typedef lua_CFunction (*lua_LegacyFunctionHook)(int32 depth, int32 index);
 // Old tag and id in, new tag and id out (false = leave the userdata as it is)
-typedef bool (*lua_LegacyUserdataHook)(int32 oldTag, int32 oldId, int32 *pNewTag, int32 *pNewId);
+typedef bool (*lua_LegacyUserdataHook)(int32 oldTag, int32 oldId, int32 *newTag, int32 *newId);
 
 // Reads the Lua state of a legacy savegame (the whole 'LUAS' payload), 0 = success
 int lua_RestoreLegacy(Common::SeekableReadStream *stream, int minorVersion, lua_LegacyFunctionHook functionHook, lua_LegacyUserdataHook userdataHook);
@@ -103,7 +103,7 @@ lua_CFunction legacyLuaResolveFunction(int32 depth, int32 index);
 bool legacyRestoreLua(Common::SeekableReadStream *stream, int minorVersion, LegacyLuaMapper *mapper);
 
 // The ref numbers the legacy engine used
-void legacyLuaGetRefs(LegacyLuaRefs *pRefs);
+void legacyLuaGetRefs(LegacyLuaRefs *refs);
 
 // Checks the restored refs and that the engine uses the same numbers
 bool legacyLuaCheckRefs(const LegacyLuaRefs &engineRefs);

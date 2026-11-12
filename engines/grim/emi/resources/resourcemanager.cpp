@@ -69,7 +69,7 @@ ResourceManager::ResourceManager(EmiEngine *engine) {
 	_memoryHandler = nullptr;
 	_updateTime = 0.0f;
 	_lockedMessageShown = false;
-	logFile = nullptr;
+	_logFile = nullptr;
 }
 
 EmiEngine *ResourceManager::getEngine() const {
@@ -77,8 +77,8 @@ EmiEngine *ResourceManager::getEngine() const {
 }
 
 bool ResourceManager::resourceLoaded(LResource *resource, bool success) {
-	if (logFile && !success)
-		logFile->writeFormat("Resource %s failed to load.\n", resource->name.c_str());
+	if (_logFile && !success)
+		_logFile->writeFormat("Resource %s failed to load.\n", resource->_name.c_str());
 
 	return true;
 }
@@ -87,20 +87,20 @@ bool ResourceManager::addResource(LResource *resource) {
 	if (!resource)
 		return false;
 
-	if (resource->name.empty())
+	if (resource->_name.empty())
 		return false;
 
 	Common::List<LResource *>::iterator it;
 
-	for (it = allResources.begin(); it != allResources.end(); ++it) {
+	for (it = _allResources.begin(); it != _allResources.end(); ++it) {
 		if (*it == resource)
 			return false;
 	}
 
-	allResources.push_front(resource);
+	_allResources.push_front(resource);
 
-	if (!resource->name.empty())
-		resourceNameChange(resource, resource->name);
+	if (!resource->_name.empty())
+		resourceNameChange(resource, resource->_name);
 
 	return true;
 }
@@ -108,24 +108,24 @@ bool ResourceManager::addResource(LResource *resource) {
 bool ResourceManager::removeResource(LResource *resource) {
 	Common::List<LResource *>::iterator it;
 
-	for (it = allResources.begin(); it != allResources.end(); ++it) {
+	for (it = _allResources.begin(); it != _allResources.end(); ++it) {
 		if (*it == resource)
 			break;
 	}
 
-	if (it == allResources.end())
+	if (it == _allResources.end())
 		return false;
 
-	resourcesByName.erase(resource->name);
-	allResources.erase(it);
+	_resourcesByName.erase(resource->_name);
+	_allResources.erase(it);
 
 	return true;
 }
 
 LResource *ResourceManager::findResource(const LString &name) {
-	ResourceMap::iterator it = resourcesByName.find(name);
+	ResourceMap::iterator it = _resourcesByName.find(name);
 
-	if (it == resourcesByName.end())
+	if (it == _resourcesByName.end())
 		return nullptr;
 
 	return it->_value;
@@ -136,9 +136,9 @@ LResource *ResourceManager::findResource(const char *name) {
 }
 
 void ResourceManager::resourceNameChange(LResource *resource, const LString &newName) {
-	resourcesByName.erase(resource->name);
+	_resourcesByName.erase(resource->_name);
 
-	if (resourcesByName.contains(newName)) {
+	if (_resourcesByName.contains(newName)) {
 		LConsoleServices *console = _engine->getConsoleServices();
 
 		if (console)
@@ -146,7 +146,7 @@ void ResourceManager::resourceNameChange(LResource *resource, const LString &new
 		else
 			warning("ResourceManager::resourceNameChange(): resource name %s is not unique", newName.c_str());
 	} else {
-		resourcesByName[newName] = resource;
+		_resourcesByName[newName] = resource;
 	}
 }
 
@@ -203,103 +203,103 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 	uint replaceDelta = 0;
 	LMemoryServices *memoryServices = _engine->getMemoryServices();
 
-	if (resource->lockCount)
+	if (resource->_lockCount)
 		return -1;
 
-	if (resource->notPurgable)
+	if (resource->_notPurgable)
 		return -1;
 
 	if (resource->handleCount() != 0) {
-		uint bytesBefore = memoryServices->bytesAllocated;
+		uint bytesBefore = memoryServices->_bytesAllocated;
 
 		removeResource(resource);
 
 		LResourceHandleBase *handle = resource->firstHandle();
 		handle->setResource(nullptr);
 
-		LResource *replacement = _engine->getResourceManager()->createResource(resource->name);
+		LResource *replacement = _engine->getResourceManager()->createResource(resource->_name);
 
 		if (!replacement) {
 			handle->bindEngine(_engine);
 			handle->allocateResource();
-			replacement = handle->resource;
+			replacement = handle->_resource;
 		}
 
-		replacement->resSetName(resource->name.c_str());
+		replacement->resSetName(resource->_name.c_str());
 		resource->resReplaceResource(*replacement);
 		addResource(replacement);
 
-		replaceDelta = bytesBefore - memoryServices->bytesAllocated;
+		replaceDelta = bytesBefore - memoryServices->_bytesAllocated;
 	}
 
-	LString resourceName = resource->name;
-	uint bytesAfterReplace = memoryServices->bytesAllocated + replaceDelta;
+	LString resourceName = resource->_name;
+	uint bytesAfterReplace = memoryServices->_bytesAllocated + replaceDelta;
 
-	Common::List<LResource *>::iterator it = lruResources.begin();
+	Common::List<LResource *>::iterator it = _lruResources.begin();
 
-	while (it != lruResources.end()) {
+	while (it != _lruResources.end()) {
 		if (*it == resource)
-			it = lruResources.erase(it);
+			it = _lruResources.erase(it);
 		else
 			++it;
 	}
 
 	delete resource;
 
-	int reclaimed = (int)(bytesAfterReplace - memoryServices->bytesAllocated);
+	int reclaimed = (int)(bytesAfterReplace - memoryServices->_bytesAllocated);
 
-	if (logPurge && logFile)
-		logFile->writeFormat("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
+	if (logPurge && _logFile)
+		_logFile->writeFormat("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
 
 	return reclaimed;
 }
 
 void ResourceManager::lockResource(LResource *resource) {
-	Common::List<LResource *>::iterator it = lruResources.begin();
+	Common::List<LResource *>::iterator it = _lruResources.begin();
 
-	while (it != lruResources.end()) {
+	while (it != _lruResources.end()) {
 		if (*it == resource)
-			it = lruResources.erase(it);
+			it = _lruResources.erase(it);
 		else
 			++it;
 	}
 }
 
 void ResourceManager::unlockResource(LResource *resource) {
-	if (resource->lockCount == 0)
-		lruResources.push_back(resource);
+	if (resource->_lockCount == 0)
+		_lruResources.push_back(resource);
 }
 
 uint ResourceManager::purgeAmount(uint bytes) {
 	uint freed = 0;
 
-	if (logFile)
-		logFile->writeFormat("Purge Amount: %d requested.\n", bytes);
+	if (_logFile)
+		_logFile->writeFormat("Purge Amount: %d requested.\n", bytes);
 
-	while (!lruResources.empty() && freed < bytes) {
-		LResource *resource = lruResources.front();
+	while (!_lruResources.empty() && freed < bytes) {
+		LResource *resource = _lruResources.front();
 
 		freed += (uint)purgeResource(resource, true);
 
-		Common::List<LResource *>::iterator it = lruResources.begin();
+		Common::List<LResource *>::iterator it = _lruResources.begin();
 
-		while (it != lruResources.end()) {
+		while (it != _lruResources.end()) {
 			if (*it == resource)
-				it = lruResources.erase(it);
+				it = _lruResources.erase(it);
 			else
 				++it;
 		}
 	}
 
 	if (freed < bytes) {
-		if (logFile)
-			logFile->writeFormat("!!!!! Purge Amount unsuccessful: only %d bytes freed!\n", freed);
+		if (_logFile)
+			_logFile->writeFormat("!!!!! Purge Amount unsuccessful: only %d bytes freed!\n", freed);
 
 		return freed;
 	}
 
-	if (logFile)
-		logFile->writeFormat("Purge Amount successful: %d bytes freed.\n", freed);
+	if (_logFile)
+		_logFile->writeFormat("Purge Amount successful: %d bytes freed.\n", freed);
 
 	return freed;
 }
@@ -311,7 +311,7 @@ int ResourceManager::purgeAll() {
 	for (reclaimed = purgeUnused(); reclaimed != 0; reclaimed = purgeUnused())
 		total += reclaimed;
 
-	if (allResources.size() != 0) {
+	if (_allResources.size() != 0) {
 		LConsoleServices *console = _engine->getConsoleServices();
 
 		if (console)
@@ -322,7 +322,7 @@ int ResourceManager::purgeAll() {
 		for (reclaimed = purgeUnlocked(); reclaimed != 0; reclaimed = purgeUnlocked())
 			total += reclaimed;
 
-		if (allResources.size() != 0) {
+		if (_allResources.size() != 0) {
 			if (console)
 				console->logError("ResourceManager::PurgeAll(): Remaining resources are locked!\n");
 			else
@@ -337,13 +337,13 @@ int ResourceManager::purgeUnused() {
 	int count = 0;
 	int bytes = 0;
 
-	Common::List<LResource *>::iterator it = allResources.begin();
+	Common::List<LResource *>::iterator it = _allResources.begin();
 
-	while (it != allResources.end()) {
+	while (it != _allResources.end()) {
 		LResource *resource = *it;
 		++it;
 
-		if (resource->handles.empty()) {
+		if (resource->_handles.empty()) {
 			int reclaimed = purgeResource(resource, true);
 
 			if (reclaimed < 0)
@@ -354,8 +354,8 @@ int ResourceManager::purgeUnused() {
 		}
 	}
 
-	if (logFile)
-		logFile->writeFormat("Purged %d unused items for %d bytes.\n", count, bytes);
+	if (_logFile)
+		_logFile->writeFormat("Purged %d unused items for %d bytes.\n", count, bytes);
 
 	return bytes;
 }
@@ -364,13 +364,13 @@ int ResourceManager::purgeUnlocked() {
 	int count = 0;
 	int bytes = 0;
 
-	Common::List<LResource *>::iterator it = allResources.begin();
+	Common::List<LResource *>::iterator it = _allResources.begin();
 
-	while (it != allResources.end()) {
+	while (it != _allResources.end()) {
 		LResource *resource = *it;
 		++it;
 
-		if (!resource->lockCount) {
+		if (!resource->_lockCount) {
 			int reclaimed = purgeResource(resource, true);
 
 			if (reclaimed < 0)
@@ -381,19 +381,19 @@ int ResourceManager::purgeUnlocked() {
 		}
 	}
 
-	if (logFile)
-		logFile->writeFormat("Purged %d unlocked items for %d bytes.\n", count, bytes);
+	if (_logFile)
+		_logFile->writeFormat("Purged %d unlocked items for %d bytes.\n", count, bytes);
 
 	return bytes;
 }
 
 void ResourceManager::setLogFile(LFile *file) {
-	logFile = file;
+	_logFile = file;
 }
 
 LFile *ResourceManager::detachLogFile() {
-	LFile *file = logFile;
-	logFile = nullptr;
+	LFile *file = _logFile;
+	_logFile = nullptr;
 
 	return file;
 }
@@ -401,32 +401,32 @@ LFile *ResourceManager::detachLogFile() {
 void ResourceManager::dumpLru(const LResourceType *type) {
 	Common::List<LResource *>::iterator it;
 
-	if (logFile) {
+	if (_logFile) {
 		int bytes = 0;
 		int count = 0;
 
-		logFile->writeFormat("Resource Dump\n");
-		logFile->writeFormat("Flags:\n");
-		logFile->writeFormat("L - Loaded\n");
-		logFile->writeFormat("U - Unique\n");
-		logFile->writeFormat("P - Purge on free\n");
-		logFile->writeFormat("\n");
-		logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
-		logFile->writeFormat("=============================================================\n");
+		_logFile->writeFormat("Resource Dump\n");
+		_logFile->writeFormat("Flags:\n");
+		_logFile->writeFormat("L - Loaded\n");
+		_logFile->writeFormat("U - Unique\n");
+		_logFile->writeFormat("P - Purge on free\n");
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
+		_logFile->writeFormat("=============================================================\n");
 
-		for (it = lruResources.begin(); it != lruResources.end(); ++it) {
-			if (!type || (*it)->type.id == type->id) {
+		for (it = _lruResources.begin(); it != _lruResources.end(); ++it) {
+			if (!type || (*it)->_type._id == type->_id) {
 				count++;
-				bytes += dumpResource(*it, logFile);
+				bytes += dumpResource(*it, _logFile);
 			}
 		}
 
-		logFile->writeFormat("\n");
-		logFile->writeFormat("Total Bytes allocated: %d\n", bytes);
-		logFile->writeFormat("Total items allocated: %d\n", count);
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("Total Bytes allocated: %d\n", bytes);
+		_logFile->writeFormat("Total items allocated: %d\n", count);
 	} else {
-		for (it = lruResources.begin(); it != lruResources.end(); ++it) {
-			if (!type || (*it)->type.id == type->id)
+		for (it = _lruResources.begin(); it != _lruResources.end(); ++it) {
+			if (!type || (*it)->_type._id == type->_id)
 				dumpResource(*it, nullptr);
 		}
 	}
@@ -435,32 +435,32 @@ void ResourceManager::dumpLru(const LResourceType *type) {
 void ResourceManager::dumpAll(const LResourceType *type) {
 	Common::List<LResource *>::iterator it;
 
-	if (logFile) {
+	if (_logFile) {
 		int bytes = 0;
 		int count = 0;
 
-		logFile->writeFormat("Resource Dump\n");
-		logFile->writeFormat("Flags:\n");
-		logFile->writeFormat("L - Loaded\n");
-		logFile->writeFormat("U - Unique\n");
-		logFile->writeFormat("P - Purge on free\n");
-		logFile->writeFormat("\n");
-		logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
-		logFile->writeFormat("=============================================================\n");
+		_logFile->writeFormat("Resource Dump\n");
+		_logFile->writeFormat("Flags:\n");
+		_logFile->writeFormat("L - Loaded\n");
+		_logFile->writeFormat("U - Unique\n");
+		_logFile->writeFormat("P - Purge on free\n");
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
+		_logFile->writeFormat("=============================================================\n");
 
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if (!type || (*it)->type.id == type->id) {
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if (!type || (*it)->_type._id == type->_id) {
 				count++;
-				bytes += dumpResource(*it, logFile);
+				bytes += dumpResource(*it, _logFile);
 			}
 		}
 
-		logFile->writeFormat("\n");
-		logFile->writeFormat("Total Bytes allocated: %d\n", bytes);
-		logFile->writeFormat("Total items allocated: %d\n", count);
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("Total Bytes allocated: %d\n", bytes);
+		_logFile->writeFormat("Total items allocated: %d\n", count);
 	} else {
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if (!type || (*it)->type.id == type->id)
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if (!type || (*it)->_type._id == type->_id)
 				dumpResource(*it, nullptr);
 		}
 	}
@@ -469,32 +469,32 @@ void ResourceManager::dumpAll(const LResourceType *type) {
 void ResourceManager::dumpUsed(const LResourceType *type) {
 	Common::List<LResource *>::iterator it;
 
-	if (logFile) {
+	if (_logFile) {
 		int bytes = 0;
 		int count = 0;
 
-		logFile->writeFormat("Resource Dump Used\n");
-		logFile->writeFormat("Flags:\n");
-		logFile->writeFormat("L - Loaded\n");
-		logFile->writeFormat("U - Unique\n");
-		logFile->writeFormat("P - Purge on free\n");
-		logFile->writeFormat("\n");
-		logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
-		logFile->writeFormat("=============================================================\n");
+		_logFile->writeFormat("Resource Dump Used\n");
+		_logFile->writeFormat("Flags:\n");
+		_logFile->writeFormat("L - Loaded\n");
+		_logFile->writeFormat("U - Unique\n");
+		_logFile->writeFormat("P - Purge on free\n");
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
+		_logFile->writeFormat("=============================================================\n");
 
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if (!(*it)->handles.empty() && (!type || (*it)->type.id == type->id)) {
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if (!(*it)->_handles.empty() && (!type || (*it)->_type._id == type->_id)) {
 				count++;
-				bytes += dumpResource(*it, logFile);
+				bytes += dumpResource(*it, _logFile);
 			}
 		}
 
-		logFile->writeFormat("\n");
-		logFile->writeFormat("Total Bytes allocated: %d.\n", bytes);
-		logFile->writeFormat("Total items allocated: %d.\n", count);
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("Total Bytes allocated: %d.\n", bytes);
+		_logFile->writeFormat("Total items allocated: %d.\n", count);
 	} else {
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if (!(*it)->handles.empty() && (!type || (*it)->type.id == type->id))
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if (!(*it)->_handles.empty() && (!type || (*it)->_type._id == type->_id))
 				dumpResource(*it, nullptr);
 		}
 	}
@@ -503,33 +503,33 @@ void ResourceManager::dumpUsed(const LResourceType *type) {
 void ResourceManager::dumpUnused(const LResourceType *type) {
 	Common::List<LResource *>::iterator it;
 
-	if (logFile) {
+	if (_logFile) {
 		int bytes = 0;
 		int count = 0;
 
-		logFile->writeFormat("Resource Dump Unused\n");
-		logFile->writeFormat("Flags:\n");
-		logFile->writeFormat("L - Loaded\n");
-		logFile->writeFormat("U - Unique\n");
-		logFile->writeFormat("P - Purge on free\n");
-		logFile->writeFormat("N - Not Purgable\n");
-		logFile->writeFormat("\n");
-		logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
-		logFile->writeFormat("=============================================================\n");
+		_logFile->writeFormat("Resource Dump Unused\n");
+		_logFile->writeFormat("Flags:\n");
+		_logFile->writeFormat("L - Loaded\n");
+		_logFile->writeFormat("U - Unique\n");
+		_logFile->writeFormat("P - Purge on free\n");
+		_logFile->writeFormat("N - Not Purgable\n");
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("NAME                           FLAGS       SIZE LOCKS HANDLES\n");
+		_logFile->writeFormat("=============================================================\n");
 
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if ((*it)->handles.empty() && (!type || (*it)->type.id == type->id)) {
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if ((*it)->_handles.empty() && (!type || (*it)->_type._id == type->_id)) {
 				count++;
-				bytes += dumpResource(*it, logFile);
+				bytes += dumpResource(*it, _logFile);
 			}
 		}
 
-		logFile->writeFormat("\n");
-		logFile->writeFormat("Total Bytes allocated: %d.\n", bytes);
-		logFile->writeFormat("Total items allocated: %d.\n", count);
+		_logFile->writeFormat("\n");
+		_logFile->writeFormat("Total Bytes allocated: %d.\n", bytes);
+		_logFile->writeFormat("Total items allocated: %d.\n", count);
 	} else {
-		for (it = allResources.begin(); it != allResources.end(); ++it) {
-			if ((*it)->handles.empty() && (!type || (*it)->type.id == type->id))
+		for (it = _allResources.begin(); it != _allResources.end(); ++it) {
+			if ((*it)->_handles.empty() && (!type || (*it)->_type._id == type->_id))
 				dumpResource(*it, nullptr);
 		}
 	}
@@ -556,7 +556,7 @@ void ResourceManager::shutdown() {
 }
 
 void ResourceManager::update(float frameTime) {
-	uint bytes = _engine->getMemoryServices()->bytesAllocated;
+	uint bytes = _engine->getMemoryServices()->_bytesAllocated;
 
 	if (bytes > 0xC00000 && purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !_lockedMessageShown) {
 		_engine->showMessage("More than 12MB of resources have been left locked.\n"
@@ -572,13 +572,13 @@ void ResourceManager::update(float frameTime) {
 	_updateTime = (float)elapsed;
 
 	if (elapsed > 10.0) {
-		Common::List<LResource *>::iterator it = allResources.begin();
+		Common::List<LResource *>::iterator it = _allResources.begin();
 
-		while (it != allResources.end()) {
+		while (it != _allResources.end()) {
 			LResource *resource = *it;
 			++it;
 
-			if (resource && resource->purgeOnFree && !resource->loaded && resource->handles.empty())
+			if (resource && resource->_purgeOnFree && !resource->_loaded && resource->_handles.empty())
 				purgeResource(resource, false);
 		}
 
@@ -591,16 +591,16 @@ int ResourceManager::dumpResource(LResource *resource, LFile *file) {
 		return 0;
 
 	if (file) {
-		int nameLength = (int)resource->name.size() - 30;
+		int nameLength = (int)resource->_name.size() - 30;
 
 		file->writeFormat("%-30s %c%c%c%c  %10d%6d%8d\n",
-				resource->name.c_str() + (nameLength <= 0 ? 0 : nameLength),
-				resource->loaded ? 'L' : ' ',
-				resource->unique ? 'U' : ' ',
-				resource->purgeOnFree ? 'P' : ' ',
-				resource->notPurgable ? 'N' : ' ',
+				resource->_name.c_str() + (nameLength <= 0 ? 0 : nameLength),
+				resource->_loaded ? 'L' : ' ',
+				resource->_unique ? 'U' : ' ',
+				resource->_purgeOnFree ? 'P' : ' ',
+				resource->_notPurgable ? 'N' : ' ',
 				resource->resSizeOfItem(),
-				resource->lockCount,
+				resource->_lockCount,
 				resource->handleCount());
 	}
 

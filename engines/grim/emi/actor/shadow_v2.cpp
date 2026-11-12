@@ -31,16 +31,16 @@
 namespace Grim {
 
 Shadow_v2::Shadow_v2(EmiEngine *engine) : _engine(engine) {
-	point[0] = 0.0f;
-	point[1] = 0.0f;
-	point[2] = 0.0f;
+	_point[0] = 0.0f;
+	_point[1] = 0.0f;
+	_point[2] = 0.0f;
 }
 
 Shadow_v2::~Shadow_v2() {
-	sectors.clear();
-	sectorNames.clear();
-	lightName.clear();
-	name.clear();
+	_sectors.clear();
+	_sectorNames.clear();
+	_lightName.clear();
+	_name.clear();
 }
 
 void *Shadow_v2::operator new(size_t size) {
@@ -52,60 +52,60 @@ void Shadow_v2::operator delete(void *block) {
 }
 
 int Shadow_v2::getSize() {
-	return (int)(sizeof(Shadow_v2) + name.size() + lightName.size() + sectors.size() * sizeof(WalkPlane_v2 *) + sectorNames.size() * sizeof(LString));
+	return (int)(sizeof(Shadow_v2) + _name.size() + _lightName.size() + _sectors.size() * sizeof(WalkPlane_v2 *) + _sectorNames.size() * sizeof(LString));
 }
 
 void Shadow_v2::resolveSectors(WalkPlaneCollection *collection) {
 	if (!collection)
 		return;
 
-	for (uint i = 0; i < sectorNames.size(); i++)
-		sectors.push_back(collection->planeNamed(sectorNames[i]));
+	for (uint i = 0; i < _sectorNames.size(); i++)
+		_sectors.push_back(collection->planeNamed(_sectorNames[i]));
 }
 
 float *Shadow_v2::getPosition(float *out) {
-	if (!lightName.empty()) {
+	if (!_lightName.empty()) {
 		Room_v2 *room = Room_v2::getCurrentRoom(_engine);
 		CLightNode *light = nullptr;
 
 		if (room)
-			light = room->findLight(lightName.c_str());
+			light = room->findLight(_lightName.c_str());
 		else
 			warning("Shadow_v2::getPosition(): there is no current room");
 
 		if (light) {
-			if ((light->nodeFlags & CNode::kWorldValid) == 0)
+			if ((light->_nodeFlags & CNode::kWorldValid) == 0)
 				light->updateWorldTransform();
 
-			out[0] = light->world.pos.x;
-			out[1] = light->world.pos.y;
-			out[2] = light->world.pos.z;
+			out[0] = light->_world._pos._x;
+			out[1] = light->_world._pos._y;
+			out[2] = light->_world._pos._z;
 
 			return out;
 		}
 	}
 
-	out[0] = point[0];
-	out[1] = point[1];
-	out[2] = point[2];
+	out[0] = _point[0];
+	out[1] = _point[1];
+	out[2] = _point[2];
 
 	return out;
 }
 
 void Shadow_v2::setName(const LString &newName) {
-	name = newName;
+	_name = newName;
 }
 
 void Shadow_v2::setLightName(const LString &newLightName) {
-	lightName = newLightName;
+	_lightName = newLightName;
 }
 
 void Shadow_v2::setColor(const Color &newColor) {
-	color = newColor;
+	_color = newColor;
 }
 
 void Shadow_v2::addSector(const LString &sectorName) {
-	sectorNames.push_back(sectorName);
+	_sectorNames.push_back(sectorName);
 }
 
 } // End of namespace Grim

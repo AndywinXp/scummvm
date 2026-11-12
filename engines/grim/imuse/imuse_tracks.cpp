@@ -28,11 +28,11 @@ int IMuse::tracksInit() {
 	_tracksPauseTimer = 0;
 	_trackList = nullptr;
 
-	if (waveOutInit(&waveOutSettings))
+	if (waveOutInit(&_waveOutSettings))
 		return -1;
 
-	if (_internalMixer->init(waveOutSettings.numChannels,
-			waveOutSettings.mixBufSize,
+	if (_internalMixer->init(_waveOutSettings.numChannels,
+			_waveOutSettings.mixBufSize,
 			_trackCount) ||
 			dispatchInit() ||
 		streamerInit()) {

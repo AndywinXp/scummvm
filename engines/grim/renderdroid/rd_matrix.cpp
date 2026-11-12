@@ -441,15 +441,15 @@ void RenderDroid::transformPoint34Acc(RdVector3 pt, RdMatrix34 mat) {
 	pt[2] = z;
 }
 
-void RenderDroid::transformPointLst34(RdMatrix34 mat, RdVector3 *aIn, RdVector3 *aOut, uint num) {
+void RenderDroid::transformPointLst34(RdMatrix34 mat, RdVector3 *in, RdVector3 *out, uint num) {
 	for (uint i = 0; i < num; i++) {
-		aOut[i][0] = (float)((double)aIn[i][1] * mat[1][0] + (double)mat[2][0] * aIn[i][2] + (double)mat[0][0] * aIn[i][0] + mat[3][0]);
+		out[i][0] = (float)((double)in[i][1] * mat[1][0] + (double)mat[2][0] * in[i][2] + (double)mat[0][0] * in[i][0] + mat[3][0]);
 		if (isDemo())
-			aOut[i][1] = (float)((double)mat[0][1] * aIn[i][0] + (double)mat[1][1] * aIn[i][1] + (double)mat[2][1] * aIn[i][2] + mat[3][1]);
+			out[i][1] = (float)((double)mat[0][1] * in[i][0] + (double)mat[1][1] * in[i][1] + (double)mat[2][1] * in[i][2] + mat[3][1]);
 		else
-			aOut[i][1] = (float)((double)mat[0][1] * aIn[i][0] + (double)mat[2][1] * aIn[i][2] + (double)mat[1][1] * aIn[i][1] + mat[3][1]);
+			out[i][1] = (float)((double)mat[0][1] * in[i][0] + (double)mat[2][1] * in[i][2] + (double)mat[1][1] * in[i][1] + mat[3][1]);
 
-		aOut[i][2] = (float)((double)mat[0][2] * aIn[i][0] + (double)mat[1][2] * aIn[i][1] + (double)mat[2][2] * aIn[i][2] + mat[3][2]);
+		out[i][2] = (float)((double)mat[0][2] * in[i][0] + (double)mat[1][2] * in[i][1] + (double)mat[2][2] * in[i][2] + mat[3][2]);
 	}
 }
 

@@ -27,50 +27,50 @@
 
 namespace Grim {
 
-void RenderDroid::KeyframeModule::newEntry(RdKeyframe *pKeyframe) {
-	memset(pKeyframe, 0, sizeof(RdKeyframe));
-	Common::strlcpy(pKeyframe->aName, "UNKNOWN", 32);
+void RenderDroid::KeyframeModule::newEntry(RdKeyframe *keyframe) {
+	memset(keyframe, 0, sizeof(RdKeyframe));
+	Common::strlcpy(keyframe->name, "UNKNOWN", 32);
 }
 
 RdKeyframe *RenderDroid::KeyframeModule::load(char *path) {
-	Common::SeekableReadStream *pFile = _rd->_pHS->openFile(path);
+	Common::SeekableReadStream *file = _rd->_hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return nullptr;
 
-	RdKeyframe *pKeyframe = new RdKeyframe;
-	uint32 magic = pFile->readUint32LE();
+	RdKeyframe *keyframe = new RdKeyframe;
+	uint32 magic = file->readUint32LE();
 
 	if (magic != 0x4B455946) {
-		delete pFile;
+		delete file;
 
-		if (loadEntry(path, pKeyframe))
-			return pKeyframe;
+		if (loadEntry(path, keyframe))
+			return keyframe;
 
-		destroy(pKeyframe);
+		destroy(keyframe);
 		return nullptr;
 	}
 
-	if (loadHeader(pFile, pKeyframe)) {
-		Common::strlcpy(pKeyframe->aName, _rd->_stdFile->fromPath(path), 32);
-		delete pFile;
-		return pKeyframe;
+	if (loadHeader(file, keyframe)) {
+		Common::strlcpy(keyframe->name, _rd->_stdFile->fromPath(path), 32);
+		delete file;
+		return keyframe;
 	}
 
-	delete pFile;
-	destroy(pKeyframe);
+	delete file;
+	destroy(keyframe);
 
 	return nullptr;
 }
 
-int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
+int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *keyframe) {
 	StdConffile *conffile = _rd->_stdConffile;
 	char section[1024];
 	char meshName[32];
 	bool success = false;
 
-	newEntry(pKeyframe);
-	Common::strlcpy(pKeyframe->aName, _rd->_stdFile->fromPath(path), 32);
+	newEntry(keyframe);
+	Common::strlcpy(keyframe->name, _rd->_stdFile->fromPath(path), 32);
 
 	if (!conffile->open(path))
 		return 0;
@@ -79,19 +79,19 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 		if (!conffile->readLine() || sscanf(conffile->getLine(), " section: %s", section) != 1)
 			break;
 
-		if (!conffile->readLine() || sscanf(conffile->getLine(), " flags %x", &pKeyframe->flags) != 1)
+		if (!conffile->readLine() || sscanf(conffile->getLine(), " flags %x", &keyframe->flags) != 1)
 			break;
 
-		if (!conffile->readLine() || sscanf(conffile->getLine(), " type %x", &pKeyframe->type) != 1)
+		if (!conffile->readLine() || sscanf(conffile->getLine(), " type %x", &keyframe->type) != 1)
 			break;
 
-		if (!conffile->readLine() || sscanf(conffile->getLine(), " frames %d", &pKeyframe->numFrames) != 1)
+		if (!conffile->readLine() || sscanf(conffile->getLine(), " frames %d", &keyframe->numFrames) != 1)
 			break;
 
 		float fps;
 		if (!conffile->readLine() || sscanf(conffile->getLine(), " fps %f", &fps) != 1)
 			break;
-		pKeyframe->fps = fps;
+		keyframe->fps = fps;
 
 		int numJoints;
 		if (!conffile->readLine() || sscanf(conffile->getLine(), " joints %d", &numJoints) != 1)
@@ -102,10 +102,10 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 			break;
 		}
 
-		pKeyframe->paNodes = new RdKeyframeNode[numJoints];
-		memset(pKeyframe->paNodes, 0, sizeof(RdKeyframeNode) * numJoints);
-		pKeyframe->numJoints = numJoints;
-		pKeyframe->numNodes = numJoints;
+		keyframe->paNodes = new RdKeyframeNode[numJoints];
+		memset(keyframe->paNodes, 0, sizeof(RdKeyframeNode) * numJoints);
+		keyframe->numJoints = numJoints;
+		keyframe->numNodes = numJoints;
 
 		if (!conffile->readLine() || sscanf(conffile->getLine(), " section: %s", section) != 1)
 			break;
@@ -118,11 +118,11 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 			if (numMarkers > 8)
 				break;
 
-			pKeyframe->numMarkers = numMarkers;
+			keyframe->numMarkers = numMarkers;
 			bool markersOk = true;
 
 			for (uint i = 0; i < numMarkers; i++) {
-				if (!conffile->readLine() || sscanf(conffile->getLine(), "%f %d", &pKeyframe->aMarkerFrame[i], &pKeyframe->aMarkerType[i]) != 2) {
+				if (!conffile->readLine() || sscanf(conffile->getLine(), "%f %d", &keyframe->markerFrame[i], &keyframe->markerType[i]) != 2) {
 					markersOk = false;
 					break;
 				}
@@ -155,14 +155,14 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 				break;
 			}
 
-			if (nodeIndex < 0 || nodeIndex >= (int)pKeyframe->numJoints) {
+			if (nodeIndex < 0 || nodeIndex >= (int)keyframe->numJoints) {
 				warning("RenderDroid::KeyframeModule::loadEntry(): node index %d out of range in %s", nodeIndex, path);
 				nodesOk = false;
 				break;
 			}
 
-			RdKeyframeNode *pNode = &pKeyframe->paNodes[nodeIndex];
-			Common::strlcpy(pNode->aName, meshName, 32);
+			RdKeyframeNode *node = &keyframe->paNodes[nodeIndex];
+			Common::strlcpy(node->name, meshName, 32);
 
 			if (!conffile->readLine() || sscanf(conffile->getLine(), " entries %d", &numEntries) != 1) {
 				nodesOk = false;
@@ -175,39 +175,39 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 				break;
 			}
 
-			pNode->nodeNum = nodeIndex;
-			pNode->numEntries = numEntries;
-			pNode->paEntries = new RdKeyframeEntry[numEntries];
+			node->nodeNum = nodeIndex;
+			node->numEntries = numEntries;
+			node->paEntries = new RdKeyframeEntry[numEntries];
 
 			for (int j = 0; j < numEntries; j++) {
-				RdKeyframeEntry *pEntry = &pNode->paEntries[j];
+				RdKeyframeEntry *entry = &node->paEntries[j];
 				int entryIndex;
 				float values[6];
 
-				if (!conffile->readLine() || sscanf(conffile->getLine(), " %d: %f %x %f %f %f %f %f %f", &entryIndex, &pEntry->frame, &pEntry->flags,
+				if (!conffile->readLine() || sscanf(conffile->getLine(), " %d: %f %x %f %f %f %f %f %f", &entryIndex, &entry->frame, &entry->flags,
 				        &values[0], &values[1], &values[2], &values[3], &values[4], &values[5]) != 9) {
 					nodesOk = false;
 					break;
 				}
 
-				pEntry->pos[0] = values[0];
-				pEntry->pos[1] = values[1];
-				pEntry->pos[2] = values[2];
-				pEntry->pyr[0] = values[3];
-				pEntry->pyr[1] = values[4];
-				pEntry->pyr[2] = values[5];
+				entry->pos[0] = values[0];
+				entry->pos[1] = values[1];
+				entry->pos[2] = values[2];
+				entry->pyr[0] = values[3];
+				entry->pyr[1] = values[4];
+				entry->pyr[2] = values[5];
 
 				if (!conffile->readLine() || sscanf(conffile->getLine(), " %f %f %f %f %f %f", &values[0], &values[1], &values[2], &values[3], &values[4], &values[5]) != 6) {
 					nodesOk = false;
 					break;
 				}
 
-				pEntry->dpos[0] = values[0];
-				pEntry->dpos[1] = values[1];
-				pEntry->dpos[2] = values[2];
-				pEntry->dpyr[0] = values[3];
-				pEntry->dpyr[1] = values[4];
-				pEntry->dpyr[2] = values[5];
+				entry->dpos[0] = values[0];
+				entry->dpos[1] = values[1];
+				entry->dpos[2] = values[2];
+				entry->dpyr[0] = values[3];
+				entry->dpyr[1] = values[4];
+				entry->dpyr[2] = values[5];
 			}
 		}
 
@@ -222,96 +222,96 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *pKeyframe) {
 	return success ? 1 : 0;
 }
 
-int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *pFile, RdKeyframe *pKeyframe) {
-	pFile->read(pKeyframe->aName, 32);
-	pKeyframe->reserved32 =pFile->readSint32LE();
-	pKeyframe->flags = pFile->readUint32LE();
-	pKeyframe->numJoints = pFile->readUint32LE();
-	pKeyframe->type = pFile->readUint32LE();
-	pKeyframe->fps = pFile->readFloatLE();
-	pKeyframe->numFrames = pFile->readUint32LE();
-	pKeyframe->numNodes = pFile->readUint32LE();
-	pFile->skip(4);
-	pKeyframe->paNodes = nullptr;
-	pKeyframe->numMarkers = pFile->readUint32LE();
+int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *file, RdKeyframe *keyframe) {
+	file->read(keyframe->name, 32);
+	keyframe->reserved32 =file->readSint32LE();
+	keyframe->flags = file->readUint32LE();
+	keyframe->numJoints = file->readUint32LE();
+	keyframe->type = file->readUint32LE();
+	keyframe->fps = file->readFloatLE();
+	keyframe->numFrames = file->readUint32LE();
+	keyframe->numNodes = file->readUint32LE();
+	file->skip(4);
+	keyframe->paNodes = nullptr;
+	keyframe->numMarkers = file->readUint32LE();
 
 	for (int i = 0; i < 8; i++)
-		pKeyframe->aMarkerFrame[i] = pFile->readFloatLE();
+		keyframe->markerFrame[i] = file->readFloatLE();
 
 	for (int i = 0; i < 8; i++)
-		pKeyframe->aMarkerType[i] = pFile->readSint32LE();
+		keyframe->markerType[i] = file->readSint32LE();
 
-	if (pFile->err() || pFile->eos() || (int64)pKeyframe->numNodes * 44 > pFile->size() - pFile->pos()) {
+	if (file->err() || file->eos() || (int64)keyframe->numNodes * 44 > file->size() - file->pos()) {
 		warning("RenderDroid::KeyframeModule::loadHeader(): invalid keyframe header");
-		pKeyframe->numNodes = 0;
+		keyframe->numNodes = 0;
 		return 0;
 	}
 
-	pKeyframe->paNodes = new RdKeyframeNode[pKeyframe->numNodes];
-	memset(pKeyframe->paNodes, 0, sizeof(RdKeyframeNode) * pKeyframe->numNodes);
+	keyframe->paNodes = new RdKeyframeNode[keyframe->numNodes];
+	memset(keyframe->paNodes, 0, sizeof(RdKeyframeNode) * keyframe->numNodes);
 
-	for (uint i = 0; i < pKeyframe->numNodes; i++) {
-		RdKeyframeNode *pNode = &pKeyframe->paNodes[i];
+	for (uint i = 0; i < keyframe->numNodes; i++) {
+		RdKeyframeNode *node = &keyframe->paNodes[i];
 
-		pFile->read(pNode->aName, 32);
-		pNode->nodeNum = pFile->readUint32LE();
-		pNode->numEntries = pFile->readUint32LE();
-		pFile->skip(4);
-		pNode->paEntries = nullptr;
+		file->read(node->name, 32);
+		node->nodeNum = file->readUint32LE();
+		node->numEntries = file->readUint32LE();
+		file->skip(4);
+		node->paEntries = nullptr;
 
-		if (!pNode->numEntries)
+		if (!node->numEntries)
 			continue;
 
-		if ((int64)pNode->numEntries * 56 > pFile->size() - pFile->pos()) {
+		if ((int64)node->numEntries * 56 > file->size() - file->pos()) {
 			warning("RenderDroid::KeyframeModule::loadHeader(): invalid entry count");
-			pNode->numEntries = 0;
+			node->numEntries = 0;
 			return 0;
 		}
 
-		pNode->paEntries = new RdKeyframeEntry[pNode->numEntries];
+		node->paEntries = new RdKeyframeEntry[node->numEntries];
 
-		for (uint j = 0; j < pNode->numEntries; j++) {
-			RdKeyframeEntry *pEntry = &pNode->paEntries[j];
+		for (uint j = 0; j < node->numEntries; j++) {
+			RdKeyframeEntry *entry = &node->paEntries[j];
 
-			pEntry->frame = pFile->readFloatLE();
-			pEntry->flags = pFile->readUint32LE();
-
-			for (int k = 0; k < 3; k++)
-				pEntry->pos[k] = pFile->readFloatLE();
+			entry->frame = file->readFloatLE();
+			entry->flags = file->readUint32LE();
 
 			for (int k = 0; k < 3; k++)
-				pEntry->pyr[k] = pFile->readFloatLE();
+				entry->pos[k] = file->readFloatLE();
 
 			for (int k = 0; k < 3; k++)
-				pEntry->dpos[k] = pFile->readFloatLE();
+				entry->pyr[k] = file->readFloatLE();
 
 			for (int k = 0; k < 3; k++)
-				pEntry->dpyr[k] = pFile->readFloatLE();
+				entry->dpos[k] = file->readFloatLE();
+
+			for (int k = 0; k < 3; k++)
+				entry->dpyr[k] = file->readFloatLE();
 		}
 	}
 
 	return 1;
 }
 
-void RenderDroid::KeyframeModule::destroy(RdKeyframe *&pKeyframe) {
-	if (pKeyframe) {
-		freeEntry(pKeyframe);
-		delete pKeyframe;
-		pKeyframe = nullptr;
+void RenderDroid::KeyframeModule::destroy(RdKeyframe *&keyframe) {
+	if (keyframe) {
+		freeEntry(keyframe);
+		delete keyframe;
+		keyframe = nullptr;
 	}
 }
 
-void RenderDroid::KeyframeModule::freeEntry(RdKeyframe *pKeyframe) {
-	if (pKeyframe->paNodes) {
-		for (uint i = 0; i < pKeyframe->numNodes; i++) {
-			if (pKeyframe->paNodes[i].paEntries) {
-				delete[] pKeyframe->paNodes[i].paEntries;
-				pKeyframe->paNodes[i].paEntries = nullptr;
+void RenderDroid::KeyframeModule::freeEntry(RdKeyframe *keyframe) {
+	if (keyframe->paNodes) {
+		for (uint i = 0; i < keyframe->numNodes; i++) {
+			if (keyframe->paNodes[i].paEntries) {
+				delete[] keyframe->paNodes[i].paEntries;
+				keyframe->paNodes[i].paEntries = nullptr;
 			}
 		}
 
-		delete[] pKeyframe->paNodes;
-		pKeyframe->paNodes = nullptr;
+		delete[] keyframe->paNodes;
+		keyframe->paNodes = nullptr;
 	}
 }
 

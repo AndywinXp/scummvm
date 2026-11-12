@@ -28,10 +28,10 @@
 namespace Grim {
 
 LocalAlphaInstance::LocalAlphaInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
+	_owner = actor;
 
 	if (componentName.size() >= Component::kNamePrefixSize)
-		filter = componentName.c_str() + Component::kNamePrefixSize;
+		_filter = componentName.c_str() + Component::kNamePrefixSize;
 	else
 		warning("LocalAlphaInstance::LocalAlphaInstance(): invalid component name %s", componentName.c_str());
 }
@@ -41,21 +41,21 @@ LocalAlphaInstance::~LocalAlphaInstance() {
 }
 
 void LocalAlphaInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!owner)
+	if (!_owner)
 		return;
 
-	for (uint i = 0; i < owner->instances.size(); i++) {
-		RPrimitiveInstance *instance = owner->instances[i];
+	for (uint i = 0; i < _owner->_instances.size(); i++) {
+		RPrimitiveInstance *instance = _owner->_instances[i];
 
 		if (!instance)
 			continue;
 
-		if (!instance->prim) {
+		if (!instance->_prim) {
 			warning("LocalAlphaInstance::setKey(): instance %u has no primitive", i);
 			continue;
 		}
 
-		if (instance->prim->name != filter)
+		if (instance->_prim->_name != _filter)
 			continue;
 
 		int materialIndex = (int)value / 10;
@@ -64,13 +64,13 @@ void LocalAlphaInstance::setKey(float value, float elapsed, float nextValue, flo
 
 		switch ((int)remainder) {
 		case -1:
-			instance->matAlphaMode = RPrimitiveInstance::kAlphaOff;
+			instance->_matAlphaMode = RPrimitiveInstance::kAlphaOff;
 			break;
 		case 2:
-			instance->matAlphaMode = RPrimitiveInstance::kAlphaSet;
+			instance->_matAlphaMode = RPrimitiveInstance::kAlphaSet;
 			break;
 		case 3:
-			instance->matAlphaMode = RPrimitiveInstance::kAlphaModulate;
+			instance->_matAlphaMode = RPrimitiveInstance::kAlphaModulate;
 			break;
 		default: {
 			int nextMaterialIndex = (int)nextValue / 10;
@@ -84,9 +84,9 @@ void LocalAlphaInstance::setKey(float value, float elapsed, float nextValue, flo
 				if (span != 0.0)
 					fraction = (double)elapsed / span;
 
-				instance->matAlpha[materialIndex] = (float)(fraction * ((double)nextBaseValue - (double)baseValue) + (double)baseValue);
+				instance->_matAlpha[materialIndex] = (float)(fraction * ((double)nextBaseValue - (double)baseValue) + (double)baseValue);
 			} else {
-				instance->matAlpha[materialIndex] = baseValue;
+				instance->_matAlpha[materialIndex] = baseValue;
 			}
 
 			break;

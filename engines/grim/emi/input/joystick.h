@@ -100,7 +100,7 @@ public:
 	void setDeviceAxis(int axis, int position);
 	void setDeviceButton(int button, bool pressed);
 
-	uint joyId;
+	uint _joyId;
 
 private:
 	EmiEngine *_engine;

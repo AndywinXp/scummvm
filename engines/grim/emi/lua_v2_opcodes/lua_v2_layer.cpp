@@ -44,14 +44,14 @@ void Lua_V2::NewLayer() {
 		return;
 	}
 
-	if (!currentRoom->setups || currentRoom->currentSetup < 0 || currentRoom->currentSetup >= currentRoom->numSetups || !lua_isstring(nameObj)) {
+	if (!currentRoom->_setups || currentRoom->_currentSetup < 0 || currentRoom->_currentSetup >= currentRoom->_numSetups || !lua_isstring(nameObj)) {
 		warning("Lua_V2::NewLayer(): invalid setup or layer name");
 		lua_pushnil();
 
 		return;
 	}
 
-	Setup *setup = &currentRoom->setups[currentRoom->currentSetup];
+	Setup *setup = &currentRoom->_setups[currentRoom->_currentSetup];
 	int frame = luaFtol(lua_getnumber(frameObj));
 	int sortOrder = luaFtol(lua_getnumber(sortOrderObj));
 	const char *layerName = lua_getstring(nameObj);
@@ -68,13 +68,13 @@ void Lua_V2::FreeLayer() {
 		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom) {
-			if (!currentRoom->setups || currentRoom->currentSetup < 0 || currentRoom->currentSetup >= currentRoom->numSetups) {
+			if (!currentRoom->_setups || currentRoom->_currentSetup < 0 || currentRoom->_currentSetup >= currentRoom->_numSetups) {
 				warning("Lua_V2::FreeLayer(): invalid setup");
 
 				return;
 			}
 
-			currentRoom->setups[currentRoom->currentSetup].removeLayerById(layerId);
+			currentRoom->_setups[currentRoom->_currentSetup].removeLayerById(layerId);
 		}
 	} else {
 		if (_engine->getConsoleServices())
@@ -93,7 +93,7 @@ void Lua_V2::SetLayerSortOrder() {
 		if (layer) {
 			lua_Object sortOrderObj = lua_getparam(2);
 
-			layer->sortOrder = luaFtol(lua_getnumber(sortOrderObj));
+			layer->_sortOrder = luaFtol(lua_getnumber(sortOrderObj));
 		} else {
 			if (_engine->getConsoleServices())
 				_engine->getConsoleServices()->logError("SetLayerSortOrder layer not found.\n");
@@ -115,7 +115,7 @@ void Lua_V2::GetLayerSortOrder() {
 		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
-			lua_pushnumber((float)layer->sortOrder);
+			lua_pushnumber((float)layer->_sortOrder);
 		} else {
 			if (_engine->getConsoleServices())
 				_engine->getConsoleServices()->logError("GetLayerSortOrder: layer not found.\n");
@@ -137,7 +137,7 @@ void Lua_V2::GetLayerFrame() {
 		Layer *layer = Room_v2::findLayerById(_engine, lua_getuserdata(layerObj));
 
 		if (layer) {
-			lua_pushnumber((float)layer->frame);
+			lua_pushnumber((float)layer->_frame);
 		} else {
 			if (_engine->getConsoleServices())
 				_engine->getConsoleServices()->logError("GetLayerCurFrame: layer not found.\n");
@@ -161,7 +161,7 @@ void Lua_V2::SetLayerFrame() {
 		if (layer) {
 			lua_Object frameObj = lua_getparam(2);
 
-			layer->frame = luaFtol(lua_getnumber(frameObj));
+			layer->_frame = luaFtol(lua_getnumber(frameObj));
 		} else {
 			if (_engine->getConsoleServices())
 				_engine->getConsoleServices()->logError("SetLayerCurFrame: layer not found.\n");
@@ -185,7 +185,7 @@ void Lua_V2::AdvanceLayerFrame() {
 		if (layer) {
 			lua_Object frameObj = lua_getparam(2);
 
-			layer->frame += luaFtol(lua_getnumber(frameObj));
+			layer->_frame += luaFtol(lua_getnumber(frameObj));
 		} else {
 			if (_engine->getConsoleServices())
 				_engine->getConsoleServices()->logError("AdvanceLayerCurFrame: layer not found.\n");

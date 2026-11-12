@@ -43,23 +43,23 @@ public:
 
 	void reset();
 
-	double ratio;
-	double invRatio;
-	double pcmBytesPerMs;
-	double invPcmBytesPerMs;
-	int startByte;
-	int srcByte;
-	int dstByte;
-	int16 loopCount;
-	LString fileName;
-	MusicStream *musicStream;
-	int paused;
-	float trim;
-	int16 field43c;
-	double start;
-	double end;
-	int16 hasJump;
-	Jump jumps[2];
+	double _ratio;
+	double _invRatio;
+	double _pcmBytesPerMs;
+	double _invPcmBytesPerMs;
+	int _startByte;
+	int _srcByte;
+	int _dstByte;
+	int16 _loopCount;
+	LString _fileName;
+	MusicStream *_musicStream;
+	int _paused;
+	float _trim;
+	int16 _field43c;
+	double _start;
+	double _end;
+	int16 _hasJump;
+	Jump _jumps[2];
 };
 
 } // End of namespace Grim

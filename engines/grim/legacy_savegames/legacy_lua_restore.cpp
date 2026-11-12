@@ -22,15 +22,15 @@
 
 namespace Grim {
 
-static tSaveRestoreAccess *pRestoreFunc;
+static SaveRestoreAccess *restoreFunc;
 static uint restoreMinorVersion;
 
 // Set only while a legacy savegame is read
 static bool restoreIsLegacy = false;
 static bool restoreFailed = false;
-static Common::SeekableReadStream *pLegacyStream = nullptr;
-static lua_LegacyFunctionHook pLegacyFunctionHook = nullptr;
-static lua_LegacyUserdataHook pLegacyUserdataHook = nullptr;
+static Common::SeekableReadStream *legacyStream = nullptr;
+static lua_LegacyFunctionHook legacyFunctionHook = nullptr;
+static lua_LegacyUserdataHook legacyUserdataHook = nullptr;
 
 // After a failure every value read is zero, so the loops end quickly
 static int legacyStreamReader(void *data, int size) {
@@ -39,7 +39,7 @@ static int legacyStreamReader(void *data, int size) {
 		return 1;
 	}
 
-	if (restoreFailed || pLegacyStream->read(data, size) != (uint32)size) {
+	if (restoreFailed || legacyStream->read(data, size) != (uint32)size) {
 		restoreFailed = true;
 		memset(data, 0, size);
 		return 1;
@@ -67,19 +67,19 @@ static void missingLegacyFunction() {
 }
 
 static void readBytes(void *data, int size) {
-	pRestoreFunc(data, size);
+	restoreFunc(data, size);
 }
 
 static uint64 readLEUint64() {
 	uint64 data;
-	pRestoreFunc(&data, 8);
+	restoreFunc(&data, 8);
 
 	return FROM_LE_64(data);
 }
 
 static uint32 readLEUint32() {
 	uint32 data;
-	pRestoreFunc(&data, 4);
+	restoreFunc(&data, 4);
 
 	return FROM_LE_32(data);
 }
@@ -90,7 +90,7 @@ static int32 readLESint32() {
 
 static byte readByte() {
 	byte data;
-	pRestoreFunc(&data, 1);
+	restoreFunc(&data, 1);
 
 	return data;
 }
@@ -140,13 +140,13 @@ static void restoreObjectValue(TObject *object) {
 				if (restoreIsLegacy) {
 					int32 newTag;
 					int32 newId;
-					if (!restoreFailed && pLegacyUserdataHook &&
-						pLegacyUserdataHook(object->value.ud.tag, object->value.ud.id, &newTag, &newId)) {
+					if (!restoreFailed && legacyUserdataHook &&
+						legacyUserdataHook(object->value.ud.tag, object->value.ud.id, &newTag, &newId)) {
 						object->value.ud.tag = newTag;
 						object->value.ud.id = newId;
 					}
 				} else if (lua_restorehook) {
-					object->value.ud.id = lua_restorehook(object->value.ud.tag, object->value.ud.id, pRestoreFunc);
+					object->value.ud.id = lua_restorehook(object->value.ud.tag, object->value.ud.id, restoreFunc);
 				}
 			}
 			break;
@@ -230,7 +230,7 @@ static bool arraysAllreadySort = false;
 static void recreateObj(TObject *obj) {
 	if (obj->ttype == LUA_T_CPROTO && restoreIsLegacy) {
 		uintptr id = (uintptr)(obj->value.f);
-		obj->value.f = pLegacyFunctionHook((int32)(id >> 16), (int32)(id & 0xffff));
+		obj->value.f = legacyFunctionHook((int32)(id >> 16), (int32)(id & 0xffff));
 		if (!obj->value.f)
 			obj->value.f = missingLegacyFunction;
 	} else if (obj->ttype == LUA_T_CPROTO) {
@@ -707,10 +707,10 @@ int lua_RestoreLegacy(Common::SeekableReadStream *stream, int minorVersion, lua_
 		return 1;
 	}
 
-	pLegacyStream = stream;
-	pLegacyFunctionHook = functionHook;
-	pLegacyUserdataHook = userdataHook;
-	pRestoreFunc = legacyStreamReader;
+	legacyStream = stream;
+	legacyFunctionHook = functionHook;
+	legacyUserdataHook = userdataHook;
+	restoreFunc = legacyStreamReader;
 	restoreMinorVersion = minorVersion;
 	restoreIsLegacy = true;
 	restoreFailed = false;
@@ -721,9 +721,9 @@ int lua_RestoreLegacy(Common::SeekableReadStream *stream, int minorVersion, lua_
 
 	restoreIsLegacy = false;
 	restoreFailed = false;
-	pLegacyStream = nullptr;
-	pLegacyFunctionHook = nullptr;
-	pLegacyUserdataHook = nullptr;
+	legacyStream = nullptr;
+	legacyFunctionHook = nullptr;
+	legacyUserdataHook = nullptr;
 
 	if (failed) {
 		warning("lua_RestoreLegacy(): the Lua state is damaged or truncated");

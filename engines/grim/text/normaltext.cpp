@@ -23,14 +23,14 @@
 
 namespace Grim {
 
-NormalText::NormalText() : _pSystem(nullptr), _bInitialized(0), _bStarted(0) {
+NormalText::NormalText() : _system(nullptr), _initialized(0), _started(0) {
 }
 
-int NormalText::initialize(SysStruct *pSystem) {
-	_pSystem = pSystem;
+int NormalText::initialize(SysStruct *system) {
+	_system = system;
 
-	if (!_bInitialized) {
-		_bInitialized = 1;
+	if (!_initialized) {
+		_initialized = 1;
 
 		return 0;
 	}
@@ -39,12 +39,12 @@ int NormalText::initialize(SysStruct *pSystem) {
 }
 
 void NormalText::terminate() {
-	_bInitialized = 0;
+	_initialized = 0;
 }
 
 int NormalText::startup() {
-	if (_bInitialized && !_bStarted) {
-		_bStarted = 1;
+	if (_initialized && !_started) {
+		_started = 1;
 
 		return 0;
 	}
@@ -53,7 +53,7 @@ int NormalText::startup() {
 }
 
 void NormalText::shutdown() {
-	_bStarted = 0;
+	_started = 0;
 }
 
 } // End of namespace Grim

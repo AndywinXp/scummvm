@@ -159,7 +159,7 @@ struct NumberEntry {
 };
 
 // The control numbers are whole and not negative
-static bool toControlCode(float number, int32 *pCode) {
+static bool toControlCode(float number, int32 *codePointer) {
 	if (!(number >= 0.0f && number <= 1000000.0f))
 		return false;
 
@@ -168,18 +168,18 @@ static bool toControlCode(float number, int32 *pCode) {
 	if ((float)code != number)
 		return false;
 
-	*pCode = code;
+	*codePointer = code;
 
 	return true;
 }
 
-static bool isLiveNode(const Node *pNode) {
-	return ttype(&pNode->ref) != LUA_T_NIL && ttype(&pNode->val) != LUA_T_NIL;
+static bool isLiveNode(const Node *node) {
+	return ttype(&node->ref) != LUA_T_NIL && ttype(&node->val) != LUA_T_NIL;
 }
 
 class ControlsRemapper {
 public:
-	ControlsRemapper(int systemRef, const ControlSymbol *aSymbols, int numSymbols);
+	ControlsRemapper(int systemRef, const ControlSymbol *symbols, int numSymbols);
 
 	Common::String remap();
 
@@ -194,8 +194,8 @@ private:
 	int32 findCodeByName(const KeyGlobal &global, int32 oldCode);
 	void remapControlMap();
 	void remapKeyTable(lua_Object table, const char *what, bool isMappedIds);
-	bool mapJoystickValue(float oldValue, float *pNewValue) const;
-	bool readGlobalCode(const char *name, int32 *pCode);
+	bool mapJoystickValue(float oldValue, float *newValue) const;
+	bool readGlobalCode(const char *name, int32 *code);
 	void setGlobalCode(const char *name, int32 code);
 	void setTableNumber(lua_Object table, int32 key, float value);
 	void removeTableKey(lua_Object table, int32 key);
@@ -204,7 +204,7 @@ private:
 	Common::String makeSummary() const;
 
 	int _systemRef;
-	const ControlSymbol *_aSymbols;
+	const ControlSymbol *_symbols;
 	int _numSymbols;
 
 	Common::Array<Common::String> _oldNames;
@@ -230,8 +230,8 @@ private:
 	int _numValuesLeft;
 };
 
-ControlsRemapper::ControlsRemapper(int systemRef, const ControlSymbol *aSymbols, int numSymbols) : _systemRef(systemRef),
-		_aSymbols(aSymbols), _numSymbols(numSymbols), _numAbsentNames(0), _numDroppedNames(0), _numGlobalsByName(0), _numHotKeys(0), _numJoystick(0),
+ControlsRemapper::ControlsRemapper(int systemRef, const ControlSymbol *symbols, int numSymbols) : _systemRef(systemRef),
+		_symbols(symbols), _numSymbols(numSymbols), _numAbsentNames(0), _numDroppedNames(0), _numGlobalsByName(0), _numHotKeys(0), _numJoystick(0),
 		_numGlobalsSkipped(0), _numTables(0), _numKeysMoved(0), _numKeysDropped(0), _numKeysLeft(0), _numValuesLeft(0) {
 	for (int i = 0; i < kNumJoystickGlobals; i++) {
 		_oldJoystick[i] = kNoCode;
@@ -239,7 +239,7 @@ ControlsRemapper::ControlsRemapper(int systemRef, const ControlSymbol *aSymbols,
 	}
 
 	for (int i = 0; i < _numSymbols; i++)
-		_newCodeByName.setVal(_aSymbols[i].pName, i);
+		_newCodeByName.setVal(_symbols[i].name, i);
 }
 
 Common::String ControlsRemapper::remap() {
@@ -298,21 +298,21 @@ bool ControlsRemapper::readOldControls(lua_Object systemTable) {
 		return false;
 	}
 
-	Hash *pHash = avalue(luaA_Address(controls));
+	Hash *hash = avalue(luaA_Address(controls));
 
-	for (int32 i = 0; i < pHash->nhash; i++) {
-		const Node *pNode = &pHash->node[i];
+	for (int32 i = 0; i < hash->nhash; i++) {
+		const Node *node = &hash->node[i];
 		int32 code;
 
-		if (!isLiveNode(pNode))
+		if (!isLiveNode(node))
 			continue;
 
-		if (ttype(&pNode->ref) != LUA_T_STRING || ttype(&pNode->val) != LUA_T_NUMBER || !toControlCode(nvalue(&pNode->val), &code)) {
+		if (ttype(&node->ref) != LUA_T_STRING || ttype(&node->val) != LUA_T_NUMBER || !toControlCode(nvalue(&node->val), &code)) {
 			warning("legacyRemapControls(): an entry of the old controls table is not a name with a control number");
 			continue;
 		}
 
-		Common::String name(svalue(&pNode->ref));
+		Common::String name(svalue(&node->ref));
 
 		_oldNames.push_back(name);
 		_oldCodeByName.setVal(name, code);
@@ -381,7 +381,7 @@ void ControlsRemapper::replaceControls(lua_Object systemTable) {
 
 	for (int i = 0; i < _numSymbols; i++) {
 		lua_pushobject(controls);
-		lua_pushstring(_aSymbols[i].pName);
+		lua_pushstring(_symbols[i].name);
 		lua_pushnumber((float)i);
 		lua_rawsettable();
 	}
@@ -471,40 +471,40 @@ void ControlsRemapper::remapControlMap() {
 		return;
 	}
 
-	Hash *pHash = avalue(luaA_Address(controlMap));
+	Hash *hash = avalue(luaA_Address(controlMap));
 
 	// Nothing is written into control_map itself, so the nodes stay where they are
-	for (int32 i = 0; i < pHash->nhash; i++) {
-		Node *pNode = &pHash->node[i];
+	for (int32 i = 0; i < hash->nhash; i++) {
+		Node *node = &hash->node[i];
 
-		if (!isLiveNode(pNode) || ttype(&pNode->val) != LUA_T_ARRAY)
+		if (!isLiveNode(node) || ttype(&node->val) != LUA_T_ARRAY)
 			continue;
 
-		const char *name = (ttype(&pNode->ref) == LUA_T_STRING) ? svalue(&pNode->ref) : "control_map";
+		const char *name = (ttype(&node->ref) == LUA_T_STRING) ? svalue(&node->ref) : "control_map";
 
-		luaA_pushobject(&pNode->val);
+		luaA_pushobject(&node->val);
 		remapKeyTable(lua_pop(), name, false);
 	}
 }
 
 // The keys of the table, and the values too for the ids of the axis handlers, get their new numbers
 void ControlsRemapper::remapKeyTable(lua_Object table, const char *what, bool isMappedIds) {
-	Hash *pHash = avalue(luaA_Address(table));
+	Hash *hash = avalue(luaA_Address(table));
 	Common::Array<NumberEntry> entries;
 
-	for (int32 i = 0; i < pHash->nhash; i++) {
-		const Node *pNode = &pHash->node[i];
+	for (int32 i = 0; i < hash->nhash; i++) {
+		const Node *node = &hash->node[i];
 		NumberEntry entry;
 
-		if (!isLiveNode(pNode))
+		if (!isLiveNode(node))
 			continue;
 
-		if (ttype(&pNode->ref) != LUA_T_NUMBER || ttype(&pNode->val) != LUA_T_NUMBER || !toControlCode(nvalue(&pNode->ref), &entry.key)) {
+		if (ttype(&node->ref) != LUA_T_NUMBER || ttype(&node->val) != LUA_T_NUMBER || !toControlCode(nvalue(&node->ref), &entry.key)) {
 			_numKeysLeft++;
 			continue;
 		}
 
-		entry.value = nvalue(&pNode->val);
+		entry.value = nvalue(&node->val);
 		entries.push_back(entry);
 	}
 
@@ -545,7 +545,7 @@ void ControlsRemapper::remapKeyTable(lua_Object table, const char *what, bool is
 }
 
 // The ids of the axis handlers are the joystick globals
-bool ControlsRemapper::mapJoystickValue(float oldValue, float *pNewValue) const {
+bool ControlsRemapper::mapJoystickValue(float oldValue, float *newValue) const {
 	int32 oldCode;
 
 	if (!toControlCode(oldValue, &oldCode))
@@ -553,7 +553,7 @@ bool ControlsRemapper::mapJoystickValue(float oldValue, float *pNewValue) const 
 
 	for (int i = 0; i < kNumJoystickGlobals; i++) {
 		if (_hasOldJoystick[i] && _oldJoystick[i] == oldCode) {
-			*pNewValue = (float)kJoystickGlobals[i].value;
+			*newValue = (float)kJoystickGlobals[i].value;
 			return true;
 		}
 	}
@@ -561,13 +561,13 @@ bool ControlsRemapper::mapJoystickValue(float oldValue, float *pNewValue) const 
 	return false;
 }
 
-bool ControlsRemapper::readGlobalCode(const char *name, int32 *pCode) {
-	TObject *pObject = luaA_Address(lua_rawgetglobal(name));
+bool ControlsRemapper::readGlobalCode(const char *name, int32 *code) {
+	TObject *object = luaA_Address(lua_rawgetglobal(name));
 
-	if (ttype(pObject) == LUA_T_NIL)
+	if (ttype(object) == LUA_T_NIL)
 		return false;
 
-	if (ttype(pObject) != LUA_T_NUMBER || !toControlCode(nvalue(pObject), pCode)) {
+	if (ttype(object) != LUA_T_NUMBER || !toControlCode(nvalue(object), code)) {
 		warning("legacyRemapControls(): the global %s is not a control number, it is left as it is", name);
 		_numGlobalsSkipped++;
 		return false;
@@ -628,8 +628,8 @@ Common::String ControlsRemapper::makeSummary() const {
 		_numTables, _numKeysMoved, _numKeysDropped, _numKeysLeft, _numValuesLeft);
 }
 
-Common::String legacyRemapControls(int systemRef, const ControlSymbol *aSymbols, int numSymbols) {
-	ControlsRemapper remapper(systemRef, aSymbols, numSymbols);
+Common::String legacyRemapControls(int systemRef, const ControlSymbol *symbols, int numSymbols) {
+	ControlsRemapper remapper(systemRef, symbols, numSymbols);
 
 	return remapper.remap();
 }

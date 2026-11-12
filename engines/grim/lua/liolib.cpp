@@ -42,10 +42,10 @@ namespace Grim {
 #define FINPUT          "_INPUT"
 #define FOUTPUT         "_OUTPUT"
 
-LuaFile *g_stderr;
+LuaFile *stderrFile;
 
-static int32 s_id = 0;
-Common::HashMap<int32, LuaFile *> *g_files;
+static int32 lastFileId = 0;
+Common::HashMap<int32, LuaFile *> *files;
 
 LuaFile::LuaFile() : _in(nullptr), _out(nullptr), _stdin(false), _stdout(false), _stderr(false) {
 }
@@ -124,8 +124,8 @@ static int32 ishandler(lua_Object f) {
 }
 
 static LuaFile *getfile(int32 id) {
-	if (g_files->contains(id)) {
-		return (*g_files)[id];
+	if (files->contains(id)) {
+		return (*files)[id];
 	}
 
 	return nullptr;
@@ -178,10 +178,10 @@ static void setreturn(int32 id, const char *name) {
 }
 
 static int32 addfile(LuaFile *f) {
-	++s_id;
-	(*g_files)[s_id] = f;
+	++lastFileId;
+	(*files)[lastFileId] = f;
 
-	return s_id;
+	return lastFileId;
 }
 
 static void io_readfrom() {
@@ -398,7 +398,7 @@ static void errorfb() {
 
 	char buf[256];
 	snprintf(buf, 256, "lua: %s\n", lua_getstring(lua_getparam(1)));
-	g_stderr->write(buf, strlen(buf));
+	stderrFile->write(buf, strlen(buf));
 	lua_printstack(nullptr);
 }
 
@@ -508,13 +508,13 @@ static void openwithtags() {
 	f->_stdout = true;
 	setfile(addfile(f), "_STDOUT", iotag);
 
-	g_stderr = new LuaFile();
-	g_stderr->_stderr = true;
-	setfile(addfile(g_stderr), "_STDERR", iotag);
+	stderrFile = new LuaFile();
+	stderrFile->_stderr = true;
+	setfile(addfile(stderrFile), "_STDERR", iotag);
 }
 
 void lua_iolibopen() {
-	g_files = new Common::HashMap<int32, LuaFile *>();
+	files = new Common::HashMap<int32, LuaFile *>();
 
 	if (luaIsEmi)
 		luaL_openlib(iolibEmi, ARRAYSIZE(iolibEmi));
@@ -528,13 +528,13 @@ void lua_iolibopen() {
 }
 
 void lua_iolibclose() {
-	for (Common::HashMap<int32, LuaFile *>::iterator it = g_files->begin(); it != g_files->end(); ++it) {
+	for (Common::HashMap<int32, LuaFile *>::iterator it = files->begin(); it != files->end(); ++it) {
 		delete it->_value;
 	}
-	delete g_files;
-	g_files = nullptr;
-	g_stderr = nullptr;
-	s_id = 0;
+	delete files;
+	files = nullptr;
+	stderrFile = nullptr;
+	lastFileId = 0;
 }
 
 } // end of namespace Grim

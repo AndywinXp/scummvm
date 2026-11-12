@@ -42,7 +42,7 @@ struct StdControlKey {
 	int changeTime;
 	int lastPressTime;
 	int pressCount;
-	int bDoubleClick;
+	int doubleClick;
 };
 
 struct StdControlDeviceEvent {
@@ -59,7 +59,7 @@ struct StdControlMouseState {
 };
 
 struct StdControlJoyCaps {
-	int bAvailable;
+	int available;
 	int flags;
 	int maxButtons;
 	int axisMin[6];
@@ -77,13 +77,13 @@ struct StdControlJoyState {
 struct StdControlInput {
 	StdControlDeviceEvent keyboardEvents[32];
 	int numKeyboardEvents;
-	int bKeyboardOverflow;
+	int keyboardOverflow;
 	byte keyboardState[256];
 
 	StdControlMouseState mouse;
 	StdControlDeviceEvent mouseEvents[32];
 	int numMouseEvents;
-	int bMouseOverflow;
+	int mouseOverflow;
 
 	int numJoysticks;
 	StdControlJoyCaps joyCaps[2];
@@ -100,8 +100,8 @@ public:
 	StdControl();
 
 	StdControlInput *getInput() { return &_input; }
-	int isStarted() const { return _bStartup; }
-	int isOpen() const { return _bOpen; }
+	int isStarted() const { return _startup; }
+	int isOpen() const { return _open; }
 
 	int startup();
 	void shutdown();
@@ -112,8 +112,8 @@ public:
 	int pressButton(uint button);
 	void readControls();
 	float readAxis(int axis);
-	int readKey(int key, int *pPressCount, int *pDoubleClick);
-	void setActivation(int bActive);
+	int readKey(int key, int *pressCount, int *doubleClick);
+	void setActivation(int active);
 
 private:
 	void initJoysticks();
@@ -125,20 +125,20 @@ private:
 	void readMouse();
 	void flushMouse();
 	void enableAxis(int axis, int minVal, int maxVal, float deadZone);
-	void updateKey(StdControlKey *pKey, int down, int time);
+	void updateKey(StdControlKey *key, int down, int time);
 
-	int _bStartup;
-	int _bOpen;
-	int _bControlsActive;
-	int _bControlsIdle;
-	int _bDisableKeyboard;
-	int _bReadMouse;
-	int _bReadJoysticks;
+	int _startup;
+	int _open;
+	int _controlsActive;
+	int _controlsIdle;
+	int _disableKeyboard;
+	int _readMouse;
+	int _readJoysticks;
 	int _abReadJoy[2];
-	int _aReadJoyFlags[2];
-	int _aJoyPresent[2];
-	int _aJoyMaxButtons[2];
-	int _aJoyHasPOV[2];
+	int _readJoyFlags[2];
+	int _joyPresent[2];
+	int _joyMaxButtons[2];
+	int _joyHasPOV[2];
 	int _curReadTime;
 	int _lastReadTime;
 	int _readDelta;
@@ -147,9 +147,9 @@ private:
 	int _prevMouseX;
 	int _prevMouseY;
 
-	StdControlAxis _aAxes[kNumAxes];
-	int _aAxisPos[kNumAxes];
-	StdControlKey _aKeyInfo[kNumKeys];
+	StdControlAxis _axes[kNumAxes];
+	int _axisPos[kNumAxes];
+	StdControlKey _keyInfo[kNumKeys];
 
 	StdControlInput _input;
 };

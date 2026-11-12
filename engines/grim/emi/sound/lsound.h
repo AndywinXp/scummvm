@@ -36,7 +36,7 @@ public:
 	virtual bool clearInUse();
 	virtual bool isInUse();
 
-	bool inUse;
+	bool _inUse;
 };
 
 } // End of namespace Grim

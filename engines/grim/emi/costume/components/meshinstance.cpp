@@ -32,57 +32,57 @@
 namespace Grim {
 
 MeshInstance::MeshInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
-	meshInstance = nullptr;
+	_owner = actor;
+	_meshInstance = nullptr;
 
-	if (handle.lock()) {
-		MeshComponent *component = dynamic_cast<MeshComponent *>(handle.typed);
+	if (_handle.lock()) {
+		MeshComponent *component = dynamic_cast<MeshComponent *>(_handle._typed);
 
-		if (handle.typed && !component)
+		if (_handle._typed && !component)
 			warning("MeshInstance::MeshInstance(): %s is not a mesh component", componentName.c_str());
 
-		if (component && !owner) {
+		if (component && !_owner) {
 			warning("MeshInstance::MeshInstance(): no owner");
 			component = nullptr;
 		}
 
 		if (component) {
-			meshInstance = static_cast<RMeshInstance *>(component->RMesh::createInstance());
-			meshInstance->visible = false;
+			_meshInstance = static_cast<RMeshInstance *>(component->RMesh::createInstance());
+			_meshInstance->_visible = false;
 
-			if (component->weightMap) {
-				uint numNodes = component->weightMap->nodeNames.size();
+			if (component->_weightMap) {
+				uint numNodes = component->_weightMap->_nodeNames.size();
 
-				meshInstance->boneNodes = (CNode **)_engine->getMemoryServices()->mallocImpl(numNodes * sizeof(CNode *));
+				_meshInstance->_boneNodes = (CNode **)_engine->getMemoryServices()->mallocImpl(numNodes * sizeof(CNode *));
 
 				// The disasm leaves the bones it cannot find uninitialized
-				if (meshInstance->boneNodes)
-					memset(meshInstance->boneNodes, 0, numNodes * sizeof(CNode *));
+				if (_meshInstance->_boneNodes)
+					memset(_meshInstance->_boneNodes, 0, numNodes * sizeof(CNode *));
 
-				component->weightMap->bindNodes(owner, meshInstance->boneNodes);
+				component->_weightMap->bindNodes(_owner, _meshInstance->_boneNodes);
 			}
 
-			owner->instances.push_back(meshInstance);
+			_owner->_instances.push_back(_meshInstance);
 		}
 	}
 
-	handle.unlock();
+	_handle.unlock();
 }
 
 MeshInstance::~MeshInstance() {
-	if (owner && meshInstance) {
-		int index = owner->findPrimitiveInstance(meshInstance);
+	if (_owner && _meshInstance) {
+		int index = _owner->findPrimitiveInstance(_meshInstance);
 
-		owner->removePrimitiveInstance(index);
-		delete meshInstance;
-		meshInstance = nullptr;
+		_owner->removePrimitiveInstance(index);
+		delete _meshInstance;
+		_meshInstance = nullptr;
 	}
 }
 
 void MeshInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
 	// The disasm treats NaN as zero
-	if (meshInstance)
-		meshInstance->visible = (value < 0.0f || value > 0.0f);
+	if (_meshInstance)
+		_meshInstance->_visible = (value < 0.0f || value > 0.0f);
 }
 
 } // End of namespace Grim

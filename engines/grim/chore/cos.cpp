@@ -27,53 +27,53 @@
 
 namespace Grim {
 
-Cos::Cos() : _pHS(nullptr), _bInitialized(0), _bStarted(0), _numCostumes(0), _maxCostumes(0), _aCostumes(nullptr), _nextCostumeId(0),
-		_numClasses(0), _maxClasses(0), _aClasses(nullptr), _numInstances(0), _maxInstances(0), _aInstances(nullptr),
-		_aCompMap(nullptr), _compMapSize(0), _lineNumber(0), _pInstanceHook(nullptr), _pSaveHook(nullptr), _pSaveVerify(nullptr),
-		_pCompNotifier(nullptr), _pBitmapMunger(nullptr) {
-	memset(_aTagMap, 0, sizeof(_aTagMap));
+Cos::Cos() : _hs(nullptr), _initialized(0), _started(0), _numCostumes(0), _maxCostumes(0), _costumes(nullptr), _nextCostumeId(0),
+		_numClasses(0), _maxClasses(0), _classes(nullptr), _numInstances(0), _maxInstances(0), _instances(nullptr),
+		_compMap(nullptr), _compMapSize(0), _lineNumber(0), _instanceHook(nullptr), _saveHook(nullptr), _saveVerify(nullptr),
+		_compNotifier(nullptr), _bitmapMunger(nullptr) {
+	memset(_tagMap, 0, sizeof(_tagMap));
 	memset(_lineBuffer, 0, sizeof(_lineBuffer));
 }
 
-int Cos::initialize(SysStruct *pHS) {
-	_pHS = pHS;
-	_bInitialized = 1;
+int Cos::initialize(SysStruct *hs) {
+	_hs = hs;
+	_initialized = 1;
 
 	return 0;
 }
 
 int Cos::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int Cos::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
 	_numCostumes = 0;
 	_maxCostumes = 32;
-	_aCostumes = new CosCostume[32]();
+	_costumes = new CosCostume[32]();
 
 	for (int i = 0; i < 32; i++)
-		_aCostumes[i].bFree = 1;
+		_costumes[i].free = 1;
 
 	_numClasses = 0;
 	_maxClasses = 32;
-	_aClasses = new CosComponentClass[32]();
+	_classes = new CosComponentClass[32]();
 
 	_numInstances = 0;
 	_maxInstances = 32;
-	_aInstances = new CosInstance[32]();
+	_instances = new CosInstance[32]();
 
 	for (int i = 0; i < 32; i++)
-		_aInstances[i].bFree = 1;
+		_instances[i].free = 1;
 
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
@@ -81,26 +81,26 @@ int Cos::startup() {
 int Cos::shutdown() {
 	_maxCostumes = 0;
 	_numCostumes = 0;
-	delete[] _aCostumes;
-	_aCostumes = nullptr;
+	delete[] _costumes;
+	_costumes = nullptr;
 
 	_maxClasses = 0;
 	_numClasses = 0;
-	delete[] _aClasses;
-	_aClasses = nullptr;
+	delete[] _classes;
+	_classes = nullptr;
 
 	_maxInstances = 0;
 	_numInstances = 0;
-	delete[] _aInstances;
-	_aInstances = nullptr;
+	delete[] _instances;
+	_instances = nullptr;
 
 	if (_compMapSize) {
-		delete[] _aCompMap;
-		_aCompMap = nullptr;
+		delete[] _compMap;
+		_compMap = nullptr;
 		_compMapSize = 0;
 	}
 
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
@@ -135,8 +135,8 @@ int Cos::instIndexToHandle(int index) {
 
 int Cos::allocCostumeSlot() {
 	for (int i = 0; i < _maxCostumes; i++) {
-		if (_aCostumes[i].bFree) {
-			_aCostumes[i].bFree = 0;
+		if (_costumes[i].free) {
+			_costumes[i].free = 0;
 			_numCostumes++;
 			return i;
 		}
@@ -147,16 +147,16 @@ int Cos::allocCostumeSlot() {
 	if (_numCostumes + 1 > _maxCostumes) {
 		_maxCostumes += 8;
 
-		CosCostume *aCostumes = new CosCostume[_maxCostumes]();
+		CosCostume *costumes = new CosCostume[_maxCostumes]();
 
 		for (int i = 0; i < oldMax; i++)
-			aCostumes[i] = _aCostumes[i];
+			costumes[i] = _costumes[i];
 
-		delete[] _aCostumes;
-		_aCostumes = aCostumes;
+		delete[] _costumes;
+		_costumes = costumes;
 
 		for (int i = oldMax; i < _maxCostumes; i++)
-			_aCostumes[i].bFree = 1;
+			_costumes[i].free = 1;
 	}
 
 	int index = _numCostumes;
@@ -167,15 +167,15 @@ int Cos::allocCostumeSlot() {
 	}
 
 	_numCostumes++;
-	_aCostumes[index].bFree = 0;
+	_costumes[index].free = 0;
 
 	return index;
 }
 
 int Cos::allocInstanceSlot() {
 	for (int i = 0; i < _maxInstances; i++) {
-		if (_aInstances[i].bFree) {
-			_aInstances[i].bFree = 0;
+		if (_instances[i].free) {
+			_instances[i].free = 0;
 			_numInstances++;
 			return i;
 		}
@@ -186,16 +186,16 @@ int Cos::allocInstanceSlot() {
 	if (_numInstances + 1 > _maxInstances) {
 		_maxInstances += 8;
 
-		CosInstance *aInstances = new CosInstance[_maxInstances]();
+		CosInstance *instances = new CosInstance[_maxInstances]();
 
 		for (int i = 0; i < oldMax; i++)
-			aInstances[i] = _aInstances[i];
+			instances[i] = _instances[i];
 
-		delete[] _aInstances;
-		_aInstances = aInstances;
+		delete[] _instances;
+		_instances = instances;
 
 		for (int i = oldMax; i < _maxInstances; i++)
-			_aInstances[i].bFree = 1;
+			_instances[i].free = 1;
 	}
 
 	int index = _numInstances;
@@ -206,7 +206,7 @@ int Cos::allocInstanceSlot() {
 	}
 
 	_numInstances++;
-	_aInstances[index].bFree = 0;
+	_instances[index].free = 0;
 
 	return index;
 }
@@ -222,7 +222,7 @@ int Cos::allocTagSlot() {
 
 CosComponentClass *Cos::newTag(int fourcc, const char *name, int param) {
 	for (int i = 0; i < _numClasses; i++) {
-		if (_aClasses[i].fourcc == fourcc)
+		if (_classes[i].fourcc == fourcc)
 			return nullptr;
 	}
 
@@ -234,106 +234,106 @@ CosComponentClass *Cos::newTag(int fourcc, const char *name, int param) {
 	if (index < 0)
 		return nullptr;
 
-	CosComponentClass *pClass = &_aClasses[index];
-	Common::strlcpy(pClass->name, name, 32);
-	pClass->fourcc = fourcc;
-	pClass->param = param;
+	CosComponentClass *classInfo = &_classes[index];
+	Common::strlcpy(classInfo->name, name, 32);
+	classInfo->fourcc = fourcc;
+	classInfo->param = param;
 
-	return pClass;
+	return classInfo;
 }
 
-int Cos::newStateBasedTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param) {
-	if (!pHandler) {
+int Cos::newStateBasedTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param) {
+	if (!handler) {
 		warning("Cos::newStateBasedTag(): null handler for tag %s", name);
 		return 0;
 	}
 
-	CosComponentClass *pClass = newTag(fourcc, name, param);
+	CosComponentClass *classInfo = newTag(fourcc, name, param);
 
-	if (!pClass)
+	if (!classInfo)
 		return 0;
 
-	pClass->type = kCosTagStateBased;
-	pClass->pHandler = pHandler;
+	classInfo->type = kCosTagStateBased;
+	classInfo->handler = handler;
 
 	return 1;
 }
 
-int Cos::newIntTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param) {
-	if (!pHandler) {
+int Cos::newIntTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param) {
+	if (!handler) {
 		warning("Cos::newIntTag(): null handler for tag %s", name);
 		return 0;
 	}
 
-	CosComponentClass *pClass = newTag(fourcc, name, param);
+	CosComponentClass *classInfo = newTag(fourcc, name, param);
 
-	if (!pClass)
+	if (!classInfo)
 		return 0;
 
-	pClass->type = kCosTagInt;
-	pClass->pHandler = pHandler;
+	classInfo->type = kCosTagInt;
+	classInfo->handler = handler;
 
 	return 1;
 }
 
-int Cos::newFloatTag(int fourcc, const char *name, int unused, CosComponentHandler *pHandler, int param) {
-	if (!pHandler) {
+int Cos::newFloatTag(int fourcc, const char *name, int unused, CosComponentHandler *handler, int param) {
+	if (!handler) {
 		warning("Cos::newFloatTag(): null handler for tag %s", name);
 		return 0;
 	}
 
-	CosComponentClass *pClass = newTag(fourcc, name, param);
+	CosComponentClass *classInfo = newTag(fourcc, name, param);
 
-	if (!pClass)
+	if (!classInfo)
 		return 0;
 
-	pClass->type = kCosTagFloat;
-	pClass->pHandler = pHandler;
+	classInfo->type = kCosTagFloat;
+	classInfo->handler = handler;
 
 	return 1;
 }
 
-CosInstanceHook Cos::registerInstanceHook(CosInstanceHook pHook) {
-	CosInstanceHook pOldHook = _pInstanceHook;
-	_pInstanceHook = pHook;
+CosInstanceHook Cos::registerInstanceHook(CosInstanceHook hook) {
+	CosInstanceHook oldHook = _instanceHook;
+	_instanceHook = hook;
 
-	return pOldHook;
+	return oldHook;
 }
 
-CosSaveHook Cos::registerSaveHook(CosSaveHook pHook) {
-	CosSaveHook pOldHook = _pSaveHook;
-	_pSaveHook = pHook;
+CosSaveHook Cos::registerSaveHook(CosSaveHook hook) {
+	CosSaveHook oldHook = _saveHook;
+	_saveHook = hook;
 
-	return pOldHook;
+	return oldHook;
 }
 
-CosSaveVerify Cos::registerSaveVerify(CosSaveVerify pVerify) {
-	_pSaveVerify = pVerify;
+CosSaveVerify Cos::registerSaveVerify(CosSaveVerify verify) {
+	_saveVerify = verify;
 
-	return pVerify;
+	return verify;
 }
 
-CosCompNotifier Cos::registerCompNotifier(CosCompNotifier pNotifier) {
-	CosCompNotifier pOldNotifier = _pCompNotifier;
-	_pCompNotifier = pNotifier;
+CosCompNotifier Cos::registerCompNotifier(CosCompNotifier notifier) {
+	CosCompNotifier oldNotifier = _compNotifier;
+	_compNotifier = notifier;
 
-	return pOldNotifier;
+	return oldNotifier;
 }
 
-CosBitmapMunger Cos::registerBitmapMunger(CosBitmapMunger pMunger) {
-	CosBitmapMunger pOldMunger = _pBitmapMunger;
-	_pBitmapMunger = pMunger;
+CosBitmapMunger Cos::registerBitmapMunger(CosBitmapMunger munger) {
+	CosBitmapMunger oldMunger = _bitmapMunger;
+	_bitmapMunger = munger;
 
-	return pOldMunger;
+	return oldMunger;
 }
 
-void Cos::initCostume(CosCostume *pCostume) {
-	Common::strlcpy(pCostume->name, "<unnamed>", 32);
-	pCostume->uniqueId = _nextCostumeId++;
-	pCostume->numComponents = 0;
-	pCostume->aComponents = nullptr;
-	pCostume->numChores = 0;
-	pCostume->aChores = nullptr;
+void Cos::initCostume(CosCostume *costume) {
+	Common::strlcpy(costume->name, "<unnamed>", 32);
+	costume->uniqueId = _nextCostumeId++;
+	costume->numComponents = 0;
+	costume->components = nullptr;
+	costume->numChores = 0;
+	costume->chores = nullptr;
 }
 
 int Cos::newCostume() {
@@ -342,63 +342,63 @@ int Cos::newCostume() {
 	if (index < 0)
 		return 0;
 
-	initCostume(&_aCostumes[index]);
+	initCostume(&_costumes[index]);
 
 	return indexToHandle(index);
 }
 
 int Cos::load(const char *path) {
 	for (int i = 0; i < _maxCostumes; i++) {
-		if (!_aCostumes[i].bFree && scumm_stricmp(path, _aCostumes[i].name) == 0)
+		if (!_costumes[i].free && scumm_stricmp(path, _costumes[i].name) == 0)
 			return indexToHandle(i);
 	}
 
 	int index = allocCostumeSlot();
-	int hCostume = indexToHandle(index);
+	int costume = indexToHandle(index);
 
-	if (!loadEntry(path, hCostume)) {
+	if (!loadEntry(path, costume)) {
 		freeCostumeData(indexToHandle(index));
 		return 0;
 	}
 
-	return hCostume;
+	return costume;
 }
 
-int Cos::loadEntry(const char *path, int hCostume) {
-	int index = handleToIndex(hCostume);
+int Cos::loadEntry(const char *path, int costumeHandle) {
+	int index = handleToIndex(costumeHandle);
 
 	if (index < 0 || index >= _maxCostumes) {
-		warning("Cos::loadEntry(): invalid costume handle %d", hCostume);
+		warning("Cos::loadEntry(): invalid costume handle %d", costumeHandle);
 		return 0;
 	}
 
-	CosCostume *pCostume = &_aCostumes[index];
-	initCostume(pCostume);
+	CosCostume *costume = &_costumes[index];
+	initCostume(costume);
 
-	const char *pName = strrchr(path, '\\');
+	const char *name = strrchr(path, '\\');
 
-	if (pName) {
-		pName++;
+	if (name) {
+		name++;
 
-		if (strlen(pName) > 0x20) {
-			pCostume->bFree = 1;
+		if (strlen(name) > 0x20) {
+			costume->free = 1;
 			return 0;
 		}
 
-		Common::strlcpy(pCostume->name, pName, 32);
+		Common::strlcpy(costume->name, name, 32);
 	} else {
 		if (strlen(path) > 0x20) {
-			pCostume->bFree = 1;
+			costume->free = 1;
 			return 0;
 		}
 
-		Common::strlcpy(pCostume->name, path, 32);
+		Common::strlcpy(costume->name, path, 32);
 	}
 
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile) {
-		pCostume->bFree = 1;
+	if (!file) {
+		costume->free = 1;
 		return 0;
 	}
 
@@ -406,37 +406,37 @@ int Cos::loadEntry(const char *path, int hCostume) {
 
 	int major = 0;
 	int minor = 0;
-	bool bFailed = false;
+	bool failed = false;
 
-	if (!readLine(pFile, _lineBuffer, 1024)) {
-		bFailed = true;
+	if (!readLine(file, _lineBuffer, 1024)) {
+		failed = true;
 	} else {
 		sscanf(_lineBuffer, " costume v%d.%d", &major, &minor);
 
-		if (!readLine(pFile, _lineBuffer, 1024)
+		if (!readLine(file, _lineBuffer, 1024)
 				|| sscanf(_lineBuffer, " section tags")
-				|| !parseTags(pFile)
-				|| !readLine(pFile, _lineBuffer, 1024)
+				|| !parseTags(file)
+				|| !readLine(file, _lineBuffer, 1024)
 				|| sscanf(_lineBuffer, " section components")
-				|| !parseComponents(pFile, hCostume)
-				|| !readLine(pFile, _lineBuffer, 1024)
+				|| !parseComponents(file, costumeHandle)
+				|| !readLine(file, _lineBuffer, 1024)
 				|| sscanf(_lineBuffer, " section chores")
-				|| !parseChores(pFile, pCostume)
-				|| !readLine(pFile, _lineBuffer, 1024)
+				|| !parseChores(file, costume)
+				|| !readLine(file, _lineBuffer, 1024)
 				|| sscanf(_lineBuffer, " section keys")
-				|| (pCostume->numChores && !parseKeys(pFile, pCostume)))
-			bFailed = true;
+				|| (costume->numChores && !parseKeys(file, costume)))
+			failed = true;
 	}
 
-	if (!bFailed) {
-		for (int c = 0; c < pCostume->numChores && !bFailed; c++) {
-			CosChore *pChore = &pCostume->aChores[c];
-			setChoreLength(pCostume, c, pChore->length);
+	if (!failed) {
+		for (int c = 0; c < costume->numChores && !failed; c++) {
+			CosChore *chore = &costume->chores[c];
+			setChoreLength(costume, c, chore->length);
 
-			for (int i = 0; i < pChore->numTracks && !bFailed; i++) {
-				for (int j = 0; j < pChore->numTracks; j++) {
-					if (i != j && pChore->aTracks[i].compIndex == pChore->aTracks[j].compIndex) {
-						bFailed = true;
+			for (int i = 0; i < chore->numTracks && !failed; i++) {
+				for (int j = 0; j < chore->numTracks; j++) {
+					if (i != j && chore->tracks[i].compIndex == chore->tracks[j].compIndex) {
+						failed = true;
 						break;
 					}
 				}
@@ -444,118 +444,118 @@ int Cos::loadEntry(const char *path, int hCostume) {
 		}
 	}
 
-	delete pFile;
+	delete file;
 
-	if (bFailed) {
-		pCostume->bFree = 1;
+	if (failed) {
+		costume->free = 1;
 		return 0;
 	}
 
 	return 1;
 }
 
-int Cos::freeCostume(int hCostume) {
-	int index = handleToIndex(hCostume);
+int Cos::freeCostume(int costume) {
+	int index = handleToIndex(costume);
 
 	if (index < 0 || index >= _maxCostumes) {
-		warning("Cos::freeCostume(): invalid costume handle %d", hCostume);
+		warning("Cos::freeCostume(): invalid costume handle %d", costume);
 		return _numCostumes;
 	}
 
 	for (int i = 0; i < _maxInstances; i++) {
-		if (!_aInstances[i].bFree && _aInstances[i].costume == index)
+		if (!_instances[i].free && _instances[i].costume == index)
 			freeCosInstance(instIndexToHandle(i));
 	}
 
-	freeCostumeData(hCostume);
-	_aCostumes[index].bFree = 1;
+	freeCostumeData(costume);
+	_costumes[index].free = 1;
 
 	return --_numCostumes;
 }
 
-void Cos::freeCostumeData(int hCostume) {
-	CosCostume *pCostume = ptrFromHandle(hCostume);
+void Cos::freeCostumeData(int costumeHandle) {
+	CosCostume *costume = ptrFromHandle(costumeHandle);
 
-	if (!pCostume) {
-		warning("Cos::freeCostumeData(): invalid costume handle %d", hCostume);
+	if (!costume) {
+		warning("Cos::freeCostumeData(): invalid costume handle %d", costumeHandle);
 		return;
 	}
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponent *comp = &costume->components[i];
 
-		if (pComp->classIdx < 0 || pComp->classIdx >= _numClasses) {
+		if (comp->classIdx < 0 || comp->classIdx >= _numClasses) {
 			warning("Cos::freeCostumeData(): component %d has an invalid tag index", i);
 			continue;
 		}
 
-		freeComponent(hCostume, &_aClasses[pComp->classIdx], pComp);
+		freeComponent(costumeHandle, &_classes[comp->classIdx], comp);
 	}
 
-	delete[] pCostume->aComponents;
-	pCostume->aComponents = nullptr;
-	pCostume->numComponents = 0;
+	delete[] costume->components;
+	costume->components = nullptr;
+	costume->numComponents = 0;
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
 
-		for (int t = 0; pChore->aTracks && t < pChore->numTracks; t++) {
-			delete[] pChore->aTracks[t].aKeys;
-			pChore->aTracks[t].aKeys = nullptr;
+		for (int t = 0; chore->tracks && t < chore->numTracks; t++) {
+			delete[] chore->tracks[t].keys;
+			chore->tracks[t].keys = nullptr;
 		}
 
-		delete[] pChore->aTracks;
-		pChore->aTracks = nullptr;
-		pChore->numTracks = 0;
+		delete[] chore->tracks;
+		chore->tracks = nullptr;
+		chore->numTracks = 0;
 	}
 
-	delete[] pCostume->aChores;
-	pCostume->aChores = nullptr;
-	pCostume->numChores = 0;
+	delete[] costume->chores;
+	costume->chores = nullptr;
+	costume->numChores = 0;
 
-	pCostume->bFree = 1;
+	costume->free = 1;
 }
 
-void Cos::freeComponent(int hCostume, CosComponentClass *pClass, CosComponent *pComp) {
-	if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat)
-		warning("Cos::freeComponent(): invalid tag type %d", pClass->type);
-	else if (pClass->pHandler)
-		pClass->pHandler->freeComponent(hCostume, pClass->fourcc, pComp->id);
+void Cos::freeComponent(int costume, CosComponentClass *classInfo, CosComponent *comp) {
+	if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat)
+		warning("Cos::freeComponent(): invalid tag type %d", classInfo->type);
+	else if (classInfo->handler)
+		classInfo->handler->freeComponent(costume, classInfo->fourcc, comp->id);
 
-	delete[] pComp->aNameIds;
-	pComp->aNameIds = nullptr;
+	delete[] comp->nameIds;
+	comp->nameIds = nullptr;
 
-	if (pComp->aNames) {
-		for (int i = 0; i < pComp->numNames; i++)
-			delete[] pComp->aNames[i];
+	if (comp->names) {
+		for (int i = 0; i < comp->numNames; i++)
+			delete[] comp->names[i];
 
-		delete[] pComp->aNames;
-		pComp->aNames = nullptr;
+		delete[] comp->names;
+		comp->names = nullptr;
 	}
 
-	if (pComp->apStateBitmaps) {
-		for (int i = 0; i < pComp->numNames; i++)
-			delete pComp->apStateBitmaps[i];
+	if (comp->stateBitmaps) {
+		for (int i = 0; i < comp->numNames; i++)
+			delete comp->stateBitmaps[i];
 
-		delete[] pComp->apStateBitmaps;
-		pComp->apStateBitmaps = nullptr;
+		delete[] comp->stateBitmaps;
+		comp->stateBitmaps = nullptr;
 	}
 }
 
-const char *Cos::getCostumeName(int hCostume) {
-	int index = handleToIndex(hCostume);
+const char *Cos::getCostumeName(int costume) {
+	int index = handleToIndex(costume);
 
 	if (index < 0 || index >= _maxCostumes) {
-		warning("Cos::getCostumeName(): invalid costume handle %d", hCostume);
+		warning("Cos::getCostumeName(): invalid costume handle %d", costume);
 		return nullptr;
 	}
 
-	return _aCostumes[index].name;
+	return _costumes[index].name;
 }
 
-int Cos::compareFunction(const void *pA, const void *pB) {
-	uint32 timeA = (uint32)((const CosChoreKey *)pA)->time;
-	uint32 timeB = (uint32)((const CosChoreKey *)pB)->time;
+int Cos::compareFunction(const void *a, const void *b) {
+	uint32 timeA = (uint32)((const CosChoreKey *)a)->time;
+	uint32 timeB = (uint32)((const CosChoreKey *)b)->time;
 
 	if (timeB > timeA)
 		return -1;

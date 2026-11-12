@@ -51,10 +51,10 @@ public:
 	int getSize();
 	void addKey(ChoreKey *key);
 
-	int id;
-	int parentId;
-	LString resourceName;
-	Common::List<ChoreKey *> keys;
+	int _id;
+	int _parentId;
+	LString _resourceName;
+	Common::List<ChoreKey *> _keys;
 };
 
 class Chore {
@@ -71,9 +71,9 @@ public:
 	void lockComponents();
 	void unlockComponents();
 
-	LString name;
-	Common::Array<ChoreTrack *> tracks;
-	float length;
+	LString _name;
+	Common::Array<ChoreTrack *> _tracks;
+	float _length;
 
 private:
 	EmiEngine *_engine;
@@ -97,7 +97,7 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	Common::Array<Chore *> chores;
+	Common::Array<Chore *> _chores;
 
 protected:
 	virtual bool resLoadItem(const char *itemName);

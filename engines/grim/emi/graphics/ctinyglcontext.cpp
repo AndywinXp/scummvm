@@ -54,16 +54,16 @@ static const uint kBytesPerVertex = 152;
 static const uint kBytesPerDrawCall = 512;
 
 CTinyGLContext::CTinyGLContext(EmiEngine *engine) : CDrawContext(engine) {
-	currentVertexArray = nullptr;
-	numClipPlanes = 0;
-	swapCount = 0;
-	flushCount = 0;
-	depthTestEnabled = false;
-	blendEnabled = false;
-	alphaTestEnabled = false;
-	shadeModel = 0;
-	texture2dEnabled = false;
-	texEnvMode = 0;
+	_currentVertexArray = nullptr;
+	_numClipPlanes = 0;
+	_swapCount = 0;
+	_flushCount = 0;
+	_depthTestEnabled = false;
+	_blendEnabled = false;
+	_alphaTestEnabled = false;
+	_shadeModel = 0;
+	_texture2dEnabled = false;
+	_texEnvMode = 0;
 	_contextHandle = nullptr;
 	_gammaActive = false;
 	_vertexColors = nullptr;
@@ -79,16 +79,16 @@ CTinyGLContext::~CTinyGLContext() {
 }
 
 bool CTinyGLContext::open(const DisplayMode *mode) {
-	displayMode = *mode;
+	_displayMode = *mode;
 
 	Graphics::PixelFormat format;
 
-	if (displayMode.bpp == 32)
+	if (_displayMode.bpp == 32)
 		format = Graphics::PixelFormat::createFormatRGBA32();
 	else
 		format = Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 
-	initGraphics(displayMode.width, displayMode.height, &format);
+	initGraphics(_displayMode.width, _displayMode.height, &format);
 
 	Graphics::PixelFormat screenFormat = g_system->getScreenFormat();
 
@@ -98,10 +98,10 @@ bool CTinyGLContext::open(const DisplayMode *mode) {
 		return false;
 	}
 
-	_contextHandle = TinyGL::createContext(displayMode.width, displayMode.height, screenFormat, kTextureSize, false, false, kDrawCallMemory);
+	_contextHandle = TinyGL::createContext(_displayMode.width, _displayMode.height, screenFormat, kTextureSize, false, false, kDrawCallMemory);
 	_queuedBytes = 0;
 
-	setViewport(0, 0, displayMode.width, displayMode.height);
+	setViewport(0, 0, _displayMode.width, _displayMode.height);
 	tglMatrixMode(TGL_PROJECTION);
 	tglLoadIdentity();
 	tglMatrixMode(TGL_MODELVIEW);
@@ -110,8 +110,8 @@ bool CTinyGLContext::open(const DisplayMode *mode) {
 
 	initGLState();
 
-	drawListA.ctx = this;
-	drawListB.ctx = this;
+	_drawListA._ctx = this;
+	_drawListB._ctx = this;
 
 	return true;
 }
@@ -123,12 +123,12 @@ bool CTinyGLContext::close() {
 	if (_contextHandle) {
 		// TinyGL needs its context to delete the textures
 		for (int i = 0; i < kNumCachedTextures; i++) {
-			delete textureCache[i];
-			textureCache[i] = nullptr;
+			delete _textureCache[i];
+			_textureCache[i] = nullptr;
 		}
 
-		delete defaultTexture;
-		defaultTexture = nullptr;
+		delete _defaultTexture;
+		_defaultTexture = nullptr;
 
 		if (_engine->getDrawContext() == this)
 			_engine->setDrawContext(nullptr);
@@ -172,9 +172,9 @@ int CTinyGLContext::present(bool vsync) {
 	}
 
 	g_system->updateScreen();
-	swapCount++;
+	_swapCount++;
 
-	return swapCount;
+	return _swapCount;
 }
 
 void CTinyGLContext::clear(bool color, bool depth) {
@@ -234,7 +234,7 @@ void CTinyGLContext::setOrtho(float left, float right, float bottom, float top) 
 }
 
 void CTinyGLContext::setGamma(float gamma) {
-	if (!hasGammaCtl)
+	if (!_hasGammaCtl)
 		return;
 
 	for (int i = 0; i < 256; i++) {
@@ -254,22 +254,22 @@ int CTinyGLContext::getMaxClipPlanes() {
 }
 
 void CTinyGLContext::addClipPlane(float a, float b, float c, float d) {
-	if (numClipPlanes >= kMaxClipPlanes) {
+	if (_numClipPlanes >= kMaxClipPlanes) {
 		warning("CTinyGLContext::addClipPlane(): too many clip planes");
 
 		return;
 	}
 
 	// TinyGL has no clip planes: drawTriangles applies them by hand
-	_clipPlanes[numClipPlanes].a = a;
-	_clipPlanes[numClipPlanes].b = b;
-	_clipPlanes[numClipPlanes].c = c;
-	_clipPlanes[numClipPlanes].d = d;
-	numClipPlanes++;
+	_clipPlanes[_numClipPlanes].a = a;
+	_clipPlanes[_numClipPlanes].b = b;
+	_clipPlanes[_numClipPlanes].c = c;
+	_clipPlanes[_numClipPlanes].d = d;
+	_numClipPlanes++;
 }
 
 void CTinyGLContext::clearClipPlanes() {
-	numClipPlanes = 0;
+	_numClipPlanes = 0;
 }
 
 void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
@@ -278,17 +278,17 @@ void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	CDCVertex *vertices = (CDCVertex *)vertexArray->lock();
 
 	// TinyGL reads the indices as signed 16 bit values
-	if (vertexArray->numVerts > 32768)
-		warning("CTinyGLContext::submitVertices(): too many vertices for TinyGL (%d)", vertexArray->numVerts);
+	if (vertexArray->_numVerts > 32768)
+		warning("CTinyGLContext::submitVertices(): too many vertices for TinyGL (%d)", vertexArray->_numVerts);
 
 	tglVertexPointer(3, TGL_FLOAT, sizeof(CDCVertex), vertices);
 	tglEnableClientState(TGL_VERTEX_ARRAY);
 	tglEnableClientState(TGL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexArray->_numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
-		for (int i = 0; i < vertexArray->numVerts; i++) {
+		for (int i = 0; i < vertexArray->_numVerts; i++) {
 			uint32 color = vertices[i].color;
 
 			_vertexColors[4 * i] = (color >> 16) & 0xFF;
@@ -303,21 +303,21 @@ void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	tglTexCoordPointer(2, TGL_FLOAT, sizeof(CDCVertex), &vertices->u);
 	tglEnableClientState(TGL_TEXTURE_COORD_ARRAY);
 
-	currentVertexArray = vertexArray;
+	_currentVertexArray = vertexArray;
 	_lockedVertices = vertices;
-	counter8 += vertexArray->numVerts;
+	_counter8 += vertexArray->_numVerts;
 
 	_engine->_tinyglSubmitVerticesTimer.stop();
 }
 
 void CTinyGLContext::releaseVertices() {
-	if (!currentVertexArray) {
+	if (!_currentVertexArray) {
 		warning("CTinyGLContext::releaseVertices(): no vertex array submitted");
 
 		return;
 	}
 
-	currentVertexArray->unlock();
+	_currentVertexArray->unlock();
 	_engine->getMemoryServices()->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 	_lockedVertices = nullptr;
@@ -334,7 +334,7 @@ void CTinyGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, con
 
 		_engine->_tinyglDrawElementsTimer.start();
 
-		if (numClipPlanes > 0) {
+		if (_numClipPlanes > 0) {
 			drawClippedTriangles(numIndices, indices);
 		} else {
 			reserveVertices(numIndices);
@@ -343,7 +343,7 @@ void CTinyGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, con
 
 		_engine->_tinyglDrawElementsTimer.stop();
 
-		trianglesDrawn += numIndices / 3;
+		_trianglesDrawn += numIndices / 3;
 	}
 
 	_engine->_tinyglDrawTrianglesTimer.stop();
@@ -382,7 +382,7 @@ void CTinyGLContext::drawQuads(int flags, CTexture *tex, int first, int count, c
 
 		tglEnd();
 
-		trianglesDrawn += count / 4;
+		_trianglesDrawn += count / 4;
 	}
 
 	_engine->_tinyglDrawQuadsTimer.stop();
@@ -437,7 +437,7 @@ int CTinyGLContext::outputDrawPoly(DrawPoly *poly) {
 	}
 
 	tglEnd();
-	trianglesDrawn++;
+	_trianglesDrawn++;
 
 	_engine->_tinyglOutputDrawPolyTimer.stop();
 
@@ -471,63 +471,63 @@ void CTinyGLContext::drawPrim2D(int flags, DrawVertex *verts, int count, bool fi
 }
 
 void CTinyGLContext::setColor(const Color *color) {
-	tglColor4ub(color->r, color->g, color->b, color->a);
+	tglColor4ub(color->_r, color->_g, color->_b, color->_a);
 }
 
 void CTinyGLContext::setPolyOptions(int flags) {
 	_engine->_tinyglSetPolyOptionsTimer.start();
 
 	if (flags & 0x100) {
-		if (!depthTestEnabled) {
+		if (!_depthTestEnabled) {
 			tglEnable(TGL_DEPTH_TEST);
 			tglDepthMask(TGL_TRUE);
 			tglDepthFunc(TGL_LEQUAL);
-			depthTestEnabled = true;
+			_depthTestEnabled = true;
 		}
-	} else if (depthTestEnabled) {
+	} else if (_depthTestEnabled) {
 		tglDisable(TGL_DEPTH_TEST);
-		depthTestEnabled = false;
+		_depthTestEnabled = false;
 	}
 
-	if ((flags & 3) != 0 && shadeModel != 1) {
-		shadeModel = 1;
+	if ((flags & 3) != 0 && _shadeModel != 1) {
+		_shadeModel = 1;
 		tglShadeModel(TGL_FLAT);
 	}
 
 	if (flags & 1)
 		tglColor3ub(255, 255, 255);
 
-	if ((flags & 4) != 0 && shadeModel != 2) {
-		shadeModel = 2;
+	if ((flags & 4) != 0 && _shadeModel != 2) {
+		_shadeModel = 2;
 		tglShadeModel(TGL_SMOOTH);
 	}
 
 	if (flags & 0x10000) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			tglEnable(TGL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 1) {
+		if (_blendMode != 1) {
 			tglBlendFunc(TGL_SRC_ALPHA, TGL_ONE_MINUS_SRC_ALPHA);
-			blendMode = 1;
+			_blendMode = 1;
 		}
-	} else if (blendEnabled) {
+	} else if (_blendEnabled) {
 		tglDisable(TGL_BLEND);
-		blendEnabled = false;
+		_blendEnabled = false;
 	}
 
 	if (flags & 0x20000) {
-		if (!alphaTestEnabled) {
+		if (!_alphaTestEnabled) {
 			tglEnable(TGL_ALPHA_TEST);
-			alphaTestEnabled = true;
+			_alphaTestEnabled = true;
 		}
-	} else if (alphaTestEnabled) {
+	} else if (_alphaTestEnabled) {
 		tglDisable(TGL_ALPHA_TEST);
-		alphaTestEnabled = false;
+		_alphaTestEnabled = false;
 	}
 
-	polyOptions = flags;
+	_polyOptions = flags;
 
 	_engine->_tinyglSetPolyOptionsTimer.stop();
 }
@@ -536,54 +536,54 @@ void CTinyGLContext::setTextures(CTexture *tex, int flags) {
 	_engine->_tinyglSetTexturesTimer.start();
 
 	if (!tex) {
-		texture2dEnabled = false;
+		_texture2dEnabled = false;
 		tglDisable(TGL_TEXTURE_2D);
 		_engine->_tinyglSetTexturesTimer.stop();
 
 		return;
 	}
 
-	uint textureFlags = tex->flags;
+	uint textureFlags = tex->_flags;
 	CTinyGLTexture *texture = static_cast<CTinyGLTexture *>(tex);
 
-	tglBindTexture(TGL_TEXTURE_2D, texture->glId);
-	texture->boundFlush = flushCount;
+	tglBindTexture(TGL_TEXTURE_2D, texture->_glId);
+	texture->_boundFlush = _flushCount;
 
 	// TinyGL keeps the wrap mode in the context, not in the texture
 	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_WRAP_S, (textureFlags & 0x100) ? TGL_CLAMP_TO_EDGE : TGL_REPEAT);
 	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_WRAP_T, (textureFlags & 0x200) ? TGL_CLAMP_TO_EDGE : TGL_REPEAT);
 
-	if (texEnvMode != 2) {
-		texEnvMode = 2;
+	if (_texEnvMode != 2) {
+		_texEnvMode = 2;
 		tglTexEnvi(TGL_TEXTURE_ENV, TGL_TEXTURE_ENV_MODE, TGL_MODULATE);
 	}
 
 	if ((textureFlags & 0x80) || (flags & 0x10000)) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			tglEnable(TGL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 1) {
+		if (_blendMode != 1) {
 			tglBlendFunc(TGL_SRC_ALPHA, TGL_ONE_MINUS_SRC_ALPHA);
-			blendMode = 1;
+			_blendMode = 1;
 		}
 	}
 
 	if (textureFlags & 0x400) {
-		if (!blendEnabled) {
+		if (!_blendEnabled) {
 			tglEnable(TGL_BLEND);
-			blendEnabled = true;
+			_blendEnabled = true;
 		}
 
-		if (blendMode != 4) {
+		if (_blendMode != 4) {
 			tglBlendFunc(TGL_SRC_ALPHA, TGL_ONE);
-			blendMode = 4;
+			_blendMode = 4;
 		}
 	}
 
-	if (!texture2dEnabled) {
-		texture2dEnabled = true;
+	if (!_texture2dEnabled) {
+		_texture2dEnabled = true;
 		tglEnable(TGL_TEXTURE_2D);
 	}
 
@@ -591,8 +591,8 @@ void CTinyGLContext::setTextures(CTexture *tex, int flags) {
 }
 
 void CTinyGLContext::readBackBuffer(LABitmap *bitmap) {
-	int width = displayMode.width;
-	int height = displayMode.height;
+	int width = _displayMode.width;
+	int height = _displayMode.height;
 	LColorFormat format(6);
 
 	bitmap->create(width, height, format, nullptr);
@@ -630,9 +630,9 @@ void CTinyGLContext::readBackBuffer(LABitmap *bitmap) {
 }
 
 void CTinyGLContext::readBackBufferRaw(char *dest, uint size) {
-	uint bytesPerPixel = displayMode.bpp >> 3;
+	uint bytesPerPixel = _displayMode.bpp >> 3;
 
-	if (!_contextHandle || displayMode.width < (int)kRawReadWidth || displayMode.height < (int)kRawReadHeight) {
+	if (!_contextHandle || _displayMode.width < (int)kRawReadWidth || _displayMode.height < (int)kRawReadHeight) {
 		warning("CTinyGLContext::readBackBufferRaw(): no frame available");
 
 		return;
@@ -706,41 +706,41 @@ CTexture *CTinyGLContext::createTexture(LABitmap *bitmap) {
 
 	if (((width - 1) & bitmap->getWidth()) != 0) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture not a power of two in width: %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("CTinyGLContext::createTexture(): texture not a power of two in width: %s", bitmap->bitmapName.c_str());
+			warning("CTinyGLContext::createTexture(): texture not a power of two in width: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	int height = bitmap->getHeight();
 
 	if (((height - 1) & bitmap->getHeight()) != 0) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture not a power of two in height: %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("CTinyGLContext::createTexture(): texture not a power of two in height: %s", bitmap->bitmapName.c_str());
+			warning("CTinyGLContext::createTexture(): texture not a power of two in height: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	if (width == 0 || height == 0) {
 		// The original could divide by zero here, let's avoid that...
-		warning("CTinyGLContext::createTexture(): empty texture: %s", bitmap->bitmapName.c_str());
+		warning("CTinyGLContext::createTexture(): empty texture: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
 	if ((uint)width / (uint)height > 8 || (uint)height / (uint)width > 8) {
 		if (_engine->getConsoleServices())
-			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->bitmapName.c_str());
+			_engine->getConsoleServices()->logError("Texture aspect greater than 8:1 : %s\n", bitmap->_bitmapName.c_str());
 		else
-			warning("CTinyGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->bitmapName.c_str());
+			warning("CTinyGLContext::createTexture(): texture aspect greater than 8:1: %s", bitmap->_bitmapName.c_str());
 
-		return defaultTexture;
+		return _defaultTexture;
 	}
 
-	return new CTinyGLTexture(this, bitmap, textureFlag);
+	return new CTinyGLTexture(this, bitmap, _textureFlag);
 }
 
 CTexture *CTinyGLContext::createTexture(int width, int height, const LColorFormat &format, byte *pixels, const char *name) {
@@ -750,14 +750,14 @@ CTexture *CTinyGLContext::createTexture(int width, int height, const LColorForma
 }
 
 int CTinyGLContext::getTextureCost(CTexture *tex) {
-	if (!tex || tex == defaultTexture)
+	if (!tex || tex == _defaultTexture)
 		return 0;
 
 	return sizeof(CTinyGLTexture);
 }
 
 void CTinyGLContext::prepareDialog() {
-	if (swapCount & 1)
+	if (_swapCount & 1)
 		present(false);
 }
 
@@ -810,21 +810,21 @@ void CTinyGLContext::initGLState() {
 	tglDepthFunc(TGL_LEQUAL);
 	tglAlphaFunc(TGL_GEQUAL, 0.1f);
 
-	depthTestEnabled = true;
-	blendEnabled = false;
-	alphaTestEnabled = false;
-	blendMode = 0;
-	shadeModel = 2;
+	_depthTestEnabled = true;
+	_blendEnabled = false;
+	_alphaTestEnabled = false;
+	_blendMode = 0;
+	_shadeModel = 2;
 	tglShadeModel(TGL_SMOOTH);
-	texture2dEnabled = false;
-	texEnvMode = 0;
-	hasGammaCtl = true;
+	_texture2dEnabled = false;
+	_texEnvMode = 0;
+	_hasGammaCtl = true;
 }
 
 void CTinyGLContext::flushDrawCalls() {
 	TinyGL::presentBuffer();
 	_queuedBytes = 0;
-	flushCount++;
+	_flushCount++;
 }
 
 void CTinyGLContext::reserveVertices(int count) {
@@ -838,7 +838,7 @@ void CTinyGLContext::reserveVertices(int count) {
 }
 
 void CTinyGLContext::drawClippedTriangles(int numIndices, const uint16 *indices) {
-	if (!currentVertexArray || !_lockedVertices) {
+	if (!_currentVertexArray || !_lockedVertices) {
 		warning("CTinyGLContext::drawClippedTriangles(): no vertex array submitted");
 
 		return;
@@ -853,7 +853,7 @@ void CTinyGLContext::drawClippedTriangles(int numIndices, const uint16 *indices)
 		for (int corner = 0; corner < 3; corner++) {
 			int index = indices[first + corner];
 
-			if (index >= currentVertexArray->numVerts) {
+			if (index >= _currentVertexArray->_numVerts) {
 				warning("CTinyGLContext::drawClippedTriangles(): vertex index %d out of range", index);
 				valid = false;
 
@@ -880,7 +880,7 @@ void CTinyGLContext::drawClippedTriangles(int numIndices, const uint16 *indices)
 		ClipVertex *output = polygonB;
 		int count = 3;
 
-		for (int plane = 0; plane < numClipPlanes && count > 0; plane++) {
+		for (int plane = 0; plane < _numClipPlanes && count > 0; plane++) {
 			count = clipPolygon(input, count, _clipPlanes[plane], output);
 
 			ClipVertex *temp = input;

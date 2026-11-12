@@ -58,20 +58,20 @@ public:
 	static void freeAudioMemory(void *block);
 	static uint getRemainingSize(LFile *file);
 
-	uint32 formatTag;
-	double sampleRate;
-	uint16 bitsPerSample;
-	uint16 numChannels;
-	bool littleEndian;
-	uint loopStart;
-	uint loopEnd;
-	uint allocatedSize;
-	uint dataSize;
-	byte *samples;
-	char *decodedBlock;
-	int decodedBlockIndex;
-	bool spuLoops;
-	uint spuLoopStart;
+	uint32 _formatTag;
+	double _sampleRate;
+	uint16 _bitsPerSample;
+	uint16 _numChannels;
+	bool _littleEndian;
+	uint _loopStart;
+	uint _loopEnd;
+	uint _allocatedSize;
+	uint _dataSize;
+	byte *_samples;
+	char *_decodedBlock;
+	int _decodedBlockIndex;
+	bool _spuLoops;
+	uint _spuLoopStart;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

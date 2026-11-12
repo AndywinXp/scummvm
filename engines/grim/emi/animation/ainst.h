@@ -54,15 +54,15 @@ public:
 	void fadeOut(float seconds);
 	void update(float deltaTime);
 
-	Common::List<AChannelHandle *> channels;
-	uint flags;
-	float length;
-	float time;
-	float weight;
-	float prevTime;
-	float prevWeight;
-	float speed;
-	float fadeRate;
+	Common::List<AChannelHandle *> _channels;
+	uint _flags;
+	float _length;
+	float _time;
+	float _weight;
+	float _prevTime;
+	float _prevWeight;
+	float _speed;
+	float _fadeRate;
 
 private:
 	void finish();

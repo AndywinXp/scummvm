@@ -36,13 +36,13 @@ COGLTexture::COGLTexture(COGLContext *owner, LABitmap *bitmap, bool textureFlag)
 	_owner = owner;
 	_engine = owner->getEngine();
 
-	glGenTextures(1, &glId);
+	glGenTextures(1, &_glId);
 
 	setup(bitmap);
 }
 
 COGLTexture::~COGLTexture() {
-	glDeleteTextures(1, &glId);
+	glDeleteTextures(1, &_glId);
 }
 
 int COGLTexture::getSize() {
@@ -54,12 +54,12 @@ int COGLTexture::getSize() {
 }
 
 void COGLTexture::applyFlags() {
-	glBindTexture(GL_TEXTURE_2D, glId);
+	glBindTexture(GL_TEXTURE_2D, _glId);
 	// Not in the disasm (GL_CLAMP), the current drivers blend the edge with the border color
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (flags & 0x100) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (flags & 0x200) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (flags & 2) ? GL_LINEAR : GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (flags & 1) ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (_flags & 0x100) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (_flags & 0x200) ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (_flags & 2) ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (_flags & 1) ? GL_LINEAR : GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -72,7 +72,7 @@ void COGLTexture::uploadBlankImage(int width, int height) {
 
 	byte *blank = new byte[width * height * 4]();
 
-	glBindTexture(GL_TEXTURE_2D, glId);
+	glBindTexture(GL_TEXTURE_2D, _glId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, blank);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -93,12 +93,12 @@ void COGLTexture::setup(LABitmap *bitmap) {
 
 	GLenum format;
 
-	if (bitmap->colorFormat.formatId == 9) {
+	if (bitmap->_colorFormat._formatId == 9) {
 		format = GL_RGBA;
-	} else if (bitmap->colorFormat.formatId == 6) {
+	} else if (bitmap->_colorFormat._formatId == 6) {
 		format = GL_RGB;
 	} else {
-		warning("COGLTexture::setup(): unsupported bitmap format %d", bitmap->colorFormat.formatId);
+		warning("COGLTexture::setup(): unsupported bitmap format %d", bitmap->_colorFormat._formatId);
 		uploadBlankImage(width, height);
 		applyFlags();
 
@@ -107,7 +107,7 @@ void COGLTexture::setup(LABitmap *bitmap) {
 
 	GLint internalFormat;
 
-	if (_owner->displayMode.bpp == 32) {
+	if (_owner->_displayMode.bpp == 32) {
 		internalFormat = GL_RGBA8;
 	} else {
 		int alphaKind = bitmap->scanAlpha();
@@ -120,7 +120,7 @@ void COGLTexture::setup(LABitmap *bitmap) {
 			internalFormat = GL_RGBA4;
 	}
 
-	glBindTexture(GL_TEXTURE_2D, glId);
+	glBindTexture(GL_TEXTURE_2D, _glId);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -131,7 +131,7 @@ void COGLTexture::updateTexture(const LColorFormat *format, uint width, uint hei
 	GLenum pixelFormat;
 	GLenum pixelType;
 
-	if (format->formatId == 9) {
+	if (format->_formatId == 9) {
 		pixelFormat = GL_RGBA;
 		pixelType = GL_UNSIGNED_BYTE;
 	} else {
@@ -139,7 +139,7 @@ void COGLTexture::updateTexture(const LColorFormat *format, uint width, uint hei
 		pixelType = GL_UNSIGNED_SHORT_5_6_5;
 	}
 
-	uint rowBytes = width * format->bytesPerPixel;
+	uint rowBytes = width * format->_bytesPerPixel;
 	byte *rows = new byte[height * rowBytes];
 	byte *destination = rows;
 
@@ -149,7 +149,7 @@ void COGLTexture::updateTexture(const LColorFormat *format, uint width, uint hei
 		pixels += stride;
 	}
 
-	glBindTexture(GL_TEXTURE_2D, glId);
+	glBindTexture(GL_TEXTURE_2D, _glId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, pixelFormat, pixelType, rows);
 	glBindTexture(GL_TEXTURE_2D, 0);
 

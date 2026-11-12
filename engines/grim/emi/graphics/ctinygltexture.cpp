@@ -43,9 +43,9 @@ CTinyGLTexture::CTinyGLTexture(CTinyGLContext *owner, LABitmap *bitmap, bool tex
 	_pixelType = TGL_UNSIGNED_BYTE;
 	_uploaded = false;
 	_uploadedFilter = 0;
-	boundFlush = -1;
+	_boundFlush = -1;
 
-	tglGenTextures(1, &glId);
+	tglGenTextures(1, &_glId);
 
 	setup(bitmap);
 }
@@ -53,7 +53,7 @@ CTinyGLTexture::CTinyGLTexture(CTinyGLContext *owner, LABitmap *bitmap, bool tex
 CTinyGLTexture::~CTinyGLTexture() {
 	// TinyGL frees its textures together with the context
 	if (_engine->getDrawContext())
-		tglDeleteTextures(1, &glId);
+		tglDeleteTextures(1, &_glId);
 
 	delete[] _pixels;
 	_pixels = nullptr;
@@ -69,7 +69,7 @@ int CTinyGLTexture::getSize() {
 
 void CTinyGLTexture::applyFlags() {
 	// TinyGL has no per-texture filter: it is fixed when the pixels are loaded
-	if (!_pixels || (_uploaded && (flags & 3) == _uploadedFilter))
+	if (!_pixels || (_uploaded && (_flags & 3) == _uploadedFilter))
 		return;
 
 	upload();
@@ -77,17 +77,17 @@ void CTinyGLTexture::applyFlags() {
 
 void CTinyGLTexture::upload() {
 	// TinyGL draws are queued: they must not see the new pixels
-	if (boundFlush == _owner->flushCount)
+	if (_boundFlush == _owner->_flushCount)
 		_owner->flushDrawCalls();
 
-	tglBindTexture(TGL_TEXTURE_2D, glId);
-	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_MIN_FILTER, (flags & 2) ? TGL_LINEAR : TGL_NEAREST);
-	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_MAG_FILTER, (flags & 1) ? TGL_LINEAR : TGL_NEAREST);
+	tglBindTexture(TGL_TEXTURE_2D, _glId);
+	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_MIN_FILTER, (_flags & 2) ? TGL_LINEAR : TGL_NEAREST);
+	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_MAG_FILTER, (_flags & 1) ? TGL_LINEAR : TGL_NEAREST);
 	tglTexImage2D(TGL_TEXTURE_2D, 0, _internalFormat, _width, _height, 0, _pixelFormat, _pixelType, _pixels);
 	tglBindTexture(TGL_TEXTURE_2D, 0);
 
 	_uploaded = true;
-	_uploadedFilter = flags & 3;
+	_uploadedFilter = _flags & 3;
 }
 
 void CTinyGLTexture::storeBlank(int width, int height) {
@@ -183,7 +183,7 @@ void CTinyGLTexture::setup(LABitmap *bitmap) {
 		return;
 	}
 
-	int formatId = bitmap->colorFormat.formatId;
+	int formatId = bitmap->_colorFormat._formatId;
 
 	if (formatId != 9 && formatId != 6) {
 		warning("CTinyGLTexture::setup(): unsupported bitmap format %d", formatId);
@@ -196,7 +196,7 @@ void CTinyGLTexture::setup(LABitmap *bitmap) {
 	int bytesPerPixel = (formatId == 9) ? 4 : 3;
 
 	// TinyGL has no GL_RGB5/GL_RGBA4: the 16 bit precision is applied by hand
-	if (_owner->displayMode.bpp == 32)
+	if (_owner->_displayMode.bpp == 32)
 		store8BitPixels(source, width, height, bytesPerPixel);
 	else
 		store16BitPixels(source, width, height, bytesPerPixel, bitmap->scanAlpha());
@@ -215,7 +215,7 @@ void CTinyGLTexture::updateTexture(const LColorFormat *format, uint width, uint 
 		return;
 	}
 
-	uint rowBytes = width * format->bytesPerPixel;
+	uint rowBytes = width * format->_bytesPerPixel;
 
 	_pixels = new byte[height * rowBytes];
 
@@ -230,7 +230,7 @@ void CTinyGLTexture::updateTexture(const LColorFormat *format, uint width, uint 
 	_width = width;
 	_height = height;
 
-	if (format->formatId == 9) {
+	if (format->_formatId == 9) {
 		_internalFormat = TGL_RGBA;
 		_pixelFormat = TGL_RGBA;
 		_pixelType = TGL_UNSIGNED_BYTE;

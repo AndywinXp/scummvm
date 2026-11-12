@@ -65,12 +65,12 @@ int32 LegacyImportContext::getDeadId(Common::HashMap<int32, int32> &deadIds, int
 	return deadId;
 }
 
-LegacyImporter::LegacyImporter(GrimEngine *pGrim) : _pGrim(pGrim), _pLuaStream(nullptr), _canPlayMovie(false), _prevMode(kDefaultPrevMode) {
+LegacyImporter::LegacyImporter(GrimEngine *grim) : _grim(grim), _luaStream(nullptr), _canPlayMovie(false), _prevMode(kDefaultPrevMode) {
 }
 
 LegacyImporter::~LegacyImporter() {
-	delete _pLuaStream;
-	_pLuaStream = nullptr;
+	delete _luaStream;
+	_luaStream = nullptr;
 }
 
 bool LegacyImporter::archiveHasFile(const Common::String &name) {
@@ -87,7 +87,7 @@ bool LegacyImporter::archiveHasFile(const Common::String &name) {
 }
 
 Common::SeekableReadStream *LegacyImporter::openCostumeFile(const Common::String &name) {
-	return _pGrim->openFile(name.c_str());
+	return _grim->openFile(name.c_str());
 }
 
 const LegacyBitmap *LegacyImporter::findBitmap(int32 id) const {
@@ -126,15 +126,15 @@ int LegacyImporter::findSetIndex(int32 id) const {
 	return -1;
 }
 
-bool LegacyImporter::prepare(Common::SeekableReadStream *pStream) {
-	LegacySaveFile file(pStream, DisposeAfterUse::NO);
+bool LegacyImporter::prepare(Common::SeekableReadStream *stream) {
+	LegacySaveFile file(stream, DisposeAfterUse::NO);
 
 	if (!file.open() || !file.readAll(this, _data))
 		return false;
 
-	_pLuaStream = file.openLuaSection();
+	_luaStream = file.openLuaSection();
 
-	if (!_pLuaStream) {
+	if (!_luaStream) {
 		warning("LegacyImporter::prepare(): the savegame has no Lua section");
 		return false;
 	}
@@ -158,7 +158,7 @@ bool LegacyImporter::prepare(Common::SeekableReadStream *pStream) {
 		_prevMode = kDefaultPrevMode;
 	}
 
-	getDefaultFontNames(_pGrim->_pSputText, &_printLineFont, &_defaultFont, &_blastTextFont);
+	getDefaultFontNames(_grim->_sputText, &_printLineFont, &_defaultFont, &_blastTextFont);
 
 	return true;
 }
@@ -194,25 +194,25 @@ void LegacyImporter::checkPools() {
 
 	if (movie.fileName.size() >= kMaxMovieNameSize)
 		warning("LegacyImporter::checkPools(): the movie name %s is too long, the movie is skipped", movie.fileName.c_str());
-	else if (_pGrim->_pRes->findExternalFile(movie.fileName.c_str(), path, sizeof(path)) != 1)
+	else if (_grim->_res->findExternalFile(movie.fileName.c_str(), path, sizeof(path)) != 1)
 		warning("LegacyImporter::checkPools(): the movie file %s is missing, the movie is skipped", movie.fileName.c_str());
 	else
 		_canPlayMovie = true;
 }
 
 bool LegacyImporter::apply() {
-	SputRender *pSputRender = _pGrim->_pSputRender;
+	SputRender *sputRender = _grim->_sputRender;
 
-	pSputRender->drawProgressBar(0.2f);
+	sputRender->drawProgressBar(0.2f);
 	importFonts();
 	importText();
-	pSputRender->drawProgressBar(0.3f);
+	sputRender->drawProgressBar(0.3f);
 
 	if (!importRooms())
 		return false;
 
-	pSputRender->drawProgressBar(0.4f);
-	resetActors(_pGrim->_pSputActor);
+	sputRender->drawProgressBar(0.4f);
+	resetActors(_grim->_sputActor);
 
 	if (!importActors())
 		return false;
@@ -225,14 +225,14 @@ bool LegacyImporter::apply() {
 	importPrimitives();
 	importMovie();
 
-	_pGrim->_libMode = 4;
-	_pGrim->_sputPrevMode = _prevMode;
-	pSputRender->drawProgressBar(0.75f);
+	_grim->_libMode = 4;
+	_grim->_sputPrevMode = _prevMode;
+	sputRender->drawProgressBar(0.75f);
 
 	if (!importLua())
 		return false;
 
-	pSputRender->drawProgressBar(1.0f);
+	sputRender->drawProgressBar(1.0f);
 	importSounds();
 	applyDeveloperMode();
 	repeatMusicPause();
@@ -242,10 +242,10 @@ bool LegacyImporter::apply() {
 }
 
 int LegacyImporter::importCameraActor() {
-	SputActorModule *pSputActor = _pGrim->_pSputActor;
-	int index = pSputActor->allocateActor();
+	SputActorModule *sputActor = _grim->_sputActor;
+	int index = sputActor->allocateActor();
 
-	pSputActor->actorDeref(index)->flags |= 1;
+	sputActor->actorDeref(index)->flags |= 1;
 
 	return index;
 }
@@ -261,13 +261,13 @@ void LegacyImporter::importSelectedActor() {
 		return;
 	}
 
-	_pGrim->_pSputActor->setSelectedActor(_ctx.actorIndices.getVal(id));
+	_grim->_sputActor->setSelectedActor(_ctx.actorIndices.getVal(id));
 }
 
 void LegacyImporter::importShadowColor() {
 	const LegacyColor &color = _data.driver.shadowColor;
 
-	_pGrim->_pSputCostume->setShadowColor(color.r, color.g, color.b);
+	_grim->_sputCostume->setShadowColor(color.r, color.g, color.b);
 }
 
 void LegacyImporter::importRender(int camActorIndex) {
@@ -297,20 +297,20 @@ void LegacyImporter::importRender(int camActorIndex) {
 		irisMode = 1;
 	}
 
-	setRenderState(_pGrim->_pSputRender, irisMode, centerX, centerY, duration, elapsed, camActorIndex);
+	setRenderState(_grim->_sputRender, irisMode, centerX, centerY, duration, elapsed, camActorIndex);
 }
 
 void LegacyImporter::importPrimitives() {
-	_pGrim->_pSputPrimitive->getCurrent()->purge();
+	_grim->_sputPrimitive->getCurrent()->purge();
 }
 
 void LegacyImporter::importMovie() {
 	const LegacyMovieState &movie = _data.movie;
 
 	if (_canPlayMovie)
-		startMovie(_pGrim->_pSputSmush, movie.fileName.c_str(), movie.videoLooping ? 1 : 0, movie.x, movie.y);
+		startMovie(_grim->_sputSmush, movie.fileName.c_str(), movie.videoLooping ? 1 : 0, movie.x, movie.y);
 	else
-		startMovie(_pGrim->_pSputSmush, nullptr, 0, 0, 0);
+		startMovie(_grim->_sputSmush, nullptr, 0, 0, 0);
 }
 
 void LegacyImporter::importSounds() {
@@ -322,7 +322,7 @@ void LegacyImporter::importSounds() {
 	Common::MemoryReadStream stream(_data.soundData.data(), _data.soundData.size());
 
 	if (_data.minorVersion >= 30) {
-		_pGrim->soundsRestore(&stream, true);
+		_grim->soundsRestore(&stream, true);
 
 		if (stream.pos() != stream.size())
 			warning("LegacyImporter::importSounds(): %d bytes of the sound data are left", (int)(stream.size() - stream.pos()));
@@ -338,16 +338,16 @@ void LegacyImporter::importSounds() {
 	int32 stateIndex = stream.readSint32LE();
 	int32 seqIndex = stream.readSint32LE();
 
-	_pGrim->getImuse()->soundsRestoreLegacy(stateIndex, seqIndex);
+	_grim->getImuse()->soundsRestoreLegacy(stateIndex, seqIndex);
 }
 
 void LegacyImporter::remapControls() {
-	SputControl *pSputControl = _pGrim->_pSputControl;
+	SputControl *sputControl = _grim->_sputControl;
 	LegacyLuaRefs engineRefs;
 
 	getEngineRefs(&engineRefs);
 
-	Common::String summary = legacyRemapControls(engineRefs.systemTable, pSputControl->getSymbols(), pSputControl->getNumSymbols());
+	Common::String summary = legacyRemapControls(engineRefs.systemTable, sputControl->getSymbols(), sputControl->getNumSymbols());
 
 	debug(1, "LegacyImporter::remapControls(): %s", summary.c_str());
 }
@@ -355,10 +355,10 @@ void LegacyImporter::remapControls() {
 void GrimEngine::restoreLegacy() {
 	LegacyImporter importer(this);
 
-	if (!importer.prepare(_pSaveReadStream)) {
+	if (!importer.prepare(_saveReadStream)) {
 		warning("GrimEngine::restoreLegacy(): the savegame cannot be loaded, the game goes on");
-		delete _pSaveReadStream;
-		_pSaveReadStream = nullptr;
+		delete _saveReadStream;
+		_saveReadStream = nullptr;
 
 		return;
 	}

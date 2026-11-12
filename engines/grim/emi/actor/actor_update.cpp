@@ -47,16 +47,16 @@ void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
 
 	Common::List<Actor *>::iterator it;
 
-	for (it = currentRoom->actors.begin(); it != currentRoom->actors.end(); ++it) {
+	for (it = currentRoom->_actors.begin(); it != currentRoom->_actors.end(); ++it) {
 		Actor *current = *it;
 
 		if (!current)
 			continue;
 
-		if (current->extra)
-			current->extra->inCollision = false;
+		if (current->_extra)
+			current->_extra->_inCollision = false;
 
-		if (!current->instances.empty()) {
+		if (!current->_instances.empty()) {
 			if (engine->_collisionCount < kMaxCollisionActors) {
 				engine->_collisionActors[engine->_collisionCount] = current;
 				engine->_collisionCount++;
@@ -68,20 +68,20 @@ void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
 		Camera *setupCamera = currentRoom->getSetupCamera(-1);
 
 		if (setupCamera)
-			current->onScreen = current->calcOnScreen(setupCamera);
+			current->_onScreen = current->calcOnScreen(setupCamera);
 
 		current->update(deltaTime);
 	}
 
 	Overworld *overworld = engine->getOverworld();
 
-	for (it = overworld->actors.begin(); it != overworld->actors.end(); ++it) {
+	for (it = overworld->_actors.begin(); it != overworld->_actors.end(); ++it) {
 		Actor *current = *it;
 
 		if (!current)
 			continue;
 
-		if (!current->instances.empty()) {
+		if (!current->_instances.empty()) {
 			if (engine->_collisionCount < kMaxCollisionActors) {
 				engine->_collisionActors[engine->_collisionCount] = current;
 				engine->_collisionCount++;
@@ -90,7 +90,7 @@ void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
 			}
 		}
 
-		current->onScreen = true;
+		current->_onScreen = true;
 		current->update(deltaTime);
 	}
 
@@ -106,13 +106,13 @@ void Actor::updateSpeechOnly(EmiEngine *engine, float deltaTime) {
 }
 
 void Actor::update(float deltaTime) {
-	if (extra)
-		deltaTime = deltaTime * extra->timeScale;
+	if (_extra)
+		deltaTime = deltaTime * _extra->_timeScale;
 
-	if ((mode & 1) != 0)
+	if ((_mode & 1) != 0)
 		followPath(deltaTime);
 
-	if (extra && extra->puck)
+	if (_extra && _extra->_puck)
 		updateWalk(deltaTime);
 
 	removeFinishedChores();
@@ -120,7 +120,7 @@ void Actor::update(float deltaTime) {
 
 	Common::List<uint>::iterator choreIt;
 
-	for (choreIt = choreIds.begin(); choreIt != choreIds.end(); ++choreIt) {
+	for (choreIt = _choreIds.begin(); choreIt != _choreIds.end(); ++choreIt) {
 		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
 			ChoreInstance *instance = ChoreInstance::getInstance(_engine, *choreIt);
 
@@ -128,13 +128,13 @@ void Actor::update(float deltaTime) {
 		}
 	}
 
-	if (onScreen) {
+	if (_onScreen) {
 		Common::List<ANode *>::iterator nodeIt;
 
-		for (nodeIt = animNodes.begin(); nodeIt != animNodes.end(); ++nodeIt)
+		for (nodeIt = _animNodes.begin(); nodeIt != _animNodes.end(); ++nodeIt)
 			(*nodeIt)->updateANode();
 
-		if (extra && extra->lookAtActive)
+		if (_extra && _extra->_lookAtActive)
 			setLookAtJoints(deltaTime);
 	}
 }
@@ -143,14 +143,14 @@ bool Actor::updatePositions(EmiEngine *engine) {
 	for (int i = 0; i < engine->_collisionCount; i++) {
 		Actor *current = engine->_collisionActors[i];
 
-		if (current->extra) {
-			if ((current->nodeFlags & kWorldValid) == 0)
+		if (current->_extra) {
+			if ((current->_nodeFlags & kWorldValid) == 0)
 				current->updateWorldTransform();
 
 			// The disasm treats an unordered comparison as equal
-			bool moved = (current->world.pos.x < current->prevPos.x || current->world.pos.x > current->prevPos.x)
-				|| (current->world.pos.y < current->prevPos.y || current->world.pos.y > current->prevPos.y)
-				|| (current->world.pos.z < current->prevPos.z || current->world.pos.z > current->prevPos.z);
+			bool moved = (current->_world._pos._x < current->_prevPos._x || current->_world._pos._x > current->_prevPos._x)
+				|| (current->_world._pos._y < current->_prevPos._y || current->_world._pos._y > current->_prevPos._y)
+				|| (current->_world._pos._z < current->_prevPos._z || current->_world._pos._z > current->_prevPos._z);
 
 			if (moved)
 				current->resolveCollisions();

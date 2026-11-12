@@ -59,23 +59,23 @@ void WalkPlaneCollection::logCollectionError(const char *message) {
 WalkPlaneCollection::~WalkPlaneCollection() {
 	Common::List<WalkPlane_v2 *>::iterator planeIt;
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt) {
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
 		if (*planeIt) {
 			delete *planeIt;
 			*planeIt = nullptr;
 		}
 	}
 
-	planes.clear();
+	_planes.clear();
 
 	Common::List<wpVertex *>::iterator vertexIt;
 
-	for (vertexIt = vertices.begin(); vertexIt != vertices.end(); ++vertexIt) {
+	for (vertexIt = _vertices.begin(); vertexIt != _vertices.end(); ++vertexIt) {
 		_engine->getMemoryServices()->freeImpl(*vertexIt);
 		*vertexIt = nullptr;
 	}
 
-	vertices.clear();
+	_vertices.clear();
 }
 
 void *WalkPlaneCollection::operator new(size_t size) {
@@ -98,22 +98,22 @@ void WalkPlaneCollection::buildNeighbors() {
 
 	allActive();
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt)
-		(*planeIt)->neighbors.clear();
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt)
+		(*planeIt)->_neighbors.clear();
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt) {
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
 		WalkPlane_v2 *plane = *planeIt;
 
-		if ((plane->type & kGroundPlaneMask) != 0) {
-			for (otherIt = planes.begin(); otherIt != planes.end(); ++otherIt) {
+		if ((plane->_type & kGroundPlaneMask) != 0) {
+			for (otherIt = _planes.begin(); otherIt != _planes.end(); ++otherIt) {
 				WalkPlane_v2 *other = *otherIt;
 
-				if ((other->type & kGroundPlaneMask) != 0 && other->enabled && plane != other && plane->touches(other, true) && plane->addNeighbor(other->number))
-					other->addNeighbor(plane->number);
+				if ((other->_type & kGroundPlaneMask) != 0 && other->_enabled && plane != other && plane->touches(other, true) && plane->addNeighbor(other->_number))
+					other->addNeighbor(plane->_number);
 			}
 		}
 
-		plane->enabled = false;
+		plane->_enabled = false;
 	}
 
 	allActive();
@@ -208,9 +208,9 @@ bool WalkPlaneCollection::findPlanePath(WalkPlane_v2 *goal, WalkPlane_v2 *start)
 	Common::Array<WalkPlane_v2 *> queue;
 	Common::List<WalkPlane_v2 *>::iterator planeIt;
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt) {
-		(*planeIt)->bfsState = 0;
-		(*planeIt)->bfsParent = nullptr;
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
+		(*planeIt)->_bfsState = 0;
+		(*planeIt)->_bfsParent = nullptr;
 	}
 
 	queue.push_back(start);
@@ -218,23 +218,23 @@ bool WalkPlaneCollection::findPlanePath(WalkPlane_v2 *goal, WalkPlane_v2 *start)
 	while (!queue.empty()) {
 		WalkPlane_v2 *current = queue[0];
 
-		for (uint i = 0; i < current->neighbors.size(); i++) {
-			WalkPlane_v2 *neighbor = planeNumbered(current->neighbors[i]);
+		for (uint i = 0; i < current->_neighbors.size(); i++) {
+			WalkPlane_v2 *neighbor = planeNumbered(current->_neighbors[i]);
 
 			if (!neighbor) {
-				warning("WalkPlaneCollection::findPlanePath(): missing neighbor plane %d", current->neighbors[i]);
+				warning("WalkPlaneCollection::findPlanePath(): missing neighbor plane %d", current->_neighbors[i]);
 				continue;
 			}
 
-			if (neighbor->active && neighbor->bfsState == 0) {
-				neighbor->bfsState = 1;
-				neighbor->bfsParent = current;
+			if (neighbor->_active && neighbor->_bfsState == 0) {
+				neighbor->_bfsState = 1;
+				neighbor->_bfsParent = current;
 				queue.push_back(neighbor);
 			}
 		}
 
 		queue.remove_at(0);
-		current->bfsState = 2;
+		current->_bfsState = 2;
 
 		if (current == goal)
 			break;
@@ -242,7 +242,7 @@ bool WalkPlaneCollection::findPlanePath(WalkPlane_v2 *goal, WalkPlane_v2 *start)
 
 	_planePath.clear();
 
-	for (WalkPlane_v2 *plane = goal; plane; plane = plane->bfsParent)
+	for (WalkPlane_v2 *plane = goal; plane; plane = plane->_bfsParent)
 		_planePath.push_back(plane);
 
 	// The disasm succeeds even if the goal was never reached
@@ -312,7 +312,7 @@ bool WalkPlaneCollection::canWalkStraight(const float *from, const float *to) {
 
 	while (true) {
 		plane->intersection(start, to, exitPoint);
-		plane->enabled = false;
+		plane->_enabled = false;
 		plane = planeAt(exitPoint, kGroundPlaneMask);
 
 		if (!plane)
@@ -335,30 +335,30 @@ bool WalkPlaneCollection::canWalkStraight(const float *from, const float *to) {
 }
 
 int WalkPlaneCollection::getSize() {
-	int size = (int)(sizeof(WalkPlaneCollection) + sizeof(void *) * (planes.size() + 5 * vertices.size()));
+	int size = (int)(sizeof(WalkPlaneCollection) + sizeof(void *) * (_planes.size() + 5 * _vertices.size()));
 	Common::List<WalkPlane_v2 *>::iterator planeIt;
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt)
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt)
 		size += (*planeIt)->getSize();
 
 	return size;
 }
 
-void WalkPlaneCollection::save(tSaveRestoreAccess *access) {
-	int count = (int)planes.size();
+void WalkPlaneCollection::save(SaveRestoreAccess *access) {
+	int count = (int)_planes.size();
 	Common::List<WalkPlane_v2 *>::iterator planeIt;
 
 	access(&count, sizeof(count));
 
-	for (planeIt = planes.begin(); planeIt != planes.end(); ++planeIt) {
-		int planeNumber = (*planeIt)->number;
+	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
+		int planeNumber = (*planeIt)->_number;
 
 		access(&planeNumber, sizeof(planeNumber));
 		(*planeIt)->serialize(access);
 	}
 }
 
-void WalkPlaneCollection::restore(tSaveRestoreAccess *access) {
+void WalkPlaneCollection::restore(SaveRestoreAccess *access) {
 	int count = 0;
 
 	access(&count, sizeof(count));
@@ -383,7 +383,7 @@ void WalkPlaneCollection::restore(tSaveRestoreAccess *access) {
 wpVertex *WalkPlaneCollection::addVertex(const float *position) {
 	Common::List<wpVertex *>::iterator it;
 
-	for (it = vertices.begin(); it != vertices.end(); ++it) {
+	for (it = _vertices.begin(); it != _vertices.end(); ++it) {
 		wpVertex *vertex = *it;
 		double deltaX = (double)position[0] - (double)vertex->x;
 		double deltaY = (double)position[1] - (double)vertex->y;
@@ -401,7 +401,7 @@ wpVertex *WalkPlaneCollection::addVertex(const float *position) {
 	newVertex->x = 0.0f;
 	newVertex->y = 0.0f;
 	newVertex->z = 0.0f;
-	vertices.push_back(newVertex);
+	_vertices.push_back(newVertex);
 	newVertex->refCount = 1;
 	newVertex->x = position[0];
 	newVertex->y = position[1];
@@ -415,11 +415,11 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 		vertex->refCount--;
 
 		if (vertex->refCount == 0) {
-			Common::List<wpVertex *>::iterator it = vertices.begin();
+			Common::List<wpVertex *>::iterator it = _vertices.begin();
 
-			while (it != vertices.end()) {
+			while (it != _vertices.end()) {
 				if (*it == vertex)
-					it = vertices.erase(it);
+					it = _vertices.erase(it);
 				else
 					++it;
 			}
@@ -432,10 +432,10 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 WalkPlane_v2 *WalkPlaneCollection::planeAt(const float *point, int typeMask) {
 	Common::List<WalkPlane_v2 *>::iterator it;
 
-	for (it = planes.begin(); it != planes.end(); ++it) {
+	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		WalkPlane_v2 *plane = *it;
 
-		if ((typeMask & plane->type) != 0 && plane->within(point, true))
+		if ((typeMask & plane->_type) != 0 && plane->within(point, true))
 			return plane;
 	}
 
@@ -445,8 +445,8 @@ WalkPlane_v2 *WalkPlaneCollection::planeAt(const float *point, int typeMask) {
 WalkPlane_v2 *WalkPlaneCollection::planeNamed(const LString &planeName) {
 	Common::List<WalkPlane_v2 *>::iterator it;
 
-	for (it = planes.begin(); it != planes.end(); ++it) {
-		if ((*it)->name == planeName)
+	for (it = _planes.begin(); it != _planes.end(); ++it) {
+		if ((*it)->_name == planeName)
 			return *it;
 	}
 
@@ -456,8 +456,8 @@ WalkPlane_v2 *WalkPlaneCollection::planeNamed(const LString &planeName) {
 WalkPlane_v2 *WalkPlaneCollection::planeNumbered(int planeNumber) {
 	Common::List<WalkPlane_v2 *>::iterator it;
 
-	for (it = planes.begin(); it != planes.end(); ++it) {
-		if ((*it)->number == planeNumber)
+	for (it = _planes.begin(); it != _planes.end(); ++it) {
+		if ((*it)->_number == planeNumber)
 			return *it;
 	}
 
@@ -474,10 +474,10 @@ WalkPlane_v2 *WalkPlaneCollection::planeClosest(const float *point, int typeMask
 	float closestDistance = kMaxFloat;
 	Common::List<WalkPlane_v2 *>::iterator it;
 
-	for (it = planes.begin(); it != planes.end(); ++it) {
+	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		WalkPlane_v2 *plane = *it;
 
-		if ((typeMask & plane->type) != 0 && plane->enabled && plane->active) {
+		if ((typeMask & plane->_type) != 0 && plane->_enabled && plane->_active) {
 			float projected[3];
 
 			projected[0] = point[0];
@@ -503,8 +503,8 @@ WalkPlane_v2 *WalkPlaneCollection::planeClosest(const float *point, int typeMask
 void WalkPlaneCollection::allActive() {
 	Common::List<WalkPlane_v2 *>::iterator it;
 
-	for (it = planes.begin(); it != planes.end(); ++it)
-		(*it)->enabled = true;
+	for (it = _planes.begin(); it != _planes.end(); ++it)
+		(*it)->_enabled = true;
 }
 
 void WalkPlaneCollection::addParsedPlane(const float *planeVertices, int vertexCount, const char *planeName, int planeNumber, int planeType, bool visible, int sortOrderCount, const int *sortOrders, float height) {
@@ -517,20 +517,20 @@ void WalkPlaneCollection::addParsedPlane(const float *planeVertices, int vertexC
 
 	WalkPlane_v2 *plane = new WalkPlane_v2(_engine, planeVertices, count, this);
 
-	planes.push_back(plane);
-	plane->name = planeName;
-	plane->number = planeNumber;
-	plane->active = visible;
+	_planes.push_back(plane);
+	plane->_name = planeName;
+	plane->_number = planeNumber;
+	plane->_active = visible;
 	plane->setType(planeType);
-	plane->numSortOrders = sortOrderCount;
+	plane->_numSortOrders = sortOrderCount;
 
 	for (int i = 0; i < sortOrderCount; i++)
-		plane->sortOrder[i % WalkPlane_v2::kMaxSortOrders] = sortOrders[i];
+		plane->_sortOrder[i % WalkPlane_v2::kMaxSortOrders] = sortOrders[i];
 
 	if (height == 0.0f)
-		plane->tolerance = kDefaultTolerance;
+		plane->_tolerance = kDefaultTolerance;
 	else
-		plane->tolerance = height;
+		plane->_tolerance = height;
 }
 
 char *WalkPlaneCollection::parseCollection(LFile *file) {

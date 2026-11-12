@@ -28,7 +28,7 @@ namespace Grim {
 
 LuaCommandInstance::LuaCommandInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	if (componentName.size() >= Component::kNamePrefixSize)
-		command = componentName.c_str() + Component::kNamePrefixSize;
+		_command = componentName.c_str() + Component::kNamePrefixSize;
 	else
 		warning("LuaCommandInstance::LuaCommandInstance(): invalid component name %s", componentName.c_str());
 }
@@ -38,7 +38,7 @@ bool LuaCommandInstance::isReplayable() {
 }
 
 void LuaCommandInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	LString commandCopy = command;
+	LString commandCopy = _command;
 
 	lua_dostring(commandCopy.c_str());
 }

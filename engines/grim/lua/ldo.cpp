@@ -161,21 +161,21 @@ static StkId callCclosure(struct Closure *cl, lua_CFunction f, StkId base) {
 	return callC(f, base);
 }
 
-void luaD_callTM(TObject *f, int32 nParams, int32 nResults) {
-	luaD_openstack(nParams);
-	*(lua_state->stack.top - nParams - 1) = *f;
+void luaD_callTM(TObject *f, int32 params, int32 results) {
+	luaD_openstack(params);
+	*(lua_state->stack.top - params - 1) = *f;
 	lua_state->preventBreakCounter++;
 	lua_state->callLevelCounter++;
-	luaD_call((lua_state->stack.top - lua_state->stack.stack) - nParams, nResults);
+	luaD_call((lua_state->stack.top - lua_state->stack.stack) - params, results);
 	lua_state->callLevelCounter--;
 	lua_state->preventBreakCounter--;
 }
 
-int32 luaD_call(StkId base, int32 nResults) {
+int32 luaD_call(StkId base, int32 results) {
 	lua_Task *tmpTask = lua_state->task;
 	if (!lua_state->task || lua_state->callLevelCounter) {
 		lua_Task *t = luaM_new(lua_Task);
-		lua_taskinit(t, lua_state->task, base, nResults);
+		lua_taskinit(t, lua_state->task, base, results);
 		lua_state->task = t;
 	} else {
 		tmpTask = lua_state->prevTask;
@@ -201,7 +201,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
-				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), nResults);
+				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), results);
 				continue;
 			}
 			firstResult = luaV_execute(lua_state->task);
@@ -213,7 +213,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
-				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), nResults);
+				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), results);
 				continue;
 			}
 		} else if (ttype(funcObj) == LUA_T_CLMARK) {
@@ -223,7 +223,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 				TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 				if (ttype(im) == LUA_T_NIL)
 					lua_error("call expression not a function");
-				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), nResults);
+				luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), results);
 				continue;
 			}
 			if (ttype(proto) != LUA_T_CPROTO)
@@ -240,24 +240,24 @@ int32 luaD_call(StkId base, int32 nResults) {
 			TObject *im = luaT_getimbyObj(funcObj, IM_FUNCTION);
 			if (ttype(im) == LUA_T_NIL)
 				lua_error("call expression not a function");
-			luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), nResults);
+			luaD_callTM(im, (lua_state->stack.top - lua_state->stack.stack) - (base - 1), results);
 			continue;
 		}
 
 		if (firstResult <= 0) {
-			nResults = lua_state->task->aux;
+			results = lua_state->task->aux;
 			base = -firstResult;
 			lua_Task *t = luaM_new(lua_Task);
-			lua_taskinit(t, lua_state->task, base, nResults);
+			lua_taskinit(t, lua_state->task, base, results);
 			lua_state->task = t;
 		} else {
-			nResults = lua_state->task->initResults;
+			results = lua_state->task->initResults;
 			base = lua_state->task->initBase;
-			if (nResults != MULT_RET)
-				luaD_adjusttop(firstResult + nResults);
+			if (results != MULT_RET)
+				luaD_adjusttop(firstResult + results);
 			base--;
-			nResults = lua_state->stack.top - (lua_state->stack.stack + firstResult);
-			for (int32 i = 0; i < nResults; i++)
+			results = lua_state->stack.top - (lua_state->stack.stack + firstResult);
+			for (int32 i = 0; i < results; i++)
 				*(lua_state->stack.stack + base + i) = *(lua_state->stack.stack + firstResult + i);
 			lua_state->stack.top -= firstResult - base;
 
@@ -265,7 +265,7 @@ int32 luaD_call(StkId base, int32 nResults) {
 			lua_state->task = lua_state->task->next;
 			luaM_free(tmp);
 			if (lua_state->task) {
-				nResults = lua_state->task->initResults;
+				results = lua_state->task->initResults;
 				base = lua_state->task->initBase;
 			}
 
@@ -338,9 +338,9 @@ void lua_error(const char *s) {
 ** Call the function at lua_state->Cstack.base, and incorporate results on
 ** the Lua2C structure.
 */
-static void do_callinc(int32 nResults) {
+static void do_callinc(int32 results) {
 	StkId base = lua_state->Cstack.base;
-	luaD_call(base + 1, nResults);
+	luaD_call(base + 1, results);
 	lua_state->Cstack.lua2C = base;  // position of the luaM_new results
 	lua_state->Cstack.num = (lua_state->stack.top - lua_state->stack.stack) - base;  // number of results
 	lua_state->Cstack.base = base + lua_state->Cstack.num;  // incorporate results on lua_state->stack.stack/
@@ -348,9 +348,9 @@ static void do_callinc(int32 nResults) {
 
 /*
 ** Execute a protected call. Assumes that function is at lua_state->Cstack.base and
-** parameters are on top of it. Leave nResults on the stack.
+** parameters are on top of it. Leave results on the stack.
 */
-int32 luaD_protectedrun(int32 nResults) {
+int32 luaD_protectedrun(int32 results) {
 	jmp_buf myErrorJmp;
 	int32 status;
 	struct C_Lua_Stack oldCLS = lua_state->Cstack;
@@ -359,7 +359,7 @@ int32 luaD_protectedrun(int32 nResults) {
 	lua_state->preventBreakCounter++;
 	lua_Task *tmpTask = lua_state->task;
 	if (setjmp(myErrorJmp) == 0) {
-		do_callinc(nResults);
+		do_callinc(results);
 		status = 0;
 	} else { // an error occurred: restore lua_state->Cstack and lua_state->stack.top
 		lua_state->Cstack = oldCLS;

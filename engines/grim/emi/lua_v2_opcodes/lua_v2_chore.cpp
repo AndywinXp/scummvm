@@ -194,9 +194,9 @@ void Lua_V2::LockChore() {
 	LString choreSetName = lua_getstring(choreSetObj);
 	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
-	if (choreSetHandle.lock() && choreSetHandle.typed) {
+	if (choreSetHandle.lock() && choreSetHandle._typed) {
 		LString choreName = lua_getstring(choreObj);
-		Chore *chore = choreSetHandle.typed->findChore(choreName);
+		Chore *chore = choreSetHandle._typed->findChore(choreName);
 
 		if (chore) {
 			LockedChore lockedChore;
@@ -224,9 +224,9 @@ void Lua_V2::UnlockChore() {
 	LString choreSetName = lua_getstring(choreSetObj);
 	LResourceHandle<ChoreSet> choreSetHandle(_engine, choreSetName);
 
-	if (choreSetHandle.lock() && choreSetHandle.typed) {
+	if (choreSetHandle.lock() && choreSetHandle._typed) {
 		LString choreName = lua_getstring(choreObj);
-		Chore *chore = choreSetHandle.typed->findChore(choreName);
+		Chore *chore = choreSetHandle._typed->findChore(choreName);
 
 		if (chore) {
 			chore->unlockComponents();
@@ -258,9 +258,9 @@ void Lua_V2::LockChoreSet() {
 
 	_lockedChoreSets.push_back(choreSetName);
 
-	if (choreSetHandle.lock() && choreSetHandle.typed) {
-		for (uint i = 0; i < choreSetHandle.typed->chores.size(); i++) {
-			Chore *chore = choreSetHandle.typed->chores[i];
+	if (choreSetHandle.lock() && choreSetHandle._typed) {
+		for (uint i = 0; i < choreSetHandle._typed->_chores.size(); i++) {
+			Chore *chore = choreSetHandle._typed->_chores[i];
 
 			if (chore)
 				chore->lockComponents();
@@ -290,9 +290,9 @@ void Lua_V2::UnlockChoreSet() {
 		}
 	}
 
-	if (choreSetHandle.lock() && choreSetHandle.typed) {
-		for (uint i = 0; i < choreSetHandle.typed->chores.size(); i++) {
-			Chore *chore = choreSetHandle.typed->chores[i];
+	if (choreSetHandle.lock() && choreSetHandle._typed) {
+		for (uint i = 0; i < choreSetHandle._typed->_chores.size(); i++) {
+			Chore *chore = choreSetHandle._typed->_chores[i];
 
 			if (chore)
 				chore->unlockComponents();

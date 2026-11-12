@@ -23,33 +23,33 @@
 
 namespace Grim {
 
-int RenderDroid::FaceModule::newEntry(RdFace3 *pFace) {
-	pFace->num = 0;
-	pFace->type = 0;
-	pFace->numVertices = 0;
-	pFace->aVertices = nullptr;
-	pFace->aTexVertices = nullptr;
-	pFace->pMaterial = nullptr;
-	pFace->curCel = -1;
-	pFace->normal[0] = 0.0f;
-	pFace->normal[1] = 0.0f;
-	pFace->normal[2] = 0.0f;
-	pFace->uvDelta[0] = 0.0f;
-	pFace->uvDelta[1] = 0.0f;
-	pFace->extraLight = 0.0f;
+int RenderDroid::FaceModule::newEntry(RdFace3 *face) {
+	face->num = 0;
+	face->type = 0;
+	face->numVertices = 0;
+	face->vertices = nullptr;
+	face->texVertices = nullptr;
+	face->material = nullptr;
+	face->curCel = -1;
+	face->normal[0] = 0.0f;
+	face->normal[1] = 0.0f;
+	face->normal[2] = 0.0f;
+	face->uvDelta[0] = 0.0f;
+	face->uvDelta[1] = 0.0f;
+	face->extraLight = 0.0f;
 
 	return 1;
 }
 
-void RenderDroid::FaceModule::freeEntry(RdFace3 *pFace) {
-	if (pFace->aVertices) {
-		delete[] pFace->aVertices;
-		pFace->aVertices = nullptr;
+void RenderDroid::FaceModule::freeEntry(RdFace3 *face) {
+	if (face->vertices) {
+		delete[] face->vertices;
+		face->vertices = nullptr;
 	}
 
-	if (pFace->aTexVertices) {
-		delete[] pFace->aTexVertices;
-		pFace->aTexVertices = nullptr;
+	if (face->texVertices) {
+		delete[] face->texVertices;
+		face->texVertices = nullptr;
 	}
 }
 

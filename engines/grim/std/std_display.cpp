@@ -29,113 +29,113 @@
 
 namespace Grim {
 
-StdDisplay::StdDisplay() : _pStdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0),
-		_pStd3D(nullptr), _pMainGfxBuffer(nullptr), _pBackBuffer(nullptr), _bStartup(0), _bEnumerated(0), _bDisplayOpen(0), _bSurfacesCreated(0), _bFullscreen(0),
-		_numDrawBuffers(1), _backendMask(0), _numDevices(0), _pCurDevice(nullptr), _curDeviceIndex(0), _numModes(0), _curModeIndex(0), _pDisplayMode(nullptr) {
-	memset(_aDevices, 0, sizeof(_aDevices));
-	memset(_aModes, 0, sizeof(_aModes));
+StdDisplay::StdDisplay() : _stdBitmap(nullptr), _inputBuffer(nullptr), _inputBufferIndex(0), _inputBufferMax(0), _outputBuffer(nullptr), _outputBufferIndex(0), _outputBufferMax(0),
+		_std3D(nullptr), _mainGfxBuffer(nullptr), _backBuffer(nullptr), _startup(0), _enumerated(0), _displayOpen(0), _surfacesCreated(0), _fullscreen(0),
+		_numDrawBuffers(1), _backendMask(0), _numDevices(0), _curDevice(nullptr), _curDeviceIndex(0), _numModes(0), _curModeIndex(0), _displayMode(nullptr) {
+	memset(_devices, 0, sizeof(_devices));
+	memset(_modes, 0, sizeof(_modes));
 }
 
-StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, int bVideoMemoryOnly, byte *pPalette) {
-	if (((uint)pFormat->format.bpp >> 3) == 0) {
+StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *format, int videoMemory, int videoMemoryOnly, byte *palette) {
+	if (((uint)format->format.bpp >> 3) == 0) {
 		warning("StdDisplay::vBufferNew(): unsupported bits per pixel");
 		return nullptr;
 	}
 
-	StdVBuffer *pBuffer = new StdVBuffer;
+	StdVBuffer *buffer = new StdVBuffer;
 
-	pBuffer->pPaletteRGB = pPalette;
-	pBuffer->pPixels = nullptr;
-	pBuffer->lockCount = 0;
-	pBuffer->tex = *pFormat;
-	pBuffer->allocSize = 0;
-	pBuffer->pSurface = nullptr;
-	pBuffer->surfaceColorKey = -1;
+	buffer->paletteRGB = palette;
+	buffer->pixels = nullptr;
+	buffer->lockCount = 0;
+	buffer->tex = *format;
+	buffer->allocSize = 0;
+	buffer->surface = nullptr;
+	buffer->surfaceColorKey = -1;
 
-	int width = pBuffer->tex.width;
-	uint bytesPerPixel = (uint)pBuffer->tex.format.bpp >> 3;
+	int width = buffer->tex.width;
+	uint bytesPerPixel = (uint)buffer->tex.format.bpp >> 3;
 
-	pBuffer->tex.pitchInBytes = width * bytesPerPixel;
-	pBuffer->colorKey = 0;
-	pBuffer->tex.pitchInPixels = width * bytesPerPixel / bytesPerPixel;
+	buffer->tex.pitchInBytes = width * bytesPerPixel;
+	buffer->colorKey = 0;
+	buffer->tex.pitchInPixels = width * bytesPerPixel / bytesPerPixel;
 
-	int sizeInBytes = pBuffer->tex.height * width * bytesPerPixel;
-	pBuffer->tex.sizeInBytes = sizeInBytes;
+	int sizeInBytes = buffer->tex.height * width * bytesPerPixel;
+	buffer->tex.sizeInBytes = sizeInBytes;
 
 #if defined(GRIM_STD3D)
-	if (bVideoMemory && _bDisplayOpen && _pCurDevice && _pCurDevice->type == 1 && _pStd3D) {
-		if (pBuffer->tex.format.bpp != 16) {
+	if (videoMemory && _displayOpen && _curDevice && _curDevice->type == 1 && _std3D) {
+		if (buffer->tex.format.bpp != 16) {
 			warning("StdDisplay::vBufferNew(): only 16 bpp video memory buffers are supported, using system memory");
 		} else {
-			pBuffer->bVideoMemory = 0;
-			pBuffer->type = 1;
-			pBuffer->pSurface = _pStd3D->createSurface(pBuffer->tex.width, pBuffer->tex.height, 0);
+			buffer->videoMemory = 0;
+			buffer->type = 1;
+			buffer->surface = _std3D->createSurface(buffer->tex.width, buffer->tex.height, 0);
 
-			if (!pBuffer->pSurface) {
-				delete pBuffer;
+			if (!buffer->surface) {
+				delete buffer;
 				return nullptr;
 			}
 
-			if (bVideoMemoryOnly)
-				pBuffer->bVideoMemory = 1;
+			if (videoMemoryOnly)
+				buffer->videoMemory = 1;
 
-			return pBuffer;
+			return buffer;
 		}
 	}
 #endif
 
-	pBuffer->type = 0;
-	pBuffer->bVideoMemory = 0;
-	pBuffer->pPixels = new byte[sizeInBytes];
-	pBuffer->allocSize = sizeInBytes;
-	pBuffer->lockCount = 1;
+	buffer->type = 0;
+	buffer->videoMemory = 0;
+	buffer->pixels = new byte[sizeInBytes];
+	buffer->allocSize = sizeInBytes;
+	buffer->lockCount = 1;
 
-	return pBuffer;
+	return buffer;
 }
 
-void StdDisplay::vBufferFree(StdVBuffer *&pVBuffer) {
-	if (pVBuffer) {
-		vBufferFreeEntry(pVBuffer);
-		delete pVBuffer;
-		pVBuffer = nullptr;
+void StdDisplay::vBufferFree(StdVBuffer *&vBuffer) {
+	if (vBuffer) {
+		vBufferFreeEntry(vBuffer);
+		delete vBuffer;
+		vBuffer = nullptr;
 	}
 }
 
-void StdDisplay::vBufferFreeEntry(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type == 0 || pVBuffer->type == 2) {
-		if (pVBuffer->pPixels) {
-			delete[] pVBuffer->pPixels;
-			pVBuffer->pPixels = nullptr;
+void StdDisplay::vBufferFreeEntry(StdVBuffer *vBuffer) {
+	if (vBuffer->type == 0 || vBuffer->type == 2) {
+		if (vBuffer->pixels) {
+			delete[] vBuffer->pixels;
+			vBuffer->pixels = nullptr;
 		}
 	}
 #if defined(GRIM_STD3D)
-	else if (pVBuffer->type == 1) {
-		if (pVBuffer->pSurface && _pStd3D)
-			_pStd3D->destroySurface(pVBuffer->pSurface);
+	else if (vBuffer->type == 1) {
+		if (vBuffer->surface && _std3D)
+			_std3D->destroySurface(vBuffer->surface);
 
-		pVBuffer->pSurface = nullptr;
+		vBuffer->surface = nullptr;
 
-		if (pVBuffer->allocSize) {
-			delete[] pVBuffer->pPixels;
-			pVBuffer->pPixels = nullptr;
-			pVBuffer->allocSize = 0;
+		if (vBuffer->allocSize) {
+			delete[] vBuffer->pixels;
+			vBuffer->pixels = nullptr;
+			vBuffer->allocSize = 0;
 		}
 	}
 #endif
 }
 
-int StdDisplay::vBufferLock(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type == 0) {
-		pVBuffer->lockCount++;
+int StdDisplay::vBufferLock(StdVBuffer *vBuffer) {
+	if (vBuffer->type == 0) {
+		vBuffer->lockCount++;
 		return 1;
 	}
 
-	if (pVBuffer->type == 1) {
+	if (vBuffer->type == 1) {
 #if defined(GRIM_STD3D)
-		if (!surfaceLock(pVBuffer))
+		if (!surfaceLock(vBuffer))
 			return 0;
 
-		pVBuffer->lockCount++;
+		vBuffer->lockCount++;
 		return 1;
 #else
 		return 0;
@@ -145,25 +145,25 @@ int StdDisplay::vBufferLock(StdVBuffer *pVBuffer) {
 	return 1;
 }
 
-int StdDisplay::vBufferUnlock(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type == 0) {
-		if (pVBuffer->lockCount)
-			pVBuffer->lockCount--;
+int StdDisplay::vBufferUnlock(StdVBuffer *vBuffer) {
+	if (vBuffer->type == 0) {
+		if (vBuffer->lockCount)
+			vBuffer->lockCount--;
 
 		return 1;
 	}
 
-	if (pVBuffer->type != 1)
+	if (vBuffer->type != 1)
 		return 1;
 
-	if (!pVBuffer->lockCount)
+	if (!vBuffer->lockCount)
 		return 1;
 
 #if defined(GRIM_STD3D)
-	int result = surfaceUnlock(pVBuffer, 1);
+	int result = surfaceUnlock(vBuffer, 1);
 
 	if (result)
-		pVBuffer->lockCount--;
+		vBuffer->lockCount--;
 
 	return result;
 #else
@@ -171,63 +171,63 @@ int StdDisplay::vBufferUnlock(StdVBuffer *pVBuffer) {
 #endif
 }
 
-void StdDisplay::vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect) {
-	if (pVBuffer->type != 0) {
+void StdDisplay::vBufferFill(StdVBuffer *vBuffer, int color, StdRect *rect) {
+	if (vBuffer->type != 0) {
 #if defined(GRIM_STD3D)
-		if (pVBuffer->type == 1)
-			surfaceBlt(pVBuffer, color, pRect);
+		if (vBuffer->type == 1)
+			surfaceBlt(vBuffer, color, rect);
 #endif
 		return;
 	}
 
-	switch (pVBuffer->tex.format.bpp) {
+	switch (vBuffer->tex.format.bpp) {
 	case 8:
-		if (pRect) {
-			byte *row = pVBuffer->pPixels + pRect->y * pVBuffer->tex.pitchInPixels + pRect->x;
+		if (rect) {
+			byte *row = vBuffer->pixels + rect->y * vBuffer->tex.pitchInPixels + rect->x;
 
-			for (int i = 0; i < pRect->height; i++) {
-				memset(row, color, pRect->width);
-				row += pVBuffer->tex.pitchInBytes;
+			for (int i = 0; i < rect->height; i++) {
+				memset(row, color, rect->width);
+				row += vBuffer->tex.pitchInBytes;
 			}
 		} else {
-			memset(pVBuffer->pPixels, color, pVBuffer->tex.sizeInBytes);
+			memset(vBuffer->pixels, color, vBuffer->tex.sizeInBytes);
 		}
 		break;
 	case 16:
-		if (pRect) {
-			byte *row = pVBuffer->pPixels + 2 * pRect->x + 2 * pRect->y * pVBuffer->tex.pitchInPixels;
+		if (rect) {
+			byte *row = vBuffer->pixels + 2 * rect->x + 2 * rect->y * vBuffer->tex.pitchInPixels;
 
-			for (int i = 0; i < pRect->height; i++) {
+			for (int i = 0; i < rect->height; i++) {
 				uint16 *pixel = (uint16 *)row;
 
-				for (int j = 0; j < pRect->width; j++)
+				for (int j = 0; j < rect->width; j++)
 					pixel[j] = (uint16)color;
 
-				row += pVBuffer->tex.pitchInBytes;
+				row += vBuffer->tex.pitchInBytes;
 			}
 		} else {
-			uint16 *pixel = (uint16 *)pVBuffer->pPixels;
+			uint16 *pixel = (uint16 *)vBuffer->pixels;
 
-			for (int i = 0; i < pVBuffer->tex.sizeInBytes >> 1; i++)
+			for (int i = 0; i < vBuffer->tex.sizeInBytes >> 1; i++)
 				pixel[i] = (uint16)color;
 		}
 		break;
 	case 32:
-		if (pRect) {
-			byte *row = pVBuffer->pPixels + 4 * pRect->x + 4 * pRect->y * pVBuffer->tex.pitchInPixels;
+		if (rect) {
+			byte *row = vBuffer->pixels + 4 * rect->x + 4 * rect->y * vBuffer->tex.pitchInPixels;
 
-			for (int i = 0; i < pRect->height; i++) {
+			for (int i = 0; i < rect->height; i++) {
 				uint32 *pixel = (uint32 *)row;
 
-				for (int j = 0; j < pRect->width; j++)
+				for (int j = 0; j < rect->width; j++)
 					pixel[j] = (uint32)color;
 
-				row += pVBuffer->tex.pitchInBytes;
+				row += vBuffer->tex.pitchInBytes;
 			}
 		} else {
-			uint32 *pixel = (uint32 *)pVBuffer->pPixels;
+			uint32 *pixel = (uint32 *)vBuffer->pixels;
 
-			for (int i = 0; i < pVBuffer->tex.sizeInBytes >> 2; i++)
+			for (int i = 0; i < vBuffer->tex.sizeInBytes >> 2; i++)
 				pixel[i] = (uint32)color;
 		}
 		break;
@@ -236,122 +236,122 @@ void StdDisplay::vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect) {
 	}
 }
 
-int StdDisplay::vBufferCopy(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
-	if (pSrc->type == 0 && pDst->type == 0) {
-		copyBltA(pDst, pSrc, x, y, pRect, bColorKey);
+int StdDisplay::vBufferCopy(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey) {
+	if (src->type == 0 && dst->type == 0) {
+		copyBltA(dst, src, x, y, rect, colorKey);
 		return 1;
 	}
 
 #if defined(GRIM_STD3D)
-	if (pSrc->type != 0) {
-		if (pDst->type == 1)
-			copyBltB(pDst, pSrc, x, y, pRect, bColorKey);
+	if (src->type != 0) {
+		if (dst->type == 1)
+			copyBltB(dst, src, x, y, rect, colorKey);
 		else
-			copyBltD(pDst, pSrc, x, y, pRect, bColorKey);
+			copyBltD(dst, src, x, y, rect, colorKey);
 
 		return 1;
 	}
 
-	copyBltC(pDst, pSrc, x, y, pRect, bColorKey);
+	copyBltC(dst, src, x, y, rect, colorKey);
 	return 1;
 #else
 	return 0;
 #endif
 }
 
-int StdDisplay::vBufferSetColorKey(StdVBuffer *pVBuffer, int colorKey) {
-	if (pVBuffer->type == 0)
-		pVBuffer->colorKey = colorKey;
-	else if (pVBuffer->type == 1)
-		pVBuffer->surfaceColorKey = colorKey;
+int StdDisplay::vBufferSetColorKey(StdVBuffer *vBuffer, int colorKey) {
+	if (vBuffer->type == 0)
+		vBuffer->colorKey = colorKey;
+	else if (vBuffer->type == 1)
+		vBuffer->surfaceColorKey = colorKey;
 
 	return 1;
 }
 
-void StdDisplay::vBufferDeCompress(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type != 2)
+void StdDisplay::vBufferDeCompress(StdVBuffer *vBuffer) {
+	if (vBuffer->type != 2)
 		return;
 
-	byte *pPixels = new byte[pVBuffer->tex.height * pVBuffer->tex.pitchInBytes];
+	byte *pixels = new byte[vBuffer->tex.height * vBuffer->tex.pitchInBytes];
 
-	int size = lzssDecompress(pPixels, pVBuffer->pPixels, pVBuffer->tex.sizeInBytes, pVBuffer->tex.height * pVBuffer->tex.pitchInBytes);
-	delete[] pVBuffer->pPixels;
-	pVBuffer->tex.sizeInBytes = size;
-	pVBuffer->type = 0;
-	pVBuffer->allocSize = pVBuffer->tex.height * pVBuffer->tex.pitchInBytes;
-	pVBuffer->pPixels = pPixels;
+	int size = lzssDecompress(pixels, vBuffer->pixels, vBuffer->tex.sizeInBytes, vBuffer->tex.height * vBuffer->tex.pitchInBytes);
+	delete[] vBuffer->pixels;
+	vBuffer->tex.sizeInBytes = size;
+	vBuffer->type = 0;
+	vBuffer->allocSize = vBuffer->tex.height * vBuffer->tex.pitchInBytes;
+	vBuffer->pixels = pixels;
 }
 
-int StdDisplay::vBufferDeCompressTo(StdVBuffer *pSrc, StdVBuffer *pDst) {
-	vBufferLock(pDst);
-	lzssDecompress(pDst->pPixels, pSrc->pPixels, pSrc->tex.sizeInBytes, pDst->allocSize);
+int StdDisplay::vBufferDeCompressTo(StdVBuffer *src, StdVBuffer *dst) {
+	vBufferLock(dst);
+	lzssDecompress(dst->pixels, src->pixels, src->tex.sizeInBytes, dst->allocSize);
 
-	return vBufferUnlock(pDst);
+	return vBufferUnlock(dst);
 }
 
-StdVBuffer *StdDisplay::vBufferConvertColorFormat(StdColorFormat *pFormat, StdVBuffer *pVBuffer) {
-	if (!memcmp(pFormat, &pVBuffer->tex.format, sizeof(StdColorFormat)))
-		return pVBuffer;
+StdVBuffer *StdDisplay::vBufferConvertColorFormat(StdColorFormat *format, StdVBuffer *vBuffer) {
+	if (!memcmp(format, &vBuffer->tex.format, sizeof(StdColorFormat)))
+		return vBuffer;
 
-	if (!pVBuffer->tex.format.colorMode && !pFormat->colorMode)
-		return pVBuffer;
+	if (!vBuffer->tex.format.colorMode && !format->colorMode)
+		return vBuffer;
 
-	if (pVBuffer->type == 2) {
+	if (vBuffer->type == 2) {
 		warning("StdDisplay::vBufferConvertColorFormat(): buffer is compressed");
-		return pVBuffer;
+		return vBuffer;
 	}
 
-	StdVBuffer *pResult;
+	StdVBuffer *result;
 
-	if (pVBuffer->tex.format.bpp == pFormat->bpp) {
-		pResult = pVBuffer;
+	if (vBuffer->tex.format.bpp == format->bpp) {
+		result = vBuffer;
 	} else {
-		StdVBufferTexFmt texFormat = pVBuffer->tex;
+		StdVBufferTexFmt texFormat = vBuffer->tex;
 
-		texFormat.format = *pFormat;
-		pResult = vBufferNew(&texFormat, 0, 0, nullptr);
+		texFormat.format = *format;
+		result = vBufferNew(&texFormat, 0, 0, nullptr);
 
-		if (!pResult)
-			return pResult;
+		if (!result)
+			return result;
 	}
 
-	vBufferLock(pVBuffer);
-	vBufferLock(pResult);
+	vBufferLock(vBuffer);
+	vBufferLock(result);
 
-	for (int i = 0; i < pResult->tex.height; i++)
-		_pStdBitmap->convertPixelRow(&pResult->pPixels[pResult->tex.pitchInBytes * i], pFormat, &pVBuffer->pPixels[pVBuffer->tex.pitchInBytes * i], &pVBuffer->tex.format, pResult->tex.width);
+	for (int i = 0; i < result->tex.height; i++)
+		_stdBitmap->convertPixelRow(&result->pixels[result->tex.pitchInBytes * i], format, &vBuffer->pixels[vBuffer->tex.pitchInBytes * i], &vBuffer->tex.format, result->tex.width);
 
-	vBufferUnlock(pVBuffer);
-	vBufferUnlock(pResult);
+	vBufferUnlock(vBuffer);
+	vBufferUnlock(result);
 
-	pResult->colorKey = _pStdBitmap->convertColor(pFormat, pVBuffer->colorKey, &pVBuffer->tex.format);
-	pResult->tex.format = *pFormat;
+	result->colorKey = _stdBitmap->convertColor(format, vBuffer->colorKey, &vBuffer->tex.format);
+	result->tex.format = *format;
 
-	if (pResult != pVBuffer)
-		vBufferFree(pVBuffer);
+	if (result != vBuffer)
+		vBufferFree(vBuffer);
 
-	return pResult;
+	return result;
 }
 
-int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
+int StdDisplay::copyBltA(StdVBuffer *dstPointer, StdVBuffer *srcPointer, int x, int y, StdRect *rect, char colorKey) {
 	int srcX;
 	int srcY;
 	int width;
 	int height;
 
-	if (pRect) {
-		srcX = pRect->x;
-		srcY = pRect->y;
-		width = pRect->width;
-		height = pRect->height;
+	if (rect) {
+		srcX = rect->x;
+		srcY = rect->y;
+		width = rect->width;
+		height = rect->height;
 	} else {
-		width = pSrc->tex.width;
-		height = pSrc->tex.height;
+		width = srcPointer->tex.width;
+		height = srcPointer->tex.height;
 		srcX = 0;
 		srcY = 0;
 	}
 
-	if (x >= pDst->tex.width)
+	if (x >= dstPointer->tex.width)
 		return 0;
 
 	int endX = x + width;
@@ -359,7 +359,7 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 		return 0;
 
 	uint firstRow = y;
-	if (y >= pDst->tex.height || !(height + y))
+	if (y >= dstPointer->tex.height || !(height + y))
 		return 0;
 
 	uint lastRow = height + y - 1;
@@ -371,62 +371,62 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 		firstRow = 0;
 	}
 
-	if (lastRow >= (uint)pDst->tex.height)
-		lastRow = pDst->tex.height - 1;
+	if (lastRow >= (uint)dstPointer->tex.height)
+		lastRow = dstPointer->tex.height - 1;
 
 	if (x < 0) {
 		srcStartX = srcX - x;
 		x = 0;
 	}
 
-	if (lastColumn >= (uint)pDst->tex.width)
-		lastColumn = pDst->tex.width - 1;
+	if (lastColumn >= (uint)dstPointer->tex.width)
+		lastColumn = dstPointer->tex.width - 1;
 
 	int copyWidth = lastColumn - x + 1;
 	if (!copyWidth)
 		return 1;
 
-	uint rowBytes = copyWidth * ((uint)pSrc->tex.format.bpp >> 3);
-	uint bppCase = pSrc->tex.format.bpp - 8;
+	uint rowBytes = copyWidth * ((uint)srcPointer->tex.format.bpp >> 3);
+	uint bppCase = srcPointer->tex.format.bpp - 8;
 	if (bppCase > 0x18)
 		return 1;
 
 	if (firstRow <= lastRow) {
 		int numRows = lastRow - firstRow + 1;
 
-		if (srcStartX < 0 || srcY < 0 || srcStartX + copyWidth > pSrc->tex.width || srcY + numRows > pSrc->tex.height) {
+		if (srcStartX < 0 || srcY < 0 || srcStartX + copyWidth > srcPointer->tex.width || srcY + numRows > srcPointer->tex.height) {
 			warning("StdDisplay::copyBltA(): source rectangle outside the source buffer");
 			return 0;
 		}
 	}
 
-	switch (pSrc->tex.format.bpp) {
+	switch (srcPointer->tex.format.bpp) {
 	case 8: {
-		byte *src = &pSrc->pPixels[pSrc->tex.pitchInPixels * srcY + srcStartX];
-		byte *dst = &pDst->pPixels[pDst->tex.pitchInPixels * firstRow + x];
+		byte *src = &srcPointer->pixels[srcPointer->tex.pitchInPixels * srcY + srcStartX];
+		byte *dst = &dstPointer->pixels[dstPointer->tex.pitchInPixels * firstRow + x];
 
 		if (firstRow > lastRow)
 			return 1;
 
 		int rows = lastRow - firstRow + 1;
 
-		if ((bColorKey & 1) == 0) {
+		if ((colorKey & 1) == 0) {
 			do {
 				memcpy(dst, src, rowBytes);
-				dst += pDst->tex.pitchInPixels;
-				src += pSrc->tex.pitchInPixels;
+				dst += dstPointer->tex.pitchInPixels;
+				src += srcPointer->tex.pitchInPixels;
 				rows--;
 			} while (rows);
 		} else {
-			int srcSkip = pSrc->tex.pitchInPixels - copyWidth;
-			int dstSkip = pDst->tex.pitchInPixels - copyWidth;
+			int srcSkip = srcPointer->tex.pitchInPixels - copyWidth;
+			int dstSkip = dstPointer->tex.pitchInPixels - copyWidth;
 
 			do {
 				if ((uint)x <= lastColumn) {
 					int count = copyWidth;
 
 					do {
-						if (*src != (byte)pSrc->colorKey)
+						if (*src != (byte)srcPointer->colorKey)
 							*dst = *src;
 						src++;
 						dst++;
@@ -441,31 +441,31 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 		return 1;
 	}
 	case 16: {
-		byte *src = &pSrc->pPixels[2 * srcStartX + 2 * pSrc->tex.pitchInPixels * srcY];
-		byte *dst = &pDst->pPixels[2 * x + 2 * pDst->tex.pitchInPixels * firstRow];
+		byte *src = &srcPointer->pixels[2 * srcStartX + 2 * srcPointer->tex.pitchInPixels * srcY];
+		byte *dst = &dstPointer->pixels[2 * x + 2 * dstPointer->tex.pitchInPixels * firstRow];
 
 		if (firstRow > lastRow)
 			return 1;
 
 		int rows = lastRow - firstRow + 1;
 
-		if ((bColorKey & 1) == 0) {
+		if ((colorKey & 1) == 0) {
 			do {
 				memcpy(dst, src, rowBytes);
-				src += 2 * pSrc->tex.pitchInPixels;
-				dst += 2 * pDst->tex.pitchInPixels;
+				src += 2 * srcPointer->tex.pitchInPixels;
+				dst += 2 * dstPointer->tex.pitchInPixels;
 				rows--;
 			} while (rows);
 		} else {
-			int srcSkip = pSrc->tex.pitchInPixels - copyWidth;
-			int dstSkip = pDst->tex.pitchInPixels - copyWidth;
+			int srcSkip = srcPointer->tex.pitchInPixels - copyWidth;
+			int dstSkip = dstPointer->tex.pitchInPixels - copyWidth;
 
 			do {
 				if ((uint)x <= lastColumn) {
 					int count = copyWidth;
 
 					do {
-						if (*(uint16 *)src != (uint16)pSrc->colorKey)
+						if (*(uint16 *)src != (uint16)srcPointer->colorKey)
 							*(uint16 *)dst = *(uint16 *)src;
 						src += 2;
 						dst += 2;
@@ -480,8 +480,8 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 		return 1;
 	}
 	case 24: {
-		byte *src = &pSrc->pPixels[3 * srcStartX + pSrc->tex.pitchInBytes * srcY];
-		byte *dst = &pDst->pPixels[3 * x + pDst->tex.pitchInBytes * firstRow];
+		byte *src = &srcPointer->pixels[3 * srcStartX + srcPointer->tex.pitchInBytes * srcY];
+		byte *dst = &dstPointer->pixels[3 * x + dstPointer->tex.pitchInBytes * firstRow];
 
 		if (firstRow > lastRow)
 			return 1;
@@ -490,38 +490,38 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 
 		do {
 			memcpy(dst, src, rowBytes);
-			dst += pDst->tex.pitchInBytes;
+			dst += dstPointer->tex.pitchInBytes;
 			rows--;
-			src += pSrc->tex.pitchInBytes;
+			src += srcPointer->tex.pitchInBytes;
 		} while (rows);
 		return 1;
 	}
 	case 32: {
-		byte *src = &pSrc->pPixels[4 * srcStartX + 4 * pSrc->tex.pitchInPixels * srcY];
-		byte *dst = &pDst->pPixels[4 * x + 4 * pDst->tex.pitchInPixels * firstRow];
+		byte *src = &srcPointer->pixels[4 * srcStartX + 4 * srcPointer->tex.pitchInPixels * srcY];
+		byte *dst = &dstPointer->pixels[4 * x + 4 * dstPointer->tex.pitchInPixels * firstRow];
 
 		if (firstRow > lastRow)
 			return 1;
 
 		int rows = lastRow - firstRow + 1;
 
-		if ((bColorKey & 1) == 0) {
+		if ((colorKey & 1) == 0) {
 			do {
 				memcpy(dst, src, rowBytes);
-				src += 4 * pSrc->tex.pitchInPixels;
+				src += 4 * srcPointer->tex.pitchInPixels;
 				rows--;
-				dst += 4 * pDst->tex.pitchInPixels;
+				dst += 4 * dstPointer->tex.pitchInPixels;
 			} while (rows);
 		} else {
-			int srcSkip = pSrc->tex.pitchInPixels - copyWidth;
-			int dstSkip = pDst->tex.pitchInPixels - copyWidth;
+			int srcSkip = srcPointer->tex.pitchInPixels - copyWidth;
+			int dstSkip = dstPointer->tex.pitchInPixels - copyWidth;
 
 			do {
 				if ((uint)x <= lastColumn) {
 					int count = copyWidth;
 
 					do {
-						if (*(uint32 *)src != (uint32)pSrc->colorKey)
+						if (*(uint32 *)src != (uint32)srcPointer->colorKey)
 							*(uint32 *)dst = *(uint32 *)src;
 						src += 4;
 						dst += 4;
@@ -540,107 +540,107 @@ int StdDisplay::copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	}
 }
 
-int StdDisplay::lzssDecompress(byte *pDst, byte *pSrc, int size, int outputSize) {
-	byte *pPadded = new byte[size + 16];
+int StdDisplay::lzssDecompress(byte *dst, byte *src, int size, int outputSize) {
+	byte *padded = new byte[size + 16];
 
-	memcpy(pPadded, pSrc, size);
-	memset(pPadded + size, 0, 16);
+	memcpy(padded, src, size);
+	memset(padded + size, 0, 16);
 
-	_inputBuffer = pPadded;
+	_inputBuffer = padded;
 	_inputBufferIndex = 0;
 	_outputBufferIndex = 0;
 	_inputBufferMax = size;
-	_outputBuffer = pDst;
+	_outputBuffer = dst;
 	_outputBufferMax = outputSize;
 	decompressImpl();
 
-	delete[] pPadded;
+	delete[] padded;
 	_inputBuffer = nullptr;
 
 	return _outputBufferIndex;
 }
 
-int StdDisplay::readFlagBit(const byte *&pIn, uint &flagBits, int &flagCount) {
+int StdDisplay::readFlagBit(const byte *&in, uint &flagBits, int &flagCount) {
 	int bit = flagBits & 1;
 
 	flagBits >>= 1;
 	if (!--flagCount) {
 		flagCount = 16;
-		flagBits = READ_LE_UINT16(pIn);
-		pIn += 2;
+		flagBits = READ_LE_UINT16(in);
+		in += 2;
 	}
 
 	return bit;
 }
 
 void StdDisplay::decompressImpl() {
-	byte *pOut = _outputBuffer;
-	byte *pOutEnd = _outputBuffer + _outputBufferMax;
-	const byte *pInLimit = _inputBuffer + _inputBufferMax + 8;
+	byte *out = _outputBuffer;
+	byte *outEnd = _outputBuffer + _outputBufferMax;
+	const byte *inLimit = _inputBuffer + _inputBufferMax + 8;
 	uint flagBits = READ_LE_UINT16(_inputBuffer);
-	const byte *pIn = _inputBuffer + 2;
+	const byte *in = _inputBuffer + 2;
 	int flagCount = 16;
 
 	while (true) {
-		bool bLiteral = true;
+		bool literal = true;
 
-		while (bLiteral) {
-			if (pIn > pInLimit) {
+		while (literal) {
+			if (in > inLimit) {
 				warning("StdDisplay::decompressImpl(): compressed data ends unexpectedly");
-				_outputBufferIndex = pOut - _outputBuffer;
-				_inputBufferIndex = pIn - _inputBuffer;
+				_outputBufferIndex = out - _outputBuffer;
+				_inputBufferIndex = in - _inputBuffer;
 				return;
 			}
 
-			bLiteral = readFlagBit(pIn, flagBits, flagCount) == 1;
+			literal = readFlagBit(in, flagBits, flagCount) == 1;
 
-			if (bLiteral) {
-				if (pOut >= pOutEnd) {
+			if (literal) {
+				if (out >= outEnd) {
 					warning("StdDisplay::decompressImpl(): decompressed data does not fit the buffer");
-					_outputBufferIndex = pOut - _outputBuffer;
-					_inputBufferIndex = pIn - _inputBuffer;
+					_outputBufferIndex = out - _outputBuffer;
+					_inputBufferIndex = in - _inputBuffer;
 					return;
 				}
 
-				*pOut++ = *pIn++;
+				*out++ = *in++;
 			}
 		}
 
 		int copyLen;
 		int offset;
 
-		if (readFlagBit(pIn, flagBits, flagCount) == 0) {
-			int high = readFlagBit(pIn, flagBits, flagCount);
-			int low = readFlagBit(pIn, flagBits, flagCount);
+		if (readFlagBit(in, flagBits, flagCount) == 0) {
+			int high = readFlagBit(in, flagBits, flagCount);
+			int low = readFlagBit(in, flagBits, flagCount);
 
 			copyLen = (low | 2 * high) + 3;
-			offset = *pIn++ | 0xFFFFFF00;
+			offset = *in++ | 0xFFFFFF00;
 		} else {
-			int first = *pIn++;
-			int second = *pIn++;
+			int first = *in++;
+			int second = *in++;
 
 			offset = (16 * ((second & 0xF0) - 256)) | first;
 			copyLen = (second & 0xF) + 3;
 			if ((second & 0xF) == 0) {
-				copyLen = *pIn++ + 1;
+				copyLen = *in++ + 1;
 				if (copyLen == 1)
 					break;
 			}
 		}
 
-		const byte *pCopy = pOut + offset;
+		const byte *copy = out + offset;
 
-		if (pCopy < _outputBuffer || pOut + copyLen > pOutEnd || pIn > pInLimit) {
+		if (copy < _outputBuffer || out + copyLen > outEnd || in > inLimit) {
 			warning("StdDisplay::decompressImpl(): invalid back reference");
 			break;
 		}
 
 		for (int i = 0; i < copyLen; i++)
-			*pOut++ = *pCopy++;
+			*out++ = *copy++;
 	}
 
-	_outputBufferIndex = pOut - _outputBuffer;
-	_inputBufferIndex = pIn - _inputBuffer;
+	_outputBufferIndex = out - _outputBuffer;
+	_inputBufferIndex = in - _inputBuffer;
 }
 
 } // End of namespace Grim

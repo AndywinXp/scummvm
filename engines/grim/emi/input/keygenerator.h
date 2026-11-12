@@ -46,7 +46,7 @@ public:
 
 	static int keyCodeToVirtualKey(Common::KeyCode keyCode);
 
-	uint modifiers;
+	uint _modifiers;
 };
 
 } // End of namespace Grim

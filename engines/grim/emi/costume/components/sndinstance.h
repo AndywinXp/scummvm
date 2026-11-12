@@ -37,8 +37,8 @@ public:
 	bool isReplayable() override;
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	Actor *owner;
-	uint soundHandle;
+	Actor *_owner;
+	uint _soundHandle;
 
 private:
 	EmiEngine *_engine;

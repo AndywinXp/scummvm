@@ -34,8 +34,8 @@ public:
 	void expand(const float *point);
 	bool segmentCrossesFaces(const float *start, const float *end, int faceMask) const;
 
-	CVector min;
-	CVector max;
+	CVector _min;
+	CVector _max;
 };
 
 } // End of namespace Grim

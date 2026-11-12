@@ -47,156 +47,156 @@ static const int smushKeyValues[2] = { 0, 1 };
 static const char *const smushKeyNames[2] = { "Play", "Stop" };
 static const CosComponentNames smushKeyDesc = { 2, smushKeyValues, smushKeyNames, nullptr, nullptr };
 
-void BitmapHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	ResRef *pRef = static_cast<ResRef *>(pInstData);
+void BitmapHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	ResRef *ref = static_cast<ResRef *>(instData);
 
-	if (!pRef->valid) {
+	if (!ref->valid) {
 		warning("BitmapHandler::change(): Bad Bitmap Reference");
 		return;
 	}
 
-	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pRef->handle);
+	StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(ref->handle);
 
-	pBitmap->curFrame = keyValue - 1;
+	bitmap->curFrame = keyValue - 1;
 }
 
-int BitmapHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int BitmapHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 
 	Common::strlcpy(name, args, 32);
 
-	char *pBitmapName = strtok(name, ",");
+	char *bitmapName = strtok(name, ",");
 
-	if (!pBitmapName) {
+	if (!bitmapName) {
 		warning("BitmapHandler::request(): empty bitmap name");
 		return 0;
 	}
 
-	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(_pSputCostume->_pSputResource->alloc(kSputTagBknd, pBitmapName));
+	StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(_sputCostume->_sputResource->alloc(kSputTagBknd, bitmapName));
 
-	if (!pBitmap)
+	if (!bitmap)
 		return 0;
 
-	Common::strlcpy(pBitmap->aName, pBitmapName, 32);
+	Common::strlcpy(bitmap->name, bitmapName, 32);
 
-	ResRef *pRes = new ResRef();
+	ResRef *res = new ResRef();
 
-	_pSputCostume->_pRes->setReference(pRes, pBitmap);
+	_sputCostume->_res->setReference(res, bitmap);
 
-	int numFrames = pBitmap->numFrames;
-	int *aNameIds = new int[numFrames + 1];
+	int numFrames = bitmap->numFrames;
+	int *nameIds = new int[numFrames + 1];
 
-	aNameIds[0] = 0;
+	nameIds[0] = 0;
 
-	if (_pSputCostume->_aLECBitmaps)
-		delete[] _pSputCostume->_aLECBitmaps;
+	if (_sputCostume->_lecBitmaps)
+		delete[] _sputCostume->_lecBitmaps;
 
-	_pSputCostume->_aLECBitmaps = new CosStateBitmapDesc[numFrames + 1]();
+	_sputCostume->_lecBitmaps = new CosStateBitmapDesc[numFrames + 1]();
 
 	for (int i = 0; i < numFrames; i++) {
-		StdVBuffer *pFrame = pBitmap->apFrames[i];
+		StdVBuffer *frame = bitmap->frames[i];
 
-		aNameIds[i + 1] = i + 1;
+		nameIds[i + 1] = i + 1;
 
-		_pSputCostume->_aLECBitmaps[i].pPixels = pFrame->pPixels;
-		_pSputCostume->_aLECBitmaps[i].width = pFrame->tex.width;
-		_pSputCostume->_aLECBitmaps[i].height = pFrame->tex.height;
-		_pSputCostume->_aLECBitmaps[i].reserved12 = 1;
+		_sputCostume->_lecBitmaps[i].pixels = frame->pixels;
+		_sputCostume->_lecBitmaps[i].width = frame->tex.width;
+		_sputCostume->_lecBitmaps[i].height = frame->tex.height;
+		_sputCostume->_lecBitmaps[i].reserved12 = 1;
 	}
 
-	const int *pBitmapExtra = nullptr;
+	const int *bitmapExtra = nullptr;
 
-	if (pBitmap->flags & 2)
-		pBitmapExtra = reinterpret_cast<const int *>(&pBitmap->pPalette);
+	if (bitmap->flags & 2)
+		bitmapExtra = reinterpret_cast<const int *>(&bitmap->palette);
 
-	CosComponentNames keyDesc = { numFrames + 1, aNameIds, nullptr, pBitmapExtra ? _pSputCostume->_aLECBitmaps : nullptr, pBitmapExtra };
-	int result = _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, pParentId, parentFourcc, &keyDesc);
+	CosComponentNames keyDesc = { numFrames + 1, nameIds, nullptr, bitmapExtra ? _sputCostume->_lecBitmaps : nullptr, bitmapExtra };
+	int result = _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, parentFourcc, &keyDesc);
 
-	delete[] aNameIds;
+	delete[] nameIds;
 
 	if (result) {
-		_pSputCostume->_pLastBitmap = pBitmap;
+		_sputCostume->_lastBitmap = bitmap;
 		return 1;
 	}
 
-	_pSputCostume->_pLastBitmap = nullptr;
+	_sputCostume->_lastBitmap = nullptr;
 
 	return 0;
 }
 
-void BitmapHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	ResRef *pRes = static_cast<ResRef *>(pCompRes);
+void BitmapHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	ResRef *res = static_cast<ResRef *>(compRes);
 
-	_pSputCostume->_pLastBitmap = pCompRes;
-	_pSputCostume->_pRes->removeReference(pRes);
-	delete pRes;
+	_sputCostume->_lastBitmap = compRes;
+	_sputCostume->_res->removeReference(res);
+	delete res;
 }
 
 // The component name is "bitmap,layer", it is kept whole in the bitmap structure
-static int getAnimationLayer(const StdBitmapStruct *pBitmap) {
+static int getAnimationLayer(const StdBitmapStruct *bitmap) {
 	char name[32];
 
-	Common::strlcpy(name, pBitmap->aName, 32);
+	Common::strlcpy(name, bitmap->name, 32);
 	strtok(name, ",");
 
-	const char *pLayer = strtok(nullptr, ",");
+	const char *layer = strtok(nullptr, ",");
 
-	return pLayer && atoi(pLayer) > 0 ? 1 : 0;
+	return layer && atoi(layer) > 0 ? 1 : 0;
 }
 
-void AnimationHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	ResRef *pRef = static_cast<ResRef *>(pInstData);
+void AnimationHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	ResRef *ref = static_cast<ResRef *>(instData);
 
-	if (!pRef->valid) {
+	if (!ref->valid) {
 		warning("AnimationHandler::change(): Bad Bitmap Reference");
 		return;
 	}
 
-	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pRef->handle);
+	StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(ref->handle);
 
-	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
-	pBitmap->curFrame = keyValue - 1;
+	_sputCostume->_sputRender->addAnimationBitmap(bitmap, getAnimationLayer(bitmap));
+	bitmap->curFrame = keyValue - 1;
 }
 
-int AnimationHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
-	if (!BitmapHandler::request(hCostume, fourcc, pParentId, parentFourcc, pComp))
+int AnimationHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
+	if (!BitmapHandler::request(costume, fourcc, parentId, parentFourcc, comp))
 		return 0;
 
-	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(_pSputCostume->_pLastBitmap);
+	StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(_sputCostume->_lastBitmap);
 
-	Common::strlcpy(pBitmap->aName, pComp->name, 32);
-	pBitmap->curFrame = -1;
-	_pSputCostume->_pSputRender->addAnimationBitmap(pBitmap, getAnimationLayer(pBitmap));
+	Common::strlcpy(bitmap->name, comp->name, 32);
+	bitmap->curFrame = -1;
+	_sputCostume->_sputRender->addAnimationBitmap(bitmap, getAnimationLayer(bitmap));
 
 	return 1;
 }
 
-void AnimationHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
+void AnimationHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	// The EXE looks the reference up again after freeing it and never finds it
-	BitmapHandler::freeComponent(hCostume, fourcc, pCompRes);
+	BitmapHandler::freeComponent(costume, fourcc, compRes);
 }
 
-void AnimationHandler::stop(void *pInstData) {
-	ResRef *pRef = static_cast<ResRef *>(pInstData);
+void AnimationHandler::stop(void *instData) {
+	ResRef *ref = static_cast<ResRef *>(instData);
 
-	if (!pRef->valid) {
+	if (!ref->valid) {
 		warning("AnimationHandler::stop(): Bad Bitmap Reference");
 		return;
 	}
 
-	_pSputCostume->_pSputRender->removeAnimationBitmap(pRef->handle);
+	_sputCostume->_sputRender->removeAnimationBitmap(ref->handle);
 }
 
-int AnimationHandler::adjust(void **ppCompRes, char *args, int argsSize) {
+int AnimationHandler::adjust(void **compRes, char *args, int argsSize) {
 	// TODO: grimPlat_InputDialog("Enter a 1 to make this an overlay...")
 	return 0;
 }
 
-void SoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	SoundCompRes *pRes = static_cast<SoundCompRes *>(pInstData);
+void SoundHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	SoundCompRes *res = static_cast<SoundCompRes *>(instData);
 
 	if (keyValue < 0 || keyValue >= 3) {
 		warning("SoundHandler::change(): invalid key %d", keyValue);
@@ -205,51 +205,51 @@ void SoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int
 
 	int action = soundKeyValues[keyValue];
 
-	if (action || g_grim->getImuse()->soundsIsSoundPlaying(pRes->name)) {
+	if (action || g_grim->getImuse()->soundsIsSoundPlaying(res->name)) {
 		if (action == 1) {
 			if (fourcc == kSputCostumeTagResidentSound)
-				g_grim->getImuse()->soundsStopSound(pRes->name);
+				g_grim->getImuse()->soundsStopSound(res->name);
 			else if (fourcc == kSputCostumeTagStreamedSound)
 				g_grim->getImuse()->soundStopVoiceStream();
 		} else if (action == 2) {
-			g_grim->getImuse()->iMUSESetHook(pRes->name, 0x80);
+			g_grim->getImuse()->iMUSESetHook(res->name, 0x80);
 		}
 	} else if (fourcc == kSputCostumeTagResidentSound) {
-		SputRoom *pSputRoom = _pSputCostume->_pSputRoom;
-		Room *pRoom = pSputRoom->getCurrentRoom();
-		int soundId = g_grim->getImuse()->soundsLoadStartSound(pRes->name, pRes->priority, 1);
+		SputRoom *sputRoom = _sputCostume->_sputRoom;
+		Room *room = sputRoom->getCurrentRoom();
+		int soundId = g_grim->getImuse()->soundsLoadStartSound(res->name, res->priority, 1);
 
-		if (pRoom) {
+		if (room) {
 			float maxDist;
 			float panFactor;
 			float maxRadius;
 			byte roomMinVolume;
 			byte roomMaxVolume;
 
-			pSputRoom->getSoundParameters(pRoom, &maxDist, &roomMinVolume, &roomMaxVolume, &panFactor, &maxRadius);
+			sputRoom->getSoundParameters(room, &maxDist, &roomMinVolume, &roomMaxVolume, &panFactor, &maxRadius);
 
-			int userData = _pSputCostume->_cos.instGetUserData(hInst);
-			SputActor *pActor = &_pSputCostume->_aActors[userData];
-			byte volume = pRes->volume;
+			int userData = _sputCostume->_cos.instGetUserData(instHandle);
+			SputActor *actor = &_sputCostume->_actors[userData];
+			byte volume = res->volume;
 
 			if (roomMaxVolume < volume)
 				volume = roomMaxVolume;
 
 			int minVolume = roomMinVolume;
 
-			if (minVolume <= pRes->minVolume)
-				minVolume = pRes->minVolume;
+			if (minVolume <= res->minVolume)
+				minVolume = res->minVolume;
 
-			pSputRoom->setSoundPosition((const char *)(intptr)soundId, pActor->actorPos, minVolume, volume, maxDist, maxRadius);
+			sputRoom->setSoundPosition((const char *)(intptr)soundId, actor->actorPos, minVolume, volume, maxDist, maxRadius);
 		}
 	} else if (fourcc == kSputCostumeTagStreamedSound) {
-		g_grim->getImuse()->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_GROUP, 1);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
+		g_grim->getImuse()->soundStartVoiceStream(res->name, res->volume, res->pan);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_GROUP, 1);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_PRIORITY, res->priority);
 	}
 }
 
-int SoundHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int SoundHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 	byte volume = 127;
 	int8 pan = 64;
@@ -258,102 +258,102 @@ int SoundHandler::request(int hCostume, int fourcc, void *pParentId, int parentF
 
 	memset(name, 0, sizeof(name));
 
-	if (pParentId)
+	if (parentId)
 		return 0;
 
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 
 	Common::strlcpy(name, args, 32);
 	strtok(name, ",");
 
-	char *pVolume = strtok(nullptr, ",");
+	char *volumePointer = strtok(nullptr, ",");
 
-	if (pVolume) {
-		volume = (byte)atoi(pVolume);
+	if (volumePointer) {
+		volume = (byte)atoi(volumePointer);
 
-		char *aTokens[3];
+		char *tokens[3];
 
 		for (int i = 0; i < 3; i++) {
-			aTokens[i] = strtok(nullptr, ",");
+			tokens[i] = strtok(nullptr, ",");
 
-			if (!aTokens[i])
+			if (!tokens[i])
 				warning("SoundHandler::request(): missing sound parameter in %s", args);
 		}
 
-		if (aTokens[0])
-			pan = (int8)atoi(aTokens[0]);
+		if (tokens[0])
+			pan = (int8)atoi(tokens[0]);
 
-		if (aTokens[1])
-			priority = atoi(aTokens[1]);
+		if (tokens[1])
+			priority = atoi(tokens[1]);
 
-		if (aTokens[2])
-			minVolume = atoi(aTokens[2]);
+		if (tokens[2])
+			minVolume = atoi(tokens[2]);
 	}
 
-	SoundCompRes *pRes = new SoundCompRes();
-	const char *pSoundName = name;
+	SoundCompRes *res = new SoundCompRes();
+	const char *soundName = name;
 
 	if (!name[0])
-		pSoundName = args;
+		soundName = args;
 
-	Common::strlcpy(pRes->name, pSoundName, 32);
-	pRes->pan = pan;
-	pRes->minVolume = minVolume;
-	pRes->volume = volume;
-	pRes->priority = priority;
+	Common::strlcpy(res->name, soundName, 32);
+	res->pan = pan;
+	res->minVolume = minVolume;
+	res->volume = volume;
+	res->priority = priority;
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, nullptr, parentFourcc, &soundKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, nullptr, parentFourcc, &soundKeyDesc) != 0;
 }
 
-void SoundHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	SoundCompRes *pRes = static_cast<SoundCompRes *>(pCompRes);
+void SoundHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	SoundCompRes *res = static_cast<SoundCompRes *>(compRes);
 
-	delete pRes;
+	delete res;
 }
 
-void SoundHandler::stop(void *pInstData) {
-	SoundCompRes *pRes = static_cast<SoundCompRes *>(pInstData);
+void SoundHandler::stop(void *instData) {
+	SoundCompRes *res = static_cast<SoundCompRes *>(instData);
 
-	g_grim->getImuse()->soundsStopSound(pRes->name);
+	g_grim->getImuse()->soundsStopSound(res->name);
 }
 
-int SoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
-	SoundCompRes *pRes = static_cast<SoundCompRes *>(*ppCompRes);
-	int aValues[4];
+int SoundHandler::adjust(void **compRes, char *args, int argsSize) {
+	SoundCompRes *res = static_cast<SoundCompRes *>(*compRes);
+	int values[4];
 
-	aValues[0] = pRes->volume;
-	aValues[1] = pRes->pan;
-	aValues[2] = pRes->priority;
-	aValues[3] = pRes->minVolume;
+	values[0] = res->volume;
+	values[1] = res->pan;
+	values[2] = res->priority;
+	values[3] = res->minVolume;
 
 	int accepted = 0; // TODO: grimPlat_ControlPanel("Maximum Volume", "Pan", "Priority", "Minimum Volume")
 
-	if (!accepted || aValues[0] < aValues[3])
+	if (!accepted || values[0] < values[3])
 		return 0;
 
-	char *pToken = strtok(args, ",");
+	char *token = strtok(args, ",");
 
-	if (!pToken) {
+	if (!token) {
 		warning("SoundHandler::adjust(): empty component name");
 		return 0;
 	}
 
-	pRes->volume = (byte)CLIP(aValues[0], 0, 127);
-	pRes->pan = (int8)CLIP(aValues[1], 0, 127);
-	pRes->priority = CLIP(aValues[2], 0, 127);
-	pRes->minVolume = CLIP(aValues[3], 0, 127);
+	res->volume = (byte)CLIP(values[0], 0, 127);
+	res->pan = (int8)CLIP(values[1], 0, 127);
+	res->priority = CLIP(values[2], 0, 127);
+	res->minVolume = CLIP(values[3], 0, 127);
 
 	char text[32];
 
-	snprintf(text, sizeof(text), "%s,%d,%d,%d,%d", pToken, pRes->volume, pRes->pan, pRes->priority, pRes->minVolume);
-	Common::strlcpy(pToken, text, 32);
+	snprintf(text, sizeof(text), "%s,%d,%d,%d,%d", token, res->volume, res->pan, res->priority, res->minVolume);
+	Common::strlcpy(token, text, 32);
 
 	return 1;
 }
 
-void DemoSoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	DemoSoundCompRes *pRes = static_cast<DemoSoundCompRes *>(pInstData);
+void DemoSoundHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	DemoSoundCompRes *res = static_cast<DemoSoundCompRes *>(instData);
 
 	if (keyValue < 0 || keyValue >= 2) {
 		warning("DemoSoundHandler::change(): invalid key %d", keyValue);
@@ -362,21 +362,21 @@ void DemoSoundHandler::change(int fourcc, void *pInstData, int op, int keyValue,
 
 	if (demoSoundKeyValues[keyValue]) {
 		if (fourcc == kSputCostumeTagResidentSound)
-			g_grim->getImuse()->soundsStopSound(pRes->name);
+			g_grim->getImuse()->soundsStopSound(res->name);
 		else if (fourcc == kSputCostumeTagStreamedSound)
 			g_grim->getImuse()->soundStopVoiceStream();
 	} else if (fourcc == kSputCostumeTagResidentSound) {
-		g_grim->getImuse()->soundsLoadStartSound(pRes->name, pRes->priority, pRes->group);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_VOLUME, pRes->volume);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PAN, pRes->pan);
+		g_grim->getImuse()->soundsLoadStartSound(res->name, res->priority, res->group);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_VOLUME, res->volume);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_PAN, res->pan);
 	} else if (fourcc == kSputCostumeTagStreamedSound) {
-		g_grim->getImuse()->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_GROUP, pRes->group);
-		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
+		g_grim->getImuse()->soundStartVoiceStream(res->name, res->volume, res->pan);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_GROUP, res->group);
+		g_grim->getImuse()->soundsSetParam(res->name, IMUSE_P_PRIORITY, res->priority);
 	}
 }
 
-int DemoSoundHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int DemoSoundHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 	byte volume = 127;
 	int8 pan = 64;
@@ -385,107 +385,107 @@ int DemoSoundHandler::request(int hCostume, int fourcc, void *pParentId, int par
 
 	memset(name, 0, sizeof(name));
 
-	if (pParentId) {
+	if (parentId) {
 		warning("Sounds must be children of the costume");
 		return 0;
 	}
 
 	// TODO: grimPlat_OpenFileDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 
 	Common::strlcpy(name, args, 32);
 	strtok(name, ",");
 
-	char *pVolume = strtok(nullptr, ",");
+	char *volumePointer = strtok(nullptr, ",");
 
-	if (pVolume) {
-		volume = (byte)atoi(pVolume);
+	if (volumePointer) {
+		volume = (byte)atoi(volumePointer);
 
-		char *aTokens[3];
+		char *tokens[3];
 
 		for (int i = 0; i < 3; i++) {
-			aTokens[i] = strtok(nullptr, ",");
+			tokens[i] = strtok(nullptr, ",");
 
-			if (!aTokens[i])
+			if (!tokens[i])
 				warning("DemoSoundHandler::request(): missing sound parameter in %s", args);
 		}
 
-		if (aTokens[0])
-			pan = (int8)atoi(aTokens[0]);
+		if (tokens[0])
+			pan = (int8)atoi(tokens[0]);
 
-		if (aTokens[1])
-			priority = atoi(aTokens[1]);
+		if (tokens[1])
+			priority = atoi(tokens[1]);
 
-		if (aTokens[2])
-			group = atoi(aTokens[2]);
+		if (tokens[2])
+			group = atoi(tokens[2]);
 	}
 
-	DemoSoundCompRes *pRes = new DemoSoundCompRes();
-	const char *pSoundName = name;
+	DemoSoundCompRes *res = new DemoSoundCompRes();
+	const char *soundName = name;
 
 	if (!name[0])
-		pSoundName = args;
+		soundName = args;
 
-	memset(pRes, 0, sizeof(DemoSoundCompRes));
-	Common::strlcpy(pRes->name, pSoundName, 32);
-	pRes->pan = pan;
-	pRes->group = group;
-	pRes->volume = volume;
-	pRes->priority = priority;
+	memset(res, 0, sizeof(DemoSoundCompRes));
+	Common::strlcpy(res->name, soundName, 32);
+	res->pan = pan;
+	res->group = group;
+	res->volume = volume;
+	res->priority = priority;
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pRes, fourcc, nullptr, parentFourcc, &demoSoundKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, nullptr, parentFourcc, &demoSoundKeyDesc) != 0;
 }
 
-void DemoSoundHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	delete static_cast<DemoSoundCompRes *>(pCompRes);
+void DemoSoundHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	delete static_cast<DemoSoundCompRes *>(compRes);
 }
 
-int DemoSoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
+int DemoSoundHandler::adjust(void **compRes, char *args, int argsSize) {
 	// TODO: grimPlat_ControlPanel dialog
 	return 0;
 }
 
-void SmushHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+void SmushHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
 	if (!keyValue)
-		_pSputCostume->_pGrim->playMovie(static_cast<const char *>(pInstData), 0, 0, -1, -1);
+		_sputCostume->_grim->playMovie(static_cast<const char *>(instData), 0, 0, -1, -1);
 }
 
-void DemoSmushHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+void DemoSmushHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
 	char fileName[64];
 
-	snprintf(fileName, sizeof(fileName), "MOVIES\\%s", static_cast<const char *>(pInstData));
+	snprintf(fileName, sizeof(fileName), "MOVIES\\%s", static_cast<const char *>(instData));
 
 	if (!keyValue)
-		_pSputCostume->_pGrim->playMovie(fileName, 0, 0, -1, -1);
+		_sputCostume->_grim->playMovie(fileName, 0, 0, -1, -1);
 }
 
-int SmushHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int SmushHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
-	const char *args = pComp->name;
+	const char *args = comp->name;
 	size_t size = strlen(args) + 1;
-	char *pName = new char[size];
+	char *name = new char[size];
 
-	Common::strlcpy(pName, args, size);
+	Common::strlcpy(name, args, size);
 
-	return _pSputCostume->_cos.registerComponent(hCostume, args, pName, fourcc, pParentId, parentFourcc, &smushKeyDesc) != 0;
+	return _sputCostume->_cos.registerComponent(costume, args, name, fourcc, parentId, parentFourcc, &smushKeyDesc) != 0;
 }
 
-void SmushHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	char *pName = static_cast<char *>(pCompRes);
+void SmushHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	char *name = static_cast<char *>(compRes);
 
-	delete[] pName;
+	delete[] name;
 }
 
-void SmushHandler::saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) {
-	_pSputCostume->stub();
+void SmushHandler::saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) {
+	_sputCostume->stub();
 }
 
-void IMuseHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
-	_pSputCostume->nullSub1();
+void IMuseHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
+	_sputCostume->nullSub1();
 }
 
-int IMuseHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
-	if (pParentId)
+int IMuseHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
+	if (parentId)
 		return 0;
 
 	const char *name = "iMuse Sequence";
@@ -493,51 +493,51 @@ int IMuseHandler::request(int hCostume, int fourcc, void *pParentId, int parentF
 	if (fourcc != kSputCostumeTagSequence)
 		name = "iMuse State";
 
-	return _pSputCostume->_cos.registerComponent(hCostume, name, (void *)(intptr)1, fourcc, nullptr, parentFourcc, nullptr) != 0;
+	return _sputCostume->_cos.registerComponent(costume, name, (void *)(intptr)1, fourcc, nullptr, parentFourcc, nullptr) != 0;
 }
 
-void IMuseHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	_pSputCostume->stub();
+void IMuseHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	_sputCostume->stub();
 }
 
-void LuaVarHandler::change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) {
+void LuaVarHandler::change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) {
 	float number = (float)keyValue;
 
 	lua_pushnumber(number);
-	lua_setglobal(static_cast<const char *>(pInstData));
+	lua_setglobal(static_cast<const char *>(instData));
 }
 
-int LuaVarHandler::request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) {
+int LuaVarHandler::request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) {
 	char name[32];
 
 	memset(name, 0, sizeof(name));
 
-	if (pParentId)
+	if (parentId)
 		return 0;
 
 	// TODO: grimPlat_InputDialog branch (args == NULL)
-	Common::strlcpy(name, pComp->name, 32);
+	Common::strlcpy(name, comp->name, 32);
 
-	char *pVarName = new char[32];
+	char *varName = new char[32];
 
-	Common::strlcpy(pVarName, name, 32);
+	Common::strlcpy(varName, name, 32);
 
-	return _pSputCostume->_cos.registerComponent(hCostume, pVarName, pVarName, fourcc, nullptr, parentFourcc, nullptr) != 0;
+	return _sputCostume->_cos.registerComponent(costume, varName, varName, fourcc, nullptr, parentFourcc, nullptr) != 0;
 }
 
-void LuaVarHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
-	char *pVarName = static_cast<char *>(pCompRes);
+void LuaVarHandler::freeComponent(int costume, int fourcc, void *compRes) {
+	char *varName = static_cast<char *>(compRes);
 
-	delete[] pVarName;
+	delete[] varName;
 }
 
-void LuaVarHandler::stop(void *pInstData) {
+void LuaVarHandler::stop(void *instData) {
 	lua_pushnil();
-	lua_setglobal(static_cast<const char *>(pInstData));
+	lua_setglobal(static_cast<const char *>(instData));
 }
 
-int LuaVarHandler::adjust(void **ppCompRes, char *args, int argsSize) {
-	char *pVarName = static_cast<char *>(*ppCompRes);
+int LuaVarHandler::adjust(void **compRes, char *args, int argsSize) {
+	char *varName = static_cast<char *>(*compRes);
 	char text[32];
 
 	memset(text, 0, sizeof(text));
@@ -547,7 +547,7 @@ int LuaVarHandler::adjust(void **ppCompRes, char *args, int argsSize) {
 	if (!accepted)
 		return 0;
 
-	Common::strlcpy(pVarName, text, 32);
+	Common::strlcpy(varName, text, 32);
 	Common::strlcpy(args, text, argsSize);
 
 	return 1;

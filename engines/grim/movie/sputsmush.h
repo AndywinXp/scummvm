@@ -44,40 +44,40 @@ class SputSmush : public SmushPlayVideo {
 	friend class LegacyImporter;
 
 public:
-	SputSmush(Res *pRes, StdDisplay *pStdDisplay, SputRender *pSputRender, StdVBuffer *pMainGfxBuffer, WuRegistry *pWuRegistry);
+	SputSmush(Res *res, StdDisplay *stdDisplay, SputRender *sputRender, StdVBuffer *mainGfxBuffer, WuRegistry *wuRegistry);
 	virtual ~SputSmush();
 
 	virtual int getMovieTime();
-	virtual int initialize(SysStruct *pHS);
-	virtual int save(Common::WriteStream *pStream);
-	virtual int restore(Common::ReadStream *pStream);
+	virtual int initialize(SysStruct *hs);
+	virtual int save(Common::WriteStream *stream);
+	virtual int restore(Common::ReadStream *stream);
 	virtual int startup();
 	virtual int shutdown();
 	virtual int terminate();
 	virtual int periodic();
-	virtual int setTarget(StdVBuffer *pBuffer);
-	virtual int startMovie(const char *name, int bLooping, int x, int y);
+	virtual int setTarget(StdVBuffer *buffer);
+	virtual int startMovie(const char *name, int looping, int x, int y);
 	virtual int stopMovie();
 	virtual int getMovieLength(const char *name);
 	int startVideo(int width, int height, int depth, int pixelFormat) override;
 	int stopVideo() override;
-	int lockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
-	int unlockMovieBuffer(LecBitmap *pBitmap, StdRect *pRect) override;
-	int setVideoPalette(uint32 *pPalette, int start, int count) override;
+	int lockMovieBuffer(LecBitmap *bitmap, StdRect *rect) override;
+	int unlockMovieBuffer(LecBitmap *bitmap, StdRect *rect) override;
+	int setVideoPalette(uint32 *palette, int start, int count) override;
 	virtual int moviePlaying();
-	virtual int pause(int bPause);
+	virtual int pause(int pause);
 	virtual void blitFrame() {}
 
 protected:
-	SmushPlay *_pSmushPlay;
-	Res *_pRes;
-	StdDisplay *_pStdDisplay;
-	SputRender *_pSputRender;
-	StdVBuffer *_pMainGfxBuffer;
-	WuRegistry *_pWuRegistry;
-	SysStruct *_pHS;
-	int _bStarted;
-	StdVBuffer *_pPresentBuf;
+	SmushPlay *_smushPlay;
+	Res *_res;
+	StdDisplay *_stdDisplay;
+	SputRender *_sputRender;
+	StdVBuffer *_mainGfxBuffer;
+	WuRegistry *_wuRegistry;
+	SysStruct *_hs;
+	int _started;
+	StdVBuffer *_presentBuf;
 	int _buf;
 	int _playing;
 	int _paused;

@@ -53,22 +53,22 @@ WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexC
 	_constraintVector[0] = 0.0f;
 	_constraintVector[1] = 0.0f;
 	_constraintVector[2] = 0.0f;
-	normal[0] = 0.0f;
-	normal[1] = 0.0f;
-	normal[2] = 0.0f;
-	number = 0;
-	type = 0;
-	active = true;
-	enabled = true;
-	collection = owner;
-	tolerance = kWalkTolerance;
-	hitEdge = 0;
-	quadAxis = 0;
-	d = 0.0f;
-	bfsState = 0;
-	bfsParent = nullptr;
+	_normal[0] = 0.0f;
+	_normal[1] = 0.0f;
+	_normal[2] = 0.0f;
+	_number = 0;
+	_type = 0;
+	_active = true;
+	_enabled = true;
+	_collection = owner;
+	_tolerance = kWalkTolerance;
+	_hitEdge = 0;
+	_quadAxis = 0;
+	_d = 0.0f;
+	_bfsState = 0;
+	_bfsParent = nullptr;
 
-	memset(verts, 0, kMaxVertices * sizeof(wpVertex *));
+	memset(_verts, 0, kMaxVertices * sizeof(wpVertex *));
 
 	if (vertexCount > kMaxVertices) {
 		warning("WalkPlane_v2::WalkPlane_v2(): too many vertices (%d)", vertexCount);
@@ -83,23 +83,23 @@ WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexC
 	if (vertexCount < 0)
 		vertexCount = 0;
 
-	numVerts = vertexCount;
+	_numVerts = vertexCount;
 
-	for (int i = 0; i < numVerts; i++)
-		verts[i] = collection->addVertex(vertices + 3 * i);
+	for (int i = 0; i < _numVerts; i++)
+		_verts[i] = _collection->addVertex(vertices + 3 * i);
 
-	numSortOrders = 0;
-	memset(sortOrder, 0, kMaxSortOrders * sizeof(int));
+	_numSortOrders = 0;
+	memset(_sortOrder, 0, kMaxSortOrders * sizeof(int));
 
-	if (numVerts < 2) {
+	if (_numVerts < 2) {
 		warning("WalkPlane_v2::WalkPlane_v2(): less than two vertices");
 
 		return;
 	}
 
-	wpVertex *first = verts[0];
-	wpVertex *second = verts[1];
-	wpVertex *last = verts[numVerts - 1];
+	wpVertex *first = _verts[0];
+	wpVertex *second = _verts[1];
+	wpVertex *last = _verts[_numVerts - 1];
 
 	double lastDeltaX = (double)last->x - first->x;
 	float lastDeltaY = (float)((double)last->y - first->y);
@@ -113,32 +113,32 @@ WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexC
 	float normalY = (float)((double)lastDeltaZ * secondDeltaX - (double)secondDeltaZ * lastDeltaX);
 	float normalZ = (float)((double)secondDeltaY * lastDeltaX - (double)lastDeltaY * secondDeltaX);
 
-	normal[0] = normalX;
-	normal[1] = normalY;
-	normal[2] = normalZ;
+	_normal[0] = normalX;
+	_normal[1] = normalY;
+	_normal[2] = normalZ;
 
-	double length = sqrt(((double)normal[0] * normal[0] + (double)normal[1] * normal[1]) + (double)normal[2] * normal[2]);
+	double length = sqrt(((double)_normal[0] * _normal[0] + (double)_normal[1] * _normal[1]) + (double)_normal[2] * _normal[2]);
 
 	if (length >= kMinLength) {
 		double inverse = 1.0 / length;
 
-		normal[0] = (float)(inverse * normal[0]);
-		normal[1] = (float)(inverse * normal[1]);
-		normal[2] = (float)(inverse * normal[2]);
+		_normal[0] = (float)(inverse * _normal[0]);
+		_normal[1] = (float)(inverse * _normal[1]);
+		_normal[2] = (float)(inverse * _normal[2]);
 	}
 
-	d = (float)-(((double)normal[2] * first->z + (double)normal[1] * first->y) + (double)normal[0] * first->x);
+	_d = (float)-(((double)_normal[2] * first->z + (double)_normal[1] * first->y) + (double)_normal[0] * first->x);
 }
 
 WalkPlane_v2::~WalkPlane_v2() {
-	if (collection) {
-		for (int i = 0; i < numVerts; i++)
-			collection->removeVertex(verts[i]);
-	} else if (numVerts > 0) {
+	if (_collection) {
+		for (int i = 0; i < _numVerts; i++)
+			_collection->removeVertex(_verts[i]);
+	} else if (_numVerts > 0) {
 		warning("WalkPlane_v2::~WalkPlane_v2(): missing collection");
 	}
 
-	neighbors.clear();
+	_neighbors.clear();
 }
 
 void *WalkPlane_v2::operator new(size_t size) {
@@ -150,31 +150,31 @@ void WalkPlane_v2::operator delete(void *block) {
 }
 
 int WalkPlane_v2::getSize() {
-	return (int)(name.size() + sizeof(WalkPlane_v2) + neighbors.size() * sizeof(int));
+	return (int)(_name.size() + sizeof(WalkPlane_v2) + _neighbors.size() * sizeof(int));
 }
 
 bool WalkPlane_v2::addNeighbor(int planeNumber) {
-	for (uint i = 0; i < neighbors.size(); i++) {
-		if (neighbors[i] == planeNumber)
+	for (uint i = 0; i < _neighbors.size(); i++) {
+		if (_neighbors[i] == planeNumber)
 			return false;
 	}
 
-	neighbors.push_back(planeNumber);
+	_neighbors.push_back(planeNumber);
 
 	return true;
 }
 
 bool WalkPlane_v2::touches(WalkPlane_v2 *other, bool both) {
-	for (int i = 0; i < numVerts; i++) {
-		if (other->within(&verts[i]->x, false))
+	for (int i = 0; i < _numVerts; i++) {
+		if (other->within(&_verts[i]->x, false))
 			return true;
 	}
 
 	if (!both)
 		return false;
 
-	for (int i = 0; i < other->numVerts; i++) {
-		if (within(&other->verts[i]->x, false))
+	for (int i = 0; i < other->_numVerts; i++) {
+		if (within(&other->_verts[i]->x, false))
 			return true;
 	}
 
@@ -193,35 +193,35 @@ float *WalkPlane_v2::getGatePoint(float *out, WalkPlane_v2 *other, const float *
 	return out;
 }
 
-void WalkPlane_v2::serialize(tSaveRestoreAccess *access) {
-	access(&type, sizeof(type));
-	access(&active, sizeof(active));
-	access(&enabled, sizeof(enabled));
-	access(&tolerance, sizeof(tolerance));
-	access(&numSortOrders, sizeof(numSortOrders));
+void WalkPlane_v2::serialize(SaveRestoreAccess *access) {
+	access(&_type, sizeof(_type));
+	access(&_active, sizeof(_active));
+	access(&_enabled, sizeof(_enabled));
+	access(&_tolerance, sizeof(_tolerance));
+	access(&_numSortOrders, sizeof(_numSortOrders));
 
-	if (numSortOrders < 0 || numSortOrders > kMaxSortOrders) {
-		warning("WalkPlane_v2::serialize(): invalid number of sort orders (%d)", numSortOrders);
-		numSortOrders = 0;
+	if (_numSortOrders < 0 || _numSortOrders > kMaxSortOrders) {
+		warning("WalkPlane_v2::serialize(): invalid number of sort orders (%d)", _numSortOrders);
+		_numSortOrders = 0;
 
 		return;
 	}
 
-	for (int i = 0; i < numSortOrders; i++)
-		access(&sortOrder[i], sizeof(int));
+	for (int i = 0; i < _numSortOrders; i++)
+		access(&_sortOrder[i], sizeof(int));
 }
 
 void WalkPlane_v2::setType(int newType) {
-	type = newType;
-	tolerance = kDefaultTolerance;
+	_type = newType;
+	_tolerance = kDefaultTolerance;
 
 	if ((newType & kTypeWalk) != 0)
-		tolerance = kWalkTolerance;
+		_tolerance = kWalkTolerance;
 
 	if ((newType & kTypeFunnel) == 0)
 		return;
 
-	if (numVerts != 4) {
+	if (_numVerts != 4) {
 		LConsoleServices *console = _engine->getConsoleServices();
 
 		if (console)
@@ -229,15 +229,15 @@ void WalkPlane_v2::setType(int newType) {
 		else
 			warning("Funnel boxes must have 4 sides!");
 
-		type = kTypeWalk;
+		_type = kTypeWalk;
 
 		return;
 	}
 
-	wpVertex *vertex0 = verts[0];
-	wpVertex *vertex1 = verts[1];
-	wpVertex *vertex2 = verts[2];
-	wpVertex *vertex3 = verts[3];
+	wpVertex *vertex0 = _verts[0];
+	wpVertex *vertex1 = _verts[1];
+	wpVertex *vertex2 = _verts[2];
+	wpVertex *vertex3 = _verts[3];
 
 	float edge0X = (float)((double)vertex1->x - vertex0->x);
 	float edge0Y = (float)((double)vertex1->y - vertex0->y);
@@ -330,42 +330,42 @@ void WalkPlane_v2::setType(int newType) {
 
 	if (dotFirst > dotSecond) {
 		if (length0 < length1)
-			quadAxis = 0;
+			_quadAxis = 0;
 		else
-			quadAxis = 2;
+			_quadAxis = 2;
 	} else {
 		if (length2Stored < length3Stored)
-			quadAxis = 1;
+			_quadAxis = 1;
 		else
-			quadAxis = 3;
+			_quadAxis = 3;
 	}
 }
 
 bool WalkPlane_v2::within(const float *point, bool checkActive) {
-	if (checkActive && (!enabled || !active))
+	if (checkActive && (!_enabled || !_active))
 		return false;
 
-	if (normal[1] == 0.0f) {
+	if (_normal[1] == 0.0f) {
 		warning("WalkPlane_v2::within(): the plane is vertical");
 
 		return false;
 	}
 
-	double height = (double)point[1] - ((-(double)d - (double)normal[0] * point[0] - (double)normal[2] * point[2]) / normal[1]);
+	double height = (double)point[1] - ((-(double)_d - (double)_normal[0] * point[0] - (double)_normal[2] * point[2]) / _normal[1]);
 
 	if (height < 0.0)
 		height = -height;
 
-	if (height > tolerance)
+	if (height > _tolerance)
 		return false;
 
-	if (numVerts <= 0)
+	if (_numVerts <= 0)
 		return true;
 
-	const float *previous = &verts[numVerts - 1]->x;
+	const float *previous = &_verts[_numVerts - 1]->x;
 
-	for (int i = 0; i < numVerts; i++) {
-		const float *current = &verts[i]->x;
+	for (int i = 0; i < _numVerts; i++) {
+		const float *current = &_verts[i]->x;
 		double deltaX = (double)previous[0] - current[0];
 		double deltaZ = (double)previous[2] - current[2];
 		double offsetZ = (double)current[2] - point[2];
@@ -397,13 +397,13 @@ bool WalkPlane_v2::within(const float *point, bool checkActive) {
 void WalkPlane_v2::closestPoint(float *point) {
 	project(point);
 
-	if (numVerts <= 0)
+	if (_numVerts <= 0)
 		return;
 
-	const float *previous = &verts[numVerts - 1]->x;
+	const float *previous = &_verts[_numVerts - 1]->x;
 
-	for (int i = 0; i < numVerts; i++) {
-		const float *current = &verts[i]->x;
+	for (int i = 0; i < _numVerts; i++) {
+		const float *current = &_verts[i]->x;
 		float edgeZ = (float)-((double)current[2] - previous[2]);
 		float edgeX = (float)((double)current[0] - previous[0]);
 		double numerator = ((double)point[2] - previous[2]) * edgeX + ((double)point[0] - previous[0]) * edgeZ;
@@ -443,7 +443,7 @@ void WalkPlane_v2::closestPoint(float *point) {
 				else
 					position = ((double)newX - previous[0]) / deltaXStored;
 
-				if (i == numVerts - 1 && position > 1.0) {
+				if (i == _numVerts - 1 && position > 1.0) {
 					point[0] = current[0];
 					point[1] = current[1];
 					point[2] = current[2];
@@ -498,7 +498,7 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 	float bestRatio = -1.0f;
 	float angle = 0.0f;
 
-	hitEdge = -1;
+	_hitEdge = -1;
 	segmentA[0] = pointA[0];
 	segmentA[1] = pointA[2];
 	segmentB[0] = pointB[0];
@@ -508,11 +508,11 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 	edgeEnd[0] = 0.0f;
 	edgeEnd[1] = 0.0f;
 
-	if (numVerts > 0) {
-		const float *previous = &verts[numVerts - 1]->x;
+	if (_numVerts > 0) {
+		const float *previous = &_verts[_numVerts - 1]->x;
 
-		for (int i = 0; i < numVerts; i++) {
-			const float *current = &verts[i]->x;
+		for (int i = 0; i < _numVerts; i++) {
+			const float *current = &_verts[i]->x;
 			float ratio;
 
 			edgeStart[0] = current[0];
@@ -523,7 +523,7 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 			if (segmentIntersection(segmentA, segmentB, edgeStart, edgeEnd, &ratio)) {
 				if (ratio > bestRatio) {
 					bestRatio = ratio;
-					hitEdge = i;
+					_hitEdge = i;
 
 					float directionX = (float)((double)segmentB[0] - segmentA[0]);
 					float directionZ = (float)((double)segmentB[1] - segmentA[1]);
@@ -592,13 +592,13 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 }
 
 void WalkPlane_v2::project(float *point) {
-	if (normal[1] == 0.0f) {
+	if (_normal[1] == 0.0f) {
 		warning("WalkPlane_v2::project(): the plane is vertical");
 
 		return;
 	}
 
-	point[1] = (float)((-(double)d - (double)normal[0] * point[0] - (double)normal[2] * point[2]) / normal[1]);
+	point[1] = (float)((-(double)_d - (double)_normal[0] * point[0] - (double)_normal[2] * point[2]) / _normal[1]);
 }
 
 float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
@@ -611,45 +611,45 @@ float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
 		return nullptr;
 	}
 
-	if ((puck->nodeFlags & CNode::kPositionValid) == 0)
+	if ((puck->_nodeFlags & CNode::kPositionValid) == 0)
 		puck->computeLocalPositionFromWorld();
 
-	position[0] = puck->pos.x;
-	position[1] = puck->pos.y;
-	position[2] = puck->pos.z;
+	position[0] = puck->_pos._x;
+	position[1] = puck->_pos._y;
+	position[2] = puck->_pos._z;
 
-	if ((puck->nodeFlags & CNode::kWorldValid) == 0)
+	if ((puck->_nodeFlags & CNode::kWorldValid) == 0)
 		puck->updateWorldTransform();
 
-	float forwardY = puck->world.rot.m[7];
-	float forwardZ = puck->world.rot.m[8];
+	float forwardY = puck->_world._rot._m[7];
+	float forwardZ = puck->_world._rot._m[8];
 	float offsetY = (float)((double)forwardY * kConstraintDistance);
 	float offsetZ = (float)((double)forwardZ * kConstraintDistance);
 
-	behind[0] = (float)((double)puck->world.rot.m[6] * kConstraintDistance + position[0]);
+	behind[0] = (float)((double)puck->_world._rot._m[6] * kConstraintDistance + position[0]);
 	behind[1] = (float)((double)position[1] + offsetY);
 	behind[2] = (float)((double)position[2] + offsetZ);
 
 	intersection(behind, position, _constraintVector);
 
-	int edge = hitEdge;
+	int edge = _hitEdge;
 
 	if (edge == -1)
 		return nullptr;
 
-	if (numVerts <= 0 || edge >= numVerts) {
+	if (_numVerts <= 0 || edge >= _numVerts) {
 		warning("WalkPlane_v2::getConstraintVector(): invalid edge %d", edge);
 
 		return nullptr;
 	}
 
-	const float *current = &verts[edge]->x;
+	const float *current = &_verts[edge]->x;
 	int previousIndex = edge - 1;
 
 	if (previousIndex <= -1)
-		previousIndex = numVerts - 1;
+		previousIndex = _numVerts - 1;
 
-	const float *previous = &verts[previousIndex]->x;
+	const float *previous = &_verts[previousIndex]->x;
 	float deltaX = (float)((double)previous[0] - current[0]);
 	float absoluteDeltaX = deltaX;
 	double ratio;
@@ -671,21 +671,21 @@ float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
 		ratio = ((double)_constraintVector[0] - current[0]) / deltaX;
 	}
 
-	const float *lineStart = &verts[(edge + 1) % numVerts]->x;
-	const float *lineEnd = &verts[(numVerts + edge - 2) % numVerts]->x;
+	const float *lineStart = &_verts[(edge + 1) % _numVerts]->x;
+	const float *lineEnd = &_verts[(_numVerts + edge - 2) % _numVerts]->x;
 	double lineDeltaX = (double)lineEnd[0] - lineStart[0];
 	float lineDeltaZ = (float)((double)lineEnd[2] - lineStart[2]);
 	float pointX = (float)(lineDeltaX * ratio + lineStart[0]);
 	double pointZ = ratio * lineDeltaZ + lineStart[2];
 
-	puck->lineA[1] = 0.0f;
-	puck->lineA[0] = pointX;
-	puck->lineA[2] = (float)pointZ;
+	puck->_lineA[1] = 0.0f;
+	puck->_lineA[0] = pointX;
+	puck->_lineA[2] = (float)pointZ;
 
 	_constraintVector[1] = 0.0f;
-	puck->lineB[0] = _constraintVector[0];
-	puck->lineB[1] = _constraintVector[1];
-	puck->lineB[2] = _constraintVector[2];
+	puck->_lineB[0] = _constraintVector[0];
+	puck->_lineB[1] = _constraintVector[1];
+	puck->_lineB[2] = _constraintVector[2];
 
 	float resultX = (float)((double)pointX - _constraintVector[0]);
 	float resultZ = (float)(pointZ - _constraintVector[2]);
@@ -702,7 +702,7 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 	float ahead[3] = { 0.0f, 0.0f, 0.0f };
 	float hit[3] = { 0.0f, 0.0f, 0.0f };
 
-	if (numVerts != 4)
+	if (_numVerts != 4)
 		return;
 
 	if (!puck) {
@@ -711,39 +711,39 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 		return;
 	}
 
-	if ((puck->nodeFlags & CNode::kPositionValid) == 0)
+	if ((puck->_nodeFlags & CNode::kPositionValid) == 0)
 		puck->computeLocalPositionFromWorld();
 
-	position[0] = puck->pos.x;
-	position[1] = puck->pos.y;
-	position[2] = puck->pos.z;
+	position[0] = puck->_pos._x;
+	position[1] = puck->_pos._y;
+	position[2] = puck->_pos._z;
 
-	if ((puck->nodeFlags & CNode::kWorldValid) == 0)
+	if ((puck->_nodeFlags & CNode::kWorldValid) == 0)
 		puck->updateWorldTransform();
 
-	float forwardY = puck->world.rot.m[7];
-	float forwardZ = puck->world.rot.m[8];
+	float forwardY = puck->_world._rot._m[7];
+	float forwardZ = puck->_world._rot._m[8];
 	float offsetY = (float)((double)forwardY * kJumpOutDistance);
 	float offsetZ = (float)((double)forwardZ * kJumpOutDistance);
 
-	ahead[0] = (float)((double)puck->world.rot.m[6] * kJumpOutDistance + position[0]);
+	ahead[0] = (float)((double)puck->_world._rot._m[6] * kJumpOutDistance + position[0]);
 	ahead[1] = (float)((double)offsetY + position[1]);
 	ahead[2] = (float)((double)offsetZ + position[2]);
 
 	intersection(position, ahead, hit);
 
-	int edge = hitEdge;
+	int edge = _hitEdge;
 
 	if (edge == -1)
 		return;
 
-	const float *current = &verts[edge]->x;
+	const float *current = &_verts[edge]->x;
 	int previousIndex = edge - 1;
 
 	if (previousIndex <= -1)
-		previousIndex = numVerts - 1;
+		previousIndex = _numVerts - 1;
 
-	const float *previous = &verts[previousIndex]->x;
+	const float *previous = &_verts[previousIndex]->x;
 	float deltaX = (float)((double)previous[0] - current[0]);
 	float absoluteDeltaX = deltaX;
 	double ratio;
@@ -767,20 +767,20 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 
 	double remaining = 1.0 - ratio;
 
-	hitEdge = (edge + 2) % numVerts;
+	_hitEdge = (edge + 2) % _numVerts;
 
-	const float *newCurrent = &verts[hitEdge]->x;
-	int newPreviousIndex = hitEdge - 1;
+	const float *newCurrent = &_verts[_hitEdge]->x;
+	int newPreviousIndex = _hitEdge - 1;
 
 	if (newPreviousIndex <= -1)
-		newPreviousIndex = numVerts - 1;
+		newPreviousIndex = _numVerts - 1;
 
-	const float *newPrevious = &verts[newPreviousIndex]->x;
+	const float *newPrevious = &_verts[newPreviousIndex]->x;
 	CVector newPosition;
 
-	newPosition.x = (float)(((double)newPrevious[0] - newCurrent[0]) * remaining + newCurrent[0]);
-	newPosition.y = (float)(((double)newPrevious[1] - newCurrent[1]) * remaining + newCurrent[1]);
-	newPosition.z = (float)(((double)newPrevious[2] - newCurrent[2]) * remaining + newCurrent[2]);
+	newPosition._x = (float)(((double)newPrevious[0] - newCurrent[0]) * remaining + newCurrent[0]);
+	newPosition._y = (float)(((double)newPrevious[1] - newCurrent[1]) * remaining + newCurrent[1]);
+	newPosition._z = (float)(((double)newPrevious[2] - newCurrent[2]) * remaining + newCurrent[2]);
 
 	puck->setLocalPosition(newPosition);
 }
@@ -788,8 +788,8 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 bool WalkPlane_v2::closestSharedVertex(WalkPlane_v2 *planeA, WalkPlane_v2 *planeB, float x, float y, float z, float *out) {
 	float best = kMaxFloat;
 
-	for (int i = 0; i < planeA->numVerts; i++) {
-		wpVertex *vertex = planeA->verts[i];
+	for (int i = 0; i < planeA->_numVerts; i++) {
+		wpVertex *vertex = planeA->_verts[i];
 
 		if (planeB->within(&vertex->x, false)) {
 			double deltaZ = (double)vertex->z - z;
@@ -806,8 +806,8 @@ bool WalkPlane_v2::closestSharedVertex(WalkPlane_v2 *planeA, WalkPlane_v2 *plane
 		}
 	}
 
-	for (int i = 0; i < planeB->numVerts; i++) {
-		wpVertex *vertex = planeB->verts[i];
+	for (int i = 0; i < planeB->_numVerts; i++) {
+		wpVertex *vertex = planeB->_verts[i];
 
 		if (planeA->within(&vertex->x, false)) {
 			double deltaZ = (double)vertex->z - z;

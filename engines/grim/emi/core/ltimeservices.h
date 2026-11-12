@@ -37,7 +37,7 @@ public:
 
 	void stamp();
 
-	double seconds;
+	double _seconds;
 };
 
 class LTimeServices {

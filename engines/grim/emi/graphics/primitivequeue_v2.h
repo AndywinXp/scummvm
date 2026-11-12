@@ -58,10 +58,10 @@ public:
 	void resetIds();
 	void drawQueue(CDrawContext *drawContext, int layers);
 
-	Primitive *head2D;
-	Primitive *tail2D;
-	Primitive *head3D;
-	Primitive *tail3D;
+	Primitive *_head2D;
+	Primitive *_tail2D;
+	Primitive *_head3D;
+	Primitive *_tail3D;
 
 private:
 	EmiEngine *_engine;

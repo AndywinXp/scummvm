@@ -30,12 +30,12 @@
 
 namespace Grim {
 
-ObjectStateImage::ObjectStateImage(Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo, bool isZ, int *pFrameCount) :
-		_bDemo(isDemo), _bZ(isZ), _pFrameCount(pFrameCount), _pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay), _pStdBitmap(pStdBitmap), _pSputRender(pSputRender) {
+ObjectStateImage::ObjectStateImage(Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, SputRender *sputRender, bool isDemo, bool isZ, int *frameCount) :
+		demo(isDemo), z(isZ), frameCount(frameCount), res(res), sputResource(sputResource), stdDisplay(stdDisplay), stdBitmap(stdBitmap), sputRender(sputRender) {
 	memset(&rect, 0, sizeof(rect));
-	memset(aFileName, 0, sizeof(aFileName));
+	memset(fileNameArray, 0, sizeof(fileNameArray));
 	memset(&bitmapRef, 0, sizeof(bitmapRef));
-	pVBuffer = nullptr;
+	vBufferPointer = nullptr;
 	copyMode = 0;
 	curFrame = -1;
 	cleanSaved = 0;
@@ -48,13 +48,13 @@ ObjectStateImage::~ObjectStateImage() {
 
 void ObjectStateImage::clear() {
 	if (bitmapRef.valid)
-		_pRes->removeReference(&bitmapRef);
+		res->removeReference(&bitmapRef);
 
-	if (pVBuffer)
-		_pStdDisplay->vBufferFree(pVBuffer);
+	if (vBufferPointer)
+		stdDisplay->vBufferFree(vBufferPointer);
 
 	curFrame = -1;
-	aFileName[0] = 0;
+	fileNameArray[0] = 0;
 	copyMode = 0;
 }
 
@@ -62,172 +62,172 @@ void ObjectStateImage::setFile(const char *fileName) {
 	clear();
 
 	if (fileName) {
-		if (strlen(fileName) >= sizeof(aFileName))
+		if (strlen(fileName) >= sizeof(fileNameArray))
 			warning("ObjectStateImage::setFile(): file name is too long");
 
-		Common::strlcpy(aFileName, fileName, sizeof(aFileName));
+		Common::strlcpy(fileNameArray, fileName, sizeof(fileNameArray));
 	}
 }
 
 void ObjectStateImage::loadDemo() {
 	if (bitmapRef.valid) {
-		_pRes->touch(bitmapRef.handle);
+		res->touch(bitmapRef.handle);
 	} else {
-		void *handle = _pSputResource->alloc(kSputTagBknd, aFileName);
+		void *handle = sputResource->alloc(kSputTagBknd, fileNameArray);
 
 		if (handle) {
-			StdBitmapStruct *pBitmap = (StdBitmapStruct *)handle;
+			StdBitmapStruct *bitmap = (StdBitmapStruct *)handle;
 
-			_pRes->setReference(&bitmapRef, handle);
+			res->setReference(&bitmapRef, handle);
 
-			if (pBitmap->apFrames[pBitmap->numFrames - 1]->type != 0) {
-				StdVBuffer *pClean = _pStdDisplay->vBufferNew(&pBitmap->apFrames[0]->tex, 0, 0, nullptr);
+			if (bitmap->frames[bitmap->numFrames - 1]->type != 0) {
+				StdVBuffer *clean = stdDisplay->vBufferNew(&bitmap->frames[0]->tex, 0, 0, nullptr);
 
-				if (!*_pFrameCount)
-					*_pFrameCount = (int)pBitmap->numFrames + 1;
+				if (!*frameCount)
+					*frameCount = (int)bitmap->numFrames + 1;
 
-				StdVBuffer **apFrames = new StdVBuffer *[*_pFrameCount]();
+				StdVBuffer **frames = new StdVBuffer *[*frameCount]();
 
-				for (uint i = 0; i < pBitmap->numFrames && (int)i < *_pFrameCount; i++)
-					apFrames[i] = pBitmap->apFrames[i];
+				for (uint i = 0; i < bitmap->numFrames && (int)i < *frameCount; i++)
+					frames[i] = bitmap->frames[i];
 
-				delete[] pBitmap->apFrames;
-				pBitmap->apFrames = apFrames;
-				pBitmap->numFrames = *_pFrameCount;
+				delete[] bitmap->frames;
+				bitmap->frames = frames;
+				bitmap->numFrames = *frameCount;
 				cleanSaved = 0;
-				_pStdBitmap->addFrame(pBitmap, pBitmap->numFrames - 1, pClean);
+				stdBitmap->addFrame(bitmap, bitmap->numFrames - 1, clean);
 			}
 
-			if (_bZ) {
-				for (uint i = 0; i < pBitmap->numFrames; i++)
-					pBitmap->apFrames[i]->colorKey = 63519;
+			if (z) {
+				for (uint i = 0; i < bitmap->numFrames; i++)
+					bitmap->frames[i]->colorKey = 63519;
 			}
 		}
 	}
 
-	if (_bZ)
+	if (z)
 		return;
 
 	if (bitmapRef.valid) {
-		StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
+		StdBitmapStruct *bitmap = (StdBitmapStruct *)bitmapRef.handle;
 
-		pBitmap->curFrame = -1;
+		bitmap->curFrame = -1;
 		curFrame = -1;
 
-		for (uint i = 0; i < pBitmap->numFrames; i++)
-			pBitmap->apFrames[i]->colorKey = 63519;
+		for (uint i = 0; i < bitmap->numFrames; i++)
+			bitmap->frames[i]->colorKey = 63519;
 
-		rect.x = pBitmap->xPos;
-		rect.y = pBitmap->yPos;
-		rect.width = (*pBitmap->apFrames)->tex.width;
-		rect.height = (*pBitmap->apFrames)->tex.height;
+		rect.x = bitmap->xPos;
+		rect.y = bitmap->yPos;
+		rect.width = (*bitmap->frames)->tex.width;
+		rect.height = (*bitmap->frames)->tex.height;
 	} else {
-		warning("ObjectStateImage::loadDemo(): unable to load object state file: %s", aFileName);
+		warning("ObjectStateImage::loadDemo(): unable to load object state file: %s", fileNameArray);
 	}
 }
 
-void ObjectStateImage::load(int bLoad) {
-	if (_bDemo && bLoad && aFileName[0]) {
+void ObjectStateImage::load(int load) {
+	if (demo && load && fileNameArray[0]) {
 		loadDemo();
 		return;
 	}
 
-	if (bLoad && aFileName[0]) {
+	if (load && fileNameArray[0]) {
 		if (!bitmapRef.valid) {
-			void *handle = _pSputResource->alloc(kSputTagBknd, aFileName);
-			StdBitmapStruct *pBitmap = (StdBitmapStruct *)handle;
+			void *handle = sputResource->alloc(kSputTagBknd, fileNameArray);
+			StdBitmapStruct *bitmap = (StdBitmapStruct *)handle;
 
 			if (handle) {
-				_pRes->setReference(&bitmapRef, handle);
-				rect.x = pBitmap->xPos;
-				rect.y = pBitmap->yPos;
-				rect.width = (*pBitmap->apFrames)->tex.width;
-				rect.height = (*pBitmap->apFrames)->tex.height;
-				pBitmap->curFrame = curFrame;
-				memUsage += _pStdBitmap->memUsage(pBitmap);
+				res->setReference(&bitmapRef, handle);
+				rect.x = bitmap->xPos;
+				rect.y = bitmap->yPos;
+				rect.width = (*bitmap->frames)->tex.width;
+				rect.height = (*bitmap->frames)->tex.height;
+				bitmap->curFrame = curFrame;
+				memUsage += stdBitmap->memUsage(bitmap);
 			}
 		}
 	} else {
 		if (bitmapRef.valid)
-			_pRes->removeReference(&bitmapRef);
+			res->removeReference(&bitmapRef);
 
-		if (pVBuffer)
-			_pStdDisplay->vBufferFree(pVBuffer);
+		if (vBufferPointer)
+			stdDisplay->vBufferFree(vBufferPointer);
 	}
 }
 
 StdVBuffer *ObjectStateImage::vBuffer() {
-	if (curFrame < 0 && !_bDemo)
-		return pVBuffer;
+	if (curFrame < 0 && !demo)
+		return vBufferPointer;
 
 	if (!bitmapRef.valid)
 		error("ObjectStateImage::vBuffer(): Bad Bitmap Reference");
 
-	StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
+	StdBitmapStruct *bitmap = (StdBitmapStruct *)bitmapRef.handle;
 
 	// The demo keeps the clean art in the last frame of the bitmap
 	if (curFrame < 0)
-		return pBitmap->apFrames[pBitmap->numFrames - 1];
+		return bitmap->frames[bitmap->numFrames - 1];
 
-	if (curFrame >= (int)pBitmap->numFrames)
-		curFrame = (int)pBitmap->numFrames - 1;
+	if (curFrame >= (int)bitmap->numFrames)
+		curFrame = (int)bitmap->numFrames - 1;
 
-	return pBitmap->apFrames[curFrame];
+	return bitmap->frames[curFrame];
 }
 
-void ObjectStateImage::setClean(StdVBuffer *pSrc) {
-	if (_bDemo) {
+void ObjectStateImage::setClean(StdVBuffer *src) {
+	if (demo) {
 		if (!cleanSaved && bitmapRef.valid) {
-			StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
-			StdVBuffer *pLast = pBitmap->apFrames[pBitmap->numFrames - 1];
+			StdBitmapStruct *bitmap = (StdBitmapStruct *)bitmapRef.handle;
+			StdVBuffer *last = bitmap->frames[bitmap->numFrames - 1];
 			StdRect srcRect;
 
-			srcRect.x = pBitmap->xPos;
-			srcRect.y = pBitmap->yPos;
-			srcRect.width = pLast->tex.width;
-			srcRect.height = pLast->tex.height;
-			_pStdDisplay->vBufferCopy(pLast, pSrc, 0, 0, &srcRect, 0);
+			srcRect.x = bitmap->xPos;
+			srcRect.y = bitmap->yPos;
+			srcRect.width = last->tex.width;
+			srcRect.height = last->tex.height;
+			stdDisplay->vBufferCopy(last, src, 0, 0, &srcRect, 0);
 			cleanSaved = 1;
 		}
 
 		return;
 	}
 
-	if (pVBuffer)
-		_pStdDisplay->vBufferFree(pVBuffer);
+	if (vBufferPointer)
+		stdDisplay->vBufferFree(vBufferPointer);
 
 	if (bitmapRef.valid) {
-		StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
+		StdBitmapStruct *bitmap = (StdBitmapStruct *)bitmapRef.handle;
 
-		pVBuffer = _pStdDisplay->vBufferNew(&pBitmap->apFrames[0]->tex, 0, 0, nullptr);
+		vBufferPointer = stdDisplay->vBufferNew(&bitmap->frames[0]->tex, 0, 0, nullptr);
 
-		if (pVBuffer)
-			_pStdDisplay->vBufferCopy(pVBuffer, pSrc, 0, 0, &rect, 0);
+		if (vBufferPointer)
+			stdDisplay->vBufferCopy(vBufferPointer, src, 0, 0, &rect, 0);
 	}
 }
 
-void ObjectStateImage::draw(StdVBuffer *pDst) {
-	if (aFileName[0]) {
-		if (pDst) {
+void ObjectStateImage::draw(StdVBuffer *dst) {
+	if (fileNameArray[0]) {
+		if (dst) {
 			int mode = copyMode;
 
 			if (bitmapRef.valid) {
-				StdBitmapStruct *pBitmap = (StdBitmapStruct *)bitmapRef.handle;
+				StdBitmapStruct *bitmap = (StdBitmapStruct *)bitmapRef.handle;
 
-				curFrame = pBitmap->curFrame;
+				curFrame = bitmap->curFrame;
 				if (curFrame == -1)
 					mode = 0;
 
 				if (vBuffer()) {
 					if (vBuffer()->type == 2) {
-						_pSputRender->fillDrawBuffer(vBuffer());
-						_pStdDisplay->vBufferCopy(pDst, _pSputRender->getCleanBuffer(), pBitmap->xPos, pBitmap->yPos, nullptr, (char)mode);
+						sputRender->fillDrawBuffer(vBuffer());
+						stdDisplay->vBufferCopy(dst, sputRender->getCleanBuffer(), bitmap->xPos, bitmap->yPos, nullptr, (char)mode);
 					} else {
-						_pStdDisplay->vBufferCopy(pDst, vBuffer(), pBitmap->xPos, pBitmap->yPos, nullptr, (char)mode);
+						stdDisplay->vBufferCopy(dst, vBuffer(), bitmap->xPos, bitmap->yPos, nullptr, (char)mode);
 					}
 
-					if (mode && !_bDemo)
-						_pSputRender->markDirtyRect(&rect, 1);
+					if (mode && !demo)
+						sputRender->markDirtyRect(&rect, 1);
 				}
 			}
 		}
@@ -235,43 +235,43 @@ void ObjectStateImage::draw(StdVBuffer *pDst) {
 }
 
 int ObjectStateImage::inSync() {
-	if (!aFileName[0])
+	if (!fileNameArray[0])
 		return 1;
 
 	if (bitmapRef.valid)
 		return ((StdBitmapStruct *)bitmapRef.handle)->curFrame == curFrame;
 
 	// The demo skips the entries without a bitmap
-	return _bDemo ? 1 : 0;
+	return demo ? 1 : 0;
 }
 
-SputObjectState::SputObjectState(SputObjectState *pHead, const char *colorFile, const char *zFile, int objectType, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, SputRender *pSputRender, bool isDemo) :
-		colorImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender, isDemo, false, &frameCount),
-		zImage(pRes, pSputResource, pStdDisplay, pStdBitmap, pSputRender, isDemo, true, &frameCount),
-		_pSputRender(pSputRender), _bDemo(isDemo) {
+SputObjectState::SputObjectState(SputObjectState *head, const char *colorFile, const char *zFile, int objectType, Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, SputRender *sputRender, bool isDemo) :
+		colorImage(res, sputResource, stdDisplay, stdBitmap, sputRender, isDemo, false, &frameCount),
+		zImage(res, sputResource, stdDisplay, stdBitmap, sputRender, isDemo, true, &frameCount),
+		sputRender(sputRender), demo(isDemo) {
 	setupIndex = -1;
 	luaHandle = 0;
 	frameCount = 0;
 	type = objectType;
 	colorImage.setFile(colorFile);
 	zImage.setFile(zFile);
-	pNext = nullptr;
-	pPrev = nullptr;
+	next = nullptr;
+	prev = nullptr;
 
-	if (pHead) {
-		pHead->pPrev = this;
-		pNext = pHead;
+	if (head) {
+		head->prev = this;
+		next = head;
 	}
 
 	size = 252;
 }
 
 SputObjectState::~SputObjectState() {
-	if (pPrev)
-		pPrev->pNext = pNext;
+	if (prev)
+		prev->next = next;
 
-	if (pNext)
-		pNext->pPrev = pPrev;
+	if (next)
+		next->prev = prev;
 }
 
 void SputObjectState::loadResources() {
@@ -284,16 +284,16 @@ void SputObjectState::unLoadResources() {
 	zImage.load(0);
 }
 
-void SputObjectState::reset(StdVBuffer *pColor, StdVBuffer *pZ) {
+void SputObjectState::reset(StdVBuffer *color, StdVBuffer *z) {
 	if (type == 3) {
-		colorImage.setClean(pColor);
+		colorImage.setClean(color);
 		colorImage.curFrame = -1;
-		zImage.setClean(pZ);
+		zImage.setClean(z);
 		zImage.curFrame = -1;
 	}
 }
 
-void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ) {
+void SputObjectState::update(int updateType, StdVBuffer *color, StdVBuffer *z) {
 	if (type != updateType)
 		return;
 
@@ -301,17 +301,17 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 		int page = 0;
 
 		if (!colorImage.inSync()) {
-			colorImage.draw(pColor);
+			colorImage.draw(color);
 
 			if (zImage.bitmapRef.valid) {
-				if (pZ && !(_bDemo && (_pSputRender->getRenderFlags() & 2))) {
+				if (z && !(demo && (sputRender->getRenderFlags() & 2))) {
 					((StdBitmapStruct *)zImage.bitmapRef.handle)->curFrame = colorImage.curFrame;
-					zImage.draw(pZ);
+					zImage.draw(z);
 					page = 1;
 				}
 			}
 
-			_pSputRender->markAllPagesDirty(&colorImage.rect, page);
+			sputRender->markAllPagesDirty(&colorImage.rect, page);
 		}
 	} else {
 		int colorFrame;
@@ -322,10 +322,10 @@ void SputObjectState::update(int updateType, StdVBuffer *pColor, StdVBuffer *pZ)
 			colorFrame = -1;
 
 		if (colorFrame == -1 && colorImage.curFrame != -1)
-			_pSputRender->markAllPagesDirty(&colorImage.rect, 1);
+			sputRender->markAllPagesDirty(&colorImage.rect, 1);
 
-		colorImage.draw(pColor);
-		zImage.draw(pZ);
+		colorImage.draw(color);
+		zImage.draw(z);
 	}
 }
 
@@ -334,58 +334,58 @@ void SputObjectState::setCopyMode(int mode) {
 	zImage.copyMode = mode;
 }
 
-SputObjectState *SputObjectState::moveToBack(SputObjectState *pOther) {
-	if (pOther != this) {
-		if (!pOther) {
+SputObjectState *SputObjectState::moveToBack(SputObjectState *other) {
+	if (other != this) {
+		if (!other) {
 			warning("SputObjectState::moveToBack(): no list given");
 			return this;
 		}
 
-		if (pPrev)
-			pPrev->pNext = pNext;
+		if (prev)
+			prev->next = next;
 
-		if (pNext)
-			pNext->pPrev = pPrev;
+		if (next)
+			next->prev = prev;
 
-		pOther->pPrev = this;
-		pPrev = nullptr;
-		pNext = pOther;
+		other->prev = this;
+		prev = nullptr;
+		next = other;
 	}
 
 	return this;
 }
 
-SputObjectState *SputObjectState::moveToFront(SputObjectState *pOther) {
-	SputObjectState *pLast = pOther;
-	SputObjectState *pHead = pOther;
+SputObjectState *SputObjectState::moveToFront(SputObjectState *other) {
+	SputObjectState *last = other;
+	SputObjectState *head = other;
 
-	if (!pOther) {
+	if (!other) {
 		warning("SputObjectState::moveToFront(): no list given");
 		return nullptr;
 	}
 
-	if (this == pOther) {
-		if (!pOther->pNext)
-			return pOther;
+	if (this == other) {
+		if (!other->next)
+			return other;
 
-		pHead = pNext;
-		pHead->pPrev = nullptr;
+		head = next;
+		head->prev = nullptr;
 	}
 
-	for (SputObjectState *pState = pOther->pNext; pState; pState = pState->pNext)
-		pLast = pState;
+	for (SputObjectState *state = other->next; state; state = state->next)
+		last = state;
 
-	if (pNext)
-		pNext->pPrev = pPrev;
+	if (next)
+		next->prev = prev;
 
-	if (pPrev)
-		pPrev->pNext = pNext;
+	if (prev)
+		prev->next = next;
 
-	pLast->pNext = this;
-	pPrev = pLast;
-	pNext = nullptr;
+	last->next = this;
+	prev = last;
+	next = nullptr;
 
-	return pHead;
+	return head;
 }
 
 } // End of namespace Grim

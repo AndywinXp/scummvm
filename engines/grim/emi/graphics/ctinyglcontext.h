@@ -84,16 +84,16 @@ public:
 	void initGLState();
 	void flushDrawCalls();
 
-	CDCVertexArray *currentVertexArray;
-	int numClipPlanes;
-	int swapCount;
-	int flushCount;
-	bool depthTestEnabled;
-	bool blendEnabled;
-	bool alphaTestEnabled;
-	int shadeModel;
-	bool texture2dEnabled;
-	int texEnvMode;
+	CDCVertexArray *_currentVertexArray;
+	int _numClipPlanes;
+	int _swapCount;
+	int _flushCount;
+	bool _depthTestEnabled;
+	bool _blendEnabled;
+	bool _alphaTestEnabled;
+	int _shadeModel;
+	bool _texture2dEnabled;
+	int _texEnvMode;
 
 private:
 	struct ClipPlane {

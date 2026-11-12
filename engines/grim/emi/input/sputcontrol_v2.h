@@ -65,7 +65,7 @@ public:
 	void clearKeyStates();
 	static bool isModifierKey(int vk);
 
-	ControlEntry controlTable[kNumControls];
+	ControlEntry _controlTable[kNumControls];
 
 private:
 	static const ControlEntry kPcControlTable[kNumControls];

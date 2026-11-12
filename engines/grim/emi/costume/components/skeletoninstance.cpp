@@ -28,74 +28,74 @@
 namespace Grim {
 
 SkeletonInstance::SkeletonInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	active = false;
-	owner = actor;
-	rootNode = nullptr;
+	_active = false;
+	_owner = actor;
+	_rootNode = nullptr;
 
 	SkeletonComponent *component = nullptr;
 
-	if (handle.lock())
-		component = dynamic_cast<SkeletonComponent *>(handle.typed);
+	if (_handle.lock())
+		component = dynamic_cast<SkeletonComponent *>(_handle._typed);
 
-	if (component && !owner) {
+	if (component && !_owner) {
 		warning("SkeletonInstance::SkeletonInstance(): no owner");
 		component = nullptr;
 	}
 
 	if (component) {
-		rootNode = component->buildNodeTree();
-		owner->attachNode(rootNode);
-		active = true;
+		_rootNode = component->buildNodeTree();
+		_owner->attachNode(_rootNode);
+		_active = true;
 	}
 
-	handle.unlock();
+	_handle.unlock();
 }
 
 SkeletonInstance::~SkeletonInstance() {
-	if (active)
-		owner->detachNode(rootNode);
+	if (_active)
+		_owner->detachNode(_rootNode);
 
-	if (rootNode)
-		freeNodeTree(rootNode);
+	if (_rootNode)
+		freeNodeTree(_rootNode);
 	else
 		warning("SkeletonInstance::~SkeletonInstance(): no node tree");
 
-	rootNode = nullptr;
+	_rootNode = nullptr;
 }
 
 void SkeletonInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
 	// The disasm treats NaN as zero
 	bool nonZero = (value < 0.0f || value > 0.0f);
 
-	if (active) {
+	if (_active) {
 		if (!nonZero) {
-			owner->detachNode(rootNode);
-			active = false;
+			_owner->detachNode(_rootNode);
+			_active = false;
 		}
 	} else if (nonZero) {
-		if (!owner) {
+		if (!_owner) {
 			warning("SkeletonInstance::setKey(): no owner");
 
 			return;
 		}
 
-		owner->attachNode(rootNode);
-		active = true;
+		_owner->attachNode(_rootNode);
+		_active = true;
 	}
 }
 
 void SkeletonInstance::reset() {
-	if (active) {
-		owner->detachNode(rootNode);
-		active = false;
+	if (_active) {
+		_owner->detachNode(_rootNode);
+		_active = false;
 	}
 }
 
 void SkeletonInstance::freeNodeTree(CNode *node) {
-	if (node->firstChild)
-		freeNodeTree(node->firstChild);
+	if (node->_firstChild)
+		freeNodeTree(node->_firstChild);
 
-	for (CNode *sibling = node->nextSibling; sibling; sibling = node->nextSibling)
+	for (CNode *sibling = node->_nextSibling; sibling; sibling = node->_nextSibling)
 		freeNodeTree(sibling);
 
 	delete node;

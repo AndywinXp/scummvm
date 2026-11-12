@@ -36,7 +36,7 @@ public:
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 	bool setParent(ComponentInstance *parent) override;
 
-	AnimInstance *anim;
+	AnimInstance *_anim;
 };
 
 } // End of namespace Grim

@@ -31,10 +31,10 @@ const Color Color::kCyan(0xFF00FFFF);
 const Color Color::kBlue(0xFF0000FF);
 
 Color::Color() {
-	b = 0;
-	g = 0;
-	r = 0;
-	a = 255;
+	_b = 0;
+	_g = 0;
+	_r = 0;
+	_a = 255;
 }
 
 Color::Color(const Color &other) {
@@ -42,62 +42,62 @@ Color::Color(const Color &other) {
 }
 
 Color::Color(uint packed) {
-	a = packed >> 24;
-	r = (packed >> 16) & 0xFF;
-	g = (packed >> 8) & 0xFF;
-	b = packed & 0xFF;
+	_a = packed >> 24;
+	_r = (packed >> 16) & 0xFF;
+	_g = (packed >> 8) & 0xFF;
+	_b = packed & 0xFF;
 }
 
 Color &Color::operator=(const Color &other) {
 	if (this != &other) {
-		a = other.a;
-		r = other.r;
-		g = other.g;
-		b = other.b;
+		_a = other._a;
+		_r = other._r;
+		_g = other._g;
+		_b = other._b;
 	}
 
 	return *this;
 }
 
 void Color::clamp() {
-	if ((uint)a > 0xFF)
-		a = 255;
+	if ((uint)_a > 0xFF)
+		_a = 255;
 
-	uint red = r;
+	uint red = _r;
 
-	if (red > 0xFF || (uint)g > 0xFF || (uint)b > 0xFF) {
-		uint green = g;
-		uint blue = b;
-		uint largest = r;
+	if (red > 0xFF || (uint)_g > 0xFF || (uint)_b > 0xFF) {
+		uint green = _g;
+		uint blue = _b;
+		uint largest = _r;
 
 		if (green > red)
-			largest = g;
+			largest = _g;
 
 		if (blue > largest)
-			largest = b;
+			largest = _b;
 
-		r = 255 * red / largest;
-		g = 255 * green / largest;
-		b = 255 * blue / largest;
+		_r = 255 * red / largest;
+		_g = 255 * green / largest;
+		_b = 255 * blue / largest;
 	}
 }
 
 void Color::getRGB(byte *outR, byte *outG, byte *outB) const {
-	uint red = r;
+	uint red = _r;
 
 	if (red > 0xFF)
 		red = 255;
 
 	*outR = red;
 
-	uint green = g;
+	uint green = _g;
 
 	if (green > 0xFF)
 		green = 255;
 
 	*outG = green;
 
-	uint blue = b;
+	uint blue = _b;
 
 	if (blue > 0xFF)
 		blue = 255;
@@ -106,24 +106,24 @@ void Color::getRGB(byte *outR, byte *outG, byte *outB) const {
 }
 
 Color *Color::setRGB(int newR, int newG, int newB) {
-	r = newR;
-	g = newG;
-	b = newB;
+	_r = newR;
+	_g = newG;
+	_b = newB;
 
 	return this;
 }
 
 PackedColor *PackedColor::modulate(PackedColor *out, const PackedColor *other) {
-	uint newR = r * other->r / 255;
-	uint newG = g * other->g / 255;
-	uint newB = b * other->b / 255;
-	uint newA = a * other->a / 255;
+	uint newR = _r * other->_r / 255;
+	uint newG = _g * other->_g / 255;
+	uint newB = _b * other->_b / 255;
+	uint newA = _a * other->_a / 255;
 	PackedColor result;
 
-	result.r = newR <= 0xFF ? newR : 255;
-	result.g = newG <= 0xFF ? newG : 255;
-	result.b = newB <= 0xFF ? newB : 255;
-	result.a = newA <= 0xFF ? newA : 255;
+	result._r = newR <= 0xFF ? newR : 255;
+	result._g = newG <= 0xFF ? newG : 255;
+	result._b = newB <= 0xFF ? newB : 255;
+	result._a = newA <= 0xFF ? newA : 255;
 
 	*out = result;
 
@@ -131,7 +131,7 @@ PackedColor *PackedColor::modulate(PackedColor *out, const PackedColor *other) {
 }
 
 uint32 PackedColor::pack() const {
-	return ((uint32)a << 24) | ((uint32)r << 16) | ((uint32)g << 8) | b;
+	return ((uint32)_a << 24) | ((uint32)_r << 16) | ((uint32)_g << 8) | _b;
 }
 
 } // End of namespace Grim

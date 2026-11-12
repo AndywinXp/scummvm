@@ -49,28 +49,28 @@ void LMemoryServices::LMemoryHandler::operator delete(void *block) {
 }
 
 ThreadBase::ThreadBase() {
-	lockCount = 0;
+	_lockCount = 0;
 }
 
 ThreadBase::~ThreadBase() {
 }
 
 int ThreadBase::lock() {
-	lockCount++;
-	return lockCount;
+	_lockCount++;
+	return _lockCount;
 }
 
 void ThreadBase::unlock() {
-	lockCount--;
+	_lockCount--;
 }
 
 ThreadLock::~ThreadLock() {
-	base->unlock();
+	_base->unlock();
 }
 
 LMemoryServices::LMemoryServices() : _hardCap(0x1000000), _desiredCap(0xC00000), _capLimitsActive(true),
 		_memHandlers(nullptr), _handlerCount(0), _memHandlersArraySize(4) {
-	bytesAllocated = 0;
+	_bytesAllocated = 0;
 	_memHandlers = (LMemoryHandler **)LMemoryServices::mallocImpl(_memHandlersArraySize * sizeof(LMemoryHandler *));
 }
 
@@ -90,7 +90,7 @@ void *LMemoryServices::mallocImpl(uint size) {
 	}
 
 	*(uint *)block = size;
-	bytesAllocated += size;
+	_bytesAllocated += size;
 
 	return block + kBlockHeaderSize;
 }
@@ -104,7 +104,7 @@ void *LMemoryServices::reallocImpl(void *block, uint size) {
 		}
 
 		*(uint *)newBlock = size;
-		bytesAllocated += size;
+		_bytesAllocated += size;
 
 		return newBlock + kBlockHeaderSize;
 	}
@@ -125,7 +125,7 @@ void *LMemoryServices::reallocImpl(void *block, uint size) {
 	}
 
 	*(uint *)newBlock = size;
-	bytesAllocated = bytesAllocated - oldSize + size;
+	_bytesAllocated = _bytesAllocated - oldSize + size;
 
 	return newBlock + kBlockHeaderSize;
 }
@@ -135,7 +135,7 @@ void LMemoryServices::freeImpl(void *block) {
 		return;
 
 	byte *oldBlock = (byte *)block - kBlockHeaderSize;
-	bytesAllocated -= *(uint *)oldBlock;
+	_bytesAllocated -= *(uint *)oldBlock;
 
 	free(oldBlock);
 }
@@ -183,7 +183,7 @@ void LMemoryServices::activateMemoryCaps(bool active) {
 }
 
 bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
-	threadBase.lock();
+	_threadBase.lock();
 
 	if (_handlerCount >= _memHandlersArraySize) {
 		LMemoryHandler **oldHandlers = _memHandlers;
@@ -193,7 +193,7 @@ bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 		_memHandlers = newHandlers;
 		if (!newHandlers) {
 			_memHandlers = oldHandlers;
-			threadBase.unlock();
+			_threadBase.unlock();
 			return false;
 		}
 
@@ -205,13 +205,13 @@ bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 
 	_memHandlers[_handlerCount] = handler;
 	_handlerCount++;
-	threadBase.unlock();
+	_threadBase.unlock();
 
 	return true;
 }
 
 bool LMemoryServices::unregisterMemoryHandler(LMemoryHandler *handler) {
-	threadBase.lock();
+	_threadBase.lock();
 
 	bool result = false;
 	uint index = 0;
@@ -220,7 +220,7 @@ bool LMemoryServices::unregisterMemoryHandler(LMemoryHandler *handler) {
 		while (_memHandlers[index] != handler) {
 			index++;
 			if (index >= _handlerCount) {
-				threadBase.unlock();
+				_threadBase.unlock();
 				return false;
 			}
 		}
@@ -230,17 +230,17 @@ bool LMemoryServices::unregisterMemoryHandler(LMemoryHandler *handler) {
 		_handlerCount--;
 	}
 
-	threadBase.unlock();
+	_threadBase.unlock();
 
 	return result;
 }
 
 LDebugMemoryServices::LDebugMemoryServices() : _allocationId(0) {
-	numAllocations = 0;
-	bytesAllocated = 0;
-	bytesWithOverhead = 0;
-	maxBytes = 0;
-	newestAllocation = nullptr;
+	_numAllocations = 0;
+	_bytesAllocated = 0;
+	_bytesWithOverhead = 0;
+	_maxBytes = 0;
+	_newestAllocation = nullptr;
 }
 
 LDebugMemoryServices::~LDebugMemoryServices() {
@@ -250,10 +250,10 @@ LDebugMemoryServices::~LDebugMemoryServices() {
 void *LDebugMemoryServices::mallocImpl(uint size) {
 	uint handlerIndex = 0;
 
-	threadBase.lock();
+	_threadBase.lock();
 
 	if (_capLimitsActive) {
-		uint overhead = bytesWithOverhead;
+		uint overhead = _bytesWithOverhead;
 
 		if (overhead + size >= _hardCap) {
 			uint freed = 0;
@@ -265,7 +265,7 @@ void *LDebugMemoryServices::mallocImpl(uint size) {
 					uint before = overhead;
 
 					_memHandlers[handlerIndex]->purgeAmount(needed - freed);
-					overhead = bytesWithOverhead;
+					overhead = _bytesWithOverhead;
 					handlerIndex++;
 					totalFreed += before - overhead;
 
@@ -281,30 +281,30 @@ void *LDebugMemoryServices::mallocImpl(uint size) {
 	LAllocation *allocation = (LAllocation *)malloc(size + sizeof(LAllocation));
 	if (!allocation) {
 		warning("LDebugMemoryServices::mallocImpl(): out of memory");
-		threadBase.unlock();
+		_threadBase.unlock();
 		return nullptr;
 	}
 
 	allocation->newer = nullptr;
-	allocation->older = newestAllocation;
+	allocation->older = _newestAllocation;
 	allocation->id = _allocationId;
 	allocation->size = size;
 	allocation->guard = 0x12345678;
 
 	_allocationId++;
-	numAllocations++;
-	bytesAllocated += size;
-	bytesWithOverhead += size + sizeof(LAllocation);
+	_numAllocations++;
+	_bytesAllocated += size;
+	_bytesWithOverhead += size + sizeof(LAllocation);
 
-	if ((int)bytesWithOverhead > maxBytes)
-		maxBytes = bytesWithOverhead;
+	if ((int)_bytesWithOverhead > _maxBytes)
+		_maxBytes = _bytesWithOverhead;
 
-	if (newestAllocation)
-		newestAllocation->newer = allocation;
+	if (_newestAllocation)
+		_newestAllocation->newer = allocation;
 
-	newestAllocation = allocation;
+	_newestAllocation = allocation;
 
-	threadBase.unlock();
+	_threadBase.unlock();
 
 	return allocation + 1;
 }
@@ -340,18 +340,18 @@ void *LDebugMemoryServices::reallocImpl(void *block, uint size) {
 }
 
 void LDebugMemoryServices::freeImpl(void *block) {
-	threadBase.lock();
+	_threadBase.lock();
 
 	if (block) {
 		LAllocation *allocation = (LAllocation *)block - 1;
 
 		verify(block);
-		bytesAllocated -= allocation->size;
-		numAllocations--;
-		bytesWithOverhead = bytesWithOverhead - allocation->size - sizeof(LAllocation);
+		_bytesAllocated -= allocation->size;
+		_numAllocations--;
+		_bytesWithOverhead = _bytesWithOverhead - allocation->size - sizeof(LAllocation);
 
-		if (allocation == newestAllocation)
-			newestAllocation = allocation->older;
+		if (allocation == _newestAllocation)
+			_newestAllocation = allocation->older;
 
 		if (allocation->newer)
 			allocation->newer->older = allocation->older;
@@ -362,7 +362,7 @@ void LDebugMemoryServices::freeImpl(void *block) {
 		free(allocation);
 	}
 
-	threadBase.unlock();
+	_threadBase.unlock();
 }
 
 void LDebugMemoryServices::verify(LAllocation *allocation) {
@@ -375,7 +375,7 @@ void LDebugMemoryServices::verify(void *block) {
 void LDebugMemoryServices::verifyAll() {
 	LAllocation *allocation;
 
-	for (allocation = newestAllocation; allocation; allocation = allocation->older)
+	for (allocation = _newestAllocation; allocation; allocation = allocation->older)
 		verify(allocation);
 }
 
@@ -385,10 +385,10 @@ bool LDebugMemoryServices::dumpAllocations(LFile *file) {
 	int totalBytes = 0;
 	int allocations = 0;
 
-	threadBase.lock();
+	_threadBase.lock();
 
 	if (!file) {
-		threadBase.unlock();
+		_threadBase.unlock();
 		return false;
 	}
 
@@ -397,7 +397,7 @@ bool LDebugMemoryServices::dumpAllocations(LFile *file) {
 	file->writeFormat("Memory Allocation Report: %s %s %2d %02d:%02d:%02d %d\n\n", dayNames[td.tm_wday], monthNames[td.tm_mon],
 		td.tm_mday, td.tm_hour, td.tm_min, td.tm_sec, td.tm_year + 1900);
 
-	LAllocation *allocation = newestAllocation;
+	LAllocation *allocation = _newestAllocation;
 	while (allocation) {
 		totalBytes += allocation->size;
 		allocations++;
@@ -412,9 +412,9 @@ bool LDebugMemoryServices::dumpAllocations(LFile *file) {
 
 	file->writeFormat("\tAllocations: %d\n", allocations);
 	file->writeFormat("\tAllocated Bytes: %d (%fk)\n", totalBytes, (double)totalBytes * 0.0009765625);
-	file->writeFormat("\tMax memory allocated %d (%f MB)\n", maxBytes, (double)maxBytes * 0.00000095367432);
+	file->writeFormat("\tMax memory allocated %d (%f MB)\n", _maxBytes, (double)_maxBytes * 0.00000095367432);
 
-	threadBase.unlock();
+	_threadBase.unlock();
 
 	return true;
 }
@@ -425,11 +425,11 @@ bool LDebugMemoryServices::dumpLeaks(const char *fileName) {
 	int totalBytes = 0;
 	int leaks = 0;
 
-	threadBase.lock();
+	_threadBase.lock();
 
 	Common::DumpFile file;
 	if (!file.open(Common::Path(fileName))) {
-		threadBase.unlock();
+		_threadBase.unlock();
 		return false;
 	}
 
@@ -438,7 +438,7 @@ bool LDebugMemoryServices::dumpLeaks(const char *fileName) {
 	file.writeString(Common::String::format("Depend report %s %s%3d %02d:%02d:%02d %d\n\n", dayNames[td.tm_wday], monthNames[td.tm_mon],
 		td.tm_mday, td.tm_hour, td.tm_min, td.tm_sec, td.tm_year + 1900));
 
-	LAllocation *allocation = newestAllocation;
+	LAllocation *allocation = _newestAllocation;
 	while (allocation) {
 		totalBytes += allocation->size;
 		leaks++;
@@ -449,10 +449,10 @@ bool LDebugMemoryServices::dumpLeaks(const char *fileName) {
 
 	file.writeString(Common::String::format("\tLeaks %d\n", leaks));
 	file.writeString(Common::String::format("\tLeaked bytes %d (%fk)\n", totalBytes, (double)totalBytes * 0.0009765625));
-	file.writeString(Common::String::format("\tMax memory allocated %d (%f MB)\n", maxBytes, (double)maxBytes * 0.00000095367432));
+	file.writeString(Common::String::format("\tMax memory allocated %d (%f MB)\n", _maxBytes, (double)_maxBytes * 0.00000095367432));
 	file.close();
 
-	threadBase.unlock();
+	_threadBase.unlock();
 
 	return leaks > 0;
 }

@@ -31,20 +31,20 @@
 
 namespace Grim {
 
-StdPcx::StdPcx(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _pHS(pHS) {
+StdPcx::StdPcx(StdDisplay *stdDisplay, StdFile *stdFile, StdBitmap *stdBitmap, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _stdBitmap(stdBitmap), _hs(hs) {
 }
 
-StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+StdBitmapStruct *StdPcx::load(const char *path, int videoMemory, int noZ) {
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return nullptr;
 
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 	byte headerBytes[128];
 
 	memset(headerBytes, 0, sizeof(headerBytes));
-	pFile->read(headerBytes, 128);
+	file->read(headerBytes, 128);
 
 	Common::MemoryReadStream headerStream(headerBytes, sizeof(headerBytes));
 	StdPcxHeader header;
@@ -52,15 +52,15 @@ StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
 	readHeader(&headerStream, &header);
 
 	if (header.manufacturer != 10)
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 
-	pBitmap->encoding = 0;
-	pBitmap->flags = 2;
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
-	pBitmap->format.colorMode = 0;
-	pBitmap->format.bpp = header.bitsPerPixel;
-	pBitmap->apFrames = new StdVBuffer *[1]();
+	bitmap->encoding = 0;
+	bitmap->flags = 2;
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
+	bitmap->format.colorMode = 0;
+	bitmap->format.bpp = header.bitsPerPixel;
+	bitmap->frames = new StdVBuffer *[1]();
 
 	StdVBufferTexFmt format;
 
@@ -72,7 +72,7 @@ StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
 
 	if (bytesPerPixel == 0) {
 		warning("StdPcx::load(): unsupported bits per pixel");
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 	}
 
 	format.width = header.bytesPerLine / bytesPerPixel;
@@ -80,29 +80,29 @@ StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
 
 	if (format.width < 0 || format.height < 0 || (int64)format.width * (int64)format.height * (int64)bytesPerPixel > 0x7FFFFFFF) {
 		warning("StdPcx::load(): invalid image size");
-		return loadFailed(pFile, pBitmap);
+		return loadFailed(file, bitmap);
 	}
 
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, nullptr);
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&format, videoMemory, noZ, nullptr);
 
-	if (!pBitmap->apFrames[0])
-		return loadFailed(pFile, pBitmap);
+	if (!bitmap->frames[0])
+		return loadFailed(file, bitmap);
 
-	pBitmap->apFrames[0]->tex.width = header.xMax + 1;
-	_stdDisplay->vBufferLock(pBitmap->apFrames[0]);
+	bitmap->frames[0]->tex.width = header.xMax + 1;
+	_stdDisplay->vBufferLock(bitmap->frames[0]);
 
-	byte *pPixels = pBitmap->apFrames[0]->pPixels;
-	int sizeInBytes = pBitmap->apFrames[0]->tex.sizeInBytes;
+	byte *pixels = bitmap->frames[0]->pixels;
+	int sizeInBytes = bitmap->frames[0]->tex.sizeInBytes;
 
 	if (sizeInBytes) {
 		int pos = 0;
 
 		do {
-			byte value = pFile->readByte();
+			byte value = file->readByte();
 
 			if ((value & 0xC0) == 0xC0) {
 				int count = value & 0x3F;
-				byte fill = pFile->readByte();
+				byte fill = file->readByte();
 
 				if (count) {
 					if (count > sizeInBytes - pos) {
@@ -110,27 +110,27 @@ StdBitmapStruct *StdPcx::load(const char *path, int bVideoMemory, int bNoZ) {
 						count = sizeInBytes - pos;
 					}
 
-					memset(pPixels + pos, fill, count);
+					memset(pixels + pos, fill, count);
 					pos += count;
 				}
 			} else {
-				pPixels[pos] = value;
+				pixels[pos] = value;
 				pos++;
 			}
 		} while (pos < sizeInBytes);
 	}
 
-	_stdDisplay->vBufferUnlock(pBitmap->apFrames[0]);
-	pBitmap->pPalette = new byte[768];
-	pFile->readByte();
-	pFile->read(pBitmap->pPalette, 768);
-	delete pFile;
+	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
+	bitmap->palette = new byte[768];
+	file->readByte();
+	file->read(bitmap->palette, 768);
+	delete file;
 
-	return pBitmap;
+	return bitmap;
 }
 
-int StdPcx::write(const char *path, StdBitmapStruct *pBitmap) {
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+int StdPcx::write(const char *path, StdBitmapStruct *bitmap) {
+	StdVBuffer *frame = bitmap->frames[0];
 	StdPcxHeader header;
 
 	header.manufacturer = 10;
@@ -139,18 +139,18 @@ int StdPcx::write(const char *path, StdBitmapStruct *pBitmap) {
 	header.bitsPerPixel = 8;
 	header.xMin = 0;
 	header.yMin = 0;
-	header.xMax = (int16)(pFrame->tex.width - 1);
-	header.yMax = (int16)(pFrame->tex.height - 1);
-	header.hDpi = (int16)pFrame->tex.width;
-	header.vDpi = (int16)pFrame->tex.height;
+	header.xMax = (int16)(frame->tex.width - 1);
+	header.yMax = (int16)(frame->tex.height - 1);
+	header.hDpi = (int16)frame->tex.width;
+	header.vDpi = (int16)frame->tex.height;
 	memset(header.colorMap, 0, sizeof(header.colorMap));
 	header.reserved = 0;
-	header.nPlanes = 1;
-	header.bytesPerLine = (int16)pFrame->tex.width;
+	header.planes = 1;
+	header.bytesPerLine = (int16)frame->tex.width;
 	header.paletteInfo = 0;
 	memset(header.filler, 0, sizeof(header.filler));
 
-	if (!pBitmap->pPalette) {
+	if (!bitmap->palette) {
 		warning("StdPcx::write(): bitmap without a palette");
 		return 0;
 	}
@@ -162,18 +162,18 @@ int StdPcx::write(const char *path, StdBitmapStruct *pBitmap) {
 
 	writeHeader(&file, &header);
 
-	const byte *pPixels = pFrame->pPixels;
-	int width = pFrame->tex.width;
+	const byte *pixels = frame->pixels;
+	int width = frame->tex.width;
 
-	for (int y = 0; y < pFrame->tex.height; y++) {
-		const byte *pRow = pPixels + width * y;
+	for (int y = 0; y < frame->tex.height; y++) {
+		const byte *row = pixels + width * y;
 		int x = 0;
 
 		while (x < width) {
-			byte value = pRow[x];
+			byte value = row[x];
 			int run = 1;
 
-			while (run < 63 && x + run < width && pRow[x + run] == value)
+			while (run < 63 && x + run < width && row[x + run] == value)
 				run++;
 
 			if (run > 1 || value > 0xBF)
@@ -185,55 +185,55 @@ int StdPcx::write(const char *path, StdBitmapStruct *pBitmap) {
 	}
 
 	file.writeByte(12);
-	file.write(pBitmap->pPalette, 768);
+	file.write(bitmap->palette, 768);
 	file.close();
 
 	return 1;
 }
 
-StdBitmapStruct *StdPcx::loadFailed(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap) {
-	delete pFile;
-	_stdBitmap->unloadBitmap(pBitmap);
+StdBitmapStruct *StdPcx::loadFailed(Common::SeekableReadStream *file, StdBitmapStruct *bitmap) {
+	delete file;
+	_stdBitmap->unloadBitmap(bitmap);
 
 	return nullptr;
 }
 
-void StdPcx::readHeader(Common::ReadStream *pStream, StdPcxHeader *pHeader) {
-	pHeader->manufacturer = pStream->readByte();
-	pHeader->version = pStream->readByte();
-	pHeader->encoding = pStream->readByte();
-	pHeader->bitsPerPixel = pStream->readByte();
-	pHeader->xMin = pStream->readSint16LE();
-	pHeader->yMin = pStream->readSint16LE();
-	pHeader->xMax = pStream->readSint16LE();
-	pHeader->yMax = pStream->readSint16LE();
-	pHeader->hDpi = pStream->readSint16LE();
-	pHeader->vDpi = pStream->readSint16LE();
-	pStream->read(pHeader->colorMap, sizeof(pHeader->colorMap));
-	pHeader->reserved = pStream->readByte();
-	pHeader->nPlanes = pStream->readByte();
-	pHeader->bytesPerLine = pStream->readSint16LE();
-	pHeader->paletteInfo = pStream->readSint16LE();
-	pStream->read(pHeader->filler, sizeof(pHeader->filler));
+void StdPcx::readHeader(Common::ReadStream *stream, StdPcxHeader *header) {
+	header->manufacturer = stream->readByte();
+	header->version = stream->readByte();
+	header->encoding = stream->readByte();
+	header->bitsPerPixel = stream->readByte();
+	header->xMin = stream->readSint16LE();
+	header->yMin = stream->readSint16LE();
+	header->xMax = stream->readSint16LE();
+	header->yMax = stream->readSint16LE();
+	header->hDpi = stream->readSint16LE();
+	header->vDpi = stream->readSint16LE();
+	stream->read(header->colorMap, sizeof(header->colorMap));
+	header->reserved = stream->readByte();
+	header->planes = stream->readByte();
+	header->bytesPerLine = stream->readSint16LE();
+	header->paletteInfo = stream->readSint16LE();
+	stream->read(header->filler, sizeof(header->filler));
 }
 
-void StdPcx::writeHeader(Common::WriteStream *pStream, const StdPcxHeader *pHeader) {
-	pStream->writeByte(pHeader->manufacturer);
-	pStream->writeByte(pHeader->version);
-	pStream->writeByte(pHeader->encoding);
-	pStream->writeByte(pHeader->bitsPerPixel);
-	pStream->writeSint16LE(pHeader->xMin);
-	pStream->writeSint16LE(pHeader->yMin);
-	pStream->writeSint16LE(pHeader->xMax);
-	pStream->writeSint16LE(pHeader->yMax);
-	pStream->writeSint16LE(pHeader->hDpi);
-	pStream->writeSint16LE(pHeader->vDpi);
-	pStream->write(pHeader->colorMap, sizeof(pHeader->colorMap));
-	pStream->writeByte(pHeader->reserved);
-	pStream->writeByte(pHeader->nPlanes);
-	pStream->writeSint16LE(pHeader->bytesPerLine);
-	pStream->writeSint16LE(pHeader->paletteInfo);
-	pStream->write(pHeader->filler, sizeof(pHeader->filler));
+void StdPcx::writeHeader(Common::WriteStream *stream, const StdPcxHeader *header) {
+	stream->writeByte(header->manufacturer);
+	stream->writeByte(header->version);
+	stream->writeByte(header->encoding);
+	stream->writeByte(header->bitsPerPixel);
+	stream->writeSint16LE(header->xMin);
+	stream->writeSint16LE(header->yMin);
+	stream->writeSint16LE(header->xMax);
+	stream->writeSint16LE(header->yMax);
+	stream->writeSint16LE(header->hDpi);
+	stream->writeSint16LE(header->vDpi);
+	stream->write(header->colorMap, sizeof(header->colorMap));
+	stream->writeByte(header->reserved);
+	stream->writeByte(header->planes);
+	stream->writeSint16LE(header->bytesPerLine);
+	stream->writeSint16LE(header->paletteInfo);
+	stream->write(header->filler, sizeof(header->filler));
 }
 
 } // End of namespace Grim

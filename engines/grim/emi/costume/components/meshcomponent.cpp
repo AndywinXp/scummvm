@@ -40,37 +40,37 @@ MeshComponent::~MeshComponent() {
 uint MeshComponent::resSizeOfItem() {
 	int size = (int)sizeof(MeshComponent);
 
-	if (pos)
-		size += (int)(3 * sizeof(float)) * numVerts;
+	if (_pos)
+		size += (int)(3 * sizeof(float)) * _numVerts;
 
-	if (normals)
-		size += (int)(3 * sizeof(float)) * numVerts;
+	if (_normals)
+		size += (int)(3 * sizeof(float)) * _numVerts;
 
-	if (vertIndex)
-		size += (int)sizeof(int) * numVerts;
+	if (_vertIndex)
+		size += (int)sizeof(int) * _numVerts;
 
-	if (colors)
-		size += (int)sizeof(PackedColor) * numVerts;
+	if (_colors)
+		size += (int)sizeof(PackedColor) * _numVerts;
 
-	if (uv)
-		size += (int)(2 * sizeof(float)) * numVerts;
+	if (_uv)
+		size += (int)(2 * sizeof(float)) * _numVerts;
 
-	size += (int)(sizeof(LResourceHandle<CMaterial>) * matHandles.size());
-	size += (int)(sizeof(int) * texFlags.size());
+	size += (int)(sizeof(LResourceHandle<CMaterial>) * _matHandles.size());
+	size += (int)(sizeof(int) * _texFlags.size());
 
-	if (weightMap)
-		size += weightMap->getSize();
+	if (_weightMap)
+		size += _weightMap->getSize();
 
-	for (uint i = 0; i < trisets.size(); i++) {
-		if (trisets[i])
-			size += (int)(sizeof(TriSet) + sizeof(uint16) * trisets[i]->indices.size());
+	for (uint i = 0; i < _trisets.size(); i++) {
+		if (_trisets[i])
+			size += (int)(sizeof(TriSet) + sizeof(uint16) * _trisets[i]->indices.size());
 	}
 
 	return (uint)size;
 }
 
 ComponentInstance *MeshComponent::createInstance(Actor *owner) {
-	return new MeshInstance(LResource::_engine, LResource::name, owner);
+	return new MeshInstance(LResource::_engine, LResource::_name, owner);
 }
 
 bool MeshComponent::resLoadItem(const char *itemName) {
@@ -111,7 +111,7 @@ bool MeshComponent::resLoadItem(const char *itemName) {
 		}
 
 		engine->getFileServices()->close(file, true);
-		CPrimitive::name = fileName;
+		CPrimitive::_name = fileName;
 		saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
 		if (engine->getConsoleServices())

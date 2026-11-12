@@ -35,7 +35,7 @@ uint CubeComponent::resSizeOfItem() {
 }
 
 ComponentInstance *CubeComponent::createInstance(Actor *owner) {
-	return new CubeInstance(_engine, LResource::name, owner);
+	return new CubeInstance(_engine, LResource::_name, owner);
 }
 
 bool CubeComponent::resLoadItem(const char *itemName) {

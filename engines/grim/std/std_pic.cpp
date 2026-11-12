@@ -30,27 +30,27 @@
 
 namespace Grim {
 
-StdPic::StdPic(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS) : _stdDisplay(stdDisplay), _stdFile(stdFile), _pHS(pHS) {
+StdPic::StdPic(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs) : _stdDisplay(stdDisplay), _stdFile(stdFile), _hs(hs) {
 }
 
-StdBitmapStruct *StdPic::load(const char *path, int bVideoMemory, int bNoZ) {
-	StdBitmapStruct *pBitmap = new StdBitmapStruct();
+StdBitmapStruct *StdPic::load(const char *path, int videoMemory, int noZ) {
+	StdBitmapStruct *bitmap = new StdBitmapStruct();
 
-	if (loadEntry(path, pBitmap, bVideoMemory, bNoZ))
-		return pBitmap;
+	if (loadEntry(path, bitmap, videoMemory, noZ))
+		return bitmap;
 
 	return nullptr;
 }
 
-int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ) {
-	Common::SeekableReadStream *pFile = _pHS->openFile(path);
+int StdPic::loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory, int noZ) {
+	Common::SeekableReadStream *file = _hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return 0;
 
 	byte header[104];
 
-	if (pFile->read(header, 104) != 104)
+	if (file->read(header, 104) != 104)
 		return 0;
 
 	uint magic = READ_BE_UINT32(header);
@@ -69,7 +69,7 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 	int numPackets = 0;
 	byte packet[4];
 
-	if (pFile->read(packet, 4) != 4)
+	if (file->read(packet, 4) != 4)
 		return 0;
 
 	for (;;) {
@@ -100,7 +100,7 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 		if (!packet[0])
 			break;
 
-		if (pFile->read(packet, 4) != 4)
+		if (file->read(packet, 4) != 4)
 			return 0;
 	}
 
@@ -109,41 +109,41 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 		return 0;
 	}
 
-	memset(pBitmap, 0, sizeof(StdBitmapStruct));
-	strncpy(pBitmap->aName, _stdFile->fromPath(path), 31);
-	pBitmap->aName[31] = 0;
-	pBitmap->encoding = 0;
-	pBitmap->flags = 0;
-	pBitmap->pPalette = nullptr;
-	pBitmap->numFrames = 1;
-	pBitmap->curFrame = 0;
-	pBitmap->format.colorMode = 1;
-	pBitmap->format.bpp = 24;
-	pBitmap->format.redBits = 8;
-	pBitmap->format.greenBits = 8;
-	pBitmap->format.blueBits = 8;
-	pBitmap->format.redShift = 16;
-	pBitmap->format.greenShift = 8;
-	pBitmap->format.blueShift = 0;
-	pBitmap->apFrames = new StdVBuffer *[1]();
+	memset(bitmap, 0, sizeof(StdBitmapStruct));
+	strncpy(bitmap->name, _stdFile->fromPath(path), 31);
+	bitmap->name[31] = 0;
+	bitmap->encoding = 0;
+	bitmap->flags = 0;
+	bitmap->palette = nullptr;
+	bitmap->numFrames = 1;
+	bitmap->curFrame = 0;
+	bitmap->format.colorMode = 1;
+	bitmap->format.bpp = 24;
+	bitmap->format.redBits = 8;
+	bitmap->format.greenBits = 8;
+	bitmap->format.blueBits = 8;
+	bitmap->format.redShift = 16;
+	bitmap->format.greenShift = 8;
+	bitmap->format.blueShift = 0;
+	bitmap->frames = new StdVBuffer *[1]();
 
 	StdVBufferTexFmt format;
 
 	memset(&format, 0, sizeof(format));
-	format.format = pBitmap->format;
+	format.format = bitmap->format;
 	format.width = width;
 	format.height = height;
-	pBitmap->apFrames[0] = _stdDisplay->vBufferNew(&format, bVideoMemory, bNoZ, nullptr);
+	bitmap->frames[0] = _stdDisplay->vBufferNew(&format, videoMemory, noZ, nullptr);
 
-	if (!pBitmap->apFrames[0])
+	if (!bitmap->frames[0])
 		error("Unable to allocate memory.");
 
-	if (!_stdDisplay->vBufferLock(pBitmap->apFrames[0]))
+	if (!_stdDisplay->vBufferLock(bitmap->frames[0]))
 		error("Unable to lock VBuffer memory.");
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
-	int pitchInBytes = pFrame->tex.pitchInBytes;
-	byte *pRow = pFrame->pPixels;
+	StdVBuffer *frame = bitmap->frames[0];
+	int pitchInBytes = frame->tex.pitchInBytes;
+	byte *row = frame->pixels;
 
 	for (int y = 0; y < height; y++) {
 		for (int currentPacket = 0; currentPacket < numPackets; currentPacket++) {
@@ -152,14 +152,14 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 			if (packetType[currentPacket] != 0) {
 				if (width > 0) {
 					do {
-						byte control = pFile->readByte();
+						byte control = file->readByte();
 
 						if (control >= 0x80) {
 							int runLength;
 
 							if (control == 0x80) {
-								byte high = pFile->readByte();
-								byte low = pFile->readByte();
+								byte high = file->readByte();
+								byte low = file->readByte();
 
 								runLength = (high << 8) | low;
 							} else {
@@ -168,7 +168,7 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 
 							byte value[3] = { 0, 0, 0 };
 
-							readChannels(pFile, currentPacket, channelPacket, value);
+							readChannels(file, currentPacket, channelPacket, value);
 
 							if (runLength != 0) {
 								int count = runLength;
@@ -179,16 +179,16 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 								}
 
 								for (int i = 0; i < count; i++) {
-									byte *pPixel = pRow + 3 * (x + i);
+									byte *pixel = row + 3 * (x + i);
 
 									if (channelPacket[0] == currentPacket)
-										pPixel[0] = value[0];
+										pixel[0] = value[0];
 
 									if (channelPacket[1] == currentPacket)
-										pPixel[1] = value[1];
+										pixel[1] = value[1];
 
 									if (channelPacket[2] == currentPacket)
-										pPixel[2] = value[2];
+										pixel[2] = value[2];
 								}
 
 								x += runLength;
@@ -198,13 +198,13 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 
 							for (int i = 0; i < count; i++) {
 								if (x < width) {
-									readChannels(pFile, currentPacket, channelPacket, pRow + 3 * x);
+									readChannels(file, currentPacket, channelPacket, row + 3 * x);
 								} else {
 									warning("StdPic::loadEntry(): literal goes past the end of the row");
 
 									byte discard[3] = { 0, 0, 0 };
 
-									readChannels(pFile, currentPacket, channelPacket, discard);
+									readChannels(file, currentPacket, channelPacket, discard);
 								}
 
 								x++;
@@ -214,31 +214,31 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *pBitmap, int bVideoMemo
 				}
 			} else {
 				for (x = 0; x < width; x++)
-					readChannels(pFile, currentPacket, channelPacket, pRow + 3 * x);
+					readChannels(file, currentPacket, channelPacket, row + 3 * x);
 			}
 		}
 
-		pRow += pitchInBytes;
+		row += pitchInBytes;
 	}
 
-	_stdDisplay->vBufferUnlock(pBitmap->apFrames[0]);
-	delete pFile;
+	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
+	delete file;
 
 	return 1;
 }
 
-void StdPic::readChannels(Common::SeekableReadStream *pFile, int packet, const int *pChannelPacket, byte *pPixel) {
-	if (pChannelPacket[0] == packet)
-		pPixel[0] = pFile->readByte();
+void StdPic::readChannels(Common::SeekableReadStream *file, int packet, const int *channelPacket, byte *pixel) {
+	if (channelPacket[0] == packet)
+		pixel[0] = file->readByte();
 
-	if (pChannelPacket[1] == packet)
-		pPixel[1] = pFile->readByte();
+	if (channelPacket[1] == packet)
+		pixel[1] = file->readByte();
 
-	if (pChannelPacket[2] == packet)
-		pPixel[2] = pFile->readByte();
+	if (channelPacket[2] == packet)
+		pixel[2] = file->readByte();
 
-	if (pChannelPacket[3] == packet)
-		pFile->readByte();
+	if (channelPacket[3] == packet)
+		file->readByte();
 }
 
 } // End of namespace Grim

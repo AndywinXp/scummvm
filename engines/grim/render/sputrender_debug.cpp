@@ -32,58 +32,58 @@
 
 namespace Grim {
 
-void SputRender::drawActorDebug(SputActor *pActor) {
-	Extra *pExtra = pActor->pExtra;
+void SputRender::drawActorDebug(SputActor *actor) {
+	Extra *extra = actor->extra;
 
-	if (!pExtra)
+	if (!extra)
 		return;
 
-	if (pExtra->puck)
-		pExtra->puck->draw(_aColors[16]);
+	if (extra->puck)
+		extra->puck->draw(_colors[16]);
 
-	if (pActor->mode & 1) {
-		if (pExtra->numPathPoints > 30) {
+	if (actor->mode & 1) {
+		if (extra->numPathPoints > 30) {
 			warning("SputRender::drawActorDebug(): too many path points");
 		} else {
-			for (int i = 0; i < pExtra->numPathPoints - 1; i++)
-				_pRd->_primit3.drawLine(pExtra->aPath[i], pExtra->aPath[i + 1], nullptr, nullptr, nullptr, nullptr, _aColors[10], 0xFFFFFFFF);
+			for (int i = 0; i < extra->numPathPoints - 1; i++)
+				_rd->_primit3.drawLine(extra->path[i], extra->path[i + 1], nullptr, nullptr, nullptr, nullptr, _colors[10], 0xFFFFFFFF);
 		}
 	}
 
 	// The demo has no collision sphere to draw
-	if (pExtra->collided && !(_pGrim->getGameFlags() & ADGF_DEMO)) {
-		if (!pActor->pCostumeStack || !pActor->pCostumeStack->pHeadThing || !pActor->pCostumeStack->pHeadThing->data.pModel3) {
+	if (extra->collided && !(_grim->getGameFlags() & ADGF_DEMO)) {
+		if (!actor->costumeStack || !actor->costumeStack->headThing || !actor->costumeStack->headThing->data.model3) {
 			warning("SputRender::drawActorDebug(): the actor has no model");
 			return;
 		}
 
-		RdModel3 *pModel3 = pActor->pCostumeStack->pHeadThing->data.pModel3;
-		float (*pOrient)[3] = _pSputActor->getOrientMatrix(pActor);
+		RdModel3 *model3 = actor->costumeStack->headThing->data.model3;
+		float (*orient)[3] = _sputActor->getOrientMatrix(actor);
 		RdVector3 out;
 
-		_pRd->transformPoint34(out, pModel3->geomCenter, pOrient);
+		_rd->transformPoint34(out, model3->geomCenter, orient);
 
-		float radius = (float)((double)pModel3->radius * (double)pExtra->collisionScale);
+		float radius = (float)((double)model3->radius * (double)extra->collisionScale);
 
-		_pRd->_primit3.drawPoint(out, radius, 10.0f, 0xFFFF, 0xFFFFFFFF);
+		_rd->_primit3.drawPoint(out, radius, 10.0f, 0xFFFF, 0xFFFFFFFF);
 	}
 }
 
 void SputRender::drawRoomDebug() {
-	Room *pDebugRoom = _pSputRoom->getCurrentRoom();
+	Room *debugRoom = _sputRoom->getCurrentRoom();
 
 	if (_debugFlags & 2)
-		drawCameraDebug(pDebugRoom);
+		drawCameraDebug(debugRoom);
 
 	if (_debugFlags & 4)
-		drawActorBoxes(pDebugRoom, 0xFFFFFFFF);
+		drawActorBoxes(debugRoom, 0xFFFFFFFF);
 }
 
-void SputRender::drawCameraDebug(Room *pRoom) {
-	if (!pRoom)
+void SputRender::drawCameraDebug(Room *room) {
+	if (!room)
 		return;
 
-	uint numLights = pRoom->numLights;
+	uint numLights = room->numLights;
 
 	if (numLights > 64) {
 		warning("SputRender::drawCameraDebug(): too many lights");
@@ -91,80 +91,80 @@ void SputRender::drawCameraDebug(Room *pRoom) {
 	}
 
 	for (uint i = 0; i < numLights; i++) {
-		RoomLight *pRoomLight = &pRoom->aLights[i];
+		RoomLight *roomLight = &room->lights[i];
 
-		if (pRoomLight->light.type >= 3) {
+		if (roomLight->light.type >= 3) {
 			RdVector3 target;
 			RdMatrix34 mat;
 
-			target[0] = (float)((double)pRoomLight->light.direction[0] + (double)pRoomLight->position[0]);
-			target[1] = (float)((double)pRoomLight->light.direction[1] + (double)pRoomLight->position[1]);
-			target[2] = (float)((double)pRoomLight->light.direction[2] + (double)pRoomLight->position[2]);
-			_pRd->lookAt(mat, pRoomLight->position, target, 0.0f);
+			target[0] = (float)((double)roomLight->light.direction[0] + (double)roomLight->position[0]);
+			target[1] = (float)((double)roomLight->light.direction[1] + (double)roomLight->position[1]);
+			target[2] = (float)((double)roomLight->light.direction[2] + (double)roomLight->position[2]);
+			_rd->lookAt(mat, roomLight->position, target, 0.0f);
 
-			float size = (float)((double)pRoomLight->light.intensity * (double)0.1f);
-			float width = (float)((1.0 - (double)pRoomLight->light.cosAngleY) * (double)size);
-			RdVector3 aPoints[4];
+			float size = (float)((double)roomLight->light.intensity * (double)0.1f);
+			float width = (float)((1.0 - (double)roomLight->light.cosAngleY) * (double)size);
+			RdVector3 points[4];
 
-			aPoints[0][0] = width;
-			aPoints[0][1] = size;
-			aPoints[0][2] = width;
-			aPoints[1][0] = width;
-			aPoints[1][1] = size;
-			aPoints[1][2] = -width;
-			aPoints[2][0] = -width;
-			aPoints[2][1] = size;
-			aPoints[2][2] = -width;
-			aPoints[3][0] = -width;
-			aPoints[3][1] = size;
-			aPoints[3][2] = width;
+			points[0][0] = width;
+			points[0][1] = size;
+			points[0][2] = width;
+			points[1][0] = width;
+			points[1][1] = size;
+			points[1][2] = -width;
+			points[2][0] = -width;
+			points[2][1] = size;
+			points[2][2] = -width;
+			points[3][0] = -width;
+			points[3][1] = size;
+			points[3][2] = width;
 
 			for (int j = 0; j < 4; j++) {
-				_pRd->transformPoint34Acc(aPoints[j], mat);
-				_pRd->_primit3.drawLine(pRoomLight->position, aPoints[j], nullptr, nullptr, nullptr, nullptr, _aColors[7], 0xFFFFFFFF);
+				_rd->transformPoint34Acc(points[j], mat);
+				_rd->_primit3.drawLine(roomLight->position, points[j], nullptr, nullptr, nullptr, nullptr, _colors[7], 0xFFFFFFFF);
 			}
 
-			_pRd->_primit3.drawLine(aPoints[0], aPoints[1], nullptr, nullptr, nullptr, nullptr, _aColors[7], 0xFFFFFFFF);
-			_pRd->_primit3.drawLine(aPoints[1], aPoints[2], nullptr, nullptr, nullptr, nullptr, _aColors[7], 0xFFFFFFFF);
-			_pRd->_primit3.drawLine(aPoints[2], aPoints[3], nullptr, nullptr, nullptr, nullptr, _aColors[7], 0xFFFFFFFF);
-			_pRd->_primit3.drawLine(aPoints[3], aPoints[0], nullptr, nullptr, nullptr, nullptr, _aColors[7], 0xFFFFFFFF);
+			_rd->_primit3.drawLine(points[0], points[1], nullptr, nullptr, nullptr, nullptr, _colors[7], 0xFFFFFFFF);
+			_rd->_primit3.drawLine(points[1], points[2], nullptr, nullptr, nullptr, nullptr, _colors[7], 0xFFFFFFFF);
+			_rd->_primit3.drawLine(points[2], points[3], nullptr, nullptr, nullptr, nullptr, _colors[7], 0xFFFFFFFF);
+			_rd->_primit3.drawLine(points[3], points[0], nullptr, nullptr, nullptr, nullptr, _colors[7], 0xFFFFFFFF);
 		} else {
 			RdVector3 ground;
 
-			ground[0] = pRoomLight->position[0];
-			ground[1] = pRoomLight->position[1];
+			ground[0] = roomLight->position[0];
+			ground[1] = roomLight->position[1];
 			ground[2] = 0.0f;
-			_pRd->_primit3.drawLine(pRoomLight->position, ground, nullptr, nullptr, nullptr, nullptr, _aColors[5], 0xFFFFFFFF);
-			_pRd->_primit3.drawPoint(pRoomLight->position, pRoomLight->light.falloffMin, 19.0f, _aColors[5], 0xFFFFFFFF);
+			_rd->_primit3.drawLine(roomLight->position, ground, nullptr, nullptr, nullptr, nullptr, _colors[5], 0xFFFFFFFF);
+			_rd->_primit3.drawPoint(roomLight->position, roomLight->light.falloffMin, 19.0f, _colors[5], 0xFFFFFFFF);
 		}
 	}
 }
 
-void SputRender::drawActorBoxes(Room *pRoom, uint setup) {
-	if (!pRoom)
+void SputRender::drawActorBoxes(Room *room, uint setup) {
+	if (!room)
 		return;
 
 	if (setup != 0xFFFFFFFF) {
-		if (pRoom->numSetups == 0) {
+		if (room->numSetups == 0) {
 			// The original could divide by zero here, let's avoid that...
 			warning("SputRender::drawActorBoxes(): the room has no setups");
 			return;
 		}
 
-		drawActorBox(&pRoom->pSetups[setup % pRoom->numSetups]);
+		drawActorBox(&room->setups[setup % room->numSetups]);
 		return;
 	}
 
-	for (uint i = 0; i < pRoom->numSetups; i++) {
-		if (i != (uint)pRoom->curSetup)
-			drawActorBox(&pRoom->pSetups[i]);
+	for (uint i = 0; i < room->numSetups; i++) {
+		if (i != (uint)room->curSetup)
+			drawActorBox(&room->setups[i]);
 	}
 }
 
-void SputRender::drawActorBox(RoomSetup *pSetup) {
-	float x = pSetup->camera.interest[0];
-	float y = pSetup->camera.interest[1];
-	float z = pSetup->camera.interest[2];
+void SputRender::drawActorBox(RoomSetup *setup) {
+	float x = setup->camera.interest[0];
+	float y = setup->camera.interest[1];
+	float z = setup->camera.interest[2];
 	RdVector3 p0;
 	RdVector3 p1;
 
@@ -174,7 +174,7 @@ void SputRender::drawActorBox(RoomSetup *pSetup) {
 	p1[0] = (float)((double)x - 1.0);
 	p1[1] = y;
 	p1[2] = z;
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[6], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[6], 0xFFFFFFFF);
 
 	p0[0] = x;
 	p0[1] = (float)((double)y + 1.0);
@@ -182,7 +182,7 @@ void SputRender::drawActorBox(RoomSetup *pSetup) {
 	p1[0] = x;
 	p1[1] = (float)((double)y - 1.0);
 	p1[2] = z;
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[6], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[6], 0xFFFFFFFF);
 
 	p0[0] = x;
 	p0[1] = y;
@@ -190,12 +190,12 @@ void SputRender::drawActorBox(RoomSetup *pSetup) {
 	p1[0] = x;
 	p1[1] = y;
 	p1[2] = (float)((double)z - 1.0);
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[6], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[6], 0xFFFFFFFF);
 
-	SputActor *pCamActor = _pSputActor->actorDeref(_gCamActorIndex);
+	SputActor *camActor = _sputActor->actorDeref(_camActorIndex);
 
-	if (pCamActor->pCostumeStack)
-		_pSputActor->drawCostume(pCamActor->pCostumeStack, pSetup->camera.posMatrix);
+	if (camActor->costumeStack)
+		_sputActor->drawCostume(camActor->costumeStack, setup->camera.posMatrix);
 }
 
 void SputRender::drawBoundingBox() {
@@ -210,7 +210,7 @@ void SputRender::drawBoundingBox() {
 		p1[0] = 1.0f;
 		p1[1] = value;
 		p1[2] = 0.0f;
-		_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[4], 0xFF00FF00);
+		_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[4], 0xFF00FF00);
 		value = (float)((double)value + (double)0.1f);
 	}
 
@@ -223,7 +223,7 @@ void SputRender::drawBoundingBox() {
 		p1[0] = value;
 		p1[1] = 1.0f;
 		p1[2] = 0.0f;
-		_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[4], 0xFF00FF00);
+		_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[4], 0xFF00FF00);
 		value = (float)((double)value + (double)0.1f);
 	}
 
@@ -233,43 +233,43 @@ void SputRender::drawBoundingBox() {
 	p1[0] = 2.0f;
 	p1[1] = 0.0f;
 	p1[2] = 0.0f;
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[3], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[3], 0xFFFFFFFF);
 
 	p1[0] = 0.0f;
 	p1[1] = 2.0f;
 	p1[2] = 0.0f;
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[3], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[3], 0xFFFFFFFF);
 
 	p1[0] = 0.0f;
 	p1[1] = 0.0f;
 	p1[2] = 2.0f;
-	_pRd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _aColors[3], 0xFFFFFFFF);
+	_rd->_primit3.drawLine(p0, p1, nullptr, nullptr, nullptr, nullptr, _colors[3], 0xFFFFFFFF);
 }
 
 void SputRender::drawWalkPlanes() {
-	for (WalkPlane *pPlane = _pWalkSystem->getHead(); pPlane; pPlane = pPlane->pNext) {
-		uint16 color = _aColors[18];
+	for (WalkPlane *plane = _walkSystem->getHead(); plane; plane = plane->_next) {
+		uint16 color = _colors[18];
 
-		if (pPlane->type & 0x1000)
-			color = _aColors[3];
+		if (plane->_type & 0x1000)
+			color = _colors[3];
 
-		if (pPlane->type & 0x2000)
-			color = _aColors[8];
+		if (plane->_type & 0x2000)
+			color = _colors[8];
 
-		if (pPlane->type & 0x4000)
-			color = _aColors[7];
+		if (plane->_type & 0x4000)
+			color = _colors[7];
 
-		if (pPlane->type & 0x8000)
-			color = _aColors[5];
+		if (plane->_type & 0x8000)
+			color = _colors[5];
 
-		for (Puck *pPuck = _pWalkSystem->getPuckHead(); pPuck; pPuck = pPuck->pNext) {
-			if (pPuck->pPlane == pPlane) {
-				color = _aColors[20];
+		for (Puck *puck = _walkSystem->getPuckHead(); puck; puck = puck->_next) {
+			if (puck->_plane == plane) {
+				color = _colors[20];
 				break;
 			}
 		}
 
-		pPlane->draw(color);
+		plane->draw(color);
 	}
 }
 

@@ -61,8 +61,8 @@ public:
 	virtual void *lock() = 0;
 	virtual void unlock() = 0;
 
-	int numVerts;
-	int lockCount;
+	int _numVerts;
+	int _lockCount;
 };
 
 } // End of namespace Grim

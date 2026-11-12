@@ -61,26 +61,26 @@ public:
 	bool setSonyReverb(int type, int depth, int delay, int feedback);
 	bool setAudioDevicePreference(const uint16 *preference);
 	void stopAllChannels();
-	bool saveAudioSettings(tSaveRestoreAccess *access);
-	bool restoreAudioSettings(tSaveRestoreAccess *access);
+	bool saveAudioSettings(SaveRestoreAccess *access);
+	bool restoreAudioSettings(SaveRestoreAccess *access);
 	EMIMilesDriver *getMilesDriver();
 
-	int16 refCount;
-	int debugLevel;
-	bool audioAvailable;
-	bool digitalHandleReleased;
-	CAudioDevice *device;
-	int reverbPreset;
-	float reverbValues[5];
-	byte reverbEnabled;
-	int sonyReverbType;
-	int sonyReverbDepth;
-	int sonyReverbDelay;
-	int sonyReverbFeedback;
-	CNodeRef listener;
-	float masterGain;
-	float categoryGain[3];
-	uint16 devicePreference;
+	int16 _refCount;
+	int _debugLevel;
+	bool _audioAvailable;
+	bool _digitalHandleReleased;
+	CAudioDevice *_device;
+	int _reverbPreset;
+	float _reverbValues[5];
+	byte _reverbEnabled;
+	int _sonyReverbType;
+	int _sonyReverbDepth;
+	int _sonyReverbDelay;
+	int _sonyReverbFeedback;
+	CNodeRef _listener;
+	float _masterGain;
+	float _categoryGain[3];
+	uint16 _devicePreference;
 
 private:
 	Sounds *_sounds;

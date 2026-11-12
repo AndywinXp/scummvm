@@ -35,7 +35,7 @@ public:
 	bool isReplayable() override;
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	LString variableName;
+	LString _variableName;
 };
 
 } // End of namespace Grim

@@ -47,14 +47,14 @@ public:
 	int draw(CDrawContext *context);
 
 	static void set16BitFix(EmiEngine *engine, bool enable);
-	static void saveRestoreNextId(EmiEngine *engine, tSaveRestoreAccess *access);
+	static void saveRestoreNextId(EmiEngine *engine, SaveRestoreAccess *access);
 
-	int id;
-	int sortOrder;
-	int frame;
-	char name[kNameSize];
-	LResourceHandle<TiledScene> tiledScene;
-	LResourceHandle<Background> background;
+	int _id;
+	int _sortOrder;
+	int _frame;
+	char _name[kNameSize];
+	LResourceHandle<TiledScene> _tiledScene;
+	LResourceHandle<Background> _background;
 
 private:
 	EmiEngine *_engine;

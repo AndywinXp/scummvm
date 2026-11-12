@@ -59,11 +59,11 @@ public:
 	static void decodeVimaBlockReset(byte *dest, const byte *source, uint size);
 	static void decodeVimaBlock(byte *dest, const byte *source, uint size);
 
-	uint16 loopBeginId;
-	uint16 loopEndId;
-	int numMarkers;
-	uint16 markerId[kMaxMarkers];
-	uint markerPos[kMaxMarkers];
+	uint16 _loopBeginId;
+	uint16 _loopEndId;
+	int _numMarkers;
+	uint16 _markerId[kMaxMarkers];
+	uint _markerPos[kMaxMarkers];
 
 private:
 	static uint16 readBigEndian16(LFile *file);

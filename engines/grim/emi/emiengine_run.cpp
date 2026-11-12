@@ -205,7 +205,7 @@ bool EmiEngine::initialize() {
 		return false;
 
 	if (_showFps)
-		_lua->statsOverlayFlags |= Lua_V2::kStatsOverlayFlag;
+		_lua->_statsOverlayFlags |= Lua_V2::kStatsOverlayFlag;
 
 	if (!CBundleServices::init(this, getGameLanguage() != Common::EN_ANY)) {
 		showMessage("/NO_FILES/Could not find files!", "/ERROR/Error!");
@@ -226,7 +226,7 @@ bool EmiEngine::initialize() {
 		_zFileServices->closeZFile(defaultFile);
 
 		if (loaded)
-			drawContext->defaultTexture = drawContext->createTexture(defaultBitmap);
+			drawContext->_defaultTexture = drawContext->createTexture(defaultBitmap);
 
 		delete defaultBitmap;
 	}
@@ -235,7 +235,7 @@ bool EmiEngine::initialize() {
 
 	whiteBitmap.create(2, 2, LColorFormat(9), nullptr);
 
-	uint32 *whitePixels = (uint32 *)whiteBitmap.pixels;
+	uint32 *whitePixels = (uint32 *)whiteBitmap._pixels;
 
 	if (whitePixels) {
 		for (int i = 0; i < 4; i++)
@@ -318,9 +318,9 @@ void EmiEngine::showLoadScreenPs2(CDrawContext *drawContext) {
 
 	if (bitmap->loadFile("LOAD.TGA")) {
 		int width = bitmap->getWidth();
-		int height = drawContext->displayMode.height;
+		int height = drawContext->_displayMode.height;
 		int lines = MIN<int>(bitmap->getHeight(), kLoadScreenPs2Lines);
-		int bytesPerPixel = bitmap->colorFormat.bytesPerPixel;
+		int bytesPerPixel = bitmap->_colorFormat._bytesPerPixel;
 		const byte *pixels = (const byte *)bitmap->getPixels();
 		Graphics::PixelFormat format = drawContext->getMovieFormat();
 		Graphics::Surface screen;
@@ -333,9 +333,9 @@ void EmiEngine::showLoadScreenPs2(CDrawContext *drawContext) {
 
 			for (int x = 0; x < width; x++) {
 				const byte *pixel = source + x * bytesPerPixel;
-				int red = bitmap->colorFormat.getRed(pixel);
-				int green = bitmap->colorFormat.getGreen(pixel);
-				int blue = bitmap->colorFormat.getBlue(pixel);
+				int red = bitmap->_colorFormat.getRed(pixel);
+				int green = bitmap->_colorFormat.getGreen(pixel);
+				int blue = bitmap->_colorFormat.getBlue(pixel);
 
 				screen.setPixel(x, y, format.RGBToColor(red, green, blue));
 			}

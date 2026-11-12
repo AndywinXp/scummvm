@@ -35,7 +35,7 @@ uint LuaVarComponent::resSizeOfItem() {
 }
 
 ComponentInstance *LuaVarComponent::createInstance(Actor *owner) {
-	return new LuaVarInstance(_engine, name, owner);
+	return new LuaVarInstance(_engine, _name, owner);
 }
 
 bool LuaVarComponent::resLoadItem(const char *itemName) {

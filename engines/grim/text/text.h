@@ -38,30 +38,30 @@ class Text {
 public:
 	Text();
 
-	void setBlastText(BlastText *pBlastText) { _pBlastText = pBlastText; }
+	void setBlastText(BlastText *blastText) { _blastText = blastText; }
 
-	int sysInitialize(SysStruct *pHS);
+	int sysInitialize(SysStruct *hs);
 	void sysTerminate();
 	int sysStartup();
 	int sysShutdown();
-	int sysSave(Common::WriteStream *pStream);
-	int sysRestore(Common::ReadStream *pStream);
+	int sysSave(Common::WriteStream *stream);
+	int sysRestore(Common::ReadStream *stream);
 	BlastTextFont *getSystemFont();
-	void freeFont(BlastTextFont *&pFont);
-	int getNextChar(const char **ppText);
-	int getCharKernedWidth(const TextParams *pParams, int c);
-	int getStringWidth(const TextParams *pParams, const char *pText);
-	int getStringHeight(const TextParams *pParams, const char *pText);
-	int printText(TextParams *pParams, const char *format, ...);
+	void freeFont(BlastTextFont *&font);
+	int getNextChar(const char **text);
+	int getCharKernedWidth(const TextParams *params, int c);
+	int getStringWidth(const TextParams *paramsPointer, const char *text);
+	int getStringHeight(const TextParams *paramsPointer, const char *text);
+	int printText(TextParams *params, const char *format, ...);
 
 	friend class BlastText;
 
 private:
-	BlastText *_pBlastText;
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
-	BlastTextFont *_pSystemFont;
+	BlastText *_blastText;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
+	BlastTextFont *_systemFont;
 };
 
 } // End of namespace Grim

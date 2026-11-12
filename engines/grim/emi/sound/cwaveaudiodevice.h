@@ -70,10 +70,10 @@ public:
 	int getMilesDigitalDriver();
 	EMIMilesDriver *getMilesDriver();
 
-	bool lost;
-	Common::Array<CWaveChannel *> channels;
-	int numChannels;
-	int lastCheckMs;
+	bool _lost;
+	Common::Array<CWaveChannel *> _channels;
+	int _numChannels;
+	int _lastCheckMs;
 
 private:
 	AudioSystem *_audioSystem;

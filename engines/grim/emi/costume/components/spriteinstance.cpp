@@ -28,43 +28,43 @@
 namespace Grim {
 
 SpriteInstance::SpriteInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
-	spriteInstance = nullptr;
+	_owner = actor;
+	_spriteInstance = nullptr;
 
 	SpriteComponent *component = nullptr;
 
-	if (handle.lock())
-		component = dynamic_cast<SpriteComponent *>(handle.typed);
+	if (_handle.lock())
+		component = dynamic_cast<SpriteComponent *>(_handle._typed);
 
 	if (!component) {
 		warning("SpriteInstance::SpriteInstance(): cannot get the sprite component %s", componentName.c_str());
-	} else if (!owner) {
+	} else if (!_owner) {
 		warning("SpriteInstance::SpriteInstance(): no owner");
 	} else {
-		spriteInstance = static_cast<CSpriteInstance *>(component->CSprite::createInstance());
-		owner->instances.push_back(spriteInstance);
+		_spriteInstance = static_cast<CSpriteInstance *>(component->CSprite::createInstance());
+		_owner->_instances.push_back(_spriteInstance);
 	}
 
-	handle.unlock();
+	_handle.unlock();
 
-	if (spriteInstance)
-		spriteInstance->visible = true;
+	if (_spriteInstance)
+		_spriteInstance->_visible = true;
 }
 
 SpriteInstance::~SpriteInstance() {
-	if (owner && spriteInstance) {
-		int index = owner->findPrimitiveInstance(spriteInstance);
+	if (_owner && _spriteInstance) {
+		int index = _owner->findPrimitiveInstance(_spriteInstance);
 
-		owner->removePrimitiveInstance(index);
-		delete spriteInstance;
-		spriteInstance = nullptr;
+		_owner->removePrimitiveInstance(index);
+		delete _spriteInstance;
+		_spriteInstance = nullptr;
 	}
 }
 
 void SpriteInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
 	// The disasm treats NaN as zero
-	if (spriteInstance)
-		spriteInstance->visible = (value < 0.0f || value > 0.0f);
+	if (_spriteInstance)
+		_spriteInstance->_visible = (value < 0.0f || value > 0.0f);
 }
 
 } // End of namespace Grim

@@ -106,11 +106,11 @@ public:
 	int getStreamStatus();
 	uint getStreamPosition();
 
-	int16 count;
-	MusicState *states;
-	bool loaded;
+	int16 _count;
+	MusicState *_states;
+	bool _loaded;
 
-	static const StateEntry stateTable[kStateCount];
+	static const StateEntry kStateTable[kStateCount];
 
 private:
 	EMIMilesDriver *getMilesDriver();

@@ -35,123 +35,123 @@ namespace Grim {
 void Actor::followPath(float deltaTime) {
 	const float maxAngle = 3.4028235e38f;
 
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::followPath(): missing extra data");
 
 		return;
 	}
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	double deltaX = (double)world.pos.x - extra->walkTarget.x;
-	double deltaY = (double)world.pos.y - extra->walkTarget.y;
-	double deltaZ = (double)world.pos.z - extra->walkTarget.z;
+	double deltaX = (double)_world._pos._x - _extra->_walkTarget._x;
+	double deltaY = (double)_world._pos._y - _extra->_walkTarget._y;
+	double deltaZ = (double)_world._pos._z - _extra->_walkTarget._z;
 	double distance = sqrt((deltaZ * deltaZ + deltaY * deltaY) + deltaX * deltaX);
 
-	float rate = extra->walkRate;
+	float rate = _extra->_walkRate;
 
 	if (rate < 0.0f)
 		rate = -rate;
 
-	float limit = (float)((double)rate * extra->timeScale * deltaTime * 1.25);
+	float limit = (float)((double)rate * _extra->_timeScale * deltaTime * 1.25);
 
 	// The disasm takes the branches below also when the comparisons are unordered
 	if (!(distance >= limit)) {
 		do {
-			if (extra->pathIndex >= extra->numPathPoints)
+			if (_extra->_pathIndex >= _extra->_numPathPoints)
 				break;
 
-			extra->pathIndex++;
-			setActorPosition(&extra->walkTarget.x);
+			_extra->_pathIndex++;
+			setActorPosition(&_extra->_walkTarget._x);
 
-			if (extra->pathIndex < Extra_v2::kMaxPathPoints)
-				extra->walkTarget = extra->path[extra->pathIndex];
+			if (_extra->_pathIndex < Extra_v2::kMaxPathPoints)
+				_extra->_walkTarget = _extra->_path[_extra->_pathIndex];
 			else
 				warning("Actor::followPath(): path index out of range");
 
-			if ((nodeFlags & kWorldValid) == 0)
+			if ((_nodeFlags & kWorldValid) == 0)
 				updateWorldTransform();
 
-			deltaY = (double)world.pos.y - extra->walkTarget.y;
-			deltaZ = (double)world.pos.z - extra->walkTarget.z;
-			deltaX = (double)world.pos.x - extra->walkTarget.x;
+			deltaY = (double)_world._pos._y - _extra->_walkTarget._y;
+			deltaZ = (double)_world._pos._z - _extra->_walkTarget._z;
+			deltaX = (double)_world._pos._x - _extra->_walkTarget._x;
 			distance = sqrt((deltaZ * deltaZ + deltaY * deltaY) + deltaX * deltaX);
 		} while (!(distance >= limit));
 
-		if (extra->pathIndex == extra->numPathPoints) {
-			mode &= ~1U;
+		if (_extra->_pathIndex == _extra->_numPathPoints) {
+			_mode &= ~1U;
 
-			if (ChoreInstance::isInstanceValid(_engine, choreSlotIds[1]))
-				ChoreInstance::getInstance(_engine, choreSlotIds[1])->stop();
+			if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[1]))
+				ChoreInstance::getInstance(_engine, _choreSlotIds[1])->stop();
 
-			choreSlotIds[1] = 0;
+			_choreSlotIds[1] = 0;
 
 			return;
 		}
 	}
 
-	mode |= 1U;
+	_mode |= 1U;
 
-	if (extra->puck)
-		extra->puck->pointAt(&extra->walkTarget.x, maxAngle);
+	if (_extra->_puck)
+		_extra->_puck->pointAt(&_extra->_walkTarget._x, maxAngle);
 	else
 		warning("Actor::followPath(): missing puck");
 
 	double cosLimit = cos((double)kDegreesToRadians * 80.0);
-	double cosAlign = cos((double)kDegreesToRadians * extra->alignOff);
+	double cosAlign = cos((double)kDegreesToRadians * _extra->_alignOff);
 
 	if (!(cosLimit >= cosAlign))
 		forward();
 }
 
 void Actor::updateWalk(float deltaTime) {
-	Puck_v2 *puck = extra->puck;
-	int turnDirection = extra->turnDir;
+	Puck_v2 *puck = _extra->_puck;
+	int turnDirection = _extra->_turnDir;
 
-	if (turnDirection != 0 && (mode & 1) == 0)
-		puck->rotate((float)-((double)deltaTime * extra->timeScale * extra->turnRate * (double)turnDirection));
+	if (turnDirection != 0 && (_mode & 1) == 0)
+		puck->rotate((float)-((double)deltaTime * _extra->_timeScale * _extra->_turnRate * (double)turnDirection));
 
-	if (extra->walking) {
-		float distance = (float)((double)extra->timeScale * extra->walkRate * deltaTime);
+	if (_extra->_walking) {
+		float distance = (float)((double)_extra->_timeScale * _extra->_walkRate * deltaTime);
 		int allowLeft = 1;
 		int allowRight = 1;
 
-		if (!extra->walkDominate) {
-			allowLeft = extra->turnDir != -1;
-			allowRight = extra->turnDir != 1;
+		if (!_extra->_walkDominate) {
+			allowLeft = _extra->_turnDir != -1;
+			allowRight = _extra->_turnDir != 1;
 		}
 
-		extra->walking = puck->forward(distance, allowLeft, allowRight);
+		_extra->_walking = puck->forward(distance, allowLeft, allowRight);
 	}
 
-	extra->aligned = alignToPuck(puck);
+	_extra->_aligned = alignToPuck(puck);
 
-	if (extra->turnDir == 0 && !extra->aligned) {
-		if (extra->alignOff > 180.0f)
-			extra->turnDir = 1;
+	if (_extra->_turnDir == 0 && !_extra->_aligned) {
+		if (_extra->_alignOff > 180.0f)
+			_extra->_turnDir = 1;
 		else
-			extra->turnDir = -1;
+			_extra->_turnDir = -1;
 	}
 
-	if ((puck->nodeFlags & kPositionValid) == 0)
+	if ((puck->_nodeFlags & kPositionValid) == 0)
 		puck->computeLocalPositionFromWorld();
 
-	setLocalPosition(puck->pos);
+	setLocalPosition(puck->_pos);
 }
 
 bool Actor::alignToPuck(Puck_v2 *puck) {
-	if ((nodeFlags & kEulerValid) == 0)
+	if ((_nodeFlags & kEulerValid) == 0)
 		computeLocalMatrixFromWorld();
 
-	float savedX = eulerDeg.x;
-	float savedY = eulerDeg.y;
-	float savedZ = eulerDeg.z;
+	float savedX = _eulerDeg._x;
+	float savedY = _eulerDeg._y;
+	float savedZ = _eulerDeg._z;
 
-	if ((puck->nodeFlags & kEulerValid) == 0)
+	if ((puck->_nodeFlags & kEulerValid) == 0)
 		puck->computeLocalMatrixFromWorld();
 
-	double difference = puck->eulerDeg.y;
+	double difference = puck->_eulerDeg._y;
 
 	if (difference - difference != 0.0 || (double)savedY - savedY != 0.0) {
 		warning("Actor::alignToPuck(): invalid yaw");
@@ -167,25 +167,25 @@ bool Actor::alignToPuck(Puck_v2 *puck) {
 	while (difference >= 360.0)
 		difference -= 360.0;
 
-	double sum = difference + extra->offsetYaw;
+	double sum = difference + _extra->_offsetYaw;
 	float alignAngle = (float)sum;
 
 	// The disasm compares the sum before it is rounded to float
 	if (!(sum >= 0.5) || alignAngle > 359.5f) {
-		extra->snapTurn = false;
-		extra->alignOff = 0.0f;
+		_extra->_snapTurn = false;
+		_extra->_alignOff = 0.0f;
 
 		return true;
 	}
 
 	double turnStep = 360.0;
 
-	extra->alignOff = alignAngle;
+	_extra->_alignOff = alignAngle;
 
-	if (!extra->snapTurn) {
+	if (!_extra->_snapTurn) {
 		float frameTime = _engine->getFrameTime();
 
-		turnStep = (double)frameTime * extra->timeScale * extra->turnRate;
+		turnStep = (double)frameTime * _extra->_timeScale * _extra->_turnRate;
 	}
 
 	bool reversed = false;
@@ -200,150 +200,150 @@ bool Actor::alignToPuck(Puck_v2 *puck) {
 
 	double direction = reversed ? -1.0 : 1.0;
 
-	eulerDeg.x = savedX;
-	eulerDeg.z = savedZ;
-	eulerDeg.y = (float)(direction * alignAngle + savedY);
+	_eulerDeg._x = savedX;
+	_eulerDeg._z = savedZ;
+	_eulerDeg._y = (float)(direction * alignAngle + savedY);
 
-	nodeFlags = (nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+	_nodeFlags = (_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 	updateLocalState();
 
 	// The disasm returns the previous value of snapTurn
-	bool previousSnapTurn = extra->snapTurn;
+	bool previousSnapTurn = _extra->_snapTurn;
 
-	extra->snapTurn = false;
+	_extra->_snapTurn = false;
 
 	return previousSnapTurn;
 }
 
 void Actor::turn(float degrees) {
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::turn(): missing extra data");
 
 		return;
 	}
 
-	if (!extra->puck)
+	if (!_extra->_puck)
 		enablePuck(true);
 
 	if (degrees > 0.0f)
-		extra->turnDir = 1;
+		_extra->_turnDir = 1;
 	else
-		extra->turnDir = -1;
+		_extra->_turnDir = -1;
 }
 
 void Actor::forward() {
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::forward(): missing extra data");
 
 		return;
 	}
 
-	if (!extra->puck)
+	if (!_extra->_puck)
 		enablePuck(true);
 
-	extra->walking = true;
+	_extra->_walking = true;
 }
 
 void Actor::enableWalkSystem(bool enable) {
-	if (!extra)
+	if (!_extra)
 		allocateActorExtra();
 
 	if (enable) {
-		extra->inBoxes = true;
+		_extra->_inBoxes = true;
 		enablePuck(true);
 
-		if (room.resource) {
+		if (_room._resource) {
 			Room_v2 *lockedRoom = nullptr;
 
-			if (room.lock())
-				lockedRoom = room.typed;
+			if (_room.lock())
+				lockedRoom = _room._typed;
 
 			WalkPlaneCollection *collection = nullptr;
 
 			if (lockedRoom)
-				collection = lockedRoom->walkPlanes;
+				collection = lockedRoom->_walkPlanes;
 			else
 				warning("Actor::enableWalkSystem(): the room could not be locked");
 
-			extra->puck->validate(collection);
+			_extra->_puck->validate(collection);
 
 			if (lockedRoom)
-				room.unlock();
+				_room.unlock();
 		}
 	} else {
-		extra->inBoxes = false;
+		_extra->_inBoxes = false;
 
-		if (extra->puck)
-			extra->puck->plane = nullptr;
+		if (_extra->_puck)
+			_extra->_puck->_plane = nullptr;
 	}
 }
 
 void Actor::enablePuck(bool enable) {
-	if (!extra)
+	if (!_extra)
 		allocateActorExtra();
 
 	if (enable) {
-		if (extra->puck) {
-			extra->puck->reset();
+		if (_extra->_puck) {
+			_extra->_puck->reset();
 		} else {
 			const float maxAngle = 3.4028235e38f;
 			float target[3];
 
-			Puck_v2 *newPuck = new Puck_v2(_engine, extra->reflectionAngle);
+			Puck_v2 *newPuck = new Puck_v2(_engine, _extra->_reflectionAngle);
 
-			newPuck->actorName = actorName;
+			newPuck->_actorName = _actorName;
 
-			if ((nodeFlags & kWorldValid) == 0)
+			if ((_nodeFlags & kWorldValid) == 0)
 				updateWorldTransform();
 
-			newPuck->setLocalPosition(world.pos);
+			newPuck->setLocalPosition(_world._pos);
 
-			if ((nodeFlags & kWorldValid) == 0)
+			if ((_nodeFlags & kWorldValid) == 0)
 				updateWorldTransform();
 
-			target[0] = world.rot.m[6];
-			target[1] = world.rot.m[7];
-			target[2] = world.rot.m[8];
+			target[0] = _world._rot._m[6];
+			target[1] = _world._rot._m[7];
+			target[2] = _world._rot._m[8];
 
-			if ((nodeFlags & kWorldValid) == 0)
+			if ((_nodeFlags & kWorldValid) == 0)
 				updateWorldTransform();
 
-			target[0] = target[0] + world.pos.x;
-			target[1] = target[1] + world.pos.y;
-			target[2] = target[2] + world.pos.z;
+			target[0] = target[0] + _world._pos._x;
+			target[1] = target[1] + _world._pos._y;
+			target[2] = target[2] + _world._pos._z;
 
 			newPuck->pointAt(target, maxAngle);
-			extra->puck = newPuck;
+			_extra->_puck = newPuck;
 		}
-	} else if (extra->puck) {
-		delete extra->puck;
-		extra->puck = nullptr;
+	} else if (_extra->_puck) {
+		delete _extra->_puck;
+		_extra->_puck = nullptr;
 	}
 }
 
 void Actor::setActorPosition(const float *position) {
-	if (extra && extra->puck) {
-		Puck_v2 *puck = extra->puck;
+	if (_extra && _extra->_puck) {
+		Puck_v2 *puck = _extra->_puck;
 		CVector newPosition;
 
 		puck->reset();
 
-		newPosition.x = position[0];
-		newPosition.y = position[1];
-		newPosition.z = position[2];
+		newPosition._x = position[0];
+		newPosition._y = position[1];
+		newPosition._z = position[2];
 		puck->setLocalPosition(newPosition);
 
-		if (extra->inBoxes) {
+		if (_extra->_inBoxes) {
 			Room_v2 *lockedRoom = nullptr;
 
-			if (room.lock())
-				lockedRoom = room.typed;
+			if (_room.lock())
+				lockedRoom = _room._typed;
 
 			WalkPlaneCollection *collection = nullptr;
 
 			if (lockedRoom) {
-				collection = lockedRoom->walkPlanes;
-				room.unlock();
+				collection = lockedRoom->_walkPlanes;
+				_room.unlock();
 			} else {
 				warning("Actor::setActorPosition(): the room could not be locked");
 			}
@@ -351,98 +351,98 @@ void Actor::setActorPosition(const float *position) {
 			puck->validate(collection);
 		}
 
-		if ((puck->nodeFlags & kPositionValid) == 0)
+		if ((puck->_nodeFlags & kPositionValid) == 0)
 			puck->computeLocalPositionFromWorld();
 
-		setLocalPosition(puck->pos);
+		setLocalPosition(puck->_pos);
 	} else {
 		CVector newPosition;
 
-		newPosition.x = position[0];
-		newPosition.y = position[1];
-		newPosition.z = position[2];
+		newPosition._x = position[0];
+		newPosition._y = position[1];
+		newPosition._z = position[2];
 		setLocalPosition(newPosition);
 	}
 }
 
 void Actor::setActorRotation(const float *rotation, bool snap) {
-	mode &= ~1U;
+	_mode &= ~1U;
 
-	if (extra && extra->puck) {
-		Puck_v2 *puck = extra->puck;
+	if (_extra && _extra->_puck) {
+		Puck_v2 *puck = _extra->_puck;
 
-		puck->eulerDeg.y = rotation[1];
-		puck->eulerDeg.x = 0.0f;
-		puck->eulerDeg.z = 0.0f;
-		puck->nodeFlags = (puck->nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+		puck->_eulerDeg._y = rotation[1];
+		puck->_eulerDeg._x = 0.0f;
+		puck->_eulerDeg._z = 0.0f;
+		puck->_nodeFlags = (puck->_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 		puck->updateLocalState();
 
-		extra->snapTurn = snap;
+		_extra->_snapTurn = snap;
 
-		if ((nodeFlags & kEulerValid) == 0)
+		if ((_nodeFlags & kEulerValid) == 0)
 			computeLocalMatrixFromWorld();
 
-		extra->alignOff = rotation[1] - eulerDeg.y;
+		_extra->_alignOff = rotation[1] - _eulerDeg._y;
 
-		if ((nodeFlags & kEulerValid) == 0)
+		if ((_nodeFlags & kEulerValid) == 0)
 			computeLocalMatrixFromWorld();
 
-		float currentYaw = eulerDeg.y;
+		float currentYaw = _eulerDeg._y;
 
-		eulerDeg.x = rotation[0];
-		eulerDeg.y = currentYaw;
-		eulerDeg.z = rotation[2];
-		nodeFlags = (nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+		_eulerDeg._x = rotation[0];
+		_eulerDeg._y = currentYaw;
+		_eulerDeg._z = rotation[2];
+		_nodeFlags = (_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 		updateLocalState();
 	} else {
-		eulerDeg.x = rotation[0];
-		eulerDeg.y = rotation[1];
-		eulerDeg.z = rotation[2];
-		nodeFlags = (nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+		_eulerDeg._x = rotation[0];
+		_eulerDeg._y = rotation[1];
+		_eulerDeg._z = rotation[2];
+		_nodeFlags = (_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 		updateLocalState();
 	}
 }
 
 void Actor::setReflection(float angle) {
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::setReflection(): missing extra data");
 
 		return;
 	}
 
-	if (extra->puck)
-		extra->puck->reflectionAngle = angle;
+	if (_extra->_puck)
+		_extra->_puck->_reflectionAngle = angle;
 }
 
 void Actor::setWalkDominate(bool dominate) {
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::setWalkDominate(): missing extra data");
 
 		return;
 	}
 
-	extra->walkDominate = dominate;
+	_extra->_walkDominate = dominate;
 }
 
 void Actor::leaveSector(WalkPlane_v2 *plane) {
 	if (!plane)
 		return;
 
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::leaveSector(): missing extra data");
 
 		return;
 	}
 
-	Puck_v2 *puck = extra->puck;
+	Puck_v2 *puck = _extra->_puck;
 
 	if (puck) {
 		plane->jumpOut(puck);
 
-		if ((puck->nodeFlags & kPositionValid) == 0)
+		if ((puck->_nodeFlags & kPositionValid) == 0)
 			puck->computeLocalPositionFromWorld();
 
-		setActorPosition(&puck->pos.x);
+		setActorPosition(&puck->_pos._x);
 	}
 }
 
@@ -459,25 +459,25 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 	memset(inputPath, 0, sizeof(inputPath));
 	memset(outputPath, 0, sizeof(outputPath));
 
-	mode &= ~1U;
+	_mode &= ~1U;
 
-	if (!extra) {
+	if (!_extra) {
 		warning("Actor::actorWalkTo(): missing extra data");
 
 		return;
 	}
 
-	if (extra->puck) {
+	if (_extra->_puck) {
 		Room_v2 *lockedRoom = nullptr;
 
-		if (room.lock())
-			lockedRoom = room.typed;
+		if (_room.lock())
+			lockedRoom = _room._typed;
 
 		WalkPlaneCollection *collection = nullptr;
 
 		if (lockedRoom) {
-			collection = lockedRoom->walkPlanes;
-			room.unlock();
+			collection = lockedRoom->_walkPlanes;
+			_room.unlock();
 		} else {
 			warning("Actor::actorWalkTo(): the room could not be locked");
 		}
@@ -488,18 +488,18 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 			return;
 		}
 
-		Puck_v2 *puck = extra->puck;
+		Puck_v2 *puck = _extra->_puck;
 		WalkPlane_v2 *plane = collection->planeClosest(target, 0x1000);
 
 		if (plane)
 			plane->closestPoint(target);
 
-		if ((puck->nodeFlags & kPositionValid) == 0)
+		if ((puck->_nodeFlags & kPositionValid) == 0)
 			puck->computeLocalPositionFromWorld();
 
-		start[0] = puck->pos.x;
-		start[1] = puck->pos.y;
-		start[2] = puck->pos.z;
+		start[0] = puck->_pos._x;
+		start[1] = puck->_pos._y;
+		start[2] = puck->_pos._z;
 
 		if (collection->buildPath(start, target, true)) {
 			float (*pathPoints)[3];
@@ -518,24 +518,24 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 				newCount = Extra_v2::kMaxPathPoints;
 			}
 
-			extra->numPathPoints = newCount;
-			extra->pathIndex = 1;
+			_extra->_numPathPoints = newCount;
+			_extra->_pathIndex = 1;
 
 			for (int i = 0; i < newCount; i++) {
-				extra->path[i].x = outputPath[i][0];
-				extra->path[i].y = outputPath[i][1];
-				extra->path[i].z = outputPath[i][2];
+				_extra->_path[i]._x = outputPath[i][0];
+				_extra->_path[i]._y = outputPath[i][1];
+				_extra->_path[i]._z = outputPath[i][2];
 			}
 
-			extra->walkTarget = extra->path[extra->pathIndex];
+			_extra->_walkTarget = _extra->_path[_extra->_pathIndex];
 
 			if (newCount > 1)
-				mode |= 1U;
+				_mode |= 1U;
 		}
 
-		extra->goal.x = goal[0];
-		extra->goal.y = goal[1];
-		extra->goal.z = goal[2];
+		_extra->_goal._x = goal[0];
+		_extra->_goal._y = goal[1];
+		_extra->_goal._z = goal[2];
 	}
 }
 

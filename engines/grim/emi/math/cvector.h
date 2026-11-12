@@ -26,11 +26,11 @@ namespace Grim {
 
 class CVector {
 public:
-	CVector() : x(0.0f), y(0.0f), z(0.0f) {}
+	CVector() : _x(0.0f), _y(0.0f), _z(0.0f) {}
 
-	float x;
-	float y;
-	float z;
+	float _x;
+	float _y;
+	float _z;
 };
 
 } // End of namespace Grim

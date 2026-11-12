@@ -59,19 +59,19 @@ void WeightData::operator delete(void *block) {
 }
 
 CWeightMap::CWeightMap(EmiEngine *engine) : _engine(engine) {
-	bound = false;
+	_bound = false;
 }
 
 CWeightMap::~CWeightMap() {
-	for (uint i = 0; i < weightBlocks.size(); i++) {
-		delete weightBlocks[i];
-		weightBlocks[i] = nullptr;
+	for (uint i = 0; i < _weightBlocks.size(); i++) {
+		delete _weightBlocks[i];
+		_weightBlocks[i] = nullptr;
 	}
 
-	weightBlocks.clear();
-	vertexLists.clear();
-	weights.clear();
-	nodeNames.clear();
+	_weightBlocks.clear();
+	_vertexLists.clear();
+	_weights.clear();
+	_nodeNames.clear();
 }
 
 void *CWeightMap::operator new(size_t size) {
@@ -85,10 +85,10 @@ void CWeightMap::operator delete(void *block) {
 int CWeightMap::getSize() {
 	int size = sizeof(CWeightMap);
 
-	for (uint i = 0; i < nodeNames.size(); i++)
-		size += nodeNames[i].size();
+	for (uint i = 0; i < _nodeNames.size(); i++)
+		size += _nodeNames[i].size();
 
-	return size + weights.size() * sizeof(VertexWeight);
+	return size + _weights.size() * sizeof(VertexWeight);
 }
 
 bool CWeightMap::save(LFile *file) {
@@ -100,26 +100,26 @@ bool CWeightMap::save(LFile *file) {
 	parser.setFile(file);
 	parser.writeVersion(2, 0);
 	parser.writeComment("CWeightMap primitive");
-	parser.writeEntry(kKeywordNumNodes, (int)nodeNames.size());
+	parser.writeEntry(kKeywordNumNodes, (int)_nodeNames.size());
 
-	for (uint i = 0; i < nodeNames.size(); i++)
-		parser.writeEntry(kKeywordNodeName, nodeNames[i].c_str());
+	for (uint i = 0; i < _nodeNames.size(); i++)
+		parser.writeEntry(kKeywordNodeName, _nodeNames[i].c_str());
 
-	parser.writeEntry(kKeywordNumVerts, (int)vertexLists.size());
+	parser.writeEntry(kKeywordNumVerts, (int)_vertexLists.size());
 
-	for (uint i = 0; i < vertexLists.size(); i++) {
+	for (uint i = 0; i < _vertexLists.size(); i++) {
 		int weightCount = 0;
 
-		for (WeightData *data = vertexLists[i]; data; data = data->next)
+		for (WeightData *data = _vertexLists[i]; data; data = data->next)
 			weightCount++;
 
 		parser.writeEntry(kKeywordNumWeights, weightCount);
 
-		for (WeightData *data = vertexLists[i]; data; data = data->next) {
+		for (WeightData *data = _vertexLists[i]; data; data = data->next) {
 			const char *nodeName = "";
 
-			if (data->node >= 0 && data->node < (int)nodeNames.size())
-				nodeName = nodeNames[data->node].c_str();
+			if (data->node >= 0 && data->node < (int)_nodeNames.size())
+				nodeName = _nodeNames[data->node].c_str();
 			else
 				warning("CWeightMap::save(): invalid node index %d", data->node);
 
@@ -153,7 +153,7 @@ bool CWeightMap::restore(LFile *file) {
 	for (int i = 0; i < nodeCount; i++) {
 		token[0] = 0;
 		parser.readEntry(kKeywordNodeName, token);
-		nodeNames.push_back(LString(token));
+		_nodeNames.push_back(LString(token));
 	}
 
 	parser.readEntry(kKeywordNumVerts, &vertexCount);
@@ -163,13 +163,13 @@ bool CWeightMap::restore(LFile *file) {
 		vertexCount = 0;
 	}
 
-	vertexLists.resize(vertexCount);
+	_vertexLists.resize(vertexCount);
 
 	for (int i = 0; i < vertexCount; i++) {
 		int weightCount = 0;
 
 		parser.readEntry(kKeywordNumWeights, &weightCount);
-		vertexLists[i] = nullptr;
+		_vertexLists[i] = nullptr;
 
 		if (weightCount < 0) {
 			warning("CWeightMap::restore(): invalid weight count %d", weightCount);
@@ -191,7 +191,7 @@ bool CWeightMap::restore(LFile *file) {
 }
 
 void CWeightMap::addWeight(int vertex, float weight, int nodeIndex) {
-	if (vertex < 0 || vertex >= (int)vertexLists.size()) {
+	if (vertex < 0 || vertex >= (int)_vertexLists.size()) {
 		warning("CWeightMap::addWeight(): invalid vertex %d", vertex);
 
 		return;
@@ -201,14 +201,14 @@ void CWeightMap::addWeight(int vertex, float weight, int nodeIndex) {
 
 	data->weight = weight;
 	data->node = nodeIndex;
-	data->next = vertexLists[vertex];
-	vertexLists[vertex] = data;
-	weightBlocks.push_back(data);
+	data->next = _vertexLists[vertex];
+	_vertexLists[vertex] = data;
+	_weightBlocks.push_back(data);
 }
 
 uint CWeightMap::findNodeIndex(const LString &nodeName) {
-	for (uint i = 0; i < nodeNames.size(); i++) {
-		if (nodeNames[i] == nodeName)
+	for (uint i = 0; i < _nodeNames.size(); i++) {
+		if (_nodeNames[i] == nodeName)
 			return i;
 	}
 
@@ -228,151 +228,151 @@ void CWeightMap::remapVertexLists(int count, const int *vertexMap) {
 	for (int i = 0; i < count; i++) {
 		int source = vertexMap[i];
 
-		if (source >= 0 && source < (int)vertexLists.size())
-			remapped[i] = vertexLists[source];
+		if (source >= 0 && source < (int)_vertexLists.size())
+			remapped[i] = _vertexLists[source];
 		else
 			warning("CWeightMap::remapVertexLists(): invalid source vertex %d", source);
 	}
 
-	vertexLists = remapped;
+	_vertexLists = remapped;
 }
 
 void CWeightMap::flattenWeights() {
 	int total = 0;
 
-	for (uint i = 0; i < vertexLists.size(); i++) {
-		for (WeightData *data = vertexLists[i]; data; data = data->next)
+	for (uint i = 0; i < _vertexLists.size(); i++) {
+		for (WeightData *data = _vertexLists[i]; data; data = data->next)
 			total++;
 	}
 
-	weights.clear();
-	weights.resize(total);
+	_weights.clear();
+	_weights.resize(total);
 
 	int position = 0;
 
-	for (uint i = 0; i < vertexLists.size(); i++) {
+	for (uint i = 0; i < _vertexLists.size(); i++) {
 		if (position < total)
-			weights[position].first = 1;
+			_weights[position].first = 1;
 		else
 			warning("CWeightMap::flattenWeights(): vertex %u has no weights", i);
 
-		for (WeightData *data = vertexLists[i]; data; data = data->next) {
-			weights[position].node = data->node;
-			weights[position].weight = data->weight;
+		for (WeightData *data = _vertexLists[i]; data; data = data->next) {
+			_weights[position].node = data->node;
+			_weights[position].weight = data->weight;
 			position++;
 		}
 	}
 
-	for (uint i = 0; i < weightBlocks.size(); i++) {
-		delete weightBlocks[i];
-		weightBlocks[i] = nullptr;
+	for (uint i = 0; i < _weightBlocks.size(); i++) {
+		delete _weightBlocks[i];
+		_weightBlocks[i] = nullptr;
 	}
 
-	weightBlocks.clear();
-	vertexLists.clear();
+	_weightBlocks.clear();
+	_vertexLists.clear();
 }
 
 void CWeightMap::bindNodes(CNode *actorNode, CNode **outNodes) {
-	CNode *root = actorNode->firstChild;
+	CNode *root = actorNode->_firstChild;
 
 	if (!root)
 		return;
 
 	root->detachFromParent();
 
-	for (uint i = 0; i < nodeNames.size(); i++) {
-		CNode *node = root->findNode(nodeNames[i].c_str());
+	for (uint i = 0; i < _nodeNames.size(); i++) {
+		CNode *node = root->findNode(_nodeNames[i].c_str());
 
 		if (node) {
-			if ((node->nodeFlags & CNode::kWorldValid) == 0)
+			if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 				node->updateWorldTransform();
 
-			node->bindRot = node->world.rot;
-			node->bindPos = node->world.pos;
+			node->_bindRot = node->_world._rot;
+			node->_bindPos = node->_world._pos;
 			outNodes[i] = node;
 		}
 	}
 
 	root->setParent(actorNode);
-	bound = true;
+	_bound = true;
 }
 
 void CWeightMap::findNodes(CNode *actorNode, CNode **outNodes) {
-	CNode *root = actorNode->firstChild;
+	CNode *root = actorNode->_firstChild;
 
 	if (!root)
 		return;
 
-	for (uint i = 0; i < nodeNames.size(); i++) {
-		CNode *node = root->findNode(nodeNames[i].c_str());
+	for (uint i = 0; i < _nodeNames.size(); i++) {
+		CNode *node = root->findNode(_nodeNames[i].c_str());
 
 		if (node)
 			outNodes[i] = node;
 	}
 
-	bound = true;
+	_bound = true;
 }
 
 void CWeightMap::computeTransforms(CNode *node, const CTransform *parentTransform) {
-	const float *b = node->bindRot.m;
-	const float *r = parentTransform->rot.m;
-	double negX = -(double)node->bindPos.x;
-	double negY = -(double)node->bindPos.y;
-	double negZ = -(double)node->bindPos.z;
+	const float *b = node->_bindRot._m;
+	const float *r = parentTransform->_rot._m;
+	double negX = -(double)node->_bindPos._x;
+	double negY = -(double)node->_bindPos._y;
+	double negZ = -(double)node->_bindPos._z;
 	float inverseX = (float)(negZ * b[2] + negY * b[1] + negX * b[0]);
 	float inverseY = (float)(negZ * b[5] + negX * b[3] + negY * b[4]);
 	float inverseZ = (float)(negZ * b[8] + negX * b[6] + negY * b[7]);
 	CMatrix transposed;
 
-	node->bindRot.transpose(&transposed);
+	node->_bindRot.transpose(&transposed);
 
 	double sumX = (double)inverseY * r[3] + (double)inverseX * r[0] + (double)inverseZ * r[6];
 	float sumY = (float)((double)inverseX * r[1] + (double)inverseZ * r[7] + (double)inverseY * r[4]);
 	float sumZ = (float)((double)inverseX * r[2] + (double)inverseZ * r[8] + (double)inverseY * r[5]);
 	CVector skinTranslation;
 
-	skinTranslation.x = (float)(sumX + parentTransform->pos.x);
-	skinTranslation.y = (float)((double)sumY + parentTransform->pos.y);
-	skinTranslation.z = (float)((double)sumZ + parentTransform->pos.z);
+	skinTranslation._x = (float)(sumX + parentTransform->_pos._x);
+	skinTranslation._y = (float)((double)sumY + parentTransform->_pos._y);
+	skinTranslation._z = (float)((double)sumZ + parentTransform->_pos._z);
 
 	CMatrix skin;
 
-	transposed.multiply(&skin, &parentTransform->rot);
-	node->skinRot = skin;
-	node->skinPos = skinTranslation;
+	transposed.multiply(&skin, &parentTransform->_rot);
+	node->_skinRot = skin;
+	node->_skinPos = skinTranslation;
 
-	for (CNode *child = node->firstChild; child; child = child->nextSibling) {
-		if ((child->nodeFlags & CNode::kPositionValid) == 0)
+	for (CNode *child = node->_firstChild; child; child = child->_nextSibling) {
+		if ((child->_nodeFlags & CNode::kPositionValid) == 0)
 			child->computeLocalPositionFromWorld();
 
-		if ((child->nodeFlags & CNode::kQuaternionValid) == 0)
+		if ((child->_nodeFlags & CNode::kQuaternionValid) == 0)
 			child->updateLocalQuaternion();
 
 		CMatrix childRotation;
 
-		childRotation.setFromQuaternion(child->quat);
+		childRotation.setFromQuaternion(child->_quat);
 
-		const float *c = childRotation.m;
-		float childX = child->pos.x;
-		float childY = child->pos.y;
-		float childZ = child->pos.z;
+		const float *c = childRotation._m;
+		float childX = child->_pos._x;
+		float childY = child->_pos._y;
+		float childZ = child->_pos._z;
 		double partialX = (double)childZ * r[6] + (double)childY * r[3] + (double)childX * r[0];
 		float partialY = (float)((double)childX * r[1] + (double)childY * r[4] + (double)childZ * r[7]);
 		float partialZ = (float)((double)childX * r[2] + (double)childY * r[5] + (double)childZ * r[8]);
 		CTransform childWorld;
 
-		childWorld.pos.x = (float)(partialX + parentTransform->pos.x);
-		childWorld.pos.y = (float)((double)partialY + parentTransform->pos.y);
-		childWorld.pos.z = (float)((double)partialZ + parentTransform->pos.z);
-		childWorld.rot.m[0] = (float)((double)c[0] * r[0] + (double)c[2] * r[6] + (double)c[1] * r[3]);
-		childWorld.rot.m[1] = (float)((double)c[0] * r[1] + (double)c[2] * r[7] + (double)c[1] * r[4]);
-		childWorld.rot.m[2] = (float)((double)c[2] * r[8] + (double)c[1] * r[5] + (double)c[0] * r[2]);
-		childWorld.rot.m[3] = (float)((double)c[3] * r[0] + (double)c[5] * r[6] + (double)c[4] * r[3]);
-		childWorld.rot.m[4] = (float)((double)c[3] * r[1] + (double)c[5] * r[7] + (double)c[4] * r[4]);
-		childWorld.rot.m[5] = (float)((double)c[5] * r[8] + (double)c[4] * r[5] + (double)c[3] * r[2]);
-		childWorld.rot.m[6] = (float)((double)c[6] * r[0] + (double)c[8] * r[6] + (double)c[7] * r[3]);
-		childWorld.rot.m[7] = (float)((double)c[6] * r[1] + (double)c[8] * r[7] + (double)c[7] * r[4]);
-		childWorld.rot.m[8] = (float)((double)c[8] * r[8] + (double)c[7] * r[5] + (double)c[6] * r[2]);
+		childWorld._pos._x = (float)(partialX + parentTransform->_pos._x);
+		childWorld._pos._y = (float)((double)partialY + parentTransform->_pos._y);
+		childWorld._pos._z = (float)((double)partialZ + parentTransform->_pos._z);
+		childWorld._rot._m[0] = (float)((double)c[0] * r[0] + (double)c[2] * r[6] + (double)c[1] * r[3]);
+		childWorld._rot._m[1] = (float)((double)c[0] * r[1] + (double)c[2] * r[7] + (double)c[1] * r[4]);
+		childWorld._rot._m[2] = (float)((double)c[2] * r[8] + (double)c[1] * r[5] + (double)c[0] * r[2]);
+		childWorld._rot._m[3] = (float)((double)c[3] * r[0] + (double)c[5] * r[6] + (double)c[4] * r[3]);
+		childWorld._rot._m[4] = (float)((double)c[3] * r[1] + (double)c[5] * r[7] + (double)c[4] * r[4]);
+		childWorld._rot._m[5] = (float)((double)c[5] * r[8] + (double)c[4] * r[5] + (double)c[3] * r[2]);
+		childWorld._rot._m[6] = (float)((double)c[6] * r[0] + (double)c[8] * r[6] + (double)c[7] * r[3]);
+		childWorld._rot._m[7] = (float)((double)c[6] * r[1] + (double)c[8] * r[7] + (double)c[7] * r[4]);
+		childWorld._rot._m[8] = (float)((double)c[8] * r[8] + (double)c[7] * r[5] + (double)c[6] * r[2]);
 
 		computeTransforms(child, &childWorld);
 	}
@@ -381,7 +381,7 @@ void CWeightMap::computeTransforms(CNode *node, const CTransform *parentTransfor
 void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, float *outNormals, CNode **nodes) {
 	_engine->_weightMapDeformTimer.start();
 
-	if (!bound) {
+	if (!_bound) {
 		_engine->_weightMapDeformTimer.stop();
 
 		return;
@@ -389,20 +389,20 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 
 	int vertex = -1;
 
-	for (uint i = 0; i < weights.size(); i++) {
-		const VertexWeight &entry = weights[i];
+	for (uint i = 0; i < _weights.size(); i++) {
+		const VertexWeight &entry = _weights[i];
 
 		if (entry.first)
 			vertex++;
 
-		if (vertex < 0 || entry.node < 0 || entry.node >= (int)nodeNames.size() || !nodes[entry.node]) {
+		if (vertex < 0 || entry.node < 0 || entry.node >= (int)_nodeNames.size() || !nodes[entry.node]) {
 			warning("CWeightMap::deformVerts(): invalid weight entry %u", i);
 
 			continue;
 		}
 
-		const float *m = nodes[entry.node]->skinRot.m;
-		const CVector &t = nodes[entry.node]->skinPos;
+		const float *m = nodes[entry.node]->_skinRot._m;
+		const CVector &t = nodes[entry.node]->_skinPos;
 		const float *p = source->positions + vertex * 3;
 		float *o = outPositions + vertex * 8;
 		float w = entry.weight;
@@ -420,9 +420,9 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 			if (entry.first) {
 				float py = (float)(m[4] * y + m[1] * x + m[7] * z);
 				float px = (float)(m[3] * y + m[6] * z + m[0] * x);
-				float sy = (float)((double)py + t.y);
-				float sx = (float)((double)px + t.x);
-				double sz = (m[5] * y + m[2] * x + m[8] * z + t.z) * w;
+				float sy = (float)((double)py + t._y);
+				float sx = (float)((double)px + t._x);
+				double sz = (m[5] * y + m[2] * x + m[8] * z + t._z) * w;
 				float ny1 = (float)(m[4] * ny + m[7] * nz + m[1] * nx);
 				float nx1 = (float)(m[3] * ny + m[6] * nz + nx * m[0]);
 				double nz1 = (m[5] * ny + m[8] * nz + m[2] * nx) * w;
@@ -436,9 +436,9 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 			} else {
 				float py = (float)(m[4] * y + m[7] * z + m[1] * x);
 				float px = (float)(m[3] * y + m[6] * z + m[0] * x);
-				float sy = (float)((double)py + t.y);
-				float sx = (float)((double)px + t.x);
-				double sz = (m[5] * y + m[8] * z + m[2] * x + t.z) * w;
+				float sy = (float)((double)py + t._y);
+				float sx = (float)((double)px + t._x);
+				double sz = (m[5] * y + m[8] * z + m[2] * x + t._z) * w;
 				double nz1 = m[8] * nz + m[2] * nx + m[5] * ny;
 				float ny1 = (float)(m[7] * nz + m[1] * nx + m[4] * ny);
 				float nx1 = (float)(m[6] * nz + m[3] * ny + nx * m[0]);
@@ -453,9 +453,9 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 		} else if (entry.first) {
 			float py = (float)(m[4] * y + m[1] * x + m[7] * z);
 			float px = (float)(m[3] * y + m[6] * z + m[0] * x);
-			float sy = (float)((double)py + t.y);
-			float sx = (float)((double)px + t.x);
-			double sz = (m[5] * y + m[2] * x + m[8] * z + t.z) * w;
+			float sy = (float)((double)py + t._y);
+			float sx = (float)((double)px + t._x);
+			double sz = (m[5] * y + m[2] * x + m[8] * z + t._z) * w;
 
 			o[0] = (float)((double)sx * w);
 			o[1] = (float)((double)sy * w);
@@ -463,9 +463,9 @@ void CWeightMap::deformVerts(const VertexSource *source, float *outPositions, fl
 		} else {
 			float py = (float)(m[7] * z + m[1] * x + m[4] * y);
 			float px = (float)(m[6] * z + m[3] * y + x * m[0]);
-			float sy = (float)((double)py + t.y);
-			float sx = (float)((double)px + t.x);
-			double sz = (m[8] * z + m[2] * x + m[5] * y + t.z) * w;
+			float sy = (float)((double)py + t._y);
+			float sx = (float)((double)px + t._x);
+			double sz = (m[8] * z + m[2] * x + m[5] * y + t._z) * w;
 
 			o[0] = (float)((double)sx * w + o[0]);
 			o[1] = (float)((double)sy * w + o[1]);

@@ -45,59 +45,59 @@ static const float kMinConstraintAlignment = 0.5f;
 static const float kFunnelAngleLimit = 3.0f;
 
 Puck_v2::Puck_v2(EmiEngine *engine, float newReflectionAngle) : _engine(engine) {
-	constraint[0] = 0.0f;
-	constraint[1] = 0.0f;
-	constraint[2] = 0.0f;
-	lineA[0] = 0.0f;
-	lineA[1] = 0.0f;
-	lineA[2] = 0.0f;
-	lineB[0] = 0.0f;
-	lineB[1] = 0.0f;
-	lineB[2] = 0.0f;
-	planes = nullptr;
+	_constraint[0] = 0.0f;
+	_constraint[1] = 0.0f;
+	_constraint[2] = 0.0f;
+	_lineA[0] = 0.0f;
+	_lineA[1] = 0.0f;
+	_lineA[2] = 0.0f;
+	_lineB[0] = 0.0f;
+	_lineB[1] = 0.0f;
+	_lineB[2] = 0.0f;
+	_planes = nullptr;
 	reset();
-	reflectionAngle = newReflectionAngle;
+	_reflectionAngle = newReflectionAngle;
 }
 
 Puck_v2::~Puck_v2() {
 }
 
 void Puck_v2::reset() {
-	plane = nullptr;
-	constrained = false;
-	constraint[0] = 0.0f;
-	constraint[1] = 1.0f;
-	constraint[2] = 0.0f;
+	_plane = nullptr;
+	_constrained = false;
+	_constraint[0] = 0.0f;
+	_constraint[1] = 1.0f;
+	_constraint[2] = 0.0f;
 }
 
 void Puck_v2::validate(WalkPlaneCollection *collection) {
-	planes = collection;
+	_planes = collection;
 
-	if (!plane) {
+	if (!_plane) {
 		if (!collection) {
 			warning("Puck_v2::validate(): missing collection");
 
 			return;
 		}
 
-		plane = collection->planeClosest(&pos.x, kTypeWalk);
+		_plane = collection->planeClosest(&_pos._x, kTypeWalk);
 	}
 
-	if (plane && !plane->within(&pos.x, true)) {
-		plane->closestPoint(&pos.x);
+	if (_plane && !_plane->within(&_pos._x, true)) {
+		_plane->closestPoint(&_pos._x);
 
-		CVector newPosition = pos;
+		CVector newPosition = _pos;
 
 		setLocalPosition(newPosition);
 	}
 }
 
 void Puck_v2::rotate(float angle) {
-	if ((nodeFlags & kEulerValid) == 0)
+	if ((_nodeFlags & kEulerValid) == 0)
 		computeLocalMatrixFromWorld();
 
-	eulerDeg.y = (float)((double)eulerDeg.y + angle);
-	nodeFlags = (nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+	_eulerDeg._y = (float)((double)_eulerDeg._y + angle);
+	_nodeFlags = (_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 	updateLocalState();
 }
 
@@ -115,11 +115,11 @@ float Puck_v2::pointAt(const float *target, float maxAngle) {
 }
 
 float Puck_v2::getYawToPoint(const float *target) {
-	if ((nodeFlags & kEulerValid) == 0)
+	if ((_nodeFlags & kEulerValid) == 0)
 		computeLocalMatrixFromWorld();
 
-	double yaw = eulerDeg.y;
-	float storedYaw = eulerDeg.y;
+	double yaw = _eulerDeg._y;
+	float storedYaw = _eulerDeg._y;
 
 	if (yaw - yaw != 0.0) {
 		warning("Puck_v2::getYawToPoint(): invalid yaw");
@@ -143,11 +143,11 @@ float Puck_v2::getYawToPoint(const float *target) {
 		storedYaw = (float)yaw;
 	}
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	float deltaX = (float)((double)target[0] - world.pos.x);
-	float deltaZ = (float)((double)target[2] - world.pos.z);
+	float deltaX = (float)((double)target[0] - _world._pos._x);
+	float deltaZ = (float)((double)target[2] - _world._pos._z);
 	float normalizedX = deltaX;
 	float normalizedZ = deltaZ;
 	double length = sqrt((double)deltaX * deltaX + (double)deltaZ * deltaZ);
@@ -175,12 +175,12 @@ float Puck_v2::getYawToPoint(const float *target) {
 float *Puck_v2::closestPointOnConstraintLine(float *out, const float *point) {
 	float pointX = point[0];
 	float pointZ = point[2];
-	double pointDeltaX = (double)pointX - lineA[0];
-	double negativeLineAY = -(double)lineA[1];
-	double pointDeltaZ = (double)pointZ - lineA[2];
-	float lineDeltaX = (float)((double)lineB[0] - lineA[0]);
-	float lineDeltaY = (float)((double)lineB[1] - lineA[1]);
-	double lineDeltaZExact = (double)lineB[2] - lineA[2];
+	double pointDeltaX = (double)pointX - _lineA[0];
+	double negativeLineAY = -(double)_lineA[1];
+	double pointDeltaZ = (double)pointZ - _lineA[2];
+	float lineDeltaX = (float)((double)_lineB[0] - _lineA[0]);
+	float lineDeltaY = (float)((double)_lineB[1] - _lineA[1]);
+	double lineDeltaZExact = (double)_lineB[2] - _lineA[2];
 	float lineDeltaZ = (float)lineDeltaZExact;
 	double dot = (lineDeltaZExact * pointDeltaZ + (double)lineDeltaY * negativeLineAY) + (double)lineDeltaX * pointDeltaX;
 	double lengthSquared = ((double)lineDeltaZ * lineDeltaZ + (double)lineDeltaY * lineDeltaY) + (double)lineDeltaX * lineDeltaX;
@@ -198,9 +198,9 @@ float *Puck_v2::closestPointOnConstraintLine(float *out, const float *point) {
 	float scaledY = (float)(lineDeltaY * ratio);
 	double scaledZ = ratio * lineDeltaZ;
 
-	out[0] = (float)((double)scaledX + lineA[0]);
-	out[1] = (float)((double)scaledY + lineA[1]);
-	out[2] = (float)(scaledZ + lineA[2]);
+	out[0] = (float)((double)scaledX + _lineA[0]);
+	out[1] = (float)((double)scaledY + _lineA[1]);
+	out[2] = (float)(scaledZ + _lineA[2]);
 
 	return out;
 }
@@ -213,62 +213,62 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 
 	_engine->_puckRecursionDepth++;
 
-	if (constrained) {
+	if (_constrained) {
 		if (!constrain(nullptr))
 			return false;
 	}
 
-	if (!plane) {
-		if ((nodeFlags & kWorldValid) == 0)
+	if (!_plane) {
+		if ((_nodeFlags & kWorldValid) == 0)
 			updateWorldTransform();
 
-		float forwardX = world.rot.m[6];
-		float forwardY = world.rot.m[7];
-		float forwardZ = world.rot.m[8];
+		float forwardX = _world._rot._m[6];
+		float forwardY = _world._rot._m[7];
+		float forwardZ = _world._rot._m[8];
 		float step[3];
 
 		step[0] = (float)((double)forwardX * distance);
 		step[1] = (float)((double)forwardY * distance);
 		step[2] = (float)((double)forwardZ * distance);
 
-		if ((nodeFlags & kWorldValid) == 0)
+		if ((_nodeFlags & kWorldValid) == 0)
 			updateWorldTransform();
 
 		CVector newPosition;
 
-		newPosition.y = (float)((double)step[1] + world.pos.y);
-		newPosition.x = (float)((double)step[0] + world.pos.x);
-		newPosition.z = (float)((double)step[2] + world.pos.z);
+		newPosition._y = (float)((double)step[1] + _world._pos._y);
+		newPosition._x = (float)((double)step[0] + _world._pos._x);
+		newPosition._z = (float)((double)step[2] + _world._pos._z);
 		setLocalPosition(newPosition);
 		_engine->_puckRecursionDepth = 0;
 
 		return true;
 	}
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	float forwardX = world.rot.m[6];
-	float forwardY = world.rot.m[7];
-	float forwardZ = world.rot.m[8];
+	float forwardX = _world._rot._m[6];
+	float forwardY = _world._rot._m[7];
+	float forwardZ = _world._rot._m[8];
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
 	float ahead[3];
 	float step[3];
 
-	ahead[0] = (float)((double)forwardX + world.pos.x);
-	ahead[1] = (float)((double)forwardY + world.pos.y);
-	ahead[2] = (float)((double)forwardZ + world.pos.z);
-	plane->project(ahead);
+	ahead[0] = (float)((double)forwardX + _world._pos._x);
+	ahead[1] = (float)((double)forwardY + _world._pos._y);
+	ahead[2] = (float)((double)forwardZ + _world._pos._z);
+	_plane->project(ahead);
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	ahead[0] = (float)((double)ahead[0] - world.pos.x);
-	ahead[1] = (float)((double)ahead[1] - world.pos.y);
-	ahead[2] = (float)((double)ahead[2] - world.pos.z);
+	ahead[0] = (float)((double)ahead[0] - _world._pos._x);
+	ahead[1] = (float)((double)ahead[1] - _world._pos._y);
+	ahead[2] = (float)((double)ahead[2] - _world._pos._z);
 
 	double length = sqrt(((double)ahead[0] * ahead[0] + (double)ahead[2] * ahead[2]) + (double)ahead[1] * ahead[1]);
 
@@ -284,30 +284,30 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 	step[1] = (float)((double)ahead[1] * distance);
 	step[2] = (float)((double)ahead[2] * distance);
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	target[0] = (float)((double)step[0] + world.pos.x);
-	target[1] = (float)((double)step[1] + world.pos.y);
-	target[2] = (float)((double)step[2] + world.pos.z);
+	target[0] = (float)((double)step[0] + _world._pos._x);
+	target[1] = (float)((double)step[1] + _world._pos._y);
+	target[2] = (float)((double)step[2] + _world._pos._z);
 
-	if (constrained) {
+	if (_constrained) {
 		float *closest = closestPointOnConstraintLine(step, target);
 
 		target[0] = closest[0];
 		target[1] = closest[1];
 		target[2] = closest[2];
-		plane->project(target);
+		_plane->project(target);
 	}
 
-	if (plane->within(target, true)) {
-		plane->project(target);
+	if (_plane->within(target, true)) {
+		_plane->project(target);
 
 		CVector newPosition;
 
-		newPosition.x = target[0];
-		newPosition.y = target[1];
-		newPosition.z = target[2];
+		newPosition._x = target[0];
+		newPosition._y = target[1];
+		newPosition._z = target[2];
 		setLocalPosition(newPosition);
 		_engine->_puckRecursionDepth = 0;
 
@@ -320,86 +320,86 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 		return false;
 	}
 
-	WalkPlane_v2 *oldPlane = plane;
-	float angle = oldPlane->intersection(&pos.x, target, hit);
+	WalkPlane_v2 *oldPlane = _plane;
+	float angle = oldPlane->intersection(&_pos._x, target, hit);
 
-	oldPlane->enabled = false;
+	oldPlane->_enabled = false;
 
 	CVector hitLocal;
 
-	hitLocal.x = hit[0];
-	hitLocal.y = hit[1];
-	hitLocal.z = hit[2];
+	hitLocal._x = hit[0];
+	hitLocal._y = hit[1];
+	hitLocal._z = hit[2];
 	worldToLocal(&hitLocal);
 
-	float remaining = (float)((double)distance - hitLocal.z);
+	float remaining = (float)((double)distance - hitLocal._z);
 	WalkPlane_v2 *newPlane = nullptr;
 
-	if (planes)
-		newPlane = planes->planeAt(hit, kTypeWalk);
+	if (_planes)
+		newPlane = _planes->planeAt(hit, kTypeWalk);
 	else
 		warning("Puck_v2::forward(): missing collection");
 
 	CVector hitPosition;
 
-	hitPosition.x = hit[0];
-	hitPosition.y = hit[1];
-	hitPosition.z = hit[2];
+	hitPosition._x = hit[0];
+	hitPosition._y = hit[1];
+	hitPosition._z = hit[2];
 
 	if (newPlane) {
 		setLocalPosition(hitPosition);
-		plane = newPlane;
+		_plane = newPlane;
 
-		if ((newPlane->type & kTypeConstraint) == kTypeConstraint) {
+		if ((newPlane->_type & kTypeConstraint) == kTypeConstraint) {
 			float *constraintVector = newPlane->getConstraintVector(this);
 
 			if (constraintVector) {
 				constrain(constraintVector);
-				constrained = true;
+				_constrained = true;
 			}
 
-			oldPlane->enabled = true;
+			oldPlane->_enabled = true;
 
 			return false;
 		}
 
-		constrained = false;
+		_constrained = false;
 
 		bool result = forward(remaining, 1, 1);
 
-		oldPlane->enabled = true;
+		oldPlane->_enabled = true;
 
 		return result;
 	}
 
-	if ((nodeFlags & kPositionValid) == 0)
+	if ((_nodeFlags & kPositionValid) == 0)
 		computeLocalPositionFromWorld();
 
 	setLocalPosition(hitPosition);
 
-	if ((plane->type & kTypeFunnel) == 0) {
+	if ((_plane->_type & kTypeFunnel) == 0) {
 		rotate(angle);
-		oldPlane->enabled = true;
+		oldPlane->_enabled = true;
 	} else {
-		int axis = plane->quadAxis;
+		int axis = _plane->_quadAxis;
 
-		if (plane->numVerts <= 0 || axis < 0 || axis >= plane->numVerts) {
-			warning("Puck_v2::forward(): invalid funnel (axis %d of %d)", axis, plane->numVerts);
+		if (_plane->_numVerts <= 0 || axis < 0 || axis >= _plane->_numVerts) {
+			warning("Puck_v2::forward(): invalid funnel (axis %d of %d)", axis, _plane->_numVerts);
 
 			return false;
 		}
 
-		if ((axis + 1) % plane->numVerts == plane->hitEdge)
+		if ((axis + 1) % _plane->_numVerts == _plane->_hitEdge)
 			return false;
 
 		CVector corner;
 
-		corner.x = plane->verts[axis]->x;
-		corner.y = plane->verts[axis]->y;
-		corner.z = plane->verts[axis]->z;
+		corner._x = _plane->_verts[axis]->x;
+		corner._y = _plane->_verts[axis]->y;
+		corner._z = _plane->_verts[axis]->z;
 		worldToLocal(&corner);
 
-		if (!(corner.x > 0.0f)) {
+		if (!(corner._x > 0.0f)) {
 			if (angle < kFunnelAngleLimit)
 				angle = (float)((double)angle + kQuarterTurnDegrees + kQuarterTurnDegrees);
 		} else if (angle > kFunnelAngleLimit) {
@@ -411,35 +411,35 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 
 	bool result = forward(remaining, 1, 1);
 
-	oldPlane->enabled = true;
+	oldPlane->_enabled = true;
 
 	return result;
 }
 
 bool Puck_v2::constrain(const float *vector) {
 	if (vector) {
-		constraint[0] = vector[0];
-		constraint[1] = vector[1];
-		constraint[2] = vector[2];
-		constraint[1] = 0.0f;
+		_constraint[0] = vector[0];
+		_constraint[1] = vector[1];
+		_constraint[2] = vector[2];
+		_constraint[1] = 0.0f;
 
-		double length = sqrt(((double)constraint[0] * constraint[0] + (double)constraint[1] * constraint[1]) + (double)constraint[2] * constraint[2]);
+		double length = sqrt(((double)_constraint[0] * _constraint[0] + (double)_constraint[1] * _constraint[1]) + (double)_constraint[2] * _constraint[2]);
 
 		if (length >= kMinLength) {
 			double inverse = 1.0 / length;
 
-			constraint[0] = (float)(inverse * constraint[0]);
-			constraint[1] = (float)(inverse * constraint[1]);
-			constraint[2] = (float)(inverse * constraint[2]);
+			_constraint[0] = (float)(inverse * _constraint[0]);
+			_constraint[1] = (float)(inverse * _constraint[1]);
+			_constraint[2] = (float)(inverse * _constraint[2]);
 		}
 
-		constrained = true;
+		_constrained = true;
 	}
 
-	if ((nodeFlags & kWorldValid) == 0)
+	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
 
-	double dot = ((double)world.rot.m[8] * constraint[2] + (double)world.rot.m[7] * constraint[1]) + (double)world.rot.m[6] * constraint[0];
+	double dot = ((double)_world._rot._m[8] * _constraint[2] + (double)_world._rot._m[7] * _constraint[1]) + (double)_world._rot._m[6] * _constraint[0];
 	float storedDot = (float)dot;
 
 	if (dot < 0.0)
@@ -448,18 +448,18 @@ bool Puck_v2::constrain(const float *vector) {
 	if (dot < kMinConstraintAlignment)
 		return false;
 
-	double angle = acos((double)constraint[2]) * WalkPlane_v2::kRadiansToDegrees;
+	double angle = acos((double)_constraint[2]) * WalkPlane_v2::kRadiansToDegrees;
 
-	if (constraint[0] < 0.0f)
+	if (_constraint[0] < 0.0f)
 		angle = kFullTurnDegrees - angle;
 
 	if (!(storedDot > 0.0f))
 		angle += kHalfTurnDegrees;
 
-	eulerDeg.y = (float)angle;
-	eulerDeg.x = 0.0f;
-	eulerDeg.z = 0.0f;
-	nodeFlags = (nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
+	_eulerDeg._y = (float)angle;
+	_eulerDeg._x = 0.0f;
+	_eulerDeg._z = 0.0f;
+	_nodeFlags = (_nodeFlags & ~kQuaternionValid) | kEulerValid | kLocalSet;
 	updateLocalState();
 
 	return true;

@@ -102,14 +102,14 @@ struct LegacyRoomPlan {
 // without touching the game, apply() replaces the game after GrimEngine::restorePrologue()
 class LegacyImporter : public LegacyCostumeProvider, public LegacyLuaMapper {
 public:
-	explicit LegacyImporter(GrimEngine *pGrim);
+	explicit LegacyImporter(GrimEngine *grim);
 	~LegacyImporter();
 
-	bool prepare(Common::SeekableReadStream *pStream);
+	bool prepare(Common::SeekableReadStream *stream);
 	bool apply();
 
 	Common::SeekableReadStream *openCostumeFile(const Common::String &name) override;
-	bool mapUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int32 *pNewId) override;
+	bool mapUserdata(int32 oldTag, int32 oldId, int32 *newTag, int32 *newId) override;
 
 	// Looks for the file the way GrimEngine::openFile() does
 	static bool archiveHasFile(const Common::String &name);
@@ -123,8 +123,8 @@ public:
 	bool importActors();
 
 	// The next two are for the actor import, they touch what the modules keep private
-	static int setChoreInstance(Cos *pCos, int hInst, int choreIndex, uint32 state, int time);
-	static int addPuppetTrack(SputActorModule *pActors, ModelInst *pModelInst, RdKeyframe *pKeyframe, int priority, int priorityMasked, uint status, float frame, float fade, float fadeSpeed);
+	static int setChoreInstance(Cos *cos, int inst, int choreIndex, uint32 state, int time);
+	static int addPuppetTrack(SputActorModule *actors, ModelInst *modelInst, RdKeyframe *keyframe, int priority, int priorityMasked, uint status, float frame, float fade, float fadeSpeed);
 
 private:
 	const LegacyObjectState *findObjectState(int32 id) const;
@@ -137,7 +137,7 @@ private:
 	void importFonts();
 	void importText();
 	bool importRooms();
-	void importObjectStates(Room *pRoom, const LegacyRoomPlan &plan);
+	void importObjectStates(Room *room, const LegacyRoomPlan &plan);
 	void importWalkPlanes(const LegacySet &set);
 	int importCameraActor();
 	void importSelectedActor();
@@ -153,21 +153,21 @@ private:
 	void remapControls();
 
 	// Bodies that touch what the modules keep private (all of them are friends of this class)
-	static void resetActors(SputActorModule *pActors);
-	static void beginRoom(SputRoom *pSputRoom, Room *pRoom, int curSetup, int bRoomRef);
-	static SputObjectState *addRoomObjectState(SputRoom *pSputRoom, int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int colorFrame, int zFrame);
-	static void setCurrentRoom(SputRoom *pSputRoom, Room *pRoom, byte minVol, byte maxVol, float maxDist, float panFactor, float maxRadius);
-	static void getDefaultFontNames(SputText *pSputText, Common::String *pPrintLine, Common::String *pDefault, Common::String *pBlastText);
-	static void setDefaultFonts(SputText *pSputText, const char *printLineFont, const char *defaultFont, const char *blastTextFont);
-	static void setSayLineDefaults(SputText *pSputText, int x, int y, int fgColor, int justify);
-	static void setRenderState(SputRender *pSputRender, int irisMode, int irisCenterX, int irisCenterY, int irisDuration, int irisElapsed, int camActorIndex);
-	static void startMovie(SputSmush *pSputSmush, const char *name, int bLooping, int x, int y);
-	void getEngineRefs(LegacyLuaRefs *pRefs);
+	static void resetActors(SputActorModule *actors);
+	static void beginRoom(SputRoom *sputRoom, Room *room, int curSetup, int roomRef);
+	static SputObjectState *addRoomObjectState(SputRoom *sputRoom, int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int colorFrame, int zFrame);
+	static void setCurrentRoom(SputRoom *sputRoom, Room *room, byte minVol, byte maxVol, float maxDist, float panFactor, float maxRadius);
+	static void getDefaultFontNames(SputText *sputText, Common::String *printLine, Common::String *defaultValue, Common::String *blastText);
+	static void setDefaultFonts(SputText *sputText, const char *printLineFont, const char *defaultFont, const char *blastTextFont);
+	static void setSayLineDefaults(SputText *sputText, int x, int y, int fgColor, int justify);
+	static void setRenderState(SputRender *sputRender, int irisMode, int irisCenterX, int irisCenterY, int irisDuration, int irisElapsed, int camActorIndex);
+	static void startMovie(SputSmush *sputSmush, const char *name, int looping, int x, int y);
+	void getEngineRefs(LegacyLuaRefs *refs);
 
-	GrimEngine *_pGrim;
+	GrimEngine *_grim;
 	LegacySaveData _data;
 	LegacyImportContext _ctx;
-	Common::SeekableReadStream *_pLuaStream;
+	Common::SeekableReadStream *_luaStream;
 	Common::Array<LegacyRoomPlan> _roomPlans;
 	Common::Array<uint> _fontPlan;
 	Common::String _printLineFont;

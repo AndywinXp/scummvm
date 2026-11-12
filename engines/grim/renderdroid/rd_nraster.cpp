@@ -27,19 +27,19 @@ namespace Grim {
 
 RenderDroid::NRasterModule::NRasterModule(RenderDroid *rd) : Module(rd),
 	_numVertices(0), _yMinVert(0), _yMaxVert(0), _leftVertexStep(0), _rightVertexStep(0),
-	_aVertices(nullptr), _aTexVertices(nullptr), _aIntensities(nullptr),
-	_pDest(nullptr), _pWDest(nullptr), _pPixels(nullptr),
+	_vertices(nullptr), _texVertices(nullptr), _intensities(nullptr),
+	_dest(nullptr), _wDest(nullptr), _pixels(nullptr),
 	_mipMapNum(0), _maxMipMap(0), _texPitch(0), _texRowShift(0), _uWrap(0), _vWrap(0),
 	_uStep(0), _vStep(0), _fixU(0), _fixV(0),
 	_dOneOverZdX(0.0f), _dOneOverZdY(0.0f), _dUOverZdX(0.0f), _dUOverZdY(0.0f), _dVOverZdX(0.0f), _dVOverZdY(0.0f),
 	_dUdXModifier(0), _dVdXModifier(0),
 	_oneOverZStep(0.0f), _uOverZStep(0.0f), _vOverZStep(0.0f),
-	_aAlphaMap(nullptr), _aMonoMap(nullptr), _aRGBMap(nullptr), _aRGBToPalette(nullptr),
+	_alphaMap(nullptr), _monoMap(nullptr), _rgbMap(nullptr), _rgbToPalette(nullptr),
 	_RGBcolor(0), _color(0) {
 	for (int i = 0; i < 32; i++) {
-		_aOneOverZ[i] = 0.0f;
-		_aUOverZ[i] = 0.0f;
-		_aVOverZ[i] = 0.0f;
+		_oneOverZ[i] = 0.0f;
+		_uOverZ[i] = 0.0f;
+		_vOverZ[i] = 0.0f;
 	}
 }
 
@@ -122,17 +122,17 @@ int RenderDroid::NRasterModule::selectGradientVertex() {
 		direction = 1;
 	} else {
 		vertC = wrapVertex(_yMinVert + 1);
-		float *pNext = _aVertices[vertC];
-		float *pMin = _aVertices[_yMinVert];
-		float *pMax = _aVertices[_yMaxVert];
+		float *next = _vertices[vertC];
+		float *minPointer = _vertices[_yMinVert];
+		float *maxPointer = _vertices[_yMaxVert];
 
-		int64 dxMax = ftol((double)pNext[0] - pMax[0]);
+		int64 dxMax = ftol((double)next[0] - maxPointer[0]);
 		if (dxMax < 0)
 			dxMax = -dxMax;
 
 		bool offLine = (double)dxMax > 1.0;
 		if (!offLine) {
-			int64 dxMin = ftol((double)pNext[0] - pMin[0]);
+			int64 dxMin = ftol((double)next[0] - minPointer[0]);
 			if (dxMin < 0)
 				dxMin = -dxMin;
 
@@ -140,8 +140,8 @@ int RenderDroid::NRasterModule::selectGradientVertex() {
 		}
 
 		if (offLine) {
-			double expectedY = ((double)pMax[1] - pMin[1]) / ((double)pMax[0] - pMin[0]) * ((double)pNext[0] - pMin[0]) + pMin[1];
-			double dist = pNext[1] - expectedY;
+			double expectedY = ((double)maxPointer[1] - minPointer[1]) / ((double)maxPointer[0] - minPointer[0]) * ((double)next[0] - minPointer[0]) + minPointer[1];
+			double dist = next[1] - expectedY;
 			if (dist < 0.0)
 				dist = -dist;
 
@@ -152,8 +152,8 @@ int RenderDroid::NRasterModule::selectGradientVertex() {
 	float bestDist = 0.0f;
 	int cur = wrapVertex(direction + _yMinVert);
 	while (cur != _yMaxVert) {
-		float midX = ((double)_aVertices[_yMinVert][0] + _aVertices[_yMaxVert][0]) * 0.5f;
-		double dist = _aVertices[cur][0] - midX;
+		float midX = ((double)_vertices[_yMinVert][0] + _vertices[_yMaxVert][0]) * 0.5f;
+		double dist = _vertices[cur][0] - midX;
 		if (dist < 0.0)
 			dist = -dist;
 
@@ -180,23 +180,23 @@ void RenderDroid::NRasterModule::selectMipLevel(float z) {
 		break;
 	case 1:
 		_mipMapNum = 0;
-		if (z > (double)_rd->_aMipDistances[1])
+		if (z > (double)_rd->_mipDistances[1])
 			_mipMapNum = 1;
 		break;
 	case 2:
-		if (z <= (double)_rd->_aMipDistances[0])
+		if (z <= (double)_rd->_mipDistances[0])
 			_mipMapNum = 0;
-		else if (z > (double)_rd->_aMipDistances[1])
+		else if (z > (double)_rd->_mipDistances[1])
 			_mipMapNum = 2;
 		else
 			_mipMapNum = 1;
 		break;
 	case 3:
-		if (z <= (double)_rd->_aMipDistances[0])
+		if (z <= (double)_rd->_mipDistances[0])
 			_mipMapNum = 0;
-		else if (z <= (double)_rd->_aMipDistances[1])
+		else if (z <= (double)_rd->_mipDistances[1])
 			_mipMapNum = 1;
-		else if (z > (double)_rd->_aMipDistances[2])
+		else if (z > (double)_rd->_mipDistances[2])
 			_mipMapNum = 3;
 		else
 			_mipMapNum = 2;
@@ -217,21 +217,21 @@ void RenderDroid::NRasterModule::calcAffineGradients(float z) {
 		vertC = selectGradientVertex();
 	}
 
-	float *pRef = _aVertices[vertC];
-	double dyA = _aVertices[vertA][1] - pRef[1];
-	double dyB = _aVertices[vertB][1] - pRef[1];
-	float dxA = (double)_aVertices[vertA][0] - pRef[0];
-	float dxB = (double)_aVertices[vertB][0] - pRef[0];
-	double duA = (double)_aTexVertices[vertA][0] - _aTexVertices[vertC][0];
-	double duB = (double)_aTexVertices[vertB][0] - _aTexVertices[vertC][0];
+	float *ref = _vertices[vertC];
+	double dyA = _vertices[vertA][1] - ref[1];
+	double dyB = _vertices[vertB][1] - ref[1];
+	float dxA = (double)_vertices[vertA][0] - ref[0];
+	float dxB = (double)_vertices[vertB][0] - ref[0];
+	double duA = (double)_texVertices[vertA][0] - _texVertices[vertC][0];
+	double duB = (double)_texVertices[vertB][0] - _texVertices[vertC][0];
 	float duBStored = duB;
 	float duAStored = duA;
-	double dvB = (double)_aTexVertices[vertB][1] - _aTexVertices[vertC][1];
+	double dvB = (double)_texVertices[vertB][1] - _texVertices[vertC][1];
 	double uCross = duB * dyA - duA * dyB;
 	double invDet = 1.0 / (dyA * dxB - dyB * dxA);
 	float invDetStored = invDet;
 	float dvBStored = dvB;
-	float dvA = (double)_aTexVertices[vertA][1] - _aTexVertices[vertC][1];
+	float dvA = (double)_texVertices[vertA][1] - _texVertices[vertC][1];
 	float negInvDet = -invDet;
 	float dUdX = uCross * invDetStored;
 	float dUdY = ((double)duBStored * dxA - (double)duAStored * dxB) * negInvDet;
@@ -273,27 +273,27 @@ void RenderDroid::NRasterModule::calcPerspGradients(float z) {
 	}
 
 	for (int i = 0; i < numVertices; i++) {
-		double oneOverZ = 1.0 / _aVertices[i][2];
-		_aOneOverZ[i] = oneOverZ;
-		_aUOverZ[i] = _aTexVertices[i][0] * oneOverZ;
-		_aVOverZ[i] = (double)_aTexVertices[i][1] * _aOneOverZ[i];
+		double oneOverZ = 1.0 / _vertices[i][2];
+		_oneOverZ[i] = oneOverZ;
+		_uOverZ[i] = _texVertices[i][0] * oneOverZ;
+		_vOverZ[i] = (double)_texVertices[i][1] * _oneOverZ[i];
 	}
 
-	float *pA = _aVertices[vertA];
-	float *pB = _aVertices[vertB];
-	float *pC = _aVertices[vertC];
-	double dyA = (double)pA[1] - pC[1];
-	double dyB = (double)pB[1] - pC[1];
+	float *a = _vertices[vertA];
+	float *b = _vertices[vertB];
+	float *c = _vertices[vertC];
+	double dyA = (double)a[1] - c[1];
+	double dyB = (double)b[1] - c[1];
 	float dyAStored = dyA;
 	float dyBStored = dyB;
-	float dxA = (double)pA[0] - pC[0];
-	float dxB = (double)pB[0] - pC[0];
-	float dOneOverZA = (double)_aOneOverZ[vertA] - _aOneOverZ[vertC];
-	float dUOverZB = (double)_aUOverZ[vertB] - _aUOverZ[vertC];
-	float dUOverZA = (double)_aUOverZ[vertA] - _aUOverZ[vertC];
-	float dVOverZB = (double)_aVOverZ[vertB] - _aVOverZ[vertC];
-	double dOneOverZB = (double)_aOneOverZ[vertB] - _aOneOverZ[vertC];
-	float dVOverZA = (double)_aVOverZ[vertA] - _aVOverZ[vertC];
+	float dxA = (double)a[0] - c[0];
+	float dxB = (double)b[0] - c[0];
+	float dOneOverZA = (double)_oneOverZ[vertA] - _oneOverZ[vertC];
+	float dUOverZB = (double)_uOverZ[vertB] - _uOverZ[vertC];
+	float dUOverZA = (double)_uOverZ[vertA] - _uOverZ[vertC];
+	float dVOverZB = (double)_vOverZ[vertB] - _vOverZ[vertC];
+	double dOneOverZB = (double)_oneOverZ[vertB] - _oneOverZ[vertC];
+	float dVOverZA = (double)_vOverZ[vertA] - _vOverZ[vertC];
 	float invDet = 1.0 / (dyA * dxB - dyB * dxA);
 	float negInvDet = -invDet;
 
@@ -306,53 +306,53 @@ void RenderDroid::NRasterModule::calcPerspGradients(float z) {
 
 	selectMipLevel(z);
 
-	double uCrossX = (double)_aOneOverZ[vertA] * _dUOverZdX - (double)_aUOverZ[vertA] * _dOneOverZdX;
+	double uCrossX = (double)_oneOverZ[vertA] * _dUOverZdX - (double)_uOverZ[vertA] * _dOneOverZdX;
 	if (uCrossX > 0.0)
 		_dUdXModifier = 0x8000;
-	else if (uCrossX < 0.0 || (double)_aOneOverZ[vertA] * _dUOverZdY - (double)_aUOverZ[vertA] * _dOneOverZdY < 0.0)
+	else if (uCrossX < 0.0 || (double)_oneOverZ[vertA] * _dUOverZdY - (double)_uOverZ[vertA] * _dOneOverZdY < 0.0)
 		_dUdXModifier = 0x7FFF;
 	else
 		_dUdXModifier = 0x8000;
 
-	double vCrossX = (double)_aOneOverZ[vertA] * _dVOverZdX - (double)_aVOverZ[vertA] * _dOneOverZdX;
+	double vCrossX = (double)_oneOverZ[vertA] * _dVOverZdX - (double)_vOverZ[vertA] * _dOneOverZdX;
 	if (vCrossX > 0.0)
 		_dVdXModifier = 0x8000;
-	else if (vCrossX < 0.0 || (double)_aOneOverZ[vertA] * _dVOverZdY - (double)_aVOverZ[vertA] * _dOneOverZdY < 0.0)
+	else if (vCrossX < 0.0 || (double)_oneOverZ[vertA] * _dVOverZdY - (double)_vOverZ[vertA] * _dOneOverZdY < 0.0)
 		_dVdXModifier = 0x7FFF;
 	else
 		_dVdXModifier = 0x8000;
 }
 
-int RenderDroid::NRasterModule::drawNGonLV(RdProcFace *pProcFace, RdMatCel *pCel) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-	int bpp = pVBuffer->tex.format.bpp;
-	_aVertices = pProcFace->aVertices;
-	_numVertices = pProcFace->numVertices;
+int RenderDroid::NRasterModule::drawNGonLV(RdProcFace *procFace, RdMatCel *cel) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+	int bpp = vBuffer->tex.format.bpp;
+	_vertices = procFace->vertices;
+	_numVertices = procFace->numVertices;
 
 	if (bpp == 8) {
-		_color = pCel->colorIndex;
+		_color = cel->colorIndex;
 		for (int i = 0; i < (int)_numVertices; i++) {
-			int y = floorToInt(_aVertices[i][1]);
-			int x = floorToInt(_aVertices[i][0]);
-			pVBuffer->pPixels[y * pVBuffer->tex.pitchInBytes + x] = _color;
+			int y = floorToInt(_vertices[i][1]);
+			int x = floorToInt(_vertices[i][0]);
+			vBuffer->pixels[y * vBuffer->tex.pitchInBytes + x] = _color;
 		}
 	} else if (bpp == 16) {
-		_RGBcolor = *(uint16 *)&pProcFace->pColormap->pRGB16[2 * (pCel->colorIndex & 0xFF) + 32256];
+		_RGBcolor = *(uint16 *)&procFace->colormap->rgb16[2 * (cel->colorIndex & 0xFF) + 32256];
 		for (int i = 0; i < (int)_numVertices; i++) {
-			int y = floorToInt(_aVertices[i][1]);
-			int x = floorToInt(_aVertices[i][0]);
-			*(uint16 *)&pVBuffer->pPixels[2 * x + 2 * y * (pVBuffer->tex.pitchInBytes >> 1)] = _RGBcolor;
+			int y = floorToInt(_vertices[i][1]);
+			int x = floorToInt(_vertices[i][0]);
+			*(uint16 *)&vBuffer->pixels[2 * x + 2 * y * (vBuffer->tex.pitchInBytes >> 1)] = _RGBcolor;
 		}
 	}
 
 	return 0;
 }
 
-int RenderDroid::NRasterModule::drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel) {
-	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
-	int bpp = pCanvas->pVBuffer->tex.format.bpp;
-	_aVertices = pProcFace->aVertices;
-	_numVertices = pProcFace->numVertices;
+int RenderDroid::NRasterModule::drawNGonLW(RdProcFace *procFace, RdMatCel *cel) {
+	RdCanvas *canvas = _rd->_camera.getCurrent()->canvas;
+	int bpp = canvas->vBuffer->tex.format.bpp;
+	_vertices = procFace->vertices;
+	_numVertices = procFace->numVertices;
 
 	if (_numVertices == 0) {
 		warning("RenderDroid::NRasterModule::drawNGonLW(): face without vertices");
@@ -361,10 +361,10 @@ int RenderDroid::NRasterModule::drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel
 
 	uint16 color;
 	if (bpp == 8) {
-		_color = pCel->colorIndex;
+		_color = cel->colorIndex;
 		color = _color;
 	} else if (bpp == 16) {
-		_RGBcolor = *(uint16 *)&pProcFace->pColormap->pRGB16[2 * (pCel->colorIndex & 0xFF) + 32256];
+		_RGBcolor = *(uint16 *)&procFace->colormap->rgb16[2 * (cel->colorIndex & 0xFF) + 32256];
 		color = _RGBcolor;
 	} else {
 		return 0;
@@ -372,20 +372,20 @@ int RenderDroid::NRasterModule::drawNGonLW(RdProcFace *pProcFace, RdMatCel *pCel
 
 	int i = 0;
 	for (; i < (int)_numVertices - 1; i++)
-		_rd->_primit2.drawLine(pCanvas, floorToInt(_aVertices[i][0]), floorToInt(_aVertices[i][1]), floorToInt(_aVertices[i + 1][0]), floorToInt(_aVertices[i + 1][1]), color, 0xFFFFFFFF);
+		_rd->_primit2.drawLine(canvas, floorToInt(_vertices[i][0]), floorToInt(_vertices[i][1]), floorToInt(_vertices[i + 1][0]), floorToInt(_vertices[i + 1][1]), color, 0xFFFFFFFF);
 
-	_rd->_primit2.drawLine(pCanvas, floorToInt(_aVertices[i][0]), floorToInt(_aVertices[i][1]), floorToInt(_aVertices[0][0]), floorToInt(_aVertices[0][1]), color, 0xFFFFFFFF);
+	_rd->_primit2.drawLine(canvas, floorToInt(_vertices[i][0]), floorToInt(_vertices[i][1]), floorToInt(_vertices[0][0]), floorToInt(_vertices[0][1]), color, 0xFFFFFFFF);
 	return 0;
 }
 
-int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKind kind) {
+int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *edge, int step, EdgeKind kind) {
 	bool gouraud = kind == kEdgeGouraud || kind == kEdgeAffineGouraud || kind == kEdgePerspectiveGouraud;
 	bool affine = kind == kEdgeAffine || kind == kEdgeAffineFlat || kind == kEdgeAffineGouraud;
 	bool perspective = kind == kEdgePerspective || kind == kEdgePerspectiveFlat || kind == kEdgePerspectiveGouraud;
 	bool directSlope = kind == kEdgeFlat || kind == kEdgePerspective || kind == kEdgePerspectiveFlat;
 	bool exactSlopeX = kind == kEdgeAffineFlat || kind == kEdgeAffineGouraud;
 
-	int vertIdx = pEdge->vertIdx;
+	int vertIdx = edge->vertIdx;
 	if (vertIdx == _yMaxVert)
 		return 1;
 
@@ -394,10 +394,10 @@ int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKi
 	float yStart;
 	while (true) {
 		nextIdx = wrapVertex(vertIdx + step);
-		yStart = ceil(_aVertices[vertIdx][1]);
-		pEdge->y = floorToInt(yStart);
-		numLines = floorToInt(ceil(_aVertices[nextIdx][1])) - pEdge->y;
-		pEdge->numLines = numLines;
+		yStart = ceil(_vertices[vertIdx][1]);
+		edge->y = floorToInt(yStart);
+		numLines = floorToInt(ceil(_vertices[nextIdx][1])) - edge->y;
+		edge->numLines = numLines;
 		if (numLines > 0)
 			break;
 
@@ -406,81 +406,81 @@ int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKi
 			return 1;
 	}
 
-	float *pVert = _aVertices[vertIdx];
-	float *pNext = _aVertices[nextIdx];
-	float yDelta = (double)yStart - pVert[1];
-	float xPos = pVert[0];
+	float *vert = _vertices[vertIdx];
+	float *next = _vertices[nextIdx];
+	float yDelta = (double)yStart - vert[1];
+	float xPos = vert[0];
 	float xFixed;
 	float uFixed = 0.0f;
 	float vFixed = 0.0f;
 	float intensityFixed = 0.0f;
 
 	if (numLines >= 2) {
-		double deltaY = (double)pNext[1] - pVert[1];
+		double deltaY = (double)next[1] - vert[1];
 		double invDyExact = 1.0 / deltaY;
 		float invDy = invDyExact;
 		double slopeX;
 		if (directSlope)
-			slopeX = ((double)pNext[0] - pVert[0]) / deltaY;
+			slopeX = ((double)next[0] - vert[0]) / deltaY;
 		else
-			slopeX = ((double)pNext[0] - pVert[0]) * (exactSlopeX ? invDyExact : (double)invDy);
+			slopeX = ((double)next[0] - vert[0]) * (exactSlopeX ? invDyExact : (double)invDy);
 
 		float slopeXStored = slopeX;
 		float dxFixed = slopeX * 65536.0;
-		pEdge->dx = floorToInt(dxFixed);
-		double xExact = (double)slopeXStored * yDelta + pVert[0];
+		edge->dx = floorToInt(dxFixed);
+		double xExact = (double)slopeXStored * yDelta + vert[0];
 		xPos = xExact;
 		xFixed = xExact * 65536.0;
 
 		if (affine) {
-			double slopeU = ((double)_aTexVertices[nextIdx][0] - _aTexVertices[vertIdx][0]) * invDy;
+			double slopeU = ((double)_texVertices[nextIdx][0] - _texVertices[vertIdx][0]) * invDy;
 			float slopeUStored = slopeU;
 			float duFixed = slopeU * 65536.0;
-			pEdge->du = floorToInt(duFixed);
-			uFixed = ((double)slopeUStored * yDelta + _aTexVertices[vertIdx][0]) * 65536.0;
+			edge->du = floorToInt(duFixed);
+			uFixed = ((double)slopeUStored * yDelta + _texVertices[vertIdx][0]) * 65536.0;
 
-			double slopeV = ((double)_aTexVertices[nextIdx][1] - _aTexVertices[vertIdx][1]) * invDy;
+			double slopeV = ((double)_texVertices[nextIdx][1] - _texVertices[vertIdx][1]) * invDy;
 			float slopeVStored = slopeV;
 			float dvFixed = slopeV * 65536.0;
-			pEdge->dv = floorToInt(dvFixed);
-			vFixed = ((double)slopeVStored * yDelta + _aTexVertices[vertIdx][1]) * 65536.0;
+			edge->dv = floorToInt(dvFixed);
+			vFixed = ((double)slopeVStored * yDelta + _texVertices[vertIdx][1]) * 65536.0;
 		}
 
 		if (perspective) {
-			pEdge->dOneOverZ = (double)slopeXStored * _dOneOverZdX + _dOneOverZdY;
-			pEdge->dUOverZ = (double)slopeXStored * _dUOverZdX + _dUOverZdY;
-			pEdge->dVOverZ = (double)slopeXStored * _dVOverZdX + _dVOverZdY;
+			edge->dOneOverZ = (double)slopeXStored * _dOneOverZdX + _dOneOverZdY;
+			edge->dUOverZ = (double)slopeXStored * _dUOverZdX + _dUOverZdY;
+			edge->dVOverZ = (double)slopeXStored * _dVOverZdX + _dVOverZdY;
 		}
 
 		if (gouraud) {
-			double slopeI = ((double)_aIntensities[nextIdx] - _aIntensities[vertIdx]) * invDy;
+			double slopeI = ((double)_intensities[nextIdx] - _intensities[vertIdx]) * invDy;
 			float slopeIStored = slopeI;
 			float dIntensityFixed = slopeI * 65536.0;
-			pEdge->dIntensity = floorToInt(dIntensityFixed);
-			intensityFixed = ((double)slopeIStored * yDelta + _aIntensities[vertIdx]) * 65536.0;
+			edge->dIntensity = floorToInt(dIntensityFixed);
+			intensityFixed = ((double)slopeIStored * yDelta + _intensities[vertIdx]) * 65536.0;
 		}
 	} else {
-		xFixed = pVert[0] * 65536.0;
+		xFixed = vert[0] * 65536.0;
 		if (affine) {
-			uFixed = _aTexVertices[vertIdx][0] * 65536.0;
-			vFixed = _aTexVertices[vertIdx][1] * 65536.0;
+			uFixed = _texVertices[vertIdx][0] * 65536.0;
+			vFixed = _texVertices[vertIdx][1] * 65536.0;
 		}
 
 		if (gouraud)
-			intensityFixed = _aIntensities[vertIdx] * 65536.0;
+			intensityFixed = _intensities[vertIdx] * 65536.0;
 	}
 
-	pEdge->x = floorToInt(xFixed);
+	edge->x = floorToInt(xFixed);
 	if (affine) {
-		pEdge->u = floorToInt(uFixed);
-		pEdge->v = floorToInt(vFixed);
+		edge->u = floorToInt(uFixed);
+		edge->v = floorToInt(vFixed);
 	}
 
 	if (gouraud)
-		pEdge->intensity = floorToInt(intensityFixed);
+		edge->intensity = floorToInt(intensityFixed);
 
 	if (perspective) {
-		double xOffset = (double)xPos - pVert[0];
+		double xOffset = (double)xPos - vert[0];
 		double yOneOverZ = (double)yDelta * _dOneOverZdY;
 		double yUOverZ = (double)yDelta * _dUOverZdY;
 		double yVOverZ = (double)yDelta * _dVOverZdY;
@@ -489,9 +489,9 @@ int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKi
 		double xVOverZ = xOffset * _dVOverZdX;
 
 		if (!_rd->isDemo()) {
-			pEdge->oneOverZ = yOneOverZ + xOneOverZ + _aOneOverZ[vertIdx];
-			pEdge->uOverZ = yUOverZ + xUOverZ + _aUOverZ[vertIdx];
-			pEdge->vOverZ = yVOverZ + xVOverZ + _aVOverZ[vertIdx];
+			edge->oneOverZ = yOneOverZ + xOneOverZ + _oneOverZ[vertIdx];
+			edge->uOverZ = yUOverZ + xUOverZ + _uOverZ[vertIdx];
+			edge->vOverZ = yVOverZ + xVOverZ + _vOverZ[vertIdx];
 		} else {
 			// The demo adds the vertex value to one of the two terms first, in a different order for each variant
 			bool oneYFirst = false;
@@ -504,23 +504,23 @@ int RenderDroid::NRasterModule::setupEdge(RdNRasterEdge *pEdge, int step, EdgeKi
 			}
 
 			if (oneYFirst)
-				pEdge->oneOverZ = yOneOverZ + _aOneOverZ[vertIdx] + xOneOverZ;
+				edge->oneOverZ = yOneOverZ + _oneOverZ[vertIdx] + xOneOverZ;
 			else
-				pEdge->oneOverZ = xOneOverZ + _aOneOverZ[vertIdx] + yOneOverZ;
+				edge->oneOverZ = xOneOverZ + _oneOverZ[vertIdx] + yOneOverZ;
 
 			if (uYFirst)
-				pEdge->uOverZ = yUOverZ + _aUOverZ[vertIdx] + xUOverZ;
+				edge->uOverZ = yUOverZ + _uOverZ[vertIdx] + xUOverZ;
 			else
-				pEdge->uOverZ = xUOverZ + _aUOverZ[vertIdx] + yUOverZ;
+				edge->uOverZ = xUOverZ + _uOverZ[vertIdx] + yUOverZ;
 
 			if (vYFirst)
-				pEdge->vOverZ = yVOverZ + _aVOverZ[vertIdx] + xVOverZ;
+				edge->vOverZ = yVOverZ + _vOverZ[vertIdx] + xVOverZ;
 			else
-				pEdge->vOverZ = xVOverZ + _aVOverZ[vertIdx] + yVOverZ;
+				edge->vOverZ = xVOverZ + _vOverZ[vertIdx] + yVOverZ;
 		}
 	}
 
-	pEdge->vertIdx = nextIdx;
+	edge->vertIdx = nextIdx;
 	return 0;
 }
 
@@ -545,33 +545,33 @@ RenderDroid::NRasterModule::EdgeKind RenderDroid::NRasterModule::getEdgeKind(Geo
 	return kEdgeFlat;
 }
 
-void RenderDroid::NRasterModule::advanceEdge(RdNRasterEdge *pEdge, Geometry geometry, Lighting lighting, bool isLeft) {
-	pEdge->x += pEdge->dx;
+void RenderDroid::NRasterModule::advanceEdge(RdNRasterEdge *edge, Geometry geometry, Lighting lighting, bool isLeft) {
+	edge->x += edge->dx;
 
 	if (geometry == kGeometryAffine) {
-		pEdge->u += pEdge->du;
-		pEdge->v += pEdge->dv;
+		edge->u += edge->du;
+		edge->v += edge->dv;
 	}
 
 	if (geometry == kGeometryPerspective && isLeft) {
-		pEdge->oneOverZ = pEdge->oneOverZ + pEdge->dOneOverZ;
-		pEdge->uOverZ = pEdge->uOverZ + pEdge->dUOverZ;
-		pEdge->vOverZ = pEdge->vOverZ + pEdge->dVOverZ;
+		edge->oneOverZ = edge->oneOverZ + edge->dOneOverZ;
+		edge->uOverZ = edge->uOverZ + edge->dUOverZ;
+		edge->vOverZ = edge->vOverZ + edge->dVOverZ;
 	}
 
 	if (lighting == kLightingGouraud)
-		pEdge->intensity += pEdge->dIntensity;
+		edge->intensity += edge->dIntensity;
 
-	pEdge->y++;
+	edge->y++;
 }
 
-void RenderDroid::NRasterModule::setupFace(RdProcFace *pProcFace) {
-	_aVertices = pProcFace->aVertices;
-	_numVertices = pProcFace->numVertices;
-	_yMinVert = pProcFace->yMinIdx;
-	_yMaxVert = pProcFace->yMaxIdx;
+void RenderDroid::NRasterModule::setupFace(RdProcFace *procFace) {
+	_vertices = procFace->vertices;
+	_numVertices = procFace->numVertices;
+	_yMinVert = procFace->yMinIdx;
+	_yMaxVert = procFace->yMaxIdx;
 
-	if (pProcFace->bBackface) {
+	if (procFace->backface) {
 		_leftVertexStep = -1;
 		_rightVertexStep = 1;
 	} else {
@@ -580,99 +580,99 @@ void RenderDroid::NRasterModule::setupFace(RdProcFace *pProcFace) {
 	}
 }
 
-void RenderDroid::NRasterModule::setupSolidColors(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, Lighting lighting, Blend blend) {
-	RdColormap *pColormap = pProcFace->pColormap;
-	uint16 *pRGB16 = (uint16 *)pColormap->pRGB16;
+void RenderDroid::NRasterModule::setupSolidColors(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, Lighting lighting, Blend blend) {
+	RdColormap *colormap = procFace->colormap;
+	uint16 *rgb16 = (uint16 *)colormap->rgb16;
 	bool flat = lighting == kLightingFlat;
 	bool gouraud = lighting == kLightingGouraud;
 	bool transparent = blend == kBlendAlpha;
-	int colorIndex = pCel->colorIndex;
+	int colorIndex = cel->colorIndex;
 	int lightLevel = flat ? floorToInt(light) : 0;
 
 	if (bpp == 8) {
-		_color = flat ? pColormap->pLightLevel[256 * lightLevel + colorIndex] : colorIndex;
+		_color = flat ? colormap->lightLevel[256 * lightLevel + colorIndex] : colorIndex;
 		if (gouraud)
-			_aMonoMap = pColormap->pLightLevel;
+			_monoMap = colormap->lightLevel;
 	} else if (bpp == 16) {
 		if (gouraud) {
-			_aRGBMap = pRGB16;
+			_rgbMap = rgb16;
 			_color = colorIndex;
 			if (transparent)
-				_RGBcolor = pRGB16[63 * 256 + colorIndex];
+				_RGBcolor = rgb16[63 * 256 + colorIndex];
 		} else if (transparent) {
-			_aRGBMap = pRGB16 + 63 * 256;
-			_RGBcolor = pRGB16[256 * (flat ? lightLevel : 63) + colorIndex];
+			_rgbMap = rgb16 + 63 * 256;
+			_RGBcolor = rgb16[256 * (flat ? lightLevel : 63) + colorIndex];
 		} else if (flat) {
-			_RGBcolor = pRGB16[256 * lightLevel + colorIndex];
+			_RGBcolor = rgb16[256 * lightLevel + colorIndex];
 		} else {
-			_RGBcolor = pRGB16[63 * 256 + (colorIndex & 0xFF)];
+			_RGBcolor = rgb16[63 * 256 + (colorIndex & 0xFF)];
 		}
 
 		if (transparent) {
-			_aRGBToPalette = pColormap->pRGB16Alpha;
-			_color = _aRGBToPalette[_RGBcolor];
+			_rgbToPalette = colormap->rgb16Alpha;
+			_color = _rgbToPalette[_RGBcolor];
 		}
 	}
 
 	if (transparent)
-		_aAlphaMap = _rd->_colormap.getIdentity()->pTransparency;
+		_alphaMap = _rd->_colormap.getIdentity()->transparency;
 
-	setupFace(pProcFace);
+	setupFace(procFace);
 	if (gouraud)
-		_aIntensities = pProcFace->aIntensities;
+		_intensities = procFace->intensities;
 }
 
-bool RenderDroid::NRasterModule::setupTexture(RdProcFace *pProcFace, RdMatCel *pCel, float light, int bpp, Geometry geometry, Lighting lighting, Blend blend) {
-	RdColormap *pColormap = pProcFace->pColormap;
-	RdTexture *pTexture = pCel->pTexture;
-	uint16 *pRGB16 = (uint16 *)pColormap->pRGB16;
+bool RenderDroid::NRasterModule::setupTexture(RdProcFace *procFace, RdMatCel *cel, float light, int bpp, Geometry geometry, Lighting lighting, Blend blend) {
+	RdColormap *colormap = procFace->colormap;
+	RdTexture *texture = cel->texture;
+	uint16 *rgb16 = (uint16 *)colormap->rgb16;
 	bool transparent = blend == kBlendAlpha || blend == kBlendMaskedAlpha;
 	bool perspective = geometry == kGeometryPerspective;
 	int lightLevel = (lighting == kLightingFlat) ? floorToInt(light) : 0;
 
-	_maxMipMap = pTexture->numMips - 1;
-	_aTexVertices = pProcFace->aTexVertices;
+	_maxMipMap = texture->numMips - 1;
+	_texVertices = procFace->texVertices;
 
 	if (bpp == 8 && lighting == kLightingFlat)
-		_aMonoMap = &pColormap->pLightLevel[256 * lightLevel];
+		_monoMap = &colormap->lightLevel[256 * lightLevel];
 	else if (bpp == 8 && lighting == kLightingGouraud)
-		_aMonoMap = pColormap->pLightLevel;
+		_monoMap = colormap->lightLevel;
 
 	if (bpp == 16) {
 		if (lighting == kLightingNone)
-			_aRGBMap = pRGB16 + 63 * 256;
+			_rgbMap = rgb16 + 63 * 256;
 		else if (lighting == kLightingFlat)
-			_aRGBMap = pRGB16 + 256 * lightLevel;
+			_rgbMap = rgb16 + 256 * lightLevel;
 		else
-			_aRGBMap = pRGB16;
+			_rgbMap = rgb16;
 
 		if (transparent)
-			_aRGBToPalette = pColormap->pRGB16Alpha;
+			_rgbToPalette = colormap->rgb16Alpha;
 	}
 
 	if (transparent)
-		_aAlphaMap = _rd->_colormap.getIdentity()->pTransparency;
+		_alphaMap = _rd->_colormap.getIdentity()->transparency;
 
-	setupFace(pProcFace);
+	setupFace(procFace);
 	if (lighting == kLightingGouraud)
-		_aIntensities = pProcFace->aIntensities;
+		_intensities = procFace->intensities;
 
 	if (perspective)
-		calcPerspGradients(pProcFace->zMin);
+		calcPerspGradients(procFace->zMin);
 	else
-		calcAffineGradients(pProcFace->zMin);
+		calcAffineGradients(procFace->zMin);
 
-	if (_mipMapNum < 0 || _mipMapNum >= (int)pTexture->numMips) {
+	if (_mipMapNum < 0 || _mipMapNum >= (int)texture->numMips) {
 		warning("RenderDroid::NRasterModule::setupTexture(): mip level %d is not available", _mipMapNum);
 		return false;
 	}
 
-	_pPixels = pTexture->apMips[_mipMapNum]->pPixels;
-	_texRowShift = pTexture->widthLog2 - _mipMapNum;
+	_pixels = texture->mips[_mipMapNum]->pixels;
+	_texRowShift = texture->widthLog2 - _mipMapNum;
 	if (blend == kBlendOpaque)
-		_texPitch = pTexture->apMips[_mipMapNum]->tex.pitchInBytes;
+		_texPitch = texture->mips[_mipMapNum]->tex.pitchInBytes;
 
-	_uWrap = (uint)pTexture->widthMask >> _mipMapNum << 16;
+	_uWrap = (uint)texture->widthMask >> _mipMapNum << 16;
 
 	if (perspective) {
 		_oneOverZStep = (double)_dOneOverZdX * 16.0;
@@ -680,16 +680,16 @@ bool RenderDroid::NRasterModule::setupTexture(RdProcFace *pProcFace, RdMatCel *p
 		_vOverZStep = (double)_dVOverZdX * 16.0;
 	}
 
-	_vWrap = (uint)pTexture->heightMask >> _mipMapNum << _texRowShift;
+	_vWrap = (uint)texture->heightMask >> _mipMapNum << _texRowShift;
 	return true;
 }
 
-int RenderDroid::NRasterModule::drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, float light, Geometry geometry, Lighting lighting, Blend blend) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+int RenderDroid::NRasterModule::drawNGon(RdProcFace *procFace, RdMatCel *cel, float light, Geometry geometry, Lighting lighting, Blend blend) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (geometry == kGeometrySolid) {
-		setupSolidColors(pProcFace, pCel, light, bpp, lighting, blend);
-	} else if (!setupTexture(pProcFace, pCel, light, bpp, geometry, lighting, blend)) {
+		setupSolidColors(procFace, cel, light, bpp, lighting, blend);
+	} else if (!setupTexture(procFace, cel, light, bpp, geometry, lighting, blend)) {
 		return 0;
 	}
 
@@ -729,7 +729,7 @@ int RenderDroid::NRasterModule::drawNGon(RdProcFace *pProcFace, RdMatCel *pCel, 
 	return result;
 }
 
-void RenderDroid::NRasterModule::drawScanLine(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Geometry geometry, Lighting lighting, Blend blend, int bpp) {
+void RenderDroid::NRasterModule::drawScanLine(RdNRasterEdge *left, RdNRasterEdge *right, Geometry geometry, Lighting lighting, Blend blend, int bpp) {
 	if (bpp != 8 && bpp != 16)
 		return;
 
@@ -737,47 +737,47 @@ void RenderDroid::NRasterModule::drawScanLine(RdNRasterEdge *pLeft, RdNRasterEdg
 		return;
 
 	if (geometry == kGeometrySolid)
-		drawScanLineSolid(pLeft, pRight, (lighting == kLightingGouraud) ? kLightingGouraud : kLightingNone, blend, bpp);
+		drawScanLineSolid(left, right, (lighting == kLightingGouraud) ? kLightingGouraud : kLightingNone, blend, bpp);
 	else if (geometry == kGeometryAffine)
-		drawScanLineAffine(pLeft, pRight, lighting, blend, bpp);
+		drawScanLineAffine(left, right, lighting, blend, bpp);
 	else
-		drawScanLinePerspective(pLeft, pRight, lighting, blend, bpp);
+		drawScanLinePerspective(left, right, lighting, blend, bpp);
 }
 
-int RenderDroid::NRasterModule::calcSpan(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, int *pXStart) {
-	*pXStart = ceilToPixel(pLeft->x);
-	int xEnd = ceilToPixel(pRight->x);
-	return (xEnd >> 16) - (*pXStart >> 16);
+int RenderDroid::NRasterModule::calcSpan(RdNRasterEdge *left, RdNRasterEdge *right, int *xStart) {
+	*xStart = ceilToPixel(left->x);
+	int xEnd = ceilToPixel(right->x);
+	return (xEnd >> 16) - (*xStart >> 16);
 }
 
-void RenderDroid::NRasterModule::calcSpanIntensity(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, int width, int subPixel, int *pIntensity, int *pDIntensity) {
-	int dIntensity = fixedMultiply(_rd->_raster.getOneOverNFixed(width), pRight->intensity - pLeft->intensity);
+void RenderDroid::NRasterModule::calcSpanIntensity(RdNRasterEdge *left, RdNRasterEdge *right, int width, int subPixel, int *intensity, int *dIntensityPointer) {
+	int dIntensity = fixedMultiply(_rd->_raster.getOneOverNFixed(width), right->intensity - left->intensity);
 	if ((uint)dIntensity > 0xFFFFFAE2)
 		dIntensity = 0;
 
-	*pDIntensity = dIntensity;
-	*pIntensity = pLeft->intensity + fixedMultiply(dIntensity, subPixel);
+	*dIntensityPointer = dIntensity;
+	*intensity = left->intensity + fixedMultiply(dIntensity, subPixel);
 }
 
-bool RenderDroid::NRasterModule::beginSpanPlot(SpanPlot *pPlot, int y, int xStart, Lighting lighting, Blend blend, int bpp, bool perspective, bool bufferedDestination) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
+bool RenderDroid::NRasterModule::beginSpanPlot(SpanPlot *plot, int y, int xStart, Lighting lighting, Blend blend, int bpp, bool perspective, bool bufferedDestination) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
 	bool transparent = blend == kBlendAlpha || blend == kBlendMaskedAlpha;
 
-	pPlot->lighting = lighting;
-	pPlot->blend = blend;
-	pPlot->bpp = bpp;
-	pPlot->perspective = perspective;
-	pPlot->pBackdrop = _pDest;
-	pPlot->pDest8 = pVBuffer->pPixels + pVBuffer->tex.pitchInBytes * y + (xStart >> 16);
-	pPlot->pDest16 = (uint16 *)(pVBuffer->pPixels + 2 * (xStart >> 16) + 2 * (pVBuffer->tex.pitchInBytes >> 1) * y);
+	plot->lighting = lighting;
+	plot->blend = blend;
+	plot->bpp = bpp;
+	plot->perspective = perspective;
+	plot->backdrop = _dest;
+	plot->dest8 = vBuffer->pixels + vBuffer->tex.pitchInBytes * y + (xStart >> 16);
+	plot->dest16 = (uint16 *)(vBuffer->pixels + 2 * (xStart >> 16) + 2 * (vBuffer->tex.pitchInBytes >> 1) * y);
 
 	if (bufferedDestination) {
-		_pDest = pPlot->pDest8;
-		pPlot->pBackdrop = pPlot->pDest8;
-		pPlot->pDest16 = _pWDest;
+		_dest = plot->dest8;
+		plot->backdrop = plot->dest8;
+		plot->dest16 = _wDest;
 	}
 
-	if (bpp == 16 && transparent && (bufferedDestination ? _pWDest == nullptr : _pDest == nullptr)) {
+	if (bpp == 16 && transparent && (bufferedDestination ? _wDest == nullptr : _dest == nullptr)) {
 		warning("RenderDroid::NRasterModule::beginSpanPlot(): destination pointer was never set");
 		return false;
 	}
@@ -787,66 +787,66 @@ bool RenderDroid::NRasterModule::beginSpanPlot(SpanPlot *pPlot, int y, int xStar
 
 byte RenderDroid::NRasterModule::lightTexel(Lighting lighting, byte texel, int intensity) {
 	if (lighting == kLightingFlat)
-		return _aMonoMap[texel];
+		return _monoMap[texel];
 
 	if (lighting == kLightingGouraud)
-		return _aMonoMap[texel + ((intensity >> 8) & 0x3F00)];
+		return _monoMap[texel + ((intensity >> 8) & 0x3F00)];
 
 	return texel;
 }
 
-void RenderDroid::NRasterModule::plotPixel(SpanPlot *pPlot, byte texel, int intensity) {
-	Blend blend = pPlot->blend;
+void RenderDroid::NRasterModule::plotPixel(SpanPlot *plot, byte texel, int intensity) {
+	Blend blend = plot->blend;
 	bool masked = blend == kBlendMasked || blend == kBlendMaskedAlpha;
 
-	if (pPlot->bpp == 8) {
-		byte *pDest = pPlot->pDest8++;
+	if (plot->bpp == 8) {
+		byte *dest = plot->dest8++;
 
 		if (masked && texel == 0)
 			return;
 
 		if (blend == kBlendAlpha)
-			*pDest = _aAlphaMap[256 * lightTexel(pPlot->lighting, texel, intensity) + *pDest];
+			*dest = _alphaMap[256 * lightTexel(plot->lighting, texel, intensity) + *dest];
 		else if (blend == kBlendMaskedAlpha)
-			*pDest = lightTexel(pPlot->lighting, _aAlphaMap[256 * texel + *pDest], intensity);
+			*dest = lightTexel(plot->lighting, _alphaMap[256 * texel + *dest], intensity);
 		else
-			*pDest = lightTexel(pPlot->lighting, texel, intensity);
+			*dest = lightTexel(plot->lighting, texel, intensity);
 
 		return;
 	}
 
-	uint16 *pDest = pPlot->pDest16++;
+	uint16 *dest = plot->dest16++;
 
 	if (masked && texel == 0)
 		return;
 
-	int shade = (pPlot->lighting == kLightingGouraud) ? 256 * ((intensity >> 16) & 0x3F) : 0;
+	int shade = (plot->lighting == kLightingGouraud) ? 256 * ((intensity >> 16) & 0x3F) : 0;
 
 	if (blend == kBlendOpaque || blend == kBlendMasked) {
-		*pDest = _aRGBMap[shade + texel];
+		*dest = _rgbMap[shade + texel];
 		return;
 	}
 
-	byte backdrop = _aRGBToPalette[*pPlot->pBackdrop];
+	byte backdrop = _rgbToPalette[*plot->backdrop];
 
-	if (blend == kBlendAlpha && pPlot->lighting == kLightingFlat && !pPlot->perspective) {
-		*pDest = _aRGBMap[_aAlphaMap[256 * _aRGBToPalette[_aRGBMap[texel]] + backdrop]];
-	} else if (blend == kBlendAlpha && pPlot->lighting != kLightingNone && pPlot->perspective) {
-		uint16 color = _aRGBMap[shade + texel];
+	if (blend == kBlendAlpha && plot->lighting == kLightingFlat && !plot->perspective) {
+		*dest = _rgbMap[_alphaMap[256 * _rgbToPalette[_rgbMap[texel]] + backdrop]];
+	} else if (blend == kBlendAlpha && plot->lighting != kLightingNone && plot->perspective) {
+		uint16 color = _rgbMap[shade + texel];
 		byte colorIndex = 0;
 		if (color < 256)
-			colorIndex = _aRGBToPalette[color << 8];
+			colorIndex = _rgbToPalette[color << 8];
 		else
 			warning("RenderDroid::NRasterModule::plotPixel(): palette index out of range");
 
-		*pDest = _aRGBMap[_aAlphaMap[colorIndex + backdrop]];
+		*dest = _rgbMap[_alphaMap[colorIndex + backdrop]];
 	} else {
-		*pDest = _aRGBMap[shade + _aAlphaMap[256 * texel + backdrop]];
+		*dest = _rgbMap[shade + _alphaMap[256 * texel + backdrop]];
 	}
 }
 
 byte RenderDroid::NRasterModule::fetchTexel(int u, int v) {
-	return _pPixels[((u >> 16) & (_uWrap >> 16)) | (_vWrap & (v >> (16 - _texRowShift)))];
+	return _pixels[((u >> 16) & (_uWrap >> 16)) | (_vWrap & (v >> (16 - _texRowShift)))];
 }
 
 byte RenderDroid::NRasterModule::fetchTexelByRows(int u, int v) {
@@ -857,30 +857,30 @@ byte RenderDroid::NRasterModule::fetchTexelByRows(int u, int v) {
 		return 0;
 	}
 
-	return _pPixels[index];
+	return _pixels[index];
 }
 
-void RenderDroid::NRasterModule::drawScanLineSolid(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp) {
+void RenderDroid::NRasterModule::drawScanLineSolid(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp) {
 	int xStart;
-	int width = calcSpan(pLeft, pRight, &xStart);
+	int width = calcSpan(left, right, &xStart);
 	if (width <= 0)
 		return;
 
 	int intensity = 0;
 	int dIntensity = 0;
 	if (lighting == kLightingGouraud)
-		calcSpanIntensity(pLeft, pRight, width, xStart - pLeft->x, &intensity, &dIntensity);
+		calcSpanIntensity(left, right, width, xStart - left->x, &intensity, &dIntensity);
 
 	SpanPlot plot;
-	if (!beginSpanPlot(&plot, pLeft->y, xStart, lighting, blend, bpp, false, false))
+	if (!beginSpanPlot(&plot, left->y, xStart, lighting, blend, bpp, false, false))
 		return;
 
 	if (lighting != kLightingGouraud && blend == kBlendOpaque) {
 		if (bpp == 8) {
-			memset(plot.pDest8, _color, width);
+			memset(plot.dest8, _color, width);
 		} else {
 			for (int i = 0; i < width; i++)
-				*plot.pDest16++ = _RGBcolor;
+				*plot.dest16++ = _RGBcolor;
 		}
 	} else {
 		for (int i = 0; i < width; i++) {
@@ -890,28 +890,28 @@ void RenderDroid::NRasterModule::drawScanLineSolid(RdNRasterEdge *pLeft, RdNRast
 	}
 
 	if (bpp == 16)
-		_pWDest = plot.pDest16;
+		_wDest = plot.dest16;
 }
 
-void RenderDroid::NRasterModule::drawScanLineAffine(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp) {
+void RenderDroid::NRasterModule::drawScanLineAffine(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp) {
 	int xStart;
-	int width = calcSpan(pLeft, pRight, &xStart);
+	int width = calcSpan(left, right, &xStart);
 	if (width <= 0)
 		return;
 
-	int subPixel = xStart - pLeft->x;
+	int subPixel = xStart - left->x;
 	int oneOverN = _rd->_raster.getOneOverNFixed(width);
-	int uDelta = fixedMultiply(oneOverN, pRight->u - pLeft->u);
+	int uDelta = fixedMultiply(oneOverN, right->u - left->u);
 	_uStep = uDelta >> _mipMapNum;
-	_fixU = (pLeft->u + fixedMultiply(uDelta, subPixel)) >> _mipMapNum;
-	int vDelta = fixedMultiply(oneOverN, pRight->v - pLeft->v);
+	_fixU = (left->u + fixedMultiply(uDelta, subPixel)) >> _mipMapNum;
+	int vDelta = fixedMultiply(oneOverN, right->v - left->v);
 	_vStep = vDelta >> _mipMapNum;
-	int vStart = (pLeft->v + fixedMultiply(vDelta, subPixel)) >> _mipMapNum;
+	int vStart = (left->v + fixedMultiply(vDelta, subPixel)) >> _mipMapNum;
 
 	int intensity = 0;
 	int dIntensity = 0;
 	if (lighting == kLightingGouraud)
-		calcSpanIntensity(pLeft, pRight, width, subPixel, &intensity, &dIntensity);
+		calcSpanIntensity(left, right, width, subPixel, &intensity, &dIntensity);
 
 	_fixU += _dUdXModifier;
 	_fixV = _dVdXModifier + vStart;
@@ -920,7 +920,7 @@ void RenderDroid::NRasterModule::drawScanLineAffine(RdNRasterEdge *pLeft, RdNRas
 	bool bufferedDestination = lighting == kLightingFlat && blend == kBlendMaskedAlpha && bpp == 16;
 
 	SpanPlot plot;
-	if (!beginSpanPlot(&plot, pLeft->y, xStart, lighting, blend, bpp, false, bufferedDestination))
+	if (!beginSpanPlot(&plot, left->y, xStart, lighting, blend, bpp, false, bufferedDestination))
 		return;
 
 	for (int i = 0; i < width; i++) {
@@ -932,30 +932,30 @@ void RenderDroid::NRasterModule::drawScanLineAffine(RdNRasterEdge *pLeft, RdNRas
 	}
 
 	if (bpp == 8)
-		_pDest = plot.pDest8;
+		_dest = plot.dest8;
 	else
-		_pWDest = plot.pDest16;
+		_wDest = plot.dest16;
 }
 
-void RenderDroid::NRasterModule::startRun(SpanRun *pRun, float u, float v, float uStepFixed, float vStepFixed) {
-	pRun->uStep = floorToInt(uStepFixed) >> _mipMapNum;
-	pRun->vStep = floorToInt(vStepFixed) >> _mipMapNum;
-	pRun->u = _dUdXModifier + (floorToInt(u * 65536.0f) >> _mipMapNum);
-	pRun->v = _dVdXModifier + (floorToInt(v * 65536.0f) >> _mipMapNum);
+void RenderDroid::NRasterModule::startRun(SpanRun *run, float u, float v, float uStepFixed, float vStepFixed) {
+	run->uStep = floorToInt(uStepFixed) >> _mipMapNum;
+	run->vStep = floorToInt(vStepFixed) >> _mipMapNum;
+	run->u = _dUdXModifier + (floorToInt(u * 65536.0f) >> _mipMapNum);
+	run->v = _dVdXModifier + (floorToInt(v * 65536.0f) >> _mipMapNum);
 }
 
-void RenderDroid::NRasterModule::plotRun(SpanPlot *pPlot, SpanRun *pRun, int count) {
+void RenderDroid::NRasterModule::plotRun(SpanPlot *plot, SpanRun *run, int count) {
 	for (int i = 0; i < count; i++) {
-		plotPixel(pPlot, fetchTexel(pRun->u, pRun->v), pRun->intensity);
-		pRun->u += pRun->uStep;
-		pRun->v += pRun->vStep;
-		pRun->intensity += pRun->dIntensity;
+		plotPixel(plot, fetchTexel(run->u, run->v), run->intensity);
+		run->u += run->uStep;
+		run->v += run->vStep;
+		run->intensity += run->dIntensity;
 	}
 }
 
-void RenderDroid::NRasterModule::drawScanLinePerspective(RdNRasterEdge *pLeft, RdNRasterEdge *pRight, Lighting lighting, Blend blend, int bpp) {
+void RenderDroid::NRasterModule::drawScanLinePerspective(RdNRasterEdge *left, RdNRasterEdge *right, Lighting lighting, Blend blend, int bpp) {
 	int xStart;
-	int width = calcSpan(pLeft, pRight, &xStart);
+	int width = calcSpan(left, right, &xStart);
 	if (width <= 0)
 		return;
 
@@ -983,21 +983,21 @@ void RenderDroid::NRasterModule::drawScanLinePerspective(RdNRasterEdge *pLeft, R
 	run.intensity = 0;
 	run.dIntensity = 0;
 	if (lighting == kLightingGouraud)
-		calcSpanIntensity(pLeft, pRight, width, xStart - pLeft->x, &run.intensity, &run.dIntensity);
+		calcSpanIntensity(left, right, width, xStart - left->x, &run.intensity, &run.dIntensity);
 
 	bool keepsState = lighting == kLightingGouraud && blend == kBlendOpaque && bpp == 16;
 	bool divideLastRun = lighting == kLightingNone;
 
-	float fraction = (float)(xStart - pLeft->x) * 1.52587890625e-05f;
-	float oneOverZ = lowAdd(lowMul(fraction, _dOneOverZdX), pLeft->oneOverZ);
-	float uOverZ = lowAdd(lowMul(fraction, _dUOverZdX), pLeft->uOverZ);
-	float vOverZ = lowAdd(lowMul(fraction, _dVOverZdX), pLeft->vOverZ);
+	float fraction = (float)(xStart - left->x) * 1.52587890625e-05f;
+	float oneOverZ = lowAdd(lowMul(fraction, _dOneOverZdX), left->oneOverZ);
+	float uOverZ = lowAdd(lowMul(fraction, _dUOverZdX), left->uOverZ);
+	float vOverZ = lowAdd(lowMul(fraction, _dVOverZdX), left->vOverZ);
 	float invZ = lowDiv(1.0f, oneOverZ);
 	float u = lowMul(invZ, uOverZ);
 	float v = lowMul(invZ, vOverZ);
 
 	SpanPlot plot;
-	if (!beginSpanPlot(&plot, pLeft->y, xStart, lighting, blend, bpp, true, false))
+	if (!beginSpanPlot(&plot, left->y, xStart, lighting, blend, bpp, true, false))
 		return;
 
 	float oneOverZEnd;
@@ -1081,7 +1081,7 @@ void RenderDroid::NRasterModule::drawScanLinePerspective(RdNRasterEdge *pLeft, R
 	}
 
 	if (bpp == 16)
-		_pWDest = plot.pDest16;
+		_wDest = plot.dest16;
 
 	if (keepsState) {
 		_fixU = run.u;
@@ -1091,408 +1091,408 @@ void RenderDroid::NRasterModule::drawScanLinePerspective(RdNRasterEdge *pLeft, R
 	}
 }
 
-int RenderDroid::NRasterModule::drawNGonLS(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometrySolid, kLightingNone, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonLS(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometrySolid, kLightingNone, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTLS(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometrySolid, kLightingNone, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTLS(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometrySolid, kLightingNone, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonFS(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometrySolid, kLightingFlat, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonFS(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometrySolid, kLightingFlat, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTFS(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometrySolid, kLightingFlat, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTFS(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometrySolid, kLightingFlat, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonGS(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometrySolid, kLightingGouraud, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonGS(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometrySolid, kLightingGouraud, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTGS(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometrySolid, kLightingGouraud, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTGS(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometrySolid, kLightingGouraud, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonLAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingNone, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonLAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingNone, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTLAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingNone, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTLAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingNone, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMLAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingNone, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMLAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingNone, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTLAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingNone, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTLAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingNone, kBlendMaskedAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryAffine, kLightingFlat, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonFAT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryAffine, kLightingFlat, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryAffine, kLightingFlat, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTFAT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryAffine, kLightingFlat, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryAffine, kLightingFlat, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMFAT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryAffine, kLightingFlat, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTFAT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryAffine, kLightingFlat, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTFAT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryAffine, kLightingFlat, kBlendMaskedAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonGAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonGAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTGAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTGAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMGAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMGAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTGAT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTGAT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryAffine, kLightingGouraud, kBlendMaskedAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonLIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingNone, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonLIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingNone, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTLIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingNone, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTLIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingNone, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMLIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingNone, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMLIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingNone, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTLIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingNone, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTLIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingNone, kBlendMaskedAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryPerspective, kLightingFlat, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonFIT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryPerspective, kLightingFlat, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryPerspective, kLightingFlat, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTFIT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryPerspective, kLightingFlat, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryPerspective, kLightingFlat, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMFIT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryPerspective, kLightingFlat, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTFIT(RdProcFace *pProcFace, RdMatCel *pCel, float light) {
-	return drawNGon(pProcFace, pCel, light, kGeometryPerspective, kLightingFlat, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTFIT(RdProcFace *procFace, RdMatCel *cel, float light) {
+	return drawNGon(procFace, cel, light, kGeometryPerspective, kLightingFlat, kBlendMaskedAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonGIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendOpaque);
+int RenderDroid::NRasterModule::drawNGonGIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendOpaque);
 }
 
-int RenderDroid::NRasterModule::drawNGonTGIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendAlpha);
+int RenderDroid::NRasterModule::drawNGonTGIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendAlpha);
 }
 
-int RenderDroid::NRasterModule::drawNGonMGIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendMasked);
+int RenderDroid::NRasterModule::drawNGonMGIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendMasked);
 }
 
-int RenderDroid::NRasterModule::drawNGonMTGIT(RdProcFace *pProcFace, RdMatCel *pCel) {
-	return drawNGon(pProcFace, pCel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendMaskedAlpha);
+int RenderDroid::NRasterModule::drawNGonMTGIT(RdProcFace *procFace, RdMatCel *cel) {
+	return drawNGon(procFace, cel, 0.0f, kGeometryPerspective, kLightingGouraud, kBlendMaskedAlpha);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonLS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonLS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonFS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonFS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonLS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendOpaque, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonLS_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendOpaque, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTLS_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTLS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTFS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingNone, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTFS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingNone, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonGS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingGouraud, kBlendOpaque, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonGS_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingGouraud, kBlendOpaque, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonGS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingGouraud, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonGS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingGouraud, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGS_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingGouraud, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTGS_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingGouraud, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGS_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineSolid(pLeft, pRight, kLightingGouraud, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTGS_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineSolid(left, right, kLightingGouraud, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendOpaque, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonLAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendOpaque, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonLAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTLAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTLAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMLAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMLAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTLAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTLAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTLAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingNone, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTLAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingNone, kBlendMaskedAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonFAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTFAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTFAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMFAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMFAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTFAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTFAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTFAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingFlat, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTFAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingFlat, kBlendMaskedAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonGAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTGAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTGAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMGAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMGAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTGAT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTGAT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTGAT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLineAffine(pLeft, pRight, kLightingGouraud, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTGAT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLineAffine(left, right, kLightingGouraud, kBlendMaskedAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonLIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTLIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTLIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMLIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMLIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTLIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTLIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTLIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingNone, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTLIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingNone, kBlendMaskedAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonFIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTFIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTFIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMFIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMFIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTFIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTFIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTFIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingFlat, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTFIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingFlat, kBlendMaskedAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendOpaque, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonGIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendOpaque, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonTGIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonTGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonTGIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendAlpha, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendMasked, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMGIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendMasked, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendMasked, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMGIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendMasked, 16);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTGIT_8(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendMaskedAlpha, 8);
+void RenderDroid::NRasterModule::drawScanLineNGonMTGIT_8(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendMaskedAlpha, 8);
 }
 
-void RenderDroid::NRasterModule::drawScanLineNGonMTGIT_16(RdNRasterEdge *pLeft, RdNRasterEdge *pRight) {
-	drawScanLinePerspective(pLeft, pRight, kLightingGouraud, kBlendMaskedAlpha, 16);
+void RenderDroid::NRasterModule::drawScanLineNGonMTGIT_16(RdNRasterEdge *left, RdNRasterEdge *right) {
+	drawScanLinePerspective(left, right, kLightingGouraud, kBlendMaskedAlpha, 16);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonLS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonLS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonLS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupRightEdgeNGonLS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonFS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonFS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonFS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupRightEdgeNGonFS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonGS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeGouraud);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonGS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeGouraud);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonGS(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeGouraud);
+int RenderDroid::NRasterModule::setupRightEdgeNGonGS(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeGouraud);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonLAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeAffine);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonLAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeAffine);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonLAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeAffine);
+int RenderDroid::NRasterModule::setupRightEdgeNGonLAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeAffine);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonFAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeAffineFlat);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonFAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeAffineFlat);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonFAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeAffineFlat);
+int RenderDroid::NRasterModule::setupRightEdgeNGonFAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeAffineFlat);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonGAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgeAffineGouraud);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonGAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgeAffineGouraud);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonGAT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeAffineGouraud);
+int RenderDroid::NRasterModule::setupRightEdgeNGonGAT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeAffineGouraud);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonLIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgePerspective);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonLIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgePerspective);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonLIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupRightEdgeNGonLIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonFIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgePerspectiveFlat);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonFIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgePerspectiveFlat);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonFIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeFlat);
+int RenderDroid::NRasterModule::setupRightEdgeNGonFIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeFlat);
 }
 
-int RenderDroid::NRasterModule::setupLeftEdgeNGonGIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _leftVertexStep, kEdgePerspectiveGouraud);
+int RenderDroid::NRasterModule::setupLeftEdgeNGonGIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _leftVertexStep, kEdgePerspectiveGouraud);
 }
 
-int RenderDroid::NRasterModule::setupRightEdgeNGonGIT(RdNRasterEdge *pEdge) {
-	return setupEdge(pEdge, _rightVertexStep, kEdgeGouraud);
+int RenderDroid::NRasterModule::setupRightEdgeNGonGIT(RdNRasterEdge *edge) {
+	return setupEdge(edge, _rightVertexStep, kEdgeGouraud);
 }
 
 } // End of namespace Grim

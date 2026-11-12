@@ -62,7 +62,7 @@ static const int kMovieControlSkipFrames = 5;
 bool EmiEngine::runFrame() {
 	updateManual(_drawContext, true, 0);
 
-	return !_bQuit;
+	return !_quit;
 }
 
 int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) {
@@ -87,7 +87,7 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 	// Not in the disasm, the options changed from the ScummVM menu
 	applyPendingGameSettings(manualMs);
 
-	if (_inputRecorder && _inputRecorder->mode == InputRecorder::kModeReplay)
+	if (_inputRecorder && _inputRecorder->_mode == InputRecorder::kModeReplay)
 		_inputRecorder->replayKeys();
 	else if (_controlSkipFrames != 0)
 		_controlSkipFrames--;
@@ -186,7 +186,7 @@ float EmiEngine::updateFrameTime(int manualMs) {
 
 	stamp.stamp();
 
-	if (_inputRecorder && _inputRecorder->mode == InputRecorder::kModeReplay) {
+	if (_inputRecorder && _inputRecorder->_mode == InputRecorder::kModeReplay) {
 		_frameTime = _inputRecorder->replayFrame();
 
 		return _frameTime;
@@ -197,7 +197,7 @@ float EmiEngine::updateFrameTime(int manualMs) {
 	if (manualMs != 0)
 		elapsed = (float)((double)(uint)manualMs * kMillisecondsToSeconds);
 	else
-		elapsed = (float)(stamp.seconds - _lastStamp);
+		elapsed = (float)(stamp._seconds - _lastStamp);
 
 	if (_firstFrame) {
 		elapsed = 0.0f;
@@ -212,7 +212,7 @@ float EmiEngine::updateFrameTime(int manualMs) {
 	if (_dumpingFrames)
 		elapsed = kMaxFrameTime;
 
-	_lastStamp = stamp.seconds;
+	_lastStamp = stamp._seconds;
 	_frameTime = elapsed;
 
 	if (_inputRecorder)
@@ -262,7 +262,7 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 				_primitiveQueue->drawQueue(drawContext, kPrimitiveLayers);
 				result = DimRegion::drawDimRegions(this, drawContext) + roomResult;
 
-				if (overworld->enabled) {
+				if (overworld->_enabled) {
 					currentRoom->saveLightStates();
 					currentRoom->setLightsActive(false);
 					overworld->setLightsActive(true);
@@ -284,7 +284,7 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 		if (copyCount < 1)
 			drawContext->copyFrontToBack();
 
-		if (overworld->enabled) {
+		if (overworld->_enabled) {
 			currentRoom->saveLightStates();
 			currentRoom->setLightsActive(false);
 			overworld->setLightsActive(true);
@@ -322,9 +322,9 @@ void EmiEngine::pixelTest() {
 	drawContext->readBackBuffer(&bitmap);
 	bitmap.convertFormat(LColorFormat(6));
 
-	uint pixelCount = (uint)bitmap.sizeBytes / 3;
-	const byte *pixels = (const byte *)bitmap.pixels;
-	uint rowWidth = (uint)bitmap.width;
+	uint pixelCount = (uint)bitmap._sizeBytes / 3;
+	const byte *pixels = (const byte *)bitmap._pixels;
+	uint rowWidth = (uint)bitmap._width;
 
 	if (pixelCount != 0 && (!pixels || rowWidth == 0)) {
 		warning("EmiEngine::pixelTest(): the back buffer has no pixels");
@@ -407,7 +407,7 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(this);
 	bool skipTexts = false;
 
-	if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsOverlayFlag) != 0) {
+	if (currentRoom && (_lua->_statsOverlayFlags & Lua_V2::kStatsOverlayFlag) != 0) {
 		double framesPerSecond = 0.0;
 
 		// The original could divide by zero here, let's avoid that...
@@ -418,11 +418,11 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 		Common::String frameTimeText = Common::String::format("FT:  %6.2fms", (double)_rawFrameTime * (double)1000.0f);
 		TextEvent *firstEvent = _statsEvents[0];
 
-		if (firstEvent && (firstEvent->flags & 1) != 0) {
-			firstEvent->text = framesText;
-			firstEvent->geometryReady = false;
-			_statsEvents[1]->text = frameTimeText;
-			_statsEvents[1]->geometryReady = false;
+		if (firstEvent && (firstEvent->_flags & 1) != 0) {
+			firstEvent->_text = framesText;
+			firstEvent->_geometryReady = false;
+			_statsEvents[1]->_text = frameTimeText;
+			_statsEvents[1]->_geometryReady = false;
 		} else {
 			for (int i = 0; i < kNumStatsEvents; i++) {
 				TextEvent *event;
@@ -434,20 +434,20 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 
 				_statsEvents[i] = event;
 				event->setFont("comicsans18.laf");
-				event->x = kStatsTextX;
-				event->y = kStatsTextFirstY + i * kStatsTextRowHeight;
-				event->geometryReady = false;
-				event->justify = kStatsTextJustify;
-				event->geometryReady = false;
-				event->color = Color::kWhite;
-				event->geometryReady = false;
+				event->_x = kStatsTextX;
+				event->_y = kStatsTextFirstY + i * kStatsTextRowHeight;
+				event->_geometryReady = false;
+				event->_justify = kStatsTextJustify;
+				event->_geometryReady = false;
+				event->_color = Color::kWhite;
+				event->_geometryReady = false;
 				event->activate(0.0f, 1);
 			}
 		}
-	} else if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsOverlayFlag) == 0) {
+	} else if (currentRoom && (_lua->_statsOverlayFlags & Lua_V2::kStatsOverlayFlag) == 0) {
 		if (_statsEvents[0]) {
 			for (int i = 0; i < kNumStatsEvents; i++) {
-				_statsEvents[i]->flags &= ~1u;
+				_statsEvents[i]->_flags &= ~1u;
 				_statsEvents[i] = nullptr;
 			}
 
@@ -457,27 +457,27 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 
 	if (!skipTexts) {
 		if (_statsEvents[2]) {
-			_statsEvents[2]->text = Common::String::format("mem: %d, polys: %d", (int)_memoryServices->bytesAllocated, drawContext->trianglesDrawn);
-			_statsEvents[2]->geometryReady = false;
+			_statsEvents[2]->_text = Common::String::format("mem: %d, polys: %d", (int)_memoryServices->_bytesAllocated, drawContext->_trianglesDrawn);
+			_statsEvents[2]->_geometryReady = false;
 		}
 
 		// The D3D statistics do not exist here and the disasm leaves the last value uninitialized
 		if (_statsEvents[3]) {
-			_statsEvents[3]->text = Common::String::format("%s EV: %4d CR: %4d UT: %4d UV: %4d", " ", 0, 0, 0, 0);
-			_statsEvents[3]->geometryReady = false;
+			_statsEvents[3]->_text = Common::String::format("%s EV: %4d CR: %4d UT: %4d UV: %4d", " ", 0, 0, 0, 0);
+			_statsEvents[3]->_geometryReady = false;
 		}
 
 		if (_statsEvents[4]) {
-			_statsEvents[4]->text = Common::String::format("RE: %4d (%10d) MN: %4d (%10d)", 0, 0, 0, 0);
-			_statsEvents[4]->geometryReady = false;
+			_statsEvents[4]->_text = Common::String::format("RE: %4d (%10d) MN: %4d (%10d)", 0, 0, 0, 0);
+			_statsEvents[4]->_geometryReady = false;
 		}
 	}
 
 	ProfilerTimer::endFrame(this);
 
-	if (currentRoom && (_lua->statsOverlayFlags & Lua_V2::kStatsProfilerFlag) != 0) {
+	if (currentRoom && (_lua->_statsOverlayFlags & Lua_V2::kStatsProfilerFlag) != 0) {
 		ProfilerTimer::printAllStats(this);
-		_lua->statsOverlayFlags &= ~(uint)Lua_V2::kStatsProfilerFlag;
+		_lua->_statsOverlayFlags &= ~(uint)Lua_V2::kStatsProfilerFlag;
 	}
 }
 

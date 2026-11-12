@@ -89,8 +89,8 @@ public:
 	}
 
 	void finalize() override {
-		if (_file->writeStream)
-			_file->writeStream->finalize();
+		if (_file->_writeStream)
+			_file->_writeStream->finalize();
 	}
 
 private:
@@ -191,7 +191,7 @@ GzStream *ZFileServices::gzOpenFile(LFile *file, const char *mode) {
 
 	GzStream *s = new GzStream();
 
-	s->path = file->fileName;
+	s->path = file->_fileName;
 	s->mode = gzMode;
 	s->file = file;
 
@@ -371,27 +371,27 @@ int ZFileServices::gzClose(GzStream *file) {
 }
 
 ZFile::ZFile(ZFileServices *services) : LFile(services->_engine), _services(services) {
-	gzFile = nullptr;
+	_gzFile = nullptr;
 }
 
 ZFile::~ZFile() {
-	if (gzFile) {
+	if (_gzFile) {
 		warning("ZFile::~ZFile(): file not closed");
-		_services->gzClose(gzFile);
-		gzFile = nullptr;
+		_services->gzClose(_gzFile);
+		_gzFile = nullptr;
 	}
 }
 
 uint ZFile::read(void *buffer, uint size) {
-	return ZFileServices::gzRead(gzFile, buffer, size);
+	return ZFileServices::gzRead(_gzFile, buffer, size);
 }
 
 int ZFile::seek(int offset, int whence) {
-	return ZFileServices::gzSeek(gzFile, offset, whence);
+	return ZFileServices::gzSeek(_gzFile, offset, whence);
 }
 
 uint ZFile::writeCompressed(const void *buffer, uint size) {
-	return ZFileServices::gzWrite(gzFile, buffer, size);
+	return ZFileServices::gzWrite(_gzFile, buffer, size);
 }
 
 ZFile *ZFileServices::open(const char *path, const char *mode) {
@@ -408,7 +408,7 @@ ZFile *ZFileServices::open(const char *path, const char *mode) {
 	}
 
 	ZFile *file = new ZFile(this);
-	file->gzFile = stream;
+	file->_gzFile = stream;
 
 	return file;
 }
@@ -419,7 +419,7 @@ ZFile *ZFileServices::createZFile(LFile *file, const char *mode) {
 		return nullptr;
 
 	ZFile *zFile = new ZFile(this);
-	zFile->gzFile = stream;
+	zFile->_gzFile = stream;
 
 	return zFile;
 }
@@ -435,8 +435,8 @@ void ZFileServices::closeZFile(ZFile *file) {
 		return;
 	}
 
-	gzClose(file->gzFile);
-	file->gzFile = nullptr;
+	gzClose(file->_gzFile);
+	file->_gzFile = nullptr;
 	delete file;
 }
 

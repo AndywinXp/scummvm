@@ -36,14 +36,14 @@ namespace Grim {
 static const int kSavedStringBufferSize = 512;
 static const int kMaxSavedLocks = 65536;
 
-static void writeSavedString(tSaveRestoreAccess *writer, const LString &text) {
+static void writeSavedString(SaveRestoreAccess *writer, const LString &text) {
 	int length = (int)text.size() + 1;
 
 	writer(&length, sizeof(length));
 	writer((void *)text.c_str(), length);
 }
 
-static bool readSavedString(tSaveRestoreAccess *reader, LString &text) {
+static bool readSavedString(SaveRestoreAccess *reader, LString &text) {
 	char buffer[kSavedStringBufferSize + 1];
 	int length = 0;
 
@@ -62,7 +62,7 @@ static bool readSavedString(tSaveRestoreAccess *reader, LString &text) {
 	return true;
 }
 
-static bool readSavedLockCount(tSaveRestoreAccess *reader, int *count) {
+static bool readSavedLockCount(SaveRestoreAccess *reader, int *count) {
 	reader(count, sizeof(*count));
 
 	if (*count < 0 || *count > kMaxSavedLocks) {
@@ -74,12 +74,12 @@ static bool readSavedLockCount(tSaveRestoreAccess *reader, int *count) {
 	return true;
 }
 
-void Lua_V2::saveGameCallback(tSaveRestoreAccess *writer) {
+void Lua_V2::saveGameCallback(SaveRestoreAccess *writer) {
 	_saveWriter = writer;
 	_saveDataSize = 0;
 
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("saveGameCallback");
 
 	lua_Object handler = lua_gettable();
@@ -110,7 +110,7 @@ void Lua_V2::saveGameCallback(tSaveRestoreAccess *writer) {
 
 void Lua_V2::getVersion(LString &version) {
 	lua_beginblock();
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("version");
 
 	lua_Object versionObject = lua_gettable();
@@ -125,7 +125,7 @@ void Lua_V2::getVersion(LString &version) {
 	lua_endblock();
 }
 
-void Lua_V2::saveLocks(tSaveRestoreAccess *writer) {
+void Lua_V2::saveLocks(SaveRestoreAccess *writer) {
 	int count = (int)_lockedChores.size();
 
 	writer(&count, sizeof(count));
@@ -160,7 +160,7 @@ void Lua_V2::saveLocks(tSaveRestoreAccess *writer) {
 		writer(&_lockedSounds[i], sizeof(uint));
 }
 
-void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
+void Lua_V2::restoreLocks(SaveRestoreAccess *reader) {
 	int count = 0;
 
 	if (!readSavedLockCount(reader, &count))
@@ -177,8 +177,8 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 
 		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChores[i].choreSetName);
 
-		if (choreSetHandle.lock() && choreSetHandle.typed) {
-			Chore *chore = choreSetHandle.typed->findChore(_lockedChores[i].choreName);
+		if (choreSetHandle.lock() && choreSetHandle._typed) {
+			Chore *chore = choreSetHandle._typed->findChore(_lockedChores[i].choreName);
 
 			if (chore)
 				chore->lockComponents();
@@ -198,9 +198,9 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 
 		LResourceHandle<ChoreSet> choreSetHandle(_engine, _lockedChoreSets[i]);
 
-		if (choreSetHandle.lock() && choreSetHandle.typed) {
-			for (uint j = 0; j < choreSetHandle.typed->chores.size(); j++) {
-				Chore *chore = choreSetHandle.typed->chores[j];
+		if (choreSetHandle.lock() && choreSetHandle._typed) {
+			for (uint j = 0; j < choreSetHandle._typed->_chores.size(); j++) {
+				Chore *chore = choreSetHandle._typed->_chores[j];
 
 				if (chore)
 					chore->lockComponents();
@@ -221,9 +221,9 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 
 		LResourceHandle<Room_v2> roomHandle(_engine, _lockedRooms[i]);
 
-		if (roomHandle.lock() && roomHandle.typed) {
-			roomHandle.typed->lockCount++;
-			_engine->getResourceManager()->lockResource(roomHandle.typed);
+		if (roomHandle.lock() && roomHandle._typed) {
+			roomHandle._typed->_lockCount++;
+			_engine->getResourceManager()->lockResource(roomHandle._typed);
 		}
 
 		roomHandle.unlock();
@@ -240,9 +240,9 @@ void Lua_V2::restoreLocks(tSaveRestoreAccess *reader) {
 
 		LResourceHandle<Background> backgroundHandle(_engine, _lockedBackgrounds[i]);
 
-		if (backgroundHandle.lock() && backgroundHandle.typed) {
-			backgroundHandle.typed->lockCount++;
-			_engine->getResourceManager()->lockResource(backgroundHandle.typed);
+		if (backgroundHandle.lock() && backgroundHandle._typed) {
+			backgroundHandle._typed->_lockCount++;
+			_engine->getResourceManager()->lockResource(backgroundHandle._typed);
 		}
 
 		backgroundHandle.unlock();

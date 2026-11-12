@@ -244,10 +244,10 @@ void Lua_V1::SetSoundPosition() {
 	float panFactor = 1.5f;
 	float maxRadius = 1.0f;
 	int argId = 3;
-	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+	Room *room = g_grim->_sputRoom->getCurrentRoom();
 
-	if (pRoom)
-		g_grim->_pSputRoom->getSoundParameters(pRoom, &maxDist, &minVol, &maxVol, &panFactor, &maxRadius);
+	if (room)
+		g_grim->_sputRoom->getSoundParameters(room, &maxDist, &minVol, &maxVol, &panFactor, &maxRadius);
 
 	lua_Object nameObj = lua_getparam(1);
 	if (!lua_isnumber(nameObj) && !lua_isstring(nameObj))
@@ -255,13 +255,13 @@ void Lua_V1::SetSoundPosition() {
 
 	lua_Object actorObj = lua_getparam(2);
 	if (isSputActor(actorObj)) {
-		SputActor *pActor = getSputActor(actorObj);
-		if (!pActor)
+		SputActor *actor = getSputActor(actorObj);
+		if (!actor)
 			return;
 
-		pos[0] = pActor->actorPos[0];
-		pos[1] = pActor->actorPos[1];
-		pos[2] = pActor->actorPos[2];
+		pos[0] = actor->actorPos[0];
+		pos[1] = actor->actorPos[1];
+		pos[2] = actor->actorPos[2];
 	} else if (lua_isnumber(actorObj)) {
 		argId = 5;
 		pos[0] = lua_getnumber(actorObj);
@@ -293,7 +293,7 @@ void Lua_V1::SetSoundPosition() {
 			maxDist = 0.0f;
 	}
 
-	g_grim->_pSputRoom->setSoundPosition(getSoundKey(nameObj), pos, minVol, maxVol, maxDist, 0.8f);
+	g_grim->_sputRoom->setSoundPosition(getSoundKey(nameObj), pos, minVol, maxVol, maxDist, 0.8f);
 }
 
 void Lua_V1::SetSoundPositionDemo() {
@@ -316,16 +316,16 @@ void Lua_V1::SetSoundPositionDemo() {
 	lua_Object actorObj = lua_getparam(2);
 
 	if (isSputActor(actorObj)) {
-		SputActor *pActor = getSputActor(actorObj);
+		SputActor *actor = getSputActor(actorObj);
 
-		if (!pActor) {
+		if (!actor) {
 			warning("SetSoundPosition: invalid actor handle.");
 			return;
 		}
 
-		pos[0] = pActor->actorPos[0];
-		pos[1] = pActor->actorPos[1];
-		pos[2] = pActor->actorPos[2];
+		pos[0] = actor->actorPos[0];
+		pos[1] = actor->actorPos[1];
+		pos[2] = actor->actorPos[2];
 	} else if (lua_isnumber(actorObj)) {
 		argId = 5;
 		pos[0] = lua_getnumber(actorObj);
@@ -359,23 +359,23 @@ void Lua_V1::SetSoundPositionDemo() {
 			maxDist = 0.0f;
 	}
 
-	Room *pRoom = g_grim->_pSputRoom->getCurrentRoom();
+	Room *room = g_grim->_sputRoom->getCurrentRoom();
 	int volume = maxVol;
 
-	if (pRoom) {
-		if (g_grim->_pRd->_primit3.getScreenCoord(pos, screen)) {
+	if (room) {
+		if (g_grim->_rd->_primit3.getScreenCoord(pos, screen)) {
 			pan = screen[0] / 5;
 			if ((uint)pan > 127)
 				pan = 127;
 		}
 
-		const float *pCameraPos = pRoom->pSetups[pRoom->curSetup].camera.position;
+		const float *cameraPos = room->setups[room->curSetup].camera.position;
 
-		delta[0] = pos[0] - pCameraPos[0];
-		delta[1] = pos[1] - pCameraPos[1];
-		delta[2] = pos[2] - pCameraPos[2];
+		delta[0] = pos[0] - cameraPos[0];
+		delta[1] = pos[1] - cameraPos[1];
+		delta[2] = pos[2] - cameraPos[2];
 
-		float distance = g_grim->_pRd->normalize3Acc(delta);
+		float distance = g_grim->_rd->normalize3Acc(delta);
 		double minVolume = (double)minVol;
 		double scaled = minVolume;
 
@@ -421,8 +421,8 @@ void Lua_V1::LoadBundleDemo() {
 		return;
 	}
 
-	if (g_grim->_pRes->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
-		lua_pushnumber((float)g_grim->_pRes->fileOpen(path));
+	if (g_grim->_res->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
+		lua_pushnumber((float)g_grim->_res->fileOpen(path));
 	} else {
 		warning("Unable to find music bundle '%s'!", lua_getstring(nameObj));
 		lua_pushnil();
@@ -439,8 +439,8 @@ void Lua_V1::UnloadBundleDemo() {
 		return;
 	}
 
-	if (g_grim->_pRes->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
-		lua_pushnumber((float)g_grim->_pRes->fileClose(path));
+	if (g_grim->_res->findExternalFile(lua_getstring(nameObj), path, sizeof(path)) == 1) {
+		lua_pushnumber((float)g_grim->_res->fileClose(path));
 	} else {
 		warning("Unable to unload music bundle '%s'!", lua_getstring(nameObj));
 		lua_pushnil();

@@ -36,10 +36,10 @@ namespace Grim {
 static const int kLabPriorityBase = -1000;
 static const int kDirectoryPriorityBase = 2;
 
-Res::Res(bool isDemo) : _pResHS(nullptr), _fResSysInitialized(0), _bStarted(0), _nextLabPriority(kLabPriorityBase),
+Res::Res(bool isDemo) : _resHS(nullptr), _resSysInitialized(0), _started(0), _nextLabPriority(kLabPriorityBase),
 		_nextDirectoryPriority(kDirectoryPriorityBase),
-		_pTagHead(nullptr), _pNodeHead(nullptr), _pNodeTail(nullptr), _pDefaultHandler(nullptr),
-		_logFile(nullptr), _memoryLimit(0x1800000), _pSputRender(nullptr), _bDemo(isDemo) {
+		_tagHead(nullptr), _nodeHead(nullptr), _nodeTail(nullptr), _defaultHandler(nullptr),
+		_logFile(nullptr), _memoryLimit(0x1800000), _sputRender(nullptr), _demo(isDemo) {
 }
 
 Res::~Res() {
@@ -47,81 +47,81 @@ Res::~Res() {
 	_logFile = nullptr;
 }
 
-int Res::sysInitialize(SysStruct *pHS) {
-	_pResHS = pHS;
+int Res::sysInitialize(SysStruct *hs) {
+	_resHS = hs;
 
-	if (_fResSysInitialized)
+	if (_resSysInitialized)
 		return 1;
 
-	_fResSysInitialized = 1;
-	_pTagHead = nullptr;
-	_pNodeTail = nullptr;
-	_pNodeHead = nullptr;
+	_resSysInitialized = 1;
+	_tagHead = nullptr;
+	_nodeTail = nullptr;
+	_nodeHead = nullptr;
 
 	return 0;
 }
 
 void Res::sysTerminate() {
-	_fResSysInitialized = 0;
+	_resSysInitialized = 0;
 }
 
 int Res::sysStartup() {
-	if (!_fResSysInitialized)
+	if (!_resSysInitialized)
 		return 1;
 
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
 
 int Res::sysShutdown() {
-	if (_bStarted) {
+	if (_started) {
 		fileCloseAll();
 		freeAll();
 
-		while (_pTagHead) {
-			ResTag *pNext = _pTagHead->pNext;
-			delete _pTagHead;
-			_pTagHead = pNext;
+		while (_tagHead) {
+			ResTag *next = _tagHead->next;
+			delete _tagHead;
+			_tagHead = next;
 		}
 	}
 
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
 
-int Res::sysRegisterHandler(int tag, ResHandler *pHandler) {
+int Res::sysRegisterHandler(int tag, ResHandler *handler) {
 	if (tag == kResTagDefaultHandler) {
-		_pDefaultHandler = pHandler;
+		_defaultHandler = handler;
 		return 1;
 	}
 
-	ResTag *pTag = _pTagHead;
+	ResTag *tagPointer = _tagHead;
 
-	while (pTag) {
-		if (pTag->tag == tag)
+	while (tagPointer) {
+		if (tagPointer->tag == tag)
 			break;
 
-		pTag = pTag->pNext;
+		tagPointer = tagPointer->next;
 	}
 
-	if (pTag)
+	if (tagPointer)
 		return 2;
 
-	pTag = new ResTag();
-	pTag->tag = tag;
-	pTag->pHandler = pHandler;
-	pTag->pNext = _pTagHead;
+	tagPointer = new ResTag();
+	tagPointer->tag = tag;
+	tagPointer->handler = handler;
+	tagPointer->next = _tagHead;
 
-	if (_pTagHead)
-		_pTagHead->pPrev = pTag;
+	if (_tagHead)
+		_tagHead->prev = tagPointer;
 
-	pTag->pPrev = nullptr;
-	_pTagHead = pTag;
+	tagPointer->prev = nullptr;
+	_tagHead = tagPointer;
 
 	return 1;
 }
@@ -186,16 +186,16 @@ int Res::openLabFile(const char *path) {
 		return 0;
 	}
 
-	Lab *pLab = new Lab();
+	Lab *lab = new Lab();
 
-	if (!pLab->open(Common::Path(name), false)) {
-		delete pLab;
-		pLab = nullptr;
+	if (!lab->open(Common::Path(name), false)) {
+		delete lab;
+		lab = nullptr;
 
 		return 0;
 	}
 
-	SearchMan.add(name, pLab, _nextLabPriority, true);
+	SearchMan.add(name, lab, _nextLabPriority, true);
 
 	ResLabFile labFile;
 
@@ -252,93 +252,93 @@ int Res::allocCompletion(int tag, const char *name, void *handle) {
 	if (checkAllocatedRes(handle))
 		return 4;
 
-	ResNode *pNode = load(tag, name, handle);
+	ResNode *node = load(tag, name, handle);
 
-	if (!pNode)
+	if (!node)
 		return 0;
 
 	if (_logFile)
-		_logFile->writeString(Common::String::format("Resource <%-12s> allocated: %8d bytes\n", name, getUserField(pNode)));
+		_logFile->writeString(Common::String::format("Resource <%-12s> allocated: %8d bytes\n", name, getUserField(node)));
 
 	return 1;
 }
 
 void *Res::getResource(int tag, const char *name) {
 	int result;
-	ResNode *pNode = checkForNeedLoadRes(tag, name, &result);
+	ResNode *node = checkForNeedLoadRes(tag, name, &result);
 
-	if (pNode) {
-		checkAnotherLists(pNode);
-		return pNode->handle;
+	if (node) {
+		checkAnotherLists(node);
+		return node->handle;
 	}
 
 	return nullptr;
 }
 
-int Res::setPurgeOnFree(void *handle, int bPurge) {
+int Res::setPurgeOnFree(void *handle, int purge) {
 	int result = 0;
-	ResNode *pNode = checkAllocatedRes(handle);
+	ResNode *node = checkAllocatedRes(handle);
 
-	if (pNode) {
-		if (!(pNode->flags & 8))
+	if (node) {
+		if (!(node->flags & 8))
 			result = 1;
 
-		if (bPurge)
-			pNode->flags &= 0xFFF7;
+		if (purge)
+			node->flags &= 0xFFF7;
 		else
-			pNode->flags |= 8;
+			node->flags |= 8;
 	}
 
 	return result;
 }
 
-int Res::freeResources(uint bytesWanted, uint *pBytesFreed) {
-	int bFreedAny = 1;
+int Res::freeResources(uint bytesWanted, uint *bytesFreed) {
+	int freedAny = 1;
 	int numVisited = 0;
 
-	*pBytesFreed = 0;
+	*bytesFreed = 0;
 
 	if (bytesWanted) {
-		while (bFreedAny) {
-			ResNode *pNode = _pNodeTail;
-			bFreedAny = 0;
+		while (freedAny) {
+			ResNode *node = _nodeTail;
+			freedAny = 0;
 
-			if (pNode) {
-				int bListEnded = 0;
+			if (node) {
+				int listEnded = 0;
 
-				while (*pBytesFreed < bytesWanted) {
+				while (*bytesFreed < bytesWanted) {
 					numVisited++;
 
 					if (g_grim->getImuse() && !(numVisited % 5))
 						g_grim->getImuse()->soundsPeriodic();
 
-					ResNode *pPrev = pNode->pPrev;
+					ResNode *prev = node->prev;
 
-					if (!pNode->pRefs && !(pNode->flags & 8)) {
-						*pBytesFreed += getUserField(pNode);
-						unlinkNode(pNode);
-						freeNode(pNode);
-						bFreedAny = 1;
+					if (!node->refs && !(node->flags & 8)) {
+						*bytesFreed += getUserField(node);
+						unlinkNode(node);
+						freeNode(node);
+						freedAny = 1;
 					}
 
-					pNode = pPrev;
+					node = prev;
 
-					if (!pNode) {
-						bListEnded = 1;
+					if (!node) {
+						listEnded = 1;
 						break;
 					}
 				}
 
-				if (!bListEnded)
+				if (!listEnded)
 					return 1;
 			}
 
-			if (*pBytesFreed >= bytesWanted)
+			if (*bytesFreed >= bytesWanted)
 				break;
 		}
 	}
 
-	if (*pBytesFreed >= bytesWanted)
+	if (*bytesFreed >= bytesWanted)
 		return 1;
 
 	return 0;
@@ -352,15 +352,15 @@ int Res::dump(const char *path, int tag) {
 	if (!file.open(path))
 		return 0;
 
-	for (ResNode *pNode = _pNodeHead; pNode; pNode = pNode->pNext) {
-		if (!tag || pNode->tag == tag) {
-			const char *pStatus = "";
+	for (ResNode *node = _nodeHead; node; node = node->next) {
+		if (!tag || node->tag == tag) {
+			const char *status = "";
 
-			if (pNode->pRefs)
-				pStatus = "REFERENCED";
+			if (node->refs)
+				status = "REFERENCED";
 
-			file.writeString(Common::String::format("Resource %-12s,\t\tsize = %7d\t%s\n", pNode->pName, getUserField(pNode), pStatus));
-			totalBytes += getUserField(pNode);
+			file.writeString(Common::String::format("Resource %-12s,\t\tsize = %7d\t%s\n", node->name, getUserField(node), status));
+			totalBytes += getUserField(node);
 			numItems++;
 		}
 	}
@@ -393,57 +393,57 @@ int Res::log(const char *path) {
 }
 
 ResTag *Res::getResTagStruct(int tag) {
-	ResTag *pTag = _pTagHead;
+	ResTag *tagPointer = _tagHead;
 
-	while (pTag) {
-		if (pTag->tag == tag)
-			return pTag;
+	while (tagPointer) {
+		if (tagPointer->tag == tag)
+			return tagPointer;
 
-		pTag = pTag->pNext;
+		tagPointer = tagPointer->next;
 	}
 
 	return nullptr;
 }
 
 ResNode *Res::checkAllocatedRes(void *handle) {
-	ResNode *pNode = _pNodeHead;
+	ResNode *node = _nodeHead;
 
-	while (pNode) {
-		if (pNode->handle == handle)
-			return pNode;
+	while (node) {
+		if (node->handle == handle)
+			return node;
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
 	return nullptr;
 }
 
 void *Res::handleFromSerialNumber(int serial) {
-	ResNode *pNode = resourceHandleFromSerialNumber(serial);
+	ResNode *node = resourceHandleFromSerialNumber(serial);
 
-	if (pNode)
-		return pNode->handle;
+	if (node)
+		return node->handle;
 
 	return nullptr;
 }
 
 int Res::serialFromHandle(void *handle) {
-	ResNode *pNode = checkAllocatedRes(handle);
+	ResNode *node = checkAllocatedRes(handle);
 
-	if (pNode)
-		return pNode->serial;
+	if (node)
+		return node->serial;
 
 	return (int)(intptr)handle;
 }
 
 ResNode *Res::resourceHandleFromSerialNumber(int serial) {
-	ResNode *pNode = _pNodeHead;
+	ResNode *node = _nodeHead;
 
-	while (pNode) {
-		if (pNode->serial == serial)
-			return pNode;
+	while (node) {
+		if (node->serial == serial)
+			return node;
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
 	return nullptr;
@@ -462,85 +462,85 @@ ResNode *Res::isResourceLoaded(int tag, const char *name) {
 	}
 
 	uint hash = changeFileNameToUpper(name, upperName);
-	ResNode *pNode = _pNodeHead;
+	ResNode *node = _nodeHead;
 
-	while (pNode) {
-		if (pNode->tag == tag && pNode->hash == hash && !(pNode->flags & 2) && !strcmp(pNode->pName, upperName))
-			return pNode;
+	while (node) {
+		if (node->tag == tag && node->hash == hash && !(node->flags & 2) && !strcmp(node->name, upperName))
+			return node;
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
 	return nullptr;
 }
 
-ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *pResult) {
-	ResNode *pNode = isResourceLoaded(tag, name);
+ResNode *Res::checkForNeedLoadRes(int tag, const char *name, int *result) {
+	ResNode *node = isResourceLoaded(tag, name);
 
-	if (pNode) {
-		*pResult = 4;
-		return pNode;
+	if (node) {
+		*result = 4;
+		return node;
 	}
 
-	ResTag *pTag = getResTagStruct(tag);
+	ResTag *tagPointer = getResTagStruct(tag);
 	ResHandlerMsg msg;
 
 	msg.op = 1;
-	msg.pName = name;
+	msg.name = name;
 	msg.tag = tag;
 	msg.data = nullptr;
 	msg.result = 0;
 
 	// The demo has no loading image and does not update the sounds while loading
-	if (!_bDemo)
-		_pSputRender->drawLoadingImage();
+	if (!_demo)
+		_sputRender->drawLoadingImage();
 
-	if (pTag)
-		*pResult = pTag->pHandler->handler(&msg);
-	else if (_pDefaultHandler)
-		*pResult = _pDefaultHandler->handler(&msg);
+	if (tagPointer)
+		*result = tagPointer->handler->handler(&msg);
+	else if (_defaultHandler)
+		*result = _defaultHandler->handler(&msg);
 	else
-		*pResult = loadFileData(&msg);
+		*result = loadFileData(&msg);
 
-	if (g_grim->getImuse() && !_bDemo)
+	if (g_grim->getImuse() && !_demo)
 		g_grim->getImuse()->soundsPeriodic();
 
-	if (*pResult == 1) {
-		pNode = checkList1(tag, name);
+	if (*result == 1) {
+		node = checkList1(tag, name);
 
 		// The demo asks the handler for the size every time it is needed
-		if (pNode && !_bDemo) {
+		if (node && !_demo) {
 			ResHandlerMsg sizeMsg;
 
 			sizeMsg.op = 3;
-			sizeMsg.pName = pNode->pName;
-			sizeMsg.tag = pNode->tag;
-			sizeMsg.data = pNode->handle;
+			sizeMsg.name = node->name;
+			sizeMsg.tag = node->tag;
+			sizeMsg.data = node->handle;
 			sizeMsg.result = 0;
 
-			if (pTag) {
-				pTag->pHandler->handler(&sizeMsg);
+			if (tagPointer) {
+				tagPointer->handler->handler(&sizeMsg);
 			} else {
 				warning("Res::checkForNeedLoadRes(): no handler registered for tag %d", tag);
 
-				if (_pDefaultHandler)
-					_pDefaultHandler->handler(&sizeMsg);
+				if (_defaultHandler)
+					_defaultHandler->handler(&sizeMsg);
 				else
 					loadFileData(&sizeMsg);
 			}
 
-			pNode->size = sizeMsg.result;
+			node->size = sizeMsg.result;
 		}
 	}
 
-	return pNode;
+	return node;
 }
 
 ResNode *Res::checkList1(int tag, const char *name) {
-	return locateResByName(tag, name, _pNodeHead);
+	return locateResByName(tag, name, _nodeHead);
 }
 
-ResNode *Res::locateResByName(int tag, const char *name, ResNode *pStart) {
+ResNode *Res::locateResByName(int tag, const char *name, ResNode *start) {
 	char upperName[260];
 
 	if (strlen(name) >= sizeof(upperName)) {
@@ -549,203 +549,203 @@ ResNode *Res::locateResByName(int tag, const char *name, ResNode *pStart) {
 	}
 
 	uint hash = changeFileNameToUpper(name, upperName);
-	ResNode *pNode = pStart;
+	ResNode *node = start;
 
-	while (pNode) {
-		if (pNode->tag == tag && pNode->hash == hash && !strcmp(pNode->pName, upperName))
-			return pNode;
+	while (node) {
+		if (node->tag == tag && node->hash == hash && !strcmp(node->name, upperName))
+			return node;
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
 	return nullptr;
 }
 
 ResNode *Res::load(int tag, const char *name, void *handle) {
-	ResNode *pNode = new ResNode();
+	ResNode *node = new ResNode();
 
-	pNode->tag = tag;
-	pNode->handle = handle;
-	pNode->serial = (int)(intptr)handle;
-	pNode->flags = 0;
-	pNode->pRefs = nullptr;
-	pNode->pName = nullptr;
+	node->tag = tag;
+	node->handle = handle;
+	node->serial = (int)(intptr)handle;
+	node->flags = 0;
+	node->refs = nullptr;
+	node->name = nullptr;
 
-	pNode->pName = new char[strlen(name) + 1];
-	pNode->hash = changeFileNameToUpper(name, pNode->pName);
-	pNode->flags |= 4;
+	node->name = new char[strlen(name) + 1];
+	node->hash = changeFileNameToUpper(name, node->name);
+	node->flags |= 4;
 
-	pNode->pNext = _pNodeHead;
+	node->next = _nodeHead;
 
-	if (_pNodeHead)
-		_pNodeHead->pPrev = pNode;
+	if (_nodeHead)
+		_nodeHead->prev = node;
 
-	pNode->pPrev = nullptr;
-	_pNodeHead = pNode;
+	node->prev = nullptr;
+	_nodeHead = node;
 
-	if (!_pNodeTail)
-		_pNodeTail = pNode;
+	if (!_nodeTail)
+		_nodeTail = node;
 
-	checkAnotherLists(pNode);
+	checkAnotherLists(node);
 
-	return pNode;
+	return node;
 }
 
-void Res::unlinkNode(ResNode *pNode) {
+void Res::unlinkNode(ResNode *node) {
 	int numRefs = 0;
-	ResTag *pTag = getResTagStruct(pNode->tag);
-	ResRef *pRef = pNode->pRefs;
+	ResTag *tag = getResTagStruct(node->tag);
+	ResRef *ref = node->refs;
 
-	while (pRef) {
+	while (ref) {
 		numRefs++;
 
-		if (!pRef->valid)
-			warning("Res::unlinkNode(): reference of %s is not valid", pNode->pName);
+		if (!ref->valid)
+			warning("Res::unlinkNode(): reference of %s is not valid", node->name);
 
-		pRef->valid = 0;
-		pRef = pRef->pNext;
+		ref->valid = 0;
+		ref = ref->next;
 	}
 
-	if (pTag) {
+	if (tag) {
 		ResHandlerMsg msg;
 
 		msg.op = 2;
-		msg.pName = pNode->pName;
-		msg.tag = pNode->tag;
-		msg.data = pNode->handle;
+		msg.name = node->name;
+		msg.tag = node->tag;
+		msg.data = node->handle;
 		msg.result = 0;
 
-		if (pTag->pHandler->handler(&msg) == 1) {
+		if (tag->handler->handler(&msg) == 1) {
 			if (_logFile)
-				_logFile->writeString(Common::String::format("Resource <%-12s> freed (%d references)\n", pNode->pName, numRefs));
+				_logFile->writeString(Common::String::format("Resource <%-12s> freed (%d references)\n", node->name, numRefs));
 		}
 	}
 }
 
-int Res::freeNode(ResNode *pNode) {
-	if (pNode->pPrev)
-		pNode->pPrev->pNext = pNode->pNext;
+int Res::freeNode(ResNode *node) {
+	if (node->prev)
+		node->prev->next = node->next;
 
-	if (pNode->pNext)
-		pNode->pNext->pPrev = pNode->pPrev;
+	if (node->next)
+		node->next->prev = node->prev;
 
-	if (_pNodeHead == pNode)
-		_pNodeHead = pNode->pNext;
+	if (_nodeHead == node)
+		_nodeHead = node->next;
 
-	if (_pNodeTail == pNode)
-		_pNodeTail = pNode->pPrev;
+	if (_nodeTail == node)
+		_nodeTail = node->prev;
 
-	if (pNode->flags & 4) {
-		delete[] pNode->pName;
-		pNode->pName = nullptr;
+	if (node->flags & 4) {
+		delete[] node->name;
+		node->name = nullptr;
 	}
 
-	delete pNode;
+	delete node;
 
 	return 1;
 }
 
-int Res::loadFileData(ResHandlerMsg *pMsg) {
-	if (pMsg->op != 1) {
-		if (pMsg->op == 2)
-			delete[] static_cast<byte *>(pMsg->data);
+int Res::loadFileData(ResHandlerMsg *msg) {
+	if (msg->op != 1) {
+		if (msg->op == 2)
+			delete[] static_cast<byte *>(msg->data);
 
 		return 0;
 	}
 
-	if (pMsg->tag == kResTagResf)
+	if (msg->tag == kResTagResf)
 		return 0;
 
-	Common::SeekableReadStream *pFile = _pResHS->openFile(pMsg->pName);
+	Common::SeekableReadStream *file = _resHS->openFile(msg->name);
 
-	if (!pFile)
+	if (!file)
 		return 4;
 
-	uint size = (uint)pFile->size();
-	byte *pData = new byte[size];
+	uint size = (uint)file->size();
+	byte *data = new byte[size];
 
-	pFile->read(pData, size);
-	allocCompletion(pMsg->tag, pMsg->pName, pData);
-	delete pFile;
+	file->read(data, size);
+	allocCompletion(msg->tag, msg->name, data);
+	delete file;
 
 	return 1;
 }
 
-int Res::getUserField(ResNode *pNode) {
-	if (!pNode)
+int Res::getUserField(ResNode *node) {
+	if (!node)
 		return 0;
 
-	if (_bDemo) {
-		ResTag *pTag = getResTagStruct(pNode->tag);
+	if (_demo) {
+		ResTag *tag = getResTagStruct(node->tag);
 
-		if (!pTag)
+		if (!tag)
 			return 0;
 
 		ResHandlerMsg sizeMsg;
 
 		sizeMsg.op = 3;
-		sizeMsg.pName = pNode->pName;
-		sizeMsg.tag = pNode->tag;
-		sizeMsg.data = pNode->handle;
+		sizeMsg.name = node->name;
+		sizeMsg.tag = node->tag;
+		sizeMsg.data = node->handle;
 		sizeMsg.result = 0;
 
-		pTag->pHandler->handler(&sizeMsg);
+		tag->handler->handler(&sizeMsg);
 
 		return sizeMsg.result;
 	}
 
-	return pNode->size;
+	return node->size;
 }
 
 int Res::totalAllocated() {
 	// TODO: the EXE returns the bytes allocated by the whole memory manager, here only the resources are counted
 	int totalBytes = 0;
 
-	for (ResNode *pNode = _pNodeHead; pNode; pNode = pNode->pNext)
-		totalBytes += getUserField(pNode);
+	for (ResNode *node = _nodeHead; node; node = node->next)
+		totalBytes += getUserField(node);
 
 	return totalBytes;
 }
 
-void Res::checkAnotherLists(ResNode *pNode) {
-	if (_pNodeHead == pNode)
+void Res::checkAnotherLists(ResNode *node) {
+	if (_nodeHead == node)
 		return;
 
-	if (pNode->pPrev)
-		pNode->pPrev->pNext = pNode->pNext;
+	if (node->prev)
+		node->prev->next = node->next;
 
-	if (pNode->pNext)
-		pNode->pNext->pPrev = pNode->pPrev;
+	if (node->next)
+		node->next->prev = node->prev;
 
-	if (_pNodeTail == pNode)
-		_pNodeTail = pNode->pPrev;
+	if (_nodeTail == node)
+		_nodeTail = node->prev;
 
-	pNode->pNext = _pNodeHead;
-	_pNodeHead->pPrev = pNode;
-	pNode->pPrev = nullptr;
-	_pNodeHead = pNode;
+	node->next = _nodeHead;
+	_nodeHead->prev = node;
+	node->prev = nullptr;
+	_nodeHead = node;
 }
 
 uint Res::changeFileNameToUpper(const char *src, char *dst) {
 	uint length = strlen(src);
 	uint hash = (((length | ((length | (length << 8)) << 8)) << 8) | length);
-	const char *pSrc = src + 1;
+	const char *srcPointer = src + 1;
 	char c = toupper((byte)*src);
 
 	*dst = c;
-	char *pDst = dst + 1;
+	char *dstPointer = dst + 1;
 
 	while (c) {
-		int next = *pSrc++;
+		int next = *srcPointer++;
 		hash = c ^ ((hash >> 31) | (2 * hash));
 		c = toupper((byte)next);
-		*pDst++ = c;
+		*dstPointer++ = c;
 	}
 
 	return hash;
 }
 
-int Res::findExternalFile(const char *name, char *pOutPath, uint size) {
+int Res::findExternalFile(const char *name, char *outPath, uint size) {
 	char upperName[260];
 
 	if (strlen(name) >= sizeof(upperName)) {
@@ -763,152 +763,152 @@ int Res::findExternalFile(const char *name, char *pOutPath, uint size) {
 	if (!SearchMan.hasFile(Common::Path(upperName)))
 		return 0;
 
-	memset(pOutPath, 0, size);
-	strncpy(pOutPath, upperName, size - 1);
+	memset(outPath, 0, size);
+	strncpy(outPath, upperName, size - 1);
 
 	return 1;
 }
 
-void Res::setReference(ResRef *pRef, void *handle) {
-	ResNode *pNode = checkAllocatedRes(handle);
+void Res::setReference(ResRef *ref, void *handle) {
+	ResNode *node = checkAllocatedRes(handle);
 
-	if (!pRef) {
+	if (!ref) {
 		warning("Res::setReference(): no reference given");
 		return;
 	}
 
-	if (pRef->valid)
+	if (ref->valid)
 		warning("Res::setReference(): reference is already valid");
 
-	if (pNode) {
-		pRef->valid = 1;
-		pRef->serial = (int)(intptr)handle;
-		pRef->handle = handle;
-		pRef->pPrev = nullptr;
-		pRef->pNext = pNode->pRefs;
+	if (node) {
+		ref->valid = 1;
+		ref->serial = (int)(intptr)handle;
+		ref->handle = handle;
+		ref->prev = nullptr;
+		ref->next = node->refs;
 
-		if (pRef->pNext)
-			pRef->pNext->pPrev = pRef;
+		if (ref->next)
+			ref->next->prev = ref;
 
-		pNode->pRefs = pRef;
-		checkAnotherLists(pNode);
+		node->refs = ref;
+		checkAnotherLists(node);
 	} else {
-		pRef->valid = 0;
+		ref->valid = 0;
 	}
 }
 
-void Res::removeReference(ResRef *pRef) {
-	if (!pRef->valid)
+void Res::removeReference(ResRef *ref) {
+	if (!ref->valid)
 		return;
 
-	ResNode *pNode = checkAllocatedRes(pRef->handle);
+	ResNode *node = checkAllocatedRes(ref->handle);
 
-	if (pNode) {
-		if (pNode->pRefs == pRef)
-			pNode->pRefs = pRef->pNext;
+	if (node) {
+		if (node->refs == ref)
+			node->refs = ref->next;
 
-		if (pRef->pPrev)
-			pRef->pPrev->pNext = pRef->pNext;
+		if (ref->prev)
+			ref->prev->next = ref->next;
 
-		if (pRef->pNext)
-			pRef->pNext->pPrev = pRef->pPrev;
+		if (ref->next)
+			ref->next->prev = ref->prev;
 
-		pRef->valid = 0;
-		pRef->pNext = nullptr;
-		pRef->pPrev = nullptr;
+		ref->valid = 0;
+		ref->next = nullptr;
+		ref->prev = nullptr;
 	}
 }
 
-void Res::allocatedIterFirst(ResNode **ppNext, void **pHandle, int tag) {
-	ResNode *pNode = _pNodeHead;
+void Res::allocatedIterFirst(ResNode **next, void **handle, int tag) {
+	ResNode *node = _nodeHead;
 
-	while (pNode) {
-		if (pNode->tag == tag) {
-			*ppNext = pNode->pNext;
-			*pHandle = pNode->handle;
+	while (node) {
+		if (node->tag == tag) {
+			*next = node->next;
+			*handle = node->handle;
 			return;
 		}
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
-	*pHandle = nullptr;
-	*ppNext = nullptr;
+	*handle = nullptr;
+	*next = nullptr;
 }
 
-void Res::allocatedIterNext(ResNode **ppNext, void **pHandle, int tag) {
-	ResNode *pNode = *ppNext;
+void Res::allocatedIterNext(ResNode **next, void **handle, int tag) {
+	ResNode *node = *next;
 
-	while (pNode) {
-		if (pNode->tag == tag) {
-			*ppNext = pNode->pNext;
-			*pHandle = pNode->handle;
+	while (node) {
+		if (node->tag == tag) {
+			*next = node->next;
+			*handle = node->handle;
 			return;
 		}
 
-		pNode = pNode->pNext;
+		node = node->next;
 	}
 
-	*pHandle = nullptr;
-	*ppNext = nullptr;
+	*handle = nullptr;
+	*next = nullptr;
 }
 
 void Res::touch(void *handle) {
-	ResNode *pNode = checkAllocatedRes(handle);
+	ResNode *node = checkAllocatedRes(handle);
 
-	if (pNode)
-		checkAnotherLists(pNode);
+	if (node)
+		checkAnotherLists(node);
 }
 
-void Res::resolveToSerialNumber(ResRef *pRef) {
-	ResNode *pNode = resourceHandleFromSerialNumber(pRef->serial);
+void Res::resolveToSerialNumber(ResRef *ref) {
+	ResNode *node = resourceHandleFromSerialNumber(ref->serial);
 
-	if (pNode) {
-		pRef->valid = 0;
-		pRef->pNext = nullptr;
-		pRef->pPrev = nullptr;
-		setReference(pRef, pNode->handle);
+	if (node) {
+		ref->valid = 0;
+		ref->next = nullptr;
+		ref->prev = nullptr;
+		setReference(ref, node->handle);
 	}
 }
 
-int Res::sysSave(Common::WriteStream *pStream) {
+int Res::sysSave(Common::WriteStream *stream) {
 	int numNodes = 0;
 
-	for (ResNode *pNode = _pNodeHead; pNode; pNode = pNode->pNext) {
-		if ((pNode->pRefs && !strstr(pNode->pName, "TEMP")) || (pNode->flags & 8))
+	for (ResNode *node = _nodeHead; node; node = node->next) {
+		if ((node->refs && !strstr(node->name, "TEMP")) || (node->flags & 8))
 			numNodes++;
 	}
 
-	pStream->writeSint32LE(numNodes);
+	stream->writeSint32LE(numNodes);
 
-	if (pStream->err())
+	if (stream->err())
 		return 1;
 
-	for (ResNode *pNode = _pNodeHead; pNode; pNode = pNode->pNext) {
-		if ((pNode->pRefs && !strstr(pNode->pName, "TEMP")) || (pNode->flags & 8)) {
-			int length = strlen(pNode->pName);
+	for (ResNode *node = _nodeHead; node; node = node->next) {
+		if ((node->refs && !strstr(node->name, "TEMP")) || (node->flags & 8)) {
+			int length = strlen(node->name);
 
-			pStream->writeSint32LE(length);
+			stream->writeSint32LE(length);
 
-			if (pStream->err())
+			if (stream->err())
 				return 1;
 
-			pStream->write(pNode->pName, length);
+			stream->write(node->name, length);
 
-			if (pStream->err())
+			if (stream->err())
 				return 1;
 
-			pStream->writeSint32LE(pNode->tag);
+			stream->writeSint32LE(node->tag);
 
-			if (pStream->err())
+			if (stream->err())
 				return 1;
 
 			// The EXE overwrote the serial with the handle here, which supposedly
 			// worked only because its heap addresses are the same on every run
-			// pNode->serial = (int)(intptr)pNode->handle;
-			pStream->writeSint32LE(pNode->serial);
+			// node->serial = (int)(intptr)node->handle;
+			stream->writeSint32LE(node->serial);
 
-			if (pStream->err())
+			if (stream->err())
 				return 1;
 		}
 	}
@@ -916,21 +916,21 @@ int Res::sysSave(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int Res::sysLoad(Common::ReadStream *pStream) {
+int Res::sysLoad(Common::ReadStream *stream) {
 	char fileName[256];
 
-	int numNodes = pStream->readSint32LE();
+	int numNodes = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos())
+	if (stream->err() || stream->eos())
 		return 1;
 
 	if (numNodes <= 0)
 		return 0;
 
 	for (int i = 0; i < numNodes; i++) {
-		int length = pStream->readSint32LE();
+		int length = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos())
+		if (stream->err() || stream->eos())
 			return 1;
 
 		if (length > 255)
@@ -941,30 +941,30 @@ int Res::sysLoad(Common::ReadStream *pStream) {
 			return 1;
 		}
 
-		if (pStream->read(fileName, length) != (uint32)length)
+		if (stream->read(fileName, length) != (uint32)length)
 			return 1;
 
 		fileName[length] = 0;
 
-		int tag = pStream->readSint32LE();
+		int tag = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos())
+		if (stream->err() || stream->eos())
 			return 1;
 
 		int result;
-		ResNode *pNode = checkForNeedLoadRes(tag, fileName, &result);
+		ResNode *node = checkForNeedLoadRes(tag, fileName, &result);
 
 		if (!result)
 			return 1;
 
-		if (!pNode) {
+		if (!node) {
 			warning("Res::sysLoad(): %s was not loaded", fileName);
 			return 1;
 		}
 
-		pNode->serial = pStream->readSint32LE();
+		node->serial = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos())
+		if (stream->err() || stream->eos())
 			return 1;
 	}
 
@@ -972,36 +972,36 @@ int Res::sysLoad(Common::ReadStream *pStream) {
 }
 
 void Res::freeAll() {
-	ResNode *pResult = _pNodeHead;
-	ResNode *pNode = _pNodeHead;
+	ResNode *result = _nodeHead;
+	ResNode *node = _nodeHead;
 
-	while (pNode) {
-		ResNode *pNext = pNode->pNext;
+	while (node) {
+		ResNode *next = node->next;
 
-		if (!(pNode->flags & 8)) {
-			unlinkNode(pNode);
-			freeNode(pNode);
-			pResult = _pNodeHead;
+		if (!(node->flags & 8)) {
+			unlinkNode(node);
+			freeNode(node);
+			result = _nodeHead;
 		}
 
-		pNode = pNext;
+		node = next;
 	}
 
-	if (pResult) {
+	if (result) {
 		do {
-			unlinkNode(pResult);
-			freeNode(_pNodeHead);
-			pResult = _pNodeHead;
-		} while (_pNodeHead);
+			unlinkNode(result);
+			freeNode(_nodeHead);
+			result = _nodeHead;
+		} while (_nodeHead);
 	}
 }
 
 int Res::countDependents(void *handle) {
 	int count = 0;
-	ResNode *pNode = checkAllocatedRes(handle);
+	ResNode *node = checkAllocatedRes(handle);
 
-	if (pNode) {
-		for (ResRef *pRef = pNode->pRefs; pRef; pRef = pRef->pNext)
+	if (node) {
+		for (ResRef *ref = node->refs; ref; ref = ref->next)
 			count++;
 	}
 
@@ -1010,10 +1010,10 @@ int Res::countDependents(void *handle) {
 
 int Res::initLists(int tag, const char *name) {
 	int count = 0;
-	ResNode *pNode = checkList1(tag, name);
+	ResNode *node = checkList1(tag, name);
 
-	if (pNode) {
-		for (ResRef *pRef = pNode->pRefs; pRef; pRef = pRef->pNext)
+	if (node) {
+		for (ResRef *ref = node->refs; ref; ref = ref->next)
 			count++;
 	}
 

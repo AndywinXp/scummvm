@@ -44,12 +44,12 @@ static const int kBoxEdges[kNumBoxEdges][2] = {
 };
 
 RPrimitiveInstance::RPrimitiveInstance(RPrimitive *primitive) {
-	prim = primitive;
-	visible = true;
-	stateRestored = false;
-	globalAlphaMode = kAlphaOff;
-	globalAlpha = kInitialGlobalAlpha;
-	matAlphaMode = kAlphaOff;
+	_prim = primitive;
+	_visible = true;
+	_stateRestored = false;
+	_globalAlphaMode = kAlphaOff;
+	_globalAlpha = kInitialGlobalAlpha;
+	_matAlphaMode = kAlphaOff;
 }
 
 RPrimitiveInstance::~RPrimitiveInstance() {
@@ -64,31 +64,31 @@ void RPrimitiveInstance::operator delete(void *block) {
 }
 
 int RPrimitiveInstance::getSaveSize() {
-	return kSaveAlphaEntrySize * (int)matAlpha.size() + kSaveBaseSize;
+	return kSaveAlphaEntrySize * (int)_matAlpha.size() + kSaveBaseSize;
 }
 
-bool RPrimitiveInstance::saveState(tSaveRestoreAccess *access) {
-	byte visibleByte = visible ? 1 : 0;
+bool RPrimitiveInstance::saveState(SaveRestoreAccess *access) {
+	byte visibleByte = _visible ? 1 : 0;
 
 	access(&visibleByte, sizeof(visibleByte));
-	access(&globalAlphaMode, sizeof(globalAlphaMode));
-	access(&globalAlpha, sizeof(globalAlpha));
-	access(&matAlphaMode, sizeof(matAlphaMode));
+	access(&_globalAlphaMode, sizeof(_globalAlphaMode));
+	access(&_globalAlpha, sizeof(_globalAlpha));
+	access(&_matAlphaMode, sizeof(_matAlphaMode));
 
-	uint32 numEntries = matAlpha.size();
+	uint32 numEntries = _matAlpha.size();
 
 	access(&numEntries, sizeof(numEntries));
 
 	Common::Array<int> keys;
 
-	for (Common::HashMap<int, float>::const_iterator it = matAlpha.begin(); it != matAlpha.end(); ++it)
+	for (Common::HashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it)
 		keys.push_back(it->_key);
 
 	Common::sort(keys.begin(), keys.end());
 
 	for (uint i = 0; i < keys.size(); i++) {
 		int key = keys[i];
-		float value = matAlpha[key];
+		float value = _matAlpha[key];
 
 		access(&key, sizeof(key));
 		access(&value, sizeof(value));
@@ -97,14 +97,14 @@ bool RPrimitiveInstance::saveState(tSaveRestoreAccess *access) {
 	return true;
 }
 
-bool RPrimitiveInstance::restoreState(tSaveRestoreAccess *access) {
+bool RPrimitiveInstance::restoreState(SaveRestoreAccess *access) {
 	byte visibleByte = 0;
 
 	access(&visibleByte, sizeof(visibleByte));
-	visible = visibleByte != 0;
-	access(&globalAlphaMode, sizeof(globalAlphaMode));
-	access(&globalAlpha, sizeof(globalAlpha));
-	access(&matAlphaMode, sizeof(matAlphaMode));
+	_visible = visibleByte != 0;
+	access(&_globalAlphaMode, sizeof(_globalAlphaMode));
+	access(&_globalAlpha, sizeof(_globalAlpha));
+	access(&_matAlphaMode, sizeof(_matAlphaMode));
 
 	int numEntries = 0;
 
@@ -116,10 +116,10 @@ bool RPrimitiveInstance::restoreState(tSaveRestoreAccess *access) {
 
 		access(&key, sizeof(key));
 		access(&value, sizeof(value));
-		matAlpha[key] = value;
+		_matAlpha[key] = value;
 	}
 
-	stateRestored = true;
+	_stateRestored = true;
 
 	return true;
 }
@@ -132,32 +132,32 @@ bool RPrimitiveInstance::isVisible(RNode *node, Camera *camera) {
 		return false;
 	}
 
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	const float *w = node->world.rot.m;
-	const float *v = camera->view.rot.m;
-	const CVector &nodePos = node->world.pos;
-	const CVector &viewPos = camera->view.pos;
-	const CVector &center = prim->center;
+	const float *w = node->_world._rot._m;
+	const float *v = camera->_view._rot._m;
+	const CVector &nodePos = node->_world._pos;
+	const CVector &viewPos = camera->_view._pos;
+	const CVector &center = _prim->_center;
 
-	double sphereX = (double)w[6] * center.z + (double)w[3] * center.y + (double)w[0] * center.x;
-	float sphereY = (float)((double)w[7] * center.z + (double)w[1] * center.x + (double)w[4] * center.y);
-	float sphereZ = (float)((double)w[8] * center.z + (double)w[2] * center.x + (double)w[5] * center.y);
-	float worldX = (float)(sphereX + nodePos.x);
-	float worldY = (float)((double)sphereY + nodePos.y);
-	float worldZ = (float)((double)sphereZ + nodePos.z);
+	double sphereX = (double)w[6] * center._z + (double)w[3] * center._y + (double)w[0] * center._x;
+	float sphereY = (float)((double)w[7] * center._z + (double)w[1] * center._x + (double)w[4] * center._y);
+	float sphereZ = (float)((double)w[8] * center._z + (double)w[2] * center._x + (double)w[5] * center._y);
+	float worldX = (float)(sphereX + nodePos._x);
+	float worldY = (float)((double)sphereY + nodePos._y);
+	float worldZ = (float)((double)sphereZ + nodePos._z);
 	double viewX = (double)worldZ * v[6] + (double)worldY * v[3] + (double)worldX * v[0];
 	float viewY = (float)((double)worldZ * v[7] + (double)worldY * v[4] + (double)worldX * v[1]);
 	float viewZ = (float)((double)worldZ * v[8] + (double)worldY * v[5] + (double)worldX * v[2]);
 	float sphere[4];
 
-	sphere[0] = (float)(viewX + viewPos.x);
-	sphere[1] = (float)((double)viewY + viewPos.y);
-	sphere[2] = (float)((double)viewZ + viewPos.z);
-	sphere[3] = prim->radius;
+	sphere[0] = (float)(viewX + viewPos._x);
+	sphere[1] = (float)((double)viewY + viewPos._y);
+	sphere[2] = (float)((double)viewZ + viewPos._z);
+	sphere[3] = _prim->_radius;
 
-	int result = ctx->clipVolume.testSphere(sphere);
+	int result = ctx->_clipVolume.testSphere(sphere);
 
 	if (result == CClipVolume::kOutside)
 		return false;
@@ -165,12 +165,12 @@ bool RPrimitiveInstance::isVisible(RNode *node, Camera *camera) {
 	if (result == CClipVolume::kInside)
 		return true;
 
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	double nodeViewX = (double)nodePos.x * v[0] + (double)v[6] * nodePos.z + (double)nodePos.y * v[3];
-	float nodeViewY = (float)((double)nodePos.y * v[4] + (double)v[7] * nodePos.z + (double)nodePos.x * v[1]);
-	float nodeViewZ = (float)((double)nodePos.x * v[2] + (double)v[8] * nodePos.z + (double)nodePos.y * v[5]);
+	double nodeViewX = (double)nodePos._x * v[0] + (double)v[6] * nodePos._z + (double)nodePos._y * v[3];
+	float nodeViewY = (float)((double)nodePos._y * v[4] + (double)v[7] * nodePos._z + (double)nodePos._x * v[1]);
+	float nodeViewZ = (float)((double)nodePos._x * v[2] + (double)v[8] * nodePos._z + (double)nodePos._y * v[5]);
 	float transform[12];
 
 	transform[0] = (float)((double)v[6] * w[2] + (double)v[0] * w[0] + (double)v[3] * w[1]);
@@ -182,45 +182,45 @@ bool RPrimitiveInstance::isVisible(RNode *node, Camera *camera) {
 	transform[6] = (float)((double)v[6] * w[8] + (double)w[6] * v[0] + (double)v[3] * w[7]);
 	transform[7] = (float)((double)v[7] * w[8] + (double)v[4] * w[7] + (double)v[1] * w[6]);
 	transform[8] = (float)((double)w[6] * v[2] + (double)w[8] * v[8] + (double)w[7] * v[5]);
-	transform[9] = (float)(nodeViewX + viewPos.x);
-	transform[10] = (float)((double)nodeViewY + viewPos.y);
-	transform[11] = (float)((double)nodeViewZ + viewPos.z);
+	transform[9] = (float)(nodeViewX + viewPos._x);
+	transform[10] = (float)((double)nodeViewY + viewPos._y);
+	transform[11] = (float)((double)nodeViewZ + viewPos._z);
 
-	return ctx->clipVolume.testBox(&prim->box, transform) != CClipVolume::kOutside;
+	return ctx->_clipVolume.testBox(&_prim->_box, transform) != CClipVolume::kOutside;
 }
 
 void RPrimitiveInstance::drawBounds(RNode *node, Camera *camera) {
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	const float *v = camera->view.rot.m;
-	const CVector &nodePos = node->world.pos;
-	const CVector &viewPos = camera->view.pos;
+	const float *v = camera->_view._rot._m;
+	const CVector &nodePos = node->_world._pos;
+	const CVector &viewPos = camera->_view._pos;
 
-	float nodeViewY = (float)((double)v[4] * nodePos.y + (double)v[1] * nodePos.x + (double)v[7] * nodePos.z);
-	float nodeViewZ = (float)((double)v[5] * nodePos.y + (double)v[2] * nodePos.x + (double)v[8] * nodePos.z);
-	double nodeViewX = (double)v[3] * nodePos.y + (double)v[6] * nodePos.z + (double)v[0] * nodePos.x;
-	float originX = (float)(nodeViewX + viewPos.x);
-	float originY = (float)((double)nodeViewY + viewPos.y);
-	float originZ = (float)((double)nodeViewZ + viewPos.z);
+	float nodeViewY = (float)((double)v[4] * nodePos._y + (double)v[1] * nodePos._x + (double)v[7] * nodePos._z);
+	float nodeViewZ = (float)((double)v[5] * nodePos._y + (double)v[2] * nodePos._x + (double)v[8] * nodePos._z);
+	double nodeViewX = (double)v[3] * nodePos._y + (double)v[6] * nodePos._z + (double)v[0] * nodePos._x;
+	float originX = (float)(nodeViewX + viewPos._x);
+	float originY = (float)((double)nodeViewY + viewPos._y);
+	float originZ = (float)((double)nodeViewZ + viewPos._z);
 
 	CMatrix combined;
 
-	node->world.rot.multiply(&combined, &camera->view.rot);
+	node->_world._rot.multiply(&combined, &camera->_view._rot);
 
-	const CVector &boxMin = prim->box.min;
-	const CVector &boxMax = prim->box.max;
+	const CVector &boxMin = _prim->_box._min;
+	const CVector &boxMax = _prim->_box._max;
 	float corners[kNumBoxCorners][3] = {
-		{ boxMin.x, boxMin.y, boxMin.z },
-		{ boxMax.x, boxMin.y, boxMin.z },
-		{ boxMax.x, boxMin.y, boxMax.z },
-		{ boxMin.x, boxMin.y, boxMax.z },
-		{ boxMin.x, boxMax.y, boxMin.z },
-		{ boxMax.x, boxMax.y, boxMin.z },
-		{ boxMax.x, boxMax.y, boxMax.z },
-		{ boxMin.x, boxMax.y, boxMax.z }
+		{ boxMin._x, boxMin._y, boxMin._z },
+		{ boxMax._x, boxMin._y, boxMin._z },
+		{ boxMax._x, boxMin._y, boxMax._z },
+		{ boxMin._x, boxMin._y, boxMax._z },
+		{ boxMin._x, boxMax._y, boxMin._z },
+		{ boxMax._x, boxMax._y, boxMin._z },
+		{ boxMax._x, boxMax._y, boxMax._z },
+		{ boxMin._x, boxMax._y, boxMax._z }
 	};
-	const float *a = combined.m;
+	const float *a = combined._m;
 
 	for (int i = 0; i < kNumBoxCorners; i++) {
 		float x = corners[i][0];

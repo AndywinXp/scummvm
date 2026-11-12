@@ -40,9 +40,9 @@ static const int kSonyRoomTypeCount = 10;
 static const int kSonyMaxValue = 100;
 
 CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int channelCount) : CAudioDevice(sounds->getEngine()), _audioSystem(audioSystem), _spuStereo(true), _driver(nullptr) {
-	lost = false;
-	numChannels = 0;
-	lastCheckMs = 0;
+	_lost = false;
+	_numChannels = 0;
+	_lastCheckMs = 0;
 
 	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getMemoryServices(), _engine->getGamePlatform() == Common::kPlatformPS2);
 
@@ -59,24 +59,24 @@ CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int
 	for (int i = 0; i < channelCount; i++) {
 		CWaveChannel *channel = new CWaveChannel(this);
 
-		if (!channel->hSample) {
+		if (!channel->_sample) {
 			delete channel;
 
 			break;
 		}
 
-		channels.push_back(channel);
+		_channels.push_back(channel);
 		created++;
 	}
 
-	numChannels = created;
+	_numChannels = created;
 }
 
 CWaveAudioDevice::~CWaveAudioDevice() {
-	while (!channels.empty()) {
-		CWaveChannel *channel = channels.back();
+	while (!_channels.empty()) {
+		CWaveChannel *channel = _channels.back();
 
-		channels.pop_back();
+		_channels.pop_back();
 
 		if (channel)
 			delete channel;
@@ -108,45 +108,45 @@ void CWaveAudioDevice::releaseDigitalHandle() {
 void CWaveAudioDevice::reacquireDigitalHandle() {
 	if (_driver) {
 		_driver->reacquireHandle();
-		lost = false;
+		_lost = false;
 	}
 }
 
 void CWaveAudioDevice::pauseAll() {
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->pause();
+	for (uint i = 0; i < _channels.size(); i++)
+		_channels[i]->pause();
 }
 
 void CWaveAudioDevice::resumeAll() {
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->resume();
+	for (uint i = 0; i < _channels.size(); i++)
+		_channels[i]->resume();
 }
 
 void CWaveAudioDevice::stopAll() {
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->stop();
+	for (uint i = 0; i < _channels.size(); i++)
+		_channels[i]->stop();
 }
 
 void CWaveAudioDevice::update() {
-	if (lost) {
+	if (_lost) {
 		int now = (int)g_system->getMillis();
 
-		if ((uint)(now - lastCheckMs) > kReacquireIntervalMs) {
+		if ((uint)(now - _lastCheckMs) > kReacquireIntervalMs) {
 			reacquireDigitalHandle();
-			lastCheckMs = now;
+			_lastCheckMs = now;
 		}
 	}
 
-	for (uint i = 0; i < channels.size(); i++) {
-		if (channels[i])
-			channels[i]->update();
+	for (uint i = 0; i < _channels.size(); i++) {
+		if (_channels[i])
+			_channels[i]->update();
 	}
 }
 
 void CWaveAudioDevice::updateChannelsSpatialization() {
-	for (uint i = 0; i < channels.size(); i++) {
-		if (channels[i])
-			channels[i]->updateSpatialization();
+	for (uint i = 0; i < _channels.size(); i++) {
+		if (_channels[i])
+			_channels[i]->updateSpatialization();
 	}
 }
 
@@ -157,14 +157,14 @@ CAudioChannel *CWaveAudioDevice::allocateChannel(CSoundCue *cue) {
 	if (!cue)
 		return nullptr;
 
-	if (channels.empty())
+	if (_channels.empty())
 		return nullptr;
 
 	uint index = 0;
 
 	while (!freeChannel) {
-		CWaveChannel *candidate = channels[index];
-		CSoundCue *candidateCue = candidate->cue;
+		CWaveChannel *candidate = _channels[index];
+		CSoundCue *candidateCue = candidate->_cue;
 
 		if (candidateCue) {
 			float newPriority = cue->getPriority();
@@ -177,13 +177,13 @@ CAudioChannel *CWaveAudioDevice::allocateChannel(CSoundCue *cue) {
 
 		index++;
 
-		if (index == channels.size()) {
+		if (index == _channels.size()) {
 			if (!freeChannel && lowerChannel) {
-				CSoundCue *lowerCue = lowerChannel->cue;
+				CSoundCue *lowerCue = lowerChannel->_cue;
 
 				if (lowerCue) {
 					lowerChannel->stop();
-					lowerCue->state = CSoundCue::kStateWaiting;
+					lowerCue->_state = CSoundCue::kStateWaiting;
 				}
 
 				return lowerChannel;
@@ -197,12 +197,12 @@ CAudioChannel *CWaveAudioDevice::allocateChannel(CSoundCue *cue) {
 }
 
 int CWaveAudioDevice::getChannelCount() {
-	return (int)channels.size();
+	return (int)_channels.size();
 }
 
 CAudioChannel *CWaveAudioDevice::getChannel(uint index) {
-	if (!channels.empty() && index < channels.size())
-		return channels[index];
+	if (!_channels.empty() && index < _channels.size())
+		return _channels[index];
 
 	return nullptr;
 }
@@ -248,15 +248,15 @@ float CWaveAudioDevice::setCategoryVolume(int category) {
 	if (category != 1 && category != 2 && category != 3)
 		return gain;
 
-	for (uint i = 0; i < channels.size(); i++) {
-		if (channels[i]->getStatus() != 1) {
-			CSoundCue *channelCue = channels[i]->cue;
+	for (uint i = 0; i < _channels.size(); i++) {
+		if (_channels[i]->getStatus() != 1) {
+			CSoundCue *channelCue = _channels[i]->_cue;
 
 			if (channelCue) {
 				float cueVolume = channelCue->getVolume();
 
-				if (channelCue->category == category)
-					channels[i]->setVolume(cueVolume * gain);
+				if (channelCue->_category == category)
+					_channels[i]->setVolume(cueVolume * gain);
 			}
 		}
 	}

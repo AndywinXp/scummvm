@@ -48,61 +48,61 @@ static int truncateScreenValue(double value) {
 int Actor::getSortOrder(int setupIndex) {
 	Actor *sortActor = this;
 
-	if (parentActorId) {
+	if (_parentActorId) {
 		do {
-			if (sortActor->sortOrder != -2)
+			if (sortActor->_sortOrder != -2)
 				break;
 
-			Actor *parentActor = actorDeref(_engine, sortActor->parentActorId);
+			Actor *parentActor = actorDeref(_engine, sortActor->_parentActorId);
 
 			if (!parentActor)
 				break;
 
 			sortActor = parentActor;
-		} while (sortActor->parentActorId);
+		} while (sortActor->_parentActorId);
 	}
 
-	Extra_v2 *sortExtra = sortActor->extra;
+	Extra_v2 *sortExtra = sortActor->_extra;
 
-	if (!sortExtra || !sortExtra->inBoxes || !sortActor->room.resource)
-		return sortActor->sortOrder;
+	if (!sortExtra || !sortExtra->_inBoxes || !sortActor->_room._resource)
+		return sortActor->_sortOrder;
 
 	WalkPlane_v2 *plane = nullptr;
 
-	if (sortExtra->puck) {
-		plane = sortExtra->puck->plane;
+	if (sortExtra->_puck) {
+		plane = sortExtra->_puck->_plane;
 	} else {
-		bool locked = sortActor->room.lock();
-		Room_v2 *currentRoom = locked ? sortActor->room.typed : nullptr;
+		bool locked = sortActor->_room.lock();
+		Room_v2 *currentRoom = locked ? sortActor->_room._typed : nullptr;
 		WalkPlaneCollection *collection = nullptr;
 
 		if (currentRoom)
-			collection = currentRoom->walkPlanes;
+			collection = currentRoom->_walkPlanes;
 		else
 			warning("Actor::getSortOrder(): the room could not be locked");
 
 		if (locked)
-			sortActor->room.unlock();
+			sortActor->_room.unlock();
 
-		if ((sortActor->nodeFlags & kWorldValid) == 0)
+		if ((sortActor->_nodeFlags & kWorldValid) == 0)
 			sortActor->updateWorldTransform();
 
 		if (collection)
-			plane = collection->planeAt(&sortActor->world.pos.x, kSortWalkPlaneMask);
+			plane = collection->planeAt(&sortActor->_world._pos._x, kSortWalkPlaneMask);
 		else
 			warning("Actor::getSortOrder(): the room has no walk planes");
 	}
 
 	if (!plane)
-		return sortActor->sortOrder;
+		return sortActor->_sortOrder;
 
 	if (setupIndex < 0) {
 		warning("Actor::getSortOrder(): negative setup index");
 
-		return sortActor->sortOrder;
+		return sortActor->_sortOrder;
 	}
 
-	return plane->sortOrder[setupIndex % kSortOrderSetups];
+	return plane->_sortOrder[setupIndex % kSortOrderSetups];
 }
 
 bool Actor::calcOnScreen(Camera *camera) {
@@ -113,7 +113,7 @@ bool Actor::calcOnScreen(Camera *camera) {
 	camera->applyProjection();
 	camera->updateViewMatrix();
 
-	CTransform viewTransform = camera->view;
+	CTransform viewTransform = camera->_view;
 	IRect viewport = camera->getViewportRect();
 	int viewLeft = viewport.x;
 	int viewTop = viewport.y;
@@ -125,39 +125,39 @@ bool Actor::calcOnScreen(Camera *camera) {
 	float maxX = (float)((double)viewLeft - 1.0);
 	float maxY = (float)((double)viewTop - 1.0);
 
-	const float *m = viewTransform.rot.m;
+	const float *m = viewTransform._rot._m;
 
-	for (uint i = 0; i < instances.size(); i++) {
-		RPrimitiveInstance *instance = instances[i];
+	for (uint i = 0; i < _instances.size(); i++) {
+		RPrimitiveInstance *instance = _instances[i];
 
 		if (!instance)
 			continue;
 
-		if (!instance->prim) {
+		if (!instance->_prim) {
 			warning("Actor::calcOnScreen(): primitive instance without primitive");
 
 			continue;
 		}
 
-		const BBox &box = instance->prim->box;
+		const BBox &box = instance->_prim->_box;
 
 		for (int corner = 0; corner < 8; corner++) {
-			point.x = (corner & 4) ? box.max.x : box.min.x;
-			point.y = (corner & 2) ? box.max.y : box.min.y;
-			point.z = (corner & 1) ? box.max.z : box.min.z;
+			point._x = (corner & 4) ? box._max._x : box._min._x;
+			point._y = (corner & 2) ? box._max._y : box._min._y;
+			point._z = (corner & 1) ? box._max._z : box._min._z;
 
 			localToWorld(&point);
 
-			float rowY = (float)(((double)m[1] * point.x + (double)m[4] * point.y) + (double)m[7] * point.z);
-			float rowZ = (float)(((double)m[2] * point.x + (double)m[5] * point.y) + (double)m[8] * point.z);
-			double viewX = (((double)m[3] * point.y + (double)m[6] * point.z) + (double)m[0] * point.x) + viewTransform.pos.x;
-			float viewY = (float)((double)viewTransform.pos.y + rowY);
-			double viewZ = (double)viewTransform.pos.z + rowZ;
+			float rowY = (float)(((double)m[1] * point._x + (double)m[4] * point._y) + (double)m[7] * point._z);
+			float rowZ = (float)(((double)m[2] * point._x + (double)m[5] * point._y) + (double)m[8] * point._z);
+			double viewX = (((double)m[3] * point._y + (double)m[6] * point._z) + (double)m[0] * point._x) + viewTransform._pos._x;
+			float viewY = (float)((double)viewTransform._pos._y + rowY);
+			double viewZ = (double)viewTransform._pos._z + rowZ;
 
 			if (viewZ >= 0.0) {
 				float inverseZ = (float)(1.0 / viewZ);
-				float screenX = (float)(((viewX * camera->focalX) * inverseZ) + camera->halfWidth);
-				float screenY = (float)(camera->halfHeight - (((double)viewY * camera->focalY) * inverseZ));
+				float screenX = (float)(((viewX * camera->_focalX) * inverseZ) + camera->_halfWidth);
+				float screenY = (float)(camera->_halfHeight - (((double)viewY * camera->_focalY) * inverseZ));
 
 				// The disasm updates the minimum also when the comparison is unordered
 				if (!(screenX >= minX))
@@ -175,17 +175,17 @@ bool Actor::calcOnScreen(Camera *camera) {
 		}
 	}
 
-	drawnRect[0] = truncateScreenValue(minX);
-	drawnRect[1] = truncateScreenValue(minY);
-	drawnRect[2] = truncateScreenValue((double)maxX - minX);
-	drawnRect[3] = truncateScreenValue((double)maxY - minY);
+	_drawnRect[0] = truncateScreenValue(minX);
+	_drawnRect[1] = truncateScreenValue(minY);
+	_drawnRect[2] = truncateScreenValue((double)maxX - minX);
+	_drawnRect[3] = truncateScreenValue((double)maxY - minY);
 
 	bool visible = true;
 
-	if ((int)((uint)drawnRect[2] + (uint)drawnRect[0]) < viewLeft
-		|| drawnRect[0] > viewRight
-		|| (int)((uint)drawnRect[3] + (uint)drawnRect[1]) < viewTop
-		|| drawnRect[1] > viewBottom)
+	if ((int)((uint)_drawnRect[2] + (uint)_drawnRect[0]) < viewLeft
+		|| _drawnRect[0] > viewRight
+		|| (int)((uint)_drawnRect[3] + (uint)_drawnRect[1]) < viewTop
+		|| _drawnRect[1] > viewBottom)
 		visible = false;
 
 	_engine->_actorCalcOnScreenTimer.stop();
@@ -196,7 +196,7 @@ bool Actor::calcOnScreen(Camera *camera) {
 int Actor::drawActor(Camera *camera) {
 	_engine->_actorDrawTimer.start();
 
-	if (onScreen)
+	if (_onScreen)
 		draw(camera);
 
 	_engine->_actorDrawTimer.stop();

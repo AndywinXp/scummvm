@@ -36,64 +36,64 @@ namespace Grim {
 static const int kQuadsFlags = 0x20004;
 
 static Glyph *findGlyph(CTextFont *textFont, int character) {
-	if (!textFont || !textFont->charIndex || !textFont->glyphs)
+	if (!textFont || !textFont->_charIndex || !textFont->_glyphs)
 		return nullptr;
 
-	if (character > textFont->lastChar)
+	if (character > textFont->_lastChar)
 		return nullptr;
 
-	if (character < textFont->firstChar) {
+	if (character < textFont->_firstChar) {
 		warning("TextEvent: character %d is below the first character of the font", character);
 
 		return nullptr;
 	}
 
-	int index = textFont->charIndex[character - textFont->firstChar];
+	int index = textFont->_charIndex[character - textFont->_firstChar];
 
-	if (index >= textFont->numGlyphs) {
+	if (index >= textFont->_numGlyphs) {
 		warning("TextEvent: glyph index %d is out of range", index);
 
 		return nullptr;
 	}
 
-	return &textFont->glyphs[index];
+	return &textFont->_glyphs[index];
 }
 
-TextEvent::TextEvent(EmiEngine *engine) : font(engine), _engine(engine) {
-	clipRect[0] = 0;
-	clipRect[1] = 0;
-	clipRect[2] = 0;
-	clipRect[3] = 0;
+TextEvent::TextEvent(EmiEngine *engine) : _font(engine), _engine(engine) {
+	_clipRect[0] = 0;
+	_clipRect[1] = 0;
+	_clipRect[2] = 0;
+	_clipRect[3] = 0;
 
 	init();
 }
 
-TextEvent::TextEvent(EmiEngine *engine, const LString &newText) : font(engine), _engine(engine) {
-	clipRect[0] = 0;
-	clipRect[1] = 0;
-	clipRect[2] = 0;
-	clipRect[3] = 0;
+TextEvent::TextEvent(EmiEngine *engine, const LString &newText) : _font(engine), _engine(engine) {
+	_clipRect[0] = 0;
+	_clipRect[1] = 0;
+	_clipRect[2] = 0;
+	_clipRect[3] = 0;
 
 	init();
 
-	text = newText;
-	geometryReady = false;
+	_text = newText;
+	_geometryReady = false;
 }
 
-TextEvent::TextEvent(EmiEngine *engine, const char *newText) : font(engine), _engine(engine) {
-	clipRect[0] = 0;
-	clipRect[1] = 0;
-	clipRect[2] = 0;
-	clipRect[3] = 0;
+TextEvent::TextEvent(EmiEngine *engine, const char *newText) : _font(engine), _engine(engine) {
+	_clipRect[0] = 0;
+	_clipRect[1] = 0;
+	_clipRect[2] = 0;
+	_clipRect[3] = 0;
 
 	init();
 
 	if (newText)
-		text = newText;
+		_text = newText;
 	else
 		warning("TextEvent::TextEvent(): no text");
 
-	geometryReady = false;
+	_geometryReady = false;
 }
 
 TextEvent::~TextEvent() {
@@ -119,37 +119,37 @@ void TextEvent::operator delete(void *block) {
 
 void TextEvent::init() {
 	// The disasm leaves flags and layer uninitialized
-	flags = 0;
-	layer = 0;
-	actorId = 0;
-	hold = 0;
-	id = _engine->_nextTextEventId;
+	_flags = 0;
+	_layer = 0;
+	_actorId = 0;
+	_hold = 0;
+	_id = _engine->_nextTextEventId;
 	_engine->_nextTextEventId++;
 
 	TextEvent *defaultEvent = _engine->_defaultTextEvent;
 
 	if (defaultEvent) {
-		clipRect[0] = defaultEvent->clipRect[0];
-		clipRect[1] = defaultEvent->clipRect[1];
-		clipRect[2] = defaultEvent->clipRect[2];
-		clipRect[3] = defaultEvent->clipRect[3];
-		x = defaultEvent->x;
-		y = defaultEvent->y;
-		geometryReady = false;
+		_clipRect[0] = defaultEvent->_clipRect[0];
+		_clipRect[1] = defaultEvent->_clipRect[1];
+		_clipRect[2] = defaultEvent->_clipRect[2];
+		_clipRect[3] = defaultEvent->_clipRect[3];
+		_x = defaultEvent->_x;
+		_y = defaultEvent->_y;
+		_geometryReady = false;
 
 		LResourceHandle<CTextFont> defaultFont(_engine);
 
-		defaultFont.setResource(defaultEvent->font.resource);
+		defaultFont.setResource(defaultEvent->_font._resource);
 		setFont(defaultFont);
 
-		color = defaultEvent->color;
-		geometryReady = false;
-		outlineColor = defaultEvent->outlineColor;
-		geometryReady = false;
-		justify = defaultEvent->justify;
-		geometryReady = false;
+		_color = defaultEvent->_color;
+		_geometryReady = false;
+		_outlineColor = defaultEvent->_outlineColor;
+		_geometryReady = false;
+		_justify = defaultEvent->_justify;
+		_geometryReady = false;
 
-		double durationMs = defaultEvent->duration;
+		double durationMs = defaultEvent->_duration;
 		int truncatedMs = INT_MIN;
 
 		if (durationMs > -2147483648.0 && durationMs < 2147483648.0)
@@ -157,100 +157,100 @@ void TextEvent::init() {
 		else
 			warning("TextEvent::init(): the default duration is out of range");
 
-		duration = (float)((double)truncatedMs * (double)0.001f);
+		_duration = (float)((double)truncatedMs * (double)0.001f);
 	} else {
-		clipRect[0] = 0;
-		clipRect[1] = 0;
-		clipRect[2] = _engine->_textScreenRect[2];
-		clipRect[3] = _engine->_textScreenRect[3];
-		x = 0;
-		y = 0;
-		geometryReady = false;
-		font.setResource(nullptr);
-		color = Color::kWhite;
-		geometryReady = false;
-		outlineColor = Color();
-		justify = 4;
-		geometryReady = false;
-		duration = (float)-0.001;
+		_clipRect[0] = 0;
+		_clipRect[1] = 0;
+		_clipRect[2] = _engine->_textScreenRect[2];
+		_clipRect[3] = _engine->_textScreenRect[3];
+		_x = 0;
+		_y = 0;
+		_geometryReady = false;
+		_font.setResource(nullptr);
+		_color = Color::kWhite;
+		_geometryReady = false;
+		_outlineColor = Color();
+		_justify = 4;
+		_geometryReady = false;
+		_duration = (float)-0.001;
 	}
 
-	text = "";
-	geometryReady = false;
-	scaleX = 1.0f;
-	scaleY = 1.0f;
-	geometryReady = false;
-	vertexCount = 0;
-	positions = nullptr;
-	normals = nullptr;
-	colors = nullptr;
-	uvs = nullptr;
+	_text = "";
+	_geometryReady = false;
+	_scaleX = 1.0f;
+	_scaleY = 1.0f;
+	_geometryReady = false;
+	_vertexCount = 0;
+	_positions = nullptr;
+	_normals = nullptr;
+	_colors = nullptr;
+	_uvs = nullptr;
 }
 
 int TextEvent::activate(float newDuration, int newFlags) {
-	duration = newDuration;
-	flags = newFlags;
+	_duration = newDuration;
+	_flags = newFlags;
 	_engine->_textEvents.push_back(this);
 
 	return _engine->_textEvents.size();
 }
 
 void TextEvent::freeGeometry() {
-	vertexCount = 0;
+	_vertexCount = 0;
 
-	if (positions)
-		_engine->getMemoryServices()->freeImpl(positions);
+	if (_positions)
+		_engine->getMemoryServices()->freeImpl(_positions);
 
-	positions = nullptr;
+	_positions = nullptr;
 
-	if (normals)
-		_engine->getMemoryServices()->freeImpl(normals);
+	if (_normals)
+		_engine->getMemoryServices()->freeImpl(_normals);
 
-	normals = nullptr;
+	_normals = nullptr;
 
-	if (colors)
-		_engine->getMemoryServices()->freeImpl(colors);
+	if (_colors)
+		_engine->getMemoryServices()->freeImpl(_colors);
 
-	colors = nullptr;
+	_colors = nullptr;
 
-	if (uvs)
-		_engine->getMemoryServices()->freeImpl(uvs);
+	if (_uvs)
+		_engine->getMemoryServices()->freeImpl(_uvs);
 
-	uvs = nullptr;
-	runs.clear();
+	_uvs = nullptr;
+	_runs.clear();
 }
 
 void TextEvent::buildGeometry() {
 	freeGeometry();
 
-	uint length = text.size();
+	uint length = _text.size();
 	int numVertices = 0;
 	int lastPage = -1;
 
-	vertexCount = 4 * length;
+	_vertexCount = 4 * length;
 
-	positions = (float *)_engine->getMemoryServices()->mallocImpl(vertexCount * 3 * sizeof(float));
-	colors = (byte *)_engine->getMemoryServices()->mallocImpl(vertexCount * 4 * sizeof(byte));
-	uvs = (float *)_engine->getMemoryServices()->mallocImpl(vertexCount * 2 * sizeof(float));
+	_positions = (float *)_engine->getMemoryServices()->mallocImpl(_vertexCount * 3 * sizeof(float));
+	_colors = (byte *)_engine->getMemoryServices()->mallocImpl(_vertexCount * 4 * sizeof(byte));
+	_uvs = (float *)_engine->getMemoryServices()->mallocImpl(_vertexCount * 2 * sizeof(float));
 
 	// The disasm never checks, an empty text gets no memory (size 0) and builds nothing
-	if (vertexCount != 0 && (!positions || !colors || !uvs)) {
+	if (_vertexCount != 0 && (!_positions || !_colors || !_uvs)) {
 		warning("TextEvent::buildGeometry(): out of memory");
 
 		return;
 	}
 
-	if (vertexCount != 0) {
-		memset(positions, 0, vertexCount * 3 * sizeof(float));
-		memset(colors, 0, vertexCount * 4 * sizeof(byte));
-		memset(uvs, 0, vertexCount * 2 * sizeof(float));
+	if (_vertexCount != 0) {
+		memset(_positions, 0, _vertexCount * 3 * sizeof(float));
+		memset(_colors, 0, _vertexCount * 4 * sizeof(byte));
+		memset(_uvs, 0, _vertexCount * 2 * sizeof(float));
 	}
 
-	const char *cursor = text.c_str();
+	const char *cursor = _text.c_str();
 	CTextFont *lockedFont = nullptr;
 
-	if (font.lock())
-		lockedFont = font.typed;
+	if (_font.lock())
+		lockedFont = _font._typed;
 
 	if (!lockedFont) {
 		warning("TextEvent::buildGeometry(): no font");
@@ -258,9 +258,9 @@ void TextEvent::buildGeometry() {
 		return;
 	}
 
-	int lineHeight = (int)((double)lockedFont->lineHeight * (double)scaleY);
-	int cursorX = x;
-	int cursorY = y;
+	int lineHeight = (int)((double)lockedFont->_lineHeight * (double)_scaleY);
+	int cursorX = _x;
+	int cursorY = _y;
 	int previousChar = 0;
 	const char *lineStart = cursor;
 
@@ -268,7 +268,7 @@ void TextEvent::buildGeometry() {
 		int lineWidth;
 		int lineChars;
 		const char *nextLine = layoutLine(lineStart, &lineWidth, &lineChars);
-		int justification = justify & 3;
+		int justification = _justify & 3;
 
 		if (justification == 2)
 			cursorX += -(lineWidth / 2);
@@ -286,12 +286,12 @@ void TextEvent::buildGeometry() {
 
 			CTextFont *glyphFont = nullptr;
 
-			if (font.lock())
-				glyphFont = font.typed;
+			if (_font.lock())
+				glyphFont = _font._typed;
 
 			Glyph *glyph = findGlyph(glyphFont, character);
 
-			font.unlock();
+			_font.unlock();
 
 			if (!glyph) {
 				warning("TextEvent::buildGeometry(): missing glyph for character %d", character);
@@ -300,20 +300,20 @@ void TextEvent::buildGeometry() {
 			}
 
 			if (character != 32) {
-				if (glyph->page != lastPage || runs.empty()) {
+				if (glyph->page != lastPage || _runs.empty()) {
 					TextRun run;
 
 					run.page = glyph->page;
 					run.firstVertex = numVertices;
 					run.vertexCount = 0;
-					runs.push_back(run);
+					_runs.push_back(run);
 					lastPage = glyph->page;
 				}
 
-				float left = (float)((double)glyph->offsetX * (double)scaleX + (double)cursorX);
-				float top = (float)((double)glyph->offsetY * (double)scaleY + (double)cursorY);
-				float right = (float)((double)(uint)glyph->alpha.getWidth() * (double)scaleX + (double)left);
-				float bottom = (float)((double)(uint)glyph->alpha.getHeight() * (double)scaleY + (double)top);
+				float left = (float)((double)glyph->offsetX * (double)_scaleX + (double)cursorX);
+				float top = (float)((double)glyph->offsetY * (double)_scaleY + (double)cursorY);
+				float right = (float)((double)(uint)glyph->alpha.getWidth() * (double)_scaleX + (double)left);
+				float bottom = (float)((double)(uint)glyph->alpha.getHeight() * (double)_scaleY + (double)top);
 
 				if (left < right && top < bottom) {
 					float halfWidth = (float)(uint)(_engine->_textScreenRect[2] / 2);
@@ -326,7 +326,7 @@ void TextEvent::buildGeometry() {
 						continue;
 					}
 
-					if (numVertices + 4 > vertexCount) {
+					if (numVertices + 4 > _vertexCount) {
 						warning("TextEvent::buildGeometry(): too many glyphs");
 
 						continue;
@@ -336,7 +336,7 @@ void TextEvent::buildGeometry() {
 					float normalTop = (float)(((double)top - (double)halfHeight) / (double)halfHeight);
 					double normalRight = ((double)right - (double)halfWidth) / (double)halfWidth;
 					float normalBottom = (float)(((double)bottom - (double)halfHeight) / (double)halfHeight);
-					float *vertex = positions + numVertices * 3;
+					float *vertex = _positions + numVertices * 3;
 
 					vertex[0] = (float)normalLeft;
 					vertex[1] = -normalTop;
@@ -351,13 +351,13 @@ void TextEvent::buildGeometry() {
 					vertex[10] = -normalBottom;
 					vertex[11] = 1.0f;
 
-					byte red = (uint)color.r <= 0xFF ? (byte)color.r : 0xFF;
-					byte green = (uint)color.g <= 0xFF ? (byte)color.g : 0xFF;
-					byte blue = (uint)color.b <= 0xFF ? (byte)color.b : 0xFF;
-					byte alpha = (uint)color.a <= 0xFF ? (byte)color.a : 0xFF;
+					byte red = (uint)_color._r <= 0xFF ? (byte)_color._r : 0xFF;
+					byte green = (uint)_color._g <= 0xFF ? (byte)_color._g : 0xFF;
+					byte blue = (uint)_color._b <= 0xFF ? (byte)_color._b : 0xFF;
+					byte alpha = (uint)_color._a <= 0xFF ? (byte)_color._a : 0xFF;
 
 					for (int corner = 0; corner < 4; corner++) {
-						byte *vertexColor = colors + (numVertices + corner) * 4;
+						byte *vertexColor = _colors + (numVertices + corner) * 4;
 
 						vertexColor[2] = red;
 						vertexColor[1] = green;
@@ -365,7 +365,7 @@ void TextEvent::buildGeometry() {
 						vertexColor[3] = alpha;
 					}
 
-					float *vertexUvs = uvs + numVertices * 2;
+					float *vertexUvs = _uvs + numVertices * 2;
 
 					vertexUvs[0] = glyph->u0;
 					vertexUvs[1] = glyph->v0;
@@ -376,18 +376,18 @@ void TextEvent::buildGeometry() {
 					vertexUvs[6] = glyph->u0;
 					vertexUvs[7] = glyph->v1;
 
-					runs[runs.size() - 1].vertexCount += 4;
+					_runs[_runs.size() - 1].vertexCount += 4;
 					numVertices += 4;
 				}
 			}
 
-			float scaledAdvance = (float)((double)glyph->advance * (double)scaleX);
+			float scaledAdvance = (float)((double)glyph->advance * (double)_scaleX);
 
 			cursorX += (int)lrint((double)scaledAdvance);
 		}
 
 		if (nextLine) {
-			cursorX = x;
+			cursorX = _x;
 			cursorY += lineHeight;
 		}
 
@@ -395,16 +395,16 @@ void TextEvent::buildGeometry() {
 		cursor = nextLine;
 	}
 
-	geometryReady = true;
-	font.unlock();
+	_geometryReady = true;
+	_font.unlock();
 }
 
 const char *TextEvent::layoutLine(const char *lineStart, int *outWidth, int *outNumChars) {
-	int clipLeft = clipRect[0];
-	int clipRight = clipRect[2];
-	int justification = justify & 3;
-	int leftSpace = x - clipLeft;
-	int rightSpace = clipLeft + (clipRight - x);
+	int clipLeft = _clipRect[0];
+	int clipRight = _clipRect[2];
+	int justification = _justify & 3;
+	int leftSpace = _x - clipLeft;
+	int rightSpace = clipLeft + (clipRight - _x);
 	int maxWidth;
 
 	if (justification == 2) {
@@ -431,7 +431,7 @@ const char *TextEvent::layoutLine(const char *lineStart, int *outWidth, int *out
 
 	if (character) {
 		while (true) {
-			if ((character == 32 || character == 254) && (justify & 4)) {
+			if ((character == 32 || character == 254) && (_justify & 4)) {
 				if (wordWidth + pendingWidth + totalWidth > maxWidth) {
 					if (totalChars) {
 						result = wrapPoint;
@@ -479,7 +479,7 @@ const char *TextEvent::layoutLine(const char *lineStart, int *outWidth, int *out
 			}
 
 			if (character == 13 || character == 10) {
-				if (totalWidth + wordWidth + pendingWidth > maxWidth && (justify & 4) && totalChars) {
+				if (totalWidth + wordWidth + pendingWidth > maxWidth && (_justify & 4) && totalChars) {
 					result = wrapPoint;
 				} else {
 					totalWidth += wordWidth + pendingWidth;
@@ -510,7 +510,7 @@ const char *TextEvent::layoutLine(const char *lineStart, int *outWidth, int *out
 
 	int lineWidth = wordWidth + pendingWidth;
 
-	if (lineWidth + totalWidth > maxWidth && (justify & 4) && totalChars) {
+	if (lineWidth + totalWidth > maxWidth && (_justify & 4) && totalChars) {
 		result = wrapPoint;
 	} else {
 		totalWidth += lineWidth;
@@ -539,11 +539,11 @@ byte TextEvent::nextChar(const char **cursor) {
 int TextEvent::getWidth() {
 	int width = 0;
 	int lineWidth = 0;
-	const char *cursor = text.c_str();
+	const char *cursor = _text.c_str();
 	CTextFont *lockedFont = nullptr;
 
-	if (font.lock())
-		lockedFont = font.typed;
+	if (_font.lock())
+		lockedFont = _font._typed;
 
 	if (lockedFont) {
 		do {
@@ -553,7 +553,7 @@ int TextEvent::getWidth() {
 				width = lineWidth;
 		} while (cursor);
 
-		font.unlock();
+		_font.unlock();
 	}
 
 	return width;
@@ -563,8 +563,8 @@ int TextEvent::getHeight() {
 	int height = 0;
 	CTextFont *lockedFont = nullptr;
 
-	if (font.lock())
-		lockedFont = font.typed;
+	if (_font.lock())
+		lockedFont = _font._typed;
 
 	if (!lockedFont) {
 		warning("TextEvent::getHeight(): no font");
@@ -572,15 +572,15 @@ int TextEvent::getHeight() {
 		return 0;
 	}
 
-	int lineHeight = (int)((double)lockedFont->lineHeight * (double)scaleY);
-	const char *cursor = text.c_str();
+	int lineHeight = (int)((double)lockedFont->_lineHeight * (double)_scaleY);
+	const char *cursor = _text.c_str();
 
 	do {
 		cursor = layoutLine(cursor, nullptr, nullptr);
 		height += lineHeight;
 	} while (cursor);
 
-	font.unlock();
+	_font.unlock();
 
 	return height;
 }
@@ -589,16 +589,16 @@ int TextEvent::getCharWidth(uint16 character) {
 	int width = 0;
 	CTextFont *lockedFont = nullptr;
 
-	if (font.lock())
-		lockedFont = font.typed;
+	if (_font.lock())
+		lockedFont = _font._typed;
 
 	if (lockedFont) {
 		Glyph *glyph = findGlyph(lockedFont, character);
 
 		if (glyph)
-			width = (int)((double)glyph->advance * (double)scaleX);
+			width = (int)((double)glyph->advance * (double)_scaleX);
 
-		font.unlock();
+		_font.unlock();
 	} else {
 		warning("TextEvent::getCharWidth(): no font");
 	}
@@ -609,8 +609,8 @@ int TextEvent::getCharWidth(uint16 character) {
 void TextEvent::draw(CDrawContext *drawContext) {
 	CTextFont *lockedFont = nullptr;
 
-	if (font.lock())
-		lockedFont = font.typed;
+	if (_font.lock())
+		lockedFont = _font._typed;
 
 	if (!lockedFont) {
 		warning("TextEvent::draw(): no font");
@@ -618,50 +618,50 @@ void TextEvent::draw(CDrawContext *drawContext) {
 		return;
 	}
 
-	if (lockedFont->pages.empty())
+	if (lockedFont->_pages.empty())
 		lockedFont->buildTextures(drawContext);
 
-	if (!geometryReady)
+	if (!_geometryReady)
 		buildGeometry();
 
 	drawContext->setOrtho(-1.0f, 1.0f, -1.0f, 1.0f);
 
 	VertexStreams streams;
 
-	streams.count = vertexCount;
-	streams.positions = positions;
-	streams.normals = normals;
-	streams.colors = reinterpret_cast<const uint32 *>(colors);
-	streams.uvs = uvs;
+	streams.count = _vertexCount;
+	streams.positions = _positions;
+	streams.normals = _normals;
+	streams.colors = reinterpret_cast<const uint32 *>(_colors);
+	streams.uvs = _uvs;
 
-	for (uint i = 0; i < runs.size(); i++) {
-		CTexture *texture = lockedFont->getTexture(drawContext, runs[i].page);
+	for (uint i = 0; i < _runs.size(); i++) {
+		CTexture *texture = lockedFont->getTexture(drawContext, _runs[i].page);
 
-		drawContext->drawQuads(kQuadsFlags, texture, runs[i].firstVertex, runs[i].vertexCount, &streams);
+		drawContext->drawQuads(kQuadsFlags, texture, _runs[i].firstVertex, _runs[i].vertexCount, &streams);
 	}
 
-	font.unlock();
+	_font.unlock();
 }
 
-bool TextEvent::save(tSaveRestoreAccess *access) {
-	int length = (int)text.size() + 1;
+bool TextEvent::save(SaveRestoreAccess *access) {
+	int length = (int)_text.size() + 1;
 
 	access(&length, sizeof(length));
-	access((void *)text.c_str(), length);
-	access(&x, sizeof(x));
-	access(&y, sizeof(y));
-	access(&duration, sizeof(duration));
-	access(&actorId, sizeof(actorId));
-	access(&flags, sizeof(flags));
-	access(&id, sizeof(id));
+	access((void *)_text.c_str(), length);
+	access(&_x, sizeof(_x));
+	access(&_y, sizeof(_y));
+	access(&_duration, sizeof(_duration));
+	access(&_actorId, sizeof(_actorId));
+	access(&_flags, sizeof(_flags));
+	access(&_id, sizeof(_id));
 
 	for (int i = 0; i < 4; i++)
-		access(&clipRect[i], sizeof(int));
+		access(&_clipRect[i], sizeof(int));
 
 	LString fontName;
 
-	if (font.resource)
-		fontName = font.resource->name;
+	if (_font._resource)
+		fontName = _font._resource->_name;
 	else
 		warning("TextEvent::save(): no font");
 
@@ -669,18 +669,18 @@ bool TextEvent::save(tSaveRestoreAccess *access) {
 
 	access(&length, sizeof(length));
 	access((void *)fontName.c_str(), length);
-	access(&layer, sizeof(layer));
-	access(&hold, sizeof(hold));
-	access(&color, sizeof(color));
-	access(&outlineColor, sizeof(outlineColor));
-	access(&scaleX, sizeof(scaleX));
-	access(&scaleY, sizeof(scaleY));
-	access(&justify, sizeof(justify));
+	access(&_layer, sizeof(_layer));
+	access(&_hold, sizeof(_hold));
+	access(&_color, sizeof(_color));
+	access(&_outlineColor, sizeof(_outlineColor));
+	access(&_scaleX, sizeof(_scaleX));
+	access(&_scaleY, sizeof(_scaleY));
+	access(&_justify, sizeof(_justify));
 
 	return true;
 }
 
-bool TextEvent::restore(tSaveRestoreAccess *access) {
+bool TextEvent::restore(SaveRestoreAccess *access) {
 	char buffer[kRestoreBufferSize + 1];
 	int length;
 
@@ -694,17 +694,17 @@ bool TextEvent::restore(tSaveRestoreAccess *access) {
 
 	access(buffer, length);
 	buffer[length] = 0;
-	text = buffer;
+	_text = buffer;
 
-	access(&x, sizeof(x));
-	access(&y, sizeof(y));
-	access(&duration, sizeof(duration));
-	access(&actorId, sizeof(actorId));
-	access(&flags, sizeof(flags));
-	access(&id, sizeof(id));
+	access(&_x, sizeof(_x));
+	access(&_y, sizeof(_y));
+	access(&_duration, sizeof(_duration));
+	access(&_actorId, sizeof(_actorId));
+	access(&_flags, sizeof(_flags));
+	access(&_id, sizeof(_id));
 
 	for (int i = 0; i < 4; i++)
-		access(&clipRect[i], sizeof(int));
+		access(&_clipRect[i], sizeof(int));
 
 	access(&length, sizeof(length));
 
@@ -720,21 +720,21 @@ bool TextEvent::restore(tSaveRestoreAccess *access) {
 	LString fontName = buffer;
 
 	if (fontName.empty()) {
-		font.setResource(nullptr);
+		_font.setResource(nullptr);
 	} else {
 		LResourceHandle<CTextFont> restoredFont(_engine, fontName);
 
-		font.setResource(restoredFont.resource);
+		_font.setResource(restoredFont._resource);
 	}
 
-	access(&layer, sizeof(layer));
-	access(&hold, sizeof(hold));
-	access(&color, sizeof(color));
-	access(&outlineColor, sizeof(outlineColor));
-	access(&scaleX, sizeof(scaleX));
-	access(&scaleY, sizeof(scaleY));
-	access(&justify, sizeof(justify));
-	geometryReady = false;
+	access(&_layer, sizeof(_layer));
+	access(&_hold, sizeof(_hold));
+	access(&_color, sizeof(_color));
+	access(&_outlineColor, sizeof(_outlineColor));
+	access(&_scaleX, sizeof(_scaleX));
+	access(&_scaleY, sizeof(_scaleY));
+	access(&_justify, sizeof(_justify));
+	_geometryReady = false;
 
 	return true;
 }
@@ -749,11 +749,11 @@ bool TextEvent::setFont(const char *fontName) {
 	LString fontLabel = fontName;
 	LResourceHandle<CTextFont> newFont(_engine, fontLabel);
 
-	if (newFont.lock() && newFont.typed) {
+	if (newFont.lock() && newFont._typed) {
 		newFont.unlock();
-		font.setResource(nullptr);
-		font.setResource(newFont.resource);
-		geometryReady = false;
+		_font.setResource(nullptr);
+		_font.setResource(newFont._resource);
+		_geometryReady = false;
 
 		return true;
 	}
@@ -762,19 +762,19 @@ bool TextEvent::setFont(const char *fontName) {
 }
 
 bool TextEvent::setFont(LResourceHandle<CTextFont> newFont) {
-	if (!newFont.resource)
+	if (!newFont._resource)
 		return false;
 
 	if (!newFont.lock())
 		return false;
 
-	if (!newFont.typed)
+	if (!newFont._typed)
 		return false;
 
 	newFont.unlock();
-	font.setResource(nullptr);
-	font.setResource(newFont.resource);
-	geometryReady = false;
+	_font.setResource(nullptr);
+	_font.setResource(newFont._resource);
+	_geometryReady = false;
 
 	return true;
 }
@@ -792,14 +792,14 @@ int TextEvent::update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll
 
 		++it;
 
-		if (!event->hold) {
-			if (event->duration > 0.0f || (event->flags & 1)) {
-				uint eventFlags = event->flags;
+		if (!event->_hold) {
+			if (event->_duration > 0.0f || (event->_flags & 1)) {
+				uint eventFlags = event->_flags;
 
 				if (((eventFlags & 8) || drawAll) && !(eventFlags & 2))
 					event->draw(drawContext);
 
-				event->duration = (float)((double)event->duration - (double)engine->getFrameTime());
+				event->_duration = (float)((double)event->_duration - (double)engine->getFrameTime());
 			} else {
 				delete event;
 			}
@@ -827,7 +827,7 @@ bool TextEvent::startup(EmiEngine *engine, CDrawContext *drawContext) {
 
 	engine->_textEvents.clear();
 	engine->_defaultTextEvent = new TextEvent(engine);
-	engine->_defaultTextEvent->flags = 0;
+	engine->_defaultTextEvent->_flags = 0;
 	engine->_textEventsStarted = true;
 
 	return true;
@@ -859,7 +859,7 @@ TextEvent *TextEvent::getEvent(EmiEngine *engine, int eventId) {
 	Common::List<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
-		if ((*it)->id == eventId)
+		if ((*it)->_id == eventId)
 			return *it;
 	}
 
@@ -919,7 +919,7 @@ void TextEvent::holdAll(EmiEngine *engine) {
 	Common::List<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it)
-		(*it)->hold++;
+		(*it)->_hold++;
 }
 
 void TextEvent::releaseAll(EmiEngine *engine) {
@@ -928,14 +928,14 @@ void TextEvent::releaseAll(EmiEngine *engine) {
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
 
-		event->hold--;
+		event->_hold--;
 
-		if (event->hold < 0)
-			event->hold = 0;
+		if (event->_hold < 0)
+			event->_hold = 0;
 	}
 }
 
-bool TextEvent::saveAll(EmiEngine *engine, tSaveRestoreAccess *access) {
+bool TextEvent::saveAll(EmiEngine *engine, SaveRestoreAccess *access) {
 	uint count = engine->_textEvents.size();
 
 	access(&count, sizeof(count));
@@ -956,7 +956,7 @@ bool TextEvent::saveAll(EmiEngine *engine, tSaveRestoreAccess *access) {
 	return true;
 }
 
-bool TextEvent::restoreAll(EmiEngine *engine, tSaveRestoreAccess *access) {
+bool TextEvent::restoreAll(EmiEngine *engine, SaveRestoreAccess *access) {
 	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
 
 	while (it != engine->_textEvents.end()) {

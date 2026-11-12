@@ -64,8 +64,8 @@ public:
 
 	virtual bool handleEvent(const Event *event) = 0;
 
-	uint typeMask;
-	int priority;
+	uint _typeMask;
+	int _priority;
 
 protected:
 	EmiEngine *_engine;

@@ -49,12 +49,12 @@ public:
 	void setColor(const Color &newColor);
 	void addSector(const LString &sectorName);
 
-	LString name;
-	LString lightName;
-	float point[3];
-	Common::Array<WalkPlane_v2 *> sectors;
-	Common::Array<LString> sectorNames;
-	Color color;
+	LString _name;
+	LString _lightName;
+	float _point[3];
+	Common::Array<WalkPlane_v2 *> _sectors;
+	Common::Array<LString> _sectorNames;
+	Color _color;
 
 private:
 	EmiEngine *_engine;

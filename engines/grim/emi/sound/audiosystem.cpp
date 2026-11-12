@@ -37,62 +37,62 @@ namespace Grim {
 static const int kDeviceChannelCount = 14;
 static const uint16 kInitialDevicePreference = 16;
 
-AudioSystem::AudioSystem(Sounds *sounds) : refCount(0), debugLevel(0), audioAvailable(false), digitalHandleReleased(false), device(nullptr), reverbPreset(0), reverbEnabled(1), sonyReverbType(0), sonyReverbDepth(0), sonyReverbDelay(0), sonyReverbFeedback(0), listener(nullptr), masterGain(1.0f), devicePreference(kInitialDevicePreference), _sounds(sounds), _engine(sounds->getEngine()) {
+AudioSystem::AudioSystem(Sounds *sounds) : _refCount(0), _debugLevel(0), _audioAvailable(false), _digitalHandleReleased(false), _device(nullptr), _reverbPreset(0), _reverbEnabled(1), _sonyReverbType(0), _sonyReverbDepth(0), _sonyReverbDelay(0), _sonyReverbFeedback(0), _listener(nullptr), _masterGain(1.0f), _devicePreference(kInitialDevicePreference), _sounds(sounds), _engine(sounds->getEngine()) {
 	for (int i = 0; i < 5; i++)
-		reverbValues[i] = -1.0f;
+		_reverbValues[i] = -1.0f;
 
 	for (int i = 0; i < 3; i++)
-		categoryGain[i] = 1.0f;
+		_categoryGain[i] = 1.0f;
 
-	if (refCount <= 0) {
-		audioAvailable = false;
-		digitalHandleReleased = false;
-		device = nullptr;
-		reverbPreset = 0;
+	if (_refCount <= 0) {
+		_audioAvailable = false;
+		_digitalHandleReleased = false;
+		_device = nullptr;
+		_reverbPreset = 0;
 
 		for (int i = 0; i < 5; i++)
-			reverbValues[i] = -1.0f;
+			_reverbValues[i] = -1.0f;
 
-		sonyReverbType = 0;
-		sonyReverbDepth = 0;
-		sonyReverbDelay = 0;
-		sonyReverbFeedback = 0;
+		_sonyReverbType = 0;
+		_sonyReverbDepth = 0;
+		_sonyReverbDelay = 0;
+		_sonyReverbFeedback = 0;
 
-		listener.setNode(nullptr);
+		_listener.setNode(nullptr);
 
-		audioAvailable = createAudioDevice();
+		_audioAvailable = createAudioDevice();
 
-		if (audioAvailable) {
+		if (_audioAvailable) {
 			uint16 preference = kInitialDevicePreference;
 
 			setAudioDevicePreference(&preference);
 			setMasterGain(1.0f);
 		}
 	} else {
-		refCount++;
+		_refCount++;
 	}
 }
 
 AudioSystem::~AudioSystem() {
-	refCount--;
+	_refCount--;
 
-	if (refCount <= 0) {
+	if (_refCount <= 0) {
 		destroyAudioDevice();
 
-		audioAvailable = false;
-		digitalHandleReleased = false;
-		device = nullptr;
-		reverbPreset = 0;
+		_audioAvailable = false;
+		_digitalHandleReleased = false;
+		_device = nullptr;
+		_reverbPreset = 0;
 
 		for (int i = 0; i < 5; i++)
-			reverbValues[i] = -1.0f;
+			_reverbValues[i] = -1.0f;
 
-		sonyReverbType = 0;
-		sonyReverbDepth = 0;
-		sonyReverbDelay = 0;
-		sonyReverbFeedback = 0;
+		_sonyReverbType = 0;
+		_sonyReverbDepth = 0;
+		_sonyReverbDelay = 0;
+		_sonyReverbFeedback = 0;
 
-		listener.setNode(nullptr);
+		_listener.setNode(nullptr);
 	}
 }
 
@@ -105,29 +105,29 @@ void AudioSystem::operator delete(void *block) {
 }
 
 bool AudioSystem::createAudioDevice() {
-	device = new CWaveAudioDevice(_sounds, this, kDeviceChannelCount);
+	_device = new CWaveAudioDevice(_sounds, this, kDeviceChannelCount);
 
-	return device && getMilesDriver();
+	return _device && getMilesDriver();
 }
 
 EMIMilesDriver *AudioSystem::getMilesDriver() {
-	if (!device || device->getType() != CWaveSound::kTypeWave)
+	if (!_device || _device->getType() != CWaveSound::kTypeWave)
 		return nullptr;
 
-	return static_cast<CWaveAudioDevice *>(device)->getMilesDriver();
+	return static_cast<CWaveAudioDevice *>(_device)->getMilesDriver();
 }
 
 void AudioSystem::destroyAudioDevice() {
-	if (device) {
-		delete device;
-		device = nullptr;
+	if (_device) {
+		delete _device;
+		_device = nullptr;
 	}
 }
 
 void AudioSystem::updateAudioDevice() {
-	if (audioAvailable) {
-		if (device)
-			device->update();
+	if (_audioAvailable) {
+		if (_device)
+			_device->update();
 	}
 }
 
@@ -135,15 +135,15 @@ CAudioChannel *AudioSystem::allocateAudioChannel(CSoundCue *cue) {
 	if (!cue)
 		return nullptr;
 
-	if (!audioAvailable)
+	if (!_audioAvailable)
 		return nullptr;
 
 	if (cue->getSoundType() == CWaveSound::kTypeWave) {
-		uint flags = cue->flags;
+		uint flags = cue->_flags;
 
 		if ((flags & CSoundCue::kFlagForceChannel) != 0 || (flags & CSoundCue::kFlagPositional) == 0) {
-			if (device)
-				return device->allocateChannel(cue);
+			if (_device)
+				return _device->allocateChannel(cue);
 		}
 	}
 
@@ -151,32 +151,32 @@ CAudioChannel *AudioSystem::allocateAudioChannel(CSoundCue *cue) {
 }
 
 void AudioSystem::setAudioListener(CNode *node) {
-	listener.setNode(node);
+	_listener.setNode(node);
 
-	if (device)
-		device->updateChannelsSpatialization();
+	if (_device)
+		_device->updateChannelsSpatialization();
 }
 
 bool AudioSystem::isCueInRange(CSoundCue *cue) {
-	uint flags = cue->flags;
+	uint flags = cue->_flags;
 	CVector cuePosition;
 
 	if ((flags & CSoundCue::kFlagAlwaysInRange) != 0 || (flags & CSoundCue::kFlagPositional) == 0)
 		return true;
 
-	CNode *listenerNode = listener.node;
+	CNode *listenerNode = _listener._node;
 
 	if (!listenerNode)
 		return false;
 
 	cue->getPosition(&cuePosition);
 
-	if ((listenerNode->nodeFlags & CNode::kWorldValid) == 0)
+	if ((listenerNode->_nodeFlags & CNode::kWorldValid) == 0)
 		listenerNode->updateWorldTransform();
 
-	double deltaZ = (double)cuePosition.z - listenerNode->world.pos.z;
-	double deltaY = (double)cuePosition.y - listenerNode->world.pos.y;
-	double deltaX = (double)cuePosition.x - listenerNode->world.pos.x;
+	double deltaZ = (double)cuePosition._z - listenerNode->_world._pos._z;
+	double deltaY = (double)cuePosition._y - listenerNode->_world._pos._y;
+	double deltaX = (double)cuePosition._x - listenerNode->_world._pos._x;
 	float distanceSquared = (float)(deltaY * deltaY + deltaZ * deltaZ + deltaX * deltaX);
 	float cutoffFar = cue->getCutoffFar();
 
@@ -185,20 +185,20 @@ bool AudioSystem::isCueInRange(CSoundCue *cue) {
 
 float AudioSystem::setMasterGain(float gain) {
 	if (gain >= 1.0f)
-		masterGain = 1.0f;
+		_masterGain = 1.0f;
 	else if (!(gain > 0.0f))
-		masterGain = 0.0f;
+		_masterGain = 0.0f;
 	else
-		masterGain = gain;
+		_masterGain = gain;
 
-	if (device)
-		device->setMasterVolume(masterGain);
+	if (_device)
+		_device->setMasterVolume(_masterGain);
 
-	return masterGain;
+	return _masterGain;
 }
 
 float AudioSystem::getMasterGain() {
-	return masterGain;
+	return _masterGain;
 }
 
 float AudioSystem::setCategoryGain(int category, float gain) {
@@ -213,17 +213,17 @@ float AudioSystem::setCategoryGain(int category, float gain) {
 
 	switch (category) {
 	case 1:
-		categoryGain[0] = (float)clamped;
+		_categoryGain[0] = (float)clamped;
 
 		break;
 
 	case 2:
-		categoryGain[1] = (float)clamped;
+		_categoryGain[1] = (float)clamped;
 
 		break;
 
 	case 3:
-		categoryGain[2] = (float)clamped;
+		_categoryGain[2] = (float)clamped;
 
 		break;
 
@@ -231,8 +231,8 @@ float AudioSystem::setCategoryGain(int category, float gain) {
 		break;
 	}
 
-	if (device)
-		device->setCategoryVolume(category);
+	if (_device)
+		_device->setCategoryVolume(category);
 
 	return gain;
 }
@@ -240,13 +240,13 @@ float AudioSystem::setCategoryGain(int category, float gain) {
 float AudioSystem::getCategoryGain(int category) {
 	switch (category) {
 	case 1:
-		return categoryGain[0];
+		return _categoryGain[0];
 
 	case 2:
-		return categoryGain[1];
+		return _categoryGain[1];
 
 	case 3:
-		return categoryGain[2];
+		return _categoryGain[2];
 
 	default:
 		break;
@@ -257,14 +257,14 @@ float AudioSystem::getCategoryGain(int category) {
 
 void AudioSystem::setGlobalReverbEnabled(int enabled) {
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		if (reverbEnabled != (byte)enabled) {
-			reverbEnabled = (byte)enabled;
+		if (_reverbEnabled != (byte)enabled) {
+			_reverbEnabled = (byte)enabled;
 
-			if (device) {
-				CWaveAudioDevice *waveDevice = static_cast<CWaveAudioDevice *>(device);
+			if (_device) {
+				CWaveAudioDevice *waveDevice = static_cast<CWaveAudioDevice *>(_device);
 
 				if ((byte)enabled)
-					waveDevice->setSonyRoomType(sonyReverbType, sonyReverbDepth, sonyReverbDelay, sonyReverbFeedback);
+					waveDevice->setSonyRoomType(_sonyReverbType, _sonyReverbDepth, _sonyReverbDelay, _sonyReverbFeedback);
 				else
 					waveDevice->setSonyRoomType(0, 0, 0, 0);
 			}
@@ -273,47 +273,47 @@ void AudioSystem::setGlobalReverbEnabled(int enabled) {
 		return;
 	}
 
-	if (reverbEnabled != (byte)enabled) {
-		reverbEnabled = (byte)enabled;
+	if (_reverbEnabled != (byte)enabled) {
+		_reverbEnabled = (byte)enabled;
 
-		if (device) {
+		if (_device) {
 			if ((byte)enabled) {
-				device->setReverb(&reverbPreset, &reverbValues[0], &reverbValues[1], &reverbValues[2], &reverbValues[3], &reverbValues[4]);
+				_device->setReverb(&_reverbPreset, &_reverbValues[0], &_reverbValues[1], &_reverbValues[2], &_reverbValues[3], &_reverbValues[4]);
 			} else {
 				int disabledPreset = 0;
 				float disabledValue = -1.0f;
 
-				device->setReverb(&disabledPreset, &disabledValue, &disabledValue, &disabledValue, &disabledValue, &disabledValue);
+				_device->setReverb(&disabledPreset, &disabledValue, &disabledValue, &disabledValue, &disabledValue, &disabledValue);
 			}
 		}
 	}
 }
 
 bool AudioSystem::setGlobalReverb(int preset, const float *first, const float *second, const float *third, const float *fourth, const float *fifth) {
-	reverbPreset = preset;
-	reverbValues[0] = *first;
-	reverbValues[1] = *second;
-	reverbValues[2] = *third;
-	reverbValues[3] = *fourth;
-	reverbValues[4] = *fifth;
+	_reverbPreset = preset;
+	_reverbValues[0] = *first;
+	_reverbValues[1] = *second;
+	_reverbValues[2] = *third;
+	_reverbValues[3] = *fourth;
+	_reverbValues[4] = *fifth;
 
-	if (!reverbEnabled)
+	if (!_reverbEnabled)
 		return false;
 
-	if (device)
-		return device->setReverb(&reverbPreset, first, second, third, fourth, fifth);
+	if (_device)
+		return _device->setReverb(&_reverbPreset, first, second, third, fourth, fifth);
 
 	return false;
 }
 
 bool AudioSystem::getGlobalReverb(int *preset, float *first, float *second, float *third, float *fourth, float *fifth) {
-	if (reverbEnabled) {
-		*preset = reverbPreset;
-		*first = reverbValues[0];
-		*second = reverbValues[1];
-		*third = reverbValues[2];
-		*fourth = reverbValues[3];
-		*fifth = reverbValues[4];
+	if (_reverbEnabled) {
+		*preset = _reverbPreset;
+		*first = _reverbValues[0];
+		*second = _reverbValues[1];
+		*third = _reverbValues[2];
+		*fourth = _reverbValues[3];
+		*fifth = _reverbValues[4];
 
 		return true;
 	}
@@ -329,56 +329,56 @@ bool AudioSystem::getGlobalReverb(int *preset, float *first, float *second, floa
 }
 
 bool AudioSystem::setSonyReverb(int type, int depth, int delay, int feedback) {
-	sonyReverbType = type;
-	sonyReverbDepth = depth;
-	sonyReverbDelay = delay;
-	sonyReverbFeedback = feedback;
+	_sonyReverbType = type;
+	_sonyReverbDepth = depth;
+	_sonyReverbDelay = delay;
+	_sonyReverbFeedback = feedback;
 
 	LConsoleServices *console = _engine->getConsoleServices();
 
-	if (!reverbEnabled) {
+	if (!_reverbEnabled) {
 		if (console)
 			console->logError("SetSonyReverb !mReverbEnabled\n");
 
 		return false;
 	}
 
-	if (!device) {
+	if (!_device) {
 		if (console)
 			console->logError("SetSonyReverb !smpWaveAudioDevice\n");
 
 		return false;
 	}
 
-	return static_cast<CWaveAudioDevice *>(device)->setSonyRoomType(type, depth, delay, feedback);
+	return static_cast<CWaveAudioDevice *>(_device)->setSonyRoomType(type, depth, delay, feedback);
 }
 
 bool AudioSystem::setAudioDevicePreference(const uint16 *preference) {
-	devicePreference = *preference;
+	_devicePreference = *preference;
 
-	return device && device->setMixAhead(preference);
+	return _device && _device->setMixAhead(preference);
 }
 
 void AudioSystem::stopAllChannels() {
-	if (device)
-		device->stopAll();
+	if (_device)
+		_device->stopAll();
 }
 
-bool AudioSystem::saveAudioSettings(tSaveRestoreAccess *access) {
-	access(&devicePreference, sizeof(devicePreference));
-	access(&masterGain, sizeof(masterGain));
-	access(&categoryGain[0], sizeof(float));
-	access(&categoryGain[1], sizeof(float));
-	access(&categoryGain[2], sizeof(float));
+bool AudioSystem::saveAudioSettings(SaveRestoreAccess *access) {
+	access(&_devicePreference, sizeof(_devicePreference));
+	access(&_masterGain, sizeof(_masterGain));
+	access(&_categoryGain[0], sizeof(float));
+	access(&_categoryGain[1], sizeof(float));
+	access(&_categoryGain[2], sizeof(float));
 
 	// PS2 keeps the PC layout and stores the four Sony values in the preset and the first floats
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		int type = sonyReverbType;
+		int type = _sonyReverbType;
 		float values[5];
 
-		values[0] = (float)sonyReverbDepth;
-		values[1] = (float)sonyReverbDelay;
-		values[2] = (float)sonyReverbFeedback;
+		values[0] = (float)_sonyReverbDepth;
+		values[1] = (float)_sonyReverbDelay;
+		values[2] = (float)_sonyReverbFeedback;
 		values[3] = -1.0f;
 		values[4] = -1.0f;
 
@@ -390,15 +390,15 @@ bool AudioSystem::saveAudioSettings(tSaveRestoreAccess *access) {
 		return true;
 	}
 
-	access(&reverbPreset, sizeof(reverbPreset));
+	access(&_reverbPreset, sizeof(_reverbPreset));
 
 	for (int i = 0; i < 5; i++)
-		access(&reverbValues[i], sizeof(float));
+		access(&_reverbValues[i], sizeof(float));
 
 	return true;
 }
 
-bool AudioSystem::restoreAudioSettings(tSaveRestoreAccess *access) {
+bool AudioSystem::restoreAudioSettings(SaveRestoreAccess *access) {
 	uint16 preference = 0;
 	float restoredValue = 0.0f;
 	int restoredPreset = 0;

@@ -99,9 +99,9 @@ bool CWavFile::read(LFile *file, CWaveSound *sound) {
 				return false;
 			}
 
-			sound->dataSize = header[1];
+			sound->_dataSize = header[1];
 			sound->reallocData(header[1]);
-			file->read(sound->samples, header[1]);
+			file->read(sound->_samples, header[1]);
 		} else if (header[0] == kTagFmt) {
 			if (formatRead)
 				return false;
@@ -119,24 +119,24 @@ bool CWavFile::read(LFile *file, CWaveSound *sound) {
 			if (READ_LE_UINT16(raw16) != 1)
 				return false;
 
-			sound->formatTag = CWaveSound::kFormatPcm;
+			sound->_formatTag = CWaveSound::kFormatPcm;
 
 			file->read(raw16, 2);
 
-			sound->numChannels = READ_LE_UINT16(raw16);
+			sound->_numChannels = READ_LE_UINT16(raw16);
 
-			if ((int16)sound->numChannels < 1 || (int16)sound->numChannels > 2)
+			if ((int16)sound->_numChannels < 1 || (int16)sound->_numChannels > 2)
 				return false;
 
 			file->read(raw, 4);
 
-			sound->sampleRate = (double)READ_LE_UINT32(raw);
+			sound->_sampleRate = (double)READ_LE_UINT32(raw);
 
 			file->read(raw, 4);
 			file->read(raw16, 2);
 			file->read(raw16, 2);
 
-			sound->bitsPerSample = READ_LE_UINT16(raw16);
+			sound->_bitsPerSample = READ_LE_UINT16(raw16);
 
 			file->seek(-16, SEEK_CUR);
 			file->seek(header[1], SEEK_CUR);
@@ -151,8 +151,8 @@ bool CWavFile::read(LFile *file, CWaveSound *sound) {
 		}
 	}
 
-	sound->loopStart = 0;
-	sound->loopEnd = sound->dataSize;
+	sound->_loopStart = 0;
+	sound->_loopEnd = sound->_dataSize;
 
 	return true;
 }
@@ -216,26 +216,26 @@ bool CWavFile::readMcmp(LFile *file, CWaveSound *sound) {
 
 bool CWavFile::write(LFile *file, CWaveSound *sound) {
 	byte header[kWavHeaderSize];
-	uint bytesPerSample = sound->bitsPerSample >> 3;
+	uint bytesPerSample = sound->_bitsPerSample >> 3;
 
 	memcpy(header, "RIFF", 4);
-	WRITE_LE_UINT32(header + 4, sound->dataSize + 36);
+	WRITE_LE_UINT32(header + 4, sound->_dataSize + 36);
 	memcpy(header + 8, "WAVEfmt ", 8);
 	WRITE_LE_UINT32(header + 16, 16);
 	WRITE_LE_UINT16(header + 20, 1);
-	WRITE_LE_UINT16(header + 22, sound->numChannels);
-	WRITE_LE_UINT32(header + 24, (uint32)(int)sound->sampleRate);
-	WRITE_LE_UINT32(header + 28, (uint32)((int64)sound->sampleRate * sound->numChannels * bytesPerSample));
-	WRITE_LE_UINT16(header + 32, sound->numChannels * bytesPerSample);
-	WRITE_LE_UINT16(header + 34, sound->bitsPerSample);
+	WRITE_LE_UINT16(header + 22, sound->_numChannels);
+	WRITE_LE_UINT32(header + 24, (uint32)(int)sound->_sampleRate);
+	WRITE_LE_UINT32(header + 28, (uint32)((int64)sound->_sampleRate * sound->_numChannels * bytesPerSample));
+	WRITE_LE_UINT16(header + 32, sound->_numChannels * bytesPerSample);
+	WRITE_LE_UINT16(header + 34, sound->_bitsPerSample);
 	memcpy(header + 36, "data", 4);
-	WRITE_LE_UINT32(header + 40, sound->dataSize);
+	WRITE_LE_UINT32(header + 40, sound->_dataSize);
 
 	file->write(header, kWavHeaderSize);
 
 	char chunk[kWriteChunkSize];
 	uint position = 0;
-	uint remaining = sound->dataSize;
+	uint remaining = sound->_dataSize;
 
 	while (remaining) {
 		uint size = kWriteChunkSize;
@@ -292,12 +292,12 @@ bool CWavFile::parseWav(const byte *buffer, uint bufferSize, CWaveSound *sound) 
 				return false;
 			}
 
-			sound->dataSize = header[1];
+			sound->_dataSize = header[1];
 			sound->reallocData(header[1]);
-			memRead(buffer, bufferSize, &position, sound->samples, header[1]);
+			memRead(buffer, bufferSize, &position, sound->_samples, header[1]);
 
 			// The disasm seeks to the absolute offset given by the chunk size
-			if (sound->bitsPerSample != 16)
+			if (sound->_bitsPerSample != 16)
 				memSeek(&position, riffSize, header[1], 0);
 
 			break;
@@ -318,24 +318,24 @@ bool CWavFile::parseWav(const byte *buffer, uint bufferSize, CWaveSound *sound) 
 			if (READ_LE_UINT16(raw16) != 1)
 				return false;
 
-			sound->formatTag = CWaveSound::kFormatPcm;
+			sound->_formatTag = CWaveSound::kFormatPcm;
 
 			memRead(buffer, bufferSize, &position, raw16, 2);
 
-			sound->numChannels = READ_LE_UINT16(raw16);
+			sound->_numChannels = READ_LE_UINT16(raw16);
 
-			if ((int16)sound->numChannels < 1 || (int16)sound->numChannels > 2)
+			if ((int16)sound->_numChannels < 1 || (int16)sound->_numChannels > 2)
 				return false;
 
 			memRead(buffer, bufferSize, &position, raw, 4);
 
-			sound->sampleRate = (double)READ_LE_UINT32(raw);
+			sound->_sampleRate = (double)READ_LE_UINT32(raw);
 
 			memRead(buffer, bufferSize, &position, raw, 4);
 			memRead(buffer, bufferSize, &position, raw16, 2);
 			memRead(buffer, bufferSize, &position, raw16, 2);
 
-			sound->bitsPerSample = READ_LE_UINT16(raw16);
+			sound->_bitsPerSample = READ_LE_UINT16(raw16);
 
 			memSeek(&position, riffSize, 0xFFFFFFF0, 1);
 			memSeek(&position, riffSize, header[1], 1);
@@ -349,8 +349,8 @@ bool CWavFile::parseWav(const byte *buffer, uint bufferSize, CWaveSound *sound) 
 		}
 	}
 
-	sound->loopStart = 0;
-	sound->loopEnd = sound->dataSize;
+	sound->_loopStart = 0;
+	sound->_loopEnd = sound->_dataSize;
 
 	return true;
 }

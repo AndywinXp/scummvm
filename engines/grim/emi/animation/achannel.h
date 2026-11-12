@@ -51,9 +51,9 @@ public:
 	void pushBack(ChannelNode *node);
 	void insertByPriority(ChannelNode *node);
 
-	int count;
-	ChannelNode *head;
-	ChannelNode *tail;
+	int _count;
+	ChannelNode *_head;
+	ChannelNode *_tail;
 };
 
 template<class T>
@@ -70,9 +70,9 @@ public:
 	bool addTrack(AInst *inst, ATrack *track);
 	bool evaluate(T *out);
 
-	bool dirty;
-	ChannelList active;
-	ChannelList inactive;
+	bool _dirty;
+	ChannelList _active;
+	ChannelList _inactive;
 };
 
 template<> bool AChannel<CQuaternion>::evaluate(CQuaternion *out);

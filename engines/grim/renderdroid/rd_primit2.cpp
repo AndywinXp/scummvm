@@ -25,21 +25,21 @@
 
 namespace Grim {
 
-void RenderDroid::Primit2Module::plot(RdCanvas *pCanvas, int x, int y, uint16 color) {
-	StdVBuffer *pVBuffer = pCanvas->pVBuffer;
+void RenderDroid::Primit2Module::plot(RdCanvas *canvas, int x, int y, uint16 color) {
+	StdVBuffer *vBuffer = canvas->vBuffer;
 
-	if (x < 0 || y < 0 || x >= pVBuffer->tex.width || y >= pVBuffer->tex.height) {
+	if (x < 0 || y < 0 || x >= vBuffer->tex.width || y >= vBuffer->tex.height) {
 		warning("RenderDroid::Primit2Module::plot(): pixel outside the buffer");
 		return;
 	}
 
-	if (pVBuffer->tex.format.bpp == 8)
-		pVBuffer->pPixels[y * pVBuffer->tex.pitchInBytes + x] = (byte)color;
+	if (vBuffer->tex.format.bpp == 8)
+		vBuffer->pixels[y * vBuffer->tex.pitchInBytes + x] = (byte)color;
 	else
-		*(uint16 *)&pVBuffer->pPixels[2 * x + 2 * y * pVBuffer->tex.pitchInPixels] = color;
+		*(uint16 *)&vBuffer->pixels[2 * x + 2 * y * vBuffer->tex.pitchInPixels] = color;
 }
 
-void RenderDroid::Primit2Module::drawBresenham(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
+void RenderDroid::Primit2Module::drawBresenham(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
 	uint patternBit = 0x80000000;
 	int x = x0;
 	int y = y0;
@@ -55,7 +55,7 @@ void RenderDroid::Primit2Module::drawBresenham(RdCanvas *pCanvas, int x0, int y0
 		dx = -dx;
 
 	if ((pattern & 0x80000000) != 0)
-		plot(pCanvas, x, y, color);
+		plot(canvas, x, y, color);
 
 	int error = 0;
 
@@ -75,27 +75,27 @@ void RenderDroid::Primit2Module::drawBresenham(RdCanvas *pCanvas, int x0, int y0
 		}
 
 		if ((patternBit & pattern) != 0)
-			plot(pCanvas, x, y, color);
+			plot(canvas, x, y, color);
 	}
 }
 
-void RenderDroid::Primit2Module::drawLine(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
-	drawBresenham(pCanvas, x0, y0, x1, y1, color, pattern);
+void RenderDroid::Primit2Module::drawLine(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
+	drawBresenham(canvas, x0, y0, x1, y1, color, pattern);
 }
 
-int RenderDroid::Primit2Module::drawClippedLine(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
-	if (!_rd->_clip.line2(pCanvas, &x0, &y0, &x1, &y1))
+int RenderDroid::Primit2Module::drawClippedLine(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
+	if (!_rd->_clip.line2(canvas, &x0, &y0, &x1, &y1))
 		return 0;
 
-	drawBresenham(pCanvas, x0, y0, x1, y1, color, pattern);
+	drawBresenham(canvas, x0, y0, x1, y1, color, pattern);
 
 	return 1;
 }
 
-void RenderDroid::Primit2Module::drawCircle(RdCanvas *pCanvas, int cx, int cy, float radius, float angleStep, uint16 color, uint pattern) {
+void RenderDroid::Primit2Module::drawCircle(RdCanvas *canvas, int cx, int cy, float radius, float angleStep, uint16 color, uint pattern) {
 	int radiusInt = (int)((double)radius + 0.5);
 
-	if (radiusInt + cx >= pCanvas->xStart && cx - radiusInt <= pCanvas->xEnd && radiusInt + cy >= pCanvas->yStart && cy - radiusInt <= pCanvas->yEnd) {
+	if (radiusInt + cx >= canvas->xStart && cx - radiusInt <= canvas->xEnd && radiusInt + cy >= canvas->yStart && cy - radiusInt <= canvas->yEnd) {
 		float sinValue;
 		float cosValue;
 
@@ -112,7 +112,7 @@ void RenderDroid::Primit2Module::drawCircle(RdCanvas *pCanvas, int cx, int cy, f
 				int nextX = cx + (int)((double)cosValue * radius + 0.5);
 				int nextY = cy + (int)((double)sinValue * radius + 0.5);
 
-				drawClippedLine(pCanvas, x, y, nextX, nextY, color, pattern);
+				drawClippedLine(canvas, x, y, nextX, nextY, color, pattern);
 
 				double nextAngle = (double)angle + angleStep;
 				x = nextX;
@@ -126,11 +126,11 @@ void RenderDroid::Primit2Module::drawCircle(RdCanvas *pCanvas, int cx, int cy, f
 	}
 }
 
-void RenderDroid::Primit2Module::drawRectangle(RdCanvas *pCanvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
-	drawClippedLine(pCanvas, x0, y0, x1, y0, color, pattern);
-	drawClippedLine(pCanvas, x1, y0, x1, y1, color, pattern);
-	drawClippedLine(pCanvas, x0, y0, x0, y1, color, pattern);
-	drawClippedLine(pCanvas, x0, y1, x1, y1, color, pattern);
+void RenderDroid::Primit2Module::drawRectangle(RdCanvas *canvas, int x0, int y0, int x1, int y1, uint16 color, uint pattern) {
+	drawClippedLine(canvas, x0, y0, x1, y0, color, pattern);
+	drawClippedLine(canvas, x1, y0, x1, y1, color, pattern);
+	drawClippedLine(canvas, x0, y0, x0, y1, color, pattern);
+	drawClippedLine(canvas, x0, y1, x1, y1, color, pattern);
 }
 
 } // End of namespace Grim

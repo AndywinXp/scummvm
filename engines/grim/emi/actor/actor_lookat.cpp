@@ -35,31 +35,31 @@ static const float kLookAtMinLength = 1e-20f;
 static const float kLookAtDotLimit = 0.9999f;
 
 static void setJointQuaternion(CNode *joint, const CQuaternion &rotation) {
-	joint->quat = rotation;
-	joint->nodeFlags = (joint->nodeFlags & ~(uint)CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	joint->_quat = rotation;
+	joint->_nodeFlags = (joint->_nodeFlags & ~(uint)CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 
-	if (joint->nodeFlags & CNode::kWorldValid)
+	if (joint->_nodeFlags & CNode::kWorldValid)
 		joint->updateChildrenLocalTransforms();
 
-	if ((joint->nodeFlags & CNode::kPositionValid) == 0)
+	if ((joint->_nodeFlags & CNode::kPositionValid) == 0)
 		joint->computeLocalPositionFromWorld();
 
-	if ((joint->nodeFlags & (CNode::kEulerValid | CNode::kQuaternionValid)) == 0)
+	if ((joint->_nodeFlags & (CNode::kEulerValid | CNode::kQuaternionValid)) == 0)
 		joint->updateLocalQuaternion();
 
-	joint->nodeFlags = (joint->nodeFlags & ~(uint)CNode::kWorldValid) | CNode::kLocalSet;
+	joint->_nodeFlags = (joint->_nodeFlags & ~(uint)CNode::kWorldValid) | CNode::kLocalSet;
 }
 
 bool Actor::setActorHead(LString jointName, float *params) {
-	if (!extra)
+	if (!_extra)
 		allocateActorExtra();
 
-	extra->lookAtActive = false;
-	extra->lookAtHasTarget = false;
-	extra->lookJointName = "";
-	extra->lookOffset.x = 0.0f;
-	extra->lookOffset.y = 0.0f;
-	extra->lookOffset.z = 0.0f;
+	_extra->_lookAtActive = false;
+	_extra->_lookAtHasTarget = false;
+	_extra->_lookJointName = "";
+	_extra->_lookOffset._x = 0.0f;
+	_extra->_lookOffset._y = 0.0f;
+	_extra->_lookOffset._z = 0.0f;
 
 	if (!jointName.empty()) {
 		CNode *joint = findNode(jointName);
@@ -67,38 +67,38 @@ bool Actor::setActorHead(LString jointName, float *params) {
 		if (!joint)
 			return false;
 
-		if ((joint->nodeFlags & CNode::kQuaternionValid) == 0)
+		if ((joint->_nodeFlags & CNode::kQuaternionValid) == 0)
 			joint->updateLocalQuaternion();
 
-		extra->lookGoalQuat = joint->quat;
-		extra->lookCurQuat = extra->lookGoalQuat;
-		extra->lookAtActive = true;
-		extra->lookJointName = jointName;
+		_extra->_lookGoalQuat = joint->_quat;
+		_extra->_lookCurQuat = _extra->_lookGoalQuat;
+		_extra->_lookAtActive = true;
+		_extra->_lookJointName = jointName;
 
-		if ((nodeFlags & CNode::kWorldValid) == 0)
+		if ((_nodeFlags & CNode::kWorldValid) == 0)
 			updateWorldTransform();
 
-		float forwardX = world.rot.m[6];
-		float forwardY = world.rot.m[7];
-		float forwardZ = world.rot.m[8];
+		float forwardX = _world._rot._m[6];
+		float forwardY = _world._rot._m[7];
+		float forwardZ = _world._rot._m[8];
 
-		if ((joint->nodeFlags & CNode::kWorldValid) == 0)
+		if ((joint->_nodeFlags & CNode::kWorldValid) == 0)
 			joint->updateWorldTransform();
 
-		extra->lookDirection.x = (float)((double)forwardX + joint->world.pos.x);
-		extra->lookDirection.y = (float)((double)forwardY + joint->world.pos.y);
-		extra->lookDirection.z = (float)((double)forwardZ + joint->world.pos.z);
-		joint->worldToLocal(&extra->lookDirection);
+		_extra->_lookDirection._x = (float)((double)forwardX + joint->_world._pos._x);
+		_extra->_lookDirection._y = (float)((double)forwardY + joint->_world._pos._y);
+		_extra->_lookDirection._z = (float)((double)forwardZ + joint->_world._pos._z);
+		joint->worldToLocal(&_extra->_lookDirection);
 
-		CVector &direction = extra->lookDirection;
-		double length = sqrt(((double)direction.x * direction.x + (double)direction.y * direction.y) + (double)direction.z * direction.z);
+		CVector &direction = _extra->_lookDirection;
+		double length = sqrt(((double)direction._x * direction._x + (double)direction._y * direction._y) + (double)direction._z * direction._z);
 
 		if (length >= (double)kLookAtMinLength) {
 			double inverse = 1.0 / length;
 
-			direction.x = (float)(inverse * direction.x);
-			direction.y = (float)(inverse * direction.y);
-			direction.z = (float)(inverse * direction.z);
+			direction._x = (float)(inverse * direction._x);
+			direction._y = (float)(inverse * direction._y);
+			direction._z = (float)(inverse * direction._z);
 		}
 
 		if (!params) {
@@ -107,9 +107,9 @@ bool Actor::setActorHead(LString jointName, float *params) {
 			return true;
 		}
 
-		extra->lookOffset.x = params[0];
-		extra->lookOffset.y = params[1];
-		extra->lookOffset.z = params[2];
+		_extra->_lookOffset._x = params[0];
+		_extra->_lookOffset._y = params[1];
+		_extra->_lookOffset._z = params[2];
 	}
 
 	return true;
@@ -120,27 +120,27 @@ bool Actor::setHeadLimits(float horizontalLimit, float upLimit, float downLimit)
 	float halfCos = (float)cos(halfAngle);
 	float halfSin = (float)sin(halfAngle);
 
-	if (!extra)
+	if (!_extra)
 		allocateActorExtra();
 
-	extra->lookLimits[0].x = halfCos;
-	extra->lookLimits[0].y = 0.0f;
-	extra->lookLimits[0].z = halfSin;
-	extra->lookLimits[1].x = -halfCos;
-	extra->lookLimits[1].y = 0.0f;
-	extra->lookLimits[1].z = halfSin;
-	extra->lookLimits[2].x = 0.0f;
-	extra->lookLimits[2].y = -(float)cos((double)upLimit);
-	extra->lookLimits[2].z = (float)sin((double)upLimit);
-	extra->lookLimits[3].x = 0.0f;
-	extra->lookLimits[3].y = (float)cos((double)downLimit);
-	extra->lookLimits[3].z = (float)sin((double)downLimit);
+	_extra->_lookLimits[0]._x = halfCos;
+	_extra->_lookLimits[0]._y = 0.0f;
+	_extra->_lookLimits[0]._z = halfSin;
+	_extra->_lookLimits[1]._x = -halfCos;
+	_extra->_lookLimits[1]._y = 0.0f;
+	_extra->_lookLimits[1]._z = halfSin;
+	_extra->_lookLimits[2]._x = 0.0f;
+	_extra->_lookLimits[2]._y = -(float)cos((double)upLimit);
+	_extra->_lookLimits[2]._z = (float)sin((double)upLimit);
+	_extra->_lookLimits[3]._x = 0.0f;
+	_extra->_lookLimits[3]._y = (float)cos((double)downLimit);
+	_extra->_lookLimits[3]._z = (float)sin((double)downLimit);
 
 	return true;
 }
 
 bool Actor::canActorSeePoint(const float *point, float *out) {
-	if (!extra)
+	if (!_extra)
 		return false;
 
 	if (!point || !out) {
@@ -149,26 +149,26 @@ bool Actor::canActorSeePoint(const float *point, float *out) {
 		return false;
 	}
 
-	if ((nodeFlags & CNode::kWorldValid) == 0)
+	if ((_nodeFlags & CNode::kWorldValid) == 0)
 		updateWorldTransform();
 
-	float forwardX = world.rot.m[6];
-	float forwardZ = world.rot.m[8];
-	double forwardLength = sqrt((double)world.rot.m[8] * world.rot.m[8] + (double)world.rot.m[6] * world.rot.m[6]);
+	float forwardX = _world._rot._m[6];
+	float forwardZ = _world._rot._m[8];
+	double forwardLength = sqrt((double)_world._rot._m[8] * _world._rot._m[8] + (double)_world._rot._m[6] * _world._rot._m[6]);
 
 	if (forwardLength >= (double)kLookAtMinLength) {
 		double inverse = 1.0 / forwardLength;
 
-		forwardX = (float)((double)world.rot.m[6] * inverse);
-		forwardZ = (float)((double)world.rot.m[8] * inverse);
+		forwardX = (float)((double)_world._rot._m[6] * inverse);
+		forwardZ = (float)((double)_world._rot._m[8] * inverse);
 	}
 
-	if ((nodeFlags & CNode::kWorldValid) == 0)
+	if ((_nodeFlags & CNode::kWorldValid) == 0)
 		updateWorldTransform();
 
-	float deltaX = (float)((double)point[0] - world.pos.x);
-	double deltaY = (double)point[1] - world.pos.y;
-	float deltaZ = (float)((double)point[2] - world.pos.z);
+	float deltaX = (float)((double)point[0] - _world._pos._x);
+	double deltaY = (double)point[1] - _world._pos._y;
+	float deltaZ = (float)((double)point[2] - _world._pos._z);
 	double distance = sqrt(((double)deltaZ * deltaZ + deltaY * deltaY) + (double)deltaX * deltaX);
 	float directionX = deltaX;
 	float directionZ = deltaZ;
@@ -198,7 +198,7 @@ bool Actor::canActorSeePoint(const float *point, float *out) {
 
 	double dot = ((double)forwardX * normalizedX + (double)normalizedZ * (double)forwardZ) + 0.0 * 0.0;
 
-	return dot >= (double)extra->lookCosFov;
+	return dot >= (double)_extra->_lookCosFov;
 }
 
 bool Actor::canActorSeeActor(Actor *other, float *out) {
@@ -208,38 +208,38 @@ bool Actor::canActorSeeActor(Actor *other, float *out) {
 		return false;
 	}
 
-	if (!other->room.resource)
+	if (!other->_room._resource)
 		return false;
 
-	if (!room.resource)
+	if (!_room._resource)
 		return false;
 
-	if (room.resource->name != other->room.resource->name)
+	if (_room._resource->_name != other->_room._resource->_name)
 		return false;
 
-	if ((other->nodeFlags & CNode::kWorldValid) == 0)
+	if ((other->_nodeFlags & CNode::kWorldValid) == 0)
 		other->updateWorldTransform();
 
-	return canActorSeePoint(&other->world.pos.x, out);
+	return canActorSeePoint(&other->_world._pos._x, out);
 }
 
 void Actor::setLookAtJoints(float deltaTime) {
 	CQuaternion slerped;
 	CQuaternion target;
 
-	if (!extra)
+	if (!_extra)
 		return;
 
-	if (extra->lookTargetActorId != 0) {
-		Actor *targetActor = actorDeref(_engine, extra->lookTargetActorId);
+	if (_extra->_lookTargetActorId != 0) {
+		Actor *targetActor = actorDeref(_engine, _extra->_lookTargetActorId);
 
 		if (targetActor) {
-			if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+			if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 				targetActor->updateWorldTransform();
 
-			extra->lookTarget.x = targetActor->world.pos.x;
-			extra->lookTarget.y = targetActor->world.pos.y;
-			extra->lookTarget.z = targetActor->world.pos.z;
+			_extra->_lookTarget._x = targetActor->_world._pos._x;
+			_extra->_lookTarget._y = targetActor->_world._pos._y;
+			_extra->_lookTarget._z = targetActor->_world._pos._z;
 		} else {
 			LConsoleServices *consoleServices = _engine->getConsoleServices();
 
@@ -248,98 +248,98 @@ void Actor::setLookAtJoints(float deltaTime) {
 			else
 				warning("SetLookAtJoints trying to look at deleted actor!!");
 
-			extra->lookTargetActorId = 0;
-			extra->lookAtHasTarget = false;
+			_extra->_lookTargetActorId = 0;
+			_extra->_lookAtHasTarget = false;
 		}
 	}
 
-	CNode *joint = findNode(extra->lookJointName);
+	CNode *joint = findNode(_extra->_lookJointName);
 
 	if (!joint)
 		return;
 
-	if ((joint->nodeFlags & CNode::kQuaternionValid) == 0)
+	if ((joint->_nodeFlags & CNode::kQuaternionValid) == 0)
 		joint->updateLocalQuaternion();
 
-	CQuaternion jointQuat = joint->quat;
-	CVector direction = extra->lookDirection;
+	CQuaternion jointQuat = joint->_quat;
+	CVector direction = _extra->_lookDirection;
 
-	if (extra->lookAtHasTarget) {
+	if (_extra->_lookAtHasTarget) {
 		CVector aim;
-		aim.x = (float)((double)extra->lookOffset.x + extra->lookTarget.x);
-		aim.y = (float)((double)extra->lookOffset.y + extra->lookTarget.y);
-		aim.z = (float)((double)extra->lookOffset.z + extra->lookTarget.z);
+		aim._x = (float)((double)_extra->_lookOffset._x + _extra->_lookTarget._x);
+		aim._y = (float)((double)_extra->_lookOffset._y + _extra->_lookTarget._y);
+		aim._z = (float)((double)_extra->_lookOffset._z + _extra->_lookTarget._z);
 
 		CVector toTarget = aim;
 		joint->worldToLocal(&toTarget);
 
 		CPlane plane;
-		plane.n.x = 0.0f;
-		plane.n.y = 0.0f;
-		plane.n.z = 0.0f;
-		plane.d = 0.0f;
+		plane._n._x = 0.0f;
+		plane._n._y = 0.0f;
+		plane._n._z = 0.0f;
+		plane._d = 0.0f;
 
 		CVector worldLimit;
 
 		for (int i = 0; i < Extra_v2::kNumLookLimits; i++) {
-			localToWorldDirection(&extra->lookLimits[i], &worldLimit);
+			localToWorldDirection(&_extra->_lookLimits[i], &worldLimit);
 
-			if ((joint->nodeFlags & CNode::kWorldValid) == 0)
+			if ((joint->_nodeFlags & CNode::kWorldValid) == 0)
 				joint->updateWorldTransform();
 
-			plane.setFromNormalAndPoint(worldLimit, joint->world.pos);
+			plane.setFromNormalAndPoint(worldLimit, joint->_world._pos);
 
-			if ((joint->nodeFlags & CNode::kWorldValid) == 0)
+			if ((joint->_nodeFlags & CNode::kWorldValid) == 0)
 				joint->updateWorldTransform();
 
-			plane.transformToLocal(&joint->world);
+			plane.transformToLocal(&joint->_world);
 
 			if (plane.classifyPoint(toTarget) == CPlane::kPointBehind)
 				plane.projectPoint(&toTarget);
 		}
 
-		double targetLength = sqrt(((double)toTarget.x * toTarget.x + (double)toTarget.y * toTarget.y) + (double)toTarget.z * toTarget.z);
+		double targetLength = sqrt(((double)toTarget._x * toTarget._x + (double)toTarget._y * toTarget._y) + (double)toTarget._z * toTarget._z);
 
 		if (targetLength >= (double)kLookAtMinLength) {
 			double inverse = 1.0 / targetLength;
 
-			toTarget.x = (float)(inverse * toTarget.x);
-			toTarget.y = (float)(inverse * toTarget.y);
-			toTarget.z = (float)(inverse * toTarget.z);
+			toTarget._x = (float)(inverse * toTarget._x);
+			toTarget._y = (float)(inverse * toTarget._y);
+			toTarget._z = (float)(inverse * toTarget._z);
 		}
 
-		float cosine = (float)(((double)toTarget.z * direction.z + (double)toTarget.y * direction.y) + (double)direction.x * toTarget.x);
+		float cosine = (float)(((double)toTarget._z * direction._z + (double)toTarget._y * direction._y) + (double)direction._x * toTarget._x);
 		CVector cross;
-		cross.x = (float)((double)toTarget.z * direction.y - (double)toTarget.y * direction.z);
-		cross.y = (float)((double)direction.z * toTarget.x - (double)toTarget.z * direction.x);
-		cross.z = (float)((double)toTarget.y * direction.x - (double)direction.y * toTarget.x);
+		cross._x = (float)((double)toTarget._z * direction._y - (double)toTarget._y * direction._z);
+		cross._y = (float)((double)direction._z * toTarget._x - (double)toTarget._z * direction._x);
+		cross._z = (float)((double)toTarget._y * direction._x - (double)direction._y * toTarget._x);
 
 		CVector axis = cross;
-		double crossLength = sqrt(((double)cross.z * cross.z + (double)cross.y * cross.y) + (double)cross.x * cross.x);
+		double crossLength = sqrt(((double)cross._z * cross._z + (double)cross._y * cross._y) + (double)cross._x * cross._x);
 
 		if (crossLength >= (double)kLookAtMinLength) {
 			double inverse = 1.0 / crossLength;
 
-			axis.x = (float)((double)cross.x * inverse);
-			axis.y = (float)((double)axis.y * inverse);
-			axis.z = (float)((double)axis.z * inverse);
+			axis._x = (float)((double)cross._x * inverse);
+			axis._y = (float)((double)axis._y * inverse);
+			axis._z = (float)((double)axis._z * inverse);
 		}
 
 		float angle = (float)acos((double)cosine);
 		CQuaternion rotation(axis, angle);
-		const CQuaternion &goal = extra->lookGoalQuat;
-		float resultW = (float)((((double)rotation.w * goal.w - (double)goal.x * rotation.x) - (double)goal.y * rotation.y) - (double)goal.z * rotation.z);
-		float resultZ = (float)((((double)goal.x * rotation.y + (double)rotation.w * goal.z) + (double)rotation.z * goal.w) - (double)goal.y * rotation.x);
-		float resultY = (float)((((double)goal.z * rotation.x + (double)rotation.w * goal.y) + (double)rotation.y * goal.w) - (double)goal.x * rotation.z);
-		float resultX = (float)((((double)rotation.w * goal.x + (double)goal.y * rotation.z) + (double)rotation.x * goal.w) - (double)goal.z * rotation.y);
+		const CQuaternion &goal = _extra->_lookGoalQuat;
+		float resultW = (float)((((double)rotation._w * goal._w - (double)goal._x * rotation._x) - (double)goal._y * rotation._y) - (double)goal._z * rotation._z);
+		float resultZ = (float)((((double)goal._x * rotation._y + (double)rotation._w * goal._z) + (double)rotation._z * goal._w) - (double)goal._y * rotation._x);
+		float resultY = (float)((((double)goal._z * rotation._x + (double)rotation._w * goal._y) + (double)rotation._y * goal._w) - (double)goal._x * rotation._z);
+		float resultX = (float)((((double)rotation._w * goal._x + (double)goal._y * rotation._z) + (double)rotation._x * goal._w) - (double)goal._z * rotation._y);
 
 		target = CQuaternion(resultX, resultY, resultZ, resultW);
 	} else {
 		target = jointQuat;
 	}
 
-	float step = (float)((double)deltaTime * extra->lookRate);
-	float dot = extra->lookCurQuat.dot(target);
+	float step = (float)((double)deltaTime * _extra->_lookRate);
+	float dot = _extra->_lookCurQuat.dot(target);
 
 	// The disasm clamps the dot product to the open interval
 	if (dot > kLookAtDotLimit)
@@ -353,13 +353,13 @@ void Actor::setLookAtJoints(float deltaTime) {
 	if (span >= (double)step) {
 		float fraction = (float)((double)step / span);
 
-		extra->lookCurQuat.slerp(target, fraction, &slerped);
+		_extra->_lookCurQuat.slerp(target, fraction, &slerped);
 		slerped.normalize();
 		setJointQuaternion(joint, slerped);
-		extra->lookCurQuat = slerped;
+		_extra->_lookCurQuat = slerped;
 	} else {
 		setJointQuaternion(joint, target);
-		extra->lookCurQuat = target;
+		_extra->_lookCurQuat = target;
 	}
 }
 

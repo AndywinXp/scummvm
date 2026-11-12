@@ -32,7 +32,7 @@ public:
 	float rint(float value);
 	float normalizeAngle(float angle);
 	float normalizeAngleAcute(float angle);
-	void sinCos(float angle, float *pSin, float *pCos);
+	void sinCos(float angle, float *sin, float *cos);
 	float tan(float angle);
 	float arcSin2(float value);
 	float sqrtImpl(float value);
@@ -40,8 +40,8 @@ public:
 	float arcTan4(float y, float x);
 
 private:
-	static const float aSinCosTable[4096];
-	static const float aTanTable[4096];
+	static const float kSinCosTable[4096];
+	static const float kTanTable[4096];
 };
 
 } // End of namespace Grim

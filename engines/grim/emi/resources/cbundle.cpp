@@ -54,20 +54,20 @@ void PBundleDirectoryEntry::operator delete(void *block) {
 }
 
 void PBundleDirectoryEntry::reset() {
-	hash = 0;
-	name = nullptr;
-	flags = 0;
-	offset = 0;
-	size = 0;
+	_hash = 0;
+	_name = nullptr;
+	_flags = 0;
+	_offset = 0;
+	_size = 0;
 }
 
 bool PBundleDirectoryEntry::isDirectoryFile() {
-	return (flags & kBundleEntryDirectoryFile) != 0;
+	return (_flags & kBundleEntryDirectoryFile) != 0;
 }
 
 void PBundleDirectoryEntry::fillLookup(LFileServices *services, CBundle *bundle, BundleLookup *lookup) {
-	lookup->name = name;
-	lookup->path = Common::String::format("%s%s", bundle->name.c_str(), name);
+	lookup->name = _name;
+	lookup->path = Common::String::format("%s%s", bundle->_name.c_str(), _name);
 	lookup->file = nullptr;
 
 	if (services)
@@ -85,19 +85,19 @@ PBundleFileEntry::PBundleFileEntry() {
 }
 
 void PBundleFileEntry::fillLookup(LFileServices *services, CBundle *bundle, BundleLookup *lookup) {
-	lookup->name = name;
-	lookup->path = name;
-	lookup->file = bundle->file;
-	lookup->size = size;
+	lookup->name = _name;
+	lookup->path = _name;
+	lookup->file = bundle->_file;
+	lookup->size = _size;
 	lookup->entry = this;
-	lookup->offset = offset;
+	lookup->offset = _offset;
 	lookup->inBundle = true;
 	lookup->bundle = bundle;
 }
 
 CBundle::CBundle(EmiEngine *engine) : _engine(engine) {
-	prev = nullptr;
-	next = nullptr;
+	_prev = nullptr;
+	_next = nullptr;
 	reset();
 }
 
@@ -114,33 +114,33 @@ void CBundle::operator delete(void *block) {
 }
 
 void CBundle::reset() {
-	name.clear();
-	file = nullptr;
-	fileSize = 0;
-	type = 0;
-	numEntries = 0;
-	nameTableSize = 0;
-	entries.clear();
-	nameTable = nullptr;
-	hashIndex = nullptr;
+	_name.clear();
+	_file = nullptr;
+	_fileSize = 0;
+	_type = 0;
+	_numEntries = 0;
+	_nameTableSize = 0;
+	_entries.clear();
+	_nameTable = nullptr;
+	_hashIndex = nullptr;
 }
 
 void CBundle::close() {
-	if (file)
-		_engine->getFileServices()->close(file, true);
+	if (_file)
+		_engine->getFileServices()->close(_file, true);
 
-	for (uint i = 0; i < entries.size(); i++)
-		delete entries[i];
+	for (uint i = 0; i < _entries.size(); i++)
+		delete _entries[i];
 
-	entries.clear();
+	_entries.clear();
 
-	if (nameTable) {
-		_engine->getMemoryServices()->freeImpl(nameTable);
-		nameTable = nullptr;
+	if (_nameTable) {
+		_engine->getMemoryServices()->freeImpl(_nameTable);
+		_nameTable = nullptr;
 	}
 
-	delete hashIndex;
-	hashIndex = nullptr;
+	delete _hashIndex;
+	_hashIndex = nullptr;
 
 	reset();
 }
@@ -175,38 +175,38 @@ bool CBundle::openDirectory(const char *directory) {
 	if (fileNames.empty()) {
 		close();
 
-		return numEntries != 0;
+		return _numEntries != 0;
 	}
 
-	name = directoryName;
-	type = kBundleTypeDirectory;
-	numEntries = fileNames.size();
+	_name = directoryName;
+	_type = kBundleTypeDirectory;
+	_numEntries = fileNames.size();
 
-	nameTable = (char *)_engine->getMemoryServices()->mallocImpl(nameBytes * sizeof(char));
-	if (!nameTable) {
+	_nameTable = (char *)_engine->getMemoryServices()->mallocImpl(nameBytes * sizeof(char));
+	if (!_nameTable) {
 		close();
 
-		return numEntries != 0;
+		return _numEntries != 0;
 	}
 
-	nameTableSize = nameBytes;
+	_nameTableSize = nameBytes;
 
 	int offset = 0;
 
 	for (uint i = 0; i < fileNames.size(); i++) {
 		PBundleDirectoryEntry *entry = new PBundleDirectoryEntry();
 
-		entry->name = &nameTable[offset];
-		entry->hash = hashPath(fileNames[i].c_str(), &nameTable[offset]);
-		entry->flags = kBundleEntryDirectoryFile;
-		entries.push_back(entry);
+		entry->_name = &_nameTable[offset];
+		entry->_hash = hashPath(fileNames[i].c_str(), &_nameTable[offset]);
+		entry->_flags = kBundleEntryDirectoryFile;
+		_entries.push_back(entry);
 
 		offset += fileNames[i].size() + 1;
 	}
 
 	buildHashIndex();
 
-	return numEntries != 0;
+	return _numEntries != 0;
 }
 
 bool CBundle::openBundleFile(const char *fileName) {
@@ -222,13 +222,13 @@ bool CBundle::openBundleFile(const char *fileName) {
 		return false;
 	}
 
-	name = fileName;
-	file = bundleFile;
-	fileSize = _engine->getFileServices()->getSize(fileName);
-	type = kBundleTypeFile;
-	entries.clear();
-	nameTable = nullptr;
-	nameTableSize = 0;
+	_name = fileName;
+	_file = bundleFile;
+	_fileSize = _engine->getFileServices()->getSize(fileName);
+	_type = kBundleTypeFile;
+	_entries.clear();
+	_nameTable = nullptr;
+	_nameTableSize = 0;
 
 	bool success = readHeader();
 
@@ -250,19 +250,19 @@ bool CBundle::readHeader() {
 	char magic[4];
 	uint value;
 
-	if (file->read(magic, 4) != 4 || strncmp(magic, "LABN", 4) != 0) {
+	if (_file->read(magic, 4) != 4 || strncmp(magic, "LABN", 4) != 0) {
 		close();
 
 		return false;
 	}
 
-	if (file->read(&value, 4) != 4 || FROM_LE_32(value) > 0x10000) {
+	if (_file->read(&value, 4) != 4 || FROM_LE_32(value) > 0x10000) {
 		close();
 
 		return false;
 	}
 
-	if (file->read(&value, 4) != 4) {
+	if (_file->read(&value, 4) != 4) {
 		close();
 
 		return false;
@@ -270,7 +270,7 @@ bool CBundle::readHeader() {
 
 	uint numFiles = FROM_LE_32(value);
 
-	if (file->read(&value, 4) != 4) {
+	if (_file->read(&value, 4) != 4) {
 		close();
 
 		return false;
@@ -278,7 +278,7 @@ bool CBundle::readHeader() {
 
 	uint tableSize = FROM_LE_32(value);
 
-	if (file->read(&value, 4) != 4) {
+	if (_file->read(&value, 4) != 4) {
 		close();
 
 		return false;
@@ -287,7 +287,7 @@ bool CBundle::readHeader() {
 	int tableOffset = FROM_LE_32(value) - 81167;
 
 	// Each entry takes 16 bytes of the file
-	if (numFiles > (uint)fileSize / 16) {
+	if (numFiles > (uint)_fileSize / 16) {
 		warning("CBundle::readHeader(): too many entries (%u)", numFiles);
 		close();
 
@@ -295,10 +295,10 @@ bool CBundle::readHeader() {
 	}
 
 	for (uint i = 0; i < numFiles; i++)
-		entries.push_back(new PBundleFileEntry());
+		_entries.push_back(new PBundleFileEntry());
 
-	nameTable = (char *)_engine->getMemoryServices()->mallocImpl(tableSize * sizeof(char));
-	if (!nameTable) {
+	_nameTable = (char *)_engine->getMemoryServices()->mallocImpl(tableSize * sizeof(char));
+	if (!_nameTable) {
 		close();
 
 		return false;
@@ -307,9 +307,9 @@ bool CBundle::readHeader() {
 	Common::Array<char *> names;
 
 	for (uint i = 0; i < numFiles; i++) {
-		PBundleDirectoryEntry *entry = entries[i];
+		PBundleDirectoryEntry *entry = _entries[i];
 
-		if (file->read(&value, 4) != 4) {
+		if (_file->read(&value, 4) != 4) {
 			close();
 
 			return false;
@@ -324,44 +324,44 @@ bool CBundle::readHeader() {
 			return false;
 		}
 
-		entry->name = &nameTable[nameOffset];
-		names.push_back(&nameTable[nameOffset]);
+		entry->_name = &_nameTable[nameOffset];
+		names.push_back(&_nameTable[nameOffset]);
 
-		if (file->read(&value, 4) != 4) {
+		if (_file->read(&value, 4) != 4) {
 			close();
 
 			return false;
 		}
 
-		entry->offset = FROM_LE_32(value);
+		entry->_offset = FROM_LE_32(value);
 
-		if (file->read(&value, 4) != 4) {
+		if (_file->read(&value, 4) != 4) {
 			close();
 
 			return false;
 		}
 
-		entry->size = FROM_LE_32(value);
+		entry->_size = FROM_LE_32(value);
 
-		if (file->read(&value, 4) != 4) {
+		if (_file->read(&value, 4) != 4) {
 			close();
 
 			return false;
 		}
 
-		entry->flags = kBundleEntryBundleFile;
+		entry->_flags = kBundleEntryBundleFile;
 	}
 
-	file->seek(tableOffset, 0);
+	_file->seek(tableOffset, 0);
 
-	if (file->read(nameTable, tableSize) != tableSize) {
+	if (_file->read(_nameTable, tableSize) != tableSize) {
 		close();
 
 		return false;
 	}
 
 	for (uint i = 0; i < numFiles; i++) {
-		if (!memchr(names[i], 0, nameTable + tableSize - names[i])) {
+		if (!memchr(names[i], 0, _nameTable + tableSize - names[i])) {
 			warning("CBundle::readHeader(): name without terminator");
 			close();
 
@@ -369,23 +369,23 @@ bool CBundle::readHeader() {
 		}
 
 		decodeName(names[i]);
-		entries[i]->hash = hashPath(names[i], names[i]);
+		_entries[i]->_hash = hashPath(names[i], names[i]);
 	}
 
 	return true;
 }
 
 void CBundle::buildHashIndex() {
-	if (!hashIndex)
-		hashIndex = new BundleHashIndex();
+	if (!_hashIndex)
+		_hashIndex = new BundleHashIndex();
 
-	for (uint i = 0; i < entries.size(); i++) {
-		PBundleDirectoryEntry *entry = entries[i];
+	for (uint i = 0; i < _entries.size(); i++) {
+		PBundleDirectoryEntry *entry = _entries[i];
 
-		if (!entry->hash || !entry->name)
+		if (!entry->_hash || !entry->_name)
 			break;
 
-		(*hashIndex)[entry->hash].push_back(entry);
+		(*_hashIndex)[entry->_hash].push_back(entry);
 	}
 }
 
@@ -393,13 +393,13 @@ bool CBundle::findBundleEntry(LFileServices *services, const char *normalizedNam
 	if (findHashedEntry(services, normalizedName, hash, lookup))
 		return true;
 
-	for (uint i = 0; i < entries.size(); i++) {
-		PBundleDirectoryEntry *entry = entries[i];
+	for (uint i = 0; i < _entries.size(); i++) {
+		PBundleDirectoryEntry *entry = _entries[i];
 
-		if (!entry->name)
+		if (!entry->_name)
 			return false;
 
-		if (scumm_stricmp(entry->name, normalizedName) == 0) {
+		if (scumm_stricmp(entry->_name, normalizedName) == 0) {
 			entry->fillLookup(services, this, lookup);
 
 			return true;
@@ -414,15 +414,15 @@ bool CBundle::findDirectoryEntry(LFileServices *services, const char *normalized
 }
 
 bool CBundle::findHashedEntry(LFileServices *services, const char *normalizedName, uint hash, BundleLookup *lookup) {
-	if (!hashIndex || !hashIndex->contains(hash))
+	if (!_hashIndex || !_hashIndex->contains(hash))
 		return false;
 
-	Common::Array<PBundleDirectoryEntry *> &bucket = (*hashIndex)[hash];
+	Common::Array<PBundleDirectoryEntry *> &bucket = (*_hashIndex)[hash];
 
 	for (uint i = 0; i < bucket.size(); i++) {
 		PBundleDirectoryEntry *entry = bucket[i];
 
-		if (entry->name && scumm_stricmp(entry->name, normalizedName) == 0) {
+		if (entry->_name && scumm_stricmp(entry->_name, normalizedName) == 0) {
 			entry->fillLookup(services, this, lookup);
 
 			return true;
@@ -438,59 +438,59 @@ LBundleFile::LBundleFile(EmiEngine *engine) : LFile(engine) {
 
 LBundleFile::~LBundleFile() {
 	// The stream of a member of a bundle belongs to the bundle
-	if (!unbuffered)
-		readStream = nullptr;
+	if (!_unbuffered)
+		_readStream = nullptr;
 }
 
 void LBundleFile::reset() {
 	LFile::reset();
 
-	filePos = 0;
-	bufPos = 0;
-	bufAvail = 0;
-	memberSize = 0;
-	baseOffset = 0;
-	atEnd = false;
-	unbuffered = false;
-	bufCapacity = 0;
-	openMode[0] = 0;
-	cache[0] = 0;
+	_filePos = 0;
+	_bufPos = 0;
+	_bufAvail = 0;
+	_memberSize = 0;
+	_baseOffset = 0;
+	_atEnd = false;
+	_unbuffered = false;
+	_bufCapacity = 0;
+	_openMode[0] = 0;
+	_cache[0] = 0;
 }
 
 uint LBundleFile::read(void *dest, uint count) {
 	if (!isOpen())
 		return 0;
 
-	if (unbuffered || memData)
+	if (_unbuffered || _memData)
 		return LFile::read(dest, count);
 
-	if (count < bufCapacity && count > bufAvail)
+	if (count < _bufCapacity && count > _bufAvail)
 		fillBuffer();
 
-	if (count > bufAvail) {
-		uint available = bufAvail;
+	if (count > _bufAvail) {
+		uint available = _bufAvail;
 
 		if (available)
-			memcpy(dest, &cache[bufPos], available);
+			memcpy(dest, &_cache[_bufPos], available);
 
-		filePos += available;
-		bufPos += available;
-		bufAvail = 0;
+		_filePos += available;
+		_bufPos += available;
+		_bufAvail = 0;
 
-		uint readBytes = readAt((byte *)dest + available, filePos, count - available);
+		uint readBytes = readAt((byte *)dest + available, _filePos, count - available);
 
-		filePos += readBytes;
-		atEnd = filePos >= memberSize;
+		_filePos += readBytes;
+		_atEnd = _filePos >= _memberSize;
 
 		return available + readBytes;
 	}
 
-	memcpy(dest, &cache[bufPos], count);
+	memcpy(dest, &_cache[_bufPos], count);
 
-	filePos += count;
-	bufPos += count;
-	bufAvail -= count;
-	atEnd = filePos >= memberSize;
+	_filePos += count;
+	_bufPos += count;
+	_bufAvail -= count;
+	_atEnd = _filePos >= _memberSize;
 
 	return count;
 }
@@ -503,7 +503,7 @@ char *LBundleFile::readLine(char *dest, int maxCount) {
 	if (!isOpen())
 		return nullptr;
 
-	if (unbuffered || memData)
+	if (_unbuffered || _memData)
 		return LFile::readLine(dest, maxCount);
 
 	if (maxCount <= 0) {
@@ -514,14 +514,14 @@ char *LBundleFile::readLine(char *dest, int maxCount) {
 
 	int limit = maxCount;
 
-	if (bufAvail < (uint)maxCount)
+	if (_bufAvail < (uint)maxCount)
 		fillBuffer();
 
-	if (bufAvail < (uint)maxCount)
-		limit = bufAvail + 1;
+	if (_bufAvail < (uint)maxCount)
+		limit = _bufAvail + 1;
 
 	int remaining = limit - 1;
-	const byte *src = &cache[bufPos];
+	const byte *src = &_cache[_bufPos];
 	bool full = remaining == 0;
 
 	if (remaining > 0) {
@@ -548,23 +548,23 @@ char *LBundleFile::readLine(char *dest, int maxCount) {
 	*out = 0;
 
 	if (character == 13) {
-		if (bufPos + consumed >= kBundleFileBufferSize)
+		if (_bufPos + consumed >= kBundleFileBufferSize)
 			warning("LBundleFile::readLine(): line ends at the end of the buffer");
 		else if (*src == 10)
 			consumed++;
 	}
 
-	filePos += consumed;
-	bufPos += consumed;
-	bufAvail -= consumed;
+	_filePos += consumed;
+	_bufPos += consumed;
+	_bufAvail -= consumed;
 
-	if (filePos < memberSize) {
-		atEnd = false;
+	if (_filePos < _memberSize) {
+		_atEnd = false;
 
 		return dest;
 	}
 
-	atEnd = true;
+	_atEnd = true;
 
 	return nullptr;
 }
@@ -573,20 +573,20 @@ int LBundleFile::eof() {
 	if (!isOpen())
 		return 1;
 
-	if (unbuffered || memData)
+	if (_unbuffered || _memData)
 		return LFile::eof();
 
-	return atEnd;
+	return _atEnd;
 }
 
 int LBundleFile::tell() {
 	if (!isOpen())
 		return -1;
 
-	if (unbuffered || memData)
+	if (_unbuffered || _memData)
 		return LFile::tell();
 
-	return filePos;
+	return _filePos;
 }
 
 int LBundleFile::seek(int offset, int whence) {
@@ -595,38 +595,38 @@ int LBundleFile::seek(int offset, int whence) {
 	if (!isOpen())
 		return 0;
 
-	if (unbuffered || memData)
+	if (_unbuffered || _memData)
 		return LFile::seek(offset, whence);
 
 	if (whence == 0)
 		position = offset;
 	else if (whence == 1)
-		position = filePos + offset;
+		position = _filePos + offset;
 	else if (whence == 2)
-		position = memberSize + offset;
+		position = _memberSize + offset;
 	else
 		return 0;
 
-	int bufferStart = filePos - bufPos;
-	int bufferEnd = filePos + bufAvail;
+	int bufferStart = _filePos - _bufPos;
+	int bufferEnd = _filePos + _bufAvail;
 
 	if (position < bufferStart || position >= bufferEnd - 1) {
-		bufAvail = 0;
-		bufPos = 0;
-		filePos = position;
+		_bufAvail = 0;
+		_bufPos = 0;
+		_filePos = position;
 
 		return 1;
 	}
 
-	filePos = position;
-	bufPos = position - bufferStart;
-	bufAvail = bufferEnd - position;
+	_filePos = position;
+	_bufPos = position - bufferStart;
+	_bufAvail = bufferEnd - position;
 
 	return 1;
 }
 
 int LBundleFile::writeFormat(const char *format, ...) {
-	if (!isOpen() || !unbuffered)
+	if (!isOpen() || !_unbuffered)
 		return 0;
 
 	va_list args;
@@ -638,13 +638,13 @@ int LBundleFile::writeFormat(const char *format, ...) {
 }
 
 uint LBundleFile::loadAll() {
-	if (memData)
+	if (_memData)
 		return 0;
 
-	if (unbuffered)
+	if (_unbuffered)
 		return LFile::loadAll();
 
-	uint allocSize = memberSize + 1;
+	uint allocSize = _memberSize + 1;
 
 	char *data = (char *)_engine->getMemoryServices()->mallocImpl(allocSize * sizeof(char));
 	if (!data) {
@@ -653,39 +653,39 @@ uint LBundleFile::loadAll() {
 		return 0;
 	}
 
-	memSize = readAt(data, 0, memberSize);
-	memData = data;
-	memCursor = data;
+	_memSize = readAt(data, 0, _memberSize);
+	_memData = data;
+	_memCursor = data;
 	data[allocSize - 1] = 0;
 
-	return memSize;
+	return _memSize;
 }
 
 const char *LBundleFile::getName() {
-	return name.c_str();
+	return _name.c_str();
 }
 
 uint LBundleFile::writeChecked(const void *src, uint count) {
-	if (isOpen() && unbuffered)
+	if (isOpen() && _unbuffered)
 		return LFile::write(src, count);
 
 	return 0;
 }
 
 void LBundleFile::fillBuffer() {
-	uint capacity = bufCapacity;
-	byte *dest = cache;
+	uint capacity = _bufCapacity;
+	byte *dest = _cache;
 
-	if (bufAvail) {
-		memmove(cache, &cache[bufPos], bufAvail);
-		capacity -= bufAvail;
-		dest += bufAvail;
+	if (_bufAvail) {
+		memmove(_cache, &_cache[_bufPos], _bufAvail);
+		capacity -= _bufAvail;
+		dest += _bufAvail;
 	}
 
-	uint readBytes = readAt(dest, bufAvail + filePos, capacity);
+	uint readBytes = readAt(dest, _bufAvail + _filePos, capacity);
 
-	bufPos = 0;
-	bufAvail += readBytes;
+	_bufPos = 0;
+	_bufAvail += readBytes;
 }
 
 uint LBundleFile::readAt(void *dest, int position, uint count) {
@@ -695,48 +695,48 @@ uint LBundleFile::readAt(void *dest, int position, uint count) {
 		return 0;
 	}
 
-	if (position >= memberSize)
+	if (position >= _memberSize)
 		return 0;
 
 	uint toRead = count;
 
-	if ((int)(position + count) > memberSize)
-		toRead = memberSize - position;
+	if ((int)(position + count) > _memberSize)
+		toRead = _memberSize - position;
 
-	LFile::seek(position + baseOffset, 0);
+	LFile::seek(position + _baseOffset, 0);
 
 	return LFile::read(dest, toRead);
 }
 
 CBundleServices::CBundleServices(EmiEngine *engine, LFileServices *innerServices) : LFileServices(engine), _currentIsland("unknown") {
-	numBundles = 0;
-	head = nullptr;
-	tail = nullptr;
-	logFile = nullptr;
-	inner = innerServices;
+	_numBundles = 0;
+	_head = nullptr;
+	_tail = nullptr;
+	_logFile = nullptr;
+	_inner = innerServices;
 
 	for (uint i = 0; i < kBundleMaxOpenFiles; i++)
-		files[i] = new LBundleFile(engine);
+		_files[i] = new LBundleFile(engine);
 
 	if (!_engine->getBundleServices())
 		_engine->setBundleServices(this);
 }
 
 CBundleServices::~CBundleServices() {
-	while (numBundles) {
-		CBundle *bundle = head;
-		CBundle *nextBundle = bundle->next;
+	while (_numBundles) {
+		CBundle *bundle = _head;
+		CBundle *nextBundle = bundle->_next;
 
-		head = nextBundle;
+		_head = nextBundle;
 
 		if (nextBundle)
-			nextBundle->prev = nullptr;
+			nextBundle->_prev = nullptr;
 		else
-			tail = nullptr;
+			_tail = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
-		numBundles--;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
+		_numBundles--;
 
 		delete bundle;
 	}
@@ -744,8 +744,8 @@ CBundleServices::~CBundleServices() {
 	closeLog();
 
 	for (uint i = 0; i < kBundleMaxOpenFiles; i++) {
-		delete files[i];
-		files[i] = nullptr;
+		delete _files[i];
+		_files[i] = nullptr;
 	}
 
 	if (_engine->getBundleServices() == this)
@@ -756,7 +756,7 @@ LFile *CBundleServices::open(const char *path, const char *mode) {
 	uint index = 0;
 
 	while (index < kBundleMaxOpenFiles) {
-		if (!files[index]->isOpen())
+		if (!_files[index]->isOpen())
 			break;
 
 		index++;
@@ -773,78 +773,78 @@ LFile *CBundleServices::open(const char *path, const char *mode) {
 		return nullptr;
 	}
 
-	LBundleFile *slot = files[index];
+	LBundleFile *slot = _files[index];
 
 	slot->reset();
-	slot->bufCapacity = kBundleFileBufferSize;
+	slot->_bufCapacity = kBundleFileBufferSize;
 
-	if (strlen(mode) >= sizeof(slot->openMode))
+	if (strlen(mode) >= sizeof(slot->_openMode))
 		warning("CBundleServices::open(): mode too long");
 
-	Common::strlcpy(slot->openMode, mode, sizeof(slot->openMode));
+	Common::strlcpy(slot->_openMode, mode, sizeof(slot->_openMode));
 
 	if (*mode == 'r' || *mode == 'R') {
 		BundleLookup result;
 
 		if (findFile(path, &result)) {
 			if (result.inBundle) {
-				slot->readStream = result.file->readStream;
-				slot->unbuffered = false;
-				slot->fileName = path;
-				slot->name.clear();
+				slot->_readStream = result.file->_readStream;
+				slot->_unbuffered = false;
+				slot->_fileName = path;
+				slot->_name.clear();
 			} else {
-				inner->openInto(slot, result.path.c_str(), mode);
-				slot->name = result.path;
-				slot->unbuffered = true;
+				_inner->openInto(slot, result.path.c_str(), mode);
+				slot->_name = result.path;
+				slot->_unbuffered = true;
 
-				int separator = (int)slot->name.findLastOf('\\');
+				int separator = (int)slot->_name.findLastOf('\\');
 				if (separator > 0)
-					slot->name = slot->name.substr(0, separator + 1);
+					slot->_name = slot->_name.substr(0, separator + 1);
 
 				if ((int)(result.path.size() - result.name.size()) < 0)
-					slot->name.clear();
+					slot->_name.clear();
 			}
 
-			slot->memberSize = result.size;
-			slot->baseOffset = result.offset;
+			slot->_memberSize = result.size;
+			slot->_baseOffset = result.offset;
 
-			if (slot->name.size()) {
-				if (logFile)
-					logFile->writeFormat("%s%s\n", slot->name.c_str(), path);
-			} else if (logFile) {
-				logFile->writeFormat("%s\n", path);
+			if (slot->_name.size()) {
+				if (_logFile)
+					_logFile->writeFormat("%s%s\n", slot->_name.c_str(), path);
+			} else if (_logFile) {
+				_logFile->writeFormat("%s\n", path);
 			}
 
 			return slot;
 		}
 	}
 
-	inner->openInto(slot, path, mode);
+	_inner->openInto(slot, path, mode);
 
 	if (!slot->isOpen()) {
 		_engine->getPathingFileServices()->suspendCdPath();
-		inner->openInto(slot, path, mode);
+		_inner->openInto(slot, path, mode);
 		_engine->getPathingFileServices()->resumeCdPath();
 
 		if (!slot->isOpen())
 			return nullptr;
 	}
 
-	slot->unbuffered = true;
+	slot->_unbuffered = true;
 
 	if (*mode == 'w') {
-		CBundle *bundle = head;
+		CBundle *bundle = _head;
 
 		while (bundle) {
-			if (slot->name == bundle->name) {
-				Common::String directory = bundle->name;
+			if (slot->_name == bundle->_name) {
+				Common::String directory = bundle->_name;
 
 				bundle->openDirectory(directory.c_str());
 
 				break;
 			}
 
-			bundle = bundle->next;
+			bundle = bundle->_next;
 		}
 	}
 
@@ -861,7 +861,7 @@ bool CBundleServices::exists(const char *path) {
 	if (lookup(pathString))
 		return true;
 
-	return inner->exists(path);
+	return _inner->exists(path);
 }
 
 int CBundleServices::getModTime(const char *path) {
@@ -870,22 +870,22 @@ int CBundleServices::getModTime(const char *path) {
 	if (lookup(pathString))
 		return 0;
 
-	return inner->getModTime(path);
+	return _inner->getModTime(path);
 }
 
 void CBundleServices::close(LFile *file, bool destroy) {
 	LBundleFile *slot = nullptr;
 
 	for (uint i = 0; i < kBundleMaxOpenFiles; i++) {
-		if (file == files[i]) {
-			slot = files[i];
+		if (file == _files[i]) {
+			slot = _files[i];
 
 			break;
 		}
 	}
 
 	if (!slot) {
-		inner->close(file, destroy);
+		_inner->close(file, destroy);
 
 		return;
 	}
@@ -893,14 +893,14 @@ void CBundleServices::close(LFile *file, bool destroy) {
 	if (!slot->isOpen())
 		return;
 
-	if (slot->unbuffered)
-		inner->close(slot, false);
+	if (slot->_unbuffered)
+		_inner->close(slot, false);
 
-	if (slot->memData) {
-		_engine->getMemoryServices()->freeImpl(slot->memData);
-		slot->memData = nullptr;
-		slot->memCursor = nullptr;
-		slot->memSize = 0;
+	if (slot->_memData) {
+		_engine->getMemoryServices()->freeImpl(slot->_memData);
+		slot->_memData = nullptr;
+		slot->_memCursor = nullptr;
+		slot->_memSize = 0;
 	}
 
 	slot->reset();
@@ -912,7 +912,7 @@ int CBundleServices::getSize(const char *path) {
 	if (findFile(path, &result))
 		return result.size;
 
-	return inner->getSize(path);
+	return _inner->getSize(path);
 }
 
 bool CBundleServices::resolvePath(LString &outPath, const char *name) {
@@ -924,7 +924,7 @@ bool CBundleServices::resolvePath(LString &outPath, const char *name) {
 		return true;
 	}
 
-	return inner->resolvePath(outPath, name);
+	return _inner->resolvePath(outPath, name);
 }
 
 CBundle *CBundleServices::openBundle(const char *name) {
@@ -939,18 +939,18 @@ CBundle *CBundleServices::openBundle(const char *name) {
 	if (!*name || name[strlen(name) - 1] == '\\') {
 		success = bundle->openDirectory(name);
 
-		if (logFile)
-			logFile->writeFormat("Opening Directory: %s\t-", name);
+		if (_logFile)
+			_logFile->writeFormat("Opening Directory: %s\t-", name);
 	} else {
 		success = bundle->openBundleFile(name);
 
-		if (logFile)
-			logFile->writeFormat("Opening Bundle: %s\t-", name);
+		if (_logFile)
+			_logFile->writeFormat("Opening Bundle: %s\t-", name);
 	}
 
 	if (success) {
-		if (logFile)
-			logFile->writeFormat("SUCCESS\n");
+		if (_logFile)
+			_logFile->writeFormat("SUCCESS\n");
 
 		return bundle;
 	}
@@ -958,8 +958,8 @@ CBundle *CBundleServices::openBundle(const char *name) {
 	bundle->close();
 	removeBundle(bundle);
 
-	if (logFile)
-		logFile->writeFormat("FAILED\n");
+	if (_logFile)
+		_logFile->writeFormat("FAILED\n");
 
 	return nullptr;
 }
@@ -969,11 +969,11 @@ void CBundleServices::closeBundle(const char *name) {
 	if (!bundle)
 		return;
 
-	if (bundle->type & kBundleTypeFile) {
-		close(bundle->file, true);
+	if (bundle->_type & kBundleTypeFile) {
+		close(bundle->_file, true);
 
 		// The disasm closes the file twice here, let's avoid that...
-		bundle->file = nullptr;
+		bundle->_file = nullptr;
 	}
 
 	removeBundle(bundle);
@@ -986,61 +986,61 @@ bool CBundleServices::moveBundleToFront(const char *name) {
 
 	bool linked = true;
 
-	if (bundle == head) {
-		CBundle *nextBundle = head->next;
+	if (bundle == _head) {
+		CBundle *nextBundle = _head->_next;
 
-		head = nextBundle;
+		_head = nextBundle;
 
 		if (nextBundle)
-			nextBundle->prev = nullptr;
+			nextBundle->_prev = nullptr;
 		else
-			tail = nullptr;
+			_tail = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
-	} else if (bundle == tail) {
-		CBundle *prevBundle = tail->prev;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
+	} else if (bundle == _tail) {
+		CBundle *prevBundle = _tail->_prev;
 
-		tail = prevBundle;
+		_tail = prevBundle;
 
 		if (!prevBundle)
-			head = nullptr;
+			_head = nullptr;
 		else
-			prevBundle->next = nullptr;
+			prevBundle->_next = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
 	} else {
-		CBundle *nextBundle = bundle->next;
+		CBundle *nextBundle = bundle->_next;
 
-		if (!nextBundle && !bundle->prev) {
+		if (!nextBundle && !bundle->_prev) {
 			linked = false;
 		} else {
-			nextBundle->prev = bundle->prev;
-			bundle->prev->next = bundle->next;
+			nextBundle->_prev = bundle->_prev;
+			bundle->_prev->_next = bundle->_next;
 		}
 	}
 
 	if (linked) {
-		numBundles--;
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
+		_numBundles--;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
 	}
 
-	if (head)
-		head->prev = bundle;
+	if (_head)
+		_head->_prev = bundle;
 
-	bundle->prev = nullptr;
-	bundle->next = head;
+	bundle->_prev = nullptr;
+	bundle->_next = _head;
 
-	CBundle *oldTail = tail;
+	CBundle *oldTail = _tail;
 
-	head = bundle;
+	_head = bundle;
 
 	if (!oldTail)
-		tail = bundle;
+		_tail = bundle;
 
-	numBundles++;
+	_numBundles++;
 
 	return true;
 }
@@ -1055,7 +1055,7 @@ bool CBundleServices::findFile(const char *path, BundleLookup *result) {
 	char normalized[260];
 	bool found = false;
 
-	if (!numBundles)
+	if (!_numBundles)
 		return false;
 
 	if (strlen(path) >= sizeof(normalized)) {
@@ -1065,28 +1065,28 @@ bool CBundleServices::findFile(const char *path, BundleLookup *result) {
 	}
 
 	uint hash = CBundle::hashPath(path, normalized);
-	CBundle *bundle = head;
+	CBundle *bundle = _head;
 
 	while (bundle && !found) {
-		if (bundle->type & kBundleTypeFile)
-			found = bundle->findBundleEntry(inner, normalized, hash, result);
+		if (bundle->_type & kBundleTypeFile)
+			found = bundle->findBundleEntry(_inner, normalized, hash, result);
 		else
-			found = bundle->findDirectoryEntry(inner, normalized, hash, result);
+			found = bundle->findDirectoryEntry(_inner, normalized, hash, result);
 
-		bundle = bundle->next;
+		bundle = bundle->_next;
 	}
 
 	return found;
 }
 
 CBundle *CBundleServices::findBundle(const char *name) {
-	CBundle *bundle = head;
+	CBundle *bundle = _head;
 
 	while (bundle) {
-		if (bundle->name == name)
+		if (bundle->_name == name)
 			return bundle;
 
-		bundle = bundle->next;
+		bundle = bundle->_next;
 	}
 
 	return nullptr;
@@ -1095,20 +1095,20 @@ CBundle *CBundleServices::findBundle(const char *name) {
 CBundle *CBundleServices::newBundle() {
 	CBundle *bundle = new CBundle(_engine);
 
-	if (head)
-		head->prev = bundle;
+	if (_head)
+		_head->_prev = bundle;
 
-	bundle->prev = nullptr;
-	bundle->next = head;
+	bundle->_prev = nullptr;
+	bundle->_next = _head;
 
-	CBundle *oldTail = tail;
+	CBundle *oldTail = _tail;
 
-	head = bundle;
+	_head = bundle;
 
 	if (!oldTail)
-		tail = bundle;
+		_tail = bundle;
 
-	numBundles++;
+	_numBundles++;
 
 	return bundle;
 }
@@ -1116,45 +1116,45 @@ CBundle *CBundleServices::newBundle() {
 void CBundleServices::removeBundle(CBundle *bundle) {
 	bool linked = true;
 
-	if (bundle == head) {
-		CBundle *nextBundle = head->next;
+	if (bundle == _head) {
+		CBundle *nextBundle = _head->_next;
 
-		head = nextBundle;
+		_head = nextBundle;
 
 		if (nextBundle)
-			nextBundle->prev = nullptr;
+			nextBundle->_prev = nullptr;
 		else
-			tail = nullptr;
+			_tail = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
-	} else if (bundle == tail) {
-		CBundle *prevBundle = tail->prev;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
+	} else if (bundle == _tail) {
+		CBundle *prevBundle = _tail->_prev;
 
-		tail = prevBundle;
+		_tail = prevBundle;
 
 		if (!prevBundle)
-			head = nullptr;
+			_head = nullptr;
 		else
-			prevBundle->next = nullptr;
+			prevBundle->_next = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
 	} else {
-		CBundle *nextBundle = bundle->next;
+		CBundle *nextBundle = bundle->_next;
 
-		if (!nextBundle && !bundle->prev) {
+		if (!nextBundle && !bundle->_prev) {
 			linked = false;
 		} else {
-			nextBundle->prev = bundle->prev;
-			bundle->prev->next = bundle->next;
+			nextBundle->_prev = bundle->_prev;
+			bundle->_prev->_next = bundle->_next;
 		}
 	}
 
 	if (linked) {
-		numBundles--;
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
+		_numBundles--;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
 	}
 
 	bundle->close();
@@ -1162,10 +1162,10 @@ void CBundleServices::removeBundle(CBundle *bundle) {
 }
 
 void CBundleServices::closeLog() {
-	if (logFile)
-		inner->close(logFile, true);
+	if (_logFile)
+		_inner->close(_logFile, true);
 
-	logFile = nullptr;
+	_logFile = nullptr;
 }
 
 bool CBundleServices::openLocalBundles() {
@@ -1190,20 +1190,20 @@ bool CBundleServices::openCommonBundles() {
 }
 
 bool CBundleServices::resetBundles() {
-	while (numBundles) {
-		CBundle *bundle = head;
-		CBundle *nextBundle = bundle->next;
+	while (_numBundles) {
+		CBundle *bundle = _head;
+		CBundle *nextBundle = bundle->_next;
 
-		head = nextBundle;
+		_head = nextBundle;
 
 		if (nextBundle)
-			nextBundle->prev = nullptr;
+			nextBundle->_prev = nullptr;
 		else
-			tail = nullptr;
+			_tail = nullptr;
 
-		bundle->prev = nullptr;
-		bundle->next = nullptr;
-		numBundles--;
+		bundle->_prev = nullptr;
+		bundle->_next = nullptr;
+		_numBundles--;
 
 		delete bundle;
 	}

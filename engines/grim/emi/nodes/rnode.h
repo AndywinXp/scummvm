@@ -53,9 +53,9 @@ public:
 	int findPrimitiveInstance(RPrimitiveInstance *instance);
 	void removePrimitiveInstance(int index);
 
-	Common::Array<RPrimitiveInstance *> instances;
-	int lastFrame;
-	uint drawFlags;
+	Common::Array<RPrimitiveInstance *> _instances;
+	int _lastFrame;
+	uint _drawFlags;
 };
 
 } // End of namespace Grim

@@ -49,8 +49,8 @@ public:
 	virtual void setName(const char *newName);
 	virtual bool loadFile(const char *path);
 
-	LColorFormat colorFormat;
-	LString bitmapName;
+	LColorFormat _colorFormat;
+	LString _bitmapName;
 
 protected:
 	~LBitmap();

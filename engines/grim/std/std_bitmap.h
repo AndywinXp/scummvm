@@ -44,17 +44,17 @@ class StdPic;
 class SysStruct;
 
 struct StdBitmapStruct {
-	char aName[32];
+	char name[32];
 	int encoding;
 	uint flags;
 	StdColorFormat format;
-	byte *pPalette;
+	byte *palette;
 	uint numFrames;
 	int curFrame;
 	int xPos;
 	int yPos;
 	int colorKey;
-	StdVBuffer **apFrames;
+	StdVBuffer **frames;
 };
 
 struct StdBitmapFileHeader {
@@ -72,7 +72,7 @@ struct StdBitmapFileHeader {
 
 class StdBitmap {
 public:
-	StdBitmap(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *pHS);
+	StdBitmap(StdDisplay *stdDisplay, StdFile *stdFile, SysStruct *hs);
 
 	void setImageFormats(StdLbm *stdLbm, StdPcx *stdPcx, StdGif *stdGif, StdPic *stdPic, StdBmp *stdBmp) {
 		_stdLbm = stdLbm;
@@ -82,37 +82,37 @@ public:
 		_stdBmp = stdBmp;
 	}
 
-	StdBitmapStruct *zbmLoad(const char *path, int bVideoMemory, int bNoZ);
-	int readData(const char *fileName, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ);
-	int loadBitmapData(Common::SeekableReadStream *pFile, StdBitmapStruct *pBitmap, int bVideoMemory, int bNoZ);
-	void unloadBitmap(StdBitmapStruct *&pBitmap);
-	void freeEntry(StdBitmapStruct *pBitmap);
-	int appendToFile(Common::WriteStream *pStream, StdBitmapStruct *pBitmap);
-	int write(const char *path, StdBitmapStruct *pBitmap);
-	void convertColorFormat(StdColorFormat *pFormat, StdBitmapStruct *pBitmap);
-	StdBitmapStruct *vBufferToBitmap(StdVBuffer *pSrc, int bVideoMemory, int bNoZ);
-	int prepareBitmaps(StdBitmapStruct *pBitmap, int numFrames, byte *pPalette, int encoding, uint flags, const StdColorFormat *pFormat);
-	void addFrame(StdBitmapStruct *pBitmap, int index, StdVBuffer *pFrame);
-	int memUsage(StdBitmapStruct *pBitmap);
-	void deCompress(StdBitmapStruct *pBitmap);
-	void applyGamma(byte *pDst, const byte *pSrc, int count, double gamma);
-	int buildPaletteOpaque(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat);
-	int buildPaletteAlpha(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat);
-	int buildPaletteColorKey(const byte *pPalette, uint16 *pTable, const StdColorFormat *pFormat, byte alpha);
-	void convertPixelRow(byte *pDst, StdColorFormat *pDstFormat, const byte *pSrc, StdColorFormat *pSrcFormat, int width);
-	int convertColor(StdColorFormat *pDstFormat, int color, StdColorFormat *pSrcFormat);
+	StdBitmapStruct *zbmLoad(const char *path, int videoMemory, int noZ);
+	int readData(const char *fileName, StdBitmapStruct *bitmap, int videoMemory, int noZ);
+	int loadBitmapData(Common::SeekableReadStream *file, StdBitmapStruct *bitmap, int videoMemory, int noZ);
+	void unloadBitmap(StdBitmapStruct *&bitmap);
+	void freeEntry(StdBitmapStruct *bitmap);
+	int appendToFile(Common::WriteStream *stream, StdBitmapStruct *bitmap);
+	int write(const char *path, StdBitmapStruct *bitmap);
+	void convertColorFormat(StdColorFormat *format, StdBitmapStruct *bitmap);
+	StdBitmapStruct *vBufferToBitmap(StdVBuffer *src, int videoMemory, int noZ);
+	int prepareBitmaps(StdBitmapStruct *bitmap, int numFrames, byte *palette, int encoding, uint flags, const StdColorFormat *format);
+	void addFrame(StdBitmapStruct *bitmap, int index, StdVBuffer *frame);
+	int memUsage(StdBitmapStruct *bitmap);
+	void deCompress(StdBitmapStruct *bitmap);
+	void applyGamma(byte *dst, const byte *src, int count, double gamma);
+	int buildPaletteOpaque(const byte *palette, uint16 *table, const StdColorFormat *format);
+	int buildPaletteAlpha(const byte *palette, uint16 *table, const StdColorFormat *format);
+	int buildPaletteColorKey(const byte *palette, uint16 *table, const StdColorFormat *format, byte alpha);
+	void convertPixelRow(byte *dst, StdColorFormat *dstFormat, const byte *src, StdColorFormat *srcFormat, int width);
+	int convertColor(StdColorFormat *dstFormat, int color, StdColorFormat *srcFormat);
 
-	StdBitmapStruct *loadImage(Common::String &path, int bVideoMemory, int bNoZ);
-	StdBitmapStruct *loadLbm(Common::String &path, int bVideoMemory, int bNoZ);
-	int loadLbm2(Common::String &path, StdBitmapStruct *pBitmap);
+	StdBitmapStruct *loadImage(Common::String &path, int videoMemory, int noZ);
+	StdBitmapStruct *loadLbm(Common::String &path, int videoMemory, int noZ);
+	int loadLbm2(Common::String &path, StdBitmapStruct *bitmap);
 
 private:
-	void readColorFormat(Common::ReadStream *pStream, StdColorFormat *pFormat);
-	void writeColorFormat(Common::WriteStream *pStream, const StdColorFormat *pFormat);
+	void readColorFormat(Common::ReadStream *stream, StdColorFormat *format);
+	void writeColorFormat(Common::WriteStream *stream, const StdColorFormat *format);
 
 	StdDisplay *_stdDisplay;
 	StdFile *_stdFile;
-	SysStruct *_pHS;
+	SysStruct *_hs;
 	StdLbm *_stdLbm;
 	StdPcx *_stdPcx;
 	StdGif *_stdGif;

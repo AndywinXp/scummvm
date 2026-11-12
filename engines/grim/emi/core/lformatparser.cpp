@@ -46,16 +46,16 @@ void KeywordInfo::set(const char *keywordName, int keywordId, int keywordArgMask
 
 LFormatParser::LFormatParser(EmiEngine *engine) {
 	_engine = engine;
-	file = nullptr;
-	reading = true;
-	binaryData = false;
-	lineBuffer[0] = 0;
+	_file = nullptr;
+	_reading = true;
+	_binaryData = false;
+	_lineBuffer[0] = 0;
 }
 
 LFormatParser::~LFormatParser() {
-	while (!fileStack.empty()) {
-		file = fileStack.back();
-		fileStack.pop_back();
+	while (!_fileStack.empty()) {
+		_file = _fileStack.back();
+		_fileStack.pop_back();
 	}
 }
 
@@ -64,50 +64,50 @@ bool LFormatParser::handleKeyword(int id, int numArgs, KeywordArg *args) {
 }
 
 void LFormatParser::addKeyword(const char *name, int id, int argMask) {
-	keywords[id].set(name, id, argMask);
+	_keywords[id].set(name, id, argMask);
 }
 
 void LFormatParser::setFile(LFile *newFile) {
-	file = newFile;
-	reading = (newFile->openFlags & 1) != 0;
+	_file = newFile;
+	_reading = (newFile->_openFlags & 1) != 0;
 }
 
 void LFormatParser::writeEndOfSection() {
-	file->writeFormat("%s\n", kEndOfSection);
+	_file->writeFormat("%s\n", kEndOfSection);
 }
 
 bool LFormatParser::readEndOfSection() {
-	if (file->readLine(lineBuffer, kLineBufferSize)) {
+	if (_file->readLine(_lineBuffer, kLineBufferSize)) {
 		while (!tokenize()) {
-			if (!file->readLine(lineBuffer, kLineBufferSize))
+			if (!_file->readLine(_lineBuffer, kLineBufferSize))
 				break;
 		}
 	}
 
-	if (scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
+	if (scumm_strnicmp(_lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
 		return true;
 
 	if (_engine->getConsoleServices())
-		_engine->getConsoleServices()->logError("Expected EOF/EOS reading of %s\n", file->fileName.c_str());
+		_engine->getConsoleServices()->logError("Expected EOF/EOS reading of %s\n", _file->_fileName.c_str());
 	else
-		warning("LFormatParser::readEndOfSection(): expected EOF/EOS reading of %s", file->fileName.c_str());
+		warning("LFormatParser::readEndOfSection(): expected EOF/EOS reading of %s", _file->_fileName.c_str());
 
 	return false;
 }
 
 void LFormatParser::writeComment(const char *text) {
-	file->writeFormat("// %s\n", text);
+	_file->writeFormat("// %s\n", text);
 }
 
 void LFormatParser::writeVersion(int versionMajor, int versionMinor) {
-	file->writeFormat("VERSION %d.%d\n", versionMajor, versionMinor);
+	_file->writeFormat("VERSION %d.%d\n", versionMajor, versionMinor);
 }
 
 void LFormatParser::writeEntry(int id, ...) {
 	KeywordInfo *keyword = nullptr;
 	Common::HashMap<int, KeywordInfo>::iterator it;
 
-	for (it = keywords.begin(); it != keywords.end(); ++it) {
+	for (it = _keywords.begin(); it != _keywords.end(); ++it) {
 		if (it->_value.id == id) {
 			keyword = &it->_value;
 			break;
@@ -119,7 +119,7 @@ void LFormatParser::writeEntry(int id, ...) {
 		return;
 	}
 
-	file->writeFormat("%s:", keyword->name);
+	_file->writeFormat("%s:", keyword->name);
 
 	va_list args;
 	va_start(args, id);
@@ -129,13 +129,13 @@ void LFormatParser::writeEntry(int id, ...) {
 	while (argMask) {
 		switch (argMask & 3) {
 		case 1:
-			file->writeFormat("\t%d", va_arg(args, int));
+			_file->writeFormat("\t%d", va_arg(args, int));
 			break;
 		case 2:
-			file->writeFormat("\t%f", va_arg(args, double));
+			_file->writeFormat("\t%f", va_arg(args, double));
 			break;
 		case 3:
-			file->writeFormat("\t%s", va_arg(args, char *));
+			_file->writeFormat("\t%s", va_arg(args, char *));
 			break;
 		default:
 			break;
@@ -146,36 +146,36 @@ void LFormatParser::writeEntry(int id, ...) {
 
 	va_end(args);
 
-	file->writeFormat("\n");
+	_file->writeFormat("\n");
 }
 
 bool LFormatParser::readVersion(int versionMajor, int versionMinor) {
-	if (file->readLine(lineBuffer, kLineBufferSize) || scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
+	if (_file->readLine(_lineBuffer, kLineBufferSize) || scumm_strnicmp(_lineBuffer, kEndOfSection, kEndOfSectionLength) == 0)
 		return true;
 
 	if (_engine->getConsoleServices())
-		_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading version of %s\n", file->fileName.c_str());
+		_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading version of %s\n", _file->_fileName.c_str());
 	else
-		warning("LFormatParser::readVersion(): unexpected EOF/EOS reading version of %s", file->fileName.c_str());
+		warning("LFormatParser::readVersion(): unexpected EOF/EOS reading version of %s", _file->_fileName.c_str());
 
 	return false;
 }
 
 bool LFormatParser::readEntry(int id, ...) {
 	do {
-		if (!file->readLine(lineBuffer, kLineBufferSize) || scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) == 0) {
+		if (!_file->readLine(_lineBuffer, kLineBufferSize) || scumm_strnicmp(_lineBuffer, kEndOfSection, kEndOfSectionLength) == 0) {
 			if (_engine->getConsoleServices())
-				_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading token from %s\n", file->fileName.c_str());
+				_engine->getConsoleServices()->logError("Unexpected EOF/EOS reading token from %s\n", _file->_fileName.c_str());
 			else
-				warning("LFormatParser::readEntry(): unexpected EOF/EOS reading token from %s", file->fileName.c_str());
+				warning("LFormatParser::readEntry(): unexpected EOF/EOS reading token from %s", _file->_fileName.c_str());
 
 			return false;
 		}
 
 		tokenize();
-	} while (!numTokens);
+	} while (!_numTokens);
 
-	KeywordInfo *keyword = findKeyword(tokens[0]);
+	KeywordInfo *keyword = findKeyword(_tokens[0]);
 
 	if (!keyword)
 		return false;
@@ -195,28 +195,28 @@ bool LFormatParser::readEntry(int id, ...) {
 		case 1:
 			intDest = va_arg(args, int *);
 
-			if (tokenIndex >= numTokens)
+			if (tokenIndex >= _numTokens)
 				*intDest = 0;
 			else
-				*intDest = (int)strtol(tokens[tokenIndex], nullptr, 0);
+				*intDest = (int)strtol(_tokens[tokenIndex], nullptr, 0);
 
 			break;
 		case 2:
 			floatDest = va_arg(args, float *);
 
-			if (tokenIndex >= numTokens)
+			if (tokenIndex >= _numTokens)
 				*floatDest = 0.0f;
 			else
-				*floatDest = (float)strtod(tokens[tokenIndex], nullptr);
+				*floatDest = (float)strtod(_tokens[tokenIndex], nullptr);
 
 			break;
 		case 3:
 			stringDest = va_arg(args, char *);
 
-			if (tokenIndex >= numTokens)
+			if (tokenIndex >= _numTokens)
 				*stringDest = 0;
 			else
-				memcpy(stringDest, tokens[tokenIndex], strlen(tokens[tokenIndex]) + 1);
+				memcpy(stringDest, _tokens[tokenIndex], strlen(_tokens[tokenIndex]) + 1);
 
 			break;
 		default:
@@ -233,30 +233,30 @@ bool LFormatParser::readEntry(int id, ...) {
 }
 
 bool LFormatParser::parseFile(const char *path, int versionMajor, int versionMinor) {
-	file = openFile(path, true);
+	_file = openFile(path, true);
 
-	if (!file)
+	if (!_file)
 		return false;
 
 	bool result = parse(versionMajor, versionMinor);
 
-	_engine->getFileServices()->close(file, true);
+	_engine->getFileServices()->close(_file, true);
 
 	return result;
 }
 
 LFile *LFormatParser::openFile(const char *path, bool readMode) {
-	reading = readMode;
+	_reading = readMode;
 
 	LFile *opened = _engine->getFileServices()->open(path, readMode ? "rb" : "wb");
 
 	if (!opened)
 		return nullptr;
 
-	file = opened;
-	reading = (opened->openFlags & 1) != 0;
+	_file = opened;
+	_reading = (opened->_openFlags & 1) != 0;
 
-	if (!reading) {
+	if (!_reading) {
 		opened->writeFormat("%s", kCopyrightBanner);
 	} else {
 		byte banner[kCopyrightBannerSize];
@@ -269,24 +269,24 @@ LFile *LFormatParser::openFile(const char *path, bool readMode) {
 
 	byte magic[kBinaryMagicSize];
 
-	if (reading) {
+	if (_reading) {
 		if (opened->read(magic, kBinaryMagicSize) != kBinaryMagicSize) {
 			_engine->getFileServices()->close(opened, true);
 			return nullptr;
 		}
 
 		if (magic[0] == kBinaryMagicByte && magic[1] == kBinaryMagicByte && magic[2] == kBinaryMagicByte && magic[3] == kBinaryMagicByte) {
-			binaryData = true;
+			_binaryData = true;
 		} else {
 			opened->seek(-(int)kBinaryMagicSize, SEEK_CUR);
-			binaryData = false;
+			_binaryData = false;
 		}
-	} else if (binaryData) {
+	} else if (_binaryData) {
 		memset(magic, kBinaryMagicByte, kBinaryMagicSize);
 		opened->write(magic, kBinaryMagicSize);
 	}
 
-	opened->fileName = path;
+	opened->_fileName = path;
 
 	return opened;
 }
@@ -295,8 +295,8 @@ KeywordInfo *LFormatParser::findKeyword(const char *name) {
 	Common::HashMap<int, KeywordInfo>::iterator it;
 
 	// The disasm compares the first token, not the argument
-	for (it = keywords.begin(); it != keywords.end(); ++it) {
-		if (it->_value.name && scumm_stricmp(tokens[0], it->_value.name) == 0)
+	for (it = _keywords.begin(); it != _keywords.end(); ++it) {
+		if (it->_value.name && scumm_stricmp(_tokens[0], it->_value.name) == 0)
 			return &it->_value;
 	}
 
@@ -304,13 +304,13 @@ KeywordInfo *LFormatParser::findKeyword(const char *name) {
 }
 
 bool LFormatParser::parseRemaining(int versionMajor, int versionMinor) {
-	return binaryData || parse(versionMajor, versionMinor);
+	return _binaryData || parse(versionMajor, versionMinor);
 }
 
 bool LFormatParser::parse(int versionMajor, int versionMinor) {
 	KeywordArg args[kMaxTokens];
 
-	if (!file->readLine(lineBuffer, kLineBufferSize)) {
+	if (!_file->readLine(_lineBuffer, kLineBufferSize)) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logError("Unexpected EOF in file\n");
 		else
@@ -319,70 +319,70 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 		return false;
 	}
 
-	if (!file->readLine(lineBuffer, kLineBufferSize))
+	if (!_file->readLine(_lineBuffer, kLineBufferSize))
 		return true;
 
-	while (scumm_strnicmp(lineBuffer, kEndOfSection, kEndOfSectionLength) != 0) {
+	while (scumm_strnicmp(_lineBuffer, kEndOfSection, kEndOfSectionLength) != 0) {
 		tokenize();
 
-		if (numTokens) {
-			if (tokens[0][0] == '#') {
+		if (_numTokens) {
+			if (_tokens[0][0] == '#') {
 				static const char kInclude[] = "include";
 				bool isInclude = true;
 
 				for (int i = 1; i < 8; i++) {
-					if (tolower((byte)tokens[0][i]) != (byte)kInclude[i - 1]) {
+					if (tolower((byte)_tokens[0][i]) != (byte)kInclude[i - 1]) {
 						isInclude = false;
 						break;
 					}
 				}
 
 				if (isInclude) {
-					if (numTokens < 2) {
+					if (_numTokens < 2) {
 						warning("LFormatParser::parse(): include without a file name");
 					} else {
 						bool includeResult;
 
-						fileStack.push_back(file);
-						file = openFile(tokens[1], true);
+						_fileStack.push_back(_file);
+						_file = openFile(_tokens[1], true);
 
-						if (file) {
+						if (_file) {
 							includeResult = parse(versionMajor, versionMinor);
-							_engine->getFileServices()->close(file, true);
+							_engine->getFileServices()->close(_file, true);
 						} else {
 							includeResult = false;
 						}
 
-						file = fileStack.back();
-						fileStack.pop_back();
+						_file = _fileStack.back();
+						_fileStack.pop_back();
 
 						if (!includeResult) {
 							if (_engine->getConsoleServices())
-								_engine->getConsoleServices()->logError("Failed to include <%s>, while parsing file: %s\n", tokens[1], file->fileName.c_str());
+								_engine->getConsoleServices()->logError("Failed to include <%s>, while parsing file: %s\n", _tokens[1], _file->_fileName.c_str());
 							else
-								warning("LFormatParser::parse(): failed to include <%s>, while parsing file: %s", tokens[1], file->fileName.c_str());
+								warning("LFormatParser::parse(): failed to include <%s>, while parsing file: %s", _tokens[1], _file->_fileName.c_str());
 						}
 					}
 				}
 			} else {
-				KeywordInfo *keyword = findKeyword(tokens[0]);
+				KeywordInfo *keyword = findKeyword(_tokens[0]);
 
 				if (keyword) {
 					uint argMask = keyword->argMask;
 
-					for (int i = 1; i < numTokens; argMask >>= 2) {
+					for (int i = 1; i < _numTokens; argMask >>= 2) {
 						switch (argMask & 3) {
 						case 1:
-							args[i - 1].intValue = (int)strtol(tokens[i], nullptr, 0);
+							args[i - 1].intValue = (int)strtol(_tokens[i], nullptr, 0);
 							break;
 						case 2:
-							args[i - 1].floatValue = (float)strtod(tokens[i], nullptr);
+							args[i - 1].floatValue = (float)strtod(_tokens[i], nullptr);
 							break;
 						case 3:
-							args[i - 1].stringValue = tokens[i];
+							args[i - 1].stringValue = _tokens[i];
 							break;
 						default:
-							numTokens = i;
+							_numTokens = i;
 							i = 100;
 							break;
 						}
@@ -390,13 +390,13 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 						i++;
 					}
 
-					if (!handleKeyword(keyword->id, numTokens - 1, args))
+					if (!handleKeyword(keyword->id, _numTokens - 1, args))
 						return false;
 				}
 			}
 		}
 
-		if (!file->readLine(lineBuffer, kLineBufferSize))
+		if (!_file->readLine(_lineBuffer, kLineBufferSize))
 			return true;
 	}
 
@@ -404,9 +404,9 @@ bool LFormatParser::parse(int versionMajor, int versionMinor) {
 }
 
 int LFormatParser::tokenize() {
-	char *cursor = lineBuffer;
+	char *cursor = _lineBuffer;
 
-	numTokens = 0;
+	_numTokens = 0;
 
 	do {
 		while (*cursor && strchr(kSeparators, *cursor))
@@ -418,13 +418,13 @@ int LFormatParser::tokenize() {
 		char *end;
 
 		if (*cursor == '"') {
-			tokens[numTokens++] = cursor + 1;
+			_tokens[_numTokens++] = cursor + 1;
 			end = strchr(cursor + 1, '"');
 
 			if (!end)
-				return numTokens;
+				return _numTokens;
 		} else {
-			tokens[numTokens++] = cursor;
+			_tokens[_numTokens++] = cursor;
 			end = cursor + 1;
 
 			while (!strchr(kSeparators, *end))
@@ -432,14 +432,14 @@ int LFormatParser::tokenize() {
 
 			// The disasm keeps scanning after the terminator, let's stop there...
 			if (!*end)
-				return numTokens;
+				return _numTokens;
 		}
 
 		*end = 0;
 		cursor = end + 1;
-	} while (numTokens < kMaxTokens);
+	} while (_numTokens < kMaxTokens);
 
-	return numTokens;
+	return _numTokens;
 }
 
 bool LFormatParser::skipCopyrightBanner(LFile *file) {

@@ -79,13 +79,13 @@ public:
 
 	static bool drawPolyLess(const DrawPoly *first, const DrawPoly *second);
 
-	DrawPoly **polys;
-	DrawPoly *pool;
-	int capacity;
-	int count;
-	bool polyPending;
-	int deferAll;
-	CDrawContext *ctx;
+	DrawPoly **_polys;
+	DrawPoly *_pool;
+	int _capacity;
+	int _count;
+	bool _polyPending;
+	int _deferAll;
+	CDrawContext *_ctx;
 
 private:
 	static void sortRange(DrawPoly **first, DrawPoly **last);

@@ -46,19 +46,19 @@ public:
 
 	void drawLineLoop(DrawVertex *vertices, int count);
 
-	float nearClip;
-	float farClip;
-	float fovX;
-	float invTanHalfFovX;
-	float halfWidth;
-	float focalX;
-	float fovY;
-	float invTanHalfFovY;
-	float halfHeight;
-	float focalY;
-	CTransform view;
-	void *reserved368;
-	bool reserved372;
+	float _nearClip;
+	float _farClip;
+	float _fovX;
+	float _invTanHalfFovX;
+	float _halfWidth;
+	float _focalX;
+	float _fovY;
+	float _invTanHalfFovY;
+	float _halfHeight;
+	float _focalY;
+	CTransform _view;
+	void *_reserved368;
+	bool _reserved372;
 
 private:
 	CDrawContext *_drawContext;

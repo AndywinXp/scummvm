@@ -165,9 +165,9 @@ void Lua_V2::LockSet() {
 	LString roomName = lua_getstring(roomObj);
 	LResourceHandle<Room_v2> roomHandle(_engine, roomName);
 
-	if (roomHandle.lock() && roomHandle.typed) {
-		roomHandle.typed->lockCount++;
-		_engine->getResourceManager()->lockResource(roomHandle.typed);
+	if (roomHandle.lock() && roomHandle._typed) {
+		roomHandle._typed->_lockCount++;
+		_engine->getResourceManager()->lockResource(roomHandle._typed);
 		_lockedRooms.push_back(roomName);
 	}
 
@@ -183,13 +183,13 @@ void Lua_V2::UnLockSet() {
 	LString roomName = lua_getstring(roomObj);
 	LResourceHandle<Room_v2> roomHandle(_engine, roomName);
 
-	if (roomHandle.lock() && roomHandle.typed) {
-		Room_v2 *room = roomHandle.typed;
+	if (roomHandle.lock() && roomHandle._typed) {
+		Room_v2 *room = roomHandle._typed;
 
-		room->lockCount--;
+		room->_lockCount--;
 		_engine->getResourceManager()->unlockResource(room);
 
-		if (room->lockCount == 0 && room->purgeOnFree)
+		if (room->_lockCount == 0 && room->_purgeOnFree)
 			_engine->getResourceManager()->purgeResource(room, true);
 
 		for (uint i = 0; i < _lockedRooms.size(); i++) {
@@ -216,9 +216,9 @@ void Lua_V2::LockBackground() {
 
 	LResourceHandle<Background> backgroundHandle(_engine, backgroundName);
 
-	if (backgroundHandle.lock() && backgroundHandle.typed) {
-		backgroundHandle.typed->lockCount++;
-		_engine->getResourceManager()->lockResource(backgroundHandle.typed);
+	if (backgroundHandle.lock() && backgroundHandle._typed) {
+		backgroundHandle._typed->_lockCount++;
+		_engine->getResourceManager()->lockResource(backgroundHandle._typed);
 		_lockedBackgrounds.push_back(backgroundName);
 	}
 
@@ -237,13 +237,13 @@ void Lua_V2::UnLockBackground() {
 
 	LResourceHandle<Background> backgroundHandle(_engine, backgroundName);
 
-	if (backgroundHandle.lock() && backgroundHandle.typed) {
-		Background *background = backgroundHandle.typed;
+	if (backgroundHandle.lock() && backgroundHandle._typed) {
+		Background *background = backgroundHandle._typed;
 
-		background->lockCount--;
+		background->_lockCount--;
 		_engine->getResourceManager()->unlockResource(background);
 
-		if (background->lockCount == 0 && background->purgeOnFree)
+		if (background->_lockCount == 0 && background->_purgeOnFree)
 			_engine->getResourceManager()->purgeResource(background, true);
 
 		for (uint i = 0; i < _lockedBackgrounds.size(); i++) {
@@ -289,7 +289,7 @@ void Lua_V2::GetCurrentSetup() {
 		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom)
-			lua_pushnumber((float)currentRoom->currentSetup);
+			lua_pushnumber((float)currentRoom->_currentSetup);
 		else
 			lua_pushnil();
 
@@ -299,8 +299,8 @@ void Lua_V2::GetCurrentSetup() {
 	LString roomName = lua_getstring(roomObj);
 	LResourceHandle<Room_v2> roomHandle(_engine, roomName);
 
-	if (roomHandle.lock() && roomHandle.typed)
-		lua_pushnumber((float)roomHandle.typed->currentSetup);
+	if (roomHandle.lock() && roomHandle._typed)
+		lua_pushnumber((float)roomHandle._typed->_currentSetup);
 
 	roomHandle.unlock();
 }
@@ -312,13 +312,13 @@ void Lua_V2::NextSetup() {
 		return;
 
 	// The original could divide by zero here, let's avoid that...
-	if (currentRoom->numSetups == 0) {
+	if (currentRoom->_numSetups == 0) {
 		warning("Lua_V2::NextSetup(): the room has no setups");
 
 		return;
 	}
 
-	currentRoom->setSetup((currentRoom->currentSetup + 1) % currentRoom->numSetups);
+	currentRoom->setSetup((currentRoom->_currentSetup + 1) % currentRoom->_numSetups);
 }
 
 void Lua_V2::PreviousSetup() {
@@ -328,13 +328,13 @@ void Lua_V2::PreviousSetup() {
 		return;
 
 	// The original could divide by zero here, let's avoid that...
-	if (currentRoom->numSetups == 0) {
+	if (currentRoom->_numSetups == 0) {
 		warning("Lua_V2::PreviousSetup(): the room has no setups");
 
 		return;
 	}
 
-	currentRoom->setSetup((currentRoom->currentSetup - 1) % currentRoom->numSetups);
+	currentRoom->setSetup((currentRoom->_currentSetup - 1) % currentRoom->_numSetups);
 }
 
 } // end of namespace Grim

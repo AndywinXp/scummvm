@@ -30,236 +30,236 @@
 namespace Grim {
 
 RdColormap *RenderDroid::ColormapModule::load(char *path) {
-	RdColormap *pColormap = new RdColormap;
-	memset(pColormap, 0, sizeof(RdColormap));
+	RdColormap *colormap = new RdColormap;
+	memset(colormap, 0, sizeof(RdColormap));
 
-	if (loadEntry(path, pColormap))
-		return pColormap;
+	if (loadEntry(path, colormap))
+		return colormap;
 
-	destroy(pColormap);
+	destroy(colormap);
 	return nullptr;
 }
 
-int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *pColormap) {
-	Common::SeekableReadStream *pFile = _rd->_pHS->openFile(path);
+int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *colormap) {
+	Common::SeekableReadStream *file = _rd->_hs->openFile(path);
 
-	if (!pFile)
+	if (!file)
 		return 0;
 
-	Common::strlcpy(pColormap->aName, _rd->_stdFile->fromPath(path), 32);
+	Common::strlcpy(colormap->name, _rd->_stdFile->fromPath(path), 32);
 
-	uint32 magic = pFile->readUint32BE();
-	pFile->skip(4);
-	pColormap->flags = pFile->readUint32LE();
-	pColormap->tint[0] = pFile->readFloatLE();
-	pColormap->tint[1] = pFile->readFloatLE();
-	pColormap->tint[2] = pFile->readFloatLE();
-	pFile->skip(40);
+	uint32 magic = file->readUint32BE();
+	file->skip(4);
+	colormap->flags = file->readUint32LE();
+	colormap->tint[0] = file->readFloatLE();
+	colormap->tint[1] = file->readFloatLE();
+	colormap->tint[2] = file->readFloatLE();
+	file->skip(40);
 
 	if (magic != MKTAG('C', 'M', 'P', ' ')) {
-		delete pFile;
-		buildGrayRamp(pColormap);
+		delete file;
+		buildGrayRamp(colormap);
 		return 1;
 	}
 
-	pFile->read(pColormap->aColors, 768);
+	file->read(colormap->colors, 768);
 
-	byte firstRed = pColormap->aColors[0];
-	byte firstGreen = pColormap->aColors[1];
-	byte firstBlue = pColormap->aColors[2];
+	byte firstRed = colormap->colors[0];
+	byte firstGreen = colormap->colors[1];
+	byte firstBlue = colormap->colors[2];
 
 	// The demo does not change the colors that are equal to the first one
-	for (int i = 0; i < 254 && !_bDemoFormat; i++) {
-		if (pColormap->aColors[0] == firstRed)
-			pColormap->aColors[0] = pColormap->aColors[0] >= 247 ? pColormap->aColors[0] - 8 : pColormap->aColors[0] + 8;
+	for (int i = 0; i < 254 && !_demoFormat; i++) {
+		if (colormap->colors[0] == firstRed)
+			colormap->colors[0] = colormap->colors[0] >= 247 ? colormap->colors[0] - 8 : colormap->colors[0] + 8;
 
-		if (pColormap->aColors[1] == firstGreen)
-			pColormap->aColors[1] = pColormap->aColors[1] >= 247 ? pColormap->aColors[1] - 8 : pColormap->aColors[1] + 8;
+		if (colormap->colors[1] == firstGreen)
+			colormap->colors[1] = colormap->colors[1] >= 247 ? colormap->colors[1] - 8 : colormap->colors[1] + 8;
 
-		if (pColormap->aColors[2] == firstBlue)
-			pColormap->aColors[2] = pColormap->aColors[2] >= 247 ? pColormap->aColors[2] - 8 : pColormap->aColors[2] + 8;
+		if (colormap->colors[2] == firstBlue)
+			colormap->colors[2] = colormap->colors[2] >= 247 ? colormap->colors[2] - 8 : colormap->colors[2] + 8;
 	}
 
-	if (pColormap->flags & 4) {
-		pColormap->pRGB16 = new byte[0x8000];
-		buildRGB16(pColormap->pRGB16, pColormap->aColors, 0, 0, 0, &_rd->_colorInfo);
+	if (colormap->flags & 4) {
+		colormap->rgb16 = new byte[0x8000];
+		buildRGB16(colormap->rgb16, colormap->colors, 0, 0, 0, &_rd->_colorInfo);
 	} else {
-		pColormap->pRGB16 = nullptr;
+		colormap->rgb16 = nullptr;
 	}
 
-	if (_bDemoFormat) {
-		pColormap->pLightLevelAlloc = new byte[16640];
-		pColormap->pLightLevel = pColormap->pLightLevelAlloc;
+	if (_demoFormat) {
+		colormap->lightLevelAlloc = new byte[16640];
+		colormap->lightLevel = colormap->lightLevelAlloc;
 
-		if ((uintptr)pColormap->pLightLevelAlloc & 0xFF)
-			pColormap->pLightLevel = pColormap->pLightLevelAlloc + 256 - ((uintptr)pColormap->pLightLevelAlloc & 0xFF);
+		if ((uintptr)colormap->lightLevelAlloc & 0xFF)
+			colormap->lightLevel = colormap->lightLevelAlloc + 256 - ((uintptr)colormap->lightLevelAlloc & 0xFF);
 
-		pFile->read(pColormap->pLightLevel, 0x4000);
+		file->read(colormap->lightLevel, 0x4000);
 	}
 
-	if (!(pColormap->flags & 1)) {
-		delete pFile;
+	if (!(colormap->flags & 1)) {
+		delete file;
 		return 1;
 	}
 
-	pColormap->pTransparencyAlloc = new byte[65792];
-	pColormap->pTransparency = pColormap->pTransparencyAlloc;
+	colormap->transparencyAlloc = new byte[65792];
+	colormap->transparency = colormap->transparencyAlloc;
 
-	if ((uintptr)pColormap->pTransparencyAlloc & 0xFF)
-		pColormap->pTransparency = pColormap->pTransparencyAlloc + 256 - ((uintptr)pColormap->pTransparencyAlloc & 0xFF);
+	if ((uintptr)colormap->transparencyAlloc & 0xFF)
+		colormap->transparency = colormap->transparencyAlloc + 256 - ((uintptr)colormap->transparencyAlloc & 0xFF);
 
-	pFile->read(pColormap->pTransparency, 0x10000);
+	file->read(colormap->transparency, 0x10000);
 
-	if (pColormap->flags & 4) {
-		pColormap->pRGB16Alpha = new byte[0x10000];
+	if (colormap->flags & 4) {
+		colormap->rgb16Alpha = new byte[0x10000];
 
 		if (_rd->_colorInfo.greenBits == 5) {
-			pFile->skip(0x10000);
-			pFile->read(pColormap->pRGB16Alpha, 0x10000);
+			file->skip(0x10000);
+			file->read(colormap->rgb16Alpha, 0x10000);
 		} else {
-			pFile->read(pColormap->pRGB16Alpha, 0x10000);
-			pFile->skip(0x10000);
+			file->read(colormap->rgb16Alpha, 0x10000);
+			file->skip(0x10000);
 		}
 	} else {
-		pColormap->pRGB16Alpha = nullptr;
+		colormap->rgb16Alpha = nullptr;
 	}
 
-	pColormap->reserved832 = 0;
-	pColormap->reserved836 = 0;
+	colormap->reserved832 = 0;
+	colormap->reserved836 = 0;
 
-	delete pFile;
+	delete file;
 	return 1;
 }
 
-void RenderDroid::ColormapModule::destroy(RdColormap *&pColormap) {
-	freeEntry(pColormap);
-	delete pColormap;
-	pColormap = nullptr;
+void RenderDroid::ColormapModule::destroy(RdColormap *&colormap) {
+	freeEntry(colormap);
+	delete colormap;
+	colormap = nullptr;
 }
 
-void RenderDroid::ColormapModule::freeEntry(RdColormap *pColormap) {
-	if (pColormap->pLightLevelAlloc) {
-		delete[] pColormap->pLightLevelAlloc;
-		pColormap->pLightLevelAlloc = nullptr;
-		pColormap->pLightLevel = nullptr;
+void RenderDroid::ColormapModule::freeEntry(RdColormap *colormap) {
+	if (colormap->lightLevelAlloc) {
+		delete[] colormap->lightLevelAlloc;
+		colormap->lightLevelAlloc = nullptr;
+		colormap->lightLevel = nullptr;
 	}
 
-	if (pColormap->pRGB16) {
-		delete[] pColormap->pRGB16;
-		pColormap->pRGB16 = nullptr;
+	if (colormap->rgb16) {
+		delete[] colormap->rgb16;
+		colormap->rgb16 = nullptr;
 	}
 
-	if (pColormap->flags & 1) {
-		if (pColormap->pTransparencyAlloc) {
-			delete[] pColormap->pTransparencyAlloc;
-			pColormap->pTransparencyAlloc = nullptr;
-			pColormap->pTransparency = nullptr;
+	if (colormap->flags & 1) {
+		if (colormap->transparencyAlloc) {
+			delete[] colormap->transparencyAlloc;
+			colormap->transparencyAlloc = nullptr;
+			colormap->transparency = nullptr;
 		}
 
-		if (pColormap->pRGB16Alpha) {
-			delete[] pColormap->pRGB16Alpha;
-			pColormap->pRGB16Alpha = nullptr;
+		if (colormap->rgb16Alpha) {
+			delete[] colormap->rgb16Alpha;
+			colormap->rgb16Alpha = nullptr;
 		}
 	}
 }
 
-int RenderDroid::ColormapModule::setCurrent(RdColormap *pColormap) {
-	if (_pCurMap != pColormap)
-		_pCurMap = pColormap;
+int RenderDroid::ColormapModule::setCurrent(RdColormap *colormap) {
+	if (_curMap != colormap)
+		_curMap = colormap;
 
-	if (!_pIdentityMap)
-		setIdentity(pColormap);
+	if (!_identityMap)
+		setIdentity(colormap);
 
 	return 1;
 }
 
-int RenderDroid::ColormapModule::setIdentity(RdColormap *pColormap) {
-	if (_pIdentityMap != pColormap) {
-		_pIdentityMap = pColormap;
+int RenderDroid::ColormapModule::setIdentity(RdColormap *colormap) {
+	if (_identityMap != colormap) {
+		_identityMap = colormap;
 
 #if defined(GRIM_STD3D)
 		if (_rd->_curAcceleration > 0)
-			_rd->_pStd3D->setCurrentPalette(pColormap->aColors, 90);
+			_rd->_std3D->setCurrentPalette(colormap->colors, 90);
 #endif
 	}
 
 	return 1;
 }
 
-int RenderDroid::ColormapModule::size(RdColormap *pColormap) {
+int RenderDroid::ColormapModule::size(RdColormap *colormap) {
 	int result = 848;
 
-	if (pColormap->pLightLevelAlloc)
+	if (colormap->lightLevelAlloc)
 		result = 17488;
 
-	if (pColormap->pTransparencyAlloc)
+	if (colormap->transparencyAlloc)
 		result += 65792;
 
-	if (pColormap->pRGB16)
+	if (colormap->rgb16)
 		result += 0x8000;
 
-	if (pColormap->pRGB16Alpha)
+	if (colormap->rgb16Alpha)
 		result += 0x10000;
 
 	return result;
 }
 
-int RenderDroid::ColormapModule::buildGrayRamp(RdColormap *pColormap) {
-	Common::strlcpy(pColormap->aName, "GREYRAMP.CMP", 32);
-	pColormap->flags = 0;
-	pColormap->tint[0] = 1.0f;
-	pColormap->tint[1] = 1.0f;
-	pColormap->tint[2] = 1.0f;
+int RenderDroid::ColormapModule::buildGrayRamp(RdColormap *colormap) {
+	Common::strlcpy(colormap->name, "GREYRAMP.CMP", 32);
+	colormap->flags = 0;
+	colormap->tint[0] = 1.0f;
+	colormap->tint[1] = 1.0f;
+	colormap->tint[2] = 1.0f;
 
-	pColormap->pLightLevelAlloc = new byte[16640];
-	pColormap->pLightLevel = pColormap->pLightLevelAlloc;
+	colormap->lightLevelAlloc = new byte[16640];
+	colormap->lightLevel = colormap->lightLevelAlloc;
 
-	if ((uintptr)pColormap->pLightLevelAlloc & 0xFF)
-		pColormap->pLightLevel = pColormap->pLightLevelAlloc + 256 - ((uintptr)pColormap->pLightLevelAlloc & 0xFF);
+	if ((uintptr)colormap->lightLevelAlloc & 0xFF)
+		colormap->lightLevel = colormap->lightLevelAlloc + 256 - ((uintptr)colormap->lightLevelAlloc & 0xFF);
 
 	for (uint i = 0; i < 256; i++) {
 		// The overlapping writes are in the original
-		pColormap->aColors[i] = i;
-		pColormap->aColors[i + 1] = i;
-		pColormap->aColors[i + 2] = i;
+		colormap->colors[i] = i;
+		colormap->colors[i + 1] = i;
+		colormap->colors[i + 2] = i;
 
 		uint level = 0;
 		for (uint j = 0; j < 0x4000; j += 256)
-			pColormap->pLightLevel[i + j] = i * (level++ >> 6);
+			colormap->lightLevel[i + j] = i * (level++ >> 6);
 	}
 
 	return 1;
 }
 
-int RenderDroid::ColormapModule::buildRGB16(byte *pDst, byte *pPalette, byte r, byte g, byte b, StdColorFormat *pColorFormat) {
-	uint16 *pOut = (uint16 *)pDst;
-	byte *pColor = pPalette;
+int RenderDroid::ColormapModule::buildRGB16(byte *dst, byte *palette, byte r, byte g, byte b, StdColorFormat *colorFormat) {
+	uint16 *out = (uint16 *)dst;
+	byte *color = palette;
 
 	double targetR = r;
 	double targetG = g;
 	double targetB = b;
 
 	for (uint col = 0; col < 8; col++) {
-		byte red = pColor[0];
-		byte green = pColor[1];
-		byte blue = pColor[2];
-		pColor += 3;
+		byte red = color[0];
+		byte green = color[1];
+		byte blue = color[2];
+		color += 3;
 
 		for (uint row = 0; row < 64; row++) {
-			uint16 value = (byte)(green >> pColorFormat->greenLoss) << pColorFormat->greenShift;
-			value |= (byte)(red >> pColorFormat->redLoss) << pColorFormat->redShift;
-			value |= (byte)(blue >> pColorFormat->blueLoss) << pColorFormat->blueShift;
-			pOut[row * 256 + col] = value;
+			uint16 value = (byte)(green >> colorFormat->greenLoss) << colorFormat->greenShift;
+			value |= (byte)(red >> colorFormat->redLoss) << colorFormat->redShift;
+			value |= (byte)(blue >> colorFormat->blueLoss) << colorFormat->blueShift;
+			out[row * 256 + col] = value;
 		}
 	}
 
-	pColor = pPalette + 24;
+	color = palette + 24;
 
 	for (uint col = 8; col < 256; col++) {
-		double curR = pColor[0];
-		double curG = pColor[1];
-		double curB = pColor[2];
-		pColor += 3;
+		double curR = color[0];
+		double curG = color[1];
+		double curB = color[2];
+		color += 3;
 
 		double stepR = (targetR - curR) * 0.015625;
 		double stepG = (targetG - curG) * 0.015625;
@@ -274,9 +274,9 @@ int RenderDroid::ColormapModule::buildRGB16(byte *pDst, byte *pPalette, byte r, 
 			int green = (int)(curG > 0.0 ? curG + 0.5 : curG - 0.5);
 			int blue = (int)(curB > 0.0 ? curB + 0.5 : curB - 0.5);
 
-			pOut[(row - 1) * 256 + col] = (red >> pColorFormat->redLoss << pColorFormat->redShift) |
-				(green >> pColorFormat->greenLoss << pColorFormat->greenShift) |
-				(blue >> pColorFormat->blueLoss << pColorFormat->blueShift);
+			out[(row - 1) * 256 + col] = (red >> colorFormat->redLoss << colorFormat->redShift) |
+				(green >> colorFormat->greenLoss << colorFormat->greenShift) |
+				(blue >> colorFormat->blueLoss << colorFormat->blueShift);
 		}
 	}
 

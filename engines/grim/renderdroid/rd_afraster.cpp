@@ -32,25 +32,25 @@ int RenderDroid::AFRasterModule::wrapVertex(int index, int lastVertex) {
 	return (index > lastVertex) ? 0 : index;
 }
 
-int RenderDroid::AFRasterModule::selectRefVertex(RdProcFace *pProcFace, int *pYMinVert, int *pYMaxVert) {
-	int numVertices = (int)pProcFace->numVertices;
+int RenderDroid::AFRasterModule::selectRefVertex(RdProcFace *procFace, int *yMinVertPointer, int *yMaxVertPointer) {
+	int numVertices = (int)procFace->numVertices;
 
 	if (numVertices == 3) {
-		*pYMinVert = 0;
-		*pYMaxVert = 1;
+		*yMinVertPointer = 0;
+		*yMaxVertPointer = 1;
 		return 2;
 	}
 
-	int yMinVert = pProcFace->yMinIdx;
-	int yMaxVert = pProcFace->yMaxIdx;
+	int yMinVert = procFace->yMinIdx;
+	int yMaxVert = procFace->yMaxIdx;
 	int lastVertex = numVertices - 1;
-	RdVector3 *aVertices = pProcFace->aVertices;
+	RdVector3 *vertices = procFace->vertices;
 
-	*pYMinVert = yMinVert;
-	*pYMaxVert = yMaxVert;
+	*yMinVertPointer = yMinVert;
+	*yMaxVertPointer = yMaxVert;
 
 	int refVert = 0;
-	bool bRefFound = true;
+	bool refFound = true;
 	int direction;
 
 	int nextVert = wrapVertex(yMinVert + 1, lastVertex);
@@ -58,24 +58,24 @@ int RenderDroid::AFRasterModule::selectRefVertex(RdProcFace *pProcFace, int *pYM
 
 	if (nextVert == yMaxVert) {
 		direction = -1;
-		bRefFound = false;
+		refFound = false;
 	} else if (prevVert == yMaxVert) {
 		direction = 1;
-		bRefFound = false;
+		refFound = false;
 	} else {
 		refVert = nextVert;
 
-		int xDiffMax = abs((int)((double)aVertices[refVert][0] - aVertices[yMaxVert][0]));
-		bool bUseSlope = (double)xDiffMax > 1.0;
+		int xDiffMax = abs((int)((double)vertices[refVert][0] - vertices[yMaxVert][0]));
+		bool useSlope = (double)xDiffMax > 1.0;
 
-		if (!bUseSlope) {
-			int xDiffMin = abs((int)((double)aVertices[refVert][0] - aVertices[yMinVert][0]));
-			bUseSlope = (double)xDiffMin > 1.0;
+		if (!useSlope) {
+			int xDiffMin = abs((int)((double)vertices[refVert][0] - vertices[yMinVert][0]));
+			useSlope = (double)xDiffMin > 1.0;
 		}
 
-		if (bUseSlope) {
-			double yOnLine = ((double)aVertices[yMaxVert][1] - aVertices[yMinVert][1]) / ((double)aVertices[yMaxVert][0] - aVertices[yMinVert][0]) * ((double)aVertices[refVert][0] - aVertices[yMinVert][0]) + aVertices[yMinVert][1];
-			double deviation = (double)aVertices[refVert][1] - yOnLine;
+		if (useSlope) {
+			double yOnLine = ((double)vertices[yMaxVert][1] - vertices[yMinVert][1]) / ((double)vertices[yMaxVert][0] - vertices[yMinVert][0]) * ((double)vertices[refVert][0] - vertices[yMinVert][0]) + vertices[yMinVert][1];
+			double deviation = (double)vertices[refVert][1] - yOnLine;
 			if (deviation < 0.0)
 				deviation = -deviation;
 
@@ -85,26 +85,26 @@ int RenderDroid::AFRasterModule::selectRefVertex(RdProcFace *pProcFace, int *pYM
 		}
 	}
 
-	float midX = (float)(((double)aVertices[yMaxVert][0] + aVertices[yMinVert][0]) * 0.5);
+	float midX = (float)(((double)vertices[yMaxVert][0] + vertices[yMinVert][0]) * 0.5);
 	float maxDistance = 0.0f;
 	int firstWalk = wrapVertex(yMinVert + direction, lastVertex);
 	int walk = firstWalk;
 
 	while (walk != yMaxVert) {
-		double distance = (double)aVertices[walk][0] - midX;
+		double distance = (double)vertices[walk][0] - midX;
 		if (distance < 0.0)
 			distance = -distance;
 
 		if (distance > maxDistance) {
 			maxDistance = (float)distance;
 			refVert = walk;
-			bRefFound = true;
+			refFound = true;
 		}
 
 		walk = wrapVertex(walk + direction, lastVertex);
 	}
 
-	if (!bRefFound) {
+	if (!refFound) {
 		warning("RenderDroid::AFRasterModule::selectRefVertex(): no reference vertex found");
 		refVert = firstWalk;
 	}
@@ -112,31 +112,31 @@ int RenderDroid::AFRasterModule::selectRefVertex(RdProcFace *pProcFace, int *pYM
 	return refVert;
 }
 
-void RenderDroid::AFRasterModule::selectMipLevel(RdActiveFace *pFace, int refVert) {
-	float zMin = pFace->pProcFace->zMin;
-	float *aMipDistances = _rd->_aMipDistances;
+void RenderDroid::AFRasterModule::selectMipLevel(RdActiveFace *face, int refVert) {
+	float zMin = face->procFace->zMin;
+	float *mipDistances = _rd->_mipDistances;
 
 	switch (refVert) {
 	case 0:
-		pFace->mipLevel = 0;
+		face->mipLevel = 0;
 		break;
 	case 1:
-		pFace->mipLevel = (zMin > aMipDistances[1]) ? 1 : 0;
+		face->mipLevel = (zMin > mipDistances[1]) ? 1 : 0;
 		break;
 	case 2:
-		if (zMin > aMipDistances[0])
-			pFace->mipLevel = (zMin > aMipDistances[1]) ? 2 : 1;
+		if (zMin > mipDistances[0])
+			face->mipLevel = (zMin > mipDistances[1]) ? 2 : 1;
 		else
-			pFace->mipLevel = 0;
+			face->mipLevel = 0;
 		break;
 	case 3:
-		if (zMin > aMipDistances[0]) {
-			if (zMin > aMipDistances[1])
-				pFace->mipLevel = (zMin > aMipDistances[2]) ? 3 : 2;
+		if (zMin > mipDistances[0]) {
+			if (zMin > mipDistances[1])
+				face->mipLevel = (zMin > mipDistances[2]) ? 3 : 2;
 			else
-				pFace->mipLevel = 1;
+				face->mipLevel = 1;
 		} else {
-			pFace->mipLevel = 0;
+			face->mipLevel = 0;
 		}
 		break;
 	default:
@@ -144,28 +144,28 @@ void RenderDroid::AFRasterModule::selectMipLevel(RdActiveFace *pFace, int refVer
 	}
 }
 
-void RenderDroid::AFRasterModule::calcAffineGradients(RdActiveFace *pFace, int refVert) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	RdVector3 *aVertices = pProcFace->aVertices;
-	RdVector2 *aTexVertices = pProcFace->aTexVertices;
+void RenderDroid::AFRasterModule::calcAffineGradients(RdActiveFace *face, int refVert) {
+	RdProcFace *procFace = face->procFace;
+	RdVector3 *vertices = procFace->vertices;
+	RdVector2 *texVertices = procFace->texVertices;
 	int yMinVert;
 	int yMaxVert;
-	int refIdx = selectRefVertex(pProcFace, &yMinVert, &yMaxVert);
+	int refIdx = selectRefVertex(procFace, &yMinVert, &yMaxVert);
 
-	for (int i = 0; i < (int)pProcFace->numVertices; i++)
-		pFace->aOneOverZ[i] = (float)(1.0 / aVertices[i][2]);
+	for (int i = 0; i < (int)procFace->numVertices; i++)
+		face->oneOverZ[i] = (float)(1.0 / vertices[i][2]);
 
-	double dAy = (double)aVertices[yMinVert][1] - aVertices[refIdx][1];
-	double dBy = (double)aVertices[yMaxVert][1] - aVertices[refIdx][1];
-	float dAx = (float)((double)aVertices[yMinVert][0] - aVertices[refIdx][0]);
-	float dBx = (float)((double)aVertices[yMaxVert][0] - aVertices[refIdx][0]);
+	double dAy = (double)vertices[yMinVert][1] - vertices[refIdx][1];
+	double dBy = (double)vertices[yMaxVert][1] - vertices[refIdx][1];
+	float dAx = (float)((double)vertices[yMinVert][0] - vertices[refIdx][0]);
+	float dBx = (float)((double)vertices[yMaxVert][0] - vertices[refIdx][0]);
 
-	double dAu = (double)aTexVertices[yMinVert][0] - aTexVertices[refIdx][0];
-	double dBu = (double)aTexVertices[yMaxVert][0] - aTexVertices[refIdx][0];
+	double dAu = (double)texVertices[yMinVert][0] - texVertices[refIdx][0];
+	double dBu = (double)texVertices[yMaxVert][0] - texVertices[refIdx][0];
 	float dBuF = (float)dBu;
 	float dAuF = (float)dAu;
-	float dBvF = (float)((double)aTexVertices[yMaxVert][1] - aTexVertices[refIdx][1]);
-	float dAvF = (float)((double)aTexVertices[yMinVert][1] - aTexVertices[refIdx][1]);
+	float dBvF = (float)((double)texVertices[yMaxVert][1] - texVertices[refIdx][1]);
+	float dAvF = (float)((double)texVertices[yMinVert][1] - texVertices[refIdx][1]);
 
 	double det = dAy * dBx - dBy * dAx;
 	double inverse = 1.0 / det;
@@ -177,102 +177,102 @@ void RenderDroid::AFRasterModule::calcAffineGradients(RdActiveFace *pFace, int r
 	float vX = (float)(((double)dBvF * dAy - (double)dAvF * dBy) * inverseF);
 	float vY = (float)(((double)dBvF * dAx - (double)dAvF * dBx) * negInverseF);
 
-	selectMipLevel(pFace, refVert);
+	selectMipLevel(face, refVert);
 
 	if (uX <= 0.0f) {
 		if (uX < 0.0f || uY < 0.0f)
-			pFace->uModifier = 0x7FFF;
+			face->uModifier = 0x7FFF;
 		else
-			pFace->uModifier = 0x8000;
+			face->uModifier = 0x8000;
 	} else {
-		pFace->uModifier = 0x8000;
+		face->uModifier = 0x8000;
 	}
 
 	if (vX <= 0.0f) {
 		if (vX < 0.0f || vY < 0.0f)
-			pFace->vModifier = 0x7FFF;
+			face->vModifier = 0x7FFF;
 		else
-			pFace->vModifier = 0x8000;
+			face->vModifier = 0x8000;
 	} else {
-		pFace->vModifier = 0x8000;
+		face->vModifier = 0x8000;
 	}
 }
 
-void RenderDroid::AFRasterModule::calcPerspGradients(RdActiveFace *pFace, int refVert) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	RdVector3 *aVertices = pProcFace->aVertices;
-	RdVector2 *aTexVertices = pProcFace->aTexVertices;
+void RenderDroid::AFRasterModule::calcPerspGradients(RdActiveFace *face, int refVert) {
+	RdProcFace *procFace = face->procFace;
+	RdVector3 *vertices = procFace->vertices;
+	RdVector2 *texVertices = procFace->texVertices;
 	int yMinVert;
 	int yMaxVert;
-	int refIdx = selectRefVertex(pProcFace, &yMinVert, &yMaxVert);
+	int refIdx = selectRefVertex(procFace, &yMinVert, &yMaxVert);
 
-	for (int i = 0; i < (int)pProcFace->numVertices; i++) {
-		double oneOverZ = 1.0 / aVertices[i][2];
-		pFace->aOneOverZ[i] = (float)oneOverZ;
-		pFace->aUOverZ[i] = (float)(aTexVertices[i][0] * oneOverZ);
-		pFace->aVOverZ[i] = (float)(aTexVertices[i][1] * (double)pFace->aOneOverZ[i]);
+	for (int i = 0; i < (int)procFace->numVertices; i++) {
+		double oneOverZ = 1.0 / vertices[i][2];
+		face->oneOverZ[i] = (float)oneOverZ;
+		face->uOverZ[i] = (float)(texVertices[i][0] * oneOverZ);
+		face->vOverZ[i] = (float)(texVertices[i][1] * (double)face->oneOverZ[i]);
 	}
 
-	float dAy = (float)((double)aVertices[yMinVert][1] - aVertices[refIdx][1]);
-	float dBy = (float)((double)aVertices[yMaxVert][1] - aVertices[refIdx][1]);
-	float dAx = (float)((double)aVertices[yMinVert][0] - aVertices[refIdx][0]);
-	float dBx = (float)((double)aVertices[yMaxVert][0] - aVertices[refIdx][0]);
+	float dAy = (float)((double)vertices[yMinVert][1] - vertices[refIdx][1]);
+	float dBy = (float)((double)vertices[yMaxVert][1] - vertices[refIdx][1]);
+	float dAx = (float)((double)vertices[yMinVert][0] - vertices[refIdx][0]);
+	float dBx = (float)((double)vertices[yMaxVert][0] - vertices[refIdx][0]);
 
-	double dAyExact = (double)aVertices[yMinVert][1] - aVertices[refIdx][1];
-	double dByExact = (double)aVertices[yMaxVert][1] - aVertices[refIdx][1];
+	double dAyExact = (double)vertices[yMinVert][1] - vertices[refIdx][1];
+	double dByExact = (double)vertices[yMaxVert][1] - vertices[refIdx][1];
 
 	double det = dAyExact * dBx - dByExact * dAx;
 	float inverseF = (float)(1.0 / det);
 	float negInverseF = -inverseF;
 
-	double dAz = (double)pFace->aOneOverZ[yMinVert] - pFace->aOneOverZ[refIdx];
-	double dBz = (double)pFace->aOneOverZ[yMaxVert] - pFace->aOneOverZ[refIdx];
-	float dBuF = (float)((double)pFace->aUOverZ[yMaxVert] - pFace->aUOverZ[refIdx]);
-	float dAuF = (float)((double)pFace->aUOverZ[yMinVert] - pFace->aUOverZ[refIdx]);
-	float dBvF = (float)((double)pFace->aVOverZ[yMaxVert] - pFace->aVOverZ[refIdx]);
-	float dAvF = (float)((double)pFace->aVOverZ[yMinVert] - pFace->aVOverZ[refIdx]);
+	double dAz = (double)face->oneOverZ[yMinVert] - face->oneOverZ[refIdx];
+	double dBz = (double)face->oneOverZ[yMaxVert] - face->oneOverZ[refIdx];
+	float dBuF = (float)((double)face->uOverZ[yMaxVert] - face->uOverZ[refIdx]);
+	float dAuF = (float)((double)face->uOverZ[yMinVert] - face->uOverZ[refIdx]);
+	float dBvF = (float)((double)face->vOverZ[yMaxVert] - face->vOverZ[refIdx]);
+	float dAvF = (float)((double)face->vOverZ[yMinVert] - face->vOverZ[refIdx]);
 
 	double zX = (dBz * dAy - dAz * dBy) * inverseF;
 	float zY = (float)((dBz * dAx - dAz * dBx) * negInverseF);
-	pFace->dOneOverZdX = (float)zX;
-	pFace->dOneOverZdY = zY;
-	pFace->dOneOverZdXFixed = (int)(zX * 65536.0);
+	face->dOneOverZdX = (float)zX;
+	face->dOneOverZdY = zY;
+	face->dOneOverZdXFixed = (int)(zX * 65536.0);
 
 	double uX = ((double)dBuF * dAy - (double)dAuF * dBy) * inverseF;
-	pFace->dUOverZdX = (float)uX;
+	face->dUOverZdX = (float)uX;
 	float uY = (float)(((double)dBuF * dAx - (double)dAuF * dBx) * negInverseF);
-	pFace->dUOverZdY = uY;
+	face->dUOverZdY = uY;
 
 	float vX = (float)(((double)dBvF * dAy - (double)dAvF * dBy) * inverseF);
-	pFace->dVOverZdX = vX;
+	face->dVOverZdX = vX;
 	float vY = (float)(((double)dBvF * dAx - (double)dAvF * dBx) * negInverseF);
-	pFace->dVOverZdY = vY;
+	face->dVOverZdY = vY;
 
-	selectMipLevel(pFace, refVert);
+	selectMipLevel(face, refVert);
 
-	double uCheck = uX * pFace->aOneOverZ[yMinVert] - (double)pFace->aUOverZ[yMinVert] * zX;
+	double uCheck = uX * face->oneOverZ[yMinVert] - (double)face->uOverZ[yMinVert] * zX;
 	if (uCheck <= 0.0) {
-		if (uCheck < 0.0 || (double)pFace->aOneOverZ[yMinVert] * uY - (double)pFace->aUOverZ[yMinVert] * zY < 0.0)
-			pFace->uModifier = 0x7FFF;
+		if (uCheck < 0.0 || (double)face->oneOverZ[yMinVert] * uY - (double)face->uOverZ[yMinVert] * zY < 0.0)
+			face->uModifier = 0x7FFF;
 		else
-			pFace->uModifier = 0x8000;
+			face->uModifier = 0x8000;
 	} else {
-		pFace->uModifier = 0x8000;
+		face->uModifier = 0x8000;
 	}
 
-	double vCheck = (double)pFace->aOneOverZ[yMinVert] * vX - (double)pFace->aVOverZ[yMinVert] * zX;
+	double vCheck = (double)face->oneOverZ[yMinVert] * vX - (double)face->vOverZ[yMinVert] * zX;
 	if (vCheck <= 0.0) {
-		if (vCheck < 0.0 || (double)pFace->aOneOverZ[yMinVert] * vY - (double)pFace->aVOverZ[yMinVert] * zY < 0.0)
-			pFace->vModifier = 0x7FFF;
+		if (vCheck < 0.0 || (double)face->oneOverZ[yMinVert] * vY - (double)face->vOverZ[yMinVert] * zY < 0.0)
+			face->vModifier = 0x7FFF;
 		else
-			pFace->vModifier = 0x8000;
+			face->vModifier = 0x8000;
 	} else {
-		pFace->vModifier = 0x8000;
+		face->vModifier = 0x8000;
 	}
 }
 
-int RenderDroid::AFRasterModule::getZShift(RdCanvas *pCanvas) {
-	int shift = pCanvas->zScaleShift;
+int RenderDroid::AFRasterModule::getZShift(RdCanvas *canvas) {
+	int shift = canvas->zScaleShift;
 
 	if (shift < 0 || shift > 31) {
 		warning("RenderDroid::AFRasterModule::getZShift(): z scale shift %d out of range", shift);
@@ -282,153 +282,153 @@ int RenderDroid::AFRasterModule::getZShift(RdCanvas *pCanvas) {
 	return shift;
 }
 
-void RenderDroid::AFRasterModule::drawZSpans(RdActiveFace *pFace) {
-	RdActiveSpan *pSpan = pFace->pFirstSpan;
+void RenderDroid::AFRasterModule::drawZSpans(RdActiveFace *face) {
+	RdActiveSpan *span = face->firstSpan;
 
-	if (_rd->_camera.getCurrent()->pCanvas->zScaleShift) {
-		for (; pSpan; pSpan = pSpan->pNext)
-			drawZSpanShifted(pSpan);
+	if (_rd->_camera.getCurrent()->canvas->zScaleShift) {
+		for (; span; span = span->next)
+			drawZSpanShifted(span);
 	} else {
-		for (; pSpan; pSpan = pSpan->pNext)
-			drawZSpan(pSpan);
+		for (; span; span = span->next)
+			drawZSpan(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawTexturedSpans(RdActiveFace *pFace) {
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-		if (_pfDrawSpan)
-			(this->*_pfDrawSpan)(pSpan);
+void RenderDroid::AFRasterModule::drawTexturedSpans(RdActiveFace *face) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+		if (_drawSpan)
+			(this->*_drawSpan)(span);
 	}
 
-	drawZSpans(pFace);
+	drawZSpans(face);
 }
 
-RenderDroid::AFRasterModule::DrawSpanFunc RenderDroid::AFRasterModule::selectWidthSpan(int texPitch, const DrawSpanFunc *apWidthSpans, DrawSpanFunc pfDefault) {
+RenderDroid::AFRasterModule::DrawSpanFunc RenderDroid::AFRasterModule::selectWidthSpan(int texPitch, const DrawSpanFunc *widthSpans, DrawSpanFunc defaultFunction) {
 	switch (texPitch) {
 	case 8:
-		return apWidthSpans[0];
+		return widthSpans[0];
 	case 16:
-		return apWidthSpans[1];
+		return widthSpans[1];
 	case 32:
-		return apWidthSpans[2];
+		return widthSpans[2];
 	case 64:
-		return apWidthSpans[3];
+		return widthSpans[3];
 	case 128:
-		return apWidthSpans[4];
+		return widthSpans[4];
 	case 256:
-		return apWidthSpans[5];
+		return widthSpans[5];
 	default:
-		return pfDefault;
+		return defaultFunction;
 	}
 }
 
-void RenderDroid::AFRasterModule::setupFlat(RdActiveFace *pFace, RdMatCel *pCel, DrawFaceFunc pfDrawSpans, SetupEdgeFunc pfSetupEdge) {
-	RdProcFace *pProcFace = pFace->pProcFace;
+void RenderDroid::AFRasterModule::setupFlat(RdActiveFace *face, RdMatCel *cel, DrawFaceFunc drawSpans, SetupEdgeFunc setupEdge) {
+	RdProcFace *procFace = face->procFace;
 
-	for (uint i = 0; i < pProcFace->numVertices; i++)
-		pFace->aOneOverZ[i] = (float)(1.0 / pProcFace->aVertices[i][2]);
+	for (uint i = 0; i < procFace->numVertices; i++)
+		face->oneOverZ[i] = (float)(1.0 / procFace->vertices[i][2]);
 
-	pFace->pfDrawSpans = pfDrawSpans;
-	pFace->colorIndex = pCel->colorIndex;
-	pFace->pfSetupEdge = pfSetupEdge;
+	face->drawSpans = drawSpans;
+	face->colorIndex = cel->colorIndex;
+	face->setupEdge = setupEdge;
 }
 
-void RenderDroid::AFRasterModule::setupTextured(RdActiveFace *pFace, RdMatCel *pCel, bool bPersp, int lightKind, float light, DrawFaceFunc pfDrawSpans, SetupEdgeFunc pfSetupEdge) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
-	RdTexture *pTexture = pCel->pTexture;
-	RdColormap *pColormap = pFace->pProcFace->pColormap;
+void RenderDroid::AFRasterModule::setupTextured(RdActiveFace *face, RdMatCel *cel, bool persp, int lightKind, float light, DrawFaceFunc drawSpans, SetupEdgeFunc setupEdge) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
+	RdTexture *texture = cel->texture;
+	RdColormap *colormap = face->procFace->colormap;
 
-	if (bPersp)
-		calcPerspGradients(pFace, (int)pTexture->numMips - 1);
+	if (persp)
+		calcPerspGradients(face, (int)texture->numMips - 1);
 	else
-		calcAffineGradients(pFace, (int)pTexture->numMips - 1);
+		calcAffineGradients(face, (int)texture->numMips - 1);
 
-	int mipLevel = pFace->mipLevel;
+	int mipLevel = face->mipLevel;
 
-	if (bPersp) {
-		pFace->dOneOverZdX16 = (float)((double)pFace->dOneOverZdX * 16.0);
-		pFace->dUOverZdX16 = (float)((double)pFace->dUOverZdX * 16.0);
-		pFace->dVOverZdX16 = (float)((double)pFace->dVOverZdX * 16.0);
+	if (persp) {
+		face->dOneOverZdX16 = (float)((double)face->dOneOverZdX * 16.0);
+		face->dUOverZdX16 = (float)((double)face->dUOverZdX * 16.0);
+		face->dVOverZdX16 = (float)((double)face->dVOverZdX * 16.0);
 	}
 
 	if (lightKind == 1) {
 		if (bpp == 8)
-			pFace->pLightLevel = pColormap->pLightLevel + 256 * (int)floor(light);
+			face->lightLevel = colormap->lightLevel + 256 * (int)floor(light);
 		else if (bpp == 16)
-			pFace->pRGB16 = pColormap->pRGB16 + 512 * (int)floor(light);
+			face->rgb16 = colormap->rgb16 + 512 * (int)floor(light);
 	} else if (lightKind == 2) {
 		if (bpp == 8)
-			pFace->pLightLevel = pColormap->pLightLevel;
+			face->lightLevel = colormap->lightLevel;
 		else if (bpp == 16)
-			pFace->pRGB16 = pColormap->pRGB16;
+			face->rgb16 = colormap->rgb16;
 	} else if (bpp == 16) {
-		pFace->pRGB16 = pColormap->pRGB16 + 32256;
+		face->rgb16 = colormap->rgb16 + 32256;
 	}
 
-	pFace->pTexPixels = pTexture->apMips[mipLevel]->pPixels;
-	pFace->texPitch = pTexture->apMips[mipLevel]->tex.pitchInBytes;
-	pFace->texShift = pTexture->widthLog2 - mipLevel;
-	pFace->uWrap = (int)(((uint)pTexture->widthMask >> mipLevel) << 16);
-	pFace->vWrap = (int)(((uint)pTexture->heightMask >> mipLevel) << pFace->texShift);
-	pFace->pfDrawSpans = pfDrawSpans;
-	pFace->pfSetupEdge = pfSetupEdge;
+	face->texPixels = texture->mips[mipLevel]->pixels;
+	face->texPitch = texture->mips[mipLevel]->tex.pitchInBytes;
+	face->texShift = texture->widthLog2 - mipLevel;
+	face->uWrap = (int)(((uint)texture->widthMask >> mipLevel) << 16);
+	face->vWrap = (int)(((uint)texture->heightMask >> mipLevel) << face->texShift);
+	face->drawSpans = drawSpans;
+	face->setupEdge = setupEdge;
 }
 
-void RenderDroid::AFRasterModule::setupNGonLW(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupFlat(pFace, pCel, &AFRasterModule::drawNGonLW, &AFRasterModule::setupEdgeNGonLW);
+void RenderDroid::AFRasterModule::setupNGonLW(RdActiveFace *face, RdMatCel *cel) {
+	setupFlat(face, cel, &AFRasterModule::drawNGonLW, &AFRasterModule::setupEdgeNGonLW);
 }
 
-void RenderDroid::AFRasterModule::drawNGonLW(RdActiveFace *pFace) {
-	RdActiveSpan *pSpan = pFace->pFirstSpan;
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonLW(RdActiveFace *face) {
+	RdActiveSpan *span = face->firstSpan;
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8) {
-		_color = (byte)pFace->colorIndex;
+		_color = (byte)face->colorIndex;
 
-		for (; pSpan; pSpan = pSpan->pNext)
-			drawSpanNGonLW_8(pSpan);
+		for (; span; span = span->next)
+			drawSpanNGonLW_8(span);
 	} else if (bpp == 16) {
-		_RGBcolor = ((uint16 *)pFace->pProcFace->pColormap->pRGB16)[(pFace->colorIndex & 0xFF) + 16128];
+		_RGBcolor = ((uint16 *)face->procFace->colormap->rgb16)[(face->colorIndex & 0xFF) + 16128];
 
-		for (; pSpan; pSpan = pSpan->pNext)
-			drawSpanNGonLW_16(pSpan);
+		for (; span; span = span->next)
+			drawSpanNGonLW_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLW_8(RdActiveSpan *pSpan) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-	byte *pDst = pVBuffer->pPixels + pVBuffer->tex.pitchInBytes * pSpan->y + pSpan->x;
+void RenderDroid::AFRasterModule::drawSpanNGonLW_8(RdActiveSpan *span) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+	byte *dst = vBuffer->pixels + vBuffer->tex.pitchInBytes * span->y + span->x;
 
-	pDst[0] = _color;
-	pDst[pSpan->width - 1] = _color;
+	dst[0] = _color;
+	dst[span->width - 1] = _color;
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLW_16(RdActiveSpan *pSpan) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-	uint16 *pDst = (uint16 *)(pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y);
+void RenderDroid::AFRasterModule::drawSpanNGonLW_16(RdActiveSpan *span) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+	uint16 *dst = (uint16 *)(vBuffer->pixels + 2 * span->x + 2 * (vBuffer->tex.pitchInBytes >> 1) * span->y);
 
-	pDst[0] = _RGBcolor;
-	pDst[pSpan->width - 1] = _RGBcolor;
+	dst[0] = _RGBcolor;
+	dst[span->width - 1] = _RGBcolor;
 }
 
-void RenderDroid::AFRasterModule::advanceEdgeNGonLS(RdActiveEdge *pEdge) {
-	pEdge->x += pEdge->dx;
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
+void RenderDroid::AFRasterModule::advanceEdgeNGonLS(RdActiveEdge *edge) {
+	edge->x += edge->dx;
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeAffine(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, bool bTexture, bool bIntensity, StepEdgeFunc pfStep) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	RdVector3 *aVertices = pProcFace->aVertices;
-	RdVector2 *aTexVertices = pProcFace->aTexVertices;
-	float *aIntensities = pProcFace->aIntensities;
+int RenderDroid::AFRasterModule::setupEdgeAffine(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1, bool texture, bool intensity, StepEdgeFunc step) {
+	RdProcFace *procFace = face->procFace;
+	RdVector3 *vertices = procFace->vertices;
+	RdVector2 *texVertices = procFace->texVertices;
+	float *intensities = procFace->intensities;
 
-	float y0 = (float)ceil(aVertices[v0][1]);
-	float y1 = (float)ceil(aVertices[v1][1]);
+	float y0 = (float)ceil(vertices[v0][1]);
+	float y1 = (float)ceil(vertices[v1][1]);
 	int yStart0 = (int)floor(y0);
 	int yStart1 = (int)floor(y1);
 	int numLines = yStart1 - yStart0;
 
-	pEdge->numLines = numLines;
+	edge->numLines = numLines;
 	if (numLines == 0)
 		return 0;
 
@@ -437,227 +437,227 @@ int RenderDroid::AFRasterModule::setupEdgeAffine(RdActiveEdge *pEdge, RdActiveFa
 	float yTop;
 
 	if (numLines > 0) {
-		pEdge->bLeft = 1;
-		pEdge->yStart = yStart0;
+		edge->left = 1;
+		edge->yStart = yStart0;
 		top = v0;
 		bottom = v1;
 		yTop = y0;
 	} else {
-		pEdge->bLeft = 0;
+		edge->left = 0;
 		numLines = -numLines;
-		pEdge->yStart = yStart1;
-		pEdge->numLines = numLines;
+		edge->yStart = yStart1;
+		edge->numLines = numLines;
 		top = v1;
 		bottom = v0;
 		yTop = y1;
 	}
 
-	pEdge->pfStep = pfStep;
+	edge->step = step;
 
 	if (numLines < 2) {
-		pEdge->x = (int)floor((float)(aVertices[top][0] * 65536.0));
+		edge->x = (int)floor((float)(vertices[top][0] * 65536.0));
 
-		if (bTexture) {
-			pEdge->u = (int)floor((float)(aTexVertices[top][0] * 65536.0));
-			pEdge->v = (int)floor((float)(aTexVertices[top][1] * 65536.0));
+		if (texture) {
+			edge->u = (int)floor((float)(texVertices[top][0] * 65536.0));
+			edge->v = (int)floor((float)(texVertices[top][1] * 65536.0));
 		}
 
-		if (bIntensity)
-			pEdge->intensity = (int)floor((float)(aIntensities[top] * 65536.0));
+		if (intensity)
+			edge->intensity = (int)floor((float)(intensities[top] * 65536.0));
 
-		pEdge->oneOverZ = pFace->aOneOverZ[top];
+		edge->oneOverZ = face->oneOverZ[top];
 		return 1;
 	}
 
-	float dy = (float)(yTop - aVertices[top][1]);
-	float inverseDy = (float)(1.0 / ((double)aVertices[bottom][1] - aVertices[top][1]));
+	float dy = (float)(yTop - vertices[top][1]);
+	float inverseDy = (float)(1.0 / ((double)vertices[bottom][1] - vertices[top][1]));
 
-	double slopeX = ((double)aVertices[bottom][0] - aVertices[top][0]) * inverseDy;
+	double slopeX = ((double)vertices[bottom][0] - vertices[top][0]) * inverseDy;
 	float slopeXF = (float)slopeX;
-	pEdge->dx = (int)floor((float)(slopeX * 65536.0));
-	pEdge->x = (int)floor((float)(((double)slopeXF * dy + aVertices[top][0]) * 65536.0));
+	edge->dx = (int)floor((float)(slopeX * 65536.0));
+	edge->x = (int)floor((float)(((double)slopeXF * dy + vertices[top][0]) * 65536.0));
 
-	if (bTexture) {
-		double slopeU = ((double)aTexVertices[bottom][0] - aTexVertices[top][0]) * inverseDy;
+	if (texture) {
+		double slopeU = ((double)texVertices[bottom][0] - texVertices[top][0]) * inverseDy;
 		float slopeUF = (float)slopeU;
-		pEdge->du = (int)floor((float)(slopeU * 65536.0));
-		pEdge->u = (int)floor((float)(((double)slopeUF * dy + aTexVertices[top][0]) * 65536.0));
+		edge->du = (int)floor((float)(slopeU * 65536.0));
+		edge->u = (int)floor((float)(((double)slopeUF * dy + texVertices[top][0]) * 65536.0));
 
-		double slopeV = ((double)aTexVertices[bottom][1] - aTexVertices[top][1]) * inverseDy;
+		double slopeV = ((double)texVertices[bottom][1] - texVertices[top][1]) * inverseDy;
 		float slopeVF = (float)slopeV;
-		pEdge->dv = (int)floor((float)(slopeV * 65536.0));
-		pEdge->v = (int)floor((float)(((double)slopeVF * dy + aTexVertices[top][1]) * 65536.0));
+		edge->dv = (int)floor((float)(slopeV * 65536.0));
+		edge->v = (int)floor((float)(((double)slopeVF * dy + texVertices[top][1]) * 65536.0));
 	}
 
-	if (bIntensity) {
-		double slopeI = ((double)aIntensities[bottom] - aIntensities[top]) * inverseDy;
+	if (intensity) {
+		double slopeI = ((double)intensities[bottom] - intensities[top]) * inverseDy;
 		float slopeIF = (float)slopeI;
-		pEdge->dIntensity = (int)floor((float)(slopeI * 65536.0));
-		pEdge->intensity = (int)floor((float)(((double)slopeIF * dy + aIntensities[top]) * 65536.0));
+		edge->dIntensity = (int)floor((float)(slopeI * 65536.0));
+		edge->intensity = (int)floor((float)(((double)slopeIF * dy + intensities[top]) * 65536.0));
 	}
 
-	double slopeZ = ((double)pFace->aOneOverZ[bottom] - pFace->aOneOverZ[top]) * inverseDy;
-	pEdge->dOneOverZ = (float)slopeZ;
-	pEdge->oneOverZ = (float)((double)dy * slopeZ + pFace->aOneOverZ[top]);
+	double slopeZ = ((double)face->oneOverZ[bottom] - face->oneOverZ[top]) * inverseDy;
+	edge->dOneOverZ = (float)slopeZ;
+	edge->oneOverZ = (float)((double)dy * slopeZ + face->oneOverZ[top]);
 
 	return 1;
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonLW(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeAffine(pEdge, pFace, v0, v1, false, false, &AFRasterModule::advanceEdgeNGonLS);
+int RenderDroid::AFRasterModule::setupEdgeNGonLW(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeAffine(edge, face, v0, v1, false, false, &AFRasterModule::advanceEdgeNGonLS);
 }
 
-void RenderDroid::AFRasterModule::setupNGonLS(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupFlat(pFace, pCel, &AFRasterModule::drawNGonLS, &AFRasterModule::setupEdgeNGonLS);
+void RenderDroid::AFRasterModule::setupNGonLS(RdActiveFace *face, RdMatCel *cel) {
+	setupFlat(face, cel, &AFRasterModule::drawNGonLS, &AFRasterModule::setupEdgeNGonLS);
 }
 
-void RenderDroid::AFRasterModule::drawNGonLS(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonLS(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8)
-		_color = (byte)pFace->colorIndex;
+		_color = (byte)face->colorIndex;
 	else if (bpp == 16)
-		_RGBcolor = ((uint16 *)pFace->pProcFace->pColormap->pRGB16)[(pFace->colorIndex & 0xFF) + 16128];
+		_RGBcolor = ((uint16 *)face->procFace->colormap->rgb16)[(face->colorIndex & 0xFF) + 16128];
 
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
 	if (bpp == 8) {
-		for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-			StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-			memset(pVBuffer->pPixels + pVBuffer->tex.pitchInBytes * pSpan->y + pSpan->x, _color, pSpan->width);
+		for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+			StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+			memset(vBuffer->pixels + vBuffer->tex.pitchInBytes * span->y + span->x, _color, span->width);
 		}
 	} else if (bpp == 16) {
-		for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-			StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-			uint16 *pDst = (uint16 *)(pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y);
+		for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+			StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+			uint16 *dst = (uint16 *)(vBuffer->pixels + 2 * span->x + 2 * (vBuffer->tex.pitchInBytes >> 1) * span->y);
 
-			for (int i = 0; i < pSpan->width; i++)
-				pDst[i] = _RGBcolor;
+			for (int i = 0; i < span->width; i++)
+				dst[i] = _RGBcolor;
 		}
 	}
 
-	drawZSpans(pFace);
+	drawZSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonLS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonLW(pEdge, pFace, v0, v1);
+int RenderDroid::AFRasterModule::setupEdgeNGonLS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeNGonLW(edge, face, v0, v1);
 }
 
-void RenderDroid::AFRasterModule::setupNGonFS(RdActiveFace *pFace, RdMatCel *pCel, float light) {
-	RdProcFace *pProcFace = pFace->pProcFace;
+void RenderDroid::AFRasterModule::setupNGonFS(RdActiveFace *face, RdMatCel *cel, float light) {
+	RdProcFace *procFace = face->procFace;
 
-	for (uint i = 0; i < pProcFace->numVertices; i++)
-		pFace->aOneOverZ[i] = (float)(1.0 / pProcFace->aVertices[i][2]);
+	for (uint i = 0; i < procFace->numVertices; i++)
+		face->oneOverZ[i] = (float)(1.0 / procFace->vertices[i][2]);
 
-	pFace->pfDrawSpans = &AFRasterModule::drawNGonFS;
-	pFace->colorIndex = pProcFace->pColormap->pLightLevel[pCel->colorIndex + 256 * (int)floor(light)];
-	pFace->pfSetupEdge = &AFRasterModule::setupEdgeNGonFS;
+	face->drawSpans = &AFRasterModule::drawNGonFS;
+	face->colorIndex = procFace->colormap->lightLevel[cel->colorIndex + 256 * (int)floor(light)];
+	face->setupEdge = &AFRasterModule::setupEdgeNGonFS;
 }
 
-void RenderDroid::AFRasterModule::drawNGonFS(RdActiveFace *pFace) {
-	_color = (byte)pFace->colorIndex;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+void RenderDroid::AFRasterModule::drawNGonFS(RdActiveFace *face) {
+	_color = (byte)face->colorIndex;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-		StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-		memset(pVBuffer->pPixels + pVBuffer->tex.pitchInBytes * pSpan->y + pSpan->x, _color, pSpan->width);
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+		StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+		memset(vBuffer->pixels + vBuffer->tex.pitchInBytes * span->y + span->x, _color, span->width);
 	}
 
-	drawZSpans(pFace);
+	drawZSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonFS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonLW(pEdge, pFace, v0, v1);
+int RenderDroid::AFRasterModule::setupEdgeNGonFS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeNGonLW(edge, face, v0, v1);
 }
 
-void RenderDroid::AFRasterModule::setupNGonGS(RdActiveFace *pFace, RdMatCel *pCel) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::setupNGonGS(RdActiveFace *face, RdMatCel *cel) {
+	RdProcFace *procFace = face->procFace;
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	for (uint i = 0; i < pProcFace->numVertices; i++)
-		pFace->aOneOverZ[i] = (float)(1.0 / pProcFace->aVertices[i][2]);
+	for (uint i = 0; i < procFace->numVertices; i++)
+		face->oneOverZ[i] = (float)(1.0 / procFace->vertices[i][2]);
 
-	pFace->colorIndex = pCel->colorIndex;
+	face->colorIndex = cel->colorIndex;
 
 	if (bpp == 8)
-		pFace->pLightLevel = pProcFace->pColormap->pLightLevel;
+		face->lightLevel = procFace->colormap->lightLevel;
 	else if (bpp == 16)
-		pFace->pRGB16 = pProcFace->pColormap->pRGB16;
+		face->rgb16 = procFace->colormap->rgb16;
 
-	pFace->pfDrawSpans = &AFRasterModule::drawNGonGS;
-	pFace->pfSetupEdge = &AFRasterModule::setupEdgeNGonGS;
+	face->drawSpans = &AFRasterModule::drawNGonGS;
+	face->setupEdge = &AFRasterModule::setupEdgeNGonGS;
 }
 
-void RenderDroid::AFRasterModule::drawNGonGS(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonGS(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	_color = (byte)pFace->colorIndex;
+	_color = (byte)face->colorIndex;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
 	if (bpp == 8) {
-		for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-			StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-			int intensity = pSpan->intensity;
-			byte *pDst = pVBuffer->pPixels + pVBuffer->tex.pitchInBytes * pSpan->y + pSpan->x;
+		for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+			StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+			int intensity = span->intensity;
+			byte *dst = vBuffer->pixels + vBuffer->tex.pitchInBytes * span->y + span->x;
 
-			for (int i = 0; i < pSpan->width; i++) {
-				pDst[i] = _aMonoMap[((intensity >> 8) & 0x3F00) + _color];
-				intensity += pSpan->dIntensity;
+			for (int i = 0; i < span->width; i++) {
+				dst[i] = _monoMap[((intensity >> 8) & 0x3F00) + _color];
+				intensity += span->dIntensity;
 			}
 		}
 	} else if (bpp == 16) {
-		for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
-			StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
-			int intensity = pSpan->intensity;
-			uint16 *pDst = (uint16 *)(pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y);
+		for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
+			StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
+			int intensity = span->intensity;
+			uint16 *dst = (uint16 *)(vBuffer->pixels + 2 * span->x + 2 * (vBuffer->tex.pitchInBytes >> 1) * span->y);
 
-			for (int i = 0; i < pSpan->width; i++) {
-				pDst[i] = ((uint16 *)_aRGBMap)[_color + (((intensity >> 16) & 0x3F) << 8)];
-				intensity += pSpan->dIntensity;
+			for (int i = 0; i < span->width; i++) {
+				dst[i] = ((uint16 *)_rgbMap)[_color + (((intensity >> 16) & 0x3F) << 8)];
+				intensity += span->dIntensity;
 			}
 		}
 	}
 
-	drawZSpans(pFace);
+	drawZSpans(face);
 }
 
-void RenderDroid::AFRasterModule::advanceEdgeNGonGS(RdActiveEdge *pEdge) {
-	pEdge->x += pEdge->dx;
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
-	pEdge->intensity += pEdge->dIntensity;
+void RenderDroid::AFRasterModule::advanceEdgeNGonGS(RdActiveEdge *edge) {
+	edge->x += edge->dx;
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
+	edge->intensity += edge->dIntensity;
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonGS(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeAffine(pEdge, pFace, v0, v1, false, true, &AFRasterModule::advanceEdgeNGonGS);
+int RenderDroid::AFRasterModule::setupEdgeNGonGS(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeAffine(edge, face, v0, v1, false, true, &AFRasterModule::advanceEdgeNGonGS);
 }
 
-void RenderDroid::AFRasterModule::setupNGonLAT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, false, 0, 0.0f, &AFRasterModule::drawNGonLAT, &AFRasterModule::setupEdgeNGonLAT);
+void RenderDroid::AFRasterModule::setupNGonLAT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, false, 0, 0.0f, &AFRasterModule::drawNGonLAT, &AFRasterModule::setupEdgeNGonLAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonLAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonLAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonLAT_16_W8,
 		&AFRasterModule::drawSpanNGonLAT_16_W16,
 		&AFRasterModule::drawSpanNGonLAT_16_W32,
@@ -666,7 +666,7 @@ void RenderDroid::AFRasterModule::drawNGonLAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonLAT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonLAT_8_W8,
 		&AFRasterModule::drawSpanNGonLAT_8_W16,
 		&AFRasterModule::drawSpanNGonLAT_8_W32,
@@ -676,53 +676,53 @@ void RenderDroid::AFRasterModule::drawNGonLAT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonLAT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonLAT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonLAT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonLAT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonLAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeAffine(pEdge, pFace, v0, v1, true, false, &AFRasterModule::advanceLeftEdgeNGonFAT);
+int RenderDroid::AFRasterModule::setupEdgeNGonLAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeAffine(edge, face, v0, v1, true, false, &AFRasterModule::advanceLeftEdgeNGonFAT);
 }
 
-void RenderDroid::AFRasterModule::advanceLeftEdgeNGonFAT(RdActiveEdge *pEdge) {
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
-	pEdge->x += pEdge->dx;
-	pEdge->u += pEdge->du;
-	pEdge->v += pEdge->dv;
+void RenderDroid::AFRasterModule::advanceLeftEdgeNGonFAT(RdActiveEdge *edge) {
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
+	edge->x += edge->dx;
+	edge->u += edge->du;
+	edge->v += edge->dv;
 }
 
-void RenderDroid::AFRasterModule::setupNGonMLAT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, false, 0, 0.0f, &AFRasterModule::drawNGonMLAT, &AFRasterModule::setupEdgeNGonLAT);
+void RenderDroid::AFRasterModule::setupNGonMLAT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, false, 0, 0.0f, &AFRasterModule::drawNGonMLAT, &AFRasterModule::setupEdgeNGonLAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMLAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMLAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMLAT_8(pSpan);
+			drawSpanNGonMLAT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMLAT_16(pSpan);
+			drawSpanNGonMLAT_16(span);
 	}
 }
 
 void RenderDroid::AFRasterModule::plotMaskedRun(SpanRun &run, int count, bool bpp16, int lightKind) {
 	for (int i = 0; i < count; i++) {
-		int texel = _pPixels[(_vWrap & (run.v >> (16 - _texRowShift))) + ((_uWrap >> 16) & (run.u >> 16))];
+		int texel = _pixels[(_vWrap & (run.v >> (16 - _texRowShift))) + ((_uWrap >> 16) & (run.u >> 16))];
 
 		if (texel) {
 			if (bpp16) {
@@ -730,18 +730,18 @@ void RenderDroid::AFRasterModule::plotMaskedRun(SpanRun &run, int count, bool bp
 				if (lightKind == 2)
 					index += ((run.intensity >> 16) & 0x3F) << 8;
 
-				*(uint16 *)run.pDst = ((uint16 *)_aRGBMap)[index];
+				*(uint16 *)run.dst = ((uint16 *)_rgbMap)[index];
 			} else if (lightKind == 0) {
-				*run.pDst = (byte)texel;
+				*run.dst = (byte)texel;
 			} else {
 				int index = texel;
 				if (lightKind == 2)
 					index += (run.intensity >> 8) & 0x3F00;
 
-				*run.pDst = _aMonoMap[index];
+				*run.dst = _monoMap[index];
 			}
 
-			*run.pZ = (uint16)(run.z >> run.zShift);
+			*run.zPointer = (uint16)(run.z >> run.zShift);
 		}
 
 		run.z += run.dz;
@@ -751,74 +751,74 @@ void RenderDroid::AFRasterModule::plotMaskedRun(SpanRun &run, int count, bool bp
 		if (lightKind == 2)
 			run.intensity += run.dIntensity;
 
-		run.pDst += bpp16 ? 2 : 1;
-		run.pZ++;
+		run.dst += bpp16 ? 2 : 1;
+		run.zPointer++;
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanMaskedAffine(RdActiveSpan *pSpan, bool bpp16, int lightKind) {
-	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
-	StdVBuffer *pVBuffer = pCanvas->pVBuffer;
-	StdVBuffer *pZBuffer = pCanvas->pZBuffer;
+void RenderDroid::AFRasterModule::drawSpanMaskedAffine(RdActiveSpan *span, bool bpp16, int lightKind) {
+	RdCanvas *canvas = _rd->_camera.getCurrent()->canvas;
+	StdVBuffer *vBuffer = canvas->vBuffer;
+	StdVBuffer *zBuffer = canvas->zBuffer;
 	SpanRun run;
 
-	run.zShift = getZShift(pCanvas);
-	run.u = pSpan->u;
-	run.du = pSpan->du;
-	run.dv = pSpan->dv;
-	run.v = pSpan->v;
+	run.zShift = getZShift(canvas);
+	run.u = span->u;
+	run.du = span->du;
+	run.dv = span->dv;
+	run.v = span->v;
 	run.dz = _dOneOverZdXFixed;
-	run.z = (int)floor((float)(pSpan->oneOverZ * 65536.0));
+	run.z = (int)floor((float)(span->oneOverZ * 65536.0));
 	run.intensity = 0;
 	run.dIntensity = 0;
 
 	if (lightKind == 2) {
-		run.intensity = pSpan->intensity;
-		run.dIntensity = pSpan->dIntensity;
+		run.intensity = span->intensity;
+		run.dIntensity = span->dIntensity;
 	}
 
 	if (bpp16)
-		run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * pSpan->y * (pVBuffer->tex.pitchInBytes >> 1);
+		run.dst = vBuffer->pixels + 2 * span->x + 2 * span->y * (vBuffer->tex.pitchInBytes >> 1);
 	else
-		run.pDst = pVBuffer->pPixels + pSpan->y * pVBuffer->tex.pitchInBytes + pSpan->x;
+		run.dst = vBuffer->pixels + span->y * vBuffer->tex.pitchInBytes + span->x;
 
-	run.pZ = (uint16 *)(pZBuffer->pPixels + 2 * pSpan->x + pSpan->y * pZBuffer->tex.pitchInBytes);
+	run.zPointer = (uint16 *)(zBuffer->pixels + 2 * span->x + span->y * zBuffer->tex.pitchInBytes);
 
-	plotMaskedRun(run, pSpan->width, bpp16, lightKind);
+	plotMaskedRun(run, span->width, bpp16, lightKind);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMLAT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedAffine(pSpan, false, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonMLAT_8(RdActiveSpan *span) {
+	drawSpanMaskedAffine(span, false, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMLAT_16(RdActiveSpan *pSpan) {
-	drawSpanMaskedAffine(pSpan, true, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonMLAT_16(RdActiveSpan *span) {
+	drawSpanMaskedAffine(span, true, 0);
 }
 
-void RenderDroid::AFRasterModule::setupNGonFAT(RdActiveFace *pFace, RdMatCel *pCel, float light) {
-	setupTextured(pFace, pCel, false, 1, light, &AFRasterModule::drawNGonFAT, &AFRasterModule::setupEdgeNGonFAT);
+void RenderDroid::AFRasterModule::setupNGonFAT(RdActiveFace *face, RdMatCel *cel, float light) {
+	setupTextured(face, cel, false, 1, light, &AFRasterModule::drawNGonFAT, &AFRasterModule::setupEdgeNGonFAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonFAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonFAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonFAT_16_W8,
 		&AFRasterModule::drawSpanNGonFAT_16_W16,
 		&AFRasterModule::drawSpanNGonFAT_16_W32,
@@ -827,7 +827,7 @@ void RenderDroid::AFRasterModule::drawNGonFAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonFAT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonFAT_8_W8,
 		&AFRasterModule::drawSpanNGonFAT_8_W16,
 		&AFRasterModule::drawSpanNGonFAT_8_W32,
@@ -837,80 +837,80 @@ void RenderDroid::AFRasterModule::drawNGonFAT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonFAT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonFAT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonFAT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonFAT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonFAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonLAT(pEdge, pFace, v0, v1);
+int RenderDroid::AFRasterModule::setupEdgeNGonFAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeNGonLAT(edge, face, v0, v1);
 }
 
-void RenderDroid::AFRasterModule::setupNGonMFAT(RdActiveFace *pFace, RdMatCel *pCel, float light) {
-	setupTextured(pFace, pCel, false, 1, light, &AFRasterModule::drawNGonMFAT, &AFRasterModule::setupEdgeNGonFAT);
+void RenderDroid::AFRasterModule::setupNGonMFAT(RdActiveFace *face, RdMatCel *cel, float light) {
+	setupTextured(face, cel, false, 1, light, &AFRasterModule::drawNGonMFAT, &AFRasterModule::setupEdgeNGonFAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMFAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMFAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMFAT_8(pSpan);
+			drawSpanNGonMFAT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMFAT_16(pSpan);
+			drawSpanNGonMFAT_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMFAT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedAffine(pSpan, false, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonMFAT_8(RdActiveSpan *span) {
+	drawSpanMaskedAffine(span, false, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMFAT_16(RdActiveSpan *pSpan) {
-	drawSpanNGonMLAT_16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonMFAT_16(RdActiveSpan *span) {
+	drawSpanNGonMLAT_16(span);
 }
 
-void RenderDroid::AFRasterModule::setupNGonGAT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, false, 2, 0.0f, &AFRasterModule::drawNGonGAT, &AFRasterModule::setupEdgeNGonGAT);
+void RenderDroid::AFRasterModule::setupNGonGAT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, false, 2, 0.0f, &AFRasterModule::drawNGonGAT, &AFRasterModule::setupEdgeNGonGAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonGAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonGAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonGAT_16_W8,
 		&AFRasterModule::drawSpanNGonGAT_16_W16,
 		&AFRasterModule::drawSpanNGonGAT_16_W32,
@@ -919,7 +919,7 @@ void RenderDroid::AFRasterModule::drawNGonGAT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonGAT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonGAT_8_W8,
 		&AFRasterModule::drawSpanNGonGAT_8_W16,
 		&AFRasterModule::drawSpanNGonGAT_8_W32,
@@ -929,95 +929,95 @@ void RenderDroid::AFRasterModule::drawNGonGAT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonGAT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonGAT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonGAT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonGAT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-void RenderDroid::AFRasterModule::advanceLeftEdgeNGonGAT(RdActiveEdge *pEdge) {
-	pEdge->x += pEdge->dx;
-	pEdge->u += pEdge->du;
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
-	pEdge->v += pEdge->dv;
-	pEdge->intensity += pEdge->dIntensity;
+void RenderDroid::AFRasterModule::advanceLeftEdgeNGonGAT(RdActiveEdge *edge) {
+	edge->x += edge->dx;
+	edge->u += edge->du;
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
+	edge->v += edge->dv;
+	edge->intensity += edge->dIntensity;
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonGAT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeAffine(pEdge, pFace, v0, v1, true, true, &AFRasterModule::advanceLeftEdgeNGonGAT);
+int RenderDroid::AFRasterModule::setupEdgeNGonGAT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeAffine(edge, face, v0, v1, true, true, &AFRasterModule::advanceLeftEdgeNGonGAT);
 }
 
-void RenderDroid::AFRasterModule::setupNGonMGAT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, false, 2, 0.0f, &AFRasterModule::drawNGonMGAT, &AFRasterModule::setupEdgeNGonGAT);
+void RenderDroid::AFRasterModule::setupNGonMGAT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, false, 2, 0.0f, &AFRasterModule::drawNGonMGAT, &AFRasterModule::setupEdgeNGonGAT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMGAT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMGAT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMGAT_8(pSpan);
+			drawSpanNGonMGAT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMGAT_16(pSpan);
+			drawSpanNGonMGAT_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMGAT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedAffine(pSpan, false, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonMGAT_8(RdActiveSpan *span) {
+	drawSpanMaskedAffine(span, false, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMGAT_16(RdActiveSpan *pSpan) {
-	drawSpanMaskedAffine(pSpan, true, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonMGAT_16(RdActiveSpan *span) {
+	drawSpanMaskedAffine(span, true, 2);
 }
 
-void RenderDroid::AFRasterModule::setupNGonLIT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, true, 0, 0.0f, &AFRasterModule::drawNGonLIT, &AFRasterModule::setupEdgeNGonLIT);
+void RenderDroid::AFRasterModule::setupNGonLIT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, true, 0, 0.0f, &AFRasterModule::drawNGonLIT, &AFRasterModule::setupEdgeNGonLIT);
 }
 
-void RenderDroid::AFRasterModule::loadPerspState(RdActiveFace *pFace) {
-	_mipMapNum = pFace->mipLevel;
-	_pPixels = pFace->pTexPixels;
-	_texRowShift = pFace->texShift;
-	_texPitch = pFace->texPitch;
-	_uWrap = pFace->uWrap;
-	_vWrap = pFace->vWrap;
-	_oneOverZStep = pFace->dOneOverZdX16;
-	_uOverZStep = pFace->dUOverZdX16;
-	_vOverZStep = pFace->dVOverZdX16;
-	_dOneOverZdXFixed = pFace->dOneOverZdXFixed;
-	_dOneOverZdX = pFace->dOneOverZdX;
-	_dUOverZdX = pFace->dUOverZdX;
-	_dVOverZdX = pFace->dVOverZdX;
-	_dUdXModifier = pFace->uModifier;
-	_dVdXModifier = pFace->vModifier;
+void RenderDroid::AFRasterModule::loadPerspState(RdActiveFace *face) {
+	_mipMapNum = face->mipLevel;
+	_pixels = face->texPixels;
+	_texRowShift = face->texShift;
+	_texPitch = face->texPitch;
+	_uWrap = face->uWrap;
+	_vWrap = face->vWrap;
+	_oneOverZStep = face->dOneOverZdX16;
+	_uOverZStep = face->dUOverZdX16;
+	_vOverZStep = face->dVOverZdX16;
+	_dOneOverZdXFixed = face->dOneOverZdXFixed;
+	_dOneOverZdX = face->dOneOverZdX;
+	_dUOverZdX = face->dUOverZdX;
+	_dVOverZdX = face->dVOverZdX;
+	_dUdXModifier = face->uModifier;
+	_dVdXModifier = face->vModifier;
 }
 
-void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonLIT_16_W8,
 		&AFRasterModule::drawSpanNGonLIT_16_W16,
 		&AFRasterModule::drawSpanNGonLIT_16_W32,
@@ -1026,7 +1026,7 @@ void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonLIT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonLIT_8_W8,
 		&AFRasterModule::drawSpanNGonLIT_8_W16,
 		&AFRasterModule::drawSpanNGonLIT_8_W32,
@@ -1036,24 +1036,24 @@ void RenderDroid::AFRasterModule::drawNGonLIT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonLIT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonLIT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonLIT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonLIT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonLIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonPerspective(pEdge, pFace, v0, v1, 0);
+int RenderDroid::AFRasterModule::setupEdgeNGonLIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeNGonPerspective(edge, face, v0, v1, 0);
 }
 
-void RenderDroid::AFRasterModule::setEdgePerspectiveValues(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, float dy, double xOffset, int variant) {
-	double yOneOverZ = (double)pFace->dOneOverZdY * dy;
-	double yUOverZ = (double)pFace->dUOverZdY * dy;
-	double yVOverZ = (double)pFace->dVOverZdY * dy;
-	double xOneOverZ = pFace->dOneOverZdX * xOffset;
-	double xUOverZ = pFace->dUOverZdX * xOffset;
-	double xVOverZ = pFace->dVOverZdX * xOffset;
+void RenderDroid::AFRasterModule::setEdgePerspectiveValues(RdActiveEdge *edge, RdActiveFace *face, int v0, float dy, double xOffset, int variant) {
+	double yOneOverZ = (double)face->dOneOverZdY * dy;
+	double yUOverZ = (double)face->dUOverZdY * dy;
+	double yVOverZ = (double)face->dVOverZdY * dy;
+	double xOneOverZ = face->dOneOverZdX * xOffset;
+	double xUOverZ = face->dUOverZdX * xOffset;
+	double xVOverZ = face->dVOverZdX * xOffset;
 	bool oneYFirst = true;
 	bool vYFirst = false;
 
@@ -1066,130 +1066,130 @@ void RenderDroid::AFRasterModule::setEdgePerspectiveValues(RdActiveEdge *pEdge, 
 	}
 
 	if (oneYFirst)
-		pEdge->oneOverZ = (float)((yOneOverZ + pFace->aOneOverZ[v0]) + xOneOverZ);
+		edge->oneOverZ = (float)((yOneOverZ + face->oneOverZ[v0]) + xOneOverZ);
 	else
-		pEdge->oneOverZ = (float)((xOneOverZ + pFace->aOneOverZ[v0]) + yOneOverZ);
+		edge->oneOverZ = (float)((xOneOverZ + face->oneOverZ[v0]) + yOneOverZ);
 
-	pEdge->uOverZ = (float)((yUOverZ + pFace->aUOverZ[v0]) + xUOverZ);
+	edge->uOverZ = (float)((yUOverZ + face->uOverZ[v0]) + xUOverZ);
 
 	if (vYFirst)
-		pEdge->vOverZ = (float)((yVOverZ + pFace->aVOverZ[v0]) + xVOverZ);
+		edge->vOverZ = (float)((yVOverZ + face->vOverZ[v0]) + xVOverZ);
 	else
-		pEdge->vOverZ = (float)((xVOverZ + pFace->aVOverZ[v0]) + yVOverZ);
+		edge->vOverZ = (float)((xVOverZ + face->vOverZ[v0]) + yVOverZ);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonPerspective(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1, int variant) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	RdVector3 *aVertices = pProcFace->aVertices;
+int RenderDroid::AFRasterModule::setupEdgeNGonPerspective(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1, int variant) {
+	RdProcFace *procFace = face->procFace;
+	RdVector3 *vertices = procFace->vertices;
 
-	float y0 = (float)ceil(aVertices[v0][1]);
-	float y1 = (float)ceil(aVertices[v1][1]);
+	float y0 = (float)ceil(vertices[v0][1]);
+	float y1 = (float)ceil(vertices[v1][1]);
 	int yStart0 = (int)floor(y0);
 	int yStart1 = (int)floor(y1);
 	int numLines = yStart1 - yStart0;
 
-	pEdge->numLines = numLines;
+	edge->numLines = numLines;
 	if (numLines == 0)
 		return 0;
 
 	if (numLines <= 0) {
-		pEdge->bLeft = 0;
+		edge->left = 0;
 		numLines = -numLines;
-		pEdge->yStart = yStart1;
-		pEdge->numLines = numLines;
-		pEdge->pfStep = &AFRasterModule::advanceRightEdgeNGonLIT;
+		edge->yStart = yStart1;
+		edge->numLines = numLines;
+		edge->step = &AFRasterModule::advanceRightEdgeNGonLIT;
 
 		if (numLines >= 2) {
-			float dy = (float)(y1 - aVertices[v1][1]);
-			double slopeX = ((double)aVertices[v0][0] - aVertices[v1][0]) / ((double)aVertices[v0][1] - aVertices[v1][1]);
+			float dy = (float)(y1 - vertices[v1][1]);
+			double slopeX = ((double)vertices[v0][0] - vertices[v1][0]) / ((double)vertices[v0][1] - vertices[v1][1]);
 			float slopeXF = (float)slopeX;
-			pEdge->dx = (int)floor((float)(slopeX * 65536.0));
-			pEdge->x = (int)floor((float)(((double)slopeXF * dy + aVertices[v1][0]) * 65536.0));
+			edge->dx = (int)floor((float)(slopeX * 65536.0));
+			edge->x = (int)floor((float)(((double)slopeXF * dy + vertices[v1][0]) * 65536.0));
 		} else {
-			pEdge->x = (int)floor((float)(aVertices[v1][0] * 65536.0));
+			edge->x = (int)floor((float)(vertices[v1][0] * 65536.0));
 		}
 
 		return 1;
 	}
 
-	pEdge->bLeft = 1;
-	pEdge->yStart = yStart0;
-	pEdge->pfStep = &AFRasterModule::advanceLeftEdgeNGonFIT;
+	edge->left = 1;
+	edge->yStart = yStart0;
+	edge->step = &AFRasterModule::advanceLeftEdgeNGonFIT;
 
-	float dy = (float)(y0 - aVertices[v0][1]);
+	float dy = (float)(y0 - vertices[v0][1]);
 	float startX;
 
 	if (numLines >= 2) {
-		double slopeX = ((double)aVertices[v1][0] - aVertices[v0][0]) / ((double)aVertices[v1][1] - aVertices[v0][1]);
+		double slopeX = ((double)vertices[v1][0] - vertices[v0][0]) / ((double)vertices[v1][1] - vertices[v0][1]);
 		float slopeXF = (float)slopeX;
-		pEdge->dx = (int)floor((float)(slopeX * 65536.0));
+		edge->dx = (int)floor((float)(slopeX * 65536.0));
 
-		double xSum = (double)slopeXF * dy + aVertices[v0][0];
+		double xSum = (double)slopeXF * dy + vertices[v0][0];
 		startX = (float)xSum;
-		pEdge->x = (int)floor((float)(xSum * 65536.0));
+		edge->x = (int)floor((float)(xSum * 65536.0));
 
-		pEdge->dOneOverZ = (float)((double)pFace->dOneOverZdX * slopeXF + pFace->dOneOverZdY);
-		pEdge->dUOverZ = (float)((double)pFace->dUOverZdX * slopeXF + pFace->dUOverZdY);
-		pEdge->dVOverZ = (float)((double)pFace->dVOverZdX * slopeXF + pFace->dVOverZdY);
+		edge->dOneOverZ = (float)((double)face->dOneOverZdX * slopeXF + face->dOneOverZdY);
+		edge->dUOverZ = (float)((double)face->dUOverZdX * slopeXF + face->dUOverZdY);
+		edge->dVOverZ = (float)((double)face->dVOverZdX * slopeXF + face->dVOverZdY);
 	} else {
-		startX = aVertices[v0][0];
-		pEdge->x = (int)floor((float)(startX * 65536.0));
+		startX = vertices[v0][0];
+		edge->x = (int)floor((float)(startX * 65536.0));
 	}
 
-	setEdgePerspectiveValues(pEdge, pFace, v0, dy, (double)startX - aVertices[v0][0], variant);
+	setEdgePerspectiveValues(edge, face, v0, dy, (double)startX - vertices[v0][0], variant);
 
 	return 1;
 }
 
-void RenderDroid::AFRasterModule::advanceLeftEdgeNGonFIT(RdActiveEdge *pEdge) {
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
-	pEdge->uOverZ = (float)((double)pEdge->dUOverZ + pEdge->uOverZ);
-	pEdge->vOverZ = (float)((double)pEdge->dVOverZ + pEdge->vOverZ);
-	pEdge->x += pEdge->dx;
+void RenderDroid::AFRasterModule::advanceLeftEdgeNGonFIT(RdActiveEdge *edge) {
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
+	edge->uOverZ = (float)((double)edge->dUOverZ + edge->uOverZ);
+	edge->vOverZ = (float)((double)edge->dVOverZ + edge->vOverZ);
+	edge->x += edge->dx;
 }
 
-void RenderDroid::AFRasterModule::advanceRightEdgeNGonLIT(RdActiveEdge *pEdge) {
-	pEdge->x += pEdge->dx;
+void RenderDroid::AFRasterModule::advanceRightEdgeNGonLIT(RdActiveEdge *edge) {
+	edge->x += edge->dx;
 }
 
-void RenderDroid::AFRasterModule::setupNGonMLIT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, true, 0, 0.0f, &AFRasterModule::drawNGonMLIT, &AFRasterModule::setupEdgeNGonLIT);
+void RenderDroid::AFRasterModule::setupNGonMLIT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, true, 0, 0.0f, &AFRasterModule::drawNGonMLIT, &AFRasterModule::setupEdgeNGonLIT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMLIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMLIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMLIT_8(pSpan);
+			drawSpanNGonMLIT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMLIT_16(pSpan);
+			drawSpanNGonMLIT_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool bpp16, int lightKind) {
-	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
-	StdVBuffer *pVBuffer = pCanvas->pVBuffer;
-	StdVBuffer *pZBuffer = pCanvas->pZBuffer;
+void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *span, bool bpp16, int lightKind) {
+	RdCanvas *canvas = _rd->_camera.getCurrent()->canvas;
+	StdVBuffer *vBuffer = canvas->vBuffer;
+	StdVBuffer *zBuffer = canvas->zBuffer;
 	SpanRun run;
 
-	run.zShift = getZShift(pCanvas);
+	run.zShift = getZShift(canvas);
 
-	int xAlign = pSpan->x & 0xF;
+	int xAlign = span->x & 0xF;
 	int width = 0;
 
 	if (xAlign) {
-		width = pSpan->width;
+		width = span->width;
 		if (width >= 16 - xAlign)
 			width = 16 - xAlign;
 	}
 
-	int remaining = pSpan->width - width;
+	int remaining = span->width - width;
 	int numChunks = 0;
 	int tail = 0;
 
@@ -1202,9 +1202,9 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 		}
 	}
 
-	float oneOverZ = pSpan->oneOverZ;
-	float uOverZ = pSpan->uOverZ;
-	float vOverZ = pSpan->vOverZ;
+	float oneOverZ = span->oneOverZ;
+	float uOverZ = span->uOverZ;
+	float vOverZ = span->vOverZ;
 
 	run.dz = _dOneOverZdXFixed;
 	run.z = (int)floor((float)(oneOverZ * 65536.0));
@@ -1212,21 +1212,21 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 	run.dIntensity = 0;
 
 	if (lightKind == 2) {
-		run.intensity = pSpan->intensity;
-		run.dIntensity = pSpan->dIntensity;
+		run.intensity = span->intensity;
+		run.dIntensity = span->dIntensity;
 	}
 
 	// The EXE switches the FPU to 24-bit precision rounding toward zero for the whole span
-	_bLowPrecision = true;
+	_lowPrecision = true;
 
 	double inverse = fpuDiv(1.0, oneOverZ);
 
 	if (bpp16)
-		run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * pSpan->y * (pVBuffer->tex.pitchInBytes >> 1);
+		run.dst = vBuffer->pixels + 2 * span->x + 2 * span->y * (vBuffer->tex.pitchInBytes >> 1);
 	else
-		run.pDst = pVBuffer->pPixels + pSpan->y * pVBuffer->tex.pitchInBytes + pSpan->x;
+		run.dst = vBuffer->pixels + span->y * vBuffer->tex.pitchInBytes + span->x;
 
-	run.pZ = (uint16 *)(pZBuffer->pPixels + 2 * pSpan->x + pSpan->y * pZBuffer->tex.pitchInBytes);
+	run.zPointer = (uint16 *)(zBuffer->pixels + 2 * span->x + span->y * zBuffer->tex.pitchInBytes);
 
 	float uStart = (float)fpuMul(inverse, uOverZ);
 	float vStart = (float)fpuMul(inverse, vOverZ);
@@ -1305,32 +1305,32 @@ void RenderDroid::AFRasterModule::drawSpanMaskedPersp(RdActiveSpan *pSpan, bool 
 		plotMaskedRun(run, tail, bpp16, lightKind);
 	}
 
-	_bLowPrecision = false;
+	_lowPrecision = false;
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMLIT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedPersp(pSpan, false, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonMLIT_8(RdActiveSpan *span) {
+	drawSpanMaskedPersp(span, false, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMLIT_16(RdActiveSpan *pSpan) {
-	drawSpanMaskedPersp(pSpan, true, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonMLIT_16(RdActiveSpan *span) {
+	drawSpanMaskedPersp(span, true, 0);
 }
 
-void RenderDroid::AFRasterModule::setupNGonFIT(RdActiveFace *pFace, RdMatCel *pCel, float light) {
-	setupTextured(pFace, pCel, true, 1, light, &AFRasterModule::drawNGonFIT, &AFRasterModule::setupEdgeNGonFIT);
+void RenderDroid::AFRasterModule::setupNGonFIT(RdActiveFace *face, RdMatCel *cel, float light) {
+	setupTextured(face, cel, true, 1, light, &AFRasterModule::drawNGonFIT, &AFRasterModule::setupEdgeNGonFIT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonFIT_16_W8,
 		&AFRasterModule::drawSpanNGonFIT_16_W16,
 		&AFRasterModule::drawSpanNGonFIT_16_W32,
@@ -1339,7 +1339,7 @@ void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonFIT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonFIT_8_W8,
 		&AFRasterModule::drawSpanNGonFIT_8_W16,
 		&AFRasterModule::drawSpanNGonFIT_8_W32,
@@ -1349,62 +1349,62 @@ void RenderDroid::AFRasterModule::drawNGonFIT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonFIT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonFIT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonFIT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonFIT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonFIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	return setupEdgeNGonPerspective(pEdge, pFace, v0, v1, 1);
+int RenderDroid::AFRasterModule::setupEdgeNGonFIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	return setupEdgeNGonPerspective(edge, face, v0, v1, 1);
 }
 
-void RenderDroid::AFRasterModule::setupNGonMFIT(RdActiveFace *pFace, RdMatCel *pCel, float light) {
-	setupTextured(pFace, pCel, true, 1, light, &AFRasterModule::drawNGonMFIT, &AFRasterModule::setupEdgeNGonFIT);
+void RenderDroid::AFRasterModule::setupNGonMFIT(RdActiveFace *face, RdMatCel *cel, float light) {
+	setupTextured(face, cel, true, 1, light, &AFRasterModule::drawNGonMFIT, &AFRasterModule::setupEdgeNGonFIT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMFIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMFIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMFIT_8(pSpan);
+			drawSpanNGonMFIT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMFIT_16(pSpan);
+			drawSpanNGonMFIT_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMFIT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedPersp(pSpan, false, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonMFIT_8(RdActiveSpan *span) {
+	drawSpanMaskedPersp(span, false, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMFIT_16(RdActiveSpan *pSpan) {
-	drawSpanNGonMLIT_16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonMFIT_16(RdActiveSpan *span) {
+	drawSpanNGonMLIT_16(span);
 }
 
-void RenderDroid::AFRasterModule::setupNGonGIT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, true, 2, 0.0f, &AFRasterModule::drawNGonGIT, &AFRasterModule::setupEdgeNGonGIT);
+void RenderDroid::AFRasterModule::setupNGonGIT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, true, 2, 0.0f, &AFRasterModule::drawNGonGIT, &AFRasterModule::setupEdgeNGonGIT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonGIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonGIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	DrawSpanFunc apWidthSpans[6] = {
+	DrawSpanFunc widthSpans[6] = {
 		&AFRasterModule::drawSpanNGonGIT_16_W8,
 		&AFRasterModule::drawSpanNGonGIT_16_W16,
 		&AFRasterModule::drawSpanNGonGIT_16_W32,
@@ -1413,7 +1413,7 @@ void RenderDroid::AFRasterModule::drawNGonGIT(RdActiveFace *pFace) {
 		&AFRasterModule::drawSpanNGonGIT_16_W256
 	};
 
-	DrawSpanFunc apWidthSpans8[6] = {
+	DrawSpanFunc widthSpans8[6] = {
 		&AFRasterModule::drawSpanNGonGIT_8_W8,
 		&AFRasterModule::drawSpanNGonGIT_8_W16,
 		&AFRasterModule::drawSpanNGonGIT_8_W32,
@@ -1423,200 +1423,200 @@ void RenderDroid::AFRasterModule::drawNGonGIT(RdActiveFace *pFace) {
 	};
 
 	if (bpp == 8)
-		_pfDrawSpan = _rd->isDemo() ? selectWidthSpan(pFace->texPitch, apWidthSpans8, &AFRasterModule::drawSpanNGonGIT_8) : nullptr;
+		_drawSpan = _rd->isDemo() ? selectWidthSpan(face->texPitch, widthSpans8, &AFRasterModule::drawSpanNGonGIT_8) : nullptr;
 	else if (bpp == 16)
-		_pfDrawSpan = selectWidthSpan(pFace->texPitch, apWidthSpans, &AFRasterModule::drawSpanNGonGIT_16);
+		_drawSpan = selectWidthSpan(face->texPitch, widthSpans, &AFRasterModule::drawSpanNGonGIT_16);
 
-	drawTexturedSpans(pFace);
+	drawTexturedSpans(face);
 }
 
-void RenderDroid::AFRasterModule::advanceEdgeNGonGIT(RdActiveEdge *pEdge) {
-	pEdge->x += pEdge->dx;
-	pEdge->intensity += pEdge->dIntensity;
+void RenderDroid::AFRasterModule::advanceEdgeNGonGIT(RdActiveEdge *edge) {
+	edge->x += edge->dx;
+	edge->intensity += edge->dIntensity;
 }
 
-void RenderDroid::AFRasterModule::advanceLeftEdgeNGonGIT(RdActiveEdge *pEdge) {
-	pEdge->oneOverZ = (float)((double)pEdge->dOneOverZ + pEdge->oneOverZ);
-	pEdge->x += pEdge->dx;
-	pEdge->uOverZ = (float)((double)pEdge->dUOverZ + pEdge->uOverZ);
-	pEdge->intensity += pEdge->dIntensity;
-	pEdge->vOverZ = (float)((double)pEdge->dVOverZ + pEdge->vOverZ);
+void RenderDroid::AFRasterModule::advanceLeftEdgeNGonGIT(RdActiveEdge *edge) {
+	edge->oneOverZ = (float)((double)edge->dOneOverZ + edge->oneOverZ);
+	edge->x += edge->dx;
+	edge->uOverZ = (float)((double)edge->dUOverZ + edge->uOverZ);
+	edge->intensity += edge->dIntensity;
+	edge->vOverZ = (float)((double)edge->dVOverZ + edge->vOverZ);
 }
 
-int RenderDroid::AFRasterModule::setupEdgeNGonGIT(RdActiveEdge *pEdge, RdActiveFace *pFace, int v0, int v1) {
-	RdProcFace *pProcFace = pFace->pProcFace;
-	RdVector3 *aVertices = pProcFace->aVertices;
-	float *aIntensities = pProcFace->aIntensities;
+int RenderDroid::AFRasterModule::setupEdgeNGonGIT(RdActiveEdge *edge, RdActiveFace *face, int v0, int v1) {
+	RdProcFace *procFace = face->procFace;
+	RdVector3 *vertices = procFace->vertices;
+	float *intensities = procFace->intensities;
 
-	float y0 = (float)ceil(aVertices[v0][1]);
-	float y1 = (float)ceil(aVertices[v1][1]);
+	float y0 = (float)ceil(vertices[v0][1]);
+	float y1 = (float)ceil(vertices[v1][1]);
 	int yStart0 = (int)floor(y0);
 	int yStart1 = (int)floor(y1);
 	int numLines = yStart1 - yStart0;
 
-	pEdge->numLines = numLines;
+	edge->numLines = numLines;
 	if (numLines == 0)
 		return 0;
 
 	if (numLines <= 0) {
-		pEdge->bLeft = 0;
+		edge->left = 0;
 		numLines = -numLines;
-		pEdge->yStart = yStart1;
-		pEdge->numLines = numLines;
-		pEdge->pfStep = &AFRasterModule::advanceEdgeNGonGIT;
+		edge->yStart = yStart1;
+		edge->numLines = numLines;
+		edge->step = &AFRasterModule::advanceEdgeNGonGIT;
 
 		if (numLines >= 2) {
-			float dy = (float)(y1 - aVertices[v1][1]);
-			float inverseDy = (float)(1.0 / ((double)aVertices[v0][1] - aVertices[v1][1]));
+			float dy = (float)(y1 - vertices[v1][1]);
+			float inverseDy = (float)(1.0 / ((double)vertices[v0][1] - vertices[v1][1]));
 
-			double slopeX = ((double)aVertices[v0][0] - aVertices[v1][0]) * inverseDy;
+			double slopeX = ((double)vertices[v0][0] - vertices[v1][0]) * inverseDy;
 			float slopeXF = (float)slopeX;
-			pEdge->dx = (int)floor((float)(slopeX * 65536.0));
-			pEdge->x = (int)floor((float)(((double)slopeXF * dy + aVertices[v1][0]) * 65536.0));
+			edge->dx = (int)floor((float)(slopeX * 65536.0));
+			edge->x = (int)floor((float)(((double)slopeXF * dy + vertices[v1][0]) * 65536.0));
 
-			double slopeI = ((double)aIntensities[v0] - aIntensities[v1]) * inverseDy;
+			double slopeI = ((double)intensities[v0] - intensities[v1]) * inverseDy;
 			float slopeIF = (float)slopeI;
-			pEdge->dIntensity = (int)floor((float)(slopeI * 65536.0));
-			pEdge->intensity = (int)floor((float)(((double)slopeIF * dy + aIntensities[v1]) * 65536.0));
+			edge->dIntensity = (int)floor((float)(slopeI * 65536.0));
+			edge->intensity = (int)floor((float)(((double)slopeIF * dy + intensities[v1]) * 65536.0));
 		} else {
-			pEdge->x = (int)floor((float)(aVertices[v1][0] * 65536.0));
-			pEdge->intensity = (int)floor((float)(aIntensities[v1] * 65536.0));
+			edge->x = (int)floor((float)(vertices[v1][0] * 65536.0));
+			edge->intensity = (int)floor((float)(intensities[v1] * 65536.0));
 		}
 
 		return 1;
 	}
 
-	pEdge->bLeft = 1;
-	pEdge->yStart = yStart0;
-	pEdge->pfStep = &AFRasterModule::advanceLeftEdgeNGonGIT;
+	edge->left = 1;
+	edge->yStart = yStart0;
+	edge->step = &AFRasterModule::advanceLeftEdgeNGonGIT;
 
-	float dy = (float)(y0 - aVertices[v0][1]);
+	float dy = (float)(y0 - vertices[v0][1]);
 	float startX;
 
 	if (numLines >= 2) {
-		float inverseDy = (float)(1.0 / ((double)aVertices[v1][1] - aVertices[v0][1]));
+		float inverseDy = (float)(1.0 / ((double)vertices[v1][1] - vertices[v0][1]));
 
-		double slopeX = ((double)aVertices[v1][0] - aVertices[v0][0]) * inverseDy;
+		double slopeX = ((double)vertices[v1][0] - vertices[v0][0]) * inverseDy;
 		float slopeXF = (float)slopeX;
-		pEdge->dx = (int)floor((float)(slopeX * 65536.0));
+		edge->dx = (int)floor((float)(slopeX * 65536.0));
 
-		double xSum = (double)slopeXF * dy + aVertices[v0][0];
+		double xSum = (double)slopeXF * dy + vertices[v0][0];
 		startX = (float)xSum;
-		pEdge->x = (int)floor((float)(xSum * 65536.0));
+		edge->x = (int)floor((float)(xSum * 65536.0));
 
-		pEdge->dOneOverZ = (float)((double)pFace->dOneOverZdX * slopeXF + pFace->dOneOverZdY);
-		pEdge->dUOverZ = (float)((double)pFace->dUOverZdX * slopeXF + pFace->dUOverZdY);
-		pEdge->dVOverZ = (float)((double)pFace->dVOverZdX * slopeXF + pFace->dVOverZdY);
+		edge->dOneOverZ = (float)((double)face->dOneOverZdX * slopeXF + face->dOneOverZdY);
+		edge->dUOverZ = (float)((double)face->dUOverZdX * slopeXF + face->dUOverZdY);
+		edge->dVOverZ = (float)((double)face->dVOverZdX * slopeXF + face->dVOverZdY);
 
-		double slopeI = ((double)aIntensities[v1] - aIntensities[v0]) * inverseDy;
+		double slopeI = ((double)intensities[v1] - intensities[v0]) * inverseDy;
 		float slopeIF = (float)slopeI;
-		pEdge->dIntensity = (int)floor((float)(slopeI * 65536.0));
-		pEdge->intensity = (int)floor((float)(((double)slopeIF * dy + aIntensities[v0]) * 65536.0));
+		edge->dIntensity = (int)floor((float)(slopeI * 65536.0));
+		edge->intensity = (int)floor((float)(((double)slopeIF * dy + intensities[v0]) * 65536.0));
 	} else {
-		startX = aVertices[v0][0];
-		pEdge->x = (int)floor((float)(startX * 65536.0));
-		pEdge->intensity = (int)floor((float)(aIntensities[v0] * 65536.0));
+		startX = vertices[v0][0];
+		edge->x = (int)floor((float)(startX * 65536.0));
+		edge->intensity = (int)floor((float)(intensities[v0] * 65536.0));
 	}
 
-	setEdgePerspectiveValues(pEdge, pFace, v0, dy, (double)startX - aVertices[v0][0], 2);
+	setEdgePerspectiveValues(edge, face, v0, dy, (double)startX - vertices[v0][0], 2);
 
 	return 1;
 }
 
-void RenderDroid::AFRasterModule::setupNGonMGIT(RdActiveFace *pFace, RdMatCel *pCel) {
-	setupTextured(pFace, pCel, true, 2, 0.0f, &AFRasterModule::drawNGonMGIT, &AFRasterModule::setupEdgeNGonGIT);
+void RenderDroid::AFRasterModule::setupNGonMGIT(RdActiveFace *face, RdMatCel *cel) {
+	setupTextured(face, cel, true, 2, 0.0f, &AFRasterModule::drawNGonMGIT, &AFRasterModule::setupEdgeNGonGIT);
 }
 
-void RenderDroid::AFRasterModule::drawNGonMGIT(RdActiveFace *pFace) {
-	int bpp = _rd->_camera.getCurrent()->pCanvas->pVBuffer->tex.format.bpp;
+void RenderDroid::AFRasterModule::drawNGonMGIT(RdActiveFace *face) {
+	int bpp = _rd->_camera.getCurrent()->canvas->vBuffer->tex.format.bpp;
 
 	if (bpp == 8)
-		_aMonoMap = pFace->pLightLevel;
+		_monoMap = face->lightLevel;
 	else if (bpp == 16)
-		_aRGBMap = pFace->pRGB16;
+		_rgbMap = face->rgb16;
 
-	loadPerspState(pFace);
+	loadPerspState(face);
 
-	for (RdActiveSpan *pSpan = pFace->pFirstSpan; pSpan; pSpan = pSpan->pNext) {
+	for (RdActiveSpan *span = face->firstSpan; span; span = span->next) {
 		if (bpp == 8)
-			drawSpanNGonMGIT_8(pSpan);
+			drawSpanNGonMGIT_8(span);
 		else if (bpp == 16)
-			drawSpanNGonMGIT_16(pSpan);
+			drawSpanNGonMGIT_16(span);
 	}
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMGIT_8(RdActiveSpan *pSpan) {
-	drawSpanMaskedPersp(pSpan, false, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonMGIT_8(RdActiveSpan *span) {
+	drawSpanMaskedPersp(span, false, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonMGIT_16(RdActiveSpan *pSpan) {
-	drawSpanMaskedPersp(pSpan, true, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonMGIT_16(RdActiveSpan *span) {
+	drawSpanMaskedPersp(span, true, 2);
 }
 
-void RenderDroid::AFRasterModule::drawZSpan(RdActiveSpan *pSpan) {
-	StdVBuffer *pZBuffer = _rd->_camera.getCurrent()->pCanvas->pZBuffer;
-	uint16 *pDst = (uint16 *)(pZBuffer->pPixels + 2 * pSpan->x + pZBuffer->tex.pitchInBytes * pSpan->y);
-	uint32 z = (uint32)(int)floor((float)(pSpan->oneOverZ * 65536.0));
+void RenderDroid::AFRasterModule::drawZSpan(RdActiveSpan *span) {
+	StdVBuffer *zBuffer = _rd->_camera.getCurrent()->canvas->zBuffer;
+	uint16 *dst = (uint16 *)(zBuffer->pixels + 2 * span->x + zBuffer->tex.pitchInBytes * span->y);
+	uint32 z = (uint32)(int)floor((float)(span->oneOverZ * 65536.0));
 	uint32 dz = (uint32)_dOneOverZdXFixed;
 
-	for (int i = 0; i < pSpan->width; i++) {
-		pDst[i] = (uint16)z;
+	for (int i = 0; i < span->width; i++) {
+		dst[i] = (uint16)z;
 		z += dz;
 	}
 }
 
-void RenderDroid::AFRasterModule::drawZSpanShifted(RdActiveSpan *pSpan) {
-	RdCanvas *pCanvas = _rd->_camera.getCurrent()->pCanvas;
-	StdVBuffer *pZBuffer = pCanvas->pZBuffer;
-	uint16 *pDst = (uint16 *)(pZBuffer->pPixels + 2 * pSpan->x + pZBuffer->tex.pitchInBytes * pSpan->y);
-	int shift = getZShift(pCanvas);
-	uint32 z = (uint32)(int)floor((float)(pSpan->oneOverZ * 65536.0));
+void RenderDroid::AFRasterModule::drawZSpanShifted(RdActiveSpan *span) {
+	RdCanvas *canvas = _rd->_camera.getCurrent()->canvas;
+	StdVBuffer *zBuffer = canvas->zBuffer;
+	uint16 *dst = (uint16 *)(zBuffer->pixels + 2 * span->x + zBuffer->tex.pitchInBytes * span->y);
+	int shift = getZShift(canvas);
+	uint32 z = (uint32)(int)floor((float)(span->oneOverZ * 65536.0));
 	uint32 dz = (uint32)_dOneOverZdXFixed;
 
-	for (int i = 0; i < pSpan->width; i++) {
-		pDst[i] = (uint16)(z >> shift);
+	for (int i = 0; i < span->width; i++) {
+		dst[i] = (uint16)(z >> shift);
 		z += dz;
 	}
 }
 
-void RenderDroid::AFRasterModule::plotRun16(SpanRun &run, int count, bool bIntensity) {
-	const uint16 *pRGB = (const uint16 *)_aRGBMap;
-	uint16 *pDst = (uint16 *)run.pDst;
+void RenderDroid::AFRasterModule::plotRun16(SpanRun &run, int count, bool intensity) {
+	const uint16 *rgb = (const uint16 *)_rgbMap;
+	uint16 *dst = (uint16 *)run.dst;
 
 	for (int i = 0; i < count; i++) {
-		int index = _pPixels[((run.uMask & run.u) >> 16) | (_vWrap & (run.v >> run.vShift))];
+		int index = _pixels[((run.uMask & run.u) >> 16) | (_vWrap & (run.v >> run.vShift))];
 
-		if (bIntensity)
+		if (intensity)
 			index += (run.intensity & 0x3F0000) >> 8;
 
-		pDst[i] = pRGB[index];
+		dst[i] = rgb[index];
 
 		run.u += run.du;
 		run.v += run.dv;
 
-		if (bIntensity)
+		if (intensity)
 			run.intensity += run.dIntensity;
 	}
 
-	run.pDst += 2 * count;
+	run.dst += 2 * count;
 }
 
-void RenderDroid::AFRasterModule::plotRun8(SpanRun &run, int count, int lightKind, bool bPairedIntensity) {
+void RenderDroid::AFRasterModule::plotRun8(SpanRun &run, int count, int lightKind, bool pairedIntensity) {
 	int pairIntensity = run.intensity;
 
 	for (int i = 0; i < count; i++) {
-		uint index = (uint)_pPixels[((run.uMask & (uint)run.u) >> 16) + (_vWrap & ((uint)run.v >> run.vShift))];
+		uint index = (uint)_pixels[((run.uMask & (uint)run.u) >> 16) + (_vWrap & ((uint)run.v >> run.vShift))];
 
 		// The gouraud blocks of 16 pixels use one intensity for each pair of pixels
-		if (!bPairedIntensity || !(i & 1))
+		if (!pairedIntensity || !(i & 1))
 			pairIntensity = run.intensity;
 
 		if (lightKind == 1)
-			index = _aMonoMap[index];
+			index = _monoMap[index];
 		else if (lightKind == 2)
-			index = _aMonoMap[index + ((pairIntensity & 0x3F0000) >> 8)];
+			index = _monoMap[index + ((pairIntensity & 0x3F0000) >> 8)];
 
-		run.pDst[i] = (byte)index;
+		run.dst[i] = (byte)index;
 
 		run.u += run.du;
 		run.v += run.dv;
@@ -1625,58 +1625,58 @@ void RenderDroid::AFRasterModule::plotRun8(SpanRun &run, int count, int lightKin
 			run.intensity += run.dIntensity;
 	}
 
-	run.pDst += count;
+	run.dst += count;
 }
 
-void RenderDroid::AFRasterModule::plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool bChunk) {
+void RenderDroid::AFRasterModule::plotPerspRun(SpanRun &run, int count, int lightKind, bool bpp16, bool chunk) {
 	if (bpp16)
 		plotRun16(run, count, lightKind == 2);
 	else
-		plotRun8(run, count, lightKind, bChunk && lightKind == 2);
+		plotRun8(run, count, lightKind, chunk && lightKind == 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanAffine8(RdActiveSpan *pSpan, int vShift, int lightKind) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
+void RenderDroid::AFRasterModule::drawSpanAffine8(RdActiveSpan *span, int vShift, int lightKind) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
 	SpanRun run;
 
-	run.pDst = pVBuffer->pPixels + pSpan->x + pVBuffer->tex.pitchInBytes * pSpan->y;
-	run.u = pSpan->u + _dUdXModifier;
-	run.du = pSpan->du;
-	run.v = pSpan->v + _dVdXModifier;
-	run.dv = pSpan->dv;
+	run.dst = vBuffer->pixels + span->x + vBuffer->tex.pitchInBytes * span->y;
+	run.u = span->u + _dUdXModifier;
+	run.du = span->du;
+	run.v = span->v + _dVdXModifier;
+	run.dv = span->dv;
 	run.uMask = _uWrap;
 	run.vShift = vShift;
 	run.intensity = 0;
 	run.dIntensity = 0;
 
 	if (lightKind == 2) {
-		run.intensity = pSpan->intensity;
-		run.dIntensity = pSpan->dIntensity;
+		run.intensity = span->intensity;
+		run.dIntensity = span->dIntensity;
 	}
 
-	plotRun8(run, pSpan->width, lightKind, false);
+	plotRun8(run, span->width, lightKind, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
+void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *span, int uMask, int vShift, bool intensity) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
 	SpanRun run;
 
-	run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y;
-	run.u = pSpan->u + _dUdXModifier;
-	run.du = pSpan->du;
-	run.v = pSpan->v + _dVdXModifier;
-	run.dv = pSpan->dv;
+	run.dst = vBuffer->pixels + 2 * span->x + 2 * (vBuffer->tex.pitchInBytes >> 1) * span->y;
+	run.u = span->u + _dUdXModifier;
+	run.du = span->du;
+	run.v = span->v + _dVdXModifier;
+	run.dv = span->dv;
 	run.uMask = uMask;
 	run.vShift = vShift;
 	run.intensity = 0;
 	run.dIntensity = 0;
 
-	if (bIntensity) {
-		run.intensity = pSpan->intensity;
-		run.dIntensity = pSpan->dIntensity;
+	if (intensity) {
+		run.intensity = span->intensity;
+		run.dIntensity = span->dIntensity;
 	}
 
-	plotRun16(run, pSpan->width, bIntensity);
+	plotRun16(run, span->width, intensity);
 
 	_spanU = run.u;
 	_spanV = run.v;
@@ -1684,25 +1684,25 @@ void RenderDroid::AFRasterModule::drawSpanAffine16(RdActiveSpan *pSpan, int uMas
 	_spanDV = run.dv;
 }
 
-void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *pSpan, int uMask, int vShift, bool bIntensity) {
-	drawSpanPersp(pSpan, uMask, vShift, bIntensity ? 2 : 0, true);
+void RenderDroid::AFRasterModule::drawSpanPersp16(RdActiveSpan *span, int uMask, int vShift, bool intensity) {
+	drawSpanPersp(span, uMask, vShift, intensity ? 2 : 0, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *pSpan, int uMask, int vShift, int lightKind, bool bpp16) {
-	StdVBuffer *pVBuffer = _rd->_camera.getCurrent()->pCanvas->pVBuffer;
+void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *span, int uMask, int vShift, int lightKind, bool bpp16) {
+	StdVBuffer *vBuffer = _rd->_camera.getCurrent()->canvas->vBuffer;
 	SpanRun run;
-	bool bIntensity = (lightKind == 2);
+	bool intensity = (lightKind == 2);
 
-	int xAlign = pSpan->x & 0xF;
+	int xAlign = span->x & 0xF;
 	int width = 0;
 
 	if (xAlign) {
-		width = pSpan->width;
+		width = span->width;
 		if (width >= 16 - xAlign)
 			width = 16 - xAlign;
 	}
 
-	int remaining = pSpan->width - width;
+	int remaining = span->width - width;
 	int numChunks = 0;
 	int tail = 0;
 
@@ -1715,29 +1715,29 @@ void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *pSpan, int uMask, 
 		}
 	}
 
-	float oneOverZ = pSpan->oneOverZ;
-	float uOverZ = pSpan->uOverZ;
-	float vOverZ = pSpan->vOverZ;
+	float oneOverZ = span->oneOverZ;
+	float uOverZ = span->uOverZ;
+	float vOverZ = span->vOverZ;
 
-	_bLowPrecision = true;
+	_lowPrecision = true;
 
 	double inverse = fpuDiv(1.0, oneOverZ);
 	float uStart = (float)fpuMul(inverse, uOverZ);
 	float vStart = (float)fpuMul(inverse, vOverZ);
 
 	if (bpp16)
-		run.pDst = pVBuffer->pPixels + 2 * pSpan->x + 2 * (pVBuffer->tex.pitchInBytes >> 1) * pSpan->y;
+		run.dst = vBuffer->pixels + 2 * span->x + 2 * (vBuffer->tex.pitchInBytes >> 1) * span->y;
 	else
-		run.pDst = pVBuffer->pPixels + pSpan->x + pVBuffer->tex.pitchInBytes * pSpan->y;
+		run.dst = vBuffer->pixels + span->x + vBuffer->tex.pitchInBytes * span->y;
 
 	run.uMask = uMask;
 	run.vShift = vShift;
 	run.intensity = 0;
 	run.dIntensity = 0;
 
-	if (bIntensity) {
-		run.intensity = pSpan->intensity;
-		run.dIntensity = pSpan->dIntensity;
+	if (intensity) {
+		run.intensity = span->intensity;
+		run.dIntensity = span->dIntensity;
 	}
 
 	run.u = _spanU;
@@ -1824,7 +1824,7 @@ void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *pSpan, int uMask, 
 		plotPerspRun(run, tail, lightKind, bpp16, false);
 	}
 
-	_bLowPrecision = false;
+	_lowPrecision = false;
 	_spanU = run.u;
 	_spanV = run.v;
 	_spanDU = run.du;
@@ -1832,7 +1832,7 @@ void RenderDroid::AFRasterModule::drawSpanPersp(RdActiveSpan *pSpan, int uMask, 
 }
 
 double RenderDroid::AFRasterModule::fpuRound(double value) {
-	if (!_bLowPrecision)
+	if (!_lowPrecision)
 		return value;
 
 	float result = (float)value;
@@ -1862,340 +1862,340 @@ double RenderDroid::AFRasterModule::fpuDiv(double a, double b) {
 	return fpuRound(a / b);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, _uWrap, 16 - _texRowShift, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16(RdActiveSpan *span) {
+	drawSpanAffine16(span, _uWrap, 16 - _texRowShift, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x70000, 13, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W8(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x70000, 13, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0xF0000, 12, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W16(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0xF0000, 12, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x1F0000, 11, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W32(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x1F0000, 11, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x3F0000, 10, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W64(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x3F0000, 10, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x7F0000, 9, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W128(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x7F0000, 9, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0xFF0000, 8, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_16_W256(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0xFF0000, 8, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16(RdActiveSpan *span) {
+	drawSpanNGonLAT_16(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W8(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W8(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W8(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W16(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W16(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W32(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W32(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W32(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W64(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W64(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W64(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W128(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W128(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W128(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanNGonLAT_16_W256(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_16_W256(RdActiveSpan *span) {
+	drawSpanNGonLAT_16_W256(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, _uWrap, 16 - _texRowShift, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16(RdActiveSpan *span) {
+	drawSpanAffine16(span, _uWrap, 16 - _texRowShift, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x70000, 13, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W8(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x70000, 13, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0xF0000, 12, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W16(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0xF0000, 12, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x1F0000, 11, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W32(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x1F0000, 11, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x3F0000, 10, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W64(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x3F0000, 10, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0x7F0000, 9, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W128(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0x7F0000, 9, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanAffine16(pSpan, 0xFF0000, 8, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_16_W256(RdActiveSpan *span) {
+	drawSpanAffine16(span, 0xFF0000, 8, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, _uWrap, 16 - _texRowShift, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16(RdActiveSpan *span) {
+	drawSpanPersp16(span, _uWrap, 16 - _texRowShift, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x70000, 13, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W8(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x70000, 13, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0xF0000, 12, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W16(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0xF0000, 12, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x1F0000, 11, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W32(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x1F0000, 11, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x3F0000, 10, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W64(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x3F0000, 10, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x7F0000, 9, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W128(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x7F0000, 9, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0xFF0000, 8, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_16_W256(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0xFF0000, 8, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16(RdActiveSpan *span) {
+	drawSpanNGonLIT_16(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W8(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W8(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W8(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W16(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W16(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W16(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W32(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W32(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W32(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W64(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W64(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W64(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W128(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W128(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W128(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanNGonLIT_16_W256(pSpan);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_16_W256(RdActiveSpan *span) {
+	drawSpanNGonLIT_16_W256(span);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, _uWrap, 16 - _texRowShift, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16(RdActiveSpan *span) {
+	drawSpanPersp16(span, _uWrap, 16 - _texRowShift, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W8(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x70000, 13, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W8(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x70000, 13, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W16(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0xF0000, 12, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W16(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0xF0000, 12, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W32(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x1F0000, 11, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W32(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x1F0000, 11, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W64(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x3F0000, 10, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W64(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x3F0000, 10, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W128(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0x7F0000, 9, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W128(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0x7F0000, 9, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W256(RdActiveSpan *pSpan) {
-	drawSpanPersp16(pSpan, 0xFF0000, 8, true);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_16_W256(RdActiveSpan *span) {
+	drawSpanPersp16(span, 0xFF0000, 8, true);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 16 - _texRowShift, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 16 - _texRowShift, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 13, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 13, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 12, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W16(RdActiveSpan *span) {
+	drawSpanAffine8(span, 12, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 11, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W32(RdActiveSpan *span) {
+	drawSpanAffine8(span, 11, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 10, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W64(RdActiveSpan *span) {
+	drawSpanAffine8(span, 10, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 9, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W128(RdActiveSpan *span) {
+	drawSpanAffine8(span, 9, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 8, 0);
+void RenderDroid::AFRasterModule::drawSpanNGonLAT_8_W256(RdActiveSpan *span) {
+	drawSpanAffine8(span, 8, 0);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 16 - _texRowShift, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 16 - _texRowShift, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 13, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 13, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 12, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W16(RdActiveSpan *span) {
+	drawSpanAffine8(span, 12, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 11, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W32(RdActiveSpan *span) {
+	drawSpanAffine8(span, 11, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 10, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W64(RdActiveSpan *span) {
+	drawSpanAffine8(span, 10, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 9, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W128(RdActiveSpan *span) {
+	drawSpanAffine8(span, 9, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 8, 1);
+void RenderDroid::AFRasterModule::drawSpanNGonFAT_8_W256(RdActiveSpan *span) {
+	drawSpanAffine8(span, 8, 1);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 16 - _texRowShift, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 16 - _texRowShift, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 13, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W8(RdActiveSpan *span) {
+	drawSpanAffine8(span, 13, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 12, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W16(RdActiveSpan *span) {
+	drawSpanAffine8(span, 12, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 11, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W32(RdActiveSpan *span) {
+	drawSpanAffine8(span, 11, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 10, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W64(RdActiveSpan *span) {
+	drawSpanAffine8(span, 10, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 9, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W128(RdActiveSpan *span) {
+	drawSpanAffine8(span, 9, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanAffine8(pSpan, 8, 2);
+void RenderDroid::AFRasterModule::drawSpanNGonGAT_8_W256(RdActiveSpan *span) {
+	drawSpanAffine8(span, 8, 2);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 16 - _texRowShift, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 13, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 13, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 12, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W16(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 12, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 11, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W32(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 11, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 10, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W64(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 10, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 9, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W128(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 9, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 8, 0, false);
+void RenderDroid::AFRasterModule::drawSpanNGonLIT_8_W256(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 8, 0, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 16 - _texRowShift, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 13, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 13, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 12, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W16(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 12, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 11, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W32(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 11, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 10, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W64(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 10, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 9, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W128(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 9, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 8, 1, false);
+void RenderDroid::AFRasterModule::drawSpanNGonFIT_8_W256(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 8, 1, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 16 - _texRowShift, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 16 - _texRowShift, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W8(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 13, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W8(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 13, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W16(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 12, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W16(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 12, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W32(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 11, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W32(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 11, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W64(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 10, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W64(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 10, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W128(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 9, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W128(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 9, 2, false);
 }
 
-void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W256(RdActiveSpan *pSpan) {
-	drawSpanPersp(pSpan, _uWrap, 8, 2, false);
+void RenderDroid::AFRasterModule::drawSpanNGonGIT_8_W256(RdActiveSpan *span) {
+	drawSpanPersp(span, _uWrap, 8, 2, false);
 }
 
 } // End of namespace Grim

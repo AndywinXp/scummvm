@@ -34,10 +34,10 @@ namespace Grim {
 
 class Text;
 
-extern const byte g_systemFontData[];
+extern const byte systemFontData[];
 
 struct BlastTextSurface {
-	byte *pPixels;
+	byte *pixels;
 	int width;
 	int height;
 	int bytesPerPixel;
@@ -51,7 +51,7 @@ struct BlastTextGlyph {
 	signed char xOffset;
 	signed char yOffset;
 	byte pad;
-	byte *pPixels;
+	byte *pixels;
 	uint width;
 	uint height;
 	int reserved20;
@@ -66,15 +66,15 @@ struct BlastTextFont {
 	uint maxY;
 	int firstChar;
 	int lastChar;
-	uint16 *aCharMap;
-	BlastTextGlyph *aGlyphs;
-	byte *pPixels;
+	uint16 *charMap;
+	BlastTextGlyph *glyphs;
+	byte *pixels;
 };
 
 struct TextParams {
-	BlastTextSurface *pSurface;
-	StdRect *pClip;
-	BlastTextFont *pFont;
+	BlastTextSurface *surface;
+	StdRect *clip;
+	BlastTextFont *font;
 	int x;
 	int y;
 	int fgColor;
@@ -83,35 +83,35 @@ struct TextParams {
 	uint scaleX;
 	uint scaleY;
 	int flags;
-	byte *pColorMap;
+	byte *colorMap;
 };
 
 class BlastText {
 public:
-	BlastText(Text *pText);
+	BlastText(Text *text);
 
 	BlastTextSurface *getSurface() { return &_surface; }
 
-	int load(const char *fileName, BlastTextFont *&pFont);
-	int initFont(BlastTextFont *&pFont);
-	void initFontHelper(const byte *pSource, BlastTextGlyph *pGlyph, int bitsPerPixel, const byte *pMap);
-	int read(Common::SeekableReadStream *pFile, BlastTextFont *&pFont);
-	const char *measureString(TextParams *pParams, BlastTextFont *pFont, const char *pText, int *pWidth, int *pCount, int bAdvance);
-	uint charWidth(const TextParams *pParams, BlastTextFont *pFont, int c);
-	uint charPositionHelper(const TextParams *pParams, BlastTextFont *pFont, byte c);
-	void drawString(TextParams *pParams, BlastTextFont *pFont, const char *pText);
-	void drawChars(TextParams *pParams, BlastTextFont *pFont, int c);
-	void drawCharsCase0(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams);
-	void drawCharsCase4(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams);
-	void drawCharsCase1(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams);
-	void drawCharsCase6(BlastTextGlyph *pGlyph, BlastTextFont *pFont, TextParams *pParams);
+	int load(const char *fileName, BlastTextFont *&font);
+	int initFont(BlastTextFont *&font);
+	void initFontHelper(const byte *source, BlastTextGlyph *glyph, int bitsPerPixel, const byte *map);
+	int read(Common::SeekableReadStream *file, BlastTextFont *&font);
+	const char *measureString(TextParams *params, BlastTextFont *font, const char *text, int *width, int *count, int advance);
+	uint charWidth(const TextParams *params, BlastTextFont *font, int c);
+	uint charPositionHelper(const TextParams *params, BlastTextFont *font, byte c);
+	void drawString(TextParams *params, BlastTextFont *font, const char *text);
+	void drawChars(TextParams *params, BlastTextFont *font, int c);
+	void drawCharsCase0(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params);
+	void drawCharsCase4(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params);
+	void drawCharsCase1(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params);
+	void drawCharsCase6(BlastTextGlyph *glyph, BlastTextFont *font, TextParams *params);
 
 	friend class Text;
 
 private:
-	Text *_pText;
+	Text *_text;
 	BlastTextSurface _surface;
-	byte _aCharMap[256];
+	byte _charMap[256];
 };
 
 } // End of namespace Grim

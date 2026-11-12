@@ -30,7 +30,7 @@
 
 namespace Grim {
 
-static const ControlSymbol g_controlSymbolTable[kNumControlSymbols] = {
+static const ControlSymbol controlSymbolTable[kNumControlSymbols] = {
 	{ 4, 1, 0, "KEY_ESCAPE" },
 	{ 4, 2, 0, "KEY_1" },
 	{ 4, 3, 0, "KEY_2" },
@@ -200,10 +200,10 @@ static const ControlSymbol g_controlSymbolTable[kNumControlSymbols] = {
 	{ 2, 14, 0, "AXIS_MOUSE_Z" }
 };
 
-SputControl::SputControl(RenderDroid *pRd, SputRoom *pSputRoom, StdControl *pStdControl) : _pRd(pRd), _pSputRoom(pSputRoom),
-		_pStdControl(pStdControl), _pGrim(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _bControlOpen(0), _numCallbacks(0) {
-	memset(_apCallbacks, 0, sizeof(_apCallbacks));
-	memcpy(_aControlSymbols, g_controlSymbolTable, sizeof(_aControlSymbols));
+SputControl::SputControl(RenderDroid *rd, SputRoom *sputRoom, StdControl *stdControl) : _rd(rd), _sputRoom(sputRoom),
+		_stdControl(stdControl), _grim(nullptr), _hs(nullptr), _initialized(0), _started(0), _controlOpen(0), _numCallbacks(0) {
+	memset(_callbacks, 0, sizeof(_callbacks));
+	memcpy(_controlSymbols, controlSymbolTable, sizeof(_controlSymbols));
 }
 
 int SputControl::controlCallback(float frameTime) {
@@ -212,75 +212,75 @@ int SputControl::controlCallback(float frameTime) {
 
 void SputControl::resetSymbols() {
 	for (int i = 0; i < kNumControlSymbols; i++) {
-		_aControlSymbols[i].flags &= 0xFFFFFFF6;
-		_aControlSymbols[i].lastValue = 0;
+		_controlSymbols[i].flags &= 0xFFFFFFF6;
+		_controlSymbols[i].lastValue = 0;
 	}
 
-	_pStdControl->reset();
+	_stdControl->reset();
 }
 
 void SputControl::enableControl(uint index) {
 	if (index < (uint)kNumControlSymbols) {
-		ControlSymbol *pSymbol = &_aControlSymbols[index];
+		ControlSymbol *symbol = &_controlSymbols[index];
 
-		if (pSymbol->flags & 2)
-			_pStdControl->pressButton(pSymbol->code);
+		if (symbol->flags & 2)
+			_stdControl->pressButton(symbol->code);
 
-		if (!(pSymbol->flags & 1))
-			pSymbol->flags |= 1;
+		if (!(symbol->flags & 1))
+			symbol->flags |= 1;
 	}
 }
 
 void SputControl::disableControl(uint index) {
 	if (index < (uint)kNumControlSymbols) {
-		ControlSymbol *pSymbol = &_aControlSymbols[index];
+		ControlSymbol *symbol = &_controlSymbols[index];
 
-		if (pSymbol->flags & 1)
-			pSymbol->flags &= ~1u;
+		if (symbol->flags & 1)
+			symbol->flags &= ~1u;
 	}
 }
 
-int SputControl::initialize(SysStruct *pHS) {
-	if (!_bInitialized) {
-		_pHS = pHS;
-		_bInitialized = 1;
+int SputControl::initialize(SysStruct *hs) {
+	if (!_initialized) {
+		_hs = hs;
+		_initialized = 1;
 	}
 
 	return 0;
 }
 
 int SputControl::open() {
-	int result = _pStdControl->open();
+	int result = _stdControl->open();
 
 	if (result) {
 		result = 1;
-		_bControlOpen = 1;
+		_controlOpen = 1;
 	}
 
 	return result;
 }
 
 int SputControl::close() {
-	if (!_bControlOpen)
+	if (!_controlOpen)
 		return 0;
 
-	int result = _pStdControl->close();
+	int result = _stdControl->close();
 
 	if (result) {
-		_bControlOpen = 0;
+		_controlOpen = 0;
 		return 1;
 	}
 
 	return result;
 }
 
-int SputControl::addCallback(SputControlCallback *pCallback) {
+int SputControl::addCallback(SputControlCallback *callback) {
 	if (_numCallbacks >= kMaxControlCallbacks) {
 		warning("SputControl::addCallback(): too many callbacks");
 		return _numCallbacks;
 	}
 
-	_apCallbacks[_numCallbacks] = pCallback;
+	_callbacks[_numCallbacks] = callback;
 	_numCallbacks++;
 
 	return _numCallbacks;
@@ -288,51 +288,51 @@ int SputControl::addCallback(SputControlCallback *pCallback) {
 
 void SputControl::update(float frameTime) {
 	if (_numCallbacks > 0) {
-		_pStdControl->readControls();
+		_stdControl->readControls();
 
 		for (int i = 0; i < _numCallbacks; i++) {
-			if (_apCallbacks[i] && _apCallbacks[i]->controlCallback(frameTime))
+			if (_callbacks[i] && _callbacks[i]->controlCallback(frameTime))
 				break;
 		}
 
-		_pRd->_primit3.clearFrameCounters();
+		_rd->_primit3.clearFrameCounters();
 	}
 }
 
 int SputControl::standardHandler() {
-	if (_pGrim->getGameFlags() & ADGF_DEMO) {
-		int bKeyDown = _pStdControl->readKey(29, nullptr, nullptr);
-		if (!bKeyDown)
+	if (_grim->getGameFlags() & ADGF_DEMO) {
+		int keyDown = _stdControl->readKey(29, nullptr, nullptr);
+		if (!keyDown)
 			return 0;
 
-		bKeyDown = _pStdControl->readKey(78, nullptr, nullptr);
-		if (bKeyDown)
+		keyDown = _stdControl->readKey(78, nullptr, nullptr);
+		if (keyDown)
 			changeFOV(0.5);
 
-		bKeyDown = _pStdControl->readKey(74, nullptr, nullptr);
-		if (bKeyDown)
+		keyDown = _stdControl->readKey(74, nullptr, nullptr);
+		if (keyDown)
 			return changeFOV(-0.5);
 
 		return 0;
 	}
 
-	int bKeyDown = _pGrim->getDebugKeys();
+	int keyDown = _grim->getDebugKeys();
 
-	if (!bKeyDown)
+	if (!keyDown)
 		return 0;
 
-	bKeyDown = _pStdControl->readKey(29, nullptr, nullptr);
-	if (!bKeyDown)
+	keyDown = _stdControl->readKey(29, nullptr, nullptr);
+	if (!keyDown)
 		return 0;
 
 	double step;
 
-	bKeyDown = _pStdControl->readKey(78, nullptr, nullptr);
-	if (bKeyDown) {
+	keyDown = _stdControl->readKey(78, nullptr, nullptr);
+	if (keyDown) {
 		step = 0.5;
 	} else {
-		bKeyDown = _pStdControl->readKey(74, nullptr, nullptr);
-		if (!bKeyDown)
+		keyDown = _stdControl->readKey(74, nullptr, nullptr);
+		if (!keyDown)
 			return 0;
 
 		step = -0.5;
@@ -342,49 +342,49 @@ int SputControl::standardHandler() {
 }
 
 int SputControl::changeFOV(double step) {
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 
-	if (!pRoom || pRoom->curSetup < 0 || (uint)pRoom->curSetup >= pRoom->numSetups) {
+	if (!room || room->curSetup < 0 || (uint)room->curSetup >= room->numSetups) {
 		warning("SputControl::changeFOV(): there is no current setup");
 		return 0;
 	}
 
-	RdCamera *pCamera = pRoom->pSetups[pRoom->curSetup].camera.prdCamera;
+	RdCamera *camera = room->setups[room->curSetup].camera.prdCamera;
 
-	if (_pGrim->getGameFlags() & ADGF_DEMO)
-		debug("Changing FOV from %f to %f...", (double)pCamera->fov, (double)pCamera->fov + step);
+	if (_grim->getGameFlags() & ADGF_DEMO)
+		debug("Changing FOV from %f to %f...", (double)camera->fov, (double)camera->fov + step);
 
-	_pRd->_camera.setFOV(pCamera, (float)((double)pCamera->fov + step));
+	_rd->_camera.setFOV(camera, (float)((double)camera->fov + step));
 
 	return 1;
 }
 
 int SputControl::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputControl::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	if (!_pStdControl->isStarted() && !_pStdControl->startup())
+	if (!_stdControl->isStarted() && !_stdControl->startup())
 		return 1;
 
 	resetSymbols();
 	addCallback(this);
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
 
 int SputControl::shutdown() {
-	_pStdControl->shutdown();
-	_bStarted = 0;
+	_stdControl->shutdown();
+	_started = 0;
 
 	return 0;
 }

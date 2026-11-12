@@ -35,9 +35,9 @@ public:
 
 	void setNode(CNode *newNode);
 
-	CNodeRef *prev;
-	CNodeRef *next;
-	CNode *node;
+	CNodeRef *_prev;
+	CNodeRef *_next;
+	CNode *_node;
 
 private:
 	void unlinkFromNode();

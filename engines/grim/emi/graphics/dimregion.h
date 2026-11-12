@@ -44,11 +44,11 @@ public:
 	static void undimAll(EmiEngine *engine);
 	static int drawDimRegions(EmiEngine *engine, CDrawContext *drawContext);
 
-	DimRegion *prev;
-	DimRegion *next;
-	FRect rect;
-	float alpha;
-	int id;
+	DimRegion *_prev;
+	DimRegion *_next;
+	FRect _rect;
+	float _alpha;
+	int _id;
 };
 
 } // End of namespace Grim

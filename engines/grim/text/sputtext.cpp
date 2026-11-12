@@ -45,11 +45,11 @@ static uint16 colorToRgb565(int color) {
 	return (uint16)(((value >> 19) & 0x1F) | (32 * (((uint16)(value >> 3) << 6) | ((value >> 10) & 0x3F))));
 }
 
-SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *pText, BlastText *pBlastText, SputTime *pSputTime, Polyglot *pPolyglot) :
-		_pRes(pRes), _pRd(pRd), _pNormalText(pNormalText), _pText(pText), _pBlastText(pBlastText), _pSputTime(pSputTime),
-		_pPolyglot(pPolyglot),
-		_pSputRender(nullptr), _pSputRoom(nullptr), _pGrim(nullptr),
-		_pHS(nullptr), _bInitialized(0), _bStarted(0), _bLocked(0), _pTextQueue(nullptr), _pFont(nullptr), _pEmergencyFont(nullptr),
+SputText::SputText(Res *res, RenderDroid *rd, NormalText *normalText, Text *text, BlastText *blastText, SputTime *sputTime, Polyglot *polyglot) :
+		_res(res), _rd(rd), _normalText(normalText), _text(text), _blastText(blastText), _sputTime(sputTime),
+		_polyglot(polyglot),
+		_sputRender(nullptr), _sputRoom(nullptr), _grim(nullptr),
+		_hs(nullptr), _initialized(0), _started(0), _locked(0), _textQueue(nullptr), _font(nullptr), _emergencyFont(nullptr),
 		_translationMode(0), _centerValue(320), _offscreenTextPos(450), _textPosX(0), _textPosY(0),
 		_luaTextObjXRef(0), _luaTextObjYRef(0), _luaTextObjFontRef(0), _luaTextObjWidthRef(0), _luaTextObjHeightRef(0),
 		_luaTextObjFGColorRef(0), _luaTextObjBGColorRef(0), _luaTextObjFXColorRef(0), _luaTextObjHIColorRef(0),
@@ -60,9 +60,9 @@ SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *p
 	_printLineClip.width = 640;
 	_printLineClip.height = 480;
 
-	_printLineParams.pSurface = _pBlastText->getSurface();
-	_printLineParams.pClip = &_printLineClip;
-	_printLineParams.pFont = nullptr;
+	_printLineParams.surface = _blastText->getSurface();
+	_printLineParams.clip = &_printLineClip;
+	_printLineParams.font = nullptr;
 	_printLineParams.x = 0;
 	_printLineParams.y = 100;
 	_printLineParams.fgColor = 0;
@@ -71,11 +71,11 @@ SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *p
 	_printLineParams.scaleX = 0x10000;
 	_printLineParams.scaleY = 0x10000;
 	_printLineParams.flags = 4;
-	_printLineParams.pColorMap = nullptr;
+	_printLineParams.colorMap = nullptr;
 
-	_defaultTextParams.pSurface = _pBlastText->getSurface();
-	_defaultTextParams.pClip = nullptr;
-	_defaultTextParams.pFont = nullptr;
+	_defaultTextParams.surface = _blastText->getSurface();
+	_defaultTextParams.clip = nullptr;
+	_defaultTextParams.font = nullptr;
 	_defaultTextParams.x = 0;
 	_defaultTextParams.y = 100;
 	_defaultTextParams.fgColor = 0;
@@ -84,11 +84,11 @@ SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *p
 	_defaultTextParams.scaleX = 0x10000;
 	_defaultTextParams.scaleY = 0x10000;
 	_defaultTextParams.flags = 5;
-	_defaultTextParams.pColorMap = nullptr;
+	_defaultTextParams.colorMap = nullptr;
 
-	_blastTextParams.pSurface = _pBlastText->getSurface();
-	_blastTextParams.pClip = nullptr;
-	_blastTextParams.pFont = nullptr;
+	_blastTextParams.surface = _blastText->getSurface();
+	_blastTextParams.clip = nullptr;
+	_blastTextParams.font = nullptr;
 	_blastTextParams.x = 0;
 	_blastTextParams.y = 200;
 	_blastTextParams.fgColor = 10;
@@ -97,275 +97,275 @@ SputText::SputText(Res *pRes, RenderDroid *pRd, NormalText *pNormalText, Text *p
 	_blastTextParams.scaleX = 0x10000;
 	_blastTextParams.scaleY = 0x10000;
 	_blastTextParams.flags = 4;
-	_blastTextParams.pColorMap = nullptr;
+	_blastTextParams.colorMap = nullptr;
 }
 
-void SputText::killEvent(SputTextEvent *pEvent) {
-	if (pEvent) {
-		if (pEvent->pNext)
-			pEvent->pNext->pPrev = pEvent->pPrev;
+void SputText::killEvent(SputTextEvent *event) {
+	if (event) {
+		if (event->next)
+			event->next->prev = event->prev;
 
-		if (pEvent->pPrev)
-			pEvent->pPrev->pNext = pEvent->pNext;
+		if (event->prev)
+			event->prev->next = event->next;
 
-		if (pEvent == _pTextQueue)
-			_pTextQueue = pEvent->pNext;
+		if (event == _textQueue)
+			_textQueue = event->next;
 
-		delete pEvent;
+		delete event;
 	}
 }
 
-void SputText::update(int bForce) {
-	if (!_bLocked) {
-		int frameTime = _pSputTime->getFrameTime();
-		SputTextEvent *pEvent = _pTextQueue;
+void SputText::update(int force) {
+	if (!_locked) {
+		int frameTime = _sputTime->getFrameTime();
+		SputTextEvent *event = _textQueue;
 
-		while (pEvent) {
-			if (pEvent->duration > 0 || (pEvent->flags & 1)) {
-				int flags = pEvent->flags;
+		while (event) {
+			if (event->duration > 0 || (event->flags & 1)) {
+				int flags = event->flags;
 
 				// The demo draws all the events at every frame
-				if ((_pGrim->getGameFlags() & ADGF_DEMO) || (((flags & 8) || bForce) && !(flags & 2)))
-					drawTextEvent(pEvent, 1);
+				if ((_grim->getGameFlags() & ADGF_DEMO) || (((flags & 8) || force) && !(flags & 2)))
+					drawTextEvent(event, 1);
 
-				pEvent->duration -= frameTime;
-				pEvent = pEvent->pNext;
+				event->duration -= frameTime;
+				event = event->next;
 			} else {
-				SputTextEvent *pNext = pEvent->pNext;
+				SputTextEvent *next = event->next;
 
-				killEvent(pEvent);
-				pEvent = pNext;
+				killEvent(event);
+				event = next;
 			}
 		}
 	}
 }
 
-int SputText::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputText::initialize(SysStruct *hs) {
+	_hs = hs;
 
-	if (_pNormalText->initialize(pHS))
+	if (_normalText->initialize(hs))
 		return 1;
 
-	int result = _pText->sysInitialize(pHS);
+	int result = _text->sysInitialize(hs);
 
 	if (result)
 		return 1;
 
-	_bInitialized = 1;
+	_initialized = 1;
 
 	return result;
 }
 
 void SputText::pause() {
-	_bLocked = 1;
+	_locked = 1;
 }
 
 void SputText::resume() {
-	_bLocked = 0;
+	_locked = 0;
 }
 
-SputTextEvent *SputText::createActorText(SputActor *pActor, const char *pText, int x, int y) {
-	BlastTextSurface *pSurface = _pBlastText->getSurface();
+SputTextEvent *SputText::createActorText(SputActor *actor, const char *text, int x, int y) {
+	BlastTextSurface *surface = _blastText->getSurface();
 	StdRect clip;
 	StdRect offscreenRect;
 	TextParams params = _defaultTextParams;
 
-	if (!pActor || !pActor->pExtra || !params.pFont) {
+	if (!actor || !actor->extra || !params.font) {
 		warning("SputText::createActorText(): no actor, actor extra data or font");
 		return nullptr;
 	}
 
 	clip.x = 0;
 	clip.y = 0;
-	clip.width = pSurface->width;
-	clip.height = pSurface->height;
+	clip.width = surface->width;
+	clip.height = surface->height;
 	offscreenRect.x = _centerValue;
 	offscreenRect.y = _offscreenTextPos;
 	offscreenRect.width = _textPosX;
 	offscreenRect.height = _textPosY;
 
-	params.pClip = &clip;
-	params.fgColor = pActor->pExtra->talkColor;
+	params.clip = &clip;
+	params.fgColor = actor->extra->talkColor;
 	params.bgColor = 0;
 	params.fxColor = 0;
 
-	int mode = _pGrim->getLibMode();
-	StdRect *pRect;
+	int mode = _grim->getLibMode();
+	StdRect *rect;
 
-	if (!pActor->onScreen || mode == 3) {
-		pRect = &offscreenRect;
+	if (!actor->onScreen || mode == 3) {
+		rect = &offscreenRect;
 
-		if (!pActor->pCostumeStack || (pActor->flags & 2)) {
-			if (!scumm_stricmp(pActor->curSetName, _pSputRoom->getCurrentRoomName())) {
+		if (!actor->costumeStack || (actor->flags & 2)) {
+			if (!scumm_stricmp(actor->curSetName, _sputRoom->getCurrentRoomName())) {
 				int screen[3];
 
-				if (_pRd->_primit3.getScreenCoord(pActor->actorPos, screen)) {
+				if (_rd->_primit3.getScreenCoord(actor->actorPos, screen)) {
 					offscreenRect.x = screen[0];
 					offscreenRect.y = screen[1];
 				}
 			}
 		}
 	} else {
-		pRect = &pActor->drawnRect;
+		rect = &actor->drawnRect;
 	}
 
-	int halfWidth = _pText->getStringWidth(&params, pText) / 2;
+	int halfWidth = _text->getStringWidth(&params, text) / 2;
 	int penX = x;
 
 	if (x == -1)
-		penX = pRect->x + pRect->width / 2;
+		penX = rect->x + rect->width / 2;
 
 	if (penX - halfWidth < 40)
 		penX = halfWidth + 40;
 
-	if (halfWidth + penX > pSurface->width - 40)
-		penX = pSurface->width - halfWidth - 40;
+	if (halfWidth + penX > surface->width - 40)
+		penX = surface->width - halfWidth - 40;
 
 	params.x = penX;
-	params.y = params.pFont->baseLine;
+	params.y = params.font->baseLine;
 
-	int height = _pText->getStringHeight(&params, pText);
+	int height = _text->getStringHeight(&params, text);
 	int penY = y;
 
 	if (y == -1)
-		penY = pRect->y - height;
+		penY = rect->y - height;
 
 	if (penY < 10)
 		penY = 10;
 
-	if (penY + height > pSurface->height - 10)
-		penY = pSurface->height - height - 10;
+	if (penY + height > surface->height - 10)
+		penY = surface->height - height - 10;
 
 	params.x = penX;
-	params.y = params.pFont->baseLine + penY;
+	params.y = params.font->baseLine + penY;
 
-	SputTextEvent *pEvent = allocEvent(&params, pText);
+	SputTextEvent *event = allocEvent(&params, text);
 
-	pEvent->pActor = pActor;
-	pActor->flags |= 4;
+	event->actor = actor;
+	actor->flags |= 4;
 
-	return pEvent;
+	return event;
 }
 
-SputTextEvent *SputText::createActorTextDemo(SputActor *pActor, const char *pText) {
-	BlastTextSurface *pSurface = _pBlastText->getSurface();
+SputTextEvent *SputText::createActorTextDemo(SputActor *actor, const char *text) {
+	BlastTextSurface *surface = _blastText->getSurface();
 	StdRect clip;
 	StdRect defaultRect;
 	TextParams params = _defaultTextParams;
 
-	if (!pActor || !pActor->pExtra || !params.pFont) {
+	if (!actor || !actor->extra || !params.font) {
 		warning("SputText::createActorTextDemo(): no actor, actor extra data or font");
 		return nullptr;
 	}
 
 	clip.x = 0;
 	clip.y = 0;
-	clip.width = pSurface->width;
-	clip.height = pSurface->height;
+	clip.width = surface->width;
+	clip.height = surface->height;
 	defaultRect.x = 320;
 	defaultRect.y = 450;
 	defaultRect.width = 0;
 	defaultRect.height = 0;
 
-	params.pClip = &clip;
-	params.fgColor = pActor->pExtra->talkColor;
+	params.clip = &clip;
+	params.fgColor = actor->extra->talkColor;
 	params.bgColor = 0;
 	params.fxColor = 0;
 
-	StdRect *pRect = &defaultRect;
+	StdRect *rect = &defaultRect;
 
-	if (pActor->onScreen) {
-		pRect = &pActor->drawnRect;
-	} else if (!pActor->pCostumeStack || (pActor->flags & 2)) {
+	if (actor->onScreen) {
+		rect = &actor->drawnRect;
+	} else if (!actor->costumeStack || (actor->flags & 2)) {
 		int screen[3];
 
-		if (!scumm_stricmp(pActor->curSetName, _pSputRoom->getCurrentRoomName()) && _pRd->_primit3.getScreenCoord(pActor->actorPos, screen)) {
+		if (!scumm_stricmp(actor->curSetName, _sputRoom->getCurrentRoomName()) && _rd->_primit3.getScreenCoord(actor->actorPos, screen)) {
 			defaultRect.x = screen[0];
 			defaultRect.y = screen[1];
 		}
 	}
 
-	int halfWidth = _pText->getStringWidth(&params, pText) / 2;
-	int halfRect = pRect->width / 2;
-	int penX = pRect->x + (halfRect > halfWidth ? halfRect : halfWidth);
+	int halfWidth = _text->getStringWidth(&params, text) / 2;
+	int halfRect = rect->width / 2;
+	int penX = rect->x + (halfRect > halfWidth ? halfRect : halfWidth);
 
 	if (penX < 40)
 		penX = 40;
 
-	if (penX > pSurface->width - 40)
-		penX = pSurface->width - 40;
+	if (penX > surface->width - 40)
+		penX = surface->width - 40;
 
 	params.x = penX;
-	params.y = params.pFont->baseLine;
+	params.y = params.font->baseLine;
 
-	int height = _pText->getStringHeight(&params, pText);
-	int penY = pRect->y - height - 10;
+	int height = _text->getStringHeight(&params, text);
+	int penY = rect->y - height - 10;
 
 	if (penY < 0)
 		penY = 0;
 
-	if (penY > pSurface->height - height)
-		penY = pSurface->height - height;
+	if (penY > surface->height - height)
+		penY = surface->height - height;
 
 	params.x = penX;
-	params.y = params.pFont->baseLine + penY;
+	params.y = params.font->baseLine + penY;
 
-	SputTextEvent *pEvent = allocEvent(&params, pText);
+	SputTextEvent *event = allocEvent(&params, text);
 
-	pEvent->pActor = pActor;
+	event->actor = actor;
 
-	return pEvent;
+	return event;
 }
 
-SputTextEvent *SputText::addToQueue(SputTextEvent *pEvent, int duration, int flags) {
-	if (pEvent) {
-		if (!pEvent->params.pFont) {
+SputTextEvent *SputText::addToQueue(SputTextEvent *event, int duration, int flags) {
+	if (event) {
+		if (!event->params.font) {
 			warning("SputText::addToQueue(): the event has no font");
-			return pEvent;
+			return event;
 		}
 
-		pEvent->duration = duration;
-		pEvent->flags = flags;
-		pEvent->x = pEvent->params.x;
+		event->duration = duration;
+		event->flags = flags;
+		event->x = event->params.x;
 
-		int y = pEvent->params.y - pEvent->params.pFont->baseLine;
+		int y = event->params.y - event->params.font->baseLine;
 
-		pEvent->y = y;
-		pEvent->params.y = y;
-		pEvent->pNext = _pTextQueue;
+		event->y = y;
+		event->params.y = y;
+		event->next = _textQueue;
 
-		if (_pTextQueue)
-			_pTextQueue->pPrev = pEvent;
+		if (_textQueue)
+			_textQueue->prev = event;
 
-		_pTextQueue = pEvent;
+		_textQueue = event;
 	}
 
-	return pEvent;
+	return event;
 }
 
 int SputText::release() {
-	_pHS = nullptr;
-	_pNormalText->terminate();
-	_pText->sysTerminate();
+	_hs = nullptr;
+	_normalText->terminate();
+	_text->sysTerminate();
 
-	int result = _bInitialized;
+	int result = _initialized;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return result;
 }
 
 int SputText::startup() {
-	if (_bStarted || _pNormalText->startup() || _pText->sysStartup())
+	if (_started || _normalText->startup() || _text->sysStartup())
 		return 1;
 
-	_pFont = _pText->getSystemFont();
-	_printLineParams.pFont = _pFont;
-	_defaultTextParams.pFont = _pFont;
-	_blastTextParams.pFont = _pFont;
+	_font = _text->getSystemFont();
+	_printLineParams.font = _font;
+	_defaultTextParams.font = _font;
+	_blastTextParams.font = _font;
 
-	_pLua->registerTextOpcodes();
+	_lua->registerTextOpcodes();
 
 	lua_pushstring("x");
 	_luaTextObjXRef = lua_ref(1);
@@ -400,14 +400,14 @@ int SputText::startup() {
 	lua_pushstring("background");
 	_luaTextObjBackgroundRef = lua_ref(1);
 
-	_bStarted = 1;
+	_started = 1;
 
 	return 0;
 }
 
 int SputText::shutdown() {
-	_pNormalText->shutdown();
-	_pText->sysShutdown();
+	_normalText->shutdown();
+	_text->sysShutdown();
 
 	lua_unref(_luaTextObjXRef);
 	lua_unref(_luaTextObjYRef);
@@ -426,72 +426,72 @@ int SputText::shutdown() {
 	lua_unref(_luaTextObjBufferRef);
 	lua_unref(_luaTextObjBackgroundRef);
 
-	while (_pTextQueue)
-		killEvent(_pTextQueue);
+	while (_textQueue)
+		killEvent(_textQueue);
 
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
 
-SputTextEvent *SputText::allocEvent(const TextParams *pParams, const char *pText) {
-	SputTextEvent *pEvent = new SputTextEvent();
-	BlastTextSurface *pSurface = _pBlastText->getSurface();
+SputTextEvent *SputText::allocEvent(const TextParams *params, const char *text) {
+	SputTextEvent *event = new SputTextEvent();
+	BlastTextSurface *surface = _blastText->getSurface();
 
-	if (!pText) {
+	if (!text) {
 		warning("SputText::allocEvent(): no text");
-		pText = "";
+		text = "";
 	}
 
 	// The demo keeps only the first 127 characters
-	if (_pGrim->getGameFlags() & ADGF_DEMO)
-		Common::strlcpy(pEvent->text, pText, 128);
+	if (_grim->getGameFlags() & ADGF_DEMO)
+		Common::strlcpy(event->text, text, 128);
 	else
-		Common::strlcpy(pEvent->text, pText, sizeof(pEvent->text));
+		Common::strlcpy(event->text, text, sizeof(event->text));
 
-	pEvent->x = pParams->x;
-	pEvent->y = pParams->y;
-	pEvent->params = *pParams;
+	event->x = params->x;
+	event->y = params->y;
+	event->params = *params;
 
-	if (_pEmergencyFont)
-		pEvent->params.pFont = _pEmergencyFont;
+	if (_emergencyFont)
+		event->params.font = _emergencyFont;
 
-	pEvent->params.pColorMap = (byte *)_pSputRender->getColors();
-	pEvent->params.pClip = &pEvent->clip;
+	event->params.colorMap = (byte *)_sputRender->getColors();
+	event->params.clip = &event->clip;
 
-	if (pParams->pClip) {
-		pEvent->clip = *pParams->pClip;
+	if (params->clip) {
+		event->clip = *params->clip;
 	} else {
-		pEvent->clip.x = 0;
-		pEvent->clip.y = 0;
-		pEvent->clip.width = pSurface->width;
-		pEvent->clip.height = pSurface->height;
+		event->clip.x = 0;
+		event->clip.y = 0;
+		event->clip.width = surface->width;
+		event->clip.height = surface->height;
 	}
 
-	pEvent->pActor = nullptr;
-	pEvent->serial = (int)(intptr)pEvent;
+	event->actor = nullptr;
+	event->serial = (int)(intptr)event;
 
-	return pEvent;
+	return event;
 }
 
 const char *SputText::extractSayLineData(const char *msgId, char *translation) {
 	if (translation)
 		*translation = 0;
 
-	const char *pTranslated = _pPolyglot->getTranslation(msgId);
-	const char *pResult;
+	const char *translated = _polyglot->getTranslation(msgId);
+	const char *result;
 
 	if (translation && msgId && *msgId == '/') {
 		// The demo takes the voice name up to the last slash
-		const char *pSlash = (_pGrim->getGameFlags() & ADGF_DEMO) ? strrchr(msgId, '/') : strchr(msgId + 1, '/');
+		const char *slash = (_grim->getGameFlags() & ADGF_DEMO) ? strrchr(msgId, '/') : strchr(msgId + 1, '/');
 
-		if (pSlash == msgId)
-			pSlash = nullptr;
+		if (slash == msgId)
+			slash = nullptr;
 
-		pResult = pSlash;
+		result = slash;
 
-		if (pSlash) {
-			int length = pSlash - msgId - 1;
+		if (slash) {
+			int length = slash - msgId - 1;
 
 			if (length > 31) {
 				warning("SputText::extractSayLineData(): the voice name is too long, truncated");
@@ -502,91 +502,91 @@ const char *SputText::extractSayLineData(const char *msgId, char *translation) {
 			translation[length] = 0;
 		}
 	} else {
-		pResult = pTranslated;
+		result = translated;
 	}
 
 	if (_translationMode == 1) {
-		if (!pResult) {
+		if (!result) {
 			warning("SputText::extractSayLineData(): the message has no closing slash");
-			return pTranslated;
+			return translated;
 		}
 
-		return pResult + 1;
+		return result + 1;
 	}
 
 	if (_translationMode == 2)
 		return msgId;
 
-	return pTranslated;
+	return translated;
 }
 
-void SputText::drawTextEvent(SputTextEvent *pEvent, int bMarkDirty) {
-	if (!pEvent)
+void SputText::drawTextEvent(SputTextEvent *event, int markDirty) {
+	if (!event)
 		return;
 
-	if (!pEvent->params.pFont) {
+	if (!event->params.font) {
 		warning("SputText::drawTextEvent(): the event has no font");
 		return;
 	}
 
 	StdRect rect;
-	uint16 *pColors = _pSputRender->getColors();
-	int baseLine = pEvent->params.pFont->baseLine;
+	uint16 *colors = _sputRender->getColors();
+	int baseLine = event->params.font->baseLine;
 
-	pEvent->params.x = pEvent->x;
-	rect.x = pEvent->x;
-	pEvent->params.y = pEvent->y + baseLine;
-	rect.y = pEvent->params.y - baseLine;
-	rect.width = _pText->getStringWidth(&pEvent->params, pEvent->text);
-	rect.height = _pText->getStringHeight(&pEvent->params, pEvent->text);
+	event->params.x = event->x;
+	rect.x = event->x;
+	event->params.y = event->y + baseLine;
+	rect.y = event->params.y - baseLine;
+	rect.width = _text->getStringWidth(&event->params, event->text);
+	rect.height = _text->getStringHeight(&event->params, event->text);
 
-	if (pEvent->params.flags & 1)
+	if (event->params.flags & 1)
 		rect.x += rect.width / -2;
 
-	int foreground = pEvent->params.fgColor;
-	int background = pEvent->params.bgColor;
-	int effect = pEvent->params.fxColor;
+	int foreground = event->params.fgColor;
+	int background = event->params.bgColor;
+	int effect = event->params.fxColor;
 
-	pColors[0] = colorToRgb565(foreground);
-	pColors[1] = colorToRgb565(background);
-	pColors[2] = colorToRgb565(effect);
+	colors[0] = colorToRgb565(foreground);
+	colors[1] = colorToRgb565(background);
+	colors[2] = colorToRgb565(effect);
 
 	// The demo does not apply the gamma to the text
-	if (!(_pGrim->getGameFlags() & ADGF_DEMO))
-		_pSputRender->colorCorrect(pColors, 3);
+	if (!(_grim->getGameFlags() & ADGF_DEMO))
+		_sputRender->colorCorrect(colors, 3);
 
-	pEvent->params.fgColor = 0;
-	pEvent->params.bgColor = 1;
-	pEvent->params.fxColor = 2;
+	event->params.fgColor = 0;
+	event->params.bgColor = 1;
+	event->params.fxColor = 2;
 
-	_pText->printText(&pEvent->params, "%s", pEvent->text);
+	_text->printText(&event->params, "%s", event->text);
 
-	pEvent->params.x = pEvent->x;
-	pEvent->params.y = pEvent->y + pEvent->params.pFont->baseLine;
+	event->params.x = event->x;
+	event->params.y = event->y + event->params.font->baseLine;
 
-	if (bMarkDirty)
-		_pSputRender->markDirtyRect(&rect, 0);
+	if (markDirty)
+		_sputRender->markDirtyRect(&rect, 0);
 
-	pEvent->params.fxColor = effect;
-	pEvent->params.bgColor = background;
-	pEvent->params.fgColor = foreground;
+	event->params.fxColor = effect;
+	event->params.bgColor = background;
+	event->params.fgColor = foreground;
 }
 
 SputTextEvent *SputText::findSerialNumber(int serial) {
-	SputTextEvent *pEvent = _pTextQueue;
+	SputTextEvent *event = _textQueue;
 
-	while (pEvent) {
-		if (pEvent->serial == serial)
-			return pEvent;
+	while (event) {
+		if (event->serial == serial)
+			return event;
 
-		pEvent = pEvent->pNext;
+		event = event->next;
 	}
 
 	return nullptr;
 }
 
-int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, SputTextEvent *pEvent) {
-	StdRect *pClip = pParams->pClip;
+int SputText::getTextObjectParams(TextParams *params, lua_Object tableObj, SputTextEvent *event) {
+	StdRect *clip = params->clip;
 	lua_Object obj;
 
 	lua_pushobject(tableObj);
@@ -596,10 +596,10 @@ int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, Sput
 	if (obj && lua_isnumber(obj)) {
 		int x = luaFtol(lua_getnumber(obj));
 
-		pParams->x = x;
+		params->x = x;
 
-		if (pEvent)
-			pEvent->x = x;
+		if (event)
+			event->x = x;
 	}
 
 	lua_pushobject(tableObj);
@@ -609,28 +609,28 @@ int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, Sput
 	if (obj && lua_isnumber(obj)) {
 		int baseLine = 0;
 
-		if (pParams->pFont)
-			baseLine = pParams->pFont->baseLine;
+		if (params->font)
+			baseLine = params->font->baseLine;
 		else
 			warning("SputText::getTextObjectParams(): no font");
 
 		int y = luaFtol(lua_getnumber(obj));
 
-		pParams->y = y + baseLine;
+		params->y = y + baseLine;
 
-		if (pEvent)
-			pEvent->y = y;
+		if (event)
+			event->y = y;
 	}
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjFontRef));
 	obj = lua_gettable();
 
-	if (obj && lua_isuserdata(obj) && lua_tag(obj) == kSputTagFont && !_pEmergencyFont) {
-		BlastTextFont *pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(lua_getuserdata(obj)));
+	if (obj && lua_isuserdata(obj) && lua_tag(obj) == kSputTagFont && !_emergencyFont) {
+		BlastTextFont *font = static_cast<BlastTextFont *>(_res->handleFromSerialNumber(lua_getuserdata(obj)));
 
-		if (pFont)
-			pParams->pFont = pFont;
+		if (font)
+			params->font = font;
 		else
 			warning("SputText::getTextObjectParams(): font resource not found");
 	}
@@ -639,57 +639,57 @@ int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, Sput
 	lua_pushobject(lua_getref(_luaTextObjWidthRef));
 	obj = lua_gettable();
 
-	if (obj && lua_isnumber(obj) && pClip)
-		pClip->width = luaFtol(lua_getnumber(obj));
+	if (obj && lua_isnumber(obj) && clip)
+		clip->width = luaFtol(lua_getnumber(obj));
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjHeightRef));
 	obj = lua_gettable();
 
-	if (obj && lua_isnumber(obj) && pClip)
-		pClip->height = luaFtol(lua_getnumber(obj));
+	if (obj && lua_isnumber(obj) && clip)
+		clip->height = luaFtol(lua_getnumber(obj));
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjFGColorRef));
 	obj = lua_gettable();
 
 	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
-		pParams->fgColor = lua_getuserdata(obj);
+		params->fgColor = lua_getuserdata(obj);
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjBGColorRef));
 	obj = lua_gettable();
 
 	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
-		pParams->bgColor = lua_getuserdata(obj);
+		params->bgColor = lua_getuserdata(obj);
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjFXColorRef));
 	obj = lua_gettable();
 
 	if (obj && lua_isuserdata(obj) && lua_tag(obj) == MKTAG('R','L','O','C'))
-		pParams->fxColor = lua_getuserdata(obj);
+		params->fxColor = lua_getuserdata(obj);
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjCenterRef));
 	obj = lua_gettable();
 
 	if (obj && !lua_isnil(obj))
-		pParams->flags = 5;
+		params->flags = 5;
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjLJustifyRef));
 	obj = lua_gettable();
 
 	if (obj && !lua_isnil(obj))
-		pParams->flags = 4;
+		params->flags = 4;
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjRJustifyRef));
 	obj = lua_gettable();
 
 	if (obj && !lua_isnil(obj))
-		pParams->flags = 6;
+		params->flags = 6;
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjDurationRef));
@@ -701,86 +701,86 @@ int SputText::getTextObjectParams(TextParams *pParams, lua_Object tableObj, Sput
 	return -1;
 }
 
-void SputText::parseSayLineTable(lua_Object tableObj, int *pBackground, int *pVolume, int *pPan, int *pX, int *pY) {
+void SputText::parseSayLineTable(lua_Object tableObj, int *background, int *volume, int *pan, int *x, int *y) {
 	lua_Object obj;
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjXRef));
 	obj = lua_gettable();
 
-	if (lua_isnumber(obj) && *pX)
-		*pX = luaFtol(lua_getnumber(obj));
+	if (lua_isnumber(obj) && *x)
+		*x = luaFtol(lua_getnumber(obj));
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjYRef));
 	obj = lua_gettable();
 
-	if (lua_isnumber(obj) && *pY)
-		*pY = luaFtol(lua_getnumber(obj));
+	if (lua_isnumber(obj) && *y)
+		*y = luaFtol(lua_getnumber(obj));
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjBackgroundRef));
 	obj = lua_gettable();
 
-	if (!lua_isnil(obj) && *pBackground)
-		*pBackground = 0;
+	if (!lua_isnil(obj) && *background)
+		*background = 0;
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjVolumeRef));
 	obj = lua_gettable();
 
-	if (lua_isnumber(obj) && *pVolume)
-		*pVolume = luaFtol(lua_getnumber(obj));
+	if (lua_isnumber(obj) && *volume)
+		*volume = luaFtol(lua_getnumber(obj));
 
 	lua_pushobject(tableObj);
 	lua_pushobject(lua_getref(_luaTextObjBufferRef));
 	obj = lua_gettable();
 
-	if (lua_isnumber(obj) && *pPan)
-		*pPan = luaFtol(lua_getnumber(obj));
+	if (lua_isnumber(obj) && *pan)
+		*pan = luaFtol(lua_getnumber(obj));
 }
 
-int SputText::save(Common::WriteStream *pStream) {
+int SputText::save(Common::WriteStream *stream) {
 	int numEvents = 0;
 
-	for (SputTextEvent *pEvent = _pTextQueue; pEvent; pEvent = pEvent->pNext)
+	for (SputTextEvent *event = _textQueue; event; event = event->next)
 		numEvents++;
 
-	pStream->writeSint32LE(numEvents);
+	stream->writeSint32LE(numEvents);
 
-	if (pStream->err())
+	if (stream->err())
 		return 1;
 
-	for (SputTextEvent *pEvent = _pTextQueue; pEvent; pEvent = pEvent->pNext) {
-		pStream->write(pEvent->text, 512);
-		pStream->writeSint32LE(0);
-		pStream->writeSint32LE(0);
-		pStream->writeSint32LE(_pRes->serialFromHandle(pEvent->params.pFont));
-		pStream->writeSint32LE(pEvent->params.x);
-		pStream->writeSint32LE(pEvent->params.y);
-		pStream->writeSint32LE(pEvent->params.fgColor);
-		pStream->writeSint32LE(pEvent->params.bgColor);
-		pStream->writeSint32LE(pEvent->params.fxColor);
-		pStream->writeSint32LE(pEvent->params.scaleX);
-		pStream->writeSint32LE(pEvent->params.scaleY);
-		pStream->writeSint32LE(pEvent->params.flags);
-		pStream->writeSint32LE(pEvent->x);
-		pStream->writeSint32LE(pEvent->y);
-		pStream->writeSint32LE(pEvent->clip.x);
-		pStream->writeSint32LE(pEvent->clip.y);
-		pStream->writeSint32LE(pEvent->clip.width);
-		pStream->writeSint32LE(pEvent->clip.height);
-		pStream->writeSint32LE(pEvent->duration);
-		pStream->writeSint32LE(0);
-		pStream->writeSint32LE(pEvent->flags);
-		pStream->writeSint32LE(pEvent->serial);
+	for (SputTextEvent *event = _textQueue; event; event = event->next) {
+		stream->write(event->text, 512);
+		stream->writeSint32LE(0);
+		stream->writeSint32LE(0);
+		stream->writeSint32LE(_res->serialFromHandle(event->params.font));
+		stream->writeSint32LE(event->params.x);
+		stream->writeSint32LE(event->params.y);
+		stream->writeSint32LE(event->params.fgColor);
+		stream->writeSint32LE(event->params.bgColor);
+		stream->writeSint32LE(event->params.fxColor);
+		stream->writeSint32LE(event->params.scaleX);
+		stream->writeSint32LE(event->params.scaleY);
+		stream->writeSint32LE(event->params.flags);
+		stream->writeSint32LE(event->x);
+		stream->writeSint32LE(event->y);
+		stream->writeSint32LE(event->clip.x);
+		stream->writeSint32LE(event->clip.y);
+		stream->writeSint32LE(event->clip.width);
+		stream->writeSint32LE(event->clip.height);
+		stream->writeSint32LE(event->duration);
+		stream->writeSint32LE(0);
+		stream->writeSint32LE(event->flags);
+		stream->writeSint32LE(event->serial);
 	}
 
-	pStream->writeSint32LE(_pRes->serialFromHandle(_printLineParams.pFont));
-	pStream->writeSint32LE(_pRes->serialFromHandle(_defaultTextParams.pFont));
-	pStream->writeSint32LE(_pRes->serialFromHandle(_blastTextParams.pFont));
+	stream->writeSint32LE(_res->serialFromHandle(_printLineParams.font));
+	stream->writeSint32LE(_res->serialFromHandle(_defaultTextParams.font));
+	stream->writeSint32LE(_res->serialFromHandle(_blastTextParams.font));
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputText::save(): write error");
 		return 1;
 	}
@@ -788,98 +788,98 @@ int SputText::save(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int SputText::restore(Common::ReadStream *pStream) {
-	while (_pTextQueue)
-		killEvent(_pTextQueue);
+int SputText::restore(Common::ReadStream *stream) {
+	while (_textQueue)
+		killEvent(_textQueue);
 
-	int numEvents = pStream->readSint32LE();
+	int numEvents = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos() || numEvents < 0) {
+	if (stream->err() || stream->eos() || numEvents < 0) {
 		warning("SputText::restore(): invalid event count");
 		return 1;
 	}
 
 	for (int i = 0; i < numEvents; i++) {
-		SputTextEvent *pEvent = new SputTextEvent();
+		SputTextEvent *event = new SputTextEvent();
 
-		pStream->read(pEvent->text, 512);
+		stream->read(event->text, 512);
 
-		pStream->readSint32LE();
-		pStream->readSint32LE();
-		int fontSerial = pStream->readSint32LE();
+		stream->readSint32LE();
+		stream->readSint32LE();
+		int fontSerial = stream->readSint32LE();
 
-		pEvent->params.x = pStream->readSint32LE();
-		pEvent->params.y = pStream->readSint32LE();
-		pEvent->params.fgColor = pStream->readSint32LE();
-		pEvent->params.bgColor = pStream->readSint32LE();
-		pEvent->params.fxColor = pStream->readSint32LE();
-		pEvent->params.scaleX = pStream->readSint32LE();
-		pEvent->params.scaleY = pStream->readSint32LE();
-		pEvent->params.flags = pStream->readSint32LE();
-		pEvent->x = pStream->readSint32LE();
-		pEvent->y = pStream->readSint32LE();
-		pEvent->clip.x = pStream->readSint32LE();
-		pEvent->clip.y = pStream->readSint32LE();
-		pEvent->clip.width = pStream->readSint32LE();
-		pEvent->clip.height = pStream->readSint32LE();
-		pEvent->duration = pStream->readSint32LE();
+		event->params.x = stream->readSint32LE();
+		event->params.y = stream->readSint32LE();
+		event->params.fgColor = stream->readSint32LE();
+		event->params.bgColor = stream->readSint32LE();
+		event->params.fxColor = stream->readSint32LE();
+		event->params.scaleX = stream->readSint32LE();
+		event->params.scaleY = stream->readSint32LE();
+		event->params.flags = stream->readSint32LE();
+		event->x = stream->readSint32LE();
+		event->y = stream->readSint32LE();
+		event->clip.x = stream->readSint32LE();
+		event->clip.y = stream->readSint32LE();
+		event->clip.width = stream->readSint32LE();
+		event->clip.height = stream->readSint32LE();
+		event->duration = stream->readSint32LE();
 
-		pStream->readSint32LE();
+		stream->readSint32LE();
 
-		pEvent->flags = pStream->readSint32LE();
-		pEvent->serial = pStream->readSint32LE();
+		event->flags = stream->readSint32LE();
+		event->serial = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos()) {
+		if (stream->err() || stream->eos()) {
 			warning("SputText::restore(): read error");
-			delete pEvent;
-			pEvent = nullptr;
+			delete event;
+			event = nullptr;
 
 			return 1;
 		}
 
-		if (pEvent->text[511] != 0) {
+		if (event->text[511] != 0) {
 			warning("SputText::restore(): unterminated event text");
-			pEvent->text[511] = 0;
+			event->text[511] = 0;
 		}
 
-		pEvent->params.pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(fontSerial));
+		event->params.font = static_cast<BlastTextFont *>(_res->handleFromSerialNumber(fontSerial));
 
-		pEvent->params.pSurface = _pBlastText->getSurface();
-		pEvent->params.pClip = &pEvent->clip;
-		pEvent->params.pColorMap = (byte *)_pSputRender->getColors();
-		pEvent->pActor = nullptr;
+		event->params.surface = _blastText->getSurface();
+		event->params.clip = &event->clip;
+		event->params.colorMap = (byte *)_sputRender->getColors();
+		event->actor = nullptr;
 
-		pEvent->pPrev = nullptr;
-		pEvent->pNext = _pTextQueue;
+		event->prev = nullptr;
+		event->next = _textQueue;
 
-		if (_pTextQueue)
-			_pTextQueue->pPrev = pEvent;
+		if (_textQueue)
+			_textQueue->prev = event;
 
-		_pTextQueue = pEvent;
+		_textQueue = event;
 	}
 
-	int printLineFontSerial = pStream->readSint32LE();
-	int defaultFontSerial = pStream->readSint32LE();
-	int blastTextFontSerial = pStream->readSint32LE();
+	int printLineFontSerial = stream->readSint32LE();
+	int defaultFontSerial = stream->readSint32LE();
+	int blastTextFontSerial = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos()) {
+	if (stream->err() || stream->eos()) {
 		warning("SputText::restore(): read error");
 		return 1;
 	}
 
-	_pFont = _pText->getSystemFont();
-	_printLineParams.pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(printLineFontSerial));
-	_defaultTextParams.pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(defaultFontSerial));
-	_blastTextParams.pFont = static_cast<BlastTextFont *>(_pRes->handleFromSerialNumber(blastTextFontSerial));
+	_font = _text->getSystemFont();
+	_printLineParams.font = static_cast<BlastTextFont *>(_res->handleFromSerialNumber(printLineFontSerial));
+	_defaultTextParams.font = static_cast<BlastTextFont *>(_res->handleFromSerialNumber(defaultFontSerial));
+	_blastTextParams.font = static_cast<BlastTextFont *>(_res->handleFromSerialNumber(blastTextFontSerial));
 
-	if (!_printLineParams.pFont)
-		_printLineParams.pFont = _pFont;
+	if (!_printLineParams.font)
+		_printLineParams.font = _font;
 
-	if (!_defaultTextParams.pFont)
-		_defaultTextParams.pFont = _pFont;
+	if (!_defaultTextParams.font)
+		_defaultTextParams.font = _font;
 
-	if (!_blastTextParams.pFont)
-		_blastTextParams.pFont = _pFont;
+	if (!_blastTextParams.font)
+		_blastTextParams.font = _font;
 
 	return 0;
 }

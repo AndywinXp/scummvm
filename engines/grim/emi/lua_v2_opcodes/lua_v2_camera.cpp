@@ -80,10 +80,10 @@ void Lua_V2::WorldToScreen() {
 
 	// PS2 computes in floats on a fixed 640x480 screen
 	if (isPs2) {
-		const float *m = camera->view.rot.m;
-		float pointX = ((x * m[0] + y * m[3]) + z * m[6]) + camera->view.pos.x;
-		float pointY = ((x * m[1] + y * m[4]) + z * m[7]) + camera->view.pos.y;
-		float depth = ((x * m[2] + y * m[5]) + z * m[8]) + camera->view.pos.z;
+		const float *m = camera->_view._rot._m;
+		float pointX = ((x * m[0] + y * m[3]) + z * m[6]) + camera->_view._pos._x;
+		float pointY = ((x * m[1] + y * m[4]) + z * m[7]) + camera->_view._pos._y;
+		float depth = ((x * m[2] + y * m[5]) + z * m[8]) + camera->_view._pos._z;
 
 		if (depth == 0.0f) {
 			warning("Lua_V2::WorldToScreen(): point is on the camera plane");
@@ -94,8 +94,8 @@ void Lua_V2::WorldToScreen() {
 		}
 
 		float inverseDepth = 1.0f / depth;
-		float ps2ScreenX = camera->halfWidth + inverseDepth * (pointX * camera->focalX);
-		float ps2ScreenY = camera->halfHeight + inverseDepth * (-pointY * camera->focalY);
+		float ps2ScreenX = camera->_halfWidth + inverseDepth * (pointX * camera->_focalX);
+		float ps2ScreenY = camera->_halfHeight + inverseDepth * (-pointY * camera->_focalY);
 
 		if (!_engine->getDrawContext() || ps2ScreenX < 0.0f || !(ps2ScreenX <= kPs2ScreenWidth) || ps2ScreenY < 0.0f || !(ps2ScreenY <= kPs2ScreenHeight)) {
 			lua_pushnil();
@@ -113,19 +113,19 @@ void Lua_V2::WorldToScreen() {
 	float view[12];
 
 	for (int i = 0; i < 9; i++)
-		view[i] = camera->view.rot.m[i];
+		view[i] = camera->_view._rot._m[i];
 
-	view[9] = camera->view.pos.x;
-	view[10] = camera->view.pos.y;
-	view[11] = camera->view.pos.z;
+	view[9] = camera->_view._pos._x;
+	view[10] = camera->_view._pos._y;
+	view[11] = camera->_view._pos._z;
 
 	double viewX = ((double)view[3] * y + (double)view[6] * z) + (double)view[0] * x;
 	float viewY = (float)(((double)view[4] * y + (double)view[7] * z) + (double)view[1] * x);
 	float viewDepth = (float)(((double)view[5] * y + (double)view[8] * z) + (double)view[2] * x);
 	float screenYTerm = (float)((double)view[10] + viewY);
 	float inverseDepth = (float)(1.0 / ((double)view[11] + viewDepth));
-	float screenX = (float)((((viewX + view[9]) * camera->focalX) * inverseDepth) + camera->halfWidth);
-	float screenY = (float)((double)camera->halfHeight - (((double)screenYTerm * camera->focalY) * inverseDepth));
+	float screenX = (float)((((viewX + view[9]) * camera->_focalX) * inverseDepth) + camera->_halfWidth);
+	float screenY = (float)((double)camera->_halfHeight - (((double)screenYTerm * camera->_focalY) * inverseDepth));
 
 	if (!_engine->getDrawContext()) {
 		lua_pushnil();
@@ -171,20 +171,20 @@ void Lua_V2::GetCameraPosition() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	lua_pushnumber(camera->world.pos.x);
+	lua_pushnumber(camera->_world._pos._x);
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	lua_pushnumber(camera->world.pos.y);
+	lua_pushnumber(camera->_world._pos._y);
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	lua_pushnumber(camera->world.pos.z);
+	lua_pushnumber(camera->_world._pos._z);
 }
 
 void Lua_V2::SetCameraPosition() {
@@ -208,9 +208,9 @@ void Lua_V2::SetCameraPosition() {
 
 	CVector position;
 
-	position.z = lua_getnumber(zObj);
-	position.y = lua_getnumber(yObj);
-	position.x = lua_getnumber(xObj);
+	position._z = lua_getnumber(zObj);
+	position._y = lua_getnumber(yObj);
+	position._x = lua_getnumber(xObj);
 
 	Camera *camera = currentRoom->getSetupCamera(-1);
 
@@ -244,9 +244,9 @@ void Lua_V2::CameraLookAt() {
 
 	CVector target;
 
-	target.z = lua_getnumber(zObj);
-	target.y = lua_getnumber(yObj);
-	target.x = lua_getnumber(xObj);
+	target._z = lua_getnumber(zObj);
+	target._y = lua_getnumber(yObj);
+	target._x = lua_getnumber(xObj);
 
 	Camera *camera = currentRoom->getSetupCamera(-1);
 
@@ -277,7 +277,7 @@ void Lua_V2::GetCameraFOV() {
 		return;
 	}
 
-	lua_pushnumber(camera->fovX);
+	lua_pushnumber(camera->_fovX);
 }
 
 void Lua_V2::SetCameraFOV() {
@@ -346,10 +346,10 @@ void Lua_V2::GetCameraYaw() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+	if ((camera->_nodeFlags & CNode::kEulerValid) == 0)
 		camera->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(camera->eulerDeg.y);
+	lua_pushnumber(camera->_eulerDeg._y);
 }
 
 void Lua_V2::YawCamera() {
@@ -371,9 +371,9 @@ void Lua_V2::YawCamera() {
 
 	CVector axis;
 
-	axis.x = 0.0f;
-	axis.y = 1.0f;
-	axis.z = 0.0f;
+	axis._x = 0.0f;
+	axis._y = 1.0f;
+	axis._z = 0.0f;
 
 	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
 	CQuaternion rotation(axis, angle);
@@ -385,20 +385,20 @@ void Lua_V2::YawCamera() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+	if ((camera->_nodeFlags & CNode::kQuaternionValid) == 0)
 		camera->updateLocalQuaternion();
 
-	double rotationX = rotation.x;
-	double rotationY = rotation.y;
-	double rotationZ = rotation.z;
-	double rotationW = rotation.w;
-	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
-	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
-	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
-	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+	double rotationX = rotation._x;
+	double rotationY = rotation._y;
+	double rotationZ = rotation._z;
+	double rotationW = rotation._w;
+	float resultW = (float)(((rotationW * camera->_quat._w - rotationX * camera->_quat._x) - rotationY * camera->_quat._y) - rotationZ * camera->_quat._z);
+	float resultZ = (float)(((rotationY * camera->_quat._x + rotationZ * camera->_quat._w) + rotationW * camera->_quat._z) - rotationX * camera->_quat._y);
+	float resultY = (float)(((rotationY * camera->_quat._w + rotationW * camera->_quat._y) + rotationX * camera->_quat._z) - rotationZ * camera->_quat._x);
+	float resultX = (float)(((rotationW * camera->_quat._x + rotationZ * camera->_quat._y) + rotationX * camera->_quat._w) - rotationY * camera->_quat._z);
 
-	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
-	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->_quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->_nodeFlags = (camera->_nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	camera->updateLocalState();
 }
 
@@ -420,10 +420,10 @@ void Lua_V2::GetCameraPitch() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+	if ((camera->_nodeFlags & CNode::kEulerValid) == 0)
 		camera->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(camera->eulerDeg.x);
+	lua_pushnumber(camera->_eulerDeg._x);
 }
 
 void Lua_V2::PitchCamera() {
@@ -445,9 +445,9 @@ void Lua_V2::PitchCamera() {
 
 	CVector axis;
 
-	axis.x = 1.0f;
-	axis.y = 0.0f;
-	axis.z = 0.0f;
+	axis._x = 1.0f;
+	axis._y = 0.0f;
+	axis._z = 0.0f;
 
 	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
 	CQuaternion rotation(axis, angle);
@@ -459,20 +459,20 @@ void Lua_V2::PitchCamera() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+	if ((camera->_nodeFlags & CNode::kQuaternionValid) == 0)
 		camera->updateLocalQuaternion();
 
-	double rotationX = rotation.x;
-	double rotationY = rotation.y;
-	double rotationZ = rotation.z;
-	double rotationW = rotation.w;
-	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
-	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
-	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
-	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+	double rotationX = rotation._x;
+	double rotationY = rotation._y;
+	double rotationZ = rotation._z;
+	double rotationW = rotation._w;
+	float resultW = (float)(((rotationW * camera->_quat._w - rotationX * camera->_quat._x) - rotationY * camera->_quat._y) - rotationZ * camera->_quat._z);
+	float resultZ = (float)(((rotationY * camera->_quat._x + rotationZ * camera->_quat._w) + rotationW * camera->_quat._z) - rotationX * camera->_quat._y);
+	float resultY = (float)(((rotationY * camera->_quat._w + rotationW * camera->_quat._y) + rotationX * camera->_quat._z) - rotationZ * camera->_quat._x);
+	float resultX = (float)(((rotationW * camera->_quat._x + rotationZ * camera->_quat._y) + rotationX * camera->_quat._w) - rotationY * camera->_quat._z);
 
-	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
-	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->_quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->_nodeFlags = (camera->_nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	camera->updateLocalState();
 }
 
@@ -494,10 +494,10 @@ void Lua_V2::GetCameraRoll() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kEulerValid) == 0)
+	if ((camera->_nodeFlags & CNode::kEulerValid) == 0)
 		camera->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(camera->eulerDeg.z);
+	lua_pushnumber(camera->_eulerDeg._z);
 }
 
 void Lua_V2::RollCamera() {
@@ -519,9 +519,9 @@ void Lua_V2::RollCamera() {
 
 	CVector axis;
 
-	axis.x = 0.0f;
-	axis.y = 0.0f;
-	axis.z = 1.0f;
+	axis._x = 0.0f;
+	axis._y = 0.0f;
+	axis._z = 1.0f;
 
 	float angle = (float)((double)lua_getnumber(angleObj) * Actor::kDegreesToRadians);
 	CQuaternion rotation(axis, angle);
@@ -533,20 +533,20 @@ void Lua_V2::RollCamera() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+	if ((camera->_nodeFlags & CNode::kQuaternionValid) == 0)
 		camera->updateLocalQuaternion();
 
-	double rotationX = rotation.x;
-	double rotationY = rotation.y;
-	double rotationZ = rotation.z;
-	double rotationW = rotation.w;
-	float resultW = (float)(((rotationW * camera->quat.w - rotationX * camera->quat.x) - rotationY * camera->quat.y) - rotationZ * camera->quat.z);
-	float resultZ = (float)(((rotationY * camera->quat.x + rotationZ * camera->quat.w) + rotationW * camera->quat.z) - rotationX * camera->quat.y);
-	float resultY = (float)(((rotationY * camera->quat.w + rotationW * camera->quat.y) + rotationX * camera->quat.z) - rotationZ * camera->quat.x);
-	float resultX = (float)(((rotationW * camera->quat.x + rotationZ * camera->quat.y) + rotationX * camera->quat.w) - rotationY * camera->quat.z);
+	double rotationX = rotation._x;
+	double rotationY = rotation._y;
+	double rotationZ = rotation._z;
+	double rotationW = rotation._w;
+	float resultW = (float)(((rotationW * camera->_quat._w - rotationX * camera->_quat._x) - rotationY * camera->_quat._y) - rotationZ * camera->_quat._z);
+	float resultZ = (float)(((rotationY * camera->_quat._x + rotationZ * camera->_quat._w) + rotationW * camera->_quat._z) - rotationX * camera->_quat._y);
+	float resultY = (float)(((rotationY * camera->_quat._w + rotationW * camera->_quat._y) + rotationX * camera->_quat._z) - rotationZ * camera->_quat._x);
+	float resultX = (float)(((rotationW * camera->_quat._x + rotationZ * camera->_quat._y) + rotationX * camera->_quat._w) - rotationY * camera->_quat._z);
 
-	camera->quat = CQuaternion(resultX, resultY, resultZ, resultW);
-	camera->nodeFlags = (camera->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	camera->_quat = CQuaternion(resultX, resultY, resultZ, resultW);
+	camera->_nodeFlags = (camera->_nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	camera->updateLocalState();
 }
 
@@ -565,7 +565,7 @@ void Lua_V2::GetCameraLookVector() {
 	if (lua_isnumber(setupObj))
 		setupIndex = luaFtol(lua_getnumber(setupObj));
 	else
-		setupIndex = currentRoom->currentSetup;
+		setupIndex = currentRoom->_currentSetup;
 
 	Camera *camera = currentRoom->getSetupCamera(setupIndex);
 
@@ -576,15 +576,15 @@ void Lua_V2::GetCameraLookVector() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	double lookX = camera->world.rot.m[6];
-	double lookY = camera->world.rot.m[7];
-	double lookZ = camera->world.rot.m[8];
-	float resultX = camera->world.rot.m[6];
-	float resultY = camera->world.rot.m[7];
-	float resultZ = camera->world.rot.m[8];
+	double lookX = camera->_world._rot._m[6];
+	double lookY = camera->_world._rot._m[7];
+	double lookZ = camera->_world._rot._m[8];
+	float resultX = camera->_world._rot._m[6];
+	float resultY = camera->_world._rot._m[7];
+	float resultZ = camera->_world._rot._m[8];
 	double length = sqrt((lookX * lookX + lookY * lookY) + lookZ * lookZ);
 
 	if (length >= (double)kMinVectorLength) {
@@ -631,7 +631,7 @@ void Lua_V2::SnapToPlane() {
 	lua_Object zObj = lua_getparam(4);
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes || !lua_isstring(planeObj)) {
+	if (!currentRoom || !currentRoom->_walkPlanes || !lua_isstring(planeObj)) {
 		warning("Lua_V2::SnapToPlane(): missing walk planes or plane name");
 		lua_pushnil();
 
@@ -639,7 +639,7 @@ void Lua_V2::SnapToPlane() {
 	}
 
 	LString planeName = lua_getstring(planeObj);
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeNamed(planeName);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (!plane) {
 		lua_pushnil();

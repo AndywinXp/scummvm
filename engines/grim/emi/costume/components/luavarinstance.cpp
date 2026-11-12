@@ -28,7 +28,7 @@ namespace Grim {
 
 LuaVarInstance::LuaVarInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
 	if (componentName.size() >= Component::kNamePrefixSize)
-		variableName = componentName.c_str() + Component::kNamePrefixSize;
+		_variableName = componentName.c_str() + Component::kNamePrefixSize;
 	else
 		warning("LuaVarInstance::LuaVarInstance(): invalid component name %s", componentName.c_str());
 }
@@ -39,7 +39,7 @@ bool LuaVarInstance::isReplayable() {
 
 void LuaVarInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
 	lua_pushnumber((float)(int)value);
-	lua_setglobal(variableName.c_str());
+	lua_setglobal(_variableName.c_str());
 }
 
 } // End of namespace Grim

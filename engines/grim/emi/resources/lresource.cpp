@@ -30,26 +30,26 @@
 namespace Grim {
 
 LResourceType::LResourceType() {
-	id = 0;
+	_id = 0;
 }
 
 LResourceType::LResourceType(const char *name) {
-	id = 0;
+	_id = 0;
 	uint index = 0;
 
 	switch (strlen(name)) {
 	case 4:
-		id += (uint)toupper((byte)name[0]) << 24;
+		_id += (uint)toupper((byte)name[0]) << 24;
 		index = 1;
 		// fall through
 	case 3:
-		id += (uint)toupper((byte)name[index++]) << 16;
+		_id += (uint)toupper((byte)name[index++]) << 16;
 		// fall through
 	case 2:
-		id += (uint)toupper((byte)name[index++]) << 8;
+		_id += (uint)toupper((byte)name[index++]) << 8;
 		// fall through
 	case 1:
-		id += (uint)toupper((byte)name[index]);
+		_id += (uint)toupper((byte)name[index]);
 		break;
 	default:
 		break;
@@ -57,33 +57,33 @@ LResourceType::LResourceType(const char *name) {
 }
 
 bool LResourceType::operator==(const LResourceType &other) const {
-	return id == other.id;
+	return _id == other._id;
 }
 
 LResource::LResource() {
 	_engine = nullptr;
-	lockCount = 0;
-	loaded = false;
-	byte29 = 0;
-	unique = false;
-	purgeOnFree = false;
-	notPurgable = false;
+	_lockCount = 0;
+	_loaded = false;
+	_byte29 = 0;
+	_unique = false;
+	_purgeOnFree = false;
+	_notPurgable = false;
 }
 
 LResource::~LResource() {
-	if (lockCount != 0)
+	if (_lockCount != 0)
 		warning("LResource::~LResource(): resource is still locked");
 
 	_engine->getResourceManager()->removeResource(this);
 
 	Common::List<LResourceHandleBase *>::iterator it;
 
-	for (it = handles.begin(); it != handles.end(); ++it) {
+	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		warning("LResource::~LResource(): resource still has handles bound");
-		(*it)->resource = nullptr;
+		(*it)->_resource = nullptr;
 	}
 
-	handles.clear();
+	_handles.clear();
 }
 
 void *LResource::operator new(size_t size) {
@@ -95,13 +95,13 @@ void LResource::operator delete(void *block) {
 }
 
 void LResource::initializeRes() {
-	lockCount = 0;
-	name.clear();
-	loaded = false;
-	byte29 = 0;
-	unique = false;
-	purgeOnFree = false;
-	notPurgable = false;
+	_lockCount = 0;
+	_name.clear();
+	_loaded = false;
+	_byte29 = 0;
+	_unique = false;
+	_purgeOnFree = false;
+	_notPurgable = false;
 }
 
 bool LResource::loadResourceItem(const LString &itemName) {
@@ -112,14 +112,14 @@ bool LResource::loadResourceItem(const char *itemName) {
 	bool result = resLoadItem(itemName);
 
 	if (result) {
-		loaded = true;
+		_loaded = true;
 	} else {
 		LConsoleServices *console = _engine->getConsoleServices();
 
 		if (console)
-			console->logError("LResource::LoadResourceItem - Failed to load %s\n", name.c_str());
+			console->logError("LResource::LoadResourceItem - Failed to load %s\n", _name.c_str());
 		else
-			warning("LResource::loadResourceItem(): failed to load %s", name.c_str());
+			warning("LResource::loadResourceItem(): failed to load %s", _name.c_str());
 	}
 
 	_engine->getResourceManager()->resourceLoaded(this, result);
@@ -146,92 +146,92 @@ bool LResource::resLoadItem(const char *itemName) {
 }
 
 bool LResource::resIsLoaded() const {
-	return loaded;
+	return _loaded;
 }
 
 bool LResource::resIsUnique() const {
-	return unique;
+	return _unique;
 }
 
 bool LResource::resIsPurgeOnFree() const {
-	return purgeOnFree;
+	return _purgeOnFree;
 }
 
 bool LResource::resIsNotPurgable() const {
-	return notPurgable;
+	return _notPurgable;
 }
 
 void LResource::resSetLoaded(bool value) {
-	loaded = value;
+	_loaded = value;
 }
 
 void LResource::resSetUnique(bool value) {
-	unique = value;
+	_unique = value;
 }
 
 void LResource::resSetPurgeOnFree(bool value) {
-	purgeOnFree = value;
+	_purgeOnFree = value;
 }
 
 void LResource::resSetNotPurgable(bool value) {
-	notPurgable = value;
+	_notPurgable = value;
 }
 
 LString &LResource::resGetName() {
-	return name;
+	return _name;
 }
 
 const LResourceType &LResource::resGetType() const {
-	return type;
+	return _type;
 }
 
 uint LResource::handleCount() const {
-	return handles.size();
+	return _handles.size();
 }
 
 LResource *LResource::resLock() {
-	lockCount++;
+	_lockCount++;
 	_engine->getResourceManager()->lockResource(this);
 
 	return this;
 }
 
 void LResource::resUnlock() {
-	lockCount--;
+	_lockCount--;
 	_engine->getResourceManager()->unlockResource(this);
 
-	if (lockCount == 0 && purgeOnFree)
+	if (_lockCount == 0 && _purgeOnFree)
 		_engine->getResourceManager()->purgeResource(this, true);
 }
 
 int LResource::resLockCount() const {
-	return lockCount;
+	return _lockCount;
 }
 
 LResourceHandleBase *LResource::firstHandle() {
-	if (handles.empty())
+	if (_handles.empty())
 		return nullptr;
 
-	return handles.front();
+	return _handles.front();
 }
 
 void LResource::addHandle(LResourceHandleBase &handle) {
 	Common::List<LResourceHandleBase *>::iterator it;
 
-	for (it = handles.begin(); it != handles.end(); ++it) {
+	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		if (*it == &handle)
 			return;
 	}
 
-	handles.push_front(&handle);
+	_handles.push_front(&handle);
 }
 
 void LResource::removeHandle(LResourceHandleBase &handle) {
 	Common::List<LResourceHandleBase *>::iterator it;
 
-	for (it = handles.begin(); it != handles.end(); ++it) {
+	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		if (*it == &handle) {
-			handles.erase(it);
+			_handles.erase(it);
 			return;
 		}
 	}
@@ -242,23 +242,23 @@ void LResource::resSetName(const char *newName) {
 
 	_engine->getResourceManager()->resourceNameChange(this, newNameString);
 
-	name = newName;
+	_name = newName;
 }
 
 void LResource::resSetType(const LResourceType &newType) {
 	_engine->getResourceManager()->resourceTypeChange(this, newType);
 
-	type = newType;
+	_type = newType;
 }
 
 void LResource::resReplaceResource(LResource &other) {
-	Common::List<LResourceHandleBase *>::iterator it = handles.begin();
+	Common::List<LResourceHandleBase *>::iterator it = _handles.begin();
 
-	while (it != handles.end()) {
+	while (it != _handles.end()) {
 		LResourceHandleBase *handle = *it;
 		++it;
 
-		if (handle->lockCount != 0)
+		if (handle->_lockCount != 0)
 			warning("LResource::resReplaceResource(): handle is still locked");
 
 		handle->setResource(&other);

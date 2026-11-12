@@ -42,7 +42,7 @@ public:
 	virtual void setup(LABitmap *bitmap);
 	virtual int getSize();
 
-	uint flags;
+	uint _flags;
 };
 
 } // End of namespace Grim

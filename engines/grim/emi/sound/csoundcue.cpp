@@ -41,55 +41,55 @@ static const uint kSndFlagsMask = 0x003FFFFF;
 static const int kSavedPositionSize = 16;
 static const int kSavedPositionOffset = 4;
 
-CSoundCue::CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *node) : soundHandle(sounds->getEngine()), _sounds(sounds) {
-	prev = nullptr;
-	next = nullptr;
-	sound = nullptr;
-	priority = 0.0f;
-	volume = 0.0f;
-	mvol = 0.0f;
-	pan = 0.0f;
-	reserved48 = 0;
-	freq = 0.0f;
-	state = kStateNone;
-	cutoffNear = 0.0f;
-	cutoffFar = 0.0f;
-	flags = 0;
+CSoundCue::CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *node) : _soundHandle(sounds->getEngine()), _sounds(sounds) {
+	_prev = nullptr;
+	_next = nullptr;
+	_sound = nullptr;
+	_priority = 0.0f;
+	_volume = 0.0f;
+	_mvol = 0.0f;
+	_pan = 0.0f;
+	_reserved48 = 0;
+	_freq = 0.0f;
+	_state = kStateNone;
+	_cutoffNear = 0.0f;
+	_cutoffFar = 0.0f;
+	_flags = 0;
 
 	for (int i = 0; i < 5; i++)
-		reserved72[i] = 0;
+		_reserved72[i] = 0;
 
-	nodeRef.cue = nullptr;
-	channel = nullptr;
-	group = 0;
-	lipData = nullptr;
-	lipSize = 0;
-	handle = 0;
-	category = 0;
+	_nodeRef._cue = nullptr;
+	_channel = nullptr;
+	_group = 0;
+	_lipData = nullptr;
+	_lipSize = 0;
+	_handle = 0;
+	_category = 0;
 
-	if (!sndHandle->lock() || !sndHandle->typed) {
+	if (!sndHandle->lock() || !sndHandle->_typed) {
 		initDefaults(node);
 	} else {
-		CSnd *snd = sndHandle->typed;
+		CSnd *snd = sndHandle->_typed;
 
 		initFromSnd(snd, node);
-		soundHandle.setResource(snd->getSoundHandle()->resource);
+		_soundHandle.setResource(snd->getSoundHandle()->_resource);
 
-		if (soundHandle.lock())
-			sound = dynamic_cast<CWaveSound *>(soundHandle.typed);
+		if (_soundHandle.lock())
+			_sound = dynamic_cast<CWaveSound *>(_soundHandle._typed);
 		else
-			sound = nullptr;
+			_sound = nullptr;
 	}
 
 	sndHandle->unlock();
 
-	nodeRef.cue = this;
+	_nodeRef._cue = this;
 
 	if (_sounds->_firstCue)
-		_sounds->_firstCue->prev = this;
+		_sounds->_firstCue->_prev = this;
 
-	prev = nullptr;
-	next = _sounds->_firstCue;
+	_prev = nullptr;
+	_next = _sounds->_firstCue;
 	_sounds->_firstCue = this;
 
 	if (!_sounds->_lastCue)
@@ -98,31 +98,31 @@ CSoundCue::CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *no
 	_sounds->_cueCount++;
 }
 
-CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : soundHandle(sounds->getEngine()), _sounds(sounds) {
-	prev = nullptr;
-	next = nullptr;
-	sound = nullptr;
-	priority = 0.0f;
-	volume = 0.0f;
-	mvol = 0.0f;
-	pan = 0.0f;
-	reserved48 = 0;
-	freq = 0.0f;
-	state = kStateNone;
-	cutoffNear = 0.0f;
-	cutoffFar = 0.0f;
-	flags = 0;
+CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : _soundHandle(sounds->getEngine()), _sounds(sounds) {
+	_prev = nullptr;
+	_next = nullptr;
+	_sound = nullptr;
+	_priority = 0.0f;
+	_volume = 0.0f;
+	_mvol = 0.0f;
+	_pan = 0.0f;
+	_reserved48 = 0;
+	_freq = 0.0f;
+	_state = kStateNone;
+	_cutoffNear = 0.0f;
+	_cutoffFar = 0.0f;
+	_flags = 0;
 
 	for (int i = 0; i < 5; i++)
-		reserved72[i] = 0;
+		_reserved72[i] = 0;
 
-	nodeRef.cue = nullptr;
-	channel = nullptr;
-	group = 0;
-	lipData = nullptr;
-	lipSize = 0;
-	handle = 0;
-	category = 0;
+	_nodeRef._cue = nullptr;
+	_channel = nullptr;
+	_group = 0;
+	_lipData = nullptr;
+	_lipSize = 0;
+	_handle = 0;
+	_category = 0;
 
 	LString upperName(name);
 
@@ -133,25 +133,25 @@ CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : soundHa
 
 		LResourceHandle<LSound> rawHandle(_sounds->getEngine(), name);
 
-		soundHandle.setResource(rawHandle.resource);
+		_soundHandle.setResource(rawHandle._resource);
 
-		if (soundHandle.lock())
-			sound = dynamic_cast<CWaveSound *>(soundHandle.typed);
+		if (_soundHandle.lock())
+			_sound = dynamic_cast<CWaveSound *>(_soundHandle._typed);
 		else
-			sound = nullptr;
+			_sound = nullptr;
 	} else {
 		LResourceHandle<CSnd> sndHandle(_sounds->getEngine(), name);
 
-		if (sndHandle.lock() && sndHandle.typed) {
-			CSnd *snd = sndHandle.typed;
+		if (sndHandle.lock() && sndHandle._typed) {
+			CSnd *snd = sndHandle._typed;
 
 			initFromSnd(snd, node);
-			soundHandle.setResource(snd->getSoundHandle()->resource);
+			_soundHandle.setResource(snd->getSoundHandle()->_resource);
 
-			if (soundHandle.lock())
-				sound = dynamic_cast<CWaveSound *>(soundHandle.typed);
+			if (_soundHandle.lock())
+				_sound = dynamic_cast<CWaveSound *>(_soundHandle._typed);
 			else
-				sound = nullptr;
+				_sound = nullptr;
 		} else {
 			initDefaults(node);
 		}
@@ -159,13 +159,13 @@ CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : soundHa
 		sndHandle.unlock();
 	}
 
-	nodeRef.cue = this;
+	_nodeRef._cue = this;
 
 	if (_sounds->_firstCue)
-		_sounds->_firstCue->prev = this;
+		_sounds->_firstCue->_prev = this;
 
-	prev = nullptr;
-	next = _sounds->_firstCue;
+	_prev = nullptr;
+	_next = _sounds->_firstCue;
 	_sounds->_firstCue = this;
 
 	if (!_sounds->_lastCue)
@@ -176,47 +176,47 @@ CSoundCue::CSoundCue(Sounds *sounds, const LString &name, CNode *node) : soundHa
 
 CSoundCue::~CSoundCue() {
 	releaseChannel();
-	soundHandle.unlock();
-	sound = nullptr;
+	_soundHandle.unlock();
+	_sound = nullptr;
 
-	if (lipData)
-		delete[] reinterpret_cast<byte *>(lipData);
+	if (_lipData)
+		delete[] reinterpret_cast<byte *>(_lipData);
 
-	lipData = nullptr;
+	_lipData = nullptr;
 
 	if (this == _sounds->_firstCue) {
 		CSoundCue *oldFirst = _sounds->_firstCue;
 
-		_sounds->_firstCue = _sounds->_firstCue->next;
+		_sounds->_firstCue = _sounds->_firstCue->_next;
 
 		if (_sounds->_firstCue)
-			_sounds->_firstCue->prev = nullptr;
+			_sounds->_firstCue->_prev = nullptr;
 		else
 			_sounds->_lastCue = nullptr;
 
-		oldFirst->prev = nullptr;
-		oldFirst->next = nullptr;
+		oldFirst->_prev = nullptr;
+		oldFirst->_next = nullptr;
 		_sounds->_cueCount--;
 	} else if (this == _sounds->_lastCue) {
 		CSoundCue *oldLast = _sounds->_lastCue;
 
-		_sounds->_lastCue = _sounds->_lastCue->prev;
+		_sounds->_lastCue = _sounds->_lastCue->_prev;
 
 		if (_sounds->_lastCue)
-			_sounds->_lastCue->next = nullptr;
+			_sounds->_lastCue->_next = nullptr;
 		else
 			_sounds->_firstCue = nullptr;
 
-		oldLast->next = nullptr;
-		oldLast->prev = nullptr;
+		oldLast->_next = nullptr;
+		oldLast->_prev = nullptr;
 		_sounds->_cueCount--;
-	} else if (next && prev) {
-		next->prev = prev;
-		prev->next = next;
+	} else if (_next && _prev) {
+		_next->_prev = _prev;
+		_prev->_next = _next;
 		_sounds->_cueCount--;
-		prev = nullptr;
-		next = nullptr;
-	} else if (next || prev) {
+		_prev = nullptr;
+		_next = nullptr;
+	} else if (_next || _prev) {
 		warning("CSoundCue::~CSoundCue(): inconsistent cue list");
 	}
 
@@ -235,13 +235,13 @@ bool CSoundCue::play(bool releaseWhenDone) {
 	stop();
 
 	if (releaseWhenDone)
-		flags |= kFlagReleaseWhenDone;
+		_flags |= kFlagReleaseWhenDone;
 	else
-		flags &= ~kFlagReleaseWhenDone;
+		_flags &= ~kFlagReleaseWhenDone;
 
 	startPlay(false);
 
-	return channel != nullptr;
+	return _channel != nullptr;
 }
 
 bool CSoundCue::startPlay(bool startPaused) {
@@ -250,45 +250,45 @@ bool CSoundCue::startPlay(bool startPaused) {
 	releaseChannel();
 
 	if (!audioSystem->isCueInRange(this))
-		return channel != nullptr;
+		return _channel != nullptr;
 
-	channel = audioSystem->allocateAudioChannel(this);
+	_channel = audioSystem->allocateAudioChannel(this);
 
-	if (!channel) {
-		state = kStateWaiting;
+	if (!_channel) {
+		_state = kStateWaiting;
 
-		return channel != nullptr;
+		return _channel != nullptr;
 	}
 
-	if (channel->assignToSample(this)) {
-		channel->setVolume(getCategoryGain() * volume);
-		channel->setPan(pan);
+	if (_channel->assignToSample(this)) {
+		_channel->setVolume(getCategoryGain() * _volume);
+		_channel->setPan(_pan);
 
 		if (startPaused) {
-			channel->pause();
+			_channel->pause();
 
-			return channel != nullptr;
+			return _channel != nullptr;
 		}
 
-		channel->start();
-		state = kStateStarted;
+		_channel->start();
+		_state = kStateStarted;
 
-		return channel != nullptr;
+		return _channel != nullptr;
 	}
 
 	releaseChannel();
-	state = kStateWaiting;
+	_state = kStateWaiting;
 
-	if (audioSystem->debugLevel > 1) {
+	if (audioSystem->_debugLevel > 1) {
 		const char *failedName = "<file_error>";
 
-		if (soundHandle.resource)
-			failedName = soundHandle.resource->name.c_str();
+		if (_soundHandle._resource)
+			failedName = _soundHandle._resource->_name.c_str();
 
 		warning("CSoundCue::startPlay(): failed to initialize channel for sound <%s>", failedName);
 	}
 
-	return channel != nullptr;
+	return _channel != nullptr;
 }
 
 bool CSoundCue::startPlay() {
@@ -297,56 +297,56 @@ bool CSoundCue::startPlay() {
 	releaseChannel();
 
 	if (!audioSystem->isCueInRange(this))
-		return channel != nullptr;
+		return _channel != nullptr;
 
-	channel = audioSystem->allocateAudioChannel(this);
+	_channel = audioSystem->allocateAudioChannel(this);
 
-	if (!channel) {
-		state = kStateWaiting;
+	if (!_channel) {
+		_state = kStateWaiting;
 
-		return channel != nullptr;
+		return _channel != nullptr;
 	}
 
-	if (channel->assignToSample(this)) {
-		state = kStateStopped;
+	if (_channel->assignToSample(this)) {
+		_state = kStateStopped;
 
-		return channel != nullptr;
+		return _channel != nullptr;
 	}
 
 	releaseChannel();
-	state = kStateWaiting;
+	_state = kStateWaiting;
 
-	if (audioSystem->debugLevel > 1) {
+	if (audioSystem->_debugLevel > 1) {
 		const char *failedName = "<file_error>";
 
-		if (soundHandle.resource)
-			failedName = soundHandle.resource->name.c_str();
+		if (_soundHandle._resource)
+			failedName = _soundHandle._resource->_name.c_str();
 
 		warning("CSoundCue::startPlay(): failed to initialize channel for sound <%s>", failedName);
 	}
 
-	return channel != nullptr;
+	return _channel != nullptr;
 }
 
 bool CSoundCue::update() {
-	if ((flags & kFlagStartInRange) != 0) {
+	if ((_flags & kFlagStartInRange) != 0) {
 		bool inRange = _sounds->getAudioSystem()->isCueInRange(this);
 
 		if (inRange) {
-			flags |= kFlagInRange;
+			_flags |= kFlagInRange;
 
 			if (getState() != kStatePlaying)
 				play(true);
 		} else {
-			flags &= ~kFlagInRange;
+			_flags &= ~kFlagInRange;
 
 			if (getState() == kStatePlaying)
 				stop();
 		}
 	}
 
-	if (state == kStateWaiting || state == kStateStopped || state == kStateFinished) {
-		if ((flags & kFlagStartInRange) == 0 && (flags & kFlagReleaseWhenDone) != 0)
+	if (_state == kStateWaiting || _state == kStateStopped || _state == kStateFinished) {
+		if ((_flags & kFlagStartInRange) == 0 && (_flags & kFlagReleaseWhenDone) != 0)
 			return false;
 	}
 
@@ -362,9 +362,9 @@ CSoundCue *CSoundCue::newSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHand
 		cue = new CSoundCue(sounds, sndHandle, node);
 
 	if (cue)
-		cue->category = category;
+		cue->_category = category;
 
-	if (!cue || cue->sound)
+	if (!cue || cue->_sound)
 		return cue;
 
 	deleteSoundCue(cue);
@@ -403,7 +403,7 @@ CSoundCue *CSoundCue::newSoundCue(Sounds *sounds, const LString &name, int categ
 
 		case 2:
 			cue = new CSoundCue(sounds, name, node);
-			cue->category = 2;
+			cue->_category = 2;
 
 			break;
 
@@ -417,13 +417,13 @@ CSoundCue *CSoundCue::newSoundCue(Sounds *sounds, const LString &name, int categ
 
 		default:
 			cue = new CSoundCue(sounds, name, node);
-			cue->category = category;
+			cue->_category = category;
 
 			break;
 		}
 	}
 
-	if (cue && !cue->sound) {
+	if (cue && !cue->_sound) {
 		deleteSoundCue(cue);
 		cue = nullptr;
 	}
@@ -458,13 +458,13 @@ void CSoundCue::releaseUnlockedCues(Sounds *sounds) {
 	while (cue) {
 		CSoundCue *current = cue;
 
-		cue = cue->next;
+		cue = cue->_next;
 
-		if (!sounds->getEngine()->getLua()->isSoundLocked((int16)current->handle)) {
-			CAudioChannel *currentChannel = current->channel;
+		if (!sounds->getEngine()->getLua()->isSoundLocked((int16)current->_handle)) {
+			CAudioChannel *currentChannel = current->_channel;
 
 			if (!currentChannel || !currentChannel->isPaused()) {
-				sounds->unregisterSound(current->handle);
+				sounds->unregisterSound(current->_handle);
 				deleteSoundCue(current);
 			}
 		}
@@ -480,7 +480,7 @@ void CSoundCue::updateSoundCues(Sounds *sounds) {
 		CSoundCue *current = cue;
 
 		sounds->_updatedCount++;
-		cue = cue->next;
+		cue = cue->_next;
 
 		if (!current->update() && !sounds->isCueRegistered(current))
 			deleteSoundCue(current);
@@ -496,9 +496,9 @@ bool CSoundCue::stopCueToFreeChannel(Sounds *sounds, bool finiteLoopsFirst, bool
 		while (cue) {
 			CSoundCue *current = cue;
 
-			cue = cue->next;
+			cue = cue->_next;
 
-			if (current->category != 2 && current->hasFiniteLoopCount()) {
+			if (current->_category != 2 && current->hasFiniteLoopCount()) {
 				found = current;
 
 				break;
@@ -515,9 +515,9 @@ bool CSoundCue::stopCueToFreeChannel(Sounds *sounds, bool finiteLoopsFirst, bool
 		while (cue) {
 			CSoundCue *current = cue;
 
-			cue = cue->next;
+			cue = cue->_next;
 
-			if (current->category != 2 && (current->flags & kFlagLoop) == 0) {
+			if (current->_category != 2 && (current->_flags & kFlagLoop) == 0) {
 				found = current;
 
 				break;
@@ -533,7 +533,7 @@ bool CSoundCue::stopCueToFreeChannel(Sounds *sounds, bool finiteLoopsFirst, bool
 	return true;
 }
 
-bool CSoundCue::saveCues(Sounds *sounds, tSaveRestoreAccess *access) {
+bool CSoundCue::saveCues(Sounds *sounds, SaveRestoreAccess *access) {
 	int16 savedCount = (int16)sounds->_cueCount;
 	CSoundCue *cue = sounds->_firstCue;
 
@@ -542,14 +542,14 @@ bool CSoundCue::saveCues(Sounds *sounds, tSaveRestoreAccess *access) {
 	while (cue) {
 		CSoundCue *current = cue;
 
-		cue = cue->next;
+		cue = cue->_next;
 		current->save(access);
 	}
 
 	return true;
 }
 
-bool CSoundCue::restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCueMap *cueMap) {
+bool CSoundCue::restoreCues(Sounds *sounds, SaveRestoreAccess *access, SoundCueMap *cueMap) {
 	LString cueName;
 	int16 restoredCount = 0;
 	int16 nameLength = 0;
@@ -596,26 +596,26 @@ bool CSoundCue::restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCue
 			continue;
 
 		if (loopFlag)
-			cue->flags |= kFlagLoop;
+			cue->_flags |= kFlagLoop;
 		else
-			cue->flags &= ~kFlagLoop;
+			cue->_flags &= ~kFlagLoop;
 
 		if (pausedFlag) {
 			cue->startPlay(true);
 
-			if (cue->channel)
-				cue->channel->setPaused(true);
-		} else if (cue->channel) {
-			cue->channel->setPaused(false);
+			if (cue->_channel)
+				cue->_channel->setPaused(true);
+		} else if (cue->_channel) {
+			cue->_channel->setPaused(false);
 		}
 
-		if (cue->category == 2)
+		if (cue->_category == 2)
 			sounds->soundCueLipCallback(cueName.c_str(), cue);
 
 		SoundPosition restoredPosition;
 
-		restoredPosition.valid = positionBytes[0] != 0;
-		memcpy(&restoredPosition.pos, positionBytes + kSavedPositionOffset, sizeof(restoredPosition.pos));
+		restoredPosition._valid = positionBytes[0] != 0;
+		memcpy(&restoredPosition._pos, positionBytes + kSavedPositionOffset, sizeof(restoredPosition._pos));
 
 		cue->setVolume(restoredVolume);
 		cue->setPosition(restoredPosition);
@@ -624,7 +624,7 @@ bool CSoundCue::restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCue
 
 		if (restoredHandle) {
 			(*cueMap)[restoredHandle] = cue;
-			cue->handle = restoredHandle;
+			cue->_handle = restoredHandle;
 		}
 	}
 
@@ -632,68 +632,68 @@ bool CSoundCue::restoreCues(Sounds *sounds, tSaveRestoreAccess *access, SoundCue
 }
 
 int CSoundCue::getSoundType() {
-	if (!soundHandle.resource)
+	if (!_soundHandle._resource)
 		return CWaveSound::kTypeWave;
 
 	LSound *lockedSound = nullptr;
 
-	if (soundHandle.lock())
-		lockedSound = soundHandle.typed;
+	if (_soundHandle.lock())
+		lockedSound = _soundHandle._typed;
 
 	if (!lockedSound)
 		return CWaveSound::kTypeWave;
 
 	int type = lockedSound->getType();
 
-	soundHandle.unlock();
+	_soundHandle.unlock();
 
 	return type;
 }
 
 bool CSoundCue::start(bool releaseWhenDone) {
-	if ((flags & kFlagStartInRange) != 0)
+	if ((_flags & kFlagStartInRange) != 0)
 		return false;
 
 	return play(releaseWhenDone);
 }
 
 void CSoundCue::stop() {
-	if (channel)
-		channel->stop();
+	if (_channel)
+		_channel->stop();
 }
 
 void CSoundCue::pause() {
-	if (channel)
-		channel->pause();
+	if (_channel)
+		_channel->pause();
 }
 
 void CSoundCue::resume() {
-	if (channel)
-		channel->resume();
+	if (_channel)
+		_channel->resume();
 }
 
 float CSoundCue::getPriority() {
-	return priority;
+	return _priority;
 }
 
 float CSoundCue::getVolume() {
-	return volume;
+	return _volume;
 }
 
 float CSoundCue::getPan() {
-	return pan;
+	return _pan;
 }
 
 float CSoundCue::getCutoffNear() {
-	return cutoffNear;
+	return _cutoffNear;
 }
 
 float CSoundCue::getCutoffFar() {
-	return cutoffFar;
+	return _cutoffFar;
 }
 
 float CSoundCue::getCategoryGain() {
-	switch (category) {
+	switch (_category) {
 	case 1:
 		return _sounds->getAudioSystem()->getCategoryGain(1);
 
@@ -711,49 +711,49 @@ float CSoundCue::getCategoryGain() {
 }
 
 void CSoundCue::setVolume(float newVolume) {
-	volume = newVolume;
+	_volume = newVolume;
 
 	float gain = getCategoryGain();
 
-	if (channel)
-		channel->setVolume(gain * newVolume);
+	if (_channel)
+		_channel->setVolume(gain * newVolume);
 }
 
 void CSoundCue::setPan(float newPan) {
-	pan = newPan;
+	_pan = newPan;
 
-	if (channel)
-		channel->setPan(newPan);
+	if (_channel)
+		_channel->setPan(newPan);
 }
 
 bool CSoundCue::setPosition(float x, float y, float z) {
-	position.set(x, y, z);
+	_position.set(x, y, z);
 	updateSpatialization();
 
 	return true;
 }
 
 bool CSoundCue::setPosition(const SoundPosition &newPosition) {
-	position = newPosition;
+	_position = newPosition;
 	updateSpatialization();
 
 	return true;
 }
 
 bool CSoundCue::updateSpatialization() {
-	if (!position.valid)
+	if (!_position._valid)
 		return false;
 
-	float worldX = position.pos.x;
-	float worldY = position.pos.y;
-	float worldZ = position.pos.z;
+	float worldX = _position._pos._x;
+	float worldY = _position._pos._y;
+	float worldZ = _position._pos._z;
 	float localX = worldX;
 	float localY = worldY;
 	float localZ = worldZ;
 	float panValue;
 	float volumeFactor = 1.0f;
 
-	CNode *listenerNode = _sounds->getAudioSystem()->listener.node;
+	CNode *listenerNode = _sounds->getAudioSystem()->_listener._node;
 
 	if (listenerNode)
 		listenerNode->worldToLocal(&worldX, &worldY, &worldZ, &localX, &localY, &localZ);
@@ -804,7 +804,7 @@ bool CSoundCue::updateSpatialization() {
 
 	double distanceSquared = (double)localZ * localZ + (double)localY * localY + (double)localX * localX;
 
-	volumeFactor = volumeFactor * volume;
+	volumeFactor = volumeFactor * _volume;
 
 	if (distanceSquared > 9.0) {
 		double scaled = (sqrt(distanceSquared) - (double)3.0f) * (double)0.12f;
@@ -814,59 +814,59 @@ bool CSoundCue::updateSpatialization() {
 
 	float gain = getCategoryGain();
 
-	if (channel)
-		channel->setVolume(gain * volumeFactor);
+	if (_channel)
+		_channel->setVolume(gain * volumeFactor);
 
 	return true;
 }
 
 bool CSoundCue::hasFiniteLoopCount() {
-	return channel && channel->hasFiniteLoopCount();
+	return _channel && _channel->hasFiniteLoopCount();
 }
 
 bool CSoundCue::getPosition(CVector *outPosition) {
-	if ((flags & kFlagPositional) == 0)
+	if ((_flags & kFlagPositional) == 0)
 		return false;
 
-	CNode *followedNode = nodeRef.node;
+	CNode *followedNode = _nodeRef._node;
 
 	if (followedNode) {
-		if ((followedNode->nodeFlags & CNode::kWorldValid) == 0)
+		if ((followedNode->_nodeFlags & CNode::kWorldValid) == 0)
 			followedNode->updateWorldTransform();
 
-		*outPosition = followedNode->world.pos;
+		*outPosition = followedNode->_world._pos;
 
-		return ((flags >> 29) & 1) != 0;
+		return ((_flags >> 29) & 1) != 0;
 	}
 
-	*outPosition = fixedPosition;
+	*outPosition = _fixedPosition;
 
-	return ((flags >> 29) & 1) != 0;
+	return ((_flags >> 29) & 1) != 0;
 }
 
 int CSoundCue::initDefaults(CNode *node) {
-	priority = 0.5f;
-	volume = 1.0f;
-	mvol = 1.0f;
-	pan = 0.0f;
-	freq = 1.0f;
-	cutoffNear = 1.0f;
-	cutoffFar = 50.0f;
-	flags = 0;
-	channel = nullptr;
-	fixedPosition = CVector();
-	state = kStateNone;
-	reserved48 = 0;
+	_priority = 0.5f;
+	_volume = 1.0f;
+	_mvol = 1.0f;
+	_pan = 0.0f;
+	_freq = 1.0f;
+	_cutoffNear = 1.0f;
+	_cutoffFar = 50.0f;
+	_flags = 0;
+	_channel = nullptr;
+	_fixedPosition = CVector();
+	_state = kStateNone;
+	_reserved48 = 0;
 
 	for (int i = 0; i < 5; i++)
-		reserved72[i] = 0;
+		_reserved72[i] = 0;
 
-	soundName.clear();
-	lipData = nullptr;
+	_soundName.clear();
+	_lipData = nullptr;
 
 	if (node) {
-		nodeRef.setNode(node);
-		flags |= kFlagPositional;
+		_nodeRef.setNode(node);
+		_flags |= kFlagPositional;
 	}
 
 	_sounds->_createdCount++;
@@ -880,64 +880,64 @@ void CSoundCue::initFromSnd(CSnd *snd, CNode *node) {
 	if (!snd)
 		return;
 
-	volume = snd->getVolume();
-	mvol = snd->getMvol();
-	priority = snd->getPrio();
-	pan = snd->getPan();
-	cutoffNear = snd->getCutoff0();
-	cutoffFar = snd->getCutoff1();
-	freq = snd->getFreq();
-	flags |= (uint)snd->getFlags() & kSndFlagsMask;
-	group = snd->getGroup();
-	soundName = snd->name;
+	_volume = snd->getVolume();
+	_mvol = snd->getMvol();
+	_priority = snd->getPrio();
+	_pan = snd->getPan();
+	_cutoffNear = snd->getCutoff0();
+	_cutoffFar = snd->getCutoff1();
+	_freq = snd->getFreq();
+	_flags |= (uint)snd->getFlags() & kSndFlagsMask;
+	_group = snd->getGroup();
+	_soundName = snd->_name;
 }
 
 void CSoundCue::setLipData(const void *data, uint size) {
-	if (lipData && lipSize < size) {
+	if (_lipData && _lipSize < size) {
 		warning("CSoundCue::setLipData(): the lip data does not fit in the old buffer");
 
-		delete[] reinterpret_cast<byte *>(lipData);
-		lipData = nullptr;
+		delete[] reinterpret_cast<byte *>(_lipData);
+		_lipData = nullptr;
 	}
 
-	if (!lipData)
-		lipData = reinterpret_cast<LipData *>(new byte[size]);
+	if (!_lipData)
+		_lipData = reinterpret_cast<LipData *>(new byte[size]);
 
-	memcpy(lipData, data, size);
-	lipSize = size;
+	memcpy(_lipData, data, size);
+	_lipSize = size;
 }
 
 void CSoundCue::releaseChannel() {
-	if (channel)
-		channel->release();
+	if (_channel)
+		_channel->release();
 
-	channel = nullptr;
+	_channel = nullptr;
 }
 
 void CSoundCue::unlinkFromCueList() {
-	if (_sounds->_firstCue != this && !prev)
+	if (_sounds->_firstCue != this && !_prev)
 		return;
 
-	if (prev)
-		prev->next = next;
+	if (_prev)
+		_prev->_next = _next;
 	else
-		_sounds->_firstCue = next;
+		_sounds->_firstCue = _next;
 
-	if (next)
-		next->prev = prev;
+	if (_next)
+		_next->_prev = _prev;
 	else
-		_sounds->_lastCue = prev;
+		_sounds->_lastCue = _prev;
 
-	prev = nullptr;
-	next = nullptr;
+	_prev = nullptr;
+	_next = nullptr;
 	_sounds->_cueCount--;
 }
 
 int CSoundCue::getState() {
 	int channelStatus = 0;
 
-	if (channel)
-		channelStatus = channel->getStatus();
+	if (_channel)
+		channelStatus = _channel->getStatus();
 
 	switch (channelStatus) {
 	case 2:
@@ -958,8 +958,8 @@ int CSoundCue::getState() {
 }
 
 int CSoundCue::getPositionMs(int *totalMs) {
-	if (channel)
-		return channel->getPositionMs(totalMs);
+	if (_channel)
+		return _channel->getPositionMs(totalMs);
 
 	if (totalMs)
 		*totalMs = 0;
@@ -968,15 +968,15 @@ int CSoundCue::getPositionMs(int *totalMs) {
 }
 
 void CSoundCue::setPositionMs(int milliseconds) {
-	if (channel)
-		channel->setPositionMs(milliseconds);
+	if (_channel)
+		_channel->setPositionMs(milliseconds);
 }
 
-bool CSoundCue::save(tSaveRestoreAccess *access) {
+bool CSoundCue::save(SaveRestoreAccess *access) {
 	const char *savedName = "<file_error>";
 
-	if (soundHandle.resource)
-		savedName = soundHandle.resource->name.c_str();
+	if (_soundHandle._resource)
+		savedName = _soundHandle._resource->_name.c_str();
 
 	int16 savedLength = (int16)strlen(savedName);
 	byte positionBytes[kSavedPositionSize];
@@ -984,26 +984,26 @@ bool CSoundCue::save(tSaveRestoreAccess *access) {
 	byte pausedFlag = 0;
 
 	memset(positionBytes, 0, sizeof(positionBytes));
-	positionBytes[0] = position.valid ? 1 : 0;
-	memcpy(positionBytes + kSavedPositionOffset, &position.pos, sizeof(position.pos));
+	positionBytes[0] = _position._valid ? 1 : 0;
+	memcpy(positionBytes + kSavedPositionOffset, &_position._pos, sizeof(_position._pos));
 
-	if (channel)
-		pausedFlag = channel->isPaused() ? 1 : 0;
+	if (_channel)
+		pausedFlag = _channel->isPaused() ? 1 : 0;
 
-	loopFlag = (flags & kFlagLoop) != 0 ? 1 : 0;
+	loopFlag = (_flags & kFlagLoop) != 0 ? 1 : 0;
 
 	int savedPositionMs = getPositionMs(nullptr);
 
 	access(&savedLength, sizeof(savedLength));
 	access(const_cast<char *>(savedName), savedLength);
-	access(&category, sizeof(category));
+	access(&_category, sizeof(_category));
 	access(&loopFlag, sizeof(loopFlag));
 	access(&pausedFlag, sizeof(pausedFlag));
-	access(&volume, sizeof(volume));
+	access(&_volume, sizeof(_volume));
 	access(positionBytes, kSavedPositionSize);
 	access(&savedPositionMs, sizeof(savedPositionMs));
-	access(&pan, sizeof(pan));
-	access(&handle, sizeof(handle));
+	access(&_pan, sizeof(_pan));
+	access(&_handle, sizeof(_handle));
 
 	return true;
 }

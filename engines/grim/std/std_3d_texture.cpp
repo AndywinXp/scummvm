@@ -49,57 +49,57 @@ static byte expandChannel(uint value, int bits) {
 	return (byte)(result >> (filled - 8));
 }
 
-static void texelToRgba(uint texel, const StdColorFormat *pFormat, byte *pOut) {
-	uint red = (texel >> pFormat->redShift) & ((1u << pFormat->redBits) - 1);
-	uint green = (texel >> pFormat->greenShift) & ((1u << pFormat->greenBits) - 1);
-	uint blue = (texel >> pFormat->blueShift) & ((1u << pFormat->blueBits) - 1);
+static void texelToRgba(uint texel, const StdColorFormat *format, byte *out) {
+	uint red = (texel >> format->redShift) & ((1u << format->redBits) - 1);
+	uint green = (texel >> format->greenShift) & ((1u << format->greenBits) - 1);
+	uint blue = (texel >> format->blueShift) & ((1u << format->blueBits) - 1);
 
-	pOut[0] = expandChannel(red, pFormat->redBits);
-	pOut[1] = expandChannel(green, pFormat->greenBits);
-	pOut[2] = expandChannel(blue, pFormat->blueBits);
+	out[0] = expandChannel(red, format->redBits);
+	out[1] = expandChannel(green, format->greenBits);
+	out[2] = expandChannel(blue, format->blueBits);
 
-	if (pFormat->alphaBits > 0) {
-		uint alpha = (texel >> pFormat->alphaShift) & ((1u << pFormat->alphaBits) - 1);
-		pOut[3] = expandChannel(alpha, pFormat->alphaBits);
+	if (format->alphaBits > 0) {
+		uint alpha = (texel >> format->alphaShift) & ((1u << format->alphaBits) - 1);
+		out[3] = expandChannel(alpha, format->alphaBits);
 	} else {
-		pOut[3] = 255;
+		out[3] = 255;
 	}
 }
 
-static int isValidFormat(const StdColorFormat *pFormat) {
-	return pFormat->bpp == 16 && pFormat->redBits > 0 && pFormat->redBits <= 8 && pFormat->greenBits > 0 && pFormat->greenBits <= 8 &&
-		pFormat->blueBits > 0 && pFormat->blueBits <= 8 && pFormat->alphaBits >= 0 && pFormat->alphaBits <= 8 &&
-		pFormat->redShift >= 0 && pFormat->redShift < 16 && pFormat->greenShift >= 0 && pFormat->greenShift < 16 &&
-		pFormat->blueShift >= 0 && pFormat->blueShift < 16 && pFormat->alphaShift >= 0 && pFormat->alphaShift < 16;
+static int isValidFormat(const StdColorFormat *format) {
+	return format->bpp == 16 && format->redBits > 0 && format->redBits <= 8 && format->greenBits > 0 && format->greenBits <= 8 &&
+		format->blueBits > 0 && format->blueBits <= 8 && format->alphaBits >= 0 && format->alphaBits <= 8 &&
+		format->redShift >= 0 && format->redShift < 16 && format->greenShift >= 0 && format->greenShift < 16 &&
+		format->blueShift >= 0 && format->blueShift < 16 && format->alphaShift >= 0 && format->alphaShift < 16;
 }
 
-int Std3D::setCurrentPalette(const byte *pPalette, byte alpha) {
-	if (!_pCurDevice || !_pTexFormatOpaque) {
+int Std3D::setCurrentPalette(const byte *palette, byte alpha) {
+	if (!_curDevice || !_texFormatOpaque) {
 		warning("Std3D::setCurrentPalette(): device not started");
 		return 0;
 	}
 
-	memcpy(_aPalette, pPalette, sizeof(_aPalette));
+	memcpy(_palette, palette, sizeof(_palette));
 
-	if (_pTexFormatOpaque->format.colorMode == 1 && _pTexFormatOpaque->format.bpp == 16)
-		_pStdBitmap->buildPaletteOpaque(pPalette, _aOpaquePaletteTable, &_pTexFormatOpaque->format);
+	if (_texFormatOpaque->format.colorMode == 1 && _texFormatOpaque->format.bpp == 16)
+		_stdBitmap->buildPaletteOpaque(palette, _opaquePaletteTable, &_texFormatOpaque->format);
 
-	if (_pCurDevice->bAlphaTexture) {
-		if (_pTexFormatAlpha->format.colorMode == 2 && _pTexFormatAlpha->format.bpp == 16)
-			_pStdBitmap->buildPaletteAlpha(pPalette, _aAlphaPaletteTable, &_pTexFormatAlpha->format);
+	if (_curDevice->alphaTexture) {
+		if (_texFormatAlpha->format.colorMode == 2 && _texFormatAlpha->format.bpp == 16)
+			_stdBitmap->buildPaletteAlpha(palette, _alphaPaletteTable, &_texFormatAlpha->format);
 
-		if (!_pCurDevice->bAlphaBlend && _pTexFormatColorKey->format.colorMode == 2 && _pTexFormatColorKey->format.bpp == 16)
-			_pStdBitmap->buildPaletteColorKey(pPalette, _aColorKeyPaletteTable, &_pTexFormatColorKey->format, alpha);
+		if (!_curDevice->alphaBlend && _texFormatColorKey->format.colorMode == 2 && _texFormatColorKey->format.bpp == 16)
+			_stdBitmap->buildPaletteColorKey(palette, _colorKeyPaletteTable, &_texFormatColorKey->format, alpha);
 	}
 
 	return 1;
 }
 
-void Std3D::getValidDimensions(uint width, uint height, uint *pWidth, uint *pHeight) {
-	int bSquareTexturesOnly = 0;
+void Std3D::getValidDimensions(uint width, uint height, uint *widthPointer, uint *heightPointer) {
+	int squareTexturesOnly = 0;
 
-	if (_pCurDevice) {
-		bSquareTexturesOnly = _pCurDevice->bSquareTexturesOnly;
+	if (_curDevice) {
+		squareTexturesOnly = _curDevice->squareTexturesOnly;
 	} else {
 		warning("Std3D::getValidDimensions(): device not started");
 	}
@@ -122,79 +122,79 @@ void Std3D::getValidDimensions(uint width, uint height, uint *pWidth, uint *pHei
 		h = 1;
 	}
 
-	if (w >= _minTexWidth && h >= _minTexHeight && (!bSquareTexturesOnly || w == h)) {
-		*pWidth = w;
-		*pHeight = h;
+	if (w >= _minTexWidth && h >= _minTexHeight && (!squareTexturesOnly || w == h)) {
+		*widthPointer = w;
+		*heightPointer = h;
 		return;
 	}
 
-	if (!bSquareTexturesOnly || w == h) {
+	if (!squareTexturesOnly || w == h) {
 		if (_minTexWidth > w)
 			w = _minTexWidth;
 
 		if (_minTexHeight > h)
 			h = _minTexHeight;
 
-		*pWidth = w;
-		*pHeight = h;
+		*widthPointer = w;
+		*heightPointer = h;
 		return;
 	}
 
 	if (w <= h)
 		w = h;
 
-	*pWidth = w;
-	*pHeight = w;
+	*widthPointer = w;
+	*heightPointer = w;
 }
 
-void Std3D::releaseTexture(RdTexCacheEntry *pEntry) {
-	if (pEntry->hTexture && _pBackend)
-		_pBackend->deleteTexture(pEntry->hTexture);
+void Std3D::releaseTexture(RdTexCacheEntry *entry) {
+	if (entry->texture && _backend)
+		_backend->deleteTexture(entry->texture);
 
-	pEntry->hTexture = 0;
+	entry->texture = 0;
 }
 
 void Std3D::purgeTextureCache() {
-	while (_pCacheHead) {
-		RdTexCacheEntry *pEntry = _pCacheHead;
+	while (_cacheHead) {
+		RdTexCacheEntry *entry = _cacheHead;
 
-		releaseTexture(pEntry);
-		pEntry->bInCache = 0;
-		pEntry->lastFrame = 0;
-		cacheListRemove(pEntry);
+		releaseTexture(entry);
+		entry->inCache = 0;
+		entry->lastFrame = 0;
+		cacheListRemove(entry);
 	}
 }
 
-int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlpha, int bColorKey) {
-	if (!_pCurDevice || !_pTexFormatOpaque || !ensureBackend()) {
+int Std3D::addToTextureCache(StdVBuffer *src, RdTexCacheEntry *entry, int alpha, int colorKey) {
+	if (!_curDevice || !_texFormatOpaque || !ensureBackend()) {
 		warning("Std3D::addToTextureCache(): device not started");
 		return 0;
 	}
 
-	if (!pSrc || !pEntry || pSrc->tex.width <= 0 || pSrc->tex.height <= 0 || !pSrc->pPixels) {
+	if (!src || !entry || src->tex.width <= 0 || src->tex.height <= 0 || !src->pixels) {
 		warning("Std3D::addToTextureCache(): invalid source");
 		return 0;
 	}
 
-	StdVBuffer *pBuf = pSrc;
-	StdVBuffer *pDst = nullptr;
-	uint width = pSrc->tex.width;
+	StdVBuffer *buf = src;
+	StdVBuffer *dst = nullptr;
+	uint width = src->tex.width;
 
 	if (width > 0x100)
 		width = 256;
 
 	uint srcWidth = width;
-	uint height = pSrc->tex.height;
+	uint height = src->tex.height;
 
 	if (height > 0x100)
 		height = 256;
 
 	uint srcHeight = height;
 
-	if (width < _minTexWidth || height < _minTexHeight || (_pCurDevice->bSquareTexturesOnly && width != height)) {
-		StdVBufferTexFmt format = pSrc->tex;
+	if (width < _minTexWidth || height < _minTexHeight || (_curDevice->squareTexturesOnly && width != height)) {
+		StdVBufferTexFmt format = src->tex;
 
-		if (!_pCurDevice->bSquareTexturesOnly || width == height) {
+		if (!_curDevice->squareTexturesOnly || width == height) {
 			if (_minTexWidth > width)
 				width = _minTexWidth;
 
@@ -212,13 +212,13 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 
 		format.width *= tilesX;
 		format.height *= tilesY;
-		pDst = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+		dst = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
-		if (!pDst) {
+		if (!dst) {
 			warning("Std3D::addToTextureCache(): could not create the tiled texture");
-			pEntry->hTexture = 0;
-			pEntry->bInCache = 0;
-			pEntry->lastFrame = 0;
+			entry->texture = 0;
+			entry->inCache = 0;
+			entry->lastFrame = 0;
 			return 0;
 		}
 
@@ -228,14 +228,14 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 			int tileX = 0;
 
 			for (int column = 0; column < tilesX; column++) {
-				_pStdDisplay->vBufferCopy(pDst, pBuf, tileX, y, nullptr, 0);
+				_stdDisplay->vBufferCopy(dst, buf, tileX, y, nullptr, 0);
 				tileX += srcWidth;
 			}
 
 			y += srcHeight;
 		}
 
-		pBuf = pDst;
+		buf = dst;
 		srcWidth = format.width;
 		srcHeight = format.height;
 		height = format.height;
@@ -243,262 +243,262 @@ int Std3D::addToTextureCache(StdVBuffer *pSrc, RdTexCacheEntry *pEntry, int bAlp
 	}
 
 	uint size = width * height;
-	const Std3DTexFormat *pTexFormat;
+	const Std3DTexFormat *texFormat;
 
-	if (bAlpha && _pCurDevice->bAlphaTexture) {
-		pEntry->bColorKey = 1;
+	if (alpha && _curDevice->alphaTexture) {
+		entry->colorKey = 1;
 
-		if (bColorKey)
-			pTexFormat = _pTexFormatColorKey;
+		if (colorKey)
+			texFormat = _texFormatColorKey;
 		else
-			pTexFormat = _pTexFormatAlpha;
-	} else if (bColorKey) {
-		pEntry->bColorKey = 1;
-		pTexFormat = _pTexFormatColorKey;
+			texFormat = _texFormatAlpha;
+	} else if (colorKey) {
+		entry->colorKey = 1;
+		texFormat = _texFormatColorKey;
 	} else {
-		pEntry->bColorKey = 0;
-		pTexFormat = _pTexFormatOpaque;
+		entry->colorKey = 0;
+		texFormat = _texFormatOpaque;
 	}
 
-	if (!pTexFormat || !isValidFormat(&pTexFormat->format) || (int)width > _pBackend->getMaxTextureSize() || (int)height > _pBackend->getMaxTextureSize()) {
+	if (!texFormat || !isValidFormat(&texFormat->format) || (int)width > _backend->getMaxTextureSize() || (int)height > _backend->getMaxTextureSize()) {
 		warning("Std3D::addToTextureCache(): invalid texture format or size");
 
-		if (pDst)
-			_pStdDisplay->vBufferFree(pDst);
+		if (dst)
+			_stdDisplay->vBufferFree(dst);
 
-		pEntry->hTexture = 0;
-		pEntry->bInCache = 0;
-		pEntry->lastFrame = 0;
+		entry->texture = 0;
+		entry->inCache = 0;
+		entry->lastFrame = 0;
 		return 0;
 	}
 
-	byte *pRgba = new byte[width * height * 4];
-	memset(pRgba, 0, width * height * 4);
+	byte *rgba = new byte[width * height * 4];
+	memset(rgba, 0, width * height * 4);
 
-	const StdColorFormat *pTexelFormat = &pTexFormat->format;
-	int colorMode = pBuf->tex.format.colorMode;
+	const StdColorFormat *texelFormat = &texFormat->format;
+	int colorMode = buf->tex.format.colorMode;
 	uint16 colorKeyValue = 0;
-	int bUseColorKey = 0;
+	int useColorKey = 0;
 
 	if (colorMode == 0) {
-		_pStdDisplay->vBufferLock(pBuf);
+		_stdDisplay->vBufferLock(buf);
 
-		const uint16 *pTable;
+		const uint16 *table;
 
-		if (bAlpha && _pCurDevice->bAlphaTexture) {
-			if (bColorKey)
-				pTable = _aColorKeyPaletteTable;
+		if (alpha && _curDevice->alphaTexture) {
+			if (colorKey)
+				table = _colorKeyPaletteTable;
 			else
-				pTable = _aAlphaPaletteTable;
-		} else if (bColorKey) {
-			pTable = _aColorKeyPaletteTable;
+				table = _alphaPaletteTable;
+		} else if (colorKey) {
+			table = _colorKeyPaletteTable;
 		} else {
-			pTable = _aOpaquePaletteTable;
+			table = _opaquePaletteTable;
 		}
 
 		for (uint i = 0; i < srcHeight; i++) {
-			const byte *pRow = &pBuf->pPixels[pBuf->tex.pitchInBytes * i];
+			const byte *rowPointer = &buf->pixels[buf->tex.pitchInBytes * i];
 
 			for (uint x = 0; x < srcWidth; x++)
-				texelToRgba(pTable[pRow[x]], pTexelFormat, &pRgba[(i * width + x) * 4]);
+				texelToRgba(table[rowPointer[x]], texelFormat, &rgba[(i * width + x) * 4]);
 		}
 
-		_pStdDisplay->vBufferUnlock(pBuf);
+		_stdDisplay->vBufferUnlock(buf);
 	} else if (colorMode > 0 && colorMode <= 2) {
-		_pStdDisplay->vBufferLock(pBuf);
+		_stdDisplay->vBufferLock(buf);
 
 		for (uint i = 0; i < srcHeight; i++) {
-			const byte *pRow = &pBuf->pPixels[pBuf->tex.pitchInBytes * i];
+			const byte *rowPointer = &buf->pixels[buf->tex.pitchInBytes * i];
 
 			for (uint x = 0; x < srcWidth; x++)
-				texelToRgba(READ_LE_UINT16(pRow + 2 * x), pTexelFormat, &pRgba[(i * width + x) * 4]);
+				texelToRgba(READ_LE_UINT16(rowPointer + 2 * x), texelFormat, &rgba[(i * width + x) * 4]);
 		}
 
-		_pStdDisplay->vBufferUnlock(pBuf);
+		_stdDisplay->vBufferUnlock(buf);
 	} else {
 		warning("Std3D::addToTextureCache(): unsupported source color mode");
 	}
 
-	if (bAlpha && !_pCurDevice->bAlphaTexture) {
+	if (alpha && !_curDevice->alphaTexture) {
 		if (colorMode == 0) {
-			colorKeyValue = _aOpaquePaletteTable[0];
-			bUseColorKey = 1;
+			colorKeyValue = _opaquePaletteTable[0];
+			useColorKey = 1;
 		} else if (colorMode == 1) {
-			colorKeyValue = (uint16)pBuf->colorKey;
-			bUseColorKey = 1;
+			colorKeyValue = (uint16)buf->colorKey;
+			useColorKey = 1;
 		}
 
-		if (bUseColorKey) {
+		if (useColorKey) {
 			for (uint i = 0; i < srcHeight; i++) {
-				const byte *pRow = &pBuf->pPixels[pBuf->tex.pitchInBytes * i];
+				const byte *rowPointer = &buf->pixels[buf->tex.pitchInBytes * i];
 
 				for (uint x = 0; x < srcWidth; x++) {
-					uint16 texel = colorMode == 0 ? _aOpaquePaletteTable[pRow[x]] : READ_LE_UINT16(pRow + 2 * x);
+					uint16 texel = colorMode == 0 ? _opaquePaletteTable[rowPointer[x]] : READ_LE_UINT16(rowPointer + 2 * x);
 
 					if (texel == colorKeyValue)
-						pRgba[(i * width + x) * 4 + 3] = 0;
+						rgba[(i * width + x) * 4 + 3] = 0;
 				}
 			}
 		}
 	}
 
-	if (size > _pCurDevice->texMemFree) {
+	if (size > _curDevice->texMemFree) {
 		evictTextures(size);
 
-		if (size > _pCurDevice->texMemFree) {
-			delete[] pRgba;
+		if (size > _curDevice->texMemFree) {
+			delete[] rgba;
 
-			if (pDst)
-				_pStdDisplay->vBufferFree(pDst);
+			if (dst)
+				_stdDisplay->vBufferFree(dst);
 
-			pEntry->hTexture = 0;
-			pEntry->bInCache = 0;
-			pEntry->lastFrame = 0;
+			entry->texture = 0;
+			entry->inCache = 0;
+			entry->lastFrame = 0;
 			return 0;
 		}
 	}
 
-	uint texture = _pBackend->createTexture(pRgba, width, height, _bTexMagLinear, _bTexMinLinear);
+	uint texture = _backend->createTexture(rgba, width, height, _texMagLinear, _texMinLinear);
 
 	if (!texture) {
-		delete[] pRgba;
+		delete[] rgba;
 
-		if (pDst)
-			_pStdDisplay->vBufferFree(pDst);
+		if (dst)
+			_stdDisplay->vBufferFree(dst);
 
-		pEntry->hTexture = 0;
-		pEntry->bInCache = 0;
-		pEntry->lastFrame = 0;
+		entry->texture = 0;
+		entry->inCache = 0;
+		entry->lastFrame = 0;
 		return 0;
 	}
 
-	delete[] pRgba;
+	delete[] rgba;
 
-	if (pDst)
-		_pStdDisplay->vBufferFree(pDst);
+	if (dst)
+		_stdDisplay->vBufferFree(dst);
 
-	pEntry->hTexture = texture;
-	pEntry->width = width;
-	pEntry->height = srcHeight;
-	pEntry->size = size;
-	pEntry->bInCache = 1;
-	pEntry->lastFrame = _frameCounter;
-	cacheListAppend(pEntry);
+	entry->texture = texture;
+	entry->width = width;
+	entry->height = srcHeight;
+	entry->size = size;
+	entry->inCache = 1;
+	entry->lastFrame = _frameCounter;
+	cacheListAppend(entry);
 	return 1;
 }
 
 void Std3D::flushTextureCache() {
-	RdTexCacheEntry *pEntry = _pCacheHead;
+	RdTexCacheEntry *entry = _cacheHead;
 
-	while (pEntry) {
-		RdTexCacheEntry *pNext = pEntry->pNext;
+	while (entry) {
+		RdTexCacheEntry *next = entry->next;
 
-		releaseTexture(pEntry);
-		pEntry->bInCache = 0;
-		pEntry->lastFrame = 0;
-		pEntry->pNext = nullptr;
-		pEntry->pPrev = nullptr;
-		pEntry = pNext;
+		releaseTexture(entry);
+		entry->inCache = 0;
+		entry->lastFrame = 0;
+		entry->next = nullptr;
+		entry->prev = nullptr;
+		entry = next;
 	}
 
-	_pCacheHead = nullptr;
-	_pCacheTail = nullptr;
+	_cacheHead = nullptr;
+	_cacheTail = nullptr;
 	_numCachedTextures = 0;
 
-	if (_pCurDevice)
-		_pCurDevice->texMemFree = _pCurDevice->texMemTotal;
+	if (_curDevice)
+		_curDevice->texMemFree = _curDevice->texMemTotal;
 	else
 		warning("Std3D::flushTextureCache(): device not started");
 
 	_frameCounter = 1;
 }
 
-void Std3D::cacheListAppend(RdTexCacheEntry *pEntry) {
-	if (_pCacheHead) {
-		_pCacheTail->pNext = pEntry;
-		pEntry->pPrev = _pCacheTail;
-		pEntry->pNext = nullptr;
-		_pCacheTail = pEntry;
+void Std3D::cacheListAppend(RdTexCacheEntry *entry) {
+	if (_cacheHead) {
+		_cacheTail->next = entry;
+		entry->prev = _cacheTail;
+		entry->next = nullptr;
+		_cacheTail = entry;
 	} else {
-		_pCacheTail = pEntry;
-		_pCacheHead = pEntry;
-		pEntry->pPrev = nullptr;
-		pEntry->pNext = nullptr;
+		_cacheTail = entry;
+		_cacheHead = entry;
+		entry->prev = nullptr;
+		entry->next = nullptr;
 	}
 
 	_numCachedTextures++;
 
-	if (_pCurDevice)
-		_pCurDevice->texMemFree -= pEntry->size;
+	if (_curDevice)
+		_curDevice->texMemFree -= entry->size;
 	else
 		warning("Std3D::cacheListAppend(): device not started");
 }
 
-void Std3D::cacheListRemove(RdTexCacheEntry *pEntry) {
-	if (pEntry == _pCacheHead) {
-		_pCacheHead = pEntry->pNext;
+void Std3D::cacheListRemove(RdTexCacheEntry *entry) {
+	if (entry == _cacheHead) {
+		_cacheHead = entry->next;
 
-		if (_pCacheHead) {
-			_pCacheHead->pPrev = nullptr;
+		if (_cacheHead) {
+			_cacheHead->prev = nullptr;
 
-			if (!_pCacheHead->pNext)
-				_pCacheTail = _pCacheHead;
+			if (!_cacheHead->next)
+				_cacheTail = _cacheHead;
 		} else {
-			_pCacheTail = nullptr;
+			_cacheTail = nullptr;
 		}
 	} else {
-		RdTexCacheEntry *pPrev = pEntry->pPrev;
+		RdTexCacheEntry *prev = entry->prev;
 
-		if (pEntry == _pCacheTail) {
-			_pCacheTail = pEntry->pPrev;
-			pPrev->pNext = nullptr;
+		if (entry == _cacheTail) {
+			_cacheTail = entry->prev;
+			prev->next = nullptr;
 		} else {
-			pPrev->pNext = pEntry->pNext;
-			pEntry->pNext->pPrev = pEntry->pPrev;
+			prev->next = entry->next;
+			entry->next->prev = entry->prev;
 		}
 	}
 
 	_numCachedTextures--;
 
-	if (_pCurDevice)
-		_pCurDevice->texMemFree += pEntry->size;
+	if (_curDevice)
+		_curDevice->texMemFree += entry->size;
 	else
 		warning("Std3D::cacheListRemove(): device not started");
 }
 
-int Std3D::getTextureMemory(uint *pTotal, uint *pFree) {
+int Std3D::getTextureMemory(uint *total, uint *free) {
 	uint used = 0;
 
-	for (RdTexCacheEntry *pEntry = _pCacheHead; pEntry; pEntry = pEntry->pNext)
-		used += pEntry->size;
+	for (RdTexCacheEntry *entry = _cacheHead; entry; entry = entry->next)
+		used += entry->size;
 
-	uint budget = _pBackend ? _pBackend->getTextureBudget() : (uint)kStd3DTextureMemory;
+	uint budget = _backend ? _backend->getTextureBudget() : (uint)kStd3DTextureMemory;
 
-	*pTotal = budget;
-	*pFree = budget - used;
+	*total = budget;
+	*free = budget - used;
 	return 1;
 }
 
-void Std3D::cacheListTouch(RdTexCacheEntry *pEntry) {
-	pEntry->lastFrame = _frameCounter;
-	cacheListRemove(pEntry);
-	cacheListAppend(pEntry);
+void Std3D::cacheListTouch(RdTexCacheEntry *entry) {
+	entry->lastFrame = _frameCounter;
+	cacheListRemove(entry);
+	cacheListAppend(entry);
 }
 
 int Std3D::evictTextures(uint size) {
-	RdTexCacheEntry *pScan = _pCacheHead;
+	RdTexCacheEntry *scan = _cacheHead;
 	uint bestDiff = (uint)-1;
-	RdTexCacheEntry *pBest = nullptr;
+	RdTexCacheEntry *best = nullptr;
 
-	for (RdTexCacheEntry *pEntry = _pCacheHead; pEntry; pEntry = pEntry->pNext) {
-		if (pEntry->lastFrame != _frameCounter) {
-			uint entrySize = pEntry->size;
+	for (RdTexCacheEntry *entry = _cacheHead; entry; entry = entry->next) {
+		if (entry->lastFrame != _frameCounter) {
+			uint entrySize = entry->size;
 
 			if (entrySize == size) {
-				releaseTexture(pEntry);
-				pEntry->bInCache = 0;
-				pEntry->lastFrame = 0;
-				cacheListRemove(pEntry);
+				releaseTexture(entry);
+				entry->inCache = 0;
+				entry->lastFrame = 0;
+				cacheListRemove(entry);
 				return 1;
 			}
 
@@ -507,31 +507,31 @@ int Std3D::evictTextures(uint size) {
 
 				if (diff < bestDiff) {
 					bestDiff = diff;
-					pBest = pEntry;
+					best = entry;
 				}
 			}
 		}
 	}
 
-	if (pBest) {
-		releaseTexture(pBest);
-		pBest->bInCache = 0;
-		pBest->lastFrame = 0;
-		cacheListRemove(pBest);
+	if (best) {
+		releaseTexture(best);
+		best->inCache = 0;
+		best->lastFrame = 0;
+		cacheListRemove(best);
 		return 1;
 	}
 
-	while (pScan) {
-		RdTexCacheEntry *pNext = pScan->pNext;
+	while (scan) {
+		RdTexCacheEntry *next = scan->next;
 
-		if (pScan->lastFrame != _frameCounter) {
-			releaseTexture(pScan);
-			pScan->bInCache = 0;
-			pScan->lastFrame = 0;
-			cacheListRemove(pScan);
+		if (scan->lastFrame != _frameCounter) {
+			releaseTexture(scan);
+			scan->inCache = 0;
+			scan->lastFrame = 0;
+			cacheListRemove(scan);
 		}
 
-		pScan = pNext;
+		scan = next;
 	}
 
 	return 1;

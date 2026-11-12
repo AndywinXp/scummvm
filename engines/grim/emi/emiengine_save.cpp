@@ -154,10 +154,10 @@ LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
 	LFile *file = new LFile(this);
 
 	if (strchr(mode, 'w')) {
-		file->writeStream = saveFileManager->openForSaving(saveName, false);
-		file->openFlags = 18;
+		file->_writeStream = saveFileManager->openForSaving(saveName, false);
+		file->_openFlags = 18;
 	} else {
-		file->readStream = saveFileManager->openRawFile(saveName);
+		file->_readStream = saveFileManager->openRawFile(saveName);
 	}
 
 	if (!file->isOpen()) {
@@ -166,7 +166,7 @@ LFile *EmiEngine::openSaveFile(const char *fileName, const char *mode) {
 		return nullptr;
 	}
 
-	file->fileName = saveName;
+	file->_fileName = saveName;
 
 	ZFile *zFile = _zFileServices->createZFile(file, mode);
 
@@ -250,7 +250,7 @@ LABitmap *EmiEngine::getScreenBitmap() {
 
 void EmiEngine::halveBitmap(LABitmap *source, LABitmap *destination) {
 	LColorFormat rgbFormat(6);
-	int bytesPerPixel = rgbFormat.bytesPerPixel;
+	int bytesPerPixel = rgbFormat._bytesPerPixel;
 	int sourceStride = bytesPerPixel * source->getWidth();
 	int halfWidth = (int)((uint)source->getWidth() >> 1);
 	int halfHeight = (int)((uint)source->getHeight() >> 1);
@@ -308,7 +308,7 @@ void EmiEngine::halveBitmap(LABitmap *source, LABitmap *destination) {
 
 void EmiEngine::scaleToThumbnail(LABitmap *source, LABitmap *destination) {
 	LColorFormat rgbFormat(6);
-	int bytesPerPixel = rgbFormat.bytesPerPixel;
+	int bytesPerPixel = rgbFormat._bytesPerPixel;
 
 	destination->create(kThumbnailTextureWidth, kThumbnailTextureHeight, rgbFormat, nullptr);
 
@@ -325,8 +325,8 @@ void EmiEngine::scaleToThumbnail(LABitmap *source, LABitmap *destination) {
 	float stepY = (float)source->getHeight() / (float)kThumbnailTextureHeight;
 
 	for (int row = 0; row < kThumbnailTextureHeight; row++) {
-		const byte *sourceLine = sourcePixels + (int)((float)row * stepY) * source->stride;
-		byte *targetLine = targetPixels + row * destination->stride;
+		const byte *sourceLine = sourcePixels + (int)((float)row * stepY) * source->_stride;
+		byte *targetLine = targetPixels + row * destination->_stride;
 
 		for (int column = 0; column < kThumbnailTextureWidth; column++)
 			memcpy(targetLine + column * bytesPerPixel, sourceLine + (int)((float)column * stepX) * bytesPerPixel, bytesPerPixel);
@@ -373,26 +373,26 @@ bool EmiEngine::makeThumbnailTexture(int index, bool fromScreen) {
 
 	int width = 1;
 
-	while (width < screen.width)
+	while (width < screen._width)
 		width *= 2;
 
 	int height = 1;
 
-	while (height < screen.height)
+	while (height < screen._height)
 		height *= 2;
 
-	LABitmap texture(this, width, height, screen.colorFormat, nullptr, false);
-	const byte *sourcePixels = (const byte *)screen.pixels;
-	byte *targetPixels = (byte *)texture.pixels;
+	LABitmap texture(this, width, height, screen._colorFormat, nullptr, false);
+	const byte *sourcePixels = (const byte *)screen._pixels;
+	byte *targetPixels = (byte *)texture._pixels;
 
-	if (screen.height > 0 && (!sourcePixels || !targetPixels)) {
+	if (screen._height > 0 && (!sourcePixels || !targetPixels)) {
 		warning("EmiEngine::makeThumbnailTexture(): the bitmap has no pixels");
 
 		return false;
 	}
 
-	for (int row = 0; row < screen.height; row++)
-		memcpy(targetPixels + row * texture.stride, sourcePixels + row * screen.stride, screen.stride);
+	for (int row = 0; row < screen._height; row++)
+		memcpy(targetPixels + row * texture._stride, sourcePixels + row * screen._stride, screen._stride);
 
 	return drawContext->setCachedTexture(index, &texture);
 }
@@ -419,12 +419,12 @@ bool EmiEngine::loadThumbnailTexture(int index, const char *fileName) {
 
 	readSaveData(&imageSize, sizeof(imageSize));
 
-	if (imageSize > (uint)bitmap.sizeBytes) {
+	if (imageSize > (uint)bitmap._sizeBytes) {
 		warning("EmiEngine::loadThumbnailTexture(): invalid image size %u", imageSize);
-		imageSize = bitmap.sizeBytes;
+		imageSize = bitmap._sizeBytes;
 	}
 
-	readSaveData(bitmap.pixels, imageSize);
+	readSaveData(bitmap._pixels, imageSize);
 	closeSaveFile(_saveFile);
 	_saveFile = nullptr;
 
@@ -448,7 +448,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 		return false;
 	}
 
-	int bytesPerPixel = drawContext->displayMode.bpp / 8;
+	int bytesPerPixel = drawContext->_displayMode.bpp / 8;
 	uint bufferSize = (uint)(kScreenWidth * kScreenBufferHeight * bytesPerPixel) * sizeof(char);
 	char *buffer = (char *)_memoryServices->mallocImpl(bufferSize);
 
@@ -462,7 +462,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 	memset(buffer, 0, bufferSize);
 	drawContext->readBackBufferRaw(buffer, bufferSize);
 
-	LColorFormat format(bytesPerPixel == 4 ? LColorFormat::format9 : LColorFormat::format5);
+	LColorFormat format(bytesPerPixel == 4 ? LColorFormat::kFormat9 : LColorFormat::kFormat5);
 
 	if (getGamePlatform() == Common::kPlatformPS2) {
 		for (int i = 0; i < kNumPs2ScreenTextures; i++) {
@@ -488,7 +488,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 		if (texture) {
 			texture->updateTexture(&format, rect.width, rect.height, kScreenWidth * bytesPerPixel,
 					(const byte *)&buffer[bytesPerPixel * (rect.x + kScreenWidth * rect.y)]);
-			texture->flags = kSpecScreenTextureFlags;
+			texture->_flags = kSpecScreenTextureFlags;
 			texture->applyFlags();
 		}
 	}
@@ -499,9 +499,9 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 }
 
 void EmiEngine::readScreenRegion(LABitmap *bitmap, const char *buffer, int bytesPerPixel, float startX, float endX, float startY, float endY) {
-	byte *targetPixels = (byte *)bitmap->pixels;
+	byte *targetPixels = (byte *)bitmap->_pixels;
 
-	if (!targetPixels || bitmap->width <= 0 || bitmap->height <= 0) {
+	if (!targetPixels || bitmap->_width <= 0 || bitmap->_height <= 0) {
 		warning("EmiEngine::readScreenRegion(): bitmap has no pixels");
 
 		return;
@@ -514,15 +514,15 @@ void EmiEngine::readScreenRegion(LABitmap *bitmap, const char *buffer, int bytes
 	float right = halfWidth + endX * halfWidth;
 	float top = halfHeight + startY * halfHeight;
 	float bottom = halfHeight + endY * halfHeight;
-	float stepX = (right - left) / (float)bitmap->width;
-	float stepY = (bottom - top) / (float)bitmap->height;
+	float stepX = (right - left) / (float)bitmap->_width;
+	float stepY = (bottom - top) / (float)bitmap->_height;
 
-	for (int row = 0; row < bitmap->height; row++) {
+	for (int row = 0; row < bitmap->_height; row++) {
 		int sourceRow = (int)(top + (float)row * stepY);
 		const char *sourceLine = buffer + sourceRow * kScreenWidth * bytesPerPixel;
-		byte *targetLine = targetPixels + row * bitmap->stride;
+		byte *targetLine = targetPixels + row * bitmap->_stride;
 
-		for (int column = 0; column < bitmap->width; column++) {
+		for (int column = 0; column < bitmap->_width; column++) {
 			int sourceColumn = (int)(left + (float)column * stepX);
 
 			memcpy(targetLine + column * bytesPerPixel, sourceLine + sourceColumn * bytesPerPixel, bytesPerPixel);
@@ -542,7 +542,7 @@ bool EmiEngine::clearTextureSlot(int index) {
 
 	bitmap.create(2, 2, format, nullptr);
 
-	uint32 *pixels = (uint32 *)bitmap.pixels;
+	uint32 *pixels = (uint32 *)bitmap._pixels;
 
 	if (pixels) {
 		for (int i = 0; i < 4; i++)
@@ -585,10 +585,10 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 
 			scaleToThumbnail(screen, &thumbnail);
 
-			int imageSize = thumbnail.sizeBytes;
+			int imageSize = thumbnail._sizeBytes;
 
 			writeSaveData(&imageSize, sizeof(imageSize));
-			writeSaveData(thumbnail.pixels, imageSize);
+			writeSaveData(thumbnail._pixels, imageSize);
 		} else {
 			LABitmap halved(this);
 
@@ -597,29 +597,29 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 
 			int width = 1;
 
-			while (width < screen->width)
+			while (width < screen->_width)
 				width *= 2;
 
 			int height = 1;
 
-			while (height < screen->height)
+			while (height < screen->_height)
 				height *= 2;
 
-			LABitmap thumbnail(this, width, height, screen->colorFormat, nullptr, false);
-			const byte *sourcePixels = (const byte *)screen->pixels;
-			byte *targetPixels = (byte *)thumbnail.pixels;
+			LABitmap thumbnail(this, width, height, screen->_colorFormat, nullptr, false);
+			const byte *sourcePixels = (const byte *)screen->_pixels;
+			byte *targetPixels = (byte *)thumbnail._pixels;
 
-			if (screen->height > 0 && (!sourcePixels || !targetPixels)) {
+			if (screen->_height > 0 && (!sourcePixels || !targetPixels)) {
 				warning("EmiEngine::saveGame(): the screenshot has no pixels");
 			} else {
-				for (int row = 0; row < screen->height; row++)
-					memcpy(targetPixels + row * thumbnail.stride, sourcePixels + row * screen->stride, screen->stride);
+				for (int row = 0; row < screen->_height; row++)
+					memcpy(targetPixels + row * thumbnail._stride, sourcePixels + row * screen->_stride, screen->_stride);
 			}
 
-			int imageSize = thumbnail.sizeBytes;
+			int imageSize = thumbnail._sizeBytes;
 
 			writeSaveData(&imageSize, sizeof(imageSize));
-			writeSaveData(thumbnail.pixels, imageSize);
+			writeSaveData(thumbnail._pixels, imageSize);
 		}
 
 		length = (int)_island.size() + 1;

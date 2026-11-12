@@ -39,7 +39,7 @@ public:
 
 	bool operator==(const LResourceType &other) const;
 
-	uint id;
+	uint _id;
 };
 
 class LResource {
@@ -81,15 +81,15 @@ public:
 	void bindEngine(EmiEngine *engine);
 	EmiEngine *getEngine() const;
 
-	LResourceType type;
-	LString name;
-	Common::List<LResourceHandleBase *> handles;
-	int lockCount;
-	bool loaded;
-	byte byte29;
-	bool unique;
-	bool purgeOnFree;
-	bool notPurgable;
+	LResourceType _type;
+	LString _name;
+	Common::List<LResourceHandleBase *> _handles;
+	int _lockCount;
+	bool _loaded;
+	byte _byte29;
+	bool _unique;
+	bool _purgeOnFree;
+	bool _notPurgable;
 
 protected:
 	virtual bool resLoadItem(const char *itemName);

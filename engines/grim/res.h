@@ -44,7 +44,7 @@ enum ResTags {
 
 struct ResHandlerMsg {
 	int op;
-	const char *pName;
+	const char *name;
 	int tag;
 	void *data;
 	int result;
@@ -54,35 +54,35 @@ class ResHandler {
 public:
 	virtual ~ResHandler() {}
 
-	virtual int handler(ResHandlerMsg *pMsg) = 0;
+	virtual int handler(ResHandlerMsg *msg) = 0;
 };
 
 struct ResRef {
 	int valid;
 	int serial;
-	ResRef *pPrev;
-	ResRef *pNext;
+	ResRef *prev;
+	ResRef *next;
 	void *handle;
 };
 
 struct ResNode {
-	ResNode *pNext;
-	ResNode *pPrev;
-	char *pName;
+	ResNode *next;
+	ResNode *prev;
+	char *name;
 	uint hash;
 	int tag;
 	void *handle;
 	int serial;
 	uint16 flags;
-	ResRef *pRefs;
+	ResRef *refs;
 	int size;
 };
 
 struct ResTag {
-	ResTag *pNext;
-	ResTag *pPrev;
+	ResTag *next;
+	ResTag *prev;
 	int tag;
-	ResHandler *pHandler;
+	ResHandler *handler;
 };
 
 enum ResLabFileFlags {
@@ -103,23 +103,23 @@ public:
 	explicit Res(bool isDemo);
 	~Res();
 
-	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+	void setSputRender(SputRender *sputRender) { _sputRender = sputRender; }
 
-	int sysInitialize(SysStruct *pHS);
+	int sysInitialize(SysStruct *hs);
 	void sysTerminate();
 	int sysStartup();
 	int sysShutdown();
-	int sysRegisterHandler(int tag, ResHandler *pHandler);
+	int sysRegisterHandler(int tag, ResHandler *handler);
 	int fileOpen(const char *path);
 	int fileClose(const char *path);
 	void fileCloseAll();
 	int fileMoveToFront(const char *path);
-	int sysSave(Common::WriteStream *pStream);
-	int sysLoad(Common::ReadStream *pStream);
+	int sysSave(Common::WriteStream *stream);
+	int sysLoad(Common::ReadStream *stream);
 	int allocCompletion(int tag, const char *name, void *handle);
 	void *getResource(int tag, const char *name);
-	int setPurgeOnFree(void *handle, int bPurge);
-	int freeResources(uint bytesWanted, uint *pBytesFreed);
+	int setPurgeOnFree(void *handle, int purge);
+	int freeResources(uint bytesWanted, uint *bytesFreed);
 	int dump(const char *path, int tag);
 	int log(const char *path);
 	ResTag *getResTagStruct(int tag);
@@ -129,24 +129,24 @@ public:
 	ResNode *resourceHandleFromSerialNumber(int serial);
 	int loaded(int tag, const char *name);
 	ResNode *isResourceLoaded(int tag, const char *name);
-	ResNode *checkForNeedLoadRes(int tag, const char *name, int *pResult);
+	ResNode *checkForNeedLoadRes(int tag, const char *name, int *result);
 	ResNode *checkList1(int tag, const char *name);
-	ResNode *locateResByName(int tag, const char *name, ResNode *pStart);
+	ResNode *locateResByName(int tag, const char *name, ResNode *start);
 	ResNode *load(int tag, const char *name, void *handle);
-	void unlinkNode(ResNode *pNode);
-	int freeNode(ResNode *pNode);
-	int loadFileData(ResHandlerMsg *pMsg);
-	int getUserField(ResNode *pNode);
+	void unlinkNode(ResNode *node);
+	int freeNode(ResNode *node);
+	int loadFileData(ResHandlerMsg *msg);
+	int getUserField(ResNode *node);
 	int totalAllocated();
-	void checkAnotherLists(ResNode *pNode);
+	void checkAnotherLists(ResNode *node);
 	uint changeFileNameToUpper(const char *src, char *dst);
-	int findExternalFile(const char *name, char *pOutPath, uint size);
-	void setReference(ResRef *pRef, void *handle);
-	void removeReference(ResRef *pRef);
-	void allocatedIterFirst(ResNode **ppNext, void **pHandle, int tag);
-	void allocatedIterNext(ResNode **ppNext, void **pHandle, int tag);
+	int findExternalFile(const char *name, char *outPath, uint size);
+	void setReference(ResRef *ref, void *handle);
+	void removeReference(ResRef *ref);
+	void allocatedIterFirst(ResNode **next, void **handle, int tag);
+	void allocatedIterNext(ResNode **next, void **handle, int tag);
 	void touch(void *handle);
-	void resolveToSerialNumber(ResRef *pRef);
+	void resolveToSerialNumber(ResRef *ref);
 	void freeAll();
 	int countDependents(void *handle);
 	int initLists(int tag, const char *name);
@@ -160,20 +160,20 @@ private:
 	int fileOpenSearch(const char *dirPath);
 	int lookupFileHandle(const char *path);
 
-	SysStruct *_pResHS;
-	int _fResSysInitialized;
-	int _bStarted;
+	SysStruct *_resHS;
+	int _resSysInitialized;
+	int _started;
 	Common::Array<ResLabFile> _labFiles;
 	int _nextLabPriority;
 	int _nextDirectoryPriority;
-	ResTag *_pTagHead;
-	ResNode *_pNodeHead;
-	ResNode *_pNodeTail;
-	ResHandler *_pDefaultHandler;
+	ResTag *_tagHead;
+	ResNode *_nodeHead;
+	ResNode *_nodeTail;
+	ResHandler *_defaultHandler;
 	Common::DumpFile *_logFile;
 	int _memoryLimit;
-	SputRender *_pSputRender;
-	bool _bDemo;
+	SputRender *_sputRender;
+	bool _demo;
 };
 
 } // End of namespace Grim

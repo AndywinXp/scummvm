@@ -31,51 +31,51 @@
 namespace Grim {
 
 QuadRange::QuadRange(float firstValue, float secondValue) {
-	u = firstValue;
-	v = secondValue;
+	_u = firstValue;
+	_v = secondValue;
 }
 
 TiledScene::TiledScene() {
-	data = nullptr;
-	dataSize = 0;
-	frames = nullptr;
-	batches = nullptr;
-	quads = nullptr;
-	uvs = nullptr;
-	vertices.count = 0;
-	vertices.positions = nullptr;
-	vertices.normals = nullptr;
-	vertices.colors = nullptr;
-	vertices.uvs = nullptr;
+	_data = nullptr;
+	_dataSize = 0;
+	_frames = nullptr;
+	_batches = nullptr;
+	_quads = nullptr;
+	_uvs = nullptr;
+	_vertices.count = 0;
+	_vertices.positions = nullptr;
+	_vertices.normals = nullptr;
+	_vertices.colors = nullptr;
+	_vertices.uvs = nullptr;
 
 	for (int i = 0; i < kHeaderSize; i++)
-		header[i] = 0;
+		_header[i] = 0;
 }
 
 TiledScene::~TiledScene() {
-	if (data)
-		_engine->getMemoryServices()->freeImpl(data);
+	if (_data)
+		_engine->getMemoryServices()->freeImpl(_data);
 
-	data = nullptr;
-	dataSize = 0;
+	_data = nullptr;
+	_dataSize = 0;
 
-	if (quads)
-		_engine->getMemoryServices()->freeImpl(quads);
+	if (_quads)
+		_engine->getMemoryServices()->freeImpl(_quads);
 
-	quads = nullptr;
+	_quads = nullptr;
 
-	if (uvs)
-		_engine->getMemoryServices()->freeImpl(uvs);
+	if (_uvs)
+		_engine->getMemoryServices()->freeImpl(_uvs);
 
-	uvs = nullptr;
+	_uvs = nullptr;
 }
 
 uint TiledScene::resSizeOfItem() {
-	return vertices.getDataSize() + dataSize + sizeof(TiledScene);
+	return _vertices.getDataSize() + _dataSize + sizeof(TiledScene);
 }
 
 int TiledScene::getFrameCount() {
-	return header[kHeaderNumFrames];
+	return _header[kHeaderNumFrames];
 }
 
 bool TiledScene::resLoadItem(const char *itemName) {
@@ -130,33 +130,33 @@ bool TiledScene::resLoadItem(const char *itemName) {
 	}
 
 	for (int i = 0; i < kHeaderSize; i++)
-		header[i] = READ_LE_INT32(headerBytes + 4 * i);
+		_header[i] = READ_LE_INT32(headerBytes + 4 * i);
 
 	file->seek(0, 0);
 
-	int numTiles = header[kHeaderNumVertices];
-	int numFrames = header[kHeaderNumFrames];
-	int numBatches = header[kHeaderNumBatches];
+	int numTiles = _header[kHeaderNumVertices];
+	int numFrames = _header[kHeaderNumFrames];
+	int numBatches = _header[kHeaderNumBatches];
 
-	if (header[kHeaderTablesSize] < kHeaderBytes || numTiles < 0 || numFrames < 0 || numBatches < 0) {
+	if (_header[kHeaderTablesSize] < kHeaderBytes || numTiles < 0 || numFrames < 0 || numBatches < 0) {
 		warning("TiledScene::resLoadItem(): invalid header");
 		zFileServices->closeZFile(file);
 
 		return false;
 	}
 
-	dataSize = header[kHeaderTablesSize] - header[kHeaderTablesSize] % 16 + 16;
+	_dataSize = _header[kHeaderTablesSize] - _header[kHeaderTablesSize] % 16 + 16;
 
-	if ((int64)kHeaderBytes + 16 * (int64)numTiles + 8 * (int64)numFrames + 12 * (int64)numBatches > dataSize) {
+	if ((int64)kHeaderBytes + 16 * (int64)numTiles + 8 * (int64)numFrames + 12 * (int64)numBatches > _dataSize) {
 		warning("TiledScene::resLoadItem(): the tables do not fit in the file");
 		zFileServices->closeZFile(file);
 
 		return false;
 	}
 
-	data = (byte *)_engine->getMemoryServices()->mallocImpl(dataSize * sizeof(byte));
+	_data = (byte *)_engine->getMemoryServices()->mallocImpl(_dataSize * sizeof(byte));
 
-	if (file->read(data, dataSize) != (uint)dataSize) {
+	if (file->read(_data, _dataSize) != (uint)_dataSize) {
 		warning("TiledScene::resLoadItem(): unexpected end of file");
 		zFileServices->closeZFile(file);
 
@@ -165,33 +165,33 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	zFileServices->closeZFile(file);
 
-	quads = (float *)_engine->getMemoryServices()->mallocImpl(numTiles * 3 * sizeof(float));
-	uvs = (QuadRange *)_engine->getMemoryServices()->mallocImpl(numTiles * sizeof(QuadRange));
-	frames = (int *)(data + kHeaderBytes + 16 * numTiles);
-	batches = (int *)(data + kHeaderBytes + 16 * numTiles + 8 * numFrames);
+	_quads = (float *)_engine->getMemoryServices()->mallocImpl(numTiles * 3 * sizeof(float));
+	_uvs = (QuadRange *)_engine->getMemoryServices()->mallocImpl(numTiles * sizeof(QuadRange));
+	_frames = (int *)(_data + kHeaderBytes + 16 * numTiles);
+	_batches = (int *)(_data + kHeaderBytes + 16 * numTiles + 8 * numFrames);
 
 #if defined(SCUMM_BIG_ENDIAN)
 	for (int i = 0; i < 2 * numFrames; i++)
-		frames[i] = FROM_LE_32(frames[i]);
+		_frames[i] = FROM_LE_32(_frames[i]);
 
 	for (int i = 0; i < 3 * numBatches; i++)
-		batches[i] = FROM_LE_32(batches[i]);
+		_batches[i] = FROM_LE_32(_batches[i]);
 #endif
 
 	for (int i = 0; i < numTiles; i++) {
-		const byte *tile = data + kHeaderBytes + 16 * i;
+		const byte *tile = _data + kHeaderBytes + 16 * i;
 
-		quads[3 * i] = READ_LE_FLOAT32(tile);
-		quads[3 * i + 1] = READ_LE_FLOAT32(tile + 4);
-		quads[3 * i + 2] = 1.0f;
-		uvs[i] = QuadRange(READ_LE_FLOAT32(tile + 8), READ_LE_FLOAT32(tile + 12));
+		_quads[3 * i] = READ_LE_FLOAT32(tile);
+		_quads[3 * i + 1] = READ_LE_FLOAT32(tile + 4);
+		_quads[3 * i + 2] = 1.0f;
+		_uvs[i] = QuadRange(READ_LE_FLOAT32(tile + 8), READ_LE_FLOAT32(tile + 12));
 	}
 
-	vertices.count = numTiles;
-	vertices.positions = quads;
-	vertices.normals = nullptr;
-	vertices.colors = nullptr;
-	vertices.uvs = uvs ? &uvs[0].u : nullptr;
+	_vertices.count = numTiles;
+	_vertices.positions = _quads;
+	_vertices.normals = nullptr;
+	_vertices.colors = nullptr;
+	_vertices.uvs = _uvs ? &_uvs[0]._u : nullptr;
 
 	return true;
 }

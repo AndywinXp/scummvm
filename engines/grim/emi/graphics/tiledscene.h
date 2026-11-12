@@ -31,8 +31,8 @@ class QuadRange {
 public:
 	QuadRange(float firstValue, float secondValue);
 
-	float u;
-	float v;
+	float _u;
+	float _v;
 };
 
 class TiledScene : public LResource {
@@ -57,14 +57,14 @@ public:
 
 	int getFrameCount();
 
-	byte *data;
-	int dataSize;
-	int header[kHeaderSize];
-	int *frames;
-	int *batches;
-	float *quads;
-	QuadRange *uvs;
-	VertexStreams vertices;
+	byte *_data;
+	int _dataSize;
+	int _header[kHeaderSize];
+	int *_frames;
+	int *_batches;
+	float *_quads;
+	QuadRange *_uvs;
+	VertexStreams _vertices;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

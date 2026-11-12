@@ -58,7 +58,7 @@ public:
 	~Std3DGlBackend();
 
 	int openGraphicsMode(int width, int height);
-	void fillDeviceDesc(Std3DDeviceDesc *pDesc);
+	void fillDeviceDesc(Std3DDeviceDesc *desc);
 	int isSupported();
 	int canProbeWithoutMode();
 	int ensureReady();
@@ -68,41 +68,41 @@ public:
 	int getMaxTextureSize();
 	uint getTextureBudget();
 
-	int createSurface(Std3DSurface *pSurface, int bHasDepth, int zBufferBitDepth);
-	void destroySurface(Std3DSurface *pSurface);
-	int uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes);
-	int readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes);
-	int fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color);
+	int createSurface(Std3DSurface *surface, int hasDepth, int zBufferBitDepth);
+	void destroySurface(Std3DSurface *surface);
+	int uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes);
+	int readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes);
+	int fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color);
 	int canBlitOntoSelf();
-	int blit(Std3DSurface *pDst, Std3DSurface *pSrc, int srcX, int srcY, int width, int height, int dstX, int dstY, int bColorKey, uint16 colorKey);
-	int presentSurface(Std3DSurface *pSurface);
+	int blit(Std3DSurface *dst, Std3DSurface *src, int srcX, int srcY, int width, int height, int dstX, int dstY, int colorKeyFlag, uint16 colorKey);
+	int presentSurface(Std3DSurface *surface);
 
-	int attachDepth(Std3DSurface *pSurface, int zBufferBitDepth);
-	void detachDepth(Std3DSurface *pSurface);
-	int hasDepth(const Std3DSurface *pSurface);
-	int supportsDepthUpload(const Std3DSurface *pSurface);
-	int clearDepth(Std3DSurface *pSurface, const StdRect *pRect, float depthValue);
-	int uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes);
+	int attachDepth(Std3DSurface *surface, int zBufferBitDepth);
+	void detachDepth(Std3DSurface *surface);
+	int hasDepth(const Std3DSurface *surface);
+	int supportsDepthUpload(const Std3DSurface *surface);
+	int clearDepth(Std3DSurface *surface, const StdRect *rect, float depthValue);
+	int uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes);
 
-	uint createTexture(const byte *pRgba, int width, int height, int bMagLinear, int bMinLinear);
-	void deleteTexture(uint hTexture);
+	uint createTexture(const byte *rgba, int width, int height, int magLinear, int minLinear);
+	void deleteTexture(uint textureHandle);
 
-	int drawList(const Std3DDrawList *pList);
+	int drawList(const Std3DDrawList *list);
 
 private:
-	OpenGL::Shader *createShader(const char *name, const char *vertexSource, const char *fragmentSource, const char *const *attributes, int bDepthOutput);
-	void saveGlState(Std3DGlState *pState);
-	void restoreGlState(const Std3DGlState *pState);
-	void bindSurface(Std3DSurface *pSurface);
-	void applyRenderState(const Std3DDrawList *pList, uint flags);
+	OpenGL::Shader *createShader(const char *name, const char *vertexSource, const char *fragmentSource, const char *const *attributes, int depthOutput);
+	void saveGlState(Std3DGlState *state);
+	void restoreGlState(const Std3DGlState *state);
+	void bindSurface(Std3DSurface *surface);
+	void applyRenderState(const Std3DDrawList *list, uint flags);
 	uint glCompareFunc(uint d3dFunc);
-	void drawQuad(const float *pQuad);
+	void drawQuad(const float *quad);
 
-	int _bGlReady;
-	int _bFragDepthSupported;
-	OpenGL::Shader *_pTlShader;
-	OpenGL::Shader *_pBlitShader;
-	OpenGL::Shader *_pDepthShader;
+	int _glReady;
+	int _fragDepthSupported;
+	OpenGL::Shader *_tlShader;
+	OpenGL::Shader *_blitShader;
+	OpenGL::Shader *_depthShader;
 	uint _vertexVbo;
 	uint _indexVbo;
 	uint _quadVbo;

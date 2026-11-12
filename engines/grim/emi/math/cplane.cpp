@@ -31,36 +31,36 @@ static const float kMinLength = 1e-20f;
 static const float kPlaneTolerance = 1e-4f;
 
 void CPlane::setFromNormalAndPoint(const CVector &normal, const CVector &point) {
-	n.x = normal.x;
-	n.y = normal.y;
-	n.z = normal.z;
+	_n._x = normal._x;
+	_n._y = normal._y;
+	_n._z = normal._z;
 
-	double length = sqrt((double)n.x * n.x + (double)n.y * n.y + (double)normal.z * normal.z);
+	double length = sqrt((double)_n._x * _n._x + (double)_n._y * _n._y + (double)normal._z * normal._z);
 
 	if (length >= (double)kMinLength) {
 		double inverse = 1.0 / length;
 
-		n.x = (float)(inverse * n.x);
-		n.y = (float)(inverse * n.y);
-		n.z = (float)(inverse * n.z);
+		_n._x = (float)(inverse * _n._x);
+		_n._y = (float)(inverse * _n._y);
+		_n._z = (float)(inverse * _n._z);
 	}
 
-	d = (float)-((double)point.z * n.z + (double)point.y * n.y + (double)point.x * n.x);
+	_d = (float)-((double)point._z * _n._z + (double)point._y * _n._y + (double)point._x * _n._x);
 }
 
 void CPlane::projectPoint(CVector *point) {
-	double distance = (double)point->y * n.y + (double)point->x * n.x + (double)n.z * point->z + d;
-	float offsetX = (float)(distance * n.x);
-	float offsetY = (float)(distance * n.y);
-	double offsetZ = distance * n.z;
+	double distance = (double)point->_y * _n._y + (double)point->_x * _n._x + (double)_n._z * point->_z + _d;
+	float offsetX = (float)(distance * _n._x);
+	float offsetY = (float)(distance * _n._y);
+	double offsetZ = distance * _n._z;
 
-	point->x = (float)((double)point->x - offsetX);
-	point->y = (float)((double)point->y - offsetY);
-	point->z = (float)((double)point->z - offsetZ);
+	point->_x = (float)((double)point->_x - offsetX);
+	point->_y = (float)((double)point->_y - offsetY);
+	point->_z = (float)((double)point->_z - offsetZ);
 }
 
 int CPlane::classifyPoint(const CVector &point) {
-	double distance = (double)point.z * n.z + (double)point.y * n.y + (double)point.x * n.x + d;
+	double distance = (double)point._z * _n._z + (double)point._y * _n._y + (double)point._x * _n._x + _d;
 
 	if (distance <= (double)kPlaneTolerance)
 		return distance < -(double)kPlaneTolerance ? kPointBehind : kPointOnPlane;
@@ -69,23 +69,23 @@ int CPlane::classifyPoint(const CVector &point) {
 }
 
 void CPlane::transformToLocal(const CTransform *transform) {
-	double negD = -(double)d;
-	float centerX = (float)(negD * n.x);
-	float centerY = (float)(negD * n.y);
-	float localX = (float)((double)centerX - transform->pos.x);
-	float localY = (float)((double)centerY - transform->pos.y);
-	double localZ = negD * n.z - transform->pos.z;
-	float rotatedX = (float)((double)localX * transform->rot.m[0] + localZ * transform->rot.m[2] + (double)localY * transform->rot.m[1]);
-	float rotatedY = (float)((double)localX * transform->rot.m[3] + localZ * transform->rot.m[5] + (double)localY * transform->rot.m[4]);
-	double rotatedZ = (double)localX * transform->rot.m[6] + localZ * transform->rot.m[8] + (double)localY * transform->rot.m[7];
-	double normalX = n.x;
-	double normalY = n.y;
-	double normalZ = n.z;
+	double negD = -(double)_d;
+	float centerX = (float)(negD * _n._x);
+	float centerY = (float)(negD * _n._y);
+	float localX = (float)((double)centerX - transform->_pos._x);
+	float localY = (float)((double)centerY - transform->_pos._y);
+	double localZ = negD * _n._z - transform->_pos._z;
+	float rotatedX = (float)((double)localX * transform->_rot._m[0] + localZ * transform->_rot._m[2] + (double)localY * transform->_rot._m[1]);
+	float rotatedY = (float)((double)localX * transform->_rot._m[3] + localZ * transform->_rot._m[5] + (double)localY * transform->_rot._m[4]);
+	double rotatedZ = (double)localX * transform->_rot._m[6] + localZ * transform->_rot._m[8] + (double)localY * transform->_rot._m[7];
+	double normalX = _n._x;
+	double normalY = _n._y;
+	double normalZ = _n._z;
 
-	n.x = (float)(normalX * transform->rot.m[0] + normalZ * transform->rot.m[2] + normalY * transform->rot.m[1]);
-	n.y = (float)(normalX * transform->rot.m[3] + normalZ * transform->rot.m[5] + normalY * transform->rot.m[4]);
-	n.z = (float)(normalX * transform->rot.m[6] + normalZ * transform->rot.m[8] + normalY * transform->rot.m[7]);
-	d = (float)-(rotatedZ * n.z + (double)rotatedX * n.x + (double)rotatedY * n.y);
+	_n._x = (float)(normalX * transform->_rot._m[0] + normalZ * transform->_rot._m[2] + normalY * transform->_rot._m[1]);
+	_n._y = (float)(normalX * transform->_rot._m[3] + normalZ * transform->_rot._m[5] + normalY * transform->_rot._m[4]);
+	_n._z = (float)(normalX * transform->_rot._m[6] + normalZ * transform->_rot._m[8] + normalY * transform->_rot._m[7]);
+	_d = (float)-(rotatedZ * _n._z + (double)rotatedX * _n._x + (double)rotatedY * _n._y);
 }
 
 } // End of namespace Grim

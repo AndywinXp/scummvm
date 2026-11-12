@@ -33,10 +33,10 @@ void Event::operator delete(void *block) {
 	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
-EventHandler::EventHandler(EmiEngine *engine, int handlerPriority) : typeMask(0xFFFFFFFF), priority(handlerPriority), _engine(engine) {
+EventHandler::EventHandler(EmiEngine *engine, int handlerPriority) : _typeMask(0xFFFFFFFF), _priority(handlerPriority), _engine(engine) {
 	Common::List<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
 
-	while (it != _engine->_eventHandlers.end() && (*it)->priority >= handlerPriority)
+	while (it != _engine->_eventHandlers.end() && (*it)->_priority >= handlerPriority)
 		++it;
 
 	_engine->_eventHandlers.insert(it, this);

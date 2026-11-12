@@ -37,10 +37,10 @@ public:
 	virtual void setWidth(float newWidth);
 	virtual void setHeight(float newHeight);
 
-	float x;
-	float y;
-	float w;
-	float h;
+	float _x;
+	float _y;
+	float _w;
+	float _h;
 };
 
 } // End of namespace Grim

@@ -25,18 +25,18 @@
 
 namespace Grim {
 
-ComponentInstance::ComponentInstance(EmiEngine *engine, const LString &componentName) : handle(engine), _engine(engine) {
+ComponentInstance::ComponentInstance(EmiEngine *engine, const LString &componentName) : _handle(engine), _engine(engine) {
 	{
 		LResourceHandle<Component> componentHandle(engine, componentName);
 
-		handle.setResource(componentHandle.resource);
+		_handle.setResource(componentHandle._resource);
 	}
 
-	handle.lock();
+	_handle.lock();
 }
 
 ComponentInstance::~ComponentInstance() {
-	handle.unlock();
+	_handle.unlock();
 }
 
 void *ComponentInstance::operator new(size_t size) {

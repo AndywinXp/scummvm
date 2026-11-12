@@ -50,9 +50,9 @@ static const BoxFace kBoxFaces[kNumBoxFaces] = {
 };
 
 RBox::RBox() {
-	sizeX = 0.0f;
-	sizeY = 0.0f;
-	sizeZ = 0.0f;
+	_sizeX = 0.0f;
+	_sizeY = 0.0f;
+	_sizeZ = 0.0f;
 }
 
 RBox::~RBox() {
@@ -63,32 +63,32 @@ void RBox::setSize(float width, float height, float depth) {
 	float halfHeight = height * 0.5f;
 	float halfDepth = depth * 0.5f;
 
-	sizeX = width;
-	sizeY = height;
-	sizeZ = depth;
+	_sizeX = width;
+	_sizeY = height;
+	_sizeZ = depth;
 
-	box.min.x = -halfWidth;
-	box.min.y = -halfHeight;
-	box.min.z = -halfDepth;
-	box.max.x = halfWidth;
-	box.max.y = halfHeight;
-	box.max.z = halfDepth;
+	_box._min._x = -halfWidth;
+	_box._min._y = -halfHeight;
+	_box._min._z = -halfDepth;
+	_box._max._x = halfWidth;
+	_box._max._y = halfHeight;
+	_box._max._z = halfDepth;
 
-	float sumY = (float)((double)box.max.y + box.min.y);
-	float sumZ = (float)((double)box.max.z + box.min.z);
+	float sumY = (float)((double)_box._max._y + _box._min._y);
+	float sumZ = (float)((double)_box._max._z + _box._min._z);
 
-	center.x = (float)(((double)box.min.x + box.max.x) * 0.5);
-	center.y = (float)((double)sumY * 0.5);
-	center.z = (float)((double)sumZ * 0.5);
+	_center._x = (float)(((double)_box._min._x + _box._max._x) * 0.5);
+	_center._y = (float)((double)sumY * 0.5);
+	_center._z = (float)((double)sumZ * 0.5);
 
-	double extentX = (double)box.max.x - box.min.x;
-	float extentY = (float)((double)box.max.y - box.min.y);
-	float extentZ = (float)((double)box.max.z - box.min.z);
+	double extentX = (double)_box._max._x - _box._min._x;
+	float extentY = (float)((double)_box._max._y - _box._min._y);
+	float extentZ = (float)((double)_box._max._z - _box._min._z);
 	double halfExtentX = extentX * 0.5;
 	double halfExtentY = (double)extentY * 0.5;
 	double halfExtentZ = (double)extentZ * 0.5;
 
-	radius = (float)sqrt(halfExtentZ * halfExtentZ + halfExtentY * halfExtentY + halfExtentX * halfExtentX);
+	_radius = (float)sqrt(halfExtentZ * halfExtentZ + halfExtentY * halfExtentY + halfExtentX * halfExtentX);
 }
 
 RPrimitiveInstance *RBox::createInstance() {
@@ -102,7 +102,7 @@ RBoxInstance::~RBoxInstance() {
 }
 
 void RBoxInstance::output(RNode *node, Camera *camera) {
-	if (!visible)
+	if (!_visible)
 		return;
 
 	CDrawContext *ctx = camera->getDrawContext();
@@ -116,38 +116,38 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 		&Color::kWhite, &Color::kGreen, &Color::kBlue, &Color::kRed, &Color::kYellow, &Color::kCyan
 	};
 
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	const float *v = camera->view.rot.m;
-	const CVector &nodePos = node->world.pos;
-	const CVector &viewPos = camera->view.pos;
+	const float *v = camera->_view._rot._m;
+	const CVector &nodePos = node->_world._pos;
+	const CVector &viewPos = camera->_view._pos;
 
-	double nodeViewX = (double)v[6] * nodePos.z + (double)v[3] * nodePos.y + (double)v[0] * nodePos.x;
-	float nodeViewY = (float)((double)v[7] * nodePos.z + (double)v[1] * nodePos.x + (double)v[4] * nodePos.y);
-	float nodeViewZ = (float)((double)v[8] * nodePos.z + (double)v[2] * nodePos.x + (double)v[5] * nodePos.y);
-	float originX = (float)(nodeViewX + viewPos.x);
-	float originY = (float)((double)nodeViewY + viewPos.y);
-	float originZ = (float)((double)nodeViewZ + viewPos.z);
+	double nodeViewX = (double)v[6] * nodePos._z + (double)v[3] * nodePos._y + (double)v[0] * nodePos._x;
+	float nodeViewY = (float)((double)v[7] * nodePos._z + (double)v[1] * nodePos._x + (double)v[4] * nodePos._y);
+	float nodeViewZ = (float)((double)v[8] * nodePos._z + (double)v[2] * nodePos._x + (double)v[5] * nodePos._y);
+	float originX = (float)(nodeViewX + viewPos._x);
+	float originY = (float)((double)nodeViewY + viewPos._y);
+	float originZ = (float)((double)nodeViewZ + viewPos._z);
 
 	CMatrix combined;
 
-	node->world.rot.multiply(&combined, &camera->view.rot);
+	node->_world._rot.multiply(&combined, &camera->_view._rot);
 
-	const CVector &boxMin = prim->box.min;
-	const CVector &boxMax = prim->box.max;
+	const CVector &boxMin = _prim->_box._min;
+	const CVector &boxMax = _prim->_box._max;
 	float corners[kNumBoxCorners][3] = {
-		{ boxMin.x, boxMin.y, boxMin.z },
-		{ boxMin.x, boxMin.y, boxMax.z },
-		{ boxMin.x, boxMax.y, boxMin.z },
-		{ boxMin.x, boxMax.y, boxMax.z },
-		{ boxMax.x, boxMin.y, boxMin.z },
-		{ boxMax.x, boxMin.y, boxMax.z },
-		{ boxMax.x, boxMax.y, boxMin.z },
-		{ boxMax.x, boxMax.y, boxMax.z }
+		{ boxMin._x, boxMin._y, boxMin._z },
+		{ boxMin._x, boxMin._y, boxMax._z },
+		{ boxMin._x, boxMax._y, boxMin._z },
+		{ boxMin._x, boxMax._y, boxMax._z },
+		{ boxMax._x, boxMin._y, boxMin._z },
+		{ boxMax._x, boxMin._y, boxMax._z },
+		{ boxMax._x, boxMax._y, boxMin._z },
+		{ boxMax._x, boxMax._y, boxMax._z }
 	};
 	float transformed[kNumBoxCorners][3];
-	const float *a = combined.m;
+	const float *a = combined._m;
 
 	for (int i = 0; i < kNumBoxCorners; i++) {
 		float x = corners[i][0];
@@ -162,7 +162,7 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 		transformed[i][2] = (float)((double)rotatedZ + originZ);
 	}
 
-	int clipResult = ctx->clipVolume.testPoints(&transformed[0][0], kNumBoxCorners);
+	int clipResult = ctx->_clipVolume.testPoints(&transformed[0][0], kNumBoxCorners);
 
 	if (clipResult == CClipVolume::kOutside)
 		return;
@@ -170,17 +170,17 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 	CDrawList *drawList = ctx->getDrawList(0);
 	CVector cameraLocal;
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	node->worldToLocal(&camera->world.pos, &cameraLocal);
+	node->worldToLocal(&camera->_world._pos, &cameraLocal);
 
 	for (int face = 0; face < kNumBoxFaces; face++) {
 		const BoxFace &boxFace = kBoxFaces[face];
 		const float *anchor = corners[boxFace.corners[0]];
-		double deltaX = (double)cameraLocal.x - anchor[0];
-		double deltaY = (double)cameraLocal.y - anchor[1];
-		double deltaZ = (double)cameraLocal.z - anchor[2];
+		double deltaX = (double)cameraLocal._x - anchor[0];
+		double deltaY = (double)cameraLocal._y - anchor[1];
+		double deltaZ = (double)cameraLocal._z - anchor[2];
 		double facing = deltaZ * boxFace.normal[2] + deltaX * boxFace.normal[0] + deltaY * boxFace.normal[1];
 
 		if (facing < 0.0)
@@ -205,7 +205,7 @@ void RBoxInstance::output(RNode *node, Camera *camera) {
 		}
 
 		if (clipResult == CClipVolume::kPartial)
-			ctx->clipVolume.computeVertexOutcodes(4, poly->verts);
+			ctx->_clipVolume.computeVertexOutcodes(4, poly->verts);
 
 		poly->reserved8 = 0;
 		drawList->addPoly(poly);

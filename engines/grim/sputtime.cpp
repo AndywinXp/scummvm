@@ -25,7 +25,7 @@
 
 namespace Grim {
 
-SputTime::SputTime(bool isDemo) : _maxFrameTime(isDemo ? 500 : 300), _pHS(nullptr), _bInitialized(0), _bStarted(0), _lastRealTime(0), _gameTime(0),
+SputTime::SputTime(bool isDemo) : _maxFrameTime(isDemo ? 500 : 300), _hs(nullptr), _initialized(0), _started(0), _lastRealTime(0), _gameTime(0),
 		_frameTime(0), _frameTimeFlex(0.0f) {
 }
 
@@ -92,34 +92,34 @@ uint SputTime::reset() {
 	return _lastRealTime;
 }
 
-int SputTime::initialize(SysStruct *pHS) {
-	_pHS = pHS;
-	_bInitialized = 1;
+int SputTime::initialize(SysStruct *hs) {
+	_hs = hs;
+	_initialized = 1;
 
 	return 0;
 }
 
 int SputTime::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputTime::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
-	_bStarted = 1;
+	_started = 1;
 	reset();
 
 	return 0;
 }
 
 void SputTime::shutdown() {
-	_bStarted = 0;
+	_started = 0;
 }
 
 } // End of namespace Grim

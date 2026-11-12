@@ -294,7 +294,7 @@ int IMuse::dispatchRelease(IMuseTrack *trackPtr) {
 }
 
 int IMuse::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, int exitTriggerSyncFlag, int offsetFadeSyncFlag) {
-	int32 effFadeLen, effFadeSize, strZnSize;
+	int32 effFadeLen, effFadeSize, znSize;
 	int getMapResult, i;
 	IMuseDispatch *curDispatch = _dispatches;
 
@@ -328,10 +328,10 @@ int IMuse::dispatchSwitchStream(int oldSoundId, int newSoundId, int fadeLength, 
 
 		_dispatchFadeSize = dispatchGetFadeSize(curDispatch, effFadeLen);
 
-		strZnSize = curDispatch->streamZoneList->size;
-		if (strZnSize >= _dispatchFadeSize)
-			strZnSize = _dispatchFadeSize;
-		_dispatchFadeSize = strZnSize;
+		znSize = curDispatch->streamZoneList->size;
+		if (znSize >= _dispatchFadeSize)
+			znSize = _dispatchFadeSize;
+		_dispatchFadeSize = znSize;
 
 		// Validate and adjust the fade dispatch size further;
 		// this should correctly align the dispatch size to avoid starting a fade without
@@ -1067,7 +1067,7 @@ uint8 *IMuse::dispatchGetNextMapEvent(int32 *mapPtr, int32 soundOffset, uint8 *m
 }
 
 void IMuse::dispatchPredictStream(IMuseDispatch *dispatchPtr) {
-	IMuseStreamZone *szTmp, *lastStreamInList, *curStrZn;
+	IMuseStreamZone *tmp, *lastStreamInList, *curStrZn;
 	int32 cumulativeStreamOffset;
 	uint8 *jumpParameters;
 
@@ -1076,15 +1076,15 @@ void IMuse::dispatchPredictStream(IMuseDispatch *dispatchPtr) {
 		return;
 	}
 
-	szTmp = dispatchPtr->streamZoneList;
+	tmp = dispatchPtr->streamZoneList;
 
 	// Get the offset which our stream is currently at
 	cumulativeStreamOffset = 0;
 	do {
-		cumulativeStreamOffset += szTmp->size;
-		lastStreamInList = szTmp;
-		szTmp = szTmp->next;
-	} while (szTmp);
+		cumulativeStreamOffset += tmp->size;
+		lastStreamInList = tmp;
+		tmp = tmp->next;
+	} while (tmp);
 
 	lastStreamInList->size += streamerGetFreeBufferAmount(dispatchPtr->streamPtr) - cumulativeStreamOffset;
 	curStrZn = dispatchPtr->streamZoneList;
@@ -1103,7 +1103,7 @@ void IMuse::dispatchPredictStream(IMuseDispatch *dispatchPtr) {
 	}
 }
 
-uint8 *IMuse::dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *strZnPtr, int &candidateHookId) {
+uint8 *IMuse::dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *znPtr, int &candidateHookId) {
 	uint8 *curMapPlace = (uint8 *)&mapPtr[2];
 	uint8 *endOfMap = (uint8 *)&mapPtr[2] + mapPtr[1];
 	int32 mapPlaceTag, jumpHookPos, jumpHookId, bytesUntilNextPlace;
@@ -1116,7 +1116,7 @@ uint8 *IMuse::dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *strZnPtr, int
 			jumpHookPos = READ_UINT32(curMapPlace + 8);
 			jumpHookId = READ_UINT32(curMapPlace + 16);
 
-			if (jumpHookPos > strZnPtr->offset && jumpHookPos <= strZnPtr->size + strZnPtr->offset) {
+			if (jumpHookPos > znPtr->offset && jumpHookPos <= znPtr->size + znPtr->offset) {
 				if (!checkHookId(candidateHookId, jumpHookId))
 					return curMapPlace;
 			}
@@ -1128,7 +1128,7 @@ uint8 *IMuse::dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *strZnPtr, int
 	return nullptr;
 }
 
-void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *strZnPtr, uint8 *jumpParams, int calledFromNavigateMap) {
+void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *znPtr, uint8 *jumpParams, int calledFromNavigateMap) {
 	int32 hookPosition, jumpDestination, fadeTime;
 	IMuseStreamZone *nextStreamZone;
 	IMuseStreamZone *zoneForJump = nullptr;
@@ -1149,8 +1149,8 @@ void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *s
 	fadeTime = READ_UINT32(jumpParams + 20);
 
 	// Edge cases handling
-	if (strZnPtr->size + strZnPtr->offset == hookPosition) {
-		nextStreamZone = strZnPtr->next;
+	if (znPtr->size + znPtr->offset == hookPosition) {
+		nextStreamZone = znPtr->next;
 		if (nextStreamZone) {
 			if (nextStreamZone->fadeFlag) {
 				// Avoid jumping if the next stream zone is already fading
@@ -1176,13 +1176,13 @@ void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *s
 	// If this function is being called from dispatchPredictStream,
 	// avoid accepting an oversized dispatch
 	if (!calledFromNavigateMap) {
-		if (_dispatchSize > strZnPtr->size + strZnPtr->offset - hookPosition)
+		if (_dispatchSize > znPtr->size + znPtr->offset - hookPosition)
 			return;
 	}
 
 	// Cap the dispatch size, if oversized
-	if (_dispatchSize > strZnPtr->size + strZnPtr->offset - hookPosition)
-		_dispatchSize = strZnPtr->size + strZnPtr->offset - hookPosition;
+	if (_dispatchSize > znPtr->size + znPtr->offset - hookPosition)
+		_dispatchSize = znPtr->size + znPtr->offset - hookPosition;
 
 	// This prevents starting a fade with an inverted stereo image
 	dispatchValidateFadeSize(dispatchPtr, _dispatchSize);
@@ -1208,22 +1208,22 @@ void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *s
 		return;
 	}
 
-	strZnPtr->size = hookPosition - strZnPtr->offset;
-	streamOffset = hookPosition - strZnPtr->offset + _dispatchSize;
+	znPtr->size = hookPosition - znPtr->offset;
+	streamOffset = hookPosition - znPtr->offset + _dispatchSize;
 
 	// Go to the interested stream zone to calculate the stream offset,
 	// and schedule the sound to stream with that offset
 	zoneCycle = dispatchPtr->streamZoneList;
-	while (zoneCycle != strZnPtr) {
+	while (zoneCycle != znPtr) {
 		streamOffset += zoneCycle->size;
 		zoneCycle = zoneCycle->next;
 	}
 
 	streamerSetLoadIndex(dispatchPtr->streamPtr, streamOffset);
 
-	while (strZnPtr->next) {
-		strZnPtr->next->useFlag = 0;
-		removeStreamZoneFromList(&strZnPtr->next, strZnPtr->next);
+	while (znPtr->next) {
+		znPtr->next->useFlag = 0;
+		removeStreamZoneFromList(&znPtr->next, znPtr->next);
 	}
 
 	streamerSetSoundToStreamFromOffset(dispatchPtr->streamPtr,
@@ -1232,48 +1232,48 @@ void IMuse::dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *s
 	// Prepare the fading zone for the jump
 	// and also a subsequent empty dummy zone
 	if (_dispatchSize) {
-		strZnPtr->next = zoneForJump;
-		zoneForJump->prev = strZnPtr;
-		strZnPtr = zoneForJump;
+		znPtr->next = zoneForJump;
+		zoneForJump->prev = znPtr;
+		znPtr = zoneForJump;
 		zoneForJump->next = 0;
 		zoneForJump->offset = hookPosition;
 		zoneForJump->size = _dispatchSize;
 		zoneForJump->fadeFlag = 1;
 	}
 
-	strZnPtr->next = zoneAfterJump;
-	zoneAfterJump->prev = strZnPtr;
+	znPtr->next = zoneAfterJump;
+	zoneAfterJump->prev = znPtr;
 	zoneAfterJump->next = nullptr;
 	zoneAfterJump->offset = jumpDestination;
 	zoneAfterJump->size = 0;
 	zoneAfterJump->fadeFlag = 0;
 }
 
-void IMuse::dispatchStreamNextZone(IMuseDispatch *dispatchPtr, IMuseStreamZone *strZnPtr) {
+void IMuse::dispatchStreamNextZone(IMuseDispatch *dispatchPtr, IMuseStreamZone *znPtr) {
 	int32 cumulativeStreamOffset;
-	IMuseStreamZone *szTmp;
+	IMuseStreamZone *tmp;
 
-	if (strZnPtr->next) {
-		cumulativeStreamOffset = strZnPtr->size;
-		szTmp = dispatchPtr->streamZoneList;
-		while (szTmp != strZnPtr) {
-			cumulativeStreamOffset += szTmp->size;
-			szTmp = szTmp->next;
+	if (znPtr->next) {
+		cumulativeStreamOffset = znPtr->size;
+		tmp = dispatchPtr->streamZoneList;
+		while (tmp != znPtr) {
+			cumulativeStreamOffset += tmp->size;
+			tmp = tmp->next;
 		}
 
 		// Set the stream load index of the sound to the new streamZone
 		streamerSetLoadIndex(dispatchPtr->streamPtr, cumulativeStreamOffset);
 
 		// Remove the following streamZones from the list, we don't need them anymore
-		while (strZnPtr->next) {
-			strZnPtr->next->useFlag = 0;
-			removeStreamZoneFromList(&strZnPtr->next, strZnPtr->next);
+		while (znPtr->next) {
+			znPtr->next->useFlag = 0;
+			removeStreamZoneFromList(&znPtr->next, znPtr->next);
 		}
 
 		streamerSetSoundToStreamFromOffset(
 			dispatchPtr->streamPtr,
 			dispatchPtr->trackPtr->soundId,
-			strZnPtr->size + strZnPtr->offset);
+			znPtr->size + znPtr->offset);
 	}
 }
 

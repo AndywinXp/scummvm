@@ -88,47 +88,47 @@ static const float kLoadingIconUvs[] = {
 Movie::Movie(EmiEngine *engine, const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(engine, 0) {
 	_engine->getSounds()->lowerMasterGainForMovie();
 
-	fileName = name;
+	_fileName = name;
 
-	size_t extension = fileName.rfind('.');
+	size_t extension = _fileName.rfind('.');
 
 	if (extension != LString::npos) {
-		fileName.erase(extension);
-		fileName += ".m4b";
+		_fileName.erase(extension);
+		_fileName += ".m4b";
 	}
 
-	typeMask = 0;
-	finished = false;
-	frameReady = false;
-	memset(subtitles, 0, sizeof(subtitles));
-	numSubtitles = 0;
-	subtitleIndex = 0;
-	subtitleEvent = nullptr;
-	i9nBundleOpen = _engine->getBundleServices()->isI9nBundleOpen();
-	subtitlesOn = newSubtitles;
-	flag6194 = newFlag6194;
-	flag6195 = newFlag6195;
+	_typeMask = 0;
+	_finished = false;
+	_frameReady = false;
+	memset(_subtitles, 0, sizeof(_subtitles));
+	_numSubtitles = 0;
+	_subtitleIndex = 0;
+	_subtitleEvent = nullptr;
+	_i9nBundleOpen = _engine->getBundleServices()->isI9nBundleOpen();
+	_subtitlesOn = newSubtitles;
+	_flag6194 = newFlag6194;
+	_flag6195 = newFlag6195;
 	_engine->_movieFirstFrame = frame;
 	// The disasm draws on the surface directly only on its full screen Direct3D path, the one reproduced here
-	useDirectDraw = !subtitlesOn && !flag6194;
-	clearCount = 0;
-	bink = nullptr;
-	frameSurface = nullptr;
-	paused = false;
+	_useDirectDraw = !_subtitlesOn && !_flag6194;
+	_clearCount = 0;
+	_bink = nullptr;
+	_frameSurface = nullptr;
+	_paused = false;
 }
 
 Movie::~Movie() {
-	if (subtitleEvent) {
-		subtitleEvent->flags &= ~1u;
-		subtitleEvent = nullptr;
+	if (_subtitleEvent) {
+		_subtitleEvent->_flags &= ~1u;
+		_subtitleEvent = nullptr;
 	}
 
 #ifdef USE_BINK
-	delete bink;
+	delete _bink;
 #endif
 
-	bink = nullptr;
-	frameSurface = nullptr;
+	_bink = nullptr;
+	_frameSurface = nullptr;
 
 	_engine->getSounds()->restoreMasterGain();
 }
@@ -137,85 +137,85 @@ bool Movie::handleEvent(const Event *event) {
 	if (event->type != Event::kKeyUp || event->vk != 27)
 		return false;
 
-	finished = true;
+	_finished = true;
 
 	return true;
 }
 
 void Movie::pause() {
 #ifdef USE_BINK
-	if (bink && !paused) {
-		bink->pauseVideo(true);
-		paused = true;
+	if (_bink && !_paused) {
+		_bink->pauseVideo(true);
+		_paused = true;
 	}
 #endif
 
-	typeMask = 0;
+	_typeMask = 0;
 }
 
 void Movie::resume() {
 #ifdef USE_BINK
-	if (bink && paused) {
-		bink->pauseVideo(false);
-		paused = false;
+	if (_bink && _paused) {
+		_bink->pauseVideo(false);
+		_paused = false;
 	}
 #endif
 
-	typeMask = kEventsMask;
+	_typeMask = kEventsMask;
 }
 
 bool Movie::update() {
 #ifdef USE_BINK
-	if (!bink) {
+	if (!_bink) {
 		warning("Movie::update(): the movie is not open");
 
 		return true;
 	}
 
 	// The frame number of the disasm does not move until the frame is presented
-	if (frameReady || !bink->needsUpdate())
-		return finished;
+	if (_frameReady || !_bink->needsUpdate())
+		return _finished;
 
-	frameSurface = bink->decodeNextFrame();
+	_frameSurface = _bink->decodeNextFrame();
 
-	if (!frameSurface) {
+	if (!_frameSurface) {
 		warning("Movie::update(): cannot decode the next frame");
-		finished = true;
+		_finished = true;
 
 		return true;
 	}
 
-	frameReady = true;
+	_frameReady = true;
 
-	return finished;
+	return _finished;
 #else
 	return true;
 #endif
 }
 
 void Movie::presentFrame() {
-	if (!frameReady)
+	if (!_frameReady)
 		return;
 
-	frameReady = false;
+	_frameReady = false;
 	drawFrame();
 
 #ifdef USE_BINK
-	if (!bink)
+	if (!_bink)
 		return;
 
-	int frameNumber = bink->getCurFrame() + 1;
+	int frameNumber = _bink->getCurFrame() + 1;
 
-	if (subtitlesOn)
+	if (_subtitlesOn)
 		updateSubtitle(frameNumber);
 
-	if (frameNumber == (int)bink->getFrameCount())
-		finished = true;
+	if (frameNumber == (int)_bink->getFrameCount())
+		_finished = true;
 #endif
 }
 
 uint Movie::readHeader() {
-	LFile *file = _engine->getFileServices()->open(fileName.c_str(), "rb");
+	LFile *file = _engine->getFileServices()->open(_fileName.c_str(), "rb");
 
 	if (!file)
 		return 0;
@@ -250,7 +250,7 @@ uint Movie::readHeader() {
 		if (parsed != 0) {
 			size = value;
 
-			if (subtitlesOn) {
+			if (_subtitlesOn) {
 				file->seek(0, 0);
 
 				char *data = new char[size + 1];
@@ -278,7 +278,7 @@ uint Movie::readHeader() {
 						break;
 
 					// The disasm reads the key without a size limit
-					if (sscanf(line, "%d\t%d\t%15s\t", &subtitles[count].start, &subtitles[count].end, subtitles[count].text) != 3)
+					if (sscanf(line, "%d\t%d\t%15s\t", &_subtitles[count].start, &_subtitles[count].end, _subtitles[count].text) != 3)
 						break;
 
 					count++;
@@ -291,13 +291,13 @@ uint Movie::readHeader() {
 	}
 
 	_engine->getFileServices()->close(file, true);
-	numSubtitles = count;
+	_numSubtitles = count;
 
 	return size;
 }
 
 bool Movie::loadSubtitles() {
-	LString path = fileName;
+	LString path = _fileName;
 	size_t extension = path.rfind('.');
 
 	if (extension == LString::npos)
@@ -318,7 +318,7 @@ bool Movie::loadSubtitles() {
 		while (count < kMaxSubtitles) {
 			if (line[0] != '#') {
 				// The disasm reads the key without a size limit
-				if (sscanf(line, "%d\t%d\t%15s\t", &subtitles[count].start, &subtitles[count].end, subtitles[count].text) != 3) {
+				if (sscanf(line, "%d\t%d\t%15s\t", &_subtitles[count].start, &_subtitles[count].end, _subtitles[count].text) != 3) {
 					_engine->getFileServices()->close(file, true);
 
 					return false;
@@ -332,33 +332,33 @@ bool Movie::loadSubtitles() {
 		}
 	}
 
-	numSubtitles = count;
+	_numSubtitles = count;
 	_engine->getFileServices()->close(file, true);
 
 	return true;
 }
 
 void Movie::updateSubtitle(int frame) {
-	if (subtitleIndex == numSubtitles)
+	if (_subtitleIndex == _numSubtitles)
 		return;
 
-	SubtitleEntry *entry = &subtitles[subtitleIndex];
+	SubtitleEntry *entry = &_subtitles[_subtitleIndex];
 
 	if (frame < entry->start)
 		return;
 
 	if (frame > entry->end) {
-		if (subtitleEvent) {
-			subtitleEvent->flags &= ~1u;
-			subtitleEvent = nullptr;
+		if (_subtitleEvent) {
+			_subtitleEvent->_flags &= ~1u;
+			_subtitleEvent = nullptr;
 		}
 
-		subtitleIndex++;
+		_subtitleIndex++;
 
 		return;
 	}
 
-	if (subtitleEvent)
+	if (_subtitleEvent)
 		return;
 
 	const char *translated = TextEvent::translate(_engine, entry->text, nullptr);
@@ -369,17 +369,17 @@ void Movie::updateSubtitle(int frame) {
 	else
 		warning("Movie::updateSubtitle(): no text for the subtitle");
 
-	subtitleEvent = new TextEvent(_engine, text);
+	_subtitleEvent = new TextEvent(_engine, text);
 
-	if (i9nBundleOpen)
-		subtitleEvent->setFont("subtitle.laf");
+	if (_i9nBundleOpen)
+		_subtitleEvent->setFont("subtitle.laf");
 
-	subtitleEvent->x = kSubtitleX;
-	subtitleEvent->y = kSubtitleY;
-	subtitleEvent->geometryReady = false;
-	subtitleEvent->justify = kSubtitleJustify;
-	subtitleEvent->geometryReady = false;
-	subtitleEvent->activate(0.0f, 1);
+	_subtitleEvent->_x = kSubtitleX;
+	_subtitleEvent->_y = kSubtitleY;
+	_subtitleEvent->_geometryReady = false;
+	_subtitleEvent->_justify = kSubtitleJustify;
+	_subtitleEvent->_geometryReady = false;
+	_subtitleEvent->activate(0.0f, 1);
 }
 
 bool Movie::open() {
@@ -392,28 +392,28 @@ bool Movie::open() {
 		return false;
 	}
 
-	size_t slash = fileName.rfind('\\');
+	size_t slash = _fileName.rfind('\\');
 
 	if (slash != LString::npos) {
-		LString movieName = LString(".\\Movies\\") + fileName.substr(slash + 1);
+		LString movieName = LString(".\\Movies\\") + _fileName.substr(slash + 1);
 
 		if (fileExists(_engine, movieName.c_str()))
-			fileName = movieName;
+			_fileName = movieName;
 	}
 
 	uint header = readHeader();
 
-	if (subtitlesOn && !header && !loadSubtitles())
-		subtitlesOn = false;
+	if (_subtitlesOn && !header && !loadSubtitles())
+		_subtitlesOn = false;
 
-	LFile *file = _engine->getFileServices()->open(fileName.c_str(), "rb");
+	LFile *file = _engine->getFileServices()->open(_fileName.c_str(), "rb");
 
 	if (!file)
 		return false;
 
-	Common::SeekableReadStream *stream = file->readStream;
+	Common::SeekableReadStream *stream = file->_readStream;
 
-	file->readStream = nullptr;
+	file->_readStream = nullptr;
 	_engine->getFileServices()->close(file, true);
 
 	if (!stream || header > stream->size()) {
@@ -425,16 +425,16 @@ bool Movie::open() {
 
 	Common::SeekableReadStream *binkStream = new Common::SeekableSubReadStream(stream, header, stream->size(), DisposeAfterUse::YES);
 
-	bink = new Video::BinkDecoder();
+	_bink = new Video::BinkDecoder();
 
-	if (!bink->loadStream(binkStream)) {
-		delete bink;
-		bink = nullptr;
+	if (!_bink->loadStream(binkStream)) {
+		delete _bink;
+		_bink = nullptr;
 
 		return false;
 	}
 
-	if (!bink->setOutputPixelFormat(drawContext->getMovieFormat()))
+	if (!_bink->setOutputPixelFormat(drawContext->getMovieFormat()))
 		warning("Movie::open(): the decoder cannot use the format of the draw context");
 
 	float gain = Sounds::soundVolumeToGain(_engine->getSounds()->getCategoryVolume(kVoiceCategory));
@@ -445,22 +445,22 @@ bool Movie::open() {
 	else if (!(gain >= 0.0f))
 		gain = 0.0f;
 
-	bink->setVolume((byte)(gain * 255.0f + 0.5f));
-	bink->setSoundType(Audio::Mixer::kSpeechSoundType);
+	_bink->setVolume((byte)(gain * 255.0f + 0.5f));
+	_bink->setSoundType(Audio::Mixer::kSpeechSoundType);
 
-	clearCount = 0;
-	typeMask = kEventsMask;
-	finished = false;
-	frameReady = false;
+	_clearCount = 0;
+	_typeMask = kEventsMask;
+	_finished = false;
+	_frameReady = false;
 
 	if (_engine->_movieFirstFrame != 1) {
-		if (_engine->_movieFirstFrame < 1 || _engine->_movieFirstFrame > (int)bink->getFrameCount())
+		if (_engine->_movieFirstFrame < 1 || _engine->_movieFirstFrame > (int)_bink->getFrameCount())
 			warning("Movie::open(): the first frame %d is not in the movie", _engine->_movieFirstFrame);
-		else if (!bink->seekToFrame(_engine->_movieFirstFrame - 1))
+		else if (!_bink->seekToFrame(_engine->_movieFirstFrame - 1))
 			warning("Movie::open(): cannot go to the frame %d", _engine->_movieFirstFrame);
 	}
 
-	bink->start();
+	_bink->start();
 
 	return true;
 #else
@@ -473,18 +473,18 @@ bool Movie::open() {
 void Movie::drawFrame() {
 	CDrawContext *drawContext = _engine->getDrawContext();
 
-	if (!drawContext || !frameSurface) {
+	if (!drawContext || !_frameSurface) {
 		warning("Movie::drawFrame(): nothing to draw");
 
 		return;
 	}
 
-	if (!useDirectDraw && (flag6194 || frameSurface->w != kStandardWidth)) {
-		bool clearScreen = subtitlesOn;
+	if (!_useDirectDraw && (_flag6194 || _frameSurface->w != kStandardWidth)) {
+		bool clearScreen = _subtitlesOn;
 
 		if (!clearScreen) {
-			clearScreen = clearCount < kMaxClearedFrames;
-			clearCount++;
+			clearScreen = _clearCount < kMaxClearedFrames;
+			_clearCount++;
 		}
 
 		if (clearScreen)
@@ -494,9 +494,9 @@ void Movie::drawFrame() {
 	if (!drawContext->beginScene())
 		return;
 
-	drawContext->drawMovieFrame(*frameSurface);
+	drawContext->drawMovieFrame(*_frameSurface);
 
-	if (!useDirectDraw)
+	if (!_useDirectDraw)
 		TextEvent::update(_engine, drawContext, true);
 
 	drawContext->endScene();
@@ -561,7 +561,7 @@ void Movie::resumeCurrent(EmiEngine *engine) {
 
 void Movie::skipCurrent(EmiEngine *engine) {
 	if (engine->_currentMovie)
-		engine->_currentMovie->finished = true;
+		engine->_currentMovie->_finished = true;
 }
 
 void Movie::startupMovies(EmiEngine *engine) {
@@ -761,9 +761,9 @@ Common::SeekableReadStream *Movie::openMoviePs2(EmiEngine *engine, const LString
 	if (!file)
 		return nullptr;
 
-	Common::SeekableReadStream *stream = file->readStream;
+	Common::SeekableReadStream *stream = file->_readStream;
 
-	file->readStream = nullptr;
+	file->_readStream = nullptr;
 	engine->getFileServices()->close(file, true);
 
 	return stream;
@@ -771,8 +771,8 @@ Common::SeekableReadStream *Movie::openMoviePs2(EmiEngine *engine, const LString
 
 void Movie::drawFramePs2(EmiEngine *engine, const Graphics::Surface &frame, Graphics::Surface &screen) {
 	CDrawContext *drawContext = engine->getDrawContext();
-	int width = drawContext->displayMode.width;
-	int height = drawContext->displayMode.height;
+	int width = drawContext->_displayMode.width;
+	int height = drawContext->_displayMode.height;
 	const Graphics::Surface *output = &frame;
 
 	// 640x448 frames are centered on taller screens, with black borders
@@ -824,8 +824,8 @@ bool Movie::drawLoadingIconPs2(EmiEngine *engine) {
 	Camera camera(drawContext);
 
 	camera.setLocalPosition(CVector());
-	camera.nearClip = kLoadingIconNearClip;
-	camera.farClip = kLoadingIconFarClip;
+	camera._nearClip = kLoadingIconNearClip;
+	camera._farClip = kLoadingIconFarClip;
 	camera.applyProjection();
 
 	VertexStreams streams;
@@ -851,7 +851,7 @@ bool Movie::isSkipEventPs2(EmiEngine *engine, const Common::Event &event) {
 
 	if (event.type == Common::EVENT_JOYBUTTON_DOWN) {
 		for (int i = 0; i < SputControl_v2::kNumControls; i++) {
-			const ControlEntry &control = engine->getControl()->controlTable[i];
+			const ControlEntry &control = engine->getControl()->_controlTable[i];
 
 			if (control.name && !strcmp(control.name, "KEY_JOY1_SELECT"))
 				return event.joystick.button == (int)(control.code - Joystick::kButtonBase);

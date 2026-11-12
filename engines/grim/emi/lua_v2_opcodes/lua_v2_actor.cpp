@@ -99,10 +99,10 @@ void Lua_V2::GetActorTimeScale() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	lua_pushnumber(actor->extra->timeScale);
+	lua_pushnumber(actor->_extra->_timeScale);
 }
 
 void Lua_V2::SetActorTimeScale() {
@@ -117,7 +117,7 @@ void Lua_V2::SetActorTimeScale() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
 	float scale;
@@ -130,7 +130,7 @@ void Lua_V2::SetActorTimeScale() {
 	if (!(scale >= 0.0f))
 		scale = -scale;
 
-	actor->extra->timeScale = scale;
+	actor->_extra->_timeScale = scale;
 }
 
 void Lua_V2::SetActorWalkDominate() {
@@ -311,10 +311,10 @@ void Lua_V2::SetActorWalkRate() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	actor->extra->walkRate = (float)((double)lua_getnumber(rateObj) * (double)kWalkRateScale);
+	actor->_extra->_walkRate = (float)((double)lua_getnumber(rateObj) * (double)kWalkRateScale);
 }
 
 void Lua_V2::GetActorWalkRate() {
@@ -328,10 +328,10 @@ void Lua_V2::GetActorWalkRate() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	lua_pushnumber((float)((double)actor->extra->walkRate * (double)kWalkRateInverseScale));
+	lua_pushnumber((float)((double)actor->_extra->_walkRate * (double)kWalkRateInverseScale));
 }
 
 void Lua_V2::SetActorTurnRate() {
@@ -347,13 +347,13 @@ void Lua_V2::SetActorTurnRate() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
 	if (!(rate >= 0.0f))
 		rate = -rate;
 
-	actor->extra->turnRate = rate;
+	actor->_extra->_turnRate = rate;
 }
 
 void Lua_V2::GetActorTurnRate() {
@@ -367,10 +367,10 @@ void Lua_V2::GetActorTurnRate() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	lua_pushnumber(actor->extra->turnRate);
+	lua_pushnumber(actor->_extra->_turnRate);
 }
 
 void Lua_V2::GetActorPos() {
@@ -384,20 +384,20 @@ void Lua_V2::GetActorPos() {
 	if (!actor)
 		return;
 
-	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+	if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
 
-	lua_pushnumber(actor->pos.x);
+	lua_pushnumber(actor->_pos._x);
 
-	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+	if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
 
-	lua_pushnumber(actor->pos.y);
+	lua_pushnumber(actor->_pos._y);
 
-	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+	if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
 
-	lua_pushnumber(actor->pos.z);
+	lua_pushnumber(actor->_pos._z);
 }
 
 void Lua_V2::GetActorWorldPos() {
@@ -411,20 +411,20 @@ void Lua_V2::GetActorWorldPos() {
 	if (!actor)
 		return;
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	lua_pushnumber(actor->world.pos.x);
+	lua_pushnumber(actor->_world._pos._x);
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	lua_pushnumber(actor->world.pos.y);
+	lua_pushnumber(actor->_world._pos._y);
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	lua_pushnumber(actor->world.pos.z);
+	lua_pushnumber(actor->_world._pos._z);
 }
 
 void Lua_V2::GetActorPuckVector() {
@@ -446,10 +446,10 @@ void Lua_V2::GetActorPuckVector() {
 		return;
 	}
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	Puck_v2 *puck = actor->extra->puck;
+	Puck_v2 *puck = actor->_extra->_puck;
 
 	if (!puck) {
 		lua_pushnil();
@@ -457,23 +457,23 @@ void Lua_V2::GetActorPuckVector() {
 		return;
 	}
 
-	if ((puck->nodeFlags & CNode::kWorldValid) == 0)
+	if ((puck->_nodeFlags & CNode::kWorldValid) == 0)
 		puck->updateWorldTransform();
 
-	float vectorX = puck->world.rot.m[6];
-	float vectorY = puck->world.rot.m[7];
-	float vectorZ = puck->world.rot.m[8];
+	float vectorX = puck->_world._rot._m[6];
+	float vectorY = puck->_world._rot._m[7];
+	float vectorZ = puck->_world._rot._m[8];
 	float resultX = vectorX;
 	float resultY = vectorY;
 	float resultZ = vectorZ;
 
 	if (addPosition) {
-		if ((puck->nodeFlags & CNode::kPositionValid) == 0)
+		if ((puck->_nodeFlags & CNode::kPositionValid) == 0)
 			puck->computeLocalPositionFromWorld();
 
-		resultX = vectorX + puck->pos.x;
-		resultY = vectorY + puck->pos.y;
-		resultZ = vectorZ + puck->pos.z;
+		resultX = vectorX + puck->_pos._x;
+		resultY = vectorY + puck->_pos._y;
+		resultZ = vectorZ + puck->_pos._z;
 	}
 
 	lua_pushnumber(resultX);
@@ -527,13 +527,13 @@ void Lua_V2::GetActorYawToPoint() {
 		return;
 	}
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	if (!actor->extra->puck)
+	if (!actor->_extra->_puck)
 		actor->enablePuck(true);
 
-	lua_pushnumber(actor->extra->puck->getYawToPoint(point));
+	lua_pushnumber(actor->_extra->_puck->getYawToPoint(point));
 }
 
 void Lua_V2::SetActorReflection() {
@@ -654,7 +654,7 @@ void Lua_V2::ToggleOverworld() {
 	if (!lua_isnil(enableObj))
 		enable = luaFtol(lua_getnumber(enableObj)) != 0;
 
-	_engine->getOverworld()->enabled = enable;
+	_engine->getOverworld()->_enabled = enable;
 }
 
 void Lua_V2::WalkActorVector() {
@@ -687,23 +687,23 @@ void Lua_V2::WalkActorVector() {
 		return;
 	}
 
-	if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+	if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 		camera->updateWorldTransform();
 
-	const float *cameraMatrix = camera->world.rot.m;
+	const float *cameraMatrix = camera->_world._rot._m;
 
 	if (lua_isnumber(yawObj)) {
 		CVector eulerYaw;
 		CMatrix yawMatrix;
 
-		eulerYaw.x = 0.0f;
-		eulerYaw.y = lua_getnumber(yawObj);
-		eulerYaw.z = 0.0f;
+		eulerYaw._x = 0.0f;
+		eulerYaw._y = lua_getnumber(yawObj);
+		eulerYaw._z = 0.0f;
 		yawMatrix.setFromEuler(eulerYaw);
 
-		double rotatedX = ((double)z * yawMatrix.m[6] + (double)y * yawMatrix.m[3]) + (double)x * yawMatrix.m[0];
-		double rotatedY = ((double)z * yawMatrix.m[7] + (double)y * yawMatrix.m[4]) + (double)x * yawMatrix.m[1];
-		double rotatedZ = ((double)z * yawMatrix.m[8] + (double)y * yawMatrix.m[5]) + (double)x * yawMatrix.m[2];
+		double rotatedX = ((double)z * yawMatrix._m[6] + (double)y * yawMatrix._m[3]) + (double)x * yawMatrix._m[0];
+		double rotatedY = ((double)z * yawMatrix._m[7] + (double)y * yawMatrix._m[4]) + (double)x * yawMatrix._m[1];
+		double rotatedZ = ((double)z * yawMatrix._m[8] + (double)y * yawMatrix._m[5]) + (double)x * yawMatrix._m[2];
 
 		x = (float)rotatedX;
 		y = (float)rotatedY;
@@ -729,33 +729,33 @@ void Lua_V2::WalkActorVector() {
 
 	// PS2 does no angle check: it turns fully and always walks forward
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
-		if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+		if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 			actor->computeLocalPositionFromWorld();
 
 		float ps2Target[3];
 
-		ps2Target[0] = directionX + actor->pos.x;
-		ps2Target[1] = directionY + actor->pos.y;
-		ps2Target[2] = directionZ + actor->pos.z;
+		ps2Target[0] = directionX + actor->_pos._x;
+		ps2Target[1] = directionY + actor->_pos._y;
+		ps2Target[2] = directionZ + actor->_pos._z;
 
-		if (!actor->extra || !actor->extra->puck)
+		if (!actor->_extra || !actor->_extra->_puck)
 			return;
 
-		actor->extra->puck->pointAt(ps2Target, kPs2WalkTurnLimit);
-		actor->mode &= ~1U;
+		actor->_extra->_puck->pointAt(ps2Target, kPs2WalkTurnLimit);
+		actor->_mode &= ~1U;
 		actor->forward();
 
 		return;
 	}
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0) {
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0) {
 		actor->computeLocalMatrixFromWorld();
 
-		if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+		if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 			actor->computeLocalMatrixFromWorld();
 	}
 
-	double yawRadians = (double)Actor::kDegreesToRadians * actor->eulerDeg.y;
+	double yawRadians = (double)Actor::kDegreesToRadians * actor->_eulerDeg._y;
 	float sinValue = (float)sin(yawRadians);
 	// The disasm squares the y component here
 	double alignment = (cos(yawRadians) * directionZ + (double)directionY * directionY) + (double)sinValue * directionX;
@@ -767,33 +767,33 @@ void Lua_V2::WalkActorVector() {
 	else
 		turnAngle = 0.0f;
 
-	if (!actor->extra || !actor->extra->puck) {
+	if (!actor->_extra || !actor->_extra->_puck) {
 		warning("Lua_V2::WalkActorVector(): the actor has no puck");
 
 		return;
 	}
 
-	float turnRate = actor->extra->turnRate;
+	float turnRate = actor->_extra->_turnRate;
 
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
 	float turnStep = _engine->getFrameTime() * turnRate;
 
-	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+	if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
 
 	float target[3];
 
-	target[0] = directionX + actor->pos.x;
-	target[1] = directionY + actor->pos.y;
-	target[2] = directionZ + actor->pos.z;
-	actor->extra->puck->pointAt(target, turnStep + turnStep);
+	target[0] = directionX + actor->_pos._x;
+	target[1] = directionY + actor->_pos._y;
+	target[2] = directionZ + actor->_pos._z;
+	actor->_extra->_puck->pointAt(target, turnStep + turnStep);
 
 	int angleValue = luaFtol(turnAngle);
 
 	if (angleValue > -kForwardAngleLimit && angleValue < kForwardAngleLimit) {
-		actor->mode &= ~1U;
+		actor->_mode &= ~1U;
 		actor->forward();
 	}
 }
@@ -809,7 +809,7 @@ void Lua_V2::WalkActorForward() {
 	if (!actor)
 		return;
 
-	actor->mode &= ~1U;
+	actor->_mode &= ~1U;
 	actor->forward();
 }
 
@@ -824,56 +824,56 @@ void Lua_V2::ActorStopMoving() {
 	if (!actor)
 		return;
 
-	actor->mode &= ~1U;
+	actor->_mode &= ~1U;
 
-	if (!actor->extra || !actor->extra->puck)
+	if (!actor->_extra || !actor->_extra->_puck)
 		return;
 
-	Puck_v2 *puck = actor->extra->puck;
+	Puck_v2 *puck = actor->_extra->_puck;
 
 	puck->reset();
 
-	if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+	if ((actor->_nodeFlags & CNode::kPositionValid) == 0)
 		actor->computeLocalPositionFromWorld();
 
-	puck->setLocalPosition(actor->pos);
+	puck->setLocalPosition(actor->_pos);
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 		actor->computeLocalMatrixFromWorld();
 
-	puck->eulerDeg = actor->eulerDeg;
-	puck->nodeFlags = (puck->nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
+	puck->_eulerDeg = actor->_eulerDeg;
+	puck->_nodeFlags = (puck->_nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
 	puck->updateLocalState();
 
-	if (actor->extra->inBoxes && actor->room.resource) {
+	if (actor->_extra->_inBoxes && actor->_room._resource) {
 		Room_v2 *lockedRoom = nullptr;
 		WalkPlaneCollection *collection = nullptr;
-		bool locked = actor->room.lock();
+		bool locked = actor->_room.lock();
 
 		if (locked)
-			lockedRoom = actor->room.typed;
+			lockedRoom = actor->_room._typed;
 
 		if (lockedRoom)
-			collection = lockedRoom->walkPlanes;
+			collection = lockedRoom->_walkPlanes;
 		else
 			warning("Lua_V2::ActorStopMoving(): the room could not be locked");
 
 		if (locked)
-			actor->room.unlock();
+			actor->_room.unlock();
 
 		puck->validate(collection);
 	}
 
-	if ((puck->nodeFlags & CNode::kPositionValid) == 0)
+	if ((puck->_nodeFlags & CNode::kPositionValid) == 0)
 		puck->computeLocalPositionFromWorld();
 
-	actor->setLocalPosition(puck->pos);
+	actor->setLocalPosition(puck->_pos);
 
-	if ((puck->nodeFlags & CNode::kEulerValid) == 0)
+	if ((puck->_nodeFlags & CNode::kEulerValid) == 0)
 		puck->computeLocalMatrixFromWorld();
 
-	actor->eulerDeg = puck->eulerDeg;
-	actor->nodeFlags = (actor->nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
+	actor->_eulerDeg = puck->_eulerDeg;
+	actor->_nodeFlags = (actor->_nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
 	actor->updateLocalState();
 }
 
@@ -911,12 +911,12 @@ void Lua_V2::WalkActorTo() {
 		if (!targetActor)
 			return;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[0] = targetActor->world.pos.x;
-		target[1] = targetActor->world.pos.y;
-		target[2] = targetActor->world.pos.z;
+		target[0] = targetActor->_world._pos._x;
+		target[1] = targetActor->_world._pos._y;
+		target[2] = targetActor->_world._pos._z;
 	} else {
 		return;
 	}
@@ -964,12 +964,12 @@ void Lua_V2::WalkActorToAvoiding() {
 		if (!targetActor)
 			return;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[0] = targetActor->world.pos.x;
-		target[1] = targetActor->world.pos.y;
-		target[2] = targetActor->world.pos.z;
+		target[0] = targetActor->_world._pos._x;
+		target[1] = targetActor->_world._pos._y;
+		target[2] = targetActor->_world._pos._z;
 	} else {
 		return;
 	}
@@ -995,22 +995,22 @@ void Lua_V2::ActorLookAt() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
 	if (lua_isnumber(rateObj))
-		actor->extra->lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
+		actor->_extra->_lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
 
 	if (lua_isnil(targetObj)) {
-		actor->extra->lookTarget.x = 0.0f;
-		actor->extra->lookTarget.y = 0.0f;
-		actor->extra->lookTarget.z = 0.0f;
-		actor->extra->lookTargetActorId = 0;
+		actor->_extra->_lookTarget._x = 0.0f;
+		actor->_extra->_lookTarget._y = 0.0f;
+		actor->_extra->_lookTarget._z = 0.0f;
+		actor->_extra->_lookTargetActorId = 0;
 
 		if (lua_isnumber(secondObj))
-			actor->extra->lookRate = (float)((double)lua_getnumber(secondObj) * (double)Actor::kDegreesToRadians);
+			actor->_extra->_lookRate = (float)((double)lua_getnumber(secondObj) * (double)Actor::kDegreesToRadians);
 
-		actor->extra->lookAtHasTarget = false;
+		actor->_extra->_lookAtHasTarget = false;
 
 		return;
 	}
@@ -1021,7 +1021,7 @@ void Lua_V2::ActorLookAt() {
 		float y;
 		float z;
 
-		actor->extra->lookTargetActorId = 0;
+		actor->_extra->_lookTargetActorId = 0;
 
 		if (lua_isnumber(zObj))
 			z = lua_getnumber(zObj);
@@ -1033,26 +1033,26 @@ void Lua_V2::ActorLookAt() {
 		else
 			y = 0.0f;
 
-		actor->extra->lookTarget.x = lua_getnumber(targetObj);
-		actor->extra->lookTarget.y = y;
-		actor->extra->lookTarget.z = z;
+		actor->_extra->_lookTarget._x = lua_getnumber(targetObj);
+		actor->_extra->_lookTarget._y = y;
+		actor->_extra->_lookTarget._z = z;
 
 		if (lua_isnumber(rateObj))
-			actor->extra->lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
+			actor->_extra->_lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
 	} else {
 		if (!isActor(targetObj))
 			return;
 
-		actor->extra->lookTargetActorId = lua_getuserdata(targetObj);
-		actor->extra->lookTarget.x = 0.0f;
-		actor->extra->lookTarget.y = 0.0f;
-		actor->extra->lookTarget.z = 0.0f;
+		actor->_extra->_lookTargetActorId = lua_getuserdata(targetObj);
+		actor->_extra->_lookTarget._x = 0.0f;
+		actor->_extra->_lookTarget._y = 0.0f;
+		actor->_extra->_lookTarget._z = 0.0f;
 
 		if (lua_isnumber(secondObj))
-			actor->extra->lookRate = (float)((double)lua_getnumber(secondObj) * (double)Actor::kDegreesToRadians);
+			actor->_extra->_lookRate = (float)((double)lua_getnumber(secondObj) * (double)Actor::kDegreesToRadians);
 	}
 
-	actor->extra->lookAtHasTarget = true;
+	actor->_extra->_lookAtHasTarget = true;
 }
 
 void Lua_V2::IsActorLooking() {
@@ -1066,7 +1066,7 @@ void Lua_V2::IsActorLooking() {
 	if (!actor)
 		return;
 
-	if (actor->extra && actor->extra->lookAtHasTarget)
+	if (actor->_extra && actor->_extra->_lookAtHasTarget)
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -1084,10 +1084,10 @@ void Lua_V2::SetActorLookRate() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	actor->extra->lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
+	actor->_extra->_lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
 }
 
 void Lua_V2::GetActorLookRate() {
@@ -1101,13 +1101,13 @@ void Lua_V2::GetActorLookRate() {
 
 	Actor *actor = getActor(actorObj, "GetActorLookRate");
 
-	if (!actor || !actor->extra) {
+	if (!actor || !actor->_extra) {
 		lua_pushnil();
 
 		return;
 	}
 
-	lua_pushnumber(WalkPlane_v2::kRadiansToDegrees * actor->extra->lookRate);
+	lua_pushnumber(WalkPlane_v2::kRadiansToDegrees * actor->_extra->_lookRate);
 }
 
 void Lua_V2::SetActorFOV() {
@@ -1122,10 +1122,10 @@ void Lua_V2::SetActorFOV() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	actor->extra->lookCosFov = (float)cos(((double)lua_getnumber(fovObj) * (double)Actor::kDegreesToRadians) * 0.5);
+	actor->_extra->_lookCosFov = (float)cos(((double)lua_getnumber(fovObj) * (double)Actor::kDegreesToRadians) * 0.5);
 }
 
 void Lua_V2::GetActorFOV() {
@@ -1139,13 +1139,13 @@ void Lua_V2::GetActorFOV() {
 
 	Actor *actor = getActor(actorObj, "GetActorFOV");
 
-	if (!actor || !actor->extra) {
+	if (!actor || !actor->_extra) {
 		lua_pushnil();
 
 		return;
 	}
 
-	lua_pushnumber((float)((acos((double)actor->extra->lookCosFov) * (double)WalkPlane_v2::kRadiansToDegrees) * 2.0));
+	lua_pushnumber((float)((acos((double)actor->_extra->_lookCosFov) * (double)WalkPlane_v2::kRadiansToDegrees) * 2.0));
 }
 
 void Lua_V2::GetVisibleThings() {
@@ -1169,23 +1169,23 @@ void Lua_V2::GetVisibleThings() {
 
 	lua_Object table = lua_createtable();
 
-	if (!viewer->room.resource) {
+	if (!viewer->_room._resource) {
 		lua_pushobject(table);
 
 		return;
 	}
 
-	if (viewer->room.lock()) {
-		Room_v2 *currentRoom = viewer->room.typed;
+	if (viewer->_room.lock()) {
+		Room_v2 *currentRoom = viewer->_room._typed;
 
 		if (currentRoom) {
 			Common::List<Actor *>::iterator it;
 
-			for (it = currentRoom->actors.begin(); it != currentRoom->actors.end(); ++it) {
+			for (it = currentRoom->_actors.begin(); it != currentRoom->_actors.end(); ++it) {
 				Actor *other = *it;
 				float distance;
 
-				if (other && other != viewer && (viewer->actorFlags & 1) == 0 && viewer->canActorSeeActor(other, &distance)) {
+				if (other && other != viewer && (viewer->_actorFlags & 1) == 0 && viewer->canActorSeeActor(other, &distance)) {
 					lua_pushobject(table);
 					lua_pushusertag(Actor::getActorHandle(_engine, other), MKTAG('R', 'T', 'C', 'A'));
 					lua_pushnumber(1.0f);
@@ -1196,7 +1196,7 @@ void Lua_V2::GetVisibleThings() {
 	}
 
 	lua_pushobject(table);
-	viewer->room.unlock();
+	viewer->_room.unlock();
 }
 
 void Lua_V2::SetActorLighting() {
@@ -1217,13 +1217,13 @@ void Lua_V2::SetActorLighting() {
 	int mode = luaFtol(lua_getnumber(modeObj));
 
 	if (mode == 0)
-		actor->drawFlags &= 0xFFFBEFFFU;
+		actor->_drawFlags &= 0xFFFBEFFFU;
 	else if (mode == 1)
-		actor->drawFlags = (actor->drawFlags & 0xFFFBFFFFU) | 0x21000U;
+		actor->_drawFlags = (actor->_drawFlags & 0xFFFBFFFFU) | 0x21000U;
 	else if (mode == 2)
-		actor->drawFlags = (actor->drawFlags & 0xFFF9FFFFU) | 0x1000U;
+		actor->_drawFlags = (actor->_drawFlags & 0xFFF9FFFFU) | 0x1000U;
 	else
-		actor->drawFlags = (actor->drawFlags & 0xFFFDEFFFU) | 0x40000U;
+		actor->_drawFlags = (actor->_drawFlags & 0xFFFDEFFFU) | 0x40000U;
 }
 
 void Lua_V2::SetActorHead() {
@@ -1302,9 +1302,9 @@ void Lua_V2::SetActorVisibility() {
 		return;
 
 	if (!visibleObj || lua_isnil(visibleObj))
-		actor->actorFlags |= 2U;
+		actor->_actorFlags |= 2U;
 	else
-		actor->actorFlags &= ~2U;
+		actor->_actorFlags &= ~2U;
 }
 
 void Lua_V2::SetActorFollowBoxes() {
@@ -1396,7 +1396,7 @@ void Lua_V2::SetActorGlobalAlpha() {
 	if (!actor)
 		return;
 
-	if (actor->instances.empty()) {
+	if (actor->_instances.empty()) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logError("SetActorGlobalAlpha: Actor isn't wearing any primitives!\n");
 		else
@@ -1409,20 +1409,20 @@ void Lua_V2::SetActorGlobalAlpha() {
 		return;
 
 	float alpha = lua_getnumber(alphaObj);
-	RPrimitiveInstance *instance = actor->instances[0];
+	RPrimitiveInstance *instance = actor->_instances[0];
 
 	if (!lua_isnil(nameObj) && lua_isstring(nameObj)) {
-		for (uint i = 0; i < actor->instances.size(); i++) {
-			instance = actor->instances[i];
+		for (uint i = 0; i < actor->_instances.size(); i++) {
+			instance = actor->_instances[i];
 
 			if (instance) {
-				if (!instance->prim) {
+				if (!instance->_prim) {
 					warning("Lua_V2::SetActorGlobalAlpha(): the primitive instance has no primitive");
 
 					continue;
 				}
 
-				if (instance->prim->name == lua_getstring(nameObj))
+				if (instance->_prim->_name == lua_getstring(nameObj))
 					break;
 			}
 		}
@@ -1432,13 +1432,13 @@ void Lua_V2::SetActorGlobalAlpha() {
 		return;
 
 	if (alpha == -1.0f)
-		instance->globalAlphaMode = RPrimitiveInstance::kAlphaOff;
+		instance->_globalAlphaMode = RPrimitiveInstance::kAlphaOff;
 	else if (alpha == 2.0f)
-		instance->globalAlphaMode = RPrimitiveInstance::kAlphaSet;
+		instance->_globalAlphaMode = RPrimitiveInstance::kAlphaSet;
 	else if (alpha == 3.0f)
-		instance->globalAlphaMode = RPrimitiveInstance::kAlphaModulate;
+		instance->_globalAlphaMode = RPrimitiveInstance::kAlphaModulate;
 	else
-		instance->globalAlpha = alpha;
+		instance->_globalAlpha = alpha;
 }
 
 void Lua_V2::SetActorLocalAlpha() {
@@ -1455,7 +1455,7 @@ void Lua_V2::SetActorLocalAlpha() {
 	if (!actor)
 		return;
 
-	if (actor->instances.empty()) {
+	if (actor->_instances.empty()) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logError("SetActorLocalAlpha: Actor isn't wearing any primitives!\n");
 		else
@@ -1473,20 +1473,20 @@ void Lua_V2::SetActorLocalAlpha() {
 		return;
 
 	float alpha = lua_getnumber(alphaObj);
-	RPrimitiveInstance *instance = actor->instances[0];
+	RPrimitiveInstance *instance = actor->_instances[0];
 
 	if (!lua_isnil(nameObj) && lua_isstring(nameObj)) {
-		for (uint i = 0; i < actor->instances.size(); i++) {
-			instance = actor->instances[i];
+		for (uint i = 0; i < actor->_instances.size(); i++) {
+			instance = actor->_instances[i];
 
 			if (instance) {
-				if (!instance->prim) {
+				if (!instance->_prim) {
 					warning("Lua_V2::SetActorLocalAlpha(): the primitive instance has no primitive");
 
 					continue;
 				}
 
-				if (instance->prim->name == lua_getstring(nameObj))
+				if (instance->_prim->_name == lua_getstring(nameObj))
 					break;
 			}
 		}
@@ -1496,13 +1496,13 @@ void Lua_V2::SetActorLocalAlpha() {
 		return;
 
 	if (alpha == -1.0f)
-		instance->matAlphaMode = RPrimitiveInstance::kAlphaOff;
+		instance->_matAlphaMode = RPrimitiveInstance::kAlphaOff;
 	else if (alpha == 2.0f)
-		instance->matAlphaMode = RPrimitiveInstance::kAlphaSet;
+		instance->_matAlphaMode = RPrimitiveInstance::kAlphaSet;
 	else if (alpha == 3.0f)
-		instance->matAlphaMode = RPrimitiveInstance::kAlphaModulate;
+		instance->_matAlphaMode = RPrimitiveInstance::kAlphaModulate;
 	else
-		instance->matAlpha[index] = alpha;
+		instance->_matAlpha[index] = alpha;
 }
 
 void Lua_V2::SetActorCollisionMode() {
@@ -1520,10 +1520,10 @@ void Lua_V2::SetActorCollisionMode() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	actor->extra->collisionMode = luaFtol(lua_getnumber(modeObj));
+	actor->_extra->_collisionMode = luaFtol(lua_getnumber(modeObj));
 }
 
 void Lua_V2::SetActorCollisionScale() {
@@ -1541,10 +1541,10 @@ void Lua_V2::SetActorCollisionScale() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	actor->extra->collisionScale = lua_getnumber(scaleObj);
+	actor->_extra->_collisionScale = lua_getnumber(scaleObj);
 }
 
 void Lua_V2::SetActorSortOrder() {
@@ -1559,7 +1559,7 @@ void Lua_V2::SetActorSortOrder() {
 	if (!actor)
 		return;
 
-	actor->sortOrder = luaFtol(lua_getnumber(sortOrderObj));
+	actor->_sortOrder = luaFtol(lua_getnumber(sortOrderObj));
 }
 
 void Lua_V2::GetActorSortOrder() {
@@ -1580,7 +1580,7 @@ void Lua_V2::GetActorSortOrder() {
 		return;
 	}
 
-	lua_pushnumber((float)actor->getSortOrder(currentRoom->currentSetup));
+	lua_pushnumber((float)actor->getSortOrder(currentRoom->_currentSetup));
 }
 
 void Lua_V2::AttachActor() {
@@ -1606,30 +1606,30 @@ void Lua_V2::AttachActor() {
 			node = parent;
 	}
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	CVector position = actor->world.pos;
+	CVector position = actor->_world._pos;
 
 	node->worldToLocal(&position);
-	actor->setActorPosition(&position.x);
+	actor->setActorPosition(&position._x);
 
 	CQuaternion actorOrientation = actor->getWorldOrientation();
 	CQuaternion nodeOrientation = node->getWorldOrientation();
 
 	nodeOrientation.invert();
 
-	double resultW = (((double)actorOrientation.w * nodeOrientation.w - (double)nodeOrientation.x * actorOrientation.x) - (double)actorOrientation.y * nodeOrientation.y) - (double)actorOrientation.z * nodeOrientation.z;
-	double resultZ = (((double)actorOrientation.w * nodeOrientation.z + (double)actorOrientation.z * nodeOrientation.w) + (double)nodeOrientation.y * actorOrientation.x) - (double)actorOrientation.y * nodeOrientation.x;
-	double resultY = (((double)actorOrientation.w * nodeOrientation.y + (double)actorOrientation.y * nodeOrientation.w) + (double)actorOrientation.z * nodeOrientation.x) - (double)nodeOrientation.z * actorOrientation.x;
-	double resultX = (((double)actorOrientation.y * nodeOrientation.z + (double)actorOrientation.w * nodeOrientation.x) + (double)nodeOrientation.w * actorOrientation.x) - (double)actorOrientation.z * nodeOrientation.y;
+	double resultW = (((double)actorOrientation._w * nodeOrientation._w - (double)nodeOrientation._x * actorOrientation._x) - (double)actorOrientation._y * nodeOrientation._y) - (double)actorOrientation._z * nodeOrientation._z;
+	double resultZ = (((double)actorOrientation._w * nodeOrientation._z + (double)actorOrientation._z * nodeOrientation._w) + (double)nodeOrientation._y * actorOrientation._x) - (double)actorOrientation._y * nodeOrientation._x;
+	double resultY = (((double)actorOrientation._w * nodeOrientation._y + (double)actorOrientation._y * nodeOrientation._w) + (double)actorOrientation._z * nodeOrientation._x) - (double)nodeOrientation._z * actorOrientation._x;
+	double resultX = (((double)actorOrientation._y * nodeOrientation._z + (double)actorOrientation._w * nodeOrientation._x) + (double)nodeOrientation._w * actorOrientation._x) - (double)actorOrientation._z * nodeOrientation._y;
 
-	actor->quat = CQuaternion((float)resultX, (float)resultY, (float)resultZ, (float)resultW);
-	actor->nodeFlags = (actor->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	actor->_quat = CQuaternion((float)resultX, (float)resultY, (float)resultZ, (float)resultW);
+	actor->_nodeFlags = (actor->_nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	actor->updateLocalState();
 	actor->setParent(node);
-	actor->sortOrder = -2;
-	actor->parentActorId = lua_getuserdata(parentObj);
+	actor->_sortOrder = -2;
+	actor->_parentActorId = lua_getuserdata(parentObj);
 }
 
 void Lua_V2::DetachActor() {
@@ -1641,32 +1641,32 @@ void Lua_V2::DetachActor() {
 	if (!actor)
 		return;
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
 	float position[3];
 
-	position[0] = actor->world.pos.x;
-	position[1] = actor->world.pos.y;
-	position[2] = actor->world.pos.z;
+	position[0] = actor->_world._pos._x;
+	position[1] = actor->_world._pos._y;
+	position[2] = actor->_world._pos._z;
 	actor->setActorPosition(position);
-	actor->quat = actor->getWorldOrientation();
-	actor->nodeFlags = (actor->nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
+	actor->_quat = actor->getWorldOrientation();
+	actor->_nodeFlags = (actor->_nodeFlags & ~CNode::kEulerValid) | CNode::kQuaternionValid | CNode::kLocalSet;
 	actor->updateLocalState();
 
-	Actor *parent = Actor::actorDeref(_engine, actor->parentActorId);
+	Actor *parent = Actor::actorDeref(_engine, actor->_parentActorId);
 
 	if (parent) {
 		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 		if (currentRoom)
-			actor->sortOrder = parent->getSortOrder(currentRoom->currentSetup);
+			actor->_sortOrder = parent->getSortOrder(currentRoom->_currentSetup);
 		else
 			warning("Lua_V2::DetachActor(): there is no current room");
 	}
 
 	actor->detachFromParent();
-	actor->parentActorId = 0;
+	actor->_parentActorId = 0;
 }
 
 void Lua_V2::IsActorInSector() {
@@ -1686,14 +1686,14 @@ void Lua_V2::IsActorInSector() {
 	LString planeName = lua_getstring(nameObj);
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!actor || !currentRoom || !currentRoom->walkPlanes) {
+	if (!actor || !currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::IsActorInSector(): missing actor or walk planes");
 		lua_pushnil();
 
 		return;
 	}
 
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeNamed(planeName);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (!plane) {
 		lua_pushnil();
@@ -1701,13 +1701,13 @@ void Lua_V2::IsActorInSector() {
 		return;
 	}
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	if (plane->within(&actor->world.pos.x, true)) {
-		lua_pushnumber((float)plane->number);
-		lua_pushstring(plane->name.c_str());
-		lua_pushnumber((float)plane->type);
+	if (plane->within(&actor->_world._pos._x, true)) {
+		lua_pushnumber((float)plane->_number);
+		lua_pushstring(plane->_name.c_str());
+		lua_pushnumber((float)plane->_type);
 	} else {
 		lua_pushnil();
 	}
@@ -1723,7 +1723,7 @@ void Lua_V2::GetActorSector() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 	Actor *actor = getActor(actorObj, "GetActorSector");
 
-	if (!actor || !currentRoom || !currentRoom->walkPlanes) {
+	if (!actor || !currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::GetActorSector(): missing actor or walk planes");
 		lua_pushnil();
 
@@ -1732,15 +1732,15 @@ void Lua_V2::GetActorSector() {
 
 	int typeMask = luaFtol(lua_getnumber(typeObj));
 
-	if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
 
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeAt(&actor->world.pos.x, typeMask);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeAt(&actor->_world._pos._x, typeMask);
 
 	if (plane) {
-		lua_pushnumber((float)plane->number);
-		lua_pushstring(plane->name.c_str());
-		lua_pushnumber((float)plane->type);
+		lua_pushnumber((float)plane->_number);
+		lua_pushstring(plane->_name.c_str());
+		lua_pushnumber((float)plane->_type);
 	} else {
 		lua_pushnil();
 	}
@@ -1766,7 +1766,7 @@ void Lua_V2::IsPointInSector() {
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes) {
+	if (!currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::IsPointInSector(): missing walk planes");
 		lua_pushnil();
 
@@ -1774,12 +1774,12 @@ void Lua_V2::IsPointInSector() {
 	}
 
 	LString planeName = lua_getstring(nameObj);
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeNamed(planeName);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (plane && plane->within(point, true)) {
-		lua_pushnumber((float)plane->number);
-		lua_pushstring(plane->name.c_str());
-		lua_pushnumber((float)plane->type);
+		lua_pushnumber((float)plane->_number);
+		lua_pushstring(plane->_name.c_str());
+		lua_pushnumber((float)plane->_type);
 	} else {
 		lua_pushnil();
 	}
@@ -1811,19 +1811,19 @@ void Lua_V2::GetPointSector() {
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes) {
+	if (!currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::GetPointSector(): missing walk planes");
 		lua_pushnil();
 
 		return;
 	}
 
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeAt(point, typeMask);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeAt(point, typeMask);
 
 	if (plane) {
-		lua_pushnumber((float)plane->number);
-		lua_pushstring(plane->name.c_str());
-		lua_pushnumber((float)plane->type);
+		lua_pushnumber((float)plane->_number);
+		lua_pushstring(plane->_name.c_str());
+		lua_pushnumber((float)plane->_type);
 	} else {
 		lua_pushnil();
 	}
@@ -1841,7 +1841,7 @@ void Lua_V2::TurnActor() {
 	if (!actor)
 		return;
 
-	actor->mode &= ~1U;
+	actor->_mode &= ~1U;
 	actor->turn(lua_getnumber(directionObj));
 }
 
@@ -1856,20 +1856,20 @@ void Lua_V2::GetActorRot() {
 	if (!actor)
 		return;
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 		actor->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(actor->eulerDeg.x);
+	lua_pushnumber(actor->_eulerDeg._x);
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 		actor->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(actor->eulerDeg.y);
+	lua_pushnumber(actor->_eulerDeg._y);
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 		actor->computeLocalMatrixFromWorld();
 
-	lua_pushnumber(actor->eulerDeg.z);
+	lua_pushnumber(actor->_eulerDeg._z);
 }
 
 void Lua_V2::SetActorRot() {
@@ -1916,15 +1916,15 @@ void Lua_V2::SetActorPitch() {
 	rotation[1] = 0.0f;
 	rotation[2] = 0.0f;
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0) {
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0) {
 		actor->computeLocalMatrixFromWorld();
 
-		if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+		if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 			actor->computeLocalMatrixFromWorld();
 	}
 
-	float currentRoll = actor->eulerDeg.z;
-	float currentYaw = actor->eulerDeg.y;
+	float currentRoll = actor->_eulerDeg._z;
+	float currentYaw = actor->_eulerDeg._y;
 
 	rotation[0] = lua_getnumber(pitchObj);
 	rotation[1] = currentYaw;
@@ -1950,17 +1950,17 @@ void Lua_V2::SetActorRoll() {
 	rotation[1] = 0.0f;
 	rotation[2] = 0.0f;
 
-	if ((actor->nodeFlags & CNode::kEulerValid) == 0) {
+	if ((actor->_nodeFlags & CNode::kEulerValid) == 0) {
 		actor->computeLocalMatrixFromWorld();
 
-		if ((actor->nodeFlags & CNode::kEulerValid) == 0)
+		if ((actor->_nodeFlags & CNode::kEulerValid) == 0)
 			actor->computeLocalMatrixFromWorld();
 	}
 
 	float newRoll = lua_getnumber(rollObj);
 
-	rotation[0] = actor->eulerDeg.x;
-	rotation[1] = actor->eulerDeg.y;
+	rotation[0] = actor->_eulerDeg._x;
+	rotation[1] = actor->_eulerDeg._y;
 	rotation[2] = newRoll;
 	actor->setActorRotation(rotation, true);
 }
@@ -1976,11 +1976,11 @@ void Lua_V2::IsActorTurning() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
 	// The disasm pushes the number and then nil
-	if (actor->extra->alignOff > 0.0f || actor->extra->alignOff < 0.0f)
+	if (actor->_extra->_alignOff > 0.0f || actor->_extra->_alignOff < 0.0f)
 		lua_pushnumber(1.0f);
 
 	lua_pushnil();
@@ -2014,37 +2014,37 @@ void Lua_V2::PointActorAt() {
 		if (!targetActor)
 			return;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[0] = targetActor->world.pos.x;
+		target[0] = targetActor->_world._pos._x;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[1] = targetActor->world.pos.y;
+		target[1] = targetActor->_world._pos._y;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[2] = targetActor->world.pos.z;
+		target[2] = targetActor->_world._pos._z;
 	} else {
 		target[0] = lua_getnumber(targetObj);
 		target[1] = lua_getnumber(yObj);
 		target[2] = lua_getnumber(zObj);
 	}
 
-	if (!actor->extra) {
+	if (!actor->_extra) {
 		warning("Lua_V2::PointActorAt(): the actor has no extra data");
 
 		return;
 	}
 
-	if (!actor->extra->puck)
+	if (!actor->_extra->_puck)
 		actor->enablePuck(true);
 
-	actor->extra->puck->pointAt(target, kMaxPointAtAngle);
-	actor->extra->snapTurn = true;
+	actor->_extra->_puck->pointAt(target, kMaxPointAtAngle);
+	actor->_extra->_snapTurn = true;
 }
 
 void Lua_V2::TurnActorTo() {
@@ -2075,36 +2075,36 @@ void Lua_V2::TurnActorTo() {
 		if (!targetActor)
 			return;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[0] = targetActor->world.pos.x;
+		target[0] = targetActor->_world._pos._x;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[1] = targetActor->world.pos.y;
+		target[1] = targetActor->_world._pos._y;
 
-		if ((targetActor->nodeFlags & CNode::kWorldValid) == 0)
+		if ((targetActor->_nodeFlags & CNode::kWorldValid) == 0)
 			targetActor->updateWorldTransform();
 
-		target[2] = targetActor->world.pos.z;
+		target[2] = targetActor->_world._pos._z;
 	} else {
 		target[0] = lua_getnumber(targetObj);
 		target[1] = lua_getnumber(yObj);
 		target[2] = lua_getnumber(zObj);
 	}
 
-	if (!actor->extra || !actor->extra->puck)
+	if (!actor->_extra || !actor->_extra->_puck)
 		actor->enablePuck(true);
 
-	float turnRate = actor->extra->turnRate;
+	float turnRate = actor->_extra->_turnRate;
 
 	if (!(turnRate >= 0.0f))
 		turnRate = -turnRate;
 
 	float turnStep = _engine->getFrameTime() * turnRate;
-	float turned = actor->extra->puck->pointAt(target, turnStep);
+	float turned = actor->_extra->_puck->pointAt(target, turnStep);
 
 	if (turned < 0.0f)
 		turned = -turned;
@@ -2215,7 +2215,7 @@ void Lua_V2::IsActorMoving() {
 	if (!actor)
 		return;
 
-	if ((actor->mode & 1) != 0)
+	if ((actor->_mode & 1) != 0)
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -2232,10 +2232,10 @@ void Lua_V2::IsActorResting() {
 	if (!actor)
 		return;
 
-	if (!actor->extra)
+	if (!actor->_extra)
 		actor->allocateActorExtra();
 
-	if (actor->extra->resting)
+	if (actor->_extra->_resting)
 		lua_pushnumber(1.0f);
 	else
 		lua_pushnil();
@@ -2296,19 +2296,19 @@ void Lua_V2::IsSectorActive() {
 	if (lua_isnumber(sectorObj) || lua_isstring(sectorObj)) {
 		Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-		if (currentRoom && currentRoom->walkPlanes) {
+		if (currentRoom && currentRoom->_walkPlanes) {
 			WalkPlane_v2 *plane;
 
 			if (!lua_isstring(sectorObj)) {
-				plane = currentRoom->walkPlanes->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
+				plane = currentRoom->_walkPlanes->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
 			} else {
 				LString planeName = lua_getstring(sectorObj);
 
-				plane = currentRoom->walkPlanes->planeNamed(planeName);
+				plane = currentRoom->_walkPlanes->planeNamed(planeName);
 			}
 
 			// The disasm pushes 1.0 and then nil here
-			if (plane && plane->active)
+			if (plane && plane->_active)
 				lua_pushnumber(1.0f);
 		} else if (currentRoom) {
 			warning("Lua_V2::IsSectorActive(): missing walk planes");
@@ -2327,7 +2327,7 @@ void Lua_V2::MakeSectorActive() {
 	lua_Object activeObj = lua_getparam(2);
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes) {
+	if (!currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::MakeSectorActive(): missing room or walk planes");
 
 		return;
@@ -2336,15 +2336,15 @@ void Lua_V2::MakeSectorActive() {
 	WalkPlane_v2 *plane;
 
 	if (lua_isnumber(sectorObj)) {
-		plane = currentRoom->walkPlanes->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
+		plane = currentRoom->_walkPlanes->planeNumbered(luaFtol(lua_getnumber(sectorObj)));
 	} else {
 		LString planeName = lua_getstring(sectorObj);
 
-		plane = currentRoom->walkPlanes->planeNamed(planeName);
+		plane = currentRoom->_walkPlanes->planeNamed(planeName);
 	}
 
 	if (plane)
-		plane->active = !lua_isnil(activeObj);
+		plane->_active = !lua_isnil(activeObj);
 }
 
 void Lua_V2::GetSectorOppositeEdge() {
@@ -2366,14 +2366,14 @@ void Lua_V2::GetSectorOppositeEdge() {
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes) {
+	if (!currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::GetSectorOppositeEdge(): missing room or walk planes");
 
 		return;
 	}
 
 	LString planeName = lua_getstring(sectorObj);
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeNamed(planeName);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (!plane) {
 		lua_pushnil();
@@ -2414,14 +2414,14 @@ void Lua_V2::GetSectorName() {
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !currentRoom->walkPlanes) {
+	if (!currentRoom || !currentRoom->_walkPlanes) {
 		warning("Lua_V2::GetSectorName(): missing room or walk planes");
 		lua_pushnil();
 
 		return;
 	}
 
-	WalkPlane_v2 *plane = currentRoom->walkPlanes->planeAt(point, -1);
+	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeAt(point, -1);
 
 	if (!plane) {
 		lua_pushnil();
@@ -2429,7 +2429,7 @@ void Lua_V2::GetSectorName() {
 		return;
 	}
 
-	lua_pushstring(plane->name.c_str());
+	lua_pushstring(plane->_name.c_str());
 }
 
 void Lua_V2::GetAngleBetweenActors() {
@@ -2451,26 +2451,26 @@ void Lua_V2::GetAngleBetweenActors() {
 		return;
 	}
 
-	if ((first->nodeFlags & CNode::kEulerValid) == 0)
+	if ((first->_nodeFlags & CNode::kEulerValid) == 0)
 		first->computeLocalMatrixFromWorld();
 
-	float sinValue = (float)sin((double)Actor::kDegreesToRadians * first->eulerDeg.y);
+	float sinValue = (float)sin((double)Actor::kDegreesToRadians * first->_eulerDeg._y);
 
-	if ((first->nodeFlags & CNode::kEulerValid) == 0)
+	if ((first->_nodeFlags & CNode::kEulerValid) == 0)
 		first->computeLocalMatrixFromWorld();
 
-	float cosValue = (float)cos((double)Actor::kDegreesToRadians * first->eulerDeg.y);
+	float cosValue = (float)cos((double)Actor::kDegreesToRadians * first->_eulerDeg._y);
 
-	if ((first->nodeFlags & CNode::kWorldValid) == 0)
+	if ((first->_nodeFlags & CNode::kWorldValid) == 0)
 		first->updateWorldTransform();
 
-	if ((second->nodeFlags & CNode::kWorldValid) == 0)
+	if ((second->_nodeFlags & CNode::kWorldValid) == 0)
 		second->updateWorldTransform();
 
-	double differenceX = (double)second->world.pos.x - first->world.pos.x;
+	double differenceX = (double)second->_world._pos._x - first->_world._pos._x;
 	float differenceXValue = (float)differenceX;
-	float differenceYValue = (float)((double)second->world.pos.y - first->world.pos.y);
-	float differenceZValue = (float)((double)second->world.pos.z - first->world.pos.z);
+	float differenceYValue = (float)((double)second->_world._pos._y - first->_world._pos._y);
+	float differenceZValue = (float)((double)second->_world._pos._z - first->_world._pos._z);
 	double facingLength = sqrt((double)cosValue * cosValue + (double)sinValue * sinValue);
 
 	if (facingLength >= (double)kMinDirectionLength) {

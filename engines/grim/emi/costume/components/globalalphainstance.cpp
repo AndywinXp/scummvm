@@ -28,10 +28,10 @@
 namespace Grim {
 
 GlobalAlphaInstance::GlobalAlphaInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
+	_owner = actor;
 
 	if (componentName.size() >= Component::kNamePrefixSize)
-		filter = componentName.c_str() + Component::kNamePrefixSize;
+		_filter = componentName.c_str() + Component::kNamePrefixSize;
 	else
 		warning("GlobalAlphaInstance::GlobalAlphaInstance(): invalid component name %s", componentName.c_str());
 }
@@ -41,32 +41,32 @@ GlobalAlphaInstance::~GlobalAlphaInstance() {
 }
 
 void GlobalAlphaInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!owner)
+	if (!_owner)
 		return;
 
-	for (uint i = 0; i < owner->instances.size(); i++) {
-		RPrimitiveInstance *instance = owner->instances[i];
+	for (uint i = 0; i < _owner->_instances.size(); i++) {
+		RPrimitiveInstance *instance = _owner->_instances[i];
 
 		if (!instance)
 			continue;
 
-		if (!instance->prim) {
+		if (!instance->_prim) {
 			warning("GlobalAlphaInstance::setKey(): instance %u has no primitive", i);
 			continue;
 		}
 
-		if (instance->prim->name != filter)
+		if (instance->_prim->_name != _filter)
 			continue;
 
 		switch ((int)value) {
 		case -1:
-			instance->globalAlphaMode = RPrimitiveInstance::kAlphaOff;
+			instance->_globalAlphaMode = RPrimitiveInstance::kAlphaOff;
 			break;
 		case 2:
-			instance->globalAlphaMode = RPrimitiveInstance::kAlphaSet;
+			instance->_globalAlphaMode = RPrimitiveInstance::kAlphaSet;
 			break;
 		case 3:
-			instance->globalAlphaMode = RPrimitiveInstance::kAlphaModulate;
+			instance->_globalAlphaMode = RPrimitiveInstance::kAlphaModulate;
 			break;
 		default:
 			if (nextValue >= 0.0f && nextValue <= 255.0f) {
@@ -77,9 +77,9 @@ void GlobalAlphaInstance::setKey(float value, float elapsed, float nextValue, fl
 				if (span != 0.0)
 					fraction = (double)elapsed / span;
 
-				instance->globalAlpha = (float)(fraction * ((double)nextValue - (double)value) + (double)value);
+				instance->_globalAlpha = (float)(fraction * ((double)nextValue - (double)value) + (double)value);
 			} else {
-				instance->globalAlpha = value;
+				instance->_globalAlpha = value;
 			}
 
 			break;

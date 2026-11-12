@@ -44,11 +44,11 @@ static const uint kMaxStateFileNameSize = 32;
 static const int kDefaultMinVolume = 20;
 static const int kDefaultMaxVolume = 127;
 
-static int getStateIndex(Room *pRoom, int setupIndex, SputObjectState *pState) {
+static int getStateIndex(Room *room, int setupIndex, SputObjectState *state) {
 	int index = 0;
 
-	for (SputObjectState *pOther = pRoom->pSetups[setupIndex].ObjectStates; pOther; pOther = pOther->pNext) {
-		if (pOther == pState)
+	for (SputObjectState *other = room->setups[setupIndex].ObjectStates; other; other = other->next) {
+		if (other == state)
 			return index;
 
 		index++;
@@ -108,60 +108,60 @@ void LegacyImporter::planStates(const LegacySet &set, LegacyRoomPlan &plan) {
 	// The list of the legacy set starts with the newest state
 	for (uint i = set.objectStateIds.size(); i > 0; i--) {
 		int32 stateId = set.objectStateIds[i - 1];
-		const LegacyObjectState *pState = findObjectState(stateId);
+		const LegacyObjectState *statePointer = findObjectState(stateId);
 
-		if (!pState) {
+		if (!statePointer) {
 			warning("LegacyImporter::planStates(): the object state %d of set %s is not in the savegame", stateId, set.name.c_str());
 			continue;
 		}
 
-		if (pState->position < 0 || pState->position > kLegacyMaxStatePosition) {
-			warning("LegacyImporter::planStates(): the object state %d has the position %d, it is skipped", stateId, pState->position);
+		if (statePointer->position < 0 || statePointer->position > kLegacyMaxStatePosition) {
+			warning("LegacyImporter::planStates(): the object state %d has the position %d, it is skipped", stateId, statePointer->position);
 			continue;
 		}
 
-		const LegacyBitmap *pBitmap = findBitmap(pState->bitmapId);
+		const LegacyBitmap *bitmap = findBitmap(statePointer->bitmapId);
 
-		if (!pBitmap || pBitmap->fileName.empty() || pBitmap->fileName.size() >= kMaxStateFileNameSize) {
+		if (!bitmap || bitmap->fileName.empty() || bitmap->fileName.size() >= kMaxStateFileNameSize) {
 			warning("LegacyImporter::planStates(): the object state %d has no usable bitmap, it is skipped", stateId);
 			continue;
 		}
 
-		if (!archiveHasFile(pBitmap->fileName)) {
-			warning("LegacyImporter::planStates(): the bitmap %s of an object state is missing, the state is skipped", pBitmap->fileName.c_str());
+		if (!archiveHasFile(bitmap->fileName)) {
+			warning("LegacyImporter::planStates(): the bitmap %s of an object state is missing, the state is skipped", bitmap->fileName.c_str());
 			continue;
 		}
 
 		LegacyStatePlan state;
 
 		state.oldId = stateId;
-		state.setupIndex = pState->setupId;
-		state.type = pState->position;
-		state.bitmapName = pBitmap->fileName;
+		state.setupIndex = statePointer->setupId;
+		state.type = statePointer->position;
+		state.bitmapName = bitmap->fileName;
 		state.colorFrame = -1;
 		state.zFrame = -1;
 
 		// The legacy bitmaps count their frames from 1 and a hidden state shows none
-		if (pState->visibility && pBitmap->currImage > 0)
-			state.colorFrame = pBitmap->currImage - 1;
+		if (statePointer->visibility && bitmap->currImage > 0)
+			state.colorFrame = bitmap->currImage - 1;
 
-		if (pState->zBitmapId) {
-			const LegacyBitmap *pZBitmap = findBitmap(pState->zBitmapId);
+		if (statePointer->zBitmapId) {
+			const LegacyBitmap *zBitmap = findBitmap(statePointer->zBitmapId);
 
-			if (!pZBitmap || pZBitmap->fileName.empty() || pZBitmap->fileName.size() >= kMaxStateFileNameSize) {
+			if (!zBitmap || zBitmap->fileName.empty() || zBitmap->fileName.size() >= kMaxStateFileNameSize) {
 				warning("LegacyImporter::planStates(): the object state %d has no usable z bitmap, it is skipped", stateId);
 				continue;
 			}
 
-			if (!archiveHasFile(pZBitmap->fileName)) {
-				warning("LegacyImporter::planStates(): the z bitmap %s of an object state is missing, the state is skipped", pZBitmap->fileName.c_str());
+			if (!archiveHasFile(zBitmap->fileName)) {
+				warning("LegacyImporter::planStates(): the z bitmap %s of an object state is missing, the state is skipped", zBitmap->fileName.c_str());
 				continue;
 			}
 
-			state.zBitmapName = pZBitmap->fileName;
+			state.zBitmapName = zBitmap->fileName;
 
-			if (pState->visibility && pZBitmap->currImage > 0)
-				state.zFrame = pZBitmap->currImage - 1;
+			if (statePointer->visibility && zBitmap->currImage > 0)
+				state.zFrame = zBitmap->currImage - 1;
 		}
 
 		plan.states.push_back(state);
@@ -171,15 +171,15 @@ void LegacyImporter::planStates(const LegacySet &set, LegacyRoomPlan &plan) {
 void LegacyImporter::importFonts() {
 	for (uint i = 0; i < _fontPlan.size(); i++) {
 		const LegacyBitmapFont &font = _data.bitmapFonts[_fontPlan[i]];
-		void *handle = _pGrim->_pSputResource->alloc(kSputTagFont, font.fileName.c_str());
-		ResNode *pNode = handle ? _pGrim->_pRes->checkAllocatedRes(handle) : nullptr;
+		void *handle = _grim->_sputResource->alloc(kSputTagFont, font.fileName.c_str());
+		ResNode *node = handle ? _grim->_res->checkAllocatedRes(handle) : nullptr;
 
-		if (!pNode) {
+		if (!node) {
 			warning("LegacyImporter::importFonts(): the font %s cannot be loaded", font.fileName.c_str());
 			continue;
 		}
 
-		_ctx.fontSerials.setVal(font.id, pNode->serial);
+		_ctx.fontSerials.setVal(font.id, node->serial);
 	}
 }
 
@@ -189,32 +189,32 @@ void LegacyImporter::importText() {
 	bool hasSayLineDefaults = false;
 
 	if (defaults.font.kind == kLegacyFontBitmap) {
-		const LegacyBitmapFont *pFont = findBitmapFont(defaults.font.id);
+		const LegacyBitmapFont *font = findBitmapFont(defaults.font.id);
 
-		if (pFont && _ctx.fontSerials.contains(pFont->id)) {
-			defaultFont = pFont->fileName;
+		if (font && _ctx.fontSerials.contains(font->id)) {
+			defaultFont = font->fileName;
 			hasSayLineDefaults = true;
 		}
 	}
 
-	SputText *pSputText = _pGrim->_pSputText;
+	SputText *sputText = _grim->_sputText;
 
-	setDefaultFonts(pSputText, _printLineFont.c_str(), defaultFont.c_str(), _blastTextFont.c_str());
+	setDefaultFonts(sputText, _printLineFont.c_str(), defaultFont.c_str(), _blastTextFont.c_str());
 
 	if (hasSayLineDefaults)
-		setSayLineDefaults(pSputText, defaults.x, defaults.y, packTextColor(defaults.fgColor), defaults.justify);
+		setSayLineDefaults(sputText, defaults.x, defaults.y, packTextColor(defaults.fgColor), defaults.justify);
 }
 
 bool LegacyImporter::importRooms() {
-	SputRoom *pSputRoom = _pGrim->_pSputRoom;
-	Room *pCurrentRoom = nullptr;
+	SputRoom *sputRoom = _grim->_sputRoom;
+	Room *currentRoom = nullptr;
 
 	for (uint i = 0; i < _roomPlans.size(); i++) {
 		const LegacyRoomPlan &plan = _roomPlans[i];
 		const LegacySet &set = _data.sets[plan.setIndex];
-		Room *pRoom = static_cast<Room *>(_pGrim->_pSputResource->alloc(kSputTagSet, set.name.c_str()));
+		Room *room = static_cast<Room *>(_grim->_sputResource->alloc(kSputTagSet, set.name.c_str()));
 
-		if (!pRoom) {
+		if (!room) {
 			warning("LegacyImporter::importRooms(): the set %s cannot be loaded", set.name.c_str());
 
 			if (plan.isCurrent)
@@ -225,22 +225,22 @@ bool LegacyImporter::importRooms() {
 
 		int curSetup = (int)set.currSetup;
 
-		if (set.setups.size() != pRoom->numSetups)
-			warning("LegacyImporter::importRooms(): the set %s has %u setups in the savegame and %u in the game data", set.name.c_str(), set.setups.size(), pRoom->numSetups);
+		if (set.setups.size() != room->numSetups)
+			warning("LegacyImporter::importRooms(): the set %s has %u setups in the savegame and %u in the game data", set.name.c_str(), set.setups.size(), room->numSetups);
 
-		if (curSetup >= (int)pRoom->numSetups) {
+		if (curSetup >= (int)room->numSetups) {
 			warning("LegacyImporter::importRooms(): the setup %d of the set %s does not exist", curSetup, set.name.c_str());
 			curSetup = 0;
 		}
 
-		beginRoom(pSputRoom, pRoom, curSetup, set.locked ? 1 : 0);
-		importObjectStates(pRoom, plan);
+		beginRoom(sputRoom, room, curSetup, set.locked ? 1 : 0);
+		importObjectStates(room, plan);
 
 		if (plan.isCurrent)
-			pCurrentRoom = pRoom;
+			currentRoom = room;
 	}
 
-	if (!pCurrentRoom)
+	if (!currentRoom)
 		return false;
 
 	const LegacySet &currentSet = _data.sets[_roomPlans.back().setIndex];
@@ -253,26 +253,26 @@ bool LegacyImporter::importRooms() {
 		maxVolume = CLIP(currentSet.maxVolume, 0, 255);
 	}
 
-	setCurrentRoom(pSputRoom, pCurrentRoom, (byte)minVolume, (byte)maxVolume, currentSet.soundMaxDist, currentSet.soundPanFactor, currentSet.soundMaxRadius);
+	setCurrentRoom(sputRoom, currentRoom, (byte)minVolume, (byte)maxVolume, currentSet.soundMaxDist, currentSet.soundPanFactor, currentSet.soundMaxRadius);
 	importWalkPlanes(currentSet);
 
 	return true;
 }
 
-void LegacyImporter::importObjectStates(Room *pRoom, const LegacyRoomPlan &plan) {
-	SputRoom *pSputRoom = _pGrim->_pSputRoom;
+void LegacyImporter::importObjectStates(Room *room, const LegacyRoomPlan &plan) {
+	SputRoom *sputRoom = _grim->_sputRoom;
 	Common::Array<SputObjectState *> added;
 
 	for (uint i = 0; i < plan.states.size(); i++) {
 		const LegacyStatePlan &state = plan.states[i];
-		SputObjectState *pState = nullptr;
+		SputObjectState *statePointer = nullptr;
 
-		if (state.setupIndex < 0 || (uint)state.setupIndex >= pRoom->numSetups)
-			warning("LegacyImporter::importObjectStates(): the object state %d is for the setup %d, the room has %u setups", state.oldId, state.setupIndex, pRoom->numSetups);
+		if (state.setupIndex < 0 || (uint)state.setupIndex >= room->numSetups)
+			warning("LegacyImporter::importObjectStates(): the object state %d is for the setup %d, the room has %u setups", state.oldId, state.setupIndex, room->numSetups);
 		else
-			pState = addRoomObjectState(pSputRoom, state.setupIndex, state.type, state.bitmapName.c_str(), state.zBitmapName.c_str(), state.colorFrame, state.zFrame);
+			statePointer = addRoomObjectState(sputRoom, state.setupIndex, state.type, state.bitmapName.c_str(), state.zBitmapName.c_str(), state.colorFrame, state.zFrame);
 
-		added.push_back(pState);
+		added.push_back(statePointer);
 	}
 
 	// The index in the list is only known when the whole list is there
@@ -283,31 +283,31 @@ void LegacyImporter::importObjectStates(Room *pRoom, const LegacyRoomPlan &plan)
 		LegacyStateRef ref;
 
 		ref.setupIndex = plan.states[i].setupIndex;
-		ref.index = getStateIndex(pRoom, ref.setupIndex, added[i]);
+		ref.index = getStateIndex(room, ref.setupIndex, added[i]);
 		ref.luaHandle = Lua_V1::getObjectStateHandle(added[i]);
 		_ctx.objectStates.setVal(plan.states[i].oldId, ref);
 	}
 }
 
 void LegacyImporter::importWalkPlanes(const LegacySet &set) {
-	WalkSystem *pWalkSystem = _pGrim->_pWalkSystem;
+	WalkSystem *walkSystem = _grim->_walkSystem;
 	uint numMissing = 0;
 
 	for (uint i = 0; i < set.sectors.size(); i++) {
 		const LegacySector &sector = set.sectors[i];
-		WalkPlane *pPlane = pWalkSystem->planeNumbered(sector.id);
+		WalkPlane *plane = walkSystem->planeNumbered(sector.id);
 
-		if (!pPlane) {
+		if (!plane) {
 			numMissing++;
 			continue;
 		}
 
-		if (sector.name != pPlane->name)
-			warning("LegacyImporter::importWalkPlanes(): the sector %d is %s in the savegame and %s in the game data", sector.id, sector.name.c_str(), pPlane->name);
+		if (sector.name != plane->_name)
+			warning("LegacyImporter::importWalkPlanes(): the sector %d is %s in the savegame and %s in the game data", sector.id, sector.name.c_str(), plane->_name);
 
-		pPlane->bActive = sector.visible ? 1 : 0;
-		pPlane->setType(sector.type);
-		pPlane->bEnabled = 1;
+		plane->_active = sector.visible ? 1 : 0;
+		plane->setType(sector.type);
+		plane->_enabled = 1;
 	}
 
 	if (numMissing)

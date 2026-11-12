@@ -25,19 +25,19 @@
 namespace Grim {
 
 CueEntry::CueEntry(const char *description, const int *id, const int *sync, CueEntry *next, bool isEpisode) {
-	stream.reset();
+	_stream.reset();
 
-	this->id = *id;
-	this->description = description;
-	this->sync = *sync;
-	this->isEpisode = isEpisode;
-	lastPositionMs = 0;
-	looped = false;
-	ended = false;
-	fadeRate = isEpisode ? 1.0f : 0.5f;
-	this->next = next;
-	fadeVolume = 0.0f;
-	state = 0;
+	this->_id = *id;
+	this->_description = description;
+	this->_sync = *sync;
+	this->_isEpisode = isEpisode;
+	_lastPositionMs = 0;
+	_looped = false;
+	_ended = false;
+	_fadeRate = isEpisode ? 1.0f : 0.5f;
+	this->_next = next;
+	_fadeVolume = 0.0f;
+	_state = 0;
 }
 
 void *CueEntry::operator new(size_t size) {

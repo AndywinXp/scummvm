@@ -33,34 +33,34 @@ static const float kHalfTurnDegrees = 180.0f;
 static const double kGimbalLimit = 1.1920928955078125e-7;
 
 void CMatrix::setIdentity() {
-	m[0] = 1.0f;
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-	m[4] = 1.0f;
-	m[5] = 0.0f;
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-	m[8] = 1.0f;
+	_m[0] = 1.0f;
+	_m[1] = 0.0f;
+	_m[2] = 0.0f;
+	_m[3] = 0.0f;
+	_m[4] = 1.0f;
+	_m[5] = 0.0f;
+	_m[6] = 0.0f;
+	_m[7] = 0.0f;
+	_m[8] = 1.0f;
 }
 
 CMatrix *CMatrix::setFromEuler(const CVector &eulerDegrees) {
-	m[0] = 1.0f;
-	m[4] = 1.0f;
-	m[8] = 1.0f;
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-	m[5] = 0.0f;
-	m[6] = 0.0f;
-	m[7] = 0.0f;
+	_m[0] = 1.0f;
+	_m[4] = 1.0f;
+	_m[8] = 1.0f;
+	_m[1] = 0.0f;
+	_m[2] = 0.0f;
+	_m[3] = 0.0f;
+	_m[5] = 0.0f;
+	_m[6] = 0.0f;
+	_m[7] = 0.0f;
 
-	double halfX = (double)kDegreesToRadians * eulerDegrees.x * 0.5;
+	double halfX = (double)kDegreesToRadians * eulerDegrees._x * 0.5;
 	float cosX = (float)cos(halfX);
-	double halfY = (double)kDegreesToRadians * eulerDegrees.y * 0.5;
+	double halfY = (double)kDegreesToRadians * eulerDegrees._y * 0.5;
 	float halfYStored = (float)halfY;
 	float cosY = (float)cos(halfY);
-	double halfZ = (double)kDegreesToRadians * eulerDegrees.z * 0.5;
+	double halfZ = (double)kDegreesToRadians * eulerDegrees._z * 0.5;
 	float halfZStored = (float)halfZ;
 	float cosZ = (float)cos(halfZ);
 	double sinX = sin(halfX);
@@ -82,7 +82,7 @@ CMatrix *CMatrix::setFromEuler(const CVector &eulerDegrees) {
 }
 
 void CMatrix::toEuler(CVector *eulerDegrees) {
-	float sine = -m[2];
+	float sine = -_m[2];
 
 	if (sine <= 1.0f) {
 		if (sine < -1.0f)
@@ -93,107 +93,107 @@ void CMatrix::toEuler(CVector *eulerDegrees) {
 
 	double pitch = asin(sine);
 
-	eulerDegrees->y = (float)pitch;
+	eulerDegrees->_y = (float)pitch;
 
 	if (fabs(cos(pitch)) <= kGimbalLimit) {
-		eulerDegrees->x = (float)atan2(m[3], m[4]);
-		eulerDegrees->z = 0.0f;
+		eulerDegrees->_x = (float)atan2(_m[3], _m[4]);
+		eulerDegrees->_z = 0.0f;
 	} else {
-		eulerDegrees->x = (float)atan2(m[5], m[8]);
-		eulerDegrees->z = (float)atan2(m[1], m[0]);
+		eulerDegrees->_x = (float)atan2(_m[5], _m[8]);
+		eulerDegrees->_z = (float)atan2(_m[1], _m[0]);
 	}
 
 	double factor = (double)kHalfTurnDegrees / kPi;
 
-	eulerDegrees->x = (float)(factor * eulerDegrees->x);
-	eulerDegrees->y = (float)(pitch * factor);
-	eulerDegrees->z = (float)(factor * eulerDegrees->z);
+	eulerDegrees->_x = (float)(factor * eulerDegrees->_x);
+	eulerDegrees->_y = (float)(pitch * factor);
+	eulerDegrees->_z = (float)(factor * eulerDegrees->_z);
 }
 
 void CMatrix::toQuaternion(CQuaternion *quaternion) {
-	double sumYZ = (double)m[4] + m[8];
+	double sumYZ = (double)_m[4] + _m[8];
 	float sumYZStored = (float)sumYZ;
-	double trace = sumYZ + m[0];
+	double trace = sumYZ + _m[0];
 
 	// The original could divide by zero below, let's avoid that...
 	if (trace >= 0.0) {
 		double root = sqrt(trace + 1.0);
 
-		quaternion->w = (float)(root * 0.5);
+		quaternion->_w = (float)(root * 0.5);
 
 		double scale = root != 0.0 ? 0.5 / root : 0.0;
 
-		quaternion->x = (float)(((double)m[5] - m[7]) * scale);
-		quaternion->y = (float)(((double)m[6] - m[2]) * scale);
-		quaternion->z = (float)(((double)m[1] - m[3]) * scale);
+		quaternion->_x = (float)(((double)_m[5] - _m[7]) * scale);
+		quaternion->_y = (float)(((double)_m[6] - _m[2]) * scale);
+		quaternion->_z = (float)(((double)_m[1] - _m[3]) * scale);
 		quaternion->normalize();
 
 		return;
 	}
 
-	int largest = m[4] > (double)m[0] ? 1 : 0;
+	int largest = _m[4] > (double)_m[0] ? 1 : 0;
 
-	if (m[8] > (double)m[4 * largest])
+	if (_m[8] > (double)_m[4 * largest])
 		largest = 2;
 
 	if (largest == 1) {
-		double root = sqrt((double)m[4] - ((double)m[0] + m[8]) + 1.0);
+		double root = sqrt((double)_m[4] - ((double)_m[0] + _m[8]) + 1.0);
 
-		quaternion->y = (float)(root * 0.5);
+		quaternion->_y = (float)(root * 0.5);
 
 		double scale = root != 0.0 ? 0.5 / root : 0.0;
 
-		quaternion->z = (float)(((double)m[7] + m[5]) * scale);
-		quaternion->x = (float)(((double)m[3] + m[1]) * scale);
-		quaternion->w = (float)(((double)m[6] - m[2]) * scale);
+		quaternion->_z = (float)(((double)_m[7] + _m[5]) * scale);
+		quaternion->_x = (float)(((double)_m[3] + _m[1]) * scale);
+		quaternion->_w = (float)(((double)_m[6] - _m[2]) * scale);
 	} else if (largest == 2) {
-		double root = sqrt((double)m[8] - ((double)m[4] + m[0]) + 1.0);
+		double root = sqrt((double)_m[8] - ((double)_m[4] + _m[0]) + 1.0);
 
-		quaternion->z = (float)(root * 0.5);
+		quaternion->_z = (float)(root * 0.5);
 
 		double scale = root != 0.0 ? 0.5 / root : 0.0;
 
-		quaternion->x = (float)(((double)m[6] + m[2]) * scale);
-		quaternion->y = (float)(((double)m[7] + m[5]) * scale);
-		quaternion->w = (float)(((double)m[1] - m[3]) * scale);
+		quaternion->_x = (float)(((double)_m[6] + _m[2]) * scale);
+		quaternion->_y = (float)(((double)_m[7] + _m[5]) * scale);
+		quaternion->_w = (float)(((double)_m[1] - _m[3]) * scale);
 	} else {
-		double root = sqrt((double)m[0] - sumYZStored + 1.0);
+		double root = sqrt((double)_m[0] - sumYZStored + 1.0);
 
-		quaternion->x = (float)(root * 0.5);
+		quaternion->_x = (float)(root * 0.5);
 
 		double scale = root != 0.0 ? 0.5 / root : 0.0;
 
-		quaternion->y = (float)(((double)m[3] + m[1]) * scale);
-		quaternion->z = (float)(((double)m[6] + m[2]) * scale);
-		quaternion->w = (float)(((double)m[5] - m[7]) * scale);
+		quaternion->_y = (float)(((double)_m[3] + _m[1]) * scale);
+		quaternion->_z = (float)(((double)_m[6] + _m[2]) * scale);
+		quaternion->_w = (float)(((double)_m[5] - _m[7]) * scale);
 	}
 
 	quaternion->normalize();
 }
 
 CMatrix *CMatrix::setFromQuaternion(const CQuaternion &quaternion) {
-	double twoX = (double)quaternion.x + quaternion.x;
-	float twoY = (float)((double)quaternion.y + quaternion.y);
-	float twoZ = (float)((double)quaternion.z + quaternion.z);
-	float xx = (float)(twoX * quaternion.x);
-	float xy = (float)((double)twoY * quaternion.x);
-	float xz = (float)((double)twoZ * quaternion.x);
-	float yy = (float)((double)twoY * quaternion.y);
-	float yz = (float)((double)twoZ * quaternion.y);
-	float zz = (float)((double)twoZ * quaternion.z);
-	double xw = twoX * quaternion.w;
-	double yw = (double)twoY * quaternion.w;
-	double zw = (double)twoZ * quaternion.w;
+	double twoX = (double)quaternion._x + quaternion._x;
+	float twoY = (float)((double)quaternion._y + quaternion._y);
+	float twoZ = (float)((double)quaternion._z + quaternion._z);
+	float xx = (float)(twoX * quaternion._x);
+	float xy = (float)((double)twoY * quaternion._x);
+	float xz = (float)((double)twoZ * quaternion._x);
+	float yy = (float)((double)twoY * quaternion._y);
+	float yz = (float)((double)twoZ * quaternion._y);
+	float zz = (float)((double)twoZ * quaternion._z);
+	double xw = twoX * quaternion._w;
+	double yw = (double)twoY * quaternion._w;
+	double zw = (double)twoZ * quaternion._w;
 
-	m[0] = (float)(1.0 - ((double)zz + yy));
-	m[1] = (float)(zw + xy);
-	m[2] = (float)(xz - yw);
-	m[3] = (float)(xy - zw);
-	m[4] = (float)(1.0 - ((double)zz + xx));
-	m[5] = (float)(xw + yz);
-	m[6] = (float)(yw + xz);
-	m[7] = (float)(yz - xw);
-	m[8] = (float)(1.0 - ((double)yy + xx));
+	_m[0] = (float)(1.0 - ((double)zz + yy));
+	_m[1] = (float)(zw + xy);
+	_m[2] = (float)(xz - yw);
+	_m[3] = (float)(xy - zw);
+	_m[4] = (float)(1.0 - ((double)zz + xx));
+	_m[5] = (float)(xw + yz);
+	_m[6] = (float)(yw + xz);
+	_m[7] = (float)(yz - xw);
+	_m[8] = (float)(1.0 - ((double)yy + xx));
 
 	return this;
 }
@@ -201,18 +201,18 @@ CMatrix *CMatrix::setFromQuaternion(const CQuaternion &quaternion) {
 CMatrix *CMatrix::transpose(CMatrix *out) const {
 	float result[9];
 
-	result[0] = m[0];
-	result[1] = m[3];
-	result[2] = m[6];
-	result[3] = m[1];
-	result[4] = m[4];
-	result[5] = m[7];
-	result[6] = m[2];
-	result[7] = m[5];
-	result[8] = m[8];
+	result[0] = _m[0];
+	result[1] = _m[3];
+	result[2] = _m[6];
+	result[3] = _m[1];
+	result[4] = _m[4];
+	result[5] = _m[7];
+	result[6] = _m[2];
+	result[7] = _m[5];
+	result[8] = _m[8];
 
 	for (int i = 0; i < 9; i++)
-		out->m[i] = result[i];
+		out->_m[i] = result[i];
 
 	return out;
 }
@@ -220,18 +220,18 @@ CMatrix *CMatrix::transpose(CMatrix *out) const {
 CMatrix *CMatrix::multiply(CMatrix *out, const CMatrix *other) const {
 	float result[9];
 
-	result[0] = (float)((double)m[2] * other->m[6] + (double)other->m[3] * m[1] + (double)other->m[0] * m[0]);
-	result[1] = (float)((double)m[2] * other->m[7] + (double)other->m[4] * m[1] + (double)other->m[1] * m[0]);
-	result[2] = (float)((double)other->m[2] * m[0] + (double)m[2] * other->m[8] + (double)m[1] * other->m[5]);
-	result[3] = (float)((double)other->m[3] * m[4] + (double)m[3] * other->m[0] + (double)other->m[6] * m[5]);
-	result[4] = (float)((double)other->m[7] * m[5] + (double)other->m[4] * m[4] + (double)other->m[1] * m[3]);
-	result[5] = (float)((double)other->m[8] * m[5] + (double)other->m[5] * m[4] + (double)other->m[2] * m[3]);
-	result[6] = (float)((double)m[8] * other->m[6] + (double)m[7] * other->m[3] + (double)other->m[0] * m[6]);
-	result[7] = (float)((double)m[8] * other->m[7] + (double)m[7] * other->m[4] + (double)other->m[1] * m[6]);
-	result[8] = (float)((double)other->m[2] * m[6] + (double)m[8] * other->m[8] + (double)m[7] * other->m[5]);
+	result[0] = (float)((double)_m[2] * other->_m[6] + (double)other->_m[3] * _m[1] + (double)other->_m[0] * _m[0]);
+	result[1] = (float)((double)_m[2] * other->_m[7] + (double)other->_m[4] * _m[1] + (double)other->_m[1] * _m[0]);
+	result[2] = (float)((double)other->_m[2] * _m[0] + (double)_m[2] * other->_m[8] + (double)_m[1] * other->_m[5]);
+	result[3] = (float)((double)other->_m[3] * _m[4] + (double)_m[3] * other->_m[0] + (double)other->_m[6] * _m[5]);
+	result[4] = (float)((double)other->_m[7] * _m[5] + (double)other->_m[4] * _m[4] + (double)other->_m[1] * _m[3]);
+	result[5] = (float)((double)other->_m[8] * _m[5] + (double)other->_m[5] * _m[4] + (double)other->_m[2] * _m[3]);
+	result[6] = (float)((double)_m[8] * other->_m[6] + (double)_m[7] * other->_m[3] + (double)other->_m[0] * _m[6]);
+	result[7] = (float)((double)_m[8] * other->_m[7] + (double)_m[7] * other->_m[4] + (double)other->_m[1] * _m[6]);
+	result[8] = (float)((double)other->_m[2] * _m[6] + (double)_m[8] * other->_m[8] + (double)_m[7] * other->_m[5]);
 
 	for (int i = 0; i < 9; i++)
-		out->m[i] = result[i];
+		out->_m[i] = result[i];
 
 	return out;
 }

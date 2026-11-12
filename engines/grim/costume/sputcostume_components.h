@@ -51,38 +51,38 @@ enum SputCostumeTags {
 
 struct ModelInst {
 	ResRef modelRef;
-	RdSprite *pSprite;
-	int bVisible;
+	RdSprite *sprite;
+	int visible;
 	int resolveParentOffset;
-	RdThing *pThing;
-	ModelInst *pParentModel;
+	RdThing *thing;
+	ModelInst *parentModel;
 	int parentMeshIdx;
-	RdColormap *pColormap;
+	RdColormap *colormap;
 	int refCount;
-	ResRef aTrackRefs[6];
+	ResRef trackRefs[6];
 	int trackUserArg;
-	ModelInst *pNext;
+	ModelInst *next;
 };
 
 struct MeshInstData {
-	ModelInst *pModelInst;
+	ModelInst *modelInst;
 	int meshIndex;
-	int bVisible;
+	int visible;
 };
 
 struct MaterialInst {
-	ModelInst *pModelInst;
-	void *pCompRes;
+	ModelInst *modelInst;
+	void *compRes;
 	int key;
 };
 
 struct ColormapInst {
-	ModelInst *pModelInst;
+	ModelInst *modelInst;
 	ResRef ref;
 };
 
 struct KeyframeInst {
-	ModelInst *pModelInst;
+	ModelInst *modelInst;
 	ResRef ref;
 	int priorityMasked;
 	int priority;
@@ -100,7 +100,7 @@ struct KeyframeCompRes {
 };
 
 struct SpriteCompRes {
-	RdSprite *pSprite;
+	RdSprite *sprite;
 	char name[32];
 };
 
@@ -116,124 +116,124 @@ class SputCostume;
 
 class ComponentHandler : public CosComponentHandler {
 public:
-	explicit ComponentHandler(SputCostume *pSputCostume) : _pSputCostume(pSputCostume) {}
+	explicit ComponentHandler(SputCostume *sputCostume) : _sputCostume(sputCostume) {}
 
 protected:
-	SputCostume *_pSputCostume;
+	SputCostume *_sputCostume;
 };
 
 class BitmapHandler : public ComponentHandler {
 public:
-	explicit BitmapHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit BitmapHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
 };
 
 // Only the demo has this one, the retail executable handles the animation tag as a bitmap
 class AnimationHandler : public BitmapHandler {
 public:
-	explicit AnimationHandler(SputCostume *pSputCostume) : BitmapHandler(pSputCostume) {}
+	explicit AnimationHandler(SputCostume *sputCostume) : BitmapHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
 };
 
 class ColormapHandler : public ComponentHandler {
 public:
-	explicit ColormapHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit ColormapHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void *instance(int hInst, int compIndex, int bCreate) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void *instance(int instHandle, int compIndex, int create) override;
 };
 
 class MaterialHandler : public ComponentHandler {
 public:
-	explicit MaterialHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit MaterialHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void *instance(int hInst, int compIndex, int bCreate) override;
-	void saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void *instance(int instHandle, int compIndex, int create) override;
+	void saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) override;
 };
 
 class ThingHandler : public ComponentHandler {
 public:
-	explicit ThingHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit ThingHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
-	void *instance(int hInst, int compIndex, int bCreate) override;
+	void *instance(int instHandle, int compIndex, int create) override;
 };
 
 class MeshHandler : public ComponentHandler {
 public:
-	explicit MeshHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit MeshHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
-	void *instance(int hInst, int compIndex, int bCreate) override;
+	void *instance(int instHandle, int compIndex, int create) override;
 };
 
 class SpriteHandler : public ComponentHandler {
 public:
-	explicit SpriteHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit SpriteHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
-	void *instance(int hInst, int compIndex, int bCreate) override;
+	void *instance(int instHandle, int compIndex, int create) override;
 };
 
 class KeyframeHandler : public ComponentHandler {
 public:
-	explicit KeyframeHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit KeyframeHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
-	void *instance(int hInst, int compIndex, int bCreate) override;
+	void *instance(int instHandle, int compIndex, int create) override;
 };
 
 // The demo puppets have 4 tracks and the tracks start from the beginning of the keyframe
 class DemoKeyframeHandler : public KeyframeHandler {
 public:
-	explicit DemoKeyframeHandler(SputCostume *pSputCostume) : KeyframeHandler(pSputCostume) {}
+	explicit DemoKeyframeHandler(SputCostume *sputCostume) : KeyframeHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	void stop(void *pInstData) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	void stop(void *instData) override;
 };
 
 class SoundHandler : public ComponentHandler {
 public:
-	explicit SoundHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit SoundHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
 };
 
@@ -248,50 +248,50 @@ struct DemoSoundCompRes {
 
 class DemoSoundHandler : public ComponentHandler {
 public:
-	explicit DemoSoundHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit DemoSoundHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
 };
 
 class SmushHandler : public ComponentHandler {
 public:
-	explicit SmushHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit SmushHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void saveLoad(int hInst, int compIndex, int bSave, void *pInstData, Common::WriteStream *pWrite, Common::ReadStream *pRead) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) override;
 };
 
 class DemoSmushHandler : public SmushHandler {
 public:
-	explicit DemoSmushHandler(SputCostume *pSputCostume) : SmushHandler(pSputCostume) {}
+	explicit DemoSmushHandler(SputCostume *sputCostume) : SmushHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
 };
 
 class IMuseHandler : public ComponentHandler {
 public:
-	explicit IMuseHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit IMuseHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
 };
 
 class LuaVarHandler : public ComponentHandler {
 public:
-	explicit LuaVarHandler(SputCostume *pSputCostume) : ComponentHandler(pSputCostume) {}
+	explicit LuaVarHandler(SputCostume *sputCostume) : ComponentHandler(sputCostume) {}
 
-	void change(int fourcc, void *pInstData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int hInst) override;
-	int request(int hCostume, int fourcc, void *pParentId, int parentFourcc, CosComponent *pComp) override;
-	void freeComponent(int hCostume, int fourcc, void *pCompRes) override;
-	void stop(void *pInstData) override;
-	int adjust(void **ppCompRes, char *args, int argsSize) override;
+	void change(int fourcc, void *instData, int op, int keyValue, int timeOffset, int nextKeyValue, int arg7, int instHandle) override;
+	int request(int costume, int fourcc, void *parentId, int parentFourcc, CosComponent *comp) override;
+	void freeComponent(int costume, int fourcc, void *compRes) override;
+	void stop(void *instData) override;
+	int adjust(void **compRes, char *args, int argsSize) override;
 	bool hasAdjuster() const override { return true; }
 };
 

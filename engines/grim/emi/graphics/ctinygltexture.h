@@ -45,8 +45,8 @@ public:
 	void setup(LABitmap *bitmap) override;
 	int getSize() override;
 
-	TGLuint glId;
-	int boundFlush;
+	TGLuint _glId;
+	int _boundFlush;
 
 private:
 	void storeBlank(int width, int height);

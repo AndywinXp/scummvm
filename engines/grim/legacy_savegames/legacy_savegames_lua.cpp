@@ -167,11 +167,11 @@ static const int kLegacyLuaRefOldConcatFallback = 2;
 static const int kLegacyLuaRefFirstTextObject = 3;
 
 // A name that cannot be mapped is reported once
-static Common::Array<int32> s_reportedFunctions;
-static LegacyLuaMapper *s_pMapper = nullptr;
-static int s_numUnmappedUserdata = 0;
-static int32 s_firstUnmappedTag = 0;
-static int32 s_firstUnmappedId = 0;
+static Common::Array<int32> reportedFunctions;
+static LegacyLuaMapper *legacyMapper = nullptr;
+static int numUnmappedUserdata = 0;
+static int32 firstUnmappedTag = 0;
+static int32 firstUnmappedId = 0;
 
 const char *legacyLuaFunctionName(int depth, int index) {
 	if (depth < 0 || depth >= kNumLegacyLuaLists)
@@ -205,12 +205,12 @@ static lua_CFunction findLiveFunction(const char *name, bool oldestFirst) {
 static bool isFunctionReported(int32 depth, int32 index) {
 	int32 key = (depth << 16) | index;
 
-	for (uint i = 0; i < s_reportedFunctions.size(); i++) {
-		if (s_reportedFunctions[i] == key)
+	for (uint i = 0; i < reportedFunctions.size(); i++) {
+		if (reportedFunctions[i] == key)
 			return true;
 	}
 
-	s_reportedFunctions.push_back(key);
+	reportedFunctions.push_back(key);
 
 	return false;
 }
@@ -233,28 +233,28 @@ lua_CFunction legacyLuaResolveFunction(int32 depth, int32 index) {
 	return func;
 }
 
-static bool mapLegacyUserdata(int32 oldTag, int32 oldId, int32 *pNewTag, int32 *pNewId) {
-	if (s_pMapper->mapUserdata(oldTag, oldId, pNewTag, pNewId))
+static bool mapLegacyUserdata(int32 oldTag, int32 oldId, int32 *newTag, int32 *newId) {
+	if (legacyMapper->mapUserdata(oldTag, oldId, newTag, newId))
 		return true;
 
-	if (s_numUnmappedUserdata == 0) {
-		s_firstUnmappedTag = oldTag;
-		s_firstUnmappedId = oldId;
+	if (numUnmappedUserdata == 0) {
+		firstUnmappedTag = oldTag;
+		firstUnmappedId = oldId;
 	}
 
-	s_numUnmappedUserdata++;
+	numUnmappedUserdata++;
 
 	return false;
 }
 
 bool legacyRestoreLua(Common::SeekableReadStream *stream, int minorVersion, LegacyLuaMapper *mapper) {
-	s_reportedFunctions.clear();
-	s_pMapper = mapper;
-	s_numUnmappedUserdata = 0;
+	reportedFunctions.clear();
+	legacyMapper = mapper;
+	numUnmappedUserdata = 0;
 
 	int result = lua_RestoreLegacy(stream, minorVersion, legacyLuaResolveFunction, mapper ? mapLegacyUserdata : nullptr);
 
-	s_pMapper = nullptr;
+	legacyMapper = nullptr;
 
 	if (result != 0) {
 		warning("legacyRestoreLua(): the Lua state cannot be read");
@@ -266,8 +266,8 @@ bool legacyRestoreLua(Common::SeekableReadStream *stream, int minorVersion, Lega
 		return false;
 	}
 
-	if (s_numUnmappedUserdata > 0)
-		warning("legacyRestoreLua(): %d userdata not mapped, the first has tag %08x and id %d", s_numUnmappedUserdata, (uint)s_firstUnmappedTag, s_firstUnmappedId);
+	if (numUnmappedUserdata > 0)
+		warning("legacyRestoreLua(): %d userdata not mapped, the first has tag %08x and id %d", numUnmappedUserdata, (uint)firstUnmappedTag, firstUnmappedId);
 
 	if (minorVersion >= 7 && minorVersion <= 28)
 		lua_PatchGrimSave();
@@ -277,13 +277,13 @@ bool legacyRestoreLua(Common::SeekableReadStream *stream, int minorVersion, Lega
 	return true;
 }
 
-void legacyLuaGetRefs(LegacyLuaRefs *pRefs) {
-	pRefs->systemTable = kLegacyLuaRefSystemTable;
-	pRefs->typeOverride = kLegacyLuaRefTypeOverride;
-	pRefs->oldConcatFallback = kLegacyLuaRefOldConcatFallback;
+void legacyLuaGetRefs(LegacyLuaRefs *refs) {
+	refs->systemTable = kLegacyLuaRefSystemTable;
+	refs->typeOverride = kLegacyLuaRefTypeOverride;
+	refs->oldConcatFallback = kLegacyLuaRefOldConcatFallback;
 
 	for (int i = 0; i < kNumLegacyLuaTextRefs; i++)
-		pRefs->textObject[i] = kLegacyLuaRefFirstTextObject + i;
+		refs->textObject[i] = kLegacyLuaRefFirstTextObject + i;
 }
 
 static bool checkLegacyLuaRef(const char *what, int legacyRef, int engineRef) {

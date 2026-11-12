@@ -29,169 +29,169 @@
 namespace Grim {
 
 void SputRender::freeBuffers() {
-	while (_pCacheRectList) {
-		CacheRect *pRect = _pCacheRectList;
+	while (_cacheRectList) {
+		CacheRect *rect = _cacheRectList;
 
-		_pCacheRectList = pRect->pNext;
+		_cacheRectList = rect->next;
 
-		if (pRect->pColor)
-			_pStdDisplay->vBufferFree(pRect->pColor);
+		if (rect->color)
+			_stdDisplay->vBufferFree(rect->color);
 
-		if (pRect->pZ)
-			_pStdDisplay->vBufferFree(pRect->pZ);
+		if (rect->z)
+			_stdDisplay->vBufferFree(rect->z);
 
-		delete pRect;
+		delete rect;
 	}
 }
 
 CacheRect *SputRender::createCacheRect(int x, int y, int width, int height) {
-	if (!_pCleanArtBuffer || !_pCleanZBuffer) {
+	if (!_cleanArtBuffer || !_cleanZBuffer) {
 		warning("SputRender::createCacheRect(): the display is not set");
 		return nullptr;
 	}
 
-	CacheRect *pRect = new CacheRect();
+	CacheRect *rect = new CacheRect();
 
-	pRect->magic = 0x11111111;
-	pRect->rect.x = x;
-	pRect->rect.y = y;
-	pRect->rect.width = width;
-	pRect->rect.height = height;
+	rect->magic = 0x11111111;
+	rect->rect.x = x;
+	rect->rect.y = y;
+	rect->rect.width = width;
+	rect->rect.height = height;
 
-	StdVBufferTexFmt format = _pCleanArtBuffer->tex;
+	StdVBufferTexFmt format = _cleanArtBuffer->tex;
 
 	format.height = height;
 	format.width = width;
-	pRect->pColor = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
-	_pStdDisplay->vBufferCopy(pRect->pColor, _pCleanArtBuffer, 0, 0, &pRect->rect, 0);
+	rect->color = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
+	_stdDisplay->vBufferCopy(rect->color, _cleanArtBuffer, 0, 0, &rect->rect, 0);
 
-	format = _pCleanZBuffer->tex;
+	format = _cleanZBuffer->tex;
 	format.width = width;
 	format.height = height;
-	pRect->pZ = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
-	_pStdDisplay->vBufferCopy(pRect->pZ, _pCleanZBuffer, 0, 0, &pRect->rect, 0);
+	rect->z = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
+	_stdDisplay->vBufferCopy(rect->z, _cleanZBuffer, 0, 0, &rect->rect, 0);
 
-	pRect->pNext = _pCacheRectList;
-	_pCacheRectList = pRect;
+	rect->next = _cacheRectList;
+	_cacheRectList = rect;
 
-	return pRect;
+	return rect;
 }
 
 void SputRender::restoreCacheRect() {
-	CacheRect *pRect = _pCacheRectList;
+	CacheRect *rect = _cacheRectList;
 
-	if (!pRect || !_pCleanArtBuffer || !_pCleanZBuffer) {
+	if (!rect || !_cleanArtBuffer || !_cleanZBuffer) {
 		warning("SputRender::restoreCacheRect(): no cache rectangle to restore");
 		return;
 	}
 
-	_pStdDisplay->vBufferCopy(_pCleanArtBuffer, pRect->pColor, pRect->rect.x, pRect->rect.y, nullptr, 0);
-	_pStdDisplay->vBufferCopy(_pCleanZBuffer, pRect->pZ, pRect->rect.x, pRect->rect.y, nullptr, 0);
-	markAllPagesDirty(&pRect->rect, 1);
+	_stdDisplay->vBufferCopy(_cleanArtBuffer, rect->color, rect->rect.x, rect->rect.y, nullptr, 0);
+	_stdDisplay->vBufferCopy(_cleanZBuffer, rect->z, rect->rect.x, rect->rect.y, nullptr, 0);
+	markAllPagesDirty(&rect->rect, 1);
 }
 
-void SputRender::addAnimationBitmap(void *pBitmap, int layer) {
-	for (AnimationBitmap *pNode = _pAnimationList; pNode; pNode = pNode->pNext) {
-		if (!pNode->bitmapRef.valid)
+void SputRender::addAnimationBitmap(void *bitmap, int layer) {
+	for (AnimationBitmap *node = _animationList; node; node = node->next) {
+		if (!node->bitmapRef.valid)
 			warning("SputRender::addAnimationBitmap(): Bad Bitmap Reference");
 
-		if (pNode->bitmapRef.handle == pBitmap)
+		if (node->bitmapRef.handle == bitmap)
 			return;
 	}
 
-	AnimationBitmap *pNode = new AnimationBitmap();
+	AnimationBitmap *node = new AnimationBitmap();
 
-	memset(pNode, 0, sizeof(AnimationBitmap));
-	pNode->pNext = _pAnimationList;
+	memset(node, 0, sizeof(AnimationBitmap));
+	node->next = _animationList;
 
-	if (_pAnimationList)
-		_pAnimationList->pPrev = pNode;
+	if (_animationList)
+		_animationList->prev = node;
 
-	_pAnimationList = pNode;
-	pNode->layer = layer;
-	_pRes->setReference(&pNode->bitmapRef, pBitmap);
+	_animationList = node;
+	node->layer = layer;
+	_res->setReference(&node->bitmapRef, bitmap);
 }
 
-void SputRender::removeAnimationBitmap(void *pBitmap) {
-	AnimationBitmap *pNode = _pAnimationList;
+void SputRender::removeAnimationBitmap(void *bitmap) {
+	AnimationBitmap *node = _animationList;
 
-	while (pNode && !(pNode->bitmapRef.valid && pNode->bitmapRef.handle == pBitmap))
-		pNode = pNode->pNext;
+	while (node && !(node->bitmapRef.valid && node->bitmapRef.handle == bitmap))
+		node = node->next;
 
-	if (!pNode)
+	if (!node)
 		return;
 
-	if (pNode->pNext)
-		pNode->pNext->pPrev = pNode->pPrev;
+	if (node->next)
+		node->next->prev = node->prev;
 
-	if (pNode->pPrev)
-		pNode->pPrev->pNext = pNode->pNext;
+	if (node->prev)
+		node->prev->next = node->next;
 	else
-		_pAnimationList = pNode->pNext;
+		_animationList = node->next;
 
-	_pRes->removeReference(&pNode->bitmapRef);
-	delete pNode;
+	_res->removeReference(&node->bitmapRef);
+	delete node;
 }
 
 void SputRender::drawAnimationBitmaps(int layer) {
-	for (AnimationBitmap *pNode = _pAnimationList; pNode; pNode = pNode->pNext) {
-		if (pNode->layer != layer)
+	for (AnimationBitmap *node = _animationList; node; node = node->next) {
+		if (node->layer != layer)
 			continue;
 
-		if (!pNode->bitmapRef.valid) {
+		if (!node->bitmapRef.valid) {
 			warning("SputRender::drawAnimationBitmaps(): Bad Bitmap Reference");
 			continue;
 		}
 
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pNode->bitmapRef.handle);
-		int frame = pBitmap->curFrame;
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(node->bitmapRef.handle);
+		int frame = bitmap->curFrame;
 
 		if (frame < 0)
 			continue;
 
-		if (frame >= (int)pBitmap->numFrames) {
+		if (frame >= (int)bitmap->numFrames) {
 			warning("SputRender::drawAnimationBitmaps(): frame %d is out of range", frame);
 			continue;
 		}
 
-		StdVBuffer *pFrame = pBitmap->apFrames[frame];
+		StdVBuffer *framePointer = bitmap->frames[frame];
 
-		if (pFrame->type == 2) {
-			fillDrawBuffer(pFrame);
-			_pStdDisplay->vBufferCopy(_pBackBuffer, _pCleanBuffer, pBitmap->xPos, pBitmap->yPos, nullptr, 1);
+		if (framePointer->type == 2) {
+			fillDrawBuffer(framePointer);
+			_stdDisplay->vBufferCopy(_backBuffer, _cleanBuffer, bitmap->xPos, bitmap->yPos, nullptr, 1);
 		} else {
-			_pStdDisplay->vBufferCopy(_pBackBuffer, pFrame, pBitmap->xPos, pBitmap->yPos, nullptr, 1);
+			_stdDisplay->vBufferCopy(_backBuffer, framePointer, bitmap->xPos, bitmap->yPos, nullptr, 1);
 		}
 	}
 }
 
 StdVBuffer *SputRender::drawBuffer() {
-	return _pBackBuffer;
+	return _backBuffer;
 }
 
 StdVBuffer *SputRender::cleanArtBuffer() {
-	return _pCleanArtBuffer;
+	return _cleanArtBuffer;
 }
 
 StdVBuffer *SputRender::cleanZBuffer() {
-	return _pCleanZBuffer;
+	return _cleanZBuffer;
 }
 
 int SputRender::copyGFXBuffer() {
-	if (!_pCleanArtBuffer) {
+	if (!_cleanArtBuffer) {
 		warning("SputRender::copyGFXBuffer(): the display is not set");
 		return 0;
 	}
 
-	return _pStdDisplay->vBufferCopy(_pCleanArtBuffer, _pBackBuffer, 0, 0, nullptr, 0);
+	return _stdDisplay->vBufferCopy(_cleanArtBuffer, _backBuffer, 0, 0, nullptr, 0);
 }
 
 int SputRender::cleanDrawBuffer() {
-	int mode = _pGrim->getLibMode();
+	int mode = _grim->getLibMode();
 	int result = mode;
 
 	if (mode == 4) {
-		if (!_pCleanArtBuffer) {
+		if (!_cleanArtBuffer) {
 			warning("SputRender::cleanDrawBuffer(): the display is not set");
 			return 0;
 		}
@@ -203,58 +203,58 @@ int SputRender::cleanDrawBuffer() {
 		rect.width = 640;
 		rect.height = 480;
 
-		return _pStdDisplay->vBufferCopy(_pBackBuffer, _pCleanArtBuffer, 0, 0, &rect, 0);
+		return _stdDisplay->vBufferCopy(_backBuffer, _cleanArtBuffer, 0, 0, &rect, 0);
 	}
 
 	return result;
 }
 
-void SputRender::fillDrawBuffer(StdVBuffer *pSrc) {
-	if (!_pCleanBuffer) {
+void SputRender::fillDrawBuffer(StdVBuffer *src) {
+	if (!_cleanBuffer) {
 		warning("SputRender::fillDrawBuffer(): the display is not set");
 		return;
 	}
 
-	int size = pSrc->tex.width * pSrc->tex.height;
+	int size = src->tex.width * src->tex.height;
 
-	_pStdDisplay->vBufferDeCompressTo(pSrc, _pCleanBuffer);
-	_pCleanBuffer->tex = pSrc->tex;
-	_pCleanBuffer->colorKey = 63519;
+	_stdDisplay->vBufferDeCompressTo(src, _cleanBuffer);
+	_cleanBuffer->tex = src->tex;
+	_cleanBuffer->colorKey = 63519;
 
-	if (pSrc->tex.format.colorMode != 5) {
-		colorCorrect((uint16 *)_pCleanBuffer->pPixels, size);
-		_pCleanBuffer->colorKey = _colorLookup[63519];
-	} else if (_pGrim->getGameFlags() & ADGF_DEMO) {
-		_pCleanBuffer->colorKey = _colorLookup[63519];
+	if (src->tex.format.colorMode != 5) {
+		colorCorrect((uint16 *)_cleanBuffer->pixels, size);
+		_cleanBuffer->colorKey = _colorLookup[63519];
+	} else if (_grim->getGameFlags() & ADGF_DEMO) {
+		_cleanBuffer->colorKey = _colorLookup[63519];
 	}
 }
 
 StdVBuffer *SputRender::screenShot(int width, int height) {
-	if (!_pCleanArtBuffer) {
+	if (!_cleanArtBuffer) {
 		warning("SputRender::screenShot(): the display is not set");
 		return nullptr;
 	}
 
-	int oldMode = _pGrim->getLibMode();
+	int oldMode = _grim->getLibMode();
 
-	_pGrim->setLibMode(2);
+	_grim->setLibMode(2);
 	_reset = 1;
 	dim(1, 0);
-	_pGrim->setLibMode(oldMode);
+	_grim->setLibMode(oldMode);
 
-	StdVBuffer *pClean = _pCleanArtBuffer;
+	StdVBuffer *clean = _cleanArtBuffer;
 
-	if (width < 0 || height < 0 || pClean->tex.format.bpp != 16 || pClean->tex.width < 640 || pClean->tex.height < 480) {
+	if (width < 0 || height < 0 || clean->tex.format.bpp != 16 || clean->tex.width < 640 || clean->tex.height < 480) {
 		warning("SputRender::screenShot(): unsupported buffer or size");
 		return nullptr;
 	}
 
-	StdVBufferTexFmt format = pClean->tex;
+	StdVBufferTexFmt format = clean->tex;
 
 	format.width = width;
 	format.height = height;
 
-	StdVBuffer *pShot = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+	StdVBuffer *shot = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
 	// The original could divide by zero here, let's avoid that...
 	float xStep = 0.0f;
@@ -266,29 +266,29 @@ StdVBuffer *SputRender::screenShot(int width, int height) {
 	if (height > 0)
 		yStep = (float)(480.0 / (double)height);
 
-	_pStdDisplay->vBufferLock(pShot);
-	_pStdDisplay->vBufferLock(pClean);
+	_stdDisplay->vBufferLock(shot);
+	_stdDisplay->vBufferLock(clean);
 
 	double y = 0.0;
 
 	for (int row = 0; row < height; row++) {
-		const uint16 *pSrcRow = (const uint16 *)(pClean->pPixels + pClean->tex.pitchInBytes * (int)y);
-		uint16 *pDstRow = (uint16 *)(pShot->pPixels + pShot->tex.pitchInBytes * row);
+		const uint16 *srcRow = (const uint16 *)(clean->pixels + clean->tex.pitchInBytes * (int)y);
+		uint16 *dstRow = (uint16 *)(shot->pixels + shot->tex.pitchInBytes * row);
 		double x = 0.0;
 
 		for (int column = 0; column < width; column++) {
-			pDstRow[column] = pSrcRow[(int)x];
+			dstRow[column] = srcRow[(int)x];
 			x = x + (double)xStep;
 		}
 
 		y = y + (double)yStep;
 	}
 
-	_pStdDisplay->vBufferUnlock(pShot);
-	_pStdDisplay->vBufferUnlock(pClean);
+	_stdDisplay->vBufferUnlock(shot);
+	_stdDisplay->vBufferUnlock(clean);
 	_reset = 1;
 
-	return pShot;
+	return shot;
 }
 
 void SputRender::saveScreen(const char *path) {
@@ -310,40 +310,40 @@ void SputRender::saveScreen(const char *path) {
 	format.alphaLoss = 0;
 
 	if (path) {
-		StdBitmapStruct *pBitmap = _pStdBitmap->vBufferToBitmap(_pBackBuffer, 0, 0);
+		StdBitmapStruct *bitmap = _stdBitmap->vBufferToBitmap(_backBuffer, 0, 0);
 
-		if (!pBitmap) {
+		if (!bitmap) {
 			warning("SputRender::saveScreen(): failed to convert the back buffer");
 			return;
 		}
 
-		_pStdBitmap->convertColorFormat(&format, pBitmap);
+		_stdBitmap->convertColorFormat(&format, bitmap);
 
 		Common::String fileName(path);
 
-		_pStdBitmap->loadLbm2(fileName, pBitmap);
-		_pStdBitmap->unloadBitmap(pBitmap);
+		_stdBitmap->loadLbm2(fileName, bitmap);
+		_stdBitmap->unloadBitmap(bitmap);
 	}
 }
 
 void SputRender::saveZBuffer(const char *path) {
-	if (!_pZBuffer || !path) {
+	if (!_zBuffer || !path) {
 		warning("SputRender::saveZBuffer(): no Z buffer or no file name");
 		return;
 	}
 
-	_pStdDisplay->vBufferLock(_pZBuffer);
-	_pStdDisplay->vBufferUnlock(_pZBuffer);
+	_stdDisplay->vBufferLock(_zBuffer);
+	_stdDisplay->vBufferUnlock(_zBuffer);
 
-	StdBitmapStruct *pBitmap = _pStdBitmap->vBufferToBitmap(_pZBuffer, 0, 0);
+	StdBitmapStruct *bitmap = _stdBitmap->vBufferToBitmap(_zBuffer, 0, 0);
 
-	if (!pBitmap) {
+	if (!bitmap) {
 		warning("SputRender::saveZBuffer(): failed to convert the Z buffer");
 		return;
 	}
 
-	_pStdBitmap->write(path, pBitmap);
-	_pStdBitmap->unloadBitmap(pBitmap);
+	_stdBitmap->write(path, bitmap);
+	_stdBitmap->unloadBitmap(bitmap);
 }
 
 void SputRender::saveDrawBuffer(const char *path) {
@@ -369,19 +369,19 @@ void SputRender::saveDrawBuffer(const char *path) {
 		return;
 	}
 
-	StdBitmapStruct *pBitmap = _pStdBitmap->vBufferToBitmap(_pBackBuffer, 0, 0);
+	StdBitmapStruct *bitmap = _stdBitmap->vBufferToBitmap(_backBuffer, 0, 0);
 
-	if (!pBitmap) {
+	if (!bitmap) {
 		warning("SputRender::saveDrawBuffer(): failed to convert the back buffer");
 		return;
 	}
 
-	_pStdBitmap->convertColorFormat(&format, pBitmap);
+	_stdBitmap->convertColorFormat(&format, bitmap);
 
 	Common::String fileName(path);
 
-	_pStdBitmap->loadLbm2(fileName, pBitmap);
-	_pStdBitmap->unloadBitmap(pBitmap);
+	_stdBitmap->loadLbm2(fileName, bitmap);
+	_stdBitmap->unloadBitmap(bitmap);
 }
 
 } // End of namespace Grim

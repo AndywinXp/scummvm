@@ -45,14 +45,14 @@ public:
 	bool forward(float distance, int allowLeft, int allowRight);
 	bool constrain(const float *vector);
 
-	float reflectionAngle;
-	bool constrained;
-	float constraint[3];
-	float lineA[3];
-	float lineB[3];
-	LString actorName;
-	WalkPlane_v2 *plane;
-	WalkPlaneCollection *planes;
+	float _reflectionAngle;
+	bool _constrained;
+	float _constraint[3];
+	float _lineA[3];
+	float _lineB[3];
+	LString _actorName;
+	WalkPlane_v2 *_plane;
+	WalkPlaneCollection *_planes;
 
 private:
 	EmiEngine *_engine;

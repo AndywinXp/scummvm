@@ -25,15 +25,15 @@
 namespace Grim {
 
 AnimWgtInstance::AnimWgtInstance(EmiEngine *engine, const LString &componentName) : ComponentInstance(engine, componentName) {
-	anim = nullptr;
+	_anim = nullptr;
 }
 
 AnimWgtInstance::~AnimWgtInstance() {
-	anim = nullptr;
+	_anim = nullptr;
 }
 
 void AnimWgtInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!partial || !anim)
+	if (!partial || !_anim)
 		return;
 
 	double fraction = 0.0;
@@ -43,13 +43,13 @@ void AnimWgtInstance::setKey(float value, float elapsed, float nextValue, float 
 	if (span != 0.0)
 		fraction = (double)elapsed / span;
 
-	anim->weight = (float)(fraction * ((double)nextValue - (double)value) + (double)value);
+	_anim->_weight = (float)(fraction * ((double)nextValue - (double)value) + (double)value);
 }
 
 bool AnimWgtInstance::setParent(ComponentInstance *parent) {
-	anim = dynamic_cast<AnimInstance *>(parent);
+	_anim = dynamic_cast<AnimInstance *>(parent);
 
-	return anim != nullptr;
+	return _anim != nullptr;
 }
 
 } // End of namespace Grim

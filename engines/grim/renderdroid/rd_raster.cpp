@@ -24,16 +24,16 @@
 namespace Grim {
 
 void RenderDroid::RasterModule::startup() {
-	_aOneOverNFlex[0] = 3.4e38f;
-	_aOneOverNFixed[0] = 0x7FFFFFFF;
+	_oneOverNFlex[0] = 3.4e38f;
+	_oneOverNFixed[0] = 0x7FFFFFFF;
 
 	for (int i = 1; i < 2048; i++) {
-		_aOneOverNFlex[i] = (float)(1.0 / (double)i);
-		_aOneOverNFixed[i] = (int)(1.0 / (double)i * 65536.0);
+		_oneOverNFlex[i] = (float)(1.0 / (double)i);
+		_oneOverNFixed[i] = (int)(1.0 / (double)i * 65536.0);
 	}
 
 	for (int i = 0; i < 16; i++) {
-		double product = (double)_aOneOverNFlex[i] * _fixedScale;
+		double product = (double)_oneOverNFlex[i] * _fixedScale;
 		float value;
 
 		if (product > std::numeric_limits<float>::max())
@@ -42,9 +42,9 @@ void RenderDroid::RasterModule::startup() {
 			value = (float)product;
 
 		if (i == 0)
-			memcpy(&_aOneOverNFixed[2047], &value, sizeof(float));
+			memcpy(&_oneOverNFixed[2047], &value, sizeof(float));
 		else
-			_aOneOverNFixedF[i - 1] = value;
+			_oneOverNFixedF[i - 1] = value;
 	}
 }
 

@@ -25,10 +25,10 @@
 
 namespace Grim {
 
-EventGenerator::EventGenerator(EmiEngine *engine, int generatorPriority) : priority(generatorPriority), _engine(engine) {
+EventGenerator::EventGenerator(EmiEngine *engine, int generatorPriority) : _priority(generatorPriority), _engine(engine) {
 	Common::List<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
 
-	while (it != _engine->_eventGenerators.end() && (*it)->priority >= generatorPriority)
+	while (it != _engine->_eventGenerators.end() && (*it)->_priority >= generatorPriority)
 		++it;
 
 	_engine->_eventGenerators.insert(it, this);
@@ -84,7 +84,7 @@ void EventGenerator::dispatchEvents(EmiEngine *engine) {
 		for (handlerIt = engine->_eventHandlers.begin(); handlerIt != engine->_eventHandlers.end(); ++handlerIt) {
 			EventHandler *handler = *handlerIt;
 
-			if ((handler->typeMask & (uint)event->type) != 0 && handler->handleEvent(event))
+			if ((handler->_typeMask & (uint)event->type) != 0 && handler->handleEvent(event))
 				handled = true;
 		}
 

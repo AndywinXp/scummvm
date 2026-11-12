@@ -121,9 +121,9 @@ void Lua_V2::FileFindFirst() {
 	const char *extension = lua_getstring(extensionObj);
 
 	FileFindDispose();
-	_pFind = FileUtilFind::newFind(directory, 4, extension);
+	_find = FileUtilFind::newFind(directory, 4, extension);
 
-	if (_pFind)
+	if (_find)
 		FileFindNext();
 	else
 		lua_pushnil();
@@ -132,8 +132,8 @@ void Lua_V2::FileFindFirst() {
 void Lua_V2::FileFindNext() {
 	FileUtilEntry entry;
 
-	if (_pFind) {
-		while (_pFind->findNext(&entry)) {
+	if (_find) {
+		while (_find->findNext(&entry)) {
 			if (!entry.isDirectory) {
 				lua_pushstring(entry.path.c_str());
 
@@ -146,8 +146,8 @@ void Lua_V2::FileFindNext() {
 }
 
 void Lua_V2::FileFindDispose() {
-	if (_pFind)
-		FileUtilFind::disposeFind(_pFind);
+	if (_find)
+		FileUtilFind::disposeFind(_find);
 }
 
 void Lua_V2::TextFileGetLineCount() {

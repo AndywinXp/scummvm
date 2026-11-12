@@ -81,11 +81,11 @@ void LuaObjects::pushObjects() const {
 	}
 }
 
-LuaBase *LuaBase::s_instance = nullptr;
+LuaBase *LuaBase::_instance = nullptr;
 
 LuaBase::LuaBase(bool isEmi) :
 		_frameTimeCollection(0) {
-	s_instance = this;
+	_instance = this;
 
 	lua_open(isEmi);
 	lua_iolibopen();
@@ -94,7 +94,7 @@ LuaBase::LuaBase(bool isEmi) :
 }
 
 LuaBase::~LuaBase() {
-	s_instance = nullptr;
+	_instance = nullptr;
 
 	lua_removelibslists();
 	lua_close();
@@ -108,7 +108,7 @@ LuaBase::~LuaBase() {
 
 void LuaBase::registerTypeOverride() {
 	lua_pushobject(lua_getglobal("type"));
-	refTypeOverride = lua_ref(true);
+	_refTypeOverride = lua_ref(true);
 	lua_pushCclosure(LUA_OPCODE(LuaBase, typeOverride), 0);
 	lua_setglobal("type");
 }
@@ -129,7 +129,7 @@ void LuaBase::registerSectorConstants() {
 
 void LuaBase::registerConcatFallback() {
 	lua_pushobject(lua_setfallback("concat", LUA_OPCODE(LuaBase, concatFallback)));
-	refOldConcatFallback = lua_ref(1);
+	_refOldConcatFallback = lua_ref(1);
 }
 
 void LuaBase::forceDemo() {
@@ -184,14 +184,14 @@ void LuaBase::update(int frameTime, int movieTime) {
 }
 
 void LuaBase::setFrameTime(float frameTime) {
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("frameTime");
 	lua_pushnumber(frameTime);
 	lua_settable();
 }
 
 void LuaBase::setMovieTime(float movieTime) {
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring("movieTime");
 	lua_pushnumber(movieTime);
 	lua_settable();
@@ -222,7 +222,7 @@ bool LuaBase::callback(const char *name) {
 bool LuaBase::callback(const char *name, const LuaObjects &objects) {
 	lua_beginblock();
 
-	lua_pushobject(lua_getref(refSystemTable));
+	lua_pushobject(lua_getref(_refSystemTable));
 	lua_pushstring(name);
 	lua_Object table = lua_gettable();
 
@@ -292,7 +292,7 @@ void LuaBase::typeOverride() {
 	}
 
 	lua_pushobject(data);
-	lua_callfunction(lua_getref(refTypeOverride));
+	lua_callfunction(lua_getref(_refTypeOverride));
 	lua_Object param1 = lua_getresult(1);
 	lua_Object param2 = lua_getresult(2);
 	lua_pushobject(param1);
@@ -302,7 +302,7 @@ void LuaBase::typeOverride() {
 void LuaBase::concatFallback() {
 	lua_Object params[2];
 	char result[200];
-	char *strPtr;
+	char *ptr;
 
 	params[0] = lua_getparam(1);
 	params[1] = lua_getparam(2);
@@ -312,31 +312,31 @@ void LuaBase::concatFallback() {
 		if (!lua_isnil(params[i]) && !lua_isuserdata(params[i]) && !lua_isstring(params[i])) {
 			lua_pushobject(params[0]);
 			lua_pushobject(params[1]);
-			lua_callfunction(lua_getref(refOldConcatFallback));
+			lua_callfunction(lua_getref(_refOldConcatFallback));
 			lua_pushobject(lua_getresult(1));
 			return;
 		}
 
 		int pos = strlen(result);
-		strPtr = &result[pos];
+		ptr = &result[pos];
 
 		if (lua_isnil(params[i]))
-			Common::sprintf_s(strPtr, sizeof(result) - pos, "(nil)");
+			Common::sprintf_s(ptr, sizeof(result) - pos, "(nil)");
 		else if (lua_isstring(params[i]))
-			Common::sprintf_s(strPtr, sizeof(result) - pos, "%s", lua_getstring(params[i]));
+			Common::sprintf_s(ptr, sizeof(result) - pos, "%s", lua_getstring(params[i]));
 		else if (lua_tag(params[i]) == MKTAG('R','T','C','A')) {
 			int handle = lua_getuserdata(params[i]);
-			SputActor *pActor = g_grim->_pSputActor->actorDeref(handle);
+			SputActor *actor = g_grim->_sputActor->actorDeref(handle);
 			const char *modelName = "";
 
-			if (pActor && pActor->pCostumeStack && pActor->pCostumeStack->pHeadThing && pActor->pCostumeStack->pHeadThing->data.pModel3)
-				modelName = pActor->pCostumeStack->pHeadThing->data.pModel3->aName;
+			if (actor && actor->costumeStack && actor->costumeStack->headThing && actor->costumeStack->headThing->data.model3)
+				modelName = actor->costumeStack->headThing->data.model3->name;
 
-			Common::sprintf_s(strPtr, sizeof(result) - pos, "(actor%d:%s)", handle, modelName);
+			Common::sprintf_s(ptr, sizeof(result) - pos, "(actor%d:%s)", handle, modelName);
 		} else {
 			lua_pushobject(params[0]);
 			lua_pushobject(params[1]);
-			lua_callfunction(lua_getref(refOldConcatFallback));
+			lua_callfunction(lua_getref(_refOldConcatFallback));
 			lua_pushobject(lua_getresult(1));
 			return;
 		}

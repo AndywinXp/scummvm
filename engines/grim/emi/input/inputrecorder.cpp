@@ -33,9 +33,9 @@ namespace Grim {
 
 static const char *const kReplayFileName = "Replay.log";
 
-InputRecorder::InputRecorder(EmiEngine *engine, int recorderMode) : mode(recorderMode), dt(0.0f), keyCode(0), character(0),
-		lastRecordType(kRecordNone), _engine(engine), _timeServices(new LTimeServices()), _writeFile(nullptr), _readFile(nullptr) {
-	if (mode == kModeRecord) {
+InputRecorder::InputRecorder(EmiEngine *engine, int recorderMode) : _mode(recorderMode), _dt(0.0f), _keyCode(0), _character(0),
+		_lastRecordType(kRecordNone), _engine(engine), _timeServices(new LTimeServices()), _writeFile(nullptr), _readFile(nullptr) {
+	if (_mode == kModeRecord) {
 		_writeFile = new Common::DumpFile();
 
 		if (!_writeFile->open(Common::Path(kReplayFileName, '/'))) {
@@ -43,15 +43,15 @@ InputRecorder::InputRecorder(EmiEngine *engine, int recorderMode) : mode(recorde
 
 			delete _writeFile;
 			_writeFile = nullptr;
-			mode = kModeOff;
+			_mode = kModeOff;
 		}
-	} else if (mode == kModeReplay) {
+	} else if (_mode == kModeReplay) {
 		_readFile = Common::FSNode(Common::Path(kReplayFileName, '/')).createReadStream();
 
 		if (!_readFile) {
 			warning("InputRecorder::InputRecorder(): could not open %s", kReplayFileName);
 
-			mode = kModeOff;
+			_mode = kModeOff;
 		} else {
 			readNext();
 		}
@@ -76,10 +76,10 @@ void InputRecorder::operator delete(void *block) {
 }
 
 void InputRecorder::recordKey(const ControlEntry *control, bool down) {
-	if (mode == kModeOff)
+	if (_mode == kModeOff)
 		return;
 
-	if (mode == kModeReplay) {
+	if (_mode == kModeReplay) {
 		readNext();
 
 		return;
@@ -91,9 +91,9 @@ void InputRecorder::recordKey(const ControlEntry *control, bool down) {
 }
 
 void InputRecorder::recordChar(byte value) {
-	if (mode == kModeReplay) {
+	if (_mode == kModeReplay) {
 		readNext();
-	} else if (mode == kModeRecord) {
+	} else if (_mode == kModeRecord) {
 		_writeFile->writeByte('C');
 		_writeFile->writeByte(value);
 		_writeFile->flush();
@@ -101,10 +101,10 @@ void InputRecorder::recordChar(byte value) {
 }
 
 void InputRecorder::recordRoom(const char *roomName) {
-	if (mode == kModeOff)
+	if (_mode == kModeOff)
 		return;
 
-	if (mode == kModeReplay) {
+	if (_mode == kModeReplay) {
 		readNext();
 
 		return;
@@ -115,19 +115,19 @@ void InputRecorder::recordRoom(const char *roomName) {
 }
 
 void InputRecorder::replayKeys() {
-	if (mode != kModeReplay)
+	if (_mode != kModeReplay)
 		return;
 
-	while (lastRecordType == kRecordKeyUp || lastRecordType == kRecordKeyDown)
+	while (_lastRecordType == kRecordKeyUp || _lastRecordType == kRecordKeyDown)
 		replayKey();
 }
 
 bool InputRecorder::replayKey() {
-	return _engine->getLua()->buttonHandler(keyCode, lastRecordType == kRecordKeyDown);
+	return _engine->getLua()->buttonHandler(_keyCode, _lastRecordType == kRecordKeyDown);
 }
 
 bool InputRecorder::replayChar() {
-	return _engine->onCharacter(character);
+	return _engine->onCharacter(_character);
 }
 
 void InputRecorder::readNext() {
@@ -138,8 +138,8 @@ void InputRecorder::readNext() {
 	}
 
 	if (_readFile->eos()) {
-		mode = kModeOff;
-		lastRecordType = kRecordNone;
+		_mode = kModeOff;
+		_lastRecordType = kRecordNone;
 
 		return;
 	}
@@ -150,50 +150,50 @@ void InputRecorder::readNext() {
 	if (_readFile->read(&tag, 1) != 1) {
 		warning("InputRecorder::readNext(): the file ended");
 
-		mode = kModeOff;
-		lastRecordType = kRecordNone;
+		_mode = kModeOff;
+		_lastRecordType = kRecordNone;
 
 		return;
 	}
 
 	switch (tag) {
 	case 'C':
-		lastRecordType = kRecordChar;
-		character = _readFile->readByte();
+		_lastRecordType = kRecordChar;
+		_character = _readFile->readByte();
 
 		return;
 	case 'D':
-		lastRecordType = kRecordKeyDown;
+		_lastRecordType = kRecordKeyDown;
 
 		break;
 	case 'F': {
 		uint32 bits = _readFile->readUint32LE();
 
-		memcpy(&dt, &bits, sizeof(dt));
-		lastRecordType = kRecordFrame;
+		memcpy(&_dt, &bits, sizeof(_dt));
+		_lastRecordType = kRecordFrame;
 
 		return;
 	}
 	case 'R':
-		lastRecordType = kRecordRoom;
+		_lastRecordType = kRecordRoom;
 
 		return;
 	case 'U':
-		lastRecordType = kRecordKeyUp;
+		_lastRecordType = kRecordKeyUp;
 
 		break;
 	default:
 		break;
 	}
 
-	keyCode = (int)_readFile->readUint32LE();
+	_keyCode = (int)_readFile->readUint32LE();
 }
 
 float InputRecorder::replayFrame() {
-	while (lastRecordType == kRecordChar)
+	while (_lastRecordType == kRecordChar)
 		replayChar();
 
-	float frameTime = dt;
+	float frameTime = _dt;
 
 	readNext();
 
@@ -201,7 +201,7 @@ float InputRecorder::replayFrame() {
 }
 
 void InputRecorder::recordFrame(float frameTime) {
-	if (mode != kModeRecord)
+	if (_mode != kModeRecord)
 		return;
 
 	uint32 bits;

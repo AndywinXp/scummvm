@@ -31,7 +31,7 @@ struct ControlSymbol;
 // The restored Lua state holds the key numbers of the legacy engine (system.controls, the key globals of
 // _controls.lua, the keys of control_map and of the axis tables); this gives them the numbers of the
 // symbol list. The system table is the ref of the running engine. Returns a summary for the log.
-Common::String legacyRemapControls(int systemRef, const ControlSymbol *aSymbols, int numSymbols);
+Common::String legacyRemapControls(int systemRef, const ControlSymbol *symbols, int numSymbols);
 
 } // End of namespace Grim
 

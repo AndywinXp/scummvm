@@ -52,8 +52,8 @@ public:
 	bool tightenPath();
 	bool canWalkStraight(const float *from, const float *to);
 	int getSize();
-	void save(tSaveRestoreAccess *access);
-	void restore(tSaveRestoreAccess *access);
+	void save(SaveRestoreAccess *access);
+	void restore(SaveRestoreAccess *access);
 	wpVertex *addVertex(const float *position);
 	void removeVertex(wpVertex *vertex);
 	WalkPlane_v2 *planeAt(const float *point, int typeMask);
@@ -65,8 +65,8 @@ public:
 
 	int getPath(float (**path)[3]);
 
-	Common::List<wpVertex *> vertices;
-	Common::List<WalkPlane_v2 *> planes;
+	Common::List<wpVertex *> _vertices;
+	Common::List<WalkPlane_v2 *> _planes;
 
 private:
 	enum {

@@ -52,13 +52,13 @@ public:
 
 	EmiEngine *getEngine() const;
 
-	LResourceHandle<CMaterial> material;
-	float width;
-	float height;
-	CVector offset;
-	Color corners[kNumCorners];
-	float uv[kNumCorners * 2];
-	int drawFlags;
+	LResourceHandle<CMaterial> _material;
+	float _width;
+	float _height;
+	CVector _offset;
+	Color _corners[kNumCorners];
+	float _uv[kNumCorners * 2];
+	int _drawFlags;
 
 protected:
 	EmiEngine *_engine;
@@ -71,10 +71,10 @@ public:
 
 	virtual void output(RNode *node, Camera *camera);
 	virtual int getSaveSize();
-	virtual bool saveState(tSaveRestoreAccess *access);
-	virtual bool restoreState(tSaveRestoreAccess *access);
+	virtual bool saveState(SaveRestoreAccess *access);
+	virtual bool restoreState(SaveRestoreAccess *access);
 
-	int textureIndex;
+	int _textureIndex;
 
 private:
 	EmiEngine *_engine;

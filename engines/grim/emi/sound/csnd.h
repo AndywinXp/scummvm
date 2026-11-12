@@ -71,23 +71,23 @@ public:
 
 	bool save(LFile *file);
 
-	float volume;
-	float mvol;
-	float prio;
-	float pan;
-	float field24;
-	float field28;
-	float cutoff0;
-	float cutoff1;
-	int flags;
-	int group;
-	float stDelay;
-	float rndDelay0;
-	float rndDelay1;
-	float freq;
-	LResourceHandle<LSound> sound;
+	float _volume;
+	float _mvol;
+	float _prio;
+	float _pan;
+	float _field24;
+	float _field28;
+	float _cutoff0;
+	float _cutoff1;
+	int _flags;
+	int _group;
+	float _stDelay;
+	float _rndDelay0;
+	float _rndDelay1;
+	float _freq;
+	LResourceHandle<LSound> _sound;
 
-	static const LResourceType sndType;
+	static const LResourceType kSndType;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

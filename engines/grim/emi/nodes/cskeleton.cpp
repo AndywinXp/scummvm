@@ -58,8 +58,8 @@ static void copyNodeName(char *dest, const char *source) {
 }
 
 SkeletonNode::SkeletonNode() {
-	memset(name, 0, sizeof(name));
-	memset(parent, 0, sizeof(parent));
+	memset(_name, 0, sizeof(_name));
+	memset(_parent, 0, sizeof(_parent));
 }
 
 CSkeleton::CSkeleton(EmiEngine *engine) : _engine(engine) {
@@ -73,14 +73,14 @@ bool CSkeleton::save(LFile *file) {
 
 	parser.setFile(file);
 	parser.writeVersion(0, 0);
-	parser.writeEntry(kKeywordNumNodes, (int)nodes.size());
+	parser.writeEntry(kKeywordNumNodes, (int)_nodes.size());
 
-	for (uint i = 0; i < nodes.size(); i++) {
+	for (uint i = 0; i < _nodes.size(); i++) {
 		parser.writeComment("Node:");
-		parser.writeEntry(kKeywordName, nodes[i].name);
-		parser.writeEntry(kKeywordParent, nodes[i].parent);
-		parser.writeEntry(kKeywordPos, nodes[i].pos.x, nodes[i].pos.y, nodes[i].pos.z);
-		parser.writeEntry(kKeywordQuat, nodes[i].quat.x, nodes[i].quat.y, nodes[i].quat.z, nodes[i].quat.w);
+		parser.writeEntry(kKeywordName, _nodes[i]._name);
+		parser.writeEntry(kKeywordParent, _nodes[i]._parent);
+		parser.writeEntry(kKeywordPos, _nodes[i]._pos._x, _nodes[i]._pos._y, _nodes[i]._pos._z);
+		parser.writeEntry(kKeywordQuat, _nodes[i]._quat._x, _nodes[i]._quat._y, _nodes[i]._quat._z, _nodes[i]._quat._w);
 	}
 
 	parser.writeEndOfSection();
@@ -103,17 +103,17 @@ bool CSkeleton::restore(LFile *file) {
 		return false;
 	}
 
-	nodes.resize(count);
+	_nodes.resize(count);
 
 	for (int i = 0; i < count; i++) {
 		parser.readEntry(kKeywordName, token);
-		copyNodeName(nodes[i].name, token);
+		copyNodeName(_nodes[i]._name, token);
 
 		parser.readEntry(kKeywordParent, token);
-		copyNodeName(nodes[i].parent, token);
+		copyNodeName(_nodes[i]._parent, token);
 
-		parser.readEntry(kKeywordPos, &nodes[i].pos.x, &nodes[i].pos.y, &nodes[i].pos.z);
-		parser.readEntry(kKeywordQuat, &nodes[i].quat.x, &nodes[i].quat.y, &nodes[i].quat.z, &nodes[i].quat.w);
+		parser.readEntry(kKeywordPos, &_nodes[i]._pos._x, &_nodes[i]._pos._y, &_nodes[i]._pos._z);
+		parser.readEntry(kKeywordQuat, &_nodes[i]._quat._x, &_nodes[i]._quat._y, &_nodes[i]._quat._z, &_nodes[i]._quat._w);
 	}
 
 	parser.readEndOfSection();
@@ -146,7 +146,7 @@ bool CSkeleton::loadBinary(const char *path) {
 		return false;
 	}
 
-	nodes.resize(count);
+	_nodes.resize(count);
 
 	for (int i = 0; i < count; i++) {
 		byte record[kBinaryNodeSize];
@@ -158,15 +158,15 @@ bool CSkeleton::loadBinary(const char *path) {
 			return false;
 		}
 
-		memcpy(nodes[i].name, record, SkeletonNode::kNameSize);
-		memcpy(nodes[i].parent, record + 32, SkeletonNode::kNameSize);
-		nodes[i].pos.x = READ_LE_FLOAT32(record + 64);
-		nodes[i].pos.y = READ_LE_FLOAT32(record + 68);
-		nodes[i].pos.z = READ_LE_FLOAT32(record + 72);
-		nodes[i].quat.x = READ_LE_FLOAT32(record + 76);
-		nodes[i].quat.y = READ_LE_FLOAT32(record + 80);
-		nodes[i].quat.z = READ_LE_FLOAT32(record + 84);
-		nodes[i].quat.w = READ_LE_FLOAT32(record + 88);
+		memcpy(_nodes[i]._name, record, SkeletonNode::kNameSize);
+		memcpy(_nodes[i]._parent, record + 32, SkeletonNode::kNameSize);
+		_nodes[i]._pos._x = READ_LE_FLOAT32(record + 64);
+		_nodes[i]._pos._y = READ_LE_FLOAT32(record + 68);
+		_nodes[i]._pos._z = READ_LE_FLOAT32(record + 72);
+		_nodes[i]._quat._x = READ_LE_FLOAT32(record + 76);
+		_nodes[i]._quat._y = READ_LE_FLOAT32(record + 80);
+		_nodes[i]._quat._z = READ_LE_FLOAT32(record + 84);
+		_nodes[i]._quat._w = READ_LE_FLOAT32(record + 88);
 	}
 
 	_engine->getFileServices()->close(file, true);
@@ -182,19 +182,19 @@ bool CSkeleton::saveBinary(const char *path) {
 
 	byte record[kBinaryNodeSize];
 
-	WRITE_LE_INT32(record, (int)nodes.size());
+	WRITE_LE_INT32(record, (int)_nodes.size());
 	file->write(record, 4);
 
-	for (uint i = 0; i < nodes.size(); i++) {
-		memcpy(record, nodes[i].name, SkeletonNode::kNameSize);
-		memcpy(record + 32, nodes[i].parent, SkeletonNode::kNameSize);
-		WRITE_LE_FLOAT32(record + 64, nodes[i].pos.x);
-		WRITE_LE_FLOAT32(record + 68, nodes[i].pos.y);
-		WRITE_LE_FLOAT32(record + 72, nodes[i].pos.z);
-		WRITE_LE_FLOAT32(record + 76, nodes[i].quat.x);
-		WRITE_LE_FLOAT32(record + 80, nodes[i].quat.y);
-		WRITE_LE_FLOAT32(record + 84, nodes[i].quat.z);
-		WRITE_LE_FLOAT32(record + 88, nodes[i].quat.w);
+	for (uint i = 0; i < _nodes.size(); i++) {
+		memcpy(record, _nodes[i]._name, SkeletonNode::kNameSize);
+		memcpy(record + 32, _nodes[i]._parent, SkeletonNode::kNameSize);
+		WRITE_LE_FLOAT32(record + 64, _nodes[i]._pos._x);
+		WRITE_LE_FLOAT32(record + 68, _nodes[i]._pos._y);
+		WRITE_LE_FLOAT32(record + 72, _nodes[i]._pos._z);
+		WRITE_LE_FLOAT32(record + 76, _nodes[i]._quat._x);
+		WRITE_LE_FLOAT32(record + 80, _nodes[i]._quat._y);
+		WRITE_LE_FLOAT32(record + 84, _nodes[i]._quat._z);
+		WRITE_LE_FLOAT32(record + 88, _nodes[i]._quat._w);
 		file->write(record, sizeof(record));
 	}
 

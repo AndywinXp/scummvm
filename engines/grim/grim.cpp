@@ -19,12 +19,6 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_fprintf
-#define FORBIDDEN_SYMBOL_EXCEPTION_fgetc
-#define FORBIDDEN_SYMBOL_EXCEPTION_stderr
-#define FORBIDDEN_SYMBOL_EXCEPTION_stdin
-#define FORBIDDEN_SYMBOL_EXCEPTION_FILE
-
 #include "common/archive.h"
 #include "common/debug-channels.h"
 #include "common/file.h"
@@ -307,14 +301,14 @@ bool GrimEngine::hasFeature(EngineFeature f) const {
 
 void GrimEngine::pauseEngineIntern(bool pause) {
 	if (pause) {
-		_bEnginePaused = _libMode != 1;
+		_enginePaused = _libMode != 1;
 		setPause(1);
-	} else if (_bEnginePaused) {
-		_bEnginePaused = 0;
+	} else if (_enginePaused) {
+		_enginePaused = 0;
 		setPause(0);
 
-		if (_pStdControl)
-			_pStdControl->flush();
+		if (_stdControl)
+			_stdControl->flush();
 	}
 }
 
@@ -407,7 +401,7 @@ Common::Error GrimEngine::runGrime() {
 	if (ConfMan.hasKey("save_slot"))
 		loadGameState(ConfMan.getInt("save_slot"));
 
-	while (!shouldQuit() && !_bQuit) {
+	while (!shouldQuit() && !_quit) {
 		uint32 startTime = g_system->getMillis();
 
 		pumpEvents();
@@ -451,191 +445,191 @@ void GrimEngine::createImuse() {
 }
 
 void GrimEngine::createModules() {
-	_pStdMath = new StdMath();
-	_pStdFile = new StdFile();
-	_pStdDisplay = new StdDisplay();
-	_pStdConffile = new StdConffile(this);
-	_pStdBitmap = new StdBitmap(_pStdDisplay, _pStdFile, this);
-	_pStdDisplay->setStdBitmap(_pStdBitmap);
+	_stdMath = new StdMath();
+	_stdFile = new StdFile();
+	_stdDisplay = new StdDisplay();
+	_stdConffile = new StdConffile(this);
+	_stdBitmap = new StdBitmap(_stdDisplay, _stdFile, this);
+	_stdDisplay->setStdBitmap(_stdBitmap);
 
 #if defined(GRIM_STD3D)
-	_pStd3D = new Std3D(_pStdDisplay, _pStdBitmap);
+	_std3D = new Std3D(_stdDisplay, _stdBitmap);
 #endif
 
-	_pStdDisplay->setStd3D(_pStd3D);
-	_pStdLbm = new StdLbm(_pStdDisplay, _pStdFile, _pStdBitmap, this);
-	_pStdPcx = new StdPcx(_pStdDisplay, _pStdFile, _pStdBitmap, this);
-	_pStdGif = new StdGif(_pStdDisplay, _pStdFile, _pStdBitmap, this);
-	_pStdPic = new StdPic(_pStdDisplay, _pStdFile, this);
-	_pStdBmp = new StdBmp(_pStdDisplay, _pStdFile, this);
-	_pStdBitmap->setImageFormats(_pStdLbm, _pStdPcx, _pStdGif, _pStdPic, _pStdBmp);
+	_stdDisplay->setStd3D(_std3D);
+	_stdLbm = new StdLbm(_stdDisplay, _stdFile, _stdBitmap, this);
+	_stdPcx = new StdPcx(_stdDisplay, _stdFile, _stdBitmap, this);
+	_stdGif = new StdGif(_stdDisplay, _stdFile, _stdBitmap, this);
+	_stdPic = new StdPic(_stdDisplay, _stdFile, this);
+	_stdBmp = new StdBmp(_stdDisplay, _stdFile, this);
+	_stdBitmap->setImageFormats(_stdLbm, _stdPcx, _stdGif, _stdPic, _stdBmp);
 
 	bool isDemo = (_gameFlags & ADGF_DEMO) != 0;
 
-	_pRd = new RenderDroid(_pStdMath, _pStdDisplay, _pStdConffile, _pStdFile, isDemo);
-	_pRd->setStd3D(_pStd3D);
-	_pWalkSystem = new WalkSystem(_pRd, _pStdMath, _pStdConffile, isDemo);
+	_rd = new RenderDroid(_stdMath, _stdDisplay, _stdConffile, _stdFile, isDemo);
+	_rd->setStd3D(_std3D);
+	_walkSystem = new WalkSystem(_rd, _stdMath, _stdConffile, isDemo);
 
-	_pRes = new Res(isDemo);
-	_pSputResource = new SputResource(_pRes, _pRd, _pStdDisplay, _pStdBitmap);
-	_pStdControl = new StdControl();
+	_res = new Res(isDemo);
+	_sputResource = new SputResource(_res, _rd, _stdDisplay, _stdBitmap);
+	_stdControl = new StdControl();
 
-	StdControlInput *pControlInput = _pStdControl->getInput();
-	StdControlJoyCaps *pJoyCaps = &pControlInput->joyCaps[0];
+	StdControlInput *controlInput = _stdControl->getInput();
+	StdControlJoyCaps *joyCaps = &controlInput->joyCaps[0];
 
-	pControlInput->numJoysticks = 1;
-	pJoyCaps->bAvailable = 1;
-	pJoyCaps->flags = 0x0F;
-	pJoyCaps->maxButtons = 10;
+	controlInput->numJoysticks = 1;
+	joyCaps->available = 1;
+	joyCaps->flags = 0x0F;
+	joyCaps->maxButtons = 10;
 
 	for (int axis = 0; axis < 6; axis++) {
-		pJoyCaps->axisMin[axis] = -32768;
-		pJoyCaps->axisMax[axis] = 32767;
+		joyCaps->axisMin[axis] = -32768;
+		joyCaps->axisMax[axis] = 32767;
 	}
 
-	pControlInput->joyState[0].flags = 0x3C;
+	controlInput->joyState[0].flags = 0x3C;
 
-	_pWuRegistry = new WuRegistry();
-	_pPolyglot = new Polyglot();
-	_pSputTime = new SputTime(isDemo);
-	_pSputPrimitive = new SputPrimitive(_pRd);
-	_pSputRoom = new SputRoom(_pRd, _pRes, _pSputResource, _pStdDisplay, _pStdBitmap, _pStdLbm, _pStdConffile, _pWalkSystem);
-	_pSputControl = new SputControl(_pRd, _pSputRoom, _pStdControl);
+	_wuRegistry = new WuRegistry();
+	_polyglotV1 = new Polyglot();
+	_sputTime = new SputTime(isDemo);
+	_sputPrimitive = new SputPrimitive(_rd);
+	_sputRoom = new SputRoom(_rd, _res, _sputResource, _stdDisplay, _stdBitmap, _stdLbm, _stdConffile, _walkSystem);
+	_sputControl = new SputControl(_rd, _sputRoom, _stdControl);
 
-	_pText = new Text();
-	_pBlastText = new BlastText(_pText);
-	_pText->setBlastText(_pBlastText);
-	_pNormalText = new NormalText();
-	_pSputText = new SputText(_pRes, _pRd, _pNormalText, _pText, _pBlastText, _pSputTime, _pPolyglot);
+	_text = new Text();
+	_blastText = new BlastText(_text);
+	_text->setBlastText(_blastText);
+	_normalText = new NormalText();
+	_sputText = new SputText(_res, _rd, _normalText, _text, _blastText, _sputTime, _polyglotV1);
 
-	_pMainGfxBuffer = new StdVBuffer();
-	_pBackBuffer = new StdVBuffer();
-	_pStdDisplay->setBuffers(_pMainGfxBuffer, _pBackBuffer);
-	_pSputRender = new SputRender(_pRd, _pStdDisplay, _pStdBitmap, _pRes, _pSputResource, _pSputPrimitive, _pWalkSystem, _pSputRoom,
-			_pBackBuffer, _pMainGfxBuffer, _pSputTime, _pSputControl);
-	_pSputCostume = new SputCostume(_pRes, _pRd, _pSputResource, _pSputRender, _pSputRoom, _pStdLbm, _pWuRegistry);
-	_pSputActor = new SputActorModule(_pRes, _pRd, _pStdMath, _pStdDisplay, _pWalkSystem, _pSputResource, _pSputRoom, _pSputRender,
-			_pSputCostume, _pSputText, _pSputTime);
+	_mainGfxBuffer = new StdVBuffer();
+	_backBuffer = new StdVBuffer();
+	_stdDisplay->setBuffers(_mainGfxBuffer, _backBuffer);
+	_sputRender = new SputRender(_rd, _stdDisplay, _stdBitmap, _res, _sputResource, _sputPrimitive, _walkSystem, _sputRoom,
+			_backBuffer, _mainGfxBuffer, _sputTime, _sputControl);
+	_sputCostume = new SputCostume(_res, _rd, _sputResource, _sputRender, _sputRoom, _stdLbm, _wuRegistry);
+	_sputActor = new SputActorModule(_res, _rd, _stdMath, _stdDisplay, _walkSystem, _sputResource, _sputRoom, _sputRender,
+			_sputCostume, _sputText, _sputTime);
 	if (_gameFlags & ADGF_DEMO) {
-		SputSmushDemo *pSputSmushDemo = new SputSmushDemo(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+		SputSmushDemo *sputSmushDemo = new SputSmushDemo(_res, _stdDisplay, _sputRender, _mainGfxBuffer, _wuRegistry);
 
-		pSputSmushDemo->setGrimEngine(this);
-		_pSputSmush = pSputSmushDemo;
+		sputSmushDemo->setGrimEngine(this);
+		_sputSmush = sputSmushDemo;
 	} else {
-		_pSputSmush = new SputSmush(_pRes, _pStdDisplay, _pSputRender, _pMainGfxBuffer, _pWuRegistry);
+		_sputSmush = new SputSmush(_res, _stdDisplay, _sputRender, _mainGfxBuffer, _wuRegistry);
 	}
 
-	_pLua = new Lua_V1(false);
+	_luaV1 = new Lua_V1(false);
 
-	_pRes->setSputRender(_pSputRender);
-	_pSputResource->setSputRender(_pSputRender);
-	_pSputResource->setSputRoom(_pSputRoom);
-	_pSputResource->setCos(_pSputCostume->getCos());
-	_pSputResource->setText(_pText);
-	_pSputResource->setBlastText(_pBlastText);
-	_pSputResource->setWuRegistry(_pWuRegistry);
-	_pSputPrimitive->setSputRender(_pSputRender);
-	_pSputPrimitive->setLua(_pLua);
-	_pSputRoom->setSputRender(_pSputRender);
-	_pSputRoom->setSputActor(_pSputActor);
-	_pSputRoom->setGrimEngine(this);
-	_pSputText->setSputRender(_pSputRender);
-	_pSputText->setSputRoom(_pSputRoom);
-	_pSputText->setGrimEngine(this);
-	_pSputText->setLua(_pLua);
-	_pSputRender->setSputActor(_pSputActor);
-	_pSputRender->setSputText(_pSputText);
-	_pSputRender->setBlastText(_pBlastText);
-	_pSputRender->setSputSmush(_pSputSmush);
-	_pSputRender->setStdControl(_pStdControl);
-	_pSputRender->setStd3D(_pStd3D);
-	_pSputRender->setGrimEngine(this);
-	_pSputRender->setLua(_pLua);
-	_pSputCostume->setSputActor(_pSputActor);
-	_pSputCostume->setGrimEngine(this);
-	_pSputCostume->setLua(_pLua);
-	_pSputActor->setGrimEngine(this);
-	_pSputActor->setLua(_pLua);
-	_pSputActor->setStd3D(_pStd3D);
-	_pSputControl->setGrimEngine(this);
+	_res->setSputRender(_sputRender);
+	_sputResource->setSputRender(_sputRender);
+	_sputResource->setSputRoom(_sputRoom);
+	_sputResource->setCos(_sputCostume->getCos());
+	_sputResource->setText(_text);
+	_sputResource->setBlastText(_blastText);
+	_sputResource->setWuRegistry(_wuRegistry);
+	_sputPrimitive->setSputRender(_sputRender);
+	_sputPrimitive->setLua(_luaV1);
+	_sputRoom->setSputRender(_sputRender);
+	_sputRoom->setSputActor(_sputActor);
+	_sputRoom->setGrimEngine(this);
+	_sputText->setSputRender(_sputRender);
+	_sputText->setSputRoom(_sputRoom);
+	_sputText->setGrimEngine(this);
+	_sputText->setLua(_luaV1);
+	_sputRender->setSputActor(_sputActor);
+	_sputRender->setSputText(_sputText);
+	_sputRender->setBlastText(_blastText);
+	_sputRender->setSputSmush(_sputSmush);
+	_sputRender->setStdControl(_stdControl);
+	_sputRender->setStd3D(_std3D);
+	_sputRender->setGrimEngine(this);
+	_sputRender->setLua(_luaV1);
+	_sputCostume->setSputActor(_sputActor);
+	_sputCostume->setGrimEngine(this);
+	_sputCostume->setLua(_luaV1);
+	_sputActor->setGrimEngine(this);
+	_sputActor->setLua(_luaV1);
+	_sputActor->setStd3D(_std3D);
+	_sputControl->setGrimEngine(this);
 }
 
 void GrimEngine::destroyModules() {
-	if (_bDisplayOpen)
+	if (_displayOpen)
 		shutdownDisplay();
 
 	freeVideoDevices();
 
-	delete _pLua;
-	_pLua = nullptr;
-	delete _pSputSmush;
-	_pSputSmush = nullptr;
-	delete _pSputActor;
-	_pSputActor = nullptr;
-	delete _pSputCostume;
-	_pSputCostume = nullptr;
-	delete _pSputRender;
-	_pSputRender = nullptr;
-	delete _pBackBuffer;
-	_pBackBuffer = nullptr;
-	delete _pMainGfxBuffer;
-	_pMainGfxBuffer = nullptr;
-	delete _pSputText;
-	_pSputText = nullptr;
-	delete _pNormalText;
-	_pNormalText = nullptr;
-	delete _pBlastText;
-	_pBlastText = nullptr;
-	delete _pText;
-	_pText = nullptr;
-	delete _pSputControl;
-	_pSputControl = nullptr;
-	delete _pSputRoom;
-	_pSputRoom = nullptr;
-	delete _pSputPrimitive;
-	_pSputPrimitive = nullptr;
-	delete _pSputTime;
-	_pSputTime = nullptr;
-	delete _pPolyglot;
-	_pPolyglot = nullptr;
-	delete _pWuRegistry;
-	_pWuRegistry = nullptr;
-	delete _pStdControl;
-	_pStdControl = nullptr;
-	delete _pSputResource;
-	_pSputResource = nullptr;
-	delete _pRes;
-	_pRes = nullptr;
-	delete _pWalkSystem;
-	_pWalkSystem = nullptr;
-	delete _pRd;
-	_pRd = nullptr;
+	delete _luaV1;
+	_luaV1 = nullptr;
+	delete _sputSmush;
+	_sputSmush = nullptr;
+	delete _sputActor;
+	_sputActor = nullptr;
+	delete _sputCostume;
+	_sputCostume = nullptr;
+	delete _sputRender;
+	_sputRender = nullptr;
+	delete _backBuffer;
+	_backBuffer = nullptr;
+	delete _mainGfxBuffer;
+	_mainGfxBuffer = nullptr;
+	delete _sputText;
+	_sputText = nullptr;
+	delete _normalText;
+	_normalText = nullptr;
+	delete _blastText;
+	_blastText = nullptr;
+	delete _text;
+	_text = nullptr;
+	delete _sputControl;
+	_sputControl = nullptr;
+	delete _sputRoom;
+	_sputRoom = nullptr;
+	delete _sputPrimitive;
+	_sputPrimitive = nullptr;
+	delete _sputTime;
+	_sputTime = nullptr;
+	delete _polyglotV1;
+	_polyglotV1 = nullptr;
+	delete _wuRegistry;
+	_wuRegistry = nullptr;
+	delete _stdControl;
+	_stdControl = nullptr;
+	delete _sputResource;
+	_sputResource = nullptr;
+	delete _res;
+	_res = nullptr;
+	delete _walkSystem;
+	_walkSystem = nullptr;
+	delete _rd;
+	_rd = nullptr;
 
 #if defined(GRIM_STD3D)
-	delete _pStd3D;
+	delete _std3D;
 #endif
 
-	_pStd3D = nullptr;
-	delete _pStdBmp;
-	_pStdBmp = nullptr;
-	delete _pStdPic;
-	_pStdPic = nullptr;
-	delete _pStdGif;
-	_pStdGif = nullptr;
-	delete _pStdPcx;
-	_pStdPcx = nullptr;
-	delete _pStdLbm;
-	_pStdLbm = nullptr;
-	delete _pStdBitmap;
-	_pStdBitmap = nullptr;
-	delete _pStdConffile;
-	_pStdConffile = nullptr;
-	delete _pStdDisplay;
-	_pStdDisplay = nullptr;
-	delete _pStdFile;
-	_pStdFile = nullptr;
-	delete _pStdMath;
-	_pStdMath = nullptr;
+	_std3D = nullptr;
+	delete _stdBmp;
+	_stdBmp = nullptr;
+	delete _stdPic;
+	_stdPic = nullptr;
+	delete _stdGif;
+	_stdGif = nullptr;
+	delete _stdPcx;
+	_stdPcx = nullptr;
+	delete _stdLbm;
+	_stdLbm = nullptr;
+	delete _stdBitmap;
+	_stdBitmap = nullptr;
+	delete _stdConffile;
+	_stdConffile = nullptr;
+	delete _stdDisplay;
+	_stdDisplay = nullptr;
+	delete _stdFile;
+	_stdFile = nullptr;
+	delete _stdMath;
+	_stdMath = nullptr;
 }
 
 uint GrimEngine::getHardwareBackends() const {
@@ -671,11 +665,11 @@ uint GrimEngine::getHardwareBackends() const {
 }
 
 int GrimEngine::isBackendUsable(int backend) {
-	uint numDevices = _pStdDisplay->getNumDevices();
-	StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+	uint numDevices = _stdDisplay->getNumDevices();
+	StdDisplayDevice *devices = _stdDisplay->getDevices();
 
 	for (uint i = 0; i < numDevices; i++) {
-		if (aDevices[i].type == 1 && aDevices[i].backend == backend && aDevices[i].bUsable)
+		if (devices[i].type == 1 && devices[i].backend == backend && devices[i].usable)
 			return 1;
 	}
 
@@ -687,26 +681,26 @@ int GrimEngine::hasUsableHardwareDevice() {
 }
 
 int GrimEngine::chooseHardwareBackend() {
-	StdDisplayDevice *pCurDevice = _pStdDisplay->getCurDevice();
+	StdDisplayDevice *curDevice = _stdDisplay->getCurDevice();
 
-	if (_bDisplayOpen && pCurDevice && pCurDevice->type == 1 && isBackendUsable(pCurDevice->backend))
-		return pCurDevice->backend;
+	if (_displayOpen && curDevice && curDevice->type == 1 && isBackendUsable(curDevice->backend))
+		return curDevice->backend;
 
 	if (_preferredBackend != kStdDisplayBackendNone && isBackendUsable(_preferredBackend))
 		return _preferredBackend;
 
-	if (!_pWuRegistry->getInt("ExperimentalDisplay", 1)) {
-		byte aLastDisplayGuid[16];
+	if (!_wuRegistry->getInt("ExperimentalDisplay", 1)) {
+		byte lastDisplayGuid[16];
 
-		memset(aLastDisplayGuid, 0, sizeof(aLastDisplayGuid));
+		memset(lastDisplayGuid, 0, sizeof(lastDisplayGuid));
 
-		if (_pWuRegistry->getBinary("LastDisplayDevice", aLastDisplayGuid, sizeof(aLastDisplayGuid))) {
-			uint numDevices = _pStdDisplay->getNumDevices();
-			StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+		if (_wuRegistry->getBinary("LastDisplayDevice", lastDisplayGuid, sizeof(lastDisplayGuid))) {
+			uint numDevices = _stdDisplay->getNumDevices();
+			StdDisplayDevice *devices = _stdDisplay->getDevices();
 
 			for (uint i = 0; i < numDevices; i++) {
-				if (aDevices[i].type == 1 && aDevices[i].bUsable && !memcmp(aDevices[i].guid, aLastDisplayGuid, sizeof(aLastDisplayGuid)))
-					return aDevices[i].backend;
+				if (devices[i].type == 1 && devices[i].usable && !memcmp(devices[i].guid, lastDisplayGuid, sizeof(lastDisplayGuid)))
+					return devices[i].backend;
 			}
 		}
 	}
@@ -722,27 +716,27 @@ int GrimEngine::chooseHardwareBackend() {
 
 int GrimEngine::grimStartup() {
 	_hardwareBackends = getHardwareBackends();
-	_bUseHardware = ConfMan.getBool("grim_3d_acceleration") ? 1 : 0;
-	_bRemasterFixes = (isRemastered() || ConfMan.getBool("grim_remaster_bugfixes")) ? 1 : 0;
+	_useHardware = ConfMan.getBool("grim_3d_acceleration") ? 1 : 0;
+	_remasterFixes = (isRemastered() || ConfMan.getBool("grim_remaster_bugfixes")) ? 1 : 0;
 
-	_pStdDisplay->startup();
-	_pPolyglot->initialize(this);
-	_pPolyglot->startup();
-	_pPolyglot->configure("grim.tab");
-	_pWuRegistry->startup("1.0");
+	_stdDisplay->startup();
+	_polyglotV1->initialize(this);
+	_polyglotV1->startup();
+	_polyglotV1->configure("grim.tab");
+	_wuRegistry->startup("1.0");
 
-	_pRd->startup(this);
+	_rd->startup(this);
 
-	if (!_pRd->open(0))
+	if (!_rd->open(0))
 		return 0;
 
-	if (!_pStdDisplay->enumerateDevices(_hardwareBackends))
+	if (!_stdDisplay->enumerateDevices(_hardwareBackends))
 		return 0;
 
 	initDisplay();
 
-	if (_bEnumerateVideo && _bShow)
-		_pWuRegistry->saveInt("ExperimentalDisplay", 1);
+	if (_enumerateVideo && _show)
+		_wuRegistry->saveInt("ExperimentalDisplay", 1);
 
 	if (!initDisplayAndDevice())
 		return 0;
@@ -751,12 +745,12 @@ int GrimEngine::grimStartup() {
 		return 0;
 
 	if (sputStartup()) {
-		fatalError(_pPolyglot->getTranslation("/engn004/Please make sure you are not running any other DirectX apps that take exclusive control of your hardware."),
-				_pPolyglot->getTranslation("/engn005/Grim Fandango could not initialize your hardware!"));
+		fatalError(_polyglotV1->getTranslation("/engn004/Please make sure you are not running any other DirectX apps that take exclusive control of your hardware."),
+				_polyglotV1->getTranslation("/engn005/Grim Fandango could not initialize your hardware!"));
 		return 0;
 	}
 
-	_pLua->registerHardwareOpcodes();
+	_luaV1->registerHardwareOpcodes();
 	setShutdownCallback(shutdownCallback);
 	setPaletteCallback(paletteCallback);
 	setPageFlipCallback(pageFlipCallback);
@@ -764,8 +758,8 @@ int GrimEngine::grimStartup() {
 	loadSplash();
 
 	if (bundleDofile()) {
-		fatalError(_pPolyglot->getTranslation("/engn006/Please make sure that the game is properly installed and that the CD is in your drive."),
-				_pPolyglot->getTranslation("/engn007/Grim Fandango could not find files!"));
+		fatalError(_polyglotV1->getTranslation("/engn006/Please make sure that the game is properly installed and that the CD is in your drive."),
+				_polyglotV1->getTranslation("/engn007/Grim Fandango could not find files!"));
 		return 0;
 	}
 
@@ -776,10 +770,10 @@ int GrimEngine::grimStartup() {
 }
 
 void GrimEngine::grimMain() {
-	if (_bQuit)
+	if (_quit)
 		return;
 
-	if (_bDisplayChangePending) {
+	if (_displayChangePending) {
 		int mode = _libMode;
 
 		if (!selectDisplayMode(_pendingDevice, _pendingMode, _pending3DDevice)) {
@@ -789,13 +783,13 @@ void GrimEngine::grimMain() {
 		}
 
 		_libMode = 2;
-		_pSputRender->dim(1, 2);
+		_sputRender->dim(1, 2);
 		_libMode = mode;
-		_bDisplayChangePending = 0;
+		_displayChangePending = 0;
 	}
 
-	loop(1, _bFirstFrame);
-	_bFirstFrame = 0;
+	loop(1, _firstFrameFlag);
+	_firstFrameFlag = 0;
 	_grimFrameCount++;
 
 	uint32 curTime = g_system->getMillis();
@@ -819,17 +813,17 @@ void GrimEngine::grimMain() {
 		markDirtyRect(&rect, 0);
 	}
 
-	if (_bShowDebugOverlay) {
+	if (_showDebugOverlay) {
 		int y = 30;
 
 		for (int i = 0; i < kNumPerfCounters; i++) {
-			Common::String text = Common::String::format("%s %02.3f", _aPerfCounters[i].pName, _aPerfCounters[i].elapsed);
+			Common::String text = Common::String::format("%s %02.3f", _perfCounters[i].name, _perfCounters[i].elapsed);
 			textOut(text.c_str(), 4, y);
 
 			StdRect rect = { 4, y, 190, 20 };
 
 			markDirtyRect(&rect, 0);
-			_aPerfCounters[i].elapsed = 0.0;
+			_perfCounters[i].elapsed = 0.0;
 			y += 20;
 		}
 	}
@@ -838,60 +832,60 @@ void GrimEngine::grimMain() {
 }
 
 void GrimEngine::textOut(const char *text, int x, int y) {
-	if (!_bDisplayOpen || !_pBackBuffer)
+	if (!_displayOpen || !_backBuffer)
 		return;
 
-	const Graphics::Font *pFont = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
+	const Graphics::Font *font = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
 
-	if (!pFont) {
+	if (!font) {
 		warning("GrimEngine::textOut(): no built-in font available");
 		return;
 	}
 
-	bool bVideoMemory = _pBackBuffer->type == 1;
+	bool videoMemory = _backBuffer->type == 1;
 
-	if (bVideoMemory && !_pStdDisplay->vBufferLock(_pBackBuffer)) {
+	if (videoMemory && !_stdDisplay->vBufferLock(_backBuffer)) {
 		warning("GrimEngine::textOut(): could not lock the back buffer");
 		return;
 	}
 
-	if (_pBackBuffer->pPixels) {
+	if (_backBuffer->pixels) {
 		Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 		Graphics::Surface surface;
 
-		surface.init(_pBackBuffer->tex.width, _pBackBuffer->tex.height, _pBackBuffer->tex.pitchInBytes, _pBackBuffer->pPixels, pixelFormat);
+		surface.init(_backBuffer->tex.width, _backBuffer->tex.height, _backBuffer->tex.pitchInBytes, _backBuffer->pixels, pixelFormat);
 
 		uint32 color = surface.format.RGBToColor(255, 255, 0);
 
-		pFont->drawString(&surface, Common::String(text), x, y, surface.w - x, color);
+		font->drawString(&surface, Common::String(text), x, y, surface.w - x, color);
 	}
 
-	if (bVideoMemory)
-		_pStdDisplay->vBufferUnlock(_pBackBuffer);
+	if (videoMemory)
+		_stdDisplay->vBufferUnlock(_backBuffer);
 }
 
 void GrimEngine::grimShutdown() {
 	freeVideoDevices();
 	close();
 
-	if (_bSputStarted)
+	if (_sputStarted)
 		sputShutdown();
 
 	sputTerminate();
 
-	_pRd->close();
-	_pRd->shutdown();
+	_rd->close();
+	_rd->shutdown();
 
 	shutdownDisplay();
-	_pStdDisplay->restoreDisplayMode();
+	_stdDisplay->restoreDisplayMode();
 
-	_pWuRegistry->shutdown();
-	_pPolyglot->shutdown();
-	_pStdDisplay->shutdown();
+	_wuRegistry->shutdown();
+	_polyglotV1->shutdown();
+	_stdDisplay->shutdown();
 }
 
 int GrimEngine::shutdownCallback(int arg) {
-	g_grim->_bQuit = 1;
+	g_grim->_quit = 1;
 
 	return 0;
 }
@@ -905,46 +899,46 @@ Common::SeekableReadStream *GrimEngine::openFile(const char *path) {
 	Common::String baseName = Common::lastPathComponent(name, '/');
 	Common::Path fullPath(name, '/');
 	Common::Path basePath(baseName, Common::Path::kNoSeparator);
-	Common::SeekableReadStream *pStream = nullptr;
+	Common::SeekableReadStream *stream = nullptr;
 
 	if (SearchMan.hasFile(fullPath)) {
-		pStream = SearchMan.createReadStreamForMember(fullPath);
-		pStream = wrapPatchedFile(pStream, fullPath);
+		stream = SearchMan.createReadStreamForMember(fullPath);
+		stream = wrapPatchedFile(stream, fullPath);
 	} else if (SearchMan.hasFile(basePath)) {
-		pStream = SearchMan.createReadStreamForMember(basePath);
-		pStream = wrapPatchedFile(pStream, basePath);
+		stream = SearchMan.createReadStreamForMember(basePath);
+		stream = wrapPatchedFile(stream, basePath);
 	}
 
-	return pStream;
+	return stream;
 }
 
-int GrimEngine::sputInitialize(SysStruct *pHS) {
-	_pSputHS = pHS;
+int GrimEngine::sputInitialize(SysStruct *hs) {
+	_sputHS = hs;
 
-	int result = callRegisterModules(pHS, 0, kNumBaseModules);
+	int result = callRegisterModules(hs, 0, kNumBaseModules);
 
 	if (!result)
-		result = callRegisterModules(pHS, kNumBaseModules, kNumMainModules);
+		result = callRegisterModules(hs, kNumBaseModules, kNumMainModules);
 
-	_bSputInitialized = result == 0;
+	_sputInitialized = result == 0;
 
 	return result;
 }
 
 int GrimEngine::sputTerminate() {
-	_pSputHS = nullptr;
+	_sputHS = nullptr;
 
-	if (_bSputInitialized) {
+	if (_sputInitialized) {
 		callRelease(kNumBaseModules, kNumMainModules);
 		callRelease(0, kNumBaseModules);
-		_bSputInitialized = 0;
+		_sputInitialized = 0;
 	}
 
 	return 0;
 }
 
 int GrimEngine::sputStartup() {
-	if (_bSputStarted)
+	if (_sputStarted)
 		return 1;
 
 	int result = runInitTable(0, kNumBaseModules);
@@ -954,22 +948,22 @@ int GrimEngine::sputStartup() {
 
 		// The demo always uses 12288000 bytes, whatever the memory of the machine
 		if (_gameFlags & ADGF_DEMO) {
-			_pSputResource->setMemoryUsage(12288000, 0);
+			_sputResource->setMemoryUsage(12288000, 0);
 		} else if (physicalRam > 0x1000000) {
-			int memoryLimit = _pRes->getMemoryLimit();
+			int memoryLimit = _res->getMemoryLimit();
 
 			if (memoryLimit >= (int)(physicalRam - 0x800000))
 				memoryLimit = physicalRam - 0x800000;
 
-			_pSputResource->setMemoryUsage(memoryLimit, 0);
+			_sputResource->setMemoryUsage(memoryLimit, 0);
 		} else {
-			_pSputResource->setMemoryUsage(10485760, 0);
+			_sputResource->setMemoryUsage(10485760, 0);
 		}
 
 		result = runInitTable(kNumBaseModules, kNumMainModules);
 	}
 
-	_bSputStarted = result == 0;
+	_sputStarted = result == 0;
 
 	return result;
 }
@@ -979,14 +973,14 @@ int GrimEngine::sputShutdown() {
 
 	int result = callTableFunc(0, kNumBaseModules);
 
-	_bSputStarted = 0;
+	_sputStarted = 0;
 
 	return result;
 }
 
-int GrimEngine::callRegisterModules(SysStruct *pHS, int firstModule, int count) {
+int GrimEngine::callRegisterModules(SysStruct *hs, int firstModule, int count) {
 	for (int i = 0; i < count; i++) {
-		if (initializeModule(firstModule + i, pHS)) {
+		if (initializeModule(firstModule + i, hs)) {
 			for (int j = i - 1; j >= 0; j--)
 				terminateModule(firstModule + j);
 
@@ -1024,32 +1018,32 @@ int GrimEngine::callRelease(int firstModule, int count) {
 	return 0;
 }
 
-int GrimEngine::initializeModule(int module, SysStruct *pHS) {
+int GrimEngine::initializeModule(int module, SysStruct *hs) {
 	switch (module) {
 	case kSputMainModuleRoom:
-		return _pSputRoom->initialize(pHS);
+		return _sputRoom->initialize(hs);
 	case kSputMainModuleTime:
-		return _pSputTime->initialize(pHS);
+		return _sputTime->initialize(hs);
 	case kSputMainModuleLua:
-		return _pLua->initialize(pHS);
+		return _luaV1->initialize(hs);
 	case kSputMainModuleCostume:
-		return _pSputCostume->initialize(pHS);
+		return _sputCostume->initialize(hs);
 	case kSputMainModuleActor:
-		return _pSputActor->initialize(pHS);
+		return _sputActor->initialize(hs);
 	case kSputMainModuleResource:
-		return _pSputResource->initialize(pHS);
+		return _sputResource->initialize(hs);
 	case kSputMainModuleControl:
-		return _pSputControl->initialize(pHS);
+		return _sputControl->initialize(hs);
 	case kSputMainModuleSounds:
 		return 0;
 	case kSputMainModuleRender:
-		return _pSputRender->initialize(pHS);
+		return _sputRender->initialize(hs);
 	case kSputMainModuleText:
-		return _pSputText->initialize(pHS);
+		return _sputText->initialize(hs);
 	case kSputMainModulePrimitive:
-		return _pSputPrimitive->initialize(pHS);
+		return _sputPrimitive->initialize(hs);
 	case kSputMainModuleSmush:
-		return _pSputSmush->initialize(pHS);
+		return _sputSmush->initialize(hs);
 	default:
 		return 0;
 	}
@@ -1058,29 +1052,29 @@ int GrimEngine::initializeModule(int module, SysStruct *pHS) {
 int GrimEngine::startupModule(int module) {
 	switch (module) {
 	case kSputMainModuleRoom:
-		return _pSputRoom->startup();
+		return _sputRoom->startup();
 	case kSputMainModuleTime:
-		return _pSputTime->startup();
+		return _sputTime->startup();
 	case kSputMainModuleLua:
-		return _pLua->startup();
+		return _luaV1->startup();
 	case kSputMainModuleCostume:
-		return _pSputCostume->startup();
+		return _sputCostume->startup();
 	case kSputMainModuleActor:
-		return _pSputActor->startup();
+		return _sputActor->startup();
 	case kSputMainModuleResource:
-		return _pSputResource->startup();
+		return _sputResource->startup();
 	case kSputMainModuleControl:
-		return _pSputControl->startup();
+		return _sputControl->startup();
 	case kSputMainModuleSounds:
 		return 0;
 	case kSputMainModuleRender:
-		return _pSputRender->startup();
+		return _sputRender->startup();
 	case kSputMainModuleText:
-		return _pSputText->startup();
+		return _sputText->startup();
 	case kSputMainModulePrimitive:
-		return _pSputPrimitive->startup();
+		return _sputPrimitive->startup();
 	case kSputMainModuleSmush:
-		return _pSputSmush->startup();
+		return _sputSmush->startup();
 	default:
 		return 0;
 	}
@@ -1089,39 +1083,39 @@ int GrimEngine::startupModule(int module) {
 void GrimEngine::shutdownModule(int module) {
 	switch (module) {
 	case kSputMainModuleRoom:
-		_pSputRoom->shutdown();
+		_sputRoom->shutdown();
 		break;
 	case kSputMainModuleTime:
-		_pSputTime->shutdown();
+		_sputTime->shutdown();
 		break;
 	case kSputMainModuleLua:
-		_pLua->shutdown();
+		_luaV1->shutdown();
 		break;
 	case kSputMainModuleCostume:
-		_pSputCostume->shutdown();
+		_sputCostume->shutdown();
 		break;
 	case kSputMainModuleActor:
-		_pSputActor->shutdown();
+		_sputActor->shutdown();
 		break;
 	case kSputMainModuleResource:
-		_pSputResource->shutdown();
+		_sputResource->shutdown();
 		break;
 	case kSputMainModuleControl:
-		_pSputControl->shutdown();
+		_sputControl->shutdown();
 		break;
 	case kSputMainModuleSounds:
 		break;
 	case kSputMainModuleRender:
-		_pSputRender->shutdown();
+		_sputRender->shutdown();
 		break;
 	case kSputMainModuleText:
-		_pSputText->shutdown();
+		_sputText->shutdown();
 		break;
 	case kSputMainModulePrimitive:
-		_pSputPrimitive->shutdown();
+		_sputPrimitive->shutdown();
 		break;
 	case kSputMainModuleSmush:
-		_pSputSmush->shutdown();
+		_sputSmush->shutdown();
 		break;
 	default:
 		break;
@@ -1131,39 +1125,39 @@ void GrimEngine::shutdownModule(int module) {
 void GrimEngine::terminateModule(int module) {
 	switch (module) {
 	case kSputMainModuleRoom:
-		_pSputRoom->terminate();
+		_sputRoom->terminate();
 		break;
 	case kSputMainModuleTime:
-		_pSputTime->terminate();
+		_sputTime->terminate();
 		break;
 	case kSputMainModuleLua:
-		_pLua->terminate();
+		_luaV1->terminate();
 		break;
 	case kSputMainModuleCostume:
-		_pSputCostume->terminate();
+		_sputCostume->terminate();
 		break;
 	case kSputMainModuleActor:
-		_pSputActor->terminate();
+		_sputActor->terminate();
 		break;
 	case kSputMainModuleResource:
-		_pSputResource->terminate();
+		_sputResource->terminate();
 		break;
 	case kSputMainModuleControl:
-		_pSputControl->terminate();
+		_sputControl->terminate();
 		break;
 	case kSputMainModuleSounds:
 		break;
 	case kSputMainModuleRender:
-		_pSputRender->terminate();
+		_sputRender->terminate();
 		break;
 	case kSputMainModuleText:
-		_pSputText->release();
+		_sputText->release();
 		break;
 	case kSputMainModulePrimitive:
-		_pSputPrimitive->terminate();
+		_sputPrimitive->terminate();
 		break;
 	case kSputMainModuleSmush:
-		_pSputSmush->terminate();
+		_sputSmush->terminate();
 		break;
 	default:
 		break;
@@ -1171,32 +1165,32 @@ void GrimEngine::terminateModule(int module) {
 }
 
 int GrimEngine::bundleDofile() {
-	int bFound = _pLua->findSystemFiles();
+	int found = _luaV1->findSystemFiles();
 
-	return !bFound;
+	return !found;
 }
 
 int GrimEngine::startEngine(int saveGameResume, const char *bootParam) {
-	if (_bSputOpen)
+	if (_sputOpen)
 		return 1;
 
-	int bBooted = _pLua->boot(saveGameResume, bootParam);
+	int booted = _luaV1->boot(saveGameResume, bootParam);
 
-	if (!bBooted)
+	if (!booted)
 		return 1;
 
 	_libMode = 2;
-	_pSputRender->open();
+	_sputRender->open();
 
-	if (!_pSputControl->open())
+	if (!_sputControl->open())
 		return 1;
 
-	_bSputOpen = 1;
+	_sputOpen = 1;
 
 	return 0;
 }
 
-int GrimEngine::loop(int bRender, int manualTicks) {
+int GrimEngine::loop(int render, int manualTicks) {
 	if (_libSaveRequest)
 		save();
 
@@ -1212,7 +1206,7 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 
 	if (_libMode) {
 		setPerfCounter(1);
-		_pSputControl->update(_pSputTime->getFrameTimeFlex());
+		_sputControl->update(_sputTime->getFrameTimeFlex());
 		queryPerfCounterDiff(1);
 
 		int mode = _libMode;
@@ -1221,13 +1215,13 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 			_loopCount++;
 
 			if (manualTicks)
-				_pSputTime->advanceManual(manualTicks);
+				_sputTime->advanceManual(manualTicks);
 			else
-				_pSputTime->advance();
+				_sputTime->advance();
 
-			if (_bRunLua) {
+			if (_runLua) {
 				setPerfCounter(2);
-				_pLua->update();
+				_luaV1->update();
 				queryPerfCounterDiff(2);
 			}
 
@@ -1236,21 +1230,21 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 			if (mode != 3 && (mode != 4 || (_gameFlags & ADGF_DEMO))) {
 				setPerfCounter(3);
 				if (_gameFlags & ADGF_DEMO)
-					_pSputActor->updateActorsDemo(_pSputTime->getFrameTimeFlex());
+					_sputActor->updateActorsDemo(_sputTime->getFrameTimeFlex());
 				else
-					_pSputActor->updateActors(_pSputTime->getFrameTimeFlex());
+					_sputActor->updateActors(_sputTime->getFrameTimeFlex());
 				queryPerfCounterDiff(3);
 				mode = _libMode;
 			}
 		}
 
-		if (bRender && (mode != 1 || manualTicks)) {
-			_pSputRender->update();
+		if (render && (mode != 1 || manualTicks)) {
+			_sputRender->update();
 
 			if (_gameFlags & ADGF_DEMO)
-				_pRd->advanceFrame();
+				_rd->advanceFrame();
 
-			_bRenderPending = 1;
+			_renderPending = 1;
 		}
 
 		queryPerfCounterDiff(0);
@@ -1271,17 +1265,17 @@ void GrimEngine::timedPageFlip() {
 
 	switch (_libMode) {
 	case 3:
-		if (!_pSputRender->queryDisplayState())
-			_pSputRender->pageFlip();
+		if (!_sputRender->queryDisplayState())
+			_sputRender->pageFlip();
 
 		break;
 	case 2:
-		_pSputRender->pageFlip();
+		_sputRender->pageFlip();
 		break;
 	case 1:
-		if (_bRenderPending) {
-			_pSputRender->pageFlip();
-			_bRenderPending = 0;
+		if (_renderPending) {
+			_sputRender->pageFlip();
+			_renderPending = 0;
 		}
 
 		break;
@@ -1296,16 +1290,16 @@ void GrimEngine::setPerfCounter(uint slot) {
 	if (slot >= (uint)kNumPerfCounters)
 		error("GrimEngine::setPerfCounter(): slot %u out of range", slot);
 
-	_aPerfCounters[slot].start = (double)g_system->getMillis();
+	_perfCounters[slot].start = (double)g_system->getMillis();
 }
 
 int GrimEngine::queryPerfCounterDiff(uint slot) {
 	if (slot >= (uint)kNumPerfCounters)
 		error("GrimEngine::queryPerfCounterDiff(): slot %u out of range", slot);
 
-	double elapsed = (double)g_system->getMillis() - _aPerfCounters[slot].start;
+	double elapsed = (double)g_system->getMillis() - _perfCounters[slot].start;
 
-	_aPerfCounters[slot].elapsed = elapsed;
+	_perfCounters[slot].elapsed = elapsed;
 
 	return (int)elapsed;
 }
@@ -1318,102 +1312,102 @@ int GrimEngine::getPrevMode() const {
 	return _sputPrevMode;
 }
 
-void GrimEngine::overrideSelectedActorCostume(int hInstance) {
-	SputActor *pActor = _pSputActor->getSelectedActor();
+void GrimEngine::overrideSelectedActorCostume(int instance) {
+	SputActor *actor = _sputActor->getSelectedActor();
 
-	if (pActor) {
-		_pLua->doCostumeOverrideCallback(pActor, 1);
-		_pSputActor->pushCostume(pActor, nullptr, hInstance);
+	if (actor) {
+		_luaV1->doCostumeOverrideCallback(actor, 1);
+		_sputActor->pushCostume(actor, nullptr, instance);
 	}
 }
 
 void GrimEngine::restoreSelectedActorCostume() {
-	SputActor *pActor = _pSputActor->getSelectedActor();
+	SputActor *actor = _sputActor->getSelectedActor();
 
-	if (pActor) {
-		_pLua->doCostumeOverrideCallback(pActor, 0);
-		_pSputActor->popCostume(pActor, 0);
+	if (actor) {
+		_luaV1->doCostumeOverrideCallback(actor, 0);
+		_sputActor->popCostume(actor, 0);
 	}
 }
 
-int GrimEngine::setDisplay(StdVBuffer *pVBuffer, StdVBuffer *pZBuffer) {
-	_pSputRender->pageCountIs(_numDrawBuffers);
-	_pSputRender->setDisplay(pVBuffer, pZBuffer, 0, 0, pVBuffer->tex.width - 1, pVBuffer->tex.height - 1, _libRenderOptions);
+int GrimEngine::setDisplay(StdVBuffer *vBuffer, StdVBuffer *zBuffer) {
+	_sputRender->pageCountIs(_numDrawBuffers);
+	_sputRender->setDisplay(vBuffer, zBuffer, 0, 0, vBuffer->tex.width - 1, vBuffer->tex.height - 1, _libRenderOptions);
 
 	return 0;
 }
 
 int GrimEngine::unsetDisplay() {
-	_pSputRender->close();
+	_sputRender->close();
 
 	return 0;
 }
 
 void GrimEngine::makeCurrentSet(const char *name) {
 	if (name) {
-		Room *pRoom = static_cast<Room *>(_pSputResource->alloc(kSputTagSet, name));
+		Room *room = static_cast<Room *>(_sputResource->alloc(kSputTagSet, name));
 
-		if (pRoom && pRoom->apColormaps && pRoom != _pSputRoom->getCurrentRoom()) {
-			_pSputRoom->setCurrentRoom(pRoom);
-			_pWalkSystem->setCollection(pRoom->name);
-			_pSputRender->syncCamera(pRoom, pRoom->curSetup);
+		if (room && room->colormaps && room != _sputRoom->getCurrentRoom()) {
+			_sputRoom->setCurrentRoom(room);
+			_walkSystem->setCollection(room->name);
+			_sputRender->syncCamera(room, room->curSetup);
 		}
 	} else {
-		_pSputRoom->setCurrentRoom(nullptr);
+		_sputRoom->setCurrentRoom(nullptr);
 	}
 }
 
 void GrimEngine::close() {
-	if (_bSputOpen) {
+	if (_sputOpen) {
 		_libMode = 0;
-		_pSputControl->close();
-		_pSputRender->close();
-		_pSputRoom->setCurrentRoom(nullptr);
-		_bSputOpen = 0;
+		_sputControl->close();
+		_sputRender->close();
+		_sputRoom->setCurrentRoom(nullptr);
+		_sputOpen = 0;
 	}
 }
 
-void GrimEngine::setDebugToggleCallback(void (*pFunc)(int)) {
-	_pLua->setDebugToggleCallback(pFunc);
+void GrimEngine::setDebugToggleCallback(void (*func)(int)) {
+	_luaV1->setDebugToggleCallback(func);
 }
 
-void GrimEngine::setPaletteCallback(int (*pFunc)(byte *, int)) {
-	_pSputRender->setPaletteCallback(pFunc);
+void GrimEngine::setPaletteCallback(int (*func)(byte *, int)) {
+	_sputRender->setPaletteCallback(func);
 }
 
-void GrimEngine::setShutdownCallback(int (*pFunc)(int)) {
-	_pShutdownCallback = pFunc;
+void GrimEngine::setShutdownCallback(int (*func)(int)) {
+	_shutdownCallback = func;
 }
 
-void GrimEngine::setPageFlipCallback(int (*pFunc)()) {
-	_pSputRender->setPageFlipCallback(pFunc);
+void GrimEngine::setPageFlipCallback(int (*func)()) {
+	_sputRender->setPageFlipCallback(func);
 }
 
 void GrimEngine::using3DHardware(int b3D) {
-	_pSputRender->using3DHardware(b3D);
+	_sputRender->using3DHardware(b3D);
 }
 
 int GrimEngine::addResourcePath(const char *path) {
-	return _pSputResource->addResourcePath(path);
+	return _sputResource->addResourcePath(path);
 }
 
 int GrimEngine::findResources() {
-	return _pSputResource->findResources();
+	return _sputResource->findResources();
 }
 
-void GrimEngine::markDirtyRect(const StdRect *pRect, int page) {
-	_pSputRender->markDirtyRect(pRect, page);
+void GrimEngine::markDirtyRect(const StdRect *rectPointer, int page) {
+	_sputRender->markDirtyRect(rectPointer, page);
 }
 
 void GrimEngine::makeCurrentSetupLib(uint setup) {
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 
-	if (!pRoom) {
+	if (!room) {
 		warning("GrimEngine::makeCurrentSetupLib(): no current room");
 		return;
 	}
 
-	uint numSetups = pRoom->numSetups;
+	uint numSetups = room->numSetups;
 	int newSetup = (int)setup;
 
 	if (setup >= numSetups) {
@@ -1425,84 +1419,84 @@ void GrimEngine::makeCurrentSetupLib(uint setup) {
 		newSetup = (int)(setup % numSetups);
 	}
 
-	int oldSetup = pRoom->curSetup;
+	int oldSetup = room->curSetup;
 
 	if (newSetup != oldSetup) {
-		bool bDemo = (_gameFlags & ADGF_DEMO) != 0;
+		bool demo = (_gameFlags & ADGF_DEMO) != 0;
 
-		pRoom->curSetup = newSetup;
+		room->curSetup = newSetup;
 
-		if (!bDemo)
-			_pSputRoom->setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+		if (!demo)
+			_sputRoom->setSoundParameters(room, 8.0f, 20, 127, 1.5f, 0.8f);
 
-		_pLua->cameraChange(oldSetup, newSetup);
+		_luaV1->cameraChange(oldSetup, newSetup);
 
-		if (!bDemo)
-			_pSputRoom->relocateSounds();
+		if (!demo)
+			_sputRoom->relocateSounds();
 	}
 }
 
 void GrimEngine::nextSetup() {
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 
-	if (!pRoom || !pRoom->numSetups) {
+	if (!room || !room->numSetups) {
 		warning("GrimEngine::nextSetup(): no current room or no setups");
 		return;
 	}
 
-	makeCurrentSetupLib((uint)(pRoom->curSetup + 1) % pRoom->numSetups);
+	makeCurrentSetupLib((uint)(room->curSetup + 1) % room->numSetups);
 }
 
 void GrimEngine::previousSetup() {
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 
-	if (!pRoom || !pRoom->numSetups) {
+	if (!room || !room->numSetups) {
 		warning("GrimEngine::previousSetup(): no current room or no setups");
 		return;
 	}
 
-	makeCurrentSetupLib((uint)(pRoom->curSetup + pRoom->numSetups - 1) % pRoom->numSetups);
+	makeCurrentSetupLib((uint)(room->curSetup + room->numSetups - 1) % room->numSetups);
 }
 
 int GrimEngine::confirmClose() {
-	int result = _pLua->doExitCallback();
+	int result = _luaV1->doExitCallback();
 
 	return result == 0;
 }
 
 void GrimEngine::requestShutdown(int arg) {
-	if (_pShutdownCallback)
-		_pShutdownCallback(arg);
+	if (_shutdownCallback)
+		_shutdownCallback(arg);
 }
 
-void GrimEngine::setPause(int bPause) {
+void GrimEngine::setPause(int pause) {
 	if (!_libMode)
 		return;
 
-	if (bPause) {
+	if (pause) {
 		if (_libMode != 1) {
 			_libPauseSavedMode = _libMode;
 			_libPauseSavedOldMode = _libPauseOldMode;
 			_libMode = 1;
 			_imuse->imPause();
-			_pSputSmush->pause(1);
+			_sputSmush->pause(1);
 		}
 	} else if (_libMode == 1) {
 		_libMode = _libPauseSavedMode;
 		_libPauseOldMode = _libPauseSavedOldMode;
 		_imuse->imResume();
-		_pSputSmush->pause(0);
+		_sputSmush->pause(0);
 	}
 }
 
 int GrimEngine::doPauseCallback() {
-	int result = _pLua->doPauseCallback();
+	int result = _luaV1->doPauseCallback();
 
 	return result;
 }
 
 int GrimEngine::characterCallback(int character) {
-	int result = _pLua->doCharacterCallback(character);
+	int result = _luaV1->doCharacterCallback(character);
 
 	return result;
 }
@@ -1513,16 +1507,16 @@ int GrimEngine::setImuseState(int state) {
 	return state;
 }
 
-int GrimEngine::playMovie(const char *name, int bFullscreen, int bLooping, int x, int y) {
-	if (bFullscreen)
-		_pSputSmush->setTarget(_pMainGfxBuffer);
+int GrimEngine::playMovie(const char *name, int fullscreen, int looping, int x, int y) {
+	if (fullscreen)
+		_sputSmush->setTarget(_mainGfxBuffer);
 	else
-		_pSputSmush->setTarget(_pSputRender->drawBuffer());
+		_sputSmush->setTarget(_sputRender->drawBuffer());
 
-	if (_pSputSmush->startMovie(name, bLooping, x, y))
+	if (_sputSmush->startMovie(name, looping, x, y))
 		return 0;
 
-	if (bFullscreen) {
+	if (fullscreen) {
 		_libMode = 3;
 		return 1;
 	}
@@ -1537,7 +1531,7 @@ int GrimEngine::userPaint() {
 	int result = 0;
 
 	if (_libMode == 4) {
-		_pLua->doUserPaintCallback();
+		_luaV1->doUserPaintCallback();
 	}
 
 	return result;
@@ -1561,7 +1555,7 @@ int GrimEngine::justLoaded() {
 	return result;
 }
 
-static const StdColorFormat g_saveImageFormat = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
+static const StdColorFormat saveImageFormat = { 1, 16, 5, 6, 5, 11, 5, 0, 3, 2, 3, 0, 0, 0 };
 
 static const int kSoundsSaveVersion = 30;
 
@@ -1575,33 +1569,33 @@ static int luaZread(void *buffer, int size) {
 
 void GrimEngine::save() {
 	_libSaveRequest = 0;
-	_pSputRender->allowLoadImage(0);
-	_pSputRender->drawProgressBar(0.1f);
+	_sputRender->allowLoadImage(0);
+	_sputRender->drawProgressBar(0.1f);
 
 	Common::String fileName = _libSaveGameFileName;
 
 	if (fileName.empty())
 		fileName = "grim.sav";
 
-	_pSaveWriteStream = g_system->getSavefileManager()->openForSaving(fileName);
+	_saveWriteStream = g_system->getSavefileManager()->openForSaving(fileName);
 
-	if (!_pSaveWriteStream)
+	if (!_saveWriteStream)
 		return;
 
-	_pLua->saveGameCallback();
+	_luaV1->saveGameCallback();
 
-	StdVBuffer *pShot = _pSputRender->screenShot(250, 188);
+	StdVBuffer *shot = _sputRender->screenShot(250, 188);
 	uint32 imageSize = 0;
 
-	if (pShot) {
-		StdColorFormat format = g_saveImageFormat;
-		StdVBuffer *pImage = _pStdDisplay->vBufferConvertColorFormat(&format, pShot);
+	if (shot) {
+		StdColorFormat format = saveImageFormat;
+		StdVBuffer *image = _stdDisplay->vBufferConvertColorFormat(&format, shot);
 
-		if (pImage) {
-			imageSize = TO_LE_32((uint32)pImage->tex.sizeInBytes);
+		if (image) {
+			imageSize = TO_LE_32((uint32)image->tex.sizeInBytes);
 			zwrite(&imageSize, 4);
-			zwrite(pImage->pPixels, pImage->tex.sizeInBytes);
-			_pStdDisplay->vBufferFree(pImage);
+			zwrite(image->pixels, image->tex.sizeInBytes);
+			_stdDisplay->vBufferFree(image);
 		}
 	} else {
 		warning("GrimEngine::save(): no screenshot for the savegame");
@@ -1610,37 +1604,37 @@ void GrimEngine::save() {
 	if (!imageSize)
 		zwrite(&imageSize, 4);
 
-	_pSputRender->drawProgressBar(0.2f);
-	_pSputCostume->getCos()->save(_pSaveWriteStream);
-	_pSputRender->drawProgressBar(0.3f);
-	_pRes->sysSave(_pSaveWriteStream);
-	_pSputRender->drawProgressBar(0.4f);
-	_pSputText->save(_pSaveWriteStream);
-	_pSputRoom->save(_pSaveWriteStream);
-	_pSputRender->drawProgressBar(0.5f);
-	_pSputActor->save(_pSaveWriteStream);
-	_pSputRender->save(_pSaveWriteStream);
-	_pSputPrimitive->save(_pSaveWriteStream);
-	_pSputSmush->save(_pSaveWriteStream);
+	_sputRender->drawProgressBar(0.2f);
+	_sputCostume->getCos()->save(_saveWriteStream);
+	_sputRender->drawProgressBar(0.3f);
+	_res->sysSave(_saveWriteStream);
+	_sputRender->drawProgressBar(0.4f);
+	_sputText->save(_saveWriteStream);
+	_sputRoom->save(_saveWriteStream);
+	_sputRender->drawProgressBar(0.5f);
+	_sputActor->save(_saveWriteStream);
+	_sputRender->save(_saveWriteStream);
+	_sputPrimitive->save(_saveWriteStream);
+	_sputSmush->save(_saveWriteStream);
 
 	uint32 prevMode = TO_LE_32((uint32)_sputPrevMode);
 
 	zwrite(&prevMode, 4);
-	_pSputRender->drawProgressBar(0.75f);
+	_sputRender->drawProgressBar(0.75f);
 	lua_Save(luaZwrite);
 
-	_pSputRender->drawProgressBar(1.0f);
-	soundsSave(_pSaveWriteStream);
+	_sputRender->drawProgressBar(1.0f);
+	soundsSave(_saveWriteStream);
 
-	_pSaveWriteStream->finalize();
-	delete _pSaveWriteStream;
-	_pSaveWriteStream = nullptr;
+	_saveWriteStream->finalize();
+	delete _saveWriteStream;
+	_saveWriteStream = nullptr;
 
-	_pSputRender->allowLoadImage(1);
+	_sputRender->allowLoadImage(1);
 }
 
 int GrimEngine::zwrite(const void *buffer, int size) {
-	if (size && _pSaveWriteStream->write(buffer, size) != (uint32)size)
+	if (size && _saveWriteStream->write(buffer, size) != (uint32)size)
 		error("GrimEngine::zwrite(): write error");
 
 	return 0;
@@ -1654,12 +1648,12 @@ void GrimEngine::restore() {
 	if (fileName.empty())
 		fileName = "grim.sav";
 
-	_pSaveReadStream = g_system->getSavefileManager()->openForLoading(fileName);
+	_saveReadStream = g_system->getSavefileManager()->openForLoading(fileName);
 
-	if (!_pSaveReadStream)
+	if (!_saveReadStream)
 		return;
 
-	if (LegacySaveFile::isLegacySave(_pSaveReadStream)) {
+	if (LegacySaveFile::isLegacySave(_saveReadStream)) {
 		restoreLegacy();
 		return;
 	}
@@ -1669,24 +1663,24 @@ void GrimEngine::restore() {
 	uint32 blockSize = 0;
 
 	zread(&blockSize, 4);
-	_pSaveReadStream->seek((int)FROM_LE_32(blockSize), SEEK_CUR);
+	_saveReadStream->seek((int)FROM_LE_32(blockSize), SEEK_CUR);
 
 	uint32 imageSize = 0;
 
 	zread(&imageSize, 4);
-	_pSaveReadStream->seek((int)FROM_LE_32(imageSize), SEEK_CUR);
+	_saveReadStream->seek((int)FROM_LE_32(imageSize), SEEK_CUR);
 
-	_pSputRender->drawProgressBar(0.2f);
-	_pSputCostume->getCos()->restore(_pSaveReadStream);
-	_pSputRender->drawProgressBar(0.3f);
-	_pRes->sysLoad(_pSaveReadStream);
-	_pSputText->restore(_pSaveReadStream);
-	_pSputRender->drawProgressBar(0.4f);
-	_pSputRoom->restore(_pSaveReadStream);
-	_pSputActor->restore(_pSaveReadStream);
-	_pSputRender->restore(_pSaveReadStream);
-	_pSputPrimitive->restore(_pSaveReadStream);
-	_pSputSmush->restore(_pSaveReadStream);
+	_sputRender->drawProgressBar(0.2f);
+	_sputCostume->getCos()->restore(_saveReadStream);
+	_sputRender->drawProgressBar(0.3f);
+	_res->sysLoad(_saveReadStream);
+	_sputText->restore(_saveReadStream);
+	_sputRender->drawProgressBar(0.4f);
+	_sputRoom->restore(_saveReadStream);
+	_sputActor->restore(_saveReadStream);
+	_sputRender->restore(_saveReadStream);
+	_sputPrimitive->restore(_saveReadStream);
+	_sputSmush->restore(_saveReadStream);
 
 	_libMode = 4;
 
@@ -1694,73 +1688,73 @@ void GrimEngine::restore() {
 
 	zread(&prevMode, 4);
 	_sputPrevMode = (int)FROM_LE_32(prevMode);
-	_pSputRender->drawProgressBar(0.75f);
+	_sputRender->drawProgressBar(0.75f);
 	lua_Restore(luaZread);
 
-	_pSputRender->drawProgressBar(1.0f);
-	soundsRestore(_pSaveReadStream);
+	_sputRender->drawProgressBar(1.0f);
+	soundsRestore(_saveReadStream);
 	restoreEpilogue();
 }
 
 void GrimEngine::restorePrologue() {
-	_pSputRender->allowLoadImage(0);
-	_pSputRender->drawProgressBar(0.1f);
+	_sputRender->allowLoadImage(0);
+	_sputRender->drawProgressBar(0.1f);
 	_imuse->imStopAllSounds();
-	_pSputSmush->stopMovie();
-	_pSputSmush->periodic();
-	_pRes->freeAll();
-	_pSputActor->clearShadowMaterial();
-	_pSputResource->stopPurge(1);
+	_sputSmush->stopMovie();
+	_sputSmush->periodic();
+	_res->freeAll();
+	_sputActor->clearShadowMaterial();
+	_sputResource->stopPurge(1);
 }
 
 void GrimEngine::restoreEpilogue() {
-	_pSputResource->stopPurge(0);
+	_sputResource->stopPurge(0);
 
-	Room *pRoom = _pSputRoom->getCurrentRoom();
+	Room *room = _sputRoom->getCurrentRoom();
 	int curSetup = 0;
 
-	if (pRoom)
-		curSetup = pRoom->curSetup;
+	if (room)
+		curSetup = room->curSetup;
 
-	_pSputRender->useSetup(pRoom, curSetup);
+	_sputRender->useSetup(room, curSetup);
 
-	delete _pSaveReadStream;
-	_pSaveReadStream = nullptr;
+	delete _saveReadStream;
+	_saveReadStream = nullptr;
 
-	_pLua->dofile("patch05.bin");
+	_luaV1->dofile("patch05.bin");
 	_libJustLoaded = 1;
-	_pSputRender->allowLoadImage(1);
+	_sputRender->allowLoadImage(1);
 
 	StdRect rect = { 0, 0, 640, 480 };
 
-	_pSputRender->markAllPagesDirty(&rect, 1);
+	_sputRender->markAllPagesDirty(&rect, 1);
 }
 
 int GrimEngine::zread(void *buffer, int size) {
 	if (size)
-		_pSaveReadStream->read(buffer, size);
+		_saveReadStream->read(buffer, size);
 
 	return 0;
 }
 
 StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
-	Common::SeekableReadStream *pFile = g_system->getSavefileManager()->openForLoading(fileName);
+	Common::SeekableReadStream *file = g_system->getSavefileManager()->openForLoading(fileName);
 
-	if (!pFile)
+	if (!file)
 		return nullptr;
 
 	Common::Array<byte> legacyPixels;
-	bool bLegacy = LegacySaveFile::isLegacySave(pFile);
+	bool legacy = LegacySaveFile::isLegacySave(file);
 
-	if (bLegacy) {
-		if (!legacyReadThumbnail(pFile, legacyPixels)) {
-			delete pFile;
+	if (legacy) {
+		if (!legacyReadThumbnail(file, legacyPixels)) {
+			delete file;
 			return nullptr;
 		}
 	} else {
-		int blockSize = pFile->readSint32LE();
+		int blockSize = file->readSint32LE();
 
-		pFile->seek(blockSize, SEEK_CUR);
+		file->seek(blockSize, SEEK_CUR);
 	}
 
 	StdVBufferTexFmt format;
@@ -1770,66 +1764,66 @@ StdVBuffer *GrimEngine::getSaveGameImage(const char *fileName) {
 	format.width = 250;
 	format.height = 188;
 	format.pitchInBytes = 500;
-	format.format = g_saveImageFormat;
+	format.format = saveImageFormat;
 
-	StdVBuffer *pImage = _pStdDisplay->vBufferNew(&format, 0, 0, nullptr);
+	StdVBuffer *image = _stdDisplay->vBufferNew(&format, 0, 0, nullptr);
 
-	if (!pImage) {
-		delete pFile;
+	if (!image) {
+		delete file;
 		return nullptr;
 	}
 
-	int size = bLegacy ? (int)legacyPixels.size() : pFile->readSint32LE();
+	int size = legacy ? (int)legacyPixels.size() : file->readSint32LE();
 
-	if (size != pImage->tex.sizeInBytes) {
+	if (size != image->tex.sizeInBytes) {
 		warning("GrimEngine::getSaveGameImage(): unexpected image size %d", size);
-		_pStdDisplay->vBufferFree(pImage);
-		delete pFile;
+		_stdDisplay->vBufferFree(image);
+		delete file;
 		return nullptr;
 	}
 
-	if (bLegacy)
-		memcpy(pImage->pPixels, legacyPixels.data(), size);
+	if (legacy)
+		memcpy(image->pixels, legacyPixels.data(), size);
 	else
-		pFile->read(pImage->pPixels, size);
+		file->read(image->pixels, size);
 
-	delete pFile;
+	delete file;
 
-	return pImage;
+	return image;
 }
 
 void GrimEngine::imuseSave() {
-	Common::OutSaveFile *pFile = g_system->getSavefileManager()->openForSaving("grim.tmp");
+	Common::OutSaveFile *file = g_system->getSavefileManager()->openForSaving("grim.tmp");
 
-	if (!pFile)
+	if (!file)
 		return;
 
-	soundsSave(pFile);
-	pFile->finalize();
-	delete pFile;
+	soundsSave(file);
+	file->finalize();
+	delete file;
 }
 
 void GrimEngine::imuseRestore() {
-	Common::InSaveFile *pFile = g_system->getSavefileManager()->openForLoading("grim.tmp");
+	Common::InSaveFile *file = g_system->getSavefileManager()->openForLoading("grim.tmp");
 
-	if (!pFile)
+	if (!file)
 		return;
 
 	_imuse->imStopAllSounds();
-	soundsRestore(pFile);
-	delete pFile;
+	soundsRestore(file);
+	delete file;
 	g_system->getSavefileManager()->removeSavefile("grim.tmp");
 }
 
-void GrimEngine::soundsSave(Common::WriteStream *pStream) {
-	Common::Serializer ser(nullptr, pStream);
+void GrimEngine::soundsSave(Common::WriteStream *stream) {
+	Common::Serializer ser(nullptr, stream);
 
 	ser.setVersion(kSoundsSaveVersion);
 	_imuse->soundsSaveLoad(ser);
 }
 
-void GrimEngine::soundsRestore(Common::SeekableReadStream *pStream, bool legacyLayout) {
-	Common::Serializer ser(pStream, nullptr);
+void GrimEngine::soundsRestore(Common::SeekableReadStream *stream, bool legacyLayout) {
+	Common::Serializer ser(stream, nullptr);
 
 	ser.setVersion(kSoundsSaveVersion);
 	_imuse->soundsSaveLoad(ser, legacyLayout);
@@ -1856,45 +1850,45 @@ int GrimEngine::initDisplay() {
 
 	freeVideoDevices();
 
-	uint numDevices = _pStdDisplay->getNumDevices();
+	uint numDevices = _stdDisplay->getNumDevices();
 
 	for (uint i = 0; i < numDevices; i++) {
-		GrimVideoDevice *pVideoDevice = &_aVideoDevices[i];
+		GrimVideoDevice *videoDevice = &_videoDevices[i];
 		uint numModes = 0;
 
-		if (_pStdDisplay->enumerateModes(i))
-			numModes = _pStdDisplay->getNumModes();
+		if (_stdDisplay->enumerateModes(i))
+			numModes = _stdDisplay->getNumModes();
 
-		pVideoDevice->numModes = numModes;
-		pVideoDevice->aModes = new StdDisplayMode[numModes];
-		memcpy(pVideoDevice->aModes, _pStdDisplay->getModes(), sizeof(StdDisplayMode) * numModes);
-		pVideoDevice->num3DDevices = 0;
-		pVideoDevice->a3DDevices = nullptr;
+		videoDevice->numModes = numModes;
+		videoDevice->modes = new StdDisplayMode[numModes];
+		memcpy(videoDevice->modes, _stdDisplay->getModes(), sizeof(StdDisplayMode) * numModes);
+		videoDevice->num3DDevices = 0;
+		videoDevice->a3DDevices = nullptr;
 
-		StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[i];
+		StdDisplayDevice *device = &_stdDisplay->getDevices()[i];
 
-		if (pDevice->type == 1 && !numModes)
-			_pStdDisplay->setDeviceUsable(i, 0);
+		if (device->type == 1 && !numModes)
+			_stdDisplay->setDeviceUsable(i, 0);
 
 #if defined(GRIM_STD3D)
-		if (pDevice->type == 1 && pDevice->bUsable && pDevice->b3D) {
-			if (_pStdDisplay->createBackend(pDevice->backend) && (_pStd3D->canProbeWithoutMode() || _pStd3D->openBackendMode(kDisplayWidth, kDisplayHeight)) && _pStd3D->enumerateDevices()) {
-				uint numThreeDDevices = _pStd3D->getNumDevices();
+		if (device->type == 1 && device->usable && device->b3D) {
+			if (_stdDisplay->createBackend(device->backend) && (_std3D->canProbeWithoutMode() || _std3D->openBackendMode(kDisplayWidth, kDisplayHeight)) && _std3D->enumerateDevices()) {
+				uint numThreeDDevices = _std3D->getNumDevices();
 
-				pVideoDevice->num3DDevices = numThreeDDevices;
-				pVideoDevice->a3DDevices = new Std3DDevice[numThreeDDevices];
-				memcpy(pVideoDevice->a3DDevices, _pStd3D->getDevices(), sizeof(Std3DDevice) * numThreeDDevices);
-				_pStd3D->releaseDirect3D();
+				videoDevice->num3DDevices = numThreeDDevices;
+				videoDevice->a3DDevices = new Std3DDevice[numThreeDDevices];
+				memcpy(videoDevice->a3DDevices, _std3D->getDevices(), sizeof(Std3DDevice) * numThreeDDevices);
+				_std3D->releaseDirect3D();
 			} else {
-				warning("GrimEngine::initDisplay(): the display device \"%s\" can not be used", pDevice->aDescription);
-				_pStdDisplay->setDeviceUsable(i, 0);
+				warning("GrimEngine::initDisplay(): the display device \"%s\" can not be used", device->description);
+				_stdDisplay->setDeviceUsable(i, 0);
 			}
 
-			_pStd3D->closeBackend();
+			_std3D->closeBackend();
 		}
 #endif
 
-		_pStdDisplay->closeDisplay();
+		_stdDisplay->closeDisplay();
 	}
 
 	return numDevices;
@@ -1902,14 +1896,14 @@ int GrimEngine::initDisplay() {
 
 void GrimEngine::freeVideoDevices() {
 	for (int i = 0; i < kStdDisplayMaxDevices; i++) {
-		GrimVideoDevice *pVideoDevice = &_aVideoDevices[i];
+		GrimVideoDevice *videoDevice = &_videoDevices[i];
 
-		delete[] pVideoDevice->a3DDevices;
-		pVideoDevice->a3DDevices = nullptr;
-		delete[] pVideoDevice->aModes;
-		pVideoDevice->aModes = nullptr;
-		pVideoDevice->numModes = 0;
-		pVideoDevice->num3DDevices = 0;
+		delete[] videoDevice->a3DDevices;
+		videoDevice->a3DDevices = nullptr;
+		delete[] videoDevice->modes;
+		videoDevice->modes = nullptr;
+		videoDevice->numModes = 0;
+		videoDevice->num3DDevices = 0;
 	}
 }
 
@@ -1918,8 +1912,8 @@ int GrimEngine::initDisplayAndDevice() {
 	int mode;
 	int threeDDevice;
 
-	if (!loadDisplaySettings(&device, &mode, &threeDDevice) || (threeDDevice != -1) != (_bUseHardware != 0))
-		chooseDefaultDisplay(_bShow && _bEnumerateVideo, _bUseHardware, &device, &mode, &threeDDevice);
+	if (!loadDisplaySettings(&device, &mode, &threeDDevice) || (threeDDevice != -1) != (_useHardware != 0))
+		chooseDefaultDisplay(_show && _enumerateVideo, _useHardware, &device, &mode, &threeDDevice);
 
 	int result = selectDisplayMode(device, mode, threeDDevice);
 
@@ -1928,7 +1922,7 @@ int GrimEngine::initDisplayAndDevice() {
 		result = 0;
 	}
 
-	if (!result && _pStdDisplay->getDevices()[device].type == 1) {
+	if (!result && _stdDisplay->getDevices()[device].type == 1) {
 		warning("GrimEngine::initDisplayAndDevice(): the hardware display failed, going back to another display");
 
 		result = selectFallbackDisplay(device, threeDDevice != -1);
@@ -1937,72 +1931,72 @@ int GrimEngine::initDisplayAndDevice() {
 	return result;
 }
 
-int GrimEngine::selectFallbackDisplay(int failedDevice, int bWant3D) {
+int GrimEngine::selectFallbackDisplay(int failedDevice, int want3D) {
 	int device = failedDevice;
 	int mode = 0;
 	int threeDDevice = -1;
 	int result = 0;
 
 	do {
-		if (device >= 0 && (uint)device < _pStdDisplay->getNumDevices() && _pStdDisplay->getDevices()[device].type == 1)
-			_pStdDisplay->setDeviceUsable(device, 0);
+		if (device >= 0 && (uint)device < _stdDisplay->getNumDevices() && _stdDisplay->getDevices()[device].type == 1)
+			_stdDisplay->setDeviceUsable(device, 0);
 
-		chooseDefaultDisplay(0, bWant3D, &device, &mode, &threeDDevice);
+		chooseDefaultDisplay(0, want3D, &device, &mode, &threeDDevice);
 		result = selectDisplayMode(device, mode, threeDDevice);
 
 		if (result && threeDDevice != -1 && !isHardware3D()) {
 			warning("GrimEngine::selectFallbackDisplay(): the 3D device could not be started");
 			result = 0;
 		}
-	} while (!result && _pStdDisplay->getDevices()[device].type == 1);
+	} while (!result && _stdDisplay->getDevices()[device].type == 1);
 
 	return result;
 }
 
-int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
-	if (_pWuRegistry->getInt("ExperimentalDisplay", 1)) {
+int GrimEngine::loadDisplaySettings(int *devicePointer, int *mode, int *p3DDevice) {
+	if (_wuRegistry->getInt("ExperimentalDisplay", 1)) {
 		debug("grimdemo_DefaultDisplay: Last switch was not successful.");
 		return 0;
 	}
 
-	byte aZeroGuid[16];
-	byte aLastDisplayGuid[16];
-	byte aLast3DGuid[16];
+	byte zeroGuid[16];
+	byte lastDisplayGuid[16];
+	byte last3DGuid[16];
 
-	memset(aZeroGuid, 0, sizeof(aZeroGuid));
-	memset(aLastDisplayGuid, 0, sizeof(aLastDisplayGuid));
-	memset(aLast3DGuid, 0, sizeof(aLast3DGuid));
+	memset(zeroGuid, 0, sizeof(zeroGuid));
+	memset(lastDisplayGuid, 0, sizeof(lastDisplayGuid));
+	memset(last3DGuid, 0, sizeof(last3DGuid));
 
-	if (!_pWuRegistry->getBinary("LastDisplayDevice", aLastDisplayGuid, sizeof(aLastDisplayGuid))) {
+	if (!_wuRegistry->getBinary("LastDisplayDevice", lastDisplayGuid, sizeof(lastDisplayGuid))) {
 		debug("grimdemo_DefaultDisplay: Could not find matching device.");
 		return 0;
 	}
 
-	_pWuRegistry->getBinary("Last3DDevice", aLast3DGuid, sizeof(aLast3DGuid));
+	_wuRegistry->getBinary("Last3DDevice", last3DGuid, sizeof(last3DGuid));
 
-	uint numDevices = _pStdDisplay->getNumDevices();
-	StdDisplayDevice *aDevices = _pStdDisplay->getDevices();
+	uint numDevices = _stdDisplay->getNumDevices();
+	StdDisplayDevice *devices = _stdDisplay->getDevices();
 	uint device = 0;
 
 	while (device < numDevices) {
-		if (!memcmp(aDevices[device].guid, aLastDisplayGuid, sizeof(aLastDisplayGuid)))
+		if (!memcmp(devices[device].guid, lastDisplayGuid, sizeof(lastDisplayGuid)))
 			break;
 
 		device++;
 	}
 
-	if (device == numDevices || (aDevices[device].type == 1 && !aDevices[device].bUsable)) {
+	if (device == numDevices || (devices[device].type == 1 && !devices[device].usable)) {
 		debug("grimdemo_DefaultDisplay: Could not find matching device.");
 		return 0;
 	}
 
-	GrimVideoDevice *pVideoDevice = &_aVideoDevices[device];
+	GrimVideoDevice *videoDevice = &_videoDevices[device];
 
-	*pDevice = device;
-	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
+	*devicePointer = device;
+	*mode = _stdDisplay->findClosestMode(&_videoDeviceConfig, videoDevice->modes, videoDevice->numModes);
 
-	if (!memcmp(aLast3DGuid, aZeroGuid, sizeof(aZeroGuid))) {
-		if (aDevices[device].backend == kStdDisplayBackendTinyGl) {
+	if (!memcmp(last3DGuid, zeroGuid, sizeof(zeroGuid))) {
+		if (devices[device].backend == kStdDisplayBackendTinyGl) {
 			debug("grimdemo_DefaultDisplay: The TinyGL display is only used with a 3D device.");
 			return 0;
 		}
@@ -2013,14 +2007,14 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 
 	uint threeDDevice = 0;
 
-	while (threeDDevice < pVideoDevice->num3DDevices) {
-		if (!memcmp(pVideoDevice->a3DDevices[threeDDevice].guid, aLast3DGuid, sizeof(aLast3DGuid)))
+	while (threeDDevice < videoDevice->num3DDevices) {
+		if (!memcmp(videoDevice->a3DDevices[threeDDevice].guid, last3DGuid, sizeof(last3DGuid)))
 			break;
 
 		threeDDevice++;
 	}
 
-	if (threeDDevice == pVideoDevice->num3DDevices) {
+	if (threeDDevice == videoDevice->num3DDevices) {
 		debug("grimdemo_DefaultDisplay: 3D device no longer present.");
 		return 0;
 	}
@@ -2029,55 +2023,55 @@ int GrimEngine::loadDisplaySettings(int *pDevice, int *pMode, int *p3DDevice) {
 	return 1;
 }
 
-int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDevice, int *pMode, int *p3DDevice) {
+int GrimEngine::chooseDefaultDisplay(int preferWindowed, int want3D, int *devicePointer, int *mode, int *p3DDevice) {
 	StdDisplayDeviceFlags wanted;
 
 	int backend = kStdDisplayBackendNone;
 
-	if (!bPreferWindowed)
+	if (!preferWindowed)
 		backend = chooseHardwareBackend();
 
-	if (backend == kStdDisplayBackendNone || (backend == kStdDisplayBackendTinyGl && !bWant3D)) {
+	if (backend == kStdDisplayBackendNone || (backend == kStdDisplayBackendTinyGl && !want3D)) {
 		backend = kStdDisplayBackendNone;
-		bPreferWindowed = 1;
-		bWant3D = 0;
+		preferWindowed = 1;
+		want3D = 0;
 	}
 
-	if (bPreferWindowed) {
+	if (preferWindowed) {
 		wanted.type = 0;
-		wanted.bHasHardware = 0;
+		wanted.hasHardware = 0;
 	} else {
 		wanted.type = 1;
-		wanted.bHasHardware = 1;
+		wanted.hasHardware = 1;
 	}
 
-	wanted.bHasGuid = 1;
-	wanted.b3D = bWant3D;
-	wanted.bPrimary = bWant3D == 0;
+	wanted.hasGuid = 1;
+	wanted.b3D = want3D;
+	wanted.primary = want3D == 0;
 	wanted.backend = backend;
 
-	int device = _pStdDisplay->findClosestDevice(&wanted);
-	GrimVideoDevice *pVideoDevice = &_aVideoDevices[device];
+	int device = _stdDisplay->findClosestDevice(&wanted);
+	GrimVideoDevice *videoDevice = &_videoDevices[device];
 
-	*pDevice = device;
-	*pMode = _pStdDisplay->findClosestMode(&_videoDeviceConfig, pVideoDevice->aModes, pVideoDevice->numModes);
+	*devicePointer = device;
+	*mode = _stdDisplay->findClosestMode(&_videoDeviceConfig, videoDevice->modes, videoDevice->numModes);
 	*p3DDevice = -1;
 
 #if defined(GRIM_STD3D)
-	if (pVideoDevice->num3DDevices && bWant3D) {
+	if (videoDevice->num3DDevices && want3D) {
 		Std3DDevice wantedDevice;
 
 		memset(&wantedDevice, 0, sizeof(wantedDevice));
-		wantedDevice.bHardware = 1;
-		wantedDevice.bPerspectiveCorrect = 1;
-		wantedDevice.bZBuffer = 1;
+		wantedDevice.hardware = 1;
+		wantedDevice.perspectiveCorrect = 1;
+		wantedDevice.zBuffer = 1;
 		wantedDevice.colorModelFlags = 2;
 
-		int threeDDevice = _pStd3D->findClosestDevice(&wantedDevice, pVideoDevice->a3DDevices, pVideoDevice->num3DDevices);
+		int threeDDevice = _std3D->findClosestDevice(&wantedDevice, videoDevice->a3DDevices, videoDevice->num3DDevices);
 
 		*p3DDevice = threeDDevice;
 
-		if (!pVideoDevice->a3DDevices[threeDDevice].bHardware)
+		if (!videoDevice->a3DDevices[threeDDevice].hardware)
 			*p3DDevice = -1;
 	}
 #endif
@@ -2088,37 +2082,37 @@ int GrimEngine::chooseDefaultDisplay(int bPreferWindowed, int bWant3D, int *pDev
 int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDIndex) {
 	shutdownDisplay();
 
-	if (_bDisplayOpen)
+	if (_displayOpen)
 		return 0;
 
-	if (deviceIndex < 0 || (uint)deviceIndex >= _pStdDisplay->getNumDevices()) {
+	if (deviceIndex < 0 || (uint)deviceIndex >= _stdDisplay->getNumDevices()) {
 		warning("GrimEngine::selectDisplayMode(): invalid display device %d", deviceIndex);
 		return 0;
 	}
 
-	StdDisplayDevice *pDevice = &_pStdDisplay->getDevices()[deviceIndex];
+	StdDisplayDevice *device = &_stdDisplay->getDevices()[deviceIndex];
 
-	if (pDevice->type == 1 && !pDevice->bUsable) {
+	if (device->type == 1 && !device->usable) {
 		warning("GrimEngine::selectDisplayMode(): the hardware display is not available");
 		return 0;
 	}
 
-	_pWuRegistry->saveInt("ExperimentalDisplay", 1);
+	_wuRegistry->saveInt("ExperimentalDisplay", 1);
 
-	if (!_pStdDisplay->enumerateModes(deviceIndex))
+	if (!_stdDisplay->enumerateModes(deviceIndex))
 		return 0;
 
 	StdVBufferTexFmt displayTex;
 
-	if (pDevice->type == 1) {
-		if (!_pStdDisplay->openDisplay(modeIndex, nullptr, 1)) {
-			_pStdDisplay->closeDisplay();
+	if (device->type == 1) {
+		if (!_stdDisplay->openDisplay(modeIndex, nullptr, 1)) {
+			_stdDisplay->closeDisplay();
 			return 0;
 		}
 
-		displayTex = _pStdDisplay->getDisplayMode()->tex;
+		displayTex = _stdDisplay->getDisplayMode()->tex;
 		_colorInfoCopy = displayTex.format;
-		_numDrawBuffers = _pStdDisplay->getNumDrawBuffers();
+		_numDrawBuffers = _stdDisplay->getNumDrawBuffers();
 	} else {
 		Graphics::PixelFormat pixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 
@@ -2135,45 +2129,45 @@ int GrimEngine::selectDisplayMode(int deviceIndex, int modeIndex, int threeDInde
 		displayTex.sizeInBytes = kDisplayWidth * kDisplayHeight * 2;
 		displayTex.format = _colorInfoCopy;
 
-		_pMainGfxBuffer->type = 0;
-		_pMainGfxBuffer->lockCount = 0;
-		_pMainGfxBuffer->bVideoMemory = 0;
-		_pMainGfxBuffer->tex = displayTex;
-		_pMainGfxBuffer->pPaletteRGB = nullptr;
-		_pMainGfxBuffer->pPixels = new byte[displayTex.sizeInBytes]();
-		_pMainGfxBuffer->allocSize = displayTex.sizeInBytes;
-		_pMainGfxBuffer->colorKey = 0;
-		*_pBackBuffer = *_pMainGfxBuffer;
+		_mainGfxBuffer->type = 0;
+		_mainGfxBuffer->lockCount = 0;
+		_mainGfxBuffer->videoMemory = 0;
+		_mainGfxBuffer->tex = displayTex;
+		_mainGfxBuffer->paletteRGB = nullptr;
+		_mainGfxBuffer->pixels = new byte[displayTex.sizeInBytes]();
+		_mainGfxBuffer->allocSize = displayTex.sizeInBytes;
+		_mainGfxBuffer->colorKey = 0;
+		*_backBuffer = *_mainGfxBuffer;
 		_numDrawBuffers = 1;
 	}
 
-	_bDisplayOpen = 1;
+	_displayOpen = 1;
 
-	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
+	_stdDisplay->vBufferFill(_backBuffer, 0, nullptr);
 	pageFlipCallback();
-	_pStdDisplay->vBufferFill(_pBackBuffer, 0, nullptr);
-	_pRd->setColorInfo(_colorInfoCopy);
+	_stdDisplay->vBufferFill(_backBuffer, 0, nullptr);
+	_rd->setColorInfo(_colorInfoCopy);
 
-	StdVBuffer *pZBuffer = nullptr;
+	StdVBuffer *zBuffer = nullptr;
 
 	if (select3DDevice(threeDIndex)) {
 #if defined(GRIM_STD3D)
-		pZBuffer = _pStd3D->getZBuffer();
+		zBuffer = _std3D->getZBuffer();
 #endif
 	} else {
 		StdVBufferTexFmt zFormat = displayTex;
 
 		zFormat.format.bpp = 16;
-		pZBuffer = _pStdDisplay->vBufferNew(&zFormat, 0, 0, nullptr);
+		zBuffer = _stdDisplay->vBufferNew(&zFormat, 0, 0, nullptr);
 	}
 
-	_pZBuffer = pZBuffer;
-	setDisplay(_pBackBuffer, _pZBuffer);
-	_pWuRegistry->saveBinary("LastDisplayDevice", pDevice->guid, sizeof(pDevice->guid));
-	_bShow = pDevice->type == 0;
+	_zBuffer = zBuffer;
+	setDisplay(_backBuffer, _zBuffer);
+	_wuRegistry->saveBinary("LastDisplayDevice", device->guid, sizeof(device->guid));
+	_show = device->type == 0;
 
-	if (pDevice->type == 1)
-		_preferredBackend = pDevice->backend;
+	if (device->type == 1)
+		_preferredBackend = device->backend;
 
 	return 1;
 }
@@ -2182,16 +2176,16 @@ int GrimEngine::select3DDevice(int index) {
 	shutdown3D();
 
 #if defined(GRIM_STD3D)
-	if (index != -1 && _pStd3D->enumerateDevices()) {
-		GrimVideoDevice *pVideoDevice = &_aVideoDevices[getCurVideoDeviceIndex()];
+	if (index != -1 && _std3D->enumerateDevices()) {
+		GrimVideoDevice *videoDevice = &_videoDevices[getCurVideoDeviceIndex()];
 
-		if (index < 0 || (uint)index >= pVideoDevice->num3DDevices)
+		if (index < 0 || (uint)index >= videoDevice->num3DDevices)
 			warning("GrimEngine::select3DDevice(): invalid 3D device %d", index);
 
-		if (_pStd3D->startup(index, 1)) {
-			_pRd->setAcceleration(_pRd->getAcceleration() | 1);
+		if (_std3D->startup(index, 1)) {
+			_rd->setAcceleration(_rd->getAcceleration() | 1);
 			using3DHardware(1);
-			_pWuRegistry->saveBinary("Last3DDevice", _pStd3D->getCurDevice()->guid, sizeof(_pStd3D->getCurDevice()->guid));
+			_wuRegistry->saveBinary("Last3DDevice", _std3D->getCurDevice()->guid, sizeof(_std3D->getCurDevice()->guid));
 			ConfMan.setBool("grim_3d_acceleration", true);
 
 			return 1;
@@ -2199,10 +2193,10 @@ int GrimEngine::select3DDevice(int index) {
 	}
 #endif
 
-	byte aZeroGuid[16];
+	byte zeroGuid[16];
 
-	memset(aZeroGuid, 0, sizeof(aZeroGuid));
-	_pWuRegistry->saveBinary("Last3DDevice", aZeroGuid, sizeof(aZeroGuid));
+	memset(zeroGuid, 0, sizeof(zeroGuid));
+	_wuRegistry->saveBinary("Last3DDevice", zeroGuid, sizeof(zeroGuid));
 
 	if (hasUsableHardwareDevice())
 		ConfMan.setBool("grim_3d_acceleration", false);
@@ -2212,112 +2206,112 @@ int GrimEngine::select3DDevice(int index) {
 
 void GrimEngine::shutdown3D() {
 #if defined(GRIM_STD3D)
-	if (_pStd3D->isAvailable()) {
-		_pStd3D->shutdown();
-		_pStd3D->releaseDirect3D();
-		_pRd->setAcceleration(_pRd->getAcceleration() & ~1);
+	if (_std3D->isAvailable()) {
+		_std3D->shutdown();
+		_std3D->releaseDirect3D();
+		_rd->setAcceleration(_rd->getAcceleration() & ~1);
 		using3DHardware(0);
 	}
 #endif
 }
 
 void GrimEngine::shutdownDisplay() {
-	if (!_bDisplayOpen)
+	if (!_displayOpen)
 		return;
 
-	StdDisplayDevice *pDevice = _pStdDisplay->getCurDevice();
-	bool bVideoDevice = pDevice && pDevice->type == 1;
+	StdDisplayDevice *device = _stdDisplay->getCurDevice();
+	bool videoDevice = device && device->type == 1;
 
 	unsetDisplay();
 
 	if (isHardware3D())
 		shutdown3D();
 	else
-		_pStdDisplay->vBufferFree(_pZBuffer);
+		_stdDisplay->vBufferFree(_zBuffer);
 
-	_pZBuffer = nullptr;
-	_pStdDisplay->releaseSurfaces();
-	_pStdDisplay->closeDisplay();
+	_zBuffer = nullptr;
+	_stdDisplay->releaseSurfaces();
+	_stdDisplay->closeDisplay();
 
 #if defined(GRIM_STD3D)
-	if (bVideoDevice)
-		_pStd3D->closeBackend();
+	if (videoDevice)
+		_std3D->closeBackend();
 #endif
 
-	if (!bVideoDevice) {
-		delete[] _pMainGfxBuffer->pPixels;
-		_pMainGfxBuffer->pPixels = nullptr;
-		_pBackBuffer->pPixels = nullptr;
+	if (!videoDevice) {
+		delete[] _mainGfxBuffer->pixels;
+		_mainGfxBuffer->pixels = nullptr;
+		_backBuffer->pixels = nullptr;
 	}
 
-	_bDisplayOpen = 0;
-	_pWuRegistry->saveInt("ExperimentalDisplay", 0);
+	_displayOpen = 0;
+	_wuRegistry->saveInt("ExperimentalDisplay", 0);
 }
 
 int GrimEngine::getCurVideoDeviceIndex() {
-	return _pStdDisplay->getCurDeviceIndex();
+	return _stdDisplay->getCurDeviceIndex();
 }
 
 int GrimEngine::getCur3DDeviceIndex() {
 #if defined(GRIM_STD3D)
 	if (isHardware3D())
-		return _pStd3D->getCurDeviceIndex();
+		return _std3D->getCurDeviceIndex();
 #endif
 
 	return -1;
 }
 
 int GrimEngine::isHardware3D() {
-	return _pSputRender->is3DHardware();
+	return _sputRender->is3DHardware();
 }
 
-int GrimEngine::paletteCallback(byte *pPalette, int alpha) {
+int GrimEngine::paletteCallback(byte *palette, int alpha) {
 #if defined(GRIM_STD3D)
 	if (g_grim->isHardware3D())
-		g_grim->_pStd3D->setCurrentPalette(pPalette, (byte)alpha);
+		g_grim->_std3D->setCurrentPalette(palette, (byte)alpha);
 #endif
 
 	return 1;
 }
 
 void GrimEngine::loadSplash() {
-	StdBitmapStruct *pBitmap = _pStdBitmap->zbmLoad("splash.bm", 0, 0);
+	StdBitmapStruct *bitmap = _stdBitmap->zbmLoad("splash.bm", 0, 0);
 
-	if (!pBitmap)
+	if (!bitmap)
 		return;
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+	StdVBuffer *frame = bitmap->frames[0];
 
-	if (!pFrame)
+	if (!frame)
 		return;
 
-	for (int i = 0; i < pFrame->tex.height; i++)
-		_pSputRender->colorCorrect((uint16 *)(pFrame->pPixels + pFrame->tex.pitchInBytes * i), pFrame->tex.width);
+	for (int i = 0; i < frame->tex.height; i++)
+		_sputRender->colorCorrect((uint16 *)(frame->pixels + frame->tex.pitchInBytes * i), frame->tex.width);
 
-	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
+	_stdDisplay->vBufferCopy(_mainGfxBuffer, frame, 0, 0, nullptr, 0);
 
-	if (_pBackBuffer->type == 1)
-		_pStdDisplay->vBufferCopy(_pBackBuffer, pFrame, 0, 0, nullptr, 0);
+	if (_backBuffer->type == 1)
+		_stdDisplay->vBufferCopy(_backBuffer, frame, 0, 0, nullptr, 0);
 
 	pageFlipCallback();
-	_pStdDisplay->vBufferCopy(_pMainGfxBuffer, pFrame, 0, 0, nullptr, 0);
-	_pStdBitmap->unloadBitmap(pBitmap);
+	_stdDisplay->vBufferCopy(_mainGfxBuffer, frame, 0, 0, nullptr, 0);
+	_stdBitmap->unloadBitmap(bitmap);
 }
 
 int GrimEngine::pageFlipCallback() {
-	StdDisplayDevice *pDevice = g_grim->_pStdDisplay->getCurDevice();
+	StdDisplayDevice *device = g_grim->_stdDisplay->getCurDevice();
 
-	if (g_grim->_bDisplayOpen && pDevice && pDevice->type == 1)
-		return g_grim->_pStdDisplay->update();
+	if (g_grim->_displayOpen && device && device->type == 1)
+		return g_grim->_stdDisplay->update();
 
-	const StdVBuffer *pBuffer = g_grim->_pMainGfxBuffer;
+	const StdVBuffer *buffer = g_grim->_mainGfxBuffer;
 
-	if (!pBuffer->pPixels) {
+	if (!buffer->pixels) {
 		warning("GrimEngine::pageFlipCallback(): the display is not open");
 		return 0;
 	}
 
-	g_system->copyRectToScreen(pBuffer->pPixels, pBuffer->tex.pitchInBytes, 0, 0, pBuffer->tex.width, pBuffer->tex.height);
+	g_system->copyRectToScreen(buffer->pixels, buffer->tex.pitchInBytes, 0, 0, buffer->tex.width, buffer->tex.height);
 	g_system->updateScreen();
 
 	return 1;
@@ -2544,17 +2538,17 @@ static int keyCodeToScanCode(Common::KeyCode keyCode) {
 }
 
 void GrimEngine::pumpEvents() {
-	Common::EventManager *pEventMan = g_system->getEventManager();
-	StdControlInput *pInput = _pStdControl->getInput();
+	Common::EventManager *eventMan = g_system->getEventManager();
+	StdControlInput *input = _stdControl->getInput();
 	Common::Event event;
 
-	while (pEventMan->pollEvent(event)) {
+	while (eventMan->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_QUIT:
 		case Common::EVENT_RETURN_TO_LAUNCHER:
 			if (!confirmClose()) {
-				pEventMan->resetQuit();
-				pEventMan->resetReturnToLauncher();
+				eventMan->resetQuit();
+				eventMan->resetReturnToLauncher();
 			}
 
 			break;
@@ -2571,14 +2565,14 @@ void GrimEngine::pumpEvents() {
 			handleKey(event.type, event.kbd, false);
 			break;
 		case Common::EVENT_MOUSEMOVE:
-			pInput->mouse.x += event.relMouse.x;
-			pInput->mouse.y += event.relMouse.y;
+			input->mouse.x += event.relMouse.x;
+			input->mouse.y += event.relMouse.y;
 			break;
 		case Common::EVENT_WHEELUP:
-			pInput->mouse.z += 120;
+			input->mouse.z += 120;
 			break;
 		case Common::EVENT_WHEELDOWN:
-			pInput->mouse.z -= 120;
+			input->mouse.z -= 120;
 			break;
 		case Common::EVENT_LBUTTONDOWN:
 			addMouseButtonEvent(12, 0x80);
@@ -2606,17 +2600,17 @@ void GrimEngine::pumpEvents() {
 			break;
 		case Common::EVENT_JOYAXIS_MOTION:
 			if (event.joystick.axis < 6)
-				pInput->joyState[0].axisPos[event.joystick.axis] = event.joystick.position;
+				input->joyState[0].axisPos[event.joystick.axis] = event.joystick.position;
 
 			break;
 		case Common::EVENT_JOYBUTTON_DOWN:
 			if (event.joystick.button < 10)
-				pInput->joyState[0].buttons |= 1 << event.joystick.button;
+				input->joyState[0].buttons |= 1 << event.joystick.button;
 
 			break;
 		case Common::EVENT_JOYBUTTON_UP:
 			if (event.joystick.button < 10)
-				pInput->joyState[0].buttons &= ~(1 << event.joystick.button);
+				input->joyState[0].buttons &= ~(1 << event.joystick.button);
 
 			break;
 		default:
@@ -2625,24 +2619,24 @@ void GrimEngine::pumpEvents() {
 	}
 }
 
-void GrimEngine::handleFocus(int bHasFocus) {
-	if (bHasFocus == _bHasFocus)
+void GrimEngine::handleFocus(int hasFocus) {
+	if (hasFocus == _hasFocus)
 		return;
 
-	_bHasFocus = bHasFocus;
-	_pStdControl->setActivation(bHasFocus);
+	_hasFocus = hasFocus;
+	_stdControl->setActivation(hasFocus);
 
-	if (bHasFocus) {
-		_pSputRender->forceRefresh();
+	if (hasFocus) {
+		_sputRender->forceRefresh();
 
-		if (_pStdControl->isOpen())
-			_pStdControl->flush();
+		if (_stdControl->isOpen())
+			_stdControl->flush();
 
 		CursorMan.showMouse(true);
 	}
 }
 
-void GrimEngine::handleKey(Common::EventType type, const Common::KeyState &key, bool bRepeat) {
+void GrimEngine::handleKey(Common::EventType type, const Common::KeyState &key, bool repeat) {
 	int scanCode = keyCodeToScanCode(key.keycode);
 
 	if (type == Common::EVENT_KEYUP) {
@@ -2650,12 +2644,12 @@ void GrimEngine::handleKey(Common::EventType type, const Common::KeyState &key, 
 			addKeyboardEvent(scanCode, 0);
 
 		if (key.keycode == Common::KEYCODE_BACKSPACE)
-			_bBackspaceHeld = 0;
+			_backspaceHeldFlag = 0;
 
 		return;
 	}
 
-	if (scanCode && !bRepeat)
+	if (scanCode && !repeat)
 		addKeyboardEvent(scanCode, 0x80);
 
 	handleKeyDebug(key);
@@ -2667,44 +2661,44 @@ void GrimEngine::handleKey(Common::EventType type, const Common::KeyState &key, 
 void GrimEngine::handleKeyDebug(const Common::KeyState &key) {
 	switch (key.keycode) {
 	case Common::KEYCODE_BACKSPACE:
-		if (_bDebugKeys)
-			_bBackspaceHeld = 1;
+		if (_debugKeys)
+			_backspaceHeldFlag = 1;
 
 		break;
 	case Common::KEYCODE_PAUSE:
 		doPauseCallback();
 		break;
 	case Common::KEYCODE_f:
-		if (_bBackspaceHeld)
+		if (_backspaceHeldFlag)
 			_showFps = !_showFps;
 
 		break;
 	case Common::KEYCODE_p:
-		if (_bBackspaceHeld)
-			_bShowDebugOverlay = !_bShowDebugOverlay;
+		if (_backspaceHeldFlag)
+			_showDebugOverlay = !_showDebugOverlay;
 
 		break;
 	case Common::KEYCODE_s:
-		if (_bBackspaceHeld)
-			_pSputRender->saveDrawBuffer(Common::String::format("shot%d.bmp", _screenshotCounter++).c_str());
+		if (_backspaceHeldFlag)
+			_sputRender->saveDrawBuffer(Common::String::format("shot%d.bmp", _screenshotCounter++).c_str());
 
 		break;
 	case Common::KEYCODE_t:
-		if (_bBackspaceHeld) {
+		if (_backspaceHeldFlag) {
 #if defined(GRIM_STD3D)
-			_pStd3D->purgeTextureCache();
+			_std3D->purgeTextureCache();
 #endif
 		}
 
 		break;
 	case Common::KEYCODE_z:
-		if (_bBackspaceHeld)
-			_pSputRender->saveZBuffer(Common::String::format("shot%d.zbm", _zbufShotCounter++).c_str());
+		if (_backspaceHeldFlag)
+			_sputRender->saveZBuffer(Common::String::format("shot%d.zbm", _zbufShotCounter++).c_str());
 
 		break;
 	case Common::KEYCODE_F12:
-		if (_bBackspaceHeld)
-			_pLua->dofile("grimpatch.bin");
+		if (_backspaceHeldFlag)
+			_luaV1->dofile("grimpatch.bin");
 
 		break;
 	default:
@@ -2713,36 +2707,36 @@ void GrimEngine::handleKeyDebug(const Common::KeyState &key) {
 }
 
 void GrimEngine::addKeyboardEvent(uint offset, int data) {
-	StdControlInput *pInput = _pStdControl->getInput();
+	StdControlInput *input = _stdControl->getInput();
 
-	pInput->keyboardState[offset] = (byte)data;
+	input->keyboardState[offset] = (byte)data;
 
-	if (pInput->numKeyboardEvents < 32) {
-		StdControlDeviceEvent *pEvent = &pInput->keyboardEvents[pInput->numKeyboardEvents];
+	if (input->numKeyboardEvents < 32) {
+		StdControlDeviceEvent *event = &input->keyboardEvents[input->numKeyboardEvents];
 
-		pEvent->offset = offset;
-		pEvent->data = data;
-		pEvent->timeStamp = (int)g_system->getMillis();
-		pInput->numKeyboardEvents++;
+		event->offset = offset;
+		event->data = data;
+		event->timeStamp = (int)g_system->getMillis();
+		input->numKeyboardEvents++;
 	} else {
-		pInput->bKeyboardOverflow = 1;
+		input->keyboardOverflow = 1;
 	}
 }
 
 void GrimEngine::addMouseButtonEvent(uint offset, int data) {
-	StdControlInput *pInput = _pStdControl->getInput();
+	StdControlInput *input = _stdControl->getInput();
 
-	pInput->mouse.buttons[offset - 12] = (byte)data;
+	input->mouse.buttons[offset - 12] = (byte)data;
 
-	if (pInput->numMouseEvents < 32) {
-		StdControlDeviceEvent *pEvent = &pInput->mouseEvents[pInput->numMouseEvents];
+	if (input->numMouseEvents < 32) {
+		StdControlDeviceEvent *event = &input->mouseEvents[input->numMouseEvents];
 
-		pEvent->offset = offset;
-		pEvent->data = data;
-		pEvent->timeStamp = (int)g_system->getMillis();
-		pInput->numMouseEvents++;
+		event->offset = offset;
+		event->data = data;
+		event->timeStamp = (int)g_system->getMillis();
+		input->numMouseEvents++;
 	} else {
-		pInput->bMouseOverflow = 1;
+		input->mouseOverflow = 1;
 	}
 }
 

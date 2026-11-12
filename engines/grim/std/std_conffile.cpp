@@ -27,13 +27,13 @@
 
 namespace Grim {
 
-StdConffile::StdConffile(SysStruct *pHS) : _pHS(pHS), _linenum(0), _bOpen(0), _openFile(nullptr), _stackLevel(0), _aLine(nullptr) {
-	memset(_pFilename, 0, sizeof(_pFilename));
+StdConffile::StdConffile(SysStruct *hs) : _hs(hs), _linenum(0), _open(0), _openFile(nullptr), _stackLevel(0), _line(nullptr) {
+	memset(_filename, 0, sizeof(_filename));
 	memset(_entry, 0, sizeof(_entry));
-	memset(_aFilenameStack, 0, sizeof(_aFilenameStack));
-	memset(_apBufferStack, 0, sizeof(_apBufferStack));
+	memset(_filenameStack, 0, sizeof(_filenameStack));
+	memset(_bufferStack, 0, sizeof(_bufferStack));
 	memset(_linenumStack, 0, sizeof(_linenumStack));
-	memset(_aLineStack, 0, sizeof(_aLineStack));
+	memset(_lineStack, 0, sizeof(_lineStack));
 	memset(_openFileStack, 0, sizeof(_openFileStack));
 }
 
@@ -45,84 +45,84 @@ int StdConffile::open(const char *path) {
 }
 
 int StdConffile::fOpen(const char *path) {
-	if (_bOpen)
+	if (_open)
 		pushState();
 
 	if (!strcmp(path, "none")) {
 		_openFile = nullptr;
 	} else {
-		_openFile = _pHS->openFile(path);
+		_openFile = _hs->openFile(path);
 		if (!_openFile) {
-			if (_bOpen)
+			if (_open)
 				popState();
 			return 0;
 		}
 	}
 
-	_aLine = new char[1024];
-	Common::strlcpy(_pFilename, path, 128);
+	_line = new char[1024];
+	Common::strlcpy(_filename, path, 128);
 	_linenum = 0;
-	_bOpen = 1;
+	_open = 1;
 
 	return 1;
 }
 
 void StdConffile::close() {
-	if (_bOpen) {
+	if (_open) {
 		if (_openFile) {
 			delete _openFile;
 			_openFile = nullptr;
 		}
 
-		delete[] _aLine;
-		_aLine = nullptr;
+		delete[] _line;
+		_line = nullptr;
 
 		if (_stackLevel)
 			popState();
 		else
-			_bOpen = 0;
+			_open = 0;
 	}
 }
 
 int StdConffile::readLine() {
-	char *pDst = _aLine;
+	char *dst = _line;
 	int gotLine = 0;
 	uint bufLeft = 1023;
 
 	while (bufLeft) {
-		if (!getsFile(_openFile, pDst, bufLeft))
+		if (!getsFile(_openFile, dst, bufLeft))
 			return 0;
 
 		_linenum++;
 
-		char c = *pDst;
+		char c = *dst;
 		if (c != ';' && c != '#' && c != '\n' && c != '\r') {
-			char *pComment = strchr(pDst, '#');
-			if (pComment)
-				*pComment = 0;
+			char *comment = strchr(dst, '#');
+			if (comment)
+				*comment = 0;
 
-			for (char *p = pDst; *p; p++) {
+			for (char *p = dst; *p; p++) {
 				if (*p >= 'A' && *p <= 'Z')
 					*p += 0x20;
 			}
 
-			int len = strlen(_aLine);
+			int len = strlen(_line);
 			bool continued = false;
 
 			if (len >= 2)
-				continued = _aLine[len - 2] == '\\';
+				continued = _line[len - 2] == '\\';
 			else
 				warning("StdConffile::readLine(): line too short to check for a continuation");
 
 			if (continued) {
-				pDst = &_aLine[len - 2];
+				dst = &_line[len - 2];
 				bufLeft = 1024 - len;
 			} else {
-				char last = _aLine[len - 1];
+				char last = _line[len - 1];
 
 				gotLine = 1;
 				if (last == '\r' || last == '\n')
-					_aLine[len - 1] = 0;
+					_line[len - 1] = 0;
 			}
 		}
 
@@ -136,13 +136,13 @@ int StdConffile::readLine() {
 void StdConffile::pushState() {
 	int level = _stackLevel;
 
-	Common::strlcpy(_aFilenameStack[level], _pFilename, 128);
+	Common::strlcpy(_filenameStack[level], _filename, 128);
 	_linenumStack[level] = _linenum;
 	_linenum = 0;
 	_openFileStack[level] = _openFile;
 	_openFile = nullptr;
-	memcpy(_aLineStack[level], _entry, sizeof(_entry));
-	_apBufferStack[level] = _aLine;
+	memcpy(_lineStack[level], _entry, sizeof(_entry));
+	_bufferStack[level] = _line;
 	_stackLevel = level + 1;
 }
 
@@ -152,20 +152,20 @@ void StdConffile::popState() {
 
 	int level = --_stackLevel;
 
-	Common::strlcpy(_pFilename, _aFilenameStack[level], 128);
+	Common::strlcpy(_filename, _filenameStack[level], 128);
 	_openFile = _openFileStack[level];
 	_linenum = _linenumStack[level];
-	_aLine = _apBufferStack[level];
-	memcpy(_entry, _aLineStack[level], sizeof(_entry));
+	_line = _bufferStack[level];
+	memcpy(_entry, _lineStack[level], sizeof(_entry));
 }
 
-char *StdConffile::getsFile(Common::SeekableReadStream *pFile, char *pBuffer, int size) {
+char *StdConffile::getsFile(Common::SeekableReadStream *file, char *buffer, int size) {
 	int count = 0;
 
-	while (count < size - 1 && pFile->pos() < pFile->size()) {
-		char c = pFile->readByte();
+	while (count < size - 1 && file->pos() < file->size()) {
+		char c = file->readByte();
 
-		pBuffer[count++] = c;
+		buffer[count++] = c;
 		if (c == '\n')
 			break;
 	}
@@ -173,8 +173,8 @@ char *StdConffile::getsFile(Common::SeekableReadStream *pFile, char *pBuffer, in
 	if (!count)
 		return nullptr;
 
-	pBuffer[count] = 0;
-	return pBuffer;
+	buffer[count] = 0;
+	return buffer;
 }
 
 } // End of namespace Grim

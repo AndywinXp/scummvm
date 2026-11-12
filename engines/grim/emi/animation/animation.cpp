@@ -89,12 +89,12 @@ static void writeFloat(LFile *file, float value) {
 }
 
 static bool readTrackHeader(LFile *file, ATrack *track, int dataType, int fileSize, int keySize) {
-	track->dataType = dataType;
+	track->_dataType = dataType;
 
-	if (!readInt(file, &track->priority) || !readInt(file, &track->trackFlags) || !readInt(file, &track->numSamples))
+	if (!readInt(file, &track->_priority) || !readInt(file, &track->_trackFlags) || !readInt(file, &track->_numSamples))
 		return false;
 
-	return track->numSamples >= 0 && (fileSize <= 0 || track->numSamples <= fileSize / keySize);
+	return track->_numSamples >= 0 && (fileSize <= 0 || track->_numSamples <= fileSize / keySize);
 }
 
 static byte *readKeyData(LFile *file, int count, int keySize) {
@@ -111,22 +111,22 @@ static byte *readKeyData(LFile *file, int count, int keySize) {
 }
 
 Animation::Animation(EmiEngine *engine) : _engine(engine) {
-	length = 0.0f;
-	trackCount = 0;
-	entryCount = 0;
-	name = "untitled";
+	_length = 0.0f;
+	_trackCount = 0;
+	_entryCount = 0;
+	_name = "untitled";
 }
 
 Animation::~Animation() {
-	for (int i = 0; i < trackCount; i++) {
-		if (entries[i].track) {
-			delete entries[i].track;
-			entries[i].track = nullptr;
+	for (int i = 0; i < _trackCount; i++) {
+		if (_entries[i].track) {
+			delete _entries[i].track;
+			_entries[i].track = nullptr;
 		}
 	}
 
-	entries.clear();
-	name.clear();
+	_entries.clear();
+	_name.clear();
 }
 
 bool Animation::failLoad(LFile *file, const char *reason) {
@@ -140,38 +140,38 @@ bool Animation::save(LFile *file) {
 	AnimationParser parser(_engine);
 	int writtenTracks = 0;
 
-	for (int i = 0; i < entryCount; i++) {
-		if (!entries[i].track) {
+	for (int i = 0; i < _entryCount; i++) {
+		if (!_entries[i].track) {
 			warning("Animation::save(): entry %d has no track", i);
 			continue;
 		}
 
-		if (entries[i].track->numSamples > 0)
+		if (_entries[i].track->_numSamples > 0)
 			writtenTracks++;
 	}
 
 	parser.setFile(file);
 	parser.writeVersion(0, 3);
-	parser.writeEntry(kKeywordAnimName, name.c_str());
+	parser.writeEntry(kKeywordAnimName, _name.c_str());
 	parser.writeEntry(kKeywordAnimEntries, writtenTracks);
-	parser.writeEntry(kKeywordAnimLength, length);
+	parser.writeEntry(kKeywordAnimLength, _length);
 	parser.writeComment("TrackName TrackType TrackData");
 
-	for (int i = 0; i < entryCount; i++) {
-		ATrack *track = entries[i].track;
+	for (int i = 0; i < _entryCount; i++) {
+		ATrack *track = _entries[i].track;
 
-		if (track && track->numSamples) {
-			parser.writeEntry(kKeywordAnimEntry, entries[i].name.c_str(), track->trackType, track->dataType);
+		if (track && track->_numSamples) {
+			parser.writeEntry(kKeywordAnimEntry, _entries[i].name.c_str(), track->_trackType, track->_dataType);
 		}
 	}
 
 	int trackIndex = 0;
 
-	for (int i = 0; i < entryCount; i++) {
-		ATrack *track = entries[i].track;
+	for (int i = 0; i < _entryCount; i++) {
+		ATrack *track = _entries[i].track;
 
-		if (track && track->numSamples) {
-			LString comment = LString::format("Track %d (%s)", trackIndex++, entries[i].name.c_str());
+		if (track && track->_numSamples) {
+			LString comment = LString::format("Track %d (%s)", trackIndex++, _entries[i].name.c_str());
 
 			parser.writeComment(comment.c_str());
 			track->save(file);
@@ -199,9 +199,9 @@ bool Animation::restore(LFile *file) {
 
 	nameBuffer[0] = 0;
 	parser.readEntry(kKeywordAnimName, nameBuffer);
-	name = nameBuffer;
+	_name = nameBuffer;
 	parser.readEntry(kKeywordAnimEntries, &count);
-	parser.readEntry(kKeywordAnimLength, &length);
+	parser.readEntry(kKeywordAnimLength, &_length);
 
 	if (count < 0) {
 		warning("Animation::restore(): invalid track count %d", count);
@@ -209,11 +209,11 @@ bool Animation::restore(LFile *file) {
 		return false;
 	}
 
-	entries.resize(count);
-	trackCount = count;
-	entryCount = count;
+	_entries.resize(count);
+	_trackCount = count;
+	_entryCount = count;
 
-	for (int i = 0; i < entryCount; i++) {
+	for (int i = 0; i < _entryCount; i++) {
 		int trackType = 0;
 		int dataType = 0;
 
@@ -222,29 +222,29 @@ bool Animation::restore(LFile *file) {
 
 		switch (dataType) {
 		case ATrack::kDataFloat:
-			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<float>(_engine);
+			_entries[i].name = entryName;
+			_entries[i].track = new ATrackKeyframeData<float>(_engine);
 			break;
 		case ATrack::kDataInt:
-			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<int>(_engine);
+			_entries[i].name = entryName;
+			_entries[i].track = new ATrackKeyframeData<int>(_engine);
 			break;
 		case ATrack::kDataVector:
-			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<CVector>(_engine);
+			_entries[i].name = entryName;
+			_entries[i].track = new ATrackKeyframeData<CVector>(_engine);
 			break;
 		case ATrack::kDataQuaternion:
-			entries[i].name = entryName;
-			entries[i].track = new ATrackKeyframeData<CQuaternion>(_engine);
+			_entries[i].name = entryName;
+			_entries[i].track = new ATrackKeyframeData<CQuaternion>(_engine);
 			break;
 		default:
 			break;
 		}
 	}
 
-	for (int i = 0; i < entryCount; i++) {
-		if (entries[i].track)
-			entries[i].track->restore(file);
+	for (int i = 0; i < _entryCount; i++) {
+		if (_entries[i].track)
+			_entries[i].track->restore(file);
 		else
 			warning("Animation::restore(): entry %d has an unknown track type", i);
 	}
@@ -272,19 +272,19 @@ bool Animation::loadBinary(const char *path) {
 		return failLoad(file, "unexpected end of file");
 
 	buffer[kNameBufferSize - 1] = 0;
-	name = buffer;
+	_name = buffer;
 
-	if (!readFloat(file, &length) || !readInt(file, &count))
+	if (!readFloat(file, &_length) || !readInt(file, &count))
 		return failLoad(file, "unexpected end of file");
 
 	if (count < 0 || (fileSize > 0 && count > fileSize / kMinTrackRecordSize))
 		return failLoad(file, "invalid track count");
 
-	entries.resize(count);
-	trackCount = count;
-	entryCount = count;
+	_entries.resize(count);
+	_trackCount = count;
+	_entryCount = count;
 
-	for (int i = 0; i < entryCount; i++) {
+	for (int i = 0; i < _entryCount; i++) {
 		int trackNameLength;
 		int dataType;
 
@@ -297,7 +297,7 @@ bool Animation::loadBinary(const char *path) {
 			return failLoad(file, "unexpected end of file");
 
 		buffer[kNameBufferSize - 1] = 0;
-		entries[i].name = buffer;
+		_entries[i].name = buffer;
 
 		if (!readInt(file, &dataType))
 			return failLoad(file, "unexpected end of file");
@@ -306,22 +306,22 @@ bool Animation::loadBinary(const char *path) {
 		case ATrack::kDataFloat: {
 			ATrackKeyframeData<float> *track = new ATrackKeyframeData<float>(_engine);
 
-			entries[i].track = track;
+			_entries[i].track = track;
 
 			if (!readTrackHeader(file, track, dataType, fileSize, kFloatKeySize))
 				return failLoad(file, "invalid track header");
 
-			track->allocateKeys(track->numSamples);
+			track->allocateKeys(track->_numSamples);
 
-			if (track->numSamples > 0) {
-				byte *raw = track->keys ? readKeyData(file, track->numSamples, kFloatKeySize) : nullptr;
+			if (track->_numSamples > 0) {
+				byte *raw = track->_keys ? readKeyData(file, track->_numSamples, kFloatKeySize) : nullptr;
 
 				if (!raw)
 					return failLoad(file, "unexpected end of file");
 
-				for (int j = 0; j < track->numSamples; j++) {
-					track->keys[j].value = READ_LE_FLOAT32(raw + j * kFloatKeySize);
-					track->keys[j].time = READ_LE_FLOAT32(raw + j * kFloatKeySize + 4);
+				for (int j = 0; j < track->_numSamples; j++) {
+					track->_keys[j].value = READ_LE_FLOAT32(raw + j * kFloatKeySize);
+					track->_keys[j].time = READ_LE_FLOAT32(raw + j * kFloatKeySize + 4);
 				}
 
 				delete[] raw;
@@ -332,22 +332,22 @@ bool Animation::loadBinary(const char *path) {
 		case ATrack::kDataInt: {
 			ATrackKeyframeData<int> *track = new ATrackKeyframeData<int>(_engine);
 
-			entries[i].track = track;
+			_entries[i].track = track;
 
 			if (!readTrackHeader(file, track, dataType, fileSize, kFloatKeySize))
 				return failLoad(file, "invalid track header");
 
-			track->allocateKeys(track->numSamples);
+			track->allocateKeys(track->_numSamples);
 
-			if (track->numSamples > 0) {
-				byte *raw = track->keys ? readKeyData(file, track->numSamples, kFloatKeySize) : nullptr;
+			if (track->_numSamples > 0) {
+				byte *raw = track->_keys ? readKeyData(file, track->_numSamples, kFloatKeySize) : nullptr;
 
 				if (!raw)
 					return failLoad(file, "unexpected end of file");
 
-				for (int j = 0; j < track->numSamples; j++) {
-					track->keys[j].setInt(READ_LE_INT32(raw + j * kFloatKeySize));
-					track->keys[j].time = READ_LE_FLOAT32(raw + j * kFloatKeySize + 4);
+				for (int j = 0; j < track->_numSamples; j++) {
+					track->_keys[j].setInt(READ_LE_INT32(raw + j * kFloatKeySize));
+					track->_keys[j].time = READ_LE_FLOAT32(raw + j * kFloatKeySize + 4);
 				}
 
 				delete[] raw;
@@ -358,24 +358,24 @@ bool Animation::loadBinary(const char *path) {
 		case ATrack::kDataVector: {
 			ATrackKeyframeData<CVector> *track = new ATrackKeyframeData<CVector>(_engine);
 
-			entries[i].track = track;
+			_entries[i].track = track;
 
 			if (!readTrackHeader(file, track, dataType, fileSize, kVectorKeySize))
 				return failLoad(file, "invalid track header");
 
-			track->allocateKeys(track->numSamples);
+			track->allocateKeys(track->_numSamples);
 
-			if (track->numSamples > 0) {
-				byte *raw = track->keys ? readKeyData(file, track->numSamples, kVectorKeySize) : nullptr;
+			if (track->_numSamples > 0) {
+				byte *raw = track->_keys ? readKeyData(file, track->_numSamples, kVectorKeySize) : nullptr;
 
 				if (!raw)
 					return failLoad(file, "unexpected end of file");
 
-				for (int j = 0; j < track->numSamples; j++) {
-					track->keys[j].v.x = READ_LE_FLOAT32(raw + j * kVectorKeySize);
-					track->keys[j].v.y = READ_LE_FLOAT32(raw + j * kVectorKeySize + 4);
-					track->keys[j].v.z = READ_LE_FLOAT32(raw + j * kVectorKeySize + 8);
-					track->keys[j].time = READ_LE_FLOAT32(raw + j * kVectorKeySize + 12);
+				for (int j = 0; j < track->_numSamples; j++) {
+					track->_keys[j].v._x = READ_LE_FLOAT32(raw + j * kVectorKeySize);
+					track->_keys[j].v._y = READ_LE_FLOAT32(raw + j * kVectorKeySize + 4);
+					track->_keys[j].v._z = READ_LE_FLOAT32(raw + j * kVectorKeySize + 8);
+					track->_keys[j].time = READ_LE_FLOAT32(raw + j * kVectorKeySize + 12);
 				}
 
 				delete[] raw;
@@ -386,25 +386,25 @@ bool Animation::loadBinary(const char *path) {
 		case ATrack::kDataQuaternion: {
 			ATrackKeyframeData<CQuaternion> *track = new ATrackKeyframeData<CQuaternion>(_engine);
 
-			entries[i].track = track;
+			_entries[i].track = track;
 
 			if (!readTrackHeader(file, track, dataType, fileSize, kQuaternionKeySize))
 				return failLoad(file, "invalid track header");
 
-			track->allocateKeys(track->numSamples);
+			track->allocateKeys(track->_numSamples);
 
-			if (track->numSamples > 0) {
-				byte *raw = track->keys ? readKeyData(file, track->numSamples, kQuaternionKeySize) : nullptr;
+			if (track->_numSamples > 0) {
+				byte *raw = track->_keys ? readKeyData(file, track->_numSamples, kQuaternionKeySize) : nullptr;
 
 				if (!raw)
 					return failLoad(file, "unexpected end of file");
 
-				for (int j = 0; j < track->numSamples; j++) {
-					track->keys[j].q.x = READ_LE_FLOAT32(raw + j * kQuaternionKeySize);
-					track->keys[j].q.y = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 4);
-					track->keys[j].q.z = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 8);
-					track->keys[j].q.w = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 12);
-					track->keys[j].time = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 16);
+				for (int j = 0; j < track->_numSamples; j++) {
+					track->_keys[j].q._x = READ_LE_FLOAT32(raw + j * kQuaternionKeySize);
+					track->_keys[j].q._y = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 4);
+					track->_keys[j].q._z = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 8);
+					track->_keys[j].q._w = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 12);
+					track->_keys[j].time = READ_LE_FLOAT32(raw + j * kQuaternionKeySize + 16);
 				}
 
 				delete[] raw;
@@ -430,37 +430,37 @@ bool Animation::saveBinary(const char *path) {
 
 	int writtenTracks = 0;
 
-	for (int i = 0; i < entryCount; i++) {
-		if (entries[i].track && entries[i].track->numSamples > 0)
+	for (int i = 0; i < _entryCount; i++) {
+		if (_entries[i].track && _entries[i].track->_numSamples > 0)
 			writtenTracks++;
 	}
 
-	writeInt(file, (int)name.size() + 1);
-	file->write(name.c_str(), name.size() + 1);
-	writeFloat(file, length);
+	writeInt(file, (int)_name.size() + 1);
+	file->write(_name.c_str(), _name.size() + 1);
+	writeFloat(file, _length);
 	writeInt(file, writtenTracks);
 
-	for (int i = 0; i < entryCount; i++) {
-		ATrack *track = entries[i].track;
+	for (int i = 0; i < _entryCount; i++) {
+		ATrack *track = _entries[i].track;
 
-		if (!track || track->numSamples <= 0)
+		if (!track || track->_numSamples <= 0)
 			continue;
 
-		writeInt(file, (int)entries[i].name.size() + 1);
-		file->write(entries[i].name.c_str(), entries[i].name.size() + 1);
-		writeInt(file, track->dataType);
-		writeInt(file, track->priority);
-		writeInt(file, track->trackFlags);
-		writeInt(file, track->numSamples);
+		writeInt(file, (int)_entries[i].name.size() + 1);
+		file->write(_entries[i].name.c_str(), _entries[i].name.size() + 1);
+		writeInt(file, track->_dataType);
+		writeInt(file, track->_priority);
+		writeInt(file, track->_trackFlags);
+		writeInt(file, track->_numSamples);
 
-		switch (track->dataType) {
+		switch (track->_dataType) {
 		case ATrack::kDataFloat: {
 			ATrackKeyframeData<float> *data = dynamic_cast<ATrackKeyframeData<float> *>(track);
 
 			if (data) {
-				for (int j = 0; j < track->numSamples; j++) {
-					writeFloat(file, data->keys[j].value);
-					writeFloat(file, data->keys[j].time);
+				for (int j = 0; j < track->_numSamples; j++) {
+					writeFloat(file, data->_keys[j].value);
+					writeFloat(file, data->_keys[j].time);
 				}
 			}
 
@@ -470,9 +470,9 @@ bool Animation::saveBinary(const char *path) {
 			ATrackKeyframeData<int> *data = dynamic_cast<ATrackKeyframeData<int> *>(track);
 
 			if (data) {
-				for (int j = 0; j < track->numSamples; j++) {
-					writeInt(file, data->keys[j].getInt());
-					writeFloat(file, data->keys[j].time);
+				for (int j = 0; j < track->_numSamples; j++) {
+					writeInt(file, data->_keys[j].getInt());
+					writeFloat(file, data->_keys[j].time);
 				}
 			}
 
@@ -482,11 +482,11 @@ bool Animation::saveBinary(const char *path) {
 			ATrackKeyframeData<CVector> *data = dynamic_cast<ATrackKeyframeData<CVector> *>(track);
 
 			if (data) {
-				for (int j = 0; j < track->numSamples; j++) {
-					writeFloat(file, data->keys[j].v.x);
-					writeFloat(file, data->keys[j].v.y);
-					writeFloat(file, data->keys[j].v.z);
-					writeFloat(file, data->keys[j].time);
+				for (int j = 0; j < track->_numSamples; j++) {
+					writeFloat(file, data->_keys[j].v._x);
+					writeFloat(file, data->_keys[j].v._y);
+					writeFloat(file, data->_keys[j].v._z);
+					writeFloat(file, data->_keys[j].time);
 				}
 			}
 
@@ -496,12 +496,12 @@ bool Animation::saveBinary(const char *path) {
 			ATrackKeyframeData<CQuaternion> *data = dynamic_cast<ATrackKeyframeData<CQuaternion> *>(track);
 
 			if (data) {
-				for (int j = 0; j < track->numSamples; j++) {
-					writeFloat(file, data->keys[j].q.x);
-					writeFloat(file, data->keys[j].q.y);
-					writeFloat(file, data->keys[j].q.z);
-					writeFloat(file, data->keys[j].q.w);
-					writeFloat(file, data->keys[j].time);
+				for (int j = 0; j < track->_numSamples; j++) {
+					writeFloat(file, data->_keys[j].q._x);
+					writeFloat(file, data->_keys[j].q._y);
+					writeFloat(file, data->_keys[j].q._z);
+					writeFloat(file, data->_keys[j].q._w);
+					writeFloat(file, data->_keys[j].time);
 				}
 			}
 

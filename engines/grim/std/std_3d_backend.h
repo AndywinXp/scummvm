@@ -32,15 +32,15 @@ namespace Grim {
 // Compare functions (zCompareFunc, alphaFunc) use the D3D numbering:
 // 1 never, 2 less, 3 equal, 4 less-equal, 5 greater, 6 not-equal, 7 greater-equal, 8 always
 struct Std3DDrawList {
-	Std3DSurface *pTarget;
-	const Std3DVertex *pVertices;
+	Std3DSurface *target;
+	const Std3DVertex *vertices;
 	uint numVertices;
-	const uint16 *pIndices;
+	const uint16 *indices;
 	uint numIndices;
-	const Std3DCommand *pCommands;
+	const Std3DCommand *commands;
 	uint numCommands;
 	uint initialRenderState;
-	int bZEnable;
+	int zEnable;
 	uint zCompareFunc;
 	uint alphaFunc;
 	float fogStart;
@@ -55,7 +55,7 @@ public:
 	virtual ~Std3DBackend() {}
 
 	virtual int openGraphicsMode(int width, int height) = 0;
-	virtual void fillDeviceDesc(Std3DDeviceDesc *pDesc) = 0;
+	virtual void fillDeviceDesc(Std3DDeviceDesc *desc) = 0;
 	virtual int isSupported() = 0;
 	virtual int canProbeWithoutMode() = 0;
 	virtual int ensureReady() = 0;
@@ -65,26 +65,26 @@ public:
 	virtual int getMaxTextureSize() = 0;
 	virtual uint getTextureBudget() = 0;
 
-	virtual int createSurface(Std3DSurface *pSurface, int bHasDepth, int zBufferBitDepth) = 0;
-	virtual void destroySurface(Std3DSurface *pSurface) = 0;
-	virtual int uploadPixels(Std3DSurface *pSurface, const StdRect *pRect, const byte *pPixels, int pitchInBytes) = 0;
-	virtual int readPixels(Std3DSurface *pSurface, const StdRect *pRect, byte *pOut, int pitchInBytes) = 0;
-	virtual int fillRect(Std3DSurface *pSurface, const StdRect *pRect, uint16 color) = 0;
+	virtual int createSurface(Std3DSurface *surface, int hasDepth, int zBufferBitDepth) = 0;
+	virtual void destroySurface(Std3DSurface *surface) = 0;
+	virtual int uploadPixels(Std3DSurface *surface, const StdRect *rectPointer, const byte *pixels, int pitchInBytes) = 0;
+	virtual int readPixels(Std3DSurface *surface, const StdRect *rectPointer, byte *out, int pitchInBytes) = 0;
+	virtual int fillRect(Std3DSurface *surface, const StdRect *rectPointer, uint16 color) = 0;
 	virtual int canBlitOntoSelf() = 0;
-	virtual int blit(Std3DSurface *pDst, Std3DSurface *pSrc, int srcX, int srcY, int width, int height, int dstX, int dstY, int bColorKey, uint16 colorKey) = 0;
-	virtual int presentSurface(Std3DSurface *pSurface) = 0;
+	virtual int blit(Std3DSurface *dst, Std3DSurface *src, int srcX, int srcY, int width, int height, int dstX, int dstY, int colorKeyFlag, uint16 colorKey) = 0;
+	virtual int presentSurface(Std3DSurface *surface) = 0;
 
-	virtual int attachDepth(Std3DSurface *pSurface, int zBufferBitDepth) = 0;
-	virtual void detachDepth(Std3DSurface *pSurface) = 0;
-	virtual int hasDepth(const Std3DSurface *pSurface) = 0;
-	virtual int supportsDepthUpload(const Std3DSurface *pSurface) = 0;
-	virtual int clearDepth(Std3DSurface *pSurface, const StdRect *pRect, float depthValue) = 0;
-	virtual int uploadDepth(Std3DSurface *pSurface, const StdRect *pRect, const byte *pZData, int pitchInBytes) = 0;
+	virtual int attachDepth(Std3DSurface *surface, int zBufferBitDepth) = 0;
+	virtual void detachDepth(Std3DSurface *surface) = 0;
+	virtual int hasDepth(const Std3DSurface *surface) = 0;
+	virtual int supportsDepthUpload(const Std3DSurface *surface) = 0;
+	virtual int clearDepth(Std3DSurface *surface, const StdRect *rect, float depthValue) = 0;
+	virtual int uploadDepth(Std3DSurface *surface, const StdRect *rectPointer, const byte *zData, int pitchInBytes) = 0;
 
-	virtual uint createTexture(const byte *pRgba, int width, int height, int bMagLinear, int bMinLinear) = 0;
-	virtual void deleteTexture(uint hTexture) = 0;
+	virtual uint createTexture(const byte *rgba, int width, int height, int magLinear, int minLinear) = 0;
+	virtual void deleteTexture(uint textureHandle) = 0;
 
-	virtual int drawList(const Std3DDrawList *pList) = 0;
+	virtual int drawList(const Std3DDrawList *list) = 0;
 };
 
 #if defined(GRIM_STD3D_GL)

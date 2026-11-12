@@ -35,10 +35,10 @@ static const int kDimPolyVertices = 4;
 static const int kDimDrawListIndex = 1;
 
 DimRegion::DimRegion() {
-	prev = nullptr;
-	next = nullptr;
-	alpha = 0.0f;
-	id = 0;
+	_prev = nullptr;
+	_next = nullptr;
+	_alpha = 0.0f;
+	_id = 0;
 }
 
 void *DimRegion::operator new(size_t size) {
@@ -60,15 +60,15 @@ void DimRegion::undimAll(EmiEngine *engine) {
 			return;
 		}
 
-		engine->_dimRegionHead = region->next;
+		engine->_dimRegionHead = region->_next;
 
 		if (engine->_dimRegionHead)
-			engine->_dimRegionHead->prev = nullptr;
+			engine->_dimRegionHead->_prev = nullptr;
 		else
 			engine->_dimRegionTail = nullptr;
 
-		region->prev = nullptr;
-		region->next = nullptr;
+		region->_prev = nullptr;
+		region->_next = nullptr;
 		engine->_dimRegionCount--;
 
 		delete region;
@@ -81,7 +81,7 @@ int DimRegion::drawDimRegions(EmiEngine *engine, CDrawContext *drawContext) {
 	DimRegion *region = engine->_dimRegionHead;
 
 	while (region) {
-		double scaledAlpha = (double)region->alpha * 255.0;
+		double scaledAlpha = (double)region->_alpha * 255.0;
 		byte alphaByte = 0;
 
 		if (scaledAlpha > -9.0e18 && scaledAlpha < 9.0e18)
@@ -93,14 +93,14 @@ int DimRegion::drawDimRegions(EmiEngine *engine, CDrawContext *drawContext) {
 
 		poly->flags = kDimPolyFlags;
 
-		float left = region->rect.getX();
-		float right = region->rect.getX();
+		float left = region->_rect.getX();
+		float right = region->_rect.getX();
 
-		right = (float)((double)region->rect.getWidth() + (double)right);
+		right = (float)((double)region->_rect.getWidth() + (double)right);
 
-		float top = region->rect.getY();
-		float bottom = region->rect.getY();
-		double height = region->rect.getHeight();
+		float top = region->_rect.getY();
+		float bottom = region->_rect.getY();
+		double height = region->_rect.getHeight();
 
 		poly->verts[0]->x = left;
 		poly->verts[0]->y = top;
@@ -123,7 +123,7 @@ int DimRegion::drawDimRegions(EmiEngine *engine, CDrawContext *drawContext) {
 
 		drawContext->getDrawList(kDimDrawListIndex)->addPoly(poly);
 
-		region = region->next;
+		region = region->_next;
 	}
 
 	return drawContext->flushDrawLists();
@@ -132,10 +132,10 @@ int DimRegion::drawDimRegions(EmiEngine *engine, CDrawContext *drawContext) {
 int DimRegion::dimScreen(EmiEngine *engine, int reserved, float alpha) {
 	FRect screen;
 
-	screen.x = -1.0f;
-	screen.y = 1.0f;
-	screen.w = 2.0f;
-	screen.h = -2.0f;
+	screen._x = -1.0f;
+	screen._y = 1.0f;
+	screen._w = 2.0f;
+	screen._h = -2.0f;
 
 	return dimRegion(engine, &screen, alpha);
 }
@@ -149,19 +149,19 @@ int DimRegion::dimRegion(EmiEngine *engine, FRect *region, float alpha) {
 
 	DimRegion *newRegion = new DimRegion();
 
-	newRegion->rect.x = region->x;
-	newRegion->rect.y = region->y;
-	newRegion->rect.w = region->w;
-	newRegion->rect.h = region->h;
-	newRegion->alpha = alpha;
-	newRegion->id = engine->_nextDimRegionId;
+	newRegion->_rect._x = region->_x;
+	newRegion->_rect._y = region->_y;
+	newRegion->_rect._w = region->_w;
+	newRegion->_rect._h = region->_h;
+	newRegion->_alpha = alpha;
+	newRegion->_id = engine->_nextDimRegionId;
 	engine->_nextDimRegionId++;
 
 	if (engine->_dimRegionTail)
-		engine->_dimRegionTail->next = newRegion;
+		engine->_dimRegionTail->_next = newRegion;
 
-	newRegion->prev = engine->_dimRegionTail;
-	newRegion->next = nullptr;
+	newRegion->_prev = engine->_dimRegionTail;
+	newRegion->_next = nullptr;
 	engine->_dimRegionTail = newRegion;
 
 	if (!engine->_dimRegionHead)
@@ -169,7 +169,7 @@ int DimRegion::dimRegion(EmiEngine *engine, FRect *region, float alpha) {
 
 	engine->_dimRegionCount++;
 
-	return newRegion->id;
+	return newRegion->_id;
 }
 
 bool DimRegion::undimRegion(EmiEngine *engine, int regionId) {
@@ -178,40 +178,40 @@ bool DimRegion::undimRegion(EmiEngine *engine, int regionId) {
 	if (!region)
 		return false;
 
-	while (region->id != regionId) {
-		region = region->next;
+	while (region->_id != regionId) {
+		region = region->_next;
 
 		if (!region)
 			return false;
 	}
 
 	if (region == engine->_dimRegionHead) {
-		engine->_dimRegionHead = region->next;
+		engine->_dimRegionHead = region->_next;
 
 		if (engine->_dimRegionHead)
-			engine->_dimRegionHead->prev = nullptr;
+			engine->_dimRegionHead->_prev = nullptr;
 		else
 			engine->_dimRegionTail = nullptr;
 
-		region->prev = nullptr;
-		region->next = nullptr;
+		region->_prev = nullptr;
+		region->_next = nullptr;
 		engine->_dimRegionCount--;
 	} else if (region == engine->_dimRegionTail) {
-		engine->_dimRegionTail = region->prev;
+		engine->_dimRegionTail = region->_prev;
 
 		if (engine->_dimRegionTail)
-			engine->_dimRegionTail->next = nullptr;
+			engine->_dimRegionTail->_next = nullptr;
 		else
 			engine->_dimRegionHead = nullptr;
 
-		region->prev = nullptr;
-		region->next = nullptr;
+		region->_prev = nullptr;
+		region->_next = nullptr;
 		engine->_dimRegionCount--;
-	} else if (region->next || region->prev) {
-		region->next->prev = region->prev;
-		region->prev->next = region->next;
-		region->prev = nullptr;
-		region->next = nullptr;
+	} else if (region->_next || region->_prev) {
+		region->_next->_prev = region->_prev;
+		region->_prev->_next = region->_next;
+		region->_prev = nullptr;
+		region->_next = nullptr;
 		engine->_dimRegionCount--;
 	}
 

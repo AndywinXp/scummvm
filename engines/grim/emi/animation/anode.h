@@ -41,10 +41,10 @@ public:
 	void unbindTrack(AInst *inst, ATrack *track);
 	void updateANode();
 
-	int boundTracks;
-	bool dirty;
-	AChannel<CVector> *posChannel;
-	AChannel<CQuaternion> *rotChannel;
+	int _boundTracks;
+	bool _dirty;
+	AChannel<CVector> *_posChannel;
+	AChannel<CQuaternion> *_rotChannel;
 
 private:
 	EmiEngine *_engine;

@@ -212,9 +212,9 @@ private:
 	int dispatchConvertMap(uint8 *rawMap, int32 *destMap);
 	uint8 *dispatchGetNextMapEvent(int32 *mapPtr, int32 soundOffset, uint8 *mapEvent);
 	void dispatchPredictStream(IMuseDispatch *dispatchPtr);
-	uint8 *dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *strZnPtr, int &candidateHookId);
-	void dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *strZnPtr, uint8 *jumpParamsFromMap, int calledFromGetNextMapEvent);
-	void dispatchStreamNextZone(IMuseDispatch *dispatchPtr, IMuseStreamZone *strZnPtr);
+	uint8 *dispatchCheckForJump(int32 *mapPtr, IMuseStreamZone *znPtr, int &candidateHookId);
+	void dispatchPrepareToJump(IMuseDispatch *dispatchPtr, IMuseStreamZone *znPtr, uint8 *jumpParamsFromMap, int calledFromGetNextMapEvent);
+	void dispatchStreamNextZone(IMuseDispatch *dispatchPtr, IMuseStreamZone *znPtr);
 	IMuseStreamZone *dispatchAllocateStreamZone();
 	uint8 *dispatchAllocateFade(int32 &fadeSize, const char *functionName);
 	void dispatchDeallocateFade(IMuseDispatch *dispatchPtr, const char *functionName);
@@ -320,7 +320,7 @@ private:
 	void allocateProcessedSound(int luaSoundId);
 
 	// Waveapi
-	waveOutParamsStruct waveOutSettings;
+	waveOutParamsStruct _waveOutSettings;
 
 	int _waveOutSampleRate;
 	int _waveOutBytesPerSample;
@@ -386,7 +386,7 @@ public:
 	int soundGetVoiceTime();
 	int iMUSEGetPhoneme(int lipsyncId, int offset);
 	IMuseLipSync *grimSoundLipSyncLoad(const char *source);
-	void grimSoundLipSyncFree(IMuseLipSync *pLipSync);
+	void grimSoundLipSyncFree(IMuseLipSync *lipSync);
 
 	// Called by the Groups module
 	void tracksSetGroupVol();

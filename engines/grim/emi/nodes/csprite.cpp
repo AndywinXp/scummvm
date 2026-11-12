@@ -108,21 +108,21 @@ static void writeString(LFile *file, const LString &text) {
 	file->write(text.c_str(), text.size() + 1);
 }
 
-CSprite::CSprite(EmiEngine *engine) : material(engine), _engine(engine) {
-	width = 1.0f;
-	height = 1.0f;
-	drawFlags = 0;
+CSprite::CSprite(EmiEngine *engine) : _material(engine), _engine(engine) {
+	_width = 1.0f;
+	_height = 1.0f;
+	_drawFlags = 0;
 
 	for (int i = 0; i < kNumCorners; i++) {
-		corners[i] = Color::kWhite;
-		uv[i * 2] = (i == 0 || i == 3) ? 0.0f : 1.0f;
-		uv[i * 2 + 1] = (i == 2 || i == 3) ? 0.0f : 1.0f;
+		_corners[i] = Color::kWhite;
+		_uv[i * 2] = (i == 0 || i == 3) ? 0.0f : 1.0f;
+		_uv[i * 2 + 1] = (i == 2 || i == 3) ? 0.0f : 1.0f;
 	}
 }
 
 CSprite::~CSprite() {
-	material.unlock();
-	material.setResource(nullptr);
+	_material.unlock();
+	_material.setResource(nullptr);
 }
 
 EmiEngine *CSprite::getEngine() const {
@@ -146,46 +146,46 @@ bool CSprite::restore(LFile *file) {
 	if (!parser.readEntry(kKeywordTextureName, textureName, &textureFlags))
 		return false;
 
-	material.resource = _engine->getResourceManager()->findResource(textureName);
+	_material._resource = _engine->getResourceManager()->findResource(textureName);
 
-	if (!material.resource) {
-		material.resource = _engine->getResourceManager()->createResource(textureName);
+	if (!_material._resource) {
+		_material._resource = _engine->getResourceManager()->createResource(textureName);
 
-		if (!material.resource)
-			material.allocateResource();
+		if (!_material._resource)
+			_material.allocateResource();
 
-		if (material.resource) {
-			material.resource->resSetName(textureName);
-			_engine->getResourceManager()->addResource(material.resource);
+		if (_material._resource) {
+			_material._resource->resSetName(textureName);
+			_engine->getResourceManager()->addResource(_material._resource);
 		}
 	}
 
-	material.setResource(material.resource);
+	_material.setResource(_material._resource);
 
-	if (!parser.readEntry(kKeywordDrawFlags, &drawFlags))
+	if (!parser.readEntry(kKeywordDrawFlags, &_drawFlags))
 		return false;
 
-	if (!parser.readEntry(kKeywordDimensions, &width, &height))
+	if (!parser.readEntry(kKeywordDimensions, &_width, &_height))
 		return false;
 
 	// The disasm reads the offset line with the id of the dimensions keyword
-	if (!parser.readEntry(kKeywordDimensions, &offset.x, &offset.y, &offset.z))
+	if (!parser.readEntry(kKeywordDimensions, &_offset._x, &_offset._y, &_offset._z))
 		return false;
 
 	for (int i = 0; i < kNumCorners; i++) {
-		if (!parser.readEntry(kKeywordColor, &corners[i].r, &corners[i].g, &corners[i].b, &corners[i].a))
+		if (!parser.readEntry(kKeywordColor, &_corners[i]._r, &_corners[i]._g, &_corners[i]._b, &_corners[i]._a))
 			return false;
 	}
 
 	for (int i = 0; i < kNumCorners; i++) {
-		if (!parser.readEntry(kKeywordTexCoord, &uv[i * 2], &uv[i * 2 + 1]))
+		if (!parser.readEntry(kKeywordTexCoord, &_uv[i * 2], &_uv[i * 2 + 1]))
 			return false;
 	}
 
 	parser.readEndOfSection();
 
-	if (material.resource && material.lock() && material.typed)
-		material.typed->addFlags(textureFlags);
+	if (_material._resource && _material.lock() && _material._typed)
+		_material._typed->addFlags(textureFlags);
 
 	return true;
 }
@@ -216,64 +216,64 @@ bool CSprite::loadBinary(const char *path) {
 		return false;
 	}
 
-	name = spriteName;
-	radius = READ_LE_FLOAT32(header);
-	center.x = READ_LE_FLOAT32(header + 4);
-	center.y = READ_LE_FLOAT32(header + 8);
-	center.z = READ_LE_FLOAT32(header + 12);
-	box.min.x = READ_LE_FLOAT32(header + 16);
-	box.min.y = READ_LE_FLOAT32(header + 20);
-	box.min.z = READ_LE_FLOAT32(header + 24);
-	box.max.x = READ_LE_FLOAT32(header + 28);
-	box.max.y = READ_LE_FLOAT32(header + 32);
-	box.max.z = READ_LE_FLOAT32(header + 36);
+	_name = spriteName;
+	_radius = READ_LE_FLOAT32(header);
+	_center._x = READ_LE_FLOAT32(header + 4);
+	_center._y = READ_LE_FLOAT32(header + 8);
+	_center._z = READ_LE_FLOAT32(header + 12);
+	_box._min._x = READ_LE_FLOAT32(header + 16);
+	_box._min._y = READ_LE_FLOAT32(header + 20);
+	_box._min._z = READ_LE_FLOAT32(header + 24);
+	_box._max._x = READ_LE_FLOAT32(header + 28);
+	_box._max._y = READ_LE_FLOAT32(header + 32);
+	_box._max._z = READ_LE_FLOAT32(header + 36);
 
 	LResourceHandle<CMaterial> foundMaterial(_engine);
 
-	foundMaterial.resource = _engine->getResourceManager()->findResource(materialName);
+	foundMaterial._resource = _engine->getResourceManager()->findResource(materialName);
 
-	if (!foundMaterial.resource) {
-		foundMaterial.resource = _engine->getResourceManager()->createResource(materialName);
+	if (!foundMaterial._resource) {
+		foundMaterial._resource = _engine->getResourceManager()->createResource(materialName);
 
-		if (!foundMaterial.resource)
+		if (!foundMaterial._resource)
 			foundMaterial.allocateResource();
 
-		if (foundMaterial.resource) {
-			foundMaterial.resource->resSetName(materialName.c_str());
-			_engine->getResourceManager()->addResource(foundMaterial.resource);
+		if (foundMaterial._resource) {
+			foundMaterial._resource->resSetName(materialName.c_str());
+			_engine->getResourceManager()->addResource(foundMaterial._resource);
 		}
 	}
 
-	foundMaterial.setResource(foundMaterial.resource);
-	material.setResource(foundMaterial.resource);
+	foundMaterial.setResource(foundMaterial._resource);
+	_material.setResource(foundMaterial._resource);
 
 	CMaterial *typedMaterial = nullptr;
 
-	if (material.resource && material.lock())
-		typedMaterial = material.typed;
+	if (_material._resource && _material.lock())
+		typedMaterial = _material._typed;
 
 	if (typedMaterial)
 		typedMaterial->setFlags(READ_LE_INT32(flagBytes));
 	else
 		warning("CSprite::loadBinary(): cannot lock the material");
 
-	width = READ_LE_FLOAT32(tail);
-	height = READ_LE_FLOAT32(tail + 4);
-	offset.x = READ_LE_FLOAT32(tail + 8);
-	offset.y = READ_LE_FLOAT32(tail + 12);
-	offset.z = READ_LE_FLOAT32(tail + 16);
+	_width = READ_LE_FLOAT32(tail);
+	_height = READ_LE_FLOAT32(tail + 4);
+	_offset._x = READ_LE_FLOAT32(tail + 8);
+	_offset._y = READ_LE_FLOAT32(tail + 12);
+	_offset._z = READ_LE_FLOAT32(tail + 16);
 
 	for (int i = 0; i < kNumCorners; i++) {
-		corners[i].a = READ_LE_INT32(tail + 20 + i * 16);
-		corners[i].r = READ_LE_INT32(tail + 24 + i * 16);
-		corners[i].g = READ_LE_INT32(tail + 28 + i * 16);
-		corners[i].b = READ_LE_INT32(tail + 32 + i * 16);
+		_corners[i]._a = READ_LE_INT32(tail + 20 + i * 16);
+		_corners[i]._r = READ_LE_INT32(tail + 24 + i * 16);
+		_corners[i]._g = READ_LE_INT32(tail + 28 + i * 16);
+		_corners[i]._b = READ_LE_INT32(tail + 32 + i * 16);
 	}
 
 	for (int i = 0; i < kNumCorners * 2; i++)
-		uv[i] = READ_LE_FLOAT32(tail + 84 + i * 4);
+		_uv[i] = READ_LE_FLOAT32(tail + 84 + i * 4);
 
-	drawFlags = READ_LE_INT32(tail + 116);
+	_drawFlags = READ_LE_INT32(tail + 116);
 
 	_engine->getFileServices()->close(file, true);
 
@@ -286,22 +286,22 @@ bool CSprite::saveBinary(const char *path) {
 	if (!file)
 		return false;
 
-	writeString(file, name);
-	writeFloat(file, radius);
-	writeFloat(file, center.x);
-	writeFloat(file, center.y);
-	writeFloat(file, center.z);
-	writeFloat(file, box.min.x);
-	writeFloat(file, box.min.y);
-	writeFloat(file, box.min.z);
-	writeFloat(file, box.max.x);
-	writeFloat(file, box.max.y);
-	writeFloat(file, box.max.z);
+	writeString(file, _name);
+	writeFloat(file, _radius);
+	writeFloat(file, _center._x);
+	writeFloat(file, _center._y);
+	writeFloat(file, _center._z);
+	writeFloat(file, _box._min._x);
+	writeFloat(file, _box._min._y);
+	writeFloat(file, _box._min._z);
+	writeFloat(file, _box._max._x);
+	writeFloat(file, _box._max._y);
+	writeFloat(file, _box._max._z);
 
 	LString materialName;
 
-	if (material.resource)
-		materialName = material.resource->name;
+	if (_material._resource)
+		materialName = _material._resource->_name;
 	else
 		warning("CSprite::saveBinary(): the sprite has no material");
 
@@ -309,29 +309,29 @@ bool CSprite::saveBinary(const char *path) {
 
 	CMaterial *typedMaterial = nullptr;
 
-	if (material.resource && material.lock())
-		typedMaterial = material.typed;
+	if (_material._resource && _material.lock())
+		typedMaterial = _material._typed;
 
-	writeInt(file, typedMaterial ? typedMaterial->flags : 0);
-	material.unlock();
+	writeInt(file, typedMaterial ? typedMaterial->_flags : 0);
+	_material.unlock();
 
-	writeFloat(file, width);
-	writeFloat(file, height);
-	writeFloat(file, offset.x);
-	writeFloat(file, offset.y);
-	writeFloat(file, offset.z);
+	writeFloat(file, _width);
+	writeFloat(file, _height);
+	writeFloat(file, _offset._x);
+	writeFloat(file, _offset._y);
+	writeFloat(file, _offset._z);
 
 	for (int i = 0; i < kNumCorners; i++) {
-		writeInt(file, corners[i].a);
-		writeInt(file, corners[i].r);
-		writeInt(file, corners[i].g);
-		writeInt(file, corners[i].b);
+		writeInt(file, _corners[i]._a);
+		writeInt(file, _corners[i]._r);
+		writeInt(file, _corners[i]._g);
+		writeInt(file, _corners[i]._b);
 	}
 
 	for (int i = 0; i < kNumCorners * 2; i++)
-		writeFloat(file, uv[i]);
+		writeFloat(file, _uv[i]);
 
-	writeInt(file, drawFlags);
+	writeInt(file, _drawFlags);
 
 	_engine->getFileServices()->close(file, true);
 
@@ -339,26 +339,26 @@ bool CSprite::saveBinary(const char *path) {
 }
 
 CSpriteInstance::CSpriteInstance(CSprite *spritePrimitive) : RPrimitiveInstance(spritePrimitive), _engine(spritePrimitive->getEngine()) {
-	textureIndex = 0;
+	_textureIndex = 0;
 }
 
 CSpriteInstance::~CSpriteInstance() {
 }
 
 int CSpriteInstance::getSaveSize() {
-	return RPrimitiveInstance::getSaveSize() + (int)sizeof(textureIndex);
+	return RPrimitiveInstance::getSaveSize() + (int)sizeof(_textureIndex);
 }
 
-bool CSpriteInstance::saveState(tSaveRestoreAccess *access) {
+bool CSpriteInstance::saveState(SaveRestoreAccess *access) {
 	RPrimitiveInstance::saveState(access);
-	access(&textureIndex, sizeof(textureIndex));
+	access(&_textureIndex, sizeof(_textureIndex));
 
 	return true;
 }
 
-bool CSpriteInstance::restoreState(tSaveRestoreAccess *access) {
+bool CSpriteInstance::restoreState(SaveRestoreAccess *access) {
 	RPrimitiveInstance::restoreState(access);
-	access(&textureIndex, sizeof(textureIndex));
+	access(&_textureIndex, sizeof(_textureIndex));
 
 	return true;
 }
@@ -366,7 +366,7 @@ bool CSpriteInstance::restoreState(tSaveRestoreAccess *access) {
 void CSpriteInstance::output(RNode *node, Camera *camera) {
 	CDrawContext *ctx = _engine->getDrawContext();
 
-	if (!visible)
+	if (!_visible)
 		return;
 
 	if (!ctx) {
@@ -374,33 +374,33 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 		return;
 	}
 
-	CSprite *sprite = static_cast<CSprite *>(prim);
+	CSprite *sprite = static_cast<CSprite *>(_prim);
 
 	update(node, camera);
 	ctx->resetCameraMatrix();
 
-	if ((node->nodeFlags & CNode::kWorldValid) == 0)
+	if ((node->_nodeFlags & CNode::kWorldValid) == 0)
 		node->updateWorldTransform();
 
-	const float *v = camera->view.rot.m;
-	const CVector &nodePos = node->world.pos;
-	const CVector &viewPos = camera->view.pos;
+	const float *v = camera->_view._rot._m;
+	const CVector &nodePos = node->_world._pos;
+	const CVector &viewPos = camera->_view._pos;
 
-	double pendingZ = (double)v[8] * nodePos.z + (double)v[2] * nodePos.x + (double)v[5] * nodePos.y;
-	float rotatedY = (float)((double)v[7] * nodePos.z + (double)v[1] * nodePos.x + (double)v[4] * nodePos.y);
-	float rotatedX = (float)((double)v[6] * nodePos.z + (double)v[3] * nodePos.y + (double)v[0] * nodePos.x);
-	float nodeViewZ = (float)(pendingZ + viewPos.z);
-	float nodeViewY = (float)((double)rotatedY + viewPos.y);
-	float nodeViewX = (float)((double)rotatedX + viewPos.x);
+	double pendingZ = (double)v[8] * nodePos._z + (double)v[2] * nodePos._x + (double)v[5] * nodePos._y;
+	float rotatedY = (float)((double)v[7] * nodePos._z + (double)v[1] * nodePos._x + (double)v[4] * nodePos._y);
+	float rotatedX = (float)((double)v[6] * nodePos._z + (double)v[3] * nodePos._y + (double)v[0] * nodePos._x);
+	float nodeViewZ = (float)(pendingZ + viewPos._z);
+	float nodeViewY = (float)((double)rotatedY + viewPos._y);
+	float nodeViewX = (float)((double)rotatedX + viewPos._x);
 
-	if ((node->nodeFlags & CNode::kEulerValid) == 0)
+	if ((node->_nodeFlags & CNode::kEulerValid) == 0)
 		node->computeLocalMatrixFromWorld();
 
 	CVector billboardEuler;
 
-	billboardEuler.x = 0.0f;
-	billboardEuler.y = 0.0f;
-	billboardEuler.z = node->eulerDeg.y;
+	billboardEuler._x = 0.0f;
+	billboardEuler._y = 0.0f;
+	billboardEuler._z = node->_eulerDeg._y;
 
 	CMatrix rotation;
 
@@ -409,17 +409,17 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 	CDrawList *drawList = ctx->getDrawList(0);
 	DrawPoly *poly = drawList->newPoly(4);
 
-	poly->flags = sprite->drawFlags;
+	poly->flags = sprite->_drawFlags;
 
-	if (sprite->material.resource) {
+	if (sprite->_material._resource) {
 		CMaterial *spriteMaterial = nullptr;
 
-		if (sprite->material.lock())
-			spriteMaterial = sprite->material.typed;
+		if (sprite->_material.lock())
+			spriteMaterial = sprite->_material._typed;
 
 		if (spriteMaterial) {
-			poly->tex = spriteMaterial->getTexture(textureIndex);
-			sprite->material.unlock();
+			poly->tex = spriteMaterial->getTexture(_textureIndex);
+			sprite->_material.unlock();
 		} else {
 			warning("CSpriteInstance::output(): cannot lock the material");
 			poly->tex = nullptr;
@@ -428,14 +428,14 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 		poly->tex = nullptr;
 	}
 
-	const float *m = rotation.m;
+	const float *m = rotation._m;
 
 	for (int i = 0; i < CSprite::kNumCorners; i++) {
-		double halfWidth = (double)kCornerX[i] * sprite->width * 0.5;
-		float halfHeight = (float)((double)kCornerY[i] * sprite->height * 0.5);
-		double localX = halfWidth + sprite->offset.x;
-		double localY = (double)halfHeight + sprite->offset.y;
-		double localZ = sprite->offset.z;
+		double halfWidth = (double)kCornerX[i] * sprite->_width * 0.5;
+		float halfHeight = (float)((double)kCornerY[i] * sprite->_height * 0.5);
+		double localX = halfWidth + sprite->_offset._x;
+		double localY = (double)halfHeight + sprite->_offset._y;
+		double localZ = sprite->_offset._z;
 		float spriteX = (float)((double)m[0] * localX + (double)m[6] * localZ + (double)m[3] * localY);
 		float spriteY = (float)((double)m[1] * localX + (double)m[7] * localZ + (double)m[4] * localY);
 		double pendingSpriteZ = (double)m[2] * localX + (double)m[8] * localZ + (double)m[5] * localY;
@@ -444,21 +444,21 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 		vertex->x = (float)((double)spriteX + nodeViewX);
 		vertex->y = (float)((double)spriteY + nodeViewY);
 		vertex->z = (float)(pendingSpriteZ + nodeViewZ);
-		vertex->u = sprite->uv[i * 2];
-		vertex->v = sprite->uv[i * 2 + 1];
-		vertex->color = ((uint32)(sprite->corners[i].a & 0xFF) << 24) | ((uint32)(sprite->corners[i].r & 0xFF) << 16) |
-				((uint32)(sprite->corners[i].g & 0xFF) << 8) | (uint32)(sprite->corners[i].b & 0xFF);
+		vertex->u = sprite->_uv[i * 2];
+		vertex->v = sprite->_uv[i * 2 + 1];
+		vertex->color = ((uint32)(sprite->_corners[i]._a & 0xFF) << 24) | ((uint32)(sprite->_corners[i]._r & 0xFF) << 16) |
+				((uint32)(sprite->_corners[i]._g & 0xFF) << 8) | (uint32)(sprite->_corners[i]._b & 0xFF);
 	}
 
-	if (globalAlphaMode == kAlphaSet) {
+	if (_globalAlphaMode == kAlphaSet) {
 		for (int i = 0; i < CSprite::kNumCorners; i++) {
-			uint32 alpha = (uint32)(int)((double)globalAlpha * kAlphaScale) & 0xFF;
+			uint32 alpha = (uint32)(int)((double)_globalAlpha * kAlphaScale) & 0xFF;
 
 			poly->verts[i]->color = (poly->verts[i]->color & 0x00FFFFFF) | (alpha << 24);
 		}
-	} else if (globalAlphaMode == kAlphaModulate) {
+	} else if (_globalAlphaMode == kAlphaModulate) {
 		for (int i = 0; i < CSprite::kNumCorners; i++) {
-			int scale = (int)((double)globalAlpha * kAlphaScale);
+			int scale = (int)((double)_globalAlpha * kAlphaScale);
 			int vertexAlpha = poly->verts[i]->color >> 24;
 			int product = (int)((uint32)scale * (uint32)vertexAlpha);
 			uint32 alpha = (uint32)(product / 255) & 0xFF;
@@ -467,8 +467,8 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 		}
 	}
 
-	if (matAlphaMode == kAlphaSet || matAlphaMode == kAlphaModulate) {
-		for (Common::HashMap<int, float>::const_iterator it = matAlpha.begin(); it != matAlpha.end(); ++it) {
+	if (_matAlphaMode == kAlphaSet || _matAlphaMode == kAlphaModulate) {
+		for (Common::HashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it) {
 			if (it->_key < 0 || it->_key >= poly->numVerts) {
 				warning("CSpriteInstance::output(): invalid vertex index %d", it->_key);
 				continue;
@@ -478,7 +478,7 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 			int scale = (int)((double)it->_value * kAlphaScale);
 			uint32 alpha;
 
-			if (matAlphaMode == kAlphaSet) {
+			if (_matAlphaMode == kAlphaSet) {
 				alpha = (uint32)scale & 0xFF;
 			} else {
 				int vertexAlpha = vertex->color >> 24;

@@ -45,8 +45,8 @@ public:
 
 	void bindEngine(EmiEngine *engine);
 
-	int lockCount;
-	LResource *resource;
+	int _lockCount;
+	LResource *_resource;
 
 protected:
 	LResourceManager *getManager() const;
@@ -58,45 +58,45 @@ template<class T>
 class LResourceHandle : public LResourceHandleBase {
 public:
 	LResourceHandle() {
-		typed = nullptr;
+		_typed = nullptr;
 	}
 
 	explicit LResourceHandle(EmiEngine *engine) {
 		_engine = engine;
-		typed = nullptr;
+		_typed = nullptr;
 	}
 
 	explicit LResourceHandle(EmiEngine *engine, const LString &name) {
 		_engine = engine;
-		typed = nullptr;
-		resource = getManager()->findResource(name);
+		_typed = nullptr;
+		_resource = getManager()->findResource(name);
 
-		if (!resource) {
-			resource = getManager()->createResource(name);
+		if (!_resource) {
+			_resource = getManager()->createResource(name);
 
-			if (!resource)
+			if (!_resource)
 				allocateResource();
 
-			if (resource) {
-				resource->resSetName(name.c_str());
-				getManager()->addResource(resource);
+			if (_resource) {
+				_resource->resSetName(name.c_str());
+				getManager()->addResource(_resource);
 			}
 		}
 
-		LResourceHandleBase::setResource(resource);
-		typed = dynamic_cast<T *>(resource);
+		LResourceHandleBase::setResource(_resource);
+		_typed = dynamic_cast<T *>(_resource);
 
-		if (resource && !typed)
+		if (_resource && !_typed)
 			warning("LResourceHandle::LResourceHandle(): the resource has the wrong type");
 	}
 
 	LResourceHandle(const LResourceHandle<T> &other) : LResourceHandleBase(other) {
-		typed = dynamic_cast<T *>(resource);
+		_typed = dynamic_cast<T *>(_resource);
 	}
 
 	LResourceHandle<T> &operator=(const LResourceHandle<T> &other) {
 		LResourceHandleBase::operator=(other);
-		typed = dynamic_cast<T *>(resource);
+		_typed = dynamic_cast<T *>(_resource);
 
 		return *this;
 	}
@@ -105,22 +105,22 @@ public:
 		T *created = new T();
 
 		created->bindEngine(_engine);
-		resource = created;
+		_resource = created;
 		setResource(created);
 
-		return resource != nullptr;
+		return _resource != nullptr;
 	}
 
 	void setResource(LResource *newResource) override {
 		LResourceHandleBase::setResource(newResource);
 
-		typed = dynamic_cast<T *>(resource);
+		_typed = dynamic_cast<T *>(_resource);
 
-		if (resource && !typed)
+		if (_resource && !_typed)
 			warning("LResourceHandle::setResource(): the resource has the wrong type");
 	}
 
-	T *typed;
+	T *_typed;
 };
 
 } // End of namespace Grim

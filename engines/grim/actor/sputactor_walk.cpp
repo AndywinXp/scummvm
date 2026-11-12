@@ -39,24 +39,24 @@ static int clampPoints(int numOut, int count) {
 	return count;
 }
 
-void SputActorModule::actorWalkTo(SputActor *pActor, float *pPos, float *pGoal, SputActor *pTarget) {
-	pActor->mode &= ~1;
+void SputActorModule::actorWalkTo(SputActor *actor, float *pos, float *goal, SputActor *target) {
+	actor->mode &= ~1;
 
-	Puck *pPuck = pActor->pExtra->puck;
+	Puck *puck = actor->extra->puck;
 
-	if (!pPuck || !_pWalkSystem->getHead())
+	if (!puck || !_walkSystem->getHead())
 		return;
 
-	WalkPlane *pPlane = _pWalkSystem->planeClosest(pPos, 4096);
+	WalkPlane *plane = _walkSystem->planeClosest(pos, 4096);
 
-	if (pPlane)
-		pPlane->closestPoint(pPos);
+	if (plane)
+		plane->closestPoint(pos);
 
-	if (_pWalkSystem->buildPath(pPuck->pos, pPos, 1)) {
-		float *pBuiltPath;
-		RdVector3 aBuilt[30];
-		RdVector3 aWalkPath[kMaxWalkPoints];
-		int numBuilt = _pWalkSystem->getPath(&pBuiltPath);
+	if (_walkSystem->buildPath(puck->_pos, pos, 1)) {
+		float *builtPath;
+		RdVector3 built[30];
+		RdVector3 walkPath[kMaxWalkPoints];
+		int numBuilt = _walkSystem->getPath(&builtPath);
 
 		if (numBuilt > 30) {
 			warning("SputActorModule::actorWalkTo(): the built path has too many points");
@@ -64,134 +64,134 @@ void SputActorModule::actorWalkTo(SputActor *pActor, float *pPos, float *pGoal, 
 		}
 
 		if (numBuilt > 0)
-			memcpy(aBuilt, pBuiltPath, numBuilt * sizeof(RdVector3));
+			memcpy(built, builtPath, numBuilt * sizeof(RdVector3));
 
-		int numPath = actorWalkToImpl(pActor, pTarget, aBuilt[0], numBuilt, aWalkPath[0]);
+		int numPath = actorWalkToImpl(actor, target, built[0], numBuilt, walkPath[0]);
 
 		if (numPath > 30) {
 			warning("SputActorModule::actorWalkTo(): the walk path has too many points");
 			numPath = 30;
 		}
 
-		pActor->pExtra->numPathPoints = numPath;
-		pActor->pExtra->pathIndex = 1;
+		actor->extra->numPathPoints = numPath;
+		actor->extra->pathIndex = 1;
 
 		if (numPath > 0)
-			memcpy(pActor->pExtra->aPath, aWalkPath, numPath * sizeof(RdVector3));
+			memcpy(actor->extra->path, walkPath, numPath * sizeof(RdVector3));
 
-		float *pFirstTarget = pActor->pExtra->aPath[pActor->pExtra->pathIndex];
+		float *firstTarget = actor->extra->path[actor->extra->pathIndex];
 
-		pActor->pExtra->walkTarget[0] = pFirstTarget[0];
-		pActor->pExtra->walkTarget[1] = pFirstTarget[1];
-		pActor->pExtra->walkTarget[2] = pFirstTarget[2];
+		actor->extra->walkTarget[0] = firstTarget[0];
+		actor->extra->walkTarget[1] = firstTarget[1];
+		actor->extra->walkTarget[2] = firstTarget[2];
 
 		if (numPath > 1)
-			pActor->mode |= 1;
+			actor->mode |= 1;
 	}
 
-	pActor->pExtra->goal[0] = pGoal[0];
-	pActor->pExtra->goal[1] = pGoal[1];
-	pActor->pExtra->goal[2] = pGoal[2];
+	actor->extra->goal[0] = goal[0];
+	actor->extra->goal[1] = goal[1];
+	actor->extra->goal[2] = goal[2];
 }
 
-int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, float *pPath, int numPoints, float *pOutPath) {
+int SputActorModule::actorWalkToImpl(SputActor *actor, SputActor *target, float *path, int numPoints, float *outPath) {
 	int numOut = 0;
 
-	if (!pTarget) {
+	if (!target) {
 		if (numPoints > 0) {
 			numPoints = clampPoints(0, numPoints);
-			memcpy(pOutPath, pPath, numPoints * sizeof(RdVector3));
+			memcpy(outPath, path, numPoints * sizeof(RdVector3));
 			numOut = numPoints;
 		}
 
 		return numOut;
 	}
 
-	if (numPoints <= 0 || !pActor->pCostumeStack || !pTarget->pCostumeStack) {
+	if (numPoints <= 0 || !actor->costumeStack || !target->costumeStack) {
 		warning("SputActorModule::actorWalkToImpl(): no path or no costume to walk around");
 		return 0;
 	}
 
-	RdModel3 *pModel = pActor->pCostumeStack->pHeadThing->data.pModel3;
-	float myRadius = (float)((double)pActor->pExtra->collisionScale * pModel->radius);
-	RdModel3 *pTargetModel = pTarget->pCostumeStack->pHeadThing->data.pModel3;
+	RdModel3 *model = actor->costumeStack->headThing->data.model3;
+	float myRadius = (float)((double)actor->extra->collisionScale * model->radius);
+	RdModel3 *targetModel = target->costumeStack->headThing->data.model3;
 	RdVector3 targetCenterWorld;
 	RdVector3 targetCenterOffset;
 
-	_pRd->transformPoint34(targetCenterWorld, pTargetModel->geomCenter, getOrientMatrix(pTarget));
-	_pRd->transformVector34(targetCenterOffset, pTargetModel->geomCenter, getOrientMatrix(pTarget));
+	_rd->transformPoint34(targetCenterWorld, targetModel->geomCenter, getOrientMatrix(target));
+	_rd->transformVector34(targetCenterOffset, targetModel->geomCenter, getOrientMatrix(target));
 
-	float targetScale = pTarget->pExtra->collisionScale;
+	float targetScale = target->extra->collisionScale;
 	RdBound3 targetBox;
 
-	targetBox.min[0] = (float)((double)pTargetModel->bound.min[0] * targetScale - myRadius);
-	targetBox.min[1] = (float)((double)pTargetModel->bound.min[1] * targetScale - myRadius);
-	targetBox.min[2] = (float)((double)pTargetModel->bound.min[2] * targetScale - myRadius);
-	targetBox.max[0] = (float)((double)pTargetModel->bound.max[0] * targetScale + myRadius);
-	targetBox.max[1] = (float)((double)pTargetModel->bound.max[1] * targetScale + myRadius);
-	targetBox.max[2] = (float)((double)pTargetModel->bound.max[2] * targetScale + myRadius);
+	targetBox.min[0] = (float)((double)targetModel->bound.min[0] * targetScale - myRadius);
+	targetBox.min[1] = (float)((double)targetModel->bound.min[1] * targetScale - myRadius);
+	targetBox.min[2] = (float)((double)targetModel->bound.min[2] * targetScale - myRadius);
+	targetBox.max[0] = (float)((double)targetModel->bound.max[0] * targetScale + myRadius);
+	targetBox.max[1] = (float)((double)targetModel->bound.max[1] * targetScale + myRadius);
+	targetBox.max[2] = (float)((double)targetModel->bound.max[2] * targetScale + myRadius);
 
-	float *pLastInput = &pPath[3 * numPoints - 3];
+	float *lastInput = &path[3 * numPoints - 3];
 
-	getOuttaTheBox(pLastInput, targetBox, getOrientMatrix(pTarget), pTarget->actorPos);
-	getOuttaTheBox(pPath, targetBox, getOrientMatrix(pTarget), pTarget->actorPos);
+	getOuttaTheBox(lastInput, targetBox, getOrientMatrix(target), target->actorPos);
+	getOuttaTheBox(path, targetBox, getOrientMatrix(target), target->actorPos);
 
 	RdVector3 lastPoint;
 
-	lastPoint[0] = pLastInput[0];
-	lastPoint[1] = pLastInput[1];
-	lastPoint[2] = pLastInput[2];
+	lastPoint[0] = lastInput[0];
+	lastPoint[1] = lastInput[1];
+	lastPoint[2] = lastInput[2];
 
-	if (!_pWalkSystem->planeAt(lastPoint, -1))
+	if (!_walkSystem->planeAt(lastPoint, -1))
 		return 0;
 
 	int numSegments = numPoints - 1;
 	int idx = 0;
 	RdVector3 segFrom;
 	RdVector3 segTo;
-	bool bCollided = false;
+	bool collided = false;
 
 	while (idx < numSegments) {
-		float *pCurrent = &pPath[3 * idx];
-		float *pNext = &pPath[3 * idx + 3];
+		float *current = &path[3 * idx];
+		float *next = &path[3 * idx + 3];
 
 		numOut++;
-		segFrom[0] = (float)((double)targetCenterOffset[0] + pCurrent[0]);
-		segFrom[1] = (float)((double)pCurrent[1] + targetCenterOffset[1]);
-		segFrom[2] = (float)((double)targetCenterOffset[2] + pCurrent[2]);
-		segTo[0] = (float)((double)pNext[0] + targetCenterOffset[0]);
-		segTo[1] = (float)((double)pNext[1] + targetCenterOffset[1]);
-		segTo[2] = (float)((double)pNext[2] + targetCenterOffset[2]);
-		pOutPath[3 * (numOut - 1)] = pCurrent[0];
-		pOutPath[3 * (numOut - 1) + 1] = pCurrent[1];
-		pOutPath[3 * (numOut - 1) + 2] = pCurrent[2];
+		segFrom[0] = (float)((double)targetCenterOffset[0] + current[0]);
+		segFrom[1] = (float)((double)current[1] + targetCenterOffset[1]);
+		segFrom[2] = (float)((double)targetCenterOffset[2] + current[2]);
+		segTo[0] = (float)((double)next[0] + targetCenterOffset[0]);
+		segTo[1] = (float)((double)next[1] + targetCenterOffset[1]);
+		segTo[2] = (float)((double)next[2] + targetCenterOffset[2]);
+		outPath[3 * (numOut - 1)] = current[0];
+		outPath[3 * (numOut - 1) + 1] = current[1];
+		outPath[3 * (numOut - 1) + 2] = current[2];
 
-		if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(pTarget))) {
-			bCollided = true;
+		if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(target))) {
+			collided = true;
 			break;
 		}
 
 		idx++;
 	}
 
-	if (!bCollided) {
-		memcpy(&pOutPath[3 * numOut], &pPath[3 * idx], sizeof(RdVector3));
+	if (!collided) {
+		memcpy(&outPath[3 * numOut], &path[3 * idx], sizeof(RdVector3));
 
 		return numOut + 1;
 	}
 
 	RdVector3 snapped;
 
-	_pRd->transformPoint34(snapped, _collisionImpact, getOrientMatrix(pTarget));
+	_rd->transformPoint34(snapped, _collisionImpact, getOrientMatrix(target));
 
-	WalkPlane *pPlane = _pWalkSystem->planeClosest(snapped, -1);
+	WalkPlane *plane = _walkSystem->planeClosest(snapped, -1);
 
-	if (!pPlane) {
+	if (!plane) {
 		warning("SputActorModule::actorWalkToImpl(): no walk plane near the collision point");
 		return numOut;
 	}
 
-	pPlane->snapTo(snapped);
+	plane->snapTo(snapped);
 
 	ObjectCorners corners;
 
@@ -199,16 +199,16 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 
 	float margin = (float)((double)myRadius - -0.019999999552965164);
 
-	findObjectCorners(pTargetModel, margin, getOrientMatrix(pTarget), snapped[2], &corners);
+	findObjectCorners(targetModel, margin, getOrientMatrix(target), snapped[2], &corners);
 
 	for (int i = 0; i < 4; i++) {
-		corners.aValid[i] = 0;
-		segTo[0] = (float)((double)targetCenterOffset[0] + corners.aCorner[i][0]);
-		segTo[1] = (float)((double)corners.aCorner[i][1] + targetCenterOffset[1]);
-		segTo[2] = (float)((double)targetCenterOffset[2] + corners.aCorner[i][2]);
+		corners.valid[i] = 0;
+		segTo[0] = (float)((double)targetCenterOffset[0] + corners.corner[i][0]);
+		segTo[1] = (float)((double)corners.corner[i][1] + targetCenterOffset[1]);
+		segTo[2] = (float)((double)targetCenterOffset[2] + corners.corner[i][2]);
 
-		if (!testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(pTarget)) && _pWalkSystem->buildPath(&pPath[3 * idx], corners.aCorner[i], 0))
-			corners.aValid[i] = 1;
+		if (!testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(target)) && _walkSystem->buildPath(&path[3 * idx], corners.corner[i], 0))
+			corners.valid[i] = 1;
 	}
 
 	int closest = findClosestCandidate(segFrom, lastPoint, &corners);
@@ -216,28 +216,28 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 	if (closest == -1)
 		return numOut;
 
-	float *pBuilt;
+	float *built;
 
-	_pWalkSystem->buildPath(&pPath[3 * idx], corners.aCorner[closest], 0);
+	_walkSystem->buildPath(&path[3 * idx], corners.corner[closest], 0);
 
-	int numBuilt = _pWalkSystem->getPath(&pBuilt);
+	int numBuilt = _walkSystem->getPath(&built);
 
 	if (numBuilt > 0) {
 		numBuilt = clampPoints(numOut, numBuilt);
-		memcpy(&pOutPath[3 * numOut], pBuilt, numBuilt * sizeof(RdVector3));
+		memcpy(&outPath[3 * numOut], built, numBuilt * sizeof(RdVector3));
 		numOut += numBuilt;
 	}
 
-	corners.aValid[closest] = 0;
+	corners.valid[closest] = 0;
 
-	float *pLastOut = &pOutPath[3 * (numOut - 1)];
+	float *lastOut = &outPath[3 * (numOut - 1)];
 
-	if (checkCollisions(pLastOut, lastPoint, targetCenterWorld, targetBox, getOrientMatrix(pTarget), targetCenterOffset)) {
-		numBuilt = _pWalkSystem->getPath(&pBuilt);
+	if (checkCollisions(lastOut, lastPoint, targetCenterWorld, targetBox, getOrientMatrix(target), targetCenterOffset)) {
+		numBuilt = _walkSystem->getPath(&built);
 
 		if (numBuilt > 0) {
 			numBuilt = clampPoints(numOut, numBuilt);
-			memcpy(&pOutPath[3 * numOut], pBuilt, numBuilt * sizeof(RdVector3));
+			memcpy(&outPath[3 * numOut], built, numBuilt * sizeof(RdVector3));
 			numOut += numBuilt;
 		}
 
@@ -246,46 +246,46 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 
 	int ccwCorner = (closest + 3) % 4;
 	int cwCorner = (closest + 5) % 4;
-	int bCcwValid = _pWalkSystem->buildPath(pLastOut, corners.aCorner[ccwCorner], 0);
-	int bCwValid = _pWalkSystem->buildPath(pLastOut, corners.aCorner[cwCorner], 0);
+	int ccwValid = _walkSystem->buildPath(lastOut, corners.corner[ccwCorner], 0);
+	int cwValid = _walkSystem->buildPath(lastOut, corners.corner[cwCorner], 0);
 
-	if (bCwValid && bCcwValid) {
-		float *pCcw = corners.aCorner[ccwCorner];
-		float *pCw = corners.aCorner[cwCorner];
+	if (cwValid && ccwValid) {
+		float *ccw = corners.corner[ccwCorner];
+		float *cw = corners.corner[cwCorner];
 
-		double ccwDx = (double)pLastOut[0] - pCcw[0];
+		double ccwDx = (double)lastOut[0] - ccw[0];
 		float ccwDxF = (float)ccwDx;
-		float ccwDy = (float)((double)pLastOut[1] - pCcw[1]);
-		float ccwDz = (float)((double)pLastOut[2] - pCcw[2]);
-		double ccwEndX = (double)pCcw[0] - lastPoint[0];
+		float ccwDy = (float)((double)lastOut[1] - ccw[1]);
+		float ccwDz = (float)((double)lastOut[2] - ccw[2]);
+		double ccwEndX = (double)ccw[0] - lastPoint[0];
 		float ccwEndXF = (float)ccwEndX;
-		float ccwEndY = (float)((double)pCcw[1] - lastPoint[1]);
-		float ccwEndZ = (float)((double)pCcw[2] - lastPoint[2]);
-		double cwDx = (double)pLastOut[0] - pCw[0];
+		float ccwEndY = (float)((double)ccw[1] - lastPoint[1]);
+		float ccwEndZ = (float)((double)ccw[2] - lastPoint[2]);
+		double cwDx = (double)lastOut[0] - cw[0];
 		float cwDxF = (float)cwDx;
-		float cwDy = (float)((double)pLastOut[1] - pCw[1]);
-		float cwDz = (float)((double)pLastOut[2] - pCw[2]);
-		double cwEndX = (double)pCw[0] - lastPoint[0];
+		float cwDy = (float)((double)lastOut[1] - cw[1]);
+		float cwDz = (float)((double)lastOut[2] - cw[2]);
+		double cwEndX = (double)cw[0] - lastPoint[0];
 		float cwEndXF = (float)cwEndX;
-		float cwEndY = (float)((double)pCw[1] - lastPoint[1]);
-		double cwEndZ = (double)pCw[2] - lastPoint[2];
+		float cwEndY = (float)((double)cw[1] - lastPoint[1]);
+		double cwEndZ = (double)cw[2] - lastPoint[2];
 
 		double ccwCost = ccwDx * ccwDxF + (double)ccwDy * ccwDy + (double)ccwDz * ccwDz + ccwEndX * ccwEndXF + (double)ccwEndY * ccwEndY + (double)ccwEndZ * ccwEndZ;
 		double cwCost = cwDx * cwDxF + (double)cwDy * cwDy + (double)cwDz * cwDz + cwEndX * cwEndXF + (double)cwEndY * cwEndY + cwEndZ * cwEndZ;
 
 		if (cwCost <= ccwCost)
-			bCcwValid = 0;
+			ccwValid = 0;
 		else
-			bCwValid = 0;
+			cwValid = 0;
 	}
 
 	int cornerIdx;
 	int step;
 
-	if (bCwValid) {
+	if (cwValid) {
 		step = 1;
 		cornerIdx = cwCorner;
-	} else if (bCcwValid) {
+	} else if (ccwValid) {
 		step = -1;
 		cornerIdx = ccwCorner;
 	} else {
@@ -297,30 +297,30 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 		return numOut;
 
 	for (;;) {
-		_pWalkSystem->buildPath(pLastOut, corners.aCorner[cornerIdx], 0);
-		numBuilt = _pWalkSystem->getPath(&pBuilt);
+		_walkSystem->buildPath(lastOut, corners.corner[cornerIdx], 0);
+		numBuilt = _walkSystem->getPath(&built);
 
 		for (int i = 0; i < numBuilt - 1; i++) {
-			segFrom[0] = (float)((double)targetCenterOffset[0] + pBuilt[3 * i]);
-			segFrom[1] = (float)((double)pBuilt[3 * i + 1] + targetCenterOffset[1]);
-			segFrom[2] = (float)((double)pBuilt[3 * i + 2] + targetCenterOffset[2]);
-			segTo[0] = (float)((double)pBuilt[3 * i + 3] + targetCenterOffset[0]);
-			segTo[1] = (float)((double)pBuilt[3 * i + 4] + targetCenterOffset[1]);
-			segTo[2] = (float)((double)pBuilt[3 * i + 5] + targetCenterOffset[2]);
+			segFrom[0] = (float)((double)targetCenterOffset[0] + built[3 * i]);
+			segFrom[1] = (float)((double)built[3 * i + 1] + targetCenterOffset[1]);
+			segFrom[2] = (float)((double)built[3 * i + 2] + targetCenterOffset[2]);
+			segTo[0] = (float)((double)built[3 * i + 3] + targetCenterOffset[0]);
+			segTo[1] = (float)((double)built[3 * i + 4] + targetCenterOffset[1]);
+			segTo[2] = (float)((double)built[3 * i + 5] + targetCenterOffset[2]);
 
-			if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(pTarget)))
+			if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(target)))
 				return 0;
 		}
 
 		if (numBuilt > 0) {
 			numBuilt = clampPoints(numOut, numBuilt);
-			memcpy(&pOutPath[3 * numOut], pBuilt, numBuilt * sizeof(RdVector3));
+			memcpy(&outPath[3 * numOut], built, numBuilt * sizeof(RdVector3));
 			numOut += numBuilt;
 		}
 
-		pLastOut = &pOutPath[3 * (numOut - 1)];
+		lastOut = &outPath[3 * (numOut - 1)];
 
-		if (checkCollisions(pLastOut, lastPoint, targetCenterWorld, targetBox, getOrientMatrix(pTarget), targetCenterOffset))
+		if (checkCollisions(lastOut, lastPoint, targetCenterWorld, targetBox, getOrientMatrix(target), targetCenterOffset))
 			break;
 
 		cornerIdx = (step + cornerIdx + 4) % 4;
@@ -329,23 +329,23 @@ int SputActorModule::actorWalkToImpl(SputActor *pActor, SputActor *pTarget, floa
 			return numOut;
 	}
 
-	numBuilt = _pWalkSystem->getPath(&pBuilt);
+	numBuilt = _walkSystem->getPath(&built);
 
 	for (int i = 0; i < numBuilt - 1; i++) {
-		segFrom[0] = (float)((double)targetCenterOffset[0] + pBuilt[3 * i]);
-		segFrom[1] = (float)((double)pBuilt[3 * i + 1] + targetCenterOffset[1]);
-		segFrom[2] = (float)((double)pBuilt[3 * i + 2] + targetCenterOffset[2]);
-		segTo[0] = (float)((double)pBuilt[3 * i + 3] + targetCenterOffset[0]);
-		segTo[1] = (float)((double)pBuilt[3 * i + 4] + targetCenterOffset[1]);
-		segTo[2] = (float)((double)pBuilt[3 * i + 5] + targetCenterOffset[2]);
+		segFrom[0] = (float)((double)targetCenterOffset[0] + built[3 * i]);
+		segFrom[1] = (float)((double)built[3 * i + 1] + targetCenterOffset[1]);
+		segFrom[2] = (float)((double)built[3 * i + 2] + targetCenterOffset[2]);
+		segTo[0] = (float)((double)built[3 * i + 3] + targetCenterOffset[0]);
+		segTo[1] = (float)((double)built[3 * i + 4] + targetCenterOffset[1]);
+		segTo[2] = (float)((double)built[3 * i + 5] + targetCenterOffset[2]);
 
-		if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(pTarget)))
+		if (testCollision(segFrom, segTo, targetCenterWorld, targetBox, getOrientMatrix(target)))
 			return 0;
 	}
 
 	if (numBuilt > 0) {
 		numBuilt = clampPoints(numOut, numBuilt);
-		memcpy(&pOutPath[3 * numOut], pBuilt, numBuilt * sizeof(RdVector3));
+		memcpy(&outPath[3 * numOut], built, numBuilt * sizeof(RdVector3));
 		numOut += numBuilt;
 	}
 

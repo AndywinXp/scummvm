@@ -25,7 +25,7 @@
 namespace Grim {
 
 CTexture::CTexture() {
-	flags = 7;
+	_flags = 7;
 }
 
 CTexture::~CTexture() {

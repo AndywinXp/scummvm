@@ -52,11 +52,11 @@ static const float kOutsideLimit = 1e-4f;
 
 CClipVolume::CClipVolume() {
 	for (int i = 0; i < kMaxPlanes; i++) {
-		planes[i].n.z = 0.0f;
-		planes[i].n.y = 0.0f;
-		planes[i].n.x = 0.0f;
-		planes[i].d = 0.0f;
-		planeType[i] = 0;
+		_planes[i]._n._z = 0.0f;
+		_planes[i]._n._y = 0.0f;
+		_planes[i]._n._x = 0.0f;
+		_planes[i]._d = 0.0f;
+		_planeType[i] = 0;
 	}
 
 	reset(0);
@@ -66,21 +66,21 @@ CClipVolume::~CClipVolume() {
 }
 
 void CClipVolume::reset(int newNumPlanes) {
-	numPlanes = newNumPlanes;
-	numPoints = 0;
-	planeMask = 0;
+	_numPlanes = newNumPlanes;
+	_numPoints = 0;
+	_planeMask = 0;
 }
 
 int CClipVolume::testBox(const BBox *box, const float *transform) {
 	float corners[8][3];
 	int codes[8];
 
-	float minY = (float)((double)box->min.y - kBoxMargin);
-	float minZ = (float)((double)box->min.z - kBoxMargin);
-	float maxX = (float)((double)box->max.x + kBoxMargin);
-	float maxY = (float)((double)box->max.y + kBoxMargin);
-	float maxZ = (float)((double)box->max.z + kBoxMargin);
-	float minX = (float)((double)box->min.x - kBoxMargin);
+	float minY = (float)((double)box->_min._y - kBoxMargin);
+	float minZ = (float)((double)box->_min._z - kBoxMargin);
+	float maxX = (float)((double)box->_max._x + kBoxMargin);
+	float maxY = (float)((double)box->_max._y + kBoxMargin);
+	float maxZ = (float)((double)box->_max._z + kBoxMargin);
+	float minX = (float)((double)box->_min._x - kBoxMargin);
 
 	corners[0][0] = minX;
 	corners[0][1] = minY;
@@ -143,7 +143,7 @@ int CClipVolume::testBox(const BBox *box, const float *transform) {
 	if (anyInside)
 		return kPartial;
 
-	int count = numPoints;
+	int count = _numPoints;
 
 	if (count > kMaxPoints) {
 		warning("CClipVolume::testBox(): invalid number of points %d", count);
@@ -158,9 +158,9 @@ int CClipVolume::testBox(const BBox *box, const float *transform) {
 	int pointAnd = -1;
 
 	for (int i = 0; i < count; i++) {
-		double deltaX = (double)points[i].x - transform[9];
-		float deltaY = (float)((double)points[i].y - transform[10]);
-		float deltaZ = (float)((double)points[i].z - transform[11]);
+		double deltaX = (double)_points[i]._x - transform[9];
+		float deltaY = (float)((double)_points[i]._y - transform[10]);
+		float deltaZ = (float)((double)_points[i]._z - transform[11]);
 
 		local[i][0] = (float)(deltaX * transform[0] + (double)deltaY * transform[1] + (double)deltaZ * transform[2]);
 		local[i][1] = (float)((double)deltaZ * transform[5] + (double)deltaY * transform[4] + deltaX * transform[3]);
@@ -168,22 +168,22 @@ int CClipVolume::testBox(const BBox *box, const float *transform) {
 
 		int code = 0;
 
-		if (local[i][0] >= box->min.x) {
-			if (local[i][0] > box->max.x)
+		if (local[i][0] >= box->_min._x) {
+			if (local[i][0] > box->_max._x)
 				code = 8;
 		} else {
 			code = 4;
 		}
 
-		if (local[i][1] >= box->min.y) {
-			if (local[i][1] > box->max.y)
+		if (local[i][1] >= box->_min._y) {
+			if (local[i][1] > box->_max._y)
 				code |= 1;
 		} else {
 			code |= 2;
 		}
 
-		if (local[i][2] >= box->min.z) {
-			if (local[i][2] > box->max.z)
+		if (local[i][2] >= box->_min._z) {
+			if (local[i][2] > box->_max._z)
 				code |= 0x20;
 		} else {
 			code |= 0x10;
@@ -220,11 +220,11 @@ int CClipVolume::testBox(const BBox *box, const float *transform) {
 		int differing = codes[kBoxEdges[e].cornerA] ^ codes[kBoxEdges[e].cornerB];
 		uint bit = 1;
 
-		for (int k = 0; k < numPlanes; k++) {
+		for (int k = 0; k < _numPlanes; k++) {
 			if ((bit & differing) != 0) {
-				const CPlane &plane = planes[k];
-				double fromDistance = (double)plane.n.z * from[2] + (double)plane.n.y * from[1] + (double)plane.n.x * from[0] + plane.d;
-				double toDistance = (double)plane.n.z * to[2] + (double)plane.n.x * to[0] + (double)plane.n.y * to[1] + plane.d;
+				const CPlane &plane = _planes[k];
+				double fromDistance = (double)plane._n._z * from[2] + (double)plane._n._y * from[1] + (double)plane._n._x * from[0] + plane._d;
+				double toDistance = (double)plane._n._z * to[2] + (double)plane._n._x * to[0] + (double)plane._n._y * to[1] + plane._d;
 				double range = fromDistance - toDistance;
 
 				// The original could divide by zero here, let's avoid that...
@@ -256,9 +256,9 @@ int CClipVolume::testSphere(const float *sphere) {
 	bool inside = true;
 	float radius = sphere[3];
 
-	for (int i = 0; i < numPlanes; i++) {
-		if (((1u << i) & (uint)planeMask) == 0) {
-			double distance = (double)planes[i].n.z * sphere[2] + (double)planes[i].n.x * sphere[0] + (double)sphere[1] * planes[i].n.y + planes[i].d;
+	for (int i = 0; i < _numPlanes; i++) {
+		if (((1u << i) & (uint)_planeMask) == 0) {
+			double distance = (double)_planes[i]._n._z * sphere[2] + (double)_planes[i]._n._x * sphere[0] + (double)sphere[1] * _planes[i]._n._y + _planes[i]._d;
 
 			if (distance < -(double)radius)
 				return kOutside;
@@ -281,8 +281,8 @@ int CClipVolume::testPoints(const float *testedPoints, int count) {
 	if (used > 0)
 		memset(insideCounts, 0, used * sizeof(int));
 
-	for (int i = 0; i < numPlanes; i++) {
-		if (((1u << i) & (uint)planeMask) != 0)
+	for (int i = 0; i < _numPlanes; i++) {
+		if (((1u << i) & (uint)_planeMask) != 0)
 			continue;
 
 		bool allBehind = true;
@@ -292,7 +292,7 @@ int CClipVolume::testPoints(const float *testedPoints, int count) {
 
 		for (int j = 0; j < used; j++) {
 			const float *point = testedPoints + j * 3;
-			double distance = (double)point[2] * planes[i].n.z + (double)point[0] * planes[i].n.x + (double)planes[i].n.y * point[1] + planes[i].d;
+			double distance = (double)point[2] * _planes[i]._n._z + (double)point[0] * _planes[i]._n._x + (double)_planes[i]._n._y * point[1] + _planes[i]._d;
 
 			if (distance > -(double)kOutsideLimit)
 				allBehind = false;
@@ -317,9 +317,9 @@ int CClipVolume::computeOutcode(const float *point) {
 	int code = 0;
 	uint bit = 1;
 
-	for (int i = 0; i < numPlanes; i++) {
-		if (((uint)planeMask & bit) == 0) {
-			if (-(double)kOutsideLimit > (double)planes[i].n.z * point[2] + (double)planes[i].n.x * point[0] + (double)point[1] * planes[i].n.y + planes[i].d)
+	for (int i = 0; i < _numPlanes; i++) {
+		if (((uint)_planeMask & bit) == 0) {
+			if (-(double)kOutsideLimit > (double)_planes[i]._n._z * point[2] + (double)_planes[i]._n._x * point[0] + (double)point[1] * _planes[i]._n._y + _planes[i]._d)
 				code |= bit;
 
 			bit *= 2;
@@ -335,9 +335,9 @@ void CClipVolume::computeVertexOutcodes(int count, DrawVertex **vertices) {
 		int code = 0;
 		uint bit = 1;
 
-		for (int j = 0; j < numPlanes; j++) {
-			if (((uint)planeMask & bit) == 0) {
-				if (-(double)kOutsideLimit > (double)planes[j].n.z * vertex->z + (double)planes[j].n.x * vertex->x + (double)vertex->y * planes[j].n.y + planes[j].d)
+		for (int j = 0; j < _numPlanes; j++) {
+			if (((uint)_planeMask & bit) == 0) {
+				if (-(double)kOutsideLimit > (double)_planes[j]._n._z * vertex->z + (double)_planes[j]._n._x * vertex->x + (double)vertex->y * _planes[j]._n._y + _planes[j]._d)
 					code |= bit;
 
 				bit *= 2;

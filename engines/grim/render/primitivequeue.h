@@ -39,8 +39,8 @@ enum SputPrimitiveShape {
 struct SputPrimitiveObject {
 	SputPrimitiveObject(int id, int shape);
 
-	SputPrimitiveObject *pNext;
-	SputPrimitiveObject *pPrev;
+	SputPrimitiveObject *next;
+	SputPrimitiveObject *prev;
 	int shape;
 	int id;
 	int layer;
@@ -50,19 +50,19 @@ struct SputPrimitiveObject {
 	int y2;
 	int color;
 	int pattern;
-	int bFilled;
+	int filled;
 };
 
 class PrimitiveQueue {
 public:
-	explicit PrimitiveQueue(RenderDroid *pRd);
+	explicit PrimitiveQueue(RenderDroid *rd);
 
-	void setSputRender(SputRender *pSputRender) { _pSputRender = pSputRender; }
+	void setSputRender(SputRender *sputRender) { _sputRender = sputRender; }
 
 	void purge();
 	int addLine(int x1, int y1, int x2, int y2, int color, int layer);
-	int addRect(int x1, int y1, int x2, int y2, int color, int bFilled, int layer);
-	int addPolygon(int numPoints, int *pPoints, int color, int layer);
+	int addRect(int x1, int y1, int x2, int y2, int color, int filled, int layer);
+	int addPolygon(int numPoints, int *points, int color, int layer);
 	SputPrimitiveObject *addObject(int id, int layer);
 	void deletePrimitive(int id);
 	void changeColor(int id, int color);
@@ -71,22 +71,22 @@ public:
 	void moveTo(int id, int x, int y);
 	void moveEndpoint(int id, int x2, int y2);
 	void changeDimensions(int id, int width, int height);
-	void draw(RdCanvas *pCanvas, int layerMask);
-	void drawPrimitive(SputPrimitiveObject *pObj, RdCanvas *pCanvas);
+	void draw(RdCanvas *canvas, int layerMask);
+	void drawPrimitive(SputPrimitiveObject *obj, RdCanvas *canvas);
 	void markAllDirty(int layerMask);
-	void markDirty(SputPrimitiveObject *pObj);
+	void markDirty(SputPrimitiveObject *obj);
 	void resetId();
-	SputPrimitiveObject *findPrimitive(int id, SputPrimitiveObject *pPrev);
+	SputPrimitiveObject *findPrimitive(int id, SputPrimitiveObject *prev);
 
-	SputPrimitiveObject *getHead() const { return _pHead; }
+	SputPrimitiveObject *getHead() const { return _head; }
 
 private:
 	friend class SputPrimitive;
 
-	RenderDroid *_pRd;
-	SputRender *_pSputRender;
-	SputPrimitiveObject *_pHead;
-	SputPrimitiveObject *_pTail;
+	RenderDroid *_rd;
+	SputRender *_sputRender;
+	SputPrimitiveObject *_head;
+	SputPrimitiveObject *_tail;
 	int _nextId;
 };
 

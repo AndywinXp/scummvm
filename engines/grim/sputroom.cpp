@@ -38,74 +38,74 @@
 
 namespace Grim {
 
-SputRoom::SputRoom(RenderDroid *pRd, Res *pRes, SputResource *pSputResource, StdDisplay *pStdDisplay, StdBitmap *pStdBitmap, StdLbm *pStdLbm,
-		StdConffile *pStdConffile, WalkSystem *pWalkSystem) : _pRd(pRd), _pRes(pRes), _pSputResource(pSputResource), _pStdDisplay(pStdDisplay),
-		_pStdBitmap(pStdBitmap), _pStdLbm(pStdLbm), _pStdConffile(pStdConffile), _pWalkSystem(pWalkSystem), _pSputRender(nullptr),
-		_pGrim(nullptr), _pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pSoundList(nullptr), _pActorNodeList(nullptr),
-		_pLoadingRoom(nullptr), _bUpdateLoop(0), _numSections(0) {
+SputRoom::SputRoom(RenderDroid *rd, Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, StdLbm *stdLbm,
+		StdConffile *stdConffile, WalkSystem *walkSystem) : _rd(rd), _res(res), _sputResource(sputResource), _stdDisplay(stdDisplay),
+		_stdBitmap(stdBitmap), _stdLbm(stdLbm), _stdConffile(stdConffile), _walkSystem(walkSystem), _sputRender(nullptr),
+		_grim(nullptr), _sputActor(nullptr), _actors(nullptr), _hs(nullptr), _initialized(0), _started(0), _soundList(nullptr), _actorNodeList(nullptr),
+		_loadingRoom(nullptr), _updateLoop(0), _numSections(0) {
 	memset(&_currentRoomRef, 0, sizeof(_currentRoomRef));
 	memset(_currentRoomName, 0, sizeof(_currentRoomName));
 
 	for (int i = 0; i < 32; i++) {
-		memset(_aSections[i].name, 0, sizeof(_aSections[i].name));
-		_aSections[i].handler = nullptr;
+		memset(_sections[i].name, 0, sizeof(_sections[i].name));
+		_sections[i].handler = nullptr;
 	}
 }
 
-StdVBuffer *SputRoom::getSetupBackground(Room *pRoom, int setupIndex) {
-	RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
-	ResRef *pBitmapRef = &pSetup->bitmapRef;
+StdVBuffer *SputRoom::getSetupBackground(Room *room, int setupIndex) {
+	RoomSetup *setup = &room->setups[setupIndex];
+	ResRef *bitmapRef = &setup->bitmapRef;
 
-	if (pBitmapRef->valid) {
-		_pRes->touch(pBitmapRef->handle);
+	if (bitmapRef->valid) {
+		_res->touch(bitmapRef->handle);
 	} else {
-		if (scumm_stricmp(pSetup->aBitmapName, "<none>")) {
-			void *handle = _pSputResource->alloc(kSputTagBknd, pSetup->aBitmapName);
+		if (scumm_stricmp(setup->bitmapName, "<none>")) {
+			void *handle = _sputResource->alloc(kSputTagBknd, setup->bitmapName);
 
 			if (handle)
-				_pRes->setReference(pBitmapRef, handle);
+				_res->setReference(bitmapRef, handle);
 		}
 
-		if (!pBitmapRef->valid) {
-			void *handle = _pSputResource->alloc(kSputTagBknd, "dfltroom.bm");
+		if (!bitmapRef->valid) {
+			void *handle = _sputResource->alloc(kSputTagBknd, "dfltroom.bm");
 
-			_pRes->setReference(pBitmapRef, handle);
+			_res->setReference(bitmapRef, handle);
 
-			if (!pBitmapRef->valid)
+			if (!bitmapRef->valid)
 				return nullptr;
 
-			Common::strlcpy(pSetup->aBitmapName, "<none>", 32);
-			pSetup->aZBufferName[0] = 0;
+			Common::strlcpy(setup->bitmapName, "<none>", 32);
+			setup->zBufferName[0] = 0;
 		}
 	}
 
-	StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pBitmapRef->handle);
+	StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(bitmapRef->handle);
 
-	if (pBitmap->curFrame < 0 || (uint)pBitmap->curFrame >= pBitmap->numFrames) {
-		warning("SputRoom::getSetupBackground(): frame %d of %s is out of range", pBitmap->curFrame, pSetup->aBitmapName);
+	if (bitmap->curFrame < 0 || (uint)bitmap->curFrame >= bitmap->numFrames) {
+		warning("SputRoom::getSetupBackground(): frame %d of %s is out of range", bitmap->curFrame, setup->bitmapName);
 		return nullptr;
 	}
 
-	return pBitmap->apFrames[pBitmap->curFrame];
+	return bitmap->frames[bitmap->curFrame];
 }
 
-StdVBuffer *SputRoom::getSetupZBackground(Room *pRoom, int setupIndex) {
-	RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
-	ResRef *pZBufferRef = &pSetup->zbufferRef;
+StdVBuffer *SputRoom::getSetupZBackground(Room *room, int setupIndex) {
+	RoomSetup *setup = &room->setups[setupIndex];
+	ResRef *zBufferRef = &setup->zbufferRef;
 
-	if (pZBufferRef->valid) {
-		_pRes->touch(pZBufferRef->handle);
-	} else if (pSetup->aZBufferName[0]) {
-		if (strcmp(pSetup->aZBufferName, "<none>")) {
-			void *handle = _pSputResource->alloc(kSputTagZbuf, pSetup->aZBufferName);
+	if (zBufferRef->valid) {
+		_res->touch(zBufferRef->handle);
+	} else if (setup->zBufferName[0]) {
+		if (strcmp(setup->zBufferName, "<none>")) {
+			void *handle = _sputResource->alloc(kSputTagZbuf, setup->zBufferName);
 
 			if (handle)
-				_pRes->setReference(pZBufferRef, handle);
+				_res->setReference(zBufferRef, handle);
 		}
 	}
 
-	if (pZBufferRef->valid)
-		return static_cast<StdVBuffer *>(pZBufferRef->handle);
+	if (zBufferRef->valid)
+		return static_cast<StdVBuffer *>(zBufferRef->handle);
 
 	return nullptr;
 }
@@ -113,57 +113,57 @@ StdVBuffer *SputRoom::getSetupZBackground(Room *pRoom, int setupIndex) {
 void SputRoom::relocateSounds() {
 	freeSoundTable();
 
-	for (RoomSound *pSound = _pSoundList; pSound; pSound = pSound->pNext)
-		setupSoundPosition(pSound);
+	for (RoomSound *sound = _soundList; sound; sound = sound->next)
+		setupSoundPosition(sound);
 }
 
-void SputRoom::setSoundParameters(Room *pRoom, float maxDist, byte minVol, byte maxVol, float panFactor, float maxRadius) {
-	pRoom->minVol = minVol;
-	pRoom->maxDist = maxDist;
-	pRoom->maxVol = maxVol;
-	pRoom->panFactor = panFactor;
-	pRoom->maxRadius = maxRadius;
+void SputRoom::setSoundParameters(Room *room, float maxDist, byte minVol, byte maxVol, float panFactor, float maxRadius) {
+	room->minVol = minVol;
+	room->maxDist = maxDist;
+	room->maxVol = maxVol;
+	room->panFactor = panFactor;
+	room->maxRadius = maxRadius;
 }
 
-void SputRoom::getSoundParameters(Room *pRoom, float *maxDist, byte *minVol, byte *maxVol, float *panFactor, float *maxRadius) {
-	*maxDist = pRoom->maxDist;
-	*minVol = pRoom->minVol;
-	*maxVol = pRoom->maxVol;
-	*panFactor = pRoom->panFactor;
-	*maxRadius = pRoom->maxRadius;
+void SputRoom::getSoundParameters(Room *room, float *maxDist, byte *minVol, byte *maxVol, float *panFactor, float *maxRadius) {
+	*maxDist = room->maxDist;
+	*minVol = room->minVol;
+	*maxVol = room->maxVol;
+	*panFactor = room->panFactor;
+	*maxRadius = room->maxRadius;
 }
 
-int SputRoom::setSoundPosition(const char *soundName, float *pPos, int minVol, int maxVol, float maxDist, float radius) {
+int SputRoom::setSoundPosition(const char *soundName, float *pos, int minVol, int maxVol, float maxDist, float radius) {
 	int result = g_grim->getImuse()->soundsIsSoundPlaying(soundName);
 
 	if (result) {
-		RoomSound *pSound = allocSoundTable(soundName, pPos, minVol, maxVol, maxDist, radius);
+		RoomSound *sound = allocSoundTable(soundName, pos, minVol, maxVol, maxDist, radius);
 
-		return setupSoundPosition(pSound);
+		return setupSoundPosition(sound);
 	}
 
 	return result;
 }
 
-void SputRoom::setCurrentRoom(Room *pRoom) {
-	if (!_currentRoomRef.valid || _currentRoomRef.handle != pRoom) {
+void SputRoom::setCurrentRoom(Room *room) {
+	if (!_currentRoomRef.valid || _currentRoomRef.handle != room) {
 		if (_currentRoomRef.valid) {
 			unReference(static_cast<Room *>(_currentRoomRef.handle));
-			_pRes->removeReference(&_currentRoomRef);
+			_res->removeReference(&_currentRoomRef);
 			_currentRoomName[0] = 0;
 		}
 
-		if (pRoom) {
-			_pRes->setReference(&_currentRoomRef, pRoom);
+		if (room) {
+			_res->setReference(&_currentRoomRef, room);
 
 			if (!_currentRoomRef.valid)
 				error("SputRoom::setCurrentRoom(): Bad room Reference");
 
 			loadResources(static_cast<Room *>(_currentRoomRef.handle));
-			Common::strlcpy(_currentRoomName, pRoom->name, 32);
+			Common::strlcpy(_currentRoomName, room->name, 32);
 
-			if (!(_pGrim->getGameFlags() & ADGF_DEMO))
-				setSoundParameters(pRoom, 8.0f, 20, 127, 1.5f, 0.8f);
+			if (!(_grim->getGameFlags() & ADGF_DEMO))
+				setSoundParameters(room, 8.0f, 20, 127, 1.5f, 0.8f);
 		}
 	}
 }
@@ -179,87 +179,87 @@ const char *SputRoom::getCurrentRoomName() {
 	return _currentRoomName;
 }
 
-int SputRoom::save(Common::WriteStream *pStream) {
-	ResNode *pNext;
+int SputRoom::save(Common::WriteStream *stream) {
+	ResNode *next;
 	void *handle;
 	int numRooms = 0;
 
-	_pRes->allocatedIterFirst(&pNext, &handle, kSputTagSet);
+	_res->allocatedIterFirst(&next, &handle, kSputTagSet);
 
-	while (pNext) {
-		if (_pRes->countDependents(handle) > 0)
+	while (next) {
+		if (_res->countDependents(handle) > 0)
 			numRooms++;
 
-		_pRes->allocatedIterNext(&pNext, &handle, kSputTagSet);
+		_res->allocatedIterNext(&next, &handle, kSputTagSet);
 	}
 
-	pStream->writeSint32LE(numRooms);
+	stream->writeSint32LE(numRooms);
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputRoom::save(): failed to write the room count");
 		return 1;
 	}
 
-	_pRes->allocatedIterFirst(&pNext, &handle, kSputTagSet);
+	_res->allocatedIterFirst(&next, &handle, kSputTagSet);
 
-	while (pNext) {
-		if (_pRes->countDependents(handle)) {
-			Room *pRoom = static_cast<Room *>(handle);
+	while (next) {
+		if (_res->countDependents(handle)) {
+			Room *room = static_cast<Room *>(handle);
 
-			pStream->writeSint32LE(_pRes->serialFromHandle(handle));
-			pStream->writeSint32LE(pRoom->curSetup);
-			pStream->writeSint32LE(pRoom->roomRef.valid);
+			stream->writeSint32LE(_res->serialFromHandle(handle));
+			stream->writeSint32LE(room->curSetup);
+			stream->writeSint32LE(room->roomRef.valid);
 
-			for (int i = 0; i < (int)pRoom->numSetups; i++) {
-				RoomSetup *pSetup = &pRoom->pSetups[i];
+			for (int i = 0; i < (int)room->numSetups; i++) {
+				RoomSetup *setup = &room->setups[i];
 				int numStates = 0;
 
-				for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
+				for (SputObjectState *state = setup->ObjectStates; state; state = state->next)
 					numStates++;
 
-				pStream->writeSint32LE(numStates);
+				stream->writeSint32LE(numStates);
 
-				for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext) {
-					pStream->writeSint32LE(pState->type);
-					pStream->write(pState->colorImage.aFileName, 32);
-					pStream->write(pState->zImage.aFileName, 32);
-					pStream->writeSint32LE(pState->colorImage.copyMode);
+				for (SputObjectState *state = setup->ObjectStates; state; state = state->next) {
+					stream->writeSint32LE(state->type);
+					stream->write(state->colorImage.fileNameArray, 32);
+					stream->write(state->zImage.fileNameArray, 32);
+					stream->writeSint32LE(state->colorImage.copyMode);
 
-					if (!pState->colorImage.bitmapRef.valid)
+					if (!state->colorImage.bitmapRef.valid)
 						error("SputRoom::save(): Bad Bitmap Reference");
 
-					StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pState->colorImage.bitmapRef.handle);
+					StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(state->colorImage.bitmapRef.handle);
 
-					pStream->writeSint32LE(pBitmap->curFrame);
-					pStream->writeSint32LE(pState->zImage.curFrame);
+					stream->writeSint32LE(bitmap->curFrame);
+					stream->writeSint32LE(state->zImage.curFrame);
 				}
 			}
 		}
 
-		_pRes->allocatedIterNext(&pNext, &handle, kSputTagSet);
+		_res->allocatedIterNext(&next, &handle, kSputTagSet);
 	}
 
-	Room *pCurrentRoom = getCurrentRoom();
+	Room *currentRoom = getCurrentRoom();
 
-	pStream->writeSint32LE(_pRes->serialFromHandle(pCurrentRoom));
+	stream->writeSint32LE(_res->serialFromHandle(currentRoom));
 
-	if (pCurrentRoom) {
-		pStream->writeByte(pCurrentRoom->minVol);
-		pStream->writeByte(pCurrentRoom->maxVol);
-		pStream->writeFloatLE(pCurrentRoom->maxDist);
-		pStream->writeFloatLE(pCurrentRoom->panFactor);
-		pStream->writeFloatLE(pCurrentRoom->maxRadius);
+	if (currentRoom) {
+		stream->writeByte(currentRoom->minVol);
+		stream->writeByte(currentRoom->maxVol);
+		stream->writeFloatLE(currentRoom->maxDist);
+		stream->writeFloatLE(currentRoom->panFactor);
+		stream->writeFloatLE(currentRoom->maxRadius);
 
-		for (WalkPlane *pPlane = _pWalkSystem->getHead(); pPlane; pPlane = pPlane->pNext) {
-			pStream->writeSint32LE(pPlane->number);
-			pStream->writeSint32LE(pPlane->bActive);
-			pStream->writeSint32LE(pPlane->type);
-			pStream->writeSint32LE(pPlane->bEnabled);
-			pStream->writeFloatLE(pPlane->tolerance);
+		for (WalkPlane *plane = _walkSystem->getHead(); plane; plane = plane->_next) {
+			stream->writeSint32LE(plane->_number);
+			stream->writeSint32LE(plane->_active);
+			stream->writeSint32LE(plane->_type);
+			stream->writeSint32LE(plane->_enabled);
+			stream->writeFloatLE(plane->_tolerance);
 		}
 	}
 
-	if (pStream->err()) {
+	if (stream->err()) {
 		warning("SputRoom::save(): failed to write the room state");
 		return 1;
 	}
@@ -267,64 +267,64 @@ int SputRoom::save(Common::WriteStream *pStream) {
 	return 0;
 }
 
-int SputRoom::restore(Common::ReadStream *pStream) {
-	int numRooms = pStream->readSint32LE();
+int SputRoom::restore(Common::ReadStream *stream) {
+	int numRooms = stream->readSint32LE();
 
-	if (pStream->err() || pStream->eos()) {
+	if (stream->err() || stream->eos()) {
 		warning("SputRoom::restore(): failed to read the room count");
 		return 1;
 	}
 
 	for (int i = 0; i < numRooms; i++) {
-		int serial = pStream->readSint32LE();
+		int serial = stream->readSint32LE();
 
-		if (pStream->err() || pStream->eos()) {
+		if (stream->err() || stream->eos()) {
 			warning("SputRoom::restore(): failed to read room %d of %d", i + 1, numRooms);
 			return 1;
 		}
 
-		Room *pRoom = static_cast<Room *>(_pRes->handleFromSerialNumber(serial));
+		Room *room = static_cast<Room *>(_res->handleFromSerialNumber(serial));
 
-		if (!pRoom) {
+		if (!room) {
 			warning("SputRoom::restore(): room %d not found", serial);
 			return 1;
 		}
 
-		pRoom->curSetup = pStream->readSint32LE();
+		room->curSetup = stream->readSint32LE();
 
 		if (_currentRoomRef.valid)
-			_pRes->removeReference(&_currentRoomRef);
+			_res->removeReference(&_currentRoomRef);
 
-		_pRes->setReference(&_currentRoomRef, pRoom);
+		_res->setReference(&_currentRoomRef, room);
 
 		if (!_currentRoomRef.valid)
 			error("SputRoom::restore(): Bad room Reference");
 
 		loadResources(static_cast<Room *>(_currentRoomRef.handle));
-		Common::strlcpy(_currentRoomName, pRoom->name, 32);
+		Common::strlcpy(_currentRoomName, room->name, 32);
 
-		int bRoomRef = pStream->readSint32LE();
+		int roomRef = stream->readSint32LE();
 
-		if (bRoomRef)
-			_pRes->setReference(&pRoom->roomRef, pRoom);
+		if (roomRef)
+			_res->setReference(&room->roomRef, room);
 
-		for (int setupIndex = 0; setupIndex < (int)pRoom->numSetups; setupIndex++) {
-			RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
-			int numStates = pStream->readSint32LE();
+		for (int setupIndex = 0; setupIndex < (int)room->numSetups; setupIndex++) {
+			RoomSetup *setup = &room->setups[setupIndex];
+			int numStates = stream->readSint32LE();
 
 			for (int j = 0; j < numStates; j++) {
 				char bitmapName[32];
 				char zbufferName[32];
-				int objectType = pStream->readSint32LE();
+				int objectType = stream->readSint32LE();
 
-				pStream->read(bitmapName, 32);
-				pStream->read(zbufferName, 32);
+				stream->read(bitmapName, 32);
+				stream->read(zbufferName, 32);
 
-				int copyMode = pStream->readSint32LE();
-				int colorFrame = pStream->readSint32LE();
-				int zFrame = pStream->readSint32LE();
+				int copyMode = stream->readSint32LE();
+				int colorFrame = stream->readSint32LE();
+				int zFrame = stream->readSint32LE();
 
-				if (pStream->err() || pStream->eos()) {
+				if (stream->err() || stream->eos()) {
 					warning("SputRoom::restore(): failed to read object state %d of setup %d", j + 1, setupIndex);
 					return 1;
 				}
@@ -337,66 +337,66 @@ int SputRoom::restore(Common::ReadStream *pStream) {
 
 				addObjectState(setupIndex, objectType, bitmapName, zbufferName, copyMode);
 
-				SputObjectState *pHead = pSetup->ObjectStates;
+				SputObjectState *head = setup->ObjectStates;
 
-				if (!pHead) {
+				if (!head) {
 					warning("SputRoom::restore(): could not add object state %d of setup %d", j + 1, setupIndex);
 					continue;
 				}
 
-				if (pHead->colorImage.bitmapRef.valid)
-					static_cast<StdBitmapStruct *>(pHead->colorImage.bitmapRef.handle)->curFrame = colorFrame;
+				if (head->colorImage.bitmapRef.valid)
+					static_cast<StdBitmapStruct *>(head->colorImage.bitmapRef.handle)->curFrame = colorFrame;
 
-				if (pHead->zImage.bitmapRef.valid)
-					static_cast<StdBitmapStruct *>(pHead->zImage.bitmapRef.handle)->curFrame = zFrame;
+				if (head->zImage.bitmapRef.valid)
+					static_cast<StdBitmapStruct *>(head->zImage.bitmapRef.handle)->curFrame = zFrame;
 			}
 
 			for (int k = 0; k < numStates; k++) {
-				if (!pSetup->ObjectStates) {
+				if (!setup->ObjectStates) {
 					warning("SputRoom::restore(): setup %d has no object states to reorder", setupIndex);
 					break;
 				}
 
-				pSetup->ObjectStates = pSetup->ObjectStates->moveToBack(pSetup->ObjectStates);
+				setup->ObjectStates = setup->ObjectStates->moveToBack(setup->ObjectStates);
 			}
 		}
 	}
 
-	int currentSerial = pStream->readSint32LE();
-	Room *pCurrentRoom = static_cast<Room *>(_pRes->handleFromSerialNumber(currentSerial));
+	int currentSerial = stream->readSint32LE();
+	Room *currentRoom = static_cast<Room *>(_res->handleFromSerialNumber(currentSerial));
 
-	setCurrentRoom(pCurrentRoom);
+	setCurrentRoom(currentRoom);
 
-	if (pCurrentRoom) {
-		_pGrim->makeCurrentSetupLib(pCurrentRoom->curSetup);
+	if (currentRoom) {
+		_grim->makeCurrentSetupLib(currentRoom->curSetup);
 
-		_pWalkSystem->setCollection(pCurrentRoom->name);
+		_walkSystem->setCollection(currentRoom->name);
 
-		pCurrentRoom->minVol = pStream->readByte();
-		pCurrentRoom->maxVol = pStream->readByte();
-		pCurrentRoom->maxDist = pStream->readFloatLE();
-		pCurrentRoom->panFactor = pStream->readFloatLE();
-		pCurrentRoom->maxRadius = pStream->readFloatLE();
+		currentRoom->minVol = stream->readByte();
+		currentRoom->maxVol = stream->readByte();
+		currentRoom->maxDist = stream->readFloatLE();
+		currentRoom->panFactor = stream->readFloatLE();
+		currentRoom->maxRadius = stream->readFloatLE();
 
-		for (WalkPlane *pPlane = _pWalkSystem->getHead(); pPlane; pPlane = pPlane->pNext) {
-			int number = pStream->readSint32LE();
+		for (WalkPlane *plane = _walkSystem->getHead(); plane; plane = plane->_next) {
+			int number = stream->readSint32LE();
 
-			if (number == pPlane->number) {
-				pPlane->bActive = pStream->readSint32LE();
-				pPlane->setType(pStream->readSint32LE());
-				pPlane->bEnabled = pStream->readSint32LE();
+			if (number == plane->_number) {
+				plane->_active = stream->readSint32LE();
+				plane->setType(stream->readSint32LE());
+				plane->_enabled = stream->readSint32LE();
 
-				float tolerance = pStream->readFloatLE();
+				float tolerance = stream->readFloatLE();
 
 				if (tolerance == 0.0f)
-					pPlane->tolerance = 0.005f;
+					plane->_tolerance = 0.005f;
 				else
-					pPlane->tolerance = tolerance;
+					plane->_tolerance = tolerance;
 			}
 		}
 	}
 
-	if (pStream->err() || pStream->eos()) {
+	if (stream->err() || stream->eos()) {
 		warning("SputRoom::restore(): failed to read the current room state");
 		return 1;
 	}
@@ -404,10 +404,10 @@ int SputRoom::restore(Common::ReadStream *pStream) {
 	return 0;
 }
 
-int SputRoom::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputRoom::initialize(SysStruct *hs) {
+	_hs = hs;
 	memset(&_currentRoomRef, 0, sizeof(_currentRoomRef));
-	_bInitialized = 1;
+	_initialized = 1;
 
 	return 0;
 }
@@ -418,242 +418,242 @@ StdVBuffer *SputRoom::loadZBuffer(const char *fileName) {
 
 StdVBuffer *SputRoom::loadZBufferEntry(const char *fileName) {
 	Common::String path(fileName);
-	StdBitmapStruct *pBitmap = _pStdBitmap->loadLbm(path, 0, 0);
+	StdBitmapStruct *bitmap = _stdBitmap->loadLbm(path, 0, 0);
 
-	if (!pBitmap)
+	if (!bitmap)
 		return nullptr;
 
-	if (!pBitmap->apFrames || !pBitmap->numFrames) {
+	if (!bitmap->frames || !bitmap->numFrames) {
 		warning("SputRoom::loadZBufferEntry(): bitmap %s has no frames", fileName);
-		_pStdBitmap->unloadBitmap(pBitmap);
+		_stdBitmap->unloadBitmap(bitmap);
 		return nullptr;
 	}
 
-	StdVBuffer *pFrame = pBitmap->apFrames[0];
+	StdVBuffer *frame = bitmap->frames[0];
 
-	delete[] pBitmap->apFrames;
-	pBitmap->apFrames = nullptr;
-	pBitmap->numFrames = 0;
-	_pStdBitmap->unloadBitmap(pBitmap);
+	delete[] bitmap->frames;
+	bitmap->frames = nullptr;
+	bitmap->numFrames = 0;
+	_stdBitmap->unloadBitmap(bitmap);
 
-	return pFrame;
+	return frame;
 }
 
-void SputRoom::freeZBuffer(StdVBuffer *&pZBuffer) {
-	freeZBufferEntry(pZBuffer);
+void SputRoom::freeZBuffer(StdVBuffer *&zBuffer) {
+	freeZBufferEntry(zBuffer);
 }
 
-void SputRoom::freeZBufferEntry(StdVBuffer *&pZBuffer) {
-	_pStdDisplay->vBufferFree(pZBuffer);
+void SputRoom::freeZBufferEntry(StdVBuffer *&zBuffer) {
+	_stdDisplay->vBufferFree(zBuffer);
 }
 
 Room *SputRoom::loadRoom(const char *fileName) {
-	Room *pRoom = new Room;
+	Room *room = new Room;
 
-	memset(pRoom, 0, sizeof(Room));
-	newRoomEntry(pRoom);
+	memset(room, 0, sizeof(Room));
+	newRoomEntry(room);
 
-	if (loadRoomEntry(fileName, pRoom)) {
-		RoomActorNode *pActorNode = findActorNode(fileName);
+	if (loadRoomEntry(fileName, room)) {
+		RoomActorNode *actorNode = findActorNode(fileName);
 
-		if (!pActorNode)
-			pActorNode = allocActorNode(fileName);
+		if (!actorNode)
+			actorNode = allocActorNode(fileName);
 
-		pRoom->pActorNode = pActorNode;
+		room->actorNode = actorNode;
 
-		for (RoomActorLink *pLink = pActorNode->pActors; pLink; pLink = pLink->pNext) {
-			Extra *pExtra = _aActors[pLink->actorIndex].pExtra;
+		for (RoomActorLink *link = actorNode->actors; link; link = link->next) {
+			Extra *extra = _actors[link->actorIndex].extra;
 
-			if (pExtra) {
-				Puck *pPuck = pExtra->puck;
+			if (extra) {
+				Puck *puck = extra->puck;
 
-				if (pPuck) {
-					if (pExtra->inBoxes)
-						pPuck->validate();
+				if (puck) {
+					if (extra->inBoxes)
+						puck->validate();
 				}
 			}
 		}
 
-		return pRoom;
+		return room;
 	}
 
-	freeRoom(pRoom);
+	freeRoom(room);
 
 	return nullptr;
 }
 
-void SputRoom::newRoomEntry(Room *pRoom) {
-	memset(pRoom, 0, sizeof(Room));
-	pRoom->numLights = 0;
-	pRoom->numSetups = 0;
-	pRoom->pSetups = nullptr;
-	pRoom->curSetup = 0;
-	pRoom->curColormap = 0;
-	pRoom->numcolormaps = 1;
-	pRoom->apColormaps = nullptr;
-	pRoom->colormapName[0] = 0;
-	Common::strlcpy(pRoom->colormapName, "<none>", 32);
-	Common::strlcpy(pRoom->name, "", 32);
-	pRoom->structSize = (_pGrim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
+void SputRoom::newRoomEntry(Room *room) {
+	memset(room, 0, sizeof(Room));
+	room->numLights = 0;
+	room->numSetups = 0;
+	room->setups = nullptr;
+	room->curSetup = 0;
+	room->curColormap = 0;
+	room->numcolormaps = 1;
+	room->colormaps = nullptr;
+	room->colormapName[0] = 0;
+	Common::strlcpy(room->colormapName, "<none>", 32);
+	Common::strlcpy(room->name, "", 32);
+	room->structSize = (_grim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
 }
 
-int SputRoom::loadRoomEntry(const char *fileName, Room *pRoom) {
-	_pLoadingRoom = pRoom;
-	Common::strlcpy(pRoom->name, _pStdLbm->stripPath(fileName), 128);
+int SputRoom::loadRoomEntry(const char *fileName, Room *room) {
+	_loadingRoom = room;
+	Common::strlcpy(room->name, _stdLbm->stripPath(fileName), 128);
 
 	return loadSections(fileName) != 0;
 }
 
-void SputRoom::unReference(Room *pRoom) {
-	if (!pRoom->roomRef.valid) {
-		if (pRoom->apColormaps) {
-			for (int i = 0; i < pRoom->numcolormaps; i++)
-				_pRes->removeReference(&pRoom->apColormaps[i]);
+void SputRoom::unReference(Room *room) {
+	if (!room->roomRef.valid) {
+		if (room->colormaps) {
+			for (int i = 0; i < room->numcolormaps; i++)
+				_res->removeReference(&room->colormaps[i]);
 		}
 
-		for (int i = 0; i < (int)pRoom->numSetups; i++) {
-			_pRes->removeReference(&pRoom->pSetups[i].bitmapRef);
-			_pRes->removeReference(&pRoom->pSetups[i].zbufferRef);
+		for (int i = 0; i < (int)room->numSetups; i++) {
+			_res->removeReference(&room->setups[i].bitmapRef);
+			_res->removeReference(&room->setups[i].zbufferRef);
 
-			while (pRoom->pSetups[i].ObjectStates) {
-				SputObjectState *pObjectState = pRoom->pSetups[i].ObjectStates;
+			while (room->setups[i].ObjectStates) {
+				SputObjectState *objectState = room->setups[i].ObjectStates;
 
-				pRoom->pSetups[i].ObjectStates = pObjectState->pNext;
-				pObjectState->unLoadResources();
-				delete pObjectState;
+				room->setups[i].ObjectStates = objectState->next;
+				objectState->unLoadResources();
+				delete objectState;
 			}
 		}
 	}
 }
 
-void SputRoom::freeRoom(Room *&pRoom) {
-	freeRoomEntry(pRoom);
-	delete pRoom;
-	pRoom = nullptr;
+void SputRoom::freeRoom(Room *&room) {
+	freeRoomEntry(room);
+	delete room;
+	room = nullptr;
 }
 
-void SputRoom::freeRoomEntry(Room *pRoom) {
-	unReference(pRoom);
+void SputRoom::freeRoomEntry(Room *room) {
+	unReference(room);
 
-	if (pRoom->apColormaps) {
-		delete[] pRoom->apColormaps;
-		pRoom->apColormaps = nullptr;
+	if (room->colormaps) {
+		delete[] room->colormaps;
+		room->colormaps = nullptr;
 	}
 
-	freeRoomSetups(pRoom);
+	freeRoomSetups(room);
 
-	delete[] pRoom->pObjects;
-	pRoom->pObjects = nullptr;
-	pRoom->numObjects = 0;
+	delete[] room->objects;
+	room->objects = nullptr;
+	room->numObjects = 0;
 
-	_pWalkSystem->killCollection(pRoom->name);
+	_walkSystem->killCollection(room->name);
 
-	RoomActorNode *pActorNode = pRoom->pActorNode;
+	RoomActorNode *actorNode = room->actorNode;
 
-	if (pActorNode) {
-		for (RoomActorLink *pLink = pActorNode->pActors; pLink; pLink = pActorNode->pActors) {
-			_pSputActor->resetShadows(&_aActors[pLink->actorIndex]);
-			removeActor(pRoom->name, &_aActors[pLink->actorIndex]);
+	if (actorNode) {
+		for (RoomActorLink *link = actorNode->actors; link; link = actorNode->actors) {
+			_sputActor->resetShadows(&_actors[link->actorIndex]);
+			removeActor(room->name, &_actors[link->actorIndex]);
 
-			if (pActorNode->pActors == pLink) {
-				warning("SputRoom::freeRoomEntry(): could not remove the actor %d from room %s", pLink->actorIndex, pRoom->name);
+			if (actorNode->actors == link) {
+				warning("SputRoom::freeRoomEntry(): could not remove the actor %d from room %s", link->actorIndex, room->name);
 				break;
 			}
 		}
 
-		freeActorNode(pActorNode);
-		pRoom->pActorNode = nullptr;
+		freeActorNode(actorNode);
+		room->actorNode = nullptr;
 	}
 }
 
-void SputRoom::freeRoomSetups(Room *pRoom) {
-	if (pRoom->numSetups) {
-		for (uint i = 0; i < pRoom->numSetups; i++)
-			freeSetupEntry(pRoom, &pRoom->pSetups[i]);
+void SputRoom::freeRoomSetups(Room *room) {
+	if (room->numSetups) {
+		for (uint i = 0; i < room->numSetups; i++)
+			freeSetupEntry(room, &room->setups[i]);
 
-		if (pRoom->numSetups && pRoom->pSetups)
-			delete[] pRoom->pSetups;
+		if (room->numSetups && room->setups)
+			delete[] room->setups;
 	}
 
-	pRoom->pSetups = nullptr;
-	pRoom->numSetups = 0;
+	room->setups = nullptr;
+	room->numSetups = 0;
 }
 
-void SputRoom::freeSetupEntry(Room *pRoom, RoomSetup *pSetup) {
-	if (pSetup->camera.prdCamera)
-		_pRd->_camera.destroy(pSetup->camera.prdCamera);
+void SputRoom::freeSetupEntry(Room *room, RoomSetup *setup) {
+	if (setup->camera.prdCamera)
+		_rd->_camera.destroy(setup->camera.prdCamera);
 
-	if (pSetup->camera.pThing)
-		_pRd->_thing.destroy(pSetup->camera.pThing);
+	if (setup->camera.thing)
+		_rd->_thing.destroy(setup->camera.thing);
 
-	delete[] pSetup->pObjectArt;
-	pSetup->pObjectArt = nullptr;
-	pSetup->ObjectStates = nullptr;
+	delete[] setup->objectArt;
+	setup->objectArt = nullptr;
+	setup->ObjectStates = nullptr;
 }
 
 void SputRoom::freeSoundTable() {
-	RoomSound *pSound = _pSoundList;
-	RoomSound *pPrev = nullptr;
+	RoomSound *sound = _soundList;
+	RoomSound *prev = nullptr;
 
-	while (pSound) {
-		if (g_grim->getImuse()->soundsIsSoundPlaying(pSound->soundName)) {
-			pPrev = pSound;
-			pSound = pSound->pNext;
+	while (sound) {
+		if (g_grim->getImuse()->soundsIsSoundPlaying(sound->soundName)) {
+			prev = sound;
+			sound = sound->next;
 		} else {
-			RoomSound *pFree = pSound;
+			RoomSound *free = sound;
 
-			pSound = pSound->pNext;
+			sound = sound->next;
 
-			if (pFree == _pSoundList) {
-				_pSoundList = pSound;
-				pPrev = nullptr;
+			if (free == _soundList) {
+				_soundList = sound;
+				prev = nullptr;
 			} else {
-				pPrev->pNext = pSound;
+				prev->next = sound;
 			}
 
-			delete pFree;
+			delete free;
 		}
 	}
 }
 
-RoomSound *SputRoom::allocSoundTable(const char *soundName, float *pPos, int minVol, int maxVol, float maxDist, float radius) {
+RoomSound *SputRoom::allocSoundTable(const char *soundName, float *pos, int minVol, int maxVol, float maxDist, float radius) {
 	freeSoundTable();
 
-	RoomSound *pSound = new RoomSound;
+	RoomSound *sound = new RoomSound;
 
-	pSound->soundName = soundName;
-	pSound->pNext = _pSoundList;
-	pSound->pos[0] = pPos[0];
-	pSound->pos[1] = pPos[1];
-	pSound->pos[2] = pPos[2];
-	pSound->minVol = minVol;
-	pSound->maxVol = maxVol;
-	pSound->maxDist = maxDist;
-	pSound->radius = radius;
-	_pSoundList = pSound;
+	sound->soundName = soundName;
+	sound->next = _soundList;
+	sound->pos[0] = pos[0];
+	sound->pos[1] = pos[1];
+	sound->pos[2] = pos[2];
+	sound->minVol = minVol;
+	sound->maxVol = maxVol;
+	sound->maxDist = maxDist;
+	sound->radius = radius;
+	_soundList = sound;
 
-	return pSound;
+	return sound;
 }
 
-int SputRoom::setupSoundPosition(RoomSound *pSound) {
-	Room *pRoom = getCurrentRoom();
+int SputRoom::setupSoundPosition(RoomSound *sound) {
+	Room *room = getCurrentRoom();
 
-	if (!pRoom)
+	if (!room)
 		return 0;
 
-	RoomSetup *pSetup = &pRoom->pSetups[pRoom->curSetup];
+	RoomSetup *setup = &room->setups[room->curSetup];
 	RdVector3 vec;
 
-	vec[0] = (float)((double)pSound->pos[0] - pSetup->camera.position[0]);
-	vec[1] = (float)((double)pSound->pos[1] - pSetup->camera.position[1]);
-	vec[2] = (float)((double)pSound->pos[2] - pSetup->camera.position[2]);
+	vec[0] = (float)((double)sound->pos[0] - setup->camera.position[0]);
+	vec[1] = (float)((double)sound->pos[1] - setup->camera.position[1]);
+	vec[2] = (float)((double)sound->pos[2] - setup->camera.position[2]);
 
-	double distance = (double)_pRd->normalize3QuickAcc(vec) - pSound->radius;
+	double distance = (double)_rd->normalize3QuickAcc(vec) - sound->radius;
 
 	if (distance >= 0.0) {
-		uint minVol = (uint)pSound->minVol;
-		uint maxVol = (uint)pSound->maxVol;
-		double value = (double)(uint)(maxVol - minVol) / pSound->maxDist * ((double)pSound->maxDist - distance) + (double)minVol;
+		uint minVol = (uint)sound->minVol;
+		uint maxVol = (uint)sound->maxVol;
+		double value = (double)(uint)(maxVol - minVol) / sound->maxDist * ((double)sound->maxDist - distance) + (double)minVol;
 		uint volume = 0;
 
 		if (value > -9.2e18 && value < 9.2e18)
@@ -666,11 +666,11 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 		else if (volume > maxVol)
 			volume = maxVol;
 
-		g_grim->getImuse()->soundsSetParam(pSound->soundName, IMUSE_P_VOLUME, (int)volume);
+		g_grim->getImuse()->soundsSetParam(sound->soundName, IMUSE_P_VOLUME, (int)volume);
 	}
 
-	double pan = ((double)pSetup->camera.posMatrix[0][0] * vec[0] + (double)pSetup->camera.posMatrix[0][1] * vec[1] +
-			(double)pSetup->camera.posMatrix[0][2] * vec[2]) * pRoom->panFactor;
+	double pan = ((double)setup->camera.posMatrix[0][0] * vec[0] + (double)setup->camera.posMatrix[0][1] * vec[1] +
+			(double)setup->camera.posMatrix[0][2] * vec[2]) * room->panFactor;
 
 	if (!(pan >= -1.0))
 		pan = -1.0;
@@ -682,119 +682,119 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 	if (panValue > 127)
 		panValue = 127;
 
-	g_grim->getImuse()->soundsSetParam(pSound->soundName, IMUSE_P_PAN, (int)panValue);
+	g_grim->getImuse()->soundsSetParam(sound->soundName, IMUSE_P_PAN, (int)panValue);
 
 	return 1;
 }
 
-int SputRoom::loadResources(Room *pRoom) {
-	pRoom->structSize = (_pGrim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
+int SputRoom::loadResources(Room *room) {
+	room->structSize = (_grim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
 
 	g_grim->getImuse()->soundsFloodMusicBuffer();
 
-	if (pRoom->numcolormaps && !pRoom->apColormaps) {
-		warning("SputRoom::loadResources(): room %s has no colormap references", pRoom->name);
+	if (room->numcolormaps && !room->colormaps) {
+		warning("SputRoom::loadResources(): room %s has no colormap references", room->name);
 		return 0;
 	}
 
-	for (uint i = 0; i < (uint)pRoom->numcolormaps; i++) {
-		ResRef *pColormapRef = &pRoom->apColormaps[i];
+	for (uint i = 0; i < (uint)room->numcolormaps; i++) {
+		ResRef *colormapRef = &room->colormaps[i];
 
-		if (pColormapRef->valid) {
-			_pRes->touch(pColormapRef->handle);
+		if (colormapRef->valid) {
+			_res->touch(colormapRef->handle);
 		} else {
-			if (scumm_stricmp(pRoom->colormapName, "<none>")) {
-				void *handle = _pSputResource->alloc(kSputTagCmap, pRoom->colormapName);
+			if (scumm_stricmp(room->colormapName, "<none>")) {
+				void *handle = _sputResource->alloc(kSputTagCmap, room->colormapName);
 
-				_pRes->setReference(pColormapRef, handle);
+				_res->setReference(colormapRef, handle);
 			}
 
-			if (!pColormapRef->valid) {
-				void *handle = _pSputResource->alloc(kSputTagCmap, "dfltcmp.cmp");
+			if (!colormapRef->valid) {
+				void *handle = _sputResource->alloc(kSputTagCmap, "dfltcmp.cmp");
 
-				_pRes->setReference(pColormapRef, handle);
+				_res->setReference(colormapRef, handle);
 
-				if (!pColormapRef->valid)
+				if (!colormapRef->valid)
 					return 0;
 			}
 		}
 	}
 
-	for (uint i = 0; i < pRoom->numSetups; i++) {
-		RoomSetup *pSetup = &pRoom->pSetups[i];
+	for (uint i = 0; i < room->numSetups; i++) {
+		RoomSetup *setup = &room->setups[i];
 
-		if (!_bUpdateLoop) {
-			ResRef *pBitmapRef = &pSetup->bitmapRef;
+		if (!_updateLoop) {
+			ResRef *bitmapRef = &setup->bitmapRef;
 
-			if (pBitmapRef->valid) {
-				_pRes->touch(pBitmapRef->handle);
+			if (bitmapRef->valid) {
+				_res->touch(bitmapRef->handle);
 			} else {
-				if (scumm_stricmp(pSetup->aBitmapName, "<none>")) {
-					void *handle = _pSputResource->alloc(kSputTagBknd, pSetup->aBitmapName);
+				if (scumm_stricmp(setup->bitmapName, "<none>")) {
+					void *handle = _sputResource->alloc(kSputTagBknd, setup->bitmapName);
 
-					_pRes->setReference(pBitmapRef, handle);
+					_res->setReference(bitmapRef, handle);
 				}
 
-				if (!pBitmapRef->valid) {
-					void *handle = _pSputResource->alloc(kSputTagBknd, "dfltroom.bm");
+				if (!bitmapRef->valid) {
+					void *handle = _sputResource->alloc(kSputTagBknd, "dfltroom.bm");
 
-					_pRes->setReference(pBitmapRef, handle);
+					_res->setReference(bitmapRef, handle);
 
-					if (!pBitmapRef->valid)
+					if (!bitmapRef->valid)
 						return 0;
 
-					Common::strlcpy(pSetup->aBitmapName, "<none>", 32);
-					pSetup->aZBufferName[0] = 0;
+					Common::strlcpy(setup->bitmapName, "<none>", 32);
+					setup->zBufferName[0] = 0;
 				}
 			}
 
-			if (pSetup->aZBufferName[0]) {
-				ResRef *pZBufferRef = &pSetup->zbufferRef;
+			if (setup->zBufferName[0]) {
+				ResRef *zBufferRef = &setup->zbufferRef;
 
-				if (!pZBufferRef->valid) {
-					void *handle = _pSputResource->alloc(kSputTagZbuf, pSetup->aZBufferName);
+				if (!zBufferRef->valid) {
+					void *handle = _sputResource->alloc(kSputTagZbuf, setup->zBufferName);
 
 					if (handle)
-						_pRes->setReference(pZBufferRef, handle);
+						_res->setReference(zBufferRef, handle);
 				}
 
-				if (pZBufferRef->valid)
-					_pRes->touch(pZBufferRef->handle);
+				if (zBufferRef->valid)
+					_res->touch(zBufferRef->handle);
 			}
 		}
 
-		if (_pGrim->getGameFlags() & ADGF_DEMO) {
-			if (!pSetup->ObjectStates) {
-				createObjectStates(pRoom, pSetup, i);
+		if (_grim->getGameFlags() & ADGF_DEMO) {
+			if (!setup->ObjectStates) {
+				createObjectStates(room, setup, i);
 			} else {
-				for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext)
-					pState->loadResources();
+				for (SputObjectState *state = setup->ObjectStates; state; state = state->next)
+					state->loadResources();
 			}
 
-			for (SputObjectState *pState = pSetup->ObjectStates; pState; pState = pState->pNext) {
-				if (pState->colorImage.bitmapRef.valid)
-					pRoom->structSize += _pStdBitmap->memUsage(static_cast<StdBitmapStruct *>(pState->colorImage.bitmapRef.handle));
+			for (SputObjectState *state = setup->ObjectStates; state; state = state->next) {
+				if (state->colorImage.bitmapRef.valid)
+					room->structSize += _stdBitmap->memUsage(static_cast<StdBitmapStruct *>(state->colorImage.bitmapRef.handle));
 
-				if (pState->zImage.bitmapRef.valid)
-					pRoom->structSize += _pStdBitmap->memUsage(static_cast<StdBitmapStruct *>(pState->zImage.bitmapRef.handle));
+				if (state->zImage.bitmapRef.valid)
+					room->structSize += _stdBitmap->memUsage(static_cast<StdBitmapStruct *>(state->zImage.bitmapRef.handle));
 			}
 		}
 
-		if (!pSetup->camera.prdCamera) {
-			pSetup->camera.prdCamera = _pRd->_camera.create(pSetup->camera.fov, 1, pSetup->camera.nearClip, pSetup->camera.farClip, 1.0f);
+		if (!setup->camera.prdCamera) {
+			setup->camera.prdCamera = _rd->_camera.create(setup->camera.fov, 1, setup->camera.nearClip, setup->camera.farClip, 1.0f);
 
-			if (!pSetup->camera.prdCamera)
+			if (!setup->camera.prdCamera)
 				return 0;
 
-			pSetup->camera.pThing = _pRd->_thing.create(0);
-			_pRd->_thing.setCamera(pSetup->camera.pThing, pSetup->camera.prdCamera);
-			_pRd->lookAt(pSetup->camera.posMatrix, pSetup->camera.position, pSetup->camera.interest, pSetup->camera.roll);
+			setup->camera.thing = _rd->_thing.create(0);
+			_rd->_thing.setCamera(setup->camera.thing, setup->camera.prdCamera);
+			_rd->lookAt(setup->camera.posMatrix, setup->camera.position, setup->camera.interest, setup->camera.roll);
 
-			for (uint j = 0; j < pRoom->numLights; j++) {
-				RoomLight *pLight = &pRoom->aLights[j];
+			for (uint j = 0; j < room->numLights; j++) {
+				RoomLight *light = &room->lights[j];
 
-				_pRd->_light.setAngles(&pLight->light, pLight->light.angleX, pLight->light.angleY);
-				_pRd->_camera.addLight(pSetup->camera.prdCamera, &pLight->light, &pLight->position);
+				_rd->_light.setAngles(&light->light, light->light.angleX, light->light.angleY);
+				_rd->_camera.addLight(setup->camera.prdCamera, &light->light, &light->position);
 			}
 		}
 	}
@@ -803,315 +803,315 @@ int SputRoom::loadResources(Room *pRoom) {
 }
 
 int SputRoom::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized)
-		_bInitialized = 0;
+	if (_initialized)
+		_initialized = 0;
 
 	return 0;
 }
 
 int SputRoom::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
 	return readSections();
 }
 
 int SputRoom::shutdown() {
-	RoomActorNode *pNode = _pActorNodeList;
+	RoomActorNode *node = _actorNodeList;
 
-	while (pNode) {
-		RoomActorLink *pLink = pNode->pActors;
+	while (node) {
+		RoomActorLink *link = node->actors;
 
-		while (pLink) {
-			RoomActorLink *pNextLink = pLink->pNext;
+		while (link) {
+			RoomActorLink *nextLink = link->next;
 
-			delete pLink;
-			pLink = pNextLink;
+			delete link;
+			link = nextLink;
 		}
 
-		RoomActorNode *pNextNode = pNode->pNext;
+		RoomActorNode *nextNode = node->next;
 
-		delete pNode;
-		pNode = pNextNode;
+		delete node;
+		node = nextNode;
 	}
 
-	_pActorNodeList = nullptr;
+	_actorNodeList = nullptr;
 
-	if (_bStarted) {
-		while (_pSoundList) {
-			RoomSound *pNextSound = _pSoundList->pNext;
+	if (_started) {
+		while (_soundList) {
+			RoomSound *nextSound = _soundList->next;
 
-			delete _pSoundList;
-			_pSoundList = pNextSound;
+			delete _soundList;
+			_soundList = nextSound;
 		}
 	}
 
-	_bStarted = 0;
+	_started = 0;
 
 	return 0;
 }
 
-RoomLight *SputRoom::getLight(Room *pRoom, int index) {
-	Room *pCurrentRoom = pRoom;
+RoomLight *SputRoom::getLight(Room *room, int index) {
+	Room *currentRoom = room;
 
-	if (!pRoom)
-		pCurrentRoom = getCurrentRoom();
+	if (!room)
+		currentRoom = getCurrentRoom();
 
-	if (!pCurrentRoom) {
+	if (!currentRoom) {
 		warning("SputRoom::getLight(): no current room");
 		return nullptr;
 	}
 
-	if (index < 0 || index >= (int)pCurrentRoom->numLights)
+	if (index < 0 || index >= (int)currentRoom->numLights)
 		return nullptr;
 
-	return &pCurrentRoom->aLights[index];
+	return &currentRoom->lights[index];
 }
 
-int SputRoom::findLightByName(Room *pRoom, const char *name) {
-	Room *pCurrentRoom = pRoom;
+int SputRoom::findLightByName(Room *room, const char *name) {
+	Room *currentRoom = room;
 
-	if (!pRoom)
-		pCurrentRoom = getCurrentRoom();
+	if (!room)
+		currentRoom = getCurrentRoom();
 
-	if (!pCurrentRoom) {
+	if (!currentRoom) {
 		warning("SputRoom::findLightByName(): no current room");
 		return -1;
 	}
 
 	int index = 0;
 
-	if ((int)pCurrentRoom->numLights > 0) {
+	if ((int)currentRoom->numLights > 0) {
 		do {
-			if (!scumm_stricmp(name, pCurrentRoom->aLights[index].aName))
+			if (!scumm_stricmp(name, currentRoom->lights[index].name))
 				break;
 
 			index++;
-		} while (index < (int)pCurrentRoom->numLights);
+		} while (index < (int)currentRoom->numLights);
 	}
 
-	if (index >= (int)pCurrentRoom->numLights)
+	if (index >= (int)currentRoom->numLights)
 		return -1;
 
 	return index;
 }
 
 SputObjectState *SputRoom::addObjectState(int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int copyMode) {
-	Room *pRoom = getCurrentRoom();
+	Room *room = getCurrentRoom();
 
-	if (!pRoom || setupIndex < 0 || (uint)setupIndex >= pRoom->numSetups) {
+	if (!room || setupIndex < 0 || (uint)setupIndex >= room->numSetups) {
 		warning("SputRoom::addObjectState(): no room or invalid setup %d", setupIndex);
 		return nullptr;
 	}
 
-	RoomSetup *pSetup = &pRoom->pSetups[setupIndex];
+	RoomSetup *setup = &room->setups[setupIndex];
 
-	pSetup->ObjectStates = new SputObjectState(pSetup->ObjectStates, bitmapName, zbufferName, objectType, _pRes, _pSputResource,
-			_pStdDisplay, _pStdBitmap, _pSputRender, (_pGrim->getGameFlags() & ADGF_DEMO) != 0);
-	pSetup->ObjectStates->loadResources();
-	pSetup->ObjectStates->setupIndex = setupIndex;
+	setup->ObjectStates = new SputObjectState(setup->ObjectStates, bitmapName, zbufferName, objectType, _res, _sputResource,
+			_stdDisplay, _stdBitmap, _sputRender, (_grim->getGameFlags() & ADGF_DEMO) != 0);
+	setup->ObjectStates->loadResources();
+	setup->ObjectStates->setupIndex = setupIndex;
 
 	if (copyMode <= -1)
-		pSetup->ObjectStates->setCopyMode(objectType == 3);
+		setup->ObjectStates->setCopyMode(objectType == 3);
 	else
-		pSetup->ObjectStates->setCopyMode(copyMode);
+		setup->ObjectStates->setCopyMode(copyMode);
 
-	return pSetup->ObjectStates;
+	return setup->ObjectStates;
 }
 
-void SputRoom::createObjectStates(Room *pRoom, RoomSetup *pSetup, int setupIndex) {
-	if (!pSetup->pObjectArt)
+void SputRoom::createObjectStates(Room *room, RoomSetup *setup, int setupIndex) {
+	if (!setup->objectArt)
 		return;
 
 	// The states are added at the head of the list, the first object has to end up there
-	for (int i = (int)pRoom->numObjects - 1; i >= 0; i--) {
-		RoomObjectArt *pArt = &pSetup->pObjectArt[i];
+	for (int i = (int)room->numObjects - 1; i >= 0; i--) {
+		RoomObjectArt *art = &setup->objectArt[i];
 
-		if (!pArt->aBitmapName[0])
+		if (!art->bitmapName[0])
 			continue;
 
-		SputObjectState *pState = new SputObjectState(pSetup->ObjectStates, pArt->aBitmapName, pArt->aZBufferName, 3, _pRes, _pSputResource,
-				_pStdDisplay, _pStdBitmap, _pSputRender, true);
+		SputObjectState *state = new SputObjectState(setup->ObjectStates, art->bitmapName, art->zBufferName, 3, _res, _sputResource,
+				_stdDisplay, _stdBitmap, _sputRender, true);
 
-		pSetup->ObjectStates = pState;
-		pState->setupIndex = setupIndex;
-		pState->setCopyMode(1);
-		pState->loadResources();
+		setup->ObjectStates = state;
+		state->setupIndex = setupIndex;
+		state->setCopyMode(1);
+		state->loadResources();
 	}
 }
 
-void SputRoom::removeObjectState(SputObjectState *pObj) {
-	if (pObj) {
-		Room *pRoom = getCurrentRoom();
+void SputRoom::removeObjectState(SputObjectState *obj) {
+	if (obj) {
+		Room *room = getCurrentRoom();
 
-		if (!pRoom) {
+		if (!room) {
 			warning("SputRoom::removeObjectState(): no current room");
 			return;
 		}
 
-		RoomSetup *pSetup = &pRoom->pSetups[pObj->setupIndex];
-		SputObjectState *pHead = pSetup->ObjectStates;
-		SputObjectState *pNext;
+		RoomSetup *setup = &room->setups[obj->setupIndex];
+		SputObjectState *head = setup->ObjectStates;
+		SputObjectState *next;
 
-		if (pHead == pObj)
-			pNext = pObj->pNext;
+		if (head == obj)
+			next = obj->next;
 		else
-			pNext = pHead;
+			next = head;
 
-		delete pObj;
-		pSetup->ObjectStates = pNext;
+		delete obj;
+		setup->ObjectStates = next;
 	}
 }
 
-void SputRoom::removeActor(const char *roomName, SputActor *pActor) {
-	RoomActorNode *pActorNode = findActorNode(roomName);
+void SputRoom::removeActor(const char *roomName, SputActor *actor) {
+	RoomActorNode *actorNode = findActorNode(roomName);
 
-	if (pActorNode) {
-		pActor->onScreen = 0;
+	if (actorNode) {
+		actor->onScreen = 0;
 
-		RoomActorLink *pLink = pActorNode->pActors;
+		RoomActorLink *link = actorNode->actors;
 
-		while (pLink) {
-			if (&_aActors[pLink->actorIndex] == pActor)
+		while (link) {
+			if (&_actors[link->actorIndex] == actor)
 				break;
 
-			pLink = pLink->pNext;
+			link = link->next;
 		}
 
-		if (pLink) {
-			Extra *pExtra = pActor->pExtra;
+		if (link) {
+			Extra *extra = actor->extra;
 
-			if (pExtra) {
-				Puck *pPuck = pExtra->puck;
+			if (extra) {
+				Puck *puck = extra->puck;
 
-				if (pPuck)
-					pPuck->pPlane = nullptr;
+				if (puck)
+					puck->_plane = nullptr;
 			}
 
-			if (pLink->pNext)
-				pLink->pNext->pPrev = pLink->pPrev;
+			if (link->next)
+				link->next->prev = link->prev;
 
-			if (pLink->pPrev)
-				pLink->pPrev->pNext = pLink->pNext;
+			if (link->prev)
+				link->prev->next = link->next;
 
-			if (pActorNode->pActors == pLink)
-				pActorNode->pActors = pLink->pNext;
+			if (actorNode->actors == link)
+				actorNode->actors = link->next;
 
-			delete pLink;
-			pActor->curSetName[0] = 0;
+			delete link;
+			actor->curSetName[0] = 0;
 		}
 	}
 }
 
-void SputRoom::addActor(const char *roomName, SputActor *pActor) {
-	if (!pActor || !_aActors) {
+void SputRoom::addActor(const char *roomName, SputActor *actor) {
+	if (!actor || !_actors) {
 		warning("SputRoom::addActor(): no actor or no actor array");
 		return;
 	}
 
-	if (roomName && !strcmp(roomName, pActor->curSetName))
+	if (roomName && !strcmp(roomName, actor->curSetName))
 		return;
 
-	removeActor(pActor->curSetName, pActor);
+	removeActor(actor->curSetName, actor);
 
 	if (roomName) {
-		RoomActorNode *pActorNode = findActorNode(roomName);
+		RoomActorNode *actorNode = findActorNode(roomName);
 
-		if (!pActorNode)
-			pActorNode = allocActorNode(roomName);
+		if (!actorNode)
+			actorNode = allocActorNode(roomName);
 
-		RoomActorLink *pLink = pActorNode->pActors;
+		RoomActorLink *link = actorNode->actors;
 
-		while (pLink) {
-			if (&_aActors[pLink->actorIndex] == pActor)
+		while (link) {
+			if (&_actors[link->actorIndex] == actor)
 				return;
 
-			pLink = pLink->pNext;
+			link = link->next;
 		}
 
-		pLink = new RoomActorLink;
-		pLink->actorIndex = 0;
-		pLink->pPrev = nullptr;
-		pLink->pNext = nullptr;
-		pLink->actorIndex = (int)(pActor - _aActors);
-		pLink->pNext = pActorNode->pActors;
+		link = new RoomActorLink;
+		link->actorIndex = 0;
+		link->prev = nullptr;
+		link->next = nullptr;
+		link->actorIndex = (int)(actor - _actors);
+		link->next = actorNode->actors;
 
-		if (pActorNode->pActors)
-			pActorNode->pActors->pPrev = pLink;
+		if (actorNode->actors)
+			actorNode->actors->prev = link;
 
-		pActorNode->pActors = pLink;
+		actorNode->actors = link;
 
 		if (strlen(roomName) >= 32)
 			warning("SputRoom::addActor(): room name %s is too long", roomName);
 
-		Common::strlcpy(pActor->curSetName, roomName, 32);
+		Common::strlcpy(actor->curSetName, roomName, 32);
 	} else {
-		pActor->onScreen = 0;
+		actor->onScreen = 0;
 	}
 }
 
 RoomActorLink *SputRoom::getRoomActors(const char *roomName) {
-	RoomActorNode *pActorNode = findActorNode(roomName);
+	RoomActorNode *actorNode = findActorNode(roomName);
 
-	if (pActorNode)
-		return pActorNode->pActors;
+	if (actorNode)
+		return actorNode->actors;
 
 	return nullptr;
 }
 
 RoomActorNode *SputRoom::findActorNode(const char *roomName) {
-	RoomActorNode *pNode = _pActorNodeList;
+	RoomActorNode *node = _actorNodeList;
 
-	if (!roomName || !pNode)
+	if (!roomName || !node)
 		return nullptr;
 
-	while (scumm_stricmp(pNode->name, roomName)) {
-		pNode = pNode->pNext;
+	while (scumm_stricmp(node->name, roomName)) {
+		node = node->next;
 
-		if (!pNode)
+		if (!node)
 			return nullptr;
 	}
 
-	return pNode;
+	return node;
 }
 
 RoomActorNode *SputRoom::allocActorNode(const char *roomName) {
-	RoomActorNode *pNode = new RoomActorNode;
+	RoomActorNode *node = new RoomActorNode;
 
-	memset(pNode, 0, sizeof(RoomActorNode));
+	memset(node, 0, sizeof(RoomActorNode));
 
 	if (strlen(roomName) >= 128)
 		warning("SputRoom::allocActorNode(): room name %s is too long", roomName);
 
-	Common::strlcpy(pNode->name, roomName, 128);
-	pNode->pNext = _pActorNodeList;
-	_pActorNodeList = pNode;
+	Common::strlcpy(node->name, roomName, 128);
+	node->next = _actorNodeList;
+	_actorNodeList = node;
 
-	return pNode;
+	return node;
 }
 
-void SputRoom::freeActorNode(RoomActorNode *pNode) {
-	RoomActorNode *pCurrent = _pActorNodeList;
-	RoomActorNode *pPrev = nullptr;
+void SputRoom::freeActorNode(RoomActorNode *node) {
+	RoomActorNode *current = _actorNodeList;
+	RoomActorNode *prev = nullptr;
 
-	if (pCurrent) {
+	if (current) {
 		do {
-			if (pCurrent == pNode)
+			if (current == node)
 				break;
 
-			pPrev = pCurrent;
-			pCurrent = pCurrent->pNext;
-		} while (pCurrent);
+			prev = current;
+			current = current->next;
+		} while (current);
 
-		if (pCurrent) {
-			if (pPrev)
-				pPrev->pNext = pCurrent->pNext;
+		if (current) {
+			if (prev)
+				prev->next = current->next;
 			else
-				_pActorNodeList = pCurrent->pNext;
+				_actorNodeList = current->next;
 
-			delete pCurrent;
+			delete current;
 		}
 	}
 }

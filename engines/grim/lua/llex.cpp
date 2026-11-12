@@ -230,7 +230,7 @@ static int read_long_string(LexState *LS, YYSTYPE *l) {
 endloop:
 	save_and_next(LS);  // pass the second ']'
 	Mbuffer[Mbuffnext - 2] = 0;  // erases ']]'
-	l->pTStr = luaS_new(Mbuffbase + 2);
+	l->tStr = luaS_new(Mbuffbase + 2);
 	Mbuffer[Mbuffnext - 2] = ']';  // restores ']]'
 	return STRING;
 }
@@ -347,7 +347,7 @@ int32 luaY_lex(YYSTYPE *l) {
 				}
 				next(LS);  // skip delimiter
 				save(0);
-				l->pTStr = luaS_new(Mbuffbase + 1);
+				l->tStr = luaS_new(Mbuffbase + 1);
 				Mbuffer[Mbuffnext - 1] = del;  // restore delimiter
 				return STRING;
 			}
@@ -439,7 +439,7 @@ fraction:
 				ts = luaS_new(Mbuffbase);
 				if (ts->head.marked >= 255)
 					return ts->head.marked;  // reserved word
-				l->pTStr = ts;
+				l->tStr = ts;
 				return NAME;
 			}
 		}

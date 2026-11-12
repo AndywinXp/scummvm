@@ -34,9 +34,9 @@ static const int kViewportHeight = 480;
 static const float kViewportFov = 90.0f;
 static const int kLayerSortStep = 10;
 
-Setup::Setup(EmiEngine *engine) : camera(engine->getDrawContext()), _engine(engine) {
-	name[0] = 0;
-	layersBuilt = false;
+Setup::Setup(EmiEngine *engine) : _camera(engine->getDrawContext()), _engine(engine) {
+	_name[0] = 0;
+	_layersBuilt = false;
 
 	IRect viewport;
 
@@ -44,15 +44,15 @@ Setup::Setup(EmiEngine *engine) : camera(engine->getDrawContext()), _engine(engi
 	viewport.y = 0;
 	viewport.w = kViewportWidth;
 	viewport.h = kViewportHeight;
-	camera.setViewport(&viewport, kViewportFov);
+	_camera.setViewport(&viewport, kViewportFov);
 }
 
 Setup::~Setup() {
-	while (!layers.empty())
-		removeLayer(layers.front());
+	while (!_layers.empty())
+		removeLayer(_layers.front());
 
-	backgroundName.clear();
-	layers.clear();
+	_backgroundName.clear();
+	_layers.clear();
 }
 
 void *Setup::operator new(size_t size) {
@@ -101,21 +101,21 @@ void Setup::deleteArray(Setup *array) {
 }
 
 void Setup::buildLayers() {
-	if (layersBuilt)
+	if (_layersBuilt)
 		return;
 
-	Layer *firstLayer = new Layer(_engine, backgroundName.c_str(), 0, 0, -1);
+	Layer *firstLayer = new Layer(_engine, _backgroundName.c_str(), 0, 0, -1);
 	TiledScene *scene = nullptr;
 
-	if (firstLayer->tiledScene.lock())
-		scene = firstLayer->tiledScene.typed;
+	if (firstLayer->_tiledScene.lock())
+		scene = firstLayer->_tiledScene._typed;
 
 	if (scene) {
 		int frame = 0;
 		int layerSortOrder = 0;
 
 		while (frame < scene->getFrameCount()) {
-			addLayer(backgroundName.c_str(), layerSortOrder, frame, -1);
+			addLayer(_backgroundName.c_str(), layerSortOrder, frame, -1);
 			frame++;
 			layerSortOrder += kLayerSortStep;
 		}
@@ -123,29 +123,29 @@ void Setup::buildLayers() {
 		warning("Setup::buildLayers(): the tiled scene is not available");
 	}
 
-	firstLayer->tiledScene.unlock();
+	firstLayer->_tiledScene.unlock();
 	delete firstLayer;
-	layersBuilt = true;
+	_layersBuilt = true;
 }
 
 int Setup::getSize() {
-	return (int)(sizeof(Setup) + layers.size() * sizeof(Layer *));
+	return (int)(sizeof(Setup) + _layers.size() * sizeof(Layer *));
 }
 
 int Setup::addLayer(const char *layerName, int layerSortOrder, int layerFrame, int layerId) {
 	Layer *layer = new Layer(_engine, layerName, layerSortOrder, layerFrame, layerId);
 
-	layers.push_back(layer);
+	_layers.push_back(layer);
 
-	return layer->id;
+	return layer->_id;
 }
 
 void Setup::removeLayer(Layer *layer) {
-	Common::List<Layer *>::iterator it = layers.begin();
+	Common::List<Layer *>::iterator it = _layers.begin();
 
-	while (it != layers.end()) {
+	while (it != _layers.end()) {
 		if (*it == layer)
-			it = layers.erase(it);
+			it = _layers.erase(it);
 		else
 			++it;
 	}
@@ -159,8 +159,8 @@ void Setup::removeLayer(Layer *layer) {
 void Setup::removeLayerById(int layerId) {
 	Common::List<Layer *>::iterator it;
 
-	for (it = layers.begin(); it != layers.end(); ++it) {
-		if ((*it)->id == layerId) {
+	for (it = _layers.begin(); it != _layers.end(); ++it) {
+		if ((*it)->_id == layerId) {
 			removeLayer(*it);
 
 			return;
@@ -168,49 +168,49 @@ void Setup::removeLayerById(int layerId) {
 	}
 }
 
-bool Setup::save(tSaveRestoreAccess *access) {
-	access(&layersBuilt, sizeof(layersBuilt));
+bool Setup::save(SaveRestoreAccess *access) {
+	access(&_layersBuilt, sizeof(_layersBuilt));
 
-	int count = (int)layers.size();
+	int count = (int)_layers.size();
 
 	access(&count, sizeof(count));
 
 	Common::List<Layer *>::iterator it;
 
-	for (it = layers.begin(); it != layers.end(); ++it) {
+	for (it = _layers.begin(); it != _layers.end(); ++it) {
 		Layer *layer = *it;
-		int value = layer->id;
+		int value = layer->_id;
 
 		access(&value, sizeof(value));
-		value = layer->sortOrder;
+		value = layer->_sortOrder;
 		access(&value, sizeof(value));
-		value = layer->frame;
+		value = layer->_frame;
 		access(&value, sizeof(value));
 
-		int length = (int)strlen(layer->name) + 1;
+		int length = (int)strlen(layer->_name) + 1;
 
 		access(&length, sizeof(length));
-		access(layer->name, length);
+		access(layer->_name, length);
 	}
 
 	return true;
 }
 
-bool Setup::restore(tSaveRestoreAccess *access) {
+bool Setup::restore(SaveRestoreAccess *access) {
 	Common::List<Layer *>::iterator it;
 
-	for (it = layers.begin(); it != layers.end(); ++it) {
+	for (it = _layers.begin(); it != _layers.end(); ++it) {
 		delete *it;
 		*it = nullptr;
 	}
 
-	layers.clear();
+	_layers.clear();
 
 	byte built = 0;
 	int count = 0;
 
 	access(&built, sizeof(built));
-	layersBuilt = built != 0;
+	_layersBuilt = built != 0;
 	access(&count, sizeof(count));
 
 	for (int i = 0; i < count; i++) {

@@ -108,7 +108,7 @@ static int log2Int(uint value) {
 	return result;
 }
 
-static int readMask(uint mask, int *pShift, int *pLoss, int *pBits) {
+static int readMask(uint mask, int *shiftPointer, int *loss, int *bitsPointer) {
 	if (!mask) {
 		warning("StdDisplay::enumModesCallback(): empty color mask");
 		return 0;
@@ -122,8 +122,8 @@ static int readMask(uint mask, int *pShift, int *pLoss, int *pBits) {
 		shift++;
 	}
 
-	*pShift = shift;
-	*pLoss = log2Int(0xFF / (mask >> shift));
+	*shiftPointer = shift;
+	*loss = log2Int(0xFF / (mask >> shift));
 
 	int bits = 0;
 
@@ -132,122 +132,122 @@ static int readMask(uint mask, int *pShift, int *pLoss, int *pBits) {
 		bits++;
 	}
 
-	*pBits = bits;
+	*bitsPointer = bits;
 	return 1;
 }
 
-static int fillMode(StdDisplayMode *pMode, const StdDisplayModeDesc *pDesc, int bModeX) {
-	memset(pMode, 0, sizeof(StdDisplayMode));
+static int fillMode(StdDisplayMode *mode, const StdDisplayModeDesc *desc, int modeX) {
+	memset(mode, 0, sizeof(StdDisplayMode));
 
-	pMode->bModeX = bModeX;
-	pMode->tex.width = pDesc->width;
-	pMode->tex.height = pDesc->height;
-	pMode->tex.pitchInBytes = pDesc->pitch;
+	mode->modeX = modeX;
+	mode->tex.width = desc->width;
+	mode->tex.height = desc->height;
+	mode->tex.pitchInBytes = desc->pitch;
 
-	if (pDesc->width == 320 && pDesc->height == 200)
-		pMode->aspect = 0.75f;
+	if (desc->width == 320 && desc->height == 200)
+		mode->aspect = 0.75f;
 	else
-		pMode->aspect = 1.0f;
+		mode->aspect = 1.0f;
 
-	StdColorFormat *pFormat = &pMode->tex.format;
+	StdColorFormat *format = &mode->tex.format;
 
-	if (pDesc->pixelFlags & kPixelFlagIndexed8) {
-		pFormat->colorMode = 0;
-		pFormat->bpp = 8;
-		pFormat->redBits = 0;
-		pFormat->greenBits = 0;
-		pFormat->blueBits = 0;
-	} else if (pDesc->pixelFlags & kPixelFlagRgb) {
-		pFormat->colorMode = 1;
-		pFormat->bpp = pDesc->rgbBitCount;
+	if (desc->pixelFlags & kPixelFlagIndexed8) {
+		format->colorMode = 0;
+		format->bpp = 8;
+		format->redBits = 0;
+		format->greenBits = 0;
+		format->blueBits = 0;
+	} else if (desc->pixelFlags & kPixelFlagRgb) {
+		format->colorMode = 1;
+		format->bpp = desc->rgbBitCount;
 
-		if (!readMask(pDesc->rBitMask, &pFormat->redShift, &pFormat->redLoss, &pFormat->redBits))
+		if (!readMask(desc->rBitMask, &format->redShift, &format->redLoss, &format->redBits))
 			return 0;
 
-		if (!readMask(pDesc->gBitMask, &pFormat->greenShift, &pFormat->greenLoss, &pFormat->greenBits))
+		if (!readMask(desc->gBitMask, &format->greenShift, &format->greenLoss, &format->greenBits))
 			return 0;
 
-		if (!readMask(pDesc->bBitMask, &pFormat->blueShift, &pFormat->blueLoss, &pFormat->blueBits))
+		if (!readMask(desc->bBitMask, &format->blueShift, &format->blueLoss, &format->blueBits))
 			return 0;
 	} else {
 		warning("StdDisplay::enumModesCallback(): unsupported pixel format");
 		return 0;
 	}
 
-	switch (pFormat->bpp) {
+	switch (format->bpp) {
 	case 8:
-		pMode->tex.pitchInPixels = pMode->tex.pitchInBytes;
+		mode->tex.pitchInPixels = mode->tex.pitchInBytes;
 		break;
 	case 16:
-		pMode->tex.pitchInPixels = (uint)pMode->tex.pitchInBytes >> 1;
+		mode->tex.pitchInPixels = (uint)mode->tex.pitchInBytes >> 1;
 		break;
 	case 24:
-		pMode->tex.pitchInPixels = pMode->tex.pitchInBytes / 3u;
+		mode->tex.pitchInPixels = mode->tex.pitchInBytes / 3u;
 		break;
 	case 32:
-		pMode->tex.pitchInPixels = (uint)pMode->tex.pitchInBytes >> 2;
+		mode->tex.pitchInPixels = (uint)mode->tex.pitchInBytes >> 2;
 		break;
 	default:
 		break;
 	}
 
-	pMode->tex.sizeInBytes = pMode->tex.width * pMode->tex.height * ((uint)pFormat->bpp >> 3);
+	mode->tex.sizeInBytes = mode->tex.width * mode->tex.height * ((uint)format->bpp >> 3);
 	return 1;
 }
 
-static int compareDisplayModes(const void *pA, const void *pB) {
-	const StdDisplayMode *pModeA = (const StdDisplayMode *)pA;
-	const StdDisplayMode *pModeB = (const StdDisplayMode *)pB;
+static int compareDisplayModes(const void *a, const void *b) {
+	const StdDisplayMode *modeA = (const StdDisplayMode *)a;
+	const StdDisplayMode *modeB = (const StdDisplayMode *)b;
 
-	if (pModeA->bModeX && !pModeB->bModeX)
-		return pModeB->tex.width != pModeA->tex.width ? -1 : 1;
+	if (modeA->modeX && !modeB->modeX)
+		return modeB->tex.width != modeA->tex.width ? -1 : 1;
 
-	if (!pModeA->bModeX && pModeB->bModeX)
-		return pModeA->tex.width != pModeB->tex.width ? 1 : -1;
+	if (!modeA->modeX && modeB->modeX)
+		return modeA->tex.width != modeB->tex.width ? 1 : -1;
 
-	if (pModeA->tex.format.bpp != pModeB->tex.format.bpp)
-		return pModeA->tex.format.bpp - pModeB->tex.format.bpp;
+	if (modeA->tex.format.bpp != modeB->tex.format.bpp)
+		return modeA->tex.format.bpp - modeB->tex.format.bpp;
 
-	if (pModeA->tex.width != pModeB->tex.width)
-		return pModeA->tex.width - pModeB->tex.width;
+	if (modeA->tex.width != modeB->tex.width)
+		return modeA->tex.width - modeB->tex.width;
 
-	return pModeA->tex.height - pModeB->tex.height;
+	return modeA->tex.height - modeB->tex.height;
 }
 
 #if defined(GRIM_STD3D)
 
-static void setupVideoBuffer(StdVBuffer *pBuffer, const StdDisplayMode *pMode, byte *pPalette) {
-	uint bytesPerPixel = (uint)pMode->tex.format.bpp >> 3;
+static void setupVideoBuffer(StdVBuffer *buffer, const StdDisplayMode *mode, byte *palette) {
+	uint bytesPerPixel = (uint)mode->tex.format.bpp >> 3;
 
-	pBuffer->type = 1;
-	pBuffer->lockCount = 0;
-	pBuffer->bVideoMemory = 0;
-	pBuffer->tex = pMode->tex;
-	pBuffer->tex.pitchInBytes = pMode->tex.width * bytesPerPixel;
-	pBuffer->tex.pitchInPixels = pMode->tex.width;
-	pBuffer->tex.sizeInBytes = pMode->tex.width * pMode->tex.height * bytesPerPixel;
-	pBuffer->pPaletteRGB = pPalette;
-	pBuffer->pPixels = nullptr;
-	pBuffer->colorKey = 0;
-	pBuffer->allocSize = 0;
-	pBuffer->pSurface = nullptr;
-	pBuffer->surfaceColorKey = -1;
+	buffer->type = 1;
+	buffer->lockCount = 0;
+	buffer->videoMemory = 0;
+	buffer->tex = mode->tex;
+	buffer->tex.pitchInBytes = mode->tex.width * bytesPerPixel;
+	buffer->tex.pitchInPixels = mode->tex.width;
+	buffer->tex.sizeInBytes = mode->tex.width * mode->tex.height * bytesPerPixel;
+	buffer->paletteRGB = palette;
+	buffer->pixels = nullptr;
+	buffer->colorKey = 0;
+	buffer->allocSize = 0;
+	buffer->surface = nullptr;
+	buffer->surfaceColorKey = -1;
 }
 
-static int clipBlitRect(StdRect *pSrcRect, int srcWidth, int srcHeight, int dstWidth, int dstHeight, int *pDstX, int *pDstY) {
-	int srcX = pSrcRect->x;
-	int srcY = pSrcRect->y;
-	int width = pSrcRect->width;
-	int height = pSrcRect->height;
+static int clipBlitRect(StdRect *srcRect, int srcWidth, int srcHeight, int dstWidth, int dstHeight, int *dstX, int *dstY) {
+	int srcX = srcRect->x;
+	int srcY = srcRect->y;
+	int width = srcRect->width;
+	int height = srcRect->height;
 
 	if (srcX < 0) {
-		*pDstX -= srcX;
+		*dstX -= srcX;
 		width += srcX;
 		srcX = 0;
 	}
 
 	if (srcY < 0) {
-		*pDstY -= srcY;
+		*dstY -= srcY;
 		height += srcY;
 		srcY = 0;
 	}
@@ -258,68 +258,68 @@ static int clipBlitRect(StdRect *pSrcRect, int srcWidth, int srcHeight, int dstW
 	if (srcY + height > srcHeight)
 		height = srcHeight - srcY;
 
-	if (*pDstX < 0) {
-		srcX -= *pDstX;
-		width += *pDstX;
-		*pDstX = 0;
+	if (*dstX < 0) {
+		srcX -= *dstX;
+		width += *dstX;
+		*dstX = 0;
 	}
 
-	if (*pDstY < 0) {
-		srcY -= *pDstY;
-		height += *pDstY;
-		*pDstY = 0;
+	if (*dstY < 0) {
+		srcY -= *dstY;
+		height += *dstY;
+		*dstY = 0;
 	}
 
-	if (*pDstX + width > dstWidth)
-		width = dstWidth - *pDstX;
+	if (*dstX + width > dstWidth)
+		width = dstWidth - *dstX;
 
-	if (*pDstY + height > dstHeight)
-		height = dstHeight - *pDstY;
+	if (*dstY + height > dstHeight)
+		height = dstHeight - *dstY;
 
 	if (width <= 0 || height <= 0)
 		return 0;
 
-	pSrcRect->x = srcX;
-	pSrcRect->y = srcY;
-	pSrcRect->width = width;
-	pSrcRect->height = height;
+	srcRect->x = srcX;
+	srcRect->y = srcY;
+	srcRect->width = width;
+	srcRect->height = height;
 	return 1;
 }
 
-static int clipCopyRegion(const StdVBuffer *pDst, const StdVBuffer *pSrc, const StdRect *pSrcRect, int x, int y, CopyRegion *pRegion) {
-	if (x >= pDst->tex.width)
+static int clipCopyRegion(const StdVBuffer *dst, const StdVBuffer *src, const StdRect *srcRect, int x, int y, CopyRegion *region) {
+	if (x >= dst->tex.width)
 		return kClipReject;
 
-	int endX = x + pSrcRect->width;
+	int endX = x + srcRect->width;
 
 	if (!endX)
 		return kClipReject;
 
 	uint firstRow = y;
 
-	if (y >= pDst->tex.height || !(pSrcRect->height + y))
+	if (y >= dst->tex.height || !(srcRect->height + y))
 		return kClipReject;
 
-	uint lastRow = pSrcRect->height + y - 1;
+	uint lastRow = srcRect->height + y - 1;
 	uint lastColumn = endX - 1;
-	int srcStartX = pSrcRect->x;
-	int srcY = pSrcRect->y;
+	int srcStartX = srcRect->x;
+	int srcY = srcRect->y;
 
 	if (y < 0) {
 		srcY -= y;
 		firstRow = 0;
 	}
 
-	if (lastRow >= (uint)pDst->tex.height)
-		lastRow = pDst->tex.height - 1;
+	if (lastRow >= (uint)dst->tex.height)
+		lastRow = dst->tex.height - 1;
 
 	if (x < 0) {
-		srcStartX = pSrcRect->x - x;
+		srcStartX = srcRect->x - x;
 		x = 0;
 	}
 
-	if (lastColumn >= (uint)pDst->tex.width)
-		lastColumn = pDst->tex.width - 1;
+	if (lastColumn >= (uint)dst->tex.width)
+		lastColumn = dst->tex.width - 1;
 
 	int copyWidth = lastColumn - x + 1;
 
@@ -331,102 +331,102 @@ static int clipCopyRegion(const StdVBuffer *pDst, const StdVBuffer *pSrc, const 
 	if (firstRow <= lastRow)
 		rows = lastRow - firstRow + 1;
 
-	if (rows > 0 && (srcStartX < 0 || srcY < 0 || srcStartX + copyWidth > pSrc->tex.width || srcY + rows > pSrc->tex.height)) {
+	if (rows > 0 && (srcStartX < 0 || srcY < 0 || srcStartX + copyWidth > src->tex.width || srcY + rows > src->tex.height)) {
 		warning("StdDisplay::copyBlt(): source rectangle outside the source buffer");
 		return kClipReject;
 	}
 
-	pRegion->srcX = srcStartX;
-	pRegion->srcY = srcY;
-	pRegion->dstX = x;
-	pRegion->dstY = firstRow;
-	pRegion->width = copyWidth;
-	pRegion->rows = rows;
+	region->srcX = srcStartX;
+	region->srcY = srcY;
+	region->dstX = x;
+	region->dstY = firstRow;
+	region->width = copyWidth;
+	region->rows = rows;
 	return kClipCopy;
 }
 
-static void copyRows(byte *pDstRow, int dstStride, const byte *pSrcRow, int srcStride, int width, int rows, int bpp, int bColorKey, int colorKey) {
+static void copyRows(byte *dstRow, int dstStride, const byte *srcRow, int srcStride, int width, int rows, int bpp, int colorKeyFlag, int colorKey) {
 	int bytesPerPixel = (uint)bpp >> 3;
 
 	for (int row = 0; row < rows; row++) {
-		if (!bColorKey) {
-			memcpy(pDstRow, pSrcRow, width * bytesPerPixel);
+		if (!colorKeyFlag) {
+			memcpy(dstRow, srcRow, width * bytesPerPixel);
 		} else {
 			for (int column = 0; column < width; column++) {
 				if (bpp == 8) {
-					if (pSrcRow[column] != (byte)colorKey)
-						pDstRow[column] = pSrcRow[column];
+					if (srcRow[column] != (byte)colorKey)
+						dstRow[column] = srcRow[column];
 				} else if (bpp == 16) {
-					uint16 value = READ_LE_UINT16(pSrcRow + 2 * column);
+					uint16 value = READ_LE_UINT16(srcRow + 2 * column);
 
 					if (value != (uint16)colorKey)
-						WRITE_LE_UINT16(pDstRow + 2 * column, value);
+						WRITE_LE_UINT16(dstRow + 2 * column, value);
 				} else {
-					uint32 value = READ_LE_UINT32(pSrcRow + 4 * column);
+					uint32 value = READ_LE_UINT32(srcRow + 4 * column);
 
 					if (value != (uint32)colorKey)
-						WRITE_LE_UINT32(pDstRow + 4 * column, value);
+						WRITE_LE_UINT32(dstRow + 4 * column, value);
 				}
 			}
 		}
 
-		pSrcRow += srcStride;
-		pDstRow += dstStride;
+		srcRow += srcStride;
+		dstRow += dstStride;
 	}
 }
 
-static void copyPixelRows(StdVBuffer *pDst, const StdVBuffer *pSrc, const CopyRegion *pRegion, int bColorKey) {
-	int bpp = pSrc->tex.format.bpp;
+static void copyPixelRows(StdVBuffer *dst, const StdVBuffer *src, const CopyRegion *region, int colorKey) {
+	int bpp = src->tex.format.bpp;
 
 	if (bpp != 8 && bpp != 16 && bpp != 32)
 		return;
 
 	int bytesPerPixel = (uint)bpp >> 3;
-	int srcStride = bytesPerPixel * pSrc->tex.pitchInPixels;
-	int dstStride = bytesPerPixel * pDst->tex.pitchInPixels;
-	const byte *pSrcRow = pSrc->pPixels + bytesPerPixel * (pSrc->tex.pitchInPixels * pRegion->srcY + pRegion->srcX);
-	byte *pDstRow = pDst->pPixels + bytesPerPixel * (pDst->tex.pitchInPixels * pRegion->dstY + pRegion->dstX);
+	int srcStride = bytesPerPixel * src->tex.pitchInPixels;
+	int dstStride = bytesPerPixel * dst->tex.pitchInPixels;
+	const byte *srcRow = src->pixels + bytesPerPixel * (src->tex.pitchInPixels * region->srcY + region->srcX);
+	byte *dstRow = dst->pixels + bytesPerPixel * (dst->tex.pitchInPixels * region->dstY + region->dstX);
 
-	copyRows(pDstRow, dstStride, pSrcRow, srcStride, pRegion->width, pRegion->rows, bpp, bColorKey, pSrc->colorKey);
+	copyRows(dstRow, dstStride, srcRow, srcStride, region->width, region->rows, bpp, colorKey, src->colorKey);
 }
 
-static int intersectsGpuDirty(const Std3DSurface *pSurface, const StdRect *pRect) {
-	if (!pSurface->gpuDirty)
+static int intersectsGpuDirty(const Std3DSurface *surface, const StdRect *rect) {
+	if (!surface->gpuDirty)
 		return 0;
 
-	return pRect->x < pSurface->dirtyRight && pRect->x + pRect->width > pSurface->dirtyLeft &&
-		pRect->y < pSurface->dirtyBottom && pRect->y + pRect->height > pSurface->dirtyTop;
+	return rect->x < surface->dirtyRight && rect->x + rect->width > surface->dirtyLeft &&
+		rect->y < surface->dirtyBottom && rect->y + rect->height > surface->dirtyTop;
 }
 
-static int shadowCoversRect(const Std3DSurface *pSurface, const StdRect *pRect) {
-	return pSurface->shadowValid && !intersectsGpuDirty(pSurface, pRect);
+static int shadowCoversRect(const Std3DSurface *surface, const StdRect *rect) {
+	return surface->shadowValid && !intersectsGpuDirty(surface, rect);
 }
 
-static void copyRectToReference(Std3DSurface *pSurface, const byte *pShadow, const StdRect *pRect) {
-	if (!pSurface->pReference)
+static void copyRectToReference(Std3DSurface *surface, const byte *shadow, const StdRect *rect) {
+	if (!surface->reference)
 		return;
 
-	int pitch = pSurface->width * 2;
+	int pitch = surface->width * 2;
 
-	for (int y = pRect->y; y < pRect->y + pRect->height; y++) {
-		int offset = y * pitch + pRect->x * 2;
+	for (int y = rect->y; y < rect->y + rect->height; y++) {
+		int offset = y * pitch + rect->x * 2;
 
-		memcpy(pSurface->pReference + offset, pShadow + offset, pRect->width * 2);
+		memcpy(surface->reference + offset, shadow + offset, rect->width * 2);
 	}
 }
 
-static int findChangedRect(const Std3DSurface *pSurface, const byte *pShadow, StdRect *pRect) {
-	int pitch = pSurface->width * 2;
+static int findChangedRect(const Std3DSurface *surface, const byte *shadow, StdRect *rect) {
+	int pitch = surface->width * 2;
 	int top = -1;
 	int bottom = -1;
-	int left = pSurface->width;
+	int left = surface->width;
 	int right = -1;
 
-	for (int y = 0; y < pSurface->height; y++) {
-		const byte *pRow = pShadow + y * pitch;
-		const byte *pRef = pSurface->pReference + y * pitch;
+	for (int y = 0; y < surface->height; y++) {
+		const byte *row = shadow + y * pitch;
+		const byte *ref = surface->reference + y * pitch;
 
-		if (!memcmp(pRow, pRef, pitch))
+		if (!memcmp(row, ref, pitch))
 			continue;
 
 		if (top < 0)
@@ -437,10 +437,10 @@ static int findChangedRect(const Std3DSurface *pSurface, const byte *pShadow, St
 		int firstByte = 0;
 		int lastByte = pitch - 1;
 
-		while (pRow[firstByte] == pRef[firstByte])
+		while (row[firstByte] == ref[firstByte])
 			firstByte++;
 
-		while (pRow[lastByte] == pRef[lastByte])
+		while (row[lastByte] == ref[lastByte])
 			lastByte--;
 
 		left = MIN(left, firstByte >> 1);
@@ -450,43 +450,43 @@ static int findChangedRect(const Std3DSurface *pSurface, const byte *pShadow, St
 	if (top < 0)
 		return 0;
 
-	pRect->x = left;
-	pRect->y = top;
-	pRect->width = right - left + 1;
-	pRect->height = bottom - top + 1;
+	rect->x = left;
+	rect->y = top;
+	rect->width = right - left + 1;
+	rect->height = bottom - top + 1;
 	return 1;
 }
 
 #endif
 
 int StdDisplay::startup() {
-	_bStartup = 1;
+	_startup = 1;
 	return 1;
 }
 
 void StdDisplay::shutdown() {
-	_bStartup = 0;
+	_startup = 0;
 }
 
 int StdDisplay::enumerateDevices(uint backendMask) {
-	StdDisplayDevice *pDevice = &_aDevices[0];
+	StdDisplayDevice *device = &_devices[0];
 
-	memcpy(pDevice->guid, dibSectionGuid, sizeof(pDevice->guid));
-	_bEnumerated = 1;
+	memcpy(device->guid, dibSectionGuid, sizeof(device->guid));
+	_enumerated = 1;
 	_numDevices = 0;
 	_backendMask = backendMask;
 
-	Common::strlcpy(pDevice->aName, "Window Display Device", sizeof(pDevice->aName));
-	Common::strlcpy(pDevice->aDescription, "DIBsection windowed display", sizeof(pDevice->aDescription));
-	pDevice->type = 0;
-	pDevice->bHasGuid = 0;
-	pDevice->b3D = 0;
-	pDevice->bPrimary = 1;
-	pDevice->bHasHardware = 0;
-	pDevice->vidMemTotal = 2000000;
-	pDevice->vidMemFree = 2000000;
-	pDevice->backend = kStdDisplayBackendNone;
-	pDevice->bUsable = 1;
+	Common::strlcpy(device->name, "Window Display Device", sizeof(device->name));
+	Common::strlcpy(device->description, "DIBsection windowed display", sizeof(device->description));
+	device->type = 0;
+	device->hasGuid = 0;
+	device->b3D = 0;
+	device->primary = 1;
+	device->hasHardware = 0;
+	device->vidMemTotal = 2000000;
+	device->vidMemFree = 2000000;
+	device->backend = kStdDisplayBackendNone;
+	device->usable = 1;
 	_numDevices = 1;
 
 	if (isBackendEnabled(kStdDisplayBackendGl))
@@ -505,94 +505,94 @@ int StdDisplay::isBackendEnabled(int backend) {
 	return (_backendMask >> backend) & 1;
 }
 
-void StdDisplay::setDeviceUsable(uint deviceIndex, int bUsable) {
+void StdDisplay::setDeviceUsable(uint deviceIndex, int usable) {
 	if (deviceIndex < _numDevices)
-		_aDevices[deviceIndex].bUsable = bUsable;
+		_devices[deviceIndex].usable = usable;
 }
 
-int StdDisplay::enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName, int backend) {
+int StdDisplay::enumDevicesCallback(const byte *guid, const char *description, const char *name, int backend) {
 	if (_numDevices >= kStdDisplayMaxDevices)
 		return 0;
 
-	StdDisplayDevice *pDevice = &_aDevices[_numDevices];
+	StdDisplayDevice *device = &_devices[_numDevices];
 
-	pDevice->backend = backend;
-	pDevice->bUsable = 1;
-	pDevice->type = 1;
-	pDevice->bHasHardware = 1;
+	device->backend = backend;
+	device->usable = 1;
+	device->type = 1;
+	device->hasHardware = 1;
 
-	if (pGuid) {
-		memcpy(pDevice->guid, pGuid, sizeof(pDevice->guid));
-		pDevice->bPrimary = 0;
+	if (guid) {
+		memcpy(device->guid, guid, sizeof(device->guid));
+		device->primary = 0;
 	} else {
-		memset(pDevice->guid, 0, sizeof(pDevice->guid));
-		pDevice->bPrimary = 1;
+		memset(device->guid, 0, sizeof(device->guid));
+		device->primary = 1;
 	}
 
-	Common::strlcpy(pDevice->aDescription, pDescription, sizeof(pDevice->aDescription));
-	Common::strlcpy(pDevice->aName, pName, sizeof(pDevice->aName));
-	pDevice->bHasGuid = pGuid ? 1 : 0;
-	pDevice->b3D = 1;
-	pDevice->vidMemTotal = kVideoMemoryTotal;
-	pDevice->vidMemFree = kVideoMemoryTotal;
+	Common::strlcpy(device->description, description, sizeof(device->description));
+	Common::strlcpy(device->name, name, sizeof(device->name));
+	device->hasGuid = guid ? 1 : 0;
+	device->b3D = 1;
+	device->vidMemTotal = kVideoMemoryTotal;
+	device->vidMemFree = kVideoMemoryTotal;
 	_numDevices++;
 	return 1;
 }
 
 void StdDisplay::restoreDisplayMode() {
-	_bEnumerated = 0;
+	_enumerated = 0;
 }
 
 int StdDisplay::enumerateModes(uint deviceIndex) {
-	if (_bDisplayOpen)
+	if (_displayOpen)
 		return 0;
 
 	if (deviceIndex >= _numDevices)
 		return 0;
 
 	_curDeviceIndex = deviceIndex;
-	_pCurDevice = &_aDevices[deviceIndex];
+	_curDevice = &_devices[deviceIndex];
 
-	if (_pCurDevice->type == 1) {
+	if (_curDevice->type == 1) {
 		if (!createDirectDraw())
 			return 0;
-	} else if (_pCurDevice->type == 0) {
+	} else if (_curDevice->type == 0) {
 		for (int i = 0; i < ARRAYSIZE(systemModes); i++) {
-			const SystemMode *pInfo = &systemModes[i];
-			StdDisplayMode *pMode = &_aModes[i];
-			int bytesPerPixel = pInfo->bpp >> 3;
+			const SystemMode *info = &systemModes[i];
+			StdDisplayMode *mode = &_modes[i];
+			int bytesPerPixel = info->bpp >> 3;
 
-			memset(pMode, 0, sizeof(StdDisplayMode));
-			pMode->bModeX = 0;
-			pMode->aspect = pInfo->aspect;
-			pMode->tex.width = pInfo->width;
-			pMode->tex.height = pInfo->height;
-			pMode->tex.pitchInBytes = pInfo->width * bytesPerPixel;
-			pMode->tex.pitchInPixels = pInfo->width;
-			pMode->tex.sizeInBytes = pInfo->width * pInfo->height * bytesPerPixel;
-			pMode->tex.format.colorMode = pInfo->colorMode;
-			pMode->tex.format.bpp = pInfo->bpp;
-			pMode->tex.format.redBits = pInfo->redBits;
-			pMode->tex.format.greenBits = pInfo->greenBits;
-			pMode->tex.format.blueBits = pInfo->blueBits;
-			pMode->tex.format.redShift = pInfo->redShift;
-			pMode->tex.format.greenShift = pInfo->greenShift;
-			pMode->tex.format.blueShift = pInfo->blueShift;
-			pMode->tex.format.redLoss = pInfo->redLoss;
-			pMode->tex.format.greenLoss = pInfo->greenLoss;
-			pMode->tex.format.blueLoss = pInfo->blueLoss;
+			memset(mode, 0, sizeof(StdDisplayMode));
+			mode->modeX = 0;
+			mode->aspect = info->aspect;
+			mode->tex.width = info->width;
+			mode->tex.height = info->height;
+			mode->tex.pitchInBytes = info->width * bytesPerPixel;
+			mode->tex.pitchInPixels = info->width;
+			mode->tex.sizeInBytes = info->width * info->height * bytesPerPixel;
+			mode->tex.format.colorMode = info->colorMode;
+			mode->tex.format.bpp = info->bpp;
+			mode->tex.format.redBits = info->redBits;
+			mode->tex.format.greenBits = info->greenBits;
+			mode->tex.format.blueBits = info->blueBits;
+			mode->tex.format.redShift = info->redShift;
+			mode->tex.format.greenShift = info->greenShift;
+			mode->tex.format.blueShift = info->blueShift;
+			mode->tex.format.redLoss = info->redLoss;
+			mode->tex.format.greenLoss = info->greenLoss;
+			mode->tex.format.blueLoss = info->blueLoss;
 		}
 
 		_numModes = ARRAYSIZE(systemModes);
 	}
 
-	Grim::sort(_aModes, _numModes, sizeof(StdDisplayMode), compareDisplayModes);
-	_bDisplayOpen = 1;
+	Grim::sort(_modes, _numModes, sizeof(StdDisplayMode), compareDisplayModes);
+	_displayOpen = 1;
 	return 1;
 }
 
 int StdDisplay::createDirectDraw() {
-	if (!isBackendEnabled(_pCurDevice->backend)) {
+	if (!isBackendEnabled(_curDevice->backend)) {
 		warning("StdDisplay::createDirectDraw(): the display backend of the device is not available");
 		return 0;
 	}
@@ -612,29 +612,29 @@ int StdDisplay::createDirectDraw() {
 	return 1;
 }
 
-int StdDisplay::enumModesCallback(const StdDisplayModeDesc *pDesc) {
+int StdDisplay::enumModesCallback(const StdDisplayModeDesc *desc) {
 	if (_numModes >= kStdDisplayMaxModes)
 		return 0;
 
-	if (pDesc->width == 320) {
-		if (fillMode(&_aModes[_numModes], pDesc, 1))
+	if (desc->width == 320) {
+		if (fillMode(&_modes[_numModes], desc, 1))
 			_numModes++;
 	}
 
 	return 1;
 }
 
-int StdDisplay::enumModesCallback2(const StdDisplayModeDesc *pDesc) {
+int StdDisplay::enumModesCallback2(const StdDisplayModeDesc *desc) {
 	if (_numModes >= kStdDisplayMaxModes)
 		return 0;
 
-	if (fillMode(&_aModes[_numModes], pDesc, 0))
+	if (fillMode(&_modes[_numModes], desc, 0))
 		_numModes++;
 
 	return 1;
 }
 
-uint StdDisplay::findClosestDevice(const StdDisplayDeviceFlags *pWanted) {
+uint StdDisplay::findClosestDevice(const StdDisplayDeviceFlags *wanted) {
 	if (!_numDevices)
 		return 0;
 
@@ -642,28 +642,28 @@ uint StdDisplay::findClosestDevice(const StdDisplayDeviceFlags *pWanted) {
 	uint best = 0;
 
 	for (uint i = 0; i < _numDevices; i++) {
-		const StdDisplayDevice *pDevice = &_aDevices[i];
+		const StdDisplayDevice *device = &_devices[i];
 		int score = 0;
 
-		if (!pDevice->bUsable)
+		if (!device->usable)
 			continue;
 
-		if (pWanted->backend != kStdDisplayBackendAny && pDevice->backend != pWanted->backend)
+		if (wanted->backend != kStdDisplayBackendAny && device->backend != wanted->backend)
 			continue;
 
-		if (pDevice->bHasHardware == pWanted->bHasHardware) {
+		if (device->hasHardware == wanted->hasHardware) {
 			score = 1;
 
-			if (pDevice->type == pWanted->type) {
+			if (device->type == wanted->type) {
 				score = 2;
 
-				if (pDevice->bPrimary == pWanted->bPrimary) {
+				if (device->primary == wanted->primary) {
 					score = 3;
 
-					if (pDevice->b3D == pWanted->b3D) {
+					if (device->b3D == wanted->b3D) {
 						score = 4;
 
-						if (pDevice->bHasGuid == pWanted->bHasGuid)
+						if (device->hasGuid == wanted->hasGuid)
 							return i;
 					}
 				}
@@ -679,33 +679,33 @@ uint StdDisplay::findClosestDevice(const StdDisplayDeviceFlags *pWanted) {
 	return best;
 }
 
-uint StdDisplay::findClosestMode(const StdDisplayMode *pWanted, const StdDisplayMode *aModes, uint numModes) {
+uint StdDisplay::findClosestMode(const StdDisplayMode *wanted, const StdDisplayMode *modes, uint numModes) {
 	if (!_numModes)
 		return 0;
 
 	int bestScore = 0;
 	uint best = 0;
-	int colorMode = pWanted->tex.format.colorMode;
+	int colorMode = wanted->tex.format.colorMode;
 
 	for (uint i = 0; i < numModes; i++) {
-		const StdDisplayMode *pMode = &aModes[i];
+		const StdDisplayMode *mode = &modes[i];
 		int score = 0;
 
-		if (pMode->tex.format.colorMode == colorMode) {
+		if (mode->tex.format.colorMode == colorMode) {
 			score = 1;
 
-			if (pMode->tex.format.bpp == pWanted->tex.format.bpp) {
+			if (mode->tex.format.bpp == wanted->tex.format.bpp) {
 				score = 2;
 
-				if (pMode->tex.width == pWanted->tex.width) {
+				if (mode->tex.width == wanted->tex.width) {
 					score = 3;
 
-					if (pMode->tex.height == pWanted->tex.height) {
+					if (mode->tex.height == wanted->tex.height) {
 						score = 4;
 
-						if (colorMode != 1 || (pMode->tex.format.redBits == pWanted->tex.format.redBits &&
-								pMode->tex.format.greenBits == pWanted->tex.format.greenBits &&
-								pMode->tex.format.blueBits == pWanted->tex.format.blueBits))
+						if (colorMode != 1 || (mode->tex.format.redBits == wanted->tex.format.redBits &&
+								mode->tex.format.greenBits == wanted->tex.format.greenBits &&
+								mode->tex.format.blueBits == wanted->tex.format.blueBits))
 							return i;
 					}
 				}
@@ -721,25 +721,25 @@ uint StdDisplay::findClosestMode(const StdDisplayMode *pWanted, const StdDisplay
 	return best;
 }
 
-int StdDisplay::openDisplay(uint modeIndex, byte *pPalette, int bFullscreen) {
+int StdDisplay::openDisplay(uint modeIndex, byte *palette, int fullscreen) {
 	if (modeIndex >= _numModes)
 		return 0;
 
-	if (!_pCurDevice) {
+	if (!_curDevice) {
 		warning("StdDisplay::openDisplay(): no device selected");
 		return 0;
 	}
 
-	if (_bSurfacesCreated)
+	if (_surfacesCreated)
 		releaseSurfaces();
 
-	_bFullscreen = bFullscreen;
+	_fullscreen = fullscreen;
 	_curModeIndex = modeIndex;
 	_numDrawBuffers = 1;
-	_pDisplayMode = &_aModes[modeIndex];
+	_displayMode = &_modes[modeIndex];
 
-	if (_pCurDevice->type == 1) {
-		if (!initDisplay(&_aModes[modeIndex], pPalette))
+	if (_curDevice->type == 1) {
+		if (!initDisplay(&_modes[modeIndex], palette))
 			return 0;
 	} else {
 		// TODO: DIB display device
@@ -747,371 +747,371 @@ int StdDisplay::openDisplay(uint modeIndex, byte *pPalette, int bFullscreen) {
 		return 0;
 	}
 
-	vBufferFill(_pBackBuffer, 0, nullptr);
+	vBufferFill(_backBuffer, 0, nullptr);
 	update();
 
-	if (bFullscreen)
-		vBufferFill(_pBackBuffer, 0, nullptr);
+	if (fullscreen)
+		vBufferFill(_backBuffer, 0, nullptr);
 
-	_bSurfacesCreated = 1;
+	_surfacesCreated = 1;
 	return 1;
 }
 
 void StdDisplay::closeDisplay() {
-	if (!_bDisplayOpen)
+	if (!_displayOpen)
 		return;
 
-	if (_bSurfacesCreated)
+	if (_surfacesCreated)
 		releaseSurfaces();
 
-	_bDisplayOpen = 0;
+	_displayOpen = 0;
 }
 
 #if defined(GRIM_STD3D)
 
-static int toBackendKind(int backend, Std3DBackendKind *pKind) {
+static int toBackendKind(int backend, Std3DBackendKind *kind) {
 	switch (backend) {
 	case kStdDisplayBackendGl:
-		*pKind = kStd3DBackendGl;
+		*kind = kStd3DBackendGl;
 		break;
 	case kStdDisplayBackendTinyGl:
-		*pKind = kStd3DBackendTinyGl;
+		*kind = kStd3DBackendTinyGl;
 		break;
 	default:
 		return 0;
 	}
 
-	return Std3D::isBackendCompiled(*pKind);
+	return Std3D::isBackendCompiled(*kind);
 }
 
 int StdDisplay::createBackend(int backend) {
 	Std3DBackendKind kind;
 
-	if (!_pStd3D || !toBackendKind(backend, &kind))
+	if (!_std3D || !toBackendKind(backend, &kind))
 		return 0;
 
-	return _pStd3D->createBackend(kind);
+	return _std3D->createBackend(kind);
 }
 
 int StdDisplay::openBackend(int backend, int width, int height) {
 	Std3DBackendKind kind;
 
-	if (!_pStd3D || !toBackendKind(backend, &kind))
+	if (!_std3D || !toBackendKind(backend, &kind))
 		return 0;
 
-	return _pStd3D->openBackend(kind, width, height);
+	return _std3D->openBackend(kind, width, height);
 }
 
-int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
-	if (!_pStd3D || !_pMainGfxBuffer || !_pBackBuffer) {
+int StdDisplay::initDisplay(StdDisplayMode *mode, byte *palette) {
+	if (!_std3D || !_mainGfxBuffer || !_backBuffer) {
 		warning("StdDisplay::initDisplay(): the Std3D module and the display buffers are not set");
 		return 0;
 	}
 
-	if (pMode->tex.format.bpp != 16 || pMode->tex.format.colorMode == 0) {
+	if (mode->tex.format.bpp != 16 || mode->tex.format.colorMode == 0) {
 		warning("StdDisplay::initDisplay(): only 16 bpp RGB display modes are supported");
 		return 0;
 	}
 
-	if (!openBackend(_pCurDevice->backend, pMode->tex.width, pMode->tex.height)) {
+	if (!openBackend(_curDevice->backend, mode->tex.width, mode->tex.height)) {
 		warning("StdDisplay::initDisplay(): the 3D backend of the device is not available");
 		return 0;
 	}
 
-	setupVideoBuffer(_pMainGfxBuffer, pMode, pPalette);
-	_pMainGfxBuffer->pSurface = _pStd3D->createSurface(pMode->tex.width, pMode->tex.height, 0);
+	setupVideoBuffer(_mainGfxBuffer, mode, palette);
+	_mainGfxBuffer->surface = _std3D->createSurface(mode->tex.width, mode->tex.height, 0);
 
-	if (!_pMainGfxBuffer->pSurface) {
-		_pStd3D->closeBackend();
+	if (!_mainGfxBuffer->surface) {
+		_std3D->closeBackend();
 		return 0;
 	}
 
-	_pMainGfxBuffer->bVideoMemory = 1;
+	_mainGfxBuffer->videoMemory = 1;
 
-	if (_bFullscreen) {
+	if (_fullscreen) {
 		_numDrawBuffers = 2;
-		setupVideoBuffer(_pBackBuffer, pMode, pPalette);
-		_pBackBuffer->pSurface = _pStd3D->createSurface(pMode->tex.width, pMode->tex.height, 0);
+		setupVideoBuffer(_backBuffer, mode, palette);
+		_backBuffer->surface = _std3D->createSurface(mode->tex.width, mode->tex.height, 0);
 
-		if (!_pBackBuffer->pSurface) {
-			_pStd3D->destroySurface(_pMainGfxBuffer->pSurface);
-			_pStd3D->closeBackend();
+		if (!_backBuffer->surface) {
+			_std3D->destroySurface(_mainGfxBuffer->surface);
+			_std3D->closeBackend();
 			return 0;
 		}
 
-		_pBackBuffer->bVideoMemory = 1;
+		_backBuffer->videoMemory = 1;
 	} else {
 		_numDrawBuffers = 1;
-		*_pBackBuffer = *_pMainGfxBuffer;
+		*_backBuffer = *_mainGfxBuffer;
 	}
 
-	_pStd3D->setDisplayMode(&pMode->tex);
-	_pStd3D->setRenderTarget(_pBackBuffer->pSurface);
+	_std3D->setDisplayMode(&mode->tex);
+	_std3D->setRenderTarget(_backBuffer->surface);
 	return 1;
 }
 
 #endif
 
 void StdDisplay::releaseSurfaces() {
-	if (_bSurfacesCreated) {
-		if (_pCurDevice && _pCurDevice->type == 1)
+	if (_surfacesCreated) {
+		if (_curDevice && _curDevice->type == 1)
 			freeBuffers();
 		// TODO: DIB display device
 	}
 
-	_bSurfacesCreated = 0;
+	_surfacesCreated = 0;
 }
 
 #if defined(GRIM_STD3D)
 
 void StdDisplay::freeBuffers() {
-	if (!_pMainGfxBuffer || !_pBackBuffer)
+	if (!_mainGfxBuffer || !_backBuffer)
 		return;
 
-	if (_bFullscreen) {
-		vBufferFreeEntry(_pBackBuffer);
+	if (_fullscreen) {
+		vBufferFreeEntry(_backBuffer);
 	} else {
-		_pBackBuffer->pSurface = nullptr;
-		_pBackBuffer->pPixels = nullptr;
-		_pBackBuffer->allocSize = 0;
+		_backBuffer->surface = nullptr;
+		_backBuffer->pixels = nullptr;
+		_backBuffer->allocSize = 0;
 	}
 
-	vBufferFreeEntry(_pMainGfxBuffer);
+	vBufferFreeEntry(_mainGfxBuffer);
 
-	if (_pStd3D)
-		vBufferFreeEntry(_pStd3D->getZBuffer());
+	if (_std3D)
+		vBufferFreeEntry(_std3D->getZBuffer());
 }
 
 #endif
 
 int StdDisplay::prepareWindowForDraw() {
-	if (!_bDisplayOpen || !_bSurfacesCreated || !_pCurDevice)
+	if (!_displayOpen || !_surfacesCreated || !_curDevice)
 		return 0;
 
-	return _pCurDevice->type - 1;
+	return _curDevice->type - 1;
 }
 
 #if defined(GRIM_STD3D)
 
 void StdDisplay::prepareOutputForDraw() {
-	if (_bDisplayOpen && _bSurfacesCreated && _pCurDevice && _pCurDevice->type == 1 && _pStd3D)
-		_pStd3D->purgeTextureCache();
+	if (_displayOpen && _surfacesCreated && _curDevice && _curDevice->type == 1 && _std3D)
+		_std3D->purgeTextureCache();
 }
 
 int StdDisplay::update() {
-	if (!_pCurDevice || _pCurDevice->type != 1) {
+	if (!_curDevice || _curDevice->type != 1) {
 		// TODO: DIB display device
 		return 0;
 	}
 
-	if (!_pStd3D || !_pMainGfxBuffer || !_pBackBuffer || !_pMainGfxBuffer->pSurface) {
+	if (!_std3D || !_mainGfxBuffer || !_backBuffer || !_mainGfxBuffer->surface) {
 		warning("StdDisplay::update(): the display is not open");
 		return 0;
 	}
 
-	if (_bFullscreen) {
-		if (_pBackBuffer->lockCount || !_pBackBuffer->pSurface)
+	if (_fullscreen) {
+		if (_backBuffer->lockCount || !_backBuffer->surface)
 			return 0;
 
-		if (!_pStd3D->blit(_pMainGfxBuffer->pSurface, _pBackBuffer->pSurface, nullptr, 0, 0, 0, 0))
+		if (!_std3D->blit(_mainGfxBuffer->surface, _backBuffer->surface, nullptr, 0, 0, 0, 0))
 			return 0;
 	}
 
-	if (!_pStd3D->presentSurface(_pMainGfxBuffer->pSurface))
+	if (!_std3D->presentSurface(_mainGfxBuffer->surface))
 		return 0;
 
 	g_system->updateScreen();
 	return 1;
 }
 
-int StdDisplay::isZBuffer(StdVBuffer *pVBuffer) {
-	return _pStd3D && pVBuffer == _pStd3D->getZBuffer();
+int StdDisplay::isZBuffer(StdVBuffer *vBuffer) {
+	return _std3D && vBuffer == _std3D->getZBuffer();
 }
 
-void StdDisplay::presentIfPrimary(StdVBuffer *pVBuffer) {
-	if (!_bFullscreen || !_pStd3D || !_pMainGfxBuffer || !pVBuffer->pSurface)
+void StdDisplay::presentIfPrimary(StdVBuffer *vBuffer) {
+	if (!_fullscreen || !_std3D || !_mainGfxBuffer || !vBuffer->surface)
 		return;
 
-	if (pVBuffer->pSurface != _pMainGfxBuffer->pSurface)
+	if (vBuffer->surface != _mainGfxBuffer->surface)
 		return;
 
-	_pStd3D->presentSurface(pVBuffer->pSurface);
+	_std3D->presentSurface(vBuffer->surface);
 	g_system->updateScreen();
 }
 
-byte *StdDisplay::surfaceLock(StdVBuffer *pVBuffer) {
-	if (!_pStd3D) {
+byte *StdDisplay::surfaceLock(StdVBuffer *vBuffer) {
+	if (!_std3D) {
 		warning("StdDisplay::surfaceLock(): the Std3D module is not set");
 		return nullptr;
 	}
 
-	if (pVBuffer->lockCount)
-		return pVBuffer->pPixels;
+	if (vBuffer->lockCount)
+		return vBuffer->pixels;
 
-	if (isZBuffer(pVBuffer)) {
-		int zPitch = pVBuffer->tex.width * ((uint)pVBuffer->tex.format.bpp >> 3);
-		int zSize = zPitch * pVBuffer->tex.height;
+	if (isZBuffer(vBuffer)) {
+		int zPitch = vBuffer->tex.width * ((uint)vBuffer->tex.format.bpp >> 3);
+		int zSize = zPitch * vBuffer->tex.height;
 
-		if (!pVBuffer->pPixels) {
-			pVBuffer->pPixels = new byte[zSize];
-			pVBuffer->allocSize = zSize;
+		if (!vBuffer->pixels) {
+			vBuffer->pixels = new byte[zSize];
+			vBuffer->allocSize = zSize;
 		}
 
-		pVBuffer->tex.pitchInBytes = zPitch;
-		pVBuffer->tex.pitchInPixels = pVBuffer->tex.width;
+		vBuffer->tex.pitchInBytes = zPitch;
+		vBuffer->tex.pitchInPixels = vBuffer->tex.width;
 
 		warning("StdDisplay::surfaceLock(): the Z buffer can not be read back, it is locked as empty");
-		memset(pVBuffer->pPixels, 0, zSize);
-		return pVBuffer->pPixels;
+		memset(vBuffer->pixels, 0, zSize);
+		return vBuffer->pixels;
 	}
 
-	if (!pVBuffer->pSurface) {
+	if (!vBuffer->surface) {
 		warning("StdDisplay::surfaceLock(): the buffer has no surface");
 		return nullptr;
 	}
 
-	if (!syncShadow(pVBuffer))
+	if (!syncShadow(vBuffer))
 		return nullptr;
 
-	return pVBuffer->pPixels;
+	return vBuffer->pixels;
 }
 
-int StdDisplay::syncShadow(StdVBuffer *pVBuffer) {
-	Std3DSurface *pSurface = pVBuffer->pSurface;
+int StdDisplay::syncShadow(StdVBuffer *vBuffer) {
+	Std3DSurface *surface = vBuffer->surface;
 
-	if (!_pStd3D || !pSurface)
+	if (!_std3D || !surface)
 		return 0;
 
-	if (pVBuffer->tex.format.bpp != 16) {
+	if (vBuffer->tex.format.bpp != 16) {
 		warning("StdDisplay::syncShadow(): only 16 bpp video memory buffers are supported");
 		return 0;
 	}
 
-	int pitch = pVBuffer->tex.width * 2;
-	int size = pitch * pVBuffer->tex.height;
+	int pitch = vBuffer->tex.width * 2;
+	int size = pitch * vBuffer->tex.height;
 
-	if (!pVBuffer->pPixels) {
-		pVBuffer->pPixels = new byte[size];
-		pVBuffer->allocSize = size;
-		pSurface->shadowValid = 0;
+	if (!vBuffer->pixels) {
+		vBuffer->pixels = new byte[size];
+		vBuffer->allocSize = size;
+		surface->shadowValid = 0;
 	}
 
-	if (!pSurface->pReference)
-		pSurface->pReference = new byte[size];
+	if (!surface->reference)
+		surface->reference = new byte[size];
 
-	pVBuffer->tex.pitchInBytes = pitch;
-	pVBuffer->tex.pitchInPixels = pVBuffer->tex.width;
+	vBuffer->tex.pitchInBytes = pitch;
+	vBuffer->tex.pitchInPixels = vBuffer->tex.width;
 
-	if (!pSurface->shadowValid) {
-		if (!_pStd3D->readPixels(pSurface, nullptr, pVBuffer->pPixels, pitch))
+	if (!surface->shadowValid) {
+		if (!_std3D->readPixels(surface, nullptr, vBuffer->pixels, pitch))
 			return 0;
 
-		memcpy(pSurface->pReference, pVBuffer->pPixels, size);
-		pSurface->shadowValid = 1;
-		pSurface->gpuDirty = 0;
+		memcpy(surface->reference, vBuffer->pixels, size);
+		surface->shadowValid = 1;
+		surface->gpuDirty = 0;
 		return 1;
 	}
 
-	if (pSurface->gpuDirty) {
+	if (surface->gpuDirty) {
 		StdRect rect;
 
-		rect.x = pSurface->dirtyLeft;
-		rect.y = pSurface->dirtyTop;
-		rect.width = pSurface->dirtyRight - pSurface->dirtyLeft;
-		rect.height = pSurface->dirtyBottom - pSurface->dirtyTop;
+		rect.x = surface->dirtyLeft;
+		rect.y = surface->dirtyTop;
+		rect.width = surface->dirtyRight - surface->dirtyLeft;
+		rect.height = surface->dirtyBottom - surface->dirtyTop;
 
-		if (!_pStd3D->readPixels(pSurface, &rect, pVBuffer->pPixels + rect.y * pitch + rect.x * 2, pitch))
+		if (!_std3D->readPixels(surface, &rect, vBuffer->pixels + rect.y * pitch + rect.x * 2, pitch))
 			return 0;
 
-		copyRectToReference(pSurface, pVBuffer->pPixels, &rect);
-		pSurface->gpuDirty = 0;
+		copyRectToReference(surface, vBuffer->pixels, &rect);
+		surface->gpuDirty = 0;
 	}
 
 	return 1;
 }
 
-int StdDisplay::surfaceUnlock(StdVBuffer *pVBuffer, int bUpload) {
-	if (pVBuffer->lockCount > 1 || !bUpload || isZBuffer(pVBuffer))
+int StdDisplay::surfaceUnlock(StdVBuffer *vBuffer, int upload) {
+	if (vBuffer->lockCount > 1 || !upload || isZBuffer(vBuffer))
 		return 1;
 
-	Std3DSurface *pSurface = pVBuffer->pSurface;
+	Std3DSurface *surface = vBuffer->surface;
 
-	if (!_pStd3D || !pSurface || !pVBuffer->pPixels || !pSurface->pReference || !pSurface->shadowValid) {
+	if (!_std3D || !surface || !vBuffer->pixels || !surface->reference || !surface->shadowValid) {
 		warning("StdDisplay::surfaceUnlock(): the buffer has no surface");
 		return 0;
 	}
 
 	StdRect changed;
 
-	if (!findChangedRect(pSurface, pVBuffer->pPixels, &changed))
+	if (!findChangedRect(surface, vBuffer->pixels, &changed))
 		return 1;
 
-	int pitch = pSurface->width * 2;
+	int pitch = surface->width * 2;
 
-	if (!_pStd3D->uploadPixels(pSurface, &changed, pVBuffer->pPixels + changed.y * pitch + changed.x * 2, pitch))
+	if (!_std3D->uploadPixels(surface, &changed, vBuffer->pixels + changed.y * pitch + changed.x * 2, pitch))
 		return 0;
 
-	copyRectToReference(pSurface, pVBuffer->pPixels, &changed);
-	presentIfPrimary(pVBuffer);
+	copyRectToReference(surface, vBuffer->pixels, &changed);
+	presentIfPrimary(vBuffer);
 	return 1;
 }
 
-void StdDisplay::unlockForRead(StdVBuffer *pVBuffer) {
-	if (pVBuffer->type != 1) {
-		vBufferUnlock(pVBuffer);
+void StdDisplay::unlockForRead(StdVBuffer *vBuffer) {
+	if (vBuffer->type != 1) {
+		vBufferUnlock(vBuffer);
 		return;
 	}
 
-	if (pVBuffer->lockCount) {
-		surfaceUnlock(pVBuffer, 0);
-		pVBuffer->lockCount--;
+	if (vBuffer->lockCount) {
+		surfaceUnlock(vBuffer, 0);
+		vBuffer->lockCount--;
 	}
 }
 
-int StdDisplay::surfaceBlt(StdVBuffer *pVBuffer, int color, const StdRect *pRect) {
-	if (pRect && (pRect->width == 0 || pRect->height == 0))
+int StdDisplay::surfaceBlt(StdVBuffer *vBuffer, int color, const StdRect *rect) {
+	if (rect && (rect->width == 0 || rect->height == 0))
 		return 0;
 
-	if (pVBuffer->lockCount)
+	if (vBuffer->lockCount)
 		return 0;
 
-	if (!_pStd3D || !pVBuffer->pSurface) {
+	if (!_std3D || !vBuffer->surface) {
 		warning("StdDisplay::surfaceBlt(): the buffer has no surface, the Z buffer can not be filled");
 		return 0;
 	}
 
-	if (!_pStd3D->fillRect(pVBuffer->pSurface, pRect, (uint16)color))
+	if (!_std3D->fillRect(vBuffer->surface, rect, (uint16)color))
 		return 0;
 
-	presentIfPrimary(pVBuffer);
+	presentIfPrimary(vBuffer);
 	return 1;
 }
 
-int StdDisplay::copyToZBuffer(StdVBuffer *pSrc, int x, int y, const StdRect *pSrcRect) {
-	Std3DSurface *pTarget = _pStd3D->getRenderTarget();
+int StdDisplay::copyToZBuffer(StdVBuffer *src, int x, int y, const StdRect *srcRectPointer) {
+	Std3DSurface *target = _std3D->getRenderTarget();
 
-	if (!pTarget || !pSrc->pSurface) {
+	if (!target || !src->surface) {
 		warning("StdDisplay::copyToZBuffer(): no render target or no source surface");
 		return 0;
 	}
 
-	StdRect srcRect = *pSrcRect;
+	StdRect srcRect = *srcRectPointer;
 	int dstX = x;
 	int dstY = y;
 
-	if (!clipBlitRect(&srcRect, pSrc->tex.width, pSrc->tex.height, pTarget->width, pTarget->height, &dstX, &dstY))
+	if (!clipBlitRect(&srcRect, src->tex.width, src->tex.height, target->width, target->height, &dstX, &dstY))
 		return 1;
 
-	byte *pData = new byte[srcRect.width * srcRect.height * 2];
+	byte *data = new byte[srcRect.width * srcRect.height * 2];
 	int result = 1;
 
-	if (shadowCoversRect(pSrc->pSurface, &srcRect) && pSrc->pPixels) {
-		int srcPitch = pSrc->tex.width * 2;
+	if (shadowCoversRect(src->surface, &srcRect) && src->pixels) {
+		int srcPitch = src->tex.width * 2;
 
 		for (int row = 0; row < srcRect.height; row++)
-			memcpy(pData + row * srcRect.width * 2, pSrc->pPixels + (srcRect.y + row) * srcPitch + srcRect.x * 2, srcRect.width * 2);
+			memcpy(data + row * srcRect.width * 2, src->pixels + (srcRect.y + row) * srcPitch + srcRect.x * 2, srcRect.width * 2);
 	} else {
-		result = _pStd3D->readPixels(pSrc->pSurface, &srcRect, pData, srcRect.width * 2);
+		result = _std3D->readPixels(src->surface, &srcRect, data, srcRect.width * 2);
 	}
 
 	if (result) {
@@ -1121,84 +1121,84 @@ int StdDisplay::copyToZBuffer(StdVBuffer *pSrc, int x, int y, const StdRect *pSr
 		dstRect.y = dstY;
 		dstRect.width = srcRect.width;
 		dstRect.height = srcRect.height;
-		result = _pStd3D->uploadDepth(pTarget, &dstRect, pData, srcRect.width * 2);
+		result = _std3D->uploadDepth(target, &dstRect, data, srcRect.width * 2);
 	}
 
-	delete[] pData;
+	delete[] data;
 	return result;
 }
 
-int StdDisplay::copyBltB(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
-	if (pDst->lockCount || pSrc->lockCount)
+int StdDisplay::copyBltB(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey) {
+	if (dst->lockCount || src->lockCount)
 		return 0;
 
-	if (pDst->type != 1 || pSrc->type != 1 || !_pStd3D || !pSrc->pSurface) {
+	if (dst->type != 1 || src->type != 1 || !_std3D || !src->surface) {
 		warning("StdDisplay::copyBltB(): both buffers must be video memory buffers");
 		return 0;
 	}
 
 	StdRect srcRect;
 
-	if (pRect) {
-		if (!pRect->width || !pRect->height)
+	if (rect) {
+		if (!rect->width || !rect->height)
 			return 0;
 
-		srcRect = *pRect;
+		srcRect = *rect;
 	} else {
 		srcRect.x = 0;
 		srcRect.y = 0;
-		srcRect.width = pSrc->tex.width;
-		srcRect.height = pSrc->tex.height;
+		srcRect.width = src->tex.width;
+		srcRect.height = src->tex.height;
 	}
 
-	if (isZBuffer(pDst))
-		return copyToZBuffer(pSrc, x, y, &srcRect);
+	if (isZBuffer(dst))
+		return copyToZBuffer(src, x, y, &srcRect);
 
-	if (!pDst->pSurface) {
+	if (!dst->surface) {
 		warning("StdDisplay::copyBltB(): the destination has no surface");
 		return 0;
 	}
 
-	int bKey = (bColorKey & 1) != 0;
+	int key = (colorKey & 1) != 0;
 
-	if (bKey && pSrc->surfaceColorKey < 0) {
+	if (key && src->surfaceColorKey < 0) {
 		warning("StdDisplay::copyBltB(): the source has no color key");
 		return 0;
 	}
 
-	int result = _pStd3D->blit(pDst->pSurface, pSrc->pSurface, &srcRect, x, y, bKey, (uint16)pSrc->surfaceColorKey);
+	int result = _std3D->blit(dst->surface, src->surface, &srcRect, x, y, key, (uint16)src->surfaceColorKey);
 
 	if (result)
-		presentIfPrimary(pDst);
+		presentIfPrimary(dst);
 
 	return result;
 }
 
-int StdDisplay::copyBltC(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
-	if (pDst->lockCount)
+int StdDisplay::copyBltC(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey) {
+	if (dst->lockCount)
 		return 0;
 
-	if (pDst->type != 1 || pSrc->type != 0 || !pSrc->pPixels || !_pStd3D) {
+	if (dst->type != 1 || src->type != 0 || !src->pixels || !_std3D) {
 		warning("StdDisplay::copyBltC(): the destination must be a video memory buffer and the source a system memory buffer");
 		return 0;
 	}
 
 	StdRect srcRect;
 
-	if (pRect) {
-		if (!pRect->width || !pRect->height)
+	if (rect) {
+		if (!rect->width || !rect->height)
 			return 0;
 
-		srcRect = *pRect;
+		srcRect = *rect;
 	} else {
 		srcRect.x = 0;
 		srcRect.y = 0;
-		srcRect.width = pSrc->tex.width;
-		srcRect.height = pSrc->tex.height;
+		srcRect.width = src->tex.width;
+		srcRect.height = src->tex.height;
 	}
 
 	CopyRegion region;
-	int clipResult = clipCopyRegion(pDst, pSrc, &srcRect, x, y, &region);
+	int clipResult = clipCopyRegion(dst, src, &srcRect, x, y, &region);
 
 	if (clipResult == kClipReject)
 		return 0;
@@ -1206,8 +1206,8 @@ int StdDisplay::copyBltC(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	if (clipResult == kClipEmpty)
 		return 1;
 
-	if (isZBuffer(pDst)) {
-		if (pSrc->tex.format.bpp != 16) {
+	if (isZBuffer(dst)) {
+		if (src->tex.format.bpp != 16) {
 			warning("StdDisplay::copyBltC(): the Z buffer needs a 16 bpp source");
 			return 0;
 		}
@@ -1220,17 +1220,17 @@ int StdDisplay::copyBltC(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 			dstRect.width = region.width;
 			dstRect.height = region.rows;
 
-			const byte *pSrcRows = pSrc->pPixels + 2 * (pSrc->tex.pitchInPixels * region.srcY + region.srcX);
+			const byte *srcRows = src->pixels + 2 * (src->tex.pitchInPixels * region.srcY + region.srcX);
 
-			_pStd3D->uploadDepth(_pStd3D->getRenderTarget(), &dstRect, pSrcRows, 2 * pSrc->tex.pitchInPixels);
+			_std3D->uploadDepth(_std3D->getRenderTarget(), &dstRect, srcRows, 2 * src->tex.pitchInPixels);
 		}
 
 		return 1;
 	}
 
-	Std3DSurface *pSurface = pDst->pSurface;
+	Std3DSurface *surface = dst->surface;
 
-	if (!pSurface || pSrc->tex.format.bpp != 16 || pDst->tex.format.bpp != 16) {
+	if (!surface || src->tex.format.bpp != 16 || dst->tex.format.bpp != 16) {
 		warning("StdDisplay::copyBltC(): only 16 bpp video memory buffers with a surface are supported");
 		return 0;
 	}
@@ -1245,66 +1245,66 @@ int StdDisplay::copyBltC(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	dstRect.width = region.width;
 	dstRect.height = region.rows;
 
-	int bKey = (bColorKey & 1) != 0;
-	int srcPitch = 2 * pSrc->tex.pitchInPixels;
-	const byte *pSrcRows = pSrc->pPixels + 2 * (pSrc->tex.pitchInPixels * region.srcY + region.srcX);
+	int key = (colorKey & 1) != 0;
+	int srcPitch = 2 * src->tex.pitchInPixels;
+	const byte *srcRows = src->pixels + 2 * (src->tex.pitchInPixels * region.srcY + region.srcX);
 	int result = 0;
 
-	if (shadowCoversRect(pSurface, &dstRect) && pDst->pPixels) {
-		int dstPitch = pSurface->width * 2;
-		byte *pDstRows = pDst->pPixels + region.dstY * dstPitch + region.dstX * 2;
+	if (shadowCoversRect(surface, &dstRect) && dst->pixels) {
+		int dstPitch = surface->width * 2;
+		byte *dstRows = dst->pixels + region.dstY * dstPitch + region.dstX * 2;
 
-		copyRows(pDstRows, dstPitch, pSrcRows, srcPitch, region.width, region.rows, 16, bKey, pSrc->colorKey);
-		result = _pStd3D->uploadPixels(pSurface, &dstRect, pDstRows, dstPitch);
-		copyRectToReference(pSurface, pDst->pPixels, &dstRect);
-	} else if (!bKey) {
-		result = _pStd3D->uploadPixels(pSurface, &dstRect, pSrcRows, srcPitch);
+		copyRows(dstRows, dstPitch, srcRows, srcPitch, region.width, region.rows, 16, key, src->colorKey);
+		result = _std3D->uploadPixels(surface, &dstRect, dstRows, dstPitch);
+		copyRectToReference(surface, dst->pixels, &dstRect);
+	} else if (!key) {
+		result = _std3D->uploadPixels(surface, &dstRect, srcRows, srcPitch);
 	} else {
 		int tempPitch = region.width * 2;
-		byte *pTemp = new byte[tempPitch * region.rows];
+		byte *temp = new byte[tempPitch * region.rows];
 
-		result = _pStd3D->readPixels(pSurface, &dstRect, pTemp, tempPitch);
+		result = _std3D->readPixels(surface, &dstRect, temp, tempPitch);
 
 		if (result) {
-			copyRows(pTemp, tempPitch, pSrcRows, srcPitch, region.width, region.rows, 16, 1, pSrc->colorKey);
-			result = _pStd3D->uploadPixels(pSurface, &dstRect, pTemp, tempPitch);
+			copyRows(temp, tempPitch, srcRows, srcPitch, region.width, region.rows, 16, 1, src->colorKey);
+			result = _std3D->uploadPixels(surface, &dstRect, temp, tempPitch);
 		}
 
-		delete[] pTemp;
+		delete[] temp;
 	}
 
 	if (!result)
 		return 0;
 
-	presentIfPrimary(pDst);
+	presentIfPrimary(dst);
 	return 1;
 }
 
-int StdDisplay::copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey) {
-	if (pSrc->lockCount)
+int StdDisplay::copyBltD(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey) {
+	if (src->lockCount)
 		return 0;
 
-	if (pDst->type != 0 || pSrc->type != 1 || !pDst->pPixels || !_pStd3D) {
+	if (dst->type != 0 || src->type != 1 || !dst->pixels || !_std3D) {
 		warning("StdDisplay::copyBltD(): the source must be a video memory buffer and the destination a system memory buffer");
 		return 0;
 	}
 
 	StdRect srcRect;
 
-	if (pRect) {
-		if (!pRect->width || !pRect->height)
+	if (rect) {
+		if (!rect->width || !rect->height)
 			return 0;
 
-		srcRect = *pRect;
+		srcRect = *rect;
 	} else {
 		srcRect.x = 0;
 		srcRect.y = 0;
-		srcRect.width = pSrc->tex.width;
-		srcRect.height = pSrc->tex.height;
+		srcRect.width = src->tex.width;
+		srcRect.height = src->tex.height;
 	}
 
 	CopyRegion region;
-	int clipResult = clipCopyRegion(pDst, pSrc, &srcRect, x, y, &region);
+	int clipResult = clipCopyRegion(dst, src, &srcRect, x, y, &region);
 
 	if (clipResult == kClipReject)
 		return 0;
@@ -1312,18 +1312,18 @@ int StdDisplay::copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	if (clipResult == kClipEmpty)
 		return 1;
 
-	if (isZBuffer(pSrc)) {
-		if (!vBufferLock(pSrc)) {
+	if (isZBuffer(src)) {
+		if (!vBufferLock(src)) {
 			warning("StdDisplay::copyBltD(): could not lock the source");
 			return 0;
 		}
 
-		copyPixelRows(pDst, pSrc, &region, (bColorKey & 1) != 0);
-		unlockForRead(pSrc);
+		copyPixelRows(dst, src, &region, (colorKey & 1) != 0);
+		unlockForRead(src);
 		return 1;
 	}
 
-	if (!pSrc->pSurface) {
+	if (!src->surface) {
 		warning("StdDisplay::copyBltD(): the source has no surface");
 		return 0;
 	}
@@ -1338,12 +1338,12 @@ int StdDisplay::copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRe
 	srcArea.width = region.width;
 	srcArea.height = region.rows;
 
-	if (!shadowCoversRect(pSrc->pSurface, &srcArea) && !syncShadow(pSrc)) {
+	if (!shadowCoversRect(src->surface, &srcArea) && !syncShadow(src)) {
 		warning("StdDisplay::copyBltD(): could not read the source");
 		return 0;
 	}
 
-	copyPixelRows(pDst, pSrc, &region, (bColorKey & 1) != 0);
+	copyPixelRows(dst, src, &region, (colorKey & 1) != 0);
 	return 1;
 }
 
@@ -1357,7 +1357,7 @@ int StdDisplay::openBackend(int backend, int width, int height) {
 	return 0;
 }
 
-int StdDisplay::initDisplay(StdDisplayMode *pMode, byte *pPalette) {
+int StdDisplay::initDisplay(StdDisplayMode *mode, byte *palette) {
 	return 0;
 }
 

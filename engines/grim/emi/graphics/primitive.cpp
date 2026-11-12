@@ -32,21 +32,21 @@ static const int kPrimitiveDrawFlags = 0x302;
 static const int kLineVertices = 2;
 static const int kRectangleVertices = 4;
 
-Primitive::Primitive(int primitiveId, int primitiveType) : color(0u) {
-	x1 = 0.0f;
-	y1 = 0.0f;
-	z1 = 0.0f;
-	x2 = 0.0f;
-	y2 = 0.0f;
-	z2 = 0.0f;
-	id = primitiveId;
-	next = nullptr;
-	prev = nullptr;
-	type = primitiveType;
-	reserved64 = -1;
-	layer = kLayerSecond;
-	polyCount = 0;
-	filled = false;
+Primitive::Primitive(int primitiveId, int primitiveType) : _color(0u) {
+	_x1 = 0.0f;
+	_y1 = 0.0f;
+	_z1 = 0.0f;
+	_x2 = 0.0f;
+	_y2 = 0.0f;
+	_z2 = 0.0f;
+	_id = primitiveId;
+	_next = nullptr;
+	_prev = nullptr;
+	_type = primitiveType;
+	_reserved64 = -1;
+	_layer = kLayerSecond;
+	_polyCount = 0;
+	_filled = false;
 }
 
 void *Primitive::operator new(size_t size) {
@@ -58,23 +58,23 @@ void Primitive::operator delete(void *block) {
 }
 
 void Primitive::drawNode(CDrawContext *drawContext) {
-	drawContext->setColor(&color);
+	drawContext->setColor(&_color);
 
-	switch (type) {
+	switch (_type) {
 	case kTypeLine3D:
 	case kTypeLine:
 	case kTypePolygon: {
 		DrawVertex vertices[kLineVertices];
 
-		vertices[0].x = x1;
-		vertices[0].y = y1;
-		vertices[0].z = z1;
-		vertices[1].x = x2;
-		vertices[1].y = y2;
-		vertices[1].z = z1;
+		vertices[0].x = _x1;
+		vertices[0].y = _y1;
+		vertices[0].z = _z1;
+		vertices[1].x = _x2;
+		vertices[1].y = _y2;
+		vertices[1].z = _z1;
 
 		// The disasm uses the first depth for both ends
-		if (type == kTypeLine3D)
+		if (_type == kTypeLine3D)
 			drawContext->drawPrim(kPrimitiveDrawFlags, vertices, kLineVertices, false);
 		else
 			drawContext->drawPrim2D(kPrimitiveDrawFlags, vertices, kLineVertices, false);
@@ -82,10 +82,10 @@ void Primitive::drawNode(CDrawContext *drawContext) {
 		break;
 	}
 	case kTypeRectangle: {
-		float minX = !(x2 > x1) ? x2 : x1;
-		float minY = !(y2 > y1) ? y2 : y1;
-		float maxX = (x2 >= x1) ? x2 : x1;
-		float maxY = (y2 >= y1) ? y2 : y1;
+		float minX = !(_x2 > _x1) ? _x2 : _x1;
+		float minY = !(_y2 > _y1) ? _y2 : _y1;
+		float maxX = (_x2 >= _x1) ? _x2 : _x1;
+		float maxY = (_y2 >= _y1) ? _y2 : _y1;
 		DrawVertex vertices[kRectangleVertices];
 
 		vertices[0].x = minX;
@@ -97,7 +97,7 @@ void Primitive::drawNode(CDrawContext *drawContext) {
 		vertices[3].x = minX;
 		vertices[3].y = maxY;
 
-		drawContext->drawPrim2D(kPrimitiveDrawFlags, vertices, kRectangleVertices, filled);
+		drawContext->drawPrim2D(kPrimitiveDrawFlags, vertices, kRectangleVertices, _filled);
 
 		break;
 	}

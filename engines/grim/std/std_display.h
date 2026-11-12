@@ -71,13 +71,13 @@ struct StdVBufferTexFmt {
 struct StdVBuffer {
 	int type;
 	uint lockCount;
-	int bVideoMemory;
+	int videoMemory;
 	StdVBufferTexFmt tex;
-	byte *pPaletteRGB;
-	byte *pPixels;
+	byte *paletteRGB;
+	byte *pixels;
 	int colorKey;
 	int allocSize;
-	Std3DSurface *pSurface;
+	Std3DSurface *surface;
 	int surfaceColorKey;
 };
 
@@ -89,31 +89,31 @@ enum StdDisplayBackend {
 };
 
 struct StdDisplayDevice {
-	char aName[128];
-	char aDescription[128];
+	char name[128];
+	char description[128];
 	int type;
-	int bHasGuid;
+	int hasGuid;
 	int b3D;
-	int bPrimary;
-	int bHasHardware;
+	int primary;
+	int hasHardware;
 	uint vidMemTotal;
 	uint vidMemFree;
 	byte guid[16];
 	int backend;
-	int bUsable;
+	int usable;
 };
 
 struct StdDisplayDeviceFlags {
 	int type;
-	int bHasGuid;
+	int hasGuid;
 	int b3D;
-	int bPrimary;
-	int bHasHardware;
+	int primary;
+	int hasHardware;
 	int backend;
 };
 
 struct StdDisplayMode {
-	int bModeX;
+	int modeX;
 	float aspect;
 	StdVBufferTexFmt tex;
 };
@@ -133,76 +133,76 @@ class StdDisplay {
 public:
 	StdDisplay();
 
-	void setStdBitmap(StdBitmap *pStdBitmap) { _pStdBitmap = pStdBitmap; }
-	void setStd3D(Std3D *pStd3D) { _pStd3D = pStd3D; }
-	void setBuffers(StdVBuffer *pMainGfxBuffer, StdVBuffer *pBackBuffer) { _pMainGfxBuffer = pMainGfxBuffer; _pBackBuffer = pBackBuffer; }
+	void setStdBitmap(StdBitmap *stdBitmap) { _stdBitmap = stdBitmap; }
+	void setStd3D(Std3D *std3D) { _std3D = std3D; }
+	void setBuffers(StdVBuffer *mainGfxBuffer, StdVBuffer *backBuffer) { _mainGfxBuffer = mainGfxBuffer; _backBuffer = backBuffer; }
 
-	int isDisplayOpen() { return _bDisplayOpen; }
-	int isSurfacesCreated() { return _bSurfacesCreated; }
-	int getFullscreen() { return _bFullscreen; }
+	int isDisplayOpen() { return _displayOpen; }
+	int isSurfacesCreated() { return _surfacesCreated; }
+	int getFullscreen() { return _fullscreen; }
 	int getNumDrawBuffers() { return _numDrawBuffers; }
 	uint getNumDevices() { return _numDevices; }
-	StdDisplayDevice *getDevices() { return _aDevices; }
-	StdDisplayDevice *getCurDevice() { return _pCurDevice; }
+	StdDisplayDevice *getDevices() { return _devices; }
+	StdDisplayDevice *getCurDevice() { return _curDevice; }
 	uint getCurDeviceIndex() { return _curDeviceIndex; }
 	uint getNumModes() { return _numModes; }
-	StdDisplayMode *getModes() { return _aModes; }
-	StdDisplayMode *getDisplayMode() { return _pDisplayMode; }
+	StdDisplayMode *getModes() { return _modes; }
+	StdDisplayMode *getDisplayMode() { return _displayMode; }
 
 	int startup();
 	void shutdown();
 	int enumerateDevices(uint backendMask);
-	int enumDevicesCallback(const byte *pGuid, const char *pDescription, const char *pName, int backend);
-	void setDeviceUsable(uint deviceIndex, int bUsable);
+	int enumDevicesCallback(const byte *guid, const char *description, const char *name, int backend);
+	void setDeviceUsable(uint deviceIndex, int usable);
 	int isBackendEnabled(int backend);
 	int createBackend(int backend);
 	int openBackend(int backend, int width, int height);
 	void restoreDisplayMode();
 	int enumerateModes(uint deviceIndex);
 	int createDirectDraw();
-	int enumModesCallback(const StdDisplayModeDesc *pDesc);
-	int enumModesCallback2(const StdDisplayModeDesc *pDesc);
-	uint findClosestDevice(const StdDisplayDeviceFlags *pWanted);
-	uint findClosestMode(const StdDisplayMode *pWanted, const StdDisplayMode *aModes, uint numModes);
-	int openDisplay(uint modeIndex, byte *pPalette, int bFullscreen);
+	int enumModesCallback(const StdDisplayModeDesc *desc);
+	int enumModesCallback2(const StdDisplayModeDesc *desc);
+	uint findClosestDevice(const StdDisplayDeviceFlags *wanted);
+	uint findClosestMode(const StdDisplayMode *wanted, const StdDisplayMode *modes, uint numModes);
+	int openDisplay(uint modeIndex, byte *palette, int fullscreen);
 	void closeDisplay();
-	int initDisplay(StdDisplayMode *pMode, byte *pPalette);
+	int initDisplay(StdDisplayMode *mode, byte *palette);
 	void releaseSurfaces();
 	void freeBuffers();
 	int prepareWindowForDraw();
 	void prepareOutputForDraw();
 	int update();
-	byte *surfaceLock(StdVBuffer *pVBuffer);
-	int surfaceUnlock(StdVBuffer *pVBuffer, int bUpload);
-	int surfaceBlt(StdVBuffer *pVBuffer, int color, const StdRect *pRect);
-	int copyBltB(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
-	int copyBltC(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
-	int copyBltD(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
+	byte *surfaceLock(StdVBuffer *vBuffer);
+	int surfaceUnlock(StdVBuffer *vBuffer, int upload);
+	int surfaceBlt(StdVBuffer *vBuffer, int color, const StdRect *rect);
+	int copyBltB(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey);
+	int copyBltC(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey);
+	int copyBltD(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey);
 
-	StdVBuffer *vBufferNew(StdVBufferTexFmt *pFormat, int bVideoMemory, int bVideoMemoryOnly, byte *pPalette);
-	void vBufferFree(StdVBuffer *&pVBuffer);
-	void vBufferFreeEntry(StdVBuffer *pVBuffer);
-	int vBufferLock(StdVBuffer *pVBuffer);
-	int vBufferUnlock(StdVBuffer *pVBuffer);
-	void vBufferFill(StdVBuffer *pVBuffer, int color, StdRect *pRect);
-	int vBufferCopy(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
-	int vBufferSetColorKey(StdVBuffer *pVBuffer, int colorKey);
-	void vBufferDeCompress(StdVBuffer *pVBuffer);
-	int vBufferDeCompressTo(StdVBuffer *pSrc, StdVBuffer *pDst);
-	StdVBuffer *vBufferConvertColorFormat(StdColorFormat *pFormat, StdVBuffer *pVBuffer);
-	int copyBltA(StdVBuffer *pDst, StdVBuffer *pSrc, int x, int y, StdRect *pRect, char bColorKey);
-	int lzssDecompress(byte *pDst, byte *pSrc, int size, int outputSize);
+	StdVBuffer *vBufferNew(StdVBufferTexFmt *format, int videoMemory, int videoMemoryOnly, byte *palette);
+	void vBufferFree(StdVBuffer *&vBuffer);
+	void vBufferFreeEntry(StdVBuffer *vBuffer);
+	int vBufferLock(StdVBuffer *vBuffer);
+	int vBufferUnlock(StdVBuffer *vBuffer);
+	void vBufferFill(StdVBuffer *vBuffer, int color, StdRect *rect);
+	int vBufferCopy(StdVBuffer *dst, StdVBuffer *src, int x, int y, StdRect *rect, char colorKey);
+	int vBufferSetColorKey(StdVBuffer *vBuffer, int colorKey);
+	void vBufferDeCompress(StdVBuffer *vBuffer);
+	int vBufferDeCompressTo(StdVBuffer *src, StdVBuffer *dst);
+	StdVBuffer *vBufferConvertColorFormat(StdColorFormat *format, StdVBuffer *vBuffer);
+	int copyBltA(StdVBuffer *dstPointer, StdVBuffer *srcPointer, int x, int y, StdRect *rect, char colorKey);
+	int lzssDecompress(byte *dst, byte *src, int size, int outputSize);
 
 private:
 	void decompressImpl();
-	int readFlagBit(const byte *&pIn, uint &flagBits, int &flagCount);
-	int isZBuffer(StdVBuffer *pVBuffer);
-	void presentIfPrimary(StdVBuffer *pVBuffer);
-	int copyToZBuffer(StdVBuffer *pSrc, int x, int y, const StdRect *pSrcRect);
-	void unlockForRead(StdVBuffer *pVBuffer);
-	int syncShadow(StdVBuffer *pVBuffer);
+	int readFlagBit(const byte *&in, uint &flagBits, int &flagCount);
+	int isZBuffer(StdVBuffer *vBuffer);
+	void presentIfPrimary(StdVBuffer *vBuffer);
+	int copyToZBuffer(StdVBuffer *src, int x, int y, const StdRect *srcRectPointer);
+	void unlockForRead(StdVBuffer *vBuffer);
+	int syncShadow(StdVBuffer *vBuffer);
 
-	StdBitmap *_pStdBitmap;
+	StdBitmap *_stdBitmap;
 	byte *_inputBuffer;
 	int _inputBufferIndex;
 	int _inputBufferMax;
@@ -210,24 +210,24 @@ private:
 	int _outputBufferIndex;
 	int _outputBufferMax;
 
-	Std3D *_pStd3D;
-	StdVBuffer *_pMainGfxBuffer;
-	StdVBuffer *_pBackBuffer;
-	int _bStartup;
-	int _bEnumerated;
-	int _bDisplayOpen;
-	int _bSurfacesCreated;
-	int _bFullscreen;
+	Std3D *_std3D;
+	StdVBuffer *_mainGfxBuffer;
+	StdVBuffer *_backBuffer;
+	int _startup;
+	int _enumerated;
+	int _displayOpen;
+	int _surfacesCreated;
+	int _fullscreen;
 	int _numDrawBuffers;
 	uint _backendMask;
 	uint _numDevices;
-	StdDisplayDevice _aDevices[kStdDisplayMaxDevices];
-	StdDisplayDevice *_pCurDevice;
+	StdDisplayDevice _devices[kStdDisplayMaxDevices];
+	StdDisplayDevice *_curDevice;
 	uint _curDeviceIndex;
 	uint _numModes;
-	StdDisplayMode _aModes[kStdDisplayMaxModes];
+	StdDisplayMode _modes[kStdDisplayMaxModes];
 	uint _curModeIndex;
-	StdDisplayMode *_pDisplayMode;
+	StdDisplayMode *_displayMode;
 };
 
 } // End of namespace Grim

@@ -63,8 +63,8 @@ public:
 	Shadow_v2 *newShadow();
 	void removeShadow(Shadow_v2 *shadow);
 	void setSoundParameters(float newMaxDist, char newMinVol, char newMaxVol, float newPanFactor, float newMaxRadius);
-	bool save(tSaveRestoreAccess *access);
-	bool restore(tSaveRestoreAccess *access);
+	bool save(SaveRestoreAccess *access);
+	bool restore(SaveRestoreAccess *access);
 	void freeSetups();
 	bool loadText(const char *path);
 	bool parseSection(LFile *file, const char *sectionName);
@@ -77,25 +77,25 @@ public:
 
 	static bool startup(EmiEngine *engine);
 	static void shutdown(EmiEngine *engine);
-	static void saveCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access);
-	static void restoreCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access);
+	static void saveCurrentRoom(EmiEngine *engine, SaveRestoreAccess *access);
+	static void restoreCurrentRoom(EmiEngine *engine, SaveRestoreAccess *access);
 	static Layer *findLayerById(EmiEngine *engine, int layerId);
 	static void loadRoom(EmiEngine *engine, const char *roomName);
 	static Room_v2 *getCurrentRoom(EmiEngine *engine);
 	static const char *getCurrentRoomName(EmiEngine *engine);
 
-	Setup *setups;
-	int numSetups;
-	int currentSetup;
-	Common::List<Shadow_v2 *> shadows;
-	Common::List<CLightNode *> lights;
-	Common::List<Actor *> actors;
-	WalkPlaneCollection *walkPlanes;
-	char minVol;
-	char maxVol;
-	float maxDist;
-	float panFactor;
-	float maxRadius;
+	Setup *_setups;
+	int _numSetups;
+	int _currentSetup;
+	Common::List<Shadow_v2 *> _shadows;
+	Common::List<CLightNode *> _lights;
+	Common::List<Actor *> _actors;
+	WalkPlaneCollection *_walkPlanes;
+	char _minVol;
+	char _maxVol;
+	float _maxDist;
+	float _panFactor;
+	float _maxRadius;
 
 protected:
 	virtual bool resLoadItem(const char *itemName);

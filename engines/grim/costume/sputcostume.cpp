@@ -47,11 +47,11 @@ void SputCostume::puppetHookCallback(void *userArg, int trackNum, int markerType
 	g_grim->getSputCostume()->puppetHook(static_cast<ModelInst *>(userArg), trackNum, markerType);
 }
 
-SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry) :
-		_pRes(pRes), _pRd(pRd), _pSputResource(pSputResource), _pSputRender(pSputRender), _pSputRoom(pSputRoom), _pStdLbm(pStdLbm),
-		_pWuRegistry(pWuRegistry), _pGrim(nullptr),
-		_pSputActor(nullptr), _aActors(nullptr), _pHS(nullptr), _bInitialized(0), _bStarted(0), _pShadowColormap(nullptr), _aLECBitmaps(nullptr),
-		_pLastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
+SputCostume::SputCostume(Res *res, RenderDroid *rd, SputResource *sputResource, SputRender *sputRender, SputRoom *sputRoom, StdLbm *stdLbm, WuRegistry *wuRegistry) :
+		_res(res), _rd(rd), _sputResource(sputResource), _sputRender(sputRender), _sputRoom(sputRoom), _stdLbm(stdLbm),
+		_wuRegistry(wuRegistry), _grim(nullptr),
+		_sputActor(nullptr), _actors(nullptr), _hs(nullptr), _initialized(0), _started(0), _shadowColormap(nullptr), _lecBitmaps(nullptr),
+		_lastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
 		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this), _demoKeyframeHandler(this),
 		_bitmapHandler(this), _animationHandler(this), _soundHandler(this), _demoSoundHandler(this), _smushHandler(this), _demoSmushHandler(this), _spriteHandler(this), _imuseHandler(this), _luaVarHandler(this) {
 	memset(_keyframePath, 0, sizeof(_keyframePath));
@@ -67,170 +67,170 @@ void SputCostume::setShadowColor(int red, int green, int blue) {
 	byte greenByte = (byte)green;
 	uint16 color = (uint16)(((uint)blue >> 3) | (32 * ((((uint)red >> 3) << 6) | ((uint)green >> 2))));
 
-	_pSputRender->colorCorrect(&color, 1);
+	_sputRender->colorCorrect(&color, 1);
 
-	if (!_pShadowColormap && (_pGrim->getGameFlags() & ADGF_DEMO)) {
+	if (!_shadowColormap && (_grim->getGameFlags() & ADGF_DEMO)) {
 		// The demo has no shadow colormap, its shadows are black
-		_pShadowColormap = new RdColormap();
+		_shadowColormap = new RdColormap();
 
-		memset(_pShadowColormap, 0, sizeof(RdColormap));
-		_pShadowColormap->pRGB16 = new byte[0x8000]();
-	} else if (!_pShadowColormap) {
+		memset(_shadowColormap, 0, sizeof(RdColormap));
+		_shadowColormap->rgb16 = new byte[0x8000]();
+	} else if (!_shadowColormap) {
 		char fileName[] = "shadow.cmp";
 
-		_pShadowColormap = _pRd->_colormap.load(fileName);
+		_shadowColormap = _rd->_colormap.load(fileName);
 	}
 
-	if (!_pShadowColormap || !_pShadowColormap->pRGB16) {
+	if (!_shadowColormap || !_shadowColormap->rgb16) {
 		warning("SputCostume::setShadowColor(): the shadow colormap has no RGB16 table");
 		return;
 	}
 
-	uint16 *pRGB16 = (uint16 *)_pShadowColormap->pRGB16;
+	uint16 *rgb16 = (uint16 *)_shadowColormap->rgb16;
 
 	for (int i = 0; i < 0x4000; i++)
-		pRGB16[i] = color;
+		rgb16[i] = color;
 
 	for (int i = 0; i < 768; i += 3) {
-		_pShadowColormap->aColors[i] = (byte)red;
-		_pShadowColormap->aColors[i + 1] = greenByte;
-		_pShadowColormap->aColors[i + 2] = (byte)blue;
+		_shadowColormap->colors[i] = (byte)red;
+		_shadowColormap->colors[i + 1] = greenByte;
+		_shadowColormap->colors[i + 2] = (byte)blue;
 	}
 }
 
-void SputCostume::printCostumeInfo(CostumeNode *pNode) {
-	if (!pNode)
+void SputCostume::printCostumeInfo(CostumeNode *node) {
+	if (!node)
 		return;
 
-	CostumeNode *pCurrent = pNode;
+	CostumeNode *current = node;
 
 	do {
-		int numChores = _cos.instCountChores(pCurrent->hCostumeInstance);
+		int numChores = _cos.instCountChores(current->costumeInstance);
 
 		for (int i = 0; i < numChores; i++)
-			_cos.instChoreStatus(pCurrent->hCostumeInstance, i);
+			_cos.instChoreStatus(current->costumeInstance, i);
 
-		pCurrent = pCurrent->pNext;
-	} while (pCurrent);
+		current = current->next;
+	} while (current);
 
-	for (ModelInst *pModelInst = pNode->pHeadList; pModelInst; pModelInst = pModelInst->pNext) {
-		if (!pModelInst->bVisible)
+	for (ModelInst *modelInst = node->headList; modelInst; modelInst = modelInst->next) {
+		if (!modelInst->visible)
 			continue;
 
-		if (!pModelInst->pThing || pModelInst->pThing->type != 1) {
+		if (!modelInst->thing || modelInst->thing->type != 1) {
 			warning("SputCostume::printCostumeInfo(): the visible thing is not a model");
 			continue;
 		}
 
-		RdModel3 *pModel3 = pModelInst->pThing->data.pModel3;
+		RdModel3 *model3 = modelInst->thing->data.model3;
 
-		for (uint i = 0; i < pModel3->numHNodes; i++)
-			strstr(pModel3->aHNodes[i].aName, "skirt");
+		for (uint i = 0; i < model3->numHNodes; i++)
+			strstr(model3->hNodes[i].name, "skirt");
 	}
 }
 
-void SputCostume::freeCostumeNodes(CostumeNode *pNode, int bFreeInstance) {
-	CostumeNode *pCurrent = pNode;
+void SputCostume::freeCostumeNodes(CostumeNode *node, int freeInstance) {
+	CostumeNode *current = node;
 
-	while (pCurrent) {
-		CostumeNode *pNext = pCurrent->pNext;
+	while (current) {
+		CostumeNode *next = current->next;
 
-		if (bFreeInstance)
-			_cos.freeCosInstance(pCurrent->hCostumeInstance);
+		if (freeInstance)
+			_cos.freeCosInstance(current->costumeInstance);
 
-		if (pCurrent->rCostume.valid)
-			_pRes->removeReference(&pCurrent->rCostume);
+		if (current->rCostume.valid)
+			_res->removeReference(&current->rCostume);
 
-		delete pCurrent;
-		pCurrent = pNext;
+		delete current;
+		current = next;
 	}
 }
 
-CostumeNode *SputCostume::popCostume(CostumeNode *pNode, int bFreeInstance) {
-	CostumeNode *pNext = pNode;
+CostumeNode *SputCostume::popCostume(CostumeNode *node, int freeInstance) {
+	CostumeNode *next = node;
 
-	if (pNode) {
-		pNext = pNode->pNext;
-		pNode->pNext = nullptr;
-		_cos.instStopChores(pNode->hCostumeInstance);
-		freeCostumeNodes(pNode, bFreeInstance);
+	if (node) {
+		next = node->next;
+		node->next = nullptr;
+		_cos.instStopChores(node->costumeInstance);
+		freeCostumeNodes(node, freeInstance);
 	}
 
-	return pNext;
+	return next;
 }
 
-CostumeNode *SputCostume::setCostume(CostumeNode *pNode, int hCostume, int hInstance) {
-	CostumeNode *pNext = popCostume(pNode, 1);
+CostumeNode *SputCostume::setCostume(CostumeNode *node, int costume, int instance) {
+	CostumeNode *next = popCostume(node, 1);
 
-	return pushCostume(pNext, hCostume, hInstance);
+	return pushCostume(next, costume, instance);
 }
 
-CostumeNode *SputCostume::pushCostume(CostumeNode *pPrev, int hCostume, int hInstance) {
-	CostumeNode *pNode = _pSputActor->allocCostumeNode();
+CostumeNode *SputCostume::pushCostume(CostumeNode *prev, int costume, int instance) {
+	CostumeNode *node = _sputActor->allocCostumeNode();
 
-	pNode->pNext = pPrev;
+	node->next = prev;
 
-	if (hInstance) {
-		pNode->hCostumeInstance = hInstance;
+	if (instance) {
+		node->costumeInstance = instance;
 	} else {
-		int hParentInstance = 0;
+		int parentInstance = 0;
 
-		if (pPrev)
-			hParentInstance = pPrev->hCostumeInstance;
+		if (prev)
+			parentInstance = prev->costumeInstance;
 
-		pNode->hCostumeInstance = _cos.createCosInstance(hCostume, hParentInstance);
-		_pRes->setReference(&pNode->rCostume, (void *)(intptr)hCostume);
+		node->costumeInstance = _cos.createCosInstance(costume, parentInstance);
+		_res->setReference(&node->rCostume, (void *)(intptr)costume);
 	}
 
-	pNode->pHeadThing = getMainThing(pNode->hCostumeInstance);
+	node->headThing = getMainThing(node->costumeInstance);
 
-	if (pNode->pHeadThing && pPrev && pPrev->pHeadThing == pNode->pHeadThing) {
-		pNode->aHeadJoint[0] = pPrev->aHeadJoint[0];
-		pNode->aHeadJoint[1] = pPrev->aHeadJoint[1];
-		pNode->aHeadJoint[2] = pPrev->aHeadJoint[2];
-		pNode->headTurnRate = pPrev->headTurnRate;
-		pNode->headYawLimit = pPrev->headYawLimit;
-		pNode->headPitchLimit = pPrev->headPitchLimit;
-		pNode->headLookRef = pPrev->headLookRef;
-		pNode->pHeadList = pPrev->pHeadList;
+	if (node->headThing && prev && prev->headThing == node->headThing) {
+		node->headJoint[0] = prev->headJoint[0];
+		node->headJoint[1] = prev->headJoint[1];
+		node->headJoint[2] = prev->headJoint[2];
+		node->headTurnRate = prev->headTurnRate;
+		node->headYawLimit = prev->headYawLimit;
+		node->headPitchLimit = prev->headPitchLimit;
+		node->headLookRef = prev->headLookRef;
+		node->headList = prev->headList;
 	}
 
-	int numComponents = _cos.instCountComponents(pNode->hCostumeInstance);
+	int numComponents = _cos.instCountComponents(node->costumeInstance);
 
 	for (int i = 0; i < numComponents; i++) {
 		int fourcc = 0;
-		ModelInst *pModelInst = static_cast<ModelInst *>(_cos.instGetInstanceData(pNode->hCostumeInstance, i, &fourcc));
+		ModelInst *modelInst = static_cast<ModelInst *>(_cos.instGetInstanceData(node->costumeInstance, i, &fourcc));
 
-		if ((fourcc == kSputCostumeTagMainThing || fourcc == kSputCostumeTagThing || fourcc == kSputCostumeTagSprite) && pModelInst && pModelInst->refCount == 1) {
-			pModelInst->pNext = pNode->pHeadList;
-			pNode->pHeadList = pModelInst;
+		if ((fourcc == kSputCostumeTagMainThing || fourcc == kSputCostumeTagThing || fourcc == kSputCostumeTagSprite) && modelInst && modelInst->refCount == 1) {
+			modelInst->next = node->headList;
+			node->headList = modelInst;
 		}
 	}
 
-	return pNode;
+	return node;
 }
 
-RdThing *SputCostume::getMainThing(int hInst) {
-	int numComponents = _cos.instCountComponents(hInst);
+RdThing *SputCostume::getMainThing(int inst) {
+	int numComponents = _cos.instCountComponents(inst);
 
 	for (int i = 0; i < numComponents; i++) {
 		int fourcc = 0;
-		ModelInst *pModelInst = static_cast<ModelInst *>(_cos.instGetInstanceData(hInst, i, &fourcc));
+		ModelInst *modelInst = static_cast<ModelInst *>(_cos.instGetInstanceData(inst, i, &fourcc));
 
 		if (fourcc == kSputCostumeTagMainThing) {
-			if (!pModelInst) {
+			if (!modelInst) {
 				warning("SputCostume::getMainThing(): the main thing has no instance data");
 				return nullptr;
 			}
 
-			return pModelInst->pThing;
+			return modelInst->thing;
 		}
 	}
 
 	return nullptr;
 }
 
-void SputCostume::update(CostumeNode *pNode, float delta) {
+void SputCostume::update(CostumeNode *node, float delta) {
 	double scaled = (double)delta * 1000.0;
 	double rounded;
 
@@ -248,74 +248,74 @@ void SputCostume::update(CostumeNode *pNode, float delta) {
 
 	float seconds = (float)((double)(uint)deltaMs * (double)0.001f);
 
-	if (!pNode)
+	if (!node)
 		return;
 
-	RdThing *pHeadThing = pNode->pHeadThing;
-	CostumeNode *pCurrent = pNode;
+	RdThing *headThing = node->headThing;
+	CostumeNode *current = node;
 
 	do {
-		if (pCurrent->pHeadThing != pHeadThing)
+		if (current->headThing != headThing)
 			break;
 
-		_cos.instUpdateChores(pCurrent->hCostumeInstance, deltaMs);
-		pCurrent = pCurrent->pNext;
-	} while (pCurrent);
+		_cos.instUpdateChores(current->costumeInstance, deltaMs);
+		current = current->next;
+	} while (current);
 
-	for (ModelInst *pModelInst = pNode->pHeadList; pModelInst; pModelInst = pModelInst->pNext) {
-		RdPuppet *pPuppet = pModelInst->pThing->pPuppet;
+	for (ModelInst *modelInst = node->headList; modelInst; modelInst = modelInst->next) {
+		RdPuppet *puppet = modelInst->thing->puppet;
 
-		if (pPuppet)
-			_pRd->_puppet.updateTracks(pPuppet, seconds);
+		if (puppet)
+			_rd->_puppet.updateTracks(puppet, seconds);
 	}
 }
 
-int SputCostume::initialize(SysStruct *pHS) {
-	_pHS = pHS;
+int SputCostume::initialize(SysStruct *hs) {
+	_hs = hs;
 
-	int result = _cos.initialize(pHS);
+	int result = _cos.initialize(hs);
 
-	_bInitialized = result == 0;
+	_initialized = result == 0;
 
 	return result != 0;
 }
 
-void SputCostume::resetCostume(int hInst) {
-	_cos.instStopChores(hInst);
+void SputCostume::resetCostume(int inst) {
+	_cos.instStopChores(inst);
 
-	int numComponents = _cos.instCountComponents(hInst);
+	int numComponents = _cos.instCountComponents(inst);
 
 	for (int i = 0; i < numComponents; i++) {
 		int fourcc = 0;
-		void *pInstData = _cos.instGetInstanceData(hInst, i, &fourcc);
+		void *instData = _cos.instGetInstanceData(inst, i, &fourcc);
 
 		if (fourcc == kSputCostumeTagMaterial) {
-			static_cast<MaterialInst *>(pInstData)->key = -1;
+			static_cast<MaterialInst *>(instData)->key = -1;
 		} else if (fourcc == kSputCostumeTagMainThing || fourcc == kSputCostumeTagThing) {
-			ModelInst *pModelInst = static_cast<ModelInst *>(pInstData);
+			ModelInst *modelInst = static_cast<ModelInst *>(instData);
 
-			pModelInst->bVisible = pModelInst->pParentModel == nullptr;
+			modelInst->visible = modelInst->parentModel == nullptr;
 
-			for (int track = 0; track < _pRd->_puppet.getNumTracks(); track++)
-				_pRd->_puppet.removeTrack(pModelInst->pThing->pPuppet, track);
+			for (int track = 0; track < _rd->_puppet.getNumTracks(); track++)
+				_rd->_puppet.removeTrack(modelInst->thing->puppet, track);
 		}
 	}
 }
 
 void SputCostume::terminate() {
-	_pHS = nullptr;
+	_hs = nullptr;
 
-	if (_bInitialized) {
-		_bInitialized = 0;
+	if (_initialized) {
+		_initialized = 0;
 		_cos.terminate();
 
-		if (_pShadowColormap)
-			_pRd->_colormap.destroy(_pShadowColormap);
+		if (_shadowColormap)
+			_rd->_colormap.destroy(_shadowColormap);
 	}
 }
 
 int SputCostume::startup() {
-	if (_bStarted)
+	if (_started)
 		return 1;
 
 	_cos.startup();
@@ -325,15 +325,15 @@ int SputCostume::startup() {
 	_cos.newStateBasedTag(kSputCostumeTagColormap, "RDroid Colormap", 0, &_colormapHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagMesh, "RDroid Thing Mesh", 0, &_meshHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagMaterial, "RDroid Animated Material", 0, &_materialHandler, 2);
-	CosComponentHandler *pKeyframeHandler = &_keyframeHandler;
+	CosComponentHandler *keyframeHandler = &_keyframeHandler;
 
-	if (_pGrim->getGameFlags() & ADGF_DEMO)
-		pKeyframeHandler = &_demoKeyframeHandler;
+	if (_grim->getGameFlags() & ADGF_DEMO)
+		keyframeHandler = &_demoKeyframeHandler;
 
-	_cos.newStateBasedTag(kSputCostumeTagKeyframe, "RDroid Keyframe (.KEY)", 0, pKeyframeHandler, 2);
+	_cos.newStateBasedTag(kSputCostumeTagKeyframe, "RDroid Keyframe (.KEY)", 0, keyframeHandler, 2);
 	_cos.newStateBasedTag(kSputCostumeTagBitmap, "General Bitmap", 0, &_bitmapHandler, 1);
 
-	if (_pGrim->getGameFlags() & ADGF_DEMO) {
+	if (_grim->getGameFlags() & ADGF_DEMO) {
 		_cos.newStateBasedTag(kSputCostumeTagStreamedSound, "iMuse Streamed Sound FX", 0, &_demoSoundHandler, 2);
 		_cos.newStateBasedTag(kSputCostumeTagResidentSound, "iMuse Resident Sound FX", 0, &_demoSoundHandler, 2);
 		_cos.newStateBasedTag(kSputCostumeTagSmush, "Smush Movie", 0, &_demoSmushHandler, 2);
@@ -354,9 +354,9 @@ int SputCostume::startup() {
 	_oldInstanceHook = _cos.registerInstanceHook(instanceHookThunk);
 	_oldSaveHook = _cos.registerSaveHook(saveHookThunk);
 
-	_pLua->registerCostumeOpcodes();
+	_lua->registerCostumeOpcodes();
 
-	_bStarted = 1;
+	_started = 1;
 
 	getDataPath("KeyframePath", _keyframePath, "Animation");
 	getDataPath("ColormapPath", _colormapPath, "Colormaps");
@@ -381,27 +381,27 @@ int SputCostume::shutdown() {
 	_oldInstanceHook = _cos.registerInstanceHook(_oldInstanceHook);
 	_oldSaveHook = _cos.registerSaveHook(_oldSaveHook);
 
-	if (_aLECBitmaps) {
-		delete[] _aLECBitmaps;
-		_aLECBitmaps = nullptr;
+	if (_lecBitmaps) {
+		delete[] _lecBitmaps;
+		_lecBitmaps = nullptr;
 	}
 
 	int result = _cos.shutdown();
 
-	_bStarted = 0;
+	_started = 0;
 
 	return result;
 }
 
-int SputCostume::saveHook(const char *path, int hCostume, const char *header) {
-	const char *pExtension = _pStdLbm->getExtension(path);
+int SputCostume::saveHook(const char *path, int costume, const char *header) {
+	const char *extension = _stdLbm->getExtension(path);
 
-	if (!pExtension) {
+	if (!extension) {
 		warning("SputCostume::saveHook(): %s has no extension", path);
 		return 0;
 	}
 
-	Common::String fileName = Common::String(path, pExtension) + "lua";
+	Common::String fileName = Common::String(path, extension) + "lua";
 	Common::DumpFile file;
 
 	if (!file.open(fileName.c_str())) {
@@ -414,18 +414,18 @@ int SputCostume::saveHook(const char *path, int hCostume, const char *header) {
 		header = "(null)";
 	}
 
-	file.writeString(Common::String::format("-- Chore numbering for %s.\n", _pStdLbm->stripPath(path)));
+	file.writeString(Common::String::format("-- Chore numbering for %s.\n", _stdLbm->stripPath(path)));
 	file.writeString(Common::String::format("-- %s\n\n", header));
 
 	char baseName[32];
 
-	_pStdLbm->copyBaseName(baseName, 32, path);
+	_stdLbm->copyBaseName(baseName, 32, path);
 
-	int hInst = _cos.createCosInstance(hCostume, 0);
-	int numChores = _cos.instCountChores(hInst);
+	int inst = _cos.createCosInstance(costume, 0);
+	int numChores = _cos.instCountChores(inst);
 
 	for (int i = 0; i < numChores; i++) {
-		const char *choreName = _cos.instChoreName(hInst, i);
+		const char *choreName = _cos.instChoreName(inst, i);
 
 		if (!choreName)
 			choreName = "";
@@ -434,22 +434,22 @@ int SputCostume::saveHook(const char *path, int hCostume, const char *header) {
 	}
 
 	file.close();
-	_cos.freeCosInstance(hInst);
+	_cos.freeCosInstance(inst);
 
 	return 1;
 }
 
-int SputCostume::instanceHook(int hInst) {
-	_cos.instSetUserData(hInst, 0);
+int SputCostume::instanceHook(int inst) {
+	_cos.instSetUserData(inst, 0);
 
 	return 1;
 }
 
-void SputCostume::puppetHook(ModelInst *pModel, int trackNum, int markerType) {
-	if (!pModel)
+void SputCostume::puppetHook(ModelInst *model, int trackNum, int markerType) {
+	if (!model)
 		return;
 
-	_pLua->doCostumeMarkerCallback(&_aActors[_cos.instGetUserData(pModel->trackUserArg)], markerType);
+	_lua->doCostumeMarkerCallback(&_actors[_cos.instGetUserData(model->trackUserArg)], markerType);
 
 	if (!markerType) {
 		if (trackNum < 0 || trackNum >= 6) {
@@ -457,94 +457,94 @@ void SputCostume::puppetHook(ModelInst *pModel, int trackNum, int markerType) {
 			return;
 		}
 
-		_pRes->removeReference(&pModel->aTrackRefs[trackNum]);
+		_res->removeReference(&model->trackRefs[trackNum]);
 	}
 }
 
-void SputCostume::fadeKeysIn(int hInst, int choreIndex, int timeMs) {
-	int hCostume = 0;
+void SputCostume::fadeKeysIn(int inst, int choreIndex, int timeMs) {
+	int costumeHandle = 0;
 
-	_cos.instGetCostume(hInst, &hCostume);
+	_cos.instGetCostume(inst, &costumeHandle);
 
-	CosCostume *pCostume = _cos.ptrFromHandle(hCostume);
+	CosCostume *costume = _cos.ptrFromHandle(costumeHandle);
 
-	if (!pCostume) {
-		warning("SputCostume::fadeKeysIn(): invalid costume instance %d", hInst);
+	if (!costume) {
+		warning("SputCostume::fadeKeysIn(): invalid costume instance %d", inst);
 		return;
 	}
 
-	if (choreIndex < 0 || choreIndex >= pCostume->numChores) {
+	if (choreIndex < 0 || choreIndex >= costume->numChores) {
 		warning("SputCostume::fadeKeysIn(): invalid chore %d", choreIndex);
 		return;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreIndex];
+	CosChore *chore = &costume->chores[choreIndex];
 
-	for (int i = 0; i < pChore->numTracks; i++) {
+	for (int i = 0; i < chore->numTracks; i++) {
 		int fourcc = 0;
-		KeyframeInst *pKeyframeInst = static_cast<KeyframeInst *>(_cos.instGetInstanceData(hInst, pChore->aTracks[i].compIndex, &fourcc));
+		KeyframeInst *keyframeInst = static_cast<KeyframeInst *>(_cos.instGetInstanceData(inst, chore->tracks[i].compIndex, &fourcc));
 
-		if (fourcc != kSputCostumeTagKeyframe || !pKeyframeInst)
+		if (fourcc != kSputCostumeTagKeyframe || !keyframeInst)
 			continue;
 
-		RdPuppet *pPuppet = pKeyframeInst->pModelInst->pThing->pPuppet;
+		RdPuppet *puppet = keyframeInst->modelInst->thing->puppet;
 		int trackNum = 0;
 
-		if (!pKeyframeInst->ref.valid)
+		if (!keyframeInst->ref.valid)
 			warning("SputCostume::fadeKeysIn(): Bad keyframe Reference");
 
-		int numTracks = _pRd->_puppet.getNumTracks();
+		int numTracks = _rd->_puppet.getNumTracks();
 
-		while (trackNum < numTracks && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
+		while (trackNum < numTracks && puppet->tracks[trackNum].keyframe != keyframeInst->ref.handle)
 			trackNum++;
 
 		if (trackNum == numTracks)
 			continue;
 
-		if (pPuppet->aTracks[trackNum].fade == 1.0f)
-			pPuppet->aTracks[trackNum].fade = 0.0f;
+		if (puppet->tracks[trackNum].fade == 1.0f)
+			puppet->tracks[trackNum].fade = 0.0f;
 
 		float time = (float)((double)timeMs * (double)0.001f);
 
-		_pRd->_puppet.fadeInTrack(pPuppet, trackNum, time);
+		_rd->_puppet.fadeInTrack(puppet, trackNum, time);
 	}
 }
 
-void SputCostume::fadeKeysOut(int hInst, int choreIndex, int timeMs) {
-	int hCostume = 0;
+void SputCostume::fadeKeysOut(int inst, int choreIndex, int timeMs) {
+	int costumeHandle = 0;
 
-	_cos.instGetCostume(hInst, &hCostume);
+	_cos.instGetCostume(inst, &costumeHandle);
 
-	CosCostume *pCostume = _cos.ptrFromHandle(hCostume);
+	CosCostume *costume = _cos.ptrFromHandle(costumeHandle);
 
-	if (!pCostume) {
-		warning("SputCostume::fadeKeysOut(): invalid costume instance %d", hInst);
+	if (!costume) {
+		warning("SputCostume::fadeKeysOut(): invalid costume instance %d", inst);
 		return;
 	}
 
-	if (choreIndex < 0 || choreIndex >= pCostume->numChores) {
+	if (choreIndex < 0 || choreIndex >= costume->numChores) {
 		warning("SputCostume::fadeKeysOut(): invalid chore %d", choreIndex);
 		return;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreIndex];
+	CosChore *chore = &costume->chores[choreIndex];
 
-	for (int i = 0; i < pChore->numTracks; i++) {
+	for (int i = 0; i < chore->numTracks; i++) {
 		int fourcc = 0;
-		KeyframeInst *pKeyframeInst = static_cast<KeyframeInst *>(_cos.instGetInstanceData(hInst, pChore->aTracks[i].compIndex, &fourcc));
+		KeyframeInst *keyframeInst = static_cast<KeyframeInst *>(_cos.instGetInstanceData(inst, chore->tracks[i].compIndex, &fourcc));
 
-		if (fourcc != kSputCostumeTagKeyframe || !pKeyframeInst)
+		if (fourcc != kSputCostumeTagKeyframe || !keyframeInst)
 			continue;
 
-		RdPuppet *pPuppet = pKeyframeInst->pModelInst->pThing->pPuppet;
+		RdPuppet *puppet = keyframeInst->modelInst->thing->puppet;
 		int trackNum = 0;
 
-		if (!pKeyframeInst->ref.valid)
+		if (!keyframeInst->ref.valid)
 			warning("SputCostume::fadeKeysOut(): Bad keyframe Reference");
 
-		int numTracks = _pRd->_puppet.getNumTracks();
+		int numTracks = _rd->_puppet.getNumTracks();
 
-		while (trackNum < numTracks && pPuppet->aTracks[trackNum].pKeyframe != pKeyframeInst->ref.handle)
+		while (trackNum < numTracks && puppet->tracks[trackNum].keyframe != keyframeInst->ref.handle)
 			trackNum++;
 
 		if (trackNum == numTracks)
@@ -552,35 +552,35 @@ void SputCostume::fadeKeysOut(int hInst, int choreIndex, int timeMs) {
 
 		float time = (float)((double)timeMs * (double)0.001f);
 
-		_pRd->_puppet.fadeOutTrack(pPuppet, trackNum, time);
+		_rd->_puppet.fadeOutTrack(puppet, trackNum, time);
 	}
 }
 
-void SputCostume::getDataPath(const char *valueName, char *pData, const char *defaultDirectory) {
+void SputCostume::getDataPath(const char *valueName, char *data, const char *defaultDirectory) {
 	char name[128];
 
 	Common::strlcpy(name, "Requesters\\", sizeof(name));
 	Common::strlcat(name, valueName, sizeof(name));
 
-	_pWuRegistry->getStr(name, pData, 128, "");
+	_wuRegistry->getStr(name, data, 128, "");
 
-	if (*pData)
+	if (*data)
 		return;
 
-	if (_pWuRegistry->getStr("GrimDataDir", pData, 128, "")) {
-		Common::strlcat(pData, "\\", 128);
-		Common::strlcat(pData, defaultDirectory, 128);
+	if (_wuRegistry->getStr("GrimDataDir", data, 128, "")) {
+		Common::strlcat(data, "\\", 128);
+		Common::strlcat(data, defaultDirectory, 128);
 	}
 }
 
-void SputCostume::writeRegistryValue(const char *valueName, const char *pData) {
-	if (*pData) {
+void SputCostume::writeRegistryValue(const char *valueName, const char *data) {
+	if (*data) {
 		char name[128];
 
 		Common::strlcpy(name, "Requesters\\", sizeof(name));
 		Common::strlcat(name, valueName, sizeof(name));
 
-		_pWuRegistry->saveStr(name, pData);
+		_wuRegistry->saveStr(name, data);
 	}
 }
 

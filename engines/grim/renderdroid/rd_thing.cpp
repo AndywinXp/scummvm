@@ -24,161 +24,161 @@
 namespace Grim {
 
 RdThing *RenderDroid::ThingModule::create(void *userArg) {
-	RdThing *pThing = new RdThing;
+	RdThing *thing = new RdThing;
 
-	if (!newEntry(pThing, userArg))
+	if (!newEntry(thing, userArg))
 		return nullptr;
 
-	return pThing;
+	return thing;
 }
 
-int RenderDroid::ThingModule::newEntry(RdThing *pThing, void *userArg) {
-	pThing->curGeoSet = -1;
-	pThing->curCel = -1;
-	pThing->data.pModel3 = nullptr;
-	pThing->textureMode = 2;
-	pThing->curTextureMode = 2;
-	pThing->type = 0;
-	pThing->pPuppet = nullptr;
-	pThing->bJointsLocked = 0;
-	pThing->jointsFrame = 0;
-	pThing->geometryMode = 4;
-	pThing->lightingMode = 3;
-	pThing->curGeometryMode = 4;
-	pThing->curLightingMode = 3;
-	pThing->frustrumCull = 1;
-	pThing->aJointMatrices = nullptr;
-	pThing->abJointAmputate = nullptr;
-	pThing->userArg = userArg;
-	pThing->abMeshVisible = nullptr;
+int RenderDroid::ThingModule::newEntry(RdThing *thing, void *userArg) {
+	thing->curGeoSet = -1;
+	thing->curCel = -1;
+	thing->data.model3 = nullptr;
+	thing->textureMode = 2;
+	thing->curTextureMode = 2;
+	thing->type = 0;
+	thing->puppet = nullptr;
+	thing->jointsLocked = 0;
+	thing->jointsFrame = 0;
+	thing->geometryMode = 4;
+	thing->lightingMode = 3;
+	thing->curGeometryMode = 4;
+	thing->curLightingMode = 3;
+	thing->frustrumCull = 1;
+	thing->jointMatrices = nullptr;
+	thing->abJointAmputate = nullptr;
+	thing->userArg = userArg;
+	thing->abMeshVisible = nullptr;
 
 	return 1;
 }
 
-void RenderDroid::ThingModule::destroy(RdThing *&pThing) {
-	if (pThing) {
-		freeEntry(pThing);
-		delete pThing;
-		pThing = nullptr;
+void RenderDroid::ThingModule::destroy(RdThing *&thing) {
+	if (thing) {
+		freeEntry(thing);
+		delete thing;
+		thing = nullptr;
 	}
 }
 
-void RenderDroid::ThingModule::freeEntry(RdThing *pThing) {
-	if (pThing->type == 1) {
-		if (pThing->aJointMatrices) {
-			delete[] pThing->aJointMatrices;
-			pThing->aJointMatrices = nullptr;
+void RenderDroid::ThingModule::freeEntry(RdThing *thing) {
+	if (thing->type == 1) {
+		if (thing->jointMatrices) {
+			delete[] thing->jointMatrices;
+			thing->jointMatrices = nullptr;
 		}
-		if (pThing->aJointPyr) {
-			delete[] pThing->aJointPyr;
-			pThing->aJointPyr = nullptr;
+		if (thing->jointPyr) {
+			delete[] thing->jointPyr;
+			thing->jointPyr = nullptr;
 		}
-		if (pThing->abMeshVisible) {
-			delete[] pThing->abMeshVisible;
-			pThing->abMeshVisible = nullptr;
+		if (thing->abMeshVisible) {
+			delete[] thing->abMeshVisible;
+			thing->abMeshVisible = nullptr;
 		}
-		if (pThing->abJointAmputate) {
-			delete[] pThing->abJointAmputate;
-			pThing->abJointAmputate = nullptr;
+		if (thing->abJointAmputate) {
+			delete[] thing->abJointAmputate;
+			thing->abJointAmputate = nullptr;
 		}
 		// The demo frees the puppet without removing the tracks
-		if (pThing->pPuppet && !_rd->isDemo()) {
+		if (thing->puppet && !_rd->isDemo()) {
 			for (int i = 0; i < _rd->_puppet.getNumTracks(); i++) {
-				if (pThing->pPuppet->aTracks[i].status)
-					_rd->_puppet.removeTrack(pThing->pPuppet, i);
+				if (thing->puppet->tracks[i].status)
+					_rd->_puppet.removeTrack(thing->puppet, i);
 			}
 		}
 	}
 
-	if (pThing->pPuppet) {
-		delete pThing->pPuppet;
-		pThing->pPuppet = nullptr;
+	if (thing->puppet) {
+		delete thing->puppet;
+		thing->puppet = nullptr;
 	}
 }
 
-int RenderDroid::ThingModule::setModel3(RdThing *pThing, RdModel3 *pModel3) {
-	pThing->type = 1;
-	pThing->data.pModel3 = pModel3;
-	pThing->curGeoSet = -1;
-	pThing->aJointMatrices = new RdMatrix34[pModel3->numHNodes];
-	pThing->aJointPyr = new RdVector3[pModel3->numHNodes];
-	memset(pThing->aJointPyr, 0, 12 * pModel3->numHNodes);
+int RenderDroid::ThingModule::setModel3(RdThing *thing, RdModel3 *model3) {
+	thing->type = 1;
+	thing->data.model3 = model3;
+	thing->curGeoSet = -1;
+	thing->jointMatrices = new RdMatrix34[model3->numHNodes];
+	thing->jointPyr = new RdVector3[model3->numHNodes];
+	memset(thing->jointPyr, 0, 12 * model3->numHNodes);
 
-	pThing->abJointAmputate = new int[pModel3->numHNodes];
-	memset(pThing->abJointAmputate, 0, 4 * pModel3->numHNodes);
+	thing->abJointAmputate = new int[model3->numHNodes];
+	memset(thing->abJointAmputate, 0, 4 * model3->numHNodes);
 
-	pThing->abMeshVisible = new int[pModel3->numHNodes];
-	for (uint i = 0; i < pModel3->numHNodes; i++)
-		pThing->abMeshVisible[i] = 1;
+	thing->abMeshVisible = new int[model3->numHNodes];
+	for (uint i = 0; i < model3->numHNodes; i++)
+		thing->abMeshVisible[i] = 1;
 
-	for (uint i = 0; i < pModel3->numHNodes; i++) {
-		RdModel3HNode *pHNode = &pModel3->aHNodes[i];
-		_rd->build34(pHNode->mat, pHNode->pyr, pHNode->xyz);
+	for (uint i = 0; i < model3->numHNodes; i++) {
+		RdModel3HNode *hNode = &model3->hNodes[i];
+		_rd->build34(hNode->mat, hNode->pyr, hNode->xyz);
 	}
 
 	return 1;
 }
 
-int RenderDroid::ThingModule::setCamera(RdThing *pThing, RdCamera *pCamera) {
-	pThing->type = 2;
-	pThing->data.pCamera = pCamera;
+int RenderDroid::ThingModule::setCamera(RdThing *thing, RdCamera *camera) {
+	thing->type = 2;
+	thing->data.camera = camera;
 	return 1;
 }
 
-int RenderDroid::ThingModule::setSprite3(RdThing *pThing, RdSprite *pSprite) {
-	pThing->type = 4;
-	pThing->data.pSprite = pSprite;
-	pThing->curCel = -1;
+int RenderDroid::ThingModule::setSprite3(RdThing *thing, RdSprite *sprite) {
+	thing->type = 4;
+	thing->data.sprite = sprite;
+	thing->curCel = -1;
 	return 1;
 }
 
-void RenderDroid::ThingModule::accumulateMatrices(RdThing *pThing, RdModel3HNode *pHNode, RdMatrix34 pParent) {
+void RenderDroid::ThingModule::accumulateMatrices(RdThing *thing, RdModel3HNode *hNode, RdMatrix34 parent) {
 	RdMatrix34 out;
 
-	_rd->buildTranslate34(out, pHNode->pivot);
-	_rd->postMultiply34(out, pThing->aJointMatrices[pHNode->num]);
+	_rd->buildTranslate34(out, hNode->pivot);
+	_rd->postMultiply34(out, thing->jointMatrices[hNode->num]);
 
-	if (pHNode->pParentNode) {
+	if (hNode->parentNode) {
 		RdVector3 negatedPivot;
-		negatedPivot[0] = -pHNode->pParentNode->pivot[0];
-		negatedPivot[1] = -pHNode->pParentNode->pivot[1];
-		negatedPivot[2] = -pHNode->pParentNode->pivot[2];
+		negatedPivot[0] = -hNode->parentNode->pivot[0];
+		negatedPivot[1] = -hNode->parentNode->pivot[1];
+		negatedPivot[2] = -hNode->parentNode->pivot[2];
 		_rd->postTranslate34(out, negatedPivot);
 	}
 
-	_rd->multiply34(pThing->aJointMatrices[pHNode->num], pParent, out);
+	_rd->multiply34(thing->jointMatrices[hNode->num], parent, out);
 
-	if (pHNode->numChildren) {
-		RdModel3HNode *pChild = pHNode->pFirstChildNode;
+	if (hNode->numChildren) {
+		RdModel3HNode *child = hNode->firstChildNode;
 
-		for (uint i = 0; i < pHNode->numChildren; i++) {
-			if (!pThing->abJointAmputate[pChild->num])
-				accumulateMatrices(pThing, pChild, pThing->aJointMatrices[pHNode->num]);
+		for (uint i = 0; i < hNode->numChildren; i++) {
+			if (!thing->abJointAmputate[child->num])
+				accumulateMatrices(thing, child, thing->jointMatrices[hNode->num]);
 
-			pChild = pChild->pSiblingNode;
+			child = child->siblingNode;
 		}
 	}
 }
 
-int RenderDroid::ThingModule::draw(RdThing *pThing, RdMatrix34 mat) {
+int RenderDroid::ThingModule::draw(RdThing *thing, RdMatrix34 mat) {
 	if (!_rd->_curGeometryMode)
 		return 0;
 
-	switch (pThing->type) {
+	switch (thing->type) {
 	case 1:
-		return _rd->_model3.draw(pThing, mat);
+		return _rd->_model3.draw(thing, mat);
 	case 4:
-		return _rd->_sprite.draw(pThing, mat);
+		return _rd->_sprite.draw(thing, mat);
 	case 5:
-		return _rd->_model3.drawParticle(pThing, mat);
+		return _rd->_model3.drawParticle(thing, mat);
 	case 6:
-		return _rd->_model3.drawPolyline(pThing, mat);
+		return _rd->_model3.drawPolyline(thing, mat);
 	case 0:
 	case 2:
 	case 3:
 		return 0;
 	default:
-		return pThing->type;
+		return thing->type;
 	}
 }
 

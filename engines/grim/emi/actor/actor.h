@@ -139,32 +139,32 @@ public:
 	bool canActorSeeActor(Actor *other, float *out);
 	void setLookAtJoints(float deltaTime);
 
-	bool save(tSaveRestoreAccess *access);
-	bool restore(tSaveRestoreAccess *access);
-	static void saveActors(EmiEngine *engine, tSaveRestoreAccess *access);
-	static void restoreActors(EmiEngine *engine, tSaveRestoreAccess *access);
+	bool save(SaveRestoreAccess *access);
+	bool restore(SaveRestoreAccess *access);
+	static void saveActors(EmiEngine *engine, SaveRestoreAccess *access);
+	static void restoreActors(EmiEngine *engine, SaveRestoreAccess *access);
 
-	unsigned int actorFlags;
-	unsigned int mode;
-	CVector prevPos;
-	float reserved312;
-	bool onScreen;
-	bool inOverworld;
-	int drawnRect[4];
-	LResourceHandle<Room_v2> room;
-	int sortOrder;
-	int parentActorId;
-	char parentNodeName[CNode::kNameSize];
-	Common::List<uint> choreIds;
-	Common::List<ANode *> animNodes;
-	Extra_v2 *extra;
-	Common::Array<Shadow_v2 *> shadows;
-	Common::Array<RPrimitiveInstance *> shadowMeshes;
-	uint choreSlotIds[kNumChoreSlots];
-	LString choreSlotNames[kNumChoreSlots];
-	LString choreSlotSetNames[kNumChoreSlots];
-	int id;
-	LString actorName;
+	unsigned int _actorFlags;
+	unsigned int _mode;
+	CVector _prevPos;
+	float _reserved312;
+	bool _onScreen;
+	bool _inOverworld;
+	int _drawnRect[4];
+	LResourceHandle<Room_v2> _room;
+	int _sortOrder;
+	int _parentActorId;
+	char _parentNodeName[CNode::kNameSize];
+	Common::List<uint> _choreIds;
+	Common::List<ANode *> _animNodes;
+	Extra_v2 *_extra;
+	Common::Array<Shadow_v2 *> _shadows;
+	Common::Array<RPrimitiveInstance *> _shadowMeshes;
+	uint _choreSlotIds[kNumChoreSlots];
+	LString _choreSlotNames[kNumChoreSlots];
+	LString _choreSlotSetNames[kNumChoreSlots];
+	int _id;
+	LString _actorName;
 
 private:
 	EmiEngine *_engine;

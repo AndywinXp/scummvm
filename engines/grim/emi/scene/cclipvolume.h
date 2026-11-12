@@ -52,12 +52,12 @@ public:
 	int computeOutcode(const float *point);
 	void computeVertexOutcodes(int count, DrawVertex **vertices);
 
-	int planeMask;
-	int numPlanes;
-	CPlane planes[kMaxPlanes];
-	int planeType[kMaxPlanes];
-	int numPoints;
-	CVector points[kMaxPoints];
+	int _planeMask;
+	int _numPlanes;
+	CPlane _planes[kMaxPlanes];
+	int _planeType[kMaxPlanes];
+	int _numPoints;
+	CVector _points[kMaxPoints];
 };
 
 } // End of namespace Grim

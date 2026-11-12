@@ -26,133 +26,133 @@
 
 namespace Grim {
 
-CosCostume *Cos::ptrFromHandle(int hCostume) {
-	int index = handleToIndex(hCostume);
+CosCostume *Cos::ptrFromHandle(int costume) {
+	int index = handleToIndex(costume);
 
 	if (index < 0 || index >= _maxCostumes)
 		return nullptr;
 
-	return &_aCostumes[index];
+	return &_costumes[index];
 }
 
 int Cos::findClass(int fourcc, const char *name, int type) {
 	for (int i = 0; i < _numClasses; i++) {
-		if (_aClasses[i].fourcc == fourcc && _aClasses[i].type == type && !scumm_stricmp(_aClasses[i].name, name))
+		if (_classes[i].fourcc == fourcc && _classes[i].type == type && !scumm_stricmp(_classes[i].name, name))
 			return i;
 	}
 
 	return -1;
 }
 
-int Cos::findComponent(CosCostume *pCostume, int fourcc, int depthIdx, const char *name) {
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+int Cos::findComponent(CosCostume *costume, int fourcc, int depthIdx, const char *name) {
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponent *comp = &costume->components[i];
 
-		if (pComp->depthIdx == depthIdx && _aClasses[pComp->classIdx].fourcc == fourcc && !scumm_stricmp(pComp->name, name))
+		if (comp->depthIdx == depthIdx && _classes[comp->classIdx].fourcc == fourcc && !scumm_stricmp(comp->name, name))
 			return i;
 	}
 
 	return -1;
 }
 
-int Cos::findComponentByParent(CosCostume *pCostume, int fourcc, int depthIdx, const char *name, int parent) {
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+int Cos::findComponentByParent(CosCostume *costume, int fourcc, int depthIdx, const char *name, int parent) {
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponent *comp = &costume->components[i];
 
-		if (pComp->depthIdx == depthIdx && _aClasses[pComp->classIdx].fourcc == fourcc && pComp->parent == parent
-				&& !scumm_stricmp(pComp->name, name))
+		if (comp->depthIdx == depthIdx && _classes[comp->classIdx].fourcc == fourcc && comp->parent == parent
+				&& !scumm_stricmp(comp->name, name))
 			return i;
 	}
 
 	return -1;
 }
 
-int Cos::initComponent(CosCostume *pCostume, CosComponent *pComp, const char *name, int classIdx, void *id, int parent) {
+int Cos::initComponent(CosCostume *costume, CosComponent *comp, const char *name, int classIdx, void *id, int parent) {
 	int result = 0;
 
 	if (strlen(name) < 0x20) {
-		Common::strlcpy(pComp->name, name, 32);
-		pComp->id = id;
-		pComp->classIdx = classIdx;
-		pComp->parent = parent;
-		pComp->depthIdx = 0;
+		Common::strlcpy(comp->name, name, 32);
+		comp->id = id;
+		comp->classIdx = classIdx;
+		comp->parent = parent;
+		comp->depthIdx = 0;
 
-		for (result = findComponent(pCostume, _aClasses[classIdx].fourcc, 0, name); result >= 0;
-				result = findComponent(pCostume, _aClasses[pComp->classIdx].fourcc, pComp->depthIdx, name))
-			pComp->depthIdx++;
+		for (result = findComponent(costume, _classes[classIdx].fourcc, 0, name); result >= 0;
+				result = findComponent(costume, _classes[comp->classIdx].fourcc, comp->depthIdx, name))
+			comp->depthIdx++;
 
-		pComp->numNames = 0;
-		pComp->aNameIds = nullptr;
-		pComp->aNames = nullptr;
-		pComp->apStateBitmaps = nullptr;
+		comp->numNames = 0;
+		comp->nameIds = nullptr;
+		comp->names = nullptr;
+		comp->stateBitmaps = nullptr;
 	}
 
 	return result;
 }
 
-void Cos::setComponentNames(CosComponent *pComp, const CosComponentNames *pNames) {
-	if (_aClasses[pComp->classIdx].type != kCosTagStateBased)
+void Cos::setComponentNames(CosComponent *comp, const CosComponentNames *names) {
+	if (_classes[comp->classIdx].type != kCosTagStateBased)
 		return;
 
-	if (!pNames || pNames->numNames == 0)
+	if (!names || names->numNames == 0)
 		return;
 
-	if (pNames->numNames < 0) {
-		warning("Cos::setComponentNames(): negative name count %d", pNames->numNames);
+	if (names->numNames < 0) {
+		warning("Cos::setComponentNames(): negative name count %d", names->numNames);
 		return;
 	}
 
-	int numNames = pNames->numNames;
-	pComp->numNames = numNames;
+	int numNames = names->numNames;
+	comp->numNames = numNames;
 
-	if (pNames->aNameIds) {
-		pComp->aNameIds = new int[numNames];
-		memcpy(pComp->aNameIds, pNames->aNameIds, numNames * sizeof(int));
+	if (names->nameIds) {
+		comp->nameIds = new int[numNames];
+		memcpy(comp->nameIds, names->nameIds, numNames * sizeof(int));
 	}
 
-	if (pNames->aNames) {
-		pComp->aNames = new char *[numNames];
+	if (names->names) {
+		comp->names = new char *[numNames];
 
 		for (int i = 0; i < numNames; i++) {
-			size_t size = strlen(pNames->aNames[i]) + 1;
-			pComp->aNames[i] = new char[size];
-			Common::strlcpy(pComp->aNames[i], pNames->aNames[i], size);
+			size_t size = strlen(names->names[i]) + 1;
+			comp->names[i] = new char[size];
+			Common::strlcpy(comp->names[i], names->names[i], size);
 		}
 	}
 
-	if (pNames->aStateBitmaps) {
-		pComp->apStateBitmaps = new CosStateBitmap *[numNames];
+	if (names->stateBitmaps) {
+		comp->stateBitmaps = new CosStateBitmap *[numNames];
 
 		for (int i = 0; i < numNames; i++) {
-			CosStateBitmap *pBitmap = new CosStateBitmap;
-			const CosStateBitmapDesc *pDesc = &pNames->aStateBitmaps[i];
-			pComp->apStateBitmaps[i] = pBitmap;
+			CosStateBitmap *bitmap = new CosStateBitmap;
+			const CosStateBitmapDesc *desc = &names->stateBitmaps[i];
+			comp->stateBitmaps[i] = bitmap;
 
-			pBitmap->pPixels = pDesc->pPixels;
-			pBitmap->width = pDesc->width;
-			pBitmap->height = pDesc->height;
-			pBitmap->reserved12 = pDesc->reserved12;
+			bitmap->pixels = desc->pixels;
+			bitmap->width = desc->width;
+			bitmap->height = desc->height;
+			bitmap->reserved12 = desc->reserved12;
 
-			if (_pBitmapMunger) {
-				if (pNames->aBitmapExtra)
-					pBitmap->mungerResult = _pBitmapMunger(pDesc, pNames->aBitmapExtra[i]);
+			if (_bitmapMunger) {
+				if (names->bitmapExtra)
+					bitmap->mungerResult = _bitmapMunger(desc, names->bitmapExtra[i]);
 				else
-					pBitmap->mungerResult = _pBitmapMunger(pDesc, 0);
+					bitmap->mungerResult = _bitmapMunger(desc, 0);
 			} else {
-				pBitmap->mungerResult = 0;
+				bitmap->mungerResult = 0;
 			}
 		}
 	}
 }
 
-int Cos::registerComponent(int hCostume, const char *name, void *id, int fourcc, void *pParentId, int parentFourcc, const CosComponentNames *pNames) {
-	int index = handleToIndex(hCostume);
+int Cos::registerComponent(int costumeHandle, const char *name, void *id, int fourcc, void *parentId, int parentFourcc, const CosComponentNames *names) {
+	int index = handleToIndex(costumeHandle);
 
 	if (!name)
 		return 0;
 
 	if (index < 0 || index >= _maxCostumes) {
-		warning("Cos::registerComponent(): invalid costume handle %d", hCostume);
+		warning("Cos::registerComponent(): invalid costume handle %d", costumeHandle);
 		return 0;
 	}
 
@@ -161,98 +161,98 @@ int Cos::registerComponent(int hCostume, const char *name, void *id, int fourcc,
 		return 0;
 	}
 
-	CosCostume *pCostume = &_aCostumes[index];
+	CosCostume *costume = &_costumes[index];
 	int parentCompIndex = 0;
 
-	if (pParentId) {
+	if (parentId) {
 		int parentClassIdx = 0;
 
-		while (parentClassIdx < _numClasses && _aClasses[parentClassIdx].fourcc != parentFourcc)
+		while (parentClassIdx < _numClasses && _classes[parentClassIdx].fourcc != parentFourcc)
 			parentClassIdx++;
 
 		if (parentClassIdx == _numClasses)
 			return 0;
 
-		while (parentCompIndex < pCostume->numComponents) {
-			CosComponent *pParent = &pCostume->aComponents[parentCompIndex];
+		while (parentCompIndex < costume->numComponents) {
+			CosComponent *parent = &costume->components[parentCompIndex];
 
-			if (_aClasses[pParent->classIdx].fourcc == parentFourcc && pParent->id == pParentId)
+			if (_classes[parent->classIdx].fourcc == parentFourcc && parent->id == parentId)
 				break;
 
 			parentCompIndex++;
 		}
 
-		if (parentCompIndex == pCostume->numComponents)
+		if (parentCompIndex == costume->numComponents)
 			return 0;
 	}
 
 	int classIdx = 0;
 
-	while (classIdx < _numClasses && _aClasses[classIdx].fourcc != fourcc)
+	while (classIdx < _numClasses && _classes[classIdx].fourcc != fourcc)
 		classIdx++;
 
 	if (classIdx == _numClasses)
 		return 0;
 
-	CosComponent *aComponents = new CosComponent[pCostume->numComponents + 1]();
+	CosComponent *components = new CosComponent[costume->numComponents + 1]();
 
-	for (int i = 0; i < pCostume->numComponents; i++)
-		aComponents[i] = pCostume->aComponents[i];
+	for (int i = 0; i < costume->numComponents; i++)
+		components[i] = costume->components[i];
 
-	delete[] pCostume->aComponents;
-	pCostume->aComponents = aComponents;
+	delete[] costume->components;
+	costume->components = components;
 
-	CosComponent *pComp = &aComponents[pCostume->numComponents];
-	initComponent(pCostume, pComp, name, classIdx, id, pParentId ? parentCompIndex : -1);
-	pCostume->numComponents++;
-	setComponentNames(pComp, pNames);
+	CosComponent *comp = &components[costume->numComponents];
+	initComponent(costume, comp, name, classIdx, id, parentId ? parentCompIndex : -1);
+	costume->numComponents++;
+	setComponentNames(comp, names);
 
-	if (_pCompNotifier)
-		_pCompNotifier(pCostume, pComp, pCostume->numComponents - 1, 1);
+	if (_compNotifier)
+		_compNotifier(costume, comp, costume->numComponents - 1, 1);
 
 	return 1;
 }
 
-int Cos::removeComponent(int hCostume, int fourcc, void *id) {
-	CosCostume *pCostume = ptrFromHandle(hCostume);
+int Cos::removeComponent(int costumeHandle, int fourcc, void *id) {
+	CosCostume *costume = ptrFromHandle(costumeHandle);
 
-	if (!pCostume)
+	if (!costume)
 		return 0;
 
-	for (int i = 0; i < pCostume->numComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+	for (int i = 0; i < costume->numComponents; i++) {
+		CosComponent *comp = &costume->components[i];
 
-		if (pComp->id == id && _aClasses[pComp->classIdx].fourcc == fourcc)
-			return deleteComponent(hCostume, i);
+		if (comp->id == id && _classes[comp->classIdx].fourcc == fourcc)
+			return deleteComponent(costumeHandle, i);
 	}
 
 	return 0;
 }
 
-int Cos::deleteComponent(int hCostume, int compIndex) {
-	CosCostume *pCostume = ptrFromHandle(hCostume);
+int Cos::deleteComponent(int costumeHandle, int compIndex) {
+	CosCostume *costume = ptrFromHandle(costumeHandle);
 
-	if (!pCostume)
+	if (!costume)
 		return 0;
 
-	int numComponents = pCostume->numComponents;
+	int numComponents = costume->numComponents;
 
 	if (compIndex < 0 || compIndex >= numComponents)
 		return 0;
 
-	int *aDelete = new int[numComponents]();
-	int *aRemap = new int[numComponents];
+	int *deleteArray = new int[numComponents]();
+	int *remap = new int[numComponents];
 
 	for (int i = 0; i < numComponents; i++)
-		aRemap[i] = i;
+		remap[i] = i;
 
-	aDelete[compIndex] = 1;
-	aRemap[compIndex] = -1;
+	deleteArray[compIndex] = 1;
+	remap[compIndex] = -1;
 
 	for (int i = 0; i < numComponents; i++) {
-		int parent = pCostume->aComponents[i].parent;
+		int parent = costume->components[i].parent;
 		int steps = 0;
-		bool bAncestorDeleted = false;
+		bool ancestorDeleted = false;
 
 		while (parent != -1) {
 			if (parent < 0 || parent >= numComponents || steps++ > numComponents) {
@@ -260,31 +260,31 @@ int Cos::deleteComponent(int hCostume, int compIndex) {
 				break;
 			}
 
-			if (aDelete[parent]) {
-				bAncestorDeleted = true;
+			if (deleteArray[parent]) {
+				ancestorDeleted = true;
 				break;
 			}
 
-			parent = pCostume->aComponents[parent].parent;
+			parent = costume->components[parent].parent;
 		}
 
-		if (bAncestorDeleted) {
-			aDelete[i] = 1;
-			aRemap[i] = -1;
+		if (ancestorDeleted) {
+			deleteArray[i] = 1;
+			remap[i] = -1;
 		}
 	}
 
 	for (int i = 0; i < numComponents; i++) {
-		if (!aDelete[i])
+		if (!deleteArray[i])
 			continue;
 
-		CosComponent *pComp = &pCostume->aComponents[i];
-		int nextDepth = pComp->depthIdx + 2;
-		int found = findComponent(pCostume, _aClasses[pComp->classIdx].fourcc, pComp->depthIdx + 1, pComp->name);
+		CosComponent *comp = &costume->components[i];
+		int nextDepth = comp->depthIdx + 2;
+		int found = findComponent(costume, _classes[comp->classIdx].fourcc, comp->depthIdx + 1, comp->name);
 
 		while (found >= 0) {
-			pCostume->aComponents[found].depthIdx--;
-			found = findComponent(pCostume, _aClasses[pComp->classIdx].fourcc, nextDepth, pComp->name);
+			costume->components[found].depthIdx--;
+			found = findComponent(costume, _classes[comp->classIdx].fourcc, nextDepth, comp->name);
 			nextDepth++;
 		}
 	}
@@ -292,208 +292,208 @@ int Cos::deleteComponent(int hCostume, int compIndex) {
 	int numDeleted = 0;
 
 	for (int i = 0; i < numComponents; i++) {
-		if (aDelete[i])
+		if (deleteArray[i])
 			numDeleted++;
 
-		if (!aDelete[i] && numDeleted) {
-			aRemap[i] = i - numDeleted;
-			pCostume->aComponents[i - numDeleted] = pCostume->aComponents[i];
+		if (!deleteArray[i] && numDeleted) {
+			remap[i] = i - numDeleted;
+			costume->components[i - numDeleted] = costume->components[i];
 		}
 	}
 
 	int newNumComponents = numComponents - numDeleted;
-	CosComponent *aComponents = nullptr;
+	CosComponent *components = nullptr;
 
 	if (newNumComponents) {
-		aComponents = new CosComponent[newNumComponents]();
+		components = new CosComponent[newNumComponents]();
 
 		for (int i = 0; i < newNumComponents; i++)
-			aComponents[i] = pCostume->aComponents[i];
+			components[i] = costume->components[i];
 	}
 
-	delete[] pCostume->aComponents;
-	pCostume->aComponents = aComponents;
-	pCostume->numComponents = newNumComponents;
+	delete[] costume->components;
+	costume->components = components;
+	costume->numComponents = newNumComponents;
 
 	for (int i = 0; i < newNumComponents; i++) {
-		CosComponent *pComp = &pCostume->aComponents[i];
+		CosComponent *comp = &costume->components[i];
 
-		if (pComp->parent != -1) {
-			if (pComp->parent < 0 || pComp->parent >= numComponents) {
+		if (comp->parent != -1) {
+			if (comp->parent < 0 || comp->parent >= numComponents) {
 				warning("Cos::deleteComponent(): component %d has an invalid parent", i);
-				pComp->parent = -1;
+				comp->parent = -1;
 			} else {
-				pComp->parent = aRemap[pComp->parent];
+				comp->parent = remap[comp->parent];
 			}
 		}
 	}
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
 
-		for (int t = 0; t < pChore->numTracks; t++) {
-			CosChoreTrack *pTrack = &pChore->aTracks[t];
+		for (int t = 0; t < chore->numTracks; t++) {
+			CosChoreTrack *track = &chore->tracks[t];
 
-			if (pTrack->compIndex < 0 || pTrack->compIndex >= numComponents) {
+			if (track->compIndex < 0 || track->compIndex >= numComponents) {
 				warning("Cos::deleteComponent(): track %d of chore %d has an invalid component", t, c);
-				pTrack->compIndex = -1;
+				track->compIndex = -1;
 			} else {
-				pTrack->compIndex = aRemap[pTrack->compIndex];
+				track->compIndex = remap[track->compIndex];
 			}
 		}
 	}
 
-	for (int c = 0; c < pCostume->numChores; c++) {
-		CosChore *pChore = &pCostume->aChores[c];
-		int numTracks = pChore->numTracks;
+	for (int c = 0; c < costume->numChores; c++) {
+		CosChore *chore = &costume->chores[c];
+		int numTracks = chore->numTracks;
 		int numRemoved = 0;
 
 		for (int t = 0; t < numTracks; t++) {
-			CosChoreTrack *pTrack = &pChore->aTracks[t];
+			CosChoreTrack *track = &chore->tracks[t];
 
-			if (pTrack->compIndex == -1) {
+			if (track->compIndex == -1) {
 				numRemoved++;
 
-				if (pTrack->numKeys) {
-					delete[] pTrack->aKeys;
-					pTrack->aKeys = nullptr;
+				if (track->numKeys) {
+					delete[] track->keys;
+					track->keys = nullptr;
 				}
 			} else if (numRemoved) {
-				pChore->aTracks[t - numRemoved] = *pTrack;
+				chore->tracks[t - numRemoved] = *track;
 			}
 		}
 
 		int newNumTracks = numTracks - numRemoved;
-		CosChoreTrack *aTracks = nullptr;
+		CosChoreTrack *tracks = nullptr;
 
 		if (newNumTracks > 0) {
-			aTracks = new CosChoreTrack[newNumTracks]();
+			tracks = new CosChoreTrack[newNumTracks]();
 
 			for (int t = 0; t < newNumTracks; t++)
-				aTracks[t] = pChore->aTracks[t];
+				tracks[t] = chore->tracks[t];
 		}
 
-		delete[] pChore->aTracks;
-		pChore->aTracks = aTracks;
-		pChore->numTracks = newNumTracks;
+		delete[] chore->tracks;
+		chore->tracks = tracks;
+		chore->numTracks = newNumTracks;
 	}
 
-	if (_pCompNotifier) {
+	if (_compNotifier) {
 		int numNotified = 0;
 
 		for (int i = 0; i < numComponents; i++) {
-			if (aDelete[i])
-				_pCompNotifier(pCostume, nullptr, i - numNotified++, 0);
+			if (deleteArray[i])
+				_compNotifier(costume, nullptr, i - numNotified++, 0);
 		}
 	}
 
-	delete[] aDelete;
-	delete[] aRemap;
+	delete[] deleteArray;
+	delete[] remap;
 
 	return 1;
 }
 
-int Cos::addComponent(int hCostume, CosComponent *pComp, int fourcc, void *pParentId, int parentFourcc) {
+int Cos::addComponent(int costume, CosComponent *comp, int fourcc, void *parentId, int parentFourcc) {
 	int classIdx = 0;
 
-	while (classIdx < _numClasses && _aClasses[classIdx].fourcc != fourcc)
+	while (classIdx < _numClasses && _classes[classIdx].fourcc != fourcc)
 		classIdx++;
 
 	if (classIdx == _numClasses)
 		return 0;
 
-	CosComponentClass *pClass = &_aClasses[classIdx];
+	CosComponentClass *classInfo = &_classes[classIdx];
 
-	if (pClass->type < kCosTagStateBased || pClass->type > kCosTagFloat) {
-		warning("Cos::addComponent(): invalid tag type %d", pClass->type);
-		return pComp != nullptr;
+	if (classInfo->type < kCosTagStateBased || classInfo->type > kCosTagFloat) {
+		warning("Cos::addComponent(): invalid tag type %d", classInfo->type);
+		return comp != nullptr;
 	}
 
-	return pClass->pHandler->request(hCostume, fourcc, pParentId, parentFourcc, pComp) != 0;
+	return classInfo->handler->request(costume, fourcc, parentId, parentFourcc, comp) != 0;
 }
 
-int Cos::countComponents(CosCostume *pCostume) {
-	if (!pCostume) {
+int Cos::countComponents(CosCostume *costume) {
+	if (!costume) {
 		warning("Cos::countComponents(): null costume");
 		return 0;
 	}
 
-	return pCostume->numComponents;
+	return costume->numComponents;
 }
 
-CosComponent *Cos::componentInfo(CosCostume *pCostume, int compNum, int *pFourcc, void **pId, int *pParent, int *pType) {
-	if (!pCostume || compNum < 0 || compNum >= pCostume->numComponents) {
+CosComponent *Cos::componentInfo(CosCostume *costume, int compNum, int *fourcc, void **id, int *parent, int *type) {
+	if (!costume || compNum < 0 || compNum >= costume->numComponents) {
 		warning("Cos::componentInfo(): invalid costume or component number %d", compNum);
 		return nullptr;
 	}
 
-	CosComponent *pComp = &pCostume->aComponents[compNum];
-	CosComponentClass *pClass = &_aClasses[pComp->classIdx];
+	CosComponent *comp = &costume->components[compNum];
+	CosComponentClass *classInfo = &_classes[comp->classIdx];
 
-	if (pFourcc)
-		*pFourcc = pClass->fourcc;
+	if (fourcc)
+		*fourcc = classInfo->fourcc;
 
-	if (pId)
-		*pId = pComp->id;
+	if (id)
+		*id = comp->id;
 
-	if (pType)
-		*pType = pClass->type;
+	if (type)
+		*type = classInfo->type;
 
-	if (pParent)
-		*pParent = pComp->parent;
+	if (parent)
+		*parent = comp->parent;
 
-	return pComp;
+	return comp;
 }
 
-void Cos::initChore(CosChore *pChore) {
-	pChore->length = 15;
-	pChore->numTracks = 0;
-	pChore->aTracks = nullptr;
-	Common::strlcpy(pChore->name, "<unnamed>", 32);
+void Cos::initChore(CosChore *chore) {
+	chore->length = 15;
+	chore->numTracks = 0;
+	chore->tracks = nullptr;
+	Common::strlcpy(chore->name, "<unnamed>", 32);
 }
 
-void Cos::initChoreInstances(CosChore *aChores, CosChoreInstance *aInst, int count) {
+void Cos::initChoreInstances(CosChore *chores, CosChoreInstance *inst, int count) {
 	for (int i = 0; i < count; i++) {
-		aInst[i].state = 0;
-		aInst[i].choreIndex = i;
-		aInst[i].time = 0;
+		inst[i].state = 0;
+		inst[i].choreIndex = i;
+		inst[i].time = 0;
 	}
 }
 
-void Cos::setChoreLength(CosCostume *pCostume, int choreNum, int length) {
-	if (!pCostume || choreNum < 0 || choreNum >= pCostume->numChores) {
+void Cos::setChoreLength(CosCostume *costume, int choreNum, int length) {
+	if (!costume || choreNum < 0 || choreNum >= costume->numChores) {
 		warning("Cos::setChoreLength(): invalid costume or chore number %d", choreNum);
 		return;
 	}
 
-	CosChore *pChore = &pCostume->aChores[choreNum];
+	CosChore *chore = &costume->chores[choreNum];
 
-	if ((uint32)length <= (uint32)pChore->length) {
-		for (int t = 0; t < pChore->numTracks; t++) {
-			CosChoreTrack *pTrack = &pChore->aTracks[t];
+	if ((uint32)length <= (uint32)chore->length) {
+		for (int t = 0; t < chore->numTracks; t++) {
+			CosChoreTrack *track = &chore->tracks[t];
 			int k = 0;
 
-			while (k < pTrack->numKeys && (uint32)pTrack->aKeys[k].time <= (uint32)pChore->length)
+			while (k < track->numKeys && (uint32)track->keys[k].time <= (uint32)chore->length)
 				k++;
 
-			if (k < pTrack->numKeys) {
-				CosChoreKey *aKeys = nullptr;
+			if (k < track->numKeys) {
+				CosChoreKey *keys = nullptr;
 
 				if (k > 0) {
-					aKeys = new CosChoreKey[k];
+					keys = new CosChoreKey[k];
 
 					for (int i = 0; i < k; i++)
-						aKeys[i] = pTrack->aKeys[i];
+						keys[i] = track->keys[i];
 				}
 
-				delete[] pTrack->aKeys;
-				pTrack->aKeys = aKeys;
-				pTrack->numKeys = k;
+				delete[] track->keys;
+				track->keys = keys;
+				track->numKeys = k;
 			}
 		}
 	}
 
-	pChore->length = length;
+	chore->length = length;
 }
 
 } // End of namespace Grim

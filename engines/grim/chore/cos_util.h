@@ -30,34 +30,34 @@ namespace Grim {
 
 class CosUtil {
 public:
-	CosUtil(Cos *pCos);
+	CosUtil(Cos *cos);
 
-	int write(const char *path, CosCostume *pCostume, const char *header);
+	int write(const char *path, CosCostume *costume, const char *header);
 
-	CosComponent *compPtrFromHandle(CosCostume *pCostume, int compIndex);
-	int adjustComponent(CosCostume *pCostume, int whichComponent);
-	int componentHasAdjuster(CosCostume *pCostume, int whichComponent);
+	CosComponent *compPtrFromHandle(CosCostume *costume, int compIndex);
+	int adjustComponent(CosCostume *costume, int whichComponent);
+	int componentHasAdjuster(CosCostume *costume, int whichComponent);
 
-	int addChore(CosCostume *pCostume);
-	void deleteChore(CosCostume *pCostume, int choreNum);
-	void nameChore(CosCostume *pCostume, int choreNum, const char *name);
-	int countChores(CosCostume *pCostume);
-	const char *choreName(CosCostume *pCostume, int choreNum);
+	int addChore(CosCostume *costume);
+	void deleteChore(CosCostume *costume, int choreNum);
+	void nameChore(CosCostume *costume, int choreNum, const char *name);
+	int countChores(CosCostume *costume);
+	const char *choreName(CosCostume *costume, int choreNum);
 
-	int deleteKey(CosCostume *pCostume, int whichChore, int whichComponent, int time);
-	CosChoreKey *queryValueAtTime(CosCostume *pCostume, int whichChore, int whichComponent, int time);
-	int addFSKey(CosCostume *pCostume, int choreNum, int compNum, int time, int value);
-	int addIntKey(CosCostume *pCostume, int choreNum, int compNum, int time, int value);
-	int addFloatKey(CosCostume *pCostume, int choreNum, int compNum, int time, float value);
+	int deleteKey(CosCostume *costume, int whichChore, int whichComponent, int time);
+	CosChoreKey *queryValueAtTime(CosCostume *costume, int whichChore, int whichComponent, int time);
+	int addFSKey(CosCostume *costume, int choreNum, int compNum, int time, int value);
+	int addIntKey(CosCostume *costume, int choreNum, int compNum, int time, int value);
+	int addFloatKey(CosCostume *costume, int choreNum, int compNum, int time, float value);
 
 	int countTags();
-	const char *tagInfo(int whichTag, int *pFourcc);
+	const char *tagInfo(int whichTag, int *fourcc);
 
 private:
-	int collectTags(CosCostume *pCostume);
-	CosChoreKey *addKey(CosCostume *pCostume, int choreNum, int compNum, int time);
+	int collectTags(CosCostume *costume);
+	CosChoreKey *addKey(CosCostume *costume, int choreNum, int compNum, int time);
 
-	Cos *_pCos;
+	Cos *_cos;
 };
 
 } // End of namespace Grim

@@ -36,13 +36,13 @@ static const int kAdpcmFilters[CScxFile::kAdpcmFilterCount][2] = {
 };
 
 CScxFile::CScxFile() {
-	numChannels = 0;
-	interleave = 0;
-	headerOffset = 0;
-	rate = 0;
+	_numChannels = 0;
+	_interleave = 0;
+	_headerOffset = 0;
+	_rate = 0;
 
 	for (int i = 0; i < kMaxChannels; i++)
-		vagSize[i] = 0;
+		_vagSize[i] = 0;
 }
 
 void *CScxFile::operator new(size_t size) {
@@ -94,11 +94,11 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 			return false;
 		}
 
-		numChannels = data[kChannelsOffset];
-		interleave = READ_LE_UINT16(data + kInterleaveOffset);
-		headerOffset = kScxHeaderSize;
+		_numChannels = data[kChannelsOffset];
+		_interleave = READ_LE_UINT16(data + kInterleaveOffset);
+		_headerOffset = kScxHeaderSize;
 
-		if (READ_BE_UINT32(data + headerOffset) != kTagVagp) {
+		if (READ_BE_UINT32(data + _headerOffset) != kTagVagp) {
 			warning("CScxFile::parse(): no VAGp header");
 
 			return false;
@@ -110,31 +110,31 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 			return false;
 		}
 
-		numChannels = 1;
-		interleave = 0;
-		headerOffset = 0;
+		_numChannels = 1;
+		_interleave = 0;
+		_headerOffset = 0;
 	} else {
 		warning("CScxFile::parse(): unsupported format");
 
 		return false;
 	}
 
-	if (numChannels < 1 || numChannels > kMaxChannels) {
-		warning("CScxFile::parse(): %d channels not supported", numChannels);
+	if (_numChannels < 1 || _numChannels > kMaxChannels) {
+		warning("CScxFile::parse(): %d channels not supported", _numChannels);
 
 		return false;
 	}
 
-	if (numChannels > 1 && (interleave <= kVagHeaderSize || interleave % kAdpcmBlockSize != 0)) {
-		warning("CScxFile::parse(): invalid interleave %u", interleave);
+	if (_numChannels > 1 && (_interleave <= kVagHeaderSize || _interleave % kAdpcmBlockSize != 0)) {
+		warning("CScxFile::parse(): invalid interleave %u", _interleave);
 
 		return false;
 	}
 
-	rate = READ_BE_UINT32(data + headerOffset + kVagRateOffset);
+	_rate = READ_BE_UINT32(data + _headerOffset + kVagRateOffset);
 
-	for (int channel = 0; channel < numChannels; channel++) {
-		uint channelHeader = headerOffset + channel * interleave;
+	for (int channel = 0; channel < _numChannels; channel++) {
+		uint channelHeader = _headerOffset + channel * _interleave;
 
 		if (channelHeader + kVagHeaderSize > size) {
 			warning("CScxFile::parse(): VAGp header past end of file");
@@ -142,10 +142,10 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 			return false;
 		}
 
-		vagSize[channel] = READ_BE_UINT32(data + channelHeader + kVagSizeOffset);
+		_vagSize[channel] = READ_BE_UINT32(data + channelHeader + kVagSizeOffset);
 
-		if (vagSize[channel] > size) {
-			warning("CScxFile::parse(): VAGp size %u bigger than file", vagSize[channel]);
+		if (_vagSize[channel] > size) {
+			warning("CScxFile::parse(): VAGp size %u bigger than file", _vagSize[channel]);
 
 			return false;
 		}
@@ -157,8 +157,8 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 	uint loopBlock = 0;
 	bool loops = false;
 
-	for (int channel = 0; channel < numChannels; channel++) {
-		uint blocks = vagSize[channel] / kAdpcmBlockSize;
+	for (int channel = 0; channel < _numChannels; channel++) {
+		uint blocks = _vagSize[channel] / kAdpcmBlockSize;
 		uint channelLoopBlock = 0;
 		bool channelLoops = false;
 
@@ -177,28 +177,28 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 
 	// The voice is released at the end, so add one silent block for looping cues
 	uint totalFrames = loops ? frames : frames + kAdpcmBlockSamples;
-	uint frameBytes = numChannels * sizeof(int16);
+	uint frameBytes = _numChannels * sizeof(int16);
 	uint pcmSize = totalFrames * frameBytes;
 	bool result = sound->reallocData(pcmSize);
 
 	if (result) {
-		memset(sound->samples, 0, pcmSize);
+		memset(sound->_samples, 0, pcmSize);
 
-		for (int channel = 0; channel < numChannels; channel++) {
+		for (int channel = 0; channel < _numChannels; channel++) {
 			for (uint frame = 0; frame < channelFrames[channel]; frame++)
-				WRITE_LE_INT16(sound->samples + (frame * numChannels + channel) * sizeof(int16), channelSamples[channel][frame]);
+				WRITE_LE_INT16(sound->_samples + (frame * _numChannels + channel) * sizeof(int16), channelSamples[channel][frame]);
 		}
 
-		sound->formatTag = CWaveSound::kFormatPcm;
-		sound->sampleRate = (double)rate;
-		sound->bitsPerSample = 16;
-		sound->numChannels = (uint16)numChannels;
-		sound->littleEndian = true;
-		sound->loopStart = 0;
-		sound->loopEnd = 0xFFFFFFFF;
-		sound->dataSize = pcmSize;
-		sound->spuLoops = loops;
-		sound->spuLoopStart = (loops ? loopBlock * kAdpcmBlockSamples : frames) * frameBytes;
+		sound->_formatTag = CWaveSound::kFormatPcm;
+		sound->_sampleRate = (double)_rate;
+		sound->_bitsPerSample = 16;
+		sound->_numChannels = (uint16)_numChannels;
+		sound->_littleEndian = true;
+		sound->_loopStart = 0;
+		sound->_loopEnd = 0xFFFFFFFF;
+		sound->_dataSize = pcmSize;
+		sound->_spuLoops = loops;
+		sound->_spuLoopStart = (loops ? loopBlock * kAdpcmBlockSamples : frames) * frameBytes;
 	} else {
 		warning("CScxFile::parse(): out of memory");
 	}
@@ -211,12 +211,12 @@ bool CScxFile::parse(const byte *data, uint size, CWaveSound *sound) {
 
 uint CScxFile::getChannelOffset(int channel, uint position) const {
 	uint channelPosition = position + kVagHeaderSize;
-	uint channelHeader = headerOffset + channel * interleave;
+	uint channelHeader = _headerOffset + channel * _interleave;
 
-	if (!interleave)
+	if (!_interleave)
 		return channelHeader + channelPosition;
 
-	return channelHeader + (channelPosition / interleave) * interleave * numChannels + channelPosition % interleave;
+	return channelHeader + (channelPosition / _interleave) * _interleave * _numChannels + channelPosition % _interleave;
 }
 
 uint CScxFile::decodeChannel(const byte *data, uint size, int channel, int16 *out, uint blocks, uint *loopBlock, bool *loops) const {

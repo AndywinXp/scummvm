@@ -43,244 +43,244 @@
 
 namespace Grim {
 
-static Common::String getFontName(Res *pRes, BlastTextFont *pFont) {
-	ResNode *pNode = pRes->checkAllocatedRes(pFont);
+static Common::String getFontName(Res *res, BlastTextFont *font) {
+	ResNode *node = res->checkAllocatedRes(font);
 
-	if (pNode && pNode->tag == kSputTagFont)
-		return pNode->pName;
+	if (node && node->tag == kSputTagFont)
+		return node->name;
 
 	return Common::String();
 }
 
-static BlastTextFont *loadFontByName(Res *pRes, const char *name, BlastTextFont *pSystemFont) {
+static BlastTextFont *loadFontByName(Res *res, const char *name, BlastTextFont *systemFont) {
 	if (name && name[0]) {
-		BlastTextFont *pFont = static_cast<BlastTextFont *>(pRes->getResource(kSputTagFont, name));
+		BlastTextFont *font = static_cast<BlastTextFont *>(res->getResource(kSputTagFont, name));
 
-		if (pFont)
-			return pFont;
+		if (font)
+			return font;
 
 		warning("LegacyImporter::setDefaultFonts(): font %s not found, using the system font", name);
 	}
 
-	return pSystemFont;
+	return systemFont;
 }
 
-int LegacyImporter::setChoreInstance(Cos *pCos, int hInst, int choreIndex, uint32 state, int time) {
-	int index = pCos->instHandleToIndex(hInst);
+int LegacyImporter::setChoreInstance(Cos *cos, int inst, int choreIndex, uint32 state, int time) {
+	int index = cos->instHandleToIndex(inst);
 
-	if (index < 0 || index >= pCos->_maxInstances || pCos->_aInstances[index].bFree) {
-		warning("LegacyImporter::setChoreInstance(): invalid instance handle %d", hInst);
+	if (index < 0 || index >= cos->_maxInstances || cos->_instances[index].free) {
+		warning("LegacyImporter::setChoreInstance(): invalid instance handle %d", inst);
 		return 0;
 	}
 
-	CosInstance *pInstance = &pCos->_aInstances[index];
+	CosInstance *instance = &cos->_instances[index];
 
-	if (choreIndex < 0 || choreIndex >= pCos->_aCostumes[pInstance->costume].numChores) {
+	if (choreIndex < 0 || choreIndex >= cos->_costumes[instance->costume].numChores) {
 		warning("LegacyImporter::setChoreInstance(): invalid chore %d", choreIndex);
 		return 0;
 	}
 
-	pInstance->aChoreInstances[choreIndex].state = state;
-	pInstance->aChoreInstances[choreIndex].time = time;
+	instance->choreInstances[choreIndex].state = state;
+	instance->choreInstances[choreIndex].time = time;
 
 	return 1;
 }
 
-void LegacyImporter::resetActors(SputActorModule *pActors) {
+void LegacyImporter::resetActors(SputActorModule *actors) {
 	for (int i = 0; i < 4; i++)
-		pActors->_apTalkingActors[i] = nullptr;
+		actors->_talkingActors[i] = nullptr;
 
-	pActors->_numActorsTalking = 0;
-	pActors->_pSelectedActor = nullptr;
+	actors->_numActorsTalking = 0;
+	actors->_selectedActor = nullptr;
 
-	for (int i = 0; i < pActors->_maxActors; i++) {
-		if (pActors->_aActors[i].bInUse)
-			pActors->freeActor(&pActors->_aActors[i]);
+	for (int i = 0; i < actors->_maxActors; i++) {
+		if (actors->_actors[i].inUse)
+			actors->freeActor(&actors->_actors[i]);
 	}
 
-	pActors->_numActors = 0;
+	actors->_numActors = 0;
 }
 
-int LegacyImporter::addPuppetTrack(SputActorModule *pActors, ModelInst *pModelInst, RdKeyframe *pKeyframe, int priority, int priorityMasked, uint status, float frame, float fade, float fadeSpeed) {
-	RdPuppet *pPuppet = pModelInst->pThing->pPuppet;
+int LegacyImporter::addPuppetTrack(SputActorModule *actors, ModelInst *modelInst, RdKeyframe *keyframe, int priority, int priorityMasked, uint status, float frame, float fade, float fadeSpeed) {
+	RdPuppet *puppet = modelInst->thing->puppet;
 
-	if (!pPuppet) {
-		warning("LegacyImporter::addPuppetTrack(): the model has no puppet for the track %s", pKeyframe->aName);
+	if (!puppet) {
+		warning("LegacyImporter::addPuppetTrack(): the model has no puppet for the track %s", keyframe->name);
 		return -1;
 	}
 
-	int trackNum = pActors->_pRd->_puppet.addTrack(pPuppet, pKeyframe, priority, priorityMasked);
+	int trackNum = actors->_rd->_puppet.addTrack(puppet, keyframe, priority, priorityMasked);
 
 	if (trackNum < 0 || trackNum >= 6) {
-		warning("LegacyImporter::addPuppetTrack(): the keyframe %s could not be added to the puppet", pKeyframe->aName);
+		warning("LegacyImporter::addPuppetTrack(): the keyframe %s could not be added to the puppet", keyframe->name);
 		return -1;
 	}
 
-	pPuppet->aTracks[trackNum].status = status;
-	pPuppet->aTracks[trackNum].curFrame = frame;
-	pPuppet->aTracks[trackNum].prevFrame = frame;
-	pPuppet->aTracks[trackNum].fade = fade;
-	pPuppet->aTracks[trackNum].fadeSpeed = fadeSpeed;
+	puppet->tracks[trackNum].status = status;
+	puppet->tracks[trackNum].curFrame = frame;
+	puppet->tracks[trackNum].prevFrame = frame;
+	puppet->tracks[trackNum].fade = fade;
+	puppet->tracks[trackNum].fadeSpeed = fadeSpeed;
 
 	return trackNum;
 }
 
-void LegacyImporter::beginRoom(SputRoom *pSputRoom, Room *pRoom, int curSetup, int bRoomRef) {
-	pRoom->curSetup = curSetup;
+void LegacyImporter::beginRoom(SputRoom *sputRoom, Room *room, int curSetup, int roomRef) {
+	room->curSetup = curSetup;
 
-	if (pSputRoom->_currentRoomRef.valid)
-		pSputRoom->_pRes->removeReference(&pSputRoom->_currentRoomRef);
+	if (sputRoom->_currentRoomRef.valid)
+		sputRoom->_res->removeReference(&sputRoom->_currentRoomRef);
 
-	pSputRoom->_pRes->setReference(&pSputRoom->_currentRoomRef, pRoom);
+	sputRoom->_res->setReference(&sputRoom->_currentRoomRef, room);
 
-	if (!pSputRoom->_currentRoomRef.valid)
+	if (!sputRoom->_currentRoomRef.valid)
 		error("LegacyImporter::beginRoom(): Bad room Reference");
 
-	pSputRoom->loadResources(static_cast<Room *>(pSputRoom->_currentRoomRef.handle));
-	Common::strlcpy(pSputRoom->_currentRoomName, pRoom->name, 32);
+	sputRoom->loadResources(static_cast<Room *>(sputRoom->_currentRoomRef.handle));
+	Common::strlcpy(sputRoom->_currentRoomName, room->name, 32);
 
-	if (bRoomRef)
-		pSputRoom->_pRes->setReference(&pRoom->roomRef, pRoom);
+	if (roomRef)
+		sputRoom->_res->setReference(&room->roomRef, room);
 }
 
-SputObjectState *LegacyImporter::addRoomObjectState(SputRoom *pSputRoom, int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int colorFrame, int zFrame) {
-	SputObjectState *pState = pSputRoom->addObjectState(setupIndex, objectType, bitmapName, zbufferName, -1);
+SputObjectState *LegacyImporter::addRoomObjectState(SputRoom *sputRoom, int setupIndex, int objectType, const char *bitmapName, const char *zbufferName, int colorFrame, int zFrame) {
+	SputObjectState *state = sputRoom->addObjectState(setupIndex, objectType, bitmapName, zbufferName, -1);
 
-	if (!pState)
+	if (!state)
 		return nullptr;
 
-	if (pState->colorImage.bitmapRef.valid) {
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pState->colorImage.bitmapRef.handle);
+	if (state->colorImage.bitmapRef.valid) {
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(state->colorImage.bitmapRef.handle);
 
-		if (colorFrame >= (int)pBitmap->numFrames) {
+		if (colorFrame >= (int)bitmap->numFrames) {
 			warning("LegacyImporter::addRoomObjectState(): frame %d of %s is out of range", colorFrame, bitmapName);
 			colorFrame = -1;
 		}
 
-		pBitmap->curFrame = colorFrame;
+		bitmap->curFrame = colorFrame;
 	}
 
-	if (pState->zImage.bitmapRef.valid) {
-		StdBitmapStruct *pBitmap = static_cast<StdBitmapStruct *>(pState->zImage.bitmapRef.handle);
+	if (state->zImage.bitmapRef.valid) {
+		StdBitmapStruct *bitmap = static_cast<StdBitmapStruct *>(state->zImage.bitmapRef.handle);
 
-		if (zFrame >= (int)pBitmap->numFrames) {
+		if (zFrame >= (int)bitmap->numFrames) {
 			warning("LegacyImporter::addRoomObjectState(): frame %d of %s is out of range", zFrame, zbufferName);
 			zFrame = -1;
 		}
 
-		pBitmap->curFrame = zFrame;
+		bitmap->curFrame = zFrame;
 	}
 
-	return pState;
+	return state;
 }
 
-void LegacyImporter::setCurrentRoom(SputRoom *pSputRoom, Room *pRoom, byte minVol, byte maxVol, float maxDist, float panFactor, float maxRadius) {
-	pSputRoom->setCurrentRoom(pRoom);
+void LegacyImporter::setCurrentRoom(SputRoom *sputRoom, Room *room, byte minVol, byte maxVol, float maxDist, float panFactor, float maxRadius) {
+	sputRoom->setCurrentRoom(room);
 
-	pSputRoom->_pWalkSystem->setCollection(pRoom->name);
+	sputRoom->_walkSystem->setCollection(room->name);
 
-	pRoom->minVol = minVol;
-	pRoom->maxVol = maxVol;
-	pRoom->maxDist = maxDist;
-	pRoom->panFactor = panFactor;
-	pRoom->maxRadius = maxRadius;
+	room->minVol = minVol;
+	room->maxVol = maxVol;
+	room->maxDist = maxDist;
+	room->panFactor = panFactor;
+	room->maxRadius = maxRadius;
 }
 
-void LegacyImporter::getDefaultFontNames(SputText *pSputText, Common::String *pPrintLine, Common::String *pDefault, Common::String *pBlastText) {
-	*pPrintLine = getFontName(pSputText->_pRes, pSputText->_printLineParams.pFont);
-	*pDefault = getFontName(pSputText->_pRes, pSputText->_defaultTextParams.pFont);
-	*pBlastText = getFontName(pSputText->_pRes, pSputText->_blastTextParams.pFont);
+void LegacyImporter::getDefaultFontNames(SputText *sputText, Common::String *printLine, Common::String *defaultValue, Common::String *blastText) {
+	*printLine = getFontName(sputText->_res, sputText->_printLineParams.font);
+	*defaultValue = getFontName(sputText->_res, sputText->_defaultTextParams.font);
+	*blastText = getFontName(sputText->_res, sputText->_blastTextParams.font);
 }
 
-void LegacyImporter::setDefaultFonts(SputText *pSputText, const char *printLineFont, const char *defaultFont, const char *blastTextFont) {
-	while (pSputText->_pTextQueue)
-		pSputText->killEvent(pSputText->_pTextQueue);
+void LegacyImporter::setDefaultFonts(SputText *sputText, const char *printLineFont, const char *defaultFont, const char *blastTextFont) {
+	while (sputText->_textQueue)
+		sputText->killEvent(sputText->_textQueue);
 
-	pSputText->_pFont = pSputText->_pText->getSystemFont();
-	pSputText->_printLineParams.pFont = loadFontByName(pSputText->_pRes, printLineFont, pSputText->_pFont);
-	pSputText->_defaultTextParams.pFont = loadFontByName(pSputText->_pRes, defaultFont, pSputText->_pFont);
-	pSputText->_blastTextParams.pFont = loadFontByName(pSputText->_pRes, blastTextFont, pSputText->_pFont);
+	sputText->_font = sputText->_text->getSystemFont();
+	sputText->_printLineParams.font = loadFontByName(sputText->_res, printLineFont, sputText->_font);
+	sputText->_defaultTextParams.font = loadFontByName(sputText->_res, defaultFont, sputText->_font);
+	sputText->_blastTextParams.font = loadFontByName(sputText->_res, blastTextFont, sputText->_font);
 }
 
-void LegacyImporter::setSayLineDefaults(SputText *pSputText, int x, int y, int fgColor, int justify) {
+void LegacyImporter::setSayLineDefaults(SputText *sputText, int x, int y, int fgColor, int justify) {
 	int baseLine = 0;
 
-	if (pSputText->_defaultTextParams.pFont)
-		baseLine = pSputText->_defaultTextParams.pFont->baseLine;
+	if (sputText->_defaultTextParams.font)
+		baseLine = sputText->_defaultTextParams.font->baseLine;
 
-	pSputText->_defaultTextParams.x = x;
-	pSputText->_defaultTextParams.y = y + baseLine;
-	pSputText->_defaultTextParams.fgColor = fgColor;
+	sputText->_defaultTextParams.x = x;
+	sputText->_defaultTextParams.y = y + baseLine;
+	sputText->_defaultTextParams.fgColor = fgColor;
 
 	if (justify == 1)
-		pSputText->_defaultTextParams.flags = 5;
+		sputText->_defaultTextParams.flags = 5;
 	else if (justify == 2)
-		pSputText->_defaultTextParams.flags = 4;
+		sputText->_defaultTextParams.flags = 4;
 	else if (justify == 3)
-		pSputText->_defaultTextParams.flags = 6;
+		sputText->_defaultTextParams.flags = 6;
 }
 
-void LegacyImporter::setRenderState(SputRender *pSputRender, int irisMode, int irisCenterX, int irisCenterY, int irisDuration, int irisElapsed, int camActorIndex) {
-	pSputRender->_irisStart = 0;
-	pSputRender->_irisDuration = 0.0f;
-	pSputRender->_irisCenterX = 320;
-	pSputRender->_irisCenterY = 240;
-	pSputRender->_renderFlags = 0;
-	pSputRender->_pageFlipEnable = 1;
-	pSputRender->_movieJustFinished = 0;
-	pSputRender->_gCamActorIndex = camActorIndex;
+void LegacyImporter::setRenderState(SputRender *sputRender, int irisMode, int irisCenterX, int irisCenterY, int irisDuration, int irisElapsed, int camActorIndex) {
+	sputRender->_irisStart = 0;
+	sputRender->_irisDuration = 0.0f;
+	sputRender->_irisCenterX = 320;
+	sputRender->_irisCenterY = 240;
+	sputRender->_renderFlags = 0;
+	sputRender->_pageFlipEnable = 1;
+	sputRender->_movieJustFinished = 0;
+	sputRender->_camActorIndex = camActorIndex;
 
 	if (irisMode == 1) {
-		pSputRender->irisDown(320, 240, 1);
-		pSputRender->_irisStart = pSputRender->_pSputTime->getGameTime() - 2;
+		sputRender->irisDown(320, 240, 1);
+		sputRender->_irisStart = sputRender->_sputTime->getGameTime() - 2;
 	} else if (irisMode == 2 || irisMode == 3) {
 		if (irisMode == 2)
-			pSputRender->irisDown(irisCenterX, irisCenterY, irisDuration);
+			sputRender->irisDown(irisCenterX, irisCenterY, irisDuration);
 		else
-			pSputRender->irisUp(irisCenterX, irisCenterY, irisDuration);
+			sputRender->irisUp(irisCenterX, irisCenterY, irisDuration);
 
-		pSputRender->_irisStart = pSputRender->_pSputTime->getGameTime() - irisElapsed;
+		sputRender->_irisStart = sputRender->_sputTime->getGameTime() - irisElapsed;
 	}
 }
 
-void LegacyImporter::startMovie(SputSmush *pSputSmush, const char *name, int bLooping, int x, int y) {
-	pSputSmush->setTarget(pSputSmush->_pMainGfxBuffer);
+void LegacyImporter::startMovie(SputSmush *sputSmush, const char *name, int looping, int x, int y) {
+	sputSmush->setTarget(sputSmush->_mainGfxBuffer);
 
-	pSputSmush->_playing = 0;
-	pSputSmush->_paused = 0;
-	pSputSmush->_abort = 0;
-	pSputSmush->_looping = 0;
-	pSputSmush->_x = 0;
-	pSputSmush->_y = 0;
-	memset(pSputSmush->_curMovieFile, 0, sizeof(pSputSmush->_curMovieFile));
+	sputSmush->_playing = 0;
+	sputSmush->_paused = 0;
+	sputSmush->_abort = 0;
+	sputSmush->_looping = 0;
+	sputSmush->_x = 0;
+	sputSmush->_y = 0;
+	memset(sputSmush->_curMovieFile, 0, sizeof(sputSmush->_curMovieFile));
 
 	if (name)
-		pSputSmush->startMovie(name, bLooping, x, y);
+		sputSmush->startMovie(name, looping, x, y);
 }
 
-void LegacyImporter::getEngineRefs(LegacyLuaRefs *pRefs) {
-	Lua_V1 *pLua = _pGrim->_pLua;
-	SputText *pSputText = _pGrim->_pSputText;
+void LegacyImporter::getEngineRefs(LegacyLuaRefs *refs) {
+	Lua_V1 *lua = _grim->_luaV1;
+	SputText *sputText = _grim->_sputText;
 
-	pRefs->systemTable = pLua->refSystemTable;
-	pRefs->typeOverride = pLua->refTypeOverride;
-	pRefs->oldConcatFallback = pLua->refOldConcatFallback;
-	pRefs->textObject[0] = pSputText->_luaTextObjXRef;
-	pRefs->textObject[1] = pSputText->_luaTextObjYRef;
-	pRefs->textObject[2] = pSputText->_luaTextObjFontRef;
-	pRefs->textObject[3] = pSputText->_luaTextObjWidthRef;
-	pRefs->textObject[4] = pSputText->_luaTextObjHeightRef;
-	pRefs->textObject[5] = pSputText->_luaTextObjFGColorRef;
-	pRefs->textObject[6] = pSputText->_luaTextObjBGColorRef;
-	pRefs->textObject[7] = pSputText->_luaTextObjFXColorRef;
-	pRefs->textObject[8] = pSputText->_luaTextObjHIColorRef;
-	pRefs->textObject[9] = pSputText->_luaTextObjDurationRef;
-	pRefs->textObject[10] = pSputText->_luaTextObjCenterRef;
-	pRefs->textObject[11] = pSputText->_luaTextObjLJustifyRef;
-	pRefs->textObject[12] = pSputText->_luaTextObjRJustifyRef;
-	pRefs->textObject[13] = pSputText->_luaTextObjVolumeRef;
-	pRefs->textObject[14] = pSputText->_luaTextObjBufferRef;
-	pRefs->textObject[15] = pSputText->_luaTextObjBackgroundRef;
+	refs->systemTable = lua->_refSystemTable;
+	refs->typeOverride = lua->_refTypeOverride;
+	refs->oldConcatFallback = lua->_refOldConcatFallback;
+	refs->textObject[0] = sputText->_luaTextObjXRef;
+	refs->textObject[1] = sputText->_luaTextObjYRef;
+	refs->textObject[2] = sputText->_luaTextObjFontRef;
+	refs->textObject[3] = sputText->_luaTextObjWidthRef;
+	refs->textObject[4] = sputText->_luaTextObjHeightRef;
+	refs->textObject[5] = sputText->_luaTextObjFGColorRef;
+	refs->textObject[6] = sputText->_luaTextObjBGColorRef;
+	refs->textObject[7] = sputText->_luaTextObjFXColorRef;
+	refs->textObject[8] = sputText->_luaTextObjHIColorRef;
+	refs->textObject[9] = sputText->_luaTextObjDurationRef;
+	refs->textObject[10] = sputText->_luaTextObjCenterRef;
+	refs->textObject[11] = sputText->_luaTextObjLJustifyRef;
+	refs->textObject[12] = sputText->_luaTextObjRJustifyRef;
+	refs->textObject[13] = sputText->_luaTextObjVolumeRef;
+	refs->textObject[14] = sputText->_luaTextObjBufferRef;
+	refs->textObject[15] = sputText->_luaTextObjBackgroundRef;
 }
 
 } // End of namespace Grim

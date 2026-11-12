@@ -60,7 +60,7 @@ bool LBitmap::saveToFile(LFile *file) {
 }
 
 LColorFormat &LBitmap::getColorFormat() {
-	return colorFormat;
+	return _colorFormat;
 }
 
 bool LBitmap::loadFile(const char *path) {

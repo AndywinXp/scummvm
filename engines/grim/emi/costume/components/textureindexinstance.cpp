@@ -31,35 +31,35 @@
 namespace Grim {
 
 TextureIndexInstance::TextureIndexInstance(EmiEngine *engine, const LString &componentName, Actor *actor) : ComponentInstance(engine, componentName) {
-	owner = actor;
+	_owner = actor;
 
 	if (componentName.size() >= Component::kNamePrefixSize)
-		filter = componentName.c_str() + Component::kNamePrefixSize;
+		_filter = componentName.c_str() + Component::kNamePrefixSize;
 	else
 		warning("TextureIndexInstance::TextureIndexInstance(): invalid component name %s", componentName.c_str());
 }
 
 void TextureIndexInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	if (!owner || !partial)
+	if (!_owner || !partial)
 		return;
 
-	for (uint i = 0; i < owner->instances.size(); i++) {
-		RMeshInstance *meshInstance = dynamic_cast<RMeshInstance *>(owner->instances[i]);
+	for (uint i = 0; i < _owner->_instances.size(); i++) {
+		RMeshInstance *meshInstance = dynamic_cast<RMeshInstance *>(_owner->_instances[i]);
 		CSpriteInstance *spriteInstance = nullptr;
 		int materialIndex = -1;
 
 		if (meshInstance) {
-			RMesh *mesh = static_cast<RMesh *>(meshInstance->prim);
+			RMesh *mesh = static_cast<RMesh *>(meshInstance->_prim);
 
-			for (uint j = 0; j < mesh->matHandles.size(); j++) {
-				LResource *meshMaterial = mesh->matHandles[j].resource;
+			for (uint j = 0; j < mesh->_matHandles.size(); j++) {
+				LResource *meshMaterial = mesh->_matHandles[j]._resource;
 
 				if (!meshMaterial) {
 					warning("TextureIndexInstance::setKey(): missing material %u", j);
 					continue;
 				}
 
-				if (meshMaterial->name == filter) {
+				if (meshMaterial->_name == _filter) {
 					materialIndex = j;
 					break;
 				}
@@ -68,41 +68,41 @@ void TextureIndexInstance::setKey(float value, float elapsed, float nextValue, f
 			if (materialIndex < 0)
 				continue;
 		} else {
-			spriteInstance = dynamic_cast<CSpriteInstance *>(owner->instances[i]);
+			spriteInstance = dynamic_cast<CSpriteInstance *>(_owner->_instances[i]);
 
 			if (!spriteInstance)
 				continue;
 
-			LResource *spriteMaterial = static_cast<CSprite *>(spriteInstance->prim)->material.resource;
+			LResource *spriteMaterial = static_cast<CSprite *>(spriteInstance->_prim)->_material._resource;
 
 			if (!spriteMaterial) {
 				warning("TextureIndexInstance::setKey(): the sprite has no material");
 				continue;
 			}
 
-			if (!(spriteMaterial->name == filter))
+			if (!(spriteMaterial->_name == _filter))
 				continue;
 		}
 
 		int textureIndex = (int)value;
-		LResourceHandle<CMaterial> materialHandle(_engine, filter);
-		CMaterial *material = materialHandle.lock() ? materialHandle.typed : nullptr;
+		LResourceHandle<CMaterial> materialHandle(_engine, _filter);
+		CMaterial *material = materialHandle.lock() ? materialHandle._typed : nullptr;
 
 		if (!material) {
-			warning("TextureIndexInstance::setKey(): cannot lock the material %s", filter.c_str());
+			warning("TextureIndexInstance::setKey(): cannot lock the material %s", _filter.c_str());
 			materialHandle.unlock();
 		} else if (textureIndex < 0 || textureIndex >= material->getNumTextures()) {
 			materialHandle.unlock();
 		} else {
-			if (materialHandle.resource && materialHandle.resource->loaded) {
-				materialHandle.lockCount--;
-				materialHandle.resource->resUnlock();
+			if (materialHandle._resource && materialHandle._resource->_loaded) {
+				materialHandle._lockCount--;
+				materialHandle._resource->resUnlock();
 			}
 
 			if (meshInstance)
 				meshInstance->setMaterialTextureIndex(materialIndex, textureIndex);
 			else
-				spriteInstance->textureIndex = textureIndex;
+				spriteInstance->_textureIndex = textureIndex;
 		}
 
 		return;

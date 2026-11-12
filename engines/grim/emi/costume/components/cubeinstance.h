@@ -36,8 +36,8 @@ public:
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	Actor *owner;
-	RBoxInstance *boxInstance;
+	Actor *_owner;
+	RBoxInstance *_boxInstance;
 };
 
 } // End of namespace Grim

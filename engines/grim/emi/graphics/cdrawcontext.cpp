@@ -28,42 +28,42 @@
 
 namespace Grim {
 
-CDrawContext::CDrawContext(EmiEngine *engine) : _engine(engine), _listCount(0), drawListA(this, 5000), drawListB(this, 5000) {
-	displayMode.width = 800;
-	displayMode.height = 600;
-	displayMode.bpp = 16;
-	displayMode.reserved12[0] = 2;
-	displayMode.reserved12[1] = 16;
-	displayMode.flags = 0;
-	defaultTexture = nullptr;
-	frameCounter = 0;
-	trianglesDrawn = 0;
-	counter8 = 0;
-	counter12 = 0;
-	counter16 = 0;
-	counter20 = 0;
-	counter24 = 0;
-	polyOptions = 0;
-	blendMode = 0;
-	textureFlag = true;
-	pixelCenter = false;
-	sceneBegun = false;
-	hasGammaCtl = false;
+CDrawContext::CDrawContext(EmiEngine *engine) : _engine(engine), _listCount(0), _drawListA(this, 5000), _drawListB(this, 5000) {
+	_displayMode.width = 800;
+	_displayMode.height = 600;
+	_displayMode.bpp = 16;
+	_displayMode.reserved12[0] = 2;
+	_displayMode.reserved12[1] = 16;
+	_displayMode.flags = 0;
+	_defaultTexture = nullptr;
+	_frameCounter = 0;
+	_trianglesDrawn = 0;
+	_counter8 = 0;
+	_counter12 = 0;
+	_counter16 = 0;
+	_counter20 = 0;
+	_counter24 = 0;
+	_polyOptions = 0;
+	_blendMode = 0;
+	_textureFlag = true;
+	_pixelCenter = false;
+	_sceneBegun = false;
+	_hasGammaCtl = false;
 
 	for (int i = 0; i < kNumCachedTextures; i++)
-		textureCache[i] = nullptr;
+		_textureCache[i] = nullptr;
 }
 
 CDrawContext::~CDrawContext() {
 	if (_engine->getDrawContext() == this)
 		_engine->setDrawContext(nullptr);
 
-	delete defaultTexture;
-	defaultTexture = nullptr;
+	delete _defaultTexture;
+	_defaultTexture = nullptr;
 
 	for (int i = 0; i < kNumCachedTextures; i++) {
-		delete textureCache[i];
-		textureCache[i] = nullptr;
+		delete _textureCache[i];
+		_textureCache[i] = nullptr;
 	}
 }
 
@@ -80,23 +80,23 @@ EmiEngine *CDrawContext::getEngine() const {
 }
 
 bool CDrawContext::hasGammaControl() {
-	return hasGammaCtl;
+	return _hasGammaCtl;
 }
 
 bool CDrawContext::getTextureFlag() {
-	return textureFlag;
+	return _textureFlag;
 }
 
 void CDrawContext::setTextureFlag(bool value) {
-	textureFlag = value;
+	_textureFlag = value;
 }
 
 bool CDrawContext::getPixelCenter() {
-	return pixelCenter;
+	return _pixelCenter;
 }
 
 void CDrawContext::setPixelCenter(bool value) {
-	pixelCenter = value;
+	_pixelCenter = value;
 }
 
 Graphics::PixelFormat CDrawContext::getMovieFormat() {
@@ -104,7 +104,7 @@ Graphics::PixelFormat CDrawContext::getMovieFormat() {
 }
 
 bool CDrawContext::beginScene() {
-	if (sceneBegun) {
+	if (_sceneBegun) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logWarning("CDrawContext::BeginScene -- BeginScene already called this frame!\n");
 		else
@@ -113,20 +113,20 @@ bool CDrawContext::beginScene() {
 		return false;
 	}
 
-	trianglesDrawn = 0;
-	counter8 = 0;
-	counter12 = 0;
-	counter16 = 0;
-	counter20 = 0;
-	counter24 = 0;
-	frameCounter++;
-	sceneBegun = true;
+	_trianglesDrawn = 0;
+	_counter8 = 0;
+	_counter12 = 0;
+	_counter16 = 0;
+	_counter20 = 0;
+	_counter24 = 0;
+	_frameCounter++;
+	_sceneBegun = true;
 
 	return true;
 }
 
 bool CDrawContext::endScene() {
-	if (!sceneBegun) {
+	if (!_sceneBegun) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logWarning("CDrawContext::EndScene -- No previous call to BeginScene!\n");
 		else
@@ -135,44 +135,44 @@ bool CDrawContext::endScene() {
 		return false;
 	}
 
-	sceneBegun = false;
+	_sceneBegun = false;
 
 	return true;
 }
 
 int CDrawContext::flushDrawLists() {
 	int total = 0;
-	int countA = drawListA.count;
+	int countA = _drawListA._count;
 
 	for (int i = 0; i < countA; i++) {
-		total += outputDrawPoly(drawListA.polys[i]);
-		drawListA.recyclePoly(drawListA.polys[i]);
+		total += outputDrawPoly(_drawListA._polys[i]);
+		_drawListA.recyclePoly(_drawListA._polys[i]);
 	}
 
-	int countB = drawListB.count;
+	int countB = _drawListB._count;
 
-	drawListB.sort();
+	_drawListB.sort();
 
 	for (int i = 0; i < countB; i++) {
-		total += outputDrawPoly(drawListB.polys[i]);
-		drawListB.recyclePoly(drawListB.polys[i]);
+		total += outputDrawPoly(_drawListB._polys[i]);
+		_drawListB.recyclePoly(_drawListB._polys[i]);
 	}
 
 	afterFlush();
-	drawListA.reset();
-	drawListB.reset();
+	_drawListA.reset();
+	_drawListB.reset();
 
 	return total;
 }
 
 int CDrawContext::outputDrawList(CDrawList *list) {
 	int total = 0;
-	int count = list->count;
+	int count = list->_count;
 
 	list->sort();
 
 	for (int i = 0; i < count; i++)
-		total += outputDrawPoly(list->polys[i]);
+		total += outputDrawPoly(list->_polys[i]);
 
 	list->~CDrawList();
 	_engine->getMemoryServices()->freeImpl(list);
@@ -183,8 +183,8 @@ int CDrawContext::outputDrawList(CDrawList *list) {
 int *CDrawContext::getViewportRect(int *rect) {
 	rect[0] = 0;
 	rect[1] = 0;
-	rect[2] = displayMode.width;
-	rect[3] = displayMode.height;
+	rect[2] = _displayMode.width;
+	rect[3] = _displayMode.height;
 
 	return rect;
 }
@@ -196,11 +196,11 @@ LColorFormat CDrawContext::getTextureFormat(int first, int second) {
 }
 
 void CDrawContext::freeTexture(CTexture *tex) {
-	if (tex == defaultTexture)
+	if (tex == _defaultTexture)
 		return;
 
 	for (int i = 0; i < kNumCachedTextures; i++) {
-		if (tex == textureCache[i])
+		if (tex == _textureCache[i])
 			return;
 	}
 
@@ -208,7 +208,7 @@ void CDrawContext::freeTexture(CTexture *tex) {
 }
 
 int CDrawContext::getTextureCost(CTexture *tex) {
-	if (!tex || tex == defaultTexture)
+	if (!tex || tex == _defaultTexture)
 		return 0;
 
 	return sizeof(CTexture);
@@ -216,49 +216,49 @@ int CDrawContext::getTextureCost(CTexture *tex) {
 
 CDrawList *CDrawContext::getDrawList(int index) {
 	if (index)
-		return &drawListB;
+		return &_drawListB;
 
-	return &drawListA;
+	return &_drawListA;
 }
 
 bool CDrawContext::setCachedTexture(int slot, int width, int height, const LColorFormat &format, byte *pixels, const char *name) {
 	if (slot < 0 || slot >= kNumCachedTextures)
 		return false;
 
-	if (textureCache[slot]) {
+	if (_textureCache[slot]) {
 		LABitmap bitmap(_engine, width, height, format, pixels, false);
 
-		textureCache[slot]->setup(&bitmap);
+		_textureCache[slot]->setup(&bitmap);
 	} else {
-		textureCache[slot] = createTexture(width, height, format, pixels, name);
+		_textureCache[slot] = createTexture(width, height, format, pixels, name);
 	}
 
-	return textureCache[slot] != nullptr;
+	return _textureCache[slot] != nullptr;
 }
 
 bool CDrawContext::setCachedTexture(int slot, LABitmap *bitmap) {
 	if (slot < 0 || slot >= kNumCachedTextures)
 		return false;
 
-	if (textureCache[slot]) {
-		textureCache[slot]->setup(bitmap);
+	if (_textureCache[slot]) {
+		_textureCache[slot]->setup(bitmap);
 
-		return textureCache[slot] != nullptr;
+		return _textureCache[slot] != nullptr;
 	}
 
-	textureCache[slot] = createTexture(bitmap);
+	_textureCache[slot] = createTexture(bitmap);
 
-	return textureCache[slot] != nullptr;
+	return _textureCache[slot] != nullptr;
 }
 
 CTexture *CDrawContext::getCachedTexture(int slot) {
 	if (slot < 0 || slot >= kNumCachedTextures)
-		return defaultTexture;
+		return _defaultTexture;
 
-	CTexture *texture = textureCache[slot];
+	CTexture *texture = _textureCache[slot];
 
 	if (!texture)
-		return defaultTexture;
+		return _defaultTexture;
 
 	return texture;
 }

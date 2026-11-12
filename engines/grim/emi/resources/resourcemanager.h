@@ -82,10 +82,10 @@ public:
 	void update(float frameTime);
 	int dumpResource(LResource *resource, LFile *file);
 
-	LFile *logFile;
-	Common::List<LResource *> allResources;
-	Common::List<LResource *> lruResources;
-	ResourceMap resourcesByName;
+	LFile *_logFile;
+	Common::List<LResource *> _allResources;
+	Common::List<LResource *> _lruResources;
+	ResourceMap _resourcesByName;
 
 private:
 	EmiEngine *_engine;

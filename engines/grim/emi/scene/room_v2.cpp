@@ -132,79 +132,79 @@ static void sortDrawItems(Common::Array<DrawItem> &items) {
 }
 
 Room_v2::Room_v2() {
-	setups = nullptr;
-	numSetups = 0;
-	currentSetup = 0;
-	walkPlanes = nullptr;
-	minVol = 0;
-	maxVol = 0;
-	maxDist = 0.0f;
-	panFactor = 0.0f;
-	maxRadius = 0.0f;
+	_setups = nullptr;
+	_numSetups = 0;
+	_currentSetup = 0;
+	_walkPlanes = nullptr;
+	_minVol = 0;
+	_maxVol = 0;
+	_maxDist = 0.0f;
+	_panFactor = 0.0f;
+	_maxRadius = 0.0f;
 }
 
 Room_v2::~Room_v2() {
 	freeSetups();
 
-	if (walkPlanes) {
-		delete walkPlanes;
-		walkPlanes = nullptr;
+	if (_walkPlanes) {
+		delete _walkPlanes;
+		_walkPlanes = nullptr;
 	}
 
-	while (!lights.empty()) {
-		CLightNode *lightNode = lights.front();
+	while (!_lights.empty()) {
+		CLightNode *lightNode = _lights.front();
 
 		if (lightNode) {
 			removeLight(lightNode);
 
-			if (lightNode->light) {
-				delete lightNode->light;
-				lightNode->light = nullptr;
+			if (lightNode->_light) {
+				delete lightNode->_light;
+				lightNode->_light = nullptr;
 			}
 
 			delete lightNode;
 		} else {
 			warning("Room_v2::~Room_v2(): null light");
-			lights.pop_front();
+			_lights.pop_front();
 		}
 	}
 
-	while (!shadows.empty())
-		removeShadow(shadows.front());
+	while (!_shadows.empty())
+		removeShadow(_shadows.front());
 
-	actors.clear();
+	_actors.clear();
 }
 
 uint Room_v2::resSizeOfItem() {
 	uint size = sizeof(Room_v2);
 
-	for (int i = 0; i < numSetups; i++)
-		size += setups[i].getSize();
+	for (int i = 0; i < _numSetups; i++)
+		size += _setups[i].getSize();
 
-	size += sizeof(Shadow_v2 *) * shadows.size();
+	size += sizeof(Shadow_v2 *) * _shadows.size();
 
 	Common::List<Shadow_v2 *>::iterator shadowIt;
 
-	for (shadowIt = shadows.begin(); shadowIt != shadows.end(); ++shadowIt)
+	for (shadowIt = _shadows.begin(); shadowIt != _shadows.end(); ++shadowIt)
 		size += (*shadowIt)->getSize();
 
-	size += sizeof(CLightNode *) * lights.size();
+	size += sizeof(CLightNode *) * _lights.size();
 
 	Common::List<CLightNode *>::iterator lightIt;
 
-	for (lightIt = lights.begin(); lightIt != lights.end(); ++lightIt) {
+	for (lightIt = _lights.begin(); lightIt != _lights.end(); ++lightIt) {
 		if (*lightIt) {
 			size += sizeof(CLightNode);
 
-			if ((*lightIt)->light)
+			if ((*lightIt)->_light)
 				size += sizeof(CLight);
 		}
 	}
 
-	size += sizeof(Actor *) * actors.size();
+	size += sizeof(Actor *) * _actors.size();
 
-	if (walkPlanes)
-		size += walkPlanes->getSize();
+	if (_walkPlanes)
+		size += _walkPlanes->getSize();
 
 	return size;
 }
@@ -235,12 +235,12 @@ bool Room_v2::resLoadItem(const char *itemName) {
 			return false;
 		}
 
-		if (walkPlanes) {
+		if (_walkPlanes) {
 			Common::List<Shadow_v2 *>::iterator it;
 
-			for (it = shadows.begin(); it != shadows.end(); ++it)
-				(*it)->resolveSectors(walkPlanes);
-		} else if (!shadows.empty()) {
+			for (it = _shadows.begin(); it != _shadows.end(); ++it)
+				(*it)->resolveSectors(_walkPlanes);
+		} else if (!_shadows.empty()) {
 			warning("Room_v2::resLoadItem(): shadows without sectors");
 		}
 
@@ -260,22 +260,22 @@ bool Room_v2::resLoadItem(const char *itemName) {
 void Room_v2::setSetup(int setupIndex) {
 	int index = setupIndex;
 
-	if (numSetups <= 0) {
+	if (_numSetups <= 0) {
 		warning("Room_v2::setSetup(): the room has no setups");
 
 		return;
 	}
 
 	while (index < 0)
-		index += numSetups;
+		index += _numSetups;
 
-	if (index >= numSetups)
-		index %= numSetups;
+	if (index >= _numSetups)
+		index %= _numSetups;
 
-	int oldSetup = currentSetup;
+	int oldSetup = _currentSetup;
 
 	if (index != oldSetup) {
-		currentSetup = index;
+		_currentSetup = index;
 		_engine->getLua()->callCameraChange(oldSetup, index);
 	}
 }
@@ -283,43 +283,43 @@ void Room_v2::setSetup(int setupIndex) {
 Camera *Room_v2::getSetupCamera(int setupIndex) {
 	int index = setupIndex;
 
-	if (index < 0 || index >= numSetups)
-		index = currentSetup;
+	if (index < 0 || index >= _numSetups)
+		index = _currentSetup;
 
-	if (!setups || index < 0 || index >= numSetups) {
+	if (!_setups || index < 0 || index >= _numSetups) {
 		warning("Room_v2::getSetupCamera(): invalid setup %d", index);
 
 		return nullptr;
 	}
 
-	return &setups[index].camera;
+	return &_setups[index]._camera;
 }
 
 int Room_v2::draw(CDrawContext *drawContext) {
 	_engine->_roomDrawTimer.start();
 
-	if (!setups || currentSetup < 0 || currentSetup >= numSetups) {
-		warning("Room_v2::draw(): invalid setup %d", currentSetup);
+	if (!_setups || _currentSetup < 0 || _currentSetup >= _numSetups) {
+		warning("Room_v2::draw(): invalid setup %d", _currentSetup);
 		_engine->_roomDrawTimer.stop();
 
 		return 0;
 	}
 
 	int layersDrawn = 0;
-	Camera *camera = &setups[currentSetup].camera;
+	Camera *camera = &_setups[_currentSetup]._camera;
 	camera->updateViewMatrix();
-	CTransform view = camera->view;
+	CTransform view = camera->_view;
 
-	if (_engine->_lastDrawnRoom == this && _engine->_lastDrawnSetup == currentSetup) {
-		Setup *setup = &setups[_engine->_lastDrawnSetup];
+	if (_engine->_lastDrawnRoom == this && _engine->_lastDrawnSetup == _currentSetup) {
+		Setup *setup = &_setups[_engine->_lastDrawnSetup];
 		drawContext->clear(false, true);
 
 		Common::Array<DrawItem> items;
 		Common::List<Layer *>::iterator layerIt;
 
-		for (layerIt = setup->layers.begin(); layerIt != setup->layers.end(); ++layerIt) {
+		for (layerIt = setup->_layers.begin(); layerIt != setup->_layers.end(); ++layerIt) {
 			DrawItem item;
-			item.key = (*layerIt)->sortOrder;
+			item.key = (*layerIt)->_sortOrder;
 			item.depth = 100000.0f;
 			item.type = kDrawLayer;
 			item.object = *layerIt;
@@ -329,20 +329,20 @@ int Room_v2::draw(CDrawContext *drawContext) {
 
 		Common::List<Actor *>::iterator actorIt;
 
-		for (actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
+		for (actorIt = _actors.begin(); actorIt != _actors.end(); ++actorIt) {
 			Actor *actor = *actorIt;
 
-			if ((actor->nodeFlags & CNode::kWorldValid) == 0)
+			if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 				actor->updateWorldTransform();
 
-			float x = actor->world.pos.x;
-			float y = actor->world.pos.y;
-			float z = actor->world.pos.z;
-			double product = (double)view.rot.m[5] * y + (double)view.rot.m[2] * x;
-			product = product + (double)view.rot.m[8] * z;
-			float depth = (float)((double)view.pos.z + product);
+			float x = actor->_world._pos._x;
+			float y = actor->_world._pos._y;
+			float z = actor->_world._pos._z;
+			double product = (double)view._rot._m[5] * y + (double)view._rot._m[2] * x;
+			product = product + (double)view._rot._m[8] * z;
+			float depth = (float)((double)view._pos._z + product);
 
-			if (!actor->instances.empty()) {
+			if (!actor->_instances.empty()) {
 				DrawItem item;
 				item.key = actor->getSortOrder(_engine->_lastDrawnSetup);
 				item.depth = depth;
@@ -352,7 +352,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 				items.push_back(item);
 			}
 
-			for (uint i = 0; i < actor->shadows.size(); i++) {
+			for (uint i = 0; i < actor->_shadows.size(); i++) {
 				DrawItem item;
 				item.key = actor->getSortOrder(_engine->_lastDrawnSetup);
 				item.type = kDrawShadow;
@@ -375,12 +375,12 @@ int Room_v2::draw(CDrawContext *drawContext) {
 			if (item.type == kDrawLayer) {
 				layersDrawn += ((Layer *)item.object)->draw(drawContext);
 			} else if (item.type == kDrawActor) {
-				setup->camera.applyProjection();
-				((Actor *)item.object)->drawActor(&setup->camera);
+				setup->_camera.applyProjection();
+				((Actor *)item.object)->drawActor(&setup->_camera);
 			} else if (item.type == kDrawShadow) {
 				Actor *actor = (Actor *)item.object;
-				setup->camera.applyProjection();
-				actor->drawShadow(&setup->camera, actor->shadows[item.index]);
+				setup->_camera.applyProjection();
+				actor->drawShadow(&setup->_camera, actor->_shadows[item.index]);
 			}
 		}
 
@@ -390,8 +390,8 @@ int Room_v2::draw(CDrawContext *drawContext) {
 	}
 
 	_engine->_lastDrawnRoom = this;
-	_engine->_lastDrawnSetup = currentSetup;
-	setups[_engine->_lastDrawnSetup].buildLayers();
+	_engine->_lastDrawnSetup = _currentSetup;
+	_setups[_engine->_lastDrawnSetup].buildLayers();
 	_engine->getSounds()->setSoundListener(camera);
 	_engine->getLua()->callPostCameraChange(_engine->_lastDrawnSetup);
 	_engine->_roomDrawTimer.stop();
@@ -400,17 +400,17 @@ int Room_v2::draw(CDrawContext *drawContext) {
 }
 
 void Room_v2::addActor(Actor *actor) {
-	actors.push_back(actor);
+	_actors.push_back(actor);
 }
 
 int Room_v2::removeActor(Actor *actor) {
 	int count = 0;
-	Common::List<Actor *>::iterator it = actors.begin();
+	Common::List<Actor *>::iterator it = _actors.begin();
 
-	while (it != actors.end()) {
+	while (it != _actors.end()) {
 		if (*it == actor) {
 			count++;
-			it = actors.erase(it);
+			it = _actors.erase(it);
 		} else {
 			++it;
 		}
@@ -422,7 +422,7 @@ int Room_v2::removeActor(Actor *actor) {
 void Room_v2::setLightsActive(bool active) {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
 			(*it)->setActive(active);
 	}
@@ -431,26 +431,26 @@ void Room_v2::setLightsActive(bool active) {
 void Room_v2::saveLightStates() {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
-			(*it)->savedActive = (*it)->active;
+			(*it)->_savedActive = (*it)->_active;
 	}
 }
 
 void Room_v2::restoreLightStates() {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
-			(*it)->setActive((*it)->savedActive);
+			(*it)->setActive((*it)->_savedActive);
 	}
 }
 
 CLightNode *Room_v2::findLight(const char *lightName) {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
-		if (*it && scumm_stricmp(lightName, (*it)->name) == 0)
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
+		if (*it && scumm_stricmp(lightName, (*it)->_name) == 0)
 			return *it;
 	}
 
@@ -460,22 +460,22 @@ CLightNode *Room_v2::findLight(const char *lightName) {
 void Room_v2::addLight(CLightNode *light) {
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it == light)
 			return;
 	}
 
-	lights.push_back(light);
+	_lights.push_back(light);
 }
 
 void Room_v2::removeLight(CLightNode *light) {
 	light->setActive(false);
 
-	Common::List<CLightNode *>::iterator it = lights.begin();
+	Common::List<CLightNode *>::iterator it = _lights.begin();
 
-	while (it != lights.end()) {
+	while (it != _lights.end()) {
 		if (*it == light)
-			it = lights.erase(it);
+			it = _lights.erase(it);
 		else
 			++it;
 	}
@@ -484,8 +484,8 @@ void Room_v2::removeLight(CLightNode *light) {
 Shadow_v2 *Room_v2::findShadow(const LString &shadowName) {
 	Common::List<Shadow_v2 *>::iterator it;
 
-	for (it = shadows.begin(); it != shadows.end(); ++it) {
-		if (*it && (*it)->name == shadowName)
+	for (it = _shadows.begin(); it != _shadows.end(); ++it) {
+		if (*it && (*it)->_name == shadowName)
 			return *it;
 	}
 
@@ -495,17 +495,17 @@ Shadow_v2 *Room_v2::findShadow(const LString &shadowName) {
 Shadow_v2 *Room_v2::newShadow() {
 	Shadow_v2 *shadow = new Shadow_v2(_engine);
 
-	shadows.push_back(shadow);
+	_shadows.push_back(shadow);
 
 	return shadow;
 }
 
 void Room_v2::removeShadow(Shadow_v2 *shadow) {
-	Common::List<Shadow_v2 *>::iterator it = shadows.begin();
+	Common::List<Shadow_v2 *>::iterator it = _shadows.begin();
 
-	while (it != shadows.end()) {
+	while (it != _shadows.end()) {
 		if (*it == shadow)
-			it = shadows.erase(it);
+			it = _shadows.erase(it);
 		else
 			++it;
 	}
@@ -514,65 +514,65 @@ void Room_v2::removeShadow(Shadow_v2 *shadow) {
 }
 
 void Room_v2::setSoundParameters(float newMaxDist, char newMinVol, char newMaxVol, float newPanFactor, float newMaxRadius) {
-	maxDist = newMaxDist;
-	minVol = newMinVol;
-	maxVol = newMaxVol;
-	panFactor = newPanFactor;
-	maxRadius = newMaxRadius;
+	_maxDist = newMaxDist;
+	_minVol = newMinVol;
+	_maxVol = newMaxVol;
+	_panFactor = newPanFactor;
+	_maxRadius = newMaxRadius;
 }
 
-bool Room_v2::save(tSaveRestoreAccess *access) {
-	access(&currentSetup, sizeof(currentSetup));
-	access(&minVol, sizeof(minVol));
-	access(&maxVol, sizeof(maxVol));
-	access(&maxDist, sizeof(maxDist));
-	access(&panFactor, sizeof(panFactor));
-	access(&maxRadius, sizeof(maxRadius));
+bool Room_v2::save(SaveRestoreAccess *access) {
+	access(&_currentSetup, sizeof(_currentSetup));
+	access(&_minVol, sizeof(_minVol));
+	access(&_maxVol, sizeof(_maxVol));
+	access(&_maxDist, sizeof(_maxDist));
+	access(&_panFactor, sizeof(_panFactor));
+	access(&_maxRadius, sizeof(_maxRadius));
 
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		CLightNode *lightNode = *it;
 
 		if (lightNode) {
-			if ((lightNode->nodeFlags & CNode::kWorldValid) == 0)
+			if ((lightNode->_nodeFlags & CNode::kWorldValid) == 0)
 				lightNode->updateWorldTransform();
 
 			float position[3];
 
-			position[0] = lightNode->world.pos.x;
-			position[1] = lightNode->world.pos.y;
-			position[2] = lightNode->world.pos.z;
+			position[0] = lightNode->_world._pos._x;
+			position[1] = lightNode->_world._pos._y;
+			position[2] = lightNode->_world._pos._z;
 			access(position, sizeof(position));
 
-			byte activeByte = lightNode->active ? 1 : 0;
+			byte activeByte = lightNode->_active ? 1 : 0;
 
 			access(&activeByte, sizeof(activeByte));
 		}
 	}
 
-	for (int i = 0; i < numSetups; i++)
-		setups[i].save(access);
+	for (int i = 0; i < _numSetups; i++)
+		_setups[i].save(access);
 
-	if (walkPlanes)
-		walkPlanes->save(access);
+	if (_walkPlanes)
+		_walkPlanes->save(access);
 	else
 		warning("Room_v2::save(): the room has no sectors");
 
 	return true;
 }
 
-bool Room_v2::restore(tSaveRestoreAccess *access) {
-	access(&currentSetup, sizeof(currentSetup));
-	access(&minVol, sizeof(minVol));
-	access(&maxVol, sizeof(maxVol));
-	access(&maxDist, sizeof(maxDist));
-	access(&panFactor, sizeof(panFactor));
-	access(&maxRadius, sizeof(maxRadius));
+bool Room_v2::restore(SaveRestoreAccess *access) {
+	access(&_currentSetup, sizeof(_currentSetup));
+	access(&_minVol, sizeof(_minVol));
+	access(&_maxVol, sizeof(_maxVol));
+	access(&_maxDist, sizeof(_maxDist));
+	access(&_panFactor, sizeof(_panFactor));
+	access(&_maxRadius, sizeof(_maxRadius));
 
 	Common::List<CLightNode *>::iterator it;
 
-	for (it = lights.begin(); it != lights.end(); ++it) {
+	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		CLightNode *lightNode = *it;
 
 		if (lightNode) {
@@ -582,9 +582,9 @@ bool Room_v2::restore(tSaveRestoreAccess *access) {
 
 			CVector newPosition;
 
-			newPosition.x = position[0];
-			newPosition.y = position[1];
-			newPosition.z = position[2];
+			newPosition._x = position[0];
+			newPosition._y = position[1];
+			newPosition._z = position[2];
 			lightNode->setLocalPosition(newPosition);
 
 			byte activeByte = 0;
@@ -594,11 +594,11 @@ bool Room_v2::restore(tSaveRestoreAccess *access) {
 		}
 	}
 
-	for (int i = 0; i < numSetups; i++)
-		setups[i].restore(access);
+	for (int i = 0; i < _numSetups; i++)
+		_setups[i].restore(access);
 
-	if (walkPlanes)
-		walkPlanes->restore(access);
+	if (_walkPlanes)
+		_walkPlanes->restore(access);
 	else
 		warning("Room_v2::restore(): the room has no sectors");
 
@@ -606,13 +606,13 @@ bool Room_v2::restore(tSaveRestoreAccess *access) {
 }
 
 void Room_v2::freeSetups() {
-	if (numSetups > 0 && setups) {
-		Setup::deleteArray(setups);
-		setups = nullptr;
-		numSetups = 0;
+	if (_numSetups > 0 && _setups) {
+		Setup::deleteArray(_setups);
+		_setups = nullptr;
+		_numSetups = 0;
 	} else {
-		setups = nullptr;
-		numSetups = 0;
+		_setups = nullptr;
+		_numSetups = 0;
 	}
 }
 
@@ -631,12 +631,12 @@ void Room_v2::shutdown(EmiEngine *engine) {
 	engine->_roomsStarted = false;
 }
 
-void Room_v2::saveCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) {
+void Room_v2::saveCurrentRoom(EmiEngine *engine, SaveRestoreAccess *access) {
 	if (engine->_currentRoom) {
-		uint length = engine->_currentRoom->name.size() + 1;
+		uint length = engine->_currentRoom->_name.size() + 1;
 
 		access(&length, sizeof(length));
-		access((void *)engine->_currentRoom->name.c_str(), length);
+		access((void *)engine->_currentRoom->_name.c_str(), length);
 		engine->_currentRoom->save(access);
 		Layer::saveRestoreNextId(engine, access);
 	} else {
@@ -647,7 +647,7 @@ void Room_v2::saveCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) {
 	}
 }
 
-void Room_v2::restoreCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) {
+void Room_v2::restoreCurrentRoom(EmiEngine *engine, SaveRestoreAccess *access) {
 	char buffer[kSavedRoomNameSize + 1];
 	uint length = 0;
 
@@ -676,14 +676,14 @@ void Room_v2::restoreCurrentRoom(EmiEngine *engine, tSaveRestoreAccess *access) 
 Layer *Room_v2::findLayerById(EmiEngine *engine, int layerId) {
 	Room_v2 *room = engine->_currentRoom;
 
-	if (!room || !room->setups)
+	if (!room || !room->_setups)
 		return nullptr;
 
-	for (int i = 0; i < room->numSetups; i++) {
+	for (int i = 0; i < room->_numSetups; i++) {
 		Common::List<Layer *>::iterator it;
 
-		for (it = room->setups[i].layers.begin(); it != room->setups[i].layers.end(); ++it) {
-			if ((*it)->id == layerId)
+		for (it = room->_setups[i]._layers.begin(); it != room->_setups[i]._layers.end(); ++it) {
+			if ((*it)->_id == layerId)
 				return *it;
 		}
 	}
@@ -693,7 +693,7 @@ Layer *Room_v2::findLayerById(EmiEngine *engine, int layerId) {
 
 void Room_v2::loadRoom(EmiEngine *engine, const char *roomName) {
 	if (engine->_currentRoom) {
-		if (roomName && engine->_currentRoom->name == roomName)
+		if (roomName && engine->_currentRoom->_name == roomName)
 			return;
 
 		engine->_currentRoom->setLightsActive(false);
@@ -701,11 +701,11 @@ void Room_v2::loadRoom(EmiEngine *engine, const char *roomName) {
 
 		Common::List<Actor *>::iterator it;
 
-		for (it = engine->_currentRoom->actors.begin(); it != engine->_currentRoom->actors.end(); ++it) {
+		for (it = engine->_currentRoom->_actors.begin(); it != engine->_currentRoom->_actors.end(); ++it) {
 			if (engine->getConsoleServices())
-				engine->getConsoleServices()->logError("Actor '%s' left in room.\n", (*it)->actorName.c_str());
+				engine->getConsoleServices()->logError("Actor '%s' left in room.\n", (*it)->_actorName.c_str());
 			else
-				warning("Actor '%s' left in room.", (*it)->actorName.c_str());
+				warning("Actor '%s' left in room.", (*it)->_actorName.c_str());
 		}
 
 		engine->_currentRoomHandle.setResource(nullptr);
@@ -724,24 +724,24 @@ void Room_v2::loadRoom(EmiEngine *engine, const char *roomName) {
 		engine->startSetChangeFrames();
 	}
 
-	engine->_currentRoomHandle.resource = engine->getResourceManager()->findResource(roomName);
+	engine->_currentRoomHandle._resource = engine->getResourceManager()->findResource(roomName);
 
-	if (!engine->_currentRoomHandle.resource) {
-		engine->_currentRoomHandle.resource = engine->getResourceManager()->createResource(roomName);
+	if (!engine->_currentRoomHandle._resource) {
+		engine->_currentRoomHandle._resource = engine->getResourceManager()->createResource(roomName);
 
-		if (!engine->_currentRoomHandle.resource)
+		if (!engine->_currentRoomHandle._resource)
 			engine->_currentRoomHandle.allocateResource();
 
-		if (engine->_currentRoomHandle.resource) {
-			engine->_currentRoomHandle.resource->resSetName(roomName);
-			engine->getResourceManager()->addResource(engine->_currentRoomHandle.resource);
+		if (engine->_currentRoomHandle._resource) {
+			engine->_currentRoomHandle._resource->resSetName(roomName);
+			engine->getResourceManager()->addResource(engine->_currentRoomHandle._resource);
 		}
 	}
 
-	engine->_currentRoomHandle.setResource(engine->_currentRoomHandle.resource);
+	engine->_currentRoomHandle.setResource(engine->_currentRoomHandle._resource);
 
 	if (engine->_currentRoomHandle.lock())
-		engine->_currentRoom = engine->_currentRoomHandle.typed;
+		engine->_currentRoom = engine->_currentRoomHandle._typed;
 	else
 		engine->_currentRoom = nullptr;
 
@@ -768,7 +768,7 @@ const char *Room_v2::getCurrentRoomName(EmiEngine *engine) {
 	if (!engine->_currentRoom)
 		return nullptr;
 
-	return engine->_currentRoom->name.c_str();
+	return engine->_currentRoom->_name.c_str();
 }
 
 static const float kDegToRad = 3.14159274f * 0.00555555569f;
@@ -784,14 +784,14 @@ void Room_v2::logLoaderError(const LString &message) {
 }
 
 static void setNodeRotation(CNode *node, const CQuaternion &rotation) {
-	node->quat = rotation;
-	node->nodeFlags = (node->nodeFlags & ~(CNode::kEulerValid | CNode::kQuaternionValid | CNode::kLocalSet)) | CNode::kQuaternionValid | CNode::kLocalSet;
+	node->_quat = rotation;
+	node->_nodeFlags = (node->_nodeFlags & ~(CNode::kEulerValid | CNode::kQuaternionValid | CNode::kLocalSet)) | CNode::kQuaternionValid | CNode::kLocalSet;
 	node->updateLocalState();
 }
 
 static void setNodeEuler(CNode *node, const CVector &euler) {
-	node->eulerDeg = euler;
-	node->nodeFlags = (node->nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
+	node->_eulerDeg = euler;
+	node->_nodeFlags = (node->_nodeFlags & ~CNode::kQuaternionValid) | CNode::kEulerValid | CNode::kLocalSet;
 	node->updateLocalState();
 }
 
@@ -799,8 +799,8 @@ static void setLightNodeName(CLightNode *lightNode, const char *source) {
 	if (strlen(source) >= CNode::kNameSize)
 		warning("Room_v2::setLightNodeName(): the light name is too long");
 
-	memset(lightNode->name, 0, CNode::kNameSize);
-	Common::strlcpy(lightNode->name, source, CNode::kNameSize);
+	memset(lightNode->_name, 0, CNode::kNameSize);
+	Common::strlcpy(lightNode->_name, source, CNode::kNameSize);
 }
 
 static bool readBinaryBytes(LFile *file, void *buffer, uint size) {
@@ -830,15 +830,15 @@ static bool readBinaryFloat(LFile *file, float *value) {
 }
 
 static bool readBinaryVector(LFile *file, CVector *vector) {
-	return readBinaryFloat(file, &vector->x) && readBinaryFloat(file, &vector->y) && readBinaryFloat(file, &vector->z);
+	return readBinaryFloat(file, &vector->_x) && readBinaryFloat(file, &vector->_y) && readBinaryFloat(file, &vector->_z);
 }
 
 static bool readBinaryQuaternion(LFile *file, CQuaternion *quaternion) {
-	return readBinaryFloat(file, &quaternion->x) && readBinaryFloat(file, &quaternion->y) && readBinaryFloat(file, &quaternion->z) && readBinaryFloat(file, &quaternion->w);
+	return readBinaryFloat(file, &quaternion->_x) && readBinaryFloat(file, &quaternion->_y) && readBinaryFloat(file, &quaternion->_z) && readBinaryFloat(file, &quaternion->_w);
 }
 
 static bool readBinaryColor(LFile *file, Color *color) {
-	return readBinaryInt(file, &color->a) && readBinaryInt(file, &color->r) && readBinaryInt(file, &color->g) && readBinaryInt(file, &color->b);
+	return readBinaryInt(file, &color->_a) && readBinaryInt(file, &color->_r) && readBinaryInt(file, &color->_g) && readBinaryInt(file, &color->_b);
 }
 
 static bool readBinaryString(LFile *file, char *buffer) {
@@ -883,23 +883,23 @@ static void writeBinaryFloat(LFile *file, float value) {
 }
 
 static void writeBinaryVector(LFile *file, const CVector &vector) {
-	writeBinaryFloat(file, vector.x);
-	writeBinaryFloat(file, vector.y);
-	writeBinaryFloat(file, vector.z);
+	writeBinaryFloat(file, vector._x);
+	writeBinaryFloat(file, vector._y);
+	writeBinaryFloat(file, vector._z);
 }
 
 static void writeBinaryQuaternion(LFile *file, const CQuaternion &quaternion) {
-	writeBinaryFloat(file, quaternion.x);
-	writeBinaryFloat(file, quaternion.y);
-	writeBinaryFloat(file, quaternion.z);
-	writeBinaryFloat(file, quaternion.w);
+	writeBinaryFloat(file, quaternion._x);
+	writeBinaryFloat(file, quaternion._y);
+	writeBinaryFloat(file, quaternion._z);
+	writeBinaryFloat(file, quaternion._w);
 }
 
 static void writeBinaryColor(LFile *file, const Color &color) {
-	writeBinaryInt(file, color.a);
-	writeBinaryInt(file, color.r);
-	writeBinaryInt(file, color.g);
-	writeBinaryInt(file, color.b);
+	writeBinaryInt(file, color._a);
+	writeBinaryInt(file, color._r);
+	writeBinaryInt(file, color._g);
+	writeBinaryInt(file, color._b);
 }
 
 static void writeBinaryString(LFile *file, const LString &string) {
@@ -971,7 +971,7 @@ bool Room_v2::parseSetups(LFile *file) {
 
 	token[0] = 0;
 	backgroundToken[0] = 0;
-	setups = nullptr;
+	_setups = nullptr;
 
 	if (!file->readLine(lineBuffer, kLineBufferSize))
 		return true;
@@ -989,17 +989,17 @@ bool Room_v2::parseSetups(LFile *file) {
 				return false;
 			}
 
-			numSetups = count;
-			setups = Setup::newArray(_engine, count);
+			_numSetups = count;
+			_setups = Setup::newArray(_engine, count);
 			currentIndex = -1;
 		} else {
-			if (!setups)
+			if (!_setups)
 				return false;
 
 			if (sscanf(lineBuffer, " setup %255s", token) == 1) {
 				currentIndex++;
 
-				if (currentIndex >= numSetups) {
+				if (currentIndex >= _numSetups) {
 					logLoaderError("Too many setups in file!\n");
 
 					return false;
@@ -1008,14 +1008,14 @@ bool Room_v2::parseSetups(LFile *file) {
 				if (strlen(token) >= Setup::kNameSize)
 					warning("Room_v2::parseSetups(): the setup name is too long");
 
-				Common::strlcpy(setups[currentIndex].name, token, Setup::kNameSize);
+				Common::strlcpy(_setups[currentIndex]._name, token, Setup::kNameSize);
 			} else if (currentIndex < 0) {
 				logLoaderError(LString::format("Error parsing setups: Expected 'setup <name>', but got '%s'.\n", lineBuffer));
 
 				return false;
 			} else {
-				Setup *setup = &setups[currentIndex];
-				Camera *camera = &setup->camera;
+				Setup *setup = &_setups[currentIndex];
+				Camera *camera = &setup->_camera;
 				CVector vector;
 				float roll;
 				float x;
@@ -1027,35 +1027,35 @@ bool Room_v2::parseSetups(LFile *file) {
 				// The disasm reads the background name and then ignores it
 				if (sscanf(lineBuffer, " background %127s", backgroundToken) == 1) {
 				} else if (sscanf(lineBuffer, " tiledscene %127s", backgroundToken) == 1) {
-					setup->backgroundName = backgroundToken;
+					setup->_backgroundName = backgroundToken;
 				} else if (sscanf(lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
-					vector.x = x;
-					vector.y = y;
-					vector.z = z;
+					vector._x = x;
+					vector._y = y;
+					vector._z = z;
 					camera->setLocalPosition(vector);
 				} else if (sscanf(lineBuffer, " interest %f %f %f", &x, &y, &z) == 3) {
-					interest.x = x;
-					interest.y = y;
-					interest.z = z;
+					interest._x = x;
+					interest._y = y;
+					interest._z = z;
 					camera->lookAt(interest);
 				} else if (sscanf(lineBuffer, " roll %f", &roll) == 1) {
 					float angle = -(kDegToRad * roll);
 					CVector axis;
 
-					axis.x = 0.0f;
-					axis.y = 0.0f;
-					axis.z = 1.0f;
+					axis._x = 0.0f;
+					axis._y = 0.0f;
+					axis._z = 1.0f;
 
 					CQuaternion rollRotation(axis, angle);
 
-					if ((camera->nodeFlags & CNode::kQuaternionValid) == 0)
+					if ((camera->_nodeFlags & CNode::kQuaternionValid) == 0)
 						camera->updateLocalQuaternion();
 
-					const CQuaternion &current = camera->quat;
-					float newW = (float)((double)rollRotation.w * current.w - (double)rollRotation.x * current.x - (double)rollRotation.y * current.y - (double)rollRotation.z * current.z);
-					float newZ = (float)((double)rollRotation.w * current.z + (double)rollRotation.z * current.w + (double)rollRotation.y * current.x - (double)rollRotation.x * current.y);
-					float newY = (float)((double)rollRotation.x * current.z + (double)rollRotation.y * current.w + (double)rollRotation.w * current.y - (double)rollRotation.z * current.x);
-					float newX = (float)((double)rollRotation.z * current.y + (double)rollRotation.x * current.w + (double)rollRotation.w * current.x - (double)rollRotation.y * current.z);
+					const CQuaternion &current = camera->_quat;
+					float newW = (float)((double)rollRotation._w * current._w - (double)rollRotation._x * current._x - (double)rollRotation._y * current._y - (double)rollRotation._z * current._z);
+					float newZ = (float)((double)rollRotation._w * current._z + (double)rollRotation._z * current._w + (double)rollRotation._y * current._x - (double)rollRotation._x * current._y);
+					float newY = (float)((double)rollRotation._x * current._z + (double)rollRotation._y * current._w + (double)rollRotation._w * current._y - (double)rollRotation._z * current._x);
+					float newX = (float)((double)rollRotation._z * current._y + (double)rollRotation._x * current._w + (double)rollRotation._w * current._x - (double)rollRotation._y * current._z);
 
 					setNodeRotation(camera, CQuaternion(newX, newY, newZ, newW));
 				} else if (sscanf(lineBuffer, " direction %f %f %f %f", &x, &y, &z, &w) == 4) {
@@ -1068,8 +1068,8 @@ bool Room_v2::parseSetups(LFile *file) {
 					viewport.w = 640;
 					viewport.h = 480;
 					camera->setViewport(&viewport, fov);
-				} else if (sscanf(lineBuffer, " nclip %f", &camera->nearClip) == 1) {
-				} else if (sscanf(lineBuffer, " fclip %f", &camera->farClip) == 1) {
+				} else if (sscanf(lineBuffer, " nclip %f", &camera->_nearClip) == 1) {
+				} else if (sscanf(lineBuffer, " fclip %f", &camera->_farClip) == 1) {
 				} else {
 					logLoaderError(LString::format("Unrecognized line in set file: '%s'\n", lineBuffer));
 
@@ -1116,38 +1116,38 @@ bool Room_v2::parseLights(LFile *file) {
 			warning("Room_v2::parseLights(): the line '%s' comes before any light", lineBuffer);
 		} else if (sscanf(lineBuffer, " type %255s", token) == 1) {
 			if (strcmp(token, "omni") == 0)
-				light->type = CLight::kTypeOmni;
+				light->_type = CLight::kTypeOmni;
 			else if (strcmp(token, "spot") == 0)
-				light->type = CLight::kTypeSpot;
+				light->_type = CLight::kTypeSpot;
 			else if (strcmp(token, "direct") == 0)
-				light->type = CLight::kTypeDirect;
+				light->_type = CLight::kTypeDirect;
 			else
-				light->type = CLight::kTypeAmbient;
+				light->_type = CLight::kTypeAmbient;
 		} else if (sscanf(lineBuffer, " position %f %f %f", &x, &y, &z) == 3) {
 			CVector position;
 
-			position.x = x;
-			position.y = y;
-			position.z = z;
+			position._x = x;
+			position._y = y;
+			position._z = z;
 			lightNode->setLocalPosition(position);
 		} else if (sscanf(lineBuffer, " direction %f %f %f", &x, &y, &z) == 3) {
 			CVector euler;
 
-			euler.x = x;
-			euler.y = y;
-			euler.z = z;
+			euler._x = x;
+			euler._y = y;
+			euler._z = z;
 			setNodeEuler(lightNode, euler);
 		} else if (sscanf(lineBuffer, " orientation %f %f %f %f", &x, &y, &z, &w) == 4) {
 			setNodeRotation(lightNode, CQuaternion(x, y, z, w));
-		} else if (sscanf(lineBuffer, " intensity %f", &light->intensity) == 1) {
+		} else if (sscanf(lineBuffer, " intensity %f", &light->_intensity) == 1) {
 		} else if (sscanf(lineBuffer, " umbraangle %f", &x) == 1) {
-			light->umbraAngle = kDegToRad * x;
+			light->_umbraAngle = kDegToRad * x;
 		} else if (sscanf(lineBuffer, " penumbraangle %f", &x) == 1) {
-			light->penumbraAngle = kDegToRad * x;
+			light->_penumbraAngle = kDegToRad * x;
 		} else if (sscanf(lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
 			light->setColor(red, green, blue);
-		} else if (sscanf(lineBuffer, " focusdistance %f", &light->focusDistance) != 1) {
-			sscanf(lineBuffer, " spreaddistance %f", &light->spreadDistance);
+		} else if (sscanf(lineBuffer, " focusdistance %f", &light->_focusDistance) != 1) {
+			sscanf(lineBuffer, " spreaddistance %f", &light->_spreadDistance);
 		}
 
 		if (!file->readLine(lineBuffer, kLineBufferSize))
@@ -1183,9 +1183,9 @@ bool Room_v2::parseShadows(LFile *file) {
 		} else if (sscanf(lineBuffer, " light %255s", token) == 1) {
 			shadow->setLightName(LString(token));
 		} else if (sscanf(lineBuffer, " point %f %f %f", &x, &y, &z) == 3) {
-			shadow->point[0] = x;
-			shadow->point[1] = y;
-			shadow->point[2] = z;
+			shadow->_point[0] = x;
+			shadow->_point[1] = y;
+			shadow->_point[2] = z;
 		} else if (sscanf(lineBuffer, " color %d %d %d", &red, &green, &blue) == 3) {
 			Color shadowColor;
 
@@ -1201,15 +1201,15 @@ bool Room_v2::parseShadows(LFile *file) {
 }
 
 bool Room_v2::parseSectors(LFile *file) {
-	walkPlanes = new WalkPlaneCollection(_engine);
+	_walkPlanes = new WalkPlaneCollection(_engine);
 
-	char *nextSection = walkPlanes->parseCollection(file);
+	char *nextSection = _walkPlanes->parseCollection(file);
 
 	// The disasm ignores the result of parsing the following section
 	if (nextSection)
 		parseSection(file, nextSection);
 
-	walkPlanes->buildNeighbors();
+	_walkPlanes->buildNeighbors();
 
 	return true;
 }
@@ -1229,26 +1229,26 @@ bool Room_v2::loadBinary(const char *path) {
 	if (count < 0 || count > kMaxSetups)
 		return failBinaryLoad(file, "invalid number of setups");
 
-	numSetups = count;
-	setups = Setup::newArray(_engine, count);
+	_numSetups = count;
+	_setups = Setup::newArray(_engine, count);
 
-	for (int i = 0; i < numSetups; i++) {
-		Setup *setup = &setups[i];
-		Camera *camera = &setup->camera;
+	for (int i = 0; i < _numSetups; i++) {
+		Setup *setup = &_setups[i];
+		Camera *camera = &setup->_camera;
 		CVector position;
 		CQuaternion rotation;
 		float fov;
 		IRect viewport;
 
-		if (!readBinaryBytes(file, setup->name, Setup::kNameSize) || !readBinaryString(file, buffer))
+		if (!readBinaryBytes(file, setup->_name, Setup::kNameSize) || !readBinaryString(file, buffer))
 			return failBinaryLoad(file, "invalid setup");
 
-		if (!memchr(setup->name, 0, Setup::kNameSize)) {
+		if (!memchr(setup->_name, 0, Setup::kNameSize)) {
 			warning("Room_v2::loadBinary(): the setup name is not terminated");
-			setup->name[Setup::kNameSize - 1] = 0;
+			setup->_name[Setup::kNameSize - 1] = 0;
 		}
 
-		setup->backgroundName = buffer;
+		setup->_backgroundName = buffer;
 
 		if (!readBinaryVector(file, &position))
 			return failBinaryLoad(file, "invalid setup position");
@@ -1269,7 +1269,7 @@ bool Room_v2::loadBinary(const char *path) {
 		viewport.h = 480;
 		camera->setViewport(&viewport, fov);
 
-		if (!readBinaryFloat(file, &camera->nearClip) || !readBinaryFloat(file, &camera->farClip))
+		if (!readBinaryFloat(file, &camera->_nearClip) || !readBinaryFloat(file, &camera->_farClip))
 			return failBinaryLoad(file, "invalid setup clipping planes");
 	}
 
@@ -1283,12 +1283,12 @@ bool Room_v2::loadBinary(const char *path) {
 
 		addLight(lightNode);
 
-		if (!readBinaryBytes(file, lightNode->name, CNode::kNameSize))
+		if (!readBinaryBytes(file, lightNode->_name, CNode::kNameSize))
 			return failBinaryLoad(file, "invalid light name");
 
-		if (!memchr(lightNode->name, 0, CNode::kNameSize)) {
+		if (!memchr(lightNode->_name, 0, CNode::kNameSize)) {
 			warning("Room_v2::loadBinary(): the light name is not terminated");
-			lightNode->name[CNode::kNameSize - 1] = 0;
+			lightNode->_name[CNode::kNameSize - 1] = 0;
 		}
 
 		CLight *light = new CLight(Color(1u), 1.0f, 10.0f, 10.0f);
@@ -1306,9 +1306,9 @@ bool Room_v2::loadBinary(const char *path) {
 
 		setNodeRotation(lightNode, rotation);
 
-		if (!readBinaryInt(file, &light->type) || !readBinaryFloat(file, &light->intensity) || !readBinaryColor(file, &light->color) ||
-			!readBinaryFloat(file, &light->focusDistance) || !readBinaryFloat(file, &light->spreadDistance) ||
-			!readBinaryFloat(file, &light->umbraAngle) || !readBinaryFloat(file, &light->penumbraAngle))
+		if (!readBinaryInt(file, &light->_type) || !readBinaryFloat(file, &light->_intensity) || !readBinaryColor(file, &light->_color) ||
+			!readBinaryFloat(file, &light->_focusDistance) || !readBinaryFloat(file, &light->_spreadDistance) ||
+			!readBinaryFloat(file, &light->_umbraAngle) || !readBinaryFloat(file, &light->_penumbraAngle))
 			return failBinaryLoad(file, "invalid light");
 	}
 
@@ -1318,7 +1318,7 @@ bool Room_v2::loadBinary(const char *path) {
 	if (count > 0) {
 		float vertices[WalkPlane_v2::kMaxVertices * 3];
 
-		walkPlanes = new WalkPlaneCollection(_engine);
+		_walkPlanes = new WalkPlaneCollection(_engine);
 		memset(vertices, 0, sizeof(vertices));
 
 		for (int i = 0; i < count; i++) {
@@ -1335,35 +1335,35 @@ bool Room_v2::loadBinary(const char *path) {
 					return failBinaryLoad(file, "invalid sector vertices");
 			}
 
-			WalkPlane_v2 *plane = new WalkPlane_v2(_engine, vertices, vertexCount, walkPlanes);
+			WalkPlane_v2 *plane = new WalkPlane_v2(_engine, vertices, vertexCount, _walkPlanes);
 			int planeType;
 			byte activeByte;
 			float tolerance;
 
-			walkPlanes->planes.push_back(plane);
+			_walkPlanes->_planes.push_back(plane);
 
 			if (!readBinaryString(file, buffer))
 				return failBinaryLoad(file, "invalid sector name");
 
-			plane->name = buffer;
+			plane->_name = buffer;
 
-			if (!readBinaryInt(file, &plane->number) || !readBinaryBytes(file, &activeByte, 1) || !readBinaryInt(file, &planeType))
+			if (!readBinaryInt(file, &plane->_number) || !readBinaryBytes(file, &activeByte, 1) || !readBinaryInt(file, &planeType))
 				return failBinaryLoad(file, "invalid sector");
 
-			plane->active = activeByte != 0;
+			plane->_active = activeByte != 0;
 			plane->setType(planeType);
 
-			if (!readBinaryInt(file, &plane->numSortOrders))
+			if (!readBinaryInt(file, &plane->_numSortOrders))
 				return failBinaryLoad(file, "invalid sector sort orders");
 
-			if (plane->numSortOrders < 0 || plane->numSortOrders > WalkPlane_v2::kMaxSortOrders) {
-				plane->numSortOrders = 0;
+			if (plane->_numSortOrders < 0 || plane->_numSortOrders > WalkPlane_v2::kMaxSortOrders) {
+				plane->_numSortOrders = 0;
 
 				return failBinaryLoad(file, "invalid number of sector sort orders");
 			}
 
-			for (int j = 0; j < plane->numSortOrders; j++) {
-				if (!readBinaryInt(file, &plane->sortOrder[j]))
+			for (int j = 0; j < plane->_numSortOrders; j++) {
+				if (!readBinaryInt(file, &plane->_sortOrder[j]))
 					return failBinaryLoad(file, "invalid sector sort orders");
 			}
 
@@ -1371,12 +1371,12 @@ bool Room_v2::loadBinary(const char *path) {
 				return failBinaryLoad(file, "invalid sector tolerance");
 
 			if (!(tolerance < 0.0f || tolerance > 0.0f))
-				plane->tolerance = 0.005f;
+				plane->_tolerance = 0.005f;
 			else
-				plane->tolerance = tolerance;
+				plane->_tolerance = tolerance;
 		}
 
-		walkPlanes->buildNeighbors();
+		_walkPlanes->buildNeighbors();
 	}
 
 	if (!readBinaryInt(file, &count))
@@ -1389,14 +1389,14 @@ bool Room_v2::loadBinary(const char *path) {
 		if (!readBinaryString(file, buffer))
 			return failBinaryLoad(file, "invalid shadow name");
 
-		shadow->name = buffer;
+		shadow->_name = buffer;
 
 		if (!readBinaryString(file, buffer))
 			return failBinaryLoad(file, "invalid shadow light name");
 
-		shadow->lightName = buffer;
+		shadow->_lightName = buffer;
 
-		if (!readBinaryFloat(file, &shadow->point[0]) || !readBinaryFloat(file, &shadow->point[1]) || !readBinaryFloat(file, &shadow->point[2]) ||
+		if (!readBinaryFloat(file, &shadow->_point[0]) || !readBinaryFloat(file, &shadow->_point[1]) || !readBinaryFloat(file, &shadow->_point[2]) ||
 			!readBinaryInt(file, &sectorCount))
 			return failBinaryLoad(file, "invalid shadow");
 
@@ -1406,15 +1406,15 @@ bool Room_v2::loadBinary(const char *path) {
 			if (!readBinaryString(file, buffer))
 				return failBinaryLoad(file, "invalid shadow sector name");
 
-			if (walkPlanes)
-				sector = walkPlanes->planeNamed(LString(buffer));
+			if (_walkPlanes)
+				sector = _walkPlanes->planeNamed(LString(buffer));
 			else
 				warning("Room_v2::loadBinary(): the shadow sector '%s' has no sectors to be found in", buffer);
 
-			shadow->sectors.push_back(sector);
+			shadow->_sectors.push_back(sector);
 		}
 
-		if (!readBinaryColor(file, &shadow->color))
+		if (!readBinaryColor(file, &shadow->_color))
 			return failBinaryLoad(file, "invalid shadow color");
 	}
 
@@ -1429,84 +1429,84 @@ bool Room_v2::saveBinary(const char *path) {
 	if (!file)
 		return false;
 
-	writeBinaryInt(file, numSetups);
+	writeBinaryInt(file, _numSetups);
 
-	for (int i = 0; i < numSetups; i++) {
-		Camera *camera = &setups[i].camera;
+	for (int i = 0; i < _numSetups; i++) {
+		Camera *camera = &_setups[i]._camera;
 
-		file->write(setups[i].name, Setup::kNameSize);
-		writeBinaryString(file, setups[i].backgroundName);
+		file->write(_setups[i]._name, Setup::kNameSize);
+		writeBinaryString(file, _setups[i]._backgroundName);
 
-		if ((camera->nodeFlags & CNode::kWorldValid) == 0)
+		if ((camera->_nodeFlags & CNode::kWorldValid) == 0)
 			camera->updateWorldTransform();
 
-		writeBinaryVector(file, camera->world.pos);
+		writeBinaryVector(file, camera->_world._pos);
 		writeBinaryQuaternion(file, camera->getWorldOrientation());
-		writeBinaryFloat(file, camera->fovX);
-		writeBinaryFloat(file, camera->nearClip);
-		writeBinaryFloat(file, camera->farClip);
+		writeBinaryFloat(file, camera->_fovX);
+		writeBinaryFloat(file, camera->_nearClip);
+		writeBinaryFloat(file, camera->_farClip);
 	}
 
-	writeBinaryInt(file, (int)lights.size());
+	writeBinaryInt(file, (int)_lights.size());
 
 	Common::List<CLightNode *>::iterator lightIt;
 
-	for (lightIt = lights.begin(); lightIt != lights.end(); ++lightIt) {
+	for (lightIt = _lights.begin(); lightIt != _lights.end(); ++lightIt) {
 		CLightNode *lightNode = *lightIt;
 		CLight defaultLight(Color(1u), 1.0f, 10.0f, 10.0f);
-		CLight *light = lightNode->light;
+		CLight *light = lightNode->_light;
 
 		if (!light) {
 			warning("Room_v2::saveBinary(): a light node has no light");
 			light = &defaultLight;
 		}
 
-		file->write(lightNode->name, CNode::kNameSize);
+		file->write(lightNode->_name, CNode::kNameSize);
 
-		if ((lightNode->nodeFlags & CNode::kWorldValid) == 0)
+		if ((lightNode->_nodeFlags & CNode::kWorldValid) == 0)
 			lightNode->updateWorldTransform();
 
-		writeBinaryVector(file, lightNode->world.pos);
+		writeBinaryVector(file, lightNode->_world._pos);
 		writeBinaryQuaternion(file, lightNode->getWorldOrientation());
-		writeBinaryInt(file, light->type);
-		writeBinaryFloat(file, light->intensity);
-		writeBinaryColor(file, light->color);
-		writeBinaryFloat(file, light->focusDistance);
-		writeBinaryFloat(file, light->spreadDistance);
-		writeBinaryFloat(file, light->umbraAngle);
-		writeBinaryFloat(file, light->penumbraAngle);
+		writeBinaryInt(file, light->_type);
+		writeBinaryFloat(file, light->_intensity);
+		writeBinaryColor(file, light->_color);
+		writeBinaryFloat(file, light->_focusDistance);
+		writeBinaryFloat(file, light->_spreadDistance);
+		writeBinaryFloat(file, light->_umbraAngle);
+		writeBinaryFloat(file, light->_penumbraAngle);
 	}
 
 	int planeCount = 0;
 
-	if (walkPlanes)
-		planeCount = (int)walkPlanes->planes.size();
+	if (_walkPlanes)
+		planeCount = (int)_walkPlanes->_planes.size();
 
 	writeBinaryInt(file, planeCount);
 
 	if (planeCount > 0) {
 		Common::List<WalkPlane_v2 *>::iterator planeIt;
 
-		for (planeIt = walkPlanes->planes.begin(); planeIt != walkPlanes->planes.end(); ++planeIt) {
+		for (planeIt = _walkPlanes->_planes.begin(); planeIt != _walkPlanes->_planes.end(); ++planeIt) {
 			WalkPlane_v2 *plane = *planeIt;
 
-			if (plane->numVerts < 0 || plane->numVerts > WalkPlane_v2::kMaxVertices) {
+			if (plane->_numVerts < 0 || plane->_numVerts > WalkPlane_v2::kMaxVertices) {
 				warning("Room_v2::saveBinary(): invalid number of sector vertices");
-				plane->numVerts = 0;
+				plane->_numVerts = 0;
 			}
 
-			if (plane->numSortOrders < 0 || plane->numSortOrders > WalkPlane_v2::kMaxSortOrders) {
+			if (plane->_numSortOrders < 0 || plane->_numSortOrders > WalkPlane_v2::kMaxSortOrders) {
 				warning("Room_v2::saveBinary(): invalid number of sector sort orders");
-				plane->numSortOrders = 0;
+				plane->_numSortOrders = 0;
 			}
 
-			writeBinaryInt(file, plane->numVerts);
+			writeBinaryInt(file, plane->_numVerts);
 
-			for (int i = 0; i < plane->numVerts; i++) {
-				if (plane->verts[i]) {
-					writeBinaryFloat(file, plane->verts[i]->x);
-					writeBinaryFloat(file, plane->verts[i]->y);
-					writeBinaryFloat(file, plane->verts[i]->z);
+			for (int i = 0; i < plane->_numVerts; i++) {
+				if (plane->_verts[i]) {
+					writeBinaryFloat(file, plane->_verts[i]->x);
+					writeBinaryFloat(file, plane->_verts[i]->y);
+					writeBinaryFloat(file, plane->_verts[i]->z);
 				} else {
 					warning("Room_v2::saveBinary(): missing sector vertex");
 					writeBinaryFloat(file, 0.0f);
@@ -1515,46 +1515,46 @@ bool Room_v2::saveBinary(const char *path) {
 				}
 			}
 
-			writeBinaryString(file, plane->name);
-			writeBinaryInt(file, plane->number);
+			writeBinaryString(file, plane->_name);
+			writeBinaryInt(file, plane->_number);
 
-			byte activeByte = plane->active ? 1 : 0;
+			byte activeByte = plane->_active ? 1 : 0;
 
 			file->write(&activeByte, 1);
-			writeBinaryInt(file, plane->type);
-			writeBinaryInt(file, plane->numSortOrders);
+			writeBinaryInt(file, plane->_type);
+			writeBinaryInt(file, plane->_numSortOrders);
 
-			for (int i = 0; i < plane->numSortOrders; i++)
-				writeBinaryInt(file, plane->sortOrder[i]);
+			for (int i = 0; i < plane->_numSortOrders; i++)
+				writeBinaryInt(file, plane->_sortOrder[i]);
 
-			writeBinaryFloat(file, plane->tolerance);
+			writeBinaryFloat(file, plane->_tolerance);
 		}
 	}
 
-	writeBinaryInt(file, (int)shadows.size());
+	writeBinaryInt(file, (int)_shadows.size());
 
 	Common::List<Shadow_v2 *>::iterator shadowIt;
 
-	for (shadowIt = shadows.begin(); shadowIt != shadows.end(); ++shadowIt) {
+	for (shadowIt = _shadows.begin(); shadowIt != _shadows.end(); ++shadowIt) {
 		Shadow_v2 *shadow = *shadowIt;
 
-		writeBinaryString(file, shadow->name);
-		writeBinaryString(file, shadow->lightName);
-		writeBinaryFloat(file, shadow->point[0]);
-		writeBinaryFloat(file, shadow->point[1]);
-		writeBinaryFloat(file, shadow->point[2]);
-		writeBinaryInt(file, (int)shadow->sectors.size());
+		writeBinaryString(file, shadow->_name);
+		writeBinaryString(file, shadow->_lightName);
+		writeBinaryFloat(file, shadow->_point[0]);
+		writeBinaryFloat(file, shadow->_point[1]);
+		writeBinaryFloat(file, shadow->_point[2]);
+		writeBinaryInt(file, (int)shadow->_sectors.size());
 
-		for (uint i = 0; i < shadow->sectors.size(); i++) {
-			if (shadow->sectors[i]) {
-				writeBinaryString(file, shadow->sectors[i]->name);
+		for (uint i = 0; i < shadow->_sectors.size(); i++) {
+			if (shadow->_sectors[i]) {
+				writeBinaryString(file, shadow->_sectors[i]->_name);
 			} else {
 				warning("Room_v2::saveBinary(): unresolved shadow sector");
 				writeBinaryString(file, LString());
 			}
 		}
 
-		writeBinaryColor(file, shadow->color);
+		writeBinaryColor(file, shadow->_color);
 	}
 
 	_engine->getFileServices()->close(file, true);

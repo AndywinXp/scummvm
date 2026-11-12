@@ -63,7 +63,7 @@ struct CallInfo {
 	TProtoFunc *tf;  // Set to NULL for C function
 	StkId base;
 	byte *pc;
-	int32 nResults;
+	int32 results;
 };
 
 struct lua_Task;

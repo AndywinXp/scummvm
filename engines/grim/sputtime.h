@@ -38,7 +38,7 @@ public:
 	uint advance();
 	uint advanceManual(uint ticks);
 	uint reset();
-	int initialize(SysStruct *pHS);
+	int initialize(SysStruct *hs);
 	int terminate();
 	int startup();
 	void shutdown();
@@ -46,9 +46,9 @@ public:
 private:
 	// The demo limits a frame to 500 ms instead of 300
 	uint _maxFrameTime;
-	SysStruct *_pHS;
-	int _bInitialized;
-	int _bStarted;
+	SysStruct *_hs;
+	int _initialized;
+	int _started;
 	uint _lastRealTime;
 	int _gameTime;
 	int _frameTime;

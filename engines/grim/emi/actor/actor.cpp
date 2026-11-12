@@ -38,64 +38,64 @@ namespace Grim {
 
 const float Actor::kDegreesToRadians = 3.14159274f * 0.00555555569f;
 
-Actor::Actor(EmiEngine *engine, const char *newActorName) : room(engine), _engine(engine) {
-	prevPos.x = 0.0f;
-	prevPos.y = 0.0f;
-	prevPos.z = 0.0f;
-	drawnRect[0] = 0;
-	drawnRect[1] = 0;
-	drawnRect[2] = 0;
-	drawnRect[3] = 0;
-	memset(choreSlotIds, 0, kNumChoreSlots * sizeof(uint));
+Actor::Actor(EmiEngine *engine, const char *newActorName) : _room(engine), _engine(engine) {
+	_prevPos._x = 0.0f;
+	_prevPos._y = 0.0f;
+	_prevPos._z = 0.0f;
+	_drawnRect[0] = 0;
+	_drawnRect[1] = 0;
+	_drawnRect[2] = 0;
+	_drawnRect[3] = 0;
+	memset(_choreSlotIds, 0, kNumChoreSlots * sizeof(uint));
 
-	id = _engine->_nextActorId++;
+	_id = _engine->_nextActorId++;
 	_engine->_actors.push_back(this);
 
 	if (newActorName)
-		actorName = newActorName;
+		_actorName = newActorName;
 	else
 		warning("Actor::Actor(): the actor name is null");
 
-	actorFlags = 0;
-	mode = 0;
-	reserved312 = 0.0f;
-	onScreen = false;
-	inOverworld = false;
-	room.setResource(nullptr);
-	sortOrder = 0;
-	parentActorId = 0;
-	memset(parentNodeName, 0, sizeof(parentNodeName));
-	drawFlags |= 0x21000;
+	_actorFlags = 0;
+	_mode = 0;
+	_reserved312 = 0.0f;
+	_onScreen = false;
+	_inOverworld = false;
+	_room.setResource(nullptr);
+	_sortOrder = 0;
+	_parentActorId = 0;
+	memset(_parentNodeName, 0, sizeof(_parentNodeName));
+	_drawFlags |= 0x21000;
 
 	for (int i = 0; i < kNumChoreSlots; i++) {
-		choreSlotIds[i] = 0;
-		choreSlotNames[i].clear();
-		choreSlotSetNames[i].clear();
+		_choreSlotIds[i] = 0;
+		_choreSlotNames[i].clear();
+		_choreSlotSetNames[i].clear();
 	}
 
-	extra = nullptr;
-	Common::sprintf_s(name, "Actor %d", id);
+	_extra = nullptr;
+	Common::sprintf_s(_name, "Actor %d", _id);
 }
 
 Actor::~Actor() {
-	if (room.resource) {
+	if (_room._resource) {
 		Room_v2 *currentRoom = nullptr;
 
-		if (room.lock())
-			currentRoom = room.typed;
+		if (_room.lock())
+			currentRoom = _room._typed;
 
 		if (currentRoom)
 			currentRoom->removeActor(this);
 		else
 			warning("Actor::~Actor(): the room could not be locked");
 
-		room.unlock();
-		room.unlock();
+		_room.unlock();
+		_room.unlock();
 	}
 
 	Common::List<uint>::iterator choreIt;
 
-	for (choreIt = choreIds.begin(); choreIt != choreIds.end(); ++choreIt) {
+	for (choreIt = _choreIds.begin(); choreIt != _choreIds.end(); ++choreIt) {
 		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
 			ChoreInstance *instance = ChoreInstance::getInstance(_engine, *choreIt);
 
@@ -104,16 +104,16 @@ Actor::~Actor() {
 		}
 	}
 
-	choreIds.clear();
+	_choreIds.clear();
 
-	if (extra) {
-		if (extra->puck) {
-			delete extra->puck;
-			extra->puck = nullptr;
+	if (_extra) {
+		if (_extra->_puck) {
+			delete _extra->_puck;
+			_extra->_puck = nullptr;
 		}
 
-		delete extra;
-		extra = nullptr;
+		delete _extra;
+		_extra = nullptr;
 	}
 
 	Common::List<Actor *>::iterator actorIt = _engine->_actors.begin();
@@ -131,7 +131,7 @@ Actor::~Actor() {
 int Actor::allocateActor(EmiEngine *engine, const char *newActorName) {
 	Actor *actor = new Actor(engine, newActorName);
 
-	return actor->id;
+	return actor->_id;
 }
 
 void Actor::freeActor(EmiEngine *engine, int actorId) {
@@ -142,18 +142,18 @@ void Actor::freeActor(EmiEngine *engine, int actorId) {
 }
 
 void Actor::allocateActorExtra() {
-	extra = new Extra_v2(_engine);
+	_extra = new Extra_v2(_engine);
 }
 
 bool Actor::putInSet(const char *roomName) {
-	if (room.resource) {
+	if (_room._resource) {
 		activateShadow(false, nullptr);
 
 		for (int removedBefore = 0;; removedBefore++) {
 			Room_v2 *currentRoom = nullptr;
 
-			if (room.lock())
-				currentRoom = room.typed;
+			if (_room.lock())
+				currentRoom = _room._typed;
 
 			int removed = 0;
 
@@ -165,15 +165,15 @@ bool Actor::putInSet(const char *roomName) {
 			bool removedAgain = removedBefore < removed;
 
 			if (currentRoom)
-				room.unlock();
+				_room.unlock();
 
 			if (!removedAgain)
 				break;
 
-			room.unlock();
+			_room.unlock();
 		}
 
-		room.setResource(nullptr);
+		_room.setResource(nullptr);
 	}
 
 	if (!roomName) {
@@ -182,42 +182,42 @@ bool Actor::putInSet(const char *roomName) {
 		return true;
 	}
 
-	room.resource = _engine->getResourceManager()->findResource(roomName);
+	_room._resource = _engine->getResourceManager()->findResource(roomName);
 
-	if (!room.resource) {
-		room.resource = _engine->getResourceManager()->createResource(roomName);
+	if (!_room._resource) {
+		_room._resource = _engine->getResourceManager()->createResource(roomName);
 
-		if (!room.resource)
-			room.allocateResource();
+		if (!_room._resource)
+			_room.allocateResource();
 
-		if (!room.resource) {
+		if (!_room._resource) {
 			warning("Actor::putInSet(): could not create the room resource '%s'", roomName);
 
 			return false;
 		}
 
-		room.resource->resSetName(roomName);
-		_engine->getResourceManager()->addResource(room.resource);
+		_room._resource->resSetName(roomName);
+		_engine->getResourceManager()->addResource(_room._resource);
 	}
 
-	room.setResource(room.resource);
+	_room.setResource(_room._resource);
 
-	if (!room.resource)
+	if (!_room._resource)
 		return false;
 
-	if (!room.lock())
+	if (!_room.lock())
 		return false;
 
-	Room_v2 *newRoom = room.typed;
+	Room_v2 *newRoom = _room._typed;
 
 	if (!newRoom)
 		return false;
 
 	newRoom->addActor(this);
 
-	if (extra && extra->puck && extra->inBoxes) {
-		extra->puck->reset();
-		extra->puck->validate(newRoom->walkPlanes);
+	if (_extra && _extra->_puck && _extra->_inBoxes) {
+		_extra->_puck->reset();
+		_extra->_puck->validate(newRoom->_walkPlanes);
 	}
 
 	return true;
@@ -281,7 +281,7 @@ int Actor::setSelectedActor(EmiEngine *engine, int actorId) {
 	int previousId = -1;
 
 	if (engine->_selectedActor)
-		previousId = engine->_selectedActor->id;
+		previousId = engine->_selectedActor->_id;
 
 	if (actorId >= 0)
 		engine->_selectedActor = actorDeref(engine, actorId);
@@ -297,7 +297,7 @@ Actor *Actor::actorDeref(EmiEngine *engine, int actorId) {
 	Common::List<Actor *>::iterator it;
 
 	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it) {
-		if (*it && (*it)->id == actorId)
+		if (*it && (*it)->_id == actorId)
 			return *it;
 	}
 
@@ -306,7 +306,7 @@ Actor *Actor::actorDeref(EmiEngine *engine, int actorId) {
 
 int Actor::getActorHandle(EmiEngine *, Actor *actor) {
 	if (actor)
-		return actor->id;
+		return actor->_id;
 
 	return 0;
 }
@@ -326,28 +326,28 @@ void Actor::detachNode(CNode *node) {
 }
 
 void Actor::registerANodes(CNode *node) {
-	for (CNode *current = node; current; current = current->nextSibling) {
-		registerANodes(current->firstChild);
+	for (CNode *current = node; current; current = current->_nextSibling) {
+		registerANodes(current->_firstChild);
 
 		ANode *animNode = dynamic_cast<ANode *>(current);
 
 		if (animNode)
-			animNodes.push_back(animNode);
+			_animNodes.push_back(animNode);
 	}
 }
 
 void Actor::unregisterANodes(CNode *node) {
-	for (CNode *current = node; current; current = current->nextSibling) {
-		unregisterANodes(current->firstChild);
+	for (CNode *current = node; current; current = current->_nextSibling) {
+		unregisterANodes(current->_firstChild);
 
 		ANode *animNode = dynamic_cast<ANode *>(current);
 
 		if (animNode) {
-			Common::List<ANode *>::iterator it = animNodes.begin();
+			Common::List<ANode *>::iterator it = _animNodes.begin();
 
-			while (it != animNodes.end()) {
+			while (it != _animNodes.end()) {
 				if (*it == animNode)
-					it = animNodes.erase(it);
+					it = _animNodes.erase(it);
 				else
 					++it;
 			}

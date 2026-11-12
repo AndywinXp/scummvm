@@ -60,7 +60,7 @@ int32 luaExeCodeSize(const byte *code, int32 limit) {
 }
 
 // Userdata is inline in the ScummVM objects: the first pass collects it
-static bool bCollectUserdata;
+static bool collectUserdata;
 static Common::HashMap<uint64, uint32> userdataIndices;
 static Common::Array<UserData> userdataEntries;
 
@@ -72,92 +72,92 @@ static uint32 getSerial(const void *ptr) {
 	return (uint32)(uintptr)ptr;
 }
 
-static void saveInt32(tSaveRestoreAccess *saveFunc, int32 value) {
+static void saveInt32(SaveRestoreAccess *saveFunc, int32 value) {
 	uint32 data = TO_LE_32((uint32)value);
 
 	saveFunc(&data, 4);
 }
 
-static void saveByte(tSaveRestoreAccess *saveFunc, bool value) {
+static void saveByte(SaveRestoreAccess *saveFunc, bool value) {
 	byte data = value ? 1 : 0;
 
 	saveFunc(&data, 1);
 }
 
-static uint32 getUserdataSerial(const UserData *pUserdata) {
-	uint64 key = ((uint64)(uint32)pUserdata->tag << 32) | (uint32)pUserdata->id;
+static uint32 getUserdataSerial(const UserData *userdata) {
+	uint64 key = ((uint64)(uint32)userdata->tag << 32) | (uint32)userdata->id;
 	uint32 index;
 
 	if (!userdataIndices.tryGetVal(key, index)) {
 		index = userdataEntries.size();
 		userdataIndices.setVal(key, index);
-		userdataEntries.push_back(*pUserdata);
+		userdataEntries.push_back(*userdata);
 	}
 
-	if (bCollectUserdata)
+	if (collectUserdata)
 		return 0;
 
 	return getSerial(&userdataEntries[index]);
 }
 
-static void SaveObject(const TObject *pObject, tSaveRestoreAccess *saveFunc) {
-	int32 ttype = pObject->ttype;
+static void SaveObject(const TObject *object, SaveRestoreAccess *saveFunc) {
+	int32 ttype = object->ttype;
 	uint32 serialNum = 0;
 
 	switch (ttype) {
 	case LUA_T_CPROTO:
-		if (lua_FuncPtrHasID(pObject->value.f)) {
-			serialNum = lua_FuncPtrToID(pObject->value.f);
+		if (lua_FuncPtrHasID(object->value.f)) {
+			serialNum = lua_FuncPtrToID(object->value.f);
 		} else {
 			ttype = LUA_T_NIL;
 		}
 		break;
 
 	case LUA_T_USERDATA:
-		serialNum = getUserdataSerial(&pObject->value.ud);
+		serialNum = getUserdataSerial(&object->value.ud);
 		break;
 
 	default:
-		memcpy(&serialNum, &pObject->value, 4);
+		memcpy(&serialNum, &object->value, 4);
 	}
 
 	saveInt32(saveFunc, ttype);
 	saveInt32(saveFunc, (int32)serialNum);
 }
 
-static void luaS_writestrings(tSaveRestoreAccess *saveFunc) {
+static void luaS_writestrings(SaveRestoreAccess *saveFunc) {
 	for (int32 i = 0; i < NUM_HASHS; i++) {
 		stringtable *tb = &string_root[i];
 
 		for (int32 j = 0; j < tb->size; j++) {
 			if (tb->hash[j] != nullptr && tb->hash[j] != &EMPTY) {
-				TaggedString *pTString = tb->hash[j];
+				TaggedString *tString = tb->hash[j];
 
-				saveInt32(saveFunc, (int32)getSerial(pTString));
-				saveInt32(saveFunc, pTString->constindex);
-				SaveObject(&pTString->globalval, saveFunc);
+				saveInt32(saveFunc, (int32)getSerial(tString));
+				saveInt32(saveFunc, tString->constindex);
+				SaveObject(&tString->globalval, saveFunc);
 
-				int32 length = strlen(pTString->str);
+				int32 length = strlen(tString->str);
 
 				saveInt32(saveFunc, length);
-				saveFunc(pTString->str, length);
+				saveFunc(tString->str, length);
 			}
 		}
 	}
 }
 
-static void luaS_writeuserdata(tSaveRestoreAccess *saveFunc) {
+static void luaS_writeuserdata(SaveRestoreAccess *saveFunc) {
 	for (uint i = 0; i < userdataEntries.size(); i++) {
-		UserData *pUserdata = &userdataEntries[i];
-		int32 value = pUserdata->id;
+		UserData *userdata = &userdataEntries[i];
+		int32 value = userdata->id;
 
-		saveInt32(saveFunc, (int32)getSerial(pUserdata));
+		saveInt32(saveFunc, (int32)getSerial(userdata));
 		saveInt32(saveFunc, -1);
 
 		if (lua_savehook)
-			value = lua_savehook(pUserdata->tag, value, saveFunc);
+			value = lua_savehook(userdata->tag, value, saveFunc);
 
-		saveInt32(saveFunc, pUserdata->tag);
+		saveInt32(saveFunc, userdata->tag);
 		saveInt32(saveFunc, value);
 	}
 }
@@ -185,23 +185,23 @@ static uint32 luaS_count(uint32 *maxstrlen) {
 	return count;
 }
 
-static void luaH_save(tSaveRestoreAccess *saveFunc, Hash *pHash) {
+static void luaH_save(SaveRestoreAccess *saveFunc, Hash *hash) {
 	int32 numItems = 0;
 
-	saveInt32(saveFunc, pHash->nhash);
+	saveInt32(saveFunc, hash->nhash);
 
-	for (int32 i = 0; i < pHash->nhash; i++) {
-		Node *n = &pHash->node[i];
+	for (int32 i = 0; i < hash->nhash; i++) {
+		Node *n = &hash->node[i];
 
 		if (n->ref.ttype != LUA_T_NIL && n->val.ttype != LUA_T_NIL)
 			numItems++;
 	}
 
 	saveInt32(saveFunc, numItems);
-	saveInt32(saveFunc, pHash->htag);
+	saveInt32(saveFunc, hash->htag);
 
-	for (int32 i = 0; i < pHash->nhash; i++) {
-		Node *n = &pHash->node[i];
+	for (int32 i = 0; i < hash->nhash; i++) {
+		Node *n = &hash->node[i];
 
 		if (n->ref.ttype != LUA_T_NIL && n->val.ttype != LUA_T_NIL) {
 			SaveObject(&n->ref, saveFunc);
@@ -210,21 +210,21 @@ static void luaH_save(tSaveRestoreAccess *saveFunc, Hash *pHash) {
 	}
 }
 
-static void SaveGlobals(tSaveRestoreAccess *saveFunc) {
+static void SaveGlobals(SaveRestoreAccess *saveFunc) {
 	uint32 maxstrlen, globalCount = 0, protoCount = 0, clCount = 0, tableCount = 0, stringCount = 0;
 
 	stringCount = luaS_count(&maxstrlen) + userdataEntries.size();
 
-	for (GCnode *pNode = rootcl.next; pNode; pNode = pNode->next)
+	for (GCnode *node = rootcl.next; node; node = node->next)
 		clCount++;
 
-	for (GCnode *pNode = roottable.next; pNode; pNode = pNode->next)
+	for (GCnode *node = roottable.next; node; node = node->next)
 		tableCount++;
 
-	for (GCnode *pNode = rootproto.next; pNode; pNode = pNode->next)
+	for (GCnode *node = rootproto.next; node; node = node->next)
 		protoCount++;
 
-	for (GCnode *pNode = rootglobal.next; pNode; pNode = pNode->next)
+	for (GCnode *node = rootglobal.next; node; node = node->next)
 		globalCount++;
 
 	saveInt32(saveFunc, stringCount);
@@ -237,50 +237,50 @@ static void SaveGlobals(tSaveRestoreAccess *saveFunc) {
 	luaS_writestrings(saveFunc);
 	luaS_writeuserdata(saveFunc);
 
-	for (Closure *pClosure = (Closure *)rootcl.next; pClosure; pClosure = (Closure *)pClosure->head.next) {
-		saveInt32(saveFunc, (int32)getSerial(pClosure));
-		saveInt32(saveFunc, pClosure->nelems);
+	for (Closure *closure = (Closure *)rootcl.next; closure; closure = (Closure *)closure->head.next) {
+		saveInt32(saveFunc, (int32)getSerial(closure));
+		saveInt32(saveFunc, closure->nelems);
 
-		for (int32 i = 0; i <= pClosure->nelems; i++)
-			SaveObject(&pClosure->consts[i], saveFunc);
+		for (int32 i = 0; i <= closure->nelems; i++)
+			SaveObject(&closure->consts[i], saveFunc);
 	}
 
-	for (Hash *pHash = (Hash *)roottable.next; pHash; pHash = (Hash *)pHash->head.next) {
-		saveInt32(saveFunc, (int32)getSerial(pHash));
-		luaH_save(saveFunc, pHash);
+	for (Hash *hash = (Hash *)roottable.next; hash; hash = (Hash *)hash->head.next) {
+		saveInt32(saveFunc, (int32)getSerial(hash));
+		luaH_save(saveFunc, hash);
 	}
 
-	for (TProtoFunc *pProto = (TProtoFunc *)rootproto.next; pProto; pProto = (TProtoFunc *)pProto->head.next) {
+	for (TProtoFunc *proto = (TProtoFunc *)rootproto.next; proto; proto = (TProtoFunc *)proto->head.next) {
 		int32 numVars = 0;
 
-		saveInt32(saveFunc, (int32)getSerial(pProto));
-		saveInt32(saveFunc, (int32)getSerial(pProto->fileName));
-		saveInt32(saveFunc, pProto->lineDefined);
-		saveInt32(saveFunc, pProto->nconsts);
+		saveInt32(saveFunc, (int32)getSerial(proto));
+		saveInt32(saveFunc, (int32)getSerial(proto->fileName));
+		saveInt32(saveFunc, proto->lineDefined);
+		saveInt32(saveFunc, proto->nconsts);
 
-		for (int32 i = 0; i < pProto->nconsts; i++)
-			SaveObject(&pProto->consts[i], saveFunc);
+		for (int32 i = 0; i < proto->nconsts; i++)
+			SaveObject(&proto->consts[i], saveFunc);
 
-		if (pProto->locvars) {
-			while (pProto->locvars[numVars++].line != -1) {
+		if (proto->locvars) {
+			while (proto->locvars[numVars++].line != -1) {
 			}
 		}
 
 		saveInt32(saveFunc, numVars);
 
 		for (int32 i = 0; i < numVars; i++) {
-			saveInt32(saveFunc, (int32)getSerial(pProto->locvars[i].varname));
-			saveInt32(saveFunc, pProto->locvars[i].line);
+			saveInt32(saveFunc, (int32)getSerial(proto->locvars[i].varname));
+			saveInt32(saveFunc, proto->locvars[i].line);
 		}
 
-		int32 numBytes = luaExeCodeSize(pProto->code, 0x7fffffff);
+		int32 numBytes = luaExeCodeSize(proto->code, 0x7fffffff);
 
 		saveInt32(saveFunc, numBytes);
-		saveFunc(pProto->code, numBytes);
+		saveFunc(proto->code, numBytes);
 	}
 
-	for (GCnode *pTString = rootglobal.next; pTString; pTString = pTString->next)
-		saveInt32(saveFunc, (int32)getSerial(pTString));
+	for (GCnode *tString = rootglobal.next; tString; tString = tString->next)
+		saveInt32(saveFunc, (int32)getSerial(tString));
 
 	if (luaIsEmi)
 		saveByte(saveFunc, true);
@@ -318,30 +318,30 @@ static void SaveGlobals(tSaveRestoreAccess *saveFunc) {
 	saveInt32(saveFunc, globalTaskSerialId);
 }
 
-static void SaveExecutionState(lua_Task *pExecState, tSaveRestoreAccess *saveFunc) {
-	if (pExecState->next)
-		SaveExecutionState(pExecState->next, saveFunc);
+static void SaveExecutionState(lua_Task *execState, SaveRestoreAccess *saveFunc) {
+	if (execState->next)
+		SaveExecutionState(execState->next, saveFunc);
 
-	saveInt32(saveFunc, (int32)getSerial(pExecState->cl));
-	saveInt32(saveFunc, (int32)getSerial(pExecState->tf));
-	saveInt32(saveFunc, pExecState->base);
-	saveInt32(saveFunc, pExecState->initBase);
-	saveInt32(saveFunc, pExecState->initResults);
+	saveInt32(saveFunc, (int32)getSerial(execState->cl));
+	saveInt32(saveFunc, (int32)getSerial(execState->tf));
+	saveInt32(saveFunc, execState->base);
+	saveInt32(saveFunc, execState->initBase);
+	saveInt32(saveFunc, execState->initResults);
 	if (luaIsEmi)
-		saveByte(saveFunc, pExecState->executed);
+		saveByte(saveFunc, execState->executed);
 	else
-		saveInt32(saveFunc, pExecState->executed ? 1 : 0);
+		saveInt32(saveFunc, execState->executed ? 1 : 0);
 
-	saveInt32(saveFunc, pExecState->pc - pExecState->tf->code);
-	saveInt32(saveFunc, pExecState->aux);
+	saveInt32(saveFunc, execState->pc - execState->tf->code);
+	saveInt32(saveFunc, execState->aux);
 }
 
-static void SaveState(LState *pState, tSaveRestoreAccess *saveFunc) {
+static void SaveState(LState *state, SaveRestoreAccess *saveFunc) {
 	uint32 numExecStates = 0;
 	int32 previousExecState = -1;
 
-	for (lua_Task *pExecState = pState->task; pExecState; pExecState = pExecState->next) {
-		if (pState->prevTask && pState->prevTask == pExecState)
+	for (lua_Task *execState = state->task; execState; execState = execState->next) {
+		if (state->prevTask && state->prevTask == execState)
 			previousExecState = numExecStates;
 
 		numExecStates++;
@@ -349,60 +349,60 @@ static void SaveState(LState *pState, tSaveRestoreAccess *saveFunc) {
 
 	saveInt32(saveFunc, numExecStates);
 
-	if (pState->task)
-		SaveExecutionState(pState->task, saveFunc);
+	if (state->task)
+		SaveExecutionState(state->task, saveFunc);
 
 	saveInt32(saveFunc, previousExecState);
 
 	if (luaIsEmi) {
-		saveInt32(saveFunc, pState->sleepFor);
-		saveInt32(saveFunc, pState->preventBreakCounter);
-		saveByte(saveFunc, pState == lua_rootState);
-		saveByte(saveFunc, pState->updated);
-		saveByte(saveFunc, pState->paused);
-		saveByte(saveFunc, pState->pauseSticky);
-		saveInt32(saveFunc, pState->callLevelCounter);
+		saveInt32(saveFunc, state->sleepFor);
+		saveInt32(saveFunc, state->preventBreakCounter);
+		saveByte(saveFunc, state == lua_rootState);
+		saveByte(saveFunc, state->updated);
+		saveByte(saveFunc, state->paused);
+		saveByte(saveFunc, state->pauseSticky);
+		saveInt32(saveFunc, state->callLevelCounter);
 	} else {
-		saveInt32(saveFunc, pState->preventBreakCounter);
-		saveInt32(saveFunc, pState == lua_rootState ? 1 : 0);
-		saveInt32(saveFunc, pState->updated ? 1 : 0);
-		saveInt32(saveFunc, (pState->all_paused || pState->paused) ? 1 : 0);
-		saveInt32(saveFunc, pState->callLevelCounter);
+		saveInt32(saveFunc, state->preventBreakCounter);
+		saveInt32(saveFunc, state == lua_rootState ? 1 : 0);
+		saveInt32(saveFunc, state->updated ? 1 : 0);
+		saveInt32(saveFunc, (state->all_paused || state->paused) ? 1 : 0);
+		saveInt32(saveFunc, state->callLevelCounter);
 	}
 
-	int32 stackSize = (pState->stack.last - pState->stack.stack) + 1;
+	int32 stackSize = (state->stack.last - state->stack.stack) + 1;
 
 	saveInt32(saveFunc, stackSize);
 
-	stackSize = pState->stack.top - pState->stack.stack;
+	stackSize = state->stack.top - state->stack.stack;
 	saveInt32(saveFunc, stackSize);
 
 	for (int32 i = 0; i < stackSize; i++)
-		SaveObject(&pState->stack.stack[i], saveFunc);
+		SaveObject(&state->stack.stack[i], saveFunc);
 
-	saveInt32(saveFunc, pState->Cstack.base);
-	saveInt32(saveFunc, pState->Cstack.lua2C);
-	saveInt32(saveFunc, pState->Cstack.num);
+	saveInt32(saveFunc, state->Cstack.base);
+	saveInt32(saveFunc, state->Cstack.lua2C);
+	saveInt32(saveFunc, state->Cstack.num);
 
-	saveInt32(saveFunc, pState->numCblocks);
+	saveInt32(saveFunc, state->numCblocks);
 
-	for (int32 j = 0; j < pState->numCblocks; j++) {
-		saveInt32(saveFunc, pState->Cblocks[j].base);
-		saveInt32(saveFunc, pState->Cblocks[j].lua2C);
-		saveInt32(saveFunc, pState->Cblocks[j].num);
+	for (int32 j = 0; j < state->numCblocks; j++) {
+		saveInt32(saveFunc, state->Cblocks[j].base);
+		saveInt32(saveFunc, state->Cblocks[j].lua2C);
+		saveInt32(saveFunc, state->Cblocks[j].num);
 	}
 
-	saveInt32(saveFunc, pState->id);
-	SaveObject(&pState->taskFunc, saveFunc);
+	saveInt32(saveFunc, state->id);
+	SaveObject(&state->taskFunc, saveFunc);
 }
 
-static void saveLuaState(tSaveRestoreAccess *saveFunc) {
+static void saveLuaState(SaveRestoreAccess *saveFunc) {
 	uint32 numTasks = 0, currentTaskNumber = 0;
 
 	SaveGlobals(saveFunc);
 
-	for (LState *pState = lua_rootState; pState; pState = pState->next) {
-		if (pState == lua_state)
+	for (LState *state = lua_rootState; state; state = state->next) {
+		if (state == lua_state)
 			currentTaskNumber = numTasks;
 
 		numTasks++;
@@ -411,19 +411,19 @@ static void saveLuaState(tSaveRestoreAccess *saveFunc) {
 	saveInt32(saveFunc, numTasks);
 	saveInt32(saveFunc, currentTaskNumber);
 
-	for (LState *pState = lua_rootState; pState; pState = pState->next)
-		SaveState(pState, saveFunc);
+	for (LState *state = lua_rootState; state; state = state->next)
+		SaveState(state, saveFunc);
 }
 
-int lua_Save(tSaveRestoreAccess *saveFunc) {
+int lua_Save(SaveRestoreAccess *saveFunc) {
 	lua_collectgarbage(0);
 
-	bCollectUserdata = true;
+	collectUserdata = true;
 	userdataIndices.clear();
 	userdataEntries.clear();
 	saveLuaState(nullWriter);
 
-	bCollectUserdata = false;
+	collectUserdata = false;
 	saveLuaState(saveFunc);
 
 	userdataIndices.clear();

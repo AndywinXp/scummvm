@@ -34,8 +34,8 @@ public:
 
 	void setKey(float value, float elapsed, float nextValue, float remaining, bool partial) override;
 
-	Actor *owner;
-	LString filter;
+	Actor *_owner;
+	LString _filter;
 };
 
 } // End of namespace Grim

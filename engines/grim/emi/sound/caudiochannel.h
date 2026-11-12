@@ -55,7 +55,7 @@ public:
 	virtual void setCutoff(float nearDistance, float farDistance) = 0;
 	virtual void applyCueSettings(CSoundCue *newCue) = 0;
 
-	bool paused;
+	bool _paused;
 
 protected:
 	EmiEngine *_engine;
