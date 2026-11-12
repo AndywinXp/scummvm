@@ -35,18 +35,16 @@
 
 namespace Grim {
 
-static SputCostume *g_pSputCostume = nullptr;
-
-static int instanceHookThunk(int hInst, int bCreate) {
-	return g_pSputCostume->instanceHook(hInst);
+static int instanceHookThunk(int instance, int create) {
+	return g_grim->getSputCostume()->instanceHook(instance);
 }
 
-static int saveHookThunk(const char *path, int hCostume, const char *header) {
-	return g_pSputCostume->saveHook(path, hCostume, header);
+static int saveHookThunk(const char *path, int costume, const char *header) {
+	return g_grim->getSputCostume()->saveHook(path, costume, header);
 }
 
 void SputCostume::puppetHookCallback(void *userArg, int trackNum, int markerType) {
-	g_pSputCostume->puppetHook(static_cast<ModelInst *>(userArg), trackNum, markerType);
+	g_grim->getSputCostume()->puppetHook(static_cast<ModelInst *>(userArg), trackNum, markerType);
 }
 
 SputCostume::SputCostume(Res *pRes, RenderDroid *pRd, SputResource *pSputResource, SputRender *pSputRender, SputRoom *pSputRoom, StdLbm *pStdLbm, WuRegistry *pWuRegistry) :
@@ -319,8 +317,6 @@ void SputCostume::terminate() {
 int SputCostume::startup() {
 	if (_bStarted)
 		return 1;
-
-	g_pSputCostume = this;
 
 	_cos.startup();
 

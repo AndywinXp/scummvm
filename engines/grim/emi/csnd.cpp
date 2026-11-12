@@ -28,7 +28,7 @@
 
 namespace Grim {
 
-LResourceType CSnd::sndType("SND");
+const LResourceType CSnd::sndType("SND");
 
 CSnd::CSnd() {
 	volume = 1.0f;

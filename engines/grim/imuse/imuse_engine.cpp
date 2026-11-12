@@ -38,8 +38,6 @@
 
 namespace Grim {
 
-IMuse *g_imuse = nullptr;
-
 void IMuse::timer_handler(void *refCon) {
 	IMuse *imuse = (IMuse *)refCon;
 	imuse->imHeartbeat();

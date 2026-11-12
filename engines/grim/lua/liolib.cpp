@@ -16,7 +16,6 @@
 
 #include "common/savefile.h"
 #include "common/fs.h"
-#include "common/memstream.h"
 #include "common/system.h"
 #include "common/util.h"
 
@@ -29,10 +28,9 @@
 #include "base/commandLine.h"
 
 #include "engines/grim/grim.h"
+#include "engines/grim/lua.h"
 
 #include "engines/grim/emi/emi_registry.h"
-#include "engines/grim/emi/lconsoleservices.h"
-#include "engines/grim/emi/lfile.h"
 
 namespace Grim {
 
@@ -156,39 +154,6 @@ static Common::String getFileName(const char *path) {
 	return Common::lastPathComponent(Common::lastPathComponent(path, '\\'), '/');
 }
 
-static Common::SeekableReadStream *openBundleStream(const char *path) {
-	if (!gpFileServices)
-		return nullptr;
-
-	LFile *file = gpFileServices->open(path, "r");
-
-	if (!file)
-		return nullptr;
-
-	file->seek(0, SEEK_END);
-
-	int size = file->tell();
-
-	file->seek(0, SEEK_SET);
-
-	Common::MemoryWriteStreamDynamic data(DisposeAfterUse::NO);
-	byte buffer[1024];
-
-	while (size > 0) {
-		uint count = file->read(buffer, MIN(size, 1024));
-
-		if (!count)
-			break;
-
-		data.write(buffer, count);
-		size -= count;
-	}
-
-	gpFileServices->close(file, true);
-
-	return new Common::MemoryReadStream(data.getData(), data.size(), DisposeAfterUse::YES);
-}
-
 static void closefile(const char *name) {
 	LuaFile *f = getfile(name);
 
@@ -246,10 +211,13 @@ static void io_readfrom() {
 		if (luaIsEmi && EmiRegistry::isPrefsFile(fileName))
 			inFile = EmiRegistry::openPrefsForReading(inFile);
 		if (!inFile) {
-			if (luaIsEmi)
-				inFile = openBundleStream(s);
-			else
+			if (luaIsEmi) {
+				LuaBase *lua = LuaBase::instance();
+				if (lua)
+					inFile = lua->openBundleStream(s);
+			} else {
 				inFile = g_grim->openStreamFile(s);
+			}
 		}
 		if (inFile) {
 			LuaFile *current = new LuaFile();
@@ -420,8 +388,9 @@ static void errorfb() {
 	if (luaIsEmi) {
 		const char *message = lua_getstring(lua_getparam(1));
 
-		if (gpConsoleServices)
-			gpConsoleServices->logError("lua: %s\n", message ? message : "(null)");
+		LuaBase *lua = LuaBase::instance();
+		if (lua)
+			lua->logError(Common::String::format("lua: %s\n", message ? message : "(null)").c_str());
 
 		lua_printstack(nullptr);
 		return;
@@ -563,6 +532,9 @@ void lua_iolibclose() {
 		delete it->_value;
 	}
 	delete g_files;
+	g_files = nullptr;
+	g_stderr = nullptr;
+	s_id = 0;
 }
 
 } // end of namespace Grim

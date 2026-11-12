@@ -32,7 +32,7 @@ namespace Grim {
 static const float kAxisLength = 0.04f;
 static const int kNumDebugAxes = 3;
 
-static void setLineColor(DrawVertex *line, Color *color) {
+static void setLineColor(DrawVertex *line, const Color *color) {
 	byte red;
 	byte green;
 	byte blue;
@@ -101,8 +101,8 @@ void RNode::draw(Camera *camera) {
 }
 
 void RNode::drawDebug(Camera *camera) {
-	static DrawVertex parentLine[2];
-	static DrawVertex axisLine[2];
+	DrawVertex parentLine[2];
+	DrawVertex axisLine[2];
 
 	const float *v = camera->view.rot.m;
 	const CVector &viewPos = camera->view.pos;
@@ -158,7 +158,7 @@ void RNode::drawDebug(Camera *camera) {
 		world.rot.multiply(&combined, &camera->view.rot);
 
 		const float *a = combined.m;
-		Color *axisColors[kNumDebugAxes] = { &Color::kRed, &Color::kGreen, &Color::kBlue };
+		const Color *axisColors[kNumDebugAxes] = { &Color::kRed, &Color::kGreen, &Color::kBlue };
 
 		for (int axis = 0; axis < kNumDebugAxes; axis++) {
 			axisLine[0].x = originX;

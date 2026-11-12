@@ -31,7 +31,7 @@
 #include "engines/grim/lua/lvm.h"
 #include "engines/grim/lua/lzio.h"
 
-#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/lua.h"
 
 #include "common/file.h"
 #include "common/textconsole.h"
@@ -275,8 +275,11 @@ int32 luaD_call(StkId base, int32 nResults) {
 					return 1;
 				}
 
-				if (luaIsEmi && gpConsoleServices)
-					gpConsoleServices->logError("Break not allowed!\n");
+				if (luaIsEmi) {
+					LuaBase *lua = LuaBase::instance();
+					if (lua)
+						lua->logError("Break not allowed!\n");
+				}
 			}
 		}
 
@@ -317,10 +320,16 @@ void lua_error(const char *s) {
 		message(s);
 	if (lua_state->errorJmp) {
 		longjmp(*((jmp_buf *)lua_state->errorJmp), 1);
-	} else if (luaIsEmi && gpConsoleServices) {
-		gpConsoleServices->logError("lua: exit(1). Unable to recover\n");
 	} else {
-		fprintf(stderr, "lua: exit(1). Unable to recover\n");
+		bool logged = false;
+		if (luaIsEmi) {
+			LuaBase *lua = LuaBase::instance();
+			if (lua)
+				logged = lua->logError("lua: exit(1). Unable to recover\n");
+		}
+
+		if (!logged)
+			fprintf(stderr, "lua: exit(1). Unable to recover\n");
 	}
 	exit(1); // exit in both cases, to help compilers with noreturn/longjmp
 }

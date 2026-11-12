@@ -205,19 +205,19 @@ void SoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int
 
 	int action = soundKeyValues[keyValue];
 
-	if (action || g_imuse->soundsIsSoundPlaying(pRes->name)) {
+	if (action || g_grim->getImuse()->soundsIsSoundPlaying(pRes->name)) {
 		if (action == 1) {
 			if (fourcc == kSputCostumeTagResidentSound)
-				g_imuse->soundsStopSound(pRes->name);
+				g_grim->getImuse()->soundsStopSound(pRes->name);
 			else if (fourcc == kSputCostumeTagStreamedSound)
-				g_imuse->soundStopVoiceStream();
+				g_grim->getImuse()->soundStopVoiceStream();
 		} else if (action == 2) {
-			g_imuse->iMUSESetHook(pRes->name, 0x80);
+			g_grim->getImuse()->iMUSESetHook(pRes->name, 0x80);
 		}
 	} else if (fourcc == kSputCostumeTagResidentSound) {
 		SputRoom *pSputRoom = _pSputCostume->_pSputRoom;
 		Room *pRoom = pSputRoom->getCurrentRoom();
-		int soundId = g_imuse->soundsLoadStartSound(pRes->name, pRes->priority, 1);
+		int soundId = g_grim->getImuse()->soundsLoadStartSound(pRes->name, pRes->priority, 1);
 
 		if (pRoom) {
 			float maxDist;
@@ -243,9 +243,9 @@ void SoundHandler::change(int fourcc, void *pInstData, int op, int keyValue, int
 			pSputRoom->setSoundPosition((const char *)(intptr)soundId, pActor->actorPos, minVolume, volume, maxDist, maxRadius);
 		}
 	} else if (fourcc == kSputCostumeTagStreamedSound) {
-		g_imuse->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_GROUP, 1);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
+		g_grim->getImuse()->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_GROUP, 1);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
 	}
 }
 
@@ -315,7 +315,7 @@ void SoundHandler::freeComponent(int hCostume, int fourcc, void *pCompRes) {
 void SoundHandler::stop(void *pInstData) {
 	SoundCompRes *pRes = static_cast<SoundCompRes *>(pInstData);
 
-	g_imuse->soundsStopSound(pRes->name);
+	g_grim->getImuse()->soundsStopSound(pRes->name);
 }
 
 int SoundHandler::adjust(void **ppCompRes, char *args, int argsSize) {
@@ -362,17 +362,17 @@ void DemoSoundHandler::change(int fourcc, void *pInstData, int op, int keyValue,
 
 	if (demoSoundKeyValues[keyValue]) {
 		if (fourcc == kSputCostumeTagResidentSound)
-			g_imuse->soundsStopSound(pRes->name);
+			g_grim->getImuse()->soundsStopSound(pRes->name);
 		else if (fourcc == kSputCostumeTagStreamedSound)
-			g_imuse->soundStopVoiceStream();
+			g_grim->getImuse()->soundStopVoiceStream();
 	} else if (fourcc == kSputCostumeTagResidentSound) {
-		g_imuse->soundsLoadStartSound(pRes->name, pRes->priority, pRes->group);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_VOLUME, pRes->volume);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_PAN, pRes->pan);
+		g_grim->getImuse()->soundsLoadStartSound(pRes->name, pRes->priority, pRes->group);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_VOLUME, pRes->volume);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PAN, pRes->pan);
 	} else if (fourcc == kSputCostumeTagStreamedSound) {
-		g_imuse->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_GROUP, pRes->group);
-		g_imuse->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
+		g_grim->getImuse()->soundStartVoiceStream(pRes->name, pRes->volume, pRes->pan);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_GROUP, pRes->group);
+		g_grim->getImuse()->soundsSetParam(pRes->name, IMUSE_P_PRIORITY, pRes->priority);
 	}
 }
 

@@ -43,6 +43,7 @@ private:
 	int _outputSize;
 	int _lastBlock;
 	bool _uncompressedSingleBlock;
+	uint16 _destTable[5786];
 
 public:
 

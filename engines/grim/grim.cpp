@@ -125,8 +125,6 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 	_gamePlatform = platform;
 	_gameLanguage = language;
 
-	g_imuse = nullptr;
-
 	// Set default settings
 	ConfMan.registerDefault("grim_3d_acceleration", false);
 	ConfMan.registerDefault("grim_remaster_bugfixes", true);
@@ -158,8 +156,8 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 GrimEngine::~GrimEngine() {
 	destroyModules();
 
-	delete g_imuse;
-	g_imuse = nullptr;
+	delete _imuse;
+	_imuse = nullptr;
 	MD5Check::clear();
 
 	ConfMan.flushToDisk();
@@ -449,12 +447,10 @@ void GrimEngine::createImuse() {
 	if (ConfMan.hasKey("imuse_low_latency_mode", _targetName))
 		lowLatencyMode = ConfMan.getBool("imuse_low_latency_mode");
 
-	g_imuse = new IMuse(sampleRate, _mixer, &_imuseMutex, lowLatencyMode, demo, isRemastered());
+	_imuse = new IMuse(sampleRate, _mixer, &_imuseMutex, lowLatencyMode, demo, isRemastered());
 }
 
 void GrimEngine::createModules() {
-	_pImuse = g_imuse;
-
 	_pStdMath = new StdMath();
 	_pStdFile = new StdFile();
 	_pStdDisplay = new StdDisplay();
@@ -640,7 +636,6 @@ void GrimEngine::destroyModules() {
 	_pStdFile = nullptr;
 	delete _pStdMath;
 	_pStdMath = nullptr;
-	_pImuse = nullptr;
 }
 
 uint GrimEngine::getHardwareBackends() const {
@@ -1210,7 +1205,7 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 
 	setPerfCounter(0);
 	setPerfCounter(10);
-	_pImuse->soundsPeriodic();
+	_imuse->soundsPeriodic();
 	queryPerfCounterDiff(10);
 
 	int result = _libMode;
@@ -1263,7 +1258,7 @@ int GrimEngine::loop(int bRender, int manualTicks) {
 		result = _libImuseState;
 
 		if (result != -1) {
-			result = _pImuse->imSetState(result);
+			result = _imuse->imSetState(result);
 			_libImuseState = -1;
 		}
 	}
@@ -1489,13 +1484,13 @@ void GrimEngine::setPause(int bPause) {
 			_libPauseSavedMode = _libMode;
 			_libPauseSavedOldMode = _libPauseOldMode;
 			_libMode = 1;
-			_pImuse->imPause();
+			_imuse->imPause();
 			_pSputSmush->pause(1);
 		}
 	} else if (_libMode == 1) {
 		_libMode = _libPauseSavedMode;
 		_libPauseOldMode = _libPauseSavedOldMode;
-		_pImuse->imResume();
+		_imuse->imResume();
 		_pSputSmush->pause(0);
 	}
 }
@@ -1710,7 +1705,7 @@ void GrimEngine::restore() {
 void GrimEngine::restorePrologue() {
 	_pSputRender->allowLoadImage(0);
 	_pSputRender->drawProgressBar(0.1f);
-	_pImuse->imStopAllSounds();
+	_imuse->imStopAllSounds();
 	_pSputSmush->stopMovie();
 	_pSputSmush->periodic();
 	_pRes->freeAll();
@@ -1820,7 +1815,7 @@ void GrimEngine::imuseRestore() {
 	if (!pFile)
 		return;
 
-	_pImuse->imStopAllSounds();
+	_imuse->imStopAllSounds();
 	soundsRestore(pFile);
 	delete pFile;
 	g_system->getSavefileManager()->removeSavefile("grim.tmp");
@@ -1830,14 +1825,14 @@ void GrimEngine::soundsSave(Common::WriteStream *pStream) {
 	Common::Serializer ser(nullptr, pStream);
 
 	ser.setVersion(kSoundsSaveVersion);
-	_pImuse->soundsSaveLoad(ser);
+	_imuse->soundsSaveLoad(ser);
 }
 
 void GrimEngine::soundsRestore(Common::SeekableReadStream *pStream, bool legacyLayout) {
 	Common::Serializer ser(pStream, nullptr);
 
 	ser.setVersion(kSoundsSaveVersion);
-	_pImuse->soundsSaveLoad(ser, legacyLayout);
+	_imuse->soundsSaveLoad(ser, legacyLayout);
 }
 
 enum {

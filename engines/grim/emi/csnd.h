@@ -87,7 +87,7 @@ public:
 	float freq;
 	LResourceHandle<LSound> sound;
 
-	static LResourceType sndType;
+	static const LResourceType sndType;
 
 protected:
 	bool resLoadItem(const char *itemName) override;

@@ -134,7 +134,7 @@ void SputRoom::getSoundParameters(Room *pRoom, float *maxDist, byte *minVol, byt
 }
 
 int SputRoom::setSoundPosition(const char *soundName, float *pPos, int minVol, int maxVol, float maxDist, float radius) {
-	int result = g_imuse->soundsIsSoundPlaying(soundName);
+	int result = g_grim->getImuse()->soundsIsSoundPlaying(soundName);
 
 	if (result) {
 		RoomSound *pSound = allocSoundTable(soundName, pPos, minVol, maxVol, maxDist, radius);
@@ -596,7 +596,7 @@ void SputRoom::freeSoundTable() {
 	RoomSound *pPrev = nullptr;
 
 	while (pSound) {
-		if (g_imuse->soundsIsSoundPlaying(pSound->soundName)) {
+		if (g_grim->getImuse()->soundsIsSoundPlaying(pSound->soundName)) {
 			pPrev = pSound;
 			pSound = pSound->pNext;
 		} else {
@@ -666,7 +666,7 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 		else if (volume > maxVol)
 			volume = maxVol;
 
-		g_imuse->soundsSetParam(pSound->soundName, IMUSE_P_VOLUME, (int)volume);
+		g_grim->getImuse()->soundsSetParam(pSound->soundName, IMUSE_P_VOLUME, (int)volume);
 	}
 
 	double pan = ((double)pSetup->camera.posMatrix[0][0] * vec[0] + (double)pSetup->camera.posMatrix[0][1] * vec[1] +
@@ -682,7 +682,7 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 	if (panValue > 127)
 		panValue = 127;
 
-	g_imuse->soundsSetParam(pSound->soundName, IMUSE_P_PAN, (int)panValue);
+	g_grim->getImuse()->soundsSetParam(pSound->soundName, IMUSE_P_PAN, (int)panValue);
 
 	return 1;
 }
@@ -690,7 +690,7 @@ int SputRoom::setupSoundPosition(RoomSound *pSound) {
 int SputRoom::loadResources(Room *pRoom) {
 	pRoom->structSize = (_pGrim->getGameFlags() & ADGF_DEMO) ? 6856 : 6920;
 
-	g_imuse->soundsFloodMusicBuffer();
+	g_grim->getImuse()->soundsFloodMusicBuffer();
 
 	if (pRoom->numcolormaps && !pRoom->apColormaps) {
 		warning("SputRoom::loadResources(): room %s has no colormap references", pRoom->name);

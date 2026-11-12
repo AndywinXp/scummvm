@@ -187,7 +187,7 @@ int *CDrawContext::getViewportRect(int *rect) {
 }
 
 LColorFormat CDrawContext::getTextureFormat(int first, int second) {
-	static LColorFormat defaultFormat;
+	static const LColorFormat defaultFormat;
 
 	return defaultFormat;
 }

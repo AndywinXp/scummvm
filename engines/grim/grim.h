@@ -176,6 +176,9 @@ public:
 	void imuseSave();
 	void imuseRestore();
 	PerfCounter *getPerfCounters() { return _aPerfCounters; }
+	IMuse *getImuse() const { return _imuse; }
+	SputCostume *getSputCostume() const { return _pSputCostume; }
+	SputResource *getSputResource() const { return _pSputResource; }
 
 	// grimlib module
 	void overrideSelectedActorCostume(int hInstance);
@@ -351,7 +354,6 @@ protected:
 	SputSmush *_pSputSmush = nullptr;
 	Lua_V1 *_pLua = nullptr;
 	WalkSystem *_pWalkSystem = nullptr;
-	IMuse *_pImuse = nullptr;
 	StdVBuffer *_pMainGfxBuffer = nullptr;
 
 	SysStruct *_pSputHS = nullptr;
@@ -382,6 +384,9 @@ protected:
 	int _libImuseState = -1;
 	int (*_pShutdownCallback)(int) = nullptr;
 	int _libRenderOptions[8] = { 4, 3, 1, 1, 0, 0, 2, 0 };
+
+private:
+	IMuse *_imuse = nullptr;
 };
 
 extern GrimEngine *g_grim;

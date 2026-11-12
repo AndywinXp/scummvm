@@ -86,7 +86,7 @@ void SputActorModule::sayLineDemo(SputActor *pActor, const char *msgId) {
 
 	if (speechVoice) {
 		if (voiceFile[0]) {
-			g_imuse->soundStartVoiceStream(voiceFile, 127, 64);
+			g_grim->getImuse()->soundStartVoiceStream(voiceFile, 127, 64);
 			Common::strlcpy(pExtra->voiceName, voiceFile, sizeof(pExtra->voiceName));
 		} else {
 			pExtra->voiceName[0] = 0;
@@ -141,7 +141,7 @@ void SputActorModule::shutUpDemo(SputActor *pActor) {
 		return;
 
 	if (pExtra->voiceName[0])
-		g_imuse->soundStopVoiceStream();
+		g_grim->getImuse()->soundStopVoiceStream();
 
 	if (pExtra->pSayText)
 		_pSputText->killEvent(pExtra->pSayText);
@@ -188,7 +188,7 @@ void SputActorModule::shutUpDemo(SputActor *pActor) {
 }
 
 int SputActorModule::isVoicePlayingDemo(SputActor *pActor) {
-	return pActor->pExtra->voiceName[0] && g_imuse->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
+	return pActor->pExtra->voiceName[0] && g_grim->getImuse()->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
 }
 
 void SputActorModule::stopActorDemo(SputActor *pActor) {
@@ -222,7 +222,7 @@ void SputActorModule::updateActorSpeech(SputActor *pActor, float delta) {
 		return;
 
 	if (pExtra->voiceName[0] && pExtra->phoneme && pActor->pCostumeStack) {
-		int phoneme = g_imuse->iMUSEGetPhoneme(pExtra->soundId, 0);
+		int phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pExtra->soundId, 0);
 
 		if (phoneme) {
 			int mouthChore = matchPhonemeWithAnim(pActor, phoneme);
@@ -341,27 +341,27 @@ void SputActorModule::sayLine(SputActor *pActor, const char *msgId, int bVoiceSt
 	if (speechVoice) {
 		if (voiceFile[0]) {
 			if (!bVoiceStream) {
-				pActor->pExtra->soundId = g_imuse->soundsLoadProcessStartSound(voiceFile, 127, 2);
+				pActor->pExtra->soundId = g_grim->getImuse()->soundsLoadProcessStartSound(voiceFile, 127, 2);
 
 				if (!pActor->pExtra->soundId) {
 					pActor->pExtra->voiceName[0] = 0;
 				} else {
-					g_imuse->soundsSetParam((const char *)(intptr)pActor->pExtra->soundId, IMUSE_P_VOLUME, volume);
+					g_grim->getImuse()->soundsSetParam((const char *)(intptr)pActor->pExtra->soundId, IMUSE_P_VOLUME, volume);
 
 					if (pActor->flags & 8)
 						_pSputRoom->setSoundPosition((const char *)(intptr)pActor->pExtra->soundId, pActor->actorPos, 20, 127, 8.0f, 0.80000001f);
 
 					Common::strlcpy(pActor->pExtra->voiceName, voiceFile, sizeof(pActor->pExtra->voiceName));
-					pActor->pExtra->phoneme = g_imuse->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
+					pActor->pExtra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
 				}
-			} else if (!g_imuse->soundStartVoiceStream(voiceFile, volume, pan)) {
+			} else if (!g_grim->getImuse()->soundStartVoiceStream(voiceFile, volume, pan)) {
 				pActor->pExtra->soundId = kTalkSoundID;
 
 				if (pActor->flags & 8)
 					_pSputRoom->setSoundPosition((const char *)(intptr)kTalkSoundID, pActor->actorPos, 20, 127, 8.0f, 0.80000001f);
 
 				Common::strlcpy(pActor->pExtra->voiceName, voiceFile, sizeof(pActor->pExtra->voiceName));
-				pActor->pExtra->phoneme = g_imuse->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
+				pActor->pExtra->phoneme = g_grim->getImuse()->iMUSEGetPhoneme(pActor->pExtra->soundId, 0);
 			} else {
 				pActor->pExtra->voiceName[0] = 0;
 			}
@@ -464,9 +464,9 @@ void SputActorModule::shutUp(SputActor *pActor) {
 
 	if (pExtra->voiceName[0]) {
 		if (pExtra->soundId == kTalkSoundID)
-			g_imuse->soundStopVoiceStream();
+			g_grim->getImuse()->soundStopVoiceStream();
 		else
-			g_imuse->soundsStopSound((const char *)(intptr)pExtra->soundId);
+			g_grim->getImuse()->soundsStopSound((const char *)(intptr)pExtra->soundId);
 	}
 
 	if (pActor->pExtra->pSayText)
@@ -529,9 +529,9 @@ int SputActorModule::isVoicePlaying(SputActor *pActor) {
 		return 0;
 
 	if (pExtra->soundId == kTalkSoundID)
-		return g_imuse->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
+		return g_grim->getImuse()->imGetParam(kTalkSoundID, IMUSE_P_SND_TRACK_NUM) > 0;
 
-	return g_imuse->soundsIsSoundPlaying(pExtra->voiceName);
+	return g_grim->getImuse()->soundsIsSoundPlaying(pExtra->voiceName);
 }
 
 } // End of namespace Grim

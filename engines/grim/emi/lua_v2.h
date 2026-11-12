@@ -47,6 +47,8 @@ public:
 	using Lua_V1::update;
 	void update(float seconds);
 	int dofile(const char *filename) override;
+	bool logError(const char *message) override;
+	Common::SeekableReadStream *openBundleStream(const char *path) override;
 	void recognizeOpcodes() override;
 	void registerMainOpcodes() override;
 	void registerPrimitiveOpcodes() override;
