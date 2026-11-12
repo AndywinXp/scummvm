@@ -57,6 +57,7 @@ public:
 	static void setGlobalReverbEnabled(int enabled);
 	static bool setGlobalReverb(int preset, const float *first, const float *second, const float *third, const float *fourth, const float *fifth);
 	static bool getGlobalReverb(int *preset, float *first, float *second, float *third, float *fourth, float *fifth);
+	static bool setSonyReverb(int type, int depth, int delay, int feedback);
 	static bool setAudioDevicePreference(const uint16 *preference);
 	static void stopAllChannels();
 	static bool saveAudioSettings(tSaveRestoreAccess *access);
@@ -71,6 +72,10 @@ public:
 	static int reverbPreset;
 	static float reverbValues[5];
 	static byte reverbEnabled;
+	static int sonyReverbType;
+	static int sonyReverbDepth;
+	static int sonyReverbDelay;
+	static int sonyReverbFeedback;
 	static CNodeRef listener;
 	static float masterGain;
 	static float categoryGain[3];

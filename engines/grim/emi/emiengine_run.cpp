@@ -27,6 +27,7 @@
 
 #include "graphics/cursorman.h"
 #include "graphics/renderer.h"
+#include "graphics/surface.h"
 
 #include "video/qt_decoder.h"
 
@@ -43,6 +44,7 @@
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lua_v2.h"
+#include "engines/grim/emi/movie.h"
 #include "engines/grim/emi/polyglot_v2.h"
 #include "engines/grim/emi/zfile.h"
 
@@ -50,6 +52,7 @@ namespace Grim {
 
 static const int kScreenWidth = 640;
 static const int kScreenHeight = 480;
+static const int kLoadScreenPs2Lines = 448;
 
 Common::Error EmiEngine::run() {
 	if (!checkGameData("Escape from Monkey Island"))
@@ -184,6 +187,9 @@ bool EmiEngine::initialize() {
 		return false;
 	}
 
+	if (getGamePlatform() == Common::kPlatformPS2)
+		showLoadScreenPs2(drawContext);
+
 	drawContext->setTextureFlag(false);
 	CursorMan.showMouse(false);
 	CGrimeConsole::setDebugLog(true);
@@ -199,6 +205,10 @@ bool EmiEngine::initialize() {
 
 		return false;
 	}
+
+	// PS2 loads the loading icon in startupModules, which it runs after opening the bundles
+	if (getGamePlatform() == Common::kPlatformPS2)
+		Movie::loadLoadingIconPs2();
 
 	ZFile *defaultFile = ZFileServices::get()->open("default.tga", "rb");
 
@@ -294,6 +304,46 @@ void EmiEngine::playAspyrLogo(CDrawContext *drawContext) {
 	}
 
 	decoder.stop();
+}
+
+void EmiEngine::showLoadScreenPs2(CDrawContext *drawContext) {
+	LABitmap *bitmap = new LABitmap();
+
+	if (bitmap->loadFile("LOAD.TGA")) {
+		int width = bitmap->getWidth();
+		int height = drawContext->displayMode.height;
+		int lines = MIN<int>(bitmap->getHeight(), kLoadScreenPs2Lines);
+		int bytesPerPixel = bitmap->colorFormat.bytesPerPixel;
+		const byte *pixels = (const byte *)bitmap->getPixels();
+		Graphics::PixelFormat format = drawContext->getMovieFormat();
+		Graphics::Surface screen;
+
+		screen.create(width, height, format);
+
+		// PS2 stretches the top 448 lines of the picture over the whole screen
+		for (int y = 0; y < height; y++) {
+			const byte *source = pixels + (y * lines / height) * bitmap->getStride();
+
+			for (int x = 0; x < width; x++) {
+				const byte *pixel = source + x * bytesPerPixel;
+				int red = bitmap->colorFormat.getRed(pixel);
+				int green = bitmap->colorFormat.getGreen(pixel);
+				int blue = bitmap->colorFormat.getBlue(pixel);
+
+				screen.setPixel(x, y, format.RGBToColor(red, green, blue));
+			}
+		}
+
+		if (drawContext->beginScene()) {
+			drawContext->drawMovieFrame(screen);
+			drawContext->endScene();
+		}
+
+		drawContext->present(true);
+		screen.free();
+	}
+
+	delete bitmap;
 }
 
 void EmiEngine::shutdown() {

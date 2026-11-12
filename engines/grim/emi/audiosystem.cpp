@@ -26,7 +26,9 @@
 #include "engines/grim/emi/csoundcue.h"
 #include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -42,6 +44,10 @@ CAudioDevice *AudioSystem::device = nullptr;
 int AudioSystem::reverbPreset = 0;
 float AudioSystem::reverbValues[5] = { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f };
 byte AudioSystem::reverbEnabled = 1;
+int AudioSystem::sonyReverbType = 0;
+int AudioSystem::sonyReverbDepth = 0;
+int AudioSystem::sonyReverbDelay = 0;
+int AudioSystem::sonyReverbFeedback = 0;
 CNodeRef AudioSystem::listener(nullptr);
 float AudioSystem::masterGain = 1.0f;
 float AudioSystem::categoryGain[3] = { 1.0f, 1.0f, 1.0f };
@@ -56,6 +62,11 @@ AudioSystem::AudioSystem() {
 
 		for (int i = 0; i < 5; i++)
 			reverbValues[i] = -1.0f;
+
+		sonyReverbType = 0;
+		sonyReverbDepth = 0;
+		sonyReverbDelay = 0;
+		sonyReverbFeedback = 0;
 
 		listener.setNode(nullptr);
 
@@ -85,6 +96,11 @@ AudioSystem::~AudioSystem() {
 
 		for (int i = 0; i < 5; i++)
 			reverbValues[i] = -1.0f;
+
+		sonyReverbType = 0;
+		sonyReverbDepth = 0;
+		sonyReverbDelay = 0;
+		sonyReverbFeedback = 0;
 
 		listener.setNode(nullptr);
 	}
@@ -243,6 +259,23 @@ float AudioSystem::getCategoryGain(int category) {
 }
 
 void AudioSystem::setGlobalReverbEnabled(int enabled) {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (reverbEnabled != (byte)enabled) {
+			reverbEnabled = (byte)enabled;
+
+			if (device) {
+				CWaveAudioDevice *waveDevice = static_cast<CWaveAudioDevice *>(device);
+
+				if ((byte)enabled)
+					waveDevice->setSonyRoomType(sonyReverbType, sonyReverbDepth, sonyReverbDelay, sonyReverbFeedback);
+				else
+					waveDevice->setSonyRoomType(0, 0, 0, 0);
+			}
+		}
+
+		return;
+	}
+
 	if (reverbEnabled != (byte)enabled) {
 		reverbEnabled = (byte)enabled;
 
@@ -298,6 +331,29 @@ bool AudioSystem::getGlobalReverb(int *preset, float *first, float *second, floa
 	return false;
 }
 
+bool AudioSystem::setSonyReverb(int type, int depth, int delay, int feedback) {
+	sonyReverbType = type;
+	sonyReverbDepth = depth;
+	sonyReverbDelay = delay;
+	sonyReverbFeedback = feedback;
+
+	if (!reverbEnabled) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyReverb !mReverbEnabled\n");
+
+		return false;
+	}
+
+	if (!device) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("SetSonyReverb !smpWaveAudioDevice\n");
+
+		return false;
+	}
+
+	return static_cast<CWaveAudioDevice *>(device)->setSonyRoomType(type, depth, delay, feedback);
+}
+
 bool AudioSystem::setAudioDevicePreference(const uint16 *preference) {
 	devicePreference = *preference;
 
@@ -315,6 +371,26 @@ bool AudioSystem::saveAudioSettings(tSaveRestoreAccess *access) {
 	access(&categoryGain[0], sizeof(float));
 	access(&categoryGain[1], sizeof(float));
 	access(&categoryGain[2], sizeof(float));
+
+	// PS2 keeps the PC layout and stores the four Sony values in the preset and the first floats
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		int type = sonyReverbType;
+		float values[5];
+
+		values[0] = (float)sonyReverbDepth;
+		values[1] = (float)sonyReverbDelay;
+		values[2] = (float)sonyReverbFeedback;
+		values[3] = -1.0f;
+		values[4] = -1.0f;
+
+		access(&type, sizeof(type));
+
+		for (int i = 0; i < 5; i++)
+			access(&values[i], sizeof(float));
+
+		return true;
+	}
+
 	access(&reverbPreset, sizeof(reverbPreset));
 
 	for (int i = 0; i < 5; i++)
@@ -348,6 +424,12 @@ bool AudioSystem::restoreAudioSettings(tSaveRestoreAccess *access) {
 
 	for (int i = 0; i < 5; i++)
 		access(&restoredReverb[i], sizeof(float));
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		setSonyReverb(restoredPreset, (int)restoredReverb[0], (int)restoredReverb[1], (int)restoredReverb[2]);
+
+		return true;
+	}
 
 	setGlobalReverb(restoredPreset, &restoredReverb[0], &restoredReverb[1], &restoredReverb[2], &restoredReverb[3], &restoredReverb[4]);
 

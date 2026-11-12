@@ -283,6 +283,34 @@ void Lua_V2::SetReverb() {
 		13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
 	};
 
+	// PS2 maps the script parameters to the SPU2 room type, depth (mix), delay (predelay) and feedback (decay)
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		lua_Object typeObj = lua_getparam(1);
+		lua_Object depthObj = lua_getparam(3);
+		lua_Object feedbackObj = lua_getparam(2);
+		lua_Object delayObj = lua_getparam(4);
+		int type = 0;
+		int depth = 0;
+		int delay = 0;
+		int feedback = 0;
+
+		if (lua_isnumber(typeObj))
+			type = luaFtol(lua_getnumber(typeObj));
+
+		if (lua_isnumber(depthObj))
+			depth = luaFtol(lua_getnumber(depthObj));
+
+		if (lua_isnumber(delayObj))
+			delay = luaFtol(lua_getnumber(delayObj));
+
+		if (lua_isnumber(feedbackObj))
+			feedback = luaFtol(lua_getnumber(feedbackObj));
+
+		Sounds::setSonyReverb(type, depth, delay, feedback);
+
+		return;
+	}
+
 	lua_Object environmentObj = lua_getparam(1);
 	lua_Object paramObjs[5];
 	float params[5];

@@ -159,6 +159,8 @@ MODULE_OBJS := \
 	emi/miles_audio/mixer.o \
 	emi/miles_audio/reverb.o \
 	emi/miles_audio/stream.o \
+	emi/miles_audio/ps2/spu2interpolation.o \
+	emi/miles_audio/ps2/spu2reverb.o \
 	emi/movie.o \
 	emi/movie/pss/pssdecoder.o \
 	emi/musicstream.o \

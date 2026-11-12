@@ -146,6 +146,7 @@ private:
 	void mountEmiPatchArchives();
 	bool initialize();
 	void playAspyrLogo(CDrawContext *drawContext);
+	void showLoadScreenPs2(CDrawContext *drawContext);
 	void shutdown();
 	bool runFrame();
 	void pumpEvents();

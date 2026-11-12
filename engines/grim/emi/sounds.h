@@ -80,6 +80,7 @@ public:
 	static void setCategoryEnabled(int category, bool enabled);
 	static void setVoiceFxEnabled(int enabled);
 	static void setReverb(int preset, float *param1, float *param2, float *param3, float *param4, float *param5);
+	static void setSonyReverb(int type, int depth, int delay, int feedback);
 	static void restoreMasterGain();
 	static void lowerMasterGainForMovie();
 	static void setAudioMixAhead(const int16 *mixAhead, bool store);

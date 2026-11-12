@@ -434,7 +434,7 @@ int EMIMilesDriver::streamFill(EMIMilesStream *stream) {
 	if (stream->syncPending && !stream->decoder) {
 		int64 elapsed = (int64)(uint)(_segmentCounter - stream->syncStamp);
 
-		stream->position += (int)(elapsed * kSegmentFrames * stream->bytesPerSecond / kOutputRate);
+		stream->position += (int)(elapsed * _segmentFrames * stream->bytesPerSecond / _outputRate);
 		stream->syncPending = false;
 	}
 

@@ -792,6 +792,9 @@ bool CMusicPs2::openStream(const char *fileName, int startMs, int loopCount, flo
 	streamRate = (int)scxFile.rate;
 
 	driver->initSample(sample);
+
+	// The music stream plays on core 1, which has no reverb
+	driver->setSampleEffectSend(sample, false);
 	driver->setSampleAddress(sample, sound->samples, sound->dataSize);
 	driver->setSampleType(sample, format);
 	driver->setSampleRate(sample, streamRate);

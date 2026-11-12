@@ -45,6 +45,7 @@ class BinkDecoder;
 namespace Grim {
 
 class CDrawContext;
+class CTexture;
 class TextEvent;
 
 class Movie : public EventHandler {
@@ -94,6 +95,9 @@ public:
 	static bool isSkipEventPs2(const Common::Event &event);
 	static int writePs2State(void *data, int bytes);
 	static int readPs2State(void *data, int bytes);
+	static void loadLoadingIconPs2();
+	static void releaseLoadingIconPs2();
+	static bool drawLoadingIconPs2();
 
 	LString fileName;
 	bool finished;
@@ -119,6 +123,7 @@ public:
 	static LString ps2MovieName;
 	static Common::WriteStream *ps2StateWriter;
 	static Common::ReadStream *ps2StateReader;
+	static CTexture *loadingIconPs2;
 };
 
 } // End of namespace Grim
