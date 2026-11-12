@@ -81,7 +81,6 @@ public:
 	static uint lastUpdateMs;
 	static float masterVolume;
 	static float currentFadeRate;
-	static float fadeStep;
 
 	static const int kMaxSearchDirs = 16;
 	static LString searchDirs[kMaxSearchDirs];

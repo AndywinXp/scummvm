@@ -22,26 +22,24 @@
 #ifndef GRIM_EMI_MUSICSTREAM_H
 #define GRIM_EMI_MUSICSTREAM_H
 
-#include "common/mutex.h"
 #include "common/scummsys.h"
-
-#include "audio/audiostream.h"
-#include "audio/mixer.h"
 
 #include "engines/grim/emi/lfile.h"
 
 namespace Grim {
 
-class MusicStream : public Audio::AudioStream {
+class EMIMilesDriver;
+struct EMIMilesStream;
+
+class MusicStream {
 public:
 	enum {
 		kStatusDone = 2,
-		kStatusPlaying = 4,
-		kStatusStopped = 8
+		kStatusPlaying = 4
 	};
 
 	static MusicStream *open(const LString &fileName);
-	~MusicStream() override;
+	~MusicStream();
 
 	void start();
 	void pause(bool paused);
@@ -51,43 +49,17 @@ public:
 	void setLoopCount(int loopCount);
 	void setLoopBlock(int startByte, int endByte);
 	void setPosition(int bytePosition);
+	void setPositionSynced(int bytePosition, uint stamp);
 	int getPosition();
+	int getPositionStamped(uint *stamp);
 	void setMsPosition(int milliseconds);
 	void getMsPosition(int *total, int *current);
-	void refreshMixerVolume();
-
-	int readBuffer(int16 *buffer, const int numSamples) override;
-	bool isStereo() const override;
-	int getRate() const override;
-	bool endOfData() const override;
 
 private:
-	MusicStream(Audio::SeekableAudioStream *decoder, uint dataSize);
+	MusicStream(EMIMilesDriver *driver, EMIMilesStream *stream);
 
-	int bytesToFrames(int bytes);
-	int framesToBytes(int frames);
-	void seekDecoder(int frame);
-	void setFramePosition(int frame);
-	int getMixerVolume();
-	int getMixerBalance();
-
-	Common::Mutex _mutex;
-	Audio::SeekableAudioStream *_decoder;
-	Audio::SoundHandle _handle;
-	uint _dataSize;
-	int _totalFrames;
-	int _rate;
-	bool _stereo;
-	bool _started;
-	bool _paused;
-	bool _done;
-	int _playFrame;
-	int _pendingFrame;
-	int _loopStartFrame;
-	int _loopEndFrame;
-	int _loopCount;
-	int _volume;
-	int _pan;
+	EMIMilesDriver *_driver;
+	EMIMilesStream *_stream;
 };
 
 } // End of namespace Grim

@@ -21,15 +21,13 @@
 
 #include "common/system.h"
 
-#include "audio/mixer.h"
-
 #include "engines/grim/emi/audiosystem.h"
 #include "engines/grim/emi/csoundcue.h"
 #include "engines/grim/emi/cwaveaudiodevice.h"
 #include "engines/grim/emi/cwavechannel.h"
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/lmemoryservices.h"
-#include "engines/grim/emi/movie.h"
+#include "engines/grim/emi/miles_audio/driver.h"
 #include "engines/grim/emi/streamscript.h"
 
 namespace Grim {
@@ -37,35 +35,30 @@ namespace Grim {
 static const int kMaxSampleVolume = 127;
 static const uint kReacquireIntervalMs = 5000;
 
-bool CWaveAudioDevice::digitalDriverOpen = false;
-bool CWaveAudioDevice::handleReleased = false;
-int CWaveAudioDevice::masterVolume = kMaxSampleVolume;
-uint16 CWaveAudioDevice::mixAheadPreference = 0;
-int CWaveAudioDevice::busyChannelCount = 0;
-
 CWaveAudioDevice::CWaveAudioDevice(int channelCount) {
 	lost = false;
 	numChannels = 0;
 	lastCheckMs = 0;
-	digitalDriverOpen = false;
+	_driver = nullptr;
 
-	Audio::Mixer *mixer = g_system->getMixer();
+	EMIMilesDriver *driver = new EMIMilesDriver();
 
-	if (mixer && mixer->isReady())
-		digitalDriverOpen = true;
+	if (!driver->open(g_system->getMixer())) {
+		delete driver;
 
-	if (!digitalDriverOpen)
 		return;
+	}
+
+	_driver = driver;
 
 	StreamScript::setStreamingGate(getMilesDigitalDriver);
-	Movie::setMovieAudioGate(getMilesDigitalDriver);
 
 	int created = 0;
 
 	for (int i = 0; i < channelCount; i++) {
-		CWaveChannel *channel = new CWaveChannel();
+		CWaveChannel *channel = new CWaveChannel(_driver);
 
-		if (!channel->hasSample) {
+		if (!channel->hSample) {
 			delete channel;
 
 			break;
@@ -88,8 +81,10 @@ CWaveAudioDevice::~CWaveAudioDevice() {
 			delete channel;
 	}
 
-	digitalDriverOpen = false;
-	handleReleased = false;
+	if (_driver) {
+		delete _driver;
+		_driver = nullptr;
+	}
 }
 
 void *CWaveAudioDevice::operator new(size_t size) {
@@ -105,24 +100,15 @@ int CWaveAudioDevice::getType() {
 }
 
 void CWaveAudioDevice::releaseDigitalHandle() {
-	if (!digitalDriverOpen)
-		return;
-
-	handleReleased = true;
-
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->releaseDigitalOutput();
+	if (_driver)
+		_driver->releaseHandle();
 }
 
 void CWaveAudioDevice::reacquireDigitalHandle() {
-	if (!digitalDriverOpen)
-		return;
-
-	lost = false;
-	handleReleased = false;
-
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->reacquireDigitalOutput();
+	if (_driver) {
+		_driver->reacquireHandle();
+		lost = false;
+	}
 }
 
 void CWaveAudioDevice::pauseAll() {
@@ -150,13 +136,9 @@ void CWaveAudioDevice::update() {
 		}
 	}
 
-	busyChannelCount = 0;
-
 	for (uint i = 0; i < channels.size(); i++) {
-		if (channels[i]) {
-			if (channels[i]->update() != 1)
-				busyChannelCount++;
-		}
+		if (channels[i])
+			channels[i]->update();
 	}
 }
 
@@ -225,10 +207,10 @@ CAudioChannel *CWaveAudioDevice::getChannel(uint index) {
 }
 
 bool CWaveAudioDevice::setMixAhead(const uint16 *mixAhead) {
-	if (!digitalDriverOpen)
+	if (!_driver)
 		return false;
 
-	mixAheadPreference = *mixAhead;
+	_driver->setMixAhead(*mixAhead);
 
 	return true;
 }
@@ -239,22 +221,19 @@ float CWaveAudioDevice::setMasterVolume(float volume) {
 	else if (!(volume > 0.0f))
 		volume = 0.0f;
 
-	if (!digitalDriverOpen)
+	if (!_driver)
 		return -1.0f;
 
-	masterVolume = (int)((double)volume * 127.0);
-
-	for (uint i = 0; i < channels.size(); i++)
-		channels[i]->refreshMixerVolume();
+	_driver->setMasterVolume((int)((double)volume * (double)kMaxSampleVolume));
 
 	return volume;
 }
 
 float CWaveAudioDevice::getMasterVolume() {
-	if (!digitalDriverOpen)
+	if (!_driver)
 		return -1.0f;
 
-	double result = (double)masterVolume;
+	double result = (double)_driver->getMasterVolume();
 
 	if (result != 0.0)
 		return (float)(result * (double)0.0078740157f);
@@ -297,21 +276,23 @@ int CWaveAudioDevice::getLatency() {
 }
 
 int CWaveAudioDevice::getActiveSampleCount() {
-	if (!digitalDriverOpen)
-		return 0;
+	if (_driver)
+		return _driver->getActiveSampleCount();
 
-	int count = 0;
-
-	for (uint i = 0; i < channels.size(); i++) {
-		if (channels[i]->isSampleActive())
-			count++;
-	}
-
-	return count;
+	return 0;
 }
 
 int CWaveAudioDevice::getMilesDigitalDriver() {
-	return digitalDriverOpen ? 1 : 0;
+	return getMilesDriver() ? 1 : 0;
+}
+
+EMIMilesDriver *CWaveAudioDevice::getMilesDriver() {
+	CAudioDevice *device = AudioSystem::device;
+
+	if (!device || device->getType() != CWaveSound::kTypeWave)
+		return nullptr;
+
+	return static_cast<CWaveAudioDevice *>(device)->_driver;
 }
 
 } // End of namespace Grim

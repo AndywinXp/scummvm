@@ -152,6 +152,10 @@ MODULE_OBJS := \
 	emi/meshcomponent.o \
 	emi/meshcomponenttype.o \
 	emi/meshinstance.o \
+	emi/miles_audio/driver.o \
+	emi/miles_audio/mixer.o \
+	emi/miles_audio/reverb.o \
+	emi/miles_audio/stream.o \
 	emi/movie.o \
 	emi/musicstream.o \
 	emi/overworld.o \

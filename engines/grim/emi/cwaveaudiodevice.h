@@ -30,6 +30,7 @@
 namespace Grim {
 
 class CWaveChannel;
+class EMIMilesDriver;
 
 class CWaveAudioDevice : public CAudioDevice {
 public:
@@ -60,17 +61,15 @@ public:
 	int getActiveSampleCount() override;
 
 	static int getMilesDigitalDriver();
+	static EMIMilesDriver *getMilesDriver();
 
 	bool lost;
 	Common::Array<CWaveChannel *> channels;
 	int numChannels;
 	int lastCheckMs;
 
-	static bool digitalDriverOpen;
-	static bool handleReleased;
-	static int masterVolume;
-	static uint16 mixAheadPreference;
-	static int busyChannelCount;
+private:
+	EMIMilesDriver *_driver;
 };
 
 } // End of namespace Grim

@@ -54,7 +54,6 @@ static const int kEventsMask = 3;
 Movie *Movie::current = nullptr;
 int Movie::firstFrame = 1;
 CDrawContext *Movie::drawContext = nullptr;
-int (*Movie::movieAudioGate)() = nullptr;
 
 Movie::Movie(const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(0) {
 	Sounds::lowerMasterGainForMovie();
@@ -537,17 +536,6 @@ void Movie::startupMovies(CDrawContext *newDrawContext) {
 
 void Movie::releaseSubtitleFont() {
 	// The subtitles are text events, there is no font to release
-}
-
-void Movie::setMovieAudioGate(int (*gate)()) {
-	movieAudioGate = gate;
-}
-
-int Movie::isMovieAudioEnabled() {
-	if (movieAudioGate)
-		return movieAudioGate();
-
-	return 0;
 }
 
 bool Movie::fileExists(const char *path) {

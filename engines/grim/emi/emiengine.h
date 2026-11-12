@@ -157,7 +157,6 @@ private:
 	static Common::String getSaveFileName(const char *path);
 	static bool readSavedText(char *buffer, int bufferSize);
 
-	// TODO audio and movie hooks until those modules are ported
 	static void updateSounds(bool force);
 	static bool updateMovie(float frameTime);
 	static void startupMovies(CDrawContext *drawContext);

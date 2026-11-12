@@ -45,7 +45,6 @@ uint StreamScript::firstUpdateMs = 0;
 uint StreamScript::lastUpdateMs = 0;
 float StreamScript::masterVolume = 1.0f;
 float StreamScript::currentFadeRate = 1.0f;
-float StreamScript::fadeStep = (float)(1.0 / (double)40.0f);
 LString StreamScript::searchDirs[StreamScript::kMaxSearchDirs];
 int StreamScript::searchDirCount = 0;
 int StreamScript::openMissCount = 0;
@@ -415,9 +414,13 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 					cue->ended = false;
 
 					int startPosition = cue->stream.startByte;
+					bool synced = false;
+					uint syncStamp = 0;
 
 					if (otherSync > 0 && otherStream && cue->sync == otherSync) {
-						int otherPosition = otherStream->getPosition();
+						int otherPosition = otherStream->getPositionStamped(&syncStamp);
+
+						synced = true;
 						double offsetMs = (double)otherPosition * otherMsPerByte - otherStart;
 
 						if (!(offsetMs >= 0.0))
@@ -437,6 +440,8 @@ void StreamScript::startStream(const uint &id, const int &startMs, const bool &i
 					if (startMs >= 0) {
 						musicStream->setMsPosition(startMs);
 						cue->lastPositionMs = startMs;
+					} else if (synced) {
+						musicStream->setPositionSynced(bytePosition, syncStamp);
 					} else {
 						musicStream->setPosition(bytePosition);
 					}
@@ -565,10 +570,6 @@ void StreamScript::updateStreams() {
 					musicStream->setVolume(streamVolume);
 				}
 			}
-
-			// The mixer has no master volume of its own for the streams
-			if (cue->stream.musicStream)
-				cue->stream.musicStream->refreshMixerVolume();
 		}
 
 		cue = cue->next;

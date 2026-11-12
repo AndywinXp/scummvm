@@ -79,7 +79,7 @@ bool CAiffFile::read(LFile *file, CWaveSound *sound) {
 bool CAiffFile::write(LFile *file, CWaveSound *sound) {
 	uint bytesPerFrame = (uint)(sound->bitsPerSample >> 3) * sound->numChannels;
 
-	// The original could divide by zero here, let's avoid that...
+	// The original divides by zero here
 	if (!bytesPerFrame) {
 		warning("CAiffFile::write(): invalid sample format");
 
@@ -482,7 +482,7 @@ bool CAiffFile::readCommonChunk(LFile *file, const int *chunkSize, const AiffHea
 bool CAiffFile::readSoundData(LFile *file, CWaveSound *sound, int chunkSize, int *dataPosition, uint *dataSizeOut) {
 	uint bytesPerFrame = (uint)(sound->bitsPerSample >> 3) * sound->numChannels;
 
-	// The original could divide by zero here, let's avoid that...
+	// The original divides by zero here
 	if (!bytesPerFrame) {
 		warning("CAiffFile::readSoundData(): invalid sample format");
 

@@ -101,7 +101,7 @@ void AudioSystem::operator delete(void *block) {
 bool AudioSystem::createAudioDevice() {
 	device = new CWaveAudioDevice(kDeviceChannelCount);
 
-	return device && CWaveAudioDevice::digitalDriverOpen;
+	return device && CWaveAudioDevice::getMilesDriver();
 }
 
 void AudioSystem::destroyAudioDevice() {
