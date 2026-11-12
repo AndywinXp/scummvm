@@ -55,21 +55,21 @@ public:
 	 *
 	 * @param channel The debug channel to use.
 	 */
-	static void debug(DebugChannel channel, const char *s, ...);
+	static void debugImpl(DebugChannel channel, const char *s, ...);
 	/**
 	 * Prints a message to the console (sterr), only if the specified debug channel
 	 * or the channel Warning are active.
 	 *
 	 * @param channel The debug channel to use.
 	 */
-	static void warning(DebugChannel channel, const char *s, ...);
+	static void warningImpl(DebugChannel channel, const char *s, ...);
 	/**
 	 * Prints a message to the console (stderr) and exit the program immediately,
 	 * only if the specified debug channel or the channel Error are active.
 	 *
 	 * @param channel The debug channel to use.
 	 */
-	static void error(DebugChannel channel, const char *s, ...);
+	static void errorImpl(DebugChannel channel, const char *s, ...);
 };
 
 }

@@ -162,7 +162,7 @@ int CTGAFile::writeImage(LFile *file, LBitmap *image, const byte *palette) {
 
 	file->write(header, kHeaderSize);
 
-	byte *buffer = (byte *)gpMemoryServices->malloc(dataSize * sizeof(byte));
+	byte *buffer = (byte *)gpMemoryServices->mallocImpl(dataSize * sizeof(byte));
 
 	if (!buffer) {
 		warning("CTGAFile::writeImage(): cannot allocate %u bytes", dataSize);
@@ -194,13 +194,13 @@ int CTGAFile::writeImage(LFile *file, LBitmap *image, const byte *palette) {
 	}
 
 	if (file->write(buffer, dataSize) == dataSize) {
-		gpMemoryServices->free(buffer);
+		gpMemoryServices->freeImpl(buffer);
 		bitmap = nullptr;
 
 		return 1;
 	}
 
-	gpMemoryServices->free(buffer);
+	gpMemoryServices->freeImpl(buffer);
 
 	return 0;
 }

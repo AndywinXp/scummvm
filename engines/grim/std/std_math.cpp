@@ -180,15 +180,15 @@ float StdMath::arcSin2(float value) {
 	if (absValue <= 0.70710677f) {
 		result = (float)(((double)flexPower(absValue, 3) * 0.212749f + absValue) * 57.295784f);
 	} else {
-		float root = sqrt((float)(1.0 - (double)absValue * absValue));
+		float root = sqrtImpl((float)(1.0 - (double)absValue * absValue));
 		result = (float)(90.0 - ((double)flexPower(root, 3) * 0.212749f + root) * 57.295784f);
 	}
 
 	return negative ? -result : result;
 }
 
-float StdMath::sqrt(float value) {
-	return (float)::sqrt((double)value);
+float StdMath::sqrtImpl(float value) {
+	return (float)sqrt((double)value);
 }
 
 float StdMath::arcSin3(float value) {
@@ -201,7 +201,7 @@ float StdMath::arcSin3(float value) {
 		float second = (float)((double)flexPower(absValue, 5) * 0.075f + first);
 		result = (float)(((double)flexPower(absValue, 7) * 0.066797f + second) * 57.295784f);
 	} else {
-		float root = sqrt((float)(1.0 - (double)absValue * absValue));
+		float root = sqrtImpl((float)(1.0 - (double)absValue * absValue));
 		float first = (float)((double)flexPower(root, 3) / 6.0 + root);
 		float second = (float)((double)flexPower(root, 5) * 0.075f + first);
 		result = (float)(90.0 - ((double)flexPower(root, 7) * 0.066797f + second) * 57.295784f);

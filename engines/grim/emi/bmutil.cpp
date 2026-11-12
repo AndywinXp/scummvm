@@ -138,7 +138,7 @@ bool BmData::load(LFile *file) {
 		}
 
 		uint size = bytesPerPixel * height * width;
-		byte *pixels = (byte *)gpMemoryServices->malloc(size * sizeof(byte));
+		byte *pixels = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
 
 		if (!pixels)
 			return false;
@@ -165,7 +165,7 @@ bool BmData::load(LFile *file) {
 			}
 
 			if ((uint)compressedSize < size) {
-				byte *compressed = (byte *)gpMemoryServices->malloc((uint)compressedSize * sizeof(byte));
+				byte *compressed = (byte *)gpMemoryServices->mallocImpl((uint)compressedSize * sizeof(byte));
 
 				if (!compressed)
 					return false;
@@ -174,7 +174,7 @@ bool BmData::load(LFile *file) {
 				decompressCodec3(pixels, size, compressed, compressedSize);
 
 				// The disasm frees the decompressed pixels and keeps the compressed ones
-				gpMemoryServices->free(pixels);
+				gpMemoryServices->freeImpl(pixels);
 				pixels = compressed;
 			} else {
 				warning("BmData::load(): codec 3 image stored uncompressed, pixels not read");
@@ -210,17 +210,17 @@ void BmData::free(BmData *&bm) {
 
 	for (uint i = 0; i < bm->numImages; i++) {
 		if (bm->images[i].data) {
-			gpMemoryServices->free(bm->images[i].data);
+			gpMemoryServices->freeImpl(bm->images[i].data);
 			bm->images[i].data = nullptr;
 		}
 	}
 
 	if (bm->extraData) {
-		gpMemoryServices->free(bm->extraData);
+		gpMemoryServices->freeImpl(bm->extraData);
 		bm->extraData = nullptr;
 	}
 
-	gpMemoryServices->free(bm);
+	gpMemoryServices->freeImpl(bm);
 	bm = nullptr;
 }
 

@@ -81,7 +81,7 @@ RMeshInstance::RMeshInstance(RMesh *meshPrimitive) : RPrimitiveInstance(meshPrim
 	} else {
 		int numVerts = vertexArray ? vertexArray->numVerts : 0;
 
-		vertexBuf = (float *)gpMemoryServices->malloc(numVerts * 3 * sizeof(float));
+		vertexBuf = (float *)gpMemoryServices->mallocImpl(numVerts * 3 * sizeof(float));
 
 		if (vertexBuf)
 			memset(vertexBuf, 0, numVerts * 3 * sizeof(float));
@@ -95,12 +95,12 @@ RMeshInstance::~RMeshInstance() {
 	vertexArray = nullptr;
 
 	if (ownsVertexBuf && vertexBuf) {
-		gpMemoryServices->free(vertexBuf);
+		gpMemoryServices->freeImpl(vertexBuf);
 		vertexBuf = nullptr;
 	}
 
 	if (boneNodes) {
-		gpMemoryServices->free(boneNodes);
+		gpMemoryServices->freeImpl(boneNodes);
 		boneNodes = nullptr;
 	}
 

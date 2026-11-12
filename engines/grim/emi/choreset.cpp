@@ -100,11 +100,11 @@ static void logChoreError(const char *format, const char *argument) {
 }
 
 void *ChoreKey::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ChoreKey::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 ChoreTrack::ChoreTrack() {
@@ -124,11 +124,11 @@ ChoreTrack::~ChoreTrack() {
 }
 
 void *ChoreTrack::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ChoreTrack::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int ChoreTrack::getSize() {
@@ -156,11 +156,11 @@ Chore::~Chore() {
 }
 
 void *Chore::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void Chore::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int Chore::getSize() {

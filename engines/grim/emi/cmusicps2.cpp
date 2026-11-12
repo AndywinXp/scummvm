@@ -223,7 +223,7 @@ CMusicPs2::~CMusicPs2() {
 		closeStreams();
 
 		if (states) {
-			gpMemoryServices->free(states);
+			gpMemoryServices->freeImpl(states);
 			states = nullptr;
 		}
 
@@ -232,16 +232,16 @@ CMusicPs2::~CMusicPs2() {
 }
 
 void *CMusicPs2::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CMusicPs2::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void CMusicPs2::initStates() {
 	count = kStateCount;
-	states = (MusicState *)gpMemoryServices->malloc(count * sizeof(MusicState));
+	states = (MusicState *)gpMemoryServices->mallocImpl(count * sizeof(MusicState));
 
 	if (!states) {
 		warning("CMusicPs2::initStates(): out of memory");

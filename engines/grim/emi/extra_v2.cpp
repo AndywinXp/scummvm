@@ -81,11 +81,11 @@ Extra_v2::Extra_v2() {
 }
 
 void *Extra_v2::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void Extra_v2::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 } // End of namespace Grim

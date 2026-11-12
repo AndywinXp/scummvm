@@ -48,11 +48,11 @@ EventGenerator::~EventGenerator() {
 }
 
 void *EventGenerator::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void EventGenerator::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void EventGenerator::clearEvents() {

@@ -35,7 +35,7 @@ public:
 	void sinCos(float angle, float *pSin, float *pCos);
 	float tan(float angle);
 	float arcSin2(float value);
-	float sqrt(float value);
+	float sqrtImpl(float value);
 	float arcSin3(float value);
 	float arcTan4(float y, float x);
 

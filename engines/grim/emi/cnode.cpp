@@ -93,11 +93,11 @@ CNode::~CNode() {
 }
 
 void *CNode::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CNode::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void CNode::updateLocalState() {

@@ -64,11 +64,11 @@ CWaveChannel::~CWaveChannel() {
 }
 
 void *CWaveChannel::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CWaveChannel::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int CWaveChannel::update() {

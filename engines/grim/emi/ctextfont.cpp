@@ -78,11 +78,11 @@ Glyph::Glyph() {
 }
 
 void *Glyph::operator new[](size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void Glyph::operator delete[](void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 CTextFont::CTextFont() {
@@ -110,7 +110,7 @@ CTextFont::~CTextFont() {
 	pages.clear();
 
 	if (blob)
-		gpMemoryServices->free(blob);
+		gpMemoryServices->freeImpl(blob);
 
 	blob = nullptr;
 
@@ -118,7 +118,7 @@ CTextFont::~CTextFont() {
 	glyphs = nullptr;
 
 	if (charIndex)
-		gpMemoryServices->free(charIndex);
+		gpMemoryServices->freeImpl(charIndex);
 
 	charIndex = nullptr;
 }
@@ -203,7 +203,7 @@ bool CTextFont::loadFile(const char *path) {
 		return false;
 	}
 
-	charIndex = (uint16 *)gpMemoryServices->malloc(numGlyphs * sizeof(uint16));
+	charIndex = (uint16 *)gpMemoryServices->mallocImpl(numGlyphs * sizeof(uint16));
 
 	if (!charIndex) {
 		gpFileServices->close(file, true);
@@ -247,7 +247,7 @@ bool CTextFont::loadFile(const char *path) {
 		maxHeight = MAX<int>(maxHeight, glyph.offsetY + height);
 	}
 
-	blob = (byte *)gpMemoryServices->malloc(blobSize * sizeof(byte));
+	blob = (byte *)gpMemoryServices->mallocImpl(blobSize * sizeof(byte));
 
 	if (file->read(blob, blobSize) != (uint)blobSize) {
 		warning("CTextFont::loadFile(): unexpected end of file");

@@ -292,7 +292,7 @@ void CTinyGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	tglEnableClientState(TGL_VERTEX_ARRAY);
 	tglEnableClientState(TGL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)gpMemoryServices->malloc(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)gpMemoryServices->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
 		for (int i = 0; i < vertexArray->numVerts; i++) {
@@ -325,7 +325,7 @@ void CTinyGLContext::releaseVertices() {
 	}
 
 	currentVertexArray->unlock();
-	gpMemoryServices->free(_vertexColors);
+	gpMemoryServices->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 	_lockedVertices = nullptr;
 }

@@ -132,15 +132,15 @@ bool PatchedFile::load(Common::SeekableReadStream *file, const Common::Path &pat
 	patch.read(md5_p, 16);
 	uint32 fileSize = patch.readUint32LE();
 	if (memcmp(md5_p, md5_f, 16) != 0 || (uint32)file->size() != fileSize) {
-		Debug::debug(Debug::Patchr, "%s targets a different file", _patchName.toString().c_str());
+		Debug::debugImpl(Debug::Patchr, "%s targets a different file", _patchName.toString().c_str());
 		if (Debug::isChannelEnabled(Debug::Patchr)) {
 			Common::String md5_ps, md5_fs;
 			for (int i = 0; i < 16; i++) {
 				md5_ps += Common::String::format("%02x", (int)md5_p[i]);
 				md5_fs += Common::String::format("%02x", (int)md5_f[i]);
 			}
-			Debug::debug(Debug::Patchr, "Patch target: size = %d, md5 = %s", fileSize, md5_ps.c_str());
-			Debug::debug(Debug::Patchr, "Actual file : size = %d, md5 = %s", (uint32)file->size(), md5_fs.c_str());
+			Debug::debugImpl(Debug::Patchr, "Patch target: size = %d, md5 = %s", fileSize, md5_ps.c_str());
+			Debug::debugImpl(Debug::Patchr, "Actual file : size = %d, md5 = %s", (uint32)file->size(), md5_fs.c_str());
 		}
 		return false;
 	}
@@ -320,7 +320,7 @@ bool PatchedFile::seek(int64 offset, int whence) {
 		return true;
 
 	if (relOffset < 0) {
-		Debug::debug(Debug::Patchr, "Seeking back to start %s", _patchName.toString().c_str());
+		Debug::debugImpl(Debug::Patchr, "Seeking back to start %s", _patchName.toString().c_str());
 		_file->seek(0, SEEK_SET);
 		_ctrl->seek(0, SEEK_SET);
 		_extra->seek(0, SEEK_SET);
@@ -368,12 +368,12 @@ Common::SeekableReadStream *wrapPatchedFile(Common::SeekableReadStream *rs, cons
 	Common::Path patchfile = filename.append(".patchr");
 	int i = 1;
 	while (SearchMan.hasFile(patchfile)) {
-		Debug::debug(Debug::Patchr, "Patch requested for %s (patch filename %s)", filename.toString().c_str(), patchfile.toString().c_str());
+		Debug::debugImpl(Debug::Patchr, "Patch requested for %s (patch filename %s)", filename.toString().c_str(), patchfile.toString().c_str());
 
 		PatchedFile *pf = new PatchedFile;
 		if (pf->load(rs, patchfile)) {
 			rs = Common::wrapBufferedSeekableReadStream(pf, 1024, DisposeAfterUse::YES);
-			Debug::debug(Debug::Patchr, "Patch for %s successfully loaded", filename.toString().c_str());
+			Debug::debugImpl(Debug::Patchr, "Patch for %s successfully loaded", filename.toString().c_str());
 			break;
 		}
 

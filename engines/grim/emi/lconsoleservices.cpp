@@ -51,11 +51,11 @@ LConsoleServices::~LConsoleServices() {
 }
 
 void *LConsoleServices::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LConsoleServices::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void LConsoleServices::deleteAllConsoles() {
@@ -74,7 +74,7 @@ void LConsoleServices::deleteAllConsoles() {
 		}
 	}
 
-	gpMemoryServices->free(gConsoles);
+	gpMemoryServices->freeImpl(gConsoles);
 	gConsoles = nullptr;
 	gpConsoleServices = nullptr;
 }
@@ -89,13 +89,13 @@ int LConsoleServices::registerConsole(LConsoleServices *console) {
 
 		if (gNConsoles >= gConsolesArraySize) {
 			if (gNConsoles == gConsolesArraySize) {
-				gConsoles = (LConsoleServices **)gpMemoryServices->malloc((gConsolesArraySize + 4) * sizeof(LConsoleServices *));
+				gConsoles = (LConsoleServices **)gpMemoryServices->mallocImpl((gConsolesArraySize + 4) * sizeof(LConsoleServices *));
 
 				for (i = 0; i < gConsolesArraySize; i++)
 					gConsoles[i] = oldConsoles[i];
 
 				gConsolesArraySize += 4;
-				gpMemoryServices->free(oldConsoles);
+				gpMemoryServices->freeImpl(oldConsoles);
 				gConsoles[gNConsoles] = console;
 				gpConsoleServices = console;
 				gNConsoles++;
@@ -112,7 +112,7 @@ int LConsoleServices::registerConsole(LConsoleServices *console) {
 		}
 	} else {
 		gConsolesArraySize = 4;
-		gConsoles = (LConsoleServices **)gpMemoryServices->malloc(gConsolesArraySize * sizeof(LConsoleServices *));
+		gConsoles = (LConsoleServices **)gpMemoryServices->mallocImpl(gConsolesArraySize * sizeof(LConsoleServices *));
 		gNConsoles = 1;
 		gConsoles[0] = console;
 		result = gNConsoles;

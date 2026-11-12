@@ -88,11 +88,11 @@ LResource::~LResource() {
 }
 
 void *LResource::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LResource::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void LResource::initializeRes() {

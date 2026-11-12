@@ -185,7 +185,7 @@ bool CWavFile::readMcmp(LFile *file, CWaveSound *sound) {
 	}
 
 	uint size = kMcmpRatio * (endPosition - position);
-	byte *buffer = (byte *)gpMemoryServices->malloc(size * sizeof(byte));
+	byte *buffer = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
 
 	if (!buffer)
 		return false;
@@ -193,14 +193,14 @@ bool CWavFile::readMcmp(LFile *file, CWaveSound *sound) {
 	uint decodedSize = 0;
 
 	if (decompressMcmp(file, buffer, size, &decodedSize)) {
-		gpMemoryServices->free(buffer);
+		gpMemoryServices->freeImpl(buffer);
 
 		return false;
 	}
 
 	bool result = parseWav(buffer, decodedSize, sound);
 
-	gpMemoryServices->free(buffer);
+	gpMemoryServices->freeImpl(buffer);
 
 	return result;
 }

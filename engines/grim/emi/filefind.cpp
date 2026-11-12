@@ -33,11 +33,11 @@
 namespace Grim {
 
 void *FileFind::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void FileFind::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool FileFind::isSaveDirectory(const char *directory) {

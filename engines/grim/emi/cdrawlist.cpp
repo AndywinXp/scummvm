@@ -48,8 +48,8 @@ CDrawList::CDrawList(int listCapacity) {
 	polyPending = false;
 	deferAll = 0;
 	ctx = nullptr;
-	polys = (DrawPoly **)gpMemoryServices->malloc(listCapacity * sizeof(DrawPoly *));
-	pool = (DrawPoly *)gpMemoryServices->malloc((listCapacity + 1) * sizeof(DrawPoly));
+	polys = (DrawPoly **)gpMemoryServices->mallocImpl(listCapacity * sizeof(DrawPoly *));
+	pool = (DrawPoly *)gpMemoryServices->mallocImpl((listCapacity + 1) * sizeof(DrawPoly));
 	capacity = listCapacity;
 
 	for (int i = 0; i < capacity; i++)
@@ -63,16 +63,16 @@ CDrawList::~CDrawList() {
 	for (int i = 0; i < count; i++)
 		recyclePoly(polys[i]);
 
-	gpMemoryServices->free(polys);
+	gpMemoryServices->freeImpl(polys);
 	polys = nullptr;
-	gpMemoryServices->free(pool);
+	gpMemoryServices->freeImpl(pool);
 	pool = nullptr;
 
 	_listCount--;
 
 	if (_listCount == 0) {
 		for (uint i = 0; i < _vertexPool.size(); i++) {
-			gpMemoryServices->free(_vertexPool[i]);
+			gpMemoryServices->freeImpl(_vertexPool[i]);
 			_vertexPool[i] = nullptr;
 		}
 
@@ -312,7 +312,7 @@ DrawVertex *CDrawList::allocVertex() {
 		vertex = _vertexPool.back();
 		_vertexPool.pop_back();
 	} else {
-		vertex = (DrawVertex *)gpMemoryServices->malloc(sizeof(DrawVertex));
+		vertex = (DrawVertex *)gpMemoryServices->mallocImpl(sizeof(DrawVertex));
 
 		if (!vertex)
 			return nullptr;

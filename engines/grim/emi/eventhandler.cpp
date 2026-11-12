@@ -27,11 +27,11 @@ namespace Grim {
 Common::List<EventHandler *> EventHandler::handlers;
 
 void *Event::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void Event::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 EventHandler::EventHandler(int handlerPriority) : typeMask(0xFFFFFFFF), priority(handlerPriority) {
@@ -55,11 +55,11 @@ EventHandler::~EventHandler() {
 }
 
 void *EventHandler::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void EventHandler::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 } // End of namespace Grim

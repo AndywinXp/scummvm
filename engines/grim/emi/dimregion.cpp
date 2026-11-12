@@ -46,11 +46,11 @@ DimRegion::DimRegion() {
 }
 
 void *DimRegion::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void DimRegion::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void DimRegion::undimAll() {

@@ -132,11 +132,11 @@ EMISpu2Reverb::~EMISpu2Reverb() {
 }
 
 void *EMISpu2Reverb::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void EMISpu2Reverb::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int EMISpu2Reverb::setEffectAttr(int mode, int depthLeft, int depthRight, int delay, int feedback) {

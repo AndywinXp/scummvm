@@ -52,11 +52,11 @@ public:
 };
 
 void *WeightData::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void WeightData::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 CWeightMap::CWeightMap() {
@@ -76,11 +76,11 @@ CWeightMap::~CWeightMap() {
 }
 
 void *CWeightMap::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CWeightMap::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int CWeightMap::getSize() {

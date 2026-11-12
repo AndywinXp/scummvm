@@ -119,11 +119,11 @@ TextEvent::~TextEvent() {
 }
 
 void *TextEvent::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void TextEvent::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void TextEvent::init() {
@@ -206,22 +206,22 @@ void TextEvent::freeGeometry() {
 	vertexCount = 0;
 
 	if (positions)
-		gpMemoryServices->free(positions);
+		gpMemoryServices->freeImpl(positions);
 
 	positions = nullptr;
 
 	if (normals)
-		gpMemoryServices->free(normals);
+		gpMemoryServices->freeImpl(normals);
 
 	normals = nullptr;
 
 	if (colors)
-		gpMemoryServices->free(colors);
+		gpMemoryServices->freeImpl(colors);
 
 	colors = nullptr;
 
 	if (uvs)
-		gpMemoryServices->free(uvs);
+		gpMemoryServices->freeImpl(uvs);
 
 	uvs = nullptr;
 	runs.clear();
@@ -236,9 +236,9 @@ void TextEvent::buildGeometry() {
 
 	vertexCount = 4 * length;
 
-	positions = (float *)gpMemoryServices->malloc(vertexCount * 3 * sizeof(float));
-	colors = (byte *)gpMemoryServices->malloc(vertexCount * 4 * sizeof(byte));
-	uvs = (float *)gpMemoryServices->malloc(vertexCount * 2 * sizeof(float));
+	positions = (float *)gpMemoryServices->mallocImpl(vertexCount * 3 * sizeof(float));
+	colors = (byte *)gpMemoryServices->mallocImpl(vertexCount * 4 * sizeof(byte));
+	uvs = (float *)gpMemoryServices->mallocImpl(vertexCount * 2 * sizeof(float));
 
 	// The disasm never checks, an empty text gets no memory (size 0) and builds nothing
 	if (vertexCount != 0 && (!positions || !colors || !uvs)) {

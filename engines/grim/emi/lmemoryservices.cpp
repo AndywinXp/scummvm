@@ -44,11 +44,11 @@ static LMemoryServices gDefaultMemoryServices;
 LMemoryServices *gpMemoryServices = &gDefaultMemoryServices;
 
 void *LMemoryServices::LMemoryHandler::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LMemoryServices::LMemoryHandler::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 ThreadBase::ThreadBase() {
@@ -75,22 +75,22 @@ LMemoryServices::LMemoryServices() {
 	bytesAllocated = 0;
 	mMemHandlersArraySize = 4;
 	mNHandlers = 0;
-	mMemHandlers = (LMemoryHandler **)gpMemoryServices->malloc(mMemHandlersArraySize * sizeof(LMemoryHandler *));
+	mMemHandlers = (LMemoryHandler **)gpMemoryServices->mallocImpl(mMemHandlersArraySize * sizeof(LMemoryHandler *));
 	mbCapLimitsActive = true;
 }
 
 LMemoryServices::~LMemoryServices() {
-	gpMemoryServices->free(mMemHandlers);
+	gpMemoryServices->freeImpl(mMemHandlers);
 	mMemHandlers = nullptr;
 }
 
-void *LMemoryServices::malloc(uint size) {
+void *LMemoryServices::mallocImpl(uint size) {
 	if (size == 0)
 		return nullptr;
 
-	byte *block = (byte *)::malloc(size + kBlockHeaderSize);
+	byte *block = (byte *)malloc(size + kBlockHeaderSize);
 	if (!block) {
-		warning("LMemoryServices::malloc(): out of memory");
+		warning("LMemoryServices::mallocImpl(): out of memory");
 		return nullptr;
 	}
 
@@ -100,11 +100,11 @@ void *LMemoryServices::malloc(uint size) {
 	return block + kBlockHeaderSize;
 }
 
-void *LMemoryServices::realloc(void *block, uint size) {
+void *LMemoryServices::reallocImpl(void *block, uint size) {
 	if (!block) {
-		byte *newBlock = (byte *)::malloc(size + kBlockHeaderSize);
+		byte *newBlock = (byte *)malloc(size + kBlockHeaderSize);
 		if (!newBlock) {
-			warning("LMemoryServices::realloc(): out of memory");
+			warning("LMemoryServices::reallocImpl(): out of memory");
 			return nullptr;
 		}
 
@@ -118,14 +118,14 @@ void *LMemoryServices::realloc(void *block, uint size) {
 	uint oldSize = *(uint *)oldBlock;
 
 	if (size == 0) {
-		warning("LMemoryServices::realloc(): zero size");
-		free(block);
+		warning("LMemoryServices::reallocImpl(): zero size");
+		freeImpl(block);
 		return nullptr;
 	}
 
-	byte *newBlock = (byte *)::realloc(oldBlock, size + kBlockHeaderSize);
+	byte *newBlock = (byte *)realloc(oldBlock, size + kBlockHeaderSize);
 	if (!newBlock) {
-		warning("LMemoryServices::realloc(): out of memory");
+		warning("LMemoryServices::reallocImpl(): out of memory");
 		return nullptr;
 	}
 
@@ -135,14 +135,14 @@ void *LMemoryServices::realloc(void *block, uint size) {
 	return newBlock + kBlockHeaderSize;
 }
 
-void LMemoryServices::free(void *block) {
+void LMemoryServices::freeImpl(void *block) {
 	if (!block)
 		return;
 
 	byte *oldBlock = (byte *)block - kBlockHeaderSize;
 	bytesAllocated -= *(uint *)oldBlock;
 
-	::free(oldBlock);
+	free(oldBlock);
 }
 
 void LMemoryServices::verify(void *block) {
@@ -151,14 +151,14 @@ void LMemoryServices::verify(void *block) {
 void LMemoryServices::verifyAll() {
 }
 
-void *LMemoryServices::memset(void *dest, byte value, uint size) {
-	::memset(dest, value, size);
+void *LMemoryServices::memsetImpl(void *dest, byte value, uint size) {
+	memset(dest, value, size);
 
 	return dest;
 }
 
-void *LMemoryServices::memcpy(void *dest, void *src, uint size) {
-	::memcpy(dest, src, size);
+void *LMemoryServices::memcpyImpl(void *dest, void *src, uint size) {
+	memcpy(dest, src, size);
 
 	return dest;
 }
@@ -194,7 +194,7 @@ bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 		LMemoryHandler **oldHandlers = mMemHandlers;
 		uint newSize = mMemHandlersArraySize + 4;
 
-		LMemoryHandler **newHandlers = (LMemoryHandler **)gpMemoryServices->malloc(newSize * sizeof(LMemoryHandler *));
+		LMemoryHandler **newHandlers = (LMemoryHandler **)gpMemoryServices->mallocImpl(newSize * sizeof(LMemoryHandler *));
 		mMemHandlers = newHandlers;
 		if (!newHandlers) {
 			mMemHandlers = oldHandlers;
@@ -202,9 +202,9 @@ bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 			return false;
 		}
 
-		::memset(newHandlers, 0, newSize * sizeof(LMemoryHandler *));
-		::memcpy(newHandlers, oldHandlers, mMemHandlersArraySize * sizeof(LMemoryHandler *));
-		gpMemoryServices->free(oldHandlers);
+		memset(newHandlers, 0, newSize * sizeof(LMemoryHandler *));
+		memcpy(newHandlers, oldHandlers, mMemHandlersArraySize * sizeof(LMemoryHandler *));
+		gpMemoryServices->freeImpl(oldHandlers);
 		mMemHandlersArraySize = newSize;
 	}
 
@@ -252,7 +252,7 @@ LDebugMemoryServices::~LDebugMemoryServices() {
 	dumpLeaks("leaks2.txt");
 }
 
-void *LDebugMemoryServices::malloc(uint size) {
+void *LDebugMemoryServices::mallocImpl(uint size) {
 	uint handlerIndex = 0;
 
 	threadBase.lock();
@@ -283,9 +283,9 @@ void *LDebugMemoryServices::malloc(uint size) {
 		}
 	}
 
-	LAllocation *allocation = (LAllocation *)::malloc(size + sizeof(LAllocation));
+	LAllocation *allocation = (LAllocation *)malloc(size + sizeof(LAllocation));
 	if (!allocation) {
-		warning("LDebugMemoryServices::malloc(): out of memory");
+		warning("LDebugMemoryServices::mallocImpl(): out of memory");
 		threadBase.unlock();
 		return nullptr;
 	}
@@ -314,20 +314,20 @@ void *LDebugMemoryServices::malloc(uint size) {
 	return allocation + 1;
 }
 
-void *LDebugMemoryServices::realloc(void *block, uint size) {
+void *LDebugMemoryServices::reallocImpl(void *block, uint size) {
 	if (!block)
-		return malloc(size);
+		return mallocImpl(size);
 
 	if (size == 0) {
-		free(block);
+		freeImpl(block);
 		return nullptr;
 	}
 
 	verify(block);
 
-	void *newBlock = malloc(size);
+	void *newBlock = mallocImpl(size);
 	if (!newBlock) {
-		warning("LDebugMemoryServices::realloc(): out of memory");
+		warning("LDebugMemoryServices::reallocImpl(): out of memory");
 		return nullptr;
 	}
 
@@ -338,13 +338,13 @@ void *LDebugMemoryServices::realloc(void *block, uint size) {
 	if (copySize >= oldHeader->size)
 		copySize = oldHeader->size;
 
-	::memcpy(newBlock, block, copySize);
-	free(block);
+	memcpy(newBlock, block, copySize);
+	freeImpl(block);
 
 	return newBlock;
 }
 
-void LDebugMemoryServices::free(void *block) {
+void LDebugMemoryServices::freeImpl(void *block) {
 	threadBase.lock();
 
 	if (block) {
@@ -364,7 +364,7 @@ void LDebugMemoryServices::free(void *block) {
 		if (allocation->older)
 			allocation->older->newer = allocation->newer;
 
-		::free(allocation);
+		free(allocation);
 	}
 
 	threadBase.unlock();

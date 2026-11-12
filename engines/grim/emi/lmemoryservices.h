@@ -69,13 +69,13 @@ public:
 	LMemoryServices();
 	~LMemoryServices();
 
-	virtual void *malloc(uint size);
-	virtual void *realloc(void *block, uint size);
-	virtual void free(void *block);
+	virtual void *mallocImpl(uint size);
+	virtual void *reallocImpl(void *block, uint size);
+	virtual void freeImpl(void *block);
 	virtual void verify(void *block);
 	virtual void verifyAll();
-	virtual void *memset(void *dest, byte value, uint size);
-	virtual void *memcpy(void *dest, void *src, uint size);
+	virtual void *memsetImpl(void *dest, byte value, uint size);
+	virtual void *memcpyImpl(void *dest, void *src, uint size);
 	virtual bool dumpAllocations(LFile *file);
 	virtual bool dumpLeaks(const char *fileName);
 
@@ -102,9 +102,9 @@ public:
 	LDebugMemoryServices();
 	~LDebugMemoryServices();
 
-	void *malloc(uint size) override;
-	void *realloc(void *block, uint size) override;
-	void free(void *block) override;
+	void *mallocImpl(uint size) override;
+	void *reallocImpl(void *block, uint size) override;
+	void freeImpl(void *block) override;
 	void verify(LAllocation *allocation);
 	void verify(void *block) override;
 	void verifyAll() override;

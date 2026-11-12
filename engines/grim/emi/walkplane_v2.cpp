@@ -138,11 +138,11 @@ WalkPlane_v2::~WalkPlane_v2() {
 }
 
 void *WalkPlane_v2::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void WalkPlane_v2::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int WalkPlane_v2::getSize() {

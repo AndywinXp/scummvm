@@ -124,7 +124,7 @@ EMIMilesFilter::EMIMilesFilter(int driverRate) {
 		_lineIndex[i] = 0;
 		_lineGain[i] = 0.0f;
 		_lineSize[i] = (int)llrint((double)_rate * (double)kLineDelaySeconds[i]);
-		_lineBuffer[i] = (float *)gpMemoryServices->malloc((uint)(_lineSize[i] * sizeof(float)));
+		_lineBuffer[i] = (float *)gpMemoryServices->mallocImpl((uint)(_lineSize[i] * sizeof(float)));
 
 		if (_lineBuffer[i])
 			memset(_lineBuffer[i], 0, _lineSize[i] * sizeof(float));
@@ -134,7 +134,7 @@ EMIMilesFilter::EMIMilesFilter(int driverRate) {
 
 	_predelayIndex = 0;
 	_predelayLength = 0;
-	_predelayBuffer = (float *)gpMemoryServices->malloc((uint)(predelayCapacity * sizeof(float)));
+	_predelayBuffer = (float *)gpMemoryServices->mallocImpl((uint)(predelayCapacity * sizeof(float)));
 
 	if (_predelayBuffer)
 		memset(_predelayBuffer, 0, predelayCapacity * sizeof(float));
@@ -157,19 +157,19 @@ EMIMilesFilter::EMIMilesFilter(int driverRate) {
 EMIMilesFilter::~EMIMilesFilter() {
 	for (int i = 0; i < kLineCount; i++) {
 		if (_lineBuffer[i])
-			gpMemoryServices->free(_lineBuffer[i]);
+			gpMemoryServices->freeImpl(_lineBuffer[i]);
 	}
 
 	if (_predelayBuffer)
-		gpMemoryServices->free(_predelayBuffer);
+		gpMemoryServices->freeImpl(_predelayBuffer);
 }
 
 void *EMIMilesFilter::operator new(size_t size) {
-	return gpMemoryServices->malloc((uint)size);
+	return gpMemoryServices->mallocImpl((uint)size);
 }
 
 void EMIMilesFilter::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void EMIMilesFilter::setTime(float milliseconds) {
