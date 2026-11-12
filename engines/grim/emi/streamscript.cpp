@@ -750,6 +750,30 @@ LString StreamScript::findAudioFile(const char *audioFileName) {
 	return LString(audioFileName);
 }
 
+bool StreamScript::hasAudioFile(const char *audioFileName) {
+	Common::SeekableReadStream *stream = openStream(audioFileName);
+
+	if (stream) {
+		delete stream;
+
+		return true;
+	}
+
+	for (int i = 0; i < searchDirCount; i++) {
+		LString path = searchDirs[i] + audioFileName;
+
+		stream = openStream(path.c_str());
+
+		if (stream) {
+			delete stream;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void StreamScript::pushAudioSearchDir(const char *directory) {
 	LString &slot = searchDirs[searchDirCount];
 

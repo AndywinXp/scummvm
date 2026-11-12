@@ -133,6 +133,7 @@ private:
 
 	void mountEmiPatchArchives();
 	bool initialize();
+	void playAspyrLogo(CDrawContext *drawContext);
 	void shutdown();
 	bool runFrame();
 	void pumpEvents();

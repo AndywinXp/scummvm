@@ -19,12 +19,16 @@
  *
  */
 
+#include "common/archive.h"
 #include "common/config-manager.h"
+#include "common/events.h"
 #include "common/system.h"
 #include "common/textconsole.h"
 
 #include "graphics/cursorman.h"
 #include "graphics/renderer.h"
+
+#include "video/qt_decoder.h"
 
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdrawcontext.h"
@@ -229,7 +233,67 @@ bool EmiEngine::initialize() {
 	_polyglot->shutdown();
 	_polyglot->configure("script.tab");
 
+	if (getGamePlatform() == Common::kPlatformMacintosh)
+		playAspyrLogo(drawContext);
+
 	return openGameview(nullptr);
+}
+
+void EmiEngine::playAspyrLogo(CDrawContext *drawContext) {
+	Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(Common::Path("AMWI.m4b"));
+
+	if (!stream)
+		return;
+
+	Video::QuickTimeDecoder decoder;
+
+	if (!decoder.loadStream(stream)) {
+		warning("EmiEngine::playAspyrLogo(): cannot open AMWI.m4b");
+
+		return;
+	}
+
+	Common::Event event;
+
+	while (g_system->getEventManager()->pollEvent(event)) {
+	}
+
+	decoder.start();
+
+	bool skipped = false;
+
+	while (!shouldQuit() && !skipped && !decoder.endOfVideo()) {
+		if (decoder.needsUpdate()) {
+			const Graphics::Surface *frame = decoder.decodeNextFrame();
+
+			if (frame && drawContext->beginScene()) {
+				drawContext->drawMovieFrame(*frame);
+				drawContext->endScene();
+				drawContext->present(true);
+			}
+		}
+
+		while (g_system->getEventManager()->pollEvent(event)) {
+			switch (event.type) {
+			case Common::EVENT_KEYDOWN:
+			case Common::EVENT_LBUTTONDOWN:
+			case Common::EVENT_RBUTTONDOWN:
+			case Common::EVENT_MBUTTONDOWN:
+			case Common::EVENT_JOYBUTTON_DOWN:
+			case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+				skipped = true;
+
+				break;
+
+			default:
+				break;
+			}
+		}
+
+		g_system->delayMillis(10);
+	}
+
+	decoder.stop();
 }
 
 void EmiEngine::shutdown() {

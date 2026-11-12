@@ -61,6 +61,7 @@ public:
 	static Common::SeekableReadStream *openStream(const char *path);
 	static Common::SeekableReadStream *openAudioFile(const char *fileName);
 	static LString findAudioFile(const char *fileName);
+	static bool hasAudioFile(const char *fileName);
 	static void pushAudioSearchDir(const char *directory);
 	static void clearAudioSearchDirs();
 

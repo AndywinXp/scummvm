@@ -31,6 +31,7 @@
 #include "engines/grim/emi/caudiodevice.h"
 #include "engines/grim/emi/cpathingfileservices.h"
 #include "engines/grim/emi/cwavesound.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/lstring.h"
 #include "engines/grim/emi/profilertimer.h"
@@ -799,7 +800,18 @@ void Sounds::startMusic(int newState) {
 		StreamScript::pushAudioSearchDir("Textures\\");
 	}
 
-	if (!StreamScript::openMusicScript("FullMonkeyMap.imt")) {
+	const char *musicScript = "FullMonkeyMap.imt";
+
+	if (!StreamScript::hasAudioFile(musicScript)) {
+		int disc = EmiEngine::getDiscNumber();
+
+		if (disc == 1)
+			musicScript = "FullMonkeyMap1.imt";
+		else if (disc == 2)
+			musicScript = "FullMonkeyMap2.imt";
+	}
+
+	if (!StreamScript::openMusicScript(musicScript)) {
 		StreamScript::clearAudioSearchDirs();
 
 		return;
