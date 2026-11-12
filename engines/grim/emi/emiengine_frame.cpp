@@ -52,6 +52,7 @@ namespace Grim {
 
 static const int kPrimitiveLayers = 2;
 static const float kMaxFrameTime = 0.125f;
+static const float kMaxFrameTimePs2 = 0.066666998f;
 static const double kMillisecondsToSeconds = 0.001f;
 static const int kStatsTextX = 10;
 static const int kStatsTextFirstY = 20;
@@ -206,8 +207,10 @@ float EmiEngine::updateFrameTime(int manualMs) {
 
 	_rawFrameTime = elapsed;
 
-	if (elapsed > kMaxFrameTime)
-		elapsed = kMaxFrameTime;
+	float maxFrameTime = getGamePlatform() == Common::kPlatformPS2 ? kMaxFrameTimePs2 : kMaxFrameTime;
+
+	if (elapsed > maxFrameTime)
+		elapsed = maxFrameTime;
 
 	if (_dumpingFrames)
 		elapsed = kMaxFrameTime;
