@@ -28,12 +28,14 @@
 #include "engines/grim/emi/filefind.h"
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
 CBundleServices *gpBundleServices = nullptr;
 
 Common::String CBundleServices::_currentIsland;
+Common::String CBundleServices::_currentSetBundle;
 
 BundleLookup::BundleLookup() {
 	file = nullptr;
@@ -217,8 +219,12 @@ bool CBundle::openBundleFile(const char *fileName) {
 	path += fileName;
 
 	LFile *bundleFile = gpFileServices->open(path.c_str(), "rb");
-	if (!bundleFile)
+	if (!bundleFile) {
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2 && gpConsoleServices)
+			gpConsoleServices->logWarning("OpenBundle: Unable to open file <%s>.\n", fileName);
+
 		return false;
+	}
 
 	name = fileName;
 	file = bundleFile;
@@ -1238,6 +1244,7 @@ bool CBundleServices::init(bool isInternational) {
 		return true;
 
 	_currentIsland = "unknown";
+	_currentSetBundle.clear();
 
 	CBundleServices *services = new CBundleServices(gpFileServices);
 	bool localOpened = services->openLocalBundles();
@@ -1266,26 +1273,32 @@ bool CBundleServices::openIslandBundles(const char *island) {
 	if (!gpBundleServices)
 		return false;
 
+	bool isPs2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
+
 	if (scumm_stricmp(island, "melee") == 0) {
+		bool musicFailed = isPs2 && gpBundleServices->openBundle("music1.m4b") == nullptr;
 		bool voiceFailed = gpBundleServices->openBundle("voiceMel.m4b") == nullptr;
 		CBundle *art = gpBundleServices->openBundle("artMel.m4b");
 
-		failed = art == nullptr || voiceFailed;
+		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "lucre") == 0) {
+		bool musicFailed = isPs2 && gpBundleServices->openBundle("music1.m4b") == nullptr;
 		bool voiceFailed = gpBundleServices->openBundle("voiceLuc.m4b") == nullptr;
 		CBundle *art = gpBundleServices->openBundle("artLuc.m4b");
 
-		failed = art == nullptr || voiceFailed;
+		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "jambalaya") == 0) {
+		bool musicFailed = isPs2 && gpBundleServices->openBundle("music2.m4b") == nullptr;
 		bool voiceFailed = gpBundleServices->openBundle("voiceJam.m4b") == nullptr;
 		CBundle *art = gpBundleServices->openBundle("artJam.m4b");
 
-		failed = art == nullptr || voiceFailed;
+		failed = art == nullptr || voiceFailed || musicFailed;
 	} else if (scumm_stricmp(island, "monkey") == 0) {
+		bool musicFailed = isPs2 && gpBundleServices->openBundle("music2.m4b") == nullptr;
 		bool voiceFailed = gpBundleServices->openBundle("voiceMon.m4b") == nullptr;
 		CBundle *art = gpBundleServices->openBundle("artMon.m4b");
 
-		failed = art == nullptr || voiceFailed;
+		failed = art == nullptr || voiceFailed || musicFailed;
 	}
 
 	if (failed)
@@ -1301,6 +1314,13 @@ bool CBundleServices::openIslandBundles(const char *island) {
 void CBundleServices::closeIslandBundles(const char *island) {
 	if (!gpBundleServices)
 		return;
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (scumm_stricmp(island, "melee") == 0 || scumm_stricmp(island, "lucre") == 0)
+			gpBundleServices->closeBundle("music1.m4b");
+		else if (scumm_stricmp(island, "jambalaya") == 0 || scumm_stricmp(island, "monkey") == 0)
+			gpBundleServices->closeBundle("music2.m4b");
+	}
 
 	if (scumm_stricmp(island, "melee") == 0) {
 		gpBundleServices->closeBundle("voiceMel.m4b");
@@ -1336,6 +1356,39 @@ bool CBundleServices::isIslandBundleOpen(const char *island) {
 		return gpBundleServices->findBundle("artMon.m4b") != nullptr;
 
 	return gpBundleServices->findBundle(island) != nullptr;
+}
+
+bool CBundleServices::openSetBundle(const char *roomName) {
+	if (!gpBundleServices || _currentIsland == "unknown")
+		return false;
+
+	// Island folder names are cut to 8 characters (jambalay)
+	Common::String path = _currentIsland.substr(0, 8);
+
+	path.toUppercase();
+	path += "\\";
+	path += roomName;
+
+	size_t dot = path.findLastOf('.');
+
+	if (dot != Common::String::npos) {
+		path.erase(dot);
+		path += ".M4B";
+	}
+
+	if (!_currentSetBundle.empty()) {
+		gpBundleServices->closeBundle(_currentSetBundle.c_str());
+		_currentSetBundle.clear();
+	}
+
+	if (!gpBundleServices->openBundle(path.c_str()))
+		return false;
+
+	gpBundleServices->moveBundleToFront("i9n.m4b");
+	gpBundleServices->moveBundleToFront("patch.m4b");
+	_currentSetBundle = path;
+
+	return true;
 }
 
 bool CBundleServices::setDiscBundles(int disc) {

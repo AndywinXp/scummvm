@@ -41,6 +41,7 @@
 #include "engines/grim/emi/rprimitiveinstance.h"
 #include "engines/grim/emi/walkplane_v2.h"
 #include "engines/grim/emi/walkplanecollection.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -49,6 +50,7 @@ static const float kWalkRateInverseScale = 0.30487806f;
 static const float kMinDirectionLength = 1e-20f;
 static const float kFlatAngleLimit = 1.000001f;
 static const int kForwardAngleLimit = 65;
+static const float kPs2WalkTurnLimit = 360.0f;
 static const float kMaxPointAtAngle = 3.4028235e38f;
 
 bool Lua_V2::isActor(lua_Object object) {
@@ -723,6 +725,27 @@ void Lua_V2::WalkActorVector() {
 		directionX = (float)(cameraX * inverse);
 		directionY = (float)((double)storedY * inverse);
 		directionZ = (float)(cameraZ * inverse);
+	}
+
+	// PS2 does no angle check: it turns fully and always walks forward
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if ((actor->nodeFlags & CNode::kPositionValid) == 0)
+			actor->computeLocalPositionFromWorld();
+
+		float ps2Target[3];
+
+		ps2Target[0] = directionX + actor->pos.x;
+		ps2Target[1] = directionY + actor->pos.y;
+		ps2Target[2] = directionZ + actor->pos.z;
+
+		if (!actor->extra || !actor->extra->puck)
+			return;
+
+		actor->extra->puck->pointAt(ps2Target, kPs2WalkTurnLimit);
+		actor->mode &= ~1U;
+		actor->forward();
+
+		return;
 	}
 
 	if ((actor->nodeFlags & CNode::kEulerValid) == 0) {

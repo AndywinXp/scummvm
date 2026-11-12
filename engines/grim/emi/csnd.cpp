@@ -24,6 +24,7 @@
 #include "engines/grim/emi/csnd.h"
 #include "engines/grim/emi/csndparser.h"
 #include "engines/grim/emi/lformatparser.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -250,7 +251,7 @@ bool CSnd::resLoadItem(const char *itemName) {
 		if (dot != LString::npos)
 			aifName = aifName.substr(0, dot);
 
-		aifName += ".aif";
+		aifName += g_grim->getGamePlatform() == Common::kPlatformPS2 ? ".SCX" : ".aif";
 
 		KeywordArg argument;
 

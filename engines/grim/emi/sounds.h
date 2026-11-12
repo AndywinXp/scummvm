@@ -106,6 +106,13 @@ public:
 	static void popMusicState(const bool &immediate);
 	static void flushMusicStateStack();
 	static int getMusicPositionMs(const uint &musicId);
+	static void killMusicAndWait(bool loadingLoop);
+	static void killMusicForSet(const char *setName);
+	static void stopAllForLoad();
+	static void clearSpuMemory();
+	static void fadeLoadingLoop(int direction);
+	static void updateLoadingLoop();
+	static void setStereoAudio(bool stereo);
 
 	static AudioSystem *audioSystem;
 	static CSoundCue::SoundCueMap soundMap;
@@ -131,6 +138,9 @@ public:
 	static float unityGain;
 	static float defaultMasterGain;
 	static float movieMasterGain;
+	static CSoundCue *loadingLoopCue;
+	static int loadingLoopFade;
+	static uint loadingLoopFadeMs;
 };
 
 } // End of namespace Grim

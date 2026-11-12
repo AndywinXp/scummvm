@@ -26,6 +26,7 @@
 
 #include "engines/grim/emi/caifffile.h"
 #include "engines/grim/emi/cmp3file.h"
+#include "engines/grim/emi/cscxfile.h"
 #include "engines/grim/emi/cwavesound.h"
 #include "engines/grim/emi/cwavfile.h"
 #include "engines/grim/emi/lconsoleservices.h"
@@ -50,6 +51,8 @@ CWaveSound::CWaveSound() {
 	allocatedSize = 0;
 	dataSize = 0;
 	decodedBlock = nullptr;
+	spuLoops = false;
+	spuLoopStart = 0;
 }
 
 CWaveSound::~CWaveSound() {
@@ -434,6 +437,21 @@ bool CWaveSound::resLoadItem(const char *itemName) {
 		if (file) {
 			result = mp3File.read(file, this);
 			gpFileServices->close(file, true);
+		}
+
+		return result;
+	}
+
+	if (!scumm_strnicmp(extension, "SCX", 3)) {
+		CScxFile scxFile;
+		LFile *file = gpFileServices->open(fileName, "rb");
+
+		if (file) {
+			result = scxFile.read(file, this);
+			gpFileServices->close(file, true);
+
+			if (!result)
+				warning("CWaveSound::resLoadItem(): can't parse sound data of %s", itemName);
 		}
 
 		return result;

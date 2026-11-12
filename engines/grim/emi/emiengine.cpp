@@ -87,6 +87,7 @@ bool EmiEngine::_saveLoadIdle = true;
 int EmiEngine::_frontCopyCount = 0;
 int EmiEngine::_pendingMusicState = -1;
 bool EmiEngine::_gameSettingsPending = false;
+int EmiEngine::_controlSkipFrames = 0;
 Polyglot_v2 *EmiEngine::_polyglot = nullptr;
 
 EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :

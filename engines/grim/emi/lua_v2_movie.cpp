@@ -20,6 +20,7 @@
  */
 
 #include "engines/grim/emi/emiengine.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/movie.h"
 
@@ -35,6 +36,22 @@ void Lua_V2::StartMovie() {
 	bool flag6194 = false;
 	bool flag6195 = true;
 	int startFrame = 1;
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		if (!lua_isstring(nameObj)) {
+			if (gpConsoleServices)
+				gpConsoleServices->logStatus("StartMovie: Argument must be a string.");
+
+			lua_pushnil();
+
+			return;
+		}
+
+		// PS2 reads the other arguments without using them and returns nothing
+		Movie::requestMoviePs2(lua_getstring(nameObj));
+
+		return;
+	}
 
 	if (!lua_isstring(nameObj)) {
 		lua_pushnil();
@@ -68,10 +85,22 @@ void Lua_V2::StartMovie() {
 }
 
 void Lua_V2::StopMovie() {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		obsoleteFunctionPs2();
+
+		return;
+	}
+
 	Movie::stopMovie();
 }
 
 void Lua_V2::PauseMovie() {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		obsoleteFunctionPs2();
+
+		return;
+	}
+
 	lua_Object pauseObj = lua_getparam(1);
 
 	if (lua_isnil(pauseObj))
@@ -81,10 +110,22 @@ void Lua_V2::PauseMovie() {
 }
 
 void Lua_V2::EscapeMovie() {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		obsoleteFunctionPs2();
+
+		return;
+	}
+
 	Movie::skipCurrent();
 }
 
 void Lua_V2::IsMoviePlaying() {
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		obsoleteFunctionPs2();
+
+		return;
+	}
+
 	if (EmiEngine::getMode() == EmiEngine::kModeMovie)
 		lua_pushnumber(1.0f);
 	else

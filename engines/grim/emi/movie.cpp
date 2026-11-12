@@ -19,8 +19,11 @@
  *
  */
 
+#include "common/events.h"
+#include "common/memstream.h"
 #include "common/stream.h"
 #include "common/substream.h"
+#include "common/system.h"
 #include "common/textconsole.h"
 
 #include "audio/mixer.h"
@@ -31,10 +34,16 @@
 #include "video/bink_decoder.h"
 #endif
 
+#include "engines/grim/grim.h"
 #include "engines/grim/emi/cbundle.h"
 #include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/joystick.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/movie.h"
+#include "engines/grim/emi/movie/pss/pssdecoder.h"
+#include "engines/grim/emi/room_v2.h"
 #include "engines/grim/emi/sounds.h"
+#include "engines/grim/emi/sputcontrol_v2.h"
 #include "engines/grim/emi/textevent.h"
 
 namespace Grim {
@@ -50,10 +59,16 @@ static const int kSubtitleX = 320;
 static const int kSubtitleY = 468;
 static const byte kSubtitleJustify = 10;
 static const int kEventsMask = 3;
+static const int kPs2MinFramesBeforeSkip = 4;
+static const int kPs2LoopDelayMs = 4;
 
 Movie *Movie::current = nullptr;
 int Movie::firstFrame = 1;
 CDrawContext *Movie::drawContext = nullptr;
+bool Movie::ps2MovieRequested = false;
+LString Movie::ps2MovieName;
+Common::WriteStream *Movie::ps2StateWriter = nullptr;
+Common::ReadStream *Movie::ps2StateReader = nullptr;
 
 Movie::Movie(const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(0) {
 	Sounds::lowerMasterGainForMovie();
@@ -532,6 +547,8 @@ void Movie::skipCurrent() {
 
 void Movie::startupMovies(CDrawContext *newDrawContext) {
 	drawContext = newDrawContext;
+	ps2MovieRequested = false;
+	ps2MovieName.clear();
 }
 
 void Movie::releaseSubtitleFont() {
@@ -552,6 +569,206 @@ bool Movie::fileExists(const char *path) {
 void Movie::xorDecryptD2(byte *data, int size) {
 	for (int i = 0; i < size; i++)
 		data[i] ^= kXorKey;
+}
+
+void Movie::requestMoviePs2(const char *name) {
+	ps2MovieRequested = true;
+	ps2MovieName = name;
+}
+
+bool Movie::isMovieRequestedPs2() {
+	return ps2MovieRequested;
+}
+
+bool Movie::playRequestedMoviePs2() {
+	ps2MovieRequested = false;
+
+	// PS2 saves the game state to RAM and reloads it after the movie; we only restore sound and music
+	Common::MemoryWriteStreamDynamic state(DisposeAfterUse::YES);
+
+	ps2StateWriter = &state;
+	Sounds::saveSounds(writePs2State);
+	Sounds::saveMusicState(writePs2State);
+	ps2StateWriter = nullptr;
+
+	Sounds::stopAllForLoad();
+
+	// Unloading the room waits for the music, like a set change
+	if (Room_v2::getCurrentRoom())
+		Sounds::killMusicForSet(nullptr);
+
+	bool played = playMoviePs2(ps2MovieName.c_str());
+
+	// The reload unloads everything again, but the room is already gone by then
+	Sounds::stopAllForLoad();
+
+	Common::MemoryReadStream reader(state.getData(), state.size());
+
+	ps2StateReader = &reader;
+	Sounds::restoreSounds(readPs2State);
+	Sounds::restoreMusicState(readPs2State);
+	ps2StateReader = nullptr;
+
+	return played;
+}
+
+int Movie::writePs2State(void *data, int bytes) {
+	if (bytes && ps2StateWriter)
+		ps2StateWriter->write(data, bytes);
+
+	return 1;
+}
+
+int Movie::readPs2State(void *data, int bytes) {
+	if (bytes && ps2StateReader)
+		ps2StateReader->read(data, bytes);
+
+	return 1;
+}
+
+bool Movie::playMoviePs2(const char *name) {
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("Movie::Startup\n");
+
+	float gain = Sounds::soundVolumeToGain(Sounds::getCategoryVolume(kVoiceCategory));
+
+	if (gain < 0.0f || !(gain <= 1.0f))
+		return false;
+
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("Movie::PlayMovie(%s, volume: %f)\n", name, gain);
+
+	if (!name[0])
+		return false;
+
+	if (!drawContext) {
+		warning("Movie::playMoviePs2(): movies are not started");
+
+		return false;
+	}
+
+	LString path = LString("VIDEO\\") + name + ".PSS";
+	Common::SeekableReadStream *stream = openMoviePs2(path);
+
+	if (!stream) {
+		if (gpConsoleServices)
+			gpConsoleServices->logError("Could not find Video: %s\n", path.c_str());
+
+		path = "VIDEO\\DEFAULT.PSS";
+		stream = openMoviePs2(path);
+
+		if (!stream) {
+			if (gpConsoleServices)
+				gpConsoleServices->logError("Could not find DEFAULT Video: %s\n", path.c_str());
+
+			return false;
+		}
+	}
+
+#ifdef USE_MPEG2
+	PssDecoder decoder;
+
+	// The decoder owns the stream, also when it cannot open it
+	if (!decoder.loadStream(stream, drawContext->getMovieFormat())) {
+		warning("Movie::playMoviePs2(): cannot open %s", path.c_str());
+
+		return false;
+	}
+
+	Common::EventManager *eventManager = g_system->getEventManager();
+	Common::Event event;
+	Graphics::Surface screen;
+	int framesShown = 0;
+	bool skipped = false;
+	uint startMs = g_system->getMillis();
+
+	decoder.start((byte)(gain * 255.0f + 0.5f));
+
+	while (!g_grim->shouldQuit() && !skipped && !decoder.isFinished()) {
+		const Graphics::Surface *frame = decoder.update();
+
+		if (frame) {
+			drawFramePs2(*frame, screen);
+			framesShown++;
+		}
+
+		while (eventManager->pollEvent(event)) {
+			if (isSkipEventPs2(event) && framesShown >= kPs2MinFramesBeforeSkip)
+				skipped = true;
+		}
+
+		g_system->delayMillis(kPs2LoopDelayMs);
+	}
+
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("Movie ended after %u frames: clock %u ms, wall clock %u ms\n", decoder.getFramesDecoded(), decoder.getTime(), g_system->getMillis() - startMs);
+
+	decoder.stop();
+	screen.free();
+
+	return true;
+#else
+	delete stream;
+	warning("Movie::playMoviePs2(): the MPEG-2 decoder is not built in");
+
+	return false;
+#endif
+}
+
+Common::SeekableReadStream *Movie::openMoviePs2(const LString &path) {
+	LFile *file = gpFileServices->open(path.c_str(), "rb");
+
+	if (!file)
+		return nullptr;
+
+	Common::SeekableReadStream *stream = file->readStream;
+
+	file->readStream = nullptr;
+	gpFileServices->close(file, true);
+
+	return stream;
+}
+
+void Movie::drawFramePs2(const Graphics::Surface &frame, Graphics::Surface &screen) {
+	int width = drawContext->displayMode.width;
+	int height = drawContext->displayMode.height;
+	const Graphics::Surface *output = &frame;
+
+	// 640x448 frames are centered on taller screens, with black borders
+	if (frame.w <= width && frame.h <= height && (frame.w != width || frame.h != height)) {
+		if (!screen.getPixels() || screen.w != width || screen.h != height || screen.format != frame.format) {
+			screen.free();
+			screen.create(width, height, frame.format);
+			screen.fillRect(Common::Rect(width, height), frame.format.RGBToColor(0, 0, 0));
+		}
+
+		screen.copyRectToSurface(frame, (width - frame.w) / 2, (height - frame.h) / 2, Common::Rect(frame.w, frame.h));
+		output = &screen;
+	}
+
+	if (!drawContext->beginScene())
+		return;
+
+	drawContext->drawMovieFrame(*output);
+	drawContext->endScene();
+	drawContext->present(true);
+}
+
+bool Movie::isSkipEventPs2(const Common::Event &event) {
+	// SELECT skips the movie on PS2; Escape does too, for keyboard players
+	if (event.type == Common::EVENT_KEYDOWN)
+		return event.kbd.keycode == Common::KEYCODE_ESCAPE && !event.kbdRepeat;
+
+	if (event.type == Common::EVENT_JOYBUTTON_DOWN) {
+		for (int i = 0; i < SputControl_v2::kNumControls; i++) {
+			const ControlEntry &control = SputControl_v2::controlTable[i];
+
+			if (control.name && !strcmp(control.name, "KEY_JOY1_SELECT"))
+				return event.joystick.button == (int)(control.code - Joystick::kButtonBase);
+		}
+	}
+
+	return false;
 }
 
 } // End of namespace Grim

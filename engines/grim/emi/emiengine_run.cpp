@@ -316,6 +316,7 @@ void EmiEngine::shutdown() {
 
 	_firstFrame = true;
 	_lastStamp = 0.0;
+	_controlSkipFrames = 0;
 }
 
 } // End of namespace Grim

@@ -303,13 +303,13 @@ Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *targ
 	Common::String gameId = target ? ConfMan.get("gameid", target) : Common::String();
 	bool isEmi = gameId == "monkey4";
 	bool isPs2 = target && Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
-	const char *extension = isPs2 ? "ps2" : "gsv";
+	const char *prefix = isPs2 ? "efmi-ps2" : "efmi";
 
 	if (saveGameIdx == kSavegameFilePattern)
-		return isEmi ? Common::String::format("efmi###.%s", extension) : Common::String("grim##.gsv");
+		return isEmi ? Common::String::format("%s###.gsv", prefix) : Common::String("grim##.gsv");
 
 	if (isEmi)
-		return Common::String::format("efmi%03d.%s", saveGameIdx, extension);
+		return Common::String::format("%s%03d.gsv", prefix, saveGameIdx);
 
 	return Common::String::format("grim%02d.gsv", saveGameIdx);
 }
@@ -335,14 +335,11 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	Common::String gameId = ConfMan.get("gameid", target);
 	Common::String extra = ConfMan.get("extra", target);
 	const bool isDemo = extra.contains("Demo");
-	Common::Platform platform = Common::parsePlatform(ConfMan.get("platform", target));
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
-	Common::String pattern = gameId == "monkey4" ? "efmi###.gsv" : "grim##.gsv";
+	const bool isPs2 = Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
+	Common::String pattern = gameId == "monkey4" ? (isPs2 ? "efmi-ps2###.gsv" : "efmi###.gsv") : "grim##.gsv";
 	SaveStateList saveList;
-
-	if (platform == Common::kPlatformPS2)
-		pattern = "efmi###.ps2";
 
 	if (isDemo)
 		return saveList; // Demos do not support saving
@@ -351,7 +348,7 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + 4);
+		int slotNum = atoi(file->c_str() + (isPs2 && gameId == "monkey4" ? 8 : 4));
 
 		if (slotNum >= 0) {
 			Common::SeekableReadStream *pFile = saveFileMan->openForLoading(*file);
@@ -390,7 +387,8 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 		}
 
 		SaveStateDescriptor emiDesc(this, slot, EmiEngine::getSaveDescription(strings, slot));
-		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(pFile);
+		bool isPs2 = Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
+		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(pFile, isPs2);
 
 		if (emiThumbnail)
 			emiDesc.setThumbnail(emiThumbnail);

@@ -26,6 +26,7 @@
 #include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/sputcontrol_v2.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -77,8 +78,12 @@ void Lua_V2::DisableControl() {
 void Lua_V2::GetControlState() {
 	lua_Object controlObj = lua_getparam(1);
 
-	if (!lua_isnumber(controlObj))
+	if (!lua_isnumber(controlObj)) {
+		if (g_grim->getGamePlatform() == Common::kPlatformPS2 && gpConsoleServices)
+			gpConsoleServices->logDebug("GetControlState: Invalid control (non-numerical).\n");
+
 		return;
+	}
 
 	int index = luaFtol(lua_getnumber(controlObj));
 

@@ -32,6 +32,7 @@
 #include "engines/grim/emi/lfile.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/textevent.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/patchr.h"
@@ -90,7 +91,7 @@ static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "MakeScreenTextures", LUA_OPCODE(Lua_V2, MakeScreenTextures) },
 	{ "SubmitSaveGameData", LUA_OPCODE(Lua_V2, SubmitSaveGameData) },
 	{ "GetSaveGameData", LUA_OPCODE(Lua_V2, GetSaveGameData) },
-	{ "JustLoaded", LUA_OPCODE(Lua_V1, JustLoaded) },
+	{ "JustLoaded", LUA_OPCODE(Lua_V2, JustLoaded) },
 	{ "ScreenshotForSavegame", LUA_OPCODE(Lua_V2, ScreenshotForSavegame) },
 	{ "ThumbnailFromScreen", LUA_OPCODE(Lua_V2, ThumbnailFromScreen) },
 	{ "ThumbnailFromFile", LUA_OPCODE(Lua_V2, ThumbnailFromFile) },
@@ -338,6 +339,33 @@ static struct luaL_reg monkeyMainOpcodes[] = {
 	{ "ImSetMusicVol", LUA_OPCODE(Lua_V2, UnimplementedFunction) }
 };
 
+static struct luaL_reg monkeyPs2Opcodes[] = {
+	{ "SetReplayMode", LUA_OPCODE(Lua_V2, SetReplayMode) },
+	{ "GetReplayMode", LUA_OPCODE(Lua_V2, GetReplayMode) },
+	{ "GetNextDemoNum", LUA_OPCODE(Lua_V2, GetNextDemoNum) },
+	{ "NotifyGameState", LUA_OPCODE(Lua_V2, NotifyGameState) },
+	{ "DeleteSavedGame", LUA_OPCODE(Lua_V2, DeleteSavedGame) },
+	{ "CopySavedGame", LUA_OPCODE(Lua_V2, CopySavedGame) },
+	{ "JustSaved", LUA_OPCODE(Lua_V2, JustSaved) },
+	{ "GetMemoryCardId", LUA_OPCODE(Lua_V2, GetMemoryCardId) },
+	{ "GetUniqueUint", LUA_OPCODE(Lua_V2, GetUniqueUint) },
+	{ "FormatMemoryCard", LUA_OPCODE(Lua_V2, FormatMemoryCard) },
+	{ "SetActorTessellation", LUA_OPCODE(Lua_V2, SetActorTessellation) },
+	{ "IsActorChoring", LUA_OPCODE(Lua_V2, IsActorChoring) },
+	{ "ApplyForceFeedback", LUA_OPCODE(Lua_V2, ApplyForceFeedback) },
+	{ "EnableSoakText", LUA_OPCODE(Lua_V2, EnableSoakText) },
+	{ "SetStereoAudio", LUA_OPCODE(Lua_V2, SetStereoAudio) },
+	{ "pspu", LUA_OPCODE(Lua_V2, pspu) },
+	{ "dsnd", LUA_OPCODE(Lua_V2, dsnd) },
+	{ "KillMusicAndWait", LUA_OPCODE(Lua_V2, KillMusicAndWait) },
+	{ "OverWorldToScreen", LUA_OPCODE(Lua_V2, OverWorldToScreen) },
+	{ "SetVScanOffsets", LUA_OPCODE(Lua_V2, SetVScanOffsets) },
+	{ "MemDump", LUA_OPCODE(Lua_V2, UnimplementedFunctionPs2) },
+	{ "AllocDump", LUA_OPCODE(Lua_V2, UnimplementedFunctionPs2) },
+	{ "LuaMemDump", LUA_OPCODE(Lua_V2, UnimplementedFunctionPs2) },
+	{ "GLReport", LUA_OPCODE(Lua_V2, UnimplementedFunctionPs2) }
+};
+
 static struct luaL_reg monkeyEntryOpcodes[] = {
 	{ "  concatfallback", LUA_OPCODE(LuaBase, concatFallback) },
 	{ "  typeoverride", LUA_OPCODE(LuaBase, typeOverride) },
@@ -361,6 +389,9 @@ Lua_V2::Lua_V2() : Lua_V1(true), _pFind(nullptr), _gcTimer(0.0f), _bStarted(fals
 
 void Lua_V2::registerMainOpcodes() {
 	luaL_openlib(monkeyMainOpcodes, ARRAYSIZE(monkeyMainOpcodes));
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2)
+		luaL_openlib(monkeyPs2Opcodes, ARRAYSIZE(monkeyPs2Opcodes));
 }
 
 void Lua_V2::registerPrimitiveOpcodes() {

@@ -193,10 +193,12 @@ public:
 	static bool openIslandBundles(const char *island);
 	static void closeIslandBundles(const char *island);
 	static bool isIslandBundleOpen(const char *island);
+	static bool openSetBundle(const char *roomName);
 	static bool setDiscBundles(int disc);
 
 private:
 	static Common::String _currentIsland;
+	static Common::String _currentSetBundle;
 };
 
 extern CBundleServices *gpBundleServices;

@@ -29,6 +29,7 @@
 #include "engines/grim/emi/lipdata.h"
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/textevent.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -131,7 +132,12 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 
 	voicePath[0] = 0;
 
-	if (voiceId[0]) {
+	if (voiceId[0] && g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		Common::sprintf_s(voicePath, "%s.SCX", voiceId);
+
+		if (!gpFileServices->exists(voicePath))
+			voicePath[0] = 0;
+	} else if (voiceId[0]) {
 		Common::sprintf_s(voicePath, "%s.wvc", voiceId);
 
 		LFile *voiceFile = gpFileServices->open(voicePath, "rb");

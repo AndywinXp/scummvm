@@ -56,6 +56,9 @@ struct EMIMilesSample {
 	int scaleL;
 	int scaleR;
 	int reverbScale;
+	bool spuVolume;
+	int spuVolumeL;
+	int spuVolumeR;
 	int serviceMode;
 	EMIMilesFilter *filter;
 	EMIMilesStream *stream;
@@ -115,6 +118,8 @@ public:
 		kMaxSegments = 96,
 		kDefaultMixAhead = 8,
 		kMaxVolume = 127,
+		kMaxSpuVolume = 0x3FFF,
+		kSpuVolumeShift = 3,
 		kUnscaledGain = 2047,
 		kResampleTolerance = 655
 	};
@@ -177,6 +182,7 @@ public:
 	void setSampleLoopBlock(EMIMilesSample *sample, int start, int end);
 	void setSampleVolume(EMIMilesSample *sample, int volume);
 	void setSamplePan(EMIMilesSample *sample, int pan);
+	void setSampleSpuVolume(EMIMilesSample *sample, int left, int right);
 	void startSample(EMIMilesSample *sample);
 	void stopSample(EMIMilesSample *sample);
 	void resumeSample(EMIMilesSample *sample);
@@ -184,6 +190,8 @@ public:
 	int getSampleStatus(EMIMilesSample *sample);
 	void getSampleMsPosition(EMIMilesSample *sample, int *total, int *current);
 	void setSampleMsPosition(EMIMilesSample *sample, int milliseconds);
+	void setSamplePosition(EMIMilesSample *sample, int position);
+	int getSamplePosition(EMIMilesSample *sample);
 
 	void setSampleFilter(EMIMilesSample *sample, bool enabled);
 	void setSampleFilterEnvironment(EMIMilesSample *sample, float environment);

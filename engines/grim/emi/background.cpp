@@ -31,6 +31,7 @@
 #include "engines/grim/emi/sounds.h"
 #include "engines/grim/emi/tiledscene.h"
 #include "engines/grim/emi/zfile.h"
+#include "engines/grim/grim.h"
 
 namespace Grim {
 
@@ -96,22 +97,34 @@ bool Background::resLoadItem(const char *itemName) {
 		return false;
 	}
 
-	if (Sounds::audioMixAhead < 64) {
-		int16 mixAhead = 64;
+	bool isPS2 = g_grim->getGamePlatform() == Common::kPlatformPS2;
 
-		Sounds::setAudioMixAhead(&mixAhead, false);
+	// PS2 doesn't update sounds while loading backgrounds
+	if (!isPS2) {
+		if (Sounds::audioMixAhead < 64) {
+			int16 mixAhead = 64;
+
+			Sounds::setAudioMixAhead(&mixAhead, false);
+		}
+
+		bool forceUpdate = false;
+
+		Sounds::soundsUpdateThrottled(&forceUpdate);
 	}
-
-	bool forceUpdate = false;
-
-	Sounds::soundsUpdateThrottled(&forceUpdate);
 
 	const char *fileName = itemName + 2;
 	ZFile *file = ZFileServices::get()->open(fileName, "rb");
 
 	if (!file) {
-		if (scumm_stricmp(fileName, "dfltroom.til") != 0)
+		if (isPS2 && gpConsoleServices)
+			gpConsoleServices->logWarning("Cannot find file %s.\n", fileName);
+
+		if (scumm_stricmp(fileName, "dfltroom.til") != 0) {
+			if (isPS2 && gpConsoleServices)
+				gpConsoleServices->logWarning("Trying default .TIL file %s.\n", "dfltroom.til");
+
 			return resLoadItem("XXdfltroom.til");
+		}
 
 		if (gpConsoleServices)
 			gpConsoleServices->logError("Failed miserably.\n");
@@ -167,8 +180,12 @@ bool Background::resLoadItem(const char *itemName) {
 
 	ZFileServices::get()->closeZFile(file);
 
-	if (!bmData)
+	if (!bmData) {
+		if (isPS2 && gpConsoleServices)
+			gpConsoleServices->logDebug("No background art available for this setup!\n");
+
 		return false;
+	}
 
 	for (uint i = 0; i < bmData->numImages; i++) {
 		if (i == kMaxTextures)
@@ -177,15 +194,24 @@ bool Background::resLoadItem(const char *itemName) {
 		if (textures[i])
 			continue;
 
-		LABitmap bitmap(bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
+		if (isPS2 && bmData->bitsPerPixel != 32) {
+			int width = bmData->images[i].width;
+			int height = bmData->images[i].height;
+			LABitmap bitmap(width, height, LColorFormat::format9, nullptr, false);
 
-		if (CDrawContext::context->displayMode.bpp == 16 && Layer::fix16Bit)
-			bitmap.ditherPixels();
+			convertPs2Pixels(bmData->images[i].data, width * height, (byte *)bitmap.getPixels());
+			textures[i] = CDrawContext::context->createTexture(&bitmap);
+		} else {
+			LABitmap bitmap(bmData->images[i].width, bmData->images[i].height, LColorFormat::format9, bmData->images[i].data, false);
 
-		textures[i] = CDrawContext::context->createTexture(&bitmap);
+			if (CDrawContext::context->displayMode.bpp == 16 && Layer::fix16Bit)
+				bitmap.ditherPixels();
+
+			textures[i] = CDrawContext::context->createTexture(&bitmap);
+		}
 
 		if (textures[i]) {
-			textures[i]->flags = 0x84;
+			textures[i]->flags = isPS2 ? 0x04 : 0x84;
 			textures[i]->applyFlags();
 		}
 	}
@@ -193,6 +219,21 @@ bool Background::resLoadItem(const char *itemName) {
 	BmData::free(bmData);
 
 	return true;
+}
+
+// PS2 pixels are 16-bit GS textures: red in the low bits, alpha in bit 15
+void Background::convertPs2Pixels(const byte *source, int count, byte *dest) {
+	if (!source || !dest)
+		return;
+
+	for (int i = 0; i < count; i++) {
+		uint pixel = READ_LE_UINT16(source + i * 2);
+
+		dest[i * 4 + 0] = (pixel & 0x1F) << 3;
+		dest[i * 4 + 1] = ((pixel >> 5) & 0x1F) << 3;
+		dest[i * 4 + 2] = ((pixel >> 10) & 0x1F) << 3;
+		dest[i * 4 + 3] = (pixel & 0x8000) ? 0xFF : 0x00;
+	}
 }
 
 } // End of namespace Grim

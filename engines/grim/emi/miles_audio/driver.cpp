@@ -289,6 +289,19 @@ void EMIMilesDriver::setSamplePan(EMIMilesSample *sample, int pan) {
 	sampleSetPan(sample, pan);
 }
 
+void EMIMilesDriver::setSampleSpuVolume(EMIMilesSample *sample, int left, int right) {
+	if (!sample)
+		return;
+
+	Common::StackLock lock(_mutex);
+
+	sample->spuVolume = true;
+	sample->spuVolumeL = left;
+	sample->spuVolumeR = right;
+
+	computeScales(sample);
+}
+
 void EMIMilesDriver::startSample(EMIMilesSample *sample) {
 	if (!sample)
 		return;
@@ -381,6 +394,24 @@ void EMIMilesDriver::setSampleMsPosition(EMIMilesSample *sample, int millisecond
 	int64 position = (int64)((double)(uint32)bytesPerSecond * (double)milliseconds * 0.001);
 
 	sampleSetPosition(sample, (int)position);
+}
+
+void EMIMilesDriver::setSamplePosition(EMIMilesSample *sample, int position) {
+	if (!sample)
+		return;
+
+	Common::StackLock lock(_mutex);
+
+	sampleSetPosition(sample, position);
+}
+
+int EMIMilesDriver::getSamplePosition(EMIMilesSample *sample) {
+	if (!sample)
+		return 0;
+
+	Common::StackLock lock(_mutex);
+
+	return sample->position[sample->current];
 }
 
 void EMIMilesDriver::setSampleFilter(EMIMilesSample *sample, bool enabled) {
@@ -631,6 +662,17 @@ int EMIMilesDriver::mixChunk(EMIMilesSample *sample, int remainingBytes, int dst
 }
 
 void EMIMilesDriver::computeScales(EMIMilesSample *sample) {
+	// PS2 voice registers scale linearly up to 0x3FFF
+	if (sample->spuVolume) {
+		int left = CLIP(sample->spuVolumeL, 0, (int)kMaxSpuVolume);
+		int right = CLIP(sample->spuVolumeR, 0, (int)kMaxSpuVolume);
+
+		sample->scaleL = (int)((int64)left * _masterVolume / kMaxVolume) >> kSpuVolumeShift;
+		sample->scaleR = (int)((int64)right * _masterVolume / kMaxVolume) >> kSpuVolumeShift;
+
+		return;
+	}
+
 	sample->volume = CLIP(sample->volume, 0, (int)kMaxVolume);
 	sample->pan = CLIP(sample->pan, 0, (int)kMaxVolume);
 
@@ -685,6 +727,9 @@ void EMIMilesDriver::sampleInit(EMIMilesSample *sample) {
 	sample->rate = kDefaultSampleRate;
 	sample->volume = kMaxVolume;
 	sample->pan = kDefaultPan;
+	sample->spuVolume = false;
+	sample->spuVolumeL = 0;
+	sample->spuVolumeR = 0;
 
 	computeScales(sample);
 

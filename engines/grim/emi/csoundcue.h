@@ -107,6 +107,7 @@ public:
 	void initFromSnd(CSnd *snd, CNode *node);
 	void setLipData(const void *data, uint size);
 	void releaseChannel();
+	void unlinkFromCueList();
 	int getState();
 	int getPositionMs(int *totalMs);
 	void setPositionMs(int milliseconds);

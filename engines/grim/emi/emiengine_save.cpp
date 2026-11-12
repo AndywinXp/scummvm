@@ -23,6 +23,7 @@
 #include "common/stream.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/util.h"
 
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
@@ -33,6 +34,7 @@
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/labitmap.h"
 #include "engines/grim/emi/lcolorformat.h"
+#include "engines/grim/emi/lconsoleservices.h"
 #include "engines/grim/emi/lmemoryservices.h"
 #include "engines/grim/emi/lua_v2.h"
 #include "engines/grim/emi/overworld.h"
@@ -53,6 +55,15 @@ struct SpecScreenRect {
 	int height;
 };
 
+struct Ps2ScreenRegion {
+	int width;
+	int height;
+	float startX;
+	float endX;
+	float startY;
+	float endY;
+};
+
 static const int kSavedTextBufferSize = 512;
 static const int kThumbnailTextureWidth = 256;
 static const int kThumbnailTextureHeight = 128;
@@ -63,6 +74,12 @@ static const int kScreenBufferHeight = 512;
 static const int kNumSpecScreenTextures = 8;
 static const uint kSpecScreenTextureFlags = 775;
 static const uint kMaxSaveTableSize = 0x10000;
+static const uint kMemoryCardNoFolder = 2;
+static const uint kMemoryCardError = 3;
+static const uint kMemoryCardFirstId = 4;
+static const char *const kMemoryCardIdFileName = "monkey4ps2.card";
+static const char *const kMemoryCardSavePattern = "efmi-ps2###.gsv";
+static const char *const kSaveFileExtension = ".gsv";
 
 static const SpecScreenRect kSpecScreenRects[kNumSpecScreenTextures] = {
 	{ 0, 0, 256, 256 },
@@ -75,13 +92,29 @@ static const SpecScreenRect kSpecScreenRects[kNumSpecScreenTextures] = {
 	{ 512, 384, 128, 128 }
 };
 
+static const int kScreenReadHeight = 480;
+static const int kNumPs2ScreenTextures = 6;
+
+static const Ps2ScreenRegion kPs2ScreenRegions[kNumPs2ScreenTextures] = {
+	{ 256, 256, -1.0f, -0.2f, -1.0f, 0.0f },
+	{ 256, 256, -0.2f, 0.6f, -1.0f, 0.0f },
+	{ 128, 256, 0.6f, 1.0f, -1.0f, 0.0f },
+	{ 256, 256, -1.0f, -0.2f, 0.0f, 1.0f },
+	{ 256, 256, -0.2f, 0.6f, 0.0f, 1.0f },
+	{ 128, 256, 0.6f, 1.0f, 0.0f, 1.0f }
+};
+
 ZFile *EmiEngine::_saveFile = nullptr;
 LABitmap *EmiEngine::_screenBitmap = nullptr;
 
 Common::Error EmiEngine::loadGameState(int slot) {
 	assert(slot >= 0);
 
-	loadLib(Common::String::format("Saves/efmi%03d.gsv", slot).c_str());
+	// PS2 scripts compare the loaded name with the card file names
+	if (getGamePlatform() == Common::kPlatformPS2)
+		loadLib(Common::String::format("efmi%03d", slot).c_str());
+	else
+		loadLib(Common::String::format("Saves/efmi%03d.gsv", slot).c_str());
 
 	return Common::kNoError;
 }
@@ -99,6 +132,15 @@ Common::String EmiEngine::getSaveFileName(const char *path) {
 
 	if (name.hasPrefixIgnoreCase("saves/"))
 		name = name.substr(6);
+
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		// Scripts use slot names like efmi000 without an extension; PS2 files get their own prefix so they never clash with PC saves
+		if (name.size() > 4 && name.hasPrefixIgnoreCase("efmi") && Common::isDigit(name[4]))
+			name = "efmi-ps2" + name.substr(4);
+
+		if (!name.hasSuffixIgnoreCase(kSaveFileExtension))
+			name += kSaveFileExtension;
+	}
 
 	return name;
 }
@@ -262,6 +304,33 @@ void EmiEngine::halveBitmap(LABitmap *source, LABitmap *destination) {
 	}
 }
 
+void EmiEngine::scaleToThumbnail(LABitmap *source, LABitmap *destination) {
+	LColorFormat rgbFormat(6);
+	int bytesPerPixel = rgbFormat.bytesPerPixel;
+
+	destination->create(kThumbnailTextureWidth, kThumbnailTextureHeight, rgbFormat, nullptr);
+
+	const byte *sourcePixels = (const byte *)source->getPixels();
+	byte *targetPixels = (byte *)destination->getPixels();
+
+	if (!sourcePixels || !targetPixels || source->getWidth() <= 0 || source->getHeight() <= 0) {
+		warning("EmiEngine::scaleToThumbnail(): bitmap has no pixels");
+
+		return;
+	}
+
+	float stepX = (float)source->getWidth() / (float)kThumbnailTextureWidth;
+	float stepY = (float)source->getHeight() / (float)kThumbnailTextureHeight;
+
+	for (int row = 0; row < kThumbnailTextureHeight; row++) {
+		const byte *sourceLine = sourcePixels + (int)((float)row * stepY) * source->stride;
+		byte *targetLine = targetPixels + row * destination->stride;
+
+		for (int column = 0; column < kThumbnailTextureWidth; column++)
+			memcpy(targetLine + column * bytesPerPixel, sourceLine + (int)((float)column * stepX) * bytesPerPixel, bytesPerPixel);
+	}
+}
+
 bool EmiEngine::grabScreen() {
 	CDrawContext *drawContext = CDrawContext::context;
 
@@ -393,6 +462,20 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 
 	LColorFormat format(bytesPerPixel == 4 ? LColorFormat::format9 : LColorFormat::format5);
 
+	if (g_grim->getGamePlatform() == Common::kPlatformPS2) {
+		for (int i = 0; i < kNumPs2ScreenTextures; i++) {
+			const Ps2ScreenRegion &region = kPs2ScreenRegions[i];
+			LABitmap bitmap(region.width, region.height, format, nullptr, false);
+
+			readScreenRegion(&bitmap, buffer, bytesPerPixel, region.startX, region.endX, region.startY, region.endY);
+			drawContext->setCachedTexture(index + i, &bitmap);
+		}
+
+		gpMemoryServices->free(buffer);
+
+		return true;
+	}
+
 	for (int i = 0; i < kNumSpecScreenTextures; i++) {
 		const SpecScreenRect &rect = kSpecScreenRects[i];
 
@@ -411,6 +494,38 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 	gpMemoryServices->free(buffer);
 
 	return true;
+}
+
+void EmiEngine::readScreenRegion(LABitmap *bitmap, const char *buffer, int bytesPerPixel, float startX, float endX, float startY, float endY) {
+	byte *targetPixels = (byte *)bitmap->pixels;
+
+	if (!targetPixels || bitmap->width <= 0 || bitmap->height <= 0) {
+		warning("EmiEngine::readScreenRegion(): bitmap has no pixels");
+
+		return;
+	}
+
+	// On PS2 the frame starts 46 rows down in GS memory, while ours starts at row 0
+	float halfWidth = (float)kScreenWidth / 2.0f;
+	float halfHeight = (float)kScreenReadHeight / 2.0f;
+	float left = halfWidth + startX * halfWidth;
+	float right = halfWidth + endX * halfWidth;
+	float top = halfHeight + startY * halfHeight;
+	float bottom = halfHeight + endY * halfHeight;
+	float stepX = (right - left) / (float)bitmap->width;
+	float stepY = (bottom - top) / (float)bitmap->height;
+
+	for (int row = 0; row < bitmap->height; row++) {
+		int sourceRow = (int)(top + (float)row * stepY);
+		const char *sourceLine = buffer + sourceRow * kScreenWidth * bytesPerPixel;
+		byte *targetLine = targetPixels + row * bitmap->stride;
+
+		for (int column = 0; column < bitmap->width; column++) {
+			int sourceColumn = (int)(left + (float)column * stepX);
+
+			memcpy(targetLine + column * bytesPerPixel, sourceLine + sourceColumn * bytesPerPixel, bytesPerPixel);
+		}
+	}
 }
 
 bool EmiEngine::clearTextureSlot(int index) {
@@ -436,10 +551,15 @@ bool EmiEngine::clearTextureSlot(int index) {
 }
 
 void EmiEngine::saveGame(CDrawContext *drawContext) {
+	bool isPs2 = getGamePlatform() == Common::kPlatformPS2;
+	bool cardWasEmpty = isPs2 && !hasMemoryCardSaves();
+
 	_libSaveRequest = 0;
 	setSaveLoadIdle(false);
 
 	_saveFile = static_cast<ZFile *>(openSaveFile(_libSaveGameFileName.c_str(), "wb"));
+
+	bool fileOpened = _saveFile != nullptr;
 
 	if (_saveFile) {
 		Lua_V2::saveGameCallback(writeSaveData);
@@ -458,36 +578,47 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 
 		screen->convertFormat(rgbFormat);
 
-		LABitmap halved;
+		if (isPs2) {
+			LABitmap thumbnail;
 
-		halveBitmap(screen, &halved);
-		halveBitmap(&halved, screen);
+			scaleToThumbnail(screen, &thumbnail);
 
-		int width = 1;
+			int imageSize = thumbnail.sizeBytes;
 
-		while (width < screen->width)
-			width *= 2;
-
-		int height = 1;
-
-		while (height < screen->height)
-			height *= 2;
-
-		LABitmap thumbnail(width, height, screen->colorFormat, nullptr, false);
-		const byte *sourcePixels = (const byte *)screen->pixels;
-		byte *targetPixels = (byte *)thumbnail.pixels;
-
-		if (screen->height > 0 && (!sourcePixels || !targetPixels)) {
-			warning("EmiEngine::saveGame(): the screenshot has no pixels");
+			writeSaveData(&imageSize, sizeof(imageSize));
+			writeSaveData(thumbnail.pixels, imageSize);
 		} else {
-			for (int row = 0; row < screen->height; row++)
-				memcpy(targetPixels + row * thumbnail.stride, sourcePixels + row * screen->stride, screen->stride);
+			LABitmap halved;
+
+			halveBitmap(screen, &halved);
+			halveBitmap(&halved, screen);
+
+			int width = 1;
+
+			while (width < screen->width)
+				width *= 2;
+
+			int height = 1;
+
+			while (height < screen->height)
+				height *= 2;
+
+			LABitmap thumbnail(width, height, screen->colorFormat, nullptr, false);
+			const byte *sourcePixels = (const byte *)screen->pixels;
+			byte *targetPixels = (byte *)thumbnail.pixels;
+
+			if (screen->height > 0 && (!sourcePixels || !targetPixels)) {
+				warning("EmiEngine::saveGame(): the screenshot has no pixels");
+			} else {
+				for (int row = 0; row < screen->height; row++)
+					memcpy(targetPixels + row * thumbnail.stride, sourcePixels + row * screen->stride, screen->stride);
+			}
+
+			int imageSize = thumbnail.sizeBytes;
+
+			writeSaveData(&imageSize, sizeof(imageSize));
+			writeSaveData(thumbnail.pixels, imageSize);
 		}
-
-		int imageSize = thumbnail.sizeBytes;
-
-		writeSaveData(&imageSize, sizeof(imageSize));
-		writeSaveData(thumbnail.pixels, imageSize);
 
 		length = (int)_island.size() + 1;
 
@@ -505,6 +636,23 @@ void EmiEngine::saveGame(CDrawContext *drawContext) {
 
 	closeSaveFile(_saveFile);
 	_saveFile = nullptr;
+
+	if (isPs2) {
+		// The card id is created with the first save, like the card folder on PS2
+		if (!fileOpened) {
+			if (gpConsoleServices)
+				gpConsoleServices->logDebug("ERROR: could not access memory card\n");
+		} else if (cardWasEmpty && !writeMemoryCardId(Lua_V2::getClockUniqueUint())) {
+			if (gpConsoleServices)
+				gpConsoleServices->logDebug("ERROR: Save to memory card FAILED\n");
+		} else {
+			if (gpConsoleServices)
+				gpConsoleServices->logDebug("Save to memory card SUCCESS\n");
+
+			_libJustSaved = 1;
+		}
+	}
+
 	setSaveLoadIdle(true);
 }
 
@@ -522,8 +670,13 @@ void EmiEngine::loadGame(CDrawContext *drawContext) {
 
 		setSaveLoadIdle(false);
 		Lua_V2::static_NukeAllScriptLocks();
-		Sounds::stopAllMusic();
-		Sounds::releaseAllSounds();
+
+		if (getGamePlatform() == Common::kPlatformPS2) {
+			Sounds::stopAllForLoad();
+		} else {
+			Sounds::stopAllMusic();
+			Sounds::releaseAllSounds();
+		}
 
 		ResourceManager *resourceManager = dynamic_cast<ResourceManager *>(gpResourceManager);
 
@@ -553,7 +706,11 @@ void EmiEngine::loadGame(CDrawContext *drawContext) {
 			Sounds::restoreSounds(readSaveData);
 			Sounds::restoreMusicState(readSaveData);
 			Lua_V2::restoreLocks(readSaveData);
-			Sounds::releaseUnlockedSounds();
+
+			// PS2 load keeps restored sounds unlocked
+			if (getGamePlatform() != Common::kPlatformPS2)
+				Sounds::releaseUnlockedSounds();
+
 			lua_Restore(readSaveData);
 			Lua_V2::updateJoySelected();
 			_libJustLoaded = 1;
@@ -576,6 +733,134 @@ bool EmiEngine::isLegacySaveFile(const Common::String &fileName) {
 	delete stream;
 
 	return legacy;
+}
+
+bool EmiEngine::hasMemoryCardSaves() {
+	return !g_system->getSavefileManager()->listSavefiles(kMemoryCardSavePattern).empty();
+}
+
+uint EmiEngine::getMemoryCardId() {
+	// The virtual card is always inserted and formatted; without saves there is no folder
+	if (!hasMemoryCardSaves())
+		return kMemoryCardNoFolder;
+
+	Common::InSaveFile *stream = g_system->getSavefileManager()->openForLoading(kMemoryCardIdFileName);
+	uint id = 0;
+
+	if (stream) {
+		uint32 value = 0;
+
+		if (stream->read(&value, sizeof(value)) == sizeof(value))
+			id = FROM_LE_32(value);
+
+		delete stream;
+	}
+
+	if (id >= kMemoryCardFirstId)
+		return id;
+
+	// The original erases the whole card folder here; we keep the saves and create a new id
+	warning("EmiEngine::getMemoryCardId(): no valid card id, created a new one");
+	id = Lua_V2::getClockUniqueUint();
+
+	if (!writeMemoryCardId(id))
+		return kMemoryCardError;
+
+	return id;
+}
+
+bool EmiEngine::writeMemoryCardId(uint id) {
+	Common::OutSaveFile *stream = g_system->getSavefileManager()->openForSaving(kMemoryCardIdFileName, false);
+
+	if (!stream) {
+		warning("EmiEngine::writeMemoryCardId(): cannot create card id file");
+
+		return false;
+	}
+
+	stream->writeUint32LE(id);
+	stream->finalize();
+
+	bool written = !stream->err();
+
+	delete stream;
+
+	return written;
+}
+
+bool EmiEngine::deleteSaveFile(const char *fileName) {
+	return g_system->getSavefileManager()->removeSavefile(getSaveFileName(fileName));
+}
+
+bool EmiEngine::copySaveFile(const char *sourceName, const char *targetName) {
+	Common::SaveFileManager *saveFileManager = g_system->getSavefileManager();
+	Common::InSaveFile *source = saveFileManager->openRawFile(getSaveFileName(sourceName));
+
+	if (!source)
+		return false;
+
+	Common::OutSaveFile *target = saveFileManager->openForSaving(getSaveFileName(targetName), false);
+
+	if (!target) {
+		delete source;
+
+		return false;
+	}
+
+	// Byte copy of the compressed file, without the 400 KB buffer limit
+	target->writeStream(source);
+	target->finalize();
+
+	bool copied = !source->err() && !target->err();
+
+	delete target;
+	delete source;
+
+	return copied;
+}
+
+const char *EmiEngine::justLoadedFileName() {
+	if (!_libJustLoaded)
+		return nullptr;
+
+	_libJustLoaded = 0;
+
+	// Restored sounds resume two frames later
+	_soundRestartFrames = 2;
+
+	return _libSaveGameFileName.c_str();
+}
+
+bool EmiEngine::armSpuClear() {
+	bool armed = _spuClearArmed;
+
+	_spuClearArmed = true;
+
+	return armed;
+}
+
+bool EmiEngine::isSpuClearArmed() {
+	return _spuClearArmed;
+}
+
+void EmiEngine::startSetChangeFrames() {
+	_setChangeFrames = 1;
+}
+
+bool EmiEngine::isSetChanging() {
+	return _setChangeFrames > 0;
+}
+
+bool EmiEngine::justSaved() {
+	if (!_libJustSaved)
+		return false;
+
+	if (gpConsoleServices)
+		gpConsoleServices->logDebug("SAVEGAME: telling scripts just saved.\n");
+
+	_libJustSaved = 0;
+
+	return true;
 }
 
 bool EmiEngine::readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings) {
@@ -608,7 +893,9 @@ bool EmiEngine::readSaveStrings(Common::SeekableReadStream *stream, Common::Arra
 	return true;
 }
 
-Graphics::Surface *EmiEngine::readSaveThumbnail(Common::SeekableReadStream *stream) {
+Graphics::Surface *EmiEngine::readSaveThumbnail(Common::SeekableReadStream *stream, bool fullTexture) {
+	int imageWidth = fullTexture ? kThumbnailTextureWidth : kThumbnailImageWidth;
+	int imageHeight = fullTexture ? kThumbnailTextureHeight : kThumbnailImageHeight;
 	int32 versionLength = stream->readSint32LE();
 
 	if (stream->err() || stream->eos() || versionLength < 0 || versionLength > kSavedTextBufferSize)
@@ -630,13 +917,13 @@ Graphics::Surface *EmiEngine::readSaveThumbnail(Common::SeekableReadStream *stre
 	Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
 	Graphics::Surface *thumbnail = new Graphics::Surface();
 
-	thumbnail->create(kThumbnailImageWidth, kThumbnailImageHeight, format);
+	thumbnail->create(imageWidth, imageHeight, format);
 
-	for (int y = 0; y < kThumbnailImageHeight; y++) {
+	for (int y = 0; y < imageHeight; y++) {
 		const byte *source = &pixels[y * kThumbnailTextureWidth * 3];
 		uint32 *target = (uint32 *)thumbnail->getBasePtr(0, y);
 
-		for (int x = 0; x < kThumbnailImageWidth; x++)
+		for (int x = 0; x < imageWidth; x++)
 			target[x] = format.RGBToColor(source[3 * x], source[3 * x + 1], source[3 * x + 2]);
 	}
 
