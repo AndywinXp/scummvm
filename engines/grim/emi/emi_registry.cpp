@@ -28,7 +28,7 @@
 
 #include "engines/grim/emi/emi_registry.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/lmemoryservices.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
 

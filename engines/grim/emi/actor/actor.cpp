@@ -22,17 +22,17 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/anode.h"
-#include "engines/grim/emi/cdcvertexarray.h"
-#include "engines/grim/emi/cdrawcontext.h"
-#include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/animation/anode.h"
+#include "engines/grim/emi/graphics/cdcvertexarray.h"
+#include "engines/grim/emi/graphics/cdrawcontext.h"
+#include "engines/grim/emi/costume/choreinstance.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/lipdata.h"
-#include "engines/grim/emi/lresource.h"
-#include "engines/grim/emi/overworld.h"
-#include "engines/grim/emi/puck_v2.h"
-#include "engines/grim/emi/walkplanecollection.h"
+#include "engines/grim/emi/sound/lipdata.h"
+#include "engines/grim/emi/resources/lresource.h"
+#include "engines/grim/emi/scene/overworld.h"
+#include "engines/grim/emi/actor/puck_v2.h"
+#include "engines/grim/emi/scene/walkplanecollection.h"
 
 namespace Grim {
 

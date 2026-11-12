@@ -27,13 +27,13 @@
 #include "common/list.h"
 #include "common/str.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/cvector.h"
-#include "engines/grim/emi/irect.h"
-#include "engines/grim/emi/lfile.h"
-#include "engines/grim/emi/lipdata.h"
-#include "engines/grim/emi/lresourcehandle.h"
-#include "engines/grim/emi/profilertimer.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/math/cvector.h"
+#include "engines/grim/emi/math/irect.h"
+#include "engines/grim/emi/files/lfile.h"
+#include "engines/grim/emi/sound/lipdata.h"
+#include "engines/grim/emi/resources/lresourcehandle.h"
+#include "engines/grim/emi/core/profilertimer.h"
 #include "engines/grim/grim.h"
 
 namespace Graphics {

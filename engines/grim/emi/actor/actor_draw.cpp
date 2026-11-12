@@ -21,14 +21,14 @@
 
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/camera.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/scene/camera.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/puck_v2.h"
-#include "engines/grim/emi/rmesh.h"
-#include "engines/grim/emi/rprimitiveinstance.h"
-#include "engines/grim/emi/walkplane_v2.h"
-#include "engines/grim/emi/walkplanecollection.h"
+#include "engines/grim/emi/actor/puck_v2.h"
+#include "engines/grim/emi/nodes/rmesh.h"
+#include "engines/grim/emi/nodes/rprimitiveinstance.h"
+#include "engines/grim/emi/scene/walkplane_v2.h"
+#include "engines/grim/emi/scene/walkplanecollection.h"
 
 namespace Grim {
 

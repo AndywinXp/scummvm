@@ -25,7 +25,7 @@
 #include "engines/grim/grim.h"
 #include "engines/grim/legacy_savegames/legacy_savegames_import.h"
 #include "engines/grim/lua/lua.h"
-#include "engines/grim/lua_v1.h"
+#include "engines/grim/lua_v1_opcodes/lua_v1.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/wuregistry.h"
 

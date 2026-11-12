@@ -29,14 +29,14 @@
 #include "backends/keymapper/keymap.h"
 #include "backends/keymapper/standard-actions.h"
 
-#include "engines/grim/emi/cdrawcontext.h"
+#include "engines/grim/emi/graphics/cdrawcontext.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/eventgenerator.h"
-#include "engines/grim/emi/inputrecorder.h"
-#include "engines/grim/emi/joystick.h"
-#include "engines/grim/emi/keygenerator.h"
-#include "engines/grim/emi/lua_v2.h"
-#include "engines/grim/emi/sputcontrol_v2.h"
+#include "engines/grim/emi/input/eventgenerator.h"
+#include "engines/grim/emi/input/inputrecorder.h"
+#include "engines/grim/emi/input/joystick.h"
+#include "engines/grim/emi/input/keygenerator.h"
+#include "engines/grim/emi/lua_v2_opcodes/lua_v2.h"
+#include "engines/grim/emi/input/sputcontrol_v2.h"
 
 namespace Grim {
 

@@ -23,11 +23,11 @@
 
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/cplane.h"
-#include "engines/grim/emi/cquaternion.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/math/cplane.h"
+#include "engines/grim/emi/math/cquaternion.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/lconsoleservices.h"
+#include "engines/grim/emi/core/lconsoleservices.h"
 
 namespace Grim {
 

@@ -30,14 +30,14 @@
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/legacy_savegames/legacy_savegames_controls.h"
 #include "engines/grim/legacy_savegames/legacy_savegames_import.h"
-#include "engines/grim/lua_v1.h"
+#include "engines/grim/lua_v1_opcodes/lua_v1.h"
 #include "engines/grim/res.h"
-#include "engines/grim/sputactor.h"
-#include "engines/grim/sputcostume.h"
-#include "engines/grim/sputprimitive.h"
-#include "engines/grim/sputrender.h"
-#include "engines/grim/sputsmush.h"
-#include "engines/grim/sputtext.h"
+#include "engines/grim/actor/sputactor.h"
+#include "engines/grim/costume/sputcostume.h"
+#include "engines/grim/render/sputprimitive.h"
+#include "engines/grim/render/sputrender.h"
+#include "engines/grim/movie/sputsmush.h"
+#include "engines/grim/text/sputtext.h"
 
 namespace Grim {
 

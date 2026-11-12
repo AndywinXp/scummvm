@@ -24,7 +24,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/sputobjectstate.h"
-#include "engines/grim/sputrender.h"
+#include "engines/grim/render/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/std/std_bitmap.h"
 

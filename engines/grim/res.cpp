@@ -29,7 +29,7 @@
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/lab.h"
 #include "engines/grim/res.h"
-#include "engines/grim/sputrender.h"
+#include "engines/grim/render/sputrender.h"
 
 namespace Grim {
 

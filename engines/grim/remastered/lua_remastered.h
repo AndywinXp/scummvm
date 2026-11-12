@@ -22,7 +22,7 @@
 #ifndef GRIM_LUA_REMASTERED
 #define GRIM_LUA_REMASTERED
 
-#include "engines/grim/lua_v1.h"
+#include "engines/grim/lua_v1_opcodes/lua_v1.h"
 #include "engines/grim/remastered/commentary.h"
 
 namespace Grim {

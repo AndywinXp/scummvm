@@ -23,12 +23,12 @@
 #include "common/textconsole.h"
 #include "common/ustr.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/costume/choreinstance.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/lipdata.h"
-#include "engines/grim/emi/sounds.h"
-#include "engines/grim/emi/textevent.h"
+#include "engines/grim/emi/sound/lipdata.h"
+#include "engines/grim/emi/sound/sounds.h"
+#include "engines/grim/emi/text/textevent.h"
 
 namespace Grim {
 

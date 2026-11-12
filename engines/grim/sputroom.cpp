@@ -26,7 +26,7 @@
 #include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/puck.h"
-#include "engines/grim/sputactor.h"
+#include "engines/grim/actor/sputactor.h"
 #include "engines/grim/sputobjectstate.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"

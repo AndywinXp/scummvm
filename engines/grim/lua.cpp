@@ -28,7 +28,7 @@
 #include "engines/grim/debug.h"
 #include "engines/grim/lua.h"
 #include "engines/grim/grim.h"
-#include "engines/grim/sputactor.h"
+#include "engines/grim/actor/sputactor.h"
 #include "engines/grim/lua/lauxlib.h"
 #include "engines/grim/lua/luadebug.h"
 #include "engines/grim/lua/lualib.h"

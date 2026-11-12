@@ -21,12 +21,12 @@
 
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/anode.h"
-#include "engines/grim/emi/camera.h"
-#include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/animation/anode.h"
+#include "engines/grim/emi/scene/camera.h"
+#include "engines/grim/emi/costume/choreinstance.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/overworld.h"
+#include "engines/grim/emi/scene/overworld.h"
 
 namespace Grim {
 
