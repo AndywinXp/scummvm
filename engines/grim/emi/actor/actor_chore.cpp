@@ -21,8 +21,8 @@
 
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/choreinstance.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/costume/choreinstance.h"
 
 namespace Grim {
 

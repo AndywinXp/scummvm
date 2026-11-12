@@ -1,6 +1,14 @@
 MODULE := engines/grim
 
 MODULE_OBJS := \
+	actor/sputactor.o \
+	actor/sputactor_collision.o \
+	actor/sputactor_costume.o \
+	actor/sputactor_move.o \
+	actor/sputactor_save.o \
+	actor/sputactor_shadow.o \
+	actor/sputactor_talk.o \
+	actor/sputactor_walk.o \
 	chore/cos.o \
 	chore/cos_chore.o \
 	chore/cos_component.o \
@@ -9,7 +17,10 @@ MODULE_OBJS := \
 	chore/cos_save.o \
 	chore/cos_util.o \
 	chore/cos_util_write.o \
-	emi/achannel.o \
+	costume/sputcostume.o \
+	costume/sputcostume_keyframe.o \
+	costume/sputcostume_media.o \
+	costume/sputcostume_model.o \
 	emi/actor/actor.o \
 	emi/actor/actor_chore.o \
 	emi/actor/actor_collision.o \
@@ -20,71 +31,53 @@ MODULE_OBJS := \
 	emi/actor/actor_speech.o \
 	emi/actor/actor_update.o \
 	emi/actor/actor_walk.o \
-	emi/ainst.o \
-	emi/animation.o \
-	emi/animcomponent.o \
-	emi/animinstance.o \
-	emi/animwgtcomponent.o \
-	emi/animwgtinstance.o \
-	emi/anode.o \
-	emi/atrack.o \
-	emi/audiosystem.o \
-	emi/background.o \
-	emi/bbox.o \
-	emi/bmutil.o \
-	emi/caifffile.o \
-	emi/camera.o \
-	emi/caudiochannel.o \
-	emi/caudiodevice.o \
-	emi/cbundle.o \
-	emi/cclipvolume.o \
-	emi/cdcvertexarray.o \
-	emi/cdrawcontext.o \
-	emi/cdrawlist.o \
-	emi/cgrimeconsole.o \
-	emi/choreinstance.o \
-	emi/choreset.o \
-	emi/clight.o \
-	emi/clightnode.o \
-	emi/cmaterial.o \
-	emi/cmatrix.o \
-	emi/cmp3file.o \
-	emi/cmusicps2.o \
-	emi/cnode.o \
-	emi/cnoderef.o \
-	emi/cnoderef_soundcue.o \
-	emi/coglcontext.o \
-	emi/cogltexture.o \
-	emi/coglvertexarray.o \
-	emi/color.o \
-	emi/component.o \
-	emi/componentinstance.o \
-	emi/cpathingfileservices.o \
-	emi/cpcxfile.o \
-	emi/cplane.o \
-	emi/cprimitive.o \
-	emi/cquaternion.o \
-	emi/cscxfile.o \
-	emi/cskeleton.o \
-	emi/csnd.o \
-	emi/csndparser.o \
-	emi/csoundcue.o \
-	emi/csprite.o \
-	emi/ctextfont.o \
-	emi/ctexture.o \
-	emi/ctgafile.o \
-	emi/ctinyglcontext.o \
-	emi/ctinygltexture.o \
-	emi/cubecomponent.o \
-	emi/cubeinstance.o \
-	emi/cueentry.o \
-	emi/cuestream.o \
-	emi/cwaveaudiodevice.o \
-	emi/cwavechannel.o \
-	emi/cwavesound.o \
-	emi/cwavfile.o \
-	emi/cweightmap.o \
-	emi/dimregion.o \
+	emi/actor/extra_v2.o \
+	emi/actor/puck_v2.o \
+	emi/actor/shadow_v2.o \
+	emi/animation/achannel.o \
+	emi/animation/ainst.o \
+	emi/animation/animation.o \
+	emi/animation/anode.o \
+	emi/animation/atrack.o \
+	emi/core/cgrimeconsole.o \
+	emi/core/cpathingfileservices.o \
+	emi/core/lconsoleservices.o \
+	emi/core/lformatparser.o \
+	emi/core/lmemoryservices.o \
+	emi/core/lstring.o \
+	emi/core/ltimeservices.o \
+	emi/core/profilertimer.o \
+	emi/costume/choreinstance.o \
+	emi/costume/choreset.o \
+	emi/costume/component.o \
+	emi/costume/componentinstance.o \
+	emi/costume/components/animcomponent.o \
+	emi/costume/components/animinstance.o \
+	emi/costume/components/animwgtcomponent.o \
+	emi/costume/components/animwgtinstance.o \
+	emi/costume/components/cubecomponent.o \
+	emi/costume/components/cubeinstance.o \
+	emi/costume/components/globalalphacomponent.o \
+	emi/costume/components/globalalphainstance.o \
+	emi/costume/components/localalphacomponent.o \
+	emi/costume/components/localalphainstance.o \
+	emi/costume/components/luacommandcomponent.o \
+	emi/costume/components/luacommandinstance.o \
+	emi/costume/components/luavarcomponent.o \
+	emi/costume/components/luavarinstance.o \
+	emi/costume/components/meshcomponent.o \
+	emi/costume/components/meshinstance.o \
+	emi/costume/components/shadowmeshcomponent.o \
+	emi/costume/components/shadowmeshinstance.o \
+	emi/costume/components/skeletoncomponent.o \
+	emi/costume/components/skeletoninstance.o \
+	emi/costume/components/snd3dcomponent.o \
+	emi/costume/components/sndcomponent.o \
+	emi/costume/components/sndinstance.o \
+	emi/costume/components/spritecomponent.o \
+	emi/costume/components/spriteinstance.o \
+	emi/costume/components/textureindexcomponent.o \
+	emi/costume/components/textureindexinstance.o \
 	emi/emi_registry.o \
 	emi/emidebugger.o \
 	emi/emiengine.o \
@@ -92,104 +85,123 @@ MODULE_OBJS := \
 	emi/emiengine_input.o \
 	emi/emiengine_run.o \
 	emi/emiengine_save.o \
-	emi/eventgenerator.o \
-	emi/eventhandler.o \
-	emi/extra_v2.o \
-	emi/filefind.o \
-	emi/fileutil.o \
-	emi/frect.o \
-	emi/globalalphacomponent.o \
-	emi/globalalphainstance.o \
-	emi/inputrecorder.o \
-	emi/irect.o \
-	emi/joystick.o \
-	emi/keyeventmapper.o \
-	emi/keygenerator.o \
-	emi/labitmap.o \
-	emi/layer.o \
-	emi/lbitmap.o \
-	emi/lcolorformat.o \
-	emi/lconsoleservices.o \
-	emi/lfile.o \
-	emi/lformatparser.o \
-	emi/lipdata.o \
-	emi/lmemoryservices.o \
-	emi/localalphacomponent.o \
-	emi/localalphainstance.o \
-	emi/lresource.o \
-	emi/lresourcehandle.o \
-	emi/lsound.o \
-	emi/lstring.o \
-	emi/ltimeservices.o \
-	emi/lua_v2.o \
-	emi/lua_v2_actor.o \
-	emi/lua_v2_callbacks.o \
-	emi/lua_v2_camera.o \
-	emi/lua_v2_chore.o \
-	emi/lua_v2_control.o \
-	emi/lua_v2_layer.o \
-	emi/lua_v2_movie.o \
-	emi/lua_v2_primitive.o \
-	emi/lua_v2_ps2.o \
-	emi/lua_v2_render.o \
-	emi/lua_v2_resource.o \
-	emi/lua_v2_save.o \
-	emi/lua_v2_set.o \
-	emi/lua_v2_sound.o \
-	emi/lua_v2_system.o \
-	emi/lua_v2_text.o \
-	emi/luacommandcomponent.o \
-	emi/luacommandinstance.o \
-	emi/luavarcomponent.o \
-	emi/luavarinstance.o \
-	emi/meshcomponent.o \
-	emi/meshinstance.o \
-	emi/miles_audio/driver.o \
-	emi/miles_audio/mixer.o \
-	emi/miles_audio/reverb.o \
-	emi/miles_audio/stream.o \
-	emi/miles_audio/ps2/spu2interpolation.o \
-	emi/miles_audio/ps2/spu2reverb.o \
-	emi/movie.o \
+	emi/files/filefind.o \
+	emi/files/fileutil.o \
+	emi/files/lfile.o \
+	emi/files/zfile.o \
+	emi/graphics/background.o \
+	emi/graphics/cdcvertexarray.o \
+	emi/graphics/cdrawcontext.o \
+	emi/graphics/cdrawlist.o \
+	emi/graphics/cmaterial.o \
+	emi/graphics/coglcontext.o \
+	emi/graphics/cogltexture.o \
+	emi/graphics/coglvertexarray.o \
+	emi/graphics/color.o \
+	emi/graphics/ctexture.o \
+	emi/graphics/ctinyglcontext.o \
+	emi/graphics/ctinygltexture.o \
+	emi/graphics/dimregion.o \
+	emi/graphics/layer.o \
+	emi/graphics/lcolorformat.o \
+	emi/graphics/primitive.o \
+	emi/graphics/primitivequeue_v2.o \
+	emi/graphics/tiledscene.o \
+	emi/images/bmutil.o \
+	emi/images/cpcxfile.o \
+	emi/images/ctgafile.o \
+	emi/images/labitmap.o \
+	emi/images/lbitmap.o \
+	emi/input/eventgenerator.o \
+	emi/input/eventhandler.o \
+	emi/input/inputrecorder.o \
+	emi/input/joystick.o \
+	emi/input/keyeventmapper.o \
+	emi/input/keygenerator.o \
+	emi/input/sputcontrol_v2.o \
+	emi/lua_v2_opcodes/lua_v2.o \
+	emi/lua_v2_opcodes/lua_v2_actor.o \
+	emi/lua_v2_opcodes/lua_v2_callbacks.o \
+	emi/lua_v2_opcodes/lua_v2_camera.o \
+	emi/lua_v2_opcodes/lua_v2_chore.o \
+	emi/lua_v2_opcodes/lua_v2_control.o \
+	emi/lua_v2_opcodes/lua_v2_layer.o \
+	emi/lua_v2_opcodes/lua_v2_movie.o \
+	emi/lua_v2_opcodes/lua_v2_primitive.o \
+	emi/lua_v2_opcodes/lua_v2_ps2.o \
+	emi/lua_v2_opcodes/lua_v2_render.o \
+	emi/lua_v2_opcodes/lua_v2_resource.o \
+	emi/lua_v2_opcodes/lua_v2_save.o \
+	emi/lua_v2_opcodes/lua_v2_set.o \
+	emi/lua_v2_opcodes/lua_v2_sound.o \
+	emi/lua_v2_opcodes/lua_v2_system.o \
+	emi/lua_v2_opcodes/lua_v2_text.o \
+	emi/math/bbox.o \
+	emi/math/cmatrix.o \
+	emi/math/cplane.o \
+	emi/math/cquaternion.o \
+	emi/math/frect.o \
+	emi/math/irect.o \
+	emi/movie/movie.o \
 	emi/movie/pss/pssdecoder.o \
-	emi/musicstream.o \
-	emi/overworld.o \
-	emi/polyglot_v2.o \
-	emi/primitive.o \
-	emi/primitivequeue_v2.o \
-	emi/profilertimer.o \
-	emi/puck_v2.o \
-	emi/rbox.o \
-	emi/resourcemanager.o \
-	emi/rmesh.o \
-	emi/rmeshinstance.o \
-	emi/rmeshparser.o \
-	emi/rnode.o \
-	emi/room_v2.o \
-	emi/rprimitiveinstance.o \
-	emi/setup.o \
-	emi/shadow_v2.o \
-	emi/shadowmeshcomponent.o \
-	emi/shadowmeshinstance.o \
-	emi/skeletoncomponent.o \
-	emi/skeletoninstance.o \
-	emi/snd3dcomponent.o \
-	emi/sndcomponent.o \
-	emi/sndinstance.o \
-	emi/soundposition.o \
-	emi/sounds.o \
-	emi/spritecomponent.o \
-	emi/spriteinstance.o \
-	emi/sputcontrol_v2.o \
-	emi/streamscript.o \
-	emi/textevent.o \
-	emi/textureindexcomponent.o \
-	emi/textureindexinstance.o \
-	emi/tiledscene.o \
-	emi/triset.o \
-	emi/walkplane_v2.o \
-	emi/walkplanecollection.o \
-	emi/zfile.o \
+	emi/nodes/cnode.o \
+	emi/nodes/cnoderef.o \
+	emi/nodes/cprimitive.o \
+	emi/nodes/cskeleton.o \
+	emi/nodes/csprite.o \
+	emi/nodes/cweightmap.o \
+	emi/nodes/rbox.o \
+	emi/nodes/rmesh.o \
+	emi/nodes/rmeshinstance.o \
+	emi/nodes/rmeshparser.o \
+	emi/nodes/rnode.o \
+	emi/nodes/rprimitiveinstance.o \
+	emi/nodes/triset.o \
+	emi/resources/cbundle.o \
+	emi/resources/lresource.o \
+	emi/resources/lresourcehandle.o \
+	emi/resources/resourcemanager.o \
+	emi/scene/camera.o \
+	emi/scene/cclipvolume.o \
+	emi/scene/clight.o \
+	emi/scene/clightnode.o \
+	emi/scene/overworld.o \
+	emi/scene/room_v2.o \
+	emi/scene/setup.o \
+	emi/scene/walkplane_v2.o \
+	emi/scene/walkplanecollection.o \
+	emi/sound/audiosystem.o \
+	emi/sound/caifffile.o \
+	emi/sound/caudiochannel.o \
+	emi/sound/caudiodevice.o \
+	emi/sound/cmp3file.o \
+	emi/sound/cmusicps2.o \
+	emi/sound/cnoderef_soundcue.o \
+	emi/sound/cscxfile.o \
+	emi/sound/csnd.o \
+	emi/sound/csndparser.o \
+	emi/sound/csoundcue.o \
+	emi/sound/cueentry.o \
+	emi/sound/cuestream.o \
+	emi/sound/cwaveaudiodevice.o \
+	emi/sound/cwavechannel.o \
+	emi/sound/cwavesound.o \
+	emi/sound/cwavfile.o \
+	emi/sound/lipdata.o \
+	emi/sound/lsound.o \
+	emi/sound/miles_audio/driver.o \
+	emi/sound/miles_audio/mixer.o \
+	emi/sound/miles_audio/ps2/spu2interpolation.o \
+	emi/sound/miles_audio/ps2/spu2reverb.o \
+	emi/sound/miles_audio/reverb.o \
+	emi/sound/miles_audio/stream.o \
+	emi/sound/musicstream.o \
+	emi/sound/soundposition.o \
+	emi/sound/sounds.o \
+	emi/sound/streamscript.o \
+	emi/text/ctextfont.o \
+	emi/text/polyglot_v2.o \
+	emi/text/textevent.o \
 	imuse/imuse_cmds.o \
 	imuse/imuse_dispatch.o \
 	imuse/imuse_engine.o \
@@ -241,15 +253,18 @@ MODULE_OBJS := \
 	lua/lundump.o \
 	lua/lvm.o \
 	lua/lzio.o \
+	lua_v1_opcodes/lua_grim_patch.o \
+	lua_v1_opcodes/lua_v1.o \
+	lua_v1_opcodes/lua_v1_actor.o \
+	lua_v1_opcodes/lua_v1_graphics.o \
+	lua_v1_opcodes/lua_v1_set.o \
+	lua_v1_opcodes/lua_v1_sound.o \
+	lua_v1_opcodes/lua_v1_text.o \
 	movie/codecs/codec48.o \
 	movie/codecs/blocky8.o \
 	movie/codecs/blocky16.o \
 	movie/codecs/vima.o \
 	movie/codecs/smush_decoder.o \
-	movie/bink.o \
-	movie/mpeg.o \
-	movie/movie.o \
-	movie/quicktime.o \
 	movie/smush_anim.o \
 	movie/smush_animator.o \
 	movie/smush_mixer.o \
@@ -257,10 +272,19 @@ MODULE_OBJS := \
 	movie/smush_sound.o \
 	movie/smush_timer.o \
 	movie/smush_wave.o \
+	movie/sputsmush.o \
+	movie/sputsmush_demo.o \
 	remastered/commentary.o \
 	remastered/hotspot.o \
 	remastered/lua_remastered.o \
 	remastered/overlay.o \
+	render/primitivequeue.o \
+	render/sputprimitive.o \
+	render/sputrender.o \
+	render/sputrender_buffers.o \
+	render/sputrender_color.o \
+	render/sputrender_debug.o \
+	render/sputrender_scene.o \
 	renderdroid/rd.o \
 	renderdroid/rd_active.o \
 	renderdroid/rd_afraster.o \
@@ -305,60 +329,32 @@ MODULE_OBJS := \
 	std/std_sort.o \
 	std/std_pcx.o \
 	std/std_pic.o \
+	text/blasttext.o \
+	text/blasttext_fontdata.o \
+	text/normaltext.o \
+	text/polyglot.o \
+	text/sputtext.o \
+	text/text.o \
 	update/packfile.o \
 	update/mscab.o \
 	update/lang_filter.o \
 	update/update.o \
-	blasttext.o \
-	blasttext_fontdata.o \
 	debug.o \
 	grim.o \
 	grim_controls.o \
 	inputdialog.o \
 	lab.o \
 	lua.o \
-	lua_grim_patch.o \
-	lua_v1.o \
-	lua_v1_actor.o \
-	lua_v1_graphics.o \
-	lua_v1_set.o \
-	lua_v1_sound.o \
-	lua_v1_text.o \
 	metaengine.o \
-	normaltext.o \
-	primitivequeue.o \
 	patchr.o \
-	polyglot.o \
 	res.o \
-	sputactor.o \
-	sputactor_collision.o \
-	sputactor_costume.o \
-	sputactor_move.o \
-	sputactor_save.o \
-	sputactor_shadow.o \
-	sputactor_talk.o \
-	sputactor_walk.o \
 	sputcontrol.o \
-	sputcostume.o \
-	sputcostume_keyframe.o \
-	sputcostume_media.o \
-	sputcostume_model.o \
 	sputobjectstate.o \
-	sputprimitive.o \
-	sputrender.o \
-	sputrender_buffers.o \
-	sputrender_color.o \
-	sputrender_debug.o \
-	sputrender_scene.o \
 	sputresource.o \
 	sputroom.o \
 	sputroom_sections.o \
-	sputsmush.o \
-	sputsmush_demo.o \
-	sputtext.o \
 	sputtime.o \
 	stdcontrol.o \
-	text.o \
 	puck.o \
 	walkplane.o \
 	wuregistry.o \

@@ -23,15 +23,15 @@
 #include "common/textconsole.h"
 #include "common/ustr.h"
 
-#include "engines/grim/emi/actor.h"
-#include "engines/grim/emi/choreinstance.h"
-#include "engines/grim/emi/color.h"
+#include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/costume/choreinstance.h"
+#include "engines/grim/emi/graphics/color.h"
 #include "engines/grim/emi/emiengine.h"
-#include "engines/grim/emi/overworld.h"
-#include "engines/grim/emi/puck_v2.h"
-#include "engines/grim/emi/rprimitive.h"
-#include "engines/grim/emi/rprimitiveinstance.h"
-#include "engines/grim/emi/walkplanecollection.h"
+#include "engines/grim/emi/scene/overworld.h"
+#include "engines/grim/emi/actor/puck_v2.h"
+#include "engines/grim/emi/nodes/rprimitive.h"
+#include "engines/grim/emi/nodes/rprimitiveinstance.h"
+#include "engines/grim/emi/scene/walkplanecollection.h"
 
 namespace Grim {
 

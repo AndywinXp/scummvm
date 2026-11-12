@@ -26,14 +26,14 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "engines/grim/blasttext.h"
+#include "engines/grim/text/blasttext.h"
 #include "engines/grim/chore/cos.h"
 #include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
-#include "engines/grim/sputrender.h"
+#include "engines/grim/render/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
-#include "engines/grim/text.h"
+#include "engines/grim/text/text.h"
 #include "engines/grim/wuregistry.h"
 
 namespace Grim {
