@@ -341,7 +341,6 @@ MODULE_OBJS := \
 	update/update.o \
 	debug.o \
 	grim.o \
-	grim_controls.o \
 	inputdialog.o \
 	lab.o \
 	lua.o \

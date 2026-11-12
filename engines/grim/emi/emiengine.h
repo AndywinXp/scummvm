@@ -245,6 +245,25 @@ private:
 		kNumStatsEvents = 5
 	};
 
+	enum {
+		kPadSquare = 0,
+		kPadTriangle = 1,
+		kPadCircle = 2,
+		kPadCross = 3,
+		kPadR1 = 4,
+		kPadL1 = 5,
+		kPadR2 = 6,
+		kPadL2 = 7,
+		kPadStart = 8,
+		kPadSelect = 9,
+		kPadDpadUp = 10,
+		kPadDpadDown = 11,
+		kPadDpadLeft = 12,
+		kPadDpadRight = 13,
+		kPadLeftStick = 14,
+		kPadRightStick = 15
+	};
+
 	void mountEmiPatchArchives();
 	bool initialize();
 	void playAspyrLogo(CDrawContext *drawContext);
@@ -256,6 +275,10 @@ private:
 	void handleKeyRelease(const Common::KeyState &key);
 	void handleDebugKeys(int virtualKey);
 	void handleActivation(bool active);
+	int mapPadButton(int button);
+	static void addPadAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, int padButton, const char *input);
+	static void addPadActionsPs2(Common::Keymap *keymap);
+	static void addKeyActionsPc(Common::Keymap *keymap);
 	void pixelTest();
 	float updateFrameTime(int manualMs);
 	void drawStatsOverlay(CDrawContext *drawContext);

@@ -83,11 +83,6 @@ class LuaBase;
 class Lua_V1;
 class LegacyImporter;
 
-struct ControlDescriptor {
-	const char *name;
-	int key;
-};
-
 enum SputMainModule {
 	kSputMainModuleFileUtil,
 	kSputMainModuleMemory,
@@ -232,6 +227,11 @@ public:
 protected:
 	void pauseEngineIntern(bool pause) override;
 
+	enum {
+		kStickActionFirst = 12000,
+		kNumStickAxes = 4
+	};
+
 	Common::Mutex _imuseMutex;
 	unsigned _speedLimitMs;
 	bool _showFps;
@@ -283,6 +283,11 @@ protected:
 	int isHardware3D();
 	void loadSplash();
 	void pumpEvents();
+	static void addKeyAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, const Common::KeyState &key, const char *keyboardInput, const char *padInput, const char *padInput2 = nullptr);
+	static void addStickAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, int stickAction, const char *input);
+	static void addStickActions(Common::Keymap *keymap);
+	static int applyStickAction(int *axes, const Common::Event &event);
+	static int getJoystickButtonIndex(int button);
 	void handleFocus(int hasFocus);
 	void handleKey(Common::EventType type, const Common::KeyState &key, bool repeat);
 	void handleKeyDebug(const Common::KeyState &key);
@@ -318,6 +323,7 @@ protected:
 	int _displayOpen = 0;
 	int _showDebugOverlay = 0;
 	int _backspaceHeldFlag = 0;
+	int _stickAxes[kNumStickAxes] = { 0, 0, 0, 0 };
 	int _enginePaused = 0;
 	int _saveGameToResume = 0;
 	int _grimFrameCount = 0;
@@ -390,77 +396,6 @@ private:
 };
 
 extern GrimEngine *g_grim;
-
-// Fake KEYCODE_* values for joystick and mouse events
-
-enum {
-	KEYCODE_JOY1_A = 512,
-	KEYCODE_JOY1_B,
-	KEYCODE_JOY1_X,
-	KEYCODE_JOY1_Y,
-	KEYCODE_JOY1_BACK,
-	KEYCODE_JOY1_GUIDE,
-	KEYCODE_JOY1_START,
-	KEYCODE_JOY1_LEFTSTICK,
-	KEYCODE_JOY1_RIGHTSTICK,
-	KEYCODE_JOY1_L1,
-	KEYCODE_JOY1_R1,
-	KEYCODE_JOY1_HUP,
-	KEYCODE_JOY1_HDOWN,
-	KEYCODE_JOY1_HLEFT,
-	KEYCODE_JOY1_HRIGHT,
-	KEYCODE_JOY1_L2,
-	KEYCODE_JOY1_R2,
-	KEYCODE_JOY1_B14,
-	KEYCODE_JOY1_B15,
-	KEYCODE_JOY1_B16,
-	KEYCODE_JOY1_B17,
-	KEYCODE_JOY1_B18,
-	KEYCODE_JOY1_B19,
-	KEYCODE_JOY1_B20,
-	KEYCODE_JOY2_A,
-	KEYCODE_JOY2_B,
-	KEYCODE_JOY2_X,
-	KEYCODE_JOY2_Y,
-	KEYCODE_JOY2_BACK,
-	KEYCODE_JOY2_GUIDE,
-	KEYCODE_JOY2_START,
-	KEYCODE_JOY2_LEFTSTICK,
-	KEYCODE_JOY2_RIGHTSTICK,
-	KEYCODE_JOY2_L1,
-	KEYCODE_JOY2_R1,
-	KEYCODE_JOY2_HUP,
-	KEYCODE_JOY2_HDOWN,
-	KEYCODE_JOY2_HLEFT,
-	KEYCODE_JOY2_HRIGHT,
-	KEYCODE_JOY2_L2,
-	KEYCODE_JOY2_R2,
-	KEYCODE_MOUSE_B1,
-	KEYCODE_MOUSE_B2,
-	KEYCODE_MOUSE_B3,
-	KEYCODE_MOUSE_B4,
-	KEYCODE_AXIS_JOY1_X,
-	KEYCODE_AXIS_JOY1_Y,
-	KEYCODE_AXIS_JOY1_Z,
-	KEYCODE_AXIS_JOY1_R,
-	KEYCODE_AXIS_JOY1_U,
-	KEYCODE_AXIS_JOY1_V,
-	KEYCODE_AXIS_JOY2_X,
-	KEYCODE_AXIS_JOY2_Y,
-	KEYCODE_AXIS_JOY2_Z,
-	KEYCODE_AXIS_JOY2_R,
-	KEYCODE_AXIS_JOY2_U,
-	KEYCODE_AXIS_JOY2_V,
-	KEYCODE_AXIS_MOUSE_X,
-	KEYCODE_AXIS_MOUSE_Y,
-	KEYCODE_AXIS_MOUSE_Z,
-	KEYCODE_EXTRA_LAST
-};
-
-#define NUM_JOY_AXES (KEYCODE_AXIS_JOY1_V - KEYCODE_AXIS_JOY1_X + 1)
-#define NUM_JOY_BUTTONS (KEYCODE_JOY1_R2 - KEYCODE_JOY1_A + 1)
-
-extern const ControlDescriptor controls[];
 
 } // end of namespace Grim
 

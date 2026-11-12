@@ -849,14 +849,11 @@ bool Movie::isSkipEventPs2(EmiEngine *engine, const Common::Event &event) {
 	if (event.type == Common::EVENT_KEYDOWN)
 		return event.kbd.keycode == Common::KEYCODE_ESCAPE && !event.kbdRepeat;
 
-	if (event.type == Common::EVENT_JOYBUTTON_DOWN) {
-		for (int i = 0; i < SputControl_v2::kNumControls; i++) {
-			const ControlEntry &control = engine->getControl()->_controlTable[i];
+	if (event.type == Common::EVENT_CUSTOM_ENGINE_ACTION_START)
+		return (int)event.customType == EmiEngine::kPadSelect;
 
-			if (control.name && !strcmp(control.name, "KEY_JOY1_SELECT"))
-				return event.joystick.button == (int)(control.code - Joystick::kButtonBase);
-		}
-	}
+	if (event.type == Common::EVENT_JOYBUTTON_DOWN)
+		return engine->mapPadButton(event.joystick.button) == EmiEngine::kPadSelect;
 
 	return false;
 }
