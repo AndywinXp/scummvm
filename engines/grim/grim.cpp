@@ -352,7 +352,8 @@ void GrimEngine::clearEventQueue() {
 bool GrimEngine::hasFeature(EngineFeature f) const {
 	return
 		(f == kSupportsReturnToLauncher) ||
-		(f == kSupportsLoadingDuringRuntime);
+		(f == kSupportsLoadingDuringRuntime) ||
+		(f == kSupportsQuitDialogOverride);
 }
 
 void GrimEngine::pauseEngineIntern(bool pause) {
