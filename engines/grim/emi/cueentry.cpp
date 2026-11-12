@@ -41,11 +41,11 @@ CueEntry::CueEntry(const char *description, const int *id, const int *sync, CueE
 }
 
 void *CueEntry::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CueEntry::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 } // End of namespace Grim

@@ -230,11 +230,11 @@ CSoundCue::~CSoundCue() {
 }
 
 void *CSoundCue::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CSoundCue::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool CSoundCue::play(bool releaseWhenDone) {

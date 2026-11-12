@@ -40,11 +40,11 @@ LBitmap::LBitmap() {
 }
 
 void *LBitmap::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LBitmap::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void LBitmap::create(int width, int height, const LColorFormat &format, void *pixels) {

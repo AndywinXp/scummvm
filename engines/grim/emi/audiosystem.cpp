@@ -107,11 +107,11 @@ AudioSystem::~AudioSystem() {
 }
 
 void *AudioSystem::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void AudioSystem::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool AudioSystem::createAudioDevice() {

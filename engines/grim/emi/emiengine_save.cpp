@@ -448,7 +448,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 
 	int bytesPerPixel = drawContext->displayMode.bpp / 8;
 	uint bufferSize = (uint)(kScreenWidth * kScreenBufferHeight * bytesPerPixel) * sizeof(char);
-	char *buffer = (char *)gpMemoryServices->malloc(bufferSize);
+	char *buffer = (char *)gpMemoryServices->mallocImpl(bufferSize);
 
 	if (!buffer) {
 		warning("EmiEngine::buildSpecScreenTextures(): out of memory");
@@ -471,7 +471,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 			drawContext->setCachedTexture(index + i, &bitmap);
 		}
 
-		gpMemoryServices->free(buffer);
+		gpMemoryServices->freeImpl(buffer);
 
 		return true;
 	}
@@ -491,7 +491,7 @@ bool EmiEngine::buildSpecScreenTextures(int index) {
 		}
 	}
 
-	gpMemoryServices->free(buffer);
+	gpMemoryServices->freeImpl(buffer);
 
 	return true;
 }

@@ -30,36 +30,36 @@ bool Debug::isChannelEnabled(DebugChannel chan) {
 	return DebugMan.isDebugChannelEnabled(chan);
 }
 
-void Debug::debug(DebugChannel channel, const char *s, ...) {
+void Debug::debugImpl(DebugChannel channel, const char *s, ...) {
 	if (isChannelEnabled(channel)) {
 		va_list args;
 		va_start(args, s);
 		Common::String buf = Common::String::vformat(s, args);
 		va_end(args);
 
-		::debug("%s", buf.c_str());
+		debug("%s", buf.c_str());
 	}
 }
 
-void Debug::warning(DebugChannel channel, const char *s, ...) {
+void Debug::warningImpl(DebugChannel channel, const char *s, ...) {
 	if (isChannelEnabled(channel)) {
 		va_list args;
 		va_start(args, s);
 		Common::String buf = Common::String::vformat(s, args);
 		va_end(args);
 
-		::warning("%s", buf.c_str());
+		warning("%s", buf.c_str());
 	}
 }
 
-void Debug::error(DebugChannel channel, const char *s, ...) {
+void Debug::errorImpl(DebugChannel channel, const char *s, ...) {
 	if (isChannelEnabled(channel)) {
 		va_list args;
 		va_start(args, s);
 		Common::String buf = Common::String::vformat(s, args);
 		va_end(args);
 
-		::error("%s", buf.c_str());
+		error("%s", buf.c_str());
 	}
 }
 

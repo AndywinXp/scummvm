@@ -77,11 +77,11 @@ ChoreInstance::~ChoreInstance() {
 }
 
 void *ChoreInstance::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ChoreInstance::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetName) {

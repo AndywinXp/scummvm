@@ -52,7 +52,7 @@ MeshInstance::MeshInstance(const LString &componentName, Actor *actor) : Compone
 			if (component->weightMap) {
 				uint numNodes = component->weightMap->nodeNames.size();
 
-				meshInstance->boneNodes = (CNode **)gpMemoryServices->malloc(numNodes * sizeof(CNode *));
+				meshInstance->boneNodes = (CNode **)gpMemoryServices->mallocImpl(numNodes * sizeof(CNode *));
 
 				// The disasm leaves the bones it cannot find uninitialized
 				if (meshInstance->boneNodes)

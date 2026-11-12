@@ -176,7 +176,7 @@ void MoviePlayer::init() {
 }
 
 void MoviePlayer::deinit() {
-	Debug::debug(Debug::Movie, "Deinitting video '%s'.\n", _fname.c_str());
+	Debug::debugImpl(Debug::Movie, "Deinitting video '%s'.\n", _fname.c_str());
 
 	if (_videoDecoder)
 		_videoDecoder->close();
@@ -208,7 +208,7 @@ bool MoviePlayer::play(const Common::String &filename, bool looping, int x, int 
 	// LEGACY: if (g_driver)
 	// LEGACY: 	_videoDecoder->setOutputPixelFormat(g_driver->getMovieFormat());
 
-	Debug::debug(Debug::Movie, "Playing video '%s'.\n", filename.c_str());
+	Debug::debugImpl(Debug::Movie, "Playing video '%s'.\n", filename.c_str());
 
 	init();
 	_internalSurface = nullptr;

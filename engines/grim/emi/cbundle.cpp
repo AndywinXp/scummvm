@@ -51,11 +51,11 @@ PBundleDirectoryEntry::PBundleDirectoryEntry() {
 }
 
 void *PBundleDirectoryEntry::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void PBundleDirectoryEntry::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void PBundleDirectoryEntry::reset() {
@@ -111,11 +111,11 @@ CBundle::~CBundle() {
 }
 
 void *CBundle::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CBundle::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void CBundle::reset() {
@@ -140,7 +140,7 @@ void CBundle::close() {
 	entries.clear();
 
 	if (nameTable) {
-		gpMemoryServices->free(nameTable);
+		gpMemoryServices->freeImpl(nameTable);
 		nameTable = nullptr;
 	}
 
@@ -187,7 +187,7 @@ bool CBundle::openDirectory(const char *directory) {
 	type = kBundleTypeDirectory;
 	numEntries = fileNames.size();
 
-	nameTable = (char *)gpMemoryServices->malloc(nameBytes * sizeof(char));
+	nameTable = (char *)gpMemoryServices->mallocImpl(nameBytes * sizeof(char));
 	if (!nameTable) {
 		close();
 
@@ -301,7 +301,7 @@ bool CBundle::readHeader() {
 	for (uint i = 0; i < numFiles; i++)
 		entries.push_back(new PBundleFileEntry());
 
-	nameTable = (char *)gpMemoryServices->malloc(tableSize * sizeof(char));
+	nameTable = (char *)gpMemoryServices->mallocImpl(tableSize * sizeof(char));
 	if (!nameTable) {
 		close();
 
@@ -650,7 +650,7 @@ uint LBundleFile::loadAll() {
 
 	uint allocSize = memberSize + 1;
 
-	char *data = (char *)gpMemoryServices->malloc(allocSize * sizeof(char));
+	char *data = (char *)gpMemoryServices->mallocImpl(allocSize * sizeof(char));
 	if (!data) {
 		warning("LBundleFile::loadAll(): cannot allocate the buffer");
 
@@ -891,7 +891,7 @@ void CBundleServices::close(LFile *file, bool destroy) {
 		inner->close(slot, false);
 
 	if (slot->memData) {
-		gpMemoryServices->free(slot->memData);
+		gpMemoryServices->freeImpl(slot->memData);
 		slot->memData = nullptr;
 		slot->memCursor = nullptr;
 		slot->memSize = 0;

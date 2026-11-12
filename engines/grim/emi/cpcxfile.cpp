@@ -57,7 +57,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 				gpConsoleServices->logError("PCX::ReadImage: FAIL!!!\n");
 		} else {
 			int rowBytes = (int16)(header.bytesPerLine * header.numPlanes);
-			byte *rowBuffer = (byte *)gpMemoryServices->malloc((uint)rowBytes * sizeof(byte));
+			byte *rowBuffer = (byte *)gpMemoryServices->mallocImpl((uint)rowBytes * sizeof(byte));
 			int bytesPerPixel = header.numPlanes * header.bitsPerPixel / 8;
 
 			bitmap->create(imageWidth, imageHeight, LColorFormat::format6, nullptr);
@@ -94,7 +94,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 				gpConsoleServices->logWarning("PCX::ReadImage: EOF during read!\n");
 
 			if (rowBuffer)
-				gpMemoryServices->free(rowBuffer);
+				gpMemoryServices->freeImpl(rowBuffer);
 
 			result = true;
 
@@ -109,7 +109,7 @@ bool CPCXFile::readImage(LFile *file, LBitmap *image, int unused) {
 	}
 
 	if (reader.base) {
-		gpMemoryServices->free(reader.base);
+		gpMemoryServices->freeImpl(reader.base);
 		reader.base = nullptr;
 	}
 
@@ -179,7 +179,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 
 	writeHeader(file, &header);
 
-	byte *lineBuffer = (byte *)gpMemoryServices->malloc((uint)(2 * bitmap->getWidth()) * sizeof(byte));
+	byte *lineBuffer = (byte *)gpMemoryServices->mallocImpl((uint)(2 * bitmap->getWidth()) * sizeof(byte));
 
 	if (lineBuffer) {
 		const byte *pixels = (const byte *)bitmap->getPixels();
@@ -196,7 +196,7 @@ int CPCXFile::writeImage(LFile *file, LBitmap *image, const int *palette) {
 			warning("CPCXFile::writeImage(): bitmap has no pixels");
 		}
 
-		gpMemoryServices->free(lineBuffer);
+		gpMemoryServices->freeImpl(lineBuffer);
 	}
 
 	if (palette) {
@@ -395,7 +395,7 @@ void PcxReader::loadFile(LFile *file) {
 	file->seek(0, SEEK_SET);
 
 	overrun = false;
-	base = (byte *)gpMemoryServices->malloc(size * sizeof(byte));
+	base = (byte *)gpMemoryServices->mallocImpl(size * sizeof(byte));
 
 	if (!base) {
 		warning("PcxReader::loadFile(): cannot allocate %u bytes", size);

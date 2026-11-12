@@ -56,11 +56,11 @@ RPrimitiveInstance::~RPrimitiveInstance() {
 }
 
 void *RPrimitiveInstance::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void RPrimitiveInstance::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int RPrimitiveInstance::getSaveSize() {

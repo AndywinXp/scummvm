@@ -69,11 +69,11 @@ CDrawContext::~CDrawContext() {
 }
 
 void *CDrawContext::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CDrawContext::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool CDrawContext::hasGammaControl() {
@@ -172,7 +172,7 @@ int CDrawContext::outputDrawList(CDrawList *list) {
 		total += outputDrawPoly(list->polys[i]);
 
 	list->~CDrawList();
-	gpMemoryServices->free(list);
+	gpMemoryServices->freeImpl(list);
 
 	return total;
 }

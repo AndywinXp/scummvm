@@ -68,7 +68,7 @@ WalkPlaneCollection::~WalkPlaneCollection() {
 	Common::List<wpVertex *>::iterator vertexIt;
 
 	for (vertexIt = vertices.begin(); vertexIt != vertices.end(); ++vertexIt) {
-		gpMemoryServices->free(*vertexIt);
+		gpMemoryServices->freeImpl(*vertexIt);
 		*vertexIt = nullptr;
 	}
 
@@ -76,11 +76,11 @@ WalkPlaneCollection::~WalkPlaneCollection() {
 }
 
 void *WalkPlaneCollection::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void WalkPlaneCollection::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int WalkPlaneCollection::getPath(float (**path)[3]) {
@@ -393,7 +393,7 @@ wpVertex *WalkPlaneCollection::addVertex(const float *position) {
 		}
 	}
 
-	wpVertex *newVertex = (wpVertex *)gpMemoryServices->malloc(sizeof(wpVertex));
+	wpVertex *newVertex = (wpVertex *)gpMemoryServices->mallocImpl(sizeof(wpVertex));
 
 	newVertex->x = 0.0f;
 	newVertex->y = 0.0f;
@@ -421,7 +421,7 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 					++it;
 			}
 
-			gpMemoryServices->free(vertex);
+			gpMemoryServices->freeImpl(vertex);
 		}
 	}
 }

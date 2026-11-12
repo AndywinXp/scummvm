@@ -285,7 +285,7 @@ void COGLContext::submitVertices(CDCVertexArray *vertexArray) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	_vertexColors = (byte *)gpMemoryServices->malloc(vertexArray->numVerts * 4 * sizeof(byte));
+	_vertexColors = (byte *)gpMemoryServices->mallocImpl(vertexArray->numVerts * 4 * sizeof(byte));
 
 	if (_vertexColors) {
 		for (int i = 0; i < vertexArray->numVerts; i++) {
@@ -316,7 +316,7 @@ void COGLContext::releaseVertices() {
 	}
 
 	currentVertexArray->unlock();
-	gpMemoryServices->free(_vertexColors);
+	gpMemoryServices->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
 }
 

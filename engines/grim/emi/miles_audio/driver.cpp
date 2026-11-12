@@ -98,11 +98,11 @@ EMIMilesDriver::~EMIMilesDriver() {
 }
 
 void *EMIMilesDriver::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void EMIMilesDriver::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool EMIMilesDriver::open(Audio::Mixer *mixer) {

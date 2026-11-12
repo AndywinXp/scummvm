@@ -54,11 +54,11 @@ ANode::~ANode() {
 }
 
 void *ANode::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ANode::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void ANode::bindTrack(AInst *inst, ATrack *track) {

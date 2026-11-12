@@ -25,11 +25,11 @@
 namespace Grim {
 
 void *CDCVertex::operator new[](size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CDCVertex::operator delete[](void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int VertexStreams::getDataSize() const {
@@ -59,11 +59,11 @@ CDCVertexArray::~CDCVertexArray() {
 }
 
 void *CDCVertexArray::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CDCVertexArray::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 } // End of namespace Grim

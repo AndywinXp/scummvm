@@ -374,7 +374,7 @@ void GrimEngine::mountPatchArchives() {
 
 	Common::ArchiveMemberList patches;
 
-	Debug::debug(Debug::Patchr, "%d patch files available", SearchMan.listMatchingMembers(patches, "*.patchr"));
+	Debug::debugImpl(Debug::Patchr, "%d patch files available", SearchMan.listMatchingMembers(patches, "*.patchr"));
 }
 
 Common::SeekableReadStream *GrimEngine::openStreamFile(const Common::String &fname) {

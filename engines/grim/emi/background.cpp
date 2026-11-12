@@ -162,7 +162,7 @@ bool Background::resLoadItem(const char *itemName) {
 
 	file->seek(READ_LE_INT32(headerBytes + 4 * TiledScene::kHeaderTablesSize), 0);
 
-	bmData = (BmData *)gpMemoryServices->malloc(sizeof(BmData));
+	bmData = (BmData *)gpMemoryServices->mallocImpl(sizeof(BmData));
 
 	if (bmData) {
 		Common::strlcpy((char *)bmData->itemName, itemName, sizeof(bmData->itemName));
@@ -173,7 +173,7 @@ bool Background::resLoadItem(const char *itemName) {
 			*extension = 0;
 
 		if (!bmData->load(file)) {
-			gpMemoryServices->free(bmData);
+			gpMemoryServices->freeImpl(bmData);
 			bmData = nullptr;
 		}
 	}

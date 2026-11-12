@@ -180,7 +180,7 @@ int LuaBase::dofile(const char *filename) {
 	Common::SeekableReadStream *stream;
 	stream = g_grim->openStreamFile(filename);
 	if (!stream) {
-		Debug::warning(Debug::Engine, "Cannot find script %s", filename);
+		Debug::warningImpl(Debug::Engine, "Cannot find script %s", filename);
 		return 2;
 	}
 

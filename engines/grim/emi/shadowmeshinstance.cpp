@@ -52,7 +52,7 @@ ShadowMeshInstance::ShadowMeshInstance(const LString &componentName, Actor *acto
 			if (component->weightMap) {
 				uint numNodes = component->weightMap->nodeNames.size();
 
-				meshInstance->boneNodes = (CNode **)gpMemoryServices->malloc(numNodes * sizeof(CNode *));
+				meshInstance->boneNodes = (CNode **)gpMemoryServices->mallocImpl(numNodes * sizeof(CNode *));
 
 				// The disasm leaves the bones it cannot find uninitialized
 				if (meshInstance->boneNodes)
@@ -63,7 +63,7 @@ ShadowMeshInstance::ShadowMeshInstance(const LString &componentName, Actor *acto
 
 			// The disasm frees the normals of the shared mesh
 			if (component->normals) {
-				gpMemoryServices->free(component->normals);
+				gpMemoryServices->freeImpl(component->normals);
 				component->normals = nullptr;
 			}
 

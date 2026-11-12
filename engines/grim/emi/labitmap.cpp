@@ -66,21 +66,21 @@ LABitmap::LABitmap(int bitmapWidth, int bitmapHeight, const LColorFormat &format
 		ownedPixels = nullptr;
 		pixels = bitmapPixels;
 	} else {
-		ownedPixels = (byte *)gpMemoryServices->malloc((uint)sizeBytes * sizeof(byte));
+		ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)sizeBytes * sizeof(byte));
 		pixels = ownedPixels;
 
 		if (ownedPixels) {
 			if (bitmapPixels)
-				gpMemoryServices->memcpy(pixels, bitmapPixels, sizeBytes);
+				gpMemoryServices->memcpyImpl(pixels, bitmapPixels, sizeBytes);
 			else
-				gpMemoryServices->memset(pixels, 0, sizeBytes);
+				gpMemoryServices->memsetImpl(pixels, 0, sizeBytes);
 		}
 	}
 }
 
 LABitmap::~LABitmap() {
 	if (ownedPixels) {
-		gpMemoryServices->free(ownedPixels);
+		gpMemoryServices->freeImpl(ownedPixels);
 		ownedPixels = nullptr;
 	}
 }
@@ -109,23 +109,23 @@ void LABitmap::create(int bitmapWidth, int bitmapHeight, const LColorFormat &for
 	sizeBytes = height * stride;
 
 	if (ownedPixels)
-		gpMemoryServices->free(ownedPixels);
+		gpMemoryServices->freeImpl(ownedPixels);
 
 	if (bitmapPixels) {
 		pixels = bitmapPixels;
 		ownedPixels = nullptr;
 	} else {
-		ownedPixels = (byte *)gpMemoryServices->malloc((uint)sizeBytes * sizeof(byte));
+		ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)sizeBytes * sizeof(byte));
 		pixels = ownedPixels;
 	}
 
 	if (pixels)
-		gpMemoryServices->memset(pixels, 0, sizeBytes);
+		gpMemoryServices->memsetImpl(pixels, 0, sizeBytes);
 }
 
 void LABitmap::convertFrom(LBitmap *source, const LColorFormat &format) {
 	if (ownedPixels)
-		gpMemoryServices->free(ownedPixels);
+		gpMemoryServices->freeImpl(ownedPixels);
 
 	width = source->getWidth();
 	height = source->getHeight();
@@ -133,14 +133,14 @@ void LABitmap::convertFrom(LBitmap *source, const LColorFormat &format) {
 	stride = width * colorFormat.bytesPerPixel;
 	sizeBytes = height * stride;
 
-	ownedPixels = (byte *)gpMemoryServices->malloc((uint)(width * height * format.bytesPerPixel) * sizeof(byte));
+	ownedPixels = (byte *)gpMemoryServices->mallocImpl((uint)(width * height * format.bytesPerPixel) * sizeof(byte));
 	pixels = ownedPixels;
 
 	if (!ownedPixels)
 		return;
 
 	if (format.formatId == source->colorFormat.formatId)
-		gpMemoryServices->memcpy(pixels, source->getPixels(), source->colorFormat.bytesPerPixel * height * width);
+		gpMemoryServices->memcpyImpl(pixels, source->getPixels(), source->colorFormat.bytesPerPixel * height * width);
 	else
 		source->colorFormat.convertPixels((const byte *)source->getPixels(), height * width, format, ownedPixels);
 }
@@ -256,16 +256,16 @@ void LABitmap::convertFormat(const LColorFormat &format) {
 	if (format.formatId == colorFormat.formatId)
 		return;
 
-	byte *newPixels = (byte *)gpMemoryServices->malloc((uint)(height * format.bytesPerPixel * width) * sizeof(byte));
+	byte *newPixels = (byte *)gpMemoryServices->mallocImpl((uint)(height * format.bytesPerPixel * width) * sizeof(byte));
 
 	if (!newPixels)
 		return;
 
-	gpMemoryServices->memset(newPixels, 0, height * width * format.bytesPerPixel);
+	gpMemoryServices->memsetImpl(newPixels, 0, height * width * format.bytesPerPixel);
 	colorFormat.convertPixels((const byte *)pixels, height * width, format, newPixels);
 
 	if (ownedPixels)
-		gpMemoryServices->free(ownedPixels);
+		gpMemoryServices->freeImpl(ownedPixels);
 
 	pixels = newPixels;
 	ownedPixels = newPixels;

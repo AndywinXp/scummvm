@@ -65,11 +65,11 @@ static int doubleToInt(double value) {
 }
 
 void *AChannelHandle::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void AChannelHandle::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 ATrack::ATrack() {
@@ -85,11 +85,11 @@ ATrack::~ATrack() {
 }
 
 void *ATrack::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ATrack::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int ATrack::getSize() {
@@ -283,7 +283,7 @@ ATrackKeyframeData<T>::ATrackKeyframeData() {
 template<class T>
 ATrackKeyframeData<T>::~ATrackKeyframeData() {
 	if (keys) {
-		gpMemoryServices->free(keys);
+		gpMemoryServices->freeImpl(keys);
 		keys = nullptr;
 	}
 }
@@ -296,7 +296,7 @@ int ATrackKeyframeData<T>::getSize() {
 template<class T>
 void ATrackKeyframeData<T>::allocateKeys(int count) {
 	capacity = count;
-	keys = (Key *)gpMemoryServices->malloc(count * sizeof(Key));
+	keys = (Key *)gpMemoryServices->mallocImpl(count * sizeof(Key));
 
 	if (keys)
 		memset(keys, 0, count * sizeof(Key));

@@ -101,7 +101,7 @@ LFile::LFile() {
 
 LFile::~LFile() {
 	if (memData)
-		gpMemoryServices->free(memData);
+		gpMemoryServices->freeImpl(memData);
 
 	memData = nullptr;
 	memCursor = nullptr;
@@ -111,11 +111,11 @@ LFile::~LFile() {
 }
 
 void *LFile::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LFile::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool LFile::isOpen() const {
@@ -352,7 +352,7 @@ uint LFile::loadAll() {
 	uint size = tell() + 1;
 	seek(0, 0);
 
-	memData = (char *)gpMemoryServices->malloc(size);
+	memData = (char *)gpMemoryServices->mallocImpl(size);
 	memCursor = memData;
 	memSize = readStream->read(memData, size);
 	memData[size - 1] = 0;
@@ -426,11 +426,11 @@ LFileServices::~LFileServices() {
 }
 
 void *LFileServices::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void LFileServices::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void LFileServices::deleteAllServices() {

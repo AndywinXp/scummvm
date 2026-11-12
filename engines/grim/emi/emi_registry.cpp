@@ -409,11 +409,11 @@ int EmiRegistry::convertSpeechModeFromConf(bool subtitles, bool speechMute) {
 }
 
 void *EmiPrefsFile::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void EmiPrefsFile::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 EmiPrefsFile::EmiPrefsFile(Common::WriteStream *realFile) : _realFile(realFile) {

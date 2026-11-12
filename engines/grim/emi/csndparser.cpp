@@ -57,11 +57,11 @@ CSndParser::~CSndParser() {
 }
 
 void *CSndParser::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CSndParser::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 bool CSndParser::handleKeyword(int id, int numArgs, KeywordArg *args) {

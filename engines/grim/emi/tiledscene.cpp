@@ -53,18 +53,18 @@ TiledScene::TiledScene() {
 
 TiledScene::~TiledScene() {
 	if (data)
-		gpMemoryServices->free(data);
+		gpMemoryServices->freeImpl(data);
 
 	data = nullptr;
 	dataSize = 0;
 
 	if (quads)
-		gpMemoryServices->free(quads);
+		gpMemoryServices->freeImpl(quads);
 
 	quads = nullptr;
 
 	if (uvs)
-		gpMemoryServices->free(uvs);
+		gpMemoryServices->freeImpl(uvs);
 
 	uvs = nullptr;
 }
@@ -151,7 +151,7 @@ bool TiledScene::resLoadItem(const char *itemName) {
 		return false;
 	}
 
-	data = (byte *)gpMemoryServices->malloc(dataSize * sizeof(byte));
+	data = (byte *)gpMemoryServices->mallocImpl(dataSize * sizeof(byte));
 
 	if (file->read(data, dataSize) != (uint)dataSize) {
 		warning("TiledScene::resLoadItem(): unexpected end of file");
@@ -162,8 +162,8 @@ bool TiledScene::resLoadItem(const char *itemName) {
 
 	ZFileServices::get()->closeZFile(file);
 
-	quads = (float *)gpMemoryServices->malloc(numTiles * 3 * sizeof(float));
-	uvs = (QuadRange *)gpMemoryServices->malloc(numTiles * sizeof(QuadRange));
+	quads = (float *)gpMemoryServices->mallocImpl(numTiles * 3 * sizeof(float));
+	uvs = (QuadRange *)gpMemoryServices->mallocImpl(numTiles * sizeof(QuadRange));
 	frames = (int *)(data + kHeaderBytes + 16 * numTiles);
 	batches = (int *)(data + kHeaderBytes + 16 * numTiles + 8 * numFrames);
 

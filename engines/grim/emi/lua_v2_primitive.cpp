@@ -186,7 +186,7 @@ void Lua_V2::DrawPolygon() {
 		return;
 	}
 
-	float *points = (float *)gpMemoryServices->malloc(numPoints * 3 * sizeof(float));
+	float *points = (float *)gpMemoryServices->mallocImpl(numPoints * 3 * sizeof(float));
 
 	if (!points) {
 		warning("Lua_V2::DrawPolygon(): out of memory");

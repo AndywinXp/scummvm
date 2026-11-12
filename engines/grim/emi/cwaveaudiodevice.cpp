@@ -92,11 +92,11 @@ CWaveAudioDevice::~CWaveAudioDevice() {
 }
 
 void *CWaveAudioDevice::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CWaveAudioDevice::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int CWaveAudioDevice::getType() {

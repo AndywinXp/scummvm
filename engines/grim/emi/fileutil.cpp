@@ -25,11 +25,11 @@
 namespace Grim {
 
 void *FileUtilFind::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void FileUtilFind::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 FileUtilFind *FileUtilFind::newFind(const char *directory, int mode, const char *name) {

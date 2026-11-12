@@ -201,30 +201,30 @@ void RMesh::allocVertexData(int flags, int count) {
 	vertFlags = flags;
 	numVerts = count;
 
-	pos = (float *)gpMemoryServices->malloc(count * 3 * sizeof(float));
+	pos = (float *)gpMemoryServices->mallocImpl(count * 3 * sizeof(float));
 
 	if (pos)
 		memset(pos, 0, count * 3 * sizeof(float));
 
 	if (flags & 1) {
-		normals = (float *)gpMemoryServices->malloc(numVerts * 3 * sizeof(float));
+		normals = (float *)gpMemoryServices->mallocImpl(numVerts * 3 * sizeof(float));
 
 		if (normals)
 			memset(normals, 0, numVerts * 3 * sizeof(float));
 	}
 
 	if (flags & 2) {
-		colors = (PackedColor *)gpMemoryServices->malloc(numVerts * sizeof(PackedColor));
+		colors = (PackedColor *)gpMemoryServices->mallocImpl(numVerts * sizeof(PackedColor));
 
 		if (colors)
 			memset(colors, 0, numVerts * sizeof(PackedColor));
 	}
 
 	if (flags & 4)
-		vertIndex = (int *)gpMemoryServices->malloc(numVerts * sizeof(int));
+		vertIndex = (int *)gpMemoryServices->mallocImpl(numVerts * sizeof(int));
 
 	if (flags & 0x10) {
-		uv = (float *)gpMemoryServices->malloc(numVerts * 2 * sizeof(float));
+		uv = (float *)gpMemoryServices->mallocImpl(numVerts * 2 * sizeof(float));
 
 		if (uv)
 			memset(uv, 0, numVerts * 2 * sizeof(float));
@@ -235,27 +235,27 @@ void RMesh::freeVertexData() {
 	numVerts = 0;
 
 	if (pos) {
-		gpMemoryServices->free(pos);
+		gpMemoryServices->freeImpl(pos);
 		pos = nullptr;
 	}
 
 	if (normals) {
-		gpMemoryServices->free(normals);
+		gpMemoryServices->freeImpl(normals);
 		normals = nullptr;
 	}
 
 	if (vertIndex) {
-		gpMemoryServices->free(vertIndex);
+		gpMemoryServices->freeImpl(vertIndex);
 		vertIndex = nullptr;
 	}
 
 	if (colors) {
-		gpMemoryServices->free(colors);
+		gpMemoryServices->freeImpl(colors);
 		colors = nullptr;
 	}
 
 	if (uv) {
-		gpMemoryServices->free(uv);
+		gpMemoryServices->freeImpl(uv);
 		uv = nullptr;
 	}
 }
@@ -766,7 +766,7 @@ bool RMesh::restore(LFile *file) {
 	}
 
 	if (vertIndex) {
-		gpMemoryServices->free(vertIndex);
+		gpMemoryServices->freeImpl(vertIndex);
 		vertIndex = nullptr;
 		vertFlags &= ~4;
 	}

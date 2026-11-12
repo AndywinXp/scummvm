@@ -42,11 +42,11 @@ CLight::CLight(Color lightColor, float lightIntensity, float lightFocusDistance,
 }
 
 void *CLight::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void CLight::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void CLight::setColor(int newR, int newG, int newB) {

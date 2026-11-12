@@ -46,12 +46,12 @@ int Polyglot_v2::nextKeyByte() {
 
 void Polyglot_v2::shutdown() {
 	if (_table) {
-		gpMemoryServices->free(_table);
+		gpMemoryServices->freeImpl(_table);
 		_table = nullptr;
 	}
 
 	if (_lines) {
-		gpMemoryServices->free(_lines);
+		gpMemoryServices->freeImpl(_lines);
 		_lines = nullptr;
 	}
 
@@ -90,7 +90,7 @@ void Polyglot_v2::configure(const char *tabFile) {
 	file->seek(0, SEEK_SET);
 
 	// Extra byte for the terminator
-	_table = (char *)gpMemoryServices->malloc((size + 1) * sizeof(char));
+	_table = (char *)gpMemoryServices->mallocImpl((size + 1) * sizeof(char));
 	file->read(_table, size);
 	_table[size] = 0;
 
@@ -111,7 +111,7 @@ void Polyglot_v2::configure(const char *tabFile) {
 		_lineCount++;
 	} while (position < size - 1);
 
-	_lines = (char **)gpMemoryServices->malloc(_lineCount * sizeof(char *));
+	_lines = (char **)gpMemoryServices->mallocImpl(_lineCount * sizeof(char *));
 
 	position = 0;
 	int lineIndex = 0;

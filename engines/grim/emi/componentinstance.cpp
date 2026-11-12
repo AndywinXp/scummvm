@@ -39,11 +39,11 @@ ComponentInstance::~ComponentInstance() {
 }
 
 void *ComponentInstance::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void ComponentInstance::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 void ComponentInstance::update(float deltaTime) {

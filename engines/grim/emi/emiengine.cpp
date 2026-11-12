@@ -210,7 +210,7 @@ void EmiEngine::mountEmiPatchArchives() {
 
 	Common::ArchiveMemberList patches;
 
-	Debug::debug(Debug::Patchr, "%d patch files available", SearchMan.listMatchingMembers(patches, "*.patchr"));
+	Debug::debugImpl(Debug::Patchr, "%d patch files available", SearchMan.listMatchingMembers(patches, "*.patchr"));
 }
 
 void EmiEngine::setPause(bool pause) {

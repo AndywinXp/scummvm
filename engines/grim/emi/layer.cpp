@@ -106,11 +106,11 @@ Layer::~Layer() {
 }
 
 void *Layer::operator new(size_t size) {
-	return gpMemoryServices->malloc(size);
+	return gpMemoryServices->mallocImpl(size);
 }
 
 void Layer::operator delete(void *block) {
-	gpMemoryServices->free(block);
+	gpMemoryServices->freeImpl(block);
 }
 
 int Layer::draw(CDrawContext *context) {
