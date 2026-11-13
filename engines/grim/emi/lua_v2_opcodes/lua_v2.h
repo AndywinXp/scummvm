@@ -31,6 +31,7 @@ namespace Grim {
 
 struct FileUtilFind;
 class Actor;
+class CjkString;
 class CLightNode;
 class Color;
 class EmiEngine;
@@ -396,6 +397,7 @@ private:
 	void makeSystemTable();
 	void makeControlsTable(int ref);
 	void applyTextTable(lua_Object table, TextEvent *event);
+	bool joinTextStrings(lua_Object table, CjkString *result);
 	void readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y);
 	void dumpResources(int mode);
 	void purgeResources(int mode);

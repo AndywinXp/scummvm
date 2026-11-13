@@ -57,7 +57,6 @@ class GrimMetaEngineDetection : public AdvancedMetaEngineDetection<Grim::GrimGam
 public:
 	GrimMetaEngineDetection() : AdvancedMetaEngineDetection(Grim::gameDescriptions, grimGames) {
 		_guiOptions = GUIO_NOMIDI;
-		_flags |= kADFlagCanTranscodeTraditionalChineseToSimplified;
 	}
 
 	PlainGameDescriptor findGame(const char *gameid) const override {
@@ -91,7 +90,6 @@ public:
 
 		if (gameID == GType_MONKEY4 && adGame.desc->language == Common::Language::ZH_TWN) {
 			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(Common::ZH_TWN));
-			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(Common::ZH_CHN));
 		}
 
 		return game;

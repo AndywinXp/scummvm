@@ -21,8 +21,10 @@
 
 #include "common/endian.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
 #include "common/util.h"
 
+#include "engines/grim/debug.h"
 #include "engines/grim/emi/graphics/cdrawcontext.h"
 #include "engines/grim/emi/text/ctextfont.h"
 #include "engines/grim/emi/emiengine.h"
@@ -395,6 +397,142 @@ void CTextFont::buildTextures(CDrawContext *ctx) {
 		bitmap = new LABitmap(_engine, kPageSize, kPageSize, format, nullptr, false);
 		bitmap->_bitmapName = _fileName;
 	}
+}
+
+bool CTextFont::loadGlyphMap(EmiEngine *engine) {
+	CDrawContext *drawContext = engine->getDrawContext();
+
+	if (!drawContext) {
+		warning("CTextFont::loadGlyphMap(): no draw context");
+
+		return false;
+	}
+
+	LABitmap atlas(engine);
+	LFile *map = nullptr;
+	const char *missingFile = nullptr;
+
+	if (!atlas.loadFile("font.tga") || !atlas.getPixels()) {
+		missingFile = "font.tga";
+	} else {
+		map = engine->getFileServices()->open("Map.bin", "rb");
+
+		if (!map)
+			missingFile = "Map.bin";
+	}
+
+	if (missingFile) {
+		warning("CTextFont::loadGlyphMap(): cannot load %s", missingFile);
+		GUIErrorMessage(Common::U32String::format(_("The file %s needed to draw the text of this game could not be loaded.\n"
+				"The text will not be displayed."), missingFile));
+
+		return false;
+	}
+
+	int atlasWidth = atlas.getWidth();
+	int atlasHeight = atlas.getHeight();
+	byte record[kGlyphRecordSize];
+	uint numRecords = 0;
+
+	while (map->read(record, kGlyphRecordSize) == (uint)kGlyphRecordSize) {
+		uint16 code = READ_LE_UINT16(record);
+		uint32 x = READ_LE_UINT32(record + 2);
+		uint32 y = READ_LE_UINT32(record + 6);
+
+		numRecords++;
+
+		// The original did not check the cell, let's avoid reading outside of the image...
+		if ((int64)x + kGlyphCellSize > atlasWidth || (int64)y + kGlyphCellSize > atlasHeight) {
+			warning("CTextFont::loadGlyphMap(): cell (%u, %u) of the code %u is outside of the image", x, y, (uint)code);
+
+			continue;
+		}
+
+		LABitmap cell(engine, &atlas, (int)x, (int)y, kGlyphCellSize, kGlyphCellSize);
+		LABitmap converted(engine);
+
+		converted.convertFrom(&cell, LColorFormat::kFormat14);
+
+		if (!converted.getPixels()) {
+			warning("CTextFont::loadGlyphMap(): cannot convert the cell of the code %u", (uint)code);
+
+			continue;
+		}
+
+		makeGlyphAlpha(&converted);
+
+		// The alpha of the converted glyph has four bits, the texture gets the same 16 levels on eight bits
+		LABitmap texels(engine, kGlyphCellSize, kGlyphCellSize, LColorFormat::kFormat9, nullptr, false);
+
+		if (!texels.getPixels()) {
+			warning("CTextFont::loadGlyphMap(): cannot allocate the texture of the code %u", (uint)code);
+
+			continue;
+		}
+
+		const byte *source = (const byte *)converted.getPixels();
+		byte *destination = (byte *)texels.getPixels();
+
+		for (int i = 0; i < kGlyphCellSize * kGlyphCellSize; i++) {
+			uint alpha = READ_LE_UINT16(source + i * 2) >> 12;
+
+			destination[i * 4] = 255;
+			destination[i * 4 + 1] = 255;
+			destination[i * 4 + 2] = 255;
+			destination[i * 4 + 3] = (byte)(alpha * 17);
+		}
+
+		CTexture *texture = drawContext->createTexture(&texels);
+
+		if (!texture) {
+			warning("CTextFont::loadGlyphMap(): cannot create the texture of the code %u", (uint)code);
+
+			continue;
+		}
+
+		texture->_flags = (texture->_flags & 0xFFFFFFFC) | 0x84;
+		texture->applyFlags();
+
+		// The original leaked the earlier texture of a repeated code, let's free it...
+		CTexture *previous = nullptr;
+
+		if (engine->_glyphMap.tryGetVal(code, previous) && previous)
+			drawContext->freeTexture(previous);
+
+		engine->_glyphMap[code] = texture;
+	}
+
+	engine->getFileServices()->close(map, true);
+
+	Debug::debugImpl(Debug::Fonts, "Glyph map: %u records, %u glyphs", numRecords, (uint)engine->_glyphMap.size());
+
+	return true;
+}
+
+void CTextFont::makeGlyphAlpha(LABitmap *glyph) {
+	const LColorFormat &format = glyph->_colorFormat;
+	byte *pixel = (byte *)glyph->getPixels();
+	int numPixels = glyph->getWidth() * glyph->getHeight();
+
+	for (int i = 0; i < numPixels; i++) {
+		int red = format.getRed(pixel);
+
+		format.packPixel(pixel, 255 - red, 255, 255, 255);
+
+		pixel += format._bytesPerPixel;
+	}
+}
+
+void CTextFont::freeGlyphMap(EmiEngine *engine) {
+	CDrawContext *drawContext = engine->getDrawContext();
+
+	// Without a draw context the textures went away with it
+	if (drawContext) {
+		for (Common::HashMap<uint16, CTexture *>::iterator it = engine->_glyphMap.begin(); it != engine->_glyphMap.end(); ++it)
+			drawContext->freeTexture(it->_value);
+	}
+
+	engine->_glyphMap.clear();
 }
 
 } // End of namespace Grim

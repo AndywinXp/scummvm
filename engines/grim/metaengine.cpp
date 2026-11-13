@@ -24,6 +24,8 @@
 #include "engines/grim/legacy_savegames/legacy_savegames.h"
 
 #include "common/endian.h"
+#include "common/language.h"
+#include "common/platform.h"
 #include "common/system.h"
 #include "common/savefile.h"
 #include "common/translation.h"
@@ -299,17 +301,29 @@ bool GrimMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsLoadingDuringStartup);
 }
 
+// efmi, efmi-ps2 or efmi-ko / efmi-cn / efmi-tw: the same rule the engine uses for the save files
+static Common::String getEmiSavePrefix(const char *target) {
+	Common::Platform platform = Common::kPlatformUnknown;
+	Common::Language language = Common::UNK_LANG;
+
+	if (target) {
+		platform = Common::parsePlatform(ConfMan.get("platform", target));
+		language = Common::parseLanguage(ConfMan.get("language", target));
+	}
+
+	return EmiEngine::getSavePrefix(platform, language);
+}
+
 Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
 	Common::String gameId = target ? ConfMan.get("gameid", target) : Common::String();
 	bool isEmi = gameId == "monkey4";
-	bool isPs2 = target && Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
-	const char *prefix = isPs2 ? "efmi-ps2" : "efmi";
+	Common::String prefix = getEmiSavePrefix(target);
 
 	if (saveGameIdx == kSavegameFilePattern)
-		return isEmi ? Common::String::format("%s###.gsv", prefix) : Common::String("grim##.gsv");
+		return isEmi ? Common::String::format("%s###.gsv", prefix.c_str()) : Common::String("grim##.gsv");
 
 	if (isEmi)
-		return Common::String::format("%s%03d.gsv", prefix, saveGameIdx);
+		return Common::String::format("%s%03d.gsv", prefix.c_str(), saveGameIdx);
 
 	return Common::String::format("grim%02d.gsv", saveGameIdx);
 }
@@ -337,8 +351,8 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	const bool isDemo = extra.contains("Demo");
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
-	const bool isPs2 = Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
-	Common::String pattern = gameId == "monkey4" ? (isPs2 ? "efmi-ps2###.gsv" : "efmi###.gsv") : "grim##.gsv";
+	const Common::String prefix = getEmiSavePrefix(target);
+	Common::String pattern = gameId == "monkey4" ? prefix + "###.gsv" : "grim##.gsv";
 	SaveStateList saveList;
 
 	if (isDemo)
@@ -348,7 +362,7 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + (isPs2 && gameId == "monkey4" ? 8 : 4));
+		int slotNum = atoi(file->c_str() + (gameId == "monkey4" ? prefix.size() : 4));
 
 		if (slotNum >= 0) {
 			Common::SeekableReadStream *filePointer = saveFileMan->openForLoading(*file);

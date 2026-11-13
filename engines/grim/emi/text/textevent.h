@@ -27,6 +27,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/graphics/color.h"
+#include "engines/grim/emi/text/cjkstring.h"
 #include "engines/grim/emi/text/ctextfont.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/emi/resources/lresourcehandle.h"
@@ -40,7 +41,7 @@ class EmiEngine;
 class TextEvent {
 public:
 	struct TextRun {
-		int page;
+		int key;	// font page for the .laf path, UTF-16 unit for the CJK glyph path
 		int firstVertex;
 		int vertexCount;
 	};
@@ -53,6 +54,8 @@ public:
 	explicit TextEvent(EmiEngine *engine);
 	TextEvent(EmiEngine *engine, const LString &newText);
 	TextEvent(EmiEngine *engine, const char *newText);
+	TextEvent(EmiEngine *engine, const CjkString &newText);
+	TextEvent(EmiEngine *engine, const uint16 *newText);
 	~TextEvent();
 
 	void *operator new(size_t size);
@@ -73,17 +76,31 @@ public:
 	bool setFont(const char *fontName);
 	bool setFont(LResourceHandle<CTextFont> newFont);
 
+	// CJK text path
+	void setText(const char *newText);
+	void setCjkText(const CjkString &newText);
+	int getCjkPrefixWidth(int numChars);
+	bool allocGeometry(bool shadowPass);
+	void buildGeometry(bool shadowPass);
+	int measureWord(const uint16 *word, int *outNumChars);
+	const uint16 *layoutLine(const uint16 *lineStart, int *outWidth, int *outNumChars);
+	uint16 nextChar(const uint16 **cursor);
+	void drawCjk(CDrawContext *drawContext);
+
 	static int update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll);
 	static bool startup(EmiEngine *engine, CDrawContext *drawContext);
 	static void shutdown(EmiEngine *engine);
 	static TextEvent *getEvent(EmiEngine *engine, int eventId);
 	static const char *translate(EmiEngine *engine, const char *msg, char *buffer);
+	static CjkString translateCjk(EmiEngine *engine, const char *msg, char *buffer);
+	static CjkString concatCjk(const CjkString &first, const CjkString &second);
 	static void holdAll(EmiEngine *engine);
 	static void releaseAll(EmiEngine *engine);
 	static bool saveAll(EmiEngine *engine, SaveRestoreAccess *access);
 	static bool restoreAll(EmiEngine *engine, SaveRestoreAccess *access);
 
 	LString _text;
+	CjkString _cjkText;
 	float _duration;
 	uint _flags;
 	int _actorId;
@@ -102,6 +119,7 @@ public:
 	int _id;
 	Common::Array<TextRun> _runs;
 	int _vertexCount;
+	int _writeIndex;
 	float *_positions;
 	float *_normals;
 	byte *_colors;

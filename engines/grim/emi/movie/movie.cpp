@@ -48,6 +48,7 @@
 #include "engines/grim/emi/scene/room_v2.h"
 #include "engines/grim/emi/sound/sounds.h"
 #include "engines/grim/emi/input/sputcontrol_v2.h"
+#include "engines/grim/emi/text/cjkstring.h"
 #include "engines/grim/emi/text/textevent.h"
 
 namespace Grim {
@@ -361,15 +362,21 @@ void Movie::updateSubtitle(int frame) {
 	if (_subtitleEvent)
 		return;
 
-	const char *translated = TextEvent::translate(_engine, entry->text, nullptr);
-	LString text;
+	if (_engine->isCjkMode()) {
+		CjkString cjkText = TextEvent::translateCjk(_engine, entry->text, nullptr);
 
-	if (translated)
-		text = translated;
-	else
-		warning("Movie::updateSubtitle(): no text for the subtitle");
+		_subtitleEvent = new TextEvent(_engine, cjkText);
+	} else {
+		const char *translated = TextEvent::translate(_engine, entry->text, nullptr);
+		LString text;
 
-	_subtitleEvent = new TextEvent(_engine, text);
+		if (translated)
+			text = translated;
+		else
+			warning("Movie::updateSubtitle(): no text for the subtitle");
+
+		_subtitleEvent = new TextEvent(_engine, text);
+	}
 
 	if (_i9nBundleOpen)
 		_subtitleEvent->setFont("subtitle.laf");

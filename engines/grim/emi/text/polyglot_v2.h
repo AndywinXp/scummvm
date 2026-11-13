@@ -22,6 +22,7 @@
 #ifndef GRIM_EMI_POLYGLOT_V2_H
 #define GRIM_EMI_POLYGLOT_V2_H
 
+#include "common/array.h"
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/files/lfile.h"
@@ -38,15 +39,31 @@ public:
 	void configure(const char *tabFile) override;
 	const char *getTranslation(const char *msg) override;
 
+	// Table of the Korean and Chinese versions. The result points into the table or into
+	// a buffer of this class, so it is only valid until the next call: copy it at once.
+	const uint16 *getCjkTranslation(const char *msg, int mode);
+	bool isCjkTable() const { return _cjkTable != nullptr; }
+
 private:
+	enum {
+		kDefaultBufferSize = 512
+	};
+
 	int nextKeyByte();
 	LFile *openFileNoBundle(const char *path, const char *mode);
+	void configureCjk(const char *tabFile);
+	const uint16 *toCjkUnits(const char *text);
+	static int compareCjkLines(const void *a, const void *b);
 
 	EmiEngine *_engine;
 	char *_table;
 	char **_lines;
 	int _lineCount;
 	uint32 _randomSeed;
+	uint16 *_cjkTable;
+	uint16 **_cjkLines;
+	Common::Array<uint16> _cjkModeBuffer;
+	uint16 _defaultBuffer[kDefaultBufferSize];
 };
 
 } // End of namespace Grim

@@ -310,6 +310,11 @@ void COGLContext::releaseVertices() {
 	_currentVertexArray->unlock();
 	_engine->getMemoryServices()->freeImpl(_vertexColors);
 	_vertexColors = nullptr;
+
+	// The ScummVM backend pipelines do not set these pointers, so leaving the arrays enabled makes them read freed memory
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void COGLContext::drawTriangles(int flags, CTexture *tex, int numIndices, const uint16 *indices) {
