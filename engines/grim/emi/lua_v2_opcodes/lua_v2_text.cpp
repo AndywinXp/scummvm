@@ -201,6 +201,27 @@ void Lua_V2::applyTextTable(lua_Object table, TextEvent *event) {
 		event->_duration = (float)((double)luaFtol(lua_getnumber(valueObj)) * (double)kMillisecondsToSeconds);
 }
 
+// Only the CJK exe has this form: the elements 1, 2, ... are translated and joined
+// until the first one that is not a string. Returns false if the first element is not.
+bool Lua_V2::joinTextStrings(lua_Object table, CjkString *result) {
+	int index = 1;
+
+	for (;;) {
+		lua_pushobject(table);
+		lua_pushnumber((float)index);
+
+		lua_Object elementObj = lua_gettable();
+
+		if (!lua_isstring(elementObj))
+			break;
+
+		*result = TextEvent::concatCjk(*result, TextEvent::translateCjk(_engine, lua_getstring(elementObj), nullptr));
+		index++;
+	}
+
+	return index > 1;
+}
+
 void Lua_V2::readSayLineTable(lua_Object table, int *volume, int *pan, int *x, int *y) {
 	int screenWidth = _engine->_textScreenRect[2];
 	lua_Object valueObj;
@@ -401,12 +422,28 @@ void Lua_V2::SayLine() {
 void Lua_V2::MakeTextObject() {
 	lua_Object textObj = lua_getparam(1);
 	char tag[TextEvent::kTagBufferSize];
+	TextEvent *event;
 
-	if (!lua_isstring(textObj))
-		return;
+	if (_engine->isCjkMode()) {
+		if (lua_isstring(textObj)) {
+			event = new TextEvent(_engine, TextEvent::translateCjk(_engine, lua_getstring(textObj), nullptr));
+		} else if (lua_istable(textObj)) {
+			CjkString joined;
 
-	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
-	TextEvent *event = new TextEvent(_engine, LString(translated));
+			joinTextStrings(textObj, &joined);
+			event = new TextEvent(_engine, joined);
+		} else {
+			return;
+		}
+	} else {
+		if (!lua_isstring(textObj))
+			return;
+
+		const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
+
+		event = new TextEvent(_engine, LString(translated));
+	}
+
 	lua_Object tableObj = lua_getparam(2);
 
 	if (tableObj && lua_istable(tableObj))
@@ -459,13 +496,23 @@ void Lua_V2::ChangeTextObject() {
 			break;
 
 		if (lua_isstring(paramObj)) {
-			event->_text = TextEvent::translate(_engine, lua_getstring(paramObj), nullptr);
-			event->_geometryReady = false;
+			if (_engine->isCjkMode()) {
+				event->setCjkText(TextEvent::translateCjk(_engine, lua_getstring(paramObj), nullptr));
+			} else {
+				event->_text = TextEvent::translate(_engine, lua_getstring(paramObj), nullptr);
+				event->_geometryReady = false;
+			}
 		} else {
 			if (!lua_istable(paramObj))
 				break;
 
-			applyTextTable(paramObj, event);
+			CjkString joined;
+
+			// A table that starts with a string replaces the text with all its strings
+			if (_engine->isCjkMode() && joinTextStrings(paramObj, &joined))
+				event->setCjkText(joined);
+			else
+				applyTextTable(paramObj, event);
 		}
 	}
 
@@ -508,8 +555,16 @@ void Lua_V2::BlastText() {
 	if (!lua_isstring(textObj))
 		return;
 
-	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
-	TextEvent *event = new TextEvent(_engine, LString(translated));
+	TextEvent *event;
+
+	if (_engine->isCjkMode()) {
+		event = new TextEvent(_engine, TextEvent::translateCjk(_engine, lua_getstring(textObj), tag));
+	} else {
+		const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
+
+		event = new TextEvent(_engine, LString(translated));
+	}
+
 	lua_Object tableObj = lua_getparam(2);
 
 	if (tableObj && lua_istable(tableObj))
@@ -662,6 +717,10 @@ void Lua_V2::GetTranslationMode() {
 }
 
 void Lua_V2::LocalizeString() {
+	// The CJK exe has an empty function here: nothing is pushed
+	if (_engine->isCjkMode())
+		return;
+
 	lua_Object textObj = lua_getparam(1);
 	char tag[TextEvent::kTagBufferSize];
 
@@ -745,11 +804,15 @@ void Lua_V2::GetTextCharPosition() {
 	int count = luaFtol(lua_getnumber(countObj));
 	int width = 0;
 
-	for (int i = 0; i < count; i++) {
-		if ((uint)i >= event->_text.size())
-			break;
+	if (_engine->isCjkMode()) {
+		width = event->getCjkPrefixWidth(count);
+	} else {
+		for (int i = 0; i < count; i++) {
+			if ((uint)i >= event->_text.size())
+				break;
 
-		width += event->getCharWidth((byte)event->_text[i]);
+			width += event->getCharWidth((byte)event->_text[i]);
+		}
 	}
 
 	int screenWidth = _engine->_textScreenRect[2];

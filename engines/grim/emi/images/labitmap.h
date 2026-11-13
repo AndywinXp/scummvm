@@ -30,6 +30,7 @@ class LABitmap : public LBitmap {
 public:
 	explicit LABitmap(EmiEngine *engine);
 	LABitmap(EmiEngine *engine, int bitmapWidth, int bitmapHeight, const LColorFormat &format, void *bitmapPixels, bool useExternalPixels);
+	LABitmap(EmiEngine *engine, LABitmap *source, int x, int y, int rectWidth, int rectHeight);
 	~LABitmap();
 
 	int getWidth() override;

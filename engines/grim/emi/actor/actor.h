@@ -39,6 +39,7 @@ namespace Grim {
 
 class ANode;
 class Camera;
+class CjkString;
 class CDrawContext;
 class CDCVertexArray;
 class EmiEngine;
@@ -102,6 +103,7 @@ public:
 	void updateActorSpeech(float deltaTime);
 	void sayLine(const char *text, int volume, int pan, int x, int y);
 	TextEvent *createActorText(const LString &text, int x, int y);
+	TextEvent *createActorText(const CjkString &text, int x, int y);
 	void shutUp(bool stopNow);
 	bool isVoicePlaying();
 	static int getNumActorsTalking(EmiEngine *engine);

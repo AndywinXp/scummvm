@@ -199,6 +199,7 @@ MODULE_OBJS := \
 	emi/sound/soundposition.o \
 	emi/sound/sounds.o \
 	emi/sound/streamscript.o \
+	emi/text/cjkstring.o \
 	emi/text/ctextfont.o \
 	emi/text/polyglot_v2.o \
 	emi/text/textevent.o \

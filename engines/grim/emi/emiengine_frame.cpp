@@ -407,6 +407,10 @@ void EmiEngine::endFrameDump() {
 }
 
 void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
+	// The disasm of the Korean and Chinese versions replaces the whole function with an empty one
+	if (_cjkMode)
+		return;
+
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(this);
 	bool skipTexts = false;
 

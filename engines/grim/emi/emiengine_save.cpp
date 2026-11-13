@@ -19,6 +19,8 @@
  *
  */
 
+#include "common/language.h"
+#include "common/platform.h"
 #include "common/savefile.h"
 #include "common/stream.h"
 #include "common/system.h"
@@ -130,14 +132,33 @@ Common::String EmiEngine::getSaveFileName(const char *path) {
 	if (name.hasPrefixIgnoreCase("saves/"))
 		name = name.substr(6);
 
-	if (getGamePlatform() == Common::kPlatformPS2) {
-		// Scripts use slot names like efmi000 without an extension; PS2 files get their own prefix so they never clash with PC saves
-		if (name.size() > 4 && name.hasPrefixIgnoreCase("efmi") && Common::isDigit(name[4]))
-			name = "efmi-ps2" + name.substr(4);
+	name = applySavePrefix(name, getGamePlatform(), getGameLanguage());
 
-		if (!name.hasSuffixIgnoreCase(kSaveFileExtension))
-			name += kSaveFileExtension;
-	}
+	// PS2 scripts use slot names like efmi000 without an extension
+	if (getGamePlatform() == Common::kPlatformPS2 && !name.hasSuffixIgnoreCase(kSaveFileExtension))
+		name += kSaveFileExtension;
+
+	return name;
+}
+
+Common::String EmiEngine::getSavePrefix(Common::Platform platform, Common::Language language) {
+	// The platform wins, so a PS2 save never gets a language prefix
+	if (platform == Common::kPlatformPS2)
+		return "efmi-ps2";
+
+	if (language == Common::KO_KOR || language == Common::ZH_CHN || language == Common::ZH_TWN)
+		return Common::String("efmi-") + Common::getLanguageCode(language);
+
+	return "efmi";
+}
+
+Common::String EmiEngine::applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language) {
+	Common::String prefix = getSavePrefix(platform, language);
+
+	// Scripts use slot names like efmi000; PS2 and CJK files get their own prefix so they never clash with the other saves
+	if (prefix != "efmi" && name.size() > 4 && name.hasPrefixIgnoreCase("efmi") &&
+			(Common::isDigit(name[4]) || name[4] == '*' || name[4] == '?'))
+		return prefix + name.substr(4);
 
 	return name;
 }

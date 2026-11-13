@@ -53,7 +53,9 @@ class CTextFont : public LResource {
 public:
 	enum {
 		kPageSize = 256,
-		kMaxGlyphs = 65536
+		kMaxGlyphs = 65536,
+		kGlyphCellSize = 16,
+		kGlyphRecordSize = 10
 	};
 
 	CTextFont();
@@ -64,6 +66,10 @@ public:
 	CTexture *getTexture(CDrawContext *ctx, uint page);
 	void buildTextures(CDrawContext *ctx);
 	bool loadFile(const char *path);
+
+	static bool loadGlyphMap(EmiEngine *engine);
+	static void makeGlyphAlpha(LABitmap *glyph);
+	static void freeGlyphMap(EmiEngine *engine);
 
 	int _lineHeight;
 	int _header52;

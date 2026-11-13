@@ -49,6 +49,8 @@
 #include "engines/grim/emi/lua_v2_opcodes/lua_v2.h"
 #include "engines/grim/emi/movie/movie.h"
 #include "engines/grim/emi/scene/overworld.h"
+#include "engines/grim/emi/text/cjkstring.h"
+#include "engines/grim/emi/text/ctextfont.h"
 #include "engines/grim/emi/text/polyglot_v2.h"
 #include "engines/grim/emi/graphics/primitivequeue_v2.h"
 #include "engines/grim/emi/resources/resourcemanager.h"
@@ -94,6 +96,8 @@ EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Com
 		_lastDrawnSetup(-1),
 		_textEvents(), _defaultTextEvent(nullptr), _textMode(0), _textScreenRect(), _nextTextEventId(1),
 		_textEventsStarted(false),
+		_cjkMode(language == Common::KO_KOR || language == Common::ZH_CHN || language == Common::ZH_TWN),
+		_glyphAdvance(16), _glyphMap(),
 		_currentMovie(nullptr), _movieFirstFrame(1), _ps2MovieRequested(false), _ps2MovieName(),
 		_ps2StateWriter(nullptr), _ps2StateReader(nullptr), _loadingIconPs2(nullptr),
 		_eventGenerators(), _eventQueue(), _eventHandlers(),
@@ -168,6 +172,8 @@ EmiEngine::~EmiEngine() {
 
 	destroyOverworld();
 	destroyInputRecorder();
+
+	CTextFont::freeGlyphMap(this);
 
 	delete _drawContext;
 	_drawContext = nullptr;
@@ -593,6 +599,25 @@ int EmiEngine::messageBox(const char *caption, const char *text, uint flags) {
 }
 
 void EmiEngine::showMessage(const char *text, const char *caption) {
+	if (_cjkMode) {
+		CjkString captionUnits;
+		CjkString textUnits;
+
+		// The lookups share their buffers, so each result is copied at once
+		const uint16 *translatedCaption = caption ? _polyglot->getCjkTranslation(caption, _textMode) : nullptr;
+
+		if (translatedCaption)
+			captionUnits.assign(translatedCaption);
+
+		const uint16 *translatedText = text ? _polyglot->getCjkTranslation(text, _textMode) : nullptr;
+
+		if (translatedText)
+			textUnits.assign(translatedText);
+
+		showMessage(textUnits.c_str(), captionUnits.c_str());
+		return;
+	}
+
 	if (_drawContext)
 		_drawContext->prepareDialog();
 
@@ -600,6 +625,23 @@ void EmiEngine::showMessage(const char *text, const char *caption) {
 	const char *translatedText = _polyglot->getTranslation(text);
 
 	messageBox(translatedCaption, translatedText, kMessageBoxTypeOk);
+}
+
+void EmiEngine::showMessage(const uint16 *text, const uint16 *caption) {
+	if (_drawContext)
+		_drawContext->prepareDialog();
+
+	// The disasm converts with wcstombs, which fails above 0xFF. The ScummVM dialog takes UTF-8.
+	Common::String captionUtf8;
+	Common::String textUtf8;
+
+	if (caption)
+		captionUtf8 = CjkString::toUtf8(caption);
+
+	if (text)
+		textUtf8 = CjkString::toUtf8(text);
+
+	messageBox(captionUtf8.c_str(), textUtf8.c_str(), kMessageBoxTypeOk);
 }
 
 bool EmiEngine::inputBox(const char *caption, const char *prompt, char *buffer, int bufferSize, const char *defaultText) {
@@ -728,6 +770,10 @@ bool EmiEngine::startupModules(CDrawContext *drawContext) {
 	_lua->startup();
 
 	TextEvent::startup(this, drawContext);
+
+	if (_cjkMode)
+		CTextFont::loadGlyphMap(this);
+
 	ChoreInstance::startup(this);
 	Actor::startup(this, drawContext);
 
@@ -763,6 +809,7 @@ void EmiEngine::shutdownModules() {
 	Actor::shutdown(this);
 	ChoreInstance::shutdown(this);
 	TextEvent::shutdown(this);
+	CTextFont::freeGlyphMap(this);
 
 	_lua->shutdown();
 	delete _lua;

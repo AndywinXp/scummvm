@@ -25,6 +25,7 @@
 #include "common/savefile.h"
 #include "common/str.h"
 #include "common/system.h"
+#include "common/util.h"
 
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/files/filefind.h"
@@ -71,14 +72,19 @@ FileFind::FileFind(const char *pattern, const char *directory) {
 	_current = 0;
 
 	if (isSaveDirectory(directory)) {
-		Common::StringArray saveFiles = g_system->getSavefileManager()->listSavefiles(pattern);
+		// Only the saves of this game's family are visible: plain, PS2 or one language code (CJK)
+		Common::Platform platform = g_grim->getGamePlatform();
+		Common::Language language = g_grim->getGameLanguage();
+		Common::String prefix = EmiEngine::getSavePrefix(platform, language);
+		Common::StringArray saveFiles = g_system->getSavefileManager()->listSavefiles(EmiEngine::applySavePrefix(pattern, platform, language));
 
 		Common::sort(saveFiles.begin(), saveFiles.end());
 
 		for (uint i = 0; i < saveFiles.size(); i++) {
 			Entry entry;
 
-			if (!saveFiles[i].hasPrefixIgnoreCase("efmi") || EmiEngine::isLegacySaveFile(saveFiles[i]))
+			if (!saveFiles[i].hasPrefixIgnoreCase(prefix) || saveFiles[i].size() <= prefix.size() ||
+					!Common::isDigit(saveFiles[i][prefix.size()]) || EmiEngine::isLegacySaveFile(saveFiles[i]))
 				continue;
 
 			entry.name = saveFiles[i];

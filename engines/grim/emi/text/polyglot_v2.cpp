@@ -21,16 +21,19 @@
 
 #include "common/endian.h"
 #include "common/str.h"
+#include "common/textconsole.h"
 
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
+#include "engines/grim/emi/text/cjkstring.h"
 #include "engines/grim/emi/text/polyglot_v2.h"
 #include "engines/grim/std/std_sort.h"
 #include "engines/grim/wuregistry.h"
 
 namespace Grim {
 
-Polyglot_v2::Polyglot_v2(EmiEngine *engine) : _engine(engine), _table(nullptr), _lines(nullptr), _lineCount(0), _randomSeed(0) {
+Polyglot_v2::Polyglot_v2(EmiEngine *engine) : _engine(engine), _table(nullptr), _lines(nullptr), _lineCount(0), _randomSeed(0),
+		_cjkTable(nullptr), _cjkLines(nullptr), _cjkModeBuffer(), _defaultBuffer() {
 }
 
 Polyglot_v2::~Polyglot_v2() {
@@ -56,6 +59,17 @@ void Polyglot_v2::shutdown() {
 		_lines = nullptr;
 	}
 
+	if (_cjkTable) {
+		_engine->getMemoryServices()->freeImpl(_cjkTable);
+		_cjkTable = nullptr;
+	}
+
+	if (_cjkLines) {
+		_engine->getMemoryServices()->freeImpl(_cjkLines);
+		_cjkLines = nullptr;
+	}
+
+	_cjkModeBuffer.clear();
 	_lineCount = 0;
 }
 
@@ -74,6 +88,11 @@ LFile *Polyglot_v2::openFileNoBundle(const char *path, const char *mode) {
 }
 
 void Polyglot_v2::configure(const char *tabFile) {
+	if (_engine->isCjkMode()) {
+		configureCjk(tabFile);
+		return;
+	}
+
 	LFile *file = openFileNoBundle(tabFile, "rb");
 
 	if (!file) {
@@ -182,6 +201,190 @@ const char *Polyglot_v2::getTranslation(const char *msg) {
 
 	if (!*translation)
 		return msg;
+
+	return translation;
+}
+
+int Polyglot_v2::compareCjkLines(const void *a, const void *b) {
+	return CjkString::compare(*(const uint16 *const *)a, *(const uint16 *const *)b);
+}
+
+void Polyglot_v2::configureCjk(const char *tabFile) {
+	LFile *file = openFileNoBundle(tabFile, "rb");
+
+	if (!file) {
+		file = _engine->getFileServices()->open(tabFile, "rb");
+
+		if (!file)
+			return;
+	}
+
+	byte header[4] = { 0, 0, 0, 0 };
+	file->read(header, 4);
+
+	file->seek(0, SEEK_END);
+	int size = file->tell();
+	file->seek(0, SEEK_SET);
+
+	if (size < 0)
+		size = 0;
+
+	shutdown();
+
+	// Two extra units: the terminator, and the unit after it that a line without a tab can reach
+	_cjkTable = (uint16 *)_engine->getMemoryServices()->mallocImpl((size / 2 + 2) * sizeof(uint16));
+
+	if (!_cjkTable) {
+		_engine->getFileServices()->close(file, true);
+		return;
+	}
+
+	int bytesRead = (int)file->read(_cjkTable, size);
+
+	_engine->getFileServices()->close(file, true);
+
+	if (bytesRead != size) {
+		warning("Polyglot_v2::configureCjk(): could only read %d of %d bytes of %s", bytesRead, size, tabFile);
+
+		size = bytesRead;
+	}
+
+	uint units = size / 2;
+	const byte *bytes = (const byte *)_cjkTable;
+
+	for (uint i = 0; i < units; i++)
+		_cjkTable[i] = READ_LE_UINT16(bytes + 2 * i);
+
+	_cjkTable[units] = 0;
+	_cjkTable[units + 1] = 0;
+
+	if (READ_LE_UINT32(header) == MKTAG('E', 'N', 'C', 'R'))
+		warning("Polyglot_v2::configureCjk(): %s is encrypted, which is not supported here", tabFile);
+
+	if (CjkString::find(_cjkTable, "Korea"))
+		_engine->_glyphAdvance = 14;
+
+	uint position = 0;
+	uint lineEnd;
+	int count = 0;
+
+	do {
+		lineEnd = position;
+
+		while (_cjkTable[lineEnd] != 0 && _cjkTable[lineEnd] != 13)
+			lineEnd++;
+
+		position = lineEnd + 2;
+		count++;
+	} while (lineEnd + 2 < units);
+
+	_cjkLines = (uint16 **)_engine->getMemoryServices()->mallocImpl(count * sizeof(uint16 *));
+
+	if (!_cjkLines) {
+		shutdown();
+		return;
+	}
+
+	position = 0;
+	int lineIndex = 0;
+
+	do {
+		uint16 *line = _cjkTable + position;
+
+		lineEnd = position;
+
+		while (_cjkTable[lineEnd] != 0 && _cjkTable[lineEnd] != 13)
+			lineEnd++;
+
+		_cjkTable[lineEnd] = 0;
+
+		uint16 *tab = (uint16 *)CjkString::findChar(line, 9);
+
+		if (tab)
+			*tab = 0;
+
+		CjkString::lowerAscii(line);
+
+		_cjkLines[lineIndex] = line;
+		lineIndex++;
+		position = lineEnd + 2;
+	} while (lineEnd + 2 < units);
+
+	_lineCount = count;
+
+	sort(_cjkLines, _lineCount, sizeof(uint16 *), compareCjkLines);
+}
+
+const uint16 *Polyglot_v2::toCjkUnits(const char *text) {
+	uint written = CjkString::widen(text, _defaultBuffer, kDefaultBufferSize);
+
+	// The disasm could overflow its buffer here, let's avoid that...
+	if (text[written] != 0)
+		warning("Polyglot_v2::toCjkUnits(): the text is too long, cutting it to %d units", (int)written);
+
+	return _defaultBuffer;
+}
+
+const uint16 *Polyglot_v2::getCjkTranslation(const char *msg, int mode) {
+	if (!msg)
+		return nullptr;
+
+	if (*msg != '/')
+		return toCjkUnits(msg);
+
+	const char *closingSlash = strchr(msg + 1, '/');
+
+	if (!closingSlash)
+		return toCjkUnits(msg);
+
+	if (!_cjkTable)
+		return toCjkUnits(closingSlash + 1);
+
+	char narrowKey[16];
+
+	Common::strlcpy(narrowKey, msg + 1, sizeof(narrowKey));
+
+	char *slash = strchr(narrowKey, '/');
+
+	if (slash)
+		*slash = 0;
+
+	for (char *p = narrowKey; *p; p++) {
+		if (*p >= 'A' && *p <= 'Z')
+			*p += 0x20;
+	}
+
+	uint16 key[16];
+	CjkString::widen(narrowKey, key, 16);
+
+	const uint16 *keyPointer = key;
+	uint16 **found = (uint16 **)binarySearch(&keyPointer, _cjkLines, _lineCount, sizeof(uint16 *), compareCjkLines);
+
+	if (!found)
+		return toCjkUnits(closingSlash + 1);
+
+	const uint16 *translation = *found + CjkString::length(*found) + 1;
+
+	if (!*translation)
+		return toCjkUnits(msg);
+
+	if (mode == 1)
+		return toCjkUnits(closingSlash + 1);
+
+	if (mode == 2) {
+		// The disasm appends to a small buffer here, this one can grow
+		_cjkModeBuffer.clear();
+
+		for (const uint16 *p = key; *p; p++)
+			_cjkModeBuffer.push_back(*p);
+
+		for (const uint16 *p = translation; *p; p++)
+			_cjkModeBuffer.push_back(*p);
+
+		_cjkModeBuffer.push_back(0);
+
+		return &_cjkModeBuffer[0];
+	}
 
 	return translation;
 }

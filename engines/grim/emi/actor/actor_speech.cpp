@@ -28,6 +28,7 @@
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/sound/lipdata.h"
 #include "engines/grim/emi/sound/sounds.h"
+#include "engines/grim/emi/text/cjkstring.h"
 #include "engines/grim/emi/text/textevent.h"
 
 namespace Grim {
@@ -127,7 +128,13 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 	bool voiceEnabled = (_engine->_speechMode & 2) != 0;
 	char voiceId[kVoiceIdSize];
 	char voicePath[kVoicePathSize];
-	const char *lineText = TextEvent::translate(_engine, text, voiceId);
+	const char *lineText = nullptr;
+	CjkString cjkLine;
+
+	if (_engine->isCjkMode())
+		cjkLine = TextEvent::translateCjk(_engine, text, voiceId);
+	else
+		lineText = TextEvent::translate(_engine, text, voiceId);
 
 	voicePath[0] = 0;
 
@@ -210,13 +217,23 @@ void Actor::sayLine(const char *text, int volume, int pan, int x, int y) {
 	}
 
 	if (createText) {
-		LString lineString(lineText);
-		TextEvent *textEvent = createActorText(lineString, x, y);
+		TextEvent *textEvent;
+		uint lineLength;
+
+		if (_engine->isCjkMode()) {
+			textEvent = createActorText(cjkLine, x, y);
+			lineLength = cjkLine.size();
+		} else {
+			LString lineString(lineText);
+
+			textEvent = createActorText(lineString, x, y);
+			lineLength = (uint)strlen(lineText);
+		}
 
 		_extra->_textEventId = textEvent->_id;
 
 		if (!_extra->_soundHandle)
-			_extra->_talkTimerMs = (int)(10u * ((uint)(11 - _engine->_actorTextRate) * (uint)strlen(lineText) + 64u));
+			_extra->_talkTimerMs = (int)(10u * ((uint)(11 - _engine->_actorTextRate) * lineLength + 64u));
 
 		textEvent->activate(-1.0f, kSpeechTextFlags);
 	}
@@ -250,6 +267,72 @@ TextEvent *Actor::createActorText(const LString &text, int x, int y) {
 	textEvent->_clipRect[1] = _engine->_textScreenRect[1];
 	textEvent->_clipRect[2] = _engine->_textScreenRect[2];
 	textEvent->_clipRect[3] = _engine->_textScreenRect[3];
+
+	if (_extra)
+		textEvent->_color = _extra->_talkColor;
+	else
+		warning("Actor::createActorText(): missing extra data");
+
+	textEvent->_justify = 6;
+	textEvent->_geometryReady = false;
+
+	int rectX;
+	int rectY;
+	int rectWidth;
+
+	if (!_onScreen || _engine->getMode() == EmiEngine::kModeMovie) {
+		rectX = _engine->_offscreenTextRect.x;
+		rectY = _engine->_offscreenTextRect.y;
+		rectWidth = _engine->_offscreenTextRect.w;
+	} else {
+		rectX = _drawnRect[0];
+		rectY = _drawnRect[1];
+		rectWidth = _drawnRect[2];
+	}
+
+	int halfWidth = textEvent->getWidth() / 2;
+	int textX = x;
+
+	if (x == -1)
+		textX = rectX + rectWidth / 2;
+
+	if (textX - halfWidth < kTextMarginX)
+		textX = halfWidth + kTextMarginX;
+
+	if (textX + halfWidth > _engine->_textScreenRect[2] - kTextMarginX)
+		textX = _engine->_textScreenRect[2] - halfWidth - kTextMarginX;
+
+	textEvent->_x = textX;
+	textEvent->_y = 0;
+	textEvent->_geometryReady = false;
+
+	int height = textEvent->getHeight();
+	int textY = y;
+
+	if (y == -1)
+		textY = rectY - height;
+
+	if (textY < kTextMarginY)
+		textY = kTextMarginY;
+
+	if (textY + height > _engine->_textScreenRect[3] - kTextMarginY)
+		textY = _engine->_textScreenRect[3] - height - kTextMarginY;
+
+	textEvent->_x = textX;
+	textEvent->_y = textY;
+	textEvent->_geometryReady = false;
+	textEvent->_actorId = _id;
+	_actorFlags |= 4;
+
+	return textEvent;
+}
+
+TextEvent *Actor::createActorText(const CjkString &text, int x, int y) {
+	TextEvent *textEvent = new TextEvent(_engine, text);
+
+	// Unlike the English one, this does not copy the text screen rect into the clip rect:
+	// the event keeps the default clip rect
+	textEvent->_geometryReady = false;
 
 	if (_extra)
 		textEvent->_color = _extra->_talkColor;

@@ -19,6 +19,8 @@
  *
  */
 
+#include "common/textconsole.h"
+
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/images/labitmap.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
@@ -76,6 +78,38 @@ LABitmap::LABitmap(EmiEngine *engine, int bitmapWidth, int bitmapHeight, const L
 			else
 				_engine->getMemoryServices()->memsetImpl(_pixels, 0, _sizeBytes);
 		}
+	}
+}
+
+LABitmap::LABitmap(EmiEngine *engine, LABitmap *source, int x, int y, int rectWidth, int rectHeight) : LBitmap(engine) {
+	_colorFormat = source->_colorFormat;
+	_width = rectWidth;
+	_height = rectHeight;
+	_stride = rectWidth * _colorFormat._bytesPerPixel;
+	_sizeBytes = rectHeight * _stride;
+	_ownedPixels = (byte *)_engine->getMemoryServices()->mallocImpl((uint)_sizeBytes * sizeof(byte));
+	_pixels = _ownedPixels;
+
+	if (!_ownedPixels)
+		return;
+
+	_engine->getMemoryServices()->memsetImpl(_pixels, 0, _sizeBytes);
+
+	// The original did not check the rectangle, let's avoid reading outside of the source...
+	if (!source->getPixels() || rectWidth < 0 || rectHeight < 0 || x < 0 || y < 0 ||
+			(int64)x + rectWidth > source->getWidth() || (int64)y + rectHeight > source->getHeight()) {
+		warning("LABitmap::LABitmap(): rectangle (%d, %d, %d, %d) is outside of the source bitmap", x, y, rectWidth, rectHeight);
+
+		return;
+	}
+
+	byte *sourceRow = (byte *)source->getPixels() + (int64)y * source->getStride() + (int64)x * _colorFormat._bytesPerPixel;
+	byte *destinationRow = _ownedPixels;
+
+	for (int row = 0; row < rectHeight; row++) {
+		_engine->getMemoryServices()->memcpyImpl(destinationRow, sourceRow, _stride);
+		sourceRow += source->getStride();
+		destinationRow += _stride;
 	}
 }
 

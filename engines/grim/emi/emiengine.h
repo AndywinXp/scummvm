@@ -53,6 +53,7 @@ class ChoreInstance;
 class CLightNode;
 class COGLContext;
 class CPathingFileServices;
+class CTextFont;
 class CTexture;
 class CTinyGLContext;
 class CWeightMap;
@@ -128,6 +129,7 @@ public:
 	Joystick *getJoystick();
 	PrimitiveQueue_v2 *getPrimitiveQueue();
 	const Common::List<CLightNode *> &getActiveLights() const;
+	bool isCjkMode() const { return _cjkMode; }
 
 	int registerConsole(LConsoleServices *console);
 	void deleteAllConsoles();
@@ -177,6 +179,7 @@ public:
 	bool playMovie(const char *fileName, bool subtitles, bool flag6194, bool flag6195, int startFrame);
 	void setPendingMusicState(int musicState);
 	void showMessage(const char *text, const char *caption);
+	void showMessage(const uint16 *text, const uint16 *caption);
 	bool onCharacter(byte character);
 	bool callExitHook();
 	bool startupModules(CDrawContext *drawContext);
@@ -189,6 +192,8 @@ public:
 	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream, bool fullTexture = false);
 	static Common::String getSaveDescription(const Common::Array<Common::String> &strings, int slot);
 	static bool isLegacySaveFile(const Common::String &fileName);
+	static Common::String getSavePrefix(Common::Platform platform, Common::Language language);
+	static Common::String applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language);
 	static uint getMemoryCardId();
 	static bool hasMemoryCardSaves();
 	bool deleteSaveFile(const char *fileName);
@@ -221,6 +226,7 @@ private:
 	friend class ChoreInstance;
 	friend class CLightNode;
 	friend class COGLContext;
+	friend class CTextFont;
 	friend class CTinyGLContext;
 	friend class CWeightMap;
 	friend class DimRegion;
@@ -232,6 +238,7 @@ private:
 	friend struct LipData;
 	friend class Lua_V2;
 	friend class Movie;
+	friend class Polyglot_v2;
 	friend class ProfilerTimer;
 	friend class Puck_v2;
 	friend class RMesh;
@@ -412,6 +419,9 @@ private:
 	int _textScreenRect[4];
 	int _nextTextEventId;
 	bool _textEventsStarted;
+	bool _cjkMode;
+	int _glyphAdvance;
+	Common::HashMap<uint16, CTexture *> _glyphMap;
 
 	// Movies
 	Movie *_currentMovie;
