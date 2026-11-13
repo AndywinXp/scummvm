@@ -96,6 +96,8 @@ public:
 private:
 	void captureFrame();
 	void applyGamma();
+	void restoreFrame();
+	void drawFlatFrame(const byte *rgbPixels);
 	void drawFrame(const byte *rgbPixels);
 
 	byte *_frameCopy;

@@ -156,6 +156,10 @@ int COGLContext::present(bool vsync) {
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 	g_system->updateScreen();
+
+	if (_gammaActive)
+		restoreFrame();
+
 	_swapCount++;
 
 	return _swapCount;
@@ -856,6 +860,17 @@ void COGLContext::applyGamma() {
 	for (uint i = 0; i < _frameSize; i++)
 		_gammaFrame[i] = _gammaRamp[_frameCopy[i]] >> 8;
 
+	drawFlatFrame(_gammaFrame);
+}
+
+void COGLContext::restoreFrame() {
+	if (!_frameCopy)
+		return;
+
+	drawFlatFrame(_frameCopy);
+}
+
+void COGLContext::drawFlatFrame(const byte *rgbPixels) {
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -873,7 +888,7 @@ void COGLContext::applyGamma() {
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 
-	drawFrame(_gammaFrame);
+	drawFrame(rgbPixels);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
