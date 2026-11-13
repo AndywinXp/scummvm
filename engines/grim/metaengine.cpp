@@ -109,17 +109,6 @@ static bool readSaveThumbnail(Common::SeekableReadStream *stream, Common::Array<
 
 static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 	{
-		GAMEOPTION_LOAD_DATAUSR,
-		{
-			_s("Load user patch (unsupported)"),
-			_s("Load an user patch. Please note that the ScummVM team doesn't provide support for using such patches."),
-			"datausr_load",
-			false,
-			0,
-			0
-		}
-	},
-	{
 		GAMEOPTION_SHOW_FPS,
 		{
 			_s("Show FPS"),
@@ -153,39 +142,6 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 		}
 	},
 	{
-		GAMEOPTION_EMI_JOYSTICK,
-		{
-			_s("Enable joystick/gamepad"),
-			_s("Control the game with the joystick or gamepad."),
-			"joystick_enabled",
-			true,
-			0,
-			0
-		}
-	},
-	{
-		GAMEOPTION_EMI_ANALOG_JOYSTICK,
-		{
-			_s("Analog joystick mode"),
-			_s("Use the analog stick of the joystick or gamepad to move Guybrush."),
-			"analog_joystick_mode",
-			false,
-			0,
-			0
-		}
-	},
-	{
-		GAMEOPTION_EMI_CAMERA_RELATIVE,
-		{
-			_s("Camera-relative movement"),
-			_s("Move Guybrush relative to the camera instead of relative to the character."),
-			"camera_relative_mode",
-			false,
-			0,
-			0
-		}
-	},
-	{
 		GAMEOPTION_EMI_MOVIE_SUBTITLES,
 		{
 			_s("Movie subtitles"),
@@ -196,51 +152,6 @@ static const ADExtraGuiOptionsMap gameGuiOptions[] = {
 			0
 		}
 	},
-	{
-		GAMEOPTION_EMI_AUDIO_EFFECTS,
-		{
-			_s("Audio effects"),
-			_s("Apply the audio effects to the voices."),
-			"audio_effects",
-			true,
-			0,
-			0
-		}
-	},
-	{
-		GAMEOPTION_EMI_SHADOW_EFFECTS,
-		{
-			_s("Maximal shadow effects"),
-			_s("Use the maximal level of shadow effects instead of the minimal one."),
-			"shadow_effects",
-			true,
-			0,
-			0
-		}
-	},
-	{
-		GAMEOPTION_EMI_MOVIE_QUALITY,
-		{
-			_s("Reduced movie quality"),
-			_s("Play the movies at the minimal quality instead of the maximal one."),
-			"movie_quality",
-			false,
-			0,
-			0
-		}
-	},
-	{
-		GAMEOPTION_EMI_MUSIC_QUALITY,
-		{
-			_s("Reduced music quality"),
-			_s("Play the music at the minimal quality instead of the maximal one."),
-			"music_quality",
-			false,
-			0,
-			0
-		}
-	},
-
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
 
@@ -298,12 +209,7 @@ bool GrimMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsLoadingDuringStartup);
 }
 
-// All the demo entries have "Demo" in their description
-static bool isEmiDemo(const char *target) {
-	return target && ConfMan.get("extra", target).contains("Demo");
-}
-
-// efmi, efmi-ps2, efmi-ko / efmi-cn / efmi-tw or efmi-demo: the same rule the engine uses for the save files
+// efmi, efmi-ps2 or efmi-ko / efmi-cn / efmi-tw: the same rule the engine uses for the save files
 static Common::String getEmiSavePrefix(const char *target) {
 	Common::Platform platform = Common::kPlatformUnknown;
 	Common::Language language = Common::UNK_LANG;
@@ -313,12 +219,7 @@ static Common::String getEmiSavePrefix(const char *target) {
 		language = Common::parseLanguage(ConfMan.get("language", target));
 	}
 
-	return EmiEngine::getSavePrefix(platform, language, isEmiDemo(target));
-}
-
-// The demo scripts number the slots with two digits, the other versions with three
-static bool hasTwoDigitSlots(const Common::String &prefix) {
-	return prefix == "efmi-demo";
+	return EmiEngine::getSavePrefix(platform, language);
 }
 
 Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
@@ -326,18 +227,8 @@ Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *targ
 	bool isEmi = gameId == "monkey4";
 	Common::String prefix = getEmiSavePrefix(target);
 
-	if (saveGameIdx == kSavegameFilePattern) {
-		if (!isEmi)
-			return "grim##.gsv";
-
-		if (hasTwoDigitSlots(prefix))
-			return prefix + "##.gsv";
-
-		return prefix + "###.gsv";
-	}
-
-	if (isEmi && hasTwoDigitSlots(prefix))
-		return Common::String::format("%s%02d.gsv", prefix.c_str(), saveGameIdx);
+	if (saveGameIdx == kSavegameFilePattern)
+		return isEmi ? Common::String::format("%s###.gsv", prefix.c_str()) : Common::String("grim##.gsv");
 
 	if (isEmi)
 		return Common::String::format("%s%03d.gsv", prefix.c_str(), saveGameIdx);
@@ -369,12 +260,11 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
 	const Common::String prefix = getEmiSavePrefix(target);
-	Common::String pattern = gameId == "monkey4" ? getSavegameFile(kSavegameFilePattern, target) : "grim##.gsv";
+	Common::String pattern = gameId == "monkey4" ? prefix + "###.gsv" : "grim##.gsv";
 	SaveStateList saveList;
 
-	// The Grim demo does not support saving, the Escape from Monkey Island demo does
-	if (isDemo && gameId != "monkey4")
-		return saveList;
+	if (isDemo)
+		return saveList; // Demos do not support saving
 
 	filenames = saveFileMan->listSavefiles(pattern);
 
