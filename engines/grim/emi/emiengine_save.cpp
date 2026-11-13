@@ -950,6 +950,16 @@ Graphics::Surface *EmiEngine::readSaveThumbnail(Common::SeekableReadStream *stre
 			target[x] = format.RGBToColor(source[3 * x], source[3 * x + 1], source[3 * x + 2]);
 	}
 
+	// The whole screen is squeezed into the texture: give it back the aspect ratio of the screen
+	if (fullTexture) {
+		Graphics::Surface *scaled = thumbnail->scale(kThumbnailImageWidth, kThumbnailImageHeight, true);
+
+		thumbnail->free();
+		delete thumbnail;
+
+		return scaled;
+	}
+
 	return thumbnail;
 }
 
