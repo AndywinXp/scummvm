@@ -193,8 +193,8 @@ public:
 	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream, bool fullTexture = false);
 	static Common::String getSaveDescription(const Common::Array<Common::String> &strings, int slot);
 	static bool isLegacySaveFile(const Common::String &fileName);
-	static Common::String getSavePrefix(Common::Platform platform, Common::Language language, bool isDemo);
-	static Common::String applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language, bool isDemo);
+	static Common::String getSavePrefix(Common::Platform platform, Common::Language language);
+	static Common::String applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language);
 	static uint getMemoryCardId();
 	static bool hasMemoryCardSaves();
 	bool deleteSaveFile(const char *fileName);
