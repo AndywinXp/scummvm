@@ -33,6 +33,7 @@ namespace Grim {
 class AudioSystem;
 class CMusicPs2;
 class CNode;
+class DemoMusicScript;
 class EmiEngine;
 class LResource;
 class StreamScript;
@@ -141,6 +142,7 @@ private:
 	AudioSystem *_audioSystem;
 	CMusicPs2 *_musicPs2;
 	StreamScript *_streamScript;
+	DemoMusicScript *_demoMusic;
 	CSoundCue::SoundCueMap _soundMap;
 	uint16 _soundCounter;
 	int16 _audioMixAhead;

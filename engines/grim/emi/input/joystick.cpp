@@ -22,6 +22,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/input/joystick.h"
 
 namespace Grim {
@@ -110,9 +111,10 @@ void Joystick::detect() {
 	memset(_hasPov, 0, sizeof(_hasPov));
 
 	uint numDevices = kNumDevices;
+	uint maxDevices = _engine->isDemo() ? (uint)kDemoMaxJoysticks : (uint)kMaxJoysticks;
 
-	if (numDevices > (uint)kMaxJoysticks)
-		numDevices = kMaxJoysticks;
+	if (numDevices > maxDevices)
+		numDevices = maxDevices;
 
 	int axisBase = 0;
 
@@ -153,6 +155,14 @@ void Joystick::detect() {
 }
 
 void Joystick::poll() {
+	if (_engine->isDemo()) {
+		// The demo polls every joystick it knows instead of the selected one
+		for (uint id = 0; id < (uint)kDemoMaxJoysticks; id++)
+			pollDevice(id, (int)id * kAxesPerJoystick);
+
+		return;
+	}
+
 	if ((int)_joyId < 0)
 		return;
 
@@ -162,32 +172,36 @@ void Joystick::poll() {
 		return;
 	}
 
-	if (!_requested[_joyId] || !_present[_joyId])
+	pollDevice(_joyId, 0);
+}
+
+void Joystick::pollDevice(uint joystick, int axisBase) {
+	if (!_requested[joystick] || !_present[joystick])
 		return;
 
-	uint flags = _returnFlags[_joyId];
+	uint flags = _returnFlags[joystick];
 
-	_axisValues[0] = (flags & kReturnX) ? _deviceState.axisPosition[0] : 0;
-	_axisValues[1] = (flags & kReturnY) ? _deviceState.axisPosition[1] : 0;
+	_axisValues[axisBase] = (flags & kReturnX) ? _deviceState.axisPosition[0] : 0;
+	_axisValues[axisBase + 1] = (flags & kReturnY) ? _deviceState.axisPosition[1] : 0;
 
 	if (flags & kReturnZ)
-		_axisValues[2] = _deviceState.axisPosition[2];
+		_axisValues[axisBase + 2] = _deviceState.axisPosition[2];
 
 	if (flags & kReturnR)
-		_axisValues[3] = _deviceState.axisPosition[3];
+		_axisValues[axisBase + 3] = _deviceState.axisPosition[3];
 
 	if (flags & kReturnU)
-		_axisValues[4] = _deviceState.axisPosition[4];
+		_axisValues[axisBase + 4] = _deviceState.axisPosition[4];
 
 	if (flags & kReturnV)
-		_axisValues[5] = _deviceState.axisPosition[5];
+		_axisValues[axisBase + 5] = _deviceState.axisPosition[5];
 
 	uint buttons = 0;
 
 	if (flags & kReturnButtons)
 		buttons = _deviceState.buttons;
 
-	uint numButtons = _numButtons[_joyId];
+	uint numButtons = _numButtons[joystick];
 	uint mask = 1;
 
 	// The disasm reads one button more than the device has
@@ -233,8 +247,12 @@ void Joystick::setAxisRange(int axis, int min, int max, float deadZone) {
 }
 
 bool Joystick::enableControl(uint code) {
-	if (code >= (uint)kNumAxes)
+	if (_engine->isDemo()) {
+		if (code >= 12)
+			return false;
+	} else if (code >= (uint)kNumAxes) {
 		return false;
+	}
 
 	uint flags = _axisRanges[code].flags;
 
@@ -252,33 +270,40 @@ void Joystick::requestAxis(uint axis) {
 	if (axis > 0xB)
 		return;
 
-	if (_joyId >= (uint)kMaxJoysticks) {
+	uint device = _joyId;
+	uint local = axis;
+
+	if (_engine->isDemo()) {
+		// The demo maps the second set of axes to the second device
+		device = axis > 5 ? 1 : 0;
+		local = axis - 6 * device;
+	} else if (_joyId >= (uint)kMaxJoysticks) {
 		warning("Joystick::requestAxis(): invalid joystick %u", _joyId);
 
 		return;
 	}
 
 	_anyRequested = true;
-	_requested[_joyId] = true;
+	_requested[device] = true;
 
-	switch (axis) {
+	switch (local) {
 	case 0:
-		_returnFlags[_joyId] |= kReturnX;
+		_returnFlags[device] |= kReturnX;
 		break;
 	case 1:
-		_returnFlags[_joyId] |= kReturnY;
+		_returnFlags[device] |= kReturnY;
 		break;
 	case 2:
-		_returnFlags[_joyId] |= kReturnZ;
+		_returnFlags[device] |= kReturnZ;
 		break;
 	case 3:
-		_returnFlags[_joyId] |= kReturnR;
+		_returnFlags[device] |= kReturnR;
 		break;
 	case 4:
-		_returnFlags[_joyId] |= kReturnU;
+		_returnFlags[device] |= kReturnU;
 		break;
 	case 5:
-		_returnFlags[_joyId] |= kReturnV;
+		_returnFlags[device] |= kReturnV;
 		break;
 	default:
 		break;

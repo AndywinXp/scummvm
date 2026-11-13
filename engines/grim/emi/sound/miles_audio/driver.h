@@ -118,7 +118,7 @@ struct EMIMilesStream {
 class EMIMilesDriver : public Audio::AudioStream {
 public:
 	enum {
-		kSampleCount = 16,
+		kMaxSampleCount = 32,
 		kOutputRate = 22050,
 		kSegmentFrames = 180,
 		kSegmentSamples = kSegmentFrames * 2,
@@ -165,7 +165,7 @@ public:
 		kStreamBufferMilliseconds = 250
 	};
 
-	EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2);
+	EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2, int sampleCount);
 	~EMIMilesDriver() override;
 
 	void *operator new(size_t size);
@@ -306,8 +306,9 @@ private:
 	int _masterVolume;
 	int _mixAhead;
 
-	EMIMilesSample _samples[kSampleCount];
-	EMIMilesStream *_streams[kSampleCount];
+	int _sampleCount;
+	EMIMilesSample _samples[kMaxSampleCount];
+	EMIMilesStream *_streams[kMaxSampleCount];
 
 	int32 _build[kMaxSegmentSamples];
 	int32 _effectBuild[kMaxSegmentSamples];

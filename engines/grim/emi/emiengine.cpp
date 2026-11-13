@@ -97,6 +97,7 @@ EmiEngine::EmiEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Com
 		_textEvents(), _defaultTextEvent(nullptr), _textMode(0), _textScreenRect(), _nextTextEventId(1),
 		_textEventsStarted(false),
 		_cjkMode(language == Common::KO_KOR || language == Common::ZH_CHN || language == Common::ZH_TWN),
+		_isDemo((gameFlags & ADGF_DEMO) != 0),
 		_glyphAdvance(16), _glyphMap(),
 		_currentMovie(nullptr), _movieFirstFrame(1), _ps2MovieRequested(false), _ps2MovieName(),
 		_ps2StateWriter(nullptr), _ps2StateReader(nullptr), _loadingIconPs2(nullptr),
@@ -488,6 +489,10 @@ void EmiEngine::mountEmiPatchArchives() {
 			error("%s not found", updateFilename);
 		}
 	}
+
+	// The demo needs none of our script patches
+	if (_isDemo)
+		return;
 
 	if (!SearchMan.hasFile("monkey4-patch.m4b"))
 		error("%s", "monkey4-patch.m4b not found");

@@ -32,6 +32,7 @@ class Joystick {
 public:
 	enum {
 		kMaxJoysticks = 24,
+		kDemoMaxJoysticks = 2,
 		kAxesPerJoystick = 6,
 		kNumAxes = 144,
 		kButtonBase = 0x80,
@@ -103,6 +104,8 @@ public:
 	uint _joyId;
 
 private:
+	void pollDevice(uint joystick, int axisBase);
+
 	EmiEngine *_engine;
 	bool _started;
 	bool _opened;

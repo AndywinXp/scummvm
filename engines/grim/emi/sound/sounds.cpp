@@ -35,6 +35,7 @@
 #include "engines/grim/emi/sound/cwaveaudiodevice.h"
 #include "engines/grim/emi/sound/cwavechannel.h"
 #include "engines/grim/emi/sound/cwavesound.h"
+#include "engines/grim/emi/sound/demomusic.h"
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/core/lconsoleservices.h"
 #include "engines/grim/emi/sound/lipdata.h"
@@ -47,6 +48,7 @@ namespace Grim {
 
 static const uint kMaxHandle = 0xFFFF;
 static const uint kUpdateIntervalMs = 30;
+static const uint kDemoUpdateIntervalMs = 10;
 static const uint kThrottledUpdateIntervalMs = 100;
 static const int kMaxStartAttempts = 16;
 static const int kReverbPresetCount = 28;
@@ -67,6 +69,7 @@ Sounds::Sounds(EmiEngine *engine) {
 	_audioSystem = nullptr;
 	_musicPs2 = nullptr;
 	_streamScript = nullptr;
+	_demoMusic = nullptr;
 	_soundCounter = 1;
 	_audioMixAhead = 16;
 	_soundsEnabled = true;
@@ -94,7 +97,9 @@ Sounds::Sounds(EmiEngine *engine) {
 	_destroyedCount = 0;
 	_updatedCount = 0;
 
-	if (_engine->getGamePlatform() == Common::kPlatformPS2)
+	if (_engine->isDemo())
+		_demoMusic = new DemoMusicScript(this);
+	else if (_engine->getGamePlatform() == Common::kPlatformPS2)
 		_musicPs2 = new CMusicPs2(this);
 	else
 		_streamScript = new StreamScript(this);
@@ -111,6 +116,8 @@ Sounds::~Sounds() {
 	_musicPs2 = nullptr;
 	delete _streamScript;
 	_streamScript = nullptr;
+	delete _demoMusic;
+	_demoMusic = nullptr;
 	delete _audioSystem;
 	_audioSystem = nullptr;
 }
@@ -210,14 +217,24 @@ bool Sounds::soundsUpdate(const bool *force) {
 
 	if (isAudioActive()) {
 		uint now = g_system->getMillis();
+		bool isDue;
 
-		if (*force || now - _lastUpdateMs > kUpdateIntervalMs || now < _lastUpdateMs) {
+		// The demo has a plain 10 ms interval, no forced updates and no mix-ahead
+		if (_engine->isDemo())
+			isDue = now - _lastUpdateMs > kDemoUpdateIntervalMs || now < _lastUpdateMs;
+		else
+			isDue = *force || now - _lastUpdateMs > kUpdateIntervalMs || now < _lastUpdateMs;
+
+		if (isDue) {
 			_lastUpdateMs = now;
 			CSoundCue::updateSoundCues(this);
 
-			int16 keepPreference = -1;
+			if (!_engine->isDemo()) {
+				int16 keepPreference = -1;
 
-			setAudioMixAhead(&keepPreference, false);
+				setAudioMixAhead(&keepPreference, false);
+			}
+
 			_audioSystem->updateAudioDevice();
 			updateMusic();
 			_engine->_soundsUpdateTimer.stop();
@@ -255,7 +272,8 @@ void Sounds::startSounds(bool startMusicNow) {
 	if (_audioSystem->_audioAvailable) {
 		restoreMasterGain();
 
-		if (_musicEnabled && _musicCategoryEnabled && startMusicNow)
+		// The demo loads its music map together with the audio system
+		if (_musicEnabled && _musicCategoryEnabled && (startMusicNow || _engine->isDemo()))
 			startMusic(-1);
 
 		if (_engine->getGamePlatform() == Common::kPlatformPS2) {
@@ -387,8 +405,9 @@ uint Sounds::loadSound(const LString &soundName, int category) {
 	int cueCategory = 0;
 
 	switch (category) {
+	// The demo has no category enable flags
 	case 1:
-		if (!_sfxEnabled)
+		if (!_engine->isDemo() && !_sfxEnabled)
 			return 0;
 
 		cueCategory = 1;
@@ -397,7 +416,7 @@ uint Sounds::loadSound(const LString &soundName, int category) {
 		break;
 
 	case 2:
-		if (!_voiceEnabled)
+		if (!_engine->isDemo() && !_voiceEnabled)
 			return 0;
 
 		cueCategory = 2;
@@ -405,7 +424,7 @@ uint Sounds::loadSound(const LString &soundName, int category) {
 		break;
 
 	case 3:
-		if (!_musicCategoryEnabled)
+		if (!_engine->isDemo() && !_musicCategoryEnabled)
 			return 0;
 
 		cueCategory = 3;
@@ -490,11 +509,14 @@ void Sounds::startSound(uint soundHandle, int startMode, bool loop, int volume) 
 	if (!cue)
 		return;
 
-	if (cue->_category == 1) {
-		if (!_sfxEnabled)
+	// The demo has no category enable flags
+	if (!_engine->isDemo()) {
+		if (cue->_category == 1) {
+			if (!_sfxEnabled)
+				return;
+		} else if (cue->_category == 2 && !_voiceEnabled) {
 			return;
-	} else if (cue->_category == 2 && !_voiceEnabled) {
-		return;
+		}
 	}
 
 	if (loop)
@@ -507,6 +529,10 @@ void Sounds::startSound(uint soundHandle, int startMode, bool loop, int volume) 
 	int attempts = 0;
 
 	if (cue->start(startMode != 0))
+		return;
+
+	// The demo makes a single attempt
+	if (_engine->isDemo())
 		return;
 
 	if (cue->_category == 2) {
@@ -531,6 +557,18 @@ void Sounds::startSound(uint soundHandle, int startMode, bool loop, int volume) 
 void Sounds::stopSound(uint soundHandle) {
 	CSoundCue *cue = findSoundCue(soundHandle);
 
+	// The demo flags the cue and stops it; the next update deletes it
+	if (_engine->isDemo()) {
+		if (cue) {
+			cue->_flags |= CSoundCue::kFlagReleaseWhenDone;
+			cue->stop();
+		}
+
+		releaseSoundWhenDone(soundHandle);
+
+		return;
+	}
+
 	if (cue)
 		CSoundCue::deleteSoundCue(cue);
 
@@ -541,7 +579,7 @@ void Sounds::stopSoundPlayback(uint soundHandle) {
 	CSoundCue *cue = findSoundCue(soundHandle);
 
 	if (cue) {
-		if ((cue->_flags & CSoundCue::kFlagReleaseWhenDone) != 0)
+		if (!_engine->isDemo() && (cue->_flags & CSoundCue::kFlagReleaseWhenDone) != 0)
 			unregisterSound((uint16)soundHandle);
 
 		cue->stop();
@@ -549,6 +587,13 @@ void Sounds::stopSoundPlayback(uint soundHandle) {
 }
 
 void Sounds::releaseSoundWhenDone(uint soundHandle) {
+	// The demo only drops the handle; the cue is deleted by the update once it is done
+	if (_engine->isDemo()) {
+		unregisterSound((uint16)soundHandle);
+
+		return;
+	}
+
 	CSoundCue *cue = findSoundCue(soundHandle);
 
 	if (cue) {
@@ -590,6 +635,10 @@ bool Sounds::isSoundPlayingNoFiniteLoop(uint soundHandle) {
 
 	if (!cue)
 		return false;
+
+	// The demo channels have no finite loop count test
+	if (_engine->isDemo())
+		return cue->getState() == CSoundCue::kStatePlaying;
 
 	return cue->getState() == CSoundCue::kStatePlaying && !cue->hasFiniteLoopCount();
 }
@@ -675,28 +724,30 @@ bool Sounds::setCategoryVolume(int category, int volume) {
 		return false;
 
 	float gain = soundVolumeToGain(volume);
+	bool isDemo = _engine->isDemo();
 
+	// The demo has no category enable flags
 	switch (category) {
 	case 0:
-		if (_soundsEnabled)
+		if (isDemo || _soundsEnabled)
 			_audioSystem->setMasterGain(gain);
 
 		return true;
 
 	case 1:
-		if (_sfxEnabled)
+		if (isDemo || _sfxEnabled)
 			_audioSystem->setCategoryGain(1, gain);
 
 		return true;
 
 	case 2:
-		if (_voiceEnabled)
+		if (isDemo || _voiceEnabled)
 			_audioSystem->setCategoryGain(2, gain);
 
 		return true;
 
 	case 3:
-		if (_musicCategoryEnabled) {
+		if (isDemo || _musicCategoryEnabled) {
 			_audioSystem->setCategoryGain(3, gain);
 			setMusicVolume(gain);
 		}
@@ -718,7 +769,9 @@ int Sounds::getCategoryVolume(int category) {
 
 	switch (category) {
 	case 0:
-		gain = _audioSystem->getMasterGain();
+		// The demo reports nothing for the master group
+		if (!_engine->isDemo())
+			gain = _audioSystem->getMasterGain();
 
 		break;
 
@@ -832,6 +885,10 @@ void Sounds::lowerMasterGainForMovie() {
 }
 
 void Sounds::setAudioMixAhead(const int16 *mixAhead, bool store) {
+	// The demo has no mix-ahead control
+	if (_engine->isDemo())
+		return;
+
 	if (*mixAhead < 0) {
 		uint16 storedPreference = (uint16)_audioMixAhead;
 
@@ -898,7 +955,9 @@ void Sounds::stopAllSounds() {
 
 void Sounds::updateMusic() {
 	if (_musicActive) {
-		if (_engine->getGamePlatform() == Common::kPlatformPS2)
+		if (_demoMusic)
+			_demoMusic->updateStreams();
+		else if (_engine->getGamePlatform() == Common::kPlatformPS2)
 			_musicPs2->updateStates();
 		else
 			_streamScript->updateStreams();
@@ -908,6 +967,21 @@ void Sounds::updateMusic() {
 void Sounds::startMusic(int newState) {
 	if (_musicActive)
 		return;
+
+	if (_demoMusic) {
+		if (!_demoMusic->loadMusicMap())
+			return;
+
+		_musicActive = true;
+
+		if (newState != -1) {
+			bool immediate = false;
+
+			setMusicState(newState, -1, immediate);
+		}
+
+		return;
+	}
 
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (!_musicPs2->openMusicTable()) {
@@ -980,7 +1054,9 @@ void Sounds::startMusic(int newState) {
 
 int Sounds::stopMusic() {
 	if (_musicActive) {
-		if (_engine->getGamePlatform() == Common::kPlatformPS2) {
+		if (_demoMusic) {
+			_demoMusic->closeMusicMap();
+		} else if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 			_musicPs2->closeMusicTable();
 			_musicPs2->clearAudioSearchDirs();
 		} else {
@@ -998,7 +1074,9 @@ void Sounds::setMusicVolume(float volume) {
 	if (_musicActive) {
 		_musicVolume = volume;
 
-		if (_engine->getGamePlatform() == Common::kPlatformPS2)
+		if (_demoMusic)
+			_demoMusic->setMasterVolume(volume);
+		else if (_engine->getGamePlatform() == Common::kPlatformPS2)
 			_musicPs2->setMusicTableVolume(volume);
 		else
 			_streamScript->setMusicStreamVolume(volume);
@@ -1006,6 +1084,16 @@ void Sounds::setMusicVolume(float volume) {
 }
 
 void Sounds::setMusicState(int newState, int startMs, const bool &immediate) {
+	if (_demoMusic) {
+		if (_musicActive) {
+			_musicState = newState;
+
+			_demoMusic->startCue(newState);
+		}
+
+		return;
+	}
+
 	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
 		if (_musicActive && !_musicPs2->isSameFile(newState, _musicState)) {
 			_musicState = newState;
@@ -1040,9 +1128,20 @@ void Sounds::restoreMusicState(SaveRestoreAccess *access) {
 	access(&_musicState, sizeof(_musicState));
 	access(&_pushedMusicState, sizeof(_pushedMusicState));
 	access(&_pushedMusicPosition, sizeof(_pushedMusicPosition));
+
+	// The demo restarts the saved cue at load time
+	if (_demoMusic && _musicState != 0)
+		_demoMusic->startCue(_musicState);
 }
 
 void Sounds::pauseMusicStreams() {
+	if (_demoMusic) {
+		if (_musicActive)
+			_demoMusic->pauseStreams();
+
+		return;
+	}
+
 	// PS2 has no music pause
 	if (_engine->getGamePlatform() == Common::kPlatformPS2)
 		return;
@@ -1052,6 +1151,13 @@ void Sounds::pauseMusicStreams() {
 }
 
 void Sounds::resumeMusicStreams() {
+	if (_demoMusic) {
+		if (_musicActive)
+			_demoMusic->resumeStreams();
+
+		return;
+	}
+
 	if (_engine->getGamePlatform() == Common::kPlatformPS2)
 		return;
 
@@ -1063,7 +1169,9 @@ void Sounds::stopAllMusic() {
 	if (_musicActive) {
 		_musicState = 0;
 
-		if (_engine->getGamePlatform() == Common::kPlatformPS2)
+		if (_demoMusic)
+			_demoMusic->closeAllStreams();
+		else if (_engine->getGamePlatform() == Common::kPlatformPS2)
 			_musicPs2->closeAllStates();
 		else
 			_streamScript->closeAllStreams();

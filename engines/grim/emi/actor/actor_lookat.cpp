@@ -341,16 +341,19 @@ void Actor::setLookAtJoints(float deltaTime) {
 	float step = (float)((double)deltaTime * _extra->_lookRate);
 	float dot = _extra->_lookCurQuat.dot(target);
 
-	// The disasm clamps the dot product to the open interval
-	if (dot > kLookAtDotLimit)
-		dot = kLookAtDotLimit;
-	else if (!(dot >= -kLookAtDotLimit))
-		dot = -kLookAtDotLimit;
+	// The demo does not clamp the dot product
+	if (!_engine->isDemo()) {
+		if (dot > kLookAtDotLimit)
+			dot = kLookAtDotLimit;
+		else if (!(dot >= -kLookAtDotLimit))
+			dot = -kLookAtDotLimit;
+	}
 
 	double span = acos((double)dot);
 	span = span + span;
 
-	if (span >= (double)step) {
+	// An unordered or zero span snaps to the target, avoiding a division by zero
+	if (span >= (double)step && (!_engine->isDemo() || span > 0.0)) {
 		float fraction = (float)((double)step / span);
 
 		_extra->_lookCurQuat.slerp(target, fraction, &slerped);

@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/actor/actor.h"
 #include "engines/grim/emi/costume/components/localalphainstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/nodes/rprimitiveinstance.h"
 
 namespace Grim {
@@ -95,6 +96,9 @@ void LocalAlphaInstance::setKey(float value, float elapsed, float nextValue, flo
 
 		return;
 	}
+
+	if (_engine->isDemo())
+		warning("LocalAlphaInstance::setKey(): no primitive named %s was found on this actor", _filter.c_str());
 }
 
 } // End of namespace Grim

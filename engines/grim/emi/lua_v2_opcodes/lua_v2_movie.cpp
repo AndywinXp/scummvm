@@ -53,6 +53,29 @@ void Lua_V2::StartMovie() {
 		return;
 	}
 
+	if (_engine->isDemo()) {
+		// The demo takes only the movie name and always asks for subtitles
+		if (!lua_isstring(nameObj)) {
+			logError("StartMovie: the argument must be a string.\n");
+			lua_pushnil();
+
+			return;
+		}
+
+		const char *movieName = lua_getstring(nameObj);
+		bool isStarted = _engine->playMovie(movieName, true, false, true, 1);
+
+		if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logStatus("StartMovie: %s %s\n", movieName, isStarted ? "OK" : "FAIL");
+
+		if (isStarted)
+			lua_pushnumber(1.0f);
+		else
+			lua_pushnil();
+
+		return;
+	}
+
 	if (!lua_isstring(nameObj)) {
 		lua_pushnil();
 

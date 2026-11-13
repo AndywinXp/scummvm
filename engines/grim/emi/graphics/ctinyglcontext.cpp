@@ -184,7 +184,16 @@ void CTinyGLContext::clear(bool color, bool depth) {
 void CTinyGLContext::setCameraMatrix(const float *matrix) {
 	TGLfloat m[16];
 
-	tglFrontFace(TGL_CW);
+	if (_engine->isDemo()) {
+		double determinant = ((double)matrix[1] * matrix[5] - (double)matrix[4] * matrix[2]) * matrix[6] +
+			((double)matrix[4] * matrix[0] - (double)matrix[3] * matrix[1]) * matrix[8] +
+			((double)matrix[3] * matrix[2] - (double)matrix[0] * matrix[5]) * matrix[7];
+
+		tglFrontFace(determinant >= 0.0 ? TGL_CCW : TGL_CW);
+	} else {
+		tglFrontFace(TGL_CW);
+	}
+
 	tglMatrixMode(TGL_MODELVIEW);
 
 	m[3] = 0.0f;
@@ -553,7 +562,12 @@ void CTinyGLContext::setTextures(CTexture *tex, int flags) {
 	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_WRAP_S, (textureFlags & 0x100) ? TGL_CLAMP_TO_EDGE : TGL_REPEAT);
 	tglTexParameteri(TGL_TEXTURE_2D, TGL_TEXTURE_WRAP_T, (textureFlags & 0x200) ? TGL_CLAMP_TO_EDGE : TGL_REPEAT);
 
-	if (_texEnvMode != 2) {
+	if (_engine->isDemo() && (flags & 1)) {
+		if (_texEnvMode != 1) {
+			_texEnvMode = 1;
+			tglTexEnvi(TGL_TEXTURE_ENV, TGL_TEXTURE_ENV_MODE, TGL_REPLACE);
+		}
+	} else if (_texEnvMode != 2) {
 		_texEnvMode = 2;
 		tglTexEnvi(TGL_TEXTURE_ENV, TGL_TEXTURE_ENV_MODE, TGL_MODULATE);
 	}

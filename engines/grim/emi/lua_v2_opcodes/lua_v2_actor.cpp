@@ -23,6 +23,7 @@
 
 #include "common/endian.h"
 #include "common/list.h"
+#include "common/str.h"
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/actor/actor.h"
@@ -70,8 +71,11 @@ Actor *Lua_V2::getActor(lua_Object object, const char *opcodeName) {
 void Lua_V2::LoadActor() {
 	lua_Object nameObj = lua_getparam(1);
 
-	if (!lua_isstring(nameObj))
+	if (!lua_isstring(nameObj)) {
+		logDemo(kConsoleDebug, "LoadActor: the actor name is missing.\n");
+
 		return;
+	}
 
 	int actorId = Actor::allocateActor(_engine, lua_getstring(nameObj));
 
@@ -86,13 +90,18 @@ void Lua_V2::UnloadActor() {
 
 	if (isActor(actorObj))
 		Actor::freeActor(_engine, lua_getuserdata(actorObj));
+	else
+		logDemo(kConsoleDebug, "UnloadActor: invalid actor handle.\n");
 }
 
 void Lua_V2::GetActorTimeScale() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorTimeScale: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "GetActorTimeScale");
 
@@ -109,8 +118,11 @@ void Lua_V2::SetActorTimeScale() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object scaleObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorTimeScale: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorTimeScale");
 
@@ -137,8 +149,11 @@ void Lua_V2::SetActorWalkDominate() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object dominateObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorWalkDominate: invalid actor handle.\n");
+
 		return;
+	}
 
 	bool dominate = lua_isnil(dominateObj) != 0;
 	Actor *actor = getActor(actorObj, "SetActorWalkDominate");
@@ -152,8 +167,11 @@ void Lua_V2::SetActorWalkDominate() {
 void Lua_V2::SetSelectedActor() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetSelectedActor: invalid actor handle.\n");
+
 		return;
+	}
 
 	int previousId = Actor::setSelectedActor(_engine, lua_getuserdata(actorObj));
 
@@ -168,8 +186,11 @@ void Lua_V2::SetActorWalkChore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object choreSetObj = lua_getparam(3);
 
-	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj)))
+	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj))) {
+		logDemo(kConsoleDebug, "SetActorWalkChore: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorWalkChore");
 
@@ -194,8 +215,11 @@ void Lua_V2::SetActorTurnChores() {
 	lua_Object rightChoreObj = lua_getparam(3);
 	lua_Object choreSetObj = lua_getparam(4);
 
-	if (!isActor(actorObj) || (!lua_isstring(leftChoreObj) && !lua_isnil(leftChoreObj)) || (!lua_isstring(rightChoreObj) && !lua_isnil(rightChoreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj)))
+	if (!isActor(actorObj) || (!lua_isstring(leftChoreObj) && !lua_isnil(leftChoreObj)) || (!lua_isstring(rightChoreObj) && !lua_isnil(rightChoreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj))) {
+		logDemo(kConsoleDebug, "SetActorTurnChores: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorTurnChores");
 
@@ -223,8 +247,11 @@ void Lua_V2::SetActorRestChore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object choreSetObj = lua_getparam(3);
 
-	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj)))
+	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj))) {
+		logDemo(kConsoleDebug, "SetActorRestChore: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorRestChore");
 
@@ -248,8 +275,11 @@ void Lua_V2::SetActorMumblechore() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object choreSetObj = lua_getparam(3);
 
-	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj)))
+	if (!isActor(actorObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj))) {
+		logDemo(kConsoleDebug, "SetActorMumblechore: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorMumblechore");
 
@@ -274,13 +304,19 @@ void Lua_V2::SetActorTalkChore() {
 	lua_Object choreObj = lua_getparam(3);
 	lua_Object choreSetObj = lua_getparam(4);
 
-	if (!isActor(actorObj) || !lua_isnumber(indexObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj)))
+	if (!isActor(actorObj) || !lua_isnumber(indexObj) || (!lua_isstring(choreObj) && !lua_isnil(choreObj)) || (!lua_isstring(choreSetObj) && !lua_isnil(choreSetObj))) {
+		logDemo(kConsoleDebug, "SetActorTalkChore: invalid parameter.\n");
+
 		return;
+	}
 
 	int index = luaFtol(lua_getnumber(indexObj));
 
-	if ((unsigned int)index > 10)
+	if ((unsigned int)index > 10) {
+		logDemo(kConsoleDebug, "SetActorTalkChore: the phoneme index %d is out of range.\n", index);
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorTalkChore");
 
@@ -303,8 +339,11 @@ void Lua_V2::SetActorWalkRate() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object rateObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(rateObj))
+	if (!isActor(actorObj) || !lua_isnumber(rateObj)) {
+		logDemo(kConsoleDebug, "SetActorWalkRate: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorWalkRate");
 
@@ -320,8 +359,11 @@ void Lua_V2::SetActorWalkRate() {
 void Lua_V2::GetActorWalkRate() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorWalkRate: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "GetActorWalkRate");
 
@@ -338,8 +380,11 @@ void Lua_V2::SetActorTurnRate() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object rateObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(rateObj))
+	if (!isActor(actorObj) || !lua_isnumber(rateObj)) {
+		logDemo(kConsoleDebug, "SetActorTurnRate: invalid parameter.\n");
+
 		return;
+	}
 
 	float rate = lua_getnumber(rateObj);
 	Actor *actor = getActor(actorObj, "SetActorTurnRate");
@@ -359,8 +404,11 @@ void Lua_V2::SetActorTurnRate() {
 void Lua_V2::GetActorTurnRate() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorTurnRate: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "GetActorTurnRate");
 
@@ -376,8 +424,11 @@ void Lua_V2::GetActorTurnRate() {
 void Lua_V2::GetActorPos() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorPos: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
@@ -403,8 +454,11 @@ void Lua_V2::GetActorPos() {
 void Lua_V2::GetActorWorldPos() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorWorldPos: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
@@ -432,6 +486,7 @@ void Lua_V2::GetActorPuckVector() {
 	lua_Object addObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorPuckVector: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -491,6 +546,7 @@ void Lua_V2::GetActorYawToPoint() {
 	point[2] = 0.0f;
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorYawToPoint: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -541,6 +597,7 @@ void Lua_V2::SetActorReflection() {
 	lua_Object angleObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorReflection: the first argument must be an actor.\n");
 		lua_pushnil();
 
 		return;
@@ -559,6 +616,7 @@ void Lua_V2::PutActorInSet() {
 	lua_Object roomObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "PutActorInSet: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -567,6 +625,7 @@ void Lua_V2::PutActorInSet() {
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (!actor) {
+		logDemo(kConsoleDebug, "PutActorInSet: actor not found.\n");
 		lua_pushnil();
 
 		return;
@@ -580,12 +639,14 @@ void Lua_V2::PutActorInSet() {
 	}
 
 	if (!lua_isstring(roomObj)) {
+		logDemo(kConsoleDebug, "PutActorInSet: invalid set name.\n");
 		lua_pushnil();
 
 		return;
 	}
 
 	if (!actor->putInSet(lua_getstring(roomObj))) {
+		logDemo(kConsoleWarning, "PutActorInSet: attempted to place the actor in the non-existent set '%s'.\n", lua_getstring(roomObj));
 		lua_pushnil();
 
 		return;
@@ -605,8 +666,11 @@ void Lua_V2::PutActorAt() {
 	position[1] = 0.0f;
 	position[2] = 0.0f;
 
-	if (!isActor(actorObj) || !lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+	if (!isActor(actorObj) || !lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleDebug, "PutActorAt: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "PutActorAt");
 
@@ -622,25 +686,35 @@ void Lua_V2::PutActorAt() {
 void Lua_V2::PutActorInOverworld() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "PutActorInOverworld: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		_engine->getOverworld()->putActor(actor);
+	else
+		logDemo(kConsoleDebug, "PutActorInOverworld: actor not found.\n");
 }
 
 void Lua_V2::RemoveActorFromOverworld() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "RemoveActorFromOverworld: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		_engine->getOverworld()->removeActor(actor);
+	else
+		logDemo(kConsoleDebug, "RemoveActorFromOverworld: actor not found.\n");
 }
 
 void Lua_V2::ClearOverworld() {
@@ -665,16 +739,28 @@ void Lua_V2::WalkActorVector() {
 	lua_Object yawObj = lua_getparam(5);
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom || !isActor(actorObj))
+	if (!currentRoom) {
+		logDemo(kConsoleDebug, "WalkActorVector: there is no current set.\n");
+
 		return;
+	}
+
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "WalkActorVector: invalid actor handle.\n");
+
+		return;
+	}
 
 	Actor *actor = getActor(actorObj, "WalkActorVector");
 
 	if (!actor)
 		return;
 
-	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleDebug, "WalkActorVector: invalid vector.\n");
+
 		return;
+	}
 
 	float x = lua_getnumber(xObj);
 	float y = lua_getnumber(yObj);
@@ -801,8 +887,11 @@ void Lua_V2::WalkActorVector() {
 void Lua_V2::WalkActorForward() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "WalkActorForward: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "WalkActorForward");
 
@@ -816,8 +905,11 @@ void Lua_V2::WalkActorForward() {
 void Lua_V2::ActorStopMoving() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "ActorStopMoving: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "ActorStopMoving");
 
@@ -893,8 +985,11 @@ void Lua_V2::WalkActorTo() {
 	goal[1] = 0.0f;
 	goal[2] = 0.0f;
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "WalkActorTo: invalid source actor.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "WalkActorTo");
 
@@ -918,6 +1013,8 @@ void Lua_V2::WalkActorTo() {
 		target[1] = targetActor->_world._pos._y;
 		target[2] = targetActor->_world._pos._z;
 	} else {
+		logDemo(kConsoleDebug, "WalkActorTo: invalid target actor.\n");
+
 		return;
 	}
 
@@ -945,8 +1042,17 @@ void Lua_V2::WalkActorToAvoiding() {
 	goal[1] = 0.0f;
 	goal[2] = 0.0f;
 
-	if (!isActor(actorObj) || !isActor(avoidedObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "WalkActorToAvoiding: invalid source actor.\n");
+
 		return;
+	}
+
+	if (!isActor(avoidedObj)) {
+		logDemo(kConsoleDebug, "WalkActorToAvoiding: invalid actor to avoid.\n");
+
+		return;
+	}
 
 	Actor *actor = getActor(actorObj, "WalkActorToAvoiding");
 	Actor *avoidedActor = Actor::actorDeref(_engine, lua_getuserdata(avoidedObj));
@@ -971,6 +1077,8 @@ void Lua_V2::WalkActorToAvoiding() {
 		target[1] = targetActor->_world._pos._y;
 		target[2] = targetActor->_world._pos._z;
 	} else {
+		logDemo(kConsoleDebug, "WalkActorToAvoiding: invalid target actor.\n");
+
 		return;
 	}
 
@@ -987,8 +1095,11 @@ void Lua_V2::ActorLookAt() {
 	lua_Object secondObj = lua_getparam(3);
 	lua_Object rateObj = lua_getparam(5);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "ActorLookAt: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "ActorLookAt");
 
@@ -1040,8 +1151,11 @@ void Lua_V2::ActorLookAt() {
 		if (lua_isnumber(rateObj))
 			actor->_extra->_lookRate = (float)((double)lua_getnumber(rateObj) * (double)Actor::kDegreesToRadians);
 	} else {
-		if (!isActor(targetObj))
+		if (!isActor(targetObj)) {
+			logDemo(kConsoleDebug, "ActorLookAt: invalid look target.\n");
+
 			return;
+		}
 
 		actor->_extra->_lookTargetActorId = lua_getuserdata(targetObj);
 		actor->_extra->_lookTarget._x = 0.0f;
@@ -1058,8 +1172,11 @@ void Lua_V2::ActorLookAt() {
 void Lua_V2::IsActorLooking() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "IsActorLooking: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "IsActorLooking");
 
@@ -1076,8 +1193,17 @@ void Lua_V2::SetActorLookRate() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object rateObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(rateObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorLookRate: invalid actor handle.\n");
+
 		return;
+	}
+
+	if (!lua_isnumber(rateObj)) {
+		logDemo(kConsoleDebug, "SetActorLookRate: the second argument must be a number.\n");
+
+		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorLookRate");
 
@@ -1094,6 +1220,7 @@ void Lua_V2::GetActorLookRate() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorLookRate: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -1102,6 +1229,9 @@ void Lua_V2::GetActorLookRate() {
 	Actor *actor = getActor(actorObj, "GetActorLookRate");
 
 	if (!actor || !actor->_extra) {
+		if (actor)
+			logDemo(kConsoleDebug, "GetActorLookRate: the actor has no extra data.\n");
+
 		lua_pushnil();
 
 		return;
@@ -1114,8 +1244,17 @@ void Lua_V2::SetActorFOV() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object fovObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(fovObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorFOV: invalid actor handle.\n");
+
 		return;
+	}
+
+	if (!lua_isnumber(fovObj)) {
+		logDemo(kConsoleDebug, "SetActorFOV: the second argument must be a number.\n");
+
+		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorFOV");
 
@@ -1132,6 +1271,7 @@ void Lua_V2::GetActorFOV() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorFOV: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -1140,6 +1280,9 @@ void Lua_V2::GetActorFOV() {
 	Actor *actor = getActor(actorObj, "GetActorFOV");
 
 	if (!actor || !actor->_extra) {
+		if (actor)
+			logDemo(kConsoleDebug, "GetActorFOV: the actor has no extra data.\n");
+
 		lua_pushnil();
 
 		return;
@@ -1155,11 +1298,17 @@ void Lua_V2::GetVisibleThings() {
 	if (lua_isnil(actorObj)) {
 		viewer = Actor::getSelectedActor(_engine);
 
-		if (!viewer)
+		if (!viewer) {
+			logDemo(kConsoleDebug, "GetVisibleThings: there is no selected actor.\n");
+
 			return;
+		}
 	} else {
-		if (!isActor(actorObj))
+		if (!isActor(actorObj)) {
+			logDemo(kConsoleDebug, "GetVisibleThings: the parameter must be an actor.\n");
+
 			return;
+		}
 
 		viewer = getActor(actorObj, "GetVisibleThings");
 
@@ -1203,16 +1352,25 @@ void Lua_V2::SetActorLighting() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object modeObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorLighting: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
-		return;
+	if (!actor) {
+		logDemo(kConsoleDebug, "SetActorLighting: actor not found.\n");
 
-	if (lua_isnil(modeObj) || !lua_isnumber(modeObj))
 		return;
+	}
+
+	if (lua_isnil(modeObj) || !lua_isnumber(modeObj)) {
+		logDemo(kConsoleDebug, "SetActorLighting: the lighting mode must be a number.\n");
+
+		return;
+	}
 
 	int mode = luaFtol(lua_getnumber(modeObj));
 
@@ -1233,13 +1391,19 @@ void Lua_V2::SetActorHead() {
 	lua_Object yObj = lua_getparam(4);
 	lua_Object zObj = lua_getparam(5);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorHead: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
+	if (!actor) {
+		logDemo(kConsoleDebug, "SetActorHead: invalid actor handle.\n");
+
 		return;
+	}
 
 	float offset[3];
 
@@ -1261,7 +1425,10 @@ void Lua_V2::SetActorHead() {
 		if (!lua_isnil(zObj) && lua_isnumber(zObj))
 			offset[2] = lua_getnumber(zObj);
 
-		actor->setActorHead(jointName, offset);
+		if (!actor->setActorHead(jointName, offset))
+			logDemo(kConsoleDebug, "SetActorHead: node %s not found.\n", jointName.c_str());
+	} else {
+		logDemo(kConsoleDebug, "SetActorHead: invalid node name.\n");
 	}
 }
 
@@ -1271,16 +1438,25 @@ void Lua_V2::SetActorHeadLimits() {
 	lua_Object upObj = lua_getparam(3);
 	lua_Object downObj = lua_getparam(4);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorHeadLimits: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
-		return;
+	if (!actor) {
+		logDemo(kConsoleDebug, "SetActorHeadLimits: actor not found.\n");
 
-	if (lua_isnil(horizontalObj) || !lua_isnumber(horizontalObj) || lua_isnil(upObj) || !lua_isnumber(upObj) || lua_isnil(downObj) || !lua_isnumber(downObj))
 		return;
+	}
+
+	if (lua_isnil(horizontalObj) || !lua_isnumber(horizontalObj) || lua_isnil(upObj) || !lua_isnumber(upObj) || lua_isnil(downObj) || !lua_isnumber(downObj)) {
+		logDemo(kConsoleDebug, "SetActorHeadLimits: the limits must be numbers.\n");
+
+		return;
+	}
 
 	float downLimit = (float)((double)lua_getnumber(downObj) * (double)Actor::kDegreesToRadians);
 	float upLimit = (float)((double)lua_getnumber(upObj) * (double)Actor::kDegreesToRadians);
@@ -1293,8 +1469,11 @@ void Lua_V2::SetActorVisibility() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object visibleObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorVisibility: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorVisibility");
 
@@ -1312,8 +1491,11 @@ void Lua_V2::SetActorFollowBoxes() {
 	lua_Object enableObj = lua_getparam(2);
 	bool enable = true;
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorFollowBoxes: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorFollowBoxes");
 
@@ -1331,13 +1513,22 @@ void Lua_V2::ActorActivateShadow() {
 	lua_Object activeObj = lua_getparam(2);
 	lua_Object shadowObj = lua_getparam(3);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "ActorActivateShadow: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
+	if (!actor) {
+		logDemo(kConsoleWarning, "ActorActivateShadow: actor not found.\n");
+
 		return;
+	}
+
+	if (!lua_isnumber(activeObj))
+		logDemo(kConsoleWarning, "ActorActivateShadow: the activate argument is invalid, assuming false.\n");
 
 	bool active = luaFtol(lua_getnumber(activeObj)) != 0;
 	Shadow_v2 *shadow = nullptr;
@@ -1361,26 +1552,36 @@ void Lua_V2::ActorActivateShadow() {
 void Lua_V2::ShutUpActor() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "ShutUpActor: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		actor->shutUp(true);
+	else
+		logDemo(kConsoleDebug, "ShutUpActor: invalid actor handle.\n");
 }
 
 void Lua_V2::EnableActorPuck() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object enableObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "EnableActorPuck: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
 	if (actor)
 		actor->enablePuck(luaFtol(lua_getnumber(enableObj)) != 0);
+	else
+		logDemo(kConsoleDebug, "EnableActorPuck: actor not found.\n");
 }
 
 void Lua_V2::SetActorGlobalAlpha() {
@@ -1388,13 +1589,19 @@ void Lua_V2::SetActorGlobalAlpha() {
 	lua_Object alphaObj = lua_getparam(2);
 	lua_Object nameObj = lua_getparam(3);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorGlobalAlpha: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
+	if (!actor) {
+		logDemo(kConsoleDebug, "SetActorGlobalAlpha: invalid actor handle.\n");
+
 		return;
+	}
 
 	if (actor->_instances.empty()) {
 		if (_engine->getConsoleServices())
@@ -1405,8 +1612,11 @@ void Lua_V2::SetActorGlobalAlpha() {
 		return;
 	}
 
-	if (!lua_isnumber(alphaObj))
+	if (!lua_isnumber(alphaObj)) {
+		logDemo(kConsoleDebug, "SetActorGlobalAlpha: invalid alpha state.\n");
+
 		return;
+	}
 
 	float alpha = lua_getnumber(alphaObj);
 	RPrimitiveInstance *instance = actor->_instances[0];
@@ -1428,8 +1638,11 @@ void Lua_V2::SetActorGlobalAlpha() {
 		}
 	}
 
-	if (!instance)
+	if (!instance) {
+		logDemo(kConsoleDebug, "SetActorGlobalAlpha: the actor has no instance data.\n");
+
 		return;
+	}
 
 	if (alpha == -1.0f)
 		instance->_globalAlphaMode = RPrimitiveInstance::kAlphaOff;
@@ -1447,13 +1660,19 @@ void Lua_V2::SetActorLocalAlpha() {
 	lua_Object alphaObj = lua_getparam(3);
 	lua_Object nameObj = lua_getparam(4);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorLocalAlpha: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
+	if (!actor) {
+		logDemo(kConsoleDebug, "SetActorLocalAlpha: invalid actor handle.\n");
+
 		return;
+	}
 
 	if (actor->_instances.empty()) {
 		if (_engine->getConsoleServices())
@@ -1464,13 +1683,19 @@ void Lua_V2::SetActorLocalAlpha() {
 		return;
 	}
 
-	if (!lua_isnumber(indexObj))
+	if (!lua_isnumber(indexObj)) {
+		logDemo(kConsoleDebug, "SetActorLocalAlpha: invalid vertex index.\n");
+
 		return;
+	}
 
 	int index = luaFtol(lua_getnumber(indexObj));
 
-	if (!lua_isnumber(alphaObj))
+	if (!lua_isnumber(alphaObj)) {
+		logDemo(kConsoleDebug, "SetActorLocalAlpha: invalid alpha state.\n");
+
 		return;
+	}
 
 	float alpha = lua_getnumber(alphaObj);
 	RPrimitiveInstance *instance = actor->_instances[0];
@@ -1492,8 +1717,11 @@ void Lua_V2::SetActorLocalAlpha() {
 		}
 	}
 
-	if (!instance)
+	if (!instance) {
+		logDemo(kConsoleDebug, "SetActorLocalAlpha: the actor has no instance data.\n");
+
 		return;
+	}
 
 	if (alpha == -1.0f)
 		instance->_matAlphaMode = RPrimitiveInstance::kAlphaOff;
@@ -1510,6 +1738,7 @@ void Lua_V2::SetActorCollisionMode() {
 	lua_Object modeObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "SetActorCollisionMode: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -1531,6 +1760,7 @@ void Lua_V2::SetActorCollisionScale() {
 	lua_Object scaleObj = lua_getparam(2);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "SetActorCollisionScale: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -1551,8 +1781,11 @@ void Lua_V2::SetActorSortOrder() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object sortOrderObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(sortOrderObj))
+	if (!isActor(actorObj) || !lua_isnumber(sortOrderObj)) {
+		logDemo(kConsoleStatus, "SetActorSortOrder: invalid parameters.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorSortOrder");
 
@@ -1565,8 +1798,11 @@ void Lua_V2::SetActorSortOrder() {
 void Lua_V2::GetActorSortOrder() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleStatus, "GetActorSortOrder: invalid parameters.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "GetActorSortOrder");
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
@@ -1588,22 +1824,31 @@ void Lua_V2::AttachActor() {
 	lua_Object parentObj = lua_getparam(2);
 	lua_Object nodeObj = lua_getparam(3);
 
-	if (!isActor(actorObj) || !isActor(parentObj))
+	if (!isActor(actorObj) || !isActor(parentObj)) {
+		logDemo(kConsoleStatus, "AttachActor: invalid parameters.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 	Actor *parent = Actor::actorDeref(_engine, lua_getuserdata(parentObj));
 
-	if (!actor || !parent)
+	if (!actor || !parent) {
+		logDemo(kConsoleStatus, "AttachActor: invalid parameters.\n");
+
 		return;
+	}
 
 	CNode *node = parent;
 
 	if (lua_isstring(nodeObj)) {
 		node = parent->findNode(lua_getstring(nodeObj));
 
-		if (!node)
+		if (!node) {
+			logDemo(kConsoleStatus, "AttachActor: node %s not found, defaulting to the root.\n", lua_getstring(nodeObj));
+
 			node = parent;
+		}
 	}
 
 	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
@@ -1638,8 +1883,11 @@ void Lua_V2::DetachActor() {
 	// The disasm does not check the type of the parameter
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!actor)
+	if (!actor) {
+		logDemo(kConsoleStatus, "DetachActor: invalid actor handle.\n");
+
 		return;
+	}
 
 	if ((actor->_nodeFlags & CNode::kWorldValid) == 0)
 		actor->updateWorldTransform();
@@ -1663,6 +1911,8 @@ void Lua_V2::DetachActor() {
 			actor->_sortOrder = parent->getSortOrder(currentRoom->_currentSetup);
 		else
 			warning("Lua_V2::DetachActor(): there is no current room");
+	} else {
+		logDemo(kConsoleWarning, "DetachActor: the actor has no parent.\n");
 	}
 
 	actor->detachFromParent();
@@ -1673,10 +1923,14 @@ void Lua_V2::IsActorInSector() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object nameObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "IsActorInSector: invalid actor handle.\n");
+
 		return;
+	}
 
 	if (!lua_isstring(nameObj)) {
+		logDemo(kConsoleStatus, "IsActorInSector: the sector argument must be a string.\n");
 		lua_pushnil();
 
 		return;
@@ -1717,8 +1971,11 @@ void Lua_V2::GetActorSector() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object typeObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(typeObj))
+	if (!isActor(actorObj) || !lua_isnumber(typeObj)) {
+		logDemo(kConsoleDebug, "GetActorSector: invalid parameter.\n");
+
 		return;
+	}
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 	Actor *actor = getActor(actorObj, "GetActorSector");
@@ -1753,6 +2010,7 @@ void Lua_V2::IsPointInSector() {
 	lua_Object nameObj = lua_getparam(4);
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj) || !lua_isstring(nameObj)) {
+		logDemo(kConsoleDebug, "IsPointInSector: invalid parameter.\n");
 		lua_pushnil();
 
 		return;
@@ -1792,6 +2050,7 @@ void Lua_V2::GetPointSector() {
 	lua_Object typeObj = lua_getparam(4);
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleDebug, "GetPointSector: invalid parameter.\n");
 		lua_pushnil();
 
 		return;
@@ -1833,8 +2092,11 @@ void Lua_V2::TurnActor() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object directionObj = lua_getparam(2);
 
-	if (!isActor(actorObj) || !lua_isnumber(directionObj))
+	if (!isActor(actorObj) || !lua_isnumber(directionObj)) {
+		logDemo(kConsoleDebug, "TurnActor: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "TurnActor");
 
@@ -1848,8 +2110,11 @@ void Lua_V2::TurnActor() {
 void Lua_V2::GetActorRot() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorRot: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
@@ -1884,8 +2149,11 @@ void Lua_V2::SetActorRot() {
 	rotation[1] = 0.0f;
 	rotation[2] = 0.0f;
 
-	if (!isActor(actorObj) || !lua_isnumber(pitchObj) || !lua_isnumber(yawObj) || !lua_isnumber(rollObj))
+	if (!isActor(actorObj) || !lua_isnumber(pitchObj) || !lua_isnumber(yawObj) || !lua_isnumber(rollObj)) {
+		logDemo(kConsoleDebug, "SetActorRot: invalid parameter.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorRot");
 
@@ -1902,8 +2170,11 @@ void Lua_V2::SetActorPitch() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object pitchObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorPitch: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorPitch");
 
@@ -1936,8 +2207,11 @@ void Lua_V2::SetActorRoll() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object rollObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorRoll: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "SetActorRoll");
 
@@ -1968,8 +2242,11 @@ void Lua_V2::SetActorRoll() {
 void Lua_V2::IsActorTurning() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "IsActorTurning: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "IsActorTurning");
 
@@ -1998,6 +2275,7 @@ void Lua_V2::PointActorAt() {
 	target[2] = 0.0f;
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "PointActorAt: the first argument must be an actor.\n");
 		lua_pushnil();
 
 		return;
@@ -2059,6 +2337,7 @@ void Lua_V2::TurnActorTo() {
 	target[2] = 0.0f;
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "TurnActorTo: the first argument must be an actor.\n");
 		lua_pushnil();
 
 		return;
@@ -2124,12 +2403,23 @@ void Lua_V2::PlayActorChore() {
 	float fadeSeconds = 0.0f;
 	bool looping = false;
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "PlayActorChore: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!lua_isstring(choreObj) || !lua_isstring(choreSetObj)) {
+	if (!lua_isstring(choreObj)) {
+		logDemo(kConsoleWarning, "PlayActorChore: the second argument must be a chore name.\n");
+		lua_pushnil();
+
+		return;
+	}
+
+	if (!lua_isstring(choreSetObj)) {
+		logDemo(kConsoleWarning, "PlayActorChore: the third argument must be a .COS file name.\n");
 		lua_pushnil();
 
 		return;
@@ -2173,12 +2463,25 @@ void Lua_V2::PlayActorChoreLooping() {
 	lua_Object choreObj = lua_getparam(2);
 	lua_Object choreSetObj = lua_getparam(3);
 
-	if (!isActor(actorObj))
+	logDemo(kConsoleWarning, "PlayActorChoreLooping: replace this call with PlayActorChore and a loop argument.\n");
+
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "PlayActorChoreLooping: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
-	if (!lua_isstring(choreObj) || !lua_isstring(choreSetObj)) {
+	if (!lua_isstring(choreObj)) {
+		logDemo(kConsoleWarning, "PlayActorChoreLooping: the second argument must be a chore name.\n");
+		lua_pushnil();
+
+		return;
+	}
+
+	if (!lua_isstring(choreSetObj)) {
+		logDemo(kConsoleWarning, "PlayActorChoreLooping: the third argument must be a .COS file name.\n");
 		lua_pushnil();
 
 		return;
@@ -2207,8 +2510,11 @@ void Lua_V2::PlayActorChoreLooping() {
 void Lua_V2::IsActorMoving() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "IsActorMoving: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "IsActorMoving");
 
@@ -2224,8 +2530,11 @@ void Lua_V2::IsActorMoving() {
 void Lua_V2::IsActorResting() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "IsActorResting: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = getActor(actorObj, "IsActorResting");
 
@@ -2245,6 +2554,7 @@ void Lua_V2::GetActorChores() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorChores: invalid actor handle.\n");
 		lua_pushnil();
 
 		return;
@@ -2281,8 +2591,11 @@ void Lua_V2::StopActorChores() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object skipLoopingObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "StopActorChores: invalid actor handle.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
@@ -2307,12 +2620,17 @@ void Lua_V2::IsSectorActive() {
 				plane = currentRoom->_walkPlanes->planeNamed(planeName);
 			}
 
+			if (!plane)
+				logDemo(kConsoleWarning, "IsSectorActive: the sector was not found.\n");
+
 			// The disasm pushes 1.0 and then nil here
 			if (plane && plane->_active)
 				lua_pushnumber(1.0f);
 		} else if (currentRoom) {
 			warning("Lua_V2::IsSectorActive(): missing walk planes");
 		}
+	} else {
+		logDemo(kConsoleWarning, "IsSectorActive: the argument must be a sector number or name.\n");
 	}
 
 	lua_pushnil();
@@ -2321,8 +2639,11 @@ void Lua_V2::IsSectorActive() {
 void Lua_V2::MakeSectorActive() {
 	lua_Object sectorObj = lua_getparam(1);
 
-	if (!lua_isnumber(sectorObj) && !lua_isstring(sectorObj))
+	if (!lua_isnumber(sectorObj) && !lua_isstring(sectorObj)) {
+		logDemo(kConsoleWarning, "MakeSectorActive: the argument must be a sector number or name.\n");
+
 		return;
+	}
 
 	lua_Object activeObj = lua_getparam(2);
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
@@ -2351,6 +2672,7 @@ void Lua_V2::GetSectorOppositeEdge() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleWarning, "GetSectorOppositeEdge: the first argument must be an actor.\n");
 		lua_pushnil();
 
 		return;
@@ -2359,6 +2681,7 @@ void Lua_V2::GetSectorOppositeEdge() {
 	lua_Object sectorObj = lua_getparam(2);
 
 	if (!lua_isstring(sectorObj)) {
+		logDemo(kConsoleWarning, "GetSectorOppositeEdge: the second argument must be a sector name.\n");
 		lua_pushnil();
 
 		return;
@@ -2376,6 +2699,7 @@ void Lua_V2::GetSectorOppositeEdge() {
 	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (!plane) {
+		logDemo(kConsoleWarning, "GetSectorOppositeEdge: the sector was not found.\n");
 		lua_pushnil();
 
 		return;
@@ -2437,6 +2761,7 @@ void Lua_V2::GetAngleBetweenActors() {
 	lua_Object secondObj = lua_getparam(2);
 
 	if (!isActor(firstObj) || !isActor(secondObj)) {
+		logDemo(kConsoleWarning, "GetAngleBetweenActors: both arguments must be actors.\n");
 		lua_pushnil();
 
 		return;

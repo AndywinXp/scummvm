@@ -492,7 +492,9 @@ void CSpriteInstance::output(RNode *node, Camera *camera) {
 	}
 
 	drawList->addPoly(poly);
-	ctx->flushDrawLists();
+
+	if (!_engine->isDemo())
+		ctx->flushDrawLists();
 }
 
 } // End of namespace Grim

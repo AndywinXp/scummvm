@@ -94,6 +94,7 @@ public:
 
 	static void updateAllActors(EmiEngine *engine, float deltaTime);
 	void update(float deltaTime);
+	void updateAnimNodes();
 	void followPath(float deltaTime);
 	void updateWalk(float deltaTime);
 	bool alignToPuck(Puck_v2 *puck);

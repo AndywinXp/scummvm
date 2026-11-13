@@ -72,11 +72,12 @@ FileFind::FileFind(const char *pattern, const char *directory) {
 	_current = 0;
 
 	if (isSaveDirectory(directory)) {
-		// Only the saves of this game's family are visible: plain, PS2 or one language code (CJK)
+		// Only the saves of this game's family are visible: plain, PS2, demo or one language code (CJK)
 		Common::Platform platform = g_grim->getGamePlatform();
 		Common::Language language = g_grim->getGameLanguage();
-		Common::String prefix = EmiEngine::getSavePrefix(platform, language);
-		Common::StringArray saveFiles = g_system->getSavefileManager()->listSavefiles(EmiEngine::applySavePrefix(pattern, platform, language));
+		bool isDemo = static_cast<EmiEngine *>(g_grim)->isDemo();
+		Common::String prefix = EmiEngine::getSavePrefix(platform, language, isDemo);
+		Common::StringArray saveFiles = g_system->getSavefileManager()->listSavefiles(EmiEngine::applySavePrefix(pattern, platform, language, isDemo));
 
 		Common::sort(saveFiles.begin(), saveFiles.end());
 

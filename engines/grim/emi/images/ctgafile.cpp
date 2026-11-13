@@ -50,13 +50,24 @@ void CTGAFile::init() {
 }
 
 bool CTGAFile::readImage(LFile *file, LBitmap *image, int unused) {
-	if (!readFooter(file))
+	if (!readFooter(file)) {
+		if (_engine->isDemo())
+			warning("CTGAFile::readImage(): empty or truncated image file");
+
 		return false;
+	}
 
 	_bitmap = image;
 	file->seek(0, SEEK_SET);
 
 	if (readHeader(file)) {
+		if (_engine->isDemo() && _pixelDepth != 16 && _pixelDepth != 24 && _pixelDepth != 32) {
+			warning("CTGAFile::readImage(): unsupported pixel depth %d", _pixelDepth);
+			_bitmap = nullptr;
+
+			return false;
+		}
+
 		byte originalDescriptor = _descriptor;
 
 		_descriptor = originalDescriptor & 0xCF;

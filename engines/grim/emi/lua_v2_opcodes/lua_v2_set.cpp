@@ -35,11 +35,15 @@ namespace Grim {
 
 void Lua_V2::Exit() {
 	lua_Object codeObj = lua_getparam(1);
+	int code = 0;
 
 	if (lua_isnumber(codeObj))
-		_engine->requestShutdown(luaFtol(lua_getnumber(codeObj)));
-	else
-		_engine->requestShutdown(0);
+		code = luaFtol(lua_getnumber(codeObj));
+
+	if (_engine->isDemo())
+		logConsole(kConsoleDebug, "The scripts called exit with code %d. Shutting down.\n", code);
+
+	_engine->requestShutdown(code);
 }
 
 void Lua_V2::FunctionName() {
@@ -49,8 +53,12 @@ void Lua_V2::FunctionName() {
 	char buffer[256];
 	lua_Object functionObj = lua_getparam(1);
 
-	if (!lua_isfunction(functionObj))
+	if (!lua_isfunction(functionObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleStatus, "FunctionName: the argument must be a function.\n");
+
 		return;
+	}
 
 	lua_funcinfo(functionObj, &filename, &line);
 
@@ -83,6 +91,11 @@ void Lua_V2::PrintMessage() {
 			console->logStatus("%s", message.c_str());
 		else
 			warning("%s", message.c_str());
+	} else if (_engine->isDemo()) {
+		if (!lua_isnil(messageObj))
+			logConsole(kConsoleDebug, "PrintMessage: takes only a single string argument.\n");
+		else if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logStatus("(nil)");
 	}
 }
 
@@ -107,6 +120,8 @@ void Lua_V2::PrintError() {
 			console->logError("%s", message.c_str());
 		else
 			warning("%s", message.c_str());
+	} else if (_engine->isDemo()) {
+		logConsole(kConsoleDebug, "PrintError: takes only a single string argument.\n");
 	}
 }
 
@@ -123,6 +138,11 @@ void Lua_V2::PrintWarning() {
 			console->logWarning("%s", message.c_str());
 		else
 			warning("%s", message.c_str());
+	} else if (_engine->isDemo()) {
+		if (!lua_isnil(messageObj))
+			logConsole(kConsoleDebug, "PrintWarning: takes only a single string argument.\n");
+		else if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logWarning("(nil)");
 	}
 }
 
@@ -139,6 +159,11 @@ void Lua_V2::PrintDebug() {
 			console->logDebug("%s", message.c_str());
 		else
 			warning("%s", message.c_str());
+	} else if (_engine->isDemo()) {
+		if (!lua_isnil(messageObj))
+			logConsole(kConsoleDebug, "PrintDebug: takes only a single string argument.\n");
+		else if (_engine->getConsoleServices())
+			_engine->getConsoleServices()->logDebug("(nil)");
 	}
 }
 
@@ -146,12 +171,21 @@ void Lua_V2::MakeCurrentSet() {
 	lua_Object roomObj = lua_getparam(1);
 
 	if (lua_isstring(roomObj)) {
-		for (uint i = 0; i < _lockedSounds.size(); i++)
-			_engine->getSounds()->stopSound(_lockedSounds[i]);
+		// The demo logs the set name and leaves the loaded sounds alone
+		if (_engine->isDemo()) {
+			logConsole(kConsoleStatus, "Making the current set %s.\n", lua_getstring(roomObj));
+		} else {
+			for (uint i = 0; i < _lockedSounds.size(); i++)
+				_engine->getSounds()->stopSound(_lockedSounds[i]);
 
-		_lockedSounds.clear();
+			_lockedSounds.clear();
+		}
+
 		Room_v2::loadRoom(_engine, lua_getstring(roomObj));
 	} else {
+		if (_engine->isDemo())
+			logConsole(kConsoleWarning, "MakeCurrentSet: the argument must be a set name.\n");
+
 		Room_v2::loadRoom(_engine, nullptr);
 	}
 }
@@ -168,7 +202,10 @@ void Lua_V2::LockSet() {
 	if (roomHandle.lock() && roomHandle._typed) {
 		roomHandle._typed->_lockCount++;
 		_engine->getResourceManager()->lockResource(roomHandle._typed);
-		_lockedRooms.push_back(roomName);
+
+		// The demo keeps no list of locked names
+		if (!_engine->isDemo())
+			_lockedRooms.push_back(roomName);
 	}
 
 	roomHandle.unlock();
@@ -192,13 +229,15 @@ void Lua_V2::UnLockSet() {
 		if (room->_lockCount == 0 && room->_purgeOnFree)
 			_engine->getResourceManager()->purgeResource(room, true);
 
-		for (uint i = 0; i < _lockedRooms.size(); i++) {
+		for (uint i = 0; !_engine->isDemo() && i < _lockedRooms.size(); i++) {
 			if (_lockedRooms[i] == roomName) {
 				_lockedRooms.remove_at(i);
 
 				break;
 			}
 		}
+	} else if (_engine->isDemo()) {
+		logConsole(kConsoleWarning, "UnLockSet: the set %s does not exist.\n", roomName.c_str());
 	}
 
 	roomHandle.unlock();
@@ -219,7 +258,9 @@ void Lua_V2::LockBackground() {
 	if (backgroundHandle.lock() && backgroundHandle._typed) {
 		backgroundHandle._typed->_lockCount++;
 		_engine->getResourceManager()->lockResource(backgroundHandle._typed);
-		_lockedBackgrounds.push_back(backgroundName);
+
+		if (!_engine->isDemo())
+			_lockedBackgrounds.push_back(backgroundName);
 	}
 
 	backgroundHandle.unlock();
@@ -246,13 +287,15 @@ void Lua_V2::UnLockBackground() {
 		if (background->_lockCount == 0 && background->_purgeOnFree)
 			_engine->getResourceManager()->purgeResource(background, true);
 
-		for (uint i = 0; i < _lockedBackgrounds.size(); i++) {
+		for (uint i = 0; !_engine->isDemo() && i < _lockedBackgrounds.size(); i++) {
 			if (_lockedBackgrounds[i] == backgroundName) {
 				_lockedBackgrounds.remove_at(i);
 
 				break;
 			}
 		}
+	} else if (_engine->isDemo()) {
+		logConsole(kConsoleWarning, "UnLockBackground: the background %s does not exist.\n", backgroundName.c_str());
 	}
 
 	backgroundHandle.unlock();
@@ -261,13 +304,19 @@ void Lua_V2::UnLockBackground() {
 void Lua_V2::MakeCurrentSetup() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom)
+	if (!currentRoom) {
+		if (_engine->isDemo())
+			logConsole(kConsoleStatus, "MakeCurrentSetup: there is no current set.\n");
+
 		return;
+	}
 
 	lua_Object setupObj = lua_getparam(1);
 
 	if (lua_isnumber(setupObj)) {
 		currentRoom->setSetup(luaFtol(lua_getnumber(setupObj)));
+	} else if (_engine->isDemo()) {
+		logConsole(kConsoleStatus, "MakeCurrentSetup: the setup parameter is not valid.\n");
 	} else if (lua_isstring(setupObj)) {
 		// The disasm passes the address of the string as the setup index
 		warning("Lua_V2::MakeCurrentSetup(): a setup name is not a valid setup index");
@@ -277,8 +326,12 @@ void Lua_V2::MakeCurrentSetup() {
 void Lua_V2::GetCurrentSetup() {
 	lua_Object roomObj = lua_getparam(1);
 
-	if (!lua_isstring(roomObj))
+	if (!lua_isstring(roomObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "GetCurrentSetup: the argument must be a set name.\n");
+
 		return;
+	}
 
 	const char *currentRoomName = Room_v2::getCurrentRoomName(_engine);
 
@@ -308,8 +361,12 @@ void Lua_V2::GetCurrentSetup() {
 void Lua_V2::NextSetup() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom)
+	if (!currentRoom) {
+		if (_engine->isDemo())
+			logConsole(kConsoleStatus, "NextSetup: there is no current set.\n");
+
 		return;
+	}
 
 	// The original could divide by zero here, let's avoid that...
 	if (currentRoom->_numSetups == 0) {
@@ -324,8 +381,12 @@ void Lua_V2::NextSetup() {
 void Lua_V2::PreviousSetup() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
-	if (!currentRoom)
+	if (!currentRoom) {
+		if (_engine->isDemo())
+			logConsole(kConsoleStatus, "PreviousSetup: there is no current set.\n");
+
 		return;
+	}
 
 	// The original could divide by zero here, let's avoid that...
 	if (currentRoom->_numSetups == 0) {

@@ -453,6 +453,10 @@ void CSoundCue::releaseAllCues(Sounds *sounds) {
 }
 
 void CSoundCue::releaseUnlockedCues(Sounds *sounds) {
+	// The demo has no script-locked sound list: the restored cues belong to the restored Lua state
+	if (sounds->getEngine()->isDemo())
+		return;
+
 	CSoundCue *cue = sounds->_firstCue;
 
 	while (cue) {
@@ -481,6 +485,21 @@ void CSoundCue::updateSoundCues(Sounds *sounds) {
 
 		sounds->_updatedCount++;
 		cue = cue->_next;
+
+		if (sounds->getEngine()->isDemo()) {
+			if (!current->update()) {
+				// The registry entry must not outlive the cue
+				if (sounds->findSoundCue(current->_handle) == current) {
+					warning("CSoundCue::updateSoundCues(): deleting a registered sound cue (handle %d)", (int)current->_handle);
+
+					sounds->unregisterSound(current->_handle);
+				}
+
+				deleteSoundCue(current);
+			}
+
+			continue;
+		}
 
 		if (!current->update() && !sounds->isCueRegistered(current))
 			deleteSoundCue(current);
@@ -741,7 +760,8 @@ bool CSoundCue::setPosition(const SoundPosition &newPosition) {
 }
 
 bool CSoundCue::updateSpatialization() {
-	if (!_position._valid)
+	// The demo cues have no position
+	if (_sounds->getEngine()->isDemo() || !_position._valid)
 		return false;
 
 	float worldX = _position._pos._x;

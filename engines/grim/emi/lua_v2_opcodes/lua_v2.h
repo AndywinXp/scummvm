@@ -92,6 +92,15 @@ protected:
 	DECLARE_LUA_OPCODE(UnimplementedFunction);
 	DECLARE_LUA_OPCODE(EmptyFunction);
 
+	// Opcodes that only the demo has
+	DECLARE_LUA_OPCODE(ObsoleteFunction);
+	DECLARE_LUA_OPCODE(NoControlHandler);
+	DECLARE_LUA_OPCODE(FindFileOrSwapCDs);
+	DECLARE_LUA_OPCODE(CheckForFile) override;
+	DECLARE_LUA_OPCODE(FindFileOnAnyCD) override;
+	DECLARE_LUA_OPCODE(ImPause);
+	DECLARE_LUA_OPCODE(ImResume);
+
 	DECLARE_LUA_OPCODE(Draw3DLine);
 	DECLARE_LUA_OPCODE(DrawLine) override;
 	DECLARE_LUA_OPCODE(DrawPolygon) override;
@@ -119,6 +128,8 @@ protected:
 	DECLARE_LUA_OPCODE(MakeScreenTextures);
 	DECLARE_LUA_OPCODE(SubmitSaveGameData) override;
 	DECLARE_LUA_OPCODE(GetSaveGameData) override;
+	DECLARE_LUA_OPCODE(Load) override;
+	DECLARE_LUA_OPCODE(Save) override;
 	DECLARE_LUA_OPCODE(JustLoaded) override;
 	DECLARE_LUA_OPCODE(ScreenshotForSavegame);
 	DECLARE_LUA_OPCODE(ThumbnailFromScreen);
@@ -364,9 +375,19 @@ protected:
 	DECLARE_LUA_OPCODE(UnimplementedFunctionPs2);
 
 protected:
+	enum {
+		kConsoleStatus,
+		kConsoleWarning,
+		kConsoleError,
+		kConsoleDebug
+	};
+
 	bool isActor(lua_Object object);
 	Actor *getActor(lua_Object object, const char *opcodeName);
 	CLightNode *getLightArg(int paramNumber, const char *opcodeName);
+	void logConsole(int level, const char *format, ...) GCC_PRINTF(3, 4);
+	void logDemo(int level, const char *format, ...) GCC_PRINTF(3, 4);
+	bool fileExists(const char *name);
 
 private:
 	enum {

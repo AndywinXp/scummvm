@@ -1255,7 +1255,7 @@ int TextEvent::update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll
 
 		++it;
 
-		if (!event->_hold) {
+		if (engine->isDemo() || !event->_hold) {
 			if (event->_duration > 0.0f || (event->_flags & 1)) {
 				uint eventFlags = event->_flags;
 

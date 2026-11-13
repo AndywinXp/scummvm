@@ -74,6 +74,24 @@ static bool readSavedLockCount(SaveRestoreAccess *reader, int *count) {
 	return true;
 }
 
+void Lua_V2::Load() {
+	lua_Object fileNameObj = lua_getparam(1);
+
+	if (_engine->isDemo() && !lua_isnil(fileNameObj) && !lua_isstring(fileNameObj))
+		logConsole(kConsoleWarning, "Load: the argument must be a file name or nil.\n");
+
+	Lua_V1::Load();
+}
+
+void Lua_V2::Save() {
+	lua_Object fileNameObj = lua_getparam(1);
+
+	if (_engine->isDemo() && !lua_isnil(fileNameObj) && !lua_isstring(fileNameObj))
+		logConsole(kConsoleWarning, "Save: the argument must be a file name or nil.\n");
+
+	Lua_V1::Save();
+}
+
 void Lua_V2::saveGameCallback(SaveRestoreAccess *writer) {
 	_saveWriter = writer;
 	_saveDataSize = 0;

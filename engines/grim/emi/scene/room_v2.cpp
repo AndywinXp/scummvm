@@ -260,6 +260,9 @@ bool Room_v2::resLoadItem(const char *itemName) {
 void Room_v2::setSetup(int setupIndex) {
 	int index = setupIndex;
 
+	if (_engine->isDemo() && setupIndex < 0)
+		warning("Room_v2::setSetup(): setup %d is negative", setupIndex);
+
 	if (_numSetups <= 0) {
 		warning("Room_v2::setSetup(): the room has no setups");
 
@@ -377,10 +380,16 @@ int Room_v2::draw(CDrawContext *drawContext) {
 			} else if (item.type == kDrawActor) {
 				setup->_camera.applyProjection();
 				((Actor *)item.object)->drawActor(&setup->_camera);
+
+				if (_engine->isDemo())
+					drawContext->flushDrawLists();
 			} else if (item.type == kDrawShadow) {
 				Actor *actor = (Actor *)item.object;
 				setup->_camera.applyProjection();
 				actor->drawShadow(&setup->_camera, actor->_shadows[item.index]);
+
+				if (_engine->isDemo())
+					drawContext->flushDrawLists();
 			}
 		}
 
@@ -400,6 +409,18 @@ int Room_v2::draw(CDrawContext *drawContext) {
 }
 
 void Room_v2::addActor(Actor *actor) {
+	if (_engine->isDemo()) {
+		Common::List<Actor *>::iterator it;
+
+		for (it = _actors.begin(); it != _actors.end(); ++it) {
+			if (*it == actor) {
+				warning("Room_v2::addActor(): the actor was already in the room");
+
+				break;
+			}
+		}
+	}
+
 	_actors.push_back(actor);
 }
 
@@ -415,6 +436,9 @@ int Room_v2::removeActor(Actor *actor) {
 			++it;
 		}
 	}
+
+	if (_engine->isDemo() && count > 1)
+		warning("Room_v2::removeActor(): the actor was in the room %d extra times", count - 1);
 
 	return count;
 }

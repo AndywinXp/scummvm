@@ -203,11 +203,21 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 	uint replaceDelta = 0;
 	LMemoryServices *memoryServices = _engine->getMemoryServices();
 
-	if (resource->_lockCount)
-		return -1;
+	LConsoleServices *console = _engine->getConsoleServices();
 
-	if (resource->_notPurgable)
+	if (resource->_lockCount) {
+		if (_engine->isDemo() && console)
+			console->logError("Attempted to purge the locked resource %s.\n", resource->_name.c_str());
+
 		return -1;
+	}
+
+	if (resource->_notPurgable) {
+		if (_engine->isDemo() && console)
+			console->logError("Attempted to purge the unpurgable resource %s.\n", resource->_name.c_str());
+
+		return -1;
+	}
 
 	if (resource->handleCount() != 0) {
 		uint bytesBefore = memoryServices->_bytesAllocated;
@@ -248,8 +258,18 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 
 	int reclaimed = (int)(bytesAfterReplace - memoryServices->_bytesAllocated);
 
-	if (logPurge && _logFile)
+	if (_engine->isDemo()) {
+		// The demo always logs the purge, to the log file or else to the console
+		if (_logFile)
+			_logFile->writeFormat("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
+		else if (console)
+			console->logStatus("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
+
+		if (reclaimed < 0 && console)
+			console->logError("Negative number of bytes reclaimed for the resource %s.\n", resourceName.c_str());
+	} else if (logPurge && _logFile) {
 		_logFile->writeFormat("PURGED RESOURCE %s: %d bytes reclaimed.\n", resourceName.c_str(), reclaimed);
+	}
 
 	return reclaimed;
 }
@@ -557,6 +577,14 @@ void ResourceManager::shutdown() {
 
 void ResourceManager::update(float frameTime) {
 	uint bytes = _engine->getMemoryServices()->_bytesAllocated;
+
+	// The demo only keeps the resources under 12 MB: no warning, no sweep of the idle ones
+	if (_engine->isDemo()) {
+		if (bytes > 0xC00000)
+			purgeAmount(bytes - 0xC00000);
+
+		return;
+	}
 
 	if (bytes > 0xC00000 && purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !_lockedMessageShown) {
 		_engine->showMessage("More than 12MB of resources have been left locked.\n"

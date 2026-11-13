@@ -73,6 +73,14 @@ int LipData::readFile(EmiEngine *engine, const char *name, LipData **lipData) {
 		if (file->eof())
 			result = readCount;
 
+		// findCode() walks "count" entries, so a count past the buffer is clamped there
+		if (readCount >= (int)kLipHeaderSize) {
+			int entryCount = (int)READ_LE_UINT32(engine->_lipBuffer + 4);
+
+			if (entryCount > kLipMaxEntries)
+				warning("LipData::readFile(): '%s' has entry count %d, clamped to %d", path.c_str(), entryCount, kLipMaxEntries);
+		}
+
 		engine->getFileServices()->close(file, true);
 	}
 
@@ -106,10 +114,8 @@ int LipData::findCode(int position) const {
 	int entryCount = (int)READ_LE_UINT32(count);
 	int target = position >> 4;
 
-	if (entryCount > kLipMaxEntries) {
-		warning("LipData::findCode(): entry count %d is out of range", entryCount);
+	if (entryCount > kLipMaxEntries)
 		entryCount = kLipMaxEntries;
-	}
 
 	for (int i = 0; i < entryCount; i++) {
 		int entryTime = READ_LE_INT16(entries[i].time);

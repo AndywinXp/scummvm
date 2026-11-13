@@ -83,8 +83,13 @@ public:
 	Common::Array<int> _neighbors;
 	int _bfsState;
 	WalkPlane_v2 *_bfsParent;
+	int _axisU;
+	int _axisV;
 
 private:
+	void logConsoleError(const char *message);
+	void solveMinorAxis(float *point);
+
 	EmiEngine *_engine;
 	float _constraintVector[3];
 };

@@ -43,6 +43,8 @@ private:
 		kNumEntries = 15,
 		kMinVolume = 25,
 		kMaxVolume = 100,
+		kDemoMinVolume = 0,
+		kDemoMaxVolume = 127,
 		kMinTextSpeed = 1,
 		kMaxTextSpeed = 10
 	};
@@ -62,10 +64,14 @@ private:
 		const char *confKey;
 		int kind;
 		float defaultValue;
+		bool inDemo;
+		float demoDefaultValue;
 	};
 
 	static const Entry _entries[kNumEntries];
 
+	static bool isDemoGame();
+	static bool isEntryActive(const Entry &entry);
 	static Common::String buildSnapshot();
 	static int findEntry(const Common::String &key);
 	static bool nextLine(const Common::String &text, uint &start, Common::String &line);

@@ -34,6 +34,7 @@
 #include "engines/grim/emi/images/labitmap.h"
 #include "engines/grim/emi/graphics/layer.h"
 #include "engines/grim/emi/graphics/lcolorformat.h"
+#include "engines/grim/emi/core/lconsoleservices.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/core/ltimeservices.h"
 #include "engines/grim/emi/lua_v2_opcodes/lua_v2.h"
@@ -53,11 +54,14 @@ namespace Grim {
 static const int kPrimitiveLayers = 2;
 static const float kMaxFrameTime = 0.125f;
 static const float kMaxFrameTimePs2 = 0.066666998f;
+static const float kMaxFrameTimeDemo = 0.066666998f;
 static const double kMillisecondsToSeconds = 0.001f;
 static const int kStatsTextX = 10;
 static const int kStatsTextFirstY = 20;
 static const int kStatsTextRowHeight = 20;
 static const byte kStatsTextJustify = 16;
+static const int kNumStatsEventsDemo = 4;
+static const int kStatsTextDemoTexY = 100;
 static const int kMovieControlSkipFrames = 5;
 
 bool EmiEngine::runFrame() {
@@ -74,6 +78,12 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 
 	if (!isPs2)
 		updateSounds(false);
+
+	// The demo updates the resources first, without the frame time
+	if (_isDemo) {
+		_gameResourceManager->update(0.0f);
+		updateSounds(false);
+	}
 
 	if (_libSaveRequest)
 		saveGame(drawContext);
@@ -97,7 +107,8 @@ int EmiEngine::updateManual(CDrawContext *drawContext, bool draw, int manualMs) 
 
 	float frameTime = updateFrameTime(manualMs);
 
-	_gameResourceManager->update(frameTime);
+	if (!_isDemo)
+		_gameResourceManager->update(frameTime);
 
 	if (!isPs2)
 		updateSounds(false);
@@ -207,13 +218,18 @@ float EmiEngine::updateFrameTime(int manualMs) {
 
 	_rawFrameTime = elapsed;
 
-	float maxFrameTime = getGamePlatform() == Common::kPlatformPS2 ? kMaxFrameTimePs2 : kMaxFrameTime;
+	float maxFrameTime = kMaxFrameTime;
+
+	if (getGamePlatform() == Common::kPlatformPS2)
+		maxFrameTime = kMaxFrameTimePs2;
+	else if (_isDemo)
+		maxFrameTime = kMaxFrameTimeDemo;
 
 	if (elapsed > maxFrameTime)
 		elapsed = maxFrameTime;
 
 	if (_dumpingFrames)
-		elapsed = kMaxFrameTime;
+		elapsed = _isDemo ? kMaxFrameTimeDemo : kMaxFrameTime;
 
 	_lastStamp = stamp._seconds;
 	_frameTime = elapsed;
@@ -253,7 +269,8 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 
 	Overworld *overworld = getOverworld();
 
-	if (getMode() != kModeOverworld) {
+	// The demo has no overworld mode branch, every other mode draws the room
+	if (_isDemo || getMode() != kModeOverworld) {
 		_frontCopyCount = 0;
 
 		if (drawContext->beginScene()) {
@@ -306,19 +323,34 @@ int EmiEngine::renderUpdate(CDrawContext *drawContext) {
 	return result;
 }
 
+void EmiEngine::showSplash(CDrawContext *drawContext) {
+	if (!drawContext->beginScene())
+		return;
+
+	Layer *layer = new Layer(this, "splash.til", 0, 0, -1);
+
+	layer->draw(drawContext);
+	drawContext->endScene();
+	drawContext->present(true);
+	delete layer;
+}
+
 void EmiEngine::pixelTest() {
 	CDrawContext *drawContext = _drawContext;
 
 	if (!drawContext->beginScene())
 		return;
 
-	Layer::set16BitFix(this, false);
+	if (!_isDemo)
+		Layer::set16BitFix(this, false);
 
 	Layer *layer = new Layer(this, "pixeltest.til", 0, 0, -1);
 
 	layer->draw(drawContext);
 	drawContext->endScene();
-	Layer::set16BitFix(this, true);
+
+	if (!_isDemo)
+		Layer::set16BitFix(this, true);
 
 	LABitmap bitmap(this);
 
@@ -340,12 +372,18 @@ void EmiEngine::pixelTest() {
 		if (pixels[i * 3] != expected) {
 			drawContext->setPixelCenter(!drawContext->getPixelCenter());
 
+			if (_isDemo)
+				_consoleServices->logDebug("The pixel center has to change.\n");
+
 			break;
 		}
 	}
 
 	delete layer;
-	drawContext->clear(true, false);
+
+	// The demo leaves the test picture on screen until the splash replaces it
+	if (!_isDemo)
+		drawContext->clear(true, false);
 }
 
 void EmiEngine::saveScreenshot() {
@@ -413,16 +451,20 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(this);
 	bool skipTexts = false;
+	int numStatsEvents = _isDemo ? kNumStatsEventsDemo : kNumStatsEvents;
 
 	if (currentRoom && (_lua->_statsOverlayFlags & Lua_V2::kStatsOverlayFlag) != 0) {
 		double framesPerSecond = 0.0;
 
+		// The demo has no unclamped frame time
+		float shownFrameTime = _isDemo ? _frameTime : _rawFrameTime;
+
 		// The original could divide by zero here, let's avoid that...
-		if (_rawFrameTime != 0.0f)
-			framesPerSecond = (double)1.0f / (double)_rawFrameTime;
+		if (shownFrameTime != 0.0f)
+			framesPerSecond = (double)1.0f / (double)shownFrameTime;
 
 		Common::String framesText = Common::String::format("FPS: %6.2f", framesPerSecond);
-		Common::String frameTimeText = Common::String::format("FT:  %6.2fms", (double)_rawFrameTime * (double)1000.0f);
+		Common::String frameTimeText = Common::String::format("FT:  %6.2fms", (double)shownFrameTime * (double)1000.0f);
 		TextEvent *firstEvent = _statsEvents[0];
 
 		if (firstEvent && (firstEvent->_flags & 1) != 0) {
@@ -431,7 +473,7 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 			_statsEvents[1]->_text = frameTimeText;
 			_statsEvents[1]->_geometryReady = false;
 		} else {
-			for (int i = 0; i < kNumStatsEvents; i++) {
+			for (int i = 0; i < numStatsEvents; i++) {
 				TextEvent *event;
 
 				if (i == 1)
@@ -443,6 +485,10 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 				event->setFont("comicsans18.laf");
 				event->_x = kStatsTextX;
 				event->_y = kStatsTextFirstY + i * kStatsTextRowHeight;
+
+				if (_isDemo && i == 3)
+					event->_y = kStatsTextDemoTexY;
+
 				event->_geometryReady = false;
 				event->_justify = kStatsTextJustify;
 				event->_geometryReady = false;
@@ -453,7 +499,7 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 		}
 	} else if (currentRoom && (_lua->_statsOverlayFlags & Lua_V2::kStatsOverlayFlag) == 0) {
 		if (_statsEvents[0]) {
-			for (int i = 0; i < kNumStatsEvents; i++) {
+			for (int i = 0; i < numStatsEvents; i++) {
 				_statsEvents[i]->_flags &= ~1u;
 				_statsEvents[i] = nullptr;
 			}
@@ -468,13 +514,21 @@ void EmiEngine::drawStatsOverlay(CDrawContext *drawContext) {
 			_statsEvents[2]->_geometryReady = false;
 		}
 
-		// The D3D statistics do not exist here and the disasm leaves the last value uninitialized
-		if (_statsEvents[3]) {
-			_statsEvents[3]->_text = Common::String::format("%s EV: %4d CR: %4d UT: %4d UV: %4d", " ", 0, 0, 0, 0);
-			_statsEvents[3]->_geometryReady = false;
+		if (_isDemo) {
+			// The texture counters are not tracked here, they stay at zero
+			if (_statsEvents[3]) {
+				_statsEvents[3]->_text = Common::String::format("Tex: (U) %d, %d (L) %d, %d", 0, 0, 0, 0);
+				_statsEvents[3]->_geometryReady = false;
+			}
+		} else {
+			// The D3D statistics do not exist here and the disasm leaves the last value uninitialized
+			if (_statsEvents[3]) {
+				_statsEvents[3]->_text = Common::String::format("%s EV: %4d CR: %4d UT: %4d UV: %4d", " ", 0, 0, 0, 0);
+				_statsEvents[3]->_geometryReady = false;
+			}
 		}
 
-		if (_statsEvents[4]) {
+		if (!_isDemo && _statsEvents[4]) {
 			_statsEvents[4]->_text = Common::String::format("RE: %4d (%10d) MN: %4d (%10d)", 0, 0, 0, 0);
 			_statsEvents[4]->_geometryReady = false;
 		}

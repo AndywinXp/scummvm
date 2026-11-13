@@ -103,7 +103,7 @@ int Actor::drawShadow(Camera *camera, Shadow_v2 *shadow) {
 
 	CDrawContext *drawContext = _engine->getDrawContext();
 
-	if (!_onScreen) {
+	if (!_onScreen && !_engine->isDemo()) {
 		_engine->_actorDrawShadowTimer.stop();
 
 		return 0;

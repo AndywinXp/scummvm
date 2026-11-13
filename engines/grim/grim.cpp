@@ -142,6 +142,8 @@ GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, C
 
 	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "movies"); // Add 'movies' subdirectory for the demo
+	if (gameType == GType_MONKEY4 && (gameFlags & ADGF_DEMO))
+		SearchMan.addSubDirectoryMatching(gameDataDir, "music"); // The EMI demo keeps its music files there
 	SearchMan.addSubDirectoryMatching(gameDataDir, "credits");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "widescreen");
 }

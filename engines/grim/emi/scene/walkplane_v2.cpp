@@ -41,10 +41,14 @@ enum {
 static const float kMinLength = 1e-20f;
 static const float kEdgeEpsilon = 1e-5f;
 static const float kWalkTolerance = 0.005f;
-static const float kDefaultTolerance = 10000.0f;
+static const float kDefaultTolerance = 9999.0f;
 static const float kMaxFloat = 3.4028235e38f;
 static const float kJumpOutDistance = -10.0f;
 static const float kConstraintDistance = -100.0f;
+static const double kDemoEdgeTolerance = 0.01;
+static const double kDemoClipTolerance = 0.005;
+static const double kDemoClipMinSlope = 0.005;
+static const double kDemoRayDistance = 100.0;
 
 const float WalkPlane_v2::kRadiansToDegrees = (float)(180.0 / (double)3.14159274f);
 
@@ -67,6 +71,8 @@ WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexC
 	_d = 0.0f;
 	_bfsState = 0;
 	_bfsParent = nullptr;
+	_axisU = 0;
+	_axisV = 2;
 
 	memset(_verts, 0, kMaxVertices * sizeof(wpVertex *));
 
@@ -128,6 +134,37 @@ WalkPlane_v2::WalkPlane_v2(EmiEngine *engine, const float *vertices, int vertexC
 	}
 
 	_d = (float)-(((double)_normal[2] * first->z + (double)_normal[1] * first->y) + (double)_normal[0] * first->x);
+
+	if (_engine->isDemo()) {
+		// The demo works on the two axes left after dropping the dominant normal component
+		float dominant = _normal[0];
+
+		if (_normal[1] > dominant)
+			dominant = _normal[1];
+
+		if (_normal[2] > dominant)
+			dominant = _normal[2];
+
+		if (dominant == _normal[0]) {
+			_axisU = 2;
+			_axisV = 1;
+		} else if (dominant == _normal[1]) {
+			_axisU = 0;
+			_axisV = 2;
+		} else {
+			_axisU = 1;
+			_axisV = 0;
+		}
+	}
+}
+
+void WalkPlane_v2::logConsoleError(const char *message) {
+	LConsoleServices *console = _engine->getConsoleServices();
+
+	if (console)
+		console->logError("%s", message);
+	else
+		warning("%s", message);
 }
 
 WalkPlane_v2::~WalkPlane_v2() {
@@ -345,6 +382,37 @@ bool WalkPlane_v2::within(const float *point, bool checkActive) {
 	if (checkActive && (!_enabled || !_active))
 		return false;
 
+	if (_engine->isDemo()) {
+		double distance = ((double)_normal[0] * point[0] + (double)_normal[1] * point[1] + (double)_normal[2] * point[2]) + _d;
+
+		if (fabs(distance) < kEdgeEpsilon)
+			distance = 0.0;
+
+		if (fabs(distance) > _tolerance)
+			return false;
+
+		if (_numVerts <= 0)
+			return true;
+
+		const float *demoPrevious = &_verts[_numVerts - 1]->x;
+
+		for (int i = 0; i < _numVerts; i++) {
+			const float *demoCurrent = &_verts[i]->x;
+			double deltaU = (double)demoPrevious[_axisU] - demoCurrent[_axisU];
+			double deltaV = (double)demoPrevious[_axisV] - demoCurrent[_axisV];
+			double offsetU = (double)demoCurrent[_axisU] - point[_axisU];
+			double offsetV = (double)demoCurrent[_axisV] - point[_axisV];
+			double cross = deltaU * offsetV - offsetU * deltaV;
+
+			if (fabs(cross) > kDemoEdgeTolerance && cross < 0.0)
+				return false;
+
+			demoPrevious = demoCurrent;
+		}
+
+		return true;
+	}
+
 	if (_normal[1] == 0.0f) {
 		warning("WalkPlane_v2::within(): the plane is vertical");
 
@@ -395,18 +463,28 @@ bool WalkPlane_v2::within(const float *point, bool checkActive) {
 }
 
 void WalkPlane_v2::closestPoint(float *point) {
-	project(point);
+	if (_engine->isDemo())
+		solveMinorAxis(point);
+	else
+		project(point);
 
 	if (_numVerts <= 0)
 		return;
 
 	const float *previous = &_verts[_numVerts - 1]->x;
+	int u = 0;
+	int v = 2;
+
+	if (_engine->isDemo()) {
+		u = _axisU;
+		v = _axisV;
+	}
 
 	for (int i = 0; i < _numVerts; i++) {
 		const float *current = &_verts[i]->x;
-		float edgeZ = (float)-((double)current[2] - previous[2]);
-		float edgeX = (float)((double)current[0] - previous[0]);
-		double numerator = ((double)point[2] - previous[2]) * edgeX + ((double)point[0] - previous[0]) * edgeZ;
+		float edgeZ = (float)-((double)current[v] - previous[v]);
+		float edgeX = (float)((double)current[u] - previous[u]);
+		double numerator = ((double)point[v] - previous[v]) * edgeX + ((double)point[u] - previous[u]) * edgeZ;
 		float numeratorStored = (float)numerator;
 
 		if (numerator < 0.0) {
@@ -419,15 +497,15 @@ void WalkPlane_v2::closestPoint(float *point) {
 
 			if (absoluteDenominator > kEdgeEpsilon && denominatorStored != 0.0f) {
 				double ratio = (double)numeratorStored / denominatorStored;
-				float newX = (float)(ratio * edgeZ + point[0]);
-				double newZ = ratio * edgeX + point[2];
+				float newX = (float)(ratio * edgeZ + point[u]);
+				double newZ = ratio * edgeX + point[v];
 
-				point[0] = newX;
-				point[2] = (float)newZ;
+				point[u] = newX;
+				point[v] = (float)newZ;
 
-				double deltaX = (double)current[0] - previous[0];
+				double deltaX = (double)current[u] - previous[u];
 				float deltaXStored = (float)deltaX;
-				float deltaZStored = (float)((double)current[2] - previous[2]);
+				float deltaZStored = (float)((double)current[v] - previous[v]);
 				double absoluteDeltaX = deltaX;
 				float absoluteDeltaZ = deltaZStored;
 				double position;
@@ -439,16 +517,19 @@ void WalkPlane_v2::closestPoint(float *point) {
 					absoluteDeltaZ = -absoluteDeltaZ;
 
 				if (absoluteDeltaX <= absoluteDeltaZ)
-					position = (newZ - previous[2]) / deltaZStored;
+					position = (newZ - previous[v]) / deltaZStored;
 				else
-					position = ((double)newX - previous[0]) / deltaXStored;
+					position = ((double)newX - previous[u]) / deltaXStored;
 
 				if (i == _numVerts - 1 && position > 1.0) {
 					point[0] = current[0];
 					point[1] = current[1];
 					point[2] = current[2];
 				} else if (position >= 0.0) {
-					project(point);
+					if (_engine->isDemo())
+						solveMinorAxis(point);
+					else
+						project(point);
 				} else {
 					point[0] = previous[0];
 					point[1] = previous[1];
@@ -499,6 +580,93 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 	float angle = 0.0f;
 
 	_hitEdge = -1;
+
+	if (_engine->isDemo()) {
+		// The demo clips the target against every edge on the two plane axes only
+		double edgeVector[3] = { 0.0, 0.0, 0.0 };
+		bool clipped = false;
+
+		out[0] = pointB[0];
+		out[1] = pointB[1];
+		out[2] = pointB[2];
+
+		if (_numVerts > 0) {
+			const float *demoPrevious = &_verts[_numVerts - 1]->x;
+
+			for (int i = 0; i < _numVerts; i++) {
+				const float *demoCurrent = &_verts[i]->x;
+				float edgeU = (float)((double)demoCurrent[_axisU] - demoPrevious[_axisU]);
+				float edgeV = (float)((double)demoCurrent[_axisV] - demoPrevious[_axisV]);
+				float cross = (float)(((double)out[_axisV] - demoPrevious[_axisV]) * edgeU - ((double)out[_axisU] - demoPrevious[_axisU]) * edgeV);
+
+				if (fabs((double)cross) > kDemoClipTolerance && cross < 0.0f) {
+					float directionU = (float)((double)out[_axisU] - pointA[_axisU]);
+					float directionV = (float)((double)out[_axisV] - pointA[_axisV]);
+					float denominator = (float)((double)directionU * edgeV - (double)directionV * edgeU);
+
+					if (fabs((double)denominator) > kDemoClipMinSlope && denominator != 0.0f) {
+						float fraction = (float)((double)cross / denominator);
+
+						out[_axisU] = (float)((double)fraction * directionU + out[_axisU]);
+						out[_axisV] = (float)((double)fraction * directionV + out[_axisV]);
+						edgeVector[0] = (double)demoPrevious[0] - demoCurrent[0];
+						edgeVector[1] = (double)demoPrevious[1] - demoCurrent[1];
+						edgeVector[2] = (double)demoPrevious[2] - demoCurrent[2];
+						_hitEdge = i;
+						clipped = true;
+					}
+				}
+
+				demoPrevious = demoCurrent;
+			}
+		}
+
+		solveMinorAxis(out);
+
+		if (!within(out, true))
+			logConsoleError("Invalid exit point vector!\n");
+
+		if (!clipped) {
+			project(out);
+
+			return 0.0f;
+		}
+
+		double backX = (double)pointA[0] - pointB[0];
+		double backY = (double)pointA[1] - pointB[1];
+		double backZ = (double)pointA[2] - pointB[2];
+		double backLength = sqrt(backX * backX + backY * backY + backZ * backZ);
+
+		if (backLength >= kMinLength) {
+			backX /= backLength;
+			backY /= backLength;
+			backZ /= backLength;
+		}
+
+		double edgeLength = sqrt(edgeVector[0] * edgeVector[0] + edgeVector[1] * edgeVector[1] + edgeVector[2] * edgeVector[2]);
+
+		if (edgeLength >= kMinLength) {
+			edgeVector[0] /= edgeLength;
+			edgeVector[1] /= edgeLength;
+			edgeVector[2] /= edgeLength;
+		}
+
+		double cosine = -(backX * edgeVector[0] + backY * edgeVector[1] + backZ * edgeVector[2]);
+
+		// The disasm passes the unclamped value to acos
+		if (cosine > 1.0 || cosine < -1.0) {
+			warning("WalkPlane_v2::intersection(): the angle cosine %f is out of range", cosine);
+			cosine = cosine > 1.0 ? 1.0 : -1.0;
+		}
+
+		angle = (float)(acos(cosine) * kRadiansToDegrees);
+
+		if (angle <= 90.0f)
+			return (float)((double)angle + 0.1f);
+
+		return (float)-(180.2f - (double)angle);
+	}
+
 	segmentA[0] = pointA[0];
 	segmentA[1] = pointA[2];
 	segmentB[0] = pointB[0];
@@ -592,6 +760,16 @@ float WalkPlane_v2::intersection(const float *pointA, const float *pointB, float
 }
 
 void WalkPlane_v2::project(float *point) {
+	if (_engine->isDemo()) {
+		double distance = ((double)_normal[0] * point[0] + (double)_normal[1] * point[1] + (double)_normal[2] * point[2]) + _d;
+
+		point[0] = (float)((double)point[0] - distance * _normal[0]);
+		point[1] = (float)((double)point[1] - distance * _normal[1]);
+		point[2] = (float)((double)point[2] - distance * _normal[2]);
+
+		return;
+	}
+
 	if (_normal[1] == 0.0f) {
 		warning("WalkPlane_v2::project(): the plane is vertical");
 
@@ -599,6 +777,30 @@ void WalkPlane_v2::project(float *point) {
 	}
 
 	point[1] = (float)((-(double)_d - (double)_normal[0] * point[0] - (double)_normal[2] * point[2]) / _normal[1]);
+}
+
+void WalkPlane_v2::solveMinorAxis(float *point) {
+	int minor = 3 - _axisU - _axisV;
+
+	if (_numVerts <= 0) {
+		warning("WalkPlane_v2::solveMinorAxis(): the plane has no vertices");
+
+		return;
+	}
+
+	// The exe divides by the negated normal component without a check
+	double divisor = -(double)_normal[minor];
+
+	if (divisor == 0.0) {
+		warning("WalkPlane_v2::solveMinorAxis(): the plane normal has no component on axis %d", minor);
+
+		return;
+	}
+
+	const float *first = &_verts[0]->x;
+	float planeD = (float)-(((double)_normal[2] * first[2] + (double)_normal[1] * first[1]) + (double)_normal[0] * first[0]);
+
+	point[minor] = (float)((((double)point[_axisU] * _normal[_axisU] + (double)point[_axisV] * _normal[_axisV]) + planeD) / divisor);
 }
 
 float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
@@ -621,21 +823,38 @@ float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
 	if ((puck->_nodeFlags & CNode::kWorldValid) == 0)
 		puck->updateWorldTransform();
 
+	bool demo = _engine->isDemo();
+	int u = 0;
+	int v = 2;
+	int w = 1;
+	double rayDistance = kConstraintDistance;
+
+	// The ray direction depends on the sign of the first step
+	if (demo)
+		rayDistance = puck->_startStep <= 0.0f ? kDemoRayDistance : -kDemoRayDistance;
+
 	float forwardY = puck->_world._rot._m[7];
 	float forwardZ = puck->_world._rot._m[8];
-	float offsetY = (float)((double)forwardY * kConstraintDistance);
-	float offsetZ = (float)((double)forwardZ * kConstraintDistance);
+	float offsetY = (float)((double)forwardY * rayDistance);
+	float offsetZ = (float)((double)forwardZ * rayDistance);
 
-	behind[0] = (float)((double)puck->_world._rot._m[6] * kConstraintDistance + position[0]);
+	behind[0] = (float)((double)puck->_world._rot._m[6] * rayDistance + position[0]);
 	behind[1] = (float)((double)position[1] + offsetY);
 	behind[2] = (float)((double)position[2] + offsetZ);
 
-	intersection(behind, position, _constraintVector);
+	if (demo)
+		intersection(position, behind, _constraintVector);
+	else
+		intersection(behind, position, _constraintVector);
 
 	int edge = _hitEdge;
 
-	if (edge == -1)
+	if (edge == -1) {
+		if (demo)
+			logConsoleError("WalkPlane_v2::getConstraintVector(): could not find the edge the actor entered through.\n");
+
 		return nullptr;
+	}
 
 	if (_numVerts <= 0 || edge >= _numVerts) {
 		warning("WalkPlane_v2::getConstraintVector(): invalid edge %d", edge);
@@ -650,7 +869,7 @@ float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
 		previousIndex = _numVerts - 1;
 
 	const float *previous = &_verts[previousIndex]->x;
-	float deltaX = (float)((double)previous[0] - current[0]);
+	float deltaX = (float)((double)previous[u] - current[u]);
 	float absoluteDeltaX = deltaX;
 	double ratio;
 
@@ -658,41 +877,64 @@ float *WalkPlane_v2::getConstraintVector(Puck_v2 *puck) {
 		absoluteDeltaX = -absoluteDeltaX;
 
 	if (absoluteDeltaX <= kEdgeEpsilon || deltaX == 0.0f) {
-		double deltaZ = (double)previous[2] - current[2];
+		double deltaZ = (double)previous[v] - current[v];
 
 		if (deltaZ == 0.0) {
 			// The original could divide by zero here, let's avoid that...
 			warning("WalkPlane_v2::getConstraintVector(): degenerate edge");
 			ratio = 0.0;
 		} else {
-			ratio = ((double)_constraintVector[2] - current[2]) / deltaZ;
+			ratio = ((double)_constraintVector[v] - current[v]) / deltaZ;
 		}
 	} else {
-		ratio = ((double)_constraintVector[0] - current[0]) / deltaX;
+		ratio = ((double)_constraintVector[u] - current[u]) / deltaX;
 	}
 
 	const float *lineStart = &_verts[(edge + 1) % _numVerts]->x;
 	const float *lineEnd = &_verts[(_numVerts + edge - 2) % _numVerts]->x;
-	double lineDeltaX = (double)lineEnd[0] - lineStart[0];
-	float lineDeltaZ = (float)((double)lineEnd[2] - lineStart[2]);
-	float pointX = (float)(lineDeltaX * ratio + lineStart[0]);
-	double pointZ = ratio * lineDeltaZ + lineStart[2];
+	double lineDeltaX = (double)lineEnd[u] - lineStart[u];
+	float lineDeltaZ = (float)((double)lineEnd[v] - lineStart[v]);
+	float pointX = (float)(lineDeltaX * ratio + lineStart[u]);
+	double pointZ = ratio * lineDeltaZ + lineStart[v];
+
+	if (demo) {
+		// The demo keeps the height and returns the full difference
+		float lineDeltaY = (float)((double)lineEnd[1] - lineStart[1]);
+		double pointY = ratio * lineDeltaY + lineStart[1];
+
+		float demoX = (float)((double)pointX - _constraintVector[u]);
+		float demoY = (float)(pointY - _constraintVector[w]);
+		float demoZ = (float)(pointZ - _constraintVector[v]);
+
+		_constraintVector[u] = demoX;
+		_constraintVector[w] = demoY;
+		_constraintVector[v] = demoZ;
+
+		if (puck->_startStep < 0.0f) {
+			_constraintVector[0] = -_constraintVector[0];
+			_constraintVector[1] = -_constraintVector[1];
+			_constraintVector[2] = -_constraintVector[2];
+		}
+
+		return _constraintVector;
+	}
 
 	puck->_lineA[1] = 0.0f;
 	puck->_lineA[0] = pointX;
 	puck->_lineA[2] = (float)pointZ;
 
-	_constraintVector[1] = 0.0f;
+	_constraintVector[w] = 0.0f;
+
 	puck->_lineB[0] = _constraintVector[0];
 	puck->_lineB[1] = _constraintVector[1];
 	puck->_lineB[2] = _constraintVector[2];
 
-	float resultX = (float)((double)pointX - _constraintVector[0]);
-	float resultZ = (float)(pointZ - _constraintVector[2]);
+	float resultX = (float)((double)pointX - _constraintVector[u]);
+	float resultZ = (float)(pointZ - _constraintVector[v]);
 
-	_constraintVector[1] = -_constraintVector[1];
-	_constraintVector[0] = resultX;
-	_constraintVector[2] = resultZ;
+	_constraintVector[w] = -_constraintVector[w];
+	_constraintVector[u] = resultX;
+	_constraintVector[v] = resultZ;
 
 	return _constraintVector;
 }
@@ -702,8 +944,15 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 	float ahead[3] = { 0.0f, 0.0f, 0.0f };
 	float hit[3] = { 0.0f, 0.0f, 0.0f };
 
-	if (_numVerts != 4)
+	int u = 0;
+	int v = 2;
+
+	if (_numVerts != 4) {
+		if (_engine->isDemo())
+			logConsoleError("WalkPlane_v2::jumpOut(): the plane must be a square.\n");
+
 		return;
+	}
 
 	if (!puck) {
 		warning("WalkPlane_v2::jumpOut(): missing puck");
@@ -734,8 +983,12 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 
 	int edge = _hitEdge;
 
-	if (edge == -1)
+	if (edge == -1) {
+		if (_engine->isDemo())
+			logConsoleError("WalkPlane_v2::jumpOut(): could not find the edge to leave through.\n");
+
 		return;
+	}
 
 	const float *current = &_verts[edge]->x;
 	int previousIndex = edge - 1;
@@ -744,7 +997,7 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 		previousIndex = _numVerts - 1;
 
 	const float *previous = &_verts[previousIndex]->x;
-	float deltaX = (float)((double)previous[0] - current[0]);
+	float deltaX = (float)((double)previous[u] - current[u]);
 	float absoluteDeltaX = deltaX;
 	double ratio;
 
@@ -752,17 +1005,17 @@ void WalkPlane_v2::jumpOut(Puck_v2 *puck) {
 		absoluteDeltaX = -absoluteDeltaX;
 
 	if (absoluteDeltaX <= kEdgeEpsilon || deltaX == 0.0f) {
-		double deltaZ = (double)previous[2] - current[2];
+		double deltaZ = (double)previous[v] - current[v];
 
 		if (deltaZ == 0.0) {
 			// The original could divide by zero here, let's avoid that...
 			warning("WalkPlane_v2::jumpOut(): degenerate edge");
 			ratio = 0.0;
 		} else {
-			ratio = ((double)hit[2] - current[2]) / deltaZ;
+			ratio = ((double)hit[v] - current[v]) / deltaZ;
 		}
 	} else {
-		ratio = ((double)hit[0] - current[0]) / deltaX;
+		ratio = ((double)hit[u] - current[u]) / deltaX;
 	}
 
 	double remaining = 1.0 - ratio;

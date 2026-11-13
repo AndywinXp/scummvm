@@ -102,6 +102,11 @@ bool COGLContext::open(const DisplayMode *mode) {
 	checkExtensions();
 	initGLState();
 
+	// The frame buffer is never written with alpha later, and the ScummVM backend may alpha test it when it blits the frame
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	_drawListA._ctx = this;
 	_drawListB._ctx = this;
 
@@ -174,7 +179,16 @@ void COGLContext::clear(bool color, bool depth) {
 void COGLContext::setCameraMatrix(const float *matrix) {
 	GLfloat m[16];
 
-	glFrontFace(GL_CW);
+	if (_engine->isDemo()) {
+		double determinant = ((double)matrix[1] * matrix[5] - (double)matrix[4] * matrix[2]) * matrix[6] +
+			((double)matrix[4] * matrix[0] - (double)matrix[3] * matrix[1]) * matrix[8] +
+			((double)matrix[3] * matrix[2] - (double)matrix[0] * matrix[5]) * matrix[7];
+
+		glFrontFace(determinant >= 0.0 ? GL_CCW : GL_CW);
+	} else {
+		glFrontFace(GL_CW);
+	}
+
 	glMatrixMode(GL_MODELVIEW);
 
 	m[3] = 0.0f;
@@ -530,7 +544,12 @@ void COGLContext::setTextures(CTexture *tex, int flags) {
 
 	glBindTexture(GL_TEXTURE_2D, static_cast<COGLTexture *>(tex)->_glId);
 
-	if (_texEnvMode != 2) {
+	if (_engine->isDemo() && (flags & 1)) {
+		if (_texEnvMode != 1) {
+			_texEnvMode = 1;
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		}
+	} else if (_texEnvMode != 2) {
 		_texEnvMode = 2;
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	}

@@ -39,6 +39,7 @@ void Lua_V2::NewLayer() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleWarning, "NewLayer: there is no current set.\n");
 		lua_pushnil();
 
 		return;
