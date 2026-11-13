@@ -447,6 +447,34 @@ static const GrimGameDescription gameDescriptions[] = {
 		GType_MONKEY4
 	},
 	{
+		// Escape from Monkey Island Simplified Chinese
+		{
+			"monkey4",
+			"",
+			AD_ENTRY2s("artAll.m4b", "61959da91d864bf5f4588daa4a5a3019", 18515664,
+				   "Script.tab", "ba6dca6f6e9ce9fd31a4b529f992c99d", 595396),
+			Common::ZH_CHN,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUI_OPTIONS_EMI
+		},
+		GType_MONKEY4
+	},
+	{
+		// Escape from Monkey Island Korean
+		{
+			"monkey4",
+			"",
+			AD_ENTRY2s("artAll.m4b", "61959da91d864bf5f4588daa4a5a3019", 18515664,
+				   "Script.tab", "84226b3bda203c64af2eabf71ee316bc", 707784),
+			Common::KO_KOR,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUI_OPTIONS_EMI
+		},
+		GType_MONKEY4
+	},
+	{
 		// Escape from Monkey Island German
 		{
 			"monkey4",
