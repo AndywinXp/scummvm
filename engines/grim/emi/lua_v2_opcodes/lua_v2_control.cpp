@@ -39,7 +39,7 @@ void Lua_V2::makeControlsTable(int ref) {
 	lua_pushobject(controlsTable);
 	lua_settable();
 
-	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
+	for (int i = 0; i < _engine->getControl()->getNumControls(); i++) {
 		lua_pushobject(controlsTable);
 		lua_pushstring(_engine->getControl()->_controlTable[i].name);
 		lua_pushnumber((float)i);
@@ -56,6 +56,9 @@ void Lua_V2::EnableControl() {
 	lua_Object controlObj = lua_getparam(1);
 
 	if (!lua_isnumber(controlObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "EnableControl: the control must be a number.\n");
+
 		lua_pushnil();
 
 		return;
@@ -68,6 +71,9 @@ void Lua_V2::DisableControl() {
 	lua_Object controlObj = lua_getparam(1);
 
 	if (!lua_isnumber(controlObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "DisableControl: the control must be a number.\n");
+
 		lua_pushnil();
 
 		return;
@@ -80,7 +86,7 @@ void Lua_V2::GetControlState() {
 	lua_Object controlObj = lua_getparam(1);
 
 	if (!lua_isnumber(controlObj)) {
-		if (_engine->getGamePlatform() == Common::kPlatformPS2 && _engine->getConsoleServices())
+		if ((_engine->getGamePlatform() == Common::kPlatformPS2 || _engine->isDemo()) && _engine->getConsoleServices())
 			_engine->getConsoleServices()->logDebug("GetControlState: Invalid control (non-numerical).\n");
 
 		return;
@@ -88,7 +94,7 @@ void Lua_V2::GetControlState() {
 
 	int index = luaFtol(lua_getnumber(controlObj));
 
-	if ((uint)index >= (uint)SputControl_v2::kNumControls) {
+	if ((uint)index >= (uint)_engine->getControl()->getNumControls()) {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logError("GetControlState: Invalid control %d.\n", index);
 		else
@@ -150,15 +156,16 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 	}
 
 	uint index = 0;
+	uint numControls = (uint)_engine->getControl()->getNumControls();
 
-	while (index < (uint)SputControl_v2::kNumControls && vk != (int)_engine->getControl()->_controlTable[index].code)
+	while (index < numControls && vk != (int)_engine->getControl()->_controlTable[index].code)
 		index++;
 
-	if (index < (uint)SputControl_v2::kNumControls) {
+	if (index < numControls) {
 		ControlEntry *control = &_engine->getControl()->_controlTable[index];
 
 		if (_engine->getControl()->isModifierKey(vk) && control->state == (byte)down) {
-			index = SputControl_v2::kNumControls;
+			index = numControls;
 		} else {
 			control->state = down;
 
@@ -169,7 +176,7 @@ bool Lua_V2::buttonHandler(int vk, bool down) {
 		}
 	}
 
-	if (callHandler && index < (uint)SputControl_v2::kNumControls) {
+	if (callHandler && index < numControls) {
 		if (pushSelf)
 			lua_pushobject(handler);
 
@@ -230,7 +237,7 @@ void Lua_V2::axisHandler() {
 			warning("Installed axis handler is invalid!");
 	}
 
-	for (int i = 0; i < SputControl_v2::kNumControls; i++) {
+	for (int i = 0; i < _engine->getControl()->getNumControls(); i++) {
 		ControlEntry *control = &_engine->getControl()->_controlTable[i];
 
 		if (!(control->flags & ControlEntry::kEnabled))

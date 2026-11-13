@@ -776,6 +776,59 @@ static const LuaFuncIdList luaFuncIdListsEmi[kNumListsEmi] = {
 	{ "primitives", luaFuncIdNamesPrimitivesEmi, ARRAYSIZE(luaFuncIdNamesPrimitivesEmi), 7, true }
 };
 
+// The demo has no sleep_for
+static const char *const luaFuncIdNamesInternalEmiDemo[] = {
+	"setfallback", "assert", "call", "collectgarbage", "dofile", "copytagmethods", "dostring", "error", "foreach", "foreachvar",
+	"getglobal", "newtag", "next", "nextvar", "print", "rawgetglobal", "rawgettable", "rawsetglobal", "rawsettable", "seterrormethod",
+	"setglobal", "settagmethod", "gettagmethod", "settag", "tonumber", "tostring", "tag", "type", "start_script", "stop_script",
+	"next_script", "identify_script", "pause_scripts", "unpause_scripts", "pause_script", "unpause_script", "find_script", "break_here"
+};
+
+// The demo opcode table without its first three entries, in the order of the demo
+static const char *const luaFuncIdNamesMainEmiDemo[] = {
+	"EnginePause", "EngineResume", "EngineDisplay", "SpewStartup", "SpewShutdown", "GetCurrentScript", "GetPhysicalBytes", "GetMemoryUsage", "SetMemoryUsage", "GetDiskFreeSpace",
+	"FindFileOrSwapCDs", "CheckForFile", "FindFileOnAnyCD", "FileFindFirst", "FileFindNext", "FileFindDispose", "TextFileGetLineCount", "TextFileGetLine", "InputDialog", "QueryDialog",
+	"WriteRegistryValue", "ReadRegistryValue", "Load", "Save", "ScreenShot", "MakeScreenTextures", "SubmitSaveGameData", "GetSaveGameData", "JustLoaded", "ThumbnailFromScreen",
+	"ThumbnailFromFile", "ClearSpecialtyTexture", "LoadActor", "UnloadActor", "GetActorTimeScale", "SetActorTimeScale", "SetActorWalkDominate", "SetSelectedActor", "SetActorWalkChore", "SetActorTurnChores",
+	"SetActorRestChore", "SetActorMumblechore", "SetActorTalkChore", "SetActorWalkRate", "GetActorWalkRate", "SetActorTurnRate", "GetActorTurnRate", "GetActorPos", "GetActorWorldPos", "GetActorPuckVector",
+	"GetActorYawToPoint", "SetActorReflection", "PutActorInSet", "PutActorAt", "PutActorInOverworld", "RemoveActorFromOverworld", "ClearOverworld", "ToggleOverworld", "WalkActorVector", "WalkActorForward",
+	"ActorStopMoving", "WalkActorTo", "WalkActorToAvoiding", "ActorLookAt", "IsActorLooking", "SetActorLookRate", "GetActorLookRate", "SetActorFOV", "GetActorFOV", "GetVisibleThings",
+	"SetActorLighting", "SetActorHead", "SetActorHeadLimits", "SetActorVisibility", "SetActorFollowBoxes", "ActorActivateShadow", "ShutUpActor", "EnableActorPuck", "SetActorGlobalAlpha", "SetActorLocalAlpha",
+	"SetActorCollisionMode", "SetActorCollisionScale", "SetActorSortOrder", "GetActorSortOrder", "AttachActor", "DetachActor", "IsActorInSector", "GetActorSector", "IsPointInSector", "GetPointSector",
+	"TurnActor", "GetActorRot", "SetActorRot", "SetActorPitch", "SetActorRoll", "IsActorTurning", "PointActorAt", "TurnActorTo", "PlayActorChore", "PlayActorChoreLooping",
+	"IsActorMoving", "IsActorResting", "GetActorChores", "StopActorChores", "IsChoreValid", "IsChorePlaying", "IsChoreLooping", "SetChoreLooping", "PlayChore", "FadeInChore",
+	"FadeOutChore", "StopChore", "PauseChore", "AdvanceChore", "CompleteChore", "LockChore", "UnlockChore", "LockChoreSet", "UnlockChoreSet", "exit",
+	"FunctionName", "EnableControl", "DisableControl", "GetControlState", "PrintMessage", "PrintError", "PrintWarning", "PrintDebug", "MakeCurrentSet", "LockSet",
+	"UnLockSet", "LockBackground", "UnLockBackground", "MakeCurrentSetup", "GetCurrentSetup", "NextSetup", "PreviousSetup", "StartMovie", "StopMovie", "PauseMovie",
+	"IsMoviePlaying", "PlaySound", "StopAllSounds", "LoadSound", "FreeSound", "PlayLoadedSound", "IsSoundPlaying", "GetGroupVolume", "SetGroupVolume", "GetSoundVolume",
+	"SetSoundVolume", "ImSetState", "ImPause", "ImResume", "ImSetVoiceEffect", "IsSectorActive", "MakeSectorActive", "GetSectorOppositeEdge", "WorldToScreen", "GetCameraPosition",
+	"SetCameraPosition", "CameraLookAt", "GetCameraFOV", "SetCameraFOV", "GetCameraYaw", "YawCamera", "GetCameraPitch", "PitchCamera", "GetCameraRoll", "RollCamera",
+	"GetCameraLookVector", "PerSecond", "SnapToPlane", "GetAngleBetweenVectors", "GetAngleBetweenActors", "SetAmbientLight", "TurnLightOn", "IsLightOn", "SetLightPosition", "GammaEnabled",
+	"SetGamma", "SetPixelCenter", "RenderModeUser", "DimScreen", "DimRegion", "UndimAll", "UndimRegion", "Display", "SetSpeechMode", "GetSpeechMode",
+	"NewLayer", "FreeLayer", "GetLayerSortOrder", "SetLayerSortOrder", "GetLayerFrame", "SetLayerFrame", "AdvanceLayerFrame", "SetTextSpeed", "GetTextSpeed", "IsMessageGoing",
+	"SetSayLineDefaults", "SetActorTalkColor", "GetActorTalkColor", "SayLine", "MakeTextObject", "KillTextObject", "ChangeTextObject", "GetTextObjectDimensions", "BlastText", "ExpireText",
+	"PurgeText", "MakeColor", "GetColorComponents", "SetTranslationMode", "GetTranslationMode", "LocalizeString", "GetFontDimensions", "GetTextCharPosition", "SetOffscreenTextPos", "ReportAllResources",
+	"ReportLRUResources", "ReportUsedResources", "ReportUnusedResources", "PurgeAmount", "PurgeAllResources", "PurgeUnusedResources", "PurgeUnlockedResources", "LightMgrStartup", "LightMgrShutdown", "LightMgrSetChange",
+	"ToggleDebugDraw", "ToggleDrawCameras", "ToggleDrawLights", "ToggleDrawSectors", "ToggleDrawBBoxes", "ToggleDrawFPS", "ToggleDrawPerformance", "GetSectorName", "WriteSetToFile", "SectEditSelect",
+	"SectEditPlace", "SectEditModify", "SectEditDelete", "SectEditInsert", "SectEditSortAdd", "SectEditForgetIt", "FRUTEY_Begin", "FRUTEY_End", "ImGetSfxVol", "ImSetSfxVol",
+	"ImGetVoiceVol", "ImSetVoiceVol", "ImGetMusicVol", "ImSetMusicVol"
+};
+
+static const LuaFuncIdList luaFuncIdListsEmiDemo[kNumListsEmi] = {
+	{ "ps2", luaFuncIdNamesPs2Emi, ARRAYSIZE(luaFuncIdNamesPs2Emi), 24, true },
+	{ "int_funcs", luaFuncIdNamesInternalEmiDemo, ARRAYSIZE(luaFuncIdNamesInternalEmiDemo), 38, false },
+	{ "stateFuncs", luaFuncIdNamesState, ARRAYSIZE(luaFuncIdNamesState), 1, false },
+	{ "iolib", luaFuncIdNamesIoEmi, ARRAYSIZE(luaFuncIdNamesIoEmi), 9, false },
+	{ "iolibtag", luaFuncIdNamesIoTag, ARRAYSIZE(luaFuncIdNamesIoTag), 5, false },
+	{ "strlib", luaFuncIdNamesString, ARRAYSIZE(luaFuncIdNamesString), 9, false },
+	{ "mathlib", luaFuncIdNamesMath, ARRAYSIZE(luaFuncIdNamesMath), 21, false },
+	{ "wrappermathlib", luaFuncIdNamesMathPow, ARRAYSIZE(luaFuncIdNamesMathPow), 1, false },
+	{ "main", luaFuncIdNamesMainEmiDemo, ARRAYSIZE(luaFuncIdNamesMainEmiDemo), 254, true },
+	{ "extra", luaFuncIdNamesExtraEmi, ARRAYSIZE(luaFuncIdNamesExtraEmi), 3, true },
+	{ "tmFuncs", luaFuncIdNamesFallback, ARRAYSIZE(luaFuncIdNamesFallback), 3, false },
+	{ "primitives", luaFuncIdNamesPrimitivesEmi, ARRAYSIZE(luaFuncIdNamesPrimitivesEmi), 7, true }
+};
+
 enum {
 	kGroupNone,
 	kGroupErrorIm,
@@ -846,10 +899,25 @@ static const LuaFuncIdAlias luaFuncIdAliasesEmi[] = {
 	{ kListEmiFallback, "  nilFB", kGroupEmpty }
 };
 
+// The demo has the empty function in InputDialog too, and its default control handler is a
+// function of its own
+static const LuaFuncIdAlias luaFuncIdAliasesEmiDemo[] = {
+	{ kListEmiMain, "EngineDisplay", kGroupEmpty },
+	{ kListEmiMain, "SpewStartup", kGroupEmpty },
+	{ kListEmiMain, "SpewShutdown", kGroupEmpty },
+	{ kListEmiMain, "InputDialog", kGroupEmpty },
+	{ kListEmiMain, "SetAmbientLight", kGroupEmpty },
+	{ kListEmiMain, "Display", kGroupEmpty },
+	{ kListEmiIo, "rename", kGroupEmpty },
+	{ kListEmiFallback, "  nilFB", kGroupEmpty }
+};
+
 struct LuaFuncIdEntry {
 	lua_CFunction func;
 	int group;
 };
+
+static bool isEmiDemoIdLists = false;
 
 static const LuaFuncIdList *lists = luaFuncIdLists;
 static int activeListCount = kNumLists;
@@ -930,7 +998,12 @@ static void buildFuncIdLists() {
 
 	numLiveLists = live.size();
 
-	if (luaIsEmi) {
+	if (luaIsEmi && isEmiDemoIdLists) {
+		lists = luaFuncIdListsEmiDemo;
+		activeListCount = kNumListsEmi;
+		aliases = luaFuncIdAliasesEmiDemo;
+		numAliases = ARRAYSIZE(luaFuncIdAliasesEmiDemo);
+	} else if (luaIsEmi) {
 		lists = luaFuncIdListsEmi;
 		activeListCount = kNumListsEmi;
 		aliases = luaFuncIdAliasesEmi;
@@ -1161,6 +1234,11 @@ void lua_FuncIDsInvalidate() {
 	isBuilt = false;
 	reportedIds.clear();
 	reportedFuncs.clear();
+}
+
+void lua_FuncIDsSetEmiDemo(bool isDemo) {
+	isEmiDemoIdLists = isDemo;
+	lua_FuncIDsInvalidate();
 }
 
 } // end of namespace Grim

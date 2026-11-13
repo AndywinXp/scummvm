@@ -130,6 +130,7 @@ public:
 	PrimitiveQueue_v2 *getPrimitiveQueue();
 	const Common::List<CLightNode *> &getActiveLights() const;
 	bool isCjkMode() const { return _cjkMode; }
+	bool isDemo() const { return _isDemo; }
 
 	int registerConsole(LConsoleServices *console);
 	void deleteAllConsoles();
@@ -192,8 +193,8 @@ public:
 	static Graphics::Surface *readSaveThumbnail(Common::SeekableReadStream *stream, bool fullTexture = false);
 	static Common::String getSaveDescription(const Common::Array<Common::String> &strings, int slot);
 	static bool isLegacySaveFile(const Common::String &fileName);
-	static Common::String getSavePrefix(Common::Platform platform, Common::Language language);
-	static Common::String applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language);
+	static Common::String getSavePrefix(Common::Platform platform, Common::Language language, bool isDemo);
+	static Common::String applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language, bool isDemo);
 	static uint getMemoryCardId();
 	static bool hasMemoryCardSaves();
 	bool deleteSaveFile(const char *fileName);
@@ -286,6 +287,7 @@ private:
 	static void addPadAction(Common::Keymap *keymap, const char *id, const Common::U32String &label, int padButton, const char *input);
 	static void addPadActionsPs2(Common::Keymap *keymap);
 	static void addKeyActionsPc(Common::Keymap *keymap);
+	void showSplash(CDrawContext *drawContext);
 	void pixelTest();
 	float updateFrameTime(int manualMs);
 	void drawStatsOverlay(CDrawContext *drawContext);
@@ -420,6 +422,7 @@ private:
 	int _nextTextEventId;
 	bool _textEventsStarted;
 	bool _cjkMode;
+	bool _isDemo;
 	int _glyphAdvance;
 	Common::HashMap<uint16, CTexture *> _glyphMap;
 

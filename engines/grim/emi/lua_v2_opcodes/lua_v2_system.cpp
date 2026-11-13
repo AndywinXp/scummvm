@@ -100,6 +100,9 @@ void Lua_V2::FileFindFirst() {
 	lua_Object directoryObj = lua_getparam(2);
 
 	if (!lua_isstring(extensionObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleWarning, "FileFindFirst: the first argument must be a string.\n");
+
 		lua_pushnil();
 
 		return;
@@ -156,6 +159,9 @@ void Lua_V2::TextFileGetLineCount() {
 	int lineCount = 0;
 
 	if (lua_isnil(nameObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLineCount: the argument must be a file name.\n");
+
 		lua_pushnil();
 
 		return;
@@ -164,7 +170,11 @@ void Lua_V2::TextFileGetLineCount() {
 	const char *fileName = lua_getstring(nameObj);
 
 	if (!fileName) {
-		warning("Lua_V2::TextFileGetLineCount(): the file name is not a string");
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLineCount: the argument must be a file name.\n");
+		else
+			warning("Lua_V2::TextFileGetLineCount(): the file name is not a string");
+
 		lua_pushnil();
 
 		return;
@@ -173,6 +183,9 @@ void Lua_V2::TextFileGetLineCount() {
 	LFile *file = _engine->getFileServices()->open(fileName, "rt");
 
 	if (!file) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLineCount: cannot open %s.\n", fileName);
+
 		lua_pushnil();
 
 		return;
@@ -204,6 +217,9 @@ void Lua_V2::TextFileGetLine() {
 	char buffer[512];
 
 	if (lua_isnil(nameObj) || lua_isnil(positionObj)) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLine: the arguments must be a file name and a position.\n");
+
 		lua_pushnil();
 
 		return;
@@ -212,7 +228,11 @@ void Lua_V2::TextFileGetLine() {
 	const char *fileName = lua_getstring(nameObj);
 
 	if (!fileName) {
-		warning("Lua_V2::TextFileGetLine(): the file name is not a string");
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLine: the first argument must be a file name.\n");
+		else
+			warning("Lua_V2::TextFileGetLine(): the file name is not a string");
+
 		lua_pushnil();
 
 		return;
@@ -221,6 +241,9 @@ void Lua_V2::TextFileGetLine() {
 	LFile *file = _engine->getFileServices()->open(fileName, "rt");
 
 	if (!file) {
+		if (_engine->isDemo())
+			logConsole(kConsoleDebug, "TextFileGetLine: cannot open %s.\n", fileName);
+
 		lua_pushnil();
 
 		return;
@@ -290,6 +313,8 @@ void Lua_V2::QueryDialog() {
 
 			return;
 		}
+	} else if (_engine->isDemo()) {
+		logConsole(kConsoleWarning, "QueryDialog: the caption and the text must be strings.\n");
 	}
 
 	lua_pushnil();

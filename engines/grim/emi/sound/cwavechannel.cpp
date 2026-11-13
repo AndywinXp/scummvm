@@ -410,6 +410,18 @@ void CWaveChannel::applyCueSettings(CSoundCue *newCue) {
 	setVolume(newCue->getVolume());
 	setPan(newCue->getPan());
 
+	// The demo has no reverb, cutoff or silent tail: a looping cue gets its loop block, any other plays once
+	if (_engine->isDemo()) {
+		if ((newCue->_flags & CSoundCue::kFlagLoop) != 0) {
+			setLoopCount(0);
+
+			if (newCue->_sound)
+				_driver->setSampleLoopBlock(_sample, (int)newCue->_sound->_loopStart, (int)newCue->_sound->_loopEnd);
+		}
+
+		return;
+	}
+
 	int preset = 0;
 	float reverbFirst = 0.0f;
 	float reverbSecond = 0.0f;

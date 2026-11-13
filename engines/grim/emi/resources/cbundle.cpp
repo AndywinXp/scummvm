@@ -822,6 +822,10 @@ LFile *CBundleServices::open(const char *path, const char *mode) {
 	_inner->openInto(slot, path, mode);
 
 	if (!slot->isOpen()) {
+		// The demo has no CD, so there is no second try without the CD path
+		if (_engine->isDemo())
+			return nullptr;
+
 		_engine->getPathingFileServices()->suspendCdPath();
 		_inner->openInto(slot, path, mode);
 		_engine->getPathingFileServices()->resumeCdPath();
@@ -1250,6 +1254,29 @@ bool CBundleServices::init(EmiEngine *engine, bool isInternational) {
 		return true;
 
 	CBundleServices *services = new CBundleServices(engine, engine->getFileServices());
+
+	if (engine->isDemo()) {
+		// Each new bundle goes to the head of the list: the last one opened wins. Tile and MagDemo are required.
+		services->openBundle("Voice.lab");
+
+		bool failed = services->openBundle("Tile.lab") == nullptr;
+
+		services->openBundle("Lip.lab");
+		failed = services->openBundle("MagDemo.lab") == nullptr || failed;
+		services->openBundle("i9n.lab");
+		services->openBundle("patch.lab");
+
+		if (failed) {
+			delete services;
+
+			return false;
+		}
+
+		engine->pushFileServices(services);
+
+		return true;
+	}
+
 	bool localOpened = services->openLocalBundles();
 
 	services->openCommonBundles();
@@ -1267,7 +1294,7 @@ bool CBundleServices::init(EmiEngine *engine, bool isInternational) {
 }
 
 bool CBundleServices::isI9nBundleOpen() {
-	return findBundle("i9n.m4b") != nullptr;
+	return findBundle(_engine->isDemo() ? "i9n.lab" : "i9n.m4b") != nullptr;
 }
 
 bool CBundleServices::openIslandBundles(const char *island) {

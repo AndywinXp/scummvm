@@ -265,6 +265,8 @@ void Lua_V2::SetTextSpeed() {
 
 	if (lua_isnumber(speedObj))
 		Actor::setActorTextRate(_engine, luaFtol(lua_getnumber(speedObj)));
+	else
+		logDemo(kConsoleDebug, "SetTextSpeed: the speed must be a number.\n");
 }
 
 void Lua_V2::GetTextSpeed() {
@@ -274,8 +276,11 @@ void Lua_V2::GetTextSpeed() {
 void Lua_V2::IsMessageGoing() {
 	lua_Object actorObj = lua_getparam(1);
 
-	if (actorObj && !isActor(actorObj) && !lua_isnil(actorObj))
+	if (actorObj && !isActor(actorObj) && !lua_isnil(actorObj)) {
+		logDemo(kConsoleDebug, "IsMessageGoing: the argument must be an actor or nil.\n");
+
 		return;
+	}
 
 	if (isActor(actorObj)) {
 		Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
@@ -311,14 +316,19 @@ void Lua_V2::SetSayLineDefaults() {
 
 	if (tableObj && lua_istable(tableObj))
 		applyTextTable(tableObj, _engine->_defaultTextEvent);
+	else
+		logDemo(kConsoleDebug, "SetSayLineDefaults: the argument must be a table.\n");
 }
 
 void Lua_V2::SetActorTalkColor() {
 	lua_Object actorObj = lua_getparam(1);
 	lua_Object colorObj = lua_getparam(2);
 
-	if (!isActor(actorObj))
+	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "SetActorTalkColor: the first argument must be an actor.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::actorDeref(_engine, lua_getuserdata(actorObj));
 
@@ -338,12 +348,15 @@ void Lua_V2::SetActorTalkColor() {
 
 	if (lua_isuserdata(colorObj) && lua_tag(colorObj) == kColorTag)
 		actor->_extra->_talkColor = Color((uint)lua_getuserdata(colorObj));
+	else
+		logDemo(kConsoleDebug, "SetActorTalkColor: the second argument must be a color.\n");
 }
 
 void Lua_V2::GetActorTalkColor() {
 	lua_Object actorObj = lua_getparam(1);
 
 	if (!isActor(actorObj)) {
+		logDemo(kConsoleDebug, "GetActorTalkColor: the argument must be an actor.\n");
 		lua_pushnil();
 
 		return;
@@ -387,8 +400,11 @@ void Lua_V2::SayLine() {
 	int index = 2;
 	lua_Object lineObj = lua_getparam(1);
 
-	if (!isActor(lineObj) && !lua_isstring(lineObj) && !lua_istable(lineObj))
+	if (!isActor(lineObj) && !lua_isstring(lineObj) && !lua_istable(lineObj)) {
+		logDemo(kConsoleDebug, "SayLine: the first argument must be an actor, a string or a table.\n");
+
 		return;
+	}
 
 	Actor *actor = Actor::getSelectedActor(_engine);
 
@@ -398,8 +414,17 @@ void Lua_V2::SayLine() {
 		lineObj = lua_getparam(2);
 	}
 
-	if (!actor || lua_isnil(lineObj))
+	if (!actor) {
+		logDemo(kConsoleDebug, "SayLine: there is no actor to speak.\n");
+
 		return;
+	}
+
+	if (lua_isnil(lineObj)) {
+		logDemo(kConsoleDebug, "SayLine: there is no line to say.\n");
+
+		return;
+	}
 
 	while (lua_isstring(lineObj) || lua_isnumber(lineObj) || lua_istable(lineObj)) {
 		if (lua_istable(lineObj))
@@ -436,8 +461,11 @@ void Lua_V2::MakeTextObject() {
 			return;
 		}
 	} else {
-		if (!lua_isstring(textObj))
+		if (!lua_isstring(textObj)) {
+			logDemo(kConsoleDebug, "MakeTextObject: invalid parameter.\n");
+
 			return;
+		}
 
 		const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
 
@@ -471,8 +499,11 @@ void Lua_V2::ChangeTextObject() {
 	lua_Object textObj = lua_getparam(1);
 	int index = 2;
 
-	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
+	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag) {
+		logDemo(kConsoleDebug, "ChangeTextObject: the first argument must be a text object.\n");
+
 		return;
+	}
 
 	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
@@ -523,8 +554,11 @@ void Lua_V2::ChangeTextObject() {
 void Lua_V2::GetTextObjectDimensions() {
 	lua_Object textObj = lua_getparam(1);
 
-	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
+	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag) {
+		logDemo(kConsoleDebug, "GetTextObjectDimensions: the first argument must be a text object.\n");
+
 		return;
+	}
 
 	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 
@@ -552,8 +586,11 @@ void Lua_V2::BlastText() {
 	lua_Object textObj = lua_getparam(1);
 	char tag[TextEvent::kTagBufferSize];
 
-	if (!lua_isstring(textObj))
+	if (!lua_isstring(textObj)) {
+		logDemo(kConsoleDebug, "BlastText: the first argument must be a string.\n");
+
 		return;
+	}
 
 	TextEvent *event;
 
@@ -603,7 +640,8 @@ void Lua_V2::PurgeText() {
 	for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
 
-		if (lua_isnil(keepHeldObj) || !event->_hold) {
+		// The demo ignores its argument and has no held events
+		if (_engine->isDemo() || lua_isnil(keepHeldObj) || !event->_hold) {
 			event->_duration = -1.0f;
 			event->_flags &= ~1u;
 		}
@@ -696,11 +734,16 @@ void Lua_V2::SetTranslationMode() {
 	if (lua_isnil(modeObj)) {
 		_engine->_textMode = 0;
 
+		logDemo(kConsoleDebug, "SetTranslationMode: showing localized text.\n");
+
 		return;
 	}
 
-	if (!lua_isnumber(modeObj))
+	if (!lua_isnumber(modeObj)) {
+		logDemo(kConsoleDebug, "SetTranslationMode: invalid translation type.\n");
+
 		return;
+	}
 
 	int mode = luaFtol(lua_getnumber(modeObj));
 
@@ -710,6 +753,13 @@ void Lua_V2::SetTranslationMode() {
 		_engine->_textMode = 2;
 	else
 		_engine->_textMode = mode;
+
+	if (_engine->_textMode == 0)
+		logDemo(kConsoleDebug, "SetTranslationMode: showing localized text.\n");
+	else if (_engine->_textMode == 1)
+		logDemo(kConsoleDebug, "SetTranslationMode: showing domestic text.\n");
+	else
+		logDemo(kConsoleDebug, "SetTranslationMode: showing domestic text with markers.\n");
 }
 
 void Lua_V2::GetTranslationMode() {
@@ -726,8 +776,11 @@ void Lua_V2::LocalizeString() {
 
 	memset(tag, 0, sizeof(tag));
 
-	if (!lua_isstring(textObj))
+	if (!lua_isstring(textObj)) {
+		logDemo(kConsoleDebug, "LocalizeString: the argument must be a string.\n");
+
 		return;
+	}
 
 	const char *translated = TextEvent::translate(_engine, lua_getstring(textObj), tag);
 	Common::String result;
@@ -785,8 +838,11 @@ void Lua_V2::GetTextCharPosition() {
 	lua_Object textObj = lua_getparam(1);
 	lua_Object countObj = lua_getparam(2);
 
-	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag)
+	if (!lua_isuserdata(textObj) || lua_tag(textObj) != kTextTag) {
+		logDemo(kConsoleDebug, "GetTextCharPosition: the first argument must be a text object.\n");
+
 		return;
+	}
 
 	TextEvent *event = TextEvent::getEvent(_engine, lua_getuserdata(textObj));
 

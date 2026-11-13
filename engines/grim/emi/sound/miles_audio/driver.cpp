@@ -37,9 +37,10 @@ static const int kSpuDepthStep = 100;
 static const float kSpuMaxDepth = 32767.0f;
 static const float kSpuMaxDelay = 127.0f;
 
-EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2) {
+EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2, int sampleCount) {
 	_memoryServices = memoryServices;
 	_isPs2 = isPs2;
+	_sampleCount = MIN<int>(sampleCount, kMaxSampleCount);
 
 	// SPU2 mixes at 48 kHz, while Miles on PC mixes at 22050 Hz
 	if (_isPs2) {
@@ -68,7 +69,7 @@ EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2) {
 	memset(_build, 0, sizeof(_build));
 	memset(_effectBuild, 0, sizeof(_effectBuild));
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		memset(&_samples[i], 0, sizeof(EMIMilesSample));
 		_samples[i].status = kSampleFree;
 		_streams[i] = nullptr;
@@ -81,12 +82,12 @@ EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2) {
 EMIMilesDriver::~EMIMilesDriver() {
 	close();
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_streams[i])
 			closeStream(_streams[i]);
 	}
 
-	for (int i = 0; i < kSampleCount; i++)
+	for (int i = 0; i < _sampleCount; i++)
 		destroyFilter(&_samples[i]);
 
 	delete[] _fifo;
@@ -148,7 +149,7 @@ void EMIMilesDriver::setMasterVolume(int volume) {
 
 	_masterVolume = volume;
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status != kSampleFree)
 			computeScales(&_samples[i]);
 	}
@@ -172,7 +173,7 @@ void EMIMilesDriver::releaseHandle() {
 	if (_released)
 		return;
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSamplePlaying)
 			_samples[i].status = kSamplePlayingReleased;
 	}
@@ -186,7 +187,7 @@ void EMIMilesDriver::reacquireHandle() {
 	if (!_released)
 		return;
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSamplePlayingReleased)
 			_samples[i].status = kSamplePlaying;
 	}
@@ -199,7 +200,7 @@ int EMIMilesDriver::getActiveSampleCount() {
 
 	int count = 0;
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSamplePlaying || _samples[i].status == kSamplePlayingReleased)
 			count++;
 	}
@@ -210,7 +211,7 @@ int EMIMilesDriver::getActiveSampleCount() {
 EMIMilesSample *EMIMilesDriver::allocateSample() {
 	Common::StackLock lock(_mutex);
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSampleFree) {
 			sampleInit(&_samples[i]);
 
@@ -573,7 +574,7 @@ void EMIMilesDriver::mixSegment(int16 *out) {
 
 	streamServiceAll();
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSamplePlaying)
 			advanceSample(&_samples[i]);
 	}

@@ -87,7 +87,11 @@ static const float kLoadingIconUvs[] = {
 };
 
 Movie::Movie(EmiEngine *engine, const char *name, bool newSubtitles, bool newFlag6194, bool newFlag6195, int frame) : EventHandler(engine, 0) {
-	_engine->getSounds()->lowerMasterGainForMovie();
+	bool isDemo = _engine->isDemo();
+
+	// The demo keeps the master gain and ignores the subtitle, drawing and start frame flags
+	if (!isDemo)
+		_engine->getSounds()->lowerMasterGainForMovie();
 
 	_fileName = name;
 
@@ -95,7 +99,7 @@ Movie::Movie(EmiEngine *engine, const char *name, bool newSubtitles, bool newFla
 
 	if (extension != LString::npos) {
 		_fileName.erase(extension);
-		_fileName += ".m4b";
+		_fileName += isDemo ? ".lab" : ".m4b";
 	}
 
 	_typeMask = 0;
@@ -106,10 +110,10 @@ Movie::Movie(EmiEngine *engine, const char *name, bool newSubtitles, bool newFla
 	_subtitleIndex = 0;
 	_subtitleEvent = nullptr;
 	_i9nBundleOpen = _engine->getBundleServices()->isI9nBundleOpen();
-	_subtitlesOn = newSubtitles;
-	_flag6194 = newFlag6194;
-	_flag6195 = newFlag6195;
-	_engine->_movieFirstFrame = frame;
+	_subtitlesOn = isDemo ? false : newSubtitles;
+	_flag6194 = isDemo ? false : newFlag6194;
+	_flag6195 = isDemo ? false : newFlag6195;
+	_engine->_movieFirstFrame = isDemo ? 1 : frame;
 	// The disasm draws on the surface directly only on its full screen Direct3D path, the one reproduced here
 	_useDirectDraw = !_subtitlesOn && !_flag6194;
 	_clearCount = 0;
@@ -131,7 +135,8 @@ Movie::~Movie() {
 	_bink = nullptr;
 	_frameSurface = nullptr;
 
-	_engine->getSounds()->restoreMasterGain();
+	if (!_engine->isDemo())
+		_engine->getSounds()->restoreMasterGain();
 }
 
 bool Movie::handleEvent(const Event *event) {
@@ -408,10 +413,15 @@ bool Movie::open() {
 			_fileName = movieName;
 	}
 
-	uint header = readHeader();
+	// The demo movies are plain Bink files, without the encrypted header
+	uint header = 0;
 
-	if (_subtitlesOn && !header && !loadSubtitles())
-		_subtitlesOn = false;
+	if (!_engine->isDemo()) {
+		header = readHeader();
+
+		if (_subtitlesOn && !header && !loadSubtitles())
+			_subtitlesOn = false;
+	}
 
 	LFile *file = _engine->getFileServices()->open(_fileName.c_str(), "rb");
 
@@ -444,15 +454,19 @@ bool Movie::open() {
 	if (!_bink->setOutputPixelFormat(drawContext->getMovieFormat()))
 		warning("Movie::open(): the decoder cannot use the format of the draw context");
 
-	float gain = Sounds::soundVolumeToGain(_engine->getSounds()->getCategoryVolume(kVoiceCategory));
+	// The demo plays the movie at full volume
+	if (!_engine->isDemo()) {
+		float gain = Sounds::soundVolumeToGain(_engine->getSounds()->getCategoryVolume(kVoiceCategory));
 
-	// The disasm turns NaN into 0
-	if (gain > 1.0f)
-		gain = 1.0f;
-	else if (!(gain >= 0.0f))
-		gain = 0.0f;
+		// The disasm turns NaN into 0
+		if (gain > 1.0f)
+			gain = 1.0f;
+		else if (!(gain >= 0.0f))
+			gain = 0.0f;
 
-	_bink->setVolume((byte)(gain * 255.0f + 0.5f));
+		_bink->setVolume((byte)(gain * 255.0f + 0.5f));
+	}
+
 	_bink->setSoundType(Audio::Mixer::kSpeechSoundType);
 
 	_clearCount = 0;

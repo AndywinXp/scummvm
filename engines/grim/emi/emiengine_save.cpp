@@ -109,9 +109,11 @@ static const Ps2ScreenRegion kPs2ScreenRegions[kNumPs2ScreenTextures] = {
 Common::Error EmiEngine::loadGameState(int slot) {
 	assert(slot >= 0);
 
-	// PS2 scripts compare the loaded name with the card file names
+	// PS2 scripts compare the loaded name with the card file names; the demo scripts use two digits
 	if (getGamePlatform() == Common::kPlatformPS2)
 		loadLib(Common::String::format("efmi%03d", slot).c_str());
+	else if (_isDemo)
+		loadLib(Common::String::format("Saves/efmi%02d.gsv", slot).c_str());
 	else
 		loadLib(Common::String::format("Saves/efmi%03d.gsv", slot).c_str());
 
@@ -132,7 +134,7 @@ Common::String EmiEngine::getSaveFileName(const char *path) {
 	if (name.hasPrefixIgnoreCase("saves/"))
 		name = name.substr(6);
 
-	name = applySavePrefix(name, getGamePlatform(), getGameLanguage());
+	name = applySavePrefix(name, getGamePlatform(), getGameLanguage(), _isDemo);
 
 	// PS2 scripts use slot names like efmi000 without an extension
 	if (getGamePlatform() == Common::kPlatformPS2 && !name.hasSuffixIgnoreCase(kSaveFileExtension))
@@ -141,7 +143,7 @@ Common::String EmiEngine::getSaveFileName(const char *path) {
 	return name;
 }
 
-Common::String EmiEngine::getSavePrefix(Common::Platform platform, Common::Language language) {
+Common::String EmiEngine::getSavePrefix(Common::Platform platform, Common::Language language, bool isDemo) {
 	// The platform wins, so a PS2 save never gets a language prefix
 	if (platform == Common::kPlatformPS2)
 		return "efmi-ps2";
@@ -149,13 +151,16 @@ Common::String EmiEngine::getSavePrefix(Common::Platform platform, Common::Langu
 	if (language == Common::KO_KOR || language == Common::ZH_CHN || language == Common::ZH_TWN)
 		return Common::String("efmi-") + Common::getLanguageCode(language);
 
+	if (isDemo)
+		return "efmi-demo";
+
 	return "efmi";
 }
 
-Common::String EmiEngine::applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language) {
-	Common::String prefix = getSavePrefix(platform, language);
+Common::String EmiEngine::applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language, bool isDemo) {
+	Common::String prefix = getSavePrefix(platform, language, isDemo);
 
-	// Scripts use slot names like efmi000; PS2 and CJK files get their own prefix so they never clash with the other saves
+	// Scripts use slot names like efmi000; PS2, CJK and demo files get their own prefix so they never clash with the other saves
 	if (prefix != "efmi" && name.size() > 4 && name.hasPrefixIgnoreCase("efmi") &&
 			(Common::isDigit(name[4]) || name[4] == '*' || name[4] == '?'))
 		return prefix + name.substr(4);

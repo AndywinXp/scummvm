@@ -44,7 +44,9 @@ CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int
 	_numChannels = 0;
 	_lastCheckMs = 0;
 
-	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getMemoryServices(), _engine->getGamePlatform() == Common::kPlatformPS2);
+	// The demo pool is the 16 wave channels plus room for the music streams
+	int sampleCount = _engine->isDemo() ? 24 : 16;
+	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getMemoryServices(), _engine->getGamePlatform() == Common::kPlatformPS2, sampleCount);
 
 	if (!driver->open(g_system->getMixer())) {
 		delete driver;

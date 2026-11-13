@@ -23,6 +23,7 @@
 
 #include "engines/grim/emi/actor/actor.h"
 #include "engines/grim/emi/costume/components/globalalphainstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/nodes/rprimitiveinstance.h"
 
 namespace Grim {
@@ -87,6 +88,9 @@ void GlobalAlphaInstance::setKey(float value, float elapsed, float nextValue, fl
 
 		return;
 	}
+
+	if (_engine->isDemo())
+		warning("GlobalAlphaInstance::setKey(): no primitive named %s was found on this actor", _filter.c_str());
 }
 
 } // End of namespace Grim

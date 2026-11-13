@@ -91,9 +91,17 @@ void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetNam
 	}
 
 	Chore *chore = nullptr;
+	bool hasChoreSet = lock() && _typed;
 
-	if (lock() && _typed)
+	if (hasChoreSet)
 		chore = _typed->findChore(_choreName);
+
+	if (_engine->isDemo()) {
+		if (!hasChoreSet)
+			warning("ChoreInstance::bind(): no chore set named '%s' was found, the chore will be ignored", choreSetName.c_str());
+		else if (!chore)
+			warning("ChoreInstance::bind(): no chore named '%s' was found, the chore will be ignored", _choreName.c_str());
+	}
 
 	if (chore) {
 		for (uint i = 0; i < chore->_tracks.size(); i++) {
@@ -109,8 +117,12 @@ void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetNam
 
 			if (componentHandle.lock() && componentHandle._typed)
 				_instances.push_back(componentHandle._typed->createInstance(_owner));
-			else
+			else {
+				if (_engine->isDemo())
+					warning("ChoreInstance::bind(): no component named '%s' was found, that track will be ignored", track->_resourceName.c_str());
+
 				_instances.push_back(nullptr);
+			}
 
 			componentHandle.unlock();
 		}
@@ -123,15 +135,20 @@ void ChoreInstance::bind(const LString &newChoreName, const LString &choreSetNam
 
 			int parentIndex = chore->findTrackIndex(track->_parentId);
 
-			if (parentIndex < 0)
+			if (parentIndex < 0) {
+				if (_engine->isDemo())
+					warning("ChoreInstance::bind(): the parent of component '%s' cannot be found, the child remains an orphan", track->_resourceName.c_str());
+
 				continue;
+			}
 
 			if (i >= _instances.size() || (uint)parentIndex >= _instances.size() || !_instances[i]) {
 				warning("ChoreInstance::bind(): missing instance for track %u", i);
 				continue;
 			}
 
-			_instances[i]->setParent(_instances[parentIndex]);
+			if (!_instances[i]->setParent(_instances[parentIndex]) && _engine->isDemo())
+				warning("ChoreInstance::bind(): component '%s' failed to attach itself to its parent", track->_resourceName.c_str());
 		}
 	} else {
 		_flags = kFinished;
@@ -266,13 +283,21 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 	if (!lock())
 		return false;
 
-	if (!_typed)
+	if (!_typed) {
+		if (_engine->isDemo())
+			warning("ChoreInstance::update(): the chore set handle points to nothing");
+
 		return false;
+	}
 
 	Chore *chore = _typed->findChore(_choreName);
 
-	if (!chore)
+	if (!chore) {
+		if (_engine->isDemo())
+			warning("ChoreInstance::update(): could not find a chore named '%s'", _choreName.c_str());
+
 		return false;
+	}
 
 	float fullDeltaTime = deltaTime;
 

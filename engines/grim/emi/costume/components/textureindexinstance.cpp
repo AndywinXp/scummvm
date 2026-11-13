@@ -27,6 +27,7 @@
 #include "engines/grim/emi/nodes/rmesh.h"
 #include "engines/grim/emi/nodes/rmeshinstance.h"
 #include "engines/grim/emi/costume/components/textureindexinstance.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
@@ -92,6 +93,9 @@ void TextureIndexInstance::setKey(float value, float elapsed, float nextValue, f
 			warning("TextureIndexInstance::setKey(): cannot lock the material %s", _filter.c_str());
 			materialHandle.unlock();
 		} else if (textureIndex < 0 || textureIndex >= material->getNumTextures()) {
+			if (_engine->isDemo())
+				warning("TextureIndexInstance::setKey(): index %d is out of range for the material %s", textureIndex, _filter.c_str());
+
 			materialHandle.unlock();
 		} else {
 			if (materialHandle._resource && materialHandle._resource->_loaded) {
@@ -107,6 +111,9 @@ void TextureIndexInstance::setKey(float value, float elapsed, float nextValue, f
 
 		return;
 	}
+
+	if (_engine->isDemo())
+		warning("TextureIndexInstance::setKey(): no material named %s was found on any primitive the actor is wearing", _filter.c_str());
 }
 
 } // End of namespace Grim

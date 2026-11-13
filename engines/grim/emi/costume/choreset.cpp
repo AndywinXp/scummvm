@@ -292,7 +292,8 @@ bool ChoreSet::resLoadItem(const char *itemName) {
 	}
 
 	if (loadText(itemName)) {
-		saveBinary(binaryPath.c_str());
+		if (!_engine->isDemo())
+			saveBinary(binaryPath.c_str());
 
 		return true;
 	}

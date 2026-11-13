@@ -54,7 +54,7 @@ void Lua_V2::WorldToScreen() {
 	bool isPs2 = _engine->getGamePlatform() == Common::kPlatformPS2;
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
-		if (isPs2 && _engine->getConsoleServices())
+		if ((isPs2 || _engine->isDemo()) && _engine->getConsoleServices())
 			_engine->getConsoleServices()->logDebug("WorldToScreen: Parameters must be x, y, z coords.\n");
 
 		return;
@@ -157,6 +157,7 @@ void Lua_V2::GetCameraPosition() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "GetCameraPosition: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -191,6 +192,7 @@ void Lua_V2::SetCameraPosition() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "SetCameraPosition: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -201,6 +203,7 @@ void Lua_V2::SetCameraPosition() {
 	lua_Object zObj = lua_getparam(3);
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleStatus, "SetCameraPosition: the parameters must be numbers.\n");
 		lua_pushnil();
 
 		return;
@@ -227,6 +230,7 @@ void Lua_V2::CameraLookAt() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "CameraLookAt: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -237,6 +241,7 @@ void Lua_V2::CameraLookAt() {
 	lua_Object zObj = lua_getparam(3);
 
 	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleStatus, "CameraLookAt: the parameters must be numbers.\n");
 		lua_pushnil();
 
 		return;
@@ -263,6 +268,7 @@ void Lua_V2::GetCameraFOV() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "GetCameraFOV: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -284,6 +290,7 @@ void Lua_V2::SetCameraFOV() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "SetCameraFOV: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -292,6 +299,7 @@ void Lua_V2::SetCameraFOV() {
 	lua_Object fovObj = lua_getparam(1);
 
 	if (!lua_isnumber(fovObj)) {
+		logDemo(kConsoleStatus, "SetCameraFOV: the parameter must be a number.\n");
 		lua_pushnil();
 
 		return;
@@ -332,6 +340,7 @@ void Lua_V2::GetCameraYaw() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "GetCameraYaw: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -356,6 +365,7 @@ void Lua_V2::YawCamera() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "YawCamera: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -364,6 +374,7 @@ void Lua_V2::YawCamera() {
 	lua_Object angleObj = lua_getparam(1);
 
 	if (!lua_isnumber(angleObj)) {
+		logDemo(kConsoleStatus, "YawCamera: the parameter must be a number.\n");
 		lua_pushnil();
 
 		return;
@@ -406,6 +417,7 @@ void Lua_V2::GetCameraPitch() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "GetCameraPitch: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -430,6 +442,7 @@ void Lua_V2::PitchCamera() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "PitchCamera: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -438,6 +451,7 @@ void Lua_V2::PitchCamera() {
 	lua_Object angleObj = lua_getparam(1);
 
 	if (!lua_isnumber(angleObj)) {
+		logDemo(kConsoleStatus, "PitchCamera: the parameter must be a number.\n");
 		lua_pushnil();
 
 		return;
@@ -480,6 +494,7 @@ void Lua_V2::GetCameraRoll() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "GetCameraRoll: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -504,6 +519,7 @@ void Lua_V2::RollCamera() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleStatus, "RollCamera: there is no camera.\n");
 		lua_pushnil();
 
 		return;
@@ -512,6 +528,7 @@ void Lua_V2::RollCamera() {
 	lua_Object angleObj = lua_getparam(1);
 
 	if (!lua_isnumber(angleObj)) {
+		logDemo(kConsoleStatus, "RollCamera: the parameter must be a number.\n");
 		lua_pushnil();
 
 		return;
@@ -555,6 +572,7 @@ void Lua_V2::GetCameraLookVector() {
 	Room_v2 *currentRoom = Room_v2::getCurrentRoom(_engine);
 
 	if (!currentRoom) {
+		logDemo(kConsoleWarning, "GetCameraLookVector: there is no current set.\n");
 		lua_pushnil();
 
 		return;
@@ -642,6 +660,7 @@ void Lua_V2::SnapToPlane() {
 	WalkPlane_v2 *plane = currentRoom->_walkPlanes->planeNamed(planeName);
 
 	if (!plane) {
+		logDemo(kConsoleWarning, "SnapToPlane: the plane %s was not found.\n", planeName.c_str());
 		lua_pushnil();
 
 		return;
@@ -663,6 +682,7 @@ void Lua_V2::GetAngleBetweenVectors() {
 	lua_Object secondObj = lua_getparam(2);
 
 	if (!lua_istable(firstObj) || !lua_istable(secondObj)) {
+		logDemo(kConsoleWarning, "GetAngleBetweenVectors: both arguments must be tables.\n");
 		lua_pushnil();
 
 		return;

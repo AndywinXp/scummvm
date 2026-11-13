@@ -187,6 +187,7 @@ MODULE_OBJS := \
 	emi/sound/cwavechannel.o \
 	emi/sound/cwavesound.o \
 	emi/sound/cwavfile.o \
+	emi/sound/demomusic.o \
 	emi/sound/lipdata.o \
 	emi/sound/lsound.o \
 	emi/sound/miles_audio/driver.o \

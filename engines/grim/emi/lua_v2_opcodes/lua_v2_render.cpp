@@ -85,15 +85,21 @@ void Lua_V2::IsLightOn() {
 void Lua_V2::SetLightPosition() {
 	CLightNode *light = getLightArg(1, "SetLightPosition");
 
-	if (!light)
+	if (!light) {
+		logDemo(kConsoleDebug, "SetLightPosition: invalid light.\n");
+
 		return;
+	}
 
 	lua_Object xObj = lua_getparam(2);
 	lua_Object yObj = lua_getparam(3);
 	lua_Object zObj = lua_getparam(4);
 
-	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj))
+	if (!lua_isnumber(xObj) || !lua_isnumber(yObj) || !lua_isnumber(zObj)) {
+		logDemo(kConsoleDebug, "SetLightPosition: the position must be three numbers.\n");
+
 		return;
+	}
 
 	CVector position;
 
@@ -231,7 +237,10 @@ void Lua_V2::UndimRegion() {
 	lua_Object regionObj = lua_getparam(1);
 
 	if (lua_isnumber(regionObj)) {
-		Grim::DimRegion::undimRegion(_engine, luaFtol(lua_getnumber(regionObj)));
+		bool found = Grim::DimRegion::undimRegion(_engine, luaFtol(lua_getnumber(regionObj)));
+
+		if (!found)
+			logDemo(kConsoleWarning, "UndimRegion: the dim region was not found.\n");
 	} else {
 		if (_engine->getConsoleServices())
 			_engine->getConsoleServices()->logError("UndimRegion() - argument is not a dimregion id");
@@ -245,13 +254,24 @@ void Lua_V2::UndimRegion() {
 void Lua_V2::SetSpeechMode() {
 	lua_Object modeObj = lua_getparam(1);
 
-	if (!lua_isnumber(modeObj))
+	if (!lua_isnumber(modeObj)) {
+		logDemo(kConsoleDebug, "SetSpeechMode: invalid parameter.\n");
+
 		return;
+	}
 
 	int mode = luaFtol(lua_getnumber(modeObj));
 
-	if (mode >= 1 && mode <= 3)
+	if (mode >= 1 && mode <= 3) {
 		Actor::setSpeechMode(_engine, mode);
+
+		if (mode == 1)
+			logDemo(kConsoleDebug, "SetSpeechMode: the mode is set to Voice Only.\n");
+		else if (mode == 2)
+			logDemo(kConsoleDebug, "SetSpeechMode: the mode is set to Text Only.\n");
+		else
+			logDemo(kConsoleDebug, "SetSpeechMode: the mode is set to Voice and Text.\n");
+	}
 }
 
 void Lua_V2::GetSpeechMode() {

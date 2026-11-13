@@ -33,25 +33,35 @@
 namespace Grim {
 
 const EmiRegistry::Entry EmiRegistry::_entries[kNumEntries] = {
-	{ "musvolume",        "music_volume",         kKindVolume,      96.0f },
-	{ "sfxvolume",        "sfx_volume",           kKindVolume,     100.0f },
-	{ "vocvolume",        "speech_volume",        kKindVolume,     100.0f },
-	{ "speech_mode",      nullptr,                kKindSpeechMode,   2.0f },
-	{ "textspeed",        "talkspeed",            kKindTextSpeed,    7.0f },
-	{ "joystick_enabled", "joystick_enabled",     kKindBool,         1.0f },
-	{ "camera_mode",      "camera_relative_mode", kKindBool,         0.0f },
-	{ "gamma",            "gamma",                kKindGamma,        1.0f },
-	{ "subtitles",        "movie_subtitles",      kKindBool,         0.0f },
-	{ "musicquality",     "music_quality",        kKindBool,         0.0f },
-	{ "shadowfx",         "shadow_effects",       kKindShadow,       2.0f },
-	{ "moviequality",     "movie_quality",        kKindBool,         0.0f },
-	{ "analog_mode",      "analog_joystick_mode", kKindBool,         0.0f },
-	{ "miscfx",           "misc_video_effects",   kKindInt,          2.0f },
-	{ "vocfx",            "audio_effects",        kKindBool,         1.0f }
+	// The demo file has only twelve keys: the seven below are shared with the launcher, the other five
+	// (voice_effects, auto_run_enabled, transcript, double_tap_enabled, mario_mode) stay in the real file
+	{ "musvolume",        "music_volume",         kKindVolume,      96.0f, true,  127.0f },
+	{ "sfxvolume",        "sfx_volume",           kKindVolume,     100.0f, true,  127.0f },
+	{ "vocvolume",        "speech_volume",        kKindVolume,     100.0f, true,  127.0f },
+	{ "speech_mode",      nullptr,                kKindSpeechMode,   2.0f, true,    3.0f },
+	{ "textspeed",        "talkspeed",            kKindTextSpeed,    7.0f, true,    7.0f },
+	{ "joystick_enabled", "joystick_enabled",     kKindBool,         1.0f, true,    1.0f },
+	{ "camera_mode",      "camera_relative_mode", kKindBool,         0.0f, false,   0.0f },
+	{ "gamma",            "gamma",                kKindGamma,        1.0f, true,    1.0f },
+	{ "subtitles",        "movie_subtitles",      kKindBool,         0.0f, false,   0.0f },
+	{ "musicquality",     "music_quality",        kKindBool,         0.0f, false,   0.0f },
+	{ "shadowfx",         "shadow_effects",       kKindShadow,       2.0f, false,   0.0f },
+	{ "moviequality",     "movie_quality",        kKindBool,         0.0f, false,   0.0f },
+	{ "analog_mode",      "analog_joystick_mode", kKindBool,         0.0f, false,   0.0f },
+	{ "miscfx",           "misc_video_effects",   kKindInt,          2.0f, false,   0.0f },
+	{ "vocfx",            "audio_effects",        kKindBool,         1.0f, false,   0.0f }
 };
 
 bool EmiRegistry::isPrefsFile(const Common::String &fileName) {
 	return fileName.equalsIgnoreCase("efmi.cfg");
+}
+
+bool EmiRegistry::isDemoGame() {
+	return g_grim && static_cast<EmiEngine *>(g_grim)->isDemo();
+}
+
+bool EmiRegistry::isEntryActive(const Entry &entry) {
+	return !isDemoGame() || entry.inDemo;
 }
 
 Common::SeekableReadStream *EmiRegistry::openPrefsForReading(EmiEngine *engine, Common::SeekableReadStream *realFile) {
@@ -107,7 +117,7 @@ Common::SeekableReadStream *EmiRegistry::openPrefsForReading(EmiEngine *engine, 
 	for (int i = 0; i < kNumEntries; i++) {
 		float value = 0.0f;
 
-		if (!present[i] && readEntry(_entries[i], value))
+		if (!present[i] && isEntryActive(_entries[i]) && readEntry(_entries[i], value))
 			result += Common::String(_entries[i].key) + ":" + formatEntry(_entries[i], value) + "\n";
 	}
 
@@ -131,8 +141,10 @@ Common::WriteStream *EmiRegistry::openPrefsForWriting(EmiEngine *engine, Common:
 }
 
 void EmiRegistry::registerDefaults() {
-	for (int i = 0; i < kNumEntries; i++)
-		writeEntry(_entries[i], _entries[i].defaultValue, true);
+	for (int i = 0; i < kNumEntries; i++) {
+		if (isEntryActive(_entries[i]))
+			writeEntry(_entries[i], isDemoGame() ? _entries[i].demoDefaultValue : _entries[i].defaultValue, true);
+	}
 }
 
 void EmiRegistry::setFromText(EmiEngine *engine, const Common::String &text) {
@@ -178,7 +190,7 @@ Common::String EmiRegistry::buildSnapshot() {
 	for (int i = 0; i < kNumEntries; i++) {
 		float value = 0.0f;
 
-		if (readEntry(_entries[i], value))
+		if (isEntryActive(_entries[i]) && readEntry(_entries[i], value))
 			snapshot += Common::String(_entries[i].key) + ":" + formatEntry(_entries[i], value) + "\n";
 	}
 
@@ -187,7 +199,7 @@ Common::String EmiRegistry::buildSnapshot() {
 
 int EmiRegistry::findEntry(const Common::String &key) {
 	for (int i = 0; i < kNumEntries; i++) {
-		if (key == _entries[i].key)
+		if (key == _entries[i].key && isEntryActive(_entries[i]))
 			return i;
 	}
 
@@ -369,15 +381,19 @@ void EmiRegistry::storeConfBool(const char *confKey, bool value, bool asDefault)
 }
 
 int EmiRegistry::convertVolumeFromConf(int volume) {
-	int range = kMaxVolume - kMinVolume;
-	int result = (volume * range + Audio::Mixer::kMaxMixerVolume / 2) / Audio::Mixer::kMaxMixerVolume + kMinVolume;
+	int minVolume = isDemoGame() ? (int)kDemoMinVolume : (int)kMinVolume;
+	int maxVolume = isDemoGame() ? (int)kDemoMaxVolume : (int)kMaxVolume;
+	int range = maxVolume - minVolume;
+	int result = (volume * range + Audio::Mixer::kMaxMixerVolume / 2) / Audio::Mixer::kMaxMixerVolume + minVolume;
 
-	return CLIP<int>(result, kMinVolume, kMaxVolume);
+	return CLIP<int>(result, minVolume, maxVolume);
 }
 
 int EmiRegistry::convertVolumeToConf(int volume) {
-	int range = kMaxVolume - kMinVolume;
-	int result = ((volume - kMinVolume) * Audio::Mixer::kMaxMixerVolume + range / 2) / range;
+	int minVolume = isDemoGame() ? (int)kDemoMinVolume : (int)kMinVolume;
+	int maxVolume = isDemoGame() ? (int)kDemoMaxVolume : (int)kMaxVolume;
+	int range = maxVolume - minVolume;
+	int result = ((volume - minVolume) * Audio::Mixer::kMaxMixerVolume + range / 2) / range;
 
 	return CLIP<int>(result, 0, Audio::Mixer::kMaxMixerVolume);
 }

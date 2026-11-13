@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/emi/core/cpathingfileservices.h"
+#include "engines/grim/emi/emiengine.h"
 
 namespace Grim {
 
@@ -31,7 +32,13 @@ struct TypeDirectory {
 	const char *directory;
 };
 
-static const TypeDirectory kTypeDirectories[20] = {
+// The last row, the bundle extension, depends on the game: .m4b or .lab (demo)
+static const int kNumTypeDirectories = 19;
+static const char *const kBundleDirectory = ".\\";
+static const char *const kBundleExtension = ".m4b";
+static const char *const kBundleExtensionDemo = ".lab";
+
+static const TypeDirectory kTypeDirectories[kNumTypeDirectories] = {
 	{ ".ani", ".\\Animation\\" },
 	{ ".til", ".\\Backgrounds\\" },
 	{ ".cos", ".\\Costumes\\" },
@@ -50,8 +57,7 @@ static const TypeDirectory kTypeDirectories[20] = {
 	{ ".lip", ".\\Lip\\" },
 	{ ".sur", ".\\Materials\\" },
 	{ ".mov", ".\\Movies\\" },
-	{ ".bik", ".\\Movies\\" },
-	{ ".m4b", ".\\" }
+	{ ".bik", ".\\Movies\\" }
 };
 
 CPathingFileServices::CPathingFileServices(EmiEngine *engine) : LFileServices(engine) {
@@ -60,10 +66,15 @@ CPathingFileServices::CPathingFileServices(EmiEngine *engine) : LFileServices(en
 }
 
 const char *CPathingFileServices::getTypeDirectory(const char *extension) {
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < kNumTypeDirectories; i++) {
 		if (scumm_strnicmp(extension, kTypeDirectories[i].extension, 4) == 0)
 			return kTypeDirectories[i].directory;
 	}
+
+	const char *bundleExtension = _engine->isDemo() ? kBundleExtensionDemo : kBundleExtension;
+
+	if (scumm_strnicmp(extension, bundleExtension, 4) == 0)
+		return kBundleDirectory;
 
 	return nullptr;
 }

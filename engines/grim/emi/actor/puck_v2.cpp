@@ -43,6 +43,10 @@ static const float kHalfTurnDegrees = 180.0f;
 static const float kQuarterTurnDegrees = 90.0f;
 static const float kMinConstraintAlignment = 0.5f;
 static const float kFunnelAngleLimit = 3.0f;
+static const double kDemoMinRotation = 0.00001;
+static const double kDemoFunnelOffset = 90.2;
+static const double kDemoMinMovement = 0.01;
+static const double kDemoParallelEpsilon = 0.00001;
 
 Puck_v2::Puck_v2(EmiEngine *engine, float newReflectionAngle) : _engine(engine) {
 	_constraint[0] = 0.0f;
@@ -55,6 +59,7 @@ Puck_v2::Puck_v2(EmiEngine *engine, float newReflectionAngle) : _engine(engine) 
 	_lineB[1] = 0.0f;
 	_lineB[2] = 0.0f;
 	_planes = nullptr;
+	_startStep = 0.0f;
 	reset();
 	_reflectionAngle = newReflectionAngle;
 }
@@ -93,6 +98,9 @@ void Puck_v2::validate(WalkPlaneCollection *collection) {
 }
 
 void Puck_v2::rotate(float angle) {
+	if (_engine->isDemo() && fabs((double)angle) <= kDemoMinRotation)
+		return;
+
 	if ((_nodeFlags & kEulerValid) == 0)
 		computeLocalMatrixFromWorld();
 
@@ -209,7 +217,10 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 	float target[3] = { 0.0f, 0.0f, 0.0f };
 	float hit[3] = { 0.0f, 0.0f, 0.0f };
 
-	// The disasm ignores allowLeft and allowRight
+	// The turn flags are only used by the demo wall rule
+
+	if (_engine->isDemo() && _engine->_puckRecursionDepth == 0)
+		_startStep = distance;
 
 	_engine->_puckRecursionDepth++;
 
@@ -261,7 +272,15 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 	ahead[0] = (float)((double)forwardX + _world._pos._x);
 	ahead[1] = (float)((double)forwardY + _world._pos._y);
 	ahead[2] = (float)((double)forwardZ + _world._pos._z);
-	_plane->project(ahead);
+
+	if (_engine->isDemo()) {
+		double alignment = (double)forwardX * _plane->_normal[0] + (double)forwardY * _plane->_normal[1] + (double)forwardZ * _plane->_normal[2];
+
+		if (fabs(alignment) != 1.0)
+			_plane->project(ahead);
+	} else {
+		_plane->project(ahead);
+	}
 
 	if ((_nodeFlags & kWorldValid) == 0)
 		updateWorldTransform();
@@ -291,7 +310,7 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 	target[1] = (float)((double)step[1] + _world._pos._y);
 	target[2] = (float)((double)step[2] + _world._pos._z);
 
-	if (_constrained) {
+	if (_constrained && !_engine->isDemo()) {
 		float *closest = closestPointOnConstraintLine(step, target);
 
 		target[0] = closest[0];
@@ -353,7 +372,10 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 		if ((newPlane->_type & kTypeConstraint) == kTypeConstraint) {
 			float *constraintVector = newPlane->getConstraintVector(this);
 
-			if (constraintVector) {
+			if (_engine->isDemo()) {
+				constrain(constraintVector);
+				_constrained = true;
+			} else if (constraintVector) {
 				constrain(constraintVector);
 				_constrained = true;
 			}
@@ -375,9 +397,36 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 	if ((_nodeFlags & kPositionValid) == 0)
 		computeLocalPositionFromWorld();
 
+	bool wallResult = false;
+
+	if (_engine->isDemo()) {
+		double movedX = (double)_pos._x - hitPosition._x;
+		double movedY = (double)_pos._y - hitPosition._y;
+		double movedZ = (double)_pos._z - hitPosition._z;
+
+		if (sqrt(movedX * movedX + movedY * movedY + movedZ * movedZ) > kDemoMinMovement) {
+			_engine->_puckRecursionDepth = 0;
+			wallResult = true;
+		}
+	}
+
 	setLocalPosition(hitPosition);
 
 	if ((_plane->_type & kTypeFunnel) == 0) {
+		if (_engine->isDemo()) {
+			if (fabs((double)angle) >= _reflectionAngle) {
+				_startStep = (float)((double)_startStep - remaining);
+			} else if ((angle > 0.0f && allowLeft) || (angle < 0.0f && allowRight)) {
+				rotate(angle);
+				oldPlane->_enabled = true;
+				wallResult = forward(remaining, 1, 1);
+			}
+
+			oldPlane->_enabled = true;
+
+			return wallResult;
+		}
+
 		rotate(angle);
 		oldPlane->_enabled = true;
 	} else {
@@ -399,7 +448,14 @@ bool Puck_v2::forward(float distance, int allowLeft, int allowRight) {
 		corner._z = _plane->_verts[axis]->z;
 		worldToLocal(&corner);
 
-		if (!(corner._x > 0.0f)) {
+		if (_engine->isDemo()) {
+			if (!(corner._x > 0.0f)) {
+				if (angle < kFunnelAngleLimit)
+					angle = (float)((double)angle + kQuarterTurnDegrees + kDemoFunnelOffset);
+			} else if (angle > kFunnelAngleLimit) {
+				angle = (float)-(kDemoFunnelOffset + ((double)kQuarterTurnDegrees - angle));
+			}
+		} else if (!(corner._x > 0.0f)) {
 			if (angle < kFunnelAngleLimit)
 				angle = (float)((double)angle + kQuarterTurnDegrees + kQuarterTurnDegrees);
 		} else if (angle > kFunnelAngleLimit) {
@@ -447,6 +503,10 @@ bool Puck_v2::constrain(const float *vector) {
 
 	if (dot < kMinConstraintAlignment)
 		return false;
+
+	// The demo keeps the yaw when the actor already faces along the constraint
+	if (_engine->isDemo() && fabs(dot - 1.0) <= kDemoParallelEpsilon)
+		return true;
 
 	double angle = acos((double)_constraint[2]) * WalkPlane_v2::kRadiansToDegrees;
 

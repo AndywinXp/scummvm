@@ -89,7 +89,9 @@ bool AnimComponent::resLoadItem(const char *itemName) {
 		}
 
 		engine->getFileServices()->close(file, true);
-		saveBinary(binaryPath.c_str());
+
+		if (!engine->isDemo())
+			saveBinary(binaryPath.c_str());
 	} else if (!loadBinary(binaryPath.c_str())) {
 		if (engine->getConsoleServices())
 			engine->getConsoleServices()->logError("Parse problem in file '%s'.\n", binaryPath.c_str());

@@ -48,7 +48,8 @@ class EmiEngine;
 class SputControl_v2 {
 public:
 	enum {
-		kNumControls = 137
+		kNumControls = 137,
+		kNumDemoControls = 136
 	};
 
 	explicit SputControl_v2(EmiEngine *engine);
@@ -64,15 +65,18 @@ public:
 	void update();
 	void clearKeyStates();
 	static bool isModifierKey(int vk);
+	int getNumControls() const { return _numControls; }
 
 	ControlEntry _controlTable[kNumControls];
 
 private:
 	static const ControlEntry kPcControlTable[kNumControls];
 	static const ControlEntry kPs2ControlTable[kNumControls];
+	static const ControlEntry kDemoControlTable[kNumDemoControls];
 	static const KeyBinding kDefaultBinding;
 
 	EmiEngine *_engine;
+	int _numControls;
 	KeyEventMapper *_keyEventMapper;
 	bool _started;
 	bool _opened;

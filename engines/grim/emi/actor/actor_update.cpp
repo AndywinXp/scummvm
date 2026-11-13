@@ -65,10 +65,12 @@ void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
 			}
 		}
 
-		Camera *setupCamera = currentRoom->getSetupCamera(-1);
+		if (!engine->isDemo()) {
+			Camera *setupCamera = currentRoom->getSetupCamera(-1);
 
-		if (setupCamera)
-			current->_onScreen = current->calcOnScreen(setupCamera);
+			if (setupCamera)
+				current->_onScreen = current->calcOnScreen(setupCamera);
+		}
 
 		current->update(deltaTime);
 	}
@@ -90,7 +92,9 @@ void Actor::updateAllActors(EmiEngine *engine, float deltaTime) {
 			}
 		}
 
-		current->_onScreen = true;
+		if (!engine->isDemo())
+			current->_onScreen = true;
+
 		current->update(deltaTime);
 	}
 
@@ -128,15 +132,25 @@ void Actor::update(float deltaTime) {
 		}
 	}
 
-	if (_onScreen) {
-		Common::List<ANode *>::iterator nodeIt;
-
-		for (nodeIt = _animNodes.begin(); nodeIt != _animNodes.end(); ++nodeIt)
-			(*nodeIt)->updateANode();
+	if (_engine->isDemo()) {
+		// The demo updates the animation nodes of the other actors when it draws them
+		if (_extra && _extra->_lookAtActive) {
+			updateAnimNodes();
+			setLookAtJoints(deltaTime);
+		}
+	} else if (_onScreen) {
+		updateAnimNodes();
 
 		if (_extra && _extra->_lookAtActive)
 			setLookAtJoints(deltaTime);
 	}
+}
+
+void Actor::updateAnimNodes() {
+	Common::List<ANode *>::iterator nodeIt;
+
+	for (nodeIt = _animNodes.begin(); nodeIt != _animNodes.end(); ++nodeIt)
+		(*nodeIt)->updateANode();
 }
 
 bool Actor::updatePositions(EmiEngine *engine) {

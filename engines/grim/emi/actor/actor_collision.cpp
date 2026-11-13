@@ -370,8 +370,12 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 		return 0;
 	}
 
-	if (!planes->planeAt(goal, kCollisionAnyPlane))
+	if (!planes->planeAt(goal, kCollisionAnyPlane)) {
+		if (_engine->isDemo())
+			warning("Actor::buildAvoidingPath(): the destination is not valid after the collision adjustment");
+
 		return 0;
+	}
 
 	int index = 0;
 	bool collided = false;
@@ -483,8 +487,19 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 
 	int closest = findClosestCandidate(startX, startY, startZ, goal[0], goal[1], goal[2], &corners);
 
-	if (closest == -1 || !planes->buildPath(&path[3 * index], corners.corner[closest], true))
+	if (closest == -1) {
+		if (_engine->isDemo())
+			warning("Actor::buildAvoidingPath(): cannot get around the blocking object, stopping");
+
 		return outCount;
+	}
+
+	if (!planes->buildPath(&path[3 * index], corners.corner[closest], true)) {
+		if (_engine->isDemo())
+			warning("Actor::buildAvoidingPath(): cannot get to the best corner, stopping");
+
+		return outCount;
+	}
 
 	float (*pathPoints)[3];
 	int pathCount = planes->getPath(&pathPoints);
@@ -559,6 +574,11 @@ int Actor::buildAvoidingPath(Actor *other, float *path, int count, float *outPat
 			}
 		}
 	} else if (!previousReachable) {
+		if (_engine->isDemo()) {
+			warning("Actor::buildAvoidingPath(): both side points are out of bounds, stopping");
+			warning("To fix this, expand the boxes or place the actor you are trying to walk around in a less congested area");
+		}
+
 		return outCount;
 	} else {
 		current = previousCorner;

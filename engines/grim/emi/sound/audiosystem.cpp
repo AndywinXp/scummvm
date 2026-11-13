@@ -35,6 +35,7 @@
 namespace Grim {
 
 static const int kDeviceChannelCount = 14;
+static const int kDemoDeviceChannelCount = 16;
 static const uint16 kInitialDevicePreference = 16;
 
 AudioSystem::AudioSystem(Sounds *sounds) : _refCount(0), _debugLevel(0), _audioAvailable(false), _digitalHandleReleased(false), _device(nullptr), _reverbPreset(0), _reverbEnabled(1), _sonyReverbType(0), _sonyReverbDepth(0), _sonyReverbDelay(0), _sonyReverbFeedback(0), _listener(nullptr), _masterGain(1.0f), _devicePreference(kInitialDevicePreference), _sounds(sounds), _engine(sounds->getEngine()) {
@@ -105,7 +106,7 @@ void AudioSystem::operator delete(void *block) {
 }
 
 bool AudioSystem::createAudioDevice() {
-	_device = new CWaveAudioDevice(_sounds, this, kDeviceChannelCount);
+	_device = new CWaveAudioDevice(_sounds, this, _engine->isDemo() ? kDemoDeviceChannelCount : kDeviceChannelCount);
 
 	return _device && getMilesDriver();
 }

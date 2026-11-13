@@ -30,12 +30,14 @@
 #include "engines/grim/emi/scene/clight.h"
 #include "engines/grim/emi/scene/clightnode.h"
 #include "engines/grim/emi/graphics/color.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/math/cvector.h"
 #include "engines/grim/emi/scene/overworld.h"
 
 namespace Grim {
 
 static const float kProjectionNearClip = 0.05f;
+static const float kDemoProjectionNearClip = 0.1f;
 static const float kProjectionFarClip = 20.0f;
 
 Overworld::Overworld(EmiEngine *engine) : _engine(engine) {
@@ -99,7 +101,7 @@ int Overworld::draw(CDrawContext *drawContext) {
 	Camera camera(drawContext);
 
 	camera.setLocalPosition(CVector());
-	camera._nearClip = kProjectionNearClip;
+	camera._nearClip = _engine->isDemo() ? kDemoProjectionNearClip : kProjectionNearClip;
 	camera._farClip = kProjectionFarClip;
 	drawContext->clear(false, true);
 
@@ -112,6 +114,9 @@ int Overworld::draw(CDrawContext *drawContext) {
 			camera.applyProjection();
 			actor->_onScreen = true;
 			actor->drawActor(&camera);
+
+			if (_engine->isDemo())
+				drawContext->flushDrawLists();
 		}
 	}
 
@@ -133,7 +138,13 @@ void Overworld::putActor(Actor *actor) {
 			occurrences++;
 	}
 
-	if (occurrences == 0) {
+	if (_engine->isDemo()) {
+		if (occurrences > 0)
+			warning("Overworld::putActor(): actor was already in the actor list %d times", occurrences);
+
+		_actors.push_back(actor);
+		actor->_inOverworld = true;
+	} else if (occurrences == 0) {
 		_actors.push_back(actor);
 		actor->_inOverworld = true;
 	}
@@ -164,6 +175,9 @@ int Overworld::removeActor(Actor *actor) {
 	}
 
 	actor->_inOverworld = false;
+
+	if (_engine->isDemo() && occurrences > 1)
+		warning("Overworld::removeActor(): actor was in the actor list %d times", occurrences);
 
 	return occurrences;
 }

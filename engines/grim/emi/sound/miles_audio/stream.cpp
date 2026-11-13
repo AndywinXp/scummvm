@@ -141,7 +141,7 @@ EMIMilesStream *EMIMilesDriver::openStream(Common::SeekableReadStream *file) {
 
 	int index = -1;
 
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_samples[i].status == kSampleFree) {
 			index = i;
 
@@ -152,7 +152,7 @@ EMIMilesStream *EMIMilesDriver::openStream(Common::SeekableReadStream *file) {
 	if (index < 0) {
 		Common::String slots;
 
-		for (int i = 0; i < kSampleCount; i++)
+		for (int i = 0; i < _sampleCount; i++)
 			slots += Common::String::format(" %d%s", _samples[i].status, _streams[i] ? "S" : "");
 
 		warning("EMIMilesDriver::openStream(): no free sample slot, slots:%s", slots.c_str());
@@ -377,7 +377,7 @@ void EMIMilesDriver::getStreamMsPosition(EMIMilesStream *stream, int *total, int
 }
 
 void EMIMilesDriver::streamServiceAll() {
-	for (int i = 0; i < kSampleCount; i++) {
+	for (int i = 0; i < _sampleCount; i++) {
 		if (_streams[i])
 			streamService(_streams[i]);
 	}

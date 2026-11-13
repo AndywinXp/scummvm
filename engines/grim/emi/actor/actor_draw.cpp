@@ -196,8 +196,19 @@ bool Actor::calcOnScreen(Camera *camera) {
 int Actor::drawActor(Camera *camera) {
 	_engine->_actorDrawTimer.start();
 
-	if (_onScreen)
+	if (_engine->isDemo()) {
+		// The demo works out the screen rectangle when it draws
+		_onScreen = calcOnScreen(camera);
+
+		if (_onScreen) {
+			if (!_extra || !_extra->_lookAtActive)
+				updateAnimNodes();
+
+			draw(camera);
+		}
+	} else if (_onScreen) {
 		draw(camera);
+	}
 
 	_engine->_actorDrawTimer.stop();
 

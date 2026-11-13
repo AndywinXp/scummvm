@@ -36,12 +36,17 @@ void Lua_V2::PlaySound() {
 	lua_Object nameObj = lua_getparam(1);
 	lua_Object volumeObj = lua_getparam(2);
 
-	if (!lua_isstring(nameObj))
+	if (!lua_isstring(nameObj)) {
+		logDemo(kConsoleStatus, "PlaySound: the first argument must be a string.\n");
+
 		return;
+	}
 
 	LString soundName = lua_getstring(nameObj);
 
-	LStringUtil::stringToLower(soundName);
+	// The demo keeps the name as the script gave it
+	if (!_engine->isDemo())
+		LStringUtil::stringToLower(soundName);
 
 	if (lua_isnumber(volumeObj))
 		_engine->getSounds()->playSound(soundName.c_str(), luaFtol(lua_getnumber(volumeObj)));
@@ -57,20 +62,36 @@ void Lua_V2::StopSound() {
 }
 
 void Lua_V2::StopAllSounds() {
-	for (uint i = 0; i < _lockedSounds.size(); i++)
-		_engine->getSounds()->stopSound(_lockedSounds[i]);
+	// The demo has no script-locked sound list
+	if (!_engine->isDemo()) {
+		for (uint i = 0; i < _lockedSounds.size(); i++)
+			_engine->getSounds()->stopSound(_lockedSounds[i]);
 
-	_lockedSounds.clear();
+		_lockedSounds.clear();
+	}
+
 	_engine->getSounds()->stopAllSounds();
 }
 
 void Lua_V2::LoadSound() {
 	lua_Object nameObj = lua_getparam(1);
 
-	if (!lua_isstring(nameObj))
+	if (!lua_isstring(nameObj)) {
+		logDemo(kConsoleStatus, "LoadSound: the first argument must be a string.\n");
+
 		return;
+	}
 
 	LString soundName = lua_getstring(nameObj);
+
+	if (_engine->isDemo()) {
+		// The demo keeps the name as given and always pushes a sound tag, even for handle 0
+		uint demoHandle = _engine->getSounds()->loadSound(soundName.c_str(), kSfxSoundMode);
+
+		lua_pushusertag((int32)demoHandle, kSoundTag);
+
+		return;
+	}
 
 	LStringUtil::stringToLower(soundName);
 
@@ -87,8 +108,11 @@ void Lua_V2::LoadSound() {
 void Lua_V2::FreeSound() {
 	lua_Object soundObj = lua_getparam(1);
 
-	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
+	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag) {
+		logDemo(kConsoleWarning, "FreeSound: the first argument must be a sound handle.\n");
+
 		return;
+	}
 
 	uint soundHandle = (uint)lua_getuserdata(soundObj);
 
@@ -109,8 +133,11 @@ void Lua_V2::PlayLoadedSound() {
 	lua_Object volumeObj = lua_getparam(3);
 	lua_Object releaseObj = lua_getparam(4);
 
-	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
+	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag) {
+		logDemo(kConsoleWarning, "PlayLoadedSound: the first argument must be a sound handle.\n");
+
 		return;
+	}
 
 	uint soundHandle = (uint)lua_getuserdata(soundObj);
 	bool loop = lua_isnil(loopObj) == 0;
@@ -122,17 +149,33 @@ void Lua_V2::PlayLoadedSound() {
 
 	_engine->getSounds()->startSound(soundHandle, release ? 1 : 0, loop, volume);
 
-	if (release && !loop)
-		_engine->getSounds()->unregisterSound((uint16)soundHandle);
+	if (release && !loop) {
+		if (_engine->isDemo())
+			_engine->getSounds()->releaseSoundWhenDone(soundHandle);
+		else
+			_engine->getSounds()->unregisterSound((uint16)soundHandle);
+	}
 }
 
 void Lua_V2::IsSoundPlaying() {
 	lua_Object soundObj = lua_getparam(1);
 
-	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
-		return;
+	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag) {
+		logDemo(kConsoleWarning, "IsSoundPlaying: the first argument must be a sound handle.\n");
 
-	if (_engine->getSounds()->isSoundPlayingNoFiniteLoop((uint)lua_getuserdata(soundObj)))
+		return;
+	}
+
+	uint soundHandle = (uint)lua_getuserdata(soundObj);
+	bool isPlaying;
+
+	// The demo channels have no finite loop count test
+	if (_engine->isDemo())
+		isPlaying = _engine->getSounds()->isSoundPlaying(soundHandle);
+	else
+		isPlaying = _engine->getSounds()->isSoundPlayingNoFiniteLoop(soundHandle);
+
+	if (isPlaying)
 		lua_pushnumber(1.0f);
 }
 
@@ -143,6 +186,8 @@ void Lua_V2::GetGroupVolume() {
 		int volume = _engine->getSounds()->getCategoryVolume(luaFtol(lua_getnumber(groupObj)));
 
 		lua_pushnumber((float)volume);
+	} else {
+		logDemo(kConsoleWarning, "GetGroupVolume: the first argument must be a number.\n");
 	}
 }
 
@@ -150,8 +195,11 @@ void Lua_V2::SetGroupVolume() {
 	lua_Object groupObj = lua_getparam(1);
 	lua_Object volumeObj = lua_getparam(2);
 
-	if (!lua_isnumber(groupObj))
+	if (!lua_isnumber(groupObj)) {
+		logDemo(kConsoleWarning, "SetGroupVolume: the first argument must be a number.\n");
+
 		return;
+	}
 
 	int group = luaFtol(lua_getnumber(groupObj));
 	int volume = kDefaultSoundVolume;
@@ -165,8 +213,11 @@ void Lua_V2::SetGroupVolume() {
 void Lua_V2::GetSoundVolume() {
 	lua_Object soundObj = lua_getparam(1);
 
-	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
+	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag) {
+		logDemo(kConsoleWarning, "GetSoundVolume: the first argument must be a sound handle.\n");
+
 		return;
+	}
 
 	int volume = 0;
 
@@ -178,8 +229,11 @@ void Lua_V2::SetSoundVolume() {
 	lua_Object soundObj = lua_getparam(1);
 	lua_Object volumeObj = lua_getparam(2);
 
-	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag)
+	if (!lua_isuserdata(soundObj) || lua_tag(soundObj) != kSoundTag) {
+		logDemo(kConsoleWarning, "SetSoundVolume: the first argument must be a sound handle.\n");
+
 		return;
+	}
 
 	uint soundHandle = (uint)lua_getuserdata(soundObj);
 	int volume = kDefaultSoundVolume;
@@ -368,6 +422,16 @@ void Lua_V2::ImSetState() {
 
 	if (lua_isnumber(stateObj))
 		_engine->setPendingMusicState(luaFtol(lua_getnumber(stateObj)));
+	else
+		logDemo(kConsoleDebug, "ImSetState: invalid parameter.\n");
+}
+
+void Lua_V2::ImPause() {
+	_engine->getSounds()->pauseMusicStreams();
+}
+
+void Lua_V2::ImResume() {
+	_engine->getSounds()->resumeMusicStreams();
 }
 
 void Lua_V2::ImSelectSet() {

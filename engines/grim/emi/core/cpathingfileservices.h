@@ -37,7 +37,7 @@ public:
 	int getModTime(const char *path) override;
 	bool resolvePath(LString &outPath, const char *name) override;
 
-	static const char *getTypeDirectory(const char *extension);
+	const char *getTypeDirectory(const char *extension);
 	char *getCdPath();
 	void setCdPath(const char *path);
 	void suspendCdPath();

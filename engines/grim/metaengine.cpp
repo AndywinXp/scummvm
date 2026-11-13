@@ -273,9 +273,6 @@ Common::Error GrimMetaEngine::createInstance(OSystem *syst, Engine **engine, con
 
 	if (gd->gameType == GType_MONKEY4) {
 #ifdef ENABLE_MONKEY4
-		if (gd->desc.flags & ADGF_DEMO)
-			return Common::Error(Common::kUnsupportedGameidError, _s("The demo of Escape from Monkey Island is not supported by this version of the Grim engine"));
-
 		*engine = new EmiEngine(syst, gd->desc.flags, gd->gameType, gd->desc.platform, gd->desc.language);
 
 		return Common::kNoError;
@@ -301,7 +298,12 @@ bool GrimMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSupportsLoadingDuringStartup);
 }
 
-// efmi, efmi-ps2 or efmi-ko / efmi-cn / efmi-tw: the same rule the engine uses for the save files
+// All the demo entries have "Demo" in their description
+static bool isEmiDemo(const char *target) {
+	return target && ConfMan.get("extra", target).contains("Demo");
+}
+
+// efmi, efmi-ps2, efmi-ko / efmi-cn / efmi-tw or efmi-demo: the same rule the engine uses for the save files
 static Common::String getEmiSavePrefix(const char *target) {
 	Common::Platform platform = Common::kPlatformUnknown;
 	Common::Language language = Common::UNK_LANG;
@@ -311,7 +313,12 @@ static Common::String getEmiSavePrefix(const char *target) {
 		language = Common::parseLanguage(ConfMan.get("language", target));
 	}
 
-	return EmiEngine::getSavePrefix(platform, language);
+	return EmiEngine::getSavePrefix(platform, language, isEmiDemo(target));
+}
+
+// The demo scripts number the slots with two digits, the other versions with three
+static bool hasTwoDigitSlots(const Common::String &prefix) {
+	return prefix == "efmi-demo";
 }
 
 Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
@@ -319,8 +326,18 @@ Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *targ
 	bool isEmi = gameId == "monkey4";
 	Common::String prefix = getEmiSavePrefix(target);
 
-	if (saveGameIdx == kSavegameFilePattern)
-		return isEmi ? Common::String::format("%s###.gsv", prefix.c_str()) : Common::String("grim##.gsv");
+	if (saveGameIdx == kSavegameFilePattern) {
+		if (!isEmi)
+			return "grim##.gsv";
+
+		if (hasTwoDigitSlots(prefix))
+			return prefix + "##.gsv";
+
+		return prefix + "###.gsv";
+	}
+
+	if (isEmi && hasTwoDigitSlots(prefix))
+		return Common::String::format("%s%02d.gsv", prefix.c_str(), saveGameIdx);
 
 	if (isEmi)
 		return Common::String::format("%s%03d.gsv", prefix.c_str(), saveGameIdx);
@@ -352,11 +369,12 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
 	const Common::String prefix = getEmiSavePrefix(target);
-	Common::String pattern = gameId == "monkey4" ? prefix + "###.gsv" : "grim##.gsv";
+	Common::String pattern = gameId == "monkey4" ? getSavegameFile(kSavegameFilePattern, target) : "grim##.gsv";
 	SaveStateList saveList;
 
-	if (isDemo)
-		return saveList; // Demos do not support saving
+	// The Grim demo does not support saving, the Escape from Monkey Island demo does
+	if (isDemo && gameId != "monkey4")
+		return saveList;
 
 	filenames = saveFileMan->listSavefiles(pattern);
 

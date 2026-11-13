@@ -493,6 +493,8 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 
 		if (plane)
 			plane->closestPoint(target);
+		else if (_engine->isDemo())
+			warning("Actor::actorWalkTo(): could not find a walk plane close to the destination");
 
 		if ((puck->_nodeFlags & kPositionValid) == 0)
 			puck->computeLocalPositionFromWorld();
@@ -504,6 +506,9 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 		if (collection->buildPath(start, target, true)) {
 			float (*pathPoints)[3];
 			int pointCount = collection->getPath(&pathPoints);
+
+			if (pointCount <= 1 && _engine->isDemo())
+				warning("Actor::actorWalkTo(): the path has no waypoints");
 
 			for (int i = 0; i < pointCount; i++) {
 				inputPath[i][0] = pathPoints[i][0];
@@ -536,6 +541,8 @@ void Actor::actorWalkTo(float *target, const float *goal, Actor *other) {
 		_extra->_goal._x = goal[0];
 		_extra->_goal._y = goal[1];
 		_extra->_goal._z = goal[2];
+	} else if (_engine->isDemo()) {
+		warning("Actor::actorWalkTo(): the actor is not using the walk system");
 	}
 }
 

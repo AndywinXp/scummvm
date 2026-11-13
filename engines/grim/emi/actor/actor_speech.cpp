@@ -87,8 +87,12 @@ void Actor::updateActorSpeech(float deltaTime) {
 				if (currentShape < 0 || currentShape >= kNumChoreSlots) {
 					warning("Actor::updateActorSpeech(): invalid current mouth shape %d", currentShape);
 				} else {
-					if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[currentShape]))
-						ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+					if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[currentShape])) {
+						if (_engine->isDemo())
+							ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->stop();
+						else
+							ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+					}
 
 					_choreSlotIds[currentShape] = 0;
 				}
@@ -99,8 +103,12 @@ void Actor::updateActorSpeech(float deltaTime) {
 			startChore(&startedId, _choreSlotNames[mouthShape], _choreSlotSetNames[mouthShape]);
 			_choreSlotIds[mouthShape] = startedId;
 
-			if (ChoreInstance::isInstanceValid(_engine, startedId))
-				ChoreInstance::getInstance(_engine, _choreSlotIds[mouthShape])->fadeIn(kVisemeFadeTime);
+			if (ChoreInstance::isInstanceValid(_engine, startedId)) {
+				if (_engine->isDemo())
+					ChoreInstance::getInstance(_engine, _choreSlotIds[mouthShape])->setPlaying();
+				else
+					ChoreInstance::getInstance(_engine, _choreSlotIds[mouthShape])->fadeIn(kVisemeFadeTime);
+			}
 
 			_extra->_visemeCurrent = mouthShape;
 		}
@@ -398,10 +406,15 @@ void Actor::shutUp(bool stopNow) {
 		return;
 
 	if (_extra->_soundHandle) {
-		if (stopNow)
-			_engine->getSounds()->stopSound((uint)_extra->_soundHandle);
-		else
+		if (_engine->isDemo()) {
+			// The demo has a single mode: stop the playback, then release the sound
+			_engine->getSounds()->stopSoundPlayback((uint)_extra->_soundHandle);
 			_engine->getSounds()->releaseSoundWhenDone((uint)_extra->_soundHandle);
+		} else if (stopNow) {
+			_engine->getSounds()->stopSound((uint)_extra->_soundHandle);
+		} else {
+			_engine->getSounds()->releaseSoundWhenDone((uint)_extra->_soundHandle);
+		}
 
 		_extra->_soundHandle = 0;
 	}
@@ -424,8 +437,12 @@ void Actor::shutUp(bool stopNow) {
 		if (currentShape < 0 || currentShape >= kNumChoreSlots) {
 			warning("Actor::shutUp(): invalid current mouth shape %d", currentShape);
 		} else {
-			if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[currentShape]))
-				ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+			if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[currentShape])) {
+				if (_engine->isDemo())
+					ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->stop();
+				else
+					ChoreInstance::getInstance(_engine, _choreSlotIds[currentShape])->fadeOut(kVisemeFadeTime);
+			}
 
 			_choreSlotIds[currentShape] = 0;
 		}
@@ -433,7 +450,7 @@ void Actor::shutUp(bool stopNow) {
 		_extra->_visemeCurrent = 0;
 	}
 
-	for (int slot = kFirstVisemeSlot; slot <= kLastVisemeSlot; slot++) {
+	for (int slot = kFirstVisemeSlot; slot <= kLastVisemeSlot && !_engine->isDemo(); slot++) {
 		if (ChoreInstance::isInstanceValid(_engine, _choreSlotIds[slot])) {
 			// The disasm passes the string object itself as the %s argument, let's use the name...
 			Common::String message = Common::String::format("%s still talk choring", _actorName.c_str());
@@ -466,6 +483,9 @@ bool Actor::isVoicePlaying() {
 
 	if (!_extra->_soundHandle)
 		return false;
+
+	if (_engine->isDemo())
+		return _engine->getSounds()->isSoundPlaying((uint)_extra->_soundHandle);
 
 	return _engine->getSounds()->isSoundPlayingNoFiniteLoop((uint)_extra->_soundHandle);
 }

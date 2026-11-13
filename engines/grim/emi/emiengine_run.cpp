@@ -141,7 +141,8 @@ bool EmiEngine::openDrawContext(CDrawContext *drawContext, DisplayMode *mode) {
 bool EmiEngine::initialize() {
 	_polyglot->configure("Install/messages.tab");
 
-	if (!findDisc(1) && !findDisc(2)) {
+	// The demo does not look for a disc, its data are in the game directory
+	if (!_isDemo && !findDisc(1) && !findDisc(2)) {
 		showMessage("/GOT_CD/Please make sure that the game is properly installed and that the CD is in your drive.",
 				"/NO_FILES/Could not find files!");
 
@@ -231,21 +232,29 @@ bool EmiEngine::initialize() {
 		delete defaultBitmap;
 	}
 
-	LABitmap whiteBitmap(this);
+	// The demo leaves the cached texture slots empty, they give the default texture
+	if (!_isDemo) {
+		LABitmap whiteBitmap(this);
 
-	whiteBitmap.create(2, 2, LColorFormat(9), nullptr);
+		whiteBitmap.create(2, 2, LColorFormat(9), nullptr);
 
-	uint32 *whitePixels = (uint32 *)whiteBitmap._pixels;
+		uint32 *whitePixels = (uint32 *)whiteBitmap._pixels;
 
-	if (whitePixels) {
-		for (int i = 0; i < 4; i++)
-			whitePixels[i] = 0xFFFFFFFF;
+		if (whitePixels) {
+			for (int i = 0; i < 4; i++)
+				whitePixels[i] = 0xFFFFFFFF;
+		}
+
+		for (int i = 0; i < CDrawContext::kNumCachedTextures; i++)
+			drawContext->setCachedTexture(i, &whiteBitmap);
 	}
 
-	for (int i = 0; i < CDrawContext::kNumCachedTextures; i++)
-		drawContext->setCachedTexture(i, &whiteBitmap);
-
 	pixelTest();
+
+	// The demo splash stays on screen until the first game frame
+	if (_isDemo)
+		showSplash(drawContext);
+
 	setShutdownCallback(shutdownCallback);
 	_polyglot->shutdown();
 	_polyglot->configure("script.tab");

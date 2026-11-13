@@ -46,6 +46,7 @@ public:
 	bool constrain(const float *vector);
 
 	float _reflectionAngle;
+	float _startStep;
 	bool _constrained;
 	float _constraint[3];
 	float _lineA[3];
