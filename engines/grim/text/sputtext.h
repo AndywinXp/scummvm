@@ -87,6 +87,7 @@ public:
 	void killEvent(SputTextEvent *event);
 	void update(int force);
 	void update(int force, int page);
+	bool hasEvents() const { return _textQueue != nullptr; }
 	int initialize(SysStruct *hs);
 	void pause();
 	void resume();

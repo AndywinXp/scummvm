@@ -285,7 +285,8 @@ void SputRender::update() {
 	// The demo draws the animation bitmaps with buffer copies, which need the buffer unlocked
 	if (_grim->getGameFlags() & ADGF_DEMO) {
 		drawPrimitives(1);
-	} else {
+	} else if (_sputPrimitive->getCurrent()->getHead()) {
+		// Locking a buffer in video memory reads it back from the GPU, so it is locked only when something is drawn
 		_stdDisplay->vBufferLock(_backBuffer);
 		drawPrimitives(1);
 		_stdDisplay->vBufferUnlock(_backBuffer);
@@ -409,7 +410,7 @@ void SputRender::update() {
 
 	if (_grim->getGameFlags() & ADGF_DEMO) {
 		drawPrimitives(2);
-	} else {
+	} else if (_sputPrimitive->getCurrent()->getHead()) {
 		_stdDisplay->vBufferLock(_backBuffer);
 		drawPrimitives(2);
 		_stdDisplay->vBufferUnlock(_backBuffer);
@@ -473,14 +474,19 @@ void SputRender::update() {
 		return;
 	}
 
-	_stdDisplay->vBufferLock(_backBuffer);
-	_blastText->getSurface()->pixels = _backBuffer->pixels;
-	_sputText->update(1);
+	bool roomDebug = (_grim->getGameFlags() & ADGF_DEMO) && (_debugFlags & 1);
 
-	if ((_grim->getGameFlags() & ADGF_DEMO) && (_debugFlags & 1))
-		drawRoomDebug();
+	if (_sputText->hasEvents() || roomDebug) {
+		_stdDisplay->vBufferLock(_backBuffer);
+		_blastText->getSurface()->pixels = _backBuffer->pixels;
+		_sputText->update(1);
 
-	_stdDisplay->vBufferUnlock(_backBuffer);
+		if (roomDebug)
+			drawRoomDebug();
+
+		_stdDisplay->vBufferUnlock(_backBuffer);
+	}
+
 	_reset = 0;
 }
 
