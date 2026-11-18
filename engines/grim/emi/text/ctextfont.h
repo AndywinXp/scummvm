@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/ctexture.h"
 #include "engines/grim/emi/images/labitmap.h"
 #include "engines/grim/emi/resources/lresource.h"
@@ -81,7 +82,7 @@ public:
 	int _lastChar;
 	int _numGlyphs;
 	int _blobSize;
-	Common::Array<CTexture *> _pages;
+	LArray<CTexture *> _pages;
 	uint16 *_charIndex;
 	Glyph *_glyphs;
 	byte *_blob;

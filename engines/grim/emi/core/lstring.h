@@ -22,9 +22,52 @@
 #ifndef GRIM_EMI_LSTRING_H
 #define GRIM_EMI_LSTRING_H
 
-#include "engines/grim/emi/files/lfile.h"
+#include "common/hash-str.h"
+#include "common/scummsys.h"
+#include "common/str.h"
 
 namespace Grim {
+
+// The characters of the string are the ones of Common::String. The memory services count what the string of the game
+// takes: a block of (length | 31) + 2 bytes, a count byte followed by the characters and a terminator. Each string
+// counts its own block, the copies do not share it
+class LString : public Common::String {
+public:
+	LString();
+	LString(const char *str);
+	LString(const char *str, uint32 len);
+	LString(const Common::String &str);
+	LString(const LString &other);
+	~LString();
+
+	LString &operator=(const LString &other);
+	LString &operator=(const Common::String &str);
+	LString &operator=(const char *str);
+	LString &operator=(char c);
+	LString &operator+=(const Common::String &str);
+	LString &operator+=(const char *str);
+	LString &operator+=(char c);
+
+	void assign(const Common::String &str);
+	void assign(size_t count, char c);
+	void assign(const char *str);
+	void assign(const char *str, size_t count);
+	void insertChar(char c, uint32 p);
+	void insertString(const char *str, uint32 p);
+	void insertString(const Common::String &str, uint32 p);
+	void replace(uint32 pos, uint32 count, const Common::String &str);
+	void replace(uint32 pos, uint32 count, const char *str);
+	void wordWrap(const uint32 maxLength);
+	void trim();
+
+private:
+	void releaseBlock();
+	void copyBlock(uint length);
+	void grow(uint length, bool trim);
+	void lengthChanged(uint oldLength);
+
+	uint _capacity;
+};
 
 class LStringUtil {
 public:
@@ -33,5 +76,16 @@ public:
 };
 
 } // End of namespace Grim
+
+namespace Common {
+
+template<>
+struct Hash<Grim::LString> {
+	uint operator()(const Grim::LString &s) const {
+		return s.hash();
+	}
+};
+
+} // End of namespace Common
 
 #endif

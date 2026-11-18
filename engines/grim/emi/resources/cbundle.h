@@ -26,6 +26,7 @@
 #include "common/hashmap.h"
 #include "common/str.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 
 namespace Grim {
@@ -89,7 +90,7 @@ public:
 	void fillLookup(LFileServices *services, CBundle *bundle, BundleLookup *lookup) override;
 };
 
-typedef Common::HashMap<uint, Common::Array<PBundleDirectoryEntry *> > BundleHashIndex;
+typedef LHashMap<uint, LArray<PBundleDirectoryEntry *> > BundleHashIndex;
 
 class CBundle {
 public:

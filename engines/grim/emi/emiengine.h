@@ -28,6 +28,7 @@
 #include "common/str.h"
 
 #include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/core/linearrandom.h"
 #include "engines/grim/emi/math/cvector.h"
 #include "engines/grim/emi/math/irect.h"
@@ -133,7 +134,7 @@ public:
 	SputControl_v2 *getControl();
 	Joystick *getJoystick();
 	PrimitiveQueue_v2 *getPrimitiveQueue();
-	const Common::List<CLightNode *> &getActiveLights() const;
+	const LList<CLightNode *> &getActiveLights() const;
 	bool isCjkMode() const { return _cjkMode; }
 	bool isDemo() const { return _isDemo; }
 
@@ -351,7 +352,7 @@ private:
 	uint _consoleCount;
 	uint _consoleArraySize;
 	CGrimeConsole *_grimeConsole;
-	Common::Array<LFileServices *> _fileServicesStack;
+	LArray<LFileServices *> _fileServicesStack;
 	LFileServices *_fileServices;
 	CPathingFileServices *_pathingFileServices;
 	ZFileServices *_zFileServices;
@@ -420,7 +421,7 @@ private:
 	Common::String _registrySyncedSnapshot;
 
 	// Actor
-	Common::List<Actor *> _actors;
+	LList<Actor *> _actors;
 	int _nextActorId;
 	Actor *_selectedActor;
 	Actor *_speakers[Actor::kNumSpeakers];
@@ -439,7 +440,7 @@ private:
 	int _puckRecursionDepth;
 
 	// Chore instances
-	Common::HashMap<uint, ChoreInstance *> _choreInstances;
+	LHashMap<uint, ChoreInstance *> _choreInstances;
 	uint _nextChoreInstanceId;
 	bool _choreInstancesStarted;
 
@@ -451,7 +452,7 @@ private:
 	int _lastDrawnSetup;
 
 	// Text events
-	Common::List<TextEvent *> _textEvents;
+	LList<TextEvent *> _textEvents;
 	TextEvent *_defaultTextEvent;
 	int _textMode;
 	int _textScreenRect[4];
@@ -472,9 +473,9 @@ private:
 	CTexture *_loadingIconPs2;
 
 	// Events
-	Common::List<EventGenerator *> _eventGenerators;
+	LList<EventGenerator *> _eventGenerators;
 	Common::List<Event *> _eventQueue;
-	Common::List<EventHandler *> _eventHandlers;
+	LList<EventHandler *> _eventHandlers;
 
 	// Dim regions
 	DimRegion *_dimRegionHead;
@@ -483,10 +484,10 @@ private:
 	int _nextDimRegionId;
 
 	// Animation instances
-	Common::List<AInst *> _animInstances;
+	LList<AInst *> _animInstances;
 
 	// Lights
-	Common::List<CLightNode *> _activeLights;
+	LList<CLightNode *> _activeLights;
 
 	// Layers
 	int _nextLayerId;

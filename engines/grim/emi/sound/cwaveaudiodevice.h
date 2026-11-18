@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/sound/caudiodevice.h"
 
 namespace Grim {
@@ -71,7 +72,7 @@ public:
 	EMIMilesDriver *getMilesDriver();
 
 	bool _lost;
-	Common::Array<CWaveChannel *> _channels;
+	LArray<CWaveChannel *> _channels;
 	int _numChannels;
 	int _lastCheckMs;
 

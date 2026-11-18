@@ -152,7 +152,7 @@ bool Actor::save(SaveRestoreAccess *accessFunc) {
 
 	accessFunc(&choreCount, sizeof(choreCount));
 
-	Common::List<uint>::iterator choreIt;
+	LList<uint>::iterator choreIt;
 
 	for (choreIt = _choreIds.begin(); choreIt != _choreIds.end(); ++choreIt) {
 		uint choreId = *choreIt;
@@ -558,7 +558,7 @@ void Actor::saveActors(EmiEngine *engine, SaveRestoreAccess *accessFunc) {
 
 	accessFunc(&actorCount, sizeof(actorCount));
 
-	Common::List<Actor *>::iterator it;
+	LList<Actor *>::iterator it;
 
 	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it)
 		(*it)->save(accessFunc);
@@ -593,7 +593,7 @@ void Actor::restoreActors(EmiEngine *engine, SaveRestoreAccess *accessFunc) {
 	if (selectedId >= 0)
 		engine->_selectedActor = actorDeref(engine, selectedId);
 
-	Common::List<Actor *>::iterator it;
+	LList<Actor *>::iterator it;
 
 	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it) {
 		Actor *actor = *it;

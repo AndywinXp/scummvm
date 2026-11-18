@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/lua_v1_opcodes/lua_v1.h"
 
@@ -442,11 +443,11 @@ private:
 	static bool getFloatPairFields(lua_Object table, const char *firstKey, const char *secondKey, float defaultValue, float *first, float *second);
 	static int truncateToInt(double value);
 
-	Common::Array<LockedChore> _lockedChores;
-	Common::Array<LString> _lockedChoreSets;
-	Common::Array<LString> _lockedRooms;
-	Common::Array<LString> _lockedBackgrounds;
-	Common::Array<uint> _lockedSounds;
+	LArray<LockedChore> _lockedChores;
+	LArray<LString> _lockedChoreSets;
+	LArray<LString> _lockedRooms;
+	LArray<LString> _lockedBackgrounds;
+	LArray<uint> _lockedSounds;
 	int _saveDataSize;
 	SaveRestoreAccess *_saveWriter;
 

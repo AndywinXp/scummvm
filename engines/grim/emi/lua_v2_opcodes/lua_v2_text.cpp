@@ -302,7 +302,7 @@ void Lua_V2::IsMessageGoing() {
 			return;
 		}
 
-		Common::List<TextEvent *>::iterator it;
+		LList<TextEvent *>::iterator it;
 
 		for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 			if (!((*it)->_flags & 1)) {
@@ -602,7 +602,7 @@ void Lua_V2::BlastText() {
 }
 
 void Lua_V2::ExpireText() {
-	Common::List<TextEvent *>::iterator it = _engine->_textEvents.begin();
+	LList<TextEvent *>::iterator it = _engine->_textEvents.begin();
 
 	while (it != _engine->_textEvents.end()) {
 		TextEvent *event = *it;
@@ -626,7 +626,7 @@ void Lua_V2::ExpireText() {
 
 void Lua_V2::PurgeText() {
 	lua_Object keepHeldObj = lua_getparam(1);
-	Common::List<TextEvent *>::iterator it;
+	LList<TextEvent *>::iterator it;
 
 	for (it = _engine->_textEvents.begin(); it != _engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;

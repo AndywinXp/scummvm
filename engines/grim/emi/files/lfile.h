@@ -26,9 +26,9 @@
 #include "common/str.h"
 #include "common/stream.h"
 
-namespace Grim {
+#include "engines/grim/emi/core/lstring.h"
 
-typedef Common::String LString;
+namespace Grim {
 
 class EmiEngine;
 

@@ -48,6 +48,14 @@ uint LMemoryServices::msize(uint size) {
 	return (size + 15) & ~15u;
 }
 
+void LMemoryServices::countBlock(uint size) {
+	_bytesAllocated += msize(size);
+}
+
+void LMemoryServices::uncountBlock(uint size) {
+	_bytesAllocated -= msize(size);
+}
+
 LMemoryServices *LMemoryServices::getCurrent() {
 	if (!g_grim)
 		return nullptr;
@@ -471,6 +479,50 @@ bool LDebugMemoryServices::dumpLeaks(const char *fileName) {
 	_threadBase.unlock();
 
 	return leaks > 0;
+}
+
+LCountedBlocks::LCountedBlocks() : _blockCount(0), _blockSize(0), _singleSize(0) {
+}
+
+LCountedBlocks::~LCountedBlocks() {
+	setBlockCount(0, _blockSize);
+	setSingleBlock(0);
+}
+
+// Counts count blocks of the same size
+void LCountedBlocks::setBlockCount(uint count, uint blockSize) {
+	LMemoryServices *memory = LMemoryServices::getCurrent();
+
+	if (!memory)
+		return;
+
+	while (_blockCount < count) {
+		memory->countBlock(blockSize);
+		_blockCount++;
+	}
+
+	while (_blockCount > count) {
+		memory->uncountBlock(_blockSize);
+		_blockCount--;
+	}
+
+	_blockSize = blockSize;
+}
+
+// Counts one block of the size, or none for size 0
+void LCountedBlocks::setSingleBlock(uint size) {
+	LMemoryServices *memory = LMemoryServices::getCurrent();
+
+	if (!memory || size == _singleSize)
+		return;
+
+	if (size > 0)
+		memory->countBlock(size);
+
+	if (_singleSize > 0)
+		memory->uncountBlock(_singleSize);
+
+	_singleSize = size;
 }
 
 } // End of namespace Grim

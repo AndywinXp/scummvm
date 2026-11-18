@@ -40,7 +40,7 @@ void ChannelNode::operator delete(void *block) {
 }
 
 static void removeChannel(AInst *inst, AChannelHandle *channel) {
-	Common::List<AChannelHandle *>::iterator it = inst->_channels.begin();
+	LList<AChannelHandle *>::iterator it = inst->_channels.begin();
 
 	while (it != inst->_channels.end()) {
 		if (*it == channel)

@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/cdcvertexarray.h"
 #include "engines/grim/emi/nodes/cnode.h"
 #include "engines/grim/emi/nodes/rprimitiveinstance.h"
@@ -48,7 +49,7 @@ public:
 
 	void setMaterialTextureIndex(int materialIndex, int textureIndex);
 
-	Common::Array<int> _texIndex;
+	LArray<int> _texIndex;
 	CDCVertexArray *_vertexArray;
 	bool _ownsVertexBuf;
 	float *_vertexBuf;

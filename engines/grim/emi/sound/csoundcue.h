@@ -25,6 +25,7 @@
 #include "common/hashmap.h"
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/sound/cnoderef_soundcue.h"
 #include "engines/grim/emi/math/cvector.h"
 #include "engines/grim/emi/files/lfile.h"
@@ -62,7 +63,7 @@ public:
 	static const uint kFlagInRange = 0x40000000;
 	static const uint kFlagReleaseWhenDone = 0x80000000;
 
-	typedef Common::HashMap<uint, CSoundCue *> SoundCueMap;
+	typedef LHashMap<uint, CSoundCue *> SoundCueMap;
 
 	CSoundCue(Sounds *sounds, LResourceHandle<CSnd> *sndHandle, CNode *node);
 	CSoundCue(Sounds *sounds, const LString &name, CNode *node);

@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/ctexture.h"
 #include "engines/grim/emi/resources/lresource.h"
 
@@ -43,7 +44,7 @@ public:
 	void setFlags(int newFlags);
 	void addFlags(int addedFlags);
 
-	Common::Array<CTexture *> _textures;
+	LArray<CTexture *> _textures;
 	int _flags;
 
 protected:

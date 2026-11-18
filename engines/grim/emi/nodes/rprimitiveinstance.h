@@ -24,6 +24,7 @@
 
 #include "common/hashmap.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/nodes/rprimitive.h"
 #include "engines/grim/lua/lua.h"
 
@@ -60,7 +61,7 @@ public:
 	int _globalAlphaMode;
 	float _globalAlpha;
 	int _matAlphaMode;
-	Common::HashMap<int, float> _matAlpha;
+	LHashMap<int, float> _matAlpha;
 };
 
 } // End of namespace Grim

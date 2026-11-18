@@ -141,7 +141,7 @@ int Setup::addLayer(const char *layerName, int layerSortOrder, int layerFrame, i
 }
 
 void Setup::removeLayer(Layer *layer) {
-	Common::List<Layer *>::iterator it = _layers.begin();
+	LList<Layer *>::iterator it = _layers.begin();
 
 	while (it != _layers.end()) {
 		if (*it == layer)
@@ -157,7 +157,7 @@ void Setup::removeLayer(Layer *layer) {
 }
 
 void Setup::removeLayerById(int layerId) {
-	Common::List<Layer *>::iterator it;
+	LList<Layer *>::iterator it;
 
 	for (it = _layers.begin(); it != _layers.end(); ++it) {
 		if ((*it)->_id == layerId) {
@@ -175,7 +175,7 @@ bool Setup::save(SaveRestoreAccess *accessFunc) {
 
 	accessFunc(&count, sizeof(count));
 
-	Common::List<Layer *>::iterator it;
+	LList<Layer *>::iterator it;
 
 	for (it = _layers.begin(); it != _layers.end(); ++it) {
 		Layer *layer = *it;
@@ -197,7 +197,7 @@ bool Setup::save(SaveRestoreAccess *accessFunc) {
 }
 
 bool Setup::restore(SaveRestoreAccess *accessFunc) {
-	Common::List<Layer *>::iterator it;
+	LList<Layer *>::iterator it;
 
 	for (it = _layers.begin(); it != _layers.end(); ++it) {
 		delete *it;

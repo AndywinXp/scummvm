@@ -417,7 +417,7 @@ bool CBundle::findHashedEntry(LFileServices *services, const char *normalizedNam
 	if (!_hashIndex || !_hashIndex->contains(hash))
 		return false;
 
-	Common::Array<PBundleDirectoryEntry *> &bucket = (*_hashIndex)[hash];
+	LArray<PBundleDirectoryEntry *> &bucket = (*_hashIndex)[hash];
 
 	for (uint i = 0; i < bucket.size(); i++) {
 		PBundleDirectoryEntry *entry = bucket[i];

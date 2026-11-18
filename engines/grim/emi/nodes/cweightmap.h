@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/nodes/cnode.h"
 #include "engines/grim/emi/nodes/cprimitive.h"
 #include "engines/grim/emi/math/ctransform.h"
@@ -77,10 +78,10 @@ public:
 	void deformVerts(const VertexSource *source, float *outPositions, float *outNormals, CNode **nodes);
 
 	bool _bound;
-	Common::Array<LString> _nodeNames;
-	Common::Array<VertexWeight> _weights;
-	Common::Array<WeightData *> _weightBlocks;
-	Common::Array<WeightData *> _vertexLists;
+	LArray<LString> _nodeNames;
+	LArray<VertexWeight> _weights;
+	LArray<WeightData *> _weightBlocks;
+	LArray<WeightData *> _vertexLists;
 
 private:
 	EmiEngine *_engine;

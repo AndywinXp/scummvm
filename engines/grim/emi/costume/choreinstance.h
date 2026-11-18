@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/hashmap.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/costume/choreset.h"
 #include "engines/grim/emi/resources/lresourcehandle.h"
 #include "engines/grim/lua/lua.h"
@@ -81,12 +82,12 @@ public:
 	float _time;
 	float _stopTime;
 	LString _choreName;
-	Common::Array<ComponentInstance *> _instances;
+	LArray<ComponentInstance *> _instances;
 	uint _id;
 	Actor *_owner;
 
 private:
-	typedef Common::HashMap<uint, ChoreInstance *> InstanceMap;
+	typedef LHashMap<uint, ChoreInstance *> InstanceMap;
 };
 
 } // End of namespace Grim

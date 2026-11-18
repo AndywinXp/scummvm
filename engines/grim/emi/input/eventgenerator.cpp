@@ -21,12 +21,13 @@
 
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/input/eventgenerator.h"
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
 
 EventGenerator::EventGenerator(EmiEngine *engine, int generatorPriority) : _priority(generatorPriority), _engine(engine) {
-	Common::List<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
+	LList<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
 
 	while (it != _engine->_eventGenerators.end() && (*it)->_priority >= generatorPriority)
 		++it;
@@ -35,7 +36,7 @@ EventGenerator::EventGenerator(EmiEngine *engine, int generatorPriority) : _prio
 }
 
 EventGenerator::~EventGenerator() {
-	Common::List<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
+	LList<EventGenerator *>::iterator it = _engine->_eventGenerators.begin();
 
 	while (it != _engine->_eventGenerators.end()) {
 		if (*it == this)
@@ -62,7 +63,7 @@ void EventGenerator::postEvent(EmiEngine *engine, Event *event) {
 }
 
 void EventGenerator::dispatchEvents(EmiEngine *engine) {
-	Common::List<EventGenerator *>::iterator generatorIt;
+	LList<EventGenerator *>::iterator generatorIt;
 
 	for (generatorIt = engine->_eventGenerators.begin(); generatorIt != engine->_eventGenerators.end(); ++generatorIt)
 		(*generatorIt)->poll();

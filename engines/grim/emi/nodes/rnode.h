@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/nodes/cnode.h"
 
 namespace Grim {
@@ -53,7 +54,7 @@ public:
 	int findPrimitiveInstance(RPrimitiveInstance *instance);
 	void removePrimitiveInstance(int index);
 
-	Common::Array<RPrimitiveInstance *> _instances;
+	LArray<RPrimitiveInstance *> _instances;
 	int _lastFrame;
 	uint _drawFlags;
 };

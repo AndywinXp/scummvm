@@ -24,6 +24,7 @@
 
 #include "common/list.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/scene/camera.h"
 #include "engines/grim/emi/graphics/layer.h"
 #include "engines/grim/emi/files/lfile.h"
@@ -62,7 +63,7 @@ public:
 
 	char _name[kNameSize];
 	Camera _camera;
-	Common::List<Layer *> _layers;
+	LList<Layer *> _layers;
 	LString _backgroundName;
 	bool _layersBuilt;
 

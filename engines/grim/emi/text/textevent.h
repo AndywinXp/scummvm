@@ -26,6 +26,7 @@
 #include "common/list.h"
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/color.h"
 #include "engines/grim/emi/text/cjkstring.h"
 #include "engines/grim/emi/text/ctextfont.h"
@@ -118,7 +119,7 @@ public:
 	byte _justify;
 	bool _geometryReady;
 	int _id;
-	Common::Array<TextRun> _runs;
+	LArray<TextRun> _runs;
 	int _vertexCount;
 	int _writeIndex;
 	float *_positions;

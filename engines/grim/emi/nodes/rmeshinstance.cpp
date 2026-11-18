@@ -195,7 +195,7 @@ void RMeshInstance::update(RNode *node, Camera *camera) {
 		}
 
 		if (_matAlphaMode == kAlphaSet || _matAlphaMode == kAlphaModulate) {
-			for (Common::HashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it) {
+			for (LHashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it) {
 				if (it->_key < 0 || it->_key >= _vertexArray->_numVerts) {
 					warning("RMeshInstance::update(): invalid vertex index %d", it->_key);
 					continue;

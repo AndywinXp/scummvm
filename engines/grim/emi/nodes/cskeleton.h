@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/math/cquaternion.h"
 #include "engines/grim/emi/math/cvector.h"
 #include "engines/grim/emi/files/lfile.h"
@@ -57,7 +58,7 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	Common::Array<SkeletonNode> _nodes;
+	LArray<SkeletonNode> _nodes;
 
 protected:
 	EmiEngine *_engine;

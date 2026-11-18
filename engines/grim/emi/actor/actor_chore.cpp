@@ -27,17 +27,17 @@
 namespace Grim {
 
 void Actor::removeFinishedChores() {
-	Common::List<uint>::iterator it = _choreIds.begin();
+	LList<uint>::iterator it = _choreIds.begin();
 
 	while (it != _choreIds.end()) {
 		uint choreId = *it;
-		Common::List<uint>::iterator next = it;
+		LList<uint>::iterator next = it;
 
 		++next;
 
 		if (ChoreInstance::isInstanceValid(_engine, choreId)) {
 			if (!ChoreInstance::isInstanceValid(_engine, choreId) || ChoreInstance::getInstance(_engine, choreId)->isFinished()) {
-				Common::List<uint>::iterator removeIt = _choreIds.begin();
+				LList<uint>::iterator removeIt = _choreIds.begin();
 
 				while (removeIt != _choreIds.end()) {
 					if (*removeIt == choreId) {
@@ -60,7 +60,7 @@ void Actor::removeFinishedChores() {
 				}
 			}
 		} else {
-			Common::List<uint>::iterator removeIt = _choreIds.begin();
+			LList<uint>::iterator removeIt = _choreIds.begin();
 
 			while (removeIt != _choreIds.end()) {
 				if (*removeIt == choreId) {
@@ -81,7 +81,7 @@ void Actor::removeFinishedChores() {
 }
 
 uint *Actor::findChoreInstance(uint *outId, uint previousId) {
-	Common::List<uint>::iterator it = _choreIds.begin();
+	LList<uint>::iterator it = _choreIds.begin();
 
 	if (previousId && it != _choreIds.end()) {
 		uint value;
@@ -112,7 +112,7 @@ uint *Actor::startChore(uint *outId, const LString &choreName, const LString &ch
 }
 
 void Actor::stopChores(bool skipLooping) {
-	Common::List<uint>::iterator it;
+	LList<uint>::iterator it;
 
 	for (it = _choreIds.begin(); it != _choreIds.end(); ++it) {
 		if (!skipLooping || !ChoreInstance::isInstanceValid(_engine, *it) || !ChoreInstance::getInstance(_engine, *it)->isLooping()) {

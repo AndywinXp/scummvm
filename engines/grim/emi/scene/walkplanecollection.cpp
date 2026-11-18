@@ -59,7 +59,7 @@ void WalkPlaneCollection::logCollectionError(const char *message) {
 }
 
 WalkPlaneCollection::~WalkPlaneCollection() {
-	Common::List<WalkPlane_v2 *>::iterator planeIt;
+	LList<WalkPlane_v2 *>::iterator planeIt;
 
 	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
 		if (*planeIt) {
@@ -70,7 +70,7 @@ WalkPlaneCollection::~WalkPlaneCollection() {
 
 	_planes.clear();
 
-	Common::List<wpVertex *>::iterator vertexIt;
+	LList<wpVertex *>::iterator vertexIt;
 
 	for (vertexIt = _vertices.begin(); vertexIt != _vertices.end(); ++vertexIt) {
 		_engine->getMemoryServices()->freeImpl(*vertexIt);
@@ -95,8 +95,8 @@ int WalkPlaneCollection::getPath(float (**path)[3]) {
 }
 
 void WalkPlaneCollection::buildNeighbors() {
-	Common::List<WalkPlane_v2 *>::iterator planeIt;
-	Common::List<WalkPlane_v2 *>::iterator otherIt;
+	LList<WalkPlane_v2 *>::iterator planeIt;
+	LList<WalkPlane_v2 *>::iterator otherIt;
 
 	allActive();
 
@@ -207,8 +207,8 @@ bool WalkPlaneCollection::buildPath(const float *destination, const float *sourc
 }
 
 bool WalkPlaneCollection::findPlanePath(WalkPlane_v2 *goal, WalkPlane_v2 *start) {
-	Common::Array<WalkPlane_v2 *> queue;
-	Common::List<WalkPlane_v2 *>::iterator planeIt;
+	LArray<WalkPlane_v2 *> queue;
+	LList<WalkPlane_v2 *>::iterator planeIt;
 
 	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt) {
 		(*planeIt)->_bfsState = 0;
@@ -341,7 +341,7 @@ bool WalkPlaneCollection::canWalkStraight(const float *from, const float *to) {
 
 int WalkPlaneCollection::getSize() {
 	int size = (int)(sizeof(WalkPlaneCollection) + sizeof(void *) * (_planes.size() + 5 * _vertices.size()));
-	Common::List<WalkPlane_v2 *>::iterator planeIt;
+	LList<WalkPlane_v2 *>::iterator planeIt;
 
 	for (planeIt = _planes.begin(); planeIt != _planes.end(); ++planeIt)
 		size += (*planeIt)->getSize();
@@ -351,7 +351,7 @@ int WalkPlaneCollection::getSize() {
 
 void WalkPlaneCollection::save(SaveRestoreAccess *accessFunc) {
 	int count = (int)_planes.size();
-	Common::List<WalkPlane_v2 *>::iterator planeIt;
+	LList<WalkPlane_v2 *>::iterator planeIt;
 
 	accessFunc(&count, sizeof(count));
 
@@ -386,7 +386,7 @@ void WalkPlaneCollection::restore(SaveRestoreAccess *accessFunc) {
 }
 
 wpVertex *WalkPlaneCollection::addVertex(const float *position) {
-	Common::List<wpVertex *>::iterator it;
+	LList<wpVertex *>::iterator it;
 
 	for (it = _vertices.begin(); it != _vertices.end(); ++it) {
 		wpVertex *vertex = *it;
@@ -420,7 +420,7 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 		vertex->refCount--;
 
 		if (vertex->refCount == 0) {
-			Common::List<wpVertex *>::iterator it = _vertices.begin();
+			LList<wpVertex *>::iterator it = _vertices.begin();
 
 			while (it != _vertices.end()) {
 				if (*it == vertex)
@@ -435,7 +435,7 @@ void WalkPlaneCollection::removeVertex(wpVertex *vertex) {
 }
 
 WalkPlane_v2 *WalkPlaneCollection::planeAt(const float *point, int typeMask) {
-	Common::List<WalkPlane_v2 *>::iterator it;
+	LList<WalkPlane_v2 *>::iterator it;
 
 	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		WalkPlane_v2 *plane = *it;
@@ -448,7 +448,7 @@ WalkPlane_v2 *WalkPlaneCollection::planeAt(const float *point, int typeMask) {
 }
 
 WalkPlane_v2 *WalkPlaneCollection::planeNamed(const LString &planeName) {
-	Common::List<WalkPlane_v2 *>::iterator it;
+	LList<WalkPlane_v2 *>::iterator it;
 
 	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		if ((*it)->_name == planeName)
@@ -459,7 +459,7 @@ WalkPlane_v2 *WalkPlaneCollection::planeNamed(const LString &planeName) {
 }
 
 WalkPlane_v2 *WalkPlaneCollection::planeNumbered(int planeNumber) {
-	Common::List<WalkPlane_v2 *>::iterator it;
+	LList<WalkPlane_v2 *>::iterator it;
 
 	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		if ((*it)->_number == planeNumber)
@@ -477,7 +477,7 @@ WalkPlane_v2 *WalkPlaneCollection::planeClosest(const float *point, int typeMask
 
 	WalkPlane_v2 *closest = nullptr;
 	float closestDistance = kMaxFloat;
-	Common::List<WalkPlane_v2 *>::iterator it;
+	LList<WalkPlane_v2 *>::iterator it;
 
 	for (it = _planes.begin(); it != _planes.end(); ++it) {
 		WalkPlane_v2 *plane = *it;
@@ -527,7 +527,7 @@ WalkPlane_v2 *WalkPlaneCollection::createPlane(const float *vertices, int vertex
 }
 
 void WalkPlaneCollection::allActive() {
-	Common::List<WalkPlane_v2 *>::iterator it;
+	LList<WalkPlane_v2 *>::iterator it;
 
 	for (it = _planes.begin(); it != _planes.end(); ++it)
 		(*it)->_enabled = true;

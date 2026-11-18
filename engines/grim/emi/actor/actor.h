@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/list.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/math/cvector.h"
 #include "engines/grim/emi/actor/extra_v2.h"
 #include "engines/grim/emi/math/irect.h"
@@ -161,11 +162,11 @@ public:
 	int _sortOrder;
 	int _parentActorId;
 	char _parentNodeName[CNode::kNameSize];
-	Common::List<uint> _choreIds;
-	Common::List<ANode *> _animNodes;
+	LList<uint> _choreIds;
+	LList<ANode *> _animNodes;
 	Extra_v2 *_extra;
-	Common::Array<Shadow_v2 *> _shadows;
-	Common::Array<RPrimitiveInstance *> _shadowMeshes;
+	LArray<Shadow_v2 *> _shadows;
+	LArray<RPrimitiveInstance *> _shadowMeshes;
 	uint _choreSlotIds[kNumChoreSlots];
 	LString _choreSlotNames[kNumChoreSlots];
 	LString _choreSlotSetNames[kNumChoreSlots];

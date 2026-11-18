@@ -45,7 +45,7 @@ void CLightNode::setActive(bool newActive) {
 			_active = true;
 		}
 	} else if (_active) {
-		Common::List<CLightNode *>::iterator it = _engine->_activeLights.begin();
+		LList<CLightNode *>::iterator it = _engine->_activeLights.begin();
 
 		while (it != _engine->_activeLights.end()) {
 			if (*it == this)

@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/color.h"
 #include "engines/grim/emi/files/lfile.h"
 
@@ -52,8 +53,8 @@ public:
 	LString _name;
 	LString _lightName;
 	float _point[3];
-	Common::Array<WalkPlane_v2 *> _sectors;
-	Common::Array<LString> _sectorNames;
+	LArray<WalkPlane_v2 *> _sectors;
+	LArray<LString> _sectorNames;
 	Color _color;
 
 private:

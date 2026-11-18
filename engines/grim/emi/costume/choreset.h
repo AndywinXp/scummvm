@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/list.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/emi/resources/lresource.h"
 
@@ -54,7 +55,7 @@ public:
 	int _id;
 	int _parentId;
 	LString _resourceName;
-	Common::List<ChoreKey *> _keys;
+	LList<ChoreKey *> _keys;
 };
 
 class Chore {
@@ -72,7 +73,7 @@ public:
 	void unlockComponents();
 
 	LString _name;
-	Common::Array<ChoreTrack *> _tracks;
+	LArray<ChoreTrack *> _tracks;
 	float _length;
 
 private:
@@ -97,7 +98,7 @@ public:
 	bool loadBinary(const char *path);
 	bool saveBinary(const char *path);
 
-	Common::Array<Chore *> _chores;
+	LArray<Chore *> _chores;
 
 protected:
 	virtual bool resLoadItem(const char *itemName);

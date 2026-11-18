@@ -94,7 +94,7 @@ Actor::~Actor() {
 		_room.unlock();
 	}
 
-	Common::List<uint>::iterator choreIt;
+	LList<uint>::iterator choreIt;
 
 	for (choreIt = _choreIds.begin(); choreIt != _choreIds.end(); ++choreIt) {
 		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
@@ -117,7 +117,7 @@ Actor::~Actor() {
 		_extra = nullptr;
 	}
 
-	Common::List<Actor *>::iterator actorIt = _engine->_actors.begin();
+	LList<Actor *>::iterator actorIt = _engine->_actors.begin();
 
 	while (actorIt != _engine->_actors.end()) {
 		if (*actorIt == this)
@@ -270,7 +270,7 @@ void Actor::shutdown(EmiEngine *engine) {
 }
 
 void Actor::freeAllActors(EmiEngine *engine) {
-	Common::List<Actor *>::iterator it;
+	LList<Actor *>::iterator it;
 
 	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it)
 		(*it)->detachFromParent();
@@ -306,7 +306,7 @@ Actor *Actor::getSelectedActor(EmiEngine *engine) {
 }
 
 Actor *Actor::actorDeref(EmiEngine *engine, int actorId) {
-	Common::List<Actor *>::iterator it;
+	LList<Actor *>::iterator it;
 
 	for (it = engine->_actors.begin(); it != engine->_actors.end(); ++it) {
 		if (*it && (*it)->_id == actorId)
@@ -355,7 +355,7 @@ void Actor::unregisterANodes(CNode *node) {
 		ANode *animNode = dynamic_cast<ANode *>(current);
 
 		if (animNode) {
-			Common::List<ANode *>::iterator it = _animNodes.begin();
+			LList<ANode *>::iterator it = _animNodes.begin();
 
 			while (it != _animNodes.end()) {
 				if (*it == animNode)

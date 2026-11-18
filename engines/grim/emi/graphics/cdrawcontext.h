@@ -27,6 +27,7 @@
 
 #include "graphics/pixelformat.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/scene/cclipvolume.h"
 #include "engines/grim/emi/graphics/cdcvertexarray.h"
 #include "engines/grim/emi/graphics/cdrawlist.h"
@@ -140,7 +141,7 @@ protected:
 	friend class CDrawList;
 
 	EmiEngine *_engine;
-	Common::Array<DrawVertex *> _vertexPool;
+	LArray<DrawVertex *> _vertexPool;
 	int _listCount;
 
 public:

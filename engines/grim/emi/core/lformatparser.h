@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/hashmap.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 
 namespace Grim {
@@ -71,13 +72,13 @@ public:
 	static bool writeCopyrightBanner(LFile *file);
 
 	LFile *_file;
-	Common::Array<LFile *> _fileStack;
+	LArray<LFile *> _fileStack;
 	bool _reading;
 	bool _binaryData;
 	int _numTokens;
 	char *_tokens[16];
 	char _lineBuffer[256];
-	Common::HashMap<int, KeywordInfo> _keywords;
+	LHashMap<int, KeywordInfo> _keywords;
 
 protected:
 	~LFormatParser();

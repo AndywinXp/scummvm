@@ -105,7 +105,7 @@ void LFormatParser::writeVersion(int versionMajor, int versionMinor) {
 
 void LFormatParser::writeEntry(int id, ...) {
 	KeywordInfo *keyword = nullptr;
-	Common::HashMap<int, KeywordInfo>::iterator it;
+	LHashMap<int, KeywordInfo>::iterator it;
 
 	for (it = _keywords.begin(); it != _keywords.end(); ++it) {
 		if (it->_value.id == id) {
@@ -292,7 +292,7 @@ LFile *LFormatParser::openFile(const char *path, bool readMode) {
 }
 
 KeywordInfo *LFormatParser::findKeyword(const char *name) {
-	Common::HashMap<int, KeywordInfo>::iterator it;
+	LHashMap<int, KeywordInfo>::iterator it;
 
 	// The disasm compares the first token, not the argument
 	for (it = _keywords.begin(); it != _keywords.end(); ++it) {

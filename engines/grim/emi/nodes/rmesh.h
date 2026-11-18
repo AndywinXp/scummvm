@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/graphics/cdcvertexarray.h"
 #include "engines/grim/emi/scene/clight.h"
 #include "engines/grim/emi/graphics/cmaterial.h"
@@ -70,11 +71,11 @@ public:
 	PackedColor *_colors;
 	float *_uv;
 	int _numTextureSets;
-	Common::Array<int> _texFlags;
-	Common::Array<LResourceHandle<CMaterial> > _matHandles;
-	Common::Array<CMaterial *> _materials;
+	LArray<int> _texFlags;
+	LArray<LResourceHandle<CMaterial> > _matHandles;
+	LArray<CMaterial *> _materials;
 	CWeightMap *_weightMap;
-	Common::Array<TriSet *> _trisets;
+	LArray<TriSet *> _trisets;
 
 private:
 	EmiEngine *_engine;

@@ -74,6 +74,8 @@ CDrawList::~CDrawList() {
 			_ctx->_vertexPool[i] = nullptr;
 		}
 
+		// The original keeps the memory of the vector when it empties it, so its count stays up; our clear() frees it...
+		// Let's keep an eye on this point if the game expects the count not to drop here...
 		_ctx->_vertexPool.clear();
 	}
 }

@@ -234,7 +234,7 @@ void ProfilerTimer::printStats(ProfilerTimer *parentTimer, int parentContextInde
 
 	_engine->getConsoleServices()->logStatus("%s%s %6.02fms %4.1f %4.1f\n", indent.c_str(), label.c_str(), millis, percent, callsPerFrame);
 
-	Common::List<ProfilerTimer *>::iterator child;
+	LList<ProfilerTimer *>::iterator child;
 
 	for (child = _children.begin(); child != _children.end(); ++child)
 		(*child)->printStats(this, context, parentMillis, depth + 1);
@@ -290,7 +290,7 @@ void ProfilerTimer::printAllStats(EmiEngine *engine) {
 
 	linkChildren(engine);
 
-	Common::List<ProfilerTimer *>::iterator child;
+	LList<ProfilerTimer *>::iterator child;
 
 	for (child = engine->_rootTimer._children.begin(); child != engine->_rootTimer._children.end(); ++child)
 		(*child)->printStats(&engine->_rootTimer, 0, 0.0, 0);
@@ -305,7 +305,7 @@ void ProfilerTimer::linkChildren(EmiEngine *engine) {
 	for (ProfilerTimer *timer = engine->_profilerOldest; timer; timer = timer->_prev) {
 		for (int i = 0; i < timer->_numContexts; i++) {
 			ProfilerTimer *parentTimer = timer->_parent[i];
-			Common::List<ProfilerTimer *>::iterator child = parentTimer->_children.begin();
+			LList<ProfilerTimer *>::iterator child = parentTimer->_children.begin();
 
 			while (child != parentTimer->_children.end() && *child != timer)
 				++child;

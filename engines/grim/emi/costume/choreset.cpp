@@ -103,7 +103,7 @@ ChoreTrack::ChoreTrack() {
 }
 
 ChoreTrack::~ChoreTrack() {
-	Common::List<ChoreKey *>::iterator it;
+	LList<ChoreKey *>::iterator it;
 
 	for (it = _keys.begin(); it != _keys.end(); ++it) {
 		delete *it;
@@ -512,7 +512,7 @@ bool ChoreSet::saveBinary(const char *path) {
 			writeInt(file, track->_parentId);
 			writeInt(file, (int)track->_keys.size());
 
-			Common::List<ChoreKey *>::iterator it;
+			LList<ChoreKey *>::iterator it;
 
 			for (it = track->_keys.begin(); it != track->_keys.end(); ++it) {
 				writeFloat(file, (*it)->time);

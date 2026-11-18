@@ -25,6 +25,8 @@
 #include "common/list.h"
 #include "common/str.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
+
 namespace Grim {
 
 class EmiEngine;
@@ -70,7 +72,7 @@ public:
 	int _currentContext;
 	int _flags;
 	char _name[kNameSize];
-	Common::List<ProfilerTimer *> _children;
+	LList<ProfilerTimer *> _children;
 
 	// next points to the older timer, prev to the newer one
 	ProfilerTimer *_next;

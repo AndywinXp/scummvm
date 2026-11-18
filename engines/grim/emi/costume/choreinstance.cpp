@@ -331,12 +331,12 @@ bool ChoreInstance::update(float deltaTime, bool replay) {
 			if (replay && !instance->isReplayable())
 				continue;
 
-			Common::List<ChoreKey *>::iterator current = track->_keys.begin();
+			LList<ChoreKey *>::iterator current = track->_keys.begin();
 
 			while (current != track->_keys.end() && !((*current)->time >= _time))
 				++current;
 
-			Common::List<ChoreKey *>::iterator next = current;
+			LList<ChoreKey *>::iterator next = current;
 
 			if (next != track->_keys.end())
 				++next;

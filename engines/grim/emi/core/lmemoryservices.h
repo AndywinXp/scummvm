@@ -72,6 +72,9 @@ public:
 	static LMemoryServices *getCurrent();
 	static uint msize(uint size);
 
+	void countBlock(uint size);
+	void uncountBlock(uint size);
+
 	virtual void *mallocImpl(uint size);
 	virtual void *reallocImpl(void *block, uint size);
 	virtual void freeImpl(void *block);
@@ -99,6 +102,22 @@ protected:
 	LMemoryHandler **_memHandlers;
 	uint _handlerCount;
 	uint _memHandlersArraySize;
+};
+
+// What a container of ours holds that the services count: the memory is taken by the container, so only the figure of
+// the services changes. A block of the container counts like a block taken from the services with the same size
+class LCountedBlocks {
+public:
+	LCountedBlocks();
+	~LCountedBlocks();
+
+	void setBlockCount(uint count, uint blockSize);
+	void setSingleBlock(uint size);
+
+private:
+	uint _blockCount;
+	uint _blockSize;
+	uint _singleSize;
 };
 
 class LDebugMemoryServices : public LMemoryServices {

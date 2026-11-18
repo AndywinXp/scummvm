@@ -128,7 +128,7 @@ void Actor::update(float deltaTime) {
 	removeFinishedChores();
 	updateWalkChores();
 
-	Common::List<uint>::iterator choreIt;
+	LList<uint>::iterator choreIt;
 
 	for (choreIt = _choreIds.begin(); choreIt != _choreIds.end(); ++choreIt) {
 		if (ChoreInstance::isInstanceValid(_engine, *choreIt)) {
@@ -153,7 +153,7 @@ void Actor::update(float deltaTime) {
 }
 
 void Actor::updateAnimNodes() {
-	Common::List<ANode *>::iterator nodeIt;
+	LList<ANode *>::iterator nodeIt;
 
 	for (nodeIt = _animNodes.begin(); nodeIt != _animNodes.end(); ++nodeIt)
 		(*nodeIt)->updateANode();

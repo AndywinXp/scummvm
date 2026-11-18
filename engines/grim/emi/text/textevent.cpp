@@ -129,7 +129,7 @@ TextEvent::TextEvent(EmiEngine *engine, const uint16 *newText) : _font(engine), 
 }
 
 TextEvent::~TextEvent() {
-	Common::List<TextEvent *>::iterator it = _engine->_textEvents.begin();
+	LList<TextEvent *>::iterator it = _engine->_textEvents.begin();
 
 	while (it != _engine->_textEvents.end()) {
 		if (*it == this)
@@ -300,6 +300,9 @@ void TextEvent::freeGeometry() {
 		_engine->getMemoryServices()->freeImpl(_uvs);
 
 	_uvs = nullptr;
+
+	// The original keeps the memory of the vector when it empties it, so its count stays up; our clear() frees it...
+	// Let's keep an eye on this point if the game expects the count not to drop here...
 	_runs.clear();
 }
 
@@ -1286,7 +1289,7 @@ int TextEvent::update(EmiEngine *engine, CDrawContext *drawContext, bool drawAll
 
 	engine->_textUpdateTimer.start();
 
-	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
+	LList<TextEvent *>::iterator it = engine->_textEvents.begin();
 
 	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;
@@ -1335,7 +1338,7 @@ bool TextEvent::startup(EmiEngine *engine, CDrawContext *drawContext) {
 }
 
 void TextEvent::shutdown(EmiEngine *engine) {
-	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
+	LList<TextEvent *>::iterator it = engine->_textEvents.begin();
 
 	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;
@@ -1357,7 +1360,7 @@ void TextEvent::shutdown(EmiEngine *engine) {
 }
 
 TextEvent *TextEvent::getEvent(EmiEngine *engine, int eventId) {
-	Common::List<TextEvent *>::iterator it;
+	LList<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
 		if ((*it)->_id == eventId)
@@ -1470,14 +1473,14 @@ CjkString TextEvent::concatCjk(const CjkString &first, const CjkString &second) 
 }
 
 void TextEvent::holdAll(EmiEngine *engine) {
-	Common::List<TextEvent *>::iterator it;
+	LList<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it)
 		(*it)->_hold++;
 }
 
 void TextEvent::releaseAll(EmiEngine *engine) {
-	Common::List<TextEvent *>::iterator it;
+	LList<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it) {
 		TextEvent *event = *it;
@@ -1494,7 +1497,7 @@ bool TextEvent::saveAll(EmiEngine *engine, SaveRestoreAccess *accessFunc) {
 
 	accessFunc(&count, sizeof(count));
 
-	Common::List<TextEvent *>::iterator it;
+	LList<TextEvent *>::iterator it;
 
 	for (it = engine->_textEvents.begin(); it != engine->_textEvents.end(); ++it)
 		(*it)->save(accessFunc);
@@ -1511,7 +1514,7 @@ bool TextEvent::saveAll(EmiEngine *engine, SaveRestoreAccess *accessFunc) {
 }
 
 bool TextEvent::restoreAll(EmiEngine *engine, SaveRestoreAccess *accessFunc) {
-	Common::List<TextEvent *>::iterator it = engine->_textEvents.begin();
+	LList<TextEvent *>::iterator it = engine->_textEvents.begin();
 
 	while (it != engine->_textEvents.end()) {
 		TextEvent *event = *it;

@@ -90,7 +90,7 @@ bool ResourceManager::addResource(LResource *resource) {
 	if (resource->_name.empty())
 		return false;
 
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	for (it = _allResources.begin(); it != _allResources.end(); ++it) {
 		if (*it == resource)
@@ -106,7 +106,7 @@ bool ResourceManager::addResource(LResource *resource) {
 }
 
 bool ResourceManager::removeResource(LResource *resource) {
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	for (it = _allResources.begin(); it != _allResources.end(); ++it) {
 		if (*it == resource)
@@ -245,7 +245,7 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 	LString resourceName = resource->_name;
 	uint bytesAfterReplace = memoryServices->_bytesAllocated + replaceDelta;
 
-	Common::List<LResource *>::iterator it = _lruResources.begin();
+	LList<LResource *>::iterator it = _lruResources.begin();
 
 	while (it != _lruResources.end()) {
 		if (*it == resource)
@@ -275,7 +275,7 @@ int ResourceManager::purgeResource(LResource *resource, bool logPurge) {
 }
 
 void ResourceManager::lockResource(LResource *resource) {
-	Common::List<LResource *>::iterator it = _lruResources.begin();
+	LList<LResource *>::iterator it = _lruResources.begin();
 
 	while (it != _lruResources.end()) {
 		if (*it == resource)
@@ -301,7 +301,7 @@ uint ResourceManager::purgeAmount(uint bytes) {
 
 		freed += (uint)purgeResource(resource, true);
 
-		Common::List<LResource *>::iterator it = _lruResources.begin();
+		LList<LResource *>::iterator it = _lruResources.begin();
 
 		while (it != _lruResources.end()) {
 			if (*it == resource)
@@ -357,7 +357,7 @@ int ResourceManager::purgeUnused() {
 	int count = 0;
 	int bytes = 0;
 
-	Common::List<LResource *>::iterator it = _allResources.begin();
+	LList<LResource *>::iterator it = _allResources.begin();
 
 	while (it != _allResources.end()) {
 		LResource *resource = *it;
@@ -384,7 +384,7 @@ int ResourceManager::purgeUnlocked() {
 	int count = 0;
 	int bytes = 0;
 
-	Common::List<LResource *>::iterator it = _allResources.begin();
+	LList<LResource *>::iterator it = _allResources.begin();
 
 	while (it != _allResources.end()) {
 		LResource *resource = *it;
@@ -419,7 +419,7 @@ LFile *ResourceManager::detachLogFile() {
 }
 
 void ResourceManager::dumpLru(const LResourceType *type) {
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	if (_logFile) {
 		int bytes = 0;
@@ -453,7 +453,7 @@ void ResourceManager::dumpLru(const LResourceType *type) {
 }
 
 void ResourceManager::dumpAll(const LResourceType *type) {
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	if (_logFile) {
 		int bytes = 0;
@@ -487,7 +487,7 @@ void ResourceManager::dumpAll(const LResourceType *type) {
 }
 
 void ResourceManager::dumpUsed(const LResourceType *type) {
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	if (_logFile) {
 		int bytes = 0;
@@ -521,7 +521,7 @@ void ResourceManager::dumpUsed(const LResourceType *type) {
 }
 
 void ResourceManager::dumpUnused(const LResourceType *type) {
-	Common::List<LResource *>::iterator it;
+	LList<LResource *>::iterator it;
 
 	if (_logFile) {
 		int bytes = 0;
@@ -600,7 +600,7 @@ void ResourceManager::update(float frameTime) {
 	_updateTime = (float)elapsed;
 
 	if (elapsed > 10.0) {
-		Common::List<LResource *>::iterator it = _allResources.begin();
+		LList<LResource *>::iterator it = _allResources.begin();
 
 		while (it != _allResources.end()) {
 			LResource *resource = *it;

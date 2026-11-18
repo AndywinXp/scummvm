@@ -25,6 +25,7 @@
 #include "common/list.h"
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 
 namespace Grim {
@@ -83,7 +84,7 @@ public:
 
 	LResourceType _type;
 	LString _name;
-	Common::List<LResourceHandleBase *> _handles;
+	LList<LResourceHandleBase *> _handles;
 	int _lockCount;
 	bool _loaded;
 	byte _byte29;

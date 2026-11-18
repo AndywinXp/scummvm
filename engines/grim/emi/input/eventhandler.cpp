@@ -21,6 +21,7 @@
 
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/input/eventhandler.h"
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
@@ -34,7 +35,7 @@ void Event::operator delete(void *block) {
 }
 
 EventHandler::EventHandler(EmiEngine *engine, int handlerPriority) : _typeMask(0xFFFFFFFF), _priority(handlerPriority), _engine(engine) {
-	Common::List<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
+	LList<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
 
 	while (it != _engine->_eventHandlers.end() && (*it)->_priority >= handlerPriority)
 		++it;
@@ -43,7 +44,7 @@ EventHandler::EventHandler(EmiEngine *engine, int handlerPriority) : _typeMask(0
 }
 
 EventHandler::~EventHandler() {
-	Common::List<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
+	LList<EventHandler *>::iterator it = _engine->_eventHandlers.begin();
 
 	while (it != _engine->_eventHandlers.end()) {
 		if (*it == this)

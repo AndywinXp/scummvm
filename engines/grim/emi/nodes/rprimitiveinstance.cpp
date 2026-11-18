@@ -81,7 +81,7 @@ bool RPrimitiveInstance::saveState(SaveRestoreAccess *accessFunc) {
 
 	Common::Array<int> keys;
 
-	for (Common::HashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it)
+	for (LHashMap<int, float>::const_iterator it = _matAlpha.begin(); it != _matAlpha.end(); ++it)
 		keys.push_back(it->_key);
 
 	Common::sort(keys.begin(), keys.end());

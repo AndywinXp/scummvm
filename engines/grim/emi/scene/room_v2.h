@@ -24,6 +24,7 @@
 
 #include "common/list.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/scene/camera.h"
 #include "engines/grim/emi/scene/clightnode.h"
 #include "engines/grim/emi/graphics/layer.h"
@@ -87,9 +88,9 @@ public:
 	Setup *_setups;
 	int _numSetups;
 	int _currentSetup;
-	Common::List<Shadow_v2 *> _shadows;
-	Common::List<CLightNode *> _lights;
-	Common::List<Actor *> _actors;
+	LList<Shadow_v2 *> _shadows;
+	LList<CLightNode *> _lights;
+	LList<Actor *> _actors;
 	WalkPlaneCollection *_walkPlanes;
 	char _minVol;
 	char _maxVol;

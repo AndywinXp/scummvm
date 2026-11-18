@@ -25,6 +25,7 @@
 #include "common/array.h"
 #include "common/list.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/emi/scene/walkplane_v2.h"
 #include "engines/grim/emi/scene/wpvertex.h"
@@ -66,8 +67,8 @@ public:
 
 	int getPath(float (**path)[3]);
 
-	Common::List<wpVertex *> _vertices;
-	Common::List<WalkPlane_v2 *> _planes;
+	LList<wpVertex *> _vertices;
+	LList<WalkPlane_v2 *> _planes;
 
 private:
 	enum {
@@ -83,7 +84,7 @@ private:
 	int _rawCount;
 	float _tightPoints[kMaxPathPoints][3];
 	int _tightCount;
-	Common::Array<WalkPlane_v2 *> _planePath;
+	LArray<WalkPlane_v2 *> _planePath;
 	char _sectionName[kSectionNameSize];
 };
 

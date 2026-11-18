@@ -25,6 +25,8 @@
 #include "common/array.h"
 #include "common/scummsys.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
+
 namespace Grim {
 
 struct TriSet {
@@ -36,7 +38,7 @@ struct TriSet {
 	int drawFlags;
 	int numMaterials;
 	int materialIdx;
-	Common::Array<uint16> indices;
+	LArray<uint16> indices;
 };
 
 } // End of namespace Grim

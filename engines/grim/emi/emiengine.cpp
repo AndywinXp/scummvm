@@ -277,7 +277,7 @@ PrimitiveQueue_v2 *EmiEngine::getPrimitiveQueue() {
 	return _primitiveQueue;
 }
 
-const Common::List<CLightNode *> &EmiEngine::getActiveLights() const {
+const LList<CLightNode *> &EmiEngine::getActiveLights() const {
 	return _activeLights;
 }
 

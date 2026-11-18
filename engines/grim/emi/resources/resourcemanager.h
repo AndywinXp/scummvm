@@ -28,6 +28,7 @@
 #include "common/scummsys.h"
 
 #include "engines/grim/emi/files/lfile.h"
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/resources/lresource.h"
 
@@ -48,7 +49,7 @@ private:
 
 class ResourceManager : public LResourceManager {
 public:
-	typedef Common::HashMap<LString, LResource *> ResourceMap;
+	typedef LHashMap<LString, LResource *> ResourceMap;
 
 	explicit ResourceManager(EmiEngine *engine);
 
@@ -83,8 +84,8 @@ public:
 	int dumpResource(LResource *resource, LFile *file);
 
 	LFile *_logFile;
-	Common::List<LResource *> _allResources;
-	Common::List<LResource *> _lruResources;
+	LList<LResource *> _allResources;
+	LList<LResource *> _lruResources;
 	ResourceMap _resourcesByName;
 
 private:

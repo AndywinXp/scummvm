@@ -24,6 +24,7 @@
 
 #include "common/array.h"
 
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/emi/scene/wpvertex.h"
 #include "engines/grim/lua/lua.h"
@@ -81,7 +82,7 @@ public:
 	WalkPlaneCollection *_collection;
 	float _normal[3];
 	float _d;
-	Common::Array<int> _neighbors;
+	LArray<int> _neighbors;
 	int _bfsState;
 	WalkPlane_v2 *_bfsParent;
 	int _axisU;

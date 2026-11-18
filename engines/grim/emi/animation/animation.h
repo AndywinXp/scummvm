@@ -25,6 +25,7 @@
 #include "common/array.h"
 
 #include "engines/grim/emi/animation/atrack.h"
+#include "engines/grim/emi/core/lcontainers.h"
 #include "engines/grim/emi/files/lfile.h"
 
 namespace Grim {
@@ -50,7 +51,7 @@ public:
 	bool saveBinary(const char *path);
 
 	LString _name;
-	Common::Array<AnimEntry> _entries;
+	LArray<AnimEntry> _entries;
 	int _trackCount;
 	int _entryCount;
 	float _length;

@@ -25,6 +25,7 @@
 #include "common/list.h"
 
 #include "engines/grim/emi/animation/atrack.h"
+#include "engines/grim/emi/core/lcontainers.h"
 
 namespace Grim {
 
@@ -54,7 +55,7 @@ public:
 	void fadeOut(float seconds);
 	void update(float deltaTime);
 
-	Common::List<AChannelHandle *> _channels;
+	LList<AChannelHandle *> _channels;
 	uint _flags;
 	float _length;
 	float _time;

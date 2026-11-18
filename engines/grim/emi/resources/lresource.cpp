@@ -76,7 +76,7 @@ LResource::~LResource() {
 
 	_engine->getResourceManager()->removeResource(this);
 
-	Common::List<LResourceHandleBase *>::iterator it;
+	LList<LResourceHandleBase *>::iterator it;
 
 	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		warning("LResource::~LResource(): resource still has handles bound");
@@ -216,7 +216,7 @@ LResourceHandleBase *LResource::firstHandle() {
 }
 
 void LResource::addHandle(LResourceHandleBase &handle) {
-	Common::List<LResourceHandleBase *>::iterator it;
+	LList<LResourceHandleBase *>::iterator it;
 
 	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		if (*it == &handle)
@@ -227,7 +227,7 @@ void LResource::addHandle(LResourceHandleBase &handle) {
 }
 
 void LResource::removeHandle(LResourceHandleBase &handle) {
-	Common::List<LResourceHandleBase *>::iterator it;
+	LList<LResourceHandleBase *>::iterator it;
 
 	for (it = _handles.begin(); it != _handles.end(); ++it) {
 		if (*it == &handle) {
@@ -252,7 +252,7 @@ void LResource::resSetType(const LResourceType &newType) {
 }
 
 void LResource::resReplaceResource(LResource &other) {
-	Common::List<LResourceHandleBase *>::iterator it = _handles.begin();
+	LList<LResourceHandleBase *>::iterator it = _handles.begin();
 
 	while (it != _handles.end()) {
 		LResourceHandleBase *handle = *it;

@@ -39,7 +39,7 @@ AInst::AInst(EmiEngine *engine) : _engine(engine) {
 }
 
 AInst::~AInst() {
-	Common::List<AInst *>::iterator it = _engine->_animInstances.begin();
+	LList<AInst *>::iterator it = _engine->_animInstances.begin();
 
 	while (it != _engine->_animInstances.end()) {
 		if (*it == this)
@@ -82,7 +82,7 @@ void AInst::play() {
 		if (notAttached) {
 			_flags |= kAttached;
 
-			Common::List<AChannelHandle *>::iterator it;
+			LList<AChannelHandle *>::iterator it;
 
 			for (it = _channels.begin(); it != _channels.end(); ++it)
 				(*it)->activate(this);
@@ -106,7 +106,7 @@ void AInst::pause() {
 		if (notAttached) {
 			_flags |= kAttached;
 
-			Common::List<AChannelHandle *>::iterator it;
+			LList<AChannelHandle *>::iterator it;
 
 			for (it = _channels.begin(); it != _channels.end(); ++it)
 				(*it)->activate(this);
@@ -120,7 +120,7 @@ void AInst::stop() {
 	_flags = 0;
 
 	if ((oldFlags & kAttached) != 0) {
-		Common::List<AChannelHandle *>::iterator it;
+		LList<AChannelHandle *>::iterator it;
 
 		for (it = _channels.begin(); it != _channels.end(); ++it)
 			(*it)->deactivate(this);
@@ -155,7 +155,7 @@ void AInst::finish() {
 	_flags = 0;
 
 	if ((oldFlags & kAttached) != 0) {
-		Common::List<AChannelHandle *>::iterator it;
+		LList<AChannelHandle *>::iterator it;
 
 		for (it = _channels.begin(); it != _channels.end(); ++it)
 			(*it)->deactivate(this);

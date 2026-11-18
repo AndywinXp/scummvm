@@ -184,14 +184,14 @@ uint Room_v2::resSizeOfItem() {
 
 	size += sizeof(Shadow_v2 *) * _shadows.size();
 
-	Common::List<Shadow_v2 *>::iterator shadowIt;
+	LList<Shadow_v2 *>::iterator shadowIt;
 
 	for (shadowIt = _shadows.begin(); shadowIt != _shadows.end(); ++shadowIt)
 		size += (*shadowIt)->getSize();
 
 	size += sizeof(CLightNode *) * _lights.size();
 
-	Common::List<CLightNode *>::iterator lightIt;
+	LList<CLightNode *>::iterator lightIt;
 
 	for (lightIt = _lights.begin(); lightIt != _lights.end(); ++lightIt) {
 		if (*lightIt) {
@@ -237,7 +237,7 @@ bool Room_v2::resLoadItem(const char *itemName) {
 		}
 
 		if (_walkPlanes) {
-			Common::List<Shadow_v2 *>::iterator it;
+			LList<Shadow_v2 *>::iterator it;
 
 			for (it = _shadows.begin(); it != _shadows.end(); ++it)
 				(*it)->resolveSectors(_walkPlanes);
@@ -319,7 +319,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 		drawContext->clear(false, true);
 
 		Common::Array<DrawItem> items;
-		Common::List<Layer *>::iterator layerIt;
+		LList<Layer *>::iterator layerIt;
 
 		for (layerIt = setup->_layers.begin(); layerIt != setup->_layers.end(); ++layerIt) {
 			DrawItem item;
@@ -331,7 +331,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 			items.push_back(item);
 		}
 
-		Common::List<Actor *>::iterator actorIt;
+		LList<Actor *>::iterator actorIt;
 
 		for (actorIt = _actors.begin(); actorIt != _actors.end(); ++actorIt) {
 			Actor *actor = *actorIt;
@@ -411,7 +411,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 
 void Room_v2::addActor(Actor *actor) {
 	if (_engine->isDemo()) {
-		Common::List<Actor *>::iterator it;
+		LList<Actor *>::iterator it;
 
 		for (it = _actors.begin(); it != _actors.end(); ++it) {
 			if (*it == actor) {
@@ -427,7 +427,7 @@ void Room_v2::addActor(Actor *actor) {
 
 int Room_v2::removeActor(Actor *actor) {
 	int count = 0;
-	Common::List<Actor *>::iterator it = _actors.begin();
+	LList<Actor *>::iterator it = _actors.begin();
 
 	while (it != _actors.end()) {
 		if (*it == actor) {
@@ -445,7 +445,7 @@ int Room_v2::removeActor(Actor *actor) {
 }
 
 void Room_v2::setLightsActive(bool active) {
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
@@ -454,7 +454,7 @@ void Room_v2::setLightsActive(bool active) {
 }
 
 void Room_v2::saveLightStates() {
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
@@ -463,7 +463,7 @@ void Room_v2::saveLightStates() {
 }
 
 void Room_v2::restoreLightStates() {
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it)
@@ -472,7 +472,7 @@ void Room_v2::restoreLightStates() {
 }
 
 CLightNode *Room_v2::findLight(const char *lightName) {
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it && scumm_stricmp(lightName, (*it)->_name) == 0)
@@ -483,7 +483,7 @@ CLightNode *Room_v2::findLight(const char *lightName) {
 }
 
 void Room_v2::addLight(CLightNode *light) {
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		if (*it == light)
@@ -496,7 +496,7 @@ void Room_v2::addLight(CLightNode *light) {
 void Room_v2::removeLight(CLightNode *light) {
 	light->setActive(false);
 
-	Common::List<CLightNode *>::iterator it = _lights.begin();
+	LList<CLightNode *>::iterator it = _lights.begin();
 
 	while (it != _lights.end()) {
 		if (*it == light)
@@ -507,7 +507,7 @@ void Room_v2::removeLight(CLightNode *light) {
 }
 
 Shadow_v2 *Room_v2::findShadow(const LString &shadowName) {
-	Common::List<Shadow_v2 *>::iterator it;
+	LList<Shadow_v2 *>::iterator it;
 
 	for (it = _shadows.begin(); it != _shadows.end(); ++it) {
 		if (*it && (*it)->_name == shadowName)
@@ -526,7 +526,7 @@ Shadow_v2 *Room_v2::newShadow() {
 }
 
 void Room_v2::removeShadow(Shadow_v2 *shadow) {
-	Common::List<Shadow_v2 *>::iterator it = _shadows.begin();
+	LList<Shadow_v2 *>::iterator it = _shadows.begin();
 
 	while (it != _shadows.end()) {
 		if (*it == shadow)
@@ -557,7 +557,7 @@ bool Room_v2::save(SaveRestoreAccess *accessFunc) {
 		accessFunc(&_maxRadius, sizeof(_maxRadius));
 	}
 
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		CLightNode *lightNode = *it;
@@ -601,7 +601,7 @@ bool Room_v2::restore(SaveRestoreAccess *accessFunc) {
 		accessFunc(&_maxRadius, sizeof(_maxRadius));
 	}
 
-	Common::List<CLightNode *>::iterator it;
+	LList<CLightNode *>::iterator it;
 
 	for (it = _lights.begin(); it != _lights.end(); ++it) {
 		CLightNode *lightNode = *it;
@@ -711,7 +711,7 @@ Layer *Room_v2::findLayerById(EmiEngine *engine, int layerId) {
 		return nullptr;
 
 	for (int i = 0; i < room->_numSetups; i++) {
-		Common::List<Layer *>::iterator it;
+		LList<Layer *>::iterator it;
 
 		for (it = room->_setups[i]._layers.begin(); it != room->_setups[i]._layers.end(); ++it) {
 			if ((*it)->_id == layerId)
@@ -730,7 +730,7 @@ void Room_v2::loadRoom(EmiEngine *engine, const char *roomName) {
 		engine->_currentRoom->setLightsActive(false);
 		engine->_currentRoomHandle.unlock();
 
-		Common::List<Actor *>::iterator it;
+		LList<Actor *>::iterator it;
 
 		for (it = engine->_currentRoom->_actors.begin(); it != engine->_currentRoom->_actors.end(); ++it) {
 			if (engine->getConsoleServices())
@@ -1482,7 +1482,7 @@ bool Room_v2::saveBinary(const char *path) {
 
 	writeBinaryInt(file, (int)_lights.size());
 
-	Common::List<CLightNode *>::iterator lightIt;
+	LList<CLightNode *>::iterator lightIt;
 
 	for (lightIt = _lights.begin(); lightIt != _lights.end(); ++lightIt) {
 		CLightNode *lightNode = *lightIt;
@@ -1518,7 +1518,7 @@ bool Room_v2::saveBinary(const char *path) {
 	writeBinaryInt(file, planeCount);
 
 	if (planeCount > 0) {
-		Common::List<WalkPlane_v2 *>::iterator planeIt;
+		LList<WalkPlane_v2 *>::iterator planeIt;
 
 		for (planeIt = _walkPlanes->_planes.begin(); planeIt != _walkPlanes->_planes.end(); ++planeIt) {
 			WalkPlane_v2 *plane = *planeIt;
@@ -1566,7 +1566,7 @@ bool Room_v2::saveBinary(const char *path) {
 
 	writeBinaryInt(file, (int)_shadows.size());
 
-	Common::List<Shadow_v2 *>::iterator shadowIt;
+	LList<Shadow_v2 *>::iterator shadowIt;
 
 	for (shadowIt = _shadows.begin(); shadowIt != _shadows.end(); ++shadowIt) {
 		Shadow_v2 *shadow = *shadowIt;
