@@ -121,10 +121,11 @@ GrimEngine *g_grim = nullptr;
 GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
 		Engine(syst) {
 	g_grim = this;
-	_stdMemory = new StdMemory();
 
-	if (gameType != GType_MONKEY4)
+	if (gameType != GType_MONKEY4) {
+		_stdMemory = new StdMemory();
 		setDebugger(new Debugger());
+	}
 
 	_gameType = gameType;
 	_gameFlags = gameFlags;
@@ -195,6 +196,9 @@ bool GrimEngine::hasUpdatedGameData() {
 }
 
 Common::Error GrimEngine::run() {
+	if (_gameType == GType_MONKEY4)
+		return runEmi();
+
 	if (_gameType != GType_GRIM)
 		return Common::Error(Common::kUnsupportedGameidError, _s("This game is not supported by this version of the Grim engine"));
 
@@ -202,6 +206,10 @@ Common::Error GrimEngine::run() {
 		return Common::kUserCanceled;
 
 	return runGrime();
+}
+
+Common::Error GrimEngine::runEmi() {
+	return Common::Error(Common::kUnsupportedGameidError, _s("Escape from Monkey Island support is not compiled in"));
 }
 
 bool GrimEngine::checkGameData(const char *gameName) {
@@ -1181,9 +1189,8 @@ int GrimEngine::shutdownCallback(int arg) {
 	return 0;
 }
 
-// The memory services of the demo give out the blocks of the plain heap, the memory manager does not count them
 void *GrimEngine::memAlloc(int size) {
-	if (_gameFlags & ADGF_DEMO) {
+	if ((_gameFlags & ADGF_DEMO) || !_stdMemory) {
 		void *block = malloc(size);
 
 		if (!block)
@@ -1196,14 +1203,14 @@ void *GrimEngine::memAlloc(int size) {
 }
 
 void GrimEngine::memFree(void *block) {
-	if (_gameFlags & ADGF_DEMO)
+	if ((_gameFlags & ADGF_DEMO) || !_stdMemory)
 		free(block);
 	else
 		_stdMemory->free(block);
 }
 
 void *GrimEngine::memRealloc(void *block, int size) {
-	if (_gameFlags & ADGF_DEMO) {
+	if ((_gameFlags & ADGF_DEMO) || !_stdMemory) {
 		if (!size) {
 			free(block);
 			return nullptr;
@@ -1222,7 +1229,7 @@ void *GrimEngine::memRealloc(void *block, int size) {
 
 // Only the classic game tags its blocks: in the other games these blocks do not come from the memory manager
 void *GrimEngine::memTagAlloc(void *block, const char *file, int state) {
-	if ((_gameFlags & ADGF_DEMO) || isRemastered())
+	if ((_gameFlags & ADGF_DEMO) || isRemastered() || !_stdMemory)
 		return block;
 
 	return _stdMemory->tagAlloc(block, file, state);

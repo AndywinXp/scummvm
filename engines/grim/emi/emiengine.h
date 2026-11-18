@@ -225,7 +225,7 @@ public:
 	void loadGame(CDrawContext *drawContext);
 
 protected:
-	Common::Error run() override;
+	Common::Error runEmi() override;
 	void pauseEngineIntern(bool pause) override;
 
 private:

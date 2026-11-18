@@ -135,6 +135,7 @@ class GrimEngine : public Engine, public SysStruct {
 protected:
 	// Engine APIs
 	Common::Error run() override;
+	virtual Common::Error runEmi();
 
 public:
 	GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language);

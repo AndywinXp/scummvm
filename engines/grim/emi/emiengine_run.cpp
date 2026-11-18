@@ -53,7 +53,7 @@ static const int kScreenWidth = 640;
 static const int kScreenHeight = 480;
 static const int kLoadScreenPs2Lines = 448;
 
-Common::Error EmiEngine::run() {
+Common::Error EmiEngine::runEmi() {
 	if (!checkGameData("Escape from Monkey Island"))
 		return Common::kUserCanceled;
 
