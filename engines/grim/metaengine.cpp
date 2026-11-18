@@ -57,6 +57,10 @@ static void correctSaveImageGamma(Common::Array<byte> &pixels, float gamma) {
 	}
 }
 
+static Common::U32String saveNameToUnicode(const Common::String &name) {
+	return Common::U32String(name, Common::kWindows1252);
+}
+
 static bool readSaveStrings(Common::SeekableReadStream *stream, Common::Array<Common::String> &strings) {
 	if (LegacySaveFile::isLegacySave(stream))
 		return legacyReadSaveStrings(stream, strings);
@@ -339,9 +343,9 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 
 			if (filePointer && gameId == "monkey4") {
 				if (EmiEngine::readSaveStrings(filePointer, strings))
-					saveList.push_back(SaveStateDescriptor(this, slotNum, EmiEngine::getSaveDescription(strings, slotNum)));
+					saveList.push_back(SaveStateDescriptor(this, slotNum, saveNameToUnicode(EmiEngine::getSaveDescription(strings, slotNum))));
 			} else if (filePointer && readSaveStrings(filePointer, strings)) {
-				saveList.push_back(SaveStateDescriptor(this, slotNum, strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0]));
+				saveList.push_back(SaveStateDescriptor(this, slotNum, saveNameToUnicode(strings.empty() ? Common::String::format("Slot %d", slotNum) : strings[0])));
 			}
 
 			delete filePointer;
@@ -389,7 +393,7 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 			return SaveStateDescriptor();
 		}
 
-		SaveStateDescriptor emiDesc(this, slot, EmiEngine::getSaveDescription(strings, slot));
+		SaveStateDescriptor emiDesc(this, slot, saveNameToUnicode(EmiEngine::getSaveDescription(strings, slot)));
 		bool isPs2 = Common::parsePlatform(ConfMan.get("platform", target)) == Common::kPlatformPS2;
 		Graphics::Surface *emiThumbnail = EmiEngine::readSaveThumbnail(file, isPs2);
 
@@ -405,7 +409,7 @@ SaveStateDescriptor GrimMetaEngine::querySaveMetaInfos(const char *target, int s
 		return SaveStateDescriptor();
 	}
 
-	SaveStateDescriptor desc(this, slot, strings.empty() ? Common::String::format("Slot %d", slot) : strings[0]);
+	SaveStateDescriptor desc(this, slot, saveNameToUnicode(strings.empty() ? Common::String::format("Slot %d", slot) : strings[0]));
 	Common::Array<byte> pixels;
 
 	file->seek(0);
