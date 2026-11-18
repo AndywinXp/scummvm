@@ -276,8 +276,11 @@ Common::String GrimMetaEngine::getSavegameFile(int saveGameIdx, const char *targ
 	if (saveGameIdx == kSavegameFilePattern)
 		return isEmi ? Common::String::format("%s###.gsv", prefix.c_str()) : Common::String("grim##.gsv");
 
-	if (isEmi)
-		return Common::String::format("%s%03d.gsv", prefix.c_str(), saveGameIdx);
+	if (isEmi) {
+		Common::Platform platform = Common::parsePlatform(ConfMan.get("platform", target));
+
+		return Common::String::format("%s%03d.gsv", prefix.c_str(), saveGameIdx + EmiEngine::getSaveSlotOffset(platform));
+	}
 
 	return Common::String::format("grim%02d.gsv", saveGameIdx);
 }
@@ -336,6 +339,9 @@ SaveStateList GrimMetaEngine::listSaves(const char *target) const {
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
 		// Obtain the last digits of the filename, since they correspond to the save slot
 		int slotNum = atoi(file->c_str() + (gameId == "monkey4" ? prefix.size() : 4));
+
+		if (gameId == "monkey4")
+			slotNum -= EmiEngine::getSaveSlotOffset(Common::parsePlatform(ConfMan.get("platform", target)));
 
 		if (slotNum >= 0) {
 			Common::SeekableReadStream *filePointer = saveFileMan->openForLoading(*file);

@@ -115,7 +115,7 @@ Common::Error EmiEngine::loadGameState(int slot) {
 	if (getGamePlatform() == Common::kPlatformPS2)
 		loadLib(Common::String::format("efmi%03d", slot).c_str());
 	else
-		loadLib(Common::String::format("Saves/efmi%03d.gsv", slot).c_str());
+		loadLib(Common::String::format("Saves/efmi%03d.gsv", slot + getSaveSlotOffset(getGamePlatform())).c_str());
 
 	return Common::kNoError;
 }
@@ -152,6 +152,11 @@ Common::String EmiEngine::getSavePrefix(Common::Platform platform, Common::Langu
 		return Common::String("efmi-") + Common::getLanguageCode(language);
 
 	return "efmi";
+}
+
+int EmiEngine::getSaveSlotOffset(Common::Platform platform) {
+	// The save menu of the PC game numbers its files from 1 (efmi001), the launcher lists them from 0
+	return platform == Common::kPlatformPS2 ? 0 : 1;
 }
 
 Common::String EmiEngine::applySavePrefix(const Common::String &name, Common::Platform platform, Common::Language language) {
