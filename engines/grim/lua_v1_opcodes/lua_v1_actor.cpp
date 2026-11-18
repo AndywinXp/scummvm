@@ -2232,7 +2232,15 @@ void Lua_V1::SetShadowColor() {
 }
 
 void Lua_V1::SetShadowColorDemo() {
-	// The demo stores the color and never reads it
+	lua_Object redObj = lua_getparam(1);
+	lua_Object greenObj = lua_getparam(2);
+	lua_Object blueObj = lua_getparam(3);
+
+	int b = luaFtol(lua_getnumber(blueObj));
+	int g = luaFtol(lua_getnumber(greenObj));
+	int r = luaFtol(lua_getnumber(redObj));
+
+	g_grim->_sputCostume->setShadowColor(r, g, b);
 }
 
 void Lua_V1::KillActorShadows() {
