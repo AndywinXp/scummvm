@@ -119,7 +119,7 @@ void lua_statedeinit(LState *state) {
 		}
 	}
 
-	free(state->stack.stack);
+	luaM_free(state->stack.stack);
 }
 
 void lua_resetglobals() {

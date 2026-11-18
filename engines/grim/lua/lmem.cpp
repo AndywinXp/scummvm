@@ -6,6 +6,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_setjmp
 #define FORBIDDEN_SYMBOL_EXCEPTION_longjmp
 
+#include "engines/grim/grim.h"
 #include "engines/grim/lua/lmem.h"
 #include "engines/grim/lua/lstate.h"
 #include "engines/grim/lua/lua.h"
@@ -24,6 +25,14 @@ int32 luaM_growaux(void **block, int32 nelems, int32 size, const char *errormsg,
 
 #ifndef LUA_DEBUG
 
+void *luaM_allocate(int32 size) {
+	return g_grim->memAlloc(size);
+}
+
+void luaM_release(void *block) {
+	g_grim->memFree(block);
+}
+
 /*
 ** generic allocation routine.
 ** real ANSI systems do not need some of these tests,
@@ -31,14 +40,7 @@ int32 luaM_growaux(void **block, int32 nelems, int32 size, const char *errormsg,
 ** But some systems (e.g. Sun OS) are not that ANSI...
 */
 void *luaM_realloc(void *block, int32 size) {
-	if (size == 0) {
-		free(block);
-		return nullptr;
-	}
-	block = block ? realloc(block, size) : malloc(size);
-	if (!block)
-		lua_error(memEM);
-	return block;
+	return g_grim->memRealloc(block, size);
 }
 
 #else

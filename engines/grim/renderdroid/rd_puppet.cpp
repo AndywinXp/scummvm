@@ -21,12 +21,14 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdPuppet *RenderDroid::PuppetModule::create(RdThing *thing) {
-	RdPuppet *puppet = new RdPuppet;
+	RdPuppet *puppet = (RdPuppet *)g_grim->_stdMemory->malloc(sizeof(RdPuppet));
 
 	memset(puppet, 0, sizeof(RdPuppet));
 	if (!newEntry(puppet, thing))

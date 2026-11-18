@@ -50,7 +50,9 @@ int SmushMixer::souMixerInitialize(int outChannelCount, int mixBufSize) {
 
 	_outChannelCount = outChannelCount;
 	_mixBufSize = 4 * mixBufSize;
-	_mixBuf = (int32 *)malloc(_mixBufSize);
+
+	_mixBuf = (int32 *)g_grim->memAlloc(_mixBufSize);
+
 	if (!_mixBuf)
 		return -1;
 
@@ -58,7 +60,8 @@ int SmushMixer::souMixerInitialize(int outChannelCount, int mixBufSize) {
 }
 
 int SmushMixer::souMixerTerminate() {
-	free(_mixBuf);
+	g_grim->memFree(_mixBuf);
+
 	_mixBuf = nullptr;
 	return 0;
 }

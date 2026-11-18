@@ -23,14 +23,16 @@
 #include "common/str.h"
 #include "common/stream.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_3d_config.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdColormap *RenderDroid::ColormapModule::load(char *path) {
-	RdColormap *colormap = new RdColormap;
+	RdColormap *colormap = (RdColormap *)g_grim->_stdMemory->malloc(sizeof(RdColormap));
 	memset(colormap, 0, sizeof(RdColormap));
 
 	if (loadEntry(path, colormap))
@@ -81,14 +83,14 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *colormap) {
 	}
 
 	if (colormap->flags & 4) {
-		colormap->rgb16 = new byte[0x8000];
+		colormap->rgb16 = (byte *)g_grim->_stdMemory->malloc(0x8000);
 		buildRGB16(colormap->rgb16, colormap->colors, 0, 0, 0, &_rd->_colorInfo);
 	} else {
 		colormap->rgb16 = nullptr;
 	}
 
 	if (_demoFormat) {
-		colormap->lightLevelAlloc = new byte[16640];
+		colormap->lightLevelAlloc = (byte *)g_grim->_stdMemory->malloc(16640);
 		colormap->lightLevel = colormap->lightLevelAlloc;
 
 		if ((uintptr)colormap->lightLevelAlloc & 0xFF)
@@ -102,7 +104,7 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *colormap) {
 		return 1;
 	}
 
-	colormap->transparencyAlloc = new byte[65792];
+	colormap->transparencyAlloc = (byte *)g_grim->_stdMemory->malloc(65792);
 	colormap->transparency = colormap->transparencyAlloc;
 
 	if ((uintptr)colormap->transparencyAlloc & 0xFF)
@@ -111,7 +113,7 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *colormap) {
 	file->read(colormap->transparency, 0x10000);
 
 	if (colormap->flags & 4) {
-		colormap->rgb16Alpha = new byte[0x10000];
+		colormap->rgb16Alpha = (byte *)g_grim->_stdMemory->malloc(0x10000);
 
 		if (_rd->_colorInfo.greenBits == 5) {
 			file->skip(0x10000);
@@ -133,31 +135,31 @@ int RenderDroid::ColormapModule::loadEntry(char *path, RdColormap *colormap) {
 
 void RenderDroid::ColormapModule::destroy(RdColormap *&colormap) {
 	freeEntry(colormap);
-	delete colormap;
+	g_grim->_stdMemory->free(colormap);
 	colormap = nullptr;
 }
 
 void RenderDroid::ColormapModule::freeEntry(RdColormap *colormap) {
 	if (colormap->lightLevelAlloc) {
-		delete[] colormap->lightLevelAlloc;
+		g_grim->_stdMemory->free(colormap->lightLevelAlloc);
 		colormap->lightLevelAlloc = nullptr;
 		colormap->lightLevel = nullptr;
 	}
 
 	if (colormap->rgb16) {
-		delete[] colormap->rgb16;
+		g_grim->_stdMemory->free(colormap->rgb16);
 		colormap->rgb16 = nullptr;
 	}
 
 	if (colormap->flags & 1) {
 		if (colormap->transparencyAlloc) {
-			delete[] colormap->transparencyAlloc;
+			g_grim->_stdMemory->free(colormap->transparencyAlloc);
 			colormap->transparencyAlloc = nullptr;
 			colormap->transparency = nullptr;
 		}
 
 		if (colormap->rgb16Alpha) {
-			delete[] colormap->rgb16Alpha;
+			g_grim->_stdMemory->free(colormap->rgb16Alpha);
 			colormap->rgb16Alpha = nullptr;
 		}
 	}
@@ -211,7 +213,7 @@ int RenderDroid::ColormapModule::buildGrayRamp(RdColormap *colormap) {
 	colormap->tint[1] = 1.0f;
 	colormap->tint[2] = 1.0f;
 
-	colormap->lightLevelAlloc = new byte[16640];
+	colormap->lightLevelAlloc = (byte *)g_grim->_stdMemory->malloc(16640);
 	colormap->lightLevel = colormap->lightLevelAlloc;
 
 	if ((uintptr)colormap->lightLevelAlloc & 0xFF)

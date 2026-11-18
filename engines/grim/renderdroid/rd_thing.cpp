@@ -19,13 +19,15 @@
  *
  */
 
+#include "engines/grim/grim.h"
 #include "engines/grim/remastered/look/look_renderer.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdThing *RenderDroid::ThingModule::create(void *userArg) {
-	RdThing *thing = new RdThing;
+	RdThing *thing = (RdThing *)g_grim->_stdMemory->malloc(sizeof(RdThing));
 
 	if (!newEntry(thing, userArg))
 		return nullptr;
@@ -59,7 +61,7 @@ int RenderDroid::ThingModule::newEntry(RdThing *thing, void *userArg) {
 void RenderDroid::ThingModule::destroy(RdThing *&thing) {
 	if (thing) {
 		freeEntry(thing);
-		delete thing;
+		g_grim->_stdMemory->free(thing);
 		thing = nullptr;
 	}
 }
@@ -67,19 +69,19 @@ void RenderDroid::ThingModule::destroy(RdThing *&thing) {
 void RenderDroid::ThingModule::freeEntry(RdThing *thing) {
 	if (thing->type == 1) {
 		if (thing->jointMatrices) {
-			delete[] thing->jointMatrices;
+			g_grim->_stdMemory->free(thing->jointMatrices);
 			thing->jointMatrices = nullptr;
 		}
 		if (thing->jointPyr) {
-			delete[] thing->jointPyr;
+			g_grim->_stdMemory->free(thing->jointPyr);
 			thing->jointPyr = nullptr;
 		}
 		if (thing->abMeshVisible) {
-			delete[] thing->abMeshVisible;
+			g_grim->_stdMemory->free(thing->abMeshVisible);
 			thing->abMeshVisible = nullptr;
 		}
 		if (thing->abJointAmputate) {
-			delete[] thing->abJointAmputate;
+			g_grim->_stdMemory->free(thing->abJointAmputate);
 			thing->abJointAmputate = nullptr;
 		}
 		// The demo frees the puppet without removing the tracks
@@ -92,7 +94,7 @@ void RenderDroid::ThingModule::freeEntry(RdThing *thing) {
 	}
 
 	if (thing->puppet) {
-		delete thing->puppet;
+		g_grim->_stdMemory->free(thing->puppet);
 		thing->puppet = nullptr;
 	}
 }
@@ -101,7 +103,7 @@ int RenderDroid::ThingModule::setModel3(RdThing *thing, RdModel3 *model3) {
 	thing->type = 1;
 	thing->data.model3 = model3;
 	thing->curGeoSet = -1;
-	thing->jointMatrices = new RdMatrix34[model3->numHNodes];
+	thing->jointMatrices = (RdMatrix34 *)g_grim->_stdMemory->malloc(model3->numHNodes * sizeof(RdMatrix34));
 
 	if (_rd->gameBreakingFixesActive())
 		thing->jointsBuilt = 0;
@@ -110,13 +112,13 @@ int RenderDroid::ThingModule::setModel3(RdThing *thing, RdModel3 *model3) {
 	if (_rd->isDemo())
 		memset(thing->jointMatrices, 0xCC, 48 * model3->numHNodes);
 
-	thing->jointPyr = new RdVector3[model3->numHNodes];
+	thing->jointPyr = (RdVector3 *)g_grim->_stdMemory->malloc(model3->numHNodes * sizeof(RdVector3));
 	memset(thing->jointPyr, 0, 12 * model3->numHNodes);
 
-	thing->abJointAmputate = new int[model3->numHNodes];
+	thing->abJointAmputate = (int *)g_grim->_stdMemory->malloc(model3->numHNodes * sizeof(int));
 	memset(thing->abJointAmputate, 0, 4 * model3->numHNodes);
 
-	thing->abMeshVisible = new int[model3->numHNodes];
+	thing->abMeshVisible = (int *)g_grim->_stdMemory->malloc(model3->numHNodes * sizeof(int));
 	for (uint i = 0; i < model3->numHNodes; i++)
 		thing->abMeshVisible[i] = 1;
 

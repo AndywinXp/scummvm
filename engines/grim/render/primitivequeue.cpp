@@ -33,6 +33,20 @@ SputPrimitiveObject::SputPrimitiveObject(int id, int shape) : next(nullptr), pre
 		layer(2), x1(0), y1(0), x2(0), y2(0), color(0), pattern(-1), filled(0), colorRgb(0), alpha(1.0f) {
 }
 
+void *SputPrimitiveObject::operator new(size_t size) {
+	if (g_grim->isRemastered())
+		return ::operator new(size);
+
+	return g_grim->memAlloc((int)size);
+}
+
+void SputPrimitiveObject::operator delete(void *block) {
+	if (g_grim->isRemastered())
+		::operator delete(block);
+	else
+		g_grim->memFree(block);
+}
+
 PrimitiveQueue::PrimitiveQueue(RenderDroid *rd) : _rd(rd), _sputRender(nullptr), _head(nullptr), _tail(nullptr), _nextId(1) {
 }
 

@@ -21,6 +21,7 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 
 namespace Grim {
@@ -36,7 +37,7 @@ IMuseLipSync *IMuse::grimSoundLipSyncLoad(const char *source) {
 	if (!res)
 		return nullptr;
 
-	IMuseLipSync *lipSync = new IMuseLipSync();
+	IMuseLipSync *lipSync = (IMuseLipSync *)g_grim->memAlloc(sizeof(IMuseLipSync));
 
 	memset(lipSync, 0, sizeof(IMuseLipSync));
 	strncpy(lipSync->filename, source, 31);
@@ -47,7 +48,7 @@ IMuseLipSync *IMuse::grimSoundLipSyncLoad(const char *source) {
 	soundsFileSeek(res, 0, SEEK_SET);
 
 	lipSync->size = size;
-	lipSync->ptr = new uint8[size];
+	lipSync->ptr = (uint8 *)g_grim->memAlloc(size);
 	copyDataFromResource(res, lipSync->ptr, size);
 	soundsCloseFile(res);
 
@@ -61,11 +62,11 @@ void IMuse::grimSoundLipSyncFree(IMuseLipSync *lipSync) {
 	}
 
 	if (lipSync->ptr) {
-		delete[] lipSync->ptr;
+		g_grim->memFree(lipSync->ptr);
 		lipSync->ptr = nullptr;
 	}
 
-	delete lipSync;
+	g_grim->memFree(lipSync);
 }
 
 } // End of namespace Grim

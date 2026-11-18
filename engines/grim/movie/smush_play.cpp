@@ -252,6 +252,7 @@ int SmushPlay::updateMovie(int *finished) {
 
 	if (state < 0 || state == 4) {
 		_animPlay->anmStop();
+		_animator->animatorStop();
 		_internalBitmapPointer = nullptr;
 
 		if (_movieFlags & 0x10) {
@@ -434,6 +435,7 @@ void SmushPlay::restartAnim(int fps) {
 
 void SmushPlay::closeAnim() {
 	_animPlay->anmStop();
+	_animator->animatorStop();
 	_decoder->close();
 }
 

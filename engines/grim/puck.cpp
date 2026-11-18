@@ -65,6 +65,20 @@ Puck::~Puck() {
 		_next->_prev = _prev;
 }
 
+void *Puck::operator new(size_t size) {
+	if (g_grim->isRemastered())
+		return ::operator new(size);
+
+	return g_grim->memAlloc((int)size);
+}
+
+void Puck::operator delete(void *block) {
+	if (g_grim->isRemastered())
+		::operator delete(block);
+	else
+		g_grim->memFree(block);
+}
+
 float *Puck::rot() {
 	_system->_rd->extractAngles34(_orient, _rot);
 

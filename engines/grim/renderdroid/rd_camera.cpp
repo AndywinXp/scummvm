@@ -21,15 +21,17 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/remastered/look/look_renderer.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_3d_config.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdCamera *RenderDroid::CameraModule::create(float fov, int clipFar, float zNear, float zFar, float aspectRatio) {
-	RdCamera *camera = new RdCamera;
+	RdCamera *camera = (RdCamera *)g_grim->_stdMemory->malloc(sizeof(RdCamera));
 
 	if (!newEntry(camera, fov, clipFar, zNear, zFar, aspectRatio))
 		return nullptr;
@@ -38,7 +40,7 @@ RdCamera *RenderDroid::CameraModule::create(float fov, int clipFar, float zNear,
 }
 
 int RenderDroid::CameraModule::newEntry(RdCamera *camera, float fov, int clipFar, float zNear, float zFar, float aspectRatio) {
-	camera->clipFrustum = new RdClipFrustum;
+	camera->clipFrustum = (RdClipFrustum *)g_grim->_stdMemory->malloc(sizeof(RdClipFrustum));
 
 	bool belowMinimum = fov < 5.0;
 	if (_rd->_remastered)
@@ -74,14 +76,14 @@ void RenderDroid::CameraModule::destroy(RdCamera *&camera) {
 			_curCamera = nullptr;
 
 		freeEntry(camera);
-		delete camera;
+		g_grim->_stdMemory->free(camera);
 		camera = nullptr;
 	}
 }
 
 void RenderDroid::CameraModule::freeEntry(RdCamera *camera) {
 	if (camera->clipFrustum) {
-		delete camera->clipFrustum;
+		g_grim->_stdMemory->free(camera->clipFrustum);
 		camera->clipFrustum = nullptr;
 	}
 

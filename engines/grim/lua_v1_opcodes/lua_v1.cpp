@@ -52,6 +52,7 @@
 #include "engines/grim/sputtime.h"
 #include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_math.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/stdcontrol.h"
 #include "engines/grim/text/text.h"
 #include "engines/grim/walkplane.h"
@@ -964,7 +965,7 @@ void Lua_V1::LockFont() {
 
 			if (node) {
 				if (g_grim->getGameFlags() & ADGF_DEMO) {
-					ResRef *ref = new ResRef();
+					ResRef *ref = (ResRef *)g_grim->_stdMemory->malloc(sizeof(ResRef));
 
 					memset(ref, 0, sizeof(ResRef));
 					g_grim->_res->setReference(ref, font);
@@ -997,7 +998,7 @@ void Lua_V1::UnLockFontDemo() {
 
 		if (ref->handle == handle) {
 			g_grim->_res->removeReference(ref);
-			delete ref;
+			g_grim->_stdMemory->free(ref);
 			_lockedFontRefs.remove_at(i);
 			return;
 		}
@@ -2729,7 +2730,7 @@ int Lua_V1::initialize(SysStruct *hs) {
 int Lua_V1::terminate() {
 	for (uint i = 0; i < _lockedFontRefs.size(); i++) {
 		g_grim->_res->removeReference(_lockedFontRefs[i]);
-		delete _lockedFontRefs[i];
+		g_grim->_stdMemory->free(_lockedFontRefs[i]);
 	}
 
 	_lockedFontRefs.clear();

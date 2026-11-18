@@ -23,7 +23,9 @@
 #include "common/textconsole.h"
 
 #include "engines/grim/costume/sputcostume.h"
+#include "engines/grim/grim.h"
 #include "engines/grim/sputresource.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -330,8 +332,9 @@ int KeyframeHandler::request(int costume, int fourcc, void *parentId, int parent
 	if (!keyframe)
 		return 0;
 
-	KeyframeCompRes *res = new KeyframeCompRes();
+	KeyframeCompRes *res = static_cast<KeyframeCompRes *>(g_grim->_stdMemory->malloc(sizeof(KeyframeCompRes)));
 
+	memset(res, 0, sizeof(KeyframeCompRes));
 	_sputCostume->_res->setReference(&res->ref, keyframe);
 	res->priority = priority;
 	res->priorityMasked = priorityMasked;
@@ -343,7 +346,7 @@ void KeyframeHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	KeyframeCompRes *res = static_cast<KeyframeCompRes *>(compRes);
 
 	_sputCostume->_res->removeReference(&res->ref);
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 void KeyframeHandler::stop(void *instData) {
@@ -403,7 +406,7 @@ void *KeyframeHandler::instance(int instHandle, int compIndex, int create) {
 		KeyframeInst *inst = static_cast<KeyframeInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
 		_sputCostume->_res->removeReference(&inst->ref);
-		delete inst;
+		g_grim->_stdMemory->free(inst);
 
 		return nullptr;
 	}
@@ -419,8 +422,9 @@ void *KeyframeHandler::instance(int instHandle, int compIndex, int create) {
 	if (!res->ref.valid)
 		warning("KeyframeHandler::instance(): Bad keyframe Reference");
 
-	KeyframeInst *inst = new KeyframeInst();
+	KeyframeInst *inst = static_cast<KeyframeInst *>(g_grim->_stdMemory->malloc(sizeof(KeyframeInst)));
 
+	memset(inst, 0, sizeof(KeyframeInst));
 	_sputCostume->_res->setReference(&inst->ref, res->ref.handle);
 	inst->priorityMasked = res->priorityMasked;
 	inst->priority = res->priority;

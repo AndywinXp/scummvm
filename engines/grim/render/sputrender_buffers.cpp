@@ -27,6 +27,7 @@
 #include "engines/grim/render/sputrender.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_bitmap.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -42,7 +43,7 @@ void SputRender::freeBuffers() {
 		if (rect->z)
 			_stdDisplay->vBufferFree(rect->z);
 
-		delete rect;
+		_hs->memFree(rect);
 	}
 }
 
@@ -52,7 +53,7 @@ CacheRect *SputRender::createCacheRect(int x, int y, int width, int height) {
 		return nullptr;
 	}
 
-	CacheRect *rect = new CacheRect();
+	CacheRect *rect = (CacheRect *)_hs->memAlloc(sizeof(CacheRect));
 
 	rect->magic = 0x11111111;
 	rect->rect.x = x;
@@ -110,7 +111,7 @@ void SputRender::addAnimationBitmap(void *bitmap, int layer) {
 			return;
 	}
 
-	AnimationBitmap *node = new AnimationBitmap();
+	AnimationBitmap *node = (AnimationBitmap *)g_grim->_stdMemory->malloc(sizeof(AnimationBitmap));
 
 	memset(node, 0, sizeof(AnimationBitmap));
 	node->next = _animationList;
@@ -141,7 +142,7 @@ void SputRender::removeAnimationBitmap(void *bitmap) {
 		_animationList = node->next;
 
 	_res->removeReference(&node->bitmapRef);
-	delete node;
+	g_grim->_stdMemory->free(node);
 }
 
 void SputRender::drawAnimationBitmaps(int layer) {

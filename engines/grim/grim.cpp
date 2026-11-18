@@ -107,6 +107,7 @@
 #include "engines/grim/std/std_gif.h"
 #include "engines/grim/std/std_lbm.h"
 #include "engines/grim/std/std_math.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_pcx.h"
 #include "engines/grim/std/std_pic.h"
 #include "engines/grim/text/text.h"
@@ -120,6 +121,7 @@ GrimEngine *g_grim = nullptr;
 GrimEngine::GrimEngine(OSystem *syst, uint32 gameFlags, GrimGameType gameType, Common::Platform platform, Common::Language language) :
 		Engine(syst) {
 	g_grim = this;
+	_stdMemory = new StdMemory();
 
 	if (gameType != GType_MONKEY4)
 		setDebugger(new Debugger());
@@ -171,6 +173,9 @@ GrimEngine::~GrimEngine() {
 	MD5Check::clear();
 
 	ConfMan.flushToDisk();
+
+	delete _stdMemory;
+	_stdMemory = nullptr;
 
 	g_grim = nullptr;
 }
@@ -1174,6 +1179,53 @@ int GrimEngine::shutdownCallback(int arg) {
 	g_grim->_quit = 1;
 
 	return 0;
+}
+
+// The memory services of the demo give out the blocks of the plain heap, the memory manager does not count them
+void *GrimEngine::memAlloc(int size) {
+	if (_gameFlags & ADGF_DEMO) {
+		void *block = malloc(size);
+
+		if (!block)
+			error("GrimEngine::memAlloc(): out of memory");
+
+		return block;
+	}
+
+	return _stdMemory->malloc(size);
+}
+
+void GrimEngine::memFree(void *block) {
+	if (_gameFlags & ADGF_DEMO)
+		free(block);
+	else
+		_stdMemory->free(block);
+}
+
+void *GrimEngine::memRealloc(void *block, int size) {
+	if (_gameFlags & ADGF_DEMO) {
+		if (!size) {
+			free(block);
+			return nullptr;
+		}
+
+		block = realloc(block, size);
+
+		if (!block)
+			error("GrimEngine::memRealloc(): out of memory");
+
+		return block;
+	}
+
+	return _stdMemory->realloc(block, size);
+}
+
+// Only the classic game tags its blocks: in the other games these blocks do not come from the memory manager
+void *GrimEngine::memTagAlloc(void *block, const char *file, int state) {
+	if ((_gameFlags & ADGF_DEMO) || isRemastered())
+		return block;
+
+	return _stdMemory->tagAlloc(block, file, state);
 }
 
 Common::SeekableReadStream *GrimEngine::openFile(const char *path) {
@@ -2224,6 +2276,9 @@ int GrimEngine::initDisplay() {
 
 	uint numDevices = _stdDisplay->getNumDevices();
 
+	_videoDevices = (GrimVideoDevice *)memAlloc(numDevices * sizeof(GrimVideoDevice));
+	_numVideoDevices = numDevices;
+
 	for (uint i = 0; i < numDevices; i++) {
 		GrimVideoDevice *videoDevice = &_videoDevices[i];
 		uint numModes = 0;
@@ -2232,7 +2287,7 @@ int GrimEngine::initDisplay() {
 			numModes = _stdDisplay->getNumModes();
 
 		videoDevice->numModes = numModes;
-		videoDevice->modes = new StdDisplayMode[numModes];
+		videoDevice->modes = (StdDisplayMode *)memAlloc(numModes * sizeof(StdDisplayMode));
 		memcpy(videoDevice->modes, _stdDisplay->getModes(), sizeof(StdDisplayMode) * numModes);
 		videoDevice->num3DDevices = 0;
 		videoDevice->a3DDevices = nullptr;
@@ -2248,7 +2303,7 @@ int GrimEngine::initDisplay() {
 				uint numThreeDDevices = _std3D->getNumDevices();
 
 				videoDevice->num3DDevices = numThreeDDevices;
-				videoDevice->a3DDevices = new Std3DDevice[numThreeDDevices];
+				videoDevice->a3DDevices = (Std3DDevice *)memAlloc(numThreeDDevices * sizeof(Std3DDevice));
 				memcpy(videoDevice->a3DDevices, _std3D->getDevices(), sizeof(Std3DDevice) * numThreeDDevices);
 				_std3D->releaseDirect3D();
 			} else {
@@ -2267,16 +2322,20 @@ int GrimEngine::initDisplay() {
 }
 
 void GrimEngine::freeVideoDevices() {
-	for (int i = 0; i < kStdDisplayMaxDevices; i++) {
+	for (uint i = 0; i < _numVideoDevices; i++) {
 		GrimVideoDevice *videoDevice = &_videoDevices[i];
 
-		delete[] videoDevice->a3DDevices;
+		memFree(videoDevice->a3DDevices);
 		videoDevice->a3DDevices = nullptr;
-		delete[] videoDevice->modes;
+		memFree(videoDevice->modes);
 		videoDevice->modes = nullptr;
 		videoDevice->numModes = 0;
 		videoDevice->num3DDevices = 0;
 	}
+
+	memFree(_videoDevices);
+	_videoDevices = nullptr;
+	_numVideoDevices = 0;
 }
 
 int GrimEngine::initDisplayAndDevice() {

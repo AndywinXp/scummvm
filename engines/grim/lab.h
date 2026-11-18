@@ -31,6 +31,7 @@ namespace Common {
 namespace Grim {
 
 class Lab;
+class SysStruct;
 
 class LabEntry : public Common::ArchiveMember {
 	Lab *_parent;
@@ -49,7 +50,8 @@ public:
 class Lab : public Common::Archive {
 public:
 	bool open(const Common::Path &filename, bool keepStream = false);
-	Lab();
+	// The entries of a lab created with a host struct are allocated through its memory manager
+	explicit Lab(SysStruct *hs = nullptr);
 	~Lab();
 	// Common::Archive implementation
 	bool hasFile(const Common::Path &path) const override;
@@ -58,11 +60,14 @@ public:
 	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
 
 private:
+	typedef Common::SharedPtr<LabEntry> LabEntryPtr;
+
 	void parseGrimFileTable(Common::File *_f);
 	void parseMonkey4FileTable(Common::File *_f);
+	LabEntryPtr newEntry(const Common::Path &name, uint32 offset, uint32 len);
 
+	SysStruct *_hs;
 	Common::Path _labFileName;
-	typedef Common::SharedPtr<LabEntry> LabEntryPtr;
 	typedef Common::HashMap<Common::Path, LabEntryPtr, Common::Path::IgnoreCase_Hash, Common::Path::IgnoreCase_EqualTo> LabMap;
 	LabMap _entries;
 	Common::SeekableReadStream *_stream;

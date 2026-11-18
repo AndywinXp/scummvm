@@ -24,8 +24,10 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_file.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_pcx.h"
 #include "engines/grim/std/std_sys.h"
 
@@ -60,7 +62,8 @@ StdBitmapStruct *StdPcx::load(const char *path, int videoMemory, int noZ) {
 	bitmap->curFrame = 0;
 	bitmap->format.colorMode = 0;
 	bitmap->format.bpp = header.bitsPerPixel;
-	bitmap->frames = new StdVBuffer *[1]();
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(sizeof(StdVBuffer *));
+	memset(bitmap->frames, 0, sizeof(StdVBuffer *));
 
 	StdVBufferTexFmt format;
 
@@ -121,7 +124,7 @@ StdBitmapStruct *StdPcx::load(const char *path, int videoMemory, int noZ) {
 	}
 
 	_stdDisplay->vBufferUnlock(bitmap->frames[0]);
-	bitmap->palette = new byte[768];
+	bitmap->palette = (byte *)g_grim->_stdMemory->malloc(768);
 	file->readByte();
 	file->read(bitmap->palette, 768);
 	delete file;

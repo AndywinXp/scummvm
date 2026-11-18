@@ -23,7 +23,9 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -38,7 +40,7 @@ RdKeyframe *RenderDroid::KeyframeModule::load(char *path) {
 	if (!file)
 		return nullptr;
 
-	RdKeyframe *keyframe = new RdKeyframe;
+	RdKeyframe *keyframe = (RdKeyframe *)g_grim->_stdMemory->malloc(sizeof(RdKeyframe));
 	uint32 magic = file->readUint32LE();
 
 	if (magic != 0x4B455946) {
@@ -102,7 +104,7 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *keyframe) {
 			break;
 		}
 
-		keyframe->paNodes = new RdKeyframeNode[numJoints];
+		keyframe->paNodes = (RdKeyframeNode *)g_grim->_stdMemory->malloc(numJoints * sizeof(RdKeyframeNode));
 		memset(keyframe->paNodes, 0, sizeof(RdKeyframeNode) * numJoints);
 		keyframe->numJoints = numJoints;
 		keyframe->numNodes = numJoints;
@@ -177,7 +179,7 @@ int RenderDroid::KeyframeModule::loadEntry(char *path, RdKeyframe *keyframe) {
 
 			node->nodeNum = nodeIndex;
 			node->numEntries = numEntries;
-			node->paEntries = new RdKeyframeEntry[numEntries];
+			node->paEntries = (RdKeyframeEntry *)g_grim->_stdMemory->malloc(numEntries * sizeof(RdKeyframeEntry));
 
 			for (int j = 0; j < numEntries; j++) {
 				RdKeyframeEntry *entry = &node->paEntries[j];
@@ -247,7 +249,7 @@ int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *file, Rd
 		return 0;
 	}
 
-	keyframe->paNodes = new RdKeyframeNode[keyframe->numNodes];
+	keyframe->paNodes = (RdKeyframeNode *)g_grim->_stdMemory->malloc(keyframe->numNodes * sizeof(RdKeyframeNode));
 	memset(keyframe->paNodes, 0, sizeof(RdKeyframeNode) * keyframe->numNodes);
 
 	for (uint i = 0; i < keyframe->numNodes; i++) {
@@ -268,7 +270,7 @@ int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *file, Rd
 			return 0;
 		}
 
-		node->paEntries = new RdKeyframeEntry[node->numEntries];
+		node->paEntries = (RdKeyframeEntry *)g_grim->_stdMemory->malloc(node->numEntries * sizeof(RdKeyframeEntry));
 
 		for (uint j = 0; j < node->numEntries; j++) {
 			RdKeyframeEntry *entry = &node->paEntries[j];
@@ -296,7 +298,7 @@ int RenderDroid::KeyframeModule::loadHeader(Common::SeekableReadStream *file, Rd
 void RenderDroid::KeyframeModule::destroy(RdKeyframe *&keyframe) {
 	if (keyframe) {
 		freeEntry(keyframe);
-		delete keyframe;
+		g_grim->_stdMemory->free(keyframe);
 		keyframe = nullptr;
 	}
 }
@@ -305,12 +307,12 @@ void RenderDroid::KeyframeModule::freeEntry(RdKeyframe *keyframe) {
 	if (keyframe->paNodes) {
 		for (uint i = 0; i < keyframe->numNodes; i++) {
 			if (keyframe->paNodes[i].paEntries) {
-				delete[] keyframe->paNodes[i].paEntries;
+				g_grim->_stdMemory->free(keyframe->paNodes[i].paEntries);
 				keyframe->paNodes[i].paEntries = nullptr;
 			}
 		}
 
-		delete[] keyframe->paNodes;
+		g_grim->_stdMemory->free(keyframe->paNodes);
 		keyframe->paNodes = nullptr;
 	}
 }

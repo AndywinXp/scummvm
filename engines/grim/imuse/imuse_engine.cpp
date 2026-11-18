@@ -167,10 +167,10 @@ IMuse::~IMuse() {
 	imTerminateScript();
 
 	soundsTerminateProcessing();
-	free(_voiceSrcBuf);
+	g_grim->memFree(_voiceSrcBuf);
 	_voiceSrcBuf = nullptr;
 	_maxChunkRequested = 0;
-	free(_voiceRemainderBuf);
+	g_grim->memFree(_voiceRemainderBuf);
 	_voiceRemainderBuf = nullptr;
 	delete _hmiFxLib;
 
@@ -186,10 +186,18 @@ IMuse::~IMuse() {
 	delete _triggersHandler;
 
 	// Deinit the WaveOut module
-	free(_waveOutOutputBuffer);
+	if (_remastered)
+		free(_waveOutOutputBuffer);
+	else
+		g_grim->memFree(_waveOutOutputBuffer);
+
 	_waveOutOutputBuffer = nullptr;
 
-	free(_waveOutLowLatencyOutputBuffer);
+	if (_remastered)
+		free(_waveOutLowLatencyOutputBuffer);
+	else
+		g_grim->memFree(_waveOutLowLatencyOutputBuffer);
+
 	_waveOutLowLatencyOutputBuffer = nullptr;
 }
 
@@ -200,10 +208,10 @@ void IMuse::soundsShutdown() {
 	imRefreshScript();
 	imHeartbeat();
 
-	free(_voiceSrcBuf);
+	g_grim->memFree(_voiceSrcBuf);
 	_voiceSrcBuf = nullptr;
 	_maxChunkRequested = 0;
-	free(_voiceRemainderBuf);
+	g_grim->memFree(_voiceRemainderBuf);
 	_voiceRemainderBuf = nullptr;
 	_voiceRemainderSize = 0;
 	_voiceRemainderCapacity = 0;
@@ -214,9 +222,18 @@ void IMuse::soundsShutdown() {
 
 	imTerminate();
 
-	free(_waveOutOutputBuffer);
+	if (_remastered)
+		free(_waveOutOutputBuffer);
+	else
+		g_grim->memFree(_waveOutOutputBuffer);
+
 	_waveOutOutputBuffer = nullptr;
-	free(_waveOutLowLatencyOutputBuffer);
+
+	if (_remastered)
+		free(_waveOutLowLatencyOutputBuffer);
+	else
+		g_grim->memFree(_waveOutLowLatencyOutputBuffer);
+
 	_waveOutLowLatencyOutputBuffer = nullptr;
 
 	cacheReset();

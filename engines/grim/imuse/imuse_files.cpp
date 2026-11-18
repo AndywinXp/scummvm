@@ -565,8 +565,8 @@ int IMuse::ihostRead(int soundId, uint8 *destBuf, int32 size) {
 	soundsFileSeek(res, curPos, SEEK_SET);
 
 	if (_maxChunkRequested < size) {
-		free(_voiceSrcBuf);
-		_voiceSrcBuf = (uint8 *)malloc(size);
+		g_grim->memFree(_voiceSrcBuf);
+		_voiceSrcBuf = (uint8 *)g_grim->memAlloc(size);
 		_maxChunkRequested = size;
 	}
 
@@ -615,8 +615,8 @@ int IMuse::ihostRead(int soundId, uint8 *destBuf, int32 size) {
 				_voiceRemainderPos = 0;
 
 				if (_voiceRemainderSize > _voiceRemainderCapacity) {
-					free(_voiceRemainderBuf);
-					_voiceRemainderBuf = (uint8 *)malloc(_voiceRemainderSize);
+					g_grim->memFree(_voiceRemainderBuf);
+					_voiceRemainderBuf = (uint8 *)g_grim->memAlloc(_voiceRemainderSize);
 					_voiceRemainderCapacity = _voiceRemainderSize;
 				}
 
@@ -649,8 +649,8 @@ int IMuse::ihostRead(int soundId, uint8 *destBuf, int32 size) {
 		_voiceRemainderPos = 0;
 
 		if (_voiceRemainderSize > _voiceRemainderCapacity) {
-			free(_voiceRemainderBuf);
-			_voiceRemainderBuf = (uint8 *)malloc(_voiceRemainderSize);
+			g_grim->memFree(_voiceRemainderBuf);
+			_voiceRemainderBuf = (uint8 *)g_grim->memAlloc(_voiceRemainderSize);
 			_voiceRemainderCapacity = _voiceRemainderSize;
 		}
 
@@ -666,7 +666,7 @@ int IMuse::ihostRead(int soundId, uint8 *destBuf, int32 size) {
 void IMuse::soundsAllocateBuffer(int bufferId, int32 bufSize, int32 loadSize, int32 criticalSize) {
 	IMuseSndBuffer *soundBuf = &_soundBuffers[bufferId];
 
-	soundBuf->buffer = (uint8 *)malloc(bufSize);
+	soundBuf->buffer = (uint8 *)g_grim->memAlloc(bufSize);
 	soundBuf->bufSize = bufSize;
 	soundBuf->loadSize = loadSize;
 	soundBuf->criticalSize = criticalSize;
@@ -675,7 +675,7 @@ void IMuse::soundsAllocateBuffer(int bufferId, int32 bufSize, int32 loadSize, in
 void IMuse::soundsDeallocateBuffer(int bufferId) {
 	IMuseSndBuffer *soundBuf = &_soundBuffers[bufferId];
 
-	free(soundBuf->buffer);
+	g_grim->memFree(soundBuf->buffer);
 	soundBuf->buffer = nullptr;
 }
 
@@ -708,13 +708,13 @@ IMuseResource *IMuse::soundsOpenFile(const char *filename) {
 	stream->seek(9 * numCompBlocks + 6, SEEK_SET);
 	int codecNamesSize = stream->readUint16BE();
 
-	uint8 *mcmpBlock = (uint8 *)malloc(9 * numCompBlocks);
-	res->mcmpBlockPtr = (uint8 *)malloc(codecNamesSize + 1);
-	res->compBlockPtr = new uint8 *[numCompBlocks + 1];
-	res->decompBlockSize = new int32[numCompBlocks + 1];
-	res->compBlockOffset = new int32[numCompBlocks + 1];
-	res->compBlockSize = new int32[numCompBlocks + 1];
-	res->vimaOffsets = new int32[numCompBlocks + 1];
+	uint8 *mcmpBlock = (uint8 *)g_grim->memAlloc(9 * numCompBlocks);
+	res->mcmpBlockPtr = (uint8 *)g_grim->memAlloc(codecNamesSize + 1);
+	res->compBlockPtr = (uint8 **)g_grim->memAlloc((numCompBlocks + 1) * sizeof(uint8 *));
+	res->decompBlockSize = (int32 *)g_grim->memAlloc((numCompBlocks + 1) * sizeof(int32));
+	res->compBlockOffset = (int32 *)g_grim->memAlloc((numCompBlocks + 1) * sizeof(int32));
+	res->compBlockSize = (int32 *)g_grim->memAlloc((numCompBlocks + 1) * sizeof(int32));
+	res->vimaOffsets = (int32 *)g_grim->memAlloc((numCompBlocks + 1) * sizeof(int32));
 
 	stream->read(res->mcmpBlockPtr, codecNamesSize);
 	res->mcmpBlockPtr[codecNamesSize] = 0;
@@ -749,7 +749,7 @@ IMuseResource *IMuse::soundsOpenFile(const char *filename) {
 	res->resSize = cumulativeSize;
 	res->vimaOffsets[numCompBlocks] = vimaOffset;
 
-	free(mcmpBlock);
+	g_grim->memFree(mcmpBlock);
 
 	res->curDecompBlockSize = 0;
 	res->decompDataBuffer = nullptr;
@@ -759,13 +759,13 @@ IMuseResource *IMuse::soundsOpenFile(const char *filename) {
 
 void IMuse::soundsCloseFile(IMuseResource *res) {
 	if (res->hasMcmp) {
-		free(res->mcmpBlockPtr);
-		delete[] res->compBlockPtr;
-		delete[] res->decompBlockSize;
-		delete[] res->compBlockOffset;
-		delete[] res->compBlockSize;
-		delete[] res->vimaOffsets;
-		free(res->decompDataBuffer);
+		g_grim->memFree(res->mcmpBlockPtr);
+		g_grim->memFree(res->compBlockPtr);
+		g_grim->memFree(res->decompBlockSize);
+		g_grim->memFree(res->compBlockOffset);
+		g_grim->memFree(res->compBlockSize);
+		g_grim->memFree(res->vimaOffsets);
+		g_grim->memFree(res->decompDataBuffer);
 	}
 
 	delete res->resId;
@@ -834,7 +834,7 @@ int32 IMuse::copyDataFromResource(IMuseResource *res, uint8 *dest, int32 size) {
 				if (!res->decompDataBuffer || curBlockIndex != res->curProcessedCompBlock) {
 					uint32 compBlockSize = res->compBlockSize[curBlockIndex];
 					if (curCompBlockSize < compBlockSize) {
-						cmpDataTmpBuf = (uint8 *)realloc(cmpDataTmpBuf, compBlockSize + 2);
+						cmpDataTmpBuf = (uint8 *)g_grim->memRealloc(cmpDataTmpBuf, compBlockSize + 2);
 						curCompBlockSize = compBlockSize;
 					}
 
@@ -847,7 +847,7 @@ int32 IMuse::copyDataFromResource(IMuseResource *res, uint8 *dest, int32 size) {
 
 					int32 decompBlockSize = res->decompBlockSize[curBlockIndex];
 					if (res->curDecompBlockSize < decompBlockSize) {
-						res->decompDataBuffer = (uint8 *)realloc(res->decompDataBuffer, decompBlockSize);
+						res->decompDataBuffer = (uint8 *)g_grim->memRealloc(res->decompDataBuffer, decompBlockSize);
 						res->curDecompBlockSize = decompBlockSize;
 					}
 
@@ -892,7 +892,7 @@ int32 IMuse::copyDataFromResource(IMuseResource *res, uint8 *dest, int32 size) {
 			}
 		}
 
-		free(cmpDataTmpBuf);
+		g_grim->memFree(cmpDataTmpBuf);
 		res->fileCurOffset += resSize;
 	}
 
@@ -1038,7 +1038,7 @@ int IMuse::cacheGetSoundId(const char *soundName) {
 	sound->uncompResourceSize = soundsFileTell(res);
 	soundsFileSeek(res, 0, SEEK_SET);
 
-	sound->soundUncompData = (uint8 *)malloc(sound->uncompResourceSize + 80);
+	sound->soundUncompData = (uint8 *)g_grim->memAlloc(sound->uncompResourceSize + 80);
 	if (sound->soundUncompData)
 		copyDataFromResource(res, sound->soundUncompData, sound->uncompResourceSize);
 
@@ -1052,7 +1052,7 @@ int IMuse::cacheGetSoundId(const char *soundName) {
 			// Convert the 8-bit samples to 16-bit
 			int headerSize = extFormatBuffer - sound->soundUncompData;
 			int dataSize = sound->uncompResourceSize - headerSize;
-			uint8 *convertedData = (uint8 *)malloc(2 * sound->uncompResourceSize + 80);
+			uint8 *convertedData = (uint8 *)g_grim->memAlloc(2 * sound->uncompResourceSize + 80);
 
 			memcpy(convertedData, sound->soundUncompData, headerSize);
 
@@ -1063,7 +1063,7 @@ int IMuse::cacheGetSoundId(const char *soundName) {
 			}
 
 			sound->uncompResourceSize = headerSize + 2 * dataSize;
-			free(sound->soundUncompData);
+			g_grim->memFree(sound->soundUncompData);
 			sound->soundUncompData = convertedData;
 			extFormatBuffer = &convertedData[headerSize];
 			dataLength *= 2;
@@ -1094,7 +1094,7 @@ int IMuse::cacheGetSoundId(const char *soundName) {
 		return loadSlot + 100;
 	}
 
-	free(sound->soundUncompData);
+	g_grim->memFree(sound->soundUncompData);
 	soundsResetLipsyncState(sound->luaSoundId);
 	memset(sound, 0, sizeof(IMuseCachedSound));
 	return 0;
@@ -1127,7 +1127,7 @@ int IMuse::cachePurgeOldestStoppedSound() {
 		if (!_demo)
 			soundsResetLipsyncState(sound->luaSoundId);
 
-		free(sound->soundUncompData);
+		g_grim->memFree(sound->soundUncompData);
 		memset(sound, 0, sizeof(IMuseCachedSound));
 		return foundSlot;
 	}
@@ -1139,7 +1139,7 @@ void IMuse::cacheReset() {
 	for (int slot = IMUSE_MAX_CACHED_SOUNDS - 1; slot >= 0; slot--) {
 		if (_soundCache[slot].soundUncompData) {
 			soundsResetLipsyncState(_soundCache[slot].luaSoundId);
-			free(_soundCache[slot].soundUncompData);
+			g_grim->memFree(_soundCache[slot].soundUncompData);
 		}
 	}
 
@@ -1467,11 +1467,11 @@ void IMuse::allocateProcessedSound(int luaSoundId) {
 	soundsGetExtFormatBuffer(sound->soundMap, nullptr, &sampleRate, &wordSize, &numChannels, nullptr, &dataLength);
 
 	if (sampleRate == 22050 && wordSize == 16 && numChannels == 1 && dataLength > 0) {
-		uint8 *processedBuf = (uint8 *)malloc(2 * dataLength + 80);
+		uint8 *processedBuf = (uint8 *)g_grim->memAlloc(2 * dataLength + 80);
 		if (processedBuf) {
 			int effectChannels = processSound(sound->soundAddrData + 80, dataLength, processedBuf, nullptr, nullptr, false);
 
-			free(sound->soundUncompData);
+			g_grim->memFree(sound->soundUncompData);
 			sound->soundUncompData = processedBuf;
 
 			int regionLength = dataLength;
@@ -1736,7 +1736,7 @@ void IMuse::soundsSaveLoadBlock(Common::Serializer &ser, bool isImSave, bool leg
 
 	ser.syncAsSint32LE(size, VER(30));
 
-	byte *data = new byte[size];
+	byte *data = (byte *)g_grim->memAlloc(size);
 
 	ser.syncBytes(data, size, VER(30));
 
@@ -1749,7 +1749,7 @@ void IMuse::soundsSaveLoadBlock(Common::Serializer &ser, bool isImSave, bool leg
 	if (blob.pos() != size)
 		warning("IMuse::soundsSaveLoadBlock(): %d bytes read out of %d", (int)blob.pos(), size);
 
-	delete[] data;
+	g_grim->memFree(data);
 }
 
 void IMuse::soundsSaveLoadBlockData(Common::Serializer &ser, bool isImSave) {

@@ -106,25 +106,25 @@ void Cos::setComponentNames(CosComponent *comp, const CosComponentNames *names) 
 	comp->numNames = numNames;
 
 	if (names->nameIds) {
-		comp->nameIds = new int[numNames];
+		comp->nameIds = (int *)_hs->memAlloc(numNames * sizeof(int));
 		memcpy(comp->nameIds, names->nameIds, numNames * sizeof(int));
 	}
 
 	if (names->names) {
-		comp->names = new char *[numNames];
+		comp->names = (char **)_hs->memAlloc(numNames * sizeof(char *));
 
 		for (int i = 0; i < numNames; i++) {
 			size_t size = strlen(names->names[i]) + 1;
-			comp->names[i] = new char[size];
+			comp->names[i] = (char *)_hs->memAlloc(size);
 			Common::strlcpy(comp->names[i], names->names[i], size);
 		}
 	}
 
 	if (names->stateBitmaps) {
-		comp->stateBitmaps = new CosStateBitmap *[numNames];
+		comp->stateBitmaps = (CosStateBitmap **)_hs->memAlloc(numNames * sizeof(CosStateBitmap *));
 
 		for (int i = 0; i < numNames; i++) {
-			CosStateBitmap *bitmap = new CosStateBitmap;
+			CosStateBitmap *bitmap = (CosStateBitmap *)_hs->memAlloc(sizeof(CosStateBitmap));
 			const CosStateBitmapDesc *desc = &names->stateBitmaps[i];
 			comp->stateBitmaps[i] = bitmap;
 
@@ -194,12 +194,8 @@ int Cos::registerComponent(int costumeHandle, const char *name, void *id, int fo
 	if (classIdx == _numClasses)
 		return 0;
 
-	CosComponent *components = new CosComponent[costume->numComponents + 1]();
-
-	for (int i = 0; i < costume->numComponents; i++)
-		components[i] = costume->components[i];
-
-	delete[] costume->components;
+	CosComponent *components = (CosComponent *)_hs->memRealloc(costume->components, (costume->numComponents + 1) * sizeof(CosComponent));
+	memset(&components[costume->numComponents], 0, sizeof(CosComponent));
 	costume->components = components;
 
 	CosComponent *comp = &components[costume->numComponents];
@@ -240,8 +236,9 @@ int Cos::deleteComponent(int costumeHandle, int compIndex) {
 	if (compIndex < 0 || compIndex >= numComponents)
 		return 0;
 
-	int *deleteArray = new int[numComponents]();
-	int *remap = new int[numComponents];
+	int *deleteArray = (int *)_hs->memAlloc(numComponents * sizeof(int));
+	memset(deleteArray, 0, numComponents * sizeof(int));
+	int *remap = (int *)_hs->memAlloc(numComponents * sizeof(int));
 
 	for (int i = 0; i < numComponents; i++)
 		remap[i] = i;
@@ -302,17 +299,8 @@ int Cos::deleteComponent(int costumeHandle, int compIndex) {
 	}
 
 	int newNumComponents = numComponents - numDeleted;
-	CosComponent *components = nullptr;
 
-	if (newNumComponents) {
-		components = new CosComponent[newNumComponents]();
-
-		for (int i = 0; i < newNumComponents; i++)
-			components[i] = costume->components[i];
-	}
-
-	delete[] costume->components;
-	costume->components = components;
+	costume->components = (CosComponent *)_hs->memRealloc(costume->components, newNumComponents * sizeof(CosComponent));
 	costume->numComponents = newNumComponents;
 
 	for (int i = 0; i < newNumComponents; i++) {
@@ -355,7 +343,7 @@ int Cos::deleteComponent(int costumeHandle, int compIndex) {
 				numRemoved++;
 
 				if (track->numKeys) {
-					delete[] track->keys;
+					_hs->memFree(track->keys);
 					track->keys = nullptr;
 				}
 			} else if (numRemoved) {
@@ -364,18 +352,9 @@ int Cos::deleteComponent(int costumeHandle, int compIndex) {
 		}
 
 		int newNumTracks = numTracks - numRemoved;
-		CosChoreTrack *tracks = nullptr;
 
-		if (newNumTracks > 0) {
-			tracks = new CosChoreTrack[newNumTracks]();
-
-			for (int t = 0; t < newNumTracks; t++)
-				tracks[t] = chore->tracks[t];
-		}
-
-		delete[] chore->tracks;
-		chore->tracks = tracks;
 		chore->numTracks = newNumTracks;
+		chore->tracks = (CosChoreTrack *)_hs->memRealloc(chore->tracks, newNumTracks * sizeof(CosChoreTrack));
 	}
 
 	if (_compNotifier) {
@@ -387,8 +366,8 @@ int Cos::deleteComponent(int costumeHandle, int compIndex) {
 		}
 	}
 
-	delete[] deleteArray;
-	delete[] remap;
+	_hs->memFree(deleteArray);
+	_hs->memFree(remap);
 
 	return 1;
 }
@@ -477,17 +456,7 @@ void Cos::setChoreLength(CosCostume *costume, int choreNum, int length) {
 				k++;
 
 			if (k < track->numKeys) {
-				CosChoreKey *keys = nullptr;
-
-				if (k > 0) {
-					keys = new CosChoreKey[k];
-
-					for (int i = 0; i < k; i++)
-						keys[i] = track->keys[i];
-				}
-
-				delete[] track->keys;
-				track->keys = keys;
+				track->keys = (CosChoreKey *)_hs->memRealloc(track->keys, k * sizeof(CosChoreKey));
 				track->numKeys = k;
 			}
 		}

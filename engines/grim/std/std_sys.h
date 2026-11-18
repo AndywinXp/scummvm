@@ -35,6 +35,12 @@ public:
 	virtual ~SysStruct() {}
 
 	virtual Common::SeekableReadStream *openFile(const char *path) = 0;
+
+	// The memory manager of the game
+	virtual void *memAlloc(int size) = 0;
+	virtual void memFree(void *block) = 0;
+	virtual void *memRealloc(void *block, int size) = 0;
+	virtual void *memTagAlloc(void *block, const char *file, int state) = 0;
 };
 
 } // End of namespace Grim

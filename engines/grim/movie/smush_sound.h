@@ -92,6 +92,8 @@ private:
 	int engineInitialize(int rate, int reserveRam, const int *bufferSizes);
 	int engineTerminate();
 	int engineAllocChannel(int size, int reserveRam);
+	byte *allocBuffer(int size);
+	void freeBuffer(byte *buffer);
 	int souEngineMarkSyncTime();
 	int souEngineExternalSync(double ticks);
 	int souEngineStartStream(const byte *data, int size, uint32 volume, int pan, int soundClass, int tag1, int chunkCounter, int tag2);

@@ -23,6 +23,7 @@
 #include "common/endian.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/movie/smush_mixer.h"
 #include "engines/grim/movie/smush_sound.h"
 #include "engines/grim/movie/smush_timer.h"
@@ -98,15 +99,27 @@ int SmushSound::engineTerminate() {
 	}
 
 	for (int i = 0; i < _channelCount; i++) {
-		free(_channels[i].dataBuffer);
+		freeBuffer(_channels[i].dataBuffer);
 		_channels[i].dataBuffer = nullptr;
-		free(_channels[i].stagingBuffer);
+		freeBuffer(_channels[i].stagingBuffer);
 		_channels[i].stagingBuffer = nullptr;
 	}
 
 	int result = _fillCounter;
 	_channelCount = 0;
 	return result;
+}
+
+byte *SmushSound::allocBuffer(int size) {
+	byte *buffer = (byte *)g_grim->memAlloc(size);
+
+	memset(buffer, 0, size);
+
+	return buffer;
+}
+
+void SmushSound::freeBuffer(byte *buffer) {
+	g_grim->memFree(buffer);
 }
 
 int SmushSound::engineAllocChannel(int size, int reserveRam) {
@@ -119,11 +132,11 @@ int SmushSound::engineAllocChannel(int size, int reserveRam) {
 	chan->stagingBuffer = nullptr;
 	chan->capacity = size & ~3;
 
-	chan->stagingBuffer = (byte *)calloc(6144, 1);
+	chan->stagingBuffer = allocBuffer(6144);
 	if (!chan->stagingBuffer)
 		return -1;
 
-	chan->dataBuffer = (byte *)calloc(chan->capacity + SOU_BUFFER_SLACK, 1);
+	chan->dataBuffer = allocBuffer(chan->capacity + SOU_BUFFER_SLACK);
 	if (chan->dataBuffer) {
 		memset(chan->dataBuffer, 127, chan->capacity);
 		_channelCount++;
@@ -132,7 +145,7 @@ int SmushSound::engineAllocChannel(int size, int reserveRam) {
 
 	if (chan->capacity > reserveRam) {
 		do {
-			chan->dataBuffer = (byte *)calloc(chan->capacity + SOU_BUFFER_SLACK, 1);
+			chan->dataBuffer = allocBuffer(chan->capacity + SOU_BUFFER_SLACK);
 			if (chan->dataBuffer)
 				break;
 
@@ -142,11 +155,11 @@ int SmushSound::engineAllocChannel(int size, int reserveRam) {
 
 	chan->capacity &= ~3;
 	if (chan->capacity > reserveRam) {
-		free(chan->dataBuffer);
+		freeBuffer(chan->dataBuffer);
 		chan->dataBuffer = nullptr;
 
 		chan->capacity -= reserveRam;
-		chan->dataBuffer = (byte *)calloc(chan->capacity + SOU_BUFFER_SLACK, 1);
+		chan->dataBuffer = allocBuffer(chan->capacity + SOU_BUFFER_SLACK);
 		if (chan->dataBuffer) {
 			memset(chan->dataBuffer, 127, chan->capacity);
 			_channelCount++;
@@ -154,7 +167,7 @@ int SmushSound::engineAllocChannel(int size, int reserveRam) {
 		}
 	}
 
-	free(chan->stagingBuffer);
+	freeBuffer(chan->stagingBuffer);
 	chan->stagingBuffer = nullptr;
 	return -2;
 }

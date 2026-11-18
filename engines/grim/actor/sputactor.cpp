@@ -115,7 +115,8 @@ int SputActorModule::startup() {
 	if (_grim->isRemastered())
 		_maxActors = 1024;
 
-	_actors = new SputActor[_maxActors]();
+	_actors = (SputActor *)_hs->memAlloc(_maxActors * sizeof(SputActor));
+	memset(_actors, 0, _maxActors * sizeof(SputActor));
 	publishActors();
 
 	Grim::sort(_lipSyncAnims, _numLipSyncAnims, sizeof(LipSyncEntry), compareAnimEntry);
@@ -134,7 +135,7 @@ void SputActorModule::shutdown() {
 	if (remastered)
 		_numActorsTalking = 0;
 
-	delete[] _actors;
+	_hs->memFree(_actors);
 	_actors = nullptr;
 	publishActors();
 
@@ -248,11 +249,8 @@ int SputActorModule::allocateActor(int flag20, int flag80) {
 		if (_selectedActor)
 			selectedIndex = (int)(_selectedActor - _actors);
 
-		SputActor *newActors = new SputActor[_maxActors + 32]();
-
-		memcpy(newActors, _actors, _maxActors * sizeof(SputActor));
-		delete[] _actors;
-		_actors = newActors;
+		_actors = (SputActor *)_hs->memRealloc(_actors, (_maxActors + 32) * sizeof(SputActor));
+		memset(&_actors[_maxActors], 0, 32 * sizeof(SputActor));
 		_maxActors += 32;
 		actor = &_actors[_maxActors - 32];
 
@@ -279,7 +277,8 @@ int SputActorModule::allocateActor(int flag20, int flag80) {
 	_rd->identity34(actor->orientMatrix);
 	actor->scale = 1.0f;
 	actor->costumeStack = nullptr;
-	actor->colorMap = new ResRef();
+	actor->colorMap = (ResRef *)_hs->memAlloc(sizeof(ResRef));
+	memset(actor->colorMap, 0, sizeof(ResRef));
 	actor->inUse = 1;
 
 	if (flag20)
@@ -297,7 +296,8 @@ void SputActorModule::allocateActorExtra(SputActor *actor) {
 		return;
 	}
 
-	actor->extra = new Extra();
+	actor->extra = (Extra *)_hs->memAlloc(sizeof(Extra));
+	memset(actor->extra, 0, sizeof(Extra));
 	actor->extra->walkRate = 0.40000001f;
 	actor->extra->turnRate = 135.0f;
 	actor->extra->walkDominate = 0;
@@ -334,6 +334,7 @@ void SputActorModule::enablePuck(SputActor *actor, int enable) {
 		if (!extra->puck) {
 			Puck *puck = new Puck(_walkSystem, extra->reflectionAngle);
 
+			_hs->memTagAlloc(puck, __FILE__, __LINE__);
 			puck->setPos(actor->actorPos);
 
 			float *forward = getOrientMatrix(actor)[1];
@@ -746,13 +747,13 @@ void SputActorModule::freeActor(SputActor *actor) {
 	if (actor->extra) {
 		delete actor->extra->puck;
 		actor->extra->puck = nullptr;
-		delete actor->extra;
+		_hs->memFree(actor->extra);
 		actor->extra = nullptr;
 	}
 
 	if (actor->colorMap) {
 		_res->removeReference(actor->colorMap);
-		delete actor->colorMap;
+		_hs->memFree(actor->colorMap);
 		actor->colorMap = nullptr;
 	}
 

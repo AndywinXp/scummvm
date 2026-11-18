@@ -303,7 +303,9 @@ void Lua_V1::DrawPolygon() {
 		return;
 	}
 
-	int *points = new int[numPoints * 2]();
+	int *points = (int *)g_grim->memAlloc(numPoints * 2 * sizeof(int));
+
+	memset(points, 0, numPoints * 2 * sizeof(int));
 
 	index = 1;
 	for (int i = 0; i < numPoints; i++) {
@@ -327,7 +329,7 @@ void Lua_V1::DrawPolygon() {
 	if (g_grim->isRemastered())
 		queue->changeColorRgb(id, colorRgb);
 
-	delete[] points;
+	g_grim->memFree(points);
 	points = nullptr;
 
 	lua_pushnumber((float)(uint)id);

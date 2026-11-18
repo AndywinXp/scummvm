@@ -24,10 +24,12 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/remastered/look/look_renderer.h"
 #include "engines/grim/renderdroid/rd.h"
 #include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_3d_config.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -47,7 +49,7 @@ RdMaterial *RenderDroid::MaterialModule::load(char *path, int videoMemory, int v
 	if (_loader)
 		return _loader(path, videoMemory, videoMemoryOnly);
 
-	RdMaterial *material = new RdMaterial;
+	RdMaterial *material = (RdMaterial *)g_grim->_stdMemory->malloc(sizeof(RdMaterial));
 
 	if (loadEntry(path, material, videoMemory, videoMemoryOnly))
 		return material;
@@ -107,7 +109,7 @@ int RenderDroid::MaterialModule::loadEntry(char *path, RdMaterial *material, int
 	memset(textureIndices, 0, sizeof(textureIndices));
 
 	for (uint i = 0; i < numCels; i++) {
-		RdMatCel *cel = new RdMatCel;
+		RdMatCel *cel = (RdMatCel *)g_grim->_stdMemory->malloc(sizeof(RdMatCel));
 		memset(cel, 0, sizeof(RdMatCel));
 		material->cels[i] = cel;
 
@@ -128,7 +130,7 @@ int RenderDroid::MaterialModule::loadEntry(char *path, RdMaterial *material, int
 	material->textures = nullptr;
 
 	if (numTextures) {
-		material->textures = new RdTexture[numTextures];
+		material->textures = (RdTexture *)g_grim->_stdMemory->malloc(numTextures * sizeof(RdTexture));
 		memset(material->textures, 0, sizeof(RdTexture) * numTextures);
 	}
 
@@ -235,7 +237,7 @@ int RenderDroid::MaterialModule::destroy(RdMaterial *&material) {
 	if (_rd->_remasteredLookRenderer)
 		_rd->_remasteredLookRenderer->notifyFree(material);
 
-	delete material;
+	g_grim->_stdMemory->free(material);
 	material = nullptr;
 
 	return 1;
@@ -243,7 +245,7 @@ int RenderDroid::MaterialModule::destroy(RdMaterial *&material) {
 
 void RenderDroid::MaterialModule::freeEntry(RdMaterial *material) {
 	for (uint i = 0; i < material->numCels; i++) {
-		delete material->cels[i];
+		g_grim->_stdMemory->free(material->cels[i]);
 		material->cels[i] = nullptr;
 	}
 
@@ -269,7 +271,7 @@ void RenderDroid::MaterialModule::freeEntry(RdMaterial *material) {
 		}
 	}
 
-	delete[] material->textures;
+	g_grim->_stdMemory->free(material->textures);
 	material->textures = nullptr;
 }
 

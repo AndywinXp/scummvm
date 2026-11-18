@@ -24,8 +24,10 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/remastered/look/look_renderer.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -429,7 +431,7 @@ int RenderDroid::Model3Module::hasBytes(Common::SeekableReadStream *file, uint c
 }
 
 RdModel3 *RenderDroid::Model3Module::load(char *filename) {
-	RdModel3 *model3 = new RdModel3;
+	RdModel3 *model3 = (RdModel3 *)g_grim->_stdMemory->malloc(sizeof(RdModel3));
 	memset(model3, 0, sizeof(RdModel3));
 
 	if (loadEntry(filename, model3)) {
@@ -477,7 +479,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 	model3->materials = nullptr;
 
 	if (numMaterials) {
-		materialNames = new char[32 * numMaterials];
+		materialNames = (char *)g_grim->_stdMemory->malloc(numMaterials * 32 * sizeof(char));
 		file->read(materialNames, 32 * numMaterials);
 	}
 
@@ -504,7 +506,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 			break;
 		}
 
-		geo->meshes = new RdModel3Mesh[numMeshes];
+		geo->meshes = (RdModel3Mesh *)g_grim->_stdMemory->malloc(numMeshes * sizeof(RdModel3Mesh));
 		memset(geo->meshes, 0, sizeof(RdModel3Mesh) * numMeshes);
 		geo->numMeshes = numMeshes;
 
@@ -531,13 +533,13 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 			mesh->numTexVertices = numTexVertices;
 
 			if (numVertices) {
-				mesh->vertices = new RdVector3[numVertices];
-				mesh->staticVertexIntensities = new float[numVertices];
-				mesh->dynamicVertexIntensities = new float[numVertices];
+				mesh->vertices = (RdVector3 *)g_grim->_stdMemory->malloc(numVertices * sizeof(RdVector3));
+				mesh->staticVertexIntensities = (float *)g_grim->_stdMemory->malloc(numVertices * sizeof(float));
+				mesh->dynamicVertexIntensities = (float *)g_grim->_stdMemory->malloc(numVertices * sizeof(float));
 			}
 
 			if (numTexVertices)
-				mesh->texVertices = new RdVector2[numTexVertices];
+				mesh->texVertices = (RdVector2 *)g_grim->_stdMemory->malloc(numTexVertices * sizeof(RdVector2));
 
 			for (uint i = 0; i < numVertices; i++) {
 				mesh->vertices[i][0] = file->readFloatLE();
@@ -557,7 +559,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 				mesh->dynamicVertexIntensities[i] = file->readFloatLE();
 
 			if (numFaces) {
-				mesh->faces = new RdFace3[numFaces];
+				mesh->faces = (RdFace3 *)g_grim->_stdMemory->malloc(numFaces * sizeof(RdFace3));
 				memset(mesh->faces, 0, sizeof(RdFace3) * numFaces);
 				mesh->numFaces = numFaces;
 			}
@@ -594,14 +596,14 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 				face->numVertices = faceVertices;
 
 				if (faceVertices) {
-					face->vertices = new int[faceVertices];
+					face->vertices = (int *)g_grim->_stdMemory->malloc(faceVertices * sizeof(int));
 
 					for (uint i = 0; i < faceVertices; i++)
 						face->vertices[i] = file->readSint32LE();
 				}
 
 				if (hasTexVertices) {
-					face->texVertices = new int[faceVertices];
+					face->texVertices = (int *)g_grim->_stdMemory->malloc(faceVertices * sizeof(int));
 
 					for (uint i = 0; i < faceVertices; i++)
 						face->texVertices[i] = file->readSint32LE();
@@ -617,7 +619,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 				break;
 
 			if (numVertices) {
-				mesh->vertexNormals = new RdVector3[numVertices];
+				mesh->vertexNormals = (RdVector3 *)g_grim->_stdMemory->malloc(numVertices * sizeof(RdVector3));
 
 				for (uint i = 0; i < numVertices; i++) {
 					mesh->vertexNormals[i][0] = file->readFloatLE();
@@ -646,7 +648,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 			warning("RenderDroid::Model3Module::loadEntryBinary(): invalid hierarchy node count");
 			ok = false;
 		} else {
-			model3->hNodes = new RdModel3HNode[numHNodes];
+			model3->hNodes = (RdModel3HNode *)g_grim->_stdMemory->malloc(numHNodes * sizeof(RdModel3HNode));
 			memset(model3->hNodes, 0, sizeof(RdModel3HNode) * numHNodes);
 			model3->numHNodes = numHNodes;
 		}
@@ -734,7 +736,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 			model3->insertOffset[i] = file->readFloatLE();
 
 		if (numMaterials) {
-			model3->materials = new RdMaterial *[numMaterials];
+			model3->materials = (RdMaterial **)g_grim->_stdMemory->malloc(numMaterials * sizeof(RdMaterial *));
 			memset(model3->materials, 0, sizeof(RdMaterial *) * numMaterials);
 		}
 
@@ -770,7 +772,7 @@ int RenderDroid::Model3Module::loadEntryBinary(Common::SeekableReadStream *file,
 		}
 	}
 
-	delete[] materialNames;
+	g_grim->_stdMemory->free(materialNames);
 
 	return ok ? 1 : 0;
 }
@@ -812,7 +814,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				break;
 			}
 
-			model3->materials = new RdMaterial *[numMaterials];
+			model3->materials = (RdMaterial **)g_grim->_stdMemory->malloc(numMaterials * sizeof(RdMaterial *));
 			memset(model3->materials, 0, sizeof(RdMaterial *) * numMaterials);
 			model3->numMaterials = numMaterials;
 
@@ -895,7 +897,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				break;
 			}
 
-			geo->meshes = new RdModel3Mesh[numMeshes];
+			geo->meshes = (RdModel3Mesh *)g_grim->_stdMemory->malloc(numMeshes * sizeof(RdModel3Mesh));
 			memset(geo->meshes, 0, sizeof(RdModel3Mesh) * numMeshes);
 			geo->numMeshes = numMeshes;
 
@@ -942,9 +944,9 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				}
 
 				if (numVertices) {
-					mesh->vertices = new RdVector3[numVertices];
-					mesh->staticVertexIntensities = new float[numVertices];
-					mesh->dynamicVertexIntensities = new float[numVertices];
+					mesh->vertices = (RdVector3 *)g_grim->_stdMemory->malloc(numVertices * sizeof(RdVector3));
+					mesh->staticVertexIntensities = (float *)g_grim->_stdMemory->malloc(numVertices * sizeof(float));
+					mesh->dynamicVertexIntensities = (float *)g_grim->_stdMemory->malloc(numVertices * sizeof(float));
 					memset(mesh->dynamicVertexIntensities, 0, numVertices);
 
 					// The demo allocator fills every new block with 0xCC
@@ -982,7 +984,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				}
 
 				if (numTexVertices)
-					mesh->texVertices = new RdVector2[numTexVertices];
+					mesh->texVertices = (RdVector2 *)g_grim->_stdMemory->malloc(numTexVertices * sizeof(RdVector2));
 
 				for (uint i = 0; i < numTexVertices; i++) {
 					int index;
@@ -1009,7 +1011,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				}
 
 				if (numVertices)
-					mesh->vertexNormals = new RdVector3[numVertices];
+					mesh->vertexNormals = (RdVector3 *)g_grim->_stdMemory->malloc(numVertices * sizeof(RdVector3));
 
 				for (uint i = 0; i < numVertices; i++) {
 					int index;
@@ -1036,7 +1038,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				}
 
 				if (numFaces) {
-					mesh->faces = new RdFace3[numFaces];
+					mesh->faces = (RdFace3 *)g_grim->_stdMemory->malloc(numFaces * sizeof(RdFace3));
 					memset(mesh->faces, 0, sizeof(RdFace3) * numFaces);
 				}
 
@@ -1124,10 +1126,10 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 					}
 
 					face->numVertices = faceVertices;
-					face->vertices = new int[faceVertices];
+					face->vertices = (int *)g_grim->_stdMemory->malloc(faceVertices * sizeof(int));
 
 					if (face->material && (face->material->flags & 2)) {
-						face->texVertices = new int[faceVertices];
+						face->texVertices = (int *)g_grim->_stdMemory->malloc(faceVertices * sizeof(int));
 
 						for (uint i = 0; i < faceVertices; i++) {
 							token = strtok(nullptr, " \t,");
@@ -1196,7 +1198,7 @@ int RenderDroid::Model3Module::loadEntryText(char *filename, RdModel3 *model3) {
 				!conffile->readLine() || sscanf(conffile->getLine(), " hierarchy nodes %d", &numHNodes) != 1)
 			break;
 
-		model3->hNodes = new RdModel3HNode[numHNodes];
+		model3->hNodes = (RdModel3HNode *)g_grim->_stdMemory->malloc(numHNodes * sizeof(RdModel3HNode));
 		memset(model3->hNodes, 0, sizeof(RdModel3HNode) * numHNodes);
 		model3->numHNodes = numHNodes;
 
@@ -1298,7 +1300,7 @@ int RenderDroid::Model3Module::validate(RdModel3 *model3) {
 void RenderDroid::Model3Module::destroy(RdModel3 *&model3) {
 	if (model3) {
 		freeEntry(model3);
-		delete model3;
+		g_grim->_stdMemory->free(model3);
 		model3 = nullptr;
 	} else {
 		warning("RenderDroid::Model3Module::destroy(): attempt to free NULL model ptr");
@@ -1315,38 +1317,38 @@ void RenderDroid::Model3Module::freeEntry(RdModel3 *model3) {
 			if (_rd->_remasteredLookRenderer)
 				_rd->_remasteredLookRenderer->notifyFree(mesh->vertices);
 
-			delete[] mesh->vertices;
+			g_grim->_stdMemory->free(mesh->vertices);
 			mesh->vertices = nullptr;
 
-			delete[] mesh->texVertices;
+			g_grim->_stdMemory->free(mesh->texVertices);
 			mesh->texVertices = nullptr;
 
 			if (mesh->faces) {
 				for (uint f = 0; f < mesh->numFaces; f++)
 					_rd->_face.freeEntry(&mesh->faces[f]);
 
-				delete[] mesh->faces;
+				g_grim->_stdMemory->free(mesh->faces);
 				mesh->faces = nullptr;
 			}
 
-			delete[] mesh->staticVertexIntensities;
+			g_grim->_stdMemory->free(mesh->staticVertexIntensities);
 			mesh->staticVertexIntensities = nullptr;
 
-			delete[] mesh->dynamicVertexIntensities;
+			g_grim->_stdMemory->free(mesh->dynamicVertexIntensities);
 			mesh->dynamicVertexIntensities = nullptr;
 
-			delete[] mesh->vertexNormals;
+			g_grim->_stdMemory->free(mesh->vertexNormals);
 			mesh->vertexNormals = nullptr;
 
-			delete[] mesh->shadowVerts;
+			g_grim->_stdMemory->free(mesh->shadowVerts);
 			mesh->shadowVerts = nullptr;
 		}
 
-		delete[] geo->meshes;
+		g_grim->_stdMemory->free(geo->meshes);
 		geo->meshes = nullptr;
 	}
 
-	delete[] model3->hNodes;
+	g_grim->_stdMemory->free(model3->hNodes);
 	model3->hNodes = nullptr;
 
 	if (model3->materials) {
@@ -1355,7 +1357,7 @@ void RenderDroid::Model3Module::freeEntry(RdModel3 *model3) {
 				_rd->_material.destroy(model3->materials[i]);
 		}
 
-		delete[] model3->materials;
+		g_grim->_stdMemory->free(model3->materials);
 		model3->materials = nullptr;
 	}
 }
@@ -2055,6 +2057,14 @@ void RenderDroid::Model3Module::buildShadowModel(RdModel3 *model3) {
 		{0, 0, 0}, {1, 1, 0}, {1, 1, 1}, {0, 0, 1},
 		{0, 1, 0}, {1, 0, 0}, {1, 0, 1}, {0, 1, 1}
 	};
+	static const byte demoCorners[12][3] = {
+		{1, 1, 1}, {1, 0, 1}, {0, 0, 1}, {0, 1, 1},
+		{0, 0, 0}, {1, 1, 0}, {1, 1, 1}, {0, 0, 1},
+		{0, 1, 0}, {1, 0, 0}, {1, 0, 1}, {0, 1, 1}
+	};
+
+	const byte (*cornerTable)[3] = _rd->isDemo() ? demoCorners : corners;
+	uint numShadowVerts = _rd->isDemo() ? 12 : 16;
 
 	for (uint g = 0; g < model3->numGeos; g++) {
 		RdModel3Geo *geo = &model3->geo[g];
@@ -2065,12 +2075,12 @@ void RenderDroid::Model3Module::buildShadowModel(RdModel3 *model3) {
 			if (!mesh->castShadow)
 				continue;
 
-			delete[] mesh->shadowVerts;
-			mesh->shadowVerts = new RdVector3[16];
+			g_grim->_stdMemory->free(mesh->shadowVerts);
+			mesh->shadowVerts = (RdVector3 *)g_grim->_stdMemory->malloc(numShadowVerts * sizeof(RdVector3));
 
-			for (uint v = 0; v < 16; v++) {
+			for (uint v = 0; v < numShadowVerts; v++) {
 				for (uint k = 0; k < 3; k++)
-					mesh->shadowVerts[v][k] = corners[v][k] ? mesh->bound.max[k] : mesh->bound.min[k];
+					mesh->shadowVerts[v][k] = cornerTable[v][k] ? mesh->bound.max[k] : mesh->bound.min[k];
 			}
 		}
 	}

@@ -25,6 +25,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/imuse/imuse_internalmixer.h"
 
@@ -64,8 +65,8 @@ IMuseInternalMixer::~IMuseInternalMixer() {
 }
 
 int IMuseInternalMixer::terminate() {
-	free(_softLTable);
-	free(_mixBuf);
+	g_grim->memFree(_softLTable);
+	g_grim->memFree(_mixBuf);
 	_softLTable = nullptr;
 	_mixBuf = nullptr;
 	return 0;
@@ -87,9 +88,9 @@ int IMuseInternalMixer::init(int numChannels, int mixBufSize, int mixChannelsNum
 	if (_demo) {
 		// The demo mixes in 16 bit
 		_mixBufSize = mixBufSize;
-		_mixBuf = (int32 *)malloc(_mixBufSize);
+		_mixBuf = (int32 *)g_grim->memAlloc(_mixBufSize);
 
-		_softLTable = (int16 *)malloc(DEMO_TABLES_SIZE);
+		_softLTable = (int16 *)g_grim->memAlloc(DEMO_TABLES_SIZE);
 		if (!_softLTable) {
 			debug(5, "IMuseInternalMixer::init(): ERROR: couldn't allocate mixer tables");
 			return -1;
@@ -124,9 +125,9 @@ int IMuseInternalMixer::init(int numChannels, int mixBufSize, int mixChannelsNum
 		}
 	} else {
 		_mixBufSize = 2 * mixBufSize;
-		_mixBuf = (int32 *)malloc(_mixBufSize);
+		_mixBuf = (int32 *)g_grim->memAlloc(_mixBufSize);
 
-		_softLTable = (int16 *)malloc(mixChannelsNum << 16);
+		_softLTable = (int16 *)g_grim->memAlloc(mixChannelsNum << 16);
 		if (!_softLTable) {
 			debug(5, "IMuseInternalMixer::init(): ERROR: couldn't allocate mixer tables");
 			return -1;

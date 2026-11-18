@@ -163,6 +163,20 @@ WalkPlane::~WalkPlane() {
 		_next->_prev = _prev;
 }
 
+void *WalkPlane::operator new(size_t size) {
+	if (g_grim->isRemastered())
+		return ::operator new(size);
+
+	return g_grim->memAlloc((int)size);
+}
+
+void WalkPlane::operator delete(void *block) {
+	if (g_grim->isRemastered())
+		::operator delete(block);
+	else
+		g_grim->memFree(block);
+}
+
 void WalkPlane::setName(const char *name) {
 	if (name) {
 		if (strlen(name) >= sizeof(_name))
@@ -1545,7 +1559,10 @@ void WalkSystem::buildCache() {
 		_numPlanes++;
 	}
 
-	_vertCache = new WpCacheVert[_numCacheVerts];
+	if (_remastered)
+		_vertCache = new WpCacheVert[_numCacheVerts];
+	else
+		_vertCache = (WpCacheVert *)g_grim->memAlloc(_numCacheVerts * sizeof(WpCacheVert));
 
 	int cursor = 0;
 	for (WalkPlane *plane = _wpHead; plane; plane = plane->_next) {
@@ -1561,7 +1578,10 @@ void WalkSystem::buildCache() {
 		}
 	}
 
-	_cache = new WpCachePlane[_numPlanes];
+	if (_remastered)
+		_cache = new WpCachePlane[_numPlanes];
+	else
+		_cache = (WpCachePlane *)g_grim->memAlloc(_numPlanes * sizeof(WpCachePlane));
 
 	int planeIndex = 0;
 	for (WalkPlane *plane = _wpHead; plane; plane = plane->_next) {
@@ -1581,8 +1601,13 @@ void WalkSystem::buildCache() {
 void WalkSystem::destroyCache() {
 	_cacheBuilt = 0;
 
-	delete[] _vertCache;
-	delete[] _cache;
+	if (_remastered) {
+		delete[] _vertCache;
+		delete[] _cache;
+	} else {
+		g_grim->memFree(_vertCache);
+		g_grim->memFree(_cache);
+	}
 
 	_vertCache = nullptr;
 	_cache = nullptr;
@@ -1993,6 +2018,8 @@ const char *WalkSystem::parseCollection(const char *collection) {
 WalkPlane *WalkSystem::newPlane(float (*verts)[3], int numPoints, const char *collection, const char *sectorName, int id, int visible, int type, int alwaysMerge,
 		int numTriangles, int (*triangles)[3]) {
 	WalkPlane *plane = new WalkPlane(this, verts, numPoints, collection);
+
+	g_grim->memTagAlloc(plane, __FILE__, __LINE__);
 
 	if (numTriangles > WalkPlane::kMaxTriangles) {
 		warning("WalkSystem::newPlane(): sector %s has %d triangles, only %d are supported", sectorName, numTriangles, (int)WalkPlane::kMaxTriangles);

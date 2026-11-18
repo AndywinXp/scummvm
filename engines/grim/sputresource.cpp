@@ -35,6 +35,7 @@
 #include "engines/grim/render/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/text/text.h"
 #include "engines/grim/wuregistry.h"
 
@@ -717,11 +718,11 @@ int SputResource::loadResMat(ResHandlerMsg *msg) {
 	switch (msg->op) {
 	case 1: {
 		char defaultName[] = "dflt.mat";
-		RdMaterial *material = new RdMaterial;
+		RdMaterial *material = static_cast<RdMaterial *>(g_grim->_stdMemory->malloc(sizeof(RdMaterial)));
 
 		if (!_rd->_material.loadEntry(const_cast<char *>(msg->name), material, 0, 0) && !_rd->_material.loadEntry(defaultName, material, 0, 0)) {
 			_rd->_material.freeEntry(material);
-			delete material;
+			g_grim->_stdMemory->free(material);
 			material = nullptr;
 
 			return 0;
@@ -736,7 +737,7 @@ int SputResource::loadResMat(ResHandlerMsg *msg) {
 		RdMaterial *material = static_cast<RdMaterial *>(msg->data);
 
 		_rd->_material.freeEntry(material);
-		delete material;
+		g_grim->_stdMemory->free(material);
 		material = nullptr;
 
 		return 1;

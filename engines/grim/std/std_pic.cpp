@@ -23,8 +23,10 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_file.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_pic.h"
 #include "engines/grim/std/std_sys.h"
 
@@ -38,6 +40,8 @@ StdBitmapStruct *StdPic::load(const char *path, int videoMemory, int noZ) {
 
 	if (loadEntry(path, bitmap, videoMemory, noZ))
 		return bitmap;
+
+	delete bitmap;
 
 	return nullptr;
 }
@@ -125,7 +129,8 @@ int StdPic::loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory
 	bitmap->format.redShift = 16;
 	bitmap->format.greenShift = 8;
 	bitmap->format.blueShift = 0;
-	bitmap->frames = new StdVBuffer *[1]();
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(sizeof(StdVBuffer *));
+	memset(bitmap->frames, 0, sizeof(StdVBuffer *));
 
 	StdVBufferTexFmt format;
 

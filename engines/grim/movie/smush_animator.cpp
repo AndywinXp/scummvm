@@ -47,7 +47,7 @@ SmushAnimator::SmushAnimator(SmushDecoder *decoder) {
 }
 
 SmushAnimator::~SmushAnimator() {
-	free(_buffer);
+	g_grim->memFree(_buffer);
 }
 
 void SmushAnimator::animatorInitialize() {
@@ -62,6 +62,13 @@ void SmushAnimator::animatorNewAnim() {
 	animatorInitialize();
 
 	_frameCount = _decoder->getFrameCount();
+}
+
+void SmushAnimator::animatorStop() {
+	g_grim->memFree(_buffer);
+	_buffer = nullptr;
+	_bufferSize = 0;
+	_block = nullptr;
 }
 
 void SmushAnimator::animatorPause(bool pause) {
@@ -85,7 +92,7 @@ void SmushAnimator::readBlock(int size) {
 	}
 
 	if (_bufferSize < (uint32)size) {
-		_buffer = (byte *)realloc(_buffer, size);
+		_buffer = (byte *)g_grim->memRealloc(_buffer, size);
 		_bufferSize = size;
 	}
 

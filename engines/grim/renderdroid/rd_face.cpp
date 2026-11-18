@@ -19,7 +19,9 @@
  *
  */
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -43,12 +45,12 @@ int RenderDroid::FaceModule::newEntry(RdFace3 *face) {
 
 void RenderDroid::FaceModule::freeEntry(RdFace3 *face) {
 	if (face->vertices) {
-		delete[] face->vertices;
+		g_grim->_stdMemory->free(face->vertices);
 		face->vertices = nullptr;
 	}
 
 	if (face->texVertices) {
-		delete[] face->texVertices;
+		g_grim->_stdMemory->free(face->texVertices);
 		face->texVertices = nullptr;
 	}
 }

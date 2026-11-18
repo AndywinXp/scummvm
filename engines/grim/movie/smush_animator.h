@@ -177,6 +177,7 @@ public:
 	~SmushAnimator();
 
 	void animatorNewAnim();
+	void animatorStop();
 	int animatorRender(int flags);
 	void animatorPause(bool pause);
 

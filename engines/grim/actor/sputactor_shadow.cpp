@@ -202,16 +202,12 @@ void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) 
 			if (!mesh->castShadow || !thing->abMeshVisible[meshNodeIndex])
 				continue;
 
+			// The shadows of the demo have three quads
+			int numVertices = demo ? 12 : 16;
 			RdVector3 quads[16];
 			int vertex = 0;
 
-			while (vertex < 16) {
-				// The shadows of the demo have three quads, the second one is missing
-				if (demo && vertex == 4) {
-					vertex = 8;
-					continue;
-				}
-
+			while (vertex < numVertices) {
 				_rd->transformPoint34(quads[vertex], mesh->shadowVerts[vertex], thing->jointMatrices[node]);
 
 				// The demo goes on when the projection fails
@@ -221,7 +217,7 @@ void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) 
 				vertex++;
 			}
 
-			if (vertex < 16)
+			if (vertex < numVertices)
 				continue;
 
 			if (!_shadowMaterial) {
@@ -236,10 +232,7 @@ void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) 
 
 			RdColormap *colormap = _sputCostume->getShadowColormap();
 
-			if (!colormap && demo) {
-				_sputCostume->setShadowColor(0, 0, 0);
-				colormap = _sputCostume->getShadowColormap();
-			} else if (!colormap) {
+			if (!colormap) {
 				char colormapName[] = "shadow.cmp";
 
 				colormap = _rd->_colormap.load(colormapName);
@@ -250,7 +243,7 @@ void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) 
 				_rd->_colormap.setCurrent(colormap);
 
 #if defined(GRIM_STD3D)
-				if (_sputRender->is3DHardware()) {
+				if (!demo && _sputRender->is3DHardware()) {
 					if (colormap)
 						_std3D->setCurrentPalette(colormap->colors, 0);
 					else
@@ -259,12 +252,11 @@ void SputActorModule::initShadow(CostumeNode *nodePointer, ActorShadow *shadow) 
 #endif
 
 				drawShadowPolygon(quads[0], 4, minArray, maxArray, shadow);
+				drawShadowPolygon(quads[4], 4, minArray, maxArray, shadow);
+				drawShadowPolygon(quads[8], 4, minArray, maxArray, shadow);
 
 				if (!demo)
-					drawShadowPolygon(quads[4], 4, minArray, maxArray, shadow);
-
-				drawShadowPolygon(quads[8], 4, minArray, maxArray, shadow);
-				drawShadowPolygon(quads[12], 4, minArray, maxArray, shadow);
+					drawShadowPolygon(quads[12], 4, minArray, maxArray, shadow);
 			}
 		}
 	}

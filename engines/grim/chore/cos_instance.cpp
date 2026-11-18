@@ -35,15 +35,17 @@ int Cos::createCosInstance(int costumeHandle, int userData) {
 	int slot = allocInstanceSlot();
 	_instances[slot].costume = costumeIndex;
 
-	if (costume->numChores)
-		_instances[slot].choreInstances = new CosChoreInstance[costume->numChores]();
-	else
+	if (costume->numChores) {
+		_instances[slot].choreInstances = (CosChoreInstance *)_hs->memAlloc(costume->numChores * sizeof(CosChoreInstance));
+		memset(_instances[slot].choreInstances, 0, costume->numChores * sizeof(CosChoreInstance));
+	} else {
 		_instances[slot].choreInstances = nullptr;
+	}
 
 	initChoreInstances(costume->chores, _instances[slot].choreInstances, costume->numChores);
 
 	if (costume->numComponents) {
-		_instances[slot].instanceData = new void *[costume->numComponents]();
+		_instances[slot].instanceData = (void **)_hs->memAlloc(costume->numComponents * sizeof(void *));
 
 		for (int i = 0; i < costume->numComponents; i++)
 			_instances[slot].instanceData[i] = costume->components[i].id;
@@ -57,7 +59,7 @@ int Cos::createCosInstance(int costumeHandle, int userData) {
 	int *treeDepths = nullptr;
 
 	if (costume->numComponents)
-		treeDepths = new int[costume->numComponents];
+		treeDepths = (int *)_hs->memAlloc(costume->numComponents * sizeof(int));
 
 	int maxDepth = 0;
 
@@ -99,7 +101,7 @@ int Cos::createCosInstance(int costumeHandle, int userData) {
 		}
 	}
 
-	delete[] treeDepths;
+	_hs->memFree(treeDepths);
 
 	if (_instanceHook) {
 		if (!_instanceHook(inst, 1)) {
@@ -152,8 +154,8 @@ void Cos::freeInstance(int index) {
 			instance->instanceData[i] = data;
 	}
 
-	delete[] instance->choreInstances;
-	delete[] instance->instanceData;
+	_hs->memFree(instance->choreInstances);
+	_hs->memFree(instance->instanceData);
 
 	instance->costume = 0;
 	instance->choreInstances = nullptr;

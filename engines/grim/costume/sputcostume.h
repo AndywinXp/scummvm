@@ -113,6 +113,8 @@ private:
 	int _initialized;
 	int _started;
 	RdColormap *_shadowColormap;
+	RdColormap _demoShadowColormap;
+	uint16 *_demoShadowColor;
 	CosStateBitmapDesc *_lecBitmaps;
 	void *_lastBitmap;
 	CosInstanceHook _oldInstanceHook;

@@ -39,6 +39,9 @@ enum SputPrimitiveShape {
 struct SputPrimitiveObject {
 	SputPrimitiveObject(int id, int shape);
 
+	static void *operator new(size_t size);
+	static void operator delete(void *block);
+
 	SputPrimitiveObject *next;
 	SputPrimitiveObject *prev;
 	int shape;

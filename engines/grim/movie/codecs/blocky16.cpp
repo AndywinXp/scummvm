@@ -639,8 +639,9 @@ void Blocky16::init(int width, int height) {
 	// workaround for read over buffer by increasing buffer
 	// 200 bytes is enough for smush anims:
 	// lol, byeruba, crushed, eldepot, heltrain, hostage
-	uint32 deltaSize = _bufSize * 3 + 200;
-	_deltaBuf = new byte[deltaSize]();
+	int deltaSize = _bufSize * 3 + 200;
+	_deltaBuf = (byte *)g_grim->memAlloc(deltaSize);
+	memset(_deltaBuf, 0, deltaSize);
 	_deltaBufs[0] = _deltaBuf;
 	_deltaBufs[1] = _deltaBuf + _bufSize;
 	_curBuf = _deltaBuf + _bufSize * 2;
@@ -672,7 +673,7 @@ Blocky16::Blocky16() {
 void Blocky16::deinit() {
 	_lastTableWidth = -1;
 	if (_deltaBuf) {
-		delete[] _deltaBuf;
+		g_grim->memFree(_deltaBuf);
 		_deltaBuf = nullptr;
 		_deltaBufs[0] = nullptr;
 		_deltaBufs[1] = nullptr;

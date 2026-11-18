@@ -55,6 +55,9 @@ struct StdBitmapStruct {
 	int yPos;
 	int colorKey;
 	StdVBuffer **frames;
+
+	static void *operator new(size_t size);
+	static void operator delete(void *block);
 };
 
 struct StdBitmapFileHeader {

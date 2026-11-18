@@ -30,6 +30,7 @@
 #include "engines/grim/costume/sputcostume_components.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
+#include "engines/grim/std/std_sys.h"
 #include "engines/grim/text/sputtext.h"
 #include "engines/grim/walkplane.h"
 
@@ -300,11 +301,8 @@ int SputActorModule::restoreRemastered(Common::ReadStream *stream) {
 	int savedMaxActors = stream->readSint32LE();
 
 	if (savedMaxActors > _maxActors) {
-		SputActor *newActors = new SputActor[savedMaxActors]();
-
-		memcpy(newActors, _actors, _maxActors * sizeof(SputActor));
-		delete[] _actors;
-		_actors = newActors;
+		_actors = (SputActor *)_hs->memRealloc(_actors, savedMaxActors * sizeof(SputActor));
+		memset(&_actors[_maxActors], 0, (savedMaxActors - _maxActors) * sizeof(SputActor));
 		_maxActors = savedMaxActors;
 		publishActors();
 	}
@@ -323,8 +321,10 @@ int SputActorModule::restoreRemastered(Common::ReadStream *stream) {
 
 		actor->inUse = 1;
 
-		if (!actor->colorMap)
-			actor->colorMap = new ResRef();
+		if (!actor->colorMap) {
+			actor->colorMap = (ResRef *)_hs->memAlloc(sizeof(ResRef));
+			memset(actor->colorMap, 0, sizeof(ResRef));
+		}
 
 		actor->colorMap->serial = stream->readSint32LE();
 		stream->readSint32LE();

@@ -57,18 +57,21 @@ int Cos::startup() {
 
 	_numCostumes = 0;
 	_maxCostumes = 32;
-	_costumes = new CosCostume[32]();
+	_costumes = (CosCostume *)_hs->memAlloc(32 * sizeof(CosCostume));
+	memset(_costumes, 0, 32 * sizeof(CosCostume));
 
 	for (int i = 0; i < 32; i++)
 		_costumes[i].free = 1;
 
 	_numClasses = 0;
 	_maxClasses = 32;
-	_classes = new CosComponentClass[32]();
+	_classes = (CosComponentClass *)_hs->memAlloc(32 * sizeof(CosComponentClass));
+	memset(_classes, 0, 32 * sizeof(CosComponentClass));
 
 	_numInstances = 0;
 	_maxInstances = 32;
-	_instances = new CosInstance[32]();
+	_instances = (CosInstance *)_hs->memAlloc(32 * sizeof(CosInstance));
+	memset(_instances, 0, 32 * sizeof(CosInstance));
 
 	for (int i = 0; i < 32; i++)
 		_instances[i].free = 1;
@@ -81,21 +84,21 @@ int Cos::startup() {
 int Cos::shutdown() {
 	_maxCostumes = 0;
 	_numCostumes = 0;
-	delete[] _costumes;
+	_hs->memFree(_costumes);
 	_costumes = nullptr;
 
 	_maxClasses = 0;
 	_numClasses = 0;
-	delete[] _classes;
+	_hs->memFree(_classes);
 	_classes = nullptr;
 
 	_maxInstances = 0;
 	_numInstances = 0;
-	delete[] _instances;
+	_hs->memFree(_instances);
 	_instances = nullptr;
 
 	if (_compMapSize) {
-		delete[] _compMap;
+		_hs->memFree(_compMap);
 		_compMap = nullptr;
 		_compMapSize = 0;
 	}
@@ -147,13 +150,8 @@ int Cos::allocCostumeSlot() {
 	if (_numCostumes + 1 > _maxCostumes) {
 		_maxCostumes += 8;
 
-		CosCostume *costumes = new CosCostume[_maxCostumes]();
-
-		for (int i = 0; i < oldMax; i++)
-			costumes[i] = _costumes[i];
-
-		delete[] _costumes;
-		_costumes = costumes;
+		_costumes = (CosCostume *)_hs->memRealloc(_costumes, _maxCostumes * sizeof(CosCostume));
+		memset(&_costumes[oldMax], 0, (_maxCostumes - oldMax) * sizeof(CosCostume));
 
 		for (int i = oldMax; i < _maxCostumes; i++)
 			_costumes[i].free = 1;
@@ -186,13 +184,8 @@ int Cos::allocInstanceSlot() {
 	if (_numInstances + 1 > _maxInstances) {
 		_maxInstances += 8;
 
-		CosInstance *instances = new CosInstance[_maxInstances]();
-
-		for (int i = 0; i < oldMax; i++)
-			instances[i] = _instances[i];
-
-		delete[] _instances;
-		_instances = instances;
+		_instances = (CosInstance *)_hs->memRealloc(_instances, _maxInstances * sizeof(CosInstance));
+		memset(&_instances[oldMax], 0, (_maxInstances - oldMax) * sizeof(CosInstance));
 
 		for (int i = oldMax; i < _maxInstances; i++)
 			_instances[i].free = 1;
@@ -492,7 +485,7 @@ void Cos::freeCostumeData(int costumeHandle) {
 		freeComponent(costumeHandle, &_classes[comp->classIdx], comp);
 	}
 
-	delete[] costume->components;
+	_hs->memFree(costume->components);
 	costume->components = nullptr;
 	costume->numComponents = 0;
 
@@ -500,16 +493,16 @@ void Cos::freeCostumeData(int costumeHandle) {
 		CosChore *chore = &costume->chores[c];
 
 		for (int t = 0; chore->tracks && t < chore->numTracks; t++) {
-			delete[] chore->tracks[t].keys;
+			_hs->memFree(chore->tracks[t].keys);
 			chore->tracks[t].keys = nullptr;
 		}
 
-		delete[] chore->tracks;
+		_hs->memFree(chore->tracks);
 		chore->tracks = nullptr;
 		chore->numTracks = 0;
 	}
 
-	delete[] costume->chores;
+	_hs->memFree(costume->chores);
 	costume->chores = nullptr;
 	costume->numChores = 0;
 
@@ -522,22 +515,22 @@ void Cos::freeComponent(int costume, CosComponentClass *classInfo, CosComponent 
 	else if (classInfo->handler)
 		classInfo->handler->freeComponent(costume, classInfo->fourcc, comp->id);
 
-	delete[] comp->nameIds;
+	_hs->memFree(comp->nameIds);
 	comp->nameIds = nullptr;
 
 	if (comp->names) {
 		for (int i = 0; i < comp->numNames; i++)
-			delete[] comp->names[i];
+			_hs->memFree(comp->names[i]);
 
-		delete[] comp->names;
+		_hs->memFree(comp->names);
 		comp->names = nullptr;
 	}
 
 	if (comp->stateBitmaps) {
 		for (int i = 0; i < comp->numNames; i++)
-			delete comp->stateBitmaps[i];
+			_hs->memFree(comp->stateBitmaps[i]);
 
-		delete[] comp->stateBitmaps;
+		_hs->memFree(comp->stateBitmaps);
 		comp->stateBitmaps = nullptr;
 	}
 }

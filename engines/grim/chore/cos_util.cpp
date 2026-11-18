@@ -100,12 +100,9 @@ int CosUtil::addChore(CosCostume *costume) {
 		return -1;
 	}
 
-	CosChore *chores = new CosChore[costume->numChores + 1]();
+	CosChore *chores = (CosChore *)_cos->_hs->memRealloc(costume->chores, (costume->numChores + 1) * sizeof(CosChore));
+	memset(&chores[costume->numChores], 0, sizeof(CosChore));
 
-	for (int i = 0; i < costume->numChores; i++)
-		chores[i] = costume->chores[i];
-
-	delete[] costume->chores;
 	costume->chores = chores;
 	costume->numChores++;
 	_cos->initChore(&chores[costume->numChores - 1]);
@@ -124,31 +121,22 @@ void CosUtil::deleteChore(CosCostume *costume, int choreNum) {
 	if (chore->numTracks) {
 		for (int t = 0; t < chore->numTracks; t++) {
 			if (chore->tracks[t].numKeys) {
-				delete[] chore->tracks[t].keys;
+				_cos->_hs->memFree(chore->tracks[t].keys);
 				chore->tracks[t].keys = nullptr;
 			}
 		}
 
-		delete[] chore->tracks;
+		_cos->_hs->memFree(chore->tracks);
 		chore->tracks = nullptr;
 	}
 
+	for (int i = choreNum + 1; i < costume->numChores; i++)
+		costume->chores[i - 1] = costume->chores[i];
+
 	int newNumChores = costume->numChores - 1;
-	CosChore *chores = nullptr;
 
-	if (newNumChores > 0) {
-		chores = new CosChore[newNumChores]();
-
-		for (int i = 0; i < choreNum; i++)
-			chores[i] = costume->chores[i];
-
-		for (int i = choreNum + 1; i < costume->numChores; i++)
-			chores[i - 1] = costume->chores[i];
-	}
-
-	delete[] costume->chores;
-	costume->chores = chores;
 	costume->numChores = newNumChores;
+	costume->chores = (CosChore *)_cos->_hs->memRealloc(costume->chores, newNumChores * sizeof(CosChore));
 }
 
 void CosUtil::nameChore(CosCostume *costume, int choreNum, const char *name) {
@@ -195,22 +183,19 @@ int CosUtil::deleteKey(CosCostume *costume, int whichChore, int whichComponent, 
 	if (keyIndex >= track->numKeys)
 		return 0;
 
+	for (int i = keyIndex + 1; i < track->numKeys; i++)
+		track->keys[i - 1] = track->keys[i];
+
 	int newNumKeys = track->numKeys - 1;
-	CosChoreKey *keys = nullptr;
+
+	track->numKeys = newNumKeys;
 
 	if (newNumKeys) {
-		keys = new CosChoreKey[newNumKeys]();
-
-		for (int i = 0; i < keyIndex; i++)
-			keys[i] = track->keys[i];
-
-		for (int i = keyIndex + 1; i < track->numKeys; i++)
-			keys[i - 1] = track->keys[i];
+		track->keys = (CosChoreKey *)_cos->_hs->memRealloc(track->keys, newNumKeys * sizeof(CosChoreKey));
+	} else {
+		_cos->_hs->memFree(track->keys);
+		track->keys = nullptr;
 	}
-
-	delete[] track->keys;
-	track->keys = keys;
-	track->numKeys = newNumKeys;
 
 	return 1;
 }
@@ -376,12 +361,8 @@ CosChoreKey *CosUtil::addKey(CosCostume *costume, int choreNum, int compNum, int
 		trackIndex++;
 
 	if (trackIndex == chore->numTracks) {
-		CosChoreTrack *tracks = new CosChoreTrack[chore->numTracks + 1]();
+		CosChoreTrack *tracks = (CosChoreTrack *)_cos->_hs->memRealloc(chore->tracks, (chore->numTracks + 1) * sizeof(CosChoreTrack));
 
-		for (int t = 0; t < chore->numTracks; t++)
-			tracks[t] = chore->tracks[t];
-
-		delete[] chore->tracks;
 		chore->tracks = tracks;
 		chore->numTracks++;
 
@@ -402,12 +383,10 @@ CosChoreKey *CosUtil::addKey(CosCostume *costume, int choreNum, int compNum, int
 		key = (CosChoreKey *)bsearch(&searchKey, track->keys, track->numKeys, sizeof(CosChoreKey), Cos::compareFunction);
 
 	if (!key) {
-		CosChoreKey *keys = new CosChoreKey[track->numKeys + 1]();
+		CosChoreKey *keys = (CosChoreKey *)_cos->_hs->memRealloc(track->keys, (track->numKeys + 1) * sizeof(CosChoreKey));
 
-		for (int k = 0; k < track->numKeys; k++)
-			keys[k] = track->keys[k];
+		memset(&keys[track->numKeys], 0, sizeof(CosChoreKey));
 
-		delete[] track->keys;
 		track->keys = keys;
 		track->numKeys++;
 		key = &keys[track->numKeys - 1];

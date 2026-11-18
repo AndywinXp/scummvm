@@ -24,9 +24,11 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_bmp.h"
 #include "engines/grim/std/std_file.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_sys.h"
 
 namespace Grim {
@@ -39,6 +41,10 @@ StdBitmapStruct *StdBmp::load(const char *path, int videoMemory, int noZ) {
 
 	if (loadEntry(path, bitmap, videoMemory, noZ))
 		return bitmap;
+
+	g_grim->_stdMemory->free(bitmap->frames);
+	g_grim->_stdMemory->free(bitmap->palette);
+	delete bitmap;
 
 	return nullptr;
 }
@@ -76,7 +82,7 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory
 	if (biBitCount < 8) {
 		uint32 paletteSize = 4 * (1 << biBitCount);
 
-		palette = new byte[paletteSize + 44];
+		palette = (byte *)g_grim->_stdMemory->malloc(paletteSize);
 
 		if (file->read(palette, paletteSize) != paletteSize)
 			error("Unable to read the palette.  Your file is corrupted.");
@@ -118,7 +124,8 @@ int StdBmp::loadEntry(const char *path, StdBitmapStruct *bitmap, int videoMemory
 		break;
 	}
 
-	bitmap->frames = new StdVBuffer *[bitmap->numFrames]();
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(bitmap->numFrames * sizeof(StdVBuffer *));
+	memset(bitmap->frames, 0, bitmap->numFrames * sizeof(StdVBuffer *));
 
 	if (biWidth < 0 || biHeight == (int32)0x80000000) {
 		warning("StdBmp::loadEntry(): invalid image size");

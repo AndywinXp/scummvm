@@ -24,16 +24,26 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_bmp.h"
 #include "engines/grim/std/std_file.h"
 #include "engines/grim/std/std_gif.h"
 #include "engines/grim/std/std_lbm.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_pcx.h"
 #include "engines/grim/std/std_pic.h"
 #include "engines/grim/std/std_sys.h"
 
 namespace Grim {
+
+void *StdBitmapStruct::operator new(size_t size) {
+	return g_grim->_stdMemory->malloc(size);
+}
+
+void StdBitmapStruct::operator delete(void *block) {
+	g_grim->_stdMemory->free(block);
+}
 
 static const uint ditherTable[16] = {
 	0x001F, 0xC01F, 0x301F, 0xF01F,
@@ -56,7 +66,7 @@ StdBitmapStruct *StdBitmap::zbmLoad(const char *path, int videoMemory, int noZ) 
 	if (readData(path, bitmap, videoMemory, noZ))
 		return bitmap;
 
-	delete bitmap;
+	unloadBitmap(bitmap);
 
 	return nullptr;
 }
@@ -174,12 +184,12 @@ int StdBitmap::loadBitmapData(Common::SeekableReadStream *file, StdBitmapStruct 
 			uint compressedSize = file->readUint32LE();
 
 			if (compressedSize < (uint)frame->tex.sizeInBytes) {
-				byte *compressed = new byte[compressedSize];
+				byte *compressed = (byte *)g_grim->_stdMemory->malloc(compressedSize);
 
 				file->read(compressed, compressedSize);
 				frame->type = 2;
 				frame->tex.sizeInBytes = compressedSize;
-				delete[] frame->pixels;
+				g_grim->_stdMemory->free(frame->pixels);
 				frame->pixels = compressed;
 			}
 		}
@@ -191,7 +201,7 @@ int StdBitmap::loadBitmapData(Common::SeekableReadStream *file, StdBitmapStruct 
 	}
 
 	if (bitmap->flags & 2) {
-		bitmap->palette = new byte[768];
+		bitmap->palette = (byte *)g_grim->_stdMemory->malloc(768);
 		file->read(bitmap->palette, 768);
 	}
 
@@ -211,12 +221,12 @@ void StdBitmap::freeEntry(StdBitmapStruct *bitmap) {
 				_stdDisplay->vBufferFree(bitmap->frames[i]);
 		}
 
-		delete[] bitmap->frames;
+		g_grim->_stdMemory->free(bitmap->frames);
 		bitmap->frames = nullptr;
 	}
 
 	if (bitmap->palette) {
-		delete[] bitmap->palette;
+		g_grim->_stdMemory->free(bitmap->palette);
 		bitmap->palette = nullptr;
 	}
 }
@@ -370,18 +380,20 @@ StdBitmapStruct *StdBitmap::vBufferToBitmap(StdVBuffer *src, int videoMemory, in
 	bitmap->curFrame = 0;
 	bitmap->xPos = 0;
 	bitmap->yPos = 0;
-	bitmap->frames = new StdVBuffer *[1];
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(sizeof(StdVBuffer *));
 	bitmap->frames[0] = _stdDisplay->vBufferNew(&src->tex, videoMemory, noZ, nullptr);
 
-	if (!bitmap->frames[0])
+	if (!bitmap->frames[0]) {
+		unloadBitmap(bitmap);
 		return nullptr;
+	}
 
 	_stdDisplay->vBufferCopy(bitmap->frames[0], src, 0, 0, nullptr, 0);
 	_stdDisplay->vBufferUnlock(src);
 	bitmap->format = bitmap->frames[0]->tex.format;
 
 	if (bitmap->flags & 2) {
-		bitmap->palette = new byte[768];
+		bitmap->palette = (byte *)g_grim->_stdMemory->malloc(768);
 		memcpy(bitmap->palette, src->paletteRGB, 768);
 	} else {
 		bitmap->palette = nullptr;
@@ -398,7 +410,8 @@ int StdBitmap::prepareBitmaps(StdBitmapStruct *bitmap, int numFrames, byte *pale
 		return 0;
 	}
 
-	bitmap->frames = new StdVBuffer *[numFrames]();
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(numFrames * sizeof(StdVBuffer *));
+	memset(bitmap->frames, 0, numFrames * sizeof(StdVBuffer *));
 	bitmap->flags = flags;
 	bitmap->encoding = encoding;
 	bitmap->format = *format;

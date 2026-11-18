@@ -64,13 +64,8 @@ int Cos::restore(Common::ReadStream *stream) {
 	}
 
 	if (newMaxCostumes > _maxCostumes) {
-		CosCostume *costumes = new CosCostume[newMaxCostumes]();
-
-		for (int i = 0; i < _maxCostumes; i++)
-			costumes[i] = _costumes[i];
-
-		delete[] _costumes;
-		_costumes = costumes;
+		_costumes = (CosCostume *)_hs->memRealloc(_costumes, newMaxCostumes * sizeof(CosCostume));
+		memset(&_costumes[_maxCostumes], 0, (newMaxCostumes - _maxCostumes) * sizeof(CosCostume));
 
 		for (int i = _maxCostumes; i < newMaxCostumes; i++)
 			_costumes[i].free = 1;
@@ -111,8 +106,7 @@ int Cos::restore(Common::ReadStream *stream) {
 	}
 
 	if (newMaxInstances > _maxInstances) {
-		delete[] _instances;
-		_instances = new CosInstance[newMaxInstances]();
+		_instances = (CosInstance *)_hs->memRealloc(_instances, newMaxInstances * sizeof(CosInstance));
 		_maxInstances = newMaxInstances;
 	}
 

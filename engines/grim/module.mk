@@ -367,6 +367,7 @@ MODULE_OBJS := \
 	std/std_lbm.o \
 	std/std_math.o \
 	std/std_math_tables.o \
+	std/std_memory.o \
 	std/std_sort.o \
 	std/std_pcx.o \
 	std/std_pic.o \

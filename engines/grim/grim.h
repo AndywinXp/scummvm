@@ -62,6 +62,7 @@ class StdGif;
 class StdLbm;
 class Std3D;
 class StdMath;
+class StdMemory;
 class StdPcx;
 class StdPic;
 class Text;
@@ -263,6 +264,10 @@ public:
 
 	// grim module
 	Common::SeekableReadStream *openFile(const char *path) override;
+	void *memAlloc(int size) override;
+	void memFree(void *block) override;
+	void *memRealloc(void *block, int size) override;
+	void *memTagAlloc(void *block, const char *file, int state) override;
 	Common::SeekableReadStream *openStreamFile(const Common::String &fname);
 
 	// Engine APIs
@@ -406,7 +411,8 @@ protected:
 	int _pending3DDevice = -1;
 	int _displayChangePending = 0;
 	Std3D *_std3D = nullptr;
-	GrimVideoDevice _videoDevices[kStdDisplayMaxDevices] = {};
+	GrimVideoDevice *_videoDevices = nullptr;
+	uint _numVideoDevices = 0;
 	StdDisplayMode _videoDeviceConfig = {};
 
 	Res *_res = nullptr;
@@ -430,6 +436,10 @@ protected:
 	WalkSystem *_walkSystem = nullptr;
 	StdVBuffer *_mainGfxBuffer = nullptr;
 
+public:
+	StdMemory *_stdMemory = nullptr;
+
+protected:
 	SysStruct *_sputHS = nullptr;
 	int _sputInitialized = 0;
 	int _sputStarted = 0;

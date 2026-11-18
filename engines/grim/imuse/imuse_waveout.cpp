@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 
 namespace Grim {
@@ -37,13 +38,17 @@ int IMuse::waveOutInit(waveOutParamsStruct *waveOutSettingsStruct) {
 
 	if (!_lowLatencyMode) {
 		// Nine buffers (waveOutPreferredFeedSize * 4 bytes each), two will be used for the mixer
-		_waveOutOutputBuffer = (uint8 *)malloc(_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9);
+		int outputSize = _waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9;
+
+		_waveOutOutputBuffer = (uint8 *)(_remastered ? malloc(outputSize) : g_grim->memAlloc(outputSize));
 		_waveOutMixBuffer = _waveOutOutputBuffer + (_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 7); // 8-th buffer
 	}
 
 	// Replicate another set of buffers for the low latency mode, we will use the previous ones for cutscenes if the mode is active
 	if (_lowLatencyMode) {
-		_waveOutLowLatencyOutputBuffer = (uint8 *)malloc(_waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9);
+		int outputSize = _waveOutNumChannels * _waveOutBytesPerSample * _waveOutPreferredFeedSize * 9;
+
+		_waveOutLowLatencyOutputBuffer = (uint8 *)(_remastered ? malloc(outputSize) : g_grim->memAlloc(outputSize));
 	}
 
 	// This information will be fed to the internal mixer during its initialization

@@ -19,6 +19,7 @@
  *
  */
 
+#include "engines/grim/grim.h"
 #include "engines/grim/imuse/imuse_engine.h"
 #include "engines/grim/imuse/imuse_defs.h"
 
@@ -28,7 +29,7 @@ int IMuse::dispatchInit() {
 	int largeFadeDim = _remastered ? IMUSE_REMASTERED_LARGE_FADE_DIM : IMUSE_LARGE_FADE_DIM;
 	int smallFadeDim = _remastered ? IMUSE_REMASTERED_SMALL_FADE_DIM : IMUSE_SMALL_FADE_DIM;
 
-	_dispatchBuffer = (uint8 *)malloc(IMUSE_SMALL_FADES * smallFadeDim + largeFadeDim * IMUSE_LARGE_FADES);
+	_dispatchBuffer = (uint8 *)g_grim->memAlloc(IMUSE_SMALL_FADES * smallFadeDim + largeFadeDim * IMUSE_LARGE_FADES);
 
 	if (_dispatchBuffer) {
 		_dispatchLargeFadeBufs = _dispatchBuffer;
@@ -85,7 +86,7 @@ int IMuse::dispatchInit() {
 }
 
 int IMuse::dispatchTerminate() {
-	free(_dispatchBuffer);
+	g_grim->memFree(_dispatchBuffer);
 	_dispatchBuffer = nullptr;
 	return 0;
 }

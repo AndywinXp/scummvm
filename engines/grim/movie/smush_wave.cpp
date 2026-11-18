@@ -22,6 +22,7 @@
 #include "common/scummsys.h"
 #include "common/endian.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/movie/codecs/vima.h"
 #include "engines/grim/movie/smush_sound.h"
 #include "engines/grim/movie/smush_wave.h"
@@ -43,12 +44,15 @@ SmushWave::~SmushWave() {
 }
 
 int SmushWave::moduleStartup() {
-	_packetBuffer = (byte *)calloc(SMUSH_WAVE_PACKET_SIZE, 1);
+	_packetBuffer = (byte *)g_grim->memAlloc(SMUSH_WAVE_PACKET_SIZE);
+	memset(_packetBuffer, 0, SMUSH_WAVE_PACKET_SIZE);
+
 	return (_packetBuffer != nullptr) - 1;
 }
 
 int SmushWave::moduleShutdown() {
-	free(_packetBuffer);
+	g_grim->memFree(_packetBuffer);
+
 	_packetBuffer = nullptr;
 	return 0;
 }

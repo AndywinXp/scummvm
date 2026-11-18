@@ -36,6 +36,9 @@ public:
 	Puck(WalkSystem *system, float angle);
 	~Puck();
 
+	static void *operator new(size_t size);
+	static void operator delete(void *block);
+
 	float *rot();
 	WalkPlane *validate();
 	void setPos(float *pos);

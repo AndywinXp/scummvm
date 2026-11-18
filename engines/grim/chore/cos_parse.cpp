@@ -146,16 +146,12 @@ int Cos::parseComponents(Common::SeekableReadStream *file, int costumeHandle) {
 	if (numComps == 0)
 		return 0;
 
-	CosComponent *tempArray = new CosComponent[numComps]();
+	CosComponent *tempArray = (CosComponent *)_hs->memAlloc(numComps * sizeof(CosComponent));
+	memset(tempArray, 0, numComps * sizeof(CosComponent));
 
 	if (_compMapSize < numComps) {
-		int *compMap = new int[numComps]();
-
-		for (int i = 0; i < _compMapSize; i++)
-			compMap[i] = _compMap[i];
-
-		delete[] _compMap;
-		_compMap = compMap;
+		_compMap = (int *)_hs->memRealloc(_compMap, numComps * sizeof(int));
+		memset(&_compMap[_compMapSize], 0, (numComps - _compMapSize) * sizeof(int));
 		_compMapSize = numComps;
 	}
 
@@ -165,20 +161,20 @@ int Cos::parseComponents(Common::SeekableReadStream *file, int costumeHandle) {
 
 		if (!readLine(file, _lineBuffer, 1024)
 				|| sscanf(_lineBuffer, " %d %d %d %d %31[^\n\r]", &compNum, &tagNum, &tempArray[i].depthIdx, &tempArray[i].parent, tempArray[i].name) != 5) {
-			delete[] tempArray;
+			_hs->memFree(tempArray);
 			return 0;
 		}
 
 		if (tagNum < 0 || tagNum >= 100 || _tagMap[tagNum] < 0 || _tagMap[tagNum] >= _numClasses) {
 			warning("Cos::parseComponents(): component %d uses an unknown tag %d", i, tagNum);
-			delete[] tempArray;
+			_hs->memFree(tempArray);
 			return 0;
 		}
 
 		tempArray[i].classIdx = _tagMap[tagNum];
 	}
 
-	int *treeDepths = new int[numComps];
+	int *treeDepths = (int *)_hs->memAlloc(numComps * sizeof(int));
 	int maxDepth = 0;
 
 	for (int i = 0; i < numComps; i++) {
@@ -188,8 +184,8 @@ int Cos::parseComponents(Common::SeekableReadStream *file, int costumeHandle) {
 		while (parent != -1) {
 			if (parent < 0 || parent >= numComps || depth > numComps) {
 				warning("Cos::parseComponents(): component %d has an invalid parent chain", i);
-				delete[] tempArray;
-				delete[] treeDepths;
+				_hs->memFree(tempArray);
+				_hs->memFree(treeDepths);
 				return 0;
 			}
 
@@ -245,8 +241,8 @@ int Cos::parseComponents(Common::SeekableReadStream *file, int costumeHandle) {
 		}
 	}
 
-	delete[] tempArray;
-	delete[] treeDepths;
+	_hs->memFree(tempArray);
+	_hs->memFree(treeDepths);
 
 	return failed ? 0 : 1;
 }
@@ -264,10 +260,12 @@ int Cos::parseChores(Common::SeekableReadStream *file, CosCostume *costume) {
 		return 0;
 	}
 
-	if (costume->numChores)
-		costume->chores = new CosChore[costume->numChores]();
-	else
+	if (costume->numChores) {
+		costume->chores = (CosChore *)_hs->memAlloc(costume->numChores * sizeof(CosChore));
+		memset(costume->chores, 0, costume->numChores * sizeof(CosChore));
+	} else {
 		costume->chores = nullptr;
+	}
 
 	for (int i = 0; i < costume->numChores; i++)
 		initChore(&costume->chores[i]);
@@ -286,10 +284,12 @@ int Cos::parseChores(Common::SeekableReadStream *file, CosCostume *costume) {
 			return 0;
 		}
 
-		if (chore->numTracks)
-			chore->tracks = new CosChoreTrack[chore->numTracks]();
-		else
+		if (chore->numTracks) {
+			chore->tracks = (CosChoreTrack *)_hs->memAlloc(chore->numTracks * sizeof(CosChoreTrack));
+			memset(chore->tracks, 0, chore->numTracks * sizeof(CosChoreTrack));
+		} else {
 			chore->tracks = nullptr;
+		}
 	}
 
 	return 1;
@@ -329,10 +329,12 @@ int Cos::parseKeys(Common::SeekableReadStream *file, CosCostume *costume) {
 				return 0;
 			}
 
-			if (track->numKeys)
-				track->keys = new CosChoreKey[track->numKeys]();
-			else
+			if (track->numKeys) {
+				track->keys = (CosChoreKey *)_hs->memAlloc(track->numKeys * sizeof(CosChoreKey));
+				memset(track->keys, 0, track->numKeys * sizeof(CosChoreKey));
+			} else {
 				track->keys = nullptr;
+			}
 
 			if (track->compIndex < 0 || track->compIndex >= costume->numComponents) {
 				warning("Cos::parseKeys(): track %d of chore %d uses an unknown component", t, choreIndex);

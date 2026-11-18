@@ -70,6 +70,9 @@ struct SputObjectState {
 	SputObjectState(SputObjectState *head, const char *colorFile, const char *zFile, int objectType, Res *res, SputResource *sputResource, StdDisplay *stdDisplay, StdBitmap *stdBitmap, SputRender *sputRender, bool isDemo);
 	~SputObjectState();
 
+	static void *operator new(size_t size);
+	static void operator delete(void *block);
+
 	void loadResources();
 	void unLoadResources();
 	void reset(StdVBuffer *color, StdVBuffer *z);

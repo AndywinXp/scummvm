@@ -22,11 +22,13 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/remastered/look/look_renderer.h"
 #include "engines/grim/std/std_3d.h"
 #include "engines/grim/std/std_3d_config.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_display.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -43,7 +45,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *format, int videoMemory, in
 		return nullptr;
 	}
 
-	StdVBuffer *buffer = new StdVBuffer;
+	StdVBuffer *buffer = (StdVBuffer *)g_grim->_stdMemory->malloc(sizeof(StdVBuffer));
 
 	buffer->paletteRGB = palette;
 	buffer->pixels = nullptr;
@@ -73,7 +75,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *format, int videoMemory, in
 			buffer->surface = _std3D->createSurface(buffer->tex.width, buffer->tex.height, 0);
 
 			if (!buffer->surface) {
-				delete buffer;
+				g_grim->_stdMemory->free(buffer);
 				return nullptr;
 			}
 
@@ -87,7 +89,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *format, int videoMemory, in
 
 	buffer->type = 0;
 	buffer->videoMemory = 0;
-	buffer->pixels = new byte[sizeInBytes];
+	buffer->pixels = (byte *)g_grim->_stdMemory->malloc(sizeInBytes);
 	buffer->allocSize = sizeInBytes;
 	buffer->lockCount = 1;
 
@@ -97,7 +99,7 @@ StdVBuffer *StdDisplay::vBufferNew(StdVBufferTexFmt *format, int videoMemory, in
 void StdDisplay::vBufferFree(StdVBuffer *&vBuffer) {
 	if (vBuffer) {
 		vBufferFreeEntry(vBuffer);
-		delete vBuffer;
+		g_grim->_stdMemory->free(vBuffer);
 		vBuffer = nullptr;
 	}
 }
@@ -108,7 +110,7 @@ void StdDisplay::vBufferFreeEntry(StdVBuffer *vBuffer) {
 			if (_remasteredLookRenderer)
 				_remasteredLookRenderer->notifyFree(vBuffer->pixels);
 
-			delete[] vBuffer->pixels;
+			g_grim->_stdMemory->free(vBuffer->pixels);
 			vBuffer->pixels = nullptr;
 		}
 	}
@@ -284,10 +286,10 @@ void StdDisplay::vBufferDeCompress(StdVBuffer *vBuffer) {
 	if (vBuffer->type != 2)
 		return;
 
-	byte *pixels = new byte[vBuffer->tex.height * vBuffer->tex.pitchInBytes];
+	byte *pixels = (byte *)g_grim->_stdMemory->malloc(vBuffer->tex.height * vBuffer->tex.pitchInBytes);
 
 	int size = lzssDecompress(pixels, vBuffer->pixels, vBuffer->tex.sizeInBytes, vBuffer->tex.height * vBuffer->tex.pitchInBytes);
-	delete[] vBuffer->pixels;
+	g_grim->_stdMemory->free(vBuffer->pixels);
 	vBuffer->tex.sizeInBytes = size;
 	vBuffer->type = 0;
 	vBuffer->allocSize = vBuffer->tex.height * vBuffer->tex.pitchInBytes;

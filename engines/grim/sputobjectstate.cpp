@@ -23,10 +23,12 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/sputobjectstate.h"
 #include "engines/grim/render/sputrender.h"
 #include "engines/grim/sputresource.h"
 #include "engines/grim/std/std_bitmap.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -86,13 +88,13 @@ void ObjectStateImage::loadDemo() {
 				if (!*frameCount)
 					*frameCount = (int)bitmap->numFrames + 1;
 
-				StdVBuffer **frames = new StdVBuffer *[*frameCount]();
+				uint oldNumFrames = bitmap->numFrames;
 
-				for (uint i = 0; i < bitmap->numFrames && (int)i < *frameCount; i++)
-					frames[i] = bitmap->frames[i];
+				bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->realloc(bitmap->frames, *frameCount * sizeof(StdVBuffer *));
 
-				delete[] bitmap->frames;
-				bitmap->frames = frames;
+				for (uint i = oldNumFrames; (int)i < *frameCount; i++)
+					bitmap->frames[i] = nullptr;
+
 				bitmap->numFrames = *frameCount;
 				cleanSaved = 0;
 				stdBitmap->addFrame(bitmap, bitmap->numFrames - 1, clean);
@@ -272,6 +274,20 @@ SputObjectState::~SputObjectState() {
 
 	if (next)
 		next->prev = prev;
+}
+
+void *SputObjectState::operator new(size_t size) {
+	if (g_grim->isRemastered())
+		return ::operator new(size);
+
+	return g_grim->memAlloc((int)size);
+}
+
+void SputObjectState::operator delete(void *block) {
+	if (g_grim->isRemastered())
+		::operator delete(block);
+	else
+		g_grim->memFree(block);
 }
 
 void SputObjectState::loadResources() {

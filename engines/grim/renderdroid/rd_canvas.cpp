@@ -19,12 +19,14 @@
  *
  */
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdCanvas *RenderDroid::CanvasModule::create(uint flags, StdVBuffer *vBuffer, StdVBuffer *zBuffer, int xStart, int yStart, int xEnd, int yEnd, int a8) {
-	RdCanvas *canvas = new RdCanvas;
+	RdCanvas *canvas = (RdCanvas *)g_grim->_stdMemory->malloc(sizeof(RdCanvas));
 
 	newEntry(canvas, flags, vBuffer, zBuffer, xStart, yStart, xEnd, yEnd, a8);
 
@@ -58,7 +60,7 @@ int RenderDroid::CanvasModule::newEntry(RdCanvas *canvas, uint flags, StdVBuffer
 
 void RenderDroid::CanvasModule::destroy(RdCanvas *&canvas) {
 	if (canvas) {
-		delete canvas;
+		g_grim->_stdMemory->free(canvas);
 		canvas = nullptr;
 	}
 }

@@ -24,9 +24,11 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_bitmap.h"
 #include "engines/grim/std/std_file.h"
 #include "engines/grim/std/std_gif.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/std/std_sys.h"
 
 namespace Grim {
@@ -72,7 +74,7 @@ StdBitmapStruct *StdGif::load(const char *path, int videoMemory, int noZ) {
 	if (screenFlags & 0x80) {
 		int numColors = 1 << ((screenFlags & 7) + 1);
 
-		bitmap->palette = new byte[768];
+		bitmap->palette = (byte *)g_grim->_stdMemory->malloc(768);
 		file->read(bitmap->palette, 3 * numColors);
 	}
 
@@ -115,7 +117,8 @@ StdBitmapStruct *StdGif::load(const char *path, int videoMemory, int noZ) {
 	bitmap->curFrame = 0;
 	bitmap->format.colorMode = 0;
 	bitmap->format.bpp = 8;
-	bitmap->frames = new StdVBuffer *[1]();
+	bitmap->frames = (StdVBuffer **)g_grim->_stdMemory->malloc(sizeof(StdVBuffer *));
+	memset(bitmap->frames, 0, sizeof(StdVBuffer *));
 
 	StdVBufferTexFmt format;
 
@@ -139,17 +142,17 @@ StdBitmapStruct *StdGif::load(const char *path, int videoMemory, int noZ) {
 		int numColors = 1 << ((imageFlags & 7) + 1);
 
 		if (!bitmap->palette)
-			bitmap->palette = new byte[768];
+			bitmap->palette = (byte *)g_grim->_stdMemory->malloc(768);
 
 		file->read(bitmap->palette, 3 * numColors);
 	}
 
 	StdVBuffer *frame = bitmap->frames[0];
-	byte *rowBuffer = new byte[left + frame->tex.width];
+	byte *rowBuffer = (byte *)g_grim->_stdMemory->malloc(left + frame->tex.width);
 	byte minCodeSize = file->readByte();
 
 	if (lzwInitDecoder((signed char)minCodeSize)) {
-		delete[] rowBuffer;
+		g_grim->_stdMemory->free(rowBuffer);
 		rowBuffer = nullptr;
 
 		return loadFailed(file, bitmap);
@@ -204,7 +207,7 @@ StdBitmapStruct *StdGif::load(const char *path, int videoMemory, int noZ) {
 	}
 
 	_stdDisplay->vBufferUnlock(frame);
-	delete[] rowBuffer;
+	g_grim->_stdMemory->free(rowBuffer);
 	rowBuffer = nullptr;
 	file->readByte();
 	delete file;
@@ -262,7 +265,7 @@ int StdGif::write(const char *path, StdBitmapStruct *bitmap) {
 		return 0;
 	}
 
-	byte *row = new byte[frame->tex.width];
+	byte *row = (byte *)g_grim->memAlloc(frame->tex.width);
 
 	_stdDisplay->vBufferLock(frame);
 
@@ -271,7 +274,7 @@ int StdGif::write(const char *path, StdBitmapStruct *bitmap) {
 
 		for (int x = 0; x < frame->tex.width; x++) {
 			if (lzwCompressRun(&file, row[x])) {
-				delete[] row;
+				g_grim->memFree(row);
 				row = nullptr;
 				file.close();
 
@@ -289,7 +292,7 @@ int StdGif::write(const char *path, StdBitmapStruct *bitmap) {
 		terminator = 59;
 
 		if (file.write(&terminator, 1) == 1) {
-			delete[] row;
+			g_grim->memFree(row);
 			row = nullptr;
 			file.close();
 
@@ -297,6 +300,8 @@ int StdGif::write(const char *path, StdBitmapStruct *bitmap) {
 		}
 	}
 
+	g_grim->memFree(row);
+	row = nullptr;
 	file.close();
 
 	return 0;

@@ -22,12 +22,14 @@
 #include "common/str.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/renderdroid/rd.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
 RdSprite *RenderDroid::SpriteModule::create(int type, char *name, char *matFilename, float width, float height, int geometryMode, int lightingMode, int textureMode, float extraLight, RdVector3 *offset) {
-	RdSprite *sprite = new RdSprite;
+	RdSprite *sprite = (RdSprite *)g_grim->_stdMemory->malloc(sizeof(RdSprite));
 	memset(sprite, 0, sizeof(RdSprite));
 
 	newEntry(sprite, name, type, matFilename, width, height, geometryMode, lightingMode, textureMode, extraLight, offset);
@@ -57,13 +59,13 @@ int RenderDroid::SpriteModule::newEntry(RdSprite *sprite, char *name, int type, 
 		return 0;
 
 	sprite->face.numVertices = 4;
-	sprite->face.vertices = new int[4];
+	sprite->face.vertices = (int *)g_grim->_stdMemory->malloc(4 * sizeof(int));
 
 	if (sprite->face.geometryMode <= 3) {
 		for (uint i = 0; i < sprite->face.numVertices; i++)
 			sprite->face.vertices[i] = i;
 	} else {
-		sprite->face.texVertices = new int[sprite->face.numVertices];
+		sprite->face.texVertices = (int *)g_grim->_stdMemory->malloc(sprite->face.numVertices * sizeof(int));
 
 		for (uint i = 0; i < sprite->face.numVertices; i++) {
 			sprite->face.vertices[i] = i;
@@ -75,7 +77,7 @@ int RenderDroid::SpriteModule::newEntry(RdSprite *sprite, char *name, int type, 
 			return 0;
 		}
 
-		sprite->texVerts = new float[2 * sprite->face.numVertices];
+		sprite->texVerts = (float *)g_grim->_stdMemory->malloc(2 * sprite->face.numVertices * sizeof(float));
 
 		StdVBuffer *texture = sprite->face.material->cels[0]->texture->mips[0];
 		double texHeight = (double)(uint)texture->tex.height;
@@ -285,24 +287,24 @@ int RenderDroid::SpriteModule::draw(RdThing *thing, RdMatrix34 mat) {
 void RenderDroid::SpriteModule::destroy(RdSprite *&sprite) {
 	if (sprite) {
 		freeEntry(sprite);
-		delete sprite;
+		g_grim->_stdMemory->free(sprite);
 		sprite = nullptr;
 	}
 }
 
 void RenderDroid::SpriteModule::freeEntry(RdSprite *sprite) {
 	if (sprite->texVerts) {
-		delete[] sprite->texVerts;
+		g_grim->_stdMemory->free(sprite->texVerts);
 		sprite->texVerts = nullptr;
 	}
 
 	if (sprite->face.vertices) {
-		delete[] sprite->face.vertices;
+		g_grim->_stdMemory->free(sprite->face.vertices);
 		sprite->face.vertices = nullptr;
 	}
 
 	if (sprite->face.texVertices) {
-		delete[] sprite->face.texVertices;
+		g_grim->_stdMemory->free(sprite->face.texVertices);
 		sprite->face.texVertices = nullptr;
 	}
 }

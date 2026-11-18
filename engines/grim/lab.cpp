@@ -25,8 +25,22 @@
 
 #include "engines/grim/grim.h"
 #include "engines/grim/lab.h"
+#include "engines/grim/std/std_sys.h"
 
 namespace Grim {
+
+class LabEntryDeleter {
+public:
+	explicit LabEntryDeleter(SysStruct *hs) : _hs(hs) {}
+
+	void operator()(LabEntry *entry) {
+		entry->~LabEntry();
+		_hs->memFree(entry);
+	}
+
+private:
+	SysStruct *_hs;
+};
 
 LabEntry::LabEntry(const Common::Path &name, uint32 offset, uint32 len, Lab *parent) :
 		_offset(offset), _len(len), _parent(parent), _name(name) {
@@ -37,8 +51,17 @@ Common::SeekableReadStream *LabEntry::createReadStream() const {
 	return _parent->createReadStreamForMember(_name);
 }
 
-Lab::Lab() {
-	_stream = nullptr;
+Lab::Lab(SysStruct *hs) : _hs(hs), _stream(nullptr) {
+}
+
+Lab::LabEntryPtr Lab::newEntry(const Common::Path &name, uint32 offset, uint32 len) {
+	if (!_hs)
+		return LabEntryPtr(new LabEntry(name, offset, len, this));
+
+	void *block = _hs->memAlloc(sizeof(LabEntry));
+	LabEntry *entry = new (block) LabEntry(name, offset, len, this);
+
+	return LabEntryPtr(entry, LabEntryDeleter(_hs));
 }
 
 Lab::~Lab() {
@@ -97,8 +120,7 @@ void Lab::parseGrimFileTable(Common::File *file) {
 					fname.c_str(), _labFileName.toString(Common::Path::kNativeSeparator).c_str());
 
 		Common::Path path(fname, Common::Path::kNoSeparator);
-		LabEntry *entry = new LabEntry(path, start, size, this);
-		_entries[path] = LabEntryPtr(entry);
+		_entries[path] = newEntry(path, start, size);
 	}
 
 	delete[] stringTable;
@@ -136,8 +158,7 @@ void Lab::parseMonkey4FileTable(Common::File *file) {
 					fname.c_str(), _labFileName.toString(Common::Path::kNativeSeparator).c_str());
 
 		Common::Path path(fname, '/');
-		LabEntry *entry = new LabEntry(path, start, size, this);
-		_entries[path] = LabEntryPtr(entry);
+		_entries[path] = newEntry(path, start, size);
 	}
 
 	delete[] stringTable;

@@ -27,6 +27,7 @@
 #include "engines/grim/grim.h"
 #include "engines/grim/costume/sputcostume.h"
 #include "engines/grim/sputresource.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -83,8 +84,9 @@ int ThingHandler::request(int costume, int fourcc, void *parentId, int parentFou
 	if (!model)
 		return 0;
 
-	ThingCompRes *res = new ThingCompRes();
+	ThingCompRes *res = static_cast<ThingCompRes *>(g_grim->_stdMemory->malloc(sizeof(ThingCompRes)));
 
+	memset(res, 0, sizeof(ThingCompRes));
 	_sputCostume->_res->setReference(&res->ref, model);
 	res->resolveParentOffset = resolveParentOffset;
 
@@ -95,7 +97,7 @@ void ThingHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	ThingCompRes *res = static_cast<ThingCompRes *>(compRes);
 
 	_sputCostume->_res->removeReference(&res->ref);
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 void ThingHandler::stop(void *instData) {
@@ -145,7 +147,7 @@ void *ThingHandler::instance(int instHandle, int compIndex, int create) {
 		if (!modelInst->refCount) {
 			_sputCostume->_res->removeReference(&modelInst->modelRef);
 			_sputCostume->_rd->_thing.destroy(modelInst->thing);
-			delete modelInst;
+			g_grim->_stdMemory->free(modelInst);
 		}
 
 		return nullptr;
@@ -188,8 +190,9 @@ void *ThingHandler::instance(int instHandle, int compIndex, int create) {
 	}
 
 	RdModel3 *model3 = static_cast<RdModel3 *>(res->ref.handle);
-	ModelInst *modelInst = new ModelInst();
+	ModelInst *modelInst = static_cast<ModelInst *>(g_grim->_stdMemory->malloc(sizeof(ModelInst)));
 
+	memset(modelInst, 0, sizeof(ModelInst));
 	_sputCostume->_res->setReference(&modelInst->modelRef, model3);
 
 	RdThing *thing = _sputCostume->_rd->_thing.create(0);
@@ -288,7 +291,7 @@ void *MeshHandler::instance(int instHandle, int compIndex, int create) {
 	if (!create) {
 		MeshInstData *meshInst = static_cast<MeshInstData *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		delete meshInst;
+		g_grim->_stdMemory->free(meshInst);
 
 		return nullptr;
 	}
@@ -299,8 +302,9 @@ void *MeshHandler::instance(int instHandle, int compIndex, int create) {
 
 	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
-	MeshInstData *meshInst = new MeshInstData();
+	MeshInstData *meshInst = static_cast<MeshInstData *>(g_grim->_stdMemory->malloc(sizeof(MeshInstData)));
 
+	memset(meshInst, 0, sizeof(MeshInstData));
 	meshInst->meshIndex = (int)(intptr)id >> 16;
 	meshInst->modelInst = static_cast<ModelInst *>(cos->instGetInstanceData(instHandle, parentIndex, nullptr));
 	meshInst->visible = 1;
@@ -358,9 +362,10 @@ int MaterialHandler::request(int costume, int fourcc, void *parentId, int parent
 	RdMaterial *material = model3->materials[materialIndex];
 
 	if (_sputCostume->_lecBitmaps)
-		delete[] _sputCostume->_lecBitmaps;
+		g_grim->_stdMemory->free(_sputCostume->_lecBitmaps);
 
-	_sputCostume->_lecBitmaps = new CosStateBitmapDesc[material->numCels]();
+	_sputCostume->_lecBitmaps = static_cast<CosStateBitmapDesc *>(g_grim->_stdMemory->malloc(material->numCels * sizeof(CosStateBitmapDesc)));
+	memset(_sputCostume->_lecBitmaps, 0, material->numCels * sizeof(CosStateBitmapDesc));
 
 	for (uint i = 0; i < material->numCels; i++) {
 		RdMatCel *cel = material->cels[i];
@@ -393,13 +398,15 @@ void *MaterialHandler::instance(int instHandle, int compIndex, int create) {
 	if (!create) {
 		MaterialInst *inst = static_cast<MaterialInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
-		delete inst;
+		g_grim->_stdMemory->free(inst);
 
 		return nullptr;
 	}
 
-	MaterialInst *inst = new MaterialInst();
+	MaterialInst *inst = static_cast<MaterialInst *>(g_grim->_stdMemory->malloc(sizeof(MaterialInst)));
 	int fourcc = 0;
+
+	memset(inst, 0, sizeof(MaterialInst));
 	int parentIndex = -1;
 
 	cos->instComponentInfo(instHandle, compIndex, &fourcc, &inst->compRes, &parentIndex);
@@ -433,8 +440,9 @@ int ColormapHandler::request(int costume, int fourcc, void *parentId, int parent
 	if (!colormap)
 		return 0;
 
-	ResRef *res = new ResRef();
+	ResRef *res = static_cast<ResRef *>(g_grim->_stdMemory->malloc(sizeof(ResRef)));
 
+	memset(res, 0, sizeof(ResRef));
 	_sputCostume->_res->setReference(res, colormap);
 
 	return _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, parentFourcc, &colormapKeyDesc) != 0;
@@ -444,7 +452,7 @@ void ColormapHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	ResRef *res = static_cast<ResRef *>(compRes);
 
 	_sputCostume->_res->removeReference(res);
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 void *ColormapHandler::instance(int instHandle, int compIndex, int create) {
@@ -454,15 +462,17 @@ void *ColormapHandler::instance(int instHandle, int compIndex, int create) {
 		ColormapInst *inst = static_cast<ColormapInst *>(cos->instGetInstanceData(instHandle, compIndex, nullptr));
 
 		_sputCostume->_res->removeReference(&inst->ref);
-		delete inst;
+		g_grim->_stdMemory->free(inst);
 
 		return nullptr;
 	}
 
-	ColormapInst *inst = new ColormapInst();
+	ColormapInst *inst = static_cast<ColormapInst *>(g_grim->_stdMemory->malloc(sizeof(ColormapInst)));
 	int fourcc = 0;
 	void *id = nullptr;
 	int parentIndex = -1;
+
+	memset(inst, 0, sizeof(ColormapInst));
 
 	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
@@ -539,8 +549,10 @@ int SpriteHandler::request(int costume, int fourcc, void *parentId, int parentFo
 		}
 	}
 
-	SpriteCompRes *res = new SpriteCompRes();
+	SpriteCompRes *res = static_cast<SpriteCompRes *>(g_grim->_stdMemory->malloc(sizeof(SpriteCompRes)));
 	RdVector3 offset;
+
+	memset(res, 0, sizeof(SpriteCompRes));
 
 	offset[0] = offsetX;
 	offset[1] = offsetY;
@@ -564,7 +576,7 @@ void SpriteHandler::freeComponent(int costume, int fourcc, void *compRes) {
 
 	_sputCostume->_rd->_material.destroy(res->sprite->face.material);
 	_sputCostume->_rd->_sprite.destroy(res->sprite);
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 int SpriteHandler::adjust(void **compRes, char *args, int argsSize) {
@@ -616,7 +628,7 @@ void *SpriteHandler::instance(int instHandle, int compIndex, int create) {
 
 		if (!modelInst->refCount) {
 			_sputCostume->_rd->_thing.destroy(modelInst->thing);
-			delete modelInst;
+			g_grim->_stdMemory->free(modelInst);
 		}
 
 		return nullptr;
@@ -629,7 +641,9 @@ void *SpriteHandler::instance(int instHandle, int compIndex, int create) {
 	cos->instComponentInfo(instHandle, compIndex, &fourcc, &id, &parentIndex);
 
 	SpriteCompRes *res = static_cast<SpriteCompRes *>(id);
-	ModelInst *modelInst = new ModelInst();
+	ModelInst *modelInst = static_cast<ModelInst *>(g_grim->_stdMemory->malloc(sizeof(ModelInst)));
+
+	memset(modelInst, 0, sizeof(ModelInst));
 
 	modelInst->sprite = res->sprite;
 

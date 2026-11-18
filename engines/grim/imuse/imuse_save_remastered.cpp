@@ -277,7 +277,7 @@ void IMuse::soundsSaveLoadBlockRemastered(Common::Serializer &ser, bool isImSave
 
 	ser.syncAsSint32LE(size, VER(30));
 
-	byte *data = new byte[size];
+	byte *data = (byte *)g_grim->memAlloc(size);
 
 	ser.syncBytes(data, size, VER(30));
 
@@ -290,7 +290,7 @@ void IMuse::soundsSaveLoadBlockRemastered(Common::Serializer &ser, bool isImSave
 	if (blob.pos() != size)
 		warning("IMuse::soundsSaveLoadBlockRemastered(): %d bytes read out of %d", (int)blob.pos(), size);
 
-	delete[] data;
+	g_grim->memFree(data);
 }
 
 void IMuse::soundsSaveLoadRemastered(Common::Serializer &ser) {

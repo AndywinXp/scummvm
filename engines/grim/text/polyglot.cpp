@@ -45,10 +45,10 @@ int Polyglot::startup() {
 }
 
 void Polyglot::shutdown() {
-	delete[] _languageMalloc;
+	_hs->memFree(_languageMalloc);
 	_languageMalloc = nullptr;
 
-	delete[] _languageLine;
+	_hs->memFree(_languageLine);
 	_languageLine = nullptr;
 	_lineCount = 0;
 }
@@ -78,7 +78,7 @@ void Polyglot::configure(const char *tabFile) {
 
 	file->seek(0);
 
-	_languageMalloc = new char[size + 3];
+	_languageMalloc = (char *)_hs->memAlloc((size + 3) * sizeof(char));
 	memset(_languageMalloc + size, 0, 3);
 	file->read(_languageMalloc, size);
 	delete file;
@@ -100,7 +100,7 @@ void Polyglot::configure(const char *tabFile) {
 		line = findChar(line, 13) + 2;
 	} while (line - _languageMalloc < size - 1);
 
-	_languageLine = new char *[_lineCount];
+	_languageLine = (char **)_hs->memAlloc(_lineCount * sizeof(char *));
 
 	line = _languageMalloc;
 	int lineIndex = 0;

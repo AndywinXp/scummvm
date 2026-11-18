@@ -67,6 +67,9 @@ public:
 	WalkPlane(WalkSystem *system, float (*verts)[3], int numPoints, const char *collection);
 	~WalkPlane();
 
+	static void *operator new(size_t size);
+	static void operator delete(void *block);
+
 	void setName(const char *name);
 	void setType(int newType);
 	int within(float *point, uint flags);

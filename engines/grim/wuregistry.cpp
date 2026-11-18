@@ -76,6 +76,21 @@ static bool isStorableString(const char *data) {
 	return true;
 }
 
+// The index of the value names is counted by the memory manager, except in the Remastered
+static char *allocIndexBlock(int size) {
+	if (g_grim->isRemastered())
+		return new char[size];
+
+	return (char *)g_grim->memAlloc(size);
+}
+
+static void freeIndexBlock(void *block) {
+	if (g_grim->isRemastered())
+		delete[] (char *)block;
+	else
+		g_grim->memFree(block);
+}
+
 static bool canParseInt(const Common::String &text) {
 	char *end;
 
@@ -414,13 +429,13 @@ int WuRegistry::startup(const char *version) {
 
 int WuRegistry::loadIndex() {
 	_numValues = _values.size();
-	_valueNames = new char *[_numValues];
+	_valueNames = (char **)allocIndexBlock(_numValues * sizeof(char *));
 
 	for (uint i = 0; i < _numValues; i++) {
 		Common::String name = _values[i].name;
 
 		name.toLowercase();
-		_valueNames[i] = new char[name.size() + 1];
+		_valueNames[i] = allocIndexBlock(name.size() + 1);
 		memcpy(_valueNames[i], name.c_str(), name.size() + 1);
 	}
 
@@ -443,9 +458,9 @@ void WuRegistry::shutdown() {
 
 void WuRegistry::freeIndex() {
 	for (uint i = 0; i < _numValues; i++)
-		delete[] _valueNames[i];
+		freeIndexBlock(_valueNames[i]);
 
-	delete[] _valueNames;
+	freeIndexBlock(_valueNames);
 	_valueNames = nullptr;
 	_numValues = 0;
 }
@@ -484,16 +499,16 @@ int WuRegistry::addIndex(const char *valueName) {
 
 		name.toLowercase();
 
-		char **newNames = new char *[_numValues + 1];
+		char **newNames = (char **)allocIndexBlock((_numValues + 1) * sizeof(char *));
 
 		for (uint i = 0; i < _numValues; i++)
 			newNames[i] = _valueNames[i];
 
-		delete[] _valueNames;
+		freeIndexBlock(_valueNames);
 		_valueNames = newNames;
 		_numValues++;
 
-		_valueNames[_numValues - 1] = new char[name.size() + 1];
+		_valueNames[_numValues - 1] = allocIndexBlock(name.size() + 1);
 		memcpy(_valueNames[_numValues - 1], name.c_str(), name.size() + 1);
 
 		sort(_valueNames, _numValues, sizeof(char *), compareNames);

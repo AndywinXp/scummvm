@@ -31,6 +31,7 @@
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_lbm.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/wuregistry.h"
 
 namespace Grim {
@@ -54,6 +55,8 @@ SputCostume::SputCostume(Res *res, RenderDroid *rd, SputResource *sputResource, 
 		_lastBitmap(nullptr), _oldInstanceHook(nullptr), _oldSaveHook(nullptr),
 		_thingHandler(this), _colormapHandler(this), _meshHandler(this), _materialHandler(this), _keyframeHandler(this), _demoKeyframeHandler(this),
 		_bitmapHandler(this), _animationHandler(this), _soundHandler(this), _demoSoundHandler(this), _smushHandler(this), _demoSmushHandler(this), _spriteHandler(this), _imuseHandler(this), _luaVarHandler(this) {
+	memset(&_demoShadowColormap, 0, sizeof(_demoShadowColormap));
+	_demoShadowColor = nullptr;
 	memset(_keyframePath, 0, sizeof(_keyframePath));
 	memset(_colormapPath, 0, sizeof(_colormapPath));
 	memset(_materialPath, 0, sizeof(_materialPath));
@@ -69,13 +72,13 @@ void SputCostume::setShadowColor(int red, int green, int blue) {
 
 	_sputRender->colorCorrect(&color, 1);
 
-	if (!_shadowColormap && (_grim->getGameFlags() & ADGF_DEMO)) {
-		// The demo has no shadow colormap, its shadows are black
-		_shadowColormap = new RdColormap();
+	// The demo keeps only the color, the drawing of the shadows does not read it
+	if (_grim->getGameFlags() & ADGF_DEMO) {
+		*_demoShadowColor = color;
+		return;
+	}
 
-		memset(_shadowColormap, 0, sizeof(RdColormap));
-		_shadowColormap->rgb16 = new byte[0x8000]();
-	} else if (!_shadowColormap) {
+	if (!_shadowColormap) {
 		char fileName[] = "shadow.cmp";
 
 		_shadowColormap = _rd->_colormap.load(fileName);
@@ -309,7 +312,7 @@ void SputCostume::terminate() {
 		_initialized = 0;
 		_cos.terminate();
 
-		if (_shadowColormap)
+		if (_shadowColormap && !(_grim->getGameFlags() & ADGF_DEMO))
 			_rd->_colormap.destroy(_shadowColormap);
 	}
 }
@@ -317,6 +320,15 @@ void SputCostume::terminate() {
 int SputCostume::startup() {
 	if (_started)
 		return 1;
+
+	if (_grim->getGameFlags() & ADGF_DEMO) {
+		_demoShadowColor = static_cast<uint16 *>(g_grim->_stdMemory->malloc(2));
+		*_demoShadowColor = 0;
+
+		// The rasterizers read the shadow colors far beyond the color: a zeroed table keeps those reads in bounds
+		_demoShadowColormap.rgb16 = new byte[0x8000]();
+		_shadowColormap = &_demoShadowColormap;
+	}
 
 	_cos.startup();
 
@@ -382,11 +394,19 @@ int SputCostume::shutdown() {
 	_oldSaveHook = _cos.registerSaveHook(_oldSaveHook);
 
 	if (_lecBitmaps) {
-		delete[] _lecBitmaps;
+		g_grim->_stdMemory->free(_lecBitmaps);
 		_lecBitmaps = nullptr;
 	}
 
 	int result = _cos.shutdown();
+
+	if (_grim->getGameFlags() & ADGF_DEMO) {
+		g_grim->_stdMemory->free(_demoShadowColor);
+		_demoShadowColor = nullptr;
+
+		delete[] _demoShadowColormap.rgb16;
+		_demoShadowColormap.rgb16 = nullptr;
+	}
 
 	_started = 0;
 

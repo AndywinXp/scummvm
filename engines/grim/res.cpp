@@ -30,6 +30,7 @@
 #include "engines/grim/lab.h"
 #include "engines/grim/res.h"
 #include "engines/grim/render/sputrender.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -192,7 +193,7 @@ int Res::openLabFile(const char *path) {
 		return 0;
 	}
 
-	Lab *lab = new Lab();
+	Lab *lab = new Lab(_resHS);
 
 	if (!lab->open(Common::Path(name), false)) {
 		delete lab;
@@ -636,7 +637,7 @@ ResNode *Res::load(int tag, const char *name, void *handle) {
 	node->refs = nullptr;
 	node->name = nullptr;
 
-	node->name = new char[strlen(name) + 1];
+	node->name = (char *)_resHS->memAlloc(strlen(name) + 1);
 	node->hash = changeFileNameToUpper(name, node->name);
 	node->flags |= 4;
 
@@ -701,7 +702,7 @@ int Res::freeNode(ResNode *node) {
 		_nodeTail = node->prev;
 
 	if (node->flags & 4) {
-		delete[] node->name;
+		_resHS->memFree(node->name);
 		node->name = nullptr;
 	}
 
@@ -763,13 +764,7 @@ int Res::getUserField(ResNode *node) {
 }
 
 int Res::totalAllocated() {
-	// TODO: the EXE returns the bytes allocated by the whole memory manager, here only the resources are counted
-	int totalBytes = 0;
-
-	for (ResNode *node = _nodeHead; node; node = node->next)
-		totalBytes += getUserField(node);
-
-	return totalBytes;
+	return g_grim->_stdMemory->getTotalBytes();
 }
 
 void Res::checkAnotherLists(ResNode *node) {

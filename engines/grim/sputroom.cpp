@@ -34,6 +34,7 @@
 #include "engines/grim/std/std_conffile.h"
 #include "engines/grim/std/std_display.h"
 #include "engines/grim/std/std_lbm.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/walkplane.h"
 
 namespace Grim {
@@ -434,7 +435,7 @@ StdVBuffer *SputRoom::loadZBufferEntry(const char *fileName) {
 
 	StdVBuffer *frame = bitmap->frames[0];
 
-	delete[] bitmap->frames;
+	g_grim->_stdMemory->free(bitmap->frames);
 	bitmap->frames = nullptr;
 	bitmap->numFrames = 0;
 	_stdBitmap->unloadBitmap(bitmap);
@@ -451,7 +452,7 @@ void SputRoom::freeZBufferEntry(StdVBuffer *&zBuffer) {
 }
 
 Room *SputRoom::loadRoom(const char *fileName) {
-	Room *room = new Room;
+	Room *room = (Room *)g_grim->_stdMemory->malloc(sizeof(Room));
 
 	memset(room, 0, sizeof(Room));
 	newRoomEntry(room);
@@ -531,7 +532,7 @@ void SputRoom::unReference(Room *room) {
 
 void SputRoom::freeRoom(Room *&room) {
 	freeRoomEntry(room);
-	delete room;
+	g_grim->_stdMemory->free(room);
 	room = nullptr;
 }
 
@@ -539,13 +540,13 @@ void SputRoom::freeRoomEntry(Room *room) {
 	unReference(room);
 
 	if (room->colormaps) {
-		delete[] room->colormaps;
+		g_grim->_stdMemory->free(room->colormaps);
 		room->colormaps = nullptr;
 	}
 
 	freeRoomSetups(room);
 
-	delete[] room->objects;
+	g_grim->_stdMemory->free(room->objects);
 	room->objects = nullptr;
 	room->numObjects = 0;
 
@@ -575,7 +576,7 @@ void SputRoom::freeRoomSetups(Room *room) {
 			freeSetupEntry(room, &room->setups[i]);
 
 		if (room->numSetups && room->setups)
-			delete[] room->setups;
+			g_grim->_stdMemory->free(room->setups);
 	}
 
 	room->setups = nullptr;
@@ -589,7 +590,7 @@ void SputRoom::freeSetupEntry(Room *room, RoomSetup *setup) {
 	if (setup->camera.thing)
 		_rd->_thing.destroy(setup->camera.thing);
 
-	delete[] setup->objectArt;
+	g_grim->_stdMemory->free(setup->objectArt);
 	setup->objectArt = nullptr;
 	setup->ObjectStates = nullptr;
 }
@@ -842,13 +843,13 @@ int SputRoom::shutdown() {
 		while (link) {
 			RoomActorLink *nextLink = link->next;
 
-			delete link;
+			_hs->memFree(link);
 			link = nextLink;
 		}
 
 		RoomActorNode *nextNode = node->next;
 
-		delete node;
+		_hs->memFree(node);
 		node = nextNode;
 	}
 
@@ -926,6 +927,8 @@ SputObjectState *SputRoom::addObjectState(int setupIndex, int objectType, const 
 
 	setup->ObjectStates = new SputObjectState(setup->ObjectStates, bitmapName, zbufferName, objectType, _res, _sputResource,
 			_stdDisplay, _stdBitmap, _sputRender, (_grim->getGameFlags() & ADGF_DEMO) != 0);
+
+	_hs->memTagAlloc(setup->ObjectStates, __FILE__, __LINE__);
 	setup->ObjectStates->loadResources();
 	setup->ObjectStates->setupIndex = setupIndex;
 
@@ -1015,7 +1018,7 @@ void SputRoom::removeActor(const char *roomName, SputActor *actor) {
 			if (actorNode->actors == link)
 				actorNode->actors = link->next;
 
-			delete link;
+			_hs->memFree(link);
 			actor->curSetName[0] = 0;
 		}
 	}
@@ -1048,7 +1051,7 @@ void SputRoom::addActor(const char *roomName, SputActor *actor) {
 			link = link->next;
 		}
 
-		link = new RoomActorLink;
+		link = (RoomActorLink *)_hs->memAlloc(sizeof(RoomActorLink));
 		link->actorIndex = 0;
 		link->prev = nullptr;
 		link->next = nullptr;
@@ -1095,7 +1098,7 @@ RoomActorNode *SputRoom::findActorNode(const char *roomName) {
 }
 
 RoomActorNode *SputRoom::allocActorNode(const char *roomName) {
-	RoomActorNode *node = new RoomActorNode;
+	RoomActorNode *node = (RoomActorNode *)_hs->memAlloc(sizeof(RoomActorNode));
 
 	memset(node, 0, sizeof(RoomActorNode));
 
@@ -1128,7 +1131,7 @@ void SputRoom::freeActorNode(RoomActorNode *node) {
 			else
 				_actorNodeList = current->next;
 
-			delete current;
+			_hs->memFree(current);
 		}
 	}
 }

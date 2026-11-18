@@ -32,6 +32,7 @@
 #include "engines/grim/sputresource.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_bitmap.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -82,19 +83,21 @@ int BitmapHandler::request(int costume, int fourcc, void *parentId, int parentFo
 
 	Common::strlcpy(bitmap->name, bitmapName, 32);
 
-	ResRef *res = new ResRef();
+	ResRef *res = static_cast<ResRef *>(g_grim->_stdMemory->malloc(sizeof(ResRef)));
 
+	memset(res, 0, sizeof(ResRef));
 	_sputCostume->_res->setReference(res, bitmap);
 
 	int numFrames = bitmap->numFrames;
-	int *nameIds = new int[numFrames + 1];
+	int *nameIds = static_cast<int *>(g_grim->_stdMemory->malloc((numFrames + 1) * sizeof(int)));
 
 	nameIds[0] = 0;
 
 	if (_sputCostume->_lecBitmaps)
-		delete[] _sputCostume->_lecBitmaps;
+		g_grim->_stdMemory->free(_sputCostume->_lecBitmaps);
 
-	_sputCostume->_lecBitmaps = new CosStateBitmapDesc[numFrames + 1]();
+	_sputCostume->_lecBitmaps = static_cast<CosStateBitmapDesc *>(g_grim->_stdMemory->malloc((numFrames + 1) * sizeof(CosStateBitmapDesc)));
+	memset(_sputCostume->_lecBitmaps, 0, (numFrames + 1) * sizeof(CosStateBitmapDesc));
 
 	for (int i = 0; i < numFrames; i++) {
 		StdVBuffer *frame = bitmap->frames[i];
@@ -115,7 +118,7 @@ int BitmapHandler::request(int costume, int fourcc, void *parentId, int parentFo
 	CosComponentNames keyDesc = { numFrames + 1, nameIds, nullptr, bitmapExtra ? _sputCostume->_lecBitmaps : nullptr, bitmapExtra };
 	int result = _sputCostume->_cos.registerComponent(costume, args, res, fourcc, parentId, parentFourcc, &keyDesc);
 
-	delete[] nameIds;
+	g_grim->_stdMemory->free(nameIds);
 
 	if (result) {
 		_sputCostume->_lastBitmap = bitmap;
@@ -132,7 +135,7 @@ void BitmapHandler::freeComponent(int costume, int fourcc, void *compRes) {
 
 	_sputCostume->_lastBitmap = compRes;
 	_sputCostume->_res->removeReference(res);
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 // The component name is "bitmap,layer", it is kept whole in the bitmap structure
@@ -291,12 +294,13 @@ int SoundHandler::request(int costume, int fourcc, void *parentId, int parentFou
 			minVolume = atoi(tokens[2]);
 	}
 
-	SoundCompRes *res = new SoundCompRes();
+	SoundCompRes *res = static_cast<SoundCompRes *>(g_grim->_stdMemory->malloc(sizeof(SoundCompRes)));
 	const char *soundName = name;
 
 	if (!name[0])
 		soundName = args;
 
+	memset(res, 0, sizeof(SoundCompRes));
 	Common::strlcpy(res->name, soundName, 32);
 	res->pan = pan;
 	res->minVolume = minVolume;
@@ -309,7 +313,7 @@ int SoundHandler::request(int costume, int fourcc, void *parentId, int parentFou
 void SoundHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	SoundCompRes *res = static_cast<SoundCompRes *>(compRes);
 
-	delete res;
+	g_grim->_stdMemory->free(res);
 }
 
 void SoundHandler::stop(void *instData) {
@@ -420,7 +424,7 @@ int DemoSoundHandler::request(int costume, int fourcc, void *parentId, int paren
 			group = atoi(tokens[2]);
 	}
 
-	DemoSoundCompRes *res = new DemoSoundCompRes();
+	DemoSoundCompRes *res = static_cast<DemoSoundCompRes *>(g_grim->_stdMemory->malloc(sizeof(DemoSoundCompRes)));
 	const char *soundName = name;
 
 	if (!name[0])
@@ -437,7 +441,7 @@ int DemoSoundHandler::request(int costume, int fourcc, void *parentId, int paren
 }
 
 void DemoSoundHandler::freeComponent(int costume, int fourcc, void *compRes) {
-	delete static_cast<DemoSoundCompRes *>(compRes);
+	g_grim->_stdMemory->free(compRes);
 }
 
 int DemoSoundHandler::adjust(void **compRes, char *args, int argsSize) {
@@ -463,7 +467,7 @@ int SmushHandler::request(int costume, int fourcc, void *parentId, int parentFou
 	// TODO: grimPlat_SelectFilesDialog branch (args == NULL)
 	const char *args = comp->name;
 	size_t size = strlen(args) + 1;
-	char *name = new char[size];
+	char *name = static_cast<char *>(g_grim->_stdMemory->malloc(size));
 
 	Common::strlcpy(name, args, size);
 
@@ -473,7 +477,7 @@ int SmushHandler::request(int costume, int fourcc, void *parentId, int parentFou
 void SmushHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	char *name = static_cast<char *>(compRes);
 
-	delete[] name;
+	g_grim->_stdMemory->free(name);
 }
 
 void SmushHandler::saveLoad(int instHandle, int compIndex, int save, void *instData, Common::WriteStream *write, Common::ReadStream *read) {
@@ -518,7 +522,7 @@ int LuaVarHandler::request(int costume, int fourcc, void *parentId, int parentFo
 	// TODO: grimPlat_InputDialog branch (args == NULL)
 	Common::strlcpy(name, comp->name, 32);
 
-	char *varName = new char[32];
+	char *varName = static_cast<char *>(g_grim->_stdMemory->malloc(32));
 
 	Common::strlcpy(varName, name, 32);
 
@@ -528,7 +532,7 @@ int LuaVarHandler::request(int costume, int fourcc, void *parentId, int parentFo
 void LuaVarHandler::freeComponent(int costume, int fourcc, void *compRes) {
 	char *varName = static_cast<char *>(compRes);
 
-	delete[] varName;
+	g_grim->_stdMemory->free(varName);
 }
 
 void LuaVarHandler::stop(void *instData) {

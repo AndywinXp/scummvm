@@ -23,7 +23,9 @@
 #include "common/stream.h"
 #include "common/textconsole.h"
 
+#include "engines/grim/grim.h"
 #include "engines/grim/std/std_conffile.h"
+#include "engines/grim/std/std_memory.h"
 
 namespace Grim {
 
@@ -59,7 +61,7 @@ int StdConffile::fOpen(const char *path) {
 		}
 	}
 
-	_line = new char[1024];
+	_line = (char *)g_grim->_stdMemory->malloc(1024 * sizeof(char));
 	Common::strlcpy(_filename, path, 128);
 	_linenum = 0;
 	_open = 1;
@@ -74,7 +76,7 @@ void StdConffile::close() {
 			_openFile = nullptr;
 		}
 
-		delete[] _line;
+		g_grim->_stdMemory->free(_line);
 		_line = nullptr;
 
 		if (_stackLevel)

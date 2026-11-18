@@ -26,6 +26,7 @@
 #include "engines/grim/grim.h"
 #include "engines/grim/sputroom.h"
 #include "engines/grim/std/std_conffile.h"
+#include "engines/grim/std/std_memory.h"
 #include "engines/grim/walkplane.h"
 
 namespace Grim {
@@ -223,13 +224,13 @@ int SputRoom::parseSetups() {
 				}
 
 				room->numSetups = numSetups;
-				room->setups = new RoomSetup[numSetups];
+				room->setups = (RoomSetup *)g_grim->_stdMemory->malloc(numSetups * sizeof(RoomSetup));
 				memset(room->setups, 0, sizeof(RoomSetup) * numSetups);
 				setupIndex = -1;
 
 				if (demo && room->numObjects) {
 					for (int i = 0; i < numSetups; i++) {
-						room->setups[i].objectArt = new RoomObjectArt[room->numObjects];
+						room->setups[i].objectArt = (RoomObjectArt *)g_grim->_stdMemory->malloc(room->numObjects * sizeof(RoomObjectArt));
 						memset(room->setups[i].objectArt, 0, sizeof(RoomObjectArt) * room->numObjects);
 					}
 				}
@@ -325,13 +326,13 @@ int SputRoom::readObjectsSection() {
 					return 0;
 			} else {
 				if (sscanf(line, " tot_objects %d\n", &numObjects) == 1) {
-					delete[] room->objects;
+					g_grim->_stdMemory->free(room->objects);
 					room->objects = nullptr;
 					room->numObjects = 0;
 
 					if (numObjects > 0) {
 						room->numObjects = numObjects;
-						room->objects = new RoomObject[numObjects];
+						room->objects = (RoomObject *)g_grim->_stdMemory->malloc(numObjects * sizeof(RoomObject));
 						memset(room->objects, 0, sizeof(RoomObject) * numObjects);
 					}
 
@@ -395,7 +396,7 @@ int SputRoom::parseColormaps() {
 					room->numcolormaps = numColormaps;
 
 					if (numColormaps) {
-						room->colormaps = new ResRef[numColormaps];
+						room->colormaps = (ResRef *)g_grim->_stdMemory->malloc(numColormaps * sizeof(ResRef));
 						memset(room->colormaps, 0, sizeof(ResRef) * numColormaps);
 					} else {
 						readName = false;
