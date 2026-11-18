@@ -44,7 +44,7 @@ SmushDecoder::SmushDecoder() {
 }
 
 SmushDecoder::~SmushDecoder() {
-	delete _videoTrack;
+	close();
 }
 
 void SmushDecoder::init() {
