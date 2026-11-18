@@ -88,6 +88,7 @@ Common::Error EmiEngine::runEmi() {
 
 	shutdown();
 
+	// The original does not free the zip file services
 	delete _zFileServices;
 	_zFileServices = nullptr;
 

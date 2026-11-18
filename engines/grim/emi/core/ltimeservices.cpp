@@ -21,6 +21,7 @@
 
 #include "common/system.h"
 
+#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/core/ltimeservices.h"
 
 namespace Grim {
@@ -55,6 +56,14 @@ LTimeStamp &LTimeStamp::operator=(const LTimeStamp &other) {
 
 void LTimeStamp::stamp() {
 	_seconds = (double)g_system->getMillis() * (1.0 / kFrequency);
+}
+
+void *LTimeServices::operator new(size_t size) {
+	return LMemoryServices::getCurrent()->mallocImpl(size);
+}
+
+void LTimeServices::operator delete(void *block) {
+	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 double LTimeServices::getCounter() {

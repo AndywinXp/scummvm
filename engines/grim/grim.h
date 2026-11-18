@@ -269,6 +269,8 @@ public:
 	void memFree(void *block) override;
 	void *memRealloc(void *block, int size) override;
 	void *memTagAlloc(void *block, const char *file, int state) override;
+	virtual void *memAllocObject(int size);
+	virtual void memFreeObject(void *block);
 	Common::SeekableReadStream *openStreamFile(const Common::String &fname);
 
 	// Engine APIs

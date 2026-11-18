@@ -113,6 +113,8 @@ public:
 	~EmiEngine() override;
 
 	LMemoryServices *getMemoryServices();
+	void *memAllocObject(int size) override;
+	void memFreeObject(void *block) override;
 	LConsoleServices *getConsoleServices();
 	LFileServices *getFileServices();
 	CPathingFileServices *getPathingFileServices();

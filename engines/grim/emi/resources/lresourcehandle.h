@@ -35,6 +35,11 @@ public:
 	LResourceHandleBase(const LResourceHandleBase &other);
 	virtual ~LResourceHandleBase();
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+	void *operator new(size_t size, void *where);
+	void operator delete(void *block, void *where);
+
 	virtual bool allocateResource() = 0;
 	virtual void setResource(LResource *newResource);
 

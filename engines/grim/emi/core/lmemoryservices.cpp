@@ -31,7 +31,22 @@
 
 namespace Grim {
 
+// Room for the requested size of a block, so that its counted size can be worked out when it is freed or resized.
+// 16 bytes keep the block aligned for any type
 static const uint kBlockHeaderSize = 16;
+
+// The blocks up to this size come from the small block heap of the C runtime, the larger ones from the process heap
+static const uint kSmallBlockLimit = 1016;
+
+// The size the C runtime of the game reports for a block of the requested size (its _msize), which is what the memory
+// services count. A small block takes (size + 23) rounded down to a multiple of 16, and reports 8 bytes less (the
+// header of the small block heap); a larger one is rounded up to a multiple of 16 by the process heap
+uint LMemoryServices::msize(uint size) {
+	if (size <= kSmallBlockLimit)
+		return ((size + 23) & ~15u) - 8;
+
+	return (size + 15) & ~15u;
+}
 
 LMemoryServices *LMemoryServices::getCurrent() {
 	if (!g_grim)
@@ -90,7 +105,7 @@ void *LMemoryServices::mallocImpl(uint size) {
 	}
 
 	*(uint *)block = size;
-	_bytesAllocated += size;
+	_bytesAllocated += msize(size);
 
 	return block + kBlockHeaderSize;
 }
@@ -104,7 +119,7 @@ void *LMemoryServices::reallocImpl(void *block, uint size) {
 		}
 
 		*(uint *)newBlock = size;
-		_bytesAllocated += size;
+		_bytesAllocated += msize(size);
 
 		return newBlock + kBlockHeaderSize;
 	}
@@ -125,7 +140,7 @@ void *LMemoryServices::reallocImpl(void *block, uint size) {
 	}
 
 	*(uint *)newBlock = size;
-	_bytesAllocated = _bytesAllocated - oldSize + size;
+	_bytesAllocated = _bytesAllocated - msize(oldSize) + msize(size);
 
 	return newBlock + kBlockHeaderSize;
 }
@@ -135,7 +150,7 @@ void LMemoryServices::freeImpl(void *block) {
 		return;
 
 	byte *oldBlock = (byte *)block - kBlockHeaderSize;
-	_bytesAllocated -= *(uint *)oldBlock;
+	_bytesAllocated -= msize(*(uint *)oldBlock);
 
 	free(oldBlock);
 }
@@ -199,6 +214,7 @@ bool LMemoryServices::registerMemoryHandler(LMemoryHandler *handler) {
 
 		memset(newHandlers, 0, newSize * sizeof(LMemoryHandler *));
 		memcpy(newHandlers, oldHandlers, _memHandlersArraySize * sizeof(LMemoryHandler *));
+		// The original does not free the old array
 		LMemoryServices::freeImpl(oldHandlers);
 		_memHandlersArraySize = newSize;
 	}

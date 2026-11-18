@@ -114,7 +114,7 @@ void lua_statedeinit(LState *state) {
 		lua_Task *t, *m;
 		for (t = state->task; t != nullptr;) {
 			m = t->next;
-			luaM_free(t);
+			luaM_freeobject(t);
 			t = m;
 		}
 	}
@@ -213,7 +213,7 @@ void lua_open(bool isEmi, bool isRemastered) {
 		return;
 	luaIsEmi = isEmi;
 	luaIsRemastered = isRemastered;
-	lua_rootState = lua_state = luaM_new(LState);
+	lua_rootState = lua_state = luaM_newobject(LState);
 	lua_stateinit(lua_state);
 	lua_resetglobals();
 	luaT_init();
@@ -242,7 +242,7 @@ void lua_close() {
 	for (state = lua_rootState; state != nullptr;) {
 		tmpState = state->next;
 		lua_statedeinit(state);
-		luaM_free(state);
+		luaM_freeobject(state);
 		state = tmpState;
 	}
 

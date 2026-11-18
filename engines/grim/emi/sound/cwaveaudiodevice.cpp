@@ -46,7 +46,7 @@ CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int
 
 	// The demo pool is the 16 wave channels plus room for the music streams
 	int sampleCount = _engine->isDemo() ? 24 : 16;
-	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getMemoryServices(), _engine->getGamePlatform() == Common::kPlatformPS2, sampleCount);
+	EMIMilesDriver *driver = new EMIMilesDriver(_engine->getGamePlatform() == Common::kPlatformPS2, sampleCount);
 
 	if (!driver->open(g_system->getMixer())) {
 		delete driver;
@@ -62,6 +62,7 @@ CWaveAudioDevice::CWaveAudioDevice(Sounds *sounds, AudioSystem *audioSystem, int
 		CWaveChannel *channel = new CWaveChannel(this);
 
 		if (!channel->_sample) {
+			// The original does not free the channel that failed
 			delete channel;
 
 			break;

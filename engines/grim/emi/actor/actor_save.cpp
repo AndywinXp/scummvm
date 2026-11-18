@@ -24,6 +24,7 @@
 #include "common/ustr.h"
 
 #include "engines/grim/emi/actor/actor.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/costume/choreinstance.h"
 #include "engines/grim/emi/graphics/color.h"
 #include "engines/grim/emi/emiengine.h"
@@ -399,14 +400,11 @@ bool Actor::restore(SaveRestoreAccess *accessFunc) {
 				return false;
 			}
 
-			byte discard[256];
+			byte *skipped = (byte *)_engine->getMemoryServices()->mallocImpl(stateSize * sizeof(byte));
 
-			while (stateSize > 0) {
-				uint chunk = stateSize < sizeof(discard) ? stateSize : (uint)sizeof(discard);
+			accessFunc(skipped, stateSize);
 
-				accessFunc(discard, chunk);
-				stateSize -= chunk;
-			}
+			_engine->getMemoryServices()->freeImpl(skipped);
 		}
 	}
 

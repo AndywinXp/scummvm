@@ -70,6 +70,7 @@ public:
 	virtual ~LMemoryServices();
 
 	static LMemoryServices *getCurrent();
+	static uint msize(uint size);
 
 	virtual void *mallocImpl(uint size);
 	virtual void *reallocImpl(void *block, uint size);

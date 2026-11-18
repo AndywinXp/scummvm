@@ -176,7 +176,7 @@ void luaD_callTM(TObject *f, int32 params, int32 results) {
 int32 luaD_call(StkId base, int32 results) {
 	lua_Task *tmpTask = lua_state->task;
 	if (!lua_state->task || lua_state->callLevelCounter) {
-		lua_Task *t = luaM_new(lua_Task);
+		lua_Task *t = luaM_newobject(lua_Task);
 		lua_taskinit(t, lua_state->task, base, results);
 		lua_state->task = t;
 	} else {
@@ -249,7 +249,7 @@ int32 luaD_call(StkId base, int32 results) {
 		if (firstResult <= 0) {
 			results = lua_state->task->aux;
 			base = -firstResult;
-			lua_Task *t = luaM_new(lua_Task);
+			lua_Task *t = luaM_newobject(lua_Task);
 			lua_taskinit(t, lua_state->task, base, results);
 			lua_state->task = t;
 		} else {
@@ -265,7 +265,7 @@ int32 luaD_call(StkId base, int32 results) {
 
 			lua_Task *tmp = lua_state->task;
 			lua_state->task = lua_state->task->next;
-			luaM_free(tmp);
+			luaM_freeobject(tmp);
 			if (lua_state->task) {
 				results = lua_state->task->initResults;
 				base = lua_state->task->initBase;
@@ -369,7 +369,7 @@ int32 luaD_protectedrun(int32 results) {
 		while (tmpTask != lua_state->task) {
 			lua_Task *t = lua_state->task;
 			lua_state->task = lua_state->task->next;
-			luaM_free(t);
+			luaM_freeobject(t);
 		}
 		status = 1;
 	}

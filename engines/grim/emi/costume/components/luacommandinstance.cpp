@@ -21,7 +21,9 @@
 
 #include "common/textconsole.h"
 
+#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/costume/components/luacommandinstance.h"
+#include "engines/grim/emi/emiengine.h"
 #include "engines/grim/lua/lua.h"
 
 namespace Grim {
@@ -38,9 +40,15 @@ bool LuaCommandInstance::isReplayable() {
 }
 
 void LuaCommandInstance::setKey(float value, float elapsed, float nextValue, float remaining, bool partial) {
-	LString commandCopy = _command;
+	uint length = _command.size();
+	char *commandCopy = (char *)_engine->getMemoryServices()->mallocImpl((length + 1) * sizeof(char));
 
-	lua_dostring(commandCopy.c_str());
+	memcpy(commandCopy, _command.c_str(), length);
+	commandCopy[length] = '\0';
+
+	lua_dostring(commandCopy);
+
+	_engine->getMemoryServices()->freeImpl(commandCopy);
 }
 
 } // End of namespace Grim

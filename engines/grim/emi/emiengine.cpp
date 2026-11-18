@@ -198,6 +198,14 @@ LMemoryServices *EmiEngine::getMemoryServices() {
 	return _memoryServices;
 }
 
+void *EmiEngine::memAllocObject(int size) {
+	return _memoryServices->mallocImpl(size);
+}
+
+void EmiEngine::memFreeObject(void *block) {
+	_memoryServices->freeImpl(block);
+}
+
 LConsoleServices *EmiEngine::getConsoleServices() {
 	return _consoleServices;
 }

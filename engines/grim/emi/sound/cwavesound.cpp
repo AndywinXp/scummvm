@@ -31,6 +31,7 @@
 #include "engines/grim/emi/sound/cwavfile.h"
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/core/lconsoleservices.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
 
@@ -58,7 +59,7 @@ CWaveSound::CWaveSound() {
 
 CWaveSound::~CWaveSound() {
 	if (_decodedBlock) {
-		delete[] _decodedBlock;
+		LMemoryServices::getCurrent()->freeImpl(_decodedBlock);
 		_decodedBlock = nullptr;
 	}
 
@@ -269,7 +270,7 @@ void CWaveSound::decodeBlock(uint block) {
 		return;
 
 	if (!_decodedBlock)
-		_decodedBlock = new char[kDecodedBlockSize];
+		_decodedBlock = (char *)LMemoryServices::getCurrent()->mallocImpl(kDecodedBlockSize * sizeof(char));
 
 	if (_allocatedSize < 4) {
 		warning("CWaveSound::decodeBlock(): the samples have no block table");

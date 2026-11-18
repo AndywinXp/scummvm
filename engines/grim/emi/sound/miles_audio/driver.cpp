@@ -22,7 +22,6 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/sound/miles_audio/driver.h"
 #include "engines/grim/emi/sound/miles_audio/reverb.h"
 #include "engines/grim/emi/sound/miles_audio/ps2/spu2interpolation.h"
@@ -37,8 +36,7 @@ static const int kSpuDepthStep = 100;
 static const float kSpuMaxDepth = 32767.0f;
 static const float kSpuMaxDelay = 127.0f;
 
-EMIMilesDriver::EMIMilesDriver(LMemoryServices *memoryServices, bool isPs2, int sampleCount) {
-	_memoryServices = memoryServices;
+EMIMilesDriver::EMIMilesDriver(bool isPs2, int sampleCount) {
 	_isPs2 = isPs2;
 	_sampleCount = MIN<int>(sampleCount, kMaxSampleCount);
 
@@ -97,14 +95,6 @@ EMIMilesDriver::~EMIMilesDriver() {
 		delete _spu2Reverb;
 		_spu2Reverb = nullptr;
 	}
-}
-
-void *EMIMilesDriver::operator new(size_t size) {
-	return LMemoryServices::getCurrent()->mallocImpl(size);
-}
-
-void EMIMilesDriver::operator delete(void *block) {
-	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
 bool EMIMilesDriver::open(Audio::Mixer *mixer) {
@@ -468,7 +458,7 @@ void EMIMilesDriver::setSampleFilter(EMIMilesSample *sample, bool enabled) {
 	destroyFilter(sample);
 
 	if (enabled)
-		sample->filter = EMIMilesFilter::create(_memoryServices, _outputRate);
+		sample->filter = EMIMilesFilter::create(_outputRate);
 }
 
 void EMIMilesDriver::setSampleFilterEnvironment(EMIMilesSample *sample, float environment) {

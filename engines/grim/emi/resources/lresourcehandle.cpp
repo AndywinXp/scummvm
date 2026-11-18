@@ -20,6 +20,7 @@
  */
 
 #include "engines/grim/emi/emiengine.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/resources/lresource.h"
 #include "engines/grim/emi/resources/lresourcehandle.h"
 
@@ -45,6 +46,22 @@ LResourceHandleBase::~LResourceHandleBase() {
 		_resource->removeHandle(*this);
 
 	_resource = nullptr;
+}
+
+void *LResourceHandleBase::operator new(size_t size) {
+	return LMemoryServices::getCurrent()->mallocImpl(size);
+}
+
+void LResourceHandleBase::operator delete(void *block) {
+	LMemoryServices::getCurrent()->freeImpl(block);
+}
+
+// Common::Array builds its elements with placement new, which the operator new above would hide, so it is defined here too
+void *LResourceHandleBase::operator new(size_t size, void *where) {
+	return where;
+}
+
+void LResourceHandleBase::operator delete(void *block, void *where) {
 }
 
 void LResourceHandleBase::setResource(LResource *newResource) {

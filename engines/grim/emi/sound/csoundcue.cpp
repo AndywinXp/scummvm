@@ -188,7 +188,7 @@ CSoundCue::~CSoundCue() {
 	_sound = nullptr;
 
 	if (_lipData)
-		delete[] reinterpret_cast<byte *>(_lipData);
+		LMemoryServices::getCurrent()->freeImpl(_lipData);
 
 	_lipData = nullptr;
 
@@ -628,12 +628,14 @@ bool CSoundCue::restoreCues(Sounds *sounds, SaveRestoreAccess *accessFunc, Sound
 			return false;
 		}
 
-		char *nameBuffer = new char[nameLength + 1];
+		char *nameBuffer = (char *)LMemoryServices::getCurrent()->mallocImpl((nameLength + 1) * sizeof(char));
 
 		accessFunc(nameBuffer, nameLength);
 		nameBuffer[nameLength] = 0;
 		cueName = nameBuffer;
-		delete[] nameBuffer;
+
+		// The original does not free the name buffer
+		LMemoryServices::getCurrent()->freeImpl(nameBuffer);
 
 		accessFunc(&category, sizeof(category));
 		accessFunc(&loopFlag, sizeof(loopFlag));
@@ -967,12 +969,12 @@ void CSoundCue::setLipData(const void *data, uint size) {
 	if (_lipData && _lipSize < size) {
 		warning("CSoundCue::setLipData(): the lip data does not fit in the old buffer");
 
-		delete[] reinterpret_cast<byte *>(_lipData);
+		LMemoryServices::getCurrent()->freeImpl(_lipData);
 		_lipData = nullptr;
 	}
 
 	if (!_lipData)
-		_lipData = reinterpret_cast<LipData *>(new byte[size]);
+		_lipData = reinterpret_cast<LipData *>(LMemoryServices::getCurrent()->mallocImpl(size * sizeof(byte)));
 
 	memcpy(_lipData, data, size);
 	_lipSize = size;

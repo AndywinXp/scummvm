@@ -500,7 +500,7 @@ void RemasteredRestorer::restoreExecutionState(lua_Task *execState, Stack *stack
 	TObject tempObject;
 
 	if (numChildren) {
-		execState->next = luaM_new(lua_Task);
+		execState->next = luaM_newobject(lua_Task);
 		lua_taskinit(execState->next, nullptr, 0, 0);
 		restoreExecutionState(execState->next, stack, numChildren - 1, restoreFunc);
 	}
@@ -531,7 +531,7 @@ void RemasteredRestorer::restoreState(LState *state, SaveRestoreAccess *restoreF
 	uint32 numExecStates = loadInt32(restoreFunc);
 
 	if (numExecStates) {
-		state->task = luaM_new(lua_Task);
+		state->task = luaM_newobject(lua_Task);
 		lua_taskinit(state->task, nullptr, 0, 0);
 		restoreExecutionState(state->task, &state->stack, numExecStates - 1, restoreFunc);
 	} else {
@@ -591,7 +591,7 @@ int RemasteredRestorer::restore(SaveRestoreAccess *restoreFunc) {
 	if (lua_isopen())
 		lua_close();
 
-	lua_rootState = lua_state = luaM_new(LState);
+	lua_rootState = lua_state = luaM_newobject(LState);
 	lua_stateinit(lua_state);
 	lua_resetglobals();
 
@@ -607,7 +607,7 @@ int RemasteredRestorer::restore(SaveRestoreAccess *restoreFunc) {
 	LState *lState = lua_rootState;
 
 	for (uint32 i = 1; i < numTasks; i++) {
-		LState *newState = luaM_new(LState);
+		LState *newState = luaM_newobject(LState);
 
 		lua_stateinit(newState);
 		restoreState(newState, restoreFunc);

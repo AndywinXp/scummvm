@@ -59,6 +59,7 @@ InputRecorder::InputRecorder(EmiEngine *engine, int recorderMode) : _mode(record
 }
 
 InputRecorder::~InputRecorder() {
+	// The original does not free the time services
 	delete _timeServices;
 	_timeServices = nullptr;
 	delete _writeFile;

@@ -23,6 +23,14 @@ int32 luaM_growaux(void **block, int32 nelems, int32 size, const char *errormsg,
 	return (int32)nelems;
 }
 
+void *luaM_allocateObject(int32 size) {
+	return g_grim->memAllocObject(size);
+}
+
+void luaM_releaseObject(void *block) {
+	g_grim->memFreeObject(block);
+}
+
 #ifndef LUA_DEBUG
 
 void *luaM_allocate(int32 size) {

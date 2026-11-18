@@ -22,7 +22,6 @@
 #include "common/scummsys.h"
 #include "common/textconsole.h"
 
-#include "engines/grim/emi/core/lmemoryservices.h"
 #include "engines/grim/emi/sound/miles_audio/driver.h"
 #include "engines/grim/emi/sound/miles_audio/reverb.h"
 
@@ -89,8 +88,8 @@ static const float kMillisecond = 0.001f;
 static const float kRightWetWeight = 0.15f;
 static const float kLeftWetWeight = 0.25f;
 
-EMIMilesFilter *EMIMilesFilter::create(LMemoryServices *memoryServices, int driverRate) {
-	EMIMilesFilter *filter = new EMIMilesFilter(memoryServices, driverRate);
+EMIMilesFilter *EMIMilesFilter::create(int driverRate) {
+	EMIMilesFilter *filter = new EMIMilesFilter(driverRate);
 
 	bool allocated = filter->_predelayBuffer != nullptr;
 
@@ -109,8 +108,7 @@ EMIMilesFilter *EMIMilesFilter::create(LMemoryServices *memoryServices, int driv
 	return filter;
 }
 
-EMIMilesFilter::EMIMilesFilter(LMemoryServices *memoryServices, int driverRate) {
-	_memoryServices = memoryServices;
+EMIMilesFilter::EMIMilesFilter(int driverRate) {
 	_rate = (float)driverRate;
 	_active = false;
 	_timeMs = 3000.0f;
@@ -123,7 +121,7 @@ EMIMilesFilter::EMIMilesFilter(LMemoryServices *memoryServices, int driverRate) 
 		_lineIndex[i] = 0;
 		_lineGain[i] = 0.0f;
 		_lineSize[i] = (int)llrint((double)_rate * (double)kLineDelaySeconds[i]);
-		_lineBuffer[i] = (float *)_memoryServices->mallocImpl((uint)(_lineSize[i] * sizeof(float)));
+		_lineBuffer[i] = (float *)malloc(_lineSize[i] * sizeof(float));
 
 		if (_lineBuffer[i])
 			memset(_lineBuffer[i], 0, _lineSize[i] * sizeof(float));
@@ -133,7 +131,7 @@ EMIMilesFilter::EMIMilesFilter(LMemoryServices *memoryServices, int driverRate) 
 
 	_predelayIndex = 0;
 	_predelayLength = 0;
-	_predelayBuffer = (float *)_memoryServices->mallocImpl((uint)(predelayCapacity * sizeof(float)));
+	_predelayBuffer = (float *)malloc(predelayCapacity * sizeof(float));
 
 	if (_predelayBuffer)
 		memset(_predelayBuffer, 0, predelayCapacity * sizeof(float));
@@ -156,19 +154,11 @@ EMIMilesFilter::EMIMilesFilter(LMemoryServices *memoryServices, int driverRate) 
 EMIMilesFilter::~EMIMilesFilter() {
 	for (int i = 0; i < kLineCount; i++) {
 		if (_lineBuffer[i])
-			_memoryServices->freeImpl(_lineBuffer[i]);
+			free(_lineBuffer[i]);
 	}
 
 	if (_predelayBuffer)
-		_memoryServices->freeImpl(_predelayBuffer);
-}
-
-void *EMIMilesFilter::operator new(size_t size) {
-	return LMemoryServices::getCurrent()->mallocImpl((uint)size);
-}
-
-void EMIMilesFilter::operator delete(void *block) {
-	LMemoryServices::getCurrent()->freeImpl(block);
+		free(_predelayBuffer);
 }
 
 void EMIMilesFilter::setTime(float milliseconds) {

@@ -26,6 +26,7 @@
 #include "engines/grim/emi/graphics/cmaterial.h"
 #include "engines/grim/emi/emiengine.h"
 #include "engines/grim/emi/core/lformatparser.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
 
@@ -38,6 +39,14 @@ public:
 	explicit CMaterialParser(EmiEngine *engine) : LFormatParser(engine) {
 		_material = nullptr;
 		addKeyword("TEX", kKeywordTexture, 3);
+	}
+
+	void *operator new(size_t size) {
+		return LMemoryServices::getCurrent()->mallocImpl(size);
+	}
+
+	void operator delete(void *block) {
+		LMemoryServices::getCurrent()->freeImpl(block);
 	}
 
 	bool handleKeyword(int id, int numArgs, KeywordArg *args) override {
@@ -157,26 +166,30 @@ bool CMaterial::resLoadItem(const char *itemName) {
 		if (!scumm_strnicmp(itemName, kSpecialtyPrefix, kSpecialtyPrefixSize)) {
 			_textures.push_back(drawContext->getCachedTexture(atoi(itemName + kSpecialtyPrefixSize)));
 		} else {
-			LABitmap bitmap(_engine);
+			LABitmap *bitmap = new LABitmap(_engine);
 			CTexture *texture;
 
-			if (bitmap.loadFile(path.c_str()))
-				texture = drawContext->createTexture(&bitmap);
+			if (bitmap->loadFile(path.c_str()))
+				texture = drawContext->createTexture(bitmap);
 			else
 				texture = drawContext->_defaultTexture;
 
-			if (bitmap.scanAlpha())
+			if (bitmap->scanAlpha())
 				_flags |= 0x80;
+
+			delete bitmap;
 
 			_textures.push_back(texture);
 		}
 	} else {
-		CMaterialParser parser(_engine);
+		CMaterialParser *parser = new CMaterialParser(_engine);
 
-		parser._material = this;
+		parser->_material = this;
 
-		if (!parser.parseFile(path.c_str(), 0, 0))
-			parser.parseFile("default.sur", 0, 0);
+		if (!parser->parseFile(path.c_str(), 0, 0))
+			parser->parseFile("default.sur", 0, 0);
+
+		delete parser;
 	}
 
 	setFlags(_flags);

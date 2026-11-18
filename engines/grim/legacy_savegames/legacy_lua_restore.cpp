@@ -307,7 +307,7 @@ static void recreateObj(TObject *obj) {
 
 static void restoreState() {
 	lua_close();
-	lua_rootState = lua_state = luaM_new(LState);
+	lua_rootState = lua_state = luaM_newobject(LState);
 	lua_stateinit(lua_state);
 	lua_resetglobals();
 
@@ -576,7 +576,7 @@ static void restoreState() {
 		if (l == 0)
 			state = lua_rootState;
 		else {
-			LState *s = luaM_new(LState);
+			LState *s = luaM_newobject(LState);
 			lua_stateinit(s);
 			state->next = s;
 			s->prev = state;
@@ -587,10 +587,10 @@ static void restoreState() {
 			lua_Task *task = nullptr;
 			for (i = 0; i < countTasks; i++) {
 				if (i == 0) {
-					task = state->task = luaM_new(lua_Task);
+					task = state->task = luaM_newobject(lua_Task);
 					lua_taskinit(task, nullptr, 0, 0);
 				} else {
-					lua_Task *t = luaM_new(lua_Task);
+					lua_Task *t = luaM_newobject(lua_Task);
 					lua_taskinit(t, nullptr, 0, 0);
 					task->next = t;
 					task = t;

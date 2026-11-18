@@ -44,6 +44,9 @@ class LTimeServices {
 public:
 	virtual ~LTimeServices() {}
 
+	void *operator new(size_t size);
+	void operator delete(void *block);
+
 	virtual double getCounter();
 	virtual double getElapsedMillis(const double *from);
 	virtual double getMillisBetween(const double *from, const double *to);

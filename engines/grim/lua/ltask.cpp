@@ -73,7 +73,7 @@ void start_script() {
 		return;
 	}
 
-	LState *state = luaM_new(LState);
+	LState *state = luaM_newobject(LState);
 	lua_stateinit(state);
 
 	state->next = lua_state->next;
@@ -166,7 +166,7 @@ static void stop_script_v2() {
 				LState *nextState = state->next;
 
 				lua_statedeinit(state);
-				luaM_free(state);
+				luaM_freeobject(state);
 				state = nextState;
 			}
 		}
@@ -191,7 +191,7 @@ static void stop_script_v2() {
 		lua_error("Current task is committing suicide!\n");
 	} else {
 		lua_statedeinit(state);
-		luaM_free(state);
+		luaM_freeobject(state);
 	}
 }
 
@@ -221,7 +221,7 @@ static void stop_script_remastered() {
 			lua_error("Current task is committing suicide!\n");
 
 		lua_statedeinit(state);
-		luaM_free(state);
+		luaM_freeobject(state);
 		return;
 	}
 
@@ -232,7 +232,7 @@ static void stop_script_remastered() {
 			LState *nextState = state->next;
 
 			lua_statedeinit(state);
-			luaM_free(state);
+			luaM_freeobject(state);
 			state = nextState;
 		} else {
 			state = state->next;
@@ -267,7 +267,7 @@ void stop_script() {
 		if (state) {
 			if (state != lua_state) {
 				lua_statedeinit(state);
-				luaM_free(state);
+				luaM_freeobject(state);
 			}
 		}
 	} else if (type == LUA_T_PROTO || type == LUA_T_CPROTO) {
@@ -281,7 +281,7 @@ void stop_script() {
 			if (match && state != lua_state) {
 				LState *tmp = state->next;
 				lua_statedeinit(state);
-				luaM_free(state);
+				luaM_freeobject(state);
 				state = tmp;
 			} else {
 				state = state->next;
@@ -674,7 +674,7 @@ void runtasks(LState *const rootState) {
 				lua_Task *t, *m;
 				for (t = lua_state->task; t != nullptr;) {
 					m = t->next;
-					luaM_free(t);
+					luaM_freeobject(t);
 					t = m;
 				}
 				stillRunning = false;
@@ -693,7 +693,7 @@ void runtasks(LState *const rootState) {
 			// The state returned. Delete it
 			if (!stillRunning) {
 				lua_statedeinit(lua_state);
-				luaM_free(lua_state);
+				luaM_freeobject(lua_state);
 			} else {
 				lua_state->updated = true;
 			}

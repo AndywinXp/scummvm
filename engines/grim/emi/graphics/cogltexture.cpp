@@ -29,6 +29,7 @@
 #include "engines/grim/emi/graphics/coglcontext.h"
 #include "engines/grim/emi/graphics/cogltexture.h"
 #include "engines/grim/emi/emiengine.h"
+#include "engines/grim/emi/core/lmemoryservices.h"
 
 namespace Grim {
 
@@ -140,7 +141,7 @@ void COGLTexture::updateTexture(const LColorFormat *format, uint width, uint hei
 	}
 
 	uint rowBytes = width * format->_bytesPerPixel;
-	byte *rows = new byte[height * rowBytes];
+	byte *rows = (byte *)_engine->getMemoryServices()->mallocImpl(height * rowBytes * sizeof(byte));
 	byte *destination = rows;
 
 	for (uint i = 0; i < height; i++) {
@@ -153,7 +154,7 @@ void COGLTexture::updateTexture(const LColorFormat *format, uint width, uint hei
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, pixelFormat, pixelType, rows);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	delete[] rows;
+	_engine->getMemoryServices()->freeImpl(rows);
 
 	applyFlags();
 }

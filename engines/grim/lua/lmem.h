@@ -22,7 +22,14 @@ void luaM_release (void *block);
 void *luaM_realloc (void *oldblock, int32 size);
 int32 luaM_growaux (void **block, int32 nelems, int32 size, const char *errormsg, int32 limit);
 
-#define luaM_free(b)                            luaM_release((b))
+// The objects of the interpreter that the memory services of the game may count apart from its data (the states and the tasks)
+void *luaM_allocateObject (int32 size);
+void luaM_releaseObject (void *block);
+
+#define luaM_newobject(t)                       ((t *)luaM_allocateObject(sizeof(t)))
+#define luaM_freeobject(b)                      luaM_releaseObject((b))
+
+#define luaM_free(b)                           luaM_release((b))
 #define luaM_malloc(t)                          luaM_allocate((t))
 #define luaM_new(t)                             ((t *)luaM_allocate(sizeof(t)))
 #define luaM_newvector(n, t)                    ((t *)luaM_allocate((n) * sizeof(t)))

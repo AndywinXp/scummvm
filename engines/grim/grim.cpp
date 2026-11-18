@@ -1235,6 +1235,14 @@ void *GrimEngine::memTagAlloc(void *block, const char *file, int state) {
 	return _stdMemory->tagAlloc(block, file, state);
 }
 
+void *GrimEngine::memAllocObject(int size) {
+	return memAlloc(size);
+}
+
+void GrimEngine::memFreeObject(void *block) {
+	memFree(block);
+}
+
 Common::SeekableReadStream *GrimEngine::openFile(const char *path) {
 	Common::String name(path);
 
