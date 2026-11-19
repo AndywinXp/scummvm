@@ -41,6 +41,23 @@ public:
 	typedef typename Base::size_type size_type;
 	typedef typename Base::iterator iterator;
 
+	// A container created with new is a block of the memory services, like the ones of the game
+	void *operator new(size_t size) {
+		return LMemoryServices::getCurrent()->mallocImpl(size);
+	}
+
+	void operator delete(void *block) {
+		LMemoryServices::getCurrent()->freeImpl(block);
+	}
+
+	// Common::Array builds its elements with placement new, which the operator new above would hide, so it is defined here too
+	void *operator new(size_t size, void *where) {
+		return where;
+	}
+
+	void operator delete(void *block, void *where) {
+	}
+
 	LArray() : Base() {
 	}
 
@@ -135,6 +152,23 @@ public:
 	typedef Common::List<T> Base;
 	typedef typename Base::iterator iterator;
 	typedef typename Base::Node Node;
+
+	// A container created with new is a block of the memory services, like the ones of the game
+	void *operator new(size_t size) {
+		return LMemoryServices::getCurrent()->mallocImpl(size);
+	}
+
+	void operator delete(void *block) {
+		LMemoryServices::getCurrent()->freeImpl(block);
+	}
+
+	// Common::Array builds its elements with placement new, which the operator new above would hide, so it is defined here too
+	void *operator new(size_t size, void *where) {
+		return where;
+	}
+
+	void operator delete(void *block, void *where) {
+	}
 
 	LList() : Base() {
 		_head.setSingleBlock(sizeof(Common::ListInternal::NodeBase));
@@ -231,10 +265,29 @@ public:
 	typedef Common::HashMap<Key, Val, HashFunc, EqualFunc> Base;
 	typedef typename Base::iterator iterator;
 
+	// A container created with new is a block of the memory services, like the ones of the game
+	void *operator new(size_t size) {
+		return LMemoryServices::getCurrent()->mallocImpl(size);
+	}
+
+	void operator delete(void *block) {
+		LMemoryServices::getCurrent()->freeImpl(block);
+	}
+
+	// Common::Array builds its elements with placement new, which the operator new above would hide, so it is defined here too
+	void *operator new(size_t size, void *where) {
+		return where;
+	}
+
+	void operator delete(void *block, void *where) {
+	}
+
 	LHashMap() : Base() {
+		_head.setSingleBlock(sizeof(typename Base::Node));
 	}
 
 	LHashMap(const LHashMap &other) : Base(other) {
+		_head.setSingleBlock(sizeof(typename Base::Node));
 		sync();
 	}
 
@@ -281,6 +334,7 @@ private:
 		_nodes.setBlockCount(this->size(), sizeof(typename Base::Node));
 	}
 
+	LCountedBlocks _head;
 	LCountedBlocks _nodes;
 };
 

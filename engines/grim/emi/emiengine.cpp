@@ -239,9 +239,6 @@ CDrawContext *EmiEngine::getDrawContext() {
 }
 
 Overworld *EmiEngine::getOverworld() {
-	if (!_overworld)
-		_overworld = new Overworld(this);
-
 	return _overworld;
 }
 

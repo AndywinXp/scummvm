@@ -43,6 +43,7 @@
 #include "engines/grim/emi/core/lconsoleservices.h"
 #include "engines/grim/emi/files/lfile.h"
 #include "engines/grim/emi/lua_v2_opcodes/lua_v2.h"
+#include "engines/grim/emi/scene/overworld.h"
 #include "engines/grim/emi/movie/movie.h"
 #include "engines/grim/emi/text/polyglot_v2.h"
 #include "engines/grim/emi/files/zfile.h"
@@ -64,6 +65,8 @@ Common::Error EmiEngine::runEmi() {
 	_zFileServices = new ZFileServices(this);
 
 	_keyGenerator = new KeyGenerator(this);
+
+	_overworld = new Overworld(this);
 
 	bool initialized = initialize();
 

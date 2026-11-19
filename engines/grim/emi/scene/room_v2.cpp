@@ -59,8 +59,8 @@ struct DrawItem {
 	int index;
 };
 
-static void mergeDrawItems(Common::Array<DrawItem> &first, Common::Array<DrawItem> &second) {
-	Common::Array<DrawItem> merged;
+static void mergeDrawItems(LArray<DrawItem> &first, LArray<DrawItem> &second) {
+	LArray<DrawItem> merged;
 	uint firstIndex = 0;
 	uint secondIndex = 0;
 
@@ -97,9 +97,9 @@ static void mergeDrawItems(Common::Array<DrawItem> &first, Common::Array<DrawIte
 	second.clear();
 }
 
-static void sortDrawItems(Common::Array<DrawItem> &items) {
-	Common::Array<DrawItem> bins[kNumSortBins];
-	Common::Array<DrawItem> carry;
+static void sortDrawItems(LArray<DrawItem> &items) {
+	LArray<DrawItem> bins[kNumSortBins];
+	LArray<DrawItem> carry;
 	uint maxBin = 0;
 	uint next = 0;
 
@@ -318,7 +318,7 @@ int Room_v2::draw(CDrawContext *drawContext) {
 		Setup *setup = &_setups[_engine->_lastDrawnSetup];
 		drawContext->clear(false, true);
 
-		Common::Array<DrawItem> items;
+		LArray<DrawItem> items;
 		LList<Layer *>::iterator layerIt;
 
 		for (layerIt = setup->_layers.begin(); layerIt != setup->_layers.end(); ++layerIt) {
