@@ -53,6 +53,14 @@ void PBundleDirectoryEntry::operator delete(void *block) {
 	LMemoryServices::getCurrent()->freeImpl(block);
 }
 
+// The entries of a bundle are built in one block with placement new, which the operator new above would hide, so it is defined here too
+void *PBundleDirectoryEntry::operator new(size_t size, void *where) {
+	return where;
+}
+
+void PBundleDirectoryEntry::operator delete(void *block, void *where) {
+}
+
 void PBundleDirectoryEntry::reset() {
 	_hash = 0;
 	_name = nullptr;
@@ -120,7 +128,7 @@ void CBundle::reset() {
 	_type = 0;
 	_numEntries = 0;
 	_nameTableSize = 0;
-	_entries.clear();
+	_entries = nullptr;
 	_nameTable = nullptr;
 	_hashIndex = nullptr;
 }
@@ -129,10 +137,10 @@ void CBundle::close() {
 	if (_file)
 		_engine->getFileServices()->close(_file, true);
 
-	for (uint i = 0; i < _entries.size(); i++)
-		delete _entries[i];
-
-	_entries.clear();
+	if (_entries) {
+		_engine->getMemoryServices()->freeImpl(_entries);
+		_entries = nullptr;
+	}
 
 	if (_nameTable) {
 		_engine->getMemoryServices()->freeImpl(_nameTable);
@@ -182,6 +190,16 @@ bool CBundle::openDirectory(const char *directory) {
 	_type = kBundleTypeDirectory;
 	_numEntries = fileNames.size();
 
+	_entries = (PBundleDirectoryEntry *)_engine->getMemoryServices()->mallocImpl((_numEntries + 1) * sizeof(PBundleDirectoryEntry));
+	if (!_entries) {
+		close();
+
+		return _numEntries != 0;
+	}
+
+	for (int i = 0; i <= _numEntries; i++)
+		new (&_entries[i]) PBundleDirectoryEntry();
+
 	_nameTable = (char *)_engine->getMemoryServices()->mallocImpl(nameBytes * sizeof(char));
 	if (!_nameTable) {
 		close();
@@ -194,12 +212,9 @@ bool CBundle::openDirectory(const char *directory) {
 	int offset = 0;
 
 	for (uint i = 0; i < fileNames.size(); i++) {
-		PBundleDirectoryEntry *entry = new PBundleDirectoryEntry();
-
-		entry->_name = &_nameTable[offset];
-		entry->_hash = hashPath(fileNames[i].c_str(), &_nameTable[offset]);
-		entry->_flags = kBundleEntryDirectoryFile;
-		_entries.push_back(entry);
+		_entries[i]._name = &_nameTable[offset];
+		_entries[i]._hash = hashPath(fileNames[i].c_str(), &_nameTable[offset]);
+		_entries[i]._flags = kBundleEntryDirectoryFile;
 
 		offset += fileNames[i].size() + 1;
 	}
@@ -226,7 +241,7 @@ bool CBundle::openBundleFile(const char *fileName) {
 	_file = bundleFile;
 	_fileSize = _engine->getFileServices()->getSize(fileName);
 	_type = kBundleTypeFile;
-	_entries.clear();
+	_entries = nullptr;
 	_nameTable = nullptr;
 	_nameTableSize = 0;
 
@@ -294,10 +309,17 @@ bool CBundle::readHeader() {
 		return false;
 	}
 
-	for (uint i = 0; i < numFiles; i++)
-		_entries.push_back(new PBundleFileEntry());
+	_entries = (PBundleDirectoryEntry *)_engine->getMemoryServices()->mallocImpl((numFiles + 1) * sizeof(PBundleFileEntry));
+	if (!_entries) {
+		close();
 
-	_nameTable = (char *)_engine->getMemoryServices()->mallocImpl(tableSize * sizeof(char));
+		return false;
+	}
+
+	for (uint i = 0; i <= numFiles; i++)
+		new (&_entries[i]) PBundleFileEntry();
+
+	_nameTable =(char *)_engine->getMemoryServices()->mallocImpl(tableSize * sizeof(char));
 	if (!_nameTable) {
 		close();
 
@@ -307,7 +329,7 @@ bool CBundle::readHeader() {
 	Common::Array<char *> names;
 
 	for (uint i = 0; i < numFiles; i++) {
-		PBundleDirectoryEntry *entry = _entries[i];
+		PBundleDirectoryEntry *entry = &_entries[i];
 
 		if (_file->read(&value, 4) != 4) {
 			close();
@@ -369,7 +391,7 @@ bool CBundle::readHeader() {
 		}
 
 		decodeName(names[i]);
-		_entries[i]->_hash = hashPath(names[i], names[i]);
+		_entries[i]._hash = hashPath(names[i], names[i]);
 	}
 
 	return true;
@@ -379,23 +401,15 @@ void CBundle::buildHashIndex() {
 	if (!_hashIndex)
 		_hashIndex = new BundleHashIndex();
 
-	for (uint i = 0; i < _entries.size(); i++) {
-		PBundleDirectoryEntry *entry = _entries[i];
-
-		if (!entry->_hash || !entry->_name)
-			break;
-
+	for (PBundleDirectoryEntry *entry = _entries; entry->_hash && entry->_name; entry++)
 		(*_hashIndex)[entry->_hash].push_back(entry);
-	}
 }
 
 bool CBundle::findBundleEntry(LFileServices *services, const char *normalizedName, uint hash, BundleLookup *lookup) {
 	if (findHashedEntry(services, normalizedName, hash, lookup))
 		return true;
 
-	for (uint i = 0; i < _entries.size(); i++) {
-		PBundleDirectoryEntry *entry = _entries[i];
-
+	for (PBundleDirectoryEntry *entry = _entries; entry; entry++) {
 		if (!entry->_name)
 			return false;
 

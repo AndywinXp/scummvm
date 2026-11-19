@@ -70,6 +70,8 @@ public:
 
 	void *operator new(size_t size);
 	void operator delete(void *block);
+	void *operator new(size_t size, void *where);
+	void operator delete(void *block, void *where);
 
 	void reset();
 
@@ -120,7 +122,7 @@ public:
 	int _fileSize;
 	int _type;
 	int _numEntries;
-	Common::Array<PBundleDirectoryEntry *> _entries;
+	PBundleDirectoryEntry *_entries;
 	char *_nameTable;
 	int _nameTableSize;
 	BundleHashIndex *_hashIndex;
