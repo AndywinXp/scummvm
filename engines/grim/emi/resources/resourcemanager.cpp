@@ -586,6 +586,17 @@ void ResourceManager::update(float frameTime) {
 		return;
 	}
 
+	// The memory manager of the PS2 purges when an allocation does not fit in its four pools, which are
+	// 16 blocks of 0x20000 bytes, 160 of 0x8000, 6 of 0x200000 and 6 of 0x200000: 32,505,856 bytes, the size it asks the system for
+	if (_engine->getGamePlatform() == Common::kPlatformPS2) {
+		const uint poolsSize = 16 * 0x20000 + 160 * 0x8000 + 6 * 0x200000 + 6 * 0x200000;
+
+		if (bytes > poolsSize)
+			purgeAmount(bytes - poolsSize);
+
+		return;
+	}
+
 	if (bytes > 0xC00000 && purgeAmount(bytes - 0xC00000) < bytes - 0xC00000 && !_lockedMessageShown) {
 		_engine->showMessage("More than 12MB of resources have been left locked.\n"
 				"Please record your location, report this to the proper authorities, and exit the game.\n"
