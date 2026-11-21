@@ -133,11 +133,6 @@ void UtilsLibrary::getPathAndFile(const Common::String &fullPath, Common::String
 	warning("getPathAndFile UNIMPLEMENTED");
 }
 
-Common::String UtilsLibrary::skipPath(const Common::String &path) {
-	warning("skipPath UNIMPLEMENTED");
-	return Common::String();
-}
-
 uint32 UtilsLibrary::memMgrPreAllocate(uint32 bytes) {
 	warning("memMgrPreAllocate UNIMPLEMENTED");
 	return 0;

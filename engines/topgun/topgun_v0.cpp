@@ -62,7 +62,7 @@ bool TopgunEngine_v0::rtStartup(bool runChecks) {
 				_appActive = true;
 				invalidateScreen();
 				handlePaintMessage();
-				loadInitialScene(kHeraldFileName, false);
+				loadInitialScene(kHeraldFileName);
 			}
 		}
 	}

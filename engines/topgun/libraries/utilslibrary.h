@@ -48,7 +48,6 @@ public:
 	byte *tgFree(byte *block);
 	Common::String makeModulePath(uint16 instance, const Common::String &file);
 	void getPathAndFile(const Common::String &fullPath, Common::String &path, Common::String &file);
-	Common::String skipPath(const Common::String &path);
 	uint32 memMgrPreAllocate(uint32 bytes);
 	bool fileExist(const Common::String &path);
 	void memSetNotify();

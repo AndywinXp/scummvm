@@ -50,6 +50,56 @@ enum MessageId {
 	kMsgMemoryError = 0x4C8
 };
 
+enum AudioCommand {
+	kPlayCDTracksCommand = 0x6F,
+	kStopCDCommand = 0x73,
+	kStopWavesCommand = 0xD2,
+	kDestroySoundCommand = 0x12C,
+	kStartSoundCommand = 0x131,
+	kStopSoundCommand = 0x134
+};
+
+enum {
+	kProgressInterval = 0x2000,
+	kNumPaletteEntries = 256,
+	kPaletteEntrySize = 4
+};
+
+enum ScriptOpcode {
+	kOpCallScript = 1,
+	kOpLoadResource = 2,
+	kOpUnloadResource = 3,
+	kOpSetClickScript = 4,
+	kOpSetSpriteQueue = 5,
+	kOpSetBackground = 6,
+	kOpPlayWave = 8,
+	kOpPlayCDTrack = 9,
+	kOpFadeIn = 10,
+	kOpFadeOut = 11,
+	kOpBindKeyScript = 12,
+	kOpQuit = 13,
+	kOpStopCD = 14,
+	kOpStopWave = 15,
+	kOpSetFlag = 16,
+	kOpTestFlag = 17,
+	kOpGotoScene = 18,
+	kOpSetScriptTimer = 19,
+	kOpCancelScriptTimer = 20,
+	kOpSetSceneEndScript = 21,
+	kOpRandomRunScript = 22,
+	kOpRoundRobinRunScript = 23,
+	kOpTransferSprite = 24,
+	kOpBreakSpriteLoops = 25,
+	kOpSetSpriteQueueIfLoaded = 26,
+	kOpDebugString = 27,
+	kOpSetSpriteLevel = 28,
+	kOpSetActivationScript = 29,
+	kOpPostScript = 30,
+	kOpCursorOff = 31,
+	kOpCursorOn = 32,
+	kOpRunScriptIfLoaded = 33
+};
+
 struct Message {
 	uint16 id;
 	uint16 param;
@@ -131,9 +181,9 @@ struct SceneRecord {
 struct GotoSceneRecord {
 	uint16 opcode;
 	char name[kSceneNameSize];
-	byte keep;
+	byte releaseSceneSprite;
 
-	GotoSceneRecord() : opcode(0), keep(0) {
+	GotoSceneRecord() : opcode(0), releaseSceneSprite(0) {
 		memset(name, 0, sizeof(name));
 	}
 };
@@ -146,7 +196,8 @@ public:
 		kMaxTimers = 20,
 		kNumDissolveTiles = 300,
 		kLoopDelay = 10,
-		kMaxPostedMessages = 8
+		kMaxPostedMessages = 8,
+		kMaxScriptDepth = 256
 	};
 
 	TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc);
@@ -209,8 +260,8 @@ protected:
 	// Scenes
 	SceneRecord *findOrCreateSceneEntry(const Common::String &name);
 	bool loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback);
-	void switchToNextScene(const Common::String &name);
-	bool loadInitialScene(const Common::String &name, bool runMemoryCheck);
+	void switchToNextScene(const char *name);
+	bool loadInitialScene(const Common::String &name);
 	void cleanupCurrentSceneAndContainer();
 
 	// Resources
@@ -238,18 +289,18 @@ protected:
 
 	// Scripts
 	bool runScriptBytecodeLoop(uint16 scriptId);
-	void spriteMessageService(const byte *record) override;
+	void spriteMessageService(byte *record) override;
 	bool runScriptResource(uint16 scriptId);
 
 	// Opcodes
 	bool o_setClickScript(const byte *record); // 4
 	bool o_setSpriteQueue(uint16 spriteId, uint16 dataId); // 5
-	bool o_playWave(uint16 waveId, const byte *params); // 8
+	bool o_playWave(uint16 waveId, byte *params); // 8
 	void o_playCDTrack(uint16 track); // 9
 	void o_fadeInOut(const byte *record); // 10, 11
 	void o_bindKeyScript(const byte *record); // 12
 	void o_stopCD(); // 14
-	bool o_stopWave(uint16 waveId, const byte *block); // 15
+	bool o_stopWave(uint16 waveId, byte *block); // 15
 	void o_setScriptTimer(const byte *record); // 19
 	void o_cancelScriptTimer(const byte *record); // 20
 	bool o_randomRunScript(const byte *record); // 22
@@ -306,6 +357,7 @@ protected:
 	uint16 _numTimers = 0;
 	uint16 _sceneEndScript = 0;
 	uint16 _activationScript = 0;
+	uint16 _scriptDepth = 0;
 
 	// Scenes
 	GotoSceneRecord _gotoRecord;

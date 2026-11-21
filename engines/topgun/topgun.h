@@ -81,7 +81,7 @@ protected:
 	virtual void resourceLoadProgressCallback() = 0;
 
 	// Scripts
-	virtual void spriteMessageService(const byte *record) = 0;
+	virtual void spriteMessageService(byte *record) = 0;
 
 public:
 	TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc);

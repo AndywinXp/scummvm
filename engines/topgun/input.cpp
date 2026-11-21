@@ -21,6 +21,7 @@
 
 #include "common/array.h"
 #include "common/config-manager.h"
+#include "common/endian.h"
 #include "common/events.h"
 #include "common/memstream.h"
 #include "common/system.h"
@@ -310,7 +311,38 @@ void TopgunEngine_v0::handleMouseButtonDown(int16 x, int16 y) {
 }
 
 void TopgunEngine_v0::addOrUpdateClickRegion(const byte *record) {
-	warning("addOrUpdateClickRegion UNIMPLEMENTED");
+	int16 left = READ_LE_INT16(record + 6);
+	int16 top = READ_LE_INT16(record + 8);
+	int16 right = READ_LE_INT16(record + 10);
+	int16 bottom = READ_LE_INT16(record + 12);
+	uint16 script = READ_LE_UINT16(record + 4);
+	uint16 index = 0;
+
+	if (_numHotspots != 0) {
+		do {
+			const HotspotRecord &hotspot = _hotspots[index];
+
+			if (hotspot.left == left && hotspot.top == top && hotspot.right == right && hotspot.bottom == bottom)
+				break;
+
+			index++;
+		} while (index < _numHotspots);
+	}
+
+	if (index < _numHotspots) {
+		_hotspots[index].script = script;
+		return;
+	}
+
+	if (_numHotspots < kMaxHotspots) {
+		HotspotRecord &hotspot = _hotspots[_numHotspots];
+		hotspot.left = left;
+		hotspot.top = top;
+		hotspot.right = right;
+		hotspot.bottom = bottom;
+		hotspot.script = script;
+		_numHotspots++;
+	}
 }
 
 void TopgunEngine_v0::applyCursorFromRegister() {

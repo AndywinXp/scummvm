@@ -32,12 +32,7 @@
 namespace Topgun {
 
 enum {
-	kStopCDCommand = 0x73,
-	kDestroySoundCommand = 0x12C,
-	kProgressInterval = 0x2000,
 	kMaxFrameBatch = 50,
-	kPaletteEntrySize = 4,
-	kNumPaletteEntries = 256,
 	kNumSystemColors = 10,
 	kNumFileColors = 200,
 	kLibraryColorsFirst = kNumSystemColors + kNumFileColors,
