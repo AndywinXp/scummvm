@@ -21,7 +21,7 @@
 
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audiolibrary.h"
+#include "topgun/libraries/audio.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_RESOURCELIBRARY_H
-#define TOPGUN_LIBRARIES_RESOURCELIBRARY_H
+#ifndef TOPGUN_LIBRARIES_RESOURCE_H
+#define TOPGUN_LIBRARIES_RESOURCE_H
 
 #include "common/file.h"
 #include "common/hashmap.h"
@@ -124,4 +124,4 @@ private:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_RESOURCELIBRARY_H
+#endif // TOPGUN_LIBRARIES_RESOURCE_H

@@ -24,8 +24,8 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/resourcelibrary.h"
-#include "topgun/libraries/spritelibrary.h"
+#include "topgun/libraries/resource.h"
+#include "topgun/libraries/sprite/sprite.h"
 #include "topgun/topgun_v0.h"
 
 namespace Topgun {

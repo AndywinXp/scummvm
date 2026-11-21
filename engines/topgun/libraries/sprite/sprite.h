@@ -19,9 +19,12 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_SPRITELIBRARY_H
-#define TOPGUN_LIBRARIES_SPRITELIBRARY_H
+#ifndef TOPGUN_LIBRARIES_SPRITE_SPRITE_H
+#define TOPGUN_LIBRARIES_SPRITE_SPRITE_H
 
+#include "common/array.h"
+#include "common/hashmap.h"
+#include "common/ptr.h"
 #include "common/rect.h"
 #include "common/scummsys.h"
 
@@ -51,9 +54,17 @@ class SpriteLibrary {
 public:
 	enum {
 		kBitmapHeaderSize = 16,
+		kBitmapWidthOffset = 2,
+		kBitmapHeightOffset = 6,
+		kBitmapHotXOffset = 0xA,
+		kBitmapHotYOffset = 0xC,
 		kComposeBufferWidth = 256,
 		kComposeBufferHeight = 254,
-		kNumQueueCommands = 29
+		kMaxSprites = 50,
+		kNumSpriteParts = 3,
+		kNumQueueCommands = 29,
+		kQueueRecordCopySize = 0x12,
+		kFrameNotification = 0x1C
 	};
 
 	SpriteLibrary(TopgunEngine *engine);
@@ -103,9 +114,101 @@ public:
 	void spriteCallback(uint16 sprite, bool notifyOnFrame);
 
 private:
+	struct SpritePart {
+		byte *frame;
+		Common::Rect box;
+
+		SpritePart() : frame(nullptr) {}
+	};
+
+	struct SpritePartBlock {
+		SpritePart parts[kNumSpriteParts];
+	};
+	typedef Common::SharedPtr<SpritePartBlock> SpritePartBlockPtr;
+
+	struct SpriteObject {
+		int16 x;
+		int16 y;
+		Common::Rect boundingBox;
+		Common::Rect previousBox;
+		uint32 moveDue;
+		uint32 frameDue;
+		uint32 moveInterval;
+		uint32 frameInterval;
+		byte *currentFrame;
+		SpritePartBlockPtr parts;
+		Common::Array<byte *> frames;
+		byte *queueStart;
+		byte *queueCurrent;
+		byte *queueEnd;
+		uint16 id;
+		uint16 currentFrameIndex;
+		uint16 nextFrameIndex;
+		uint16 rangeStart;
+		uint16 rangeEnd;
+		bool visible;
+		bool notifyOnFrame;
+		bool framePending;
+		bool useUnionRefresh;
+		bool forward;
+		bool previousValid;
+		byte timingMode;
+		bool inCallback;
+		bool loopsDisabled;
+		byte scriptActive;
+		byte partCount;
+
+		SpriteObject() : x(0), y(0), moveDue(0), frameDue(0), moveInterval(0), frameInterval(0), currentFrame(nullptr),
+			queueStart(nullptr), queueCurrent(nullptr), queueEnd(nullptr), id(0), currentFrameIndex(0),
+			nextFrameIndex(0), rangeStart(0), rangeEnd(0), visible(false), notifyOnFrame(false),
+			framePending(false), useUnionRefresh(false), forward(false), previousValid(false),
+			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0) {}
+	};
+
+	typedef Common::HashMap<uint16, SpriteObject *> SpriteMap;
+
+	// Library
 	void initQueueRecordSizeTable();
 
+	// Sprite objects
+	uint16 spriteObjectAlloc();
+	void freeDistinctCelBitmaps(uint16 sprite);
+	void cleanupSpriteData(uint16 sprite);
+	void initSpriteFromFirstCel(uint16 sprite);
+	bool duplicateSpriteData(const Common::Array<byte *> &frames, Common::Array<byte *> &duplicate);
+	int16 findSpriteIndex(uint16 sprite);
+	uint16 spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last);
+	SpriteObject *findSprite(uint16 sprite, const char *caller);
+	uint16 registerSprite(SpriteObject *object);
+
+	// Animation
+	bool processSpriteQueueCommand(uint16 sprite);
+	bool processSpriteAnimationStep(uint16 sprite);
+	byte *nextQueueRecordWithLoops(uint16 sprite);
+	void computeInterpolatedMoveSteps(byte *command);
+	void fireSpriteQueueCallbackMsg(uint16 sprite);
+	void notifySpriteFrameChange(uint16 sprite);
+	bool tickPlayRangeRecord(uint16 sprite);
+	bool tickMultiCelRecord(uint16 sprite);
+	bool tickQuadPathRecord(uint16 sprite);
+	bool tickLinearMoveRecord(uint16 sprite);
+	bool tickDelayedMoveRecord(uint16 sprite);
+	bool tickWaitRecord(uint16 sprite);
+	bool stepQuadPath(uint16 sprite);
+	bool stepLinearMove(uint16 sprite);
+	Common::Point computeQuadCurvePoint(uint16 step, uint16 steps, int16 x0, int16 y0, int16 viaX, int16 viaY, int16 endX, int16 endY);
+	Common::Point computeLinePoint(uint16 step, uint16 total, int16 x0, int16 y0, int16 x1, int16 y1);
+	void applyFrameChange(uint16 sprite);
+	uint16 tickCursorSprite();
+
+	// Rendering
+	void renderSpriteToSurface(uint16 sprite);
+	void repaintPreviousRect(uint16 sprite, bool excludeCurrent);
+	void recomputeCelBoxArray(uint16 sprite, const byte *command);
+	void releasePaletteResources();
+
 	TopgunEngine *_engine;
+	bool _initialized = false;
 	bool _messageProcSet = false;
 	bool _serviceProcSet = false;
 	bool _inTick = false;
@@ -116,14 +219,16 @@ private:
 	byte *_backgroundBitmap = nullptr;
 	uint16 _topmostSprite = 0;
 	uint16 _spriteCount = 0;
-	uint16 _tickCursor = 0;
-	uint16 _spriteTableEnd = 0;
+	int _tickCursor = 0;
 	Common::Rect _clipRect;
 	int16 _scrollX = 0;
 	int16 _scrollY = 0;
 	uint16 _queueCommandSizeTable[kNumQueueCommands];
+	uint16 _spriteTable[kMaxSprites];
+	SpriteMap _sprites;
+	uint16 _nextSpriteHandle = 1;
 };
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_SPRITELIBRARY_H
+#endif // TOPGUN_LIBRARIES_SPRITE_SPRITE_H

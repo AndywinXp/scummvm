@@ -5,13 +5,14 @@ MODULE_OBJS = \
 	console.o \
 	display.o \
 	input.o \
-	libraries/audiolibrary.o \
-	libraries/resourcelibrary.o \
-	libraries/spritelibrary.o \
-	libraries/utilslibrary.o \
+	libraries/audio.o \
+	libraries/resource.o \
+	libraries/sprite/animation.o \
+	libraries/sprite/sprite.o \
+	libraries/utils.o \
 	metaengine.o \
 	opcode.o \
-	resource.o \
+	res_loader.o \
 	scene.o \
 	script.o \
 	topgun.o \

@@ -22,9 +22,9 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audiolibrary.h"
-#include "topgun/libraries/resourcelibrary.h"
-#include "topgun/libraries/utilslibrary.h"
+#include "topgun/libraries/audio.h"
+#include "topgun/libraries/resource.h"
+#include "topgun/libraries/utils.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {

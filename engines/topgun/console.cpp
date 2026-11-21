@@ -20,7 +20,7 @@
  */
 
 #include "topgun/console.h"
-#include "topgun/libraries/resourcelibrary.h"
+#include "topgun/libraries/resource.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {

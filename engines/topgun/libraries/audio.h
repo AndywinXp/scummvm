@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_AUDIOLIBRARY_H
-#define TOPGUN_LIBRARIES_AUDIOLIBRARY_H
+#ifndef TOPGUN_LIBRARIES_AUDIO_H
+#define TOPGUN_LIBRARIES_AUDIO_H
 
 #include "common/scummsys.h"
 #include "common/str.h"
@@ -73,4 +73,4 @@ private:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_AUDIOLIBRARY_H
+#endif // TOPGUN_LIBRARIES_AUDIO_H

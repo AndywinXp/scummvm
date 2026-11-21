@@ -23,15 +23,17 @@
 #include "topgun/console.h"
 #include "topgun/detection.h"
 #include "topgun/display.h"
-#include "topgun/libraries/audiolibrary.h"
-#include "topgun/libraries/resourcelibrary.h"
-#include "topgun/libraries/spritelibrary.h"
-#include "topgun/libraries/utilslibrary.h"
+#include "topgun/libraries/audio.h"
+#include "topgun/libraries/resource.h"
+#include "topgun/libraries/sprite/sprite.h"
+#include "topgun/libraries/utils.h"
+
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
 #include "common/system.h"
+
 #include "engines/util.h"
 
 namespace Topgun {

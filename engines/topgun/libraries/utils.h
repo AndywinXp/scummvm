@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_UTILSLIBRARY_H
-#define TOPGUN_LIBRARIES_UTILSLIBRARY_H
+#ifndef TOPGUN_LIBRARIES_UTILS_H
+#define TOPGUN_LIBRARIES_UTILS_H
 
 #include "common/hash-ptr.h"
 #include "common/hashmap.h"
@@ -63,4 +63,4 @@ private:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_UTILSLIBRARY_H
+#endif // TOPGUN_LIBRARIES_UTILS_H

@@ -21,7 +21,7 @@
 
 #include "common/textconsole.h"
 
-#include "topgun/libraries/utilslibrary.h"
+#include "topgun/libraries/utils.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {
