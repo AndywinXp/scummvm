@@ -22,8 +22,13 @@
 #ifndef TOPGUN_DISPLAY_H
 #define TOPGUN_DISPLAY_H
 
+#include "common/array.h"
 #include "common/rect.h"
 #include "common/scummsys.h"
+
+namespace Graphics {
+class Screen;
+}
 
 namespace Topgun {
 
@@ -33,11 +38,16 @@ public:
 		kDefaultWidth = 640,
 		kDefaultHeight = 480,
 		kLargeWidth = 800,
-		kLargeHeight = 600
+		kLargeHeight = 600,
+		kNumPaletteEntries = 256,
+		kPaletteEntrySize = 4,
+		kAnimatablePaletteFlag = 1
 	};
 
 	Display(uint16 width, uint16 height);
 	~Display();
+
+	void setScreen(Graphics::Screen *screen) { _screen = screen; }
 
 	uint16 width() const { return _width; }
 	uint16 height() const { return _height; }
@@ -52,21 +62,41 @@ public:
 		_viewportOrigin.y = y;
 	}
 
-	bool isClipExcluded() const { return _clipExcluded; }
-	const Common::Rect &excludedClipRect() const { return _excludedClipRect; }
-	void excludeClipRect(const Common::Rect &rect) {
-		_excludedClipRect = rect;
-		_clipExcluded = true;
-	}
-	void resetClipRegion() { _clipExcluded = false; }
+	// Clip region
+	int saveClipState();
+	void restoreClipState(int state);
+	void excludeClipRect(const Common::Rect &rect);
+	void resetClipRegion() { _excludedRects.clear(); }
+
+	// Drawing
+	void putBitmapRows(int16 x, int16 y, uint16 width, uint16 height, const byte *pixels, uint16 pitch, const byte *colorTable);
+	void clearScreen();
+
+	// Palette
+	bool createLogicalPalette(const byte *entries);
+	void deleteLogicalPalette();
+	void animateLogicalPalette(uint16 first, uint16 count, const byte *entries);
+	bool realizeLogicalPalette();
+	void selectDefaultPalette();
+	bool isPaletteChanged() const { return _paletteChanged; }
+	void clearPaletteChanged() { _paletteChanged = false; }
 
 private:
+	typedef Common::Array<Common::Rect> RectArray;
+
+	void getVisibleRects(const Common::Rect &area, RectArray &visible) const;
+
+	Graphics::Screen *_screen = nullptr;
 	uint16 _width;
 	uint16 _height;
 	bool _hasPalette = false;
 	Common::Point _viewportOrigin;
-	Common::Rect _excludedClipRect;
-	bool _clipExcluded = false;
+	RectArray _excludedRects;
+	Common::Array<RectArray> _savedClipStates;
+	byte _logicalPalette[kNumPaletteEntries][kPaletteEntrySize];
+	byte _screenPalette[kNumPaletteEntries][3];
+	bool _logicalPaletteRealized = false;
+	bool _paletteChanged = false;
 };
 
 } // End of namespace Topgun

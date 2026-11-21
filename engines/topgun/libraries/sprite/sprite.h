@@ -28,6 +28,8 @@
 #include "common/rect.h"
 #include "common/scummsys.h"
 
+#include "topgun/display.h"
+
 namespace Topgun {
 
 class TopgunEngine;
@@ -113,7 +115,19 @@ public:
 	void spriteTransfer(uint16 source, uint16 destination);
 	void spriteCallback(uint16 sprite, bool notifyOnFrame);
 
+	static bool intersectRects(const Common::Rect &first, const Common::Rect &second, Common::Rect &result);
+	static Common::Rect unionRects(const Common::Rect &first, const Common::Rect &second);
+
 private:
+	struct BlitSetup {
+		byte *destination;
+		const byte *source;
+		uint32 destinationSkip;
+		uint32 sourceSkip;
+
+		BlitSetup() : destination(nullptr), source(nullptr), destinationSkip(0), sourceSkip(0) {}
+	};
+
 	struct SpritePart {
 		byte *frame;
 		Common::Rect box;
@@ -202,9 +216,28 @@ private:
 	uint16 tickCursorSprite();
 
 	// Rendering
-	void renderSpriteToSurface(uint16 sprite);
+	bool renderRect(const Common::Rect &rect);
+	bool repaintUnionOfCurrentAndPreviousRect(uint16 sprite);
 	void repaintPreviousRect(uint16 sprite, bool excludeCurrent);
+	void renderSpriteToSurface(uint16 sprite);
+	void compositeSpritesInRect(const Common::Rect &rect);
 	void recomputeCelBoxArray(uint16 sprite, const byte *command);
+	void compositeSpritePartsIntoBuffer(uint16 sprite, uint16 count, const SpritePart *parts, const Common::Rect &rect);
+	void blitSpriteToScreen(int16 x, int16 y, const byte *bitmap);
+	bool ensureComposeBufferSize(uint16 width, uint16 height);
+
+	// Blitters
+	bool blitSetupRaw(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, BlitSetup &setup);
+	void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
+	void blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
+	void blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
+	uint16 getBitmapPixel(const byte *bitmap, int16 x, int16 y);
+	void fillBitmapByte(byte *bitmap, uint16 color);
+
+	// Palette
+	void scalePaletteEntries(byte *destination, const byte *source, uint16 mult, uint16 divisor, uint16 count);
+	bool createIdentityLogicalPalette();
+	void buildDibColorTableFromPalette(uint16 first, uint16 end);
 	void releasePaletteResources();
 
 	TopgunEngine *_engine;
@@ -223,6 +256,10 @@ private:
 	Common::Rect _clipRect;
 	int16 _scrollX = 0;
 	int16 _scrollY = 0;
+	bool _hasLogicalPalette = false;
+	uint16 _dibColorUsage = 0;
+	byte _paletteCopy[Display::kNumPaletteEntries][Display::kPaletteEntrySize];
+	byte _colorTable[Display::kNumPaletteEntries][Display::kPaletteEntrySize];
 	uint16 _queueCommandSizeTable[kNumQueueCommands];
 	uint16 _spriteTable[kMaxSprites];
 	SpriteMap _sprites;

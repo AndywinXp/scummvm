@@ -44,9 +44,6 @@ void TopgunEngine_v0::freeBitmapBlobIfUnreferenced(uint16 id) {
 
 	if (record.data && record.refCount == 0) {
 		if (_backgroundId == id) {
-			if (_buffer2 != record.data)
-				utilsLibrary()->tgFree(_buffer2);
-
 			_buffer2 = record.data;
 			_backgroundId = 0;
 		} else {

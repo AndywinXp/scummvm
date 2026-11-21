@@ -19,14 +19,16 @@
  *
  */
 
+#include "common/textconsole.h"
+#include "common/util.h"
+#include "graphics/screen.h"
+
 #include "topgun/display.h"
 
 namespace Topgun {
 
 enum {
-	kNumPaletteEntries = 256,
-	kNumStaticColorsPerEnd = 10,
-	kPaletteEntrySize = 4
+	kNumStaticColorsPerEnd = 10
 };
 
 static const byte kStaticColors[2 * kNumStaticColorsPerEnd][3] = {
@@ -37,6 +39,8 @@ static const byte kStaticColors[2 * kNumStaticColorsPerEnd][3] = {
 };
 
 Display::Display(uint16 width, uint16 height) : _width(width), _height(height) {
+	memset(_logicalPalette, 0, sizeof(_logicalPalette));
+	memset(_screenPalette, 0, sizeof(_screenPalette));
 }
 
 Display::~Display() {
@@ -66,6 +70,186 @@ void Display::getSystemPaletteEntries(byte *destination, uint16 first, uint16 co
 			entry[2] = kStaticColors[staticIndex][2];
 		}
 	}
+}
+
+int Display::saveClipState() {
+	_savedClipStates.push_back(_excludedRects);
+	return _savedClipStates.size();
+}
+
+void Display::restoreClipState(int state) {
+	if (state < 1 || state > (int)_savedClipStates.size()) {
+		warning("Display::restoreClipState(): invalid clip state %d", state);
+		return;
+	}
+
+	_excludedRects = _savedClipStates[state - 1];
+	_savedClipStates.resize(state - 1);
+}
+
+void Display::excludeClipRect(const Common::Rect &rect) {
+	if (rect.isEmpty())
+		return;
+
+	Common::Rect deviceRect = rect;
+	deviceRect.translate(_viewportOrigin.x, _viewportOrigin.y);
+	_excludedRects.push_back(deviceRect);
+}
+
+void Display::getVisibleRects(const Common::Rect &area, RectArray &visible) const {
+	visible.clear();
+	visible.push_back(area);
+
+	for (uint i = 0; i < _excludedRects.size(); i++) {
+		const Common::Rect &excluded = _excludedRects[i];
+		RectArray remaining;
+
+		for (uint j = 0; j < visible.size(); j++) {
+			const Common::Rect &piece = visible[j];
+			if (!piece.intersects(excluded)) {
+				remaining.push_back(piece);
+				continue;
+			}
+
+			Common::Rect cut = piece.findIntersectingRect(excluded);
+			if (cut.top > piece.top)
+				remaining.push_back(Common::Rect(piece.left, piece.top, piece.right, cut.top));
+
+			if (cut.bottom < piece.bottom)
+				remaining.push_back(Common::Rect(piece.left, cut.bottom, piece.right, piece.bottom));
+
+			if (cut.left > piece.left)
+				remaining.push_back(Common::Rect(piece.left, cut.top, cut.left, cut.bottom));
+
+			if (cut.right < piece.right)
+				remaining.push_back(Common::Rect(cut.right, cut.top, piece.right, cut.bottom));
+		}
+
+		visible = remaining;
+	}
+}
+
+void Display::putBitmapRows(int16 x, int16 y, uint16 width, uint16 height, const byte *pixels, uint16 pitch, const byte *colorTable) {
+	int originX = x + _viewportOrigin.x;
+	int originY = y + _viewportOrigin.y;
+	int left = MAX(originX, 0);
+	int top = MAX(originY, 0);
+	int right = MIN(originX + (int)width, (int)_width);
+	int bottom = MIN(originY + (int)height, (int)_height);
+
+	if (left >= right || top >= bottom)
+		return;
+
+	RectArray visible;
+	getVisibleRects(Common::Rect(left, top, right, bottom), visible);
+
+	bool singleByte = (_screen->format.bytesPerPixel == 1);
+	uint32 colors[kNumPaletteEntries];
+
+	if (!singleByte) {
+		for (int i = 0; i < kNumPaletteEntries; i++) {
+			const byte *entry = colorTable + i * kPaletteEntrySize;
+			colors[i] = _screen->format.RGBToColor(entry[2], entry[1], entry[0]);
+		}
+	}
+
+	for (uint i = 0; i < visible.size(); i++) {
+		const Common::Rect &piece = visible[i];
+
+		for (int row = piece.top; row < piece.bottom; row++) {
+			const byte *source = pixels + (uint32)(height - 1 - (row - originY)) * pitch + (piece.left - originX);
+
+			if (singleByte) {
+				memcpy(_screen->getBasePtr(piece.left, row), source, piece.width());
+			} else {
+				uint32 *destination = (uint32 *)_screen->getBasePtr(piece.left, row);
+				for (int column = 0; column < piece.width(); column++)
+					destination[column] = colors[source[column]];
+			}
+		}
+
+		_screen->addDirtyRect(piece);
+	}
+}
+
+void Display::clearScreen() {
+	RectArray visible;
+	getVisibleRects(Common::Rect(0, 0, _width, _height), visible);
+
+	uint32 black = 0;
+	if (_screen->format.bytesPerPixel != 1)
+		black = _screen->format.RGBToColor(0, 0, 0);
+
+	for (uint i = 0; i < visible.size(); i++)
+		_screen->fillRect(visible[i], black);
+}
+
+bool Display::createLogicalPalette(const byte *entries) {
+	memcpy(_logicalPalette, entries, sizeof(_logicalPalette));
+	return true;
+}
+
+void Display::deleteLogicalPalette() {
+	_logicalPaletteRealized = false;
+}
+
+void Display::animateLogicalPalette(uint16 first, uint16 count, const byte *entries) {
+	bool screenChanged = false;
+
+	for (uint16 i = 0; i < count; i++) {
+		byte *logical = _logicalPalette[first + i];
+		if (!(logical[3] & kAnimatablePaletteFlag))
+			continue;
+
+		memcpy(logical, entries + i * kPaletteEntrySize, kPaletteEntrySize);
+
+		if (_logicalPaletteRealized) {
+			memcpy(_screenPalette[first + i], logical, 3);
+			screenChanged = true;
+		}
+	}
+
+	if (screenChanged) {
+		_screen->setPalette(&_screenPalette[first][0], first, count);
+		_paletteChanged = true;
+	}
+}
+
+bool Display::realizeLogicalPalette() {
+	byte systemColors[kNumPaletteEntries * kPaletteEntrySize];
+	getSystemPaletteEntries(systemColors, 0, kNumPaletteEntries);
+
+	byte realized[kNumPaletteEntries][3];
+	for (int i = 0; i < kNumPaletteEntries; i++) {
+		const byte *source = systemColors + i * kPaletteEntrySize;
+		if (i >= kNumStaticColorsPerEnd && i < kNumPaletteEntries - kNumStaticColorsPerEnd)
+			source = _logicalPalette[i];
+
+		memcpy(realized[i], source, 3);
+	}
+
+	bool changed = (memcmp(realized, _screenPalette, sizeof(realized)) != 0);
+	memcpy(_screenPalette, realized, sizeof(realized));
+	_screen->setPalette(&_screenPalette[0][0], 0, kNumPaletteEntries);
+	_logicalPaletteRealized = true;
+	_paletteChanged = true;
+	return changed;
+}
+
+void Display::selectDefaultPalette() {
+	byte systemColors[kNumPaletteEntries * kPaletteEntrySize];
+	getSystemPaletteEntries(systemColors, 0, kNumPaletteEntries);
+
+	const int upperFirst = kNumPaletteEntries - kNumStaticColorsPerEnd;
+	for (int i = 0; i < kNumPaletteEntries; i++) {
+		if (i < kNumStaticColorsPerEnd || i >= upperFirst)
+			memcpy(_screenPalette[i], systemColors + i * kPaletteEntrySize, 3);
+	}
+
+	_screen->setPalette(&_screenPalette[0][0], 0, kNumStaticColorsPerEnd);
+	_screen->setPalette(&_screenPalette[upperFirst][0], upperFirst, kNumStaticColorsPerEnd);
+	_logicalPaletteRealized = false;
+	_paletteChanged = true;
 }
 
 } // End of namespace Topgun

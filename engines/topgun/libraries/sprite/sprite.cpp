@@ -33,6 +33,8 @@ namespace Topgun {
 SpriteLibrary::SpriteLibrary(TopgunEngine *engine) : _engine(engine) {
 	memset(_queueCommandSizeTable, 0, sizeof(_queueCommandSizeTable));
 	memset(_spriteTable, 0, sizeof(_spriteTable));
+	memset(_paletteCopy, 0, sizeof(_paletteCopy));
+	memset(_colorTable, 0, sizeof(_colorTable));
 }
 
 SpriteLibrary::~SpriteLibrary() {
@@ -255,11 +257,6 @@ void SpriteLibrary::spriteBreakLoops(uint16 sprite) {
 	object->loopsDisabled = true;
 }
 
-bool SpriteLibrary::spriteChangePalette(uint16 first, uint16 count, const byte *entries) {
-	warning("spriteChangePalette UNIMPLEMENTED");
-	return false;
-}
-
 void SpriteLibrary::spriteClearUpdate(uint16 sprite) {
 	SpriteObject *object = findSprite(sprite, "spriteClearUpdate");
 	if (!object)
@@ -302,10 +299,6 @@ uint16 SpriteLibrary::spriteCopy(uint16 sprite) {
 
 	object->visible = false;
 	return copy;
-}
-
-void SpriteLibrary::spriteCopyRect(Common::Rect &rect, const byte *source, byte *destination) {
-	warning("spriteCopyRect UNIMPLEMENTED");
 }
 
 uint16 SpriteLibrary::spriteCreate(byte *frame) {
@@ -418,15 +411,6 @@ void SpriteLibrary::spriteDestroyAll(bool hideRefresh) {
 	_tickCursor = 0;
 }
 
-bool SpriteLibrary::spriteFadePalette(uint16 mult, uint16 divisor, uint16 first, uint16 count) {
-	warning("spriteFadePalette UNIMPLEMENTED");
-	return false;
-}
-
-void SpriteLibrary::spriteDibFree(byte *bitmap) {
-	warning("spriteDibFree UNIMPLEMENTED");
-}
-
 uint16 SpriteLibrary::spriteGetId(uint16 sprite) {
 	SpriteObject *object = findSprite(sprite, "spriteGetId");
 	if (!object)
@@ -462,10 +446,6 @@ void SpriteLibrary::spriteGetInfo(uint16 sprite, SpriteInfo &info) {
 	info.currentCommand = object->queueCurrent;
 }
 
-void SpriteLibrary::spriteGetPalette(byte *destination, uint16 first, uint16 count) {
-	warning("spriteGetPalette UNIMPLEMENTED");
-}
-
 void SpriteLibrary::spriteHide(uint16 sprite, bool refresh) {
 	SpriteObject *object = findSprite(sprite, "spriteHide");
 	if (!object)
@@ -494,6 +474,10 @@ bool SpriteLibrary::spriteInitLibrary() {
 	_clipRect = Common::Rect();
 	_scrollX = 0;
 	_scrollY = 0;
+	_hasLogicalPalette = false;
+	_dibColorUsage = 0;
+	memset(_paletteCopy, 0, sizeof(_paletteCopy));
+	memset(_colorTable, 0, sizeof(_colorTable));
 
 	_composeBuffer = spriteDibCreate(kComposeBufferWidth, kComposeBufferHeight, 0);
 	if (!_composeBuffer)
@@ -547,48 +531,6 @@ void SpriteLibrary::initQueueRecordSizeTable() {
 	_queueCommandSizeTable[28] = 4;
 }
 
-void SpriteLibrary::spritePaint(uint16 sprite) {
-	warning("spritePaint UNIMPLEMENTED");
-}
-
-void SpriteLibrary::spritePaintRect(const Common::Rect &rect, bool backgroundCoordinates) {
-	warning("spritePaintRect UNIMPLEMENTED");
-}
-
-uint16 SpriteLibrary::spritePicked(int16 x, int16 y) {
-	warning("spritePicked UNIMPLEMENTED");
-	return 0;
-}
-
-void SpriteLibrary::renderSpriteToSurface(uint16 sprite) {
-	warning("renderSpriteToSurface UNIMPLEMENTED");
-}
-
-void SpriteLibrary::repaintPreviousRect(uint16 sprite, bool excludeCurrent) {
-	warning("repaintPreviousRect UNIMPLEMENTED");
-}
-
-void SpriteLibrary::recomputeCelBoxArray(uint16 sprite, const byte *command) {
-	warning("recomputeCelBoxArray UNIMPLEMENTED");
-}
-
-void SpriteLibrary::releasePaletteResources() {
-	warning("releasePaletteResources UNIMPLEMENTED");
-}
-
-bool SpriteLibrary::spriteRealizePalette() {
-	warning("spriteRealizePalette UNIMPLEMENTED");
-	return false;
-}
-
-void SpriteLibrary::spriteSetBackground(byte *background, Common::Rect *outClipRect) {
-	warning("spriteSetBackground UNIMPLEMENTED");
-}
-
-void SpriteLibrary::spriteSetBkgTransparent(bool flag) {
-	warning("spriteSetBkgTransparent UNIMPLEMENTED");
-}
-
 void SpriteLibrary::spriteSetId(uint16 sprite, uint16 id) {
 	SpriteObject *object = findSprite(sprite, "spriteSetId");
 	if (!object)
@@ -607,11 +549,6 @@ void SpriteLibrary::spriteSetMotion(uint16 sprite, uint32 milliseconds) {
 	uint32 now = g_system->getMillis();
 	object->moveDue = now + object->moveInterval;
 	object->frameDue = now + milliseconds;
-}
-
-bool SpriteLibrary::spriteSetPalette(const byte *entries) {
-	warning("spriteSetPalette UNIMPLEMENTED");
-	return false;
 }
 
 void SpriteLibrary::spriteSetPosition(uint16 sprite, int16 x, int16 y) {

@@ -8,6 +8,8 @@ MODULE_OBJS = \
 	libraries/audio.o \
 	libraries/resource.o \
 	libraries/sprite/animation.o \
+	libraries/sprite/palette.o \
+	libraries/sprite/render.o \
 	libraries/sprite/sprite.o \
 	libraries/utils.o \
 	metaengine.o \

@@ -80,9 +80,23 @@ Common::String TopgunEngine::getGameId() const {
 }
 
 Common::Error TopgunEngine::run() {
-	initGraphics(_display->width(), _display->height());
-	_screen = new Graphics::Screen();
-	_screen->clearPalette();
+	bool highBitDepth = ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth");
+
+	if (highBitDepth) {
+		Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
+		initGraphics(_display->width(), _display->height(), &format);
+
+		if (g_system->getScreenFormat() != format)
+			return Common::kUnsupportedColorMode;
+
+		_screen = new Graphics::Screen();
+	} else {
+		initGraphics(_display->width(), _display->height());
+		_screen = new Graphics::Screen();
+		_screen->clearPalette();
+	}
+
+	_display->setScreen(_screen);
 
 	setDebugger(new Console());
 

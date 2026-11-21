@@ -110,8 +110,10 @@ uint16 TopgunEngine_v0::mainLoop() {
 }
 
 void TopgunEngine_v0::presentScreenAndWait() {
-	if (screen()->isDirty())
+	if (screen()->isDirty() || display()->isPaletteChanged()) {
 		screen()->update();
+		display()->clearPaletteChanged();
+	}
 
 	g_system->delayMillis(kLoopDelay);
 }
@@ -354,7 +356,7 @@ void TopgunEngine_v0::handleSceneEndMessage() {
 }
 
 void TopgunEngine_v0::fillBackground() {
-	screen()->clear();
+	display()->clearScreen();
 }
 
 } // End of namespace Topgun

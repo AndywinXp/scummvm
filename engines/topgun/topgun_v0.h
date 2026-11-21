@@ -321,11 +321,11 @@ protected:
 	bool setBackgroundFromBitmapResource(uint16 bitmapId);
 
 	// Transitions
-	void copyAndPaintBackgroundRect(const Common::Rect &rect);
+	void copyAndPaintBackgroundRect(Common::Rect &rect);
 	void initDissolve();
 	void dissolveOneTile();
 	void computeInsetRingRect(uint16 k, Common::Rect *out, uint16 n);
-	void paintFrameBandsTopBottom(const Common::Rect &newer, const Common::Rect &older);
+	void paintFrameBandsTopBottom(const Common::Rect &outer, const Common::Rect &inner);
 	void wipeEffectFrameRingsInsideOut();
 	void wipeEffectFrameRingsOutsideIn();
 	void advanceSceneFadeStep();
