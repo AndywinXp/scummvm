@@ -39,6 +39,8 @@ extern const PlainGameDescriptor topgunGames[];
 extern const ADGameDescription gameDescriptions[];
 
 #define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1
+#define GAMEOPTION_SCREEN_800X600 GUIO_GAMEOPTIONS2
+#define GAMEOPTION_HIGH_BIT_DEPTH GUIO_GAMEOPTIONS3
 
 } // End of namespace Topgun
 

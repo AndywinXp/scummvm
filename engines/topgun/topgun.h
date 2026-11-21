@@ -38,17 +38,48 @@
 
 namespace Topgun {
 
-struct TopgunGameDescription;
+class AudioLibrary;
+class Display;
+class ResourceLibrary;
+class SpriteLibrary;
+class UtilsLibrary;
 
 class TopgunEngine : public Engine {
+	friend class AudioLibrary;
+	friend class ResourceLibrary;
+	friend class SpriteLibrary;
+	friend class UtilsLibrary;
+
 private:
 	const ADGameDescription *_gameDescription;
-	Common::RandomSource _randomSource;
-protected:
-	// Engine APIs
-	Common::Error run() override;
-public:
+	Common::RandomSource _randomSource{"Topgun"};
 	Graphics::Screen *_screen = nullptr;
+	UtilsLibrary *_utilsLibrary = nullptr;
+	AudioLibrary *_audioLibrary = nullptr;
+	ResourceLibrary *_resourceLibrary = nullptr;
+	SpriteLibrary *_spriteLibrary = nullptr;
+	Display *_display = nullptr;
+
+protected:
+	Common::Error run() override;
+
+	// Services
+	Graphics::Screen *screen() { return _screen; }
+	UtilsLibrary *utilsLibrary() { return _utilsLibrary; }
+	AudioLibrary *audioLibrary() { return _audioLibrary; }
+	ResourceLibrary *resourceLibrary() { return _resourceLibrary; }
+	SpriteLibrary *spriteLibrary() { return _spriteLibrary; }
+	Display *display() { return _display; }
+
+	// Main loop
+	virtual bool rtStartup(bool runChecks) = 0;
+	virtual uint16 mainLoop() = 0;
+	virtual void requestClose() = 0;
+	virtual void resourceLoadProgressCallback() = 0;
+
+	// Scripts
+	virtual void spriteMessageService(const byte *record) = 0;
+
 public:
 	TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc);
 	~TopgunEngine() override;
@@ -65,6 +96,10 @@ public:
 	 */
 	uint32 getRandomNumber(uint maxNum) {
 		return _randomSource.getRandomNumber(maxNum);
+	}
+
+	uint16 getRandom15Bit() {
+		return _randomSource.getRandomNumber(0x7FFF);
 	}
 
 	bool hasFeature(EngineFeature f) const override {

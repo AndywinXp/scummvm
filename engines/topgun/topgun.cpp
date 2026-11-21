@@ -20,28 +20,53 @@
  */
 
 #include "topgun/topgun.h"
-#include "graphics/framelimiter.h"
-#include "topgun/detection.h"
 #include "topgun/console.h"
+#include "topgun/detection.h"
+#include "topgun/display.h"
+#include "topgun/libraries/audiolibrary.h"
+#include "topgun/libraries/resourcelibrary.h"
+#include "topgun/libraries/spritelibrary.h"
+#include "topgun/libraries/utilslibrary.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/events.h"
 #include "common/system.h"
 #include "engines/util.h"
-#include "graphics/paletteman.h"
 
 namespace Topgun {
 
 TopgunEngine *g_engine;
 
 TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst),
-	_gameDescription(gameDesc), _randomSource("Topgun") {
+	_gameDescription(gameDesc) {
 	g_engine = this;
+
+	bool hiRes = ConfMan.hasKey("screen_800x600") && ConfMan.getBool("screen_800x600");
+
+	_utilsLibrary = new UtilsLibrary(this);
+	_audioLibrary = new AudioLibrary(this);
+	_resourceLibrary = new ResourceLibrary(this);
+	_spriteLibrary = new SpriteLibrary(this);
+	if (hiRes)
+		_display = new Display(Display::kLargeWidth, Display::kLargeHeight);
+	else
+		_display = new Display(Display::kDefaultWidth, Display::kDefaultHeight);
 }
 
 TopgunEngine::~TopgunEngine() {
+	delete _display;
+	_display = nullptr;
+	delete _spriteLibrary;
+	_spriteLibrary = nullptr;
+	delete _resourceLibrary;
+	_resourceLibrary = nullptr;
+	delete _audioLibrary;
+	_audioLibrary = nullptr;
+	delete _utilsLibrary;
+	_utilsLibrary = nullptr;
 	delete _screen;
+	_screen = nullptr;
 }
 
 uint32 TopgunEngine::getFeatures() const {
@@ -53,53 +78,23 @@ Common::String TopgunEngine::getGameId() const {
 }
 
 Common::Error TopgunEngine::run() {
-	// Initialize 320x200 paletted graphics mode
-	initGraphics(320, 200);
+	initGraphics(_display->width(), _display->height());
 	_screen = new Graphics::Screen();
+	_screen->clearPalette();
 
-	// Set the engine's debugger console
 	setDebugger(new Console());
 
-	// If a savegame was selected from the launcher, load it
 	int saveSlot = ConfMan.getInt("save_slot");
 	if (saveSlot != -1)
 		(void)loadGameState(saveSlot);
 
-	// Draw a series of boxes on screen as a sample
-	for (int i = 0; i < 100; ++i)
-		_screen->frameRect(Common::Rect(i, i, 320 - i, 200 - i), i);
-	_screen->update();
-
-	// Simple event handling loop
-	byte pal[256 * 3] = { 0 };
-	Common::Event e;
-	int offset = 0;
-
-	Graphics::FrameLimiter limiter(g_system, 60);
-	while (!shouldQuit()) {
-		while (g_system->getEventManager()->pollEvent(e)) {
-		}
-
-		// Cycle through a simple palette
-		++offset;
-		for (int i = 0; i < 256; ++i)
-			pal[i * 3 + 1] = (i + offset) % 256;
-		g_system->getPaletteManager()->setPalette(pal, 0, 256);
-		// Delay for a bit. All events loops should have a delay
-		// to prevent the system being unduly loaded
-		limiter.delayBeforeSwap();
-		_screen->update();
-		limiter.startFrame();
-	}
+	if (rtStartup(true))
+		mainLoop();
 
 	return Common::kNoError;
 }
 
 Common::Error TopgunEngine::syncGame(Common::Serializer &s) {
-	// The Serializer has methods isLoading() and isSaving()
-	// if you need to specific steps; for example setting
-	// an array size after reading it's length, whereas
-	// for saving it would write the existing array's length
 	int dummy = 0;
 	s.syncAsUint32LE(dummy);
 

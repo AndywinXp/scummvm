@@ -23,7 +23,7 @@
 
 #include "topgun/metaengine.h"
 #include "topgun/detection.h"
-#include "topgun/topgun.h"
+#include "topgun/topgun_v0.h"
 
 namespace Topgun {
 
@@ -34,6 +34,28 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 			_s("Use original save/load screens"),
 			_s("Use the original save/load screens instead of the ScummVM ones"),
 			"original_menus",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_SCREEN_800X600,
+		{
+			_s("Run the game at 800x600"),
+			_s("Use a screen of 800x600 pixels instead of 640x480"),
+			"screen_800x600",
+			false,
+			0,
+			0
+		}
+	},
+	{
+		GAMEOPTION_HIGH_BIT_DEPTH,
+		{
+			_s("Run the game at a higher bit depth"),
+			_s("Make the screen a non-palette device, so the game uses the box wipe transitions instead of the palette fades"),
+			"high_bit_depth",
 			false,
 			0,
 			0
@@ -53,8 +75,14 @@ const ADExtraGuiOptionsMap *TopgunMetaEngine::getAdvancedExtraGuiOptions() const
 }
 
 Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new Topgun::TopgunEngine(syst, desc);
-	return Common::kNoError;
+	Common::String gameId = desc->gameId;
+
+	if (gameId == "tuneland") {
+		*engine = new Topgun::TopgunEngine_v0(syst, desc);
+		return Common::kNoError;
+	}
+
+	return Common::Error(Common::kUnsupportedGameidError, _s("TuneLand Tunes Player is not supported"));
 }
 
 bool TopgunMetaEngine::hasFeature(MetaEngineFeature f) const {
