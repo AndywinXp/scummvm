@@ -27,11 +27,7 @@
 
 namespace Topgun {
 
-enum {
-	kNumStaticColorsPerEnd = 10
-};
-
-static const byte kStaticColors[2 * kNumStaticColorsPerEnd][3] = {
+static const byte kStaticColors[2 * TG_DISPLAY_NUM_STATIC_COLORS_PER_END][3] = {
 	{   0,   0,   0 }, { 128,   0,   0 }, {   0, 128,   0 }, { 128, 128,   0 }, {   0,   0, 128 },
 	{ 128,   0, 128 }, {   0, 128, 128 }, { 192, 192, 192 }, { 192, 220, 192 }, { 166, 202, 240 },
 	{ 255, 251, 240 }, { 160, 160, 164 }, { 128, 128, 128 }, { 255,   0,   0 }, {   0, 255,   0 },
@@ -48,21 +44,23 @@ Display::~Display() {
 
 void Display::getSystemPaletteEntries(byte *destination, uint16 first, uint16 count) const {
 	for (uint16 i = 0; i < count; i++) {
+
 		uint32 index = (uint32)first + i;
-		if (index >= kNumPaletteEntries)
+		if (index >= TG_DISPLAY_NUM_PALETTE_ENTRIES)
 			break;
 
-		byte *entry = destination + i * kPaletteEntrySize;
+		byte *entry = destination + i * TG_DISPLAY_PALETTE_ENTRY_SIZE;
 		entry[0] = 0;
 		entry[1] = 0;
 		entry[2] = 0;
 		entry[3] = 0;
 
 		int staticIndex = -1;
-		if (index < kNumStaticColorsPerEnd)
+		if (index < TG_DISPLAY_NUM_STATIC_COLORS_PER_END) {
 			staticIndex = index;
-		else if (index >= kNumPaletteEntries - kNumStaticColorsPerEnd)
-			staticIndex = kNumStaticColorsPerEnd + (index - (kNumPaletteEntries - kNumStaticColorsPerEnd));
+		} else if (index >= TG_DISPLAY_NUM_PALETTE_ENTRIES - TG_DISPLAY_NUM_STATIC_COLORS_PER_END) {
+			staticIndex = TG_DISPLAY_NUM_STATIC_COLORS_PER_END + (index - (TG_DISPLAY_NUM_PALETTE_ENTRIES - TG_DISPLAY_NUM_STATIC_COLORS_PER_END));
+		}
 
 		if (staticIndex >= 0) {
 			entry[0] = kStaticColors[staticIndex][0];
@@ -144,11 +142,11 @@ void Display::putBitmapRows(int16 x, int16 y, uint16 width, uint16 height, const
 	getVisibleRects(Common::Rect(left, top, right, bottom), visible);
 
 	bool singleByte = (_screen->format.bytesPerPixel == 1);
-	uint32 colors[kNumPaletteEntries];
+	uint32 colors[TG_DISPLAY_NUM_PALETTE_ENTRIES];
 
 	if (!singleByte) {
-		for (int i = 0; i < kNumPaletteEntries; i++) {
-			const byte *entry = colorTable + i * kPaletteEntrySize;
+		for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++) {
+			const byte *entry = colorTable + i * TG_DISPLAY_PALETTE_ENTRY_SIZE;
 			colors[i] = _screen->format.RGBToColor(entry[2], entry[1], entry[0]);
 		}
 	}
@@ -198,10 +196,10 @@ void Display::animateLogicalPalette(uint16 first, uint16 count, const byte *entr
 
 	for (uint16 i = 0; i < count; i++) {
 		byte *logical = _logicalPalette[first + i];
-		if (!(logical[3] & kAnimatablePaletteFlag))
+		if (!(logical[3] & TG_DISPLAY_ANIMATABLE_PALETTE_FLAG))
 			continue;
 
-		memcpy(logical, entries + i * kPaletteEntrySize, kPaletteEntrySize);
+		memcpy(logical, entries + i * TG_DISPLAY_PALETTE_ENTRY_SIZE, TG_DISPLAY_PALETTE_ENTRY_SIZE);
 
 		if (_logicalPaletteRealized) {
 			memcpy(_screenPalette[first + i], logical, 3);
@@ -216,13 +214,13 @@ void Display::animateLogicalPalette(uint16 first, uint16 count, const byte *entr
 }
 
 bool Display::realizeLogicalPalette() {
-	byte systemColors[kNumPaletteEntries * kPaletteEntrySize];
-	getSystemPaletteEntries(systemColors, 0, kNumPaletteEntries);
+	byte systemColors[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	getSystemPaletteEntries(systemColors, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 
-	byte realized[kNumPaletteEntries][3];
-	for (int i = 0; i < kNumPaletteEntries; i++) {
-		const byte *source = systemColors + i * kPaletteEntrySize;
-		if (i >= kNumStaticColorsPerEnd && i < kNumPaletteEntries - kNumStaticColorsPerEnd)
+	byte realized[TG_DISPLAY_NUM_PALETTE_ENTRIES][3];
+	for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++) {
+		const byte *source = systemColors + i * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+		if (i >= TG_DISPLAY_NUM_STATIC_COLORS_PER_END && i < TG_DISPLAY_NUM_PALETTE_ENTRIES - TG_DISPLAY_NUM_STATIC_COLORS_PER_END)
 			source = _logicalPalette[i];
 
 		memcpy(realized[i], source, 3);
@@ -230,24 +228,24 @@ bool Display::realizeLogicalPalette() {
 
 	bool changed = (memcmp(realized, _screenPalette, sizeof(realized)) != 0);
 	memcpy(_screenPalette, realized, sizeof(realized));
-	_screen->setPalette(&_screenPalette[0][0], 0, kNumPaletteEntries);
+	_screen->setPalette(&_screenPalette[0][0], 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 	_logicalPaletteRealized = true;
 	_paletteChanged = true;
 	return changed;
 }
 
 void Display::selectDefaultPalette() {
-	byte systemColors[kNumPaletteEntries * kPaletteEntrySize];
-	getSystemPaletteEntries(systemColors, 0, kNumPaletteEntries);
+	byte systemColors[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	getSystemPaletteEntries(systemColors, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 
-	const int upperFirst = kNumPaletteEntries - kNumStaticColorsPerEnd;
-	for (int i = 0; i < kNumPaletteEntries; i++) {
-		if (i < kNumStaticColorsPerEnd || i >= upperFirst)
-			memcpy(_screenPalette[i], systemColors + i * kPaletteEntrySize, 3);
+	const int upperFirst = TG_DISPLAY_NUM_PALETTE_ENTRIES - TG_DISPLAY_NUM_STATIC_COLORS_PER_END;
+	for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++) {
+		if (i < TG_DISPLAY_NUM_STATIC_COLORS_PER_END || i >= upperFirst)
+			memcpy(_screenPalette[i], systemColors + i * TG_DISPLAY_PALETTE_ENTRY_SIZE, 3);
 	}
 
-	_screen->setPalette(&_screenPalette[0][0], 0, kNumStaticColorsPerEnd);
-	_screen->setPalette(&_screenPalette[upperFirst][0], upperFirst, kNumStaticColorsPerEnd);
+	_screen->setPalette(&_screenPalette[0][0], 0, TG_DISPLAY_NUM_STATIC_COLORS_PER_END);
+	_screen->setPalette(&_screenPalette[upperFirst][0], upperFirst, TG_DISPLAY_NUM_STATIC_COLORS_PER_END);
 	_logicalPaletteRealized = false;
 	_paletteChanged = true;
 }

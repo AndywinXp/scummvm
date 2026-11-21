@@ -40,8 +40,8 @@ namespace Topgun {
 
 TopgunEngine *g_engine;
 
-TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst),
-	_gameDescription(gameDesc) {
+TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc, int version) : Engine(syst),
+	_gameDescription(gameDesc), _version(version) {
 	g_engine = this;
 
 	bool hiRes = ConfMan.hasKey("screen_800x600") && ConfMan.getBool("screen_800x600");
@@ -51,9 +51,9 @@ TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc) : E
 	_resourceLibrary = new ResourceLibrary(this);
 	_spriteLibrary = new SpriteLibrary(this);
 	if (hiRes)
-		_display = new Display(Display::kLargeWidth, Display::kLargeHeight);
+		_display = new Display(TG_DISPLAY_LARGE_WIDTH, TG_DISPLAY_LARGE_HEIGHT);
 	else
-		_display = new Display(Display::kDefaultWidth, Display::kDefaultHeight);
+		_display = new Display(TG_DISPLAY_DEFAULT_WIDTH, TG_DISPLAY_DEFAULT_HEIGHT);
 }
 
 TopgunEngine::~TopgunEngine() {

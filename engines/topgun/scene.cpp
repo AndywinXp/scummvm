@@ -38,15 +38,15 @@ SceneRecord *TopgunEngine_v0::findOrCreateSceneEntry(const Common::String &name)
 			return &_scenes[i];
 	}
 
-	if (_numScenes >= kMaxScenes)
+	if (_numScenes >= TG_HOST_MAX_SCENES)
 		return nullptr;
 
 	SceneRecord &scene = _scenes[_numScenes];
 	uint32 length = name.size();
 
-	if (length >= kSceneNameSize) {
+	if (length >= TG_HOST_SCENE_NAME_SIZE) {
 		warning("TopgunEngine_v0::findOrCreateSceneEntry(): scene name is too long");
-		length = kSceneNameSize - 1;
+		length = TG_HOST_SCENE_NAME_SIZE - 1;
 	}
 
 	memcpy(scene.name, name.c_str(), length);
@@ -68,9 +68,9 @@ bool TopgunEngine_v0::loadSceneContainerAndRunEntryScript(const Common::String &
 	}
 
 	if (withProgressCallback)
-		resourceLibrary()->resSetCallback(_file, true, kProgressInterval);
+		resourceLibrary()->resSetCallback(_file, true, TG_HOST_PROGRESS_INTERVAL);
 
-	byte palette[kNumPaletteEntries * kPaletteEntrySize];
+	byte palette[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
 	memset(palette, 0, sizeof(palette));
 	refreshGamePalette(palette);
 

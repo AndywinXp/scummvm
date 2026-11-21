@@ -26,28 +26,26 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1.h"
 
 namespace Topgun {
 
-enum {
-	kFadeStepCount = 100,
-	kFirstFadeColor = 10,
-	kNumFadeColors = 200,
-	kNumRings = 20,
-	kNumTileColumns = 20
-};
+#define TG_BG_FADE_STEP_COUNT   100
+#define TG_BG_FIRST_FADE_COLOR  10
+#define TG_BG_NUM_FADE_COLORS   200
+#define TG_BG_NUM_RINGS         20
+#define TG_BG_NUM_TILE_COLUMNS  20
 
 void TopgunEngine_v0::syncBackgroundDimensions(uint16 bitmapId) {
 	uint16 screenWidth = display()->width();
 	uint16 screenHeight = display()->height();
 
 	if (_flagMode640 || _flagLoMem) {
-		_width = Display::kDefaultWidth;
-		_height = Display::kDefaultHeight;
+		_width = TG_DISPLAY_DEFAULT_WIDTH;
+		_height = TG_DISPLAY_DEFAULT_HEIGHT;
 	} else {
-		_width = Display::kLargeWidth;
-		_height = Display::kLargeHeight;
+		_width = TG_DISPLAY_LARGE_WIDTH;
+		_height = TG_DISPLAY_LARGE_HEIGHT;
 	}
 
 	if (bitmapId == 0)
@@ -59,8 +57,8 @@ void TopgunEngine_v0::syncBackgroundDimensions(uint16 bitmapId) {
 	}
 
 	const byte *bitmap = _records[bitmapId].data;
-	_width = READ_LE_UINT16(bitmap + SpriteLibrary::kBitmapWidthOffset);
-	_height = READ_LE_UINT16(bitmap + SpriteLibrary::kBitmapHeightOffset);
+	_width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
+	_height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	_screenBox = (screenWidth > _width) || (_height < screenHeight);
 }
 
@@ -142,11 +140,11 @@ void TopgunEngine_v0::copyAndPaintBackgroundRect(Common::Rect &rect) {
 }
 
 void TopgunEngine_v0::initDissolve() {
-	for (uint16 i = 0; i < kNumDissolveTiles; i++)
+	for (uint16 i = 0; i < TG_HOST_NUM_DISSOLVE_TILES; i++)
 		_tileOrder[i] = i;
 
-	_stepCount = kNumDissolveTiles;
-	_tileSize = _width / kNumTileColumns;
+	_stepCount = TG_HOST_NUM_DISSOLVE_TILES;
+	_tileSize = _width / TG_BG_NUM_TILE_COLUMNS;
 }
 
 void TopgunEngine_v0::dissolveOneTile() {
@@ -158,8 +156,8 @@ void TopgunEngine_v0::dissolveOneTile() {
 
 	uint16 index = getRandom15Bit() % _stepCount;
 	uint16 tile = _tileOrder[index];
-	int16 left = (int16)((tile % kNumTileColumns) * _tileSize);
-	int16 top = (int16)((tile / kNumTileColumns) * _tileSize);
+	int16 left = (int16)((tile % TG_BG_NUM_TILE_COLUMNS) * _tileSize);
+	int16 top = (int16)((tile / TG_BG_NUM_TILE_COLUMNS) * _tileSize);
 
 	Common::Rect rect;
 	rect.setRect(left, top, (int16)(left + _tileSize), (int16)(top + _tileSize));
@@ -198,7 +196,7 @@ void TopgunEngine_v0::wipeEffectFrameRingsInsideOut() {
 	Common::Rect inner;
 	Common::Rect outer;
 
-	computeInsetRingRect(kNumRings - 1, &inner, kNumRings);
+	computeInsetRingRect(TG_BG_NUM_RINGS - 1, &inner, TG_BG_NUM_RINGS);
 
 	Common::Rect band = inner;
 	band.left = 0;
@@ -206,8 +204,8 @@ void TopgunEngine_v0::wipeEffectFrameRingsInsideOut() {
 	copyAndPaintBackgroundRect(band);
 	presentScreenAndWait();
 
-	for (int16 k = kNumRings - 2; k >= 0; k--) {
-		computeInsetRingRect(k, &outer, kNumRings);
+	for (int16 k = TG_BG_NUM_RINGS - 2; k >= 0; k--) {
+		computeInsetRingRect(k, &outer, TG_BG_NUM_RINGS);
 		paintFrameBandsTopBottom(outer, inner);
 		inner = outer;
 	}
@@ -217,10 +215,10 @@ void TopgunEngine_v0::wipeEffectFrameRingsOutsideIn() {
 	Common::Rect outer;
 	Common::Rect inner;
 
-	computeInsetRingRect(0, &outer, kNumRings);
+	computeInsetRingRect(0, &outer, TG_BG_NUM_RINGS);
 
-	for (uint16 k = 1; k < kNumRings; k++) {
-		computeInsetRingRect(k, &inner, kNumRings);
+	for (uint16 k = 1; k < TG_BG_NUM_RINGS; k++) {
+		computeInsetRingRect(k, &inner, TG_BG_NUM_RINGS);
 		paintFrameBandsTopBottom(outer, inner);
 		outer = inner;
 	}
@@ -234,7 +232,7 @@ void TopgunEngine_v0::wipeEffectFrameRingsOutsideIn() {
 void TopgunEngine_v0::advanceSceneFadeStep() {
 	if (display()->hasPalette()) {
 		uint16 mult = _fadeIn ? _step : (uint16)(_stepCount - _step);
-		spriteLibrary()->spriteFadePalette(mult, _stepCount, kFirstFadeColor, kNumFadeColors);
+		spriteLibrary()->spriteFadePalette(mult, _stepCount, TG_BG_FIRST_FADE_COLOR, TG_BG_NUM_FADE_COLORS);
 
 		_step++;
 		if (_step > _stepCount)
@@ -249,7 +247,7 @@ void TopgunEngine_v0::sceneTransitionIn() {
 
 	if (display()->hasPalette()) {
 		_step = 1;
-		_stepCount = kFadeStepCount;
+		_stepCount = TG_BG_FADE_STEP_COUNT;
 		_active = true;
 
 		do {
@@ -290,7 +288,7 @@ void TopgunEngine_v0::sceneTransitionOut() {
 
 	if (display()->hasPalette()) {
 		_step = 2;
-		_stepCount = kFadeStepCount;
+		_stepCount = TG_BG_FADE_STEP_COUNT;
 		_active = true;
 
 		do {
@@ -308,6 +306,98 @@ void TopgunEngine_v0::sceneTransitionOut() {
 		return;
 
 	initDissolve();
+	_active = true;
+	wipeEffectFrameRingsOutsideIn();
+	_faded = true;
+	_buffer1 = utilsLibrary()->tgFree(_buffer1);
+}
+
+void TopgunEngine_v1::paintFrameBandsTopBottom(const Common::Rect &outer, const Common::Rect &inner) {
+	Common::Rect band;
+	band.setRect(0, outer.top, (int16)_width, inner.top);
+	copyAndPaintBackgroundRect(band);
+
+	band.top = inner.bottom;
+	band.bottom = outer.bottom;
+	copyAndPaintBackgroundRect(band);
+
+	spriteLibrary()->spriteAnimate();
+	presentScreenAndWait();
+}
+
+void TopgunEngine_v1::advanceSceneFadeStep() {
+	spriteLibrary()->spriteAnimate();
+
+	uint16 mult = _fadeIn ? _step : (uint16)(_stepCount - _step);
+	spriteLibrary()->spriteFadePalette(mult, _stepCount, TG_BG_FIRST_FADE_COLOR, TG_BG_NUM_FADE_COLORS);
+
+	_step++;
+	if (_step > _stepCount)
+		_active = false;
+}
+
+void TopgunEngine_v1::sceneTransitionIn() {
+	_fadeIn = true;
+
+	if (display()->hasPalette()) {
+		_step = 1;
+		_stepCount = TG_BG_FADE_STEP_COUNT;
+		_active = true;
+
+		do {
+			advanceSceneFadeStep();
+			presentScreenAndWait();
+		} while (_active);
+
+		_faded = false;
+		return;
+	}
+
+	if (!_buffer1) {
+		_buffer1 = spriteLibrary()->spriteDibCreate(_width, _height, 1);
+		if (!_buffer1)
+			return;
+	}
+
+	_active = true;
+
+	_buffer2 = nullptr;
+	if (_backgroundId != 0) {
+		if (!_records || _backgroundId >= _numResources)
+			warning("TopgunEngine_v1::sceneTransitionIn(): record index out of range");
+		else
+			_buffer2 = _records[_backgroundId].data;
+	}
+
+	spriteLibrary()->spriteSetBackground(_buffer1, nullptr);
+	wipeEffectFrameRingsInsideOut();
+	_faded = false;
+	spriteLibrary()->spriteSetBackground(_buffer2, nullptr);
+	_buffer1 = utilsLibrary()->tgFree(_buffer1);
+	_buffer2 = nullptr;
+}
+
+void TopgunEngine_v1::sceneTransitionOut() {
+	_fadeIn = false;
+
+	if (display()->hasPalette()) {
+		_step = 2;
+		_stepCount = TG_BG_FADE_STEP_COUNT;
+		_active = true;
+
+		do {
+			advanceSceneFadeStep();
+			presentScreenAndWait();
+		} while (_active);
+
+		_faded = true;
+		return;
+	}
+
+	_buffer1 = spriteLibrary()->spriteDibCreate(_width, _height, 1);
+	if (!_buffer1)
+		return;
+
 	_active = true;
 	wipeEffectFrameRingsOutsideIn();
 	_faded = true;

@@ -32,6 +32,55 @@
 
 #include "topgun/libraries/audio/waveout.h"
 
+#define TG_AUDIO_FIRST_CD_COMMAND        101
+#define TG_AUDIO_LAST_CD_COMMAND         115
+#define TG_AUDIO_FIRST_MASTER_COMMAND    130
+#define TG_AUDIO_LAST_MASTER_COMMAND     131
+#define TG_AUDIO_FIRST_MIDI_COMMAND      150
+#define TG_AUDIO_LAST_MIDI_COMMAND       152
+#define TG_AUDIO_FIRST_WAVE_COMMAND      200
+#define TG_AUDIO_LAST_WAVE_COMMAND       213
+#define TG_AUDIO_FIRST_SOUND_COMMAND     300
+#define TG_AUDIO_LAST_SOUND_COMMAND      308
+#define TG_AUDIO_DATA_BUFFER_SIZE        0
+#define TG_AUDIO_WAVE_BUFFER_SIZE        0
+#define TG_AUDIO_WAVE_FORMAT_MASK        5
+#define TG_AUDIO_WAVE_FORMAT_MASK_V1     0x0D
+#define TG_AUDIO_DEFAULT_WAVE_BUFFER_SIZE 0x2000
+#define TG_AUDIO_HEADER_CHUNK_SIZE       20
+#define TG_AUDIO_FORMAT_CHUNK_SIZE       16
+#define TG_AUDIO_NUM_OUTPUT_FORMATS      12
+#define TG_AUDIO_NUM_AUX_DEVICES         1
+#define TG_AUDIO_AUX_TECHNOLOGY_CD       1
+#define TG_AUDIO_AUX_TECHNOLOGY_MASTER   8
+#define TG_AUDIO_FIRST_AUDIO_TRACK       2
+#define TG_AUDIO_FRAMES_PER_SECOND       75
+#define TG_AUDIO_POLL_INTERVAL           200
+#define TG_AUDIO_FADE_TICK_INTERVAL      200
+#define TG_AUDIO_MAX_VOLUME_LEVEL        0x10
+#define TG_AUDIO_LOAD_FLAG               1
+#define TG_AUDIO_IN_MEMORY_FLAG          2
+#define TG_AUDIO_BACKGROUND_FLAG         0x8000
+
+#define TG_AUDIO_DEV_OPEN                0x803
+#define TG_AUDIO_DEV_CLOSE               0x804
+#define TG_AUDIO_DEV_PLAY                0x806
+#define TG_AUDIO_DEV_STOP                0x808
+#define TG_AUDIO_DEV_SET                 0x80D
+#define TG_AUDIO_DEV_STATUS              0x814
+#define TG_AUDIO_DEV_WAIT                2
+#define TG_AUDIO_DEV_FROM                4
+#define TG_AUDIO_DEV_TO                  8
+#define TG_AUDIO_DEV_STATUS_ITEM         0x100
+#define TG_AUDIO_DEV_TRACK               0x10
+#define TG_AUDIO_DEV_SET_TIME_FORMAT     0x400
+#define TG_AUDIO_DEV_OPEN_TYPE           0x2000
+#define TG_AUDIO_DEV_OPEN_ELEMENT        0x200
+#define TG_AUDIO_STATUS_LENGTH           1
+#define TG_AUDIO_STATUS_POSITION         2
+#define TG_AUDIO_STATUS_NUMBER_OF_TRACKS 3
+#define TG_AUDIO_FORMAT_TMSF             10
+
 namespace Topgun {
 
 class MidiSequencer;
@@ -73,6 +122,7 @@ public:
 	                  const byte *data, uint32 size);
 	uint16 wavePlayFile(const Common::String &fileName, uint16 flags);
 	uint16 audioSetOwner(uint16 owner);
+	void audioSetMute(uint16 muted);
 
 private:
 	enum Command {
@@ -80,6 +130,8 @@ private:
 		kCmdCdGetPosition = 105,
 		kCmdCdGetVolume = 106,
 		kCmdCdGetTrackCount = 107,
+		kCmdCdPlayFadeIn = 102,
+		kCmdCdFadeOut = 103,
 		kCmdCdPlayFrom = 109,
 		kCmdCdPlayRange = 110,
 		kCmdCdPlayTracks = 111,
@@ -112,58 +164,6 @@ private:
 		kCmdSoundRewind = 306,
 		kCmdSoundSetVolume = 307,
 		kCmdSoundStop = 308
-	};
-
-	enum {
-		kFirstCdCommand = 101,
-		kLastCdCommand = 115,
-		kFirstMasterCommand = 130,
-		kLastMasterCommand = 131,
-		kFirstMidiCommand = 150,
-		kLastMidiCommand = 152,
-		kFirstWaveCommand = 200,
-		kLastWaveCommand = 213,
-		kFirstSoundCommand = 300,
-		kLastSoundCommand = 308,
-		kDataBufferSize = 0,
-		kWaveBufferSize = 0,
-		kWaveFormatMask = 5,
-		kDefaultWaveBufferSize = 0x2000,
-		kHeaderChunkSize = 20,
-		kFormatChunkSize = 16,
-		kNumOutputFormats = 12,
-		kNumAuxDevices = 1,
-		kAuxTechnologyCd = 1,
-		kAuxTechnologyMaster = 8,
-		kFirstAudioTrack = 2,
-		kFramesPerSecond = 75,
-		kPollInterval = 200,
-		kFadeTickInterval = 200,
-		kMaxVolumeLevel = 0x10,
-		kLoadFlag = 1,
-		kInMemoryFlag = 2,
-		kBackgroundFlag = 0x8000
-	};
-
-	enum {
-		kDevOpen = 0x803,
-		kDevClose = 0x804,
-		kDevPlay = 0x806,
-		kDevStop = 0x808,
-		kDevSet = 0x80D,
-		kDevStatus = 0x814,
-		kDevWait = 2,
-		kDevFrom = 4,
-		kDevTo = 8,
-		kDevStatusItem = 0x100,
-		kDevTrack = 0x10,
-		kDevSetTimeFormat = 0x400,
-		kDevOpenType = 0x2000,
-		kDevOpenElement = 0x200,
-		kStatusLength = 1,
-		kStatusPosition = 2,
-		kStatusNumberOfTracks = 3,
-		kFormatTmsf = 10
 	};
 
 	struct DeviceParms {
@@ -286,13 +286,13 @@ private:
 	void mixSound8Bit(WaveObject *wave);
 	void mixSound16Bit(WaveObject *wave);
 	void mixAllWavesAndQueueBuffer();
-	void retireBufferAndRefill();
+	bool retireBufferAndRefill();
 	void pumpAudioPlayback();
 	void allocateWaveOutBuffers();
 	void freeWaveOutBuffers();
-	bool findBestWaveFormatIndex();
+	bool findBestWaveFormatIndex(const WaveFormat *wanted);
 	void closeWaveOutDevice();
-	bool openWaveOutDevice();
+	bool openWaveOutDevice(const WaveFormat *wanted);
 	uint16 pauseAllPlayback(uint16 resume);
 	void setWaveOutVolume(uint32 volume);
 	void applyWaveOutVolume(uint32 volume);
@@ -342,6 +342,10 @@ private:
 	uint16 playCDTrackRangeByNumber(uint16 first, uint16 last);
 	uint16 setCDAudioVolume(uint32 volume);
 	void releaseCDDeviceIfOwned();
+	uint16 startCDFadeIn(uint16 milliseconds, uint32 from);
+	uint16 startCDFadeOut(uint16 milliseconds);
+	void cdFadeTick();
+	void profileCDStart();
 	uint16 findCdAuxDevice();
 	void pollCDEndAndClose();
 	uint16 closeCDAudioDevice();
@@ -359,6 +363,10 @@ private:
 	TopgunEngine *_engine;
 	uint16 _initCount = 0;
 	uint16 _owner = 0;
+	bool _muted = false;
+	bool _disableWaveVolume = false;
+	bool _cdProfileFirst = false;
+	bool _cdSlowStart = false;
 	Common::RandomSource _randomSource{"TopgunAudio"};
 
 	// Wave sounds
@@ -377,7 +385,7 @@ private:
 	uint32 _refillThreshold = 0;
 	uint32 _ringTail = 0;
 	uint32 _ringHead = 0;
-	WaveRingEntry _waveRing[WaveOutStream::kRingSize];
+	WaveRingEntry _waveRing[TG_WAVEOUT_RING_SIZE];
 	uint32 _waveOutCapsFormats = 0;
 	uint32 _chosenFormatMask = 0;
 	WaveFormat _waveFormat;
@@ -421,6 +429,15 @@ private:
 	uint32 _cdTo = 0;
 	uint32 _cdPos = 0;
 	uint32 _cdNextPoll = 0;
+	byte _cdFadeMode = 0;
+	uint32 _cdFadeNextTick = 0;
+	uint16 _cdFadeSteps = 0;
+	uint16 _cdFadeStepLeft = 0;
+	uint16 _cdFadeStepRight = 0;
+	uint16 _cdFadeCurrentLeft = 0;
+	uint16 _cdFadeCurrentRight = 0;
+	uint16 _cdFadeTargetLeft = 0;
+	uint16 _cdFadeTargetRight = 0;
 	bool _cdAuxPresent = false;
 	uint16 _cdAuxDeviceId = 0;
 	uint32 _cdAuxVolume = 0xFFFFFFFF;

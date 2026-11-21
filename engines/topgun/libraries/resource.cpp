@@ -78,10 +78,10 @@ void ResourceLibrary::decodeRleCelBitmap(const byte *source, uint32 sourceSize, 
 				count = (uint16)(0 - word);
 				fill = false;
 			}
-		} else if (command <= kMaxRunLength) {
+		} else if (command <= TG_RES_MAX_RUN_LENGTH) {
 			count = command;
 		} else {
-			count = command - kMaxRunLength;
+			count = command - TG_RES_MAX_RUN_LENGTH;
 			fill = false;
 		}
 
@@ -112,7 +112,7 @@ void ResourceLibrary::decodeRleCelBitmap(const byte *source, uint32 sourceSize, 
 byte *ResourceLibrary::expandCelBitmapRecord(byte *compressed, uint32 compressedSize, uint32 *outSize) {
 	UtilsLibrary *utilsLibrary = _engine->utilsLibrary();
 
-	if (compressedSize < kBitmapRecordMinSize) {
+	if (compressedSize < TG_RES_BITMAP_RECORD_MIN_SIZE) {
 		warning("ResourceLibrary::expandCelBitmapRecord(): bitmap record is too short");
 		return utilsLibrary->tgFree(compressed);
 	}
@@ -168,8 +168,8 @@ bool ResourceLibrary::readChunkedWithCallback(ResourceFile *file, byte *buffer, 
 }
 
 bool ResourceLibrary::readResourceFileHeader(ResourceFile *file) {
-	byte header[kHeaderSize];
-	if (file->stream->read(header, kHeaderSize) != kHeaderSize)
+	byte header[TG_RES_HEADER_SIZE];
+	if (file->stream->read(header, TG_RES_HEADER_SIZE) != TG_RES_HEADER_SIZE)
 		return false;
 
 	file->magic = READ_LE_UINT16(header);
@@ -180,7 +180,7 @@ bool ResourceLibrary::readResourceFileHeader(ResourceFile *file) {
 	file->variableCount = READ_LE_UINT16(header + 10);
 	file->extraSize = READ_LE_UINT16(header + 12);
 
-	if (file->magic != kHeaderMagic)
+	if (file->magic != TG_RES_HEADER_MAGIC)
 		return false;
 
 	return file->entryCount != 0;
@@ -226,8 +226,119 @@ uint16 ResourceLibrary::registerWaveInfo(WaveStreamInfo *info) {
 	return 0;
 }
 
+void ResourceLibrary::destroyWaveInfo(WaveStreamInfo *info) {
+	_engine->utilsLibrary()->tgFree(info->buffer);
+	delete info;
+}
+
+bool ResourceLibrary::openCompressedWave(ResourceFile *file, WaveStreamInfo *info, const byte *header) {
+	byte compressedHeader[TG_RES_ADPCM_HEADER_SIZE];
+	if (file->stream->read(compressedHeader, TG_RES_ADPCM_HEADER_SIZE) != TG_RES_ADPCM_HEADER_SIZE)
+		return false;
+
+	info->position += TG_RES_ADPCM_HEADER_SIZE;
+	info->end = info->position + READ_LE_UINT32(compressedHeader + 4);
+	info->bufferSize = READ_LE_UINT32(header + 0x0A);
+	info->buffer = _engine->utilsLibrary()->tgMalloc(info->bufferSize, 0);
+	if (!info->buffer)
+		return false;
+
+	if (READ_LE_UINT16(compressedHeader + 8) != 1)
+		return false;
+
+	info->channels = READ_LE_UINT16(header + 4);
+	info->compressed = true;
+	return true;
+}
+
+void ResourceLibrary::resetAdpcmState(WaveStreamInfo *info) {
+	info->predictor[0] = info->predictor[1] = 0;
+	info->stepPosition[0] = info->stepPosition[1] = 0;
+}
+
+void ResourceLibrary::decodeAdpcm(WaveStreamInfo *info, byte *destination, const byte *source, uint32 inputBytes) {
+	static const uint16 stepTable[TG_RES_ADPCM_STEP_TABLE_ROWS] = {
+		7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31,
+		34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143,
+		157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658,
+		724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024,
+		3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
+		15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+	};
+
+	static const int8 stepAdjust[16] = {
+		-8, -8, -8, -8, 16, 32, 48, 64,
+		-8, -8, -8, -8, 16, 32, 48, 64
+	};
+
+	for (uint32 i = 0; i < inputBytes; i++) {
+		for (uint16 half = 0; half < 2; half++) {
+			byte nibble = (half == 0) ? (source[i] & 0x0F) : (source[i] >> 4);
+			uint16 channel = (info->channels == 2) ? half : 0;
+
+			uint32 step = stepTable[info->stepPosition[channel] >> 3];
+			uint32 delta = step >> 3;
+			if (nibble & 1)
+				delta += step >> 2;
+
+			if (nibble & 2)
+				delta += step >> 1;
+
+			if (nibble & 4)
+				delta += step;
+
+			int32 predictor = info->predictor[channel];
+			predictor += (nibble & 8) ? -(int32)delta : (int32)delta;
+			info->predictor[channel] = CLIP<int32>(predictor, -0x8000, 0x7FFF);
+
+			info->stepPosition[channel] = CLIP<int32>(info->stepPosition[channel] + stepAdjust[nibble], 0, TG_RES_ADPCM_MAX_STEP_POSITION);
+
+			WRITE_LE_UINT16(destination, (uint16)info->predictor[channel]);
+			destination += 2;
+		}
+	}
+}
+
+int32 ResourceLibrary::readCompressedWave(ResourceFile *file, WaveStreamInfo *info, byte *buffer, int32 count) {
+	if (count == 0)
+		return 0;
+
+	if (count < 0 || (count & 3) != 0) {
+		warning("ResourceLibrary::readCompressedWave(): the byte count %d is not a multiple of 4", count);
+		return -1;
+	}
+
+	int32 total = 0;
+
+	while (true) {
+		if (info->available == 0) {
+			info->available = MIN(info->end - info->position, info->bufferSize);
+			if (info->available == 0)
+				return -1;
+
+			if (file->stream->read(info->buffer, info->available) != info->available)
+				return -1;
+
+			info->position += info->available;
+			info->consumed = 0;
+		}
+
+		uint32 inputBytes = MIN((uint32)(count >> 2), info->available);
+		decodeAdpcm(info, buffer, info->buffer + info->consumed, inputBytes);
+
+		info->consumed += inputBytes;
+		info->available -= inputBytes;
+		buffer += inputBytes * 4;
+		total += inputBytes * 4;
+		count -= inputBytes * 4;
+
+		if (count == 0)
+			return total;
+	}
+}
+
 void ResourceLibrary::readEntry(const ResourceFile *file, uint16 index, ResourceEntry &entry) const {
-	const byte *data = file->index + (uint32)index * kIndexEntrySize;
+	const byte *data = file->index + (uint32)index * TG_RES_INDEX_ENTRY_SIZE;
 	entry.type = READ_LE_UINT16(data);
 	entry.offset = READ_LE_UINT32(data + 2);
 	entry.size = READ_LE_UINT32(data + 6);
@@ -270,24 +381,32 @@ uint16 ResourceLibrary::resCreateWaveEvent(uint16 file, uint16 index) {
 
 	ResourceFile *record = findFile(file, "resCreateWaveEvent");
 
-	byte header[kWaveStreamHeaderSize];
-	if (record->stream->read(header, kWaveStreamHeaderSize) != kWaveStreamHeaderSize)
+	bool hasCompressionFlag = (_engine->_version >= 1);
+	uint32 headerSize = hasCompressionFlag ? TG_RES_WAVE_STREAM_HEADER_SIZE_V1 : TG_RES_WAVE_STREAM_HEADER_SIZE;
+
+	byte header[TG_RES_WAVE_STREAM_HEADER_SIZE_V1];
+	if (record->stream->read(header, headerSize) != headerSize)
 		return 0;
 
 	WaveStreamInfo *info = new WaveStreamInfo();
 	info->file = file;
 	info->position = (uint32)record->stream->pos();
 
+	if (hasCompressionFlag && header[TG_RES_COMPRESSION_FLAG_OFFSET] != 0 && !openCompressedWave(record, info, header)) {
+		destroyWaveInfo(info);
+		return 0;
+	}
+
 	uint16 waveInfo = registerWaveInfo(info);
 	if (waveInfo == 0) {
-		delete info;
+		destroyWaveInfo(info);
 		return 0;
 	}
 
 	SoundCreateInfo createInfo;
 	createInfo.waveInfo = waveInfo;
 	createInfo.header = header + 2;
-	return (uint16)_engine->audioLibrary()->audioCommand(kCreateSoundCommand, READ_LE_UINT16(header), 0, &createInfo);
+	return (uint16)_engine->audioLibrary()->audioCommand(TG_RES_CREATE_SOUND_COMMAND, READ_LE_UINT16(header), 0, &createInfo);
 }
 
 uint32 ResourceLibrary::resGetSize(uint16 file, uint16 index) {
@@ -324,7 +443,7 @@ byte *ResourceLibrary::resLoadNameTable(uint16 file, uint32 *outSize) {
 	if (record->nameBlockSize == 0)
 		return nullptr;
 
-	uint32 offset = kHeaderSize + (uint32)kIndexEntrySize * record->entryCount + record->extraSize + (uint16)(record->dwordCount * 4);
+	uint32 offset = TG_RES_HEADER_SIZE + (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + record->extraSize + (uint16)(record->dwordCount * 4);
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return nullptr;
 
@@ -355,7 +474,7 @@ uint16 ResourceLibrary::resLoadPalette(uint16 file, byte *buffer) {
 	if (record->dwordCount == 0)
 		return 0;
 
-	uint32 offset = kHeaderSize + (uint32)kIndexEntrySize * record->entryCount + record->extraSize;
+	uint32 offset = TG_RES_HEADER_SIZE + (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + record->extraSize;
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return 0;
 
@@ -377,7 +496,7 @@ byte *ResourceLibrary::resLoadResource(uint16 file, uint16 index, uint32 *outSiz
 	ResourceEntry entry;
 	readEntry(record, index, entry);
 
-	if (entry.type == kResidentType) {
+	if (entry.type == TG_RES_RESIDENT_TYPE || (entry.type == TG_RES_RESIDENT_ID_LIST_TYPE && _engine->_version >= 1)) {
 		if (!record->extra) {
 			warning("ResourceLibrary::resLoadResource(): the file has no resident block");
 			return nullptr;
@@ -407,7 +526,7 @@ byte *ResourceLibrary::resLoadResource(uint16 file, uint16 index, uint32 *outSiz
 	if (!success)
 		return utilsLibrary->tgFree(buffer);
 
-	if (entry.type == kBitmapType)
+	if (entry.type == TG_RES_BITMAP_TYPE)
 		return expandCelBitmapRecord(buffer, entry.size, outSize);
 
 	if (outSize)
@@ -440,7 +559,7 @@ uint16 ResourceLibrary::resOpenFile(const Common::String &path) {
 	UtilsLibrary *utilsLibrary = _engine->utilsLibrary();
 
 	// TODO: the original computes this size in 16 bits and overflows with 6554 or more entries; check whether any game relies on this overflow
-	uint32 indexSize = (uint32)kIndexEntrySize * record->entryCount;
+	uint32 indexSize = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount;
 	if (indexSize > 0xFFFF)
 		warning("ResourceLibrary::resOpenFile(): too many entries (%d)", record->entryCount);
 
@@ -532,7 +651,7 @@ void ResourceLibrary::waveDone(uint16 waveInfo, uint16 flag) {
 		return;
 	}
 
-	delete _waveInfos[waveInfo];
+	destroyWaveInfo(_waveInfos[waveInfo]);
 	_waveInfos.erase(waveInfo);
 }
 
@@ -550,6 +669,9 @@ int32 ResourceLibrary::waveRead(uint16 waveInfo, byte *buffer, int32 count) {
 
 	ResourceFile *record = _files[info->file];
 	record->stream->seek(info->position, SEEK_SET);
+
+	if (info->compressed)
+		return readCompressedWave(record, info, buffer, count);
 
 	uint32 bytesRead = record->stream->read(buffer, count);
 	info->position += bytesRead;
@@ -578,6 +700,12 @@ int32 ResourceLibrary::waveSeek(uint16 waveInfo, int32 offset, int16 origin) {
 		return -1;
 
 	info->position = (uint32)record->stream->pos();
+
+	if (info->compressed) {
+		resetAdpcmState(info);
+		info->available = 0;
+	}
+
 	return (int32)info->position;
 }
 

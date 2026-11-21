@@ -36,7 +36,7 @@ int WaveOutStream::readBuffer(int16 *buffer, const int numSamples) {
 	while (done < numSamples) {
 		WaveRingEntry &entry = _ring[_playIndex];
 
-		if (!(entry.flags & kHeaderInQueue) || (entry.flags & kHeaderDone))
+		if (!(entry.flags & TG_WAVEOUT_HEADER_IN_QUEUE) || (entry.flags & TG_WAVEOUT_HEADER_DONE))
 			break;
 
 		uint32 totalValues = entry.length / (_eightBit ? 1 : 2);
@@ -53,8 +53,8 @@ int WaveOutStream::readBuffer(int16 *buffer, const int numSamples) {
 		_playPos += count;
 
 		if (_playPos >= totalValues) {
-			entry.flags = (entry.flags & ~kHeaderInQueue) | kHeaderDone;
-			_playIndex = (_playIndex + 1) % kRingSize;
+			entry.flags = (entry.flags & ~TG_WAVEOUT_HEADER_IN_QUEUE) | TG_WAVEOUT_HEADER_DONE;
+			_playIndex = (_playIndex + 1) % TG_WAVEOUT_RING_SIZE;
 			_playPos = 0;
 		}
 	}
@@ -65,7 +65,7 @@ int WaveOutStream::readBuffer(int16 *buffer, const int numSamples) {
 bool WaveOutStream::endOfData() const {
 	const WaveRingEntry &entry = _ring[_playIndex];
 
-	return !(entry.flags & kHeaderInQueue) || (entry.flags & kHeaderDone);
+	return !(entry.flags & TG_WAVEOUT_HEADER_IN_QUEUE) || (entry.flags & TG_WAVEOUT_HEADER_DONE);
 }
 
 void WaveOutStream::resetPlayback() {

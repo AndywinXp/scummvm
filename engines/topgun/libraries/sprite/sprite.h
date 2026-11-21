@@ -30,6 +30,20 @@
 
 #include "topgun/display.h"
 
+#define TG_SPR_BITMAP_HEADER_SIZE     16
+#define TG_SPR_BITMAP_HEADER_SIZE_V1  20
+#define TG_SPR_BITMAP_WIDTH_OFFSET    2
+#define TG_SPR_BITMAP_HEIGHT_OFFSET   6
+#define TG_SPR_BITMAP_HOT_X_OFFSET    10
+#define TG_SPR_BITMAP_HOT_Y_OFFSET    12
+#define TG_SPR_COMPOSE_BUFFER_WIDTH   256
+#define TG_SPR_COMPOSE_BUFFER_HEIGHT  254
+#define TG_SPR_MAX_SPRITES            50
+#define TG_SPR_NUM_SPRITE_PARTS       3
+#define TG_SPR_NUM_QUEUE_COMMANDS     29
+#define TG_SPR_QUEUE_RECORD_COPY_SIZE 18
+#define TG_SPR_FRAME_NOTIFICATION     28
+
 namespace Topgun {
 
 class TopgunEngine;
@@ -54,21 +68,6 @@ struct SpriteInfo {
 
 class SpriteLibrary {
 public:
-	enum {
-		kBitmapHeaderSize = 16,
-		kBitmapWidthOffset = 2,
-		kBitmapHeightOffset = 6,
-		kBitmapHotXOffset = 0xA,
-		kBitmapHotYOffset = 0xC,
-		kComposeBufferWidth = 256,
-		kComposeBufferHeight = 254,
-		kMaxSprites = 50,
-		kNumSpriteParts = 3,
-		kNumQueueCommands = 29,
-		kQueueRecordCopySize = 0x12,
-		kFrameNotification = 0x1C
-	};
-
 	SpriteLibrary(TopgunEngine *engine);
 	~SpriteLibrary();
 
@@ -100,6 +99,8 @@ public:
 	bool spriteRealizePalette();
 	void spriteSetBackground(byte *background, Common::Rect *outClipRect);
 	void spriteSetBkgTransparent(bool flag);
+	void spriteSetCollision(uint16 sprite, uint16 targetId, uint16 notifyValue);
+	bool spriteResetComposeBuffer();
 	void spriteSetDebugProc(uint32 value);
 	void spriteSetId(uint16 sprite, uint16 id);
 	void spriteSetMessageProc();
@@ -136,7 +137,7 @@ private:
 	};
 
 	struct SpritePartBlock {
-		SpritePart parts[kNumSpriteParts];
+		SpritePart parts[TG_SPR_NUM_SPRITE_PARTS];
 	};
 	typedef Common::SharedPtr<SpritePartBlock> SpritePartBlockPtr;
 
@@ -171,18 +172,22 @@ private:
 		bool loopsDisabled;
 		byte scriptActive;
 		byte partCount;
+		uint16 collisionTarget;
+		uint16 collisionValue;
 
 		SpriteObject() : x(0), y(0), moveDue(0), frameDue(0), moveInterval(0), frameInterval(0), currentFrame(nullptr),
 			queueStart(nullptr), queueCurrent(nullptr), queueEnd(nullptr), id(0), currentFrameIndex(0),
 			nextFrameIndex(0), rangeStart(0), rangeEnd(0), visible(false), notifyOnFrame(false),
 			framePending(false), useUnionRefresh(false), forward(false), previousValid(false),
-			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0) {}
+			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0),
+			collisionTarget(0), collisionValue(0) {}
 	};
 
 	typedef Common::HashMap<uint16, SpriteObject *> SpriteMap;
 
 	// Library
 	void initQueueRecordSizeTable();
+	uint16 bitmapHeaderSize() const;
 
 	// Sprite objects
 	uint16 spriteObjectAlloc();
@@ -221,6 +226,7 @@ private:
 	void repaintPreviousRect(uint16 sprite, bool excludeCurrent);
 	void renderSpriteToSurface(uint16 sprite);
 	void compositeSpritesInRect(const Common::Rect &rect);
+	void checkCollision(uint16 sprite);
 	void recomputeCelBoxArray(uint16 sprite, const byte *command);
 	void compositeSpritePartsIntoBuffer(uint16 sprite, uint16 count, const SpritePart *parts, const Common::Rect &rect);
 	void blitSpriteToScreen(int16 x, int16 y, const byte *bitmap);
@@ -258,10 +264,10 @@ private:
 	int16 _scrollY = 0;
 	bool _hasLogicalPalette = false;
 	uint16 _dibColorUsage = 0;
-	byte _paletteCopy[Display::kNumPaletteEntries][Display::kPaletteEntrySize];
-	byte _colorTable[Display::kNumPaletteEntries][Display::kPaletteEntrySize];
-	uint16 _queueCommandSizeTable[kNumQueueCommands];
-	uint16 _spriteTable[kMaxSprites];
+	byte _paletteCopy[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	byte _colorTable[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	uint16 _queueCommandSizeTable[TG_SPR_NUM_QUEUE_COMMANDS];
+	uint16 _spriteTable[TG_SPR_MAX_SPRITES];
 	SpriteMap _sprites;
 	uint16 _nextSpriteHandle = 1;
 };

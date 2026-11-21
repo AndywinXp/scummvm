@@ -32,22 +32,23 @@
 
 #include "topgun/topgun.h"
 
+#define TG_HOST_PROGRESS_INTERVAL     0x2000
+#define TG_HOST_SCENE_NAME_SIZE       13
+#define TG_HOST_NUM_SCENE_FLAGS       30
+#define TG_HOST_MAX_SCENES            10
+#define TG_HOST_NUM_GLOBAL_FLAGS      10
+#define TG_HOST_MAX_HOTSPOTS          100
+#define TG_HOST_MAX_TIMERS            20
+#define TG_HOST_NUM_DISSOLVE_TILES    300
+#define TG_HOST_LOOP_DELAY            10
+#define TG_HOST_MAX_POSTED_MESSAGES   8
+#define TG_HOST_MAX_SCRIPT_DEPTH      256
+#define TG_HOST_NUM_SCRIPT_CHOICES    6
+#define TG_HOST_FIRST_AUDIO_TRACK     2
+
 namespace Topgun {
 
 struct SpriteInfo;
-
-enum MessageId {
-	kMsgActivate = 0x06,
-	kMsgPaint = 0x0F,
-	kMsgClose = 0x10,
-	kMsgQuit = 0x12,
-	kMsgKeyDown = 0x100,
-	kMsgLButtonDown = 0x201,
-	kMsgRButtonDown = 0x204,
-	kMsgSceneEnd = 0x464,
-	kMsgGotoScene = 0x465,
-	kMsgRunScript = 0x466
-};
 
 enum AudioCommand {
 	kPlayCDTracksCommand = 0x6F,
@@ -56,12 +57,6 @@ enum AudioCommand {
 	kDestroySoundCommand = 0x12C,
 	kStartSoundCommand = 0x131,
 	kStopSoundCommand = 0x134
-};
-
-enum {
-	kProgressInterval = 0x2000,
-	kNumPaletteEntries = 256,
-	kPaletteEntrySize = 4
 };
 
 enum ScriptOpcode {
@@ -145,7 +140,9 @@ enum ResourceType {
 	kResourceGroup = 5,
 	kResourceSprite = 6,
 	kResourceScript = 7,
-	kResourceTransPalette = 8
+	kResourceTransPalette = 8,
+	kResourcePlugin = 9,
+	kResourceIdList = 10
 };
 
 struct ResourceRecord {
@@ -161,15 +158,9 @@ struct ResourceRecord {
 		numMembers(0), idList(nullptr) {}
 };
 
-enum {
-	kSceneNameSize = 13,
-	kNumSceneFlags = 30,
-	kMaxScenes = 10
-};
-
 struct SceneRecord {
-	char name[kSceneNameSize];
-	byte flags[kNumSceneFlags];
+	char name[TG_HOST_SCENE_NAME_SIZE];
+	uint16 flags[TG_HOST_NUM_SCENE_FLAGS];
 
 	SceneRecord() {
 		memset(name, 0, sizeof(name));
@@ -179,7 +170,7 @@ struct SceneRecord {
 
 struct GotoSceneRecord {
 	uint16 opcode;
-	char name[kSceneNameSize];
+	char name[TG_HOST_SCENE_NAME_SIZE];
 	byte releaseSceneSprite;
 
 	GotoSceneRecord() : opcode(0), releaseSceneSprite(0) {
@@ -189,23 +180,13 @@ struct GotoSceneRecord {
 
 class TopgunEngine_v0 : public TopgunEngine {
 public:
-	enum {
-		kNumGlobalFlags = 10,
-		kMaxHotspots = 100,
-		kMaxTimers = 20,
-		kNumDissolveTiles = 300,
-		kLoopDelay = 10,
-		kMaxPostedMessages = 8,
-		kMaxScriptDepth = 256,
-		kFirstAudioTrack = 2
-	};
-
-	TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc);
+	TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc, int version = 0);
 	~TopgunEngine_v0() override;
 
 protected:
 	// Main loop
 	bool rtStartup(bool runChecks) override;
+	virtual void initCDAudio();
 	uint16 mainLoop() override;
 	void presentScreenAndWait();
 	void resourceLoadProgressCallback() override;
@@ -220,7 +201,7 @@ protected:
 
 	// Messages
 	void requestClose() override;
-	bool postMessage(uint16 id, uint16 param, uint32 data);
+	bool postMessage(uint16 id, uint16 param, uint32 data) override;
 	bool peekMessage(Message &message);
 	void removeMessages(uint16 id);
 	void clearMessages();
@@ -228,10 +209,10 @@ protected:
 	void validateScreen();
 	void postQuitMessage(uint16 exitCode);
 	void dispatchMessage(const Message &message);
-	void handleActivateMessage(uint16 param);
+	virtual void handleActivateMessage(uint16 param);
 	void handleAppShutdown();
 	void handlePaintMessage();
-	void handleSceneEndMessage();
+	virtual void handleSceneEndMessage();
 	void fillBackground();
 
 	// Input
@@ -239,12 +220,14 @@ protected:
 	void discardPendingInput(uint16 id);
 	bool translate(const Common::Event &event, Message &message);
 	uint16 scriptKeyToKeyCodes(uint16 scriptKey, Common::KeyCode *keyCodes) const;
-	void handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl);
-	void handleMouseButtonDown(int16 x, int16 y);
+	virtual void handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl);
+	void runKeyScript(Common::KeyCode keycode, bool shift, bool ctrl);
+	virtual void handleMouseButtonDown(int16 x, int16 y);
+	void runClickScriptAt(int16 x, int16 y);
 	void addOrUpdateClickRegion(const byte *record);
 
 	// Cursor
-	void applyCursorFromRegister();
+	virtual void applyCursorFromRegister();
 	void setCursorImage(bool hourglass);
 
 	// Volume
@@ -258,51 +241,52 @@ protected:
 	// Scenes
 	SceneRecord *findOrCreateSceneEntry(const Common::String &name);
 	bool loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback);
-	void switchToNextScene(const char *name);
-	bool loadInitialScene(const Common::String &name);
-	void cleanupCurrentSceneAndContainer();
+	virtual void switchToNextScene(const char *name);
+	virtual bool loadInitialScene(const Common::String &name);
+	virtual void cleanupCurrentSceneAndContainer();
 
 	// Resources
-	void freeBitmapBlobIfUnreferenced(uint16 id);
+	virtual void freeBitmapBlobIfUnreferenced(uint16 id);
 	void destroyDataResourceObject(uint16 id);
 	bool destroyGroupResourceObject(uint16 id);
-	bool destroySpriteResourceObject(uint16 id);
+	virtual bool destroySpriteResourceObject(uint16 id);
 	void destroyWaveResourceObject(uint16 id);
 	bool ensureBitmapResourceLoaded(uint16 id);
 	bool loadOrGetResourceData(uint16 id);
 	bool ensureGroupResourceLoaded(uint16 id);
-	bool loadTransPaletteResource(uint16 id);
-	byte *loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut);
+	virtual bool loadTransPaletteResource(uint16 id);
+	virtual byte *loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut);
 	bool ensureSpriteResourceLoaded(uint16 id);
 	bool attachResourceListToSprite(uint16 spriteHandle, const byte *idList, uint16 count);
 	bool ensureWaveResourceLoaded(uint16 id);
 	bool destroyResourceObjectByType(uint16 id, uint16 type);
 	void resetResourcesAndTransientState();
 	void destroySceneMainObjects();
-	bool validateAndGetResourceByType(uint16 id, uint16 type);
-	bool isResourceObjectLoaded(uint16 id);
+	virtual bool validateAndGetResourceByType(uint16 id, uint16 type);
+	virtual bool isResourceObjectLoaded(uint16 id);
 	void decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId);
 	void refreshGamePalette(byte *buffer);
 	bool openResourceFileAndInit(const Common::String &name);
 
 	// Scripts
-	bool runScriptBytecodeLoop(uint16 scriptId);
+	virtual bool runScriptBytecodeLoop(uint16 scriptId);
 	void spriteMessageService(byte *record) override;
-	bool runScriptResource(uint16 scriptId);
+	virtual bool runScriptResource(uint16 scriptId);
+	void printDebugString(const byte *text, uint16 value);
 
 	// Opcodes
 	bool o_setClickScript(const byte *record); // 4
 	bool o_setSpriteQueue(uint16 spriteId, uint16 dataId); // 5
 	bool o_playWave(uint16 waveId, byte *params); // 8
-	void o_playCDTrack(uint16 track); // 9
+	virtual void o_playCDTrack(uint16 track); // 9
 	void o_fadeInOut(const byte *record); // 10, 11
 	void o_bindKeyScript(const byte *record); // 12
 	void o_stopCD(); // 14
 	bool o_stopWave(uint16 waveId, byte *block); // 15
 	void o_setScriptTimer(const byte *record); // 19
 	void o_cancelScriptTimer(const byte *record); // 20
-	bool o_randomRunScript(const byte *record); // 22
-	bool o_roundRobinRunScript(byte *record); // 23
+	virtual bool o_randomRunScript(byte *record); // 22
+	virtual bool o_roundRobinRunScript(byte *record); // 23
 	bool o_transferSprite(uint16 sourceSpriteId, uint16 destinationSpriteId, uint16 dataId, bool freeSource); // 24
 	void o_setSpriteLevel(uint16 spriteId, uint16 level); // 28
 	bool transferSpriteContents(uint16 sourceSpriteId, uint16 destinationSpriteId, bool freeSource);
@@ -323,18 +307,18 @@ protected:
 	void initDissolve();
 	void dissolveOneTile();
 	void computeInsetRingRect(uint16 k, Common::Rect *out, uint16 n);
-	void paintFrameBandsTopBottom(const Common::Rect &outer, const Common::Rect &inner);
+	virtual void paintFrameBandsTopBottom(const Common::Rect &outer, const Common::Rect &inner);
 	void wipeEffectFrameRingsInsideOut();
 	void wipeEffectFrameRingsOutsideIn();
-	void advanceSceneFadeStep();
-	void sceneTransitionIn();
-	void sceneTransitionOut();
+	virtual void advanceSceneFadeStep();
+	virtual void sceneTransitionIn();
+	virtual void sceneTransitionOut();
 
 	// Main loop
 	bool _shuttingDown = false;
 
 	// Messages
-	Message _messages[kMaxPostedMessages];
+	Message _messages[TG_HOST_MAX_POSTED_MESSAGES];
 	uint16 _numMsgsPosted = 0;
 	bool _paintPending = false;
 	bool _quit = false;
@@ -347,11 +331,11 @@ protected:
 	bool _cursorEnabled = false;
 	bool _inputBusy = false;
 	bool _cdAudioPlaying = false;
-	byte _globalFlags[kNumGlobalFlags];
+	uint16 _globalFlags[TG_HOST_NUM_GLOBAL_FLAGS];
 	KeyScriptMap _keyScripts;
-	HotspotRecord _hotspots[kMaxHotspots];
+	HotspotRecord _hotspots[TG_HOST_MAX_HOTSPOTS];
 	uint16 _numHotspots = 0;
-	ScheduledTimerRecord _timers[kMaxTimers];
+	ScheduledTimerRecord _timers[TG_HOST_MAX_TIMERS];
 	uint16 _numTimers = 0;
 	uint16 _sceneEndScript = 0;
 	uint16 _activationScript = 0;
@@ -361,7 +345,7 @@ protected:
 	GotoSceneRecord _gotoRecord;
 	SceneRecord *_currentScene = nullptr;
 	uint16 _numScenes = 0;
-	SceneRecord _scenes[kMaxScenes];
+	SceneRecord _scenes[TG_HOST_MAX_SCENES];
 
 	// Resources
 	uint16 _file = 0;
@@ -386,7 +370,7 @@ protected:
 	uint16 _step = 0;
 	uint16 _stepCount = 0;
 	uint16 _tileSize = 0;
-	uint16 _tileOrder[kNumDissolveTiles];
+	uint16 _tileOrder[TG_HOST_NUM_DISSOLVE_TILES];
 	bool _screenBox = false;
 };
 

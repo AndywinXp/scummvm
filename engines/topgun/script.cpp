@@ -30,9 +30,7 @@
 
 namespace Topgun {
 
-enum {
-	kDebugStringSize = 51
-};
+#define TG_SCRIPT_DEBUG_STRING_SIZE 51
 
 enum SpriteEvent {
 	kEventBreakLoops = 16,
@@ -87,7 +85,7 @@ void TopgunEngine_v0::removeScheduledTimer(uint16 index) {
 }
 
 bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
-	if (_scriptDepth >= kMaxScriptDepth) {
+	if (_scriptDepth >= TG_HOST_MAX_SCRIPT_DEPTH) {
 		warning("TopgunEngine_v0::runScriptBytecodeLoop(): script nesting too deep");
 		return true;
 	}
@@ -201,12 +199,12 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 			uint16 index = flag & 0x7FFF;
 
 			if ((flag & 0x8000) != 0) {
-				if (index < kNumGlobalFlags)
+				if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 					_globalFlags[index] = ip[4];
 				else
 					warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 			} else if (_currentScene) {
-				if (index < kNumSceneFlags)
+				if (index < TG_HOST_NUM_SCENE_FLAGS)
 					_currentScene->flags[index] = ip[4];
 				else
 					warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
@@ -223,15 +221,15 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 			bool global = (flag & 0x8000) != 0;
 
 			if (global || _currentScene) {
-				byte value = 0;
+				uint16 value = 0;
 
 				if (global) {
-					if (index < kNumGlobalFlags)
+					if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 						value = _globalFlags[index];
 					else
 						warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 				} else {
-					if (index < kNumSceneFlags)
+					if (index < TG_HOST_NUM_SCENE_FLAGS)
 						value = _currentScene->flags[index];
 					else
 						warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
@@ -331,46 +329,21 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 		case kOpDebugString: {
 			uint16 flag = READ_LE_UINT16(ip + 2);
 			uint16 index = flag & 0x7FFF;
-			byte value = 0;
+			uint16 value = 0;
 
 			if ((flag & 0x8000) != 0) {
-				if (index < kNumGlobalFlags)
+				if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 					value = _globalFlags[index];
 				else
 					warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 			} else {
-				if (_currentScene && index < kNumSceneFlags)
+				if (_currentScene && index < TG_HOST_NUM_SCENE_FLAGS)
 					value = _currentScene->flags[index];
 				else
 					warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d cannot be read", index);
 			}
 
-			char message[kDebugStringSize + 1];
-			memcpy(message, ip + 4, kDebugStringSize);
-			message[kDebugStringSize] = '\0';
-
-			uint16 numConversions = 0;
-			bool validFormat = true;
-			const char *c = message;
-
-			while (*c && validFormat) {
-				if (*c == '%') {
-					c++;
-
-					if (*c == 'd' || *c == 'i' || *c == 'u' || *c == 'x' || *c == 'X' || *c == 'c')
-						numConversions++;
-					else if (*c != '%')
-						validFormat = false;
-				}
-
-				if (*c)
-					c++;
-			}
-
-			if (validFormat && numConversions <= 1)
-				debug("%s", Common::String::format(message, (int)value).c_str());
-			else
-				debug("%s", message);
+			printDebugString(ip + 4, value);
 
 			ip += 55;
 			left -= 55;
@@ -429,6 +402,35 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 
 	_scriptDepth--;
 	return true;
+}
+
+void TopgunEngine_v0::printDebugString(const byte *text, uint16 value) {
+	char message[TG_SCRIPT_DEBUG_STRING_SIZE + 1];
+	memcpy(message, text, TG_SCRIPT_DEBUG_STRING_SIZE);
+	message[TG_SCRIPT_DEBUG_STRING_SIZE] = '\0';
+
+	uint16 numConversions = 0;
+	bool validFormat = true;
+	const char *c = message;
+
+	while (*c && validFormat) {
+		if (*c == '%') {
+			c++;
+
+			if (*c == 'd' || *c == 'i' || *c == 'u' || *c == 'x' || *c == 'X' || *c == 'c')
+				numConversions++;
+			else if (*c != '%')
+				validFormat = false;
+		}
+
+		if (*c)
+			c++;
+	}
+
+	if (validFormat && numConversions <= 1)
+		debug("%s", Common::String::format(message, (int)value).c_str());
+	else
+		debug("%s", message);
 }
 
 void TopgunEngine_v0::spriteMessageService(byte *record) {

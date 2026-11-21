@@ -25,11 +25,9 @@
 
 namespace Topgun {
 
-enum {
-	kMaxListedTypes = 16,
-	kMaxListedEntries = 20,
-	kMaxPaletteBytes = 0xFFFF
-};
+#define TG_CONSOLE_MAX_LISTED_TYPES   16
+#define TG_CONSOLE_MAX_LISTED_ENTRIES 20
+#define TG_CONSOLE_MAX_PALETTE_BYTES  0xFFFF
 
 Console::Console() : GUI::Debugger() {
 	registerCmd("test",   WRAP_METHOD(Console, Cmd_test));
@@ -62,24 +60,24 @@ bool Console::Cmd_listResources(int argc, const char **argv) {
 	debugPrintf("Entries: %d\n", entryCount);
 	debugPrintf("Variables: %d\n", library->resCountVariables(file));
 
-	byte *palette = new byte[kMaxPaletteBytes];
+	byte *palette = new byte[TG_CONSOLE_MAX_PALETTE_BYTES];
 	debugPrintf("Palette colors (nDwords): %d\n", library->resLoadPalette(file, palette));
 	delete[] palette;
 
-	uint32 typeCounts[kMaxListedTypes];
-	for (int i = 0; i < kMaxListedTypes; i++)
+	uint32 typeCounts[TG_CONSOLE_MAX_LISTED_TYPES];
+	for (int i = 0; i < TG_CONSOLE_MAX_LISTED_TYPES; i++)
 		typeCounts[i] = 0;
 
 	uint32 otherTypes = 0;
 	for (uint16 i = 0; i < entryCount; i++) {
 		uint16 type = library->resGetType(file, i);
-		if (type < kMaxListedTypes)
+		if (type < TG_CONSOLE_MAX_LISTED_TYPES)
 			typeCounts[type]++;
 		else
 			otherTypes++;
 	}
 
-	for (int i = 0; i < kMaxListedTypes; i++) {
+	for (int i = 0; i < TG_CONSOLE_MAX_LISTED_TYPES; i++) {
 		if (typeCounts[i] != 0)
 			debugPrintf("Type %d: %u\n", i, typeCounts[i]);
 	}
@@ -88,7 +86,7 @@ bool Console::Cmd_listResources(int argc, const char **argv) {
 		debugPrintf("Other types: %u\n", otherTypes);
 
 	debugPrintf("Index Type Size\n");
-	for (uint16 i = 0; i < entryCount && i < kMaxListedEntries; i++)
+	for (uint16 i = 0; i < entryCount && i < TG_CONSOLE_MAX_LISTED_ENTRIES; i++)
 		debugPrintf("%5d %4d %u\n", i, library->resGetType(file, i), library->resGetSize(file, i));
 
 	library->resCloseFile(file);

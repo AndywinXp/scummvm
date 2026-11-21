@@ -26,6 +26,15 @@
 #include "common/rect.h"
 #include "common/scummsys.h"
 
+#define TG_DISPLAY_DEFAULT_WIDTH             640
+#define TG_DISPLAY_DEFAULT_HEIGHT            480
+#define TG_DISPLAY_LARGE_WIDTH               800
+#define TG_DISPLAY_LARGE_HEIGHT              600
+#define TG_DISPLAY_NUM_PALETTE_ENTRIES       256
+#define TG_DISPLAY_PALETTE_ENTRY_SIZE        4
+#define TG_DISPLAY_ANIMATABLE_PALETTE_FLAG   1
+#define TG_DISPLAY_NUM_STATIC_COLORS_PER_END 10
+
 namespace Graphics {
 class Screen;
 }
@@ -34,16 +43,6 @@ namespace Topgun {
 
 class Display {
 public:
-	enum {
-		kDefaultWidth = 640,
-		kDefaultHeight = 480,
-		kLargeWidth = 800,
-		kLargeHeight = 600,
-		kNumPaletteEntries = 256,
-		kPaletteEntrySize = 4,
-		kAnimatablePaletteFlag = 1
-	};
-
 	Display(uint16 width, uint16 height);
 	~Display();
 
@@ -93,8 +92,8 @@ private:
 	Common::Point _viewportOrigin;
 	RectArray _excludedRects;
 	Common::Array<RectArray> _savedClipStates;
-	byte _logicalPalette[kNumPaletteEntries][kPaletteEntrySize];
-	byte _screenPalette[kNumPaletteEntries][3];
+	byte _logicalPalette[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	byte _screenPalette[TG_DISPLAY_NUM_PALETTE_ENTRIES][3];
 	bool _logicalPaletteRealized = false;
 	bool _paletteChanged = false;
 };

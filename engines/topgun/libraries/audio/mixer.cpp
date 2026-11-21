@@ -85,9 +85,12 @@ void AudioLibrary::mixSound8Bit(WaveObject *wave) {
 		uint32 after = remaining - chunk;
 		wave->readPos += chunk;
 
-		if (wave->currentVolume == kMaxVolumeLevel && !wave->fadingIn && !wave->fadingOut) {
+		if (wave->currentVolume == TG_AUDIO_MAX_VOLUME_LEVEL && !wave->fadingIn && !wave->fadingOut) {
 			if (mixCount < 2) {
 				memcpy(destination, source, chunk);
+			} else if (_engine->_version >= 1) {
+				for (uint32 i = 0; i < chunk; i++)
+					destination[i] = (byte)CLIP<int32>((int32)destination[i] + source[i] - 0x80, 0, 255);
 			} else if (mixCount == 2) {
 				for (uint32 i = 0; i < chunk; i++)
 					destination[i] = (byte)((destination[i] + source[i]) >> 1);
@@ -121,7 +124,7 @@ void AudioLibrary::mixSound8Bit(WaveObject *wave) {
 			for (uint32 i = 0; i < chunk; i++) {
 				int32 sample = source[i];
 
-				if (wave->currentVolume != kMaxVolumeLevel)
+				if (wave->currentVolume != TG_AUDIO_MAX_VOLUME_LEVEL)
 					sample = (sample * (int8)wave->currentVolume) >> 4;
 
 				int32 existing = *destination;
@@ -129,6 +132,8 @@ void AudioLibrary::mixSound8Bit(WaveObject *wave) {
 
 				if (mixCount < 2)
 					result = sample;
+				else if (_engine->_version >= 1)
+					result = CLIP<int32>(existing + sample - 0x80, 0, 255);
 				else if (mixCount == 2)
 					result = (existing + sample) >> 1;
 				else if (mixCount == 3)
@@ -216,7 +221,7 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 		if (samples == 0)
 			warning("AudioLibrary::mixSound16Bit(): chunk of a single byte");
 
-		if (wave->currentVolume == kMaxVolumeLevel && !wave->fadingIn && !wave->fadingOut) {
+		if (wave->currentVolume == TG_AUDIO_MAX_VOLUME_LEVEL && !wave->fadingIn && !wave->fadingOut) {
 			if (mixCount < 2) {
 				memcpy(destination, source, samples * sizeof(int16));
 			} else {
@@ -225,7 +230,9 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 					int32 sample = READ_LE_INT16(source + i * 2);
 					int32 result;
 
-					if (mixCount == 2)
+					if (_engine->_version >= 1)
+						result = CLIP<int32>(existing + sample, -32767, 32767);
+					else if (mixCount == 2)
 						result = (existing + sample) >> 1;
 					else if (mixCount == 3)
 						result = (2 * existing + sample) / 3;
@@ -243,7 +250,7 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 			for (uint32 i = 0; i < samples; i++) {
 				int32 sample = READ_LE_INT16(source + i * 2);
 
-				if (wave->currentVolume != kMaxVolumeLevel)
+				if (wave->currentVolume != TG_AUDIO_MAX_VOLUME_LEVEL)
 					sample = (sample * (int8)wave->currentVolume) >> 4;
 
 				int32 existing = READ_LE_INT16(destination);
@@ -251,6 +258,8 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 
 				if (mixCount < 2)
 					result = sample;
+				else if (_engine->_version >= 1)
+					result = CLIP<int32>(existing + sample, -32767, 32767);
 				else if (mixCount == 2)
 					result = (existing + sample) >> 1;
 				else if (mixCount == 3)
@@ -331,32 +340,36 @@ void AudioLibrary::mixAllWavesAndQueueBuffer() {
 		WaveRingEntry &entry = _waveRing[_ringHead];
 
 		entry.busy = true;
-		entry.flags &= ~(uint32)(WaveOutStream::kHeaderDone | WaveOutStream::kHeaderBeginLoop | WaveOutStream::kHeaderEndLoop);
-		entry.flags |= WaveOutStream::kHeaderInQueue;
+		entry.flags &= ~(uint32)(TG_WAVEOUT_HEADER_DONE | TG_WAVEOUT_HEADER_BEGIN_LOOP | TG_WAVEOUT_HEADER_END_LOOP);
+		entry.flags |= TG_WAVEOUT_HEADER_IN_QUEUE;
 	}
 
 	_buffersInFlight++;
-	_ringHead = (_ringHead + 1 == WaveOutStream::kRingSize) ? 0 : _ringHead + 1;
+	_ringHead = (_ringHead + 1 == TG_WAVEOUT_RING_SIZE) ? 0 : _ringHead + 1;
 }
 
-void AudioLibrary::retireBufferAndRefill() {
+bool AudioLibrary::retireBufferAndRefill() {
 	if (_buffersInFlight != 0) {
 		bool done;
 
 		{
 			Common::StackLock lock(g_system->getMixer()->mutex());
-			done = (_waveRing[_ringTail].flags & WaveOutStream::kHeaderDone) != 0;
+			done = (_waveRing[_ringTail].flags & TG_WAVEOUT_HEADER_DONE) != 0;
 		}
 
 		if (done) {
 			_buffersInFlight--;
 			_waveRing[_ringTail].busy = false;
-			_ringTail = (_ringTail + 1 == WaveOutStream::kRingSize) ? 0 : _ringTail + 1;
+			_ringTail = (_ringTail + 1 == TG_WAVEOUT_RING_SIZE) ? 0 : _ringTail + 1;
 		}
 	}
 
-	if (_activeSoundCount != 0 && !_waveRing[_ringHead].busy)
+	if (_activeSoundCount != 0 && !_waveRing[_ringHead].busy) {
 		mixAllWavesAndQueueBuffer();
+		return true;
+	}
+
+	return false;
 }
 
 void AudioLibrary::pumpAudioPlayback() {
@@ -370,7 +383,7 @@ void AudioLibrary::pumpAudioPlayback() {
 		uint32 now = _engine->getEngineMillis();
 
 		if (now >= _fadeNextTick) {
-			_fadeNextTick = now + kFadeTickInterval;
+			_fadeNextTick = now + TG_AUDIO_FADE_TICK_INTERVAL;
 
 			if (_masterFadeMode == 1)
 				masterFadeUpTick();
@@ -379,7 +392,10 @@ void AudioLibrary::pumpAudioPlayback() {
 		}
 	}
 
-	retireBufferAndRefill();
+	bool mixed = retireBufferAndRefill();
+
+	if (mixed && _engine->_version >= 1)
+		return;
 
 	if (_cdSuspend)
 		return;
@@ -388,7 +404,7 @@ void AudioLibrary::pumpAudioPlayback() {
 	for (uint32 i = 0; i < count; i++) {
 		WaveObject *wave = _waveObjects[i];
 
-		if (wave->streaming && !wave->endOfStream && wave->available < _refillThreshold)
+		if (wave->streaming && !wave->endOfStream && (_engine->_version >= 1 ? wave->available <= _refillThreshold : wave->available < _refillThreshold))
 			compactAndRefillSoundBuffer(wave);
 
 		if (wave->randomRepeat && !wave->active && _engine->getEngineMillis() >= wave->nextTrigger) {
@@ -401,7 +417,7 @@ void AudioLibrary::pumpAudioPlayback() {
 }
 
 void AudioLibrary::allocateWaveOutBuffers() {
-	for (uint32 i = 0; i < WaveOutStream::kRingSize; i++) {
+	for (uint32 i = 0; i < TG_WAVEOUT_RING_SIZE; i++) {
 		WaveRingEntry &entry = _waveRing[i];
 
 		entry.data = new byte[_waveBufferSize];
@@ -417,20 +433,34 @@ void AudioLibrary::allocateWaveOutBuffers() {
 }
 
 void AudioLibrary::freeWaveOutBuffers() {
-	for (uint32 i = 0; i < WaveOutStream::kRingSize; i++) {
+	for (uint32 i = 0; i < TG_WAVEOUT_RING_SIZE; i++) {
 		delete[] _waveRing[i].data;
 		_waveRing[i].data = nullptr;
 	}
 }
 
-bool AudioLibrary::findBestWaveFormatIndex() {
-	uint16 mask = (uint16)(kWaveFormatMask & (_waveOutCapsFormats & 0xFFFF));
-	uint32 index = 0;
+bool AudioLibrary::findBestWaveFormatIndex(const WaveFormat *wanted) {
+	bool soundFormat = (_engine->_version >= 1);
+	uint16 formatMask = soundFormat ? TG_AUDIO_WAVE_FORMAT_MASK_V1 : TG_AUDIO_WAVE_FORMAT_MASK;
+	uint16 mask = (uint16)(formatMask & (_waveOutCapsFormats & 0xFFFF));
+	uint32 index = TG_AUDIO_NUM_OUTPUT_FORMATS;
 
-	while (index < kNumOutputFormats && !(kFormatBits[index] & mask))
-		index++;
+	if (soundFormat && wanted) {
+		for (uint32 i = 0; i < TG_AUDIO_NUM_OUTPUT_FORMATS && index == TG_AUDIO_NUM_OUTPUT_FORMATS; i++) {
+			if (kFormatChannels[i] == wanted->channels && kFormatBytesPerSample[i] * 8 == wanted->bitsPerSample &&
+				kFormatRates[i] == wanted->sampleRate && (kFormatBits[i] & mask))
+				index = i;
+		}
+	}
 
-	if (index == kNumOutputFormats)
+	if (index == TG_AUDIO_NUM_OUTPUT_FORMATS) {
+		index = 0;
+
+		while (index < TG_AUDIO_NUM_OUTPUT_FORMATS && !(kFormatBits[index] & mask))
+			index++;
+	}
+
+	if (index == TG_AUDIO_NUM_OUTPUT_FORMATS)
 		return false;
 
 	_chosenFormatMask = kFormatBits[index];
@@ -441,9 +471,15 @@ bool AudioLibrary::findBestWaveFormatIndex() {
 	_waveFormat.averageBytesPerSecond = (uint16)(_waveFormat.blockAlign * kFormatRates[index]);
 	_waveFormat.bitsPerSample = kFormatBytesPerSample[index] * 8;
 
-	_waveBufferSize = (kWaveBufferSize != 0) ? kWaveBufferSize : kDefaultWaveBufferSize;
-	_streamBufferSize = (kDataBufferSize != 0) ? kDataBufferSize : (_waveBufferSize << 2);
-	_refillThreshold = (_streamBufferSize * 3) >> 2;
+	if (TG_AUDIO_WAVE_BUFFER_SIZE != 0)
+		_waveBufferSize = TG_AUDIO_WAVE_BUFFER_SIZE;
+	else if (_engine->_version >= 1)
+		_waveBufferSize = (uint32)_waveFormat.channels << 13;
+	else
+		_waveBufferSize = TG_AUDIO_DEFAULT_WAVE_BUFFER_SIZE;
+
+	_streamBufferSize = (TG_AUDIO_DATA_BUFFER_SIZE != 0) ? TG_AUDIO_DATA_BUFFER_SIZE : (_waveBufferSize << 2);
+	_refillThreshold = (_engine->_version >= 1) ? (_streamBufferSize >> 1) : ((_streamBufferSize * 3) >> 2);
 	return true;
 }
 
@@ -452,6 +488,19 @@ void AudioLibrary::closeWaveOutDevice() {
 		return;
 
 	resetWaveOutQueue();
+
+	if (_engine->_version >= 1) {
+		for (uint32 i = 0; i < _waveObjects.size(); i++) {
+			WaveObject *wave = _waveObjects[i];
+
+			if (wave->active) {
+				wave->active = false;
+				_activeSoundCount--;
+			}
+
+			wave->randomRepeat = false;
+		}
+	}
 
 	if (_savedWaveVolumeLeft != _waveVolumeLeft || _savedWaveVolumeRight != _waveVolumeRight)
 		setWaveOutVolume(((uint32)_savedWaveVolumeRight << 16) | _savedWaveVolumeLeft);
@@ -465,8 +514,19 @@ void AudioLibrary::closeWaveOutDevice() {
 	_chosenFormatMask = 0;
 }
 
-bool AudioLibrary::openWaveOutDevice() {
-	if (!findBestWaveFormatIndex())
+bool AudioLibrary::openWaveOutDevice(const WaveFormat *wanted) {
+	if (_engine->_version >= 1 && _waveOutStream) {
+		if (!wanted)
+			return true;
+
+		if (_waveFormat.channels == wanted->channels && _waveFormat.bitsPerSample == wanted->bitsPerSample &&
+			_waveFormat.sampleRate == wanted->sampleRate)
+			return true;
+
+		closeWaveOutDevice();
+	}
+
+	if (!findBestWaveFormatIndex(wanted))
 		return false;
 
 	Audio::Mixer *mixer = g_system->getMixer();
@@ -490,7 +550,10 @@ bool AudioLibrary::openWaveOutDevice() {
 	_savedWaveVolumeRight = (uint16)(_hardwareWaveVolume >> 16);
 	_waveVolumeLeft = _savedWaveVolumeLeft;
 	_waveVolumeRight = _savedWaveVolumeRight;
-	applyWaveOutVolume(_hardwareWaveVolume);
+
+	if (_engine->_version < 1 || !_disableWaveVolume)
+		applyWaveOutVolume(_hardwareWaveVolume);
+
 	return true;
 }
 
@@ -511,6 +574,9 @@ uint16 AudioLibrary::pauseAllPlayback(uint16 resume) {
 
 void AudioLibrary::setWaveOutVolume(uint32 volume) {
 	if (!_waveOutStream)
+		return;
+
+	if (_engine->_version >= 1 && _disableWaveVolume)
 		return;
 
 	_waveVolumeLeft = (uint16)(volume & 0xFFFF);
@@ -546,15 +612,15 @@ void AudioLibrary::resetWaveOutQueue() {
 	{
 		Common::StackLock lock(g_system->getMixer()->mutex());
 
-		for (uint32 i = 0; i < WaveOutStream::kRingSize; i++) {
-			if (_waveRing[i].flags & WaveOutStream::kHeaderInQueue)
-				_waveRing[i].flags = (_waveRing[i].flags & ~(uint32)WaveOutStream::kHeaderInQueue) | WaveOutStream::kHeaderDone;
+		for (uint32 i = 0; i < TG_WAVEOUT_RING_SIZE; i++) {
+			if (_waveRing[i].flags & TG_WAVEOUT_HEADER_IN_QUEUE)
+				_waveRing[i].flags = (_waveRing[i].flags & ~(uint32)TG_WAVEOUT_HEADER_IN_QUEUE) | TG_WAVEOUT_HEADER_DONE;
 		}
 
 		_waveOutStream->resetPlayback();
 	}
 
-	for (uint32 i = 0; i < WaveOutStream::kRingSize; i++)
+	for (uint32 i = 0; i < TG_WAVEOUT_RING_SIZE; i++)
 		_waveRing[i].busy = false;
 
 	_ringHead = 0;

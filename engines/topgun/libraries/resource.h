@@ -27,6 +27,22 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
+#define TG_RES_HEADER_SIZE                14
+#define TG_RES_HEADER_MAGIC               0x4C37
+#define TG_RES_INDEX_ENTRY_SIZE           10
+#define TG_RES_WAVE_STREAM_HEADER_SIZE    22
+#define TG_RES_WAVE_STREAM_HEADER_SIZE_V1 23
+#define TG_RES_COMPRESSION_FLAG_OFFSET    22
+#define TG_RES_ADPCM_HEADER_SIZE          10
+#define TG_RES_ADPCM_STEP_TABLE_ROWS      89
+#define TG_RES_ADPCM_MAX_STEP_POSITION    0x2C0
+#define TG_RES_CREATE_SOUND_COMMAND       0xC9
+#define TG_RES_BITMAP_TYPE                1
+#define TG_RES_RESIDENT_TYPE              7
+#define TG_RES_RESIDENT_ID_LIST_TYPE      10
+#define TG_RES_BITMAP_RECORD_MIN_SIZE     8
+#define TG_RES_MAX_RUN_LENGTH             200
+
 namespace Topgun {
 
 class TopgunEngine;
@@ -55,18 +71,6 @@ public:
 	int32 waveSeek(uint16 waveInfo, int32 offset, int16 origin);
 
 private:
-	enum {
-		kHeaderSize = 14,
-		kHeaderMagic = 0x4C37,
-		kIndexEntrySize = 10,
-		kWaveStreamHeaderSize = 22,
-		kCreateSoundCommand = 0xC9,
-		kBitmapType = 1,
-		kResidentType = 7,
-		kBitmapRecordMinSize = 8,
-		kMaxRunLength = 200
-	};
-
 	struct ResourceEntry {
 		uint16 type;
 		uint32 offset;
@@ -98,8 +102,21 @@ private:
 	struct WaveStreamInfo {
 		uint16 file;
 		uint32 position;
+		bool compressed;
+		uint32 end;
+		byte *buffer;
+		uint32 bufferSize;
+		uint32 available;
+		uint32 consumed;
+		uint16 channels;
+		int32 predictor[2];
+		int32 stepPosition[2];
 
-		WaveStreamInfo() : file(0), position(0) {}
+		WaveStreamInfo() : file(0), position(0), compressed(false), end(0), buffer(nullptr), bufferSize(0),
+			available(0), consumed(0), channels(0) {
+			predictor[0] = predictor[1] = 0;
+			stepPosition[0] = stepPosition[1] = 0;
+		}
 	};
 
 	typedef Common::HashMap<uint16, ResourceFile *> FileMap;
@@ -112,6 +129,11 @@ private:
 	ResourceFile *findFile(uint16 file, const char *caller);
 	uint16 registerFile(ResourceFile *record);
 	uint16 registerWaveInfo(WaveStreamInfo *info);
+	void destroyWaveInfo(WaveStreamInfo *info);
+	bool openCompressedWave(ResourceFile *file, WaveStreamInfo *info, const byte *header);
+	void resetAdpcmState(WaveStreamInfo *info);
+	void decodeAdpcm(WaveStreamInfo *info, byte *destination, const byte *source, uint32 inputBytes);
+	int32 readCompressedWave(ResourceFile *file, WaveStreamInfo *info, byte *buffer, int32 count);
 	void readEntry(const ResourceFile *file, uint16 index, ResourceEntry &entry) const;
 
 	TopgunEngine *_engine;

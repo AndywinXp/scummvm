@@ -33,6 +33,9 @@ namespace Topgun {
 void SpriteLibrary::spriteAnimate() {
 	_inTick = true;
 
+	if (_engine->_version >= 1 && _serviceProcSet)
+		_engine->audioLibrary()->audioService();
+
 	if (_tickCursor < _spriteCount) {
 		do {
 			SpriteObject *object = findSprite(tickCursorSprite(), "spriteAnimate");
@@ -57,7 +60,7 @@ void SpriteLibrary::spriteAnimate() {
 }
 
 uint16 SpriteLibrary::tickCursorSprite() {
-	if (_tickCursor < 0 || _tickCursor >= kMaxSprites) {
+	if (_tickCursor < 0 || _tickCursor >= TG_SPR_MAX_SPRITES) {
 		warning("SpriteLibrary::tickCursorSprite(): the tick cursor is outside the sprite table");
 		return 0;
 	}
@@ -263,7 +266,7 @@ byte *SpriteLibrary::nextQueueRecordWithLoops(uint16 sprite) {
 	byte *record;
 	if (object->queueCurrent) {
 		uint16 opcode = READ_LE_UINT16(object->queueCurrent);
-		if (opcode >= kNumQueueCommands) {
+		if (opcode >= TG_SPR_NUM_QUEUE_COMMANDS) {
 			warning("SpriteLibrary::nextQueueRecordWithLoops(): queue opcode %d is out of range", opcode);
 			return nullptr;
 		}
@@ -324,7 +327,7 @@ void SpriteLibrary::fireSpriteQueueCallbackMsg(uint16 sprite) {
 	if (!object || !object->queueCurrent)
 		return;
 
-	byte record[kQueueRecordCopySize];
+	byte record[TG_SPR_QUEUE_RECORD_COPY_SIZE];
 	memset(record, 0, sizeof(record));
 	memcpy(record, object->queueCurrent, _queueCommandSizeTable[READ_LE_UINT16(object->queueCurrent)]);
 
@@ -349,9 +352,9 @@ void SpriteLibrary::notifySpriteFrameChange(uint16 sprite) {
 	if (!object)
 		return;
 
-	byte message[kQueueRecordCopySize];
+	byte message[TG_SPR_QUEUE_RECORD_COPY_SIZE];
 	memset(message, 0, sizeof(message));
-	WRITE_LE_UINT16(message, kFrameNotification);
+	WRITE_LE_UINT16(message, TG_SPR_FRAME_NOTIFICATION);
 	WRITE_LE_UINT16(message + 2, object->id);
 
 	object->scriptActive = 0;
@@ -686,16 +689,16 @@ void SpriteLibrary::applyFrameChange(uint16 sprite) {
 	}
 
 	byte *frame = object->frames[object->currentFrameIndex];
-	int16 width = (int16)READ_LE_UINT16(frame + kBitmapWidthOffset);
-	int16 height = (int16)READ_LE_UINT16(frame + kBitmapHeightOffset);
+	int16 width = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 height = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	int16 widthMinusOne = (int16)(width - 1);
 	int16 heightMinusOne = (int16)(height - 1);
 
 	Common::Rect oldBox = object->boundingBox;
 
-	object->boundingBox.left = (int16)(object->x + READ_LE_INT16(frame + kBitmapHotXOffset) - widthMinusOne / 2);
+	object->boundingBox.left = (int16)(object->x + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET) - widthMinusOne / 2);
 	object->boundingBox.right = (int16)(width + object->boundingBox.left);
-	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + kBitmapHotYOffset) - heightMinusOne / 2);
+	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET) - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
 	object->useUnionRefresh = !oldBox.findIntersectingRect(object->boundingBox).isEmpty();

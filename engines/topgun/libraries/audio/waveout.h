@@ -25,6 +25,12 @@
 #include "audio/audiostream.h"
 #include "common/scummsys.h"
 
+#define TG_WAVEOUT_RING_SIZE         4
+#define TG_WAVEOUT_HEADER_DONE       0x01
+#define TG_WAVEOUT_HEADER_BEGIN_LOOP 0x04
+#define TG_WAVEOUT_HEADER_END_LOOP   0x08
+#define TG_WAVEOUT_HEADER_IN_QUEUE   0x10
+
 namespace Topgun {
 
 struct WaveRingEntry {
@@ -38,14 +44,6 @@ struct WaveRingEntry {
 
 class WaveOutStream : public Audio::AudioStream {
 public:
-	enum {
-		kRingSize = 4,
-		kHeaderDone = 0x01,
-		kHeaderBeginLoop = 0x04,
-		kHeaderEndLoop = 0x08,
-		kHeaderInQueue = 0x10
-	};
-
 	WaveOutStream(WaveRingEntry *ring, uint32 rate, bool stereo, bool eightBit);
 
 	int readBuffer(int16 *buffer, const int numSamples) override;

@@ -30,25 +30,25 @@ namespace Topgun {
 
 bool SpriteLibrary::spriteChangePalette(uint16 first, uint16 count, const byte *entries) {
 	uint16 end = (uint16)(first + count);
-	if ((uint16)(end - 1) > Display::kNumPaletteEntries)
+	if ((uint16)(end - 1) > TG_DISPLAY_NUM_PALETTE_ENTRIES)
 		return false;
 
 	for (uint16 index = first; index < end; index++) {
-		if (index >= Display::kNumPaletteEntries) {
+		if (index >= TG_DISPLAY_NUM_PALETTE_ENTRIES) {
 			warning("SpriteLibrary::spriteChangePalette(): palette index %d is out of range", index);
 			break;
 		}
 
-		memcpy(_paletteCopy[index], entries + (index - first) * Display::kPaletteEntrySize, Display::kPaletteEntrySize);
-		_paletteCopy[index][3] = Display::kAnimatablePaletteFlag;
+		memcpy(_paletteCopy[index], entries + (index - first) * TG_DISPLAY_PALETTE_ENTRY_SIZE, TG_DISPLAY_PALETTE_ENTRY_SIZE);
+		_paletteCopy[index][3] = TG_DISPLAY_ANIMATABLE_PALETTE_FLAG;
 	}
 
 	Display *display = _engine->display();
 
 	if (!display->hasPalette()) {
 		buildDibColorTableFromPalette(first, end);
-	} else if (_hasLogicalPalette && first < Display::kNumPaletteEntries) {
-		uint16 animated = MIN<uint16>(count, (uint16)(Display::kNumPaletteEntries - first));
+	} else if (_hasLogicalPalette && first < TG_DISPLAY_NUM_PALETTE_ENTRIES) {
+		uint16 animated = MIN<uint16>(count, (uint16)(TG_DISPLAY_NUM_PALETTE_ENTRIES - first));
 		display->animateLogicalPalette(first, animated, &_paletteCopy[first][0]);
 	}
 
@@ -56,15 +56,15 @@ bool SpriteLibrary::spriteChangePalette(uint16 first, uint16 count, const byte *
 }
 
 void SpriteLibrary::spriteGetPalette(byte *destination, uint16 first, uint16 count) {
-	if ((uint32)first + count > Display::kNumPaletteEntries) {
+	if ((uint32)first + count > TG_DISPLAY_NUM_PALETTE_ENTRIES) {
 		warning("SpriteLibrary::spriteGetPalette(): the palette range is out of range");
-		if (first >= Display::kNumPaletteEntries)
+		if (first >= TG_DISPLAY_NUM_PALETTE_ENTRIES)
 			return;
 
-		count = Display::kNumPaletteEntries - first;
+		count = TG_DISPLAY_NUM_PALETTE_ENTRIES - first;
 	}
 
-	memmove(destination, &_paletteCopy[first][0], count * Display::kPaletteEntrySize);
+	memmove(destination, &_paletteCopy[first][0], count * TG_DISPLAY_PALETTE_ENTRY_SIZE);
 }
 
 bool SpriteLibrary::spriteFadePalette(uint16 mult, uint16 divisor, uint16 first, uint16 count) {
@@ -74,15 +74,15 @@ bool SpriteLibrary::spriteFadePalette(uint16 mult, uint16 divisor, uint16 first,
 	if (!_hasLogicalPalette || divisor < mult || divisor > 0xFF)
 		return false;
 
-	if ((uint32)first + count > Display::kNumPaletteEntries) {
+	if ((uint32)first + count > TG_DISPLAY_NUM_PALETTE_ENTRIES) {
 		warning("SpriteLibrary::spriteFadePalette(): the palette range is out of range");
-		if (first >= Display::kNumPaletteEntries)
+		if (first >= TG_DISPLAY_NUM_PALETTE_ENTRIES)
 			return true;
 
-		count = Display::kNumPaletteEntries - first;
+		count = TG_DISPLAY_NUM_PALETTE_ENTRIES - first;
 	}
 
-	byte scaled[Display::kNumPaletteEntries * Display::kPaletteEntrySize];
+	byte scaled[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
 	scalePaletteEntries(scaled, &_paletteCopy[first][0], mult, divisor, count);
 	_engine->display()->animateLogicalPalette(first, count, scaled);
 	return true;
@@ -107,7 +107,7 @@ bool SpriteLibrary::spriteSetPalette(const byte *entries) {
 		createIdentityLogicalPalette();
 
 	if (!_hasLogicalPalette)
-		buildDibColorTableFromPalette(0, Display::kNumPaletteEntries);
+		buildDibColorTableFromPalette(0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 
 	return _hasLogicalPalette;
 }
@@ -119,14 +119,14 @@ void SpriteLibrary::scalePaletteEntries(byte *destination, const byte *source, u
 		for (int component = 0; component < 3; component++)
 			destination[component] = (byte)(((mult & 0xFF) * source[component] + (divisor >> 1)) / (divisor & 0xFF));
 
-		destination += Display::kPaletteEntrySize;
-		source += Display::kPaletteEntrySize;
+		destination += TG_DISPLAY_PALETTE_ENTRY_SIZE;
+		source += TG_DISPLAY_PALETTE_ENTRY_SIZE;
 	}
 }
 
 bool SpriteLibrary::createIdentityLogicalPalette() {
-	for (int i = 0; i < Display::kNumPaletteEntries; i++)
-		_paletteCopy[i][3] = (i >= 10 && i <= 245) ? Display::kAnimatablePaletteFlag : 0;
+	for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++)
+		_paletteCopy[i][3] = (i >= 10 && i <= 245) ? TG_DISPLAY_ANIMATABLE_PALETTE_FLAG : 0;
 
 	_dibColorUsage = 1;
 	_hasLogicalPalette = _engine->display()->createLogicalPalette(&_paletteCopy[0][0]);
@@ -137,7 +137,7 @@ void SpriteLibrary::buildDibColorTableFromPalette(uint16 first, uint16 end) {
 	_dibColorUsage = 0;
 
 	for (uint16 i = first; i < end; i++) {
-		if (i >= Display::kNumPaletteEntries) {
+		if (i >= TG_DISPLAY_NUM_PALETTE_ENTRIES) {
 			warning("SpriteLibrary::buildDibColorTableFromPalette(): palette index %d is out of range", i);
 			break;
 		}

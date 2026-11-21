@@ -73,7 +73,7 @@ uint16 SpriteLibrary::registerSprite(SpriteObject *object) {
 }
 
 uint16 SpriteLibrary::spriteObjectAlloc() {
-	if (_spriteCount >= kMaxSprites) {
+	if (_spriteCount >= TG_SPR_MAX_SPRITES) {
 		warning("SpriteLibrary::spriteObjectAlloc(): the sprite table is full");
 		return 0;
 	}
@@ -142,10 +142,10 @@ void SpriteLibrary::initSpriteFromFirstCel(uint16 sprite) {
 	byte *frame = object->frames[0];
 	object->currentFrame = frame;
 
-	int16 width = (int16)READ_LE_UINT16(frame + kBitmapWidthOffset);
-	int16 height = (int16)READ_LE_UINT16(frame + kBitmapHeightOffset);
-	int16 hotX = READ_LE_INT16(frame + kBitmapHotXOffset);
-	int16 hotY = READ_LE_INT16(frame + kBitmapHotYOffset);
+	int16 width = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 height = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_HEIGHT_OFFSET);
+	int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
+	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
 	object->boundingBox.left = (int16)((int16)(1 - width) / 2 + hotX + object->x);
 	object->boundingBox.right = (int16)(object->boundingBox.left + width);
@@ -316,26 +316,31 @@ uint16 SpriteLibrary::spriteCreate(byte *frame) {
 	object->frames.push_back(frame);
 	object->forward = true;
 
-	int16 width = (int16)READ_LE_UINT16(frame + kBitmapWidthOffset);
-	int16 height = (int16)READ_LE_UINT16(frame + kBitmapHeightOffset);
+	int16 width = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 height = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
-	object->boundingBox.left = (int16)(object->x + READ_LE_INT16(frame + kBitmapHotXOffset) - width / 2);
+	object->boundingBox.left = (int16)(object->x + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET) - width / 2);
 	object->boundingBox.right = (int16)(object->boundingBox.left + width);
-	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + kBitmapHotYOffset) - height / 2);
+	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET) - height / 2);
 	object->boundingBox.bottom = (int16)(object->boundingBox.top + height);
 	return sprite;
 }
 
+uint16 SpriteLibrary::bitmapHeaderSize() const {
+	return (_engine->_version >= 1) ? TG_SPR_BITMAP_HEADER_SIZE_V1 : TG_SPR_BITMAP_HEADER_SIZE;
+}
+
 byte *SpriteLibrary::spriteDibCreate(uint16 width, uint16 height, uint16 flags) {
+	uint16 headerSize = bitmapHeaderSize();
 	uint16 pitch = (uint16)(width + 3) & 0xFFFC;
-	uint32 size = (uint32)pitch * height + kBitmapHeaderSize;
+	uint32 size = (uint32)pitch * height + headerSize;
 
 	byte *bitmap = _engine->utilsLibrary()->tgMalloc(size, flags);
 	if (!bitmap)
 		return nullptr;
 
-	memset(bitmap, 0, kBitmapHeaderSize);
-	WRITE_LE_UINT16(bitmap, kBitmapHeaderSize);
+	memset(bitmap, 0, headerSize);
+	WRITE_LE_UINT16(bitmap, headerSize);
 	WRITE_LE_UINT16(bitmap + 8, (size >> 16) != 0 ? 1 : 0);
 	WRITE_LE_UINT16(bitmap + 2, width);
 	WRITE_LE_UINT16(bitmap + 4, pitch);
@@ -376,7 +381,7 @@ uint16 SpriteLibrary::spriteDestroy(uint16 sprite, bool hideRefresh, bool freeFr
 	if (freeFrames)
 		freeDistinctCelBitmaps(sprite);
 
-	if (_inTick && _tickCursor >= 0 && _tickCursor < kMaxSprites && _spriteTable[_tickCursor] == sprite)
+	if (_inTick && _tickCursor >= 0 && _tickCursor < TG_SPR_MAX_SPRITES && _spriteTable[_tickCursor] == sprite)
 		_tickCursor--;
 
 	cleanupSpriteData(sprite);
@@ -428,10 +433,10 @@ void SpriteLibrary::spriteGetInfo(uint16 sprite, SpriteInfo &info) {
 	info.frameCount = object->currentFrame ? 1 : 0;
 
 	if (object->partCount != 0) {
-		if (object->partCount > kNumSpriteParts || !object->parts)
+		if (object->partCount > TG_SPR_NUM_SPRITE_PARTS || !object->parts)
 			warning("SpriteLibrary::spriteGetInfo(): invalid multipart record count %d", object->partCount);
 
-		for (uint16 i = 0; i < object->partCount && i < kNumSpriteParts && object->parts; i++)
+		for (uint16 i = 0; i < object->partCount && i < TG_SPR_NUM_SPRITE_PARTS && object->parts; i++)
 			info.frames[i] = object->parts->parts[i].frame;
 
 		info.frameCount = object->partCount;
@@ -479,11 +484,11 @@ bool SpriteLibrary::spriteInitLibrary() {
 	memset(_paletteCopy, 0, sizeof(_paletteCopy));
 	memset(_colorTable, 0, sizeof(_colorTable));
 
-	_composeBuffer = spriteDibCreate(kComposeBufferWidth, kComposeBufferHeight, 0);
+	_composeBuffer = spriteDibCreate(TG_SPR_COMPOSE_BUFFER_WIDTH, TG_SPR_COMPOSE_BUFFER_HEIGHT, 0);
 	if (!_composeBuffer)
 		return false;
 
-	_composeBufferCapacity = (uint32)READ_LE_UINT16(_composeBuffer + 4) * READ_LE_UINT16(_composeBuffer + 6) + kBitmapHeaderSize;
+	_composeBufferCapacity = (uint32)READ_LE_UINT16(_composeBuffer + 4) * READ_LE_UINT16(_composeBuffer + 6) + bitmapHeaderSize();
 
 	Display *display = _engine->display();
 	int16 screenWidth = display->width();
@@ -567,7 +572,34 @@ void SpriteLibrary::spriteSetPosition(uint16 sprite, int16 x, int16 y) {
 	object->boundingBox.bottom = (int16)(object->boundingBox.bottom + deltaY);
 
 	object->useUnionRefresh = (deltaX > -32 && deltaX < 32 && deltaY > -32 && deltaY < 32);
+
+	if (_engine->_version >= 1 && object->parts) {
+		for (uint16 i = 0; i < object->partCount; i++)
+			object->parts->parts[i].box.translate(deltaX, deltaY);
+	}
+
 	renderSpriteToSurface(sprite);
+}
+
+void SpriteLibrary::spriteSetCollision(uint16 sprite, uint16 targetId, uint16 notifyValue) {
+	SpriteObject *object = findSprite(sprite, "spriteSetCollision");
+	if (!object)
+		return;
+
+	object->collisionTarget = targetId;
+	object->collisionValue = notifyValue;
+}
+
+bool SpriteLibrary::spriteResetComposeBuffer() {
+	if (_composeBuffer)
+		spriteDibFree(_composeBuffer);
+
+	_composeBuffer = spriteDibCreate(TG_SPR_COMPOSE_BUFFER_WIDTH, TG_SPR_COMPOSE_BUFFER_HEIGHT, 0);
+	if (!_composeBuffer)
+		return false;
+
+	_composeBufferCapacity = (uint32)READ_LE_UINT16(_composeBuffer + 4) * READ_LE_UINT16(_composeBuffer + 6) + bitmapHeaderSize();
+	return true;
 }
 
 void SpriteLibrary::spriteSetSpeed(uint16 sprite, uint32 milliseconds) {

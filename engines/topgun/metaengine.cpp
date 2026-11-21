@@ -24,6 +24,7 @@
 #include "topgun/metaengine.h"
 #include "topgun/detection.h"
 #include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1.h"
 
 namespace Topgun {
 
@@ -78,7 +79,11 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	Common::String gameId = desc->gameId;
 
 	if (gameId == "tuneland") {
-		*engine = new Topgun::TopgunEngine_v0(syst, desc);
+		if (desc->flags & ADGF_DEMO)
+			*engine = new Topgun::TopgunEngine_v1(syst, desc);
+		else
+			*engine = new Topgun::TopgunEngine_v0(syst, desc);
+
 		return Common::kNoError;
 	}
 

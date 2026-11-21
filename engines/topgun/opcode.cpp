@@ -32,10 +32,7 @@
 
 namespace Topgun {
 
-enum {
-	kBitmapIdOffset = 0x0E,
-	kNumScriptChoices = 6
-};
+#define TG_OPCODE_BITMAP_ID_OFFSET   0x0E
 
 bool TopgunEngine_v0::o_setClickScript(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
@@ -155,7 +152,7 @@ void TopgunEngine_v0::o_setScriptTimer(const byte *record) {
 	while (index < _numTimers && _timers[index].id != id)
 		index++;
 
-	if (index >= kMaxTimers)
+	if (index >= TG_HOST_MAX_TIMERS)
 		return;
 
 	if (index == _numTimers)
@@ -177,7 +174,7 @@ void TopgunEngine_v0::o_cancelScriptTimer(const byte *record) {
 		removeScheduledTimer(index);
 }
 
-bool TopgunEngine_v0::o_randomRunScript(const byte *record) {
+bool TopgunEngine_v0::o_randomRunScript(byte *record) {
 	uint16 numScripts = record[2];
 
 	if (numScripts == 0) {
@@ -194,7 +191,7 @@ bool TopgunEngine_v0::o_randomRunScript(const byte *record) {
 			pick = 0;
 	}
 
-	if (pick >= kNumScriptChoices) {
+	if (pick >= TG_HOST_NUM_SCRIPT_CHOICES) {
 		warning("TopgunEngine_v0::o_randomRunScript(): script index %d is out of range", pick);
 		return true;
 	}
@@ -206,7 +203,7 @@ bool TopgunEngine_v0::o_roundRobinRunScript(byte *record) {
 	if (record[2] <= record[3])
 		record[3] = 0;
 
-	if (record[3] >= kNumScriptChoices) {
+	if (record[3] >= TG_HOST_NUM_SCRIPT_CHOICES) {
 		warning("TopgunEngine_v0::o_roundRobinRunScript(): script index %d is out of range", record[3]);
 		return false;
 	}
@@ -273,7 +270,7 @@ bool TopgunEngine_v0::transferSpriteContents(uint16 sourceSpriteId, uint16 desti
 				continue;
 			}
 
-			uint16 bitmapId = READ_LE_UINT16(sourceInfo.frames[i] + kBitmapIdOffset);
+			uint16 bitmapId = READ_LE_UINT16(sourceInfo.frames[i] + TG_OPCODE_BITMAP_ID_OFFSET);
 
 			if (bitmapId >= _numResources) {
 				warning("TopgunEngine_v0::transferSpriteContents(): bitmap id %d is out of range", bitmapId);
@@ -343,7 +340,7 @@ bool TopgunEngine_v0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, con
 			continue;
 		}
 
-		uint16 bitmapId = READ_LE_UINT16(sourceInfo.frames[i] + kBitmapIdOffset);
+		uint16 bitmapId = READ_LE_UINT16(sourceInfo.frames[i] + TG_OPCODE_BITMAP_ID_OFFSET);
 		WRITE_LE_UINT16(write, bitmapId);
 
 		if (bitmapId >= _numResources)
@@ -405,7 +402,7 @@ void TopgunEngine_v0::destroySourceSpriteAfterTransfer(uint16 sourceSpriteId, co
 			continue;
 		}
 
-		decrementResourceRefCountAndMaybeDestroy(READ_LE_UINT16(sourceInfo.frames[i] + kBitmapIdOffset));
+		decrementResourceRefCountAndMaybeDestroy(READ_LE_UINT16(sourceInfo.frames[i] + TG_OPCODE_BITMAP_ID_OFFSET));
 	}
 }
 

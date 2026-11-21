@@ -45,6 +45,19 @@ class ResourceLibrary;
 class SpriteLibrary;
 class UtilsLibrary;
 
+enum MessageId {
+	kMsgActivate = 0x06,
+	kMsgPaint = 0x0F,
+	kMsgClose = 0x10,
+	kMsgQuit = 0x12,
+	kMsgKeyDown = 0x100,
+	kMsgLButtonDown = 0x201,
+	kMsgRButtonDown = 0x204,
+	kMsgSceneEnd = 0x464,
+	kMsgGotoScene = 0x465,
+	kMsgRunScript = 0x466
+};
+
 class TopgunEngine : public Engine {
 	friend class AudioLibrary;
 	friend class Console;
@@ -54,6 +67,7 @@ class TopgunEngine : public Engine {
 
 private:
 	const ADGameDescription *_gameDescription;
+	int _version;
 	Common::RandomSource _randomSource{"Topgun"};
 	Graphics::Screen *_screen = nullptr;
 	UtilsLibrary *_utilsLibrary = nullptr;
@@ -80,13 +94,14 @@ protected:
 	virtual bool rtStartup(bool runChecks) = 0;
 	virtual uint16 mainLoop() = 0;
 	virtual void requestClose() = 0;
+	virtual bool postMessage(uint16 id, uint16 param, uint32 data) = 0;
 	virtual void resourceLoadProgressCallback() = 0;
 
 	// Scripts
 	virtual void spriteMessageService(byte *record) = 0;
 
 public:
-	TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc);
+	TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc, int version);
 	~TopgunEngine() override;
 
 	uint32 getFeatures() const;

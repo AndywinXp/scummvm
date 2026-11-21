@@ -37,8 +37,8 @@ namespace Topgun {
 
 static const char *const kHeraldFileName = "herald.bin";
 
-TopgunEngine_v0::TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine(syst, gameDesc) {
+TopgunEngine_v0::TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc, int version) :
+	TopgunEngine(syst, gameDesc, version) {
 	memset(_globalFlags, 0, sizeof(_globalFlags));
 	memset(_tileOrder, 0, sizeof(_tileOrder));
 }
@@ -46,11 +46,15 @@ TopgunEngine_v0::TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDes
 TopgunEngine_v0::~TopgunEngine_v0() {
 }
 
-bool TopgunEngine_v0::rtStartup(bool runChecks) {
-	if (!existExtractedCDAudioFiles(kFirstAudioTrack) && !isDataAndCDAudioReadFromSameCD())
+void TopgunEngine_v0::initCDAudio() {
+	if (!existExtractedCDAudioFiles(TG_HOST_FIRST_AUDIO_TRACK) && !isDataAndCDAudioReadFromSameCD())
 		warnMissingExtractedCDAudio();
 
 	g_system->getAudioCDManager()->open();
+}
+
+bool TopgunEngine_v0::rtStartup(bool runChecks) {
+	initCDAudio();
 
 	setCursorImage(false);
 	CursorMan.showMouse(true);
@@ -60,7 +64,7 @@ bool TopgunEngine_v0::rtStartup(bool runChecks) {
 	if (ok) {
 		_screenBox = true;
 		display()->setHasPalette(!(ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth")));
-		_flagMode640 = (display()->width() <= Display::kDefaultWidth);
+		_flagMode640 = (display()->width() <= TG_DISPLAY_DEFAULT_WIDTH);
 
 		if (runChecks) {
 			ok = locateResourceFile();
@@ -124,7 +128,7 @@ void TopgunEngine_v0::presentScreenAndWait() {
 		g_system->updateScreen();
 	}
 
-	g_system->delayMillis(kLoopDelay);
+	g_system->delayMillis(TG_HOST_LOOP_DELAY);
 }
 
 void TopgunEngine_v0::requestClose() {
@@ -132,7 +136,7 @@ void TopgunEngine_v0::requestClose() {
 }
 
 bool TopgunEngine_v0::postMessage(uint16 id, uint16 param, uint32 data) {
-	if (_numMsgsPosted >= kMaxPostedMessages)
+	if (_numMsgsPosted >= TG_HOST_MAX_POSTED_MESSAGES)
 		return false;
 
 	Message &message = _messages[_numMsgsPosted];
@@ -253,11 +257,14 @@ void TopgunEngine_v0::clearInputMessageQueues() {
 
 void TopgunEngine_v0::showFormattedErrorMessageBox(uint16 stringId, const char *argument) {
 	static const char *const kErrorNeed256Colors = "TuneLand requires 256 colors or more to run.";
+	static const char *const kErrorStackOverflow = "Stack overflow.";
 	static const char *const kErrorCannotOpenFile = "Can't open file '%s'.";
 
 	Common::String text;
 	if (stringId == 101) {
 		text = kErrorNeed256Colors;
+	} else if (stringId == 105) {
+		text = kErrorStackOverflow;
 	} else if (stringId == 102) {
 		if (argument)
 			text = Common::String::format("Can't open file '%s'.", argument);

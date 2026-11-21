@@ -29,15 +29,13 @@
 #include "topgun/libraries/utils.h"
 #include "topgun/topgun_v0.h"
 
-namespace Topgun {
+#define TG_LOADER_MAX_FRAME_BATCH       50
+#define TG_LOADER_NUM_SYSTEM_COLORS     10
+#define TG_LOADER_NUM_FILE_COLORS       200
+#define TG_LOADER_LIBRARY_COLORS_FIRST  (TG_LOADER_NUM_SYSTEM_COLORS + TG_LOADER_NUM_FILE_COLORS)
+#define TG_LOADER_NUM_LIBRARY_COLORS    36
 
-enum {
-	kMaxFrameBatch = 50,
-	kNumSystemColors = 10,
-	kNumFileColors = 200,
-	kLibraryColorsFirst = kNumSystemColors + kNumFileColors,
-	kNumLibraryColors = 36
-};
+namespace Topgun {
 
 void TopgunEngine_v0::freeBitmapBlobIfUnreferenced(uint16 id) {
 	ResourceRecord &record = _records[id];
@@ -198,7 +196,7 @@ bool TopgunEngine_v0::loadTransPaletteResource(uint16 id) {
 		return false;
 
 	ResourceRecord &record = _records[id];
-	spriteLibrary()->spriteChangePalette(kLibraryColorsFirst, (uint16)(record.size >> 2), record.data);
+	spriteLibrary()->spriteChangePalette(TG_LOADER_LIBRARY_COLORS_FIRST, (uint16)(record.size >> 2), record.data);
 	return true;
 }
 
@@ -214,7 +212,7 @@ byte *TopgunEngine_v0::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOu
 
 	resourceLoadProgressCallback();
 
-	bool previousCallback = resourceLibrary()->resSetCallback(_file, true, kProgressInterval);
+	bool previousCallback = resourceLibrary()->resSetCallback(_file, true, TG_HOST_PROGRESS_INTERVAL);
 	bool savedLoading = _loading;
 	_loading = true;
 	uint16 savedId = _loadingResourceId;
@@ -224,7 +222,7 @@ byte *TopgunEngine_v0::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOu
 
 	_loading = savedLoading;
 	_loadingResourceId = savedId;
-	resourceLibrary()->resSetCallback(_file, previousCallback, kProgressInterval);
+	resourceLibrary()->resSetCallback(_file, previousCallback, TG_HOST_PROGRESS_INTERVAL);
 	return block;
 }
 
@@ -265,7 +263,7 @@ bool TopgunEngine_v0::ensureSpriteResourceLoaded(uint16 id) {
 }
 
 bool TopgunEngine_v0::attachResourceListToSprite(uint16 spriteHandle, const byte *idList, uint16 count) {
-	byte *frames[kMaxFrameBatch];
+	byte *frames[TG_LOADER_MAX_FRAME_BATCH];
 	uint16 numFrames = 0;
 	uint16 waveHandle = 0;
 	uint16 index = 0;
@@ -284,7 +282,7 @@ bool TopgunEngine_v0::attachResourceListToSprite(uint16 spriteHandle, const byte
 			_records[member].refCount++;
 			numFrames++;
 
-			if (numFrames >= kMaxFrameBatch) {
+			if (numFrames >= TG_LOADER_MAX_FRAME_BATCH) {
 				if (!spriteLibrary()->spriteAppendBitmaps(spriteHandle, frames, numFrames))
 					break;
 
@@ -445,14 +443,14 @@ void TopgunEngine_v0::decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId) 
 
 void TopgunEngine_v0::refreshGamePalette(byte *buffer) {
 	if (display()->hasPalette())
-		display()->getSystemPaletteEntries(buffer, 0, kNumPaletteEntries);
+		display()->getSystemPaletteEntries(buffer, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 	else
-		memset(buffer, 0, kNumPaletteEntries * kPaletteEntrySize);
+		memset(buffer, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE);
 
-	resourceLibrary()->resLoadPalette(_file, buffer + kNumSystemColors * kPaletteEntrySize);
-	spriteLibrary()->spriteGetPalette(buffer + kLibraryColorsFirst * kPaletteEntrySize, kLibraryColorsFirst, kNumLibraryColors);
+	resourceLibrary()->resLoadPalette(_file, buffer + TG_LOADER_NUM_SYSTEM_COLORS * TG_DISPLAY_PALETTE_ENTRY_SIZE);
+	spriteLibrary()->spriteGetPalette(buffer + TG_LOADER_LIBRARY_COLORS_FIRST * TG_DISPLAY_PALETTE_ENTRY_SIZE, TG_LOADER_LIBRARY_COLORS_FIRST, TG_LOADER_NUM_LIBRARY_COLORS);
 	spriteLibrary()->spriteSetPalette(buffer);
-	spriteLibrary()->spriteFadePalette(0, 0, kNumSystemColors, kNumFileColors);
+	spriteLibrary()->spriteFadePalette(0, 0, TG_LOADER_NUM_SYSTEM_COLORS, TG_LOADER_NUM_FILE_COLORS);
 	spriteLibrary()->spriteRealizePalette();
 }
 

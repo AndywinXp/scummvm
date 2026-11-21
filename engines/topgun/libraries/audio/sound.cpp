@@ -75,7 +75,22 @@ void AudioLibrary::setupWaveFadeOut(WaveObject *wave, uint16 seconds, uint16 cur
 }
 
 uint16 AudioLibrary::audioCreateWave(SoundCreateInfo *info, uint16 flags) {
-	if (_waveOutStream || openWaveOutDevice()) {
+	bool deviceReady;
+
+	if (_engine->_version >= 1) {
+		if (_waveObjects.empty()) {
+			WaveFormat format;
+
+			readWaveFormat(info->header, format);
+			deviceReady = openWaveOutDevice(&format);
+		} else {
+			deviceReady = (_waveOutStream != nullptr);
+		}
+	} else {
+		deviceReady = (_waveOutStream || openWaveOutDevice(nullptr));
+	}
+
+	if (deviceReady) {
 		WaveObject *wave = allocWaveObject();
 
 		if (wave) {
@@ -84,7 +99,11 @@ uint16 AudioLibrary::audioCreateWave(SoundCreateInfo *info, uint16 flags) {
 				return 0;
 			}
 
-			pumpAudioPlayback();
+			if (_engine->_version < 1)
+				pumpAudioPlayback();
+			else if (wave->streaming)
+				compactAndRefillSoundBuffer(wave);
+
 			return wave->handle;
 		}
 	}
@@ -156,7 +175,7 @@ uint16 AudioLibrary::removeWaveFromArray(WaveObject *wave) {
 	delete wave;
 	_waveObjects.remove_at(index);
 
-	if (_waveObjects.empty())
+	if (_waveObjects.empty() && _engine->_version < 1)
 		closeWaveOutDevice();
 
 	return 0;
@@ -173,10 +192,10 @@ uint16 AudioLibrary::initWaveObjectFromDescriptor(WaveObject *wave, SoundCreateI
 	wave->sourceSize = READ_LE_UINT32(header + 0x10);
 	readWaveFormat(header, wave->format);
 
-	wave->volume = kMaxVolumeLevel;
-	wave->currentVolume = kMaxVolumeLevel;
+	wave->volume = TG_AUDIO_MAX_VOLUME_LEVEL;
+	wave->currentVolume = TG_AUDIO_MAX_VOLUME_LEVEL;
 
-	if (flags & kBackgroundFlag)
+	if (flags & TG_AUDIO_BACKGROUND_FLAG)
 		wave->backgroundGroup = true;
 
 	wave->needsConversion = !(_waveFormat.channels == wave->format.channels &&
@@ -184,12 +203,12 @@ uint16 AudioLibrary::initWaveObjectFromDescriptor(WaveObject *wave, SoundCreateI
 	                          _waveFormat.bitsPerSample == wave->format.bitsPerSample);
 	wave->busy = true;
 
-	if (flags & kInMemoryFlag) {
+	if (flags & TG_AUDIO_IN_MEMORY_FLAG) {
 		wave->size = wave->sourceSize;
 		wave->data = utilsLibrary->tgMalloc(wave->size, 0);
 
 		if (wave->data)
-			memcpy(wave->data, header + kHeaderChunkSize, wave->size);
+			memcpy(wave->data, header + TG_AUDIO_HEADER_CHUNK_SIZE, wave->size);
 
 		if (wave->needsConversion) {
 			if (convertWaveDataInPlace(wave) == 0)
@@ -197,7 +216,7 @@ uint16 AudioLibrary::initWaveObjectFromDescriptor(WaveObject *wave, SoundCreateI
 		}
 
 		wave->available = wave->size;
-	} else if (flags & kLoadFlag) {
+	} else if (flags & TG_AUDIO_LOAD_FLAG) {
 		if (_cdSuspend)
 			closeCDAudioDevice();
 
@@ -281,6 +300,9 @@ void AudioLibrary::startWavesBySelector(byte *params) {
 }
 
 void AudioLibrary::startWavePlayback(WaveObject *wave, const byte *params) {
+	if (_engine->_version >= 1 && _muted)
+		return;
+
 	if (_masterFadeMode != 0) {
 		_masterFadeMode = 0;
 		setWaveOutVolume(((uint32)_fadeTargetVolumeRight << 16) | _fadeTargetVolumeLeft);
@@ -300,7 +322,8 @@ void AudioLibrary::startWavePlayback(WaveObject *wave, const byte *params) {
 		stopWavesBySelector(stopBlock);
 	}
 
-	rewindSound(wave);
+	if (_engine->_version < 1 || wave->active || wave->endOfStream)
+		rewindSound(wave);
 
 	wave->randomRepeat = (params[0] & 4) != 0;
 

@@ -92,10 +92,10 @@ bool AudioLibrary::readWaveFormatChunk(Common::SeekableReadStream *file, byte *f
 		int64 dataStart = file->pos();
 
 		if (READ_BE_UINT32(header) == MKTAG('f', 'm', 't', ' ')) {
-			if (size != kFormatChunkSize)
+			if (size != TG_AUDIO_FORMAT_CHUNK_SIZE)
 				return false;
 
-			if (file->read(format, kFormatChunkSize) != kFormatChunkSize)
+			if (file->read(format, TG_AUDIO_FORMAT_CHUNK_SIZE) != TG_AUDIO_FORMAT_CHUNK_SIZE)
 				return false;
 
 			if (READ_LE_UINT16(format) != 1)
@@ -110,7 +110,7 @@ bool AudioLibrary::readWaveFormatChunk(Common::SeekableReadStream *file, byte *f
 }
 
 uint16 AudioLibrary::wavePlayFile(const Common::String &fileName, uint16 flags) {
-	byte header[kHeaderChunkSize];
+	byte header[TG_AUDIO_HEADER_CHUNK_SIZE];
 
 	memset(header, 0, sizeof(header));
 
@@ -129,7 +129,7 @@ uint16 AudioLibrary::wavePlayFile(const Common::String &fileName, uint16 flags) 
 		return 0;
 	}
 
-	WRITE_LE_UINT32(header + kFormatChunkSize, size);
+	WRITE_LE_UINT32(header + TG_AUDIO_FORMAT_CHUNK_SIZE, size);
 
 	SoundCreateInfo info;
 
@@ -146,7 +146,7 @@ byte *AudioLibrary::waveLoadFile(const Common::String &fileName, WaveFormat *out
 	if (!file)
 		return nullptr;
 
-	byte formatBytes[kFormatChunkSize];
+	byte formatBytes[TG_AUDIO_FORMAT_CHUNK_SIZE];
 
 	memset(formatBytes, 0, sizeof(formatBytes));
 
@@ -180,16 +180,16 @@ bool AudioLibrary::waveSaveFile(const Common::String &fileName, const WaveFormat
 	if (!file.open(Common::Path(fileName, '/')))
 		return false;
 
-	byte formatBytes[kFormatChunkSize];
+	byte formatBytes[TG_AUDIO_FORMAT_CHUNK_SIZE];
 
 	writeWaveFormat(formatBytes, *format);
 
 	file.writeUint32BE(MKTAG('R', 'I', 'F', 'F'));
-	file.writeUint32LE(4 + 8 + kFormatChunkSize + 8 + size);
+	file.writeUint32LE(4 + 8 + TG_AUDIO_FORMAT_CHUNK_SIZE + 8 + size);
 	file.writeUint32BE(MKTAG('W', 'A', 'V', 'E'));
 	file.writeUint32BE(MKTAG('f', 'm', 't', ' '));
-	file.writeUint32LE(kFormatChunkSize);
-	file.write(formatBytes, kFormatChunkSize);
+	file.writeUint32LE(TG_AUDIO_FORMAT_CHUNK_SIZE);
+	file.write(formatBytes, TG_AUDIO_FORMAT_CHUNK_SIZE);
 	file.writeUint32BE(MKTAG('d', 'a', 't', 'a'));
 	file.writeUint32LE(size);
 	file.write(data, size);

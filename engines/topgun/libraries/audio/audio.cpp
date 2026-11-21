@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/config-manager.h"
 #include "common/endian.h"
 #include "common/system.h"
 #include "common/textconsole.h"
@@ -66,9 +67,14 @@ uint16 AudioLibrary::audioInitLibrary(uint16 version) {
 	_initCount++;
 
 	if (previousCount == 0) {
+		if (_engine->_version >= 1)
+			_disableWaveVolume = ConfMan.hasKey("disablewavevolume") && ConfMan.getInt("disablewavevolume") != 0;
+
 		probeWaveOutCapabilities();
 		findCdAuxDevice();
-		findMasterAuxDevice();
+
+		if (_engine->_version < 1)
+			findMasterAuxDevice();
 	}
 
 	if (_owner != 0)
@@ -78,24 +84,38 @@ uint16 AudioLibrary::audioInitLibrary(uint16 version) {
 }
 
 void AudioLibrary::audioExitLibrary() {
+	if (_engine->_version >= 1 && _initCount == 0)
+		return;
+
 	_initCount--;
 
 	if (_initCount == 0) {
 		releaseCDDeviceIfOwned();
 		shutdownMidi();
 		destroyAllWaveObjectsAndCloseDevice();
-		restoreMasterVolume();
+
+		if (_engine->_version < 1)
+			restoreMasterVolume();
 	}
 }
 
 void AudioLibrary::audioService() {
 	pumpAudioPlayback();
+
+	if (_engine->_version >= 1)
+		cdFadeTick();
 }
 
 uint32 AudioLibrary::audioCommand(uint16 command, uint16 handle, uint32 value, void *block) {
+	uint16 midiPlayFileCommand = (_engine->_version >= 1) ? kCmdMidiPlayDefault : kCmdMidiPlayFile;
+
+	if (command == midiPlayFileCommand && !block) {
+		warning("AudioLibrary::audioCommand(): command %d needs a parameter block", command);
+		return 0;
+	}
+
 	switch (command) {
 	case kCmdCdPlayRange:
-	case kCmdMidiPlayFile:
 	case kCmdWaveCreate:
 	case kCmdWaveStartGroup:
 	case kCmdWaveStopGroup:
@@ -113,19 +133,19 @@ uint32 AudioLibrary::audioCommand(uint16 command, uint16 handle, uint32 value, v
 		break;
 	}
 
-	if (command >= kFirstSoundCommand && command <= kLastSoundCommand)
+	if (command >= TG_AUDIO_FIRST_SOUND_COMMAND && command <= TG_AUDIO_LAST_SOUND_COMMAND)
 		return dispatchWaveSoundCommand(handle, command, value, block);
 
-	if (command >= kFirstWaveCommand && command <= kLastWaveCommand)
+	if (command >= TG_AUDIO_FIRST_WAVE_COMMAND && command <= TG_AUDIO_LAST_WAVE_COMMAND)
 		return dispatchWaveDeviceCommand(command, handle, value, block);
 
-	if (command >= kFirstCdCommand && command <= kLastCdCommand)
+	if (command >= TG_AUDIO_FIRST_CD_COMMAND && command <= TG_AUDIO_LAST_CD_COMMAND)
 		return dispatchCDCommand(command, handle, value, block);
 
-	if (command >= kFirstMidiCommand && command <= kLastMidiCommand)
+	if (command >= TG_AUDIO_FIRST_MIDI_COMMAND && command <= TG_AUDIO_LAST_MIDI_COMMAND)
 		return dispatchMidiCommand(command, handle, value, block);
 
-	if (command >= kFirstMasterCommand && command <= kLastMasterCommand)
+	if (command >= TG_AUDIO_FIRST_MASTER_COMMAND && command <= TG_AUDIO_LAST_MASTER_COMMAND)
 		return dispatchMasterVolumeCommand(command, handle, value, block);
 
 	return 0;
@@ -140,6 +160,10 @@ uint16 AudioLibrary::audioActivate(uint16 active) {
 	return (uint16)audioCommand(kCmdWaveOpen, 0, 0, nullptr);
 }
 
+void AudioLibrary::audioSetMute(uint16 muted) {
+	_muted = (muted != 0);
+}
+
 uint16 AudioLibrary::audioSetOwner(uint16 owner) {
 	uint16 previousOwner = _owner;
 
@@ -151,6 +175,12 @@ uint32 AudioLibrary::dispatchCDCommand(uint16 command, uint16 handle, uint32 val
 	switch (command) {
 	case kCmdCdIsOpen:
 		return (_cdDeviceId != 0) ? 1 : 0;
+
+	case kCmdCdPlayFadeIn:
+		return (_engine->_version >= 1) ? startCDFadeIn(handle, value) : 0;
+
+	case kCmdCdFadeOut:
+		return (_engine->_version >= 1) ? startCDFadeOut(handle) : 0;
 
 	case kCmdCdGetPosition:
 		if (_cdDeviceId == 0)
@@ -190,6 +220,18 @@ uint32 AudioLibrary::dispatchCDCommand(uint16 command, uint16 handle, uint32 val
 }
 
 uint32 AudioLibrary::dispatchMidiCommand(uint16 command, uint16 handle, uint32 value, void *block) {
+	if (_engine->_version >= 1) {
+		if (command == kCmdMidiPlayDefault)
+			return playMidiFile((const char *)block);
+
+		if (command == kCmdMidiPlayFile) {
+			stopAndCloseMidi();
+			return 1;
+		}
+
+		return 0;
+	}
+
 	switch (command) {
 	case kCmdMidiPlayDefault:
 		playDefaultMidiFile();
@@ -250,7 +292,7 @@ uint32 AudioLibrary::dispatchWaveDeviceCommand(uint16 command, uint16 handle, ui
 
 	case kCmdWaveOpen:
 		if (!_waveOutStream)
-			openWaveOutDevice();
+			openWaveOutDevice(nullptr);
 
 		return 1;
 
@@ -321,8 +363,8 @@ uint32 AudioLibrary::dispatchWaveSoundCommand(uint16 handle, uint16 command, uin
 	case kCmdSoundSetVolume:
 		wave->volume = (byte)value;
 
-		if (wave->volume > kMaxVolumeLevel)
-			wave->volume = kMaxVolumeLevel;
+		if (wave->volume > TG_AUDIO_MAX_VOLUME_LEVEL)
+			wave->volume = TG_AUDIO_MAX_VOLUME_LEVEL;
 
 		wave->currentVolume = wave->volume;
 		return 1;
@@ -337,7 +379,7 @@ uint32 AudioLibrary::dispatchWaveSoundCommand(uint16 handle, uint16 command, uin
 }
 
 uint16 AudioLibrary::auxDeviceTechnology(uint16 device) const {
-	return kAuxTechnologyCd;
+	return TG_AUDIO_AUX_TECHNOLOGY_CD;
 }
 
 void AudioLibrary::readWaveFormat(const byte *source, WaveFormat &format) {
@@ -419,8 +461,8 @@ void AudioLibrary::restoreMasterVolume() {
 }
 
 uint16 AudioLibrary::findMasterAuxDevice() {
-	for (uint16 i = 0; i < kNumAuxDevices; i++) {
-		if (auxDeviceTechnology(i) == kAuxTechnologyMaster) {
+	for (uint16 i = 0; i < TG_AUDIO_NUM_AUX_DEVICES; i++) {
+		if (auxDeviceTechnology(i) == TG_AUDIO_AUX_TECHNOLOGY_MASTER) {
 			_masterAuxPresent = true;
 			_masterAuxId = i;
 			_masterAuxSavedVolume = _masterAuxVolume;
@@ -446,8 +488,14 @@ void AudioLibrary::masterFadeUpTick() {
 
 	_fadeStepsRemaining--;
 
-	if (_fadeStepsRemaining == 0 || (_waveVolumeLeft == _fadeTargetVolumeLeft && _waveVolumeRight == _fadeTargetVolumeRight))
+	if (_fadeStepsRemaining == 0 || (_waveVolumeLeft == _fadeTargetVolumeLeft && _waveVolumeRight == _fadeTargetVolumeRight)) {
 		_masterFadeMode = 0;
+
+		if (_engine->_version >= 1) {
+			_waveVolumeLeft = _fadeTargetVolumeLeft;
+			_waveVolumeRight = _fadeTargetVolumeRight;
+		}
+	}
 
 	setWaveOutVolume(((uint32)_waveVolumeRight << 16) | _waveVolumeLeft);
 }
@@ -496,7 +544,7 @@ uint16 AudioLibrary::startMasterFadeUp(uint16 duration) {
 	_fadeVolumeStepLeft = (uint16)(((uint32)_waveVolumeLeft + (steps >> 1)) / steps);
 	_fadeVolumeStepRight = (uint16)(((uint32)_waveVolumeRight + (steps >> 1)) / steps);
 	setWaveOutVolume(0);
-	_fadeNextTick = _engine->getEngineMillis() + kFadeTickInterval;
+	_fadeNextTick = _engine->getEngineMillis() + TG_AUDIO_FADE_TICK_INTERVAL;
 	return 1;
 }
 
@@ -519,7 +567,7 @@ uint16 AudioLibrary::startMasterFadeOut(uint16 duration) {
 
 	_fadeVolumeStepLeft = (uint16)(((uint32)_waveVolumeLeft + (steps >> 1)) / steps);
 	_fadeVolumeStepRight = (uint16)(((uint32)_waveVolumeRight + (steps >> 1)) / steps);
-	_fadeNextTick = _engine->getEngineMillis() + kFadeTickInterval;
+	_fadeNextTick = _engine->getEngineMillis() + TG_AUDIO_FADE_TICK_INTERVAL;
 	return 1;
 }
 

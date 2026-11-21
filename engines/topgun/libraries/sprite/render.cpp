@@ -91,8 +91,8 @@ void SpriteLibrary::spriteSetBackground(byte *background, Common::Rect *outClipR
 	_backgroundBitmap = background;
 
 	if (background) {
-		_clipRect.right = (int16)READ_LE_UINT16(background + kBitmapWidthOffset);
-		_clipRect.bottom = (int16)READ_LE_UINT16(background + kBitmapHeightOffset);
+		_clipRect.right = (int16)READ_LE_UINT16(background + TG_SPR_BITMAP_WIDTH_OFFSET);
+		_clipRect.bottom = (int16)READ_LE_UINT16(background + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	} else {
 		_clipRect.right = _engine->display()->width();
 		_clipRect.bottom = _engine->display()->height();
@@ -161,8 +161,8 @@ void SpriteLibrary::spriteCopyRect(Common::Rect &rect, const byte *source, byte 
 	if (!source || !destination)
 		return;
 
-	int16 sourceWidth = (int16)READ_LE_UINT16(source + kBitmapWidthOffset);
-	int16 sourceHeight = (int16)READ_LE_UINT16(source + kBitmapHeightOffset);
+	int16 sourceWidth = (int16)READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 sourceHeight = (int16)READ_LE_UINT16(source + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	if (sourceWidth < rect.right)
 		rect.right = sourceWidth;
@@ -276,6 +276,9 @@ void SpriteLibrary::compositeSpritesInRect(const Common::Rect &rect) {
 		if (!intersectRects(rect, object->boundingBox, common))
 			continue;
 
+		if (_engine->_version >= 1 && object->collisionTarget != 0)
+			checkCollision(handle);
+
 		if (object->partCount != 0) {
 			if (!object->parts) {
 				warning("SpriteLibrary::compositeSpritesInRect(): the multipart sprite has no parts");
@@ -305,15 +308,52 @@ void SpriteLibrary::compositeSpritesInRect(const Common::Rect &rect) {
 	}
 }
 
+void SpriteLibrary::checkCollision(uint16 sprite) {
+	SpriteObject *object = findSprite(sprite, "checkCollision");
+	if (!object)
+		return;
+
+	SpriteObject *target = nullptr;
+	for (uint16 i = 0; i < _spriteCount; i++) {
+		SpriteObject *candidate = findSprite(_spriteTable[i], "checkCollision");
+		if (candidate && candidate->id == object->collisionTarget) {
+			target = candidate;
+			break;
+		}
+	}
+
+	if (!target || object->frames.empty() || target->frames.empty() || !target->visible)
+		return;
+
+	Common::Rect overlap;
+	if (!intersectRects(target->boundingBox, object->boundingBox, overlap))
+		return;
+
+	if (!object->currentFrame || !target->currentFrame) {
+		warning("SpriteLibrary::checkCollision(): the sprite has no current frame");
+		return;
+	}
+
+	for (int16 y = overlap.top; y < overlap.bottom; y++) {
+		for (int16 x = overlap.left; x < overlap.right; x++) {
+			if (getBitmapPixel(target->currentFrame, x - target->boundingBox.left, y - target->boundingBox.top) != 0 &&
+				getBitmapPixel(object->currentFrame, x - object->boundingBox.left, y - object->boundingBox.top) != 0) {
+				_engine->postMessage(kMsgRunScript, object->collisionValue, 0);
+				return;
+			}
+		}
+	}
+}
+
 void SpriteLibrary::recomputeCelBoxArray(uint16 sprite, const byte *command) {
 	SpriteObject *object = findSprite(sprite, "recomputeCelBoxArray");
 	if (!object)
 		return;
 
 	uint16 count = command[0x0D];
-	if (count > kNumSpriteParts) {
+	if (count > TG_SPR_NUM_SPRITE_PARTS) {
 		warning("SpriteLibrary::recomputeCelBoxArray(): %d parts do not fit in the part block", count);
-		count = kNumSpriteParts;
+		count = TG_SPR_NUM_SPRITE_PARTS;
 	}
 
 	object->partCount = (byte)count;
@@ -326,16 +366,16 @@ void SpriteLibrary::recomputeCelBoxArray(uint16 sprite, const byte *command) {
 		}
 
 		byte *frame = object->frames[index];
-		int16 width = (int16)READ_LE_UINT16(frame + kBitmapWidthOffset);
-		int16 height = (int16)READ_LE_UINT16(frame + kBitmapHeightOffset);
+		int16 width = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_WIDTH_OFFSET);
+		int16 height = (int16)READ_LE_UINT16(frame + TG_SPR_BITMAP_HEIGHT_OFFSET);
 		int16 widthMinusOne = (int16)(width - 1);
 		int16 heightMinusOne = (int16)(height - 1);
 
 		SpritePart &part = object->parts->parts[i];
 		part.frame = frame;
-		part.box.left = (int16)(object->x + READ_LE_INT16(frame + kBitmapHotXOffset) - widthMinusOne / 2);
+		part.box.left = (int16)(object->x + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET) - widthMinusOne / 2);
 		part.box.right = (int16)(width + part.box.left);
-		part.box.top = (int16)(object->y + READ_LE_INT16(frame + kBitmapHotYOffset) - heightMinusOne / 2);
+		part.box.top = (int16)(object->y + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET) - heightMinusOne / 2);
 		part.box.bottom = (int16)(height + part.box.top);
 
 		if (i == 0)
@@ -374,21 +414,21 @@ void SpriteLibrary::compositeSpritePartsIntoBuffer(uint16 sprite, uint16 count, 
 
 void SpriteLibrary::blitSpriteToScreen(int16 x, int16 y, const byte *bitmap) {
 	uint16 dataOffset = READ_LE_UINT16(bitmap);
-	uint16 width = READ_LE_UINT16(bitmap + kBitmapWidthOffset);
+	uint16 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 pitch = READ_LE_UINT16(bitmap + 4);
-	uint16 height = READ_LE_UINT16(bitmap + kBitmapHeightOffset);
+	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	_engine->display()->putBitmapRows(x, y, width, height, bitmap + dataOffset, pitch, &_colorTable[0][0]);
 }
 
 bool SpriteLibrary::ensureComposeBufferSize(uint16 width, uint16 height) {
 	uint16 pitch = (uint16)(width + 3) & 0xFFFC;
-	uint32 size = (uint32)pitch * height + kBitmapHeaderSize;
+	uint32 size = (uint32)pitch * height + bitmapHeaderSize();
 
 	WRITE_LE_UINT16(_composeBuffer + 8, size > 0xFDE8 ? 1 : 0);
-	WRITE_LE_UINT16(_composeBuffer + kBitmapWidthOffset, width);
+	WRITE_LE_UINT16(_composeBuffer + TG_SPR_BITMAP_WIDTH_OFFSET, width);
 	WRITE_LE_UINT16(_composeBuffer + 4, pitch);
-	WRITE_LE_UINT16(_composeBuffer + kBitmapHeightOffset, height);
+	WRITE_LE_UINT16(_composeBuffer + TG_SPR_BITMAP_HEIGHT_OFFSET, height);
 
 	if (size > _composeBufferCapacity) {
 		byte *grown = _engine->utilsLibrary()->tgRealloc(_composeBuffer, size, 0);
@@ -404,13 +444,13 @@ bool SpriteLibrary::ensureComposeBufferSize(uint16 width, uint16 height) {
 
 bool SpriteLibrary::blitSetupRaw(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, BlitSetup &setup) {
 	uint16 sourceOffset = READ_LE_UINT16(source);
-	uint16 sourceWidth = READ_LE_UINT16(source + kBitmapWidthOffset);
+	uint16 sourceWidth = READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 sourcePitch = READ_LE_UINT16(source + 4);
-	uint16 sourceHeight = READ_LE_UINT16(source + kBitmapHeightOffset);
+	uint16 sourceHeight = READ_LE_UINT16(source + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	uint16 destinationOffset = READ_LE_UINT16(destination);
-	uint16 destinationWidth = READ_LE_UINT16(destination + kBitmapWidthOffset);
+	uint16 destinationWidth = READ_LE_UINT16(destination + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 destinationPitch = READ_LE_UINT16(destination + 4);
-	uint16 destinationHeight = READ_LE_UINT16(destination + kBitmapHeightOffset);
+	uint16 destinationHeight = READ_LE_UINT16(destination + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	bool inside = (destinationX >= 0 && destinationY >= 0 && sourceX >= 0 && sourceY >= 0 &&
 	               destinationX + width <= destinationWidth && destinationY + height <= destinationHeight &&
@@ -497,9 +537,9 @@ void SpriteLibrary::blitMaskedRect(byte *destination, const byte *source, uint16
 
 uint16 SpriteLibrary::getBitmapPixel(const byte *bitmap, int16 x, int16 y) {
 	uint16 dataOffset = READ_LE_UINT16(bitmap);
-	uint16 width = READ_LE_UINT16(bitmap + kBitmapWidthOffset);
+	uint16 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 pitch = READ_LE_UINT16(bitmap + 4);
-	uint16 height = READ_LE_UINT16(bitmap + kBitmapHeightOffset);
+	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	if (x < 0 || x >= width || y < 0 || y >= height) {
 		warning("SpriteLibrary::getBitmapPixel(): the pixel is outside the bitmap");
@@ -513,7 +553,7 @@ uint16 SpriteLibrary::getBitmapPixel(const byte *bitmap, int16 x, int16 y) {
 void SpriteLibrary::fillBitmapByte(byte *bitmap, uint16 color) {
 	uint16 dataOffset = READ_LE_UINT16(bitmap);
 	uint16 pitch = READ_LE_UINT16(bitmap + 4);
-	uint16 height = READ_LE_UINT16(bitmap + kBitmapHeightOffset);
+	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	memset(bitmap + dataOffset, color & 0xFF, (uint32)height * pitch);
 }

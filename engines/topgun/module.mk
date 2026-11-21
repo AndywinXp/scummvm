@@ -24,8 +24,10 @@ MODULE_OBJS = \
 	res_loader.o \
 	scene.o \
 	script.o \
+	script_v1.o \
 	topgun.o \
-	topgun_v0.o
+	topgun_v0.o \
+	topgun_v1.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_TOPGUN), DYNAMIC_PLUGIN)

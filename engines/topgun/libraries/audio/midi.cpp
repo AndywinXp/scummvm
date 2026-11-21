@@ -101,8 +101,8 @@ void AudioLibrary::playDefaultMidiFile() {
 }
 
 bool AudioLibrary::sendMidiDeviceCommand(uint16 message, uint32 flags, DeviceParms &parms) {
-	if (message == kDevOpen) {
-		if (!(flags & kDevOpenElement) || !Common::File::exists(Common::Path(parms.fileName, '/')))
+	if (message == TG_AUDIO_DEV_OPEN) {
+		if (!(flags & TG_AUDIO_DEV_OPEN_ELEMENT) || !Common::File::exists(Common::Path(parms.fileName, '/')))
 			return false;
 
 		_midiFileName = parms.fileName;
@@ -115,14 +115,14 @@ bool AudioLibrary::sendMidiDeviceCommand(uint16 message, uint32 flags, DevicePar
 		return false;
 
 	switch (message) {
-	case kDevPlay:
+	case TG_AUDIO_DEV_PLAY:
 		return _sequencer->playFile(_midiFileName);
 
-	case kDevStop:
+	case TG_AUDIO_DEV_STOP:
 		_sequencer->stop();
 		return true;
 
-	case kDevClose:
+	case TG_AUDIO_DEV_CLOSE:
 		delete _sequencer;
 		_sequencer = nullptr;
 		return true;
@@ -139,22 +139,22 @@ uint16 AudioLibrary::playMidiFile(const Common::String &fileName) {
 
 	openParms.fileName = fileName;
 
-	if (!sendMidiDeviceCommand(kDevOpen, kDevOpenType | kDevOpenElement, openParms))
+	if (!sendMidiDeviceCommand(TG_AUDIO_DEV_OPEN, TG_AUDIO_DEV_OPEN_TYPE | TG_AUDIO_DEV_OPEN_ELEMENT, openParms))
 		return 0;
 
 	_seqDeviceId = openParms.deviceId;
 
 	DeviceParms playParms;
 
-	return sendMidiDeviceCommand(kDevPlay, 0, playParms) ? 1 : 0;
+	return sendMidiDeviceCommand(TG_AUDIO_DEV_PLAY, 0, playParms) ? 1 : 0;
 }
 
 void AudioLibrary::stopAndCloseMidi() {
 	if (_seqDeviceId != 0) {
 		DeviceParms parms;
 
-		sendMidiDeviceCommand(kDevStop, 0, parms);
-		sendMidiDeviceCommand(kDevClose, 0, parms);
+		sendMidiDeviceCommand(TG_AUDIO_DEV_STOP, 0, parms);
+		sendMidiDeviceCommand(TG_AUDIO_DEV_CLOSE, 0, parms);
 		_seqDeviceId = 0;
 	}
 }

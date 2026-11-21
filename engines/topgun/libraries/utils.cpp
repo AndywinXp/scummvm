@@ -37,8 +37,12 @@ void UtilsLibrary::copyHugeBytes(byte *destination, const byte *source, uint32 c
 }
 
 byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
-	if (size == 0)
+	if (size == 0) {
+		if (_engine->_version >= 1)
+			error("UtilsLibrary::tgMalloc(): invalid zero size");
+
 		return nullptr;
+	}
 
 	byte *block = (byte *)malloc(size);
 	if (!block)
