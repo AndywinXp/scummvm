@@ -22,17 +22,38 @@
 namespace Topgun {
 
 const PlainGameDescriptor topgunGames[] = {
-	{ "topgun", "Topgun" },
+	{ "tuneland", "TuneLand Starring Howie Mandel" },
+	{ "tunesplayer", "TuneLand Tunes Player" },
 	{ 0, 0 }
 };
 
 const ADGameDescription gameDescriptions[] = {
 	{
-		"topgun",
+		"tuneland",
 		nullptr,
-		AD_ENTRY1s("file1.bin", "00000000000000000000000000000000", 11111),
+		AD_ENTRY1s("HERALD.BIN", "9e811ce530048d37d1412f9ec64f0097", 162259),
 		Common::EN_ANY,
-		Common::kPlatformDOS,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO1(GUIO_NONE)
+	},
+
+	{
+		"tuneland",
+		"Demo",
+		AD_ENTRY1s("SAMPLER.BIN", "9f25f15a70effb7f4c0c1d93cfa884e8", 120268),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO1(GUIO_NONE)
+	},
+
+	{
+		"tunesplayer",
+		nullptr,
+		AD_ENTRY1s("TUNES.EXE", "59193f3574a3b9bd6cde56aa73415db2", 410656),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO1(GUIO_NONE)
 	},
