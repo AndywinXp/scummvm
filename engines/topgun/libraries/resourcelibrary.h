@@ -22,6 +22,8 @@
 #ifndef TOPGUN_LIBRARIES_RESOURCELIBRARY_H
 #define TOPGUN_LIBRARIES_RESOURCELIBRARY_H
 
+#include "common/file.h"
+#include "common/hashmap.h"
 #include "common/scummsys.h"
 #include "common/str.h"
 
@@ -54,7 +56,70 @@ public:
 	int32 waveSeek(uint16 waveInfo, int32 offset, int16 origin);
 
 private:
+	enum {
+		kHeaderSize = 14,
+		kHeaderMagic = 0x4C37,
+		kIndexEntrySize = 10,
+		kWaveStreamHeaderSize = 22,
+		kCreateSoundCommand = 0xC9,
+		kBitmapType = 1,
+		kResidentType = 7,
+		kBitmapRecordMinSize = 8,
+		kMaxRunLength = 200
+	};
+
+	struct ResourceEntry {
+		uint16 type;
+		uint32 offset;
+		uint32 size;
+
+		ResourceEntry() : type(0), offset(0), size(0) {}
+	};
+
+	struct ResourceFile {
+		Common::File *stream;
+		bool callbackSet;
+		byte *index;
+		byte *extra;
+		uint16 magic;
+		uint16 version;
+		uint16 entryCount;
+		uint16 dwordCount;
+		uint16 nameBlockSize;
+		uint16 variableCount;
+		uint16 extraSize;
+		uint32 callbackCounter;
+		int32 callbackInterval;
+
+		ResourceFile() : stream(nullptr), callbackSet(false), index(nullptr), extra(nullptr), magic(0),
+			version(0), entryCount(0), dwordCount(0), nameBlockSize(0), variableCount(0), extraSize(0),
+			callbackCounter(0), callbackInterval(0) {}
+	};
+
+	struct WaveStreamInfo {
+		uint16 file;
+		uint32 position;
+
+		WaveStreamInfo() : file(0), position(0) {}
+	};
+
+	typedef Common::HashMap<uint16, ResourceFile *> FileMap;
+	typedef Common::HashMap<uint16, WaveStreamInfo *> WaveInfoMap;
+
+	void decodeRleCelBitmap(const byte *source, uint32 sourceSize, byte *destination, uint32 destinationSize);
+	byte *expandCelBitmapRecord(byte *compressed, uint32 compressedSize, uint32 *outSize);
+	bool readChunkedWithCallback(ResourceFile *file, byte *buffer, uint32 count);
+	bool readResourceFileHeader(ResourceFile *file);
+	ResourceFile *findFile(uint16 file, const char *caller);
+	uint16 registerFile(ResourceFile *record);
+	uint16 registerWaveInfo(WaveStreamInfo *info);
+	void readEntry(const ResourceFile *file, uint16 index, ResourceEntry &entry) const;
+
 	TopgunEngine *_engine;
+	FileMap _files;
+	uint16 _nextFileHandle = 1;
+	WaveInfoMap _waveInfos;
+	uint16 _nextWaveHandle = 1;
 };
 
 } // End of namespace Topgun

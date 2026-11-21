@@ -20,11 +20,20 @@
  */
 
 #include "topgun/console.h"
+#include "topgun/libraries/resourcelibrary.h"
+#include "topgun/topgun.h"
 
 namespace Topgun {
 
+enum {
+	kMaxListedTypes = 16,
+	kMaxListedEntries = 20,
+	kMaxPaletteBytes = 0xFFFF
+};
+
 Console::Console() : GUI::Debugger() {
 	registerCmd("test",   WRAP_METHOD(Console, Cmd_test));
+	registerCmd("listresources", WRAP_METHOD(Console, Cmd_listResources));
 }
 
 Console::~Console() {
@@ -32,6 +41,57 @@ Console::~Console() {
 
 bool Console::Cmd_test(int argc, const char **argv) {
 	debugPrintf("Test\n");
+	return true;
+}
+
+bool Console::Cmd_listResources(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Usage: %s <file.bin>\n", argv[0]);
+		return true;
+	}
+
+	ResourceLibrary *library = g_engine->resourceLibrary();
+
+	uint16 file = library->resOpenFile(argv[1]);
+	if (file == 0) {
+		debugPrintf("Cannot open '%s'\n", argv[1]);
+		return true;
+	}
+
+	uint16 entryCount = library->resCountResources(file);
+	debugPrintf("Entries: %d\n", entryCount);
+	debugPrintf("Variables: %d\n", library->resCountVariables(file));
+
+	byte *palette = new byte[kMaxPaletteBytes];
+	debugPrintf("Palette colors (nDwords): %d\n", library->resLoadPalette(file, palette));
+	delete[] palette;
+
+	uint32 typeCounts[kMaxListedTypes];
+	for (int i = 0; i < kMaxListedTypes; i++)
+		typeCounts[i] = 0;
+
+	uint32 otherTypes = 0;
+	for (uint16 i = 0; i < entryCount; i++) {
+		uint16 type = library->resGetType(file, i);
+		if (type < kMaxListedTypes)
+			typeCounts[type]++;
+		else
+			otherTypes++;
+	}
+
+	for (int i = 0; i < kMaxListedTypes; i++) {
+		if (typeCounts[i] != 0)
+			debugPrintf("Type %d: %u\n", i, typeCounts[i]);
+	}
+
+	if (otherTypes != 0)
+		debugPrintf("Other types: %u\n", otherTypes);
+
+	debugPrintf("Index Type Size\n");
+	for (uint16 i = 0; i < entryCount && i < kMaxListedEntries; i++)
+		debugPrintf("%5d %4d %u\n", i, library->resGetType(file, i), library->resGetSize(file, i));
+
+	library->resCloseFile(file);
 	return true;
 }
 

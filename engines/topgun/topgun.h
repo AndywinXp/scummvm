@@ -39,6 +39,7 @@
 namespace Topgun {
 
 class AudioLibrary;
+class Console;
 class Display;
 class ResourceLibrary;
 class SpriteLibrary;
@@ -46,6 +47,7 @@ class UtilsLibrary;
 
 class TopgunEngine : public Engine {
 	friend class AudioLibrary;
+	friend class Console;
 	friend class ResourceLibrary;
 	friend class SpriteLibrary;
 	friend class UtilsLibrary;
@@ -75,6 +77,7 @@ protected:
 	virtual bool rtStartup(bool runChecks) = 0;
 	virtual uint16 mainLoop() = 0;
 	virtual void requestClose() = 0;
+	virtual void postMemoryError() = 0;
 	virtual void resourceLoadProgressCallback() = 0;
 
 	// Scripts

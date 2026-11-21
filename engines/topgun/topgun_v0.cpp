@@ -126,6 +126,10 @@ void TopgunEngine_v0::requestClose() {
 	postMessage(kMsgClose, 0, 0);
 }
 
+void TopgunEngine_v0::postMemoryError() {
+	postMessage(kMsgMemoryError, 0, 0);
+}
+
 bool TopgunEngine_v0::postMessage(uint16 id, uint16 param, uint32 data) {
 	if (_numMsgsPosted >= kMaxPostedMessages)
 		return false;
@@ -259,7 +263,7 @@ void TopgunEngine_v0::showFormattedErrorMessageBox(uint16 stringId, const char *
 	} else if (stringId == 101) {
 		text = kErrorNeed256Colors;
 	} else if (stringId == 102) {
-		if (argument != nullptr)
+		if (argument)
 			text = Common::String::format("Can't open file '%s'.", argument);
 		else
 			text = kErrorCannotOpenFile;
@@ -283,9 +287,7 @@ bool TopgunEngine_v0::initEngineLibraries() {
 }
 
 bool TopgunEngine_v0::locateResourceFile() {
-	_baseDir = Common::Path();
-
-	if (Common::File::exists(_baseDir.appendComponent(kHeraldFileName)))
+	if (Common::File::exists(kHeraldFileName))
 		return true;
 
 	showFormattedErrorMessageBox(102, kHeraldFileName);

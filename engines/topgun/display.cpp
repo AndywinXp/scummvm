@@ -23,10 +23,49 @@
 
 namespace Topgun {
 
+enum {
+	kNumPaletteEntries = 256,
+	kNumStaticColorsPerEnd = 10,
+	kPaletteEntrySize = 4
+};
+
+static const byte kStaticColors[2 * kNumStaticColorsPerEnd][3] = {
+	{   0,   0,   0 }, { 128,   0,   0 }, {   0, 128,   0 }, { 128, 128,   0 }, {   0,   0, 128 },
+	{ 128,   0, 128 }, {   0, 128, 128 }, { 192, 192, 192 }, { 192, 220, 192 }, { 166, 202, 240 },
+	{ 255, 251, 240 }, { 160, 160, 164 }, { 128, 128, 128 }, { 255,   0,   0 }, {   0, 255,   0 },
+	{ 255, 255,   0 }, {   0,   0, 255 }, { 255,   0, 255 }, {   0, 255, 255 }, { 255, 255, 255 }
+};
+
 Display::Display(uint16 width, uint16 height) : _width(width), _height(height) {
 }
 
 Display::~Display() {
+}
+
+void Display::getSystemPaletteEntries(byte *destination, uint16 first, uint16 count) const {
+	for (uint16 i = 0; i < count; i++) {
+		uint32 index = (uint32)first + i;
+		if (index >= kNumPaletteEntries)
+			break;
+
+		byte *entry = destination + i * kPaletteEntrySize;
+		entry[0] = 0;
+		entry[1] = 0;
+		entry[2] = 0;
+		entry[3] = 0;
+
+		int staticIndex = -1;
+		if (index < kNumStaticColorsPerEnd)
+			staticIndex = index;
+		else if (index >= kNumPaletteEntries - kNumStaticColorsPerEnd)
+			staticIndex = kNumStaticColorsPerEnd + (index - (kNumPaletteEntries - kNumStaticColorsPerEnd));
+
+		if (staticIndex >= 0) {
+			entry[0] = kStaticColors[staticIndex][0];
+			entry[1] = kStaticColors[staticIndex][1];
+			entry[2] = kStaticColors[staticIndex][2];
+		}
+	}
 }
 
 } // End of namespace Topgun

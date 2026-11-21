@@ -44,6 +44,7 @@ public:
 
 	bool hasPalette() const { return _hasPalette; }
 	void setHasPalette(bool hasPalette) { _hasPalette = hasPalette; }
+	void getSystemPaletteEntries(byte *destination, uint16 first, uint16 count) const;
 
 	const Common::Point &viewportOrigin() const { return _viewportOrigin; }
 	void setViewportOrigin(int16 x, int16 y) {

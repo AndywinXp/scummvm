@@ -64,7 +64,7 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 		return nullptr;
 
 	byte *block = (byte *)malloc(size);
-	if (block == nullptr) {
+	if (!block) {
 		smartHeapErrHdlr(nullptr);
 		return nullptr;
 	}
@@ -72,6 +72,7 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 	if (zeroInit != 0)
 		memset(block, 0, size);
 
+	_blockSizes[block] = size;
 	return block;
 }
 
@@ -81,18 +82,46 @@ byte *UtilsLibrary::tgPtrCpy(const byte *block) {
 }
 
 byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
-	warning("tgRealloc UNIMPLEMENTED");
-	return nullptr;
+	if (!block)
+		return tgMalloc(newSize, zeroInit);
+
+	if (!_blockSizes.contains(block)) {
+		warning("UtilsLibrary::tgRealloc(): block was not allocated by tgMalloc");
+		return nullptr;
+	}
+
+	if (newSize == 0) {
+		smartHeapErrHdlr(nullptr);
+		return nullptr;
+	}
+
+	uint32 oldSize = _blockSizes[block];
+	byte *newBlock = (byte *)realloc(block, newSize);
+	if (!newBlock) {
+		smartHeapErrHdlr(nullptr);
+		return nullptr;
+	}
+
+	if (zeroInit != 0 && newSize > oldSize)
+		memset(newBlock + oldSize, 0, newSize - oldSize);
+
+	_blockSizes.erase(block);
+	_blockSizes[newBlock] = newSize;
+	return newBlock;
 }
 
 byte *UtilsLibrary::tgFree(byte *block) {
-	warning("tgFree UNIMPLEMENTED");
-	return nullptr;
-}
+	if (!block)
+		return nullptr;
 
-Common::String UtilsLibrary::makeFullPath(const Common::String &directory, const Common::String &file) {
-	warning("makeFullPath UNIMPLEMENTED");
-	return Common::String();
+	if (!_blockSizes.contains(block)) {
+		warning("UtilsLibrary::tgFree(): block was not allocated by tgMalloc");
+		return nullptr;
+	}
+
+	_blockSizes.erase(block);
+	free(block);
+	return nullptr;
 }
 
 Common::String UtilsLibrary::makeModulePath(uint16 instance, const Common::String &file) {
@@ -120,11 +149,13 @@ bool UtilsLibrary::fileExist(const Common::String &path) {
 }
 
 void UtilsLibrary::memSetNotify() {
-	warning("memSetNotify UNIMPLEMENTED");
+	_notifyRegistered = true;
 }
 
 uint16 UtilsLibrary::smartHeapErrHdlr(void *errorInfo) {
-	warning("smartHeapErrHdlr UNIMPLEMENTED");
+	if (_notifyRegistered)
+		_engine->postMemoryError();
+
 	return 0;
 }
 

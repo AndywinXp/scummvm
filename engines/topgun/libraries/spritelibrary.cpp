@@ -82,7 +82,7 @@ byte *SpriteLibrary::spriteDibCreate(uint16 width, uint16 height, uint16 flags) 
 	uint32 size = (uint32)pitch * height + kBitmapHeaderSize;
 
 	byte *bitmap = _engine->utilsLibrary()->tgMalloc(size, flags);
-	if (bitmap == nullptr)
+	if (!bitmap)
 		return nullptr;
 
 	memset(bitmap, 0, kBitmapHeaderSize);
@@ -157,7 +157,7 @@ bool SpriteLibrary::spriteInitLibrary() {
 	_scrollY = 0;
 
 	_composeBuffer = spriteDibCreate(kComposeBufferWidth, kComposeBufferHeight, 0);
-	if (_composeBuffer == nullptr)
+	if (!_composeBuffer)
 		return false;
 
 	_composeBufferCapacity = (uint32)READ_LE_UINT16(_composeBuffer + 4) * READ_LE_UINT16(_composeBuffer + 6) + kBitmapHeaderSize;

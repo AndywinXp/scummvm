@@ -22,6 +22,8 @@
 #ifndef TOPGUN_LIBRARIES_UTILSLIBRARY_H
 #define TOPGUN_LIBRARIES_UTILSLIBRARY_H
 
+#include "common/hash-ptr.h"
+#include "common/hashmap.h"
 #include "common/scummsys.h"
 #include "common/str.h"
 
@@ -44,7 +46,6 @@ public:
 	byte *tgPtrCpy(const byte *block);
 	byte *tgRealloc(byte *block, uint32 newSize, uint16 zeroInit);
 	byte *tgFree(byte *block);
-	Common::String makeFullPath(const Common::String &directory, const Common::String &file);
 	Common::String makeModulePath(uint16 instance, const Common::String &file);
 	void getPathAndFile(const Common::String &fullPath, Common::String &path, Common::String &file);
 	Common::String skipPath(const Common::String &path);
@@ -54,8 +55,11 @@ public:
 	uint16 smartHeapErrHdlr(void *errorInfo);
 
 private:
+	typedef Common::HashMap<byte *, uint32> BlockSizeMap;
+
 	TopgunEngine *_engine;
 	bool _notifyRegistered = false;
+	BlockSizeMap _blockSizes;
 };
 
 } // End of namespace Topgun

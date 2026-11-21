@@ -40,6 +40,13 @@ struct WaveFormat {
 	WaveFormat() : tag(0), channels(0), sampleRate(0), averageBytesPerSecond(0), blockAlign(0), bitsPerSample(0) {}
 };
 
+struct SoundCreateInfo {
+	uint16 waveInfo;
+	const byte *header;
+
+	SoundCreateInfo() : waveInfo(0), header(nullptr) {}
+};
+
 class AudioLibrary {
 public:
 	AudioLibrary(TopgunEngine *engine);

@@ -89,6 +89,16 @@ struct ScheduledTimerRecord {
 	ScheduledTimerRecord() : expiry(0), id(0), script(0) {}
 };
 
+enum ResourceType {
+	kResourceBitmap = 1,
+	kResourceBlob = 2,
+	kResourceWave = 3,
+	kResourceGroup = 5,
+	kResourceSprite = 6,
+	kResourceScript = 7,
+	kResourceTransPalette = 8
+};
+
 struct ResourceRecord {
 	byte *data;
 	uint16 handle;
@@ -160,6 +170,7 @@ protected:
 	// Messages
 	void pauseEngineIntern(bool pause) override;
 	void requestClose() override;
+	void postMemoryError() override;
 	bool postMessage(uint16 id, uint16 param, uint32 data);
 	bool peekMessage(Message &message);
 	void removeMessages(uint16 id);
@@ -297,7 +308,6 @@ protected:
 	uint16 _activationScript = 0;
 
 	// Scenes
-	Common::Path _baseDir;
 	GotoSceneRecord _gotoRecord;
 	SceneRecord *_currentScene = nullptr;
 	uint16 _numScenes = 0;

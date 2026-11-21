@@ -285,7 +285,7 @@ void TopgunEngine_v0::handleMouseButtonDown(int16 x, int16 y) {
 	uint16 sprite = spriteLibrary()->spritePicked(x, y);
 	if (sprite != 0) {
 		uint16 id = spriteLibrary()->spriteGetId(sprite);
-		if (_records != nullptr && id < _numResources)
+		if (_records && id < _numResources)
 			script = _records[id].clickScript;
 		else
 			warning("TopgunEngine_v0::handleMouseButtonDown(): resource id %d is out of range", id);
@@ -327,7 +327,7 @@ void TopgunEngine_v0::setCursorImage(bool hourglass) {
 		cursor = Graphics::makeDefaultWinCursor();
 	}
 
-	if (cursor == nullptr) {
+	if (!cursor) {
 		warning("TopgunEngine_v0::setCursorImage(): cannot create the cursor");
 		return;
 	}
