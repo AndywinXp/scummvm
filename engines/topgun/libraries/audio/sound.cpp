@@ -308,7 +308,7 @@ void AudioLibrary::startWavePlayback(WaveObject *wave, const byte *params) {
 		wave->active = false;
 		wave->randomMin = params[4];
 		wave->randomRange = (params[4] < params[5]) ? (byte)(params[5] - params[4] + 1) : 0;
-		computeRandomizedRepeatDelay(wave, g_system->getMillis());
+		computeRandomizedRepeatDelay(wave, _engine->getEngineMillis());
 	} else if (!wave->active) {
 		wave->active = true;
 		_activeSoundCount++;
@@ -373,7 +373,7 @@ void AudioLibrary::finishWaveObject(WaveObject *wave) {
 	_activeSoundCount--;
 
 	if (wave->randomRepeat) {
-		computeRandomizedRepeatDelay(wave, g_system->getMillis());
+		computeRandomizedRepeatDelay(wave, _engine->getEngineMillis());
 		wave->loops = 1;
 	}
 }

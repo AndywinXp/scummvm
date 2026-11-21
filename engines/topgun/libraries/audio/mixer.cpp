@@ -367,7 +367,7 @@ void AudioLibrary::pumpAudioPlayback() {
 		return;
 
 	if (_masterFadeMode != 0) {
-		uint32 now = g_system->getMillis();
+		uint32 now = _engine->getEngineMillis();
 
 		if (now >= _fadeNextTick) {
 			_fadeNextTick = now + kFadeTickInterval;
@@ -391,7 +391,7 @@ void AudioLibrary::pumpAudioPlayback() {
 		if (wave->streaming && !wave->endOfStream && wave->available < _refillThreshold)
 			compactAndRefillSoundBuffer(wave);
 
-		if (wave->randomRepeat && !wave->active && g_system->getMillis() >= wave->nextTrigger) {
+		if (wave->randomRepeat && !wave->active && _engine->getEngineMillis() >= wave->nextTrigger) {
 			rewindSound(wave);
 			wave->active = true;
 			wave->loops = 1;

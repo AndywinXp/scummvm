@@ -61,9 +61,12 @@ private:
 	ResourceLibrary *_resourceLibrary = nullptr;
 	SpriteLibrary *_spriteLibrary = nullptr;
 	Display *_display = nullptr;
+	uint32 _pausedMillis = 0;
+	uint32 _pauseStartMillis = 0;
 
 protected:
 	Common::Error run() override;
+	void pauseEngineIntern(bool pause) override;
 
 	// Services
 	Graphics::Screen *screen() { return _screen; }
@@ -87,6 +90,13 @@ public:
 	~TopgunEngine() override;
 
 	uint32 getFeatures() const;
+
+	/**
+	 * Returns the system time without the time spent in pause
+	 */
+	uint32 getEngineMillis() const {
+		return g_system->getMillis() - _pausedMillis;
+	}
 
 	/**
 	 * Returns the game Id

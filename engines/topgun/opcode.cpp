@@ -162,7 +162,7 @@ void TopgunEngine_v0::o_setScriptTimer(const byte *record) {
 		_numTimers++;
 
 	_timers[index].id = id;
-	_timers[index].expiry = g_system->getMillis() + READ_LE_UINT32(record + 6);
+	_timers[index].expiry = getEngineMillis() + READ_LE_UINT32(record + 6);
 	_timers[index].script = READ_LE_UINT16(record + 4);
 }
 

@@ -496,7 +496,7 @@ uint16 AudioLibrary::startMasterFadeUp(uint16 duration) {
 	_fadeVolumeStepLeft = (uint16)(((uint32)_waveVolumeLeft + (steps >> 1)) / steps);
 	_fadeVolumeStepRight = (uint16)(((uint32)_waveVolumeRight + (steps >> 1)) / steps);
 	setWaveOutVolume(0);
-	_fadeNextTick = g_system->getMillis() + kFadeTickInterval;
+	_fadeNextTick = _engine->getEngineMillis() + kFadeTickInterval;
 	return 1;
 }
 
@@ -519,7 +519,7 @@ uint16 AudioLibrary::startMasterFadeOut(uint16 duration) {
 
 	_fadeVolumeStepLeft = (uint16)(((uint32)_waveVolumeLeft + (steps >> 1)) / steps);
 	_fadeVolumeStepRight = (uint16)(((uint32)_waveVolumeRight + (steps >> 1)) / steps);
-	_fadeNextTick = g_system->getMillis() + kFadeTickInterval;
+	_fadeNextTick = _engine->getEngineMillis() + kFadeTickInterval;
 	return 1;
 }
 

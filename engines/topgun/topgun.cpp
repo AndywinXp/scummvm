@@ -71,6 +71,15 @@ TopgunEngine::~TopgunEngine() {
 	_screen = nullptr;
 }
 
+void TopgunEngine::pauseEngineIntern(bool pause) {
+	Engine::pauseEngineIntern(pause);
+
+	if (pause)
+		_pauseStartMillis = g_system->getMillis();
+	else
+		_pausedMillis += g_system->getMillis() - _pauseStartMillis;
+}
+
 uint32 TopgunEngine::getFeatures() const {
 	return _gameDescription->flags;
 }

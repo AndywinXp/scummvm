@@ -546,7 +546,7 @@ void SpriteLibrary::spriteSetMotion(uint16 sprite, uint32 milliseconds) {
 
 	object->frameInterval = milliseconds;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	object->moveDue = now + object->moveInterval;
 	object->frameDue = now + milliseconds;
 }
@@ -577,7 +577,7 @@ void SpriteLibrary::spriteSetSpeed(uint16 sprite, uint32 milliseconds) {
 
 	object->moveInterval = milliseconds;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	object->moveDue = now + milliseconds;
 	object->frameDue = now + object->frameInterval;
 }

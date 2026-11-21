@@ -57,7 +57,7 @@ void TopgunEngine_v0::serviceScheduledMsgTimerQueue() {
 		return;
 
 	do {
-		uint32 now = g_system->getMillis();
+		uint32 now = getEngineMillis();
 
 		if (_timers[index].expiry <= now) {
 			uint16 script = _timers[index].script;

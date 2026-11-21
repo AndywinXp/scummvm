@@ -374,7 +374,7 @@ bool SpriteLibrary::tickPlayRangeRecord(uint16 sprite) {
 	if (!object)
 		return false;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	if (now < object->frameDue)
 		return false;
 
@@ -406,7 +406,7 @@ bool SpriteLibrary::tickMultiCelRecord(uint16 sprite) {
 	if (!object)
 		return false;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	if (now < object->frameDue)
 		return false;
 
@@ -444,7 +444,7 @@ bool SpriteLibrary::tickQuadPathRecord(uint16 sprite) {
 		return false;
 
 	bool finished = false;
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 
 	if (now >= object->moveDue) {
 		if (object->timingMode == 0 || object->moveDue == 0)
@@ -479,7 +479,7 @@ bool SpriteLibrary::tickLinearMoveRecord(uint16 sprite) {
 		return false;
 
 	bool finished = false;
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 
 	if (now >= object->moveDue) {
 		if (object->timingMode == 0 || object->moveDue == 0)
@@ -515,7 +515,7 @@ bool SpriteLibrary::tickDelayedMoveRecord(uint16 sprite) {
 
 	bool finished = false;
 	bool frameChanged = false;
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 
 	if (object->rangeStart != object->rangeEnd && now >= object->frameDue) {
 		object->framePending = true;
@@ -547,7 +547,7 @@ bool SpriteLibrary::tickWaitRecord(uint16 sprite) {
 	if (!object)
 		return false;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	byte *command = object->queueCurrent;
 	if (command[6] != 0)
 		return now >= object->frameDue;

@@ -127,12 +127,6 @@ void TopgunEngine_v0::presentScreenAndWait() {
 	g_system->delayMillis(kLoopDelay);
 }
 
-void TopgunEngine_v0::pauseEngineIntern(bool pause) {
-	Engine::pauseEngineIntern(pause);
-
-	postMessage(kMsgActivate, pause ? 0 : 1, 0);
-}
-
 void TopgunEngine_v0::requestClose() {
 	postMessage(kMsgClose, 0, 0);
 }

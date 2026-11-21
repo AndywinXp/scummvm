@@ -121,7 +121,7 @@ bool AudioLibrary::sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms
 			uint32 frames = 0;
 
 			if (_cdPlayStarted) {
-				uint32 elapsed = (uint32)(((uint64)(g_system->getMillis() - _cdPlayStartMillis) * kFramesPerSecond) / 1000);
+				uint32 elapsed = (uint32)(((uint64)(_engine->getEngineMillis() - _cdPlayStartMillis) * kFramesPerSecond) / 1000);
 
 				track = _cdPlayTrack;
 				frames = MIN<uint32>(_cdPlayStartFrame + elapsed, _cdPlayEndFrame);
@@ -168,7 +168,7 @@ bool AudioLibrary::sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms
 		_cdPlayTrack = track;
 		_cdPlayStartFrame = startFrame;
 		_cdPlayEndFrame = (duration != 0) ? startFrame + duration : trackFrames;
-		_cdPlayStartMillis = g_system->getMillis();
+		_cdPlayStartMillis = _engine->getEngineMillis();
 		return true;
 	}
 
@@ -236,7 +236,7 @@ uint16 AudioLibrary::startCDPlayback(uint32 from, uint32 to) {
 	play.to = ((_cdTo >> 24) & 0xFF) | (((_cdTo >> 16) & 0xFF) << 8) | (((_cdTo >> 8) & 0xFF) << 16) | ((_cdTo & 0xFF) << 24);
 	sendCdDeviceCommand(kDevPlay, kDevFrom | kDevTo, play);
 
-	_cdNextPoll = g_system->getMillis() + kPollInterval;
+	_cdNextPoll = _engine->getEngineMillis() + kPollInterval;
 	return 1;
 }
 
@@ -309,7 +309,7 @@ void AudioLibrary::pollCDEndAndClose() {
 	if (_cdDeviceId == 0)
 		return;
 
-	uint32 now = g_system->getMillis();
+	uint32 now = _engine->getEngineMillis();
 	if (now < _cdNextPoll)
 		return;
 

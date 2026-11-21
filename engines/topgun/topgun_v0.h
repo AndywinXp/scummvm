@@ -219,7 +219,6 @@ protected:
 	bool locateResourceFile();
 
 	// Messages
-	void pauseEngineIntern(bool pause) override;
 	void requestClose() override;
 	bool postMessage(uint16 id, uint16 param, uint32 data);
 	bool peekMessage(Message &message);
