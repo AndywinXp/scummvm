@@ -19,14 +19,16 @@
  *
  */
 
+#include "backends/audiocd/audiocd.h"
 #include "common/config-manager.h"
 #include "common/file.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "graphics/cursorman.h"
 #include "graphics/screen.h"
 
 #include "topgun/display.h"
-#include "topgun/libraries/audio.h"
+#include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
 #include "topgun/topgun_v0.h"
@@ -45,7 +47,13 @@ TopgunEngine_v0::~TopgunEngine_v0() {
 }
 
 bool TopgunEngine_v0::rtStartup(bool runChecks) {
+	if (!existExtractedCDAudioFiles(kFirstAudioTrack) && !isDataAndCDAudioReadFromSameCD())
+		warnMissingExtractedCDAudio();
+
+	g_system->getAudioCDManager()->open();
+
 	setCursorImage(false);
+	CursorMan.showMouse(true);
 
 	bool ok = initEngineLibraries();
 
@@ -58,7 +66,6 @@ bool TopgunEngine_v0::rtStartup(bool runChecks) {
 			ok = locateResourceFile();
 
 			if (ok) {
-				utilsLibrary()->memSetNotify();
 				_appActive = true;
 				invalidateScreen();
 				handlePaintMessage();
@@ -104,7 +111,7 @@ uint16 TopgunEngine_v0::mainLoop() {
 		presentScreenAndWait();
 	}
 
-	handleAppShutdown(false);
+	handleAppShutdown();
 
 	return 0;
 }
@@ -113,6 +120,8 @@ void TopgunEngine_v0::presentScreenAndWait() {
 	if (screen()->isDirty() || display()->isPaletteChanged()) {
 		screen()->update();
 		display()->clearPaletteChanged();
+	} else {
+		g_system->updateScreen();
 	}
 
 	g_system->delayMillis(kLoopDelay);
@@ -126,10 +135,6 @@ void TopgunEngine_v0::pauseEngineIntern(bool pause) {
 
 void TopgunEngine_v0::requestClose() {
 	postMessage(kMsgClose, 0, 0);
-}
-
-void TopgunEngine_v0::postMemoryError() {
-	postMessage(kMsgMemoryError, 0, 0);
 }
 
 bool TopgunEngine_v0::postMessage(uint16 id, uint16 param, uint32 data) {
@@ -223,7 +228,7 @@ void TopgunEngine_v0::dispatchMessage(const Message &message) {
 	} else if (message.id == kMsgPaint) {
 		handlePaintMessage();
 	} else if (message.id == kMsgClose) {
-		handleAppShutdown(false);
+		handleAppShutdown();
 	} else if (message.id == kMsgSceneEnd) {
 		handleSceneEndMessage();
 	} else if (message.id == kMsgGotoScene) {
@@ -231,8 +236,6 @@ void TopgunEngine_v0::dispatchMessage(const Message &message) {
 	} else if (message.id == kMsgRunScript) {
 		if (message.param != 0)
 			runScriptResource(message.param);
-	} else if (message.id == kMsgMemoryError) {
-		handleAppShutdown(true);
 	}
 }
 
@@ -255,14 +258,11 @@ void TopgunEngine_v0::clearInputMessageQueues() {
 }
 
 void TopgunEngine_v0::showFormattedErrorMessageBox(uint16 stringId, const char *argument) {
-	static const char *const kErrorNotEnoughMemory = "Not enough memory to run TuneLand. Please\nrefer to the trouble shooting instructions.";
 	static const char *const kErrorNeed256Colors = "TuneLand requires 256 colors or more to run.";
 	static const char *const kErrorCannotOpenFile = "Can't open file '%s'.";
 
 	Common::String text;
-	if (stringId == 100) {
-		text = kErrorNotEnoughMemory;
-	} else if (stringId == 101) {
+	if (stringId == 101) {
 		text = kErrorNeed256Colors;
 	} else if (stringId == 102) {
 		if (argument)
@@ -300,15 +300,14 @@ void TopgunEngine_v0::handleActivateMessage(uint16 param) {
 	bool active = (param != 0);
 
 	if (_file != 0 && _appActive != active) {
-		if (_appActive && !active)
-			audioLibrary()->audioActivate(0);
+		// TODO: the original deactivation stops CD audio for good
+		// and closes the wave device, we only pause it...
+		// Keeping an eye on this until we know if this is a TODO or not
 
 		_globalFlags[6] = active ? 1 : 0;
 		_appActive = active;
 
 		if (active) {
-			audioLibrary()->audioActivate(1);
-
 			if (_activationScript != 0)
 				runScriptResource(_activationScript);
 
@@ -317,7 +316,7 @@ void TopgunEngine_v0::handleActivateMessage(uint16 param) {
 	}
 }
 
-void TopgunEngine_v0::handleAppShutdown(bool memoryError) {
+void TopgunEngine_v0::handleAppShutdown() {
 	_shuttingDown = true;
 	_appActive = false;
 
@@ -326,11 +325,6 @@ void TopgunEngine_v0::handleAppShutdown(bool memoryError) {
 
 	spriteLibrary()->spriteExitLibrary();
 	audioLibrary()->audioExitLibrary();
-
-	if (memoryError) {
-		fillBackground();
-		showFormattedErrorMessageBox(100, nullptr);
-	}
 
 	clearMessages();
 	postQuitMessage(0);

@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio.h"
+#include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/utils.h"
 #include "topgun/topgun.h"
@@ -288,11 +288,6 @@ uint16 ResourceLibrary::resCreateWaveEvent(uint16 file, uint16 index) {
 	createInfo.waveInfo = waveInfo;
 	createInfo.header = header + 2;
 	return (uint16)_engine->audioLibrary()->audioCommand(kCreateSoundCommand, READ_LE_UINT16(header), 0, &createInfo);
-}
-
-uint16 ResourceLibrary::resEnumResources(uint16 file) {
-	warning("resEnumResources UNIMPLEMENTED");
-	return 0;
 }
 
 uint32 ResourceLibrary::resGetSize(uint16 file, uint16 index) {

@@ -5,7 +5,14 @@ MODULE_OBJS = \
 	console.o \
 	display.o \
 	input.o \
-	libraries/audio.o \
+	libraries/audio/audio.o \
+	libraries/audio/cd.o \
+	libraries/audio/convert.o \
+	libraries/audio/midi.o \
+	libraries/audio/mixer.o \
+	libraries/audio/sound.o \
+	libraries/audio/wavefile.o \
+	libraries/audio/waveout.o \
 	libraries/resource.o \
 	libraries/sprite/animation.o \
 	libraries/sprite/palette.o \

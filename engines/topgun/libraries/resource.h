@@ -40,7 +40,6 @@ public:
 	uint16 resCountResources(uint16 file);
 	uint16 resCountVariables(uint16 file);
 	uint16 resCreateWaveEvent(uint16 file, uint16 index);
-	uint16 resEnumResources(uint16 file);
 	uint32 resGetSize(uint16 file, uint16 index);
 	uint16 resGetType(uint16 file, uint16 index);
 	byte *resLoadNameTable(uint16 file, uint32 *outSize);

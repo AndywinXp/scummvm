@@ -23,7 +23,7 @@
 #include "topgun/console.h"
 #include "topgun/detection.h"
 #include "topgun/display.h"
-#include "topgun/libraries/audio.h"
+#include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"

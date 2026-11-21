@@ -77,7 +77,6 @@ protected:
 	virtual bool rtStartup(bool runChecks) = 0;
 	virtual uint16 mainLoop() = 0;
 	virtual void requestClose() = 0;
-	virtual void postMemoryError() = 0;
 	virtual void resourceLoadProgressCallback() = 0;
 
 	// Scripts

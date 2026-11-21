@@ -23,7 +23,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio.h"
+#include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
 #include "topgun/topgun.h"

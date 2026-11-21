@@ -25,7 +25,6 @@
 #include "common/hash-ptr.h"
 #include "common/hashmap.h"
 #include "common/scummsys.h"
-#include "common/str.h"
 
 namespace Topgun {
 
@@ -37,27 +36,15 @@ public:
 	~UtilsLibrary();
 
 	void copyHugeBytes(byte *destination, const byte *source, uint32 count);
-	uint16 shiInvokeErrorHandler1(void *pointer, uint16 errorCode);
-	void setHugeBytes(byte *destination, uint16 fill, uint32 count);
-	char *copyString(const char *source);
-	void debugStr(const char *format, ...);
-	uint32 memMgrSize();
 	byte *tgMalloc(uint32 size, uint16 zeroInit);
 	byte *tgPtrCpy(const byte *block);
 	byte *tgRealloc(byte *block, uint32 newSize, uint16 zeroInit);
 	byte *tgFree(byte *block);
-	Common::String makeModulePath(uint16 instance, const Common::String &file);
-	void getPathAndFile(const Common::String &fullPath, Common::String &path, Common::String &file);
-	uint32 memMgrPreAllocate(uint32 bytes);
-	bool fileExist(const Common::String &path);
-	void memSetNotify();
-	uint16 smartHeapErrHdlr(void *errorInfo);
 
 private:
 	typedef Common::HashMap<byte *, uint32> BlockSizeMap;
 
 	TopgunEngine *_engine;
-	bool _notifyRegistered = false;
 	BlockSizeMap _blockSizes;
 };
 

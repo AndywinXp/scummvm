@@ -46,8 +46,7 @@ enum MessageId {
 	kMsgRButtonDown = 0x204,
 	kMsgSceneEnd = 0x464,
 	kMsgGotoScene = 0x465,
-	kMsgRunScript = 0x466,
-	kMsgMemoryError = 0x4C8
+	kMsgRunScript = 0x466
 };
 
 enum AudioCommand {
@@ -197,7 +196,8 @@ public:
 		kNumDissolveTiles = 300,
 		kLoopDelay = 10,
 		kMaxPostedMessages = 8,
-		kMaxScriptDepth = 256
+		kMaxScriptDepth = 256,
+		kFirstAudioTrack = 2
 	};
 
 	TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc);
@@ -221,7 +221,6 @@ protected:
 	// Messages
 	void pauseEngineIntern(bool pause) override;
 	void requestClose() override;
-	void postMemoryError() override;
 	bool postMessage(uint16 id, uint16 param, uint32 data);
 	bool peekMessage(Message &message);
 	void removeMessages(uint16 id);
@@ -231,7 +230,7 @@ protected:
 	void postQuitMessage(uint16 exitCode);
 	void dispatchMessage(const Message &message);
 	void handleActivateMessage(uint16 param);
-	void handleAppShutdown(bool memoryError);
+	void handleAppShutdown();
 	void handlePaintMessage();
 	void handleSceneEndMessage();
 	void fillBackground();

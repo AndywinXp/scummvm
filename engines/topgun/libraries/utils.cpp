@@ -33,30 +33,7 @@ UtilsLibrary::~UtilsLibrary() {
 }
 
 void UtilsLibrary::copyHugeBytes(byte *destination, const byte *source, uint32 count) {
-	warning("copyHugeBytes UNIMPLEMENTED");
-}
-
-uint16 UtilsLibrary::shiInvokeErrorHandler1(void *pointer, uint16 errorCode) {
-	warning("shiInvokeErrorHandler1 UNIMPLEMENTED");
-	return 0;
-}
-
-void UtilsLibrary::setHugeBytes(byte *destination, uint16 fill, uint32 count) {
-	warning("setHugeBytes UNIMPLEMENTED");
-}
-
-char *UtilsLibrary::copyString(const char *source) {
-	warning("copyString UNIMPLEMENTED");
-	return nullptr;
-}
-
-void UtilsLibrary::debugStr(const char *format, ...) {
-	warning("debugStr UNIMPLEMENTED");
-}
-
-uint32 UtilsLibrary::memMgrSize() {
-	warning("memMgrSize UNIMPLEMENTED");
-	return 0;
+	memmove(destination, source, count);
 }
 
 byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
@@ -64,10 +41,8 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 		return nullptr;
 
 	byte *block = (byte *)malloc(size);
-	if (!block) {
-		smartHeapErrHdlr(nullptr);
-		return nullptr;
-	}
+	if (!block)
+		error("UtilsLibrary::tgMalloc(): not enough memory to allocate %u bytes", size);
 
 	if (zeroInit != 0)
 		memset(block, 0, size);
@@ -77,8 +52,18 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 }
 
 byte *UtilsLibrary::tgPtrCpy(const byte *block) {
-	warning("tgPtrCpy UNIMPLEMENTED");
-	return nullptr;
+	if (!block)
+		return nullptr;
+
+	if (!_blockSizes.contains((byte *)block)) {
+		warning("UtilsLibrary::tgPtrCpy(): block was not allocated by tgMalloc");
+		return nullptr;
+	}
+
+	uint32 size = _blockSizes[(byte *)block];
+	byte *copy = tgMalloc(size, 0);
+	memcpy(copy, block, size);
+	return copy;
 }
 
 byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
@@ -90,17 +75,13 @@ byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
 		return nullptr;
 	}
 
-	if (newSize == 0) {
-		smartHeapErrHdlr(nullptr);
-		return nullptr;
-	}
+	if (newSize == 0)
+		error("UtilsLibrary::tgRealloc(): invalid zero size");
 
 	uint32 oldSize = _blockSizes[block];
 	byte *newBlock = (byte *)realloc(block, newSize);
-	if (!newBlock) {
-		smartHeapErrHdlr(nullptr);
-		return nullptr;
-	}
+	if (!newBlock)
+		error("UtilsLibrary::tgRealloc(): not enough memory to allocate %u bytes", newSize);
 
 	if (zeroInit != 0 && newSize > oldSize)
 		memset(newBlock + oldSize, 0, newSize - oldSize);
@@ -122,36 +103,6 @@ byte *UtilsLibrary::tgFree(byte *block) {
 	_blockSizes.erase(block);
 	free(block);
 	return nullptr;
-}
-
-Common::String UtilsLibrary::makeModulePath(uint16 instance, const Common::String &file) {
-	warning("makeModulePath UNIMPLEMENTED");
-	return Common::String();
-}
-
-void UtilsLibrary::getPathAndFile(const Common::String &fullPath, Common::String &path, Common::String &file) {
-	warning("getPathAndFile UNIMPLEMENTED");
-}
-
-uint32 UtilsLibrary::memMgrPreAllocate(uint32 bytes) {
-	warning("memMgrPreAllocate UNIMPLEMENTED");
-	return 0;
-}
-
-bool UtilsLibrary::fileExist(const Common::String &path) {
-	warning("fileExist UNIMPLEMENTED");
-	return false;
-}
-
-void UtilsLibrary::memSetNotify() {
-	_notifyRegistered = true;
-}
-
-uint16 UtilsLibrary::smartHeapErrHdlr(void *errorInfo) {
-	if (_notifyRegistered)
-		_engine->postMemoryError();
-
-	return 0;
 }
 
 } // End of namespace Topgun
