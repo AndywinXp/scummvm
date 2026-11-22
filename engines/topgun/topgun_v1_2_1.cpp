@@ -30,7 +30,7 @@
 namespace Topgun {
 
 TopgunEngine_v1_2_1::TopgunEngine_v1_2_1(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine_v1_2(syst, gameDesc, kVersionV1_2_1) {
+	TopgunEngine_v1_2(syst, gameDesc, (Common::String(gameDesc->gameId) == "battlebeast") ? kVersionV1_2_2 : kVersionV1_2_1) {
 	setAudioLibrary(new AudioLibrary_v1_2_1(this));
 	setResourceLibrary(new ResourceLibrary_v1_2_1(this));
 	setSpriteLibrary(new SpriteLibrary_v1_2_1(this));
@@ -244,6 +244,8 @@ bool TopgunEngine_v1_2_1::initApplication(const Common::String &title) {
 bool TopgunEngine_v1_2_1::registerViewClassAndCreateMainWindow() {
 	_windowRect = Common::Rect(0, 0, display()->width(), display()->height());
 
+	display()->setWindowOrigin(-1, -1);
+
 	return loadCursorResources();
 }
 
@@ -445,7 +447,7 @@ void TopgunEngine_v1_2_1::handleActivateMessage(uint16 param) {
 
 	bool active = (param != 0);
 
-	if (_activateScript != 0 && _activateState != active) {
+	if (_version >= kVersionV1_2_2 && _activateScript != 0 && _activateState != active) {
 		byte record[18];
 		memset(record, 0, sizeof(record));
 

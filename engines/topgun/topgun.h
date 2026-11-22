@@ -42,7 +42,8 @@ enum EngineVersion {
 	kVersionV1_0 = 100,
 	kVersionV1_1 = 110,
 	kVersionV1_2 = 120,
-	kVersionV1_2_1 = 121
+	kVersionV1_2_1 = 121,
+	kVersionV1_2_2 = 122
 };
 
 class AudioLibrary;
@@ -68,12 +69,14 @@ enum MessageId {
 class TopgunEngine : public Engine {
 	friend class AudioLibrary;
 	friend class AudioLibrary_v1_2;
+	friend class AudioLibrary_v1_2_1;
 	friend class Console;
 	friend class ResourceLibrary;
 	friend class ResourceLibrary_v1_2;
 	friend class SpriteLibrary;
 	friend class SpriteLibrary_v1_2;
 	friend class TopgunEngine_v1_2;
+	friend class TopgunEngine_v1_2_1;
 	friend class UtilsLibrary;
 
 private:

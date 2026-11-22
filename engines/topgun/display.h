@@ -57,8 +57,17 @@ public:
 
 	const Common::Point &viewportOrigin() const { return _viewportOrigin; }
 	void setViewportOrigin(int16 x, int16 y) {
-		_viewportOrigin.x = x;
-		_viewportOrigin.y = y;
+		_clientViewportOrigin.x = x;
+		_clientViewportOrigin.y = y;
+		_viewportOrigin.x = x + _windowOrigin.x;
+		_viewportOrigin.y = y + _windowOrigin.y;
+	}
+
+	// Screen position of the window top left corner
+	void setWindowOrigin(int16 x, int16 y) {
+		_windowOrigin.x = x;
+		_windowOrigin.y = y;
+		setViewportOrigin(_clientViewportOrigin.x, _clientViewportOrigin.y);
 	}
 
 	// Clip region
@@ -93,6 +102,8 @@ private:
 	uint16 _height;
 	bool _hasPalette = false;
 	Common::Point _viewportOrigin;
+	Common::Point _clientViewportOrigin;
+	Common::Point _windowOrigin;
 	RectArray _excludedRects;
 	Common::Array<RectArray> _savedClipStates;
 	byte _logicalPalette[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];

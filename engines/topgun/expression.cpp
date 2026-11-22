@@ -266,7 +266,11 @@ void TopgunEngine_v1_2_1::exprCallBuiltinFunction(const byte *token) {
 	uint16 count = READ_LE_UINT16(token + 2);
 	uint16 code = _expressionStack[_expressionStackPointer - count - 1];
 
-	if (code <= TG_SCRIPT_V1_2_1_LAST_BUILTIN_CODE)
+	uint16 lastBuiltinCode = TG_SCRIPT_V1_2_1_LAST_BUILTIN_CODE;
+	if (_version < kVersionV1_2_2)
+		lastBuiltinCode--;
+
+	if (code <= lastBuiltinCode)
 		evaluateBuiltinFunction(code, count);
 	else
 		warning("exprCallPluginFunction UNIMPLEMENTED");
@@ -954,12 +958,14 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStack[_expressionStackPointer - 1] = _freeMemoryHigh;
 		break;
 
-	case 141: {
-		uint16 script = _expressionStack[_expressionStackPointer - 1];
+	case 141:
+		if (_version >= kVersionV1_2_2) {
+			uint16 script = _expressionStack[_expressionStackPointer - 1];
 
-		_activateScript = script ? (uint16)(script - TG_HOST_V1_2_1_LITERAL_BIAS) : 0;
+			_activateScript = script ? (uint16)(script - TG_HOST_V1_2_1_LITERAL_BIAS) : 0;
+		}
+
 		break;
-	}
 
 	default:
 		break;

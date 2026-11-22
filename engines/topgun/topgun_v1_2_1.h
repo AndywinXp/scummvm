@@ -662,8 +662,8 @@ protected:
 	byte _postedRuns[TG_SCRIPT_V1_2_1_MAX_POSTED_RUNS * TG_SCRIPT_V1_2_1_POSTED_RUN_SIZE] = {};
 	char _quitSceneName[TG_HOST_V1_2_1_SCENE_NAME_SIZE] = {};
 	char _gotoSceneName[TG_HOST_V1_2_1_SCENE_NAME_SIZE] = {};
-	// The memory check is not emulated; the scripts compare this value with 53 (53 * 65536 is about 3.4 MB), so it stands for plenty of memory
-	uint16 _freeMemoryHigh = 0xFFFF;
+	// The memory check is not emulated; the scripts compare this value with 53 as a signed number (53 * 65536 is about 3.4 MB), so it stands for plenty of memory
+	uint16 _freeMemoryHigh = 0x7FFF;
 
 	// Palette and background state
 	byte _palette[TG_HOST_V1_2_1_PALETTE_SIZE] = {};

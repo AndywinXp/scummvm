@@ -188,6 +188,7 @@
 #define TG_TEXT_V1_2_SOLID_COLOR                 0xFF
 #define TG_TEXT_V1_2_DEFAULT_HEIGHT              12
 #define TG_TEXT_V1_2_1_HEADER_SIZE               20
+#define TG_TEXT_V1_2_1_SHORT_HEADER_SIZE         18
 #define TG_TEXT_V1_2_1_EDIT_RECORD_SIZE          12
 #define TG_TEXT_V1_2_1_FACE_SIZE                 32
 

@@ -119,7 +119,13 @@ uint16 TopgunEngine_v1_2::createTextObject(uint16 id, const byte *data) {
 
 	object->handle = handle;
 	object->id = id;
-	memcpy(object->data, data, (_version >= kVersionV1_2_1) ? TG_TEXT_V1_2_1_HEADER_SIZE : TG_TEXT_V1_2_DATA_SIZE);
+	uint16 headerSize = TG_TEXT_V1_2_DATA_SIZE;
+	if (_version >= kVersionV1_2_2)
+		headerSize = TG_TEXT_V1_2_1_HEADER_SIZE;
+	else if (_version >= kVersionV1_2_1)
+		headerSize = TG_TEXT_V1_2_1_SHORT_HEADER_SIZE;
+
+	memcpy(object->data, data, headerSize);
 
 	if (_version >= kVersionV1_2_1)
 		object->color = READ_LE_UINT16(object->data + TG_TEXT_V1_2_1_HEADER_COLOR);
@@ -368,6 +374,9 @@ Graphics::ManagedSurface *TopgunEngine_v1_2_1::renderTextToBitmap(const TextObje
 		font = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
 
 	uint16 flags = READ_LE_UINT16(object->data + TG_TEXT_V1_2_1_HEADER_FLAGS);
+	if (_version < kVersionV1_2_2)
+		flags = (flags & 0xFF) | TG_TEXT_V1_2_1_FLAG_NO_PREFIX;
+
 	int16 boxWidth = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_1_HEADER_BOX_WIDTH);
 	int16 boxHeight = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_1_HEADER_BOX_HEIGHT);
 	bool hasBox = (boxWidth != 0 && boxHeight != 0);

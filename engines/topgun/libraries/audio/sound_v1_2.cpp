@@ -680,7 +680,9 @@ bool AudioLibrary_v1_2_1::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_
 }
 
 bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *params) {
-	if (!sound->exempt && _activeSounds != 0 && _maxPriority > sound->priority)
+	bool busy = (_engine->_version >= kVersionV1_2_2) ? (_activeSounds != 0) : (_buffersInFlight != 0);
+
+	if (!sound->exempt && busy && _maxPriority > sound->priority)
 		return true;
 
 	sound->fadingOut = false;
@@ -796,13 +798,21 @@ void AudioLibrary_v1_2_1::activateWaveObject(SoundObject *sound) {
 }
 
 void AudioLibrary_v1_2_1::armWaveNotificationEndTime(SoundObject *sound) {
-	uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
 	uint32 duration = 0;
 
-	if (bytesPerTenthSecond != 0)
-		duration = (sound->sourceLength * 100) / bytesPerTenthSecond;
-	else
-		warning("AudioLibrary_v1_2_1::armWaveNotificationEndTime(): the average byte rate of sound %d is below 10", sound->handle);
+	if (_engine->_version >= kVersionV1_2_2) {
+		uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
+
+		if (bytesPerTenthSecond != 0)
+			duration = (sound->sourceLength * 100) / bytesPerTenthSecond;
+		else
+			warning("AudioLibrary_v1_2_1::armWaveNotificationEndTime(): the average byte rate of sound %d is below 10", sound->handle);
+	} else {
+		if (sound->format.averageBytesPerSecond != 0)
+			duration = (sound->sourceLength * 1000) / sound->format.averageBytesPerSecond;
+		else
+			warning("AudioLibrary_v1_2_1::armWaveNotificationEndTime(): the average byte rate of sound %d is zero", sound->handle);
+	}
 
 	sound->notifyEndTime = _engine->getEngineMillis() + duration;
 }
