@@ -27,6 +27,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "pythonwaste", "Monty Python's Complete Waste of Time" },
 	{ "battlebeast", "Battle Beast" },
 	{ "junglegames", "Timon & Pumbaa's Jungle Games" },
+	{ "aceventura", "Ace Ventura: The CD-Rom Game" },
 	{ 0, 0 }
 };
 
@@ -116,6 +117,26 @@ const ADGameDescription gameDescriptions[] = {
 		nullptr,
 		AD_ENTRY1s("JUNGMAIN.BIN", "446413cef0cea2fc4fbbaf10d838caa4", 7074945),
 		Common::JA_JPN,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
+		nullptr,
+		AD_ENTRY1s("ACE.BIN", "29ed24f8deced71e5f15bb6181b0d7da", 14339127),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
+		nullptr,
+		AD_ENTRY1s("ACE.BIN", "a51e25697c45a785516cba1c808c9713", 85007),
+		Common::IT_ITA,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
