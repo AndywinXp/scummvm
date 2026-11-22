@@ -28,21 +28,21 @@
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v1.h"
+#include "topgun/topgun_v1_1.h"
 
 namespace Topgun {
 
-TopgunEngine_v1::TopgunEngine_v1(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine_v0(syst, gameDesc, 1) {
+TopgunEngine_v1_1::TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc) :
+	TopgunEngine_v1_0(syst, gameDesc, 1) {
 }
 
-TopgunEngine_v1::~TopgunEngine_v1() {
+TopgunEngine_v1_1::~TopgunEngine_v1_1() {
 }
 
-void TopgunEngine_v1::initCDAudio() {
+void TopgunEngine_v1_1::initCDAudio() {
 }
 
-uint16 TopgunEngine_v1::mainLoop() {
+uint16 TopgunEngine_v1_1::mainLoop() {
 	Message message;
 
 	while (!shouldQuit()) {
@@ -68,7 +68,7 @@ uint16 TopgunEngine_v1::mainLoop() {
 	return 0;
 }
 
-void TopgunEngine_v1::resourceLoadProgressCallback() {
+void TopgunEngine_v1_1::resourceLoadProgressCallback() {
 	spriteLibrary()->spriteAnimate();
 
 	if (_loading && _cdAudioPlaying) {
@@ -77,7 +77,7 @@ void TopgunEngine_v1::resourceLoadProgressCallback() {
 	}
 }
 
-void TopgunEngine_v1::handleActivateMessage(uint16 param) {
+void TopgunEngine_v1_1::handleActivateMessage(uint16 param) {
 	bool active = (param != 0);
 
 	if (!_altTab && _file != 0 && _appActive != active) {
@@ -94,7 +94,7 @@ void TopgunEngine_v1::handleActivateMessage(uint16 param) {
 	}
 }
 
-void TopgunEngine_v1::handleSceneEndMessage() {
+void TopgunEngine_v1_1::handleSceneEndMessage() {
 	if (_sceneEndScript != 0) {
 		runScriptResource(_sceneEndScript);
 		spriteLibrary()->spriteAnimate();
@@ -104,7 +104,7 @@ void TopgunEngine_v1::handleSceneEndMessage() {
 	destroySceneMainObjects(true);
 }
 
-bool TopgunEngine_v1::loadInitialScene(const Common::String &name) {
+bool TopgunEngine_v1_1::loadInitialScene(const Common::String &name) {
 	_gotoRecord = GotoSceneRecord();
 	memset(_globalFlags, 0, sizeof(_globalFlags));
 
@@ -138,7 +138,7 @@ bool TopgunEngine_v1::loadInitialScene(const Common::String &name) {
 	return true;
 }
 
-void TopgunEngine_v1::switchToNextScene(const char *name) {
+void TopgunEngine_v1_1::switchToNextScene(const char *name) {
 	if (_cdAudioPlaying) {
 		audioLibrary()->audioCommand(kStopCDCommand, 0, 0, nullptr);
 		_cdAudioPlaying = false;
@@ -182,7 +182,7 @@ void TopgunEngine_v1::switchToNextScene(const char *name) {
 		spriteLibrary()->spriteSetBkgTransparent(false);
 }
 
-void TopgunEngine_v1::cleanupCurrentSceneAndContainer() {
+void TopgunEngine_v1_1::cleanupCurrentSceneAndContainer() {
 	destroySceneMainObjects(_releaseOnPalette);
 	resetResourcesAndTransientState();
 
@@ -200,7 +200,7 @@ void TopgunEngine_v1::cleanupCurrentSceneAndContainer() {
 	_file = 0;
 }
 
-void TopgunEngine_v1::destroySceneMainObjects(bool release) {
+void TopgunEngine_v1_1::destroySceneMainObjects(bool release) {
 	if (release && _sceneSprite != 0)
 		spriteLibrary()->spriteDestroy(_sceneSprite, true, true);
 
@@ -212,7 +212,7 @@ void TopgunEngine_v1::destroySceneMainObjects(bool release) {
 	_releaseOnPalette = false;
 }
 
-void TopgunEngine_v1::freeBitmapBlobIfUnreferenced(uint16 id) {
+void TopgunEngine_v1_1::freeBitmapBlobIfUnreferenced(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.data && record.refCount == 0) {
@@ -221,7 +221,7 @@ void TopgunEngine_v1::freeBitmapBlobIfUnreferenced(uint16 id) {
 	}
 }
 
-bool TopgunEngine_v1::destroySpriteResourceObject(uint16 id) {
+bool TopgunEngine_v1_1::destroySpriteResourceObject(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	uint16 sprite = record.handle;
@@ -261,24 +261,24 @@ bool TopgunEngine_v1::destroySpriteResourceObject(uint16 id) {
 	return true;
 }
 
-bool TopgunEngine_v1::loadTransPaletteResource(uint16 id) {
+bool TopgunEngine_v1_1::loadTransPaletteResource(uint16 id) {
 	destroySceneMainObjects(_releaseOnPalette);
 
-	return TopgunEngine_v0::loadTransPaletteResource(id);
+	return TopgunEngine_v1_0::loadTransPaletteResource(id);
 }
 
-byte *TopgunEngine_v1::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut) {
+byte *TopgunEngine_v1_1::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut) {
 	uint16 type = resourceLibrary()->resGetType(_file, id);
 	if (type == kResourceScript || type == kResourceIdList)
 		return resourceLibrary()->resLoadResource(_file, id, sizeOut);
 
-	return TopgunEngine_v0::loadResourceWithProcessingPause(id, sizeOut);
+	return TopgunEngine_v1_0::loadResourceWithProcessingPause(id, sizeOut);
 }
 
-bool TopgunEngine_v1::validateAndGetResourceByType(uint16 id, uint16 type) {
+bool TopgunEngine_v1_1::validateAndGetResourceByType(uint16 id, uint16 type) {
 	if (type == kResourceIdList) {
 		if (!_records || id >= _numResources) {
-			warning("TopgunEngine_v1::validateAndGetResourceByType(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_1::validateAndGetResourceByType(): resource id %d is out of range", id);
 			return false;
 		}
 
@@ -286,18 +286,18 @@ bool TopgunEngine_v1::validateAndGetResourceByType(uint16 id, uint16 type) {
 	}
 
 	if (type == kResourcePlugin) {
-		warning("TopgunEngine_v1::validateAndGetResourceByType(): plug-in resources are not supported");
+		warning("TopgunEngine_v1_1::validateAndGetResourceByType(): plug-in resources are not supported");
 		return false;
 	}
 
-	return TopgunEngine_v0::validateAndGetResourceByType(id, type);
+	return TopgunEngine_v1_0::validateAndGetResourceByType(id, type);
 }
 
-bool TopgunEngine_v1::isResourceObjectLoaded(uint16 id) {
+bool TopgunEngine_v1_1::isResourceObjectLoaded(uint16 id) {
 	if (resourceLibrary()->resGetType(_file, id) == kResourceIdList)
 		return _records[id].data;
 
-	return TopgunEngine_v0::isResourceObjectLoaded(id);
+	return TopgunEngine_v1_0::isResourceObjectLoaded(id);
 }
 
 } // End of namespace Topgun

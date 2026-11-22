@@ -26,7 +26,7 @@
 
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
 
@@ -48,7 +48,7 @@ enum SpriteEvent {
 	kEventTrimQueue = 28
 };
 
-void TopgunEngine_v0::serviceScheduledMsgTimerQueue() {
+void TopgunEngine_v1_0::serviceScheduledMsgTimerQueue() {
 	uint16 index = 0;
 
 	if (_numTimers == 0)
@@ -71,9 +71,9 @@ void TopgunEngine_v0::serviceScheduledMsgTimerQueue() {
 	} while (index < _numTimers);
 }
 
-void TopgunEngine_v0::removeScheduledTimer(uint16 index) {
+void TopgunEngine_v1_0::removeScheduledTimer(uint16 index) {
 	if (_numTimers == 0 || index >= _numTimers) {
-		warning("TopgunEngine_v0::removeScheduledTimer(): timer index %d is out of range", index);
+		warning("TopgunEngine_v1_0::removeScheduledTimer(): timer index %d is out of range", index);
 		return;
 	}
 
@@ -84,9 +84,9 @@ void TopgunEngine_v0::removeScheduledTimer(uint16 index) {
 		memmove(&_timers[index], &_timers[index + 1], count * sizeof(ScheduledTimerRecord));
 }
 
-bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
+bool TopgunEngine_v1_0::runScriptBytecodeLoop(uint16 scriptId) {
 	if (_scriptDepth >= TG_HOST_MAX_SCRIPT_DEPTH) {
-		warning("TopgunEngine_v0::runScriptBytecodeLoop(): script nesting too deep");
+		warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): script nesting too deep");
 		return true;
 	}
 
@@ -202,12 +202,12 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 				if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 					_globalFlags[index] = ip[4];
 				else
-					warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
+					warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 			} else if (_currentScene) {
 				if (index < TG_HOST_NUM_SCENE_FLAGS)
 					_currentScene->flags[index] = ip[4];
 				else
-					warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
+					warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
 			}
 
 			ip += 5;
@@ -227,12 +227,12 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 					if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 						value = _globalFlags[index];
 					else
-						warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
+						warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 				} else {
 					if (index < TG_HOST_NUM_SCENE_FLAGS)
 						value = _currentScene->flags[index];
 					else
-						warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
+						warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): scene flag %d is out of range", index);
 				}
 
 				if (ip[9] != value)
@@ -304,7 +304,7 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 			uint16 id = READ_LE_UINT16(ip + 2);
 
 			if (!_records || id >= _numResources)
-				warning("TopgunEngine_v0::runScriptBytecodeLoop(): resource id %d is out of range", id);
+				warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): resource id %d is out of range", id);
 			else if (_records[id].handle != 0)
 				spriteLibrary()->spriteBreakLoops(_records[id].handle);
 
@@ -317,7 +317,7 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 			uint16 id = READ_LE_UINT16(ip + 2);
 
 			if (!_records || id >= _numResources)
-				warning("TopgunEngine_v0::runScriptBytecodeLoop(): resource id %d is out of range", id);
+				warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): resource id %d is out of range", id);
 			else if (_records[id].handle != 0)
 				keepGoing = o_setSpriteQueue(id, READ_LE_UINT16(ip + 4));
 
@@ -335,12 +335,12 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 				if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 					value = _globalFlags[index];
 				else
-					warning("TopgunEngine_v0::runScriptBytecodeLoop(): global flag %d is out of range", index);
+					warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): global flag %d is out of range", index);
 			} else {
 				if (_currentScene && index < TG_HOST_NUM_SCENE_FLAGS)
 					value = _currentScene->flags[index];
 				else
-					warning("TopgunEngine_v0::runScriptBytecodeLoop(): scene flag %d cannot be read", index);
+					warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): scene flag %d cannot be read", index);
 			}
 
 			printDebugString(ip + 4, value);
@@ -391,7 +391,7 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 			break;
 
 		default:
-			warning("TopgunEngine_v0::runScriptBytecodeLoop(): unknown opcode %d", opcode);
+			warning("TopgunEngine_v1_0::runScriptBytecodeLoop(): unknown opcode %d", opcode);
 			left = 0;
 			break;
 		}
@@ -404,7 +404,7 @@ bool TopgunEngine_v0::runScriptBytecodeLoop(uint16 scriptId) {
 	return true;
 }
 
-void TopgunEngine_v0::printDebugString(const byte *text, uint16 value) {
+void TopgunEngine_v1_0::printDebugString(const byte *text, uint16 value) {
 	char message[TG_SCRIPT_DEBUG_STRING_SIZE + 1];
 	memcpy(message, text, TG_SCRIPT_DEBUG_STRING_SIZE);
 	message[TG_SCRIPT_DEBUG_STRING_SIZE] = '\0';
@@ -433,13 +433,13 @@ void TopgunEngine_v0::printDebugString(const byte *text, uint16 value) {
 		debug("%s", message);
 }
 
-void TopgunEngine_v0::spriteMessageService(byte *record) {
+void TopgunEngine_v1_0::spriteMessageService(byte *record) {
 	switch (READ_LE_UINT16(record)) {
 	case kEventBreakLoops: {
 		uint16 id = READ_LE_UINT16(record + 2);
 
 		if (!_records || id >= _numResources)
-			warning("TopgunEngine_v0::spriteMessageService(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_0::spriteMessageService(): resource id %d is out of range", id);
 		else if (_records[id].handle != 0)
 			spriteLibrary()->spriteBreakLoops(_records[id].handle);
 		break;
@@ -498,7 +498,7 @@ void TopgunEngine_v0::spriteMessageService(byte *record) {
 	}
 }
 
-bool TopgunEngine_v0::runScriptResource(uint16 scriptId) {
+bool TopgunEngine_v1_0::runScriptResource(uint16 scriptId) {
 	if (!validateAndGetResourceByType(scriptId, kResourceScript))
 		return false;
 

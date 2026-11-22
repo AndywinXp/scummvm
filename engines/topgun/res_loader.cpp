@@ -27,7 +27,7 @@
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
 #define TG_LOADER_MAX_FRAME_BATCH       50
 #define TG_LOADER_NUM_SYSTEM_COLORS     10
@@ -37,7 +37,7 @@
 
 namespace Topgun {
 
-void TopgunEngine_v0::freeBitmapBlobIfUnreferenced(uint16 id) {
+void TopgunEngine_v1_0::freeBitmapBlobIfUnreferenced(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.data && record.refCount == 0) {
@@ -52,7 +52,7 @@ void TopgunEngine_v0::freeBitmapBlobIfUnreferenced(uint16 id) {
 	}
 }
 
-void TopgunEngine_v0::destroyDataResourceObject(uint16 id) {
+void TopgunEngine_v1_0::destroyDataResourceObject(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.data)
@@ -61,7 +61,7 @@ void TopgunEngine_v0::destroyDataResourceObject(uint16 id) {
 	record.data = nullptr;
 }
 
-bool TopgunEngine_v0::destroyGroupResourceObject(uint16 id) {
+bool TopgunEngine_v1_0::destroyGroupResourceObject(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (!record.data) {
@@ -78,14 +78,14 @@ bool TopgunEngine_v0::destroyGroupResourceObject(uint16 id) {
 	}
 
 	if (count != 0)
-		warning("TopgunEngine_v0::destroyGroupResourceObject(): the group list is freed through its original pointer");
+		warning("TopgunEngine_v1_0::destroyGroupResourceObject(): the group list is freed through its original pointer");
 
 	utilsLibrary()->tgFree(list);
 	record.data = nullptr;
 	return true;
 }
 
-bool TopgunEngine_v0::destroySpriteResourceObject(uint16 id) {
+bool TopgunEngine_v1_0::destroySpriteResourceObject(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	uint16 sprite = record.handle;
@@ -121,7 +121,7 @@ bool TopgunEngine_v0::destroySpriteResourceObject(uint16 id) {
 	return true;
 }
 
-void TopgunEngine_v0::destroyWaveResourceObject(uint16 id) {
+void TopgunEngine_v1_0::destroyWaveResourceObject(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (_freeingAll && record.handle == _sceneSpriteWave)
@@ -136,7 +136,7 @@ void TopgunEngine_v0::destroyWaveResourceObject(uint16 id) {
 	record.handle = 0;
 }
 
-bool TopgunEngine_v0::ensureBitmapResourceLoaded(uint16 id) {
+bool TopgunEngine_v1_0::ensureBitmapResourceLoaded(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.data)
@@ -151,7 +151,7 @@ bool TopgunEngine_v0::ensureBitmapResourceLoaded(uint16 id) {
 	return true;
 }
 
-bool TopgunEngine_v0::loadOrGetResourceData(uint16 id) {
+bool TopgunEngine_v1_0::loadOrGetResourceData(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.data)
@@ -167,7 +167,7 @@ bool TopgunEngine_v0::loadOrGetResourceData(uint16 id) {
 	return true;
 }
 
-bool TopgunEngine_v0::ensureGroupResourceLoaded(uint16 id) {
+bool TopgunEngine_v1_0::ensureGroupResourceLoaded(uint16 id) {
 	uint32 size = 0;
 	byte *list = loadResourceWithProcessingPause(id, &size);
 	if (!list)
@@ -185,13 +185,13 @@ bool TopgunEngine_v0::ensureGroupResourceLoaded(uint16 id) {
 	}
 
 	if (loaded != 0)
-		warning("TopgunEngine_v0::ensureGroupResourceLoaded(): the group list is freed through its original pointer");
+		warning("TopgunEngine_v1_0::ensureGroupResourceLoaded(): the group list is freed through its original pointer");
 
 	utilsLibrary()->tgFree(list);
 	return loaded == count;
 }
 
-bool TopgunEngine_v0::loadTransPaletteResource(uint16 id) {
+bool TopgunEngine_v1_0::loadTransPaletteResource(uint16 id) {
 	if (!loadOrGetResourceData(id))
 		return false;
 
@@ -200,7 +200,7 @@ bool TopgunEngine_v0::loadTransPaletteResource(uint16 id) {
 	return true;
 }
 
-byte *TopgunEngine_v0::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut) {
+byte *TopgunEngine_v1_0::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut) {
 	uint16 type = resourceLibrary()->resGetType(_file, id);
 	if (type == kResourceScript)
 		return resourceLibrary()->resLoadResource(_file, id, sizeOut);
@@ -226,7 +226,7 @@ byte *TopgunEngine_v0::loadResourceWithProcessingPause(uint16 id, uint32 *sizeOu
 	return block;
 }
 
-bool TopgunEngine_v0::ensureSpriteResourceLoaded(uint16 id) {
+bool TopgunEngine_v1_0::ensureSpriteResourceLoaded(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.handle != 0)
@@ -262,7 +262,7 @@ bool TopgunEngine_v0::ensureSpriteResourceLoaded(uint16 id) {
 	return attached;
 }
 
-bool TopgunEngine_v0::attachResourceListToSprite(uint16 spriteHandle, const byte *idList, uint16 count) {
+bool TopgunEngine_v1_0::attachResourceListToSprite(uint16 spriteHandle, const byte *idList, uint16 count) {
 	byte *frames[TG_LOADER_MAX_FRAME_BATCH];
 	uint16 numFrames = 0;
 	uint16 waveHandle = 0;
@@ -309,7 +309,7 @@ bool TopgunEngine_v0::attachResourceListToSprite(uint16 spriteHandle, const byte
 	return true;
 }
 
-bool TopgunEngine_v0::ensureWaveResourceLoaded(uint16 id) {
+bool TopgunEngine_v1_0::ensureWaveResourceLoaded(uint16 id) {
 	ResourceRecord &record = _records[id];
 
 	if (record.handle != 0)
@@ -324,9 +324,9 @@ bool TopgunEngine_v0::ensureWaveResourceLoaded(uint16 id) {
 	return record.handle != 0;
 }
 
-bool TopgunEngine_v0::destroyResourceObjectByType(uint16 id, uint16 type) {
+bool TopgunEngine_v1_0::destroyResourceObjectByType(uint16 id, uint16 type) {
 	if (!_records || id >= _numResources) {
-		warning("TopgunEngine_v0::destroyResourceObjectByType(): resource id %d is out of range", id);
+		warning("TopgunEngine_v1_0::destroyResourceObjectByType(): resource id %d is out of range", id);
 		return true;
 	}
 
@@ -356,7 +356,7 @@ bool TopgunEngine_v0::destroyResourceObjectByType(uint16 id, uint16 type) {
 	return result;
 }
 
-void TopgunEngine_v0::resetResourcesAndTransientState() {
+void TopgunEngine_v1_0::resetResourcesAndTransientState() {
 	_freeingAll = true;
 
 	for (uint16 id = 0; id < _numResources; id++)
@@ -381,7 +381,7 @@ void TopgunEngine_v0::resetResourcesAndTransientState() {
 		_resourceNamesTable = utilsLibrary()->tgFree(_resourceNamesTable);
 }
 
-void TopgunEngine_v0::destroySceneMainObjects() {
+void TopgunEngine_v1_0::destroySceneMainObjects() {
 	if (_sceneSprite != 0)
 		_sceneSprite = spriteLibrary()->spriteDestroy(_sceneSprite, true, true);
 
@@ -391,9 +391,9 @@ void TopgunEngine_v0::destroySceneMainObjects() {
 	_sceneSpriteWave = 0;
 }
 
-bool TopgunEngine_v0::validateAndGetResourceByType(uint16 id, uint16 type) {
+bool TopgunEngine_v1_0::validateAndGetResourceByType(uint16 id, uint16 type) {
 	if (!_records || id >= _numResources) {
-		warning("TopgunEngine_v0::validateAndGetResourceByType(): resource id %d is out of range", id);
+		warning("TopgunEngine_v1_0::validateAndGetResourceByType(): resource id %d is out of range", id);
 		return false;
 	}
 
@@ -416,7 +416,7 @@ bool TopgunEngine_v0::validateAndGetResourceByType(uint16 id, uint16 type) {
 	}
 }
 
-bool TopgunEngine_v0::isResourceObjectLoaded(uint16 id) {
+bool TopgunEngine_v1_0::isResourceObjectLoaded(uint16 id) {
 	uint16 type = resourceLibrary()->resGetType(_file, id);
 
 	if (type == kResourceBitmap || type == kResourceBlob || type == kResourceScript)
@@ -428,9 +428,9 @@ bool TopgunEngine_v0::isResourceObjectLoaded(uint16 id) {
 	return false;
 }
 
-void TopgunEngine_v0::decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId) {
+void TopgunEngine_v1_0::decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId) {
 	if (!_records || bitmapId >= _numResources) {
-		warning("TopgunEngine_v0::decrementResourceRefCountAndMaybeDestroy(): resource id %d is out of range", bitmapId);
+		warning("TopgunEngine_v1_0::decrementResourceRefCountAndMaybeDestroy(): resource id %d is out of range", bitmapId);
 		return;
 	}
 
@@ -441,7 +441,7 @@ void TopgunEngine_v0::decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId) 
 		destroyResourceObjectByType(bitmapId, kResourceBitmap);
 }
 
-void TopgunEngine_v0::refreshGamePalette(byte *buffer) {
+void TopgunEngine_v1_0::refreshGamePalette(byte *buffer) {
 	if (display()->hasPalette())
 		display()->getSystemPaletteEntries(buffer, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 	else
@@ -454,7 +454,7 @@ void TopgunEngine_v0::refreshGamePalette(byte *buffer) {
 	spriteLibrary()->spriteRealizePalette();
 }
 
-bool TopgunEngine_v0::openResourceFileAndInit(const Common::String &name) {
+bool TopgunEngine_v1_0::openResourceFileAndInit(const Common::String &name) {
 	_file = resourceLibrary()->resOpenFile(name);
 	if (_file == 0)
 		return false;

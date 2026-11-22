@@ -31,29 +31,29 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
 
 static const char *const kHeraldFileName = "herald.bin";
 
-TopgunEngine_v0::TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc, int version) :
+TopgunEngine_v1_0::TopgunEngine_v1_0(OSystem *syst, const ADGameDescription *gameDesc, int version) :
 	TopgunEngine(syst, gameDesc, version) {
 	memset(_globalFlags, 0, sizeof(_globalFlags));
 	memset(_tileOrder, 0, sizeof(_tileOrder));
 }
 
-TopgunEngine_v0::~TopgunEngine_v0() {
+TopgunEngine_v1_0::~TopgunEngine_v1_0() {
 }
 
-void TopgunEngine_v0::initCDAudio() {
+void TopgunEngine_v1_0::initCDAudio() {
 	if (!existExtractedCDAudioFiles(TG_HOST_FIRST_AUDIO_TRACK) && !isDataAndCDAudioReadFromSameCD())
 		warnMissingExtractedCDAudio();
 
 	g_system->getAudioCDManager()->open();
 }
 
-bool TopgunEngine_v0::rtStartup(bool runChecks) {
+bool TopgunEngine_v1_0::rtStartup(bool runChecks) {
 	initCDAudio();
 
 	setCursorImage(false);
@@ -87,7 +87,7 @@ bool TopgunEngine_v0::rtStartup(bool runChecks) {
 	return ok;
 }
 
-uint16 TopgunEngine_v0::mainLoop() {
+uint16 TopgunEngine_v1_0::mainLoop() {
 	Message message;
 
 	while (!shouldQuit()) {
@@ -120,7 +120,7 @@ uint16 TopgunEngine_v0::mainLoop() {
 	return 0;
 }
 
-void TopgunEngine_v0::presentScreenAndWait() {
+void TopgunEngine_v1_0::presentScreenAndWait() {
 	if (screen()->isDirty() || display()->isPaletteChanged()) {
 		screen()->update();
 		display()->clearPaletteChanged();
@@ -131,11 +131,11 @@ void TopgunEngine_v0::presentScreenAndWait() {
 	g_system->delayMillis(TG_HOST_LOOP_DELAY);
 }
 
-void TopgunEngine_v0::requestClose() {
+void TopgunEngine_v1_0::requestClose() {
 	postMessage(kMsgClose, 0, 0);
 }
 
-bool TopgunEngine_v0::postMessage(uint16 id, uint16 param, uint32 data) {
+bool TopgunEngine_v1_0::postMessage(uint16 id, uint16 param, uint32 data) {
 	if (_numMsgsPosted >= TG_HOST_MAX_POSTED_MESSAGES)
 		return false;
 
@@ -149,7 +149,7 @@ bool TopgunEngine_v0::postMessage(uint16 id, uint16 param, uint32 data) {
 	return true;
 }
 
-bool TopgunEngine_v0::peekMessage(Message &message) {
+bool TopgunEngine_v1_0::peekMessage(Message &message) {
 	if (_numMsgsPosted > 0) {
 		message = _messages[0];
 		_numMsgsPosted--;
@@ -183,7 +183,7 @@ bool TopgunEngine_v0::peekMessage(Message &message) {
 	return false;
 }
 
-void TopgunEngine_v0::removeMessages(uint16 id) {
+void TopgunEngine_v1_0::removeMessages(uint16 id) {
 	uint16 kept = 0;
 
 	for (uint16 i = 0; i < _numMsgsPosted; i++) {
@@ -198,25 +198,25 @@ void TopgunEngine_v0::removeMessages(uint16 id) {
 	discardPendingInput(id);
 }
 
-void TopgunEngine_v0::clearMessages() {
+void TopgunEngine_v1_0::clearMessages() {
 	removeMessages(0);
 	_paintPending = false;
 }
 
-void TopgunEngine_v0::invalidateScreen() {
+void TopgunEngine_v1_0::invalidateScreen() {
 	_paintPending = true;
 }
 
-void TopgunEngine_v0::validateScreen() {
+void TopgunEngine_v1_0::validateScreen() {
 	_paintPending = false;
 }
 
-void TopgunEngine_v0::postQuitMessage(uint16 exitCode) {
+void TopgunEngine_v1_0::postQuitMessage(uint16 exitCode) {
 	_quit = true;
 	_quitCode = exitCode;
 }
 
-void TopgunEngine_v0::dispatchMessage(const Message &message) {
+void TopgunEngine_v1_0::dispatchMessage(const Message &message) {
 	if (message.id == kMsgLButtonDown || message.id == kMsgRButtonDown) {
 		handleMouseButtonDown((int16)(message.data & 0xFFFF), (int16)(message.data >> 16));
 	} else if (message.id == kMsgActivate) {
@@ -237,7 +237,7 @@ void TopgunEngine_v0::dispatchMessage(const Message &message) {
 	}
 }
 
-void TopgunEngine_v0::resourceLoadProgressCallback() {
+void TopgunEngine_v1_0::resourceLoadProgressCallback() {
 	spriteLibrary()->spriteAnimate();
 	audioLibrary()->audioService();
 
@@ -250,12 +250,12 @@ void TopgunEngine_v0::resourceLoadProgressCallback() {
 	}
 }
 
-void TopgunEngine_v0::clearInputMessageQueues() {
+void TopgunEngine_v1_0::clearInputMessageQueues() {
 	removeMessages(kMsgLButtonDown);
 	removeMessages(kMsgKeyDown);
 }
 
-void TopgunEngine_v0::showFormattedErrorMessageBox(uint16 stringId, const char *argument) {
+void TopgunEngine_v1_0::showFormattedErrorMessageBox(uint16 stringId, const char *argument) {
 	static const char *const kErrorNeed256Colors = "TuneLand requires 256 colors or more to run.";
 	static const char *const kErrorStackOverflow = "Stack overflow.";
 	static const char *const kErrorCannotOpenFile = "Can't open file '%s'.";
@@ -271,13 +271,13 @@ void TopgunEngine_v0::showFormattedErrorMessageBox(uint16 stringId, const char *
 		else
 			text = kErrorCannotOpenFile;
 	} else {
-		warning("TopgunEngine_v0::showFormattedErrorMessageBox(): unknown string id %d", stringId);
+		warning("TopgunEngine_v1_0::showFormattedErrorMessageBox(): unknown string id %d", stringId);
 	}
 
 	GUIErrorMessage(text);
 }
 
-bool TopgunEngine_v0::initEngineLibraries() {
+bool TopgunEngine_v1_0::initEngineLibraries() {
 	if (!spriteLibrary()->spriteInitLibrary())
 		return false;
 
@@ -289,7 +289,7 @@ bool TopgunEngine_v0::initEngineLibraries() {
 	return true;
 }
 
-bool TopgunEngine_v0::locateResourceFile() {
+bool TopgunEngine_v1_0::locateResourceFile() {
 	if (Common::File::exists(kHeraldFileName))
 		return true;
 
@@ -297,7 +297,7 @@ bool TopgunEngine_v0::locateResourceFile() {
 	return false;
 }
 
-void TopgunEngine_v0::handleActivateMessage(uint16 param) {
+void TopgunEngine_v1_0::handleActivateMessage(uint16 param) {
 	bool active = (param != 0);
 
 	if (_file != 0 && _appActive != active) {
@@ -317,7 +317,7 @@ void TopgunEngine_v0::handleActivateMessage(uint16 param) {
 	}
 }
 
-void TopgunEngine_v0::handleAppShutdown() {
+void TopgunEngine_v1_0::handleAppShutdown() {
 	_shuttingDown = true;
 	_appActive = false;
 
@@ -331,7 +331,7 @@ void TopgunEngine_v0::handleAppShutdown() {
 	postQuitMessage(0);
 }
 
-void TopgunEngine_v0::handlePaintMessage() {
+void TopgunEngine_v1_0::handlePaintMessage() {
 	validateScreen();
 
 	if (_screenBox)
@@ -340,7 +340,7 @@ void TopgunEngine_v0::handlePaintMessage() {
 	spriteLibrary()->spritePaint(0);
 }
 
-void TopgunEngine_v0::handleSceneEndMessage() {
+void TopgunEngine_v1_0::handleSceneEndMessage() {
 	if (_sceneEndScript != 0) {
 		runScriptResource(_sceneEndScript);
 		spriteLibrary()->spriteAnimate();
@@ -350,7 +350,7 @@ void TopgunEngine_v0::handleSceneEndMessage() {
 	destroySceneMainObjects();
 }
 
-void TopgunEngine_v0::fillBackground() {
+void TopgunEngine_v1_0::fillBackground() {
 	display()->clearScreen();
 }
 

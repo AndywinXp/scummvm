@@ -28,18 +28,18 @@
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
 
 #define TG_OPCODE_BITMAP_ID_OFFSET   0x0E
 
-bool TopgunEngine_v0::o_setClickScript(const byte *record) {
+bool TopgunEngine_v1_0::o_setClickScript(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 
 	if (id != 0) {
 		if (!_records || id >= _numResources)
-			warning("TopgunEngine_v0::o_setClickScript(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_0::o_setClickScript(): resource id %d is out of range", id);
 		else
 			_records[id].clickScript = READ_LE_UINT16(record + 4);
 	} else {
@@ -49,7 +49,7 @@ bool TopgunEngine_v0::o_setClickScript(const byte *record) {
 	return true;
 }
 
-bool TopgunEngine_v0::o_setSpriteQueue(uint16 spriteId, uint16 dataId) {
+bool TopgunEngine_v1_0::o_setSpriteQueue(uint16 spriteId, uint16 dataId) {
 	if (!validateAndGetResourceByType(spriteId, kResourceSprite))
 		return false;
 
@@ -60,7 +60,7 @@ bool TopgunEngine_v0::o_setSpriteQueue(uint16 spriteId, uint16 dataId) {
 	return true;
 }
 
-bool TopgunEngine_v0::o_playWave(uint16 waveId, byte *params) {
+bool TopgunEngine_v1_0::o_playWave(uint16 waveId, byte *params) {
 	if (!validateAndGetResourceByType(waveId, kResourceWave))
 		return false;
 
@@ -71,7 +71,7 @@ bool TopgunEngine_v0::o_playWave(uint16 waveId, byte *params) {
 	return true;
 }
 
-void TopgunEngine_v0::o_playCDTrack(uint16 track) {
+void TopgunEngine_v1_0::o_playCDTrack(uint16 track) {
 	_cdAudioPlaying = true;
 
 	if (!_inputBusy) {
@@ -82,7 +82,7 @@ void TopgunEngine_v0::o_playCDTrack(uint16 track) {
 	audioLibrary()->audioCommand(kPlayCDTracksCommand, 0, (uint16)(((track & 0xFF) << 8) | track), nullptr);
 }
 
-void TopgunEngine_v0::o_fadeInOut(const byte *record) {
+void TopgunEngine_v1_0::o_fadeInOut(const byte *record) {
 	byte *savedBuffer = _buffer2;
 
 	if (!display()->hasPalette())
@@ -102,13 +102,13 @@ void TopgunEngine_v0::o_fadeInOut(const byte *record) {
 		spriteLibrary()->spriteSetBkgTransparent(false);
 }
 
-void TopgunEngine_v0::o_bindKeyScript(const byte *record) {
+void TopgunEngine_v1_0::o_bindKeyScript(const byte *record) {
 	uint16 scriptKey = READ_LE_UINT16(record + 2);
 	uint16 script = READ_LE_UINT16(record + 4);
 	Common::KeyCode keyCodes[2];
 
 	if (scriptKey >= 0x80) {
-		warning("TopgunEngine_v0::o_bindKeyScript(): key %d is out of range", scriptKey);
+		warning("TopgunEngine_v1_0::o_bindKeyScript(): key %d is out of range", scriptKey);
 		return;
 	}
 
@@ -126,18 +126,18 @@ void TopgunEngine_v0::o_bindKeyScript(const byte *record) {
 	}
 }
 
-void TopgunEngine_v0::o_stopCD() {
+void TopgunEngine_v1_0::o_stopCD() {
 	if (_cdAudioPlaying)
 		audioLibrary()->audioCommand(kStopCDCommand, 0, 0, nullptr);
 
 	_cdAudioPlaying = false;
 }
 
-bool TopgunEngine_v0::o_stopWave(uint16 waveId, byte *block) {
+bool TopgunEngine_v1_0::o_stopWave(uint16 waveId, byte *block) {
 	if (waveId == 0) {
 		audioLibrary()->audioCommand(kStopWavesCommand, 0, 0, block);
 	} else if (!_records || waveId >= _numResources) {
-		warning("TopgunEngine_v0::o_stopWave(): resource id %d is out of range", waveId);
+		warning("TopgunEngine_v1_0::o_stopWave(): resource id %d is out of range", waveId);
 	} else if (_records[waveId].handle != 0) {
 		audioLibrary()->audioCommand(kStopSoundCommand, _records[waveId].handle, 0, block);
 	}
@@ -145,7 +145,7 @@ bool TopgunEngine_v0::o_stopWave(uint16 waveId, byte *block) {
 	return true;
 }
 
-void TopgunEngine_v0::o_setScriptTimer(const byte *record) {
+void TopgunEngine_v1_0::o_setScriptTimer(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 	uint16 index = 0;
 
@@ -163,7 +163,7 @@ void TopgunEngine_v0::o_setScriptTimer(const byte *record) {
 	_timers[index].script = READ_LE_UINT16(record + 4);
 }
 
-void TopgunEngine_v0::o_cancelScriptTimer(const byte *record) {
+void TopgunEngine_v1_0::o_cancelScriptTimer(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 	uint16 index = 0;
 
@@ -174,11 +174,11 @@ void TopgunEngine_v0::o_cancelScriptTimer(const byte *record) {
 		removeScheduledTimer(index);
 }
 
-bool TopgunEngine_v0::o_randomRunScript(byte *record) {
+bool TopgunEngine_v1_0::o_randomRunScript(byte *record) {
 	uint16 numScripts = record[2];
 
 	if (numScripts == 0) {
-		warning("TopgunEngine_v0::o_randomRunScript(): the record has no scripts");
+		warning("TopgunEngine_v1_0::o_randomRunScript(): the record has no scripts");
 		return true;
 	}
 
@@ -192,19 +192,19 @@ bool TopgunEngine_v0::o_randomRunScript(byte *record) {
 	}
 
 	if (pick >= TG_HOST_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v0::o_randomRunScript(): script index %d is out of range", pick);
+		warning("TopgunEngine_v1_0::o_randomRunScript(): script index %d is out of range", pick);
 		return true;
 	}
 
 	return runScriptResource(READ_LE_UINT16(record + 4 + 2 * pick));
 }
 
-bool TopgunEngine_v0::o_roundRobinRunScript(byte *record) {
+bool TopgunEngine_v1_0::o_roundRobinRunScript(byte *record) {
 	if (record[2] <= record[3])
 		record[3] = 0;
 
 	if (record[3] >= TG_HOST_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v0::o_roundRobinRunScript(): script index %d is out of range", record[3]);
+		warning("TopgunEngine_v1_0::o_roundRobinRunScript(): script index %d is out of range", record[3]);
 		return false;
 	}
 
@@ -222,9 +222,9 @@ bool TopgunEngine_v0::o_roundRobinRunScript(byte *record) {
 	return result;
 }
 
-bool TopgunEngine_v0::o_transferSprite(uint16 sourceSpriteId, uint16 destinationSpriteId, uint16 dataId, bool freeSource) {
+bool TopgunEngine_v1_0::o_transferSprite(uint16 sourceSpriteId, uint16 destinationSpriteId, uint16 dataId, bool freeSource) {
 	if (!_records || sourceSpriteId >= _numResources) {
-		warning("TopgunEngine_v0::o_transferSprite(): resource id %d is out of range", sourceSpriteId);
+		warning("TopgunEngine_v1_0::o_transferSprite(): resource id %d is out of range", sourceSpriteId);
 		return true;
 	}
 
@@ -242,14 +242,14 @@ bool TopgunEngine_v0::o_transferSprite(uint16 sourceSpriteId, uint16 destination
 	return result;
 }
 
-void TopgunEngine_v0::o_setSpriteLevel(uint16 spriteId, uint16 level) {
+void TopgunEngine_v1_0::o_setSpriteLevel(uint16 spriteId, uint16 level) {
 	if (validateAndGetResourceByType(spriteId, kResourceSprite))
 		spriteLibrary()->spriteSetTopMost(_records[spriteId].handle);
 }
 
-bool TopgunEngine_v0::transferSpriteContents(uint16 sourceSpriteId, uint16 destinationSpriteId, bool freeSource) {
+bool TopgunEngine_v1_0::transferSpriteContents(uint16 sourceSpriteId, uint16 destinationSpriteId, bool freeSource) {
 	if (!_records || sourceSpriteId >= _numResources || destinationSpriteId >= _numResources) {
-		warning("TopgunEngine_v0::transferSpriteContents(): resource id %d or %d is out of range", sourceSpriteId, destinationSpriteId);
+		warning("TopgunEngine_v1_0::transferSpriteContents(): resource id %d or %d is out of range", sourceSpriteId, destinationSpriteId);
 		return false;
 	}
 
@@ -266,14 +266,14 @@ bool TopgunEngine_v0::transferSpriteContents(uint16 sourceSpriteId, uint16 desti
 
 		for (uint16 i = 0; i < sourceInfo.frameCount; i++) {
 			if (!sourceInfo.frames[i]) {
-				warning("TopgunEngine_v0::transferSpriteContents(): source frame %d is missing", i);
+				warning("TopgunEngine_v1_0::transferSpriteContents(): source frame %d is missing", i);
 				continue;
 			}
 
 			uint16 bitmapId = READ_LE_UINT16(sourceInfo.frames[i] + TG_OPCODE_BITMAP_ID_OFFSET);
 
 			if (bitmapId >= _numResources) {
-				warning("TopgunEngine_v0::transferSpriteContents(): bitmap id %d is out of range", bitmapId);
+				warning("TopgunEngine_v1_0::transferSpriteContents(): bitmap id %d is out of range", bitmapId);
 				continue;
 			}
 
@@ -313,9 +313,9 @@ bool TopgunEngine_v0::transferSpriteContents(uint16 sourceSpriteId, uint16 desti
 	return true;
 }
 
-bool TopgunEngine_v0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, const SpriteInfo &sourceInfo) {
+bool TopgunEngine_v1_0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, const SpriteInfo &sourceInfo) {
 	if (!_records || destinationSpriteId >= _numResources) {
-		warning("TopgunEngine_v0::appendQueueBitmapsToSprite(): resource id %d is out of range", destinationSpriteId);
+		warning("TopgunEngine_v1_0::appendQueueBitmapsToSprite(): resource id %d is out of range", destinationSpriteId);
 		return false;
 	}
 
@@ -335,7 +335,7 @@ bool TopgunEngine_v0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, con
 		byte *write = list + (oldCount + i) * sizeof(uint16);
 
 		if (!sourceInfo.frames[i]) {
-			warning("TopgunEngine_v0::appendQueueBitmapsToSprite(): source frame %d is missing", i);
+			warning("TopgunEngine_v1_0::appendQueueBitmapsToSprite(): source frame %d is missing", i);
 			WRITE_LE_UINT16(write, 0);
 			continue;
 		}
@@ -344,7 +344,7 @@ bool TopgunEngine_v0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, con
 		WRITE_LE_UINT16(write, bitmapId);
 
 		if (bitmapId >= _numResources)
-			warning("TopgunEngine_v0::appendQueueBitmapsToSprite(): bitmap id %d is out of range", bitmapId);
+			warning("TopgunEngine_v1_0::appendQueueBitmapsToSprite(): bitmap id %d is out of range", bitmapId);
 		else
 			_records[bitmapId].refCount++;
 
@@ -361,9 +361,9 @@ bool TopgunEngine_v0::appendQueueBitmapsToSprite(uint16 destinationSpriteId, con
 	return true;
 }
 
-void TopgunEngine_v0::releaseSourceSpriteFrameRefs(uint16 spriteId) {
+void TopgunEngine_v1_0::releaseSourceSpriteFrameRefs(uint16 spriteId) {
 	if (!_records || spriteId >= _numResources) {
-		warning("TopgunEngine_v0::releaseSourceSpriteFrameRefs(): resource id %d is out of range", spriteId);
+		warning("TopgunEngine_v1_0::releaseSourceSpriteFrameRefs(): resource id %d is out of range", spriteId);
 		return;
 	}
 
@@ -383,9 +383,9 @@ void TopgunEngine_v0::releaseSourceSpriteFrameRefs(uint16 spriteId) {
 	}
 }
 
-void TopgunEngine_v0::destroySourceSpriteAfterTransfer(uint16 sourceSpriteId, const SpriteInfo &sourceInfo) {
+void TopgunEngine_v1_0::destroySourceSpriteAfterTransfer(uint16 sourceSpriteId, const SpriteInfo &sourceInfo) {
 	if (!_records || sourceSpriteId >= _numResources) {
-		warning("TopgunEngine_v0::destroySourceSpriteAfterTransfer(): resource id %d is out of range", sourceSpriteId);
+		warning("TopgunEngine_v1_0::destroySourceSpriteAfterTransfer(): resource id %d is out of range", sourceSpriteId);
 		return;
 	}
 
@@ -398,7 +398,7 @@ void TopgunEngine_v0::destroySourceSpriteAfterTransfer(uint16 sourceSpriteId, co
 
 	for (uint16 i = 0; i < sourceInfo.frameCount; i++) {
 		if (!sourceInfo.frames[i]) {
-			warning("TopgunEngine_v0::destroySourceSpriteAfterTransfer(): source frame %d is missing", i);
+			warning("TopgunEngine_v1_0::destroySourceSpriteAfterTransfer(): source frame %d is missing", i);
 			continue;
 		}
 
@@ -406,9 +406,9 @@ void TopgunEngine_v0::destroySourceSpriteAfterTransfer(uint16 sourceSpriteId, co
 	}
 }
 
-void TopgunEngine_v0::trimSpriteQueueBitmaps(uint16 spriteId) {
+void TopgunEngine_v1_0::trimSpriteQueueBitmaps(uint16 spriteId) {
 	if (!_records || spriteId >= _numResources) {
-		warning("TopgunEngine_v0::trimSpriteQueueBitmaps(): resource id %d is out of range", spriteId);
+		warning("TopgunEngine_v1_0::trimSpriteQueueBitmaps(): resource id %d is out of range", spriteId);
 		return;
 	}
 

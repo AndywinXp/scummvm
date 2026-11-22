@@ -24,10 +24,10 @@ MODULE_OBJS = \
 	res_loader.o \
 	scene.o \
 	script.o \
-	script_v1.o \
+	script_v1_1.o \
 	topgun.o \
-	topgun_v0.o \
-	topgun_v1.o \
+	topgun_v1_0.o \
+	topgun_v1_1.o \
 	tunes_player.o
 
 # This module can be built as a plugin

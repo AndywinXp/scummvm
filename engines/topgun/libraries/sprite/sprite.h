@@ -31,7 +31,7 @@
 #include "topgun/display.h"
 
 #define TG_SPR_BITMAP_HEADER_SIZE     16
-#define TG_SPR_BITMAP_HEADER_SIZE_V1  20
+#define TG_SPR_BITMAP_HEADER_SIZE_V1_1 20
 #define TG_SPR_BITMAP_WIDTH_OFFSET    2
 #define TG_SPR_BITMAP_HEIGHT_OFFSET   6
 #define TG_SPR_BITMAP_HOT_X_OFFSET    10

@@ -27,21 +27,21 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
-#define TG_RES_HEADER_SIZE                14
-#define TG_RES_HEADER_MAGIC               0x4C37
-#define TG_RES_INDEX_ENTRY_SIZE           10
-#define TG_RES_WAVE_STREAM_HEADER_SIZE    22
-#define TG_RES_WAVE_STREAM_HEADER_SIZE_V1 23
-#define TG_RES_COMPRESSION_FLAG_OFFSET    22
-#define TG_RES_ADPCM_HEADER_SIZE          10
-#define TG_RES_ADPCM_STEP_TABLE_ROWS      89
-#define TG_RES_ADPCM_MAX_STEP_POSITION    0x2C0
-#define TG_RES_CREATE_SOUND_COMMAND       0xC9
-#define TG_RES_BITMAP_TYPE                1
-#define TG_RES_RESIDENT_TYPE              7
-#define TG_RES_RESIDENT_ID_LIST_TYPE      10
-#define TG_RES_BITMAP_RECORD_MIN_SIZE     8
-#define TG_RES_MAX_RUN_LENGTH             200
+#define TG_RES_HEADER_SIZE                  14
+#define TG_RES_HEADER_MAGIC                 0x4C37
+#define TG_RES_INDEX_ENTRY_SIZE             10
+#define TG_RES_WAVE_STREAM_HEADER_SIZE      22
+#define TG_RES_WAVE_STREAM_HEADER_SIZE_V1_1 23
+#define TG_RES_COMPRESSION_FLAG_OFFSET      22
+#define TG_RES_ADPCM_HEADER_SIZE            10
+#define TG_RES_ADPCM_STEP_TABLE_ROWS        89
+#define TG_RES_ADPCM_MAX_STEP_POSITION      0x2C0
+#define TG_RES_CREATE_SOUND_COMMAND         0xC9
+#define TG_RES_BITMAP_TYPE                  1
+#define TG_RES_RESIDENT_TYPE                7
+#define TG_RES_RESIDENT_ID_LIST_TYPE        10
+#define TG_RES_BITMAP_RECORD_MIN_SIZE       8
+#define TG_RES_MAX_RUN_LENGTH               200
 
 namespace Topgun {
 

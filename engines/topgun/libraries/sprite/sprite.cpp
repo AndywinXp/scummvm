@@ -327,7 +327,7 @@ uint16 SpriteLibrary::spriteCreate(byte *frame) {
 }
 
 uint16 SpriteLibrary::bitmapHeaderSize() const {
-	return (_engine->_version >= 1) ? TG_SPR_BITMAP_HEADER_SIZE_V1 : TG_SPR_BITMAP_HEADER_SIZE;
+	return (_engine->_version >= 1) ? TG_SPR_BITMAP_HEADER_SIZE_V1_1 : TG_SPR_BITMAP_HEADER_SIZE;
 }
 
 byte *SpriteLibrary::spriteDibCreate(uint16 width, uint16 height, uint16 flags) {

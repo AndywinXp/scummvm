@@ -382,9 +382,9 @@ uint16 ResourceLibrary::resCreateWaveEvent(uint16 file, uint16 index) {
 	ResourceFile *record = findFile(file, "resCreateWaveEvent");
 
 	bool hasCompressionFlag = (_engine->_version >= 1);
-	uint32 headerSize = hasCompressionFlag ? TG_RES_WAVE_STREAM_HEADER_SIZE_V1 : TG_RES_WAVE_STREAM_HEADER_SIZE;
+	uint32 headerSize = hasCompressionFlag ? TG_RES_WAVE_STREAM_HEADER_SIZE_V1_1 : TG_RES_WAVE_STREAM_HEADER_SIZE;
 
-	byte header[TG_RES_WAVE_STREAM_HEADER_SIZE_V1];
+	byte header[TG_RES_WAVE_STREAM_HEADER_SIZE_V1_1];
 	if (record->stream->read(header, headerSize) != headerSize)
 		return 0;
 

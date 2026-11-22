@@ -23,8 +23,8 @@
 
 #include "topgun/metaengine.h"
 #include "topgun/detection.h"
-#include "topgun/topgun_v0.h"
-#include "topgun/topgun_v1.h"
+#include "topgun/topgun_v1_0.h"
+#include "topgun/topgun_v1_1.h"
 #include "topgun/tunes_player.h"
 
 namespace Topgun {
@@ -81,9 +81,9 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 
 	if (gameId == "tuneland") {
 		if (desc->flags & ADGF_DEMO)
-			*engine = new Topgun::TopgunEngine_v1(syst, desc);
+			*engine = new Topgun::TopgunEngine_v1_1(syst, desc);
 		else
-			*engine = new Topgun::TopgunEngine_v0(syst, desc);
+			*engine = new Topgun::TopgunEngine_v1_0(syst, desc);
 
 		return Common::kNoError;
 	}

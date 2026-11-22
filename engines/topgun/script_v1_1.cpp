@@ -26,11 +26,11 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/topgun_v1.h"
+#include "topgun/topgun_v1_1.h"
 
 namespace Topgun {
 
-bool TopgunEngine_v1::runScriptResource(uint16 scriptId) {
+bool TopgunEngine_v1_1::runScriptResource(uint16 scriptId) {
 	if (_scriptsDisabled)
 		return false;
 
@@ -39,7 +39,7 @@ bool TopgunEngine_v1::runScriptResource(uint16 scriptId) {
 
 	_scriptDepth++;
 
-	if (_scriptDepth >= TG_HOST_V1_MAX_SCRIPT_DEPTH) {
+	if (_scriptDepth >= TG_HOST_V1_1_MAX_SCRIPT_DEPTH) {
 		_shuttingDown = true;
 		_scriptsDisabled = true;
 		showFormattedErrorMessageBox(105, nullptr);
@@ -53,7 +53,7 @@ bool TopgunEngine_v1::runScriptResource(uint16 scriptId) {
 	return result;
 }
 
-bool TopgunEngine_v1::runScriptBytecodeLoop(uint16 scriptId) {
+bool TopgunEngine_v1_1::runScriptBytecodeLoop(uint16 scriptId) {
 	const ResourceRecord &script = _records[scriptId];
 	byte *ip = script.data;
 	int16 left = (int16)(script.size & 0xFFFF);
@@ -67,7 +67,7 @@ bool TopgunEngine_v1::runScriptBytecodeLoop(uint16 scriptId) {
 			break;
 
 		if (size == 0) {
-			warning("TopgunEngine_v1::runScriptBytecodeLoop(): unknown opcode %d", READ_LE_UINT16(ip));
+			warning("TopgunEngine_v1_1::runScriptBytecodeLoop(): unknown opcode %d", READ_LE_UINT16(ip));
 			break;
 		}
 
@@ -81,7 +81,7 @@ bool TopgunEngine_v1::runScriptBytecodeLoop(uint16 scriptId) {
 	return keepGoing;
 }
 
-bool TopgunEngine_v1::runOpcode(byte *ip, uint16 &size) {
+bool TopgunEngine_v1_1::runOpcode(byte *ip, uint16 &size) {
 	bool result = true;
 
 	switch (READ_LE_UINT16(ip)) {
@@ -217,7 +217,7 @@ bool TopgunEngine_v1::runOpcode(byte *ip, uint16 &size) {
 		uint16 id = READ_LE_UINT16(ip + 2);
 
 		if (!_records || id >= _numResources)
-			warning("TopgunEngine_v1::runOpcode(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_1::runOpcode(): resource id %d is out of range", id);
 		else if (_records[id].handle != 0)
 			spriteLibrary()->spriteBreakLoops(_records[id].handle);
 
@@ -229,7 +229,7 @@ bool TopgunEngine_v1::runOpcode(byte *ip, uint16 &size) {
 		uint16 id = READ_LE_UINT16(ip + 2);
 
 		if (!_records || id >= _numResources)
-			warning("TopgunEngine_v1::runOpcode(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_1::runOpcode(): resource id %d is out of range", id);
 		else if (_records[id].handle != 0)
 			result = o_setSpriteQueue(id, READ_LE_UINT16(ip + 4));
 
@@ -257,34 +257,34 @@ bool TopgunEngine_v1::runOpcode(byte *ip, uint16 &size) {
 		size = 4;
 		break;
 
-	case kOpV1CursorMode:
+	case kOpV1_1CursorMode:
 		setCursorMode(ip[2]);
 		size = 3;
 		break;
 
-	case kOpV1RunScriptIfLoaded:
+	case kOpV1_1RunScriptIfLoaded:
 		if (isResourceObjectLoaded(READ_LE_UINT16(ip + 2)) && READ_LE_UINT16(ip + 4) != 0)
 			runScriptResource(READ_LE_UINT16(ip + 4));
 
 		size = 6;
 		break;
 
-	case kOpV1SetSpriteCollision:
+	case kOpV1_1SetSpriteCollision:
 		result = o_setSpriteCollision(ip);
 		size = 8;
 		break;
 
-	case kOpV1CallPluginFunction:
-		warning("TopgunEngine_v1::runOpcode(): plug-in functions are not supported");
+	case kOpV1_1CallPluginFunction:
+		warning("TopgunEngine_v1_1::runOpcode(): plug-in functions are not supported");
 		size = 8;
 		break;
 
-	case kOpV1RunListEntry:
+	case kOpV1_1RunListEntry:
 		result = o_runListEntry(ip);
 		size = 10;
 		break;
 
-	case kOpV1IniVariable:
+	case kOpV1_1IniVariable:
 		o_iniVariable(ip);
 		size = 26;
 		break;
@@ -297,14 +297,14 @@ bool TopgunEngine_v1::runOpcode(byte *ip, uint16 &size) {
 	return result;
 }
 
-uint16 *TopgunEngine_v1::flagSlot(uint16 flag) {
+uint16 *TopgunEngine_v1_1::flagSlot(uint16 flag) {
 	uint16 index = flag & 0x7FFF;
 
 	if ((flag & 0x8000) != 0) {
 		if (index < TG_HOST_NUM_GLOBAL_FLAGS)
 			return &_globalFlags[index];
 
-		warning("TopgunEngine_v1::flagSlot(): global flag %d is out of range", index);
+		warning("TopgunEngine_v1_1::flagSlot(): global flag %d is out of range", index);
 		return nullptr;
 	}
 
@@ -314,21 +314,21 @@ uint16 *TopgunEngine_v1::flagSlot(uint16 flag) {
 	if (index < TG_HOST_NUM_SCENE_FLAGS)
 		return &_currentScene->flags[index];
 
-	warning("TopgunEngine_v1::flagSlot(): scene flag %d is out of range", index);
+	warning("TopgunEngine_v1_1::flagSlot(): scene flag %d is out of range", index);
 	return nullptr;
 }
 
-uint16 TopgunEngine_v1::readFlag(uint16 flag) {
+uint16 TopgunEngine_v1_1::readFlag(uint16 flag) {
 	uint16 *slot = flagSlot(flag);
 
 	return slot ? *slot : 0;
 }
 
-void TopgunEngine_v1::o_playCDTrack(uint16 track) {
+void TopgunEngine_v1_1::o_playCDTrack(uint16 track) {
 	_cdAudioPlaying = (audioLibrary()->audioCommand(kPlayCDTracksCommand, 0, (uint16)(((track & 0xFF) << 8) | track), nullptr) != 0);
 }
 
-void TopgunEngine_v1::o_setFlag(const byte *record) {
+void TopgunEngine_v1_1::o_setFlag(const byte *record) {
 	uint16 *destination = flagSlot(READ_LE_UINT16(record + 2));
 	if (!destination)
 		return;
@@ -341,7 +341,7 @@ void TopgunEngine_v1::o_setFlag(const byte *record) {
 	*destination = value;
 }
 
-bool TopgunEngine_v1::o_testFlag(const byte *record) {
+bool TopgunEngine_v1_1::o_testFlag(const byte *record) {
 	uint16 flag = READ_LE_UINT16(record + 2);
 
 	if ((flag & 0x8000) == 0 && !_currentScene)
@@ -385,7 +385,7 @@ bool TopgunEngine_v1::o_testFlag(const byte *record) {
 	return runScriptResource(script);
 }
 
-bool TopgunEngine_v1::o_randomRunScript(byte *record) {
+bool TopgunEngine_v1_1::o_randomRunScript(byte *record) {
 	const byte *list;
 	uint16 count;
 
@@ -404,7 +404,7 @@ bool TopgunEngine_v1::o_randomRunScript(byte *record) {
 	}
 
 	if (count == 0) {
-		warning("TopgunEngine_v1::o_randomRunScript(): the record has no scripts");
+		warning("TopgunEngine_v1_1::o_randomRunScript(): the record has no scripts");
 		return true;
 	}
 
@@ -420,14 +420,14 @@ bool TopgunEngine_v1::o_randomRunScript(byte *record) {
 	record[3] = (byte)pick;
 
 	if (record[16] == 0 && pick >= TG_HOST_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v1::o_randomRunScript(): script index %d is out of range", pick);
+		warning("TopgunEngine_v1_1::o_randomRunScript(): script index %d is out of range", pick);
 		return true;
 	}
 
 	return runScriptResource(READ_LE_UINT16(list + 2 * pick));
 }
 
-bool TopgunEngine_v1::o_roundRobinRunScript(byte *record) {
+bool TopgunEngine_v1_1::o_roundRobinRunScript(byte *record) {
 	if (record[16] != 0) {
 		uint16 listId = READ_LE_UINT16(record + 4);
 
@@ -438,7 +438,7 @@ bool TopgunEngine_v1::o_roundRobinRunScript(byte *record) {
 		uint16 count = READ_LE_UINT16(data);
 
 		if (record[3] >= count) {
-			warning("TopgunEngine_v1::o_roundRobinRunScript(): script index %d is out of range", record[3]);
+			warning("TopgunEngine_v1_1::o_roundRobinRunScript(): script index %d is out of range", record[3]);
 			record[3] = 0;
 		}
 
@@ -455,7 +455,7 @@ bool TopgunEngine_v1::o_roundRobinRunScript(byte *record) {
 		record[3] = 0;
 
 	if (record[3] >= TG_HOST_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v1::o_roundRobinRunScript(): script index %d is out of range", record[3]);
+		warning("TopgunEngine_v1_1::o_roundRobinRunScript(): script index %d is out of range", record[3]);
 		return false;
 	}
 
@@ -473,7 +473,7 @@ bool TopgunEngine_v1::o_roundRobinRunScript(byte *record) {
 	return result;
 }
 
-bool TopgunEngine_v1::o_setSpriteCollision(const byte *record) {
+bool TopgunEngine_v1_1::o_setSpriteCollision(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 
 	if (!validateAndGetResourceByType(id, kResourceSprite))
@@ -483,7 +483,7 @@ bool TopgunEngine_v1::o_setSpriteCollision(const byte *record) {
 	return true;
 }
 
-bool TopgunEngine_v1::o_runListEntry(const byte *record) {
+bool TopgunEngine_v1_1::o_runListEntry(const byte *record) {
 	uint16 listId = READ_LE_UINT16(record + 2);
 
 	if (!validateAndGetResourceByType(listId, kResourceIdList))
@@ -516,7 +516,7 @@ bool TopgunEngine_v1::o_runListEntry(const byte *record) {
 	return result;
 }
 
-void TopgunEngine_v1::o_iniVariable(const byte *record) {
+void TopgunEngine_v1_1::o_iniVariable(const byte *record) {
 	uint16 *variable = flagSlot(READ_LE_UINT16(record + 2));
 	if (!variable)
 		return;
@@ -529,7 +529,7 @@ void TopgunEngine_v1::o_iniVariable(const byte *record) {
 	key.toLowercase();
 
 	if (key.empty()) {
-		warning("TopgunEngine_v1::o_iniVariable(): the key name is empty");
+		warning("TopgunEngine_v1_1::o_iniVariable(): the key name is empty");
 		return;
 	}
 

@@ -441,7 +441,7 @@ void AudioLibrary::freeWaveOutBuffers() {
 
 bool AudioLibrary::findBestWaveFormatIndex(const WaveFormat *wanted) {
 	bool soundFormat = (_engine->_version >= 1);
-	uint16 formatMask = soundFormat ? TG_AUDIO_WAVE_FORMAT_MASK_V1 : TG_AUDIO_WAVE_FORMAT_MASK;
+	uint16 formatMask = soundFormat ? TG_AUDIO_WAVE_FORMAT_MASK_V1_1 : TG_AUDIO_WAVE_FORMAT_MASK;
 	uint16 mask = (uint16)(formatMask & (_waveOutCapsFormats & 0xFFFF));
 	uint32 index = TG_AUDIO_NUM_OUTPUT_FORMATS;
 

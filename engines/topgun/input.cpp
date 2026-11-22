@@ -32,7 +32,7 @@
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/topgun_v1.h"
+#include "topgun/topgun_v1_1.h"
 
 #define TG_INPUT_HOURGLASS_HOTSPOT_X 15
 #define TG_INPUT_HOURGLASS_HOTSPOT_Y 14
@@ -99,7 +99,7 @@ static const byte kArrowCursor[] = {
 	0xFF, 0xFF, 0xFF, 0xFF
 };
 
-bool TopgunEngine_v0::peekInputMessage(Message &message) {
+bool TopgunEngine_v1_0::peekInputMessage(Message &message) {
 	Common::EventManager *eventManager = g_system->getEventManager();
 	Common::Event event;
 
@@ -112,7 +112,7 @@ bool TopgunEngine_v0::peekInputMessage(Message &message) {
 	}
 }
 
-void TopgunEngine_v0::discardPendingInput(uint16 id) {
+void TopgunEngine_v1_0::discardPendingInput(uint16 id) {
 	Common::EventManager *eventManager = g_system->getEventManager();
 	Common::Array<Common::Event> kept;
 	Common::Event event;
@@ -132,7 +132,7 @@ void TopgunEngine_v0::discardPendingInput(uint16 id) {
 		eventManager->pushEvent(kept[i]);
 }
 
-bool TopgunEngine_v0::translate(const Common::Event &event, Message &message) {
+bool TopgunEngine_v1_0::translate(const Common::Event &event, Message &message) {
 	message.param = 0;
 	message.data = 0;
 	message.shift = false;
@@ -164,7 +164,7 @@ bool TopgunEngine_v0::translate(const Common::Event &event, Message &message) {
 	}
 }
 
-uint16 TopgunEngine_v0::scriptKeyToKeyCodes(uint16 scriptKey, Common::KeyCode *keyCodes) const {
+uint16 TopgunEngine_v1_0::scriptKeyToKeyCodes(uint16 scriptKey, Common::KeyCode *keyCodes) const {
 	if (scriptKey >= 0x41 && scriptKey <= 0x5A) {
 		keyCodes[0] = (Common::KeyCode)(Common::KEYCODE_a + (scriptKey - 0x41));
 		return 1;
@@ -271,7 +271,7 @@ uint16 TopgunEngine_v0::scriptKeyToKeyCodes(uint16 scriptKey, Common::KeyCode *k
 	}
 }
 
-void TopgunEngine_v0::handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) {
+void TopgunEngine_v1_0::handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) {
 	if (keycode == Common::KEYCODE_F2) {
 		_globalFlags[8] = (_globalFlags[8] == 0) ? 1 : 0;
 		ConfMan.setInt("howie", _globalFlags[8]);
@@ -281,7 +281,7 @@ void TopgunEngine_v0::handleKeyDownMessage(Common::KeyCode keycode, bool shift, 
 	runKeyScript(keycode, shift, ctrl);
 }
 
-void TopgunEngine_v0::runKeyScript(Common::KeyCode keycode, bool shift, bool ctrl) {
+void TopgunEngine_v1_0::runKeyScript(Common::KeyCode keycode, bool shift, bool ctrl) {
 	uint16 script = 0;
 
 	if (keycode == Common::KEYCODE_KP_PLUS || keycode == Common::KEYCODE_KP_MINUS) {
@@ -302,7 +302,7 @@ void TopgunEngine_v0::runKeyScript(Common::KeyCode keycode, bool shift, bool ctr
 		runScriptResource(script);
 }
 
-void TopgunEngine_v0::handleMouseButtonDown(int16 x, int16 y) {
+void TopgunEngine_v1_0::handleMouseButtonDown(int16 x, int16 y) {
 	if (_inputBusy)
 		return;
 
@@ -314,7 +314,7 @@ void TopgunEngine_v0::handleMouseButtonDown(int16 x, int16 y) {
 	runClickScriptAt(x, y);
 }
 
-void TopgunEngine_v0::runClickScriptAt(int16 x, int16 y) {
+void TopgunEngine_v1_0::runClickScriptAt(int16 x, int16 y) {
 	uint16 script = 0;
 
 	x -= display()->viewportOrigin().x;
@@ -326,7 +326,7 @@ void TopgunEngine_v0::runClickScriptAt(int16 x, int16 y) {
 		if (_records && id < _numResources)
 			script = _records[id].clickScript;
 		else
-			warning("TopgunEngine_v0::handleMouseButtonDown(): resource id %d is out of range", id);
+			warning("TopgunEngine_v1_0::handleMouseButtonDown(): resource id %d is out of range", id);
 	}
 
 	if (script == 0) {
@@ -347,7 +347,7 @@ void TopgunEngine_v0::runClickScriptAt(int16 x, int16 y) {
 		runScriptResource(script);
 }
 
-void TopgunEngine_v0::addOrUpdateClickRegion(const byte *record) {
+void TopgunEngine_v1_0::addOrUpdateClickRegion(const byte *record) {
 	int16 left = READ_LE_INT16(record + 6);
 	int16 top = READ_LE_INT16(record + 8);
 	int16 right = READ_LE_INT16(record + 10);
@@ -382,11 +382,11 @@ void TopgunEngine_v0::addOrUpdateClickRegion(const byte *record) {
 	}
 }
 
-void TopgunEngine_v0::applyCursorFromRegister() {
+void TopgunEngine_v1_0::applyCursorFromRegister() {
 	setCursorImage(_inputBusy || !_cursorEnabled);
 }
 
-void TopgunEngine_v0::setCursorImage(bool hourglass) {
+void TopgunEngine_v1_0::setCursorImage(bool hourglass) {
 	Graphics::Cursor *cursor;
 
 	if (hourglass) {
@@ -397,7 +397,7 @@ void TopgunEngine_v0::setCursorImage(bool hourglass) {
 	}
 
 	if (!cursor) {
-		warning("TopgunEngine_v0::setCursorImage(): cannot create the cursor");
+		warning("TopgunEngine_v1_0::setCursorImage(): cannot create the cursor");
 		return;
 	}
 
@@ -405,7 +405,7 @@ void TopgunEngine_v0::setCursorImage(bool hourglass) {
 	delete cursor;
 }
 
-void TopgunEngine_v1::applyCursorFromRegister() {
+void TopgunEngine_v1_1::applyCursorFromRegister() {
 	Graphics::Cursor *cursor = nullptr;
 
 	if (_cursorMode == 1) {
@@ -419,7 +419,7 @@ void TopgunEngine_v1::applyCursorFromRegister() {
 	}
 
 	if (!cursor) {
-		warning("TopgunEngine_v1::applyCursorFromRegister(): cannot create the cursor for mode %d", _cursorMode);
+		warning("TopgunEngine_v1_1::applyCursorFromRegister(): cannot create the cursor for mode %d", _cursorMode);
 		return;
 	}
 
@@ -427,7 +427,7 @@ void TopgunEngine_v1::applyCursorFromRegister() {
 	delete cursor;
 }
 
-void TopgunEngine_v1::setCursorMode(byte mode) {
+void TopgunEngine_v1_1::setCursorMode(byte mode) {
 	if (_cursorMode == 3)
 		removeMessages(kMsgLButtonDown);
 
@@ -435,11 +435,11 @@ void TopgunEngine_v1::setCursorMode(byte mode) {
 	applyCursorFromRegister();
 }
 
-void TopgunEngine_v1::handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) {
+void TopgunEngine_v1_1::handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) {
 	runKeyScript(keycode, shift, ctrl);
 }
 
-void TopgunEngine_v1::handleMouseButtonDown(int16 x, int16 y) {
+void TopgunEngine_v1_1::handleMouseButtonDown(int16 x, int16 y) {
 	if (_cursorMode == 3)
 		return;
 
@@ -448,13 +448,13 @@ void TopgunEngine_v1::handleMouseButtonDown(int16 x, int16 y) {
 	runClickScriptAt(x, y);
 }
 
-void TopgunEngine_v0::adjustMasterVolumeByKey(Common::KeyCode keycode) {
+void TopgunEngine_v1_0::adjustMasterVolumeByKey(Common::KeyCode keycode) {
 	uint32 volume = audioLibrary()->audioCommand(0x82, 0, 0, nullptr);
 	uint32 stepped = stepVolumeLevels5Bit(volume, keycode == Common::KEYCODE_KP_PLUS);
 	audioLibrary()->audioCommand(0x83, 0, stepped, nullptr);
 }
 
-uint32 TopgunEngine_v0::stepVolumeLevels5Bit(uint32 volume, bool up) {
+uint32 TopgunEngine_v1_0::stepVolumeLevels5Bit(uint32 volume, bool up) {
 	uint16 left = (volume & 0xFFFF) >> 11;
 	uint16 right = (volume >> 16) >> 11;
 

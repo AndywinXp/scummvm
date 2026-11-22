@@ -19,28 +19,28 @@
  *
  */
 
-#ifndef TOPGUN_TOPGUN_V1_H
-#define TOPGUN_TOPGUN_V1_H
+#ifndef TOPGUN_TOPGUN_V1_1_H
+#define TOPGUN_TOPGUN_V1_1_H
 
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
-#define TG_HOST_V1_MAX_SCRIPT_DEPTH 30
+#define TG_HOST_V1_1_MAX_SCRIPT_DEPTH 30
 
 namespace Topgun {
 
-enum ScriptOpcodeV1 {
-	kOpV1CursorMode = 31,
-	kOpV1RunScriptIfLoaded = 32,
-	kOpV1SetSpriteCollision = 33,
-	kOpV1CallPluginFunction = 34,
-	kOpV1RunListEntry = 35,
-	kOpV1IniVariable = 36
+enum ScriptOpcodeV1_1 {
+	kOpV1_1CursorMode = 31,
+	kOpV1_1RunScriptIfLoaded = 32,
+	kOpV1_1SetSpriteCollision = 33,
+	kOpV1_1CallPluginFunction = 34,
+	kOpV1_1RunListEntry = 35,
+	kOpV1_1IniVariable = 36
 };
 
-class TopgunEngine_v1 : public TopgunEngine_v0 {
+class TopgunEngine_v1_1 : public TopgunEngine_v1_0 {
 public:
-	TopgunEngine_v1(OSystem *syst, const ADGameDescription *gameDesc);
-	~TopgunEngine_v1() override;
+	TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc);
+	~TopgunEngine_v1_1() override;
 
 protected:
 	// Main loop
@@ -105,4 +105,4 @@ protected:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_TOPGUN_V1_H
+#endif // TOPGUN_TOPGUN_V1_1_H

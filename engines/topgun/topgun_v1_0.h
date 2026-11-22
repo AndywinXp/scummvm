@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef TOPGUN_TOPGUN_V0_H
-#define TOPGUN_TOPGUN_V0_H
+#ifndef TOPGUN_TOPGUN_V1_0_H
+#define TOPGUN_TOPGUN_V1_0_H
 
 #include "common/events.h"
 #include "common/hashmap.h"
@@ -178,10 +178,10 @@ struct GotoSceneRecord {
 	}
 };
 
-class TopgunEngine_v0 : public TopgunEngine {
+class TopgunEngine_v1_0 : public TopgunEngine {
 public:
-	TopgunEngine_v0(OSystem *syst, const ADGameDescription *gameDesc, int version = 0);
-	~TopgunEngine_v0() override;
+	TopgunEngine_v1_0(OSystem *syst, const ADGameDescription *gameDesc, int version = 0);
+	~TopgunEngine_v1_0() override;
 
 protected:
 	// Main loop
@@ -376,4 +376,4 @@ protected:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_TOPGUN_V0_H
+#endif // TOPGUN_TOPGUN_V1_0_H

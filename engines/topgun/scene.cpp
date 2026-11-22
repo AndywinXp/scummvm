@@ -28,11 +28,11 @@
 #include "topgun/libraries/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils.h"
-#include "topgun/topgun_v0.h"
+#include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
 
-SceneRecord *TopgunEngine_v0::findOrCreateSceneEntry(const Common::String &name) {
+SceneRecord *TopgunEngine_v1_0::findOrCreateSceneEntry(const Common::String &name) {
 	for (uint16 i = 0; i < _numScenes; i++) {
 		if (name.equalsIgnoreCase(_scenes[i].name))
 			return &_scenes[i];
@@ -45,7 +45,7 @@ SceneRecord *TopgunEngine_v0::findOrCreateSceneEntry(const Common::String &name)
 	uint32 length = name.size();
 
 	if (length >= TG_HOST_SCENE_NAME_SIZE) {
-		warning("TopgunEngine_v0::findOrCreateSceneEntry(): scene name is too long");
+		warning("TopgunEngine_v1_0::findOrCreateSceneEntry(): scene name is too long");
 		length = TG_HOST_SCENE_NAME_SIZE - 1;
 	}
 
@@ -56,7 +56,7 @@ SceneRecord *TopgunEngine_v0::findOrCreateSceneEntry(const Common::String &name)
 	return &scene;
 }
 
-bool TopgunEngine_v0::loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback) {
+bool TopgunEngine_v1_0::loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback) {
 	_currentScene = findOrCreateSceneEntry(name);
 	_keyScripts.clear();
 	_activationScript = 0;
@@ -80,7 +80,7 @@ bool TopgunEngine_v0::loadSceneContainerAndRunEntryScript(const Common::String &
 	return true;
 }
 
-void TopgunEngine_v0::switchToNextScene(const char *name) {
+void TopgunEngine_v1_0::switchToNextScene(const char *name) {
 	if (_cdAudioPlaying)
 		audioLibrary()->audioCommand(kStopCDCommand, 0, 0, nullptr);
 
@@ -126,7 +126,7 @@ void TopgunEngine_v0::switchToNextScene(const char *name) {
 		spriteLibrary()->spriteSetBkgTransparent(false);
 }
 
-bool TopgunEngine_v0::loadInitialScene(const Common::String &name) {
+bool TopgunEngine_v1_0::loadInitialScene(const Common::String &name) {
 	_gotoRecord = GotoSceneRecord();
 	memset(_globalFlags, 0, sizeof(_globalFlags));
 
@@ -159,7 +159,7 @@ bool TopgunEngine_v0::loadInitialScene(const Common::String &name) {
 	return true;
 }
 
-void TopgunEngine_v0::cleanupCurrentSceneAndContainer() {
+void TopgunEngine_v1_0::cleanupCurrentSceneAndContainer() {
 	resetResourcesAndTransientState();
 
 	if (_cdAudioPlaying)
