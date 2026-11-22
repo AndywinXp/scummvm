@@ -93,12 +93,12 @@ protected:
 	// Main loop
 	virtual bool rtStartup(bool runChecks) = 0;
 	virtual uint16 mainLoop() = 0;
-	virtual void requestClose() = 0;
-	virtual bool postMessage(uint16 id, uint16 param, uint32 data) = 0;
-	virtual void resourceLoadProgressCallback() = 0;
+	virtual void requestClose() { quitGame(); }
+	virtual bool postMessage(uint16 id, uint16 param, uint32 data) { return false; }
+	virtual void resourceLoadProgressCallback() {}
 
 	// Scripts
-	virtual void spriteMessageService(byte *record) = 0;
+	virtual void spriteMessageService(byte *record) {}
 
 public:
 	TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc, int version);

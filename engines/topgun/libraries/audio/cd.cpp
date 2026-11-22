@@ -156,7 +156,7 @@ bool AudioLibrary::sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms
 				return false;
 
 			duration = endFrame - startFrame;
-		} else {
+		} else if (endTrack != track + 1 || endFrame != 0) {
 			warning("AudioLibrary::sendCdDeviceCommand(): playing from track %d to track %d, the playback stops at the end of track %d", track, endTrack, track);
 		}
 

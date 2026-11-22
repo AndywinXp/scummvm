@@ -27,7 +27,8 @@ MODULE_OBJS = \
 	script_v1.o \
 	topgun.o \
 	topgun_v0.o \
-	topgun_v1.o
+	topgun_v1.o \
+	tunes_player.o
 
 # This module can be built as a plugin
 ifeq ($(ENABLE_TOPGUN), DYNAMIC_PLUGIN)

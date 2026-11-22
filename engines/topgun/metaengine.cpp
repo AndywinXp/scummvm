@@ -25,6 +25,7 @@
 #include "topgun/detection.h"
 #include "topgun/topgun_v0.h"
 #include "topgun/topgun_v1.h"
+#include "topgun/tunes_player.h"
 
 namespace Topgun {
 
@@ -87,7 +88,12 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	return Common::Error(Common::kUnsupportedGameidError, _s("TuneLand Tunes Player is not supported"));
+	if (gameId == "tunesplayer") {
+		*engine = new Topgun::TunesPlayerEngine(syst, desc);
+		return Common::kNoError;
+	}
+
+	return Common::kUnsupportedGameidError;
 }
 
 bool TopgunMetaEngine::hasFeature(MetaEngineFeature f) const {
