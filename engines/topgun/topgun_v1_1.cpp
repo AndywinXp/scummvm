@@ -25,15 +25,15 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_1.h"
 
 namespace Topgun {
 
-TopgunEngine_v1_1::TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine_v1_0(syst, gameDesc, 1) {
+TopgunEngine_v1_1::TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc, int version) :
+	TopgunEngine_v1_0(syst, gameDesc, version) {
 }
 
 TopgunEngine_v1_1::~TopgunEngine_v1_1() {

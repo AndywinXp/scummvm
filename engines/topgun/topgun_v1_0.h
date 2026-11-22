@@ -40,7 +40,7 @@
 #define TG_HOST_MAX_HOTSPOTS          100
 #define TG_HOST_MAX_TIMERS            20
 #define TG_HOST_NUM_DISSOLVE_TILES    300
-#define TG_HOST_LOOP_DELAY            10
+#define TG_HOST_LOOP_DELAY            4
 #define TG_HOST_MAX_POSTED_MESSAGES   8
 #define TG_HOST_MAX_SCRIPT_DEPTH      256
 #define TG_HOST_NUM_SCRIPT_CHOICES    6
@@ -153,9 +153,10 @@ struct ResourceRecord {
 	uint16 refCount;
 	uint16 numMembers;
 	byte *idList;
+	uint16 object;
 
 	ResourceRecord() : data(nullptr), handle(0), clickScript(0), size(0), refCount(0),
-		numMembers(0), idList(nullptr) {}
+		numMembers(0), idList(nullptr), object(0) {}
 };
 
 struct SceneRecord {
@@ -186,18 +187,16 @@ public:
 protected:
 	// Main loop
 	bool rtStartup(bool runChecks) override;
+	bool runStartup(bool runChecks, const Common::String &firstContainer);
 	virtual void initCDAudio();
 	uint16 mainLoop() override;
 	void presentScreenAndWait();
 	void resourceLoadProgressCallback() override;
 	void clearInputMessageQueues();
 
-	// Errors
-	void showFormattedErrorMessageBox(uint16 stringId, const char *argument);
-
 	// Startup
-	bool initEngineLibraries();
-	bool locateResourceFile();
+	virtual bool initEngineLibraries();
+	bool locateResourceFile(const Common::String &name);
 
 	// Messages
 	void requestClose() override;
@@ -208,17 +207,17 @@ protected:
 	void invalidateScreen();
 	void validateScreen();
 	void postQuitMessage(uint16 exitCode);
-	void dispatchMessage(const Message &message);
+	virtual void dispatchMessage(const Message &message);
 	virtual void handleActivateMessage(uint16 param);
-	void handleAppShutdown();
-	void handlePaintMessage();
+	virtual void handleAppShutdown();
+	virtual void handlePaintMessage();
 	virtual void handleSceneEndMessage();
-	void fillBackground();
+	virtual void fillBackground();
 
 	// Input
-	bool peekInputMessage(Message &message);
+	virtual bool peekInputMessage(Message &message);
 	void discardPendingInput(uint16 id);
-	bool translate(const Common::Event &event, Message &message);
+	virtual bool translate(const Common::Event &event, Message &message);
 	uint16 scriptKeyToKeyCodes(uint16 scriptKey, Common::KeyCode *keyCodes) const;
 	virtual void handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl);
 	void runKeyScript(Common::KeyCode keycode, bool shift, bool ctrl);
@@ -231,16 +230,16 @@ protected:
 	void setCursorImage(bool hourglass);
 
 	// Volume
-	void adjustMasterVolumeByKey(Common::KeyCode keycode);
+	virtual void adjustMasterVolumeByKey(Common::KeyCode keycode);
 	static uint32 stepVolumeLevels5Bit(uint32 volume, bool up);
 
 	// Timers
-	void serviceScheduledMsgTimerQueue();
+	virtual void serviceScheduledMsgTimerQueue();
 	void removeScheduledTimer(uint16 index);
 
 	// Scenes
 	SceneRecord *findOrCreateSceneEntry(const Common::String &name);
-	bool loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback);
+	virtual bool loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback);
 	virtual void switchToNextScene(const char *name);
 	virtual bool loadInitialScene(const Common::String &name);
 	virtual void cleanupCurrentSceneAndContainer();
@@ -248,25 +247,25 @@ protected:
 	// Resources
 	virtual void freeBitmapBlobIfUnreferenced(uint16 id);
 	void destroyDataResourceObject(uint16 id);
-	bool destroyGroupResourceObject(uint16 id);
+	virtual bool destroyGroupResourceObject(uint16 id);
 	virtual bool destroySpriteResourceObject(uint16 id);
-	void destroyWaveResourceObject(uint16 id);
-	bool ensureBitmapResourceLoaded(uint16 id);
-	bool loadOrGetResourceData(uint16 id);
-	bool ensureGroupResourceLoaded(uint16 id);
+	virtual void destroyWaveResourceObject(uint16 id);
+	virtual bool ensureBitmapResourceLoaded(uint16 id);
+	virtual bool loadOrGetResourceData(uint16 id);
+	virtual bool ensureGroupResourceLoaded(uint16 id);
 	virtual bool loadTransPaletteResource(uint16 id);
 	virtual byte *loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut);
-	bool ensureSpriteResourceLoaded(uint16 id);
+	virtual bool ensureSpriteResourceLoaded(uint16 id);
 	bool attachResourceListToSprite(uint16 spriteHandle, const byte *idList, uint16 count);
-	bool ensureWaveResourceLoaded(uint16 id);
-	bool destroyResourceObjectByType(uint16 id, uint16 type);
-	void resetResourcesAndTransientState();
+	virtual bool ensureWaveResourceLoaded(uint16 id);
+	virtual bool destroyResourceObjectByType(uint16 id, uint16 type);
+	virtual void resetResourcesAndTransientState();
 	void destroySceneMainObjects();
 	virtual bool validateAndGetResourceByType(uint16 id, uint16 type);
 	virtual bool isResourceObjectLoaded(uint16 id);
-	void decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId);
+	virtual void decrementResourceRefCountAndMaybeDestroy(uint16 bitmapId);
 	void refreshGamePalette(byte *buffer);
-	bool openResourceFileAndInit(const Common::String &name);
+	virtual bool openResourceFileAndInit(const Common::String &name);
 
 	// Scripts
 	virtual bool runScriptBytecodeLoop(uint16 scriptId);
@@ -297,13 +296,13 @@ protected:
 
 	// Backgrounds
 	void syncBackgroundDimensions(uint16 bitmapId);
-	void commitBackgroundChangeAndRepaint(const Common::Rect &rect);
+	virtual void commitBackgroundChangeAndRepaint(const Common::Rect &rect);
 	void applyBackgroundToSpriteLib(uint16 bitmapId, Common::Rect *rectOut);
-	void clearBackground();
+	virtual void clearBackground();
 	bool setBackgroundFromBitmapResource(uint16 bitmapId);
 
 	// Transitions
-	void copyAndPaintBackgroundRect(Common::Rect &rect);
+	virtual void copyAndPaintBackgroundRect(Common::Rect &rect);
 	void initDissolve();
 	void dissolveOneTile();
 	void computeInsetRingRect(uint16 k, Common::Rect *out, uint16 n);

@@ -23,8 +23,8 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/resource/resource.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {

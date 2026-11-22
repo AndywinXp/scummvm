@@ -108,11 +108,11 @@ struct SoundCreateInfo {
 class AudioLibrary {
 public:
 	AudioLibrary(TopgunEngine *engine);
-	~AudioLibrary();
+	virtual ~AudioLibrary();
 
 	uint16 audioInitLibrary(uint16 version);
-	void audioExitLibrary();
-	void audioService();
+	virtual void audioExitLibrary();
+	virtual void audioService();
 	uint32 audioCommand(uint16 command, uint16 handle, uint32 value, void *block);
 	uint16 audioActivate(uint16 active);
 	uint32 audioResampleWave(const WaveFormat *destinationFormat, const WaveFormat *sourceFormat,
@@ -124,7 +124,7 @@ public:
 	uint16 audioSetOwner(uint16 owner);
 	void audioSetMute(uint16 muted);
 
-private:
+protected:
 	enum Command {
 		kCmdCdIsOpen = 101,
 		kCmdCdGetPosition = 105,
@@ -257,7 +257,7 @@ private:
 	void restoreMasterVolume();
 	uint16 findMasterAuxDevice();
 	void masterFadeUpTick();
-	void masterFadeDownTick();
+	virtual void masterFadeDownTick();
 	uint16 startMasterFadeUp(uint16 duration);
 	uint16 startMasterFadeOut(uint16 duration);
 
@@ -349,7 +349,7 @@ private:
 	uint16 findCdAuxDevice();
 	void pollCDEndAndClose();
 	uint16 closeCDAudioDevice();
-	void resetWaveQueueAndEnableAllWaves(uint16 on);
+	virtual void resetWaveQueueAndEnableAllWaves(uint16 on);
 	uint32 getExtractedTrackFrames(uint32 track);
 	void applyCdVolume(uint32 volume);
 
@@ -359,6 +359,12 @@ private:
 	uint16 playMidiFile(const Common::String &fileName);
 	void stopAndCloseMidi();
 	void shutdownMidi();
+
+	// Output formats: bit of WAVE_FORMAT, rate, channels, bytes per sample
+	static const uint16 kFormatBits[TG_AUDIO_NUM_OUTPUT_FORMATS];
+	static const uint16 kFormatRates[TG_AUDIO_NUM_OUTPUT_FORMATS];
+	static const byte kFormatChannels[TG_AUDIO_NUM_OUTPUT_FORMATS];
+	static const byte kFormatBytesPerSample[TG_AUDIO_NUM_OUTPUT_FORMATS];
 
 	TopgunEngine *_engine;
 	uint16 _initCount = 0;

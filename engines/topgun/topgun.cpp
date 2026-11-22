@@ -24,9 +24,9 @@
 #include "topgun/detection.h"
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 
 #include "common/scummsys.h"
 #include "common/config-manager.h"
@@ -47,9 +47,14 @@ TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc, int
 	bool hiRes = ConfMan.hasKey("screen_800x600") && ConfMan.getBool("screen_800x600");
 
 	_utilsLibrary = new UtilsLibrary(this);
-	_audioLibrary = new AudioLibrary(this);
-	_resourceLibrary = new ResourceLibrary(this);
-	_spriteLibrary = new SpriteLibrary(this);
+
+	// The engines from version 2 on create their own libraries
+	if (_version < 2) {
+		_audioLibrary = new AudioLibrary(this);
+		_resourceLibrary = new ResourceLibrary(this);
+		_spriteLibrary = new SpriteLibrary(this);
+	}
+
 	if (hiRes)
 		_display = new Display(TG_DISPLAY_LARGE_WIDTH, TG_DISPLAY_LARGE_HEIGHT);
 	else

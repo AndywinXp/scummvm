@@ -25,7 +25,7 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun.h"
 
 namespace Topgun {

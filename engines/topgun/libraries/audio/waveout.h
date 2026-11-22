@@ -44,7 +44,7 @@ struct WaveRingEntry {
 
 class WaveOutStream : public Audio::AudioStream {
 public:
-	WaveOutStream(WaveRingEntry *ring, uint32 rate, bool stereo, bool eightBit);
+	WaveOutStream(WaveRingEntry *ring, uint32 rate, bool stereo, bool eightBit, uint32 ringSize = TG_WAVEOUT_RING_SIZE);
 
 	int readBuffer(int16 *buffer, const int numSamples) override;
 	bool isStereo() const override { return _stereo; }
@@ -59,6 +59,7 @@ private:
 	uint32 _rate;
 	bool _stereo;
 	bool _eightBit;
+	uint32 _ringSize;
 	uint32 _playIndex = 0;
 	uint32 _playPos = 0;
 };

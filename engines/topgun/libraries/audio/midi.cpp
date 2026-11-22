@@ -30,8 +30,6 @@
 
 namespace Topgun {
 
-static const char *const kFireMidiFile = "efxfire.mid";
-
 MidiSequencer::MidiSequencer() {
 	MidiDriver::DeviceHandle device = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
 
@@ -96,8 +94,7 @@ bool MidiSequencer::playFile(const Common::String &fileName) {
 }
 
 void AudioLibrary::playDefaultMidiFile() {
-	if (kFireMidiFile[0] != 0)
-		playMidiFile(kFireMidiFile);
+	playMidiFile("efxfire.mid");
 }
 
 bool AudioLibrary::sendMidiDeviceCommand(uint16 message, uint32 flags, DeviceParms &parms) {

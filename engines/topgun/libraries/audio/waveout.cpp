@@ -26,8 +26,8 @@
 
 namespace Topgun {
 
-WaveOutStream::WaveOutStream(WaveRingEntry *ring, uint32 rate, bool stereo, bool eightBit) :
-	_ring(ring), _rate(rate), _stereo(stereo), _eightBit(eightBit) {
+WaveOutStream::WaveOutStream(WaveRingEntry *ring, uint32 rate, bool stereo, bool eightBit, uint32 ringSize) :
+	_ring(ring), _rate(rate), _stereo(stereo), _eightBit(eightBit), _ringSize(ringSize) {
 }
 
 int WaveOutStream::readBuffer(int16 *buffer, const int numSamples) {
@@ -54,7 +54,7 @@ int WaveOutStream::readBuffer(int16 *buffer, const int numSamples) {
 
 		if (_playPos >= totalValues) {
 			entry.flags = (entry.flags & ~TG_WAVEOUT_HEADER_IN_QUEUE) | TG_WAVEOUT_HEADER_DONE;
-			_playIndex = (_playIndex + 1) % TG_WAVEOUT_RING_SIZE;
+			_playIndex = (_playIndex + 1) % _ringSize;
 			_playPos = 0;
 		}
 	}

@@ -24,6 +24,7 @@ namespace Topgun {
 const PlainGameDescriptor topgunGames[] = {
 	{ "tuneland", "TuneLand Starring Howie Mandel" },
 	{ "tunesplayer", "TuneLand Tunes Player" },
+	{ "pythonwaste", "Monty Python's Complete Waste of Time" },
 	{ 0, 0 }
 };
 
@@ -56,6 +57,16 @@ const ADGameDescription gameDescriptions[] = {
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO1(GUIO_NONE)
+	},
+
+	{
+		"pythonwaste",
+		nullptr,
+		AD_ENTRY1s("HERALD.BIN", "7c57a11624726d2be3c0487716adf33d", 287772),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 
 	AD_TABLE_END_MARKER

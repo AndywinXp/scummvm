@@ -24,7 +24,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/topgun_v1_0.h"
 

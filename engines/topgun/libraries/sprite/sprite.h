@@ -43,6 +43,8 @@
 #define TG_SPR_NUM_QUEUE_COMMANDS     29
 #define TG_SPR_QUEUE_RECORD_COPY_SIZE 18
 #define TG_SPR_FRAME_NOTIFICATION     28
+#define TG_SPR_TABLE_SIZE             100
+#define TG_SPR_PART_BLOCK_SIZE        4
 
 namespace Topgun {
 
@@ -69,22 +71,22 @@ struct SpriteInfo {
 class SpriteLibrary {
 public:
 	SpriteLibrary(TopgunEngine *engine);
-	~SpriteLibrary();
+	virtual ~SpriteLibrary();
 
-	void spriteAnimate();
+	virtual void spriteAnimate();
 	bool spriteAppendBitmap(uint16 sprite, byte *frame);
 	bool spriteAppendBitmaps(uint16 sprite, byte **frames, uint16 count);
 	void spriteBreakLoops(uint16 sprite);
 	bool spriteChangePalette(uint16 first, uint16 count, const byte *entries);
 	void spriteClearUpdate(uint16 sprite);
-	uint16 spriteCopy(uint16 sprite);
+	virtual uint16 spriteCopy(uint16 sprite);
 	void spriteCopyRect(Common::Rect &rect, const byte *source, byte *destination);
 	uint16 spriteCreate(byte *frame);
-	byte *spriteDibCreate(uint16 width, uint16 height, uint16 flags);
-	void spriteEmptyQueue(uint16 sprite);
+	virtual byte *spriteDibCreate(uint16 width, uint16 height, uint16 flags);
+	virtual void spriteEmptyQueue(uint16 sprite);
 	void spriteEnable(uint16 sprite, uint16 enable);
 	void spriteExitLibrary();
-	uint16 spriteDestroy(uint16 sprite, bool hideRefresh, bool freeFrames);
+	virtual uint16 spriteDestroy(uint16 sprite, bool hideRefresh, bool freeFrames);
 	void spriteDestroyAll(bool hideRefresh);
 	bool spriteFadePalette(uint16 mult, uint16 divisor, uint16 first, uint16 count);
 	void spriteDibFree(byte *bitmap);
@@ -92,10 +94,10 @@ public:
 	void spriteGetInfo(uint16 sprite, SpriteInfo &info);
 	void spriteGetPalette(byte *destination, uint16 first, uint16 count);
 	void spriteHide(uint16 sprite, bool refresh);
-	bool spriteInitLibrary();
+	virtual bool spriteInitLibrary();
 	void spritePaint(uint16 sprite);
 	void spritePaintRect(const Common::Rect &rect, bool backgroundCoordinates);
-	uint16 spritePicked(int16 x, int16 y);
+	virtual uint16 spritePicked(int16 x, int16 y);
 	bool spriteRealizePalette();
 	void spriteSetBackground(byte *background, Common::Rect *outClipRect);
 	void spriteSetBkgTransparent(bool flag);
@@ -110,16 +112,16 @@ public:
 	bool spriteSetQueue(uint16 sprite, const byte *queue, uint16 size);
 	void spriteSetServiceProc();
 	void spriteSetSpeed(uint16 sprite, uint32 milliseconds);
-	void spriteSetTopMost(uint16 sprite);
-	void spriteShow(uint16 sprite, uint16 frame, bool refresh);
-	bool spriteSwapOrder(uint16 spriteA, uint16 spriteB, bool onlyIfBAbove, bool refresh);
-	void spriteTransfer(uint16 source, uint16 destination);
+	virtual void spriteSetTopMost(uint16 sprite);
+	virtual void spriteShow(uint16 sprite, uint16 frame, bool refresh);
+	virtual bool spriteSwapOrder(uint16 spriteA, uint16 spriteB, bool onlyIfBAbove, bool refresh);
+	virtual void spriteTransfer(uint16 source, uint16 destination);
 	void spriteCallback(uint16 sprite, bool notifyOnFrame);
 
 	static bool intersectRects(const Common::Rect &first, const Common::Rect &second, Common::Rect &result);
 	static Common::Rect unionRects(const Common::Rect &first, const Common::Rect &second);
 
-private:
+protected:
 	struct BlitSetup {
 		byte *destination;
 		const byte *source;
@@ -137,7 +139,7 @@ private:
 	};
 
 	struct SpritePartBlock {
-		SpritePart parts[TG_SPR_NUM_SPRITE_PARTS];
+		SpritePart parts[TG_SPR_PART_BLOCK_SIZE];
 	};
 	typedef Common::SharedPtr<SpritePartBlock> SpritePartBlockPtr;
 
@@ -181,27 +183,29 @@ private:
 			framePending(false), useUnionRefresh(false), forward(false), previousValid(false),
 			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0),
 			collisionTarget(0), collisionValue(0) {}
+
+		virtual ~SpriteObject() {}
 	};
 
 	typedef Common::HashMap<uint16, SpriteObject *> SpriteMap;
 
 	// Library
-	void initQueueRecordSizeTable();
+	virtual void initQueueRecordSizeTable();
 	uint16 bitmapHeaderSize() const;
 
 	// Sprite objects
 	uint16 spriteObjectAlloc();
-	void freeDistinctCelBitmaps(uint16 sprite);
+	virtual void freeDistinctCelBitmaps(uint16 sprite);
 	void cleanupSpriteData(uint16 sprite);
 	void initSpriteFromFirstCel(uint16 sprite);
 	bool duplicateSpriteData(const Common::Array<byte *> &frames, Common::Array<byte *> &duplicate);
 	int16 findSpriteIndex(uint16 sprite);
-	uint16 spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last);
-	SpriteObject *findSprite(uint16 sprite, const char *caller);
+	virtual uint16 spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last);
+	virtual SpriteObject *findSprite(uint16 sprite, const char *caller);
 	uint16 registerSprite(SpriteObject *object);
 
 	// Animation
-	bool processSpriteQueueCommand(uint16 sprite);
+	virtual bool processSpriteQueueCommand(uint16 sprite);
 	bool processSpriteAnimationStep(uint16 sprite);
 	byte *nextQueueRecordWithLoops(uint16 sprite);
 	void computeInterpolatedMoveSteps(byte *command);
@@ -217,19 +221,19 @@ private:
 	bool stepLinearMove(uint16 sprite);
 	Common::Point computeQuadCurvePoint(uint16 step, uint16 steps, int16 x0, int16 y0, int16 viaX, int16 viaY, int16 endX, int16 endY);
 	Common::Point computeLinePoint(uint16 step, uint16 total, int16 x0, int16 y0, int16 x1, int16 y1);
-	void applyFrameChange(uint16 sprite);
+	virtual void applyFrameChange(uint16 sprite);
 	uint16 tickCursorSprite();
 
 	// Rendering
-	bool renderRect(const Common::Rect &rect);
-	bool repaintUnionOfCurrentAndPreviousRect(uint16 sprite);
+	virtual bool renderRect(const Common::Rect &rect);
+	virtual bool repaintUnionOfCurrentAndPreviousRect(uint16 sprite);
 	void repaintPreviousRect(uint16 sprite, bool excludeCurrent);
 	void renderSpriteToSurface(uint16 sprite);
 	void compositeSpritesInRect(const Common::Rect &rect);
 	void checkCollision(uint16 sprite);
 	void recomputeCelBoxArray(uint16 sprite, const byte *command);
 	void compositeSpritePartsIntoBuffer(uint16 sprite, uint16 count, const SpritePart *parts, const Common::Rect &rect);
-	void blitSpriteToScreen(int16 x, int16 y, const byte *bitmap);
+	virtual void blitSpriteToScreen(int16 x, int16 y, const byte *bitmap);
 	bool ensureComposeBufferSize(uint16 width, uint16 height);
 
 	// Blitters
@@ -242,7 +246,7 @@ private:
 
 	// Palette
 	void scalePaletteEntries(byte *destination, const byte *source, uint16 mult, uint16 divisor, uint16 count);
-	bool createIdentityLogicalPalette();
+	virtual bool createIdentityLogicalPalette();
 	void buildDibColorTableFromPalette(uint16 first, uint16 end);
 	void releasePaletteResources();
 
@@ -267,7 +271,7 @@ private:
 	byte _paletteCopy[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];
 	byte _colorTable[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];
 	uint16 _queueCommandSizeTable[TG_SPR_NUM_QUEUE_COMMANDS];
-	uint16 _spriteTable[TG_SPR_MAX_SPRITES];
+	uint16 _spriteTable[TG_SPR_TABLE_SIZE];
 	SpriteMap _sprites;
 	uint16 _nextSpriteHandle = 1;
 };

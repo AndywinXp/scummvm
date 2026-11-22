@@ -30,12 +30,10 @@
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
-
-static const char *const kHeraldFileName = "herald.bin";
 
 TopgunEngine_v1_0::TopgunEngine_v1_0(OSystem *syst, const ADGameDescription *gameDesc, int version) :
 	TopgunEngine(syst, gameDesc, version) {
@@ -54,6 +52,10 @@ void TopgunEngine_v1_0::initCDAudio() {
 }
 
 bool TopgunEngine_v1_0::rtStartup(bool runChecks) {
+	return runStartup(runChecks, "herald.bin");
+}
+
+bool TopgunEngine_v1_0::runStartup(bool runChecks, const Common::String &firstContainer) {
 	initCDAudio();
 
 	setCursorImage(false);
@@ -67,13 +69,13 @@ bool TopgunEngine_v1_0::rtStartup(bool runChecks) {
 		_flagMode640 = (display()->width() <= TG_DISPLAY_DEFAULT_WIDTH);
 
 		if (runChecks) {
-			ok = locateResourceFile();
+			ok = locateResourceFile(firstContainer);
 
 			if (ok) {
 				_appActive = true;
 				invalidateScreen();
 				handlePaintMessage();
-				loadInitialScene(kHeraldFileName);
+				loadInitialScene(firstContainer);
 			}
 		}
 	}
@@ -255,28 +257,6 @@ void TopgunEngine_v1_0::clearInputMessageQueues() {
 	removeMessages(kMsgKeyDown);
 }
 
-void TopgunEngine_v1_0::showFormattedErrorMessageBox(uint16 stringId, const char *argument) {
-	static const char *const kErrorNeed256Colors = "TuneLand requires 256 colors or more to run.";
-	static const char *const kErrorStackOverflow = "Stack overflow.";
-	static const char *const kErrorCannotOpenFile = "Can't open file '%s'.";
-
-	Common::String text;
-	if (stringId == 101) {
-		text = kErrorNeed256Colors;
-	} else if (stringId == 105) {
-		text = kErrorStackOverflow;
-	} else if (stringId == 102) {
-		if (argument)
-			text = Common::String::format("Can't open file '%s'.", argument);
-		else
-			text = kErrorCannotOpenFile;
-	} else {
-		warning("TopgunEngine_v1_0::showFormattedErrorMessageBox(): unknown string id %d", stringId);
-	}
-
-	GUIErrorMessage(text);
-}
-
 bool TopgunEngine_v1_0::initEngineLibraries() {
 	if (!spriteLibrary()->spriteInitLibrary())
 		return false;
@@ -289,11 +269,11 @@ bool TopgunEngine_v1_0::initEngineLibraries() {
 	return true;
 }
 
-bool TopgunEngine_v1_0::locateResourceFile() {
-	if (Common::File::exists(kHeraldFileName))
+bool TopgunEngine_v1_0::locateResourceFile(const Common::String &name) {
+	if (Common::File::exists(Common::Path(name)))
 		return true;
 
-	showFormattedErrorMessageBox(102, kHeraldFileName);
+	GUIErrorMessage(Common::String::format("Can't open file '%s'.", name.c_str()));
 	return false;
 }
 

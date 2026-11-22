@@ -69,7 +69,9 @@ public:
 
 	// Drawing
 	void putBitmapRows(int16 x, int16 y, uint16 width, uint16 height, const byte *pixels, uint16 pitch, const byte *colorTable);
+	void putBitmapRowsStretched(int16 x, int16 y, uint16 destinationWidth, uint16 destinationHeight, uint16 sourceWidth, uint16 sourceHeight, const byte *pixels, uint16 pitch, const byte *colorTable);
 	void clearScreen();
+	void fillScreen(uint32 color);
 
 	// Palette
 	bool createLogicalPalette(const byte *entries);

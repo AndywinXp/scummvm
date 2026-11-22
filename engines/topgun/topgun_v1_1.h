@@ -39,7 +39,7 @@ enum ScriptOpcodeV1_1 {
 
 class TopgunEngine_v1_1 : public TopgunEngine_v1_0 {
 public:
-	TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc);
+	TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc, int version = 1);
 	~TopgunEngine_v1_1() override;
 
 protected:
@@ -58,13 +58,13 @@ protected:
 
 	// Cursor
 	void applyCursorFromRegister() override;
-	void setCursorMode(byte mode);
+	virtual void setCursorMode(byte mode);
 
 	// Scenes
 	void switchToNextScene(const char *name) override;
 	bool loadInitialScene(const Common::String &name) override;
 	void cleanupCurrentSceneAndContainer() override;
-	void destroySceneMainObjects(bool release);
+	virtual void destroySceneMainObjects(bool release);
 
 	// Resources
 	void freeBitmapBlobIfUnreferenced(uint16 id) override;

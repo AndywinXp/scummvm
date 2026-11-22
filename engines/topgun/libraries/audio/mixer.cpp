@@ -29,10 +29,10 @@
 
 namespace Topgun {
 
-static const uint16 kFormatBits[12] = { 0x0004, 0x0001, 0x0008, 0x0002, 0x0080, 0x0020, 0x0040, 0x0010, 0x0800, 0x0200, 0x0400, 0x0100 };
-static const uint16 kFormatRates[12] = { 11025, 11025, 11025, 11025, 22050, 22050, 22050, 22050, 44100, 44100, 44100, 44100 };
-static const byte kFormatChannels[12] = { 1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 1, 1 };
-static const byte kFormatBytesPerSample[12] = { 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1 };
+const uint16 AudioLibrary::kFormatBits[TG_AUDIO_NUM_OUTPUT_FORMATS] = { 0x0004, 0x0001, 0x0008, 0x0002, 0x0080, 0x0020, 0x0040, 0x0010, 0x0800, 0x0200, 0x0400, 0x0100 };
+const uint16 AudioLibrary::kFormatRates[TG_AUDIO_NUM_OUTPUT_FORMATS] = { 11025, 11025, 11025, 11025, 22050, 22050, 22050, 22050, 44100, 44100, 44100, 44100 };
+const byte AudioLibrary::kFormatChannels[TG_AUDIO_NUM_OUTPUT_FORMATS] = { 1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 1, 1 };
+const byte AudioLibrary::kFormatBytesPerSample[TG_AUDIO_NUM_OUTPUT_FORMATS] = { 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1 };
 
 bool AudioLibrary::soundEndOrLoop(WaveObject *wave) {
 	if (!wave->streaming) {

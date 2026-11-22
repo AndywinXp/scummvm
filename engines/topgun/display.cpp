@@ -170,6 +170,55 @@ void Display::putBitmapRows(int16 x, int16 y, uint16 width, uint16 height, const
 	}
 }
 
+void Display::putBitmapRowsStretched(int16 x, int16 y, uint16 destinationWidth, uint16 destinationHeight, uint16 sourceWidth, uint16 sourceHeight, const byte *pixels, uint16 pitch, const byte *colorTable) {
+	if (destinationWidth == 0 || destinationHeight == 0 || sourceWidth == 0 || sourceHeight == 0)
+		return;
+
+	int originX = x + _viewportOrigin.x;
+	int originY = y + _viewportOrigin.y;
+	int left = MAX(originX, 0);
+	int top = MAX(originY, 0);
+	int right = MIN(originX + (int)destinationWidth, (int)_width);
+	int bottom = MIN(originY + (int)destinationHeight, (int)_height);
+
+	if (left >= right || top >= bottom)
+		return;
+
+	RectArray visible;
+	getVisibleRects(Common::Rect(left, top, right, bottom), visible);
+
+	bool singleByte = (_screen->format.bytesPerPixel == 1);
+	uint32 colors[TG_DISPLAY_NUM_PALETTE_ENTRIES];
+
+	if (!singleByte) {
+		for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++) {
+			const byte *entry = colorTable + i * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+			colors[i] = _screen->format.RGBToColor(entry[2], entry[1], entry[0]);
+		}
+	}
+
+	for (uint i = 0; i < visible.size(); i++) {
+		const Common::Rect &piece = visible[i];
+
+		for (int row = piece.top; row < piece.bottom; row++) {
+			uint32 rowFromTop = (uint32)(row - originY) * sourceHeight / destinationHeight;
+			const byte *source = pixels + (uint32)(sourceHeight - 1 - rowFromTop) * pitch;
+
+			if (singleByte) {
+				byte *destination = (byte *)_screen->getBasePtr(piece.left, row);
+				for (int column = 0; column < piece.width(); column++)
+					destination[column] = source[(uint32)(piece.left + column - originX) * sourceWidth / destinationWidth];
+			} else {
+				uint32 *destination = (uint32 *)_screen->getBasePtr(piece.left, row);
+				for (int column = 0; column < piece.width(); column++)
+					destination[column] = colors[source[(uint32)(piece.left + column - originX) * sourceWidth / destinationWidth]];
+			}
+		}
+
+		_screen->addDirtyRect(piece);
+	}
+}
+
 void Display::clearScreen() {
 	RectArray visible;
 	getVisibleRects(Common::Rect(0, 0, _width, _height), visible);
@@ -180,6 +229,19 @@ void Display::clearScreen() {
 
 	for (uint i = 0; i < visible.size(); i++)
 		_screen->fillRect(visible[i], black);
+}
+
+void Display::fillScreen(uint32 color) {
+	RectArray visible;
+	getVisibleRects(Common::Rect(0, 0, _width, _height), visible);
+
+	// The color is a palette index on a palette screen and a 0x00BBGGRR value otherwise
+	uint32 pixel = color;
+	if (_screen->format.bytesPerPixel != 1)
+		pixel = _screen->format.RGBToColor(color & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF);
+
+	for (uint i = 0; i < visible.size(); i++)
+		_screen->fillRect(visible[i], pixel);
 }
 
 bool Display::createLogicalPalette(const byte *entries) {

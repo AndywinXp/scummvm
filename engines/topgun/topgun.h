@@ -83,6 +83,9 @@ protected:
 	void pauseEngineIntern(bool pause) override;
 
 	// Services
+	void setAudioLibrary(AudioLibrary *library) { _audioLibrary = library; }
+	void setResourceLibrary(ResourceLibrary *library) { _resourceLibrary = library; }
+	void setSpriteLibrary(SpriteLibrary *library) { _spriteLibrary = library; }
 	Graphics::Screen *screen() { return _screen; }
 	UtilsLibrary *utilsLibrary() { return _utilsLibrary; }
 	AudioLibrary *audioLibrary() { return _audioLibrary; }

@@ -25,9 +25,9 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
@@ -62,7 +62,7 @@ bool TopgunEngine_v1_0::loadSceneContainerAndRunEntryScript(const Common::String
 	_activationScript = 0;
 
 	if (!openResourceFileAndInit(name)) {
-		showFormattedErrorMessageBox(102, name.c_str());
+		GUIErrorMessage(Common::String::format("Can't open file '%s'.", name.c_str()));
 		postMessage(kMsgClose, 0, 0);
 		return false;
 	}

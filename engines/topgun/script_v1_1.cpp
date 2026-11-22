@@ -24,7 +24,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/topgun_v1_1.h"
 
@@ -42,7 +42,7 @@ bool TopgunEngine_v1_1::runScriptResource(uint16 scriptId) {
 	if (_scriptDepth >= TG_HOST_V1_1_MAX_SCRIPT_DEPTH) {
 		_shuttingDown = true;
 		_scriptsDisabled = true;
-		showFormattedErrorMessageBox(105, nullptr);
+		GUIErrorMessage("Stack overflow.");
 		postMessage(kMsgClose, 0, 0);
 		return false;
 	}

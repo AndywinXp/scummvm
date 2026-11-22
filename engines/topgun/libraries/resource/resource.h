@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_RESOURCE_H
-#define TOPGUN_LIBRARIES_RESOURCE_H
+#ifndef TOPGUN_LIBRARIES_RESOURCE_RESOURCE_H
+#define TOPGUN_LIBRARIES_RESOURCE_RESOURCE_H
 
 #include "common/file.h"
 #include "common/hashmap.h"
@@ -50,27 +50,27 @@ class TopgunEngine;
 class ResourceLibrary {
 public:
 	ResourceLibrary(TopgunEngine *engine);
-	~ResourceLibrary();
+	virtual ~ResourceLibrary();
 
-	uint16 resCloseFile(uint16 file);
+	virtual uint16 resCloseFile(uint16 file);
 	uint16 resCountResources(uint16 file);
 	uint16 resCountVariables(uint16 file);
-	uint16 resCreateWaveEvent(uint16 file, uint16 index);
+	virtual uint16 resCreateWaveEvent(uint16 file, uint16 index);
 	uint32 resGetSize(uint16 file, uint16 index);
 	uint16 resGetType(uint16 file, uint16 index);
-	byte *resLoadNameTable(uint16 file, uint32 *outSize);
-	uint16 resLoadPalette(uint16 file, byte *buffer);
-	byte *resLoadResource(uint16 file, uint16 index, uint32 *outSize);
-	uint16 resOpenFile(const Common::String &path);
+	virtual byte *resLoadNameTable(uint16 file, uint32 *outSize);
+	virtual uint16 resLoadPalette(uint16 file, byte *buffer);
+	virtual byte *resLoadResource(uint16 file, uint16 index, uint32 *outSize);
+	virtual uint16 resOpenFile(const Common::String &path);
 	uint32 resRead(uint16 file, byte *buffer, uint32 count);
 	uint32 resSeek(uint16 file, int32 offset, int16 origin);
-	uint32 resSeekResource(uint16 file, uint16 index);
+	virtual uint32 resSeekResource(uint16 file, uint16 index);
 	bool resSetCallback(uint16 file, bool callbackActive, uint32 interval);
 	void waveDone(uint16 waveInfo, uint16 flag);
-	int32 waveRead(uint16 waveInfo, byte *buffer, int32 count);
+	virtual int32 waveRead(uint16 waveInfo, byte *buffer, int32 count);
 	int32 waveSeek(uint16 waveInfo, int32 offset, int16 origin);
 
-private:
+protected:
 	struct ResourceEntry {
 		uint16 type;
 		uint32 offset;
@@ -97,6 +97,7 @@ private:
 		ResourceFile() : stream(nullptr), callbackSet(false), index(nullptr), extra(nullptr), magic(0),
 			version(0), entryCount(0), dwordCount(0), nameBlockSize(0), variableCount(0), extraSize(0),
 			callbackCounter(0), callbackInterval(0) {}
+		virtual ~ResourceFile() {}
 	};
 
 	struct WaveStreamInfo {
@@ -126,7 +127,7 @@ private:
 	byte *expandCelBitmapRecord(byte *compressed, uint32 compressedSize, uint32 *outSize);
 	bool readChunkedWithCallback(ResourceFile *file, byte *buffer, uint32 count);
 	bool readResourceFileHeader(ResourceFile *file);
-	ResourceFile *findFile(uint16 file, const char *caller);
+	virtual ResourceFile *findFile(uint16 file, const char *caller);
 	uint16 registerFile(ResourceFile *record);
 	uint16 registerWaveInfo(WaveStreamInfo *info);
 	void destroyWaveInfo(WaveStreamInfo *info);
@@ -145,4 +146,4 @@ private:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_RESOURCE_H
+#endif // TOPGUN_LIBRARIES_RESOURCE_RESOURCE_H

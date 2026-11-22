@@ -25,9 +25,9 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/resource.h"
+#include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/libraries/utils.h"
+#include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_0.h"
 
 namespace Topgun {
