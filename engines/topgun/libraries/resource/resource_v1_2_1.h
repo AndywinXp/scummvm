@@ -52,6 +52,7 @@
 #define TG_RES_V1_2_1_KEY_RESIDENT                 5
 #define TG_RES_V1_2_1_KEY_PALETTE                  6
 #define TG_RES_V1_2_1_KEY_NAME_TABLE               7
+#define TG_RES_V1_2_1_KEY_PLUGIN_NAMES             10
 #define TG_RES_V1_2_1_VARIABLE_PAIR_SIZE           4
 #define TG_RES_V1_2_1_PALETTE_ENTRY_SIZE           4
 

@@ -63,7 +63,6 @@ public:
 		_viewportOrigin.y = y + _windowOrigin.y;
 	}
 
-	// Screen position of the window top left corner
 	void setWindowOrigin(int16 x, int16 y) {
 		_windowOrigin.x = x;
 		_windowOrigin.y = y;

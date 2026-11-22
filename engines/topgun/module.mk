@@ -38,6 +38,7 @@ MODULE_OBJS = \
 	opcode.o \
 	opcode_v1_2.o \
 	opcode_v1_2_1.o \
+	plugin.o \
 	res_loader.o \
 	scene.o \
 	script.o \

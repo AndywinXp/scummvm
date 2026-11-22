@@ -37,6 +37,10 @@ TopgunEngine_v1_2_1::TopgunEngine_v1_2_1(OSystem *syst, const ADGameDescription 
 }
 
 TopgunEngine_v1_2_1::~TopgunEngine_v1_2_1() {
+	unloadPluginLibrary();
+	delete _pluginHost;
+	_pluginHost = nullptr;
+
 	destroyAllMovieObjects();
 	destroyAllTextObjects();
 
@@ -386,6 +390,9 @@ void TopgunEngine_v1_2_1::dispatchMessage(const Message &message) {
 		break;
 
 	default:
+		if (message.id >= TG_HOST_V1_2_1_MESSAGE_FIRST_PLUGIN && message.id <= TG_HOST_V1_2_1_MESSAGE_LAST_PLUGIN && _windowMessageCallback)
+			_windowMessageCallback->windowMessage(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16));
+
 		break;
 	}
 }

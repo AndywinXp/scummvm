@@ -25,6 +25,7 @@
 #include "topgun/libraries/audio/audio_v1_2_1.h"
 #include "topgun/libraries/resource/resource_v1_2_1.h"
 #include "topgun/libraries/sprite/sprite_v1_2_1.h"
+#include "topgun/plugin.h"
 #include "topgun/topgun_v1_2.h"
 
 // Variables and operands
@@ -62,6 +63,11 @@
 // Messages
 #define TG_HOST_V1_2_1_MESSAGE_FIRST_FLUSHED       0x4C8
 #define TG_HOST_V1_2_1_MESSAGE_LAST_FLUSHED        0x4CB
+#define TG_HOST_V1_2_1_MESSAGE_FIRST_PLUGIN        0x658
+#define TG_HOST_V1_2_1_MESSAGE_LAST_PLUGIN         0x6BB
+
+// Plug-ins
+#define TG_PLUGIN_V1_2_1_STRING_COPY_SIZE          0x7F
 
 // Resource objects
 #define TG_HOST_V1_2_1_SPRITE_DATA_ORIGINAL_COUNT  2
@@ -383,8 +389,11 @@ struct NativeTimer_v1_2_1 {
 	NativeTimer_v1_2_1() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
 };
 
+class EnginePluginHost;
+
 class TopgunEngine_v1_2_1 : public TopgunEngine_v1_2 {
 	friend class AudioLibrary_v1_2_1;
+	friend class EnginePluginHost;
 	friend class ResourceLibrary_v1_2;
 	friend class ResourceLibrary_v1_2_1;
 	friend class SpriteLibrary_v1_2_1;
@@ -470,6 +479,13 @@ protected:
 	void writeAddress(uint16 address, uint16 value);
 	int32 applyArithmeticOperand(int32 accumulator, const byte *operand);
 	uint16 evaluateCondition(byte condition, uint16 operandA, uint16 operandB);
+
+	// Plug-ins
+	bool loadPluginLibrary(const Common::String &name);
+	void unloadPluginLibrary();
+	bool loadPluginFunctionTable();
+	void exprCallPluginFunction(uint16 function, uint16 count);
+	bool callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
 
 	// Expressions
 	uint16 evaluateExpression(const byte *expression);
@@ -664,6 +680,13 @@ protected:
 	char _gotoSceneName[TG_HOST_V1_2_1_SCENE_NAME_SIZE] = {};
 	// The memory check is not emulated; the scripts compare this value with 53 as a signed number (53 * 65536 is about 3.4 MB), so it stands for plenty of memory
 	uint16 _freeMemoryHigh = 0x7FFF;
+
+	// Plug-in state
+	PluginHost *_pluginHost = nullptr;
+	Plugin *_plugin = nullptr;
+	Common::Array<int> _pluginFunctions;
+	Plugin *_messageFilter = nullptr;
+	Plugin *_windowMessageCallback = nullptr;
 
 	// Palette and background state
 	byte _palette[TG_HOST_V1_2_1_PALETTE_SIZE] = {};

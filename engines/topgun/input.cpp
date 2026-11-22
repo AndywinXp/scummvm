@@ -782,6 +782,9 @@ void TopgunEngine_v1_2::handleKeyDownMessage(Common::KeyCode keycode, bool shift
 		if (key == TG_HOST_V1_2_NO_KEY)
 			return;
 
+		if (newer->callMessageFilter(kMsgKeyDown, key, 0, 0))
+			return;
+
 		if (_keyboardRouted && !newer->keyboardRoutedKeyDown(key))
 			return;
 
@@ -1222,6 +1225,9 @@ void TopgunEngine_v1_2_1::handleKeyUpMessage(Common::KeyCode keycode) {
 	uint16 key = keyCodeToScriptKey(keycode);
 
 	if (key == TG_HOST_V1_2_NO_KEY)
+		return;
+
+	if (callMessageFilter(kMsgV1_2_1KeyUp, key, 0, 0))
 		return;
 
 	if (_keyboardRouted && !keyboardRoutedKeyUp(key))
@@ -2279,6 +2285,9 @@ void TopgunEngine_v1_2_1::handleJoystickButtonMessage(const Message &message) {
 }
 
 void TopgunEngine_v1_2_1::handleJoystickMessage(const Message &message) {
+	if (callMessageFilter(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16)))
+		return;
+
 	if (_joystickRouted) {
 		handleJoystickButtonMessage(message);
 		return;

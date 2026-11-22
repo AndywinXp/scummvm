@@ -334,7 +334,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
 
 	if (_version >= kVersionV1_2_1)
-		warning("unloadPluginLibrary UNIMPLEMENTED");
+		static_cast<TopgunEngine_v1_2_1 *>(this)->unloadPluginLibrary();
 
 	Common::String sceneName = Common::Path(name, '\\').baseName();
 
@@ -453,6 +453,8 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 		newer->_numPostedScriptRuns = 0;
 		newer->_fatalCode = 0;
 		newer->_activateState = true;
+		newer->_messageFilter = nullptr;
+		newer->_windowMessageCallback = nullptr;
 	}
 
 	_postSceneEndEnabled = true;
@@ -541,7 +543,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
 
 	if (_version >= kVersionV1_2_1)
-		warning("unloadPluginLibrary UNIMPLEMENTED");
+		static_cast<TopgunEngine_v1_2_1 *>(this)->unloadPluginLibrary();
 
 	for (uint16 i = 0; i < _sceneEntries.size(); i++) {
 		if (_sceneEntries[i].strings)
@@ -613,8 +615,10 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 
 		char libraryName[15];
 		library->resGetLibraryName(_file, libraryName, 15);
-		if (libraryName[0] != 0)
-			warning("loadPluginLibrary UNIMPLEMENTED");
+		if (libraryName[0] != 0 && !newer->loadPluginLibrary(libraryName)) {
+			newer->fatalError(102, Common::String::format("Can't open file '%s'.", libraryName));
+			return false;
+		}
 	}
 
 	return true;

@@ -273,7 +273,7 @@ void TopgunEngine_v1_2_1::exprCallBuiltinFunction(const byte *token) {
 	if (code <= lastBuiltinCode)
 		evaluateBuiltinFunction(code, count);
 	else
-		warning("exprCallPluginFunction UNIMPLEMENTED");
+		exprCallPluginFunction(code - lastBuiltinCode - 1, count);
 }
 
 bool TopgunEngine_v1_2_1::exprCallScript(const byte *token) {
