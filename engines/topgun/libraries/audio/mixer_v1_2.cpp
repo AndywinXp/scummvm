@@ -23,9 +23,9 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio/audio_v1_2.h"
+#include "topgun/libraries/audio/audio_v1_2_1.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -636,6 +636,161 @@ uint16 AudioLibrary_v1_2::mixSound16Bit(uint16 mixCount, uint16 bytes, byte *des
 	}
 
 	return requested - remaining;
+}
+
+void AudioLibrary_v1_2_1::resetWaveQueueAndEnableAllWaves(uint16 on) {
+	if (on != 0)
+		resetWaveOutQueue();
+
+	updateWaveEnabledFlags(1);
+}
+
+void AudioLibrary_v1_2_1::resetWaveOutQueue() {
+	if (!_waveOutStream || _buffersInFlight == 0)
+		return;
+
+	AudioLibrary_v1_2::resetWaveOutQueue();
+	_maxPriority = 0;
+}
+
+void AudioLibrary_v1_2_1::retireBuffer() {
+	bool done;
+
+	{
+		Common::StackLock lock(g_system->getMixer()->mutex());
+		done = (_waveRing[_ringTail].flags & TG_WAVEOUT_HEADER_DONE) != 0;
+	}
+
+	if (!done)
+		return;
+
+	_waveRing[_ringTail].busy = false;
+	_buffersInFlight--;
+
+	if (_buffersInFlight == 0)
+		_maxPriority = 0;
+
+	_ringTail++;
+
+	if (_ringTail >= _maxWaveBuffers)
+		_ringTail = 0;
+}
+
+bool AudioLibrary_v1_2_1::finishWaveOutOpen() {
+	if (!AudioLibrary_v1_2::finishWaveOutOpen())
+		return false;
+
+	if (_mute)
+		waveMuteImpl();
+
+	return true;
+}
+
+bool AudioLibrary_v1_2_1::openWaveOutDevice(const WaveFormat *format) {
+	WaveFormat defaultFormat;
+
+	if (!format) {
+		defaultFormat.tag = TG_AUDIO_V1_2_1_DEFAULT_FORMAT_TAG;
+		defaultFormat.channels = 1;
+		defaultFormat.sampleRate = TG_AUDIO_V1_2_1_DEFAULT_SAMPLE_RATE;
+		defaultFormat.averageBytesPerSecond = TG_AUDIO_V1_2_1_DEFAULT_BYTES_PER_SECOND;
+		defaultFormat.blockAlign = TG_AUDIO_V1_2_1_DEFAULT_BLOCK_ALIGN;
+		defaultFormat.bitsPerSample = TG_AUDIO_V1_2_1_DEFAULT_BITS_PER_SAMPLE;
+		format = &defaultFormat;
+	}
+
+	return AudioLibrary_v1_2::openWaveOutDevice(format);
+}
+
+bool AudioLibrary_v1_2_1::openWaveDevice(const WaveFormat *format) {
+	if (!openWaveOutDevice(format)) {
+		audioCloseWave();
+		return false;
+	}
+
+	if (_userVolumeSet)
+		setWaveOutVolume(_userVolume);
+
+	return true;
+}
+
+void AudioLibrary_v1_2_1::waveMuteImpl() {
+	if (_mute) {
+		_waveMuteSavedVolume = ((uint32)_waveVolumeRight << 16) | _waveVolumeLeft;
+		setWaveOutVolume(0);
+	} else {
+		setWaveOutVolume(_waveMuteSavedVolume);
+	}
+}
+
+void AudioLibrary_v1_2_1::pauseAllPlayback(uint16 paused) {
+	if (!_waveOutStream)
+		return;
+
+	g_system->getMixer()->pauseHandle(_waveOutHandle, paused != 0);
+}
+
+uint32 AudioLibrary_v1_2_1::audioGetWaveVolume() {
+	if (_waveOutStream)
+		return ((uint32)_waveVolumeRight << 16) | _waveVolumeLeft;
+
+	if (!openWaveOutDevice(nullptr))
+		return 0;
+
+	uint32 volume = ((uint32)_waveVolumeRight << 16) | _waveVolumeLeft;
+
+	audioCloseWave();
+	return volume;
+}
+
+void AudioLibrary_v1_2_1::pumpAudioPlayback() {
+	if (!_waveOutStream)
+		return;
+
+	if (_soundCount == 0)
+		return;
+
+	if (_masterFadeMode != 0)
+		masterFadeTick();
+
+	if (retireBufferAndRefill())
+		return;
+
+	if (_cdDeviceId != 0)
+		return;
+
+	for (uint16 i = 0; i < _soundCount; i++) {
+		SoundObject *sound = _sounds[i];
+
+		if (!sound->enabled)
+			continue;
+
+		if (!sound->isStatic && !sound->endOfSource && sound->available <= sound->lowWater)
+			compactAndRefillSoundBuffer(sound);
+
+		if (sound->notifyPending && _engine->getEngineMillis() > sound->notifyEndTime) {
+			engine()->postMessage(TG_AUDIO_V1_2_1_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
+			sound->notifyPending = false;
+		}
+
+		if (sound->randomMode && !sound->active && _engine->getEngineMillis() >= sound->nextTrigger) {
+			rewindSound(sound);
+			activateWaveObject(sound);
+		}
+	}
+}
+
+void AudioLibrary_v1_2_1::updateWaveEnabledFlags(uint16 on) {
+	for (uint16 i = 0; i < _soundCount; i++) {
+		SoundObject *sound = _sounds[i];
+
+		if (on == 0)
+			sound->enabled = false;
+		else if (_cdDeviceId == 0)
+			sound->enabled = true;
+		else
+			sound->enabled = sound->isStatic;
+	}
 }
 
 } // End of namespace Topgun

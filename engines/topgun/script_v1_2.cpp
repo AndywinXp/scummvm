@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -37,16 +37,24 @@ static const byte kScriptOpSizes[] = {
 };
 
 bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
-	if (_scriptsDisabled)
+	if (_version >= kVersionV1_2_1) {
+		if (static_cast<TopgunEngine_v1_2_1 *>(this)->_fatalCode != 0)
+			return false;
+	} else if (_scriptsDisabled) {
 		return false;
+	}
 
-	if (!validateAndGetResourceByType(scriptId, kResV1_2Script))
+	if (!validateAndGetResourceByType(scriptId, (_version >= kVersionV1_2_1) ? kResV1_2_1Script : kResV1_2Script))
 		return false;
 
 	_scriptDepth++;
 
-	if (_scriptDepth >= TG_SCRIPT_V1_2_MAX_DEPTH)
+	if (_scriptDepth >= ((_version >= kVersionV1_2_1) ? TG_SCRIPT_V1_2_1_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+		if (_version >= kVersionV1_2_1)
+			return static_cast<TopgunEngine_v1_2_1 *>(this)->fatalError(106, "Stack overflow.");
+
 		return fatalError("Stack overflow.");
+	}
 
 	_currentScriptId = scriptId;
 	bool result = runScriptBytecodeLoop(scriptId);
@@ -61,16 +69,17 @@ bool TopgunEngine_v1_2::runScriptBytecodeLoop(uint16 scriptId) {
 		return false;
 
 	byte *start = _records[index].data;
+	if (!start) {
+		warning("TopgunEngine_v1_2::runScriptBytecodeLoop(): the script %d has no data", index);
+		return false;
+	}
+
 	byte *ip = start;
 	int16 remaining = (int16)(_records[index].size & 0xFFFF);
 	bool result;
 
+	// The first operation runs even when the script is empty
 	while (true) {
-		if (!start || ip < start || ip >= start + _records[index].size) {
-			warning("TopgunEngine_v1_2::runScriptBytecodeLoop(): the script %d runs out of its data", index);
-			return false;
-		}
-
 		uint16 advance = 0;
 		result = executeScriptOp(ip, &advance);
 		if (!result)
@@ -84,6 +93,11 @@ bool TopgunEngine_v1_2::runScriptBytecodeLoop(uint16 scriptId) {
 			break;
 
 		ip += (int16)advance;
+
+		if (ip < start || ip >= start + _records[index].size) {
+			warning("TopgunEngine_v1_2::runScriptBytecodeLoop(): the script %d runs out of its data", index);
+			return false;
+		}
 	}
 
 	return result;
@@ -495,7 +509,7 @@ void TopgunEngine_v1_2::popScriptArguments() {
 }
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
-	if (!validateAndGetResourceByType(listId, kResV1_2OpList))
+	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList))
 		return 0;
 
 	uint16 index = operandValue(listId);
@@ -520,7 +534,7 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 }
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
-	if (!validateAndGetResourceByType(listId, kResV1_2OpList))
+	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList))
 		return false;
 
 	uint16 recordIndex = operandValue(listId);
@@ -550,8 +564,12 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	_currentScriptId = listId;
 	_scriptDepth++;
 
-	if (_scriptDepth >= TG_SCRIPT_V1_2_MAX_DEPTH)
+	if (_scriptDepth >= ((_version >= kVersionV1_2_1) ? TG_SCRIPT_V1_2_1_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+		if (_version >= kVersionV1_2_1)
+			return static_cast<TopgunEngine_v1_2_1 *>(this)->fatalError(106, "Stack overflow.");
+
 		return fatalError("Stack overflow.");
+	}
 
 	bool result = executeScriptOp(ip, nullptr);
 

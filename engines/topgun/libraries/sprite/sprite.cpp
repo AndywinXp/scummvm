@@ -327,7 +327,7 @@ uint16 SpriteLibrary::spriteCreate(byte *frame) {
 }
 
 uint16 SpriteLibrary::bitmapHeaderSize() const {
-	return (_engine->_version >= 1) ? TG_SPR_BITMAP_HEADER_SIZE_V1_1 : TG_SPR_BITMAP_HEADER_SIZE;
+	return (_engine->_version >= kVersionV1_1) ? TG_SPR_BITMAP_HEADER_SIZE_V1_1 : TG_SPR_BITMAP_HEADER_SIZE;
 }
 
 byte *SpriteLibrary::spriteDibCreate(uint16 width, uint16 height, uint16 flags) {
@@ -573,7 +573,7 @@ void SpriteLibrary::spriteSetPosition(uint16 sprite, int16 x, int16 y) {
 
 	object->useUnionRefresh = (deltaX > -32 && deltaX < 32 && deltaY > -32 && deltaY < 32);
 
-	if (_engine->_version >= 1 && object->parts) {
+	if (_engine->_version >= kVersionV1_1 && object->parts) {
 		for (uint16 i = 0; i < object->partCount; i++)
 			object->parts->parts[i].box.translate(deltaX, deltaY);
 	}

@@ -21,12 +21,18 @@
 
 #include "audio/mididrv.h"
 #include "audio/midiparser.h"
+#include "common/config-manager.h"
+#include "common/endian.h"
 #include "common/file.h"
 #include "common/path.h"
 #include "common/textconsole.h"
+#include "common/util.h"
 
 #include "topgun/libraries/audio/audio.h"
+#include "topgun/libraries/audio/audio_v1_2_1.h"
 #include "topgun/libraries/audio/midi.h"
+#include "topgun/libraries/utils/utils.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -158,6 +164,445 @@ void AudioLibrary::stopAndCloseMidi() {
 
 void AudioLibrary::shutdownMidi() {
 	stopAndCloseMidi();
+}
+
+AudioLibrary_v1_2_1::MidiObject *AudioLibrary_v1_2_1::allocMidiObject() {
+	if (_midiCount >= TG_AUDIO_V1_2_1_MAX_MIDI_OBJECTS)
+		return nullptr;
+
+	MidiObject *midi = new MidiObject();
+
+	do {
+		midi->handle = _nextMidiHandle;
+		_nextMidiHandle = (_nextMidiHandle == 0xFFFF) ? 1 : _nextMidiHandle + 1;
+	} while (validateMidiHandle(midi->handle));
+
+	_midiObjects[_midiCount] = midi;
+	_midiCount++;
+	return midi;
+}
+
+void AudioLibrary_v1_2_1::destroyMidiObject(MidiObject *midi) {
+	if (_currentMidi == midi)
+		stopMidiSequence(midi);
+
+	removeMidiFromArray(midi);
+}
+
+void AudioLibrary_v1_2_1::removeMidiFromArray(MidiObject *midi) {
+	uint16 index = 0;
+
+	while (index < _midiCount && _midiObjects[index] != midi)
+		index++;
+
+	if (_midiCount <= index)
+		return;
+
+	invokeAndClearCloseCallback(midi);
+	engine()->utilsLibrary()->tgFree(midi->data);
+	delete midi;
+
+	for (uint16 i = index; i + 1 < _midiCount; i++)
+		_midiObjects[i] = _midiObjects[i + 1];
+
+	_midiCount--;
+	_midiObjects[_midiCount] = nullptr;
+}
+
+bool AudioLibrary_v1_2_1::initMidiObjectDataSource(const MidiCreateInfo_v1_2_1 *info, MidiObject *midi) {
+	midi->callbackHandle = info->handle;
+	midi->readProc = info->readProc;
+	midi->closeProc = info->closeProc;
+	midi->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_1_MIDI_HEADER_OFFSET_NOTIFY);
+
+	if (_cdDeviceId != 0)
+		stopCDIfOwned();
+
+	uint16 size = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_1_MIDI_HEADER_OFFSET_SIZE);
+
+	midi->count = size >> 2;
+	midi->data = engine()->utilsLibrary()->tgMalloc(size, 0);
+
+	if (!midi->data)
+		return false;
+
+	if (engine()->audioSourceRead(midi->readProc, midi->callbackHandle, midi->data, size) != size)
+		return false;
+
+	return invokeAndClearCloseCallback(midi);
+}
+
+bool AudioLibrary_v1_2_1::invokeAndClearCloseCallback(MidiObject *midi) {
+	if (midi->closeProc != 0) {
+		if (_cdDeviceId != 0)
+			stopCDIfOwned();
+
+		engine()->audioSourceClose(midi->closeProc, midi->callbackHandle);
+		midi->closeProc = 0;
+	}
+
+	return true;
+}
+
+void AudioLibrary_v1_2_1::destroyAllMidiObjects() {
+	uint16 index = 0;
+
+	while (index < _midiCount) {
+		destroyMidiObject(_midiObjects[index]);
+		index++;
+	}
+
+	if (_midiOut)
+		closeMidiOutDevice();
+}
+
+AudioLibrary_v1_2_1::MidiObject *AudioLibrary_v1_2_1::validateMidiHandle(uint16 handle) {
+	for (uint16 i = 0; i < _midiCount; i++) {
+		if (_midiObjects[i]->handle == handle)
+			return _midiObjects[i];
+	}
+
+	return nullptr;
+}
+
+void AudioLibrary_v1_2_1::probeMidiOutCapabilities() {
+	MidiDriver::DeviceHandle device = MidiDriver::detectDevice(MDT_MIDI | MDT_ADLIB | MDT_PREFER_GM);
+
+	if (MidiDriver::getMusicType(device) == MT_NULL)
+		_noMidiDevice = true;
+}
+
+bool AudioLibrary_v1_2_1::openMidiOutDevice() {
+	if (_noMidiDevice)
+		return false;
+
+	if (!_midiOut) {
+		_midiOut = new MidiSequencer();
+		_midiOriginalVolume = _midiDeviceVolume;
+		applyMidiDeviceVolume();
+	}
+
+	return true;
+}
+
+void AudioLibrary_v1_2_1::setMidiOutVolume(uint32 volume) {
+	_midiDeviceVolume = volume;
+	applyMidiDeviceVolume();
+}
+
+void AudioLibrary_v1_2_1::applyMidiDeviceVolume() {
+	if (!_midiOut)
+		return;
+
+	uint32 loudest = MAX<uint32>(_midiDeviceVolume & 0xFFFF, _midiDeviceVolume >> 16);
+	int level = (int)((loudest * 255 + 32767) / 65535);
+	int musicVolume = ConfMan.getBool("mute") ? 0 : ConfMan.getInt("music_volume");
+
+	_midiOut->setVolume(level * musicVolume / 255);
+}
+
+void AudioLibrary_v1_2_1::closeMidiOutDevice() {
+	if (!_midiOut)
+		return;
+
+	midiClearCurrentAndKillTimer();
+	resetMidiOutDevice();
+
+	if (_midiOriginalVolume != _midiUserVolume)
+		setMidiOutVolume(_midiOriginalVolume);
+
+	delete _midiOut;
+	_midiOut = nullptr;
+}
+
+void AudioLibrary_v1_2_1::muteMidiOutput() {
+	if (_mute) {
+		_midiMuteSavedVolume = audioGetMidiVolume();
+		audioSetMidiVolume(0);
+	} else {
+		audioSetMidiVolume(_midiMuteSavedVolume);
+	}
+}
+
+bool AudioLibrary_v1_2_1::openAndConfigureMidiOut() {
+	if (!openMidiOutDevice())
+		return false;
+
+	resetMidiOutDevice();
+
+	if (_iniMidiVolume != 0) {
+		_midiUserVolume = ((uint32)_iniMidiVolume << 16) | _iniMidiVolume;
+		_midiUserVolumeSet = true;
+	}
+
+	if (_midiUserVolumeSet && _midiOriginalVolume != _midiUserVolume)
+		setMidiOutVolume(_midiUserVolume);
+
+	return true;
+}
+
+void AudioLibrary_v1_2_1::pauseOrResumeMidiPlayback(uint16 paused) {
+	if (paused == 0) {
+		midiSequencerStep(_currentMidi);
+		return;
+	}
+
+	_midiTimerArmed = false;
+	resetMidiOutDevice();
+}
+
+void AudioLibrary_v1_2_1::resetMidiOutDevice() {
+	if (!_midiOut)
+		return;
+
+	for (byte channel = 0; channel < TG_AUDIO_V1_2_1_MIDI_NUM_CHANNELS; channel++)
+		sendMidiAllNotesOff(channel);
+}
+
+void AudioLibrary_v1_2_1::sendMidiAllNotesOff(byte channel) {
+	_midiOut->send((uint32)(channel | TG_AUDIO_V1_2_1_MIDI_CONTROL_CHANGE) | (TG_AUDIO_V1_2_1_MIDI_ALL_NOTES_OFF << 8));
+}
+
+uint16 AudioLibrary_v1_2_1::audioCreateMidi(MidiCreateInfo_v1_2_1 *info) {
+	if (!info)
+		return 0;
+
+	if (info->readProc == 0)
+		return 0;
+
+	MidiObject *midi = allocMidiObject();
+
+	if (!midi && info->closeProc != 0)
+		engine()->audioSourceClose(info->closeProc, info->handle);
+
+	if (!midi)
+		return 0;
+
+	if (!initMidiObjectDataSource(info, midi)) {
+		removeMidiFromArray(midi);
+		return 0;
+	}
+
+	return midi->handle;
+}
+
+uint16 AudioLibrary_v1_2_1::audioDestroyMidi(uint16 handle) {
+	if (handle == 0)
+		return 0;
+
+	MidiObject *midi = validateMidiHandle(handle);
+
+	if (midi)
+		destroyMidiObject(midi);
+
+	return 0;
+}
+
+uint32 AudioLibrary_v1_2_1::audioGetMidiVolume() {
+	if (!_midiOut && !openMidiOutDevice())
+		return 0;
+
+	if (_midiUserVolumeSet)
+		return _midiUserVolume;
+
+	return _midiOriginalVolume;
+}
+
+void AudioLibrary_v1_2_1::audioSetMidiVolume(uint32 volume) {
+	_midiUserVolume = volume;
+	_midiUserVolumeSet = true;
+
+	if (_midiOut)
+		setMidiOutVolume(volume);
+
+	_iniMidiVolume = (uint16)volume;
+	saveMidiVolumeToIni();
+}
+
+uint16 AudioLibrary_v1_2_1::audioPlayMidi(uint16 handle, const byte *params) {
+	MidiObject *midi = validateMidiHandle(handle);
+
+	if (!midi)
+		return 0;
+
+	byte defaultParams[TG_AUDIO_V1_2_1_MIDI_PLAY_PARAMS_SIZE] = {};
+
+	if (!params)
+		params = defaultParams;
+
+	if (!startMidiSequence(params, midi))
+		postMidiCompletionMessage(midi);
+
+	return 1;
+}
+
+void AudioLibrary_v1_2_1::audioSetMidi(uint16 handle, const byte *params) {
+	MidiObject *midi = (handle != 0) ? validateMidiHandle(handle) : _currentMidi;
+
+	if (!midi)
+		return;
+
+	if (!params) {
+		warning("AudioLibrary_v1_2_1::audioSetMidi(): no parameter block");
+		return;
+	}
+
+	if (params[TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_TEMPO] != 0) {
+		midi->tempoDenominator = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_DENOMINATOR);
+		midi->tempoNumerator = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_NUMERATOR);
+	}
+
+	if (params[TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_MUTE] == 0)
+		return;
+
+	uint16 channelMask = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_CHANNELS);
+	uint16 muteBits = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_SET_OFFSET_MUTE_BITS);
+
+	for (byte channel = 0; channel < TG_AUDIO_V1_2_1_MIDI_NUM_CHANNELS; channel++) {
+		if ((channelMask & 1) != 0) {
+			bool muted = ((muteBits & 1) != 0);
+
+			if (muted != midi->channelMuted[channel]) {
+				midi->channelMuted[channel] = muted;
+
+				if (muted)
+					sendMidiAllNotesOff(channel);
+			}
+		}
+
+		channelMask >>= 1;
+		muteBits >>= 1;
+	}
+}
+
+void AudioLibrary_v1_2_1::audioStopMidi(uint16 handle) {
+	MidiObject *midi = (handle != 0) ? validateMidiHandle(handle) : _currentMidi;
+
+	if (midi)
+		stopMidiSequence(midi);
+}
+
+bool AudioLibrary_v1_2_1::startMidiSequence(const byte *params, MidiObject *midi) {
+	midi->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_PLAY_OFFSET_LOOPS);
+	midi->notifyArmed = (params[TG_AUDIO_V1_2_1_MIDI_PLAY_OFFSET_NOTIFY] != 0);
+
+	if (midi->notifyArmed)
+		midi->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_MIDI_PLAY_OFFSET_PARAM);
+	else
+		midi->notifyLParam = 0;
+
+	midi->index = 0;
+
+	if (_currentMidi)
+		stopMidiSequence(_currentMidi);
+
+	if (!openAndConfigureMidiOut())
+		return false;
+
+	_currentMidi = midi;
+
+	if (!_paused)
+		midiSequencerStep(midi);
+
+	return true;
+}
+
+void AudioLibrary_v1_2_1::postMidiCompletionMessage(MidiObject *midi) {
+	if (midi->notifyArmed && _hwnd != 0) {
+		midi->notifyArmed = false;
+		engine()->postMessage(TG_AUDIO_V1_2_1_NOTIFY_MESSAGE, midi->notifyWParam, midi->notifyLParam);
+	}
+}
+
+void AudioLibrary_v1_2_1::stopMidiSequence(MidiObject *midi) {
+	midi->notifyArmed = false;
+
+	if (_currentMidi == midi) {
+		midiClearCurrentAndKillTimer();
+		resetMidiOutDevice();
+		postMidiCompletionMessage(midi);
+	}
+}
+
+bool AudioLibrary_v1_2_1::midiSequenceEndOrLoop(MidiObject *midi) {
+	if (midi->loops == 0) {
+		postMidiCompletionMessage(midi);
+		_currentMidi = nullptr;
+		return false;
+	}
+
+	if (midi->loops > 0)
+		midi->loops--;
+
+	midi->index = 0;
+	return true;
+}
+
+void AudioLibrary_v1_2_1::midiSequencerStep(MidiObject *midi) {
+	for (;;) {
+		if (midi->index >= midi->count) {
+			if (!midiSequenceEndOrLoop(midi))
+				return;
+		}
+
+		uint32 event = READ_LE_UINT32(midi->data + midi->index * 4);
+
+		midi->index++;
+
+		if (((event >> 16) & TG_AUDIO_V1_2_1_MIDI_DELAY_FLAGS) != 0) {
+			uint32 delay = event & TG_AUDIO_V1_2_1_MIDI_DELAY_VALUE_MASK;
+
+			if (midi->tempoDenominator != 0)
+				delay = (delay * midi->tempoNumerator) / midi->tempoDenominator;
+
+			uint16 timerDelay = (uint16)delay;
+			uint16 highWord = (uint16)(delay >> 16);
+
+			if (highWord == 0 && timerDelay == 0)
+				continue;
+
+			if (highWord == 0 && timerDelay < TG_AUDIO_V1_2_1_MIDI_MIN_DELAY)
+				timerDelay = TG_AUDIO_V1_2_1_MIDI_MIN_DELAY;
+
+			uint32 now = _midiCatchUp ? _midiCatchUpTime : _engine->getEngineMillis();
+
+			_midiTimerArmed = true;
+			_midiTimerExpiry = now + timerDelay;
+			return;
+		}
+
+		if ((event & 0x0F) == TG_AUDIO_V1_2_1_MIDI_DRUM_CHANNEL && _remapMidiDrums)
+			event |= TG_AUDIO_V1_2_1_MIDI_REMAPPED_CHANNEL;
+
+		byte channel = (byte)(event & 0x0F);
+
+		if (midi->channelMuted[channel] && (event & 0xF0) == TG_AUDIO_V1_2_1_MIDI_NOTE_ON)
+			continue;
+
+		_midiOut->send(event);
+	}
+}
+
+void AudioLibrary_v1_2_1::midiClearCurrentAndKillTimer() {
+	_currentMidi = nullptr;
+	_midiTimerArmed = false;
+}
+
+void AudioLibrary_v1_2_1::audioTimerProc() {
+	_midiTimerArmed = false;
+
+	if (_currentMidi && _midiOut)
+		midiSequencerStep(_currentMidi);
+}
+
+// The original arms a multimedia timer for every MIDI delay; here the delays expire from audioService()
+void AudioLibrary_v1_2_1::midiServiceTick() {
+	while (_midiTimerArmed && _engine->getEngineMillis() >= _midiTimerExpiry) {
+		_midiCatchUp = true;
+		_midiCatchUpTime = _midiTimerExpiry;
+		audioTimerProc();
+		_midiCatchUp = false;
+	}
 }
 
 } // End of namespace Topgun

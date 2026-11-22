@@ -88,6 +88,10 @@
 #define TG_RES_V1_2_LZW_MAX_CODE_WIDTH             12
 #define TG_RES_V1_2_LZW_DEFAULT_CODE_WIDTH         11
 
+// Container header of the later version, which has its own library
+#define TG_RES_V1_2_1_HEADER_SIZE                  0x11E
+#define TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS          16
+
 namespace Topgun {
 
 class TopgunEngine_v1_2;
@@ -108,16 +112,16 @@ public:
 	int32 waveRead(uint16 waveInfo, byte *buffer, int32 count) override;
 
 	// New exports
-	byte *resExpandBitmap(uint16 file, byte *bitmap);
+	virtual byte *resExpandBitmap(uint16 file, byte *bitmap);
 	uint32 resReadData(uint16 file, byte *buffer, uint32 count, uint32 offset);
-	bool resExtractFile(uint16 file, uint16 index, Common::WriteStream *output);
+	virtual bool resExtractFile(uint16 file, uint16 index, Common::WriteStream *output);
 	uint16 resEnumResources(uint16 file);
-	uint16 resEnumVariables(uint16 file);
+	virtual uint16 resEnumVariables(uint16 file);
 	bool resSetVariable(uint16 file, const char *name, uint16 value);
-	uint16 resGetIndex(uint16 file, const char *name);
+	virtual uint16 resGetIndex(uint16 file, const char *name);
 	bool resGetVariable(uint16 file, const char *name, uint16 *value);
 	uint16 resGetTitle(uint16 file, byte *destination, uint16 count);
-	const char *resGetConstStr(uint16 file, uint16 offset);
+	virtual const char *resGetConstStr(uint16 file, uint16 offset);
 	uint16 resCountStrings(uint16 file);
 
 	// Wave stream callbacks
@@ -194,11 +198,37 @@ protected:
 		bool variablesDirty;
 		LzwState *lzwState;
 
+		// Fields of the later version
+		byte fullHeader[TG_RES_V1_2_1_HEADER_SIZE];
+		uint32 limits[TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS + 1];
+		byte *residentChunks[TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS];
+		byte *variablePairs;
+		uint16 chunkCount;
+		uint16 maxFadeColors;
+		uint16 maxTransparentColors;
+		uint16 extraSlots;
+		uint16 buildType;
+		uint16 indexCount;
+		uint16 variablePairCount;
+		uint16 notifyWindow;
+		Common::HashMap<uint16, byte *> dynamicResident;
+
 		ResourceFile() : paletteCount(0), nameTableSize(0), chained(false), variableTableCount(0), stringCount(0),
 			stringPoolSize(0), residentSplit(0), residentSize(0), residentChunk1(nullptr), residentChunk2(nullptr),
-			variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr) {
+			variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
+			variablePairs(nullptr), chunkCount(0), maxFadeColors(0), maxTransparentColors(0), extraSlots(0),
+			buildType(0), indexCount(0), variablePairCount(0), notifyWindow(0) {
 			for (uint16 i = 0; i < TG_RES_V1_2_HEADER_SIZE; i++)
 				header[i] = 0;
+
+			for (uint16 i = 0; i < TG_RES_V1_2_1_HEADER_SIZE; i++)
+				fullHeader[i] = 0;
+
+			for (uint16 i = 0; i <= TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS; i++)
+				limits[i] = 0;
+
+			for (uint16 i = 0; i < TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS; i++)
+				residentChunks[i] = nullptr;
 		}
 	};
 
@@ -216,10 +246,10 @@ protected:
 
 	// Container
 	ResourceFile *findFile(uint16 file, const char *caller) override;
-	bool readResourceFileHeader(ResourceFile *file);
+	virtual bool readResourceFileHeader(ResourceFile *file);
 	bool loadVariableTable(ResourceFile *file);
 	bool loadStringPool(ResourceFile *file);
-	bool loadResidentChunks(ResourceFile *file);
+	virtual bool loadResidentChunks(ResourceFile *file);
 	void writeVariableTableBack(ResourceFile *file);
 	bool readChainedBlocks(ResourceFile *file, byte *buffer, uint32 count);
 	bool readResourceBytes(ResourceFile *file, byte *buffer, uint32 count);
@@ -230,7 +260,7 @@ protected:
 	uint16 registerWaveInfo(WaveStreamInfo *info);
 
 	// Bitmaps
-	byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize);
+	virtual byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize);
 	bool extractCompressedResourceToFile(uint16 file, ResourceFile *record, Common::WriteStream *output, uint32 compressedSize, uint32 rawSize);
 
 	// Segment stream decoder
@@ -239,6 +269,8 @@ protected:
 	LzwState *lzwAllocState();
 	void lzwFreeState(LzwState *state);
 	static uint32 decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, DecodeLimits &limits);
+	static bool decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, uint32 remaining, const byte *sourceEnd);
+	static void rleExpandBitmap(byte *destination, uint32 destinationSize, const byte *source, uint32 sourceSize);
 	static void lzwInitCodeWidth(LzwState *state, uint16 bits);
 	static uint16 lzwReadCode(LzwState *state, const byte *&source, DecodeLimits &limits);
 	static uint16 lzwWriteString(LzwState *state, uint16 code, byte *&output, DecodeLimits &limits);

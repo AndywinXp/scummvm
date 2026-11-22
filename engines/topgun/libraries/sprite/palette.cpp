@@ -19,12 +19,14 @@
  *
  */
 
+#include "common/endian.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 
 #include "topgun/display.h"
 #include "topgun/libraries/sprite/sprite.h"
-#include "topgun/topgun.h"
+#include "topgun/libraries/sprite/sprite_v1_2.h"
+#include "topgun/topgun_v1_2.h"
 
 namespace Topgun {
 
@@ -156,6 +158,72 @@ void SpriteLibrary::releasePaletteResources() {
 	display->selectDefaultPalette();
 	display->deleteLogicalPalette();
 	_hasLogicalPalette = false;
+}
+
+bool SpriteLibrary_v1_2::spriteChangePalette(uint16 first, uint16 count, const byte *entries, bool animate, bool replicate) {
+	uint16 end = (uint16)(first + count);
+	if ((uint16)(end - 1) > TG_DISPLAY_NUM_PALETTE_ENTRIES)
+		return false;
+
+	const byte *source = entries;
+	for (uint16 index = first; index < end; index++) {
+		if (index >= TG_DISPLAY_NUM_PALETTE_ENTRIES) {
+			warning("SpriteLibrary_v1_2::spriteChangePalette(): palette index %d is out of range", index);
+			break;
+		}
+
+		memcpy(_paletteCopy[index], source, TG_DISPLAY_PALETTE_ENTRY_SIZE);
+		_paletteCopy[index][3] = TG_DISPLAY_ANIMATABLE_PALETTE_FLAG;
+
+		if (!replicate)
+			source += TG_DISPLAY_PALETTE_ENTRY_SIZE;
+	}
+
+	Display *display = engine()->display();
+
+	if (!display->hasPalette()) {
+		buildDibColorTableFromPalette(first, end);
+	} else if (_hasLogicalPalette && animate && first < TG_DISPLAY_NUM_PALETTE_ENTRIES) {
+		uint16 animated = MIN<uint16>(count, (uint16)(TG_DISPLAY_NUM_PALETTE_ENTRIES - first));
+		display->animateLogicalPalette(first, animated, &_paletteCopy[first][0]);
+	}
+
+	return true;
+}
+
+bool SpriteLibrary_v1_2::createIdentityLogicalPalette() {
+	bool created = SpriteLibrary::createIdentityLogicalPalette();
+
+	byte *table = &_colorTable[0][0];
+	for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++)
+		WRITE_LE_UINT16(table + 2 * i, (uint16)i);
+
+	return created;
+}
+
+uint16 SpriteLibrary_v1_2::spriteGetRgbPalette(byte *destination, uint16 first, uint16 count) {
+	uint32 entrySize = _hasLogicalPalette ? 2 : 4;
+	uint32 size = entrySize * count;
+	uint32 offset = (uint32)first * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+	uint32 tableSize = sizeof(_colorTable);
+
+	if (offset + size > tableSize) {
+		warning("SpriteLibrary_v1_2::spriteGetRgbPalette(): the color table range is out of range");
+		if (offset >= tableSize)
+			return _hasLogicalPalette ? 0 : 1;
+
+		size = tableSize - offset;
+	}
+
+	memmove(destination, &_colorTable[0][0] + offset, size);
+	return _hasLogicalPalette ? 0 : 1;
+}
+
+uint16 SpriteLibrary_v1_2::spriteSelectPalette() {
+	if (!_hasLogicalPalette)
+		return 0;
+
+	return 1;
 }
 
 } // End of namespace Topgun

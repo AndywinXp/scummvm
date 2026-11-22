@@ -38,6 +38,8 @@
 #define TG_HOST_V1_2_LITERAL_BIAS                0x7D01
 #define TG_HOST_V1_2_ENTRY_SCRIPT                0x82FF
 #define TG_HOST_V1_2_NUM_SCENE_VARIABLES         401
+#define TG_HOST_V1_2_1_NUM_SCENE_VARIABLES       5001
+#define TG_HOST_V1_2_1_SCENE_NAME_SIZE           14
 #define TG_HOST_V1_2_FIRST_CLEARED_VARIABLE      401
 #define TG_HOST_V1_2_NUM_CLEARED_VARIABLES       114
 #define TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON       401
@@ -60,6 +62,8 @@
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
 #define TG_HOST_V1_2_MAX_CLICK_REGIONS           100
+#define TG_INPUT_V1_2_1_KEY_TABLE_SIZE           256
+#define TG_INPUT_V1_2_1_MAX_CLICK_REGIONS        5416
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
@@ -128,6 +132,8 @@
 #define TG_HOST_V1_2_CURSOR_MODE_BUSY            3
 #define TG_HOST_V1_2_CURSOR_MODE_HIDDEN          4
 #define TG_HOST_V1_2_NUM_CURSOR_IMAGES           6
+#define TG_HOST_V1_2_1_NUM_CURSOR_IMAGES         7
+#define TG_HOST_V1_2_1_CURSOR_MODE_INVISIBLE     9
 
 // Movies
 #define TG_MOVIE_V1_2_HEADER_SIZE                8
@@ -181,11 +187,15 @@
 #define TG_TEXT_V1_2_NUM_SPRITES                 8
 #define TG_TEXT_V1_2_SOLID_COLOR                 0xFF
 #define TG_TEXT_V1_2_DEFAULT_HEIGHT              12
+#define TG_TEXT_V1_2_1_HEADER_SIZE               20
+#define TG_TEXT_V1_2_1_EDIT_RECORD_SIZE          12
+#define TG_TEXT_V1_2_1_FACE_SIZE                 32
 
 // INI file
 #define TG_INI_V1_2_BACKUP_LAST                  999
 #define TG_INI_V1_2_COPY_CHUNK                   0x400
 #define TG_INI_V1_2_BUFFER_SIZE                  0xFF
+#define TG_INI_V1_2_1_STRING_SIZE                260
 #define TG_INI_V1_2_COPY_SIZE                    0x7F
 #define TG_INI_V1_2_CIPHER_BASE                  0x30
 #define TG_INI_V1_2_CIPHER_SHIFT                 4
@@ -380,6 +390,7 @@ struct Movie_v1_2 {
 	uint16 timelineSize;
 	uint16 frameCount;
 	uint32 frameTableOffset;
+	uint32 streamBase;
 	uint16 audioStream;
 	uint16 delay;
 	uint16 prefetchFrame;
@@ -403,7 +414,7 @@ struct Movie_v1_2 {
 	PrefetchBuffer_v1_2 buffers[TG_MOVIE_V1_2_NUM_PREFETCH_BUFFERS];
 
 	Movie_v1_2() : handle(0), timeline(nullptr), frameTable(nullptr), bitmap(nullptr), audioBuffer(nullptr), data(nullptr),
-		deadline(0), runOffset(0), audioBuffered(0), timelineSize(0), frameCount(0), frameTableOffset(0),
+		deadline(0), runOffset(0), audioBuffered(0), timelineSize(0), frameCount(0), frameTableOffset(0), streamBase(0),
 		audioStream(0), delay(0), prefetchFrame(0), runSize(0), frame(0), id(0), index(0), sprite(0),
 		timelineRemaining(0), frameUpdated(false), prefetchDone(false), stalled(false), skipping(false),
 		late(false), prefetchExhausted(false), started(false), audioStarted(false), numBuffers(0),
@@ -415,8 +426,10 @@ struct TextObject_v1_2 {
 	uint16 id;
 	const Graphics::Font *font;
 	bool fontOwned;
-	byte edit[TG_TEXT_V1_2_EDIT_RECORD_SIZE];
-	byte data[TG_TEXT_V1_2_DATA_SIZE];
+	uint16 fontHandle;
+	uint16 color;
+	byte edit[TG_TEXT_V1_2_1_EDIT_RECORD_SIZE];
+	byte data[TG_TEXT_V1_2_1_HEADER_SIZE];
 	char text[TG_TEXT_V1_2_TEXT_SIZE];
 	char undo[TG_TEXT_V1_2_TEXT_SIZE];
 	uint16 sprites[TG_TEXT_V1_2_NUM_SPRITES];
@@ -425,17 +438,31 @@ struct TextObject_v1_2 {
 	~TextObject_v1_2();
 };
 
+struct TextFont_v1_2 {
+	uint16 handle;
+	const Graphics::Font *font;
+	bool owned;
+	uint16 refCount;
+	int16 height;
+	char face[TG_TEXT_V1_2_1_FACE_SIZE];
+
+	TextFont_v1_2() : handle(0), font(nullptr), owned(false), refCount(0), height(0) {
+		for (uint16 i = 0; i < TG_TEXT_V1_2_1_FACE_SIZE; i++)
+			face[i] = 0;
+	}
+};
+
 struct SceneEntry_v1_2 {
-	char name[TG_HOST_SCENE_NAME_SIZE];
-	uint16 variables[TG_HOST_V1_2_NUM_SCENE_VARIABLES];
+	char name[TG_HOST_V1_2_1_SCENE_NAME_SIZE];
+	uint16 variables[TG_HOST_V1_2_1_NUM_SCENE_VARIABLES];
 	uint16 stringCount;
 	byte *strings;
 
 	SceneEntry_v1_2() : stringCount(0), strings(nullptr) {
-		for (int i = 0; i < TG_HOST_SCENE_NAME_SIZE; i++)
+		for (int i = 0; i < TG_HOST_V1_2_1_SCENE_NAME_SIZE; i++)
 			name[i] = 0;
 
-		for (int i = 0; i < TG_HOST_V1_2_NUM_SCENE_VARIABLES; i++)
+		for (int i = 0; i < TG_HOST_V1_2_1_NUM_SCENE_VARIABLES; i++)
 			variables[i] = 0;
 	}
 };
@@ -444,9 +471,10 @@ struct KeyEntry_v1_2 {
 	uint16 plain;
 	uint16 shift;
 	uint16 ctrl;
+	uint16 keyUp;
 	byte disabled;
 
-	KeyEntry_v1_2() : plain(0), shift(0), ctrl(0), disabled(0) {}
+	KeyEntry_v1_2() : plain(0), shift(0), ctrl(0), keyUp(0), disabled(0) {}
 };
 
 struct ClickRegion_v1_2 {
@@ -488,8 +516,12 @@ struct CollisionPair_v1_2 {
 	uint16 argument1;
 	uint16 argument2;
 	uint16 repeat;
+	byte sameLevelOnly;
+	byte allowInvisibleFirst;
+	byte allowInvisibleSecond;
 
-	CollisionPair_v1_2() : first(0), second(0), script(0), argument1(0), argument2(0), repeat(0) {}
+	CollisionPair_v1_2() : first(0), second(0), script(0), argument1(0), argument2(0), repeat(0),
+		sameLevelOnly(0), allowInvisibleFirst(0), allowInvisibleSecond(0) {}
 };
 
 class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
@@ -498,7 +530,7 @@ class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
 	friend class SpriteLibrary_v1_2;
 
 public:
-	TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc);
+	TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version = kVersionV1_2);
 	~TopgunEngine_v1_2() override;
 
 protected:
@@ -508,14 +540,14 @@ protected:
 	SpriteLibrary_v1_2 *spriteLib() { return static_cast<SpriteLibrary_v1_2 *>(spriteLibrary()); }
 
 	// Operands
-	uint16 operandValue(uint16 operand) const {
+	virtual uint16 operandValue(uint16 operand) const {
 		if (operand <= TG_HOST_V1_2_VARIABLE_LAST_INDEX)
 			return _variables[operand];
 
 		return (uint16)(operand + TG_HOST_V1_2_LITERAL_BIAS);
 	}
 
-	void writeVariable(uint16 index, uint16 value) {
+	virtual void writeVariable(uint16 index, uint16 value) {
 		if (index >= TG_HOST_V1_2_NUM_VARIABLES) {
 			warning("TopgunEngine_v1_2::writeVariable(): variable %d is out of range", index);
 			return;
@@ -524,7 +556,7 @@ protected:
 		_variables[index] = value;
 	}
 
-	uint16 readVariable(uint16 index) const {
+	virtual uint16 readVariable(uint16 index) const {
 		if (index >= TG_HOST_V1_2_NUM_VARIABLES) {
 			warning("TopgunEngine_v1_2::readVariable(): variable %d is out of range", index);
 			return 0;
@@ -546,14 +578,15 @@ protected:
 	bool postMessage(uint16 id, uint16 param, uint32 data) override;
 	void resourceLoadProgressCallback() override;
 	uint16 audioCreateWave(const byte *header, uint16 waveInfo);
-	uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count);
-	uint32 audioSourceRewind(uint16 proc, uint16 handle);
-	void audioSourceClose(uint16 proc, uint16 handle);
+	virtual uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count);
+	virtual uint32 audioSourceRewind(uint16 proc, uint16 handle);
+	virtual void audioSourceClose(uint16 proc, uint16 handle);
 	bool resourceEnumCallback(uint16 type, uint32 offset, uint32 size);
 	bool resourceVariableCallback(uint16 id, uint16 value, const char *name);
 	void spriteServiceProc(uint16 word);
 	byte *spriteBitmapProvider(uint16 id, bool release);
 	void spriteMessageService(byte *record) override;
+	virtual void spriteMessageService(byte *record, uint16 spriteId) { spriteMessageService(record); }
 	uint16 spriteMovieService(uint16 sprite, byte *command, byte **frame);
 	uint32 movieAudioFill(uint16 movie, byte *destination, uint32 count);
 
@@ -611,7 +644,7 @@ protected:
 	void buildResourceNameOffsetTable();
 	void releaseCurrentBackgroundRecord();
 	void refreshGamePalette();
-	char *getStringFromId(uint16 id);
+	virtual char *getStringFromId(uint16 id);
 
 	// Resources
 	void freeBitmapBlobIfUnreferenced(uint16 id) override;
@@ -636,7 +669,7 @@ protected:
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
 	bool isResourceObjectLoaded(uint16 id) override;
 	byte *loadResourceWithProcessingPause(uint16 id, uint32 *sizeOut) override;
-	bool ensureResourceDataLoaded(uint16 id);
+	virtual bool ensureResourceDataLoaded(uint16 id);
 	bool registerTextObjectSpriteUse(uint16 object, uint16 sprite);
 	void unregisterTextObjectSpriteUse(uint16 object, uint16 sprite);
 	void stopMovieByHandle(uint16 object);
@@ -648,7 +681,6 @@ protected:
 	void decrementResourceRefCountAndMaybeDestroy(uint16 id) override;
 	bool appendQueueBitmapsToSprite(const SpriteInfo_v1_2 &info, uint16 destinationId);
 	void trimSpriteQueueBitmaps(uint16 id);
-	bool o_transferSprite(const byte *record); // 24
 
 	// Backgrounds
 	void syncBackgroundDimensions(const byte *bitmap);
@@ -658,7 +690,6 @@ protected:
 	void setBackgroundFromBitmapResource(const byte *record);
 	void setSolidBackgroundColorPalette(uint32 color);
 	void setSolidBackgroundColorBitmap(uint32 color);
-	void o_setBackground(const byte *record); // 6
 
 	// Transitions
 	void copyAndPaintBackgroundRect(Common::Rect &rect) override;
@@ -672,13 +703,12 @@ protected:
 	using TopgunEngine_v1_1::sceneTransitionOut;
 	void sceneTransitionIn(uint16 steps);
 	void sceneTransitionOut(uint16 steps);
-	void o_fadeInOut(const byte *record); // 10, 11
 
 	// Scripts
 	bool runScriptResource(uint16 scriptId) override;
 	bool runScriptBytecodeLoop(uint16 scriptId) override;
-	bool executeScriptOp(byte *ip, uint16 *advance);
-	static uint16 getScriptOpSize(const byte *ip);
+	virtual bool executeScriptOp(byte *ip, uint16 *advance);
+	virtual uint16 getScriptOpSize(const byte *ip);
 	bool pushScriptArguments(uint16 count, const byte *arguments);
 	void popScriptArguments();
 	uint16 countScriptListEntries(uint16 listId);
@@ -692,12 +722,14 @@ protected:
 	static Common::String formatWindowsString(const char *format, const FormatArgument_v1_2 *arguments, uint16 count);
 
 	// Opcodes
-	bool o_callScript(const byte *record); // 1
+	virtual bool o_callScript(const byte *record); // 1
 	bool o_setClickScript(const byte *record); // 4
-	bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag); // 5
+	virtual bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag); // 5
+	void o_setBackground(const byte *record); // 6
 	bool o_setSpriteObjectProperties(const byte *record); // 7
 	bool o_playWave(uint16 waveId, const byte *params); // 8
 	void o_playCDTrack(uint16 track) override; // 9
+	void o_fadeInOut(const byte *record); // 10, 11
 	void o_bindKeyScript(const byte *record); // 12
 	void o_stopCD(); // 14
 	void o_stopWave(uint16 waveId, const byte *block); // 15
@@ -708,6 +740,7 @@ protected:
 	void o_cancelScriptTimer(const byte *record); // 20
 	bool o_randomRunScript(byte *record) override; // 22
 	bool o_roundRobinRunScript(byte *record) override; // 23
+	bool o_transferSprite(const byte *record); // 24
 	void o_stopSprite(const byte *record); // 25
 	void o_debugString(const byte *record); // 27
 	void o_setSpriteLevel(uint16 spriteId, uint16 level); // 28
@@ -743,8 +776,9 @@ protected:
 	uint16 keyCodeToScriptKey(Common::KeyCode keycode);
 	void adjustMasterVolumeByKey(Common::KeyCode keycode) override;
 	void transformPointForDisplayZoom(Common::Point &point);
-	void postRunScript(uint16 script, uint16 argument1, uint16 argument2);
-	void postMouseEventScript(uint16 code);
+	virtual bool postRunScript(uint16 script, uint16 argument1, uint16 argument2);
+	uint16 postMouseEventScript(uint16 code);
+	bool appendClickRegion();
 	void addOrUpdateClickRegion(const byte *record);
 	void setAllSpriteObjectsCursor(uint16 value);
 	void setAllClickRegionsAndSpriteObjectsEnabled(byte disabled);
@@ -756,11 +790,12 @@ protected:
 
 	// Timers and collisions
 	uint16 removeScheduledTimer(uint16 index);
+	bool appendCollisionPair();
 	bool addCollisionPair(const byte *record);
 	uint16 removeCollisionPair(uint16 index);
 
 	// Movies
-	uint16 createMovieObject(uint16 id, byte *data);
+	uint16 createMovieObject(uint16 id, uint16 argument, byte *data);
 	uint16 destroyMovieObject(uint16 handle);
 	Movie_v1_2 *movieFromHandle(uint16 handle);
 	bool movieBegin(byte *command, uint16 sprite);
@@ -815,6 +850,8 @@ protected:
 	static void encodeIniString(byte key, char *string);
 	static uint16 parseIniInteger(const char *text);
 	static bool parseIniHexadecimal(const char *text, uint32 &value);
+	static void unescapeIniString(char *destination, const char *source);
+	static void escapeIniString(char *destination, uint16 size, const char *source);
 	void iniReadString(byte obfuscation, uint16 stringId, const char *key, const char *section);
 	void iniReadInt(byte obfuscation, uint16 variable, const char *key, const char *section);
 	void iniWriteStringEncoded(byte obfuscation, uint16 stringId, const char *key, const char *section);
@@ -823,7 +860,7 @@ protected:
 	// Variables and scenes
 	uint16 _variables[TG_HOST_V1_2_NUM_VARIABLES];
 	Common::Array<SceneEntry_v1_2> _sceneEntries;
-	char _currentSceneName[TG_HOST_SCENE_NAME_SIZE];
+	char _currentSceneName[TG_HOST_V1_2_1_SCENE_NAME_SIZE];
 	uint16 _currentSceneIndex = 0;
 	uint16 _previousSceneIndex = 0;
 	Common::String _containerTitle;
@@ -850,6 +887,11 @@ protected:
 	// Resource state
 	byte *_backgroundBitmap = nullptr;
 	uint32 _backgroundColor = 0;
+	uint16 _maxFadeColors = 0;
+	uint16 _sceneSpriteMidi = 0;
+	bool _wipeEffectActive = false;
+	byte *_wipeNewBitmap = nullptr;
+	byte *_wipeOldBitmap = nullptr;
 	uint16 _filePaletteEntryCount = 0;
 
 	// Script state
@@ -865,16 +907,25 @@ protected:
 	bool _rightButtonDown = false;
 
 	// Input state
-	KeyEntry_v1_2 _keyTable[TG_HOST_V1_2_KEY_TABLE_SIZE];
-	ClickRegion_v1_2 _clickRegions[TG_HOST_V1_2_MAX_CLICK_REGIONS];
+	KeyEntry_v1_2 _keyTable[TG_INPUT_V1_2_1_KEY_TABLE_SIZE];
+	Common::Array<ClickRegion_v1_2> _clickRegions;
 	uint16 _numClickRegions = 0;
+	bool _gamePaused = false;
+	bool _keyboardRouted = false;
+	bool _mouseAsStick = false;
+	uint16 _hoverSpriteScript = 0;
+	uint16 _hoverSprite = 0;
+	uint16 _keyHookScript = 0;
+	uint16 _scriptResult = 0;
 	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_MAX_HOVER_REGIONS];
 	uint16 _numHoverRegions = 0;
 	uint16 _hoverRegionCurrent = 0;
 	ScheduledTimer_v1_2 _scheduledTimers[TG_HOST_V1_2_MAX_SCHEDULED_TIMERS];
 	uint16 _numScheduledTimers = 0;
-	CollisionPair_v1_2 _collisionPairs[TG_HOST_V1_2_MAX_COLLISION_PAIRS];
+	Common::Array<CollisionPair_v1_2> _collisionPairs;
 	uint16 _numCollisionPairs = 0;
+	int16 _scheduledTimerIndex = 0;
+	bool _timersPaused = false;
 	uint16 _numMovies = 0;
 	uint16 _displayZoomX = 0;
 	uint16 _displayZoomY = 0;
@@ -890,11 +941,14 @@ protected:
 	Common::Array<Movie_v1_2 *> _movieObjects;
 	uint16 _movieList[TG_HOST_V1_2_MAX_MOVIES] = {};
 	Common::Array<TextObject_v1_2 *> _textObjects;
+	Common::Array<TextFont_v1_2> _textFonts;
+	uint16 _nextTextFontHandle = 1;
+	char _textEditUndo[TG_TEXT_V1_2_TEXT_SIZE] = {};
 	Common::INIFile _iniFile;
 	bool _iniFileLoaded = false;
 
 	// Cursor state
-	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_NUM_CURSOR_IMAGES] = {};
+	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_1_NUM_CURSOR_IMAGES] = {};
 	bool _cursorCounterVisible = true;
 	bool _cursorImageHidden = false;
 };

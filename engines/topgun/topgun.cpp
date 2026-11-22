@@ -49,7 +49,7 @@ TopgunEngine::TopgunEngine(OSystem *syst, const ADGameDescription *gameDesc, int
 	_utilsLibrary = new UtilsLibrary(this);
 
 	// The engines from version 2 on create their own libraries
-	if (_version < 2) {
+	if (_version < kVersionV1_2) {
 		_audioLibrary = new AudioLibrary(this);
 		_resourceLibrary = new ResourceLibrary(this);
 		_spriteLibrary = new SpriteLibrary(this);

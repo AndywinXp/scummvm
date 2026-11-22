@@ -34,6 +34,15 @@
 #define TG_SPR_V1_2_FRAME_NOTIFICATION         0x12
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 
+// Limits of the versions after this one
+#define TG_SPR_V1_2_1_MAX_SPRITES              250
+#define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
+#define TG_SPR_V1_2_1_LAST_QUEUE_OPCODE        22
+#define TG_SPR_V1_2_1_FLIP_FLAG_MASK           0xFF00
+#define TG_SPR_V1_2_1_VARIABLE_LAST_INDEX      0x159E
+// A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
+#define TG_SPR_V1_2_1_LITERAL_BIAS             0x7531
+
 // Bitmap header
 #define TG_SPR_V1_2_BITMAP_HEADER_SIZE         0x14
 #define TG_SPR_V1_2_BITMAP_PITCH_OFFSET        4
@@ -76,6 +85,31 @@ enum SpriteQueueOpcode_v1_2 {
 	kSprV1_2OpMovieFrame
 };
 
+enum SpriteQueueOpcode_v1_2_1 {
+	kSprV1_2_1OpPlayRange = 1,
+	kSprV1_2_1OpMultiCel,
+	kSprV1_2_1OpReserved3,
+	kSprV1_2_1OpCompositeBackground,
+	kSprV1_2_1OpQuadPath,
+	kSprV1_2_1OpLoop,
+	kSprV1_2_1OpFlip,
+	kSprV1_2_1OpHide,
+	kSprV1_2_1OpLinearMove,
+	kSprV1_2_1OpDelayedMove,
+	kSprV1_2_1OpWait,
+	kSprV1_2_1OpSetPosition,
+	kSprV1_2_1OpTimingMode,
+	kSprV1_2_1OpFrameInterval,
+	kSprV1_2_1OpSetRange,
+	kSprV1_2_1OpMoveInterval,
+	kSprV1_2_1OpShowFrame,
+	kSprV1_2_1OpReserved18,
+	kSprV1_2_1OpHostEvent,
+	kSprV1_2_1OpHostEventPayload,
+	kSprV1_2_1OpHostEventFixed,
+	kSprV1_2_1OpMovieFrame
+};
+
 struct CelReference {
 	byte *bitmap;
 	uint16 id;
@@ -108,7 +142,7 @@ public:
 
 	// Library
 	bool spriteInitLibrary() override;
-	void spriteResetLibrary();
+	virtual void spriteResetLibrary();
 	void spriteAnimate() override;
 
 	// Sprites
@@ -117,10 +151,10 @@ public:
 	uint16 spriteDestroy(uint16 sprite, bool hideRefresh, bool freeFrames) override;
 	bool spriteAppendBitmap(uint16 sprite, const CelReference &cel);
 	bool spriteAppendBitmaps(uint16 sprite, const CelReference *cels, uint16 count);
-	void spriteReplaceBitmap(uint16 sprite, const CelReference &oldCel, const CelReference &newCel);
+	virtual void spriteReplaceBitmap(uint16 sprite, const CelReference &oldCel, const CelReference &newCel);
 	void spriteShow(uint16 sprite, uint16 frame, bool refresh) override;
 	void spriteSetPosition(uint16 sprite, int16 x, int16 y, uint16 relative);
-	void spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY);
+	virtual void spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY);
 	void spriteSetPriority(uint16 sprite, uint16 mode);
 	void spriteSetPickMode(uint16 sprite, uint16 flag);
 	void spriteSetTopMost(uint16 sprite) override;
@@ -128,6 +162,7 @@ public:
 	void spriteTransfer(uint16 source, uint16 destination) override;
 	void spriteEmptyQueue(uint16 sprite) override;
 	uint16 spritePicked(int16 x, int16 y) override;
+	uint16 spriteIsPicked(uint16 sprite, int16 x, int16 y);
 	uint16 spriteHitDetect(uint16 spriteA, uint16 spriteB);
 
 	// Sprite information
@@ -142,10 +177,10 @@ public:
 	void spriteCopyRect(Common::Rect &rect, byte *destination, const byte *source);
 	void spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect);
 	void spriteSetClipBox(const Common::Rect *box);
-	bool spriteSetZoom(uint16 factor, int16 panX, int16 panY);
+	virtual bool spriteSetZoom(uint16 factor, int16 panX, int16 panY);
 
 	// Palette
-	bool spriteChangePalette(uint16 first, uint16 count, const byte *entries, bool animate);
+	bool spriteChangePalette(uint16 first, uint16 count, const byte *entries, bool animate, bool replicate = false);
 	uint16 spriteGetRgbPalette(byte *destination, uint16 first, uint16 count);
 	uint16 spriteSelectPalette();
 
@@ -155,7 +190,7 @@ public:
 	void spriteSetMovieProc(bool set);
 	void spriteSetStreamProc(bool set);
 	void spriteSetDebugProc(bool set);
-	void spriteSetSendMsg(uint16 flag);
+	uint16 spriteSetSendMsg(uint16 flag);
 	void spriteSetVarTable(const uint16 *table);
 
 protected:
@@ -184,22 +219,31 @@ protected:
 		CelCacheBlockPtr celCache;
 		uint16 celCacheCount;
 		byte *movieFrame;
+		uint32 pauseTime;
+		uint16 extraId;
+		bool renderPending;
+		bool multipartValid;
+		bool paused;
+		bool pickInvisible;
+		byte *queueCapacityStart;
+		uint32 queueCapacity;
 
 		SpriteObject_v1_2() : level(0), mirrorX(false), flipY(false), pickWholeBox(false), advancePending(false),
-			animates(false), celCacheCount(0), movieFrame(nullptr) {}
+			animates(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
+			multipartValid(false), paused(false), pickInvisible(false), queueCapacityStart(nullptr), queueCapacity(0) {}
 	};
 
 	// Sprite objects
 	SpriteObject_v1_2 *findSprite(uint16 sprite, const char *caller) override;
 	SpriteObject_v1_2 *lookupSprite(uint16 sprite);
-	uint16 spriteObjectAlloc(int16 level);
+	virtual uint16 spriteObjectAlloc(int16 level);
 	void appendFrame(SpriteObject_v1_2 *object, const CelReference &cel);
 	void freeDistinctCelBitmaps(uint16 sprite) override;
 	bool initSpriteFromFirstCel(uint16 sprite);
 	uint16 spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last) override;
-	void recomputeSpriteBoundingBox(uint16 sprite);
-	void recomputeCelBoxArray(uint16 sprite);
-	void updateSpritePosition(uint16 sprite, int16 x, int16 y, uint16 relative);
+	virtual void recomputeSpriteBoundingBox(uint16 sprite);
+	virtual void recomputeCelBoxArray(uint16 sprite);
+	virtual void updateSpritePosition(uint16 sprite, int16 x, int16 y, uint16 relative, bool refresh = true);
 	uint16 flipFlags(const SpriteObject_v1_2 *object) const;
 	uint16 currentTickSprite() const;
 
@@ -207,26 +251,26 @@ protected:
 	bool createComposeBuffer();
 	void computeClipRect();
 	void initQueueRecordSizeTable() override;
-	uint16 decodeOperand(uint16 raw) const;
+	virtual uint16 decodeOperand(uint16 raw) const;
 	void callServiceProc();
 	uint16 callDebugProc(uint16 sprite);
 	uint16 callMovieProc(uint16 sprite);
-	byte *callStreamProc(uint16 sprite, uint16 id, uint16 release);
+	virtual byte *callStreamProc(uint16 sprite, uint16 id, uint16 release);
 
 	// Cel cache
 	byte *getCelBitmap(uint16 id, uint16 sprite);
 	byte *findBitmapInCelCache(uint16 id, uint16 sprite);
-	bool addBitmapToCelCache(uint16 sprite, byte *bitmap, uint16 id);
+	virtual bool addBitmapToCelCache(uint16 sprite, byte *bitmap, uint16 id);
 	void releaseCachedBitmap(uint16 sprite, uint16 id);
 	void releaseAllCachedBitmaps(uint16 sprite);
 
 	// Queue interpreter
 	bool processSpriteQueueCommand(uint16 sprite) override;
-	bool processSpriteAnimationStep(uint16 sprite);
+	virtual bool processSpriteAnimationStep(uint16 sprite);
 	byte *nextQueueRecordWithLoops(uint16 sprite);
 	void computeInterpolatedMoveSteps(byte *command);
 	bool fireSpriteQueueCallbackMsg(uint16 sprite, uint16 size);
-	void notifySpriteFrameChange(uint16 sprite);
+	virtual void notifySpriteFrameChange(uint16 sprite);
 	bool tickPlayRangeRecord(uint16 sprite);
 	bool tickMultiCelRecord(uint16 sprite);
 	bool tickQuadPathRecord(uint16 sprite);
@@ -236,29 +280,30 @@ protected:
 	void tickFlipRecord(uint16 sprite);
 	void tickSetPositionRecord(uint16 sprite, const byte *command);
 	bool tickMovieFrameRecord(uint16 sprite);
-	bool stepQuadPath(uint16 sprite);
+	virtual bool stepQuadPath(uint16 sprite);
 	bool stepLinearMove(uint16 sprite);
 	void applyFrameChange(uint16 sprite) override;
 
 	// Rendering
 	bool renderRect(const Common::Rect &rect) override;
+	void renderSpriteToSurface(uint16 sprite) override;
 	bool repaintUnionOfCurrentAndPreviousRect(uint16 sprite) override;
 	void compositeSpritesInRect(const Common::Rect &rect);
 	void compositeSpritePartsIntoBuffer(uint16 sprite, const Common::Rect &rect);
-	void compositeSpriteIntoBackground(uint16 sprite);
+	void compositeSpriteIntoBackground(uint16 sprite, uint16 flag = 0);
 	void compositeMultipartIntoBackground(uint16 sprite, const Common::Rect &rect);
 	void blitSpriteToScreen(int16 x, int16 y, const byte *bitmap) override;
 	bool ensureComposeBufferSize(uint16 width, uint16 height);
 
 	// Blitters
 	byte *bitmapPixels(const byte *bitmap) const;
-	bool blitSetupRaw(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, BlitSetup_v1_2 &setup);
-	void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
+	virtual bool blitSetupRaw(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, BlitSetup_v1_2 &setup);
+	virtual void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
 	void blitDibDiffRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
-	void blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
-	void blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
+	virtual void blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
+	virtual void blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
 	uint16 blitPixelOverlapTest(const byte *first, const byte *second, uint16 width, uint16 height, int16 firstX, int16 firstY, int16 secondX, int16 secondY, uint16 flags);
-	uint16 getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flip);
+	virtual uint16 getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flip);
 	void fillBitmapByte(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color);
 
 	// Palette

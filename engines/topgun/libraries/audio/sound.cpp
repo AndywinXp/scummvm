@@ -77,7 +77,7 @@ void AudioLibrary::setupWaveFadeOut(WaveObject *wave, uint16 seconds, uint16 cur
 uint16 AudioLibrary::audioCreateWave(SoundCreateInfo *info, uint16 flags) {
 	bool deviceReady;
 
-	if (_engine->_version >= 1) {
+	if (_engine->_version >= kVersionV1_1) {
 		if (_waveObjects.empty()) {
 			WaveFormat format;
 
@@ -99,7 +99,7 @@ uint16 AudioLibrary::audioCreateWave(SoundCreateInfo *info, uint16 flags) {
 				return 0;
 			}
 
-			if (_engine->_version < 1)
+			if (_engine->_version < kVersionV1_1)
 				pumpAudioPlayback();
 			else if (wave->streaming)
 				compactAndRefillSoundBuffer(wave);
@@ -175,7 +175,7 @@ uint16 AudioLibrary::removeWaveFromArray(WaveObject *wave) {
 	delete wave;
 	_waveObjects.remove_at(index);
 
-	if (_waveObjects.empty() && _engine->_version < 1)
+	if (_waveObjects.empty() && _engine->_version < kVersionV1_1)
 		closeWaveOutDevice();
 
 	return 0;
@@ -300,7 +300,7 @@ void AudioLibrary::startWavesBySelector(byte *params) {
 }
 
 void AudioLibrary::startWavePlayback(WaveObject *wave, const byte *params) {
-	if (_engine->_version >= 1 && _muted)
+	if (_engine->_version >= kVersionV1_1 && _muted)
 		return;
 
 	if (_masterFadeMode != 0) {
@@ -322,7 +322,7 @@ void AudioLibrary::startWavePlayback(WaveObject *wave, const byte *params) {
 		stopWavesBySelector(stopBlock);
 	}
 
-	if (_engine->_version < 1 || wave->active || wave->endOfStream)
+	if (_engine->_version < kVersionV1_1 || wave->active || wave->endOfStream)
 		rewindSound(wave);
 
 	wave->randomRepeat = (params[0] & 4) != 0;

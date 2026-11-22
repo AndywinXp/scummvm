@@ -508,7 +508,6 @@ bool TopgunEngine_v1_1::o_runListEntry(const byte *record) {
 			index = 0;
 
 		if (variable) {
-			// This is the exact value the game stores in a global flag: the index ORed with 0x7FFF
 			*variable = ((flag & 0x8000) != 0) ? (index | 0x7FFF) : index;
 		}
 	}

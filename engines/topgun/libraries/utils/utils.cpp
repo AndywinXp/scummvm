@@ -29,7 +29,7 @@
 namespace Topgun {
 
 UtilsLibrary::UtilsLibrary(TopgunEngine *engine) : _engine(engine) {
-	if (_engine->_version >= 2)
+	if (_engine->_version >= kVersionV1_2)
 		libMain();
 }
 
@@ -47,7 +47,7 @@ void UtilsLibrary::mapBytes(byte *buffer, uint32 count, const byte *table) {
 
 byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 	if (size == 0) {
-		if (_engine->_version >= 2) {
+		if (_engine->_version >= kVersionV1_2) {
 			int16 index = notifyTableFindCurrentTask();
 			if (index >= 0 && _notifyTable[index].window != 0)
 				_engine->postMessage(TG_UTILS_MEMORY_ERROR_MESSAGE, TG_UTILS_ERROR_ALLOC_ZERO, 0);
@@ -55,7 +55,7 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 			return nullptr;
 		}
 
-		if (_engine->_version >= 1)
+		if (_engine->_version >= kVersionV1_1)
 			error("UtilsLibrary::tgMalloc(): invalid zero size");
 
 		return nullptr;
@@ -63,7 +63,7 @@ byte *UtilsLibrary::tgMalloc(uint32 size, uint16 zeroInit) {
 
 	byte *block = (byte *)malloc(size);
 	if (!block) {
-		if (_engine->_version >= 2) {
+		if (_engine->_version >= kVersionV1_2) {
 			int16 index = notifyTableFindCurrentTask();
 			if (index >= 0 && _notifyTable[index].window != 0)
 				_engine->postMessage(TG_UTILS_MEMORY_ERROR_MESSAGE, TG_UTILS_ERROR_OUT_OF_MEMORY, 0);
@@ -106,7 +106,7 @@ byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
 	}
 
 	if (newSize == 0) {
-		if (_engine->_version >= 2) {
+		if (_engine->_version >= kVersionV1_2) {
 			int16 index = notifyTableFindCurrentTask();
 			if (index >= 0 && _notifyTable[index].window != 0)
 				_engine->postMessage(TG_UTILS_MEMORY_ERROR_MESSAGE, TG_UTILS_ERROR_ALLOC_ZERO, 0);
@@ -120,7 +120,7 @@ byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
 	uint32 oldSize = _blockSizes[block];
 	byte *newBlock = (byte *)realloc(block, newSize);
 	if (!newBlock) {
-		if (_engine->_version >= 2) {
+		if (_engine->_version >= kVersionV1_2) {
 			int16 index = notifyTableFindCurrentTask();
 			if (index >= 0 && _notifyTable[index].window != 0)
 				_engine->postMessage(TG_UTILS_MEMORY_ERROR_MESSAGE, TG_UTILS_ERROR_OUT_OF_MEMORY, 0);
@@ -317,7 +317,7 @@ int16 UtilsLibrary::getAngle(int16 y, int16 x) {
 	long double radians = atan2((long double)y, (long double)x);
 	long double scaled = radians * (long double)TG_UTILS_ANGLE_SCALE;
 	int16 angle = 0;
-	if (scaled >= -9223372036854775808.0L && scaled < 9223372036854775808.0L)
+	if (scaled >= (long double)INT64_MIN && scaled < (long double)INT64_MAX + 1)
 		angle = (int16)(int64)scaled;
 	else
 		warning("UtilsLibrary::getAngle(): the angle is out of range");
@@ -388,7 +388,7 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 
 	// NaN and values that do not fit in 64 bits give 0
 	if (computeX) {
-		if (valueX >= -9223372036854775808.0L && valueX < 9223372036854775808.0L)
+		if (valueX >= (long double)INT64_MIN && valueX < (long double)INT64_MAX + 1)
 			resultX = (int16)(int64)valueX;
 		else
 			warning("UtilsLibrary::getIntersect(): the X coordinate is out of range");
@@ -407,7 +407,7 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 	}
 
 	if (computeY) {
-		if (valueY >= -9223372036854775808.0L && valueY < 9223372036854775808.0L)
+		if (valueY >= (long double)INT64_MIN && valueY < (long double)INT64_MAX + 1)
 			resultY = (int16)(int64)valueY;
 		else
 			warning("UtilsLibrary::getIntersect(): the Y coordinate is out of range");
@@ -416,6 +416,102 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 	intersection->x = resultX;
 	intersection->y = resultY;
 	return 1;
+}
+
+void UtilsLibrary::collide(int16 x1, int16 y1, int16 x2, int16 y2, int16 *speed1, int16 *angle1, int16 *speed2, int16 *angle2) {
+	if (*speed1 == 0 && *speed2 == 0)
+		return;
+
+	int16 axis;
+	if (y1 == TG_UTILS_COLLIDE_AXIS_MARKER)
+		axis = x1;
+	else
+		axis = normalizeAngle(getAngle((int16)(x2 - x1), (int16)(y2 - y1)));
+
+	*angle1 = (int16)(*angle1 - axis);
+	*angle2 = (int16)(*angle2 - axis);
+
+	int32 first = (int32)cosine(*angle1) * (int32)*speed1 / TG_UTILS_TRIG_SCALE;
+	int32 second = (int32)sine(*angle1) * (int32)*speed1 / TG_UTILS_TRIG_SCALE;
+	int32 third = (int32)cosine(*angle2) * (int32)*speed2 / TG_UTILS_TRIG_SCALE;
+	int32 fourth = (int32)sine(*angle2) * (int32)*speed2 / TG_UTILS_TRIG_SCALE;
+
+	int32 sum = (int32)((uint32)third * (uint32)third + (uint32)second * (uint32)second);
+	long double root = sqrt((long double)sum);
+	*speed1 = 0;
+	if (root >= (long double)INT64_MIN && root < (long double)INT64_MAX + 1)
+		*speed1 = (int16)(int64)root;
+	else
+		warning("UtilsLibrary::collide(): the first speed is out of range");
+
+	sum = (int32)((uint32)fourth * (uint32)fourth + (uint32)first * (uint32)first);
+	root = sqrt((long double)sum);
+	*speed2 = 0;
+	if (root >= (long double)INT64_MIN && root < (long double)INT64_MAX + 1)
+		*speed2 = (int16)(int64)root;
+	else
+		warning("UtilsLibrary::collide(): the second speed is out of range");
+
+	long double radians = atan2((long double)second, (long double)third) * (long double)TG_UTILS_ANGLE_SCALE;
+	int16 newAngle = 0;
+	if (radians >= (long double)INT64_MIN && radians < (long double)INT64_MAX + 1)
+		newAngle = (int16)(int64)radians;
+	else
+		warning("UtilsLibrary::collide(): the first angle is out of range");
+
+	*angle1 = normalizeAngle((int16)(newAngle + axis));
+
+	radians = atan2((long double)fourth, (long double)first) * (long double)TG_UTILS_ANGLE_SCALE;
+	newAngle = 0;
+	if (radians >= (long double)INT64_MIN && radians < (long double)INT64_MAX + 1)
+		newAngle = (int16)(int64)radians;
+	else
+		warning("UtilsLibrary::collide(): the second angle is out of range");
+
+	*angle2 = normalizeAngle((int16)(newAngle + axis));
+}
+
+int32 UtilsLibrary::distance(int16 x1, int16 y1, int16 x2, int16 y2) {
+	int32 deltaX = (int16)(x2 - x1);
+	int32 deltaY = (int16)(y2 - y1);
+	int32 sum = (int32)((uint32)deltaX * (uint32)deltaX + (uint32)deltaY * (uint32)deltaY);
+	long double root = sqrt((long double)sum);
+	if (root >= (long double)INT64_MIN && root < (long double)INT64_MAX + 1)
+		return (int32)(int64)root;
+
+	// NaN and values that do not fit in 64 bits give 0
+	warning("UtilsLibrary::distance(): the distance is out of range");
+	return 0;
+}
+
+int32 UtilsLibrary::squareRoot(int16 value) {
+	long double root = sqrt((long double)value);
+	if (root >= (long double)INT64_MIN && root < (long double)INT64_MAX + 1)
+		return (int32)(int64)root;
+
+	warning("UtilsLibrary::squareRoot(): the value is out of range");
+	return 0;
+}
+
+int16 UtilsLibrary::reflectAngle(int16 angle, int16 axis) {
+	return normalizeAngle((int16)(2 * axis - angle));
+}
+
+void UtilsLibrary::copyHugeStr(char *destination, const char *source) {
+	char character;
+	do {
+		character = *source++;
+		*destination++ = character;
+	} while (character != 0);
+}
+
+uint16 UtilsLibrary::hugeStrLen(const char *string) {
+	uint16 length = 0xFFFF;
+	do {
+		length++;
+	} while (*string++ != 0);
+
+	return length;
 }
 
 } // End of namespace Topgun

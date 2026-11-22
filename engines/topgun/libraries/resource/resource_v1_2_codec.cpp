@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/resource/resource_v1_2.h"
+#include "topgun/libraries/resource/resource_v1_2_1.h"
 
 namespace Topgun {
 
@@ -354,6 +354,141 @@ uint32 ResourceLibrary_v1_2::decodeRleSegment(byte *destination, const byte *sou
 	} while (input < end);
 
 	return output - destination;
+}
+
+void ResourceLibrary_v1_2::rleExpandBitmap(byte *destination, uint32 destinationSize, const byte *source, uint32 sourceSize) {
+	uint32 headerLength = READ_LE_UINT16(source);
+	uint32 padding = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) - READ_LE_UINT16(source + TG_RES_V1_2_1_BITMAP_WIDTH_OFFSET));
+
+	// The line offset table is skipped
+	uint32 tableSize = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET) << 1);
+
+	const byte *sourceEnd = (sourceSize == TG_RES_V1_2_SIZE_UNKNOWN) ? nullptr : source + sourceSize;
+	DecodeLimits limits(sourceEnd, destination + destinationSize);
+
+	if (!limits.sourceAvailable(source, headerLength + tableSize)) {
+		warning("ResourceLibrary_v1_2::rleExpandBitmap(): bitmap header overruns its buffer");
+		return;
+	}
+
+	memcpy(destination, source, headerLength);
+
+	const byte *input = source + headerLength + tableSize;
+	byte *output = destination + headerLength;
+
+	while (true) {
+		if (!limits.sourceAvailable(input, 1)) {
+			warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its buffer");
+			return;
+		}
+
+		uint32 command = *input++;
+
+		if (command == 0) {
+			if (!limits.destinationAvailable(output, padding)) {
+				warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its destination");
+				return;
+			}
+
+			output += padding;
+
+			if (!limits.sourceAvailable(input, 1)) {
+				warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its buffer");
+				return;
+			}
+
+			if (*input == 0)
+				return;
+
+			continue;
+		}
+
+		if (command <= 0x7F) {
+			if (!limits.sourceAvailable(input, 1) || !limits.destinationAvailable(output, command)) {
+				warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its buffer");
+				return;
+			}
+
+			memset(output, *input, command);
+			input++;
+			output += command;
+			continue;
+		}
+
+		uint32 count = (command ^ 0xFF) & 0xFF;
+		if (count == 0) {
+			if (!limits.sourceAvailable(input, 1)) {
+				warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its buffer");
+				return;
+			}
+
+			count = *input++;
+		}
+
+		if (!limits.sourceAvailable(input, count) || !limits.destinationAvailable(output, count)) {
+			warning("ResourceLibrary_v1_2::rleExpandBitmap(): stream overruns its buffer");
+			return;
+		}
+
+		memcpy(output, input, count);
+		input += count;
+		output += count;
+	}
+}
+
+bool ResourceLibrary_v1_2::decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, uint32 remaining, const byte *sourceEnd) {
+	DecodeLimits limits(sourceEnd, destination + remaining);
+	byte *output = destination;
+
+	while (true) {
+		if (!limits.sourceAvailable(source, 2)) {
+			warning("ResourceLibrary_v1_2::decodeSegmentedBitmapStream(): stream overruns its buffer");
+			return false;
+		}
+
+		uint16 tag = READ_LE_UINT16(source);
+		uint16 mode = tag & TG_RES_V1_2_SEGMENT_MODE_MASK;
+		uint16 length = tag & TG_RES_V1_2_SEGMENT_LENGTH_MASK;
+		source += 2;
+
+		if (mode == TG_RES_V1_2_SEGMENT_END)
+			return remaining == 0;
+
+		if (!limits.sourceAvailable(source, length)) {
+			warning("ResourceLibrary_v1_2::decodeSegmentedBitmapStream(): segment overruns its buffer");
+			return false;
+		}
+
+		uint32 written;
+
+		if (mode == TG_RES_V1_2_SEGMENT_RAW) {
+			if (remaining < length)
+				return false;
+
+			memcpy(output, source, length);
+			written = length;
+		} else if (mode == TG_RES_V1_2_SEGMENT_RLE) {
+			written = decodeRleSegment(output, source, length, limits);
+		} else if (mode == TG_RES_V1_2_SEGMENT_LZW_10_BITS) {
+			lzwInitCodeWidth(state, 10);
+			written = lzwDecodeSubChunks(state, length, source, output, limits);
+		} else if (mode == TG_RES_V1_2_SEGMENT_LZW_11_BITS) {
+			lzwInitCodeWidth(state, 11);
+			written = lzwDecodeSubChunks(state, length, source, output, limits);
+		} else if (mode == TG_RES_V1_2_SEGMENT_LZW_12_BITS) {
+			lzwInitCodeWidth(state, 12);
+			written = lzwDecodeSubChunks(state, length, source, output, limits);
+		} else {
+			return false;
+		}
+
+		if (limits.failed || written == 0)
+			return false;
+
+		output += written;
+		source += length;
+		remaining -= written;
+	}
 }
 
 } // End of namespace Topgun

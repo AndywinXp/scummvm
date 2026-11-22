@@ -219,6 +219,32 @@ void Display::putBitmapRowsStretched(int16 x, int16 y, uint16 destinationWidth, 
 	}
 }
 
+void Display::scrollDevice(const Common::Rect &area, int16 deltaX, int16 deltaY) {
+	int left = MAX(area.left + _viewportOrigin.x, 0);
+	int top = MAX(area.top + _viewportOrigin.y, 0);
+	int right = MIN(area.right + _viewportOrigin.x, (int)_width);
+	int bottom = MIN(area.bottom + _viewportOrigin.y, (int)_height);
+	if (left >= right || top >= bottom || (deltaX == 0 && deltaY == 0))
+		return;
+
+	int sourceLeft = MAX(left, left - deltaX);
+	int sourceRight = MIN(right, right - deltaX);
+	int sourceTop = MAX(top, top - deltaY);
+	int sourceBottom = MIN(bottom, bottom - deltaY);
+	if (sourceLeft >= sourceRight || sourceTop >= sourceBottom)
+		return;
+
+	int rowBytes = (sourceRight - sourceLeft) * _screen->format.bytesPerPixel;
+	int rows = sourceBottom - sourceTop;
+
+	for (int i = 0; i < rows; i++) {
+		int row = (deltaY > 0) ? (sourceBottom - 1 - i) : (sourceTop + i);
+		memmove(_screen->getBasePtr(sourceLeft + deltaX, row + deltaY), _screen->getBasePtr(sourceLeft, row), rowBytes);
+	}
+
+	_screen->addDirtyRect(Common::Rect(sourceLeft + deltaX, sourceTop + deltaY, sourceRight + deltaX, sourceBottom + deltaY));
+}
+
 void Display::clearScreen() {
 	RectArray visible;
 	getVisibleRects(Common::Rect(0, 0, _width, _height), visible);

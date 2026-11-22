@@ -88,7 +88,7 @@ void AudioLibrary::mixSound8Bit(WaveObject *wave) {
 		if (wave->currentVolume == TG_AUDIO_MAX_VOLUME_LEVEL && !wave->fadingIn && !wave->fadingOut) {
 			if (mixCount < 2) {
 				memcpy(destination, source, chunk);
-			} else if (_engine->_version >= 1) {
+			} else if (_engine->_version >= kVersionV1_1) {
 				for (uint32 i = 0; i < chunk; i++)
 					destination[i] = (byte)CLIP<int32>((int32)destination[i] + source[i] - 0x80, 0, 255);
 			} else if (mixCount == 2) {
@@ -132,7 +132,7 @@ void AudioLibrary::mixSound8Bit(WaveObject *wave) {
 
 				if (mixCount < 2)
 					result = sample;
-				else if (_engine->_version >= 1)
+				else if (_engine->_version >= kVersionV1_1)
 					result = CLIP<int32>(existing + sample - 0x80, 0, 255);
 				else if (mixCount == 2)
 					result = (existing + sample) >> 1;
@@ -230,7 +230,7 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 					int32 sample = READ_LE_INT16(source + i * 2);
 					int32 result;
 
-					if (_engine->_version >= 1)
+					if (_engine->_version >= kVersionV1_1)
 						result = CLIP<int32>(existing + sample, -32767, 32767);
 					else if (mixCount == 2)
 						result = (existing + sample) >> 1;
@@ -258,7 +258,7 @@ void AudioLibrary::mixSound16Bit(WaveObject *wave) {
 
 				if (mixCount < 2)
 					result = sample;
-				else if (_engine->_version >= 1)
+				else if (_engine->_version >= kVersionV1_1)
 					result = CLIP<int32>(existing + sample, -32767, 32767);
 				else if (mixCount == 2)
 					result = (existing + sample) >> 1;
@@ -394,7 +394,7 @@ void AudioLibrary::pumpAudioPlayback() {
 
 	bool mixed = retireBufferAndRefill();
 
-	if (mixed && _engine->_version >= 1)
+	if (mixed && _engine->_version >= kVersionV1_1)
 		return;
 
 	if (_cdSuspend)
@@ -404,7 +404,7 @@ void AudioLibrary::pumpAudioPlayback() {
 	for (uint32 i = 0; i < count; i++) {
 		WaveObject *wave = _waveObjects[i];
 
-		if (wave->streaming && !wave->endOfStream && (_engine->_version >= 1 ? wave->available <= _refillThreshold : wave->available < _refillThreshold))
+		if (wave->streaming && !wave->endOfStream && (_engine->_version >= kVersionV1_1 ? wave->available <= _refillThreshold : wave->available < _refillThreshold))
 			compactAndRefillSoundBuffer(wave);
 
 		if (wave->randomRepeat && !wave->active && _engine->getEngineMillis() >= wave->nextTrigger) {
@@ -440,7 +440,7 @@ void AudioLibrary::freeWaveOutBuffers() {
 }
 
 bool AudioLibrary::findBestWaveFormatIndex(const WaveFormat *wanted) {
-	bool soundFormat = (_engine->_version >= 1);
+	bool soundFormat = (_engine->_version >= kVersionV1_1);
 	uint16 formatMask = soundFormat ? TG_AUDIO_WAVE_FORMAT_MASK_V1_1 : TG_AUDIO_WAVE_FORMAT_MASK;
 	uint16 mask = (uint16)(formatMask & (_waveOutCapsFormats & 0xFFFF));
 	uint32 index = TG_AUDIO_NUM_OUTPUT_FORMATS;
@@ -473,13 +473,13 @@ bool AudioLibrary::findBestWaveFormatIndex(const WaveFormat *wanted) {
 
 	if (TG_AUDIO_WAVE_BUFFER_SIZE != 0)
 		_waveBufferSize = TG_AUDIO_WAVE_BUFFER_SIZE;
-	else if (_engine->_version >= 1)
+	else if (_engine->_version >= kVersionV1_1)
 		_waveBufferSize = (uint32)_waveFormat.channels << 13;
 	else
 		_waveBufferSize = TG_AUDIO_DEFAULT_WAVE_BUFFER_SIZE;
 
 	_streamBufferSize = (TG_AUDIO_DATA_BUFFER_SIZE != 0) ? TG_AUDIO_DATA_BUFFER_SIZE : (_waveBufferSize << 2);
-	_refillThreshold = (_engine->_version >= 1) ? (_streamBufferSize >> 1) : ((_streamBufferSize * 3) >> 2);
+	_refillThreshold = (_engine->_version >= kVersionV1_1) ? (_streamBufferSize >> 1) : ((_streamBufferSize * 3) >> 2);
 	return true;
 }
 
@@ -489,7 +489,7 @@ void AudioLibrary::closeWaveOutDevice() {
 
 	resetWaveOutQueue();
 
-	if (_engine->_version >= 1) {
+	if (_engine->_version >= kVersionV1_1) {
 		for (uint32 i = 0; i < _waveObjects.size(); i++) {
 			WaveObject *wave = _waveObjects[i];
 
@@ -515,7 +515,7 @@ void AudioLibrary::closeWaveOutDevice() {
 }
 
 bool AudioLibrary::openWaveOutDevice(const WaveFormat *wanted) {
-	if (_engine->_version >= 1 && _waveOutStream) {
+	if (_engine->_version >= kVersionV1_1 && _waveOutStream) {
 		if (!wanted)
 			return true;
 
@@ -551,7 +551,7 @@ bool AudioLibrary::openWaveOutDevice(const WaveFormat *wanted) {
 	_waveVolumeLeft = _savedWaveVolumeLeft;
 	_waveVolumeRight = _savedWaveVolumeRight;
 
-	if (_engine->_version < 1 || !_disableWaveVolume)
+	if (_engine->_version < kVersionV1_1 || !_disableWaveVolume)
 		applyWaveOutVolume(_hardwareWaveVolume);
 
 	return true;
@@ -576,7 +576,7 @@ void AudioLibrary::setWaveOutVolume(uint32 volume) {
 	if (!_waveOutStream)
 		return;
 
-	if (_engine->_version >= 1 && _disableWaveVolume)
+	if (_engine->_version >= kVersionV1_1 && _disableWaveVolume)
 		return;
 
 	_waveVolumeLeft = (uint16)(volume & 0xFFFF);

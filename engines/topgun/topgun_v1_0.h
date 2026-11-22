@@ -181,7 +181,7 @@ struct GotoSceneRecord {
 
 class TopgunEngine_v1_0 : public TopgunEngine {
 public:
-	TopgunEngine_v1_0(OSystem *syst, const ADGameDescription *gameDesc, int version = 0);
+	TopgunEngine_v1_0(OSystem *syst, const ADGameDescription *gameDesc, int version = kVersionV1_0);
 	~TopgunEngine_v1_0() override;
 
 protected:

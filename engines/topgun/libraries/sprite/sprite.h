@@ -43,7 +43,7 @@
 #define TG_SPR_NUM_QUEUE_COMMANDS     29
 #define TG_SPR_QUEUE_RECORD_COPY_SIZE 18
 #define TG_SPR_FRAME_NOTIFICATION     28
-#define TG_SPR_TABLE_SIZE             100
+#define TG_SPR_TABLE_SIZE             250
 #define TG_SPR_PART_BLOCK_SIZE        4
 
 namespace Topgun {
@@ -93,7 +93,7 @@ public:
 	uint16 spriteGetId(uint16 sprite);
 	void spriteGetInfo(uint16 sprite, SpriteInfo &info);
 	void spriteGetPalette(byte *destination, uint16 first, uint16 count);
-	void spriteHide(uint16 sprite, bool refresh);
+	virtual void spriteHide(uint16 sprite, bool refresh);
 	virtual bool spriteInitLibrary();
 	void spritePaint(uint16 sprite);
 	void spritePaintRect(const Common::Rect &rect, bool backgroundCoordinates);
@@ -228,7 +228,7 @@ protected:
 	virtual bool renderRect(const Common::Rect &rect);
 	virtual bool repaintUnionOfCurrentAndPreviousRect(uint16 sprite);
 	void repaintPreviousRect(uint16 sprite, bool excludeCurrent);
-	void renderSpriteToSurface(uint16 sprite);
+	virtual void renderSpriteToSurface(uint16 sprite);
 	void compositeSpritesInRect(const Common::Rect &rect);
 	void checkCollision(uint16 sprite);
 	void recomputeCelBoxArray(uint16 sprite, const byte *command);

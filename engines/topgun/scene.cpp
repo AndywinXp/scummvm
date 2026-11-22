@@ -20,6 +20,9 @@
  */
 
 #include "common/config-manager.h"
+#include "common/endian.h"
+#include "common/path.h"
+#include "common/system.h"
 #include "common/textconsole.h"
 #include "graphics/cursorman.h"
 
@@ -28,7 +31,7 @@
 #include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_0.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -180,6 +183,548 @@ void TopgunEngine_v1_0::cleanupCurrentSceneAndContainer() {
 		CursorMan.showMouse(true);
 
 	_cursorEnabled = true;
+}
+
+SceneEntry_v1_2 *TopgunEngine_v1_2::findOrCreateSceneEntry(const Common::String &name) {
+	Common::String sceneName = Common::Path(name, '\\').baseName();
+	uint32 nameSize = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SCENE_NAME_SIZE : TG_HOST_SCENE_NAME_SIZE;
+
+	_currentSceneIndex = 0;
+
+	if (!_sceneEntries.empty()) {
+		do {
+			if (sceneName.equalsIgnoreCase(_sceneEntries[_currentSceneIndex].name))
+				break;
+
+			_currentSceneIndex++;
+		} while (_currentSceneIndex < _sceneEntries.size());
+	}
+
+	if (_currentSceneIndex >= _sceneEntries.size()) {
+		SceneEntry_v1_2 entry;
+
+		entry.stringCount = resourceLib()->resCountStrings(_file);
+		if (entry.stringCount != 0) {
+			entry.strings = utilsLibrary()->tgMalloc(entry.stringCount * TG_HOST_V1_2_STRING_SLOT_SIZE, 1);
+			if (!entry.strings)
+				return nullptr;
+		}
+
+		uint32 length = sceneName.size();
+		if (length >= nameSize) {
+			warning("TopgunEngine_v1_2::findOrCreateSceneEntry(): scene name is too long");
+			length = nameSize - 1;
+		}
+
+		memcpy(entry.name, sceneName.c_str(), length);
+		entry.name[length] = '\0';
+
+		_sceneEntries.push_back(entry);
+		resourceLib()->resEnumVariables(_file);
+	}
+
+	SceneEntry_v1_2 &current = _sceneEntries[_currentSceneIndex];
+	uint16 *variables = (_version >= kVersionV1_2_1) ? static_cast<TopgunEngine_v1_2_1 *>(this)->_variableTable : _variables;
+	uint32 variablesSize = ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_NUM_SCENE_VARIABLES : TG_HOST_V1_2_NUM_SCENE_VARIABLES) * sizeof(uint16);
+
+	memmove(_currentSceneName, current.name, nameSize);
+	memmove(variables, current.variables, variablesSize);
+	spriteLib()->spriteSetVarTable(variables);
+	return &current;
+}
+
+bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String &name, bool withProgressCallback) {
+	uint16 keyTableSize = (_version >= kVersionV1_2_1) ? TG_INPUT_V1_2_1_KEY_TABLE_SIZE : TG_HOST_V1_2_KEY_TABLE_SIZE;
+
+	for (uint16 i = 0; i < keyTableSize; i++)
+		_keyTable[i] = KeyEntry_v1_2();
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		_mouseAsStick = false;
+		_timersPaused = false;
+		_keyboardRouted = false;
+		newer->_joystickDirectionFlag = false;
+		newer->_joystickRouted = false;
+		newer->_argumentFrame = TG_HOST_V1_2_1_FIRST_FRAME_INDEX;
+		_hoverSpriteScript = 0;
+		_hoverSprite = 0;
+		newer->_driveType = 0;
+		_keyHookScript = 0;
+		_mouseEventScript = 0;
+		newer->_numNativeTimers = 0;
+		newer->_pauseScript = 0;
+		newer->_activateScript = 0;
+		newer->clearJoystickScripts();
+		newer->clearDeviceState();
+	} else {
+		_scriptArgStackOffset = 0;
+		_scriptArgCount = 0;
+	}
+
+	_hoverRegionCurrent = 0;
+	_numHoverRegions = 0;
+	_numMovies = 0;
+	_numCollisionPairs = 0;
+	_numClickRegions = 0;
+	_numScheduledTimers = 0;
+	_activationScript = 0;
+
+	if (!openResourceFileAndInit(name)) {
+		if (_version >= kVersionV1_2_1) {
+			if (_file != 0)
+				resourceLib()->resCloseFile(_file);
+
+			_file = 0;
+			_numResources = 0;
+		} else {
+			fatalError(Common::String::format("Can't open file '%s'.", name.c_str()));
+		}
+
+		return false;
+	}
+
+	if (!findOrCreateSceneEntry(name)) {
+		if (_version >= kVersionV1_2_1)
+			static_cast<TopgunEngine_v1_2_1 *>(this)->fatalError(100, "Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
+		else
+			fatalError("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
+
+		return false;
+	}
+
+	if (_debugNameTable)
+		buildResourceNameOffsetTable();
+
+	if (withProgressCallback)
+		resourceLib()->resSetCallback(_file, true, TG_HOST_PROGRESS_INTERVAL);
+
+	refreshGamePalette();
+	_fadeIn = true;
+	_entryScriptRunning = true;
+
+	// The entry script is the immediate operand 0 in the later version
+	runScriptResource((_version >= kVersionV1_2_1) ? (uint16)(0 - TG_HOST_V1_2_1_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT);
+
+	_entryScriptRunning = false;
+	resourceLib()->resSetCallback(_file, false, 0);
+	return true;
+}
+
+void TopgunEngine_v1_2::switchToNextScene(const char *name) {
+	uint32 nameSize = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SCENE_NAME_SIZE : TG_HOST_SCENE_NAME_SIZE;
+	uint16 *variables = (_version >= kVersionV1_2_1) ? static_cast<TopgunEngine_v1_2_1 *>(this)->_variableTable : _variables;
+	uint32 variablesSize = ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_NUM_SCENE_VARIABLES : TG_HOST_V1_2_NUM_SCENE_VARIABLES) * sizeof(uint16);
+
+	if (_version < kVersionV1_2_1)
+		notifyPythonizerWindow();
+
+	if (_currentSceneIndex < _sceneEntries.size()) {
+		SceneEntry_v1_2 &current = _sceneEntries[_currentSceneIndex];
+		memmove(current.name, _currentSceneName, nameSize);
+		memmove(current.variables, variables, variablesSize);
+	} else {
+		warning("TopgunEngine_v1_2::switchToNextScene(): scene index %d is out of range", _currentSceneIndex);
+	}
+
+	_previousSceneIndex = _currentSceneIndex;
+
+	if (_cdAudioPlaying)
+		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
+
+	if (_version >= kVersionV1_2_1)
+		warning("unloadPluginLibrary UNIMPLEMENTED");
+
+	Common::String sceneName = Common::Path(name, '\\').baseName();
+
+	spriteLib()->spriteSetTopMost(_sceneSprite);
+	spriteLib()->spriteSetClipBox(nullptr);
+	spriteLib()->spriteSetSendMsg(0);
+
+	if (_version < kVersionV1_2_1)
+		releaseCurrentBackgroundRecord();
+
+	if (!display()->hasPalette())
+		spriteLib()->spriteSetBkgTransparent(true);
+
+	sceneTransitionOut(TG_HOST_V1_2_FADE_STEPS);
+	resetResourcesAndTransientState();
+
+	drainMessage(kMsgV1_2SoundFinished);
+	drainMessage(kMsgV1_2GotoScene);
+
+	if (_version < kVersionV1_2_1)
+		drainMessage(kMsgV1_2RunScript);
+
+	spriteLib()->spriteSetBackground(nullptr, false, 0, nullptr);
+	spriteLib()->spriteResetLibrary();
+
+	if (_version >= kVersionV1_2_1)
+		static_cast<AudioLibrary_v1_2_1 *>(audioLib())->audioResetLibrary();
+
+	spriteLib()->spriteSetSendMsg(1);
+
+	if (_backgroundBitmap)
+		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
+
+	if (_cdAudioPlaying)
+		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
+
+	if (_file != 0)
+		resourceLib()->resCloseFile(_file);
+
+	_file = 0;
+	_releaseOnPalette = true;
+
+	if (loadSceneContainerAndRunEntryScript(sceneName, true)) {
+		if (_sceneSprite != 0) {
+			if (_version >= kVersionV1_2_1)
+				static_cast<SpriteLibrary_v1_2_1 *>(spriteLib())->spriteBreakLoops(_sceneSprite, 1);
+			else
+				spriteLib()->spriteBreakLoops(_sceneSprite);
+		}
+
+		if (_fadeIn)
+			sceneTransitionIn(TG_HOST_V1_2_FADE_STEPS);
+	}
+
+	clearInputMessageQueues();
+
+	if (_fadeIn && !display()->hasPalette())
+		spriteLib()->spriteSetBkgTransparent(false);
+}
+
+bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		if (!locateResourceFile(name))
+			return false;
+
+		memset(newer->_quitSceneName, 0, sizeof(newer->_quitSceneName));
+		memset(newer->_gotoSceneName, 0, sizeof(newer->_gotoSceneName));
+		newer->clearJoystickScripts();
+		newer->clearDeviceState();
+	} else {
+		notifyPythonizerWindow();
+
+		_gotoRecord = GotoSceneRecord();
+	}
+
+	uint16 firstClearedVariable = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_FIRST_SYSTEM_VARIABLE : TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
+	uint16 numClearedVariables = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_NUM_SYSTEM_VARIABLES : TG_HOST_V1_2_NUM_CLEARED_VARIABLES;
+
+	for (uint16 i = 0; i < numClearedVariables; i++)
+		writeVariable(firstClearedVariable + i, 0);
+
+	if (ConfMan.hasKey("mode640"))
+		_flagMode640 = ((byte)ConfMan.getInt("mode640") != 0);
+
+	if (ConfMan.hasKey("lomem"))
+		_flagLoMem = ((byte)ConfMan.getInt("lomem") != 0);
+
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_LOMEM : TG_HOST_V1_2_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_SCREEN_WIDTH : TG_HOST_V1_2_VARIABLE_SCREEN_WIDTH, display()->width());
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_SCREEN_HEIGHT : TG_HOST_V1_2_VARIABLE_SCREEN_HEIGHT, display()->height());
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_AUDIO_PRESENT : TG_HOST_V1_2_VARIABLE_AUDIO_PRESENT, _audioPresent);
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_LAUNCH_MODE : TG_HOST_V1_2_VARIABLE_LAUNCH_MODE, _launchMode);
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_PROCESSOR_TYPE : TG_HOST_V1_2_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_OVER_256_COLORS : TG_HOST_V1_2_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		writeVariable(TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER, newer->_screenSaverOption);
+		writeVariable(TG_HOST_V1_2_1_VARIABLE_JOYSTICKS, newer->_numJoysticks);
+	}
+
+	Common::Point cursor = g_system->getEventManager()->getMousePos();
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_MOUSE_X : TG_HOST_V1_2_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
+	writeVariable((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_VARIABLE_MOUSE_Y : TG_HOST_V1_2_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		newer->_joystickButtonFlag = false;
+		newer->_joystickDirectionFlag = false;
+		newer->_expressionStackPointer = 0;
+		newer->_maxTransColors = 0;
+		newer->_numPostedScriptRuns = 0;
+		newer->_fatalCode = 0;
+		newer->_activateState = true;
+	}
+
+	_postSceneEndEnabled = true;
+	_backgroundColor = 0;
+	_displayZoomMode = 0;
+	_mouseEventScript = 0;
+	_scriptArgStackOffset = 0;
+	_scriptArgCount = 0;
+	_scriptDepth = 0;
+	_currentScriptId = 0;
+	_previousSceneIndex = 0;
+	_currentSceneIndex = 0;
+	_filePaletteEntryCount = 0;
+	_sceneEntries.clear();
+	_stepCount = 0;
+	_step = 0;
+	_sceneEndScript = 0;
+	_backgroundId = 0;
+	_textEditObjectId = 0;
+	_dragSpriteId = 0;
+	_cursorMode = 1;
+	_displayZoomActive = false;
+	_rightButtonDown = false;
+	_leftButtonDown = false;
+	_loading = false;
+	_active = false;
+	_cdAudioPlaying = false;
+	_hoverSpriteScript = 0;
+	_hoverSprite = 0;
+	_maxFadeColors = 0;
+	_scriptsDisabled = false;
+	_faded = true;
+	_flagActivated = true;
+	_appActive = true;
+	_screenBox = true;
+
+	Common::String sceneName = Common::Path(name, '\\').baseName();
+
+	if (!display()->hasPalette())
+		spriteLib()->spriteSetBkgTransparent(true);
+
+	_startTick = getEngineMillis();
+
+	loadSceneContainerAndRunEntryScript(sceneName, false);
+	spriteLib()->spriteSetTopMost(_sceneSprite);
+
+	if (_version >= kVersionV1_2_1)
+		handlePaintMessage();
+
+	if (_fadeIn) {
+		sceneTransitionIn(TG_HOST_V1_2_FADE_STEPS);
+
+		if (!display()->hasPalette())
+			spriteLib()->spriteSetBkgTransparent(false);
+	}
+
+	return true;
+}
+
+void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
+	if (_version >= kVersionV1_2_1)
+		fillBackground();
+	else if (_launchMode == 0)
+		saveScreenSaverTimes();
+
+	destroySceneMainObjects(_releaseOnPalette);
+	resetResourcesAndTransientState();
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		_numClickRegions = 0;
+		_numCollisionPairs = 0;
+
+		newer->clearJoystickScripts();
+		newer->clearDeviceState();
+	}
+
+	if (_cdAudioPlaying)
+		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
+
+	if (_buffer1)
+		_buffer1 = utilsLibrary()->tgFree(_buffer1);
+
+	if (_backgroundBitmap)
+		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
+
+	if (_version >= kVersionV1_2_1)
+		warning("unloadPluginLibrary UNIMPLEMENTED");
+
+	for (uint16 i = 0; i < _sceneEntries.size(); i++) {
+		if (_sceneEntries[i].strings)
+			utilsLibrary()->tgFree(_sceneEntries[i].strings);
+	}
+
+	_sceneEntries.clear();
+
+	if (_file != 0)
+		resourceLib()->resCloseFile(_file);
+
+	_file = 0;
+	_appActive = false;
+
+	if (_version >= kVersionV1_2_1) {
+		static_cast<TopgunEngine_v1_2_1 *>(this)->_joystickRouted = false;
+		_keyboardRouted = false;
+		_mouseAsStick = false;
+	}
+
+	// The Pythonizer (the desktop program the game can launch) is not restarted here if it was running when the game closed, since it is not supported
+}
+
+bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
+	Common::Path fullPath = _resourcePath.appendComponent(name);
+
+	_file = resourceLib()->resOpenFile(fullPath.toString());
+	if (_file == 0) {
+		if (_version >= kVersionV1_2_1)
+			static_cast<TopgunEngine_v1_2_1 *>(this)->fatalError(102, Common::String::format("Can't open file '%s'.", fullPath.toString().c_str()));
+
+		return false;
+	}
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+		ResourceLibrary_v1_2_1 *library = static_cast<ResourceLibrary_v1_2_1 *>(resourceLib());
+
+		library->resSetNotify(_file, 1);
+		_numResources = library->resCountResources(_file, &newer->_numFileResources);
+	} else {
+		_numResources = resourceLib()->resCountResources(_file);
+	}
+
+	_records = new ResourceRecord[_numResources];
+
+	if (_version < kVersionV1_2_1)
+		_deferBitmapLoading = false;
+
+	byte title[TG_HOST_V1_2_CONTAINER_TITLE_SIZE];
+	memset(title, 0, sizeof(title));
+	resourceLib()->resGetTitle(_file, title, TG_HOST_V1_2_CONTAINER_TITLE_SIZE);
+
+	_containerTitle.clear();
+	if (title[0] != 0) {
+		uint32 length = 0;
+		while (length < sizeof(title) - 1 && title[1 + length] != 0)
+			length++;
+
+		_containerTitle = Common::String((const char *)(title + 1), length);
+	}
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+		ResourceLibrary_v1_2_1 *library = static_cast<ResourceLibrary_v1_2_1 *>(resourceLib());
+
+		_maxFadeColors = library->resGetMaxFadeColors(_file);
+		newer->_maxTransColors = library->resGetMaxTransColors(_file);
+
+		char libraryName[15];
+		library->resGetLibraryName(_file, libraryName, 15);
+		if (libraryName[0] != 0)
+			warning("loadPluginLibrary UNIMPLEMENTED");
+	}
+
+	return true;
+}
+
+void TopgunEngine_v1_2::buildResourceNameOffsetTable() {
+	_resourceNamesTable = resourceLib()->resLoadNameTable(_file, nullptr);
+	if (!_resourceNamesTable)
+		return;
+
+	uint16 entrySize = (_version >= kVersionV1_2_1) ? 4 : 2;
+
+	_resourceNameOffsets = utilsLibrary()->tgMalloc(_numResources * entrySize, 0);
+	if (!_resourceNameOffsets) {
+		utilsLibrary()->tgFree(_resourceNamesTable);
+		_resourceNamesTable = nullptr;
+		return;
+	}
+
+	uint32 offset = 0;
+	const byte *name = _resourceNamesTable;
+
+	for (uint16 i = 0; i < _numResources; i++) {
+		uint16 length;
+
+		if (_version >= kVersionV1_2_1) {
+			WRITE_LE_UINT32(_resourceNameOffsets + 4 * i, offset);
+			length = utilsLibrary()->hugeStrLen((const char *)name) + 1;
+		} else {
+			WRITE_LE_UINT16(_resourceNameOffsets + 2 * i, (uint16)offset);
+			length = strlen((const char *)name) + 1;
+		}
+
+		offset += length;
+		name += length;
+	}
+}
+
+void TopgunEngine_v1_2::releaseCurrentBackgroundRecord() {
+	if (_backgroundId == 0)
+		return;
+
+	uint16 index = operandValue(_backgroundId);
+	if (!isRecordIndexValid(index, "releaseCurrentBackgroundRecord"))
+		return;
+
+	if (_records[index].refCount == 0)
+		_records[index].data = nullptr;
+
+	_backgroundId = 0;
+}
+
+void TopgunEngine_v1_2::refreshGamePalette() {
+	byte localPalette[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
+	byte *palette = localPalette;
+	uint16 firstTransColor = TG_HOST_V1_2_TRANS_PALETTE_FIRST;
+	uint16 numTransColors = TG_HOST_V1_2_NUM_TRANS_PALETTE_COLORS;
+	uint16 fadeColors = TG_HOST_V1_2_NUM_FADE_COLORS;
+	uint32 clearedSize = sizeof(localPalette);
+
+	if (_version >= kVersionV1_2_1) {
+		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+
+		if (newer->_maxTransColors > 0xF6) {
+			warning("TopgunEngine_v1_2::refreshGamePalette(): %d transparent colors are too many", newer->_maxTransColors);
+			return;
+		}
+
+		palette = newer->_palette;
+
+		// The transparent colors are the last ones before the highest 10 system colors
+		firstTransColor = 0xF6 - newer->_maxTransColors;
+		numTransColors = newer->_maxTransColors;
+		fadeColors = _maxFadeColors;
+		clearedSize = TG_DISPLAY_NUM_PALETTE_ENTRIES;
+	}
+
+	if (display()->hasPalette())
+		display()->getSystemPaletteEntries(palette, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
+	else
+		memset(palette, 0, clearedSize);
+
+	_filePaletteEntryCount = resourceLib()->resLoadPalette(_file, palette + TG_HOST_V1_2_NUM_SYSTEM_COLORS * TG_DISPLAY_PALETTE_ENTRY_SIZE);
+	spriteLib()->spriteGetPalette(palette + firstTransColor * TG_DISPLAY_PALETTE_ENTRY_SIZE, firstTransColor, numTransColors);
+	spriteLib()->spriteSetPalette(palette);
+
+	if (_version >= kVersionV1_2_1 || !_noFade) {
+		spriteLib()->spriteFadePalette(0, 0, TG_HOST_V1_2_NUM_SYSTEM_COLORS, fadeColors);
+		spriteLib()->spriteRealizePalette();
+	}
+}
+
+char *TopgunEngine_v1_2::getStringFromId(uint16 id) {
+	if (id == 0)
+		return nullptr;
+
+	if ((id & TG_HOST_V1_2_STRING_ID_CONSTANT) != 0)
+		return const_cast<char *>(resourceLib()->resGetConstStr(_file, id & TG_HOST_V1_2_STRING_ID_MASK));
+
+	if (_currentSceneIndex >= _sceneEntries.size()) {
+		warning("TopgunEngine_v1_2::getStringFromId(): scene index %d is out of range", _currentSceneIndex);
+		return nullptr;
+	}
+
+	uint16 slot = (id & TG_HOST_V1_2_STRING_ID_MASK) - 1;
+	const SceneEntry_v1_2 &entry = _sceneEntries[_currentSceneIndex];
+	if (entry.stringCount <= slot)
+		return nullptr;
+
+	return (char *)entry.strings + slot * TG_HOST_V1_2_STRING_SLOT_SIZE;
 }
 
 } // End of namespace Topgun

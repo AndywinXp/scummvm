@@ -26,6 +26,7 @@
 #include "topgun/topgun_v1_0.h"
 #include "topgun/topgun_v1_1.h"
 #include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v1_2_1.h"
 #include "topgun/tunes_player.h"
 
 namespace Topgun {
@@ -91,6 +92,11 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 
 	if (gameId == "pythonwaste") {
 		*engine = new Topgun::TopgunEngine_v1_2(syst, desc);
+		return Common::kNoError;
+	}
+
+	if (gameId == "battlebeast" || gameId == "junglegames") {
+		*engine = new Topgun::TopgunEngine_v1_2_1(syst, desc);
 		return Common::kNoError;
 	}
 

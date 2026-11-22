@@ -40,8 +40,13 @@
 #define TG_UTILS_ANGLE_HALF_TURN            1800
 #define TG_UTILS_ANGLE_QUARTER_TURN         900
 #define TG_UTILS_ANGLE_THREE_QUARTER_TURN   2700
-// This is the exact number the game expects (radians to tenths of a degree, a bit above 1800 / pi)
+// Radians to tenths of a degree, a bit above 1800 / pi
 #define TG_UTILS_ANGLE_SCALE                572.9746936176986
+
+// The second coordinate of the collision function holds this number when the first one is the axis angle
+#define TG_UTILS_COLLIDE_AXIS_MARKER        0x7530
+// Collision speeds are the product of a sine or cosine (scaled by this number) and a speed
+#define TG_UTILS_TRIG_SCALE                 10000
 
 // Processor detection
 #define TG_UTILS_CPU_FLAG_286               0x0002
@@ -84,6 +89,14 @@ public:
 	int32 tangent(int16 angle);
 	int16 getAngle(int16 y, int16 x);
 	uint16 getIntersect(Common::Point *intersection, int16 x1, int16 y1, int16 x2, int16 y2, int16 x3, int16 y3, int16 x4, int16 y4);
+	void collide(int16 x1, int16 y1, int16 x2, int16 y2, int16 *speed1, int16 *angle1, int16 *speed2, int16 *angle2);
+	int32 distance(int16 x1, int16 y1, int16 x2, int16 y2);
+	int32 squareRoot(int16 value);
+	int16 reflectAngle(int16 angle, int16 axis);
+
+	// Strings
+	void copyHugeStr(char *destination, const char *source);
+	uint16 hugeStrLen(const char *string);
 
 private:
 	typedef Common::HashMap<byte *, uint32> BlockSizeMap;

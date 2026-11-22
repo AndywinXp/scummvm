@@ -27,6 +27,7 @@
 // Library
 #define TG_AUDIO_V1_2_VERSION                 0x0200
 #define TG_AUDIO_V1_2_MAX_SOUNDS              50
+#define TG_AUDIO_V1_2_SOUND_TABLE_SIZE        100
 #define TG_AUDIO_V1_2_MIN_WAVE_BUFFERS        4
 #define TG_AUDIO_V1_2_MAX_WAVE_BUFFERS        8
 #define TG_AUDIO_V1_2_DEFAULT_WAVE_BUFFERS    8
@@ -74,6 +75,12 @@
 // IMA ADPCM
 #define TG_AUDIO_V1_2_ADPCM_MAX_INDEX         0x2C0
 
+// Values of the later version that share the structures of this one
+#define TG_AUDIO_V1_2_1_MAX_SOUNDS            100
+#define TG_AUDIO_V1_2_1_NOTIFY_MESSAGE        0x52C
+#define TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE    0x1C
+#define TG_AUDIO_V1_2_1_PLAY_PARAMS_SIZE      0x18
+
 namespace Topgun {
 
 class TopgunEngine_v1_2;
@@ -88,14 +95,14 @@ struct AdpcmState {
 };
 
 struct SoundCreateInfo_v1_2 {
-	byte header[TG_AUDIO_V1_2_CREATE_HEADER_SIZE];
+	byte header[TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE];
 	uint16 readProc;
 	uint16 rewindProc;
 	uint16 closeProc;
 	uint16 handle;
 
 	SoundCreateInfo_v1_2() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_CREATE_HEADER_SIZE; i++)
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE; i++)
 			header[i] = 0;
 	}
 };
@@ -194,13 +201,23 @@ protected:
 		byte randomRange;
 		ConvertState convert;
 
+		// Fields of the later version
+		uint32 notifyEndTime;
+		int16 initialLoops;
+		int16 priority;
+		bool notifyPending;
+		bool exempt;
+
+		virtual ~SoundObject() {}
+
 		SoundObject() : handle(0), data(nullptr), available(0), readPos(0), size(0), lowWater(0), sourceLength(0),
 			consumed(0), readFromSource(0), chunk(nullptr), chunkLength(0), fadeInReload(0), fadeInCount(0),
 			fadeOutReload(0), fadeOutCount(0), nextTrigger(0), readProc(0), rewindProc(0), closeProc(0),
 			callbackHandle(0), notifyWParam(0), notifyLParam(0), loops(0), enabled(false), notifyArmed(false),
 			active(false), isStatic(false), needsConversion(false), endOfSource(false), overlay(false),
 			randomMode(false), fadingIn(false), fadingOut(false), adpcmEncoded(false), adpcmShift(0),
-			volume(0), currentVolume(0), randomMin(0), randomRange(0) {}
+			volume(0), currentVolume(0), randomMin(0), randomRange(0), notifyEndTime(0), initialLoops(0),
+			priority(0), notifyPending(false), exempt(false) {}
 	};
 
 	// Library
@@ -221,16 +238,16 @@ protected:
 	bool applyWaveFormatIndex(const WaveFormat *format);
 	bool allocateWaveOutBuffers();
 	void freeWaveOutBuffers();
-	bool finishWaveOutOpen();
+	virtual bool finishWaveOutOpen();
 	bool finishWaveOutOpenSync();
 	bool openWaveOutDevice(const WaveFormat *format);
 	void destroyAllWaveObjectsAndCloseDevice();
-	void resetWaveOutQueue();
-	void retireBuffer();
+	virtual void resetWaveOutQueue();
+	virtual void retireBuffer();
 	bool retireBufferAndRefill();
 	uint16 mixAllWaves16Bit();
 	uint16 mixAllWaves8Bit();
-	void pumpAudioPlayback();
+	virtual void pumpAudioPlayback();
 	void resetWaveQueueAndEnableAllWaves(uint16 on) override;
 	void updateWaveEnabledFlags(uint16 on);
 
@@ -241,16 +258,16 @@ protected:
 	// Wave sounds
 	SoundObject *allocWaveObject();
 	uint16 removeWaveFromArray(SoundObject *sound);
-	bool initWaveObjectFromDescriptor(const SoundCreateInfo_v1_2 *info, SoundObject *sound);
+	virtual bool initWaveObjectFromDescriptor(const SoundCreateInfo_v1_2 *info, SoundObject *sound);
 	SoundObject *findWaveObject(uint16 handle);
 	bool doesWaveNeedConversion(const SoundObject *sound);
 	void computeRandomizedRepeatDelay(SoundObject *sound, uint32 now);
 	void setupWaveFadeIn(SoundObject *sound, uint32 milliseconds, byte volume);
 	void setupWaveFadeOut(SoundObject *sound, uint32 milliseconds, byte volume, uint16 mode);
-	bool startWavePlayback(SoundObject *sound, const byte *params);
+	virtual bool startWavePlayback(SoundObject *sound, const byte *params);
 	void deactivateAllWaves();
-	void finishWaveObject(SoundObject *sound);
-	void stopWaveObject(SoundObject *sound, const byte *params);
+	virtual void finishWaveObject(SoundObject *sound);
+	virtual void stopWaveObject(SoundObject *sound, const byte *params);
 
 	// Sound streaming
 	bool soundEndOrLoop(SoundObject *sound);
@@ -258,7 +275,7 @@ protected:
 	void prepareWaveChunk(SoundObject *sound, uint16 outputBytes);
 	void rewindSound(SoundObject *sound);
 	uint16 compactAndRefillSoundBuffer(SoundObject *sound);
-	bool closeSoundSource(SoundObject *sound);
+	virtual bool closeSoundSource(SoundObject *sound);
 	bool ensureAdpcmScratchBuffer(const SoundObject *sound, uint32 sourceBytes);
 	bool ensureResampleScratchBuffer(uint32 size);
 	uint32 computeSourceBytesForOutput(const SoundObject *sound, uint32 outputBytes);
@@ -291,7 +308,7 @@ protected:
 	uint32 _resampleScratchSize = 0;
 
 	// Wave sounds
-	SoundObject *_sounds[TG_AUDIO_V1_2_MAX_SOUNDS] = {};
+	SoundObject *_sounds[TG_AUDIO_V1_2_SOUND_TABLE_SIZE] = {};
 	uint16 _soundCount = 0;
 	uint16 _activeSounds = 0;
 	uint16 _nextSoundHandle = 1;

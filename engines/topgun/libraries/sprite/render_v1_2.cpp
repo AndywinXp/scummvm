@@ -19,14 +19,15 @@
  *
  */
 
+#include "common/array.h"
 #include "common/endian.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 
 #include "topgun/display.h"
-#include "topgun/libraries/sprite/sprite_v1_2.h"
+#include "topgun/libraries/sprite/sprite_v1_2_1.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -154,7 +155,9 @@ bool SpriteLibrary_v1_2::blitSetupRaw(byte *destination, const byte *source, uin
 
 	int32 sourceStride;
 	uint16 sourceRow;
-	if (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]) {
+	bool unflipped = (_engine->_version >= kVersionV1_2_1) ? ((flags & TG_SPR_V1_2_1_FLIP_FLAG_MASK) == 0) : (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]);
+
+	if (unflipped) {
 		sourceRow = (uint16)(sourceHeight - sourceY - height);
 		sourceStride = sourcePitch;
 	} else {
@@ -473,7 +476,7 @@ void SpriteLibrary_v1_2::compositeSpritePartsIntoBuffer(uint16 sprite, const Com
 	}
 }
 
-void SpriteLibrary_v1_2::compositeSpriteIntoBackground(uint16 sprite) {
+void SpriteLibrary_v1_2::compositeSpriteIntoBackground(uint16 sprite, uint16 flag) {
 	if (!_backgroundBitmap)
 		return;
 
@@ -494,7 +497,14 @@ void SpriteLibrary_v1_2::compositeSpriteIntoBackground(uint16 sprite) {
 		}
 	}
 
-	spriteHide(sprite, true);
+	if (_engine->_version >= kVersionV1_2_1) {
+		if (flag == 0) {
+			spriteHide(sprite, false);
+			spriteEmptyQueue(sprite);
+		}
+	} else {
+		spriteHide(sprite, true);
+	}
 }
 
 void SpriteLibrary_v1_2::compositeMultipartIntoBackground(uint16 sprite, const Common::Rect &rect) {
@@ -519,9 +529,11 @@ void SpriteLibrary_v1_2::compositeMultipartIntoBackground(uint16 sprite, const C
 			continue;
 		}
 
+		const Common::Rect &origin = (_engine->_version >= kVersionV1_2_1) ? part.box : object->boundingBox;
+
 		blitTransparentRect(_backgroundBitmap, part.frame, (uint16)(common.right - common.left), (uint16)(common.bottom - common.top),
 		                    (int16)(common.left + _scrollX), (int16)(common.top + _scrollY),
-		                    (int16)(common.left - object->boundingBox.left), (int16)(common.top - object->boundingBox.top), flipFlags(object));
+		                    (int16)(common.left - origin.left), (int16)(common.top - origin.top), flipFlags(object));
 	}
 }
 
@@ -547,48 +559,66 @@ uint16 SpriteLibrary_v1_2::spritePicked(int16 x, int16 y) {
 
 	for (int index = (int)_spriteCount - 1; index >= 0; index--) {
 		uint16 handle = _spriteTable[index];
-		SpriteObject_v1_2 *object = findSprite(handle, "spritePicked");
-		if (!object || !object->visible)
-			continue;
-
-		const Common::Rect &box = object->boundingBox;
-		if (box.left > x || box.right <= x || box.top > y || box.bottom <= y)
-			continue;
-
-		if (object->pickWholeBox)
+		if (spriteIsPicked(handle, x, y) != 0)
 			return handle;
-
-		if (object->partCount != 0) {
-			if (!object->parts) {
-				warning("SpriteLibrary_v1_2::spritePicked(): the multipart sprite has no parts");
-				continue;
-			}
-
-			for (uint16 part = 0; part < object->partCount && part < TG_SPR_V1_2_NUM_SPRITE_PARTS; part++) {
-				const SpritePart &spritePart = object->parts->parts[part];
-				if (spritePart.box.left > x || spritePart.box.right <= x || spritePart.box.top > y || spritePart.box.bottom <= y)
-					continue;
-
-				if (!spritePart.frame) {
-					warning("SpriteLibrary_v1_2::spritePicked(): the sprite part has no frame");
-					continue;
-				}
-
-				if (getBitmapPixel(spritePart.frame, (int16)(x - spritePart.box.left), (int16)(y - spritePart.box.top), flipFlags(object)) != 0)
-					return handle;
-			}
-		} else {
-			if (!object->currentFrame) {
-				warning("SpriteLibrary_v1_2::spritePicked(): the sprite has no frame");
-				continue;
-			}
-
-			if (getBitmapPixel(object->currentFrame, (int16)(x - box.left), (int16)(y - box.top), flipFlags(object)) != 0)
-				return handle;
-		}
 	}
 
 	return 0;
+}
+
+uint16 SpriteLibrary_v1_2::spriteIsPicked(uint16 sprite, int16 x, int16 y) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "spriteIsPicked");
+	if (!object || (!object->visible && !object->pickInvisible))
+		return 0;
+
+	const Common::Rect &box = object->boundingBox;
+	if (box.left > x || box.right <= x || box.top > y || box.bottom <= y)
+		return 0;
+
+	if (object->pickWholeBox)
+		return 1;
+
+	if (object->partCount != 0) {
+		if (!object->parts) {
+			warning("SpriteLibrary_v1_2::spriteIsPicked(): the multipart sprite has no parts");
+			return 0;
+		}
+
+		for (uint16 part = 0; part < object->partCount && part < TG_SPR_V1_2_NUM_SPRITE_PARTS; part++) {
+			const SpritePart &spritePart = object->parts->parts[part];
+			if (spritePart.box.left > x || spritePart.box.right <= x || spritePart.box.top > y || spritePart.box.bottom <= y)
+				continue;
+
+			if (!spritePart.frame) {
+				warning("SpriteLibrary_v1_2::spriteIsPicked(): the sprite part has no frame");
+				continue;
+			}
+
+			if (getBitmapPixel(spritePart.frame, (int16)(x - spritePart.box.left), (int16)(y - spritePart.box.top), flipFlags(object)) != 0)
+				return 1;
+		}
+
+		return 0;
+	}
+
+	if (!object->currentFrame) {
+		warning("SpriteLibrary_v1_2::spriteIsPicked(): the sprite has no frame");
+		return 0;
+	}
+
+	return (getBitmapPixel(object->currentFrame, (int16)(x - box.left), (int16)(y - box.top), flipFlags(object)) != 0) ? 1 : 0;
+}
+
+void SpriteLibrary_v1_2::renderSpriteToSurface(uint16 sprite) {
+	if (_engine->_version >= kVersionV1_2_1) {
+		SpriteObject_v1_2 *object = findSprite(sprite, "renderSpriteToSurface");
+		if (!object)
+			return;
+
+		object->renderPending = false;
+	}
+
+	SpriteLibrary::renderSpriteToSurface(sprite);
 }
 
 uint16 SpriteLibrary_v1_2::spriteHitDetect(uint16 spriteA, uint16 spriteB) {
@@ -629,6 +659,514 @@ uint16 SpriteLibrary_v1_2::spriteHitDetect(uint16 spriteA, uint16 spriteB) {
 		secondY = (int16)(READ_LE_UINT16(second->currentFrame + TG_SPR_BITMAP_HEIGHT_OFFSET) - secondY - height);
 
 	return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)width, (uint16)height, firstX, firstY, secondX, secondY, 0);
+}
+
+void SpriteLibrary_v1_2_1::spriteCompToBackground(uint16 sprite, uint16 flag) {
+	if (sprite != 0) {
+		compositeSpriteIntoBackground(sprite, flag);
+		return;
+	}
+
+	for (uint16 i = 0; i < _spriteCount; i++)
+		compositeSpriteIntoBackground(_spriteTable[i], flag);
+}
+
+uint16 SpriteLibrary_v1_2_1::hitTestMultipartDispatch(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
+	if (first->partCount != 0 && second->partCount != 0)
+		return hitTestMultipartPair(first, second);
+
+	if (first->partCount != 0)
+		return hitTestMultipartVsSingle(second, first);
+
+	return hitTestMultipartVsSingle(first, second);
+}
+
+uint16 SpriteLibrary_v1_2_1::hitTestMultipartPair(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
+	if (!first->parts || !second->parts) {
+		warning("SpriteLibrary_v1_2_1::hitTestMultipartPair(): the multipart sprite has no parts");
+		return 0;
+	}
+
+	for (uint16 i = 0; i < first->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++) {
+		const SpritePart &firstPart = first->parts->parts[i];
+
+		for (uint16 j = 0; j < second->partCount && j < TG_SPR_V1_2_NUM_SPRITE_PARTS; j++) {
+			const SpritePart &secondPart = second->parts->parts[j];
+
+			Common::Rect overlap;
+			if (!intersectRectLocal(firstPart.box, secondPart.box, overlap))
+				continue;
+
+			if (!firstPart.frame || !secondPart.frame) {
+				warning("SpriteLibrary_v1_2_1::hitTestMultipartPair(): the sprite part has no frame");
+				continue;
+			}
+
+			uint16 hit = blitPixelOverlapTest(firstPart.frame, secondPart.frame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
+			                                  (int16)(overlap.left - firstPart.box.left), (int16)(overlap.top - firstPart.box.top),
+			                                  (int16)(overlap.left - secondPart.box.left), (int16)(overlap.top - secondPart.box.top),
+			                                  flipFlags(first), flipFlags(second));
+			if (hit != 0)
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
+uint16 SpriteLibrary_v1_2_1::hitTestMultipartVsSingle(const SpriteObject_v1_2 *single, const SpriteObject_v1_2 *multipart) {
+	if (!multipart->parts) {
+		warning("SpriteLibrary_v1_2_1::hitTestMultipartVsSingle(): the multipart sprite has no parts");
+		return 0;
+	}
+
+	for (uint16 i = 0; i < multipart->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++) {
+		const SpritePart &part = multipart->parts->parts[i];
+
+		Common::Rect overlap;
+		if (!intersectRectLocal(single->boundingBox, part.box, overlap))
+			continue;
+
+		if (!single->currentFrame || !part.frame) {
+			warning("SpriteLibrary_v1_2_1::hitTestMultipartVsSingle(): the sprite has no frame");
+			continue;
+		}
+
+		uint16 hit = blitPixelOverlapTest(single->currentFrame, part.frame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
+		                                  (int16)(overlap.left - single->boundingBox.left), (int16)(overlap.top - single->boundingBox.top),
+		                                  (int16)(overlap.left - part.box.left), (int16)(overlap.top - part.box.top),
+		                                  flipFlags(single), flipFlags(multipart));
+		if (hit != 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+uint16 SpriteLibrary_v1_2_1::spriteHitDetect(uint16 spriteA, uint16 spriteB, uint16 allowInvisibleA, uint16 allowInvisibleB, uint16 sameLevelOnly) {
+	SpriteObject_v1_2 *first = findSprite(spriteA, "spriteHitDetect");
+	SpriteObject_v1_2 *second = findSprite(spriteB, "spriteHitDetect");
+	if (!first || !second)
+		return 0;
+
+	if (sameLevelOnly != 0 && first->level != second->level)
+		return 0;
+
+	if (!first->visible && allowInvisibleA == 0)
+		return 0;
+
+	if (!second->visible && allowInvisibleB == 0)
+		return 0;
+
+	Common::Rect overlap;
+	if (!intersectRectLocal(first->boundingBox, second->boundingBox, overlap))
+		return 0;
+
+	if (first->partCount == 0 && second->partCount == 0) {
+		if (!first->currentFrame || !second->currentFrame)
+			return 0;
+
+		return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
+		                            (int16)(overlap.left - first->boundingBox.left), (int16)(overlap.top - first->boundingBox.top),
+		                            (int16)(overlap.left - second->boundingBox.left), (int16)(overlap.top - second->boundingBox.top),
+		                            flipFlags(first), flipFlags(second));
+	}
+
+	return hitTestMultipartDispatch(first, second);
+}
+
+uint16 SpriteLibrary_v1_2_1::spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect) {
+	SpriteObject_v1_2 *first = findSprite(spriteA, "spriteHitDetectRect");
+	SpriteObject_v1_2 *second = findSprite(spriteB, "spriteHitDetectRect");
+	if (!first || !second)
+		return 0;
+
+	if (!first->visible || !second->visible)
+		return 0;
+
+	Common::Rect overlap;
+	if (!intersectRectLocal(rect, second->boundingBox, overlap))
+		return 0;
+
+	if (first->partCount == 0 && second->partCount == 0) {
+		if (!first->currentFrame || !second->currentFrame)
+			return 0;
+
+		return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
+		                            (int16)(overlap.left - first->boundingBox.left), (int16)(overlap.top - first->boundingBox.top),
+		                            (int16)(overlap.left - second->boundingBox.left), (int16)(overlap.top - second->boundingBox.top),
+		                            flipFlags(first), flipFlags(second));
+	}
+
+	return hitTestMultipartDispatch(first, second);
+}
+
+void SpriteLibrary_v1_2_1::spriteDibDiff(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
+	if (!destination || !source) {
+		warning("SpriteLibrary_v1_2_1::spriteDibDiff(): a bitmap is missing");
+		return;
+	}
+
+	blitDibDiffRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
+}
+
+void SpriteLibrary_v1_2_1::spriteDibMerge(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
+	if (!destination || !source) {
+		warning("SpriteLibrary_v1_2_1::spriteDibMerge(): a bitmap is missing");
+		return;
+	}
+
+	blitTransparentRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
+}
+
+void SpriteLibrary_v1_2_1::spriteDibSet(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color) {
+	if (!bitmap) {
+		warning("SpriteLibrary_v1_2_1::spriteDibSet(): the bitmap is missing");
+		return;
+	}
+
+	fillBitmapByte(bitmap, x, y, width, height, color);
+}
+
+void SpriteLibrary_v1_2_1::spriteDibGetBox(const byte *bitmap, Common::Rect &box) {
+	int16 width = (int16)READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 height = (int16)READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
+	int16 heightMinusOne = (int16)(height - 1);
+
+	box.left = (int16)((int16)(1 - width) / 2 + READ_LE_INT16(bitmap + TG_SPR_BITMAP_HOT_X_OFFSET));
+	box.right = (int16)(width + box.left);
+	box.top = (int16)(READ_LE_INT16(bitmap + TG_SPR_BITMAP_HOT_Y_OFFSET) - heightMinusOne / 2);
+	box.bottom = (int16)(height + box.top);
+}
+
+void SpriteLibrary_v1_2_1::spriteScreenShake(int16 deltaX, int16 deltaY) {
+	Display *display = engine()->display();
+
+	int16 clientWidth = display->width();
+	int16 clientHeight = display->height();
+	int16 widthDifference = (int16)(clientWidth - _clipRect.right + _clipRect.left - 1);
+	int16 heightDifference = (int16)(clientHeight - _clipRect.bottom + _clipRect.top - 1);
+
+	Common::Rect area = _clipRect;
+	if (widthDifference < 0 || heightDifference < 0) {
+		int16 inflateX = widthDifference / 2;
+		int16 inflateY = heightDifference / 2;
+		area.left = (int16)(area.left - inflateX);
+		area.right = (int16)(area.right + inflateX);
+		area.top = (int16)(area.top - inflateY);
+		area.bottom = (int16)(area.bottom + inflateY);
+	}
+
+	display->scrollDevice(area, deltaX, deltaY);
+	display->scrollDevice(area, (int16)(-2 * deltaX), (int16)(-2 * deltaY));
+	display->scrollDevice(area, deltaX, deltaY);
+
+	int16 stripWidth = (deltaX < 0) ? (int16)-deltaX : deltaX;
+	int16 stripHeight = (deltaY < 0) ? (int16)-deltaY : deltaY;
+
+	if (stripWidth != 0) {
+		Common::Rect strip = area;
+		strip.right = (int16)(stripWidth + strip.left);
+		spritePaintRect(strip, false);
+
+		strip.right = area.right;
+		strip.left = (int16)(area.right - stripWidth);
+		spritePaintRect(strip, false);
+	}
+
+	if (stripHeight != 0) {
+		Common::Rect strip = area;
+		strip.bottom = (int16)(stripHeight + strip.top);
+		spritePaintRect(strip, false);
+
+		strip.bottom = area.bottom;
+		strip.top = (int16)(area.bottom - stripHeight);
+		spritePaintRect(strip, false);
+	}
+}
+
+bool SpriteLibrary_v1_2_1::isRleBitmap(const byte *bitmap) const {
+	return (bitmap[TG_SPR_V1_2_1_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_1_BITMAP_RLE_FLAG) != 0;
+}
+
+void SpriteLibrary_v1_2_1::decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const {
+	const byte *pixels = bitmapPixels(bitmap);
+	const byte *position = pixels + READ_LE_UINT16(pixels + 2 * row);
+
+	uint32 column = 0;
+	uint16 filled = 0;
+
+	while (filled < count) {
+		byte code = *position++;
+		if (code == 0)
+			break;
+
+		uint16 length;
+		bool literal = false;
+		bool tested = false;
+		byte runValue = 0;
+
+		if (code <= TG_SPR_V1_2_1_RLE_LAST_RUN_CODE) {
+			length = code;
+			runValue = *position++;
+		} else {
+			length = (uint16)(TG_SPR_V1_2_1_RLE_TESTED_LITERAL_CODE - code);
+			literal = true;
+			if (length == 0) {
+				length = *position++;
+				tested = true;
+			}
+		}
+
+		for (uint16 i = 0; i < length; i++) {
+			byte value = literal ? *position++ : runValue;
+			if (column >= firstColumn && filled < count) {
+				values[filled] = value;
+				forced[filled] = (literal && !tested) ? 1 : 0;
+				filled++;
+			}
+
+			column++;
+		}
+	}
+
+	if (filled < count) {
+		warning("SpriteLibrary_v1_2_1::decodeRleRow(): the row ends before the requested pixels");
+		for (; filled < count; filled++) {
+			values[filled] = 0;
+			forced[filled] = 0;
+		}
+	}
+}
+
+bool SpriteLibrary_v1_2_1::blitSetupRleSource(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitSetup &setup) {
+	uint16 sourceWidth = READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET);
+	uint16 sourceHeight = READ_LE_UINT16(source + TG_SPR_BITMAP_HEIGHT_OFFSET);
+	uint16 destinationWidth = READ_LE_UINT16(destination + TG_SPR_BITMAP_WIDTH_OFFSET);
+	uint16 destinationPitch = READ_LE_UINT16(destination + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
+	uint16 destinationHeight = READ_LE_UINT16(destination + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	bool inside = (destinationX >= 0 && destinationY >= 0 && sourceX >= 0 && sourceY >= 0 &&
+	               destinationX + width <= destinationWidth && destinationY + height <= destinationHeight &&
+	               sourceX + width <= sourceWidth && sourceY + height <= sourceHeight);
+
+	if (!inside) {
+		warning("SpriteLibrary_v1_2_1::blitSetupRleSource(): the rectangle is outside the bitmaps");
+
+		if (destinationX < 0 || destinationY < 0 || sourceX < 0 || sourceY < 0)
+			return false;
+
+		int availableWidth = MIN(sourceWidth - sourceX, destinationWidth - destinationX);
+		int availableHeight = MIN(sourceHeight - sourceY, destinationHeight - destinationY);
+		if (availableWidth <= 0 || availableHeight <= 0)
+			return false;
+
+		width = MIN((int)width, availableWidth);
+		height = MIN((int)height, availableHeight);
+	}
+
+	bool mirror = ((flags & TG_SPR_V1_2_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_1_FLIP_FLAG_MASK) != 0);
+
+	if (mirror)
+		setup.firstColumn = (uint16)(sourceWidth - width - sourceX);
+	else
+		setup.firstColumn = (uint16)sourceX;
+
+	if (flip)
+		setup.firstRow = (int32)sourceHeight - sourceY - 1;
+	else
+		setup.firstRow = (int32)sourceY + height - 1;
+
+	int32 destinationRow;
+	if (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 1) {
+		if (flip) {
+			destinationRow = (int32)destinationHeight - destinationY - 1;
+			setup.destinationStride = -(int32)destinationPitch;
+		} else {
+			destinationRow = (int32)destinationHeight - destinationY - height;
+			setup.destinationStride = destinationPitch;
+		}
+	} else {
+		if (flip) {
+			destinationRow = destinationY;
+			setup.destinationStride = destinationPitch;
+		} else {
+			destinationRow = (int32)destinationY + height - 1;
+			setup.destinationStride = -(int32)destinationPitch;
+		}
+	}
+
+	setup.destination = bitmapPixels(destination) + destinationRow * (int32)destinationPitch + destinationX;
+	return true;
+}
+
+void SpriteLibrary_v1_2_1::blitRleRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitMode_v1_2_1 mode) {
+	RleBlitSetup setup;
+	if (!blitSetupRleSource(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, setup))
+		return;
+
+	Common::Array<byte> values;
+	Common::Array<byte> forced;
+	values.resize(width);
+	forced.resize(width);
+
+	bool mirror = ((flags & TG_SPR_V1_2_1_MIRROR_FLAG_MASK) != 0);
+
+	for (uint16 row = 0; row < height; row++) {
+		decodeRleRow(source, (uint16)(setup.firstRow - row), setup.firstColumn, width, &values[0], &forced[0]);
+
+		byte *line = setup.destination + (int32)row * setup.destinationStride;
+		for (uint16 column = 0; column < width; column++) {
+			uint16 index = mirror ? (uint16)(width - 1 - column) : column;
+			byte value = values[index];
+			bool opaque = (value != 0 || forced[index] != 0);
+
+			switch (mode) {
+			case kSprV1_2_1BlitCopy:
+				line[column] = value;
+				break;
+
+			case kSprV1_2_1BlitTransparent:
+				if (opaque)
+					line[column] = value;
+
+				break;
+
+			case kSprV1_2_1BlitMasked:
+				if (opaque && line[column] != 0)
+					line[column] = value;
+
+				break;
+			}
+		}
+	}
+}
+
+void SpriteLibrary_v1_2_1::blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+	if (width == 0 || height == 0)
+		return;
+
+	if (isRleBitmap(source))
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_1BlitCopy);
+	else
+		SpriteLibrary_v1_2::blitOpaqueRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
+}
+
+void SpriteLibrary_v1_2_1::blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+	if (width == 0 || height == 0)
+		return;
+
+	if (isRleBitmap(source))
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_1BlitTransparent);
+	else
+		SpriteLibrary_v1_2::blitTransparentRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
+}
+
+void SpriteLibrary_v1_2_1::blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+	if (width == 0 || height == 0)
+		return;
+
+	if (isRleBitmap(source))
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_1BlitMasked);
+	else
+		SpriteLibrary_v1_2::blitMaskedRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
+}
+
+void SpriteLibrary_v1_2_1::fetchBitmapRow(const byte *bitmap, int32 row, int32 firstColumn, uint16 count, byte *values) const {
+	int32 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int32 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	memset(values, 0, count);
+
+	if (row < 0 || row >= height)
+		return;
+
+	int32 from = MAX(firstColumn, (int32)0);
+	int32 to = MIN(firstColumn + count, width);
+	if (from >= to)
+		return;
+
+	uint16 length = (uint16)(to - from);
+
+	if (isRleBitmap(bitmap)) {
+		Common::Array<byte> forced;
+		forced.resize(length);
+		decodeRleRow(bitmap, (uint16)row, (uint16)from, length, values + (from - firstColumn), &forced[0]);
+	} else {
+		uint16 pitch = READ_LE_UINT16(bitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
+		const byte *line = bitmapPixels(bitmap) + (int32)(height - 1 - row) * pitch;
+		memcpy(values + (from - firstColumn), line + from, length);
+	}
+}
+
+uint16 SpriteLibrary_v1_2_1::blitPixelOverlapTest(const byte *first, const byte *second, uint16 width, uint16 height, int16 firstX, int16 firstY, int16 secondX, int16 secondY, uint16 firstFlags, uint16 secondFlags) {
+	if (width == 0 || height == 0)
+		return 0;
+
+	int16 firstWidth = (int16)READ_LE_UINT16(first + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 firstHeight = (int16)READ_LE_UINT16(first + TG_SPR_BITMAP_HEIGHT_OFFSET);
+	int16 secondWidth = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 secondHeight = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	if ((firstFlags & TG_SPR_V1_2_1_MIRROR_FLAG_MASK) != 0)
+		firstX = (int16)(firstWidth - firstX - width);
+
+	if ((firstFlags & TG_SPR_V1_2_1_FLIP_FLAG_MASK) != 0)
+		firstY = (int16)(firstHeight - firstY - height);
+
+	if ((secondFlags & TG_SPR_V1_2_1_MIRROR_FLAG_MASK) != 0)
+		secondX = (int16)(secondWidth - secondX - width);
+
+	if ((secondFlags & TG_SPR_V1_2_1_FLIP_FLAG_MASK) != 0)
+		secondY = (int16)(secondHeight - secondY - height);
+
+	if (firstX < 0 || firstY < 0 || firstX + width > firstWidth || firstY + height > firstHeight ||
+	    secondX < 0 || secondY < 0 || secondX + width > secondWidth || secondY + height > secondHeight)
+		warning("SpriteLibrary_v1_2_1::blitPixelOverlapTest(): the rectangle is outside the bitmaps");
+
+	Common::Array<byte> firstRow;
+	Common::Array<byte> secondRow;
+	firstRow.resize(width);
+	secondRow.resize(width);
+
+	for (uint16 row = 0; row < height; row++) {
+		fetchBitmapRow(first, firstY + row, firstX, width, &firstRow[0]);
+		fetchBitmapRow(second, secondY + row, secondX, width, &secondRow[0]);
+
+		for (uint16 column = 0; column < width; column++) {
+			if (firstRow[column] != 0 && secondRow[column] != 0)
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
+uint16 SpriteLibrary_v1_2_1::getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flags) {
+	int32 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int32 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	bool mirror = ((flags & TG_SPR_V1_2_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_1_FLIP_FLAG_MASK) != 0);
+
+	int32 column = mirror ? width - x - 1 : x;
+	int32 row = flip ? height - y - 1 : y;
+
+	if (column < 0 || column >= width || row < 0 || row >= height) {
+		warning("SpriteLibrary_v1_2_1::getBitmapPixel(): the pixel is outside the bitmap");
+		return 0;
+	}
+
+	if (isRleBitmap(bitmap)) {
+		byte value = 0;
+		byte forced = 0;
+		decodeRleRow(bitmap, (uint16)row, (uint16)column, 1, &value, &forced);
+		return value;
+	}
+
+	uint16 pitch = READ_LE_UINT16(bitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
+	return bitmapPixels(bitmap)[(height - 1 - row) * pitch + column];
 }
 
 } // End of namespace Topgun

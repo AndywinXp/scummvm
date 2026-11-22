@@ -39,7 +39,7 @@ enum ScriptOpcodeV1_1 {
 
 class TopgunEngine_v1_1 : public TopgunEngine_v1_0 {
 public:
-	TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc, int version = 1);
+	TopgunEngine_v1_1(OSystem *syst, const ADGameDescription *gameDesc, int version = kVersionV1_1);
 	~TopgunEngine_v1_1() override;
 
 protected:

@@ -348,7 +348,7 @@ protected:
 	void profileCDStart();
 	uint16 findCdAuxDevice();
 	void pollCDEndAndClose();
-	uint16 closeCDAudioDevice();
+	virtual uint16 closeCDAudioDevice();
 	virtual void resetWaveQueueAndEnableAllWaves(uint16 on);
 	uint32 getExtractedTrackFrames(uint32 track);
 	void applyCdVolume(uint32 volume);

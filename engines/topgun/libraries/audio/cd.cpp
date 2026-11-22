@@ -215,7 +215,7 @@ bool AudioLibrary::openCDAudioDevice() {
 }
 
 uint16 AudioLibrary::startCDPlayback(uint32 from, uint32 to) {
-	if (_engine->_version >= 1 && _muted)
+	if (_engine->_version >= kVersionV1_1 && _muted)
 		return 0;
 
 	if (_cdDeviceId == 0 && !openCDAudioDevice())
@@ -240,7 +240,7 @@ uint16 AudioLibrary::startCDPlayback(uint32 from, uint32 to) {
 	play.to = ((_cdTo >> 24) & 0xFF) | (((_cdTo >> 16) & 0xFF) << 8) | (((_cdTo >> 8) & 0xFF) << 16) | ((_cdTo & 0xFF) << 24);
 	sendCdDeviceCommand(TG_AUDIO_DEV_PLAY, TG_AUDIO_DEV_FROM | TG_AUDIO_DEV_TO, play);
 
-	if (_engine->_version >= 1) {
+	if (_engine->_version >= kVersionV1_1) {
 		if (_cdProfileFirst || _cdSlowStart)
 			profileCDStart();
 	} else {
@@ -339,7 +339,7 @@ uint16 AudioLibrary::findCdAuxDevice() {
 		}
 	}
 
-	if (_engine->_version >= 1)
+	if (_engine->_version >= kVersionV1_1)
 		_cdProfileFirst = !ConfMan.hasKey("profilecd") || ConfMan.getInt("profilecd") != 0;
 
 	return 1;
@@ -370,7 +370,7 @@ uint16 AudioLibrary::closeCDAudioDevice() {
 		_cdDeviceId = 0;
 	}
 
-	if (_engine->_version >= 1 && _cdFadeMode != 0) {
+	if (_engine->_version >= kVersionV1_1 && _cdFadeMode != 0) {
 		setCDAudioVolume(((uint32)_cdFadeTargetRight << 16) | _cdFadeTargetLeft);
 		_cdFadeMode = 0;
 	}

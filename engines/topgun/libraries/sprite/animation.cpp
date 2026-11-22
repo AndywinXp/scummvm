@@ -33,7 +33,7 @@ namespace Topgun {
 void SpriteLibrary::spriteAnimate() {
 	_inTick = true;
 
-	if (_engine->_version >= 1 && _serviceProcSet)
+	if (_engine->_version >= kVersionV1_1 && _serviceProcSet)
 		_engine->audioLibrary()->audioService();
 
 	if (_tickCursor < _spriteCount) {
@@ -622,11 +622,13 @@ Common::Point SpriteLibrary::computeQuadCurvePoint(uint16 step, uint16 steps, in
 
 	int16 controlX = (int16)((uint16)(viaRelativeX * 4) - (uint16)endRelativeX);
 	int64 sumX = (int64)(int32)weight * controlX + (int64)((uint32)u * u) * endRelativeX;
-	sumX += (sumX < 0) ? -0x80000 : 0x80000;
+	if (_engine->_version < kVersionV1_2_1)
+		sumX += (sumX < 0) ? -0x80000 : 0x80000;
 
 	int16 controlY = (int16)((uint16)(viaRelativeY * 4) - (uint16)endRelativeY);
 	int64 sumY = (int64)(int32)weight * controlY + (int64)((uint32)u * u) * endRelativeY;
-	sumY += (sumY < 0) ? -0x80000 : 0x80000;
+	if (_engine->_version < kVersionV1_2_1)
+		sumY += (sumY < 0) ? -0x80000 : 0x80000;
 
 	Common::Point point;
 	point.x = (int16)((uint16)(sumX >> 20) + (uint16)x0);

@@ -25,6 +25,8 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "tuneland", "TuneLand Starring Howie Mandel" },
 	{ "tunesplayer", "TuneLand Tunes Player" },
 	{ "pythonwaste", "Monty Python's Complete Waste of Time" },
+	{ "battlebeast", "Battle Beast" },
+	{ "junglegames", "Timon & Pumbaa's Jungle Games" },
 	{ 0, 0 }
 };
 
@@ -66,6 +68,56 @@ const ADGameDescription gameDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"battlebeast",
+		nullptr,
+		AD_ENTRY1s("BEAST.BIN", "f501fdf6a9a6ac7c141abf9b5c5a41e2", 4214131),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglegames",
+		nullptr,
+		AD_ENTRY1s("JUNGMAIN.BIN", "49e89089db55c65b0f507f2718720254", 7148491),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglegames",
+		nullptr,
+		AD_ENTRY1s("JUNGMAIN.BIN", "2848632c56f4775b20e6af82f99a3bfe", 7224580),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglegames",
+		nullptr,
+		AD_ENTRY1s("JUNGMAIN.BIN", "76aecef25e36dd95e663b8cd3aa619fd", 7187831),
+		Common::FR_FRA,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglegames",
+		nullptr,
+		AD_ENTRY1s("JUNGMAIN.BIN", "446413cef0cea2fc4fbbaf10d838caa4", 7074945),
+		Common::JA_JPN,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

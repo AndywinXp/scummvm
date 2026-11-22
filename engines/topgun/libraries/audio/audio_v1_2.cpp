@@ -24,9 +24,9 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio/audio_v1_2.h"
+#include "topgun/libraries/audio/audio_v1_2_1.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v1_2_1.h"
 
 namespace Topgun {
 
@@ -313,6 +313,160 @@ void AudioLibrary_v1_2::masterFadeDownTick() {
 	}
 
 	setWaveOutVolume(((uint32)_waveVolumeRight << 16) | _waveVolumeLeft);
+}
+
+AudioLibrary_v1_2_1::AudioLibrary_v1_2_1(TopgunEngine_v1_2_1 *engine) : AudioLibrary_v1_2(engine) {
+}
+
+TopgunEngine_v1_2_1 *AudioLibrary_v1_2_1::engine() const {
+	return static_cast<TopgunEngine_v1_2_1 *>(_engine);
+}
+
+AudioLibrary_v1_2_1::~AudioLibrary_v1_2_1() {
+	closeMidiOutDevice();
+	freeAudioContext();
+}
+
+uint16 AudioLibrary_v1_2_1::audioInitLibrary(uint16 hwnd, uint16 version) {
+	if (version != TG_AUDIO_V1_2_1_VERSION)
+		return 0;
+
+	if (!_libMainDone) {
+		_libMainDone = true;
+		initializeAudioSubsystem();
+	}
+
+	if (!allocAudioContext())
+		return 0;
+
+	_hwnd = hwnd;
+	return 1;
+}
+
+void AudioLibrary_v1_2_1::audioExitLibrary() {
+	releaseCDDeviceIfOwned();
+	destroyAllMidiObjects();
+	destroyAllWaveObjectsAndCloseDevice();
+	freeAudioContext();
+}
+
+void AudioLibrary_v1_2_1::audioService() {
+	pumpAudioPlayback();
+	midiServiceTick();
+}
+
+void AudioLibrary_v1_2_1::audioActivate(uint16 on) {
+	updateWaveEnabledFlags(on);
+
+	if (on == 0) {
+		audioStopCd();
+		closeMidiOutDevice();
+		audioCloseWave();
+		return;
+	}
+
+	if (_paused)
+		return;
+
+	if (_activeSounds != 0)
+		openWaveDevice(&_waveFormat);
+
+	if (_currentMidi) {
+		openAndConfigureMidiOut();
+		_currentMidi->index = 0;
+		midiSequencerStep(_currentMidi);
+	}
+}
+
+void AudioLibrary_v1_2_1::audioPause(uint16 paused) {
+	bool state = (paused != 0);
+
+	if (state == _paused)
+		return;
+
+	_paused = state;
+	pauseAllPlayback(state ? 1 : 0);
+
+	if (_currentMidi)
+		pauseOrResumeMidiPlayback(state ? 1 : 0);
+}
+
+void AudioLibrary_v1_2_1::audioMute(int16 flag) {
+	bool previous = _mute;
+
+	if (flag < 0)
+		_mute = !previous;
+	else
+		_mute = (flag > 0);
+
+	if (_mute != previous) {
+		muteCDAudio();
+		waveMuteImpl();
+		muteMidiOutput();
+	}
+}
+
+void AudioLibrary_v1_2_1::audioResetLibrary() {
+	_maxPriority = 0;
+}
+
+bool AudioLibrary_v1_2_1::allocAudioContext() {
+	if (!AudioLibrary_v1_2::allocAudioContext())
+		return false;
+
+	_paused = false;
+	_maxPriority = 0;
+	_waveMuteSavedVolume = 0;
+	_currentMidi = nullptr;
+	_midiCount = 0;
+	_midiOut = nullptr;
+	_midiOriginalVolume = 0;
+	_midiUserVolume = 0;
+	_midiMuteSavedVolume = 0;
+	_midiUserVolumeSet = false;
+	_midiTimerArmed = false;
+	return true;
+}
+
+void AudioLibrary_v1_2_1::freeAudioContext() {
+	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
+
+	for (uint16 i = 0; i < _midiCount; i++) {
+		utilsLibrary->tgFree(_midiObjects[i]->data);
+		delete _midiObjects[i];
+		_midiObjects[i] = nullptr;
+	}
+
+	_midiCount = 0;
+	_currentMidi = nullptr;
+	AudioLibrary_v1_2::freeAudioContext();
+}
+
+void AudioLibrary_v1_2_1::initializeAudioSubsystem() {
+	readAudioIniSettings();
+	findCdAuxDevice();
+	probeMidiOutCapabilities();
+	probeWaveOutCapabilities();
+}
+
+void AudioLibrary_v1_2_1::readAudioIniSettings() {
+	AudioLibrary_v1_2::readAudioIniSettings();
+
+	_iniMidiVolume = readAudioIniInt("midivolume", 0);
+	_remapMidiDrums = (readAudioIniInt("remapmididrums", 0) != 0);
+}
+
+void AudioLibrary_v1_2_1::writeAudioIniInt(const char *key, uint16 value) {
+	writeAudioIniString(key, Common::String::format("%i", (int16)value).c_str());
+}
+
+void AudioLibrary_v1_2_1::writeAudioIniString(const char *key, const char *value) {
+	ConfMan.set(key, value);
+	ConfMan.flushToDisk();
+}
+
+void AudioLibrary_v1_2_1::saveMidiVolumeToIni() {
+	writeAudioIniInt("midivolume", _iniMidiVolume);
 }
 
 } // End of namespace Topgun

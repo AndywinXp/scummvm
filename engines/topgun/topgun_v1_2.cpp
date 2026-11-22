@@ -32,11 +32,13 @@
 
 namespace Topgun {
 
-TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine_v1_1(syst, gameDesc, 2) {
-	setAudioLibrary(new AudioLibrary_v1_2(this));
-	setResourceLibrary(new ResourceLibrary_v1_2(this));
-	setSpriteLibrary(new SpriteLibrary_v1_2(this));
+TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version) :
+	TopgunEngine_v1_1(syst, gameDesc, version) {
+	if (version == kVersionV1_2) {
+		setAudioLibrary(new AudioLibrary_v1_2(this));
+		setResourceLibrary(new ResourceLibrary_v1_2(this));
+		setSpriteLibrary(new SpriteLibrary_v1_2(this));
+	}
 
 	memset(_variables, 0, sizeof(_variables));
 	memset(_currentSceneName, 0, sizeof(_currentSceneName));

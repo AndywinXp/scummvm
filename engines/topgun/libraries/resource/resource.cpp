@@ -381,7 +381,7 @@ uint16 ResourceLibrary::resCreateWaveEvent(uint16 file, uint16 index) {
 
 	ResourceFile *record = findFile(file, "resCreateWaveEvent");
 
-	bool hasCompressionFlag = (_engine->_version >= 1);
+	bool hasCompressionFlag = (_engine->_version >= kVersionV1_1);
 	uint32 headerSize = hasCompressionFlag ? TG_RES_WAVE_STREAM_HEADER_SIZE_V1_1 : TG_RES_WAVE_STREAM_HEADER_SIZE;
 
 	byte header[TG_RES_WAVE_STREAM_HEADER_SIZE_V1_1];
@@ -496,7 +496,7 @@ byte *ResourceLibrary::resLoadResource(uint16 file, uint16 index, uint32 *outSiz
 	ResourceEntry entry;
 	readEntry(record, index, entry);
 
-	if (entry.type == TG_RES_RESIDENT_TYPE || (entry.type == TG_RES_RESIDENT_ID_LIST_TYPE && _engine->_version >= 1)) {
+	if (entry.type == TG_RES_RESIDENT_TYPE || (entry.type == TG_RES_RESIDENT_ID_LIST_TYPE && _engine->_version >= kVersionV1_1)) {
 		if (!record->extra) {
 			warning("ResourceLibrary::resLoadResource(): the file has no resident block");
 			return nullptr;

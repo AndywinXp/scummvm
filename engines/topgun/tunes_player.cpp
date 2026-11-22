@@ -110,7 +110,7 @@ const TunesPlayerEngine::Tune TunesPlayerEngine::kTunes[TG_TUNES_NUM_TUNES] = {
 };
 
 TunesPlayerEngine::TunesPlayerEngine(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine(syst, gameDesc, 0) {
+	TopgunEngine(syst, gameDesc, kVersionV1_0) {
 }
 
 TunesPlayerEngine::~TunesPlayerEngine() {

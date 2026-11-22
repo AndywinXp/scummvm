@@ -276,7 +276,7 @@ void SpriteLibrary::compositeSpritesInRect(const Common::Rect &rect) {
 		if (!intersectRects(rect, object->boundingBox, common))
 			continue;
 
-		if (_engine->_version >= 1 && object->collisionTarget != 0)
+		if (_engine->_version >= kVersionV1_1 && object->collisionTarget != 0)
 			checkCollision(handle);
 
 		if (object->partCount != 0) {

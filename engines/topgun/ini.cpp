@@ -247,6 +247,85 @@ bool TopgunEngine_v1_2::parseIniHexadecimal(const char *text, uint32 &value) {
 	return found;
 }
 
+void TopgunEngine_v1_2::unescapeIniString(char *destination, const char *source) {
+	uint16 length = 0;
+
+	while (*source != '\0') {
+		char character = *source;
+		source++;
+
+		if (character == '\\') {
+			character = *source;
+			source++;
+
+			if (character == '\0')
+				break;
+
+			if (character >= 'A' && character <= 'Z')
+				character = (char)(character + ('a' - 'A'));
+
+			if (character == 'n')
+				character = '\n';
+			else if (character == 'r')
+				character = '\r';
+			else if (character == 't')
+				character = '\t';
+		}
+
+		if (length + 1 >= TG_INI_V1_2_BUFFER_SIZE) {
+			warning("TopgunEngine_v1_2::unescapeIniString(): the string does not fit in the buffer");
+			break;
+		}
+
+		destination[length] = character;
+		length++;
+	}
+
+	destination[length] = '\0';
+}
+
+void TopgunEngine_v1_2::escapeIniString(char *destination, uint16 size, const char *source) {
+	uint16 length = 0;
+
+	while (*source != '\0') {
+		char character = *source;
+		source++;
+
+		if (length + 3 > size) {
+			warning("TopgunEngine_v1_2::escapeIniString(): the string does not fit in the buffer");
+			break;
+		}
+
+		if (character == '\\') {
+			destination[length] = character;
+			length++;
+			destination[length] = character;
+			length++;
+		} else if (character == '\t') {
+			destination[length] = '\\';
+			destination[length + 1] = 't';
+			length += 2;
+		} else if (character == '\n') {
+			destination[length] = '\\';
+			destination[length + 1] = 'n';
+			length += 2;
+		} else if (character == '\r') {
+			destination[length] = '\\';
+			destination[length + 1] = 'r';
+			length += 2;
+		} else if (character == '"') {
+			destination[length] = '\\';
+			destination[length + 1] = '"';
+			length += 2;
+		} else {
+			destination[length] = character;
+			length++;
+		}
+	}
+
+	destination[length] = '\0';
+}
+
 void TopgunEngine_v1_2::iniReadString(byte obfuscation, uint16 stringId, const char *key, const char *section) {
 	char *destination = getStringFromId(stringId);
 	if (!destination)
@@ -256,6 +335,12 @@ void TopgunEngine_v1_2::iniReadString(byte obfuscation, uint16 stringId, const c
 
 	if (getPrivateProfileString(section, key, buffer, TG_INI_V1_2_BUFFER_SIZE) == 0)
 		return;
+
+	if (_version >= kVersionV1_2_1) {
+		char unescaped[TG_INI_V1_2_BUFFER_SIZE];
+		unescapeIniString(unescaped, buffer);
+		Common::strlcpy(buffer, unescaped, TG_INI_V1_2_BUFFER_SIZE);
+	}
 
 	if (obfuscation != 0)
 		decodeIniString((byte)key[0], buffer);
@@ -279,6 +364,13 @@ void TopgunEngine_v1_2::iniWriteStringEncoded(byte obfuscation, uint16 stringId,
 	const char *value = getStringFromId(stringId);
 	if (!value)
 		return;
+
+	char escaped[TG_INI_V1_2_1_STRING_SIZE];
+
+	if (_version >= kVersionV1_2_1) {
+		escapeIniString(escaped, TG_INI_V1_2_1_STRING_SIZE, value);
+		value = escaped;
+	}
 
 	char buffer[TG_INI_V1_2_BUFFER_SIZE];
 

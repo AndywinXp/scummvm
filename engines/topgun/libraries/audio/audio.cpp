@@ -67,13 +67,13 @@ uint16 AudioLibrary::audioInitLibrary(uint16 version) {
 	_initCount++;
 
 	if (previousCount == 0) {
-		if (_engine->_version >= 1)
+		if (_engine->_version >= kVersionV1_1)
 			_disableWaveVolume = ConfMan.hasKey("disablewavevolume") && ConfMan.getInt("disablewavevolume") != 0;
 
 		probeWaveOutCapabilities();
 		findCdAuxDevice();
 
-		if (_engine->_version < 1)
+		if (_engine->_version < kVersionV1_1)
 			findMasterAuxDevice();
 	}
 
@@ -84,7 +84,7 @@ uint16 AudioLibrary::audioInitLibrary(uint16 version) {
 }
 
 void AudioLibrary::audioExitLibrary() {
-	if (_engine->_version >= 1 && _initCount == 0)
+	if (_engine->_version >= kVersionV1_1 && _initCount == 0)
 		return;
 
 	_initCount--;
@@ -94,7 +94,7 @@ void AudioLibrary::audioExitLibrary() {
 		shutdownMidi();
 		destroyAllWaveObjectsAndCloseDevice();
 
-		if (_engine->_version < 1)
+		if (_engine->_version < kVersionV1_1)
 			restoreMasterVolume();
 	}
 }
@@ -102,12 +102,12 @@ void AudioLibrary::audioExitLibrary() {
 void AudioLibrary::audioService() {
 	pumpAudioPlayback();
 
-	if (_engine->_version >= 1)
+	if (_engine->_version >= kVersionV1_1)
 		cdFadeTick();
 }
 
 uint32 AudioLibrary::audioCommand(uint16 command, uint16 handle, uint32 value, void *block) {
-	uint16 midiPlayFileCommand = (_engine->_version >= 1) ? kCmdMidiPlayDefault : kCmdMidiPlayFile;
+	uint16 midiPlayFileCommand = (_engine->_version >= kVersionV1_1) ? kCmdMidiPlayDefault : kCmdMidiPlayFile;
 
 	if (command == midiPlayFileCommand && !block) {
 		warning("AudioLibrary::audioCommand(): command %d needs a parameter block", command);
@@ -177,10 +177,10 @@ uint32 AudioLibrary::dispatchCDCommand(uint16 command, uint16 handle, uint32 val
 		return (_cdDeviceId != 0) ? 1 : 0;
 
 	case kCmdCdPlayFadeIn:
-		return (_engine->_version >= 1) ? startCDFadeIn(handle, value) : 0;
+		return (_engine->_version >= kVersionV1_1) ? startCDFadeIn(handle, value) : 0;
 
 	case kCmdCdFadeOut:
-		return (_engine->_version >= 1) ? startCDFadeOut(handle) : 0;
+		return (_engine->_version >= kVersionV1_1) ? startCDFadeOut(handle) : 0;
 
 	case kCmdCdGetPosition:
 		if (_cdDeviceId == 0)
@@ -220,7 +220,7 @@ uint32 AudioLibrary::dispatchCDCommand(uint16 command, uint16 handle, uint32 val
 }
 
 uint32 AudioLibrary::dispatchMidiCommand(uint16 command, uint16 handle, uint32 value, void *block) {
-	if (_engine->_version >= 1) {
+	if (_engine->_version >= kVersionV1_1) {
 		if (command == kCmdMidiPlayDefault)
 			return playMidiFile((const char *)block);
 
@@ -491,7 +491,7 @@ void AudioLibrary::masterFadeUpTick() {
 	if (_fadeStepsRemaining == 0 || (_waveVolumeLeft == _fadeTargetVolumeLeft && _waveVolumeRight == _fadeTargetVolumeRight)) {
 		_masterFadeMode = 0;
 
-		if (_engine->_version >= 1) {
+		if (_engine->_version >= kVersionV1_1) {
 			_waveVolumeLeft = _fadeTargetVolumeLeft;
 			_waveVolumeRight = _fadeTargetVolumeRight;
 		}
