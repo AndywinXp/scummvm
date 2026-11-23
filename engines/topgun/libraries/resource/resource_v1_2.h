@@ -43,10 +43,30 @@
 #define TG_RES_V1_2_HEADER_RESIDENT_SIZE_OFFSET    0x6A
 #define TG_RES_V1_2_NO_SPLIT                       0xFFFFFFFF
 
+// Container header of the version with the 0x50 byte records (Best Shot)
+#define TG_RES_V1_2_1_HEADER_SIZE                  0x7C
+#define TG_RES_V1_2_1_HEADER_RECORD_COUNT_OFFSET   0x54
+#define TG_RES_V1_2_1_HEADER_INDEX_COUNT_OFFSET    0x56
+#define TG_RES_V1_2_1_HEADER_PALETTE_COUNT_OFFSET  0x58
+#define TG_RES_V1_2_1_HEADER_MAX_FADE_OFFSET       0x5A
+#define TG_RES_V1_2_1_HEADER_MAX_TRANS_OFFSET      0x5C
+#define TG_RES_V1_2_1_HEADER_NAME_TABLE_SIZE_OFFSET 0x5E
+#define TG_RES_V1_2_1_HEADER_VARIABLE_COUNT_OFFSET 0x60
+#define TG_RES_V1_2_1_HEADER_CHAINED_OFFSET        0x62
+#define TG_RES_V1_2_1_HEADER_CHECKSUM_OFFSET       0x63
+#define TG_RES_V1_2_1_HEADER_VARIABLE_TABLE_OFFSET 0x64
+#define TG_RES_V1_2_1_HEADER_STRING_COUNT_OFFSET   0x68
+#define TG_RES_V1_2_1_HEADER_STRING_POOL_SIZE_OFFSET 0x6A
+#define TG_RES_V1_2_1_HEADER_RESIDENT_SPLIT_OFFSET 0x6C
+#define TG_RES_V1_2_1_HEADER_RESIDENT_SIZE_OFFSET  0x70
+#define TG_RES_V1_2_1_RECORD_SIZE                  0x50
+#define TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR          0x590
+
 // Resident types
 #define TG_RES_V1_2_RESIDENT_FIRST_TYPE            5
 #define TG_RES_V1_2_RESIDENT_LAST_TYPE             12
 #define TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE    10
+#define TG_RES_V1_2_1_RESIDENT_LAST_TYPE           13
 
 // Variable table records
 #define TG_RES_V1_2_VARIABLE_RECORD_SIZE           0x1F
@@ -121,8 +141,10 @@ public:
 	virtual uint16 resGetIndex(uint16 file, const char *name);
 	bool resGetVariable(uint16 file, const char *name, uint16 *value);
 	uint16 resGetTitle(uint16 file, byte *destination, uint16 count);
+	uint16 resGetHeaderRec(uint16 file, byte *destination, uint16 count);
 	virtual const char *resGetConstStr(uint16 file, uint16 offset);
 	uint16 resCountStrings(uint16 file);
+	void resSetNotify(uint16 file, uint16 window);
 
 	// Wave stream callbacks
 	void waveDone(uint16 waveInfo);
@@ -181,7 +203,8 @@ protected:
 	};
 
 	struct ResourceFile : public ResourceLibrary::ResourceFile {
-		byte header[TG_RES_V1_2_HEADER_SIZE];
+		byte header[TG_RES_V1_2_1_HEADER_SIZE];
+		uint16 recordCount;
 		uint16 paletteCount;
 		uint16 nameTableSize;
 		bool chained;
@@ -213,12 +236,12 @@ protected:
 		uint16 notifyWindow;
 		Common::HashMap<uint16, byte *> dynamicResident;
 
-		ResourceFile() : paletteCount(0), nameTableSize(0), chained(false), variableTableCount(0), stringCount(0),
+		ResourceFile() : recordCount(0), paletteCount(0), nameTableSize(0), chained(false), variableTableCount(0), stringCount(0),
 			stringPoolSize(0), residentSplit(0), residentSize(0), residentChunk1(nullptr), residentChunk2(nullptr),
 			variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
 			variablePairs(nullptr), chunkCount(0), maxFadeColors(0), maxTransparentColors(0), extraSlots(0),
 			buildType(0), indexCount(0), variablePairCount(0), notifyWindow(0) {
-			for (uint16 i = 0; i < TG_RES_V1_2_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_1_HEADER_SIZE; i++)
 				header[i] = 0;
 
 			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
@@ -251,6 +274,7 @@ protected:
 	bool loadStringPool(ResourceFile *file);
 	virtual bool loadResidentChunks(ResourceFile *file);
 	void writeVariableTableBack(ResourceFile *file);
+	void notifyHost(uint16 message, ResourceFile *file);
 	bool readChainedBlocks(ResourceFile *file, byte *buffer, uint32 count);
 	bool readResourceBytes(ResourceFile *file, byte *buffer, uint32 count);
 	bool readChunkedWithCallback(ResourceFile *file, byte *buffer, uint32 count);
@@ -260,7 +284,7 @@ protected:
 	uint16 registerWaveInfo(WaveStreamInfo *info);
 
 	// Bitmaps
-	virtual byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize);
+	byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize);
 	bool extractCompressedResourceToFile(uint16 file, ResourceFile *record, Common::WriteStream *output, uint32 compressedSize, uint32 rawSize);
 
 	// Segment stream decoder

@@ -247,8 +247,12 @@ void AudioLibrary_v1_2::audioCloseWave() {
 }
 
 uint16 AudioLibrary_v1_2::audioOpenWave(const WaveFormat *format) {
-	if (!openWaveOutDevice(format))
+	if (!openWaveOutDevice(format)) {
+		if (_engine->_version >= kVersionV1_2_1)
+			audioCloseWave();
+
 		return 0;
+	}
 
 	if (_userVolumeSet)
 		setWaveOutVolume(_userVolume);
@@ -414,8 +418,10 @@ void AudioLibrary_v1_2::pumpAudioPlayback() {
 			compactAndRefillSoundBuffer(sound);
 
 		if (sound->randomMode && !sound->active && _engine->getEngineMillis() >= sound->nextTrigger) {
-			sound->active = true;
-			_activeSounds++;
+			if (_engine->_version >= kVersionV1_2_1)
+				rewindSound(sound);
+
+			activateWaveObject(sound);
 		}
 	}
 }
@@ -436,7 +442,7 @@ void AudioLibrary_v1_2::updateWaveEnabledFlags(uint16 on) {
 	for (uint16 i = 0; i < _soundCount; i++) {
 		SoundObject *sound = _sounds[i];
 
-		if (on != 0 && (!_cdSuspend || (sound->overlay && sound->isStatic)))
+		if (on != 0 && (!_cdSuspend || (sound->isStatic && (_engine->_version >= kVersionV1_2_1 || sound->overlay))))
 			sound->enabled = true;
 		else
 			sound->enabled = false;

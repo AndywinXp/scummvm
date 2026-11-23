@@ -35,8 +35,8 @@
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 
 // Limits of the versions after this one
+#define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
-#define TG_SPR_V1_2_3_CEL_CACHE_SIZE           20
 #define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
 #define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
 #define TG_SPR_V1_2_3_VARIABLE_LAST_INDEX      0x159E
@@ -158,6 +158,8 @@ public:
 	void spriteSetPriority(uint16 sprite, uint16 mode);
 	void spriteSetPickMode(uint16 sprite, uint16 flag);
 	void spriteSetTopMost(uint16 sprite) override;
+	void spriteSetLevel(uint16 sprite, int16 level);
+	void spriteCompToBackground(uint16 sprite, uint16 flag = 0);
 	bool spriteSwapOrder(uint16 spriteA, uint16 spriteB, bool onlyIfBAbove, bool refresh) override;
 	void spriteTransfer(uint16 source, uint16 destination) override;
 	void spriteEmptyQueue(uint16 sprite) override;
@@ -174,6 +176,9 @@ public:
 	// Bitmaps and drawing
 	byte *spriteDibCreate(uint16 width, uint16 height, uint16 flags) override;
 	void spriteDibBlit(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 mode);
+	void spriteDibDiff(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
+	void spriteDibMerge(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
+	void spriteDibSet(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color);
 	void spriteCopyRect(Common::Rect &rect, byte *destination, const byte *source);
 	void spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect);
 	void spriteSetClipBox(const Common::Rect *box);

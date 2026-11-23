@@ -65,6 +65,11 @@
 #define TG_AUDIO_V1_2_PLAY_FLAG_NOTIFY        0x02
 #define TG_AUDIO_V1_2_PLAY_FLAG_KEEP_OTHERS   0x04
 
+// Play flags of the later versions
+#define TG_AUDIO_V1_2_1_PLAY_FLAG_SET_VOLUME  0x01
+#define TG_AUDIO_V1_2_1_PLAY_VOLUME_SHIFT     3
+#define TG_AUDIO_V1_2_1_PLAY_VOLUME_MASK      0x0F
+
 // Sound information block (0x1A bytes)
 #define TG_AUDIO_V1_2_SOUND_INFO_SIZE         0x1A
 #define TG_AUDIO_V1_2_SOUND_INFO_LENGTH       0x10
@@ -127,7 +132,7 @@ public:
 	uint32 audioGetWaveVolume();
 	void audioSetWaveVolume(uint32 volume);
 	void audioSetWaveFormats(uint16 mask);
-	void audioMute(uint16 muted);
+	void audioMute(int16 muted);
 
 	// Master volume
 	uint32 audioGetMasterVolume();
@@ -201,7 +206,7 @@ protected:
 		byte randomRange;
 		ConvertState convert;
 
-		// Fields of the later version
+		// Fields of the later versions
 		uint32 notifyEndTime;
 		int16 initialLoops;
 		int16 priority;
@@ -265,6 +270,8 @@ protected:
 	void setupWaveFadeIn(SoundObject *sound, uint32 milliseconds, byte volume);
 	void setupWaveFadeOut(SoundObject *sound, uint32 milliseconds, byte volume, uint16 mode);
 	virtual bool startWavePlayback(SoundObject *sound, const byte *params);
+	void scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params);
+	virtual void activateWaveObject(SoundObject *sound);
 	void deactivateAllWaves();
 	virtual void finishWaveObject(SoundObject *sound);
 	virtual void stopWaveObject(SoundObject *sound, const byte *params);

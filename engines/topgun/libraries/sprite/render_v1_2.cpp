@@ -103,6 +103,33 @@ void SpriteLibrary_v1_2::spriteDibBlit(byte *destination, const byte *source, ui
 	}
 }
 
+void SpriteLibrary_v1_2::spriteDibDiff(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
+	if (!destination || !source) {
+		warning("SpriteLibrary_v1_2::spriteDibDiff(): a bitmap is missing");
+		return;
+	}
+
+	blitDibDiffRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
+}
+
+void SpriteLibrary_v1_2::spriteDibMerge(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
+	if (!destination || !source) {
+		warning("SpriteLibrary_v1_2::spriteDibMerge(): a bitmap is missing");
+		return;
+	}
+
+	blitTransparentRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
+}
+
+void SpriteLibrary_v1_2::spriteDibSet(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color) {
+	if (!bitmap) {
+		warning("SpriteLibrary_v1_2::spriteDibSet(): the bitmap is missing");
+		return;
+	}
+
+	fillBitmapByte(bitmap, x, y, width, height, color);
+}
+
 void SpriteLibrary_v1_2::spriteCopyRect(Common::Rect &rect, byte *destination, const byte *source) {
 	if (!source || !destination)
 		return;
@@ -497,7 +524,7 @@ void SpriteLibrary_v1_2::compositeSpriteIntoBackground(uint16 sprite, uint16 fla
 		}
 	}
 
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_1) {
 		if (flag == 0) {
 			spriteHide(sprite, false);
 			spriteEmptyQueue(sprite);
@@ -505,6 +532,16 @@ void SpriteLibrary_v1_2::compositeSpriteIntoBackground(uint16 sprite, uint16 fla
 	} else {
 		spriteHide(sprite, true);
 	}
+}
+
+void SpriteLibrary_v1_2::spriteCompToBackground(uint16 sprite, uint16 flag) {
+	if (sprite != 0) {
+		compositeSpriteIntoBackground(sprite, flag);
+		return;
+	}
+
+	for (uint16 i = 0; i < _spriteCount; i++)
+		compositeSpriteIntoBackground(_spriteTable[i], flag);
 }
 
 void SpriteLibrary_v1_2::compositeMultipartIntoBackground(uint16 sprite, const Common::Rect &rect) {
@@ -529,7 +566,7 @@ void SpriteLibrary_v1_2::compositeMultipartIntoBackground(uint16 sprite, const C
 			continue;
 		}
 
-		const Common::Rect &origin = (_engine->_version >= kVersionV1_2_3) ? part.box : object->boundingBox;
+		const Common::Rect &origin = (_engine->_version >= kVersionV1_2_1) ? part.box : object->boundingBox;
 
 		blitTransparentRect(_backgroundBitmap, part.frame, (uint16)(common.right - common.left), (uint16)(common.bottom - common.top),
 		                    (int16)(common.left + _scrollX), (int16)(common.top + _scrollY),
@@ -661,16 +698,6 @@ uint16 SpriteLibrary_v1_2::spriteHitDetect(uint16 spriteA, uint16 spriteB) {
 	return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)width, (uint16)height, firstX, firstY, secondX, secondY, 0);
 }
 
-void SpriteLibrary_v1_2_3::spriteCompToBackground(uint16 sprite, uint16 flag) {
-	if (sprite != 0) {
-		compositeSpriteIntoBackground(sprite, flag);
-		return;
-	}
-
-	for (uint16 i = 0; i < _spriteCount; i++)
-		compositeSpriteIntoBackground(_spriteTable[i], flag);
-}
-
 uint16 SpriteLibrary_v1_2_3::hitTestMultipartDispatch(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
 	if (first->partCount != 0 && second->partCount != 0)
 		return hitTestMultipartPair(first, second);
@@ -799,33 +826,6 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetectRect(uint16 spriteA, uint16 spriteB,
 	}
 
 	return hitTestMultipartDispatch(first, second);
-}
-
-void SpriteLibrary_v1_2_3::spriteDibDiff(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
-	if (!destination || !source) {
-		warning("SpriteLibrary_v1_2_3::spriteDibDiff(): a bitmap is missing");
-		return;
-	}
-
-	blitDibDiffRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
-}
-
-void SpriteLibrary_v1_2_3::spriteDibMerge(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY) {
-	if (!destination || !source) {
-		warning("SpriteLibrary_v1_2_3::spriteDibMerge(): a bitmap is missing");
-		return;
-	}
-
-	blitTransparentRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, 0);
-}
-
-void SpriteLibrary_v1_2_3::spriteDibSet(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color) {
-	if (!bitmap) {
-		warning("SpriteLibrary_v1_2_3::spriteDibSet(): the bitmap is missing");
-		return;
-	}
-
-	fillBitmapByte(bitmap, x, y, width, height, color);
 }
 
 void SpriteLibrary_v1_2_3::spriteDibGetBox(const byte *bitmap, Common::Rect &box) {

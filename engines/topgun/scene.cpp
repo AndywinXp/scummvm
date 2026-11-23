@@ -254,14 +254,16 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		_keyHookScript = 0;
 		_mouseEventScript = 0;
 		newer->_numNativeTimers = 0;
-		newer->_pauseScript = 0;
 		newer->_activateScript = 0;
-		newer->clearJoystickScripts();
+		clearJoystickScripts();
 		newer->clearDeviceState();
 	} else {
 		_scriptArgStackOffset = 0;
 		_scriptArgCount = 0;
 	}
+
+	if (_version >= kVersionV1_2_1)
+		_pauseScript = 0;
 
 	_hoverRegionCurrent = 0;
 	_numHoverRegions = 0;
@@ -278,6 +280,12 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 
 			_file = 0;
 			_numResources = 0;
+		} else if (_version >= kVersionV1_2_1) {
+			if (_file != 0)
+				resourceLib()->resCloseFile(_file);
+
+			_file = 0;
+			fatalError(102, Common::String::format("Can't open file '%s'.", name.c_str()));
 		} else {
 			fatalError(Common::String::format("Can't open file '%s'.", name.c_str()));
 		}
@@ -286,8 +294,8 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	}
 
 	if (!findOrCreateSceneEntry(name)) {
-		if (_version >= kVersionV1_2_3)
-			static_cast<TopgunEngine_v1_2_3 *>(this)->fatalError(100, "Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
+		if (_version >= kVersionV1_2_1)
+			fatalError(100, "Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 		else
 			fatalError("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 
@@ -404,16 +412,24 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 		memset(newer->_quitSceneName, 0, sizeof(newer->_quitSceneName));
 		memset(newer->_gotoSceneName, 0, sizeof(newer->_gotoSceneName));
-		newer->clearJoystickScripts();
+		clearJoystickScripts();
 		newer->clearDeviceState();
 	} else {
 		notifyPythonizerWindow();
 
 		_gotoRecord = GotoSceneRecord();
+
+		if (_version >= kVersionV1_2_1)
+			clearJoystickScripts();
 	}
 
 	uint16 firstClearedVariable = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_SYSTEM_VARIABLE : TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
-	uint16 numClearedVariables = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES : TG_HOST_V1_2_NUM_CLEARED_VARIABLES;
+	uint16 numClearedVariables = TG_HOST_V1_2_NUM_CLEARED_VARIABLES;
+
+	if (_version >= kVersionV1_2_3)
+		numClearedVariables = TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES;
+	else if (_version >= kVersionV1_2_1)
+		numClearedVariables = TG_HOST_V1_2_1_NUM_CLEARED_VARIABLES;
 
 	for (uint16 i = 0; i < numClearedVariables; i++)
 		writeVariable(firstClearedVariable + i, 0);
@@ -432,11 +448,9 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_PROCESSOR_TYPE : TG_HOST_V1_2_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
 	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_OVER_256_COLORS : TG_HOST_V1_2_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
 
-	if (_version >= kVersionV1_2_3) {
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
-
-		writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER, newer->_screenSaverOption);
-		writeVariable(TG_HOST_V1_2_3_VARIABLE_JOYSTICKS, newer->_numJoysticks);
+	if (_version >= kVersionV1_2_1) {
+		writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER : TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER, _screenSaverOption);
+		writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_JOYSTICKS : TG_HOST_V1_2_1_VARIABLE_JOYSTICKS, _numJoysticks);
 	}
 
 	Common::Point cursor = g_system->getEventManager()->getMousePos();
@@ -446,15 +460,18 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	if (_version >= kVersionV1_2_3) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
-		newer->_joystickButtonFlag = false;
-		newer->_joystickDirectionFlag = false;
+		_joystickButtonFlag = false;
+		_joystickDirectionFlag = false;
 		newer->_expressionStackPointer = 0;
-		newer->_maxTransColors = 0;
 		newer->_numPostedScriptRuns = 0;
-		newer->_fatalCode = 0;
 		newer->_activateState = true;
 		newer->_messageFilter = nullptr;
 		newer->_windowMessageCallback = nullptr;
+	}
+
+	if (_version >= kVersionV1_2_1) {
+		_maxTransColors = 0;
+		_fatalCode = 0;
 	}
 
 	_postSceneEndEnabled = true;
@@ -515,7 +532,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 }
 
 void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_1)
 		fillBackground();
 	else if (_launchMode == 0)
 		saveScreenSaverTimes();
@@ -529,7 +546,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 		_numClickRegions = 0;
 		_numCollisionPairs = 0;
 
-		newer->clearJoystickScripts();
+		clearJoystickScripts();
 		newer->clearDeviceState();
 	}
 
@@ -585,12 +602,15 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		library->resSetNotify(_file, 1);
 		_numResources = library->resCountResources(_file, &newer->_numFileResources);
 	} else {
+		if (_version >= kVersionV1_2_1)
+			resourceLib()->resSetNotify(_file, 1);
+
 		_numResources = resourceLib()->resCountResources(_file);
 	}
 
 	_records = new ResourceRecord[_numResources];
 
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_1)
 		_deferBitmapLoading = false;
 
 	byte title[TG_HOST_V1_2_CONTAINER_TITLE_SIZE];
@@ -606,12 +626,22 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_containerTitle = Common::String((const char *)(title + 1), length);
 	}
 
+	if (_version >= kVersionV1_2_1 && _version < kVersionV1_2_3) {
+		byte header[TG_HOST_V1_2_1_FILE_HEADER_SIZE];
+
+		if (!resourceLib()->resGetHeaderRec(_file, header, TG_HOST_V1_2_1_FILE_HEADER_SIZE))
+			return false;
+
+		_maxFadeColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_FADE_COLORS);
+		_maxTransColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_TRANS_COLORS);
+	}
+
 	if (_version >= kVersionV1_2_3) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 		ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
 
 		_maxFadeColors = library->resGetMaxFadeColors(_file);
-		newer->_maxTransColors = library->resGetMaxTransColors(_file);
+		_maxTransColors = library->resGetMaxTransColors(_file);
 
 		char libraryName[15];
 		library->resGetLibraryName(_file, libraryName, 15);
@@ -679,21 +709,24 @@ void TopgunEngine_v1_2::refreshGamePalette() {
 	uint16 fadeColors = TG_HOST_V1_2_NUM_FADE_COLORS;
 	uint32 clearedSize = sizeof(localPalette);
 
-	if (_version >= kVersionV1_2_3) {
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
-
-		if (newer->_maxTransColors > 0xF6) {
-			warning("TopgunEngine_v1_2::refreshGamePalette(): %d transparent colors are too many", newer->_maxTransColors);
+	if (_version >= kVersionV1_2_1) {
+		if (_maxTransColors > TG_HOST_V1_2_1_PALETTE_LAST_COLOR) {
+			warning("TopgunEngine_v1_2::refreshGamePalette(): %d transparent colors are too many", _maxTransColors);
 			return;
 		}
 
-		palette = newer->_palette;
-
 		// The transparent colors are the last ones before the highest 10 system colors
-		firstTransColor = 0xF6 - newer->_maxTransColors;
-		numTransColors = newer->_maxTransColors;
-		fadeColors = _maxFadeColors;
-		clearedSize = TG_DISPLAY_NUM_PALETTE_ENTRIES;
+		firstTransColor = TG_HOST_V1_2_1_PALETTE_LAST_COLOR - _maxTransColors;
+		numTransColors = _maxTransColors;
+		_solidColorEntry = (byte)(firstTransColor - 1);
+
+		if (_version >= kVersionV1_2_3) {
+			palette = static_cast<TopgunEngine_v1_2_3 *>(this)->_palette;
+			fadeColors = _maxFadeColors;
+			clearedSize = TG_DISPLAY_NUM_PALETTE_ENTRIES;
+		} else {
+			fadeColors = TG_HOST_V1_2_1_FADE_LAST_COLOR - _maxTransColors;
+		}
 	}
 
 	if (display()->hasPalette())

@@ -168,10 +168,8 @@
 // INI file
 
 // Input and devices
-#define TG_INPUT_V1_2_3_VK_PAUSE                   0x13
 #define TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS        4640 // arrays grow by 10 elements: largest n with n * 14 <= 0xFDE8
 #define TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS          8
-#define TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS       34 // 2 sticks * 17 slots
 #define TG_INPUT_V1_2_3_OBJECT_CLICK_SCRIPT        0
 #define TG_INPUT_V1_2_3_OBJECT_DRAG_SCRIPT         6
 #define TG_INPUT_V1_2_3_OBJECT_DROP_SCRIPT         8
@@ -203,18 +201,12 @@
 #define TG_DEVICE_V1_2_3_STICK_FULL_TURN           3600 // 360.0 degrees in tenths
 
 // Joystick
-#define TG_JOYSTICK_V1_2_3_NUM_STICKS              2
-#define TG_JOYSTICK_V1_2_3_AXIS_CENTER             0x8000
-#define TG_JOYSTICK_V1_2_3_DISTANCE_THRESHOLD      0x1F40
 #define TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD     0x3E80
-#define TG_JOYSTICK_V1_2_3_STICK_OFFSET            0x11
-#define TG_JOYSTICK_V1_2_3_NO_INDEX                0xFFFF
 
 namespace Topgun {
 
 enum MessageId_v1_2_3 {
-	kMsgV1_2_3KeyUp = 0x101,
-	kMsgV1_2_3IoError = 0x590
+	kMsgV1_2_3KeyUp = 0x101
 };
 
 enum ResourceType_v1_2_3 {
@@ -329,15 +321,6 @@ enum ScriptOpcode_v1_2_3 {
 	kOpV1_2_3SetQuitSceneName = 119
 };
 
-enum JoystickMessage_v1_2_3 {
-	kMsgV1_2_3Joystick1Move = 0x3A0,
-	kMsgV1_2_3Joystick2Move = 0x3A1,
-	kMsgV1_2_3Joystick1ButtonDown = 0x3B5,
-	kMsgV1_2_3Joystick2ButtonDown = 0x3B6,
-	kMsgV1_2_3Joystick1ButtonUp = 0x3B7,
-	kMsgV1_2_3Joystick2ButtonUp = 0x3B8
-};
-
 enum NativeTimerProc_v1_2_3 {
 	kNativeTimerV1_2_3ComboHistory = 1,
 	kNativeTimerV1_2_3KeyRelease
@@ -424,7 +407,6 @@ protected:
 	uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) override;
 	uint32 audioSourceRewind(uint16 proc, uint16 handle) override;
 	void audioSourceClose(uint16 proc, uint16 handle) override;
-	void resourceSendMessage(uint16 window, uint16 message);
 	bool resourceVariablePairCallback(uint16 id, uint16 value);
 	void spriteMessageService(byte *record, uint16 spriteId) override;
 
@@ -434,7 +416,6 @@ protected:
 	bool initApplication(const Common::String &title);
 	bool registerViewClassAndCreateMainWindow();
 	bool initEngineLibraries() override;
-	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue);
 
 	// Main loop
 	uint16 mainLoop() override;
@@ -445,16 +426,11 @@ protected:
 	void handleAppShutdown() override;
 	void handleActivateMessage(uint16 param) override;
 	void flushPostedScriptMessages();
-	bool fatalError(uint16 code, const Common::String &message);
-	void showShutdownErrorBox();
 
 	// Resources
-	void destroyBitmapGroupResourceObject(uint16 id);
 	void destroyMidiResourceObject(uint16 id);
-	bool ensureBitmapGroupResourceLoaded(uint16 id);
 	bool ensureMidiResourceLoaded(uint16 id);
 	void applySpritePaletteExtension(const byte *header);
-	bool validateResourceType(uint16 id, uint16 type);
 	bool destroyResourceObjectByType(uint16 id, uint16 type) override;
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
 	bool isResourceObjectLoaded(uint16 id, uint16 type);
@@ -463,11 +439,9 @@ protected:
 	// Backgrounds
 	byte *loadBitmapResourceCopy(uint16 id);
 	void setBackgroundByMode(const byte *record);
-	bool setBackgroundWithWipeEffect(const byte *record);
 
 	// Transitions
 	void wipeEffectIrisRings(uint16 rings);
-	void executeWipeEffect(const byte *params, byte *newBitmap, byte *oldBitmap);
 
 	// Interpreter
 	bool executeScriptOp(byte *ip, uint16 *advance) override;
@@ -515,13 +489,8 @@ protected:
 	void o_getSpritePosition(const byte *record); // 40
 	uint16 o_switch(const byte *record); // 43
 	void o_getKeyState(const byte *record); // 47
-	bool o_beginTextEdit(const byte *record); // 54
 	bool o_setSpritePosition(const byte *record); // 63
 	void o_setMouseEventScript(const byte *record); // 64
-	void o_getTime(const byte *record); // 70
-	void o_spriteCompositeToBackground(const byte *record); // 71
-	void o_setJoystickScript(const byte *record); // 72
-	void o_setCursorPosition(const byte *record); // 73
 	void o_getSpriteElementIds(const byte *record); // 75
 	uint16 o_conditionalJumpExpr(const byte *record); // 77
 	uint16 o_switchExpression(const byte *record); // 78
@@ -556,17 +525,8 @@ protected:
 	uint16 builtinSetJoystickButtonOffsetMode(uint16 value); // 130
 	uint16 builtinReattachDeviceGroup(uint16 group, uint16 flag); // 137
 
-	// Text objects and INI
-	uint16 createTextObjectFont(int16 height, const char *face);
-	void deleteTextObjectFont(uint16 font);
-	void refreshTextObjectFont(TextObject_v1_2 *object);
-	Graphics::ManagedSurface *renderTextToBitmap(const TextObject_v1_2 *object);
-	void textEditAppendCaret(uint16 object);
-	bool startTextEditOnObject(const byte *record);
-
 	// Input messages
 	void handleKeyUpMessage(Common::KeyCode keycode);
-	void togglePauseState();
 	uint16 postKeyHookScript(uint16 vk);
 
 	// Click, hover and drag regions
@@ -582,7 +542,6 @@ protected:
 	void serviceCollisionPairs();
 
 	// Device groups
-	void clearJoystickScripts();
 	void clearDeviceState();
 	uint16 insertDeviceBindingSorted(uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
 	void setAllBindingScripts(uint16 script, uint16 count, DeviceBinding_v1_2_3 *list);
@@ -602,55 +561,36 @@ protected:
 	void resetMouseStick(byte value);
 
 	// Joystick
-	uint16 joystickGetScriptForDirectionCode(uint16 offset, uint16 flags);
-	uint16 joystickButtonIndex(uint16 flags);
-	uint16 joystickDirectionIndex(uint16 offset, const uint16 *center, uint16 x, uint16 y);
-	uint16 joystickDirectionByDistance(const uint16 *center, uint16 x, uint16 y);
-	uint16 joystickDirection8Way(const uint16 *center, uint16 x, uint16 y);
-	uint16 joystickGetScriptForPosition(uint16 offset, const uint16 *center, uint16 x, uint16 y);
 	void handleJoystickButtonMessage(const Message &message);
-	void joystickInit();
 	uint16 joystickMessageToIndex(const Message &message);
-	void handleJoystickMessage(const Message &message);
-	void joystickRelease();
 
 	// Variables
 	uint16 _variableTable[TG_HOST_V1_2_3_TABLE_SIZE] = {};
 	uint16 _argumentFrame = TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
 
 	// Startup state
-	uint16 _fatalCode = 0;
 	bool _debugMode = false;
-	uint16 _maxJoySticks = 0;
 	uint16 _inputTimeout = 0;
-	byte _screenSaverOption = 1;
 	uint16 _activateScript = 0;
 	bool _activateState = false;
 	uint16 _numPostedScriptRuns = 0;
 	uint16 _numNativeTimers = 0;
 
 	// Scene state
-	uint16 _maxTransColors = 0;
 	uint16 _numFileResources = 0;
 	uint16 _driveType = 0;
 
 	// Input state
 	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS];
 	uint32 _timersPausedAt = 0;
-	bool _joystickRouted = false;
-	bool _joystickDirectionFlag = false;
-	bool _joystickButtonFlag = false;
-	uint16 _pauseScript = 0;
-	uint16 _numJoysticks = 0;
 
 	// Device state
 	KeyRoute_v1_2_3 _keyRoutes[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
 	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_3_NUM_GROUPS];
 	byte _deviceOwners[TG_DEVICE_V1_2_3_NUM_DEVICES] = {};
 	byte _keyboardDirections[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS] = {};
-	byte _joystickStates[TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS] = {};
-	byte _joystickLastIndex[TG_JOYSTICK_V1_2_3_NUM_STICKS] = {};
-	uint16 _joystickScripts[TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS] = {};
+	byte _joystickStates[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
+	byte _joystickLastIndex[TG_JOYSTICK_V1_2_1_NUM_STICKS] = {};
 	Common::Rect _mouseStickDeadRect;
 	Common::Rect _mouseStickOuterRect;
 	uint16 _mouseStickCode = 0;
@@ -664,13 +604,6 @@ protected:
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
 	};
-
-	// Joystick state
-	bool _joystickCaptured = false;
-	uint16 _joystickCenter[TG_JOYSTICK_V1_2_3_NUM_STICKS][2] = {};
-	uint16 _joystickX = TG_JOYSTICK_V1_2_3_AXIS_CENTER;
-	uint16 _joystickY = TG_JOYSTICK_V1_2_3_AXIS_CENTER;
-	byte _joystickButtons = 0;
 
 	// Interpreter state
 	uint16 _expressionStack[TG_SCRIPT_V1_2_3_EXPRESSION_STACK_SIZE] = {};

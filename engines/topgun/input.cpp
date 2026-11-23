@@ -403,7 +403,7 @@ bool TopgunEngine_v1_2::translate(const Common::Event &event, Message &message) 
 		message.ctrl = (event.kbd.flags & Common::KBD_CTRL) != 0;
 
 		if (event.kbd.keycode == Common::KEYCODE_F10) {
-			if (_version < kVersionV1_2_3)
+			if (_version < kVersionV1_2_1)
 				return false;
 
 			message.id = kMsgV1_2SysKeyDown;
@@ -435,36 +435,25 @@ bool TopgunEngine_v1_2::translate(const Common::Event &event, Message &message) 
 		return true;
 	}
 
-	case Common::EVENT_JOYAXIS_MOTION: {
-		if (_version < kVersionV1_2_3)
-			return false;
-
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
-
-		if (!newer->_joystickCaptured)
+	case Common::EVENT_JOYAXIS_MOTION:
+		if (_version < kVersionV1_2_1 || !_joystickCaptured)
 			return false;
 
 		if (event.joystick.axis == 0)
-			newer->_joystickX = (uint16)(event.joystick.position - Common::JOYAXIS_MIN);
+			_joystickX = (uint16)(event.joystick.position - Common::JOYAXIS_MIN);
 		else if (event.joystick.axis == 1)
-			newer->_joystickY = (uint16)(event.joystick.position - Common::JOYAXIS_MIN);
+			_joystickY = (uint16)(event.joystick.position - Common::JOYAXIS_MIN);
 		else
 			return false;
 
-		message.id = kMsgV1_2_3Joystick1Move;
-		message.param = newer->_joystickButtons;
-		message.data = ((uint32)newer->_joystickY << 16) | newer->_joystickX;
+		message.id = kMsgV1_2_1Joystick1Move;
+		message.param = _joystickButtons;
+		message.data = ((uint32)_joystickY << 16) | _joystickX;
 		return true;
-	}
 
 	case Common::EVENT_JOYBUTTON_DOWN:
 	case Common::EVENT_JOYBUTTON_UP: {
-		if (_version < kVersionV1_2_3)
-			return false;
-
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
-
-		if (!newer->_joystickCaptured)
+		if (_version < kVersionV1_2_1 || !_joystickCaptured)
 			return false;
 
 		int button = event.joystick.button - Common::JOYSTICK_BUTTON_A;
@@ -474,13 +463,13 @@ bool TopgunEngine_v1_2::translate(const Common::Event &event, Message &message) 
 		bool down = (event.type == Common::EVENT_JOYBUTTON_DOWN);
 
 		if (down)
-			newer->_joystickButtons |= (byte)(1 << button);
+			_joystickButtons |= (byte)(1 << button);
 		else
-			newer->_joystickButtons &= (byte)~(1 << button);
+			_joystickButtons &= (byte)~(1 << button);
 
-		message.id = down ? kMsgV1_2_3Joystick1ButtonDown : kMsgV1_2_3Joystick1ButtonUp;
-		message.param = (uint16)((0x100 << button) | newer->_joystickButtons);
-		message.data = ((uint32)newer->_joystickY << 16) | newer->_joystickX;
+		message.id = down ? kMsgV1_2_1Joystick1ButtonDown : kMsgV1_2_1Joystick1ButtonUp;
+		message.param = (uint16)((0x100 << button) | _joystickButtons);
+		message.data = ((uint32)_joystickY << 16) | _joystickX;
 		return true;
 	}
 
@@ -788,14 +777,24 @@ void TopgunEngine_v1_2::handleKeyDownMessage(Common::KeyCode keycode, bool shift
 		if (_keyboardRouted && !newer->keyboardRoutedKeyDown(key))
 			return;
 
-		if (key == TG_INPUT_V1_2_3_VK_PAUSE)
-			newer->togglePauseState();
+		if (key == TG_INPUT_V1_2_1_VK_PAUSE)
+			togglePauseState();
 
 		if (_gamePaused)
 			return;
-	} else if (key == TG_HOST_V1_2_VK_ADD || key == TG_HOST_V1_2_VK_SUBTRACT) {
-		adjustMasterVolumeByKey(keycode);
-		return;
+	} else {
+		if (_version >= kVersionV1_2_1) {
+			if (key == TG_INPUT_V1_2_1_VK_PAUSE)
+				togglePauseState();
+
+			if (_gamePaused)
+				return;
+		}
+
+		if (key == TG_HOST_V1_2_VK_ADD || key == TG_HOST_V1_2_VK_SUBTRACT) {
+			adjustMasterVolumeByKey(keycode);
+			return;
+		}
 	}
 
 	if (_rubberBandMode && key == TG_HOST_V1_2_VK_ESCAPE) {
@@ -845,7 +844,7 @@ void TopgunEngine_v1_2::handleCharMessage(uint16 character) {
 		changed = endTextEdit(object, character == TG_HOST_V1_2_CHAR_ESCAPE);
 	} else if (character == TG_HOST_V1_2_CHAR_BACKSPACE) {
 		changed = textEditBackspace(object);
-	} else if (character >= TG_HOST_V1_2_CHAR_FIRST_PRINTABLE || (_version >= kVersionV1_2_3 && character == 0x0A)) {
+	} else if (character >= TG_HOST_V1_2_CHAR_FIRST_PRINTABLE || (_version >= kVersionV1_2_1 && character == 0x0A)) {
 		if (_version < kVersionV1_2_3 || character != 0x40)
 			changed = textEditAppendChar(object, (byte)character);
 	}
@@ -1245,18 +1244,28 @@ void TopgunEngine_v1_2_3::handleKeyUpMessage(Common::KeyCode keycode) {
 		runScriptResource(script);
 }
 
-void TopgunEngine_v1_2_3::togglePauseState() {
+void TopgunEngine_v1_2::togglePauseState() {
+	if (_version < kVersionV1_2_3)
+		audioLib()->audioStopAllWaves(nullptr);
+
 	if (_pauseScript != 0) {
 		byte record[18];
 
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record + 2, _pauseScript);
-		record[5] = 1;
-		WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		if (_version >= kVersionV1_2_3) {
+			record[5] = 1;
+			WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_3_LITERAL_BIAS));
+		} else {
+			record[4] = 1;
+			WRITE_LE_UINT16(record + 5, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_LITERAL_BIAS));
+		}
+
 		o_callScript(record);
 		spriteLib()->spriteAnimate();
-	} else {
-		audioLib()->audioPause(_gamePaused ? 0 : 1);
+	} else if (_version >= kVersionV1_2_3) {
+		static_cast<AudioLibrary_v1_2_3 *>(audioLib())->audioPause(_gamePaused ? 0 : 1);
 	}
 
 	_gamePaused = !_gamePaused;
@@ -1319,11 +1328,11 @@ void TopgunEngine_v1_2_3::o_setMouseEventScript(const byte *record) {
 	_mouseEventScript = READ_LE_UINT16(record + 2);
 }
 
-void TopgunEngine_v1_2_3::o_setJoystickScript(const byte *record) {
+void TopgunEngine_v1_2::o_setJoystickScript(const byte *record) {
 	uint16 index = READ_LE_UINT16(record + 2);
 
-	if (index >= TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS) {
-		warning("TopgunEngine_v1_2_3::o_setJoystickScript(): slot %d is out of range", index);
+	if (index >= TG_JOYSTICK_V1_2_1_NUM_SCRIPTS) {
+		warning("TopgunEngine_v1_2::o_setJoystickScript(): slot %d is out of range", index);
 		return;
 	}
 
@@ -1399,8 +1408,8 @@ static const byte kDirectionCodes[16] = {
 
 static const byte kMouseStickCodes[4] = { 5, 7, 3, 6 };
 
-void TopgunEngine_v1_2_3::clearJoystickScripts() {
-	for (uint16 i = 0; i < TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS; i++)
+void TopgunEngine_v1_2::clearJoystickScripts() {
+	for (uint16 i = 0; i < TG_JOYSTICK_V1_2_1_NUM_SCRIPTS; i++)
 		_joystickScripts[i] = 0;
 }
 
@@ -1421,10 +1430,10 @@ void TopgunEngine_v1_2_3::clearDeviceState() {
 	for (uint16 i = 0; i < TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS; i++)
 		_keyboardDirections[i] = 0;
 
-	for (uint16 i = 0; i < TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS; i++)
+	for (uint16 i = 0; i < TG_JOYSTICK_V1_2_1_NUM_SCRIPTS; i++)
 		_joystickStates[i] = 0;
 
-	for (uint16 i = 0; i < TG_JOYSTICK_V1_2_3_NUM_STICKS; i++)
+	for (uint16 i = 0; i < TG_JOYSTICK_V1_2_1_NUM_STICKS; i++)
 		_joystickLastIndex[i] = 0;
 }
 
@@ -1464,7 +1473,7 @@ void TopgunEngine_v1_2_3::setAllBindingActive(byte active, uint16 count, DeviceB
 }
 
 void TopgunEngine_v1_2_3::fillJoystickStateBytes(byte value, byte stick) {
-	if (stick >= TG_JOYSTICK_V1_2_3_NUM_STICKS) {
+	if (stick >= TG_JOYSTICK_V1_2_1_NUM_STICKS) {
 		warning("TopgunEngine_v1_2_3::fillJoystickStateBytes(): stick %d is out of range", stick);
 		return;
 	}
@@ -2134,16 +2143,16 @@ uint16 TopgunEngine_v1_2_3::builtinReattachDeviceGroup(uint16 group, uint16 flag
 	return 137;
 }
 
-uint16 TopgunEngine_v1_2_3::joystickGetScriptForDirectionCode(uint16 offset, uint16 flags) {
+uint16 TopgunEngine_v1_2::joystickGetScriptForDirectionCode(uint16 offset, uint16 flags) {
 	uint16 index = joystickButtonIndex(flags);
 
-	if (index == TG_JOYSTICK_V1_2_3_NO_INDEX)
+	if (index == TG_JOYSTICK_V1_2_1_NO_INDEX)
 		return 0;
 
 	return _joystickScripts[index + offset];
 }
 
-uint16 TopgunEngine_v1_2_3::joystickButtonIndex(uint16 flags) {
+uint16 TopgunEngine_v1_2::joystickButtonIndex(uint16 flags) {
 	byte changed = (byte)(flags >> 8);
 	byte state = (byte)flags;
 
@@ -2159,10 +2168,10 @@ uint16 TopgunEngine_v1_2_3::joystickButtonIndex(uint16 flags) {
 	if ((changed & 8) != 0)
 		return (state & 8) != 0 ? 0x10 : 0x0F;
 
-	return TG_JOYSTICK_V1_2_3_NO_INDEX;
+	return TG_JOYSTICK_V1_2_1_NO_INDEX;
 }
 
-uint16 TopgunEngine_v1_2_3::joystickDirectionIndex(uint16 offset, const uint16 *center, uint16 x, uint16 y) {
+uint16 TopgunEngine_v1_2::joystickDirectionIndex(uint16 offset, const uint16 *center, uint16 x, uint16 y) {
 	uint16 code;
 
 	if (_joystickDirectionFlag)
@@ -2173,13 +2182,13 @@ uint16 TopgunEngine_v1_2_3::joystickDirectionIndex(uint16 offset, const uint16 *
 	return code + offset;
 }
 
-uint16 TopgunEngine_v1_2_3::joystickDirectionByDistance(const uint16 *center, uint16 x, uint16 y) {
+uint16 TopgunEngine_v1_2::joystickDirectionByDistance(const uint16 *center, uint16 x, uint16 y) {
 	int32 deltaX = (int32)x - (int32)center[0];
 	int32 deltaY = (int32)y - (int32)center[1];
 	uint32 distanceX = (uint32)(deltaX < 0 ? -deltaX : deltaX);
 	uint32 distanceY = (uint32)(deltaY < 0 ? -deltaY : deltaY);
 
-	if (distanceX <= TG_JOYSTICK_V1_2_3_DISTANCE_THRESHOLD && distanceY <= TG_JOYSTICK_V1_2_3_DISTANCE_THRESHOLD)
+	if (distanceX <= TG_JOYSTICK_V1_2_1_DISTANCE_THRESHOLD && distanceY <= TG_JOYSTICK_V1_2_1_DISTANCE_THRESHOLD)
 		return 0;
 
 	if (distanceY > distanceX)
@@ -2188,27 +2197,28 @@ uint16 TopgunEngine_v1_2_3::joystickDirectionByDistance(const uint16 *center, ui
 	return deltaX < 0 ? 2 : 1;
 }
 
-uint16 TopgunEngine_v1_2_3::joystickDirection8Way(const uint16 *center, uint16 x, uint16 y) {
+uint16 TopgunEngine_v1_2::joystickDirection8Way(const uint16 *center, uint16 x, uint16 y) {
 	int32 centerX = center[0];
 	int32 centerY = center[1];
+	int32 threshold = (_version >= kVersionV1_2_3) ? TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD : TG_JOYSTICK_V1_2_1_EIGHT_WAY_THRESHOLD;
 	uint16 code = 0;
 
-	if (centerY - TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD > (int32)y)
+	if (centerY - threshold > (int32)y)
 		code = 3;
 
-	if (centerY + TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD < (int32)y)
+	if (centerY + threshold < (int32)y)
 		code += 6;
 
-	if (centerX + TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD < (int32)x)
+	if (centerX + threshold < (int32)x)
 		code += 1;
 
-	if (centerX - TG_JOYSTICK_V1_2_3_EIGHT_WAY_THRESHOLD > (int32)x)
+	if (centerX - threshold > (int32)x)
 		code += 2;
 
 	return code;
 }
 
-uint16 TopgunEngine_v1_2_3::joystickGetScriptForPosition(uint16 offset, const uint16 *center, uint16 x, uint16 y) {
+uint16 TopgunEngine_v1_2::joystickGetScriptForPosition(uint16 offset, const uint16 *center, uint16 x, uint16 y) {
 	return _joystickScripts[joystickDirectionIndex(offset, center, x, y)];
 }
 
@@ -2218,29 +2228,29 @@ uint16 TopgunEngine_v1_2_3::joystickMessageToIndex(const Message &message) {
 	uint16 index = 0;
 
 	switch (message.id) {
-	case kMsgV1_2_3Joystick1Move:
-		index = joystickDirectionIndex(_joystickButtonFlag ? TG_JOYSTICK_V1_2_3_STICK_OFFSET : 0, _joystickCenter[0], x, y);
+	case kMsgV1_2_1Joystick1Move:
+		index = joystickDirectionIndex(_joystickButtonFlag ? TG_JOYSTICK_V1_2_1_STICK_OFFSET : 0, _joystickCenter[0], x, y);
 		break;
 
-	case kMsgV1_2_3Joystick2Move:
-		index = joystickDirectionIndex(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_3_STICK_OFFSET, _joystickCenter[1], x, y);
+	case kMsgV1_2_1Joystick2Move:
+		index = joystickDirectionIndex(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_1_STICK_OFFSET, _joystickCenter[1], x, y);
 		break;
 
-	case kMsgV1_2_3Joystick1ButtonDown:
-	case kMsgV1_2_3Joystick1ButtonUp:
+	case kMsgV1_2_1Joystick1ButtonDown:
+	case kMsgV1_2_1Joystick1ButtonUp:
 		index = joystickButtonIndex(message.param);
 
-		if (index != TG_JOYSTICK_V1_2_3_NO_INDEX)
-			index += _joystickButtonFlag ? TG_JOYSTICK_V1_2_3_STICK_OFFSET : 0;
+		if (index != TG_JOYSTICK_V1_2_1_NO_INDEX)
+			index += _joystickButtonFlag ? TG_JOYSTICK_V1_2_1_STICK_OFFSET : 0;
 
 		break;
 
-	case kMsgV1_2_3Joystick2ButtonDown:
-	case kMsgV1_2_3Joystick2ButtonUp:
+	case kMsgV1_2_1Joystick2ButtonDown:
+	case kMsgV1_2_1Joystick2ButtonUp:
 		index = joystickButtonIndex(message.param);
 
-		if (index != TG_JOYSTICK_V1_2_3_NO_INDEX)
-			index += _joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_3_STICK_OFFSET;
+		if (index != TG_JOYSTICK_V1_2_1_NO_INDEX)
+			index += _joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_1_STICK_OFFSET;
 
 		break;
 
@@ -2254,10 +2264,10 @@ uint16 TopgunEngine_v1_2_3::joystickMessageToIndex(const Message &message) {
 void TopgunEngine_v1_2_3::handleJoystickButtonMessage(const Message &message) {
 	uint16 index = joystickMessageToIndex(message);
 
-	if (index == TG_JOYSTICK_V1_2_3_NO_INDEX)
+	if (index == TG_JOYSTICK_V1_2_1_NO_INDEX)
 		return;
 
-	if (index >= TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS) {
+	if (index >= TG_JOYSTICK_V1_2_1_NUM_SCRIPTS) {
 		warning("TopgunEngine_v1_2_3::handleJoystickButtonMessage(): slot %d is out of range", index);
 		return;
 	}
@@ -2265,13 +2275,13 @@ void TopgunEngine_v1_2_3::handleJoystickButtonMessage(const Message &message) {
 	if (_joystickStates[index] == 0)
 		return;
 
-	byte stick = (index >= TG_JOYSTICK_V1_2_3_STICK_OFFSET) ? 1 : 0;
+	byte stick = (index >= TG_JOYSTICK_V1_2_1_STICK_OFFSET) ? 1 : 0;
 
-	if (message.id == kMsgV1_2_3Joystick1ButtonDown || message.id == kMsgV1_2_3Joystick2ButtonDown) {
+	if (message.id == kMsgV1_2_1Joystick1ButtonDown || message.id == kMsgV1_2_1Joystick2ButtonDown) {
 		if (index > 0)
 			_joystickStates[index - 1] = 1;
-	} else if (message.id == kMsgV1_2_3Joystick1ButtonUp || message.id == kMsgV1_2_3Joystick2ButtonUp) {
-		if (index + 1 < TG_INPUT_V1_2_3_NUM_JOYSTICK_SCRIPTS)
+	} else if (message.id == kMsgV1_2_1Joystick1ButtonUp || message.id == kMsgV1_2_1Joystick2ButtonUp) {
+		if (index + 1 < TG_JOYSTICK_V1_2_1_NUM_SCRIPTS)
 			_joystickStates[index + 1] = 1;
 	} else {
 		_joystickStates[_joystickLastIndex[stick]] = 1;
@@ -2280,17 +2290,21 @@ void TopgunEngine_v1_2_3::handleJoystickButtonMessage(const Message &message) {
 
 	_joystickStates[index] = 0;
 
-	byte code = kDeviceCodes[TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET + index - stick * TG_JOYSTICK_V1_2_3_STICK_OFFSET];
+	byte code = kDeviceCodes[TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET + index - stick * TG_JOYSTICK_V1_2_1_STICK_OFFSET];
 	deviceGroupInputEvent(code, stick + TG_DEVICE_V1_2_3_JOYSTICK_BASE);
 }
 
-void TopgunEngine_v1_2_3::handleJoystickMessage(const Message &message) {
-	if (callMessageFilter(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16)))
-		return;
+void TopgunEngine_v1_2::handleJoystickMessage(const Message &message) {
+	if (_version >= kVersionV1_2_3) {
+		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
-	if (_joystickRouted) {
-		handleJoystickButtonMessage(message);
-		return;
+		if (newer->callMessageFilter(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16)))
+			return;
+
+		if (_joystickRouted) {
+			newer->handleJoystickButtonMessage(message);
+			return;
+		}
 	}
 
 	uint16 x = (uint16)(message.data & 0xFFFF);
@@ -2298,22 +2312,22 @@ void TopgunEngine_v1_2_3::handleJoystickMessage(const Message &message) {
 	uint16 script = 0;
 
 	switch (message.id) {
-	case kMsgV1_2_3Joystick1Move:
-		script = joystickGetScriptForPosition(_joystickButtonFlag ? TG_JOYSTICK_V1_2_3_STICK_OFFSET : 0, _joystickCenter[0], x, y);
+	case kMsgV1_2_1Joystick1Move:
+		script = joystickGetScriptForPosition(_joystickButtonFlag ? TG_JOYSTICK_V1_2_1_STICK_OFFSET : 0, _joystickCenter[0], x, y);
 		break;
 
-	case kMsgV1_2_3Joystick2Move:
-		script = joystickGetScriptForPosition(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_3_STICK_OFFSET, _joystickCenter[1], x, y);
+	case kMsgV1_2_1Joystick2Move:
+		script = joystickGetScriptForPosition(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_1_STICK_OFFSET, _joystickCenter[1], x, y);
 		break;
 
-	case kMsgV1_2_3Joystick1ButtonDown:
-	case kMsgV1_2_3Joystick1ButtonUp:
-		script = joystickGetScriptForDirectionCode(_joystickButtonFlag ? TG_JOYSTICK_V1_2_3_STICK_OFFSET : 0, message.param);
+	case kMsgV1_2_1Joystick1ButtonDown:
+	case kMsgV1_2_1Joystick1ButtonUp:
+		script = joystickGetScriptForDirectionCode(_joystickButtonFlag ? TG_JOYSTICK_V1_2_1_STICK_OFFSET : 0, message.param);
 		break;
 
-	case kMsgV1_2_3Joystick2ButtonDown:
-	case kMsgV1_2_3Joystick2ButtonUp:
-		script = joystickGetScriptForDirectionCode(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_3_STICK_OFFSET, message.param);
+	case kMsgV1_2_1Joystick2ButtonDown:
+	case kMsgV1_2_1Joystick2ButtonUp:
+		script = joystickGetScriptForDirectionCode(_joystickButtonFlag ? 0 : TG_JOYSTICK_V1_2_1_STICK_OFFSET, message.param);
 		break;
 
 	default:
@@ -2324,7 +2338,7 @@ void TopgunEngine_v1_2_3::handleJoystickMessage(const Message &message) {
 		runScriptResource(script);
 }
 
-void TopgunEngine_v1_2_3::joystickInit() {
+void TopgunEngine_v1_2::joystickInit() {
 	_numJoysticks = 0;
 
 	if (_maxJoySticks == 0)
@@ -2333,8 +2347,8 @@ void TopgunEngine_v1_2_3::joystickInit() {
 	// The system offers a single joystick through its events; it is centred at the middle of the axis range
 	if (ConfMan.hasKey("joystick_num") && ConfMan.getInt("joystick_num") >= 0) {
 		_joystickCaptured = true;
-		_joystickCenter[0][0] = TG_JOYSTICK_V1_2_3_AXIS_CENTER;
-		_joystickCenter[0][1] = TG_JOYSTICK_V1_2_3_AXIS_CENTER;
+		_joystickCenter[0][0] = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
+		_joystickCenter[0][1] = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
 		_numJoysticks++;
 	}
 
@@ -2342,7 +2356,7 @@ void TopgunEngine_v1_2_3::joystickInit() {
 		_maxJoySticks = 0;
 }
 
-void TopgunEngine_v1_2_3::joystickRelease() {
+void TopgunEngine_v1_2::joystickRelease() {
 	if (!_joystickCaptured)
 		return;
 

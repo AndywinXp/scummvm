@@ -25,6 +25,9 @@
 #include "common/path.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
+
+#include "gui/message.h"
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
@@ -34,7 +37,7 @@ namespace Topgun {
 
 TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version) :
 	TopgunEngine_v1_1(syst, gameDesc, version) {
-	if (version == kVersionV1_2) {
+	if (version < kVersionV1_2_3) {
 		setAudioLibrary(new AudioLibrary_v1_2(this));
 		setResourceLibrary(new ResourceLibrary_v1_2(this));
 		setSpriteLibrary(new SpriteLibrary_v1_2(this));
@@ -58,12 +61,19 @@ TopgunEngine_v1_2::~TopgunEngine_v1_2() {
 }
 
 bool TopgunEngine_v1_2::postMessage(uint16 id, uint16 param, uint32 data) {
-	if (id == kMsgV1_2MemoryError) {
-		// The memory error is handled synchronously
+	if (id == kMsgV1_2MemoryError || (_version >= kVersionV1_2_1 && id == kMsgV1_2_1IoError)) {
+		// The fatal quit messages are handled synchronously
 		flushPostedScriptMessages();
+
+		if (_version >= kVersionV1_2_1)
+			_fatalCode = id;
+
 		_scriptsDisabled = true;
 		postMessage(kMsgClose, 0, 0);
-		_memoryError = true;
+
+		if (_version < kVersionV1_2_1)
+			_memoryError = true;
+
 		return true;
 	}
 
@@ -111,6 +121,10 @@ void TopgunEngine_v1_2::audioSourceClose(uint16 proc, uint16 handle) {
 		resourceLib()->waveDone(handle);
 }
 
+void TopgunEngine_v1_2::resourceSendMessage(uint16 window, uint16 message) {
+	postMessage(message, 0, 0);
+}
+
 bool TopgunEngine_v1_2::resourceEnumCallback(uint16 type, uint32 offset, uint32 size) {
 	return true;
 }
@@ -148,6 +162,26 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 }
 
 bool TopgunEngine_v1_2::rtStartup(bool runChecks) {
+	if (_version >= kVersionV1_2_1) {
+		Common::String container = getGameId() + ".bin";
+
+		if (getGameId() == "bestshot") {
+			bool smallVersion = Common::File::exists(Common::Path("BESTACT\\bestshot.bin", '\\'));
+			bool bigVersion = Common::File::exists(Common::Path("BESTBIG\\bestshot.bin", '\\'));
+
+			if (smallVersion && bigVersion) {
+				GUI::MessageDialog dialog(_("Two versions of the game were found. Which one do you want to play?"), "Minimum", "Full");
+				container = (dialog.runModal() == GUI::kMessageOK) ? "BESTACT\\bestshot.bin" : "BESTBIG\\bestshot.bin";
+			} else if (smallVersion) {
+				container = "BESTACT\\bestshot.bin";
+			} else if (bigVersion) {
+				container = "BESTBIG\\bestshot.bin";
+			}
+		}
+
+		return runStartup("Take Your Best Shot", container);
+	}
+
 	return runStartup("Python", "herald.bin");
 }
 
@@ -163,7 +197,7 @@ bool TopgunEngine_v1_2::runStartup(const Common::String &title, const Common::St
 	if (ok) {
 		locateResourceFile(firstContainer);
 		handlePaintMessage();
-		loadInitialScene(firstContainer);
+		loadInitialScene(Common::Path(firstContainer, '\\').getLastComponent().toString());
 	} else {
 		Message message;
 		message.id = kMsgClose;
@@ -187,11 +221,28 @@ bool TopgunEngine_v1_2::initApplication(const Common::String &title) {
 		display()->setHasPalette(!(ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth")));
 		_flagMode640 = (display()->width() <= TG_DISPLAY_DEFAULT_WIDTH);
 		_altTab = ConfMan.hasKey("alttab") && ConfMan.getInt("alttab") != 0;
+
+		if (_version >= kVersionV1_2_1)
+			_maxJoySticks = getPrivateProfileInt(title.c_str(), "MaxJoySticks", 2);
+
 		_cursorMode = 1;
 		utilsLibrary()->memSetNotify(1);
+
+		if (_version >= kVersionV1_2_1)
+			joystickInit();
 	}
 
 	return ok;
+}
+
+uint16 TopgunEngine_v1_2::getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) {
+	loadIniFile();
+
+	Common::String value;
+	if (!_iniFile.getKey(key, section, value))
+		return defaultValue;
+
+	return parseIniInteger(value.c_str());
 }
 
 bool TopgunEngine_v1_2::registerViewClassAndCreateMainWindow() {
@@ -271,7 +322,7 @@ uint16 TopgunEngine_v1_2::mainLoop() {
 			dispatchMessage(message);
 		}
 
-		if (_appActive) {
+		if (_appActive && !_gamePaused) {
 			spriteLib()->spriteAnimate();
 
 			if (_numScheduledTimers != 0)
@@ -333,8 +384,21 @@ void TopgunEngine_v1_2::dispatchMessage(const Message &message) {
 			handleCharMessage(message.param);
 		break;
 
+	case kMsgV1_2_1Joystick1Move:
+	case kMsgV1_2_1Joystick2Move:
+	case kMsgV1_2_1Joystick1ButtonDown:
+	case kMsgV1_2_1Joystick2ButtonDown:
+	case kMsgV1_2_1Joystick1ButtonUp:
+	case kMsgV1_2_1Joystick2ButtonUp:
+		if (_version >= kVersionV1_2_1)
+			handleJoystickMessage(message);
+		break;
+
 	case kMsgV1_2SysKeyDown:
-		handleSysKeyDownAltTab(message);
+		if (_version >= kVersionV1_2_1 && message.param == Common::KEYCODE_F10)
+			handleKeyDownMessage((Common::KeyCode)message.param, message.shift, message.ctrl);
+		else
+			handleSysKeyDownAltTab(message);
 		break;
 
 	case kMsgV1_2MouseMove:
@@ -368,11 +432,11 @@ void TopgunEngine_v1_2::dispatchMessage(const Message &message) {
 		if ((message.data & 0xFFFF) != 0)
 			runScriptResource((uint16)(message.data & 0xFFFF));
 		else
-			destroyResourceObjectByType(message.param, kResV1_2Wave);
+			destroyResourceObjectByType(message.param, (_version >= kVersionV1_2_1) ? kResV1_2_1Wave : kResV1_2Wave);
 		break;
 
 	case kMsgV1_2Mute:
-		audioLib()->audioMute(message.param);
+		audioLib()->audioMute((int16)message.param);
 		break;
 
 	case kMsgV1_2CompanionWindow:
@@ -397,7 +461,7 @@ void TopgunEngine_v1_2::fillBackground() {
 	if (_backgroundColor == 0)
 		display()->clearScreen();
 	else if (display()->hasPalette())
-		display()->fillScreen(TG_HOST_V1_2_SOLID_COLOR_ENTRY);
+		display()->fillScreen(_solidColorEntry);
 	else
 		display()->fillScreen(_backgroundColor);
 }
@@ -407,6 +471,9 @@ void TopgunEngine_v1_2::handleAppShutdown() {
 	_shuttingDown = true;
 	_flagActivated = false;
 	_appActive = false;
+
+	if (_version >= kVersionV1_2_1)
+		joystickRelease();
 
 	if (_file != 0)
 		cleanupCurrentSceneAndContainer();
@@ -421,13 +488,25 @@ void TopgunEngine_v1_2::handleAppShutdown() {
 
 	setCursorMode(1);
 
-	if (_memoryError) {
+	if (_version >= kVersionV1_2_1) {
+		if (_fatalCode != 0)
+			showShutdownErrorBox();
+	} else if (_memoryError) {
 		fillBackground();
 		GUIErrorMessage("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 	}
 
 	clearMessages();
 	postQuitMessage(0);
+}
+
+void TopgunEngine_v1_2::showShutdownErrorBox() {
+	fillBackground();
+
+	if (_fatalCode == kMsgV1_2_1IoError)
+		GUIErrorMessage("A file I/O error has occurred.");
+	else
+		GUIErrorMessage("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 }
 
 void TopgunEngine_v1_2::handleActivateMessage(uint16 param) {
@@ -453,6 +532,11 @@ void TopgunEngine_v1_2::handleActivateMessage(uint16 param) {
 
 			_savedCursorMode = 0;
 			applyCursorFromRegister();
+
+			if (_version >= kVersionV1_2_1 && !_joystickCaptured)
+				joystickInit();
+		} else if (_version >= kVersionV1_2_1) {
+			joystickRelease();
 		}
 
 		_appActive = (_flagActivated && _file != 0);
@@ -495,6 +579,9 @@ void TopgunEngine_v1_2::flushPostedScriptMessages() {
 
 	drainMessage(kMsgV1_2SoundFinished);
 	drainMessage(kMsgV1_2MemoryError);
+
+	if (_version >= kVersionV1_2_1)
+		drainMessage(kMsgV1_2_1IoError);
 }
 
 void TopgunEngine_v1_2::drainMessage(uint16 id) {
@@ -522,6 +609,21 @@ void TopgunEngine_v1_2::setCursorMode(byte mode) {
 
 bool TopgunEngine_v1_2::fatalError(const Common::String &message) {
 	_shuttingDown = true;
+	_scriptsDisabled = true;
+	_appActive = false;
+
+	GUIErrorMessage(message);
+	flushPostedScriptMessages();
+	postMessage(kMsgClose, 0, 0);
+	return false;
+}
+
+bool TopgunEngine_v1_2::fatalError(uint16 code, const Common::String &message) {
+	// The later original marks the shutdown as already started, so the close message does nothing and the window stays frozen; here the close runs the normal shutdown
+	if (_version < kVersionV1_2_3)
+		_shuttingDown = true;
+
+	_fatalCode = code;
 	_scriptsDisabled = true;
 	_appActive = false;
 

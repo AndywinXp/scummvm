@@ -560,6 +560,8 @@ bool SpriteLibrary_v1_2::tickMultiCelRecord(uint16 sprite) {
 		count = TG_SPR_V1_2_NUM_SPRITE_PARTS;
 	}
 
+	byte *newFrames[TG_SPR_V1_2_NUM_SPRITE_PARTS];
+
 	for (uint16 i = 0; i < count; i++) {
 		uint16 index = READ_LE_UINT16(command + 2 + 2 * i);
 		if (object->frames.size() <= index)
@@ -577,7 +579,15 @@ bool SpriteLibrary_v1_2::tickMultiCelRecord(uint16 sprite) {
 		if (!frame)
 			return true;
 
-		object->parts->parts[i].frame = frame;
+		if (_engine->_version >= kVersionV1_2_1)
+			newFrames[i] = frame;
+		else
+			object->parts->parts[i].frame = frame;
+	}
+
+	if (_engine->_version >= kVersionV1_2_1) {
+		for (uint16 i = 0; i < count; i++)
+			object->parts->parts[i].frame = newFrames[i];
 	}
 
 	object->partCount = (byte)count;
@@ -739,8 +749,12 @@ void SpriteLibrary_v1_2::tickFlipRecord(uint16 sprite) {
 	object->flipY = (decodeOperand(READ_LE_UINT16(command + 4)) != 0);
 
 	if (_engine->_version < kVersionV1_2_3) {
-		if (flipFlags(object) != previous)
+		if (flipFlags(object) != previous) {
+			if (_engine->_version >= kVersionV1_2_1 && object->partCount != 0)
+				recomputeCelBoxArray(sprite);
+
 			renderSpriteToSurface(sprite);
+		}
 
 		return;
 	}

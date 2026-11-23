@@ -187,9 +187,8 @@ protected:
 	// Wave sounds
 	bool initWaveObjectFromDescriptor(const SoundCreateInfo_v1_2 *info, SoundObject *sound) override;
 	bool startWavePlayback(SoundObject *sound, const byte *params) override;
-	void scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params);
 	void stopAllNonExemptWaves();
-	void activateWaveObject(SoundObject *sound);
+	void activateWaveObject(SoundObject *sound) override;
 	void armWaveNotificationEndTime(SoundObject *sound);
 
 	// MIDI objects

@@ -93,6 +93,12 @@ Common::String TopgunEngine::getGameId() const {
 	return _gameDescription->gameId;
 }
 
+void TopgunEngine::initializePath(const Common::FSNode &gamePath) {
+	Engine::initializePath(gamePath);
+
+	SearchMan.addDirectory("folders", gamePath, 0, 2, true);
+}
+
 Common::Error TopgunEngine::run() {
 	bool highBitDepth = ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth");
 

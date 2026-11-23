@@ -26,12 +26,27 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
 bool TopgunEngine_v1_2::o_callScript(const byte *record) {
+	if (_version >= kVersionV1_2_1) {
+		uint16 saved[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE];
+
+		memcpy(saved, &_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], sizeof(saved));
+
+		for (uint16 i = 0; i < record[4]; i++)
+			_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * i));
+
+		bool result = runScriptResource(READ_LE_UINT16(record + 2));
+
+		memcpy(&_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], saved, sizeof(saved));
+		return result;
+	}
+
 	if (record[4] == 0)
 		return runScriptResource(READ_LE_UINT16(record + 2));
 
@@ -70,7 +85,7 @@ bool TopgunEngine_v1_2::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) 
 		return true;
 	}
 
-	if (!validateAndGetResourceByType(data, kResV1_2SpriteQueue))
+	if (!validateAndGetResourceByType(data, (_version >= kVersionV1_2_1) ? kResV1_2_1SpriteQueueData : kResV1_2SpriteQueue))
 		return false;
 
 	uint16 dataIndex = operandValue(data);
@@ -82,7 +97,7 @@ bool TopgunEngine_v1_2::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) 
 }
 
 bool TopgunEngine_v1_2::o_playWave(uint16 waveId, const byte *params) {
-	if (validateAndGetResourceByType(waveId, kResV1_2Wave)) {
+	if (validateAndGetResourceByType(waveId, (_version >= kVersionV1_2_1) ? kResV1_2_1Wave : kResV1_2Wave)) {
 		uint16 index = operandValue(waveId);
 
 		if (isRecordIndexValid(index, "o_playWave"))
@@ -299,6 +314,18 @@ void TopgunEngine_v1_2::o_debugString(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_setSpriteLevel(uint16 spriteId, uint16 level) {
+	if (_version >= kVersionV1_2_1) {
+		if (!isResourceObjectLoaded(spriteId))
+			return;
+
+		uint16 loadedIndex = operandValue(spriteId);
+		if (!isRecordIndexValid(loadedIndex, "o_setSpriteLevel"))
+			return;
+
+		spriteLib()->spriteSetLevel(_records[loadedIndex].handle, (int16)level);
+		return;
+	}
+
 	if (!validateAndGetResourceByType(spriteId, kResV1_2Sprite))
 		return;
 
@@ -453,7 +480,27 @@ void TopgunEngine_v1_2::o_getDate(const byte *record) {
 }
 
 bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
-	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), kResV1_2Text))
+	uint16 id = READ_LE_UINT16(record + 2);
+
+	if (_version >= kVersionV1_2_1) {
+		// An id of zero only ends the edit that is active
+		if (id != 0 && !validateAndGetResourceByType(id, (_version >= kVersionV1_2_3) ? kResV1_2_3Text : kResV1_2_1Text))
+			return false;
+
+		if (_textEditObjectId != 0)
+			commitTextEdit(0);
+
+		if (id != 0) {
+			if (!beginTextEdit(record))
+				return false;
+
+			refreshTextObjectBitmap(getTextObjectFromId(_textEditObjectId));
+		}
+
+		return true;
+	}
+
+	if (!validateAndGetResourceByType(id, kResV1_2Text))
 		return false;
 
 	if (_textEditObjectId != 0)
@@ -886,6 +933,52 @@ void TopgunEngine_v1_2::o_sineCosine(const byte *record) {
 		result = utilsLibrary()->cosine(angle);
 
 	writeVariable(READ_LE_UINT16(record + 2), (uint16)result);
+}
+
+void TopgunEngine_v1_2::o_getTime(const byte *record) {
+	TimeDate time;
+	g_system->getTimeAndDate(time);
+
+	if (READ_LE_UINT16(record + 2) != 0)
+		writeVariable(READ_LE_UINT16(record + 2), (uint16)time.tm_hour);
+
+	if (READ_LE_UINT16(record + 4) != 0)
+		writeVariable(READ_LE_UINT16(record + 4), (uint16)time.tm_min);
+
+	if (READ_LE_UINT16(record + 6) != 0)
+		writeVariable(READ_LE_UINT16(record + 6), (uint16)time.tm_sec);
+
+	// TimeDate has no sub-second field: the hundredths come from the millisecond counter
+	if (READ_LE_UINT16(record + 8) != 0)
+		writeVariable(READ_LE_UINT16(record + 8), (uint16)((g_system->getMillis() / 10) % 100));
+}
+
+void TopgunEngine_v1_2::o_spriteCompositeToBackground(const byte *record) {
+	uint16 sprite = 0;
+
+	if (READ_LE_UINT16(record + 2) != 0) {
+		uint16 index = operandValue(READ_LE_UINT16(record + 2));
+		if (!isRecordIndexValid(index, "o_spriteCompositeToBackground"))
+			return;
+
+		sprite = _records[index].handle;
+		if (sprite == 0)
+			return;
+	}
+
+	spriteLib()->spriteCompToBackground(sprite, (_version >= kVersionV1_2_3) ? record[4] : 0);
+}
+
+void TopgunEngine_v1_2::o_setCursorPosition(const byte *record) {
+	uint16 x = operandValue(READ_LE_UINT16(record + 2));
+	uint16 y = operandValue(READ_LE_UINT16(record + 4));
+
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_X, x);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_Y, y);
+	}
+
+	g_system->warpMouse(display()->viewportOrigin().x + (int16)x, display()->viewportOrigin().y + (int16)y);
 }
 
 } // End of namespace Topgun

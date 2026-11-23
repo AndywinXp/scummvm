@@ -509,7 +509,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorPalette(uint32 color) {
 
 	Common::Rect rect;
 
-	spriteLib()->spriteSetBackground(nullptr, false, (_version >= kVersionV1_2_3) ? color : TG_HOST_V1_2_SOLID_COLOR_ENTRY, &rect);
+	spriteLib()->spriteSetBackground(nullptr, false, (_version >= kVersionV1_2_3) ? color : _solidColorEntry, &rect);
 
 	_backgroundColor = color;
 
@@ -520,7 +520,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorPalette(uint32 color) {
 		entry[2] = (byte)((color >> 16) & 0xFF);
 		entry[3] = 0;
 
-		spriteLib()->spriteChangePalette(TG_HOST_V1_2_SOLID_COLOR_ENTRY, 1, entry, !_faded);
+		spriteLib()->spriteChangePalette(_solidColorEntry, 1, entry, !_faded);
 	}
 
 	commitBackgroundChangeAndRepaint(rect);
@@ -539,7 +539,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 	if (_version >= kVersionV1_2_3) {
 		memset(pixels, (byte)color, count);
 	} else {
-		memset(pixels, TG_HOST_V1_2_SOLID_COLOR_ENTRY, count);
+		memset(pixels, _solidColorEntry, count);
 
 		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
 		entry[0] = (byte)(color & 0xFF);
@@ -547,7 +547,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 		entry[2] = (byte)((color >> 16) & 0xFF);
 		entry[3] = 0;
 
-		spriteLib()->spriteChangePalette(TG_HOST_V1_2_SOLID_COLOR_ENTRY, 1, entry, !_faded);
+		spriteLib()->spriteChangePalette(_solidColorEntry, 1, entry, !_faded);
 	}
 
 	_backgroundColor = 0;
@@ -560,7 +560,50 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 	commitBackgroundChangeAndRepaint(rect);
 }
 
+bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
+	if (!_backgroundBitmap || READ_LE_UINT16(record + 2) != 0)
+		return false;
+
+	uint16 bitmapId = READ_LE_UINT16(record + 4);
+	if ((_flagLoMem || _flagMode640) && READ_LE_UINT16(record + 6) != 0)
+		bitmapId = READ_LE_UINT16(record + 6);
+
+	if (_version >= kVersionV1_2_3) {
+		byte *bitmap = static_cast<TopgunEngine_v1_2_3 *>(this)->loadBitmapResourceCopy(bitmapId);
+		if (!bitmap)
+			return false;
+
+		executeWipeEffect(record + 0x0A, bitmap, _backgroundBitmap);
+		utilsLibrary()->tgFree(bitmap);
+		return true;
+	}
+
+	if (bitmapId == 0)
+		return false;
+
+	if (!validateAndGetResourceByType(bitmapId, kResV1_2_1Bitmap))
+		return false;
+
+	uint16 index = operandValue(bitmapId);
+	if (!isRecordIndexValid(index, "setBackgroundWithWipeEffect"))
+		return false;
+
+	executeWipeEffect(record + 8, _records[index].data, _backgroundBitmap);
+
+	// The record of the replaced bitmap is looked up with the stored operand, not with its index
+	if (_backgroundId != 0 && isRecordIndexValid(_backgroundId, "setBackgroundWithWipeEffect"))
+		_records[_backgroundId].data = nullptr;
+
+	destroyResourceObjectByType(bitmapId, kResV1_2_1Bitmap);
+	return true;
+}
+
 void TopgunEngine_v1_2::o_setBackground(const byte *record) {
+	if (_version >= kVersionV1_2_1 && READ_LE_UINT16(record + 8) != 0) {
+		if (setBackgroundWithWipeEffect(record))
+			return;
+	}
+
 	clearBackground();
 
 	switch (READ_LE_UINT16(record + 2)) {
@@ -593,8 +636,8 @@ void TopgunEngine_v1_2::copyAndPaintBackgroundRect(Common::Rect &rect) {
 		spriteLib()->spriteCopyRect(rect, _wipeOldBitmap, _wipeNewBitmap);
 	else if (_fadeIn)
 		spriteLib()->spriteCopyRect(rect, _buffer1, _backgroundBitmap);
-	else if (_version >= kVersionV1_2_3)
-		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteDibSet(_buffer1, rect.left, rect.top, (uint16)(rect.right - rect.left), (uint16)(rect.bottom - rect.top), 0);
+	else if (_version >= kVersionV1_2_1)
+		spriteLib()->spriteDibSet(_buffer1, rect.left, rect.top, (uint16)(rect.right - rect.left), (uint16)(rect.bottom - rect.top), 0);
 	else
 		spriteLib()->spriteCopyRect(rect, _backgroundBitmap, _buffer1);
 
@@ -694,7 +737,7 @@ void TopgunEngine_v1_2::advanceSceneFadeStep() {
 	spriteLib()->spriteAnimate();
 
 	uint16 mult = _fadeIn ? _step : (uint16)(_stepCount - _step);
-	spriteLib()->spriteFadePalette(mult, _stepCount, TG_HOST_V1_2_NUM_SYSTEM_COLORS, (_version >= kVersionV1_2_3) ? _maxFadeColors : TG_HOST_V1_2_NUM_FADE_COLORS);
+	spriteLib()->spriteFadePalette(mult, _stepCount, TG_HOST_V1_2_NUM_SYSTEM_COLORS, (_version >= kVersionV1_2_3) ? _maxFadeColors : ((_version >= kVersionV1_2_1) ? (uint16)(TG_HOST_V1_2_1_FADE_LAST_COLOR - _maxTransColors) : TG_HOST_V1_2_NUM_FADE_COLORS));
 
 	_step++;
 	if (_step > _stepCount)
@@ -768,11 +811,11 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 		} while (_active);
 
 		_faded = true;
-	} else if (_version < kVersionV1_2_3 || _backgroundBitmap) {
-		_buffer1 = spriteLib()->spriteDibCreate(_width, _height, (_version >= kVersionV1_2_3) ? 0 : 1);
+	} else if (_version < kVersionV1_2_1 || _backgroundBitmap) {
+		_buffer1 = spriteLib()->spriteDibCreate(_width, _height, (_version >= kVersionV1_2_1) ? 0 : 1);
 
 		if (_buffer1) {
-			if (_version >= kVersionV1_2_3) {
+			if (_version >= kVersionV1_2_1) {
 				uint32 count = (uint32)READ_LE_UINT16(_backgroundBitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET) * READ_LE_UINT16(_backgroundBitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 				utilsLibrary()->copyHugeBytes(_buffer1 + READ_LE_UINT16(_buffer1), _backgroundBitmap + READ_LE_UINT16(_backgroundBitmap), count);
 			}
@@ -783,13 +826,13 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 
 			_active = true;
 
-			if (_version >= kVersionV1_2_3)
+			if (_version >= kVersionV1_2_1)
 				spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
 
 			wipeEffectFrameRingsOutsideIn(rings, true);
 			_faded = true;
 
-			if (_version < kVersionV1_2_3)
+			if (_version < kVersionV1_2_1)
 				spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
 		}
 	}
@@ -877,23 +920,6 @@ void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
 	}
 }
 
-bool TopgunEngine_v1_2_3::setBackgroundWithWipeEffect(const byte *record) {
-	if (!_backgroundBitmap || READ_LE_UINT16(record + 2) != 0)
-		return false;
-
-	uint16 bitmapId = READ_LE_UINT16(record + 4);
-	if ((_flagLoMem || _flagMode640) && READ_LE_UINT16(record + 6) != 0)
-		bitmapId = READ_LE_UINT16(record + 6);
-
-	byte *bitmap = loadBitmapResourceCopy(bitmapId);
-	if (!bitmap)
-		return false;
-
-	executeWipeEffect(record + 0x0A, bitmap, _backgroundBitmap);
-	utilsLibrary()->tgFree(bitmap);
-	return true;
-}
-
 void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {
 	if (rings == 0)
 		rings = 10;
@@ -923,16 +949,20 @@ void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {
 	}
 }
 
-void TopgunEngine_v1_2_3::executeWipeEffect(const byte *params, byte *newBitmap, byte *oldBitmap) {
+void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, byte *oldBitmap) {
 	_wipeOldBitmap = oldBitmap;
 	_wipeNewBitmap = newBitmap;
 	_wipeEffectActive = true;
 
-	uint16 sendMessage = spriteLib()->spriteSetSendMsg(0);
+	uint16 sendMessage = 0;
+
+	if (_version >= kVersionV1_2_3)
+		sendMessage = spriteLib()->spriteSetSendMsg(0);
 
 	switch (READ_LE_UINT16(params)) {
 	case 1:
-		wipeEffectIrisRings(READ_LE_UINT16(params + 2));
+		if (_version >= kVersionV1_2_3)
+			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectIrisRings(READ_LE_UINT16(params + 2));
 		break;
 
 	case 2:
@@ -955,7 +985,9 @@ void TopgunEngine_v1_2_3::executeWipeEffect(const byte *params, byte *newBitmap,
 		break;
 	}
 
-	spriteLib()->spriteSetSendMsg(sendMessage);
+	if (_version >= kVersionV1_2_3)
+		spriteLib()->spriteSetSendMsg(sendMessage);
+
 	_wipeEffectActive = false;
 }
 

@@ -278,10 +278,10 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 		int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
-		if (_engine->_version >= kVersionV1_2_3 && object->mirrorX)
+		if (_engine->_version >= kVersionV1_2_1 && object->mirrorX)
 			hotX = (int16)-hotX;
 
-		if (_engine->_version >= kVersionV1_2_3 && object->flipY)
+		if (_engine->_version >= kVersionV1_2_1 && object->flipY)
 			hotY = (int16)-hotY;
 
 		part.box.left = (int16)((int16)(1 - width) / 2 + hotX + object->x);
@@ -303,7 +303,7 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 
 	Common::Rect oldBox = object->boundingBox;
 
-	if (_engine->_version >= kVersionV1_2_3 && object->framePending) {
+	if (_engine->_version >= kVersionV1_2_1 && object->framePending) {
 		applyFrameChange(sprite);
 
 		object = findSprite(sprite, "updateSpritePosition");
@@ -326,8 +326,10 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 	object->boundingBox.right = (int16)(object->boundingBox.right + deltaX);
 	object->boundingBox.bottom = (int16)(object->boundingBox.bottom + deltaY);
 
-	if (_engine->_version >= kVersionV1_2_3) {
-		object->multipartValid = false;
+	if (_engine->_version >= kVersionV1_2_1) {
+		if (_engine->_version >= kVersionV1_2_3)
+			object->multipartValid = false;
+
 		object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
 	} else {
 		object->useUnionRefresh = (deltaX > -TG_SPR_V1_2_UNION_REFRESH_LIMIT && deltaX < TG_SPR_V1_2_UNION_REFRESH_LIMIT &&
@@ -833,6 +835,54 @@ void SpriteLibrary_v1_2::spriteSetTopMost(uint16 sprite) {
 		object->framePending = framePending;
 }
 
+void SpriteLibrary_v1_2::spriteSetLevel(uint16 sprite, int16 level) {
+	int16 index = findSpriteIndex(sprite);
+	if (index < 0)
+		return;
+
+	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetLevel");
+	if (!object)
+		return;
+
+	if (_tickNesting != 0 && _tickCursor >= index)
+		_tickCursor--;
+
+	memmove(&_spriteTable[index], &_spriteTable[index + 1], (_spriteCount - index - 1) * sizeof(uint16));
+	_spriteCount--;
+
+	object->level = level;
+
+	if (_spriteCount == 0) {
+		_spriteTable[0] = sprite;
+	} else {
+		int slot = (int)_spriteCount - 1;
+		if (_topmostSprite != 0)
+			slot--;
+
+		while (slot >= 0) {
+			SpriteObject_v1_2 *other = lookupSprite(_spriteTable[slot]);
+			if (other && other->level <= level)
+				break;
+
+			slot--;
+		}
+
+		slot++;
+
+		uint16 moveCount = _spriteCount - slot;
+		if (moveCount != 0) {
+			if (_tickNesting != 0 && _tickCursor >= slot)
+				_tickCursor++;
+
+			memmove(&_spriteTable[slot + 1], &_spriteTable[slot], moveCount * sizeof(uint16));
+		}
+
+		_spriteTable[slot] = sprite;
+	}
+
+	_spriteCount++;
+}
+
 bool SpriteLibrary_v1_2::spriteSwapOrder(uint16 spriteA, uint16 spriteB, bool onlyIfBAbove, bool refresh) {
 	int16 indexA = findSpriteIndex(spriteA);
 	int16 indexB = findSpriteIndex(spriteB);
@@ -865,8 +915,12 @@ void SpriteLibrary_v1_2::spriteTransfer(uint16 source, uint16 destination) {
 
 	SpriteLibrary::spriteTransfer(source, destination);
 
-	if (from && to)
+	if (from && to) {
 		from->celCacheCount = 0;
+
+		if (_engine->_version >= kVersionV1_2_1)
+			from->currentFrame = nullptr;
+	}
 }
 
 void SpriteLibrary_v1_2::spriteEmptyQueue(uint16 sprite) {
@@ -1025,7 +1079,7 @@ byte *SpriteLibrary_v1_2::callStreamProc(uint16 sprite, uint16 id, uint16 releas
 	if (!object)
 		return nullptr;
 
-	if (_engine->_version >= kVersionV1_2_3)
+	if (_engine->_version >= kVersionV1_2_1)
 		_inHostCallback = true;
 
 	object->scriptActive = 0;
@@ -1033,7 +1087,7 @@ byte *SpriteLibrary_v1_2::callStreamProc(uint16 sprite, uint16 id, uint16 releas
 
 	byte *result = engine()->spriteBitmapProvider(id, release != 0);
 
-	if (_engine->_version >= kVersionV1_2_3)
+	if (_engine->_version >= kVersionV1_2_1)
 		_inHostCallback = false;
 
 	if (currentTickSprite() != sprite && findSpriteIndex(sprite) == -1)
@@ -1090,7 +1144,7 @@ bool SpriteLibrary_v1_2::addBitmapToCelCache(uint16 sprite, byte *bitmap, uint16
 	if (!object)
 		return false;
 
-	uint16 cacheSize = (_engine->_version >= kVersionV1_2_3) ? TG_SPR_V1_2_3_CEL_CACHE_SIZE : TG_SPR_V1_2_CEL_CACHE_SIZE;
+	uint16 cacheSize = (_engine->_version >= kVersionV1_2_1) ? TG_SPR_V1_2_1_CEL_CACHE_SIZE : TG_SPR_V1_2_CEL_CACHE_SIZE;
 
 	if (!object->celCache)
 		object->celCache = CelCacheBlockPtr(new CelCacheBlock());
@@ -1172,54 +1226,6 @@ void SpriteLibrary_v1_2_3::spriteSetPickMode(uint16 sprite, uint16 wholeBox, uin
 
 	object->pickWholeBox = ((wholeBox & 0xFF) != 0);
 	object->pickInvisible = ((pickInvisible & 0xFF) != 0);
-}
-
-void SpriteLibrary_v1_2_3::spriteSetLevel(uint16 sprite, int16 level) {
-	int16 index = findSpriteIndex(sprite);
-	if (index < 0)
-		return;
-
-	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetLevel");
-	if (!object)
-		return;
-
-	if (_tickNesting != 0 && _tickCursor >= index)
-		_tickCursor--;
-
-	memmove(&_spriteTable[index], &_spriteTable[index + 1], (_spriteCount - index - 1) * sizeof(uint16));
-	_spriteCount--;
-
-	object->level = level;
-
-	if (_spriteCount == 0) {
-		_spriteTable[0] = sprite;
-	} else {
-		int slot = (int)_spriteCount - 1;
-		if (_topmostSprite != 0)
-			slot--;
-
-		while (slot >= 0) {
-			SpriteObject_v1_2 *other = lookupSprite(_spriteTable[slot]);
-			if (other && other->level <= level)
-				break;
-
-			slot--;
-		}
-
-		slot++;
-
-		uint16 moveCount = _spriteCount - slot;
-		if (moveCount != 0) {
-			if (_tickNesting != 0 && _tickCursor >= slot)
-				_tickCursor++;
-
-			memmove(&_spriteTable[slot + 1], &_spriteTable[slot], moveCount * sizeof(uint16));
-		}
-
-		_spriteTable[slot] = sprite;
-	}
-
-	_spriteCount++;
 }
 
 void SpriteLibrary_v1_2_3::pauseResumeSprite(uint16 sprite, bool pause) {

@@ -315,7 +315,7 @@ static const CursorImage_v1_2 kCursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = 
 };
 
 bool TopgunEngine_v1_2::loadCursorResources() {
-	uint16 numImages = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_NUM_CURSOR_IMAGES : TG_HOST_V1_2_NUM_CURSOR_IMAGES;
+	uint16 numImages = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_3_NUM_CURSOR_IMAGES : TG_HOST_V1_2_NUM_CURSOR_IMAGES;
 
 	for (uint16 i = 0; i < numImages; i++) {
 		Common::MemoryReadStream stream(kCursorImages[i].data, TG_HOST_V1_2_CURSOR_IMAGE_SIZE);
@@ -405,16 +405,6 @@ void TopgunEngine_v1_2::forceShowOrHideCursor(bool show) {
 
 void TopgunEngine_v1_2_3::o_setCursorMode(const byte *record) {
 	setCursorMode(record[2]);
-}
-
-void TopgunEngine_v1_2_3::o_setCursorPosition(const byte *record) {
-	uint16 x = operandValue(READ_LE_UINT16(record + 2));
-	_variableTable[TG_HOST_V1_2_3_VARIABLE_MOUSE_X] = x;
-
-	uint16 y = operandValue(READ_LE_UINT16(record + 4));
-	_variableTable[TG_HOST_V1_2_3_VARIABLE_MOUSE_Y] = y;
-
-	g_system->warpMouse(display()->viewportOrigin().x + (int16)x, display()->viewportOrigin().y + (int16)y);
 }
 
 void TopgunEngine_v1_0::applyCursorFromRegister() {

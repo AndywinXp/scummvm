@@ -196,14 +196,24 @@ void AudioLibrary_v1_2::audioSetWaveFormats(uint16 mask) {
 	_userFormatMask = mask;
 }
 
-void AudioLibrary_v1_2::audioMute(uint16 muted) {
+void AudioLibrary_v1_2::audioMute(int16 muted) {
 	bool previous = _mute;
 
-	_mute = (muted != 0);
+	if (_engine->_version >= kVersionV1_2_1) {
+		if (muted < 0)
+			_mute = !previous;
+		else
+			_mute = (muted > 0);
+	} else {
+		_mute = (muted != 0);
+	}
 
 	if (_mute != previous) {
 		updateWaveEnabledFlags(1);
 		muteCDAudio();
+
+		if (_engine->_version >= kVersionV1_2_1 && _mute)
+			resetWaveOutQueue();
 	}
 }
 

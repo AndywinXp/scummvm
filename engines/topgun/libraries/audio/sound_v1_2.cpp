@@ -341,8 +341,16 @@ void AudioLibrary_v1_2::setupWaveFadeOut(SoundObject *sound, uint32 milliseconds
 bool AudioLibrary_v1_2::startWavePlayback(SoundObject *sound, const byte *params) {
 	sound->fadingOut = false;
 	sound->fadingIn = false;
+
+	if (_engine->_version >= kVersionV1_2_1 && (params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] & TG_AUDIO_V1_2_1_PLAY_FLAG_SET_VOLUME))
+		sound->volume = (params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] >> TG_AUDIO_V1_2_1_PLAY_VOLUME_SHIFT) & TG_AUDIO_V1_2_1_PLAY_VOLUME_MASK;
+
 	sound->currentVolume = sound->volume;
 	sound->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_PLAY_OFFSET_LOOPS);
+
+	if (_engine->_version >= kVersionV1_2_1)
+		sound->initialLoops = sound->loops;
+
 	sound->notifyArmed = (params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] & TG_AUDIO_V1_2_PLAY_FLAG_NOTIFY) != 0;
 	sound->notifyLParam = sound->notifyArmed ? READ_LE_UINT16(params + TG_AUDIO_V1_2_PLAY_OFFSET_NOTIFY) : 0;
 	sound->randomMode = false;
@@ -375,33 +383,15 @@ bool AudioLibrary_v1_2::startWavePlayback(SoundObject *sound, const byte *params
 		stopCDIfOwned();
 
 	if (READ_LE_UINT32(params + TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN) != 0) {
-		sound->randomMode = true;
-
-		if (sound->active)
-			_activeSounds--;
-
-		sound->active = false;
-
-		byte minimumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN) / 1000);
-		byte maximumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MAX) / 1000);
-
-		if (minimumSeconds < maximumSeconds)
-			sound->randomRange = (byte)(maximumSeconds - minimumSeconds + 1);
-		else
-			sound->randomRange = 0;
-
-		sound->randomMin = minimumSeconds;
-		computeRandomizedRepeatDelay(sound, _engine->getEngineMillis());
+		scheduleRandomRepeatPlayback(sound, params);
 		return true;
 	}
 
-	if (!sound->overlay && !(params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] & TG_AUDIO_V1_2_PLAY_FLAG_KEEP_OTHERS))
+	// From the later versions the keep flag only protects the output queue
+	if (!sound->overlay && (_engine->_version >= kVersionV1_2_1 || !(params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] & TG_AUDIO_V1_2_PLAY_FLAG_KEEP_OTHERS)))
 		deactivateAllWaves();
 
-	if (!sound->active) {
-		sound->active = true;
-		_activeSounds++;
-	}
+	activateWaveObject(sound);
 
 	if (_buffersInFlight != 0 && !(params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS] & TG_AUDIO_V1_2_PLAY_FLAG_KEEP_OTHERS))
 		resetWaveOutQueue();
@@ -409,11 +399,44 @@ bool AudioLibrary_v1_2::startWavePlayback(SoundObject *sound, const byte *params
 	return true;
 }
 
+void AudioLibrary_v1_2::scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params) {
+	uint16 minimumOffset = (_engine->_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MIN : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN;
+	uint16 maximumOffset = (_engine->_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MAX : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MAX;
+
+	sound->randomMode = true;
+
+	if (sound->active)
+		_activeSounds--;
+
+	sound->active = false;
+
+	byte minimumSeconds = (byte)(READ_LE_UINT32(params + minimumOffset) / 1000);
+	byte maximumSeconds = (byte)(READ_LE_UINT32(params + maximumOffset) / 1000);
+
+	if (minimumSeconds < maximumSeconds)
+		sound->randomRange = (byte)(maximumSeconds - minimumSeconds + 1);
+	else
+		sound->randomRange = 0;
+
+	sound->randomMin = minimumSeconds;
+	computeRandomizedRepeatDelay(sound, _engine->getEngineMillis());
+}
+
+void AudioLibrary_v1_2::activateWaveObject(SoundObject *sound) {
+	if (_engine->_version >= kVersionV1_2_1)
+		sound->loops = sound->initialLoops;
+
+	if (!sound->active)
+		_activeSounds++;
+
+	sound->active = true;
+}
+
 void AudioLibrary_v1_2::deactivateAllWaves() {
 	for (uint16 i = 0; i < _soundCount; i++) {
 		SoundObject *sound = _sounds[i];
 
-		if (sound->active) {
+		if (sound->active && (_engine->_version < kVersionV1_2_1 || !sound->overlay)) {
 			_activeSounds--;
 			sound->randomMode = false;
 			sound->active = false;
@@ -444,7 +467,7 @@ void AudioLibrary_v1_2::finishWaveObject(SoundObject *sound) {
 }
 
 void AudioLibrary_v1_2::stopWaveObject(SoundObject *sound, const byte *params) {
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_1) {
 		sound->notifyPending = false;
 		sound->notifyArmed = false;
 	}
@@ -459,7 +482,7 @@ void AudioLibrary_v1_2::stopWaveObject(SoundObject *sound, const byte *params) {
 	if (fadeMilliseconds != 0 && sound->currentVolume != 0) {
 		setupWaveFadeOut(sound, fadeMilliseconds, sound->currentVolume, 0);
 	} else {
-		if (_engine->_version >= kVersionV1_2_3) {
+		if (_engine->_version >= kVersionV1_2_1) {
 			finishWaveObject(sound);
 		} else {
 			sound->active = false;
@@ -749,26 +772,6 @@ bool AudioLibrary_v1_2_3::startWavePlayback(SoundObject *sound, const byte *para
 		armWaveNotificationEndTime(sound);
 
 	return true;
-}
-
-void AudioLibrary_v1_2_3::scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params) {
-	sound->randomMode = true;
-
-	if (sound->active)
-		_activeSounds--;
-
-	sound->active = false;
-
-	byte minimumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MIN) / 1000);
-	byte maximumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MAX) / 1000);
-
-	if (minimumSeconds < maximumSeconds)
-		sound->randomRange = (byte)(maximumSeconds - minimumSeconds + 1);
-	else
-		sound->randomRange = 0;
-
-	sound->randomMin = minimumSeconds;
-	computeRandomizedRepeatDelay(sound, _engine->getEngineMillis());
 }
 
 void AudioLibrary_v1_2_3::stopAllNonExemptWaves() {

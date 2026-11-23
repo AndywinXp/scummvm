@@ -97,7 +97,7 @@ void TopgunEngine_v1_2_3::writeVariable(uint16 index, uint16 value) {
 }
 
 bool TopgunEngine_v1_2_3::postMessage(uint16 id, uint16 param, uint32 data) {
-	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_3IoError) {
+	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_1IoError) {
 		// The fatal quit messages are handled synchronously
 		flushPostedScriptMessages();
 		_fatalCode = id;
@@ -151,10 +151,6 @@ uint32 TopgunEngine_v1_2_3::audioSourceRewind(uint16 proc, uint16 handle) {
 void TopgunEngine_v1_2_3::audioSourceClose(uint16 proc, uint16 handle) {
 	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI)
 		resourceLib()->waveDone(handle);
-}
-
-void TopgunEngine_v1_2_3::resourceSendMessage(uint16 window, uint16 message) {
-	postMessage(message, 0, 0);
 }
 
 bool TopgunEngine_v1_2_3::resourceVariablePairCallback(uint16 id, uint16 value) {
@@ -270,16 +266,6 @@ bool TopgunEngine_v1_2_3::initEngineLibraries() {
 	return true;
 }
 
-uint16 TopgunEngine_v1_2_3::getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) {
-	loadIniFile();
-
-	Common::String value;
-	if (!_iniFile.getKey(key, section, value))
-		return defaultValue;
-
-	return parseIniInteger(value.c_str());
-}
-
 uint16 TopgunEngine_v1_2_3::mainLoop() {
 	Message message;
 
@@ -341,12 +327,12 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 		handleKeyUpMessage((Common::KeyCode)message.param);
 		break;
 
-	case kMsgV1_2_3Joystick1Move:
-	case kMsgV1_2_3Joystick2Move:
-	case kMsgV1_2_3Joystick1ButtonDown:
-	case kMsgV1_2_3Joystick2ButtonDown:
-	case kMsgV1_2_3Joystick1ButtonUp:
-	case kMsgV1_2_3Joystick2ButtonUp:
+	case kMsgV1_2_1Joystick1Move:
+	case kMsgV1_2_1Joystick2Move:
+	case kMsgV1_2_1Joystick1ButtonDown:
+	case kMsgV1_2_1Joystick2ButtonDown:
+	case kMsgV1_2_1Joystick1ButtonUp:
+	case kMsgV1_2_1Joystick2ButtonUp:
 		if (!_gamePaused)
 			handleJoystickMessage(message);
 		break;
@@ -435,20 +421,11 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 
 	setCursorMode(1);
 
-	if (_fatalCode == kMsgV1_2MemoryError || _fatalCode == kMsgV1_2_3IoError)
+	if (_fatalCode == kMsgV1_2MemoryError || _fatalCode == kMsgV1_2_1IoError)
 		showShutdownErrorBox();
 
 	clearMessages();
 	postQuitMessage(0);
-}
-
-void TopgunEngine_v1_2_3::showShutdownErrorBox() {
-	fillBackground();
-
-	if (_fatalCode == kMsgV1_2_3IoError)
-		GUIErrorMessage("A file I/O error has occurred.");
-	else
-		GUIErrorMessage("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 }
 
 void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
@@ -499,19 +476,7 @@ void TopgunEngine_v1_2_3::flushPostedScriptMessages() {
 
 	drainMessage(kMsgV1_2SoundFinished);
 	drainMessage(kMsgV1_2MemoryError);
-	drainMessage(kMsgV1_2_3IoError);
-}
-
-bool TopgunEngine_v1_2_3::fatalError(uint16 code, const Common::String &message) {
-	// The original marks the shutdown as already started, so the close message does nothing and the window stays frozen; here the close runs the normal shutdown
-	_fatalCode = code;
-	_scriptsDisabled = true;
-	_appActive = false;
-
-	GUIErrorMessage(message);
-	flushPostedScriptMessages();
-	postMessage(kMsgClose, 0, 0);
-	return false;
+	drainMessage(kMsgV1_2_1IoError);
 }
 
 } // End of namespace Topgun

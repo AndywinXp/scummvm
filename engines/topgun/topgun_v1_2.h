@@ -55,6 +55,9 @@
 #define TG_HOST_V1_2_VARIABLE_AUDIO_PRESENT      412
 #define TG_HOST_V1_2_VARIABLE_PROCESSOR_TYPE     413
 #define TG_HOST_V1_2_VARIABLE_OVER_256_COLORS    414
+#define TG_HOST_V1_2_1_NUM_CLEARED_VARIABLES     116
+#define TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER     415
+#define TG_HOST_V1_2_1_VARIABLE_JOYSTICKS        416
 
 // Scenes and strings
 #define TG_HOST_V1_2_STRING_SLOT_SIZE            128
@@ -70,6 +73,7 @@
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
+#define TG_HOST_V1_2_1_MAX_COLLISION_PAIRS       100
 #define TG_HOST_V1_2_MAX_MOVIES                  4
 
 // Resources
@@ -86,6 +90,8 @@
 // Palette
 #define TG_HOST_V1_2_NUM_SYSTEM_COLORS           10
 #define TG_HOST_V1_2_NUM_FADE_COLORS             0xDD
+#define TG_HOST_V1_2_1_PALETTE_LAST_COLOR        0xF6
+#define TG_HOST_V1_2_1_FADE_LAST_COLOR           0xEC
 #define TG_HOST_V1_2_SOLID_COLOR_ENTRY           0xE6
 #define TG_HOST_V1_2_TRANS_PALETTE_FIRST         0xE7
 #define TG_HOST_V1_2_NUM_TRANS_PALETTE_COLORS    0x0F
@@ -99,6 +105,9 @@
 
 // Startup
 #define TG_HOST_V1_2_MIN_COLORS                  256
+#define TG_HOST_V1_2_1_FILE_HEADER_SIZE          0x7C
+#define TG_HOST_V1_2_1_HEADER_MAX_FADE_COLORS    0x5A
+#define TG_HOST_V1_2_1_HEADER_MAX_TRANS_COLORS   0x5C
 
 // Sprite object data of a type 12 resource
 #define TG_HOST_V1_2_SPRITE_DATA_CLICK_SCRIPT    0
@@ -129,6 +138,16 @@
 #define TG_HOST_V1_2_CHAR_RETURN                 0x0D
 #define TG_HOST_V1_2_CHAR_ESCAPE                 0x1B
 #define TG_HOST_V1_2_CHAR_FIRST_PRINTABLE        0x20
+#define TG_INPUT_V1_2_1_VK_PAUSE                 0x13
+
+// Joystick
+#define TG_JOYSTICK_V1_2_1_NUM_STICKS            2
+#define TG_JOYSTICK_V1_2_1_NUM_SCRIPTS           34 // 2 sticks * 17 slots
+#define TG_JOYSTICK_V1_2_1_AXIS_CENTER           0x8000
+#define TG_JOYSTICK_V1_2_1_DISTANCE_THRESHOLD    0x1F40
+#define TG_JOYSTICK_V1_2_1_EIGHT_WAY_THRESHOLD   0x1F40
+#define TG_JOYSTICK_V1_2_1_STICK_OFFSET          0x11
+#define TG_JOYSTICK_V1_2_1_NO_INDEX              0xFFFF
 
 // Cursors
 #define TG_HOST_V1_2_CURSOR_MODE_ARROW           1
@@ -191,6 +210,10 @@
 #define TG_TEXT_V1_2_NUM_SPRITES                 8
 #define TG_TEXT_V1_2_SOLID_COLOR                 0xFF
 #define TG_TEXT_V1_2_DEFAULT_HEIGHT              12
+#define TG_TEXT_V1_2_1_HEADER_SIZE               22
+#define TG_TEXT_V1_2_1_HEADER_BOX_WIDTH          0x10
+#define TG_TEXT_V1_2_1_HEADER_BOX_HEIGHT         0x12
+#define TG_TEXT_V1_2_1_HEADER_FLAGS              0x14
 #define TG_TEXT_V1_2_3_HEADER_SIZE               20
 #define TG_TEXT_V1_2_3_SHORT_HEADER_SIZE         18
 #define TG_TEXT_V1_2_3_EDIT_RECORD_SIZE          12
@@ -216,6 +239,8 @@
 #define TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE   515
 #define TG_SCRIPT_V1_2_ARGUMENT_STACK_VARIABLE   535
 #define TG_SCRIPT_V1_2_ARGUMENT_STACK_SIZE       200
+#define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE 517
+#define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE     8
 #define TG_SCRIPT_V1_2_CALL_HEADER_SIZE          5
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
@@ -235,6 +260,9 @@
 #define TG_SCRIPT_V1_2_CONDITION_LESS            0x02
 #define TG_SCRIPT_V1_2_CONDITION_GREATER         0x04
 #define TG_SCRIPT_V1_2_CONDITION_NEGATE          0x80
+#define TG_SCRIPT_V1_2_1_CONDITION_OR            0x08
+#define TG_SCRIPT_V1_2_1_CONDITION_AND           0x10
+#define TG_SCRIPT_V1_2_1_CONDITION_MODULO        0x20
 #define TG_SCRIPT_V1_2_SKIP_TAKEN_SIZE           9
 #define TG_SCRIPT_V1_2_CONDITIONAL_SIZE          0x0C
 #define TG_SCRIPT_V1_2_MAX_ZOOM_MODE             4
@@ -263,6 +291,30 @@ enum MessageId_v1_2 {
 	kMsgV1_2SoundFinished = 0x52C,
 	kMsgV1_2Mute = 0x781,
 	kMsgV1_2CompanionWindow = 0x783
+};
+
+enum MessageId_v1_2_1 {
+	kMsgV1_2_1Joystick1Move = 0x3A0,
+	kMsgV1_2_1Joystick2Move = 0x3A1,
+	kMsgV1_2_1Joystick1ButtonDown = 0x3B5,
+	kMsgV1_2_1Joystick2ButtonDown = 0x3B6,
+	kMsgV1_2_1Joystick1ButtonUp = 0x3B7,
+	kMsgV1_2_1Joystick2ButtonUp = 0x3B8,
+	kMsgV1_2_1IoError = 0x590
+};
+
+enum ResourceType_v1_2_1 {
+	kResV1_2_1Bitmap = 1,
+	kResV1_2_1Wave = 4,
+	kResV1_2_1OpList = 5,
+	kResV1_2_1BitmapGroup = 6,
+	kResV1_2_1MixedGroup = 7,
+	kResV1_2_1Movie = 8,
+	kResV1_2_1Palette = 9,
+	kResV1_2_1SpriteQueueData = 10,
+	kResV1_2_1Script = 11,
+	kResV1_2_1Sprite = 12,
+	kResV1_2_1Text = 13
 };
 
 enum ResourceType_v1_2 {
@@ -315,6 +367,7 @@ enum ScriptOpcode_v1_2 {
 	kOpV1_2AddCollisionPair,
 	kOpV1_2ListRunScript,
 	kOpV1_2LaunchProgram,
+	kOpV1_2SetPauseScript = kOpV1_2LaunchProgram,
 	kOpV1_2MoveSprite,
 	kOpV1_2Jump,
 	kOpV1_2ConditionalSkip,
@@ -348,7 +401,11 @@ enum ScriptOpcode_v1_2 {
 	kOpV1_2Sine,
 	kOpV1_2FlushIni,
 	kOpV1_2IsSpriteBusy,
-	kOpV1_2BackupIni
+	kOpV1_2BackupIni,
+	kOpV1_2GetTime,
+	kOpV1_2SpriteCompositeToBackground,
+	kOpV1_2SetJoystickScript,
+	kOpV1_2SetCursorPosition
 };
 
 struct FormatArgument_v1_2 {
@@ -434,7 +491,7 @@ struct TextObject_v1_2 {
 	uint16 fontHandle;
 	uint16 color;
 	byte edit[TG_TEXT_V1_2_3_EDIT_RECORD_SIZE];
-	byte data[TG_TEXT_V1_2_3_HEADER_SIZE];
+	byte data[TG_TEXT_V1_2_1_HEADER_SIZE];
 	char text[TG_TEXT_V1_2_TEXT_SIZE];
 	char undo[TG_TEXT_V1_2_TEXT_SIZE];
 	uint16 sprites[TG_TEXT_V1_2_NUM_SPRITES];
@@ -586,6 +643,7 @@ protected:
 	virtual uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count);
 	virtual uint32 audioSourceRewind(uint16 proc, uint16 handle);
 	virtual void audioSourceClose(uint16 proc, uint16 handle);
+	void resourceSendMessage(uint16 window, uint16 message);
 	bool resourceEnumCallback(uint16 type, uint32 offset, uint32 size);
 	bool resourceVariableCallback(uint16 id, uint16 value, const char *name);
 	void spriteServiceProc(uint16 word);
@@ -605,6 +663,7 @@ protected:
 	bool applyLaunchModeSetup();
 	void notifyPythonizerWindow();
 	bool locateResourceFile(const Common::String &name);
+	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue);
 	void saveScreenSaverTimes();
 	bool loadCursorResources();
 	void destroyCursorResources();
@@ -633,6 +692,8 @@ protected:
 	void flushPostedScriptMessages();
 	void drainMessage(uint16 id);
 	bool fatalError(const Common::String &message);
+	bool fatalError(uint16 code, const Common::String &message);
+	void showShutdownErrorBox();
 
 	// Cursor
 	void setCursorMode(byte mode) override;
@@ -669,6 +730,9 @@ protected:
 	bool ensureTextObjectResourceLoaded(uint16 id);
 	bool ensureWaveResourceLoaded(uint16 id) override;
 	bool destroyResourceObjectByType(uint16 id, uint16 type) override;
+	bool validateResourceType(uint16 id, uint16 type);
+	void destroyBitmapGroupResourceObject(uint16 id);
+	bool ensureBitmapGroupResourceLoaded(uint16 id);
 	void resetResourcesAndTransientState() override;
 	void destroySceneMainObjects(bool release) override;
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
@@ -695,8 +759,10 @@ protected:
 	void setBackgroundFromBitmapResource(const byte *record);
 	void setSolidBackgroundColorPalette(uint32 color);
 	void setSolidBackgroundColorBitmap(uint32 color);
+	bool setBackgroundWithWipeEffect(const byte *record);
 
 	// Transitions
+	void executeWipeEffect(const byte *params, byte *newBitmap, byte *oldBitmap);
 	void copyAndPaintBackgroundRect(Common::Rect &rect) override;
 	void paintFrameBandsLeftRight(const Common::Rect &outer, const Common::Rect &inner);
 	void paintFrameBandsTopBottom(const Common::Rect &outer, const Common::Rect &inner) override;
@@ -774,6 +840,10 @@ protected:
 	void o_flushIni(const byte *record); // 67
 	void o_isSpriteBusy(const byte *record); // 68
 	void o_backupIni(); // 69
+	void o_getTime(const byte *record); // 70
+	void o_spriteCompositeToBackground(const byte *record); // 71
+	void o_setJoystickScript(const byte *record); // 72
+	void o_setCursorPosition(const byte *record); // 73
 
 	// Input
 	bool translate(const Common::Event &event, Message &message) override;
@@ -792,6 +862,19 @@ protected:
 	void updateHoverRegionFromPoint(int16 x, int16 y);
 	void dropDraggedSprite(int16 x, int16 y);
 	uint16 getTextObjectFromId(uint16 id);
+	void togglePauseState();
+
+	// Joystick
+	void clearJoystickScripts();
+	uint16 joystickGetScriptForDirectionCode(uint16 offset, uint16 flags);
+	uint16 joystickButtonIndex(uint16 flags);
+	uint16 joystickDirectionIndex(uint16 offset, const uint16 *center, uint16 x, uint16 y);
+	uint16 joystickDirectionByDistance(const uint16 *center, uint16 x, uint16 y);
+	uint16 joystickDirection8Way(const uint16 *center, uint16 x, uint16 y);
+	uint16 joystickGetScriptForPosition(uint16 offset, const uint16 *center, uint16 x, uint16 y);
+	void handleJoystickMessage(const Message &message);
+	void joystickInit();
+	void joystickRelease();
 
 	// Timers and collisions
 	uint16 removeScheduledTimer(uint16 index);
@@ -830,9 +913,13 @@ protected:
 	uint16 destroyTextObject(uint16 handle);
 	TextObject_v1_2 *textObjectFromHandle(uint16 handle);
 	void createTextObjectFont(TextObject_v1_2 *object);
+	uint16 createTextObjectFont(int16 height, const char *face);
+	void deleteTextObjectFont(uint16 font);
+	void refreshTextObjectFont(TextObject_v1_2 *object);
 	void loadGameFonts();
 	Graphics::Font *createGameFont(const Common::String &face, int size, bool cell);
 	Graphics::ManagedSurface *renderTextToBitmap(uint16 color, const char *text, const Graphics::Font *font);
+	Graphics::ManagedSurface *renderTextToBitmap(const TextObject_v1_2 *object);
 	byte *buildTextObjectBitmap(TextObject_v1_2 *object);
 	byte *createDIBFromBitmapHandle(const Graphics::ManagedSurface *bitmap, bool remap, byte color);
 	void positionTextObject(byte *bitmap, const TextObject_v1_2 *object);
@@ -840,6 +927,7 @@ protected:
 	void destroyAllTextObjects();
 	bool beginTextEdit(const byte *record);
 	void commitTextEdit(uint16 id);
+	void textEditAppendCaret(uint16 object);
 	bool endTextEdit(uint16 object, bool cancel);
 	bool textEditBackspace(uint16 object);
 	bool textEditAppendChar(uint16 object, byte character);
@@ -880,6 +968,10 @@ protected:
 	byte _audioPresent = 0;
 	bool _noFade = false;
 	bool _memoryError = false;
+	uint16 _fatalCode = 0;
+	byte _screenSaverOption = 1;
+	uint16 _maxJoySticks = 0;
+	uint16 _numJoysticks = 0;
 	bool _flagActivated = false;
 	bool _cursorApplied = false;
 	bool _entryScriptRunning = false;
@@ -895,6 +987,8 @@ protected:
 	byte *_backgroundBitmap = nullptr;
 	uint32 _backgroundColor = 0;
 	uint16 _maxFadeColors = 0;
+	uint16 _maxTransColors = 0;
+	uint16 _solidColorEntry = TG_HOST_V1_2_SOLID_COLOR_ENTRY;
 	uint16 _sceneSpriteMidi = 0;
 	bool _wipeEffectActive = false;
 	byte *_wipeNewBitmap = nullptr;
@@ -924,6 +1018,16 @@ protected:
 	uint16 _hoverSprite = 0;
 	uint16 _keyHookScript = 0;
 	uint16 _scriptResult = 0;
+	uint16 _pauseScript = 0;
+	bool _joystickCaptured = false;
+	bool _joystickRouted = false;
+	bool _joystickDirectionFlag = false;
+	bool _joystickButtonFlag = false;
+	uint16 _joystickCenter[TG_JOYSTICK_V1_2_1_NUM_STICKS][2] = {};
+	uint16 _joystickX = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
+	uint16 _joystickY = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
+	byte _joystickButtons = 0;
+	uint16 _joystickScripts[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
 	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_MAX_HOVER_REGIONS];
 	uint16 _numHoverRegions = 0;
 	uint16 _hoverRegionCurrent = 0;

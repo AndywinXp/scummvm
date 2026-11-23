@@ -36,6 +36,8 @@ enum TopgunDebugChannels {
 
 extern const PlainGameDescriptor topgunGames[];
 
+extern const char *const directoryGlobs[];
+
 extern const ADGameDescription gameDescriptions[];
 
 #define GAMEOPTION_ORIGINAL_SAVELOAD GUIO_GAMEOPTIONS1

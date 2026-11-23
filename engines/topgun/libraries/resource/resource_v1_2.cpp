@@ -52,21 +52,28 @@ ResourceLibrary_v1_2::ResourceFile *ResourceLibrary_v1_2::findFile(uint16 file, 
 }
 
 bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
-	if (file->stream->read(file->header, TG_RES_V1_2_HEADER_SIZE) != TG_RES_V1_2_HEADER_SIZE)
+	bool hasRecords = (_engine->_version >= kVersionV1_2_1);
+	uint16 headerSize = hasRecords ? TG_RES_V1_2_1_HEADER_SIZE : TG_RES_V1_2_HEADER_SIZE;
+
+	if (file->stream->read(file->header, headerSize) != headerSize)
 		return false;
 
 	const byte *header = file->header;
 	file->magic = READ_LE_UINT16(header);
-	file->entryCount = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_RESOURCE_COUNT_OFFSET);
-	file->paletteCount = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_PALETTE_COUNT_OFFSET);
-	file->nameTableSize = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_NAME_TABLE_SIZE_OFFSET);
-	file->variableCount = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_VARIABLE_COUNT_OFFSET);
-	file->chained = (header[TG_RES_V1_2_HEADER_CHAINED_OFFSET] != 0);
-	file->variableTableCount = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_VARIABLE_TABLE_OFFSET);
-	file->stringCount = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_STRING_COUNT_OFFSET);
-	file->stringPoolSize = READ_LE_UINT16(header + TG_RES_V1_2_HEADER_STRING_POOL_SIZE_OFFSET);
-	file->residentSplit = READ_LE_UINT32(header + TG_RES_V1_2_HEADER_RESIDENT_SPLIT_OFFSET);
-	file->residentSize = READ_LE_UINT32(header + TG_RES_V1_2_HEADER_RESIDENT_SIZE_OFFSET);
+
+	if (hasRecords)
+		file->recordCount = READ_LE_UINT16(header + TG_RES_V1_2_1_HEADER_RECORD_COUNT_OFFSET);
+
+	file->entryCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_INDEX_COUNT_OFFSET : TG_RES_V1_2_HEADER_RESOURCE_COUNT_OFFSET));
+	file->paletteCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_PALETTE_COUNT_OFFSET : TG_RES_V1_2_HEADER_PALETTE_COUNT_OFFSET));
+	file->nameTableSize = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_NAME_TABLE_SIZE_OFFSET : TG_RES_V1_2_HEADER_NAME_TABLE_SIZE_OFFSET));
+	file->variableCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_VARIABLE_COUNT_OFFSET : TG_RES_V1_2_HEADER_VARIABLE_COUNT_OFFSET));
+	file->chained = (header[hasRecords ? TG_RES_V1_2_1_HEADER_CHAINED_OFFSET : TG_RES_V1_2_HEADER_CHAINED_OFFSET] != 0);
+	file->variableTableCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_VARIABLE_TABLE_OFFSET : TG_RES_V1_2_HEADER_VARIABLE_TABLE_OFFSET));
+	file->stringCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_COUNT_OFFSET : TG_RES_V1_2_HEADER_STRING_COUNT_OFFSET));
+	file->stringPoolSize = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_POOL_SIZE_OFFSET : TG_RES_V1_2_HEADER_STRING_POOL_SIZE_OFFSET));
+	file->residentSplit = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SPLIT_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SPLIT_OFFSET));
+	file->residentSize = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SIZE_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SIZE_OFFSET));
 
 	if (file->magic != TG_RES_HEADER_MAGIC)
 		return false;
@@ -75,7 +82,7 @@ bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
 		return false;
 
 	byte sum = 0;
-	for (uint32 i = 0; i < TG_RES_V1_2_HEADER_SIZE; i++)
+	for (uint32 i = 0; i < headerSize; i++)
 		sum += header[i];
 
 	return sum == 0;
@@ -138,7 +145,9 @@ void ResourceLibrary_v1_2::writeVariableTableBack(ResourceFile *file) {
 	if (file->variableTableCount == 0 || !file->variablesDirty)
 		return;
 
-	uint32 offset = TG_RES_V1_2_HEADER_SIZE + (uint32)TG_RES_INDEX_ENTRY_SIZE * file->entryCount;
+	// The game does not add the size of the 0x50 byte records
+	uint32 headerSize = (_engine->_version >= kVersionV1_2_1) ? TG_RES_V1_2_1_HEADER_SIZE : TG_RES_V1_2_HEADER_SIZE;
+	uint32 offset = headerSize + (uint32)TG_RES_INDEX_ENTRY_SIZE * file->entryCount;
 	if (!file->stream->seek(offset, SEEK_SET) || file->stream->pos() != offset)
 		return;
 
@@ -256,6 +265,16 @@ uint16 ResourceLibrary_v1_2::resOpenFile(const Common::String &path) {
 
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
 
+	if (_engine->_version >= kVersionV1_2_1) {
+		// The game computes 0x50 * count in 16 bits; the records are skipped
+		uint32 recordsSize = (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+		int64 position = record->stream->pos();
+		if (recordsSize != 0 && (position + recordsSize > record->stream->size() || !record->stream->seek(recordsSize, SEEK_CUR))) {
+			resCloseFile(file);
+			return 0;
+		}
+	}
+
 	// The game computes 10 * count in 16 bits, which overflows with 6554 or more entries
 	uint32 indexSize = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount;
 	if (indexSize > 0xFFFF)
@@ -314,8 +333,13 @@ byte *ResourceLibrary_v1_2::resLoadNameTable(uint16 file, uint32 *outSize) {
 	if (record->nameTableSize == 0)
 		return nullptr;
 
-	uint32 offset = TG_RES_V1_2_HEADER_SIZE + (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + (uint16)(record->paletteCount * 4)
+	uint32 offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + (uint16)(record->paletteCount * 4)
 		+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
+	if (_engine->_version >= kVersionV1_2_1)
+		offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+	else
+		offset += TG_RES_V1_2_HEADER_SIZE;
+
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return nullptr;
 
@@ -346,8 +370,13 @@ uint16 ResourceLibrary_v1_2::resLoadPalette(uint16 file, byte *buffer) {
 	if (record->paletteCount == 0)
 		return 0;
 
-	uint32 offset = TG_RES_V1_2_HEADER_SIZE + (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount
+	uint32 offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount
 		+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
+	if (_engine->_version >= kVersionV1_2_1)
+		offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+	else
+		offset += TG_RES_V1_2_HEADER_SIZE;
+
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return 0;
 
@@ -369,7 +398,10 @@ byte *ResourceLibrary_v1_2::resLoadResource(uint16 file, uint16 index, uint32 *o
 	ResourceEntry entry;
 	readEntry(record, index, entry);
 
-	if (entry.type >= TG_RES_V1_2_RESIDENT_FIRST_TYPE && entry.type <= TG_RES_V1_2_RESIDENT_LAST_TYPE && entry.type != TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE) {
+	bool wideResidentRange = (_engine->_version >= kVersionV1_2_1);
+	uint16 lastResidentType = wideResidentRange ? TG_RES_V1_2_1_RESIDENT_LAST_TYPE : TG_RES_V1_2_RESIDENT_LAST_TYPE;
+
+	if (entry.type >= TG_RES_V1_2_RESIDENT_FIRST_TYPE && entry.type <= lastResidentType && (wideResidentRange || entry.type != TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE)) {
 		if (outSize)
 			*outSize = entry.size;
 
@@ -471,34 +503,40 @@ byte *ResourceLibrary_v1_2::expandCelBitmapRecord(ResourceFile *file, byte *sour
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
 
 	uint32 headerLength = READ_LE_UINT16(source);
-	uint32 size = (uint32)READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) * READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET) + headerLength;
+	uint32 pixelSize = (uint32)READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) * READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET);
+	uint32 size = pixelSize + headerLength;
 	byte *destination = utilsLibrary->tgMalloc(size, 0);
 	if (!destination)
 		return nullptr;
 
-	if (!file->lzwState) {
+	if (size < TG_RES_V1_2_BITMAP_HEADER_SIZE) {
+		warning("ResourceLibrary_v1_2::expandCelBitmapRecord(): bitmap size is smaller than its header");
+		return utilsLibrary->tgFree(destination);
+	}
+
+	const byte *sourceEnd = (sourceSize == TG_RES_V1_2_SIZE_UNKNOWN) ? nullptr : source + sourceSize;
+	if (sourceEnd && headerLength > sourceSize) {
+		warning("ResourceLibrary_v1_2::expandCelBitmapRecord(): bitmap header overruns its buffer");
+		return utilsLibrary->tgFree(destination);
+	}
+
+	if (_engine->_version >= kVersionV1_2_3 && (source[TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK)) {
+		rleExpandBitmap(destination, size, source, sourceSize);
+		destination[TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET] &= ~TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK;
+	} else if (_engine->_version < kVersionV1_2_3 && !file->lzwState) {
 		decodeRleCelBitmap(source, sourceSize, destination, size);
 	} else {
-		if (size < TG_RES_V1_2_BITMAP_HEADER_SIZE) {
-			warning("ResourceLibrary_v1_2::expandCelBitmapRecord(): bitmap size is smaller than its header");
-			return utilsLibrary->tgFree(destination);
-		}
-
 		memcpy(destination, source, TG_RES_V1_2_BITMAP_HEADER_SIZE);
 
-		const byte *sourceEnd = (sourceSize == TG_RES_V1_2_SIZE_UNKNOWN) ? nullptr : source + sourceSize;
-		DecodeLimits limits(sourceEnd, destination + size);
-		if (!limits.sourceAvailable(source, headerLength)) {
-			warning("ResourceLibrary_v1_2::expandCelBitmapRecord(): bitmap header overruns its buffer");
-			return utilsLibrary->tgFree(destination);
+		if (_engine->_version >= kVersionV1_2_1) {
+			if (!decodeSegmentedBitmapStream(file->lzwState, source + headerLength, destination + headerLength, pixelSize, sourceEnd)) {
+				notifyHost(TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR, file);
+				return utilsLibrary->tgFree(destination);
+			}
+		} else {
+			DecodeLimits limits(sourceEnd, destination + size);
+			decodeSegmentedBitmapStream(file->lzwState, source + headerLength, destination + headerLength, limits);
 		}
-
-		if (headerLength > size) {
-			warning("ResourceLibrary_v1_2::expandCelBitmapRecord(): bitmap header overruns its destination");
-			return utilsLibrary->tgFree(destination);
-		}
-
-		decodeSegmentedBitmapStream(file->lzwState, source + headerLength, destination + headerLength, limits);
 	}
 
 	if (outSize)
@@ -528,7 +566,7 @@ bool ResourceLibrary_v1_2::extractCompressedResourceToFile(uint16 file, Resource
 	byte *raw = utilsLibrary->tgMalloc(rawSize, 0);
 	if (raw) {
 		if (resRead(file, compressed, compressedSize) == compressedSize) {
-			if (_engine->_version >= kVersionV1_2_3) {
+			if (_engine->_version >= kVersionV1_2_1) {
 				if (decodeSegmentedBitmapStream(record->lzwState, compressed, raw, rawSize, compressed + compressedSize) && output->write(raw, rawSize) == rawSize)
 					result = true;
 			} else {
@@ -735,6 +773,33 @@ uint16 ResourceLibrary_v1_2::resGetTitle(uint16 file, byte *destination, uint16 
 		memmove(destination, record->header + TG_RES_V1_2_HEADER_TITLE_OFFSET, count);
 
 	return count;
+}
+
+uint16 ResourceLibrary_v1_2::resGetHeaderRec(uint16 file, byte *destination, uint16 count) {
+	ResourceFile *record = findFile(file, "resGetHeaderRec");
+	if (!record)
+		return 0;
+
+	if (count > TG_RES_V1_2_1_HEADER_SIZE)
+		count = TG_RES_V1_2_1_HEADER_SIZE;
+
+	if (count != 0)
+		memmove(destination, record->header, count);
+
+	return count;
+}
+
+void ResourceLibrary_v1_2::resSetNotify(uint16 file, uint16 window) {
+	ResourceFile *record = findFile(file, "resSetNotify");
+	if (!record)
+		return;
+
+	record->notifyWindow = window;
+}
+
+void ResourceLibrary_v1_2::notifyHost(uint16 message, ResourceFile *file) {
+	if (file->notifyWindow != 0)
+		engine()->resourceSendMessage(file->notifyWindow, message);
 }
 
 const char *ResourceLibrary_v1_2::resGetConstStr(uint16 file, uint16 offset) {
@@ -1060,11 +1125,6 @@ byte *ResourceLibrary_v1_2_3::getIndexEntry(ResourceFile *file, uint16 index) {
 	return file->index + (uint32)index * TG_RES_INDEX_ENTRY_SIZE;
 }
 
-void ResourceLibrary_v1_2_3::notifyHost(uint16 message, ResourceFile *file) {
-	if (file->notifyWindow != 0)
-		engine()->resourceSendMessage(file->notifyWindow, message);
-}
-
 byte *ResourceLibrary_v1_2_3::resLoadKeyResource(uint16 file, uint16 key, uint32 *outSize) {
 	ResourceFile *record = findFile(file, "resLoadKeyResource");
 	if (!record)
@@ -1204,52 +1264,6 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 	return buffer;
 }
 
-byte *ResourceLibrary_v1_2_3::expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize) {
-	if (sourceSize < TG_RES_V1_2_BITMAP_HEADER_SIZE) {
-		warning("ResourceLibrary_v1_2_3::expandCelBitmapRecord(): bitmap record is too short");
-		return nullptr;
-	}
-
-	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
-
-	uint32 headerLength = READ_LE_UINT16(source);
-	uint32 pixelSize = (uint32)READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) * READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET);
-	uint32 size = pixelSize + headerLength;
-
-	byte *destination = utilsLibrary->tgMalloc(size, 0);
-	if (!destination)
-		return nullptr;
-
-	if (size < TG_RES_V1_2_BITMAP_HEADER_SIZE) {
-		warning("ResourceLibrary_v1_2_3::expandCelBitmapRecord(): bitmap size is smaller than its header");
-		return utilsLibrary->tgFree(destination);
-	}
-
-	const byte *sourceEnd = (sourceSize == TG_RES_V1_2_SIZE_UNKNOWN) ? nullptr : source + sourceSize;
-	if (sourceEnd && headerLength > sourceSize) {
-		warning("ResourceLibrary_v1_2_3::expandCelBitmapRecord(): bitmap header overruns its buffer");
-		return utilsLibrary->tgFree(destination);
-	}
-
-	if (source[TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK) {
-		rleExpandBitmap(destination, size, source, sourceSize);
-		destination[TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET] &= ~TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK;
-	} else {
-		memcpy(destination, source, TG_RES_V1_2_BITMAP_HEADER_SIZE);
-
-		if (!decodeSegmentedBitmapStream(file->lzwState, source + headerLength, destination + headerLength, pixelSize, sourceEnd)) {
-			notifyHost(TG_RES_V1_2_3_NOTIFY_BITMAP_ERROR, file);
-			return utilsLibrary->tgFree(destination);
-		}
-	}
-
-	if (outSize)
-		*outSize = size;
-
-	// The pixel pointer field at +0x10 is not filled
-	return destination;
-}
-
 uint32 ResourceLibrary_v1_2_3::resTell(uint16 file) {
 	ResourceFile *record = findFile(file, "resTell");
 	if (!record)
@@ -1338,14 +1352,6 @@ byte ResourceLibrary_v1_2_3::resGetBuildType(uint16 file) {
 		return 0;
 
 	return (byte)record->buildType;
-}
-
-void ResourceLibrary_v1_2_3::resSetNotify(uint16 file, uint16 window) {
-	ResourceFile *record = findFile(file, "resSetNotify");
-	if (!record)
-		return;
-
-	record->notifyWindow = window;
 }
 
 uint16 ResourceLibrary_v1_2_3::resCopyResource(uint16 file, uint16 index) {

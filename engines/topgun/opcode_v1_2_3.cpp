@@ -415,40 +415,6 @@ bool TopgunEngine_v1_2_3::o_setSpritePosition(const byte *record) {
 	return true;
 }
 
-void TopgunEngine_v1_2_3::o_getTime(const byte *record) {
-	TimeDate time;
-	g_system->getTimeAndDate(time);
-
-	if (READ_LE_UINT16(record + 2) != 0)
-		writeVariable(READ_LE_UINT16(record + 2), (uint16)time.tm_hour);
-
-	if (READ_LE_UINT16(record + 4) != 0)
-		writeVariable(READ_LE_UINT16(record + 4), (uint16)time.tm_min);
-
-	if (READ_LE_UINT16(record + 6) != 0)
-		writeVariable(READ_LE_UINT16(record + 6), (uint16)time.tm_sec);
-
-	// TimeDate has no sub-second field: the hundredths come from the millisecond counter
-	if (READ_LE_UINT16(record + 8) != 0)
-		writeVariable(READ_LE_UINT16(record + 8), (uint16)((g_system->getMillis() / 10) % 100));
-}
-
-void TopgunEngine_v1_2_3::o_spriteCompositeToBackground(const byte *record) {
-	uint16 sprite = 0;
-
-	if (READ_LE_UINT16(record + 2) != 0) {
-		uint16 index = operandValue(READ_LE_UINT16(record + 2));
-		if (!isRecordIndexValid(index, "o_spriteCompositeToBackground"))
-			return;
-
-		sprite = _records[index].handle;
-		if (sprite == 0)
-			return;
-	}
-
-	spriteLib()->spriteCompToBackground(sprite, record[4]);
-}
-
 void TopgunEngine_v1_2_3::o_getSpriteElementIds(const byte *record) {
 	uint16 firstVariable = READ_LE_UINT16(record + 4);
 

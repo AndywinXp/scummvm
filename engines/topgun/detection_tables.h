@@ -29,7 +29,23 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "junglegames", "Timon & Pumbaa's Jungle Games" },
 	{ "aceventura", "Ace Ventura: The CD-Rom Game" },
 	{ "greatword", "Howie's Great Word Adventure" },
+	{ "bestshot", "Bill Plympton's Take Your Best Shot" },
+	{ "headshot", "Bill Plympton's Take Your Best Shot: Head Shot" },
+	{ "hotshot", "Bill Plympton's Take Your Best Shot: Hot Shot" },
+	{ "lineshot", "Bill Plympton's Take Your Best Shot: Line Shot" },
 	{ 0, 0 }
+};
+
+const char *const directoryGlobs[] = {
+	"BEAST",
+	"JUNGLE",
+	"GREATWRD",
+	"TUNELAND",
+	"PYTHON",
+	"ACE",
+	"BESTACT",
+	"BESTBIG",
+	nullptr
 };
 
 const ADGameDescription gameDescriptions[] = {
@@ -147,6 +163,56 @@ const ADGameDescription gameDescriptions[] = {
 		"greatword",
 		nullptr,
 		AD_ENTRY1s("WORD.BIN", "135d2ebd891b5c14c18c9ed7edd6724f", 24695855),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"bestshot",
+		nullptr,
+		AD_ENTRY1s("BESTSHOT.BIN", "545e12e0f1486066cf50bdf3fd11478f", 5231400),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"bestshot",
+		nullptr,
+		AD_ENTRY1s("BESTSHOT.BIN", "2769bdfbf2b82d812a69d95cb2a8ef76", 13236232),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"headshot",
+		nullptr,
+		AD_ENTRY1s("HEADSHOT.BIN", "1302447c1546da2e2a8bdb4683215fa1", 298182),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"hotshot",
+		nullptr,
+		AD_ENTRY1s("HOTSHOT.BIN", "66c70765e0a9b4f80cb78b9ea24f4230", 293493),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"lineshot",
+		nullptr,
+		AD_ENTRY1s("LINESHOT.BIN", "9320599edafe8236038ea8dd1c9a8524", 685729),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,

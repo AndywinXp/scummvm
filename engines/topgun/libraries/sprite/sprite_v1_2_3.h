@@ -90,12 +90,10 @@ public:
 	void spriteHide(uint16 sprite, bool refresh) override;
 	void spriteBreakLoops(uint16 sprite, uint16 flag);
 	void spriteSetPickMode(uint16 sprite, uint16 wholeBox, uint16 pickInvisible);
-	void spriteSetLevel(uint16 sprite, int16 level);
 	void spritePause(uint16 sprite, uint16 flag);
 	void spriteSkipMessage(uint16 sprite, uint16 count);
 	uint16 spriteGetExtraId(uint16 sprite);
 	void spriteSetExtraId(uint16 sprite, uint16 extraId);
-	void spriteCompToBackground(uint16 sprite, uint16 flag);
 
 	// Messages
 	bool spritePostMessage(uint16 sprite, uint16 count, const uint16 *words);
@@ -111,9 +109,6 @@ public:
 	uint16 spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect);
 
 	// Bitmaps
-	void spriteDibDiff(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
-	void spriteDibMerge(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY);
-	void spriteDibSet(byte *bitmap, int16 x, int16 y, uint16 width, uint16 height, uint16 color);
 	void spriteDibGetBox(const byte *bitmap, Common::Rect &box);
 
 protected:

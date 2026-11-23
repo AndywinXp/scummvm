@@ -40,6 +40,8 @@ const DebugChannelDef TopgunMetaEngineDetection::debugFlagList[] = {
 
 TopgunMetaEngineDetection::TopgunMetaEngineDetection() : AdvancedMetaEngineDetection(
 	Topgun::gameDescriptions, Topgun::topgunGames) {
+	_maxScanDepth = 2;
+	_directoryGlobs = Topgun::directoryGlobs;
 }
 
 REGISTER_PLUGIN_STATIC(TOPGUN_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, TopgunMetaEngineDetection);

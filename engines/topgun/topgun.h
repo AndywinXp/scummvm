@@ -42,6 +42,8 @@ enum EngineVersion {
 	kVersionV1_0 = 100,
 	kVersionV1_1 = 110,
 	kVersionV1_2 = 120,
+	kVersionV1_2_1 = 121,
+	kVersionV1_2_2 = 122,
 	kVersionV1_2_3 = 123,
 	kVersionV1_2_4 = 124
 };
@@ -134,6 +136,7 @@ public:
 	 * Returns the game Id
 	 */
 	Common::String getGameId() const;
+	void initializePath(const Common::FSNode &gamePath) override;
 
 	/**
 	 * Gets a random number

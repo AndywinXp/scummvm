@@ -66,7 +66,6 @@
 #define TG_RES_V1_2_3_BITMAP_WIDTH_OFFSET          2
 #define TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET     9
 #define TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK       0x80
-#define TG_RES_V1_2_3_NOTIFY_BITMAP_ERROR          0x590
 
 // Wave and MIDI headers
 #define TG_RES_V1_2_3_WAVE_HEADER_SIZE             0x1C
@@ -97,7 +96,6 @@ public:
 	// New exports
 	uint16 resCountResources(uint16 file, uint16 *outCount);
 	uint16 resCreateMidiEvent(uint16 file, uint16 index);
-	void resSetNotify(uint16 file, uint16 window);
 	uint32 resTell(uint16 file);
 	uint16 resGetLibraryName(uint16 file, char *destination, uint16 count);
 	uint16 resGetMaxFadeColors(uint16 file);
@@ -115,14 +113,10 @@ protected:
 	bool loadResidentChunks(ResourceFile *record) override;
 	bool loadConstStringPool(uint16 file, ResourceFile *record);
 	byte *getIndexEntry(ResourceFile *file, uint16 index);
-	void notifyHost(uint16 message, ResourceFile *file);
 
 	// Key table of the header
 	static uint32 keyOffset(const ResourceFile *file, uint16 key);
 	static uint32 keySize(const ResourceFile *file, uint16 key);
-
-	// Bitmaps
-	byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize) override;
 
 private:
 	TopgunEngine_v1_2_3 *engine() const;

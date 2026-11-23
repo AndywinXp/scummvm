@@ -151,7 +151,12 @@ bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
 }
 
 bool TopgunEngine_v1_2::appendCollisionPair() {
-	uint16 maxPairs = (_version >= kVersionV1_2_3) ? TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS : TG_HOST_V1_2_MAX_COLLISION_PAIRS;
+	uint16 maxPairs = TG_HOST_V1_2_MAX_COLLISION_PAIRS;
+
+	if (_version >= kVersionV1_2_3)
+		maxPairs = TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS;
+	else if (_version >= kVersionV1_2_1)
+		maxPairs = TG_HOST_V1_2_1_MAX_COLLISION_PAIRS;
 
 	if (_numCollisionPairs >= maxPairs)
 		return false;

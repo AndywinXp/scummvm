@@ -33,7 +33,8 @@ static const byte kScriptOpSizes[] = {
 	4, 3, 6, 13, 10, 5, 8, 4, 0, 8,
 	8, 8, 10, 0, 2, 2, 8, 6, 10, 12,
 	20, 0, 7, 3, 11, 12, 26, 8, 8, 10,
-	10, 14, 22, 8, 4, 6, 6, 4, 6, 2
+	10, 14, 22, 8, 4, 6, 6, 4, 6, 2,
+	10, 4, 6, 6
 };
 
 bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
@@ -50,8 +51,8 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 	_scriptDepth++;
 
 	if (_scriptDepth >= ((_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
-		if (_version >= kVersionV1_2_3)
-			return static_cast<TopgunEngine_v1_2_3 *>(this)->fatalError(106, "Stack overflow.");
+		if (_version >= kVersionV1_2_1)
+			return fatalError(106, "Stack overflow.");
 
 		return fatalError("Stack overflow.");
 	}
@@ -106,8 +107,13 @@ bool TopgunEngine_v1_2::runScriptBytecodeLoop(uint16 scriptId) {
 bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 	bool result = true;
 	uint16 size = 0;
+	uint16 opcode = READ_LE_UINT16(ip);
 
-	switch (READ_LE_UINT16(ip)) {
+	// The operations after the last one of the oldest version are not recognised there
+	if (_version < kVersionV1_2_1 && opcode >= kOpV1_2GetTime)
+		opcode = 0;
+
+	switch (opcode) {
 	case kOpV1_2CallScript:
 		result = o_callScript(ip);
 		size = TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * ip[4];
@@ -294,6 +300,12 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2LaunchProgram:
+		if (_version >= kVersionV1_2_1) {
+			_pauseScript = READ_LE_UINT16(ip + 2);
+			size = 4;
+			break;
+		}
+
 		if (ip[4] != 0)
 			warning("o_launchProgram UNIMPLEMENTED");
 
@@ -376,7 +388,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2SetMute:
-		audioLib()->audioMute(ip[2]);
+		audioLib()->audioMute((int8)ip[2]);
 		size = 3;
 		break;
 
@@ -424,7 +436,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2SetMouseEventScript:
 		_mouseEventScript = READ_LE_UINT16(ip + 2);
-		// The length of this operation is nominal: the game does not set it
+		// Monty Python takes the length left by the previous operation: the only occurrence ends its script, so 4 is equivalent
 		size = 4;
 		break;
 
@@ -449,6 +461,26 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		size = 2;
 		break;
 
+	case kOpV1_2GetTime:
+		o_getTime(ip);
+		size = 10;
+		break;
+
+	case kOpV1_2SpriteCompositeToBackground:
+		o_spriteCompositeToBackground(ip);
+		size = 4;
+		break;
+
+	case kOpV1_2SetJoystickScript:
+		o_setJoystickScript(ip);
+		size = 6;
+		break;
+
+	case kOpV1_2SetCursorPosition:
+		o_setCursorPosition(ip);
+		size = 6;
+		break;
+
 	default:
 		warning("TopgunEngine_v1_2::executeScriptOp(): unknown opcode %d", READ_LE_UINT16(ip));
 		size = 0;
@@ -467,8 +499,11 @@ uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 	if (opcode == kOpV1_2CallScript)
 		return 5 + 2 * ip[4];
 
-	if (opcode >= sizeof(kScriptOpSizes))
+	if (opcode >= sizeof(kScriptOpSizes) || (_version < kVersionV1_2_1 && opcode >= kOpV1_2GetTime))
 		return 0;
+
+	if (_version >= kVersionV1_2_1 && opcode == kOpV1_2SetPauseScript)
+		return 4;
 
 	return kScriptOpSizes[opcode];
 }
@@ -509,7 +544,7 @@ void TopgunEngine_v1_2::popScriptArguments() {
 }
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
-	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : kResV1_2OpList))
+	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : ((_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList)))
 		return 0;
 
 	uint16 index = operandValue(listId);
@@ -534,7 +569,7 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 }
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
-	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : kResV1_2OpList))
+	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : ((_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList)))
 		return false;
 
 	uint16 recordIndex = operandValue(listId);
@@ -565,8 +600,8 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	_scriptDepth++;
 
 	if (_scriptDepth >= ((_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
-		if (_version >= kVersionV1_2_3)
-			return static_cast<TopgunEngine_v1_2_3 *>(this)->fatalError(106, "Stack overflow.");
+		if (_version >= kVersionV1_2_1)
+			return fatalError(106, "Stack overflow.");
 
 		return fatalError("Stack overflow.");
 	}
@@ -586,7 +621,18 @@ bool TopgunEngine_v1_2::evaluateCondition(byte condition, uint16 operandA, uint1
 		hit = ((int16)operandB < (int16)operandA);
 	else if ((condition & TG_SCRIPT_V1_2_CONDITION_GREATER) != 0)
 		hit = ((int16)operandB > (int16)operandA);
-	else
+	else if (_version >= kVersionV1_2_1 && (condition & TG_SCRIPT_V1_2_1_CONDITION_OR) != 0)
+		hit = ((operandB | operandA) != 0);
+	else if (_version >= kVersionV1_2_1 && (condition & TG_SCRIPT_V1_2_1_CONDITION_AND) != 0)
+		hit = ((operandB & operandA) != 0);
+	else if (_version >= kVersionV1_2_1 && (condition & TG_SCRIPT_V1_2_1_CONDITION_MODULO) != 0) {
+		if (operandB == 0) {
+			warning("TopgunEngine_v1_2::evaluateCondition(): division by zero");
+			hit = false;
+		} else {
+			hit = ((int16)operandA % (int16)operandB) != 0;
+		}
+	} else
 		hit = (operandA != 0);
 
 	if ((condition & TG_SCRIPT_V1_2_CONDITION_NEGATE) != 0)
@@ -639,6 +685,30 @@ int32 TopgunEngine_v1_2::applyArithmeticOperand(int32 accumulator, const byte *o
 
 		return divideSigned32((int32)((uint32)accumulator + (uint32)half), value);
 	}
+
+	case 5:
+		if (_version >= kVersionV1_2_1)
+			return accumulator | value;
+
+		return 0;
+
+	case 6:
+		if (_version >= kVersionV1_2_1)
+			return accumulator & value;
+
+		return 0;
+
+	case 7:
+		if (_version >= kVersionV1_2_1) {
+			if (value == 0) {
+				warning("TopgunEngine_v1_2::applyArithmeticOperand(): division by zero");
+				return 0;
+			}
+
+			return (int32)((int64)accumulator % (int64)value);
+		}
+
+		return 0;
 
 	default:
 		return 0;
