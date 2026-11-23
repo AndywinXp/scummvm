@@ -186,8 +186,8 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 		}
 
 		uint16 spriteType = kResV1_2_3Sprite;
-		if (_version >= kVersionV1_2_7)
-			spriteType = kResV1_2_7Sprite;
+		if (_version >= kVersionV1_2_8)
+			spriteType = kResV1_2_8Sprite;
 		else if (_version >= kVersionV1_2_5)
 			spriteType = kResV1_2_5Sprite;
 

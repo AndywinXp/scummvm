@@ -121,8 +121,8 @@ void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
 
 uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_7)
-		tableAddress = TG_SCRIPT_V1_2_7_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_8)
+		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -131,8 +131,8 @@ uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 
 uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_7)
-		tableAddress = TG_SCRIPT_V1_2_7_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_8)
+		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -148,8 +148,8 @@ uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 
 void TopgunEngine_v1_2::writeAddress(uint16 address, uint16 value) {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_7)
-		tableAddress = TG_SCRIPT_V1_2_7_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_8)
+		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -203,7 +203,12 @@ uint16 TopgunEngine_v1_2::audioCreateWave(const byte *header, uint16 waveInfo) {
 
 uint16 TopgunEngine_v1_2::audioCreateMidiEvent(const byte *header, uint16 midiInfo) {
 	MidiCreateInfo_v1_2_3 info;
-	memcpy(info.header, header, (_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE : TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE);
+
+	uint16 headerSize = TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE;
+	if (_version >= kVersionV1_2_3 && _version <= kVersionV1_2_5)
+		headerSize = TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE;
+
+	memcpy(info.header, header, headerSize);
 	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
 	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
 	info.handle = midiInfo;
@@ -291,8 +296,8 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 		uint16 bitmapGroupType = kResV1_2_2BitmapGroup;
 		bool loaded = false;
 
-		if (_version >= kVersionV1_2_7)
-			bitmapGroupType = kResV1_2_7Cell;
+		if (_version >= kVersionV1_2_8)
+			bitmapGroupType = kResV1_2_8Cell;
 		else if (_version >= kVersionV1_2_5)
 			bitmapGroupType = kResV1_2_5BitmapGroup;
 		else if (_version >= kVersionV1_2_3)

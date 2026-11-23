@@ -49,8 +49,8 @@ bool TopgunEngine_v1_2::transferSpriteContents(uint16 sourceId, uint16 destinati
 
 	if (!destinationExists) {
 		uint16 spriteType = kResV1_2Sprite;
-		if (_version >= kVersionV1_2_7)
-			spriteType = kResV1_2_7Sprite;
+		if (_version >= kVersionV1_2_8)
+			spriteType = kResV1_2_8Sprite;
 		else if (_version >= kVersionV1_2_5)
 			spriteType = kResV1_2_5Sprite;
 		else if (_version >= kVersionV1_2_3)
@@ -109,14 +109,14 @@ void TopgunEngine_v1_2::hideSourceSpriteAndAddFrameRefs(const SpriteInfo_v1_2 &i
 		return;
 
 	uint16 shift = 0;
-	if (_version >= kVersionV1_2_6)
-		shift = TG_HOST_V1_2_6_SPRITE_DATA_SHIFT;
+	if (_version >= kVersionV1_2_7)
+		shift = TG_HOST_V1_2_7_SPRITE_DATA_SHIFT;
 
 	uint16 memberCountOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT);
 	uint16 membersOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS);
 
-	if (_version >= kVersionV1_2_7)
-		membersOffset = TG_HOST_V1_2_7_SPRITE_DATA_MEMBERS;
+	if (_version >= kVersionV1_2_8)
+		membersOffset = TG_HOST_V1_2_8_SPRITE_DATA_MEMBERS;
 
 	uint16 count = READ_LE_UINT16(data + memberCountOffset);
 	bool deferBitmaps = (_version >= kVersionV1_2_3 && data[shift + TG_HOST_V1_2_3_SPRITE_DATA_DEFER_FLAG] != 0);
@@ -129,8 +129,8 @@ void TopgunEngine_v1_2::hideSourceSpriteAndAddFrameRefs(const SpriteInfo_v1_2 &i
 		uint16 type = resourceLib()->resGetType(_file, operandValue(member));
 		bool referenceCounted;
 
-		if (_version >= kVersionV1_2_7)
-			referenceCounted = (type == kResV1_2_7Bitmap || type == kResV1_2_7Movie || type == kResV1_2_7Text || type == kResV1_2_7Cell);
+		if (_version >= kVersionV1_2_8)
+			referenceCounted = (type == kResV1_2_8Bitmap || type == kResV1_2_8Movie || type == kResV1_2_8Text || type == kResV1_2_8Cell);
 		else if (_version >= kVersionV1_2_5)
 			referenceCounted = (type == kResV1_2_3Bitmap || type == kResV1_2_5Movie || type == kResV1_2_5Text || type == kResV1_2_5BitmapGroup);
 		else if (_version >= kVersionV1_2_3)
@@ -228,19 +228,19 @@ bool TopgunEngine_v1_2::appendQueueBitmapsToSprite(const SpriteInfo_v1_2 &info, 
 		return false;
 
 	uint16 shift = 0;
-	if (_version >= kVersionV1_2_6)
-		shift = TG_HOST_V1_2_6_SPRITE_DATA_SHIFT;
+	if (_version >= kVersionV1_2_7)
+		shift = TG_HOST_V1_2_7_SPRITE_DATA_SHIFT;
 
 	uint16 memberCountOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT);
 	uint16 membersOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS);
 
-	if (_version >= kVersionV1_2_7)
-		membersOffset = TG_HOST_V1_2_7_SPRITE_DATA_MEMBERS;
+	if (_version >= kVersionV1_2_8)
+		membersOffset = TG_HOST_V1_2_8_SPRITE_DATA_MEMBERS;
 
 	uint16 bitmapResourceIdOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
 	uint16 movieType = kResV1_2Movie;
-	if (_version >= kVersionV1_2_7)
-		movieType = kResV1_2_7Movie;
+	if (_version >= kVersionV1_2_8)
+		movieType = kResV1_2_8Movie;
 	else if (_version >= kVersionV1_2_5)
 		movieType = kResV1_2_5Movie;
 	else if (_version >= kVersionV1_2_3)
@@ -305,14 +305,14 @@ void TopgunEngine_v1_2::trimSpriteQueueBitmaps(uint16 id) {
 		return;
 
 	uint16 shift = 0;
-	if (_version >= kVersionV1_2_6)
-		shift = TG_HOST_V1_2_6_SPRITE_DATA_SHIFT;
+	if (_version >= kVersionV1_2_7)
+		shift = TG_HOST_V1_2_7_SPRITE_DATA_SHIFT;
 
 	uint16 memberCountOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT);
 	uint16 membersOffset = shift + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS);
 
-	if (_version >= kVersionV1_2_7)
-		membersOffset = TG_HOST_V1_2_7_SPRITE_DATA_MEMBERS;
+	if (_version >= kVersionV1_2_8)
+		membersOffset = TG_HOST_V1_2_8_SPRITE_DATA_MEMBERS;
 
 	uint16 capacity;
 
@@ -341,8 +341,8 @@ bool TopgunEngine_v1_2::o_transferSprite(const byte *record) {
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 spriteType = kResV1_2_1Sprite;
-		if (_version >= kVersionV1_2_7)
-			spriteType = kResV1_2_7Sprite;
+		if (_version >= kVersionV1_2_8)
+			spriteType = kResV1_2_8Sprite;
 		else if (_version >= kVersionV1_2_5)
 			spriteType = kResV1_2_5Sprite;
 		else if (_version >= kVersionV1_2_3)
@@ -371,8 +371,8 @@ bool TopgunEngine_v1_2::o_transferSprite(const byte *record) {
 
 		if (freeSource && _records[sourceIndex].handle != 0) {
 			uint16 sourceType = kResV1_2Sprite;
-			if (_version >= kVersionV1_2_7)
-				sourceType = kResV1_2_7Sprite;
+			if (_version >= kVersionV1_2_8)
+				sourceType = kResV1_2_8Sprite;
 			else if (_version >= kVersionV1_2_5)
 				sourceType = kResV1_2_5Sprite;
 			else if (_version >= kVersionV1_2_3)

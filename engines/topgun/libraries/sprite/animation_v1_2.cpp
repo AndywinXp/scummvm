@@ -293,7 +293,7 @@ byte *SpriteLibrary_v1_2::nextQueueRecordWithLoops(uint16 sprite) {
 			lastOpcode = TG_SPR_V1_2_6_LAST_QUEUE_OPCODE;
 		}
 
-		if (_engine->_version >= kVersionV1_2_6 && opcode == kSprV1_2OpMultiCel) {
+		if (_engine->_version >= kVersionV1_2_7 && opcode == kSprV1_2OpMultiCel) {
 			record += (READ_LE_UINT16(record + 6) + 4) * 2;
 		} else if (opcode == payloadOpcode) {
 			record += READ_LE_UINT16(record + 2);
@@ -429,7 +429,7 @@ void SpriteLibrary_v1_2::notifySpriteFrameChange(uint16 sprite) {
 
 	byte message[TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE];
 	memset(message, 0, sizeof(message));
-	WRITE_LE_UINT16(message, (_engine->_version >= kVersionV1_2_6) ? TG_SPR_V1_2_6_FRAME_NOTIFICATION : TG_SPR_V1_2_FRAME_NOTIFICATION);
+	WRITE_LE_UINT16(message, (_engine->_version >= kVersionV1_2_6) ? TG_SPR_V1_2_6_FRAME_NOTIFICATION :TG_SPR_V1_2_FRAME_NOTIFICATION);
 	WRITE_LE_UINT16(message + 2, object->id);
 
 	object->scriptActive = 0;
@@ -512,7 +512,7 @@ bool SpriteLibrary_v1_2::tickMovieFrameRecord(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET) - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
-	if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_8 && object->scrollable)
 		object->boundingBox.translate(_scrollPosX, _scrollPosY);
 
 	object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
@@ -1003,7 +1003,7 @@ bool SpriteLibrary_v1_2_3::processSpriteQueueCommand(uint16 sprite) {
 
 	case kSprV1_2_3OpMultiCel:
 		object->renderPending = false;
-		if (_engine->_version >= kVersionV1_2_6)
+		if (_engine->_version >= kVersionV1_2_7)
 			WRITE_LE_UINT16(command + 4, 0);
 		else if (_engine->_version >= kVersionV1_2_5)
 			WRITE_LE_UINT16(command + 0x0C, 0);
@@ -1097,7 +1097,7 @@ bool SpriteLibrary_v1_2_3::processSpriteQueueCommand(uint16 sprite) {
 		break;
 
 	case kSprV1_2_3OpMovieFrame:
-		if (_engine->_version >= kVersionV1_2_6)
+		if (_engine->_version >= kVersionV1_2_7)
 			WRITE_LE_UINT16(command + 4, 0);
 
 		break;
@@ -1172,7 +1172,7 @@ bool SpriteLibrary_v1_2_3::processSpriteAnimationStep(uint16 sprite) {
 		break;
 
 	case kSprV1_2_3OpMultiCel:
-		if (_engine->_version >= kVersionV1_2_7 && !object->active)
+		if (_engine->_version >= kVersionV1_2_8 && !object->active)
 			object->multipartValid = false;
 
 		if (_engine->_version >= kVersionV1_2_6)
@@ -1233,7 +1233,7 @@ bool SpriteLibrary_v1_2_3::processSpriteAnimationStep(uint16 sprite) {
 
 		if (opcode == kSprV1_2_3OpTimingMode) {
 			object->timingMode = (byte)READ_LE_UINT16(command + 2);
-			if (_engine->_version >= kVersionV1_2_7)
+			if (_engine->_version >= kVersionV1_2_8)
 				object->timingMode &= 1;
 
 			object->moveDue = 0;
@@ -1323,7 +1323,7 @@ bool SpriteLibrary_v1_2_3::tickMultiCelRecord(uint16 sprite) {
 	uint16 doneOffset = 0x0C;
 	uint16 countOffset = 0x0E;
 	uint16 celsOffset = 2;
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		intervalOffset = 2;
 		doneOffset = 4;
 		countOffset = 6;

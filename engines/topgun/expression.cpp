@@ -51,7 +51,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 		token++;
 
 		// The last version leaves token 12 unassigned and numbers every following token one higher
-		if (_version >= kVersionV1_2_6) {
+		if (_version >= kVersionV1_2_7) {
 			if (code == 12)
 				continue;
 
@@ -294,7 +294,9 @@ void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
 	uint16 code = _expressionStack[_expressionStackPointer - count - 1];
 
 	uint16 lastBuiltinCode = TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE;
-	if (_version >= kVersionV1_2_7)
+	if (_version >= kVersionV1_2_8)
+		lastBuiltinCode = TG_SCRIPT_V1_2_8_LAST_BUILTIN_CODE;
+	else if (_version >= kVersionV1_2_7)
 		lastBuiltinCode = TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE;
 	else if (_version >= kVersionV1_2_6)
 		lastBuiltinCode = TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE;
@@ -474,19 +476,19 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_7)
-		spriteType = kResV1_2_7Sprite;
+	if (_version >= kVersionV1_2_8)
+		spriteType = kResV1_2_8Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	// The built-ins from 157 on exist only in the last version
-	if (code > 156 && _version < kVersionV1_2_7)
+	if (code > 156 && _version < kVersionV1_2_8)
 		return;
 
 	switch (code) {
 	case 2:
 	case 3: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer--;
@@ -504,7 +506,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 5: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		uint16 flag = 0;
@@ -525,7 +527,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 9:
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		_expressionStackPointer--;
@@ -534,7 +536,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 	case 10:
 	case 11: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		byte record[4];
@@ -547,7 +549,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 12: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[12];
@@ -560,7 +562,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 13: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[2];
@@ -571,13 +573,13 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 14:
-		if (_version >= kVersionV1_2_7)
+		if (_version >= kVersionV1_2_8)
 			o_stopCD();
 
 		break;
 
 	case 15: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte block[4];
@@ -590,7 +592,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 21: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[4];
@@ -603,7 +605,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 25: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[6];
@@ -643,7 +645,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 28: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[6];
@@ -659,7 +661,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 31: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[4];
@@ -673,7 +675,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 36: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[8];
@@ -691,7 +693,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 40: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		_expressionStackPointer--;
@@ -752,7 +754,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 50:
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		// The two results are stored through a null segment
@@ -761,7 +763,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 55: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		_expressionStackPointer -= 4;
@@ -809,7 +811,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 62:
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		// The intersection is stored through a null segment
@@ -818,7 +820,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 63: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[8];
@@ -860,7 +862,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 70:
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		// The time is stored through a null segment
@@ -869,7 +871,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 81: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[4];
@@ -918,7 +920,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 96: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[4];
@@ -932,7 +934,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 97: {
-		if (_version < kVersionV1_2_7)
+		if (_version < kVersionV1_2_8)
 			break;
 
 		byte record[12];
@@ -1306,7 +1308,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 deltaY = 0;
 		uint16 deltaX = 0;
 
-		if (_version >= kVersionV1_2_6) {
+		if (_version >= kVersionV1_2_7) {
 			if (argc == 4) {
 				_expressionStackPointer--;
 				deltaY = _expressionStack[_expressionStackPointer];
@@ -1504,10 +1506,10 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 145: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
-		if (_version >= kVersionV1_2_7) {
+		if (_version >= kVersionV1_2_8) {
 			_expressionStackPointer--;
 			int16 y = (int16)_expressionStack[_expressionStackPointer];
 			_expressionStackPointer--;
@@ -1528,7 +1530,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 146: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer--;
@@ -1537,8 +1539,8 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 movieId = _expressionStack[_expressionStackPointer];
 
 		uint16 movieType = kResV1_2_5Movie;
-		if (_version >= kVersionV1_2_7)
-			movieType = kResV1_2_7Movie;
+		if (_version >= kVersionV1_2_8)
+			movieType = kResV1_2_8Movie;
 
 		if (!isResourceObjectLoaded((uint16)(movieId - TG_HOST_V1_2_3_LITERAL_BIAS), movieType))
 			break;
@@ -1554,7 +1556,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 147: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer--;
@@ -1566,7 +1568,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 		if (_idleScript != 0) {
 			// The product is kept as a 16-bit number
-			_idleDelay = (uint16)(seconds * TG_SCRIPT_V1_2_6_IDLE_SECONDS_TO_MS);
+			_idleDelay = (uint16)(seconds * TG_SCRIPT_V1_2_7_IDLE_SECONDS_TO_MS);
 			_idleDeadline = getEngineMillis() + _idleDelay;
 		}
 
@@ -1574,7 +1576,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 148:
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer -= 3;
@@ -1583,7 +1585,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 149: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer--;
@@ -1600,7 +1602,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 150: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		uint16 numArguments = 1;
@@ -1620,7 +1622,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 151:
-		if (_version >= kVersionV1_2_6) {
+		if (_version >= kVersionV1_2_7) {
 			uint16 script = _expressionStack[_expressionStackPointer - 1];
 
 			_waveStartedScript = script ? (uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS) : 0;
@@ -1629,7 +1631,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 152: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer--;
@@ -1637,7 +1639,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		int16 deltaX = (int16)_expressionStack[_expressionStackPointer];
 
-		if (_version >= kVersionV1_2_7)
+		if (_version >= kVersionV1_2_8)
 			spriteLib()->spriteScroll(deltaX, deltaY, true);
 		else
 			spriteLib()->spriteScrollScreen(deltaX, deltaY);
@@ -1646,7 +1648,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 153:
-		if (_version >= kVersionV1_2_6) {
+		if (_version >= kVersionV1_2_7) {
 			_expressionStackPointer--;
 			audioLib()->audioPauseMidi(_expressionStack[_expressionStackPointer]);
 		}
@@ -1654,13 +1656,13 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 154:
-		if (_version >= kVersionV1_2_6)
+		if (_version >= kVersionV1_2_7)
 			_wallpaperSelectionEnabled = ((byte)_expressionStack[_expressionStackPointer - 1] != 0);
 
 		break;
 
 	case 155: {
-		if (_version < kVersionV1_2_6)
+		if (_version < kVersionV1_2_7)
 			break;
 
 		_expressionStackPointer -= 3;
@@ -1673,7 +1675,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 156:
-		if (_version >= kVersionV1_2_6)
+		if (_version >= kVersionV1_2_7)
 			_expressionStackPointer -= 3;
 
 		break;
@@ -1686,7 +1688,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 158:
 	case 159: {
 		uint16 numIndices = (uint16)(argc - 1);
-		uint16 indices[TG_BUILTIN_V1_2_7_MAX_TABLE_DIMENSIONS] = {};
+		uint16 indices[TG_BUILTIN_V1_2_8_MAX_TABLE_DIMENSIONS] = {};
 		uint16 value = 0;
 		bool tooManyIndices = false;
 
@@ -1696,7 +1698,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		for (int16 i = (int16)numIndices - 1; i >= 0; i--) {
 			_expressionStackPointer--;
 
-			if (i < TG_BUILTIN_V1_2_7_MAX_TABLE_DIMENSIONS)
+			if (i < TG_BUILTIN_V1_2_8_MAX_TABLE_DIMENSIONS)
 				indices[i] = _expressionStack[_expressionStackPointer];
 			else
 				tooManyIndices = true;
@@ -1710,7 +1712,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 table = _expressionStack[_expressionStackPointer];
 
-		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Table))
+		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_8Table))
 			break;
 
 		if (!isRecordIndexValid(table, "evaluateBuiltinFunction"))
@@ -1722,16 +1724,16 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 		if (tooManyIndices)
 			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): the table access has too many indices");
-		else if (object && size >= TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE && READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_DIMENSIONS) == numIndices) {
+		else if (object && size >= TG_BUILTIN_V1_2_8_TABLE_HEADER_SIZE && READ_LE_UINT16(object + TG_BUILTIN_V1_2_8_TABLE_DIMENSIONS) == numIndices) {
 			uint16 offset = 0;
 
 			for (uint16 i = 0; i < numIndices; i++)
-				offset = (uint16)(offset + (uint16)((uint16)(READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_STRIDES + 2 * i) * indices[i]) << 1));
+				offset = (uint16)(offset + (uint16)((uint16)(READ_LE_UINT16(object + TG_BUILTIN_V1_2_8_TABLE_STRIDES + 2 * i) * indices[i]) << 1));
 
-			uint32 count = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_COUNT);
+			uint32 count = READ_LE_UINT16(object + TG_BUILTIN_V1_2_8_TABLE_COUNT);
 
-			if (offset < 2 * count && TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE + (uint32)offset + 2 <= size) {
-				byte *element = _records[table].data + TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE + offset;
+			if (offset < 2 * count && TG_BUILTIN_V1_2_8_TABLE_HEADER_SIZE + (uint32)offset + 2 <= size) {
+				byte *element = _records[table].data + TG_BUILTIN_V1_2_8_TABLE_HEADER_SIZE + offset;
 
 				if (code == 158) {
 					result = READ_LE_UINT16(element);
@@ -1759,7 +1761,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 table = _expressionStack[_expressionStackPointer];
 
-		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Table))
+		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_8Table))
 			break;
 
 		if (!isRecordIndexValid(table, "evaluateBuiltinFunction"))
@@ -1770,10 +1772,10 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 result = 0;
 
 		if (code == 160) {
-			if (object && size >= TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE)
-				result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_DIMENSIONS);
-		} else if (object && TG_BUILTIN_V1_2_7_TABLE_SIZES + 2 * (uint32)dimension + 2 <= size) {
-			result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_SIZES + 2 * dimension);
+			if (object && size >= TG_BUILTIN_V1_2_8_TABLE_HEADER_SIZE)
+				result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_8_TABLE_DIMENSIONS);
+		} else if (object && TG_BUILTIN_V1_2_8_TABLE_SIZES + 2 * (uint32)dimension + 2 <= size) {
+			result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_8_TABLE_SIZES + 2 * dimension);
 		}
 
 		_expressionStack[_expressionStackPointer - 1] = result;
@@ -1797,7 +1799,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 wave = _expressionStack[_expressionStackPointer];
 		uint16 result = 0;
 
-		if (validateAndGetResourceByType((uint16)(wave - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Wave) && isRecordIndexValid(wave, "evaluateBuiltinFunction"))
+		if (validateAndGetResourceByType((uint16)(wave - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_8Wave) && isRecordIndexValid(wave, "evaluateBuiltinFunction"))
 			result = (uint16)audioLib()->audioGetWaveSoundTime(_records[wave].handle);
 
 		_expressionStack[_expressionStackPointer - 1] = result;
@@ -1951,7 +1953,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		}
 
 		if (entry < 0) {
-			ScriptCursor_v1_2_7 cursor;
+			ScriptCursor_v1_2_8 cursor;
 
 			cursor.id = list;
 			_scriptCursors.push_back(cursor);
@@ -2030,9 +2032,9 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 			}
 
 			if (colorIndex < 0) {
-				uint16 nearest = TG_BUILTIN_V1_2_7_MAX_COLOR_DISTANCE;
+				uint16 nearest = TG_BUILTIN_V1_2_8_MAX_COLOR_DISTANCE;
 
-				colorIndex = TG_BUILTIN_V1_2_7_NO_NEAREST_COLOR;
+				colorIndex = TG_BUILTIN_V1_2_8_NO_NEAREST_COLOR;
 
 				for (uint16 i = 0; i < _filePaletteEntryCount; i++) {
 					const byte *entry = _palette + (TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + i) * TG_DISPLAY_PALETTE_ENTRY_SIZE;
@@ -2094,7 +2096,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 183:
 	case 184:
 	case 185: {
-		byte record[TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE];
+		byte record[TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE];
 
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record, kOpV1_2_3SetHoverRegion);
@@ -2126,7 +2128,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 186:
 	case 187:
 	case 188: {
-		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+		byte record[TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE];
 
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
@@ -2160,7 +2162,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 189:
 	case 190:
 	case 191: {
-		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+		byte record[TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE];
 
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
@@ -2205,7 +2207,7 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 194:
 	case 195:
 	case 196: {
-		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+		byte record[TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE];
 
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
@@ -2463,8 +2465,8 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		parameters[5] = (byte)_expressionStack[_expressionStackPointer];
 
-		if (parameters[5] > TG_BUILTIN_V1_2_7_MAX_WAVE_VOLUME)
-			parameters[5] = TG_BUILTIN_V1_2_7_MAX_WAVE_VOLUME;
+		if (parameters[5] > TG_BUILTIN_V1_2_8_MAX_WAVE_VOLUME)
+			parameters[5] = TG_BUILTIN_V1_2_8_MAX_WAVE_VOLUME;
 
 		_expressionStackPointer--;
 		parameters[2] = (byte)_expressionStack[_expressionStackPointer];
@@ -2537,8 +2539,8 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 channel = _expressionStack[_expressionStackPointer];
 
-		if (channel > TG_BUILTIN_V1_2_7_MAX_MIDI_CHANNEL)
-			channel = TG_BUILTIN_V1_2_7_MAX_MIDI_CHANNEL;
+		if (channel > TG_BUILTIN_V1_2_8_MAX_MIDI_CHANNEL)
+			channel = TG_BUILTIN_V1_2_8_MAX_MIDI_CHANNEL;
 
 		if (channel != 0)
 			channel--;
@@ -2705,8 +2707,8 @@ uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second
 		return 0;
 
 	uint16 textType = kResV1_2_3Text;
-	if (_version >= kVersionV1_2_7)
-		textType = kResV1_2_7Text;
+	if (_version >= kVersionV1_2_8)
+		textType = kResV1_2_8Text;
 	else if (_version >= kVersionV1_2_5)
 		textType = kResV1_2_5Text;
 
@@ -2742,13 +2744,13 @@ uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second
 
 uint16 TopgunEngine_v1_2_3::builtinCopyResource(uint16 id) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_7)
-		spriteType = kResV1_2_7Sprite;
+	if (_version >= kVersionV1_2_8)
+		spriteType = kResV1_2_8Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	uint16 type = resourceLib()->resGetType(_file, id);
-	if (type != spriteType && (_version < kVersionV1_2_7 || type != kResV1_2_7Table))
+	if (type != spriteType && (_version < kVersionV1_2_8 || type != kResV1_2_8Table))
 		return 0;
 
 	uint16 copy = resourceLib()->resCopyResource(_file, id);
@@ -2761,13 +2763,13 @@ uint16 TopgunEngine_v1_2_3::builtinCopyResource(uint16 id) {
 
 uint16 TopgunEngine_v1_2_3::builtinDeleteResource(uint16 id) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_7)
-		spriteType = kResV1_2_7Sprite;
+	if (_version >= kVersionV1_2_8)
+		spriteType = kResV1_2_8Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	uint16 type = resourceLib()->resGetType(_file, id);
-	if (type != spriteType && (_version < kVersionV1_2_7 || type != kResV1_2_7Table))
+	if (type != spriteType && (_version < kVersionV1_2_8 || type != kResV1_2_8Table))
 		return 0;
 
 	if (!destroyResourceObjectByType((uint16)(id - TG_HOST_V1_2_3_LITERAL_BIAS), type))

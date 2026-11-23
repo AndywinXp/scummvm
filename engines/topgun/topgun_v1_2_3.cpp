@@ -137,13 +137,16 @@ void TopgunEngine_v1_2_3::spriteMessageService(byte *record, uint16 spriteId) {
 }
 
 bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
+	if (getGameId() == "arcadeamerica")
+		return runStartup("Arcade America", "ARCADE.BIN");
+
 	if (getGameId() == "tuneland")
 		return runStartup("TuneLand", "TUNELAND.BIN");
 
 	if (getGameId() == "aceventura")
 		return runStartup("Ace Ventura", "ACE.BIN");
 
-	if (getGameId() == "junglegames" && _version >= kVersionV1_2_6)
+	if (getGameId() == "junglegames" && _version >= kVersionV1_2_7)
 		return runStartup("Pumbaa And Timon's Jungle Arcade", "JUNGLE.BIN");
 
 	if (getGameId() == "junglegames")
@@ -242,10 +245,10 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 		if (_appActive && !_gamePaused) {
 			spriteLib()->spriteAnimate();
 
-			if (_version >= kVersionV1_2_7 && _pluginTickProcCount != 0)
+			if (_version >= kVersionV1_2_8 && _pluginTickProcCount != 0)
 				runRegisteredServiceCallbacks();
 
-			if (_version >= kVersionV1_2_6 && _idleScript != 0)
+			if (_version >= kVersionV1_2_7 && _idleScript != 0)
 				idleCheck();
 
 			if (_numScheduledTimers != 0)
@@ -270,14 +273,14 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 	handleAppShutdown();
 
 	// The first call unloads the plug-ins and only posts the close message, which is not dispatched after the loop
-	if (_version >= kVersionV1_2_7 && !_shuttingDown)
+	if (_version >= kVersionV1_2_8 && !_shuttingDown)
 		handleAppShutdown();
 
 	return 0;
 }
 
 void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
-	if (_version >= kVersionV1_2_6 && _idleScript != 0) {
+	if (_version >= kVersionV1_2_7 && _idleScript != 0) {
 		switch (message.id) {
 		case kMsgKeyDown:
 		case kMsgV1_2_3KeyUp:
@@ -311,7 +314,7 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 		break;
 
 	case kMsgKeyDown:
-		if (_version >= kVersionV1_2_6 && _textEditObjectId != 0 && message.param == Common::KEYCODE_DELETE)
+		if (_version >= kVersionV1_2_7 && _textEditObjectId != 0 && message.param == Common::KEYCODE_DELETE)
 			handleDeleteKeyMessage();
 		else
 			handleKeyDownMessage((Common::KeyCode)message.param, message.shift, message.ctrl);
@@ -373,8 +376,8 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 			destroyResourceObjectByType(message.param, resourceLib()->resGetType(_file, operandValue(message.param)));
 		break;
 
-	case kMsgV1_2_7FreePluginModules:
-		if (_version >= kVersionV1_2_7)
+	case kMsgV1_2_8FreePluginModules:
+		if (_version >= kVersionV1_2_8)
 			freeUnloadedPluginModules();
 		break;
 
@@ -382,9 +385,9 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 		uint16 firstPluginMessage = TG_HOST_V1_2_3_MESSAGE_FIRST_PLUGIN;
 		uint16 lastPluginMessage = TG_HOST_V1_2_3_MESSAGE_LAST_PLUGIN;
 
-		if (_version >= kVersionV1_2_6) {
-			firstPluginMessage = TG_HOST_V1_2_6_MESSAGE_FIRST_PLUGIN;
-			lastPluginMessage = TG_HOST_V1_2_6_MESSAGE_LAST_PLUGIN;
+		if (_version >= kVersionV1_2_7) {
+			firstPluginMessage = TG_HOST_V1_2_7_MESSAGE_FIRST_PLUGIN;
+			lastPluginMessage = TG_HOST_V1_2_7_MESSAGE_LAST_PLUGIN;
 		}
 
 		if (message.id >= firstPluginMessage && message.id <= lastPluginMessage && _windowMessageCallback)
@@ -412,7 +415,7 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 	if (_shuttingDown)
 		return;
 
-	if (_version >= kVersionV1_2_7 && !_pluginLibraries.empty()) {
+	if (_version >= kVersionV1_2_8 && !_pluginLibraries.empty()) {
 		unloadAllPluginModules();
 		postMessage(kMsgClose, 0, 0);
 		return;
@@ -428,7 +431,7 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 
 	flushPostedScriptMessages();
 
-	if (_version >= kVersionV1_2_7)
+	if (_version >= kVersionV1_2_8)
 		freeUnloadedPluginModules();
 
 	spriteLib()->spriteExitLibrary();
@@ -462,7 +465,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 	}
 
 	if (notify) {
-		if (_version >= kVersionV1_2_7)
+		if (_version >= kVersionV1_2_8)
 			notifyPluginsFocusChanged(active);
 
 		if (_version >= kVersionV1_2_6) {
@@ -484,7 +487,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 
 		_activateState = active;
 
-		if (_version == kVersionV1_2_6 && !active)
+		if (_version == kVersionV1_2_7 && !active)
 			cancelMouseCapture();
 	}
 

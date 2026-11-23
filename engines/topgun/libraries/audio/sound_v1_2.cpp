@@ -830,7 +830,7 @@ void AudioLibrary_v1_2_3::armWaveNotificationEndTime(SoundObject *sound) {
 			uint32 length = sound->sourceLength * 100;
 
 			if (_engine->_version >= kVersionV1_2_6)
-				length <<= sound->adpcmShift;
+				length <<=sound->adpcmShift;
 
 			duration = length / bytesPerTenthSecond;
 		} else {

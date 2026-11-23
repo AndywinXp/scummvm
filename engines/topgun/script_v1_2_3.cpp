@@ -71,8 +71,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		result = o_setClickScript(ip);
 		size = 18;
 
-		if (_version >= kVersionV1_2_6)
-			size = TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE;
+		if (_version >= kVersionV1_2_7)
+			size = TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE;
 
 		break;
 
@@ -388,8 +388,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		o_setHoverRegion(ip);
 		size = 16;
 
-		if (_version >= kVersionV1_2_6)
-			size = TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE;
+		if (_version >= kVersionV1_2_7)
+			size = TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE;
 
 		break;
 
@@ -453,8 +453,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		o_getSpriteElementIds(ip);
 		size = 12;
 
-		if (_version >= kVersionV1_2_6)
-			size = TG_SCRIPT_V1_2_6_GET_ELEMENT_IDS_SIZE;
+		if (_version >= kVersionV1_2_7)
+			size = TG_SCRIPT_V1_2_7_GET_ELEMENT_IDS_SIZE;
 
 		break;
 
@@ -624,18 +624,18 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 			return 0;
 	}
 
-	if (_version >= kVersionV1_2_6) {
-		if (opcode == kOpV1_2_3SetClickScript)
-			return TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE;
+	if (_version >= kVersionV1_2_6 && opcode == kOpV1_2_3SetBackground)
+		return TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE;
 
-		if (opcode == kOpV1_2_3SetBackground)
-			return TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE;
+	if (_version >= kVersionV1_2_7) {
+		if (opcode == kOpV1_2_3SetClickScript)
+			return TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE;
 
 		if (opcode == kOpV1_2_3SetHoverRegion)
-			return TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE;
+			return TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE;
 
 		if (opcode == kOpV1_2_3GetSpriteElementIds)
-			return TG_SCRIPT_V1_2_6_GET_ELEMENT_IDS_SIZE;
+			return TG_SCRIPT_V1_2_7_GET_ELEMENT_IDS_SIZE;
 	}
 
 	return kScriptOpSizes[opcode];
@@ -739,7 +739,7 @@ void TopgunEngine_v1_2_3::o_gotoScene(const byte *record) {
 	for (uint16 i = 0; i < TG_INPUT_V1_2_3_KEY_TABLE_SIZE; i++)
 		_keyTable[i] = KeyEntry_v1_2();
 
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV1_2_7)
 		_activationScript = 0;
 
 	_dragSpriteId = 0;

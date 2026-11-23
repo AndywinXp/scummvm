@@ -196,7 +196,7 @@ bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
 		if (!movie->frameTable)
 			return false;
 
-		if (_version >= kVersionV1_2_6) {
+		if (_version >= kVersionV1_2_7) {
 			movie->frameTableBlock = movie->frameTable;
 			movie->frameTable = movie->frameTableBlock + 2;
 			movie->frameCount = (uint16)((size - 2) / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
@@ -391,7 +391,7 @@ bool TopgunEngine_v1_2::moviePrefetchGroup(Movie_v1_2 *movie) {
 		movie->fillBuffer = 0;
 
 	if (movie->frameCount <= movie->prefetchFrame) {
-		if (_version >= kVersionV1_2_6 && movie->frameTableBlock[0] != 0)
+		if (_version >= kVersionV1_2_7 && movie->frameTableBlock[0] != 0)
 			movie->prefetchFrame = 0;
 		else
 			movie->prefetchDone = true;
@@ -776,7 +776,7 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 	else
 		command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = 0;
 
-	if (_version >= kVersionV1_2_6 && movie->speed == 0)
+	if (_version >= kVersionV1_2_7 && movie->speed == 0)
 		return 1;
 
 	uint32 now = getEngineMillis();
@@ -810,8 +810,8 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 		if (!movie->audioStarted)
 			movie->deadline = now;
 
-		if (_version >= kVersionV1_2_6 && movie->delay != 0 && movie->speed != 0)
-			movie->delay = (uint16)((uint32)TG_MOVIE_V1_2_6_DEFAULT_SPEED * movie->delay / movie->speed);
+		if (_version >= kVersionV1_2_7 && movie->delay != 0 && movie->speed != 0)
+			movie->delay = (uint16)((uint32)TG_MOVIE_V1_2_7_DEFAULT_SPEED * movie->delay / movie->speed);
 
 		movie->deadline += movie->delay;
 

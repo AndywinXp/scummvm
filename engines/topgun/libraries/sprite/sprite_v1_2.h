@@ -41,9 +41,9 @@
 #define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
 #define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
-#define TG_SPR_V1_2_7_MAX_SPRITES              400
-#define TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING     0xFFF0
-#define TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK        0x0F
+#define TG_SPR_V1_2_8_MAX_SPRITES              400
+#define TG_SPR_V1_2_8_QUEUE_BLOCK_ROUNDING     0xFFF0
+#define TG_SPR_V1_2_8_QUEUE_BLOCK_SLACK        0x0F
 #define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
 #define TG_SPR_V1_2_6_LAST_QUEUE_OPCODE        23
 #define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00

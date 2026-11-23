@@ -34,6 +34,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "hotshot", "Bill Plympton's Take Your Best Shot: Hot Shot" },
 	{ "lineshot", "Bill Plympton's Take Your Best Shot: Line Shot" },
 	{ "peterwolf", "Peter and the Wolf" },
+	{ "arcadeamerica", "Arcade America" },
 	{ 0, 0 }
 };
 
@@ -46,6 +47,7 @@ const char *const directoryGlobs[] = {
 	"ACE",
 	"BESTACT",
 	"BESTBIG",
+	"ARCADE",
 	nullptr
 };
 
@@ -234,6 +236,16 @@ const ADGameDescription gameDescriptions[] = {
 		"peterwolf",
 		nullptr,
 		AD_ENTRY1s("PETER.BIN", "ae2a2da529000b9a6c3873342dfad390", 346270),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"arcadeamerica",
+		nullptr,
+		AD_ENTRY1s("ARCADE.BIN", "0d6d93e1c7b5e253170a88549ff95a33", 6804081),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,

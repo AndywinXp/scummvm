@@ -519,8 +519,8 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 type = kResV1_2_1Text;
-		if (_version >= kVersionV1_2_7)
-			type = kResV1_2_7Text;
+		if (_version >= kVersionV1_2_8)
+			type = kResV1_2_8Text;
 		else if (_version >= kVersionV1_2_5)
 			type = kResV1_2_5Text;
 		else if (_version >= kVersionV1_2_3)
@@ -555,8 +555,8 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_getSpriteRect(const byte *record) {
-	if (_version >= kVersionV1_2_7) {
-		if (!validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_7Sprite))
+	if (_version >= kVersionV1_2_8) {
+		if (!validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_8Sprite))
 			return;
 	} else if (_version >= kVersionV1_2_5 && !validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_5Sprite)) {
 		return;
@@ -678,8 +678,8 @@ void TopgunEngine_v1_2::o_isSpriteBusy(const byte *record) {
 void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	uint16 firstVariable = READ_LE_UINT16(record + 4);
 	uint16 spriteType = kResV1_2_2Sprite;
-	if (_version >= kVersionV1_2_7)
-		spriteType = kResV1_2_7Sprite;
+	if (_version >= kVersionV1_2_8)
+		spriteType = kResV1_2_8Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 	else if (_version >= kVersionV1_2_3)
@@ -707,8 +707,8 @@ void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 
 	uint16 count = info.frameCount;
 	uint16 maxCount = TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES;
-	if (_version >= kVersionV1_2_6)
-		maxCount = TG_SCRIPT_V1_2_6_NUM_ELEMENT_VARIABLES;
+	if (_version >= kVersionV1_2_7)
+		maxCount = TG_SCRIPT_V1_2_7_NUM_ELEMENT_VARIABLES;
 
 	if (count > maxCount) {
 		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): the sprite has %d elements", count);

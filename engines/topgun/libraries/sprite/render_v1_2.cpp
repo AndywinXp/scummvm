@@ -430,7 +430,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	if (!ensureComposeBufferSize(width, height))
 		return false;
 
-	if (_engine->_version == kVersionV1_2_6 && _rubberBandActive)
+	if (_engine->_version == kVersionV1_2_7 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	if (_scrollSurface)
@@ -443,7 +443,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	compositeSpritesInRect(visible);
 	blitSpriteToScreen(visible.left, visible.top, _composeBuffer);
 
-	if (_engine->_version == kVersionV1_2_6 && _rubberBandActive)
+	if (_engine->_version == kVersionV1_2_7 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	return true;
@@ -480,7 +480,7 @@ void SpriteLibrary_v1_2::compositeSpritesInRect(const Common::Rect &rect) {
 			continue;
 		}
 
-		if (_engine->_version >= kVersionV1_2_7) {
+		if (_engine->_version >= kVersionV1_2_8) {
 			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
 				continue;
 
@@ -519,7 +519,7 @@ void SpriteLibrary_v1_2::compositeSpritePartsIntoBuffer(uint16 sprite, const Com
 		if (!intersectRectLocal(rect, part.box, common))
 			continue;
 
-		if (_engine->_version >= kVersionV1_2_7) {
+		if (_engine->_version >= kVersionV1_2_8) {
 			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
 				continue;
 
@@ -651,7 +651,7 @@ uint16 SpriteLibrary_v1_2::spriteIsPicked(uint16 sprite, int16 x, int16 y) {
 	if (!object)
 		return 0;
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		if (object->pickMode == 2 || (!object->visible && object->pickMode != 1))
 			return 0;
 	} else if (!object->visible && !object->pickInvisible) {
@@ -1236,7 +1236,7 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	if (!object)
 		return;
 
-	if (_engine->_version == kVersionV1_2_6) {
+	if (_engine->_version == kVersionV1_2_7) {
 		object->x = (int16)(object->x + deltaX);
 		object->y = (int16)(object->y + deltaY);
 	}
@@ -1538,7 +1538,7 @@ byte *SpriteLibrary_v1_2_3::initTileBackgroundLayout(TileBackground *tile) {
 	uint16 tileWidth = tile->tileWidth;
 	uint16 tileHeight = tile->tileHeight;
 
-	bool staggered = (tile->layout == TG_SPR_V1_2_7_TILE_STAGGERED_LAYOUT);
+	bool staggered = (tile->layout == TG_SPR_V1_2_8_TILE_STAGGERED_LAYOUT);
 	if (tileWidth == 0 || tileHeight == 0 || (staggered && tileHeight < 2)) {
 		warning("SpriteLibrary_v1_2_3::initTileBackgroundLayout(): the tile size %dx%d is not valid", tileWidth, tileHeight);
 		return nullptr;
@@ -1610,7 +1610,7 @@ void SpriteLibrary_v1_2_3::renderTileBackgroundRect(const Common::Rect *rect) {
 	if (!intersectRectLocal(_tileClip, _tileBackground->visible, _tileClip))
 		return;
 
-	if (_tileBackground->layout == TG_SPR_V1_2_7_TILE_STAGGERED_LAYOUT)
+	if (_tileBackground->layout == TG_SPR_V1_2_8_TILE_STAGGERED_LAYOUT)
 		renderStaggeredTileRows();
 	else
 		renderGridTiles();
@@ -1782,10 +1782,10 @@ void SpriteLibrary_v1_2_3::renderGridTiles() {
 				if (cell) {
 					uint16 cellFlags = READ_LE_UINT16(cell + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET);
 					uint16 flags = 0;
-					if ((cellFlags & TG_SPR_V1_2_7_TILE_MIRROR_FLAG) != 0)
+					if ((cellFlags & TG_SPR_V1_2_8_TILE_MIRROR_FLAG) != 0)
 						flags |= 1;
 
-					if ((cellFlags & TG_SPR_V1_2_7_TILE_FLIP_FLAG) != 0)
+					if ((cellFlags & TG_SPR_V1_2_8_TILE_FLIP_FLAG) != 0)
 						flags |= 0x100;
 
 					blitTransparentRect(surface, cell, (uint16)width, (uint16)height, (int16)(tile->centerX + x), (int16)(tile->centerY + y), sourceX, sourceY, flags);

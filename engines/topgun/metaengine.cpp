@@ -112,13 +112,18 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
+	if (gameId == "arcadeamerica") {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6);
+		return Common::kNoError;
+	}
+
 	if (gameId == "aceventura" && desc->language == Common::EN_ANY) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_7);
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_8);
 		return Common::kNoError;
 	}
 
 	if (gameId == "junglegames" && desc->language == Common::JA_JPN) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6);
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_7);
 		return Common::kNoError;
 	}
 

@@ -109,11 +109,11 @@ bool SpriteLibrary_v1_2_3::dispatchSpriteMessage(uint16 mode, uint16 count, cons
 	const uint16 *params = words + 1;
 	uint16 message = words[0];
 
-	if (_engine->_version >= kVersionV1_2_7) {
-		if (message == kSprV1_2_7MsgMarkLoopStart)
+	if (_engine->_version >= kVersionV1_2_8) {
+		if (message == kSprV1_2_8MsgMarkLoopStart)
 			return markQueueLoopStart(mode, sprite);
 
-		if (message == kSprV1_2_7MsgLoopJump)
+		if (message == kSprV1_2_8MsgLoopJump)
 			return buildQueueLoopJumpMessage(mode, count, params, sprite);
 	}
 
@@ -197,9 +197,9 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 
 	uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 	uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-	if (_engine->_version >= kVersionV1_2_7) {
-		slack = TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK;
-		rounding = TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING;
+	if (_engine->_version >= kVersionV1_2_8) {
+		slack = TG_SPR_V1_2_8_QUEUE_BLOCK_SLACK;
+		rounding = TG_SPR_V1_2_8_QUEUE_BLOCK_ROUNDING;
 	}
 
 	uint32 capacity = (uint16)(size + slack) & rounding;
@@ -237,9 +237,9 @@ byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 explicitSize, uint16 opcode,
 	if (needed > capacity) {
 		uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 		uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-		if (_engine->_version >= kVersionV1_2_7) {
-			slack = TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK;
-			rounding = TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING;
+		if (_engine->_version >= kVersionV1_2_8) {
+			slack = TG_SPR_V1_2_8_QUEUE_BLOCK_SLACK;
+			rounding = TG_SPR_V1_2_8_QUEUE_BLOCK_ROUNDING;
 		}
 
 		uint32 newCapacity = (uint16)(needed + slack) & rounding;
@@ -319,7 +319,7 @@ bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params
 
 bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	uint16 paramCount = (uint16)(count - 2);
-	uint16 maxParamCount = (_engine->_version >= kVersionV1_2_6) ? 11 : 5;
+	uint16 maxParamCount = (_engine->_version >= kVersionV1_2_7) ? 11 : 5;
 	if (paramCount < 3 || paramCount > maxParamCount)
 		return false;
 
@@ -328,7 +328,7 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 
 	uint16 explicitSize = 0;
 	uint16 celsOffset = 2;
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		explicitSize = (uint16)((paramCount + 3) * 2);
 		celsOffset = 8;
 	}
@@ -341,7 +341,7 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 	for (uint16 i = 0; i < frames; i++)
 		WRITE_LE_UINT16(record + celsOffset + 2 * i, (uint16)(params[i] - TG_SPR_V1_2_3_LITERAL_BIAS));
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		WRITE_LE_UINT16(record + 2, (uint16)(params[frames] - TG_SPR_V1_2_3_LITERAL_BIAS));
 		WRITE_LE_UINT16(record + 6, frames);
 		WRITE_LE_UINT16(record + 4, 0);

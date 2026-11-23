@@ -394,8 +394,8 @@ uint16 ResourceLibrary_v1_2::resCloseFile(uint16 file) {
 	utilsLibrary->tgFree(record->variables);
 
 	uint16 maxChunks = TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS;
-	if (_engine->_version >= kVersionV1_2_7)
-		maxChunks = TG_RES_V1_2_7_MAX_RESIDENT_CHUNKS;
+	if (_engine->_version >= kVersionV1_2_8)
+		maxChunks = TG_RES_V1_2_8_MAX_RESIDENT_CHUNKS;
 	else if (_engine->_version >= kVersionV1_2_5)
 		maxChunks = TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS;
 
@@ -580,8 +580,8 @@ uint32 ResourceLibrary_v1_2::resSeekResource(uint16 file, uint16 index) {
 	readEntry(record, index, entry);
 
 	uint16 lastDiskType = TG_RES_V1_2_3_DISK_LAST_TYPE;
-	if (_engine->_version >= kVersionV1_2_7)
-		lastDiskType = TG_RES_V1_2_7_DISK_LAST_TYPE;
+	if (_engine->_version >= kVersionV1_2_8)
+		lastDiskType = TG_RES_V1_2_8_DISK_LAST_TYPE;
 	else if (_engine->_version >= kVersionV1_2_5)
 		lastDiskType = TG_RES_V1_2_5_DISK_LAST_TYPE;
 
@@ -926,8 +926,8 @@ uint16 ResourceLibrary_v1_2::resGetTitle(uint16 file, byte *destination, uint16 
 		return 0;
 
 	uint16 maxSize = TG_RES_V1_2_HEADER_TITLE_MAX_SIZE;
-	if (_engine->_version >= kVersionV1_2_7)
-		maxSize = TG_RES_V1_2_7_HEADER_TITLE_MAX_SIZE;
+	if (_engine->_version >= kVersionV1_2_8)
+		maxSize = TG_RES_V1_2_8_HEADER_TITLE_MAX_SIZE;
 	else if (_engine->_version >= kVersionV1_2_5)
 		maxSize = TG_RES_V1_2_5_HEADER_TITLE_MAX_SIZE;
 
@@ -935,8 +935,8 @@ uint16 ResourceLibrary_v1_2::resGetTitle(uint16 file, byte *destination, uint16 
 		count = maxSize;
 
 	uint16 titleOffset = TG_RES_V1_2_HEADER_TITLE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_7)
-		titleOffset = TG_RES_V1_2_7_HEADER_TITLE_OFFSET;
+	if (_engine->_version >= kVersionV1_2_8)
+		titleOffset = TG_RES_V1_2_8_HEADER_TITLE_OFFSET;
 
 	if (count != 0)
 		memmove(destination, record->header + titleOffset, count);
@@ -1001,7 +1001,7 @@ uint16 ResourceLibrary_v1_2::resGetLibraryName(uint16 file, char *destination, u
 
 	destination[0] = 0;
 
-	if (_engine->_version >= kVersionV1_2_7) {
+	if (_engine->_version >= kVersionV1_2_8) {
 		warning("ResourceLibrary_v1_2::resGetLibraryName(): the container has no library name");
 		return 0;
 	}
@@ -1109,7 +1109,7 @@ uint16 ResourceLibrary_v1_2::resCreateMidiEvent(uint16 file, uint16 index) {
 	byte header[TG_RES_V1_2_2_MIDI_HEADER_SIZE];
 	uint16 headerSize = TG_RES_V1_2_2_MIDI_HEADER_SIZE;
 	if (_engine->_version >= kVersionV1_2_6)
-		headerSize = TG_RES_V1_2_6_MIDI_HEADER_SIZE;
+		headerSize = TG_RES_V1_2_7_MIDI_HEADER_SIZE;
 	else if (_engine->_version >= kVersionV1_2_3)
 		headerSize = TG_RES_V1_2_3_MIDI_HEADER_SIZE;
 
@@ -1253,8 +1253,8 @@ TopgunEngine_v1_2_3 *ResourceLibrary_v1_2_3::engine() const {
 
 uint32 ResourceLibrary_v1_2_3::keyOffset(const ResourceFile *file, uint16 key) {
 	uint16 keyTableOffset = TG_RES_V1_2_3_HEADER_KEY_TABLE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_7)
-		keyTableOffset = TG_RES_V1_2_7_HEADER_KEY_TABLE_OFFSET;
+	if (_engine->_version >= kVersionV1_2_8)
+		keyTableOffset = TG_RES_V1_2_8_HEADER_KEY_TABLE_OFFSET;
 	else if (_engine->_version >= kVersionV1_2_5)
 		keyTableOffset = TG_RES_V1_2_5_HEADER_KEY_TABLE_OFFSET;
 
@@ -1263,8 +1263,8 @@ uint32 ResourceLibrary_v1_2_3::keyOffset(const ResourceFile *file, uint16 key) {
 
 uint32 ResourceLibrary_v1_2_3::keySize(const ResourceFile *file, uint16 key) {
 	uint16 keyTableOffset = TG_RES_V1_2_3_HEADER_KEY_TABLE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_7)
-		keyTableOffset = TG_RES_V1_2_7_HEADER_KEY_TABLE_OFFSET;
+	if (_engine->_version >= kVersionV1_2_8)
+		keyTableOffset = TG_RES_V1_2_8_HEADER_KEY_TABLE_OFFSET;
 	else if (_engine->_version >= kVersionV1_2_5)
 		keyTableOffset = TG_RES_V1_2_5_HEADER_KEY_TABLE_OFFSET;
 
@@ -1304,17 +1304,17 @@ bool ResourceLibrary_v1_2_3::readResourceFileHeader(ResourceFile *file) {
 		chainedOffset = TG_RES_V1_2_5_HEADER_CHAINED_OFFSET;
 	}
 
-	if (_engine->_version >= kVersionV1_2_7) {
-		maxHeaderSize = TG_RES_V1_2_7_HEADER_SIZE;
-		maxChunks = TG_RES_V1_2_7_MAX_RESIDENT_CHUNKS;
-		chunkCountOffset = TG_RES_V1_2_7_HEADER_CHUNK_COUNT_OFFSET;
-		maxFadeOffset = TG_RES_V1_2_7_HEADER_MAX_FADE_OFFSET;
-		maxTransOffset = TG_RES_V1_2_7_HEADER_MAX_TRANS_OFFSET;
-		extraSlotsOffset = TG_RES_V1_2_7_HEADER_EXTRA_SLOTS_OFFSET;
-		stringCountOffset = TG_RES_V1_2_7_HEADER_STRING_COUNT_OFFSET;
-		variableCountOffset = TG_RES_V1_2_7_HEADER_VARIABLE_COUNT_OFFSET;
-		buildTypeOffset = TG_RES_V1_2_7_HEADER_BUILD_TYPE_OFFSET;
-		chainedOffset = TG_RES_V1_2_7_HEADER_CHAINED_OFFSET;
+	if (_engine->_version >= kVersionV1_2_8) {
+		maxHeaderSize = TG_RES_V1_2_8_HEADER_SIZE;
+		maxChunks = TG_RES_V1_2_8_MAX_RESIDENT_CHUNKS;
+		chunkCountOffset = TG_RES_V1_2_8_HEADER_CHUNK_COUNT_OFFSET;
+		maxFadeOffset = TG_RES_V1_2_8_HEADER_MAX_FADE_OFFSET;
+		maxTransOffset = TG_RES_V1_2_8_HEADER_MAX_TRANS_OFFSET;
+		extraSlotsOffset = TG_RES_V1_2_8_HEADER_EXTRA_SLOTS_OFFSET;
+		stringCountOffset = TG_RES_V1_2_8_HEADER_STRING_COUNT_OFFSET;
+		variableCountOffset = TG_RES_V1_2_8_HEADER_VARIABLE_COUNT_OFFSET;
+		buildTypeOffset = TG_RES_V1_2_8_HEADER_BUILD_TYPE_OFFSET;
+		chainedOffset = TG_RES_V1_2_8_HEADER_CHAINED_OFFSET;
 	}
 
 	if (file->stream->read(header, probeSize) != probeSize)
@@ -1326,7 +1326,7 @@ bool ResourceLibrary_v1_2_3::readResourceFileHeader(ResourceFile *file) {
 	if (READ_LE_UINT16(header + formatOffset) != TG_RES_V1_2_3_FORMAT_VERSION)
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_7 && READ_LE_UINT16(header + TG_RES_V1_2_7_HEADER_TAG_OFFSET) != TG_RES_V1_2_7_HEADER_TAG_VALUE)
+	if (_engine->_version >= kVersionV1_2_8 && READ_LE_UINT16(header + TG_RES_V1_2_8_HEADER_TAG_OFFSET) != TG_RES_V1_2_8_HEADER_TAG_VALUE)
 		return false;
 
 	uint16 headerSize = READ_LE_UINT16(header + TG_RES_V1_2_3_HEADER_SIZE_OFFSET);
@@ -1420,8 +1420,8 @@ bool ResourceLibrary_v1_2_3::loadResidentChunks(ResourceFile *record) {
 	record->stream->seek(keyOffset(record, TG_RES_V1_2_3_KEY_RESIDENT), SEEK_SET);
 
 	uint16 maxChunks = TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS;
-	if (_engine->_version >= kVersionV1_2_7)
-		maxChunks = TG_RES_V1_2_7_MAX_RESIDENT_CHUNKS;
+	if (_engine->_version >= kVersionV1_2_8)
+		maxChunks = TG_RES_V1_2_8_MAX_RESIDENT_CHUNKS;
 	else if (_engine->_version >= kVersionV1_2_5)
 		maxChunks = TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS;
 
@@ -1464,8 +1464,8 @@ byte *ResourceLibrary_v1_2_3::resLoadKeyResource(uint16 file, uint16 key, uint32
 		return nullptr;
 
 	uint16 keyCount = TG_RES_V1_2_3_KEY_COUNT;
-	if (_engine->_version >= kVersionV1_2_7)
-		keyCount = TG_RES_V1_2_7_KEY_COUNT;
+	if (_engine->_version >= kVersionV1_2_8)
+		keyCount = TG_RES_V1_2_8_KEY_COUNT;
 
 	if (key >= keyCount)
 		return nullptr;
@@ -1533,9 +1533,9 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 	uint16 firstResidentType = TG_RES_V1_2_3_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = TG_RES_V1_2_3_RESIDENT_LAST_TYPE;
 	uint16 flagsOffset = TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_7) {
-		firstResidentType = TG_RES_V1_2_7_RESIDENT_FIRST_TYPE;
-		lastResidentType = TG_RES_V1_2_7_RESIDENT_LAST_TYPE;
+	if (_engine->_version >= kVersionV1_2_8) {
+		firstResidentType = TG_RES_V1_2_8_RESIDENT_FIRST_TYPE;
+		lastResidentType = TG_RES_V1_2_8_RESIDENT_LAST_TYPE;
 		flagsOffset = TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET;
 	} else if (_engine->_version >= kVersionV1_2_5) {
 		firstResidentType = TG_RES_V1_2_5_RESIDENT_FIRST_TYPE;
@@ -1608,15 +1608,15 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 		}
 	}
 
-	if (_engine->_version >= kVersionV1_2_7 && entry.type == TG_RES_V1_2_7_TABLE_TYPE) {
-		if (entry.size < TG_RES_V1_2_7_TABLE_HEADER_SIZE) {
+	if (_engine->_version >= kVersionV1_2_8 && entry.type == TG_RES_V1_2_8_TABLE_TYPE) {
+		if (entry.size < TG_RES_V1_2_8_TABLE_HEADER_SIZE) {
 			warning("ResourceLibrary_v1_2_3::resLoadResource(): table record %d is too short", index);
 			return utilsLibrary->tgFree(buffer);
 		}
 
 		// The far pointer to the data is stored as its offset from the start of the block
-		WRITE_LE_UINT32(buffer, TG_RES_V1_2_7_TABLE_HEADER_SIZE);
-		WRITE_LE_UINT16(buffer + TG_RES_V1_2_7_TABLE_OWNED_OFFSET, 1);
+		WRITE_LE_UINT32(buffer, TG_RES_V1_2_8_TABLE_HEADER_SIZE);
+		WRITE_LE_UINT16(buffer + TG_RES_V1_2_8_TABLE_OWNED_OFFSET, 1);
 	}
 
 	if (outSize)
@@ -1682,11 +1682,11 @@ uint16 ResourceLibrary_v1_2_3::resCopyResource(uint16 file, uint16 index) {
 
 	uint16 firstResidentType = TG_RES_V1_2_3_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = TG_RES_V1_2_3_RESIDENT_LAST_TYPE;
-	uint16 spriteType = TG_RES_V1_2_6_SPRITE_TYPE;
-	if (_engine->_version >= kVersionV1_2_7) {
-		firstResidentType = TG_RES_V1_2_7_RESIDENT_FIRST_TYPE;
-		lastResidentType = TG_RES_V1_2_7_RESIDENT_LAST_TYPE;
-		spriteType = TG_RES_V1_2_7_SPRITE_TYPE;
+	uint16 spriteType = TG_RES_V1_2_7_SPRITE_TYPE;
+	if (_engine->_version >= kVersionV1_2_8) {
+		firstResidentType = TG_RES_V1_2_8_RESIDENT_FIRST_TYPE;
+		lastResidentType = TG_RES_V1_2_8_RESIDENT_LAST_TYPE;
+		spriteType = TG_RES_V1_2_8_SPRITE_TYPE;
 	} else if (_engine->_version >= kVersionV1_2_5) {
 		firstResidentType = TG_RES_V1_2_5_RESIDENT_FIRST_TYPE;
 		lastResidentType = TG_RES_V1_2_5_RESIDENT_LAST_TYPE;
@@ -1700,7 +1700,7 @@ uint16 ResourceLibrary_v1_2_3::resCopyResource(uint16 file, uint16 index) {
 		if (!copy)
 			return 0;
 
-		if (_engine->_version >= kVersionV1_2_6) {
+		if (_engine->_version >= kVersionV1_2_7) {
 			byte *source = resLoadResource(file, index, nullptr);
 			if (!source) {
 				utilsLibrary->tgFree(copy);
@@ -1710,19 +1710,19 @@ uint16 ResourceLibrary_v1_2_3::resCopyResource(uint16 file, uint16 index) {
 			memcpy(copy, source, size);
 
 			if (type == spriteType) {
-				if (size < TG_RES_V1_2_6_SPRITE_HEADER_SIZE) {
+				if (size < TG_RES_V1_2_7_SPRITE_HEADER_SIZE) {
 					warning("ResourceLibrary_v1_2_3::resCopyResource(): sprite record %d is too short", index);
 					utilsLibrary->tgFree(copy);
 					return 0;
 				}
 
-				WRITE_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_CLICK_SCRIPT, 0);
-				WRITE_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_CLICK_ARGUMENT, 0);
-				WRITE_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_DRAG_SCRIPT, 0);
-				WRITE_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_DROP_SCRIPT, 0);
-				WRITE_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_UNK_06, READ_LE_UINT16(copy + TG_RES_V1_2_6_SPRITE_UNK_04));
-				copy[TG_RES_V1_2_6_SPRITE_DRAGGABLE] = 0;
-				copy[TG_RES_V1_2_6_SPRITE_DISABLED] = 0;
+				WRITE_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_CLICK_SCRIPT, 0);
+				WRITE_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_CLICK_ARGUMENT, 0);
+				WRITE_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_DRAG_SCRIPT, 0);
+				WRITE_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_DROP_SCRIPT, 0);
+				WRITE_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_UNK_06, READ_LE_UINT16(copy + TG_RES_V1_2_7_SPRITE_UNK_04));
+				copy[TG_RES_V1_2_7_SPRITE_DRAGGABLE] = 0;
+				copy[TG_RES_V1_2_7_SPRITE_DISABLED] = 0;
 			}
 		} else {
 			record->stream->seek(keyOffset(record, TG_RES_V1_2_3_KEY_RESIDENT) + READ_LE_UINT32(entry + 2), SEEK_SET);
@@ -1760,9 +1760,9 @@ bool ResourceLibrary_v1_2_3::resDeleteResource(uint16 file, uint16 index) {
 
 	uint16 firstResidentType = TG_RES_V1_2_3_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = TG_RES_V1_2_3_RESIDENT_LAST_TYPE;
-	if (_engine->_version >= kVersionV1_2_7) {
-		firstResidentType = TG_RES_V1_2_7_RESIDENT_FIRST_TYPE;
-		lastResidentType = TG_RES_V1_2_7_RESIDENT_LAST_TYPE;
+	if (_engine->_version >= kVersionV1_2_8) {
+		firstResidentType = TG_RES_V1_2_8_RESIDENT_FIRST_TYPE;
+		lastResidentType = TG_RES_V1_2_8_RESIDENT_LAST_TYPE;
 	} else if (_engine->_version >= kVersionV1_2_5) {
 		firstResidentType = TG_RES_V1_2_5_RESIDENT_FIRST_TYPE;
 		lastResidentType = TG_RES_V1_2_5_RESIDENT_LAST_TYPE;

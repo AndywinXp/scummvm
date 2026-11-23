@@ -89,8 +89,8 @@
 #define TG_HOST_V1_2_STRING_ID_CONSTANT          0x8000
 #define TG_HOST_V1_2_CONTAINER_TITLE_SIZE        0x4E
 #define TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE      0x52
-#define TG_HOST_V1_2_7_CONTAINER_TITLE_SIZE      0x50
-#define TG_HOST_V1_2_7_CONTAINER_TITLE_SIZE      0x50
+#define TG_HOST_V1_2_8_CONTAINER_TITLE_SIZE      0x50
+#define TG_HOST_V1_2_8_CONTAINER_TITLE_SIZE      0x50
 #define TG_HOST_V1_2_3_LIBRARY_NAME_SIZE         15
 #define TG_HOST_V1_2_5_LIBRARY_NAME_SIZE         17
 
@@ -100,9 +100,9 @@
 #define TG_INPUT_V1_2_3_KEY_TABLE_SIZE           256
 #define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416 // 0xFDE8 / 12
 #define TG_INPUT_V1_2_5_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
-#define TG_INPUT_V1_2_6_MAX_CLICK_REGIONS        5000 // 0xFDE8 / 13
+#define TG_INPUT_V1_2_7_MAX_CLICK_REGIONS        5000 // 0xFDE8 / 13
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
-#define TG_HOST_V1_2_7_MAX_HOVER_REGIONS         80
+#define TG_HOST_V1_2_8_MAX_HOVER_REGIONS         80
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
 #define TG_HOST_V1_2_1_MAX_COLLISION_PAIRS       100
@@ -223,7 +223,7 @@
 #define TG_MOVIE_V1_2_COMMAND_INDEX              4
 #define TG_MOVIE_V1_2_COMMAND_FRAME_READY        0x0A
 #define TG_MOVIE_V1_2_5_COMMAND_FRAME_READY      6
-#define TG_MOVIE_V1_2_6_DEFAULT_SPEED            100
+#define TG_MOVIE_V1_2_7_DEFAULT_SPEED            100
 
 // Text objects
 #define TG_TEXT_V1_2_FONT_FULL_NAME              4
@@ -283,7 +283,7 @@
 #define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
 #define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
-#define TG_SCRIPT_V1_2_6_NUM_ELEMENT_VARIABLES   10
+#define TG_SCRIPT_V1_2_7_NUM_ELEMENT_VARIABLES   10
 #define TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE       4
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
@@ -555,7 +555,7 @@ struct Movie_v1_2 {
 		audioStream(0), delay(0), prefetchFrame(0), runSize(0), frame(0), id(0), index(0), sprite(0),
 		timelineRemaining(0), frameUpdated(false), prefetchDone(false), stalled(false), skipping(false),
 		late(false), prefetchExhausted(false), started(false), audioStarted(false), numBuffers(0),
-		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_6_DEFAULT_SPEED) {}
+		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_7_DEFAULT_SPEED) {}
 };
 
 struct TextObject_v1_2 {
@@ -1116,7 +1116,7 @@ protected:
 	uint16 _joystickY = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
 	byte _joystickButtons = 0;
 	uint16 _joystickScripts[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
-	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_7_MAX_HOVER_REGIONS];
+	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_8_MAX_HOVER_REGIONS];
 	uint16 _numHoverRegions = 0;
 	uint16 _hoverRegionCurrent = 0;
 	ScheduledTimer_v1_2 _scheduledTimers[TG_HOST_V1_2_MAX_SCHEDULED_TIMERS];

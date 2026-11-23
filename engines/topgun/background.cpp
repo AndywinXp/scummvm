@@ -411,7 +411,7 @@ void TopgunEngine_v1_2::syncBackgroundDimensions(const byte *bitmap) {
 	_height = screenHeight;
 	_screenBox = true;
 
-	if (_version >= kVersionV1_2_7)
+	if (_version >= kVersionV1_2_8)
 		_screenBox = _scrollBoxWindowBox;
 
 	if (!bitmap)
@@ -421,7 +421,7 @@ void TopgunEngine_v1_2::syncBackgroundDimensions(const byte *bitmap) {
 	_height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	_screenBox = (screenWidth > _width) || (_height < screenHeight);
 
-	if (_version >= kVersionV1_2_7 && _scrollBoxWindowBox)
+	if (_version >= kVersionV1_2_8 && _scrollBoxWindowBox)
 		_screenBox = true;
 }
 
@@ -455,7 +455,7 @@ void TopgunEngine_v1_2::applyBackgroundToSpriteLib(Common::Rect *rectOut) {
 			return;
 
 		spriteLib()->spriteSetBackground(_buffer1, false, 0, rectOut);
-	} else if (_version >= kVersionV1_2_7 && _tileMap) {
+	} else if (_version >= kVersionV1_2_8 && _tileMap) {
 		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetTileBackground(_tileMap, rectOut);
 	} else {
 		spriteLib()->spriteSetBackground(_backgroundBitmap, false, 0, rectOut);
@@ -463,11 +463,11 @@ void TopgunEngine_v1_2::applyBackgroundToSpriteLib(Common::Rect *rectOut) {
 }
 
 void TopgunEngine_v1_2::clearBackground() {
-	if (_version >= kVersionV1_2_7 && _tileMap) {
+	if (_version >= kVersionV1_2_8 && _tileMap) {
 		uint16 tileId = _tileMap->id;
 
 		if (tileId != 0)
-			destroyResourceObjectByType(tileId, kResV1_2_7Tile);
+			destroyResourceObjectByType(tileId, kResV1_2_8Tile);
 
 		_tileMap = nullptr;
 	}
@@ -530,7 +530,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorPalette(uint32 color) {
 
 	_backgroundColor = color;
 
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV1_2_7)
 		_solidBackground = true;
 
 	if (_version < kVersionV1_2_3) {
@@ -570,7 +570,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 		spriteLib()->spriteChangePalette(_solidColorEntry, 1, entry, !_faded);
 	}
 
-	if (_version >= kVersionV1_2_6) {
+	if (_version >= kVersionV1_2_7) {
 		_backgroundColor = color;
 		_solidBackground = true;
 	} else {
@@ -786,7 +786,7 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 
 	_fadeIn = true;
 
-	if (_version >= kVersionV1_2_6 && !display()->hasPalette())
+	if (_version >= kVersionV1_2_7 && !display()->hasPalette())
 		spriteLib()->spriteSetBkgTransparent(!_solidBackground || _backgroundColor != 0);
 
 	if (display()->hasPalette()) {
@@ -807,7 +807,7 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 		if (_buffer1) {
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
 
-			if (_version >= kVersionV1_2_7) {
+			if (_version >= kVersionV1_2_8) {
 				_active = true;
 
 				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxInBackground(_backgroundBitmap, rings, true);
@@ -864,7 +864,7 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
 
-			if (_version >= kVersionV1_2_7) {
+			if (_version >= kVersionV1_2_8) {
 				_active = true;
 
 				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxOutBackground(_buffer1, rings, true);
@@ -887,7 +887,7 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 	}
 
 	// The fade of a display without palette ends here even when there was no background to fade
-	if (_version >= kVersionV1_2_7 && !display()->hasPalette())
+	if (_version >= kVersionV1_2_8 && !display()->hasPalette())
 		_faded = true;
 
 	if (_version >= kVersionV1_2_3)
@@ -923,7 +923,11 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 	if (id == 0)
 		return nullptr;
 
-	if (_version >= kVersionV1_2_7 && resourceLib()->resGetType(_file, operandValue(id)) == kResV1_2_7Cell) {
+	uint16 cellType = kResV1_2_5BitmapGroup;
+	if (_version >= kVersionV1_2_8)
+		cellType = kResV1_2_8Cell;
+
+	if (_version >= kVersionV1_2_6 && resourceLib()->resGetType(_file, operandValue(id)) == cellType) {
 		byte *cell = loadResourceWithProcessingPause(id, nullptr);
 		if (!cell)
 			return nullptr;
@@ -961,24 +965,24 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 }
 
 void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV1_2_7)
 		_solidBackground = false;
 
 	uint16 mode = READ_LE_UINT16(record + 2);
 
 	bool tileMode = false;
 
-	if (_version >= kVersionV1_2_7) {
+	if (_version >= kVersionV1_2_8) {
 		if (mode == 3)
 			tileMode = true;
-		else if (mode == 0 && resourceLib()->resGetType(_file, operandValue(READ_LE_UINT16(record + 4))) != kResV1_2_7Bitmap)
+		else if (mode == 0 && resourceLib()->resGetType(_file, operandValue(READ_LE_UINT16(record + 4))) != kResV1_2_8Bitmap)
 			tileMode = true;
 	}
 
 	if (tileMode) {
 		uint16 tileId = READ_LE_UINT16(record + 4);
 
-		if (!validateAndGetResourceByType(tileId, kResV1_2_7Tile))
+		if (!validateAndGetResourceByType(tileId, kResV1_2_8Tile))
 			return;
 
 		uint16 index = operandValue(tileId);

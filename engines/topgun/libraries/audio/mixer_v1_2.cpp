@@ -751,7 +751,7 @@ void AudioLibrary_v1_2_3::waveMuteImpl() {
 }
 
 uint32 AudioLibrary_v1_2_3::audioGetWaveVolume() {
-	if (_userVolumeSet && _engine->_version >= kVersionV1_2_6)
+	if (_userVolumeSet && _engine->_version >= kVersionV1_2_7)
 		return _userVolume;
 
 	if (_waveOutStream)
@@ -779,7 +779,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 	if (!_waveOutStream)
 		return;
 
-	if (_soundCount == 0 && (_engine->_version < kVersionV1_2_6 || _buffersInFlight == 0))
+	if (_soundCount == 0 && (_engine->_version < kVersionV1_2_7 || _buffersInFlight == 0))
 		return;
 
 	if (_masterFadeMode != 0)
