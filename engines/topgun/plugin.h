@@ -28,7 +28,7 @@
 
 namespace Topgun {
 
-struct SpriteInfo_v1_2_1;
+struct SpriteInfo_v1_2_3;
 
 class PluginServices {
 public:
@@ -55,7 +55,7 @@ public:
 	virtual void getSpritePosition(uint16 sprite, Common::Point &position) = 0; // RT_031
 	virtual void spriteSkipMessage(uint16 sprite, uint16 count) = 0; // RT_032
 	virtual void spriteSwapOrder(uint16 first, uint16 second, uint16 onlyIfSecondAbove, uint16 refresh) = 0; // RT_033
-	virtual void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_1 &info) = 0; // RT_034
+	virtual void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) = 0; // RT_034
 	virtual void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) = 0; // RT_035
 	virtual const char *getString(uint16 id) = 0; // RT_036
 	virtual void copyStringVariable(uint16 index, char *destination) = 0; // RT_037

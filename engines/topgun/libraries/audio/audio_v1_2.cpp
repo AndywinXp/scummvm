@@ -24,9 +24,9 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio/audio_v1_2_1.h"
+#include "topgun/libraries/audio/audio_v1_2_3.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -315,20 +315,20 @@ void AudioLibrary_v1_2::masterFadeDownTick() {
 	setWaveOutVolume(((uint32)_waveVolumeRight << 16) | _waveVolumeLeft);
 }
 
-AudioLibrary_v1_2_1::AudioLibrary_v1_2_1(TopgunEngine_v1_2_1 *engine) : AudioLibrary_v1_2(engine) {
+AudioLibrary_v1_2_3::AudioLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine) : AudioLibrary_v1_2(engine) {
 }
 
-TopgunEngine_v1_2_1 *AudioLibrary_v1_2_1::engine() const {
-	return static_cast<TopgunEngine_v1_2_1 *>(_engine);
+TopgunEngine_v1_2_3 *AudioLibrary_v1_2_3::engine() const {
+	return static_cast<TopgunEngine_v1_2_3 *>(_engine);
 }
 
-AudioLibrary_v1_2_1::~AudioLibrary_v1_2_1() {
+AudioLibrary_v1_2_3::~AudioLibrary_v1_2_3() {
 	closeMidiOutDevice();
 	freeAudioContext();
 }
 
-uint16 AudioLibrary_v1_2_1::audioInitLibrary(uint16 hwnd, uint16 version) {
-	if (version != TG_AUDIO_V1_2_1_VERSION)
+uint16 AudioLibrary_v1_2_3::audioInitLibrary(uint16 hwnd, uint16 version) {
+	if (version != TG_AUDIO_V1_2_3_VERSION)
 		return 0;
 
 	if (!_libMainDone) {
@@ -343,19 +343,19 @@ uint16 AudioLibrary_v1_2_1::audioInitLibrary(uint16 hwnd, uint16 version) {
 	return 1;
 }
 
-void AudioLibrary_v1_2_1::audioExitLibrary() {
+void AudioLibrary_v1_2_3::audioExitLibrary() {
 	releaseCDDeviceIfOwned();
 	destroyAllMidiObjects();
 	destroyAllWaveObjectsAndCloseDevice();
 	freeAudioContext();
 }
 
-void AudioLibrary_v1_2_1::audioService() {
+void AudioLibrary_v1_2_3::audioService() {
 	pumpAudioPlayback();
 	midiServiceTick();
 }
 
-void AudioLibrary_v1_2_1::audioActivate(uint16 on) {
+void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 	updateWaveEnabledFlags(on);
 
 	if (on == 0) {
@@ -378,7 +378,7 @@ void AudioLibrary_v1_2_1::audioActivate(uint16 on) {
 	}
 }
 
-void AudioLibrary_v1_2_1::audioPause(uint16 paused) {
+void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 	bool state = (paused != 0);
 
 	if (state == _paused)
@@ -391,7 +391,7 @@ void AudioLibrary_v1_2_1::audioPause(uint16 paused) {
 		pauseOrResumeMidiPlayback(state ? 1 : 0);
 }
 
-void AudioLibrary_v1_2_1::audioMute(int16 flag) {
+void AudioLibrary_v1_2_3::audioMute(int16 flag) {
 	bool previous = _mute;
 
 	if (flag < 0)
@@ -406,11 +406,11 @@ void AudioLibrary_v1_2_1::audioMute(int16 flag) {
 	}
 }
 
-void AudioLibrary_v1_2_1::audioResetLibrary() {
+void AudioLibrary_v1_2_3::audioResetLibrary() {
 	_maxPriority = 0;
 }
 
-bool AudioLibrary_v1_2_1::allocAudioContext() {
+bool AudioLibrary_v1_2_3::allocAudioContext() {
 	if (!AudioLibrary_v1_2::allocAudioContext())
 		return false;
 
@@ -428,7 +428,7 @@ bool AudioLibrary_v1_2_1::allocAudioContext() {
 	return true;
 }
 
-void AudioLibrary_v1_2_1::freeAudioContext() {
+void AudioLibrary_v1_2_3::freeAudioContext() {
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
 
 	for (uint16 i = 0; i < _midiCount; i++) {
@@ -442,30 +442,30 @@ void AudioLibrary_v1_2_1::freeAudioContext() {
 	AudioLibrary_v1_2::freeAudioContext();
 }
 
-void AudioLibrary_v1_2_1::initializeAudioSubsystem() {
+void AudioLibrary_v1_2_3::initializeAudioSubsystem() {
 	readAudioIniSettings();
 	findCdAuxDevice();
 	probeMidiOutCapabilities();
 	probeWaveOutCapabilities();
 }
 
-void AudioLibrary_v1_2_1::readAudioIniSettings() {
+void AudioLibrary_v1_2_3::readAudioIniSettings() {
 	AudioLibrary_v1_2::readAudioIniSettings();
 
 	_iniMidiVolume = readAudioIniInt("midivolume", 0);
 	_remapMidiDrums = (readAudioIniInt("remapmididrums", 0) != 0);
 }
 
-void AudioLibrary_v1_2_1::writeAudioIniInt(const char *key, uint16 value) {
+void AudioLibrary_v1_2_3::writeAudioIniInt(const char *key, uint16 value) {
 	writeAudioIniString(key, Common::String::format("%i", (int16)value).c_str());
 }
 
-void AudioLibrary_v1_2_1::writeAudioIniString(const char *key, const char *value) {
+void AudioLibrary_v1_2_3::writeAudioIniString(const char *key, const char *value) {
 	ConfMan.set(key, value);
 	ConfMan.flushToDisk();
 }
 
-void AudioLibrary_v1_2_1::saveMidiVolumeToIni() {
+void AudioLibrary_v1_2_3::saveMidiVolumeToIni() {
 	writeAudioIniInt("midivolume", _iniMidiVolume);
 }
 

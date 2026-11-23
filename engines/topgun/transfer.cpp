@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -48,7 +48,7 @@ bool TopgunEngine_v1_2::transferSpriteContents(uint16 sourceId, uint16 destinati
 	bool destinationExists = (_records[destinationIndex].handle != 0);
 
 	if (!destinationExists) {
-		if (!validateAndGetResourceByType(destinationId, (_version >= kVersionV1_2_1) ? kResV1_2_1Sprite : kResV1_2Sprite))
+		if (!validateAndGetResourceByType(destinationId, (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2Sprite))
 			return false;
 	}
 
@@ -90,7 +90,7 @@ void TopgunEngine_v1_2::hideSourceSpriteAndAddFrameRefs(const SpriteInfo_v1_2 &i
 			continue;
 		}
 
-		uint16 frameIndex = operandValue(READ_LE_UINT16(info.frames[i] + ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID)));
+		uint16 frameIndex = operandValue(READ_LE_UINT16(info.frames[i] + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID)));
 		if (isRecordIndexValid(frameIndex, "hideSourceSpriteAndAddFrameRefs"))
 			_records[frameIndex].refCount++;
 	}
@@ -99,18 +99,18 @@ void TopgunEngine_v1_2::hideSourceSpriteAndAddFrameRefs(const SpriteInfo_v1_2 &i
 	if (!data)
 		return;
 
-	uint16 memberCountOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
-	uint16 membersOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
+	uint16 memberCountOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
+	uint16 membersOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
 	uint16 count = READ_LE_UINT16(data + memberCountOffset);
-	bool deferBitmaps = (_version >= kVersionV1_2_1 && data[TG_HOST_V1_2_1_SPRITE_DATA_DEFER_FLAG] != 0);
+	bool deferBitmaps = (_version >= kVersionV1_2_3 && data[TG_HOST_V1_2_3_SPRITE_DATA_DEFER_FLAG] != 0);
 
 	for (uint16 i = 0; i < count; i++) {
 		uint16 member = READ_LE_UINT16(data + membersOffset + 2 * i);
 		uint16 type = resourceLib()->resGetType(_file, operandValue(member));
 		bool referenceCounted;
 
-		if (_version >= kVersionV1_2_1)
-			referenceCounted = (type == kResV1_2_1Bitmap || type == kResV1_2_1Movie || type == kResV1_2_1Text || type == kResV1_2_1BitmapGroup);
+		if (_version >= kVersionV1_2_3)
+			referenceCounted = (type == kResV1_2_3Bitmap || type == kResV1_2_3Movie || type == kResV1_2_3Text || type == kResV1_2_3BitmapGroup);
 		else
 			referenceCounted = (type == kResV1_2Bitmap || type == kResV1_2Movie || type == kResV1_2Text);
 
@@ -140,7 +140,7 @@ void TopgunEngine_v1_2::destroySourceSpriteAfterTransfer(const SpriteInfo_v1_2 &
 
 	uint16 sprite = _records[sourceIndex].handle;
 
-	if (_version >= kVersionV1_2_1 && sprite == _sceneSprite)
+	if (_version >= kVersionV1_2_3 && sprite == _sceneSprite)
 		_sceneSprite = 0;
 
 	spriteLib()->spriteDestroy(sprite, true, false);
@@ -149,13 +149,13 @@ void TopgunEngine_v1_2::destroySourceSpriteAfterTransfer(const SpriteInfo_v1_2 &
 
 	for (uint16 i = 0; i < info.frameCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++) {
 		if (!info.frames[i]) {
-			if (_version >= kVersionV1_2_1)
+			if (_version >= kVersionV1_2_3)
 				warning("TopgunEngine_v1_2::destroySourceSpriteAfterTransfer(): the frame %d is not loaded", i);
 
 			continue;
 		}
 
-		decrementResourceRefCountAndMaybeDestroy(READ_LE_UINT16(info.frames[i] + ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID)));
+		decrementResourceRefCountAndMaybeDestroy(READ_LE_UINT16(info.frames[i] + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID)));
 	}
 }
 
@@ -164,7 +164,7 @@ void TopgunEngine_v1_2::decrementResourceRefCountAndMaybeDestroy(uint16 id) {
 	if (!isRecordIndexValid(index, "decrementResourceRefCountAndMaybeDestroy"))
 		return;
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		ResourceRecord &record = _records[index];
 
 		if (record.data && record.refCount != 0) {
@@ -199,10 +199,10 @@ bool TopgunEngine_v1_2::appendQueueBitmapsToSprite(const SpriteInfo_v1_2 &info, 
 	if (!data)
 		return false;
 
-	uint16 memberCountOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
-	uint16 membersOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
-	uint16 bitmapResourceIdOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
-	uint16 movieType = (_version >= kVersionV1_2_1) ? kResV1_2_1Movie : kResV1_2Movie;
+	uint16 memberCountOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
+	uint16 membersOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
+	uint16 bitmapResourceIdOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
+	uint16 movieType = (_version >= kVersionV1_2_3) ? kResV1_2_3Movie : kResV1_2Movie;
 
 	uint16 oldCount = READ_LE_UINT16(data + memberCountOffset);
 	uint16 newCount = (uint16)(oldCount + info.frameCount);
@@ -258,12 +258,12 @@ void TopgunEngine_v1_2::trimSpriteQueueBitmaps(uint16 id) {
 	if (!data)
 		return;
 
-	uint16 memberCountOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
-	uint16 membersOffset = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
+	uint16 memberCountOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT;
+	uint16 membersOffset = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS;
 	uint16 capacity;
 
-	if (_version >= kVersionV1_2_1)
-		capacity = READ_LE_UINT16(data + TG_HOST_V1_2_1_SPRITE_DATA_ORIGINAL_COUNT);
+	if (_version >= kVersionV1_2_3)
+		capacity = READ_LE_UINT16(data + TG_HOST_V1_2_3_SPRITE_DATA_ORIGINAL_COUNT);
 	else
 		capacity = (uint16)((resourceLib()->resGetSize(_file, index) - TG_HOST_V1_2_SPRITE_DATA_MEMBER_BASE) >> 1);
 
@@ -285,13 +285,13 @@ bool TopgunEngine_v1_2::o_transferSprite(const byte *record) {
 	bool freeSource = (record[0x0A] != 0);
 	bool flag = (record[0x0B] != 0);
 
-	if (_version >= kVersionV1_2_1) {
-		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+	if (_version >= kVersionV1_2_3) {
+		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
-		if (!newer->validateResourceType(sourceId, kResV1_2_1Sprite))
+		if (!newer->validateResourceType(sourceId, kResV1_2_3Sprite))
 			return false;
 
-		if (!newer->validateResourceType(destinationId, kResV1_2_1Sprite))
+		if (!newer->validateResourceType(destinationId, kResV1_2_3Sprite))
 			return false;
 	}
 
@@ -304,11 +304,11 @@ bool TopgunEngine_v1_2::o_transferSprite(const byte *record) {
 
 	bool transferred = true;
 
-	if (_version < kVersionV1_2_1 || operandValue(destinationId) != sourceIndex) {
+	if (_version < kVersionV1_2_3 || operandValue(destinationId) != sourceIndex) {
 		transferred = transferSpriteContents(sourceId, destinationId, freeSource);
 
 		if (freeSource && _records[sourceIndex].handle != 0)
-			destroyResourceObjectByType(sourceId, (_version >= kVersionV1_2_1) ? kResV1_2_1Sprite : kResV1_2Sprite);
+			destroyResourceObjectByType(sourceId, (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2Sprite);
 	}
 
 	if (!transferred)

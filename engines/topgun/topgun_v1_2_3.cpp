@@ -25,18 +25,18 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
-TopgunEngine_v1_2_1::TopgunEngine_v1_2_1(OSystem *syst, const ADGameDescription *gameDesc) :
-	TopgunEngine_v1_2(syst, gameDesc, (Common::String(gameDesc->gameId) == "battlebeast") ? kVersionV1_2_2 : kVersionV1_2_1) {
-	setAudioLibrary(new AudioLibrary_v1_2_1(this));
-	setResourceLibrary(new ResourceLibrary_v1_2_1(this));
-	setSpriteLibrary(new SpriteLibrary_v1_2_1(this));
+TopgunEngine_v1_2_3::TopgunEngine_v1_2_3(OSystem *syst, const ADGameDescription *gameDesc) :
+	TopgunEngine_v1_2(syst, gameDesc, (Common::String(gameDesc->gameId) == "battlebeast") ? kVersionV1_2_4 : kVersionV1_2_3) {
+	setAudioLibrary(new AudioLibrary_v1_2_3(this));
+	setResourceLibrary(new ResourceLibrary_v1_2_3(this));
+	setSpriteLibrary(new SpriteLibrary_v1_2_3(this));
 }
 
-TopgunEngine_v1_2_1::~TopgunEngine_v1_2_1() {
+TopgunEngine_v1_2_3::~TopgunEngine_v1_2_3() {
 	unloadPluginLibrary();
 	delete _pluginHost;
 	_pluginHost = nullptr;
@@ -52,52 +52,52 @@ TopgunEngine_v1_2_1::~TopgunEngine_v1_2_1() {
 	setResourceLibrary(nullptr);
 }
 
-void TopgunEngine_v1_2_1::syncSoundSettings() {
+void TopgunEngine_v1_2_3::syncSoundSettings() {
 	TopgunEngine_v1_2::syncSoundSettings();
 
 	audioLib()->applyMidiDeviceVolume();
 }
 
-uint16 TopgunEngine_v1_2_1::variableIndex(uint16 operand) const {
-	if (operand < TG_HOST_V1_2_1_FIRST_ARGUMENT_SLOT)
+uint16 TopgunEngine_v1_2_3::variableIndex(uint16 operand) const {
+	if (operand < TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT)
 		return operand;
 
-	int32 index = (int32)_argumentFrame - (operand - TG_HOST_V1_2_1_FIRST_ARGUMENT_SLOT);
+	int32 index = (int32)_argumentFrame - (operand - TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT);
 	if (index < 0) {
-		warning("TopgunEngine_v1_2_1::variableIndex(): argument slot %d is out of range", operand);
+		warning("TopgunEngine_v1_2_3::variableIndex(): argument slot %d is out of range", operand);
 		return 0;
 	}
 
 	return (uint16)index;
 }
 
-uint16 TopgunEngine_v1_2_1::operandValue(uint16 operand) const {
-	if (operand > TG_HOST_V1_2_1_LAST_OPERAND_INDEX)
-		return (uint16)(operand + TG_HOST_V1_2_1_LITERAL_BIAS);
+uint16 TopgunEngine_v1_2_3::operandValue(uint16 operand) const {
+	if (operand > TG_HOST_V1_2_3_LAST_OPERAND_INDEX)
+		return (uint16)(operand + TG_HOST_V1_2_3_LITERAL_BIAS);
 
 	return _variableTable[variableIndex(operand)];
 }
 
-uint16 TopgunEngine_v1_2_1::readVariable(uint16 index) const {
-	if (index > TG_HOST_V1_2_1_LAST_OPERAND_INDEX) {
-		warning("TopgunEngine_v1_2_1::readVariable(): variable %d is out of range", index);
+uint16 TopgunEngine_v1_2_3::readVariable(uint16 index) const {
+	if (index > TG_HOST_V1_2_3_LAST_OPERAND_INDEX) {
+		warning("TopgunEngine_v1_2_3::readVariable(): variable %d is out of range", index);
 		return 0;
 	}
 
 	return _variableTable[variableIndex(index)];
 }
 
-void TopgunEngine_v1_2_1::writeVariable(uint16 index, uint16 value) {
-	if (index > TG_HOST_V1_2_1_LAST_OPERAND_INDEX) {
-		warning("TopgunEngine_v1_2_1::writeVariable(): variable %d is out of range", index);
+void TopgunEngine_v1_2_3::writeVariable(uint16 index, uint16 value) {
+	if (index > TG_HOST_V1_2_3_LAST_OPERAND_INDEX) {
+		warning("TopgunEngine_v1_2_3::writeVariable(): variable %d is out of range", index);
 		return;
 	}
 
 	_variableTable[variableIndex(index)] = value;
 }
 
-bool TopgunEngine_v1_2_1::postMessage(uint16 id, uint16 param, uint32 data) {
-	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_1IoError) {
+bool TopgunEngine_v1_2_3::postMessage(uint16 id, uint16 param, uint32 data) {
+	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_3IoError) {
 		// The fatal quit messages are handled synchronously
 		flushPostedScriptMessages();
 		_fatalCode = id;
@@ -109,57 +109,57 @@ bool TopgunEngine_v1_2_1::postMessage(uint16 id, uint16 param, uint32 data) {
 	return TopgunEngine_v1_2::postMessage(id, param, data);
 }
 
-uint16 TopgunEngine_v1_2_1::audioCreateWaveEvent(const byte *header, uint16 waveInfo) {
+uint16 TopgunEngine_v1_2_3::audioCreateWaveEvent(const byte *header, uint16 waveInfo) {
 	SoundCreateInfo_v1_2 info;
-	memcpy(info.header, header, TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE);
-	info.readProc = TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE;
-	info.rewindProc = TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE;
-	info.closeProc = TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE;
+	memcpy(info.header, header, TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE);
+	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
+	info.rewindProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
+	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
 	info.handle = waveInfo;
 
 	return audioLib()->audioCreateWave(&info);
 }
 
-uint16 TopgunEngine_v1_2_1::audioCreateMidiEvent(const byte *header, uint16 midiInfo) {
-	MidiCreateInfo_v1_2_1 info;
-	memcpy(info.header, header, TG_AUDIO_V1_2_1_MIDI_HEADER_SIZE);
-	info.readProc = TG_AUDIO_V1_2_1_PROC_RESOURCE_MIDI;
-	info.closeProc = TG_AUDIO_V1_2_1_PROC_RESOURCE_MIDI;
+uint16 TopgunEngine_v1_2_3::audioCreateMidiEvent(const byte *header, uint16 midiInfo) {
+	MidiCreateInfo_v1_2_3 info;
+	memcpy(info.header, header, TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE);
+	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
+	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
 	info.handle = midiInfo;
 
 	return audioLib()->audioCreateMidi(&info);
 }
 
-uint32 TopgunEngine_v1_2_1::audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) {
-	if (proc == TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_1_PROC_RESOURCE_MIDI)
+uint32 TopgunEngine_v1_2_3::audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) {
+	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI)
 		return (uint32)resourceLib()->waveRead(handle, destination, (int32)count);
 
-	if (proc == TG_AUDIO_V1_2_1_PROC_MOVIE_AUDIO)
+	if (proc == TG_AUDIO_V1_2_3_PROC_MOVIE_AUDIO)
 		return movieAudioFill(handle, destination, count);
 
-	warning("TopgunEngine_v1_2_1::audioSourceRead(): unknown source procedure %d", proc);
+	warning("TopgunEngine_v1_2_3::audioSourceRead(): unknown source procedure %d", proc);
 	return 0;
 }
 
-uint32 TopgunEngine_v1_2_1::audioSourceRewind(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE)
+uint32 TopgunEngine_v1_2_3::audioSourceRewind(uint16 proc, uint16 handle) {
+	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE)
 		return resourceLib()->waveRewind(handle);
 
 	return 0;
 }
 
-void TopgunEngine_v1_2_1::audioSourceClose(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_1_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_1_PROC_RESOURCE_MIDI)
+void TopgunEngine_v1_2_3::audioSourceClose(uint16 proc, uint16 handle) {
+	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI)
 		resourceLib()->waveDone(handle);
 }
 
-void TopgunEngine_v1_2_1::resourceSendMessage(uint16 window, uint16 message) {
+void TopgunEngine_v1_2_3::resourceSendMessage(uint16 window, uint16 message) {
 	postMessage(message, 0, 0);
 }
 
-bool TopgunEngine_v1_2_1::resourceVariablePairCallback(uint16 id, uint16 value) {
-	if (_currentSceneIndex >= _sceneEntries.size() || id >= TG_HOST_V1_2_1_NUM_SCENE_VARIABLES) {
-		warning("TopgunEngine_v1_2_1::resourceVariablePairCallback(): variable %d is out of range", id);
+bool TopgunEngine_v1_2_3::resourceVariablePairCallback(uint16 id, uint16 value) {
+	if (_currentSceneIndex >= _sceneEntries.size() || id >= TG_HOST_V1_2_3_NUM_SCENE_VARIABLES) {
+		warning("TopgunEngine_v1_2_3::resourceVariablePairCallback(): variable %d is out of range", id);
 		return true;
 	}
 
@@ -167,11 +167,11 @@ bool TopgunEngine_v1_2_1::resourceVariablePairCallback(uint16 id, uint16 value) 
 	return true;
 }
 
-void TopgunEngine_v1_2_1::spriteMessageService(byte *record, uint16 spriteId) {
+void TopgunEngine_v1_2_3::spriteMessageService(byte *record, uint16 spriteId) {
 	if (_fatalCode != 0)
 		return;
 
-	_variableTable[TG_HOST_V1_2_1_VARIABLE_EVENT_PARAMETER] = operandValue(spriteId);
+	_variableTable[TG_HOST_V1_2_3_VARIABLE_EVENT_PARAMETER] = operandValue(spriteId);
 
 	switch (READ_LE_UINT16(record)) {
 	case 0x12:
@@ -195,14 +195,17 @@ void TopgunEngine_v1_2_1::spriteMessageService(byte *record, uint16 spriteId) {
 	}
 }
 
-bool TopgunEngine_v1_2_1::rtStartup(bool runChecks) {
+bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 	if (getGameId() == "junglegames")
 		return runStartup("Timon and Pumbaa's Jungle Games", "JUNGLE.BIN");
+
+	if (getGameId() == "greatword")
+		return runStartup("Howie's Great Word Adventure", "WORD.BIN");
 
 	return runStartup("Battle Beast", "BEAST.BIN");
 }
 
-bool TopgunEngine_v1_2_1::runStartup(const Common::String &title, const Common::String &firstContainer) {
+bool TopgunEngine_v1_2_3::runStartup(const Common::String &title, const Common::String &firstContainer) {
 	if (!initApplication(title))
 		return false;
 
@@ -220,7 +223,7 @@ bool TopgunEngine_v1_2_1::runStartup(const Common::String &title, const Common::
 	return true;
 }
 
-bool TopgunEngine_v1_2_1::initApplication(const Common::String &title) {
+bool TopgunEngine_v1_2_3::initApplication(const Common::String &title) {
 	_appTitle = title;
 
 	bool ok = registerViewClassAndCreateMainWindow();
@@ -245,7 +248,7 @@ bool TopgunEngine_v1_2_1::initApplication(const Common::String &title) {
 	return ok;
 }
 
-bool TopgunEngine_v1_2_1::registerViewClassAndCreateMainWindow() {
+bool TopgunEngine_v1_2_3::registerViewClassAndCreateMainWindow() {
 	_windowRect = Common::Rect(0, 0, display()->width(), display()->height());
 
 	display()->setWindowOrigin(-1, -1);
@@ -253,8 +256,8 @@ bool TopgunEngine_v1_2_1::registerViewClassAndCreateMainWindow() {
 	return loadCursorResources();
 }
 
-bool TopgunEngine_v1_2_1::initEngineLibraries() {
-	if (audioLib()->audioInitLibrary(1, TG_AUDIO_V1_2_1_VERSION) == 0)
+bool TopgunEngine_v1_2_3::initEngineLibraries() {
+	if (audioLib()->audioInitLibrary(1, TG_AUDIO_V1_2_3_VERSION) == 0)
 		return false;
 
 	if (!spriteLib()->spriteInitLibrary())
@@ -267,7 +270,7 @@ bool TopgunEngine_v1_2_1::initEngineLibraries() {
 	return true;
 }
 
-uint16 TopgunEngine_v1_2_1::getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) {
+uint16 TopgunEngine_v1_2_3::getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) {
 	loadIniFile();
 
 	Common::String value;
@@ -277,7 +280,7 @@ uint16 TopgunEngine_v1_2_1::getPrivateProfileInt(const char *section, const char
 	return parseIniInteger(value.c_str());
 }
 
-uint16 TopgunEngine_v1_2_1::mainLoop() {
+uint16 TopgunEngine_v1_2_3::mainLoop() {
 	Message message;
 
 	while (!shouldQuit()) {
@@ -315,7 +318,7 @@ uint16 TopgunEngine_v1_2_1::mainLoop() {
 	return 0;
 }
 
-void TopgunEngine_v1_2_1::dispatchMessage(const Message &message) {
+void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 	switch (message.id) {
 	case kMsgPaint:
 		handlePaintMessage();
@@ -334,16 +337,16 @@ void TopgunEngine_v1_2_1::dispatchMessage(const Message &message) {
 		handleKeyDownMessage((Common::KeyCode)message.param, message.shift, message.ctrl);
 		break;
 
-	case kMsgV1_2_1KeyUp:
+	case kMsgV1_2_3KeyUp:
 		handleKeyUpMessage((Common::KeyCode)message.param);
 		break;
 
-	case kMsgV1_2_1Joystick1Move:
-	case kMsgV1_2_1Joystick2Move:
-	case kMsgV1_2_1Joystick1ButtonDown:
-	case kMsgV1_2_1Joystick2ButtonDown:
-	case kMsgV1_2_1Joystick1ButtonUp:
-	case kMsgV1_2_1Joystick2ButtonUp:
+	case kMsgV1_2_3Joystick1Move:
+	case kMsgV1_2_3Joystick2Move:
+	case kMsgV1_2_3Joystick1ButtonDown:
+	case kMsgV1_2_3Joystick2ButtonDown:
+	case kMsgV1_2_3Joystick1ButtonUp:
+	case kMsgV1_2_3Joystick2ButtonUp:
 		if (!_gamePaused)
 			handleJoystickMessage(message);
 		break;
@@ -390,14 +393,14 @@ void TopgunEngine_v1_2_1::dispatchMessage(const Message &message) {
 		break;
 
 	default:
-		if (message.id >= TG_HOST_V1_2_1_MESSAGE_FIRST_PLUGIN && message.id <= TG_HOST_V1_2_1_MESSAGE_LAST_PLUGIN && _windowMessageCallback)
+		if (message.id >= TG_HOST_V1_2_3_MESSAGE_FIRST_PLUGIN && message.id <= TG_HOST_V1_2_3_MESSAGE_LAST_PLUGIN && _windowMessageCallback)
 			_windowMessageCallback->windowMessage(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16));
 
 		break;
 	}
 }
 
-void TopgunEngine_v1_2_1::fillBackground() {
+void TopgunEngine_v1_2_3::fillBackground() {
 	if (_backgroundColor == 0) {
 		display()->clearScreen();
 	} else if (display()->hasPalette()) {
@@ -406,11 +409,11 @@ void TopgunEngine_v1_2_1::fillBackground() {
 		const byte *entry = _palette + _backgroundColor * TG_DISPLAY_PALETTE_ENTRY_SIZE;
 		display()->fillScreen(entry[0] | (entry[1] << 8) | (entry[2] << 16));
 	} else {
-		warning("TopgunEngine_v1_2_1::fillBackground(): palette index %d is out of range", _backgroundColor);
+		warning("TopgunEngine_v1_2_3::fillBackground(): palette index %d is out of range", _backgroundColor);
 	}
 }
 
-void TopgunEngine_v1_2_1::handleAppShutdown() {
+void TopgunEngine_v1_2_3::handleAppShutdown() {
 	if (_shuttingDown)
 		return;
 
@@ -432,35 +435,35 @@ void TopgunEngine_v1_2_1::handleAppShutdown() {
 
 	setCursorMode(1);
 
-	if (_fatalCode == kMsgV1_2MemoryError || _fatalCode == kMsgV1_2_1IoError)
+	if (_fatalCode == kMsgV1_2MemoryError || _fatalCode == kMsgV1_2_3IoError)
 		showShutdownErrorBox();
 
 	clearMessages();
 	postQuitMessage(0);
 }
 
-void TopgunEngine_v1_2_1::showShutdownErrorBox() {
+void TopgunEngine_v1_2_3::showShutdownErrorBox() {
 	fillBackground();
 
-	if (_fatalCode == kMsgV1_2_1IoError)
+	if (_fatalCode == kMsgV1_2_3IoError)
 		GUIErrorMessage("A file I/O error has occurred.");
 	else
 		GUIErrorMessage("Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
 }
 
-void TopgunEngine_v1_2_1::handleActivateMessage(uint16 param) {
+void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 	if (_shuttingDown)
 		return;
 
 	bool active = (param != 0);
 
-	if (_version >= kVersionV1_2_2 && _activateScript != 0 && _activateState != active) {
+	if (_version >= kVersionV1_2_4 && _activateScript != 0 && _activateState != active) {
 		byte record[18];
 		memset(record, 0, sizeof(record));
 
 		WRITE_LE_UINT16(record + 2, _activateScript);
 		record[5] = 1;
-		WRITE_LE_UINT16(record + 6, (uint16)((active ? 1 : 0) - TG_HOST_V1_2_1_LITERAL_BIAS));
+		WRITE_LE_UINT16(record + 6, (uint16)((active ? 1 : 0) - TG_HOST_V1_2_3_LITERAL_BIAS));
 		o_callScript(record);
 
 		_activateState = active;
@@ -490,16 +493,16 @@ void TopgunEngine_v1_2_1::handleActivateMessage(uint16 param) {
 	}
 }
 
-void TopgunEngine_v1_2_1::flushPostedScriptMessages() {
-	for (uint16 id = TG_HOST_V1_2_1_MESSAGE_FIRST_FLUSHED; id <= TG_HOST_V1_2_1_MESSAGE_LAST_FLUSHED; id++)
+void TopgunEngine_v1_2_3::flushPostedScriptMessages() {
+	for (uint16 id = TG_HOST_V1_2_3_MESSAGE_FIRST_FLUSHED; id <= TG_HOST_V1_2_3_MESSAGE_LAST_FLUSHED; id++)
 		drainMessage(id);
 
 	drainMessage(kMsgV1_2SoundFinished);
 	drainMessage(kMsgV1_2MemoryError);
-	drainMessage(kMsgV1_2_1IoError);
+	drainMessage(kMsgV1_2_3IoError);
 }
 
-bool TopgunEngine_v1_2_1::fatalError(uint16 code, const Common::String &message) {
+bool TopgunEngine_v1_2_3::fatalError(uint16 code, const Common::String &message) {
 	// The original marks the shutdown as already started, so the close message does nothing and the window stays frozen; here the close runs the normal shutdown
 	_fatalCode = code;
 	_scriptsDisabled = true;

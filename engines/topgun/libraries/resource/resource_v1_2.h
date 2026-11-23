@@ -89,8 +89,8 @@
 #define TG_RES_V1_2_LZW_DEFAULT_CODE_WIDTH         11
 
 // Container header of the later version, which has its own library
-#define TG_RES_V1_2_1_HEADER_SIZE                  0x11E
-#define TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS          16
+#define TG_RES_V1_2_3_HEADER_SIZE                  0x11E
+#define TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS          16
 
 namespace Topgun {
 
@@ -199,9 +199,9 @@ protected:
 		LzwState *lzwState;
 
 		// Fields of the later version
-		byte fullHeader[TG_RES_V1_2_1_HEADER_SIZE];
-		uint32 limits[TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS + 1];
-		byte *residentChunks[TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS];
+		byte fullHeader[TG_RES_V1_2_3_HEADER_SIZE];
+		uint32 limits[TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS + 1];
+		byte *residentChunks[TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS];
 		byte *variablePairs;
 		uint16 chunkCount;
 		uint16 maxFadeColors;
@@ -221,13 +221,13 @@ protected:
 			for (uint16 i = 0; i < TG_RES_V1_2_HEADER_SIZE; i++)
 				header[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_1_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
 				fullHeader[i] = 0;
 
-			for (uint16 i = 0; i <= TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i <= TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS; i++)
 				limits[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_1_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS; i++)
 				residentChunks[i] = nullptr;
 		}
 	};

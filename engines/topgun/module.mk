@@ -56,20 +56,20 @@ MODULE_OBJS = \
 	movie.o \
 	opcode.o \
 	opcode_v1_2.o \
-	opcode_v1_2_1.o \
+	opcode_v1_2_3.o \
 	plugin.o \
 	res_loader.o \
 	scene.o \
 	script.o \
 	script_v1_1.o \
 	script_v1_2.o \
-	script_v1_2_1.o \
+	script_v1_2_3.o \
 	text.o \
 	topgun.o \
 	topgun_v1_0.o \
 	topgun_v1_1.o \
 	topgun_v1_2.o \
-	topgun_v1_2_1.o \
+	topgun_v1_2_3.o \
 	transfer.o \
 	tunes_player.o
 

@@ -23,9 +23,9 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "topgun/libraries/sprite/sprite_v1_2_1.h"
+#include "topgun/libraries/sprite/sprite_v1_2_3.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -264,7 +264,7 @@ byte *SpriteLibrary_v1_2::nextQueueRecordWithLoops(uint16 sprite) {
 		if (opcode == kSprV1_2OpHostEventPayload) {
 			record += READ_LE_UINT16(record + 2);
 		} else {
-			if (_engine->_version >= kVersionV1_2_1 ? opcode > TG_SPR_V1_2_1_LAST_QUEUE_OPCODE : opcode >= TG_SPR_V1_2_NUM_QUEUE_OPCODES) {
+			if (_engine->_version >= kVersionV1_2_3 ? opcode > TG_SPR_V1_2_3_LAST_QUEUE_OPCODE : opcode >= TG_SPR_V1_2_NUM_QUEUE_OPCODES) {
 				warning("SpriteLibrary_v1_2::nextQueueRecordWithLoops(): queue opcode %d is out of range", opcode);
 				return nullptr;
 			}
@@ -311,7 +311,7 @@ void SpriteLibrary_v1_2::computeInterpolatedMoveSteps(byte *command) {
 	uint16 longest = (distanceY >= distanceX) ? distanceY : distanceX;
 
 	uint16 speed;
-	if (_engine->_version >= kVersionV1_2_1)
+	if (_engine->_version >= kVersionV1_2_3)
 		speed = READ_LE_UINT16(command + 0x14);
 	else
 		speed = decodeOperand(READ_LE_UINT16(command + 2));
@@ -499,14 +499,14 @@ bool SpriteLibrary_v1_2::tickPlayRangeRecord(uint16 sprite) {
 
 	uint16 interval = READ_LE_UINT16(command + 8);
 	if (interval != TG_SPR_V1_2_INTERVAL_KEEP)
-		object->frameInterval = (_engine->_version >= kVersionV1_2_1) ? decodeOperand(interval) : interval;
+		object->frameInterval = (_engine->_version >= kVersionV1_2_3) ? decodeOperand(interval) : interval;
 
 	if (object->timingMode == 0 || object->frameDue == 0)
 		object->frameDue = now;
 
 	object->frameDue += object->frameInterval;
 
-	if (_engine->_version >= kVersionV1_2_1)
+	if (_engine->_version >= kVersionV1_2_3)
 		object->multipartValid = false;
 
 	object->framePending = true;
@@ -691,7 +691,7 @@ bool SpriteLibrary_v1_2::tickDelayedMoveRecord(uint16 sprite) {
 		object->moveDue += object->moveInterval;
 
 		byte *command = object->queueCurrent;
-		if (_engine->_version >= kVersionV1_2_1) {
+		if (_engine->_version >= kVersionV1_2_3) {
 			int16 x = (int16)decodeOperand(READ_LE_UINT16(command + 4));
 			int16 y = (int16)decodeOperand(READ_LE_UINT16(command + 6));
 			updateSpritePosition(sprite, x, y, READ_LE_UINT16(command + 2), true);
@@ -738,7 +738,7 @@ void SpriteLibrary_v1_2::tickFlipRecord(uint16 sprite) {
 	object->mirrorX = (decodeOperand(READ_LE_UINT16(command + 2)) != 0);
 	object->flipY = (decodeOperand(READ_LE_UINT16(command + 4)) != 0);
 
-	if (_engine->_version < kVersionV1_2_1) {
+	if (_engine->_version < kVersionV1_2_3) {
 		if (flipFlags(object) != previous)
 			renderSpriteToSurface(sprite);
 
@@ -769,7 +769,7 @@ void SpriteLibrary_v1_2::tickSetPositionRecord(uint16 sprite, const byte *comman
 	int16 x = (int16)decodeOperand(READ_LE_UINT16(command + 2));
 	int16 y = (int16)decodeOperand(READ_LE_UINT16(command + 4));
 
-	if (_engine->_version >= kVersionV1_2_1) {
+	if (_engine->_version >= kVersionV1_2_3) {
 		updateSpritePosition(sprite, x, y, command[6], false);
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "tickSetPositionRecord");
@@ -786,7 +786,7 @@ bool SpriteLibrary_v1_2::stepQuadPath(uint16 sprite) {
 		return false;
 
 	byte *command = object->queueCurrent;
-	uint16 shift = (_engine->_version >= kVersionV1_2_1) ? 1 : 0;
+	uint16 shift = (_engine->_version >= kVersionV1_2_3) ? 1 : 0;
 	uint16 step = (uint16)(READ_LE_UINT16(command + 0x19 + shift) + 1);
 	WRITE_LE_UINT16(command + 0x19 + shift, step);
 	uint16 steps = READ_LE_UINT16(command + 0x1B + shift);
@@ -864,7 +864,7 @@ void SpriteLibrary_v1_2::applyFrameChange(uint16 sprite) {
 
 	object->currentFrame = frame;
 
-	if (_engine->_version >= kVersionV1_2_1) {
+	if (_engine->_version >= kVersionV1_2_3) {
 		recomputeSpriteBoundingBox(sprite);
 		object->framePending = false;
 		return;
@@ -886,7 +886,7 @@ void SpriteLibrary_v1_2::applyFrameChange(uint16 sprite) {
 	object->framePending = false;
 }
 
-bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
+bool SpriteLibrary_v1_2_3::processSpriteQueueCommand(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "processSpriteQueueCommand");
 	if (!object)
 		return false;
@@ -899,7 +899,7 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 	}
 
 	switch (READ_LE_UINT16(command)) {
-	case kSprV1_2_1OpPlayRange: {
+	case kSprV1_2_3OpPlayRange: {
 		uint16 start = decodeOperand(READ_LE_UINT16(command + 2));
 		uint16 first = decodeOperand(READ_LE_UINT16(command + 2));
 		uint16 last = decodeOperand(READ_LE_UINT16(command + 4));
@@ -908,12 +908,12 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 		break;
 	}
 
-	case kSprV1_2_1OpMultiCel:
+	case kSprV1_2_3OpMultiCel:
 		object->renderPending = false;
 		command[0x0C] = 0;
 		break;
 
-	case kSprV1_2_1OpQuadPath:
+	case kSprV1_2_3OpQuadPath:
 		WRITE_LE_INT16(command + 0x0E, object->x);
 		WRITE_LE_INT16(command + 0x10, object->y);
 		WRITE_LE_UINT16(command + 0x12, decodeOperand(READ_LE_UINT16(command + 6)));
@@ -932,9 +932,9 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 		WRITE_LE_UINT16(command + 0x1C, decodeOperand(READ_LE_UINT16(command + 2)));
 		break;
 
-	case kSprV1_2_1OpFlip:
-	case kSprV1_2_1OpSetPosition:
-		if (READ_LE_UINT16(command) == kSprV1_2_1OpFlip)
+	case kSprV1_2_3OpFlip:
+	case kSprV1_2_3OpSetPosition:
+		if (READ_LE_UINT16(command) == kSprV1_2_3OpFlip)
 			tickFlipRecord(sprite);
 		else
 			tickSetPositionRecord(sprite, command);
@@ -955,7 +955,7 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 		object = findSprite(sprite, "processSpriteQueueCommand");
 		return object && object->queueCurrent;
 
-	case kSprV1_2_1OpLinearMove:
+	case kSprV1_2_3OpLinearMove:
 		WRITE_LE_INT16(command + 0x0A, object->x);
 		WRITE_LE_INT16(command + 0x0C, object->y);
 		WRITE_LE_UINT16(command + 0x0E, decodeOperand(READ_LE_UINT16(command + 6)));
@@ -972,23 +972,23 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 			computeInterpolatedMoveSteps(command);
 		break;
 
-	case kSprV1_2_1OpWait:
+	case kSprV1_2_3OpWait:
 		WRITE_LE_UINT16(command + 4, 0);
 		break;
 
-	case kSprV1_2_1OpTimingMode:
+	case kSprV1_2_3OpTimingMode:
 		object->timingMode = command[2];
 		object->moveDue = 0;
 		object->frameDue = 0;
 		processSpriteQueueCommand(sprite);
 		return object->queueCurrent;
 
-	case kSprV1_2_1OpFrameInterval:
+	case kSprV1_2_3OpFrameInterval:
 		spriteSetMotion(sprite, decodeOperand(READ_LE_UINT16(command + 2)));
 		processSpriteQueueCommand(sprite);
 		return object->queueCurrent;
 
-	case kSprV1_2_1OpSetRange: {
+	case kSprV1_2_3OpSetRange: {
 		uint16 start = decodeOperand(READ_LE_UINT16(command + 2));
 		uint16 first = decodeOperand(READ_LE_UINT16(command + 4));
 		uint16 last = decodeOperand(READ_LE_UINT16(command + 6));
@@ -997,7 +997,7 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 		return object->queueCurrent;
 	}
 
-	case kSprV1_2_1OpMoveInterval:
+	case kSprV1_2_3OpMoveInterval:
 		spriteSetSpeed(sprite, decodeOperand(READ_LE_UINT16(command + 2)));
 		if (READ_LE_UINT16(command + 4) != 0)
 			spriteSetMotion(sprite, decodeOperand(READ_LE_UINT16(command + 4)));
@@ -1012,14 +1012,14 @@ bool SpriteLibrary_v1_2_1::processSpriteQueueCommand(uint16 sprite) {
 	return false;
 }
 
-bool SpriteLibrary_v1_2_1::processSpriteAnimationStep(uint16 sprite) {
+bool SpriteLibrary_v1_2_3::processSpriteAnimationStep(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "processSpriteAnimationStep");
 	if (!object)
 		return true;
 
 	byte *command = object->queueCurrent;
 	if (!command) {
-		warning("SpriteLibrary_v1_2_1::processSpriteAnimationStep(): the sprite has no current command");
+		warning("SpriteLibrary_v1_2_3::processSpriteAnimationStep(): the sprite has no current command");
 		return true;
 	}
 
@@ -1027,25 +1027,25 @@ bool SpriteLibrary_v1_2_1::processSpriteAnimationStep(uint16 sprite) {
 	bool finished = true;
 
 	switch (opcode) {
-	case kSprV1_2_1OpPlayRange:
+	case kSprV1_2_3OpPlayRange:
 		finished = tickPlayRangeRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpMultiCel:
+	case kSprV1_2_3OpMultiCel:
 		finished = tickMultiCelRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpCompositeBackground:
+	case kSprV1_2_3OpCompositeBackground:
 		compositeSpriteIntoBackground(sprite, 0);
 		break;
 
-	case kSprV1_2_1OpQuadPath:
+	case kSprV1_2_3OpQuadPath:
 		finished = tickQuadPathRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpFlip:
-	case kSprV1_2_1OpSetPosition:
-		if (opcode == kSprV1_2_1OpFlip)
+	case kSprV1_2_3OpFlip:
+	case kSprV1_2_3OpSetPosition:
+		if (opcode == kSprV1_2_3OpFlip)
 			tickFlipRecord(sprite);
 		else
 			tickSetPositionRecord(sprite, command);
@@ -1056,39 +1056,39 @@ bool SpriteLibrary_v1_2_1::processSpriteAnimationStep(uint16 sprite) {
 
 		break;
 
-	case kSprV1_2_1OpHide:
+	case kSprV1_2_3OpHide:
 		spriteHide(sprite, true);
 		break;
 
-	case kSprV1_2_1OpLinearMove:
+	case kSprV1_2_3OpLinearMove:
 		finished = tickLinearMoveRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpDelayedMove:
+	case kSprV1_2_3OpDelayedMove:
 		finished = tickDelayedMoveRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpWait:
+	case kSprV1_2_3OpWait:
 		finished = tickWaitRecord(sprite);
 		break;
 
-	case kSprV1_2_1OpShowFrame:
+	case kSprV1_2_3OpShowFrame:
 		spriteShow(sprite, READ_LE_UINT16(command + 2), true);
 		break;
 
-	case kSprV1_2_1OpHostEvent:
-	case kSprV1_2_1OpHostEventFixed:
+	case kSprV1_2_3OpHostEvent:
+	case kSprV1_2_3OpHostEventFixed:
 		if (!_inHostCallback)
 			fireSpriteQueueCallbackMsg(sprite, _queueCommandSizeTable[opcode]);
 
 		finished = false;
 		break;
 
-	case kSprV1_2_1OpHostEventPayload:
+	case kSprV1_2_3OpHostEventPayload:
 		finished = fireSpriteQueueCallbackMsg(sprite, READ_LE_UINT16(command + 2));
 		break;
 
-	case kSprV1_2_1OpMovieFrame:
+	case kSprV1_2_3OpMovieFrame:
 		finished = tickMovieFrameRecord(sprite);
 		break;
 
@@ -1099,7 +1099,7 @@ bool SpriteLibrary_v1_2_1::processSpriteAnimationStep(uint16 sprite) {
 	return finished;
 }
 
-bool SpriteLibrary_v1_2_1::tickMultiCelRecord(uint16 sprite) {
+bool SpriteLibrary_v1_2_3::tickMultiCelRecord(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "tickMultiCelRecord");
 	if (!object)
 		return false;
@@ -1127,7 +1127,7 @@ bool SpriteLibrary_v1_2_1::tickMultiCelRecord(uint16 sprite) {
 
 	uint16 count = command[0x0D];
 	if (count > TG_SPR_V1_2_NUM_SPRITE_PARTS) {
-		warning("SpriteLibrary_v1_2_1::tickMultiCelRecord(): %d parts do not fit in the part block", count);
+		warning("SpriteLibrary_v1_2_3::tickMultiCelRecord(): %d parts do not fit in the part block", count);
 		count = TG_SPR_V1_2_NUM_SPRITE_PARTS;
 	}
 

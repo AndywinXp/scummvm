@@ -27,7 +27,7 @@
 #include "common/util.h"
 
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -504,7 +504,7 @@ void TopgunEngine_v1_2::o_formatString(const byte *record) {
 	FormatArgument_v1_2 arguments[TG_SCRIPT_V1_2_FORMAT_MAX_ARGUMENTS];
 
 	for (uint16 i = 0; i < count; i++) {
-		uint16 argumentSize = (_version >= kVersionV1_2_1) ? TG_STRING_V1_2_1_FORMAT_ARGUMENT_SIZE : TG_SCRIPT_V1_2_FORMAT_ARGUMENT_SIZE;
+		uint16 argumentSize = (_version >= kVersionV1_2_3) ? TG_STRING_V1_2_3_FORMAT_ARGUMENT_SIZE : TG_SCRIPT_V1_2_FORMAT_ARGUMENT_SIZE;
 		const byte *entry = record + TG_SCRIPT_V1_2_FORMAT_ARGUMENTS_OFFSET + argumentSize * i;
 		uint16 word = READ_LE_UINT16(entry);
 

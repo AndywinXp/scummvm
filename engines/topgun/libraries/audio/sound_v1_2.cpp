@@ -22,9 +22,9 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio/audio_v1_2_1.h"
+#include "topgun/libraries/audio/audio_v1_2_3.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -77,7 +77,7 @@ uint16 AudioLibrary_v1_2::audioPlayWave(uint16 handle, const byte *params) {
 	if (!sound)
 		return 0;
 
-	byte defaultParams[TG_AUDIO_V1_2_1_PLAY_PARAMS_SIZE] = {};
+	byte defaultParams[TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE] = {};
 
 	if (!params)
 		params = defaultParams;
@@ -108,7 +108,7 @@ uint16 AudioLibrary_v1_2::audioStopWave(uint16 handle, const byte *params) {
 	if (_noWaveDevice)
 		return 1;
 
-	if (_engine->_version >= kVersionV1_2_1 && handle == 0) {
+	if (_engine->_version >= kVersionV1_2_3 && handle == 0) {
 		audioStopAllWaves(params);
 		return 1;
 	}
@@ -179,7 +179,7 @@ void AudioLibrary_v1_2::audioClearNotifications() {
 }
 
 AudioLibrary_v1_2::SoundObject *AudioLibrary_v1_2::allocWaveObject() {
-	if (_soundCount >= ((_engine->_version >= kVersionV1_2_1) ? TG_AUDIO_V1_2_1_MAX_SOUNDS : TG_AUDIO_V1_2_MAX_SOUNDS))
+	if (_soundCount >= ((_engine->_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_MAX_SOUNDS : TG_AUDIO_V1_2_MAX_SOUNDS))
 		return nullptr;
 
 	SoundObject *sound = new SoundObject();
@@ -433,7 +433,7 @@ void AudioLibrary_v1_2::finishWaveObject(SoundObject *sound) {
 	}
 
 	if (sound->notifyArmed && _hwnd != 0) {
-		if (_engine->_version >= kVersionV1_2_1) {
+		if (_engine->_version >= kVersionV1_2_3) {
 			sound->notifyPending = true;
 		} else {
 			engine()->postMessage(TG_AUDIO_V1_2_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
@@ -444,7 +444,7 @@ void AudioLibrary_v1_2::finishWaveObject(SoundObject *sound) {
 }
 
 void AudioLibrary_v1_2::stopWaveObject(SoundObject *sound, const byte *params) {
-	if (_engine->_version >= kVersionV1_2_1) {
+	if (_engine->_version >= kVersionV1_2_3) {
 		sound->notifyPending = false;
 		sound->notifyArmed = false;
 	}
@@ -459,7 +459,7 @@ void AudioLibrary_v1_2::stopWaveObject(SoundObject *sound, const byte *params) {
 	if (fadeMilliseconds != 0 && sound->currentVolume != 0) {
 		setupWaveFadeOut(sound, fadeMilliseconds, sound->currentVolume, 0);
 	} else {
-		if (_engine->_version >= kVersionV1_2_1) {
+		if (_engine->_version >= kVersionV1_2_3) {
 			finishWaveObject(sound);
 		} else {
 			sound->active = false;
@@ -564,7 +564,7 @@ void AudioLibrary_v1_2::rewindSound(SoundObject *sound) {
 	if (sound->consumed == 0)
 		return;
 
-	if ((_engine->_version >= kVersionV1_2_1) ? (_cdDeviceId != 0) : _cdSuspend)
+	if ((_engine->_version >= kVersionV1_2_3) ? (_cdDeviceId != 0) : _cdSuspend)
 		stopCDIfOwned();
 
 	sound->available = 0;
@@ -614,7 +614,7 @@ uint16 AudioLibrary_v1_2::compactAndRefillSoundBuffer(SoundObject *sound) {
 
 bool AudioLibrary_v1_2::closeSoundSource(SoundObject *sound) {
 	if (sound->closeProc != 0) {
-		if ((_engine->_version >= kVersionV1_2_1) ? (_cdDeviceId != 0) : _cdSuspend)
+		if ((_engine->_version >= kVersionV1_2_3) ? (_cdDeviceId != 0) : _cdSuspend)
 			stopCDIfOwned();
 
 		engine()->audioSourceClose(sound->closeProc, sound->callbackHandle);
@@ -624,28 +624,28 @@ bool AudioLibrary_v1_2::closeSoundSource(SoundObject *sound) {
 	return true;
 }
 
-bool AudioLibrary_v1_2_1::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_2 *info, SoundObject *sound) {
+bool AudioLibrary_v1_2_3::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_2 *info, SoundObject *sound) {
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
 
 	sound->callbackHandle = info->handle;
 	sound->readProc = info->readProc;
 	sound->rewindProc = info->rewindProc;
 	sound->closeProc = info->closeProc;
-	sound->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_1_INFO_OFFSET_NOTIFY);
-	sound->sourceLength = READ_LE_UINT32(info->header + TG_AUDIO_V1_2_1_INFO_OFFSET_LENGTH);
-	readWaveFormat(info->header + TG_AUDIO_V1_2_1_INFO_OFFSET_FORMAT, sound->format);
+	sound->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_INFO_OFFSET_NOTIFY);
+	sound->sourceLength = READ_LE_UINT32(info->header + TG_AUDIO_V1_2_3_INFO_OFFSET_LENGTH);
+	readWaveFormat(info->header + TG_AUDIO_V1_2_3_INFO_OFFSET_FORMAT, sound->format);
 	sound->volume = TG_AUDIO_MAX_VOLUME_LEVEL;
 	sound->currentVolume = TG_AUDIO_MAX_VOLUME_LEVEL;
 	sound->enabled = (_cdDeviceId == 0);
-	sound->isStatic = (info->header[TG_AUDIO_V1_2_1_INFO_OFFSET_PRELOAD] != 0);
+	sound->isStatic = (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_PRELOAD] != 0);
 
-	if (info->header[TG_AUDIO_V1_2_1_INFO_OFFSET_EXEMPT] != 0)
+	if (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_EXEMPT] != 0)
 		sound->priority = 0;
 	else
-		sound->priority = (int16)READ_LE_UINT16(info->header + TG_AUDIO_V1_2_1_INFO_OFFSET_PRIORITY);
+		sound->priority = (int16)READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_INFO_OFFSET_PRIORITY);
 
-	sound->exempt = (info->header[TG_AUDIO_V1_2_1_INFO_OFFSET_EXEMPT] != 0);
-	sound->adpcmEncoded = (info->header[TG_AUDIO_V1_2_1_INFO_OFFSET_ADPCM] != 0);
+	sound->exempt = (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_EXEMPT] != 0);
+	sound->adpcmEncoded = (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_ADPCM] != 0);
 
 	if (sound->adpcmEncoded)
 		sound->adpcmShift = (sound->format.bitsPerSample == 0x10) ? 2 : 1;
@@ -679,8 +679,8 @@ bool AudioLibrary_v1_2_1::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_
 	return true;
 }
 
-bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *params) {
-	bool busy = (_engine->_version >= kVersionV1_2_2) ? (_activeSounds != 0) : (_buffersInFlight != 0);
+bool AudioLibrary_v1_2_3::startWavePlayback(SoundObject *sound, const byte *params) {
+	bool busy = (_engine->_version >= kVersionV1_2_4) ? (_activeSounds != 0) : (_buffersInFlight != 0);
 
 	if (!sound->exempt && busy && _maxPriority > sound->priority)
 		return true;
@@ -689,11 +689,11 @@ bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *para
 	sound->fadingIn = false;
 	sound->notifyPending = false;
 
-	if (params[TG_AUDIO_V1_2_1_PLAY_OFFSET_SET_VOLUME] != 0)
-		sound->volume = params[TG_AUDIO_V1_2_1_PLAY_OFFSET_VOLUME];
+	if (params[TG_AUDIO_V1_2_3_PLAY_OFFSET_SET_VOLUME] != 0)
+		sound->volume = params[TG_AUDIO_V1_2_3_PLAY_OFFSET_VOLUME];
 
 	sound->currentVolume = sound->volume;
-	sound->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_LOOPS);
+	sound->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_LOOPS);
 	sound->initialLoops = sound->loops;
 
 	if (!openWaveDevice(&sound->format))
@@ -709,12 +709,12 @@ bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *para
 		setWaveOutVolume(((uint32)_fadeTargetVolumeRight << 16) | _fadeTargetVolumeLeft);
 	}
 
-	uint32 fadeInMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_FADE_IN);
+	uint32 fadeInMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_FADE_IN);
 
 	if (fadeInMilliseconds != 0 && sound->volume != 0)
 		setupWaveFadeIn(sound, fadeInMilliseconds, sound->volume);
 
-	uint32 fadeOutMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_FADE_OUT);
+	uint32 fadeOutMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_FADE_OUT);
 
 	if (fadeOutMilliseconds != 0 && sound->volume != 0 && sound->loops >= 0)
 		setupWaveFadeOut(sound, fadeOutMilliseconds, sound->volume, 1);
@@ -726,7 +726,7 @@ bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *para
 
 	sound->randomMode = false;
 
-	if (READ_LE_UINT32(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_RANDOM_MIN) != 0) {
+	if (READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MIN) != 0) {
 		scheduleRandomRepeatPlayback(sound, params);
 		return true;
 	}
@@ -734,14 +734,14 @@ bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *para
 	if (!sound->exempt)
 		stopAllNonExemptWaves();
 
-	if (_buffersInFlight != 0 && params[TG_AUDIO_V1_2_1_PLAY_OFFSET_NO_FLUSH] == 0)
+	if (_buffersInFlight != 0 && params[TG_AUDIO_V1_2_3_PLAY_OFFSET_NO_FLUSH] == 0)
 		resetWaveOutQueue();
 
 	activateWaveObject(sound);
-	sound->notifyArmed = (params[TG_AUDIO_V1_2_1_PLAY_OFFSET_NOTIFY] != 0);
+	sound->notifyArmed = (params[TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY] != 0);
 
 	if (sound->notifyArmed)
-		sound->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_NOTIFY_PARAM);
+		sound->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY_PARAM);
 	else
 		sound->notifyLParam = 0;
 
@@ -751,7 +751,7 @@ bool AudioLibrary_v1_2_1::startWavePlayback(SoundObject *sound, const byte *para
 	return true;
 }
 
-void AudioLibrary_v1_2_1::scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params) {
+void AudioLibrary_v1_2_3::scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params) {
 	sound->randomMode = true;
 
 	if (sound->active)
@@ -759,8 +759,8 @@ void AudioLibrary_v1_2_1::scheduleRandomRepeatPlayback(SoundObject *sound, const
 
 	sound->active = false;
 
-	byte minimumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_RANDOM_MIN) / 1000);
-	byte maximumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_1_PLAY_OFFSET_RANDOM_MAX) / 1000);
+	byte minimumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MIN) / 1000);
+	byte maximumSeconds = (byte)(READ_LE_UINT32(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MAX) / 1000);
 
 	if (minimumSeconds < maximumSeconds)
 		sound->randomRange = (byte)(maximumSeconds - minimumSeconds + 1);
@@ -771,7 +771,7 @@ void AudioLibrary_v1_2_1::scheduleRandomRepeatPlayback(SoundObject *sound, const
 	computeRandomizedRepeatDelay(sound, _engine->getEngineMillis());
 }
 
-void AudioLibrary_v1_2_1::stopAllNonExemptWaves() {
+void AudioLibrary_v1_2_3::stopAllNonExemptWaves() {
 	for (uint16 i = 0; i < _soundCount; i++) {
 		SoundObject *sound = _sounds[i];
 
@@ -785,7 +785,7 @@ void AudioLibrary_v1_2_1::stopAllNonExemptWaves() {
 	_maxPriority = 0;
 }
 
-void AudioLibrary_v1_2_1::activateWaveObject(SoundObject *sound) {
+void AudioLibrary_v1_2_3::activateWaveObject(SoundObject *sound) {
 	if (!sound->exempt)
 		_maxPriority = sound->priority;
 
@@ -797,21 +797,21 @@ void AudioLibrary_v1_2_1::activateWaveObject(SoundObject *sound) {
 	sound->active = true;
 }
 
-void AudioLibrary_v1_2_1::armWaveNotificationEndTime(SoundObject *sound) {
+void AudioLibrary_v1_2_3::armWaveNotificationEndTime(SoundObject *sound) {
 	uint32 duration = 0;
 
-	if (_engine->_version >= kVersionV1_2_2) {
+	if (_engine->_version >= kVersionV1_2_4) {
 		uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
 
 		if (bytesPerTenthSecond != 0)
 			duration = (sound->sourceLength * 100) / bytesPerTenthSecond;
 		else
-			warning("AudioLibrary_v1_2_1::armWaveNotificationEndTime(): the average byte rate of sound %d is below 10", sound->handle);
+			warning("AudioLibrary_v1_2_3::armWaveNotificationEndTime(): the average byte rate of sound %d is below 10", sound->handle);
 	} else {
 		if (sound->format.averageBytesPerSecond != 0)
 			duration = (sound->sourceLength * 1000) / sound->format.averageBytesPerSecond;
 		else
-			warning("AudioLibrary_v1_2_1::armWaveNotificationEndTime(): the average byte rate of sound %d is zero", sound->handle);
+			warning("AudioLibrary_v1_2_3::armWaveNotificationEndTime(): the average byte rate of sound %d is zero", sound->handle);
 	}
 
 	sound->notifyEndTime = _engine->getEngineMillis() + duration;

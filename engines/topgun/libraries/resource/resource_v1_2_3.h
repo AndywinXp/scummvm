@@ -19,72 +19,72 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_1_H
-#define TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_1_H
+#ifndef TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_3_H
+#define TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_3_H
 
 #include "topgun/libraries/resource/resource_v1_2.h"
 
 // Container header
-#define TG_RES_V1_2_1_HEADER_PROBE_SIZE            0x56
-#define TG_RES_V1_2_1_HEADER_SIZE_OFFSET           2
-#define TG_RES_V1_2_1_HEADER_FORMAT_OFFSET         0x54
-#define TG_RES_V1_2_1_FORMAT_VERSION               2
-#define TG_RES_V1_2_1_HEADER_LIMITS_OFFSET         0x5C
-#define TG_RES_V1_2_1_HEADER_CHUNK_COUNT_OFFSET    0xA0
-#define TG_RES_V1_2_1_HEADER_MAX_FADE_OFFSET       0xA2
-#define TG_RES_V1_2_1_HEADER_MAX_TRANS_OFFSET      0xA4
-#define TG_RES_V1_2_1_HEADER_EXTRA_SLOTS_OFFSET    0xA6
-#define TG_RES_V1_2_1_HEADER_STRING_COUNT_OFFSET   0xA8
-#define TG_RES_V1_2_1_HEADER_VARIABLE_COUNT_OFFSET 0xAA
-#define TG_RES_V1_2_1_HEADER_BUILD_TYPE_OFFSET     0xAC
-#define TG_RES_V1_2_1_HEADER_CHAINED_OFFSET        0xAE
-#define TG_RES_V1_2_1_HEADER_LIBRARY_NAME_OFFSET   0xB0
-#define TG_RES_V1_2_1_LIBRARY_NAME_SIZE            14
-#define TG_RES_V1_2_1_HEADER_KEY_TABLE_OFFSET      0xBE
-#define TG_RES_V1_2_1_KEY_ENTRY_SIZE               8
-#define TG_RES_V1_2_1_KEY_SIZE_OFFSET              4
-#define TG_RES_V1_2_1_KEY_COUNT                    12
+#define TG_RES_V1_2_3_HEADER_PROBE_SIZE            0x56
+#define TG_RES_V1_2_3_HEADER_SIZE_OFFSET           2
+#define TG_RES_V1_2_3_HEADER_FORMAT_OFFSET         0x54
+#define TG_RES_V1_2_3_FORMAT_VERSION               2
+#define TG_RES_V1_2_3_HEADER_LIMITS_OFFSET         0x5C
+#define TG_RES_V1_2_3_HEADER_CHUNK_COUNT_OFFSET    0xA0
+#define TG_RES_V1_2_3_HEADER_MAX_FADE_OFFSET       0xA2
+#define TG_RES_V1_2_3_HEADER_MAX_TRANS_OFFSET      0xA4
+#define TG_RES_V1_2_3_HEADER_EXTRA_SLOTS_OFFSET    0xA6
+#define TG_RES_V1_2_3_HEADER_STRING_COUNT_OFFSET   0xA8
+#define TG_RES_V1_2_3_HEADER_VARIABLE_COUNT_OFFSET 0xAA
+#define TG_RES_V1_2_3_HEADER_BUILD_TYPE_OFFSET     0xAC
+#define TG_RES_V1_2_3_HEADER_CHAINED_OFFSET        0xAE
+#define TG_RES_V1_2_3_HEADER_LIBRARY_NAME_OFFSET   0xB0
+#define TG_RES_V1_2_3_LIBRARY_NAME_SIZE            14
+#define TG_RES_V1_2_3_HEADER_KEY_TABLE_OFFSET      0xBE
+#define TG_RES_V1_2_3_KEY_ENTRY_SIZE               8
+#define TG_RES_V1_2_3_KEY_SIZE_OFFSET              4
+#define TG_RES_V1_2_3_KEY_COUNT                    12
 
 // Key resources
-#define TG_RES_V1_2_1_KEY_INDEX                    0
-#define TG_RES_V1_2_1_KEY_VARIABLES                3
-#define TG_RES_V1_2_1_KEY_STRINGS                  4
-#define TG_RES_V1_2_1_KEY_RESIDENT                 5
-#define TG_RES_V1_2_1_KEY_PALETTE                  6
-#define TG_RES_V1_2_1_KEY_NAME_TABLE               7
-#define TG_RES_V1_2_1_KEY_PLUGIN_NAMES             10
-#define TG_RES_V1_2_1_VARIABLE_PAIR_SIZE           4
-#define TG_RES_V1_2_1_PALETTE_ENTRY_SIZE           4
+#define TG_RES_V1_2_3_KEY_INDEX                    0
+#define TG_RES_V1_2_3_KEY_VARIABLES                3
+#define TG_RES_V1_2_3_KEY_STRINGS                  4
+#define TG_RES_V1_2_3_KEY_RESIDENT                 5
+#define TG_RES_V1_2_3_KEY_PALETTE                  6
+#define TG_RES_V1_2_3_KEY_NAME_TABLE               7
+#define TG_RES_V1_2_3_KEY_PLUGIN_NAMES             10
+#define TG_RES_V1_2_3_VARIABLE_PAIR_SIZE           4
+#define TG_RES_V1_2_3_PALETTE_ENTRY_SIZE           4
 
 // Resource types: 1..7 are read from the file, 8..16 stay in memory
-#define TG_RES_V1_2_1_DISK_FIRST_TYPE              1
-#define TG_RES_V1_2_1_DISK_LAST_TYPE               7
-#define TG_RES_V1_2_1_RESIDENT_FIRST_TYPE          8
-#define TG_RES_V1_2_1_RESIDENT_LAST_TYPE           16
+#define TG_RES_V1_2_3_DISK_FIRST_TYPE              1
+#define TG_RES_V1_2_3_DISK_LAST_TYPE               7
+#define TG_RES_V1_2_3_RESIDENT_FIRST_TYPE          8
+#define TG_RES_V1_2_3_RESIDENT_LAST_TYPE           16
 
 // Bitmap records
-#define TG_RES_V1_2_1_BITMAP_WIDTH_OFFSET          2
-#define TG_RES_V1_2_1_BITMAP_FLAGS_BYTE_OFFSET     9
-#define TG_RES_V1_2_1_BITMAP_COMPRESSED_MASK       0x80
-#define TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR          0x590
+#define TG_RES_V1_2_3_BITMAP_WIDTH_OFFSET          2
+#define TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET     9
+#define TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK       0x80
+#define TG_RES_V1_2_3_NOTIFY_BITMAP_ERROR          0x590
 
 // Wave and MIDI headers
-#define TG_RES_V1_2_1_WAVE_HEADER_SIZE             0x1C
-#define TG_RES_V1_2_1_MIDI_HEADER_SIZE             4
+#define TG_RES_V1_2_3_WAVE_HEADER_SIZE             0x1C
+#define TG_RES_V1_2_3_MIDI_HEADER_SIZE             4
 
 // Extraction prefix: DWORD raw size and WORD compression flag
-#define TG_RES_V1_2_1_EXTRACT_PREFIX_SIZE          6
-#define TG_RES_V1_2_1_EXTRACT_COMPRESSED_OFFSET    4
+#define TG_RES_V1_2_3_EXTRACT_PREFIX_SIZE          6
+#define TG_RES_V1_2_3_EXTRACT_COMPRESSED_OFFSET    4
 
 namespace Topgun {
 
-class TopgunEngine_v1_2_1;
+class TopgunEngine_v1_2_3;
 
-class ResourceLibrary_v1_2_1 : public ResourceLibrary_v1_2 {
+class ResourceLibrary_v1_2_3 : public ResourceLibrary_v1_2 {
 	friend class ResourceLibrary_v1_2;
 
 public:
-	ResourceLibrary_v1_2_1(TopgunEngine_v1_2_1 *engine);
+	ResourceLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine);
 
 	// Exports with the same role as the previous version ones
 	byte *resLoadNameTable(uint16 file, uint32 *outSize) override;
@@ -125,9 +125,9 @@ protected:
 	byte *expandCelBitmapRecord(ResourceFile *file, byte *source, uint32 sourceSize, uint32 *outSize) override;
 
 private:
-	TopgunEngine_v1_2_1 *engine() const;
+	TopgunEngine_v1_2_3 *engine() const;
 };
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_1_H
+#endif // TOPGUN_LIBRARIES_RESOURCE_RESOURCE_V1_2_3_H

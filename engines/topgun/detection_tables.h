@@ -28,6 +28,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "battlebeast", "Battle Beast" },
 	{ "junglegames", "Timon & Pumbaa's Jungle Games" },
 	{ "aceventura", "Ace Ventura: The CD-Rom Game" },
+	{ "greatword", "Howie's Great Word Adventure" },
 	{ 0, 0 }
 };
 
@@ -139,6 +140,16 @@ const ADGameDescription gameDescriptions[] = {
 		Common::IT_ITA,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"greatword",
+		nullptr,
+		AD_ENTRY1s("WORD.BIN", "135d2ebd891b5c14c18c9ed7edd6724f", 24695855),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

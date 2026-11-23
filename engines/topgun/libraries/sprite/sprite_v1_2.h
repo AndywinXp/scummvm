@@ -35,13 +35,13 @@
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 
 // Limits of the versions after this one
-#define TG_SPR_V1_2_1_MAX_SPRITES              250
-#define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
-#define TG_SPR_V1_2_1_LAST_QUEUE_OPCODE        22
-#define TG_SPR_V1_2_1_FLIP_FLAG_MASK           0xFF00
-#define TG_SPR_V1_2_1_VARIABLE_LAST_INDEX      0x159E
+#define TG_SPR_V1_2_3_MAX_SPRITES              250
+#define TG_SPR_V1_2_3_CEL_CACHE_SIZE           20
+#define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
+#define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
+#define TG_SPR_V1_2_3_VARIABLE_LAST_INDEX      0x159E
 // A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
-#define TG_SPR_V1_2_1_LITERAL_BIAS             0x7531
+#define TG_SPR_V1_2_3_LITERAL_BIAS             0x7531
 
 // Bitmap header
 #define TG_SPR_V1_2_BITMAP_HEADER_SIZE         0x14
@@ -85,29 +85,29 @@ enum SpriteQueueOpcode_v1_2 {
 	kSprV1_2OpMovieFrame
 };
 
-enum SpriteQueueOpcode_v1_2_1 {
-	kSprV1_2_1OpPlayRange = 1,
-	kSprV1_2_1OpMultiCel,
-	kSprV1_2_1OpReserved3,
-	kSprV1_2_1OpCompositeBackground,
-	kSprV1_2_1OpQuadPath,
-	kSprV1_2_1OpLoop,
-	kSprV1_2_1OpFlip,
-	kSprV1_2_1OpHide,
-	kSprV1_2_1OpLinearMove,
-	kSprV1_2_1OpDelayedMove,
-	kSprV1_2_1OpWait,
-	kSprV1_2_1OpSetPosition,
-	kSprV1_2_1OpTimingMode,
-	kSprV1_2_1OpFrameInterval,
-	kSprV1_2_1OpSetRange,
-	kSprV1_2_1OpMoveInterval,
-	kSprV1_2_1OpShowFrame,
-	kSprV1_2_1OpReserved18,
-	kSprV1_2_1OpHostEvent,
-	kSprV1_2_1OpHostEventPayload,
-	kSprV1_2_1OpHostEventFixed,
-	kSprV1_2_1OpMovieFrame
+enum SpriteQueueOpcode_v1_2_3 {
+	kSprV1_2_3OpPlayRange = 1,
+	kSprV1_2_3OpMultiCel,
+	kSprV1_2_3OpReserved3,
+	kSprV1_2_3OpCompositeBackground,
+	kSprV1_2_3OpQuadPath,
+	kSprV1_2_3OpLoop,
+	kSprV1_2_3OpFlip,
+	kSprV1_2_3OpHide,
+	kSprV1_2_3OpLinearMove,
+	kSprV1_2_3OpDelayedMove,
+	kSprV1_2_3OpWait,
+	kSprV1_2_3OpSetPosition,
+	kSprV1_2_3OpTimingMode,
+	kSprV1_2_3OpFrameInterval,
+	kSprV1_2_3OpSetRange,
+	kSprV1_2_3OpMoveInterval,
+	kSprV1_2_3OpShowFrame,
+	kSprV1_2_3OpReserved18,
+	kSprV1_2_3OpHostEvent,
+	kSprV1_2_3OpHostEventPayload,
+	kSprV1_2_3OpHostEventFixed,
+	kSprV1_2_3OpMovieFrame
 };
 
 struct CelReference {

@@ -27,13 +27,13 @@
 #include "common/util.h"
 
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
-void TopgunEngine_v1_2_1::pushExpressionValue(uint16 value) {
-	if (_expressionStackPointer >= TG_SCRIPT_V1_2_1_EXPRESSION_STACK_SIZE) {
-		warning("TopgunEngine_v1_2_1::pushExpressionValue(): the expression stack is full");
+void TopgunEngine_v1_2_3::pushExpressionValue(uint16 value) {
+	if (_expressionStackPointer >= TG_SCRIPT_V1_2_3_EXPRESSION_STACK_SIZE) {
+		warning("TopgunEngine_v1_2_3::pushExpressionValue(): the expression stack is full");
 		return;
 	}
 
@@ -41,7 +41,7 @@ void TopgunEngine_v1_2_1::pushExpressionValue(uint16 value) {
 	_expressionStackPointer++;
 }
 
-uint16 TopgunEngine_v1_2_1::evaluateExpression(const byte *expression) {
+uint16 TopgunEngine_v1_2_3::evaluateExpression(const byte *expression) {
 	uint16 base = _expressionStackPointer;
 	const byte *token = expression;
 
@@ -262,12 +262,12 @@ uint16 TopgunEngine_v1_2_1::evaluateExpression(const byte *expression) {
 	return _expressionStack[base];
 }
 
-void TopgunEngine_v1_2_1::exprCallBuiltinFunction(const byte *token) {
+void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
 	uint16 count = READ_LE_UINT16(token + 2);
 	uint16 code = _expressionStack[_expressionStackPointer - count - 1];
 
-	uint16 lastBuiltinCode = TG_SCRIPT_V1_2_1_LAST_BUILTIN_CODE;
-	if (_version < kVersionV1_2_2)
+	uint16 lastBuiltinCode = TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE;
+	if (_version < kVersionV1_2_4)
 		lastBuiltinCode--;
 
 	if (code <= lastBuiltinCode)
@@ -276,7 +276,7 @@ void TopgunEngine_v1_2_1::exprCallBuiltinFunction(const byte *token) {
 		exprCallPluginFunction(code - lastBuiltinCode - 1, count);
 }
 
-bool TopgunEngine_v1_2_1::exprCallScript(const byte *token) {
+bool TopgunEngine_v1_2_3::exprCallScript(const byte *token) {
 	uint16 frameSlots = READ_LE_UINT16(token);
 	uint16 count = READ_LE_UINT16(token + 2);
 
@@ -286,7 +286,7 @@ bool TopgunEngine_v1_2_1::exprCallScript(const byte *token) {
 		_expressionStackPointer--;
 
 		if (index < 0) {
-			warning("TopgunEngine_v1_2_1::exprCallScript(): argument slot %d is out of range", slot - 1);
+			warning("TopgunEngine_v1_2_3::exprCallScript(): argument slot %d is out of range", slot - 1);
 			continue;
 		}
 
@@ -299,7 +299,7 @@ bool TopgunEngine_v1_2_1::exprCallScript(const byte *token) {
 	_scriptResult = 0;
 
 	_expressionStackPointer--;
-	bool result = runScriptResource((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_1_LITERAL_BIAS));
+	bool result = runScriptResource((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
 
 	pushExpressionValue(_scriptResult);
 	_scriptResult = savedResult;
@@ -308,7 +308,7 @@ bool TopgunEngine_v1_2_1::exprCallScript(const byte *token) {
 	return result;
 }
 
-void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
+void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	switch (code) {
 	case 27: {
 		_expressionStackPointer -= argc;
@@ -351,7 +351,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 pick;
 
 		if (range == 0) {
-			warning("TopgunEngine_v1_2_1::evaluateBuiltinFunction(): the range of built-in 46 holds every number");
+			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): the range of built-in 46 holds every number");
 			pick = random;
 		} else {
 			pick = random % range;
@@ -416,7 +416,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 		uint16 result = 0;
 
-		if (isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite) && isRecordIndexValid(sprite, "evaluateBuiltinFunction")) {
+		if (isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite) && isRecordIndexValid(sprite, "evaluateBuiltinFunction")) {
 			if (spriteLib()->spriteIsVisible(_records[sprite].handle) != 0)
 				result = 1;
 		}
@@ -429,7 +429,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer -= argc;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
@@ -444,7 +444,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer -= argc;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
@@ -489,7 +489,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 		if (text && needle && (int)strlen(text) > start) {
 			if (start < 0)
-				warning("TopgunEngine_v1_2_1::evaluateBuiltinFunction(): the start of built-in 100 is negative");
+				warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): the start of built-in 100 is negative");
 			else
 				found = strstr(text + start, needle);
 		}
@@ -545,7 +545,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (sprite != 0 && !isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (sprite != 0 && !isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		uint16 handle = 0;
@@ -668,7 +668,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (!text)
 			break;
 
-		if (index >= TG_BUILTIN_V1_2_1_MAX_STRING_INDEX)
+		if (index >= TG_BUILTIN_V1_2_3_MAX_STRING_INDEX)
 			break;
 
 		text[index] = (char)character;
@@ -712,11 +712,11 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		int32 addedInteger = (int16)_expressionStack[_expressionStackPointer];
 
 		int32 integerSum = addedInteger + (int16)readAddress(integerAddress);
-		int32 total = (int32)((uint32)TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE * (uint32)integerSum);
+		int32 total = (int32)((uint32)TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE * (uint32)integerSum);
 		total = (int32)((uint32)total + (uint32)(int32)(int16)readAddress(fractionAddress) + (uint32)addedFraction);
 
-		writeAddress(integerAddress, (uint16)(total / TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
-		writeAddress(fractionAddress, (uint16)(total % TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
+		writeAddress(integerAddress, (uint16)(total / TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
+		writeAddress(fractionAddress, (uint16)(total % TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
 		break;
 	}
 
@@ -730,12 +730,12 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		int32 factorInteger = (int16)_expressionStack[_expressionStackPointer];
 
-		int32 first = (int32)((uint32)(TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE * (int32)(int16)readAddress(integerAddress)) + (uint32)(int32)(int16)readAddress(fractionAddress));
-		int32 second = (int32)((uint32)(TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE * factorInteger) + (uint32)factorFraction);
+		int32 first = (int32)((uint32)(TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE * (int32)(int16)readAddress(integerAddress)) + (uint32)(int32)(int16)readAddress(fractionAddress));
+		int32 second = (int32)((uint32)(TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE * factorInteger) + (uint32)factorFraction);
 		int32 product = (int32)((uint32)first * (uint32)second);
 
-		writeAddress(integerAddress, (uint16)(product / TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
-		writeAddress(fractionAddress, (uint16)(product % TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
+		writeAddress(integerAddress, (uint16)(product / TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
+		writeAddress(fractionAddress, (uint16)(product % TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
 		break;
 	}
 
@@ -749,17 +749,17 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		int32 divisorInteger = (int16)_expressionStack[_expressionStackPointer];
 
-		int32 divisor = (int32)((uint32)(TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE * divisorInteger) + (uint32)divisorFraction);
-		int32 dividend = (int32)((uint32)(TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE * (int32)(int16)readAddress(integerAddress)) + (uint32)(int32)(int16)readAddress(fractionAddress));
+		int32 divisor = (int32)((uint32)(TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE * divisorInteger) + (uint32)divisorFraction);
+		int32 dividend = (int32)((uint32)(TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE * (int32)(int16)readAddress(integerAddress)) + (uint32)(int32)(int16)readAddress(fractionAddress));
 		int32 quotient = 0;
 
 		if (divisor == 0)
-			warning("TopgunEngine_v1_2_1::evaluateBuiltinFunction(): built-in 123 divides by zero");
+			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 123 divides by zero");
 		else
 			quotient = dividend / divisor;
 
-		writeAddress(integerAddress, (uint16)(quotient / TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
-		writeAddress(fractionAddress, (uint16)(quotient % TG_BUILTIN_V1_2_1_FIXED_POINT_SCALE));
+		writeAddress(integerAddress, (uint16)(quotient / TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
+		writeAddress(fractionAddress, (uint16)(quotient % TG_BUILTIN_V1_2_3_FIXED_POINT_SCALE));
 		break;
 	}
 
@@ -847,7 +847,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
@@ -863,7 +863,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
@@ -891,7 +891,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		uint16 first = _expressionStack[_expressionStackPointer];
 		uint16 result = 0;
 
-		if (isResourceObjectLoaded((uint16)(second - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite) && isResourceObjectLoaded((uint16)(first - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite)) {
+		if (isResourceObjectLoaded((uint16)(second - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite) && isResourceObjectLoaded((uint16)(first - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite)) {
 			if (isRecordIndexValid(first, "evaluateBuiltinFunction") && isRecordIndexValid(second, "evaluateBuiltinFunction")) {
 				if (spriteLib()->spriteHitDetect(_records[first].handle, _records[second].handle, allowInvisibleFirst, allowInvisibleSecond, sameLevelOnly) != 0)
 					result = 1;
@@ -940,7 +940,7 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+		if (!isResourceObjectLoaded((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
@@ -959,10 +959,10 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 
 	case 141:
-		if (_version >= kVersionV1_2_2) {
+		if (_version >= kVersionV1_2_4) {
 			uint16 script = _expressionStack[_expressionStackPointer - 1];
 
-			_activateScript = script ? (uint16)(script - TG_HOST_V1_2_1_LITERAL_BIAS) : 0;
+			_activateScript = script ? (uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS) : 0;
 		}
 
 		break;
@@ -972,15 +972,15 @@ void TopgunEngine_v1_2_1::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 }
 
-uint16 TopgunEngine_v1_2_1::builtinBlitBitmapOverlap(uint16 first, uint16 second) {
-	if (!validateAndGetResourceByType((uint16)(first - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Bitmap))
+uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second) {
+	if (!validateAndGetResourceByType((uint16)(first - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Bitmap))
 		return 0;
 
 	uint16 type = resourceLib()->resGetType(_file, second);
-	if (type != kResV1_2_1Bitmap && type != kResV1_2_1Text)
+	if (type != kResV1_2_3Bitmap && type != kResV1_2_3Text)
 		return 0;
 
-	if (!validateAndGetResourceByType((uint16)(second - TG_HOST_V1_2_1_LITERAL_BIAS), type))
+	if (!validateAndGetResourceByType((uint16)(second - TG_HOST_V1_2_3_LITERAL_BIAS), type))
 		return 0;
 
 	if (!isRecordIndexValid(first, "builtinBlitBitmapOverlap") || !isRecordIndexValid(second, "builtinBlitBitmapOverlap"))
@@ -1005,23 +1005,23 @@ uint16 TopgunEngine_v1_2_1::builtinBlitBitmapOverlap(uint16 first, uint16 second
 	return 1;
 }
 
-uint16 TopgunEngine_v1_2_1::builtinCopyResource(uint16 id) {
-	if (resourceLib()->resGetType(_file, id) != kResV1_2_1Sprite)
+uint16 TopgunEngine_v1_2_3::builtinCopyResource(uint16 id) {
+	if (resourceLib()->resGetType(_file, id) != kResV1_2_3Sprite)
 		return 0;
 
 	uint16 copy = resourceLib()->resCopyResource(_file, id);
 
 	if (copy != 0)
-		validateAndGetResourceByType((uint16)(copy - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite);
+		validateAndGetResourceByType((uint16)(copy - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite);
 
 	return copy;
 }
 
-uint16 TopgunEngine_v1_2_1::builtinDeleteResource(uint16 id) {
-	if (resourceLib()->resGetType(_file, id) != kResV1_2_1Sprite)
+uint16 TopgunEngine_v1_2_3::builtinDeleteResource(uint16 id) {
+	if (resourceLib()->resGetType(_file, id) != kResV1_2_3Sprite)
 		return 0;
 
-	if (!destroyResourceObjectByType((uint16)(id - TG_HOST_V1_2_1_LITERAL_BIAS), kResV1_2_1Sprite))
+	if (!destroyResourceObjectByType((uint16)(id - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Sprite))
 		return 0;
 
 	if (!resourceLib()->resDeleteResource(_file, id))

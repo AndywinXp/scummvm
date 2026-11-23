@@ -336,7 +336,7 @@ void TopgunEngine_v1_2::iniReadString(byte obfuscation, uint16 stringId, const c
 	if (getPrivateProfileString(section, key, buffer, TG_INI_V1_2_BUFFER_SIZE) == 0)
 		return;
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		char unescaped[TG_INI_V1_2_BUFFER_SIZE];
 		unescapeIniString(unescaped, buffer);
 		Common::strlcpy(buffer, unescaped, TG_INI_V1_2_BUFFER_SIZE);
@@ -365,10 +365,10 @@ void TopgunEngine_v1_2::iniWriteStringEncoded(byte obfuscation, uint16 stringId,
 	if (!value)
 		return;
 
-	char escaped[TG_INI_V1_2_1_STRING_SIZE];
+	char escaped[TG_INI_V1_2_3_STRING_SIZE];
 
-	if (_version >= kVersionV1_2_1) {
-		escapeIniString(escaped, TG_INI_V1_2_1_STRING_SIZE, value);
+	if (_version >= kVersionV1_2_3) {
+		escapeIniString(escaped, TG_INI_V1_2_3_STRING_SIZE, value);
 		value = escaped;
 	}
 

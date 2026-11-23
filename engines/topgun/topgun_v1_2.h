@@ -41,8 +41,8 @@
 #define TG_HOST_V1_2_LITERAL_BIAS                0x7D01
 #define TG_HOST_V1_2_ENTRY_SCRIPT                0x82FF
 #define TG_HOST_V1_2_NUM_SCENE_VARIABLES         401
-#define TG_HOST_V1_2_1_NUM_SCENE_VARIABLES       5001
-#define TG_HOST_V1_2_1_SCENE_NAME_SIZE           14
+#define TG_HOST_V1_2_3_NUM_SCENE_VARIABLES       5001
+#define TG_HOST_V1_2_3_SCENE_NAME_SIZE           14
 #define TG_HOST_V1_2_FIRST_CLEARED_VARIABLE      401
 #define TG_HOST_V1_2_NUM_CLEARED_VARIABLES       114
 #define TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON       401
@@ -65,8 +65,8 @@
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
 #define TG_HOST_V1_2_MAX_CLICK_REGIONS           100
-#define TG_INPUT_V1_2_1_KEY_TABLE_SIZE           256
-#define TG_INPUT_V1_2_1_MAX_CLICK_REGIONS        5416
+#define TG_INPUT_V1_2_3_KEY_TABLE_SIZE           256
+#define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
@@ -135,8 +135,8 @@
 #define TG_HOST_V1_2_CURSOR_MODE_BUSY            3
 #define TG_HOST_V1_2_CURSOR_MODE_HIDDEN          4
 #define TG_HOST_V1_2_NUM_CURSOR_IMAGES           6
-#define TG_HOST_V1_2_1_NUM_CURSOR_IMAGES         7
-#define TG_HOST_V1_2_1_CURSOR_MODE_INVISIBLE     9
+#define TG_HOST_V1_2_3_NUM_CURSOR_IMAGES         7
+#define TG_HOST_V1_2_3_CURSOR_MODE_INVISIBLE     9
 
 // Movies
 #define TG_MOVIE_V1_2_HEADER_SIZE                8
@@ -191,16 +191,16 @@
 #define TG_TEXT_V1_2_NUM_SPRITES                 8
 #define TG_TEXT_V1_2_SOLID_COLOR                 0xFF
 #define TG_TEXT_V1_2_DEFAULT_HEIGHT              12
-#define TG_TEXT_V1_2_1_HEADER_SIZE               20
-#define TG_TEXT_V1_2_1_SHORT_HEADER_SIZE         18
-#define TG_TEXT_V1_2_1_EDIT_RECORD_SIZE          12
-#define TG_TEXT_V1_2_1_FACE_SIZE                 32
+#define TG_TEXT_V1_2_3_HEADER_SIZE               20
+#define TG_TEXT_V1_2_3_SHORT_HEADER_SIZE         18
+#define TG_TEXT_V1_2_3_EDIT_RECORD_SIZE          12
+#define TG_TEXT_V1_2_3_FACE_SIZE                 32
 
 // INI file
 #define TG_INI_V1_2_BACKUP_LAST                  999
 #define TG_INI_V1_2_COPY_CHUNK                   0x400
 #define TG_INI_V1_2_BUFFER_SIZE                  0xFF
-#define TG_INI_V1_2_1_STRING_SIZE                260
+#define TG_INI_V1_2_3_STRING_SIZE                260
 #define TG_INI_V1_2_COPY_SIZE                    0x7F
 #define TG_INI_V1_2_CIPHER_BASE                  0x30
 #define TG_INI_V1_2_CIPHER_SHIFT                 4
@@ -433,8 +433,8 @@ struct TextObject_v1_2 {
 	bool fontOwned;
 	uint16 fontHandle;
 	uint16 color;
-	byte edit[TG_TEXT_V1_2_1_EDIT_RECORD_SIZE];
-	byte data[TG_TEXT_V1_2_1_HEADER_SIZE];
+	byte edit[TG_TEXT_V1_2_3_EDIT_RECORD_SIZE];
+	byte data[TG_TEXT_V1_2_3_HEADER_SIZE];
 	char text[TG_TEXT_V1_2_TEXT_SIZE];
 	char undo[TG_TEXT_V1_2_TEXT_SIZE];
 	uint16 sprites[TG_TEXT_V1_2_NUM_SPRITES];
@@ -449,25 +449,25 @@ struct TextFont_v1_2 {
 	bool owned;
 	uint16 refCount;
 	int16 height;
-	char face[TG_TEXT_V1_2_1_FACE_SIZE];
+	char face[TG_TEXT_V1_2_3_FACE_SIZE];
 
 	TextFont_v1_2() : handle(0), font(nullptr), owned(false), refCount(0), height(0) {
-		for (uint16 i = 0; i < TG_TEXT_V1_2_1_FACE_SIZE; i++)
+		for (uint16 i = 0; i < TG_TEXT_V1_2_3_FACE_SIZE; i++)
 			face[i] = 0;
 	}
 };
 
 struct SceneEntry_v1_2 {
-	char name[TG_HOST_V1_2_1_SCENE_NAME_SIZE];
-	uint16 variables[TG_HOST_V1_2_1_NUM_SCENE_VARIABLES];
+	char name[TG_HOST_V1_2_3_SCENE_NAME_SIZE];
+	uint16 variables[TG_HOST_V1_2_3_NUM_SCENE_VARIABLES];
 	uint16 stringCount;
 	byte *strings;
 
 	SceneEntry_v1_2() : stringCount(0), strings(nullptr) {
-		for (int i = 0; i < TG_HOST_V1_2_1_SCENE_NAME_SIZE; i++)
+		for (int i = 0; i < TG_HOST_V1_2_3_SCENE_NAME_SIZE; i++)
 			name[i] = 0;
 
-		for (int i = 0; i < TG_HOST_V1_2_1_NUM_SCENE_VARIABLES; i++)
+		for (int i = 0; i < TG_HOST_V1_2_3_NUM_SCENE_VARIABLES; i++)
 			variables[i] = 0;
 	}
 };
@@ -867,7 +867,7 @@ protected:
 	// Variables and scenes
 	uint16 _variables[TG_HOST_V1_2_NUM_VARIABLES];
 	Common::Array<SceneEntry_v1_2> _sceneEntries;
-	char _currentSceneName[TG_HOST_V1_2_1_SCENE_NAME_SIZE];
+	char _currentSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE];
 	uint16 _currentSceneIndex = 0;
 	uint16 _previousSceneIndex = 0;
 	Common::String _containerTitle;
@@ -914,7 +914,7 @@ protected:
 	bool _rightButtonDown = false;
 
 	// Input state
-	KeyEntry_v1_2 _keyTable[TG_INPUT_V1_2_1_KEY_TABLE_SIZE];
+	KeyEntry_v1_2 _keyTable[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
 	Common::Array<ClickRegion_v1_2> _clickRegions;
 	uint16 _numClickRegions = 0;
 	bool _gamePaused = false;
@@ -957,7 +957,7 @@ protected:
 	bool _iniFileLoaded = false;
 
 	// Cursor state
-	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_1_NUM_CURSOR_IMAGES] = {};
+	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = {};
 	bool _cursorCounterVisible = true;
 	bool _cursorImageHidden = false;
 };

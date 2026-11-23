@@ -19,8 +19,8 @@
  *
  */
 
-#include "topgun/libraries/audio/audio_v1_2_1.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/libraries/audio/audio_v1_2_3.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -154,7 +154,7 @@ uint16 AudioLibrary_v1_2::audioStopCd() {
 	return stopCDIfOwned();
 }
 
-uint16 AudioLibrary_v1_2_1::closeCDAudioDevice() {
+uint16 AudioLibrary_v1_2_3::closeCDAudioDevice() {
 	DeviceParms parms;
 
 	sendCdDeviceCommand(TG_AUDIO_DEV_STOP, TG_AUDIO_DEV_WAIT, parms);

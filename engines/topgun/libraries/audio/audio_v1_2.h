@@ -76,10 +76,10 @@
 #define TG_AUDIO_V1_2_ADPCM_MAX_INDEX         0x2C0
 
 // Values of the later version that share the structures of this one
-#define TG_AUDIO_V1_2_1_MAX_SOUNDS            100
-#define TG_AUDIO_V1_2_1_NOTIFY_MESSAGE        0x52C
-#define TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE    0x1C
-#define TG_AUDIO_V1_2_1_PLAY_PARAMS_SIZE      0x18
+#define TG_AUDIO_V1_2_3_MAX_SOUNDS            100
+#define TG_AUDIO_V1_2_3_NOTIFY_MESSAGE        0x52C
+#define TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE    0x1C
+#define TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE      0x18
 
 namespace Topgun {
 
@@ -95,14 +95,14 @@ struct AdpcmState {
 };
 
 struct SoundCreateInfo_v1_2 {
-	byte header[TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE];
+	byte header[TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE];
 	uint16 readProc;
 	uint16 rewindProc;
 	uint16 closeProc;
 	uint16 handle;
 
 	SoundCreateInfo_v1_2() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE; i++)
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE; i++)
 			header[i] = 0;
 	}
 };

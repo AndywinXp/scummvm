@@ -25,7 +25,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -65,7 +65,7 @@ void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_cancelScriptTimer(const byte *record) {
-	if (_version >= kVersionV1_2_1 && record[4] != 0) {
+	if (_version >= kVersionV1_2_3 && record[4] != 0) {
 		_numScheduledTimers = 0;
 		return;
 	}
@@ -92,7 +92,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 	for (uint16 i = index; i < _numScheduledTimers; i++)
 		_scheduledTimers[i] = _scheduledTimers[i + 1];
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		if ((int16)index <= _scheduledTimerIndex)
 			_scheduledTimerIndex--;
 
@@ -108,7 +108,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 	uint16 index = 0;
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		if (_timersPaused)
 			return;
 
@@ -119,7 +119,7 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 		return;
 
 	do {
-		if (_version >= kVersionV1_2_1)
+		if (_version >= kVersionV1_2_3)
 			index = (uint16)_scheduledTimerIndex;
 
 		ScheduledTimer_v1_2 &timer = _scheduledTimers[index];
@@ -132,17 +132,17 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 			else
 				index = removeScheduledTimer(index);
 
-			if (_version >= kVersionV1_2_1)
+			if (_version >= kVersionV1_2_3)
 				runScriptResource(script);
 			else
 				postRunScript(script, 0, 0);
 		}
 
-		if (_version >= kVersionV1_2_1)
+		if (_version >= kVersionV1_2_3)
 			_scheduledTimerIndex++;
 		else
 			index++;
-	} while ((_version >= kVersionV1_2_1) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
+	} while ((_version >= kVersionV1_2_3) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
 }
 
 bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
@@ -151,7 +151,7 @@ bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
 }
 
 bool TopgunEngine_v1_2::appendCollisionPair() {
-	uint16 maxPairs = (_version >= kVersionV1_2_1) ? TG_INPUT_V1_2_1_MAX_COLLISION_PAIRS : TG_HOST_V1_2_MAX_COLLISION_PAIRS;
+	uint16 maxPairs = (_version >= kVersionV1_2_3) ? TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS : TG_HOST_V1_2_MAX_COLLISION_PAIRS;
 
 	if (_numCollisionPairs >= maxPairs)
 		return false;
@@ -166,20 +166,20 @@ bool TopgunEngine_v1_2::appendCollisionPair() {
 }
 
 bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
-	uint16 literalBias = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	uint16 literalBias = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
 
-	if (_version >= kVersionV1_2_1) {
-		TopgunEngine_v1_2_1 *newer = static_cast<TopgunEngine_v1_2_1 *>(this);
+	if (_version >= kVersionV1_2_3) {
+		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		if (record[0x0D] != 0) {
 			_numCollisionPairs = 0;
 			return true;
 		}
 
-		if (!newer->validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_1Sprite))
+		if (!newer->validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_3Sprite))
 			return false;
 
-		if (!newer->validateResourceType(READ_LE_UINT16(record + 4), kResV1_2_1Sprite))
+		if (!newer->validateResourceType(READ_LE_UINT16(record + 4), kResV1_2_3Sprite))
 			return false;
 	}
 
@@ -188,7 +188,7 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 	byte allowInvisibleFirst = 0;
 	byte allowInvisibleSecond = 0;
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		allowInvisibleFirst = record[0x0E];
 		allowInvisibleSecond = record[0x0F];
 
@@ -248,7 +248,7 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 
 	pair.repeat = record[0x0C];
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		pair.allowInvisibleFirst = allowInvisibleFirst;
 		pair.allowInvisibleSecond = allowInvisibleSecond;
 		pair.sameLevelOnly = record[0x10];
@@ -303,7 +303,7 @@ void TopgunEngine_v1_2::serviceCollisionPairs() {
 	} while (index < _numCollisionPairs);
 }
 
-uint16 TopgunEngine_v1_2_1::removeNativeTimer(uint16 index) {
+uint16 TopgunEngine_v1_2_3::removeNativeTimer(uint16 index) {
 	_numNativeTimers--;
 
 	for (uint16 i = index; i < _numNativeTimers; i++)
@@ -315,7 +315,7 @@ uint16 TopgunEngine_v1_2_1::removeNativeTimer(uint16 index) {
 	return index;
 }
 
-void TopgunEngine_v1_2_1::findNativeTimer(uint16 id) {
+void TopgunEngine_v1_2_3::findNativeTimer(uint16 id) {
 	uint16 index = 0;
 
 	if (_numNativeTimers != 0) {
@@ -331,7 +331,7 @@ void TopgunEngine_v1_2_1::findNativeTimer(uint16 id) {
 		removeNativeTimer(index);
 }
 
-void TopgunEngine_v1_2_1::addNativeTimer(uint16 id, uint32 interval, uint16 proc, byte repeat) {
+void TopgunEngine_v1_2_3::addNativeTimer(uint16 id, uint32 interval, uint16 proc, byte repeat) {
 	uint16 index = 0;
 
 	if (_numNativeTimers != 0) {
@@ -343,13 +343,13 @@ void TopgunEngine_v1_2_1::addNativeTimer(uint16 id, uint32 interval, uint16 proc
 		} while (index < _numNativeTimers);
 	}
 
-	if (index >= TG_INPUT_V1_2_1_MAX_NATIVE_TIMERS)
+	if (index >= TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS)
 		return;
 
 	if (_numNativeTimers == index)
 		_numNativeTimers++;
 
-	NativeTimer_v1_2_1 &timer = _nativeTimers[index];
+	NativeTimer_v1_2_3 &timer = _nativeTimers[index];
 
 	timer.id = id;
 	timer.interval = interval;
@@ -358,7 +358,7 @@ void TopgunEngine_v1_2_1::addNativeTimer(uint16 id, uint32 interval, uint16 proc
 	timer.repeat = repeat;
 }
 
-void TopgunEngine_v1_2_1::serviceNativeTimerQueue() {
+void TopgunEngine_v1_2_3::serviceNativeTimerQueue() {
 	if (_timersPaused)
 		return;
 
@@ -368,7 +368,7 @@ void TopgunEngine_v1_2_1::serviceNativeTimerQueue() {
 		return;
 
 	do {
-		NativeTimer_v1_2_1 &timer = _nativeTimers[index];
+		NativeTimer_v1_2_3 &timer = _nativeTimers[index];
 
 		if (timer.expiry <= getEngineMillis()) {
 			uint16 proc = timer.proc;
@@ -379,9 +379,9 @@ void TopgunEngine_v1_2_1::serviceNativeTimerQueue() {
 			else
 				index = removeNativeTimer(index);
 
-			if (proc == kNativeTimerV1_2_1ComboHistory)
+			if (proc == kNativeTimerV1_2_3ComboHistory)
 				comboHistoryTimeoutCallback((byte)id);
-			else if (proc == kNativeTimerV1_2_1KeyRelease)
+			else if (proc == kNativeTimerV1_2_3KeyRelease)
 				keyReleaseDelayTimerCallback((byte)id);
 		}
 
@@ -389,7 +389,7 @@ void TopgunEngine_v1_2_1::serviceNativeTimerQueue() {
 	} while (index < _numNativeTimers);
 }
 
-uint16 TopgunEngine_v1_2_1::builtinPauseTimers(uint16 flag) {
+uint16 TopgunEngine_v1_2_3::builtinPauseTimers(uint16 flag) {
 	uint32 now = getEngineMillis();
 
 	_timersPaused = ((byte)flag != 0);
@@ -410,7 +410,7 @@ uint16 TopgunEngine_v1_2_1::builtinPauseTimers(uint16 flag) {
 	return 109;
 }
 
-void TopgunEngine_v1_2_1::serviceCollisionPairs() {
+void TopgunEngine_v1_2_3::serviceCollisionPairs() {
 	uint16 index = 0;
 	uint16 pairIndex = 0;
 

@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/resource/resource_v1_2_1.h"
+#include "topgun/libraries/resource/resource_v1_2_3.h"
 
 namespace Topgun {
 
@@ -358,7 +358,7 @@ uint32 ResourceLibrary_v1_2::decodeRleSegment(byte *destination, const byte *sou
 
 void ResourceLibrary_v1_2::rleExpandBitmap(byte *destination, uint32 destinationSize, const byte *source, uint32 sourceSize) {
 	uint32 headerLength = READ_LE_UINT16(source);
-	uint32 padding = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) - READ_LE_UINT16(source + TG_RES_V1_2_1_BITMAP_WIDTH_OFFSET));
+	uint32 padding = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) - READ_LE_UINT16(source + TG_RES_V1_2_3_BITMAP_WIDTH_OFFSET));
 
 	// The line offset table is skipped
 	uint32 tableSize = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET) << 1);

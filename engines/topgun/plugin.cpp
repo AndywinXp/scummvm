@@ -24,17 +24,17 @@
 #include "common/util.h"
 
 #include "topgun/games/battle/battle.h"
-#include "topgun/libraries/resource/resource_v1_2_1.h"
-#include "topgun/libraries/sprite/sprite_v1_2_1.h"
+#include "topgun/libraries/resource/resource_v1_2_3.h"
+#include "topgun/libraries/sprite/sprite_v1_2_3.h"
 #include "topgun/libraries/utils/utils.h"
 #include "topgun/plugin.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
 class EnginePluginHost : public PluginHost {
 public:
-	EnginePluginHost(TopgunEngine_v1_2_1 *engine) : _engine(engine) {}
+	EnginePluginHost(TopgunEngine_v1_2_3 *engine) : _engine(engine) {}
 
 	uint16 *variableTable() override;
 	void setScriptTimer(uint16 timerId, uint32 delay, uint16 script) override;
@@ -56,7 +56,7 @@ public:
 	void getSpritePosition(uint16 sprite, Common::Point &position) override;
 	void spriteSkipMessage(uint16 sprite, uint16 count) override;
 	void spriteSwapOrder(uint16 first, uint16 second, uint16 onlyIfSecondAbove, uint16 refresh) override;
-	void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_1 &info) override;
+	void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) override;
 	void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) override;
 	const char *getString(uint16 id) override;
 	void copyStringVariable(uint16 index, char *destination) override;
@@ -67,7 +67,7 @@ public:
 	void setNetworkMessageCallback(Plugin *plugin) override;
 
 private:
-	TopgunEngine_v1_2_1 *_engine;
+	TopgunEngine_v1_2_3 *_engine;
 };
 
 uint16 *EnginePluginHost::variableTable() {
@@ -78,7 +78,7 @@ void EnginePluginHost::setScriptTimer(uint16 timerId, uint32 delay, uint16 scrip
 	byte record[12];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1SetScriptTimer);
+	WRITE_LE_UINT16(record, kOpV1_2_3SetScriptTimer);
 	WRITE_LE_UINT16(record + 2, timerId);
 	WRITE_LE_UINT16(record + 4, script);
 	WRITE_LE_UINT32(record + 6, delay);
@@ -90,7 +90,7 @@ void EnginePluginHost::cancelScriptTimer(uint16 timerId) {
 	byte record[6];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1CancelScriptTimer);
+	WRITE_LE_UINT16(record, kOpV1_2_3CancelScriptTimer);
 	WRITE_LE_UINT16(record + 2, timerId);
 
 	_engine->o_cancelScriptTimer(record);
@@ -113,10 +113,10 @@ void EnginePluginHost::setSpritePosition(uint16 sprite, uint16 x, uint16 y) {
 	byte record[8];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1SetSpritePosition);
+	WRITE_LE_UINT16(record, kOpV1_2_3SetSpritePosition);
 	WRITE_LE_UINT16(record + 2, sprite);
-	WRITE_LE_UINT16(record + 4, (uint16)(x - TG_HOST_V1_2_1_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 6, (uint16)(y - TG_HOST_V1_2_1_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 4, (uint16)(x - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 6, (uint16)(y - TG_HOST_V1_2_3_LITERAL_BIAS));
 
 	_engine->o_setSpritePosition(record);
 }
@@ -132,7 +132,7 @@ void EnginePluginHost::getSpriteRect(uint16 sprite, Common::Rect &rect) {
 }
 
 void EnginePluginHost::setSpriteLevel(uint16 sprite, uint16 level) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_1Sprite))
+	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);
@@ -154,7 +154,7 @@ void EnginePluginHost::transferSprite(uint16 source, uint16 destination, uint16 
 	byte record[12];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1TransferSprite);
+	WRITE_LE_UINT16(record, kOpV1_2_3TransferSprite);
 	WRITE_LE_UINT16(record + 2, source);
 	WRITE_LE_UINT16(record + 4, destination);
 	WRITE_LE_UINT16(record + 6, data);
@@ -168,35 +168,35 @@ bool EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argume
 	byte record[18];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1CallScript);
+	WRITE_LE_UINT16(record, kOpV1_2_3CallScript);
 	WRITE_LE_UINT16(record + 2, script);
 	record[5] = 2;
-	WRITE_LE_UINT16(record + 6, (uint16)(argument1 - TG_HOST_V1_2_1_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 8, (uint16)(argument2 - TG_HOST_V1_2_1_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 6, (uint16)(argument1 - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 8, (uint16)(argument2 - TG_HOST_V1_2_3_LITERAL_BIAS));
 
 	return _engine->o_callScript(record);
 }
 
 void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_1Sprite))
+	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);
 	if (!_engine->isRecordIndexValid(index, "getSpriteFrameIds"))
 		return;
 
-	SpriteInfo_v1_2_1 info;
+	SpriteInfo_v1_2_3 info;
 	_engine->spriteLib()->spriteGetInfo(_engine->_records[index].handle, info);
 
 	uint16 count = info.frameCount;
-	if (count > TG_PLUGIN_V1_2_1_FRAME_IDS_SIZE) {
+	if (count > TG_PLUGIN_V1_2_3_FRAME_IDS_SIZE) {
 		warning("EnginePluginHost::getSpriteFrameIds(): the sprite has %d frames", count);
-		count = TG_PLUGIN_V1_2_1_FRAME_IDS_SIZE;
+		count = TG_PLUGIN_V1_2_3_FRAME_IDS_SIZE;
 	}
 
 	for (uint16 i = 0; i < count; i++) {
 		if (info.frames[i])
-			ids[i] = READ_LE_UINT16(info.frames[i] + TG_HOST_V1_2_1_BITMAP_RESOURCE_ID);
+			ids[i] = READ_LE_UINT16(info.frames[i] + TG_HOST_V1_2_3_BITMAP_RESOURCE_ID);
 	}
 }
 
@@ -227,7 +227,7 @@ void EnginePluginHost::stopSprite(uint16 sprite) {
 	byte record[6];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1StopSprite);
+	WRITE_LE_UINT16(record, kOpV1_2_3StopSprite);
 	WRITE_LE_UINT16(record + 2, sprite);
 	record[4] = 1;
 
@@ -250,12 +250,12 @@ void EnginePluginHost::addCollisionPair(uint16 first, uint16 second, uint16 scri
 	byte record[18];
 	memset(record, 0, sizeof(record));
 
-	WRITE_LE_UINT16(record, kOpV1_2_1AddCollisionPair);
+	WRITE_LE_UINT16(record, kOpV1_2_3AddCollisionPair);
 	WRITE_LE_UINT16(record + 2, first);
 	WRITE_LE_UINT16(record + 4, second);
 	WRITE_LE_UINT16(record + 6, script);
-	WRITE_LE_UINT16(record + 8, (uint16)(argument1 - TG_HOST_V1_2_1_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 0x0A, (uint16)(argument2 - TG_HOST_V1_2_1_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 8, (uint16)(argument1 - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 0x0A, (uint16)(argument2 - TG_HOST_V1_2_3_LITERAL_BIAS));
 	record[0x0C] = repeat;
 
 	_engine->addCollisionPair(record);
@@ -311,8 +311,8 @@ void EnginePluginHost::spriteSwapOrder(uint16 first, uint16 second, uint16 onlyI
 	_engine->spriteLib()->spriteSwapOrder(firstHandle, secondHandle, onlyIfSecondAbove != 0, refresh != 0);
 }
 
-void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_1 &info) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_1Sprite))
+void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
+	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);
@@ -345,7 +345,7 @@ void EnginePluginHost::copyStringVariable(uint16 index, char *destination) {
 	if (entry.stringCount < index)
 		return;
 
-	Common::strlcpy(destination, (const char *)entry.strings + (index - 1) * TG_HOST_V1_2_STRING_SLOT_SIZE, TG_PLUGIN_V1_2_1_STRING_COPY_SIZE);
+	Common::strlcpy(destination, (const char *)entry.strings + (index - 1) * TG_HOST_V1_2_STRING_SLOT_SIZE, TG_PLUGIN_V1_2_3_STRING_COPY_SIZE);
 }
 
 void EnginePluginHost::setScriptResult(uint16 value) {
@@ -375,7 +375,7 @@ Plugin *createPlugin(const Common::String &name, PluginHost *host) {
 	return nullptr;
 }
 
-bool TopgunEngine_v1_2_1::loadPluginLibrary(const Common::String &name) {
+bool TopgunEngine_v1_2_3::loadPluginLibrary(const Common::String &name) {
 	if (_plugin)
 		unloadPluginLibrary();
 
@@ -395,7 +395,7 @@ bool TopgunEngine_v1_2_1::loadPluginLibrary(const Common::String &name) {
 	return true;
 }
 
-void TopgunEngine_v1_2_1::unloadPluginLibrary() {
+void TopgunEngine_v1_2_3::unloadPluginLibrary() {
 	if (!_plugin)
 		return;
 
@@ -408,9 +408,9 @@ void TopgunEngine_v1_2_1::unloadPluginLibrary() {
 	_windowMessageCallback = nullptr;
 }
 
-bool TopgunEngine_v1_2_1::loadPluginFunctionTable() {
+bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 	uint32 size = 0;
-	byte *names = resourceLib()->resLoadKeyResource(_file, TG_RES_V1_2_1_KEY_PLUGIN_NAMES, &size);
+	byte *names = resourceLib()->resLoadKeyResource(_file, TG_RES_V1_2_3_KEY_PLUGIN_NAMES, &size);
 
 	_pluginFunctions.clear();
 
@@ -437,11 +437,11 @@ bool TopgunEngine_v1_2_1::loadPluginFunctionTable() {
 	return consumed >= size;
 }
 
-void TopgunEngine_v1_2_1::exprCallPluginFunction(uint16 function, uint16 count) {
+void TopgunEngine_v1_2_3::exprCallPluginFunction(uint16 function, uint16 count) {
 	_expressionStackPointer -= count;
 
 	if (!_plugin || function >= _pluginFunctions.size()) {
-		warning("TopgunEngine_v1_2_1::exprCallPluginFunction(): plug-in function %d does not exist", function);
+		warning("TopgunEngine_v1_2_3::exprCallPluginFunction(): plug-in function %d does not exist", function);
 		_expressionStack[_expressionStackPointer - 1] = 0;
 		return;
 	}
@@ -449,7 +449,7 @@ void TopgunEngine_v1_2_1::exprCallPluginFunction(uint16 function, uint16 count) 
 	_expressionStack[_expressionStackPointer - 1] = _plugin->callFunction(_pluginFunctions[function], &_expressionStack[_expressionStackPointer], count);
 }
 
-bool TopgunEngine_v1_2_1::callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
+bool TopgunEngine_v1_2_3::callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
 	return _messageFilter && _messageFilter->messageFilter(message, wParam, lParamLow, lParamHigh) != 0;
 }
 

@@ -24,7 +24,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_1.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -114,7 +114,7 @@ uint16 TopgunEngine_v1_2::createMovieObject(uint16 id, uint16 argument, byte *da
 
 	movie->data = data;
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		movie->timelineSize = argument;
 	} else {
 		movie->timelineSize = READ_LE_UINT16(data);
@@ -126,7 +126,7 @@ uint16 TopgunEngine_v1_2::createMovieObject(uint16 id, uint16 argument, byte *da
 	if (!movie->bitmap)
 		return destroyMovieObject(handle);
 
-	WRITE_LE_UINT16(movie->bitmap + ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), id);
+	WRITE_LE_UINT16(movie->bitmap + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), id);
 	_records[movie->index].data = movie->bitmap;
 
 	if (!movieLoadFrameTable(movie))
@@ -184,19 +184,19 @@ void TopgunEngine_v1_2::destroyAllMovieObjects() {
 }
 
 bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		uint32 size = 0;
 
-		movie->frameTable = resourceLib()->resLoadResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_1_FRAME_TABLE_RESOURCE_OFFSET), &size);
+		movie->frameTable = resourceLib()->resLoadResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_FRAME_TABLE_RESOURCE_OFFSET), &size);
 		if (!movie->frameTable)
 			return false;
 
 		movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
 
-		if (static_cast<ResourceLibrary_v1_2_1 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_1_STREAM_RESOURCE_OFFSET)) == 0)
+		if (static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET)) == 0)
 			return false;
 
-		movie->streamBase = static_cast<ResourceLibrary_v1_2_1 *>(resourceLib())->resTell(_file);
+		movie->streamBase = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resTell(_file);
 		return true;
 	}
 
@@ -250,7 +250,7 @@ void TopgunEngine_v1_2::movieFreePrefetchBuffers(Movie_v1_2 *movie) {
 void TopgunEngine_v1_2::movieResetPlaybackState(Movie_v1_2 *movie) {
 	movie->consumeBuffer = 0;
 	movie->frame = 0;
-	movie->timeline = (_version >= kVersionV1_2_1) ? movie->data : movie->data + TG_MOVIE_V1_2_HEADER_SIZE;
+	movie->timeline = (_version >= kVersionV1_2_3) ? movie->data : movie->data + TG_MOVIE_V1_2_HEADER_SIZE;
 	movie->timelineRemaining = movie->timelineSize;
 	movie->audioBuffered = 0;
 	movie->started = false;
@@ -333,7 +333,7 @@ uint16 TopgunEngine_v1_2::movieReadNextBlock(Movie_v1_2 *movie) {
 	bool previousCallback = resourceLib()->resSetCallback(_file, true, TG_HOST_PROGRESS_INTERVAL);
 
 	PrefetchBuffer_v1_2 &buffer = movie->buffers[movie->fillBuffer];
-	uint32 streamBase = (_version >= kVersionV1_2_1) ? movie->streamBase : 0;
+	uint32 streamBase = (_version >= kVersionV1_2_3) ? movie->streamBase : 0;
 	uint32 read = resourceLib()->resReadData(_file, buffer.data + buffer.filled, movie->runSize, streamBase + movie->runOffset);
 	buffer.filled = (uint16)(buffer.filled + movie->runSize);
 
@@ -500,7 +500,7 @@ bool TopgunEngine_v1_2::movieDecodeBitmapFrame(Movie_v1_2 *movie, uint16 *advanc
 			if (!bitmap)
 				return false;
 
-			WRITE_LE_UINT16(bitmap + ((_version >= kVersionV1_2_1) ? TG_HOST_V1_2_1_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), movie->id);
+			WRITE_LE_UINT16(bitmap + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), movie->id);
 
 			if (bitmap[TG_MOVIE_V1_2_BITMAP_KIND] == TG_MOVIE_V1_2_BITMAP_KIND_MERGE) {
 				spriteLib()->spriteDibBlit(movie->bitmap, bitmap, READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET),
@@ -603,13 +603,13 @@ bool TopgunEngine_v1_2::movieStartAudioStream(Movie_v1_2 *movie) {
 		return true;
 
 	SoundCreateInfo_v1_2 info;
-	memcpy(info.header, movie->timeline + TG_MOVIE_V1_2_TIMELINE_SCRIPT_PREFIX, (_version >= kVersionV1_2_1) ? TG_AUDIO_V1_2_1_CREATE_HEADER_SIZE : TG_AUDIO_V1_2_CREATE_HEADER_SIZE);
-	info.readProc = (_version >= kVersionV1_2_1) ? TG_AUDIO_V1_2_1_PROC_MOVIE_AUDIO : TG_AUDIO_V1_2_PROC_MOVIE_AUDIO;
+	memcpy(info.header, movie->timeline + TG_MOVIE_V1_2_TIMELINE_SCRIPT_PREFIX, (_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE : TG_AUDIO_V1_2_CREATE_HEADER_SIZE);
+	info.readProc = (_version >= kVersionV1_2_3) ? TG_AUDIO_V1_2_3_PROC_MOVIE_AUDIO : TG_AUDIO_V1_2_PROC_MOVIE_AUDIO;
 	info.handle = movie->handle;
 
 	movie->audioStream = audioLib()->audioCreateWave(&info);
 
-	if (_version >= kVersionV1_2_1) {
+	if (_version >= kVersionV1_2_3) {
 		if (movie->audioStream == 0)
 			return false;
 
@@ -655,15 +655,15 @@ bool TopgunEngine_v1_2::movieStepFrame(Movie_v1_2 *movie) {
 		ok = movieStartAudioStream(movie);
 		movie->audioStarted = true;
 		movie->deadline = getEngineMillis();
-		advance = (_version >= kVersionV1_2_1) ? TG_MOVIE_V1_2_1_TIMELINE_AUDIO_SIZE : TG_MOVIE_V1_2_TIMELINE_AUDIO_SIZE;
+		advance = (_version >= kVersionV1_2_3) ? TG_MOVIE_V1_2_3_TIMELINE_AUDIO_SIZE : TG_MOVIE_V1_2_TIMELINE_AUDIO_SIZE;
 		break;
 
 	case kMovieTimelineSkip:
-		if (_version >= kVersionV1_2_1) {
+		if (_version >= kVersionV1_2_3) {
 			// The same code of the timeline holds the audio state in the later version
-			movie->audioStarted = (READ_LE_UINT16(movie->timeline + TG_MOVIE_V1_2_1_TIMELINE_AUDIO_STATE) != 0);
+			movie->audioStarted = (READ_LE_UINT16(movie->timeline + TG_MOVIE_V1_2_3_TIMELINE_AUDIO_STATE) != 0);
 			movie->deadline = getEngineMillis();
-			advance = TG_MOVIE_V1_2_1_TIMELINE_AUDIO_STATE_SIZE;
+			advance = TG_MOVIE_V1_2_3_TIMELINE_AUDIO_STATE_SIZE;
 		} else {
 			advance = TG_MOVIE_V1_2_TIMELINE_SKIP_SIZE;
 		}
