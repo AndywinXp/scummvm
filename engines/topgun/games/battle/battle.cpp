@@ -469,14 +469,6 @@ void BattlePlugin::moveDone(uint16 id) {
 	(this->*f->doneCallback)(f);
 }
 
-uint16 BattlePlugin::libMain(uint16 instance, uint16 dataSegment, uint16 heapSize, uint16 commandLineSegment, uint16 commandLineOffset) {
-	return 1;
-}
-
-uint16 BattlePlugin::wep(uint16 exitType) {
-	return 1;
-}
-
 uint16 BattlePlugin::identity(uint16 ignored, uint16 value) {
 	return (byte)value;
 }

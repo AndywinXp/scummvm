@@ -50,6 +50,16 @@ TopgunEngine_v1_2_3::TopgunEngine_v1_2_3(OSystem *syst, const ADGameDescription 
 
 TopgunEngine_v1_2_3::~TopgunEngine_v1_2_3() {
 	unloadPluginLibrary();
+	unloadAllPluginModules();
+	freeUnloadedPluginModules();
+
+	for (uint16 i = 0; i < _pluginModules.size(); i++) {
+		delete _pluginModules[i]->plugin;
+		delete _pluginModules[i];
+	}
+
+	_pluginModules.clear();
+
 	delete _pluginHost;
 	_pluginHost = nullptr;
 
@@ -129,6 +139,9 @@ void TopgunEngine_v1_2_3::spriteMessageService(byte *record, uint16 spriteId) {
 bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 	if (getGameId() == "tuneland")
 		return runStartup("TuneLand", "TUNELAND.BIN");
+
+	if (getGameId() == "aceventura")
+		return runStartup("Ace Ventura", "ACE.BIN");
 
 	if (getGameId() == "junglegames" && _version >= kVersionV1_2_6)
 		return runStartup("Pumbaa And Timon's Jungle Arcade", "JUNGLE.BIN");
@@ -229,6 +242,9 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 		if (_appActive && !_gamePaused) {
 			spriteLib()->spriteAnimate();
 
+			if (_version >= kVersionV1_2_7 && _pluginTickProcCount != 0)
+				runRegisteredServiceCallbacks();
+
 			if (_version >= kVersionV1_2_6 && _idleScript != 0)
 				idleCheck();
 
@@ -252,6 +268,10 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 	}
 
 	handleAppShutdown();
+
+	// The first call unloads the plug-ins and only posts the close message, which is not dispatched after the loop
+	if (_version >= kVersionV1_2_7 && !_shuttingDown)
+		handleAppShutdown();
 
 	return 0;
 }
@@ -353,6 +373,11 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 			destroyResourceObjectByType(message.param, resourceLib()->resGetType(_file, operandValue(message.param)));
 		break;
 
+	case kMsgV1_2_7FreePluginModules:
+		if (_version >= kVersionV1_2_7)
+			freeUnloadedPluginModules();
+		break;
+
 	default: {
 		uint16 firstPluginMessage = TG_HOST_V1_2_3_MESSAGE_FIRST_PLUGIN;
 		uint16 lastPluginMessage = TG_HOST_V1_2_3_MESSAGE_LAST_PLUGIN;
@@ -387,6 +412,12 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 	if (_shuttingDown)
 		return;
 
+	if (_version >= kVersionV1_2_7 && !_pluginLibraries.empty()) {
+		unloadAllPluginModules();
+		postMessage(kMsgClose, 0, 0);
+		return;
+	}
+
 	_shuttingDown = true;
 	_flagActivated = false;
 	_appActive = false;
@@ -396,6 +427,10 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 		cleanupCurrentSceneAndContainer();
 
 	flushPostedScriptMessages();
+
+	if (_version >= kVersionV1_2_7)
+		freeUnloadedPluginModules();
+
 	spriteLib()->spriteExitLibrary();
 	audioLib()->audioExitLibrary();
 
@@ -427,6 +462,9 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 	}
 
 	if (notify) {
+		if (_version >= kVersionV1_2_7)
+			notifyPluginsFocusChanged(active);
+
 		if (_version >= kVersionV1_2_6) {
 			releaseOrRestoreDeviceGroups(!active);
 
@@ -446,7 +484,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 
 		_activateState = active;
 
-		if (_version >= kVersionV1_2_6 && !active)
+		if (_version == kVersionV1_2_6 && !active)
 			cancelMouseCapture();
 	}
 

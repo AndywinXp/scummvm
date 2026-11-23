@@ -45,6 +45,11 @@
 
 #define TG_SPR_V1_2_3_MIRROR_FLAG_MASK         0x00FF
 
+// Tile cell bitmaps: bits 4 and 5 of the flags word at +8 mirror and flip the cell
+#define TG_SPR_V1_2_7_TILE_MIRROR_FLAG         0x10
+#define TG_SPR_V1_2_7_TILE_FLIP_FLAG           0x20
+#define TG_SPR_V1_2_7_TILE_STAGGERED_LAYOUT    1
+
 namespace Topgun {
 
 class TopgunEngine_v1_2_3;
@@ -78,6 +83,12 @@ enum SpriteMessage_v1_2_6 {
 	kSprV1_2_6MsgHostEvent = 22
 };
 
+// Messages of the games that mark the start of a queue loop and jump back to it
+enum SpriteMessage_v1_2_7 {
+	kSprV1_2_7MsgMarkLoopStart = 3,
+	kSprV1_2_7MsgLoopJump = 6
+};
+
 enum RleBlitMode_v1_2_3 {
 	kSprV1_2_3BlitCopy,
 	kSprV1_2_3BlitTransparent,
@@ -102,6 +113,15 @@ public:
 	void spriteScreenShake(int16 deltaX, int16 deltaY);
 	void spriteScrollScreen(int16 deltaX, int16 deltaY);
 	void spriteRubberBand(bool enable, int16 x, int16 y, bool move);
+	void spriteSetScrollPos(int16 x, int16 y);
+	Common::Point spriteGetScrollPos();
+	void spriteScroll(int16 deltaX, int16 deltaY, bool useScrollDevice);
+	void spriteSetScrollBox(const Common::Rect *box);
+	Common::Rect spriteGetScrollBox();
+	void spriteSetScrollable(uint16 sprite, uint16 flag);
+	bool spriteSetTileBackground(TileBackground *tile, Common::Rect *outClipRect);
+	void spriteBoxInBackground(byte *bitmap, uint16 steps, bool insetBoth);
+	void spriteBoxOutBackground(byte *bitmap, uint16 steps, bool insetBoth);
 
 	// Sprites
 	void spriteHide(uint16 sprite, bool refresh) override;
@@ -111,6 +131,8 @@ public:
 	void spriteSkipMessage(uint16 sprite, uint16 count);
 	uint16 spriteGetExtraId(uint16 sprite);
 	void spriteSetExtraId(uint16 sprite, uint16 extraId);
+	uint16 spriteGetNumCels(uint16 sprite);
+	void spriteSetSpriteClipBox(uint16 sprite, const Common::Rect *box);
 
 	// Messages
 	bool spritePostMessage(uint16 sprite, uint16 count, const uint16 *words);
@@ -143,6 +165,21 @@ protected:
 	void scrollSprite(uint16 sprite, int16 deltaX, int16 deltaY);
 
 	// Library
+	bool clampScrollOffsetToBounds(Common::Point &delta, Common::Rect &outRect);
+	void repaintScrollBoxRevealedColumn(int16 deltaX, Common::Rect rect);
+	void repaintScrollBoxRevealedRow(int16 deltaY, Common::Rect rect);
+	void performScrollOperation(byte *surface, int16 deltaX, int16 deltaY, const Common::Rect &rect);
+	byte *initTileBackgroundLayout(TileBackground *tile);
+	void renderTileBackgroundRect(const Common::Rect *rect);
+	void renderStaggeredTileRows();
+	void renderStaggeredTileRow(uint32 cellIndex, int16 column, int16 y, int16 sourceX, int16 sourceY, int16 visibleWidth, int16 height, bool shifted);
+	void renderGridTiles();
+	void computeWipeStepRect(bool insetBoth, uint16 steps, uint16 step, Common::Rect &out);
+	void wipeBoxFromCenter(bool insetBoth, uint16 steps);
+	void wipeBoxToCenter(bool insetBoth, uint16 steps);
+	void drawWipeStepAndRepaint(Common::Rect rect);
+	void drawWipeSideStrips(const Common::Rect &outer, const Common::Rect &inner);
+	void drawWipeTopBottomStrips(const Common::Rect &outer, const Common::Rect &inner);
 	// Queue interpreter
 	bool processSpriteQueueCommand(uint16 sprite) override;
 	bool processSpriteAnimationStep(uint16 sprite) override;
@@ -151,6 +188,8 @@ protected:
 	// Message builders
 	bool dispatchSpriteMessage(uint16 mode, uint16 count, const uint16 *words, uint16 sprite);
 	bool buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
+	bool markQueueLoopStart(uint16 mode, uint16 sprite);
+	bool buildQueueLoopJumpMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
 	bool buildCompositeMessage(uint16 mode, uint16 sprite);
 	bool buildFlipMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildHideMessage(uint16 mode, uint16 sprite);
@@ -182,6 +221,21 @@ protected:
 	uint16 getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flags) override;
 
 	Common::Rect _oldPartBoxes[TG_SPR_V1_2_NUM_SPRITE_PARTS];
+
+	// State shared by the tile background renderers
+	Common::Rect _tileClip;
+	byte *_tileSurface = nullptr;
+	int16 _tileDestOriginX = 0;
+	int16 _tileDestOriginY = 0;
+	uint16 _tileCountX = 0;
+	uint16 _tileWidth = 0;
+	int16 _tileHalfWidth = 0;
+
+	// State shared by the box wipes
+	uint16 _wipeExtentX = 0;
+	uint16 _wipeExtentY = 0;
+	byte *_wipeNewBitmap = nullptr;
+	bool _wipeDrawFromNew = false;
 
 private:
 	TopgunEngine_v1_2_3 *engine() const;

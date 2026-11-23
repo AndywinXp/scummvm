@@ -411,12 +411,18 @@ void TopgunEngine_v1_2::syncBackgroundDimensions(const byte *bitmap) {
 	_height = screenHeight;
 	_screenBox = true;
 
+	if (_version >= kVersionV1_2_7)
+		_screenBox = _scrollBoxWindowBox;
+
 	if (!bitmap)
 		return;
 
 	_width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	_height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	_screenBox = (screenWidth > _width) || (_height < screenHeight);
+
+	if (_version >= kVersionV1_2_7 && _scrollBoxWindowBox)
+		_screenBox = true;
 }
 
 void TopgunEngine_v1_2::commitBackgroundChangeAndRepaint(const Common::Rect &rect) {
@@ -449,12 +455,23 @@ void TopgunEngine_v1_2::applyBackgroundToSpriteLib(Common::Rect *rectOut) {
 			return;
 
 		spriteLib()->spriteSetBackground(_buffer1, false, 0, rectOut);
+	} else if (_version >= kVersionV1_2_7 && _tileMap) {
+		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetTileBackground(_tileMap, rectOut);
 	} else {
 		spriteLib()->spriteSetBackground(_backgroundBitmap, false, 0, rectOut);
 	}
 }
 
 void TopgunEngine_v1_2::clearBackground() {
+	if (_version >= kVersionV1_2_7 && _tileMap) {
+		uint16 tileId = _tileMap->id;
+
+		if (tileId != 0)
+			destroyResourceObjectByType(tileId, kResV1_2_7Tile);
+
+		_tileMap = nullptr;
+	}
+
 	if ((_version >= kVersionV1_2_3 || _backgroundId == 0) && _backgroundBitmap)
 		utilsLibrary()->tgFree(_backgroundBitmap);
 
@@ -789,14 +806,22 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 
 		if (_buffer1) {
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
-			if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
-				rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
 
-			_active = true;
+			if (_version >= kVersionV1_2_7) {
+				_active = true;
 
-			spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
-			wipeEffectFrameRingsInsideOut(rings, true);
-			spriteLib()->spriteSetBackground(_backgroundBitmap, false, 0, nullptr);
+				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxInBackground(_backgroundBitmap, rings, true);
+			} else {
+				if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
+					rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
+
+				_active = true;
+
+				spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
+				wipeEffectFrameRingsInsideOut(rings, true);
+				spriteLib()->spriteSetBackground(_backgroundBitmap, false, 0, nullptr);
+			}
+
 			_faded = false;
 			_buffer1 = utilsLibrary()->tgFree(_buffer1);
 		}
@@ -838,21 +863,32 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 			}
 
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
-			if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
-				rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
 
-			_active = true;
+			if (_version >= kVersionV1_2_7) {
+				_active = true;
 
-			if (_version >= kVersionV1_2_1)
-				spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
+				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxOutBackground(_buffer1, rings, true);
+			} else {
+				if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
+					rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
 
-			wipeEffectFrameRingsOutsideIn(rings, true);
-			_faded = true;
+				_active = true;
 
-			if (_version < kVersionV1_2_1)
-				spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
+				if (_version >= kVersionV1_2_1)
+					spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
+
+				wipeEffectFrameRingsOutsideIn(rings, true);
+				_faded = true;
+
+				if (_version < kVersionV1_2_1)
+					spriteLib()->spriteSetBackground(_buffer1, false, 0, nullptr);
+			}
 		}
 	}
+
+	// The fade of a display without palette ends here even when there was no background to fade
+	if (_version >= kVersionV1_2_7 && !display()->hasPalette())
+		_faded = true;
 
 	if (_version >= kVersionV1_2_3)
 		spriteLib()->spriteSetSendMsg(sendMessage);
@@ -887,6 +923,15 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 	if (id == 0)
 		return nullptr;
 
+	if (_version >= kVersionV1_2_7 && resourceLib()->resGetType(_file, operandValue(id)) == kResV1_2_7Cell) {
+		byte *cell = loadResourceWithProcessingPause(id, nullptr);
+		if (!cell)
+			return nullptr;
+
+		id = READ_LE_UINT16(cell);
+		utilsLibrary()->tgFree(cell);
+	}
+
 	if (!validateResourceType(id, kResV1_2_3Bitmap))
 		return nullptr;
 
@@ -919,7 +964,37 @@ void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
 	if (_version >= kVersionV1_2_6)
 		_solidBackground = false;
 
-	switch (READ_LE_UINT16(record + 2)) {
+	uint16 mode = READ_LE_UINT16(record + 2);
+
+	bool tileMode = false;
+
+	if (_version >= kVersionV1_2_7) {
+		if (mode == 3)
+			tileMode = true;
+		else if (mode == 0 && resourceLib()->resGetType(_file, operandValue(READ_LE_UINT16(record + 4))) != kResV1_2_7Bitmap)
+			tileMode = true;
+	}
+
+	if (tileMode) {
+		uint16 tileId = READ_LE_UINT16(record + 4);
+
+		if (!validateAndGetResourceByType(tileId, kResV1_2_7Tile))
+			return;
+
+		uint16 index = operandValue(tileId);
+		if (!isRecordIndexValid(index, "setBackgroundByMode"))
+			return;
+
+		if (!_tileBackgrounds.contains(index)) {
+			warning("TopgunEngine_v1_2_3::setBackgroundByMode(): the tile map %d is not loaded", index);
+			return;
+		}
+
+		setTileScreenRegion(true, _tileBackgrounds[index]);
+		return;
+	}
+
+	switch (mode) {
 	case 0:
 		setBackgroundFromBitmapResource(record);
 		break;
@@ -942,6 +1017,29 @@ void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
 		clearBackground();
 		break;
 	}
+}
+
+void TopgunEngine_v1_2_3::setTileScreenRegion(bool repaint, TileBackground *tileMap) {
+	if (tileMap && tileMap != _tileMap)
+		clearBackground();
+
+	_tileMap = tileMap;
+	syncBackgroundDimensions(nullptr);
+	_screenBox = _scrollBoxWindowBox;
+
+	Common::Rect rect;
+
+	applyBackgroundToSpriteLib(&rect);
+
+	if (repaint)
+		commitBackgroundChangeAndRepaint(rect);
+}
+
+void TopgunEngine_v1_2_3::setScrollBox(const Common::Rect &box) {
+	spriteLib()->spriteSetScrollBox(&box);
+
+	_scrollBoxWindowBox = (box.right > box.left) || (box.top < box.bottom);
+	_screenBox = _scrollBoxWindowBox;
 }
 
 void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {

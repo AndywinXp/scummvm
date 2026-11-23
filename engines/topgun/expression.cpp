@@ -26,6 +26,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
 #include "topgun/topgun_v1_2_3.h"
 
@@ -293,7 +294,9 @@ void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
 	uint16 code = _expressionStack[_expressionStackPointer - count - 1];
 
 	uint16 lastBuiltinCode = TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE;
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV1_2_7)
+		lastBuiltinCode = TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE;
+	else if (_version >= kVersionV1_2_6)
 		lastBuiltinCode = TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE;
 	else if (_version >= kVersionV1_2_5)
 		lastBuiltinCode = TG_SCRIPT_V1_2_5_LAST_BUILTIN_CODE;
@@ -471,8 +474,14 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
+
+	// The built-ins from 157 on exist only in the last version
+	if (code > 156 && _version < kVersionV1_2_7)
+		return;
 
 	switch (code) {
 	case 2:
@@ -515,6 +524,14 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 	}
 
+	case 9:
+		if (_version < kVersionV1_2_7)
+			break;
+
+		_expressionStackPointer--;
+		o_playCDTrack((byte)_expressionStack[_expressionStackPointer]);
+		break;
+
 	case 10:
 	case 11: {
 		if (_version < kVersionV1_2_6)
@@ -526,6 +543,78 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		WRITE_LE_UINT16(record, code);
 		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
 		o_fadeInOut(record);
+		break;
+	}
+
+	case 12: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_bindKeyScript(record);
+		break;
+	}
+
+	case 13: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[2];
+
+		WRITE_LE_UINT16(record, kOpV1_2_3Quit);
+		executeScriptOp(record, nullptr);
+		break;
+	}
+
+	case 14:
+		if (_version >= kVersionV1_2_7)
+			o_stopCD();
+
+		break;
+
+	case 15: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte block[4];
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT32(block, (uint32)(int32)(int16)_expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		o_stopWave((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS), block);
+		break;
+	}
+
+	case 21: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[4];
+
+		WRITE_LE_UINT16(record, kOpV1_2_3SetSceneEndScript);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		executeScriptOp(record, nullptr);
+		break;
+	}
+
+	case 25: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[6];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3StopSprite);
+		_expressionStackPointer--;
+		record[4] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_stopSprite(record);
 		break;
 	}
 
@@ -549,6 +638,75 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 		if (_debugMode)
 			debug("%s", text.c_str());
+
+		break;
+	}
+
+	case 28: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[6];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetSpriteLevel);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setSpriteLevel(record);
+		break;
+	}
+
+	case 31: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[4];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3CursorMode);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setCursorMode(record);
+		break;
+	}
+
+	case 36: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[8];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3MoveSprite);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_moveSprite(record);
+		break;
+	}
+
+	case 40: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		_expressionStackPointer--;
+		uint16 yAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 xAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateResourceType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType))
+			break;
+
+		// The results are stored through a null segment
+		if (xAddress != 0 || yAddress != 0)
+			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 40 cannot store the position");
 
 		break;
 	}
@@ -593,6 +751,36 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 	}
 
+	case 50:
+		if (_version < kVersionV1_2_7)
+			break;
+
+		// The two results are stored through a null segment
+		_expressionStackPointer -= 9;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 50 cannot store the exit point");
+		break;
+
+	case 55: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		_expressionStackPointer -= 4;
+		_expressionStackPointer--;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateResourceType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType))
+			break;
+
+		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
+			break;
+
+		// The bounds are stored through a null segment
+		if (_records[sprite].handle != 0)
+			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 55 cannot store the bounds");
+
+		break;
+	}
+
 	case 57:
 	case 58: {
 		_expressionStackPointer--;
@@ -620,6 +808,33 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		break;
 	}
 
+	case 62:
+		if (_version < kVersionV1_2_7)
+			break;
+
+		// The intersection is stored through a null segment
+		_expressionStackPointer -= 10;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 62 cannot store the intersection");
+		break;
+
+	case 63: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[8];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetSpritePosition);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setSpritePosition(record);
+		break;
+	}
+
 	case 65:
 		_expressionStackPointer--;
 		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->cosine((int16)_expressionStack[_expressionStackPointer]);
@@ -641,6 +856,29 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		}
 
 		_expressionStack[_expressionStackPointer - 1] = result;
+		break;
+	}
+
+	case 70:
+		if (_version < kVersionV1_2_7)
+			break;
+
+		// The time is stored through a null segment
+		_expressionStackPointer -= 4;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 70 cannot store the time");
+		break;
+
+	case 81: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[4];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3StopMidi);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_stopMidi(record);
 		break;
 	}
 
@@ -678,6 +916,42 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		_expressionStack[_expressionStackPointer - 1] = builtinSetDraggedSpriteId(_expressionStack[_expressionStackPointer]);
 		break;
+
+	case 96: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[4];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3LoadPaletteResource);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_loadPaletteResource(record);
+		break;
+	}
+
+	case 97: {
+		if (_version < kVersionV1_2_7)
+			break;
+
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetPaletteEntries);
+		_expressionStackPointer--;
+		record[10] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		record[9] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		record[8] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setPaletteEntries(record);
+		break;
+	}
 
 	case 98: {
 		_expressionStackPointer--;
@@ -1029,12 +1303,27 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 125: {
+		uint16 deltaY = 0;
+		uint16 deltaX = 0;
+
+		if (_version >= kVersionV1_2_6) {
+			if (argc == 4) {
+				_expressionStackPointer--;
+				deltaY = _expressionStack[_expressionStackPointer];
+			}
+
+			if (argc >= 3) {
+				_expressionStackPointer--;
+				deltaX = _expressionStack[_expressionStackPointer];
+			}
+		}
+
 		_expressionStackPointer--;
 		uint16 second = _expressionStack[_expressionStackPointer];
 		_expressionStackPointer--;
 		uint16 first = _expressionStack[_expressionStackPointer];
 
-		_expressionStack[_expressionStackPointer - 1] = builtinBlitBitmapOverlap(first, second);
+		_expressionStack[_expressionStackPointer - 1] = builtinBlitBitmapOverlap(first, second, (int16)deltaX, (int16)deltaY);
 		break;
 	}
 
@@ -1218,6 +1507,16 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (_version < kVersionV1_2_6)
 			break;
 
+		if (_version >= kVersionV1_2_7) {
+			_expressionStackPointer--;
+			int16 y = (int16)_expressionStack[_expressionStackPointer];
+			_expressionStackPointer--;
+			int16 x = (int16)_expressionStack[_expressionStackPointer];
+
+			spriteLib()->spriteSetScrollPos(x, y);
+			break;
+		}
+
 		uint16 script = _expressionStack[_expressionStackPointer - 1];
 
 		_rubberBandScript = script ? (uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS) : 0;
@@ -1237,7 +1536,11 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		uint16 movieId = _expressionStack[_expressionStackPointer];
 
-		if (!isResourceObjectLoaded((uint16)(movieId - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_5Movie))
+		uint16 movieType = kResV1_2_5Movie;
+		if (_version >= kVersionV1_2_7)
+			movieType = kResV1_2_7Movie;
+
+		if (!isResourceObjectLoaded((uint16)(movieId - TG_HOST_V1_2_3_LITERAL_BIAS), movieType))
 			break;
 
 		if (!isRecordIndexValid(movieId, "evaluateBuiltinFunction"))
@@ -1334,7 +1637,11 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		_expressionStackPointer--;
 		int16 deltaX = (int16)_expressionStack[_expressionStackPointer];
 
-		spriteLib()->spriteScrollScreen(deltaX, deltaY);
+		if (_version >= kVersionV1_2_7)
+			spriteLib()->spriteScroll(deltaX, deltaY, true);
+		else
+			spriteLib()->spriteScrollScreen(deltaX, deltaY);
+
 		break;
 	}
 
@@ -1371,17 +1678,1036 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 
 		break;
 
+	case 157:
+		_expressionStackPointer--;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): posting a global atom to the main window is not supported");
+		break;
+
+	case 158:
+	case 159: {
+		uint16 numIndices = (uint16)(argc - 1);
+		uint16 indices[TG_BUILTIN_V1_2_7_MAX_TABLE_DIMENSIONS] = {};
+		uint16 value = 0;
+		bool tooManyIndices = false;
+
+		if (code == 159)
+			numIndices--;
+
+		for (int16 i = (int16)numIndices - 1; i >= 0; i--) {
+			_expressionStackPointer--;
+
+			if (i < TG_BUILTIN_V1_2_7_MAX_TABLE_DIMENSIONS)
+				indices[i] = _expressionStack[_expressionStackPointer];
+			else
+				tooManyIndices = true;
+		}
+
+		if (code == 159) {
+			_expressionStackPointer--;
+			value = _expressionStack[_expressionStackPointer];
+		}
+
+		_expressionStackPointer--;
+		uint16 table = _expressionStack[_expressionStackPointer];
+
+		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Table))
+			break;
+
+		if (!isRecordIndexValid(table, "evaluateBuiltinFunction"))
+			break;
+
+		const byte *object = _records[table].data;
+		uint32 size = _records[table].size;
+		uint16 result = 0;
+
+		if (tooManyIndices)
+			warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): the table access has too many indices");
+		else if (object && size >= TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE && READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_DIMENSIONS) == numIndices) {
+			uint16 offset = 0;
+
+			for (uint16 i = 0; i < numIndices; i++)
+				offset = (uint16)(offset + (uint16)((uint16)(READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_STRIDES + 2 * i) * indices[i]) << 1));
+
+			uint32 count = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_COUNT);
+
+			if (offset < 2 * count && TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE + (uint32)offset + 2 <= size) {
+				byte *element = _records[table].data + TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE + offset;
+
+				if (code == 158) {
+					result = READ_LE_UINT16(element);
+				} else {
+					WRITE_LE_UINT16(element, value);
+					result = 1;
+				}
+			}
+		}
+
+		_expressionStack[_expressionStackPointer - 1] = result;
+		break;
+	}
+
+	case 160:
+	case 161:
+	case 162: {
+		uint16 dimension = 0;
+
+		if (code != 160) {
+			_expressionStackPointer--;
+			dimension = _expressionStack[_expressionStackPointer];
+		}
+
+		_expressionStackPointer--;
+		uint16 table = _expressionStack[_expressionStackPointer];
+
+		if (!validateAndGetResourceByType((uint16)(table - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Table))
+			break;
+
+		if (!isRecordIndexValid(table, "evaluateBuiltinFunction"))
+			break;
+
+		const byte *object = _records[table].data;
+		uint32 size = _records[table].size;
+		uint16 result = 0;
+
+		if (code == 160) {
+			if (object && size >= TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE)
+				result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_DIMENSIONS);
+		} else if (object && TG_BUILTIN_V1_2_7_TABLE_SIZES + 2 * (uint32)dimension + 2 <= size) {
+			result = READ_LE_UINT16(object + TG_BUILTIN_V1_2_7_TABLE_SIZES + 2 * dimension);
+		}
+
+		_expressionStack[_expressionStackPointer - 1] = result;
+		break;
+	}
+
+	case 163: {
+		_expressionStackPointer--;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+		uint16 result = 0;
+
+		if (validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType) && isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
+			result = spriteLib()->spriteGetNumCels(_records[sprite].handle);
+
+		_expressionStack[_expressionStackPointer - 1] = result;
+		break;
+	}
+
+	case 164: {
+		_expressionStackPointer--;
+		uint16 wave = _expressionStack[_expressionStackPointer];
+		uint16 result = 0;
+
+		if (validateAndGetResourceByType((uint16)(wave - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_7Wave) && isRecordIndexValid(wave, "evaluateBuiltinFunction"))
+			result = (uint16)audioLib()->audioGetWaveSoundTime(_records[wave].handle);
+
+		_expressionStack[_expressionStackPointer - 1] = result;
+		break;
+	}
+
+	case 165:
+	case 166:
+	case 169: {
+		Common::Rect rect;
+
+		_expressionStackPointer--;
+		rect.bottom = (int16)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		rect.right = (int16)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		rect.top = (int16)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		rect.left = (int16)_expressionStack[_expressionStackPointer];
+
+		if (code == 166) {
+			setScrollBox(rect);
+			break;
+		}
+
+		if (code == 165) {
+			spriteLib()->spriteSetClipBox(&rect);
+			break;
+		}
+
+		_expressionStackPointer--;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType))
+			break;
+
+		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
+			break;
+
+		spriteLib()->spriteSetSpriteClipBox(_records[sprite].handle, &rect);
+		break;
+	}
+
+	case 167: {
+		_expressionStackPointer--;
+		uint16 bottomAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 rightAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 topAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 leftAddress = _expressionStack[_expressionStackPointer];
+		Common::Rect box = spriteLib()->spriteGetScrollBox();
+
+		writeAddress(leftAddress, (uint16)box.left);
+		writeAddress(topAddress, (uint16)box.top);
+		writeAddress(rightAddress, (uint16)box.right);
+		writeAddress(bottomAddress, (uint16)box.bottom);
+		break;
+	}
+
+	case 168: {
+		_expressionStackPointer--;
+		uint16 yAddress = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 xAddress = _expressionStack[_expressionStackPointer];
+		Common::Point position = spriteLib()->spriteGetScrollPos();
+
+		writeAddress(xAddress, (uint16)position.x);
+		writeAddress(yAddress, (uint16)position.y);
+		break;
+	}
+
+	case 170:
+	case 171: {
+		byte record[TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3GotoScene);
+		_expressionStackPointer--;
+		record[TG_SCRIPT_V1_2_5_GOTO_RELEASE_OFFSET] = (byte)_expressionStack[_expressionStackPointer];
+
+		if (code == 170) {
+			_expressionStackPointer--;
+			const char *name = getStringFromId(_expressionStack[_expressionStackPointer]);
+
+			if (name) {
+				if (strlen(name) >= TG_HOST_V1_2_5_SCENE_NAME_SIZE)
+					warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): the scene name '%s' is too long", name);
+
+				Common::strlcpy((char *)record + TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET, name, TG_HOST_V1_2_5_SCENE_NAME_SIZE);
+			}
+		} else {
+			record[TG_SCRIPT_V1_2_5_GOTO_BACK_OFFSET] = 1;
+		}
+
+		o_gotoScene(record);
+		break;
+	}
+
+	case 173: {
+		_expressionStackPointer--;
+		uint16 argument2 = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 argument1 = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 script = _expressionStack[_expressionStackPointer];
+
+		enqueuePostedScriptRun((uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS), (uint16)(argument1 - TG_HOST_V1_2_3_LITERAL_BIAS), (uint16)(argument2 - TG_HOST_V1_2_3_LITERAL_BIAS));
+		break;
+	}
+
+	case 174:
+	case 175: {
+		byte record[18];
+
+		memset(record, 0, sizeof(record));
+		record[0x10] = 1;
+		_expressionStackPointer--;
+		uint16 list = _expressionStack[_expressionStackPointer];
+		WRITE_LE_UINT16(record + 4, (uint16)(list - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		int32 entry = -1;
+
+		for (uint32 i = 0; i < _scriptCursors.size() && entry < 0; i++) {
+			if (_scriptCursors[i].id == list)
+				entry = i;
+		}
+
+		if (code == 174) {
+			WRITE_LE_UINT16(record, kOpV1_2_3RandomRunScript);
+
+			if (entry >= 0)
+				record[3] = (byte)_scriptCursors[entry].randomIndex;
+
+			o_randomRunScript(record);
+		} else {
+			WRITE_LE_UINT16(record, kOpV1_2_3RoundRobinRunScript);
+
+			if (entry >= 0)
+				record[3] = (byte)_scriptCursors[entry].sequentialIndex;
+
+			o_roundRobinRunScript(record);
+		}
+
+		entry = -1;
+
+		for (uint32 i = 0; i < _scriptCursors.size() && entry < 0; i++) {
+			if (_scriptCursors[i].id == list)
+				entry = i;
+		}
+
+		if (entry < 0) {
+			ScriptCursor_v1_2_7 cursor;
+
+			cursor.id = list;
+			_scriptCursors.push_back(cursor);
+			entry = _scriptCursors.size() - 1;
+		}
+
+		if (code == 174)
+			_scriptCursors[entry].randomIndex = record[3];
+		else
+			_scriptCursors[entry].sequentialIndex = record[3];
+
+		break;
+	}
+
+	case 177: {
+		byte record[10];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3DeviceGroupButtonState);
+		_expressionStackPointer--;
+
+		if (_expressionStack[_expressionStackPointer] != 0)
+			record[7] = 1;
+		else
+			record[8] = 1;
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_deviceGroupButtonState(record);
+		break;
+	}
+
+	case 178:
+	case 179:
+	case 192:
+	case 228:
+	case 229:
+	case 230: {
+		byte record[TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetBackground);
+
+		if (code == 178 || code == 228 || code == 192 || code == 229)
+			WRITE_LE_UINT16(record + 2, 1);
+
+		// The last three arguments of the variants with a wipe describe the effect
+		if (code == 228 || code == 229 || code == 230) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 0x0E, _expressionStack[_expressionStackPointer]);
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 0x0C, _expressionStack[_expressionStackPointer]);
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 0x0A, _expressionStack[_expressionStackPointer]);
+		}
+
+		if (code == 178 || code == 228) {
+			_expressionStackPointer--;
+			byte blue = (byte)_expressionStack[_expressionStackPointer];
+			_expressionStackPointer--;
+			byte green = (byte)_expressionStack[_expressionStackPointer];
+			_expressionStackPointer--;
+			byte red = (byte)_expressionStack[_expressionStackPointer];
+			byte color[TG_DISPLAY_PALETTE_ENTRY_SIZE] = { red, green, blue, 1 };
+			int16 colorIndex = -1;
+
+			for (uint16 i = 0; i < _filePaletteEntryCount && colorIndex < 0; i++) {
+				if (memcmp(_palette + (TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + i) * TG_DISPLAY_PALETTE_ENTRY_SIZE, color, sizeof(color)) == 0)
+					colorIndex = (int16)(TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + i);
+			}
+
+			if (colorIndex < 0 && (uint16)(TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES - _maxTransColors) > _filePaletteEntryCount) {
+				colorIndex = (int16)(TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + _filePaletteEntryCount);
+				memcpy(_palette + colorIndex * TG_DISPLAY_PALETTE_ENTRY_SIZE, color, sizeof(color));
+				_filePaletteEntryCount++;
+			}
+
+			if (colorIndex < 0) {
+				uint16 nearest = TG_BUILTIN_V1_2_7_MAX_COLOR_DISTANCE;
+
+				colorIndex = TG_BUILTIN_V1_2_7_NO_NEAREST_COLOR;
+
+				for (uint16 i = 0; i < _filePaletteEntryCount; i++) {
+					const byte *entry = _palette + (TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + i) * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+					uint16 distance = (uint16)(ABS((int16)entry[2] - (int16)blue) + ABS((int16)entry[0] - (int16)red) + ABS((int16)entry[1] - (int16)green));
+
+					if (distance < nearest) {
+						nearest = distance;
+						colorIndex = (int16)(TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY + i);
+					}
+				}
+			}
+
+			WRITE_LE_UINT16(record + 8, (uint16)colorIndex);
+		} else if (code == 192 || code == 229) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 8, _expressionStack[_expressionStackPointer]);
+		} else {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			WRITE_LE_UINT16(record + 6, READ_LE_UINT16(record + 4));
+		}
+
+		o_setBackground(record);
+		break;
+	}
+
+	case 180: {
+		byte record[6];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetDeviceGroupScript);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setDeviceGroupScript(record);
+		break;
+	}
+
+	case 181: {
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetPaletteEntries);
+		record[6] = 1;
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setPaletteEntries(record);
+		break;
+	}
+
+	case 182:
+		_expressionStackPointer -= 3;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): setting the wallpaper is not supported");
+		break;
+
+	case 183:
+	case 184:
+	case 185: {
+		byte record[TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetHoverRegion);
+
+		if (code == 185) {
+			record[0x14] = 1;
+		} else {
+			if (code == 183) {
+				_expressionStackPointer--;
+				WRITE_LE_UINT16(record + 0x0C, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+				_expressionStackPointer--;
+				WRITE_LE_UINT16(record + 0x0A, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			}
+
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 8, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		}
+
+		o_setHoverRegion(record);
+		break;
+	}
+
+	case 186:
+	case 187:
+	case 188: {
+		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
+
+		if (code == 186) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 0x0E, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		} else if (code == 187) {
+			_expressionStackPointer--;
+
+			if (_expressionStack[_expressionStackPointer] != 0)
+				record[0x11] = 1;
+			else
+				record[0x12] = 1;
+		}
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 0x0C, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 0x0A, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 8, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setClickScript(record);
+		break;
+	}
+
+	case 189:
+	case 190:
+	case 191: {
+		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
+		record[0x10] = 1;
+
+		if (code == 189) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		} else if (code == 190) {
+			_expressionStackPointer--;
+
+			if (_expressionStack[_expressionStackPointer] != 0)
+				record[0x11] = 1;
+			else
+				record[0x12] = 1;
+		}
+
+		o_setClickScript(record);
+		break;
+	}
+
+	case 193: {
+		byte record[10];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3DeviceGroupButtonState);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+
+		if (_expressionStack[_expressionStackPointer] > 5)
+			record[6] = 2;
+		else
+			record[6] = (byte)_expressionStack[_expressionStackPointer];
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_deviceGroupButtonState(record);
+		break;
+	}
+
+	case 194:
+	case 195:
+	case 196: {
+		byte record[TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetClickScript);
+
+		if (code == 194) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 0x0E, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		} else if (code == 195) {
+			_expressionStackPointer--;
+
+			if (_expressionStack[_expressionStackPointer] != 0)
+				record[0x11] = 1;
+			else
+				record[0x12] = 1;
+		}
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setClickScript(record);
+		break;
+	}
+
+	case 197: {
+		byte record[6];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SpriteCompositeToBackground);
+		_expressionStackPointer--;
+		record[4] = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		_expressionStackPointer--;
+
+		if (_expressionStack[_expressionStackPointer] != 0)
+			WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		o_spriteCompositeToBackground(record);
+		break;
+	}
+
+	case 198: {
+		byte record[18];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3AddCollisionPair);
+		_expressionStackPointer--;
+		record[0x10] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		record[0x0C] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 0x0A, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 8, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		record[0x0F] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		record[0x0E] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_addCollisionPair(record);
+		break;
+	}
+
+	case 199: {
+		byte record[18];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3AddCollisionPair);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		if (READ_LE_UINT16(record + 2) == 0 && READ_LE_UINT16(record + 4) == 0)
+			record[0x0D] = 1;
+
+		o_addCollisionPair(record);
+		break;
+	}
+
+	case 200:
+	case 201: {
+		byte record[10];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetSpriteObjectProperties);
+
+		if (code == 200) {
+			_expressionStackPointer--;
+			record[8] = (byte)_expressionStack[_expressionStackPointer];
+		} else {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		}
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setSpriteObjectProperties(record);
+		break;
+	}
+
+	case 202: {
+		_expressionStackPointer -= 4;
+		_expressionStackPointer--;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateResourceType((uint16)(sprite - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType))
+			break;
+
+		// The bitmap identifiers are stored through a null segment
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 202 cannot store the bitmap identifiers");
+		break;
+	}
+
+	case 203:
+	case 227: {
+		uint16 data = 0;
+		bool flag = false;
+
+		_expressionStackPointer--;
+
+		if (code == 203) {
+			if (_expressionStack[_expressionStackPointer] != 0)
+				data = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+		} else {
+			flag = (_expressionStack[_expressionStackPointer] != 0);
+		}
+
+		_expressionStackPointer--;
+		bool result = o_setSpriteQueue((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS), data, flag);
+
+		_expressionStack[_expressionStackPointer - 1] = result ? 1 : 0;
+		break;
+	}
+
+	case 204: {
+		byte record[6];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3CancelScriptTimer);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		record[4] = (_expressionStack[_expressionStackPointer] == 0xFFFF) ? 1 : 0;
+		o_cancelScriptTimer(record);
+		break;
+	}
+
+	case 205: {
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetScriptTimer);
+		_expressionStackPointer--;
+		record[0x0B] = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT32(record + 6, (uint32)(int32)(int16)_expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setScriptTimer(record);
+		break;
+	}
+
+	case 206: {
+		_expressionStackPointer--;
+		uint16 deltaY = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 deltaX = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 second = _expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		uint16 first = _expressionStack[_expressionStackPointer];
+
+		_expressionStack[_expressionStackPointer - 1] = builtinBlitBitmapOverlap(first, second, (int16)deltaX, (int16)deltaY);
+		break;
+	}
+
+	case 207:
+		// The date is stored through a null segment
+		_expressionStackPointer -= 4;
+		warning("TopgunEngine_v1_2_3::evaluateBuiltinFunction(): built-in 207 cannot store the date");
+		break;
+
+	case 209:
+		audioLib()->audioMute(-1);
+		break;
+
+	case 210:
+		_expressionStackPointer--;
+		audioLib()->audioMute((_expressionStack[_expressionStackPointer] != 0) ? 1 : 0);
+		break;
+
+	case 211: {
+		byte record[10];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3PlayMidi);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		bool flag = (_expressionStack[_expressionStackPointer] != 0);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 8, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		if (!flag && READ_LE_UINT16(record + 8) == 0)
+			WRITE_LE_UINT16(record + 6, 0);
+		else
+			WRITE_LE_UINT16(record + 6, 1);
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_playMidi(record);
+		break;
+	}
+
+	case 212: {
+		byte parameters[TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE];
+
+		memset(parameters, 0, sizeof(parameters));
+		_expressionStackPointer--;
+		parameters[3] = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		_expressionStackPointer--;
+		o_playWave((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS), parameters);
+		break;
+	}
+
+	case 213: {
+		byte parameters[TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE];
+
+		memset(parameters, 0, sizeof(parameters));
+		_expressionStackPointer--;
+		int32 maximumDelay = (int16)_expressionStack[_expressionStackPointer];
+		WRITE_LE_UINT32(parameters + 0x12, (uint32)maximumDelay);
+		_expressionStackPointer--;
+		int32 minimumDelay = (int16)_expressionStack[_expressionStackPointer];
+		WRITE_LE_UINT32(parameters + 0x0E, (uint32)minimumDelay);
+		_expressionStackPointer--;
+		uint16 loops = _expressionStack[_expressionStackPointer];
+
+		if ((minimumDelay != 0 || maximumDelay != 0) && loops == 0)
+			loops = 0xFFFF;
+
+		WRITE_LE_UINT16(parameters, loops);
+		_expressionStackPointer--;
+		WRITE_LE_UINT32(parameters + 0x0A, (uint32)(int32)(int16)_expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		WRITE_LE_UINT32(parameters + 6, (uint32)(int32)(int16)_expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		parameters[5] = (byte)_expressionStack[_expressionStackPointer];
+
+		if (parameters[5] > TG_BUILTIN_V1_2_7_MAX_WAVE_VOLUME)
+			parameters[5] = TG_BUILTIN_V1_2_7_MAX_WAVE_VOLUME;
+
+		_expressionStackPointer--;
+		parameters[2] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		parameters[4] = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		_expressionStackPointer--;
+		bool flag = (_expressionStack[_expressionStackPointer] != 0);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(parameters + 0x16, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+		if (!flag && READ_LE_UINT16(parameters + 0x16) == 0)
+			parameters[3] = 0;
+		else
+			parameters[3] = 1;
+
+		_expressionStackPointer--;
+		o_playWave((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS), parameters);
+		break;
+	}
+
+	case 214: {
+		byte record[14];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetMidiParams);
+		record[5] = 1;
+		_expressionStackPointer--;
+		uint16 denominator = _expressionStack[_expressionStackPointer];
+
+		if (denominator == 0)
+			denominator = 1;
+
+		denominator -= TG_HOST_V1_2_3_LITERAL_BIAS;
+		_expressionStackPointer--;
+		uint16 numerator = _expressionStack[_expressionStackPointer];
+
+		if (numerator == 0)
+			denominator = 1;
+
+		numerator -= TG_HOST_V1_2_3_LITERAL_BIAS;
+		WRITE_LE_UINT16(record + 0x0A, denominator);
+		WRITE_LE_UINT16(record + 0x0C, numerator);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setMidiParams(record);
+		break;
+	}
+
+	case 215: {
+		byte record[14];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetMidiParams);
+		record[5] = 1;
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_setMidiParams(record);
+		break;
+	}
+
+	case 216: {
+		byte record[16];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetMidiParams);
+		record[4] = 1;
+		_expressionStackPointer--;
+		uint16 enable = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		WRITE_LE_UINT16(record + 0x0E, enable);
+		_expressionStackPointer--;
+		uint16 channel = _expressionStack[_expressionStackPointer];
+
+		if (channel > TG_BUILTIN_V1_2_7_MAX_MIDI_CHANNEL)
+			channel = TG_BUILTIN_V1_2_7_MAX_MIDI_CHANNEL;
+
+		if (channel != 0)
+			channel--;
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		WRITE_LE_UINT16(record + 6, (uint16)(1 << channel));
+		WRITE_LE_UINT16(record + 8, (uint16)(enable << channel));
+		o_setMidiParams(record);
+		break;
+	}
+
+	case 217:
+	case 218:
+	case 219:
+	case 220: {
+		byte record[4];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetVolume);
+
+		// The wave volume is reached only by the kind 3 that no built-in selects
+		if (code == 218)
+			record[3] = 1;
+		else if (code == 219)
+			record[3] = 2;
+
+		_expressionStackPointer--;
+		record[2] = ((int16)_expressionStack[_expressionStackPointer] >= 0) ? 1 : 0;
+		o_setVolume(record);
+		break;
+	}
+
+	case 221: {
+		_expressionStackPointer--;
+		uint16 id = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+		uint16 type = resourceLib()->resGetType(_file, operandValue(id));
+
+		_expressionStack[_expressionStackPointer - 1] = isResourceObjectLoaded(id, type) ? 1 : 0;
+		break;
+	}
+
+	case 222: {
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3TransferSprite);
+		_expressionStackPointer--;
+		record[0x0A] = (byte)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		o_transferSprite(record);
+		break;
+	}
+
+	case 223: {
+		byte record[4];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3SetMouseEventScript);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_setMouseEventScript(record);
+		break;
+	}
+
+	case 224: {
+		byte record[10];
+
+		memset(record, 0, sizeof(record));
+		WRITE_LE_UINT16(record, kOpV1_2_3ListRunScript);
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		record[8] = (READ_LE_UINT16(record + 4) == 0xFFFF) ? 1 : 0;
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		_expressionStackPointer--;
+		record[9] = (_expressionStack[_expressionStackPointer] != 0) ? 1 : 0;
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 6, _expressionStack[_expressionStackPointer]);
+		o_listRunScript(record);
+		break;
+	}
+
+	case 225: {
+		_expressionStackPointer--;
+		uint16 script = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+
+		if (script == 0) {
+			_numClickRegions = 0;
+		} else {
+			for (uint16 i = 0; i < _numClickRegions; i++) {
+				_clickRegions[i].script = script;
+				_clickRegions[i].disabled = 0;
+			}
+		}
+
+		break;
+	}
+
+	case 226: {
+		_expressionStackPointer--;
+		uint16 script = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+
+		if (!_records)
+			break;
+
+		for (uint16 i = 0; i < _numResources; i++) {
+			if (resourceLib()->resGetType(_file, i) == spriteType && _records[i].data)
+				WRITE_LE_UINT16(_records[i].data + TG_INPUT_V1_2_3_OBJECT_CLICK_SCRIPT, script);
+		}
+
+		break;
+	}
+
+	case 231:
+	case 232:
+	case 233:
+	case 234:
+	case 235:
+	case 236: {
+		byte record[12];
+
+		memset(record, 0, sizeof(record));
+
+		if (code == 231 || code == 232) {
+			_expressionStackPointer--;
+			WRITE_LE_UINT16(record + 4, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		}
+
+		if (code == 235 || code == 236) {
+			_expressionStackPointer--;
+
+			if (_expressionStack[_expressionStackPointer] != 0)
+				record[8] = 1;
+			else
+				record[9] = 1;
+		}
+
+		if (code == 232 || code == 234 || code == 236) {
+			_expressionStackPointer--;
+			record[6] = (byte)_expressionStack[_expressionStackPointer];
+			_expressionStackPointer--;
+			record[7] = (byte)_expressionStack[_expressionStackPointer];
+		}
+
+		_expressionStackPointer--;
+		WRITE_LE_UINT16(record + 2, _expressionStack[_expressionStackPointer]);
+		o_bindKeyScript(record);
+		break;
+	}
+
 	default:
 		break;
 	}
 }
 
-uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second) {
+uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second, int16 deltaX, int16 deltaY) {
 	if (!validateAndGetResourceByType((uint16)(first - TG_HOST_V1_2_3_LITERAL_BIAS), kResV1_2_3Bitmap))
 		return 0;
 
 	uint16 textType = kResV1_2_3Text;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		textType = kResV1_2_7Text;
+	else if (_version >= kVersionV1_2_5)
 		textType = kResV1_2_5Text;
 
 	uint16 type = resourceLib()->resGetType(_file, second);
@@ -1401,6 +2727,7 @@ uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second
 
 	spriteLib()->spriteDibGetBox(firstBitmap, firstBox);
 	spriteLib()->spriteDibGetBox(secondBitmap, secondBox);
+	secondBox.translate(deltaX, deltaY);
 
 	if (!firstBox.intersects(secondBox))
 		return 0;
@@ -1415,29 +2742,35 @@ uint16 TopgunEngine_v1_2_3::builtinBlitBitmapOverlap(uint16 first, uint16 second
 
 uint16 TopgunEngine_v1_2_3::builtinCopyResource(uint16 id) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
-	if (resourceLib()->resGetType(_file, id) != spriteType)
+	uint16 type = resourceLib()->resGetType(_file, id);
+	if (type != spriteType && (_version < kVersionV1_2_7 || type != kResV1_2_7Table))
 		return 0;
 
 	uint16 copy = resourceLib()->resCopyResource(_file, id);
 
 	if (copy != 0)
-		validateAndGetResourceByType((uint16)(copy - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType);
+		validateAndGetResourceByType((uint16)(copy - TG_HOST_V1_2_3_LITERAL_BIAS), type);
 
 	return copy;
 }
 
 uint16 TopgunEngine_v1_2_3::builtinDeleteResource(uint16 id) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
-	if (resourceLib()->resGetType(_file, id) != spriteType)
+	uint16 type = resourceLib()->resGetType(_file, id);
+	if (type != spriteType && (_version < kVersionV1_2_7 || type != kResV1_2_7Table))
 		return 0;
 
-	if (!destroyResourceObjectByType((uint16)(id - TG_HOST_V1_2_3_LITERAL_BIAS), spriteType))
+	if (!destroyResourceObjectByType((uint16)(id - TG_HOST_V1_2_3_LITERAL_BIAS), type))
 		return 0;
 
 	if (!resourceLib()->resDeleteResource(_file, id))

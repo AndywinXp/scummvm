@@ -19,10 +19,17 @@
  *
  */
 
+#include "common/archive.h"
 #include "common/endian.h"
+#include "common/savefile.h"
+#include "common/system.h"
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "topgun/games/ace/ace1util.h"
+#include "topgun/games/ace/dynalloc.h"
+#include "topgun/games/ace/fileio.h"
+#include "topgun/games/ace/pathfind.h"
 #include "topgun/games/battle/battle.h"
 #include "topgun/libraries/resource/resource_v1_2_3.h"
 #include "topgun/libraries/sprite/sprite_v1_2_3.h"
@@ -32,9 +39,21 @@
 
 namespace Topgun {
 
+struct MmioFile {
+	bool open;
+	bool writable;
+	bool modified;
+	Common::String name;
+	Common::Array<byte> data;
+	uint32 position;
+
+	MmioFile() : open(false), writable(false), modified(false), position(0) {}
+};
+
 class EnginePluginHost : public PluginHost {
 public:
 	EnginePluginHost(TopgunEngine_v1_2_3 *engine) : _engine(engine) {}
+	~EnginePluginHost() override;
 
 	uint16 *variableTable() override;
 	void setScriptTimer(uint16 timerId, uint32 delay, uint16 script) override;
@@ -58,17 +77,38 @@ public:
 	void spriteSwapOrder(uint16 first, uint16 second, uint16 onlyIfSecondAbove, uint16 refresh) override;
 	void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) override;
 	void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) override;
-	const char *getString(uint16 id) override;
+	char *getString(uint16 id) override;
 	void copyStringVariable(uint16 index, char *destination) override;
 	void setScriptResult(uint16 value) override;
 	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) override;
 	void writePrivateProfileString(const char *section, const char *key, const char *value) override;
+	char *getVariableString(uint16 id) override;
+	uint16 readAddress(uint16 address) override;
+	void writeAddress(uint16 address, uint16 value) override;
+	uint16 runMessage(uint16 script, const uint16 *arguments, uint16 count) override;
+	uint16 getModulePath(char *destination, uint16 size) override;
+	uint16 getErrorFileHandle() override;
+	uint16 mmioOpen(const char *name, uint32 flags) override;
+	uint16 mmioClose(uint16 handle) override;
+	int32 mmioRead(uint16 handle, byte *buffer, int32 count) override;
+	int32 mmioWrite(uint16 handle, const byte *buffer, int32 count) override;
+	int32 mmioSeek(uint16 handle, int32 offset, int origin) override;
 	void setMessageFilter(Plugin *plugin) override;
 	void setNetworkMessageCallback(Plugin *plugin) override;
 
 private:
+	MmioFile *findFile(uint16 handle);
+
 	TopgunEngine_v1_2_3 *_engine;
+	Common::Array<MmioFile> _files;
 };
+
+EnginePluginHost::~EnginePluginHost() {
+	for (uint16 i = 0; i < _files.size(); i++) {
+		if (_files[i].open)
+			mmioClose(i + 1);
+	}
+}
 
 uint16 *EnginePluginHost::variableTable() {
 	return _engine->_variableTable;
@@ -133,7 +173,9 @@ void EnginePluginHost::getSpriteRect(uint16 sprite, Common::Rect &rect) {
 
 void EnginePluginHost::setSpriteLevel(uint16 sprite, uint16 level) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_5)
+	if (_engine->_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
@@ -183,7 +225,9 @@ bool EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argume
 
 void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_5)
+	if (_engine->_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
@@ -321,7 +365,9 @@ void EnginePluginHost::spriteSwapOrder(uint16 first, uint16 second, uint16 onlyI
 
 void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_5)
+	if (_engine->_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
@@ -345,7 +391,7 @@ void EnginePluginHost::setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 
 	_engine->spriteLib()->spriteSetMotion(handle, motion);
 }
 
-const char *EnginePluginHost::getString(uint16 id) {
+char *EnginePluginHost::getString(uint16 id) {
 	return _engine->getStringFromId(id);
 }
 
@@ -372,6 +418,186 @@ void EnginePluginHost::writePrivateProfileString(const char *section, const char
 	_engine->writePrivateProfileString(section, key, value);
 }
 
+char *EnginePluginHost::getVariableString(uint16 id) {
+	if (id == 0 || (id & TG_HOST_V1_2_STRING_ID_CONSTANT) != 0)
+		return nullptr;
+
+	return _engine->getStringFromId(id);
+}
+
+uint16 EnginePluginHost::readAddress(uint16 address) {
+	return _engine->readAddress(address);
+}
+
+void EnginePluginHost::writeAddress(uint16 address, uint16 value) {
+	_engine->writeAddress(address, value);
+}
+
+uint16 EnginePluginHost::runMessage(uint16 script, const uint16 *arguments, uint16 count) {
+	byte record[TG_PLUGIN_V1_2_7_RUN_MESSAGE_HEADER_SIZE + 2 * TG_PLUGIN_V1_2_7_RUN_MESSAGE_MAX_ARGUMENTS];
+	memset(record, 0, sizeof(record));
+
+	if (count > TG_PLUGIN_V1_2_7_RUN_MESSAGE_MAX_ARGUMENTS) {
+		warning("EnginePluginHost::runMessage(): %d arguments are too many", count);
+		count = TG_PLUGIN_V1_2_7_RUN_MESSAGE_MAX_ARGUMENTS;
+	}
+
+	WRITE_LE_UINT16(record, kOpV1_2_3CallScript);
+	WRITE_LE_UINT16(record + 2, (uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS));
+	record[4] = TG_PLUGIN_V1_2_7_RUN_MESSAGE_FRAME_OFFSET;
+	record[5] = (byte)count;
+
+	for (uint16 i = 0; i < count; i++)
+		WRITE_LE_UINT16(record + TG_PLUGIN_V1_2_7_RUN_MESSAGE_HEADER_SIZE + 2 * i, (uint16)(arguments[i] - TG_HOST_V1_2_3_LITERAL_BIAS));
+
+	_engine->_scriptResult = 1;
+	_engine->o_callScript(record);
+
+	return _engine->_scriptResult;
+}
+
+uint16 EnginePluginHost::getModulePath(char *destination, uint16 size) {
+	if (size != 0)
+		destination[0] = '\0';
+
+	return 0;
+}
+
+uint16 EnginePluginHost::getErrorFileHandle() {
+	return _engine->_reservedScriptWord;
+}
+
+MmioFile *EnginePluginHost::findFile(uint16 handle) {
+	if (handle == 0 || handle > _files.size() || !_files[handle - 1].open)
+		return nullptr;
+
+	return &_files[handle - 1];
+}
+
+uint16 EnginePluginHost::mmioOpen(const char *name, uint32 flags) {
+	Common::SaveFileManager *saveFileManager = g_system->getSavefileManager();
+	Common::String fileName = Common::Path(name, '\\').getLastComponent().toString();
+
+	if ((flags & kMmioDelete) != 0)
+		return saveFileManager->removeSavefile(fileName) ? 1 : 0;
+
+	if ((flags & kMmioExist) != 0)
+		return (saveFileManager->exists(fileName) || SearchMan.hasFile(Common::Path(fileName))) ? 1 : 0;
+
+	MmioFile file;
+	file.open = true;
+	file.name = fileName;
+	file.writable = ((flags & 3) != kMmioRead);
+
+	if ((flags & kMmioCreate) != 0) {
+		file.modified = true;
+	} else {
+		Common::SeekableReadStream *stream = saveFileManager->openForLoading(fileName);
+		if (!stream)
+			stream = SearchMan.createReadStreamForMember(Common::Path(fileName));
+
+		if (!stream)
+			return 0;
+
+		file.data.resize(stream->size());
+		if (!file.data.empty())
+			stream->read(file.data.data(), file.data.size());
+
+		delete stream;
+	}
+
+	for (uint16 i = 0; i < _files.size(); i++) {
+		if (!_files[i].open) {
+			_files[i] = file;
+			return i + 1;
+		}
+	}
+
+	_files.push_back(file);
+	return _files.size();
+}
+
+uint16 EnginePluginHost::mmioClose(uint16 handle) {
+	MmioFile *file = findFile(handle);
+	if (!file)
+		return 1;
+
+	bool saved = true;
+
+	if (file->writable && file->modified) {
+		Common::OutSaveFile *stream = g_system->getSavefileManager()->openForSaving(file->name, false);
+
+		if (stream) {
+			if (!file->data.empty())
+				stream->write(file->data.data(), file->data.size());
+
+			stream->finalize();
+			delete stream;
+		} else {
+			warning("EnginePluginHost::mmioClose(): cannot write the file '%s'", file->name.c_str());
+			saved = false;
+		}
+	}
+
+	*file = MmioFile();
+	return saved ? 0 : 1;
+}
+
+int32 EnginePluginHost::mmioRead(uint16 handle, byte *buffer, int32 count) {
+	MmioFile *file = findFile(handle);
+	if (!file)
+		return -1;
+
+	if (count <= 0 || file->position >= file->data.size())
+		return 0;
+
+	uint32 length = MIN<uint32>(count, file->data.size() - file->position);
+
+	memcpy(buffer, file->data.data() + file->position, length);
+	file->position += length;
+	return length;
+}
+
+int32 EnginePluginHost::mmioWrite(uint16 handle, const byte *buffer, int32 count) {
+	MmioFile *file = findFile(handle);
+	if (!file || !file->writable)
+		return -1;
+
+	if (count <= 0)
+		return 0;
+
+	if (file->position + count > file->data.size())
+		file->data.resize(file->position + count);
+
+	memcpy(file->data.data() + file->position, buffer, count);
+	file->position += count;
+	file->modified = true;
+	return count;
+}
+
+int32 EnginePluginHost::mmioSeek(uint16 handle, int32 offset, int origin) {
+	MmioFile *file = findFile(handle);
+	if (!file)
+		return -1;
+
+	int64 target;
+
+	if (origin == SEEK_SET)
+		target = offset;
+	else if (origin == SEEK_CUR)
+		target = (int64)file->position + offset;
+	else if (origin == SEEK_END)
+		target = (int64)file->data.size() + offset;
+	else
+		return -1;
+
+	if (target < 0)
+		return -1;
+
+	file->position = (uint32)target;
+	return (int32)file->position;
+}
+
 void EnginePluginHost::setMessageFilter(Plugin *plugin) {
 	_engine->_messageFilter = plugin;
 }
@@ -383,6 +609,18 @@ void EnginePluginHost::setNetworkMessageCallback(Plugin *plugin) {
 Plugin *createPlugin(const Common::String &name, PluginHost *host) {
 	if (name.equalsIgnoreCase("BATTLE.DLL"))
 		return new BattlePlugin(host);
+
+	if (name.equalsIgnoreCase("ACE1UTIL.R16"))
+		return new Ace1UtilPlugin();
+
+	if (name.equalsIgnoreCase("FILEIO.R16"))
+		return new FileIoPlugin(host);
+
+	if (name.equalsIgnoreCase("DYNALLOC.R16"))
+		return new DynAllocPlugin(host);
+
+	if (name.equalsIgnoreCase("PATHFIND.R16"))
+		return new PathFindPlugin(host);
 
 	return nullptr;
 }
@@ -422,29 +660,71 @@ void TopgunEngine_v1_2_3::unloadPluginLibrary() {
 
 bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 	uint32 size = 0;
-	byte *names = resourceLib()->resLoadKeyResource(_file, TG_RES_V1_2_3_KEY_PLUGIN_NAMES, &size);
+	uint32 librariesSize = 0;
+	byte *libraries = nullptr;
+	byte *names;
 
 	_pluginFunctions.clear();
 
-	if (!names)
-		return size == 0;
+	if (_version >= kVersionV1_2_7) {
+		libraries = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_7_KEY_FUNCTION_LIBRARIES, &librariesSize);
+		if (!libraries)
+			return false;
+
+		names = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_7_KEY_FUNCTION_NAMES, &size);
+		if (!names) {
+			utilsLibrary()->tgFree(libraries);
+			return false;
+		}
+	} else {
+		names = resourceLib()->resLoadKeyResource(_file, TG_RES_V1_2_3_KEY_PLUGIN_NAMES, &size);
+		if (!names)
+			return size == 0;
+	}
 
 	uint32 consumed = 0;
+	uint16 index = 0;
 
 	while (consumed < size) {
 		uint32 length = 0;
 		while (consumed + length < size && names[consumed + length] != 0)
 			length++;
 
-		int function = _plugin->findFunction(Common::String((const char *)names + consumed, length));
-		if (function < 0)
-			break;
+		PluginFunction_v1_2_3 entry;
+		Plugin *plugin = _plugin;
 
-		_pluginFunctions.push_back(function);
+		if (_version >= kVersionV1_2_7) {
+			if (2 * (uint32)index + 2 > librariesSize) {
+				warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): function %d has no library", index);
+				break;
+			}
+
+			entry.library = READ_LE_UINT16(libraries + 2 * index);
+			if (entry.library >= _pluginLibraries.size()) {
+				warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): library %d does not exist", entry.library);
+				break;
+			}
+
+			plugin = _pluginLibraries[entry.library]->plugin;
+		}
+
+		Common::String name((const char *)names + consumed, length);
+
+		entry.function = plugin->findFunction(name);
+		if (entry.function < 0) {
+			warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): the function '%s' does not exist", name.c_str());
+			break;
+		}
+
+		_pluginFunctions.push_back(entry);
 		consumed += length + 1;
+		index++;
 	}
 
 	utilsLibrary()->tgFree(names);
+
+	if (libraries)
+		utilsLibrary()->tgFree(libraries);
 
 	return consumed >= size;
 }
@@ -452,17 +732,172 @@ bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 void TopgunEngine_v1_2_3::exprCallPluginFunction(uint16 function, uint16 count) {
 	_expressionStackPointer -= count;
 
-	if (!_plugin || function >= _pluginFunctions.size()) {
+	Plugin *plugin = _plugin;
+
+	if (_version >= kVersionV1_2_7 && function < _pluginFunctions.size())
+		plugin = _pluginLibraries[_pluginFunctions[function].library]->plugin;
+
+	if (!plugin || function >= _pluginFunctions.size()) {
 		warning("TopgunEngine_v1_2_3::exprCallPluginFunction(): plug-in function %d does not exist", function);
 		_expressionStack[_expressionStackPointer - 1] = 0;
 		return;
 	}
 
-	_expressionStack[_expressionStackPointer - 1] = _plugin->callFunction(_pluginFunctions[function], &_expressionStack[_expressionStackPointer], count);
+	_expressionStack[_expressionStackPointer - 1] = plugin->callFunction(_pluginFunctions[function].function, &_expressionStack[_expressionStackPointer], count);
 }
 
 bool TopgunEngine_v1_2_3::callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
 	return _messageFilter && _messageFilter->messageFilter(message, wParam, lParamLow, lParamHigh) != 0;
+}
+
+bool TopgunEngine_v1_2_3::loadAndRegisterLibraries() {
+	uint32 size = 0;
+	byte *names = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_7_KEY_LIBRARY_NAMES, &size);
+
+	if (!names)
+		return size == 0;
+
+	bool ok = true;
+	uint32 consumed = 0;
+
+	while (ok && consumed < size) {
+		uint32 length = 0;
+		while (consumed + length < size && names[consumed + length] != 0)
+			length++;
+
+		Common::String fileName = Common::String((const char *)names + consumed, length) + ".r16";
+
+		PluginModule_v1_2_7 *module = loadPluginModule(fileName);
+		if (!module) {
+			fatalError(102, Common::String::format("Can't open file '%s'.", fileName.c_str()));
+			ok = false;
+		} else if (!registerExternalLibrary(module)) {
+			freePluginModule(module);
+			fatalError(102, Common::String::format("Can't open file '%s'.", fileName.c_str()));
+			ok = false;
+		}
+
+		consumed += length + 1;
+	}
+
+	if (ok && !loadPluginFunctionTable()) {
+		fatalError(100, "Not enough memory to run program. Please\nrefer to the trouble shooting instructions.");
+		ok = false;
+	}
+
+	utilsLibrary()->tgFree(names);
+
+	return ok;
+}
+
+PluginModule_v1_2_7 *TopgunEngine_v1_2_3::loadPluginModule(const Common::String &fileName) {
+	for (uint16 i = 0; i < _pluginModules.size(); i++) {
+		if (fileName.equalsIgnoreCase(_pluginModules[i]->name)) {
+			_pluginModules[i]->refCount++;
+			return _pluginModules[i];
+		}
+	}
+
+	if (!_pluginHost)
+		_pluginHost = new EnginePluginHost(this);
+
+	Plugin *plugin = createPlugin(fileName, _pluginHost);
+	if (!plugin)
+		return nullptr;
+
+	PluginModule_v1_2_7 *module = new PluginModule_v1_2_7();
+	module->name = fileName;
+	module->plugin = plugin;
+	module->refCount = 1;
+
+	_pluginModules.push_back(module);
+	return module;
+}
+
+void TopgunEngine_v1_2_3::freePluginModule(PluginModule_v1_2_7 *module) {
+	module->refCount--;
+
+	if (module->refCount != 0)
+		return;
+
+	for (uint16 i = 0; i < _pluginModules.size(); i++) {
+		if (_pluginModules[i] == module) {
+			_pluginModules.remove_at(i);
+			break;
+		}
+	}
+
+	delete module->plugin;
+	delete module;
+}
+
+bool TopgunEngine_v1_2_3::registerExternalLibrary(PluginModule_v1_2_7 *module) {
+	module->plugin->clearCallbacks();
+
+	if (!module->plugin->init()) {
+		warning("TopgunEngine_v1_2_3::registerExternalLibrary(): the library '%s' does not initialize", module->name.c_str());
+		return false;
+	}
+
+	if (module->plugin->hasTickCallback())
+		_pluginTickProcCount++;
+
+	_pluginLibraries.push_back(module);
+	return true;
+}
+
+void TopgunEngine_v1_2_3::unloadAllPluginModules() {
+	if (_pluginLibraries.empty())
+		return;
+
+	for (int i = (int)_pluginLibraries.size() - 1; i >= 0; i--)
+		_pluginLibraries[i]->plugin->free();
+
+	_pluginFunctions.clear();
+	_pluginsPendingFree = _pluginLibraries;
+	_pluginLibraries.clear();
+	_pluginTickProcCount = 0;
+
+	postMessage(kMsgV1_2_7FreePluginModules, 0, 0);
+}
+
+void TopgunEngine_v1_2_3::freeUnloadedPluginModules() {
+	for (int i = (int)_pluginsPendingFree.size() - 1; i >= 0; i--)
+		freePluginModule(_pluginsPendingFree[i]);
+
+	_pluginsPendingFree.clear();
+}
+
+void TopgunEngine_v1_2_3::notifyPluginsFocusChanged(bool active) {
+	for (int i = (int)_pluginLibraries.size() - 1; i >= 0; i--) {
+		if (_pluginLibraries[i]->plugin->hasFocusCallback())
+			_pluginLibraries[i]->plugin->focusChanged(active);
+	}
+}
+
+void TopgunEngine_v1_2_3::notifyServicePause(bool paused) {
+	for (int i = (int)_pluginLibraries.size() - 1; i >= 0; i--) {
+		if (_pluginLibraries[i]->plugin->hasPauseCallback())
+			_pluginLibraries[i]->plugin->pauseChanged(paused);
+	}
+}
+
+void TopgunEngine_v1_2_3::notifyPluginsLifecycleEvent(uint16 mode, const char *name) {
+	for (int i = (int)_pluginLibraries.size() - 1; i >= 0; i--) {
+		if (_pluginLibraries[i]->plugin->hasSceneCallback())
+			_pluginLibraries[i]->plugin->sceneEvent(mode, name);
+	}
+}
+
+void TopgunEngine_v1_2_3::runRegisteredServiceCallbacks() {
+	uint16 remaining = _pluginTickProcCount;
+
+	for (int i = (int)_pluginLibraries.size() - 1; i >= 0 && remaining != 0; i--) {
+		if (_pluginLibraries[i]->plugin->hasTickCallback()) {
+			_pluginLibraries[i]->plugin->tick();
+			remaining--;
+		}
+	}
 }
 
 } // End of namespace Topgun

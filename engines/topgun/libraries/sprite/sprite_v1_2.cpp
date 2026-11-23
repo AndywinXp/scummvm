@@ -115,7 +115,11 @@ uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw) const {
 }
 
 uint16 SpriteLibrary_v1_2::spriteObjectAlloc(int16 level) {
-	uint16 maxSprites = (_engine->_version >= kVersionV1_2_3) ? TG_SPR_V1_2_3_MAX_SPRITES : TG_SPR_V1_2_MAX_SPRITES;
+	uint16 maxSprites = TG_SPR_V1_2_MAX_SPRITES;
+	if (_engine->_version >= kVersionV1_2_7)
+		maxSprites = TG_SPR_V1_2_7_MAX_SPRITES;
+	else if (_engine->_version >= kVersionV1_2_3)
+		maxSprites = TG_SPR_V1_2_3_MAX_SPRITES;
 
 	if (_spriteCount >= maxSprites) {
 		warning("SpriteLibrary_v1_2::spriteObjectAlloc(): the sprite table is full");
@@ -225,6 +229,10 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	object->boundingBox.right = (int16)(width + object->boundingBox.left);
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
+
+	if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+		object->boundingBox.translate(_scrollPosX, _scrollPosY);
+
 	return true;
 }
 
@@ -302,6 +310,9 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
+	if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+		object->boundingBox.translate(_scrollPosX, _scrollPosY);
+
 	object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
 }
 
@@ -342,6 +353,9 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		part.box.right = (int16)(width + part.box.left);
 		part.box.top = (int16)(hotY + object->y - heightMinusOne / 2);
 		part.box.bottom = (int16)(height + part.box.top);
+
+		if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+			part.box.translate(_scrollPosX, _scrollPosY);
 
 		if (i == 0)
 			object->boundingBox = part.box;
@@ -461,7 +475,11 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 		renderSpriteToSurface(sprite);
 }
 
-bool SpriteLibrary_v1_2::spriteInitLibrary() {
+bool SpriteLibrary_v1_2::spriteInitLibrary(uint16 mode) {
+	if (mode > 4)
+		mode = 0;
+
+	_directMode = (mode != 0);
 	_tickNesting = 0;
 	_bkgTransparent = false;
 	_debugProcSet = false;
@@ -490,6 +508,11 @@ bool SpriteLibrary_v1_2::spriteInitLibrary() {
 	_clipRect = Common::Rect();
 	_scrollX = 0;
 	_scrollY = 0;
+	_scrollPosX = 0;
+	_scrollPosY = 0;
+	_scrollBox = Common::Rect();
+	_scrollSurface = nullptr;
+	_tileBackground = nullptr;
 	_hasLogicalPalette = false;
 	_dibColorUsage = 0;
 	memset(_paletteCopy, 0, sizeof(_paletteCopy));
@@ -505,11 +528,21 @@ bool SpriteLibrary_v1_2::spriteInitLibrary() {
 	int16 screenHeight = display->height();
 
 	display->setViewportOrigin(screenWidth / 2, screenHeight / 2);
-	_clipRect.right = screenWidth;
-	_clipRect.bottom = screenHeight;
-	_scrollX = (screenWidth - 1) / 2;
-	_scrollY = (screenHeight - 1) / 2;
-	_clipRect.translate(-_scrollX, -_scrollY);
+
+	if (_engine->_version >= kVersionV1_2_7) {
+		_screenRect.left = (int16)((1 - screenWidth) / 2);
+		_screenRect.top = (int16)((1 - screenHeight) / 2);
+		_screenRect.right = (int16)(_screenRect.left + screenWidth);
+		_screenRect.bottom = (int16)(_screenRect.top + screenHeight);
+		_scrollRegion = _screenRect;
+		spriteSetBackground(nullptr, false, 0, nullptr);
+	} else {
+		_clipRect.right = screenWidth;
+		_clipRect.bottom = screenHeight;
+		_scrollX = (screenWidth - 1) / 2;
+		_scrollY = (screenHeight - 1) / 2;
+		_clipRect.translate(-_scrollX, -_scrollY);
+	}
 
 	initQueueRecordSizeTable();
 	return true;
@@ -525,6 +558,11 @@ bool SpriteLibrary_v1_2::createComposeBuffer() {
 }
 
 void SpriteLibrary_v1_2::computeClipRect() {
+	if (_engine->_version >= kVersionV1_2_7) {
+		_scrollPosX = 0;
+		_scrollPosY = 0;
+	}
+
 	_clipRect.top = 0;
 	_clipRect.left = 0;
 
@@ -540,11 +578,35 @@ void SpriteLibrary_v1_2::computeClipRect() {
 	_scrollY = (_clipRect.bottom - 1) / 2;
 	_clipRect.translate(-_scrollX, -_scrollY);
 
-	if (_userClipBox.left < _userClipBox.right && _userClipBox.top < _userClipBox.bottom) {
+	if (_engine->_version >= kVersionV1_2_7)
+		_backupRect = _clipRect;
+
+	bool userBoxSet = (_userClipBox.left < _userClipBox.right);
+	if (_engine->_version < kVersionV1_2_7)
+		userBoxSet = (userBoxSet && _userClipBox.top < _userClipBox.bottom);
+
+	if (userBoxSet) {
 		Common::Rect intersection;
 		intersectRects(_clipRect, _userClipBox, intersection);
 		_clipRect = intersection;
 	}
+
+	if (_engine->_version >= kVersionV1_2_7)
+		setScrollRegion(_scrollBox);
+}
+
+void SpriteLibrary_v1_2::setScrollRegion(const Common::Rect &box) {
+	if (box.right > box.left && box.bottom > box.top) {
+		intersectRectLocal(_screenRect, box, _scrollRegion);
+		intersectRectLocal(_scrollRegion, _clipRect, _scrollRegion);
+	} else {
+		_scrollRegion = _screenRect;
+	}
+
+	if (_tileBackground)
+		intersectRectLocal(_scrollRegion, _tileBackground->bounds, _scrollRegion);
+	else if (_backgroundBitmap)
+		intersectRectLocal(_scrollRegion, _backupRect, _scrollRegion);
 }
 
 void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
@@ -608,11 +670,33 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 	}
 
 	_zoomActive = false;
+
+	if (_engine->_version >= kVersionV1_2_7) {
+		_scrollPosX = 0;
+		_scrollPosY = 0;
+	}
+
 	_userClipBox = Common::Rect();
+
+	if (_engine->_version >= kVersionV1_2_7) {
+		_scrollBox = Common::Rect();
+		_scrollRegion = _screenRect;
+		_backupRect = _screenRect;
+	}
+
 	_fillColor = 0;
 	_backgroundBitmap = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_6)
+	if (_engine->_version >= kVersionV1_2_7) {
+		_tileBackground = nullptr;
+
+		if (_scrollSurface) {
+			spriteDibFree(_scrollSurface);
+			_scrollSurface = nullptr;
+		}
+	}
+
+	if (_engine->_version == kVersionV1_2_6)
 		_rubberBandActive = false;
 
 	if (_composeBuffer)
@@ -737,6 +821,9 @@ bool SpriteLibrary_v1_2::spriteAppendBitmap(uint16 sprite, const CelReference &c
 	uint16 count = object->frames.size();
 	appendFrame(object, cel);
 
+	if (_engine->_version >= kVersionV1_2_7)
+		object->currentFrame = object->frames[0];
+
 	if (count == 0) {
 		if (!initSpriteFromFirstCel(sprite)) {
 			object = findSprite(sprite, "spriteAppendBitmap");
@@ -775,6 +862,13 @@ bool SpriteLibrary_v1_2::spriteAppendBitmaps(uint16 sprite, const CelReference *
 	if (count == 0 && oldCount == 0) {
 		warning("SpriteLibrary_v1_2::spriteAppendBitmaps(): there are no frames to append to a sprite without frames");
 		return true;
+	}
+
+	if (_engine->_version >= kVersionV1_2_7) {
+		if (oldCount != 0)
+			object->currentFrame = object->frames[0];
+		else
+			object->currentFrame = nullptr;
 	}
 
 	for (uint16 i = 0; i < count; i++)
@@ -1118,6 +1212,10 @@ bool SpriteLibrary_v1_2::spriteGetBounds(uint16 sprite, Common::Rect &bounds) {
 		return false;
 
 	bounds = object->boundingBox;
+
+	if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+		bounds.translate(-_scrollPosX, -_scrollPosY);
+
 	return true;
 }
 
@@ -1144,14 +1242,29 @@ uint16 SpriteLibrary_v1_2::spriteIsVisible(uint16 sprite) {
 
 void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect) {
 	_backgroundBitmap = nullptr;
+
+	if (_engine->_version >= kVersionV1_2_7) {
+		if (_tileBackground) {
+			spriteResetComposeBuffer();
+			_tileBackground = nullptr;
+		}
+
+		if (_scrollSurface) {
+			spriteDibFree(_scrollSurface);
+			_scrollSurface = nullptr;
+		}
+	}
+
 	_fillColor = 0;
 
-	if (noClear)
-		_fillColor = TG_SPR_V1_2_FILL_NONE;
-	else if (background)
-		_backgroundBitmap = background;
-	else
-		_fillColor = colorWord & 0xFF;
+	if (_engine->_version < kVersionV1_2_7 || !_directMode) {
+		if (noClear)
+			_fillColor = TG_SPR_V1_2_FILL_NONE;
+		else if (background)
+			_backgroundBitmap = background;
+		else
+			_fillColor = colorWord & 0xFF;
+	}
 
 	computeClipRect();
 
@@ -1449,6 +1562,28 @@ void SpriteLibrary_v1_2_3::spriteSetExtraId(uint16 sprite, uint16 extraId) {
 		return;
 
 	object->extraId = extraId;
+}
+
+uint16 SpriteLibrary_v1_2_3::spriteGetNumCels(uint16 sprite) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "spriteGetNumCels");
+	if (!object)
+		return 0;
+
+	return (uint16)object->frames.size();
+}
+
+void SpriteLibrary_v1_2_3::spriteSetSpriteClipBox(uint16 sprite, const Common::Rect *box) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetSpriteClipBox");
+	if (!object)
+		return;
+
+	if (box && box->right > box->left && box->bottom > box->top) {
+		object->hasClipBox = true;
+		object->clipBox = *box;
+	} else {
+		object->hasClipBox = false;
+		object->clipBox = Common::Rect();
+	}
 }
 
 void SpriteLibrary_v1_2_3::spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {

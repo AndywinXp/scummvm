@@ -71,6 +71,12 @@
 // Plug-ins
 #define TG_PLUGIN_V1_2_3_STRING_COPY_SIZE          0x7F
 #define TG_PLUGIN_V1_2_3_FRAME_IDS_SIZE            4
+#define TG_PLUGIN_V1_2_7_KEY_LIBRARY_NAMES         10
+#define TG_PLUGIN_V1_2_7_KEY_FUNCTION_NAMES        11
+#define TG_PLUGIN_V1_2_7_KEY_FUNCTION_LIBRARIES    12
+#define TG_PLUGIN_V1_2_7_RUN_MESSAGE_FRAME_OFFSET  0x20
+#define TG_PLUGIN_V1_2_7_RUN_MESSAGE_MAX_ARGUMENTS 8
+#define TG_PLUGIN_V1_2_7_RUN_MESSAGE_HEADER_SIZE   6
 
 // Resource objects
 #define TG_HOST_V1_2_3_SPRITE_DATA_ORIGINAL_COUNT  2
@@ -85,6 +91,9 @@
 #define TG_HOST_V1_2_3_SPRITE_DATA_PALETTE_ENTRIES 0x1C
 #define TG_HOST_V1_2_6_SPRITE_DATA_SHIFT           2    // every field after the click script moves up by this much
 #define TG_HOST_V1_2_6_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0E
+#define TG_HOST_V1_2_7_SPRITE_DATA_SCROLLABLE      0x16
+#define TG_HOST_V1_2_7_SPRITE_DATA_MEMBERS         0x18
+#define TG_HOST_V1_2_7_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x10
 #define TG_HOST_V1_2_3_PALETTE_EXTENSION_END       0xF6
 #define TG_HOST_V1_2_3_BITMAP_HEADER_SIZE          0x14
 #define TG_HOST_V1_2_3_BITMAP_HOT_X                0x0A
@@ -92,6 +101,18 @@
 #define TG_HOST_V1_2_3_BITMAP_RESOURCE_ID          0x0E
 #define TG_HOST_V1_2_3_GROUP_X                     2
 #define TG_HOST_V1_2_3_GROUP_Y                     4
+#define TG_HOST_V1_2_7_BITMAP_FLAGS_KEPT_MASK      0xCF
+#define TG_HOST_V1_2_7_CELL_FLAGS                  2
+#define TG_HOST_V1_2_7_CELL_FLAGS_MASK             0x30
+#define TG_HOST_V1_2_7_CELL_X                      4
+#define TG_HOST_V1_2_7_CELL_Y                      6
+#define TG_HOST_V1_2_7_TABLE_RESOURCE_ID           8
+#define TG_HOST_V1_2_7_TILE_HEADER_SIZE            12
+#define TG_HOST_V1_2_7_TILE_WIDTH                  0
+#define TG_HOST_V1_2_7_TILE_HEIGHT                 2
+#define TG_HOST_V1_2_7_TILE_COLUMNS                4
+#define TG_HOST_V1_2_7_TILE_ROWS                   6
+#define TG_HOST_V1_2_7_TILE_LAYOUT                 8
 #define TG_HOST_V1_2_3_MAX_FRAME_BATCH             50
 
 // Strings
@@ -130,6 +151,19 @@
 #define TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE         0x8D
 #define TG_SCRIPT_V1_2_5_LAST_BUILTIN_CODE         0x8F
 #define TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE         0xB2
+#define TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE         0xEC
+#define TG_BUILTIN_V1_2_7_MAX_TABLE_DIMENSIONS     5    // (0x16 - 0x0C) / 2 stride words
+#define TG_BUILTIN_V1_2_7_TABLE_HEADER_SIZE        0x20 // the elements follow the header
+#define TG_BUILTIN_V1_2_7_TABLE_COUNT              4
+#define TG_BUILTIN_V1_2_7_TABLE_DIMENSIONS         0x0A
+#define TG_BUILTIN_V1_2_7_TABLE_STRIDES            0x0C
+#define TG_BUILTIN_V1_2_7_TABLE_SIZES              0x16
+#define TG_BUILTIN_V1_2_7_MAX_WAVE_VOLUME          0x10
+#define TG_BUILTIN_V1_2_7_MAX_MIDI_CHANNEL         16
+#define TG_BUILTIN_V1_2_7_MAX_COLOR_DISTANCE       1000
+#define TG_BUILTIN_V1_2_7_NO_NEAREST_COLOR         0xFF
+#define TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE         0xEC
+#define TG_SCRIPT_V1_2_7_TABLE_ADDRESS             0x131A
 #define TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE     20
 #define TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE       16
 #define TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE     22
@@ -237,6 +271,10 @@ enum MessageId_v1_2_3 {
 	kMsgV1_2_3KeyUp = 0x101
 };
 
+enum MessageId_v1_2_7 {
+	kMsgV1_2_7FreePluginModules = 0x5F4
+};
+
 enum ResourceType_v1_2_3 {
 	kResV1_2_3Bitmap = 1,
 	kResV1_2_3Midi = 4,
@@ -264,6 +302,24 @@ enum ResourceType_v1_2_5 {
 	kResV1_2_5Script = 16,
 	kResV1_2_5Sprite = 17,
 	kResV1_2_5Text = 18
+};
+
+// The numbering of the types from the movie on moves up by one to make room for the table; the tile is new
+enum ResourceType_v1_2_7 {
+	kResV1_2_7Bitmap = 1,
+	kResV1_2_7Midi = 4,
+	kResV1_2_7Wave = 9,
+	kResV1_2_7Table = 10,
+	kResV1_2_7Movie = 11,
+	kResV1_2_7OpList = 12,
+	kResV1_2_7Cell = 13,
+	kResV1_2_7Group = 14,
+	kResV1_2_7Palette = 15,
+	kResV1_2_7SpriteQueueData = 16,
+	kResV1_2_7Script = 17,
+	kResV1_2_7Sprite = 18,
+	kResV1_2_7Text = 19,
+	kResV1_2_7Tile = 20
 };
 
 enum ScriptOpcode_v1_2_3 {
@@ -421,6 +477,29 @@ struct NativeTimer_v1_2_3 {
 	NativeTimer_v1_2_3() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
 };
 
+struct PluginModule_v1_2_7 {
+	Common::String name;
+	Plugin *plugin;
+	uint16 refCount;
+
+	PluginModule_v1_2_7() : plugin(nullptr), refCount(0) {}
+};
+
+struct PluginFunction_v1_2_3 {
+	uint16 library;
+	int function;
+
+	PluginFunction_v1_2_3() : library(0), function(0) {}
+};
+
+struct ScriptCursor_v1_2_7 {
+	uint16 id;
+	uint16 sequentialIndex;
+	uint16 randomIndex;
+
+	ScriptCursor_v1_2_7() : id(0), sequentialIndex(0), randomIndex(0) {}
+};
+
 class EnginePluginHost;
 
 class TopgunEngine_v1_2_3 : public TopgunEngine_v1_2 {
@@ -466,12 +545,20 @@ protected:
 
 	// Resources
 	void applySpritePaletteExtension(const byte *header);
+	bool ensureTableResourceLoaded(uint16 id);
+	void destroyTableResourceObject(uint16 id);
+	bool ensureTileResourceLoaded(uint16 id);
+	void destroyTileResourceObject(uint16 id);
+	bool loadBitmapListToPointers(uint16 count, const byte *list, byte **cells);
+	void releaseTileResourceCells(uint16 count, const byte *list);
 	bool destroyResourceObjectByType(uint16 id, uint16 type) override;
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
 
 	// Backgrounds
 	byte *loadBitmapResourceCopy(uint16 id);
 	void setBackgroundByMode(const byte *record);
+	void setTileScreenRegion(bool repaint, TileBackground *tileMap);
+	void setScrollBox(const Common::Rect &box);
 
 	// Transitions
 	void wipeEffectIrisRings(uint16 rings);
@@ -491,9 +578,20 @@ protected:
 	// Plug-ins
 	bool loadPluginLibrary(const Common::String &name);
 	void unloadPluginLibrary();
+	bool loadAndRegisterLibraries();
+	PluginModule_v1_2_7 *loadPluginModule(const Common::String &fileName);
+	void freePluginModule(PluginModule_v1_2_7 *module);
+	bool registerExternalLibrary(PluginModule_v1_2_7 *module);
 	bool loadPluginFunctionTable();
 	void exprCallPluginFunction(uint16 function, uint16 count);
 	bool callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
+	void unloadAllPluginModules();
+	void freeUnloadedPluginModules();
+	void notifyPluginsFocusChanged(bool active);
+	void notifyServicePause(bool paused);
+	void notifyPluginsLifecycleEvent(uint16 mode, const char *name);
+	void runRegisteredServiceCallbacks();
+	uint16 runScriptHookWithArg(uint16 script, uint16 argument);
 
 	// Expressions
 	void exprCallBuiltinFunction(const byte *token);
@@ -542,7 +640,7 @@ protected:
 	uint16 builtinPauseTimers(uint16 flag); // 109
 	uint16 builtinSetJoystickDistanceMode(uint16 value); // 110
 	uint16 builtinSetSpriteHoverScript(uint16 script); // 111
-	uint16 builtinBlitBitmapOverlap(uint16 first, uint16 second); // 125
+	uint16 builtinBlitBitmapOverlap(uint16 first, uint16 second, int16 deltaX, int16 deltaY); // 125, 206
 	uint16 builtinGetMouseEventScript(); // 129
 	uint16 builtinSetJoystickButtonOffsetMode(uint16 value); // 130
 	uint16 builtinReattachDeviceGroup(uint16 group, uint16 flag); // 137
@@ -633,6 +731,8 @@ protected:
 	// Interpreter state
 	uint16 _debugScriptId = 0;
 	uint16 _reservedScriptWord = 0;
+	Common::Array<ScriptCursor_v1_2_7> _scriptCursors;
+	Common::HashMap<uint16, TileBackground *> _tileBackgrounds;
 	uint16 _waveStartedScript = 0;
 	uint16 _idleScript = 0;
 	uint32 _idleDelay = 0;
@@ -648,9 +748,13 @@ protected:
 	// Plug-in state
 	PluginHost *_pluginHost = nullptr;
 	Plugin *_plugin = nullptr;
-	Common::Array<int> _pluginFunctions;
+	Common::Array<PluginFunction_v1_2_3> _pluginFunctions;
 	Plugin *_messageFilter = nullptr;
 	Plugin *_windowMessageCallback = nullptr;
+	Common::Array<PluginModule_v1_2_7 *> _pluginModules;
+	Common::Array<PluginModule_v1_2_7 *> _pluginLibraries;
+	Common::Array<PluginModule_v1_2_7 *> _pluginsPendingFree;
+	uint16 _pluginTickProcCount = 0;
 
 	// Palette and background state
 	byte _palette[TG_HOST_V1_2_3_PALETTE_SIZE] = {};

@@ -460,7 +460,7 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(uint16 color, co
 
 	surface->clear(0);
 
-	uint32 textColor = display()->hasPalette() ? (color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
+	uint32 textColor = display()->hasPalette() ? display()->getDeviceColorIndex((byte)color) : TG_TEXT_V1_2_SOLID_COLOR;
 	font->drawString(surface, string, 0, 0, width, textColor, Graphics::kTextAlignLeft, 0, false, true);
 
 	return surface;
@@ -542,7 +542,7 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 
 	surface->clear(0);
 
-	uint32 textColor = display()->hasPalette() ? (object->color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
+	uint32 textColor = display()->hasPalette() ? display()->getDeviceColorIndex((byte)object->color) : TG_TEXT_V1_2_SOLID_COLOR;
 	int top = 0;
 
 	if ((flags & TG_TEXT_V1_2_3_FLAG_SINGLE_LINE) != 0) {
@@ -840,7 +840,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 				position = scan;
 
 				byte current = (byte)object->text[scan];
-				if (((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
+				if (_version == kVersionV1_2_6 && ((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
 					scan += 2;
 				else
 					scan++;
@@ -882,7 +882,7 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 		if (object->leadByteBuffered) {
 			value = (uint16)((object->leadByte << 8) | character);
-		} else if ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC)) {
+		} else if (_version == kVersionV1_2_6 && ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
 			object->leadByte = character;
 			object->leadByteBuffered = true;
 			return false;
@@ -966,7 +966,9 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	uint16 type = kResV1_2Text;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		type = kResV1_2_7Text;
+	else if (_version >= kVersionV1_2_5)
 		type = kResV1_2_5Text;
 	else if (_version >= kVersionV1_2_3)
 		type = kResV1_2_3Text;
@@ -1004,7 +1006,9 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_setTextParam(const byte *record) {
 	uint16 textType = kResV1_2_3Text;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		textType = kResV1_2_7Text;
+	else if (_version >= kVersionV1_2_5)
 		textType = kResV1_2_5Text;
 
 	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), textType))

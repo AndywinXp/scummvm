@@ -304,8 +304,8 @@ int32 UtilsLibrary::tangent(int16 angle) {
 
 	int32 value;
 	if (angle == TG_UTILS_ANGLE_HALF_TURN) {
-		// One entry past the end of the tangent table: Monty Python reads the first two sine table values, later games read out of bounds data
-		if (_engine->_version >= kVersionV1_2_3)
+		// One entry past the end of the tangent table: Monty Python and Ace Ventura read the first two sine table values, the other games read out of bounds data
+		if (_engine->_version >= kVersionV1_2_3 && _engine->_version != kVersionV1_2_7)
 			warning("UtilsLibrary::tangent(): the angle is one entry past the end of the tangent table");
 
 		value =(int32)(((uint32)(uint16)kSineTable[1] << 16) | (uint16)kSineTable[0]);

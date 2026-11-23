@@ -43,7 +43,7 @@
 #define TG_SPR_NUM_QUEUE_COMMANDS     29
 #define TG_SPR_QUEUE_RECORD_COPY_SIZE 18
 #define TG_SPR_FRAME_NOTIFICATION     28
-#define TG_SPR_TABLE_SIZE             250
+#define TG_SPR_TABLE_SIZE             400
 #define TG_SPR_PART_BLOCK_SIZE        10
 
 namespace Topgun {
@@ -94,7 +94,7 @@ public:
 	void spriteGetInfo(uint16 sprite, SpriteInfo &info);
 	void spriteGetPalette(byte *destination, uint16 first, uint16 count);
 	virtual void spriteHide(uint16 sprite, bool refresh);
-	virtual bool spriteInitLibrary();
+	virtual bool spriteInitLibrary(uint16 mode = 0);
 	void spritePaint(uint16 sprite);
 	void spritePaintRect(const Common::Rect &rect, bool backgroundCoordinates);
 	virtual uint16 spritePicked(int16 x, int16 y);
@@ -264,8 +264,12 @@ protected:
 	uint16 _spriteCount = 0;
 	int _tickCursor = 0;
 	Common::Rect _clipRect;
+	// Origin of the background coordinates
 	int16 _scrollX = 0;
 	int16 _scrollY = 0;
+	// Scroll position of the scrollable background
+	int16 _scrollPosX = 0;
+	int16 _scrollPosY = 0;
 	bool _hasLogicalPalette = false;
 	uint16 _dibColorUsage = 0;
 	byte _paletteCopy[TG_DISPLAY_NUM_PALETTE_ENTRIES][TG_DISPLAY_PALETTE_ENTRY_SIZE];

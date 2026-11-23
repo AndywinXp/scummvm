@@ -463,7 +463,7 @@ void SpriteLibrary::spriteHide(uint16 sprite, bool refresh) {
 	object->visible = false;
 }
 
-bool SpriteLibrary::spriteInitLibrary() {
+bool SpriteLibrary::spriteInitLibrary(uint16 mode) {
 	_inTick = false;
 	_bkgTransparent = false;
 	_debugProc = 0;

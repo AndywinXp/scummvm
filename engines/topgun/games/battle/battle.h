@@ -733,8 +733,6 @@ private:
 	void kbdTimeout(byte player);
 	void inputTimeout(byte player);
 	void moveDone(uint16 id);
-	uint16 libMain(uint16 instance, uint16 dataSegment, uint16 heapSize, uint16 commandLineSegment, uint16 commandLineOffset);
-	uint16 wep(uint16 exitType);
 	uint16 identity(uint16 ignored, uint16 value);
 
 	// Input

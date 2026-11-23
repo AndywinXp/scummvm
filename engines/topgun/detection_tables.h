@@ -156,7 +156,7 @@ const ADGameDescription gameDescriptions[] = {
 		AD_ENTRY1s("ACE.BIN", "29ed24f8deced71e5f15bb6181b0d7da", 14339127),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
-		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

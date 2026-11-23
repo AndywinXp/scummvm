@@ -120,6 +120,7 @@ public:
 	// Wave sounds
 	uint32 audioGetWaveVolume() override;
 	void audioSetWaveVolume(uint32 volume) override;
+	uint32 audioGetWaveSoundTime(uint16 sound);
 
 	// MIDI
 	uint16 audioPlayMidi(uint16 midi, const byte *params) override;

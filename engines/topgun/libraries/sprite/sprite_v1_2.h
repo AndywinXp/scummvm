@@ -41,6 +41,9 @@
 #define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
 #define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
+#define TG_SPR_V1_2_7_MAX_SPRITES              400
+#define TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING     0xFFF0
+#define TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK        0x0F
 #define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
 #define TG_SPR_V1_2_6_LAST_QUEUE_OPCODE        23
 #define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
@@ -137,6 +140,29 @@ struct CelReference {
 	CelReference(byte *celBitmap, uint16 celId) : bitmap(celBitmap), id(celId) {}
 };
 
+// Tile background. The host fills id, cells, cellCount, tileWidth, tileHeight, columns, rows and layout, the library derives the rest
+struct TileBackground {
+	uint16 id;
+	byte **cells;
+	uint16 cellCount;
+	uint16 tileWidth;
+	uint16 tileHeight;
+	uint16 columns;
+	uint16 rows;
+	uint16 layout;
+	int16 centerX;
+	int16 centerY;
+	int16 halfWidth;
+	int16 halfHeight;
+	int16 width;
+	int16 height;
+	Common::Rect bounds;
+	Common::Rect visible;
+
+	TileBackground() : id(0), cells(nullptr), cellCount(0), tileWidth(0), tileHeight(0), columns(0), rows(0), layout(0),
+		centerX(0), centerY(0), halfWidth(0), halfHeight(0), width(0), height(0) {}
+};
+
 struct SpriteInfo_v1_2 {
 	const byte *currentCommand;
 	byte *frames[TG_SPR_V1_2_NUM_SPRITE_PARTS];
@@ -160,7 +186,7 @@ public:
 	~SpriteLibrary_v1_2() override;
 
 	// Library
-	bool spriteInitLibrary() override;
+	bool spriteInitLibrary(uint16 mode = 0) override;
 	virtual void spriteResetLibrary();
 	void spriteAnimate() override;
 
@@ -265,11 +291,15 @@ protected:
 		bool shadowFlipY;
 		byte *queueCapacityStart;
 		uint32 queueCapacity;
+		bool scrollable;
+		bool hasClipBox;
+		Common::Rect clipBox;
+		uint16 queueLoopStart;
 
 		SpriteObject_v1_2() : level(0), mirrorX(false), flipY(false), pickWholeBox(false), advancePending(false),
 			animates(false), pivotX(0), pivotY(0), anchorX(false), anchorY(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
 			multipartValid(false), paused(false), pickInvisible(false), pickMode(0), active(0), shadowX(0), shadowY(0), shadowMirrorX(false), shadowFlipY(false),
-			queueCapacityStart(nullptr), queueCapacity(0) {}
+			queueCapacityStart(nullptr), queueCapacity(0), scrollable(false), hasClipBox(false), queueLoopStart(0) {}
 	};
 
 	// Sprite objects
@@ -290,6 +320,7 @@ protected:
 	// Library
 	bool createComposeBuffer();
 	void computeClipRect();
+	void setScrollRegion(const Common::Rect &box);
 	void initQueueRecordSizeTable() override;
 	virtual uint16 decodeOperand(uint16 raw) const;
 	void callServiceProc();
@@ -392,6 +423,13 @@ protected:
 	int16 _rubberBandAnchorY = 0;
 	int16 _rubberBandLastX = 0;
 	int16 _rubberBandLastY = 0;
+	bool _directMode = false;
+	Common::Rect _screenRect;
+	Common::Rect _scrollBox;
+	Common::Rect _scrollRegion;
+	Common::Rect _backupRect;
+	byte *_scrollSurface = nullptr;
+	TileBackground *_tileBackground = nullptr;
 
 private:
 	TopgunEngine_v1_2 *engine() const;

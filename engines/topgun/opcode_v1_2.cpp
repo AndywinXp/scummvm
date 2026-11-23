@@ -519,7 +519,9 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 type = kResV1_2_1Text;
-		if (_version >= kVersionV1_2_5)
+		if (_version >= kVersionV1_2_7)
+			type = kResV1_2_7Text;
+		else if (_version >= kVersionV1_2_5)
 			type = kResV1_2_5Text;
 		else if (_version >= kVersionV1_2_3)
 			type = kResV1_2_3Text;
@@ -553,8 +555,12 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_getSpriteRect(const byte *record) {
-	if (_version >= kVersionV1_2_5 && !validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_5Sprite))
+	if (_version >= kVersionV1_2_7) {
+		if (!validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_7Sprite))
+			return;
+	} else if (_version >= kVersionV1_2_5 && !validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_5Sprite)) {
 		return;
+	}
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
 	if (!isRecordIndexValid(index, "o_getSpriteRect"))
@@ -672,7 +678,9 @@ void TopgunEngine_v1_2::o_isSpriteBusy(const byte *record) {
 void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	uint16 firstVariable = READ_LE_UINT16(record + 4);
 	uint16 spriteType = kResV1_2_2Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 	else if (_version >= kVersionV1_2_3)
 		spriteType = kResV1_2_3Sprite;

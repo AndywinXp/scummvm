@@ -390,7 +390,7 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		return;
 	}
 
-	if (_paused && _engine->_version < kVersionV1_2_6)
+	if (_paused && _engine->_version != kVersionV1_2_6)
 		return;
 
 	if (!_paused && _activeSounds != 0)
@@ -400,7 +400,7 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		openAndConfigureMidiOut();
 		_currentMidi->index = 0;
 
-		if (_engine->_version < kVersionV1_2_6 || _midiPauseCount == 0)
+		if (_engine->_version != kVersionV1_2_6 || _midiPauseCount == 0)
 			midiSequencerStep(_currentMidi);
 	}
 }
@@ -414,7 +414,7 @@ void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 	_paused = state;
 	pauseAllPlayback(state ? 1 : 0);
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version == kVersionV1_2_6) {
 		audioPauseMidi(paused);
 		return;
 	}
@@ -424,6 +424,19 @@ void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 }
 
 void AudioLibrary_v1_2_3::audioPauseMidi(uint16 paused) {
+	if (_engine->_version != kVersionV1_2_6) {
+		bool state = (paused != 0);
+
+		if (state != (_midiPauseCount != 0)) {
+			_midiPauseCount = state ? 1 : 0;
+
+			if (_currentMidi)
+				pauseOrResumeMidiPlayback(state ? 1 : 0);
+		}
+
+		return;
+	}
+
 	if (paused != 0) {
 		if (_midiPauseCount == 0 && _currentMidi)
 			pauseOrResumeMidiPlayback(1);
@@ -455,7 +468,7 @@ void AudioLibrary_v1_2_3::audioMute(int16 flag) {
 void AudioLibrary_v1_2_3::audioResetLibrary() {
 	_maxPriority = 0;
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version == kVersionV1_2_6) {
 		_paused = false;
 		_midiPauseCount = 0;
 	}
@@ -490,11 +503,13 @@ void AudioLibrary_v1_2_3::readAudioIniSettings() {
 
 	if (_engine->_version >= kVersionV1_2_6) {
 		_iniCdVolume = readAudioIniInt("cdvolume", 0);
-		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_6_INI_MIDI_VOLUME_UNSET);
 		_iniWaveVolume = readAudioIniInt("wavevolume", 0);
-	} else {
-		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
 	}
+
+	if (_engine->_version == kVersionV1_2_6)
+		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_6_INI_MIDI_VOLUME_UNSET);
+	else
+		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
 
 	_remapMidiDrums = (readAudioIniInt("remapmididrums", 0) != 0);
 }

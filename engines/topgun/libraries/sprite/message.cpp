@@ -109,6 +109,14 @@ bool SpriteLibrary_v1_2_3::dispatchSpriteMessage(uint16 mode, uint16 count, cons
 	const uint16 *params = words + 1;
 	uint16 message = words[0];
 
+	if (_engine->_version >= kVersionV1_2_7) {
+		if (message == kSprV1_2_7MsgMarkLoopStart)
+			return markQueueLoopStart(mode, sprite);
+
+		if (message == kSprV1_2_7MsgLoopJump)
+			return buildQueueLoopJumpMessage(mode, count, params, sprite);
+	}
+
 	if (_engine->_version >= kVersionV1_2_6) {
 		if (message == kSprV1_2_6MsgDelayedMove)
 			return buildDelayedMoveMessage(mode, count, params, sprite);
@@ -187,7 +195,14 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 	if (explicitSize != 0)
 		size = explicitSize;
 
-	uint32 capacity = (uint16)(size + TG_SPR_V1_2_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
+	uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
+	uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
+	if (_engine->_version >= kVersionV1_2_7) {
+		slack = TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK;
+		rounding = TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING;
+	}
+
+	uint32 capacity = (uint16)(size + slack) & rounding;
 
 	// The original leaves the bytes of a new block uninitialized
 	byte *block = engine()->utilsLibrary()->tgMalloc(capacity, 1);
@@ -220,7 +235,14 @@ byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 explicitSize, uint16 opcode,
 		capacity = object->queueCapacity;
 
 	if (needed > capacity) {
-		uint32 newCapacity = (uint16)(needed + TG_SPR_V1_2_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
+		uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
+		uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
+		if (_engine->_version >= kVersionV1_2_7) {
+			slack = TG_SPR_V1_2_7_QUEUE_BLOCK_SLACK;
+			rounding = TG_SPR_V1_2_7_QUEUE_BLOCK_ROUNDING;
+		}
+
+		uint32 newCapacity = (uint16)(needed + slack) & rounding;
 
 		int32 currentOffset = -1;
 		if (object->queueCurrent)
@@ -343,6 +365,45 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
 	}
+
+	return true;
+}
+
+bool SpriteLibrary_v1_2_3::markQueueLoopStart(uint16 mode, uint16 sprite) {
+	if (mode != 0)
+		return true;
+
+	SpriteObject_v1_2 *object = findSprite(sprite, "markQueueLoopStart");
+	if (!object)
+		return false;
+
+	object->queueLoopStart = (uint16)(object->queueEnd - object->queueStart);
+	return true;
+}
+
+bool SpriteLibrary_v1_2_3::buildQueueLoopJumpMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+	if (mode != 0)
+		return true;
+
+	byte *record = allocQueueRecord(0, kSprV1_2OpLoop, sprite);
+	if (!record)
+		return false;
+
+	if (count != 0)
+		WRITE_LE_UINT16(record + 2, params[0]);
+	else
+		WRITE_LE_UINT16(record + 2, 0);
+
+	WRITE_LE_UINT16(record + 4, READ_LE_UINT16(record + 2));
+
+	SpriteObject_v1_2 *object = findSprite(sprite, "buildQueueLoopJumpMessage");
+	if (!object)
+		return false;
+
+	WRITE_LE_UINT16(record + 6, object->queueLoopStart);
+
+	if (!object->queueCurrent)
+		processSpriteQueueCommand(sprite);
 
 	return true;
 }

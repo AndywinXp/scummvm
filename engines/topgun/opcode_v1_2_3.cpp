@@ -32,7 +32,10 @@ bool TopgunEngine_v1_2_3::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag
 	uint16 spriteType = kResV1_2_3Sprite;
 	uint16 queueDataType = kResV1_2_3SpriteQueueData;
 
-	if (_version >= kVersionV1_2_5) {
+	if (_version >= kVersionV1_2_7) {
+		spriteType = kResV1_2_7Sprite;
+		queueDataType = kResV1_2_7SpriteQueueData;
+	} else if (_version >= kVersionV1_2_5) {
 		spriteType = kResV1_2_5Sprite;
 		queueDataType = kResV1_2_5SpriteQueueData;
 	}
@@ -308,7 +311,9 @@ bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
 	uint16 id = READ_LE_UINT16(record + 4 + 2 * record[3]);
 
 	uint16 scriptType = kResV1_2_3Script;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		scriptType = kResV1_2_7Script;
+	else if (_version >= kVersionV1_2_5)
 		scriptType = kResV1_2_5Script;
 
 	if (!validateAndGetResourceByType(id, scriptType))
@@ -338,7 +343,9 @@ void TopgunEngine_v1_2_3::o_stopSprite(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_setSpriteLevel(const byte *record) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType))
@@ -382,7 +389,9 @@ void TopgunEngine_v1_2_3::o_listRunScript(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_moveSprite(const byte *record) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType))
@@ -409,7 +418,9 @@ uint16 TopgunEngine_v1_2_3::o_conditionalSkip(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!validateResourceType(READ_LE_UINT16(record + 2), spriteType))
@@ -433,7 +444,9 @@ void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
 bool TopgunEngine_v1_2_3::o_setSpritePosition(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		spriteType = kResV1_2_7Sprite;
+	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
 	if (!validateAndGetResourceByType(id, spriteType))
@@ -487,7 +500,9 @@ void TopgunEngine_v1_2_3::o_setVolume(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_loadPaletteResource(const byte *record) {
 	uint16 paletteType = kResV1_2_3Palette;
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_7)
+		paletteType = kResV1_2_7Palette;
+	else if (_version >= kVersionV1_2_5)
 		paletteType = kResV1_2_5Palette;
 
 	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), paletteType))

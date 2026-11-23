@@ -30,6 +30,22 @@ namespace Topgun {
 
 struct SpriteInfo_v1_2_3;
 
+enum MmioFlag {
+	kMmioRead = 0,
+	kMmioWrite = 1,
+	kMmioReadWrite = 2,
+	kMmioDenyNone = 0x40,
+	kMmioDelete = 0x200,
+	kMmioCreate = 0x1000,
+	kMmioExist = 0x4000
+};
+
+enum PluginSceneEvent {
+	kPluginSceneLoaded = 1,
+	kPluginSceneSwitching = 2,
+	kPluginSceneClosed = 3
+};
+
 class PluginServices {
 public:
 	virtual ~PluginServices() {}
@@ -57,11 +73,24 @@ public:
 	virtual void spriteSwapOrder(uint16 first, uint16 second, uint16 onlyIfSecondAbove, uint16 refresh) = 0; // RT_033
 	virtual void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) = 0; // RT_034
 	virtual void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) = 0; // RT_035
-	virtual const char *getString(uint16 id) = 0; // RT_036
+	virtual char *getString(uint16 id) = 0; // RT_036
 	virtual void copyStringVariable(uint16 index, char *destination) = 0; // RT_037
 	virtual void setScriptResult(uint16 value) = 0; // RT_038
 	virtual uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) = 0;
 	virtual void writePrivateProfileString(const char *section, const char *key, const char *value) = 0;
+
+	virtual char *getVariableString(uint16 id) = 0;
+	virtual uint16 readAddress(uint16 address) = 0;
+	virtual void writeAddress(uint16 address, uint16 value) = 0;
+	virtual uint16 runMessage(uint16 script, const uint16 *arguments, uint16 count) = 0;
+	virtual uint16 getModulePath(char *destination, uint16 size) = 0;
+	virtual uint16 getErrorFileHandle() = 0;
+
+	virtual uint16 mmioOpen(const char *name, uint32 flags) = 0;
+	virtual uint16 mmioClose(uint16 handle) = 0;
+	virtual int32 mmioRead(uint16 handle, byte *buffer, int32 count) = 0;
+	virtual int32 mmioWrite(uint16 handle, const byte *buffer, int32 count) = 0;
+	virtual int32 mmioSeek(uint16 handle, int32 offset, int origin) = 0;
 };
 
 class Plugin;
@@ -76,11 +105,35 @@ class Plugin {
 public:
 	virtual ~Plugin() {}
 
+	virtual bool init() { return true; }
 	virtual void free() = 0;
 	virtual int findFunction(const Common::String &name) const = 0;
 	virtual uint16 callFunction(int function, const uint16 *arguments, uint16 count) = 0;
 	virtual uint16 messageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) { return 0; }
 	virtual uint32 windowMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) { return 0; }
+
+	virtual void tick() {}
+	virtual void focusChanged(bool active) {}
+	virtual void pauseChanged(bool paused) {}
+	virtual void sceneEvent(uint16 mode, const char *name) {}
+
+	void clearCallbacks() {
+		_hasTickCallback = false;
+		_hasFocusCallback = false;
+		_hasPauseCallback = false;
+		_hasSceneCallback = false;
+	}
+
+	bool hasTickCallback() const { return _hasTickCallback; }
+	bool hasFocusCallback() const { return _hasFocusCallback; }
+	bool hasPauseCallback() const { return _hasPauseCallback; }
+	bool hasSceneCallback() const { return _hasSceneCallback; }
+
+protected:
+	bool _hasTickCallback = false;
+	bool _hasFocusCallback = false;
+	bool _hasPauseCallback = false;
+	bool _hasSceneCallback = false;
 };
 
 Plugin *createPlugin(const Common::String &name, PluginHost *host);

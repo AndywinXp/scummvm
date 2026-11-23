@@ -69,8 +69,13 @@ void SpriteLibrary::spritePaint(uint16 sprite) {
 		return;
 	}
 
+	if (_engine->_version >= kVersionV1_2_7 && renderRect(_clipRect)) {
+		spriteResetComposeBuffer();
+		return;
+	}
+
 	if (_backgroundBitmap)
-		blitSpriteToScreen((int16)-_scrollX, (int16)-_scrollY, _backgroundBitmap);
+		blitSpriteToScreen((int16)(_scrollPosX - _scrollX), (int16)(_scrollPosY - _scrollY), _backgroundBitmap);
 
 	for (uint16 i = 0; i < _spriteCount; i++)
 		renderSpriteToSurface(_spriteTable[i]);

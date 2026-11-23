@@ -7,6 +7,10 @@ MODULE_OBJS = \
 	display.o \
 	events.o \
 	expression.o \
+	games/ace/ace1util.o \
+	games/ace/dynalloc.o \
+	games/ace/fileio.o \
+	games/ace/pathfind.o \
 	games/battle/battle.o \
 	games/battle/battle_ai.o \
 	games/battle/battle_geometry.o \

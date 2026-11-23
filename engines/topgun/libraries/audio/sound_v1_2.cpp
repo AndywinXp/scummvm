@@ -804,6 +804,22 @@ void AudioLibrary_v1_2_3::activateWaveObject(SoundObject *sound) {
 	sound->active = true;
 }
 
+uint32 AudioLibrary_v1_2_3::audioGetWaveSoundTime(uint16 handle) {
+	SoundObject *sound = findWaveObject(handle);
+
+	if (!sound)
+		return 0;
+
+	uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
+
+	if (bytesPerTenthSecond == 0) {
+		warning("AudioLibrary_v1_2_3::audioGetWaveSoundTime(): the average byte rate of sound %d is below 10", sound->handle);
+		return 0;
+	}
+
+	return ((sound->sourceLength * 100) << sound->adpcmShift) / bytesPerTenthSecond;
+}
+
 void AudioLibrary_v1_2_3::armWaveNotificationEndTime(SoundObject *sound) {
 	uint32 duration = 0;
 

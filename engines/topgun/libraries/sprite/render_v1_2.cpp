@@ -430,18 +430,20 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	if (!ensureComposeBufferSize(width, height))
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_6 && _rubberBandActive)
+	if (_engine->_version == kVersionV1_2_6 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
-	if (_backgroundBitmap)
-		blitOpaqueRect(_composeBuffer, _backgroundBitmap, width, height, 0, 0, (int16)(visible.left + _scrollX), (int16)(visible.top + _scrollY), 0);
+	if (_scrollSurface)
+		blitOpaqueRect(_composeBuffer, _scrollSurface, width, height, 0, 0, (int16)(visible.left + _scrollX), (int16)(visible.top + _scrollY), 0);
+	else if (_backgroundBitmap)
+		blitOpaqueRect(_composeBuffer, _backgroundBitmap, width, height, 0, 0, (int16)(visible.left - _scrollPosX + _scrollX), (int16)(visible.top - _scrollPosY + _scrollY), 0);
 	else if (_fillColor != TG_SPR_V1_2_FILL_NONE)
 		fillBitmapByte(_composeBuffer, 0, 0, width, height, _fillColor);
 
 	compositeSpritesInRect(visible);
 	blitSpriteToScreen(visible.left, visible.top, _composeBuffer);
 
-	if (_engine->_version >= kVersionV1_2_6 && _rubberBandActive)
+	if (_engine->_version == kVersionV1_2_6 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	return true;
@@ -478,6 +480,14 @@ void SpriteLibrary_v1_2::compositeSpritesInRect(const Common::Rect &rect) {
 			continue;
 		}
 
+		if (_engine->_version >= kVersionV1_2_7) {
+			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
+				continue;
+
+			if (object->hasClipBox && !intersectRectLocal(common, object->clipBox, common))
+				continue;
+		}
+
 		uint16 width = (uint16)(common.right - common.left);
 		uint16 height = (uint16)(common.bottom - common.top);
 		int16 destinationX = (int16)(common.left - rect.left);
@@ -508,6 +518,14 @@ void SpriteLibrary_v1_2::compositeSpritePartsIntoBuffer(uint16 sprite, const Com
 		Common::Rect common;
 		if (!intersectRectLocal(rect, part.box, common))
 			continue;
+
+		if (_engine->_version >= kVersionV1_2_7) {
+			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
+				continue;
+
+			if (object->hasClipBox && !intersectRectLocal(common, object->clipBox, common))
+				continue;
+		}
 
 		if (!part.frame) {
 			warning("SpriteLibrary_v1_2::compositeSpritePartsIntoBuffer(): the sprite part has no frame");
@@ -1218,8 +1236,11 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	if (!object)
 		return;
 
-	object->x = (int16)(object->x + deltaX);
-	object->y = (int16)(object->y + deltaY);
+	if (_engine->_version == kVersionV1_2_6) {
+		object->x = (int16)(object->x + deltaX);
+		object->y = (int16)(object->y + deltaY);
+	}
+
 	object->boundingBox.translate(deltaX, deltaY);
 	object->previousBox.translate(deltaX, deltaY);
 
@@ -1270,6 +1291,642 @@ void SpriteLibrary_v1_2_3::spriteScrollScreen(int16 deltaX, int16 deltaY) {
 
 		spritePaintRect(strip, false);
 	}
+}
+
+bool SpriteLibrary_v1_2_3::clampScrollOffsetToBounds(Common::Point &delta, Common::Rect &outRect) {
+	if (!_backgroundBitmap) {
+		outRect = _clipRect;
+		return (delta.x | delta.y) != 0;
+	}
+
+	outRect = _scrollRegion;
+
+	Common::Rect bounds = _backupRect;
+	if (_tileBackground)
+		bounds = _tileBackground->bounds;
+
+	int16 value = (int16)(delta.x + _scrollPosX + bounds.left);
+	if (value > outRect.left) {
+		value = (int16)(outRect.left - bounds.left);
+		delta.x = (int16)(value - _scrollPosX);
+	} else {
+		value = (int16)(delta.x + _scrollPosX + bounds.right);
+		if (value < outRect.right) {
+			value = (int16)(outRect.right - bounds.right);
+			delta.x = (int16)(value - _scrollPosX);
+		}
+	}
+
+	value = (int16)(delta.y + _scrollPosY + bounds.top);
+	if (value > outRect.top) {
+		value = (int16)(outRect.top - bounds.top);
+		delta.y = (int16)(value - _scrollPosY);
+	} else {
+		value = (int16)(delta.y + _scrollPosY + bounds.bottom);
+		if (value < outRect.bottom) {
+			value = (int16)(outRect.bottom - bounds.bottom);
+			delta.y = (int16)(value - _scrollPosY);
+		}
+	}
+
+	return (delta.x | delta.y) != 0;
+}
+
+void SpriteLibrary_v1_2_3::spriteSetScrollPos(int16 x, int16 y) {
+	Common::Point delta((int16)(x - _scrollPosX), (int16)(y - _scrollPosY));
+	Common::Rect region;
+
+	if (!clampScrollOffsetToBounds(delta, region))
+		return;
+
+	_scrollPosX = (int16)(_scrollPosX + delta.x);
+	_scrollPosY = (int16)(_scrollPosY + delta.y);
+
+	for (uint16 i = 0; i < _spriteCount; i++) {
+		SpriteObject_v1_2 *object = lookupSprite(_spriteTable[i]);
+		if (object && object->scrollable)
+			scrollSprite(_spriteTable[i], delta.x, delta.y);
+	}
+
+	if (_scrollSurface)
+		renderTileBackgroundRect(&_scrollRegion);
+
+	spritePaintRect(_scrollRegion, false);
+}
+
+Common::Point SpriteLibrary_v1_2_3::spriteGetScrollPos() {
+	return Common::Point(_scrollPosX, _scrollPosY);
+}
+
+void SpriteLibrary_v1_2_3::spriteScroll(int16 deltaX, int16 deltaY, bool useScrollDevice) {
+	Common::Point delta(deltaX, deltaY);
+	Common::Rect region;
+
+	if (!clampScrollOffsetToBounds(delta, region))
+		return;
+
+	_scrollPosX = (int16)(_scrollPosX + delta.x);
+	_scrollPosY = (int16)(_scrollPosY + delta.y);
+
+	if (useScrollDevice)
+		engine()->display()->scrollDevice(region, delta.x, delta.y);
+
+	for (uint16 i = 0; i < _spriteCount; i++) {
+		SpriteObject_v1_2 *object = lookupSprite(_spriteTable[i]);
+		if (object && object->scrollable)
+			scrollSprite(_spriteTable[i], delta.x, delta.y);
+	}
+
+	if (_scrollSurface)
+		performScrollOperation(_scrollSurface, delta.x, delta.y, region);
+
+	if (!useScrollDevice) {
+		spritePaintRect(_scrollRegion, false);
+		return;
+	}
+
+	if (delta.x != 0)
+		repaintScrollBoxRevealedColumn(delta.x, region);
+
+	if (delta.y != 0)
+		repaintScrollBoxRevealedRow(delta.y, region);
+}
+
+void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedColumn(int16 deltaX, Common::Rect rect) {
+	if (deltaX < 0)
+		rect.left = (int16)(rect.right + deltaX);
+	else
+		rect.right = (int16)(rect.left + deltaX);
+
+	if (_tileBackground)
+		renderTileBackgroundRect(&rect);
+
+	spritePaintRect(rect, false);
+}
+
+void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedRow(int16 deltaY, Common::Rect rect) {
+	if (deltaY < 0)
+		rect.top = (int16)(rect.bottom + deltaY);
+	else
+		rect.bottom = (int16)(rect.top + deltaY);
+
+	if (_tileBackground)
+		renderTileBackgroundRect(&rect);
+
+	spritePaintRect(rect, false);
+}
+
+void SpriteLibrary_v1_2_3::performScrollOperation(byte *surface, int16 deltaX, int16 deltaY, const Common::Rect &rect) {
+	int32 width = READ_LE_UINT16(surface + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int32 pitch = READ_LE_UINT16(surface + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
+	int32 height = READ_LE_UINT16(surface + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	int32 rows = (rect.bottom - rect.top) - ABS((int32)deltaY);
+	int32 bytes = (rect.right - rect.left) - ABS((int32)deltaX);
+	if (rows <= 0 || bytes <= 0)
+		return;
+
+	// The surface rows are stored bottom up
+	int32 firstColumn = (width - 1) / 2 + rect.left;
+	int32 firstRow = height - (rect.top + height / 2);
+
+	int32 sourceColumn = firstColumn;
+	int32 destinationColumn = firstColumn;
+	if (deltaX < 0)
+		sourceColumn -= deltaX;
+	else
+		destinationColumn += deltaX;
+
+	int32 sourceRow = 0;
+	int32 destinationRow = 0;
+	if (deltaY < 0)
+		sourceRow = -deltaY;
+	else
+		destinationRow = deltaY;
+
+	int32 highestRow = firstRow - MIN(sourceRow, destinationRow);
+	int32 lowestRow = firstRow - (MAX(sourceRow, destinationRow) + rows - 1);
+	if (lowestRow < 0 || highestRow >= height || MIN(sourceColumn, destinationColumn) < 0 || MAX(sourceColumn, destinationColumn) + bytes > pitch) {
+		warning("SpriteLibrary_v1_2_3::performScrollOperation(): the scrolled rectangle is outside the surface");
+		return;
+	}
+
+	byte *pixels = bitmapPixels(surface);
+	for (int32 i = 0; i < rows; i++) {
+		int32 index = (deltaY > 0) ? rows - 1 - i : i;
+		byte *destination = pixels + (firstRow - (destinationRow + index)) * pitch + destinationColumn;
+		byte *source = pixels + (firstRow - (sourceRow + index)) * pitch + sourceColumn;
+		memmove(destination, source, bytes);
+	}
+}
+
+void SpriteLibrary_v1_2_3::spriteSetScrollBox(const Common::Rect *box) {
+	Common::Rect oldRegion = _scrollRegion;
+
+	if (box) {
+		_scrollBox = *box;
+
+		if (_scrollBox.left < _scrollBox.right && _scrollBox.top < _scrollBox.bottom) {
+			_scrollBox.right++;
+			_scrollBox.bottom++;
+		}
+	} else {
+		_scrollBox = Common::Rect();
+	}
+
+	setScrollRegion(_scrollBox);
+
+	if (oldRegion.left != _scrollRegion.left || oldRegion.right != _scrollRegion.right ||
+	    oldRegion.top != _scrollRegion.top || oldRegion.bottom != _scrollRegion.bottom) {
+		Common::Rect combined;
+		unionRectLocal(oldRegion, _scrollRegion, combined);
+		spritePaintRect(combined, false);
+	}
+}
+
+Common::Rect SpriteLibrary_v1_2_3::spriteGetScrollBox() {
+	return _scrollBox;
+}
+
+void SpriteLibrary_v1_2_3::spriteSetScrollable(uint16 sprite, uint16 flag) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetScrollable");
+	if (!object)
+		return;
+
+	bool scrollable = (flag != 0);
+	if (scrollable == object->scrollable)
+		return;
+
+	if (scrollable)
+		scrollSprite(sprite, _scrollPosX, _scrollPosY);
+	else
+		scrollSprite(sprite, (int16)-_scrollPosX, (int16)-_scrollPosY);
+
+	object->scrollable = scrollable;
+}
+
+bool SpriteLibrary_v1_2_3::spriteSetTileBackground(TileBackground *tile, Common::Rect *outClipRect) {
+	byte *surface = nullptr;
+	if (tile)
+		surface = initTileBackgroundLayout(tile);
+
+	if (!surface) {
+		spriteSetBackground(nullptr, false, 0, outClipRect);
+		return true;
+	}
+
+	_fillColor = 0;
+	_tileBackground = tile;
+
+	if (_scrollSurface)
+		spriteDibFree(_scrollSurface);
+
+	_scrollSurface = surface;
+	_backgroundBitmap = surface;
+	computeClipRect();
+
+	if (outClipRect)
+		*outClipRect = _clipRect;
+
+	renderTileBackgroundRect(&_scrollRegion);
+	return true;
+}
+
+byte *SpriteLibrary_v1_2_3::initTileBackgroundLayout(TileBackground *tile) {
+	uint16 columns = tile->columns;
+	uint16 rows = tile->rows;
+	uint16 tileWidth = tile->tileWidth;
+	uint16 tileHeight = tile->tileHeight;
+
+	bool staggered = (tile->layout == TG_SPR_V1_2_7_TILE_STAGGERED_LAYOUT);
+	if (tileWidth == 0 || tileHeight == 0 || (staggered && tileHeight < 2)) {
+		warning("SpriteLibrary_v1_2_3::initTileBackgroundLayout(): the tile size %dx%d is not valid", tileWidth, tileHeight);
+		return nullptr;
+	}
+
+	Common::Rect bounds;
+
+	if (staggered) {
+		int16 halfWidth = (int16)(tileWidth >> 1);
+		int16 halfHeight = (int16)(tileHeight >> 1);
+		int16 parityShift = 0;
+		if ((rows & 1) == 0)
+			parityShift = (int16)(halfHeight / 2);
+
+		tile->width = (int16)(columns * tileWidth + halfWidth);
+		tile->halfWidth = (int16)(tile->width / 2);
+		tile->height = (int16)(halfHeight * (int16)(rows + 1));
+		tile->halfHeight = (int16)(tile->height / 2);
+
+		bounds.left = (int16)(halfWidth / 2 - tile->halfWidth + halfWidth);
+		bounds.top = (int16)(parityShift - tile->halfHeight + halfHeight);
+		bounds.right = (int16)(tile->width - halfWidth + bounds.left - tileWidth);
+		bounds.bottom = (int16)(bounds.top + (int16)(tile->height - parityShift * 2 - tileHeight));
+	} else {
+		tile->width = (int16)(columns * tileWidth);
+		tile->halfWidth = (int16)(tile->width / 2);
+		tile->height = (int16)(tileHeight * rows);
+		tile->halfHeight = (int16)(tile->height / 2);
+
+		bounds.left = (int16)-tile->halfWidth;
+		bounds.top = (int16)-tile->halfHeight;
+		bounds.right = (int16)(tile->width + bounds.left);
+		bounds.bottom = (int16)(tile->height + bounds.top);
+	}
+
+	tile->bounds = bounds;
+
+	Display *display = engine()->display();
+	byte *surface = spriteDibCreate(display->width(), display->height(), 1);
+	if (!surface)
+		return nullptr;
+
+	int16 surfaceWidth = (int16)READ_LE_UINT16(surface + TG_SPR_BITMAP_WIDTH_OFFSET);
+	int16 surfaceHeight = (int16)READ_LE_UINT16(surface + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+	Common::Rect surfaceRect;
+	surfaceRect.left = 0;
+	surfaceRect.top = 0;
+	surfaceRect.right = surfaceWidth;
+	surfaceRect.bottom = surfaceHeight;
+
+	tile->centerX = (int16)((surfaceWidth - 1) / 2);
+	tile->centerY = (int16)((surfaceHeight - 1) / 2);
+	surfaceRect.translate(-tile->centerX, -tile->centerY);
+
+	intersectRectLocal(surfaceRect, bounds, tile->visible);
+	return surface;
+}
+
+void SpriteLibrary_v1_2_3::renderTileBackgroundRect(const Common::Rect *rect) {
+	if (!_tileBackground)
+		return;
+
+	_tileClip = _scrollRegion;
+
+	if (rect && !intersectRectLocal(_tileClip, *rect, _tileClip))
+		return;
+
+	if (!intersectRectLocal(_tileClip, _tileBackground->visible, _tileClip))
+		return;
+
+	if (_tileBackground->layout == TG_SPR_V1_2_7_TILE_STAGGERED_LAYOUT)
+		renderStaggeredTileRows();
+	else
+		renderGridTiles();
+}
+
+void SpriteLibrary_v1_2_3::renderStaggeredTileRows() {
+	TileBackground *tile = _tileBackground;
+	_tileSurface = _scrollSurface;
+
+	int16 rows = (int16)tile->rows;
+	int16 tileHeight = (int16)tile->tileHeight;
+	int16 halfHeight = (int16)(tileHeight >> 1);
+	int16 parityShift = 0;
+	if ((rows & 1) == 0)
+		parityShift = (int16)(halfHeight / 2);
+
+	int16 verticalOffset = (int16)(tile->halfHeight - parityShift - _scrollPosY);
+	int16 row = (int16)((int16)(verticalOffset + _tileClip.top) / halfHeight - 1);
+	int16 sourceY = (int16)(verticalOffset - (int16)(row * halfHeight) + _tileClip.top);
+	int16 height = (int16)(tileHeight - sourceY);
+	bool shifted = ((row & 1) != 0);
+
+	_tileDestOriginX = tile->centerX;
+	_tileDestOriginY = tile->centerY;
+	_tileCountX = tile->columns;
+	_tileWidth = tile->tileWidth;
+	_tileHalfWidth = (int16)((int16)_tileWidth >> 1);
+
+	int16 horizontalOffset = (int16)(tile->halfWidth - (_tileHalfWidth >> 1) - _scrollPosX);
+	int16 column = (int16)((int16)(horizontalOffset + _tileClip.left) / (int16)_tileWidth);
+	int16 sourceX = (int16)(horizontalOffset - (int16)(column * (int16)_tileWidth) + _tileClip.left);
+	int16 visibleWidth = (int16)((int16)_tileWidth - sourceX);
+
+	uint32 cellIndex = (uint16)((uint16)((uint16)row * _tileCountX) + (uint16)column);
+	int16 count = (int16)((_tileClip.bottom - _tileClip.top) * 2);
+	if (count <= 0)
+		return;
+
+	int16 destinationY = _tileClip.top;
+
+	for (;;) {
+		renderStaggeredTileRow(cellIndex, column, destinationY, sourceX, sourceY, visibleWidth, height, shifted);
+
+		row++;
+		if (row >= rows)
+			return;
+
+		cellIndex += _tileCountX;
+		count = (int16)(count - height);
+		destinationY = (int16)(destinationY + height - halfHeight);
+
+		if (destinationY < _tileClip.top) {
+			sourceY = (int16)(_tileClip.top - destinationY);
+			destinationY = _tileClip.top;
+		} else {
+			sourceY = 0;
+		}
+
+		height = (int16)(tileHeight - sourceY);
+		renderStaggeredTileRow(cellIndex, column, destinationY, sourceX, sourceY, visibleWidth, height, !shifted);
+
+		row++;
+		if (row >= rows)
+			return;
+
+		cellIndex += _tileCountX;
+		count = (int16)(count - height);
+		destinationY = (int16)(destinationY + height - halfHeight);
+		sourceY = 0;
+		height = tileHeight;
+
+		if (count <= 0)
+			return;
+	}
+}
+
+void SpriteLibrary_v1_2_3::renderStaggeredTileRow(uint32 cellIndex, int16 column, int16 y, int16 sourceX, int16 sourceY, int16 visibleWidth, int16 height, bool shifted) {
+	if (_tileClip.bottom - y < height)
+		height = (int16)(_tileClip.bottom - y);
+
+	if (height <= 0)
+		return;
+
+	int16 width = visibleWidth;
+
+	if (shifted) {
+		if (_tileHalfWidth >= width) {
+			width = (int16)(width + _tileHalfWidth);
+		} else {
+			width = (int16)(width - _tileHalfWidth);
+			if (column != 0)
+				cellIndex--;
+		}
+
+		sourceX = (int16)((int16)_tileWidth - width);
+	}
+
+	int16 destinationY = (int16)(y + _tileDestOriginY);
+	int16 x = _tileClip.left;
+	if (x >= _tileClip.right)
+		return;
+
+	for (;;) {
+		if (_tileClip.right - x < width)
+			width = (int16)(_tileClip.right - x);
+
+		if (width <= 0)
+			return;
+
+		byte *cell = nullptr;
+		if (cellIndex < _tileBackground->cellCount)
+			cell = _tileBackground->cells[cellIndex];
+		else
+			warning("SpriteLibrary_v1_2_3::renderStaggeredTileRow(): the tile cell %d does not exist", (int)cellIndex);
+
+		if (cell)
+			blitTransparentRect(_tileSurface, cell, (uint16)width, (uint16)height, (int16)(_tileDestOriginX + x), destinationY, sourceX, sourceY, 0);
+
+		x = (int16)(x + width);
+		width = (int16)_tileWidth;
+		sourceX = 0;
+		cellIndex++;
+
+		if (_tileClip.right <= x)
+			return;
+	}
+}
+
+void SpriteLibrary_v1_2_3::renderGridTiles() {
+	TileBackground *tile = _tileBackground;
+	byte *surface = _scrollSurface;
+	uint16 columns = tile->columns;
+
+	int16 offsetX = (int16)(tile->halfWidth - _scrollPosX);
+	int16 offsetY = (int16)(tile->halfHeight - _scrollPosY);
+	uint16 row = (uint16)((uint16)(offsetY + _tileClip.top) / tile->tileHeight);
+	int16 y = _tileClip.top;
+
+	if (y >= _tileClip.bottom)
+		return;
+
+	uint16 rowBase = (uint16)(row * columns);
+
+	for (;;) {
+		uint16 column = (uint16)((uint16)(offsetX + _tileClip.left) / tile->tileWidth);
+		if (column >= columns)
+			return;
+
+		int16 sourceY = (int16)(y + offsetY - (uint16)(tile->tileHeight * row));
+		int16 height = (int16)(tile->tileHeight - sourceY);
+		if (height > _tileClip.bottom - y)
+			height = (int16)(_tileClip.bottom - y);
+
+		int16 x = _tileClip.left;
+		if (x < _tileClip.right) {
+			for (;;) {
+				int16 sourceX = (int16)(offsetX - (uint16)(tile->tileWidth * column) + x);
+				int16 width = (int16)(tile->tileWidth - sourceX);
+				if (width > _tileClip.right - x)
+					width = (int16)(_tileClip.right - x);
+
+				uint16 index = (uint16)(column + rowBase);
+				byte *cell = nullptr;
+				if (index < tile->cellCount)
+					cell = tile->cells[index];
+				else
+					warning("SpriteLibrary_v1_2_3::renderGridTiles(): the tile cell %d does not exist", index);
+
+				if (cell) {
+					uint16 cellFlags = READ_LE_UINT16(cell + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET);
+					uint16 flags = 0;
+					if ((cellFlags & TG_SPR_V1_2_7_TILE_MIRROR_FLAG) != 0)
+						flags |= 1;
+
+					if ((cellFlags & TG_SPR_V1_2_7_TILE_FLIP_FLAG) != 0)
+						flags |= 0x100;
+
+					blitTransparentRect(surface, cell, (uint16)width, (uint16)height, (int16)(tile->centerX + x), (int16)(tile->centerY + y), sourceX, sourceY, flags);
+				}
+
+				column++;
+				x = (int16)(x + width);
+
+				if (x >= _tileClip.right)
+					break;
+			}
+		}
+
+		rowBase = (uint16)(rowBase + columns);
+		row++;
+		y = (int16)(y + height);
+
+		if (y >= _tileClip.bottom)
+			return;
+	}
+}
+
+void SpriteLibrary_v1_2_3::spriteBoxInBackground(byte *bitmap, uint16 steps, bool insetBoth) {
+	if (!engine()->display()->hasPalette() && !_backgroundBitmap) {
+		bool bkgTransparent = _bkgTransparent;
+		_bkgTransparent = false;
+		spritePaintRect(_clipRect, false);
+		_bkgTransparent = bkgTransparent;
+		return;
+	}
+
+	if (!_backgroundBitmap)
+		return;
+
+	_wipeExtentX = (uint16)(_backupRect.right - _backupRect.left);
+	_wipeExtentY = (uint16)(_backupRect.bottom - _backupRect.top);
+	_wipeNewBitmap = bitmap;
+	_wipeDrawFromNew = true;
+	wipeBoxFromCenter(insetBoth, (steps < 2) ? 2 : steps);
+	_backgroundBitmap = bitmap;
+}
+
+void SpriteLibrary_v1_2_3::spriteBoxOutBackground(byte *bitmap, uint16 steps, bool insetBoth) {
+	if (!bitmap)
+		return;
+
+	_backgroundBitmap = bitmap;
+	_wipeExtentX = (uint16)(_backupRect.right - _backupRect.left);
+	_wipeExtentY = (uint16)(_backupRect.bottom - _backupRect.top);
+	_wipeDrawFromNew = false;
+	wipeBoxToCenter(insetBoth, (steps < 2) ? 2 : steps);
+	_backgroundBitmap = bitmap;
+}
+
+void SpriteLibrary_v1_2_3::computeWipeStepRect(bool insetBoth, uint16 steps, uint16 step, Common::Rect &out) {
+	uint32 divisor = (uint16)(steps * 2 - 1);
+
+	if (insetBoth)
+		out.left = (int16)((uint32)step * _wipeExtentX / divisor);
+	else
+		out.left = 0;
+
+	out.right = (int16)(_wipeExtentX - out.left);
+	out.top = (int16)((uint32)step * _wipeExtentY / divisor);
+	out.bottom = (int16)(_wipeExtentY - out.top);
+}
+
+void SpriteLibrary_v1_2_3::wipeBoxFromCenter(bool insetBoth, uint16 steps) {
+	Common::Rect inner;
+	Common::Rect outer;
+
+	computeWipeStepRect(insetBoth, steps, (uint16)(steps - 1), inner);
+	drawWipeStepAndRepaint(inner);
+
+	for (int16 step = (int16)(steps - 2); step >= 0; step--) {
+		spriteAnimate();
+		computeWipeStepRect(insetBoth, steps, (uint16)step, outer);
+
+		if (insetBoth)
+			drawWipeSideStrips(outer, inner);
+
+		drawWipeTopBottomStrips(outer, inner);
+		inner = outer;
+	}
+}
+
+void SpriteLibrary_v1_2_3::wipeBoxToCenter(bool insetBoth, uint16 steps) {
+	Common::Rect inner;
+	Common::Rect outer;
+
+	computeWipeStepRect(insetBoth, steps, (uint16)(steps - 1), inner);
+	computeWipeStepRect(insetBoth, steps, 0, outer);
+
+	for (uint16 step = 1; step < steps; step++) {
+		computeWipeStepRect(insetBoth, steps, step, inner);
+		drawWipeTopBottomStrips(outer, inner);
+
+		if (insetBoth)
+			drawWipeSideStrips(outer, inner);
+
+		spriteAnimate();
+		outer = inner;
+	}
+
+	drawWipeStepAndRepaint(inner);
+}
+
+void SpriteLibrary_v1_2_3::drawWipeStepAndRepaint(Common::Rect rect) {
+	if (_wipeDrawFromNew)
+		spriteCopyRect(rect, _backgroundBitmap, _wipeNewBitmap);
+	else
+		fillBitmapByte(_backgroundBitmap, rect.left, rect.top, (uint16)(rect.right - rect.left), (uint16)(rect.bottom - rect.top), 0);
+
+	rect.translate(_scrollPosX, _scrollPosY);
+	spritePaintRect(rect, true);
+}
+
+void SpriteLibrary_v1_2_3::drawWipeSideStrips(const Common::Rect &outer, const Common::Rect &inner) {
+	Common::Rect strip;
+	strip.left = outer.left;
+	strip.top = inner.top;
+	strip.right = inner.left;
+	strip.bottom = inner.bottom;
+	drawWipeStepAndRepaint(strip);
+
+	strip.left = inner.right;
+	strip.right = outer.right;
+	drawWipeStepAndRepaint(strip);
+}
+
+void SpriteLibrary_v1_2_3::drawWipeTopBottomStrips(const Common::Rect &outer, const Common::Rect &inner) {
+	Common::Rect strip;
+	strip.left = outer.left;
+	strip.top = outer.top;
+	strip.right = outer.right;
+	strip.bottom = inner.top;
+	drawWipeStepAndRepaint(strip);
+
+	strip.top = inner.bottom;
+	strip.bottom = outer.bottom;
+	drawWipeStepAndRepaint(strip);
 }
 
 void SpriteLibrary_v1_2_3::spriteRubberBand(bool enable, int16 x, int16 y, bool move) {

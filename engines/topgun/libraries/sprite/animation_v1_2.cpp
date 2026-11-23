@@ -512,6 +512,9 @@ bool SpriteLibrary_v1_2::tickMovieFrameRecord(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET) - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
+	if (_engine->_version >= kVersionV1_2_7 && object->scrollable)
+		object->boundingBox.translate(_scrollPosX, _scrollPosY);
+
 	object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
 	object->framePending = false;
 	object->visible = true;
@@ -1169,6 +1172,9 @@ bool SpriteLibrary_v1_2_3::processSpriteAnimationStep(uint16 sprite) {
 		break;
 
 	case kSprV1_2_3OpMultiCel:
+		if (_engine->_version >= kVersionV1_2_7 && !object->active)
+			object->multipartValid = false;
+
 		if (_engine->_version >= kVersionV1_2_6)
 			setSpriteActive(sprite, 1, false);
 
@@ -1227,6 +1233,9 @@ bool SpriteLibrary_v1_2_3::processSpriteAnimationStep(uint16 sprite) {
 
 		if (opcode == kSprV1_2_3OpTimingMode) {
 			object->timingMode = (byte)READ_LE_UINT16(command + 2);
+			if (_engine->_version >= kVersionV1_2_7)
+				object->timingMode &= 1;
+
 			object->moveDue = 0;
 			object->frameDue = 0;
 		} else if (opcode == kSprV1_2_3OpFrameInterval) {

@@ -94,6 +94,31 @@
 #define TG_RES_V1_2_5_RESIDENT_LAST_TYPE           18
 #define TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET     8
 
+// Container header with the platform tag, 32 resident chunks, 14 keys and no library name
+#define TG_RES_V1_2_7_HEADER_TAG_OFFSET            4
+#define TG_RES_V1_2_7_HEADER_TAG_VALUE             0x3631
+#define TG_RES_V1_2_7_HEADER_CHUNK_COUNT_OFFSET    0xE2
+#define TG_RES_V1_2_7_HEADER_MAX_FADE_OFFSET       0xE4
+#define TG_RES_V1_2_7_HEADER_MAX_TRANS_OFFSET      0xE6
+#define TG_RES_V1_2_7_HEADER_EXTRA_SLOTS_OFFSET    0xE8
+#define TG_RES_V1_2_7_HEADER_STRING_COUNT_OFFSET   0xEA
+#define TG_RES_V1_2_7_HEADER_VARIABLE_COUNT_OFFSET 0xEC
+#define TG_RES_V1_2_7_HEADER_BUILD_TYPE_OFFSET     0xEE
+#define TG_RES_V1_2_7_HEADER_CHAINED_OFFSET        0xF0
+#define TG_RES_V1_2_7_HEADER_KEY_TABLE_OFFSET      0xF2
+#define TG_RES_V1_2_7_KEY_COUNT                    14
+
+// Resource types: 1..10 are read from the file, 11..20 stay in memory
+#define TG_RES_V1_2_7_DISK_LAST_TYPE               10
+#define TG_RES_V1_2_7_RESIDENT_FIRST_TYPE          11
+#define TG_RES_V1_2_7_RESIDENT_LAST_TYPE           20
+#define TG_RES_V1_2_7_SPRITE_TYPE                  18
+
+// Table resources: a block of 0x20 header bytes followed by the data, flagged as owned at +6
+#define TG_RES_V1_2_7_TABLE_TYPE                   10
+#define TG_RES_V1_2_7_TABLE_HEADER_SIZE            0x20
+#define TG_RES_V1_2_7_TABLE_OWNED_OFFSET           6
+
 // MIDI header of the Japanese build
 #define TG_RES_V1_2_6_MIDI_HEADER_SIZE             6
 
