@@ -50,7 +50,7 @@ AudioLibrary_v1_2::~AudioLibrary_v1_2() {
 }
 
 uint16 AudioLibrary_v1_2::audioInitLibrary(uint16 hwnd, uint16 version) {
-	if (version != TG_AUDIO_V1_2_VERSION)
+	if (version != ((_engine->_version >= kVersionV1_2_2) ? TG_AUDIO_V1_2_2_VERSION : TG_AUDIO_V1_2_VERSION))
 		return 0;
 
 	if (!_libMainDone) {
@@ -85,6 +85,10 @@ void AudioLibrary_v1_2::audioActivate(uint16 on) {
 	} else if (_activeSounds != 0) {
 		audioOpenWave(&_waveFormat);
 	}
+}
+
+void AudioLibrary_v1_2::audioPause(uint16 paused) {
+	pauseAllPlayback(paused);
 }
 
 uint16 AudioLibrary_v1_2::libMain() {
@@ -128,11 +132,22 @@ bool AudioLibrary_v1_2::allocAudioContext() {
 	_masterAvgVolumeLeft = 0;
 	_masterAvgVolumeRight = 0;
 	_cdSuspend = false;
+	_currentMidi = nullptr;
+	_midiCount = 0;
 	return true;
 }
 
 void AudioLibrary_v1_2::freeAudioContext() {
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
+
+	for (uint16 i = 0; i < _midiCount; i++) {
+		utilsLibrary->tgFree(_midiObjects[i]->data);
+		delete _midiObjects[i];
+		_midiObjects[i] = nullptr;
+	}
+
+	_midiCount = 0;
+	_currentMidi = nullptr;
 
 	for (uint16 i = 0; i < _soundCount; i++) {
 		utilsLibrary->tgFree(_sounds[i]->data);
@@ -427,8 +442,6 @@ bool AudioLibrary_v1_2_3::allocAudioContext() {
 	_paused = false;
 	_maxPriority = 0;
 	_waveMuteSavedVolume = 0;
-	_currentMidi = nullptr;
-	_midiCount = 0;
 	_midiOut = nullptr;
 	_midiOriginalVolume = 0;
 	_midiUserVolume = 0;
@@ -436,20 +449,6 @@ bool AudioLibrary_v1_2_3::allocAudioContext() {
 	_midiUserVolumeSet = false;
 	_midiTimerArmed = false;
 	return true;
-}
-
-void AudioLibrary_v1_2_3::freeAudioContext() {
-	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
-
-	for (uint16 i = 0; i < _midiCount; i++) {
-		utilsLibrary->tgFree(_midiObjects[i]->data);
-		delete _midiObjects[i];
-		_midiObjects[i] = nullptr;
-	}
-
-	_midiCount = 0;
-	_currentMidi = nullptr;
-	AudioLibrary_v1_2::freeAudioContext();
 }
 
 void AudioLibrary_v1_2_3::initializeAudioSubsystem() {

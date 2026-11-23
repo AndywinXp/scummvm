@@ -29,6 +29,69 @@
 
 namespace Topgun {
 
+bool SpriteLibrary_v1_2::spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words) {
+	if (!words) {
+		warning("SpriteLibrary_v1_2::spriteSendMessage(): the message has no words");
+		return false;
+	}
+
+	spriteEmptyQueue(sprite);
+
+	const uint16 *params = words + 1;
+	bool result = true;
+
+	switch (words[0]) {
+	case kSprV1_2OpPlayRange:
+		result = buildPlayRangeMessage(1, params, sprite);
+		break;
+
+	case kSprV1_2OpCompositeBackground:
+		compositeSpriteIntoBackground(sprite);
+		break;
+
+	case kSprV1_2OpQuadPath:
+		result = buildQuadPathMessage(1, params, sprite);
+		break;
+
+	case kSprV1_2OpHide:
+		spriteHide(sprite, true);
+		break;
+
+	case kSprV1_2OpLinearMove:
+		result = buildLinearMoveMessage(1, params, sprite);
+		break;
+
+	case kSprV1_2OpSetPosition:
+		updateSpritePosition(sprite, (int16)params[0], (int16)params[1], params[2]);
+		break;
+
+	case kSprV1_2OpTimingMode: {
+		SpriteObject_v1_2 *object = findSprite(sprite, "spriteSendMessage");
+		if (!object)
+			return false;
+
+		object->timingMode = (byte)params[0];
+		object->moveDue = 0;
+		object->frameDue = 0;
+		break;
+	}
+
+	case kSprV1_2OpFrameInterval:
+		spriteSetMotion(sprite, params[0]);
+		break;
+
+	case kSprV1_2OpMoveInterval:
+		spriteSetSpeed(sprite, params[0]);
+		break;
+
+	default:
+		result = false;
+		break;
+	}
+
+	return result;
+}
+
 bool SpriteLibrary_v1_2_3::spritePostMessage(uint16 sprite, uint16 count, const uint16 *words) {
 	return dispatchSpriteMessage(0, count, words, sprite);
 }
@@ -96,7 +159,7 @@ bool SpriteLibrary_v1_2_3::dispatchSpriteMessage(uint16 mode, uint16 count, cons
 	}
 }
 
-byte *SpriteLibrary_v1_2_3::allocQueueRecord(uint16 opcode, uint16 sprite) {
+byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 opcode, uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "allocQueueRecord");
 	if (!object)
 		return nullptr;
@@ -105,7 +168,7 @@ byte *SpriteLibrary_v1_2_3::allocQueueRecord(uint16 opcode, uint16 sprite) {
 		return growQueueForRecord(opcode, sprite);
 
 	uint16 size = _queueCommandSizeTable[opcode];
-	uint32 capacity = (uint16)(size + TG_SPR_V1_2_3_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_3_QUEUE_BLOCK_ROUNDING;
+	uint32 capacity = (uint16)(size + TG_SPR_V1_2_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
 
 	// The original leaves the bytes of a new block uninitialized
 	byte *block = engine()->utilsLibrary()->tgMalloc(capacity, 1);
@@ -113,7 +176,7 @@ byte *SpriteLibrary_v1_2_3::allocQueueRecord(uint16 opcode, uint16 sprite) {
 		return nullptr;
 
 	object->queueStart = block;
-	object->queueCurrent = nullptr;
+	object->queueCurrent = (_engine->_version >= kVersionV1_2_3) ? nullptr : block;
 	object->queueEnd = block + size;
 	object->queueCapacityStart = block;
 	object->queueCapacity = capacity;
@@ -122,7 +185,7 @@ byte *SpriteLibrary_v1_2_3::allocQueueRecord(uint16 opcode, uint16 sprite) {
 	return block;
 }
 
-byte *SpriteLibrary_v1_2_3::growQueueForRecord(uint16 opcode, uint16 sprite) {
+byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 opcode, uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "growQueueForRecord");
 	if (!object)
 		return nullptr;
@@ -134,7 +197,7 @@ byte *SpriteLibrary_v1_2_3::growQueueForRecord(uint16 opcode, uint16 sprite) {
 		capacity = object->queueCapacity;
 
 	if (needed > capacity) {
-		uint32 newCapacity = (uint16)(needed + TG_SPR_V1_2_3_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_3_QUEUE_BLOCK_ROUNDING;
+		uint32 newCapacity = (uint16)(needed + TG_SPR_V1_2_QUEUE_BLOCK_SLACK) & TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
 
 		int32 currentOffset = -1;
 		if (object->queueCurrent)
@@ -159,7 +222,7 @@ byte *SpriteLibrary_v1_2_3::growQueueForRecord(uint16 opcode, uint16 sprite) {
 	return record;
 }
 
-void SpriteLibrary_v1_2_3::resetQueueForImmediate(uint16 sprite) {
+void SpriteLibrary_v1_2::resetQueueForImmediate(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "resetQueueForImmediate");
 	if (!object)
 		return;
@@ -170,7 +233,7 @@ void SpriteLibrary_v1_2_3::resetQueueForImmediate(uint16 sprite) {
 	object->loopsDisabled = false;
 }
 
-void SpriteLibrary_v1_2_3::runImmediateRecord(byte *record, uint16 sprite) {
+void SpriteLibrary_v1_2::runImmediateRecord(byte *record, uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "runImmediateRecord");
 	if (!object)
 		return;
@@ -180,11 +243,11 @@ void SpriteLibrary_v1_2_3::runImmediateRecord(byte *record, uint16 sprite) {
 		spriteEmptyQueue(sprite);
 }
 
-bool SpriteLibrary_v1_2_3::buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0)
+bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3)
 		resetQueueForImmediate(sprite);
 
-	byte *record = allocQueueRecord(kSprV1_2_3OpPlayRange, sprite);
+	byte *record = allocQueueRecord(kSprV1_2OpPlayRange, sprite);
 	if (!record)
 		return false;
 
@@ -251,11 +314,11 @@ bool SpriteLibrary_v1_2_3::buildCompositeMessage(uint16 mode, uint16 sprite) {
 	return allocQueueRecord(kSprV1_2_3OpCompositeBackground, sprite);
 }
 
-bool SpriteLibrary_v1_2_3::buildQuadPathMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0)
+bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3)
 		resetQueueForImmediate(sprite);
 
-	byte *record = allocQueueRecord(kSprV1_2_3OpQuadPath, sprite);
+	byte *record = allocQueueRecord(kSprV1_2OpQuadPath, sprite);
 	if (!record)
 		return false;
 
@@ -264,22 +327,24 @@ bool SpriteLibrary_v1_2_3::buildQuadPathMessage(uint16 mode, const uint16 *param
 		return false;
 
 	if (mode != 0) {
-		WRITE_LE_INT16(record + 0x0E, object->x);
-		WRITE_LE_INT16(record + 0x10, object->y);
-		WRITE_LE_UINT16(record + 0x12, params[0]);
-		WRITE_LE_UINT16(record + 0x14, params[1]);
-		WRITE_LE_UINT16(record + 0x16, params[2]);
-		WRITE_LE_UINT16(record + 0x18, params[3]);
-		WRITE_LE_UINT16(record + 0x1C, params[4]);
+		uint16 shift = (_engine->_version >= kVersionV1_2_3) ? 1 : 0;
+
+		WRITE_LE_INT16(record + 0x0D + shift, object->x);
+		WRITE_LE_INT16(record + 0x0F + shift, object->y);
+		WRITE_LE_UINT16(record + 0x11 + shift, params[0]);
+		WRITE_LE_UINT16(record + 0x13 + shift, params[1]);
+		WRITE_LE_UINT16(record + 0x15 + shift, params[2]);
+		WRITE_LE_UINT16(record + 0x17 + shift, params[3]);
+		WRITE_LE_UINT16(record + 0x1B + shift, params[4]);
 
 		if (params[5] != 0) {
-			WRITE_LE_UINT16(record + 0x12, (uint16)(READ_LE_UINT16(record + 0x12) + object->x));
-			WRITE_LE_UINT16(record + 0x14, (uint16)(READ_LE_UINT16(record + 0x14) + object->y));
-			WRITE_LE_UINT16(record + 0x16, (uint16)(READ_LE_UINT16(record + 0x16) + object->x));
-			WRITE_LE_UINT16(record + 0x18, (uint16)(READ_LE_UINT16(record + 0x18) + object->y));
+			WRITE_LE_UINT16(record + 0x11 + shift, (uint16)(READ_LE_UINT16(record + 0x11 + shift) + object->x));
+			WRITE_LE_UINT16(record + 0x13 + shift, (uint16)(READ_LE_UINT16(record + 0x13 + shift) + object->y));
+			WRITE_LE_UINT16(record + 0x15 + shift, (uint16)(READ_LE_UINT16(record + 0x15 + shift) + object->x));
+			WRITE_LE_UINT16(record + 0x17 + shift, (uint16)(READ_LE_UINT16(record + 0x17 + shift) + object->y));
 		}
 
-		WRITE_LE_UINT16(record + 0x1A, 0);
+		WRITE_LE_UINT16(record + 0x19 + shift, 0);
 		runImmediateRecord(record, sprite);
 	} else {
 		WRITE_LE_UINT16(record + 6, (uint16)(params[0] - TG_SPR_V1_2_3_LITERAL_BIAS));
@@ -336,11 +401,11 @@ bool SpriteLibrary_v1_2_3::buildHideMessage(uint16 mode, uint16 sprite) {
 	return allocQueueRecord(kSprV1_2_3OpHide, sprite);
 }
 
-bool SpriteLibrary_v1_2_3::buildLinearMoveMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0)
+bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3)
 		resetQueueForImmediate(sprite);
 
-	byte *record = allocQueueRecord(kSprV1_2_3OpLinearMove, sprite);
+	byte *record = allocQueueRecord(kSprV1_2OpLinearMove, sprite);
 	if (!record)
 		return false;
 

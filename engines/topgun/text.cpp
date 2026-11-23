@@ -885,7 +885,15 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 }
 
 bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
-	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), (_version >= kVersionV1_2_3) ? kResV1_2_3Text : ((_version >= kVersionV1_2_1) ? kResV1_2_1Text : kResV1_2Text)))
+	uint16 type = kResV1_2Text;
+	if (_version >= kVersionV1_2_3)
+		type = kResV1_2_3Text;
+	else if (_version >= kVersionV1_2_2)
+		type = TG_TEXT_V1_2_2_RESOURCE_TYPE;
+	else if (_version >= kVersionV1_2_1)
+		type = kResV1_2_1Text;
+
+	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), type))
 		return false;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));

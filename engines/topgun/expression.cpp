@@ -31,9 +31,9 @@
 
 namespace Topgun {
 
-void TopgunEngine_v1_2_3::pushExpressionValue(uint16 value) {
-	if (_expressionStackPointer >= TG_SCRIPT_V1_2_3_EXPRESSION_STACK_SIZE) {
-		warning("TopgunEngine_v1_2_3::pushExpressionValue(): the expression stack is full");
+void TopgunEngine_v1_2::pushExpressionValue(uint16 value) {
+	if (_expressionStackPointer >= TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE) {
+		warning("TopgunEngine_v1_2::pushExpressionValue(): the expression stack is full");
 		return;
 	}
 
@@ -41,7 +41,7 @@ void TopgunEngine_v1_2_3::pushExpressionValue(uint16 value) {
 	_expressionStackPointer++;
 }
 
-uint16 TopgunEngine_v1_2_3::evaluateExpression(const byte *expression) {
+uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 	uint16 base = _expressionStackPointer;
 	const byte *token = expression;
 
@@ -71,7 +71,9 @@ uint16 TopgunEngine_v1_2_3::evaluateExpression(const byte *expression) {
 			break;
 
 		case 5:
-			_expressionStack[_expressionStackPointer - 1] = readAddress(_expressionStack[_expressionStackPointer - 1]);
+			if (_version >= kVersionV1_2_3)
+				_expressionStack[_expressionStackPointer - 1] = readAddress(_expressionStack[_expressionStackPointer - 1]);
+
 			break;
 
 		case 6:
@@ -86,13 +88,26 @@ uint16 TopgunEngine_v1_2_3::evaluateExpression(const byte *expression) {
 			break;
 
 		case 12:
-			exprCallBuiltinFunction(token);
-			token += 4;
+			if (_version >= kVersionV1_2_3) {
+				static_cast<TopgunEngine_v1_2_3 *>(this)->exprCallBuiltinFunction(token);
+				token += 4;
+			} else {
+				if (READ_LE_UINT16(token) > TG_HOST_V1_2_VARIABLE_LAST_INDEX)
+					exprCallScript(token);
+				else
+					evaluateBuiltinFunction(READ_LE_UINT16(token), READ_LE_UINT16(token + 4));
+
+				token += 6;
+			}
+
 			break;
 
 		case 13:
-			exprCallScript(token);
-			token += 4;
+			if (_version >= kVersionV1_2_3) {
+				exprCallScript(token);
+				token += 4;
+			}
+
 			break;
 
 		case 14:
@@ -250,7 +265,9 @@ uint16 TopgunEngine_v1_2_3::evaluateExpression(const byte *expression) {
 			break;
 
 		case 39:
-			pushExpressionValue(readAddress(_expressionStack[_expressionStackPointer - 1]));
+			if (_version >= kVersionV1_2_3)
+				pushExpressionValue(readAddress(_expressionStack[_expressionStackPointer - 1]));
+
 			break;
 
 		default:
@@ -276,9 +293,19 @@ void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
 		exprCallPluginFunction(code - lastBuiltinCode - 1, count);
 }
 
-bool TopgunEngine_v1_2_3::exprCallScript(const byte *token) {
-	uint16 frameSlots = READ_LE_UINT16(token);
-	uint16 count = READ_LE_UINT16(token + 2);
+bool TopgunEngine_v1_2::exprCallScript(const byte *token) {
+	uint16 script = 0;
+	uint16 frameSlots;
+	uint16 count;
+
+	if (_version >= kVersionV1_2_3) {
+		frameSlots = READ_LE_UINT16(token);
+		count = READ_LE_UINT16(token + 2);
+	} else {
+		script = READ_LE_UINT16(token);
+		frameSlots = READ_LE_UINT16(token + 2);
+		count = READ_LE_UINT16(token + 4);
+	}
 
 	for (uint16 slot = count; slot > 0; slot--) {
 		int32 index = (int32)_argumentFrame - frameSlots - (slot - 1);
@@ -286,7 +313,7 @@ bool TopgunEngine_v1_2_3::exprCallScript(const byte *token) {
 		_expressionStackPointer--;
 
 		if (index < 0) {
-			warning("TopgunEngine_v1_2_3::exprCallScript(): argument slot %d is out of range", slot - 1);
+			warning("TopgunEngine_v1_2::exprCallScript(): argument slot %d is out of range", slot - 1);
 			continue;
 		}
 
@@ -298,14 +325,135 @@ bool TopgunEngine_v1_2_3::exprCallScript(const byte *token) {
 	uint16 savedResult = _scriptResult;
 	_scriptResult = 0;
 
-	_expressionStackPointer--;
-	bool result = runScriptResource((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
+	if (_version >= kVersionV1_2_3) {
+		_expressionStackPointer--;
+		script = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+	}
+
+	bool result = runScriptResource(script);
 
 	pushExpressionValue(_scriptResult);
 	_scriptResult = savedResult;
 	_argumentFrame += frameSlots;
 
 	return result;
+}
+
+void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
+	switch (code) {
+	case 27: {
+		_expressionStackPointer -= argc;
+
+		const char *format = getStringFromId(_expressionStack[_expressionStackPointer]);
+		if (!format)
+			break;
+
+		uint16 count = (argc > 0) ? argc - 1 : 0;
+		Common::Array<FormatArgument_v1_2> arguments;
+		arguments.resize(count);
+
+		for (uint16 i = 0; i < count; i++)
+			arguments[i].value = _expressionStack[_expressionStackPointer + 1 + i];
+
+		debug("%s", formatWindowsString(format, count ? &arguments[0] : nullptr, count).c_str());
+		break;
+	}
+
+	case 46: {
+		_expressionStackPointer--;
+		int16 minimum = (int16)_expressionStack[_expressionStackPointer];
+		_expressionStackPointer--;
+		int16 maximum = (int16)_expressionStack[_expressionStackPointer];
+
+		if (maximum < minimum) {
+			int16 swap = maximum;
+			maximum = minimum;
+			minimum = swap;
+		}
+
+		uint16 random = getRandom15Bit();
+		uint16 range = (uint16)(maximum - minimum + 1);
+		uint16 pick;
+
+		if (range == 0) {
+			warning("TopgunEngine_v1_2::evaluateBuiltinFunction(): the range of built-in 46 holds every number");
+			pick = random;
+		} else {
+			pick = random % range;
+		}
+
+		pushExpressionValue((uint16)(minimum + pick));
+		break;
+	}
+
+	case 47: {
+		uint16 key = _expressionStack[_expressionStackPointer - 1];
+
+		_expressionStack[_expressionStackPointer - 1] = (key < TG_HOST_V1_2_KEY_STATE_SIZE && _keyStates[key]) ? 1 : 0;
+		break;
+	}
+
+	case 49: {
+		// The original also runs the debug string case after pushing the angle, which pops the arguments a second time
+		int16 deltaY = (int16)(_expressionStack[_expressionStackPointer - 1] - _expressionStack[_expressionStackPointer - 3]);
+
+		_expressionStackPointer -= 4;
+		pushExpressionValue((uint16)utilsLibrary()->getAngle(0, deltaY));
+		break;
+	}
+
+	case 57:
+	case 58: {
+		_expressionStackPointer--;
+		const char *second = getStringFromId(_expressionStack[_expressionStackPointer]);
+		_expressionStackPointer--;
+		const char *first = getStringFromId(_expressionStack[_expressionStackPointer]);
+
+		if (!first || !second)
+			break;
+
+		int comparison;
+
+		if (code == 58)
+			comparison = scumm_stricmp(first, second);
+		else
+			comparison = strcmp(first, second);
+
+		uint16 result = 0;
+		if (comparison < 0)
+			result = (uint16)-1;
+		else if (comparison > 0)
+			result = 1;
+
+		pushExpressionValue(result);
+		break;
+	}
+
+	case 65:
+		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->cosine((int16)_expressionStack[_expressionStackPointer - 1]);
+		break;
+
+	case 66:
+		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->sine((int16)_expressionStack[_expressionStackPointer - 1]);
+		break;
+
+	case 90: {
+		_expressionStackPointer -= argc;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_LITERAL_BIAS), kResV1_2_2Sprite))
+			break;
+
+		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
+			break;
+
+		spriteLib()->spriteSendMessage(_records[sprite].handle, argc, &_expressionStack[_expressionStackPointer + 1]);
+		break;
+	}
+
+	default:
+		break;
+	}
 }
 
 void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {

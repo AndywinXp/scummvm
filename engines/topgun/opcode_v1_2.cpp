@@ -33,17 +33,47 @@
 namespace Topgun {
 
 bool TopgunEngine_v1_2::o_callScript(const byte *record) {
+	if (_version >= kVersionV1_2_2) {
+		uint16 script = READ_LE_UINT16(record + 2);
+		byte frameSlots = record[4];
+		byte count = record[5];
+
+		if (_version >= kVersionV1_2_3)
+			script = (uint16)(operandValue(script) - TG_HOST_V1_2_3_LITERAL_BIAS);
+
+		if (count != 0) {
+			int32 destination = (int32)_argumentFrame - frameSlots;
+
+			for (byte i = 0; i < count; i++) {
+				uint16 value = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * i));
+
+				if (destination - i < 0) {
+					warning("TopgunEngine_v1_2::o_callScript(): argument slot %d is out of range", i);
+					continue;
+				}
+
+				_variableTable[destination - i] = value;
+			}
+		}
+
+		_argumentFrame -= frameSlots;
+		bool result = runScriptResource(script);
+		_argumentFrame += frameSlots;
+
+		return result;
+	}
+
 	if (_version >= kVersionV1_2_1) {
 		uint16 saved[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE];
 
-		memcpy(saved, &_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], sizeof(saved));
+		memcpy(saved, &_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], sizeof(saved));
 
 		for (uint16 i = 0; i < record[4]; i++)
-			_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * i));
+			_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * i));
 
 		bool result = runScriptResource(READ_LE_UINT16(record + 2));
 
-		memcpy(&_variables[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], saved, sizeof(saved));
+		memcpy(&_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], saved, sizeof(saved));
 		return result;
 	}
 
@@ -68,7 +98,7 @@ bool TopgunEngine_v1_2::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) 
 	if (data == 0 && !isResourceObjectLoaded(sprite))
 		return true;
 
-	if (!validateAndGetResourceByType(sprite, kResV1_2Sprite))
+	if (!validateAndGetResourceByType(sprite, (_version >= kVersionV1_2_2) ? kResV1_2_2Sprite : kResV1_2Sprite))
 		return false;
 
 	uint16 index = operandValue(sprite);
@@ -85,7 +115,12 @@ bool TopgunEngine_v1_2::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) 
 		return true;
 	}
 
-	if (!validateAndGetResourceByType(data, (_version >= kVersionV1_2_1) ? kResV1_2_1SpriteQueueData : kResV1_2SpriteQueue))
+	uint16 queueType = kResV1_2SpriteQueue;
+	if (_version >= kVersionV1_2_2)
+		queueType = kResV1_2_2SpriteQueueData;
+	else if (_version >= kVersionV1_2_1)
+		queueType = kResV1_2_1SpriteQueueData;
+	if (!validateAndGetResourceByType(data, queueType))
 		return false;
 
 	uint16 dataIndex = operandValue(data);
@@ -277,7 +312,7 @@ bool TopgunEngine_v1_2::o_roundRobinRunScript(byte *record) {
 
 	uint16 id = READ_LE_UINT16(record + 4 + 2 * record[3]);
 
-	if (!validateAndGetResourceByType(id, kResV1_2Script))
+	if (!validateAndGetResourceByType(id, (_version >= kVersionV1_2_2) ? kResV1_2_2Script : kResV1_2Script))
 		return false;
 
 	uint16 index = operandValue(id);
@@ -483,8 +518,14 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 
 	if (_version >= kVersionV1_2_1) {
+		uint16 type = kResV1_2_1Text;
+		if (_version >= kVersionV1_2_3)
+			type = kResV1_2_3Text;
+		else if (_version >= kVersionV1_2_2)
+			type = TG_TEXT_V1_2_2_RESOURCE_TYPE;
+
 		// An id of zero only ends the edit that is active
-		if (id != 0 && !validateAndGetResourceByType(id, (_version >= kVersionV1_2_3) ? kResV1_2_3Text : kResV1_2_1Text))
+		if (id != 0 && !validateAndGetResourceByType(id, type))
 			return false;
 
 		if (_textEditObjectId != 0)
@@ -594,7 +635,7 @@ void TopgunEngine_v1_2::o_compareStrings(const byte *record) {
 bool TopgunEngine_v1_2::o_setSpritePosition(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
 
-	if (!validateAndGetResourceByType(id, kResV1_2Sprite))
+	if (!validateAndGetResourceByType(id, (_version >= kVersionV1_2_2) ? kResV1_2_2Sprite : kResV1_2Sprite))
 		return false;
 
 	uint16 index = operandValue(id);
@@ -621,6 +662,90 @@ void TopgunEngine_v1_2::o_isSpriteBusy(const byte *record) {
 		busy = 1;
 
 	writeVariable(READ_LE_UINT16(record + 2), busy);
+}
+
+void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
+	uint16 firstVariable = READ_LE_UINT16(record + 4);
+	uint16 spriteType = (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2_2Sprite;
+	uint16 bias = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
+	if (firstVariable >= TG_HOST_V1_2_TABLE_SIZE)
+		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): variable %d is out of range", firstVariable);
+	else
+		_variableTable[firstVariable] = 0;
+
+	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType))
+		return;
+
+	uint16 index = operandValue(READ_LE_UINT16(record + 2));
+	if (!isRecordIndexValid(index, "o_getSpriteElementIds"))
+		return;
+
+	SpriteInfo_v1_2 info;
+	spriteLib()->spriteGetInfo(_records[index].handle, info);
+
+	uint16 count = info.frameCount;
+	if (count > TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES) {
+		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): the sprite has %d elements", count);
+		count = TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES;
+	}
+
+	for (uint16 i = 0; i < count; i++) {
+		uint16 variable = READ_LE_UINT16(record + 4 + 2 * i);
+
+		if (variable != 0 && info.frames[i])
+			writeVariable(variable, (uint16)(READ_LE_UINT16(info.frames[i] + TG_HOST_V1_2_BITMAP_RESOURCE_ID) + bias));
+	}
+}
+
+void TopgunEngine_v1_2::o_playMidi(const byte *record) {
+	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), (_version >= kVersionV1_2_3) ? kResV1_2_3Midi : kResV1_2_2Midi))
+		return;
+
+	byte parameters[TG_AUDIO_V1_2_3_MIDI_PLAY_PARAMS_SIZE];
+
+	if (_version >= kVersionV1_2_3) {
+		memcpy(parameters, record + 4, sizeof(parameters));
+
+		uint16 notifyValue = operandValue(READ_LE_UINT16(record + 8));
+		uint16 notifyScript = 0;
+
+		if (notifyValue != 0)
+			notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_3_LITERAL_BIAS);
+
+		WRITE_LE_UINT16(parameters + TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_PARAM, notifyScript);
+	}
+
+	uint16 index = operandValue(READ_LE_UINT16(record + 2));
+	if (!isRecordIndexValid(index, "o_playMidi"))
+		return;
+
+	audioLib()->audioPlayMidi(_records[index].handle, (_version >= kVersionV1_2_3) ? parameters : nullptr);
+}
+
+void TopgunEngine_v1_2::o_stopMidi(const byte *record) {
+	uint16 handle = 0;
+
+	if (_version >= kVersionV1_2_3) {
+		if (READ_LE_UINT16(record + 2) != 0) {
+			uint16 index = operandValue(READ_LE_UINT16(record + 2));
+			if (!isRecordIndexValid(index, "o_stopMidi"))
+				return;
+
+			handle = _records[index].handle;
+		}
+
+		audioLib()->audioStopMidi(handle);
+		return;
+	}
+
+	uint16 index = operandValue(READ_LE_UINT16(record + 2));
+	if (!isRecordIndexValid(index, "o_stopMidi"))
+		return;
+
+	handle = _records[index].handle;
+	if (handle != 0)
+		audioLib()->audioStopMidi(handle);
 }
 
 Common::String TopgunEngine_v1_2::formatWindowsString(const char *format, const FormatArgument_v1_2 *arguments, uint16 count) {

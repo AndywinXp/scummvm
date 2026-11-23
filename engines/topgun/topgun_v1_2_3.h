@@ -107,7 +107,6 @@
 // Interpreter
 #define TG_SCRIPT_V1_2_3_MAX_DEPTH                30
 #define TG_SCRIPT_V1_2_3_TABLE_ADDRESS             0x1520
-#define TG_SCRIPT_V1_2_3_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS           40
 #define TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE           18
 #define TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE          6
@@ -135,7 +134,6 @@
 #define TG_SCRIPT_V1_2_3_CONDITIONAL_SIZE          0x0E
 #define TG_SCRIPT_V1_2_3_SKIP_TAKEN_SIZE           0x0A
 #define TG_SCRIPT_V1_2_3_NUM_SCRIPT_CHOICES        6
-#define TG_SCRIPT_V1_2_3_NUM_ELEMENT_VARIABLES     4
 
 // Interpreter operations: audio and palette
 #define TG_SCRIPT_V1_2_3_MIDI_PARAMETERS_SIZE      10
@@ -394,20 +392,9 @@ protected:
 	SpriteLibrary_v1_2_3 *spriteLib() { return static_cast<SpriteLibrary_v1_2_3 *>(spriteLibrary()); }
 	void syncSoundSettings() override;
 
-	// Operands
-	uint16 variableIndex(uint16 operand) const;
-	uint16 operandValue(uint16 operand) const override;
-	uint16 readVariable(uint16 index) const override;
-	void writeVariable(uint16 index, uint16 value) override;
-
 	// Hooks of the libraries
 	bool postMessage(uint16 id, uint16 param, uint32 data) override;
 	uint16 audioCreateWaveEvent(const byte *header, uint16 waveInfo);
-	uint16 audioCreateMidiEvent(const byte *header, uint16 midiInfo);
-	uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) override;
-	uint32 audioSourceRewind(uint16 proc, uint16 handle) override;
-	void audioSourceClose(uint16 proc, uint16 handle) override;
-	bool resourceVariablePairCallback(uint16 id, uint16 value);
 	void spriteMessageService(byte *record, uint16 spriteId) override;
 
 	// Startup
@@ -428,13 +415,9 @@ protected:
 	void flushPostedScriptMessages();
 
 	// Resources
-	void destroyMidiResourceObject(uint16 id);
-	bool ensureMidiResourceLoaded(uint16 id);
 	void applySpritePaletteExtension(const byte *header);
 	bool destroyResourceObjectByType(uint16 id, uint16 type) override;
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
-	bool isResourceObjectLoaded(uint16 id, uint16 type);
-	byte *spriteBitmapProvider(uint16 id, bool release);
 
 	// Backgrounds
 	byte *loadBitmapResourceCopy(uint16 id);
@@ -449,9 +432,6 @@ protected:
 	bool runPostedScriptRecord(const byte *record);
 	bool enqueuePostedScriptRun(uint16 script, uint16 argument1, uint16 argument2);
 	void servicePostedRunQueue();
-	uint16 operandAddress(uint16 operand) const;
-	uint16 readAddress(uint16 address) const;
-	void writeAddress(uint16 address, uint16 value);
 	int32 applyArithmeticOperand(int32 accumulator, const byte *operand);
 	uint16 evaluateCondition(byte condition, uint16 operandA, uint16 operandB);
 
@@ -463,14 +443,10 @@ protected:
 	bool callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
 
 	// Expressions
-	uint16 evaluateExpression(const byte *expression);
-	void pushExpressionValue(uint16 value);
 	void exprCallBuiltinFunction(const byte *token);
-	bool exprCallScript(const byte *token);
-	void evaluateBuiltinFunction(uint16 code, uint16 argc);
+	void evaluateBuiltinFunction(uint16 code, uint16 argc) override;
 
 	// Opcodes
-	bool o_callScript(const byte *record) override; // 1
 	bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) override; // 5
 	void o_setBackground(const byte *record); // 6
 	bool o_playWave(uint16 waveId, const byte *params); // 8
@@ -487,16 +463,9 @@ protected:
 	void o_moveSprite(const byte *record); // 36
 	uint16 o_conditionalSkip(const byte *record); // 38
 	void o_getSpritePosition(const byte *record); // 40
-	uint16 o_switch(const byte *record); // 43
 	void o_getKeyState(const byte *record); // 47
 	bool o_setSpritePosition(const byte *record); // 63
 	void o_setMouseEventScript(const byte *record); // 64
-	void o_getSpriteElementIds(const byte *record); // 75
-	uint16 o_conditionalJumpExpr(const byte *record); // 77
-	uint16 o_switchExpression(const byte *record); // 78
-	uint16 o_conditionalJumpExprCopy(const byte *record); // 79
-	void o_playMidi(const byte *record); // 80
-	void o_stopMidi(const byte *record); // 81
 	void o_setDeviceGroupBinding(const byte *record); // 82
 	void o_deviceGroupButtonState(const byte *record); // 83
 	void o_setDeviceGroupScript(const byte *record); // 84
@@ -526,7 +495,7 @@ protected:
 	uint16 builtinReattachDeviceGroup(uint16 group, uint16 flag); // 137
 
 	// Input messages
-	void handleKeyUpMessage(Common::KeyCode keycode);
+	void handleKeyUpMessage(Common::KeyCode keycode) override;
 	uint16 postKeyHookScript(uint16 vk);
 
 	// Click, hover and drag regions
@@ -563,10 +532,6 @@ protected:
 	// Joystick
 	void handleJoystickButtonMessage(const Message &message);
 	uint16 joystickMessageToIndex(const Message &message);
-
-	// Variables
-	uint16 _variableTable[TG_HOST_V1_2_3_TABLE_SIZE] = {};
-	uint16 _argumentFrame = TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
 
 	// Startup state
 	bool _debugMode = false;
@@ -606,8 +571,6 @@ protected:
 	};
 
 	// Interpreter state
-	uint16 _expressionStack[TG_SCRIPT_V1_2_3_EXPRESSION_STACK_SIZE] = {};
-	uint16 _expressionStackPointer = 0;
 	uint16 _debugScriptId = 0;
 	byte _postedRuns[TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS * TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE] = {};
 	char _quitSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE] = {};

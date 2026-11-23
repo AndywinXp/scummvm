@@ -114,7 +114,7 @@ uint16 TopgunEngine_v1_2::createMovieObject(uint16 id, uint16 argument, byte *da
 
 	movie->data = data;
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2) {
 		movie->timelineSize = argument;
 	} else {
 		movie->timelineSize = READ_LE_UINT16(data);
@@ -184,19 +184,22 @@ void TopgunEngine_v1_2::destroyAllMovieObjects() {
 }
 
 bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2) {
 		uint32 size = 0;
 
-		movie->frameTable = resourceLib()->resLoadResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_FRAME_TABLE_RESOURCE_OFFSET), &size);
+		movie->frameTable = resourceLib()->resLoadResource(_file, (uint16)(movie->index + ((_version >= kVersionV1_2_3) ? TG_MOVIE_V1_2_3_FRAME_TABLE_RESOURCE_OFFSET : TG_MOVIE_V1_2_2_FRAME_TABLE_RESOURCE_OFFSET)), &size);
 		if (!movie->frameTable)
 			return false;
 
 		movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
 
-		if (static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET)) == 0)
-			return false;
+		if (_version >= kVersionV1_2_3) {
+			if (static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET)) == 0)
+				return false;
 
-		movie->streamBase = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resTell(_file);
+			movie->streamBase = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resTell(_file);
+		}
+
 		return true;
 	}
 
@@ -250,7 +253,7 @@ void TopgunEngine_v1_2::movieFreePrefetchBuffers(Movie_v1_2 *movie) {
 void TopgunEngine_v1_2::movieResetPlaybackState(Movie_v1_2 *movie) {
 	movie->consumeBuffer = 0;
 	movie->frame = 0;
-	movie->timeline = (_version >= kVersionV1_2_3) ? movie->data : movie->data + TG_MOVIE_V1_2_HEADER_SIZE;
+	movie->timeline = (_version >= kVersionV1_2_2) ? movie->data : movie->data + TG_MOVIE_V1_2_HEADER_SIZE;
 	movie->timelineRemaining = movie->timelineSize;
 	movie->audioBuffered = 0;
 	movie->started = false;

@@ -737,7 +737,12 @@ void TopgunEngine_v1_2::advanceSceneFadeStep() {
 	spriteLib()->spriteAnimate();
 
 	uint16 mult = _fadeIn ? _step : (uint16)(_stepCount - _step);
-	spriteLib()->spriteFadePalette(mult, _stepCount, TG_HOST_V1_2_NUM_SYSTEM_COLORS, (_version >= kVersionV1_2_3) ? _maxFadeColors : ((_version >= kVersionV1_2_1) ? (uint16)(TG_HOST_V1_2_1_FADE_LAST_COLOR - _maxTransColors) : TG_HOST_V1_2_NUM_FADE_COLORS));
+	uint16 fadeColors = TG_HOST_V1_2_NUM_FADE_COLORS;
+	if (_version >= kVersionV1_2_3)
+		fadeColors = _maxFadeColors;
+	else if (_version >= kVersionV1_2_1)
+		fadeColors = (uint16)(TG_HOST_V1_2_1_FADE_LAST_COLOR - _maxTransColors);
+	spriteLib()->spriteFadePalette(mult, _stepCount, TG_HOST_V1_2_NUM_SYSTEM_COLORS, fadeColors);
 
 	_step++;
 	if (_step > _stepCount)

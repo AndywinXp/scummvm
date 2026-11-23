@@ -80,11 +80,19 @@
 // IMA ADPCM
 #define TG_AUDIO_V1_2_ADPCM_MAX_INDEX         0x2C0
 
+// Peter and the Wolf
+#define TG_AUDIO_V1_2_2_VERSION                    0x0300
+#define TG_AUDIO_V1_2_2_MAX_MIDI_OBJECTS           20
+#define TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE           6
+#define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_SIZE    0
+#define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_NOTIFY  4
+
 // Values of the later version that share the structures of this one
 #define TG_AUDIO_V1_2_3_MAX_SOUNDS            100
 #define TG_AUDIO_V1_2_3_NOTIFY_MESSAGE        0x52C
 #define TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE    0x1C
 #define TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE      0x18
+#define TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS     16
 
 namespace Topgun {
 
@@ -112,6 +120,19 @@ struct SoundCreateInfo_v1_2 {
 	}
 };
 
+struct MidiCreateInfo_v1_2_3 {
+	byte header[TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE];
+	uint16 readProc;
+	uint16 rewindProc;
+	uint16 closeProc;
+	uint16 handle;
+
+	MidiCreateInfo_v1_2_3() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE; i++)
+			header[i] = 0;
+	}
+};
+
 class AudioLibrary_v1_2 : public AudioLibrary {
 public:
 	AudioLibrary_v1_2(TopgunEngine_v1_2 *engine);
@@ -122,6 +143,7 @@ public:
 	void audioExitLibrary() override;
 	void audioService() override;
 	void audioActivate(uint16 on);
+	virtual void audioPause(uint16 paused);
 
 	// Wave device
 	void audioCloseWave();
@@ -133,6 +155,13 @@ public:
 	void audioSetWaveVolume(uint32 volume);
 	void audioSetWaveFormats(uint16 mask);
 	void audioMute(int16 muted);
+
+	// MIDI
+	uint16 audioCreateMidi(MidiCreateInfo_v1_2_3 *info);
+	uint16 audioDestroyMidi(uint16 midi);
+	virtual uint16 audioPlayMidi(uint16 midi, const byte *params);
+	virtual uint16 audioStopMidi(uint16 midi);
+	virtual void applyMidiDeviceVolume();
 
 	// Master volume
 	uint32 audioGetMasterVolume();
@@ -225,12 +254,47 @@ protected:
 			priority(0), notifyPending(false), exempt(false) {}
 	};
 
+	struct MidiObject {
+		uint16 handle;
+		byte *data;
+		uint32 size;
+		uint16 index;
+		uint16 count;
+		uint16 readProc;
+		uint16 rewindProc;
+		uint16 closeProc;
+		uint16 callbackHandle;
+		uint16 notifyWParam;
+		uint16 notifyLParam;
+		uint16 tempoNumerator;
+		uint16 tempoDenominator;
+		int16 loops;
+		bool notifyArmed;
+		bool channelMuted[TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS];
+
+		MidiObject() : handle(0), data(nullptr), size(0), index(0), count(0), readProc(0), rewindProc(0), closeProc(0),
+			callbackHandle(0), notifyWParam(0), notifyLParam(0), tempoNumerator(0), tempoDenominator(0), loops(0),
+			notifyArmed(false) {
+			for (uint32 i = 0; i < TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS; i++)
+				channelMuted[i] = false;
+		}
+	};
+
 	// Library
 	uint16 libMain();
 	bool allocAudioContext();
 	void freeAudioContext();
 	uint16 readAudioIniInt(const char *key, uint16 defaultValue);
 	void readAudioIniSettings();
+
+	// MIDI objects
+	MidiObject *allocMidiObject();
+	void destroyMidiObject(MidiObject *midi);
+	void removeMidiFromArray(MidiObject *midi);
+	bool initMidiObjectDataSource(const MidiCreateInfo_v1_2_3 *info, MidiObject *midi);
+	bool invokeAndClearCloseCallback(MidiObject *midi);
+	MidiObject *validateMidiHandle(uint16 handle);
+	virtual void stopMidiSequence(MidiObject *midi);
 
 	// Master volume and fades
 	void masterFadeTick();
@@ -255,6 +319,7 @@ protected:
 	virtual void pumpAudioPlayback();
 	void resetWaveQueueAndEnableAllWaves(uint16 on) override;
 	void updateWaveEnabledFlags(uint16 on);
+	void pauseAllPlayback(uint16 paused);
 
 	// Mixers
 	uint16 mixSound8Bit(uint16 mixCount, uint16 bytes, byte *destination, SoundObject *sound);
@@ -322,6 +387,12 @@ protected:
 
 	// CD audio
 	uint32 _cdMuteSavedVolume = 0;
+
+	// MIDI
+	MidiObject *_midiObjects[TG_AUDIO_V1_2_2_MAX_MIDI_OBJECTS] = {};
+	uint16 _midiCount = 0;
+	uint16 _nextMidiHandle = 1;
+	MidiObject *_currentMidi = nullptr;
 
 private:
 	TopgunEngine_v1_2 *engine() const;

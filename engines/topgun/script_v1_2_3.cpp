@@ -290,7 +290,7 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2_3Switch:
-		size = o_switch(ip);
+		size = lookupSwitchOffset(ip);
 		break;
 
 	case kOpV1_2_3Stop:
@@ -562,33 +562,6 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 	return kScriptOpSizes[opcode];
 }
 
-bool TopgunEngine_v1_2_3::o_callScript(const byte *record) {
-	uint16 script = (uint16)(operandValue(READ_LE_UINT16(record + 2)) - TG_HOST_V1_2_3_LITERAL_BIAS);
-	byte frameSlots = record[4];
-	byte count = record[5];
-
-	if (count != 0) {
-		int32 destination = (int32)_argumentFrame - frameSlots;
-
-		for (byte i = 0; i < count; i++) {
-			uint16 value = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i));
-
-			if (destination - i < 0) {
-				warning("TopgunEngine_v1_2_3::o_callScript(): argument slot %d is out of range", i);
-				continue;
-			}
-
-			_variableTable[destination - i] = value;
-		}
-	}
-
-	_argumentFrame -= frameSlots;
-	bool result = runScriptResource(script);
-	_argumentFrame += frameSlots;
-
-	return result;
-}
-
 bool TopgunEngine_v1_2_3::runPostedScriptRecord(const byte *record) {
 	byte local[TG_SCRIPT_V1_2_3_POSTED_RECORD_BUFFER_SIZE];
 	uint16 count = READ_LE_UINT16(record + 4);
@@ -644,32 +617,6 @@ void TopgunEngine_v1_2_3::servicePostedRunQueue() {
 	_numPostedScriptRuns = 0;
 }
 
-uint16 TopgunEngine_v1_2_3::operandAddress(uint16 operand) const {
-	return (uint16)(TG_SCRIPT_V1_2_3_TABLE_ADDRESS + 2 * variableIndex(operand));
-}
-
-uint16 TopgunEngine_v1_2_3::readAddress(uint16 address) const {
-	uint16 index = (uint16)((address - TG_SCRIPT_V1_2_3_TABLE_ADDRESS) / 2);
-
-	if (address < TG_SCRIPT_V1_2_3_TABLE_ADDRESS || (address & 1) != 0 || index >= TG_HOST_V1_2_3_TABLE_SIZE) {
-		warning("TopgunEngine_v1_2_3::readAddress(): address 0x%X is not inside the variable table", address);
-		return 0;
-	}
-
-	return _variableTable[index];
-}
-
-void TopgunEngine_v1_2_3::writeAddress(uint16 address, uint16 value) {
-	uint16 index = (uint16)((address - TG_SCRIPT_V1_2_3_TABLE_ADDRESS) / 2);
-
-	if (address < TG_SCRIPT_V1_2_3_TABLE_ADDRESS || (address & 1) != 0 || index >= TG_HOST_V1_2_3_TABLE_SIZE) {
-		warning("TopgunEngine_v1_2_3::writeAddress(): address 0x%X is not inside the variable table", address);
-		return;
-	}
-
-	_variableTable[index] = value;
-}
-
 void TopgunEngine_v1_2_3::o_setBackground(const byte *record) {
 	if (READ_LE_UINT16(record + 10) != 0) {
 		if (setBackgroundWithWipeEffect(record))
@@ -704,60 +651,6 @@ void TopgunEngine_v1_2_3::o_gotoScene(const byte *record) {
 		_keyTable[i] = KeyEntry_v1_2();
 
 	_dragSpriteId = 0;
-}
-
-uint16 TopgunEngine_v1_2_3::o_switch(const byte *record) {
-	uint16 count = record[8];
-	const byte *table = record + READ_LE_UINT16(record + 4);
-	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
-	uint16 value = operandValue(READ_LE_UINT16(record + 2));
-	uint16 index = 0;
-
-	while (index < count) {
-		if (READ_LE_UINT16(table + 2 + TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE * index) == value)
-			break;
-
-		index++;
-	}
-
-	if (count > index)
-		return READ_LE_UINT16(table + TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE * index + 4);
-
-	return defaultAdvance;
-}
-
-uint16 TopgunEngine_v1_2_3::o_switchExpression(const byte *record) {
-	uint16 count = record[8];
-	const byte *table = record + READ_LE_UINT16(record + 4);
-	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
-	uint16 value = evaluateExpression(record + 10);
-	uint16 index = 0;
-
-	while (index < count) {
-		if (READ_LE_UINT16(table + 2 + TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE * index) == value)
-			break;
-
-		index++;
-	}
-
-	if (count > index)
-		return READ_LE_UINT16(table + TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE * index + 4);
-
-	return defaultAdvance;
-}
-
-uint16 TopgunEngine_v1_2_3::o_conditionalJumpExpr(const byte *record) {
-	if (evaluateExpression(record + 6) != 0)
-		return READ_LE_UINT16(record + 4);
-
-	return READ_LE_UINT16(record + 2);
-}
-
-uint16 TopgunEngine_v1_2_3::o_conditionalJumpExprCopy(const byte *record) {
-	if (evaluateExpression(record + 6) != 0)
-		return READ_LE_UINT16(record + 4);
-
-	return READ_LE_UINT16(record + 2);
 }
 
 } // End of namespace Topgun

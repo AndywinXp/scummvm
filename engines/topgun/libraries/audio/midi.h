@@ -33,6 +33,7 @@ public:
 	MidiSequencer();
 
 	bool playFile(const Common::String &fileName);
+	bool playData(const byte *data, uint32 size);
 
 protected:
 	void sendToChannel(byte channel, uint32 b) override;

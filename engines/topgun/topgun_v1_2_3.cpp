@@ -58,44 +58,6 @@ void TopgunEngine_v1_2_3::syncSoundSettings() {
 	audioLib()->applyMidiDeviceVolume();
 }
 
-uint16 TopgunEngine_v1_2_3::variableIndex(uint16 operand) const {
-	if (operand < TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT)
-		return operand;
-
-	int32 index = (int32)_argumentFrame - (operand - TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT);
-	if (index < 0) {
-		warning("TopgunEngine_v1_2_3::variableIndex(): argument slot %d is out of range", operand);
-		return 0;
-	}
-
-	return (uint16)index;
-}
-
-uint16 TopgunEngine_v1_2_3::operandValue(uint16 operand) const {
-	if (operand > TG_HOST_V1_2_3_LAST_OPERAND_INDEX)
-		return (uint16)(operand + TG_HOST_V1_2_3_LITERAL_BIAS);
-
-	return _variableTable[variableIndex(operand)];
-}
-
-uint16 TopgunEngine_v1_2_3::readVariable(uint16 index) const {
-	if (index > TG_HOST_V1_2_3_LAST_OPERAND_INDEX) {
-		warning("TopgunEngine_v1_2_3::readVariable(): variable %d is out of range", index);
-		return 0;
-	}
-
-	return _variableTable[variableIndex(index)];
-}
-
-void TopgunEngine_v1_2_3::writeVariable(uint16 index, uint16 value) {
-	if (index > TG_HOST_V1_2_3_LAST_OPERAND_INDEX) {
-		warning("TopgunEngine_v1_2_3::writeVariable(): variable %d is out of range", index);
-		return;
-	}
-
-	_variableTable[variableIndex(index)] = value;
-}
-
 bool TopgunEngine_v1_2_3::postMessage(uint16 id, uint16 param, uint32 data) {
 	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_1IoError) {
 		// The fatal quit messages are handled synchronously
@@ -118,49 +80,6 @@ uint16 TopgunEngine_v1_2_3::audioCreateWaveEvent(const byte *header, uint16 wave
 	info.handle = waveInfo;
 
 	return audioLib()->audioCreateWave(&info);
-}
-
-uint16 TopgunEngine_v1_2_3::audioCreateMidiEvent(const byte *header, uint16 midiInfo) {
-	MidiCreateInfo_v1_2_3 info;
-	memcpy(info.header, header, TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE);
-	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
-	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
-	info.handle = midiInfo;
-
-	return audioLib()->audioCreateMidi(&info);
-}
-
-uint32 TopgunEngine_v1_2_3::audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) {
-	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI)
-		return (uint32)resourceLib()->waveRead(handle, destination, (int32)count);
-
-	if (proc == TG_AUDIO_V1_2_3_PROC_MOVIE_AUDIO)
-		return movieAudioFill(handle, destination, count);
-
-	warning("TopgunEngine_v1_2_3::audioSourceRead(): unknown source procedure %d", proc);
-	return 0;
-}
-
-uint32 TopgunEngine_v1_2_3::audioSourceRewind(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE)
-		return resourceLib()->waveRewind(handle);
-
-	return 0;
-}
-
-void TopgunEngine_v1_2_3::audioSourceClose(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE || proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI)
-		resourceLib()->waveDone(handle);
-}
-
-bool TopgunEngine_v1_2_3::resourceVariablePairCallback(uint16 id, uint16 value) {
-	if (_currentSceneIndex >= _sceneEntries.size() || id >= TG_HOST_V1_2_3_NUM_SCENE_VARIABLES) {
-		warning("TopgunEngine_v1_2_3::resourceVariablePairCallback(): variable %d is out of range", id);
-		return true;
-	}
-
-	_sceneEntries[_currentSceneIndex].variables[id] = value;
-	return true;
 }
 
 void TopgunEngine_v1_2_3::spriteMessageService(byte *record, uint16 spriteId) {

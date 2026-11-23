@@ -33,9 +33,12 @@
 #define TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE   0x1E
 #define TG_SPR_V1_2_FRAME_NOTIFICATION         0x12
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
+#define TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING       0xFFC0
+#define TG_SPR_V1_2_QUEUE_BLOCK_SLACK          0x3F
 
 // Limits of the versions after this one
 #define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
+#define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
 #define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
 #define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
@@ -183,6 +186,10 @@ public:
 	void spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect);
 	void spriteSetClipBox(const Common::Rect *box);
 	virtual bool spriteSetZoom(uint16 factor, int16 panX, int16 panY);
+	void spriteSetStretch(uint16 flag);
+
+	// Messages
+	virtual bool spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words);
 
 	// Palette
 	bool spriteChangePalette(uint16 first, uint16 count, const byte *entries, bool animate, bool replicate = false);
@@ -220,6 +227,10 @@ protected:
 		bool pickWholeBox;
 		bool advancePending;
 		bool animates;
+		int16 pivotX;
+		int16 pivotY;
+		bool anchorX;
+		bool anchorY;
 		Common::Array<uint16> frameIds;
 		CelCacheBlockPtr celCache;
 		uint16 celCacheCount;
@@ -234,7 +245,7 @@ protected:
 		uint32 queueCapacity;
 
 		SpriteObject_v1_2() : level(0), mirrorX(false), flipY(false), pickWholeBox(false), advancePending(false),
-			animates(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
+			animates(false), pivotX(0), pivotY(0), anchorX(false), anchorY(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
 			multipartValid(false), paused(false), pickInvisible(false), queueCapacityStart(nullptr), queueCapacity(0) {}
 	};
 
@@ -289,6 +300,15 @@ protected:
 	bool stepLinearMove(uint16 sprite);
 	void applyFrameChange(uint16 sprite) override;
 
+	// Message builders
+	byte *allocQueueRecord(uint16 opcode, uint16 sprite);
+	byte *growQueueForRecord(uint16 opcode, uint16 sprite);
+	void resetQueueForImmediate(uint16 sprite);
+	void runImmediateRecord(byte *record, uint16 sprite);
+	bool buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite);
+	bool buildQuadPathMessage(uint16 mode, const uint16 *params, uint16 sprite);
+	bool buildLinearMoveMessage(uint16 mode, const uint16 *params, uint16 sprite);
+
 	// Rendering
 	bool renderRect(const Common::Rect &rect) override;
 	void renderSpriteToSurface(uint16 sprite) override;
@@ -329,6 +349,7 @@ protected:
 	Common::Rect _userClipBox;
 	uint16 _fillColor = 0;
 	bool _zoomActive = false;
+	bool _stretch = false;
 	uint16 _zoomFactor = 0;
 	int16 _zoomOffsetX = 0;
 	int16 _zoomOffsetY = 0;

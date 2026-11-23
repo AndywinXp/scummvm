@@ -422,7 +422,7 @@ bool TopgunEngine_v1_2::translate(const Common::Event &event, Message &message) 
 		if (key != TG_HOST_V1_2_NO_KEY)
 			_keyStates[key] = false;
 
-		if (_version < kVersionV1_2_3)
+		if (_version < kVersionV1_2_2)
 			return false;
 
 		if ((event.kbd.flags & Common::KBD_ALT) != 0 || event.kbd.keycode == Common::KEYCODE_F10)
@@ -564,8 +564,8 @@ uint16 TopgunEngine_v1_2::postMouseEventScript(uint16 code) {
 	memset(record, 0, sizeof(record));
 	WRITE_LE_UINT16(record + 2, _mouseEventScript);
 
-	if (_version >= kVersionV1_2_3) {
-		WRITE_LE_UINT16(record + 6, (uint16)(code - TG_HOST_V1_2_3_LITERAL_BIAS));
+	if (_version >= kVersionV1_2_2) {
+		WRITE_LE_UINT16(record + 6, (uint16)(code - ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)));
 		record[5] = 1;
 
 		uint16 saved = _scriptResult;
@@ -613,9 +613,19 @@ void TopgunEngine_v1_2::handleMouseButtonMessage(const Message &message) {
 
 	transformPointForDisplayZoom(point);
 
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_MOUSE_BUTTON : TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON, left ? TG_HOST_V1_2_MOUSE_BUTTON_LEFT : TG_HOST_V1_2_MOUSE_BUTTON_RIGHT);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_CLICK_X : TG_HOST_V1_2_VARIABLE_CLICK_X, (uint16)point.x);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_CLICK_Y : TG_HOST_V1_2_VARIABLE_CLICK_Y, (uint16)point.y);
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_BUTTON, left ? TG_HOST_V1_2_MOUSE_BUTTON_LEFT : TG_HOST_V1_2_MOUSE_BUTTON_RIGHT);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_CLICK_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_CLICK_Y, (uint16)point.y);
+	} else if (_version >= kVersionV1_2_2) {
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_MOUSE_BUTTON, left ? TG_HOST_V1_2_MOUSE_BUTTON_LEFT : TG_HOST_V1_2_MOUSE_BUTTON_RIGHT);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_CLICK_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_CLICK_Y, (uint16)point.y);
+	} else {
+		writeVariable(TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON, left ? TG_HOST_V1_2_MOUSE_BUTTON_LEFT : TG_HOST_V1_2_MOUSE_BUTTON_RIGHT);
+		writeVariable(TG_HOST_V1_2_VARIABLE_CLICK_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_VARIABLE_CLICK_Y, (uint16)point.y);
+	}
 
 	if (_mouseEventScript != 0 && postMouseEventScript(TG_HOST_V1_2_MOUSE_EVENT_DOWN) == 0)
 		return;
@@ -718,8 +728,16 @@ void TopgunEngine_v1_2::handleMouseMoveMessage(const Message &message) {
 
 	transformPointForDisplayZoom(point);
 
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_MOUSE_X : TG_HOST_V1_2_VARIABLE_MOUSE_X, (uint16)point.x);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_MOUSE_Y : TG_HOST_V1_2_VARIABLE_MOUSE_Y, (uint16)point.y);
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_Y, (uint16)point.y);
+	} else if (_version >= kVersionV1_2_2) {
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_MOUSE_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_MOUSE_Y, (uint16)point.y);
+	} else {
+		writeVariable(TG_HOST_V1_2_VARIABLE_MOUSE_X, (uint16)point.x);
+		writeVariable(TG_HOST_V1_2_VARIABLE_MOUSE_Y, (uint16)point.y);
+	}
 
 	if (_gamePaused)
 		return;
@@ -746,8 +764,16 @@ void TopgunEngine_v1_2::handleMouseMoveMessage(const Message &message) {
 }
 
 void TopgunEngine_v1_2::dropDraggedSprite(int16 x, int16 y) {
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_DROP_X : TG_HOST_V1_2_VARIABLE_DROP_X, (uint16)x);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_DROP_Y : TG_HOST_V1_2_VARIABLE_DROP_Y, (uint16)y);
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_DROP_X, (uint16)x);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_DROP_Y, (uint16)y);
+	} else if (_version >= kVersionV1_2_2) {
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_DROP_X, (uint16)x);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_DROP_Y, (uint16)y);
+	} else {
+		writeVariable(TG_HOST_V1_2_VARIABLE_DROP_X, (uint16)x);
+		writeVariable(TG_HOST_V1_2_VARIABLE_DROP_Y, (uint16)y);
+	}
 
 	uint16 index = operandValue(_dragSpriteId);
 
@@ -900,7 +926,7 @@ void TopgunEngine_v1_2::o_bindKeyScript(const byte *record) {
 				entry.ctrl = READ_LE_UINT16(record + 4);
 			else if (record[7] != 0)
 				entry.shift = READ_LE_UINT16(record + 4);
-			else if (_version >= kVersionV1_2_3 && record[0x0A] != 0)
+			else if (_version >= kVersionV1_2_2 && record[0x0A] != 0)
 				entry.keyUp = READ_LE_UINT16(record + 4);
 			else
 				entry.plain = READ_LE_UINT16(record + 4);
@@ -991,8 +1017,8 @@ void TopgunEngine_v1_2::addOrUpdateClickRegion(const byte *record) {
 		region.bottom = bottom;
 		region.script = READ_LE_UINT16(record + 4);
 
-		if (_version >= kVersionV1_2_3 && region.script != 0)
-			region.script = (uint16)(operandValue(region.script) - TG_HOST_V1_2_3_LITERAL_BIAS);
+		if (_version >= kVersionV1_2_2 && region.script != 0)
+			region.script = (uint16)(operandValue(region.script) - ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
 
 		region.disabled = 0;
 	}
@@ -1026,7 +1052,11 @@ void TopgunEngine_v1_2::setAllSpriteObjectsCursor(uint16 value) {
 	if (!_records)
 		return;
 
-	uint16 spriteType = (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2Sprite;
+	uint16 spriteType = kResV1_2Sprite;
+	if (_version >= kVersionV1_2_3)
+		spriteType = kResV1_2_3Sprite;
+	else if (_version >= kVersionV1_2_2)
+		spriteType = kResV1_2_2Sprite;
 	uint16 clickScriptOffset = (_version >= kVersionV1_2_3) ? TG_INPUT_V1_2_3_OBJECT_CLICK_SCRIPT : TG_HOST_V1_2_SPRITE_DATA_CLICK_SCRIPT;
 
 	for (uint16 i = 0; i < _numResources; i++) {
@@ -1042,7 +1072,11 @@ void TopgunEngine_v1_2::setAllClickRegionsAndSpriteObjectsEnabled(byte disabled)
 	if (!_records)
 		return;
 
-	uint16 spriteType = (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2Sprite;
+	uint16 spriteType = kResV1_2Sprite;
+	if (_version >= kVersionV1_2_3)
+		spriteType = kResV1_2_3Sprite;
+	else if (_version >= kVersionV1_2_2)
+		spriteType = kResV1_2_2Sprite;
 	uint16 disabledOffset = (_version >= kVersionV1_2_3) ? TG_INPUT_V1_2_3_OBJECT_DISABLED : TG_HOST_V1_2_SPRITE_DATA_DISABLED;
 
 	for (uint16 i = 0; i < _numResources; i++) {
@@ -1081,8 +1115,10 @@ bool TopgunEngine_v1_2::o_setSpriteObjectProperties(const byte *record) {
 }
 
 bool TopgunEngine_v1_2::o_setHoverRegion(const byte *record) {
-	if (_version >= kVersionV1_2_3 && record[0x0E] != 0) {
-		_hoverRegionCurrent = 0;
+	if (_version >= kVersionV1_2_2 && record[0x0E] != 0) {
+		if (_version >= kVersionV1_2_3)
+			_hoverRegionCurrent = 0;
+
 		_numHoverRegions = 0;
 		return true;
 	}
@@ -1128,12 +1164,14 @@ bool TopgunEngine_v1_2::addHoverRegion(const byte *record) {
 	region.enterScript = READ_LE_UINT16(record + 0x0A);
 	region.leaveScript = READ_LE_UINT16(record + 0x0C);
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2) {
+		uint16 bias = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
 		if (region.enterScript != 0)
-			region.enterScript = (uint16)(operandValue(region.enterScript) - TG_HOST_V1_2_3_LITERAL_BIAS);
+			region.enterScript = (uint16)(operandValue(region.enterScript) - bias);
 
 		if (region.leaveScript != 0)
-			region.leaveScript = (uint16)(operandValue(region.leaveScript) - TG_HOST_V1_2_3_LITERAL_BIAS);
+			region.leaveScript = (uint16)(operandValue(region.leaveScript) - bias);
 	}
 
 	Common::Point cursor = g_system->getEventManager()->getMousePos();
@@ -1220,6 +1258,18 @@ void TopgunEngine_v1_2::updateHoverRegionFromPoint(int16 x, int16 y) {
 	_hoverRegionCurrent = (uint16)(found + 1);
 }
 
+void TopgunEngine_v1_2::handleKeyUpMessage(Common::KeyCode keycode) {
+	uint16 key = keyCodeToScriptKey(keycode);
+
+	if (key >= TG_HOST_V1_2_KEY_TABLE_SIZE)
+		return;
+
+	uint16 script = _keyTable[key].keyUp;
+
+	if (script != 0)
+		runScriptResource(script);
+}
+
 void TopgunEngine_v1_2_3::handleKeyUpMessage(Common::KeyCode keycode) {
 	uint16 key = keyCodeToScriptKey(keycode);
 
@@ -1245,8 +1295,10 @@ void TopgunEngine_v1_2_3::handleKeyUpMessage(Common::KeyCode keycode) {
 }
 
 void TopgunEngine_v1_2::togglePauseState() {
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2)
 		audioLib()->audioStopAllWaves(nullptr);
+	else if (_version < kVersionV1_2_3)
+		audioLib()->audioPause(_gamePaused ? 0 : 1);
 
 	if (_pauseScript != 0) {
 		byte record[18];
@@ -1254,9 +1306,9 @@ void TopgunEngine_v1_2::togglePauseState() {
 		memset(record, 0, sizeof(record));
 		WRITE_LE_UINT16(record + 2, _pauseScript);
 
-		if (_version >= kVersionV1_2_3) {
+		if (_version >= kVersionV1_2_2) {
 			record[5] = 1;
-			WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_3_LITERAL_BIAS));
+			WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)));
 		} else {
 			record[4] = 1;
 			WRITE_LE_UINT16(record + 5, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_LITERAL_BIAS));
@@ -1265,7 +1317,7 @@ void TopgunEngine_v1_2::togglePauseState() {
 		o_callScript(record);
 		spriteLib()->spriteAnimate();
 	} else if (_version >= kVersionV1_2_3) {
-		static_cast<AudioLibrary_v1_2_3 *>(audioLib())->audioPause(_gamePaused ? 0 : 1);
+		audioLib()->audioPause(_gamePaused ? 0 : 1);
 	}
 
 	_gamePaused = !_gamePaused;

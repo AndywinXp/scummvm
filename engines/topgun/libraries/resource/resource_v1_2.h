@@ -62,11 +62,33 @@
 #define TG_RES_V1_2_1_RECORD_SIZE                  0x50
 #define TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR          0x590
 
+// Container header of the version with the table of block positions (Peter and the Wolf)
+#define TG_RES_V1_2_2_HEADER_SIZE                  0xB8
+#define TG_RES_V1_2_2_HEADER_VARIABLE_PAIR_COUNT_OFFSET 0x66
+#define TG_RES_V1_2_2_HEADER_STRING_COUNT_OFFSET   0x6A
+#define TG_RES_V1_2_2_HEADER_STRING_POOL_SIZE_OFFSET 0x6C
+#define TG_RES_V1_2_2_HEADER_RESIDENT_SPLIT_OFFSET 0x6E
+#define TG_RES_V1_2_2_HEADER_RESIDENT_SIZE_OFFSET  0x72
+#define TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_SIZE_OFFSET 0x76
+#define TG_RES_V1_2_2_HEADER_INDEX_POSITION_OFFSET 0x82
+#define TG_RES_V1_2_2_HEADER_RECORDS_POSITION_OFFSET 0x86
+#define TG_RES_V1_2_2_HEADER_VARIABLE_TABLE_POSITION_OFFSET 0x8A
+#define TG_RES_V1_2_2_HEADER_VARIABLE_PAIRS_POSITION_OFFSET 0x8E
+#define TG_RES_V1_2_2_HEADER_STRING_POOL_POSITION_OFFSET 0x92
+#define TG_RES_V1_2_2_HEADER_RESIDENT_POSITION_OFFSET 0x96
+#define TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_POSITION_OFFSET 0x9A
+#define TG_RES_V1_2_2_HEADER_PALETTE_POSITION_OFFSET 0x9E
+#define TG_RES_V1_2_2_HEADER_NAME_TABLE_POSITION_OFFSET 0xA2
+#define TG_RES_V1_2_2_HEADER_LIBRARY_NAME_OFFSET   0xAA
+
 // Resident types
 #define TG_RES_V1_2_RESIDENT_FIRST_TYPE            5
 #define TG_RES_V1_2_RESIDENT_LAST_TYPE             12
 #define TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE    10
 #define TG_RES_V1_2_1_RESIDENT_LAST_TYPE           13
+#define TG_RES_V1_2_2_MOVIE_BUFFER_TYPE            6
+#define TG_RES_V1_2_2_RESIDENT_FIRST_TYPE          7
+#define TG_RES_V1_2_2_RESIDENT_LAST_TYPE           14
 
 // Variable table records
 #define TG_RES_V1_2_VARIABLE_RECORD_SIZE           0x1F
@@ -74,6 +96,11 @@
 #define TG_RES_V1_2_VARIABLE_USED_OFFSET           4
 #define TG_RES_V1_2_VARIABLE_NAME_OFFSET           5
 #define TG_RES_V1_2_VARIABLE_NAME_SIZE             26
+#define TG_RES_V1_2_2_VARIABLE_RECORD_SIZE         0x1C
+#define TG_RES_V1_2_2_VARIABLE_NAME_OFFSET         2
+#define TG_RES_V1_2_2_VARIABLE_PAIR_SIZE           4
+#define TG_RES_V1_2_2_MIDI_HEADER_SIZE             6
+#define TG_RES_V1_2_2_LIBRARY_NAME_SIZE            14
 
 // Chained blocks: 0x1000 bytes, 0xFFC of data and 4 of link
 #define TG_RES_V1_2_CHAIN_DATA_SIZE                0xFFC
@@ -145,6 +172,11 @@ public:
 	virtual const char *resGetConstStr(uint16 file, uint16 offset);
 	uint16 resCountStrings(uint16 file);
 	void resSetNotify(uint16 file, uint16 window);
+	uint16 resCreateMidiEvent(uint16 file, uint16 index);
+	uint32 resTell(uint16 file);
+	uint16 resGetLibraryName(uint16 file, char *destination, uint16 count);
+	uint16 resGetMaxFadeColors(uint16 file);
+	uint16 resGetMaxTransColors(uint16 file);
 
 	// Wave stream callbacks
 	void waveDone(uint16 waveInfo);
@@ -203,7 +235,7 @@ protected:
 	};
 
 	struct ResourceFile : public ResourceLibrary::ResourceFile {
-		byte header[TG_RES_V1_2_1_HEADER_SIZE];
+		byte header[TG_RES_V1_2_2_HEADER_SIZE];
 		uint16 recordCount;
 		uint16 paletteCount;
 		uint16 nameTableSize;
@@ -215,6 +247,7 @@ protected:
 		uint32 residentSize;
 		byte *residentChunk1;
 		byte *residentChunk2;
+		byte *movieBuffer;
 		byte *variables;
 		byte *stringPool;
 		uint16 chainOffset;
@@ -238,10 +271,10 @@ protected:
 
 		ResourceFile() : recordCount(0), paletteCount(0), nameTableSize(0), chained(false), variableTableCount(0), stringCount(0),
 			stringPoolSize(0), residentSplit(0), residentSize(0), residentChunk1(nullptr), residentChunk2(nullptr),
-			variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
+			movieBuffer(nullptr), variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
 			variablePairs(nullptr), chunkCount(0), maxFadeColors(0), maxTransparentColors(0), extraSlots(0),
 			buildType(0), indexCount(0), variablePairCount(0), notifyWindow(0) {
-			for (uint16 i = 0; i < TG_RES_V1_2_1_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_2_HEADER_SIZE; i++)
 				header[i] = 0;
 
 			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
@@ -271,8 +304,10 @@ protected:
 	ResourceFile *findFile(uint16 file, const char *caller) override;
 	virtual bool readResourceFileHeader(ResourceFile *file);
 	bool loadVariableTable(ResourceFile *file);
+	bool loadVariablePairs(ResourceFile *file);
 	bool loadStringPool(ResourceFile *file);
 	virtual bool loadResidentChunks(ResourceFile *file);
+	bool loadMovieBuffer(ResourceFile *file);
 	void writeVariableTableBack(ResourceFile *file);
 	void notifyHost(uint16 message, ResourceFile *file);
 	bool readChainedBlocks(ResourceFile *file, byte *buffer, uint32 count);

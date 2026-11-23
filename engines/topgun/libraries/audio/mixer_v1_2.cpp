@@ -449,6 +449,16 @@ void AudioLibrary_v1_2::updateWaveEnabledFlags(uint16 on) {
 	}
 }
 
+void AudioLibrary_v1_2::pauseAllPlayback(uint16 paused) {
+	if (!_waveOutStream)
+		return;
+
+	if (_engine->_version < kVersionV1_2_3 && _buffersInFlight == 0)
+		return;
+
+	g_system->getMixer()->pauseHandle(_waveOutHandle, paused != 0);
+}
+
 uint16 AudioLibrary_v1_2::mixSound8Bit(uint16 mixCount, uint16 bytes, byte *destination, SoundObject *sound) {
 	uint16 requested = bytes;
 	uint16 remaining = bytes;
@@ -727,13 +737,6 @@ void AudioLibrary_v1_2_3::waveMuteImpl() {
 	} else {
 		setWaveOutVolume(_waveMuteSavedVolume);
 	}
-}
-
-void AudioLibrary_v1_2_3::pauseAllPlayback(uint16 paused) {
-	if (!_waveOutStream)
-		return;
-
-	g_system->getMixer()->pauseHandle(_waveOutHandle, paused != 0);
 }
 
 uint32 AudioLibrary_v1_2_3::audioGetWaveVolume() {

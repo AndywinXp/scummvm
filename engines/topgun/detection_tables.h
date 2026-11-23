@@ -33,6 +33,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "headshot", "Bill Plympton's Take Your Best Shot: Head Shot" },
 	{ "hotshot", "Bill Plympton's Take Your Best Shot: Hot Shot" },
 	{ "lineshot", "Bill Plympton's Take Your Best Shot: Line Shot" },
+	{ "peterwolf", "Peter and the Wolf" },
 	{ 0, 0 }
 };
 
@@ -213,6 +214,16 @@ const ADGameDescription gameDescriptions[] = {
 		"lineshot",
 		nullptr,
 		AD_ENTRY1s("LINESHOT.BIN", "9320599edafe8236038ea8dd1c9a8524", 685729),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"peterwolf",
+		nullptr,
+		AD_ENTRY1s("PETER.BIN", "ae2a2da529000b9a6c3873342dfad390", 346270),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,

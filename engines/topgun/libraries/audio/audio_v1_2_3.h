@@ -26,7 +26,6 @@
 
 // Library
 #define TG_AUDIO_V1_2_3_VERSION                   0x0400
-#define TG_AUDIO_V1_2_3_MAX_MIDI_OBJECTS          20
 
 // Source procedures
 #define TG_AUDIO_V1_2_3_PROC_NONE                 0
@@ -82,7 +81,6 @@
 #define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_NUMERATOR 8
 
 // MIDI events
-#define TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS         16
 #define TG_AUDIO_V1_2_3_MIDI_DELAY_FLAGS          0xF000
 #define TG_AUDIO_V1_2_3_MIDI_DELAY_VALUE_MASK     0x7FFFFFFF
 #define TG_AUDIO_V1_2_3_MIDI_MIN_DELAY            3
@@ -97,18 +95,6 @@ namespace Topgun {
 class MidiSequencer;
 class TopgunEngine_v1_2_3;
 
-struct MidiCreateInfo_v1_2_3 {
-	byte header[TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE];
-	uint16 readProc;
-	uint16 closeProc;
-	uint16 handle;
-
-	MidiCreateInfo_v1_2_3() : readProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE; i++)
-			header[i] = 0;
-	}
-};
-
 class AudioLibrary_v1_2_3 : public AudioLibrary_v1_2 {
 public:
 	AudioLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine);
@@ -119,7 +105,7 @@ public:
 	void audioExitLibrary() override;
 	void audioService() override;
 	void audioActivate(uint16 on);
-	void audioPause(uint16 paused);
+	void audioPause(uint16 paused) override;
 	void audioMute(int16 flag);
 	void audioResetLibrary();
 
@@ -127,42 +113,16 @@ public:
 	uint32 audioGetWaveVolume();
 
 	// MIDI
-	uint16 audioCreateMidi(MidiCreateInfo_v1_2_3 *info);
-	uint16 audioDestroyMidi(uint16 midi);
-	uint16 audioPlayMidi(uint16 midi, const byte *params);
+	uint16 audioPlayMidi(uint16 midi, const byte *params) override;
 	void audioSetMidi(uint16 midi, const byte *params);
-	void audioStopMidi(uint16 midi);
+	uint16 audioStopMidi(uint16 midi) override;
 	uint32 audioGetMidiVolume();
 	void audioSetMidiVolume(uint32 volume);
-	void applyMidiDeviceVolume();
+	void applyMidiDeviceVolume() override;
 
 protected:
-	struct MidiObject {
-		uint16 handle;
-		byte *data;
-		uint16 index;
-		uint16 count;
-		uint16 readProc;
-		uint16 closeProc;
-		uint16 callbackHandle;
-		uint16 notifyWParam;
-		uint16 notifyLParam;
-		uint16 tempoNumerator;
-		uint16 tempoDenominator;
-		int16 loops;
-		bool notifyArmed;
-		bool channelMuted[TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS];
-
-		MidiObject() : handle(0), data(nullptr), index(0), count(0), readProc(0), closeProc(0), callbackHandle(0),
-			notifyWParam(0), notifyLParam(0), tempoNumerator(0), tempoDenominator(0), loops(0), notifyArmed(false) {
-			for (uint32 i = 0; i < TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS; i++)
-				channelMuted[i] = false;
-		}
-	};
-
 	// Library
 	bool allocAudioContext();
-	void freeAudioContext();
 	void initializeAudioSubsystem();
 	void readAudioIniSettings();
 	void writeAudioIniInt(const char *key, uint16 value);
@@ -180,7 +140,6 @@ protected:
 	bool openWaveOutDevice(const WaveFormat *format);
 	bool openWaveDevice(const WaveFormat *format);
 	void waveMuteImpl();
-	void pauseAllPlayback(uint16 paused);
 	void pumpAudioPlayback() override;
 	void updateWaveEnabledFlags(uint16 on);
 
@@ -192,13 +151,7 @@ protected:
 	void armWaveNotificationEndTime(SoundObject *sound);
 
 	// MIDI objects
-	MidiObject *allocMidiObject();
-	void destroyMidiObject(MidiObject *midi);
-	void removeMidiFromArray(MidiObject *midi);
-	bool initMidiObjectDataSource(const MidiCreateInfo_v1_2_3 *info, MidiObject *midi);
-	bool invokeAndClearCloseCallback(MidiObject *midi);
 	void destroyAllMidiObjects();
-	MidiObject *validateMidiHandle(uint16 handle);
 
 	// MIDI device
 	void probeMidiOutCapabilities();
@@ -214,7 +167,7 @@ protected:
 	// MIDI playback
 	bool startMidiSequence(const byte *params, MidiObject *midi);
 	void postMidiCompletionMessage(MidiObject *midi);
-	void stopMidiSequence(MidiObject *midi);
+	void stopMidiSequence(MidiObject *midi) override;
 	bool midiSequenceEndOrLoop(MidiObject *midi);
 	void midiSequencerStep(MidiObject *midi);
 	void midiClearCurrentAndKillTimer();
@@ -228,10 +181,6 @@ protected:
 	uint16 _iniMidiVolume = 0;
 
 	// MIDI
-	MidiObject *_midiObjects[TG_AUDIO_V1_2_3_MAX_MIDI_OBJECTS] = {};
-	uint16 _midiCount = 0;
-	uint16 _nextMidiHandle = 1;
-	MidiObject *_currentMidi = nullptr;
 	MidiSequencer *_midiOut = nullptr;
 	bool _noMidiDevice = false;
 	uint32 _midiDeviceVolume = 0xFFFFFFFF;

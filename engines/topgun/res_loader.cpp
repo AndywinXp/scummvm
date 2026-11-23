@@ -550,6 +550,9 @@ bool TopgunEngine_v1_2::destroySpriteResourceObject(uint16 id) {
 				if (_version >= kVersionV1_2_3) {
 					isText = (type == kResV1_2_3Text);
 					isReferenceCounted = (type == kResV1_2_3Bitmap || type == kResV1_2_3Movie || type == kResV1_2_3Text || type == kResV1_2_3BitmapGroup);
+				} else if (_version >= kVersionV1_2_2) {
+					isText = (type == kResV1_2_2Text);
+					isReferenceCounted = (type == kResV1_2_2Bitmap || type == kResV1_2_2Movie || type == kResV1_2_2Text || type == kResV1_2_2BitmapGroup);
 				} else if (_version >= kVersionV1_2_1) {
 					isText = (type == kResV1_2_1Text);
 					isReferenceCounted = (type == kResV1_2_1Bitmap || type == kResV1_2_1Movie || type == kResV1_2_1Text || type == kResV1_2_1BitmapGroup);
@@ -765,6 +768,13 @@ bool TopgunEngine_v1_2::attachResourceListToSprite(uint16 spriteHandle, const by
 			isMovie = (type == kResV1_2_3Movie);
 			isWave = (type == kResV1_2_3Wave);
 			isMidi = (type == kResV1_2_3Midi);
+		} else if (_version >= kVersionV1_2_2) {
+			isBitmap = (type == kResV1_2_2Bitmap);
+			isText = (type == kResV1_2_2Text);
+			isBitmapGroup = (type == kResV1_2_2BitmapGroup);
+			isMovie = (type == kResV1_2_2Movie);
+			isWave = (type == kResV1_2_2Wave);
+			isTransPalette = (type == kResV1_2_2Palette);
 		} else if (_version >= kVersionV1_2_1) {
 			isBitmap = (type == kResV1_2_1Bitmap);
 			isText = (type == kResV1_2_1Text);
@@ -861,6 +871,39 @@ bool TopgunEngine_v1_2::ensureWaveResourceLoaded(uint16 id) {
 
 bool TopgunEngine_v1_2::destroyResourceObjectByType(uint16 id, uint16 type) {
 	bool result = true;
+
+	if (_version >= kVersionV1_2_2) {
+		switch (type) {
+		case kResV1_2_2Bitmap:
+			freeBitmapBlobIfUnreferenced(id);
+			break;
+		case kResV1_2_2Midi:
+			destroyMidiResourceObject(id);
+			break;
+		case kResV1_2_2Wave:
+			destroyWaveResourceObject(id);
+			break;
+		case kResV1_2_2Movie:
+			destroyMovieResourceObject(id);
+			break;
+		case kResV1_2_2BitmapGroup:
+			destroyBitmapGroupResourceObject(id);
+			break;
+		case kResV1_2_2MixedGroup:
+			result = destroyGroupResourceObject(id);
+			break;
+		case kResV1_2_2Sprite:
+			result = destroySpriteResourceObject(id);
+			break;
+		case kResV1_2_2Text:
+			destroyTextObjectResource(id);
+			break;
+		default:
+			break;
+		}
+
+		return result;
+	}
 
 	if (_version >= kVersionV1_2_1) {
 		switch (type) {
@@ -978,6 +1021,38 @@ bool TopgunEngine_v1_2::validateResourceType(uint16 id, uint16 type) {
 }
 
 bool TopgunEngine_v1_2::validateAndGetResourceByType(uint16 id, uint16 type) {
+	if (_version >= kVersionV1_2_2) {
+		if (!validateResourceType(id, type))
+			return false;
+
+		switch (type) {
+		case kResV1_2_2Bitmap:
+			return ensureBitmapResourceLoaded(id);
+		case kResV1_2_2Midi:
+			return ensureMidiResourceLoaded(id);
+		case kResV1_2_2Wave:
+			return ensureWaveResourceLoaded(id);
+		case kResV1_2_2OpList:
+		case kResV1_2_2SpriteQueueData:
+		case kResV1_2_2Script:
+			return loadOrGetResourceData(id);
+		case kResV1_2_2BitmapGroup:
+			return ensureBitmapGroupResourceLoaded(id);
+		case kResV1_2_2MixedGroup:
+			return ensureGroupResourceLoaded(id);
+		case kResV1_2_2Movie:
+			return ensureMovieResourceLoaded(id);
+		case kResV1_2_2Palette:
+			return loadTransPaletteResource(id);
+		case kResV1_2_2Sprite:
+			return ensureSpriteResourceLoaded(id);
+		case kResV1_2_2Text:
+			return ensureTextObjectResourceLoaded(id);
+		default:
+			return false;
+		}
+	}
+
 	if (_version >= kVersionV1_2_1) {
 		if (!validateResourceType(id, type))
 			return false;
@@ -1044,6 +1119,26 @@ bool TopgunEngine_v1_2::isResourceObjectLoaded(uint16 id) {
 
 	const ResourceRecord &record = _records[index];
 
+	if (_version >= kVersionV1_2_2) {
+		switch (resourceLib()->resGetType(_file, index)) {
+		case kResV1_2_2Bitmap:
+		case kResV1_2_2Movie:
+		case kResV1_2_2BitmapGroup:
+		case kResV1_2_2OpList:
+		case kResV1_2_2SpriteQueueData:
+		case kResV1_2_2Script:
+			return record.data;
+		case kResV1_2_2Midi:
+		case kResV1_2_2Wave:
+		case kResV1_2_2Sprite:
+			return record.handle != 0;
+		case kResV1_2_2Text:
+			return record.object != 0;
+		default:
+			return false;
+		}
+	}
+
 	if (_version >= kVersionV1_2_1) {
 		switch (resourceLib()->resGetType(_file, index)) {
 		case kResV1_2_1Bitmap:
@@ -1086,6 +1181,9 @@ byte *TopgunEngine_v1_2::loadResourceWithProcessingPause(uint16 id, uint32 *size
 
 	if (_version >= kVersionV1_2_3) {
 		if (type >= kResV1_2_3Movie && type <= kResV1_2_3Text)
+			return resourceLib()->resLoadResource(_file, index, sizeOut);
+	} else if (_version >= kVersionV1_2_2) {
+		if (type >= kResV1_2_2OpList && type <= kResV1_2_2Text)
 			return resourceLib()->resLoadResource(_file, index, sizeOut);
 	} else if (_version >= kVersionV1_2_1) {
 		if (type >= kResV1_2_1OpList && type <= kResV1_2_1Text)
@@ -1165,7 +1263,7 @@ void TopgunEngine_v1_2::destroyBitmapGroupResourceObject(uint16 id) {
 	record.data = nullptr;
 }
 
-void TopgunEngine_v1_2_3::destroyMidiResourceObject(uint16 id) {
+void TopgunEngine_v1_2::destroyMidiResourceObject(uint16 id) {
 	uint16 index = operandValue(id);
 	if (!isRecordIndexValid(index, "destroyMidiResourceObject"))
 		return;
@@ -1238,7 +1336,7 @@ bool TopgunEngine_v1_2::ensureBitmapGroupResourceLoaded(uint16 id) {
 	return true;
 }
 
-bool TopgunEngine_v1_2_3::ensureMidiResourceLoaded(uint16 id) {
+bool TopgunEngine_v1_2::ensureMidiResourceLoaded(uint16 id) {
 	uint16 index = operandValue(id);
 	if (!isRecordIndexValid(index, "ensureMidiResourceLoaded"))
 		return false;
@@ -1330,7 +1428,7 @@ bool TopgunEngine_v1_2_3::validateAndGetResourceByType(uint16 id, uint16 type) {
 	}
 }
 
-bool TopgunEngine_v1_2_3::isResourceObjectLoaded(uint16 id, uint16 type) {
+bool TopgunEngine_v1_2::isResourceObjectLoaded(uint16 id, uint16 type) {
 	uint16 index = operandValue(id);
 	if (!isRecordIndexValid(index, "isResourceObjectLoaded"))
 		return false;
@@ -1339,6 +1437,26 @@ bool TopgunEngine_v1_2_3::isResourceObjectLoaded(uint16 id, uint16 type) {
 		return false;
 
 	const ResourceRecord &record = _records[index];
+
+	if (_version < kVersionV1_2_3) {
+		switch (type) {
+		case kResV1_2_2Bitmap:
+		case kResV1_2_2Movie:
+		case kResV1_2_2BitmapGroup:
+		case kResV1_2_2OpList:
+		case kResV1_2_2SpriteQueueData:
+		case kResV1_2_2Script:
+			return record.data;
+		case kResV1_2_2Midi:
+		case kResV1_2_2Wave:
+		case kResV1_2_2Sprite:
+			return record.handle != 0;
+		case kResV1_2_2Text:
+			return record.object != 0;
+		default:
+			return false;
+		}
+	}
 
 	switch (type) {
 	case kResV1_2_3Bitmap:
@@ -1358,39 +1476,6 @@ bool TopgunEngine_v1_2_3::isResourceObjectLoaded(uint16 id, uint16 type) {
 	default:
 		return false;
 	}
-}
-
-byte *TopgunEngine_v1_2_3::spriteBitmapProvider(uint16 id, bool release) {
-	uint16 index = operandValue(id);
-	if (!isRecordIndexValid(index, "spriteBitmapProvider"))
-		return nullptr;
-
-	ResourceRecord &record = _records[index];
-
-	if (release) {
-		if (record.refCount != 0) {
-			record.refCount--;
-
-			if (record.refCount == 0)
-				destroyResourceObjectByType(id, resourceLib()->resGetType(_file, index));
-		}
-
-		return nullptr;
-	}
-
-	uint16 type = resourceLib()->resGetType(_file, index);
-	bool loaded = false;
-
-	if (type == kResV1_2_3Bitmap)
-		loaded = ensureBitmapResourceLoaded(id);
-	else if (type == kResV1_2_3BitmapGroup)
-		loaded = ensureBitmapGroupResourceLoaded(id);
-
-	if (!loaded)
-		return nullptr;
-
-	record.refCount++;
-	return record.data;
 }
 
 } // End of namespace Topgun

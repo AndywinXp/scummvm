@@ -45,7 +45,12 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 		return false;
 	}
 
-	if (!validateAndGetResourceByType(scriptId, (_version >= kVersionV1_2_3) ? kResV1_2_3Script : kResV1_2Script))
+	uint16 scriptType = kResV1_2Script;
+	if (_version >= kVersionV1_2_3)
+		scriptType = kResV1_2_3Script;
+	else if (_version >= kVersionV1_2_2)
+		scriptType = kResV1_2_2Script;
+	if (!validateAndGetResourceByType(scriptId, scriptType))
 		return false;
 
 	_scriptDepth++;
@@ -113,10 +118,18 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 	if (_version < kVersionV1_2_1 && opcode >= kOpV1_2GetTime)
 		opcode = 0;
 
+	if (_version < kVersionV1_2_2 && opcode >= kOpV1_2GetSpriteElementIds)
+		opcode = 0;
+
 	switch (opcode) {
 	case kOpV1_2CallScript:
 		result = o_callScript(ip);
-		size = TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * ip[4];
+
+		if (_version >= kVersionV1_2_2)
+			size = (ip[5] + 3) * 2;
+		else
+			size = TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * ip[4];
+
 		break;
 
 	case kOpV1_2LoadResource: {
@@ -173,7 +186,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2BindKeyScript:
 		o_bindKeyScript(ip);
-		size = 10;
+		size = (_version >= kVersionV1_2_2) ? 11 : 10;
 		break;
 
 	case kOpV1_2Quit:
@@ -421,7 +434,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2SetHoverRegion:
 		o_setHoverRegion(ip);
-		size = 14;
+		size = (_version >= kVersionV1_2_2) ? 15 : 14;
 		break;
 
 	case kOpV1_2GetIntersect:
@@ -481,6 +494,43 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		size = 6;
 		break;
 
+	case kOpV1_2GetSpriteElementIds:
+		o_getSpriteElementIds(ip);
+		size = 12;
+		break;
+
+	case kOpV1_2Expression:
+		evaluateExpression(ip + 4);
+		size = READ_LE_UINT16(ip + 2);
+		break;
+
+	case kOpV1_2ConditionalJumpExpression:
+		size = o_conditionalJumpExpr(ip);
+		break;
+
+	case kOpV1_2SwitchExpression:
+		size = o_switchExpression(ip);
+		break;
+
+	case kOpV1_2ConditionalJumpExpressionCopy:
+		size = o_conditionalJumpExprCopy(ip);
+		break;
+
+	case kOpV1_2PlayMidi:
+		o_playMidi(ip);
+		size = 4;
+		break;
+
+	case kOpV1_2StopMidi:
+		o_stopMidi(ip);
+		size = 4;
+		break;
+
+	case kOpV1_2ReturnExpression:
+		size = 0;
+		_scriptResult = evaluateExpression(ip + 4);
+		break;
+
 	default:
 		warning("TopgunEngine_v1_2::executeScriptOp(): unknown opcode %d", READ_LE_UINT16(ip));
 		size = 0;
@@ -495,6 +545,57 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 	uint16 opcode = READ_LE_UINT16(ip);
+
+	if (_version >= kVersionV1_2_2) {
+		switch (opcode) {
+		case kOpV1_2CallScript:
+			return (ip[5] + 3) * 2;
+
+		case kOpV1_2BindKeyScript:
+			return 11;
+
+		case kOpV1_2SetHoverRegion:
+			return 15;
+
+		case kOpV1_2GetSpriteElementIds:
+			return 12;
+
+		case kOpV1_2Expression:
+			return READ_LE_UINT16(ip + 2);
+
+		case kOpV1_2ConditionalJumpExpression:
+			return READ_LE_UINT16(ip + 4);
+
+		case kOpV1_2PlayMidi:
+		case kOpV1_2StopMidi:
+			return 4;
+
+		case kOpV1_2SetDeviceGroupBinding:
+		case kOpV1_2SetDeviceGroupBindingB:
+			return 15;
+
+		case kOpV1_2DeviceGroupButtonState:
+			return 7;
+
+		case kOpV1_2SetDeviceGroupScript:
+		case kOpV1_2SetDeviceGroupFlag:
+			return 6;
+
+		case kOpV1_2DeviceGroupLatch:
+			return 8;
+
+		case kOpV1_2GetDeviceGroupState:
+			return 10;
+
+		case kOpV1_2SwitchExpression:
+		case kOpV1_2ConditionalJumpExpressionCopy:
+		case kOpV1_2ReturnExpression:
+			return 0;
+
+		default:
+			break;
+		}
+	}
 
 	if (opcode == kOpV1_2CallScript)
 		return 5 + 2 * ip[4];
@@ -515,7 +616,7 @@ bool TopgunEngine_v1_2::pushScriptArguments(uint16 count, const byte *arguments)
 			return false;
 		}
 
-		memmove(&_variables[TG_SCRIPT_V1_2_ARGUMENT_STACK_VARIABLE + _scriptArgStackOffset], &_variables[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE], _scriptArgCount * sizeof(uint16));
+		memmove(&_variableTable[TG_SCRIPT_V1_2_ARGUMENT_STACK_VARIABLE + _scriptArgStackOffset], &_variableTable[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE], _scriptArgCount * sizeof(uint16));
 		_scriptArgStackOffset += _scriptArgCount;
 
 		if (_scriptArgStackOffset > TG_SCRIPT_V1_2_ARGUMENT_STACK_SIZE)
@@ -525,7 +626,7 @@ bool TopgunEngine_v1_2::pushScriptArguments(uint16 count, const byte *arguments)
 	_scriptArgCount = count;
 
 	for (uint16 i = 0; i < count; i++)
-		_variables[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(arguments + 2 * i));
+		_variableTable[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(arguments + 2 * i));
 
 	return true;
 }
@@ -540,11 +641,18 @@ void TopgunEngine_v1_2::popScriptArguments() {
 	}
 
 	_scriptArgStackOffset -= _scriptArgCount;
-	memmove(&_variables[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE], &_variables[TG_SCRIPT_V1_2_ARGUMENT_STACK_VARIABLE + _scriptArgStackOffset], _scriptArgCount * sizeof(uint16));
+	memmove(&_variableTable[TG_SCRIPT_V1_2_ARGUMENT_FRAME_VARIABLE], &_variableTable[TG_SCRIPT_V1_2_ARGUMENT_STACK_VARIABLE + _scriptArgStackOffset], _scriptArgCount * sizeof(uint16));
 }
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
-	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : ((_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList)))
+	uint16 listType = kResV1_2OpList;
+	if (_version >= kVersionV1_2_3)
+		listType = kResV1_2_3OpList;
+	else if (_version >= kVersionV1_2_2)
+		listType = kResV1_2_2OpList;
+	else if (_version >= kVersionV1_2_1)
+		listType = kResV1_2_1OpList;
+	if (!validateAndGetResourceByType(listId, listType))
 		return 0;
 
 	uint16 index = operandValue(listId);
@@ -569,7 +677,14 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 }
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
-	if (!validateAndGetResourceByType(listId, (_version >= kVersionV1_2_3) ? kResV1_2_3OpList : ((_version >= kVersionV1_2_1) ? kResV1_2_1OpList : kResV1_2OpList)))
+	uint16 listType = kResV1_2OpList;
+	if (_version >= kVersionV1_2_3)
+		listType = kResV1_2_3OpList;
+	else if (_version >= kVersionV1_2_2)
+		listType = kResV1_2_2OpList;
+	else if (_version >= kVersionV1_2_1)
+		listType = kResV1_2_1OpList;
+	if (!validateAndGetResourceByType(listId, listType))
 		return false;
 
 	uint16 recordIndex = operandValue(listId);
@@ -720,16 +835,51 @@ uint16 TopgunEngine_v1_2::lookupSwitchOffset(const byte *record) {
 	const byte *table = record + READ_LE_UINT16(record + 4);
 	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
 	uint16 value = operandValue(READ_LE_UINT16(record + 2));
+	uint16 entrySize = (_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_3) ? 2 : 0;
 	uint16 index = 0;
 
 	while (index < count) {
-		if (READ_LE_UINT16(table + 4 * index) == value)
-			return READ_LE_UINT16(table + 4 * index + 2);
+		if (READ_LE_UINT16(table + valueOffset + entrySize * index) == value)
+			return READ_LE_UINT16(table + valueOffset + entrySize * index + 2);
 
 		index++;
 	}
 
 	return defaultAdvance;
+}
+
+uint16 TopgunEngine_v1_2::o_switchExpression(const byte *record) {
+	uint16 count = record[8];
+	const byte *table = record + READ_LE_UINT16(record + 4);
+	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
+	uint16 value = evaluateExpression(record + ((_version >= kVersionV1_2_3) ? 10 : 9));
+	uint16 entrySize = (_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_3) ? 2 : 0;
+	uint16 index = 0;
+
+	while (index < count) {
+		if (READ_LE_UINT16(table + valueOffset + entrySize * index) == value)
+			return READ_LE_UINT16(table + valueOffset + entrySize * index + 2);
+
+		index++;
+	}
+
+	return defaultAdvance;
+}
+
+uint16 TopgunEngine_v1_2::o_conditionalJumpExpr(const byte *record) {
+	if (evaluateExpression(record + 6) != 0)
+		return READ_LE_UINT16(record + 4);
+
+	return READ_LE_UINT16(record + 2);
+}
+
+uint16 TopgunEngine_v1_2::o_conditionalJumpExprCopy(const byte *record) {
+	if (evaluateExpression(record + 6) != 0)
+		return READ_LE_UINT16(record + 4);
+
+	return READ_LE_UINT16(record + 2);
 }
 
 void TopgunEngine_v1_2::spriteMessageService(byte *record) {

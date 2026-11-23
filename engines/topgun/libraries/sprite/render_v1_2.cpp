@@ -580,7 +580,7 @@ void SpriteLibrary_v1_2::blitSpriteToScreen(int16 x, int16 y, const byte *bitmap
 	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	const byte *pixels = bitmapPixels(bitmap);
 
-	if (_zoomActive) {
+	if (_zoomActive || _stretch) {
 		int16 destinationX = (int16)((int16)((int32)(int16)_zoomFactor * x) - _zoomOffsetX);
 		int16 destinationY = (int16)((int16)((int32)(int16)_zoomFactor * y) - _zoomOffsetY);
 

@@ -100,6 +100,11 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
+	if (gameId == "peterwolf") {
+		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_2);
+		return Common::kNoError;
+	}
+
 	if (gameId == "battlebeast" || gameId == "junglegames" || gameId == "greatword") {
 		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc);
 		return Common::kNoError;

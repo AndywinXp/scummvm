@@ -224,12 +224,16 @@ SceneEntry_v1_2 *TopgunEngine_v1_2::findOrCreateSceneEntry(const Common::String 
 	}
 
 	SceneEntry_v1_2 &current = _sceneEntries[_currentSceneIndex];
-	uint16 *variables = (_version >= kVersionV1_2_3) ? static_cast<TopgunEngine_v1_2_3 *>(this)->_variableTable : _variables;
-	uint32 variablesSize = ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_NUM_SCENE_VARIABLES : TG_HOST_V1_2_NUM_SCENE_VARIABLES) * sizeof(uint16);
+	uint32 numSceneVariables = TG_HOST_V1_2_NUM_SCENE_VARIABLES;
+	if (_version >= kVersionV1_2_3)
+		numSceneVariables = TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
+	else if (_version >= kVersionV1_2_2)
+		numSceneVariables = TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
+	uint32 variablesSize = numSceneVariables * sizeof(uint16);
 
 	memmove(_currentSceneName, current.name, nameSize);
-	memmove(variables, current.variables, variablesSize);
-	spriteLib()->spriteSetVarTable(variables);
+	memmove(_variableTable, current.variables, variablesSize);
+	spriteLib()->spriteSetVarTable(_variableTable);
 	return &current;
 }
 
@@ -247,7 +251,6 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		_keyboardRouted = false;
 		newer->_joystickDirectionFlag = false;
 		newer->_joystickRouted = false;
-		newer->_argumentFrame = TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
 		_hoverSpriteScript = 0;
 		_hoverSprite = 0;
 		newer->_driveType = 0;
@@ -257,10 +260,15 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		newer->_activateScript = 0;
 		clearJoystickScripts();
 		newer->clearDeviceState();
+	} else if (_version >= kVersionV1_2_2) {
+		_mouseEventScript = 0;
 	} else {
 		_scriptArgStackOffset = 0;
 		_scriptArgCount = 0;
 	}
+
+	if (_version >= kVersionV1_2_2)
+		_argumentFrame = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
 
 	if (_version >= kVersionV1_2_1)
 		_pauseScript = 0;
@@ -322,8 +330,12 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 
 void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	uint32 nameSize = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SCENE_NAME_SIZE : TG_HOST_SCENE_NAME_SIZE;
-	uint16 *variables = (_version >= kVersionV1_2_3) ? static_cast<TopgunEngine_v1_2_3 *>(this)->_variableTable : _variables;
-	uint32 variablesSize = ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_NUM_SCENE_VARIABLES : TG_HOST_V1_2_NUM_SCENE_VARIABLES) * sizeof(uint16);
+	uint32 numSceneVariables = TG_HOST_V1_2_NUM_SCENE_VARIABLES;
+	if (_version >= kVersionV1_2_3)
+		numSceneVariables = TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
+	else if (_version >= kVersionV1_2_2)
+		numSceneVariables = TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
+	uint32 variablesSize = numSceneVariables * sizeof(uint16);
 
 	if (_version < kVersionV1_2_3)
 		notifyPythonizerWindow();
@@ -331,7 +343,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_currentSceneIndex < _sceneEntries.size()) {
 		SceneEntry_v1_2 &current = _sceneEntries[_currentSceneIndex];
 		memmove(current.name, _currentSceneName, nameSize);
-		memmove(current.variables, variables, variablesSize);
+		memmove(current.variables, _variableTable, variablesSize);
 	} else {
 		warning("TopgunEngine_v1_2::switchToNextScene(): scene index %d is out of range", _currentSceneIndex);
 	}
@@ -423,11 +435,17 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 			clearJoystickScripts();
 	}
 
-	uint16 firstClearedVariable = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_SYSTEM_VARIABLE : TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
+	uint16 firstClearedVariable = TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
+	if (_version >= kVersionV1_2_3)
+		firstClearedVariable = TG_HOST_V1_2_3_FIRST_SYSTEM_VARIABLE;
+	else if (_version >= kVersionV1_2_2)
+		firstClearedVariable = TG_HOST_V1_2_2_FIRST_SYSTEM_VARIABLE;
 	uint16 numClearedVariables = TG_HOST_V1_2_NUM_CLEARED_VARIABLES;
 
 	if (_version >= kVersionV1_2_3)
 		numClearedVariables = TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES;
+	else if (_version >= kVersionV1_2_2)
+		numClearedVariables = TG_HOST_V1_2_2_NUM_SYSTEM_VARIABLES;
 	else if (_version >= kVersionV1_2_1)
 		numClearedVariables = TG_HOST_V1_2_1_NUM_CLEARED_VARIABLES;
 
@@ -440,29 +458,65 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	if (ConfMan.hasKey("lomem"))
 		_flagLoMem = ((byte)ConfMan.getInt("lomem") != 0);
 
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_LOMEM : TG_HOST_V1_2_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_SCREEN_WIDTH : TG_HOST_V1_2_VARIABLE_SCREEN_WIDTH, display()->width());
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_SCREEN_HEIGHT : TG_HOST_V1_2_VARIABLE_SCREEN_HEIGHT, display()->height());
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_AUDIO_PRESENT : TG_HOST_V1_2_VARIABLE_AUDIO_PRESENT, _audioPresent);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_LAUNCH_MODE : TG_HOST_V1_2_VARIABLE_LAUNCH_MODE, _launchMode);
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_PROCESSOR_TYPE : TG_HOST_V1_2_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_OVER_256_COLORS : TG_HOST_V1_2_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_WIDTH, display()->width());
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_HEIGHT, display()->height());
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_AUDIO_PRESENT, _audioPresent);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_LAUNCH_MODE, _launchMode);
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
+	} else if (_version >= kVersionV1_2_2) {
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_SCREEN_WIDTH, display()->width());
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_SCREEN_HEIGHT, display()->height());
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_AUDIO_PRESENT, _audioPresent);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_LAUNCH_MODE, _launchMode);
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
+	} else {
+		writeVariable(TG_HOST_V1_2_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
+		writeVariable(TG_HOST_V1_2_VARIABLE_SCREEN_WIDTH, display()->width());
+		writeVariable(TG_HOST_V1_2_VARIABLE_SCREEN_HEIGHT, display()->height());
+		writeVariable(TG_HOST_V1_2_VARIABLE_AUDIO_PRESENT, _audioPresent);
+		writeVariable(TG_HOST_V1_2_VARIABLE_LAUNCH_MODE, _launchMode);
+		writeVariable(TG_HOST_V1_2_VARIABLE_PROCESSOR_TYPE, utilsLibrary()->getProcessorType());
+		writeVariable(TG_HOST_V1_2_VARIABLE_OVER_256_COLORS, _flagOver256Colors ? 1 : 0);
+	}
 
 	if (_version >= kVersionV1_2_1) {
-		writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER : TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER, _screenSaverOption);
-		writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_JOYSTICKS : TG_HOST_V1_2_1_VARIABLE_JOYSTICKS, _numJoysticks);
+		if (_version >= kVersionV1_2_3) {
+			writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER, _screenSaverOption);
+			writeVariable(TG_HOST_V1_2_3_VARIABLE_JOYSTICKS, _numJoysticks);
+		} else if (_version >= kVersionV1_2_2) {
+			writeVariable(TG_HOST_V1_2_2_VARIABLE_SCREEN_SAVER, _screenSaverOption);
+			writeVariable(TG_HOST_V1_2_2_VARIABLE_JOYSTICKS, _numJoysticks);
+		} else {
+			writeVariable(TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER, _screenSaverOption);
+			writeVariable(TG_HOST_V1_2_1_VARIABLE_JOYSTICKS, _numJoysticks);
+		}
 	}
 
 	Common::Point cursor = g_system->getEventManager()->getMousePos();
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_MOUSE_X : TG_HOST_V1_2_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
-	writeVariable((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_VARIABLE_MOUSE_Y : TG_HOST_V1_2_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
+	if (_version >= kVersionV1_2_3) {
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
+		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
+	} else if (_version >= kVersionV1_2_2) {
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
+		writeVariable(TG_HOST_V1_2_2_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
+	} else {
+		writeVariable(TG_HOST_V1_2_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
+		writeVariable(TG_HOST_V1_2_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
+	}
+
+	if (_version >= kVersionV1_2_2)
+		_expressionStackPointer = 0;
 
 	if (_version >= kVersionV1_2_3) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		_joystickButtonFlag = false;
 		_joystickDirectionFlag = false;
-		newer->_expressionStackPointer = 0;
 		newer->_numPostedScriptRuns = 0;
 		newer->_activateState = true;
 		newer->_messageFilter = nullptr;
@@ -548,6 +602,8 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 
 		clearJoystickScripts();
 		newer->clearDeviceState();
+	} else if (_version >= kVersionV1_2_2) {
+		clearJoystickScripts();
 	}
 
 	if (_cdAudioPlaying)
@@ -575,11 +631,13 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	_file = 0;
 	_appActive = false;
 
-	if (_version >= kVersionV1_2_3) {
-		static_cast<TopgunEngine_v1_2_3 *>(this)->_joystickRouted = false;
+	if (_version >= kVersionV1_2_2) {
+		_joystickRouted = false;
 		_keyboardRouted = false;
-		_mouseAsStick = false;
 	}
+
+	if (_version >= kVersionV1_2_3)
+		_mouseAsStick = false;
 
 	// The Pythonizer (the desktop program the game can launch) is not restarted here if it was running when the game closed, since it is not supported
 }
@@ -626,7 +684,7 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_containerTitle = Common::String((const char *)(title + 1), length);
 	}
 
-	if (_version >= kVersionV1_2_1 && _version < kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_1 && _version < kVersionV1_2_2) {
 		byte header[TG_HOST_V1_2_1_FILE_HEADER_SIZE];
 
 		if (!resourceLib()->resGetHeaderRec(_file, header, TG_HOST_V1_2_1_FILE_HEADER_SIZE))
@@ -634,6 +692,11 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 
 		_maxFadeColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_FADE_COLORS);
 		_maxTransColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_TRANS_COLORS);
+	}
+
+	if (_version >= kVersionV1_2_2 && _version < kVersionV1_2_3) {
+		_maxTransColors = resourceLib()->resGetMaxTransColors(_file);
+		_maxFadeColors = resourceLib()->resGetMaxFadeColors(_file);
 	}
 
 	if (_version >= kVersionV1_2_3) {

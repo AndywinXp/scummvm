@@ -27,8 +27,6 @@
 // Limits
 #define TG_SPR_V1_2_3_NOTIFICATION_RECORD_SIZE 4
 #define TG_SPR_V1_2_3_MAX_HOST_EVENT_WORDS     4
-#define TG_SPR_V1_2_3_QUEUE_BLOCK_ROUNDING     0xFFC0
-#define TG_SPR_V1_2_3_QUEUE_BLOCK_SLACK        0x3F
 
 // Bitmap header: bit 7 of the byte at +9 marks a line-RLE bitmap
 #define TG_SPR_V1_2_3_BITMAP_FLAGS_OFFSET      9
@@ -97,7 +95,7 @@ public:
 
 	// Messages
 	bool spritePostMessage(uint16 sprite, uint16 count, const uint16 *words);
-	bool spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words);
+	bool spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words) override;
 
 	// Paths
 	Common::Point spriteLinePoint(uint16 step, uint16 total, int16 x0, int16 y0, int16 x1, int16 y1);
@@ -132,17 +130,10 @@ protected:
 
 	// Message builders
 	bool dispatchSpriteMessage(uint16 mode, uint16 count, const uint16 *words, uint16 sprite);
-	byte *allocQueueRecord(uint16 opcode, uint16 sprite);
-	byte *growQueueForRecord(uint16 opcode, uint16 sprite);
-	void resetQueueForImmediate(uint16 sprite);
-	void runImmediateRecord(byte *record, uint16 sprite);
-	bool buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
 	bool buildCompositeMessage(uint16 mode, uint16 sprite);
-	bool buildQuadPathMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildFlipMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildHideMessage(uint16 mode, uint16 sprite);
-	bool buildLinearMoveMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildHostEventMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
 	bool buildWaitMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildSetPositionMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);

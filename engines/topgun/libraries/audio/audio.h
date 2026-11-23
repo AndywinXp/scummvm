@@ -175,8 +175,10 @@ protected:
 		uint32 from;
 		uint32 to;
 		Common::String fileName;
+		const byte *midiData;
+		uint32 midiSize;
 
-		DeviceParms() : deviceId(0), timeFormat(0), item(0), track(0), value(0), from(0), to(0) {}
+		DeviceParms() : deviceId(0), timeFormat(0), item(0), track(0), value(0), from(0), to(0), midiData(nullptr), midiSize(0) {}
 	};
 
 	struct ConvertState {

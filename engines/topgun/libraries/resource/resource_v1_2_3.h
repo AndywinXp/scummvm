@@ -39,7 +39,6 @@
 #define TG_RES_V1_2_3_HEADER_BUILD_TYPE_OFFSET     0xAC
 #define TG_RES_V1_2_3_HEADER_CHAINED_OFFSET        0xAE
 #define TG_RES_V1_2_3_HEADER_LIBRARY_NAME_OFFSET   0xB0
-#define TG_RES_V1_2_3_LIBRARY_NAME_SIZE            14
 #define TG_RES_V1_2_3_HEADER_KEY_TABLE_OFFSET      0xBE
 #define TG_RES_V1_2_3_KEY_ENTRY_SIZE               8
 #define TG_RES_V1_2_3_KEY_SIZE_OFFSET              4
@@ -53,7 +52,6 @@
 #define TG_RES_V1_2_3_KEY_PALETTE                  6
 #define TG_RES_V1_2_3_KEY_NAME_TABLE               7
 #define TG_RES_V1_2_3_KEY_PLUGIN_NAMES             10
-#define TG_RES_V1_2_3_VARIABLE_PAIR_SIZE           4
 #define TG_RES_V1_2_3_PALETTE_ENTRY_SIZE           4
 
 // Resource types: 1..7 are read from the file, 8..16 stay in memory
@@ -89,17 +87,10 @@ public:
 	byte *resLoadNameTable(uint16 file, uint32 *outSize) override;
 	uint16 resLoadPalette(uint16 file, byte *buffer) override;
 	byte *resLoadResource(uint16 file, uint16 index, uint32 *outSize) override;
-	int32 waveRead(uint16 waveInfo, byte *buffer, int32 count) override;
-	uint16 resEnumVariables(uint16 file) override;
 	const char *resGetConstStr(uint16 file, uint16 offset) override;
 
 	// New exports
 	uint16 resCountResources(uint16 file, uint16 *outCount);
-	uint16 resCreateMidiEvent(uint16 file, uint16 index);
-	uint32 resTell(uint16 file);
-	uint16 resGetLibraryName(uint16 file, char *destination, uint16 count);
-	uint16 resGetMaxFadeColors(uint16 file);
-	uint16 resGetMaxTransColors(uint16 file);
 	byte resGetBuildType(uint16 file);
 	byte *resLoadKeyResource(uint16 file, uint16 key, uint32 *outSize);
 	uint16 resCopyResource(uint16 file, uint16 index);

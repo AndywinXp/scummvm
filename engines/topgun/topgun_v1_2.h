@@ -58,6 +58,29 @@
 #define TG_HOST_V1_2_1_NUM_CLEARED_VARIABLES     116
 #define TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER     415
 #define TG_HOST_V1_2_1_VARIABLE_JOYSTICKS        416
+#define TG_HOST_V1_2_TABLE_SIZE                  0x159F
+#define TG_HOST_V1_2_2_NUM_SCENE_VARIABLES       1001
+#define TG_HOST_V1_2_2_FIRST_ARGUMENT_SLOT       0x45E
+#define TG_HOST_V1_2_2_FIRST_FRAME_INDEX         0x5FD
+#define TG_HOST_V1_2_2_FIRST_SYSTEM_VARIABLE     1001
+#define TG_HOST_V1_2_2_NUM_SYSTEM_VARIABLES      117
+#define TG_HOST_V1_2_2_VARIABLE_MOUSE_BUTTON     1001
+#define TG_HOST_V1_2_2_VARIABLE_LOMEM            1002
+#define TG_HOST_V1_2_2_VARIABLE_SCREEN_WIDTH     1003
+#define TG_HOST_V1_2_2_VARIABLE_SCREEN_HEIGHT    1004
+#define TG_HOST_V1_2_2_VARIABLE_MOUSE_X          1005
+#define TG_HOST_V1_2_2_VARIABLE_MOUSE_Y          1006
+#define TG_HOST_V1_2_2_VARIABLE_CLICK_X          1007
+#define TG_HOST_V1_2_2_VARIABLE_CLICK_Y          1008
+#define TG_HOST_V1_2_2_VARIABLE_DROP_X           1009
+#define TG_HOST_V1_2_2_VARIABLE_DROP_Y           1010
+#define TG_HOST_V1_2_2_VARIABLE_LAUNCH_MODE      1011
+#define TG_HOST_V1_2_2_VARIABLE_AUDIO_PRESENT    1012
+#define TG_HOST_V1_2_2_VARIABLE_PROCESSOR_TYPE   1013
+#define TG_HOST_V1_2_2_VARIABLE_OVER_256_COLORS  1014
+#define TG_HOST_V1_2_2_VARIABLE_SCREEN_SAVER     1015
+#define TG_HOST_V1_2_2_VARIABLE_JOYSTICKS        1016
+#define TG_HOST_V1_2_2_VARIABLE_EVENT_PARAMETER  1017
 
 // Scenes and strings
 #define TG_HOST_V1_2_STRING_SLOT_SIZE            128
@@ -165,6 +188,7 @@
 #define TG_MOVIE_V1_2_FRAME_ENTRY_STATE          1
 #define TG_MOVIE_V1_2_FRAME_ENTRY_CHUNK_SIZE     2
 #define TG_MOVIE_V1_2_FRAME_ENTRY_FILE_OFFSET    4
+#define TG_MOVIE_V1_2_2_FRAME_TABLE_RESOURCE_OFFSET 1
 #define TG_MOVIE_V1_2_NUM_PREFETCH_BUFFERS       10
 #define TG_MOVIE_V1_2_PREFETCH_BUFFER_SIZE       0xFDE8
 #define TG_MOVIE_V1_2_AUDIO_BUFFER_SIZE          0x18000
@@ -214,6 +238,7 @@
 #define TG_TEXT_V1_2_1_HEADER_BOX_WIDTH          0x10
 #define TG_TEXT_V1_2_1_HEADER_BOX_HEIGHT         0x12
 #define TG_TEXT_V1_2_1_HEADER_FLAGS              0x14
+#define TG_TEXT_V1_2_2_RESOURCE_TYPE             14
 #define TG_TEXT_V1_2_3_HEADER_SIZE               20
 #define TG_TEXT_V1_2_3_SHORT_HEADER_SIZE         18
 #define TG_TEXT_V1_2_3_EDIT_RECORD_SIZE          12
@@ -242,6 +267,11 @@
 #define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE 517
 #define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE     8
 #define TG_SCRIPT_V1_2_CALL_HEADER_SIZE          5
+#define TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE        6
+#define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
+#define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
+#define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
+#define TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE       4
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
 #define TG_SCRIPT_V1_2_STRING_COPY_SIZE          0x7F
@@ -315,6 +345,21 @@ enum ResourceType_v1_2_1 {
 	kResV1_2_1Script = 11,
 	kResV1_2_1Sprite = 12,
 	kResV1_2_1Text = 13
+};
+
+enum ResourceType_v1_2_2 {
+	kResV1_2_2Bitmap = 1,
+	kResV1_2_2Wave = 4,
+	kResV1_2_2Midi = 5,
+	kResV1_2_2Movie = 6,
+	kResV1_2_2OpList = 7,
+	kResV1_2_2BitmapGroup = 8,
+	kResV1_2_2MixedGroup = 9,
+	kResV1_2_2Palette = 10,
+	kResV1_2_2SpriteQueueData = 11,
+	kResV1_2_2Script = 12,
+	kResV1_2_2Sprite = 13,
+	kResV1_2_2Text = 14
 };
 
 enum ResourceType_v1_2 {
@@ -405,7 +450,22 @@ enum ScriptOpcode_v1_2 {
 	kOpV1_2GetTime,
 	kOpV1_2SpriteCompositeToBackground,
 	kOpV1_2SetJoystickScript,
-	kOpV1_2SetCursorPosition
+	kOpV1_2SetCursorPosition,
+	kOpV1_2GetSpriteElementIds = 75,
+	kOpV1_2Expression,
+	kOpV1_2ConditionalJumpExpression,
+	kOpV1_2SwitchExpression,
+	kOpV1_2ConditionalJumpExpressionCopy,
+	kOpV1_2PlayMidi,
+	kOpV1_2StopMidi,
+	kOpV1_2SetDeviceGroupBinding,
+	kOpV1_2DeviceGroupButtonState,
+	kOpV1_2SetDeviceGroupScript,
+	kOpV1_2DeviceGroupLatch,
+	kOpV1_2SetDeviceGroupBindingB,
+	kOpV1_2SetDeviceGroupFlag,
+	kOpV1_2GetDeviceGroupState,
+	kOpV1_2ReturnExpression
 };
 
 struct FormatArgument_v1_2 {
@@ -602,30 +662,13 @@ protected:
 	SpriteLibrary_v1_2 *spriteLib() { return static_cast<SpriteLibrary_v1_2 *>(spriteLibrary()); }
 
 	// Operands
-	virtual uint16 operandValue(uint16 operand) const {
-		if (operand <= TG_HOST_V1_2_VARIABLE_LAST_INDEX)
-			return _variables[operand];
-
-		return (uint16)(operand + TG_HOST_V1_2_LITERAL_BIAS);
-	}
-
-	virtual void writeVariable(uint16 index, uint16 value) {
-		if (index >= TG_HOST_V1_2_NUM_VARIABLES) {
-			warning("TopgunEngine_v1_2::writeVariable(): variable %d is out of range", index);
-			return;
-		}
-
-		_variables[index] = value;
-	}
-
-	virtual uint16 readVariable(uint16 index) const {
-		if (index >= TG_HOST_V1_2_NUM_VARIABLES) {
-			warning("TopgunEngine_v1_2::readVariable(): variable %d is out of range", index);
-			return 0;
-		}
-
-		return _variables[index];
-	}
+	uint16 variableIndex(uint16 operand) const;
+	uint16 operandValue(uint16 operand) const;
+	uint16 readVariable(uint16 index) const;
+	void writeVariable(uint16 index, uint16 value);
+	uint16 operandAddress(uint16 operand) const;
+	uint16 readAddress(uint16 address) const;
+	void writeAddress(uint16 address, uint16 value);
 
 	bool isRecordIndexValid(uint16 index, const char *caller) const {
 		if (!_records || index >= _numResources) {
@@ -640,16 +683,18 @@ protected:
 	bool postMessage(uint16 id, uint16 param, uint32 data) override;
 	void resourceLoadProgressCallback() override;
 	uint16 audioCreateWave(const byte *header, uint16 waveInfo);
+	uint16 audioCreateMidiEvent(const byte *header, uint16 midiInfo);
 	virtual uint32 audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count);
 	virtual uint32 audioSourceRewind(uint16 proc, uint16 handle);
 	virtual void audioSourceClose(uint16 proc, uint16 handle);
 	void resourceSendMessage(uint16 window, uint16 message);
 	bool resourceEnumCallback(uint16 type, uint32 offset, uint32 size);
 	bool resourceVariableCallback(uint16 id, uint16 value, const char *name);
+	bool resourceVariablePairCallback(uint16 id, uint16 value);
 	void spriteServiceProc(uint16 word);
 	byte *spriteBitmapProvider(uint16 id, bool release);
 	void spriteMessageService(byte *record) override;
-	virtual void spriteMessageService(byte *record, uint16 spriteId) { spriteMessageService(record); }
+	virtual void spriteMessageService(byte *record, uint16 spriteId);
 	uint16 spriteMovieService(uint16 sprite, byte *command, byte **frame);
 	uint32 movieAudioFill(uint16 movie, byte *destination, uint32 count);
 
@@ -687,6 +732,7 @@ protected:
 	void handleMouseButtonUpMessage(const Message &message);
 	void handleMouseMoveMessage(const Message &message);
 	void handleCharMessage(uint16 character);
+	virtual void handleKeyUpMessage(Common::KeyCode keycode);
 	void handleSysKeyDownAltTab(const Message &message);
 	void handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) override;
 	void flushPostedScriptMessages();
@@ -716,6 +762,9 @@ protected:
 	void freeBitmapBlobIfUnreferenced(uint16 id) override;
 	bool destroyGroupResourceObject(uint16 id) override;
 	bool destroyMovieResourceObject(uint16 id);
+	void destroyMidiResourceObject(uint16 id);
+	bool ensureMidiResourceLoaded(uint16 id);
+	bool isResourceObjectLoaded(uint16 id, uint16 type);
 	bool destroySpriteResourceObject(uint16 id) override;
 	bool releaseSceneSpriteRecord(uint16 id);
 	bool destroyTextObjectResource(uint16 id);
@@ -787,6 +836,10 @@ protected:
 	bool evaluateCondition(byte condition, uint16 operandA, uint16 operandB);
 	int32 applyArithmeticOperand(int32 accumulator, const byte *operand);
 	uint16 lookupSwitchOffset(const byte *record);
+	uint16 evaluateExpression(const byte *expression);
+	void pushExpressionValue(uint16 value);
+	bool exprCallScript(const byte *token);
+	virtual void evaluateBuiltinFunction(uint16 code, uint16 argc);
 	static int32 divideSigned32(int32 dividend, int32 divisor);
 	static int32 roundedDivideBy10000(int32 value);
 	Common::Point computeRayRectIntersection(int16 angle, int16 x, int16 y, int16 left, int16 top, int16 right, int16 bottom);
@@ -844,6 +897,12 @@ protected:
 	void o_spriteCompositeToBackground(const byte *record); // 71
 	void o_setJoystickScript(const byte *record); // 72
 	void o_setCursorPosition(const byte *record); // 73
+	void o_getSpriteElementIds(const byte *record); // 75
+	uint16 o_conditionalJumpExpr(const byte *record); // 77
+	uint16 o_switchExpression(const byte *record); // 78
+	uint16 o_conditionalJumpExprCopy(const byte *record); // 79
+	void o_playMidi(const byte *record); // 80
+	void o_stopMidi(const byte *record); // 81
 
 	// Input
 	bool translate(const Common::Event &event, Message &message) override;
@@ -953,7 +1012,8 @@ protected:
 	void iniWriteInt(byte obfuscation, uint16 variable, const char *key, const char *section);
 
 	// Variables and scenes
-	uint16 _variables[TG_HOST_V1_2_NUM_VARIABLES];
+	uint16 _variableTable[TG_HOST_V1_2_TABLE_SIZE] = {};
+	uint16 _argumentFrame = 0;
 	Common::Array<SceneEntry_v1_2> _sceneEntries;
 	char _currentSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE];
 	uint16 _currentSceneIndex = 0;
@@ -998,6 +1058,8 @@ protected:
 	// Script state
 	uint16 _scriptArgStackOffset = 0;
 	uint16 _scriptArgCount = 0;
+	uint16 _expressionStack[TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE] = {};
+	uint16 _expressionStackPointer = 0;
 	uint16 _currentScriptId = 0;
 	uint16 _mouseEventScript = 0;
 	uint16 _textEditObjectId = 0;

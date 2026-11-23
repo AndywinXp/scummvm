@@ -181,6 +181,14 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 	int16 heightMinusOne = (int16)(height - 1);
 
+	if (_engine->_version == kVersionV1_2_2) {
+		if (object->anchorX)
+			hotX = (int16)(object->pivotX - hotX);
+
+		if (object->anchorY)
+			hotY = (int16)(object->pivotY - hotY);
+	}
+
 	object->boundingBox.left = (int16)((int16)(1 - width) / 2 + hotX + object->x);
 	object->boundingBox.right = (int16)(width + object->boundingBox.left);
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
@@ -189,7 +197,7 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 }
 
 uint16 SpriteLibrary_v1_2::spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last) {
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_2) {
 		uint16 result = SpriteLibrary::spriteObjectSetCelRange(sprite, startFrame, first, last);
 		if (result == 0)
 			return 0;
@@ -240,11 +248,19 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
-	if (_engine->_version >= kVersionV1_2_3 && object->mirrorX)
-		hotX = (int16)-hotX;
+	if (_engine->_version >= kVersionV1_2_3) {
+		if (object->mirrorX)
+			hotX = (int16)-hotX;
 
-	if (_engine->_version >= kVersionV1_2_3 && object->flipY)
-		hotY = (int16)-hotY;
+		if (object->flipY)
+			hotY = (int16)-hotY;
+	} else if (_engine->_version == kVersionV1_2_2) {
+		if (object->anchorX)
+			hotX = (int16)(object->pivotX - hotX);
+
+		if (object->anchorY)
+			hotY = (int16)(object->pivotY - hotY);
+	}
 
 	object->boundingBox.left = (int16)(object->x + hotX - widthMinusOne / 2);
 	object->boundingBox.right = (int16)(width + object->boundingBox.left);
@@ -278,10 +294,10 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 		int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
-		if (_engine->_version >= kVersionV1_2_1 && object->mirrorX)
+		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_2 && object->mirrorX)
 			hotX = (int16)-hotX;
 
-		if (_engine->_version >= kVersionV1_2_1 && object->flipY)
+		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_2 && object->flipY)
 			hotY = (int16)-hotY;
 
 		part.box.left = (int16)((int16)(1 - width) / 2 + hotX + object->x);
@@ -293,6 +309,53 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 			object->boundingBox = part.box;
 		else
 			unionRectLocal(object->boundingBox, part.box, object->boundingBox);
+	}
+
+	if (_engine->_version != kVersionV1_2_2 || (!object->mirrorX && !object->flipY && !object->anchorX && !object->anchorY))
+		return;
+
+	int16 sumX = (int16)(object->boundingBox.left + object->boundingBox.right);
+	int16 sumY = (int16)(object->boundingBox.top + object->boundingBox.bottom);
+	int16 shiftX = 0;
+	int16 shiftY = 0;
+
+	if (object->anchorX)
+		shiftX = (int16)(object->x * 2 + object->pivotX - sumX);
+
+	if (object->anchorY)
+		shiftY = (int16)(object->y * 2 + object->pivotY - sumY);
+
+	for (uint16 i = 0; i < object->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++) {
+		SpritePart &part = object->parts->parts[i];
+		if (!part.frame)
+			continue;
+
+		int16 width = (int16)READ_LE_UINT16(part.frame + TG_SPR_BITMAP_WIDTH_OFFSET);
+		int16 height = (int16)READ_LE_UINT16(part.frame + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+		if (object->mirrorX)
+			part.box.left = (int16)(shiftX - part.box.right + sumX);
+		else if (object->anchorX)
+			part.box.left = (int16)(part.box.left + shiftX);
+
+		part.box.right = (int16)(width + part.box.left);
+
+		if (object->flipY)
+			part.box.top = (int16)(shiftY - part.box.bottom + sumY);
+		else if (object->anchorY)
+			part.box.top = (int16)(part.box.top + shiftY);
+
+		part.box.bottom = (int16)(height + part.box.top);
+	}
+
+	if (object->anchorX) {
+		object->boundingBox.left = (int16)(object->boundingBox.left + shiftX);
+		object->boundingBox.right = (int16)(object->boundingBox.right + shiftX);
+	}
+
+	if (object->anchorY) {
+		object->boundingBox.top = (int16)(object->boundingBox.top + shiftY);
+		object->boundingBox.bottom = (int16)(object->boundingBox.bottom + shiftY);
 	}
 }
 
@@ -358,6 +421,7 @@ bool SpriteLibrary_v1_2::spriteInitLibrary() {
 	_inHostCallback = false;
 	_hostEventsSuppressed = false;
 	_zoomActive = false;
+	_stretch = false;
 	_zoomFactor = 0;
 	_zoomOffsetX = 0;
 	_zoomOffsetY = 0;
@@ -459,7 +523,7 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[kSprV1_2_3OpMovieFrame] = 0x0C;
 	} else {
 		_queueCommandSizeTable[kSprV1_2OpQuadPath] = 0x1D;
-		_queueCommandSizeTable[kSprV1_2OpFlip] = 6;
+		_queueCommandSizeTable[kSprV1_2OpFlip] = (_engine->_version >= kVersionV1_2_2) ? TG_SPR_V1_2_2_FLIP_RECORD_SIZE : 6;
 		_queueCommandSizeTable[kSprV1_2OpDelayedMove] = 7;
 		_queueCommandSizeTable[kSprV1_2OpWait] = 5;
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 7;
@@ -469,7 +533,7 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 }
 
 void SpriteLibrary_v1_2::spriteResetLibrary() {
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_2) {
 		_zoomOffsetX = 0;
 		_zoomOffsetY = 0;
 		_zoomFactor = 1;
@@ -1031,13 +1095,17 @@ bool SpriteLibrary_v1_2::spriteSetZoom(uint16 factor, int16 panX, int16 panY) {
 
 	_zoomActive = (factor != 0 && (factor != 1 || panX != 0 || panY != 0));
 
-	if (_engine->_version >= kVersionV1_2_3 && !_zoomActive) {
+	if (_engine->_version >= kVersionV1_2_2 && !_zoomActive) {
 		_zoomOffsetX = 0;
 		_zoomOffsetY = 0;
 		_zoomFactor = 1;
 	}
 
 	return _zoomActive != previous;
+}
+
+void SpriteLibrary_v1_2::spriteSetStretch(uint16 flag) {
+	_stretch = ((flag & 0xFF) != 0);
 }
 
 void SpriteLibrary_v1_2::spriteSetMessageProc(bool set) {

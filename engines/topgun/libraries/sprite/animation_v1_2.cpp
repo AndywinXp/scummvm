@@ -88,9 +88,20 @@ bool SpriteLibrary_v1_2::processSpriteQueueCommand(uint16 sprite) {
 	}
 
 	switch (READ_LE_UINT16(command)) {
-	case kSprV1_2OpPlayRange:
-		WRITE_LE_UINT16(command + 6, spriteObjectSetCelRange(sprite, READ_LE_UINT16(command + 2), READ_LE_UINT16(command + 2), READ_LE_UINT16(command + 4)));
+	case kSprV1_2OpPlayRange: {
+		uint16 start = READ_LE_UINT16(command + 2);
+		uint16 first = READ_LE_UINT16(command + 2);
+		uint16 last = READ_LE_UINT16(command + 4);
+
+		if (_engine->_version >= kVersionV1_2_2) {
+			start = decodeOperand(start);
+			first = decodeOperand(first);
+			last = decodeOperand(last);
+		}
+
+		WRITE_LE_UINT16(command + 6, spriteObjectSetCelRange(sprite, start, first, last));
 		break;
+	}
 
 	case kSprV1_2OpMultiCel:
 		command[0xC] = 0;
@@ -127,10 +138,12 @@ bool SpriteLibrary_v1_2::processSpriteQueueCommand(uint16 sprite) {
 		}
 
 		WRITE_LE_UINT16(command + 0x12, 0);
+		if (_engine->_version >= kVersionV1_2_2 || command[4] == 0)
+			WRITE_LE_UINT16(command + 0x14, decodeOperand(READ_LE_UINT16(command + 2)));
+
 		if (command[4] != 0)
 			computeInterpolatedMoveSteps(command);
-		else
-			WRITE_LE_UINT16(command + 0x14, decodeOperand(READ_LE_UINT16(command + 2)));
+
 		break;
 
 	case kSprV1_2OpWait:
@@ -149,10 +162,21 @@ bool SpriteLibrary_v1_2::processSpriteQueueCommand(uint16 sprite) {
 		processSpriteQueueCommand(sprite);
 		return object->queueCurrent;
 
-	case kSprV1_2OpSetRange:
-		spriteObjectSetCelRange(sprite, READ_LE_UINT16(command + 2), READ_LE_UINT16(command + 4), READ_LE_UINT16(command + 6));
+	case kSprV1_2OpSetRange: {
+		uint16 start = READ_LE_UINT16(command + 2);
+		uint16 first = READ_LE_UINT16(command + 4);
+		uint16 last = READ_LE_UINT16(command + 6);
+
+		if (_engine->_version >= kVersionV1_2_2) {
+			start = decodeOperand(start);
+			first = decodeOperand(first);
+			last = decodeOperand(last);
+		}
+
+		spriteObjectSetCelRange(sprite, start, first, last);
 		processSpriteQueueCommand(sprite);
 		return object->queueCurrent;
+	}
 
 	case kSprV1_2OpMoveInterval:
 		spriteSetSpeed(sprite, decodeOperand(READ_LE_UINT16(command + 2)));
@@ -311,7 +335,7 @@ void SpriteLibrary_v1_2::computeInterpolatedMoveSteps(byte *command) {
 	uint16 longest = (distanceY >= distanceX) ? distanceY : distanceX;
 
 	uint16 speed;
-	if (_engine->_version >= kVersionV1_2_3)
+	if (_engine->_version >= kVersionV1_2_2)
 		speed = READ_LE_UINT16(command + 0x14);
 	else
 		speed = decodeOperand(READ_LE_UINT16(command + 2));
@@ -748,6 +772,19 @@ void SpriteLibrary_v1_2::tickFlipRecord(uint16 sprite) {
 	object->mirrorX = (decodeOperand(READ_LE_UINT16(command + 2)) != 0);
 	object->flipY = (decodeOperand(READ_LE_UINT16(command + 4)) != 0);
 
+	if (_engine->_version == kVersionV1_2_2) {
+		object->pivotX = (int16)(decodeOperand(READ_LE_UINT16(command + 6)) * 2);
+		object->pivotY = (int16)(decodeOperand(READ_LE_UINT16(command + 8)) * 2);
+		object->anchorX = (command[0x0A] != 0);
+		object->anchorY = (command[0x0B] != 0);
+
+		if (object->partCount != 0)
+			recomputeCelBoxArray(sprite);
+
+		renderSpriteToSurface(sprite);
+		return;
+	}
+
 	if (_engine->_version < kVersionV1_2_3) {
 		if (flipFlags(object) != previous) {
 			if (_engine->_version >= kVersionV1_2_1 && object->partCount != 0)
@@ -878,7 +915,7 @@ void SpriteLibrary_v1_2::applyFrameChange(uint16 sprite) {
 
 	object->currentFrame = frame;
 
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_2) {
 		recomputeSpriteBoundingBox(sprite);
 		object->framePending = false;
 		return;

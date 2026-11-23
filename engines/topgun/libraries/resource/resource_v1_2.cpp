@@ -53,7 +53,10 @@ ResourceLibrary_v1_2::ResourceFile *ResourceLibrary_v1_2::findFile(uint16 file, 
 
 bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
 	bool hasRecords = (_engine->_version >= kVersionV1_2_1);
+	bool hasPositionTable = (_engine->_version >= kVersionV1_2_2);
 	uint16 headerSize = hasRecords ? TG_RES_V1_2_1_HEADER_SIZE : TG_RES_V1_2_HEADER_SIZE;
+	if (hasPositionTable)
+		headerSize = TG_RES_V1_2_2_HEADER_SIZE;
 
 	if (file->stream->read(file->header, headerSize) != headerSize)
 		return false;
@@ -61,8 +64,11 @@ bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
 	const byte *header = file->header;
 	file->magic = READ_LE_UINT16(header);
 
-	if (hasRecords)
+	if (hasRecords) {
 		file->recordCount = READ_LE_UINT16(header + TG_RES_V1_2_1_HEADER_RECORD_COUNT_OFFSET);
+		file->maxFadeColors = READ_LE_UINT16(header + TG_RES_V1_2_1_HEADER_MAX_FADE_OFFSET);
+		file->maxTransparentColors = READ_LE_UINT16(header + TG_RES_V1_2_1_HEADER_MAX_TRANS_OFFSET);
+	}
 
 	file->entryCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_INDEX_COUNT_OFFSET : TG_RES_V1_2_HEADER_RESOURCE_COUNT_OFFSET));
 	file->paletteCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_PALETTE_COUNT_OFFSET : TG_RES_V1_2_HEADER_PALETTE_COUNT_OFFSET));
@@ -70,10 +76,19 @@ bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
 	file->variableCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_VARIABLE_COUNT_OFFSET : TG_RES_V1_2_HEADER_VARIABLE_COUNT_OFFSET));
 	file->chained = (header[hasRecords ? TG_RES_V1_2_1_HEADER_CHAINED_OFFSET : TG_RES_V1_2_HEADER_CHAINED_OFFSET] != 0);
 	file->variableTableCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_VARIABLE_TABLE_OFFSET : TG_RES_V1_2_HEADER_VARIABLE_TABLE_OFFSET));
-	file->stringCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_COUNT_OFFSET : TG_RES_V1_2_HEADER_STRING_COUNT_OFFSET));
-	file->stringPoolSize = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_POOL_SIZE_OFFSET : TG_RES_V1_2_HEADER_STRING_POOL_SIZE_OFFSET));
-	file->residentSplit = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SPLIT_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SPLIT_OFFSET));
-	file->residentSize = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SIZE_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SIZE_OFFSET));
+
+	if (hasPositionTable) {
+		file->variablePairCount = READ_LE_UINT16(header + TG_RES_V1_2_2_HEADER_VARIABLE_PAIR_COUNT_OFFSET);
+		file->stringCount = READ_LE_UINT16(header + TG_RES_V1_2_2_HEADER_STRING_COUNT_OFFSET);
+		file->stringPoolSize = READ_LE_UINT16(header + TG_RES_V1_2_2_HEADER_STRING_POOL_SIZE_OFFSET);
+		file->residentSplit = READ_LE_UINT32(header + TG_RES_V1_2_2_HEADER_RESIDENT_SPLIT_OFFSET);
+		file->residentSize = READ_LE_UINT32(header + TG_RES_V1_2_2_HEADER_RESIDENT_SIZE_OFFSET);
+	} else {
+		file->stringCount = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_COUNT_OFFSET : TG_RES_V1_2_HEADER_STRING_COUNT_OFFSET));
+		file->stringPoolSize = READ_LE_UINT16(header + (hasRecords ? TG_RES_V1_2_1_HEADER_STRING_POOL_SIZE_OFFSET : TG_RES_V1_2_HEADER_STRING_POOL_SIZE_OFFSET));
+		file->residentSplit = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SPLIT_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SPLIT_OFFSET));
+		file->residentSize = READ_LE_UINT32(header + (hasRecords ? TG_RES_V1_2_1_HEADER_RESIDENT_SIZE_OFFSET : TG_RES_V1_2_HEADER_RESIDENT_SIZE_OFFSET));
+	}
 
 	if (file->magic != TG_RES_HEADER_MAGIC)
 		return false;
@@ -92,13 +107,36 @@ bool ResourceLibrary_v1_2::loadVariableTable(ResourceFile *file) {
 	if (file->variableTableCount == 0)
 		return true;
 
-	// The game computes 31 * count in 16 bits
-	uint32 size = (uint32)TG_RES_V1_2_VARIABLE_RECORD_SIZE * file->variableTableCount;
+	// The game computes the record size * count in 16 bits
+	uint32 recordSize = TG_RES_V1_2_VARIABLE_RECORD_SIZE;
+	if (_engine->_version >= kVersionV1_2_2)
+		recordSize = TG_RES_V1_2_2_VARIABLE_RECORD_SIZE;
+
+	uint32 size = recordSize * file->variableTableCount;
 	file->variables = engine()->utilsLibrary()->tgMalloc(size, 0);
 	if (!file->variables)
 		return false;
 
+	if (_engine->_version >= kVersionV1_2_2 && !file->stream->seek(READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_VARIABLE_TABLE_POSITION_OFFSET), SEEK_SET))
+		return false;
+
 	return file->stream->read(file->variables, size) == size;
+}
+
+bool ResourceLibrary_v1_2::loadVariablePairs(ResourceFile *file) {
+	if (file->variablePairCount == 0)
+		return true;
+
+	// The game computes 4 * count in 16 bits
+	uint32 size = (uint16)(TG_RES_V1_2_2_VARIABLE_PAIR_SIZE * file->variablePairCount);
+	file->variablePairs = engine()->utilsLibrary()->tgMalloc(size, 0);
+	if (!file->variablePairs)
+		return false;
+
+	if (!file->stream->seek(READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_VARIABLE_PAIRS_POSITION_OFFSET), SEEK_SET))
+		return false;
+
+	return file->stream->read(file->variablePairs, size) == size;
 }
 
 bool ResourceLibrary_v1_2::loadStringPool(ResourceFile *file) {
@@ -110,12 +148,18 @@ bool ResourceLibrary_v1_2::loadStringPool(ResourceFile *file) {
 	if (!file->stringPool)
 		return false;
 
+	if (_engine->_version >= kVersionV1_2_2 && !file->stream->seek(READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_STRING_POOL_POSITION_OFFSET), SEEK_SET))
+		return false;
+
 	return file->stream->read(file->stringPool, size) == size;
 }
 
 bool ResourceLibrary_v1_2::loadResidentChunks(ResourceFile *file) {
 	if (file->residentSize == 0)
 		return true;
+
+	if (_engine->_version >= kVersionV1_2_2 && !file->stream->seek(READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_RESIDENT_POSITION_OFFSET), SEEK_SET))
+		return false;
 
 	UtilsLibrary *utilsLibrary = engine()->utilsLibrary();
 
@@ -139,6 +183,21 @@ bool ResourceLibrary_v1_2::loadResidentChunks(ResourceFile *file) {
 		return false;
 
 	return file->stream->read(file->residentChunk2, size) == size;
+}
+
+bool ResourceLibrary_v1_2::loadMovieBuffer(ResourceFile *file) {
+	uint32 size = READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_SIZE_OFFSET);
+	if (size == 0)
+		return true;
+
+	if (!file->stream->seek(READ_LE_UINT32(file->header + TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_POSITION_OFFSET), SEEK_SET))
+		return false;
+
+	file->movieBuffer = engine()->utilsLibrary()->tgMalloc(size, 0);
+	if (!file->movieBuffer)
+		return false;
+
+	return file->stream->read(file->movieBuffer, size) == size;
 }
 
 void ResourceLibrary_v1_2::writeVariableTableBack(ResourceFile *file) {
@@ -268,6 +327,12 @@ uint16 ResourceLibrary_v1_2::resOpenFile(const Common::String &path) {
 	if (_engine->_version >= kVersionV1_2_1) {
 		// The game computes 0x50 * count in 16 bits; the records are skipped
 		uint32 recordsSize = (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+		if (_engine->_version >= kVersionV1_2_2 && recordsSize != 0
+				&& !record->stream->seek(READ_LE_UINT32(record->header + TG_RES_V1_2_2_HEADER_RECORDS_POSITION_OFFSET), SEEK_SET)) {
+			resCloseFile(file);
+			return 0;
+		}
+
 		int64 position = record->stream->pos();
 		if (recordsSize != 0 && (position + recordsSize > record->stream->size() || !record->stream->seek(recordsSize, SEEK_CUR))) {
 			resCloseFile(file);
@@ -281,12 +346,27 @@ uint16 ResourceLibrary_v1_2::resOpenFile(const Common::String &path) {
 		warning("ResourceLibrary_v1_2::resOpenFile(): too many entries (%d)", record->entryCount);
 
 	record->index = utilsLibrary->tgMalloc(indexSize, 0);
-	if (!record->index || record->stream->read(record->index, indexSize) != indexSize) {
+	if (!record->index) {
+		resCloseFile(file);
+		return 0;
+	}
+
+	if (_engine->_version >= kVersionV1_2_2 && !record->stream->seek(READ_LE_UINT32(record->header + TG_RES_V1_2_2_HEADER_INDEX_POSITION_OFFSET), SEEK_SET)) {
+		resCloseFile(file);
+		return 0;
+	}
+
+	if (record->stream->read(record->index, indexSize) != indexSize) {
 		resCloseFile(file);
 		return 0;
 	}
 
 	if (!loadVariableTable(record) || !loadStringPool(record) || !loadResidentChunks(record)) {
+		resCloseFile(file);
+		return 0;
+	}
+
+	if (_engine->_version >= kVersionV1_2_2 && (!loadVariablePairs(record) || !loadMovieBuffer(record))) {
 		resCloseFile(file);
 		return 0;
 	}
@@ -310,6 +390,7 @@ uint16 ResourceLibrary_v1_2::resCloseFile(uint16 file) {
 	utilsLibrary->tgFree(record->index);
 	utilsLibrary->tgFree(record->residentChunk1);
 	utilsLibrary->tgFree(record->residentChunk2);
+	utilsLibrary->tgFree(record->movieBuffer);
 	utilsLibrary->tgFree(record->variables);
 
 	for (uint16 i = 0; i < TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS; i++)
@@ -333,12 +414,17 @@ byte *ResourceLibrary_v1_2::resLoadNameTable(uint16 file, uint32 *outSize) {
 	if (record->nameTableSize == 0)
 		return nullptr;
 
-	uint32 offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + (uint16)(record->paletteCount * 4)
-		+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
-	if (_engine->_version >= kVersionV1_2_1)
-		offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
-	else
-		offset += TG_RES_V1_2_HEADER_SIZE;
+	uint32 offset;
+	if (_engine->_version >= kVersionV1_2_2) {
+		offset = READ_LE_UINT32(record->header + TG_RES_V1_2_2_HEADER_NAME_TABLE_POSITION_OFFSET);
+	} else {
+		offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + (uint16)(record->paletteCount * 4)
+			+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
+		if (_engine->_version >= kVersionV1_2_1)
+			offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+		else
+			offset += TG_RES_V1_2_HEADER_SIZE;
+	}
 
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return nullptr;
@@ -370,12 +456,17 @@ uint16 ResourceLibrary_v1_2::resLoadPalette(uint16 file, byte *buffer) {
 	if (record->paletteCount == 0)
 		return 0;
 
-	uint32 offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount
-		+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
-	if (_engine->_version >= kVersionV1_2_1)
-		offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
-	else
-		offset += TG_RES_V1_2_HEADER_SIZE;
+	uint32 offset;
+	if (_engine->_version >= kVersionV1_2_2) {
+		offset = READ_LE_UINT32(record->header + TG_RES_V1_2_2_HEADER_PALETTE_POSITION_OFFSET);
+	} else {
+		offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount
+			+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
+		if (_engine->_version >= kVersionV1_2_1)
+			offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+		else
+			offset += TG_RES_V1_2_HEADER_SIZE;
+	}
 
 	if (!record->stream->seek(offset, SEEK_SET) || record->stream->pos() != offset)
 		return 0;
@@ -399,9 +490,14 @@ byte *ResourceLibrary_v1_2::resLoadResource(uint16 file, uint16 index, uint32 *o
 	readEntry(record, index, entry);
 
 	bool wideResidentRange = (_engine->_version >= kVersionV1_2_1);
+	uint16 firstResidentType = TG_RES_V1_2_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = wideResidentRange ? TG_RES_V1_2_1_RESIDENT_LAST_TYPE : TG_RES_V1_2_RESIDENT_LAST_TYPE;
+	if (_engine->_version >= kVersionV1_2_2) {
+		firstResidentType = TG_RES_V1_2_2_RESIDENT_FIRST_TYPE;
+		lastResidentType = TG_RES_V1_2_2_RESIDENT_LAST_TYPE;
+	}
 
-	if (entry.type >= TG_RES_V1_2_RESIDENT_FIRST_TYPE && entry.type <= lastResidentType && (wideResidentRange || entry.type != TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE)) {
+	if (entry.type >= firstResidentType && entry.type <= lastResidentType && (wideResidentRange || entry.type != TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE)) {
 		if (outSize)
 			*outSize = entry.size;
 
@@ -420,6 +516,18 @@ byte *ResourceLibrary_v1_2::resLoadResource(uint16 file, uint16 index, uint32 *o
 		}
 
 		return record->residentChunk2 + (uint16)(entry.offset - record->residentSplit);
+	}
+
+	if (_engine->_version >= kVersionV1_2_2 && entry.type == TG_RES_V1_2_2_MOVIE_BUFFER_TYPE) {
+		if (outSize)
+			*outSize = entry.size;
+
+		if (!record->movieBuffer) {
+			warning("ResourceLibrary_v1_2::resLoadResource(): the file has no movie buffer");
+			return nullptr;
+		}
+
+		return record->movieBuffer + (uint16)entry.offset;
 	}
 
 	if (!record->stream->seek(entry.offset, SEEK_SET) || record->stream->pos() != entry.offset)
@@ -473,6 +581,14 @@ uint32 ResourceLibrary_v1_2::resSeekResource(uint16 file, uint16 index) {
 
 	record->chainOffset = 0;
 	return entry.size;
+}
+
+uint32 ResourceLibrary_v1_2::resTell(uint16 file) {
+	ResourceFile *record = findFile(file, "resTell");
+	if (!record)
+		return 0xFFFFFFFF;
+
+	return (uint32)record->stream->pos();
 }
 
 uint32 ResourceLibrary_v1_2::resReadData(uint16 file, byte *buffer, uint32 count, uint32 offset) {
@@ -656,6 +772,22 @@ uint16 ResourceLibrary_v1_2::resEnumVariables(uint16 file) {
 	if (!record)
 		return 0;
 
+	if (_engine->_version >= kVersionV1_2_2) {
+		for (uint16 i = 0; i < record->variablePairCount; i++) {
+			const byte *pair = record->variablePairs + (uint32)TG_RES_V1_2_2_VARIABLE_PAIR_SIZE * i;
+			bool keepGoing;
+			if (_engine->_version >= kVersionV1_2_3)
+				keepGoing = static_cast<TopgunEngine_v1_2_3 *>(engine())->resourceVariablePairCallback(READ_LE_UINT16(pair), READ_LE_UINT16(pair + 2));
+			else
+				keepGoing = engine()->resourceVariablePairCallback(READ_LE_UINT16(pair), READ_LE_UINT16(pair + 2));
+
+			if (!keepGoing)
+				break;
+		}
+
+		return 1;
+	}
+
 	for (uint16 i = 0; i < record->variableTableCount; i++) {
 		const byte *variable = record->variables + (uint32)TG_RES_V1_2_VARIABLE_RECORD_SIZE * i;
 		if (variable[TG_RES_V1_2_VARIABLE_USED_OFFSET] == 0)
@@ -717,6 +849,17 @@ uint16 ResourceLibrary_v1_2::resGetIndex(uint16 file, const char *name) {
 
 	if (nameLength >= TG_RES_V1_2_VARIABLE_NAME_SIZE)
 		return 0xFFFF;
+
+	if (_engine->_version >= kVersionV1_2_2) {
+		for (uint16 i = 0; i < record->variableTableCount; i++) {
+			const byte *variable = record->variables + (uint32)TG_RES_V1_2_2_VARIABLE_RECORD_SIZE * i;
+
+			if (memcmp(variable + TG_RES_V1_2_2_VARIABLE_NAME_OFFSET, name, nameLength + 1) == 0)
+				return READ_LE_UINT16(variable);
+		}
+
+		return 0xFFFF;
+	}
 
 	for (uint16 i = 0; i < record->variableTableCount; i++) {
 		const byte *variable = record->variables + (uint32)TG_RES_V1_2_VARIABLE_RECORD_SIZE * i;
@@ -824,6 +967,45 @@ uint16 ResourceLibrary_v1_2::resCountStrings(uint16 file) {
 	return record->stringCount;
 }
 
+uint16 ResourceLibrary_v1_2::resGetLibraryName(uint16 file, char *destination, uint16 count) {
+	if (!destination) {
+		warning("ResourceLibrary_v1_2::resGetLibraryName(): no destination");
+		return 0;
+	}
+
+	destination[0] = 0;
+
+	ResourceFile *record = findFile(file, "resGetLibraryName");
+	if (!record)
+		return 0;
+
+	if (count > TG_RES_V1_2_2_LIBRARY_NAME_SIZE)
+		count = TG_RES_V1_2_2_LIBRARY_NAME_SIZE;
+
+	const byte *name = record->header + TG_RES_V1_2_2_HEADER_LIBRARY_NAME_OFFSET;
+	if (_engine->_version >= kVersionV1_2_3)
+		name = record->fullHeader + TG_RES_V1_2_3_HEADER_LIBRARY_NAME_OFFSET;
+
+	Common::strlcpy(destination, (const char *)name, count);
+	return count;
+}
+
+uint16 ResourceLibrary_v1_2::resGetMaxFadeColors(uint16 file) {
+	ResourceFile *record = findFile(file, "resGetMaxFadeColors");
+	if (!record)
+		return 0;
+
+	return record->maxFadeColors;
+}
+
+uint16 ResourceLibrary_v1_2::resGetMaxTransColors(uint16 file) {
+	ResourceFile *record = findFile(file, "resGetMaxTransColors");
+	if (!record)
+		return 0;
+
+	return record->maxTransparentColors;
+}
+
 uint16 ResourceLibrary_v1_2::registerWaveInfo(WaveStreamInfo *info) {
 	for (uint32 attempt = 0; attempt < 0xFFFF; attempt++) {
 		uint16 handle = _nextWaveStreamHandle;
@@ -861,7 +1043,7 @@ uint16 ResourceLibrary_v1_2::resCreateWaveEvent(uint16 file, uint16 index) {
 	if (!record)
 		return 0;
 
-	if (_engine->_version >= kVersionV1_2_3)
+	if (_engine->_version >= kVersionV1_2_2)
 		record->chainOffset = 0;
 
 	byte header[TG_RES_V1_2_3_WAVE_HEADER_SIZE];
@@ -879,6 +1061,29 @@ uint16 ResourceLibrary_v1_2::resCreateWaveEvent(uint16 file, uint16 index) {
 	return engine()->audioCreateWave(header, waveInfo);
 }
 
+uint16 ResourceLibrary_v1_2::resCreateMidiEvent(uint16 file, uint16 index) {
+	if (resSeekResource(file, index) == 0)
+		return 0;
+
+	ResourceFile *record = findFile(file, "resCreateMidiEvent");
+	if (!record)
+		return 0;
+
+	byte header[TG_RES_V1_2_2_MIDI_HEADER_SIZE];
+	uint16 headerSize = (_engine->_version >= kVersionV1_2_3) ? TG_RES_V1_2_3_MIDI_HEADER_SIZE : TG_RES_V1_2_2_MIDI_HEADER_SIZE;
+	if (!readResourceBytes(record, header, headerSize))
+		return 0;
+
+	uint16 midiInfo = createWaveStreamInfo(file, record);
+	if (midiInfo == 0)
+		return 0;
+
+	if (_engine->_version >= kVersionV1_2_3)
+		return static_cast<TopgunEngine_v1_2_3 *>(engine())->audioCreateMidiEvent(header, midiInfo);
+
+	return engine()->audioCreateMidiEvent(header, midiInfo);
+}
+
 int32 ResourceLibrary_v1_2::waveRead(uint16 waveInfo, byte *buffer, int32 count) {
 	if (!_waveStreams.contains(waveInfo)) {
 		warning("ResourceLibrary_v1_2::waveRead(): invalid wave handle %d", waveInfo);
@@ -892,6 +1097,19 @@ int32 ResourceLibrary_v1_2::waveRead(uint16 waveInfo, byte *buffer, int32 count)
 
 	bool callbackSet = record->callbackSet;
 	record->callbackSet = false;
+
+	if (_engine->_version >= kVersionV1_2_2) {
+		record->chainOffset = info->chainOffset;
+
+		record->stream->seek(info->position, SEEK_SET);
+		bool success = readResourceBytes(record, buffer, (uint32)count);
+
+		info->chainOffset = record->chainOffset;
+		record->callbackSet = callbackSet;
+		info->position = (uint32)record->stream->pos();
+
+		return success ? count : 0;
+	}
 
 	uint32 result = resReadData(info->file, buffer, (uint32)count, info->position);
 
@@ -1082,7 +1300,7 @@ bool ResourceLibrary_v1_2_3::loadKey3Table(uint16 file, ResourceFile *record) {
 	if (!record->variablePairs)
 		return false;
 
-	record->variablePairCount = (uint16)(size / TG_RES_V1_2_3_VARIABLE_PAIR_SIZE);
+	record->variablePairCount = (uint16)(size / TG_RES_V1_2_2_VARIABLE_PAIR_SIZE);
 	return true;
 }
 
@@ -1264,14 +1482,6 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 	return buffer;
 }
 
-uint32 ResourceLibrary_v1_2_3::resTell(uint16 file) {
-	ResourceFile *record = findFile(file, "resTell");
-	if (!record)
-		return 0xFFFFFFFF;
-
-	return (uint32)record->stream->pos();
-}
-
 uint16 ResourceLibrary_v1_2_3::resCountResources(uint16 file, uint16 *outCount) {
 	ResourceFile *record = findFile(file, "resCountResources");
 	if (!record)
@@ -1281,20 +1491,6 @@ uint16 ResourceLibrary_v1_2_3::resCountResources(uint16 file, uint16 *outCount) 
 		*outCount = (uint16)(record->entryCount - record->extraSlots);
 
 	return record->entryCount;
-}
-
-uint16 ResourceLibrary_v1_2_3::resEnumVariables(uint16 file) {
-	ResourceFile *record = findFile(file, "resEnumVariables");
-	if (!record)
-		return 0;
-
-	for (uint16 i = 0; i < record->variablePairCount; i++) {
-		const byte *pair = record->variablePairs + (uint32)TG_RES_V1_2_3_VARIABLE_PAIR_SIZE * i;
-		if (!engine()->resourceVariablePairCallback(READ_LE_UINT16(pair), READ_LE_UINT16(pair + 2)))
-			break;
-	}
-
-	return 1;
 }
 
 const char *ResourceLibrary_v1_2_3::resGetConstStr(uint16 file, uint16 offset) {
@@ -1309,41 +1505,6 @@ const char *ResourceLibrary_v1_2_3::resGetConstStr(uint16 file, uint16 offset) {
 		return nullptr;
 
 	return (const char *)record->stringPool + offset;
-}
-
-uint16 ResourceLibrary_v1_2_3::resGetLibraryName(uint16 file, char *destination, uint16 count) {
-	if (!destination) {
-		warning("ResourceLibrary_v1_2_3::resGetLibraryName(): no destination");
-		return 0;
-	}
-
-	destination[0] = 0;
-
-	ResourceFile *record = findFile(file, "resGetLibraryName");
-	if (!record)
-		return 0;
-
-	if (count > TG_RES_V1_2_3_LIBRARY_NAME_SIZE)
-		count = TG_RES_V1_2_3_LIBRARY_NAME_SIZE;
-
-	Common::strlcpy(destination, (const char *)record->fullHeader + TG_RES_V1_2_3_HEADER_LIBRARY_NAME_OFFSET, count);
-	return count;
-}
-
-uint16 ResourceLibrary_v1_2_3::resGetMaxFadeColors(uint16 file) {
-	ResourceFile *record = findFile(file, "resGetMaxFadeColors");
-	if (!record)
-		return 0;
-
-	return record->maxFadeColors;
-}
-
-uint16 ResourceLibrary_v1_2_3::resGetMaxTransColors(uint16 file) {
-	ResourceFile *record = findFile(file, "resGetMaxTransColors");
-	if (!record)
-		return 0;
-
-	return record->maxTransparentColors;
 }
 
 byte ResourceLibrary_v1_2_3::resGetBuildType(uint16 file) {
@@ -1422,50 +1583,6 @@ bool ResourceLibrary_v1_2_3::resDeleteResource(uint16 file, uint16 index) {
 
 	memset(entry, 0, TG_RES_INDEX_ENTRY_SIZE);
 	return true;
-}
-
-uint16 ResourceLibrary_v1_2_3::resCreateMidiEvent(uint16 file, uint16 index) {
-	if (resSeekResource(file, index) == 0)
-		return 0;
-
-	ResourceFile *record = findFile(file, "resCreateMidiEvent");
-	if (!record)
-		return 0;
-
-	byte header[TG_RES_V1_2_3_MIDI_HEADER_SIZE];
-	if (!readResourceBytes(record, header, TG_RES_V1_2_3_MIDI_HEADER_SIZE))
-		return 0;
-
-	uint16 midiInfo = createWaveStreamInfo(file, record);
-	if (midiInfo == 0)
-		return 0;
-
-	return engine()->audioCreateMidiEvent(header, midiInfo);
-}
-
-int32 ResourceLibrary_v1_2_3::waveRead(uint16 waveInfo, byte *buffer, int32 count) {
-	if (!_waveStreams.contains(waveInfo)) {
-		warning("ResourceLibrary_v1_2_3::waveRead(): invalid wave handle %d", waveInfo);
-		return 0;
-	}
-
-	WaveStreamInfo *info = _waveStreams[waveInfo];
-	ResourceFile *record = findFile(info->file, "waveRead");
-	if (!record)
-		return 0;
-
-	bool callbackSet = record->callbackSet;
-	record->callbackSet = false;
-	record->chainOffset = info->chainOffset;
-
-	record->stream->seek(info->position, SEEK_SET);
-	bool success = readResourceBytes(record, buffer, (uint32)count);
-
-	info->chainOffset = record->chainOffset;
-	record->callbackSet = callbackSet;
-	info->position = (uint32)record->stream->pos();
-
-	return success ? count : 0;
 }
 
 } // End of namespace Topgun
