@@ -63,6 +63,38 @@ uint16 SpriteLibrary_v1_2::currentTickSprite() const {
 	return _spriteTable[_tickCursor];
 }
 
+void SpriteLibrary_v1_2::setSpriteActive(uint16 sprite, uint16 mode, bool refresh) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "setSpriteActive");
+	if (!object)
+		return;
+
+	if (object->active == mode)
+		return;
+
+	object->active = (byte)mode;
+
+	if ((byte)mode != 0) {
+		object->x = object->shadowX;
+		object->y = object->shadowY;
+		object->mirrorX = object->shadowMirrorX;
+		object->flipY = object->shadowFlipY;
+
+		if (refresh) {
+			if (object->partCount != 0)
+				recomputeCelBoxArray(sprite);
+			else
+				recomputeSpriteBoundingBox(sprite);
+
+			renderSpriteToSurface(sprite);
+		}
+	} else {
+		object->shadowX = object->x;
+		object->shadowY = object->y;
+		object->shadowMirrorX = object->mirrorX;
+		object->shadowFlipY = object->flipY;
+	}
+}
+
 void SpriteLibrary_v1_2::appendFrame(SpriteObject_v1_2 *object, const CelReference &cel) {
 	object->frames.push_back(cel.bitmap);
 	object->frameIds.push_back(cel.id);
@@ -232,6 +264,9 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	if (!object)
 		return;
 
+	if (_engine->_version >= kVersionV1_2_6 && !object->active)
+		return;
+
 	byte *frame = object->currentFrame;
 	if (!frame) {
 		warning("SpriteLibrary_v1_2::recomputeSpriteBoundingBox(): the sprite has no frame");
@@ -273,6 +308,9 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "recomputeCelBoxArray");
 	if (!object || object->partCount == 0)
+		return;
+
+	if (_engine->_version >= kVersionV1_2_6 && !object->active)
 		return;
 
 	if (!object->parts) {
@@ -366,7 +404,7 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 
 	Common::Rect oldBox = object->boundingBox;
 
-	if (_engine->_version >= kVersionV1_2_1 && object->framePending) {
+	if (_engine->_version >= kVersionV1_2_1 && object->framePending && (_engine->_version < kVersionV1_2_6 || object->active)) {
 		applyFrameChange(sprite);
 
 		object = findSprite(sprite, "updateSpritePosition");
@@ -374,13 +412,28 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 			return;
 	}
 
-	if (relative != 0) {
-		x = (int16)(x + object->x);
-		y = (int16)(y + object->y);
+	bool shadow = (_engine->_version >= kVersionV1_2_6 && !object->active);
+	int16 positionX = object->x;
+	int16 positionY = object->y;
+	if (shadow) {
+		positionX = object->shadowX;
+		positionY = object->shadowY;
 	}
 
-	int16 deltaX = (int16)(x - object->x);
-	int16 deltaY = (int16)(y - object->y);
+	if (relative != 0) {
+		x = (int16)(x + positionX);
+		y = (int16)(y + positionY);
+	}
+
+	int16 deltaX = (int16)(x - positionX);
+	int16 deltaY = (int16)(y - positionY);
+
+	if (shadow) {
+		object->shadowX = x;
+		object->shadowY = y;
+		return;
+	}
+
 	object->x = x;
 	object->y = y;
 
@@ -425,6 +478,7 @@ bool SpriteLibrary_v1_2::spriteInitLibrary() {
 	_zoomFactor = 0;
 	_zoomOffsetX = 0;
 	_zoomOffsetY = 0;
+	_rubberBandActive = false;
 	_userClipBox = Common::Rect();
 	_fillColor = 0;
 	_composeBuffer = nullptr;
@@ -498,12 +552,12 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[i] = 0;
 
 	_queueCommandSizeTable[kSprV1_2OpPlayRange] = 0x0A;
-	_queueCommandSizeTable[kSprV1_2OpMultiCel] = 0x0E;
+	_queueCommandSizeTable[kSprV1_2OpMultiCel] = (_engine->_version >= kVersionV1_2_5) ? 0x10 : 0x0E;
 	_queueCommandSizeTable[kSprV1_2OpReserved3] = 2;
 	_queueCommandSizeTable[kSprV1_2OpCompositeBackground] = 2;
 	_queueCommandSizeTable[kSprV1_2OpLoop] = 8;
 	_queueCommandSizeTable[kSprV1_2OpHide] = 2;
-	_queueCommandSizeTable[kSprV1_2OpLinearMove] = 0x16;
+	_queueCommandSizeTable[kSprV1_2OpLinearMove] = (_engine->_version >= kVersionV1_2_5) ? 0x18 : 0x16;
 	_queueCommandSizeTable[kSprV1_2OpFrameInterval] = 4;
 	_queueCommandSizeTable[kSprV1_2OpSetRange] = 8;
 	_queueCommandSizeTable[kSprV1_2OpMoveInterval] = 6;
@@ -519,7 +573,7 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[kSprV1_2OpWait] = 6;
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 8;
 		_queueCommandSizeTable[kSprV1_2OpTimingMode] = 4;
-		_queueCommandSizeTable[kSprV1_2_3OpHostEventFixed] = 0x0E;
+		_queueCommandSizeTable[kSprV1_2_3OpHostEventFixed] = (_engine->_version >= kVersionV1_2_5) ? 0x12 : 0x0E;
 		_queueCommandSizeTable[kSprV1_2_3OpMovieFrame] = 0x0C;
 	} else {
 		_queueCommandSizeTable[kSprV1_2OpQuadPath] = 0x1D;
@@ -529,6 +583,20 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 7;
 		_queueCommandSizeTable[kSprV1_2OpTimingMode] = 3;
 		_queueCommandSizeTable[kSprV1_2OpMovieFrame] = 0x0B;
+	}
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		_queueCommandSizeTable[kSprV1_2OpMultiCel] = 0x1C;
+		_queueCommandSizeTable[kSprV1_2_6OpSetActive] = 4;
+		_queueCommandSizeTable[kSprV1_2_6OpFrameInterval] = 4;
+		_queueCommandSizeTable[kSprV1_2_6OpSetRange] = 8;
+		_queueCommandSizeTable[kSprV1_2_6OpMoveInterval] = 6;
+		_queueCommandSizeTable[kSprV1_2_6OpShowFrame] = 4;
+		_queueCommandSizeTable[kSprV1_2_6OpReserved19] = 4;
+		_queueCommandSizeTable[kSprV1_2_6OpHostEvent] = 2;
+		_queueCommandSizeTable[kSprV1_2_6OpHostEventPayload] = 4;
+		_queueCommandSizeTable[kSprV1_2_6OpHostEventFixed] = 0x12;
+		_queueCommandSizeTable[kSprV1_2_6OpMovieFrame] = 0x0C;
 	}
 }
 
@@ -543,6 +611,9 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 	_userClipBox = Common::Rect();
 	_fillColor = 0;
 	_backgroundBitmap = nullptr;
+
+	if (_engine->_version >= kVersionV1_2_6)
+		_rubberBandActive = false;
 
 	if (_composeBuffer)
 		spriteDibFree(_composeBuffer);
@@ -566,6 +637,12 @@ uint16 SpriteLibrary_v1_2::spriteCreate(int16 level, const CelReference &cel) {
 	uint16 sprite = spriteObjectAlloc(level);
 	if (sprite == 0)
 		return 0;
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		SpriteObject_v1_2 *created = findSprite(sprite, "spriteCreate");
+		if (created)
+			created->active = 1;
+	}
 
 	if (!cel.bitmap && cel.id == 0)
 		return sprite;
@@ -800,6 +877,9 @@ void SpriteLibrary_v1_2::spriteShow(uint16 sprite, uint16 frame, bool refresh) {
 	if (object->visible && object->currentFrameIndex == frame)
 		return;
 
+	if (_engine->_version >= kVersionV1_2_6)
+		setSpriteActive(sprite, 1, false);
+
 	object->visible = (object->frames.size() != 0);
 
 	if (_engine->_version >= kVersionV1_2_3)
@@ -830,6 +910,7 @@ void SpriteLibrary_v1_2::spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY)
 
 	byte *command = object->queueCurrent;
 	uint16 quadPathOffset = (_engine->_version >= kVersionV1_2_3) ? 0x12 : 0x11;
+	uint16 linearMoveOffset = (_engine->_version >= kVersionV1_2_5) ? 0x10 : 0x0E;
 
 	switch (READ_LE_UINT16(command)) {
 	case kSprV1_2OpQuadPath:
@@ -840,8 +921,8 @@ void SpriteLibrary_v1_2::spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY)
 		break;
 
 	case kSprV1_2OpLinearMove:
-		WRITE_LE_UINT16(command + 0x0E, (uint16)(READ_LE_UINT16(command + 0x0E) + deltaX));
-		WRITE_LE_UINT16(command + 0x10, (uint16)(READ_LE_UINT16(command + 0x10) + deltaY));
+		WRITE_LE_UINT16(command + linearMoveOffset, (uint16)(READ_LE_UINT16(command + linearMoveOffset) + deltaX));
+		WRITE_LE_UINT16(command + linearMoveOffset + 2, (uint16)(READ_LE_UINT16(command + linearMoveOffset + 2) + deltaY));
 		break;
 
 	default:
@@ -994,6 +1075,9 @@ void SpriteLibrary_v1_2::spriteEmptyQueue(uint16 sprite) {
 
 	SpriteLibrary::spriteEmptyQueue(sprite);
 
+	if (_engine->_version >= kVersionV1_2_6)
+		object->active = 1;
+
 	object->advancePending = false;
 	object->movieFrame = nullptr;
 }
@@ -1078,7 +1162,15 @@ void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uin
 void SpriteLibrary_v1_2::spriteSetClipBox(const Common::Rect *box) {
 	if (box) {
 		_userClipBox = *box;
-		_clipRect = _userClipBox;
+
+		if (_engine->_version >= kVersionV1_2_6) {
+			if (_userClipBox.left < _userClipBox.right && _userClipBox.top < _userClipBox.bottom) {
+				_userClipBox.right++;
+				_userClipBox.bottom++;
+			}
+		} else {
+			_clipRect = _userClipBox;
+		}
 	} else {
 		_userClipBox = Common::Rect();
 	}
@@ -1293,7 +1385,11 @@ void SpriteLibrary_v1_2_3::spriteSetPickMode(uint16 sprite, uint16 wholeBox, uin
 		return;
 
 	object->pickWholeBox = ((wholeBox & 0xFF) != 0);
-	object->pickInvisible = ((pickInvisible & 0xFF) != 0);
+
+	if (_engine->_version >= kVersionV1_2_6)
+		object->pickMode = pickInvisible;
+	else
+		object->pickInvisible = ((pickInvisible & 0xFF) != 0);
 }
 
 void SpriteLibrary_v1_2_3::pauseResumeSprite(uint16 sprite, bool pause) {

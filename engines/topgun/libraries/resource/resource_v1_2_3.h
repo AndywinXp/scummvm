@@ -73,6 +73,42 @@
 #define TG_RES_V1_2_3_EXTRACT_PREFIX_SIZE          6
 #define TG_RES_V1_2_3_EXTRACT_COMPRESSED_OFFSET    4
 
+// Container header with the longer title, the 24 resident chunks and the longer library name
+#define TG_RES_V1_2_5_HEADER_PROBE_SIZE            0x58
+#define TG_RES_V1_2_5_HEADER_FORMAT_OFFSET         0x56
+#define TG_RES_V1_2_5_HEADER_LIMITS_OFFSET         0x5E
+#define TG_RES_V1_2_5_HEADER_CHUNK_COUNT_OFFSET    0xC2
+#define TG_RES_V1_2_5_HEADER_MAX_FADE_OFFSET       0xC4
+#define TG_RES_V1_2_5_HEADER_MAX_TRANS_OFFSET      0xC6
+#define TG_RES_V1_2_5_HEADER_EXTRA_SLOTS_OFFSET    0xC8
+#define TG_RES_V1_2_5_HEADER_STRING_COUNT_OFFSET   0xCA
+#define TG_RES_V1_2_5_HEADER_VARIABLE_COUNT_OFFSET 0xCC
+#define TG_RES_V1_2_5_HEADER_BUILD_TYPE_OFFSET     0xCE
+#define TG_RES_V1_2_5_HEADER_CHAINED_OFFSET        0xD0
+#define TG_RES_V1_2_5_HEADER_LIBRARY_NAME_OFFSET   0xD2
+#define TG_RES_V1_2_5_HEADER_KEY_TABLE_OFFSET      0xE2
+
+// Resource types: 1..9 are read from the file, 10..18 stay in memory
+#define TG_RES_V1_2_5_DISK_LAST_TYPE               9
+#define TG_RES_V1_2_5_RESIDENT_FIRST_TYPE          10
+#define TG_RES_V1_2_5_RESIDENT_LAST_TYPE           18
+#define TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET     8
+
+// MIDI header of the Japanese build
+#define TG_RES_V1_2_6_MIDI_HEADER_SIZE             6
+
+// Sprite data records, which are reset when copied in memory
+#define TG_RES_V1_2_6_SPRITE_TYPE                  17
+#define TG_RES_V1_2_6_SPRITE_HEADER_SIZE           0x14
+#define TG_RES_V1_2_6_SPRITE_CLICK_SCRIPT          0
+#define TG_RES_V1_2_6_SPRITE_CLICK_ARGUMENT        2
+#define TG_RES_V1_2_6_SPRITE_UNK_04                4
+#define TG_RES_V1_2_6_SPRITE_UNK_06                6
+#define TG_RES_V1_2_6_SPRITE_DRAG_SCRIPT           8
+#define TG_RES_V1_2_6_SPRITE_DROP_SCRIPT           0x0A
+#define TG_RES_V1_2_6_SPRITE_DISABLED              0x10
+#define TG_RES_V1_2_6_SPRITE_DRAGGABLE             0x13
+
 namespace Topgun {
 
 class TopgunEngine_v1_2_3;
@@ -106,8 +142,8 @@ protected:
 	byte *getIndexEntry(ResourceFile *file, uint16 index);
 
 	// Key table of the header
-	static uint32 keyOffset(const ResourceFile *file, uint16 key);
-	static uint32 keySize(const ResourceFile *file, uint16 key);
+	uint32 keyOffset(const ResourceFile *file, uint16 key);
+	uint32 keySize(const ResourceFile *file, uint16 key);
 
 private:
 	TopgunEngine_v1_2_3 *engine() const;

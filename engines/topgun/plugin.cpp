@@ -132,7 +132,11 @@ void EnginePluginHost::getSpriteRect(uint16 sprite, Common::Rect &rect) {
 }
 
 void EnginePluginHost::setSpriteLevel(uint16 sprite, uint16 level) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_engine->_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);
@@ -178,7 +182,11 @@ bool EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argume
 }
 
 void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_engine->_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);
@@ -312,7 +320,11 @@ void EnginePluginHost::spriteSwapOrder(uint16 first, uint16 second, uint16 onlyI
 }
 
 void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
-	if (!_engine->isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_engine->_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!_engine->isResourceObjectLoaded(sprite, spriteType))
 		return;
 
 	uint16 index = _engine->operandValue(sprite);

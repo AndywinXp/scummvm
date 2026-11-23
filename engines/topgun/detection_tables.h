@@ -71,6 +71,16 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"tuneland",
+		"1996",
+		AD_ENTRY1s("TUNELAND.BIN", "06ab966f21744ad7a45868a4ab326f8d", 571278),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"tunesplayer",
 		nullptr,
 		AD_ENTRY1s("TUNES.EXE", "59193f3574a3b9bd6cde56aa73415db2", 410656),
@@ -136,7 +146,7 @@ const ADGameDescription gameDescriptions[] = {
 		AD_ENTRY1s("JUNGMAIN.BIN", "446413cef0cea2fc4fbbaf10d838caa4", 7074945),
 		Common::JA_JPN,
 		Common::kPlatformWindows,
-		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

@@ -272,11 +272,17 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 		}
 
 		uint16 type = resourceLib()->resGetType(_file, index);
+		uint16 bitmapGroupType = kResV1_2_2BitmapGroup;
 		bool loaded = false;
+
+		if (_version >= kVersionV1_2_5)
+			bitmapGroupType = kResV1_2_5BitmapGroup;
+		else if (_version >= kVersionV1_2_3)
+			bitmapGroupType = kResV1_2_3BitmapGroup;
 
 		if (type == ((_version >= kVersionV1_2_3) ? kResV1_2_3Bitmap : kResV1_2_2Bitmap))
 			loaded = ensureBitmapResourceLoaded(id);
-		else if (type == ((_version >= kVersionV1_2_3) ? kResV1_2_3BitmapGroup : kResV1_2_2BitmapGroup))
+		else if (type == bitmapGroupType)
 			loaded = ensureBitmapGroupResourceLoaded(id);
 
 		if (!loaded)
@@ -340,6 +346,8 @@ bool TopgunEngine_v1_2::runStartup(const Common::String &title, const Common::St
 		handlePaintMessage();
 		loadInitialScene(Common::Path(firstContainer, '\\').getLastComponent().toString());
 	} else {
+		warning("TopgunEngine_v1_2::runStartup(): startup of '%s' failed", title.c_str());
+
 		Message message;
 		message.id = kMsgClose;
 		dispatchMessage(message);
@@ -397,11 +405,15 @@ bool TopgunEngine_v1_2::initEngineLibraries() {
 	if (_version >= kVersionV1_2_2)
 		audioVersion = TG_AUDIO_V1_2_2_VERSION;
 
-	if (audioLib()->audioInitLibrary(1, audioVersion) == 0)
+	if (audioLib()->audioInitLibrary(1, audioVersion) == 0) {
+		warning("TopgunEngine_v1_2::initEngineLibraries(): cannot initialize the audio library (version 0x%X)", audioVersion);
 		return false;
+	}
 
-	if (!spriteLib()->spriteInitLibrary())
+	if (!spriteLib()->spriteInitLibrary()) {
+		warning("TopgunEngine_v1_2::initEngineLibraries(): cannot initialize the sprite library");
 		return false;
+	}
 
 	spriteLib()->spriteSetMessageProc(true);
 	spriteLib()->spriteSetMovieProc(true);

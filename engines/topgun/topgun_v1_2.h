@@ -43,6 +43,7 @@
 #define TG_HOST_V1_2_NUM_SCENE_VARIABLES         401
 #define TG_HOST_V1_2_3_NUM_SCENE_VARIABLES       5001
 #define TG_HOST_V1_2_3_SCENE_NAME_SIZE           14
+#define TG_HOST_V1_2_5_SCENE_NAME_SIZE           16
 #define TG_HOST_V1_2_FIRST_CLEARED_VARIABLE      401
 #define TG_HOST_V1_2_NUM_CLEARED_VARIABLES       114
 #define TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON       401
@@ -87,12 +88,17 @@
 #define TG_HOST_V1_2_STRING_ID_MASK              0x7FFF
 #define TG_HOST_V1_2_STRING_ID_CONSTANT          0x8000
 #define TG_HOST_V1_2_CONTAINER_TITLE_SIZE        0x4E
+#define TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE      0x52
+#define TG_HOST_V1_2_3_LIBRARY_NAME_SIZE         15
+#define TG_HOST_V1_2_5_LIBRARY_NAME_SIZE         17
 
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
 #define TG_HOST_V1_2_MAX_CLICK_REGIONS           100
 #define TG_INPUT_V1_2_3_KEY_TABLE_SIZE           256
-#define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416
+#define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416 // 0xFDE8 / 12
+#define TG_INPUT_V1_2_5_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
+#define TG_INPUT_V1_2_6_MAX_CLICK_REGIONS        5000 // 0xFDE8 / 13
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
@@ -197,6 +203,7 @@
 #define TG_MOVIE_V1_2_SKIP_STEP                  1
 #define TG_MOVIE_V1_2_MAX_FRAME_TABLE_ENTRIES    0x1FFF
 #define TG_MOVIE_V1_2_BITMAP_KIND                9
+#define TG_MOVIE_V1_2_5_BITMAP_KIND              8
 #define TG_MOVIE_V1_2_BITMAP_KIND_DELTA          1
 #define TG_MOVIE_V1_2_BITMAP_KIND_MERGE          2
 #define TG_MOVIE_V1_2_BITMAP_BLIT_DIFF           1
@@ -212,6 +219,8 @@
 #define TG_MOVIE_V1_2_COMMAND_RESOURCE           2
 #define TG_MOVIE_V1_2_COMMAND_INDEX              4
 #define TG_MOVIE_V1_2_COMMAND_FRAME_READY        0x0A
+#define TG_MOVIE_V1_2_5_COMMAND_FRAME_READY      6
+#define TG_MOVIE_V1_2_6_DEFAULT_SPEED            100
 
 // Text objects
 #define TG_TEXT_V1_2_FONT_FULL_NAME              4
@@ -271,6 +280,7 @@
 #define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
 #define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
+#define TG_SCRIPT_V1_2_6_NUM_ELEMENT_VARIABLES   10
 #define TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE       4
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
@@ -503,6 +513,7 @@ struct Movie_v1_2 {
 	uint16 handle;
 	byte *timeline;
 	byte *frameTable;
+	byte *frameTableBlock;
 	byte *bitmap;
 	byte *audioBuffer;
 	byte *data;
@@ -533,14 +544,15 @@ struct Movie_v1_2 {
 	uint16 numBuffers;
 	uint16 fillBuffer;
 	uint16 consumeBuffer;
+	uint16 speed;
 	PrefetchBuffer_v1_2 buffers[TG_MOVIE_V1_2_NUM_PREFETCH_BUFFERS];
 
-	Movie_v1_2() : handle(0), timeline(nullptr), frameTable(nullptr), bitmap(nullptr), audioBuffer(nullptr), data(nullptr),
+	Movie_v1_2() : handle(0), timeline(nullptr), frameTable(nullptr), frameTableBlock(nullptr), bitmap(nullptr), audioBuffer(nullptr), data(nullptr),
 		deadline(0), runOffset(0), audioBuffered(0), timelineSize(0), frameCount(0), frameTableOffset(0), streamBase(0),
 		audioStream(0), delay(0), prefetchFrame(0), runSize(0), frame(0), id(0), index(0), sprite(0),
 		timelineRemaining(0), frameUpdated(false), prefetchDone(false), stalled(false), skipping(false),
 		late(false), prefetchExhausted(false), started(false), audioStarted(false), numBuffers(0),
-		fillBuffer(0), consumeBuffer(0) {}
+		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_6_DEFAULT_SPEED) {}
 };
 
 struct TextObject_v1_2 {
@@ -551,6 +563,8 @@ struct TextObject_v1_2 {
 	uint16 fontHandle;
 	uint16 color;
 	byte edit[TG_TEXT_V1_2_3_EDIT_RECORD_SIZE];
+	bool leadByteBuffered;
+	byte leadByte;
 	byte data[TG_TEXT_V1_2_1_HEADER_SIZE];
 	char text[TG_TEXT_V1_2_TEXT_SIZE];
 	char undo[TG_TEXT_V1_2_TEXT_SIZE];
@@ -575,13 +589,13 @@ struct TextFont_v1_2 {
 };
 
 struct SceneEntry_v1_2 {
-	char name[TG_HOST_V1_2_3_SCENE_NAME_SIZE];
+	char name[TG_HOST_V1_2_5_SCENE_NAME_SIZE];
 	uint16 variables[TG_HOST_V1_2_3_NUM_SCENE_VARIABLES];
 	uint16 stringCount;
 	byte *strings;
 
 	SceneEntry_v1_2() : stringCount(0), strings(nullptr) {
-		for (int i = 0; i < TG_HOST_V1_2_3_SCENE_NAME_SIZE; i++)
+		for (int i = 0; i < TG_HOST_V1_2_5_SCENE_NAME_SIZE; i++)
 			name[i] = 0;
 
 		for (int i = 0; i < TG_HOST_V1_2_3_NUM_SCENE_VARIABLES; i++)
@@ -605,9 +619,10 @@ struct ClickRegion_v1_2 {
 	int16 right;
 	int16 bottom;
 	uint16 script;
+	uint16 argument;
 	byte disabled;
 
-	ClickRegion_v1_2() : left(0), top(0), right(0), bottom(0), script(0), disabled(0) {}
+	ClickRegion_v1_2() : left(0), top(0), right(0), bottom(0), script(0), argument(0), disabled(0) {}
 };
 
 struct HoverRegion_v1_2 {
@@ -617,8 +632,12 @@ struct HoverRegion_v1_2 {
 	int16 bottom;
 	uint16 enterScript;
 	uint16 leaveScript;
+	uint16 enterArgument;
+	uint16 leaveArgument;
+	uint16 sprite;
 
-	HoverRegion_v1_2() : left(0), top(0), right(0), bottom(0), enterScript(0), leaveScript(0) {}
+	HoverRegion_v1_2() : left(0), top(0), right(0), bottom(0), enterScript(0), leaveScript(0),
+		enterArgument(0), leaveArgument(0), sprite(0) {}
 };
 
 struct ScheduledTimer_v1_2 {
@@ -732,6 +751,7 @@ protected:
 	void handleMouseButtonUpMessage(const Message &message);
 	void handleMouseMoveMessage(const Message &message);
 	void handleCharMessage(uint16 character);
+	void handleDeleteKeyMessage();
 	virtual void handleKeyUpMessage(Common::KeyCode keycode);
 	void handleSysKeyDownAltTab(const Message &message);
 	void handleKeyDownMessage(Common::KeyCode keycode, bool shift, bool ctrl) override;
@@ -988,7 +1008,7 @@ protected:
 	void commitTextEdit(uint16 id);
 	void textEditAppendCaret(uint16 object);
 	bool endTextEdit(uint16 object, bool cancel);
-	bool textEditBackspace(uint16 object);
+	bool textEditBackspace(uint16 object, bool clearAll);
 	bool textEditAppendChar(uint16 object, byte character);
 	bool refreshTextObjectBitmap(uint16 object);
 
@@ -1015,7 +1035,7 @@ protected:
 	uint16 _variableTable[TG_HOST_V1_2_TABLE_SIZE] = {};
 	uint16 _argumentFrame = 0;
 	Common::Array<SceneEntry_v1_2> _sceneEntries;
-	char _currentSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE];
+	char _currentSceneName[TG_HOST_V1_2_5_SCENE_NAME_SIZE];
 	uint16 _currentSceneIndex = 0;
 	uint16 _previousSceneIndex = 0;
 	Common::String _containerTitle;
@@ -1046,6 +1066,7 @@ protected:
 	// Resource state
 	byte *_backgroundBitmap = nullptr;
 	uint32 _backgroundColor = 0;
+	bool _solidBackground = false;
 	uint16 _maxFadeColors = 0;
 	uint16 _maxTransColors = 0;
 	uint16 _solidColorEntry = TG_HOST_V1_2_SOLID_COLOR_ENTRY;
@@ -1106,6 +1127,9 @@ protected:
 	int16 _dragStartY = 0;
 	uint16 _lastRandom = 0;
 	bool _rubberBandMode = false;
+	bool _captureDrag = false;
+	Common::Point _captureDragStart;
+	Common::Point _captureDragEnd;
 	bool _keyStates[TG_HOST_V1_2_KEY_STATE_SIZE] = {};
 	bool _hasPendingChar = false;
 	Message _pendingChar;

@@ -70,6 +70,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3SetClickScript:
 		result = o_setClickScript(ip);
 		size = 18;
+
+		if (_version >= kVersionV1_2_6)
+			size = TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE;
+
 		break;
 
 	case kOpV1_2_3SetSpriteQueue:
@@ -80,6 +84,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3SetBackground:
 		o_setBackground(ip);
 		size = 14;
+
+		if (_version >= kVersionV1_2_6)
+			size = TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE;
+
 		break;
 
 	case kOpV1_2_3SetSpriteObjectProperties:
@@ -110,12 +118,21 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2_3Quit:
 		if (_quitSceneName[0] != 0) {
-			byte record[TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE];
+			byte record[TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE];
+			uint16 recordSize = TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE;
+			uint16 releaseOffset = TG_SCRIPT_V1_2_3_GOTO_RELEASE_OFFSET;
+			uint16 nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
 
-			memset(record, 0, sizeof(record));
+			if (_version >= kVersionV1_2_5) {
+				recordSize = TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE;
+				releaseOffset = TG_SCRIPT_V1_2_5_GOTO_RELEASE_OFFSET;
+				nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
+			}
+
+			memset(record, 0, recordSize);
 			WRITE_LE_UINT16(record, kOpV1_2_3GotoScene);
-			record[TG_SCRIPT_V1_2_3_GOTO_RELEASE_OFFSET] = 1;
-			Common::strlcpy((char *)record + TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET, _quitSceneName, TG_HOST_V1_2_3_SCENE_NAME_SIZE);
+			record[releaseOffset] = 1;
+			Common::strlcpy((char *)record + TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET, _quitSceneName, nameSize);
 			o_gotoScene(record);
 		} else {
 			postMessage(kMsgClose, 1, 0);
@@ -145,7 +162,11 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2_3GotoScene:
 		o_gotoScene(ip);
-		size = 18;
+		size = TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE;
+
+		if (_version >= kVersionV1_2_5)
+			size = TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE;
+
 		break;
 
 	case kOpV1_2_3SetScriptTimer:
@@ -366,6 +387,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3SetHoverRegion:
 		o_setHoverRegion(ip);
 		size = 16;
+
+		if (_version >= kVersionV1_2_6)
+			size = TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE;
+
 		break;
 
 	case kOpV1_2_3GetIntersect:
@@ -427,6 +452,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3GetSpriteElementIds:
 		o_getSpriteElementIds(ip);
 		size = 12;
+
+		if (_version >= kVersionV1_2_6)
+			size = TG_SCRIPT_V1_2_6_GET_ELEMENT_IDS_SIZE;
+
 		break;
 
 	case kOpV1_2_3Expression:
@@ -527,14 +556,32 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2_3SetQuitSceneName:
-		Common::strlcpy(_quitSceneName, (const char *)ip + 2, TG_HOST_V1_2_3_SCENE_NAME_SIZE);
-		size = 16;
+		if (_version >= kVersionV1_2_5) {
+			Common::strlcpy(_quitSceneName, (const char *)ip + 2, TG_HOST_V1_2_5_SCENE_NAME_SIZE);
+			size = TG_SCRIPT_V1_2_5_QUIT_SCENE_RECORD_SIZE;
+		} else {
+			Common::strlcpy(_quitSceneName, (const char *)ip + 2, TG_HOST_V1_2_3_SCENE_NAME_SIZE);
+			size = 16;
+		}
+
 		break;
 
 	default:
-		warning("TopgunEngine_v1_2_3::executeScriptOp(): unknown opcode %d", READ_LE_UINT16(ip));
-		result = false;
-		size = 0;
+		if (_version >= kVersionV1_2_5 && READ_LE_UINT16(ip) == kOpV1_2_5SetReservedWord) {
+			_reservedScriptWord = READ_LE_UINT16(ip + 2);
+			size = TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE;
+		} else if (_version >= kVersionV1_2_5 && READ_LE_UINT16(ip) == kOpV1_2_5Reserved) {
+			size = TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE;
+		} else {
+			warning("TopgunEngine_v1_2_3::executeScriptOp(): unknown opcode %d", READ_LE_UINT16(ip));
+
+			if (_version >= kVersionV1_2_5)
+				fatalError(115, "Script command failed.");
+
+			result = false;
+			size = 0;
+		}
+
 		break;
 	}
 
@@ -546,8 +593,12 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 
 uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 	uint16 opcode = READ_LE_UINT16(ip);
+	uint16 lastOpcode = TG_SCRIPT_V1_2_3_LAST_OPCODE;
 
-	if ((uint16)(opcode - 1) > TG_SCRIPT_V1_2_3_LAST_OPCODE - 1)
+	if (_version >= kVersionV1_2_5)
+		lastOpcode = TG_SCRIPT_V1_2_5_LAST_OPCODE;
+
+	if ((uint16)(opcode - 1) > lastOpcode - 1)
 		return 0;
 
 	if (opcode == kOpV1_2_3CallScript)
@@ -558,6 +609,34 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 
 	if (opcode == kOpV1_2_3ConditionalJumpExpression)
 		return READ_LE_UINT16(ip + 4);
+
+	if (_version >= kVersionV1_2_5) {
+		if (opcode == kOpV1_2_3GotoScene)
+			return TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE;
+
+		if (opcode == kOpV1_2_3SetQuitSceneName)
+			return TG_SCRIPT_V1_2_5_QUIT_SCENE_RECORD_SIZE;
+
+		if (opcode == kOpV1_2_5SetReservedWord || opcode == kOpV1_2_5Reserved)
+			return TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE;
+
+		if (opcode > TG_SCRIPT_V1_2_3_LAST_OPCODE)
+			return 0;
+	}
+
+	if (_version >= kVersionV1_2_6) {
+		if (opcode == kOpV1_2_3SetClickScript)
+			return TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE;
+
+		if (opcode == kOpV1_2_3SetBackground)
+			return TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE;
+
+		if (opcode == kOpV1_2_3SetHoverRegion)
+			return TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE;
+
+		if (opcode == kOpV1_2_3GetSpriteElementIds)
+			return TG_SCRIPT_V1_2_6_GET_ELEMENT_IDS_SIZE;
+	}
 
 	return kScriptOpSizes[opcode];
 }
@@ -627,21 +706,31 @@ void TopgunEngine_v1_2_3::o_setBackground(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_gotoScene(const byte *record) {
-	if (record[TG_SCRIPT_V1_2_3_GOTO_BACK_OFFSET] != 0 && _previousSceneIndex == _currentSceneIndex) {
+	uint16 releaseOffset = TG_SCRIPT_V1_2_3_GOTO_RELEASE_OFFSET;
+	uint16 backOffset = TG_SCRIPT_V1_2_3_GOTO_BACK_OFFSET;
+	uint16 nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
+
+	if (_version >= kVersionV1_2_5) {
+		releaseOffset = TG_SCRIPT_V1_2_5_GOTO_RELEASE_OFFSET;
+		backOffset = TG_SCRIPT_V1_2_5_GOTO_BACK_OFFSET;
+		nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
+	}
+
+	if (record[backOffset] != 0 && _previousSceneIndex == _currentSceneIndex) {
 		postMessage(kMsgClose, 1, 0);
 		return;
 	}
 
-	memcpy(_gotoSceneName, record + TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET, TG_HOST_V1_2_3_SCENE_NAME_SIZE);
+	memcpy(_gotoSceneName, record + TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET, nameSize);
 
-	if (record[TG_SCRIPT_V1_2_3_GOTO_BACK_OFFSET] != 0) {
+	if (record[backOffset] != 0) {
 		if (_previousSceneIndex < _sceneEntries.size())
-			memcpy(_gotoSceneName, _sceneEntries[_previousSceneIndex].name, TG_HOST_V1_2_3_SCENE_NAME_SIZE);
+			memcpy(_gotoSceneName, _sceneEntries[_previousSceneIndex].name, nameSize);
 		else
 			warning("TopgunEngine_v1_2_3::o_gotoScene(): scene index %d is out of range", _previousSceneIndex);
 	}
 
-	if (record[TG_SCRIPT_V1_2_3_GOTO_RELEASE_OFFSET] != 0)
+	if (record[releaseOffset] != 0)
 		destroySceneMainObjects(_releaseOnPalette);
 
 	audioLib()->audioClearNotifications();
@@ -649,6 +738,9 @@ void TopgunEngine_v1_2_3::o_gotoScene(const byte *record) {
 
 	for (uint16 i = 0; i < TG_INPUT_V1_2_3_KEY_TABLE_SIZE; i++)
 		_keyTable[i] = KeyEntry_v1_2();
+
+	if (_version >= kVersionV1_2_6)
+		_activationScript = 0;
 
 	_dragSpriteId = 0;
 }

@@ -242,14 +242,20 @@ bool AudioLibrary_v1_2::initMidiObjectDataSource(const MidiCreateInfo_v1_2_3 *in
 		return true;
 	}
 
-	midi->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_NOTIFY);
+	uint32 size;
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		midi->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_NOTIFY);
+		size = READ_LE_UINT32(info->header + TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_SIZE);
+	} else {
+		midi->notifyWParam = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_NOTIFY);
+		size = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_SIZE);
+	}
 
 	if (_cdDeviceId != 0)
 		stopCDIfOwned();
 
-	uint16 size = READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_SIZE);
-
-	midi->count = size >> 2;
+	midi->count = (uint16)(size >> 2);
 	midi->data = engine()->utilsLibrary()->tgMalloc(size, 0);
 
 	if (!midi->data)
@@ -315,6 +321,13 @@ bool AudioLibrary_v1_2_3::openMidiOutDevice() {
 }
 
 void AudioLibrary_v1_2_3::setMidiOutVolume(uint32 volume) {
+	if (_engine->_version >= kVersionV1_2_6) {
+		if (!_midiOut)
+			return;
+
+		_midiUserVolume = volume;
+	}
+
 	_midiDeviceVolume = volume;
 	applyMidiDeviceVolume();
 }
@@ -337,7 +350,7 @@ void AudioLibrary_v1_2_3::closeMidiOutDevice() {
 	midiClearCurrentAndKillTimer();
 	resetMidiOutDevice();
 
-	if (_midiOriginalVolume != _midiUserVolume)
+	if (_engine->_version >= kVersionV1_2_6 || _midiOriginalVolume != _midiUserVolume)
 		setMidiOutVolume(_midiOriginalVolume);
 
 	delete _midiOut;
@@ -347,9 +360,16 @@ void AudioLibrary_v1_2_3::closeMidiOutDevice() {
 void AudioLibrary_v1_2_3::muteMidiOutput() {
 	if (_mute) {
 		_midiMuteSavedVolume = audioGetMidiVolume();
-		audioSetMidiVolume(0);
+
+		if (_engine->_version >= kVersionV1_2_6)
+			setMidiOutVolume(0);
+		else
+			audioSetMidiVolume(0);
 	} else {
-		audioSetMidiVolume(_midiMuteSavedVolume);
+		if (_engine->_version >= kVersionV1_2_6)
+			setMidiOutVolume(_midiMuteSavedVolume);
+		else
+			audioSetMidiVolume(_midiMuteSavedVolume);
 	}
 }
 
@@ -357,15 +377,30 @@ bool AudioLibrary_v1_2_3::openAndConfigureMidiOut() {
 	if (!openMidiOutDevice())
 		return false;
 
+	if (_engine->_version >= kVersionV1_2_6)
+		_midiTimerArmed = false;
+
 	resetMidiOutDevice();
 
-	if (_iniMidiVolume != 0) {
+	uint16 unsetVolume = TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET;
+
+	if (_engine->_version >= kVersionV1_2_6)
+		unsetVolume = TG_AUDIO_V1_2_6_INI_MIDI_VOLUME_UNSET;
+
+	if (_iniMidiVolume != unsetVolume) {
 		_midiUserVolume = ((uint32)_iniMidiVolume << 16) | _iniMidiVolume;
 		_midiUserVolumeSet = true;
 	}
 
-	if (_midiUserVolumeSet && _midiOriginalVolume != _midiUserVolume)
+	if (_engine->_version >= kVersionV1_2_6) {
+		if (_midiUserVolumeSet)
+			setMidiOutVolume(_midiUserVolume);
+
+		if (_mute)
+			muteMidiOutput();
+	} else if (_midiUserVolumeSet && _midiOriginalVolume != _midiUserVolume) {
 		setMidiOutVolume(_midiUserVolume);
+	}
 
 	return true;
 }
@@ -538,8 +573,12 @@ uint16 AudioLibrary_v1_2_3::audioPlayMidi(uint16 handle, const byte *params) {
 	if (!params)
 		params = defaultParams;
 
-	if (!startMidiSequence(params, midi))
-		postMidiCompletionMessage(midi);
+	if (!startMidiSequence(params, midi)) {
+		if (_engine->_version >= kVersionV1_2_6)
+			midi->notifyArmed = false;
+		else
+			postMidiCompletionMessage(midi);
+	}
 
 	return 1;
 }
@@ -593,6 +632,14 @@ uint16 AudioLibrary_v1_2_3::audioStopMidi(uint16 handle) {
 }
 
 bool AudioLibrary_v1_2_3::startMidiSequence(const byte *params, MidiObject *midi) {
+	if (_engine->_version >= kVersionV1_2_6) {
+		if (_currentMidi)
+			stopMidiSequence(_currentMidi);
+
+		if (!openAndConfigureMidiOut())
+			return false;
+	}
+
 	midi->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_LOOPS);
 	midi->notifyArmed = (params[TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_NOTIFY] != 0);
 
@@ -603,15 +650,22 @@ bool AudioLibrary_v1_2_3::startMidiSequence(const byte *params, MidiObject *midi
 
 	midi->index = 0;
 
-	if (_currentMidi)
-		stopMidiSequence(_currentMidi);
+	if (_engine->_version < kVersionV1_2_6) {
+		if (_currentMidi)
+			stopMidiSequence(_currentMidi);
 
-	if (!openAndConfigureMidiOut())
-		return false;
+		if (!openAndConfigureMidiOut())
+			return false;
+	}
 
 	_currentMidi = midi;
 
-	if (!_paused)
+	bool stepPaused = _paused;
+
+	if (_engine->_version >= kVersionV1_2_6)
+		stepPaused = (_midiPauseCount != 0);
+
+	if (!stepPaused)
 		midiSequencerStep(midi);
 
 	return true;

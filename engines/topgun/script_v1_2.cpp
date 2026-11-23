@@ -46,7 +46,9 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 	}
 
 	uint16 scriptType = kResV1_2Script;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_5)
+		scriptType = kResV1_2_5Script;
+	else if (_version >= kVersionV1_2_3)
 		scriptType = kResV1_2_3Script;
 	else if (_version >= kVersionV1_2_2)
 		scriptType = kResV1_2_2Script;
@@ -61,6 +63,9 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 
 		return fatalError("Stack overflow.");
 	}
+
+	if (_version >= kVersionV1_2_5)
+		static_cast<TopgunEngine_v1_2_3 *>(this)->_debugScriptId = 0;
 
 	_currentScriptId = scriptId;
 	bool result = runScriptBytecodeLoop(scriptId);
@@ -646,7 +651,9 @@ void TopgunEngine_v1_2::popScriptArguments() {
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_5)
+		listType = kResV1_2_5OpList;
+	else if (_version >= kVersionV1_2_3)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;
@@ -678,7 +685,9 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_5)
+		listType = kResV1_2_5OpList;
+	else if (_version >= kVersionV1_2_3)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;

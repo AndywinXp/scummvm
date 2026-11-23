@@ -27,6 +27,10 @@
 // Library
 #define TG_AUDIO_V1_2_3_VERSION                   0x0400
 
+// INI value of MidiVolume that leaves the device volume alone
+#define TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET     0
+#define TG_AUDIO_V1_2_6_INI_MIDI_VOLUME_UNSET     1
+
 // Source procedures
 #define TG_AUDIO_V1_2_3_PROC_NONE                 0
 #define TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE        1
@@ -106,11 +110,16 @@ public:
 	void audioService() override;
 	void audioActivate(uint16 on);
 	void audioPause(uint16 paused) override;
+	void audioPauseMidi(uint16 paused);
 	void audioMute(int16 flag);
 	void audioResetLibrary();
 
+	// CD audio
+	uint16 audioSetCdVolume(uint32 volume) override;
+
 	// Wave sounds
-	uint32 audioGetWaveVolume();
+	uint32 audioGetWaveVolume() override;
+	void audioSetWaveVolume(uint32 volume) override;
 
 	// MIDI
 	uint16 audioPlayMidi(uint16 midi, const byte *params) override;
@@ -127,9 +136,12 @@ protected:
 	void readAudioIniSettings();
 	void writeAudioIniInt(const char *key, uint16 value);
 	void writeAudioIniString(const char *key, const char *value);
+	void saveCdVolumeToIni();
 	void saveMidiVolumeToIni();
+	void saveWaveVolumeToIni();
 
 	// CD audio
+	bool openCDAudioDevice() override;
 	uint16 closeCDAudioDevice() override;
 
 	// Wave device
@@ -175,10 +187,12 @@ protected:
 	void midiServiceTick();
 
 	bool _paused = false;
-	int16 _maxPriority = 0;
 	uint32 _waveMuteSavedVolume = 0;
 	bool _remapMidiDrums = false;
+	uint16 _iniCdVolume = 0;
 	uint16 _iniMidiVolume = 0;
+	uint16 _iniWaveVolume = 0;
+	uint16 _midiPauseCount = 0;
 
 	// MIDI
 	MidiSequencer *_midiOut = nullptr;

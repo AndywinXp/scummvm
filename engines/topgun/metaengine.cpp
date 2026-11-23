@@ -82,7 +82,9 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	Common::String gameId = desc->gameId;
 
 	if (gameId == "tuneland") {
-		if (desc->flags & ADGF_DEMO)
+		if (desc->extra && Common::String(desc->extra) == "1996")
+			*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_5);
+		else if (desc->flags & ADGF_DEMO)
 			*engine = new Topgun::TopgunEngine_v1_1(syst, desc);
 		else
 			*engine = new Topgun::TopgunEngine_v1_0(syst, desc);
@@ -105,8 +107,18 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	if (gameId == "battlebeast" || gameId == "junglegames" || gameId == "greatword") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc);
+	if (gameId == "battlebeast") {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_4);
+		return Common::kNoError;
+	}
+
+	if (gameId == "junglegames" && desc->language == Common::JA_JPN) {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6);
+		return Common::kNoError;
+	}
+
+	if (gameId == "junglegames" || gameId == "greatword") {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_3);
 		return Common::kNoError;
 	}
 

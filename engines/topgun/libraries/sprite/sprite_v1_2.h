@@ -26,12 +26,13 @@
 
 // Limits
 #define TG_SPR_V1_2_MAX_SPRITES                100
-#define TG_SPR_V1_2_NUM_SPRITE_PARTS           4
+#define TG_SPR_V1_2_NUM_SPRITE_PARTS           10
 #define TG_SPR_V1_2_NUM_QUEUE_OPCODES          22
 #define TG_SPR_V1_2_CEL_CACHE_SIZE             30
 #define TG_SPR_V1_2_EVENT_RECORD_SIZE          256
 #define TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE   0x1E
 #define TG_SPR_V1_2_FRAME_NOTIFICATION         0x12
+#define TG_SPR_V1_2_6_FRAME_NOTIFICATION       0x13
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 #define TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING       0xFFC0
 #define TG_SPR_V1_2_QUEUE_BLOCK_SLACK          0x3F
@@ -41,6 +42,7 @@
 #define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
 #define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
+#define TG_SPR_V1_2_6_LAST_QUEUE_OPCODE        23
 #define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
 #define TG_SPR_V1_2_3_VARIABLE_LAST_INDEX      0x159E
 // A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
@@ -111,6 +113,20 @@ enum SpriteQueueOpcode_v1_2_3 {
 	kSprV1_2_3OpHostEventPayload,
 	kSprV1_2_3OpHostEventFixed,
 	kSprV1_2_3OpMovieFrame
+};
+
+// Queue opcodes of the games that renumber them: 14 is new and the following ones move up by one
+enum SpriteQueueOpcode_v1_2_6 {
+	kSprV1_2_6OpSetActive = 14,
+	kSprV1_2_6OpFrameInterval,
+	kSprV1_2_6OpSetRange,
+	kSprV1_2_6OpMoveInterval,
+	kSprV1_2_6OpShowFrame,
+	kSprV1_2_6OpReserved19,
+	kSprV1_2_6OpHostEvent,
+	kSprV1_2_6OpHostEventPayload,
+	kSprV1_2_6OpHostEventFixed,
+	kSprV1_2_6OpMovieFrame
 };
 
 struct CelReference {
@@ -241,12 +257,19 @@ protected:
 		bool multipartValid;
 		bool paused;
 		bool pickInvisible;
+		uint16 pickMode;
+		byte active;
+		int16 shadowX;
+		int16 shadowY;
+		bool shadowMirrorX;
+		bool shadowFlipY;
 		byte *queueCapacityStart;
 		uint32 queueCapacity;
 
 		SpriteObject_v1_2() : level(0), mirrorX(false), flipY(false), pickWholeBox(false), advancePending(false),
 			animates(false), pivotX(0), pivotY(0), anchorX(false), anchorY(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
-			multipartValid(false), paused(false), pickInvisible(false), queueCapacityStart(nullptr), queueCapacity(0) {}
+			multipartValid(false), paused(false), pickInvisible(false), pickMode(0), active(0), shadowX(0), shadowY(0), shadowMirrorX(false), shadowFlipY(false),
+			queueCapacityStart(nullptr), queueCapacity(0) {}
 	};
 
 	// Sprite objects
@@ -262,6 +285,7 @@ protected:
 	virtual void updateSpritePosition(uint16 sprite, int16 x, int16 y, uint16 relative, bool refresh = true);
 	uint16 flipFlags(const SpriteObject_v1_2 *object) const;
 	uint16 currentTickSprite() const;
+	void setSpriteActive(uint16 sprite, uint16 mode, bool refresh);
 
 	// Library
 	bool createComposeBuffer();
@@ -301,8 +325,8 @@ protected:
 	void applyFrameChange(uint16 sprite) override;
 
 	// Message builders
-	byte *allocQueueRecord(uint16 opcode, uint16 sprite);
-	byte *growQueueForRecord(uint16 opcode, uint16 sprite);
+	byte *allocQueueRecord(uint16 explicitSize, uint16 opcode, uint16 sprite);
+	byte *growQueueForRecord(uint16 explicitSize, uint16 opcode, uint16 sprite);
 	void resetQueueForImmediate(uint16 sprite);
 	void runImmediateRecord(byte *record, uint16 sprite);
 	bool buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite);
@@ -322,6 +346,7 @@ protected:
 
 	// Blitters
 	byte *bitmapPixels(const byte *bitmap) const;
+	bool isRleBitmap(const byte *bitmap) const;
 	virtual bool blitSetupRaw(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, BlitSetup_v1_2 &setup);
 	virtual void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
 	void blitDibDiffRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags);
@@ -337,6 +362,13 @@ protected:
 	// Rectangles
 	static bool intersectRectLocal(const Common::Rect &first, const Common::Rect &second, Common::Rect &result);
 	static void unionRectLocal(const Common::Rect &first, const Common::Rect &second, Common::Rect &result);
+
+	// Rubber band
+	void rubberBandBegin(int16 x, int16 y);
+	void rubberBandEnd();
+	void rubberBandRepaint(const Common::Rect &rect);
+	void rubberBandUpdate(int16 x, int16 y, bool move);
+	void rubberBandDraw();
 
 	uint16 _tickNesting = 0;
 	bool _debugProcSet = false;
@@ -354,6 +386,12 @@ protected:
 	int16 _zoomOffsetX = 0;
 	int16 _zoomOffsetY = 0;
 	byte _eventRecord[TG_SPR_V1_2_EVENT_RECORD_SIZE];
+	bool _rubberBandActive = false;
+	Common::Rect _rubberBandRect;
+	int16 _rubberBandAnchorX = 0;
+	int16 _rubberBandAnchorY = 0;
+	int16 _rubberBandLastX = 0;
+	int16 _rubberBandLastY = 0;
 
 private:
 	TopgunEngine_v1_2 *engine() const;

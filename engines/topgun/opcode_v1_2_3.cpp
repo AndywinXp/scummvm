@@ -29,10 +29,18 @@
 namespace Topgun {
 
 bool TopgunEngine_v1_2_3::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) {
-	if (data == 0 && !isResourceObjectLoaded(sprite, kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	uint16 queueDataType = kResV1_2_3SpriteQueueData;
+
+	if (_version >= kVersionV1_2_5) {
+		spriteType = kResV1_2_5Sprite;
+		queueDataType = kResV1_2_5SpriteQueueData;
+	}
+
+	if (data == 0 && !isResourceObjectLoaded(sprite, spriteType))
 		return true;
 
-	if (!validateAndGetResourceByType(sprite, kResV1_2_3Sprite))
+	if (!validateAndGetResourceByType(sprite, spriteType))
 		return false;
 
 	uint16 index = operandValue(sprite);
@@ -49,7 +57,7 @@ bool TopgunEngine_v1_2_3::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag
 		return true;
 	}
 
-	if (!validateAndGetResourceByType(data, kResV1_2_3SpriteQueueData))
+	if (!validateAndGetResourceByType(data, queueDataType))
 		return false;
 
 	uint16 dataIndex = operandValue(data);
@@ -70,13 +78,22 @@ bool TopgunEngine_v1_2_3::o_playWave(uint16 waveId, const byte *params) {
 	if (notifyValue != 0)
 		notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_3_LITERAL_BIAS);
 
-	validateAndGetResourceByType(waveId, kResV1_2_3Wave);
+	uint16 waveType = kResV1_2_3Wave;
+	if (_version >= kVersionV1_2_5)
+		waveType = kResV1_2_5Wave;
 
-	if (isResourceObjectLoaded(waveId, kResV1_2_3Wave)) {
+	// The later version stops the operation when the wave cannot be validated
+	if (!validateAndGetResourceByType(waveId, waveType) && _version >= kVersionV1_2_5)
+		return false;
+
+	if (isResourceObjectLoaded(waveId, waveType)) {
 		uint16 index = operandValue(waveId);
 
 		if (isRecordIndexValid(index, "o_playWave"))
 			audioLib()->audioPlayWave(_records[index].handle, parameters);
+
+		if (_version >= kVersionV1_2_6 && _waveStartedScript != 0)
+			enqueuePostedScriptRun(_waveStartedScript, waveId, 0);
 	} else if (params[TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY] != 0 && notifyValue != 0) {
 		enqueuePostedScriptRun(notifyScript, waveId, 0);
 	}
@@ -90,7 +107,11 @@ void TopgunEngine_v1_2_3::o_stopWave(uint16 waveId, const byte *block) {
 		return;
 	}
 
-	if (!isResourceObjectLoaded(waveId, kResV1_2_3Wave))
+	uint16 waveType = kResV1_2_3Wave;
+	if (_version >= kVersionV1_2_5)
+		waveType = kResV1_2_5Wave;
+
+	if (!isResourceObjectLoaded(waveId, waveType))
 		return;
 
 	uint16 index = operandValue(waveId);
@@ -286,7 +307,11 @@ bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
 
 	uint16 id = READ_LE_UINT16(record + 4 + 2 * record[3]);
 
-	if (!validateAndGetResourceByType(id, kResV1_2_3Script))
+	uint16 scriptType = kResV1_2_3Script;
+	if (_version >= kVersionV1_2_5)
+		scriptType = kResV1_2_5Script;
+
+	if (!validateAndGetResourceByType(id, scriptType))
 		return false;
 
 	uint16 index = operandValue(id);
@@ -312,7 +337,11 @@ void TopgunEngine_v1_2_3::o_stopSprite(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_setSpriteLevel(const byte *record) {
-	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
@@ -352,7 +381,11 @@ void TopgunEngine_v1_2_3::o_listRunScript(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_moveSprite(const byte *record) {
-	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType))
 		return;
 
 	int16 deltaX = (int16)operandValue(READ_LE_UINT16(record + 4));
@@ -375,7 +408,11 @@ uint16 TopgunEngine_v1_2_3::o_conditionalSkip(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
-	if (!validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_3Sprite))
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+
+	if (!validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
@@ -395,8 +432,11 @@ void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
 
 bool TopgunEngine_v1_2_3::o_setSpritePosition(const byte *record) {
 	uint16 id = READ_LE_UINT16(record + 2);
+	uint16 spriteType = kResV1_2_3Sprite;
+	if (_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
 
-	if (!validateAndGetResourceByType(id, kResV1_2_3Sprite))
+	if (!validateAndGetResourceByType(id, spriteType))
 		return false;
 
 	uint16 index = operandValue(id);
@@ -446,7 +486,11 @@ void TopgunEngine_v1_2_3::o_setVolume(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_loadPaletteResource(const byte *record) {
-	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), kResV1_2_3Palette))
+	uint16 paletteType = kResV1_2_3Palette;
+	if (_version >= kVersionV1_2_5)
+		paletteType = kResV1_2_5Palette;
+
+	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), paletteType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));

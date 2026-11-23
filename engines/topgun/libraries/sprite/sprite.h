@@ -44,7 +44,7 @@
 #define TG_SPR_QUEUE_RECORD_COPY_SIZE 18
 #define TG_SPR_FRAME_NOTIFICATION     28
 #define TG_SPR_TABLE_SIZE             250
-#define TG_SPR_PART_BLOCK_SIZE        4
+#define TG_SPR_PART_BLOCK_SIZE        10
 
 namespace Topgun {
 

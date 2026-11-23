@@ -519,7 +519,9 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 type = kResV1_2_1Text;
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_5)
+			type = kResV1_2_5Text;
+		else if (_version >= kVersionV1_2_3)
 			type = kResV1_2_3Text;
 		else if (_version >= kVersionV1_2_2)
 			type = TG_TEXT_V1_2_2_RESOURCE_TYPE;
@@ -551,6 +553,9 @@ bool TopgunEngine_v1_2::o_beginTextEdit(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_getSpriteRect(const byte *record) {
+	if (_version >= kVersionV1_2_5 && !validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_5Sprite))
+		return;
+
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
 	if (!isRecordIndexValid(index, "o_getSpriteRect"))
 		return;
@@ -666,8 +671,16 @@ void TopgunEngine_v1_2::o_isSpriteBusy(const byte *record) {
 
 void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	uint16 firstVariable = READ_LE_UINT16(record + 4);
-	uint16 spriteType = (_version >= kVersionV1_2_3) ? kResV1_2_3Sprite : kResV1_2_2Sprite;
+	uint16 spriteType = kResV1_2_2Sprite;
+	if (_version >= kVersionV1_2_5)
+		spriteType = kResV1_2_5Sprite;
+	else if (_version >= kVersionV1_2_3)
+		spriteType = kResV1_2_3Sprite;
+
 	uint16 bias = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
+	if (_version >= kVersionV1_2_5 && !validateResourceType(READ_LE_UINT16(record + 2), spriteType))
+		return;
 
 	if (firstVariable >= TG_HOST_V1_2_TABLE_SIZE)
 		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): variable %d is out of range", firstVariable);
@@ -685,9 +698,13 @@ void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	spriteLib()->spriteGetInfo(_records[index].handle, info);
 
 	uint16 count = info.frameCount;
-	if (count > TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES) {
+	uint16 maxCount = TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES;
+	if (_version >= kVersionV1_2_6)
+		maxCount = TG_SCRIPT_V1_2_6_NUM_ELEMENT_VARIABLES;
+
+	if (count > maxCount) {
 		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): the sprite has %d elements", count);
-		count = TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES;
+		count = maxCount;
 	}
 
 	for (uint16 i = 0; i < count; i++) {

@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/resource/resource_v1_2_3.h"
+#include "topgun/topgun_v1_2_3.h"
 
 namespace Topgun {
 
@@ -467,7 +468,7 @@ bool ResourceLibrary_v1_2::decodeSegmentedBitmapStream(LzwState *state, const by
 
 			memcpy(output, source, length);
 			written = length;
-		} else if (mode == TG_RES_V1_2_SEGMENT_RLE) {
+		} else if (mode == TG_RES_V1_2_SEGMENT_RLE && _engine->_version < kVersionV1_2_5) {
 			written = decodeRleSegment(output, source, length, limits);
 		} else if (mode == TG_RES_V1_2_SEGMENT_LZW_10_BITS) {
 			lzwInitCodeWidth(state, 10);

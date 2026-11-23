@@ -39,7 +39,7 @@
 
 namespace Topgun {
 
-TextObject_v1_2::TextObject_v1_2() : handle(0), id(0), font(nullptr), fontOwned(false), fontHandle(0), color(0) {
+TextObject_v1_2::TextObject_v1_2() : handle(0), id(0), font(nullptr), fontOwned(false), fontHandle(0), color(0), leadByteBuffered(false), leadByte(0) {
 	for (uint16 i = 0; i < TG_TEXT_V1_2_3_EDIT_RECORD_SIZE; i++)
 		edit[i] = 0;
 
@@ -716,6 +716,9 @@ bool TopgunEngine_v1_2::refreshTextObjectBitmap(uint16 handle) {
 }
 
 bool TopgunEngine_v1_2::beginTextEdit(const byte *record) {
+	if (_version >= kVersionV1_2_6)
+		_hasPendingChar = false;
+
 	uint16 handle = getTextObjectFromId(READ_LE_UINT16(record + 2));
 	TextObject_v1_2 *object = textObjectFromHandle(handle);
 	if (!object)
@@ -812,12 +815,42 @@ bool TopgunEngine_v1_2::endTextEdit(uint16 handle, bool cancel) {
 	return _version < kVersionV1_2_1;
 }
 
-bool TopgunEngine_v1_2::textEditBackspace(uint16 handle) {
+bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 	TextObject_v1_2 *object = textObjectFromHandle(handle);
 	if (!object)
 		return false;
 
 	uint16 length = (uint16)strlen(object->text);
+
+	if (_version >= kVersionV1_2_6) {
+		uint16 position = 0;
+
+		if (!clearAll) {
+			int16 caret = (int16)(length - 1);
+
+			if (caret < 1) {
+				warning("textEditBeep UNIMPLEMENTED");
+				return false;
+			}
+
+			// The position of the character before the caret; a Shift-JIS character takes two bytes
+			uint16 scan = 0;
+
+			while (scan < (uint16)caret) {
+				position = scan;
+
+				byte current = (byte)object->text[scan];
+				if (((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
+					scan += 2;
+				else
+					scan++;
+			}
+		}
+
+		object->text[position] = '\0';
+		Common::strlcat(object->text, "_", TG_TEXT_V1_2_TEXT_SIZE);
+		return true;
+	}
 
 	if (_version >= kVersionV1_2_1) {
 		if ((int16)(length - 1) < 1) {
@@ -843,6 +876,53 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 	TextObject_v1_2 *object = textObjectFromHandle(handle);
 	if (!object)
 		return false;
+
+	if (_version >= kVersionV1_2_6) {
+		uint16 value = character;
+
+		if (object->leadByteBuffered) {
+			value = (uint16)((object->leadByte << 8) | character);
+		} else if ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC)) {
+			object->leadByte = character;
+			object->leadByteBuffered = true;
+			return false;
+		}
+
+		if (object->edit[TG_TEXT_V1_2_3_EDIT_NUMERIC] != 0 && (value < '0' || value > '9')) {
+			warning("textEditBeep UNIMPLEMENTED");
+			return false;
+		}
+
+		uint16 length = (uint16)strlen(object->text);
+
+		if (length == 0) {
+			warning("TopgunEngine_v1_2::textEditAppendChar(): the text has no caret");
+			return false;
+		}
+
+		uint16 position = length - 1;
+
+		if ((int16)object->edit[TG_TEXT_V1_2_EDIT_MAX_LENGTH] <= (int16)position) {
+			warning("textEditBeep UNIMPLEMENTED");
+			return false;
+		}
+
+		if (position + 4 > TG_TEXT_V1_2_TEXT_SIZE) {
+			warning("TopgunEngine_v1_2::textEditAppendChar(): the text does not fit in the object");
+			return false;
+		}
+
+		if (object->leadByteBuffered) {
+			object->text[position] = (char)(value >> 8);
+			position++;
+			object->leadByteBuffered = false;
+		}
+
+		object->text[position] = (char)(value & 0xFF);
+		object->text[position + 1] = '\0';
+		Common::strlcat(object->text, "_", TG_TEXT_V1_2_TEXT_SIZE);
+		return true;
+	}
 
 	if (_version >= kVersionV1_2_1) {
 		if (_version >= kVersionV1_2_3 && object->edit[TG_TEXT_V1_2_3_EDIT_NUMERIC] != 0 && (character < '0' || character > '9')) {
@@ -886,7 +966,9 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	uint16 type = kResV1_2Text;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_5)
+		type = kResV1_2_5Text;
+	else if (_version >= kVersionV1_2_3)
 		type = kResV1_2_3Text;
 	else if (_version >= kVersionV1_2_2)
 		type = TG_TEXT_V1_2_2_RESOURCE_TYPE;
@@ -921,7 +1003,11 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_setTextParam(const byte *record) {
-	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), kResV1_2_3Text))
+	uint16 textType = kResV1_2_3Text;
+	if (_version >= kVersionV1_2_5)
+		textType = kResV1_2_5Text;
+
+	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), textType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));

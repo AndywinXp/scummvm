@@ -23,6 +23,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 #include "common/util.h"
+#include "graphics/screen.h"
 
 #include "topgun/display.h"
 #include "topgun/libraries/sprite/sprite_v1_2_3.h"
@@ -200,9 +201,15 @@ bool SpriteLibrary_v1_2::blitSetupRaw(byte *destination, const byte *source, uin
 
 	setup.source = bitmapPixels(source) + sourceOffset;
 
+	bool topDown;
+	if (_engine->_version >= kVersionV1_2_5)
+		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	else
+		topDown = (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
+
 	int32 destinationStride;
 	uint16 destinationRow;
-	if (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 0) {
+	if (!topDown) {
 		destinationRow = (uint16)(destinationHeight - destinationY - height);
 		destinationStride = destinationPitch;
 	} else {
@@ -240,6 +247,9 @@ void SpriteLibrary_v1_2::blitOpaqueRect(byte *destination, const byte *source, u
 
 void SpriteLibrary_v1_2::blitDibDiffRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
 	if (width == 0 || height == 0)
+		return;
+
+	if (_engine->_version >= kVersionV1_2_5 && isRleBitmap(source))
 		return;
 
 	BlitSetup_v1_2 setup;
@@ -358,8 +368,14 @@ void SpriteLibrary_v1_2::fillBitmapByte(byte *bitmap, int16 x, int16 y, uint16 w
 	uint16 pitch = READ_LE_UINT16(bitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
 	uint16 bitmapHeight = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
+	bool topDown;
+	if (_engine->_version >= kVersionV1_2_5)
+		topDown = ((READ_LE_UINT16(bitmap + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	else
+		topDown = (bitmap[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
+
 	uint16 row;
-	if (bitmap[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 0)
+	if (!topDown)
 		row = (uint16)(bitmapHeight - y - height);
 	else
 		row = (uint16)y;
@@ -380,7 +396,9 @@ bool SpriteLibrary_v1_2::ensureComposeBufferSize(uint16 width, uint16 height) {
 	uint16 pitch = (uint16)(width + 3) & 0xFFFC;
 	uint32 size = (uint32)pitch * height + TG_SPR_V1_2_BITMAP_HEADER_SIZE;
 
-	_composeBuffer[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] = 0;
+	if (_engine->_version < kVersionV1_2_5)
+		_composeBuffer[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] = 0;
+
 	WRITE_LE_UINT16(_composeBuffer + TG_SPR_BITMAP_WIDTH_OFFSET, width);
 	WRITE_LE_UINT16(_composeBuffer + TG_SPR_V1_2_BITMAP_PITCH_OFFSET, pitch);
 	WRITE_LE_UINT16(_composeBuffer + TG_SPR_BITMAP_HEIGHT_OFFSET, height);
@@ -412,6 +430,9 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	if (!ensureComposeBufferSize(width, height))
 		return false;
 
+	if (_engine->_version >= kVersionV1_2_6 && _rubberBandActive)
+		rubberBandRepaint(visible);
+
 	if (_backgroundBitmap)
 		blitOpaqueRect(_composeBuffer, _backgroundBitmap, width, height, 0, 0, (int16)(visible.left + _scrollX), (int16)(visible.top + _scrollY), 0);
 	else if (_fillColor != TG_SPR_V1_2_FILL_NONE)
@@ -419,6 +440,10 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 
 	compositeSpritesInRect(visible);
 	blitSpriteToScreen(visible.left, visible.top, _composeBuffer);
+
+	if (_engine->_version >= kVersionV1_2_6 && _rubberBandActive)
+		rubberBandRepaint(visible);
+
 	return true;
 }
 
@@ -605,8 +630,15 @@ uint16 SpriteLibrary_v1_2::spritePicked(int16 x, int16 y) {
 
 uint16 SpriteLibrary_v1_2::spriteIsPicked(uint16 sprite, int16 x, int16 y) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteIsPicked");
-	if (!object || (!object->visible && !object->pickInvisible))
+	if (!object)
 		return 0;
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		if (object->pickMode == 2 || (!object->visible && object->pickMode != 1))
+			return 0;
+	} else if (!object->visible && !object->pickInvisible) {
+		return 0;
+	}
 
 	const Common::Rect &box = object->boundingBox;
 	if (box.left > x || box.right <= x || box.top > y || box.bottom <= y)
@@ -653,6 +685,9 @@ void SpriteLibrary_v1_2::renderSpriteToSurface(uint16 sprite) {
 			return;
 
 		object->renderPending = false;
+
+		if (_engine->_version >= kVersionV1_2_6 && !object->active)
+			return;
 	}
 
 	SpriteLibrary::renderSpriteToSurface(sprite);
@@ -885,7 +920,10 @@ void SpriteLibrary_v1_2_3::spriteScreenShake(int16 deltaX, int16 deltaY) {
 	}
 }
 
-bool SpriteLibrary_v1_2_3::isRleBitmap(const byte *bitmap) const {
+bool SpriteLibrary_v1_2::isRleBitmap(const byte *bitmap) const {
+	if (_engine->_version >= kVersionV1_2_5)
+		return (READ_LE_UINT16(bitmap + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_RLE_FLAG) != 0;
+
 	return (bitmap[TG_SPR_V1_2_3_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_3_BITMAP_RLE_FLAG) != 0;
 }
 
@@ -978,8 +1016,14 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 	else
 		setup.firstRow = (int32)sourceY + height - 1;
 
+	bool topDown;
+	if (_engine->_version >= kVersionV1_2_5)
+		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	else
+		topDown = (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
+
 	int32 destinationRow;
-	if (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 1) {
+	if (!topDown) {
 		if (flip) {
 			destinationRow = (int32)destinationHeight - destinationY - 1;
 			setup.destinationStride = -(int32)destinationPitch;
@@ -1167,6 +1211,194 @@ uint16 SpriteLibrary_v1_2_3::getBitmapPixel(const byte *bitmap, int16 x, int16 y
 
 	uint16 pitch = READ_LE_UINT16(bitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
 	return bitmapPixels(bitmap)[(height - 1 - row) * pitch + column];
+}
+
+void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 deltaY) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "scrollSprite");
+	if (!object)
+		return;
+
+	object->x = (int16)(object->x + deltaX);
+	object->y = (int16)(object->y + deltaY);
+	object->boundingBox.translate(deltaX, deltaY);
+	object->previousBox.translate(deltaX, deltaY);
+
+	if (object->parts) {
+		for (uint16 i = 0; i < object->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++)
+			object->parts->parts[i].box.translate(deltaX, deltaY);
+	}
+
+	byte *command = object->queueCurrent;
+	if (!command)
+		return;
+
+	if (READ_LE_UINT16(command) == kSprV1_2_3OpQuadPath) {
+		for (uint16 offset = 0x0E; offset <= 0x16; offset += 4) {
+			WRITE_LE_UINT16(command + offset, (uint16)(READ_LE_UINT16(command + offset) + deltaX));
+			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
+		}
+	} else if (READ_LE_UINT16(command) == kSprV1_2_3OpLinearMove) {
+		for (uint16 offset = 0x0C; offset <= 0x10; offset += 4) {
+			WRITE_LE_UINT16(command + offset, (uint16)(READ_LE_UINT16(command + offset) + deltaX));
+			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
+		}
+	}
+}
+
+void SpriteLibrary_v1_2_3::spriteScrollScreen(int16 deltaX, int16 deltaY) {
+	engine()->display()->scrollDevice(_clipRect, deltaX, deltaY);
+
+	for (uint16 i = 0; i < _spriteCount; i++)
+		scrollSprite(_spriteTable[i], deltaX, deltaY);
+
+	if (deltaX != 0) {
+		Common::Rect strip = _clipRect;
+		if (deltaX < 0)
+			strip.left = (int16)(strip.right + deltaX);
+		else
+			strip.right = (int16)(strip.left + deltaX);
+
+		spritePaintRect(strip, false);
+	}
+
+	if (deltaY != 0) {
+		Common::Rect strip = _clipRect;
+		if (deltaY < 0)
+			strip.top = (int16)(strip.bottom + deltaY);
+		else
+			strip.bottom = (int16)(strip.top + deltaY);
+
+		spritePaintRect(strip, false);
+	}
+}
+
+void SpriteLibrary_v1_2_3::spriteRubberBand(bool enable, int16 x, int16 y, bool move) {
+	if (enable) {
+		if (!_rubberBandActive)
+			rubberBandBegin(x, y);
+		else
+			rubberBandUpdate(x, y, move);
+	} else if (_rubberBandActive) {
+		rubberBandEnd();
+	}
+}
+
+void SpriteLibrary_v1_2::rubberBandBegin(int16 x, int16 y) {
+	_rubberBandActive = true;
+	_rubberBandAnchorX = x;
+	_rubberBandAnchorY = y;
+	_rubberBandLastX = x;
+	_rubberBandLastY = y;
+	_rubberBandRect = Common::Rect(x, y, x, y);
+	rubberBandDraw();
+}
+
+void SpriteLibrary_v1_2::rubberBandEnd() {
+	rubberBandDraw();
+	_rubberBandActive = false;
+}
+
+void SpriteLibrary_v1_2::rubberBandRepaint(const Common::Rect &rect) {
+	Common::Rect common;
+	if (intersectRectLocal(rect, _rubberBandRect, common))
+		rubberBandDraw();
+}
+
+void SpriteLibrary_v1_2::rubberBandUpdate(int16 x, int16 y, bool move) {
+	rubberBandDraw();
+
+	if (move) {
+		int16 deltaX = (int16)(x - _rubberBandLastX);
+		int16 deltaY = (int16)(y - _rubberBandLastY);
+		_rubberBandAnchorX = (int16)(_rubberBandAnchorX + deltaX);
+		_rubberBandAnchorY = (int16)(_rubberBandAnchorY + deltaY);
+		_rubberBandRect.translate(deltaX, deltaY);
+	} else {
+		_rubberBandRect.left = MIN(_rubberBandAnchorX, x);
+		_rubberBandRect.right = MAX(_rubberBandAnchorX, x);
+		_rubberBandRect.top = MIN(_rubberBandAnchorY, y);
+		_rubberBandRect.bottom = MAX(_rubberBandAnchorY, y);
+	}
+
+	_rubberBandLastX = x;
+	_rubberBandLastY = y;
+	rubberBandDraw();
+}
+
+void SpriteLibrary_v1_2::rubberBandDraw() {
+	if (_rubberBandRect.right <= _rubberBandRect.left || _rubberBandRect.bottom <= _rubberBandRect.top)
+		return;
+
+	Display *display = engine()->display();
+	Graphics::Screen *screen = engine()->screen();
+
+	// The pen is the yellow of the system palette on a palette screen and plain yellow on any other screen
+	uint32 pen = 0;
+	if (screen->format.bytesPerPixel == 1) {
+		byte systemColors[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
+		display->getSystemPaletteEntries(systemColors, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
+
+		for (int i = 0; i < TG_DISPLAY_NUM_PALETTE_ENTRIES; i++) {
+			const byte *entry = systemColors + i * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+			if (entry[0] == 255 && entry[1] == 255 && entry[2] == 0) {
+				pen = i;
+				break;
+			}
+		}
+	} else {
+		pen = screen->format.RGBToColor(255, 255, 0);
+	}
+
+	Common::Rect outline = _rubberBandRect;
+	outline.translate(display->viewportOrigin().x, display->viewportOrigin().y);
+
+	// The corners belong to the horizontal edges so that every pixel of the outline is inverted once
+	Common::Rect edges[4];
+	edges[0].left = outline.left;
+	edges[0].right = outline.right;
+	edges[0].top = outline.top;
+	edges[0].bottom = outline.top + 1;
+
+	if (outline.bottom - 1 != outline.top) {
+		edges[1].left = outline.left;
+		edges[1].right = outline.right;
+		edges[1].top = outline.bottom - 1;
+		edges[1].bottom = outline.bottom;
+	}
+
+	edges[2].left = outline.left;
+	edges[2].right = outline.left + 1;
+	edges[2].top = outline.top + 1;
+	edges[2].bottom = outline.bottom - 1;
+
+	if (outline.right - 1 != outline.left) {
+		edges[3].left = outline.right - 1;
+		edges[3].right = outline.right;
+		edges[3].top = outline.top + 1;
+		edges[3].bottom = outline.bottom - 1;
+	}
+
+	Common::Rect screenRect(0, 0, display->width(), display->height());
+	for (int i = 0; i < 4; i++) {
+		Common::Rect edge;
+		if (!intersectRectLocal(edges[i], screenRect, edge))
+			continue;
+
+		for (int16 row = edge.top; row < edge.bottom; row++) {
+			for (int16 column = edge.left; column < edge.right; column++) {
+				byte *pixel = (byte *)screen->getBasePtr(column, row);
+
+				if (screen->format.bytesPerPixel == 1)
+					*pixel ^= (byte)pen;
+				else if (screen->format.bytesPerPixel == 2)
+					WRITE_UINT16(pixel, READ_UINT16(pixel) ^ (uint16)pen);
+				else
+					WRITE_UINT32(pixel, READ_UINT32(pixel) ^ pen);
+			}
+		}
+
+		screen->addDirtyRect(edge);
+	}
 }
 
 } // End of namespace Topgun

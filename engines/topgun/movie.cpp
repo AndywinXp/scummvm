@@ -147,8 +147,13 @@ uint16 TopgunEngine_v1_2::destroyMovieObject(uint16 handle) {
 	movieStop(movie);
 	movieFreePrefetchBuffers(movie);
 
-	if (movie->frameTable)
+	if (movie->frameTableBlock) {
+		utilsLibrary()->tgFree(movie->frameTableBlock);
+		movie->frameTableBlock = nullptr;
+		movie->frameTable = nullptr;
+	} else if (movie->frameTable) {
 		movie->frameTable = utilsLibrary()->tgFree(movie->frameTable);
+	}
 
 	if (movie->audioBuffer)
 		movie->audioBuffer = utilsLibrary()->tgFree(movie->audioBuffer);
@@ -191,7 +196,13 @@ bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
 		if (!movie->frameTable)
 			return false;
 
-		movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
+		if (_version >= kVersionV1_2_6) {
+			movie->frameTableBlock = movie->frameTable;
+			movie->frameTable = movie->frameTableBlock + 2;
+			movie->frameCount = (uint16)((size - 2) / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
+		} else {
+			movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
+		}
 
 		if (_version >= kVersionV1_2_3) {
 			if (static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET)) == 0)
@@ -379,8 +390,12 @@ bool TopgunEngine_v1_2::moviePrefetchGroup(Movie_v1_2 *movie) {
 	if (movie->numBuffers <= movie->fillBuffer)
 		movie->fillBuffer = 0;
 
-	if (movie->frameCount <= movie->prefetchFrame)
-		movie->prefetchDone = true;
+	if (movie->frameCount <= movie->prefetchFrame) {
+		if (_version >= kVersionV1_2_6 && movie->frameTableBlock[0] != 0)
+			movie->prefetchFrame = 0;
+		else
+			movie->prefetchDone = true;
+	}
 
 	return true;
 }
@@ -505,12 +520,24 @@ bool TopgunEngine_v1_2::movieDecodeBitmapFrame(Movie_v1_2 *movie, uint16 *advanc
 
 			WRITE_LE_UINT16(bitmap + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), movie->id);
 
-			if (bitmap[TG_MOVIE_V1_2_BITMAP_KIND] == TG_MOVIE_V1_2_BITMAP_KIND_MERGE) {
+			bool merge;
+			bool delta;
+
+			// The later version keeps the kind in another byte and tests it as flags
+			if (_version >= kVersionV1_2_5) {
+				merge = ((bitmap[TG_MOVIE_V1_2_5_BITMAP_KIND] & TG_MOVIE_V1_2_BITMAP_KIND_MERGE) != 0);
+				delta = ((bitmap[TG_MOVIE_V1_2_5_BITMAP_KIND] & TG_MOVIE_V1_2_BITMAP_KIND_DELTA) != 0);
+			} else {
+				merge = (bitmap[TG_MOVIE_V1_2_BITMAP_KIND] == TG_MOVIE_V1_2_BITMAP_KIND_MERGE);
+				delta = (bitmap[TG_MOVIE_V1_2_BITMAP_KIND] == TG_MOVIE_V1_2_BITMAP_KIND_DELTA);
+			}
+
+			if (merge) {
 				spriteLib()->spriteDibBlit(movie->bitmap, bitmap, READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET),
 					READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET), 0, 0, 0, 0, TG_MOVIE_V1_2_BITMAP_BLIT_MERGE);
 				utilsLibrary()->tgFree(bitmap);
 			} else {
-				if (bitmap[TG_MOVIE_V1_2_BITMAP_KIND] == TG_MOVIE_V1_2_BITMAP_KIND_DELTA)
+				if (delta)
 					movieBlitDeltaRect(movie->bitmap, bitmap);
 
 				utilsLibrary()->tgFree(movie->bitmap);
@@ -744,7 +771,13 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 	if (!movie)
 		return 0;
 
-	command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = 0;
+	if (_version >= kVersionV1_2_5)
+		WRITE_LE_UINT16(command + TG_MOVIE_V1_2_5_COMMAND_FRAME_READY, 0);
+	else
+		command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = 0;
+
+	if (_version >= kVersionV1_2_6 && movie->speed == 0)
+		return 1;
 
 	uint32 now = getEngineMillis();
 
@@ -766,13 +799,19 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 		if (!movieStepFrame(movie))
 			return 0;
 
-		command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = movie->frameUpdated ? 1 : 0;
+		if (_version >= kVersionV1_2_5)
+			WRITE_LE_UINT16(command + TG_MOVIE_V1_2_5_COMMAND_FRAME_READY, movie->frameUpdated ? 1 : 0);
+		else
+			command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = movie->frameUpdated ? 1 : 0;
 
 		if (movie->frameUpdated)
 			*frame = movie->bitmap;
 
 		if (!movie->audioStarted)
 			movie->deadline = now;
+
+		if (_version >= kVersionV1_2_6 && movie->delay != 0 && movie->speed != 0)
+			movie->delay = (uint16)((uint32)TG_MOVIE_V1_2_6_DEFAULT_SPEED * movie->delay / movie->speed);
 
 		movie->deadline += movie->delay;
 

@@ -513,6 +513,9 @@ void TopgunEngine_v1_2::setSolidBackgroundColorPalette(uint32 color) {
 
 	_backgroundColor = color;
 
+	if (_version >= kVersionV1_2_6)
+		_solidBackground = true;
+
 	if (_version < kVersionV1_2_3) {
 		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
 		entry[0] = (byte)(color & 0xFF);
@@ -550,7 +553,13 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 		spriteLib()->spriteChangePalette(_solidColorEntry, 1, entry, !_faded);
 	}
 
-	_backgroundColor = 0;
+	if (_version >= kVersionV1_2_6) {
+		_backgroundColor = color;
+		_solidBackground = true;
+	} else {
+		_backgroundColor = 0;
+	}
+
 	_screenBox = false;
 
 	syncBackgroundDimensions(_backgroundBitmap);
@@ -760,6 +769,9 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 
 	_fadeIn = true;
 
+	if (_version >= kVersionV1_2_6 && !display()->hasPalette())
+		spriteLib()->spriteSetBkgTransparent(!_solidBackground || _backgroundColor != 0);
+
 	if (display()->hasPalette()) {
 		_step = 1;
 		_stepCount = steps;
@@ -890,7 +902,11 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 		copy = loadResourceWithProcessingPause(id, nullptr);
 	}
 
-	if (copy && (copy[TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK) != 0) {
+	uint16 flagsOffset = TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET;
+	if (_version >= kVersionV1_2_5)
+		flagsOffset = TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET;
+
+	if (copy && (copy[flagsOffset] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK) != 0) {
 		byte *expanded = resourceLib()->resExpandBitmap(_file, copy);
 		utilsLibrary()->tgFree(copy);
 		copy = expanded;
@@ -900,6 +916,9 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 }
 
 void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
+	if (_version >= kVersionV1_2_6)
+		_solidBackground = false;
+
 	switch (READ_LE_UINT16(record + 2)) {
 	case 0:
 		setBackgroundFromBitmapResource(record);
@@ -954,6 +973,141 @@ void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {
 	}
 }
 
+void TopgunEngine_v1_2_3::wipeEffectInterlacedRows(uint16 duration, uint16 count) {
+	uint16 stride = TG_HOST_V1_2_6_WIPE_ROWS_DEFAULT_COUNT;
+
+	if (count != 0)
+		stride = (_height >= count) ? count : _height;
+
+	if (stride == 0 || _height == 0) {
+		warning("TopgunEngine_v1_2_3::wipeEffectInterlacedRows(): the background has no rows");
+		return;
+	}
+
+	uint16 step = (stride == 1) ? 1 : (uint16)(stride - 1);
+	uint16 phase = 0;
+	uint16 end = step;
+	uint16 interval = (uint16)(duration / (uint16)(_height / stride + stride - 1));
+	uint32 deadline = getEngineMillis();
+
+	Common::Rect rect;
+	rect.left = 0;
+	rect.right = _width;
+
+	while (phase < _height) {
+		if (getEngineMillis() < deadline) {
+			spriteLib()->spriteAnimate();
+			presentScreenAndWait();
+			continue;
+		}
+
+		deadline += interval;
+
+		for (uint16 row = phase; row < end; row = (uint16)(row + step)) {
+			rect.top = row;
+			rect.bottom = (int16)(row + 1);
+			copyAndPaintBackgroundRect(rect);
+			spriteLib()->spriteAnimate();
+		}
+
+		presentScreenAndWait();
+
+		if (phase < step)
+			phase++;
+		else
+			phase = (uint16)(phase + stride);
+
+		uint16 sum = (uint16)(stride + end);
+		end = (sum < _height) ? sum : _height;
+	}
+}
+
+void TopgunEngine_v1_2_3::wipeEffectSlideColumns(int16 direction, uint16 duration, uint16 steps) {
+	uint16 count = TG_HOST_V1_2_6_WIPE_SLIDE_DEFAULT_STEPS;
+
+	if (steps != 0)
+		count = (_width >= steps) ? steps : _width;
+
+	if (count == 0) {
+		warning("TopgunEngine_v1_2_3::wipeEffectSlideColumns(): the background has no columns");
+		return;
+	}
+
+	int16 stride = (int16)((_width / count) * direction);
+	uint16 left = 0;
+	int16 right = _width;
+
+	if (stride < 0)
+		left = (uint16)(_width + stride);
+	else
+		right = stride;
+
+	uint16 interval = duration / count;
+	uint32 deadline = getEngineMillis();
+
+	Common::Rect rect;
+	rect.top = 0;
+	rect.bottom = _height;
+
+	while (left < _width && right >= 0) {
+		spriteLib()->spriteAnimate();
+
+		if (getEngineMillis() >= deadline) {
+			deadline += interval;
+			rect.left = (int16)left;
+			rect.right = right;
+			copyAndPaintBackgroundRect(rect);
+			left = (uint16)(left + stride);
+			right = (int16)(right + stride);
+		}
+
+		presentScreenAndWait();
+	}
+}
+
+void TopgunEngine_v1_2_3::wipeEffectSlideRows(int16 direction, uint16 duration, uint16 steps) {
+	uint16 count = TG_HOST_V1_2_6_WIPE_SLIDE_DEFAULT_STEPS;
+
+	if (steps != 0)
+		count = (_height >= steps) ? steps : _height;
+
+	if (count == 0) {
+		warning("TopgunEngine_v1_2_3::wipeEffectSlideRows(): the background has no rows");
+		return;
+	}
+
+	int16 stride = (int16)((_height / count) * direction);
+	uint16 top = 0;
+	int16 bottom = _height;
+
+	if (stride < 0)
+		top = (uint16)(_height + stride);
+	else
+		bottom = stride;
+
+	uint16 interval = duration / count;
+	uint32 deadline = getEngineMillis();
+
+	Common::Rect rect;
+	rect.left = 0;
+	rect.right = _width;
+
+	while (top < _height && bottom >= 0) {
+		spriteLib()->spriteAnimate();
+
+		if (getEngineMillis() >= deadline) {
+			deadline += interval;
+			rect.top = (int16)top;
+			rect.bottom = bottom;
+			copyAndPaintBackgroundRect(rect);
+			top = (uint16)(top + stride);
+			bottom = (int16)(bottom + stride);
+		}
+
+		presentScreenAndWait();
+	}
+}
+
 void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, byte *oldBitmap) {
 	_wipeOldBitmap = oldBitmap;
 	_wipeNewBitmap = newBitmap;
@@ -984,6 +1138,26 @@ void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, b
 
 	case 5:
 		wipeEffectFrameRingsInsideOut(30, false);
+		break;
+
+	case 6:
+		if (_version >= kVersionV1_2_6)
+			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectInterlacedRows(READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+
+		break;
+
+	case 7:
+	case 8:
+		if (_version >= kVersionV1_2_6)
+			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectSlideColumns((READ_LE_UINT16(params) == 7) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+
+		break;
+
+	case 9:
+	case 10:
+		if (_version >= kVersionV1_2_6)
+			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectSlideRows((READ_LE_UINT16(params) == 9) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+
 		break;
 
 	default:

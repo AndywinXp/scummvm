@@ -27,10 +27,16 @@
 // Limits
 #define TG_SPR_V1_2_3_NOTIFICATION_RECORD_SIZE 4
 #define TG_SPR_V1_2_3_MAX_HOST_EVENT_WORDS     4
+#define TG_SPR_V1_2_5_MAX_HOST_EVENT_WORDS     6
 
 // Bitmap header: bit 7 of the byte at +9 marks a line-RLE bitmap
 #define TG_SPR_V1_2_3_BITMAP_FLAGS_OFFSET      9
 #define TG_SPR_V1_2_3_BITMAP_RLE_FLAG          0x80
+
+// Bitmap header: the word at +8 holds the flags, 0x80 marks a line-RLE bitmap and 0x40 a top-down one
+#define TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET      8
+#define TG_SPR_V1_2_5_BITMAP_RLE_FLAG          0x80
+#define TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG     0x40
 
 // RLE rows: 0 ends the row, 1..0x7F is a run of one byte, 0x80..0xFE a literal of (0xFF - code) bytes,
 // 0xFF a literal whose length is in the next byte and whose zero bytes are transparent
@@ -61,6 +67,17 @@ enum SpriteMessage_v1_2_3 {
 	kSprV1_2_3MsgHostEvent = 21
 };
 
+// Messages of the games that renumber them: 10 and 14 are new and the following ones move up by one
+enum SpriteMessage_v1_2_6 {
+	kSprV1_2_6MsgDelayedMove = 10,
+	kSprV1_2_6MsgSetActive = 14,
+	kSprV1_2_6MsgFrameInterval,
+	kSprV1_2_6MsgSetRange,
+	kSprV1_2_6MsgMoveInterval,
+	kSprV1_2_6MsgShowFrame,
+	kSprV1_2_6MsgHostEvent = 22
+};
+
 enum RleBlitMode_v1_2_3 {
 	kSprV1_2_3BlitCopy,
 	kSprV1_2_3BlitTransparent,
@@ -83,6 +100,8 @@ public:
 
 	// Library
 	void spriteScreenShake(int16 deltaX, int16 deltaY);
+	void spriteScrollScreen(int16 deltaX, int16 deltaY);
+	void spriteRubberBand(bool enable, int16 x, int16 y, bool move);
 
 	// Sprites
 	void spriteHide(uint16 sprite, bool refresh) override;
@@ -121,6 +140,7 @@ protected:
 
 	// Sprite objects
 	void pauseResumeSprite(uint16 sprite, bool pause);
+	void scrollSprite(uint16 sprite, int16 deltaX, int16 deltaY);
 
 	// Library
 	// Queue interpreter
@@ -136,6 +156,8 @@ protected:
 	bool buildHideMessage(uint16 mode, uint16 sprite);
 	bool buildHostEventMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
 	bool buildWaitMessage(uint16 mode, const uint16 *params, uint16 sprite);
+	bool buildDelayedMoveMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
+	bool buildSetActiveMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildSetPositionMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite);
 	bool buildTimingModeMessage(uint16 mode, const uint16 *params, uint16 sprite);
 	bool buildSetRangeMessage(uint16 mode, const uint16 *params, uint16 sprite);
@@ -149,7 +171,6 @@ protected:
 	uint16 hitTestMultipartVsSingle(const SpriteObject_v1_2 *single, const SpriteObject_v1_2 *multipart);
 
 	// Blitters
-	bool isRleBitmap(const byte *bitmap) const;
 	void decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const;
 	bool blitSetupRleSource(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitSetup &setup);
 	void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) override;

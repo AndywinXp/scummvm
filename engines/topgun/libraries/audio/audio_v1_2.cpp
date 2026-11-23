@@ -390,16 +390,18 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		return;
 	}
 
-	if (_paused)
+	if (_paused && _engine->_version < kVersionV1_2_6)
 		return;
 
-	if (_activeSounds != 0)
+	if (!_paused && _activeSounds != 0)
 		openWaveDevice(&_waveFormat);
 
 	if (_currentMidi) {
 		openAndConfigureMidiOut();
 		_currentMidi->index = 0;
-		midiSequencerStep(_currentMidi);
+
+		if (_engine->_version < kVersionV1_2_6 || _midiPauseCount == 0)
+			midiSequencerStep(_currentMidi);
 	}
 }
 
@@ -412,8 +414,27 @@ void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 	_paused = state;
 	pauseAllPlayback(state ? 1 : 0);
 
+	if (_engine->_version >= kVersionV1_2_6) {
+		audioPauseMidi(paused);
+		return;
+	}
+
 	if (_currentMidi)
 		pauseOrResumeMidiPlayback(state ? 1 : 0);
+}
+
+void AudioLibrary_v1_2_3::audioPauseMidi(uint16 paused) {
+	if (paused != 0) {
+		if (_midiPauseCount == 0 && _currentMidi)
+			pauseOrResumeMidiPlayback(1);
+
+		_midiPauseCount++;
+	} else if (_midiPauseCount != 0) {
+		_midiPauseCount--;
+
+		if (_midiPauseCount == 0 && _currentMidi)
+			pauseOrResumeMidiPlayback(0);
+	}
 }
 
 void AudioLibrary_v1_2_3::audioMute(int16 flag) {
@@ -433,6 +454,11 @@ void AudioLibrary_v1_2_3::audioMute(int16 flag) {
 
 void AudioLibrary_v1_2_3::audioResetLibrary() {
 	_maxPriority = 0;
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		_paused = false;
+		_midiPauseCount = 0;
+	}
 }
 
 bool AudioLibrary_v1_2_3::allocAudioContext() {
@@ -440,6 +466,7 @@ bool AudioLibrary_v1_2_3::allocAudioContext() {
 		return false;
 
 	_paused = false;
+	_midiPauseCount = 0;
 	_maxPriority = 0;
 	_waveMuteSavedVolume = 0;
 	_midiOut = nullptr;
@@ -461,7 +488,14 @@ void AudioLibrary_v1_2_3::initializeAudioSubsystem() {
 void AudioLibrary_v1_2_3::readAudioIniSettings() {
 	AudioLibrary_v1_2::readAudioIniSettings();
 
-	_iniMidiVolume = readAudioIniInt("midivolume", 0);
+	if (_engine->_version >= kVersionV1_2_6) {
+		_iniCdVolume = readAudioIniInt("cdvolume", 0);
+		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_6_INI_MIDI_VOLUME_UNSET);
+		_iniWaveVolume = readAudioIniInt("wavevolume", 0);
+	} else {
+		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
+	}
+
 	_remapMidiDrums = (readAudioIniInt("remapmididrums", 0) != 0);
 }
 
@@ -474,8 +508,16 @@ void AudioLibrary_v1_2_3::writeAudioIniString(const char *key, const char *value
 	ConfMan.flushToDisk();
 }
 
+void AudioLibrary_v1_2_3::saveCdVolumeToIni() {
+	writeAudioIniInt("cdvolume", _iniCdVolume);
+}
+
 void AudioLibrary_v1_2_3::saveMidiVolumeToIni() {
 	writeAudioIniInt("midivolume", _iniMidiVolume);
+}
+
+void AudioLibrary_v1_2_3::saveWaveVolumeToIni() {
+	writeAudioIniInt("wavevolume", _iniWaveVolume);
 }
 
 } // End of namespace Topgun

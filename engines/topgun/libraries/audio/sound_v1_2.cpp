@@ -662,7 +662,7 @@ bool AudioLibrary_v1_2_3::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_
 	sound->enabled = (_cdDeviceId == 0);
 	sound->isStatic = (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_PRELOAD] != 0);
 
-	if (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_EXEMPT] != 0)
+	if (info->header[TG_AUDIO_V1_2_3_INFO_OFFSET_EXEMPT] != 0 && _engine->_version < kVersionV1_2_6)
 		sound->priority = 0;
 	else
 		sound->priority = (int16)READ_LE_UINT16(info->header + TG_AUDIO_V1_2_3_INFO_OFFSET_PRIORITY);
@@ -703,9 +703,13 @@ bool AudioLibrary_v1_2_3::initWaveObjectFromDescriptor(const SoundCreateInfo_v1_
 }
 
 bool AudioLibrary_v1_2_3::startWavePlayback(SoundObject *sound, const byte *params) {
-	bool busy = (_engine->_version >= kVersionV1_2_4) ? (_activeSounds != 0) : (_buffersInFlight != 0);
+	bool busy = (_engine->_version == kVersionV1_2_4) ? (_activeSounds != 0) : (_buffersInFlight != 0);
+	bool exemptFromPriority = sound->exempt;
 
-	if (!sound->exempt && busy && _maxPriority > sound->priority)
+	if (_engine->_version >= kVersionV1_2_6)
+		exemptFromPriority = (sound->exempt && sound->priority == 0);
+
+	if (!exemptFromPriority && busy && _maxPriority > sound->priority)
 		return true;
 
 	sound->fadingOut = false;
@@ -789,7 +793,7 @@ void AudioLibrary_v1_2_3::stopAllNonExemptWaves() {
 }
 
 void AudioLibrary_v1_2_3::activateWaveObject(SoundObject *sound) {
-	if (!sound->exempt)
+	if (!sound->exempt || (_engine->_version >= kVersionV1_2_6 && sound->priority != 0))
 		_maxPriority = sound->priority;
 
 	sound->loops = sound->initialLoops;
@@ -806,10 +810,16 @@ void AudioLibrary_v1_2_3::armWaveNotificationEndTime(SoundObject *sound) {
 	if (_engine->_version >= kVersionV1_2_4) {
 		uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
 
-		if (bytesPerTenthSecond != 0)
-			duration = (sound->sourceLength * 100) / bytesPerTenthSecond;
-		else
+		if (bytesPerTenthSecond != 0) {
+			uint32 length = sound->sourceLength * 100;
+
+			if (_engine->_version >= kVersionV1_2_6)
+				length <<= sound->adpcmShift;
+
+			duration = length / bytesPerTenthSecond;
+		} else {
 			warning("AudioLibrary_v1_2_3::armWaveNotificationEndTime(): the average byte rate of sound %d is below 10", sound->handle);
+		}
 	} else {
 		if (sound->format.averageBytesPerSecond != 0)
 			duration = (sound->sourceLength * 1000) / sound->format.averageBytesPerSecond;

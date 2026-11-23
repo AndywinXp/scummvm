@@ -349,9 +349,24 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 
 	double slopeB = (double)slopeBExtended;
 
-	// The second slope is compared before being rounded to a double
-	if (slopeBExtended == (long double)slopeA)
+	if (_engine->_version >= kVersionV1_2_6) {
+		if (kindA == 1 && kindB == -1) {
+			intersection->x = x3;
+			intersection->y = y1;
+		}
+
+		if (kindA == -1 && kindB == 1) {
+			intersection->x = x1;
+			intersection->y = y3;
+		}
+
+		// This build compares the second slope after rounding it to a double
+		if (slopeB == slopeA)
+			return 0;
+	} else if (slopeBExtended == (long double)slopeA) {
+		// The second slope is compared before being rounded to a double
 		return 0;
+	}
 
 	double interceptA = (double)((long double)y1 - (long double)x1 * (long double)slopeA);
 	double interceptB = (double)((long double)y3 - (long double)x3 * (long double)slopeB);

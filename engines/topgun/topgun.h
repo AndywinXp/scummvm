@@ -45,7 +45,9 @@ enum EngineVersion {
 	kVersionV1_2_1 = 121,
 	kVersionV1_2_2 = 122,
 	kVersionV1_2_3 = 123,
-	kVersionV1_2_4 = 124
+	kVersionV1_2_4 = 124,
+	kVersionV1_2_5 = 125,
+	kVersionV1_2_6 = 126
 };
 
 class AudioLibrary;
@@ -73,10 +75,13 @@ class TopgunEngine : public Engine {
 	friend class AudioLibrary_v1_2;
 	friend class AudioLibrary_v1_2_3;
 	friend class Console;
+	friend class EnginePluginHost;
 	friend class ResourceLibrary;
 	friend class ResourceLibrary_v1_2;
+	friend class ResourceLibrary_v1_2_3;
 	friend class SpriteLibrary;
 	friend class SpriteLibrary_v1_2;
+	friend class SpriteLibrary_v1_2_3;
 	friend class TopgunEngine_v1_2;
 	friend class TopgunEngine_v1_2_3;
 	friend class UtilsLibrary;

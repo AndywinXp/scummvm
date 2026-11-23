@@ -339,7 +339,7 @@ protected:
 	uint32 getCDCurrentPosition();
 	uint32 readCDVolumeLevels();
 	bool sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms &parms);
-	bool openCDAudioDevice();
+	virtual bool openCDAudioDevice();
 	uint16 startCDPlayback(uint32 from, uint32 to);
 	uint16 playCDTrackRangeByNumber(uint16 first, uint16 last);
 	uint16 setCDAudioVolume(uint32 volume);

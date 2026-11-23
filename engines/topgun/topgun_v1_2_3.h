@@ -65,6 +65,8 @@
 #define TG_HOST_V1_2_3_MESSAGE_LAST_FLUSHED        0x4CB
 #define TG_HOST_V1_2_3_MESSAGE_FIRST_PLUGIN        0x658
 #define TG_HOST_V1_2_3_MESSAGE_LAST_PLUGIN         0x6BB
+#define TG_HOST_V1_2_6_MESSAGE_FIRST_PLUGIN        0x6BC
+#define TG_HOST_V1_2_6_MESSAGE_LAST_PLUGIN         0x71F
 
 // Plug-ins
 #define TG_PLUGIN_V1_2_3_STRING_COPY_SIZE          0x7F
@@ -81,6 +83,8 @@
 #define TG_HOST_V1_2_3_SPRITE_DATA_PICK_INVISIBLE  0x13
 #define TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS         0x14
 #define TG_HOST_V1_2_3_SPRITE_DATA_PALETTE_ENTRIES 0x1C
+#define TG_HOST_V1_2_6_SPRITE_DATA_SHIFT           2    // every field after the click script moves up by this much
+#define TG_HOST_V1_2_6_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0E
 #define TG_HOST_V1_2_3_PALETTE_EXTENSION_END       0xF6
 #define TG_HOST_V1_2_3_BITMAP_HEADER_SIZE          0x14
 #define TG_HOST_V1_2_3_BITMAP_HOT_X                0x0A
@@ -111,13 +115,27 @@
 #define TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE           18
 #define TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE          6
 #define TG_SCRIPT_V1_2_3_LAST_OPCODE               119
+#define TG_SCRIPT_V1_2_5_LAST_OPCODE               143
 #define TG_SCRIPT_V1_2_3_POSTED_RECORD_BUFFER_SIZE 20
 #define TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE          18
+#define TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE          20
 #define TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET          2
 #define TG_SCRIPT_V1_2_3_GOTO_RELEASE_OFFSET       0x10
+#define TG_SCRIPT_V1_2_5_GOTO_RELEASE_OFFSET       0x12
 #define TG_SCRIPT_V1_2_3_GOTO_BACK_OFFSET          0x11
+#define TG_SCRIPT_V1_2_5_GOTO_BACK_OFFSET          0x13
+#define TG_SCRIPT_V1_2_5_QUIT_SCENE_RECORD_SIZE    18
+#define TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE      6
 #define TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE         6
 #define TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE         0x8D
+#define TG_SCRIPT_V1_2_5_LAST_BUILTIN_CODE         0x8F
+#define TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE         0xB2
+#define TG_SCRIPT_V1_2_6_SET_CLICK_SCRIPT_SIZE     20
+#define TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE       16
+#define TG_SCRIPT_V1_2_6_SET_HOVER_REGION_SIZE     22
+#define TG_SCRIPT_V1_2_6_GET_ELEMENT_IDS_SIZE      24
+#define TG_SCRIPT_V1_2_6_WINDOWS_VERSION           95
+#define TG_SCRIPT_V1_2_6_IDLE_SECONDS_TO_MS        1000
 
 // Interpreter operations: arithmetic and conditions
 #define TG_SCRIPT_V1_2_3_ARITHMETIC_OPERANDS_OFFSET 6
@@ -141,6 +159,12 @@
 #define TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES       0xEC
 #define TG_SCRIPT_V1_2_3_PALETTE_RESOURCE_SIZE     0x3B0 // 0xEC entries * 4 bytes
 #define TG_SCRIPT_V1_2_3_PALETTE_ENTRIES_OFFSET    8
+
+// Transitions
+#define TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT        2
+#define TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION     4
+#define TG_HOST_V1_2_6_WIPE_ROWS_DEFAULT_COUNT     10
+#define TG_HOST_V1_2_6_WIPE_SLIDE_DEFAULT_STEPS    0x3C
 
 // Text objects
 #define TG_TEXT_V1_2_3_HEADER_COLOR                0
@@ -173,6 +197,11 @@
 #define TG_INPUT_V1_2_3_OBJECT_DROP_SCRIPT         8
 #define TG_INPUT_V1_2_3_OBJECT_DISABLED            0x0E
 #define TG_INPUT_V1_2_3_OBJECT_DRAGGABLE           0x11
+#define TG_INPUT_V1_2_6_OBJECT_CLICK_ARGUMENT      2
+#define TG_INPUT_V1_2_6_OBJECT_DRAG_SCRIPT         8
+#define TG_INPUT_V1_2_6_OBJECT_DROP_SCRIPT         0x0A
+#define TG_INPUT_V1_2_6_OBJECT_DISABLED            0x10
+#define TG_INPUT_V1_2_6_OBJECT_DRAGGABLE           0x13
 
 // Device groups
 #define TG_DEVICE_V1_2_3_NUM_GROUPS                2
@@ -187,6 +216,7 @@
 #define TG_DEVICE_V1_2_3_MAX_BINDINGS_B            4
 #define TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS         2
 #define TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS        6
+#define TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS        8
 #define TG_DEVICE_V1_2_3_CODE_TABLE_SIZE           32
 #define TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
 #define TG_DEVICE_V1_2_3_JOYSTICK_STATE_SIZE       17
@@ -220,6 +250,20 @@ enum ResourceType_v1_2_3 {
 	kResV1_2_3Script = 14,
 	kResV1_2_3Sprite = 15,
 	kResV1_2_3Text = 16
+};
+
+// The later numbering of the types from the wave on; the bitmap and the midi keep the numbers above
+enum ResourceType_v1_2_5 {
+	kResV1_2_5Wave = 9,
+	kResV1_2_5Movie = 10,
+	kResV1_2_5OpList = 11,
+	kResV1_2_5BitmapGroup = 12,
+	kResV1_2_5MixedGroup = 13,
+	kResV1_2_5Palette = 14,
+	kResV1_2_5SpriteQueueData = 15,
+	kResV1_2_5Script = 16,
+	kResV1_2_5Sprite = 17,
+	kResV1_2_5Text = 18
 };
 
 enum ScriptOpcode_v1_2_3 {
@@ -319,6 +363,11 @@ enum ScriptOpcode_v1_2_3 {
 	kOpV1_2_3SetQuitSceneName = 119
 };
 
+enum ScriptOpcode_v1_2_5 {
+	kOpV1_2_5SetReservedWord = 141,
+	kOpV1_2_5Reserved = 143
+};
+
 enum NativeTimerProc_v1_2_3 {
 	kNativeTimerV1_2_3ComboHistory = 1,
 	kNativeTimerV1_2_3KeyRelease
@@ -356,9 +405,10 @@ struct DeviceGroup_v1_2_3 {
 	byte remap;
 	byte latchMode;
 	byte device;
+	byte attached;
 
 	DeviceGroup_v1_2_3() : history(0), lastCode(0), pressedMask(0), stateScript(0), numBindingsA(0), numBindingsB(0),
-		type(0), remap(0), latchMode(0), device(0) {}
+		type(0), remap(0), latchMode(0), device(0), attached(0) {}
 };
 
 struct NativeTimer_v1_2_3 {
@@ -382,7 +432,7 @@ class TopgunEngine_v1_2_3 : public TopgunEngine_v1_2 {
 	friend class TopgunEngine_v1_2;
 
 public:
-	TopgunEngine_v1_2_3(OSystem *syst, const ADGameDescription *gameDesc);
+	TopgunEngine_v1_2_3(OSystem *syst, const ADGameDescription *gameDesc, EngineVersion version);
 	~TopgunEngine_v1_2_3() override;
 
 protected:
@@ -425,6 +475,9 @@ protected:
 
 	// Transitions
 	void wipeEffectIrisRings(uint16 rings);
+	void wipeEffectInterlacedRows(uint16 duration, uint16 count);
+	void wipeEffectSlideColumns(int16 direction, uint16 duration, uint16 steps);
+	void wipeEffectSlideRows(int16 direction, uint16 duration, uint16 steps);
 
 	// Interpreter
 	bool executeScriptOp(byte *ip, uint16 *advance) override;
@@ -500,6 +553,10 @@ protected:
 
 	// Click, hover and drag regions
 	bool postRunScript(uint16 script, uint16 argument1, uint16 argument2) override;
+	void cancelMouseCapture();
+	void idleRearm();
+	void idleCheck();
+	void callRubberBandScript();
 	bool updateSpriteHoverFromPoint(int16 x, int16 y);
 	void postSpriteLeaveScript();
 
@@ -519,6 +576,8 @@ protected:
 	uint16 deleteDeviceBinding(uint16 index, uint16 count, DeviceBinding_v1_2_3 *list);
 	uint16 updateDeviceBindingList(uint16 maxEntries, uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
 	void fireDeviceGroupStateScript(byte group);
+	void releaseOrRestoreDeviceGroups(bool release);
+	void resetDeviceGroup(byte value, byte group);
 	void comboHistoryTimeoutCallback(byte timerId);
 	void scanDeviceBindingsListB(byte group);
 	void deviceGroupInputEvent(byte code, byte device);
@@ -560,21 +619,29 @@ protected:
 	Common::Rect _mouseStickOuterRect;
 	uint16 _mouseStickCode = 0;
 
-	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS] = {
+	// The last two slots of each set are used only from the later version on
+	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
 		{ 0x46, 0x56, 0x43, 0x42, 0x31, 0x32 },
 		{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 }
 	};
 
-	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS] = {
+	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
 	};
 
 	// Interpreter state
 	uint16 _debugScriptId = 0;
+	uint16 _reservedScriptWord = 0;
+	uint16 _waveStartedScript = 0;
+	uint16 _idleScript = 0;
+	uint32 _idleDelay = 0;
+	uint32 _idleDeadline = 0;
+	uint16 _rubberBandScript = 0;
+	bool _wallpaperSelectionEnabled = true;
 	byte _postedRuns[TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS * TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE] = {};
-	char _quitSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE] = {};
-	char _gotoSceneName[TG_HOST_V1_2_3_SCENE_NAME_SIZE] = {};
+	char _quitSceneName[TG_HOST_V1_2_5_SCENE_NAME_SIZE] = {};
+	char _gotoSceneName[TG_HOST_V1_2_5_SCENE_NAME_SIZE] = {};
 	// The memory check is not emulated; the scripts compare this value with 53 as a signed number (53 * 65536 is about 3.4 MB), so it stands for plenty of memory
 	uint16 _freeMemoryHigh = 0x7FFF;
 

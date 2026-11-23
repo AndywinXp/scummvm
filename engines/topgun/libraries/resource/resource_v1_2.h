@@ -139,6 +139,12 @@
 #define TG_RES_V1_2_3_HEADER_SIZE                  0x11E
 #define TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS          16
 
+// Container header of the version after that: longer title, 24 resident chunks, longer library name
+#define TG_RES_V1_2_5_HEADER_SIZE                  0x142
+#define TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS          24
+#define TG_RES_V1_2_5_HEADER_TITLE_MAX_SIZE        0x52
+#define TG_RES_V1_2_5_LIBRARY_NAME_SIZE            16
+
 namespace Topgun {
 
 class TopgunEngine_v1_2;
@@ -255,9 +261,9 @@ protected:
 		LzwState *lzwState;
 
 		// Fields of the later version
-		byte fullHeader[TG_RES_V1_2_3_HEADER_SIZE];
-		uint32 limits[TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS + 1];
-		byte *residentChunks[TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS];
+		byte fullHeader[TG_RES_V1_2_5_HEADER_SIZE];
+		uint32 limits[TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS + 1];
+		byte *residentChunks[TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS];
 		byte *variablePairs;
 		uint16 chunkCount;
 		uint16 maxFadeColors;
@@ -277,13 +283,13 @@ protected:
 			for (uint16 i = 0; i < TG_RES_V1_2_2_HEADER_SIZE; i++)
 				header[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_5_HEADER_SIZE; i++)
 				fullHeader[i] = 0;
 
-			for (uint16 i = 0; i <= TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i <= TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS; i++)
 				limits[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS; i++)
 				residentChunks[i] = nullptr;
 		}
 	};
@@ -328,7 +334,7 @@ protected:
 	LzwState *lzwAllocState();
 	void lzwFreeState(LzwState *state);
 	static uint32 decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, DecodeLimits &limits);
-	static bool decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, uint32 remaining, const byte *sourceEnd);
+	bool decodeSegmentedBitmapStream(LzwState *state, const byte *source, byte *destination, uint32 remaining, const byte *sourceEnd);
 	static void rleExpandBitmap(byte *destination, uint32 destinationSize, const byte *source, uint32 sourceSize);
 	static void lzwInitCodeWidth(LzwState *state, uint16 bits);
 	static uint16 lzwReadCode(LzwState *state, const byte *&source, DecodeLimits &limits);

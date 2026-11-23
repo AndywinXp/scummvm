@@ -150,6 +150,37 @@ uint16 AudioLibrary_v1_2::audioSetCdVolume(uint32 volume) {
 	return setCDAudioVolume(volume);
 }
 
+uint16 AudioLibrary_v1_2_3::audioSetCdVolume(uint32 volume) {
+	uint16 result = AudioLibrary_v1_2::audioSetCdVolume(volume);
+
+	if (_engine->_version >= kVersionV1_2_6 && result != 0) {
+		_iniCdVolume = (uint16)volume;
+		saveCdVolumeToIni();
+	}
+
+	return result;
+}
+
+bool AudioLibrary_v1_2_3::openCDAudioDevice() {
+	if (_cdDeviceId != 0)
+		return true;
+
+	if (!AudioLibrary::openCDAudioDevice())
+		return false;
+
+	if (_engine->_version >= kVersionV1_2_6) {
+		_cdAuxSavedVolume = _cdAuxVolume;
+
+		if (_iniCdVolume != 0)
+			setCDAudioVolume(((uint32)_iniCdVolume << 16) | _iniCdVolume);
+
+		if (_mute)
+			muteCDAudio();
+	}
+
+	return true;
+}
+
 uint16 AudioLibrary_v1_2::audioStopCd() {
 	return stopCDIfOwned();
 }
@@ -158,6 +189,12 @@ uint16 AudioLibrary_v1_2_3::closeCDAudioDevice() {
 	DeviceParms parms;
 
 	sendCdDeviceCommand(TG_AUDIO_DEV_STOP, TG_AUDIO_DEV_WAIT, parms);
+
+	if (_engine->_version >= kVersionV1_2_6 && _cdAuxPresent) {
+		_cdAuxVolume = _cdAuxSavedVolume;
+		applyCdVolume(_cdAuxSavedVolume);
+	}
+
 	sendCdDeviceCommand(TG_AUDIO_DEV_CLOSE, TG_AUDIO_DEV_WAIT, parms);
 	_cdDeviceId = 0;
 	resetWaveQueueAndEnableAllWaves(0);

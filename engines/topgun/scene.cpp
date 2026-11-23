@@ -187,7 +187,11 @@ void TopgunEngine_v1_0::cleanupCurrentSceneAndContainer() {
 
 SceneEntry_v1_2 *TopgunEngine_v1_2::findOrCreateSceneEntry(const Common::String &name) {
 	Common::String sceneName = Common::Path(name, '\\').baseName();
-	uint32 nameSize = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SCENE_NAME_SIZE : TG_HOST_SCENE_NAME_SIZE;
+	uint32 nameSize = TG_HOST_SCENE_NAME_SIZE;
+	if (_version >= kVersionV1_2_5)
+		nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
+	else if (_version >= kVersionV1_2_3)
+		nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
 
 	_currentSceneIndex = 0;
 
@@ -258,6 +262,12 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		_mouseEventScript = 0;
 		newer->_numNativeTimers = 0;
 		newer->_activateScript = 0;
+
+		if (_version >= kVersionV1_2_6) {
+			newer->_waveStartedScript = 0;
+			newer->_idleScript = 0;
+		}
+
 		clearJoystickScripts();
 		newer->clearDeviceState();
 	} else if (_version >= kVersionV1_2_2) {
@@ -329,7 +339,12 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 }
 
 void TopgunEngine_v1_2::switchToNextScene(const char *name) {
-	uint32 nameSize = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_SCENE_NAME_SIZE : TG_HOST_SCENE_NAME_SIZE;
+	uint32 nameSize = TG_HOST_SCENE_NAME_SIZE;
+	if (_version >= kVersionV1_2_5)
+		nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
+	else if (_version >= kVersionV1_2_3)
+		nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
+
 	uint32 numSceneVariables = TG_HOST_V1_2_NUM_SCENE_VARIABLES;
 	if (_version >= kVersionV1_2_3)
 		numSceneVariables = TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
@@ -530,6 +545,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 	_postSceneEndEnabled = true;
 	_backgroundColor = 0;
+	_solidBackground = false;
 	_displayZoomMode = 0;
 	_mouseEventScript = 0;
 	_scriptArgStackOffset = 0;
@@ -671,14 +687,18 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 	if (_version < kVersionV1_2_1)
 		_deferBitmapLoading = false;
 
-	byte title[TG_HOST_V1_2_CONTAINER_TITLE_SIZE];
+	byte title[TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE];
+	uint16 titleSize = TG_HOST_V1_2_CONTAINER_TITLE_SIZE;
+	if (_version >= kVersionV1_2_5)
+		titleSize = TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE;
+
 	memset(title, 0, sizeof(title));
-	resourceLib()->resGetTitle(_file, title, TG_HOST_V1_2_CONTAINER_TITLE_SIZE);
+	resourceLib()->resGetTitle(_file, title, titleSize);
 
 	_containerTitle.clear();
 	if (title[0] != 0) {
 		uint32 length = 0;
-		while (length < sizeof(title) - 1 && title[1 + length] != 0)
+		while (length < titleSize - 1 && title[1 + length] != 0)
 			length++;
 
 		_containerTitle = Common::String((const char *)(title + 1), length);
@@ -706,8 +726,12 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_maxFadeColors = library->resGetMaxFadeColors(_file);
 		_maxTransColors = library->resGetMaxTransColors(_file);
 
-		char libraryName[15];
-		library->resGetLibraryName(_file, libraryName, 15);
+		char libraryName[TG_HOST_V1_2_5_LIBRARY_NAME_SIZE];
+		uint16 libraryNameSize = TG_HOST_V1_2_3_LIBRARY_NAME_SIZE;
+		if (_version >= kVersionV1_2_5)
+			libraryNameSize = TG_HOST_V1_2_5_LIBRARY_NAME_SIZE;
+
+		library->resGetLibraryName(_file, libraryName, libraryNameSize);
 		if (libraryName[0] != 0 && !newer->loadPluginLibrary(libraryName)) {
 			newer->fatalError(102, Common::String::format("Can't open file '%s'.", libraryName));
 			return false;

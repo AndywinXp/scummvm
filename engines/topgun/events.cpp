@@ -49,8 +49,12 @@ void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 		} while (index < _numScheduledTimers);
 	}
 
-	if (index >= TG_HOST_V1_2_MAX_SCHEDULED_TIMERS)
+	if (index >= TG_HOST_V1_2_MAX_SCHEDULED_TIMERS) {
+		if (_version >= kVersionV1_2_5)
+			fatalError(116, "Out of timers.");
+
 		return;
+	}
 
 	if (_numScheduledTimers == index)
 		_numScheduledTimers++;
@@ -181,10 +185,14 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 			return true;
 		}
 
-		if (!newer->validateResourceType(READ_LE_UINT16(record + 2), kResV1_2_3Sprite))
+		uint16 spriteType = kResV1_2_3Sprite;
+		if (_version >= kVersionV1_2_5)
+			spriteType = kResV1_2_5Sprite;
+
+		if (!newer->validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 			return false;
 
-		if (!newer->validateResourceType(READ_LE_UINT16(record + 4), kResV1_2_3Sprite))
+		if (!newer->validateResourceType(READ_LE_UINT16(record + 4), spriteType))
 			return false;
 	}
 
@@ -348,8 +356,12 @@ void TopgunEngine_v1_2_3::addNativeTimer(uint16 id, uint32 interval, uint16 proc
 		} while (index < _numNativeTimers);
 	}
 
-	if (index >= TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS)
+	if (index >= TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS) {
+		if (_version >= kVersionV1_2_5)
+			fatalError(116, "Out of timers.");
+
 		return;
+	}
 
 	if (_numNativeTimers == index)
 		_numNativeTimers++;

@@ -151,8 +151,8 @@ public:
 	uint16 audioMasterFadeIn(uint32 milliseconds);
 	uint16 audioMasterFadeOut(uint32 milliseconds);
 	uint16 audioGetWaveDeviceInfo(uint32 *info);
-	uint32 audioGetWaveVolume();
-	void audioSetWaveVolume(uint32 volume);
+	virtual uint32 audioGetWaveVolume();
+	virtual void audioSetWaveVolume(uint32 volume);
 	void audioSetWaveFormats(uint16 mask);
 	void audioMute(int16 muted);
 
@@ -187,7 +187,7 @@ public:
 	uint16 audioIsCdPlaying();
 	uint16 audioPlayCd(uint32 from, uint32 to);
 	uint16 audioPlayCdTrack(uint16 track);
-	uint16 audioSetCdVolume(uint32 volume);
+	virtual uint16 audioSetCdVolume(uint32 volume);
 	uint16 audioStopCd();
 
 protected:
@@ -384,6 +384,7 @@ protected:
 	uint16 _soundCount = 0;
 	uint16 _activeSounds = 0;
 	uint16 _nextSoundHandle = 1;
+	int16 _maxPriority = 0;
 
 	// CD audio
 	uint32 _cdMuteSavedVolume = 0;
