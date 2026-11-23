@@ -24,6 +24,9 @@
 
 #include "common/array.h"
 #include "common/formats/ini-file.h"
+#include "common/hashmap.h"
+#include "common/hash-str.h"
+#include "common/path.h"
 #include "common/stream.h"
 #include "common/textconsole.h"
 
@@ -168,6 +171,7 @@
 #define TG_MOVIE_V1_2_COMMAND_FRAME_READY        0x0A
 
 // Text objects
+#define TG_TEXT_V1_2_FONT_FULL_NAME              4
 #define TG_TEXT_V1_2_DATA_SIZE                   17
 #define TG_TEXT_V1_2_DATA_COLOR                  4
 #define TG_TEXT_V1_2_DATA_FACE                   6
@@ -826,6 +830,8 @@ protected:
 	uint16 destroyTextObject(uint16 handle);
 	TextObject_v1_2 *textObjectFromHandle(uint16 handle);
 	void createTextObjectFont(TextObject_v1_2 *object);
+	void loadGameFonts();
+	Graphics::Font *createGameFont(const Common::String &face, int size, bool cell);
 	Graphics::ManagedSurface *renderTextToBitmap(uint16 color, const char *text, const Graphics::Font *font);
 	byte *buildTextObjectBitmap(TextObject_v1_2 *object);
 	byte *createDIBFromBitmapHandle(const Graphics::ManagedSurface *bitmap, bool remap, byte color);
@@ -943,6 +949,8 @@ protected:
 	uint16 _movieList[TG_HOST_V1_2_MAX_MOVIES] = {};
 	Common::Array<TextObject_v1_2 *> _textObjects;
 	Common::Array<TextFont_v1_2> _textFonts;
+	Common::HashMap<Common::String, Common::Path, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> _gameFonts;
+	bool _gameFontsLoaded = false;
 	uint16 _nextTextFontHandle = 1;
 	char _textEditUndo[TG_TEXT_V1_2_TEXT_SIZE] = {};
 	Common::INIFile _iniFile;

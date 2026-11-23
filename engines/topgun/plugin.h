@@ -60,6 +60,8 @@ public:
 	virtual const char *getString(uint16 id) = 0; // RT_036
 	virtual void copyStringVariable(uint16 index, char *destination) = 0; // RT_037
 	virtual void setScriptResult(uint16 value) = 0; // RT_038
+	virtual uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) = 0;
+	virtual void writePrivateProfileString(const char *section, const char *key, const char *value) = 0;
 };
 
 class Plugin;

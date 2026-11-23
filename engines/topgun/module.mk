@@ -7,6 +7,25 @@ MODULE_OBJS = \
 	display.o \
 	events.o \
 	expression.o \
+	games/battle/battle.o \
+	games/battle/battle_ai.o \
+	games/battle/battle_geometry.o \
+	games/battle/battle_hit.o \
+	games/battle/battle_hooks.o \
+	games/battle/battle_input.o \
+	games/battle/battle_moves.o \
+	games/battle/battle_scene.o \
+	games/battle/battle_shared.o \
+	games/battle/battle_special.o \
+	games/battle/battle_stats.o \
+	games/battle/battle_type0.o \
+	games/battle/battle_type1.o \
+	games/battle/battle_type2.o \
+	games/battle/battle_type3.o \
+	games/battle/battle_type4.o \
+	games/battle/battle_type5.o \
+	games/battle/battle_type6.o \
+	games/battle/battle_weapons.o \
 	ini.o \
 	input.o \
 	libraries/audio/audio.o \

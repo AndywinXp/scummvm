@@ -1,0 +1,188 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "topgun/games/battle/battle.h"
+
+namespace Topgun {
+
+void BattlePlugin::initTablesType6() {
+	FighterTypeData *data = &_typeData[6];
+
+	const uint16 varList[kVarListSize] = {
+		0x0087, 0x0088, 0x0089, 0x008A, 0x008B, 0x008C, 0x008D, 0x008E,
+		0x008F, 0x0090, 0x0000, 0x9AD4, 0x0000, 0x9AD8, 0x0092
+	};
+	for (int i = 0; i < kVarListSize; i++)
+		data->varList[i] = varList[i];
+
+	const Common::Rect rects[kRectCount] = {
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{-36, -51, 46, 41},
+		{-46, -51, 36, 41},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0}
+	};
+	for (int i = 0; i < kRectCount; i++)
+		data->rects[i] = rects[i];
+
+	const int16 offsetsX[kRectCount] = {
+		0, 0, 0, 0, 0, 0
+	};
+	for (int i = 0; i < kRectCount; i++)
+		data->offsetsX[i] = offsetsX[i];
+
+	const WalkStep walkSteps[kWalkStepCount] = {
+		{0, 0},
+		{57, 57},
+		{0, 0}
+	};
+	for (int i = 0; i < kWalkStepCount; i++)
+		data->walkSteps[i] = walkSteps[i];
+
+	const uint16 knockDistances[kSetCount] = {
+		0, 106
+	};
+	for (int i = 0; i < kSetCount; i++)
+		data->knockDistances[i] = knockDistances[i];
+
+	const int16 offsetsY[kSetCount] = {
+		0, 112
+	};
+	for (int i = 0; i < kSetCount; i++)
+		data->offsetsY[i] = offsetsY[i];
+
+	const uint16 sprites[kSpriteTableSize] = {
+		0x9A2A, 0x0000, 0x0000, 0x0000, 0x0000
+	};
+	for (int i = 0; i < kSpriteTableSize; i++)
+		data->sprites[i] = sprites[i];
+
+	const uint16 animations[kAnimationTableSize] = {
+		0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+		0x9A4F, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x9A2B, 0x9A2E,
+		0x9A2F, 0x9A30, 0x9A40, 0x9A41, 0x0000, 0x0000, 0x9A36, 0x9A31, 0x9A42, 0x9A34,
+		0x9A38, 0x9A37, 0x9A39, 0x9A3A, 0x9A3B, 0x9A32, 0x9A33, 0x9A35, 0x9A3C, 0x9A3E,
+		0x9A3D, 0x9A4F, 0x9A43, 0x9A44, 0x9A45, 0x9A46, 0x9A47, 0x9A2E, 0x9A2F, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x9A49, 0x9A4A, 0x9A4B, 0x9A4C, 0x0000, 0x0000, 0x9A48,
+		0x9A48, 0x0000, 0x9A48, 0x0000, 0x9A4D, 0x0000, 0x9A4E, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000, 0x9AE4, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+		0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+		0x9A3F, 0x0000, 0x0000
+	};
+	for (int i = 0; i < kAnimationTableSize; i++)
+		data->animations[i] = animations[i];
+
+	const uint16 remap[kRemapSize] = {
+		0x00, 0x01, 0x03, 0x05, 0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x12,
+		0x13, 0x14, 0x15, 0x16, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B,
+		0x2C, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+		0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+		0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x57,
+		0x58, 0x5C, 0x5D, 0x60, 0x61, 0x62, 0x63, 0x64, 0x00
+	};
+	for (int i = 0; i < kRemapSize; i++)
+		data->remap[i] = remap[i];
+
+	data->combos[0].pattern = 0xFFFFFFFF;
+	data->combos[0].mask = 0x00000000;
+
+	const MoveEntry moves[29] = {
+		{&BattlePlugin::moveIdle, 0x14, 1, nullptr, 0},
+		{&BattlePlugin::moveWalk, 0x15, 1, nullptr, 0},
+		{&BattlePlugin::moveWalk, 0x16, 1, nullptr, 0},
+		{&BattlePlugin::moveTurn, 0x17, 1, nullptr, 0},
+		{&BattlePlugin::moveJumpUp, 0x19, 1, _specialMoves.evilToadManBeastJumpSteerAndDive, 0x9A74},
+		{&BattlePlugin::moveWallBounce, 0x1A, 0, nullptr, 0},
+		{&BattlePlugin::moveWallBounce, 0x1B, 0, nullptr, 0},
+		{&BattlePlugin::moveCrouch, 0x25, 1, nullptr, 0},
+		{&BattlePlugin::moveGuard, 0x26, 1, nullptr, 0},
+		{&BattlePlugin::moveAttackCloseRange, 0x1C, 1, nullptr, 0},
+		{&BattlePlugin::moveAttackCloseRange, 0x1D, 1, nullptr, 0},
+		{&BattlePlugin::moveKnockOut, 0x29, 1, nullptr, 0},
+		{&BattlePlugin::moveJump, 0x35, 1, nullptr, 0},
+		{&BattlePlugin::moveJump, 0x36, 1, nullptr, 0},
+		{&BattlePlugin::moveJumpAttack, 0x37, 1, _specialMoves.evilToadManBeastJumpAttackBackBoost, 0x9A6F},
+		{&BattlePlugin::moveJumpAttack, 0x38, 1, _specialMoves.evilToadManBeastJumpAttackForwardBoost, 0x9A6F},
+		{&BattlePlugin::moveGuard, 0x4F, 1, nullptr, 0},
+		{&BattlePlugin::moveAttackHoldButton2, 0x1E, 1, nullptr, 0x0006},
+		{&BattlePlugin::moveAttack, 0x1F, 1, nullptr, 0},
+		{&BattlePlugin::moveAttack, 0x20, 1, nullptr, 0},
+		{&BattlePlugin::moveAttack, 0x21, 1, nullptr, 0},
+		{&BattlePlugin::moveAttack, 0x22, 1, nullptr, 0},
+		{&BattlePlugin::moveAttack, 0x23, 1, _specialMoves.evilToadManBeastSpinAttackChain, 0},
+		{&BattlePlugin::moveAttack, 0x24, 1, nullptr, 0},
+		{&BattlePlugin::moveProjectile, 0x48, 1, nullptr, 0},
+		{&BattlePlugin::moveAttack, 0x4D, 1, nullptr, 0},
+		{&BattlePlugin::moveAttackBoost, 0x00, 1, nullptr, 0},
+		{&BattlePlugin::moveSelectWeapon, 0x00, 1, nullptr, 0},
+		{nullptr, 0x00, 0, nullptr, 0}
+	};
+	for (int i = 0; i < 29; i++)
+		data->moves[1][i] = moves[i];
+
+	const HitBox hits[16] = {
+		{0x9A5F, 1, 2, 0, 0, 0x0014, 0x0064, 10, 0, 12, 76, 67},
+		{0x9A8F, 1, 2, 0, 0, 0x0014, 0x0032, 5, 0, 27, 56, 102},
+		{0x9A91, 1, 0, 0, 0, 0x0014, 0x0032, 5, 0, 0, 60, 93},
+		{0x9A63, 1, 0, 0, 0, 0x0014, 0x0064, 10, 0, 0, 118, 80},
+		{0x9A69, 1, 0, 0, 0, 0x0014, 0x0064, 10, 0, 7, 79, 57},
+		{0x9A6B, 1, -1, 1, 0, 0x0014, 0x0096, 15, 0, 49, 50, 48},
+		{0x9A6C, 1, -1, 1, 0, 0x0014, 0x0096, 15, 0, 0, 46, 87},
+		{0x9A6D, 1, -1, 1, 0, 0x0014, 0x0096, 15, 0, 0, 56, 53},
+		{0x9A79, 1, 0, 0, 4, 0x0014, 0x01F4, 10, 0, 27, 39, 38},
+		{0x9A7A, 1, 0, 0, 2, 0x001E, 0x01F4, 20, 0, 0, 141, 80},
+		{0x9A7F, 1, 2, 4, 0, 0x0014, 0x0096, 15, 0, 63, 78, 65},
+		{0x9A80, 1, 1, 4, 0, 0x0014, 0x0096, 15, 14, 94, 48, 66},
+		{0x9A88, 1, 2, 3, 0, 0x0014, 0x0064, 10, 0, 65, 142, 49},
+		{0x9A52, 1, 0, 0, 0, 0x001E, 0x0096, 15, 0, 12, 76, 67},
+		{0x9A53, 1, 0, 0, 0, 0x001E, 0x0096, 15, 0, 7, 79, 57},
+		{0xFFFF, 0, 0, 0, 0, 0x0000, 0x0000, 0, 0, 0, 0, 0}
+	};
+	for (int i = 0; i < 16; i++)
+		data->hits[1][i] = hits[i];
+
+	const AiRecord aiList[17] = {
+		{0x09, 0x00, 0x0000, 0x0000, 0x0000, 100, 120, 0x0082, 0x0000, 0, 0, 0},
+		{0x0A, 0x00, 0x0000, 0x0000, 0x0000, 140, 120, 0x0002, 0x0000, 0, 0, 0},
+		{0x13, 0x00, 0x0000, 0x0000, 0x0000, 65, 240, 0x0008, 0x0000, 0, 0, 0},
+		{0x09, 0x0A, 0x0000, 0x0000, 0x0000, 85, 120, 0x0082, 0x0000, 0, 0, 0},
+		{0x11, 0x00, 0x0000, 0x0000, 0x0000, 45, 600, 0x0040, 0x0000, 0, 0, 0},
+		{0x14, 0x00, 0x0000, 0x0000, 0x0000, 90, 100, 0x0189, 0x0000, 0, 0, 0},
+		{0x15, 0x00, 0x0000, 0x0000, 0x0000, 90, 120, 0x0103, 0x0000, 0, 0, 0},
+		{0x16, 0x00, 0x0000, 0x0000, 0x0000, 75, 130, 0x000B, 0x0000, 0, 0, 0},
+		{0x13, 0x13, 0x0914, 0x0000, 0x0000, 50, 240, 0x0108, 0x0000, 0, 0, 0},
+		{0x16, 0x15, 0x0013, 0x0000, 0x0000, 50, 240, 0x014B, 0x0000, 0, 0, 0},
+		{0x04, 0x0F, 0x1716, 0x0007, 0x0008, 10, 300, 0x0063, 0x0000, 0, 0, 0},
+		{0x14, 0x12, 0x0000, 0x0000, 0x0000, 65, 100, 0x0188, 0x0000, 0, 0, 0},
+		{0x16, 0x17, 0x0000, 0x0008, 0x0000, 30, 130, 0x000F, 0x0000, 0, 0, 0},
+		{0x12, 0x00, 0x0000, 0x0000, 0x0000, 80, 120, 0x0000, 0x0000, 0, 0, 0},
+		{0x04, 0x0E, 0x001A, 0x0707, 0x0000, 10, 250, 0x0464, 0x00C0, 0, 0, 0},
+		{0x04, 0x0F, 0x001A, 0x0704, 0x0000, 10, 250, 0x0260, 0x00C1, 0, 0, 0},
+		{0xFF, 0xFF, 0xFFFF, 0x0000, 0x0000, 0, 0, 0x0000, 0x0000, 0, 0, 0}
+	};
+	for (int i = 0; i < 17; i++)
+		data->aiList[i] = aiList[i];
+}
+
+} // End of namespace Topgun

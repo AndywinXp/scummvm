@@ -675,7 +675,13 @@ void SpriteLibrary_v1_2::spriteReplaceBitmap(uint16 sprite, const CelReference &
 
 	bool replaced = false;
 	for (uint16 i = 0; i < object->frames.size(); i++) {
-		if (object->frames[i] == oldCel.bitmap && object->frameIds[i] == oldCel.id) {
+		bool same;
+		if (oldCel.bitmap)
+			same = (object->frames[i] == oldCel.bitmap);
+		else
+			same = (!object->frames[i] && object->frameIds[i] == oldCel.id);
+
+		if (same) {
 			object->frames[i] = newCel.bitmap;
 			object->frameIds[i] = newCel.id;
 			replaced = true;
@@ -689,7 +695,7 @@ void SpriteLibrary_v1_2::spriteReplaceBitmap(uint16 sprite, const CelReference &
 		bool changed = false;
 		if (object->parts) {
 			for (uint16 i = 0; i < object->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++) {
-				if (object->parts->parts[i].frame == oldCel.bitmap && oldCel.id == 0) {
+				if (oldCel.bitmap && object->parts->parts[i].frame == oldCel.bitmap) {
 					object->parts->parts[i].frame = newCel.bitmap;
 					changed = true;
 				}
@@ -701,7 +707,7 @@ void SpriteLibrary_v1_2::spriteReplaceBitmap(uint16 sprite, const CelReference &
 
 		recomputeCelBoxArray(sprite);
 	} else {
-		if (object->currentFrame != oldCel.bitmap || oldCel.id != 0)
+		if (!oldCel.bitmap || object->currentFrame != oldCel.bitmap)
 			return;
 
 		object->currentFrame = newCel.bitmap;

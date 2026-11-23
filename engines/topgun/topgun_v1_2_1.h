@@ -68,6 +68,7 @@
 
 // Plug-ins
 #define TG_PLUGIN_V1_2_1_STRING_COPY_SIZE          0x7F
+#define TG_PLUGIN_V1_2_1_FRAME_IDS_SIZE            4
 
 // Resource objects
 #define TG_HOST_V1_2_1_SPRITE_DATA_ORIGINAL_COUNT  2

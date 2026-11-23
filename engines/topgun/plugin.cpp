@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "topgun/games/battle/battle.h"
 #include "topgun/libraries/resource/resource_v1_2_1.h"
 #include "topgun/libraries/sprite/sprite_v1_2_1.h"
 #include "topgun/libraries/utils/utils.h"
@@ -60,6 +61,8 @@ public:
 	const char *getString(uint16 id) override;
 	void copyStringVariable(uint16 index, char *destination) override;
 	void setScriptResult(uint16 value) override;
+	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) override;
+	void writePrivateProfileString(const char *section, const char *key, const char *value) override;
 	void setMessageFilter(Plugin *plugin) override;
 	void setNetworkMessageCallback(Plugin *plugin) override;
 
@@ -185,7 +188,13 @@ void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
 	SpriteInfo_v1_2_1 info;
 	_engine->spriteLib()->spriteGetInfo(_engine->_records[index].handle, info);
 
-	for (uint16 i = 0; i < info.frameCount; i++) {
+	uint16 count = info.frameCount;
+	if (count > TG_PLUGIN_V1_2_1_FRAME_IDS_SIZE) {
+		warning("EnginePluginHost::getSpriteFrameIds(): the sprite has %d frames", count);
+		count = TG_PLUGIN_V1_2_1_FRAME_IDS_SIZE;
+	}
+
+	for (uint16 i = 0; i < count; i++) {
 		if (info.frames[i])
 			ids[i] = READ_LE_UINT16(info.frames[i] + TG_HOST_V1_2_1_BITMAP_RESOURCE_ID);
 	}
@@ -343,6 +352,14 @@ void EnginePluginHost::setScriptResult(uint16 value) {
 	_engine->_scriptResult = value;
 }
 
+uint16 EnginePluginHost::getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) {
+	return _engine->getPrivateProfileInt(section, key, defaultValue);
+}
+
+void EnginePluginHost::writePrivateProfileString(const char *section, const char *key, const char *value) {
+	_engine->writePrivateProfileString(section, key, value);
+}
+
 void EnginePluginHost::setMessageFilter(Plugin *plugin) {
 	_engine->_messageFilter = plugin;
 }
@@ -352,6 +369,9 @@ void EnginePluginHost::setNetworkMessageCallback(Plugin *plugin) {
 }
 
 Plugin *createPlugin(const Common::String &name, PluginHost *host) {
+	if (name.equalsIgnoreCase("BATTLE.DLL"))
+		return new BattlePlugin(host);
+
 	return nullptr;
 }
 

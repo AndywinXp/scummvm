@@ -19,7 +19,9 @@
  *
  */
 
+#include "common/archive.h"
 #include "common/endian.h"
+#include "common/file.h"
 #include "common/str.h"
 #include "common/textconsole.h"
 #include "common/ustr.h"
@@ -220,6 +222,95 @@ void TopgunEngine_v1_2::unregisterTextObjectSpriteUse(uint16 object, uint16 spri
 	}
 }
 
+void TopgunEngine_v1_2::loadGameFonts() {
+	_gameFontsLoaded = true;
+
+	Common::ArchiveMemberList members;
+	SearchMan.listMatchingMembers(members, "*.ttf");
+
+	for (Common::ArchiveMemberList::const_iterator it = members.begin(); it != members.end(); ++it) {
+		Common::SeekableReadStream *stream = (*it)->createReadStream();
+		if (!stream)
+			continue;
+
+		Common::String fullName;
+		uint16 numTables = 0;
+
+		if (stream->size() >= 12) {
+			stream->skip(4);
+			numTables = stream->readUint16BE();
+			stream->skip(6);
+		}
+
+		uint32 nameOffset = 0;
+		for (uint16 i = 0; i < numTables; i++) {
+			uint32 tag = stream->readUint32BE();
+			stream->skip(4);
+			uint32 offset = stream->readUint32BE();
+			stream->skip(4);
+
+			if (tag == MKTAG('n', 'a', 'm', 'e')) {
+				nameOffset = offset;
+				break;
+			}
+		}
+
+		if (nameOffset != 0 && stream->seek(nameOffset + 2)) {
+			uint16 count = stream->readUint16BE();
+			uint16 stringOffset = stream->readUint16BE();
+
+			for (uint16 i = 0; i < count && fullName.empty(); i++) {
+				uint16 platform = stream->readUint16BE();
+				stream->skip(4);
+				uint16 nameId = stream->readUint16BE();
+				uint16 length = stream->readUint16BE();
+				uint16 offset = stream->readUint16BE();
+
+				if (nameId != TG_TEXT_V1_2_FONT_FULL_NAME || (platform != 1 && platform != 3))
+					continue;
+
+				int32 next = stream->pos();
+				if (!stream->seek(nameOffset + stringOffset + offset))
+					break;
+
+				for (uint16 j = 0; j < length; j += (platform == 3) ? 2 : 1) {
+					byte first = stream->readByte();
+					byte character = (platform == 3) ? stream->readByte() : first;
+
+					fullName += (char)character;
+				}
+
+				stream->seek(next);
+			}
+		}
+
+		if (!fullName.empty())
+			_gameFonts.setVal(fullName, (*it)->getPathInArchive());
+
+		delete stream;
+	}
+}
+
+Graphics::Font *TopgunEngine_v1_2::createGameFont(const Common::String &face, int size, bool cell) {
+#ifdef USE_FREETYPE2
+	if (!_gameFontsLoaded)
+		loadGameFonts();
+
+	if (!_gameFonts.contains(face))
+		return nullptr;
+
+	Common::File *file = new Common::File();
+	if (!file->open(_gameFonts[face])) {
+		delete file;
+		return nullptr;
+	}
+
+	return Graphics::loadTTFFont(file, DisposeAfterUse::YES, size, cell ? Graphics::kTTFSizeModeCell : Graphics::kTTFSizeModeCharacter, 0, 0, Graphics::kTTFRenderModeMonochrome);
+#else
+	return nullptr;
+#endif
+}
+
 void TopgunEngine_v1_2::createTextObjectFont(TextObject_v1_2 *object) {
 	const char *face = getStringFromId(READ_LE_UINT16(object->data + TG_TEXT_V1_2_DATA_FACE));
 
@@ -248,7 +339,10 @@ void TopgunEngine_v1_2::createTextObjectFont(TextObject_v1_2 *object) {
 	int size = (height != 0) ? ABS((int)height) : TG_TEXT_V1_2_DEFAULT_HEIGHT;
 	Graphics::TTFSizeMode sizeMode = (height < 0) ? Graphics::kTTFSizeModeCharacter : Graphics::kTTFSizeModeCell;
 
-	object->font = Graphics::loadTTFFontFromArchive(file, size, sizeMode, 0, 0, Graphics::kTTFRenderModeMonochrome);
+	object->font = createGameFont(name, size, height >= 0);
+	if (!object->font)
+		object->font = Graphics::loadTTFFontFromArchive(file, size, sizeMode, 0, 0, Graphics::kTTFRenderModeMonochrome);
+
 	if (object->font)
 		object->fontOwned = true;
 #endif
@@ -288,7 +382,10 @@ uint16 TopgunEngine_v1_2_1::createTextObjectFont(int16 height, const char *face)
 	int size = (height != 0) ? ABS((int)height) : TG_TEXT_V1_2_DEFAULT_HEIGHT;
 	Graphics::TTFSizeMode sizeMode = (height < 0) ? Graphics::kTTFSizeModeCharacter : Graphics::kTTFSizeModeCell;
 
-	entry.font = Graphics::loadTTFFontFromArchive(file, size, sizeMode, 0, 0, Graphics::kTTFRenderModeMonochrome);
+	entry.font = createGameFont(name, size, height >= 0);
+	if (!entry.font)
+		entry.font = Graphics::loadTTFFontFromArchive(file, size, sizeMode, 0, 0, Graphics::kTTFRenderModeMonochrome);
+
 	if (entry.font)
 		entry.owned = true;
 #endif

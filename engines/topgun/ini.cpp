@@ -87,7 +87,7 @@ void TopgunEngine_v1_2::writePrivateProfileString(const char *section, const cha
 	loadIniFile();
 
 	if (!_iniFile.isValidName(section)) {
-		warning("TopgunEngine_v1_2::writePrivateProfileString(): the section name '%s' cannot be stored", section);
+		warning("TopgunEngine_v1_2::writePrivateProfileString(): the section name '%s' cannot be stored (key '%s')", section, key ? key : "");
 		return;
 	}
 
