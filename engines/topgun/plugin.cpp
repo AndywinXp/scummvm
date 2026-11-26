@@ -178,8 +178,8 @@ void EnginePluginHost::getSpriteRect(uint16 sprite, Common::Rect &rect) {
 
 void EnginePluginHost::setSpriteLevel(uint16 sprite, uint16 level) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_9)
-		spriteType = kResV1_2_9Sprite;
+	if (_engine->_version >= kVersionV1_2_10)
+		spriteType = kResV1_2_10Sprite;
 	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
@@ -238,8 +238,8 @@ uint16 EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argu
 
 void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_9)
-		spriteType = kResV1_2_9Sprite;
+	if (_engine->_version >= kVersionV1_2_10)
+		spriteType = kResV1_2_10Sprite;
 	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
@@ -380,8 +380,8 @@ void EnginePluginHost::spriteSwapOrder(uint16 first, uint16 second, uint16 onlyI
 
 void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_engine->_version >= kVersionV1_2_9)
-		spriteType = kResV1_2_9Sprite;
+	if (_engine->_version >= kVersionV1_2_10)
+		spriteType = kResV1_2_10Sprite;
 	else if (_engine->_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
@@ -449,21 +449,21 @@ void EnginePluginHost::writeAddress(uint16 address, uint16 value) {
 }
 
 uint16 EnginePluginHost::runMessage(uint16 script, const uint16 *arguments, uint16 count) {
-	byte record[TG_PLUGIN_V1_2_9_RUN_MESSAGE_HEADER_SIZE + 2 * TG_PLUGIN_V1_2_9_RUN_MESSAGE_MAX_ARGUMENTS];
+	byte record[TG_PLUGIN_V1_2_10_RUN_MESSAGE_HEADER_SIZE + 2 * TG_PLUGIN_V1_2_10_RUN_MESSAGE_MAX_ARGUMENTS];
 	memset(record, 0, sizeof(record));
 
-	if (count > TG_PLUGIN_V1_2_9_RUN_MESSAGE_MAX_ARGUMENTS) {
+	if (count > TG_PLUGIN_V1_2_10_RUN_MESSAGE_MAX_ARGUMENTS) {
 		warning("EnginePluginHost::runMessage(): %d arguments are too many", count);
-		count = TG_PLUGIN_V1_2_9_RUN_MESSAGE_MAX_ARGUMENTS;
+		count = TG_PLUGIN_V1_2_10_RUN_MESSAGE_MAX_ARGUMENTS;
 	}
 
 	WRITE_LE_UINT16(record, kOpV1_2_3CallScript);
 	WRITE_LE_UINT16(record + 2, (uint16)(script - TG_HOST_V1_2_3_LITERAL_BIAS));
-	record[4] = TG_PLUGIN_V1_2_9_RUN_MESSAGE_FRAME_OFFSET;
+	record[4] = TG_PLUGIN_V1_2_10_RUN_MESSAGE_FRAME_OFFSET;
 	record[5] = (byte)count;
 
 	for (uint16 i = 0; i < count; i++)
-		WRITE_LE_UINT16(record + TG_PLUGIN_V1_2_9_RUN_MESSAGE_HEADER_SIZE + 2 * i, (uint16)(arguments[i] - TG_HOST_V1_2_3_LITERAL_BIAS));
+		WRITE_LE_UINT16(record + TG_PLUGIN_V1_2_10_RUN_MESSAGE_HEADER_SIZE + 2 * i, (uint16)(arguments[i] - TG_HOST_V1_2_3_LITERAL_BIAS));
 
 	_engine->_scriptResult = 1;
 	_engine->o_callScript(record);
@@ -695,12 +695,12 @@ bool TopgunEngine_v1_2::loadPluginFunctionTable() {
 
 	ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
 
-	if (_version >= kVersionV1_2_9) {
-		libraries = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_LIBRARIES, &librariesSize);
+	if (_version >= kVersionV1_2_10) {
+		libraries = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_10_KEY_FUNCTION_LIBRARIES, &librariesSize);
 		if (!libraries)
 			return false;
 
-		names = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_NAMES, &size);
+		names = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_10_KEY_FUNCTION_NAMES, &size);
 		if (!names) {
 			utilsLibrary()->tgFree(libraries);
 			return false;
@@ -726,7 +726,7 @@ bool TopgunEngine_v1_2::loadPluginFunctionTable() {
 		PluginFunction_v1_2_3 entry;
 		Plugin *plugin = _plugin;
 
-		if (_version >= kVersionV1_2_9) {
+		if (_version >= kVersionV1_2_10) {
 			if (2 * (uint32)index + 2 > librariesSize) {
 				warning("TopgunEngine_v1_2::loadPluginFunctionTable(): function %d has no library", index);
 				break;
@@ -767,7 +767,7 @@ void TopgunEngine_v1_2::exprCallPluginFunction(uint16 function, uint16 count) {
 
 	Plugin *plugin = _plugin;
 
-	if (_version >= kVersionV1_2_9 && function < _pluginFunctions.size())
+	if (_version >= kVersionV1_2_10 && function < _pluginFunctions.size())
 		plugin = _pluginLibraries[_pluginFunctions[function].library]->plugin;
 
 	if (!plugin || function >= _pluginFunctions.size()) {
@@ -798,7 +798,7 @@ bool TopgunEngine_v1_2::callScriptHook(uint16 script) {
 
 bool TopgunEngine_v1_2_3::loadAndRegisterLibraries() {
 	uint32 size = 0;
-	byte *names = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_LIBRARY_NAMES, &size);
+	byte *names = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_10_KEY_LIBRARY_NAMES, &size);
 
 	if (!names)
 		return size == 0;
@@ -813,7 +813,7 @@ bool TopgunEngine_v1_2_3::loadAndRegisterLibraries() {
 
 		Common::String fileName = Common::String((const char *)names + consumed, length) + ".r16";
 
-		PluginModule_v1_2_9 *module = loadPluginModule(fileName);
+		PluginModule_v1_2_10 *module = loadPluginModule(fileName);
 		if (!module) {
 			fatalError(102, Common::String::format("Can't open file '%s'.", fileName.c_str()));
 			ok = false;
@@ -836,7 +836,7 @@ bool TopgunEngine_v1_2_3::loadAndRegisterLibraries() {
 	return ok;
 }
 
-PluginModule_v1_2_9 *TopgunEngine_v1_2_3::loadPluginModule(const Common::String &fileName) {
+PluginModule_v1_2_10 *TopgunEngine_v1_2_3::loadPluginModule(const Common::String &fileName) {
 	for (uint16 i = 0; i < _pluginModules.size(); i++) {
 		if (fileName.equalsIgnoreCase(_pluginModules[i]->name)) {
 			_pluginModules[i]->refCount++;
@@ -851,7 +851,7 @@ PluginModule_v1_2_9 *TopgunEngine_v1_2_3::loadPluginModule(const Common::String 
 	if (!plugin)
 		return nullptr;
 
-	PluginModule_v1_2_9 *module = new PluginModule_v1_2_9();
+	PluginModule_v1_2_10 *module = new PluginModule_v1_2_10();
 	module->name = fileName;
 	module->plugin = plugin;
 	module->refCount = 1;
@@ -860,7 +860,7 @@ PluginModule_v1_2_9 *TopgunEngine_v1_2_3::loadPluginModule(const Common::String 
 	return module;
 }
 
-void TopgunEngine_v1_2_3::freePluginModule(PluginModule_v1_2_9 *module) {
+void TopgunEngine_v1_2_3::freePluginModule(PluginModule_v1_2_10 *module) {
 	module->refCount--;
 
 	if (module->refCount != 0)
@@ -877,7 +877,7 @@ void TopgunEngine_v1_2_3::freePluginModule(PluginModule_v1_2_9 *module) {
 	delete module;
 }
 
-bool TopgunEngine_v1_2_3::registerExternalLibrary(PluginModule_v1_2_9 *module) {
+bool TopgunEngine_v1_2_3::registerExternalLibrary(PluginModule_v1_2_10 *module) {
 	module->plugin->clearCallbacks();
 
 	if (!module->plugin->init()) {
@@ -904,7 +904,7 @@ void TopgunEngine_v1_2_3::unloadAllPluginModules() {
 	_pluginLibraries.clear();
 	_pluginTickProcCount = 0;
 
-	postMessage(kMsgV1_2_9FreePluginModules, 0, 0);
+	postMessage(kMsgV1_2_10FreePluginModules, 0, 0);
 }
 
 void TopgunEngine_v1_2_3::freeUnloadedPluginModules() {

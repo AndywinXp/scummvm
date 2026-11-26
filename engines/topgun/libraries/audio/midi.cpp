@@ -495,7 +495,7 @@ bool AudioLibrary_v1_2::openAndConfigureMidiOut() {
 
 		uint16 unsetVolume = TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET;
 
-		if (_engine->_version == kVersionV1_2_8)
+		if (_engine->_version >= kVersionV1_2_8 && _engine->_version <= kVersionV1_2_9)
 			unsetVolume = TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET;
 
 		uint16 iniVolume = static_cast<AudioLibrary_v1_2_3 *>(this)->_iniMidiVolume;
@@ -843,7 +843,7 @@ bool AudioLibrary_v1_2::startMidiSequence(const byte *params, MidiObject *midi) 
 
 	bool stepPaused = false;
 
-	if (_engine->_version == kVersionV1_2_8)
+	if (_engine->_version >= kVersionV1_2_8 && _engine->_version <= kVersionV1_2_9)
 		stepPaused = (static_cast<AudioLibrary_v1_2_3 *>(this)->_midiPauseCount != 0);
 	else if (_engine->_version >= kVersionV1_2_3)
 		stepPaused = _paused;

@@ -50,9 +50,9 @@
 #define TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK       0x00FF
 
 // Tile cell bitmaps: bits 4 and 5 of the flags word at +8 mirror and flip the cell
-#define TG_SPR_V1_2_9_TILE_MIRROR_FLAG         0x10
-#define TG_SPR_V1_2_9_TILE_FLIP_FLAG           0x20
-#define TG_SPR_V1_2_9_TILE_STAGGERED_LAYOUT    1
+#define TG_SPR_V1_2_10_TILE_MIRROR_FLAG        0x10
+#define TG_SPR_V1_2_10_TILE_FLIP_FLAG          0x20
+#define TG_SPR_V1_2_10_TILE_STAGGERED_LAYOUT   1
 
 namespace Topgun {
 
@@ -86,9 +86,9 @@ enum SpriteMessage_v1_2_6 {
 };
 
 // Messages of the games that mark the start of a queue loop and jump back to it
-enum SpriteMessage_v1_2_9 {
-	kSprV1_2_9MsgMarkLoopStart = 3,
-	kSprV1_2_9MsgLoopJump = 6
+enum SpriteMessage_v1_2_10 {
+	kSprV1_2_10MsgMarkLoopStart = 3,
+	kSprV1_2_10MsgLoopJump = 6
 };
 
 enum RleBlitMode_v1_2_3 {

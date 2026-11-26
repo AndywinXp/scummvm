@@ -116,8 +116,8 @@ uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw) const {
 
 uint16 SpriteLibrary_v1_2::spriteObjectAlloc(int16 level) {
 	uint16 maxSprites = TG_SPR_V1_2_MAX_SPRITES;
-	if (_engine->_version >= kVersionV1_2_9)
-		maxSprites = TG_SPR_V1_2_9_MAX_SPRITES;
+	if (_engine->_version >= kVersionV1_2_10)
+		maxSprites = TG_SPR_V1_2_10_MAX_SPRITES;
 	else if (_engine->_version >= kVersionV1_2_3)
 		maxSprites = TG_SPR_V1_2_3_MAX_SPRITES;
 	else if (_engine->_version == kVersionV1_2_2_3)
@@ -232,7 +232,7 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
-	if (_engine->_version >= kVersionV1_2_9 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
 		object->boundingBox.translate(_scrollPosX, _scrollPosY);
 
 	return true;
@@ -312,7 +312,7 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
-	if (_engine->_version >= kVersionV1_2_9 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
 		object->boundingBox.translate(_scrollPosX, _scrollPosY);
 
 	object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
@@ -356,7 +356,7 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		part.box.top = (int16)(hotY + object->y - heightMinusOne / 2);
 		part.box.bottom = (int16)(height + part.box.top);
 
-		if (_engine->_version >= kVersionV1_2_9 && object->scrollable)
+		if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
 			part.box.translate(_scrollPosX, _scrollPosY);
 
 		if (i == 0)
@@ -537,7 +537,7 @@ bool SpriteLibrary_v1_2::spriteInitLibrary(uint16 mode) {
 
 	display->setViewportOrigin(screenWidth / 2, screenHeight / 2);
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		_screenRect.left = (int16)((1 - screenWidth) / 2);
 		_screenRect.top = (int16)((1 - screenHeight) / 2);
 		_screenRect.right = (int16)(_screenRect.left + screenWidth);
@@ -566,7 +566,7 @@ bool SpriteLibrary_v1_2::createComposeBuffer() {
 }
 
 void SpriteLibrary_v1_2::computeClipRect() {
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		_scrollPosX = 0;
 		_scrollPosY = 0;
 	}
@@ -586,11 +586,11 @@ void SpriteLibrary_v1_2::computeClipRect() {
 	_scrollY = (_clipRect.bottom - 1) / 2;
 	_clipRect.translate(-_scrollX, -_scrollY);
 
-	if (_engine->_version >= kVersionV1_2_9)
+	if (_engine->_version >= kVersionV1_2_10)
 		_backupRect = _clipRect;
 
 	bool userBoxSet = (_userClipBox.left < _userClipBox.right);
-	if (_engine->_version < kVersionV1_2_9)
+	if (_engine->_version < kVersionV1_2_10)
 		userBoxSet = (userBoxSet && _userClipBox.top < _userClipBox.bottom);
 
 	if (userBoxSet) {
@@ -599,7 +599,7 @@ void SpriteLibrary_v1_2::computeClipRect() {
 		_clipRect = intersection;
 	}
 
-	if (_engine->_version >= kVersionV1_2_9)
+	if (_engine->_version >= kVersionV1_2_10)
 		setScrollRegion(_scrollBox);
 }
 
@@ -681,14 +681,14 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 
 	_zoomActive = false;
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		_scrollPosX = 0;
 		_scrollPosY = 0;
 	}
 
 	_userClipBox = Common::Rect();
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		_scrollBox = Common::Rect();
 		_scrollRegion = _screenRect;
 		_backupRect = _screenRect;
@@ -697,7 +697,7 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 	_fillColor = 0;
 	_backgroundBitmap = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		_tileBackground = nullptr;
 
 		if (_scrollSurface) {
@@ -706,7 +706,7 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 		}
 	}
 
-	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_8)
+	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_9)
 		_rubberBandActive = false;
 
 	if (_composeBuffer)
@@ -831,7 +831,7 @@ bool SpriteLibrary_v1_2::spriteAppendBitmap(uint16 sprite, const CelReference &c
 	uint16 count = object->frames.size();
 	appendFrame(object, cel);
 
-	if (_engine->_version >= kVersionV1_2_9)
+	if (_engine->_version >= kVersionV1_2_10)
 		object->currentFrame = object->frames[0];
 
 	if (count == 0) {
@@ -874,7 +874,7 @@ bool SpriteLibrary_v1_2::spriteAppendBitmaps(uint16 sprite, const CelReference *
 		return true;
 	}
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		if (oldCount != 0)
 			object->currentFrame = object->frames[0];
 		else
@@ -1223,7 +1223,7 @@ bool SpriteLibrary_v1_2::spriteGetBounds(uint16 sprite, Common::Rect &bounds) {
 
 	bounds = object->boundingBox;
 
-	if (_engine->_version >= kVersionV1_2_9 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
 		bounds.translate(-_scrollPosX, -_scrollPosY);
 
 	return true;
@@ -1253,7 +1253,7 @@ uint16 SpriteLibrary_v1_2::spriteIsVisible(uint16 sprite) {
 void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect) {
 	_backgroundBitmap = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_10) {
 		if (_tileBackground) {
 			spriteResetComposeBuffer();
 			_tileBackground = nullptr;
@@ -1267,7 +1267,7 @@ void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uin
 
 	_fillColor = 0;
 
-	if (_engine->_version < kVersionV1_2_9 || !_directMode) {
+	if (_engine->_version < kVersionV1_2_10 || !_directMode) {
 		if (noClear)
 			_fillColor = TG_SPR_V1_2_FILL_NONE;
 		else if (background)

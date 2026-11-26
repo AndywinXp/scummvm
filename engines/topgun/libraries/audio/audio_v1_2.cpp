@@ -425,7 +425,7 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		return;
 	}
 
-	if (_paused && _engine->_version >= kVersionV1_2_3 && _engine->_version != kVersionV1_2_8)
+	if (_paused && _engine->_version >= kVersionV1_2_3 && (_engine->_version < kVersionV1_2_8 || _engine->_version > kVersionV1_2_9))
 		return;
 
 	if ((!_paused || _engine->_version < kVersionV1_2_3) && _activeSounds != 0)
@@ -437,7 +437,7 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		if (_engine->_version >= kVersionV1_2_3)
 			_currentMidi->index = 0;
 
-		if (_engine->_version != kVersionV1_2_8 || _midiPauseCount == 0)
+		if (_engine->_version < kVersionV1_2_8 || _engine->_version > kVersionV1_2_9 || _midiPauseCount == 0)
 			midiSequencerStep(_currentMidi);
 	}
 }
@@ -451,7 +451,7 @@ void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 	_paused = state;
 	pauseAllPlayback(state ? 1 : 0);
 
-	if (_engine->_version == kVersionV1_2_8) {
+	if (_engine->_version >= kVersionV1_2_8 && _engine->_version <= kVersionV1_2_9) {
 		audioPauseMidi(paused);
 		return;
 	}
@@ -461,7 +461,7 @@ void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 }
 
 void AudioLibrary_v1_2_3::audioPauseMidi(uint16 paused) {
-	if (_engine->_version != kVersionV1_2_8) {
+	if (_engine->_version < kVersionV1_2_8 || _engine->_version > kVersionV1_2_9) {
 		bool state = (paused != 0);
 
 		if (state != (_midiPauseCount != 0)) {
@@ -505,7 +505,7 @@ void AudioLibrary_v1_2_3::audioMute(int16 flag) {
 void AudioLibrary_v1_2_3::audioResetLibrary() {
 	_maxPriority = 0;
 
-	if (_engine->_version == kVersionV1_2_8) {
+	if (_engine->_version >= kVersionV1_2_8 && _engine->_version <= kVersionV1_2_9) {
 		_paused = false;
 		_midiPauseCount = 0;
 	}
@@ -539,7 +539,7 @@ void AudioLibrary_v1_2_3::readAudioIniSettings() {
 		_iniWaveVolume = readAudioIniInt("WaveVolume", 0);
 	}
 
-	if (_engine->_version == kVersionV1_2_8)
+	if (_engine->_version >= kVersionV1_2_8 && _engine->_version <= kVersionV1_2_9)
 		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET);
 	else if (_engine->_version >= kVersionV1_2_3)
 		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);

@@ -548,8 +548,8 @@ bool TopgunEngine_v1_2::destroySpriteResourceObject(uint16 id) {
 			uint16 count = READ_LE_UINT16(data + shift + ((_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT));
 
 			uint16 membersOffset = shift + ((_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS);
-			if (_version >= kVersionV1_2_9)
-				membersOffset = TG_HOST_V1_2_9_SPRITE_DATA_MEMBERS;
+			if (_version >= kVersionV1_2_10)
+				membersOffset = TG_HOST_V1_2_10_SPRITE_DATA_MEMBERS;
 
 			for (uint16 i = 0; i < count; i++) {
 				uint16 member = READ_LE_UINT16(data + membersOffset + 2 * i);
@@ -561,9 +561,9 @@ bool TopgunEngine_v1_2::destroySpriteResourceObject(uint16 id) {
 				bool isText;
 				bool isReferenceCounted;
 
-				if (_version >= kVersionV1_2_9) {
-					isText = (type == kResV1_2_9Text);
-					isReferenceCounted = (type == kResV1_2_9Bitmap || type == kResV1_2_9Movie || type == kResV1_2_9Text || type == kResV1_2_9Cell);
+				if (_version >= kVersionV1_2_10) {
+					isText = (type == kResV1_2_10Text);
+					isReferenceCounted = (type == kResV1_2_10Bitmap || type == kResV1_2_10Movie || type == kResV1_2_10Text || type == kResV1_2_10Cell);
 				} else if (_version >= kVersionV1_2_5) {
 					isText = (type == kResV1_2_5Text);
 					isReferenceCounted = (type == kResV1_2_3Bitmap || type == kResV1_2_5Movie || type == kResV1_2_5Text || type == kResV1_2_5BitmapGroup);
@@ -742,8 +742,8 @@ bool TopgunEngine_v1_2::ensureSpriteResourceLoaded(uint16 id) {
 		else if (data[shift + TG_HOST_V1_2_3_SPRITE_DATA_WHOLE_BOX] != 0)
 			spriteLib()->spriteSetPickMode(sprite, 1);
 
-		if (_version >= kVersionV1_2_9)
-			static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetScrollable(sprite, data[TG_HOST_V1_2_9_SPRITE_DATA_SCROLLABLE]);
+		if (_version >= kVersionV1_2_10)
+			static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetScrollable(sprite, data[TG_HOST_V1_2_10_SPRITE_DATA_SCROLLABLE]);
 
 		if (data[shift + TG_HOST_V1_2_3_SPRITE_DATA_PALETTE_FLAG] != 0) {
 			applySpritePaletteExtension(data);
@@ -759,8 +759,8 @@ bool TopgunEngine_v1_2::ensureSpriteResourceLoaded(uint16 id) {
 	}
 
 	uint16 membersOffset = shift + ((_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS : TG_HOST_V1_2_SPRITE_DATA_MEMBERS);
-	if (_version >= kVersionV1_2_9)
-		membersOffset = TG_HOST_V1_2_9_SPRITE_DATA_MEMBERS;
+	if (_version >= kVersionV1_2_10)
+		membersOffset = TG_HOST_V1_2_10_SPRITE_DATA_MEMBERS;
 
 	uint16 memberCountOffset = shift + ((_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_3_SPRITE_DATA_MEMBER_COUNT : TG_HOST_V1_2_SPRITE_DATA_MEMBER_COUNT);
 
@@ -794,13 +794,13 @@ bool TopgunEngine_v1_2::attachResourceListToSprite(uint16 spriteHandle, const by
 		bool isMidi = false;
 		bool isTransPalette = false;
 
-		if (_version >= kVersionV1_2_9) {
-			isBitmap = (type == kResV1_2_9Bitmap);
-			isText = (type == kResV1_2_9Text);
-			isBitmapGroup = (type == kResV1_2_9Cell);
-			isMovie = (type == kResV1_2_9Movie);
-			isWave = (type == kResV1_2_9Wave);
-			isMidi = (type == kResV1_2_9Midi);
+		if (_version >= kVersionV1_2_10) {
+			isBitmap = (type == kResV1_2_10Bitmap);
+			isText = (type == kResV1_2_10Text);
+			isBitmapGroup = (type == kResV1_2_10Cell);
+			isMovie = (type == kResV1_2_10Movie);
+			isWave = (type == kResV1_2_10Wave);
+			isMidi = (type == kResV1_2_10Midi);
 		} else if (_version >= kVersionV1_2_5) {
 			isBitmap = (type == kResV1_2_3Bitmap);
 			isText = (type == kResV1_2_5Text);
@@ -921,20 +921,20 @@ bool TopgunEngine_v1_2::destroyResourceObjectByType(uint16 id, uint16 type) {
 
 	if (_version >= kVersionV1_2_2_1) {
 		// The later numbering is the earlier one shifted by two from the wave on; the two numbers it leaves free are not types
-		if (_version >= kVersionV1_2_9) {
-			if (type == kResV1_2_9Table) {
+		if (_version >= kVersionV1_2_10) {
+			if (type == kResV1_2_10Table) {
 				static_cast<TopgunEngine_v1_2_3 *>(this)->destroyTableResourceObject(id);
 				return true;
 			}
 
-			if (type == kResV1_2_9Tile) {
+			if (type == kResV1_2_10Tile) {
 				static_cast<TopgunEngine_v1_2_3 *>(this)->destroyTileResourceObject(id);
 				return true;
 			}
 
-			if (type == kResV1_2_9Wave)
+			if (type == kResV1_2_10Wave)
 				type -= 2;
-			else if (type >= kResV1_2_9Movie && type <= kResV1_2_9Text)
+			else if (type >= kResV1_2_10Movie && type <= kResV1_2_10Text)
 				type -= 3;
 			else if (type > kResV1_2_3Midi)
 				type = 0;
@@ -1130,16 +1130,16 @@ bool TopgunEngine_v1_2::validateAndGetResourceByType(uint16 id, uint16 type) {
 		if (!validateResourceType(id, type))
 			return false;
 
-		if (_version >= kVersionV1_2_9) {
-			if (type == kResV1_2_9Table)
+		if (_version >= kVersionV1_2_10) {
+			if (type == kResV1_2_10Table)
 				return static_cast<TopgunEngine_v1_2_3 *>(this)->ensureTableResourceLoaded(id);
 
-			if (type == kResV1_2_9Tile)
+			if (type == kResV1_2_10Tile)
 				return static_cast<TopgunEngine_v1_2_3 *>(this)->ensureTileResourceLoaded(id);
 
-			if (type == kResV1_2_9Wave)
+			if (type == kResV1_2_10Wave)
 				type -= 2;
-			else if (type >= kResV1_2_9Movie && type <= kResV1_2_9Text)
+			else if (type >= kResV1_2_10Movie && type <= kResV1_2_10Text)
 				type -= 3;
 			else if (type > kResV1_2_3Midi)
 				type = 0;
@@ -1340,8 +1340,8 @@ byte *TopgunEngine_v1_2::loadResourceWithProcessingPause(uint16 id, uint32 *size
 	uint16 index = operandValue(id);
 	uint16 type = resourceLib()->resGetType(_file, index);
 
-	if (_version >= kVersionV1_2_9) {
-		if (type >= kResV1_2_9Movie && type <= kResV1_2_9Tile)
+	if (_version >= kVersionV1_2_10) {
+		if (type >= kResV1_2_10Movie && type <= kResV1_2_10Tile)
 			return resourceLib()->resLoadResource(_file, index, sizeOut);
 	} else if (_version >= kVersionV1_2_5) {
 		if (type >= kResV1_2_5Movie && type <= kResV1_2_5Text)
@@ -1523,10 +1523,10 @@ bool TopgunEngine_v1_2::ensureBitmapGroupResourceLoaded(uint16 id) {
 
 	memcpy(object, bitmap, size);
 
-	if (_version >= kVersionV1_2_9) {
-		object[TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET] = (object[TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET] & TG_HOST_V1_2_9_BITMAP_FLAGS_KEPT_MASK) | (list[TG_HOST_V1_2_9_CELL_FLAGS] & TG_HOST_V1_2_9_CELL_FLAGS_MASK);
-		WRITE_LE_UINT16(object + TG_HOST_V1_2_3_BITMAP_HOT_X, READ_LE_UINT16(list + TG_HOST_V1_2_9_CELL_X));
-		WRITE_LE_UINT16(object + TG_HOST_V1_2_3_BITMAP_HOT_Y, READ_LE_UINT16(list + TG_HOST_V1_2_9_CELL_Y));
+	if (_version >= kVersionV1_2_10) {
+		object[TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET] = (object[TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET] & TG_HOST_V1_2_10_BITMAP_FLAGS_KEPT_MASK) | (list[TG_HOST_V1_2_10_CELL_FLAGS] & TG_HOST_V1_2_10_CELL_FLAGS_MASK);
+		WRITE_LE_UINT16(object + TG_HOST_V1_2_3_BITMAP_HOT_X, READ_LE_UINT16(list + TG_HOST_V1_2_10_CELL_X));
+		WRITE_LE_UINT16(object + TG_HOST_V1_2_3_BITMAP_HOT_Y, READ_LE_UINT16(list + TG_HOST_V1_2_10_CELL_Y));
 		WRITE_LE_UINT16(object + TG_HOST_V1_2_3_BITMAP_RESOURCE_ID, (uint16)(index - TG_HOST_V1_2_3_LITERAL_BIAS));
 		return true;
 	}
@@ -1558,9 +1558,9 @@ void TopgunEngine_v1_2::applySpritePaletteExtension(const byte *header) {
 	uint16 shift = 0;
 	uint16 entriesShift = 0;
 
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_10) {
 		shift = TG_HOST_V1_2_6_1_SPRITE_DATA_SHIFT;
-		entriesShift = TG_HOST_V1_2_9_SPRITE_DATA_PALETTE_ENTRIES_SHIFT;
+		entriesShift = TG_HOST_V1_2_10_SPRITE_DATA_PALETTE_ENTRIES_SHIFT;
 	} else if (_version >= kVersionV1_2_6_1) {
 		shift = TG_HOST_V1_2_6_1_SPRITE_DATA_SHIFT;
 		entriesShift = TG_HOST_V1_2_6_1_SPRITE_DATA_PALETTE_ENTRIES_SHIFT;
@@ -1589,7 +1589,7 @@ bool TopgunEngine_v1_2_3::ensureTableResourceLoaded(uint16 id) {
 	if (!block)
 		return false;
 
-	WRITE_LE_UINT16(block + TG_HOST_V1_2_9_TABLE_RESOURCE_ID, (uint16)(index - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(block + TG_HOST_V1_2_10_TABLE_RESOURCE_ID, (uint16)(index - TG_HOST_V1_2_3_LITERAL_BIAS));
 
 	record.data = block;
 	record.size = size;
@@ -1606,7 +1606,7 @@ void TopgunEngine_v1_2_3::destroyTableResourceObject(uint16 id) {
 	if (!record.data)
 		return;
 
-	if (READ_LE_UINT16(record.data + TG_RES_V1_2_9_TABLE_OWNED_OFFSET) == 0)
+	if (READ_LE_UINT16(record.data + TG_RES_V1_2_10_TABLE_OWNED_OFFSET) == 0)
 		return;
 
 	utilsLibrary()->tgFree(record.data);
@@ -1625,7 +1625,7 @@ bool TopgunEngine_v1_2_3::loadBitmapListToPointers(uint16 count, const byte *lis
 				break;
 
 			uint16 type = resourceLib()->resGetType(_file, index);
-			if (type != kResV1_2_9Bitmap && type != kResV1_2_9Cell)
+			if (type != kResV1_2_10Bitmap && type != kResV1_2_10Cell)
 				break;
 
 			if (!validateAndGetResourceByType(id, type))
@@ -1677,7 +1677,7 @@ bool TopgunEngine_v1_2_3::ensureTileResourceLoaded(uint16 id) {
 	if (!data)
 		return false;
 
-	if (size < TG_HOST_V1_2_9_TILE_HEADER_SIZE) {
+	if (size < TG_HOST_V1_2_10_TILE_HEADER_SIZE) {
 		warning("TopgunEngine_v1_2_3::ensureTileResourceLoaded(): resource %d is smaller than its header", index);
 		utilsLibrary()->tgFree(data);
 		return false;
@@ -1685,7 +1685,7 @@ bool TopgunEngine_v1_2_3::ensureTileResourceLoaded(uint16 id) {
 
 	record.data = data;
 
-	uint16 count = (uint16)((size - TG_HOST_V1_2_9_TILE_HEADER_SIZE) >> 1);
+	uint16 count = (uint16)((size - TG_HOST_V1_2_10_TILE_HEADER_SIZE) >> 1);
 
 	TileBackground *tile = new TileBackground();
 	tile->cells = reinterpret_cast<byte **>(utilsLibrary()->tgMalloc(count * sizeof(byte *), 1));
@@ -1695,17 +1695,17 @@ bool TopgunEngine_v1_2_3::ensureTileResourceLoaded(uint16 id) {
 		return false;
 	}
 
-	tile->tileWidth = READ_LE_UINT16(data + TG_HOST_V1_2_9_TILE_WIDTH);
-	tile->tileHeight = READ_LE_UINT16(data + TG_HOST_V1_2_9_TILE_HEIGHT);
-	tile->columns = READ_LE_UINT16(data + TG_HOST_V1_2_9_TILE_COLUMNS);
-	tile->rows = READ_LE_UINT16(data + TG_HOST_V1_2_9_TILE_ROWS);
-	tile->layout = READ_LE_UINT16(data + TG_HOST_V1_2_9_TILE_LAYOUT);
+	tile->tileWidth = READ_LE_UINT16(data + TG_HOST_V1_2_10_TILE_WIDTH);
+	tile->tileHeight = READ_LE_UINT16(data + TG_HOST_V1_2_10_TILE_HEIGHT);
+	tile->columns = READ_LE_UINT16(data + TG_HOST_V1_2_10_TILE_COLUMNS);
+	tile->rows = READ_LE_UINT16(data + TG_HOST_V1_2_10_TILE_ROWS);
+	tile->layout = READ_LE_UINT16(data + TG_HOST_V1_2_10_TILE_LAYOUT);
 	tile->id = (uint16)(index - TG_HOST_V1_2_3_LITERAL_BIAS);
 	tile->cellCount = count;
 
 	_tileBackgrounds[index] = tile;
 
-	if (!loadBitmapListToPointers(count, data + TG_HOST_V1_2_9_TILE_HEADER_SIZE, tile->cells)) {
+	if (!loadBitmapListToPointers(count, data + TG_HOST_V1_2_10_TILE_HEADER_SIZE, tile->cells)) {
 		destroyTileResourceObject(id);
 		return false;
 	}
@@ -1732,7 +1732,7 @@ void TopgunEngine_v1_2_3::destroyTileResourceObject(uint16 id) {
 		count = tile->cellCount;
 
 	if (count != 0)
-		releaseTileResourceCells(count, record.data + TG_HOST_V1_2_9_TILE_HEADER_SIZE);
+		releaseTileResourceCells(count, record.data + TG_HOST_V1_2_10_TILE_HEADER_SIZE);
 
 	if (tile == _tileMap) {
 		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetTileBackground(nullptr, nullptr);
@@ -1780,13 +1780,13 @@ bool TopgunEngine_v1_2::isResourceObjectLoaded(uint16 id, uint16 type) {
 		}
 	}
 
-	if (_version >= kVersionV1_2_9) {
-		if (type == kResV1_2_9Table || type == kResV1_2_9Tile)
+	if (_version >= kVersionV1_2_10) {
+		if (type == kResV1_2_10Table || type == kResV1_2_10Tile)
 			return record.data;
 
-		if (type == kResV1_2_9Wave)
+		if (type == kResV1_2_10Wave)
 			type -= 2;
-		else if (type >= kResV1_2_9Movie && type <= kResV1_2_9Text)
+		else if (type >= kResV1_2_10Movie && type <= kResV1_2_10Text)
 			type -= 3;
 		else if (type > kResV1_2_3Midi)
 			type = 0;

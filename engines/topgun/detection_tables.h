@@ -43,6 +43,9 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "bugdrop", "Disney's Hot Shots: Bug Drop" },
 	{ "hippohop", "Disney's Hot Shots: Hippo Hop" },
 	{ "junglepinball", "Disney's Hot Shots: Jungle Pinball" },
+	{ "topsyturvy", "Disney's The Hunchback of Notre Dame: Topsy Turvy Games" },
+	{ "djalibowling", "Disney's Hot Shots: Djali Bowling" },
+	{ "upsydaisy", "Disney's Hot Shots: Upsy Daisy" },
 	{ 0, 0 }
 };
 
@@ -67,6 +70,9 @@ const char *const directoryGlobs[] = {
 	"BUGDROP",
 	"HIPPOHOP",
 	"PINBALL",
+	"TOPSY",
+	"BOWL",
+	"UPSY",
 	nullptr
 };
 
@@ -415,6 +421,46 @@ const ADGameDescription gameDescriptions[] = {
 		"junglepinball",
 		"",
 		AD_ENTRY1s("JUNGPINB.BIN", "6524cd2516983541fe47dabbb9620729", 5293559),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"topsyturvy",
+		"",
+		AD_ENTRY1s("TOPSCHIS.BIN", "73d002d02dc6011f5a01696e26afc650", 10565900),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglegames",
+		"Demo",
+		AD_ENTRY1s("JUNGDEM1.BIN", "6745afc5592db2eff495711bec4e0abe", 403030),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"djalibowling",
+		"",
+		AD_ENTRY1s("TOPSBOWL.BIN", "504b4c1280a165fe809b9cbbdd5e0617", 12299904),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"upsydaisy",
+		"",
+		AD_ENTRY1s("TOPSUPSY.BIN", "f411a1a828ac137123d1a5207857c76e", 10311226),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,

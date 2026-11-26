@@ -69,7 +69,7 @@ void SpriteLibrary::spritePaint(uint16 sprite) {
 		return;
 	}
 
-	if (_engine->_version >= kVersionV1_2_9 && renderRect(_clipRect)) {
+	if (_engine->_version >= kVersionV1_2_10 && renderRect(_clipRect)) {
 		spriteResetComposeBuffer();
 		return;
 	}

@@ -158,14 +158,19 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
+	if (gameId == "topsyturvy" || (gameId == "junglegames" && (desc->flags & ADGF_DEMO))) {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_8);
+		return Common::kNoError;
+	}
+
 	if (gameId == "aceventura" && desc->language == Common::EN_ANY) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_9);
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_10);
 		return Common::kNoError;
 	}
 
 	if ((gameId == "junglegames" && desc->language == Common::JA_JPN) || gameId == "burper" || gameId == "bugdrop" ||
-			gameId == "hippohop" || gameId == "junglepinball") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_8);
+			gameId == "hippohop" || gameId == "junglepinball" || gameId == "djalibowling" || gameId == "upsydaisy") {
+		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_9);
 		return Common::kNoError;
 	}
 

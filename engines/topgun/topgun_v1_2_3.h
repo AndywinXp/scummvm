@@ -71,12 +71,12 @@
 // Plug-ins
 #define TG_PLUGIN_V1_2_3_STRING_COPY_SIZE          0x7F
 #define TG_PLUGIN_V1_2_3_FRAME_IDS_SIZE            4
-#define TG_PLUGIN_V1_2_9_KEY_LIBRARY_NAMES         10
-#define TG_PLUGIN_V1_2_9_KEY_FUNCTION_NAMES        11
-#define TG_PLUGIN_V1_2_9_KEY_FUNCTION_LIBRARIES    12
-#define TG_PLUGIN_V1_2_9_RUN_MESSAGE_FRAME_OFFSET  0x20
-#define TG_PLUGIN_V1_2_9_RUN_MESSAGE_MAX_ARGUMENTS 8
-#define TG_PLUGIN_V1_2_9_RUN_MESSAGE_HEADER_SIZE   6
+#define TG_PLUGIN_V1_2_10_KEY_LIBRARY_NAMES         10
+#define TG_PLUGIN_V1_2_10_KEY_FUNCTION_NAMES        11
+#define TG_PLUGIN_V1_2_10_KEY_FUNCTION_LIBRARIES    12
+#define TG_PLUGIN_V1_2_10_RUN_MESSAGE_FRAME_OFFSET  0x20
+#define TG_PLUGIN_V1_2_10_RUN_MESSAGE_MAX_ARGUMENTS 8
+#define TG_PLUGIN_V1_2_10_RUN_MESSAGE_HEADER_SIZE   6
 
 // Resource objects
 #define TG_HOST_V1_2_3_SPRITE_DATA_ORIGINAL_COUNT  2
@@ -91,9 +91,9 @@
 #define TG_HOST_V1_2_3_SPRITE_DATA_PALETTE_ENTRIES 0x1C
 #define TG_HOST_V1_2_6_1_SPRITE_DATA_SHIFT         2    // every field after the click script moves up by this much
 #define TG_HOST_V1_2_6_1_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0E
-#define TG_HOST_V1_2_9_SPRITE_DATA_SCROLLABLE      0x16
-#define TG_HOST_V1_2_9_SPRITE_DATA_MEMBERS         0x18
-#define TG_HOST_V1_2_9_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x10
+#define TG_HOST_V1_2_10_SPRITE_DATA_SCROLLABLE     0x16
+#define TG_HOST_V1_2_10_SPRITE_DATA_MEMBERS        0x18
+#define TG_HOST_V1_2_10_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x10
 #define TG_HOST_V1_2_3_PALETTE_EXTENSION_END       0xF6
 #define TG_HOST_V1_2_3_BITMAP_HEADER_SIZE          0x14
 #define TG_HOST_V1_2_3_BITMAP_HOT_X                0x0A
@@ -101,18 +101,18 @@
 #define TG_HOST_V1_2_3_BITMAP_RESOURCE_ID          0x0E
 #define TG_HOST_V1_2_3_GROUP_X                     2
 #define TG_HOST_V1_2_3_GROUP_Y                     4
-#define TG_HOST_V1_2_9_BITMAP_FLAGS_KEPT_MASK      0xCF
-#define TG_HOST_V1_2_9_CELL_FLAGS                  2
-#define TG_HOST_V1_2_9_CELL_FLAGS_MASK             0x30
-#define TG_HOST_V1_2_9_CELL_X                      4
-#define TG_HOST_V1_2_9_CELL_Y                      6
-#define TG_HOST_V1_2_9_TABLE_RESOURCE_ID           8
-#define TG_HOST_V1_2_9_TILE_HEADER_SIZE            12
-#define TG_HOST_V1_2_9_TILE_WIDTH                  0
-#define TG_HOST_V1_2_9_TILE_HEIGHT                 2
-#define TG_HOST_V1_2_9_TILE_COLUMNS                4
-#define TG_HOST_V1_2_9_TILE_ROWS                   6
-#define TG_HOST_V1_2_9_TILE_LAYOUT                 8
+#define TG_HOST_V1_2_10_BITMAP_FLAGS_KEPT_MASK     0xCF
+#define TG_HOST_V1_2_10_CELL_FLAGS                 2
+#define TG_HOST_V1_2_10_CELL_FLAGS_MASK            0x30
+#define TG_HOST_V1_2_10_CELL_X                     4
+#define TG_HOST_V1_2_10_CELL_Y                     6
+#define TG_HOST_V1_2_10_TABLE_RESOURCE_ID          8
+#define TG_HOST_V1_2_10_TILE_HEADER_SIZE           12
+#define TG_HOST_V1_2_10_TILE_WIDTH                 0
+#define TG_HOST_V1_2_10_TILE_HEIGHT                2
+#define TG_HOST_V1_2_10_TILE_COLUMNS               4
+#define TG_HOST_V1_2_10_TILE_ROWS                  6
+#define TG_HOST_V1_2_10_TILE_LAYOUT                8
 #define TG_HOST_V1_2_3_MAX_FRAME_BATCH             50
 
 // Strings
@@ -164,19 +164,20 @@
 #define TG_SCRIPT_V1_2_6_2_LAST_BUILTIN_CODE       0x96
 #define TG_SCRIPT_V1_2_6_3_LAST_BUILTIN_CODE       0x98
 #define TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE         0x9A
-#define TG_SCRIPT_V1_2_8_LAST_BUILTIN_CODE         0xB2
-#define TG_SCRIPT_V1_2_9_LAST_BUILTIN_CODE         0xEC
-#define TG_BUILTIN_V1_2_9_MAX_TABLE_DIMENSIONS     5    // (0x16 - 0x0C) / 2 stride words
-#define TG_BUILTIN_V1_2_9_TABLE_HEADER_SIZE        0x20 // the elements follow the header
-#define TG_BUILTIN_V1_2_9_TABLE_COUNT              4
-#define TG_BUILTIN_V1_2_9_TABLE_DIMENSIONS         0x0A
-#define TG_BUILTIN_V1_2_9_TABLE_STRIDES            0x0C
-#define TG_BUILTIN_V1_2_9_TABLE_SIZES              0x16
-#define TG_BUILTIN_V1_2_9_MAX_WAVE_VOLUME          0x10
-#define TG_BUILTIN_V1_2_9_MAX_MIDI_CHANNEL         16
-#define TG_BUILTIN_V1_2_9_MAX_COLOR_DISTANCE       1000
-#define TG_BUILTIN_V1_2_9_NO_NEAREST_COLOR         0xFF
-#define TG_SCRIPT_V1_2_9_TABLE_ADDRESS             0x131A
+#define TG_SCRIPT_V1_2_8_LAST_BUILTIN_CODE         0x9C
+#define TG_SCRIPT_V1_2_9_LAST_BUILTIN_CODE         0xB2
+#define TG_SCRIPT_V1_2_10_LAST_BUILTIN_CODE        0xEC
+#define TG_BUILTIN_V1_2_10_MAX_TABLE_DIMENSIONS    5    // (0x16 - 0x0C) / 2 stride words
+#define TG_BUILTIN_V1_2_10_TABLE_HEADER_SIZE       0x20 // the elements follow the header
+#define TG_BUILTIN_V1_2_10_TABLE_COUNT             4
+#define TG_BUILTIN_V1_2_10_TABLE_DIMENSIONS        0x0A
+#define TG_BUILTIN_V1_2_10_TABLE_STRIDES           0x0C
+#define TG_BUILTIN_V1_2_10_TABLE_SIZES             0x16
+#define TG_BUILTIN_V1_2_10_MAX_WAVE_VOLUME         0x10
+#define TG_BUILTIN_V1_2_10_MAX_MIDI_CHANNEL        16
+#define TG_BUILTIN_V1_2_10_MAX_COLOR_DISTANCE      1000
+#define TG_BUILTIN_V1_2_10_NO_NEAREST_COLOR        0xFF
+#define TG_SCRIPT_V1_2_10_TABLE_ADDRESS            0x131A
 #define TG_SCRIPT_V1_2_6_1_SET_CLICK_SCRIPT_SIZE   20
 #define TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE       16
 #define TG_SCRIPT_V1_2_6_1_SET_HOVER_REGION_SIZE   20
@@ -265,8 +266,8 @@ enum MessageId_v1_2_3 {
 	kMsgV1_2_3KeyUp = 0x101
 };
 
-enum MessageId_v1_2_9 {
-	kMsgV1_2_9FreePluginModules = 0x5F4
+enum MessageId_v1_2_10 {
+	kMsgV1_2_10FreePluginModules = 0x5F4
 };
 
 // The later numbering of the types from the wave on; the bitmap and the midi keep the numbers above
@@ -284,21 +285,21 @@ enum ResourceType_v1_2_5 {
 };
 
 // The numbering of the types from the movie on moves up by one to make room for the table; the tile is new
-enum ResourceType_v1_2_9 {
-	kResV1_2_9Bitmap = 1,
-	kResV1_2_9Midi = 4,
-	kResV1_2_9Wave = 9,
-	kResV1_2_9Table = 10,
-	kResV1_2_9Movie = 11,
-	kResV1_2_9OpList = 12,
-	kResV1_2_9Cell = 13,
-	kResV1_2_9Group = 14,
-	kResV1_2_9Palette = 15,
-	kResV1_2_9SpriteQueueData = 16,
-	kResV1_2_9Script = 17,
-	kResV1_2_9Sprite = 18,
-	kResV1_2_9Text = 19,
-	kResV1_2_9Tile = 20
+enum ResourceType_v1_2_10 {
+	kResV1_2_10Bitmap = 1,
+	kResV1_2_10Midi = 4,
+	kResV1_2_10Wave = 9,
+	kResV1_2_10Table = 10,
+	kResV1_2_10Movie = 11,
+	kResV1_2_10OpList = 12,
+	kResV1_2_10Cell = 13,
+	kResV1_2_10Group = 14,
+	kResV1_2_10Palette = 15,
+	kResV1_2_10SpriteQueueData = 16,
+	kResV1_2_10Script = 17,
+	kResV1_2_10Sprite = 18,
+	kResV1_2_10Text = 19,
+	kResV1_2_10Tile = 20
 };
 
 enum ScriptOpcode_v1_2_3 {
@@ -407,12 +408,12 @@ enum ScriptOpcode_v1_2_5 {
 	kOpV1_2_5Reserved = 143
 };
 
-struct ScriptCursor_v1_2_9 {
+struct ScriptCursor_v1_2_10 {
 	uint16 id;
 	uint16 sequentialIndex;
 	uint16 randomIndex;
 
-	ScriptCursor_v1_2_9() : id(0), sequentialIndex(0), randomIndex(0) {}
+	ScriptCursor_v1_2_10() : id(0), sequentialIndex(0), randomIndex(0) {}
 };
 
 class TopgunEngine_v1_2_3 : public TopgunEngine_v1_2 {
@@ -485,9 +486,9 @@ protected:
 
 	// Plug-ins
 	bool loadAndRegisterLibraries();
-	PluginModule_v1_2_9 *loadPluginModule(const Common::String &fileName);
-	void freePluginModule(PluginModule_v1_2_9 *module);
-	bool registerExternalLibrary(PluginModule_v1_2_9 *module);
+	PluginModule_v1_2_10 *loadPluginModule(const Common::String &fileName);
+	void freePluginModule(PluginModule_v1_2_10 *module);
+	bool registerExternalLibrary(PluginModule_v1_2_10 *module);
 	void unloadAllPluginModules();
 	void freeUnloadedPluginModules();
 	void notifyPluginsFocusChanged(bool active);
@@ -570,7 +571,7 @@ protected:
 
 	// Interpreter state
 	uint16 _reservedScriptWord = 0;
-	Common::Array<ScriptCursor_v1_2_9> _scriptCursors;
+	Common::Array<ScriptCursor_v1_2_10> _scriptCursors;
 	Common::HashMap<uint16, TileBackground *> _tileBackgrounds;
 	uint16 _waveStartedScript = 0;
 	uint16 _idleScript = 0;
@@ -585,8 +586,8 @@ protected:
 	uint16 _freeMemoryHigh = 0x7FFF;
 
 	// Plug-in state
-	Common::Array<PluginModule_v1_2_9 *> _pluginModules;
-	Common::Array<PluginModule_v1_2_9 *> _pluginsPendingFree;
+	Common::Array<PluginModule_v1_2_10 *> _pluginModules;
+	Common::Array<PluginModule_v1_2_10 *> _pluginsPendingFree;
 	uint16 _pluginTickProcCount = 0;
 
 	// Palette and background state

@@ -166,6 +166,10 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 			title = "Arcade America";
 			container = "ARCADE.BIN";
 			folder = "ARCADE";
+		} else if (getGameId() == "junglegames") {
+			title = "Pumbaa And Timon's Jungle Arcade";
+			container = "T&PDEMPC.BIN";
+			folder = "JUNGLE";
 		} else {
 			title = "TopGun Player";
 			container = "ACE_DEMO.BIN";
@@ -189,7 +193,7 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 	if (getGameId() == "aceventura")
 		return runStartup("Ace Ventura", "ACE.BIN");
 
-	if (getGameId() == "junglegames" && _version >= kVersionV1_2_8)
+	if (getGameId() == "junglegames" && _version >= kVersionV1_2_9)
 		return runStartup("Pumbaa And Timon's Jungle Arcade", "JUNGLE.BIN");
 
 	if (getGameId() == "junglegames")
@@ -213,6 +217,15 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 
 		return runStartup("Pumbaa And Timon's Jungle Arcade", container);
 	}
+
+	if (getGameId() == "topsyturvy")
+		return runStartup("Topsy Turvy", "TOPSY.BIN");
+
+	if (getGameId() == "djalibowling")
+		return runStartup("Topsy Turvy", "TBOWLPC.BIN");
+
+	if (getGameId() == "upsydaisy")
+		return runStartup("Topsy Turvy", "TUPSYPC.BIN");
 
 	if (getGameId() == "greatword")
 		return runStartup("Howie's Great Word Adventure", "WORD.BIN");
@@ -313,7 +326,7 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 		if (_appActive && !_gamePaused) {
 			spriteLib()->spriteAnimate();
 
-			if (_version >= kVersionV1_2_9 && _pluginTickProcCount != 0)
+			if (_version >= kVersionV1_2_10 && _pluginTickProcCount != 0)
 				runRegisteredServiceCallbacks();
 
 			if (_version >= kVersionV1_2_6_2 && _idleScript != 0)
@@ -341,7 +354,7 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 	handleAppShutdown();
 
 	// The first call unloads the plug-ins and only posts the close message, which is not dispatched after the loop
-	if (_version >= kVersionV1_2_9 && !_shuttingDown)
+	if (_version >= kVersionV1_2_10 && !_shuttingDown)
 		handleAppShutdown();
 
 	return 0;
@@ -454,8 +467,8 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 
 		break;
 
-	case kMsgV1_2_9FreePluginModules:
-		if (_version >= kVersionV1_2_9)
+	case kMsgV1_2_10FreePluginModules:
+		if (_version >= kVersionV1_2_10)
 			freeUnloadedPluginModules();
 		break;
 
@@ -493,7 +506,7 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 	if (_shuttingDown)
 		return;
 
-	if (_version >= kVersionV1_2_9 && !_pluginLibraries.empty()) {
+	if (_version >= kVersionV1_2_10 && !_pluginLibraries.empty()) {
 		unloadAllPluginModules();
 		postMessage(kMsgClose, 0, 0);
 		return;
@@ -509,7 +522,7 @@ void TopgunEngine_v1_2_3::handleAppShutdown() {
 
 	flushPostedScriptMessages();
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		freeUnloadedPluginModules();
 
 	spriteLib()->spriteExitLibrary();
@@ -543,7 +556,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 	}
 
 	if (notify) {
-		if (_version >= kVersionV1_2_9)
+		if (_version >= kVersionV1_2_10)
 			notifyPluginsFocusChanged(active);
 
 		if (_version >= kVersionV1_2_6) {
@@ -565,7 +578,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 
 		_activateState = active;
 
-		if (_version >= kVersionV1_2_6_1 && _version <= kVersionV1_2_8 && !active)
+		if (_version >= kVersionV1_2_6_1 && _version <= kVersionV1_2_9 && !active)
 			cancelMouseCapture();
 	}
 

@@ -272,7 +272,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 			newer->_idleScript = 0;
 		}
 
-		if (_version >= kVersionV1_2_9) {
+		if (_version >= kVersionV1_2_10) {
 			_scrollBoxWindowBox = false;
 			newer->_scriptCursors.clear();
 		}
@@ -345,7 +345,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	// The entry script is the immediate operand 0 in the later version
 	runScriptResource((_version >= kVersionV1_2_2_2) ? (uint16)(0 - TG_HOST_V1_2_3_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT);
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->_scriptCursors.clear();
 
 	_entryScriptRunning = false;
@@ -367,7 +367,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 		numSceneVariables = TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
 	uint32 variablesSize = numSceneVariables * sizeof(uint16);
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->notifyPluginsLifecycleEvent(kPluginSceneSwitching, name);
 
 	if (_version < kVersionV1_2_2_2)
@@ -386,7 +386,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_cdAudioPlaying)
 		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
 
-	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_9)
+	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_10)
 		unloadPluginLibrary();
 
 	Common::String sceneName = Common::Path(name, '\\').baseName();
@@ -394,7 +394,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	spriteLib()->spriteSetTopMost(_sceneSprite);
 	spriteLib()->spriteSetClipBox(nullptr);
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetScrollBox(nullptr);
 
 	spriteLib()->spriteSetSendMsg(0);
@@ -431,13 +431,13 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_file != 0)
 		resourceLib()->resCloseFile(_file);
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadAllPluginModules();
 
 	_file = 0;
 	_releaseOnPalette = true;
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		fillBackground();
 
 	if (loadSceneContainerAndRunEntryScript(sceneName, true)) {
@@ -616,12 +616,12 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 	_startTick = getEngineMillis();
 
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_10)
 		fillBackground();
 
 	bool loaded = loadSceneContainerAndRunEntryScript(sceneName, false);
 
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_10) {
 		if (!loaded)
 			return false;
 
@@ -644,7 +644,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 }
 
 void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_10) {
 		static_cast<TopgunEngine_v1_2_3 *>(this)->notifyPluginsLifecycleEvent(kPluginSceneClosed, nullptr);
 		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadAllPluginModules();
 	}
@@ -678,7 +678,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	if (_backgroundBitmap)
 		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
 
-	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_9)
+	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_10)
 		unloadPluginLibrary();
 
 	for (uint16 i = 0; i < _sceneEntries.size(); i++) {
@@ -741,8 +741,8 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 
 	byte title[TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE];
 	uint16 titleSize = TG_HOST_V1_2_CONTAINER_TITLE_SIZE;
-	if (_version >= kVersionV1_2_9)
-		titleSize = TG_HOST_V1_2_9_CONTAINER_TITLE_SIZE;
+	if (_version >= kVersionV1_2_10)
+		titleSize = TG_HOST_V1_2_10_CONTAINER_TITLE_SIZE;
 	else if (_version >= kVersionV1_2_5)
 		titleSize = TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE;
 
@@ -779,7 +779,7 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_maxFadeColors = library->resGetMaxFadeColors(_file);
 		_maxTransColors = library->resGetMaxTransColors(_file);
 
-		if (_version >= kVersionV1_2_9) {
+		if (_version >= kVersionV1_2_10) {
 			if (!static_cast<TopgunEngine_v1_2_3 *>(this)->loadAndRegisterLibraries())
 				return false;
 		} else {

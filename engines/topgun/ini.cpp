@@ -336,8 +336,8 @@ void TopgunEngine_v1_2::iniReadString(byte obfuscation, uint16 stringId, const c
 	if (getPrivateProfileString(section, key, buffer, TG_INI_V1_2_BUFFER_SIZE) == 0)
 		return;
 
-	// The versions from 1.2.7 up to 1.2.8 copy the stored string as it is, although they escape it when writing
-	if (_version >= kVersionV1_2_1 && (_version < kVersionV1_2_7 || _version >= kVersionV1_2_9)) {
+	// From 1.2.7 to 1.2.9 the stored string is copied as it is, although it is escaped when written; Djali Bowling still unescapes it
+	if (_version >= kVersionV1_2_1 && (_version < kVersionV1_2_7 || _version >= kVersionV1_2_10 || getGameId() == "djalibowling")) {
 		char unescaped[TG_INI_V1_2_BUFFER_SIZE];
 		unescapeIniString(unescaped, buffer);
 		Common::strlcpy(buffer, unescaped, TG_INI_V1_2_BUFFER_SIZE);

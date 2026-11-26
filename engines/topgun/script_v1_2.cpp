@@ -46,8 +46,8 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 	}
 
 	uint16 scriptType = kResV1_2Script;
-	if (_version >= kVersionV1_2_9)
-		scriptType = kResV1_2_9Script;
+	if (_version >= kVersionV1_2_10)
+		scriptType = kResV1_2_10Script;
 	else if (_version >= kVersionV1_2_5)
 		scriptType = kResV1_2_5Script;
 	else if (_version >= kVersionV1_2_2_1)
@@ -760,8 +760,8 @@ void TopgunEngine_v1_2::popScriptArguments() {
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_9)
-		listType = kResV1_2_9OpList;
+	if (_version >= kVersionV1_2_10)
+		listType = kResV1_2_10OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
 	else if (_version >= kVersionV1_2_2_1)
@@ -796,8 +796,8 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_9)
-		listType = kResV1_2_9OpList;
+	if (_version >= kVersionV1_2_10)
+		listType = kResV1_2_10OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
 	else if (_version >= kVersionV1_2_2_1)

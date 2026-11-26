@@ -109,11 +109,11 @@ bool SpriteLibrary_v1_2_3::dispatchSpriteMessage(uint16 mode, uint16 count, cons
 	const uint16 *params = words + 1;
 	uint16 message = words[0];
 
-	if (_engine->_version >= kVersionV1_2_9) {
-		if (message == kSprV1_2_9MsgMarkLoopStart)
+	if (_engine->_version >= kVersionV1_2_10) {
+		if (message == kSprV1_2_10MsgMarkLoopStart)
 			return markQueueLoopStart(mode, sprite);
 
-		if (message == kSprV1_2_9MsgLoopJump)
+		if (message == kSprV1_2_10MsgLoopJump)
 			return buildQueueLoopJumpMessage(mode, count, params, sprite);
 	}
 
@@ -200,9 +200,9 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 
 	uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 	uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-	if (_engine->_version >= kVersionV1_2_9) {
-		slack = TG_SPR_V1_2_9_QUEUE_BLOCK_SLACK;
-		rounding = TG_SPR_V1_2_9_QUEUE_BLOCK_ROUNDING;
+	if (_engine->_version >= kVersionV1_2_10) {
+		slack = TG_SPR_V1_2_10_QUEUE_BLOCK_SLACK;
+		rounding = TG_SPR_V1_2_10_QUEUE_BLOCK_ROUNDING;
 	}
 
 	uint32 capacity = (uint16)(size + slack) & rounding;
@@ -240,9 +240,9 @@ byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 explicitSize, uint16 opcode,
 	if (needed > capacity) {
 		uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 		uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-		if (_engine->_version >= kVersionV1_2_9) {
-			slack = TG_SPR_V1_2_9_QUEUE_BLOCK_SLACK;
-			rounding = TG_SPR_V1_2_9_QUEUE_BLOCK_ROUNDING;
+		if (_engine->_version >= kVersionV1_2_10) {
+			slack = TG_SPR_V1_2_10_QUEUE_BLOCK_SLACK;
+			rounding = TG_SPR_V1_2_10_QUEUE_BLOCK_ROUNDING;
 		}
 
 		uint32 newCapacity = (uint16)(needed + slack) & rounding;
