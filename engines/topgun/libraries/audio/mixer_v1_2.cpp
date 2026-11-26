@@ -219,7 +219,7 @@ bool AudioLibrary_v1_2::openWaveOutDevice(const WaveFormat *format) {
 
 	_waveOutStream = new WaveOutStream(_waveRing, _waveFormat.sampleRate, _waveFormat.channels == 2,
 	                                   _waveFormat.bitsPerSample == 8, _maxWaveBuffers);
-	mixer->playStream(Audio::Mixer::kSFXSoundType, &_waveOutHandle, _waveOutStream, -1,
+	mixer->playStream(Audio::Mixer::kPlainSoundType, &_waveOutHandle, _waveOutStream, -1,
 	                  Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 	applyWaveOutVolume(_hardwareWaveVolume);
 
@@ -285,6 +285,9 @@ void AudioLibrary_v1_2::resetWaveOutQueue() {
 
 		_waveOutStream->resetPlayback();
 	}
+
+	// Resetting the device also lifts its pause
+	g_system->getMixer()->pauseHandle(_waveOutHandle, false);
 
 	for (uint16 i = 0; i < _maxWaveBuffers; i++)
 		_waveRing[i].busy = false;

@@ -543,7 +543,7 @@ bool AudioLibrary::openWaveOutDevice(const WaveFormat *wanted) {
 	_ringHead = 0;
 
 	_waveOutStream = new WaveOutStream(_waveRing, _waveFormat.sampleRate, _waveFormat.channels == 2, _waveOut8Bit);
-	mixer->playStream(Audio::Mixer::kSFXSoundType, &_waveOutHandle, _waveOutStream, -1,
+	mixer->playStream(Audio::Mixer::kPlainSoundType, &_waveOutHandle, _waveOutStream, -1,
 	                  Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 
 	_savedWaveVolumeLeft = (uint16)(_hardwareWaveVolume & 0xFFFF);

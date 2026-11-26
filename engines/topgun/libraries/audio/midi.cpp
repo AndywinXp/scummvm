@@ -106,7 +106,7 @@ bool MidiSequencer::playData(const byte *data, uint32 size) {
 
 	_parser = parser;
 
-	syncVolume();
+	setVolume(ConfMan.getBool("mute") ? 0 : 255);
 
 	_isLooping = false;
 	_isPlaying = true;
@@ -338,9 +338,7 @@ void AudioLibrary_v1_2_3::applyMidiDeviceVolume() {
 
 	uint32 loudest = MAX<uint32>(_midiDeviceVolume & 0xFFFF, _midiDeviceVolume >> 16);
 	int level = (int)((loudest * 255 + 32767) / 65535);
-	int musicVolume = ConfMan.getBool("mute") ? 0 : ConfMan.getInt("music_volume");
-
-	_midiOut->setVolume(level * musicVolume / 255);
+	_midiOut->setVolume(ConfMan.getBool("mute") ? 0 : level);
 }
 
 void AudioLibrary_v1_2_3::closeMidiOutDevice() {
@@ -538,7 +536,7 @@ void AudioLibrary_v1_2::stopMidiSequence(MidiObject *midi) {
 
 void AudioLibrary_v1_2::applyMidiDeviceVolume() {
 	if (_sequencer)
-		_sequencer->syncVolume();
+		_sequencer->setVolume(ConfMan.getBool("mute") ? 0 : 255);
 }
 
 uint32 AudioLibrary_v1_2_3::audioGetMidiVolume() {

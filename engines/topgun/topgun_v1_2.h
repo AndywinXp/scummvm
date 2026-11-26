@@ -669,7 +669,9 @@ struct CollisionPair_v1_2 {
 };
 
 class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
+	friend class AudioLibrary;
 	friend class AudioLibrary_v1_2;
+	friend class AudioLibrary_v1_2_3;
 	friend class ResourceLibrary_v1_2;
 	friend class SpriteLibrary_v1_2;
 

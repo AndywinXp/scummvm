@@ -28,7 +28,7 @@
 #include "common/util.h"
 
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/topgun.h"
+#include "topgun/topgun_v1_2.h"
 
 namespace Topgun {
 
@@ -162,7 +162,7 @@ bool AudioLibrary::sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms
 
 		uint32 trackFrames = getExtractedTrackFrames(track);
 
-		if (!manager->play(track, 1, startFrame, duration, true))
+		if (!manager->play(track, 1, startFrame, duration, true, Audio::Mixer::kPlainSoundType))
 			return false;
 
 		_cdPlayStarted = true;
@@ -339,7 +339,9 @@ uint16 AudioLibrary::findCdAuxDevice() {
 		}
 	}
 
-	if (_engine->_version >= kVersionV1_1)
+	if (_engine->_version >= kVersionV1_2)
+		_cdProfileFirst = static_cast<TopgunEngine_v1_2 *>(_engine)->getPrivateProfileInt("audio", "ProfileCD", 1) != 0;
+	else if (_engine->_version >= kVersionV1_1)
 		_cdProfileFirst = !ConfMan.hasKey("profilecd") || ConfMan.getInt("profilecd") != 0;
 
 	return 1;

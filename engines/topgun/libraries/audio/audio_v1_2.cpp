@@ -19,7 +19,6 @@
  *
  */
 
-#include "common/config-manager.h"
 #include "common/endian.h"
 #include "common/system.h"
 #include "common/textconsole.h"
@@ -160,16 +159,13 @@ void AudioLibrary_v1_2::freeAudioContext() {
 }
 
 uint16 AudioLibrary_v1_2::readAudioIniInt(const char *key, uint16 defaultValue) {
-	if (!ConfMan.hasKey(key))
-		return defaultValue;
-
-	return (uint16)ConfMan.getInt(key);
+	return engine()->getPrivateProfileInt("audio", key, defaultValue);
 }
 
 void AudioLibrary_v1_2::readAudioIniSettings() {
-	_iniWaveFormatMask = readAudioIniInt("waveformatmask", TG_AUDIO_V1_2_DEFAULT_FORMAT_MASK);
-	_disableWaveVolume = (readAudioIniInt("disablewavevolume", 0) != 0);
-	_maxWaveBuffers = readAudioIniInt("maxwavebuffers", TG_AUDIO_V1_2_DEFAULT_WAVE_BUFFERS);
+	_iniWaveFormatMask = readAudioIniInt("WaveFormatMask", TG_AUDIO_V1_2_DEFAULT_FORMAT_MASK);
+	_disableWaveVolume = (readAudioIniInt("DisableWaveVolume", 0) != 0);
+	_maxWaveBuffers = readAudioIniInt("MaxWaveBuffers", TG_AUDIO_V1_2_DEFAULT_WAVE_BUFFERS);
 
 	if (_maxWaveBuffers > TG_AUDIO_V1_2_MAX_WAVE_BUFFERS)
 		_maxWaveBuffers = TG_AUDIO_V1_2_MAX_WAVE_BUFFERS;
@@ -502,16 +498,16 @@ void AudioLibrary_v1_2_3::readAudioIniSettings() {
 	AudioLibrary_v1_2::readAudioIniSettings();
 
 	if (_engine->_version >= kVersionV1_2_6) {
-		_iniCdVolume = readAudioIniInt("cdvolume", 0);
-		_iniWaveVolume = readAudioIniInt("wavevolume", 0);
+		_iniCdVolume = readAudioIniInt("CdVolume", 0);
+		_iniWaveVolume = readAudioIniInt("WaveVolume", 0);
 	}
 
 	if (_engine->_version == kVersionV1_2_7)
-		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_7_INI_MIDI_VOLUME_UNSET);
+		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_7_INI_MIDI_VOLUME_UNSET);
 	else
-		_iniMidiVolume = readAudioIniInt("midivolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
+		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
 
-	_remapMidiDrums = (readAudioIniInt("remapmididrums", 0) != 0);
+	_remapMidiDrums = (readAudioIniInt("RemapMidiDrums", 0) != 0);
 }
 
 void AudioLibrary_v1_2_3::writeAudioIniInt(const char *key, uint16 value) {
@@ -519,20 +515,19 @@ void AudioLibrary_v1_2_3::writeAudioIniInt(const char *key, uint16 value) {
 }
 
 void AudioLibrary_v1_2_3::writeAudioIniString(const char *key, const char *value) {
-	ConfMan.set(key, value);
-	ConfMan.flushToDisk();
+	engine()->writePrivateProfileString("audio", key, value);
 }
 
 void AudioLibrary_v1_2_3::saveCdVolumeToIni() {
-	writeAudioIniInt("cdvolume", _iniCdVolume);
+	writeAudioIniInt("CdVolume", _iniCdVolume);
 }
 
 void AudioLibrary_v1_2_3::saveMidiVolumeToIni() {
-	writeAudioIniInt("midivolume", _iniMidiVolume);
+	writeAudioIniInt("MidiVolume", _iniMidiVolume);
 }
 
 void AudioLibrary_v1_2_3::saveWaveVolumeToIni() {
-	writeAudioIniInt("wavevolume", _iniWaveVolume);
+	writeAudioIniInt("WaveVolume", _iniWaveVolume);
 }
 
 } // End of namespace Topgun

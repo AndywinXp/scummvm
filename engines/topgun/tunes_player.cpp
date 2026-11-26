@@ -284,7 +284,7 @@ void TunesPlayerEngine::playWaveResource(uint16 id) {
 	Audio::Mixer *mixer = g_system->getMixer();
 	Audio::SoundHandle handle;
 
-	mixer->playStream(Audio::Mixer::kSFXSoundType, &handle, stream);
+	mixer->playStream(Audio::Mixer::kPlainSoundType, &handle, stream);
 
 	while (mixer->isSoundHandleActive(handle) && !shouldQuit()) {
 		Common::Event event;
