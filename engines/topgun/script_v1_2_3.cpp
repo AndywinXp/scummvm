@@ -238,7 +238,7 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2_3SetSpriteLevel:
-		o_setSpriteLevel(ip);
+		o_setSpriteLevel(READ_LE_UINT16(ip + 2), READ_LE_UINT16(ip + 4));
 		size = 6;
 		break;
 
@@ -689,26 +689,6 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 	}
 
 	return kScriptOpSizes[opcode];
-}
-
-bool TopgunEngine_v1_2_3::runPostedScriptRecord(const byte *record) {
-	byte local[TG_SCRIPT_V1_2_3_POSTED_RECORD_BUFFER_SIZE];
-	uint16 count = READ_LE_UINT16(record + 4);
-
-	WRITE_LE_UINT16(local + 2, READ_LE_UINT16(record + 2));
-	local[4] = 0;
-	local[5] = (byte)count;
-
-	if (TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * (uint32)count > sizeof(local)) {
-		warning("TopgunEngine_v1_2_3::runPostedScriptRecord(): %d arguments do not fit in the record", count);
-		count = (sizeof(local) - TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE) / 2;
-		local[5] = (byte)count;
-	}
-
-	for (uint16 i = 0; i < count; i++)
-		WRITE_LE_UINT16(local + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i));
-
-	return o_callScript(local);
 }
 
 bool TopgunEngine_v1_2_3::enqueuePostedScriptRun(uint16 script, uint16 argument1, uint16 argument2) {

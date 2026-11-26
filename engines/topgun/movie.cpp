@@ -204,7 +204,7 @@ bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
 			movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
 		}
 
-		if (_version >= kVersionV1_2_2_2) {
+		if (_version >= kVersionV1_2_2_1) {
 			if (static_cast<ResourceLibrary_v1_2_3 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET)) == 0)
 				return false;
 
@@ -347,7 +347,7 @@ uint16 TopgunEngine_v1_2::movieReadNextBlock(Movie_v1_2 *movie) {
 	bool previousCallback = resourceLib()->resSetCallback(_file, true, TG_HOST_PROGRESS_INTERVAL);
 
 	PrefetchBuffer_v1_2 &buffer = movie->buffers[movie->fillBuffer];
-	uint32 streamBase = (_version >= kVersionV1_2_2_2) ? movie->streamBase : 0;
+	uint32 streamBase = (_version >= kVersionV1_2_2_1) ? movie->streamBase : 0;
 	uint32 read = resourceLib()->resReadData(_file, buffer.data + buffer.filled, movie->runSize, streamBase + movie->runOffset);
 	buffer.filled = (uint16)(buffer.filled + movie->runSize);
 
@@ -640,7 +640,7 @@ bool TopgunEngine_v1_2::movieStartAudioStream(Movie_v1_2 *movie) {
 		headerSize = TG_AUDIO_V1_2_2_2_CREATE_HEADER_SIZE;
 
 	memcpy(info.header, movie->timeline + TG_MOVIE_V1_2_TIMELINE_SCRIPT_PREFIX, headerSize);
-	info.readProc = (_version >= kVersionV1_2_2_2) ? TG_AUDIO_V1_2_3_PROC_MOVIE_AUDIO : TG_AUDIO_V1_2_PROC_MOVIE_AUDIO;
+	info.readProc = (_version >= kVersionV1_2_2_2) ? TG_AUDIO_V1_2_2_2_PROC_MOVIE_AUDIO : TG_AUDIO_V1_2_PROC_MOVIE_AUDIO;
 	info.handle = movie->handle;
 
 	movie->audioStream = audioLib()->audioCreateWave(&info);

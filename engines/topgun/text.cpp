@@ -974,7 +974,7 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 		type = kResV1_2_9Text;
 	else if (_version >= kVersionV1_2_5)
 		type = kResV1_2_5Text;
-	else if (_version >= kVersionV1_2_2_2)
+	else if (_version >= kVersionV1_2_2_1)
 		type = kResV1_2_3Text;
 	else if (_version >= kVersionV1_2_2)
 		type = TG_TEXT_V1_2_2_RESOURCE_TYPE;

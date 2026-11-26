@@ -100,6 +100,9 @@ public:
 	virtual void setMessageFilter(Plugin *plugin) = 0; // RT_039
 	virtual void setNetworkMessageCallback(Plugin *plugin) = 0; // RT_040
 	virtual void setScriptHook(Plugin *plugin) = 0;
+
+	// Puts a message that a filter has consumed back in the queue
+	virtual void repostMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) = 0;
 };
 
 class Plugin {

@@ -105,8 +105,8 @@
 #define TG_RES_V1_2_3_KEY_PLUGIN_NAMES             10
 
 // Bitmap records
-#define TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET     9
-#define TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK       0x80
+#define TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET   9
+#define TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK     0x80
 
 // Wave header
 #define TG_RES_V1_2_3_WAVE_HEADER_SIZE             0x1C

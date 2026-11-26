@@ -88,9 +88,9 @@ uint16 BattleDemoPlugin::messageFilter(uint16 message, uint16 wParam, uint16 lPa
 	case TG_BATTLE_V1_2_2_1_MESSAGE_CLOSE:
 	case TG_BATTLE_V1_2_2_1_MESSAGE_GOTO_SCENE:
 	case TG_BATTLE_V1_2_2_1_MESSAGE_5F4:
-		// The original removes its filter and reposts the message; here it just lets the message through
 		_host->setMessageFilter(nullptr);
-		return 0;
+		_host->repostMessage(message, wParam, lParamLow, lParamHigh);
+		return 1;
 	default:
 		return 0;
 	}

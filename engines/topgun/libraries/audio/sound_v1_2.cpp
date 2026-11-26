@@ -797,10 +797,10 @@ bool AudioLibrary_v1_2_3::startWavePlayback(SoundObject *sound, const byte *para
 		resetWaveOutQueue();
 
 	activateWaveObject(sound);
-	sound->notifyArmed = (params[TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY] != 0);
+	sound->notifyArmed = (params[TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY] != 0);
 
 	if (sound->notifyArmed)
-		sound->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY_PARAM);
+		sound->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY_PARAM);
 	else
 		sound->notifyLParam = 0;
 

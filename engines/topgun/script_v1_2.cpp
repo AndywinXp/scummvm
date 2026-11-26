@@ -50,7 +50,7 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 		scriptType = kResV1_2_9Script;
 	else if (_version >= kVersionV1_2_5)
 		scriptType = kResV1_2_5Script;
-	else if (_version >= kVersionV1_2_2_2)
+	else if (_version >= kVersionV1_2_2_1)
 		scriptType = kResV1_2_3Script;
 	else if (_version >= kVersionV1_2_2)
 		scriptType = kResV1_2_2Script;
@@ -67,10 +67,13 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 	}
 
 	if (_version >= kVersionV1_2_5)
-		static_cast<TopgunEngine_v1_2_3 *>(this)->_debugScriptId = 0;
+		_debugScriptId = 0;
 
 	_currentScriptId = scriptId;
-	bool result = runScriptBytecodeLoop(scriptId);
+
+	bool result = true;
+	if (!_scriptHook || !callScriptHook(scriptId))
+		result = runScriptBytecodeLoop(scriptId);
 
 	_scriptDepth--;
 	return result;
@@ -128,6 +131,9 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 	if (_version < kVersionV1_2_2 && opcode >= kOpV1_2GetSpriteElementIds)
 		opcode = 0;
 
+	if (_version < kVersionV1_2_2_1 && ((opcode >= kOpV1_2SetDeviceGroupBinding && opcode <= kOpV1_2GetDeviceGroupState) || opcode > kOpV1_2ReturnExpression))
+		opcode = 0;
+
 	switch (opcode) {
 	case kOpV1_2CallScript:
 		result = o_callScript(ip);
@@ -162,12 +168,12 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2SetSpriteQueue:
 		result = o_setSpriteQueue(READ_LE_UINT16(ip + 2), READ_LE_UINT16(ip + 4), ip[6] != 0);
-		size = 7;
+		size = (_version >= kVersionV1_2_2_1) ? 8 : 7;
 		break;
 
 	case kOpV1_2SetBackground:
 		o_setBackground(ip);
-		size = 10;
+		size = (_version >= kVersionV1_2_2_1) ? 14 : 10;
 		break;
 
 	case kOpV1_2SetSpriteObjectProperties:
@@ -232,7 +238,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2CancelScriptTimer:
 		o_cancelScriptTimer(ip);
-		size = 4;
+		size = (_version >= kVersionV1_2_2_1) ? 6 : 4;
 		break;
 
 	case kOpV1_2SetSceneEndScript:
@@ -289,6 +295,15 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2PostScript:
+		if (_version >= kVersionV1_2_2_1) {
+			uint16 argument1 = (uint16)(operandValue(READ_LE_UINT16(ip + 4)) - TG_HOST_V1_2_LITERAL_BIAS);
+			uint16 argument2 = (uint16)(operandValue(READ_LE_UINT16(ip + 6)) - TG_HOST_V1_2_LITERAL_BIAS);
+
+			postMessage(kMsgV1_2RunScript, READ_LE_UINT16(ip + 2), ((uint32)argument2 << 16) | argument1);
+			size = 8;
+			break;
+		}
+
 		postMessage(kMsgV1_2RunScript, READ_LE_UINT16(ip + 2), 0);
 		size = 4;
 		break;
@@ -298,20 +313,29 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		size = 3;
 		break;
 
-	case kOpV1_2RunScriptIfLoaded:
+	case kOpV1_2RunScriptIfLoaded: {
+		uint16 id = READ_LE_UINT16(ip + 2);
+		bool loaded;
+
+		if (_version >= kVersionV1_2_2_1)
+			loaded = isResourceObjectLoaded(id, resourceLib()->resGetType(_file, operandValue(id)));
+		else
+			loaded = isResourceObjectLoaded(id);
+
 		size = 6;
 
-		if (isResourceObjectLoaded(READ_LE_UINT16(ip + 2))) {
+		if (loaded) {
 			if (READ_LE_UINT16(ip + 4) == 0)
 				size = 0;
 			else
 				runScriptResource(READ_LE_UINT16(ip + 4));
 		}
 		break;
+	}
 
 	case kOpV1_2AddCollisionPair:
 		result = o_addCollisionPair(ip);
-		size = 13;
+		size = (_version >= kVersionV1_2_2_1) ? 14 : 13;
 		break;
 
 	case kOpV1_2ListRunScript:
@@ -525,7 +549,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2PlayMidi:
 		o_playMidi(ip);
-		size = 4;
+		size = (_version >= kVersionV1_2_2_1) ? 10 : 4;
 		break;
 
 	case kOpV1_2StopMidi:
@@ -533,9 +557,64 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		size = 4;
 		break;
 
+	case kOpV1_2SetDeviceGroupBinding:
+		o_setDeviceGroupBinding(ip);
+		size = 15;
+		break;
+
+	case kOpV1_2DeviceGroupButtonState:
+		o_deviceGroupButtonState(ip);
+		size = 7;
+		break;
+
+	case kOpV1_2SetDeviceGroupScript:
+		o_setDeviceGroupScript(ip);
+		size = 6;
+		break;
+
+	case kOpV1_2DeviceGroupLatch:
+		o_deviceGroupLatch(ip);
+		size = 8;
+		break;
+
+	case kOpV1_2SetDeviceGroupBindingB:
+		o_setDeviceGroupBindingB(ip);
+		size = 15;
+		break;
+
+	case kOpV1_2SetDeviceGroupFlag:
+		o_setDeviceGroupFlag(ip);
+		size = 6;
+		break;
+
+	case kOpV1_2GetDeviceGroupState:
+		o_getDeviceGroupState(ip);
+		size = 10;
+		break;
+
 	case kOpV1_2ReturnExpression:
 		size = 0;
 		_scriptResult = evaluateExpression(ip + 4);
+		break;
+
+	case kOpV1_2_2_1SetMidiParams:
+		o_setMidiParams(ip);
+		size = 14;
+		break;
+
+	case kOpV1_2_2_1SetVolume:
+		o_setVolume(ip);
+		size = 4;
+		break;
+
+	case kOpV1_2_2_1Unused94:
+	case kOpV1_2_2_1Unused95:
+		size = 4;
+		break;
+
+	case kOpV1_2_2_1SetDebugScriptId:
+		_debugScriptId = READ_LE_UINT16(ip + 2);
+		size = 4;
 		break;
 
 	default:
@@ -552,6 +631,34 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 	uint16 opcode = READ_LE_UINT16(ip);
+
+	if (_version >= kVersionV1_2_2_1) {
+		switch (opcode) {
+		case kOpV1_2SetSpriteQueue:
+		case kOpV1_2PostScript:
+			return 8;
+
+		case kOpV1_2SetBackground:
+		case kOpV1_2AddCollisionPair:
+		case kOpV1_2_2_1SetMidiParams:
+			return 14;
+
+		case kOpV1_2CancelScriptTimer:
+			return 6;
+
+		case kOpV1_2PlayMidi:
+			return 10;
+
+		case kOpV1_2_2_1SetVolume:
+		case kOpV1_2_2_1Unused94:
+		case kOpV1_2_2_1Unused95:
+		case kOpV1_2_2_1SetDebugScriptId:
+			return 4;
+
+		default:
+			break;
+		}
+	}
 
 	if (_version >= kVersionV1_2_2) {
 		switch (opcode) {
@@ -657,7 +764,7 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 		listType = kResV1_2_9OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_2_2)
+	else if (_version >= kVersionV1_2_2_1)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;
@@ -693,7 +800,7 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 		listType = kResV1_2_9OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_2_2)
+	else if (_version >= kVersionV1_2_2_1)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;
@@ -914,9 +1021,35 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record) {
 		executeScriptOp(record + TG_SCRIPT_V1_2_HOST_EVENT_OPERATION_OFFSET, nullptr);
 		break;
 
+	case TG_SCRIPT_V1_2_2_1_HOST_EVENT_POSTED_RUN:
+		if (_version >= kVersionV1_2_2_1)
+			runPostedScriptRecord(record);
+
+		break;
+
 	default:
 		break;
 	}
+}
+
+bool TopgunEngine_v1_2::runPostedScriptRecord(const byte *record) {
+	byte local[TG_SCRIPT_V1_2_2_1_POSTED_RECORD_BUFFER_SIZE];
+	uint16 count = READ_LE_UINT16(record + 4);
+
+	WRITE_LE_UINT16(local + 2, READ_LE_UINT16(record + 2));
+	local[4] = 0;
+	local[5] = (byte)count;
+
+	if (TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * (uint32)count > sizeof(local)) {
+		warning("TopgunEngine_v1_2::runPostedScriptRecord(): %d arguments do not fit in the record", count);
+		count = (sizeof(local) - TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE) / 2;
+		local[5] = (byte)count;
+	}
+
+	for (uint16 i = 0; i < count; i++)
+		WRITE_LE_UINT16(local + TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * i));
+
+	return o_callScript(local);
 }
 
 } // End of namespace Topgun

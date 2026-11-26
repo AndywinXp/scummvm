@@ -388,7 +388,7 @@ AudioLibrary_v1_2_3::~AudioLibrary_v1_2_3() {
 }
 
 uint16 AudioLibrary_v1_2_3::audioInitLibrary(uint16 hwnd, uint16 version) {
-	if (version != TG_AUDIO_V1_2_3_VERSION)
+	if (version != TG_AUDIO_V1_2_2_2_VERSION)
 		return 0;
 
 	if (!_libMainDone) {

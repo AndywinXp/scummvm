@@ -753,8 +753,8 @@ void AudioLibrary_v1_2::audioSetMidi(uint16 handle, const byte *params) {
 	}
 
 	if (setTempo) {
-		midi->tempoDenominator = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_DENOMINATOR);
-		midi->tempoNumerator = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_NUMERATOR);
+		midi->tempoDenominator = READ_LE_UINT16(params + TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_DENOMINATOR);
+		midi->tempoNumerator = READ_LE_UINT16(params + TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_NUMERATOR);
 	}
 
 	if (!setMutes)
@@ -805,7 +805,7 @@ bool AudioLibrary_v1_2::startMidiSequence(const byte *params, MidiObject *midi) 
 		midi->notifyArmed = (params[TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_NOTIFY] != 0);
 
 	if (midi->notifyArmed)
-		midi->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_PARAM);
+		midi->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_PARAM);
 	else
 		midi->notifyLParam = 0;
 

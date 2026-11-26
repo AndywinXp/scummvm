@@ -81,7 +81,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 			break;
 
 		case 5:
-			if (_version >= kVersionV1_2_2_2)
+			if (_version >= kVersionV1_2_2_1)
 				_expressionStack[_expressionStackPointer - 1] = readAddress(_expressionStack[_expressionStackPointer - 1]);
 
 			break;
@@ -98,8 +98,8 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 			break;
 
 		case 12:
-			if (_version >= kVersionV1_2_2_2) {
-				static_cast<TopgunEngine_v1_2_3 *>(this)->exprCallBuiltinFunction(token);
+			if (_version >= kVersionV1_2_2_1) {
+				exprCallBuiltinFunction(token);
 				token += 4;
 			} else {
 				if (READ_LE_UINT16(token) > TG_HOST_V1_2_VARIABLE_LAST_INDEX)
@@ -113,7 +113,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 			break;
 
 		case 13:
-			if (_version >= kVersionV1_2_2_2) {
+			if (_version >= kVersionV1_2_2_1) {
 				exprCallScript(token);
 				token += 4;
 			}
@@ -275,7 +275,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 			break;
 
 		case 39:
-			if (_version >= kVersionV1_2_2_2)
+			if (_version >= kVersionV1_2_2_1)
 				pushExpressionValue(readAddress(_expressionStack[_expressionStackPointer - 1]));
 
 			break;
@@ -289,7 +289,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 	return _expressionStack[base];
 }
 
-void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
+void TopgunEngine_v1_2::exprCallBuiltinFunction(const byte *token) {
 	uint16 count = READ_LE_UINT16(token + 2);
 	uint16 code = _expressionStack[_expressionStackPointer - count - 1];
 
@@ -310,6 +310,8 @@ void TopgunEngine_v1_2_3::exprCallBuiltinFunction(const byte *token) {
 		lastBuiltinCode = TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE;
 	else if (_version >= kVersionV1_2_5)
 		lastBuiltinCode = TG_SCRIPT_V1_2_5_LAST_BUILTIN_CODE;
+	else if (_version == kVersionV1_2_2_1)
+		lastBuiltinCode = TG_SCRIPT_V1_2_2_1_LAST_BUILTIN_CODE;
 	else if (_version == kVersionV1_2_2_2)
 		lastBuiltinCode = TG_SCRIPT_V1_2_2_2_LAST_BUILTIN_CODE;
 	else if (_version == kVersionV1_2_2_3)
@@ -328,7 +330,7 @@ bool TopgunEngine_v1_2::exprCallScript(const byte *token) {
 	uint16 frameSlots;
 	uint16 count;
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_2_1) {
 		frameSlots = READ_LE_UINT16(token);
 		count = READ_LE_UINT16(token + 2);
 	} else {
@@ -355,9 +357,11 @@ bool TopgunEngine_v1_2::exprCallScript(const byte *token) {
 	uint16 savedResult = _scriptResult;
 	_scriptResult = 0;
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_2_1) {
+		uint16 bias = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
 		_expressionStackPointer--;
-		script = (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS);
+		script = (uint16)(_expressionStack[_expressionStackPointer] - bias);
 	}
 
 	bool result = runScriptResource(script);
@@ -386,6 +390,10 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 			arguments[i].value = _expressionStack[_expressionStackPointer + 1 + i];
 
 		debug("%s", formatWindowsString(format, count ? &arguments[0] : nullptr, count).c_str());
+
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStackPointer--;
+
 		break;
 	}
 
@@ -412,7 +420,11 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 			pick = random % range;
 		}
 
-		pushExpressionValue((uint16)(minimum + pick));
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStack[_expressionStackPointer - 1] = (uint16)(minimum + pick);
+		else
+			pushExpressionValue((uint16)(minimum + pick));
+
 		break;
 	}
 
@@ -424,9 +436,17 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	}
 
 	case 49: {
-		// The original also runs the debug string case after pushing the angle, which pops the arguments a second time
 		int16 deltaY = (int16)(_expressionStack[_expressionStackPointer - 1] - _expressionStack[_expressionStackPointer - 3]);
 
+		if (_version >= kVersionV1_2_2_1) {
+			int16 deltaX = (int16)(_expressionStack[_expressionStackPointer - 2] - _expressionStack[_expressionStackPointer - 4]);
+
+			_expressionStackPointer -= 4;
+			_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->getAngle(deltaX, deltaY);
+			break;
+		}
+
+		// The original also runs the debug string case after pushing the angle, which pops the arguments a second time
 		_expressionStackPointer -= 4;
 		pushExpressionValue((uint16)utilsLibrary()->getAngle(0, deltaY));
 		break;
@@ -455,29 +475,67 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		else if (comparison > 0)
 			result = 1;
 
-		pushExpressionValue(result);
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStack[_expressionStackPointer - 1] = result;
+		else
+			pushExpressionValue(result);
+
 		break;
 	}
 
-	case 65:
-		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->cosine((int16)_expressionStack[_expressionStackPointer - 1]);
-		break;
+	case 65: {
+		int16 angle = (int16)_expressionStack[_expressionStackPointer - 1];
 
-	case 66:
-		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->sine((int16)_expressionStack[_expressionStackPointer - 1]);
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStackPointer--;
+
+		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->cosine(angle);
 		break;
+	}
+
+	case 66: {
+		int16 angle = (int16)_expressionStack[_expressionStackPointer - 1];
+
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStackPointer--;
+
+		_expressionStack[_expressionStackPointer - 1] = (uint16)utilsLibrary()->sine(angle);
+		break;
+	}
 
 	case 90: {
 		_expressionStackPointer -= argc;
 		uint16 sprite = _expressionStack[_expressionStackPointer];
 
-		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_LITERAL_BIAS), kResV1_2_2Sprite))
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_LITERAL_BIAS), (_version >= kVersionV1_2_2_1) ? kResV1_2_3Sprite : kResV1_2_2Sprite))
 			break;
 
 		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
 			break;
 
 		spriteLib()->spriteSendMessage(_records[sprite].handle, argc, &_expressionStack[_expressionStackPointer + 1]);
+
+		if (_version >= kVersionV1_2_2_1)
+			_expressionStackPointer--;
+
+		break;
+	}
+
+	case 91: {
+		if (_version < kVersionV1_2_2_1)
+			break;
+
+		_expressionStackPointer -= argc;
+		uint16 sprite = _expressionStack[_expressionStackPointer];
+
+		if (!validateAndGetResourceByType((uint16)(sprite - TG_HOST_V1_2_LITERAL_BIAS), kResV1_2_3Sprite))
+			break;
+
+		if (!isRecordIndexValid(sprite, "evaluateBuiltinFunction"))
+			break;
+
+		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spritePostMessage(_records[sprite].handle, argc, &_expressionStack[_expressionStackPointer + 1]);
+		_expressionStackPointer--;
 		break;
 	}
 
@@ -660,15 +718,10 @@ void TopgunEngine_v1_2_3::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (_version < kVersionV1_2_9)
 			break;
 
-		byte record[6];
-
-		memset(record, 0, sizeof(record));
-		WRITE_LE_UINT16(record, kOpV1_2_3SetSpriteLevel);
 		_expressionStackPointer--;
-		WRITE_LE_UINT16(record + 4, _expressionStack[_expressionStackPointer]);
+		uint16 level = _expressionStack[_expressionStackPointer];
 		_expressionStackPointer--;
-		WRITE_LE_UINT16(record + 2, (uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS));
-		o_setSpriteLevel(record);
+		o_setSpriteLevel((uint16)(_expressionStack[_expressionStackPointer] - TG_HOST_V1_2_3_LITERAL_BIAS), level);
 		break;
 	}
 

@@ -31,6 +31,7 @@
 #include "topgun/games/ace/fileio.h"
 #include "topgun/games/ace/pathfind.h"
 #include "topgun/games/battle/battle.h"
+#include "topgun/games/battledemo/battledemo.h"
 #include "topgun/libraries/resource/resource_v1_2_3.h"
 #include "topgun/libraries/sprite/sprite_v1_2_3.h"
 #include "topgun/libraries/utils/utils.h"
@@ -52,7 +53,7 @@ struct MmioFile {
 
 class EnginePluginHost : public PluginHost {
 public:
-	EnginePluginHost(TopgunEngine_v1_2_3 *engine) : _engine(engine) {}
+	EnginePluginHost(TopgunEngine_v1_2 *engine) : _engine(engine) {}
 	~EnginePluginHost() override;
 
 	uint16 *variableTable() override;
@@ -95,14 +96,14 @@ public:
 	int32 mmioSeek(uint16 handle, int32 offset, int origin) override;
 	void setMessageFilter(Plugin *plugin) override;
 	void setNetworkMessageCallback(Plugin *plugin) override;
-	void setScriptHook(Plugin *plugin) override { _scriptHook = plugin; }
+	void setScriptHook(Plugin *plugin) override;
+	void repostMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) override;
 
 private:
 	MmioFile *findFile(uint16 handle);
 
-	TopgunEngine_v1_2_3 *_engine;
+	TopgunEngine_v1_2 *_engine;
 	Common::Array<MmioFile> _files;
-	Plugin *_scriptHook = nullptr;
 };
 
 EnginePluginHost::~EnginePluginHost() {
@@ -155,10 +156,12 @@ void EnginePluginHost::setSpritePosition(uint16 sprite, uint16 x, uint16 y) {
 	byte record[8];
 	memset(record, 0, sizeof(record));
 
+	uint16 literalBias = (_engine->_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
 	WRITE_LE_UINT16(record, kOpV1_2_3SetSpritePosition);
 	WRITE_LE_UINT16(record + 2, sprite);
-	WRITE_LE_UINT16(record + 4, (uint16)(x - TG_HOST_V1_2_3_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 6, (uint16)(y - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 4, (uint16)(x - literalBias));
+	WRITE_LE_UINT16(record + 6, (uint16)(y - literalBias));
 
 	_engine->o_setSpritePosition(record);
 }
@@ -216,13 +219,21 @@ uint16 EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argu
 	byte record[18];
 	memset(record, 0, sizeof(record));
 
+	uint16 literalBias = (_engine->_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
 	WRITE_LE_UINT16(record, kOpV1_2_3CallScript);
 	WRITE_LE_UINT16(record + 2, script);
 	record[5] = 2;
-	WRITE_LE_UINT16(record + 6, (uint16)(argument1 - TG_HOST_V1_2_3_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 8, (uint16)(argument2 - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 6, (uint16)(argument1 - literalBias));
+	WRITE_LE_UINT16(record + 8, (uint16)(argument2 - literalBias));
 
-	return _engine->o_callScript(record);
+	bool result = _engine->o_callScript(record);
+
+	// The demo hands back the value returned by the script
+	if (_engine->_version < kVersionV1_2_2_2)
+		return _engine->_scriptResult;
+
+	return result;
 }
 
 void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
@@ -240,7 +251,7 @@ void EnginePluginHost::getSpriteFrameIds(uint16 sprite, uint16 *ids) {
 		return;
 
 	SpriteInfo_v1_2_3 info;
-	_engine->spriteLib()->spriteGetInfo(_engine->_records[index].handle, info);
+	static_cast<SpriteLibrary_v1_2_3 *>(_engine->spriteLib())->spriteGetInfo(_engine->_records[index].handle, info);
 
 	uint16 count = info.frameCount;
 	if (count > TG_PLUGIN_V1_2_3_FRAME_IDS_SIZE) {
@@ -272,9 +283,9 @@ uint16 EnginePluginHost::spritesCollide(uint16 first, uint16 second, const Commo
 		return 0;
 
 	if (rect)
-		return _engine->spriteLib()->spriteHitDetectRect(firstHandle, secondHandle, *rect);
+		return static_cast<SpriteLibrary_v1_2_3 *>(_engine->spriteLib())->spriteHitDetectRect(firstHandle, secondHandle, *rect);
 
-	return _engine->spriteLib()->spriteHitDetect(firstHandle, secondHandle, 0, 0, 0);
+	return static_cast<SpriteLibrary_v1_2_3 *>(_engine->spriteLib())->spriteHitDetect(firstHandle, secondHandle, 0, 0, 0);
 }
 
 void EnginePluginHost::stopSprite(uint16 sprite) {
@@ -307,9 +318,11 @@ void EnginePluginHost::addCollisionPair(uint16 first, uint16 second, uint16 scri
 	WRITE_LE_UINT16(record, kOpV1_2_3AddCollisionPair);
 	WRITE_LE_UINT16(record + 2, first);
 	WRITE_LE_UINT16(record + 4, second);
+	uint16 literalBias = (_engine->_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
 	WRITE_LE_UINT16(record + 6, script);
-	WRITE_LE_UINT16(record + 8, (uint16)(argument1 - TG_HOST_V1_2_3_LITERAL_BIAS));
-	WRITE_LE_UINT16(record + 0x0A, (uint16)(argument2 - TG_HOST_V1_2_3_LITERAL_BIAS));
+	WRITE_LE_UINT16(record + 8, (uint16)(argument1 - literalBias));
+	WRITE_LE_UINT16(record + 0x0A, (uint16)(argument2 - literalBias));
 	record[0x0C] = repeat;
 
 	_engine->addCollisionPair(record);
@@ -342,7 +355,7 @@ void EnginePluginHost::spriteSkipMessage(uint16 sprite, uint16 count) {
 
 	uint16 handle = _engine->_records[index].handle;
 	if (handle != 0)
-		_engine->spriteLib()->spriteSkipMessage(handle, count);
+		static_cast<SpriteLibrary_v1_2_3 *>(_engine->spriteLib())->spriteSkipMessage(handle, count);
 }
 
 void EnginePluginHost::spriteSwapOrder(uint16 first, uint16 second, uint16 onlyIfSecondAbove, uint16 refresh) {
@@ -379,7 +392,7 @@ void EnginePluginHost::getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
 	if (!_engine->isRecordIndexValid(index, "getSpriteInfo"))
 		return;
 
-	_engine->spriteLib()->spriteGetInfo(_engine->_records[index].handle, info);
+	static_cast<SpriteLibrary_v1_2_3 *>(_engine->spriteLib())->spriteGetInfo(_engine->_records[index].handle, info);
 }
 
 void EnginePluginHost::setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) {
@@ -466,7 +479,7 @@ uint16 EnginePluginHost::getModulePath(char *destination, uint16 size) {
 }
 
 uint16 EnginePluginHost::getErrorFileHandle() {
-	return _engine->_reservedScriptWord;
+	return static_cast<TopgunEngine_v1_2_3 *>(_engine)->_reservedScriptWord;
 }
 
 MmioFile *EnginePluginHost::findFile(uint16 handle) {
@@ -608,9 +621,20 @@ void EnginePluginHost::setNetworkMessageCallback(Plugin *plugin) {
 	_engine->_windowMessageCallback = plugin;
 }
 
+void EnginePluginHost::setScriptHook(Plugin *plugin) {
+	_engine->_scriptHook = plugin;
+}
+
+void EnginePluginHost::repostMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
+	_engine->postMessage(message, wParam, ((uint32)lParamHigh << 16) | lParamLow);
+}
+
 Plugin *createPlugin(const Common::String &name, PluginHost *host) {
 	if (name.equalsIgnoreCase("BATTLE.DLL"))
 		return new BattlePlugin(host);
+
+	if (name.equalsIgnoreCase("BEAST.DLL"))
+		return new BattleDemoPlugin(host);
 
 	if (name.equalsIgnoreCase("ACE1UTIL.R16"))
 		return new Ace1UtilPlugin();
@@ -627,7 +651,7 @@ Plugin *createPlugin(const Common::String &name, PluginHost *host) {
 	return nullptr;
 }
 
-bool TopgunEngine_v1_2_3::loadPluginLibrary(const Common::String &name) {
+bool TopgunEngine_v1_2::loadPluginLibrary(const Common::String &name) {
 	if (_plugin)
 		unloadPluginLibrary();
 
@@ -647,7 +671,7 @@ bool TopgunEngine_v1_2_3::loadPluginLibrary(const Common::String &name) {
 	return true;
 }
 
-void TopgunEngine_v1_2_3::unloadPluginLibrary() {
+void TopgunEngine_v1_2::unloadPluginLibrary() {
 	if (!_plugin)
 		return;
 
@@ -658,9 +682,10 @@ void TopgunEngine_v1_2_3::unloadPluginLibrary() {
 
 	_messageFilter = nullptr;
 	_windowMessageCallback = nullptr;
+	_scriptHook = nullptr;
 }
 
-bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
+bool TopgunEngine_v1_2::loadPluginFunctionTable() {
 	uint32 size = 0;
 	uint32 librariesSize = 0;
 	byte *libraries = nullptr;
@@ -668,18 +693,24 @@ bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 
 	_pluginFunctions.clear();
 
+	ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
+
 	if (_version >= kVersionV1_2_9) {
-		libraries = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_LIBRARIES, &librariesSize);
+		libraries = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_LIBRARIES, &librariesSize);
 		if (!libraries)
 			return false;
 
-		names = resourceLib()->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_NAMES, &size);
+		names = library->resLoadKeyResource(_file, TG_PLUGIN_V1_2_9_KEY_FUNCTION_NAMES, &size);
 		if (!names) {
 			utilsLibrary()->tgFree(libraries);
 			return false;
 		}
 	} else {
-		names = resourceLib()->resLoadKeyResource(_file, TG_RES_V1_2_3_KEY_PLUGIN_NAMES, &size);
+		uint16 key = TG_RES_V1_2_3_KEY_PLUGIN_NAMES;
+		if (_version < kVersionV1_2_2_2)
+			key = TG_RES_V1_2_2_1_KEY_PLUGIN_NAMES;
+
+		names = library->resLoadKeyResource(_file, key, &size);
 		if (!names)
 			return size == 0;
 	}
@@ -697,13 +728,13 @@ bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 
 		if (_version >= kVersionV1_2_9) {
 			if (2 * (uint32)index + 2 > librariesSize) {
-				warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): function %d has no library", index);
+				warning("TopgunEngine_v1_2::loadPluginFunctionTable(): function %d has no library", index);
 				break;
 			}
 
 			entry.library = READ_LE_UINT16(libraries + 2 * index);
 			if (entry.library >= _pluginLibraries.size()) {
-				warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): library %d does not exist", entry.library);
+				warning("TopgunEngine_v1_2::loadPluginFunctionTable(): library %d does not exist", entry.library);
 				break;
 			}
 
@@ -714,7 +745,7 @@ bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 
 		entry.function = plugin->findFunction(name);
 		if (entry.function < 0) {
-			warning("TopgunEngine_v1_2_3::loadPluginFunctionTable(): the function '%s' does not exist", name.c_str());
+			warning("TopgunEngine_v1_2::loadPluginFunctionTable(): the function '%s' does not exist", name.c_str());
 			break;
 		}
 
@@ -731,7 +762,7 @@ bool TopgunEngine_v1_2_3::loadPluginFunctionTable() {
 	return consumed >= size;
 }
 
-void TopgunEngine_v1_2_3::exprCallPluginFunction(uint16 function, uint16 count) {
+void TopgunEngine_v1_2::exprCallPluginFunction(uint16 function, uint16 count) {
 	_expressionStackPointer -= count;
 
 	Plugin *plugin = _plugin;
@@ -740,7 +771,7 @@ void TopgunEngine_v1_2_3::exprCallPluginFunction(uint16 function, uint16 count) 
 		plugin = _pluginLibraries[_pluginFunctions[function].library]->plugin;
 
 	if (!plugin || function >= _pluginFunctions.size()) {
-		warning("TopgunEngine_v1_2_3::exprCallPluginFunction(): plug-in function %d does not exist", function);
+		warning("TopgunEngine_v1_2::exprCallPluginFunction(): plug-in function %d does not exist", function);
 		_expressionStack[_expressionStackPointer - 1] = 0;
 		return;
 	}
@@ -748,8 +779,21 @@ void TopgunEngine_v1_2_3::exprCallPluginFunction(uint16 function, uint16 count) 
 	_expressionStack[_expressionStackPointer - 1] = plugin->callFunction(_pluginFunctions[function].function, &_expressionStack[_expressionStackPointer], count);
 }
 
-bool TopgunEngine_v1_2_3::callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
+bool TopgunEngine_v1_2::callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) {
 	return _messageFilter && _messageFilter->messageFilter(message, wParam, lParamLow, lParamHigh) != 0;
+}
+
+bool TopgunEngine_v1_2::callScriptHook(uint16 script) {
+	if (_argumentFrame >= TG_HOST_V1_2_2_1_HOOK_ARGUMENTS - 1)
+		return _scriptHook->scriptHook(script, &_variableTable[_argumentFrame]);
+
+	warning("TopgunEngine_v1_2::callScriptHook(): the argument frame %d is too close to the first variable", _argumentFrame);
+
+	uint16 arguments[TG_HOST_V1_2_2_1_HOOK_ARGUMENTS] = {};
+	for (uint16 i = 0; i <= _argumentFrame; i++)
+		arguments[TG_HOST_V1_2_2_1_HOOK_ARGUMENTS - 1 - i] = _variableTable[_argumentFrame - i];
+
+	return _scriptHook->scriptHook(script, &arguments[TG_HOST_V1_2_2_1_HOOK_ARGUMENTS - 1]);
 }
 
 bool TopgunEngine_v1_2_3::loadAndRegisterLibraries() {

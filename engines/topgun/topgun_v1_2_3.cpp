@@ -74,12 +74,6 @@ TopgunEngine_v1_2_3::~TopgunEngine_v1_2_3() {
 	setResourceLibrary(nullptr);
 }
 
-void TopgunEngine_v1_2_3::syncSoundSettings() {
-	TopgunEngine_v1_2::syncSoundSettings();
-
-	audioLib()->applyMidiDeviceVolume();
-}
-
 bool TopgunEngine_v1_2_3::postMessage(uint16 id, uint16 param, uint32 data) {
 	if (id == kMsgV1_2MemoryError || id == kMsgV1_2_1IoError) {
 		// The fatal quit messages are handled synchronously
@@ -101,9 +95,9 @@ uint16 TopgunEngine_v1_2_3::audioCreateWaveEvent(const byte *header, uint16 wave
 		headerSize = TG_AUDIO_V1_2_2_2_CREATE_HEADER_SIZE;
 
 	memcpy(info.header, header, headerSize);
-	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
-	info.rewindProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
-	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
+	info.readProc = TG_AUDIO_V1_2_2_2_PROC_RESOURCE_WAVE;
+	info.rewindProc = TG_AUDIO_V1_2_2_2_PROC_RESOURCE_WAVE;
+	info.closeProc = TG_AUDIO_V1_2_2_2_PROC_RESOURCE_WAVE;
 	info.handle = waveInfo;
 
 	return audioLib()->audioCreateWave(&info);
@@ -264,8 +258,8 @@ bool TopgunEngine_v1_2_3::registerViewClassAndCreateMainWindow() {
 }
 
 bool TopgunEngine_v1_2_3::initEngineLibraries() {
-	if (audioLib()->audioInitLibrary(1, TG_AUDIO_V1_2_3_VERSION) == 0) {
-		warning("TopgunEngine_v1_2_3::initEngineLibraries(): cannot initialize the audio library (version 0x%X)", TG_AUDIO_V1_2_3_VERSION);
+	if (audioLib()->audioInitLibrary(1, TG_AUDIO_V1_2_2_2_VERSION) == 0) {
+		warning("TopgunEngine_v1_2_3::initEngineLibraries(): cannot initialize the audio library (version 0x%X)", TG_AUDIO_V1_2_2_2_VERSION);
 		return false;
 	}
 

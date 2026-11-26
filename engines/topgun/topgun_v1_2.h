@@ -90,8 +90,38 @@
 #define TG_HOST_V1_2_CONTAINER_TITLE_SIZE        0x4E
 #define TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE      0x52
 #define TG_HOST_V1_2_9_CONTAINER_TITLE_SIZE      0x50
+#define TG_HOST_V1_2_2_1_LIBRARY_NAME_SIZE       14
 #define TG_HOST_V1_2_3_LIBRARY_NAME_SIZE         15
 #define TG_HOST_V1_2_5_LIBRARY_NAME_SIZE         17
+
+// Background record of the demo: the colour and the wipe follow the two bitmap ids
+#define TG_HOST_V1_2_2_1_BACKGROUND_COLOR_OFFSET 8
+#define TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET  0x0C
+
+// Script hook of a plug-in: it reads up to the sixth argument
+#define TG_HOST_V1_2_2_1_HOOK_ARGUMENTS          6
+
+// Device groups
+#define TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS          8
+#define TG_DEVICE_V1_2_3_NUM_GROUPS                2
+#define TG_DEVICE_V1_2_3_NUM_DEVICES               6
+#define TG_DEVICE_V1_2_3_KEYBOARD_BASE             1
+#define TG_DEVICE_V1_2_3_JOYSTICK_BASE             3
+#define TG_DEVICE_V1_2_3_MOUSE                     5
+#define TG_DEVICE_V1_2_3_TYPE_JOYSTICK             1
+#define TG_DEVICE_V1_2_3_TYPE_KEYBOARD             2
+#define TG_DEVICE_V1_2_3_TYPE_MOUSE                5
+#define TG_DEVICE_V1_2_3_MAX_BINDINGS_A            50
+#define TG_DEVICE_V1_2_3_MAX_BINDINGS_B            4
+#define TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS         2
+#define TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS        6
+#define TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS        8
+#define TG_DEVICE_V1_2_3_CODE_TABLE_SIZE           32
+#define TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
+#define TG_DEVICE_V1_2_3_JOYSTICK_STATE_SIZE       17
+#define TG_DEVICE_V1_2_3_NO_DIRECTION              0x88
+#define TG_DEVICE_V1_2_3_KEY_RELEASE_DELAY         200
+#define TG_DEVICE_V1_2_2_1_COMBO_TIMEOUT           200
 
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
@@ -280,6 +310,10 @@
 #define TG_SCRIPT_V1_2_CALL_HEADER_SIZE          5
 #define TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE        6
 #define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
+#define TG_SCRIPT_V1_2_2_1_TABLE_ADDRESS         0x1187
+#define TG_SCRIPT_V1_2_2_1_LAST_BUILTIN_CODE     0x60
+#define TG_SCRIPT_V1_2_2_1_POSTED_RECORD_BUFFER_SIZE 20
+#define TG_SCRIPT_V1_2_2_1_MIDI_PARAMETERS_SIZE  10
 #define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
 #define TG_SCRIPT_V1_2_6_1_NUM_ELEMENT_VARIABLES 10
@@ -294,6 +328,7 @@
 #define TG_SCRIPT_V1_2_HOST_EVENT_SCENE_END      0x13
 #define TG_SCRIPT_V1_2_HOST_EVENT_OPERATION      0x14
 #define TG_SCRIPT_V1_2_HOST_EVENT_OPERATION_OFFSET 4
+#define TG_SCRIPT_V1_2_2_1_HOST_EVENT_POSTED_RUN 0x15
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERANDS_OFFSET 6
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERAND_SIZE   4
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERATION_MASK 0x3F
@@ -318,6 +353,10 @@ class ManagedSurface;
 }
 
 namespace Topgun {
+
+class EnginePluginHost;
+class Plugin;
+class PluginHost;
 
 enum MessageId_v1_2 {
 	kMsgV1_2ActivateApp = 0x1C,
@@ -372,6 +411,21 @@ enum ResourceType_v1_2_2 {
 	kResV1_2_2Script = 12,
 	kResV1_2_2Sprite = 13,
 	kResV1_2_2Text = 14
+};
+
+enum ResourceType_v1_2_3 {
+	kResV1_2_3Bitmap = 1,
+	kResV1_2_3Midi = 4,
+	kResV1_2_3Wave = 7,
+	kResV1_2_3Movie = 8,
+	kResV1_2_3OpList = 9,
+	kResV1_2_3BitmapGroup = 10,
+	kResV1_2_3MixedGroup = 11,
+	kResV1_2_3Palette = 12,
+	kResV1_2_3SpriteQueueData = 13,
+	kResV1_2_3Script = 14,
+	kResV1_2_3Sprite = 15,
+	kResV1_2_3Text = 16
 };
 
 enum ResourceType_v1_2 {
@@ -477,7 +531,12 @@ enum ScriptOpcode_v1_2 {
 	kOpV1_2SetDeviceGroupBindingB,
 	kOpV1_2SetDeviceGroupFlag,
 	kOpV1_2GetDeviceGroupState,
-	kOpV1_2ReturnExpression
+	kOpV1_2ReturnExpression,
+	kOpV1_2_2_1SetMidiParams = 92,
+	kOpV1_2_2_1SetVolume,
+	kOpV1_2_2_1Unused94,
+	kOpV1_2_2_1Unused95,
+	kOpV1_2_2_1SetDebugScriptId
 };
 
 struct FormatArgument_v1_2 {
@@ -667,10 +726,79 @@ struct CollisionPair_v1_2 {
 		sameLevelOnly(0), allowInvisibleFirst(0), allowInvisibleSecond(0) {}
 };
 
+enum NativeTimerProc_v1_2_3 {
+	kNativeTimerV1_2_3ComboHistory = 1,
+	kNativeTimerV1_2_3KeyRelease
+};
+
+struct KeyRoute_v1_2_3 {
+	byte device;
+	byte armed;
+	byte code;
+
+	KeyRoute_v1_2_3() : device(0), armed(0), code(0) {}
+};
+
+struct DeviceBinding_v1_2_3 {
+	uint16 id;
+	uint16 script;
+	uint16 priority;
+	uint16 mask;
+	byte active;
+
+	DeviceBinding_v1_2_3() : id(0), script(0), priority(0), mask(0), active(0) {}
+};
+
+struct DeviceGroup_v1_2_3 {
+	uint16 history;
+	uint16 lastCode;
+	uint16 pressedMask;
+	uint16 stateScript;
+	uint16 numBindingsA;
+	uint16 numBindingsB;
+	DeviceBinding_v1_2_3 bindingsA[TG_DEVICE_V1_2_3_MAX_BINDINGS_A];
+	DeviceBinding_v1_2_3 bindingsB[TG_DEVICE_V1_2_3_MAX_BINDINGS_B];
+	DeviceBinding_v1_2_3 latch;
+	byte type;
+	byte remap;
+	byte latchMode;
+	byte device;
+	byte attached;
+
+	DeviceGroup_v1_2_3() : history(0), lastCode(0), pressedMask(0), stateScript(0), numBindingsA(0), numBindingsB(0),
+		type(0), remap(0), latchMode(0), device(0), attached(0) {}
+};
+
+struct NativeTimer_v1_2_3 {
+	uint32 expiry;
+	uint32 interval;
+	uint16 id;
+	uint16 proc;
+	byte repeat;
+
+	NativeTimer_v1_2_3() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
+};
+
+struct PluginModule_v1_2_9 {
+	Common::String name;
+	Plugin *plugin;
+	uint16 refCount;
+
+	PluginModule_v1_2_9() : plugin(nullptr), refCount(0) {}
+};
+
+struct PluginFunction_v1_2_3 {
+	uint16 library;
+	int function;
+
+	PluginFunction_v1_2_3() : library(0), function(0) {}
+};
+
 class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
 	friend class AudioLibrary;
 	friend class AudioLibrary_v1_2;
 	friend class AudioLibrary_v1_2_3;
+	friend class EnginePluginHost;
 	friend class ResourceLibrary_v1_2;
 	friend class SpriteLibrary_v1_2;
 	friend class SpriteLibrary_v1_2_3;
@@ -684,6 +812,7 @@ protected:
 	AudioLibrary_v1_2 *audioLib() { return static_cast<AudioLibrary_v1_2 *>(audioLibrary()); }
 	ResourceLibrary_v1_2 *resourceLib() { return static_cast<ResourceLibrary_v1_2 *>(resourceLibrary()); }
 	SpriteLibrary_v1_2 *spriteLib() { return static_cast<SpriteLibrary_v1_2 *>(spriteLibrary()); }
+	void syncSoundSettings() override;
 
 	// Operands
 	uint16 variableIndex(uint16 operand) const;
@@ -808,6 +937,8 @@ protected:
 	bool validateResourceType(uint16 id, uint16 type);
 	void destroyBitmapGroupResourceObject(uint16 id);
 	bool ensureBitmapGroupResourceLoaded(uint16 id);
+	bool ensureBitmapOrGroupResourceLoaded(uint16 id);
+	void applySpritePaletteExtension(const byte *header);
 	void resetResourcesAndTransientState() override;
 	void destroySceneMainObjects(bool release) override;
 	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
@@ -855,6 +986,8 @@ protected:
 	bool runScriptBytecodeLoop(uint16 scriptId) override;
 	virtual bool executeScriptOp(byte *ip, uint16 *advance);
 	virtual uint16 getScriptOpSize(const byte *ip);
+	bool runPostedScriptRecord(const byte *record);
+	bool callScriptHook(uint16 script);
 	bool pushScriptArguments(uint16 count, const byte *arguments);
 	void popScriptArguments();
 	uint16 countScriptListEntries(uint16 listId);
@@ -865,16 +998,24 @@ protected:
 	uint16 evaluateExpression(const byte *expression);
 	void pushExpressionValue(uint16 value);
 	bool exprCallScript(const byte *token);
+	void exprCallBuiltinFunction(const byte *token);
 	virtual void evaluateBuiltinFunction(uint16 code, uint16 argc);
 	static int32 divideSigned32(int32 dividend, int32 divisor);
 	static int32 roundedDivideBy10000(int32 value);
 	Common::Point computeRayRectIntersection(int16 angle, int16 x, int16 y, int16 left, int16 top, int16 right, int16 bottom);
 	static Common::String formatWindowsString(const char *format, const FormatArgument_v1_2 *arguments, uint16 count);
 
+	// Plug-ins
+	bool loadPluginLibrary(const Common::String &name);
+	void unloadPluginLibrary();
+	bool loadPluginFunctionTable();
+	void exprCallPluginFunction(uint16 function, uint16 count);
+	bool callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
+
 	// Opcodes
 	virtual bool o_callScript(const byte *record); // 1
 	bool o_setClickScript(const byte *record); // 4
-	virtual bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag); // 5
+	bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag); // 5
 	void o_setBackground(const byte *record); // 6
 	bool o_setSpriteObjectProperties(const byte *record); // 7
 	bool o_playWave(uint16 waveId, const byte *params); // 8
@@ -929,6 +1070,32 @@ protected:
 	uint16 o_conditionalJumpExprCopy(const byte *record); // 79
 	void o_playMidi(const byte *record); // 80
 	void o_stopMidi(const byte *record); // 81
+	void o_setDeviceGroupBinding(const byte *record); // 82
+	void o_deviceGroupButtonState(const byte *record); // 83
+	void o_setDeviceGroupScript(const byte *record); // 84
+	void o_deviceGroupLatch(const byte *record); // 85
+	void o_setDeviceGroupBindingB(const byte *record); // 86
+	void o_setDeviceGroupFlag(const byte *record); // 87
+	void o_getDeviceGroupState(const byte *record); // 88
+	void o_setMidiParams(const byte *record); // 92
+	void o_setVolume(const byte *record); // 93
+
+	// Device groups
+	void clearDeviceState();
+	uint16 insertDeviceBindingSorted(uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
+	void setAllBindingScripts(uint16 script, uint16 count, DeviceBinding_v1_2_3 *list);
+	void setAllBindingActive(byte active, uint16 count, DeviceBinding_v1_2_3 *list);
+	void fillJoystickStateBytes(byte value, byte stick);
+	uint16 deleteDeviceBinding(uint16 index, uint16 count, DeviceBinding_v1_2_3 *list);
+	uint16 updateDeviceBindingList(uint16 maxEntries, uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
+	void comboHistoryTimeoutCallback(byte timerId);
+	void callDeviceGroupScript(uint16 group, uint16 argument, uint16 script);
+	void scanDeviceBindingsListB(byte group);
+	void deviceGroupInputEvent(byte code, byte device);
+	bool keyboardRoutedKeyDown(uint16 vk);
+	bool keyboardRoutedKeyUp(uint16 vk);
+	void keyReleaseDelayTimerCallback(byte device);
+	void bindKeyboardSetToDevice(byte device, byte value);
 
 	// Input
 	bool translate(const Common::Event &event, Message &message) override;
@@ -958,10 +1125,16 @@ protected:
 	uint16 joystickDirection8Way(const uint16 *center, uint16 x, uint16 y);
 	uint16 joystickGetScriptForPosition(uint16 offset, const uint16 *center, uint16 x, uint16 y);
 	void handleJoystickMessage(const Message &message);
+	void handleJoystickButtonMessage(const Message &message);
+	uint16 joystickMessageToIndex(const Message &message);
 	void joystickInit();
 	void joystickRelease();
 
 	// Timers and collisions
+	uint16 removeNativeTimer(uint16 index);
+	void findNativeTimer(uint16 id);
+	void addNativeTimer(uint16 id, uint32 interval, uint16 proc, byte repeat);
+	void serviceNativeTimerQueue();
 	uint16 removeScheduledTimer(uint16 index);
 	bool appendCollisionPair();
 	bool addCollisionPair(const byte *record);
@@ -1154,6 +1327,41 @@ protected:
 	char _textEditUndo[TG_TEXT_V1_2_TEXT_SIZE] = {};
 	Common::INIFile _iniFile;
 	bool _iniFileLoaded = false;
+
+	// Native timers and device groups
+	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS];
+	uint16 _numNativeTimers = 0;
+	uint16 _inputTimeout = TG_DEVICE_V1_2_2_1_COMBO_TIMEOUT;
+	KeyRoute_v1_2_3 _keyRoutes[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
+	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_3_NUM_GROUPS];
+	byte _deviceOwners[TG_DEVICE_V1_2_3_NUM_DEVICES] = {};
+	byte _keyboardDirections[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS] = {};
+	byte _joystickStates[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
+	byte _joystickLastIndex[TG_JOYSTICK_V1_2_1_NUM_STICKS] = {};
+	Common::Rect _mouseStickDeadRect;
+	Common::Rect _mouseStickOuterRect;
+	uint16 _mouseStickCode = 0;
+
+	// The last two slots of each set are used only from the later version on
+	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+		{ 0x46, 0x56, 0x43, 0x42, 0x31, 0x32 },
+		{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 }
+	};
+
+	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
+		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
+	};
+
+	// Plug-in state
+	PluginHost *_pluginHost = nullptr;
+	Plugin *_plugin = nullptr;
+	Common::Array<PluginFunction_v1_2_3> _pluginFunctions;
+	Plugin *_messageFilter = nullptr;
+	Plugin *_windowMessageCallback = nullptr;
+	Plugin *_scriptHook = nullptr;
+	Common::Array<PluginModule_v1_2_9 *> _pluginLibraries;
+	uint16 _debugScriptId = 0;
 
 	// Cursor state
 	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = {};

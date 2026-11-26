@@ -283,6 +283,9 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		newer->clearDeviceState();
 	} else if (_version >= kVersionV1_2_2) {
 		_mouseEventScript = 0;
+
+		if (_version >= kVersionV1_2_2_1)
+			_numNativeTimers = 0;
 	} else {
 		_scriptArgStackOffset = 0;
 		_scriptArgCount = 0;
@@ -385,8 +388,8 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_cdAudioPlaying)
 		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
 
-	if (_version >= kVersionV1_2_2_2 && _version < kVersionV1_2_9)
-		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadPluginLibrary();
+	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_9)
+		unloadPluginLibrary();
 
 	Common::String sceneName = Common::Path(name, '\\').baseName();
 
@@ -475,6 +478,9 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 		if (_version >= kVersionV1_2_1)
 			clearJoystickScripts();
+
+		if (_version >= kVersionV1_2_2_1)
+			clearDeviceState();
 	}
 
 	uint16 firstClearedVariable = TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
@@ -674,8 +680,8 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	if (_backgroundBitmap)
 		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
 
-	if (_version >= kVersionV1_2_2_2 && _version < kVersionV1_2_9)
-		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadPluginLibrary();
+	if (_version >= kVersionV1_2_2_1 && _version < kVersionV1_2_9)
+		unloadPluginLibrary();
 
 	for (uint16 i = 0; i < _sceneEntries.size(); i++) {
 		if (_sceneEntries[i].strings)
@@ -764,30 +770,33 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_maxTransColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_TRANS_COLORS);
 	}
 
-	if (_version >= kVersionV1_2_2 && _version < kVersionV1_2_2_2) {
+	if (_version == kVersionV1_2_2) {
 		_maxTransColors = resourceLib()->resGetMaxTransColors(_file);
 		_maxFadeColors = resourceLib()->resGetMaxFadeColors(_file);
 	}
 
-	if (_version >= kVersionV1_2_2_2) {
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
+	if (_version >= kVersionV1_2_2_1) {
 		ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
 
 		_maxFadeColors = library->resGetMaxFadeColors(_file);
 		_maxTransColors = library->resGetMaxTransColors(_file);
 
 		if (_version >= kVersionV1_2_9) {
-			if (!newer->loadAndRegisterLibraries())
+			if (!static_cast<TopgunEngine_v1_2_3 *>(this)->loadAndRegisterLibraries())
 				return false;
 		} else {
 			char libraryName[TG_HOST_V1_2_5_LIBRARY_NAME_SIZE];
 			uint16 libraryNameSize = TG_HOST_V1_2_3_LIBRARY_NAME_SIZE;
 			if (_version >= kVersionV1_2_5)
 				libraryNameSize = TG_HOST_V1_2_5_LIBRARY_NAME_SIZE;
+			else if (_version == kVersionV1_2_2_1)
+				libraryNameSize = TG_HOST_V1_2_2_1_LIBRARY_NAME_SIZE;
 
 			library->resGetLibraryName(_file, libraryName, libraryNameSize);
-			if (libraryName[0] != 0 && !newer->loadPluginLibrary(libraryName)) {
-				newer->fatalError(102, Common::String::format("Can't open file '%s'.", libraryName));
+			if (libraryName[0] != 0 && !loadPluginLibrary(libraryName)) {
+				if (_version >= kVersionV1_2_2_2)
+					static_cast<TopgunEngine_v1_2_3 *>(this)->fatalError(102, Common::String::format("Can't open file '%s'.", libraryName));
+
 				return false;
 			}
 		}
@@ -833,7 +842,7 @@ void TopgunEngine_v1_2::releaseCurrentBackgroundRecord() {
 	if (_backgroundId == 0)
 		return;
 
-	uint16 index = operandValue(_backgroundId);
+	uint16 index = (_version >= kVersionV1_2_2_1) ? _backgroundId : operandValue(_backgroundId);
 	if (!isRecordIndexValid(index, "releaseCurrentBackgroundRecord"))
 		return;
 

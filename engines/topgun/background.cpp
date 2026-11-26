@@ -498,6 +498,34 @@ void TopgunEngine_v1_2::setBackgroundFromBitmapResource(const byte *record) {
 
 		clearBackground();
 		_backgroundBitmap = copy;
+	} else if (_version >= kVersionV1_2_2_1) {
+		if (bitmapId == 0 || !ensureBitmapOrGroupResourceLoaded(bitmapId))
+			return;
+
+		uint16 index = operandValue(bitmapId);
+		if (!isRecordIndexValid(index, "setBackgroundFromBitmapResource"))
+			return;
+
+		_backgroundId = index;
+		_backgroundBitmap = _records[index].data;
+
+		syncBackgroundDimensions(_backgroundBitmap);
+
+		// A compressed bitmap is expanded into a copy that belongs to the background
+		if ((_backgroundBitmap[TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK) != 0) {
+			_backgroundId = 0;
+
+			byte *expanded = resourceLib()->resExpandBitmap(_file, _backgroundBitmap);
+			if (!expanded) {
+				// The original frees the data of the resource, which stays in its record
+				warning("TopgunEngine_v1_2::setBackgroundFromBitmapResource(): bitmap %d cannot be expanded", index);
+				_backgroundBitmap = nullptr;
+				clearBackground();
+				return;
+			}
+
+			_backgroundBitmap = expanded;
+		}
 	} else {
 		if (bitmapId == 0)
 			return;
@@ -514,7 +542,9 @@ void TopgunEngine_v1_2::setBackgroundFromBitmapResource(const byte *record) {
 		_backgroundBitmap = _records[index].data;
 	}
 
-	syncBackgroundDimensions(_backgroundBitmap);
+	// The demo takes the dimensions from the bitmap before it expands it
+	if (_version != kVersionV1_2_2_1)
+		syncBackgroundDimensions(_backgroundBitmap);
 
 	Common::Rect rect;
 	applyBackgroundToSpriteLib(&rect);
@@ -607,25 +637,43 @@ bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
 	if (bitmapId == 0)
 		return false;
 
-	if (!validateAndGetResourceByType(bitmapId, kResV1_2_1Bitmap))
+	if (_version >= kVersionV1_2_2_1) {
+		if (!ensureBitmapOrGroupResourceLoaded(bitmapId))
+			return false;
+	} else if (!validateAndGetResourceByType(bitmapId, kResV1_2_1Bitmap)) {
 		return false;
+	}
 
 	uint16 index = operandValue(bitmapId);
 	if (!isRecordIndexValid(index, "setBackgroundWithWipeEffect"))
 		return false;
 
-	executeWipeEffect(record + 8, _records[index].data, _backgroundBitmap);
+	uint16 wipeOffset = (_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET : 8;
 
-	// The record of the replaced bitmap is looked up with the stored operand, not with its index
+	executeWipeEffect(record + wipeOffset, _records[index].data, _backgroundBitmap);
+
+	// The record of the replaced bitmap is looked up with the stored operand (the index in the demo)
 	if (_backgroundId != 0 && isRecordIndexValid(_backgroundId, "setBackgroundWithWipeEffect"))
 		_records[_backgroundId].data = nullptr;
 
-	destroyResourceObjectByType(bitmapId, kResV1_2_1Bitmap);
+	uint16 type = kResV1_2_1Bitmap;
+	if (_version >= kVersionV1_2_2_1)
+		type = resourceLib()->resGetType(_file, index);
+
+	destroyResourceObjectByType(bitmapId, type);
 	return true;
 }
 
 void TopgunEngine_v1_2::o_setBackground(const byte *record) {
-	if (_version >= kVersionV1_2_1 && READ_LE_UINT16(record + 8) != 0) {
+	uint16 wipeOffset = 8;
+	uint16 colorOffset = 4;
+
+	if (_version >= kVersionV1_2_2_1) {
+		wipeOffset = TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET;
+		colorOffset = TG_HOST_V1_2_2_1_BACKGROUND_COLOR_OFFSET;
+	}
+
+	if (_version >= kVersionV1_2_1 && READ_LE_UINT16(record + wipeOffset) != 0) {
 		if (setBackgroundWithWipeEffect(record))
 			return;
 	}
@@ -643,9 +691,9 @@ void TopgunEngine_v1_2::o_setBackground(const byte *record) {
 
 	case 2:
 		if (display()->hasPalette())
-			setSolidBackgroundColorPalette(READ_LE_UINT32(record + 4));
+			setSolidBackgroundColorPalette(READ_LE_UINT32(record + colorOffset));
 		else
-			setSolidBackgroundColorBitmap(READ_LE_UINT32(record + 4));
+			setSolidBackgroundColorBitmap(READ_LE_UINT32(record + colorOffset));
 		break;
 
 	case 3:
@@ -959,11 +1007,11 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 		copy = loadResourceWithProcessingPause(id, nullptr);
 	}
 
-	uint16 flagsOffset = TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET;
+	uint16 flagsOffset = TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET;
 	if (_version >= kVersionV1_2_5)
 		flagsOffset = TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET;
 
-	if (copy && (copy[flagsOffset] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK) != 0) {
+	if (copy && (copy[flagsOffset] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK) != 0) {
 		byte *expanded = resourceLib()->resExpandBitmap(_file, copy);
 		utilsLibrary()->tgFree(copy);
 		copy = expanded;

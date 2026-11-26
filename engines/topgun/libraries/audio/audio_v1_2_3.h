@@ -25,17 +25,17 @@
 #include "topgun/libraries/audio/audio_v1_2.h"
 
 // Library
-#define TG_AUDIO_V1_2_3_VERSION                   0x0400
+#define TG_AUDIO_V1_2_2_2_VERSION                 0x0400
 
 // INI value of MidiVolume that leaves the device volume alone
 #define TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET     0
 #define TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET     1
 
 // Source procedures
-#define TG_AUDIO_V1_2_3_PROC_NONE                 0
-#define TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE        1
-#define TG_AUDIO_V1_2_3_PROC_MOVIE_AUDIO          2
-#define TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI        3
+#define TG_AUDIO_V1_2_2_2_PROC_NONE               0
+#define TG_AUDIO_V1_2_2_2_PROC_RESOURCE_WAVE      1
+#define TG_AUDIO_V1_2_2_2_PROC_MOVIE_AUDIO        2
+#define TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI        3
 
 // Default wave format: 22050 Hz, mono, 16 bit
 #define TG_AUDIO_V1_2_3_DEFAULT_FORMAT_TAG        0x40
@@ -61,29 +61,29 @@
 // Play parameters block (0x18 bytes)
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_LOOPS       0x00
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_SET_VOLUME  0x02
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY        0x03
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY      0x03
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NO_FLUSH    0x04
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_VOLUME      0x05
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_IN     0x06
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_OUT    0x0A
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MIN  0x0E
 #define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MAX  0x12
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY_PARAM  0x16
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY_PARAM 0x16
 
 // MIDI creation header
-#define TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE          4
+#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_SIZE        4
 #define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_SIZE 0
 #define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_NOTIFY 2
 
 // MIDI play parameters block (6 bytes)
-#define TG_AUDIO_V1_2_3_MIDI_PLAY_PARAMS_SIZE     6
-#define TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_PARAM    4
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_RECORD_SIZE   6
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_PARAM  4
 
 // MIDI setting block (10 bytes)
 #define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_MUTE    0
 #define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_TEMPO   1
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_DENOMINATOR 6
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_NUMERATOR 8
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_DENOMINATOR 6
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_NUMERATOR 8
 
 // MIDI events
 #define TG_AUDIO_V1_2_2_2_MIDI_DRUM_CHANNEL       9

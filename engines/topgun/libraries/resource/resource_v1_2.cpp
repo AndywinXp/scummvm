@@ -669,13 +669,13 @@ byte *ResourceLibrary_v1_2::expandCelBitmapRecord(ResourceFile *file, byte *sour
 		return utilsLibrary->tgFree(destination);
 	}
 
-	uint16 flagsOffset = TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET;
+	uint16 flagsOffset = TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET;
 	if (_engine->_version >= kVersionV1_2_5)
 		flagsOffset = TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET;
 
-	if (_engine->_version >= kVersionV1_2_2_1 && (source[flagsOffset] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK)) {
+	if (_engine->_version >= kVersionV1_2_2_1 && (source[flagsOffset] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK)) {
 		rleExpandBitmap(destination, size, source, sourceSize);
-		destination[flagsOffset] &= ~TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK;
+		destination[flagsOffset] &= ~TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK;
 	} else if (_engine->_version < kVersionV1_2_3 && !file->lzwState) {
 		decodeRleCelBitmap(source, sourceSize, destination, size);
 	} else {
@@ -1614,7 +1614,7 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 
 	uint16 firstResidentType = TG_RES_V1_2_2_2_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = TG_RES_V1_2_2_1_RESIDENT_LAST_TYPE;
-	uint16 flagsOffset = TG_RES_V1_2_3_BITMAP_FLAGS_BYTE_OFFSET;
+	uint16 flagsOffset = TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET;
 	if (_engine->_version >= kVersionV1_2_9) {
 		firstResidentType = TG_RES_V1_2_9_RESIDENT_FIRST_TYPE;
 		lastResidentType = TG_RES_V1_2_9_RESIDENT_LAST_TYPE;
@@ -1683,7 +1683,7 @@ byte *ResourceLibrary_v1_2_3::resLoadResource(uint16 file, uint16 index, uint32 
 		}
 
 		// The compressed sprites are returned as they are stored
-		if ((buffer[flagsOffset] & TG_RES_V1_2_3_BITMAP_COMPRESSED_MASK) == 0) {
+		if ((buffer[flagsOffset] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK) == 0) {
 			byte *bitmap = expandCelBitmapRecord(record, buffer, entry.size, outSize);
 			utilsLibrary->tgFree(buffer);
 			return bitmap;

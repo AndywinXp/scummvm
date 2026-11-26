@@ -136,7 +136,6 @@
 #define TG_SCRIPT_V1_2_2_2_MAX_POSTED_RUNS         20
 #define TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS           40
 #define TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE           18
-#define TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE          6
 #define TG_SCRIPT_V1_2_2_2_LAST_OPCODE             106
 #define TG_SCRIPT_V1_2_2_3_LAST_OPCODE             120
 #define TG_SCRIPT_V1_2_3_LAST_OPCODE               119
@@ -146,7 +145,6 @@
 #define TG_SCRIPT_V1_2_2_2_DEVICE_STATE_SIZE       8
 #define TG_SCRIPT_V1_2_2_3_QUEUE_DONE_SIZE         4
 #define TG_SCRIPT_V1_2_5_LAST_OPCODE               143
-#define TG_SCRIPT_V1_2_3_POSTED_RECORD_BUFFER_SIZE 20
 #define TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE          18
 #define TG_SCRIPT_V1_2_5_GOTO_RECORD_SIZE          20
 #define TG_SCRIPT_V1_2_3_GOTO_NAME_OFFSET          2
@@ -204,7 +202,6 @@
 #define TG_SCRIPT_V1_2_3_NUM_SCRIPT_CHOICES        6
 
 // Interpreter operations: audio and palette
-#define TG_SCRIPT_V1_2_3_MIDI_PARAMETERS_SIZE      10
 #define TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY       10
 #define TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES       0xEC
 #define TG_SCRIPT_V1_2_3_PALETTE_RESOURCE_SIZE     0x3B0 // 0xEC entries * 4 bytes
@@ -241,7 +238,6 @@
 
 // Input and devices
 #define TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS        4640 // arrays grow by 10 elements: largest n with n * 14 <= 0xFDE8
-#define TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS          8
 #define TG_INPUT_V1_2_3_OBJECT_CLICK_SCRIPT        0
 #define TG_INPUT_V1_2_3_OBJECT_DRAG_SCRIPT         6
 #define TG_INPUT_V1_2_3_OBJECT_DROP_SCRIPT         8
@@ -253,25 +249,7 @@
 #define TG_INPUT_V1_2_6_1_OBJECT_DISABLED          0x10
 #define TG_INPUT_V1_2_6_1_OBJECT_DRAGGABLE         0x13
 
-// Device groups
-#define TG_DEVICE_V1_2_3_NUM_GROUPS                2
-#define TG_DEVICE_V1_2_3_NUM_DEVICES               6
-#define TG_DEVICE_V1_2_3_KEYBOARD_BASE             1
-#define TG_DEVICE_V1_2_3_JOYSTICK_BASE             3
-#define TG_DEVICE_V1_2_3_MOUSE                     5
-#define TG_DEVICE_V1_2_3_TYPE_JOYSTICK             1
-#define TG_DEVICE_V1_2_3_TYPE_KEYBOARD             2
-#define TG_DEVICE_V1_2_3_TYPE_MOUSE                5
-#define TG_DEVICE_V1_2_3_MAX_BINDINGS_A            50
-#define TG_DEVICE_V1_2_3_MAX_BINDINGS_B            4
-#define TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS         2
-#define TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS        6
-#define TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS        8
-#define TG_DEVICE_V1_2_3_CODE_TABLE_SIZE           32
-#define TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
-#define TG_DEVICE_V1_2_3_JOYSTICK_STATE_SIZE       17
-#define TG_DEVICE_V1_2_3_NO_DIRECTION              0x88
-#define TG_DEVICE_V1_2_3_KEY_RELEASE_DELAY         200
+// Mouse used as a stick
 #define TG_DEVICE_V1_2_3_STICK_DEAD_INFLATE        0x14
 #define TG_DEVICE_V1_2_3_STICK_OUTER_INFLATE       0x28
 #define TG_DEVICE_V1_2_3_STICK_RAY_MARGIN          2
@@ -289,21 +267,6 @@ enum MessageId_v1_2_3 {
 
 enum MessageId_v1_2_9 {
 	kMsgV1_2_9FreePluginModules = 0x5F4
-};
-
-enum ResourceType_v1_2_3 {
-	kResV1_2_3Bitmap = 1,
-	kResV1_2_3Midi = 4,
-	kResV1_2_3Wave = 7,
-	kResV1_2_3Movie = 8,
-	kResV1_2_3OpList = 9,
-	kResV1_2_3BitmapGroup = 10,
-	kResV1_2_3MixedGroup = 11,
-	kResV1_2_3Palette = 12,
-	kResV1_2_3SpriteQueueData = 13,
-	kResV1_2_3Script = 14,
-	kResV1_2_3Sprite = 15,
-	kResV1_2_3Text = 16
 };
 
 // The later numbering of the types from the wave on; the bitmap and the midi keep the numbers above
@@ -444,74 +407,6 @@ enum ScriptOpcode_v1_2_5 {
 	kOpV1_2_5Reserved = 143
 };
 
-enum NativeTimerProc_v1_2_3 {
-	kNativeTimerV1_2_3ComboHistory = 1,
-	kNativeTimerV1_2_3KeyRelease
-};
-
-struct KeyRoute_v1_2_3 {
-	byte device;
-	byte armed;
-	byte code;
-
-	KeyRoute_v1_2_3() : device(0), armed(0), code(0) {}
-};
-
-struct DeviceBinding_v1_2_3 {
-	uint16 id;
-	uint16 script;
-	uint16 priority;
-	uint16 mask;
-	byte active;
-
-	DeviceBinding_v1_2_3() : id(0), script(0), priority(0), mask(0), active(0) {}
-};
-
-struct DeviceGroup_v1_2_3 {
-	uint16 history;
-	uint16 lastCode;
-	uint16 pressedMask;
-	uint16 stateScript;
-	uint16 numBindingsA;
-	uint16 numBindingsB;
-	DeviceBinding_v1_2_3 bindingsA[TG_DEVICE_V1_2_3_MAX_BINDINGS_A];
-	DeviceBinding_v1_2_3 bindingsB[TG_DEVICE_V1_2_3_MAX_BINDINGS_B];
-	DeviceBinding_v1_2_3 latch;
-	byte type;
-	byte remap;
-	byte latchMode;
-	byte device;
-	byte attached;
-
-	DeviceGroup_v1_2_3() : history(0), lastCode(0), pressedMask(0), stateScript(0), numBindingsA(0), numBindingsB(0),
-		type(0), remap(0), latchMode(0), device(0), attached(0) {}
-};
-
-struct NativeTimer_v1_2_3 {
-	uint32 expiry;
-	uint32 interval;
-	uint16 id;
-	uint16 proc;
-	byte repeat;
-
-	NativeTimer_v1_2_3() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
-};
-
-struct PluginModule_v1_2_9 {
-	Common::String name;
-	Plugin *plugin;
-	uint16 refCount;
-
-	PluginModule_v1_2_9() : plugin(nullptr), refCount(0) {}
-};
-
-struct PluginFunction_v1_2_3 {
-	uint16 library;
-	int function;
-
-	PluginFunction_v1_2_3() : library(0), function(0) {}
-};
-
 struct ScriptCursor_v1_2_9 {
 	uint16 id;
 	uint16 sequentialIndex;
@@ -519,8 +414,6 @@ struct ScriptCursor_v1_2_9 {
 
 	ScriptCursor_v1_2_9() : id(0), sequentialIndex(0), randomIndex(0) {}
 };
-
-class EnginePluginHost;
 
 class TopgunEngine_v1_2_3 : public TopgunEngine_v1_2 {
 	friend class AudioLibrary_v1_2_3;
@@ -539,7 +432,6 @@ protected:
 	AudioLibrary_v1_2_3 *audioLib() { return static_cast<AudioLibrary_v1_2_3 *>(audioLibrary()); }
 	ResourceLibrary_v1_2_3 *resourceLib() { return static_cast<ResourceLibrary_v1_2_3 *>(resourceLibrary()); }
 	SpriteLibrary_v1_2_3 *spriteLib() { return static_cast<SpriteLibrary_v1_2_3 *>(spriteLibrary()); }
-	void syncSoundSettings() override;
 
 	// Hooks of the libraries
 	bool postMessage(uint16 id, uint16 param, uint32 data) override;
@@ -564,15 +456,12 @@ protected:
 	void flushPostedScriptMessages();
 
 	// Resources
-	void applySpritePaletteExtension(const byte *header);
 	bool ensureTableResourceLoaded(uint16 id);
 	void destroyTableResourceObject(uint16 id);
 	bool ensureTileResourceLoaded(uint16 id);
 	void destroyTileResourceObject(uint16 id);
 	bool loadBitmapListToPointers(uint16 count, const byte *list, byte **cells);
 	void releaseTileResourceCells(uint16 count, const byte *list);
-	bool destroyResourceObjectByType(uint16 id, uint16 type) override;
-	bool validateAndGetResourceByType(uint16 id, uint16 type) override;
 
 	// Backgrounds
 	byte *loadBitmapResourceCopy(uint16 id);
@@ -589,22 +478,16 @@ protected:
 	// Interpreter
 	bool executeScriptOp(byte *ip, uint16 *advance) override;
 	uint16 getScriptOpSize(const byte *ip) override;
-	bool runPostedScriptRecord(const byte *record);
 	bool enqueuePostedScriptRun(uint16 script, uint16 argument1, uint16 argument2);
 	void servicePostedRunQueue();
 	int32 applyArithmeticOperand(int32 accumulator, const byte *operand);
 	uint16 evaluateCondition(byte condition, uint16 operandA, uint16 operandB);
 
 	// Plug-ins
-	bool loadPluginLibrary(const Common::String &name);
-	void unloadPluginLibrary();
 	bool loadAndRegisterLibraries();
 	PluginModule_v1_2_9 *loadPluginModule(const Common::String &fileName);
 	void freePluginModule(PluginModule_v1_2_9 *module);
 	bool registerExternalLibrary(PluginModule_v1_2_9 *module);
-	bool loadPluginFunctionTable();
-	void exprCallPluginFunction(uint16 function, uint16 count);
-	bool callMessageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
 	void unloadAllPluginModules();
 	void freeUnloadedPluginModules();
 	void notifyPluginsFocusChanged(bool active);
@@ -614,38 +497,22 @@ protected:
 	uint16 runScriptHookWithArg(uint16 script, uint16 argument);
 
 	// Expressions
-	void exprCallBuiltinFunction(const byte *token);
 	void evaluateBuiltinFunction(uint16 code, uint16 argc) override;
 
 	// Opcodes
-	bool o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) override; // 5
 	void o_setBackground(const byte *record); // 6
 	bool o_playWave(uint16 waveId, const byte *params); // 8
-	void o_stopWave(uint16 waveId, const byte *block); // 15
 	void o_arithmetic(const byte *record); // 16
 	bool o_conditionalRunScript(const byte *record, uint16 &size); // 17
 	void o_gotoScene(const byte *record); // 18
 	bool o_randomRunScript(byte *record) override; // 22
 	bool o_roundRobinRunScript(byte *record) override; // 23
-	void o_stopSprite(const byte *record); // 25
-	void o_setSpriteLevel(const byte *record); // 28
 	void o_setCursorMode(const byte *record); // 31
 	void o_listRunScript(const byte *record); // 34
-	void o_moveSprite(const byte *record); // 36
 	uint16 o_conditionalSkip(const byte *record); // 38
 	void o_getSpritePosition(const byte *record); // 40
 	void o_getKeyState(const byte *record); // 47
-	bool o_setSpritePosition(const byte *record); // 63
 	void o_setMouseEventScript(const byte *record); // 64
-	void o_setDeviceGroupBinding(const byte *record); // 82
-	void o_deviceGroupButtonState(const byte *record); // 83
-	void o_setDeviceGroupScript(const byte *record); // 84
-	void o_deviceGroupLatch(const byte *record); // 85
-	void o_setDeviceGroupBindingB(const byte *record); // 86
-	void o_setDeviceGroupFlag(const byte *record); // 87
-	void o_getDeviceGroupState(const byte *record); // 88
-	void o_setMidiParams(const byte *record); // 92
-	void o_setVolume(const byte *record); // 93
 	void o_setTextParam(const byte *record); // 94
 	void o_loadPaletteResource(const byte *record); // 96
 	void o_setPaletteEntries(const byte *record); // 97
@@ -667,7 +534,6 @@ protected:
 	uint16 builtinReattachDeviceGroup(uint16 group, uint16 flag); // 137
 
 	// Input messages
-	void handleKeyUpMessage(Common::KeyCode keycode) override;
 	uint16 postKeyHookScript(uint16 vk);
 
 	// Click, hover and drag regions
@@ -680,78 +546,29 @@ protected:
 	void postSpriteLeaveScript();
 
 	// Timers and collisions
-	uint16 removeNativeTimer(uint16 index);
-	void findNativeTimer(uint16 id);
-	void addNativeTimer(uint16 id, uint32 interval, uint16 proc, byte repeat);
-	void serviceNativeTimerQueue();
 	void serviceCollisionPairs();
 
 	// Device groups
-	void clearDeviceState();
-	uint16 insertDeviceBindingSorted(uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
-	void setAllBindingScripts(uint16 script, uint16 count, DeviceBinding_v1_2_3 *list);
-	void setAllBindingActive(byte active, uint16 count, DeviceBinding_v1_2_3 *list);
-	void fillJoystickStateBytes(byte value, byte stick);
-	uint16 deleteDeviceBinding(uint16 index, uint16 count, DeviceBinding_v1_2_3 *list);
-	uint16 updateDeviceBindingList(uint16 maxEntries, uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
 	void fireDeviceGroupStateScript(byte group);
 	void releaseOrRestoreDeviceGroups(bool release);
 	void resetDeviceGroup(byte value, byte group);
-	void comboHistoryTimeoutCallback(byte timerId);
-	void callDeviceGroupScript(uint16 group, uint16 argument, uint16 script);
-	void scanDeviceBindingsListB(byte group);
-	void deviceGroupInputEvent(byte code, byte device);
-	bool keyboardRoutedKeyDown(uint16 vk);
-	bool keyboardRoutedKeyUp(uint16 vk);
-	void keyReleaseDelayTimerCallback(byte device);
-	void bindKeyboardSetToDevice(byte device, byte value);
 	bool mouseAsStickMessage(Common::Point point, uint16 message);
 	void resetMouseStick(byte value);
 
-	// Joystick
-	void handleJoystickButtonMessage(const Message &message);
-	uint16 joystickMessageToIndex(const Message &message);
-
 	// Startup state
 	bool _debugMode = false;
-	uint16 _inputTimeout = 0;
 	uint16 _activateScript = 0;
 	bool _activateState = false;
 	uint16 _numPostedScriptRuns = 0;
-	uint16 _numNativeTimers = 0;
 
 	// Scene state
 	uint16 _numFileResources = 0;
 	uint16 _driveType = 0;
 
 	// Input state
-	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS];
 	uint32 _timersPausedAt = 0;
 
-	// Device state
-	KeyRoute_v1_2_3 _keyRoutes[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
-	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_3_NUM_GROUPS];
-	byte _deviceOwners[TG_DEVICE_V1_2_3_NUM_DEVICES] = {};
-	byte _keyboardDirections[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS] = {};
-	byte _joystickStates[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
-	byte _joystickLastIndex[TG_JOYSTICK_V1_2_1_NUM_STICKS] = {};
-	Common::Rect _mouseStickDeadRect;
-	Common::Rect _mouseStickOuterRect;
-	uint16 _mouseStickCode = 0;
-
-	// The last two slots of each set are used only from the later version on
-	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
-		{ 0x46, 0x56, 0x43, 0x42, 0x31, 0x32 },
-		{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 }
-	};
-
-	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
-		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
-		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
-	};
-
 	// Interpreter state
-	uint16 _debugScriptId = 0;
 	uint16 _reservedScriptWord = 0;
 	Common::Array<ScriptCursor_v1_2_9> _scriptCursors;
 	Common::HashMap<uint16, TileBackground *> _tileBackgrounds;
@@ -768,13 +585,7 @@ protected:
 	uint16 _freeMemoryHigh = 0x7FFF;
 
 	// Plug-in state
-	PluginHost *_pluginHost = nullptr;
-	Plugin *_plugin = nullptr;
-	Common::Array<PluginFunction_v1_2_3> _pluginFunctions;
-	Plugin *_messageFilter = nullptr;
-	Plugin *_windowMessageCallback = nullptr;
 	Common::Array<PluginModule_v1_2_9 *> _pluginModules;
-	Common::Array<PluginModule_v1_2_9 *> _pluginLibraries;
 	Common::Array<PluginModule_v1_2_9 *> _pluginsPendingFree;
 	uint16 _pluginTickProcCount = 0;
 
