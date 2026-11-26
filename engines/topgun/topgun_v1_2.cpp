@@ -49,13 +49,20 @@ TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gam
 		}
 	}
 
-	if (version == kVersionV1_2_2_1) {
-		const byte keys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS] = {
-			{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 },
-			{ 0x53, 0x58, 0x5A, 0x43, 0x31, 0x32 }
+	if (version >= kVersionV1_2_2 && version < kVersionV1_2_2_2) {
+		byte keys[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_2_KEYBOARD_SET_SLOTS] = {
+			{ 0x26, 0x28, 0x25, 0x27, 0x2D, 0x24 },
+			{ 0x53, 0x58, 0x5A, 0x43, 0x56, 0x42 }
 		};
 
-		for (uint16 i = 0; i < TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS; i++)
+		if (version == kVersionV1_2_2_1) {
+			keys[0][4] = 0x39;
+			keys[0][5] = 0x30;
+			keys[1][4] = 0x31;
+			keys[1][5] = 0x32;
+		}
+
+		for (uint16 i = 0; i < TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS; i++)
 			memcpy(_keyboardSetKeys[i], keys[i], sizeof(keys[i]));
 	}
 

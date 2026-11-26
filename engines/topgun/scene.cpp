@@ -283,9 +283,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		newer->clearDeviceState();
 	} else if (_version >= kVersionV1_2_2) {
 		_mouseEventScript = 0;
-
-		if (_version >= kVersionV1_2_2_1)
-			_numNativeTimers = 0;
+		_numNativeTimers = 0;
 	} else {
 		_scriptArgStackOffset = 0;
 		_scriptArgCount = 0;
@@ -479,7 +477,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 		if (_version >= kVersionV1_2_1)
 			clearJoystickScripts();
 
-		if (_version >= kVersionV1_2_2_1)
+		if (_version >= kVersionV1_2_2)
 			clearDeviceState();
 	}
 

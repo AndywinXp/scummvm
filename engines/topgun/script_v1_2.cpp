@@ -131,7 +131,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 	if (_version < kVersionV1_2_2 && opcode >= kOpV1_2GetSpriteElementIds)
 		opcode = 0;
 
-	if (_version < kVersionV1_2_2_1 && ((opcode >= kOpV1_2SetDeviceGroupBinding && opcode <= kOpV1_2GetDeviceGroupState) || opcode > kOpV1_2ReturnExpression))
+	if (_version < kVersionV1_2_2_1 && opcode > kOpV1_2ReturnExpression)
 		opcode = 0;
 
 	switch (opcode) {

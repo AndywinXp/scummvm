@@ -102,26 +102,26 @@
 #define TG_HOST_V1_2_2_1_HOOK_ARGUMENTS          6
 
 // Device groups
-#define TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS          8
-#define TG_DEVICE_V1_2_3_NUM_GROUPS                2
-#define TG_DEVICE_V1_2_3_NUM_DEVICES               6
+#define TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS          8
+#define TG_DEVICE_V1_2_2_NUM_GROUPS                2
+#define TG_DEVICE_V1_2_2_NUM_DEVICES               6
 #define TG_DEVICE_V1_2_3_KEYBOARD_BASE             1
 #define TG_DEVICE_V1_2_3_JOYSTICK_BASE             3
 #define TG_DEVICE_V1_2_3_MOUSE                     5
-#define TG_DEVICE_V1_2_3_TYPE_JOYSTICK             1
-#define TG_DEVICE_V1_2_3_TYPE_KEYBOARD             2
+#define TG_DEVICE_V1_2_2_TYPE_JOYSTICK             1
+#define TG_DEVICE_V1_2_2_TYPE_KEYBOARD             2
 #define TG_DEVICE_V1_2_3_TYPE_MOUSE                5
-#define TG_DEVICE_V1_2_3_MAX_BINDINGS_A            50
-#define TG_DEVICE_V1_2_3_MAX_BINDINGS_B            4
-#define TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS         2
-#define TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS        6
+#define TG_DEVICE_V1_2_2_MAX_BINDINGS_A            50
+#define TG_DEVICE_V1_2_2_MAX_BINDINGS_B            4
+#define TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS         2
+#define TG_DEVICE_V1_2_2_KEYBOARD_SET_SLOTS        6
 #define TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS        8
-#define TG_DEVICE_V1_2_3_CODE_TABLE_SIZE           32
-#define TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
-#define TG_DEVICE_V1_2_3_JOYSTICK_STATE_SIZE       17
-#define TG_DEVICE_V1_2_3_NO_DIRECTION              0x88
-#define TG_DEVICE_V1_2_3_KEY_RELEASE_DELAY         200
-#define TG_DEVICE_V1_2_2_1_COMBO_TIMEOUT           200
+#define TG_DEVICE_V1_2_2_CODE_TABLE_SIZE           32
+#define TG_DEVICE_V1_2_2_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
+#define TG_DEVICE_V1_2_2_JOYSTICK_STATE_SIZE       17
+#define TG_DEVICE_V1_2_2_NO_DIRECTION              0x88
+#define TG_DEVICE_V1_2_2_KEY_RELEASE_DELAY         200
+#define TG_DEVICE_V1_2_2_COMBO_TIMEOUT             200
 
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
@@ -756,8 +756,8 @@ struct DeviceGroup_v1_2_3 {
 	uint16 stateScript;
 	uint16 numBindingsA;
 	uint16 numBindingsB;
-	DeviceBinding_v1_2_3 bindingsA[TG_DEVICE_V1_2_3_MAX_BINDINGS_A];
-	DeviceBinding_v1_2_3 bindingsB[TG_DEVICE_V1_2_3_MAX_BINDINGS_B];
+	DeviceBinding_v1_2_3 bindingsA[TG_DEVICE_V1_2_2_MAX_BINDINGS_A];
+	DeviceBinding_v1_2_3 bindingsB[TG_DEVICE_V1_2_2_MAX_BINDINGS_B];
 	DeviceBinding_v1_2_3 latch;
 	byte type;
 	byte remap;
@@ -1329,13 +1329,13 @@ protected:
 	bool _iniFileLoaded = false;
 
 	// Native timers and device groups
-	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS];
+	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS];
 	uint16 _numNativeTimers = 0;
-	uint16 _inputTimeout = TG_DEVICE_V1_2_2_1_COMBO_TIMEOUT;
+	uint16 _inputTimeout = TG_DEVICE_V1_2_2_COMBO_TIMEOUT;
 	KeyRoute_v1_2_3 _keyRoutes[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
-	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_3_NUM_GROUPS];
-	byte _deviceOwners[TG_DEVICE_V1_2_3_NUM_DEVICES] = {};
-	byte _keyboardDirections[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS] = {};
+	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_2_NUM_GROUPS];
+	byte _deviceOwners[TG_DEVICE_V1_2_2_NUM_DEVICES] = {};
+	byte _keyboardDirections[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS] = {};
 	byte _joystickStates[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
 	byte _joystickLastIndex[TG_JOYSTICK_V1_2_1_NUM_STICKS] = {};
 	Common::Rect _mouseStickDeadRect;
@@ -1343,12 +1343,12 @@ protected:
 	uint16 _mouseStickCode = 0;
 
 	// The last two slots of each set are used only from the later version on
-	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+	byte _keyboardSetKeys[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
 		{ 0x46, 0x56, 0x43, 0x42, 0x31, 0x32 },
 		{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 }
 	};
 
-	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+	byte _keyboardSetCodes[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
 	};

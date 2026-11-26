@@ -368,7 +368,7 @@ void TopgunEngine_v1_2::addNativeTimer(uint16 id, uint32 interval, uint16 proc, 
 		} while (index < _numNativeTimers);
 	}
 
-	if (index >= TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS) {
+	if (index >= TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS) {
 		if (_version >= kVersionV1_2_5)
 			fatalError(116, "Out of timers.");
 
@@ -407,6 +407,17 @@ void TopgunEngine_v1_2::serviceNativeTimerQueue() {
 				timer.expiry = getEngineMillis() + timer.interval;
 			else
 				index = removeNativeTimer(index);
+
+			// Bug in the original: the callback and its argument are read after the removal, from the entry at the new index
+			if (_version < kVersionV1_2_2_1) {
+				if (index < TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS) {
+					proc = _nativeTimers[index].proc;
+					id = _nativeTimers[index].id;
+				} else {
+					warning("TopgunEngine_v1_2::serviceNativeTimerQueue(): the original reads the callback before the first timer");
+					proc = 0;
+				}
+			}
 
 			if (proc == kNativeTimerV1_2_3ComboHistory)
 				comboHistoryTimeoutCallback((byte)id);
