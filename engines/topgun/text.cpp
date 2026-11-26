@@ -844,7 +844,8 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 				position = scan;
 
 				byte current = (byte)object->text[scan];
-				if (_version == kVersionV1_2_8 && ((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
+				if (_version == kVersionV1_2_8 && _gameDescription->language == Common::JA_JPN &&
+						((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
 					scan += 2;
 				else
 					scan++;
@@ -886,7 +887,8 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 		if (object->leadByteBuffered) {
 			value = (uint16)((object->leadByte << 8) | character);
-		} else if (_version == kVersionV1_2_8 && ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
+		} else if (_version == kVersionV1_2_8 && _gameDescription->language == Common::JA_JPN &&
+				((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
 			object->leadByte = character;
 			object->leadByteBuffered = true;
 			return false;
