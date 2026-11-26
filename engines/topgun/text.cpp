@@ -460,7 +460,15 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(uint16 color, co
 
 	surface->clear(0);
 
-	uint32 textColor = display()->hasPalette() ? display()->getDeviceColorIndex((byte)color) : TG_TEXT_V1_2_SOLID_COLOR;
+	uint32 textColor = display()->hasPalette() ? (color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
+
+	if (_version >= kVersionV1_2_10 && display()->hasPalette()) {
+		// Black turns into the transparent index, matched on the color of the entry without fades
+		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
+		spriteLib()->spriteGetPalette(entry, (byte)color, 1);
+		textColor = display()->getDeviceColorIndex((byte)color, entry);
+	}
+
 	font->drawString(surface, string, 0, 0, width, textColor, Graphics::kTextAlignLeft, 0, false, true);
 
 	return surface;
@@ -546,7 +554,14 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 
 	surface->clear(0);
 
-	uint32 textColor = display()->hasPalette() ? display()->getDeviceColorIndex((byte)object->color) : TG_TEXT_V1_2_SOLID_COLOR;
+	uint32 textColor = display()->hasPalette() ? (object->color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
+
+	if (_version >= kVersionV1_2_10 && display()->hasPalette()) {
+		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
+		spriteLib()->spriteGetPalette(entry, (byte)object->color, 1);
+		textColor = display()->getDeviceColorIndex((byte)object->color, entry);
+	}
+
 	int top = 0;
 
 	if ((flags & TG_TEXT_V1_2_3_FLAG_SINGLE_LINE) != 0) {

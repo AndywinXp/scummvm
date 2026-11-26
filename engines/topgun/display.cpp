@@ -301,7 +301,7 @@ void Display::animateLogicalPalette(uint16 first, uint16 count, const byte *entr
 	}
 }
 
-byte Display::getDeviceColorIndex(byte logicalIndex) const {
+byte Display::getDeviceColorIndex(byte logicalIndex, const byte *color) const {
 	byte systemColors[TG_DISPLAY_NUM_PALETTE_ENTRIES * TG_DISPLAY_PALETTE_ENTRY_SIZE];
 	getSystemPaletteEntries(systemColors, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
 
@@ -310,7 +310,7 @@ byte Display::getDeviceColorIndex(byte logicalIndex) const {
 		if (i >= TG_DISPLAY_NUM_STATIC_COLORS_PER_END && i < upperFirst)
 			continue;
 
-		if (memcmp(systemColors + i * TG_DISPLAY_PALETTE_ENTRY_SIZE, _logicalPalette[logicalIndex], 3) == 0)
+		if (memcmp(systemColors + i * TG_DISPLAY_PALETTE_ENTRY_SIZE, color, 3) == 0)
 			return (byte)i;
 	}
 
