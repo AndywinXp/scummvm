@@ -840,7 +840,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 				position = scan;
 
 				byte current = (byte)object->text[scan];
-				if (_version == kVersionV1_2_7 && ((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
+				if (_version == kVersionV1_2_8 && ((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
 					scan += 2;
 				else
 					scan++;
@@ -882,7 +882,7 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 		if (object->leadByteBuffered) {
 			value = (uint16)((object->leadByte << 8) | character);
-		} else if (_version == kVersionV1_2_7 && ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
+		} else if (_version == kVersionV1_2_8 && ((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
 			object->leadByte = character;
 			object->leadByteBuffered = true;
 			return false;
@@ -966,8 +966,8 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	uint16 type = kResV1_2Text;
-	if (_version >= kVersionV1_2_8)
-		type = kResV1_2_8Text;
+	if (_version >= kVersionV1_2_9)
+		type = kResV1_2_9Text;
 	else if (_version >= kVersionV1_2_5)
 		type = kResV1_2_5Text;
 	else if (_version >= kVersionV1_2_3)
@@ -1006,8 +1006,8 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 
 void TopgunEngine_v1_2_3::o_setTextParam(const byte *record) {
 	uint16 textType = kResV1_2_3Text;
-	if (_version >= kVersionV1_2_8)
-		textType = kResV1_2_8Text;
+	if (_version >= kVersionV1_2_9)
+		textType = kResV1_2_9Text;
 	else if (_version >= kVersionV1_2_5)
 		textType = kResV1_2_5Text;
 

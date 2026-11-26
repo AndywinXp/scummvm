@@ -121,8 +121,8 @@ void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
 
 uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_8)
-		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_9)
+		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -131,8 +131,8 @@ uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 
 uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_8)
-		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_9)
+		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -148,8 +148,8 @@ uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 
 void TopgunEngine_v1_2::writeAddress(uint16 address, uint16 value) {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_8)
-		tableAddress = TG_SCRIPT_V1_2_8_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_9)
+		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
@@ -296,8 +296,8 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 		uint16 bitmapGroupType = kResV1_2_2BitmapGroup;
 		bool loaded = false;
 
-		if (_version >= kVersionV1_2_8)
-			bitmapGroupType = kResV1_2_8Cell;
+		if (_version >= kVersionV1_2_9)
+			bitmapGroupType = kResV1_2_9Cell;
 		else if (_version >= kVersionV1_2_5)
 			bitmapGroupType = kResV1_2_5BitmapGroup;
 		else if (_version >= kVersionV1_2_3)

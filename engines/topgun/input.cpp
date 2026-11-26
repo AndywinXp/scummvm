@@ -615,7 +615,7 @@ void TopgunEngine_v1_2::handleMouseButtonMessage(const Message &message) {
 
 	if (left && wallpaperSelection && message.shift && message.ctrl) {
 		warning("beginRubberBandSelection UNIMPLEMENTED");
-	} else if (left && _version == kVersionV1_2_7 && static_cast<TopgunEngine_v1_2_3 *>(this)->_rubberBandScript != 0) {
+	} else if (left && _version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && static_cast<TopgunEngine_v1_2_3 *>(this)->_rubberBandScript != 0) {
 		transformPointForDisplayZoom(point);
 
 		_captureDrag = true;
@@ -627,7 +627,7 @@ void TopgunEngine_v1_2::handleMouseButtonMessage(const Message &message) {
 		return;
 	}
 
-	if (_version == kVersionV1_2_7 && _rubberBandMode)
+	if (_version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && _rubberBandMode)
 		return;
 
 	if (_cursorMode == TG_HOST_V1_2_CURSOR_MODE_BUSY || _cursorMode == TG_HOST_V1_2_CURSOR_MODE_HIDDEN)
@@ -735,7 +735,7 @@ void TopgunEngine_v1_2::handleMouseButtonUpMessage(const Message &message) {
 	if (_gamePaused)
 		return;
 
-	if (_version == kVersionV1_2_7 && _rubberBandMode) {
+	if (_version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && _rubberBandMode) {
 		if (left && _captureDrag) {
 			_rubberBandMode = false;
 			_captureDrag = false;
@@ -768,7 +768,7 @@ void TopgunEngine_v1_2::handleMouseMoveMessage(const Message &message) {
 			return;
 	}
 
-	if (_version == kVersionV1_2_7 && _rubberBandMode) {
+	if (_version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && _rubberBandMode) {
 		if (_captureDrag) {
 			transformPointForDisplayZoom(point);
 			static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteRubberBand(true, point.x, point.y, _rightButtonDown);
@@ -883,7 +883,7 @@ void TopgunEngine_v1_2::handleKeyDownMessage(Common::KeyCode keycode, bool shift
 		}
 	}
 
-	if (_version == kVersionV1_2_7 && _rubberBandMode && key == TG_HOST_V1_2_VK_ESCAPE) {
+	if (_version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && _rubberBandMode && key == TG_HOST_V1_2_VK_ESCAPE) {
 		if (_captureDrag) {
 			_rubberBandMode = false;
 			_captureDrag = false;
@@ -921,7 +921,7 @@ void TopgunEngine_v1_2::handleKeyDownMessage(Common::KeyCode keycode, bool shift
 		script = entry.plain;
 
 	if (script != 0) {
-		if (_version >= kVersionV1_2_8)
+		if (_version >= kVersionV1_2_9)
 			static_cast<TopgunEngine_v1_2_3 *>(this)->runScriptHookWithArg(script, key);
 		else
 			runScriptResource(script);
@@ -970,7 +970,7 @@ void TopgunEngine_v1_2::handleSysKeyDownAltTab(const Message &message) {
 		_appActive = false;
 		_flagActivated = false;
 
-		if (_version >= kVersionV1_2_8)
+		if (_version >= kVersionV1_2_9)
 			static_cast<TopgunEngine_v1_2_3 *>(this)->notifyPluginsFocusChanged(false);
 
 		audioLib()->audioActivate(0);
@@ -1129,7 +1129,7 @@ void TopgunEngine_v1_2::addOrUpdateClickRegion(const byte *record) {
 		region.disabled = 1;
 	} else if (enableFlag != 0) {
 		region.disabled = 0;
-	} else if (_version >= kVersionV1_2_8 && READ_LE_UINT16(record + 4) == 0) {
+	} else if (_version >= kVersionV1_2_9 && READ_LE_UINT16(record + 4) == 0) {
 		_numClickRegions--;
 
 		for (uint16 i = index; i < _numClickRegions; i++)
@@ -1190,8 +1190,8 @@ void TopgunEngine_v1_2::setAllSpriteObjectsCursor(uint16 value) {
 		return;
 
 	uint16 spriteType = kResV1_2Sprite;
-	if (_version >= kVersionV1_2_8)
-		spriteType = kResV1_2_8Sprite;
+	if (_version >= kVersionV1_2_9)
+		spriteType = kResV1_2_9Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 	else if (_version >= kVersionV1_2_3)
@@ -1214,8 +1214,8 @@ void TopgunEngine_v1_2::setAllClickRegionsAndSpriteObjectsEnabled(byte disabled)
 		return;
 
 	uint16 spriteType = kResV1_2Sprite;
-	if (_version >= kVersionV1_2_8)
-		spriteType = kResV1_2_8Sprite;
+	if (_version >= kVersionV1_2_9)
+		spriteType = kResV1_2_9Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 	else if (_version >= kVersionV1_2_3)
@@ -1314,8 +1314,8 @@ bool TopgunEngine_v1_2::addHoverRegion(const byte *record) {
 
 	if (_numHoverRegions <= index) {
 		uint16 maxRegions = TG_HOST_V1_2_MAX_HOVER_REGIONS;
-		if (_version >= kVersionV1_2_8)
-			maxRegions = TG_HOST_V1_2_8_MAX_HOVER_REGIONS;
+		if (_version >= kVersionV1_2_9)
+			maxRegions = TG_HOST_V1_2_9_MAX_HOVER_REGIONS;
 
 		if (_numHoverRegions >= maxRegions)
 			return false;
@@ -1489,7 +1489,7 @@ void TopgunEngine_v1_2_3::handleKeyUpMessage(Common::KeyCode keycode) {
 	uint16 script = _keyTable[key].keyUp;
 
 	if (script != 0) {
-		if (_version >= kVersionV1_2_8)
+		if (_version >= kVersionV1_2_9)
 			runScriptHookWithArg(script, key);
 		else
 			runScriptResource(script);
@@ -1525,7 +1525,7 @@ void TopgunEngine_v1_2::togglePauseState() {
 
 		uint16 hookResult = _scriptResult;
 
-		if (_version >= kVersionV1_2_8)
+		if (_version >= kVersionV1_2_9)
 			_scriptResult = savedResult;
 
 		if (_version >= kVersionV1_2_6 && hookResult != 0)
@@ -1538,7 +1538,7 @@ void TopgunEngine_v1_2::togglePauseState() {
 
 	_gamePaused = !_gamePaused;
 
-	if (_version >= kVersionV1_2_8)
+	if (_version >= kVersionV1_2_9)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->notifyServicePause(_gamePaused);
 
 	if (_version >= kVersionV1_2_6)
@@ -1695,8 +1695,8 @@ uint16 TopgunEngine_v1_2_3::builtinGetKeyState(uint16 vk) {
 uint16 TopgunEngine_v1_2_3::builtinSetDraggedSpriteId(uint16 id) {
 	uint16 raw = (uint16)(id - TG_HOST_V1_2_3_LITERAL_BIAS);
 	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_8)
-		spriteType = kResV1_2_8Sprite;
+	if (_version >= kVersionV1_2_9)
+		spriteType = kResV1_2_9Sprite;
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
@@ -1717,8 +1717,8 @@ uint16 TopgunEngine_v1_2_3::builtinSetKeyHookScript(uint16 script) {
 uint16 TopgunEngine_v1_2_3::builtinSetSpriteHoverScript(uint16 script) {
 	uint16 previous = _hoverSpriteScript;
 	uint16 scriptType = kResV1_2_3Script;
-	if (_version >= kVersionV1_2_8)
-		scriptType = kResV1_2_8Script;
+	if (_version >= kVersionV1_2_9)
+		scriptType = kResV1_2_9Script;
 	else if (_version >= kVersionV1_2_5)
 		scriptType = kResV1_2_5Script;
 

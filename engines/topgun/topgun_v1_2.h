@@ -89,8 +89,7 @@
 #define TG_HOST_V1_2_STRING_ID_CONSTANT          0x8000
 #define TG_HOST_V1_2_CONTAINER_TITLE_SIZE        0x4E
 #define TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE      0x52
-#define TG_HOST_V1_2_8_CONTAINER_TITLE_SIZE      0x50
-#define TG_HOST_V1_2_8_CONTAINER_TITLE_SIZE      0x50
+#define TG_HOST_V1_2_9_CONTAINER_TITLE_SIZE      0x50
 #define TG_HOST_V1_2_3_LIBRARY_NAME_SIZE         15
 #define TG_HOST_V1_2_5_LIBRARY_NAME_SIZE         17
 
@@ -102,7 +101,7 @@
 #define TG_INPUT_V1_2_5_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
 #define TG_INPUT_V1_2_7_MAX_CLICK_REGIONS        5000 // 0xFDE8 / 13
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
-#define TG_HOST_V1_2_8_MAX_HOVER_REGIONS         80
+#define TG_HOST_V1_2_9_MAX_HOVER_REGIONS         80
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
 #define TG_HOST_V1_2_1_MAX_COLLISION_PAIRS       100
@@ -1118,7 +1117,7 @@ protected:
 	uint16 _joystickY = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
 	byte _joystickButtons = 0;
 	uint16 _joystickScripts[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
-	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_8_MAX_HOVER_REGIONS];
+	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_9_MAX_HOVER_REGIONS];
 	uint16 _numHoverRegions = 0;
 	uint16 _hoverRegionCurrent = 0;
 	ScheduledTimer_v1_2 _scheduledTimers[TG_HOST_V1_2_MAX_SCHEDULED_TIMERS];

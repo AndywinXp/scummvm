@@ -35,6 +35,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "lineshot", "Bill Plympton's Take Your Best Shot: Line Shot" },
 	{ "peterwolf", "Peter and the Wolf" },
 	{ "arcadeamerica", "Arcade America" },
+	{ "holygrail", "Monty Python & the Quest for the Holy Grail" },
 	{ 0, 0 }
 };
 
@@ -48,6 +49,7 @@ const char *const directoryGlobs[] = {
 	"BESTACT",
 	"BESTBIG",
 	"ARCADE",
+	"GRAIL",
 	nullptr
 };
 
@@ -246,6 +248,16 @@ const ADGameDescription gameDescriptions[] = {
 		"arcadeamerica",
 		nullptr,
 		AD_ENTRY1s("ARCADE.BIN", "0d6d93e1c7b5e253170a88549ff95a33", 6804081),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"holygrail",
+		nullptr,
+		AD_ENTRY1s("GRAIL.BIN", "5886e1a19d66360bb950aca332a6d2b7", 753342),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,

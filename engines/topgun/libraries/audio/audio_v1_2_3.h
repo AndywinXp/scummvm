@@ -29,7 +29,7 @@
 
 // INI value of MidiVolume that leaves the device volume alone
 #define TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET     0
-#define TG_AUDIO_V1_2_7_INI_MIDI_VOLUME_UNSET     1
+#define TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET     1
 
 // Source procedures
 #define TG_AUDIO_V1_2_3_PROC_NONE                 0
