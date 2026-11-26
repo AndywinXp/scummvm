@@ -26,12 +26,16 @@
 
 // Limits
 #define TG_SPR_V1_2_3_NOTIFICATION_RECORD_SIZE 4
-#define TG_SPR_V1_2_3_MAX_HOST_EVENT_WORDS     4
+#define TG_SPR_V1_2_2_1_MAX_HOST_EVENT_WORDS   4
 #define TG_SPR_V1_2_5_MAX_HOST_EVENT_WORDS     6
+#define TG_SPR_V1_2_2_1_MAX_HOST_EVENT_COUNT   4
+#define TG_SPR_V1_2_2_2_MAX_HOST_EVENT_COUNT   6
+// Cel ids that fit in a multi-cel record: (0x0E - 2) / 2
+#define TG_SPR_V1_2_2_2_MAX_MULTI_CEL_FRAMES   6
 
 // Bitmap header: bit 7 of the byte at +9 marks a line-RLE bitmap
-#define TG_SPR_V1_2_3_BITMAP_FLAGS_OFFSET      9
-#define TG_SPR_V1_2_3_BITMAP_RLE_FLAG          0x80
+#define TG_SPR_V1_2_2_1_BITMAP_FLAGS_OFFSET    9
+#define TG_SPR_V1_2_2_1_BITMAP_RLE_FLAG        0x80
 
 // Bitmap header: the word at +8 holds the flags, 0x80 marks a line-RLE bitmap and 0x40 a top-down one
 #define TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET      8
@@ -40,10 +44,10 @@
 
 // RLE rows: 0 ends the row, 1..0x7F is a run of one byte, 0x80..0xFE a literal of (0xFF - code) bytes,
 // 0xFF a literal whose length is in the next byte and whose zero bytes are transparent
-#define TG_SPR_V1_2_3_RLE_LAST_RUN_CODE        0x7F
-#define TG_SPR_V1_2_3_RLE_TESTED_LITERAL_CODE  0xFF
+#define TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE      0x7F
+#define TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE 0xFF
 
-#define TG_SPR_V1_2_3_MIRROR_FLAG_MASK         0x00FF
+#define TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK       0x00FF
 
 // Tile cell bitmaps: bits 4 and 5 of the flags word at +8 mirror and flip the cell
 #define TG_SPR_V1_2_9_TILE_MIRROR_FLAG         0x10
@@ -51,8 +55,6 @@
 #define TG_SPR_V1_2_9_TILE_STAGGERED_LAYOUT    1
 
 namespace Topgun {
-
-class TopgunEngine_v1_2_3;
 
 enum SpriteMessage_v1_2_3 {
 	kSprV1_2_3MsgPlayRange = 1,
@@ -106,7 +108,7 @@ struct SpriteInfo_v1_2_3 : public SpriteInfo_v1_2 {
 
 class SpriteLibrary_v1_2_3 : public SpriteLibrary_v1_2 {
 public:
-	SpriteLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine);
+	SpriteLibrary_v1_2_3(TopgunEngine_v1_2 *engine);
 	~SpriteLibrary_v1_2_3() override;
 
 	// Library
@@ -146,6 +148,7 @@ public:
 	void spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_3 &info);
 	uint16 spriteHitDetect(uint16 spriteA, uint16 spriteB, uint16 allowInvisibleA, uint16 allowInvisibleB, uint16 sameLevelOnly);
 	uint16 spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect);
+	uint16 spriteIsValid(uint16 sprite);
 
 	// Bitmaps
 	void spriteDibGetBox(const byte *bitmap, Common::Rect &box);
@@ -158,6 +161,22 @@ protected:
 		uint16 firstColumn;
 
 		RleBlitSetup() : destination(nullptr), destinationStride(0), firstRow(0), firstColumn(0) {}
+	};
+
+	struct RleRowCursor {
+		const byte *pixels;
+		uint32 size;
+		uint32 position;
+		byte count;
+		bool literal;
+		bool overrun;
+
+		RleRowCursor() : pixels(nullptr), size(0), position(0), count(0), literal(false), overrun(false) {}
+
+		byte peek();
+		void loadCode();
+		void skip(int32 length);
+		void take();
 	};
 
 	// Sprite objects
@@ -210,6 +229,7 @@ protected:
 	uint16 hitTestMultipartVsSingle(const SpriteObject_v1_2 *single, const SpriteObject_v1_2 *multipart);
 
 	// Blitters
+	uint32 rleDataSize(const byte *bitmap) const;
 	void decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const;
 	bool blitSetupRleSource(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitSetup &setup);
 	void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) override;
@@ -236,9 +256,6 @@ protected:
 	uint16 _wipeExtentY = 0;
 	byte *_wipeNewBitmap = nullptr;
 	bool _wipeDrawFromNew = false;
-
-private:
-	TopgunEngine_v1_2_3 *engine() const;
 };
 
 } // End of namespace Topgun

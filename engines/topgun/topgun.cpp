@@ -99,6 +99,15 @@ void TopgunEngine::initializePath(const Common::FSNode &gamePath) {
 	SearchMan.addDirectory("folders", gamePath, 0, 2, true);
 }
 
+void TopgunEngine::addDemoDirectory(const char *folder) {
+	const Common::FSNode gameDirectory(ConfMan.getPath("path"));
+
+	// A disc with several demos keeps each of them in a folder of its own, whose files come first
+	SearchMan.addSubDirectoryMatching(gameDirectory, Common::String("SAMPLERS/") + folder, 1);
+	SearchMan.addSubDirectoryMatching(gameDirectory, Common::String("SAMPLER/") + folder, 1);
+	SearchMan.addSubDirectoryMatching(gameDirectory, Common::String("GRAIL/SAMPLER/") + folder, 1);
+}
+
 Common::Error TopgunEngine::run() {
 	bool highBitDepth = ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth");
 

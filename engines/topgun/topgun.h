@@ -39,18 +39,24 @@
 namespace Topgun {
 
 enum EngineVersion {
-	kVersionV1_0 = 100,
-	kVersionV1_1 = 110,
-	kVersionV1_2 = 120,
-	kVersionV1_2_1 = 121,
-	kVersionV1_2_2 = 122,
-	kVersionV1_2_3 = 123,
-	kVersionV1_2_4 = 124,
-	kVersionV1_2_5 = 125,
-	kVersionV1_2_6 = 126,
-	kVersionV1_2_7 = 127,
-	kVersionV1_2_8 = 128,
-	kVersionV1_2_9 = 129
+	kVersionV1_0 = 1000,
+	kVersionV1_1 = 1100,
+	kVersionV1_2 = 1200,
+	kVersionV1_2_1 = 1210,
+	kVersionV1_2_2 = 1220,
+	kVersionV1_2_2_1 = 1221,
+	kVersionV1_2_2_2 = 1222,
+	kVersionV1_2_2_3 = 1223,
+	kVersionV1_2_3 = 1230,
+	kVersionV1_2_4 = 1240,
+	kVersionV1_2_5 = 1250,
+	kVersionV1_2_6 = 1260,
+	kVersionV1_2_6_1 = 1261,
+	kVersionV1_2_6_2 = 1262,
+	kVersionV1_2_6_3 = 1263,
+	kVersionV1_2_7 = 1270,
+	kVersionV1_2_8 = 1280,
+	kVersionV1_2_9 = 1290
 };
 
 class AudioLibrary;
@@ -116,6 +122,9 @@ protected:
 	ResourceLibrary *resourceLibrary() { return _resourceLibrary; }
 	SpriteLibrary *spriteLibrary() { return _spriteLibrary; }
 	Display *display() { return _display; }
+
+	// Files
+	void addDemoDirectory(const char *folder);
 
 	// Main loop
 	virtual bool rtStartup(bool runChecks) = 0;

@@ -40,16 +40,17 @@
 // Limits of the versions after this one
 #define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
 #define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
+#define TG_SPR_V1_2_2_3_MAX_SPRITES            200
 #define TG_SPR_V1_2_3_MAX_SPRITES              250
 #define TG_SPR_V1_2_9_MAX_SPRITES              400
 #define TG_SPR_V1_2_9_QUEUE_BLOCK_ROUNDING     0xFFF0
 #define TG_SPR_V1_2_9_QUEUE_BLOCK_SLACK        0x0F
-#define TG_SPR_V1_2_3_LAST_QUEUE_OPCODE        22
+#define TG_SPR_V1_2_2_1_LAST_QUEUE_OPCODE      22
 #define TG_SPR_V1_2_6_LAST_QUEUE_OPCODE        23
-#define TG_SPR_V1_2_3_FLIP_FLAG_MASK           0xFF00
-#define TG_SPR_V1_2_3_VARIABLE_LAST_INDEX      0x159E
+#define TG_SPR_V1_2_2_1_FLIP_FLAG_MASK         0xFF00
+#define TG_SPR_V1_2_2_2_VARIABLE_LAST_INDEX    0x159E
 // A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
-#define TG_SPR_V1_2_3_LITERAL_BIAS             0x7531
+#define TG_SPR_V1_2_2_2_LITERAL_BIAS           0x7531
 
 // Bitmap header
 #define TG_SPR_V1_2_BITMAP_HEADER_SIZE         0x14
@@ -244,6 +245,7 @@ public:
 	void spriteSetMovieProc(bool set);
 	void spriteSetStreamProc(bool set);
 	void spriteSetDebugProc(bool set);
+	void spriteSetQueueDoneProc(bool enabled);
 	uint16 spriteSetSendMsg(uint16 flag);
 	void spriteSetVarTable(const uint16 *table);
 
@@ -301,6 +303,8 @@ protected:
 			multipartValid(false), paused(false), pickInvisible(false), pickMode(0), active(0), shadowX(0), shadowY(0), shadowMirrorX(false), shadowFlipY(false),
 			queueCapacityStart(nullptr), queueCapacity(0), scrollable(false), hasClipBox(false), queueLoopStart(0) {}
 	};
+
+	TopgunEngine_v1_2 *engine() const;
 
 	// Sprite objects
 	SpriteObject_v1_2 *findSprite(uint16 sprite, const char *caller) override;
@@ -405,10 +409,12 @@ protected:
 	bool _debugProcSet = false;
 	bool _movieProcSet = false;
 	bool _streamProcSet = false;
+	bool _queueDoneProcSet = false;
 	bool _inHostCallback = false;
 	bool _hostEventsSuppressed = false;
 	uint16 _serviceWord = 0;
 	const uint16 *_variableTable = nullptr;
+	uint16 _literalBias = 0;
 	Common::Rect _userClipBox;
 	uint16 _fillColor = 0;
 	bool _zoomActive = false;
@@ -430,9 +436,6 @@ protected:
 	Common::Rect _backupRect;
 	byte *_scrollSurface = nullptr;
 	TileBackground *_tileBackground = nullptr;
-
-private:
-	TopgunEngine_v1_2 *engine() const;
 };
 
 } // End of namespace Topgun

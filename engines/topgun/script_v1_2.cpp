@@ -38,7 +38,7 @@ static const byte kScriptOpSizes[] = {
 };
 
 bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		if (static_cast<TopgunEngine_v1_2_3 *>(this)->_fatalCode != 0)
 			return false;
 	} else if (_scriptsDisabled) {
@@ -50,7 +50,7 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 		scriptType = kResV1_2_9Script;
 	else if (_version >= kVersionV1_2_5)
 		scriptType = kResV1_2_5Script;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		scriptType = kResV1_2_3Script;
 	else if (_version >= kVersionV1_2_2)
 		scriptType = kResV1_2_2Script;
@@ -59,7 +59,7 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 
 	_scriptDepth++;
 
-	if (_scriptDepth >= ((_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+	if (_scriptDepth >= ((_version >= kVersionV1_2_2_2) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
 		if (_version >= kVersionV1_2_1)
 			return fatalError(106, "Stack overflow.");
 
@@ -657,7 +657,7 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 		listType = kResV1_2_9OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;
@@ -693,7 +693,7 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 		listType = kResV1_2_9OpList;
 	else if (_version >= kVersionV1_2_5)
 		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		listType = kResV1_2_3OpList;
 	else if (_version >= kVersionV1_2_2)
 		listType = kResV1_2_2OpList;
@@ -729,7 +729,7 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	_currentScriptId = listId;
 	_scriptDepth++;
 
-	if (_scriptDepth >= ((_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+	if (_scriptDepth >= ((_version >= kVersionV1_2_2_2) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
 		if (_version >= kVersionV1_2_1)
 			return fatalError(106, "Stack overflow.");
 
@@ -850,8 +850,8 @@ uint16 TopgunEngine_v1_2::lookupSwitchOffset(const byte *record) {
 	const byte *table = record + READ_LE_UINT16(record + 4);
 	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
 	uint16 value = operandValue(READ_LE_UINT16(record + 2));
-	uint16 entrySize = (_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
-	uint16 valueOffset = (_version >= kVersionV1_2_3) ? 2 : 0;
+	uint16 entrySize = (_version >= kVersionV1_2_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_2_3) ? 2 : 0;
 	uint16 index = 0;
 
 	while (index < count) {
@@ -868,9 +868,9 @@ uint16 TopgunEngine_v1_2::o_switchExpression(const byte *record) {
 	uint16 count = record[8];
 	const byte *table = record + READ_LE_UINT16(record + 4);
 	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
-	uint16 value = evaluateExpression(record + ((_version >= kVersionV1_2_3) ? 10 : 9));
-	uint16 entrySize = (_version >= kVersionV1_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
-	uint16 valueOffset = (_version >= kVersionV1_2_3) ? 2 : 0;
+	uint16 value = evaluateExpression(record + ((_version >= kVersionV1_2_2_2) ? 10 : 9));
+	uint16 entrySize = (_version >= kVersionV1_2_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_2_3) ? 2 : 0;
 	uint16 index = 0;
 
 	while (index < count) {

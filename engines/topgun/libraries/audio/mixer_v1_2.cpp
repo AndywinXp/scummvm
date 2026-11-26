@@ -442,16 +442,24 @@ void AudioLibrary_v1_2::resetWaveQueueAndEnableAllWaves(uint16 on) {
 		resetWaveOutQueue();
 
 	updateWaveEnabledFlags(1);
+
+	if (_engine->_version >= kVersionV1_2_2_1)
+		updateMidiEnabledFlags(1);
 }
 
 void AudioLibrary_v1_2::updateWaveEnabledFlags(uint16 on) {
 	if (_mute)
 		on = 0;
 
+	bool cdOpen = _cdSuspend;
+
+	if (_engine->_version >= kVersionV1_2_2_1)
+		cdOpen = (_cdDeviceId != 0);
+
 	for (uint16 i = 0; i < _soundCount; i++) {
 		SoundObject *sound = _sounds[i];
 
-		if (on != 0 && (!_cdSuspend || (sound->isStatic && (_engine->_version >= kVersionV1_2_1 || sound->overlay))))
+		if (on != 0 && (!cdOpen || (sound->isStatic && (_engine->_version >= kVersionV1_2_1 || sound->overlay))))
 			sound->enabled = true;
 		else
 			sound->enabled = false;
@@ -462,8 +470,12 @@ void AudioLibrary_v1_2::pauseAllPlayback(uint16 paused) {
 	if (!_waveOutStream)
 		return;
 
-	if (_engine->_version < kVersionV1_2_3 && _buffersInFlight == 0)
+	if (_engine->_version < kVersionV1_2_2_2 && _buffersInFlight == 0)
 		return;
+
+	// The mixer counts pauses but the original device does not, and the game can pause twice in a row
+	if (_engine->_version >= kVersionV1_2_2_1 && _engine->_version < kVersionV1_2_3 && paused != 0)
+		g_system->getMixer()->pauseHandle(_waveOutHandle, false);
 
 	g_system->getMixer()->pauseHandle(_waveOutHandle, paused != 0);
 }
@@ -710,7 +722,7 @@ bool AudioLibrary_v1_2_3::finishWaveOutOpen() {
 		setWaveOutVolume(_userVolume);
 	}
 
-	if (_mute)
+	if (_engine->_version >= kVersionV1_2_3 && _mute)
 		waveMuteImpl();
 
 	return true;
@@ -719,7 +731,7 @@ bool AudioLibrary_v1_2_3::finishWaveOutOpen() {
 bool AudioLibrary_v1_2_3::openWaveOutDevice(const WaveFormat *format) {
 	WaveFormat defaultFormat;
 
-	if (!format) {
+	if (!format && _engine->_version >= kVersionV1_2_3) {
 		defaultFormat.tag = TG_AUDIO_V1_2_3_DEFAULT_FORMAT_TAG;
 		defaultFormat.channels = 1;
 		defaultFormat.sampleRate = TG_AUDIO_V1_2_3_DEFAULT_SAMPLE_RATE;
@@ -754,6 +766,9 @@ void AudioLibrary_v1_2_3::waveMuteImpl() {
 }
 
 uint32 AudioLibrary_v1_2_3::audioGetWaveVolume() {
+	if (_engine->_version < kVersionV1_2_3)
+		return AudioLibrary_v1_2::audioGetWaveVolume();
+
 	if (_userVolumeSet && _engine->_version >= kVersionV1_2_7)
 		return _userVolume;
 
@@ -808,7 +823,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 				_maxPriority = sound->priority;
 
 			if (sound->notifyPending && _engine->getEngineMillis() > sound->notifyEndTime) {
-				engine()->postMessage(TG_AUDIO_V1_2_3_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
+				engine()->postMessage(TG_AUDIO_V1_2_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
 				sound->notifyPending = false;
 			}
 
@@ -820,7 +835,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 			compactAndRefillSoundBuffer(sound);
 
 		if (_engine->_version < kVersionV1_2_6 && sound->notifyPending && _engine->getEngineMillis() > sound->notifyEndTime) {
-			engine()->postMessage(TG_AUDIO_V1_2_3_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
+			engine()->postMessage(TG_AUDIO_V1_2_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
 			sound->notifyPending = false;
 		}
 

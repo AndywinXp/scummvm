@@ -87,12 +87,49 @@
 #define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_SIZE    0
 #define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_NOTIFY  4
 
-// Values of the later version that share the structures of this one
-#define TG_AUDIO_V1_2_3_MAX_SOUNDS            100
-#define TG_AUDIO_V1_2_3_NOTIFY_MESSAGE        0x52C
+// Sound creation block
+#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_LENGTH       0x00
+#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_FLAGS        0x04
+#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_ID           0x06
+#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_FORMAT       0x08
+#define TG_AUDIO_V1_2_2_1_INFO_FLAG_PRELOAD        0x01
+#define TG_AUDIO_V1_2_2_1_INFO_FLAG_OVERLAY        0x02
+#define TG_AUDIO_V1_2_2_1_INFO_FLAG_ADPCM          0x04
+
+// MIDI creation header
+#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE         8
+#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_SIZE  0
+#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_FLAGS 4
+#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_NOTIFY 6
+#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_FLAG_STATIC  0x01
+
+#define TG_AUDIO_V1_2_2_1_MIDI_BUFFER_SIZE         0x8000
+#define TG_AUDIO_V1_2_2_1_MIDI_LOW_WATER           0x6000
+
+// MIDI play parameters
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_PARAMS_SIZE    8
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_LOOPS   0
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_NOTIFY  2
+#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_NOTIFY_MASK    0x01
+
+// MIDI settings block (10 bytes)
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_FLAGS    0
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_FLAG_MUTE       0x01
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_FLAG_TEMPO      0x02
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_CHANNELS 2
+#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_MUTE_BITS 4
+
+// MIDI events
+#define TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS        16
+#define TG_AUDIO_V1_2_2_1_MIDI_DELAY_FLAGS         0xF000
+#define TG_AUDIO_V1_2_2_1_MIDI_DELAY_VALUE_MASK    0x7FFFFFFF
+#define TG_AUDIO_V1_2_2_1_MIDI_NOTE_ON             0x90
+#define TG_AUDIO_V1_2_2_1_MIDI_ALL_NOTES_OFF       0x7B
+#define TG_AUDIO_V1_2_2_1_MIDI_CONTROL_CHANGE      0xB0
+
+#define TG_AUDIO_V1_2_2_3_MAX_SOUNDS          100
 #define TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE    0x1C
 #define TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE      0x18
-#define TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS     16
 
 namespace Topgun {
 
@@ -121,14 +158,14 @@ struct SoundCreateInfo_v1_2 {
 };
 
 struct MidiCreateInfo_v1_2_3 {
-	byte header[TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE];
+	byte header[TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE];
 	uint16 readProc;
 	uint16 rewindProc;
 	uint16 closeProc;
 	uint16 handle;
 
 	MidiCreateInfo_v1_2_3() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE; i++)
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE; i++)
 			header[i] = 0;
 	}
 };
@@ -159,9 +196,13 @@ public:
 	// MIDI
 	uint16 audioCreateMidi(MidiCreateInfo_v1_2_3 *info);
 	uint16 audioDestroyMidi(uint16 midi);
-	virtual uint16 audioPlayMidi(uint16 midi, const byte *params);
-	virtual uint16 audioStopMidi(uint16 midi);
-	virtual void applyMidiDeviceVolume();
+	uint16 audioPlayMidi(uint16 midi, const byte *params);
+	uint16 audioStopMidi(uint16 midi);
+	void audioSetMidi(uint16 midi, const byte *params);
+	void audioBreakMidiLoops(uint16 midi);
+	uint32 audioGetMidiVolume();
+	void audioSetMidiVolume(uint32 volume);
+	void applyMidiDeviceVolume();
 
 	// Master volume
 	uint32 audioGetMasterVolume();
@@ -270,12 +311,25 @@ protected:
 		uint16 tempoDenominator;
 		int16 loops;
 		bool notifyArmed;
-		bool channelMuted[TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS];
+		bool channelMuted[TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS];
+
+		uint32 available;
+		uint32 readPos;
+		uint32 bufferSize;
+		uint32 lowWater;
+		uint32 consumed;
+		uint32 readFromSource;
+		uint32 nextEventTime;
+		int16 initialLoops;
+		bool enabled;
+		bool isStatic;
+		bool endOfSource;
 
 		MidiObject() : handle(0), data(nullptr), size(0), index(0), count(0), readProc(0), rewindProc(0), closeProc(0),
 			callbackHandle(0), notifyWParam(0), notifyLParam(0), tempoNumerator(0), tempoDenominator(0), loops(0),
-			notifyArmed(false) {
-			for (uint32 i = 0; i < TG_AUDIO_V1_2_3_MIDI_NUM_CHANNELS; i++)
+			notifyArmed(false), available(0), readPos(0), bufferSize(0), lowWater(0), consumed(0), readFromSource(0),
+			nextEventTime(0), initialLoops(0), enabled(false), isStatic(false), endOfSource(false) {
+			for (uint32 i = 0; i < TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS; i++)
 				channelMuted[i] = false;
 		}
 	};
@@ -293,8 +347,32 @@ protected:
 	void removeMidiFromArray(MidiObject *midi);
 	bool initMidiObjectDataSource(const MidiCreateInfo_v1_2_3 *info, MidiObject *midi);
 	bool invokeAndClearCloseCallback(MidiObject *midi);
+	void destroyAllMidiObjects();
 	MidiObject *validateMidiHandle(uint16 handle);
-	virtual void stopMidiSequence(MidiObject *midi);
+
+	// MIDI device
+	void probeMidiOutCapabilities();
+	bool openMidiOutDevice();
+	void setMidiOutVolume(uint32 volume);
+	void closeMidiOutDevice();
+	bool openAndConfigureMidiOut();
+	void resetMidiOutDevice();
+	void sendMidiAllNotesOff(byte channel);
+
+	// MIDI playback
+	bool startMidiSequence(const byte *params, MidiObject *midi);
+	void postMidiCompletionMessage(MidiObject *midi);
+	void stopMidiSequence(MidiObject *midi);
+	bool midiSequenceEndOrLoop(MidiObject *midi);
+	virtual void midiSequencerStep(MidiObject *midi);
+
+	// MIDI streaming
+	void pollMidiPlayback();
+	void refillStreamedMidiObjects();
+	uint16 compactAndRefillMidiBuffer(MidiObject *midi);
+	uint16 rewindMidiSource(MidiObject *midi);
+	void rewindMidiObject(MidiObject *midi);
+	void updateMidiEnabledFlags(uint16 on);
 
 	// Master volume and fades
 	void masterFadeTick();
@@ -394,6 +472,17 @@ protected:
 	uint16 _midiCount = 0;
 	uint16 _nextMidiHandle = 1;
 	MidiObject *_currentMidi = nullptr;
+	bool _paused = false;
+	uint16 _streamedMidiCount = 0;
+	uint32 _midiServiceTime = 0;
+
+	// MIDI device
+	MidiSequencer *_midiOut = nullptr;
+	bool _noMidiDevice = false;
+	uint32 _midiDeviceVolume = 0xFFFFFFFF;
+	uint32 _midiOriginalVolume = 0;
+	uint32 _midiUserVolume = 0;
+	bool _midiUserVolumeSet = false;
 
 private:
 	TopgunEngine_v1_2 *engine() const;

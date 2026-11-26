@@ -294,7 +294,7 @@ void BattlePlugin::initAiFlags(Fighter *f) {
 void BattlePlugin::setContact(Fighter *f, uint16 v) {
 	if (v != 0) {
 		f->contact = 1;
-		_host->addCollisionPair(f->sprite, f->opponent->sprite, kScriptHitAttack, 0, 0, 1);
+		_host->addCollisionPair(f->sprite, f->opponent->sprite, _scriptContact, 0, 0, 1);
 	} else {
 		f->contact = 0;
 		if (f->opponent->contact == 0)

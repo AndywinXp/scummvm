@@ -68,7 +68,7 @@ uint16 SpriteLibrary::tickCursorSprite() {
 	return _spriteTable[_tickCursor];
 }
 
-bool SpriteLibrary::spriteSetQueue(uint16 sprite, const byte *queue, uint16 size) {
+bool SpriteLibrary::spriteSetQueue(uint16 sprite, const byte *queue, uint16 size, uint16 tag) {
 	if (!queue || size == 0)
 		return false;
 
@@ -85,6 +85,7 @@ bool SpriteLibrary::spriteSetQueue(uint16 sprite, const byte *queue, uint16 size
 
 	object->queueStart = copy;
 	object->queueEnd = copy + size;
+	object->queueTag = tag;
 	processSpriteQueueCommand(sprite);
 	return true;
 }
@@ -104,6 +105,7 @@ void SpriteLibrary::spriteEmptyQueue(uint16 sprite) {
 	object->frameInterval = 0;
 	object->timingMode = 0;
 	object->loopsDisabled = false;
+	object->queueTag = 0;
 }
 
 void SpriteLibrary::spriteSetMessageProc() {

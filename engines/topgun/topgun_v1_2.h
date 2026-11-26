@@ -99,7 +99,7 @@
 #define TG_INPUT_V1_2_3_KEY_TABLE_SIZE           256
 #define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416 // 0xFDE8 / 12
 #define TG_INPUT_V1_2_5_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
-#define TG_INPUT_V1_2_7_MAX_CLICK_REGIONS        5000 // 0xFDE8 / 13
+#define TG_INPUT_V1_2_6_1_MAX_CLICK_REGIONS      5000 // 0xFDE8 / 13
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
 #define TG_HOST_V1_2_9_MAX_HOVER_REGIONS         80
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
@@ -222,7 +222,7 @@
 #define TG_MOVIE_V1_2_COMMAND_INDEX              4
 #define TG_MOVIE_V1_2_COMMAND_FRAME_READY        0x0A
 #define TG_MOVIE_V1_2_5_COMMAND_FRAME_READY      6
-#define TG_MOVIE_V1_2_7_DEFAULT_SPEED            100
+#define TG_MOVIE_V1_2_6_2_DEFAULT_SPEED          100
 
 // Text objects
 #define TG_TEXT_V1_2_FONT_FULL_NAME              4
@@ -282,7 +282,7 @@
 #define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
 #define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
-#define TG_SCRIPT_V1_2_7_NUM_ELEMENT_VARIABLES   10
+#define TG_SCRIPT_V1_2_6_1_NUM_ELEMENT_VARIABLES 10
 #define TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE       4
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
@@ -554,7 +554,7 @@ struct Movie_v1_2 {
 		audioStream(0), delay(0), prefetchFrame(0), runSize(0), frame(0), id(0), index(0), sprite(0),
 		timelineRemaining(0), frameUpdated(false), prefetchDone(false), stalled(false), skipping(false),
 		late(false), prefetchExhausted(false), started(false), audioStarted(false), numBuffers(0),
-		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_7_DEFAULT_SPEED) {}
+		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_6_2_DEFAULT_SPEED) {}
 };
 
 struct TextObject_v1_2 {
@@ -673,6 +673,7 @@ class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
 	friend class AudioLibrary_v1_2_3;
 	friend class ResourceLibrary_v1_2;
 	friend class SpriteLibrary_v1_2;
+	friend class SpriteLibrary_v1_2_3;
 
 public:
 	TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version = kVersionV1_2);
@@ -718,6 +719,7 @@ protected:
 	byte *spriteBitmapProvider(uint16 id, bool release);
 	void spriteMessageService(byte *record) override;
 	virtual void spriteMessageService(byte *record, uint16 spriteId);
+	void spriteQueueDoneService(uint16 sprite, uint16 tag);
 	uint16 spriteMovieService(uint16 sprite, byte *command, byte **frame);
 	uint32 movieAudioFill(uint16 movie, byte *destination, uint32 count);
 
@@ -1089,6 +1091,7 @@ protected:
 	uint16 _expressionStackPointer = 0;
 	uint16 _currentScriptId = 0;
 	uint16 _mouseEventScript = 0;
+	uint16 _queueDoneScript = 0;
 	uint16 _textEditObjectId = 0;
 	uint16 _dragSpriteId = 0;
 	uint16 _displayZoomMode = 0;

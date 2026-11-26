@@ -108,6 +108,7 @@
 
 #define TG_RES_V1_2_EXTRACT_BLOCK_SIZE             0x2000
 #define TG_RES_V1_2_EXTRACT_PREFIX_SIZE            5
+#define TG_RES_V1_2_EXTRACT_COMPRESSED_OFFSET      4
 #define TG_RES_V1_2_WAVE_HEADER_SIZE               0x18
 #define TG_RES_V1_2_SIZE_UNKNOWN                   0xFFFFFFFF
 
@@ -319,7 +320,7 @@ protected:
 	bool loadVariablePairs(ResourceFile *file);
 	bool loadStringPool(ResourceFile *file);
 	virtual bool loadResidentChunks(ResourceFile *file);
-	bool loadMovieBuffer(ResourceFile *file);
+	bool loadMovieBuffer(uint16 file, ResourceFile *record);
 	void writeVariableTableBack(ResourceFile *file);
 	void notifyHost(uint16 message, ResourceFile *file);
 	bool readChainedBlocks(ResourceFile *file, byte *buffer, uint32 count);
@@ -352,7 +353,6 @@ protected:
 	WaveStreamMap _waveStreams;
 	uint16 _nextWaveStreamHandle = 1;
 
-private:
 	TopgunEngine_v1_2 *engine() const;
 };
 

@@ -42,7 +42,9 @@ TopgunMetaEngineDetection::TopgunMetaEngineDetection() : AdvancedMetaEngineDetec
 	Topgun::gameDescriptions, Topgun::topgunGames) {
 	// The volumes are set by the controls of the games
 	_guiOptions = GUIO3(GUIO_NOMUSIC, GUIO_NOSFX, GUIO_NOSPEECHVOLUME);
-	_maxScanDepth = 2;
+	// Different builds of a game are told apart by the extra field
+	_flags = kADFlagUseExtraAsHint;
+	_maxScanDepth = 4;
 	_directoryGlobs = Topgun::directoryGlobs;
 }
 

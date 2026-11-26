@@ -95,7 +95,12 @@ bool TopgunEngine_v1_2_3::postMessage(uint16 id, uint16 param, uint32 data) {
 
 uint16 TopgunEngine_v1_2_3::audioCreateWaveEvent(const byte *header, uint16 waveInfo) {
 	SoundCreateInfo_v1_2 info;
-	memcpy(info.header, header, TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE);
+
+	uint16 headerSize = TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE;
+	if (_version < kVersionV1_2_3)
+		headerSize = TG_AUDIO_V1_2_2_2_CREATE_HEADER_SIZE;
+
+	memcpy(info.header, header, headerSize);
 	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
 	info.rewindProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
 	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_WAVE;
@@ -137,6 +142,46 @@ void TopgunEngine_v1_2_3::spriteMessageService(byte *record, uint16 spriteId) {
 }
 
 bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
+	if (_gameDescription->flags & ADGF_DEMO) {
+		const char *title;
+		const char *container;
+		const char *folder;
+
+		if (getGameId() == "coldblooded") {
+			title = "Cold Blooded Sampler";
+			container = "COLDDEMO.BIN";
+			folder = "CBLOODED";
+		} else if (getGameId() == "dominion") {
+			title = "Dominion Sampler";
+			container = "SCRNDEMO.BIN";
+			folder = "DOMINION";
+		} else if (getGameId() == "holygrail") {
+			title = "Holy Grail Sampler";
+			container = "GRLDEMO.BIN";
+			folder = "GRAIL";
+		} else if (getGameId() == "bestshot") {
+			title = "TopGun Player";
+			container = "BESTSHOT.BIN";
+			folder = "BESTSHOT";
+		} else if (getGameId() == "7thlevelsamplers") {
+			title = "Battle Beast";
+			container = "DEMO.BIN";
+			folder = "DEMO";
+		} else if (getGameId() == "arcadeamerica") {
+			title = "Arcade America";
+			container = "ARCADE.BIN";
+			folder = "ARCADE";
+		} else {
+			title = "TopGun Player";
+			container = "ACE_DEMO.BIN";
+			folder = "ACE";
+		}
+
+		addDemoDirectory(folder);
+
+		return runStartup(title, container);
+	}
+
 	if (getGameId() == "arcadeamerica")
 		return runStartup("Arcade America", "ARCADE.BIN");
 
@@ -197,7 +242,9 @@ bool TopgunEngine_v1_2_3::initApplication(const Common::String &title) {
 		display()->setHasPalette(!(ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth")));
 		_flagMode640 = (display()->width() <= TG_DISPLAY_DEFAULT_WIDTH);
 		_altTab = ConfMan.hasKey("alttab") && ConfMan.getInt("alttab") != 0;
-		_debugMode = ((byte)getPrivateProfileInt(title.c_str(), "Debug", 0) != 0);
+		if (_version >= kVersionV1_2_2_3)
+			_debugMode = ((byte)getPrivateProfileInt(title.c_str(), "Debug", 0) != 0);
+
 		_maxJoySticks = getPrivateProfileInt(title.c_str(), "MaxJoySticks", 2);
 		_cursorMode = 1;
 		utilsLibrary()->memSetNotify(1);
@@ -229,6 +276,10 @@ bool TopgunEngine_v1_2_3::initEngineLibraries() {
 
 	spriteLib()->spriteSetMessageProc(true);
 	spriteLib()->spriteSetMovieProc(true);
+
+	if (_version == kVersionV1_2_2_3)
+		spriteLib()->spriteSetQueueDoneProc(false);
+
 	spriteLib()->spriteSetStreamProc(true);
 	spriteLib()->spriteSetServiceProc(true, 1);
 	return true;
@@ -251,7 +302,7 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 			if (_version >= kVersionV1_2_9 && _pluginTickProcCount != 0)
 				runRegisteredServiceCallbacks();
 
-			if (_version >= kVersionV1_2_7 && _idleScript != 0)
+			if (_version >= kVersionV1_2_6_2 && _idleScript != 0)
 				idleCheck();
 
 			if (_numScheduledTimers != 0)
@@ -283,7 +334,7 @@ uint16 TopgunEngine_v1_2_3::mainLoop() {
 }
 
 void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
-	if (_version >= kVersionV1_2_7 && _idleScript != 0) {
+	if (_version >= kVersionV1_2_6_2 && _idleScript != 0) {
 		switch (message.id) {
 		case kMsgKeyDown:
 		case kMsgV1_2_3KeyUp:
@@ -373,10 +424,20 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 		break;
 
 	case kMsgV1_2SoundFinished:
-		if ((message.data & 0xFFFF) != 0)
-			enqueuePostedScriptRun(message.data & 0xFFFF, message.param, 0);
-		else
+		if ((message.data & 0xFFFF) == 0) {
 			destroyResourceObjectByType(message.param, resourceLib()->resGetType(_file, operandValue(message.param)));
+		} else if (_version >= kVersionV1_2_3) {
+			enqueuePostedScriptRun(message.data & 0xFFFF, message.param, 0);
+		} else {
+			byte record[18];
+
+			memset(record, 0, sizeof(record));
+			WRITE_LE_UINT16(record + 2, message.data & 0xFFFF);
+			record[5] = 1;
+			WRITE_LE_UINT16(record + 6, message.param);
+			o_callScript(record);
+		}
+
 		break;
 
 	case kMsgV1_2_9FreePluginModules:
@@ -393,7 +454,7 @@ void TopgunEngine_v1_2_3::dispatchMessage(const Message &message) {
 			lastPluginMessage = TG_HOST_V1_2_7_MESSAGE_LAST_PLUGIN;
 		}
 
-		if (message.id >= firstPluginMessage && message.id <= lastPluginMessage && _windowMessageCallback)
+		if (_version >= kVersionV1_2_2_3 && message.id >= firstPluginMessage && message.id <= lastPluginMessage && _windowMessageCallback)
 			_windowMessageCallback->windowMessage(message.id, message.param, (uint16)(message.data & 0xFFFF), (uint16)(message.data >> 16));
 
 		break;
@@ -490,7 +551,7 @@ void TopgunEngine_v1_2_3::handleActivateMessage(uint16 param) {
 
 		_activateState = active;
 
-		if (_version >= kVersionV1_2_7 && _version <= kVersionV1_2_8 && !active)
+		if (_version >= kVersionV1_2_6_1 && _version <= kVersionV1_2_8 && !active)
 			cancelMouseCapture();
 	}
 

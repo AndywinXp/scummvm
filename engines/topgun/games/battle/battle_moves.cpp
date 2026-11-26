@@ -518,7 +518,7 @@ uint16 BattlePlugin::moveAttackBoost(Fighter *f, uint16 move, uint16 anim) {
 	setAttackActive(f, 1);
 	_host->spriteSwapOrder(f->sprite, f->opponent->sprite, 1, 0);
 	f->lastFrame = 0;
-	_host->callScript(kScriptSetSpriteCel, f->spriteId, f->moveCel);
+	_host->callScript(_scriptSetSpriteCel, f->spriteId, f->moveCel);
 	return 1;
 }
 
@@ -578,7 +578,7 @@ uint16 BattlePlugin::startDeath(Fighter *f, uint16 anim) {
 	setInputDevice(f->player, kInputDeviceDisable);
 	setInFight(f, 0);
 	f->state = kStateDying;
-	host[kVarBusyCounter]++;
+	host[_varBusyCounter]++;
 	_host->setSpriteQueue(f->sprite, anim, 0);
 	return 1;
 }
@@ -606,8 +606,8 @@ uint16 BattlePlugin::moveKnockOut(Fighter *f, uint16 move, uint16 anim) {
 uint16 BattlePlugin::moveSelectWeapon(Fighter *f, uint16 move, uint16 anim) {
 	uint16 *host = _host->variableTable();
 
-	_host->callScript(kScriptWeaponSelect, f->player, 0);
-	f->weapon = host[kVarWeapon + f->player];
+	_host->callScript(_scriptWeaponSelect, f->player, 0);
+	f->weapon = host[_varWeapon + f->player];
 	weaponInit(f);
 	endMove(f);
 	return 1;

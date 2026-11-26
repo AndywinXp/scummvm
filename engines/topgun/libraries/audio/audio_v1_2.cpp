@@ -37,6 +37,7 @@ TopgunEngine_v1_2 *AudioLibrary_v1_2::engine() const {
 }
 
 AudioLibrary_v1_2::~AudioLibrary_v1_2() {
+	closeMidiOutDevice();
 	freeAudioContext();
 
 	if (_waveOutStream) {
@@ -66,12 +67,20 @@ uint16 AudioLibrary_v1_2::audioInitLibrary(uint16 hwnd, uint16 version) {
 
 void AudioLibrary_v1_2::audioExitLibrary() {
 	releaseCDDeviceIfOwned();
+
+	if (_engine->_version >= kVersionV1_2_2_1)
+		destroyAllMidiObjects();
+
 	destroyAllWaveObjectsAndCloseDevice();
 	freeAudioContext();
 }
 
 void AudioLibrary_v1_2::audioService() {
 	pumpAudioPlayback();
+
+	if (_engine->_version >= kVersionV1_2_2_1)
+		pollMidiPlayback();
+
 	cdFadeTick();
 }
 
@@ -80,19 +89,39 @@ void AudioLibrary_v1_2::audioActivate(uint16 on) {
 
 	if (on == 0) {
 		stopCDIfOwned();
+
+		if (_engine->_version >= kVersionV1_2_2_1)
+			closeMidiOutDevice();
+
 		audioCloseWave();
-	} else if (_activeSounds != 0) {
-		audioOpenWave(&_waveFormat);
+		return;
 	}
+
+	if (_activeSounds != 0)
+		audioOpenWave(&_waveFormat);
+
+	if (_engine->_version >= kVersionV1_2_2_1 && _currentMidi)
+		openAndConfigureMidiOut();
 }
 
 void AudioLibrary_v1_2::audioPause(uint16 paused) {
+	if (_engine->_version >= kVersionV1_2_2_1) {
+		_paused = (paused != 0);
+
+		if (_paused)
+			resetMidiOutDevice();
+	}
+
 	pauseAllPlayback(paused);
 }
 
 uint16 AudioLibrary_v1_2::libMain() {
 	readAudioIniSettings();
 	findCdAuxDevice();
+
+	if (_engine->_version >= kVersionV1_2_2_1)
+		probeMidiOutCapabilities();
+
 	probeWaveOutCapabilities();
 	return 1;
 }
@@ -133,6 +162,12 @@ bool AudioLibrary_v1_2::allocAudioContext() {
 	_cdSuspend = false;
 	_currentMidi = nullptr;
 	_midiCount = 0;
+	_streamedMidiCount = 0;
+	_paused = false;
+	_midiOut = nullptr;
+	_midiOriginalVolume = 0;
+	_midiUserVolume = 0;
+	_midiUserVolumeSet = false;
 	return true;
 }
 
@@ -221,6 +256,10 @@ void AudioLibrary_v1_2::audioMute(int16 muted) {
 
 	if (_mute != previous) {
 		updateWaveEnabledFlags(1);
+
+		if (_engine->_version >= kVersionV1_2_2_1)
+			updateMidiEnabledFlags(1);
+
 		muteCDAudio();
 
 		if (_engine->_version >= kVersionV1_2_1 && _mute)
@@ -386,15 +425,17 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 		return;
 	}
 
-	if (_paused && _engine->_version != kVersionV1_2_8)
+	if (_paused && _engine->_version >= kVersionV1_2_3 && _engine->_version != kVersionV1_2_8)
 		return;
 
-	if (!_paused && _activeSounds != 0)
+	if ((!_paused || _engine->_version < kVersionV1_2_3) && _activeSounds != 0)
 		openWaveDevice(&_waveFormat);
 
 	if (_currentMidi) {
 		openAndConfigureMidiOut();
-		_currentMidi->index = 0;
+
+		if (_engine->_version >= kVersionV1_2_3)
+			_currentMidi->index = 0;
 
 		if (_engine->_version != kVersionV1_2_8 || _midiPauseCount == 0)
 			midiSequencerStep(_currentMidi);
@@ -404,7 +445,7 @@ void AudioLibrary_v1_2_3::audioActivate(uint16 on) {
 void AudioLibrary_v1_2_3::audioPause(uint16 paused) {
 	bool state = (paused != 0);
 
-	if (state == _paused)
+	if (state == _paused && _engine->_version >= kVersionV1_2_3)
 		return;
 
 	_paused = state;
@@ -474,16 +515,12 @@ bool AudioLibrary_v1_2_3::allocAudioContext() {
 	if (!AudioLibrary_v1_2::allocAudioContext())
 		return false;
 
-	_paused = false;
 	_midiPauseCount = 0;
 	_maxPriority = 0;
 	_waveMuteSavedVolume = 0;
-	_midiOut = nullptr;
-	_midiOriginalVolume = 0;
-	_midiUserVolume = 0;
 	_midiMuteSavedVolume = 0;
-	_midiUserVolumeSet = false;
 	_midiTimerArmed = false;
+	_midiLostTimers.clear();
 	return true;
 }
 
@@ -504,7 +541,7 @@ void AudioLibrary_v1_2_3::readAudioIniSettings() {
 
 	if (_engine->_version == kVersionV1_2_8)
 		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET);
-	else
+	else if (_engine->_version >= kVersionV1_2_3)
 		_iniMidiVolume = readAudioIniInt("MidiVolume", TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET);
 
 	_remapMidiDrums = (readAudioIniInt("RemapMidiDrums", 0) != 0);

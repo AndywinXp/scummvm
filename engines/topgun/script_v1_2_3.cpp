@@ -44,8 +44,12 @@ static const byte kScriptOpSizes[] = {
 bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	bool result = true;
 	uint16 size = 0;
+	uint16 opcode = READ_LE_UINT16(ip);
 
-	switch (READ_LE_UINT16(ip)) {
+	if (_version == kVersionV1_2_2_2 && opcode > TG_SCRIPT_V1_2_2_2_LAST_OPCODE)
+		opcode = 0;
+
+	switch (opcode) {
 	case kOpV1_2_3CallScript:
 		result = o_callScript(ip);
 		size = (ip[5] + 3) * 2;
@@ -71,8 +75,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		result = o_setClickScript(ip);
 		size = 18;
 
-		if (_version >= kVersionV1_2_7)
-			size = TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE;
+		if (_version >= kVersionV1_2_6_1)
+			size = TG_SCRIPT_V1_2_6_1_SET_CLICK_SCRIPT_SIZE;
 
 		break;
 
@@ -154,6 +158,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3Arithmetic:
 		o_arithmetic(ip);
 		size = 24;
+
+		if (_version < kVersionV1_2_2_3)
+			size = TG_SCRIPT_V1_2_2_2_ARITHMETIC_SIZE;
+
 		break;
 
 	case kOpV1_2_3ConditionalRunScript:
@@ -205,6 +213,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3StopSprite:
 		o_stopSprite(ip);
 		size = 6;
+
+		if (_version < kVersionV1_2_3)
+			size = TG_SCRIPT_V1_2_2_2_STOP_SPRITE_SIZE;
+
 		break;
 
 	case kOpV1_2_3SetSpriteQueueIfLoaded: {
@@ -219,7 +231,7 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	}
 
 	case kOpV1_2_3DebugString:
-		if (_debugMode)
+		if (_debugMode || _version == kVersionV1_2_2_2)
 			o_debugString(ip);
 
 		size = 6;
@@ -265,6 +277,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3AddCollisionPair:
 		result = o_addCollisionPair(ip);
 		size = 18;
+
+		if (_version < kVersionV1_2_3)
+			size = TG_SCRIPT_V1_2_2_2_COLLISION_PAIR_SIZE;
+
 		break;
 
 	case kOpV1_2_3ListRunScript:
@@ -390,6 +406,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 
 		if (_version >= kVersionV1_2_7)
 			size = TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE;
+		else if (_version >= kVersionV1_2_6_1)
+			size = TG_SCRIPT_V1_2_6_1_SET_HOVER_REGION_SIZE;
 
 		break;
 
@@ -453,8 +471,8 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		o_getSpriteElementIds(ip);
 		size = 12;
 
-		if (_version >= kVersionV1_2_7)
-			size = TG_SCRIPT_V1_2_7_GET_ELEMENT_IDS_SIZE;
+		if (_version >= kVersionV1_2_6_1)
+			size = TG_SCRIPT_V1_2_6_1_GET_ELEMENT_IDS_SIZE;
 
 		break;
 
@@ -493,6 +511,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 	case kOpV1_2_3DeviceGroupButtonState:
 		o_deviceGroupButtonState(ip);
 		size = 10;
+
+		if (_version < kVersionV1_2_3)
+			size = TG_SCRIPT_V1_2_2_2_DEVICE_STATE_SIZE;
+
 		break;
 
 	case kOpV1_2_3SetDeviceGroupScript:
@@ -567,7 +589,10 @@ bool TopgunEngine_v1_2_3::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	default:
-		if (_version >= kVersionV1_2_5 && READ_LE_UINT16(ip) == kOpV1_2_5SetReservedWord) {
+		if (_version == kVersionV1_2_2_3 && opcode == kOpV1_2_2_3SetQueueDoneScript) {
+			o_setQueueDoneScript(ip);
+			size = TG_SCRIPT_V1_2_2_3_QUEUE_DONE_SIZE;
+		} else if (_version >= kVersionV1_2_5 && READ_LE_UINT16(ip) == kOpV1_2_5SetReservedWord) {
 			_reservedScriptWord = READ_LE_UINT16(ip + 2);
 			size = TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE;
 		} else if (_version >= kVersionV1_2_5 && READ_LE_UINT16(ip) == kOpV1_2_5Reserved) {
@@ -597,6 +622,10 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 
 	if (_version >= kVersionV1_2_5)
 		lastOpcode = TG_SCRIPT_V1_2_5_LAST_OPCODE;
+	else if (_version == kVersionV1_2_2_2)
+		lastOpcode = TG_SCRIPT_V1_2_2_2_LAST_OPCODE;
+	else if (_version == kVersionV1_2_2_3)
+		lastOpcode = TG_SCRIPT_V1_2_2_3_LAST_OPCODE;
 
 	if ((uint16)(opcode - 1) > lastOpcode - 1)
 		return 0;
@@ -624,18 +653,39 @@ uint16 TopgunEngine_v1_2_3::getScriptOpSize(const byte *ip) {
 			return 0;
 	}
 
+	if (_version < kVersionV1_2_3) {
+		if (opcode == kOpV1_2_3StopSprite)
+			return TG_SCRIPT_V1_2_2_2_STOP_SPRITE_SIZE;
+
+		if (opcode == kOpV1_2_3AddCollisionPair)
+			return TG_SCRIPT_V1_2_2_2_COLLISION_PAIR_SIZE;
+
+		if (opcode == kOpV1_2_3DeviceGroupButtonState)
+			return TG_SCRIPT_V1_2_2_2_DEVICE_STATE_SIZE;
+
+		if (opcode == kOpV1_2_3Arithmetic && _version < kVersionV1_2_2_3)
+			return TG_SCRIPT_V1_2_2_2_ARITHMETIC_SIZE;
+
+		if (opcode == kOpV1_2_2_3SetQueueDoneScript)
+			return TG_SCRIPT_V1_2_2_3_QUEUE_DONE_SIZE;
+	}
+
 	if (_version >= kVersionV1_2_6 && opcode == kOpV1_2_3SetBackground)
 		return TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE;
 
-	if (_version >= kVersionV1_2_7) {
+	if (_version >= kVersionV1_2_6_1) {
 		if (opcode == kOpV1_2_3SetClickScript)
-			return TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE;
+			return TG_SCRIPT_V1_2_6_1_SET_CLICK_SCRIPT_SIZE;
 
-		if (opcode == kOpV1_2_3SetHoverRegion)
-			return TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE;
+		if (opcode == kOpV1_2_3SetHoverRegion) {
+			if (_version >= kVersionV1_2_7)
+				return TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE;
+
+			return TG_SCRIPT_V1_2_6_1_SET_HOVER_REGION_SIZE;
+		}
 
 		if (opcode == kOpV1_2_3GetSpriteElementIds)
-			return TG_SCRIPT_V1_2_7_GET_ELEMENT_IDS_SIZE;
+			return TG_SCRIPT_V1_2_6_1_GET_ELEMENT_IDS_SIZE;
 	}
 
 	return kScriptOpSizes[opcode];
@@ -662,7 +712,11 @@ bool TopgunEngine_v1_2_3::runPostedScriptRecord(const byte *record) {
 }
 
 bool TopgunEngine_v1_2_3::enqueuePostedScriptRun(uint16 script, uint16 argument1, uint16 argument2) {
-	if (_numPostedScriptRuns >= TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS)
+	uint16 maxRuns = TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS;
+	if (_version < kVersionV1_2_2_3)
+		maxRuns = TG_SCRIPT_V1_2_2_2_MAX_POSTED_RUNS;
+
+	if (_numPostedScriptRuns >= maxRuns)
 		return fatalError(112, "Too many 'run' messages attempted.");
 
 	byte *record = _postedRuns + TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE * _numPostedScriptRuns;
@@ -739,7 +793,7 @@ void TopgunEngine_v1_2_3::o_gotoScene(const byte *record) {
 	for (uint16 i = 0; i < TG_INPUT_V1_2_3_KEY_TABLE_SIZE; i++)
 		_keyTable[i] = KeyEntry_v1_2();
 
-	if (_version >= kVersionV1_2_7)
+	if (_version >= kVersionV1_2_6_2)
 		_activationScript = 0;
 
 	_dragSpriteId = 0;

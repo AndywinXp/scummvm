@@ -62,7 +62,7 @@ public:
 	virtual void loadResource(uint16 id) = 0; // RT_021
 	virtual void unloadResource(uint16 id) = 0; // RT_022
 	virtual void transferSprite(uint16 source, uint16 destination, uint16 data, byte freeSource, byte flag) = 0; // RT_023
-	virtual bool callScript(uint16 script, uint16 argument1, uint16 argument2) = 0; // RT_024
+	virtual uint16 callScript(uint16 script, uint16 argument1, uint16 argument2) = 0; // RT_024
 	virtual void getSpriteFrameIds(uint16 sprite, uint16 *ids) = 0; // RT_025
 	virtual uint16 spritesCollide(uint16 first, uint16 second, const Common::Rect *rect) = 0; // RT_027
 	virtual void stopSprite(uint16 sprite) = 0; // RT_028
@@ -99,6 +99,7 @@ class PluginHost : public PluginServices {
 public:
 	virtual void setMessageFilter(Plugin *plugin) = 0; // RT_039
 	virtual void setNetworkMessageCallback(Plugin *plugin) = 0; // RT_040
+	virtual void setScriptHook(Plugin *plugin) = 0;
 };
 
 class Plugin {
@@ -111,6 +112,9 @@ public:
 	virtual uint16 callFunction(int function, const uint16 *arguments, uint16 count) = 0;
 	virtual uint16 messageFilter(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) { return 0; }
 	virtual uint32 windowMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) { return 0; }
+
+	// Called before a script; returning true skips it. The arguments are stored at decreasing addresses
+	virtual bool scriptHook(uint16 script, const uint16 *arguments) { return false; }
 
 	virtual void tick() {}
 	virtual void focusChanged(bool active) {}

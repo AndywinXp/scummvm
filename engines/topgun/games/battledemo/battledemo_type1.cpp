@@ -1,0 +1,290 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "common/util.h"
+
+#include "topgun/games/battledemo/battledemo.h"
+
+namespace Topgun {
+
+void BattleDemoPlugin::initDemoTablesType1() {
+	const SpecialMove petWalkTurn[4] = {
+		{0x0006, 0x000F, 0x86D9, 0x86D9, 0x03, 0x0000},
+		{0x0006, 0x000F, 0x86E9, 0x86E9, 0x03, 0x0000},
+		{0x0006, 0x000F, 0x86B7, 0x86B7, 0x03, 0x0000},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove beastWalkTurn[2] = {
+		{0x0006, 0x000F, 0x87AB, 0x87AB, 0x03, 0x0000},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove beastSpinAttackChain[3] = {
+		{0x0057, 0x00FF, 0x874D, 0x874F, 0x17, 0x0000},
+		{0x000C, 0x000F, 0x874D, 0x874F, 0x17, 0x0000},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove petJumpSteer[5] = {
+		{0x0007, 0x000F, 0x8672, 0x8674, 0x0F, 0x0000},
+		{0x000A, 0x000F, 0x8672, 0x8674, 0x0F, 0x0000},
+		{0x0006, 0x000F, 0x8672, 0x8674, 0x0E, 0x0000},
+		{0x0009, 0x000F, 0x8672, 0x8674, 0x0E, 0x0000},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove beastJumpSteerAndDive[10] = {
+		{0x0015, 0x00FF, 0x8732, 0x8733, 0x19, 0x0000},
+		{0x0007, 0x000F, 0x8730, 0x8733, 0x0F, 0x0000},
+		{0x000A, 0x000F, 0x8730, 0x8733, 0x0F, 0x0000},
+		{0x0006, 0x000F, 0x8730, 0x8733, 0x0E, 0x0000},
+		{0x0009, 0x000F, 0x8730, 0x8733, 0x0E, 0x0000},
+		{0x0007, 0x000F, 0x872B, 0x872D, 0x0F, 0x0000},
+		{0x000A, 0x000F, 0x872B, 0x872D, 0x0F, 0x0000},
+		{0x0006, 0x000F, 0x872B, 0x872D, 0x0E, 0x0000},
+		{0x0009, 0x000F, 0x872B, 0x872D, 0x0E, 0x0000},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove beastJumpAttackBackBoost[3] = {
+		{0x0002, 0x000F, 0x8791, 0x8792, 0x1A, 0x00BD},
+		{0x0001, 0x000F, 0x8791, 0x8792, 0x1A, 0x00BE},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+	const SpecialMove beastJumpAttackForwardBoost[3] = {
+		{0x0002, 0x000F, 0x878F, 0x8790, 0x1A, 0x00BD},
+		{0x0001, 0x000F, 0x878F, 0x8790, 0x1A, 0x00BE},
+		{0xFFFF, 0x0000, 0x0000, 0x0000, 0x00, 0x0000}
+	};
+
+	for (uint i = 0; i < ARRAYSIZE(petWalkTurn); i++)
+		_specialMoves.verminPetWalkTurn[i] = petWalkTurn[i];
+	for (uint i = 0; i < ARRAYSIZE(beastWalkTurn); i++)
+		_specialMoves.verminBeastWalkTurn[i] = beastWalkTurn[i];
+	for (uint i = 0; i < ARRAYSIZE(beastSpinAttackChain); i++)
+		_specialMoves.verminBeastSpinAttackChain[i] = beastSpinAttackChain[i];
+	for (uint i = 0; i < ARRAYSIZE(petJumpSteer); i++)
+		_specialMoves.verminPetJumpSteer[i] = petJumpSteer[i];
+	for (uint i = 0; i < ARRAYSIZE(beastJumpSteerAndDive); i++)
+		_specialMoves.verminBeastJumpSteerAndDive[i] = beastJumpSteerAndDive[i];
+	for (uint i = 0; i < ARRAYSIZE(beastJumpAttackBackBoost); i++)
+		_specialMoves.verminBeastJumpAttackBackBoost[i] = beastJumpAttackBackBoost[i];
+	for (uint i = 0; i < ARRAYSIZE(beastJumpAttackForwardBoost); i++)
+		_specialMoves.verminBeastJumpAttackForwardBoost[i] = beastJumpAttackForwardBoost[i];
+
+	const uint16 varList[kVarListSize] = {
+		0x0043, 0x0044, 0x0045, 0x0046, 0x0047, 0x0048, 0x0049, 0x004A,
+		0x004B, 0x004C, 0x87C9, 0x87CA, 0x87CD, 0x87CE, 0x004E
+	};
+	const Common::Rect rects[kRectCount] = {
+		{-17, -30, 54, 33},
+		{-54, -30, 17, 33},
+		{-46, -53, 63, 40},
+		{-63, -53, 46, 40},
+		{-24, -14, 30, 60},
+		{-30, -14, 24, 60}
+	};
+	const WalkStep walkSteps[kWalkStepCount] = {
+		{0x003C, 0x0028},
+		{0x0028, 0x0028},
+		{0x0028, 0x0028}
+	};
+	const uint16 knockDistances[kSetCount] = {
+		0x0085, 0x0062
+	};
+	const int16 offsetsY[kSetCount] = {
+		135, 118
+	};
+	// Walk-in, fight, third and collapse sprites
+	const uint16 sprites[4] = {
+		0x85B9, 0x85FB, 0x87F0, 0x85C6
+	};
+	const uint16 animations[102] = {
+		0x85BA, 0x004F, 0x8605, 0x0050, 0x860A, 0x0051, 0x860B, 0x85FE, 0x0052, 0x860E, 0x860F, 0x8610,
+		0x861E, 0x861F, 0x8625, 0x8624, 0x8621, 0x8620, 0x8623, 0x861B, 0x8656, 0x8627, 0x8626, 0x8628,
+		0x0000, 0x0000, 0x8626, 0x861C, 0x862E, 0x8631, 0x8632, 0x862D, 0x8646, 0x8647, 0x8642, 0x8643,
+		0x8637, 0x8633, 0x8648, 0x8635, 0x8639, 0x8638, 0x863B, 0x863C, 0x863D, 0x8633, 0x8634, 0x8636,
+		0x863E, 0x8640, 0x863F, 0x8659, 0x864A, 0x864B, 0x864C, 0x864D, 0x864E, 0x8631, 0x8632, 0x8617,
+		0x8618, 0x8617, 0x8618, 0x8650, 0x8651, 0x8652, 0x8653, 0x8629, 0x8629, 0x864F, 0x864F, 0x8629,
+		0x864F, 0x861A, 0x8654, 0x862B, 0x8655, 0x8600, 0x8600, 0x862C, 0x8601, 0x85C7, 0x85C8, 0x87E0,
+		0x87FC, 0x87F1, 0x85FF, 0x8622, 0x8649, 0x863A, 0x8812, 0x8611, 0x8612, 0x8613, 0x8614, 0x8615,
+		0x8616, 0x8644, 0x8645, 0x8619, 0x861D, 0x8641
+	};
+	const uint16 remap[80] = {
+		0x0000, 0x0001, 0x0003, 0x0005, 0x0007, 0x0008, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x0012,
+		0x0013, 0x0014, 0x0015, 0x0016, 0x0018, 0x0019, 0x001A, 0x001B, 0x001C, 0x001D, 0x001E, 0x001F,
+		0x0020, 0x0021, 0x0022, 0x0023, 0x0024, 0x0025, 0x0026, 0x0027, 0x0028, 0x0029, 0x002A, 0x002B,
+		0x002C, 0x002F, 0x0030, 0x0031, 0x0032, 0x0033, 0x0034, 0x0035, 0x0036, 0x0037, 0x0038, 0x0039,
+		0x003A, 0x003B, 0x003C, 0x003D, 0x003E, 0x003F, 0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045,
+		0x0046, 0x0047, 0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F, 0x0050, 0x0057,
+		0x0059, 0x005D, 0x005E, 0x0061, 0x0062, 0x0063, 0x0064, 0x0065
+	};
+	const ComboRecord combos[kComboCount] = {
+		{0x12121415, 0xFFFFFFFF},
+		{0x00313109, 0x00FFFFFF},
+		{0x00001116, 0x0000FFFF},
+		{0x00001617, 0x0000FFFF},
+		{0x0000090A, 0x0000FFFF},
+		{0xFFFFFFFF, 0x00000000}
+	};
+	const MoveEntry moves0[22] = {
+		{&BattlePlugin::moveIdle, 0x0001, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveWalk, 0x0002, 0x0001, _specialMoves.verminPetWalkTurn, 0x0000},
+		{&BattlePlugin::moveWalk, 0x0003, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveTurn, 0x0004, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJumpUp, 0x0005, 0x0001, _specialMoves.verminPetJumpSteer, 0x0000},
+		{&BattlePlugin::moveWallBounce, 0x0006, 0x0000, nullptr, 0x0000},
+		{&BattlePlugin::moveWallBounce, 0x0007, 0x0000, nullptr, 0x0000},
+		{&BattlePlugin::moveCrouch, 0x000B, 0x0000, nullptr, 0x0000},
+		{&BattlePlugin::moveGuard, 0x000C, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttackHoldAnyButton, 0x0008, 0x0001, nullptr, 0x0007},
+		{&BattlePlugin::moveAttack, 0x0009, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveKnockOut, 0x000D, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJump, 0x0031, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJump, 0x0032, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJumpAttack, 0x0033, 0x0001, nullptr, 0x8672},
+		{&BattlePlugin::moveJumpAttack, 0x0034, 0x0001, nullptr, 0x8672},
+		{&BattlePlugin::moveGuard, 0x004E, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveSidestep, 0x0043, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveSidestep, 0x0044, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveTransform, 0x000A, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveGrab, 0x0045, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0047, 0x0000, nullptr, 0x0000}
+	};
+	const MoveEntry moves1[28] = {
+		{&BattlePlugin::moveIdle, 0x0014, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveWalk, 0x0015, 0x0001, _specialMoves.verminBeastWalkTurn, 0x0000},
+		{&BattlePlugin::moveWalk, 0x0016, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveTurn, 0x0017, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJumpUp, 0x0019, 0x0001, _specialMoves.verminBeastJumpSteerAndDive, 0x8730},
+		{&BattlePlugin::moveWallBounce, 0x001A, 0x0000, nullptr, 0x0000},
+		{&BattlePlugin::moveWallBounce, 0x001B, 0x0000, nullptr, 0x0000},
+		{&BattlePlugin::moveCrouch, 0x0025, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveGuard, 0x0026, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttackCloseRange, 0x001C, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttackCloseRange, 0x001D, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveKnockOut, 0x0029, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJump, 0x0035, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJump, 0x0036, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveJumpAttack, 0x0037, 0x0001, _specialMoves.verminBeastJumpAttackBackBoost, 0x8730},
+		{&BattlePlugin::moveJumpAttack, 0x0038, 0x0001, _specialMoves.verminBeastJumpAttackForwardBoost, 0x8730},
+		{&BattlePlugin::moveGuard, 0x004F, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttackHoldButton2, 0x001E, 0x0001, nullptr, 0x0006},
+		{&BattlePlugin::moveAttack, 0x001F, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0020, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0021, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0022, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0023, 0x0001, _specialMoves.verminBeastSpinAttackChain, 0x0000},
+		{&BattlePlugin::moveAttack, 0x0024, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveProjectile, 0x0048, 0x0001, nullptr, 0x880F},
+		{&BattlePlugin::moveAttack, 0x004D, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveAttackBoost, 0x0000, 0x0001, nullptr, 0x0000},
+		{&BattlePlugin::moveSelectWeapon, 0x0000, 0x0001, nullptr, 0x0000}
+	};
+	const HitBox hits0[9] = {
+		{0x86A0, 1, 0, 1, 2, 5, 0, 5, 3, 5, 49, 44},
+		{0x86A1, 1, 0, 1, 0, 5, 0, 5, 0, 0, 100, 83},
+		{0x86A6, 1, 0, 0, 2, 5, 0, 5, 0, 14, 35, 45},
+		{0x86A7, 1, 0, 0, 0, 5, 0, 5, 0, 4, 58, 66},
+		{0x86AD, 1, 0, 4, 0, 5, 0, 5, 0, 25, 114, 37},
+		{0x86B1, 1, 0, 2, 2, 5, 0, 5, 0, 23, 113, 30},
+		{0x86B4, 1, 0, 2, 0, 5, 0, 5, 1, 75, 108, 60},
+		{0x8714, 1, -1, 2, 0, 5, 0, 5, 0, 30, 80, 58},
+		{0xFFFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	};
+	const HitBox hits1[24] = {
+		{0x871C, 0, 1, 0, 2, 20, 0, 10, 73, 72, 51, 64},
+		{0x871D, 0, 1, 0, 0, 20, 0, 10, 96, 67, 141, 46},
+		{0x8753, 0, 0, 0, 0, 20, 0, 10, 132, 8, 66, 93},
+		{0x871E, 0, 0, 0, 0, 20, 0, 10, 6, 122, 126, 84},
+		{0x871F, 0, 0, 0, 0, 20, 0, 10, 132, 0, 186, 103},
+		{0x8724, 0, 0, 0, 0, 20, 0, 10, 125, 17, 121, 58},
+		{0x8728, 0, -1, 1, 2, 20, 0, 10, 103, 35, 125, 60},
+		{0x8729, 0, -1, 1, 0, 20, 0, 10, 132, 0, 71, 109},
+		{0x8736, 0, 0, 0, 4, 20, 0, 10, 140, 11, 51, 50},
+		{0x8737, 0, 0, 0, 2, 30, 0, 20, 208, 0, 49, 96},
+		{0x8738, 0, 0, 6, 0, 40, 0, 30, 229, 0, 85, 44},
+		{0x8744, 0, 1, 4, 0, 20, 0, 15, 45, 92, 53, 60},
+		{0x8745, 0, 1, 4, 0, 20, 0, 15, 93, 49, 170, 61},
+		{0x874D, 0, 1, 3, 0, 20, 0, 10, 0, 60, 125, 58},
+		{0x874E, 0, 1, 3, 0, 20, 0, 10, 140, 21, 223, 54},
+		{0x874F, 0, -1, 3, 0, 20, 0, 10, 50, 1, 87, 63},
+		{0x8751, 0, 0, 3, 0, 20, 0, 20, 0, 0, 113, 56},
+		{0x8752, 0, 1, 3, 0, 20, 0, 20, 0, 44, 110, 57},
+		{0x8782, 0, 0, 2, 5, 40, 0, 15, 68, 102, 82, 130},
+		{0x8782, 0, -1, 2, 5, 40, 0, 15, 68, 102, 82, 130},
+		{0x8783, 0, 1, 2, 3, 40, 0, 15, 20, 94, 117, 64},
+		{0x871B, 0, 0, 0, 0, 20, 0, 20, 125, 17, 121, 58},
+		{0x871A, 0, 0, 0, 0, 20, 0, 20, 96, 67, 141, 46},
+		{0xFFFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	};
+	const AiRecord aiList[19] = {
+		{0x09, 0x00, 0x0000, 0x0000, 0x0000, 140, 120, 0x0080, 0x0000, 0, 0, 0},
+		{0x0A, 0x00, 0x0000, 0x0000, 0x0000, 125, 120, 0x0002, 0x0000, 0, 0, 0},
+		{0x13, 0x00, 0x0000, 0x0000, 0x0000, 45, 240, 0x0008, 0x0000, 0, 0, 0},
+		{0x09, 0x0A, 0x0000, 0x0000, 0x0000, 55, 100, 0x018A, 0x0000, 0, 0, 0},
+		{0x11, 0x00, 0x0000, 0x0000, 0x0000, 25, 600, 0x0040, 0x0000, 0, 0, 0},
+		{0x14, 0x00, 0x0000, 0x0000, 0x0000, 90, 100, 0x0189, 0x0000, 0, 0, 0},
+		{0x15, 0x00, 0x0000, 0x0000, 0x0000, 75, 120, 0x0103, 0x0000, 0, 0, 0},
+		{0x16, 0x00, 0x0000, 0x0000, 0x0000, 45, 130, 0x000B, 0x0000, 0, 0, 0},
+		{0x18, 0x00, 0x0000, 0x0000, 0x0000, 20, 600, 0x0023, 0x0000, 0, 0, 0},
+		{0x12, 0x12, 0x1514, 0x0000, 0x0000, 40, 80, 0x010B, 0x0000, 0, 0, 0},
+		{0x11, 0x16, 0x0000, 0x0000, 0x0000, 15, 300, 0x0063, 0x0000, 0, 0, 0},
+		{0x16, 0x17, 0x0000, 0x0008, 0x0000, 30, 100, 0x000F, 0x0000, 0, 0, 0},
+		{0x12, 0x00, 0x0000, 0x0000, 0x0000, 80, 120, 0x0000, 0x0000, 0, 0, 0},
+		{0x04, 0x0E, 0x001A, 0x0707, 0x0000, 8, 250, 0x0464, 0x00BD, 0, 0, 0},
+		{0x04, 0x0F, 0x001A, 0x0704, 0x0000, 10, 250, 0x0260, 0x00BE, 0, 0, 0},
+		{0x04, 0x19, 0x0000, 0x000A, 0x0000, 25, 140, 0x0233, 0x0000, 0, 0, 0},
+		{0x04, 0x0E, 0x0018, 0x0004, 0x0000, 20, 120, 0x0463, 0x0000, 0, 0, 0},
+		{0x1B, 0x11, 0x0000, 0x0000, 0x0000, 15, 600, 0x0040, 0x0000, 0, 0, 0},
+		{0xFF, 0xFF, 0xFFFF, 0x0000, 0x0000, 0, 0, 0x0000, 0x0000, 0, 0, 0}
+	};
+
+	FighterTypeData *data = &_typeData[kFighterVermin];
+	*data = FighterTypeData();
+
+	for (uint i = 0; i < ARRAYSIZE(varList); i++)
+		data->varList[i] = varList[i];
+	for (uint i = 0; i < ARRAYSIZE(rects); i++)
+		data->rects[i] = rects[i];
+	for (uint i = 0; i < ARRAYSIZE(walkSteps); i++)
+		data->walkSteps[i] = walkSteps[i];
+	for (uint i = 0; i < ARRAYSIZE(knockDistances); i++)
+		data->knockDistances[i] = knockDistances[i];
+	for (uint i = 0; i < ARRAYSIZE(offsetsY); i++)
+		data->offsetsY[i] = offsetsY[i];
+	for (uint i = 0; i < ARRAYSIZE(sprites); i++)
+		data->sprites[i] = sprites[i];
+	for (uint i = 0; i < ARRAYSIZE(animations); i++)
+		data->animations[i] = animations[i];
+	for (uint i = 0; i < ARRAYSIZE(remap); i++)
+		data->remap[i] = remap[i];
+	for (uint i = 0; i < ARRAYSIZE(combos); i++)
+		data->combos[i] = combos[i];
+	for (uint i = 0; i < ARRAYSIZE(moves0); i++)
+		data->moves[0][i] = moves0[i];
+	for (uint i = 0; i < ARRAYSIZE(moves1); i++)
+		data->moves[1][i] = moves1[i];
+	for (uint i = 0; i < ARRAYSIZE(hits0); i++)
+		data->hits[0][i] = hits0[i];
+	for (uint i = 0; i < ARRAYSIZE(hits1); i++)
+		data->hits[1][i] = hits1[i];
+	for (uint i = 0; i < ARRAYSIZE(aiList); i++)
+		data->aiList[i] = aiList[i];
+}
+
+} // End of namespace Topgun

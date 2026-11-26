@@ -66,7 +66,7 @@ public:
 	void loadResource(uint16 id) override;
 	void unloadResource(uint16 id) override;
 	void transferSprite(uint16 source, uint16 destination, uint16 data, byte freeSource, byte flag) override;
-	bool callScript(uint16 script, uint16 argument1, uint16 argument2) override;
+	uint16 callScript(uint16 script, uint16 argument1, uint16 argument2) override;
 	void getSpriteFrameIds(uint16 sprite, uint16 *ids) override;
 	uint16 spritesCollide(uint16 first, uint16 second, const Common::Rect *rect) override;
 	void stopSprite(uint16 sprite) override;
@@ -95,12 +95,14 @@ public:
 	int32 mmioSeek(uint16 handle, int32 offset, int origin) override;
 	void setMessageFilter(Plugin *plugin) override;
 	void setNetworkMessageCallback(Plugin *plugin) override;
+	void setScriptHook(Plugin *plugin) override { _scriptHook = plugin; }
 
 private:
 	MmioFile *findFile(uint16 handle);
 
 	TopgunEngine_v1_2_3 *_engine;
 	Common::Array<MmioFile> _files;
+	Plugin *_scriptHook = nullptr;
 };
 
 EnginePluginHost::~EnginePluginHost() {
@@ -210,7 +212,7 @@ void EnginePluginHost::transferSprite(uint16 source, uint16 destination, uint16 
 	_engine->o_transferSprite(record);
 }
 
-bool EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argument2) {
+uint16 EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argument2) {
 	byte record[18];
 	memset(record, 0, sizeof(record));
 

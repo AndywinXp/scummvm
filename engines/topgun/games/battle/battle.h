@@ -463,6 +463,12 @@ struct AiBlock {
 	uint32 delayQueue = 0;
 	uint16 currentFlags = 0;
 	int32 switchScore = 0;
+	byte opponentRatio = 0;
+	byte ownRatio = 0;
+	byte balance = 0;
+	byte landedCount = 0;
+	byte hurtCount = 0;
+	const byte *weights = nullptr;
 };
 
 struct Fighter {
@@ -545,6 +551,10 @@ struct Fighter {
 	uint32 fightHits = 0;
 	uint32 totalAttacks = 0;
 	uint32 totalHits = 0;
+	uint32 fightMaxEnergy = 0;
+	uint32 fightDamage = 0;
+	uint32 totalMaxEnergy = 0;
+	uint32 totalDamage = 0;
 };
 
 struct BattleContext {
@@ -577,6 +587,7 @@ struct BattleContext {
 	PendingMove pendingMoves[kFighterCount] = {};
 	Hook moveHook = nullptr;
 	byte inputQueueLength = 0;
+	byte largeValue1003 = 0;
 };
 
 struct FighterTypeData {
@@ -670,10 +681,22 @@ public:
 	uint32 windowMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh) override;
 
 private:
+	friend class BattleDemoPlugin;
+
 	PluginHost *_host;
 	BattleContext *_ctx;
 	byte _initFlags;
 	bool _networkMessageShown = false;
+
+	uint16 _scriptContact = kScriptHitAttack;
+	uint16 _scriptSetSpriteCel = kScriptSetSpriteCel;
+	uint16 _scriptWeaponSelect = kScriptWeaponSelect;
+	uint16 _varWeapon = kVarWeapon;
+	uint16 _varBusyCounter = kVarBusyCounter;
+	byte _collapseSpriteIndex = 2;
+	uint16 _shadowSprites[kFighterCount] = { 0x9C97, 0x9C9F };
+	uint16 _shadowAnimations[kFighterCount] = { 0x9C98, 0x9CA0 };
+	uint16 _hitSparkSprite = 0x9CA8;
 
 	FighterTypeData _typeData[kFighterTypeCount];
 	FighterInitParams _fighterInitParams[kFighterTypeCount] = {};
@@ -722,7 +745,7 @@ private:
 	void initTablesShared();
 
 	// Lifecycle
-	void beastInit();
+	virtual void beastInit();
 	void beastEnable(uint16 enable);
 	void beastFinalFight();
 	void beastSaveRestoreDlg(uint16 mode);
@@ -733,85 +756,85 @@ private:
 	void kbdTimeout(byte player);
 	void inputTimeout(byte player);
 	void moveDone(uint16 id);
-	uint16 identity(uint16 ignored, uint16 value);
+	virtual uint16 identity(uint16 ignored, uint16 value);
 
 	// Input
-	void initInputTimers();
+	virtual void initInputTimers();
 	uint16 inputEvent(byte code, byte player);
-	uint16 inputMatch(uint16 player, uint16 timeout);
+	virtual uint16 inputMatch(uint16 player, uint16 timeout);
 	uint16 setQueueGate(uint16 player, uint16 gate, uint16 run);
 	void setMoveHook(Fighter *f, Hook on);
 	void setFacing(uint16 player, uint16 facing);
 	void setInputDevice(uint16 player, uint16 type);
 	uint16 joyMessage(uint16 message, uint16 wParam, uint16 lParamLow, uint16 lParamHigh);
 	void joyReset(uint16 player, uint16 value);
-	uint16 keyDown(uint16 virtualKey);
-	uint16 keyUp(uint16 virtualKey);
+	virtual uint16 keyDown(uint16 virtualKey);
+	virtual uint16 keyUp(uint16 virtualKey);
 	void keyDirTimeout(uint16 player);
-	void keyboardMap(uint16 player, uint16 enable);
+	virtual void keyboardMap(uint16 player, uint16 enable);
 	void keyboardSetKey(uint16 player, uint16 function, uint16 virtualKey);
 
 	// Ai
-	void aiSetupSkill(Fighter *f);
-	void aiEvent(Fighter *f, uint16 event);
+	virtual void aiSetupSkill(Fighter *f);
+	virtual void aiEvent(Fighter *f, uint16 event);
 	void aiUpdateStrategy(AiBlock *a);
-	void aiReact(Fighter *self, Fighter *opp);
-	void aiStartTimer(Fighter *f);
-	void aiTimerStep(Fighter *f);
+	virtual void aiReact(Fighter *self, Fighter *opp);
+	virtual void aiStartTimer(Fighter *f);
+	virtual void aiTimerStep(Fighter *f);
 	void aiSelectMove(Fighter *f, AiRecord *rec);
 	void aiAdvance(Fighter *f);
 	void aiPoll(Fighter *f);
-	void aiExecuteMove(Fighter *f);
+	virtual void aiExecuteMove(Fighter *f);
 	void aiRespond(Fighter *f);
 	void aiFollowUp(Fighter *f);
 	byte moveClass(byte move);
-	AiRecord *aiPickMove(Fighter *f, AiRecord *list, byte mask, int32 *best);
-	AiRecord *aiPickMove2(Fighter *f, AiRecord *list, uint16 flag, int32 *best);
-	void aiChooseNext(Fighter *f);
+	virtual AiRecord *aiPickMove(Fighter *f, AiRecord *list, byte mask, int32 *best);
+	virtual AiRecord *aiPickMove2(Fighter *f, AiRecord *list, uint16 flag, int32 *best);
+	virtual void aiChooseNext(Fighter *f);
 
 	// Hits
-	uint16 hitAttack(uint16 id);
+	virtual uint16 hitAttack(uint16 id);
 	uint16 hitButton(uint16 id);
-	uint16 hitFighter(uint16 a, uint16 b, uint16 id);
-	void startReaction(Fighter *f, uint16 anim);
+	virtual uint16 hitFighter(uint16 a, uint16 b, uint16 id);
+	virtual void startReaction(Fighter *f, uint16 anim);
 	void knockBackAnim(Fighter *f, uint16 anim, uint16 dir);
-	void pushBackAnim(Fighter *f, uint16 anim, uint16 amount, uint16 p, uint16 mode);
-	void hitStunAnim(Fighter *f, uint16 anim);
-	uint16 clashPush(Fighter *d, Fighter *s, uint16 v);
-	uint16 hitPointTest(Fighter *a);
+	virtual void pushBackAnim(Fighter *f, uint16 anim, uint16 amount, uint16 p, uint16 mode);
+	virtual void hitStunAnim(Fighter *f, uint16 anim);
+	virtual uint16 clashPush(Fighter *d, Fighter *s, uint16 v);
+	virtual uint16 hitPointTest(Fighter *a);
 
 	// Moves
 	void setAttackActive(Fighter *f, uint16 v);
-	void playAnim(Fighter *f, uint16 anim);
-	void startKnockdown(Fighter *f);
+	virtual void playAnim(Fighter *f, uint16 anim);
+	virtual void startKnockdown(Fighter *f);
 	uint16 forceMove(Fighter *f, uint16 move);
 	void reactionDone(Fighter *f);
 	void reactionDoneKnock(Fighter *f);
 	void reactionDoneCombo(Fighter *f);
 	void setInFight(Fighter *f, uint16 v);
-	void resetFighterState(Fighter *f);
-	void switchSprite(Fighter *f, uint16 k, uint16 anim, uint16 v);
+	virtual void resetFighterState(Fighter *f);
+	virtual void switchSprite(Fighter *f, uint16 k, uint16 anim, uint16 v);
 	void endMove(Fighter *f);
-	uint16 jumpMove(Fighter *f, uint16 anim, uint16 flip, int16 dx, int16 dy);
+	virtual uint16 jumpMove(Fighter *f, uint16 anim, uint16 flip, int16 dx, int16 dy);
 	uint16 moveGrab(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveJump(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveJumpUp(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveJumpAttack(Fighter *f, uint16 move, uint16 anim);
-	uint16 moveWallBounce(Fighter *f, uint16 move, uint16 anim);
+	virtual uint16 moveWallBounce(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveIdle(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveTurn(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveWalk(Fighter *f, uint16 move, uint16 anim);
-	uint16 moveSidestep(Fighter *f, uint16 move, uint16 anim);
+	virtual uint16 moveSidestep(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAttack(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAttackCloseRange(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAttackHoldButton2(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAirAttack(Fighter *f, uint16 move, uint16 anim);
-	uint16 moveProjectile(Fighter *f, uint16 move, uint16 anim);
+	virtual uint16 moveProjectile(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAttackBoost(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveAttackHoldAnyButton(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveGuard(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveCrouch(Fighter *f, uint16 move, uint16 anim);
-	uint16 moveKnockOut(Fighter *f, uint16 move, uint16 anim);
+	virtual uint16 moveKnockOut(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveSelectWeapon(Fighter *f, uint16 move, uint16 anim);
 	uint16 moveTransform(Fighter *f, uint16 move, uint16 anim);
 	uint16 startDeath(Fighter *f, uint16 anim);
@@ -821,21 +844,21 @@ private:
 	void cbReplayAnimSync(Fighter *f);
 	void cbWalkContinue(Fighter *f);
 	void cbSidestepContinue(Fighter *f);
-	void cbGetUp(Fighter *f);
-	void cbFallAnim(Fighter *f);
+	virtual void cbGetUp(Fighter *f);
+	virtual void cbFallAnim(Fighter *f);
 	void cbTurnAround(Fighter *f);
 	uint16 hookGuard(Fighter *f, uint16 code);
 	uint16 hookEndAfterAnim(Fighter *f, uint16 code);
 	uint16 hookRelease(Fighter *f, uint16 code);
 	uint16 hookEndNow(Fighter *f, uint16 code);
 	uint16 hookHoldTrack(Fighter *f, uint16 code);
-	uint16 hookJump(Fighter *f, uint16 code);
+	virtual uint16 hookJump(Fighter *f, uint16 code);
 	uint16 hookWalk(Fighter *f, uint16 code);
 	uint16 netInputHook(Fighter *f, uint16 code);
-	void initAiFlags(Fighter *f);
+	virtual void initAiFlags(Fighter *f);
 	void cbNull(Fighter *f);
 	void setContact(Fighter *f, uint16 v);
-	void setStanceSet(Fighter *f, uint16 set, uint16 flag);
+	virtual void setStanceSet(Fighter *f, uint16 set, uint16 flag);
 	uint16 autoTurn(Fighter *f);
 
 	// Geometry
@@ -845,22 +868,22 @@ private:
 	void movesContactFlip();
 	void contactPush(Fighter *f);
 	void updateWallFlags(Fighter *f);
-	void movesReposition(uint16 id, uint16 mode);
+	virtual void movesReposition(uint16 id, uint16 mode);
 	void setPosition(Fighter *f, int16 x, uint16 level);
 	void separateFighters(Fighter *f);
 
 	// Scene
 	void movesEnter(uint16 index);
 	void cbEnterAnimDone(Fighter *f);
-	void enterFinished(Fighter *f);
+	virtual void enterFinished(Fighter *f);
 	void fightSetup(uint16 slot, uint16 flag);
-	void movesDie(uint16 flag, uint16 who);
+	virtual void movesDie(uint16 flag, uint16 who);
 	void loserFall(Fighter *f);
-	void fightOver(Fighter *f);
+	virtual void fightOver(Fighter *f);
 	void winnerPose(Fighter *f);
 	void winnerWall(Fighter *f);
 	void collapse(Fighter *f);
-	void endFight(Fighter *f);
+	virtual void endFight(Fighter *f);
 	void movesDieFinal(uint16 index);
 	void fighterReset(Fighter *f);
 	void eventTrigger15(Fighter *f);
@@ -869,24 +892,24 @@ private:
 	void eventSlotClear(byte index);
 	void eventWait(uint16 index, uint16 function, uint16 variable);
 	void eventTrigger(uint16 index, uint16 a, uint16 b);
-	void sceneRegisterButton(uint16 id, uint16 variable, uint16 remove);
+	virtual void sceneRegisterButton(uint16 id, uint16 variable, uint16 remove);
 	void sceneSetBounds(uint16 index, uint16 left, uint16 right, uint16 y, uint16 f1, uint16 f2);
 	void sceneSetDoor(uint16 w0, uint16 w1, uint16 w2, uint16 w3, uint16 w4, uint16 w5);
 	void spawnShadow(Fighter *f);
 	void spawnHitSpark(const Common::Rect *rect, byte damageClass);
-	void initFightersFromHost();
-	void initFighter(Fighter *f, uint16 player, uint16 type);
+	virtual void initFightersFromHost();
+	virtual void initFighter(Fighter *f, uint16 player, uint16 type);
 
 	// Weapons
-	void weaponInit(Fighter *f);
-	void weaponsFire(uint16 id, int16 dx, int16 dy);
-	uint16 weaponsHit(uint16 shooter, uint16 sprite);
-	uint16 weaponsSpecialHit(uint16 shooter, uint16 sprite);
+	virtual void weaponInit(Fighter *f);
+	virtual void weaponsFire(uint16 id, int16 dx, int16 dy);
+	virtual uint16 weaponsHit(uint16 shooter, uint16 sprite);
+	virtual uint16 weaponsSpecialHit(uint16 shooter, uint16 sprite);
 
 	// Stats
-	void loadStats(Fighter *f);
-	void storeStats(Fighter *f);
-	uint16 scoreAttack(Fighter *f, uint16 hit, uint16 move, uint16 value);
+	virtual void loadStats(Fighter *f);
+	virtual void storeStats(Fighter *f);
+	virtual uint16 scoreAttack(Fighter *f, uint16 hit, uint16 move, uint16 value);
 	void beastSaveRestore(uint16 save, uint16 nameVar);
 };
 

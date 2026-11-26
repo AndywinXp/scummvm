@@ -37,7 +37,7 @@ namespace Topgun {
 
 TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version) :
 	TopgunEngine_v1_1(syst, gameDesc, version) {
-	if (version < kVersionV1_2_3) {
+	if (version < kVersionV1_2_2_2) {
 		setAudioLibrary(new AudioLibrary_v1_2(this));
 		setResourceLibrary(new ResourceLibrary_v1_2(this));
 		setSpriteLibrary(new SpriteLibrary_v1_2(this));
@@ -46,7 +46,7 @@ TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gam
 	memset(_currentSceneName, 0, sizeof(_currentSceneName));
 
 	if (version >= kVersionV1_2_2)
-		_argumentFrame = (version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
+		_argumentFrame = (version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
 }
 
 TopgunEngine_v1_2::~TopgunEngine_v1_2() {
@@ -62,6 +62,11 @@ TopgunEngine_v1_2::~TopgunEngine_v1_2() {
 	setResourceLibrary(nullptr);
 }
 
+void TopgunEngine_v1_2::spriteQueueDoneService(uint16 sprite, uint16 tag) {
+	if (_queueDoneScript != 0)
+		static_cast<TopgunEngine_v1_2_3 *>(this)->enqueuePostedScriptRun((uint16)(_queueDoneScript - TG_HOST_V1_2_3_LITERAL_BIAS), sprite, tag);
+}
+
 void TopgunEngine_v1_2::spriteMessageService(byte *record, uint16 spriteId) {
 	if (_version >= kVersionV1_2_2) {
 		if (_scriptsDisabled)
@@ -74,7 +79,7 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record, uint16 spriteId) {
 }
 
 uint16 TopgunEngine_v1_2::variableIndex(uint16 operand) const {
-	uint16 firstArgumentSlot = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT : TG_HOST_V1_2_2_FIRST_ARGUMENT_SLOT;
+	uint16 firstArgumentSlot = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT : TG_HOST_V1_2_2_FIRST_ARGUMENT_SLOT;
 
 	if (_version < kVersionV1_2_2 || operand < firstArgumentSlot)
 		return operand;
@@ -89,16 +94,16 @@ uint16 TopgunEngine_v1_2::variableIndex(uint16 operand) const {
 }
 
 uint16 TopgunEngine_v1_2::operandValue(uint16 operand) const {
-	uint16 lastOperand = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (operand > lastOperand)
-		return (uint16)(operand + ((_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
+		return (uint16)(operand + ((_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
 
 	return _variableTable[variableIndex(operand)];
 }
 
 uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
-	uint16 lastOperand = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::readVariable(): variable %d is out of range", index);
@@ -109,7 +114,7 @@ uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
 }
 
 void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
-	uint16 lastOperand = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::writeVariable(): variable %d is out of range", index);
@@ -123,7 +128,7 @@ uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
 	if (_version >= kVersionV1_2_9)
 		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
 	return (uint16)(tableAddress + 2 * variableIndex(operand));
@@ -133,7 +138,7 @@ uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
 	if (_version >= kVersionV1_2_9)
 		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
 	uint16 index = (uint16)((address - tableAddress) / 2);
@@ -150,7 +155,7 @@ void TopgunEngine_v1_2::writeAddress(uint16 address, uint16 value) {
 	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
 	if (_version >= kVersionV1_2_9)
 		tableAddress = TG_SCRIPT_V1_2_9_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
 
 	uint16 index = (uint16)((address - tableAddress) / 2);
@@ -205,7 +210,7 @@ uint16 TopgunEngine_v1_2::audioCreateMidiEvent(const byte *header, uint16 midiIn
 	MidiCreateInfo_v1_2_3 info;
 
 	uint16 headerSize = TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE;
-	if (_version >= kVersionV1_2_3 && _version <= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_2_2 && _version <= kVersionV1_2_5)
 		headerSize = TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE;
 
 	memcpy(info.header, header, headerSize);
@@ -258,7 +263,7 @@ bool TopgunEngine_v1_2::resourceVariableCallback(uint16 id, uint16 value, const 
 }
 
 bool TopgunEngine_v1_2::resourceVariablePairCallback(uint16 id, uint16 value) {
-	uint16 numSceneVariables = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_NUM_SCENE_VARIABLES : TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
+	uint16 numSceneVariables = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_NUM_SCENE_VARIABLES : TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
 
 	if (_currentSceneIndex >= _sceneEntries.size() || id >= numSceneVariables) {
 		warning("TopgunEngine_v1_2::resourceVariablePairCallback(): variable %d is out of range", id);
@@ -300,10 +305,10 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 			bitmapGroupType = kResV1_2_9Cell;
 		else if (_version >= kVersionV1_2_5)
 			bitmapGroupType = kResV1_2_5BitmapGroup;
-		else if (_version >= kVersionV1_2_3)
+		else if (_version >= kVersionV1_2_2_2)
 			bitmapGroupType = kResV1_2_3BitmapGroup;
 
-		if (type == ((_version >= kVersionV1_2_3) ? kResV1_2_3Bitmap : kResV1_2_2Bitmap))
+		if (type == ((_version >= kVersionV1_2_2_2) ? kResV1_2_3Bitmap : kResV1_2_2Bitmap))
 			loaded = ensureBitmapResourceLoaded(id);
 		else if (type == bitmapGroupType)
 			loaded = ensureBitmapGroupResourceLoaded(id);
@@ -332,10 +337,20 @@ bool TopgunEngine_v1_2::rtStartup(bool runChecks) {
 	if (getGameId() == "peterwolf")
 		return runStartup("Peter And The Wolf", "peter.bin");
 
+	if (getGameId() == "battlebeast") {
+		addDemoDirectory("BEAST");
+		return runStartup("Battle Beast", "beast.bin");
+	}
+
 	if (_version >= kVersionV1_2_1) {
 		Common::String container = getGameId() + ".bin";
 
-		if (getGameId() == "bestshot") {
+		if (getGameId() == "7thlevelsamplers") {
+			container = "demo.bin";
+
+			if (Common::File::exists(Common::Path("BESTDEMO\\demo.bin", '\\')))
+				container = "BESTDEMO\\demo.bin";
+		} else if (getGameId() == "bestshot") {
 			bool smallVersion = Common::File::exists(Common::Path("BESTACT\\bestshot.bin", '\\'));
 			bool bigVersion = Common::File::exists(Common::Path("BESTBIG\\bestshot.bin", '\\'));
 
@@ -351,6 +366,9 @@ bool TopgunEngine_v1_2::rtStartup(bool runChecks) {
 
 		return runStartup("Take Your Best Shot", container);
 	}
+
+	if (_gameDescription->flags & ADGF_DEMO)
+		addDemoDirectory("PYTHON");
 
 	return runStartup("Python", "herald.bin");
 }
@@ -815,7 +833,7 @@ bool TopgunEngine_v1_2::fatalError(const Common::String &message) {
 
 bool TopgunEngine_v1_2::fatalError(uint16 code, const Common::String &message) {
 	// The later original marks the shutdown as already started, so the close message does nothing and the window stays frozen; here the close runs the normal shutdown
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2_2)
 		_shuttingDown = true;
 
 	_fatalCode = code;

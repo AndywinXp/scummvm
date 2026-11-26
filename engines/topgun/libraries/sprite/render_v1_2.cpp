@@ -183,7 +183,7 @@ bool SpriteLibrary_v1_2::blitSetupRaw(byte *destination, const byte *source, uin
 
 	int32 sourceStride;
 	uint16 sourceRow;
-	bool unflipped = (_engine->_version >= kVersionV1_2_3) ? ((flags & TG_SPR_V1_2_3_FLIP_FLAG_MASK) == 0) : (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]);
+	bool unflipped = (_engine->_version >= kVersionV1_2_2_1) ?((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) == 0) : (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]);
 
 	if (unflipped) {
 		sourceRow = (uint16)(sourceHeight - sourceY - height);
@@ -430,7 +430,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	if (!ensureComposeBufferSize(width, height))
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_7 && _engine->_version <= kVersionV1_2_8 && _rubberBandActive)
+	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_8 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	if (_scrollSurface)
@@ -443,7 +443,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	compositeSpritesInRect(visible);
 	blitSpriteToScreen(visible.left, visible.top, _composeBuffer);
 
-	if (_engine->_version >= kVersionV1_2_7 && _engine->_version <= kVersionV1_2_8 && _rubberBandActive)
+	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_8 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	return true;
@@ -829,7 +829,7 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetect(uint16 spriteA, uint16 spriteB, uin
 	if (!first || !second)
 		return 0;
 
-	if (sameLevelOnly != 0 && first->level != second->level)
+	if (sameLevelOnly != 0 && _engine->_version >= kVersionV1_2_3 && first->level != second->level)
 		return 0;
 
 	if (!first->visible && allowInvisibleA == 0)
@@ -843,14 +843,21 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetect(uint16 spriteA, uint16 spriteB, uin
 		return 0;
 
 	if (first->partCount == 0 && second->partCount == 0) {
-		if (!first->currentFrame || !second->currentFrame)
+		if (!first->currentFrame || !second->currentFrame) {
+			if (_engine->_version < kVersionV1_2_2_3)
+				warning("SpriteLibrary_v1_2_3::spriteHitDetect(): the sprite has no current frame");
+
 			return 0;
+		}
 
 		return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
 		                            (int16)(overlap.left - first->boundingBox.left), (int16)(overlap.top - first->boundingBox.top),
 		                            (int16)(overlap.left - second->boundingBox.left), (int16)(overlap.top - second->boundingBox.top),
 		                            flipFlags(first), flipFlags(second));
 	}
+
+	if (_engine->_version == kVersionV1_2_2_1)
+		return 1;
 
 	return hitTestMultipartDispatch(first, second);
 }
@@ -869,14 +876,21 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetectRect(uint16 spriteA, uint16 spriteB,
 		return 0;
 
 	if (first->partCount == 0 && second->partCount == 0) {
-		if (!first->currentFrame || !second->currentFrame)
+		if (!first->currentFrame || !second->currentFrame) {
+			if (_engine->_version < kVersionV1_2_2_3)
+				warning("SpriteLibrary_v1_2_3::spriteHitDetectRect(): the sprite has no current frame");
+
 			return 0;
+		}
 
 		return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)(overlap.right - overlap.left), (uint16)(overlap.bottom - overlap.top),
 		                            (int16)(overlap.left - first->boundingBox.left), (int16)(overlap.top - first->boundingBox.top),
 		                            (int16)(overlap.left - second->boundingBox.left), (int16)(overlap.top - second->boundingBox.top),
 		                            flipFlags(first), flipFlags(second));
 	}
+
+	if (_engine->_version == kVersionV1_2_2_1)
+		return 1;
 
 	return hitTestMultipartDispatch(first, second);
 }
@@ -942,7 +956,103 @@ bool SpriteLibrary_v1_2::isRleBitmap(const byte *bitmap) const {
 	if (_engine->_version >= kVersionV1_2_5)
 		return (READ_LE_UINT16(bitmap + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_RLE_FLAG) != 0;
 
-	return (bitmap[TG_SPR_V1_2_3_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_3_BITMAP_RLE_FLAG) != 0;
+	return (bitmap[TG_SPR_V1_2_2_1_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_2_1_BITMAP_RLE_FLAG) != 0;
+}
+
+byte SpriteLibrary_v1_2_3::RleRowCursor::peek() {
+	if (position >= size) {
+		overrun = true;
+		return 0;
+	}
+
+	return pixels[position];
+}
+
+void SpriteLibrary_v1_2_3::RleRowCursor::loadCode() {
+	byte code = peek();
+	position++;
+
+	if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
+		count = code;
+		literal = false;
+		return;
+	}
+
+	count = (byte)(TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code);
+	literal = true;
+	if (count == 0) {
+		count = peek();
+		position++;
+	}
+}
+
+void SpriteLibrary_v1_2_3::RleRowCursor::skip(int32 length) {
+	for (;;) {
+		int32 segment = count;
+		position += literal ? segment : 1;
+		length -= segment;
+		if (length < 0 || overrun)
+			break;
+
+		loadCode();
+	}
+
+	if (literal)
+		position += length;
+	else
+		position--;
+
+	count = (byte)-length;
+}
+
+void SpriteLibrary_v1_2_3::RleRowCursor::take() {
+	if (literal)
+		position++;
+
+	count--;
+	if (count != 0)
+		return;
+
+	if (!literal)
+		position++;
+
+	loadCode();
+}
+
+uint32 SpriteLibrary_v1_2_3::rleDataSize(const byte *bitmap) const {
+	uint16 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
+	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
+	const byte *pixels = bitmapPixels(bitmap);
+	uint32 size = 2 * (uint32)height;
+
+	for (uint16 row = 0; row < height; row++) {
+		uint32 position = READ_LE_UINT16(pixels + 2 * row);
+		uint32 column = 0;
+
+		while (column < width) {
+			byte code = pixels[position];
+			if (code == 0)
+				break;
+
+			position++;
+
+			if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
+				column += code;
+				position++;
+			} else {
+				uint32 length = TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code;
+				if (length == 0)
+					length = pixels[position++];
+
+				column += length;
+				position += length;
+			}
+		}
+
+		size = MAX(size, position + 1);
+	}
+
+	return size;
 }
 
 void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const {
@@ -962,11 +1072,11 @@ void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 f
 		bool tested = false;
 		byte runValue = 0;
 
-		if (code <= TG_SPR_V1_2_3_RLE_LAST_RUN_CODE) {
+		if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
 			length = code;
 			runValue = *position++;
 		} else {
-			length = (uint16)(TG_SPR_V1_2_3_RLE_TESTED_LITERAL_CODE - code);
+			length = (uint16)(TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code);
 			literal = true;
 			if (length == 0) {
 				length = *position++;
@@ -1021,8 +1131,8 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 		height = MIN((int)height, availableHeight);
 	}
 
-	bool mirror = ((flags & TG_SPR_V1_2_3_MIRROR_FLAG_MASK) != 0);
-	bool flip = ((flags & TG_SPR_V1_2_3_FLIP_FLAG_MASK) != 0);
+	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0);
 
 	if (mirror)
 		setup.firstColumn = (uint16)(sourceWidth - width - sourceX);
@@ -1068,12 +1178,122 @@ void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, ui
 	if (!blitSetupRleSource(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, setup))
 		return;
 
+	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
+
+	// Bug in the original: the high byte of the row count leaks into the segment lengths
+	if (mode == kSprV1_2_3BlitTransparent && _engine->_version < kVersionV1_2_2_3 && (height >> 8) != 0 &&
+	    setup.firstColumn == 0 && width != READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET)) {
+		const byte *pixels = bitmapPixels(source);
+		uint32 dataSize = rleDataSize(source);
+		byte *base = bitmapPixels(destination);
+		int32 destinationSize = (int32)READ_LE_UINT16(destination + TG_SPR_V1_2_BITMAP_PITCH_OFFSET) * READ_LE_UINT16(destination + TG_SPR_BITMAP_HEIGHT_OFFSET);
+
+		int32 offset = (int32)(setup.destination - base);
+		int32 step = 1;
+		int32 rowAdvance = setup.destinationStride - width;
+		if (mirror) {
+			offset += width - 1;
+			step = -1;
+			rowAdvance = setup.destinationStride + width;
+		}
+
+		uint16 length = height;
+		bool outside = false;
+
+		for (uint16 row = 0; row < height && !outside; row++) {
+			uint32 position = READ_LE_UINT16(pixels + 2 * (setup.firstRow - row));
+			int16 remaining = (int16)width;
+
+			while (remaining > 0 && !outside) {
+				if (position + 1 >= dataSize) {
+					outside = true;
+					break;
+				}
+
+				byte code = pixels[position++];
+				bool run = (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE);
+				bool opaque = false;
+
+				if (!run) {
+					code ^= 0xFF;
+					if (code == 0)
+						code = pixels[position++];
+					else
+						opaque = true;
+				}
+
+				length = (uint16)((length & 0xFF00) | code);
+
+				int32 left = (int32)remaining - (int16)length;
+				if (left < 0)
+					length = (uint16)(length + left);
+
+				remaining = (int16)left;
+
+				byte value = 0;
+				uint32 count;
+				if (run) {
+					value = pixels[position++];
+					if (value == 0) {
+						count = length;
+					} else {
+						uint16 low = length & 0xFF;
+						uint16 words = (uint16)((length & 0xFF00) | (low >> 1));
+						count = (low & 1) + 2 * (uint32)words;
+						length = 0;
+					}
+				} else {
+					uint16 low = length & 0xFF;
+					if (!opaque) {
+						count = (low != 0) ? low : 0x100;
+					} else if (low == 1) {
+						count = 1;
+					} else {
+						uint16 words = low >> 1;
+						if (words == 0)
+							words = 0x100;
+
+						count = (low & 1) + 2 * (uint32)words;
+					}
+
+					length &= 0xFF00;
+				}
+
+				for (uint32 i = 0; i < count; i++, offset += step) {
+					if (!run) {
+						if (position >= dataSize) {
+							outside = true;
+							break;
+						}
+
+						value = pixels[position++];
+					}
+
+					if (value == 0 && !opaque)
+						continue;
+
+					if (offset < 0 || offset >= destinationSize) {
+						outside = true;
+						break;
+					}
+
+					base[offset] = value;
+				}
+			}
+
+			offset += rowAdvance;
+		}
+
+		if (outside)
+			warning("SpriteLibrary_v1_2_3::blitRleRect(): a right clipped bitmap leaves its buffers");
+
+		return;
+	}
+
 	Common::Array<byte> values;
 	Common::Array<byte> forced;
 	values.resize(width);
 	forced.resize(width);
-
-	bool mirror = ((flags & TG_SPR_V1_2_3_MIRROR_FLAG_MASK) != 0);
 
 	for (uint16 row = 0; row < height; row++) {
 		decodeRleRow(source, (uint16)(setup.firstRow - row), setup.firstColumn, width, &values[0], &forced[0]);
@@ -1171,21 +1391,112 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 	int16 secondWidth = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int16 secondHeight = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
-	if ((firstFlags & TG_SPR_V1_2_3_MIRROR_FLAG_MASK) != 0)
+	if ((firstFlags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0)
 		firstX = (int16)(firstWidth - firstX - width);
 
-	if ((firstFlags & TG_SPR_V1_2_3_FLIP_FLAG_MASK) != 0)
+	if ((firstFlags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0)
 		firstY = (int16)(firstHeight - firstY - height);
 
-	if ((secondFlags & TG_SPR_V1_2_3_MIRROR_FLAG_MASK) != 0)
+	if ((secondFlags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0)
 		secondX = (int16)(secondWidth - secondX - width);
 
-	if ((secondFlags & TG_SPR_V1_2_3_FLIP_FLAG_MASK) != 0)
+	if ((secondFlags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0)
 		secondY = (int16)(secondHeight - secondY - height);
 
 	if (firstX < 0 || firstY < 0 || firstX + width > firstWidth || firstY + height > firstHeight ||
 	    secondX < 0 || secondY < 0 || secondX + width > secondWidth || secondY + height > secondHeight)
 		warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): the rectangle is outside the bitmaps");
+
+	bool firstRle = isRleBitmap(first);
+	bool secondRle = isRleBitmap(second);
+
+	// The original reads both bitmaps in the format of the second one and overruns them
+	if (_engine->_version == kVersionV1_2_2_1 && firstRle != secondRle)
+		warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): the two bitmaps have different formats");
+
+	// Two bugs in the original: skipping in the second bitmap clears the literal flag of the first,
+	// and a transparent run in the first makes the second skip one pixel too many
+	if (_engine->_version < kVersionV1_2_2_3 && firstRle && secondRle) {
+		RleRowCursor firstCursor;
+		firstCursor.pixels = bitmapPixels(first);
+		firstCursor.size = rleDataSize(first);
+
+		RleRowCursor secondCursor;
+		secondCursor.pixels = bitmapPixels(second);
+		secondCursor.size = rleDataSize(second);
+
+		for (int32 row = height - 1; row >= 0; row--) {
+			int32 firstRowIndex = firstY + row;
+			int32 secondRowIndex = secondY + row;
+			if (firstRowIndex < 0 || firstRowIndex >= firstHeight || secondRowIndex < 0 || secondRowIndex >= secondHeight ||
+			    firstX < 0 || secondX < 0)
+				continue;
+
+			firstCursor.position = READ_LE_UINT16(firstCursor.pixels + 2 * firstRowIndex);
+			firstCursor.overrun = false;
+			firstCursor.loadCode();
+			firstCursor.skip(firstX);
+			firstCursor.literal = false;
+
+			secondCursor.position = READ_LE_UINT16(secondCursor.pixels + 2 * secondRowIndex);
+			secondCursor.overrun = false;
+			secondCursor.loadCode();
+			secondCursor.skip(secondX);
+
+			int32 remaining = width;
+			while (--remaining >= 0 && !firstCursor.overrun && !secondCursor.overrun) {
+				byte secondValue = secondCursor.peek();
+				if (!secondCursor.literal && secondValue == 0) {
+					byte run = secondCursor.count;
+					remaining -= run;
+					if (remaining <= 0)
+						break;
+
+					secondCursor.position++;
+					firstCursor.skip(run);
+					secondCursor.loadCode();
+					continue;
+				}
+
+				secondCursor.take();
+
+				byte firstValue = firstCursor.peek();
+				if (!firstCursor.literal && firstValue == 0) {
+					byte run = firstCursor.count;
+					remaining -= run;
+					if (remaining <= 0)
+						break;
+
+					firstCursor.position++;
+					secondCursor.skip(run);
+					firstCursor.loadCode();
+					continue;
+				}
+
+				firstCursor.take();
+
+				if (firstValue != 0 && secondValue != 0)
+					return 1;
+			}
+
+			if (firstCursor.overrun || secondCursor.overrun)
+				warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): a row leaves the bitmap data");
+		}
+
+		return 0;
+	}
+
+	bool firstTopDown = false;
+	bool secondTopDown = false;
+	if (_engine->_version == kVersionV1_2_2_1) {
+		firstTopDown = (!firstRle && !secondRle && first[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
+	} else if (_engine->_version >= kVersionV1_2_5) {
+		firstTopDown = (!firstRle && secondRle && (READ_LE_UINT16(first + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+		secondTopDown = (firstRle && !secondRle && (READ_LE_UINT16(second + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	} else {
+		firstTopDown = (!firstRle && secondRle && first[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
+		secondTopDown = (firstRle && !secondRle && second[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
+	}
 
 	Common::Array<byte> firstRow;
 	Common::Array<byte> secondRow;
@@ -1193,8 +1504,16 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 	secondRow.resize(width);
 
 	for (uint16 row = 0; row < height; row++) {
-		fetchBitmapRow(first, firstY + row, firstX, width, &firstRow[0]);
-		fetchBitmapRow(second, secondY + row, secondX, width, &secondRow[0]);
+		int32 firstRowIndex = firstY + row;
+		if (firstTopDown)
+			firstRowIndex = firstHeight - 1 - firstRowIndex;
+
+		int32 secondRowIndex = secondY + row;
+		if (secondTopDown)
+			secondRowIndex = secondHeight - 1 - secondRowIndex;
+
+		fetchBitmapRow(first, firstRowIndex, firstX, width, &firstRow[0]);
+		fetchBitmapRow(second, secondRowIndex, secondX, width, &secondRow[0]);
 
 		for (uint16 column = 0; column < width; column++) {
 			if (firstRow[column] != 0 && secondRow[column] != 0)
@@ -1209,8 +1528,8 @@ uint16 SpriteLibrary_v1_2_3::getBitmapPixel(const byte *bitmap, int16 x, int16 y
 	int32 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int32 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
-	bool mirror = ((flags & TG_SPR_V1_2_3_MIRROR_FLAG_MASK) != 0);
-	bool flip = ((flags & TG_SPR_V1_2_3_FLIP_FLAG_MASK) != 0);
+	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0);
 
 	int32 column = mirror ? width - x - 1 : x;
 	int32 row = flip ? height - y - 1 : y;
@@ -1236,7 +1555,7 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	if (!object)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_7 && _engine->_version <= kVersionV1_2_8) {
+	if (_engine->_version >= kVersionV1_2_6_3 && _engine->_version <= kVersionV1_2_8) {
 		object->x = (int16)(object->x + deltaX);
 		object->y = (int16)(object->y + deltaY);
 	}
@@ -1244,7 +1563,7 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	object->boundingBox.translate(deltaX, deltaY);
 	object->previousBox.translate(deltaX, deltaY);
 
-	if (_engine->_version != kVersionV1_2_7 && object->parts) {
+	if ((_engine->_version < kVersionV1_2_6_3 || _engine->_version >= kVersionV1_2_8) && object->parts) {
 		for (uint16 i = 0; i < object->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++)
 			object->parts->parts[i].box.translate(deltaX, deltaY);
 	}

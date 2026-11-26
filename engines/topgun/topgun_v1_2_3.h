@@ -89,8 +89,8 @@
 #define TG_HOST_V1_2_3_SPRITE_DATA_PICK_INVISIBLE  0x13
 #define TG_HOST_V1_2_3_SPRITE_DATA_MEMBERS         0x14
 #define TG_HOST_V1_2_3_SPRITE_DATA_PALETTE_ENTRIES 0x1C
-#define TG_HOST_V1_2_7_SPRITE_DATA_SHIFT           2    // every field after the click script moves up by this much
-#define TG_HOST_V1_2_7_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0E
+#define TG_HOST_V1_2_6_1_SPRITE_DATA_SHIFT         2    // every field after the click script moves up by this much
+#define TG_HOST_V1_2_6_1_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0E
 #define TG_HOST_V1_2_9_SPRITE_DATA_SCROLLABLE      0x16
 #define TG_HOST_V1_2_9_SPRITE_DATA_MEMBERS         0x18
 #define TG_HOST_V1_2_9_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x10
@@ -121,6 +121,7 @@
 // Movies
 #define TG_MOVIE_V1_2_3_FRAME_TABLE_RESOURCE_OFFSET  2
 #define TG_MOVIE_V1_2_3_STREAM_RESOURCE_OFFSET       1
+#define TG_MOVIE_V1_2_2_2_TIMELINE_AUDIO_SIZE        0x1C // 2 + the 0x1A-byte wave header
 #define TG_MOVIE_V1_2_3_TIMELINE_AUDIO_SIZE          0x1E
 #define TG_MOVIE_V1_2_3_TIMELINE_AUDIO_STATE         2
 #define TG_MOVIE_V1_2_3_TIMELINE_AUDIO_STATE_SIZE    4
@@ -132,10 +133,18 @@
 // Interpreter
 #define TG_SCRIPT_V1_2_3_MAX_DEPTH                30
 #define TG_SCRIPT_V1_2_3_TABLE_ADDRESS             0x1520
+#define TG_SCRIPT_V1_2_2_2_MAX_POSTED_RUNS         20
 #define TG_SCRIPT_V1_2_3_MAX_POSTED_RUNS           40
 #define TG_SCRIPT_V1_2_3_POSTED_RUN_SIZE           18
 #define TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE          6
+#define TG_SCRIPT_V1_2_2_2_LAST_OPCODE             106
+#define TG_SCRIPT_V1_2_2_3_LAST_OPCODE             120
 #define TG_SCRIPT_V1_2_3_LAST_OPCODE               119
+#define TG_SCRIPT_V1_2_2_2_STOP_SPRITE_SIZE        4
+#define TG_SCRIPT_V1_2_2_2_ARITHMETIC_SIZE         18
+#define TG_SCRIPT_V1_2_2_2_COLLISION_PAIR_SIZE     16
+#define TG_SCRIPT_V1_2_2_2_DEVICE_STATE_SIZE       8
+#define TG_SCRIPT_V1_2_2_3_QUEUE_DONE_SIZE         4
 #define TG_SCRIPT_V1_2_5_LAST_OPCODE               143
 #define TG_SCRIPT_V1_2_3_POSTED_RECORD_BUFFER_SIZE 20
 #define TG_SCRIPT_V1_2_3_GOTO_RECORD_SIZE          18
@@ -148,9 +157,14 @@
 #define TG_SCRIPT_V1_2_5_QUIT_SCENE_RECORD_SIZE    18
 #define TG_SCRIPT_V1_2_5_RESERVED_RECORD_SIZE      6
 #define TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE         6
+#define TG_SCRIPT_V1_2_2_2_LAST_BUILTIN_CODE       0x70
+#define TG_SCRIPT_V1_2_2_3_LAST_BUILTIN_CODE       0x78
 #define TG_SCRIPT_V1_2_3_LAST_BUILTIN_CODE         0x8D
 #define TG_SCRIPT_V1_2_5_LAST_BUILTIN_CODE         0x8F
 #define TG_SCRIPT_V1_2_6_LAST_BUILTIN_CODE         0x90
+#define TG_SCRIPT_V1_2_6_1_LAST_BUILTIN_CODE       0x91
+#define TG_SCRIPT_V1_2_6_2_LAST_BUILTIN_CODE       0x96
+#define TG_SCRIPT_V1_2_6_3_LAST_BUILTIN_CODE       0x98
 #define TG_SCRIPT_V1_2_7_LAST_BUILTIN_CODE         0x9A
 #define TG_SCRIPT_V1_2_8_LAST_BUILTIN_CODE         0xB2
 #define TG_SCRIPT_V1_2_9_LAST_BUILTIN_CODE         0xEC
@@ -165,12 +179,13 @@
 #define TG_BUILTIN_V1_2_9_MAX_COLOR_DISTANCE       1000
 #define TG_BUILTIN_V1_2_9_NO_NEAREST_COLOR         0xFF
 #define TG_SCRIPT_V1_2_9_TABLE_ADDRESS             0x131A
-#define TG_SCRIPT_V1_2_7_SET_CLICK_SCRIPT_SIZE     20
+#define TG_SCRIPT_V1_2_6_1_SET_CLICK_SCRIPT_SIZE   20
 #define TG_SCRIPT_V1_2_6_SET_BACKGROUND_SIZE       16
+#define TG_SCRIPT_V1_2_6_1_SET_HOVER_REGION_SIZE   20
 #define TG_SCRIPT_V1_2_7_SET_HOVER_REGION_SIZE     22
-#define TG_SCRIPT_V1_2_7_GET_ELEMENT_IDS_SIZE      24
+#define TG_SCRIPT_V1_2_6_1_GET_ELEMENT_IDS_SIZE    24
 #define TG_SCRIPT_V1_2_6_WINDOWS_VERSION           95
-#define TG_SCRIPT_V1_2_7_IDLE_SECONDS_TO_MS        1000
+#define TG_SCRIPT_V1_2_6_2_IDLE_SECONDS_TO_MS      1000
 
 // Interpreter operations: arithmetic and conditions
 #define TG_SCRIPT_V1_2_3_ARITHMETIC_OPERANDS_OFFSET 6
@@ -232,11 +247,11 @@
 #define TG_INPUT_V1_2_3_OBJECT_DROP_SCRIPT         8
 #define TG_INPUT_V1_2_3_OBJECT_DISABLED            0x0E
 #define TG_INPUT_V1_2_3_OBJECT_DRAGGABLE           0x11
-#define TG_INPUT_V1_2_7_OBJECT_CLICK_ARGUMENT      2
-#define TG_INPUT_V1_2_7_OBJECT_DRAG_SCRIPT         8
-#define TG_INPUT_V1_2_7_OBJECT_DROP_SCRIPT         0x0A
-#define TG_INPUT_V1_2_7_OBJECT_DISABLED            0x10
-#define TG_INPUT_V1_2_7_OBJECT_DRAGGABLE           0x13
+#define TG_INPUT_V1_2_6_1_OBJECT_CLICK_ARGUMENT    2
+#define TG_INPUT_V1_2_6_1_OBJECT_DRAG_SCRIPT       8
+#define TG_INPUT_V1_2_6_1_OBJECT_DROP_SCRIPT       0x0A
+#define TG_INPUT_V1_2_6_1_OBJECT_DISABLED          0x10
+#define TG_INPUT_V1_2_6_1_OBJECT_DRAGGABLE         0x13
 
 // Device groups
 #define TG_DEVICE_V1_2_3_NUM_GROUPS                2
@@ -418,6 +433,10 @@ enum ScriptOpcode_v1_2_3 {
 	kOpV1_2_3SetPaletteEntries = 97,
 	kOpV1_2_3SetDebugScriptId = 106,
 	kOpV1_2_3SetQuitSceneName = 119
+};
+
+enum ScriptOpcode_v1_2_2_3 {
+	kOpV1_2_2_3SetQueueDoneScript = 120
 };
 
 enum ScriptOpcode_v1_2_5 {
@@ -630,6 +649,7 @@ protected:
 	void o_setTextParam(const byte *record); // 94
 	void o_loadPaletteResource(const byte *record); // 96
 	void o_setPaletteEntries(const byte *record); // 97
+	void o_setQueueDoneScript(const byte *record); // 120
 
 	// Builtins
 	uint16 builtinGetKeyState(uint16 vk); // 47
@@ -678,6 +698,7 @@ protected:
 	void releaseOrRestoreDeviceGroups(bool release);
 	void resetDeviceGroup(byte value, byte group);
 	void comboHistoryTimeoutCallback(byte timerId);
+	void callDeviceGroupScript(uint16 group, uint16 argument, uint16 script);
 	void scanDeviceBindingsListB(byte group);
 	void deviceGroupInputEvent(byte code, byte device);
 	bool keyboardRoutedKeyDown(uint16 vk);

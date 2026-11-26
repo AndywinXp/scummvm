@@ -36,6 +36,9 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "peterwolf", "Peter and the Wolf" },
 	{ "arcadeamerica", "Arcade America" },
 	{ "holygrail", "Monty Python & the Quest for the Holy Grail" },
+	{ "coldblooded", "Cold Blooded" },
+	{ "dominion", "Dominion: Storm Over Gift 3" },
+	{ "7thlevelsamplers", "7th Level Samplers" },
 	{ 0, 0 }
 };
 
@@ -48,15 +51,21 @@ const char *const directoryGlobs[] = {
 	"ACE",
 	"BESTACT",
 	"BESTBIG",
+	"BESTDEMO",
 	"ARCADE",
 	"GRAIL",
+	"SAMPLER",
+	"SAMPLERS",
+	"BESTSHOT",
+	"CBLOODED",
+	"DOMINION",
 	nullptr
 };
 
 const ADGameDescription gameDescriptions[] = {
 	{
 		"tuneland",
-		nullptr,
+		"",
 		AD_ENTRY1s("HERALD.BIN", "9e811ce530048d37d1412f9ec64f0097", 162259),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -86,7 +95,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"tunesplayer",
-		nullptr,
+		"",
 		AD_ENTRY1s("TUNES.EXE", "59193f3574a3b9bd6cde56aa73415db2", 410656),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -96,7 +105,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"pythonwaste",
-		nullptr,
+		"",
 		AD_ENTRY1s("HERALD.BIN", "7c57a11624726d2be3c0487716adf33d", 287772),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -105,8 +114,18 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"pythonwaste",
+		"Demo",
+		AD_ENTRY1s("HERALD.BIN", "03378ba9a38c16e084b0ad5ea1b774f6", 287718),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"battlebeast",
-		nullptr,
+		"",
 		AD_ENTRY1s("BEAST.BIN", "f501fdf6a9a6ac7c141abf9b5c5a41e2", 4214131),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -115,8 +134,18 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"battlebeast",
+		"Demo",
+		AD_ENTRY1s("BEAST.BIN", "c6581fffaf617ec2a1a173751f09d6e7", 348),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"junglegames",
-		nullptr,
+		"",
 		AD_ENTRY1s("JUNGMAIN.BIN", "49e89089db55c65b0f507f2718720254", 7148491),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -126,7 +155,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"junglegames",
-		nullptr,
+		"",
 		AD_ENTRY1s("JUNGMAIN.BIN", "2848632c56f4775b20e6af82f99a3bfe", 7224580),
 		Common::DE_DEU,
 		Common::kPlatformWindows,
@@ -136,7 +165,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"junglegames",
-		nullptr,
+		"",
 		AD_ENTRY1s("JUNGMAIN.BIN", "76aecef25e36dd95e663b8cd3aa619fd", 7187831),
 		Common::FR_FRA,
 		Common::kPlatformWindows,
@@ -146,7 +175,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"junglegames",
-		nullptr,
+		"",
 		AD_ENTRY1s("JUNGMAIN.BIN", "446413cef0cea2fc4fbbaf10d838caa4", 7074945),
 		Common::JA_JPN,
 		Common::kPlatformWindows,
@@ -156,7 +185,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"aceventura",
-		nullptr,
+		"",
 		AD_ENTRY1s("ACE.BIN", "29ed24f8deced71e5f15bb6181b0d7da", 14339127),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -166,7 +195,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"aceventura",
-		nullptr,
+		"",
 		AD_ENTRY1s("ACE.BIN", "a51e25697c45a785516cba1c808c9713", 85007),
 		Common::IT_ITA,
 		Common::kPlatformWindows,
@@ -175,8 +204,18 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"aceventura",
+		"Demo",
+		AD_ENTRY1s("ACE_DEMO.BIN", "9fe87ba911aed663175b81dd9492279b", 5816086),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"greatword",
-		nullptr,
+		"",
 		AD_ENTRY1s("WORD.BIN", "135d2ebd891b5c14c18c9ed7edd6724f", 24695855),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -186,7 +225,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"bestshot",
-		nullptr,
+		"",
 		AD_ENTRY1s("BESTSHOT.BIN", "545e12e0f1486066cf50bdf3fd11478f", 5231400),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -196,7 +235,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"bestshot",
-		nullptr,
+		"",
 		AD_ENTRY1s("BESTSHOT.BIN", "2769bdfbf2b82d812a69d95cb2a8ef76", 13236232),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -205,8 +244,28 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"7thlevelsamplers",
+		"Feb 1995",
+		AD_ENTRY1s("DEMO.BIN", "061fe4bbb40b0328740906a1b9c6d884", 1568269),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"bestshot",
+		"Demo",
+		AD_ENTRY1s("BESTSHOT.BIN", "32529dee1ab03d889a14a8957d7df68c", 53836),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"headshot",
-		nullptr,
+		"",
 		AD_ENTRY1s("HEADSHOT.BIN", "1302447c1546da2e2a8bdb4683215fa1", 298182),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -216,7 +275,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"hotshot",
-		nullptr,
+		"",
 		AD_ENTRY1s("HOTSHOT.BIN", "66c70765e0a9b4f80cb78b9ea24f4230", 293493),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -226,7 +285,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"lineshot",
-		nullptr,
+		"",
 		AD_ENTRY1s("LINESHOT.BIN", "9320599edafe8236038ea8dd1c9a8524", 685729),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -236,7 +295,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"peterwolf",
-		nullptr,
+		"",
 		AD_ENTRY1s("PETER.BIN", "ae2a2da529000b9a6c3873342dfad390", 346270),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -246,7 +305,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"arcadeamerica",
-		nullptr,
+		"",
 		AD_ENTRY1s("ARCADE.BIN", "0d6d93e1c7b5e253170a88549ff95a33", 6804081),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
@@ -255,12 +314,62 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"arcadeamerica",
+		"Demo",
+		AD_ENTRY1s("ARCADE.BIN", "8699e16ee42b0342e040892a4993bf02", 5609683),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"7thlevelsamplers",
+		"Dec 1995",
+		AD_ENTRY1s("DEMO.BIN", "907c8b29c7be7364d0af6d903a70606d", 4742267),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"holygrail",
-		nullptr,
+		"",
 		AD_ENTRY1s("GRAIL.BIN", "5886e1a19d66360bb950aca332a6d2b7", 753342),
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"holygrail",
+		"Demo",
+		AD_ENTRY1s("GRLDEMO.BIN", "9e1cca0a32b6c9a5177824c2a75e20ad", 6950049),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"coldblooded",
+		"Demo",
+		AD_ENTRY1s("COLDDEMO.BIN", "abd85780e149a2c31868701e1fe6beef", 6299597),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"dominion",
+		"Demo",
+		AD_ENTRY1s("SCRNDEMO.BIN", "1487e42aabfdbb2dce41c48f7476d94c", 12468095),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

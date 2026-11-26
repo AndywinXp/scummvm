@@ -380,6 +380,17 @@ void TopgunEngine_v1_2::iniWriteStringEncoded(byte obfuscation, uint16 stringId,
 		value = buffer;
 	}
 
+	// A value made only of spaces removes the key
+	if (_version >= kVersionV1_2_6_2) {
+		const char *first = value;
+
+		while (*first == ' ')
+			first++;
+
+		if (*first == '\0')
+			value = nullptr;
+	}
+
 	writePrivateProfileString(section, key, value);
 }
 

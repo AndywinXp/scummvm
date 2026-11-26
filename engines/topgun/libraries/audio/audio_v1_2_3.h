@@ -45,61 +45,58 @@
 #define TG_AUDIO_V1_2_3_DEFAULT_BITS_PER_SAMPLE   16
 
 // Sound creation header
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_LENGTH        0x00
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_PRELOAD       0x04
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_EXEMPT        0x05
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_ADPCM         0x06
+#define TG_AUDIO_V1_2_2_2_CREATE_HEADER_SIZE      0x1A
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_LENGTH      0x00
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_PRELOAD     0x04
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_EXEMPT      0x05
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_ADPCM       0x06
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_NOTIFY      0x08
+#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_FORMAT      0x0A
+#define TG_AUDIO_V1_2_2_3_INFO_OFFSET_PRIORITY    0x07
+
 #define TG_AUDIO_V1_2_3_INFO_OFFSET_PRIORITY      0x08
 #define TG_AUDIO_V1_2_3_INFO_OFFSET_NOTIFY        0x0A
 #define TG_AUDIO_V1_2_3_INFO_OFFSET_FORMAT        0x0C
 
 // Play parameters block (0x18 bytes)
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_LOOPS         0x00
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_SET_VOLUME    0x02
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_LOOPS       0x00
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_SET_VOLUME  0x02
 #define TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY        0x03
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_NO_FLUSH      0x04
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_VOLUME        0x05
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_FADE_IN       0x06
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_FADE_OUT      0x0A
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MIN    0x0E
-#define TG_AUDIO_V1_2_3_PLAY_OFFSET_RANDOM_MAX    0x12
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NO_FLUSH    0x04
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_VOLUME      0x05
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_IN     0x06
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_OUT    0x0A
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MIN  0x0E
+#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MAX  0x12
 #define TG_AUDIO_V1_2_3_PLAY_OFFSET_NOTIFY_PARAM  0x16
 
 // MIDI creation header
 #define TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE          4
-#define TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_SIZE   0
-#define TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_NOTIFY 2
+#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_SIZE 0
+#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_NOTIFY 2
 
 // MIDI play parameters block (6 bytes)
 #define TG_AUDIO_V1_2_3_MIDI_PLAY_PARAMS_SIZE     6
-#define TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_LOOPS    0
-#define TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_NOTIFY   2
 #define TG_AUDIO_V1_2_3_MIDI_PLAY_OFFSET_PARAM    4
 
 // MIDI setting block (10 bytes)
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_MUTE      0
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_TEMPO     1
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_CHANNELS  2
-#define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_MUTE_BITS 4
+#define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_MUTE    0
+#define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_TEMPO   1
 #define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_DENOMINATOR 6
 #define TG_AUDIO_V1_2_3_MIDI_SET_OFFSET_NUMERATOR 8
 
 // MIDI events
-#define TG_AUDIO_V1_2_3_MIDI_DELAY_FLAGS          0xF000
-#define TG_AUDIO_V1_2_3_MIDI_DELAY_VALUE_MASK     0x7FFFFFFF
-#define TG_AUDIO_V1_2_3_MIDI_MIN_DELAY            3
-#define TG_AUDIO_V1_2_3_MIDI_NOTE_ON              0x90
-#define TG_AUDIO_V1_2_3_MIDI_DRUM_CHANNEL         9
-#define TG_AUDIO_V1_2_3_MIDI_REMAPPED_CHANNEL     0x0F
-#define TG_AUDIO_V1_2_3_MIDI_ALL_NOTES_OFF        0x7B
-#define TG_AUDIO_V1_2_3_MIDI_CONTROL_CHANGE       0xB0
+#define TG_AUDIO_V1_2_2_2_MIDI_DRUM_CHANNEL       9
+#define TG_AUDIO_V1_2_2_2_MIDI_REMAPPED_CHANNEL   0x0F
+#define TG_AUDIO_V1_2_2_3_MIDI_MIN_DELAY          3
 
 namespace Topgun {
 
-class MidiSequencer;
 class TopgunEngine_v1_2_3;
 
 class AudioLibrary_v1_2_3 : public AudioLibrary_v1_2 {
+	friend class AudioLibrary_v1_2;
+
 public:
 	AudioLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine);
 	~AudioLibrary_v1_2_3() override;
@@ -121,14 +118,6 @@ public:
 	uint32 audioGetWaveVolume() override;
 	void audioSetWaveVolume(uint32 volume) override;
 	uint32 audioGetWaveSoundTime(uint16 sound);
-
-	// MIDI
-	uint16 audioPlayMidi(uint16 midi, const byte *params) override;
-	void audioSetMidi(uint16 midi, const byte *params);
-	uint16 audioStopMidi(uint16 midi) override;
-	uint32 audioGetMidiVolume();
-	void audioSetMidiVolume(uint32 volume);
-	void applyMidiDeviceVolume() override;
 
 protected:
 	// Library
@@ -163,31 +152,16 @@ protected:
 	void activateWaveObject(SoundObject *sound) override;
 	void armWaveNotificationEndTime(SoundObject *sound);
 
-	// MIDI objects
-	void destroyAllMidiObjects();
-
 	// MIDI device
-	void probeMidiOutCapabilities();
-	bool openMidiOutDevice();
-	void setMidiOutVolume(uint32 volume);
-	void closeMidiOutDevice();
 	void muteMidiOutput();
-	bool openAndConfigureMidiOut();
 	void pauseOrResumeMidiPlayback(uint16 paused);
-	void resetMidiOutDevice();
-	void sendMidiAllNotesOff(byte channel);
 
 	// MIDI playback
-	bool startMidiSequence(const byte *params, MidiObject *midi);
-	void postMidiCompletionMessage(MidiObject *midi);
-	void stopMidiSequence(MidiObject *midi) override;
-	bool midiSequenceEndOrLoop(MidiObject *midi);
-	void midiSequencerStep(MidiObject *midi);
+	void midiSequencerStep(MidiObject *midi) override;
 	void midiClearCurrentAndKillTimer();
 	void audioTimerProc();
 	void midiServiceTick();
 
-	bool _paused = false;
 	uint32 _waveMuteSavedVolume = 0;
 	bool _remapMidiDrums = false;
 	uint16 _iniCdVolume = 0;
@@ -196,15 +170,11 @@ protected:
 	uint16 _midiPauseCount = 0;
 
 	// MIDI
-	MidiSequencer *_midiOut = nullptr;
-	bool _noMidiDevice = false;
-	uint32 _midiDeviceVolume = 0xFFFFFFFF;
-	uint32 _midiOriginalVolume = 0;
-	uint32 _midiUserVolume = 0;
 	uint32 _midiMuteSavedVolume = 0;
-	bool _midiUserVolumeSet = false;
 	bool _midiTimerArmed = false;
 	uint32 _midiTimerExpiry = 0;
+	// Timers re-armed while still pending keep running, and the original can no longer kill them
+	Common::Array<uint32> _midiLostTimers;
 	bool _midiCatchUp = false;
 	uint32 _midiCatchUpTime = 0;
 

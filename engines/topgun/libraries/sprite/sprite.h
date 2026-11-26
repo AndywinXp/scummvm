@@ -109,7 +109,7 @@ public:
 	void spriteSetMotion(uint16 sprite, uint32 milliseconds);
 	bool spriteSetPalette(const byte *entries);
 	void spriteSetPosition(uint16 sprite, int16 x, int16 y);
-	bool spriteSetQueue(uint16 sprite, const byte *queue, uint16 size);
+	bool spriteSetQueue(uint16 sprite, const byte *queue, uint16 size, uint16 tag = 0);
 	void spriteSetServiceProc();
 	void spriteSetSpeed(uint16 sprite, uint32 milliseconds);
 	virtual void spriteSetTopMost(uint16 sprite);
@@ -176,13 +176,14 @@ protected:
 		byte partCount;
 		uint16 collisionTarget;
 		uint16 collisionValue;
+		uint16 queueTag;
 
 		SpriteObject() : x(0), y(0), moveDue(0), frameDue(0), moveInterval(0), frameInterval(0), currentFrame(nullptr),
 			queueStart(nullptr), queueCurrent(nullptr), queueEnd(nullptr), id(0), currentFrameIndex(0),
 			nextFrameIndex(0), rangeStart(0), rangeEnd(0), visible(false), notifyOnFrame(false),
 			framePending(false), useUnionRefresh(false), forward(false), previousValid(false),
 			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0),
-			collisionTarget(0), collisionValue(0) {}
+			collisionTarget(0), collisionValue(0), queueTag(0) {}
 
 		virtual ~SpriteObject() {}
 	};

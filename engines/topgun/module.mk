@@ -30,6 +30,16 @@ MODULE_OBJS = \
 	games/battle/battle_type5.o \
 	games/battle/battle_type6.o \
 	games/battle/battle_weapons.o \
+	games/battledemo/battledemo.o \
+	games/battledemo/battledemo_ai.o \
+	games/battledemo/battledemo_hit.o \
+	games/battledemo/battledemo_input.o \
+	games/battledemo/battledemo_moves.o \
+	games/battledemo/battledemo_scene.o \
+	games/battledemo/battledemo_shared.o \
+	games/battledemo/battledemo_type0.o \
+	games/battledemo/battledemo_type1.o \
+	games/battledemo/battledemo_weapons.o \
 	ini.o \
 	input.o \
 	libraries/audio/audio.o \

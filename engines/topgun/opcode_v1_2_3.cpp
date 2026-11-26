@@ -67,11 +67,18 @@ bool TopgunEngine_v1_2_3::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag
 	if (!isRecordIndexValid(dataIndex, "o_setSpriteQueue"))
 		return false;
 
-	spriteLib()->spriteSetQueue(handle, _records[dataIndex].data, (uint16)(_records[dataIndex].size & 0xFFFF));
+	uint16 tag = 0;
+	if (_version == kVersionV1_2_2_3)
+		tag = (uint16)(dataIndex - TG_HOST_V1_2_3_LITERAL_BIAS);
+
+	spriteLib()->spriteSetQueue(handle, _records[dataIndex].data, (uint16)(_records[dataIndex].size & 0xFFFF), tag);
 	return true;
 }
 
 bool TopgunEngine_v1_2_3::o_playWave(uint16 waveId, const byte *params) {
+	if (_version < kVersionV1_2_3)
+		return TopgunEngine_v1_2::o_playWave(waveId, params);
+
 	byte parameters[TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE];
 	memcpy(parameters, params, sizeof(parameters));
 
@@ -125,6 +132,11 @@ void TopgunEngine_v1_2_3::o_stopWave(uint16 waveId, const byte *block) {
 }
 
 void TopgunEngine_v1_2_3::o_arithmetic(const byte *record) {
+	if (_version < kVersionV1_2_2_3) {
+		TopgunEngine_v1_2::o_arithmetic(record);
+		return;
+	}
+
 	uint16 destination = READ_LE_UINT16(record + 2);
 	int32 accumulator = (int16)operandValue(destination);
 	uint16 count = READ_LE_UINT16(record + 4);
@@ -332,6 +344,11 @@ bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
 }
 
 void TopgunEngine_v1_2_3::o_stopSprite(const byte *record) {
+	if (_version < kVersionV1_2_3) {
+		TopgunEngine_v1_2::o_stopSprite(record);
+		return;
+	}
+
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
 	if (!isRecordIndexValid(index, "o_stopSprite"))
 		return;
@@ -423,7 +440,7 @@ void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
 	else if (_version >= kVersionV1_2_5)
 		spriteType = kResV1_2_5Sprite;
 
-	if (!validateResourceType(READ_LE_UINT16(record + 2), spriteType))
+	if (_version >= kVersionV1_2_3 && !validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
@@ -547,6 +564,11 @@ void TopgunEngine_v1_2_3::o_setPaletteEntries(const byte *record) {
 	} else {
 		spriteLib()->spriteChangePalette(first, count, record + TG_SCRIPT_V1_2_3_PALETTE_ENTRIES_OFFSET, animate, true);
 	}
+}
+
+void TopgunEngine_v1_2_3::o_setQueueDoneScript(const byte *record) {
+	_queueDoneScript = operandValue(READ_LE_UINT16(record + 2));
+	spriteLib()->spriteSetQueueDoneProc(_queueDoneScript != 0);
 }
 
 } // End of namespace Topgun

@@ -69,7 +69,7 @@ void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_cancelScriptTimer(const byte *record) {
-	if (_version >= kVersionV1_2_3 && record[4] != 0) {
+	if (_version >= kVersionV1_2_2_2 && record[4] != 0) {
 		_numScheduledTimers = 0;
 		return;
 	}
@@ -96,7 +96,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 	for (uint16 i = index; i < _numScheduledTimers; i++)
 		_scheduledTimers[i] = _scheduledTimers[i + 1];
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		if ((int16)index <= _scheduledTimerIndex)
 			_scheduledTimerIndex--;
 
@@ -112,7 +112,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 	uint16 index = 0;
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		if (_timersPaused)
 			return;
 
@@ -123,7 +123,7 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 		return;
 
 	do {
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_2_2)
 			index = (uint16)_scheduledTimerIndex;
 
 		ScheduledTimer_v1_2 &timer = _scheduledTimers[index];
@@ -136,17 +136,17 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 			else
 				index = removeScheduledTimer(index);
 
-			if (_version >= kVersionV1_2_3)
+			if (_version >= kVersionV1_2_2_2)
 				runScriptResource(script);
 			else
 				postRunScript(script, 0, 0);
 		}
 
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_2_2)
 			_scheduledTimerIndex++;
 		else
 			index++;
-	} while ((_version >= kVersionV1_2_3) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
+	} while ((_version >= kVersionV1_2_2_2) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
 }
 
 bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
@@ -175,15 +175,15 @@ bool TopgunEngine_v1_2::appendCollisionPair() {
 }
 
 bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
-	uint16 literalBias = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	uint16 literalBias = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
+	if (_version >= kVersionV1_2_2_2 && record[0x0D] != 0) {
+		_numCollisionPairs = 0;
+		return true;
+	}
 
 	if (_version >= kVersionV1_2_3) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
-
-		if (record[0x0D] != 0) {
-			_numCollisionPairs = 0;
-			return true;
-		}
 
 		uint16 spriteType = kResV1_2_3Sprite;
 		if (_version >= kVersionV1_2_9)
@@ -203,7 +203,7 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 	byte allowInvisibleFirst = 0;
 	byte allowInvisibleSecond = 0;
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		allowInvisibleFirst = record[0x0E];
 		allowInvisibleSecond = record[0x0F];
 
@@ -263,10 +263,12 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 
 	pair.repeat = record[0x0C];
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		pair.allowInvisibleFirst = allowInvisibleFirst;
 		pair.allowInvisibleSecond = allowInvisibleSecond;
-		pair.sameLevelOnly = record[0x10];
+
+		if (_version >= kVersionV1_2_3)
+			pair.sameLevelOnly = record[0x10];
 	}
 
 	return true;
@@ -437,7 +439,10 @@ void TopgunEngine_v1_2_3::serviceCollisionPairs() {
 		return;
 
 	do {
-		// The element read advances by one per pass, also after a removal; it is skipped when it lies beyond the last element
+		// Bug in the original: after a removal, a pair is either read twice or skipped
+		if (_version < kVersionV1_2_3)
+			pairIndex = index;
+
 		if (pairIndex < _numCollisionPairs) {
 			const CollisionPair_v1_2 &pair = _collisionPairs[pairIndex];
 			uint16 firstIndex = operandValue(pair.first);

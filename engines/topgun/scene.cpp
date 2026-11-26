@@ -190,7 +190,7 @@ SceneEntry_v1_2 *TopgunEngine_v1_2::findOrCreateSceneEntry(const Common::String 
 	uint32 nameSize = TG_HOST_SCENE_NAME_SIZE;
 	if (_version >= kVersionV1_2_5)
 		nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
 
 	_currentSceneIndex = 0;
@@ -229,7 +229,7 @@ SceneEntry_v1_2 *TopgunEngine_v1_2::findOrCreateSceneEntry(const Common::String 
 
 	SceneEntry_v1_2 &current = _sceneEntries[_currentSceneIndex];
 	uint32 numSceneVariables = TG_HOST_V1_2_NUM_SCENE_VARIABLES;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_2)
 		numSceneVariables = TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
 	else if (_version >= kVersionV1_2_2)
 		numSceneVariables = TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
@@ -247,11 +247,14 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	for (uint16 i = 0; i < keyTableSize; i++)
 		_keyTable[i] = KeyEntry_v1_2();
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		_mouseAsStick = false;
-		_timersPaused = false;
+
+		if (_version >= kVersionV1_2_3)
+			_timersPaused = false;
+
 		_keyboardRouted = false;
 		newer->_joystickDirectionFlag = false;
 		newer->_joystickRouted = false;
@@ -262,8 +265,9 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		_mouseEventScript = 0;
 		newer->_numNativeTimers = 0;
 		newer->_activateScript = 0;
+		_queueDoneScript = 0;
 
-		if (_version >= kVersionV1_2_7) {
+		if (_version >= kVersionV1_2_6_2) {
 			newer->_waveStartedScript = 0;
 			newer->_idleScript = 0;
 		}
@@ -273,7 +277,9 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 			newer->_scriptCursors.clear();
 		}
 
-		clearJoystickScripts();
+		if (_version >= kVersionV1_2_2_3)
+			clearJoystickScripts();
+
 		newer->clearDeviceState();
 	} else if (_version >= kVersionV1_2_2) {
 		_mouseEventScript = 0;
@@ -283,7 +289,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	}
 
 	if (_version >= kVersionV1_2_2)
-		_argumentFrame = (_version >= kVersionV1_2_3) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
+		_argumentFrame = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
 
 	if (_version >= kVersionV1_2_1)
 		_pauseScript = 0;
@@ -297,7 +303,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	_activationScript = 0;
 
 	if (!openResourceFileAndInit(name)) {
-		if (_version >= kVersionV1_2_3) {
+		if (_version >= kVersionV1_2_2_2) {
 			if (_file != 0)
 				resourceLib()->resCloseFile(_file);
 
@@ -336,7 +342,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	_entryScriptRunning = true;
 
 	// The entry script is the immediate operand 0 in the later version
-	runScriptResource((_version >= kVersionV1_2_3) ? (uint16)(0 - TG_HOST_V1_2_3_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT);
+	runScriptResource((_version >= kVersionV1_2_2_2) ? (uint16)(0 - TG_HOST_V1_2_3_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT);
 
 	if (_version >= kVersionV1_2_9)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->_scriptCursors.clear();
@@ -350,11 +356,11 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	uint32 nameSize = TG_HOST_SCENE_NAME_SIZE;
 	if (_version >= kVersionV1_2_5)
 		nameSize = TG_HOST_V1_2_5_SCENE_NAME_SIZE;
-	else if (_version >= kVersionV1_2_3)
+	else if (_version >= kVersionV1_2_2_2)
 		nameSize = TG_HOST_V1_2_3_SCENE_NAME_SIZE;
 
 	uint32 numSceneVariables = TG_HOST_V1_2_NUM_SCENE_VARIABLES;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_2)
 		numSceneVariables = TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
 	else if (_version >= kVersionV1_2_2)
 		numSceneVariables = TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
@@ -363,7 +369,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_version >= kVersionV1_2_9)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->notifyPluginsLifecycleEvent(kPluginSceneSwitching, name);
 
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2_2)
 		notifyPythonizerWindow();
 
 	if (_currentSceneIndex < _sceneEntries.size()) {
@@ -379,7 +385,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	if (_cdAudioPlaying)
 		_cdAudioPlaying = ((byte)audioLib()->audioStopCd() != 0);
 
-	if (_version >= kVersionV1_2_3 && _version < kVersionV1_2_9)
+	if (_version >= kVersionV1_2_2_2 && _version < kVersionV1_2_9)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadPluginLibrary();
 
 	Common::String sceneName = Common::Path(name, '\\').baseName();
@@ -392,7 +398,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 
 	spriteLib()->spriteSetSendMsg(0);
 
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2_2)
 		releaseCurrentBackgroundRecord();
 
 	if (!display()->hasPalette())
@@ -404,13 +410,13 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	drainMessage(kMsgV1_2SoundFinished);
 	drainMessage(kMsgV1_2GotoScene);
 
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2_2)
 		drainMessage(kMsgV1_2RunScript);
 
 	spriteLib()->spriteSetBackground(nullptr, false, 0, nullptr);
 	spriteLib()->spriteResetLibrary();
 
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_3)
 		static_cast<AudioLibrary_v1_2_3 *>(audioLib())->audioResetLibrary();
 
 	spriteLib()->spriteSetSendMsg(1);
@@ -452,7 +458,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 }
 
 bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		if (!locateResourceFile(name))
@@ -472,13 +478,13 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	}
 
 	uint16 firstClearedVariable = TG_HOST_V1_2_FIRST_CLEARED_VARIABLE;
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_2)
 		firstClearedVariable = TG_HOST_V1_2_3_FIRST_SYSTEM_VARIABLE;
 	else if (_version >= kVersionV1_2_2)
 		firstClearedVariable = TG_HOST_V1_2_2_FIRST_SYSTEM_VARIABLE;
 	uint16 numClearedVariables = TG_HOST_V1_2_NUM_CLEARED_VARIABLES;
 
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_2)
 		numClearedVariables = TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES;
 	else if (_version >= kVersionV1_2_2)
 		numClearedVariables = TG_HOST_V1_2_2_NUM_SYSTEM_VARIABLES;
@@ -494,7 +500,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	if (ConfMan.hasKey("lomem"))
 		_flagLoMem = ((byte)ConfMan.getInt("lomem") != 0);
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		writeVariable(TG_HOST_V1_2_3_VARIABLE_LOMEM, _flagLoMem ? 1 : 0);
 		writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_WIDTH, display()->width());
 		writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_HEIGHT, display()->height());
@@ -521,7 +527,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	}
 
 	if (_version >= kVersionV1_2_1) {
-		if (_version >= kVersionV1_2_3) {
+		if (_version >= kVersionV1_2_2_2) {
 			writeVariable(TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER, _screenSaverOption);
 			writeVariable(TG_HOST_V1_2_3_VARIABLE_JOYSTICKS, _numJoysticks);
 		} else if (_version >= kVersionV1_2_2) {
@@ -534,7 +540,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	}
 
 	Common::Point cursor = g_system->getEventManager()->getMousePos();
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_X, (uint16)(cursor.x - display()->viewportOrigin().x));
 		writeVariable(TG_HOST_V1_2_3_VARIABLE_MOUSE_Y, (uint16)(cursor.y - display()->viewportOrigin().y));
 	} else if (_version >= kVersionV1_2_2) {
@@ -548,7 +554,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 	if (_version >= kVersionV1_2_2)
 		_expressionStackPointer = 0;
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		_joystickButtonFlag = false;
@@ -620,7 +626,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 	spriteLib()->spriteSetTopMost(_sceneSprite);
 
-	if (_version >= kVersionV1_2_3)
+	if (_version >= kVersionV1_2_2_2)
 		handlePaintMessage();
 
 	if (_fadeIn) {
@@ -647,7 +653,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	destroySceneMainObjects(_releaseOnPalette);
 	resetResourcesAndTransientState();
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 
 		_numClickRegions = 0;
@@ -668,7 +674,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	if (_backgroundBitmap)
 		_backgroundBitmap = utilsLibrary()->tgFree(_backgroundBitmap);
 
-	if (_version >= kVersionV1_2_3 && _version < kVersionV1_2_9)
+	if (_version >= kVersionV1_2_2_2 && _version < kVersionV1_2_9)
 		static_cast<TopgunEngine_v1_2_3 *>(this)->unloadPluginLibrary();
 
 	for (uint16 i = 0; i < _sceneEntries.size(); i++) {
@@ -692,7 +698,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 	if (_version >= kVersionV1_2_3)
 		_mouseAsStick = false;
 
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_2_2) {
 		static_cast<TopgunEngine_v1_2_3 *>(this)->_messageFilter = nullptr;
 		static_cast<TopgunEngine_v1_2_3 *>(this)->_windowMessageCallback = nullptr;
 	}
@@ -705,13 +711,13 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 
 	_file = resourceLib()->resOpenFile(fullPath.toString());
 	if (_file == 0) {
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_2_2)
 			static_cast<TopgunEngine_v1_2_3 *>(this)->fatalError(102, Common::String::format("Can't open file '%s'.", fullPath.toString().c_str()));
 
 		return false;
 	}
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 		ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
 
@@ -758,12 +764,12 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 		_maxTransColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_TRANS_COLORS);
 	}
 
-	if (_version >= kVersionV1_2_2 && _version < kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2 && _version < kVersionV1_2_2_2) {
 		_maxTransColors = resourceLib()->resGetMaxTransColors(_file);
 		_maxFadeColors = resourceLib()->resGetMaxFadeColors(_file);
 	}
 
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2_2) {
 		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
 		ResourceLibrary_v1_2_3 *library = static_cast<ResourceLibrary_v1_2_3 *>(resourceLib());
 
@@ -795,7 +801,7 @@ void TopgunEngine_v1_2::buildResourceNameOffsetTable() {
 	if (!_resourceNamesTable)
 		return;
 
-	uint16 entrySize = (_version >= kVersionV1_2_3) ? 4 : 2;
+	uint16 entrySize = (_version >= kVersionV1_2_2_2) ? 4 : 2;
 
 	_resourceNameOffsets = utilsLibrary()->tgMalloc(_numResources * entrySize, 0);
 	if (!_resourceNameOffsets) {
@@ -810,7 +816,7 @@ void TopgunEngine_v1_2::buildResourceNameOffsetTable() {
 	for (uint16 i = 0; i < _numResources; i++) {
 		uint16 length;
 
-		if (_version >= kVersionV1_2_3) {
+		if (_version >= kVersionV1_2_2_2) {
 			WRITE_LE_UINT32(_resourceNameOffsets + 4 * i, offset);
 			length = utilsLibrary()->hugeStrLen((const char *)name) + 1;
 		} else {
@@ -856,7 +862,7 @@ void TopgunEngine_v1_2::refreshGamePalette() {
 		numTransColors = _maxTransColors;
 		_solidColorEntry = (byte)(firstTransColor - 1);
 
-		if (_version >= kVersionV1_2_3) {
+		if (_version >= kVersionV1_2_2_2) {
 			palette = static_cast<TopgunEngine_v1_2_3 *>(this)->_palette;
 			fadeColors = _maxFadeColors;
 			clearedSize = TG_DISPLAY_NUM_PALETTE_ENTRIES;
@@ -874,7 +880,7 @@ void TopgunEngine_v1_2::refreshGamePalette() {
 	spriteLib()->spriteGetPalette(palette + firstTransColor * TG_DISPLAY_PALETTE_ENTRY_SIZE, firstTransColor, numTransColors);
 	spriteLib()->spriteSetPalette(palette);
 
-	if (_version >= kVersionV1_2_3 || !_noFade) {
+	if (_version >= kVersionV1_2_2_2 || !_noFade) {
 		spriteLib()->spriteFadePalette(0, 0, TG_HOST_V1_2_NUM_SYSTEM_COLORS, fadeColors);
 		spriteLib()->spriteRealizePalette();
 	}

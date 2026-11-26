@@ -313,7 +313,7 @@ void BattlePlugin::collapse(Fighter *f) {
 	f->doneCallback = &BattlePlugin::endFight;
 	f->z = 0x1F4;
 	_host->cancelScriptTimer(f->timerId);
-	switchSprite(f, 2, f->animTab[f->facing == 0 ? 0x51 : 0x52], 0);
+	switchSprite(f, _collapseSpriteIndex, f->animTab[f->facing == 0 ? 0x51 : 0x52], 0);
 }
 
 void BattlePlugin::endFight(Fighter *f) {
@@ -521,8 +521,8 @@ void BattlePlugin::sceneSetDoor(uint16 w0, uint16 w1, uint16 w2, uint16 w3, uint
 
 void BattlePlugin::spawnShadow(Fighter *f) {
 	if (_ctx->effectsOff == 0 && f->level == 0) {
-		uint16 sprite = (f->player == 0) ? 0x9C97 : 0x9C9F;
-		uint16 animation = (f->player == 0) ? 0x9C98 : 0x9CA0;
+		uint16 sprite = _shadowSprites[(f->player == 0) ? 0 : 1];
+		uint16 animation = _shadowAnimations[(f->player == 0) ? 0 : 1];
 
 		_host->setSpritePosition(sprite, f->x, f->y);
 		_host->setSpriteQueue(sprite, animation, 0);
@@ -539,8 +539,8 @@ void BattlePlugin::spawnHitSpark(const Common::Rect *rect, byte damageClass) {
 		int16 x = (int16)(rect->right + rect->left) / 2;
 		int16 y = (int16)(rect->top + rect->bottom) / 2;
 
-		_host->setSpritePosition(0x9CA8, x, y);
-		_host->setSpriteQueue(0x9CA8, _hitSparkAnimations[damageClass], 0);
+		_host->setSpritePosition(_hitSparkSprite, x, y);
+		_host->setSpriteQueue(_hitSparkSprite, _hitSparkAnimations[damageClass], 0);
 	}
 }
 
