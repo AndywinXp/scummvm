@@ -163,7 +163,8 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	if (gameId == "junglegames" && desc->language == Common::JA_JPN) {
+	if ((gameId == "junglegames" && desc->language == Common::JA_JPN) || gameId == "burper" || gameId == "bugdrop" ||
+			gameId == "hippohop" || gameId == "junglepinball") {
 		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_8);
 		return Common::kNoError;
 	}

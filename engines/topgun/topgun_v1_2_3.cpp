@@ -21,6 +21,7 @@
 
 #include "common/config-manager.h"
 #include "common/endian.h"
+#include "common/file.h"
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
@@ -193,6 +194,25 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 
 	if (getGameId() == "junglegames")
 		return runStartup("Timon and Pumbaa's Jungle Games", "JUNGLE.BIN");
+
+	if (getGameId() == "burper" || getGameId() == "bugdrop" || getGameId() == "hippohop" || getGameId() == "junglepinball") {
+		Common::String container;
+
+		if (getGameId() == "burper")
+			container = "T&PBURPC.BIN";
+		else if (getGameId() == "bugdrop")
+			container = "T&PBUGPC.BIN";
+		else if (getGameId() == "hippohop")
+			container = "T&PHIPPC.BIN";
+		else
+			container = "T&PPINPC.BIN";
+
+		// The Game Shots discs have an underscore in place of the ampersand
+		if (!Common::File::exists(Common::Path(container)))
+			container.setChar('_', 1);
+
+		return runStartup("Pumbaa And Timon's Jungle Arcade", container);
+	}
 
 	if (getGameId() == "greatword")
 		return runStartup("Howie's Great Word Adventure", "WORD.BIN");

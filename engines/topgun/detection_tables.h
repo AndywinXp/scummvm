@@ -39,6 +39,10 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "coldblooded", "Cold Blooded" },
 	{ "dominion", "Dominion: Storm Over Gift 3" },
 	{ "7thlevelsamplers", "7th Level Samplers" },
+	{ "burper", "Disney's Hot Shots: Burper" },
+	{ "bugdrop", "Disney's Hot Shots: Bug Drop" },
+	{ "hippohop", "Disney's Hot Shots: Hippo Hop" },
+	{ "junglepinball", "Disney's Hot Shots: Jungle Pinball" },
 	{ 0, 0 }
 };
 
@@ -59,6 +63,10 @@ const char *const directoryGlobs[] = {
 	"BESTSHOT",
 	"CBLOODED",
 	"DOMINION",
+	"BURPER",
+	"BUGDROP",
+	"HIPPOHOP",
+	"PINBALL",
 	nullptr
 };
 
@@ -370,6 +378,46 @@ const ADGameDescription gameDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"burper",
+		"",
+		AD_ENTRY1s("JUNGBURP.BIN", "9f6e29eb00617f0445a01997f0cf8fad", 5345562),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"bugdrop",
+		"",
+		AD_ENTRY1s("JUNGBUGD.BIN", "b47a9255d17505f01289f90465a70672", 5248267),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"hippohop",
+		"",
+		AD_ENTRY1s("JUNGHIPP.BIN", "5afad76c261485a4414eb7878af42e5f", 10972954),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"junglepinball",
+		"",
+		AD_ENTRY1s("JUNGPINB.BIN", "6524cd2516983541fe47dabbb9620729", 5293559),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 
