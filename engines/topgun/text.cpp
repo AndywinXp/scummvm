@@ -375,8 +375,13 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 	bool bold = name.hasSuffixIgnoreCase(" Bold");
 	bool serif = name.hasPrefixIgnoreCase("Times");
 
+	// The Japanese games ask for the fonts of Japanese Windows, such as MS Mincho and MS Gothic
+	bool japanese = _gameDescription->language == Common::JA_JPN && !serif && !name.hasPrefixIgnoreCase("Arial");
+
 	const char *file;
-	if (serif)
+	if (japanese)
+		file = bold ? "NotoSansJP-Bold.otf" : "NotoSansJP-Regular.otf";
+	else if (serif)
 		file = bold ? "LiberationSerif-Bold.ttf" : "LiberationSerif-Regular.ttf";
 	else
 		file = bold ? "LiberationSans-Bold.ttf" : "LiberationSans-Regular.ttf";
@@ -384,11 +389,18 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 #ifdef USE_FREETYPE2
 	// A positive height is the height of the cell, a negative one the height of the characters
 	int size = (height != 0) ? ABS((int)height) : TG_TEXT_V1_2_DEFAULT_HEIGHT;
-	Graphics::TTFSizeMode sizeMode = (height < 0) ? Graphics::kTTFSizeModeCharacter : Graphics::kTTFSizeModeCell;
+	Graphics::TTFSizeMode sizeMode = (height < 0 || japanese) ? Graphics::kTTFSizeModeCharacter : Graphics::kTTFSizeModeCell;
 
 	entry.font = createGameFont(name, size, height >= 0);
-	if (!entry.font)
+	if (!entry.font) {
 		entry.font = Graphics::loadTTFFontFromArchive(file, size, sizeMode, 0, 0, Graphics::kTTFRenderModeMonochrome);
+
+		if (entry.font && japanese) {
+			// The cell of those fonts is as tall as the characters, with 220 of its 256 units above the baseline
+			entry.lineHeight = size;
+			entry.lineOffset = size * 220 / 256 - entry.font->getFontAscent();
+		}
+	}
 
 	if (entry.font)
 		entry.owned = true;
@@ -476,10 +488,15 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(uint16 color, co
 
 Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject_v1_2 *object) {
 	const Graphics::Font *font = nullptr;
+	int lineHeight = 0;
+	int lineOffset = 0;
 
 	for (uint32 i = 0; i < _textFonts.size(); i++) {
-		if (_textFonts[i].handle == object->fontHandle)
+		if (_textFonts[i].handle == object->fontHandle) {
 			font = _textFonts[i].font;
+			lineHeight = _textFonts[i].lineHeight;
+			lineOffset = _textFonts[i].lineOffset;
+		}
 	}
 
 	if (!font)
@@ -526,7 +543,8 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 		visible += *c;
 	}
 
-	Common::U32String string(visible.c_str(), Common::kWindows1252);
+	Common::CodePage codePage = (_gameDescription->language == Common::JA_JPN) ? Common::kWindows932 : Common::kWindows1252;
+	Common::U32String string(visible.c_str(), codePage);
 	Common::Array<Common::U32String> lines;
 
 	if ((flags & TG_TEXT_V1_2_3_FLAG_SINGLE_LINE) != 0)
@@ -534,7 +552,9 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 	else
 		font->wordWrapText(string, (flags & TG_TEXT_V1_2_3_FLAG_WORD_BREAK) != 0 ? boxWidth : TG_TEXT_V1_2_3_UNLIMITED_WIDTH, lines);
 
-	int lineHeight = font->getFontHeight();
+	if (lineHeight == 0)
+		lineHeight = font->getFontHeight();
+
 	int width = 0;
 
 	for (uint32 i = 0; i < lines.size(); i++)
@@ -581,7 +601,7 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 			x = (surfaceWidth - lineWidth) / 2;
 
 		if (lineWidth > 0)
-			font->drawString(surface, lines[i], x, top + (int)i * lineHeight, lineWidth, textColor, Graphics::kTextAlignLeft, 0, false, true);
+			font->drawString(surface, lines[i], x, top + (int)i * lineHeight + lineOffset, lineWidth, textColor, Graphics::kTextAlignLeft, 0, false, true);
 	}
 
 	return surface;

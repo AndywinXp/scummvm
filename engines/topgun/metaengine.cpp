@@ -153,7 +153,7 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	if (gameId == "holygrail") {
+	if (gameId == "holygrail" && desc->language == Common::EN_ANY) {
 		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_7);
 		return Common::kNoError;
 	}
@@ -168,8 +168,8 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	if ((gameId == "junglegames" && desc->language == Common::JA_JPN) || gameId == "burper" || gameId == "bugdrop" ||
-			gameId == "hippohop" || gameId == "junglepinball" || gameId == "djalibowling" || gameId == "upsydaisy") {
+	if (((gameId == "junglegames" || gameId == "holygrail") && desc->language == Common::JA_JPN) || gameId == "burper" ||
+			gameId == "bugdrop" || gameId == "hippohop" || gameId == "junglepinball" || gameId == "djalibowling" || gameId == "upsydaisy") {
 		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_9);
 		return Common::kNoError;
 	}

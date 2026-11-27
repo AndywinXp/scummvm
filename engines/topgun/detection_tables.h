@@ -108,6 +108,16 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"tuneland",
+		"1996",
+		AD_ENTRY1s("TUNELAND.BIN", "9e623be057412c4e533d59e5a110af82", 571278),
+		Common::RU_RUS,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"tunesplayer",
 		"",
 		AD_ENTRY1s("TUNES.EXE", "59193f3574a3b9bd6cde56aa73415db2", 410656),
@@ -219,6 +229,46 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"aceventura",
+		"",
+		AD_ENTRY1s("ACE.BIN", "099f4c3145ea790f771481c314607051", 85042),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
+		"",
+		AD_ENTRY1s("ACE.BIN", "56feca084262311daa90243f04ccba46", 85123),
+		Common::ES_ESP,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
+		"",
+		AD_ENTRY1s("ACE.BIN", "80c8c1beca4b4b60b130f88b03ae5c3c", 84969),
+		Common::PL_POL,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
+		"",
+		AD_ENTRY1s("ACE.BIN", "01a00ac60d5bfb4daa29d1960f52a93e", 123138),
+		Common::RU_RUS,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_UNSUPPORTED,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"aceventura",
 		"Demo",
 		AD_ENTRY1s("ACE_DEMO.BIN", "9fe87ba911aed663175b81dd9492279b", 5816086),
 		Common::EN_ANY,
@@ -234,6 +284,16 @@ const ADGameDescription gameDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"greatword",
+		"Demo",
+		AD_ENTRY1s("GWA.BIN", "4739ebee440a2b20c823f8bf5453b63d", 6876981),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 
@@ -329,6 +389,16 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"arcadeamerica",
+		"",
+		AD_ENTRY1s("ARCADE.BIN", "839a5e4e2ebb36dc85f6257d99ce833d", 6863598),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"arcadeamerica",
 		"Demo",
 		AD_ENTRY1s("ARCADE.BIN", "8699e16ee42b0342e040892a4993bf02", 5609683),
 		Common::EN_ANY,
@@ -348,10 +418,30 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"7thlevelsamplers",
+		"Dec 1995",
+		AD_ENTRY1s("DEMO.BIN", "59f822a647181ec917063ffeef05d2b4", 4730258),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
 		"holygrail",
 		"",
 		AD_ENTRY1s("GRAIL.BIN", "5886e1a19d66360bb950aca332a6d2b7", 753342),
 		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"holygrail",
+		"",
+		AD_ENTRY1s("GRAIL.BIN", "c2b8eef48ef9ae61893335987839caa5", 753419),
+		Common::JA_JPN,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)

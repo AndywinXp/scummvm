@@ -643,7 +643,11 @@ struct TextFont_v1_2 {
 	int16 height;
 	char face[TG_TEXT_V1_2_3_FACE_SIZE];
 
-	TextFont_v1_2() : handle(0), font(nullptr), owned(false), refCount(0), height(0) {
+	// Set for a substitute with other metrics; a zero line height stands for the height of the font
+	int lineHeight;
+	int lineOffset;
+
+	TextFont_v1_2() : handle(0), font(nullptr), owned(false), refCount(0), height(0), lineHeight(0), lineOffset(0) {
 		for (uint16 i = 0; i < TG_TEXT_V1_2_3_FACE_SIZE; i++)
 			face[i] = 0;
 	}

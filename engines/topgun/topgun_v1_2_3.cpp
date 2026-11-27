@@ -170,6 +170,10 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 			title = "Pumbaa And Timon's Jungle Arcade";
 			container = "T&PDEMPC.BIN";
 			folder = "JUNGLE";
+		} else if (getGameId() == "greatword") {
+			title = "Howie's Great Word Adventure";
+			container = "GWA.BIN";
+			folder = "GREATWRD";
 		} else {
 			title = "TopGun Player";
 			container = "ACE_DEMO.BIN";
@@ -183,6 +187,9 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 
 	if (getGameId() == "arcadeamerica")
 		return runStartup("Arcade America", "ARCADE.BIN");
+
+	if (getGameId() == "holygrail" && _version >= kVersionV1_2_9)
+		return runStartup("Holy Grail", "GRAIL.BIN");
 
 	if (getGameId() == "holygrail")
 		return runStartup("Quest For The Holy Grail", "GRAIL.BIN");
