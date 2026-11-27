@@ -1008,6 +1008,14 @@ const char *ResourceLibrary_v1_2::resGetConstStr(uint16 file, uint16 offset) {
 	return (const char *)record->stringPool + offset;
 }
 
+uint32 ResourceLibrary_v1_2::resGetConstStrRoom(uint16 file, uint16 offset) {
+	ResourceFile *record = findFile(file, "resGetConstStrRoom");
+	if (!record || !record->stringPool || record->stringPoolSize <= offset)
+		return 0;
+
+	return record->stringPoolSize - offset;
+}
+
 uint16 ResourceLibrary_v1_2::resCountStrings(uint16 file) {
 	ResourceFile *record = findFile(file, "resCountStrings");
 	if (!record)
@@ -1732,6 +1740,14 @@ const char *ResourceLibrary_v1_2_4::resGetConstStr(uint16 file, uint16 offset) {
 		return nullptr;
 
 	return (const char *)record->stringPool + offset;
+}
+
+uint32 ResourceLibrary_v1_2_4::resGetConstStrRoom(uint16 file, uint16 offset) {
+	ResourceFile *record = findFile(file, "resGetConstStrRoom");
+	if (!record || !record->stringPool || keySize(record, TG_RES_V1_2_3_1_KEY_STRINGS) <= offset)
+		return 0;
+
+	return keySize(record, TG_RES_V1_2_3_1_KEY_STRINGS) - offset;
 }
 
 byte ResourceLibrary_v1_2_4::resGetBuildType(uint16 file) {

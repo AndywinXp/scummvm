@@ -41,6 +41,8 @@ bool TopgunEngine_v1_2_4::o_playWave(uint16 waveId, const byte *params) {
 	if (notifyValue != 0)
 		notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_4_LITERAL_BIAS);
 
+	WRITE_LE_UINT16(parameters + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM, notifyScript);
+
 	uint16 waveType = kResV1_2_4Wave;
 	if (_version >= kVersionV1_2_6)
 		waveType = kResV1_2_6Wave;
@@ -359,7 +361,12 @@ void TopgunEngine_v1_2_4::o_loadPaletteResource(const byte *record) {
 	byte *entries = _palette + TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY * TG_DISPLAY_PALETTE_ENTRY_SIZE;
 	memmove(entries, _records[index].data, TG_SCRIPT_V1_2_4_PALETTE_RESOURCE_SIZE);
 
-	spriteLib()->spriteChangePalette(TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY, TG_SCRIPT_V1_2_4_MAX_PALETTE_ENTRIES, entries, (_fadeIn && !_entryScriptRunning), false);
+	bool animate = (_fadeIn && !_entryScriptRunning);
+
+	if (_version == kVersionV1_2_7_3 || _version >= kVersionV1_2_9)
+		animate = (animate && !_faded);
+
+	spriteLib()->spriteChangePalette(TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY, TG_SCRIPT_V1_2_4_MAX_PALETTE_ENTRIES, entries, animate, false);
 }
 
 void TopgunEngine_v1_2_4::o_setPaletteEntries(const byte *record) {

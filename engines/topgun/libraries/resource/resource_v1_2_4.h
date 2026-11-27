@@ -187,6 +187,7 @@ public:
 	uint16 resLoadPalette(uint16 file, byte *buffer) override;
 	byte *resLoadResource(uint16 file, uint16 index, uint32 *outSize) override;
 	const char *resGetConstStr(uint16 file, uint16 offset) override;
+	uint32 resGetConstStrRoom(uint16 file, uint16 offset) override;
 
 	// New exports
 	uint16 resCountResources(uint16 file, uint16 *outCount);

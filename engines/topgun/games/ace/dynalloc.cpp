@@ -116,23 +116,17 @@ uint16 DynAllocPlugin::callFunction(int function, const uint16 *arguments, uint1
 	case kFunctionDynFreeSystem:
 		return dynFreeSystem();
 	case kFunctionDynGetByte:
-		dynGetByte(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynGetByte(values[0], values[1], values[2], values[3]);
 	case kFunctionDynPutByte:
-		dynPutByte(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynPutByte(values[0], values[1], values[2], values[3]);
 	case kFunctionDynGetShort:
-		dynGetShort(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynGetShort(values[0], values[1], values[2], values[3]);
 	case kFunctionDynPutShort:
-		dynPutShort(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynPutShort(values[0], values[1], values[2], values[3]);
 	case kFunctionDynGetLong:
-		dynGetLong(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynGetLong(values[0], values[1], values[2], values[3]);
 	case kFunctionDynPutLong:
-		dynPutLong(values[0], values[1], values[2], values[3]);
-		return 0;
+		return dynPutLong(values[0], values[1], values[2], values[3]);
 	case kFunctionDynReadFile:
 		return dynReadFile(values[0], values[1], values[2], values[3]);
 	case kFunctionDynWriteFile:
@@ -210,114 +204,122 @@ uint16 DynAllocPlugin::dynFreeSystem() {
 	return 0;
 }
 
-void DynAllocPlugin::dynGetByte(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynGetByte(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynGetByte(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	const DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	for (uint16 i = 0; i < count; i++) {
 		if (offset >= entry.size) {
 			warning("DynAllocPlugin::dynGetByte(): offset %d is outside the buffer", offset);
-			return;
+			return 0;
 		}
 
 		_host->writeAddress(address, entry.data[offset]);
 		offset++;
 		address += 2;
 	}
+
+	return 0;
 }
 
-void DynAllocPlugin::dynGetLong(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynGetLong(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynGetLong(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	const DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	uint16 position = offset << 2;
 
 	for (uint16 i = 0; i < count; i++) {
 		if ((uint32)position + 2 > entry.size) {
 			warning("DynAllocPlugin::dynGetLong(): position %d is outside the buffer", position);
-			return;
+			return 0;
 		}
 
 		_host->writeAddress(address, READ_LE_UINT16(entry.data + position));
 		position += 4;
 		address += 2;
 	}
+
+	return 0;
 }
 
-void DynAllocPlugin::dynGetShort(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynGetShort(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynGetShort(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	const DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	uint16 position = offset << 1;
 
 	for (uint16 i = 0; i < count; i++) {
 		if ((uint32)position + 2 > entry.size) {
 			warning("DynAllocPlugin::dynGetShort(): position %d is outside the buffer", position);
-			return;
+			return 0;
 		}
 
 		_host->writeAddress(address, READ_LE_UINT16(entry.data + position));
 		position += 2;
 		address += 2;
 	}
+
+	return 0;
 }
 
-void DynAllocPlugin::dynPutByte(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynPutByte(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynPutByte(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	for (uint16 i = 0; i < count; i++) {
 		if (offset >= entry.size) {
 			warning("DynAllocPlugin::dynPutByte(): offset %d is outside the buffer", offset);
-			return;
+			return 0;
 		}
 
 		entry.data[offset] = (byte)_host->readAddress(address);
 		offset++;
 		address += 2;
 	}
+
+	return 0;
 }
 
-void DynAllocPlugin::dynPutLong(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynPutLong(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynPutLong(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	uint16 position = offset << 2;
 
 	for (uint16 i = 0; i < count; i++) {
 		if ((uint32)position + 4 > entry.size) {
 			warning("DynAllocPlugin::dynPutLong(): position %d is outside the buffer", position);
-			return;
+			return 0;
 		}
 
 		WRITE_LE_UINT16(entry.data + position, _host->readAddress(address));
@@ -325,30 +327,34 @@ void DynAllocPlugin::dynPutLong(uint16 buffer, uint16 offset, uint16 address, ui
 		position += 4;
 		address += 2;
 	}
+
+	return 0;
 }
 
-void DynAllocPlugin::dynPutShort(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
+uint16 DynAllocPlugin::dynPutShort(uint16 buffer, uint16 offset, uint16 address, uint16 count) {
 	if (buffer >= _buffers.size()) {
 		warning("DynAllocPlugin::dynPutShort(): invalid buffer %d", buffer);
-		return;
+		return 0;
 	}
 
 	DynBuffer &entry = _buffers[buffer];
 	if (entry.size == 0)
-		return;
+		return buffer;
 
 	uint16 position = offset << 1;
 
 	for (uint16 i = 0; i < count; i++) {
 		if ((uint32)position + 2 > entry.size) {
 			warning("DynAllocPlugin::dynPutShort(): position %d is outside the buffer", position);
-			return;
+			return 0;
 		}
 
 		// The destination position is not advanced: every word is stored in the same place
 		WRITE_LE_UINT16(entry.data + position, _host->readAddress(address));
 		address += 2;
 	}
+
+	return 0;
 }
 
 uint16 DynAllocPlugin::dynReadFile(uint16 handle, uint16 buffer, uint16 offset, uint16 count) {

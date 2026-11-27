@@ -186,6 +186,7 @@ public:
 	uint16 resGetTitle(uint16 file, byte *destination, uint16 count);
 	uint16 resGetHeaderRec(uint16 file, byte *destination, uint16 count);
 	virtual const char *resGetConstStr(uint16 file, uint16 offset);
+	virtual uint32 resGetConstStrRoom(uint16 file, uint16 offset);
 	uint16 resCountStrings(uint16 file);
 	void resSetNotify(uint16 file, uint16 window);
 	uint16 resCreateMidiEvent(uint16 file, uint16 index);

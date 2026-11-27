@@ -270,6 +270,8 @@ void TopgunEngine_v1_2::o_gotoScene(const byte *record) {
 		return;
 	}
 
+	_postSceneEndEnabled = (record[0x0F] != 0);
+
 	_gotoRecord.opcode = READ_LE_UINT16(record);
 	memcpy(_gotoRecord.name, record + 2, sizeof(_gotoRecord.name));
 	_gotoRecord.releaseSceneSprite = record[0x0F];

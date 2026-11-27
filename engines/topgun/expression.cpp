@@ -1129,6 +1129,10 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		}
 
 		spriteLib()->spritePause(handle, value);
+
+		if (_version >= kVersionV1_2_9)
+			setMoviesPaused((byte)value != 0);
+
 		break;
 	}
 
@@ -1801,7 +1805,13 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 			break;
 
 		_expressionStackPointer -= 3;
-		char *text = getStringFromId(_expressionStack[_expressionStackPointer + 2]);
+		uint16 id = _expressionStack[_expressionStackPointer + 2];
+
+		// Constant strings are left alone
+		if ((id & TG_HOST_V1_2_STRING_ID_CONSTANT) != 0)
+			break;
+
+		char *text = getStringFromId(id);
 
 		if (text)
 			text[0] = '\0';

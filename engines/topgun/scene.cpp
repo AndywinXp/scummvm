@@ -272,6 +272,9 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 			newer->_idleScript = 0;
 		}
 
+		if (_version == kVersionV1_2_7_3 || _version >= kVersionV1_2_9)
+			newer->_numPostedScriptRuns = 0;
+
 		if (_version >= kVersionV1_2_12) {
 			_scrollBoxWindowBox = false;
 			newer->_scriptCursors.clear();

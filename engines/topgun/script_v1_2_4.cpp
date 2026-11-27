@@ -720,6 +720,29 @@ bool TopgunEngine_v1_2_4::enqueuePostedScriptRun(uint16 script, uint16 argument1
 void TopgunEngine_v1_2_4::servicePostedRunQueue() {
 	uint16 index = 0;
 
+	// The runs posted while the queue is being drained wait for the next service
+	if (_version >= kVersionV1_2_12) {
+		uint16 count = _numPostedScriptRuns;
+
+		while (index < count) {
+			o_callScript(_postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * index);
+			index++;
+		}
+
+		if (_numPostedScriptRuns < count) {
+			warning("TopgunEngine_v1_2_4::servicePostedRunQueue(): the queue was cleared while being drained");
+			_numPostedScriptRuns = 0;
+			return;
+		}
+
+		_numPostedScriptRuns -= count;
+
+		if (_numPostedScriptRuns != 0)
+			memmove(_postedRuns, _postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * count, TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * _numPostedScriptRuns);
+
+		return;
+	}
+
 	if (_numPostedScriptRuns != 0) {
 		do {
 			o_callScript(_postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * index);
@@ -754,6 +777,8 @@ void TopgunEngine_v1_2_4::o_gotoScene(const byte *record) {
 		postMessage(kMsgClose, 1, 0);
 		return;
 	}
+
+	_postSceneEndEnabled = (record[releaseOffset] != 0);
 
 	memcpy(_gotoSceneName, record + TG_SCRIPT_V1_2_4_GOTO_NAME_OFFSET, nameSize);
 

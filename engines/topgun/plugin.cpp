@@ -79,6 +79,7 @@ public:
 	void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_4 &info) override;
 	void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) override;
 	char *getString(uint16 id) override;
+	uint32 getConstantStringRoom(uint16 id) override;
 	void copyStringVariable(uint16 index, char *destination) override;
 	void setScriptResult(uint16 value) override;
 	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) override;
@@ -410,6 +411,10 @@ void EnginePluginHost::setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 
 
 char *EnginePluginHost::getString(uint16 id) {
 	return _engine->getStringFromId(id);
+}
+
+uint32 EnginePluginHost::getConstantStringRoom(uint16 id) {
+	return _engine->resourceLib()->resGetConstStrRoom(_engine->_file, id & TG_HOST_V1_2_STRING_ID_MASK);
 }
 
 void EnginePluginHost::copyStringVariable(uint16 index, char *destination) {

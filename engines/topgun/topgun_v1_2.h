@@ -1154,6 +1154,7 @@ protected:
 	Movie_v1_2 *movieFromHandle(uint16 handle);
 	bool movieBegin(byte *command, uint16 sprite);
 	bool movieCheckStartLeadIn(Movie_v1_2 *movie, uint32 now);
+	void setMoviesPaused(bool paused);
 	void movieMarkFramesSkippable(Movie_v1_2 *movie, uint16 count, uint16 step);
 	void movieBlitDeltaRect(byte *movieBitmap, byte *frame);
 	static void movieComputeFrameRect(const byte *bitmap, Common::Rect &rect);
@@ -1310,6 +1311,8 @@ protected:
 	uint16 _numCollisionPairs = 0;
 	int16 _scheduledTimerIndex = 0;
 	bool _timersPaused = false;
+	bool _moviesPaused = false;
+	uint32 _moviePauseStartTime = 0;
 	uint16 _numMovies = 0;
 	uint16 _displayZoomX = 0;
 	uint16 _displayZoomY = 0;

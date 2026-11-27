@@ -43,6 +43,10 @@ enum {
 };
 
 Ace1UtilPlugin::Ace1UtilPlugin() {
+	// Words that the module file sets ahead of the tables
+	_data[0] = 0x0100;
+	_data[(0x1C - kAce1UtilDataStart) / 2] = 1;
+	_data[(0x1E - kAce1UtilDataStart) / 2] = 0xFFFF;
 }
 
 bool Ace1UtilPlugin::init() {
@@ -173,130 +177,92 @@ void Ace1UtilPlugin::initWalkTables() {
 	};
 
 	for (int i = 0; i < kAce1UtilWalkTableSize; i++) {
-		_walkIncX[i] = (uint16)incX[i];
-		_walkIncY[i] = (uint16)incY[i];
-		_walkDelay[i] = (uint16)delay[i];
+		writeData(kAce1UtilWalkIncXOffset, i, (uint16)incX[i]);
+		writeData(kAce1UtilWalkIncYOffset, i, (uint16)incY[i]);
+		writeData(kAce1UtilWalkDelayOffset, i, (uint16)delay[i]);
 	}
+}
+
+uint16 *Ace1UtilPlugin::dataWord(uint16 tableOffset, uint16 index) {
+	// An index past a table reaches its neighbors, and the offset wraps in the data segment
+	uint16 offset = (uint16)(tableOffset + 2 * index);
+
+	if (offset < kAce1UtilDataStart || offset >= kAce1UtilDataEnd) {
+		warning("Ace1UtilPlugin::dataWord(): index %d of the table at %d is out of range", index, tableOffset);
+		return nullptr;
+	}
+
+	return &_data[(offset - kAce1UtilDataStart) / 2];
+}
+
+uint16 Ace1UtilPlugin::readData(uint16 tableOffset, uint16 index) {
+	uint16 *word = dataWord(tableOffset, index);
+	if (!word)
+		return 0;
+
+	return *word;
+}
+
+void Ace1UtilPlugin::writeData(uint16 tableOffset, uint16 index, uint16 value) {
+	uint16 *word = dataWord(tableOffset, index);
+
+	if (word)
+		*word = value;
 }
 
 uint16 Ace1UtilPlugin::vsWalkIncX(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsWalkIncX(): invalid index %d", index);
-		return 0;
-	}
-
-	return _walkIncX[index];
+	return readData(kAce1UtilWalkIncXOffset, index);
 }
 
 uint16 Ace1UtilPlugin::vsWalkIncY(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsWalkIncY(): invalid index %d", index);
-		return 0;
-	}
-
-	return _walkIncY[index];
+	return readData(kAce1UtilWalkIncYOffset, index);
 }
 
 uint16 Ace1UtilPlugin::vsWalkDelay(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsWalkDelay(): invalid index %d", index);
-		return 0;
-	}
-
-	return _walkDelay[index];
+	return readData(kAce1UtilWalkDelayOffset, index);
 }
 
 uint16 Ace1UtilPlugin::vsWalkQ(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsWalkQ(): invalid index %d", index);
-		return 0;
-	}
-
-	return _walkQ[index];
+	return readData(kAce1UtilWalkQOffset, index);
 }
 
 uint16 Ace1UtilPlugin::vsBegCel(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsBegCel(): invalid index %d", index);
-		return 0;
-	}
-
-	return _begCel[index];
+	return readData(kAce1UtilBegCelOffset, index);
 }
 
 uint16 Ace1UtilPlugin::vsEndCel(uint16 index) {
-	if (index >= kAce1UtilWalkTableSize) {
-		warning("Ace1UtilPlugin::vsEndCel(): invalid index %d", index);
-		return 0;
-	}
-
-	return _endCel[index];
+	return readData(kAce1UtilEndCelOffset, index);
 }
 
 uint16 Ace1UtilPlugin::setPathX(uint16 index, uint16 value) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::setPathX(): invalid index %d", index);
-		return 0;
-	}
-
-	_pathX[index] = value;
+	writeData(kAce1UtilPathXOffset, index, value);
 	return value;
 }
 
 uint16 Ace1UtilPlugin::getPathX(uint16 index) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::getPathX(): invalid index %d", index);
-		return 0;
-	}
-
-	return _pathX[index];
+	return readData(kAce1UtilPathXOffset, index);
 }
 
 uint16 Ace1UtilPlugin::setPathY(uint16 index, uint16 value) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::setPathY(): invalid index %d", index);
-		return 0;
-	}
-
-	_pathY[index] = value;
+	writeData(kAce1UtilPathYOffset, index, value);
 	return value;
 }
 
 uint16 Ace1UtilPlugin::getPathY(uint16 index) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::getPathY(): invalid index %d", index);
-		return 0;
-	}
-
-	return _pathY[index];
+	return readData(kAce1UtilPathYOffset, index);
 }
 
 uint16 Ace1UtilPlugin::setPathDir(uint16 index, uint16 value) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::setPathDir(): invalid index %d", index);
-		return 0;
-	}
-
-	_pathDir[index] = value;
+	writeData(kAce1UtilPathDirOffset, index, value);
 	return value;
 }
 
 uint16 Ace1UtilPlugin::getPathDir(uint16 index) {
-	if (index >= kAce1UtilPathPointCount) {
-		warning("Ace1UtilPlugin::getPathDir(): invalid index %d", index);
-		return 0;
-	}
-
-	return _pathDir[index];
+	return readData(kAce1UtilPathDirOffset, index);
 }
 
 uint16 Ace1UtilPlugin::arWalkNdx(uint16 index) {
-	if (index >= kAce1UtilWalkIndexTableSize) {
-		warning("Ace1UtilPlugin::arWalkNdx(): invalid index %d", index);
-		return 0;
-	}
-
-	return _arWalkNdx[index];
+	return readData(kAce1UtilWalkIndexOffset, index);
 }
 
 } // End of namespace Topgun

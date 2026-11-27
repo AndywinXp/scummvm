@@ -413,6 +413,30 @@ void TopgunEngine_v1_2::serviceMovies() {
 	}
 }
 
+void TopgunEngine_v1_2::setMoviesPaused(bool paused) {
+	uint32 now = getEngineMillis();
+	_moviesPaused = paused;
+
+	if (paused) {
+		_moviePauseStartTime = now;
+		return;
+	}
+
+	// The deadlines move forward by the time spent paused
+	now -= _moviePauseStartTime;
+
+	for (uint16 i = 0; i < _numMovies; i++) {
+		uint16 index = _movieList[i];
+		if (!isRecordIndexValid(index, "setMoviesPaused"))
+			continue;
+
+		Movie_v1_2 *movie = movieFromHandle(_records[index].object);
+
+		if (movie)
+			movie->deadline += now;
+	}
+}
+
 void TopgunEngine_v1_2::movieMarkFramesSkippable(Movie_v1_2 *movie, uint16 count, uint16 step) {
 	uint16 counter = step;
 	uint16 frame = movie->prefetchFrame;

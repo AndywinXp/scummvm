@@ -58,12 +58,12 @@ private:
 	uint16 dynAllocBuf(uint16 size);
 	uint16 dynFreeBuf(uint16 buffer);
 	uint16 dynFreeSystem();
-	void dynGetByte(uint16 buffer, uint16 offset, uint16 address, uint16 count);
-	void dynGetLong(uint16 buffer, uint16 offset, uint16 address, uint16 count);
-	void dynGetShort(uint16 buffer, uint16 offset, uint16 address, uint16 count);
-	void dynPutByte(uint16 buffer, uint16 offset, uint16 address, uint16 count);
-	void dynPutLong(uint16 buffer, uint16 offset, uint16 address, uint16 count);
-	void dynPutShort(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynGetByte(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynGetLong(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynGetShort(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynPutByte(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynPutLong(uint16 buffer, uint16 offset, uint16 address, uint16 count);
+	uint16 dynPutShort(uint16 buffer, uint16 offset, uint16 address, uint16 count);
 	uint16 dynReadFile(uint16 handle, uint16 buffer, uint16 offset, uint16 count);
 	uint16 dynWriteFile(uint16 handle, uint16 buffer, uint16 offset, uint16 count);
 };

@@ -570,7 +570,18 @@ uint16 FileIoPlugin::fileDataOpen(uint16 nameRef, uint16 flags) {
 
 		Common::strlcpy(name, path.c_str(), kFileIoStringSlotSize);
 	} else {
-		memcpy(name, path.c_str(), path.size() + 1);
+		uint32 length = path.size() + 1;
+
+		if (length > _host->getConstantStringRoom(nameRef)) {
+			warning("FileIoPlugin::fileDataOpen(): the path '%s' does not fit in the constant strings", path.c_str());
+			return 0;
+		}
+
+		// The original writes over the constant strings that follow a longer path
+		if (length > strlen(name) + 1)
+			warning("FileIoPlugin::fileDataOpen(): the path '%s' overwrites the following constant strings", path.c_str());
+
+		memcpy(name, path.c_str(), length);
 	}
 
 	return fileOpen(nameRef, flags);

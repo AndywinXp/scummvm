@@ -29,10 +29,22 @@
 
 namespace Topgun {
 
+// Offsets of the tables in the data segment, which follow one another
 enum {
-	kAce1UtilWalkTableSize = 48,
-	kAce1UtilPathPointCount = 100,
-	kAce1UtilWalkIndexTableSize = 8
+	kAce1UtilDataStart = 0x10,
+	kAce1UtilWalkIncXOffset = 0x24,
+	kAce1UtilWalkIncYOffset = 0x84,
+	kAce1UtilWalkDelayOffset = 0xE4,
+	kAce1UtilWalkQOffset = 0x144,
+	kAce1UtilBegCelOffset = 0x1A4,
+	kAce1UtilEndCelOffset = 0x204,
+	kAce1UtilPathXOffset = 0x264,
+	kAce1UtilPathYOffset = 0x32C,
+	kAce1UtilPathDirOffset = 0x3F4,
+	kAce1UtilWalkIndexOffset = 0x4BC,
+	kAce1UtilDataEnd = 0x4CC,
+	kAce1UtilDataWords = (kAce1UtilDataEnd - kAce1UtilDataStart) / 2,
+	kAce1UtilWalkTableSize = 48
 };
 
 class Ace1UtilPlugin : public Plugin {
@@ -45,18 +57,13 @@ public:
 	uint16 callFunction(int function, const uint16 *arguments, uint16 count) override;
 
 private:
-	uint16 _walkIncX[kAce1UtilWalkTableSize] = {};
-	uint16 _walkIncY[kAce1UtilWalkTableSize] = {};
-	uint16 _walkDelay[kAce1UtilWalkTableSize] = {};
-	uint16 _walkQ[kAce1UtilWalkTableSize] = {};
-	uint16 _begCel[kAce1UtilWalkTableSize] = {};
-	uint16 _endCel[kAce1UtilWalkTableSize] = {};
-	uint16 _pathX[kAce1UtilPathPointCount] = {};
-	uint16 _pathY[kAce1UtilPathPointCount] = {};
-	uint16 _pathDir[kAce1UtilPathPointCount] = {};
-	uint16 _arWalkNdx[kAce1UtilWalkIndexTableSize] = {};
+	// The data segment from the start-up words to the end of the last table
+	uint16 _data[kAce1UtilDataWords] = {};
 
 	void initWalkTables();
+	uint16 *dataWord(uint16 tableOffset, uint16 index);
+	uint16 readData(uint16 tableOffset, uint16 index);
+	void writeData(uint16 tableOffset, uint16 index, uint16 value);
 	uint16 vsWalkIncX(uint16 index);
 	uint16 vsWalkIncY(uint16 index);
 	uint16 vsWalkDelay(uint16 index);
