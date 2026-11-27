@@ -238,6 +238,23 @@ bool TopgunEngine_v1_2_4::rtStartup(bool runChecks) {
 	if (getGameId() == "upsydaisy")
 		return runStartup("Topsy Turvy", "TUPSYPC.BIN");
 
+	if (getGameId() == "greatword" && _version == kVersionV1_2_8) {
+		if (_gameDescription->language == Common::NL_NLD) {
+			addGameSubDirectory("WORD");
+			return runStartup("Howie's Great Word Adventure", "WORD.BIN");
+		}
+
+		if (Common::String(_gameDescription->extra) == "New spelling") {
+			addGameSubDirectory("WORD_NR");
+			// This edition ships no fonts, they are the ones of the other German edition
+			addSiblingDirectory("WORD_AR");
+		} else {
+			addGameSubDirectory("WORD_AR");
+		}
+
+		return runStartup("Die Abenteuerwelt der W\xF6rter", "WORD.BIN");
+	}
+
 	if (getGameId() == "greatword")
 		return runStartup("Howie's Great Word Adventure", "WORD.BIN");
 
@@ -406,7 +423,7 @@ void TopgunEngine_v1_2_4::dispatchMessage(const Message &message) {
 		break;
 
 	case kMsgKeyDown:
-		if (_version >= kVersionV1_2_9 && _textEditObjectId != 0 && message.param == Common::KEYCODE_DELETE)
+		if (_version >= kVersionV1_2_8 && _textEditObjectId != 0 && message.param == Common::KEYCODE_DELETE)
 			handleDeleteKeyMessage();
 		else
 			handleKeyDownMessage((Common::KeyCode)message.param, message.shift, message.ctrl);

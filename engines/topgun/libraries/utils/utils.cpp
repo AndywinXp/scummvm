@@ -350,7 +350,7 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 
 	double slopeB = (double)slopeBExtended;
 
-	if (_engine->_version >= kVersionV1_2_7_3) {
+	if (_engine->_version >= kVersionV1_2_7_3 && _engine->_version != kVersionV1_2_8) {
 		if (kindA == 1 && kindB == -1) {
 			intersection->x = x3;
 			intersection->y = y1;

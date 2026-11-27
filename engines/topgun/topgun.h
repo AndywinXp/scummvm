@@ -54,6 +54,7 @@ enum EngineVersion {
 	kVersionV1_2_7_1 = 1271,
 	kVersionV1_2_7_2 = 1272,
 	kVersionV1_2_7_3 = 1273,
+	kVersionV1_2_8 = 1280,
 	kVersionV1_2_9 = 1290,
 	kVersionV1_2_10 = 1300,
 	kVersionV1_2_11 = 1310,
@@ -126,6 +127,8 @@ protected:
 
 	// Files
 	void addDemoDirectory(const char *folder);
+	void addGameSubDirectory(const char *folder);
+	void addSiblingDirectory(const char *folder);
 
 	// Main loop
 	virtual bool rtStartup(bool runChecks) = 0;

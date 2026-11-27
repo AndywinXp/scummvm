@@ -108,6 +108,20 @@ void TopgunEngine::addDemoDirectory(const char *folder) {
 	SearchMan.addSubDirectoryMatching(gameDirectory, Common::String("GRAIL/SAMPLER/") + folder, 1);
 }
 
+void TopgunEngine::addGameSubDirectory(const char *folder) {
+	const Common::FSNode gameDirectory(ConfMan.getPath("path"));
+
+	// The files of this folder come before the ones with the same name elsewhere on the disc
+	SearchMan.addSubDirectoryMatching(gameDirectory, folder, 1);
+}
+
+void TopgunEngine::addSiblingDirectory(const char *folder) {
+	const Common::FSNode gameDirectory(ConfMan.getPath("path"));
+
+	// Searched after the game folder
+	SearchMan.addSubDirectoryMatching(gameDirectory.getParent(), folder, -1);
+}
+
 Common::Error TopgunEngine::run() {
 	bool highBitDepth = ConfMan.hasKey("high_bit_depth") && ConfMan.getBool("high_bit_depth");
 

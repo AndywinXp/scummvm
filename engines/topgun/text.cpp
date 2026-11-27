@@ -861,7 +861,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 
 	uint16 length = (uint16)strlen(object->text);
 
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_8) {
 		uint16 position = 0;
 
 		if (!clearAll) {

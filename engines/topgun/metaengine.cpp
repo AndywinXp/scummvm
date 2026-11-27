@@ -176,6 +176,11 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
+	if (gameId == "greatword" && (desc->language == Common::NL_NLD || desc->language == Common::DE_DEU)) {
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_8);
+		return Common::kNoError;
+	}
+
 	if (gameId == "junglegames" || gameId == "greatword") {
 		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_4);
 		return Common::kNoError;

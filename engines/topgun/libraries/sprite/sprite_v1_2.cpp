@@ -1286,7 +1286,7 @@ void SpriteLibrary_v1_2::spriteSetClipBox(const Common::Rect *box) {
 	if (box) {
 		_userClipBox = *box;
 
-		if (_engine->_version >= kVersionV1_2_7_3) {
+		if (_engine->_version >= kVersionV1_2_7_3 && _engine->_version != kVersionV1_2_8) {
 			if (_userClipBox.left < _userClipBox.right && _userClipBox.top < _userClipBox.bottom) {
 				_userClipBox.right++;
 				_userClipBox.bottom++;

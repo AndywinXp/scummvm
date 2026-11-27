@@ -75,6 +75,9 @@ const char *const directoryGlobs[] = {
 	"BOWL",
 	"UPSY",
 	"VIRGIL",
+	"WORD",
+	"WORD_AR",
+	"WORD_NR",
 	nullptr
 };
 
@@ -294,6 +297,36 @@ const ADGameDescription gameDescriptions[] = {
 		"",
 		AD_ENTRY1s("WORD.BIN", "135d2ebd891b5c14c18c9ed7edd6724f", 24695855),
 		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"greatword",
+		"",
+		AD_ENTRY1s("WORD.BIN", "f02caf0a5c261101a87c7e2e409f5957", 24767060),
+		Common::NL_NLD,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"greatword",
+		"",
+		AD_ENTRY1s("WORD.BIN", "a361bba069091faf6dff8f7522ac3706", 29664525),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"greatword",
+		"New spelling",
+		AD_ENTRY1s("WORD.BIN", "e8e5ba3a8562930c7670db1a168c49aa", 29664531),
+		Common::DE_DEU,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)

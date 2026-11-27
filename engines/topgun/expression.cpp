@@ -51,7 +51,7 @@ uint16 TopgunEngine_v1_2::evaluateExpression(const byte *expression) {
 		token++;
 
 		// The later versions leave token 12 unassigned and number every following token one higher
-		if (_version >= kVersionV1_2_7_3) {
+		if (_version >= kVersionV1_2_7_3 && _version != kVersionV1_2_8) {
 			if (code == 12)
 				continue;
 
@@ -1661,7 +1661,7 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (_version < kVersionV1_2_7_2)
 			break;
 
-		if (_version < kVersionV1_2_9) {
+		if (_version < kVersionV1_2_8) {
 			_expressionStackPointer--;
 			const char *program = getStringFromId(_expressionStack[_expressionStackPointer]);
 
@@ -1680,7 +1680,7 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (_version < kVersionV1_2_7_2)
 			break;
 
-		if (_version < kVersionV1_2_9) {
+		if (_version < kVersionV1_2_8) {
 			_expressionStackPointer -= 3;
 			warning("TopgunEngine_v1_2_4::evaluateBuiltinFunction(): extracting an icon from a program file is not supported");
 			_expressionStack[_expressionStackPointer - 1] = 0;
@@ -1704,16 +1704,19 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (_version < kVersionV1_2_7_2)
 			break;
 
-		if (_version < kVersionV1_2_9) {
+		if (_version < kVersionV1_2_8) {
 			_expressionStackPointer--;
 			break;
 		}
 
+		// A single argument is taken in version 1.2.8, whatever the count
 		uint16 numArguments = 1;
-		if (argc > 2)
-			numArguments = 3;
-		else if (argc > 1)
-			numArguments = 2;
+		if (_version >= kVersionV1_2_9) {
+			if (argc > 2)
+				numArguments = 3;
+			else if (argc > 1)
+				numArguments = 2;
+		}
 
 		_expressionStackPointer -= numArguments;
 		const char *file = getStringFromId(_expressionStack[_expressionStackPointer]);
@@ -1730,6 +1733,11 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 			uint16 script = _expressionStack[_expressionStackPointer - 1];
 
 			_waveStartedScript = script ? (uint16)(script - TG_HOST_V1_2_4_LITERAL_BIAS) : 0;
+		} else if (_version == kVersionV1_2_8) {
+			_expressionStackPointer--;
+
+			if (_expressionStack[_expressionStackPointer] == 0)
+				warning("TopgunEngine_v1_2_4::evaluateBuiltinFunction(): hiding the main window is not supported");
 		} else if (_version >= kVersionV1_2_7_3) {
 			_expressionStackPointer--;
 			uint16 id = _expressionStack[_expressionStackPointer];
@@ -1747,6 +1755,19 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 	case 152: {
 		if (_version < kVersionV1_2_7_3)
 			break;
+
+		if (_version == kVersionV1_2_8) {
+			_expressionStackPointer -= argc;
+
+			uint16 result = 0;
+			if (argc > 0)
+				result = (_expressionStack[_expressionStackPointer] == 0) ? 1 : 0;
+			else
+				warning("TopgunEngine_v1_2_4::evaluateBuiltinFunction(): built-in 152 has no argument");
+
+			_expressionStack[_expressionStackPointer - 1] = result;
+			break;
+		}
 
 		_expressionStackPointer--;
 		int16 deltaY = (int16)_expressionStack[_expressionStackPointer];

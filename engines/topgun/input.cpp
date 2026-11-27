@@ -936,6 +936,9 @@ void TopgunEngine_v1_2::handleCharMessage(uint16 character) {
 		changed = endTextEdit(object, character == TG_HOST_V1_2_CHAR_ESCAPE);
 	} else if (character == TG_HOST_V1_2_CHAR_BACKSPACE) {
 		changed = textEditBackspace(object, false);
+	} else if (_version == kVersionV1_2_8 && character == '.') {
+		// The period has the value of the Delete key code, the original clears the text for both
+		changed = textEditBackspace(object, true);
 	} else if (character >= TG_HOST_V1_2_CHAR_FIRST_PRINTABLE || (_version >= kVersionV1_2_1 && character == 0x0A)) {
 		if (_version < kVersionV1_2_4 || character != 0x40)
 			changed = textEditAppendChar(object, (byte)character);
@@ -984,7 +987,7 @@ uint16 TopgunEngine_v1_2::getTextObjectFromId(uint16 id) {
 
 void TopgunEngine_v1_2::o_bindKeyScript(const byte *record) {
 	uint16 key = READ_LE_UINT16(record + 2);
-	if (_version >= kVersionV1_2_9)
+	if (_version >= kVersionV1_2_8)
 		key = operandValue(key);
 
 	uint16 keyTableSize = (_version >= kVersionV1_2_4) ? TG_INPUT_V1_2_4_KEY_TABLE_SIZE : TG_HOST_V1_2_KEY_TABLE_SIZE;
@@ -1677,7 +1680,7 @@ void TopgunEngine_v1_2_4::postSpriteLeaveScript() {
 void TopgunEngine_v1_2_4::o_getKeyState(const byte *record) {
 	uint16 key = READ_LE_UINT16(record + 4);
 
-	if (_version >= kVersionV1_2_9) {
+	if (_version >= kVersionV1_2_8) {
 		key = operandValue(key);
 
 		if (key >= TG_HOST_V1_2_KEY_STATE_SIZE)
