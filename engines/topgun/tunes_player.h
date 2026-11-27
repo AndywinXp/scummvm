@@ -165,8 +165,8 @@ private:
 	bool readCdTrackLengths();
 	void closePlayer();
 
-	// JUKEGERM.EXE instead of TUNES.EXE
 	bool _jukebox = false;
+	const char *_programName = "TUNES.EXE";
 	Common::String _title{"TuneLand Tunes Player"};
 	Common::String _helpFileName{"TUNES.HLP"};
 	Common::String _cdMessage{"Please put the TuneLand CD in your CD-ROM drive."};

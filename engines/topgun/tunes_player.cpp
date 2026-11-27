@@ -163,7 +163,13 @@ const TunesPlayerEngine::JukeboxTune TunesPlayerEngine::kJukeboxTunes[TG_TUNES_N
 
 TunesPlayerEngine::TunesPlayerEngine(OSystem *syst, const ADGameDescription *gameDesc) :
 	TopgunEngine(syst, gameDesc, kVersionV1_0) {
-	_jukebox = (gameDesc->language == Common::DE_DEU);
+	if (gameDesc->language == Common::DE_DEU) {
+		_jukebox = true;
+		_programName = "JUKEGERM.EXE";
+	} else if (gameDesc->language == Common::FR_FRA) {
+		_jukebox = true;
+		_programName = "JUKEFREN.EXE";
+	}
 }
 
 TunesPlayerEngine::~TunesPlayerEngine() {
@@ -203,10 +209,8 @@ bool TunesPlayerEngine::rtStartup(bool runChecks) {
 
 	CursorMan.showMouse(true);
 
-	const char *program = _jukebox ? "JUKEGERM.EXE" : "TUNES.EXE";
-
-	if (!_resources.loadFromEXE(Common::Path(program))) {
-		GUIErrorMessage(Common::String::format("Can't open file '%s'.", program));
+	if (!_resources.loadFromEXE(Common::Path(_programName))) {
+		GUIErrorMessage(Common::String::format("Can't open file '%s'.", _programName));
 		return false;
 	}
 

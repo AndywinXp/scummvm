@@ -163,6 +163,16 @@ const ADGameDescription gameDescriptions[] = {
 	},
 
 	{
+		"tunesplayer",
+		"",
+		AD_ENTRY1s("JUKEFREN.EXE", "fb1ceed8f72fe9afbf32dae2647b8680", 307472),
+		Common::FR_FRA,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO1(GUIO_NONE)
+	},
+
+	{
 		"pythonwaste",
 		"",
 		AD_ENTRY1s("HERALD.BIN", "7c57a11624726d2be3c0487716adf33d", 287772),
