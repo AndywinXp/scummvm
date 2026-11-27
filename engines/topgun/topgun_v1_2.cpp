@@ -103,11 +103,15 @@ void TopgunEngine_v1_2::spriteQueueDoneService(uint16 sprite, uint16 tag) {
 }
 
 void TopgunEngine_v1_2::spriteMessageService(byte *record, uint16 spriteId) {
-	if (_version >= kVersionV1_2_3) {
+	if (_version >= kVersionV1_2_2) {
 		if (_scriptsDisabled)
 			return;
 
-		_variableTable[TG_HOST_V1_2_3_VARIABLE_EVENT_PARAMETER] = operandValue(spriteId);
+		uint16 variable = TG_HOST_V1_2_2_VARIABLE_EVENT_PARAMETER;
+		if (_version >= kVersionV1_2_3)
+			variable = TG_HOST_V1_2_3_VARIABLE_EVENT_PARAMETER;
+
+		_variableTable[variable] = operandValue(spriteId);
 	}
 
 	spriteMessageService(record);
@@ -383,6 +387,9 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 }
 
 bool TopgunEngine_v1_2::rtStartup(bool runChecks) {
+	if (getGameId() == "tuneland")
+		return runStartup("TuneLand", "herald.bin");
+
 	if (getGameId() == "peterwolf")
 		return runStartup("Peter And The Wolf", "peter.bin");
 
@@ -637,7 +644,7 @@ void TopgunEngine_v1_2::dispatchMessage(const Message &message) {
 		break;
 
 	case kMsgV1_2_4KeyUp:
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_2)
 			handleKeyUpMessage((Common::KeyCode)message.param);
 		break;
 

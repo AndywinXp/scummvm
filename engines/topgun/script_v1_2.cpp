@@ -199,7 +199,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2BindKeyScript:
 		o_bindKeyScript(ip);
-		size = (_version >= kVersionV1_2_3) ? 11 : 10;
+		size = (_version >= kVersionV1_2_2) ? 11 : 10;
 		break;
 
 	case kOpV1_2Quit:
@@ -660,13 +660,13 @@ uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 		}
 	}
 
+	if (_version >= kVersionV1_2_2 && opcode == kOpV1_2BindKeyScript)
+		return 11;
+
 	if (_version >= kVersionV1_2_3) {
 		switch (opcode) {
 		case kOpV1_2CallScript:
 			return (ip[5] + 3) * 2;
-
-		case kOpV1_2BindKeyScript:
-			return 11;
 
 		case kOpV1_2SetHoverRegion:
 			return 15;
@@ -1008,7 +1008,12 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record) {
 	if (_scriptsDisabled)
 		return;
 
-	switch (READ_LE_UINT16(record)) {
+	uint16 event = READ_LE_UINT16(record);
+
+	if (_version == kVersionV1_2_2)
+		event--;
+
+	switch (event) {
 	case TG_SPR_V1_2_FRAME_NOTIFICATION:
 		trimSpriteQueueBitmaps(READ_LE_UINT16(record + 2));
 		break;

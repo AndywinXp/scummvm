@@ -1760,6 +1760,9 @@ bool TopgunEngine_v1_2::isResourceObjectLoaded(uint16 id, uint16 type) {
 
 	const ResourceRecord &record = _records[index];
 
+	if (_version < kVersionV1_2_3)
+		return isResourceObjectLoaded(id);
+
 	if (_version < kVersionV1_2_3_1) {
 		switch (type) {
 		case kResV1_2_3Bitmap:

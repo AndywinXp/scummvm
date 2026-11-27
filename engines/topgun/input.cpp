@@ -428,7 +428,7 @@ bool TopgunEngine_v1_2::translate(const Common::Event &event, Message &message) 
 		if (key != TG_HOST_V1_2_NO_KEY)
 			_keyStates[key] = false;
 
-		if (_version < kVersionV1_2_3)
+		if (_version < kVersionV1_2_2)
 			return false;
 
 		if ((event.kbd.flags & Common::KBD_ALT) != 0 || event.kbd.keycode == Common::KEYCODE_F10)
@@ -1016,7 +1016,7 @@ void TopgunEngine_v1_2::o_bindKeyScript(const byte *record) {
 				entry.ctrl = READ_LE_UINT16(record + 4);
 			else if (record[7] != 0)
 				entry.shift = READ_LE_UINT16(record + 4);
-			else if (_version >= kVersionV1_2_3 && record[0x0A] != 0)
+			else if (_version >= kVersionV1_2_2 && record[0x0A] != 0)
 				entry.keyUp = READ_LE_UINT16(record + 4);
 			else
 				entry.plain = READ_LE_UINT16(record + 4);
@@ -1497,7 +1497,7 @@ void TopgunEngine_v1_2::handleKeyUpMessage(Common::KeyCode keycode) {
 }
 
 void TopgunEngine_v1_2::togglePauseState() {
-	if (_version < kVersionV1_2_3)
+	if (_version < kVersionV1_2_2)
 		audioLib()->audioStopAllWaves(nullptr);
 	else if (_version < kVersionV1_2_4)
 		audioLib()->audioPause(_gamePaused ? 0 : 1);

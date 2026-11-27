@@ -32,7 +32,7 @@
 #define TG_SPR_V1_2_EVENT_RECORD_SIZE          256
 #define TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE   0x1E
 #define TG_SPR_V1_2_FRAME_NOTIFICATION         0x12
-#define TG_SPR_V1_2_7_FRAME_NOTIFICATION       0x13
+#define TG_SPR_V1_2_2_FRAME_NOTIFICATION       0x13
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 #define TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING       0xFFC0
 #define TG_SPR_V1_2_QUEUE_BLOCK_SLACK          0x3F
@@ -45,7 +45,7 @@
 #define TG_SPR_V1_2_12_MAX_SPRITES             400
 #define TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING    0xFFF0
 #define TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK       0x0F
-#define TG_SPR_V1_2_3_1_LAST_QUEUE_OPCODE      22
+#define TG_SPR_V1_2_2_LAST_QUEUE_OPCODE        22
 #define TG_SPR_V1_2_7_LAST_QUEUE_OPCODE        23
 #define TG_SPR_V1_2_3_1_FLIP_FLAG_MASK         0xFF00
 #define TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX    0x159E
@@ -92,6 +92,15 @@ enum SpriteQueueOpcode_v1_2 {
 	kSprV1_2OpHostEvent,
 	kSprV1_2OpHostEventPayload,
 	kSprV1_2OpMovieFrame
+};
+
+// Queue opcodes of the German and French TuneLand: 18 sets the anchors and the following ones move up by one
+enum SpriteQueueOpcode_v1_2_2 {
+	kSprV1_2_2OpSetAnchor = 18,
+	kSprV1_2_2OpReserved19,
+	kSprV1_2_2OpHostEvent,
+	kSprV1_2_2OpHostEventPayload,
+	kSprV1_2_2OpMovieFrame
 };
 
 enum SpriteQueueOpcode_v1_2_4 {
@@ -354,6 +363,7 @@ protected:
 	bool tickWaitRecord(uint16 sprite);
 	void tickFlipRecord(uint16 sprite);
 	void tickSetPositionRecord(uint16 sprite, const byte *command);
+	void tickSetAnchorRecord(uint16 sprite, const byte *command);
 	bool tickMovieFrameRecord(uint16 sprite);
 	virtual bool stepQuadPath(uint16 sprite);
 	bool stepLinearMove(uint16 sprite);

@@ -80,6 +80,13 @@
 // IMA ADPCM
 #define TG_AUDIO_V1_2_ADPCM_MAX_INDEX         0x2C0
 
+// Device format of the wave volume query (German and French TuneLand)
+#define TG_AUDIO_V1_2_2_DEFAULT_FORMAT_TAG         1
+#define TG_AUDIO_V1_2_2_DEFAULT_SAMPLE_RATE        11025
+#define TG_AUDIO_V1_2_2_DEFAULT_BYTES_PER_SECOND   22050
+#define TG_AUDIO_V1_2_2_DEFAULT_BLOCK_ALIGN        2
+#define TG_AUDIO_V1_2_2_DEFAULT_BITS_PER_SAMPLE    16
+
 // Peter and the Wolf
 #define TG_AUDIO_V1_2_3_VERSION                    0x0300
 #define TG_AUDIO_V1_2_3_MAX_MIDI_OBJECTS           20

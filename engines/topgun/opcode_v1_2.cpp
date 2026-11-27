@@ -67,15 +67,19 @@ bool TopgunEngine_v1_2::o_callScript(const byte *record) {
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 saved[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE];
+		uint16 frame = TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE;
 
-		memcpy(saved, &_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], sizeof(saved));
+		if (_version >= kVersionV1_2_2)
+			frame = TG_SCRIPT_V1_2_2_ARGUMENT_FRAME_VARIABLE;
+
+		memcpy(saved, &_variableTable[frame], sizeof(saved));
 
 		for (uint16 i = 0; i < record[4]; i++)
-			_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE + i] = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * i));
+			_variableTable[frame + i] = operandValue(READ_LE_UINT16(record + TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * i));
 
 		bool result = runScriptResource(READ_LE_UINT16(record + 2));
 
-		memcpy(&_variableTable[TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE], saved, sizeof(saved));
+		memcpy(&_variableTable[frame], saved, sizeof(saved));
 		return result;
 	}
 
@@ -119,7 +123,7 @@ bool TopgunEngine_v1_2::o_setSpriteQueue(uint16 sprite, uint16 data, bool flag) 
 	if (data == 0) {
 		bool loaded;
 
-		if (_version >= kVersionV1_2_3_1)
+		if (_version == kVersionV1_2_2 || _version >= kVersionV1_2_3_1)
 			loaded = isResourceObjectLoaded(sprite, spriteType);
 		else
 			loaded = isResourceObjectLoaded(sprite);
@@ -419,6 +423,8 @@ void TopgunEngine_v1_2::o_setSpriteLevel(uint16 spriteId, uint16 level) {
 				spriteType = kResV1_2_6Sprite;
 
 			loaded = isResourceObjectLoaded(spriteId, spriteType);
+		} else if (_version == kVersionV1_2_2) {
+			loaded = isResourceObjectLoaded(spriteId, kResV1_2_1Sprite);
 		} else {
 			loaded = isResourceObjectLoaded(spriteId);
 		}
@@ -489,6 +495,8 @@ void TopgunEngine_v1_2::o_moveSprite(const byte *record) {
 			spriteType = kResV1_2_6Sprite;
 
 		loaded = isResourceObjectLoaded(READ_LE_UINT16(record + 2), spriteType);
+	} else if (_version == kVersionV1_2_2) {
+		loaded = isResourceObjectLoaded(READ_LE_UINT16(record + 2), kResV1_2_1Sprite);
 	} else {
 		loaded = isResourceObjectLoaded(READ_LE_UINT16(record + 2));
 	}

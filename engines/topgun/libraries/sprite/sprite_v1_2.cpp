@@ -219,7 +219,7 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 	int16 heightMinusOne = (int16)(height - 1);
 
-	if (_engine->_version == kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_2 && _engine->_version <= kVersionV1_2_3) {
 		if (object->anchorX)
 			hotX = (int16)(object->pivotX - hotX);
 
@@ -299,7 +299,7 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 
 		if (object->flipY)
 			hotY = (int16)-hotY;
-	} else if (_engine->_version == kVersionV1_2_3) {
+	} else if (_engine->_version >= kVersionV1_2_2 && _engine->_version <= kVersionV1_2_3) {
 		if (object->anchorX)
 			hotX = (int16)(object->pivotX - hotX);
 
@@ -344,6 +344,15 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		int16 heightMinusOne = (int16)(height - 1);
 		int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 		int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
+
+		// The anchors are applied before the mirroring
+		if (_engine->_version == kVersionV1_2_2) {
+			if (object->anchorX)
+				hotX = (int16)(object->pivotX - hotX);
+
+			if (object->anchorY)
+				hotY = (int16)(object->pivotY - hotY);
+		}
 
 		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_3 && object->mirrorX)
 			hotX = (int16)-hotX;
@@ -653,6 +662,14 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 7;
 		_queueCommandSizeTable[kSprV1_2OpTimingMode] = 3;
 		_queueCommandSizeTable[kSprV1_2OpMovieFrame] = 0x0B;
+	}
+
+	if (_engine->_version == kVersionV1_2_2) {
+		_queueCommandSizeTable[kSprV1_2_2OpSetAnchor] = 8;
+		_queueCommandSizeTable[kSprV1_2_2OpReserved19] = 4;
+		_queueCommandSizeTable[kSprV1_2_2OpHostEvent] = 2;
+		_queueCommandSizeTable[kSprV1_2_2OpHostEventPayload] = 4;
+		_queueCommandSizeTable[kSprV1_2_2OpMovieFrame] = 0x0B;
 	}
 
 	if (_engine->_version >= kVersionV1_2_7) {

@@ -226,6 +226,18 @@ void AudioLibrary_v1_2::audioSetMasterVolume(uint32 volume) {
 }
 
 uint32 AudioLibrary_v1_2::audioGetWaveVolume() {
+	// A closed device is opened to read its volume, and it stays open
+	if (_engine->_version == kVersionV1_2_2 && !_waveOutStream) {
+		WaveFormat format;
+		format.tag = TG_AUDIO_V1_2_2_DEFAULT_FORMAT_TAG;
+		format.channels = 1;
+		format.sampleRate = TG_AUDIO_V1_2_2_DEFAULT_SAMPLE_RATE;
+		format.averageBytesPerSecond = TG_AUDIO_V1_2_2_DEFAULT_BYTES_PER_SECOND;
+		format.blockAlign = TG_AUDIO_V1_2_2_DEFAULT_BLOCK_ALIGN;
+		format.bitsPerSample = TG_AUDIO_V1_2_2_DEFAULT_BITS_PER_SAMPLE;
+		openWaveOutDevice(&format);
+	}
+
 	return ((uint32)_waveVolumeRight << 16) | _waveVolumeLeft;
 }
 

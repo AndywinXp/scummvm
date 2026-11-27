@@ -492,6 +492,8 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 		numClearedVariables = TG_HOST_V1_2_4_NUM_SYSTEM_VARIABLES;
 	else if (_version >= kVersionV1_2_3)
 		numClearedVariables = TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES;
+	else if (_version >= kVersionV1_2_2)
+		numClearedVariables = TG_HOST_V1_2_2_NUM_CLEARED_VARIABLES;
 	else if (_version >= kVersionV1_2_1)
 		numClearedVariables = TG_HOST_V1_2_1_NUM_CLEARED_VARIABLES;
 
@@ -759,9 +761,13 @@ bool TopgunEngine_v1_2::openResourceFileAndInit(const Common::String &name) {
 	}
 
 	if (_version >= kVersionV1_2_1 && _version < kVersionV1_2_3) {
-		byte header[TG_HOST_V1_2_1_FILE_HEADER_SIZE];
+		byte header[TG_HOST_V1_2_2_FILE_HEADER_SIZE];
+		uint16 headerSize = TG_HOST_V1_2_1_FILE_HEADER_SIZE;
 
-		if (!resourceLib()->resGetHeaderRec(_file, header, TG_HOST_V1_2_1_FILE_HEADER_SIZE))
+		if (_version == kVersionV1_2_2)
+			headerSize = TG_HOST_V1_2_2_FILE_HEADER_SIZE;
+
+		if (!resourceLib()->resGetHeaderRec(_file, header, headerSize))
 			return false;
 
 		_maxFadeColors = READ_LE_UINT16(header + TG_HOST_V1_2_1_HEADER_MAX_FADE_COLORS);

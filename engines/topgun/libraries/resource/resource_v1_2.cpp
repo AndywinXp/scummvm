@@ -31,6 +31,8 @@
 namespace Topgun {
 
 ResourceLibrary_v1_2::ResourceLibrary_v1_2(TopgunEngine_v1_2 *engine) : ResourceLibrary(engine) {
+	if (_engine->_version == kVersionV1_2_2)
+		_recordsHeaderSize = TG_RES_V1_2_2_HEADER_SIZE;
 }
 
 ResourceLibrary_v1_2::~ResourceLibrary_v1_2() {
@@ -54,7 +56,7 @@ ResourceLibrary_v1_2::ResourceFile *ResourceLibrary_v1_2::findFile(uint16 file, 
 bool ResourceLibrary_v1_2::readResourceFileHeader(ResourceFile *file) {
 	bool hasRecords = (_engine->_version >= kVersionV1_2_1);
 	bool hasPositionTable = (_engine->_version >= kVersionV1_2_3);
-	uint16 headerSize = hasRecords ? TG_RES_V1_2_1_HEADER_SIZE : TG_RES_V1_2_HEADER_SIZE;
+	uint16 headerSize = hasRecords ? _recordsHeaderSize : TG_RES_V1_2_HEADER_SIZE;
 	if (hasPositionTable)
 		headerSize = TG_RES_V1_2_3_HEADER_SIZE;
 
@@ -214,7 +216,7 @@ void ResourceLibrary_v1_2::writeVariableTableBack(ResourceFile *file) {
 		return;
 
 	// The game does not add the size of the 0x50 byte records
-	uint32 headerSize = (_engine->_version >= kVersionV1_2_1) ? TG_RES_V1_2_1_HEADER_SIZE : TG_RES_V1_2_HEADER_SIZE;
+	uint32 headerSize = (_engine->_version >= kVersionV1_2_1) ? _recordsHeaderSize : TG_RES_V1_2_HEADER_SIZE;
 	uint32 offset = headerSize + (uint32)TG_RES_INDEX_ENTRY_SIZE * file->entryCount;
 	if (!file->stream->seek(offset, SEEK_SET) || file->stream->pos() != offset)
 		return;
@@ -441,7 +443,7 @@ byte *ResourceLibrary_v1_2::resLoadNameTable(uint16 file, uint32 *outSize) {
 		offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount + (uint16)(record->paletteCount * 4)
 			+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
 		if (_engine->_version >= kVersionV1_2_1)
-			offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+			offset += _recordsHeaderSize + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
 		else
 			offset += TG_RES_V1_2_HEADER_SIZE;
 	}
@@ -483,7 +485,7 @@ uint16 ResourceLibrary_v1_2::resLoadPalette(uint16 file, byte *buffer) {
 		offset = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->entryCount
 			+ (uint16)(TG_RES_V1_2_VARIABLE_RECORD_SIZE * record->variableTableCount) + record->stringPoolSize + record->residentSize;
 		if (_engine->_version >= kVersionV1_2_1)
-			offset += TG_RES_V1_2_1_HEADER_SIZE + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
+			offset += _recordsHeaderSize + (uint16)(TG_RES_V1_2_1_RECORD_SIZE * record->recordCount);
 		else
 			offset += TG_RES_V1_2_HEADER_SIZE;
 	}
@@ -970,8 +972,8 @@ uint16 ResourceLibrary_v1_2::resGetHeaderRec(uint16 file, byte *destination, uin
 	if (!record)
 		return 0;
 
-	if (count > TG_RES_V1_2_1_HEADER_SIZE)
-		count = TG_RES_V1_2_1_HEADER_SIZE;
+	if (count > _recordsHeaderSize)
+		count = _recordsHeaderSize;
 
 	if (count != 0)
 		memmove(destination, record->header, count);

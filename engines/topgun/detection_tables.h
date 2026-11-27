@@ -94,6 +94,26 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"tuneland",
+		"",
+		AD_ENTRY1s("HERALD.BIN", "8fe2cc420d654c804128220bd7092ddb", 152828),
+		Common::DE_DEU,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"tuneland",
+		"",
+		AD_ENTRY1s("HERALD.BIN", "cdce3bf8047334e15055e00d9d025068", 140086),
+		Common::FR_FRA,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"tuneland",
 		"Demo",
 		AD_ENTRY1s("SAMPLER.BIN", "9f25f15a70effb7f4c0c1d93cfa884e8", 120268),
 		Common::EN_ANY,

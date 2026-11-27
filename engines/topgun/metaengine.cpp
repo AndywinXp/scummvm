@@ -82,7 +82,9 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	Common::String gameId = desc->gameId;
 
 	if (gameId == "tuneland") {
-		if (Common::String(desc->extra) == "1996")
+		if (desc->language == Common::DE_DEU || desc->language == Common::FR_FRA)
+			*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_2);
+		else if (Common::String(desc->extra) == "1996")
 			*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_6);
 		else if (Common::String(desc->extra) == "Demo 1996")
 			*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_5);

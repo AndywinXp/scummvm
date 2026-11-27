@@ -43,6 +43,7 @@ enum EngineVersion {
 	kVersionV1_1 = 1100,
 	kVersionV1_2 = 1200,
 	kVersionV1_2_1 = 1210,
+	kVersionV1_2_2 = 1220,
 	kVersionV1_2_3 = 1230,
 	kVersionV1_2_3_1 = 1231,
 	kVersionV1_2_3_2 = 1232,

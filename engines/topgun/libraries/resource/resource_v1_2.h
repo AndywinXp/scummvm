@@ -62,6 +62,9 @@
 #define TG_RES_V1_2_1_RECORD_SIZE                  0x50
 #define TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR          0x590
 
+// The German and French TuneLand add 14 bytes to that header, which the library does not read
+#define TG_RES_V1_2_2_HEADER_SIZE                  0x8A
+
 // Container header of the version with the table of block positions (Peter and the Wolf)
 #define TG_RES_V1_2_3_HEADER_SIZE                  0xB8
 #define TG_RES_V1_2_3_HEADER_VARIABLE_PAIR_COUNT_OFFSET 0x66
@@ -352,6 +355,9 @@ protected:
 
 	WaveStreamMap _waveStreams;
 	uint16 _nextWaveStreamHandle = 1;
+
+	// Header size of the containers with the 0x50 byte records
+	uint16 _recordsHeaderSize = TG_RES_V1_2_1_HEADER_SIZE;
 
 	TopgunEngine_v1_2 *engine() const;
 };

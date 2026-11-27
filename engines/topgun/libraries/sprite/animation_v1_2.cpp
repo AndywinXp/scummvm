@@ -204,8 +204,19 @@ bool SpriteLibrary_v1_2::processSpriteAnimationStep(uint16 sprite) {
 		return true;
 	}
 
-	uint16 opcode = READ_LE_UINT16(command);
+	uint16 recordOpcode = READ_LE_UINT16(command);
+	uint16 opcode = recordOpcode;
 	bool finished = true;
+
+	if (_engine->_version == kVersionV1_2_2) {
+		if (opcode == kSprV1_2_2OpSetAnchor) {
+			tickSetAnchorRecord(sprite, command);
+			return true;
+		}
+
+		if (opcode > kSprV1_2_2OpSetAnchor)
+			opcode--;
+	}
 
 	switch (opcode) {
 	case kSprV1_2OpPlayRange:
@@ -254,7 +265,7 @@ bool SpriteLibrary_v1_2::processSpriteAnimationStep(uint16 sprite) {
 
 	case kSprV1_2OpHostEvent:
 		if (!_inHostCallback)
-			fireSpriteQueueCallbackMsg(sprite, _queueCommandSizeTable[opcode]);
+			fireSpriteQueueCallbackMsg(sprite, _queueCommandSizeTable[recordOpcode]);
 
 		finished = false;
 		break;
@@ -287,10 +298,15 @@ byte *SpriteLibrary_v1_2::nextQueueRecordWithLoops(uint16 sprite) {
 		uint16 opcode = READ_LE_UINT16(record);
 
 		uint16 payloadOpcode = kSprV1_2OpHostEventPayload;
-		uint16 lastOpcode = TG_SPR_V1_2_3_1_LAST_QUEUE_OPCODE;
+		uint16 lastOpcode = TG_SPR_V1_2_NUM_QUEUE_OPCODES - 1;
 		if (_engine->_version >= kVersionV1_2_7) {
 			payloadOpcode = kSprV1_2_7OpHostEventPayload;
 			lastOpcode = TG_SPR_V1_2_7_LAST_QUEUE_OPCODE;
+		} else if (_engine->_version >= kVersionV1_2_3_1) {
+			lastOpcode = TG_SPR_V1_2_2_LAST_QUEUE_OPCODE;
+		} else if (_engine->_version == kVersionV1_2_2) {
+			payloadOpcode = kSprV1_2_2OpHostEventPayload;
+			lastOpcode = TG_SPR_V1_2_2_LAST_QUEUE_OPCODE;
 		}
 
 		if (_engine->_version >= kVersionV1_2_7_1 && opcode == kSprV1_2OpMultiCel) {
@@ -298,7 +314,7 @@ byte *SpriteLibrary_v1_2::nextQueueRecordWithLoops(uint16 sprite) {
 		} else if (opcode == payloadOpcode) {
 			record += READ_LE_UINT16(record + 2);
 		} else {
-			if (_engine->_version >= kVersionV1_2_3_1 ? opcode > lastOpcode : opcode >= TG_SPR_V1_2_NUM_QUEUE_OPCODES) {
+			if (opcode > lastOpcode) {
 				warning("SpriteLibrary_v1_2::nextQueueRecordWithLoops(): queue opcode %d is out of range", opcode);
 				return nullptr;
 			}
@@ -429,7 +445,7 @@ void SpriteLibrary_v1_2::notifySpriteFrameChange(uint16 sprite) {
 
 	byte message[TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE];
 	memset(message, 0, sizeof(message));
-	WRITE_LE_UINT16(message, (_engine->_version >= kVersionV1_2_7) ? TG_SPR_V1_2_7_FRAME_NOTIFICATION :TG_SPR_V1_2_FRAME_NOTIFICATION);
+	WRITE_LE_UINT16(message, (_engine->_version == kVersionV1_2_2 || _engine->_version >= kVersionV1_2_7) ? TG_SPR_V1_2_2_FRAME_NOTIFICATION : TG_SPR_V1_2_FRAME_NOTIFICATION);
 	WRITE_LE_UINT16(message + 2, object->id);
 
 	object->scriptActive = 0;
@@ -859,6 +875,22 @@ void SpriteLibrary_v1_2::tickSetPositionRecord(uint16 sprite, const byte *comman
 	}
 }
 
+void SpriteLibrary_v1_2::tickSetAnchorRecord(uint16 sprite, const byte *command) {
+	SpriteObject_v1_2 *object = findSprite(sprite, "tickSetAnchorRecord");
+	if (!object)
+		return;
+
+	object->anchorX = (command[6] != 0);
+	object->anchorY = (command[7] != 0);
+	object->pivotX = (int16)(decodeOperand(READ_LE_UINT16(command + 2)) * 2);
+	object->pivotY = (int16)(decodeOperand(READ_LE_UINT16(command + 4)) * 2);
+
+	if (object->partCount != 0)
+		recomputeCelBoxArray(sprite);
+
+	renderSpriteToSurface(sprite);
+}
+
 bool SpriteLibrary_v1_2::stepQuadPath(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "stepQuadPath");
 	if (!object)
@@ -944,7 +976,7 @@ void SpriteLibrary_v1_2::applyFrameChange(uint16 sprite) {
 
 	object->currentFrame = frame;
 
-	if (_engine->_version >= kVersionV1_2_3 && _engine->_version != kVersionV1_2_3_1) {
+	if (_engine->_version >= kVersionV1_2_2 && _engine->_version != kVersionV1_2_3_1) {
 		recomputeSpriteBoundingBox(sprite);
 		object->framePending = false;
 		return;
