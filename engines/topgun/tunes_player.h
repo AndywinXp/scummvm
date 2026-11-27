@@ -25,6 +25,7 @@
 #include "common/events.h"
 #include "common/formats/winexe_ne.h"
 #include "common/rect.h"
+#include "common/str.h"
 #include "graphics/managed_surface.h"
 #include "graphics/screen.h"
 
@@ -39,6 +40,7 @@
 #define TG_TUNES_CLIENT_LEFT    1
 #define TG_TUNES_CLIENT_TOP     21
 #define TG_TUNES_NUM_TUNES      43
+#define TG_TUNES_NUM_JUKEBOX_TUNES 41
 #define TG_TUNES_NUM_BITMAPS    7
 #define TG_TUNES_FIRST_BITMAP   11
 #define TG_TUNES_NUM_BUTTONS    12
@@ -83,6 +85,11 @@ private:
 		const char *name;
 	};
 
+	struct JukeboxTune {
+		uint16 track;
+		uint16 nameString;
+	};
+
 	struct Button {
 		Common::Rect rect;
 		byte bitmap;
@@ -110,14 +117,17 @@ private:
 	};
 
 	static const Tune kTunes[TG_TUNES_NUM_TUNES];
+	static const JukeboxTune kJukeboxTunes[TG_TUNES_NUM_JUKEBOX_TUNES];
 
 	// Resources
+	bool loadWindowStrings();
 	bool loadBitmap(uint16 id, Graphics::ManagedSurface &surface);
 	bool loadBitmaps();
 	void playWaveResource(uint16 id);
 
 	// Controls
 	void createControls();
+	void fillTuneCombo();
 	uint32 color(byte red, byte green, byte blue) const;
 	void drawDesktop();
 	void drawFrame(const Common::Rect &outer);
@@ -151,8 +161,18 @@ private:
 	void autoAdvanceTick();
 	void setCdVolumeLevel(uint16 level);
 	bool checkCdPresent();
+	bool checkCdAndReadTrackLengths();
+	bool readCdTrackLengths();
 	void closePlayer();
 
+	// JUKEGERM.EXE instead of TUNES.EXE
+	bool _jukebox = false;
+	Common::String _title{"TuneLand Tunes Player"};
+	Common::String _helpFileName{"TUNES.HLP"};
+	Common::String _cdMessage{"Please put the TuneLand CD in your CD-ROM drive."};
+	Common::String _jukeboxNames[TG_TUNES_NUM_JUKEBOX_TUNES];
+	Tune _tunes[TG_TUNES_NUM_TUNES] = {};
+	int _numTunes = 0;
 	Graphics::PixelFormat _format;
 	Graphics::Screen *_surface = nullptr;
 	Graphics::ManagedSurface _window;

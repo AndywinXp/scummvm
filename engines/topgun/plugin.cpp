@@ -294,7 +294,9 @@ void EnginePluginHost::stopSprite(uint16 sprite) {
 
 	WRITE_LE_UINT16(record, kOpV1_2_3StopSprite);
 	WRITE_LE_UINT16(record + 2, sprite);
-	record[4] = 1;
+
+	if (_engine->_version >= kVersionV1_2_4)
+		record[4] = 1;
 
 	_engine->o_stopSprite(record);
 }

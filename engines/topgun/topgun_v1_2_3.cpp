@@ -174,6 +174,10 @@ bool TopgunEngine_v1_2_3::rtStartup(bool runChecks) {
 			title = "Howie's Great Word Adventure";
 			container = "GWA.BIN";
 			folder = "GREATWRD";
+		} else if (getGameId() == "tuneland") {
+			title = "TuneLand";
+			container = "TUNELAND.BIN";
+			folder = "TUNELAND";
 		} else {
 			title = "TopGun Player";
 			container = "ACE_DEMO.BIN";

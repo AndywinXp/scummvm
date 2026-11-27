@@ -515,7 +515,8 @@ bool TopgunEngine_v1_2::peekInputMessage(Message &message) {
 		}
 	}
 
-	if (message.id == kMsgKeyDown && message.data != 0) {
+	// Windows sends no character for Delete, the cursor keys and the function keys
+	if (message.id == kMsgKeyDown && message.data != 0 && message.data <= 0xFF && message.param != Common::KEYCODE_DELETE) {
 		_pendingChar = Message();
 		_pendingChar.id = kMsgV1_2Char;
 		_pendingChar.param = (uint16)message.data;

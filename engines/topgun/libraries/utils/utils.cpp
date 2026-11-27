@@ -111,7 +111,8 @@ byte *UtilsLibrary::tgRealloc(byte *block, uint32 newSize, uint16 zeroInit) {
 			if (index >= 0 && _notifyTable[index].window != 0)
 				_engine->postMessage(TG_UTILS_MEMORY_ERROR_MESSAGE, TG_UTILS_ERROR_ALLOC_ZERO, 0);
 
-			return block;
+			// The block stays allocated
+			return nullptr;
 		}
 
 		error("UtilsLibrary::tgRealloc(): invalid zero size");

@@ -1414,9 +1414,12 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 	if (_engine->_version == kVersionV1_2_2_1 && firstRle != secondRle)
 		warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): the two bitmaps have different formats");
 
-	// Two bugs in the original: skipping in the second bitmap clears the literal flag of the first,
-	// and a transparent run in the first makes the second skip one pixel too many
-	if (_engine->_version < kVersionV1_2_2_3 && firstRle && secondRle) {
+	if (firstRle && secondRle) {
+		// Two bugs in the original: skipping in the second bitmap clears the literal flag of the first,
+		// and taking a transparent run whole loses a pixel of the width or of the other bitmap
+		bool losesLiteralFlag = (_engine->_version < kVersionV1_2_2_3);
+		bool takesRunsWhole = (_engine->_version < kVersionV1_2_2_3 || _engine->_version >= kVersionV1_2_5);
+
 		RleRowCursor firstCursor;
 		firstCursor.pixels = bitmapPixels(first);
 		firstCursor.size = rleDataSize(first);
@@ -1436,7 +1439,9 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 			firstCursor.overrun = false;
 			firstCursor.loadCode();
 			firstCursor.skip(firstX);
-			firstCursor.literal = false;
+
+			if (losesLiteralFlag)
+				firstCursor.literal = false;
 
 			secondCursor.position = READ_LE_UINT16(secondCursor.pixels + 2 * secondRowIndex);
 			secondCursor.overrun = false;
@@ -1446,7 +1451,7 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 			int32 remaining = width;
 			while (--remaining >= 0 && !firstCursor.overrun && !secondCursor.overrun) {
 				byte secondValue = secondCursor.peek();
-				if (!secondCursor.literal && secondValue == 0) {
+				if (takesRunsWhole && !secondCursor.literal && secondValue == 0) {
 					byte run = secondCursor.count;
 					remaining -= run;
 					if (remaining <= 0)
@@ -1461,7 +1466,7 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 				secondCursor.take();
 
 				byte firstValue = firstCursor.peek();
-				if (!firstCursor.literal && firstValue == 0) {
+				if (takesRunsWhole && !firstCursor.literal && firstValue == 0) {
 					byte run = firstCursor.count;
 					remaining -= run;
 					if (remaining <= 0)

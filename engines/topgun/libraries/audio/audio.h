@@ -123,6 +123,7 @@ public:
 	uint16 wavePlayFile(const Common::String &fileName, uint16 flags);
 	uint16 audioSetOwner(uint16 owner);
 	void audioSetMute(uint16 muted);
+	uint16 audioGetCdTrackLengths(byte first, byte last, uint32 *lengths);
 
 protected:
 	enum Command {
@@ -338,6 +339,7 @@ protected:
 	uint8 getCDTrackCount();
 	uint32 getCDCurrentPosition();
 	uint32 readCDVolumeLevels();
+	uint32 getCDTrackLength(byte track);
 	bool sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms &parms);
 	virtual bool openCDAudioDevice();
 	uint16 startCDPlayback(uint32 from, uint32 to);

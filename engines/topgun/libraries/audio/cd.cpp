@@ -64,6 +64,44 @@ uint32 AudioLibrary::readCDVolumeLevels() {
 	return _cdAuxVolume;
 }
 
+uint32 AudioLibrary::getCDTrackLength(byte track) {
+	DeviceParms status;
+
+	status.track = track;
+	status.item = TG_AUDIO_STATUS_LENGTH;
+
+	if (!sendCdDeviceCommand(TG_AUDIO_DEV_STATUS, TG_AUDIO_DEV_STATUS_ITEM | TG_AUDIO_DEV_TRACK, status))
+		return 0;
+
+	// Milliseconds from the minutes and seconds only, the frames are dropped
+	return ((status.value & 0xFF) * 60 + ((status.value >> 8) & 0xFF)) * 1000;
+}
+
+uint16 AudioLibrary::audioGetCdTrackLengths(byte first, byte last, uint32 *lengths) {
+	bool wasOpen = (_cdDeviceId != 0);
+
+	if (!wasOpen && !openCDAudioDevice())
+		return 0;
+
+	uint16 count = 0;
+
+	while (last >= first) {
+		lengths[count] = getCDTrackLength(first);
+		first++;
+
+		if (lengths[count] == 0)
+			break;
+
+		count++;
+	}
+
+	// A device opened here stays open, only one which was already open gets closed
+	if (wasOpen)
+		closeCDAudioDevice();
+
+	return count;
+}
+
 bool AudioLibrary::sendCdDeviceCommand(uint16 message, uint32 flags, DeviceParms &parms) {
 	AudioCDManager *manager = g_system->getAudioCDManager();
 

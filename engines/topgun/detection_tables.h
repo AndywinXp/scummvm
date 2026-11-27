@@ -46,6 +46,7 @@ const PlainGameDescriptor topgunGames[] = {
 	{ "topsyturvy", "Disney's The Hunchback of Notre Dame: Topsy Turvy Games" },
 	{ "djalibowling", "Disney's Hot Shots: Djali Bowling" },
 	{ "upsydaisy", "Disney's Hot Shots: Upsy Daisy" },
+	{ "virgilreality", "The Universe According to Virgil Reality" },
 	{ 0, 0 }
 };
 
@@ -73,6 +74,7 @@ const char *const directoryGlobs[] = {
 	"TOPSY",
 	"BOWL",
 	"UPSY",
+	"VIRGIL",
 	nullptr
 };
 
@@ -122,6 +124,16 @@ const ADGameDescription gameDescriptions[] = {
 		"",
 		AD_ENTRY1s("TUNES.EXE", "59193f3574a3b9bd6cde56aa73415db2", 410656),
 		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO1(GUIO_NONE)
+	},
+
+	{
+		"tunesplayer",
+		"",
+		AD_ENTRY1s("JUKEGERM.EXE", "32b9a0275808aadeeeb9ec2bd52fd848", 307376),
+		Common::DE_DEU,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
 		GUIO1(GUIO_NONE)
@@ -554,6 +566,37 @@ const ADGameDescription gameDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"upsydaisy",
+		"Game Shots",
+		AD_ENTRY1s("TOPSUPSY.BIN", "7a913241b686cfcdc1c8503dedc5eb7a", 10311264),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"virgilreality",
+		"Demo",
+		AD_ENTRY2s("LIBRARY.BIN", "03c4289eac432fb694e0c3a715b85cfd", 4707471,
+			"SAMPLER3.BIN", "1643920225eab3d987c787a5f3302c70", 186982),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"tuneland",
+		"Demo 1996",
+		AD_ENTRY1s("TUNELAND.BIN", "89b5cc085aa3dbad366c7af3d488e297", 22209766),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE | ADGF_DEMO,
 		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
 	},
 

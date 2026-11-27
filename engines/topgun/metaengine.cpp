@@ -84,6 +84,8 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	if (gameId == "tuneland") {
 		if (Common::String(desc->extra) == "1996")
 			*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_5);
+		else if (Common::String(desc->extra) == "Demo 1996")
+			*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_4);
 		else if (desc->flags & ADGF_DEMO)
 			*engine = new Topgun::TopgunEngine_v1_1(syst, desc);
 		else
@@ -113,7 +115,7 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 		return Common::kNoError;
 	}
 
-	if (gameId == "bestshot" || gameId == "headshot" || gameId == "hotshot" || gameId == "lineshot") {
+	if (gameId == "bestshot" || gameId == "headshot" || gameId == "hotshot" || gameId == "lineshot" || gameId == "virgilreality") {
 		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_1);
 		return Common::kNoError;
 	}

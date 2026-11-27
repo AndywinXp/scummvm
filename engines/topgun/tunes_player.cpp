@@ -28,12 +28,15 @@
 #include "common/path.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
+#include "common/ustr.h"
 #include "common/util.h"
 #include "engines/util.h"
 #include "graphics/cursorman.h"
 #include "graphics/font.h"
 #include "graphics/fontman.h"
 #include "graphics/wincursor.h"
+#include "gui/message.h"
 #include "image/bmp.h"
 
 #include "topgun/libraries/audio/audio.h"
@@ -60,6 +63,11 @@
 #define TG_TUNES_NUM_GOODBYE_WAVES    9
 #define TG_TUNES_MASCOT_WAVE          30
 #define TG_TUNES_FIRST_TUNE_TRACK     3
+#define TG_TUNES_LAST_JUKEBOX_TRACK   45
+#define TG_TUNES_NUM_JUKEBOX_LENGTHS  43
+#define TG_TUNES_STRING_TITLE         50
+#define TG_TUNES_STRING_HELP_FILE     51
+#define TG_TUNES_STRING_INSERT_CD     52
 
 namespace Topgun {
 
@@ -109,8 +117,53 @@ const TunesPlayerEngine::Tune TunesPlayerEngine::kTunes[TG_TUNES_NUM_TUNES] = {
 	{ 42, 56400, "Twinkle Little Star" }
 };
 
+const TunesPlayerEngine::JukeboxTune TunesPlayerEngine::kJukeboxTunes[TG_TUNES_NUM_JUKEBOX_TUNES] = {
+	{ 3, 100 },
+	{ 5, 101 },
+	{ 6, 102 },
+	{ 7, 103 },
+	{ 8, 104 },
+	{ 9, 105 },
+	{ 10, 106 },
+	{ 11, 107 },
+	{ 12, 108 },
+	{ 13, 109 },
+	{ 14, 110 },
+	{ 15, 111 },
+	{ 16, 112 },
+	{ 17, 113 },
+	{ 18, 114 },
+	{ 19, 115 },
+	{ 20, 116 },
+	{ 21, 117 },
+	{ 22, 118 },
+	{ 23, 119 },
+	{ 24, 120 },
+	{ 25, 121 },
+	{ 26, 122 },
+	{ 27, 123 },
+	{ 28, 124 },
+	{ 29, 125 },
+	{ 30, 126 },
+	{ 31, 127 },
+	{ 32, 128 },
+	{ 33, 129 },
+	{ 34, 130 },
+	{ 35, 131 },
+	{ 36, 132 },
+	{ 38, 134 },
+	{ 39, 135 },
+	{ 40, 136 },
+	{ 41, 137 },
+	{ 42, 138 },
+	{ 43, 139 },
+	{ 44, 140 },
+	{ 45, 141 }
+};
+
 TunesPlayerEngine::TunesPlayerEngine(OSystem *syst, const ADGameDescription *gameDesc) :
 	TopgunEngine(syst, gameDesc, kVersionV1_0) {
+	_jukebox = (gameDesc->language == Common::DE_DEU);
 }
 
 TunesPlayerEngine::~TunesPlayerEngine() {
@@ -150,10 +203,15 @@ bool TunesPlayerEngine::rtStartup(bool runChecks) {
 
 	CursorMan.showMouse(true);
 
-	if (!_resources.loadFromEXE(Common::Path("TUNES.EXE"))) {
-		GUIErrorMessage("Can't open file 'TUNES.EXE'.");
+	const char *program = _jukebox ? "JUKEGERM.EXE" : "TUNES.EXE";
+
+	if (!_resources.loadFromEXE(Common::Path(program))) {
+		GUIErrorMessage(Common::String::format("Can't open file '%s'.", program));
 		return false;
 	}
+
+	if (_jukebox && !loadWindowStrings())
+		return false;
 
 	if (!loadBitmaps())
 		return false;
@@ -169,6 +227,13 @@ bool TunesPlayerEngine::rtStartup(bool runChecks) {
 	_buttons[kButtonVolumeIndicator].frame = (byte)level;
 	_volumeLevel = level;
 
+	fillTuneCombo();
+
+	if (_jukebox)
+		_numTunes = TG_TUNES_NUM_JUKEBOX_TUNES;
+	else
+		_numTunes = TG_TUNES_NUM_TUNES;
+
 	Common::Rect outer((TG_TUNES_SCREEN_WIDTH - TG_TUNES_WINDOW_WIDTH) / 2, (TG_TUNES_SCREEN_HEIGHT - TG_TUNES_WINDOW_HEIGHT) / 2,
 	                   (TG_TUNES_SCREEN_WIDTH + TG_TUNES_WINDOW_WIDTH) / 2, (TG_TUNES_SCREEN_HEIGHT + TG_TUNES_WINDOW_HEIGHT) / 2);
 
@@ -180,6 +245,10 @@ bool TunesPlayerEngine::rtStartup(bool runChecks) {
 	drawWindow();
 	setButtonState(_buttons[kButtonStop], true);
 	presentScreen();
+
+	if (_jukebox)
+		return checkCdAndReadTrackLengths();
+
 	checkCdPresent();
 	return true;
 }
@@ -201,6 +270,13 @@ uint16 TunesPlayerEngine::mainLoop() {
 	}
 
 	return 0;
+}
+
+bool TunesPlayerEngine::loadWindowStrings() {
+	_title = _resources.loadString(TG_TUNES_STRING_TITLE);
+	_helpFileName = _resources.loadString(TG_TUNES_STRING_HELP_FILE);
+
+	return !_title.empty() && !_helpFileName.empty();
 }
 
 bool TunesPlayerEngine::loadBitmap(uint16 id, Graphics::ManagedSurface &surface) {
@@ -347,6 +423,19 @@ void TunesPlayerEngine::createControls() {
 	_combo.selected = 0;
 }
 
+void TunesPlayerEngine::fillTuneCombo() {
+	if (_jukebox) {
+		for (int i = 0; i < TG_TUNES_NUM_JUKEBOX_TUNES; i++) {
+			_jukeboxNames[i] = _resources.loadString(kJukeboxTunes[i].nameString);
+			_tunes[i].track = kJukeboxTunes[i].track;
+			_tunes[i].name = _jukeboxNames[i].c_str();
+		}
+	} else {
+		for (int i = 0; i < TG_TUNES_NUM_TUNES; i++)
+			_tunes[i] = kTunes[i];
+	}
+}
+
 void TunesPlayerEngine::drawDesktop() {
 	Graphics::Surface *tile = nullptr;
 	Common::Archive *bundle = Common::makeZipArchive(Common::Path("macgui.dat"));
@@ -438,7 +527,7 @@ void TunesPlayerEngine::drawFrame(const Common::Rect &outer) {
 	int16 titleWidth = (minLeft - 1) - titleLeft;
 	int16 titleY = top + 1 + (18 - font->getFontHeight()) / 2;
 
-	font->drawString(&_backdrop, "TuneLand Tunes Player", titleLeft, titleY, titleWidth, white, Graphics::kTextAlignCenter);
+	font->drawString(&_backdrop, _title, titleLeft, titleY, titleWidth, white, Graphics::kTextAlignCenter);
 }
 
 void TunesPlayerEngine::drawWindow() {
@@ -509,10 +598,10 @@ void TunesPlayerEngine::drawCombo() {
 
 	_window.hLine(centerX - 3, glyphTop + 8, centerX + 3, black);
 
-	if (_combo.selected >= 0 && _combo.selected < TG_TUNES_NUM_TUNES) {
+	if (_combo.selected >= 0 && _combo.selected < _numTunes) {
 		int16 textY = _combo.closedRect.top + (_combo.closedRect.height() - font->getFontHeight()) / 2;
 
-		font->drawString(&_window, kTunes[_combo.selected].name, _combo.closedRect.left + 4, textY,
+		font->drawString(&_window, _tunes[_combo.selected].name, _combo.closedRect.left + 4, textY,
 		                 arrow.left - _combo.closedRect.left - 6, black);
 	}
 
@@ -529,14 +618,14 @@ void TunesPlayerEngine::drawComboList() {
 	uint32 dark = color(0x80, 0x80, 0x80);
 	int visible = comboVisibleItems();
 	int itemHeight = font->getFontHeight() + 2;
-	bool scrollbar = (TG_TUNES_NUM_TUNES > visible);
+	bool scrollbar = (_numTunes > visible);
 	Common::Rect list(0, 0, _combo.listRect.width(), _combo.listRect.height());
 	int16 textRight = list.right - 1 - (scrollbar ? TG_TUNES_SCROLLBAR_WIDTH : 0);
 
 	_popup.fillRect(list, white);
 	_popup.frameRect(list, black);
 
-	for (int i = 0; i < visible && _combo.top + i < TG_TUNES_NUM_TUNES; i++) {
+	for (int i = 0; i < visible && _combo.top + i < _numTunes; i++) {
 		int index = _combo.top + i;
 		int16 y = list.top + 1 + i * itemHeight;
 		Common::Rect row(list.left + 1, y, textRight, y + itemHeight);
@@ -545,7 +634,7 @@ void TunesPlayerEngine::drawComboList() {
 		if (highlighted)
 			_popup.fillRect(row, navy);
 
-		font->drawString(&_popup, kTunes[index].name, row.left + 3, y + 1, row.width() - 4, highlighted ? white : black);
+		font->drawString(&_popup, _tunes[index].name, row.left + 3, y + 1, row.width() - 4, highlighted ? white : black);
 	}
 
 	if (!scrollbar)
@@ -556,8 +645,8 @@ void TunesPlayerEngine::drawComboList() {
 	Common::Rect up(strip.left, strip.top, strip.right, strip.top + buttonHeight);
 	Common::Rect down(strip.left, strip.bottom - buttonHeight, strip.right, strip.bottom);
 	int16 trackHeight = strip.height() - 2 * buttonHeight;
-	int16 thumbHeight = MAX<int16>(8, (int16)(trackHeight * visible / TG_TUNES_NUM_TUNES));
-	int16 thumbTop = up.bottom + (int16)((trackHeight - thumbHeight) * _combo.top / (TG_TUNES_NUM_TUNES - visible));
+	int16 thumbHeight = MAX<int16>(8, (int16)(trackHeight * visible / _numTunes));
+	int16 thumbTop = up.bottom + (int16)((trackHeight - thumbHeight) * _combo.top / (_numTunes - visible));
 	Common::Rect thumb(strip.left, thumbTop, strip.right, thumbTop + thumbHeight);
 
 	_popup.fillRect(strip, gray);
@@ -626,7 +715,7 @@ void TunesPlayerEngine::pollEvents() {
 		case Common::EVENT_WHEELUP:
 		case Common::EVENT_WHEELDOWN:
 			if (_combo.dropped) {
-				int maxTop = MAX(0, TG_TUNES_NUM_TUNES - comboVisibleItems());
+				int maxTop = MAX(0, _numTunes - comboVisibleItems());
 
 				_combo.top = CLIP(_combo.top + ((event.type == Common::EVENT_WHEELUP) ? -1 : 1), 0, maxTop);
 				drawCombo();
@@ -651,7 +740,7 @@ void TunesPlayerEngine::onMouseDown(const Common::Point &position) {
 
 		_combo.dropped = true;
 		_combo.hover = _combo.selected;
-		_combo.top = CLIP(_combo.selected - visible / 2, 0, MAX(0, TG_TUNES_NUM_TUNES - visible));
+		_combo.top = CLIP(_combo.selected - visible / 2, 0, MAX(0, _numTunes - visible));
 		drawCombo();
 		return;
 	}
@@ -728,17 +817,17 @@ bool TunesPlayerEngine::handleComboMouseDown(const Common::Point &position) {
 	}
 
 	int visible = comboVisibleItems();
-	bool scrollbar = (TG_TUNES_NUM_TUNES > visible);
+	bool scrollbar = (_numTunes > visible);
 	int16 stripLeft = _combo.listRect.right - 1 - TG_TUNES_SCROLLBAR_WIDTH;
 
 	if (scrollbar && _combo.listRect.contains(position) && position.x >= stripLeft) {
-		int maxTop = TG_TUNES_NUM_TUNES - visible;
+		int maxTop = _numTunes - visible;
 
 		if (position.y < _combo.listRect.top + 1 + TG_TUNES_SCROLLBAR_WIDTH)
 			_combo.top = MAX(0, _combo.top - 1);
 		else if (position.y >= _combo.listRect.bottom - 1 - TG_TUNES_SCROLLBAR_WIDTH)
 			_combo.top = MIN(maxTop, _combo.top + 1);
-		else if (position.y < _combo.listRect.top + 1 + TG_TUNES_SCROLLBAR_WIDTH + (_combo.listRect.height() - 2 - 2 * TG_TUNES_SCROLLBAR_WIDTH) * _combo.top / TG_TUNES_NUM_TUNES)
+		else if (position.y < _combo.listRect.top + 1 + TG_TUNES_SCROLLBAR_WIDTH + (_combo.listRect.height() - 2 - 2 * TG_TUNES_SCROLLBAR_WIDTH) * _combo.top / _numTunes)
 			_combo.top = MAX(0, _combo.top - visible);
 		else
 			_combo.top = MIN(maxTop, _combo.top + visible);
@@ -760,14 +849,14 @@ int TunesPlayerEngine::comboVisibleItems() const {
 int TunesPlayerEngine::comboItemAt(const Common::Point &position) const {
 	const Graphics::Font *font = FontMan.getFontByUsage(Graphics::FontManager::kBigGUIFont);
 	int visible = comboVisibleItems();
-	int16 right = _combo.listRect.right - 1 - ((TG_TUNES_NUM_TUNES > visible) ? TG_TUNES_SCROLLBAR_WIDTH : 0);
+	int16 right = _combo.listRect.right - 1 - ((_numTunes > visible) ? TG_TUNES_SCROLLBAR_WIDTH : 0);
 
 	if (!_combo.listRect.contains(position) || position.x >= right || position.y < _combo.listRect.top + 1)
 		return -1;
 
 	int item = _combo.top + (position.y - _combo.listRect.top - 1) / (font->getFontHeight() + 2);
 
-	return (item < TG_TUNES_NUM_TUNES && item < _combo.top + visible) ? item : -1;
+	return (item < _numTunes && item < _combo.top + visible) ? item : -1;
 }
 
 void TunesPlayerEngine::setComboSelection(int index) {
@@ -794,11 +883,14 @@ void TunesPlayerEngine::onButtonClick(int index) {
 		break;
 
 	case kButtonHelp:
-		warning("TunesPlayerEngine::onButtonClick(): the help file TUNES.HLP is not supported");
+		warning("TunesPlayerEngine::onButtonClick(): the help file %s is not supported", _helpFileName.c_str());
 		break;
 
 	case kButtonMascot:
-		playWaveResource(TG_TUNES_MASCOT_WAVE);
+		// The mascot of the jukebox is silent
+		if (!_jukebox)
+			playWaveResource(TG_TUNES_MASCOT_WAVE);
+
 		break;
 
 	case kButtonPlay: {
@@ -880,13 +972,19 @@ void TunesPlayerEngine::changeSelection(int direction) {
 	int current = _combo.selected;
 
 	if (direction != 5 && current <= 0) {
-		if (_playing)
+		if (_playing) {
+			if (_jukebox) {
+				audioLibrary()->audioCommand(TG_TUNES_COMMAND_STOP_CD, 0, 0, nullptr);
+				_playing = false;
+			}
+
 			setTransportState(kTransportStopped);
+		}
 
 		return;
 	}
 
-	int next = (direction == 5) ? ((current < TG_TUNES_NUM_TUNES - 1) ? current + 1 : 0) : current - 1;
+	int next = (direction == 5) ? ((current < _numTunes - 1) ? current + 1 : 0) : current - 1;
 
 	setComboSelection(next);
 	drawCombo();
@@ -902,7 +1000,7 @@ void TunesPlayerEngine::changeSelection(int direction) {
 }
 
 void TunesPlayerEngine::playSelectedTune() {
-	const Tune &tune = kTunes[_combo.selected];
+	const Tune &tune = _tunes[_combo.selected];
 	uint32 track = tune.track;
 
 	if (audioLibrary()->audioCommand(TG_TUNES_COMMAND_PLAY_TRACK, 0, (track << 8) | track, nullptr) == 0) {
@@ -948,8 +1046,46 @@ bool TunesPlayerEngine::checkCdPresent() {
 	if (audioLibrary()->audioCommand(TG_TUNES_COMMAND_GET_TRACKS, 0, 0, nullptr) == TG_TUNES_NUM_DISC_TRACKS)
 		return true;
 
-	GUIErrorMessage("Please put the TuneLand CD in your CD-ROM drive.");
+	GUI::MessageDialog dialog(Common::U32String(_cdMessage, Common::kWindows1252));
+	dialog.runModal();
 	return false;
+}
+
+bool TunesPlayerEngine::checkCdAndReadTrackLengths() {
+	_cdMessage = _resources.loadString(TG_TUNES_STRING_INSERT_CD);
+	if (_cdMessage.empty())
+		return false;
+
+	while (!shouldQuit()) {
+		if (audioLibrary()->audioCommand(TG_TUNES_COMMAND_GET_TRACKS, 0, 0, nullptr) == TG_TUNES_NUM_DISC_TRACKS && readCdTrackLengths())
+			return true;
+
+		GUI::MessageDialog dialog(Common::U32String(_cdMessage, Common::kWindows1252), _("OK"), _("Cancel"));
+
+		if (dialog.runModal() == GUI::kMessageAlt)
+			return false;
+	}
+
+	return false;
+}
+
+bool TunesPlayerEngine::readCdTrackLengths() {
+	uint32 lengths[TG_TUNES_NUM_JUKEBOX_LENGTHS];
+
+	if (audioLibrary()->audioGetCdTrackLengths(TG_TUNES_FIRST_TUNE_TRACK, TG_TUNES_LAST_JUKEBOX_TRACK, lengths) != TG_TUNES_NUM_JUKEBOX_LENGTHS)
+		return false;
+
+	int tune = 0;
+
+	// The tunes are in track order, some tracks have no tune
+	for (int i = 0; i < TG_TUNES_NUM_JUKEBOX_LENGTHS; i++) {
+		if (_tunes[tune].track - i == TG_TUNES_FIRST_TUNE_TRACK) {
+			_tunes[tune].lengthMs = lengths[i];
+			tune++;
+		}
+	}
+
+	return true;
 }
 
 void TunesPlayerEngine::closePlayer() {

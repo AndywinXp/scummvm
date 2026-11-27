@@ -330,7 +330,7 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 	if (!isRecordIndexValid(index, "spriteBitmapProvider"))
 		return nullptr;
 
-	if (_version >= kVersionV1_2_2) {
+	if (_version >= kVersionV1_2_1) {
 		ResourceRecord &record = _records[index];
 
 		if (release) {
@@ -345,7 +345,7 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 		}
 
 		uint16 type = resourceLib()->resGetType(_file, index);
-		uint16 bitmapGroupType = kResV1_2_2BitmapGroup;
+		uint16 bitmapGroupType = kResV1_2_1BitmapGroup;
 		bool loaded = false;
 
 		if (_version >= kVersionV1_2_10)
@@ -354,6 +354,8 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 			bitmapGroupType = kResV1_2_5BitmapGroup;
 		else if (_version >= kVersionV1_2_2_1)
 			bitmapGroupType = kResV1_2_3BitmapGroup;
+		else if (_version >= kVersionV1_2_2)
+			bitmapGroupType = kResV1_2_2BitmapGroup;
 
 		if (type == ((_version >= kVersionV1_2_2_2) ? kResV1_2_3Bitmap : kResV1_2_2Bitmap))
 			loaded = ensureBitmapResourceLoaded(id);
@@ -387,6 +389,11 @@ bool TopgunEngine_v1_2::rtStartup(bool runChecks) {
 	if (getGameId() == "battlebeast") {
 		addDemoDirectory("BEAST");
 		return runStartup("Battle Beast", "beast.bin");
+	}
+
+	if (getGameId() == "virgilreality") {
+		addDemoDirectory("VIRGIL");
+		return runStartup("Virgil Reality Sampler", "library.bin");
 	}
 
 	if (_version >= kVersionV1_2_1) {
