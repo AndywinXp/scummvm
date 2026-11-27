@@ -19,87 +19,87 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_3_H
-#define TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_3_H
+#ifndef TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_4_H
+#define TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_4_H
 
 #include "topgun/libraries/audio/audio_v1_2.h"
 
 // Library
-#define TG_AUDIO_V1_2_2_2_VERSION                 0x0400
+#define TG_AUDIO_V1_2_3_2_VERSION                 0x0400
 
 // INI value of MidiVolume that leaves the device volume alone
-#define TG_AUDIO_V1_2_3_INI_MIDI_VOLUME_UNSET     0
-#define TG_AUDIO_V1_2_8_INI_MIDI_VOLUME_UNSET     1
+#define TG_AUDIO_V1_2_4_INI_MIDI_VOLUME_UNSET     0
+#define TG_AUDIO_V1_2_10_INI_MIDI_VOLUME_UNSET    1
 
 // Source procedures
-#define TG_AUDIO_V1_2_2_2_PROC_NONE               0
-#define TG_AUDIO_V1_2_2_2_PROC_RESOURCE_WAVE      1
-#define TG_AUDIO_V1_2_2_2_PROC_MOVIE_AUDIO        2
-#define TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI        3
+#define TG_AUDIO_V1_2_3_2_PROC_NONE               0
+#define TG_AUDIO_V1_2_3_2_PROC_RESOURCE_WAVE      1
+#define TG_AUDIO_V1_2_3_2_PROC_MOVIE_AUDIO        2
+#define TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI        3
 
 // Default wave format: 22050 Hz, mono, 16 bit
-#define TG_AUDIO_V1_2_3_DEFAULT_FORMAT_TAG        0x40
-#define TG_AUDIO_V1_2_3_DEFAULT_SAMPLE_RATE       22050
-#define TG_AUDIO_V1_2_3_DEFAULT_BYTES_PER_SECOND  44100
-#define TG_AUDIO_V1_2_3_DEFAULT_BLOCK_ALIGN       2
-#define TG_AUDIO_V1_2_3_DEFAULT_BITS_PER_SAMPLE   16
+#define TG_AUDIO_V1_2_4_DEFAULT_FORMAT_TAG        0x40
+#define TG_AUDIO_V1_2_4_DEFAULT_SAMPLE_RATE       22050
+#define TG_AUDIO_V1_2_4_DEFAULT_BYTES_PER_SECOND  44100
+#define TG_AUDIO_V1_2_4_DEFAULT_BLOCK_ALIGN       2
+#define TG_AUDIO_V1_2_4_DEFAULT_BITS_PER_SAMPLE   16
 
 // Sound creation header
-#define TG_AUDIO_V1_2_2_2_CREATE_HEADER_SIZE      0x1A
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_LENGTH      0x00
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_PRELOAD     0x04
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_EXEMPT      0x05
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_ADPCM       0x06
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_NOTIFY      0x08
-#define TG_AUDIO_V1_2_2_2_INFO_OFFSET_FORMAT      0x0A
-#define TG_AUDIO_V1_2_2_3_INFO_OFFSET_PRIORITY    0x07
+#define TG_AUDIO_V1_2_3_2_CREATE_HEADER_SIZE      0x1A
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_LENGTH      0x00
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_PRELOAD     0x04
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_EXEMPT      0x05
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_ADPCM       0x06
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_NOTIFY      0x08
+#define TG_AUDIO_V1_2_3_2_INFO_OFFSET_FORMAT      0x0A
+#define TG_AUDIO_V1_2_3_3_INFO_OFFSET_PRIORITY    0x07
 
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_PRIORITY      0x08
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_NOTIFY        0x0A
-#define TG_AUDIO_V1_2_3_INFO_OFFSET_FORMAT        0x0C
+#define TG_AUDIO_V1_2_4_INFO_OFFSET_PRIORITY      0x08
+#define TG_AUDIO_V1_2_4_INFO_OFFSET_NOTIFY        0x0A
+#define TG_AUDIO_V1_2_4_INFO_OFFSET_FORMAT        0x0C
 
 // Play parameters block (0x18 bytes)
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_LOOPS       0x00
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_SET_VOLUME  0x02
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY      0x03
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NO_FLUSH    0x04
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_VOLUME      0x05
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_IN     0x06
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_FADE_OUT    0x0A
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MIN  0x0E
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_RANDOM_MAX  0x12
-#define TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY_PARAM 0x16
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_LOOPS       0x00
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_SET_VOLUME  0x02
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY      0x03
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NO_FLUSH    0x04
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_VOLUME      0x05
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_IN     0x06
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_OUT    0x0A
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MIN  0x0E
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MAX  0x12
+#define TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM 0x16
 
 // MIDI creation header
-#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_SIZE        4
-#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_SIZE 0
-#define TG_AUDIO_V1_2_2_2_MIDI_HEADER_OFFSET_NOTIFY 2
+#define TG_AUDIO_V1_2_3_2_MIDI_HEADER_SIZE        4
+#define TG_AUDIO_V1_2_3_2_MIDI_HEADER_OFFSET_SIZE 0
+#define TG_AUDIO_V1_2_3_2_MIDI_HEADER_OFFSET_NOTIFY 2
 
 // MIDI play parameters block (6 bytes)
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_RECORD_SIZE   6
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_PARAM  4
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_RECORD_SIZE   6
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_OFFSET_PARAM  4
 
 // MIDI setting block (10 bytes)
-#define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_MUTE    0
-#define TG_AUDIO_V1_2_2_2_MIDI_SET_OFFSET_TEMPO   1
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_DENOMINATOR 6
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_NUMERATOR 8
+#define TG_AUDIO_V1_2_3_2_MIDI_SET_OFFSET_MUTE    0
+#define TG_AUDIO_V1_2_3_2_MIDI_SET_OFFSET_TEMPO   1
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_OFFSET_DENOMINATOR 6
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_OFFSET_NUMERATOR 8
 
 // MIDI events
-#define TG_AUDIO_V1_2_2_2_MIDI_DRUM_CHANNEL       9
-#define TG_AUDIO_V1_2_2_2_MIDI_REMAPPED_CHANNEL   0x0F
-#define TG_AUDIO_V1_2_2_3_MIDI_MIN_DELAY          3
+#define TG_AUDIO_V1_2_3_2_MIDI_DRUM_CHANNEL       9
+#define TG_AUDIO_V1_2_3_2_MIDI_REMAPPED_CHANNEL   0x0F
+#define TG_AUDIO_V1_2_3_3_MIDI_MIN_DELAY          3
 
 namespace Topgun {
 
-class TopgunEngine_v1_2_3;
+class TopgunEngine_v1_2_4;
 
-class AudioLibrary_v1_2_3 : public AudioLibrary_v1_2 {
+class AudioLibrary_v1_2_4 : public AudioLibrary_v1_2 {
 	friend class AudioLibrary_v1_2;
 
 public:
-	AudioLibrary_v1_2_3(TopgunEngine_v1_2_3 *engine);
-	~AudioLibrary_v1_2_3() override;
+	AudioLibrary_v1_2_4(TopgunEngine_v1_2_4 *engine);
+	~AudioLibrary_v1_2_4() override;
 
 	// Library
 	uint16 audioInitLibrary(uint16 hwnd, uint16 version);
@@ -179,9 +179,9 @@ protected:
 	uint32 _midiCatchUpTime = 0;
 
 private:
-	TopgunEngine_v1_2_3 *engine() const;
+	TopgunEngine_v1_2_4 *engine() const;
 };
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_3_H
+#endif // TOPGUN_LIBRARIES_AUDIO_AUDIO_V1_2_4_H

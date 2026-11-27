@@ -63,32 +63,32 @@
 #define TG_RES_V1_2_1_NOTIFY_BITMAP_ERROR          0x590
 
 // Container header of the version with the table of block positions (Peter and the Wolf)
-#define TG_RES_V1_2_2_HEADER_SIZE                  0xB8
-#define TG_RES_V1_2_2_HEADER_VARIABLE_PAIR_COUNT_OFFSET 0x66
-#define TG_RES_V1_2_2_HEADER_STRING_COUNT_OFFSET   0x6A
-#define TG_RES_V1_2_2_HEADER_STRING_POOL_SIZE_OFFSET 0x6C
-#define TG_RES_V1_2_2_HEADER_RESIDENT_SPLIT_OFFSET 0x6E
-#define TG_RES_V1_2_2_HEADER_RESIDENT_SIZE_OFFSET  0x72
-#define TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_SIZE_OFFSET 0x76
-#define TG_RES_V1_2_2_HEADER_INDEX_POSITION_OFFSET 0x82
-#define TG_RES_V1_2_2_HEADER_RECORDS_POSITION_OFFSET 0x86
-#define TG_RES_V1_2_2_HEADER_VARIABLE_TABLE_POSITION_OFFSET 0x8A
-#define TG_RES_V1_2_2_HEADER_VARIABLE_PAIRS_POSITION_OFFSET 0x8E
-#define TG_RES_V1_2_2_HEADER_STRING_POOL_POSITION_OFFSET 0x92
-#define TG_RES_V1_2_2_HEADER_RESIDENT_POSITION_OFFSET 0x96
-#define TG_RES_V1_2_2_HEADER_MOVIE_BUFFER_POSITION_OFFSET 0x9A
-#define TG_RES_V1_2_2_HEADER_PALETTE_POSITION_OFFSET 0x9E
-#define TG_RES_V1_2_2_HEADER_NAME_TABLE_POSITION_OFFSET 0xA2
-#define TG_RES_V1_2_2_HEADER_LIBRARY_NAME_OFFSET   0xAA
+#define TG_RES_V1_2_3_HEADER_SIZE                  0xB8
+#define TG_RES_V1_2_3_HEADER_VARIABLE_PAIR_COUNT_OFFSET 0x66
+#define TG_RES_V1_2_3_HEADER_STRING_COUNT_OFFSET   0x6A
+#define TG_RES_V1_2_3_HEADER_STRING_POOL_SIZE_OFFSET 0x6C
+#define TG_RES_V1_2_3_HEADER_RESIDENT_SPLIT_OFFSET 0x6E
+#define TG_RES_V1_2_3_HEADER_RESIDENT_SIZE_OFFSET  0x72
+#define TG_RES_V1_2_3_HEADER_MOVIE_BUFFER_SIZE_OFFSET 0x76
+#define TG_RES_V1_2_3_HEADER_INDEX_POSITION_OFFSET 0x82
+#define TG_RES_V1_2_3_HEADER_RECORDS_POSITION_OFFSET 0x86
+#define TG_RES_V1_2_3_HEADER_VARIABLE_TABLE_POSITION_OFFSET 0x8A
+#define TG_RES_V1_2_3_HEADER_VARIABLE_PAIRS_POSITION_OFFSET 0x8E
+#define TG_RES_V1_2_3_HEADER_STRING_POOL_POSITION_OFFSET 0x92
+#define TG_RES_V1_2_3_HEADER_RESIDENT_POSITION_OFFSET 0x96
+#define TG_RES_V1_2_3_HEADER_MOVIE_BUFFER_POSITION_OFFSET 0x9A
+#define TG_RES_V1_2_3_HEADER_PALETTE_POSITION_OFFSET 0x9E
+#define TG_RES_V1_2_3_HEADER_NAME_TABLE_POSITION_OFFSET 0xA2
+#define TG_RES_V1_2_3_HEADER_LIBRARY_NAME_OFFSET   0xAA
 
 // Resident types
 #define TG_RES_V1_2_RESIDENT_FIRST_TYPE            5
 #define TG_RES_V1_2_RESIDENT_LAST_TYPE             12
 #define TG_RES_V1_2_DISK_TYPE_IN_RESIDENT_RANGE    10
 #define TG_RES_V1_2_1_RESIDENT_LAST_TYPE           13
-#define TG_RES_V1_2_2_MOVIE_BUFFER_TYPE            6
-#define TG_RES_V1_2_2_RESIDENT_FIRST_TYPE          7
-#define TG_RES_V1_2_2_RESIDENT_LAST_TYPE           14
+#define TG_RES_V1_2_3_MOVIE_BUFFER_TYPE            6
+#define TG_RES_V1_2_3_RESIDENT_FIRST_TYPE          7
+#define TG_RES_V1_2_3_RESIDENT_LAST_TYPE           14
 
 // Variable table records
 #define TG_RES_V1_2_VARIABLE_RECORD_SIZE           0x1F
@@ -96,11 +96,11 @@
 #define TG_RES_V1_2_VARIABLE_USED_OFFSET           4
 #define TG_RES_V1_2_VARIABLE_NAME_OFFSET           5
 #define TG_RES_V1_2_VARIABLE_NAME_SIZE             26
-#define TG_RES_V1_2_2_VARIABLE_RECORD_SIZE         0x1C
-#define TG_RES_V1_2_2_VARIABLE_NAME_OFFSET         2
-#define TG_RES_V1_2_2_VARIABLE_PAIR_SIZE           4
-#define TG_RES_V1_2_2_MIDI_HEADER_SIZE             6
-#define TG_RES_V1_2_2_LIBRARY_NAME_SIZE            14
+#define TG_RES_V1_2_3_VARIABLE_RECORD_SIZE         0x1C
+#define TG_RES_V1_2_3_VARIABLE_NAME_OFFSET         2
+#define TG_RES_V1_2_3_VARIABLE_PAIR_SIZE           4
+#define TG_RES_V1_2_3_MIDI_HEADER_SIZE             6
+#define TG_RES_V1_2_3_LIBRARY_NAME_SIZE            14
 
 // Chained blocks: 0x1000 bytes, 0xFFC of data and 4 of link
 #define TG_RES_V1_2_CHAIN_DATA_SIZE                0xFFC
@@ -137,20 +137,20 @@
 #define TG_RES_V1_2_LZW_DEFAULT_CODE_WIDTH         11
 
 // Container header of the later version, which has its own library
-#define TG_RES_V1_2_3_HEADER_SIZE                  0x11E
-#define TG_RES_V1_2_3_MAX_RESIDENT_CHUNKS          16
+#define TG_RES_V1_2_4_HEADER_SIZE                  0x11E
+#define TG_RES_V1_2_4_MAX_RESIDENT_CHUNKS          16
 
 // Container header of the version after that: longer title, 24 resident chunks, longer library name
-#define TG_RES_V1_2_5_HEADER_SIZE                  0x142
-#define TG_RES_V1_2_5_MAX_RESIDENT_CHUNKS          24
-#define TG_RES_V1_2_5_HEADER_TITLE_MAX_SIZE        0x52
-#define TG_RES_V1_2_5_LIBRARY_NAME_SIZE            16
+#define TG_RES_V1_2_6_HEADER_SIZE                  0x142
+#define TG_RES_V1_2_6_MAX_RESIDENT_CHUNKS          24
+#define TG_RES_V1_2_6_HEADER_TITLE_MAX_SIZE        0x52
+#define TG_RES_V1_2_6_LIBRARY_NAME_SIZE            16
 
 // Container header of the version after that: platform tag, title moved after it, 32 resident chunks, no library name
-#define TG_RES_V1_2_10_HEADER_SIZE                 0x162
-#define TG_RES_V1_2_10_MAX_RESIDENT_CHUNKS         32
-#define TG_RES_V1_2_10_HEADER_TITLE_OFFSET         0x06
-#define TG_RES_V1_2_10_HEADER_TITLE_MAX_SIZE       0x50
+#define TG_RES_V1_2_12_HEADER_SIZE                 0x162
+#define TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS         32
+#define TG_RES_V1_2_12_HEADER_TITLE_OFFSET         0x06
+#define TG_RES_V1_2_12_HEADER_TITLE_MAX_SIZE       0x50
 
 namespace Topgun {
 
@@ -248,7 +248,7 @@ protected:
 	};
 
 	struct ResourceFile : public ResourceLibrary::ResourceFile {
-		byte header[TG_RES_V1_2_2_HEADER_SIZE];
+		byte header[TG_RES_V1_2_3_HEADER_SIZE];
 		uint16 recordCount;
 		uint16 paletteCount;
 		uint16 nameTableSize;
@@ -268,9 +268,9 @@ protected:
 		LzwState *lzwState;
 
 		// Fields of the later version
-		byte fullHeader[TG_RES_V1_2_10_HEADER_SIZE];
-		uint32 limits[TG_RES_V1_2_10_MAX_RESIDENT_CHUNKS + 1];
-		byte *residentChunks[TG_RES_V1_2_10_MAX_RESIDENT_CHUNKS];
+		byte fullHeader[TG_RES_V1_2_12_HEADER_SIZE];
+		uint32 limits[TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS + 1];
+		byte *residentChunks[TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS];
 		byte *variablePairs;
 		uint16 chunkCount;
 		uint16 maxFadeColors;
@@ -287,16 +287,16 @@ protected:
 			movieBuffer(nullptr), variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
 			variablePairs(nullptr), chunkCount(0), maxFadeColors(0), maxTransparentColors(0), extraSlots(0),
 			buildType(0), indexCount(0), variablePairCount(0), notifyWindow(0) {
-			for (uint16 i = 0; i < TG_RES_V1_2_2_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
 				header[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_10_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_12_HEADER_SIZE; i++)
 				fullHeader[i] = 0;
 
-			for (uint16 i = 0; i <= TG_RES_V1_2_10_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i <= TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS; i++)
 				limits[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_10_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i < TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS; i++)
 				residentChunks[i] = nullptr;
 		}
 	};

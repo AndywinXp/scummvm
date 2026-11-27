@@ -32,25 +32,25 @@
 #define TG_SPR_V1_2_EVENT_RECORD_SIZE          256
 #define TG_SPR_V1_2_NOTIFICATION_RECORD_SIZE   0x1E
 #define TG_SPR_V1_2_FRAME_NOTIFICATION         0x12
-#define TG_SPR_V1_2_6_FRAME_NOTIFICATION       0x13
+#define TG_SPR_V1_2_7_FRAME_NOTIFICATION       0x13
 #define TG_SPR_V1_2_UNION_REFRESH_LIMIT        32
 #define TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING       0xFFC0
 #define TG_SPR_V1_2_QUEUE_BLOCK_SLACK          0x3F
 
 // Limits of the versions after this one
 #define TG_SPR_V1_2_1_CEL_CACHE_SIZE           20
-#define TG_SPR_V1_2_2_FLIP_RECORD_SIZE         0x0C
-#define TG_SPR_V1_2_2_3_MAX_SPRITES            200
-#define TG_SPR_V1_2_3_MAX_SPRITES              250
-#define TG_SPR_V1_2_10_MAX_SPRITES             400
-#define TG_SPR_V1_2_10_QUEUE_BLOCK_ROUNDING    0xFFF0
-#define TG_SPR_V1_2_10_QUEUE_BLOCK_SLACK       0x0F
-#define TG_SPR_V1_2_2_1_LAST_QUEUE_OPCODE      22
-#define TG_SPR_V1_2_6_LAST_QUEUE_OPCODE        23
-#define TG_SPR_V1_2_2_1_FLIP_FLAG_MASK         0xFF00
-#define TG_SPR_V1_2_2_2_VARIABLE_LAST_INDEX    0x159E
+#define TG_SPR_V1_2_3_FLIP_RECORD_SIZE         0x0C
+#define TG_SPR_V1_2_3_3_MAX_SPRITES            200
+#define TG_SPR_V1_2_4_MAX_SPRITES              250
+#define TG_SPR_V1_2_12_MAX_SPRITES             400
+#define TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING    0xFFF0
+#define TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK       0x0F
+#define TG_SPR_V1_2_3_1_LAST_QUEUE_OPCODE      22
+#define TG_SPR_V1_2_7_LAST_QUEUE_OPCODE        23
+#define TG_SPR_V1_2_3_1_FLIP_FLAG_MASK         0xFF00
+#define TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX    0x159E
 // A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
-#define TG_SPR_V1_2_2_2_LITERAL_BIAS           0x7531
+#define TG_SPR_V1_2_3_2_LITERAL_BIAS           0x7531
 
 // Bitmap header
 #define TG_SPR_V1_2_BITMAP_HEADER_SIZE         0x14
@@ -94,43 +94,43 @@ enum SpriteQueueOpcode_v1_2 {
 	kSprV1_2OpMovieFrame
 };
 
-enum SpriteQueueOpcode_v1_2_3 {
-	kSprV1_2_3OpPlayRange = 1,
-	kSprV1_2_3OpMultiCel,
-	kSprV1_2_3OpReserved3,
-	kSprV1_2_3OpCompositeBackground,
-	kSprV1_2_3OpQuadPath,
-	kSprV1_2_3OpLoop,
-	kSprV1_2_3OpFlip,
-	kSprV1_2_3OpHide,
-	kSprV1_2_3OpLinearMove,
-	kSprV1_2_3OpDelayedMove,
-	kSprV1_2_3OpWait,
-	kSprV1_2_3OpSetPosition,
-	kSprV1_2_3OpTimingMode,
-	kSprV1_2_3OpFrameInterval,
-	kSprV1_2_3OpSetRange,
-	kSprV1_2_3OpMoveInterval,
-	kSprV1_2_3OpShowFrame,
-	kSprV1_2_3OpReserved18,
-	kSprV1_2_3OpHostEvent,
-	kSprV1_2_3OpHostEventPayload,
-	kSprV1_2_3OpHostEventFixed,
-	kSprV1_2_3OpMovieFrame
+enum SpriteQueueOpcode_v1_2_4 {
+	kSprV1_2_4OpPlayRange = 1,
+	kSprV1_2_4OpMultiCel,
+	kSprV1_2_4OpReserved3,
+	kSprV1_2_4OpCompositeBackground,
+	kSprV1_2_4OpQuadPath,
+	kSprV1_2_4OpLoop,
+	kSprV1_2_4OpFlip,
+	kSprV1_2_4OpHide,
+	kSprV1_2_4OpLinearMove,
+	kSprV1_2_4OpDelayedMove,
+	kSprV1_2_4OpWait,
+	kSprV1_2_4OpSetPosition,
+	kSprV1_2_4OpTimingMode,
+	kSprV1_2_4OpFrameInterval,
+	kSprV1_2_4OpSetRange,
+	kSprV1_2_4OpMoveInterval,
+	kSprV1_2_4OpShowFrame,
+	kSprV1_2_4OpReserved18,
+	kSprV1_2_4OpHostEvent,
+	kSprV1_2_4OpHostEventPayload,
+	kSprV1_2_4OpHostEventFixed,
+	kSprV1_2_4OpMovieFrame
 };
 
 // Queue opcodes of the games that renumber them: 14 is new and the following ones move up by one
-enum SpriteQueueOpcode_v1_2_6 {
-	kSprV1_2_6OpSetActive = 14,
-	kSprV1_2_6OpFrameInterval,
-	kSprV1_2_6OpSetRange,
-	kSprV1_2_6OpMoveInterval,
-	kSprV1_2_6OpShowFrame,
-	kSprV1_2_6OpReserved19,
-	kSprV1_2_6OpHostEvent,
-	kSprV1_2_6OpHostEventPayload,
-	kSprV1_2_6OpHostEventFixed,
-	kSprV1_2_6OpMovieFrame
+enum SpriteQueueOpcode_v1_2_7 {
+	kSprV1_2_7OpSetActive = 14,
+	kSprV1_2_7OpFrameInterval,
+	kSprV1_2_7OpSetRange,
+	kSprV1_2_7OpMoveInterval,
+	kSprV1_2_7OpShowFrame,
+	kSprV1_2_7OpReserved19,
+	kSprV1_2_7OpHostEvent,
+	kSprV1_2_7OpHostEventPayload,
+	kSprV1_2_7OpHostEventFixed,
+	kSprV1_2_7OpMovieFrame
 };
 
 struct CelReference {

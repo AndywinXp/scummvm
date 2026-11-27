@@ -23,9 +23,9 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
-#include "topgun/libraries/sprite/sprite_v1_2_3.h"
+#include "topgun/libraries/sprite/sprite_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -92,93 +92,93 @@ bool SpriteLibrary_v1_2::spriteSendMessage(uint16 sprite, uint16 count, const ui
 	return result;
 }
 
-bool SpriteLibrary_v1_2_3::spritePostMessage(uint16 sprite, uint16 count, const uint16 *words) {
+bool SpriteLibrary_v1_2_4::spritePostMessage(uint16 sprite, uint16 count, const uint16 *words) {
 	return dispatchSpriteMessage(0, count, words, sprite);
 }
 
-bool SpriteLibrary_v1_2_3::spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words) {
+bool SpriteLibrary_v1_2_4::spriteSendMessage(uint16 sprite, uint16 count, const uint16 *words) {
 	return dispatchSpriteMessage(1, count, words, sprite);
 }
 
-bool SpriteLibrary_v1_2_3::dispatchSpriteMessage(uint16 mode, uint16 count, const uint16 *words, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::dispatchSpriteMessage(uint16 mode, uint16 count, const uint16 *words, uint16 sprite) {
 	if (!words) {
-		warning("SpriteLibrary_v1_2_3::dispatchSpriteMessage(): the message has no words");
+		warning("SpriteLibrary_v1_2_4::dispatchSpriteMessage(): the message has no words");
 		return false;
 	}
 
 	const uint16 *params = words + 1;
 	uint16 message = words[0];
 
-	if (_engine->_version >= kVersionV1_2_10) {
-		if (message == kSprV1_2_10MsgMarkLoopStart)
+	if (_engine->_version >= kVersionV1_2_12) {
+		if (message == kSprV1_2_12MsgMarkLoopStart)
 			return markQueueLoopStart(mode, sprite);
 
-		if (message == kSprV1_2_10MsgLoopJump)
+		if (message == kSprV1_2_12MsgLoopJump)
 			return buildQueueLoopJumpMessage(mode, count, params, sprite);
 	}
 
-	if (_engine->_version >= kVersionV1_2_6) {
-		if (message == kSprV1_2_6MsgDelayedMove)
+	if (_engine->_version >= kVersionV1_2_7) {
+		if (message == kSprV1_2_7MsgDelayedMove)
 			return buildDelayedMoveMessage(mode, count, params, sprite);
 
-		if (message == kSprV1_2_6MsgSetActive)
+		if (message == kSprV1_2_7MsgSetActive)
 			return buildSetActiveMessage(mode, params, sprite);
 
-		if (message >= kSprV1_2_6MsgFrameInterval && message <= kSprV1_2_6MsgShowFrame)
+		if (message >= kSprV1_2_7MsgFrameInterval && message <= kSprV1_2_7MsgShowFrame)
 			message--;
-		else if (message == kSprV1_2_6MsgHostEvent)
-			message = kSprV1_2_3MsgHostEvent;
-		else if (message > kSprV1_2_6MsgSetActive)
+		else if (message == kSprV1_2_7MsgHostEvent)
+			message = kSprV1_2_4MsgHostEvent;
+		else if (message > kSprV1_2_7MsgSetActive)
 			return false;
 	}
 
 	switch (message) {
-	case kSprV1_2_3MsgPlayRange:
+	case kSprV1_2_4MsgPlayRange:
 		return buildPlayRangeMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgMultiCel:
-		if (_engine->_version == kVersionV1_2_2_1)
+	case kSprV1_2_4MsgMultiCel:
+		if (_engine->_version == kVersionV1_2_3_1)
 			return false;
 
 		return buildMultiCelMessage(mode, count, params, sprite);
 
-	case kSprV1_2_3MsgComposite:
+	case kSprV1_2_4MsgComposite:
 		return buildCompositeMessage(mode, sprite);
 
-	case kSprV1_2_3MsgQuadPath:
+	case kSprV1_2_4MsgQuadPath:
 		return buildQuadPathMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgFlip:
+	case kSprV1_2_4MsgFlip:
 		return buildFlipMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgHide:
+	case kSprV1_2_4MsgHide:
 		return buildHideMessage(mode, sprite);
 
-	case kSprV1_2_3MsgLinearMove:
+	case kSprV1_2_4MsgLinearMove:
 		return buildLinearMoveMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgWait:
+	case kSprV1_2_4MsgWait:
 		return buildWaitMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgSetPosition:
+	case kSprV1_2_4MsgSetPosition:
 		return buildSetPositionMessage(mode, count, params, sprite);
 
-	case kSprV1_2_3MsgTimingMode:
+	case kSprV1_2_4MsgTimingMode:
 		return buildTimingModeMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgFrameInterval:
+	case kSprV1_2_4MsgFrameInterval:
 		return buildFrameIntervalMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgSetRange:
+	case kSprV1_2_4MsgSetRange:
 		return buildSetRangeMessage(mode, params, sprite);
 
-	case kSprV1_2_3MsgMoveInterval:
+	case kSprV1_2_4MsgMoveInterval:
 		return buildMoveIntervalMessage(mode, count, params, sprite);
 
-	case kSprV1_2_3MsgShowFrame:
+	case kSprV1_2_4MsgShowFrame:
 		return buildShowFrameMessage(mode, count, params, sprite);
 
-	case kSprV1_2_3MsgHostEvent:
+	case kSprV1_2_4MsgHostEvent:
 		return buildHostEventMessage(mode, count, params, sprite);
 
 	default:
@@ -200,9 +200,9 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 
 	uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 	uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-	if (_engine->_version >= kVersionV1_2_10) {
-		slack = TG_SPR_V1_2_10_QUEUE_BLOCK_SLACK;
-		rounding = TG_SPR_V1_2_10_QUEUE_BLOCK_ROUNDING;
+	if (_engine->_version >= kVersionV1_2_12) {
+		slack = TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK;
+		rounding = TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING;
 	}
 
 	uint32 capacity = (uint16)(size + slack) & rounding;
@@ -213,7 +213,7 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 		return nullptr;
 
 	object->queueStart = block;
-	object->queueCurrent = (_engine->_version >= kVersionV1_2_2_1) ? nullptr : block;
+	object->queueCurrent = (_engine->_version >= kVersionV1_2_3_1) ? nullptr : block;
 	object->queueEnd = block + size;
 	object->queueCapacityStart = block;
 	object->queueCapacity = capacity;
@@ -240,9 +240,9 @@ byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 explicitSize, uint16 opcode,
 	if (needed > capacity) {
 		uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 		uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-		if (_engine->_version >= kVersionV1_2_10) {
-			slack = TG_SPR_V1_2_10_QUEUE_BLOCK_SLACK;
-			rounding = TG_SPR_V1_2_10_QUEUE_BLOCK_ROUNDING;
+		if (_engine->_version >= kVersionV1_2_12) {
+			slack = TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK;
+			rounding = TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING;
 		}
 
 		uint32 newCapacity = (uint16)(needed + slack) & rounding;
@@ -292,7 +292,7 @@ void SpriteLibrary_v1_2::runImmediateRecord(byte *record, uint16 sprite) {
 }
 
 bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0 && _engine->_version >= kVersionV1_2_2_1)
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3_1)
 		resetQueueForImmediate(sprite);
 
 	byte *record = allocQueueRecord(0, kSprV1_2OpPlayRange, sprite);
@@ -310,7 +310,7 @@ bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params
 	} else {
 		WRITE_LE_UINT16(record + 2, (uint16)(READ_LE_UINT16(record + 2) - _literalBias));
 		WRITE_LE_UINT16(record + 4, (uint16)(READ_LE_UINT16(record + 4) - _literalBias));
-		if (_engine->_version >= kVersionV1_2_3)
+		if (_engine->_version >= kVersionV1_2_4)
 			WRITE_LE_UINT16(record + 8, (uint16)(READ_LE_UINT16(record + 8) - _literalBias));
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildPlayRangeMessage");
@@ -321,10 +321,10 @@ bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	uint16 paramCount = (uint16)(count - 2);
-	uint16 maxParamCount = (_engine->_version >= kVersionV1_2_6_1) ? 11 : 5;
-	if (_engine->_version == kVersionV1_2_2_2) {
+	uint16 maxParamCount = (_engine->_version >= kVersionV1_2_7_1) ? 11 : 5;
+	if (_engine->_version == kVersionV1_2_3_2) {
 		if (count < 2)
 			return false;
 	} else if (paramCount < 3 || paramCount > maxParamCount) {
@@ -336,39 +336,39 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 
 	uint16 explicitSize = 0;
 	uint16 celsOffset = 2;
-	if (_engine->_version >= kVersionV1_2_6_1) {
+	if (_engine->_version >= kVersionV1_2_7_1) {
 		explicitSize = (uint16)((paramCount + 3) * 2);
 		celsOffset = 8;
 	}
 
-	byte *record = allocQueueRecord(explicitSize, kSprV1_2_3OpMultiCel, sprite);
+	byte *record = allocQueueRecord(explicitSize, kSprV1_2_4OpMultiCel, sprite);
 	if (!record)
 		return false;
 
 	uint16 frames = (uint16)(paramCount - 1);
 
 	// Bug in the original: this count reads past the end of the parameters
-	if (_engine->_version == kVersionV1_2_2_2) {
+	if (_engine->_version == kVersionV1_2_3_2) {
 		frames = (uint16)(count - 1);
-		if (frames > TG_SPR_V1_2_2_2_MAX_MULTI_CEL_FRAMES) {
-			warning("SpriteLibrary_v1_2_3::buildMultiCelMessage(): %d cels do not fit in the record", frames);
-			frames = TG_SPR_V1_2_2_2_MAX_MULTI_CEL_FRAMES;
+		if (frames > TG_SPR_V1_2_3_2_MAX_MULTI_CEL_FRAMES) {
+			warning("SpriteLibrary_v1_2_4::buildMultiCelMessage(): %d cels do not fit in the record", frames);
+			frames = TG_SPR_V1_2_3_2_MAX_MULTI_CEL_FRAMES;
 		}
 	}
 
 	for (uint16 i = 0; i < frames; i++) {
 		uint16 cel = params[i];
-		if (_engine->_version != kVersionV1_2_2_2)
+		if (_engine->_version != kVersionV1_2_3_2)
 			cel = (uint16)(cel - _literalBias);
 
 		WRITE_LE_UINT16(record + celsOffset + 2 * i, cel);
 	}
 
-	if (_engine->_version >= kVersionV1_2_6_1) {
+	if (_engine->_version >= kVersionV1_2_7_1) {
 		WRITE_LE_UINT16(record + 2, (uint16)(params[frames] - _literalBias));
 		WRITE_LE_UINT16(record + 6, frames);
 		WRITE_LE_UINT16(record + 4, 0);
-	} else if (_engine->_version >= kVersionV1_2_5) {
+	} else if (_engine->_version >= kVersionV1_2_6) {
 		WRITE_LE_UINT16(record + 0x0A, (uint16)(params[frames] - _literalBias));
 		WRITE_LE_UINT16(record + 0x0E, frames);
 		WRITE_LE_UINT16(record + 0x0C, 0);
@@ -381,7 +381,7 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 	if (mode != 0) {
 		runImmediateRecord(record, sprite);
 	} else {
-		if (_engine->_version >= kVersionV1_2_3 && _engine->_version < kVersionV1_2_5)
+		if (_engine->_version >= kVersionV1_2_4 && _engine->_version < kVersionV1_2_6)
 			WRITE_LE_UINT16(record + 0x0A, (uint16)(READ_LE_UINT16(record + 0x0A) - _literalBias));
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildMultiCelMessage");
@@ -392,7 +392,7 @@ bool SpriteLibrary_v1_2_3::buildMultiCelMessage(uint16 mode, uint16 count, const
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::markQueueLoopStart(uint16 mode, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::markQueueLoopStart(uint16 mode, uint16 sprite) {
 	if (mode != 0)
 		return true;
 
@@ -404,7 +404,7 @@ bool SpriteLibrary_v1_2_3::markQueueLoopStart(uint16 mode, uint16 sprite) {
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildQueueLoopJumpMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildQueueLoopJumpMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	if (mode != 0)
 		return true;
 
@@ -431,17 +431,17 @@ bool SpriteLibrary_v1_2_3::buildQueueLoopJumpMessage(uint16 mode, uint16 count, 
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildCompositeMessage(uint16 mode, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildCompositeMessage(uint16 mode, uint16 sprite) {
 	if (mode != 0) {
 		compositeSpriteIntoBackground(sprite, 0);
 		return true;
 	}
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpCompositeBackground, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpCompositeBackground, sprite);
 	if (!record)
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildCompositeMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -451,7 +451,7 @@ bool SpriteLibrary_v1_2_3::buildCompositeMessage(uint16 mode, uint16 sprite) {
 }
 
 bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0 && _engine->_version >= kVersionV1_2_2_1)
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3_1)
 		resetQueueForImmediate(sprite);
 
 	byte *record = allocQueueRecord(0, kSprV1_2OpQuadPath, sprite);
@@ -463,7 +463,7 @@ bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params,
 		return false;
 
 	if (mode != 0) {
-		uint16 shift = (_engine->_version >= kVersionV1_2_2_1) ? 1 : 0;
+		uint16 shift = (_engine->_version >= kVersionV1_2_3_1) ? 1 : 0;
 
 		WRITE_LE_INT16(record + 0x0D + shift, object->x);
 		WRITE_LE_INT16(record + 0x0F + shift, object->y);
@@ -488,7 +488,7 @@ bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params,
 		WRITE_LE_UINT16(record + 0x0A, (uint16)(params[2] - _literalBias));
 		WRITE_LE_UINT16(record + 0x0C, (uint16)(params[3] - _literalBias));
 		WRITE_LE_UINT16(record + 2, (uint16)(params[4] - _literalBias));
-		if (_engine->_version >= kVersionV1_2_5)
+		if (_engine->_version >= kVersionV1_2_6)
 			WRITE_LE_UINT16(record + 4, (params[5] != 0) ? 1 : 0);
 		else
 			record[4] = (params[5] != 0) ? 1 : 0;
@@ -500,8 +500,8 @@ bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params,
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildFlipMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0 && _engine->_version >= kVersionV1_2_3) {
+bool SpriteLibrary_v1_2_4::buildFlipMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+	if (mode != 0 && _engine->_version >= kVersionV1_2_4) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildFlipMessage");
 		if (!object)
 			return false;
@@ -511,7 +511,7 @@ bool SpriteLibrary_v1_2_3::buildFlipMessage(uint16 mode, const uint16 *params, u
 		bool flipY = (params[1] != 0);
 		uint16 current = (uint16)((mirrorX ? 1 : 0) | (flipY ? 0x100 : 0));
 
-		if (_engine->_version >= kVersionV1_2_6 && !object->active) {
+		if (_engine->_version >= kVersionV1_2_7 && !object->active) {
 			object->shadowMirrorX = mirrorX;
 			object->shadowFlipY = flipY;
 		} else {
@@ -532,7 +532,7 @@ bool SpriteLibrary_v1_2_3::buildFlipMessage(uint16 mode, const uint16 *params, u
 	if (mode != 0)
 		resetQueueForImmediate(sprite);
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpFlip, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpFlip, sprite);
 	if (!record)
 		return false;
 
@@ -543,7 +543,7 @@ bool SpriteLibrary_v1_2_3::buildFlipMessage(uint16 mode, const uint16 *params, u
 
 	if (mode != 0) {
 		runImmediateRecord(record, sprite);
-	} else if (_engine->_version < kVersionV1_2_3 || _engine->_version >= kVersionV1_2_5) {
+	} else if (_engine->_version < kVersionV1_2_4 || _engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildFlipMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -552,17 +552,17 @@ bool SpriteLibrary_v1_2_3::buildFlipMessage(uint16 mode, const uint16 *params, u
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildHideMessage(uint16 mode, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildHideMessage(uint16 mode, uint16 sprite) {
 	if (mode != 0) {
 		spriteHide(sprite, true);
 		return true;
 	}
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpHide, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpHide, sprite);
 	if (!record)
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildHideMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -572,7 +572,7 @@ bool SpriteLibrary_v1_2_3::buildHideMessage(uint16 mode, uint16 sprite) {
 }
 
 bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *params, uint16 sprite) {
-	if (mode != 0 && _engine->_version >= kVersionV1_2_2_1)
+	if (mode != 0 && _engine->_version >= kVersionV1_2_3_1)
 		resetQueueForImmediate(sprite);
 
 	byte *record = allocQueueRecord(0, kSprV1_2OpLinearMove, sprite);
@@ -583,7 +583,7 @@ bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *param
 	if (!object)
 		return false;
 
-	uint16 shift = (_engine->_version >= kVersionV1_2_5) ? 2 : 0;
+	uint16 shift = (_engine->_version >= kVersionV1_2_6) ? 2 : 0;
 
 	if (mode != 0) {
 		WRITE_LE_INT16(record + 0x0A + shift, object->x);
@@ -607,7 +607,7 @@ bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *param
 		WRITE_LE_UINT16(record + 8 + shift, (uint16)(params[1] - _literalBias));
 		WRITE_LE_UINT16(record + 2, (uint16)(params[2] - _literalBias));
 
-		if (_engine->_version >= kVersionV1_2_5) {
+		if (_engine->_version >= kVersionV1_2_6) {
 			WRITE_LE_UINT16(record + 4, (params[3] != 0) ? 1 : 0);
 			WRITE_LE_UINT16(record + 6, (params[4] != 0) ? 1 : 0);
 		} else {
@@ -622,11 +622,11 @@ bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *param
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildHostEventMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
-	if (_engine->_version < kVersionV1_2_2_3) {
-		uint16 maxCount = TG_SPR_V1_2_2_2_MAX_HOST_EVENT_COUNT;
-		if (_engine->_version == kVersionV1_2_2_1)
-			maxCount = TG_SPR_V1_2_2_1_MAX_HOST_EVENT_COUNT;
+bool SpriteLibrary_v1_2_4::buildHostEventMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+	if (_engine->_version < kVersionV1_2_3_3) {
+		uint16 maxCount = TG_SPR_V1_2_3_2_MAX_HOST_EVENT_COUNT;
+		if (_engine->_version == kVersionV1_2_3_1)
+			maxCount = TG_SPR_V1_2_3_1_MAX_HOST_EVENT_COUNT;
 
 		if (count == 0 || count > maxCount)
 			return false;
@@ -637,9 +637,9 @@ bool SpriteLibrary_v1_2_3::buildHostEventMessage(uint16 mode, uint16 count, cons
 	if (mode != 0)
 		resetQueueForImmediate(sprite);
 
-	uint16 opcode = kSprV1_2_3OpHostEventFixed;
-	if (_engine->_version >= kVersionV1_2_6)
-		opcode = kSprV1_2_6OpHostEventFixed;
+	uint16 opcode = kSprV1_2_4OpHostEventFixed;
+	if (_engine->_version >= kVersionV1_2_7)
+		opcode = kSprV1_2_7OpHostEventFixed;
 
 	byte *record = allocQueueRecord(0, opcode, sprite);
 	if (!record)
@@ -649,20 +649,20 @@ bool SpriteLibrary_v1_2_3::buildHostEventMessage(uint16 mode, uint16 count, cons
 
 	uint16 extraWords = (uint16)(count - 3);
 	// Bug in the original: this count reads past the end of the parameters
-	if (_engine->_version < kVersionV1_2_2_3)
+	if (_engine->_version < kVersionV1_2_3_3)
 		extraWords = count;
 
-	uint16 maxExtraWords = (_engine->_version >= kVersionV1_2_5) ? TG_SPR_V1_2_5_MAX_HOST_EVENT_WORDS : TG_SPR_V1_2_2_1_MAX_HOST_EVENT_WORDS;
+	uint16 maxExtraWords = (_engine->_version >= kVersionV1_2_6) ? TG_SPR_V1_2_6_MAX_HOST_EVENT_WORDS : TG_SPR_V1_2_3_1_MAX_HOST_EVENT_WORDS;
 	uint16 copiedWords = extraWords;
 	if (copiedWords > maxExtraWords) {
-		warning("SpriteLibrary_v1_2_3::buildHostEventMessage(): %d extra words do not fit in the record", copiedWords);
+		warning("SpriteLibrary_v1_2_4::buildHostEventMessage(): %d extra words do not fit in the record", copiedWords);
 		copiedWords = maxExtraWords;
 	}
 
 	for (uint16 i = 0; i < copiedWords; i++)
 		WRITE_LE_UINT16(record + 6 + 2 * i, (uint16)(params[1 + i] - _literalBias));
 
-	if (_engine->_version < kVersionV1_2_2_3) {
+	if (_engine->_version < kVersionV1_2_3_3) {
 		WRITE_LE_UINT16(record + 4, extraWords);
 		return true;
 	}
@@ -676,11 +676,11 @@ bool SpriteLibrary_v1_2_3::buildHostEventMessage(uint16 mode, uint16 count, cons
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildWaitMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildWaitMessage(uint16 mode, const uint16 *params, uint16 sprite) {
 	if (mode != 0)
 		return true;
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpWait, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpWait, sprite);
 	if (!record)
 		return false;
 
@@ -694,14 +694,14 @@ bool SpriteLibrary_v1_2_3::buildWaitMessage(uint16 mode, const uint16 *params, u
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildDelayedMoveMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildDelayedMoveMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	if (count != 5)
 		return false;
 
 	if (mode != 0)
 		resetQueueForImmediate(sprite);
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpDelayedMove, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpDelayedMove, sprite);
 	if (!record)
 		return false;
 
@@ -723,13 +723,13 @@ bool SpriteLibrary_v1_2_3::buildDelayedMoveMessage(uint16 mode, uint16 count, co
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildSetActiveMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildSetActiveMessage(uint16 mode, const uint16 *params, uint16 sprite) {
 	if (mode != 0) {
 		setSpriteActive(sprite, params[0], true);
 		return true;
 	}
 
-	byte *record = allocQueueRecord(0, kSprV1_2_6OpSetActive, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_7OpSetActive, sprite);
 	if (!record)
 		return false;
 
@@ -742,27 +742,27 @@ bool SpriteLibrary_v1_2_3::buildSetActiveMessage(uint16 mode, const uint16 *para
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildSetPositionMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildSetPositionMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	uint16 paramCount = (uint16)(count - 2);
-	if (_engine->_version >= kVersionV1_2_3 && paramCount < 2)
+	if (_engine->_version >= kVersionV1_2_4 && paramCount < 2)
 		return false;
 
 	int16 x = (int16)params[0];
 	int16 y = (int16)params[1];
-	uint16 relative = (_engine->_version < kVersionV1_2_3 || paramCount > 2) ? params[2] : 0;
+	uint16 relative = (_engine->_version < kVersionV1_2_4 || paramCount > 2) ? params[2] : 0;
 
 	if (mode != 0) {
 		updateSpritePosition(sprite, x, y, relative, true);
 		return true;
 	}
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpSetPosition, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpSetPosition, sprite);
 	if (!record)
 		return false;
 
 	WRITE_LE_UINT16(record + 2, (uint16)(params[0] - _literalBias));
 	WRITE_LE_UINT16(record + 4, (uint16)(params[1] - _literalBias));
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		WRITE_LE_UINT16(record + 6, (relative != 0) ? 1 : 0);
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildSetPositionMessage");
@@ -775,7 +775,7 @@ bool SpriteLibrary_v1_2_3::buildSetPositionMessage(uint16 mode, uint16 count, co
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildTimingModeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildTimingModeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
 	if (mode != 0) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildTimingModeMessage");
 		if (!object)
@@ -787,11 +787,11 @@ bool SpriteLibrary_v1_2_3::buildTimingModeMessage(uint16 mode, const uint16 *par
 		return true;
 	}
 
-	byte *record = allocQueueRecord(0, kSprV1_2_3OpTimingMode, sprite);
+	byte *record = allocQueueRecord(0, kSprV1_2_4OpTimingMode, sprite);
 	if (!record)
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		WRITE_LE_UINT16(record + 2, (params[0] != 0) ? 1 : 0);
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildTimingModeMessage");
@@ -804,15 +804,15 @@ bool SpriteLibrary_v1_2_3::buildTimingModeMessage(uint16 mode, const uint16 *par
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildSetRangeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildSetRangeMessage(uint16 mode, const uint16 *params, uint16 sprite) {
 	if (mode != 0) {
 		spriteObjectSetCelRange(sprite, params[0], params[1], params[2]);
 		return true;
 	}
 
-	uint16 opcode = kSprV1_2_3OpSetRange;
-	if (_engine->_version >= kVersionV1_2_6)
-		opcode = kSprV1_2_6OpSetRange;
+	uint16 opcode = kSprV1_2_4OpSetRange;
+	if (_engine->_version >= kVersionV1_2_7)
+		opcode = kSprV1_2_7OpSetRange;
 
 	byte *record = allocQueueRecord(0, opcode, sprite);
 	if (!record)
@@ -822,7 +822,7 @@ bool SpriteLibrary_v1_2_3::buildSetRangeMessage(uint16 mode, const uint16 *param
 	WRITE_LE_UINT16(record + 4, (uint16)(params[1] - _literalBias));
 	WRITE_LE_UINT16(record + 6, (uint16)(params[2] - _literalBias));
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildSetRangeMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -831,14 +831,14 @@ bool SpriteLibrary_v1_2_3::buildSetRangeMessage(uint16 mode, const uint16 *param
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildFrameIntervalMessage(uint16 mode, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildFrameIntervalMessage(uint16 mode, const uint16 *params, uint16 sprite) {
 	if (mode != 0) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildFrameIntervalMessage");
 		if (!object)
 			return false;
 
 		uint32 interval = params[0];
-		if (_engine->_version >= kVersionV1_2_5)
+		if (_engine->_version >= kVersionV1_2_6)
 			interval = (uint32)(int32)(int16)params[0];
 
 		if (object->queueStart) {
@@ -852,21 +852,21 @@ bool SpriteLibrary_v1_2_3::buildFrameIntervalMessage(uint16 mode, const uint16 *
 		return true;
 	}
 
-	uint16 opcode = kSprV1_2_3OpFrameInterval;
-	if (_engine->_version >= kVersionV1_2_6)
-		opcode = kSprV1_2_6OpFrameInterval;
+	uint16 opcode = kSprV1_2_4OpFrameInterval;
+	if (_engine->_version >= kVersionV1_2_7)
+		opcode = kSprV1_2_7OpFrameInterval;
 
 	byte *record = allocQueueRecord(0, opcode, sprite);
 	if (!record)
 		return false;
 
 	uint16 value = params[0];
-	if (_engine->_version >= kVersionV1_2_3)
+	if (_engine->_version >= kVersionV1_2_4)
 		value = (uint16)(value - _literalBias);
 
 	WRITE_LE_UINT16(record + 2, value);
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildFrameIntervalMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -875,14 +875,14 @@ bool SpriteLibrary_v1_2_3::buildFrameIntervalMessage(uint16 mode, const uint16 *
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildMoveIntervalMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+bool SpriteLibrary_v1_2_4::buildMoveIntervalMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	if (mode != 0) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildMoveIntervalMessage");
 		if (!object)
 			return false;
 
 		uint32 interval = params[0];
-		if (_engine->_version >= kVersionV1_2_5)
+		if (_engine->_version >= kVersionV1_2_6)
 			interval = (uint32)(int32)(int16)params[0];
 
 		if (object->queueStart) {
@@ -899,9 +899,9 @@ bool SpriteLibrary_v1_2_3::buildMoveIntervalMessage(uint16 mode, uint16 count, c
 		return true;
 	}
 
-	uint16 opcode = kSprV1_2_3OpMoveInterval;
-	if (_engine->_version >= kVersionV1_2_6)
-		opcode = kSprV1_2_6OpMoveInterval;
+	uint16 opcode = kSprV1_2_4OpMoveInterval;
+	if (_engine->_version >= kVersionV1_2_7)
+		opcode = kSprV1_2_7OpMoveInterval;
 
 	byte *record = allocQueueRecord(0, opcode, sprite);
 	if (!record)
@@ -911,7 +911,7 @@ bool SpriteLibrary_v1_2_3::buildMoveIntervalMessage(uint16 mode, uint16 count, c
 	if (count > 1)
 		WRITE_LE_UINT16(record + 4, (uint16)(params[1] - _literalBias));
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildMoveIntervalMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);
@@ -920,17 +920,17 @@ bool SpriteLibrary_v1_2_3::buildMoveIntervalMessage(uint16 mode, uint16 count, c
 	return true;
 }
 
-bool SpriteLibrary_v1_2_3::buildShowFrameMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
-	uint16 frame = (count != 0 || _engine->_version == kVersionV1_2_2_1) ? params[0] : 0xFFFF;
+bool SpriteLibrary_v1_2_4::buildShowFrameMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
+	uint16 frame = (count != 0 || _engine->_version == kVersionV1_2_3_1) ? params[0] : 0xFFFF;
 
 	if (mode != 0) {
 		spriteShow(sprite, frame, true);
 		return true;
 	}
 
-	uint16 opcode = kSprV1_2_3OpShowFrame;
-	if (_engine->_version >= kVersionV1_2_6)
-		opcode = kSprV1_2_6OpShowFrame;
+	uint16 opcode = kSprV1_2_4OpShowFrame;
+	if (_engine->_version >= kVersionV1_2_7)
+		opcode = kSprV1_2_7OpShowFrame;
 
 	byte *record = allocQueueRecord(0, opcode, sprite);
 	if (!record)
@@ -938,7 +938,7 @@ bool SpriteLibrary_v1_2_3::buildShowFrameMessage(uint16 mode, uint16 count, cons
 
 	WRITE_LE_UINT16(record + 2, frame);
 
-	if (_engine->_version >= kVersionV1_2_5) {
+	if (_engine->_version >= kVersionV1_2_6) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildShowFrameMessage");
 		if (object && !object->queueCurrent)
 			processSpriteQueueCommand(sprite);

@@ -26,9 +26,9 @@
 #include "graphics/screen.h"
 
 #include "topgun/display.h"
-#include "topgun/libraries/sprite/sprite_v1_2_3.h"
+#include "topgun/libraries/sprite/sprite_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -183,7 +183,7 @@ bool SpriteLibrary_v1_2::blitSetupRaw(byte *destination, const byte *source, uin
 
 	int32 sourceStride;
 	uint16 sourceRow;
-	bool unflipped = (_engine->_version >= kVersionV1_2_2_1) ?((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) == 0) : (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]);
+	bool unflipped = (_engine->_version >= kVersionV1_2_3_1) ?((flags & TG_SPR_V1_2_3_1_FLIP_FLAG_MASK) == 0) : (((flags >> 8) & 0xFF) == source[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET]);
 
 	if (unflipped) {
 		sourceRow = (uint16)(sourceHeight - sourceY - height);
@@ -202,8 +202,8 @@ bool SpriteLibrary_v1_2::blitSetupRaw(byte *destination, const byte *source, uin
 	setup.source = bitmapPixels(source) + sourceOffset;
 
 	bool topDown;
-	if (_engine->_version >= kVersionV1_2_5)
-		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	if (_engine->_version >= kVersionV1_2_6)
+		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG) != 0);
 	else
 		topDown = (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
 
@@ -249,7 +249,7 @@ void SpriteLibrary_v1_2::blitDibDiffRect(byte *destination, const byte *source, 
 	if (width == 0 || height == 0)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_5 && isRleBitmap(source))
+	if (_engine->_version >= kVersionV1_2_6 && isRleBitmap(source))
 		return;
 
 	BlitSetup_v1_2 setup;
@@ -369,8 +369,8 @@ void SpriteLibrary_v1_2::fillBitmapByte(byte *bitmap, int16 x, int16 y, uint16 w
 	uint16 bitmapHeight = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
 	bool topDown;
-	if (_engine->_version >= kVersionV1_2_5)
-		topDown = ((READ_LE_UINT16(bitmap + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	if (_engine->_version >= kVersionV1_2_6)
+		topDown = ((READ_LE_UINT16(bitmap + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG) != 0);
 	else
 		topDown = (bitmap[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
 
@@ -396,7 +396,7 @@ bool SpriteLibrary_v1_2::ensureComposeBufferSize(uint16 width, uint16 height) {
 	uint16 pitch = (uint16)(width + 3) & 0xFFFC;
 	uint32 size = (uint32)pitch * height + TG_SPR_V1_2_BITMAP_HEADER_SIZE;
 
-	if (_engine->_version < kVersionV1_2_5)
+	if (_engine->_version < kVersionV1_2_6)
 		_composeBuffer[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] = 0;
 
 	WRITE_LE_UINT16(_composeBuffer + TG_SPR_BITMAP_WIDTH_OFFSET, width);
@@ -430,7 +430,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	if (!ensureComposeBufferSize(width, height))
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_9 && _rubberBandActive)
+	if (_engine->_version >= kVersionV1_2_7_1 && _engine->_version <= kVersionV1_2_11 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	if (_scrollSurface)
@@ -443,7 +443,7 @@ bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
 	compositeSpritesInRect(visible);
 	blitSpriteToScreen(visible.left, visible.top, _composeBuffer);
 
-	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_9 && _rubberBandActive)
+	if (_engine->_version >= kVersionV1_2_7_1 && _engine->_version <= kVersionV1_2_11 && _rubberBandActive)
 		rubberBandRepaint(visible);
 
 	return true;
@@ -480,7 +480,7 @@ void SpriteLibrary_v1_2::compositeSpritesInRect(const Common::Rect &rect) {
 			continue;
 		}
 
-		if (_engine->_version >= kVersionV1_2_10) {
+		if (_engine->_version >= kVersionV1_2_12) {
 			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
 				continue;
 
@@ -519,7 +519,7 @@ void SpriteLibrary_v1_2::compositeSpritePartsIntoBuffer(uint16 sprite, const Com
 		if (!intersectRectLocal(rect, part.box, common))
 			continue;
 
-		if (_engine->_version >= kVersionV1_2_10) {
+		if (_engine->_version >= kVersionV1_2_12) {
 			if (object->scrollable && !intersectRectLocal(common, _scrollRegion, common))
 				continue;
 
@@ -651,7 +651,7 @@ uint16 SpriteLibrary_v1_2::spriteIsPicked(uint16 sprite, int16 x, int16 y) {
 	if (!object)
 		return 0;
 
-	if (_engine->_version >= kVersionV1_2_7) {
+	if (_engine->_version >= kVersionV1_2_9) {
 		if (object->pickMode == 2 || (!object->visible && object->pickMode != 1))
 			return 0;
 	} else if (!object->visible && !object->pickInvisible) {
@@ -697,14 +697,14 @@ uint16 SpriteLibrary_v1_2::spriteIsPicked(uint16 sprite, int16 x, int16 y) {
 }
 
 void SpriteLibrary_v1_2::renderSpriteToSurface(uint16 sprite) {
-	if (_engine->_version >= kVersionV1_2_3) {
+	if (_engine->_version >= kVersionV1_2_4) {
 		SpriteObject_v1_2 *object = findSprite(sprite, "renderSpriteToSurface");
 		if (!object)
 			return;
 
 		object->renderPending = false;
 
-		if (_engine->_version >= kVersionV1_2_6 && !object->active)
+		if (_engine->_version >= kVersionV1_2_7 && !object->active)
 			return;
 	}
 
@@ -751,7 +751,7 @@ uint16 SpriteLibrary_v1_2::spriteHitDetect(uint16 spriteA, uint16 spriteB) {
 	return blitPixelOverlapTest(first->currentFrame, second->currentFrame, (uint16)width, (uint16)height, firstX, firstY, secondX, secondY, 0);
 }
 
-uint16 SpriteLibrary_v1_2_3::hitTestMultipartDispatch(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
+uint16 SpriteLibrary_v1_2_4::hitTestMultipartDispatch(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
 	if (first->partCount != 0 && second->partCount != 0)
 		return hitTestMultipartPair(first, second);
 
@@ -761,9 +761,9 @@ uint16 SpriteLibrary_v1_2_3::hitTestMultipartDispatch(const SpriteObject_v1_2 *f
 	return hitTestMultipartVsSingle(first, second);
 }
 
-uint16 SpriteLibrary_v1_2_3::hitTestMultipartPair(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
+uint16 SpriteLibrary_v1_2_4::hitTestMultipartPair(const SpriteObject_v1_2 *first, const SpriteObject_v1_2 *second) {
 	if (!first->parts || !second->parts) {
-		warning("SpriteLibrary_v1_2_3::hitTestMultipartPair(): the multipart sprite has no parts");
+		warning("SpriteLibrary_v1_2_4::hitTestMultipartPair(): the multipart sprite has no parts");
 		return 0;
 	}
 
@@ -778,7 +778,7 @@ uint16 SpriteLibrary_v1_2_3::hitTestMultipartPair(const SpriteObject_v1_2 *first
 				continue;
 
 			if (!firstPart.frame || !secondPart.frame) {
-				warning("SpriteLibrary_v1_2_3::hitTestMultipartPair(): the sprite part has no frame");
+				warning("SpriteLibrary_v1_2_4::hitTestMultipartPair(): the sprite part has no frame");
 				continue;
 			}
 
@@ -794,9 +794,9 @@ uint16 SpriteLibrary_v1_2_3::hitTestMultipartPair(const SpriteObject_v1_2 *first
 	return 0;
 }
 
-uint16 SpriteLibrary_v1_2_3::hitTestMultipartVsSingle(const SpriteObject_v1_2 *single, const SpriteObject_v1_2 *multipart) {
+uint16 SpriteLibrary_v1_2_4::hitTestMultipartVsSingle(const SpriteObject_v1_2 *single, const SpriteObject_v1_2 *multipart) {
 	if (!multipart->parts) {
-		warning("SpriteLibrary_v1_2_3::hitTestMultipartVsSingle(): the multipart sprite has no parts");
+		warning("SpriteLibrary_v1_2_4::hitTestMultipartVsSingle(): the multipart sprite has no parts");
 		return 0;
 	}
 
@@ -808,7 +808,7 @@ uint16 SpriteLibrary_v1_2_3::hitTestMultipartVsSingle(const SpriteObject_v1_2 *s
 			continue;
 
 		if (!single->currentFrame || !part.frame) {
-			warning("SpriteLibrary_v1_2_3::hitTestMultipartVsSingle(): the sprite has no frame");
+			warning("SpriteLibrary_v1_2_4::hitTestMultipartVsSingle(): the sprite has no frame");
 			continue;
 		}
 
@@ -823,13 +823,13 @@ uint16 SpriteLibrary_v1_2_3::hitTestMultipartVsSingle(const SpriteObject_v1_2 *s
 	return 0;
 }
 
-uint16 SpriteLibrary_v1_2_3::spriteHitDetect(uint16 spriteA, uint16 spriteB, uint16 allowInvisibleA, uint16 allowInvisibleB, uint16 sameLevelOnly) {
+uint16 SpriteLibrary_v1_2_4::spriteHitDetect(uint16 spriteA, uint16 spriteB, uint16 allowInvisibleA, uint16 allowInvisibleB, uint16 sameLevelOnly) {
 	SpriteObject_v1_2 *first = findSprite(spriteA, "spriteHitDetect");
 	SpriteObject_v1_2 *second = findSprite(spriteB, "spriteHitDetect");
 	if (!first || !second)
 		return 0;
 
-	if (sameLevelOnly != 0 && _engine->_version >= kVersionV1_2_3 && first->level != second->level)
+	if (sameLevelOnly != 0 && _engine->_version >= kVersionV1_2_4 && first->level != second->level)
 		return 0;
 
 	if (!first->visible && allowInvisibleA == 0)
@@ -844,8 +844,8 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetect(uint16 spriteA, uint16 spriteB, uin
 
 	if (first->partCount == 0 && second->partCount == 0) {
 		if (!first->currentFrame || !second->currentFrame) {
-			if (_engine->_version < kVersionV1_2_2_3)
-				warning("SpriteLibrary_v1_2_3::spriteHitDetect(): the sprite has no current frame");
+			if (_engine->_version < kVersionV1_2_3_3)
+				warning("SpriteLibrary_v1_2_4::spriteHitDetect(): the sprite has no current frame");
 
 			return 0;
 		}
@@ -856,13 +856,13 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetect(uint16 spriteA, uint16 spriteB, uin
 		                            flipFlags(first), flipFlags(second));
 	}
 
-	if (_engine->_version == kVersionV1_2_2_1)
+	if (_engine->_version == kVersionV1_2_3_1)
 		return 1;
 
 	return hitTestMultipartDispatch(first, second);
 }
 
-uint16 SpriteLibrary_v1_2_3::spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect) {
+uint16 SpriteLibrary_v1_2_4::spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect) {
 	SpriteObject_v1_2 *first = findSprite(spriteA, "spriteHitDetectRect");
 	SpriteObject_v1_2 *second = findSprite(spriteB, "spriteHitDetectRect");
 	if (!first || !second)
@@ -877,8 +877,8 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetectRect(uint16 spriteA, uint16 spriteB,
 
 	if (first->partCount == 0 && second->partCount == 0) {
 		if (!first->currentFrame || !second->currentFrame) {
-			if (_engine->_version < kVersionV1_2_2_3)
-				warning("SpriteLibrary_v1_2_3::spriteHitDetectRect(): the sprite has no current frame");
+			if (_engine->_version < kVersionV1_2_3_3)
+				warning("SpriteLibrary_v1_2_4::spriteHitDetectRect(): the sprite has no current frame");
 
 			return 0;
 		}
@@ -889,13 +889,13 @@ uint16 SpriteLibrary_v1_2_3::spriteHitDetectRect(uint16 spriteA, uint16 spriteB,
 		                            flipFlags(first), flipFlags(second));
 	}
 
-	if (_engine->_version == kVersionV1_2_2_1)
+	if (_engine->_version == kVersionV1_2_3_1)
 		return 1;
 
 	return hitTestMultipartDispatch(first, second);
 }
 
-void SpriteLibrary_v1_2_3::spriteDibGetBox(const byte *bitmap, Common::Rect &box) {
+void SpriteLibrary_v1_2_4::spriteDibGetBox(const byte *bitmap, Common::Rect &box) {
 	int16 width = (int16)READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int16 height = (int16)READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	int16 heightMinusOne = (int16)(height - 1);
@@ -906,7 +906,7 @@ void SpriteLibrary_v1_2_3::spriteDibGetBox(const byte *bitmap, Common::Rect &box
 	box.bottom = (int16)(height + box.top);
 }
 
-void SpriteLibrary_v1_2_3::spriteScreenShake(int16 deltaX, int16 deltaY) {
+void SpriteLibrary_v1_2_4::spriteScreenShake(int16 deltaX, int16 deltaY) {
 	Display *display = engine()->display();
 
 	int16 clientWidth = display->width();
@@ -953,13 +953,13 @@ void SpriteLibrary_v1_2_3::spriteScreenShake(int16 deltaX, int16 deltaY) {
 }
 
 bool SpriteLibrary_v1_2::isRleBitmap(const byte *bitmap) const {
-	if (_engine->_version >= kVersionV1_2_5)
-		return (READ_LE_UINT16(bitmap + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_RLE_FLAG) != 0;
+	if (_engine->_version >= kVersionV1_2_6)
+		return (READ_LE_UINT16(bitmap + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_RLE_FLAG) != 0;
 
-	return (bitmap[TG_SPR_V1_2_2_1_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_2_1_BITMAP_RLE_FLAG) != 0;
+	return (bitmap[TG_SPR_V1_2_3_1_BITMAP_FLAGS_OFFSET] & TG_SPR_V1_2_3_1_BITMAP_RLE_FLAG) != 0;
 }
 
-byte SpriteLibrary_v1_2_3::RleRowCursor::peek() {
+byte SpriteLibrary_v1_2_4::RleRowCursor::peek() {
 	if (position >= size) {
 		overrun = true;
 		return 0;
@@ -968,17 +968,17 @@ byte SpriteLibrary_v1_2_3::RleRowCursor::peek() {
 	return pixels[position];
 }
 
-void SpriteLibrary_v1_2_3::RleRowCursor::loadCode() {
+void SpriteLibrary_v1_2_4::RleRowCursor::loadCode() {
 	byte code = peek();
 	position++;
 
-	if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
+	if (code <= TG_SPR_V1_2_3_1_RLE_LAST_RUN_CODE) {
 		count = code;
 		literal = false;
 		return;
 	}
 
-	count = (byte)(TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code);
+	count = (byte)(TG_SPR_V1_2_3_1_RLE_TESTED_LITERAL_CODE - code);
 	literal = true;
 	if (count == 0) {
 		count = peek();
@@ -986,7 +986,7 @@ void SpriteLibrary_v1_2_3::RleRowCursor::loadCode() {
 	}
 }
 
-void SpriteLibrary_v1_2_3::RleRowCursor::skip(int32 length) {
+void SpriteLibrary_v1_2_4::RleRowCursor::skip(int32 length) {
 	for (;;) {
 		int32 segment = count;
 		position += literal ? segment : 1;
@@ -1005,7 +1005,7 @@ void SpriteLibrary_v1_2_3::RleRowCursor::skip(int32 length) {
 	count = (byte)-length;
 }
 
-void SpriteLibrary_v1_2_3::RleRowCursor::take() {
+void SpriteLibrary_v1_2_4::RleRowCursor::take() {
 	if (literal)
 		position++;
 
@@ -1019,7 +1019,7 @@ void SpriteLibrary_v1_2_3::RleRowCursor::take() {
 	loadCode();
 }
 
-uint32 SpriteLibrary_v1_2_3::rleDataSize(const byte *bitmap) const {
+uint32 SpriteLibrary_v1_2_4::rleDataSize(const byte *bitmap) const {
 	uint16 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	const byte *pixels = bitmapPixels(bitmap);
@@ -1036,11 +1036,11 @@ uint32 SpriteLibrary_v1_2_3::rleDataSize(const byte *bitmap) const {
 
 			position++;
 
-			if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
+			if (code <= TG_SPR_V1_2_3_1_RLE_LAST_RUN_CODE) {
 				column += code;
 				position++;
 			} else {
-				uint32 length = TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code;
+				uint32 length = TG_SPR_V1_2_3_1_RLE_TESTED_LITERAL_CODE - code;
 				if (length == 0)
 					length = pixels[position++];
 
@@ -1055,7 +1055,7 @@ uint32 SpriteLibrary_v1_2_3::rleDataSize(const byte *bitmap) const {
 	return size;
 }
 
-void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const {
+void SpriteLibrary_v1_2_4::decodeRleRow(const byte *bitmap, uint16 row, uint16 firstColumn, uint16 count, byte *values, byte *forced) const {
 	const byte *pixels = bitmapPixels(bitmap);
 	const byte *position = pixels + READ_LE_UINT16(pixels + 2 * row);
 
@@ -1072,11 +1072,11 @@ void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 f
 		bool tested = false;
 		byte runValue = 0;
 
-		if (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE) {
+		if (code <= TG_SPR_V1_2_3_1_RLE_LAST_RUN_CODE) {
 			length = code;
 			runValue = *position++;
 		} else {
-			length = (uint16)(TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE - code);
+			length = (uint16)(TG_SPR_V1_2_3_1_RLE_TESTED_LITERAL_CODE - code);
 			literal = true;
 			if (length == 0) {
 				length = *position++;
@@ -1097,7 +1097,7 @@ void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 f
 	}
 
 	if (filled < count) {
-		warning("SpriteLibrary_v1_2_3::decodeRleRow(): the row ends before the requested pixels");
+		warning("SpriteLibrary_v1_2_4::decodeRleRow(): the row ends before the requested pixels");
 		for (; filled < count; filled++) {
 			values[filled] = 0;
 			forced[filled] = 0;
@@ -1105,7 +1105,7 @@ void SpriteLibrary_v1_2_3::decodeRleRow(const byte *bitmap, uint16 row, uint16 f
 	}
 }
 
-bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitSetup &setup) {
+bool SpriteLibrary_v1_2_4::blitSetupRleSource(byte *destination, const byte *source, uint16 &width, uint16 &height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitSetup &setup) {
 	uint16 sourceWidth = READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET);
 	uint16 sourceHeight = READ_LE_UINT16(source + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	uint16 destinationWidth = READ_LE_UINT16(destination + TG_SPR_BITMAP_WIDTH_OFFSET);
@@ -1117,7 +1117,7 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 	               sourceX + width <= sourceWidth && sourceY + height <= sourceHeight);
 
 	if (!inside) {
-		warning("SpriteLibrary_v1_2_3::blitSetupRleSource(): the rectangle is outside the bitmaps");
+		warning("SpriteLibrary_v1_2_4::blitSetupRleSource(): the rectangle is outside the bitmaps");
 
 		if (destinationX < 0 || destinationY < 0 || sourceX < 0 || sourceY < 0)
 			return false;
@@ -1131,8 +1131,8 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 		height = MIN((int)height, availableHeight);
 	}
 
-	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
-	bool flip = ((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0);
+	bool mirror = ((flags & TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_3_1_FLIP_FLAG_MASK) != 0);
 
 	if (mirror)
 		setup.firstColumn = (uint16)(sourceWidth - width - sourceX);
@@ -1145,8 +1145,8 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 		setup.firstRow = (int32)sourceY + height - 1;
 
 	bool topDown;
-	if (_engine->_version >= kVersionV1_2_5)
-		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	if (_engine->_version >= kVersionV1_2_6)
+		topDown = ((READ_LE_UINT16(destination + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG) != 0);
 	else
 		topDown = (destination[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
 
@@ -1173,15 +1173,15 @@ bool SpriteLibrary_v1_2_3::blitSetupRleSource(byte *destination, const byte *sou
 	return true;
 }
 
-void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitMode_v1_2_3 mode) {
+void SpriteLibrary_v1_2_4::blitRleRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitMode_v1_2_4 mode) {
 	RleBlitSetup setup;
 	if (!blitSetupRleSource(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, setup))
 		return;
 
-	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
+	bool mirror = ((flags & TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK) != 0);
 
 	// Bug in the original: the high byte of the row count leaks into the segment lengths
-	if (mode == kSprV1_2_3BlitTransparent && _engine->_version < kVersionV1_2_2_3 && (height >> 8) != 0 &&
+	if (mode == kSprV1_2_4BlitTransparent && _engine->_version < kVersionV1_2_3_3 && (height >> 8) != 0 &&
 	    setup.firstColumn == 0 && width != READ_LE_UINT16(source + TG_SPR_BITMAP_WIDTH_OFFSET)) {
 		const byte *pixels = bitmapPixels(source);
 		uint32 dataSize = rleDataSize(source);
@@ -1211,7 +1211,7 @@ void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, ui
 				}
 
 				byte code = pixels[position++];
-				bool run = (code <= TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE);
+				bool run = (code <= TG_SPR_V1_2_3_1_RLE_LAST_RUN_CODE);
 				bool opaque = false;
 
 				if (!run) {
@@ -1285,7 +1285,7 @@ void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, ui
 		}
 
 		if (outside)
-			warning("SpriteLibrary_v1_2_3::blitRleRect(): a right clipped bitmap leaves its buffers");
+			warning("SpriteLibrary_v1_2_4::blitRleRect(): a right clipped bitmap leaves its buffers");
 
 		return;
 	}
@@ -1305,17 +1305,17 @@ void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, ui
 			bool opaque = (value != 0 || forced[index] != 0);
 
 			switch (mode) {
-			case kSprV1_2_3BlitCopy:
+			case kSprV1_2_4BlitCopy:
 				line[column] = value;
 				break;
 
-			case kSprV1_2_3BlitTransparent:
+			case kSprV1_2_4BlitTransparent:
 				if (opaque)
 					line[column] = value;
 
 				break;
 
-			case kSprV1_2_3BlitMasked:
+			case kSprV1_2_4BlitMasked:
 				if (opaque && line[column] != 0)
 					line[column] = value;
 
@@ -1325,37 +1325,37 @@ void SpriteLibrary_v1_2_3::blitRleRect(byte *destination, const byte *source, ui
 	}
 }
 
-void SpriteLibrary_v1_2_3::blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+void SpriteLibrary_v1_2_4::blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
 	if (width == 0 || height == 0)
 		return;
 
 	if (isRleBitmap(source))
-		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_3BlitCopy);
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_4BlitCopy);
 	else
 		SpriteLibrary_v1_2::blitOpaqueRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
 }
 
-void SpriteLibrary_v1_2_3::blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+void SpriteLibrary_v1_2_4::blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
 	if (width == 0 || height == 0)
 		return;
 
 	if (isRleBitmap(source))
-		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_3BlitTransparent);
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_4BlitTransparent);
 	else
 		SpriteLibrary_v1_2::blitTransparentRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
 }
 
-void SpriteLibrary_v1_2_3::blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
+void SpriteLibrary_v1_2_4::blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) {
 	if (width == 0 || height == 0)
 		return;
 
 	if (isRleBitmap(source))
-		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_3BlitMasked);
+		blitRleRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags, kSprV1_2_4BlitMasked);
 	else
 		SpriteLibrary_v1_2::blitMaskedRect(destination, source, width, height, destinationX, destinationY, sourceX, sourceY, flags);
 }
 
-void SpriteLibrary_v1_2_3::fetchBitmapRow(const byte *bitmap, int32 row, int32 firstColumn, uint16 count, byte *values) const {
+void SpriteLibrary_v1_2_4::fetchBitmapRow(const byte *bitmap, int32 row, int32 firstColumn, uint16 count, byte *values) const {
 	int32 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int32 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
@@ -1382,7 +1382,7 @@ void SpriteLibrary_v1_2_3::fetchBitmapRow(const byte *bitmap, int32 row, int32 f
 	}
 }
 
-uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte *second, uint16 width, uint16 height, int16 firstX, int16 firstY, int16 secondX, int16 secondY, uint16 firstFlags, uint16 secondFlags) {
+uint16 SpriteLibrary_v1_2_4::blitPixelOverlapTest(const byte *first, const byte *second, uint16 width, uint16 height, int16 firstX, int16 firstY, int16 secondX, int16 secondY, uint16 firstFlags, uint16 secondFlags) {
 	if (width == 0 || height == 0)
 		return 0;
 
@@ -1391,34 +1391,34 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 	int16 secondWidth = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int16 secondHeight = (int16)READ_LE_UINT16(second + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
-	if ((firstFlags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0)
+	if ((firstFlags & TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK) != 0)
 		firstX = (int16)(firstWidth - firstX - width);
 
-	if ((firstFlags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0)
+	if ((firstFlags & TG_SPR_V1_2_3_1_FLIP_FLAG_MASK) != 0)
 		firstY = (int16)(firstHeight - firstY - height);
 
-	if ((secondFlags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0)
+	if ((secondFlags & TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK) != 0)
 		secondX = (int16)(secondWidth - secondX - width);
 
-	if ((secondFlags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0)
+	if ((secondFlags & TG_SPR_V1_2_3_1_FLIP_FLAG_MASK) != 0)
 		secondY = (int16)(secondHeight - secondY - height);
 
 	if (firstX < 0 || firstY < 0 || firstX + width > firstWidth || firstY + height > firstHeight ||
 	    secondX < 0 || secondY < 0 || secondX + width > secondWidth || secondY + height > secondHeight)
-		warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): the rectangle is outside the bitmaps");
+		warning("SpriteLibrary_v1_2_4::blitPixelOverlapTest(): the rectangle is outside the bitmaps");
 
 	bool firstRle = isRleBitmap(first);
 	bool secondRle = isRleBitmap(second);
 
 	// The original reads both bitmaps in the format of the second one and overruns them
-	if (_engine->_version == kVersionV1_2_2_1 && firstRle != secondRle)
-		warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): the two bitmaps have different formats");
+	if (_engine->_version == kVersionV1_2_3_1 && firstRle != secondRle)
+		warning("SpriteLibrary_v1_2_4::blitPixelOverlapTest(): the two bitmaps have different formats");
 
 	if (firstRle && secondRle) {
 		// Two bugs in the original: skipping in the second bitmap clears the literal flag of the first,
 		// and taking a transparent run whole loses a pixel of the width or of the other bitmap
-		bool losesLiteralFlag = (_engine->_version < kVersionV1_2_2_3);
-		bool takesRunsWhole = (_engine->_version < kVersionV1_2_2_3 || _engine->_version >= kVersionV1_2_5);
+		bool losesLiteralFlag = (_engine->_version < kVersionV1_2_3_3);
+		bool takesRunsWhole = (_engine->_version < kVersionV1_2_3_3 || _engine->_version >= kVersionV1_2_6);
 
 		RleRowCursor firstCursor;
 		firstCursor.pixels = bitmapPixels(first);
@@ -1485,7 +1485,7 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 			}
 
 			if (firstCursor.overrun || secondCursor.overrun)
-				warning("SpriteLibrary_v1_2_3::blitPixelOverlapTest(): a row leaves the bitmap data");
+				warning("SpriteLibrary_v1_2_4::blitPixelOverlapTest(): a row leaves the bitmap data");
 		}
 
 		return 0;
@@ -1493,11 +1493,11 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 
 	bool firstTopDown = false;
 	bool secondTopDown = false;
-	if (_engine->_version == kVersionV1_2_2_1) {
+	if (_engine->_version == kVersionV1_2_3_1) {
 		firstTopDown = (!firstRle && !secondRle && first[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] != 0);
-	} else if (_engine->_version >= kVersionV1_2_5) {
-		firstTopDown = (!firstRle && secondRle && (READ_LE_UINT16(first + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
-		secondTopDown = (firstRle && !secondRle && (READ_LE_UINT16(second + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG) != 0);
+	} else if (_engine->_version >= kVersionV1_2_6) {
+		firstTopDown = (!firstRle && secondRle && (READ_LE_UINT16(first + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG) != 0);
+		secondTopDown = (firstRle && !secondRle && (READ_LE_UINT16(second + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET) & TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG) != 0);
 	} else {
 		firstTopDown = (!firstRle && secondRle && first[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
 		secondTopDown = (firstRle && !secondRle && second[TG_SPR_V1_2_BITMAP_ORIENTATION_OFFSET] == 1);
@@ -1529,18 +1529,18 @@ uint16 SpriteLibrary_v1_2_3::blitPixelOverlapTest(const byte *first, const byte 
 	return 0;
 }
 
-uint16 SpriteLibrary_v1_2_3::getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flags) {
+uint16 SpriteLibrary_v1_2_4::getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flags) {
 	int32 width = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int32 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 
-	bool mirror = ((flags & TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK) != 0);
-	bool flip = ((flags & TG_SPR_V1_2_2_1_FLIP_FLAG_MASK) != 0);
+	bool mirror = ((flags & TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK) != 0);
+	bool flip = ((flags & TG_SPR_V1_2_3_1_FLIP_FLAG_MASK) != 0);
 
 	int32 column = mirror ? width - x - 1 : x;
 	int32 row = flip ? height - y - 1 : y;
 
 	if (column < 0 || column >= width || row < 0 || row >= height) {
-		warning("SpriteLibrary_v1_2_3::getBitmapPixel(): the pixel is outside the bitmap");
+		warning("SpriteLibrary_v1_2_4::getBitmapPixel(): the pixel is outside the bitmap");
 		return 0;
 	}
 
@@ -1555,12 +1555,12 @@ uint16 SpriteLibrary_v1_2_3::getBitmapPixel(const byte *bitmap, int16 x, int16 y
 	return bitmapPixels(bitmap)[(height - 1 - row) * pitch + column];
 }
 
-void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 deltaY) {
+void SpriteLibrary_v1_2_4::scrollSprite(uint16 sprite, int16 deltaX, int16 deltaY) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "scrollSprite");
 	if (!object)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_6_3 && _engine->_version <= kVersionV1_2_9) {
+	if (_engine->_version >= kVersionV1_2_7_3 && _engine->_version <= kVersionV1_2_11) {
 		object->x = (int16)(object->x + deltaX);
 		object->y = (int16)(object->y + deltaY);
 	}
@@ -1568,7 +1568,7 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	object->boundingBox.translate(deltaX, deltaY);
 	object->previousBox.translate(deltaX, deltaY);
 
-	if ((_engine->_version < kVersionV1_2_6_3 || _engine->_version >= kVersionV1_2_8) && object->parts) {
+	if ((_engine->_version < kVersionV1_2_7_3 || _engine->_version >= kVersionV1_2_10) && object->parts) {
 		for (uint16 i = 0; i < object->partCount && i < TG_SPR_V1_2_NUM_SPRITE_PARTS; i++)
 			object->parts->parts[i].box.translate(deltaX, deltaY);
 	}
@@ -1577,12 +1577,12 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	if (!command)
 		return;
 
-	if (READ_LE_UINT16(command) == kSprV1_2_3OpQuadPath) {
+	if (READ_LE_UINT16(command) == kSprV1_2_4OpQuadPath) {
 		for (uint16 offset = 0x0E; offset <= 0x16; offset += 4) {
 			WRITE_LE_UINT16(command + offset, (uint16)(READ_LE_UINT16(command + offset) + deltaX));
 			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
 		}
-	} else if (READ_LE_UINT16(command) == kSprV1_2_3OpLinearMove) {
+	} else if (READ_LE_UINT16(command) == kSprV1_2_4OpLinearMove) {
 		for (uint16 offset = 0x0C; offset <= 0x10; offset += 4) {
 			WRITE_LE_UINT16(command + offset, (uint16)(READ_LE_UINT16(command + offset) + deltaX));
 			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
@@ -1590,7 +1590,7 @@ void SpriteLibrary_v1_2_3::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 	}
 }
 
-void SpriteLibrary_v1_2_3::spriteScrollScreen(int16 deltaX, int16 deltaY) {
+void SpriteLibrary_v1_2_4::spriteScrollScreen(int16 deltaX, int16 deltaY) {
 	engine()->display()->scrollDevice(_clipRect, deltaX, deltaY);
 
 	for (uint16 i = 0; i < _spriteCount; i++)
@@ -1617,7 +1617,7 @@ void SpriteLibrary_v1_2_3::spriteScrollScreen(int16 deltaX, int16 deltaY) {
 	}
 }
 
-bool SpriteLibrary_v1_2_3::clampScrollOffsetToBounds(Common::Point &delta, Common::Rect &outRect) {
+bool SpriteLibrary_v1_2_4::clampScrollOffsetToBounds(Common::Point &delta, Common::Rect &outRect) {
 	if (!_backgroundBitmap) {
 		outRect = _clipRect;
 		return (delta.x | delta.y) != 0;
@@ -1656,7 +1656,7 @@ bool SpriteLibrary_v1_2_3::clampScrollOffsetToBounds(Common::Point &delta, Commo
 	return (delta.x | delta.y) != 0;
 }
 
-void SpriteLibrary_v1_2_3::spriteSetScrollPos(int16 x, int16 y) {
+void SpriteLibrary_v1_2_4::spriteSetScrollPos(int16 x, int16 y) {
 	Common::Point delta((int16)(x - _scrollPosX), (int16)(y - _scrollPosY));
 	Common::Rect region;
 
@@ -1678,11 +1678,11 @@ void SpriteLibrary_v1_2_3::spriteSetScrollPos(int16 x, int16 y) {
 	spritePaintRect(_scrollRegion, false);
 }
 
-Common::Point SpriteLibrary_v1_2_3::spriteGetScrollPos() {
+Common::Point SpriteLibrary_v1_2_4::spriteGetScrollPos() {
 	return Common::Point(_scrollPosX, _scrollPosY);
 }
 
-void SpriteLibrary_v1_2_3::spriteScroll(int16 deltaX, int16 deltaY, bool useScrollDevice) {
+void SpriteLibrary_v1_2_4::spriteScroll(int16 deltaX, int16 deltaY, bool useScrollDevice) {
 	Common::Point delta(deltaX, deltaY);
 	Common::Rect region;
 
@@ -1716,7 +1716,7 @@ void SpriteLibrary_v1_2_3::spriteScroll(int16 deltaX, int16 deltaY, bool useScro
 		repaintScrollBoxRevealedRow(delta.y, region);
 }
 
-void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedColumn(int16 deltaX, Common::Rect rect) {
+void SpriteLibrary_v1_2_4::repaintScrollBoxRevealedColumn(int16 deltaX, Common::Rect rect) {
 	if (deltaX < 0)
 		rect.left = (int16)(rect.right + deltaX);
 	else
@@ -1728,7 +1728,7 @@ void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedColumn(int16 deltaX, Common::
 	spritePaintRect(rect, false);
 }
 
-void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedRow(int16 deltaY, Common::Rect rect) {
+void SpriteLibrary_v1_2_4::repaintScrollBoxRevealedRow(int16 deltaY, Common::Rect rect) {
 	if (deltaY < 0)
 		rect.top = (int16)(rect.bottom + deltaY);
 	else
@@ -1740,7 +1740,7 @@ void SpriteLibrary_v1_2_3::repaintScrollBoxRevealedRow(int16 deltaY, Common::Rec
 	spritePaintRect(rect, false);
 }
 
-void SpriteLibrary_v1_2_3::performScrollOperation(byte *surface, int16 deltaX, int16 deltaY, const Common::Rect &rect) {
+void SpriteLibrary_v1_2_4::performScrollOperation(byte *surface, int16 deltaX, int16 deltaY, const Common::Rect &rect) {
 	int32 width = READ_LE_UINT16(surface + TG_SPR_BITMAP_WIDTH_OFFSET);
 	int32 pitch = READ_LE_UINT16(surface + TG_SPR_V1_2_BITMAP_PITCH_OFFSET);
 	int32 height = READ_LE_UINT16(surface + TG_SPR_BITMAP_HEIGHT_OFFSET);
@@ -1771,7 +1771,7 @@ void SpriteLibrary_v1_2_3::performScrollOperation(byte *surface, int16 deltaX, i
 	int32 highestRow = firstRow - MIN(sourceRow, destinationRow);
 	int32 lowestRow = firstRow - (MAX(sourceRow, destinationRow) + rows - 1);
 	if (lowestRow < 0 || highestRow >= height || MIN(sourceColumn, destinationColumn) < 0 || MAX(sourceColumn, destinationColumn) + bytes > pitch) {
-		warning("SpriteLibrary_v1_2_3::performScrollOperation(): the scrolled rectangle is outside the surface");
+		warning("SpriteLibrary_v1_2_4::performScrollOperation(): the scrolled rectangle is outside the surface");
 		return;
 	}
 
@@ -1784,7 +1784,7 @@ void SpriteLibrary_v1_2_3::performScrollOperation(byte *surface, int16 deltaX, i
 	}
 }
 
-void SpriteLibrary_v1_2_3::spriteSetScrollBox(const Common::Rect *box) {
+void SpriteLibrary_v1_2_4::spriteSetScrollBox(const Common::Rect *box) {
 	Common::Rect oldRegion = _scrollRegion;
 
 	if (box) {
@@ -1808,11 +1808,11 @@ void SpriteLibrary_v1_2_3::spriteSetScrollBox(const Common::Rect *box) {
 	}
 }
 
-Common::Rect SpriteLibrary_v1_2_3::spriteGetScrollBox() {
+Common::Rect SpriteLibrary_v1_2_4::spriteGetScrollBox() {
 	return _scrollBox;
 }
 
-void SpriteLibrary_v1_2_3::spriteSetScrollable(uint16 sprite, uint16 flag) {
+void SpriteLibrary_v1_2_4::spriteSetScrollable(uint16 sprite, uint16 flag) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetScrollable");
 	if (!object)
 		return;
@@ -1829,7 +1829,7 @@ void SpriteLibrary_v1_2_3::spriteSetScrollable(uint16 sprite, uint16 flag) {
 	object->scrollable = scrollable;
 }
 
-bool SpriteLibrary_v1_2_3::spriteSetTileBackground(TileBackground *tile, Common::Rect *outClipRect) {
+bool SpriteLibrary_v1_2_4::spriteSetTileBackground(TileBackground *tile, Common::Rect *outClipRect) {
 	byte *surface = nullptr;
 	if (tile)
 		surface = initTileBackgroundLayout(tile);
@@ -1856,15 +1856,15 @@ bool SpriteLibrary_v1_2_3::spriteSetTileBackground(TileBackground *tile, Common:
 	return true;
 }
 
-byte *SpriteLibrary_v1_2_3::initTileBackgroundLayout(TileBackground *tile) {
+byte *SpriteLibrary_v1_2_4::initTileBackgroundLayout(TileBackground *tile) {
 	uint16 columns = tile->columns;
 	uint16 rows = tile->rows;
 	uint16 tileWidth = tile->tileWidth;
 	uint16 tileHeight = tile->tileHeight;
 
-	bool staggered = (tile->layout == TG_SPR_V1_2_10_TILE_STAGGERED_LAYOUT);
+	bool staggered = (tile->layout == TG_SPR_V1_2_12_TILE_STAGGERED_LAYOUT);
 	if (tileWidth == 0 || tileHeight == 0 || (staggered && tileHeight < 2)) {
-		warning("SpriteLibrary_v1_2_3::initTileBackgroundLayout(): the tile size %dx%d is not valid", tileWidth, tileHeight);
+		warning("SpriteLibrary_v1_2_4::initTileBackgroundLayout(): the tile size %dx%d is not valid", tileWidth, tileHeight);
 		return nullptr;
 	}
 
@@ -1922,7 +1922,7 @@ byte *SpriteLibrary_v1_2_3::initTileBackgroundLayout(TileBackground *tile) {
 	return surface;
 }
 
-void SpriteLibrary_v1_2_3::renderTileBackgroundRect(const Common::Rect *rect) {
+void SpriteLibrary_v1_2_4::renderTileBackgroundRect(const Common::Rect *rect) {
 	if (!_tileBackground)
 		return;
 
@@ -1934,13 +1934,13 @@ void SpriteLibrary_v1_2_3::renderTileBackgroundRect(const Common::Rect *rect) {
 	if (!intersectRectLocal(_tileClip, _tileBackground->visible, _tileClip))
 		return;
 
-	if (_tileBackground->layout == TG_SPR_V1_2_10_TILE_STAGGERED_LAYOUT)
+	if (_tileBackground->layout == TG_SPR_V1_2_12_TILE_STAGGERED_LAYOUT)
 		renderStaggeredTileRows();
 	else
 		renderGridTiles();
 }
 
-void SpriteLibrary_v1_2_3::renderStaggeredTileRows() {
+void SpriteLibrary_v1_2_4::renderStaggeredTileRows() {
 	TileBackground *tile = _tileBackground;
 	_tileSurface = _scrollSurface;
 
@@ -2011,7 +2011,7 @@ void SpriteLibrary_v1_2_3::renderStaggeredTileRows() {
 	}
 }
 
-void SpriteLibrary_v1_2_3::renderStaggeredTileRow(uint32 cellIndex, int16 column, int16 y, int16 sourceX, int16 sourceY, int16 visibleWidth, int16 height, bool shifted) {
+void SpriteLibrary_v1_2_4::renderStaggeredTileRow(uint32 cellIndex, int16 column, int16 y, int16 sourceX, int16 sourceY, int16 visibleWidth, int16 height, bool shifted) {
 	if (_tileClip.bottom - y < height)
 		height = (int16)(_tileClip.bottom - y);
 
@@ -2048,7 +2048,7 @@ void SpriteLibrary_v1_2_3::renderStaggeredTileRow(uint32 cellIndex, int16 column
 		if (cellIndex < _tileBackground->cellCount)
 			cell = _tileBackground->cells[cellIndex];
 		else
-			warning("SpriteLibrary_v1_2_3::renderStaggeredTileRow(): the tile cell %d does not exist", (int)cellIndex);
+			warning("SpriteLibrary_v1_2_4::renderStaggeredTileRow(): the tile cell %d does not exist", (int)cellIndex);
 
 		if (cell)
 			blitTransparentRect(_tileSurface, cell, (uint16)width, (uint16)height, (int16)(_tileDestOriginX + x), destinationY, sourceX, sourceY, 0);
@@ -2063,7 +2063,7 @@ void SpriteLibrary_v1_2_3::renderStaggeredTileRow(uint32 cellIndex, int16 column
 	}
 }
 
-void SpriteLibrary_v1_2_3::renderGridTiles() {
+void SpriteLibrary_v1_2_4::renderGridTiles() {
 	TileBackground *tile = _tileBackground;
 	byte *surface = _scrollSurface;
 	uint16 columns = tile->columns;
@@ -2101,15 +2101,15 @@ void SpriteLibrary_v1_2_3::renderGridTiles() {
 				if (index < tile->cellCount)
 					cell = tile->cells[index];
 				else
-					warning("SpriteLibrary_v1_2_3::renderGridTiles(): the tile cell %d does not exist", index);
+					warning("SpriteLibrary_v1_2_4::renderGridTiles(): the tile cell %d does not exist", index);
 
 				if (cell) {
-					uint16 cellFlags = READ_LE_UINT16(cell + TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET);
+					uint16 cellFlags = READ_LE_UINT16(cell + TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET);
 					uint16 flags = 0;
-					if ((cellFlags & TG_SPR_V1_2_10_TILE_MIRROR_FLAG) != 0)
+					if ((cellFlags & TG_SPR_V1_2_12_TILE_MIRROR_FLAG) != 0)
 						flags |= 1;
 
-					if ((cellFlags & TG_SPR_V1_2_10_TILE_FLIP_FLAG) != 0)
+					if ((cellFlags & TG_SPR_V1_2_12_TILE_FLIP_FLAG) != 0)
 						flags |= 0x100;
 
 					blitTransparentRect(surface, cell, (uint16)width, (uint16)height, (int16)(tile->centerX + x), (int16)(tile->centerY + y), sourceX, sourceY, flags);
@@ -2132,7 +2132,7 @@ void SpriteLibrary_v1_2_3::renderGridTiles() {
 	}
 }
 
-void SpriteLibrary_v1_2_3::spriteBoxInBackground(byte *bitmap, uint16 steps, bool insetBoth) {
+void SpriteLibrary_v1_2_4::spriteBoxInBackground(byte *bitmap, uint16 steps, bool insetBoth) {
 	if (!engine()->display()->hasPalette() && !_backgroundBitmap) {
 		bool bkgTransparent = _bkgTransparent;
 		_bkgTransparent = false;
@@ -2152,7 +2152,7 @@ void SpriteLibrary_v1_2_3::spriteBoxInBackground(byte *bitmap, uint16 steps, boo
 	_backgroundBitmap = bitmap;
 }
 
-void SpriteLibrary_v1_2_3::spriteBoxOutBackground(byte *bitmap, uint16 steps, bool insetBoth) {
+void SpriteLibrary_v1_2_4::spriteBoxOutBackground(byte *bitmap, uint16 steps, bool insetBoth) {
 	if (!bitmap)
 		return;
 
@@ -2164,7 +2164,7 @@ void SpriteLibrary_v1_2_3::spriteBoxOutBackground(byte *bitmap, uint16 steps, bo
 	_backgroundBitmap = bitmap;
 }
 
-void SpriteLibrary_v1_2_3::computeWipeStepRect(bool insetBoth, uint16 steps, uint16 step, Common::Rect &out) {
+void SpriteLibrary_v1_2_4::computeWipeStepRect(bool insetBoth, uint16 steps, uint16 step, Common::Rect &out) {
 	uint32 divisor = (uint16)(steps * 2 - 1);
 
 	if (insetBoth)
@@ -2177,7 +2177,7 @@ void SpriteLibrary_v1_2_3::computeWipeStepRect(bool insetBoth, uint16 steps, uin
 	out.bottom = (int16)(_wipeExtentY - out.top);
 }
 
-void SpriteLibrary_v1_2_3::wipeBoxFromCenter(bool insetBoth, uint16 steps) {
+void SpriteLibrary_v1_2_4::wipeBoxFromCenter(bool insetBoth, uint16 steps) {
 	Common::Rect inner;
 	Common::Rect outer;
 
@@ -2196,7 +2196,7 @@ void SpriteLibrary_v1_2_3::wipeBoxFromCenter(bool insetBoth, uint16 steps) {
 	}
 }
 
-void SpriteLibrary_v1_2_3::wipeBoxToCenter(bool insetBoth, uint16 steps) {
+void SpriteLibrary_v1_2_4::wipeBoxToCenter(bool insetBoth, uint16 steps) {
 	Common::Rect inner;
 	Common::Rect outer;
 
@@ -2217,7 +2217,7 @@ void SpriteLibrary_v1_2_3::wipeBoxToCenter(bool insetBoth, uint16 steps) {
 	drawWipeStepAndRepaint(inner);
 }
 
-void SpriteLibrary_v1_2_3::drawWipeStepAndRepaint(Common::Rect rect) {
+void SpriteLibrary_v1_2_4::drawWipeStepAndRepaint(Common::Rect rect) {
 	if (_wipeDrawFromNew)
 		spriteCopyRect(rect, _backgroundBitmap, _wipeNewBitmap);
 	else
@@ -2227,7 +2227,7 @@ void SpriteLibrary_v1_2_3::drawWipeStepAndRepaint(Common::Rect rect) {
 	spritePaintRect(rect, true);
 }
 
-void SpriteLibrary_v1_2_3::drawWipeSideStrips(const Common::Rect &outer, const Common::Rect &inner) {
+void SpriteLibrary_v1_2_4::drawWipeSideStrips(const Common::Rect &outer, const Common::Rect &inner) {
 	Common::Rect strip;
 	strip.left = outer.left;
 	strip.top = inner.top;
@@ -2240,7 +2240,7 @@ void SpriteLibrary_v1_2_3::drawWipeSideStrips(const Common::Rect &outer, const C
 	drawWipeStepAndRepaint(strip);
 }
 
-void SpriteLibrary_v1_2_3::drawWipeTopBottomStrips(const Common::Rect &outer, const Common::Rect &inner) {
+void SpriteLibrary_v1_2_4::drawWipeTopBottomStrips(const Common::Rect &outer, const Common::Rect &inner) {
 	Common::Rect strip;
 	strip.left = outer.left;
 	strip.top = outer.top;
@@ -2253,7 +2253,7 @@ void SpriteLibrary_v1_2_3::drawWipeTopBottomStrips(const Common::Rect &outer, co
 	drawWipeStepAndRepaint(strip);
 }
 
-void SpriteLibrary_v1_2_3::spriteRubberBand(bool enable, int16 x, int16 y, bool move) {
+void SpriteLibrary_v1_2_4::spriteRubberBand(bool enable, int16 x, int16 y, bool move) {
 	if (enable) {
 		if (!_rubberBandActive)
 			rubberBandBegin(x, y);

@@ -19,8 +19,8 @@
  *
  */
 
-#include "topgun/libraries/audio/audio_v1_2_3.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/libraries/audio/audio_v1_2_4.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -150,10 +150,10 @@ uint16 AudioLibrary_v1_2::audioSetCdVolume(uint32 volume) {
 	return setCDAudioVolume(volume);
 }
 
-uint16 AudioLibrary_v1_2_3::audioSetCdVolume(uint32 volume) {
+uint16 AudioLibrary_v1_2_4::audioSetCdVolume(uint32 volume) {
 	uint16 result = AudioLibrary_v1_2::audioSetCdVolume(volume);
 
-	if (_engine->_version >= kVersionV1_2_6 && result != 0) {
+	if (_engine->_version >= kVersionV1_2_7 && result != 0) {
 		_iniCdVolume = (uint16)volume;
 		saveCdVolumeToIni();
 	}
@@ -161,14 +161,14 @@ uint16 AudioLibrary_v1_2_3::audioSetCdVolume(uint32 volume) {
 	return result;
 }
 
-bool AudioLibrary_v1_2_3::openCDAudioDevice() {
+bool AudioLibrary_v1_2_4::openCDAudioDevice() {
 	if (_cdDeviceId != 0)
 		return true;
 
 	if (!AudioLibrary::openCDAudioDevice())
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		_cdAuxSavedVolume = _cdAuxVolume;
 
 		if (_iniCdVolume != 0)
@@ -185,12 +185,12 @@ uint16 AudioLibrary_v1_2::audioStopCd() {
 	return stopCDIfOwned();
 }
 
-uint16 AudioLibrary_v1_2_3::closeCDAudioDevice() {
+uint16 AudioLibrary_v1_2_4::closeCDAudioDevice() {
 	DeviceParms parms;
 
 	sendCdDeviceCommand(TG_AUDIO_DEV_STOP, TG_AUDIO_DEV_WAIT, parms);
 
-	if (_engine->_version >= kVersionV1_2_6 && _cdAuxPresent) {
+	if (_engine->_version >= kVersionV1_2_7 && _cdAuxPresent) {
 		_cdAuxVolume = _cdAuxSavedVolume;
 		applyCdVolume(_cdAuxSavedVolume);
 	}

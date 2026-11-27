@@ -32,9 +32,9 @@ void BattleDemoPlugin::aiSetupSkill(Fighter *f) {
 	AiBlock *a = &f->aiBlock;
 	AiRecord *rec;
 
-	host[TG_BATTLE_V1_2_2_1_VAR_DIFFICULTY] = 4;
+	host[TG_BATTLE_V1_2_3_1_VAR_DIFFICULTY] = 4;
 
-	a->maxReactionDelay = (uint16)((host[TG_BATTLE_V1_2_2_1_VAR_DIFFICULTY] + 1) * 10);
+	a->maxReactionDelay = (uint16)((host[TG_BATTLE_V1_2_3_1_VAR_DIFFICULTY] + 1) * 10);
 	a->reactionDelay = (uint16)((100 - a->maxReactionDelay) * 10);
 	a->opponentRatio = (byte)(g_system->getMillis() % 3);
 	a->ownRatio = (byte)(g_system->getMillis() % 3);
@@ -349,7 +349,7 @@ AiRecord *BattleDemoPlugin::aiPickMove(Fighter *f, AiRecord *list, byte mask, in
 		if (moves[rec->move].available == 0)
 			score = (uint32)-50000;
 
-		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_2_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
+		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_3_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
 			*best = (int32)score;
 			bestRecord = rec;
 		}
@@ -378,7 +378,7 @@ AiRecord *BattleDemoPlugin::aiPickReaction(Fighter *f, AiRecord *list, int32 *be
 
 		score += (a->selectionCount - rec->lastUsedSeq) * rec->weight;
 
-		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_2_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
+		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_3_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
 			*best = (int32)score;
 			bestRecord = rec;
 		}
@@ -445,7 +445,7 @@ AiRecord *BattleDemoPlugin::aiPickMove2(Fighter *f, AiRecord *list, uint16 flag,
 				|| ((flags & kAiFlagWalkBack) && moves[kMoveSlotWalkBack].available == 0))
 			score = (uint32)-50000;
 
-		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_2_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
+		if (*best < (int32)score || (*best == (int32)score && (bestRecord ? bestRecord->lastUsedSeq : (uint32)TG_BATTLE_V1_2_3_1_AI_NULL_RECORD_LAST_USED) > rec->lastUsedSeq)) {
 			*best = (int32)score;
 			bestRecord = rec;
 		}
@@ -460,12 +460,12 @@ void BattleDemoPlugin::aiChooseNext(Fighter *f) {
 	int32 best = 0;
 
 	uint16 row = (uint16)((a->opponentRatio * 3 + a->ownRatio) * 3 + a->balance);
-	if (row >= TG_BATTLE_V1_2_2_1_AI_WEIGHT_ROWS) {
+	if (row >= TG_BATTLE_V1_2_3_1_AI_WEIGHT_ROWS) {
 		warning("BattleDemoPlugin::aiChooseNext(): invalid weight row %d", row);
 		row = 0;
 	}
 
-	const byte *weights = &_aiWeights[row * TG_BATTLE_V1_2_2_1_AI_WEIGHT_ROW_SIZE];
+	const byte *weights = &_aiWeights[row * TG_BATTLE_V1_2_3_1_AI_WEIGHT_ROW_SIZE];
 	uint32 random = g_system->getMillis() % 100;
 	byte sum = 0;
 	byte k = 0;
@@ -475,7 +475,7 @@ void BattleDemoPlugin::aiChooseNext(Fighter *f) {
 		if (sum > random)
 			break;
 		k++;
-	} while (k < TG_BATTLE_V1_2_2_1_AI_WEIGHT_ROW_SIZE);
+	} while (k < TG_BATTLE_V1_2_3_1_AI_WEIGHT_ROW_SIZE);
 
 	// Points at the chosen weight, not at the start of the row
 	a->weights = weights + k;

@@ -30,20 +30,20 @@ namespace Topgun {
 
 void BattleDemoPlugin::initInputTimers() {
 	Fighter *f = &_ctx->fighters[0];
-	f->inputTimerId = TG_BATTLE_V1_2_2_1_TIMER_INPUT0;
-	f->inputTimerScript = TG_BATTLE_V1_2_2_1_HOOK_INPUT_TIMEOUT0;
-	f->inputTimeout = TG_BATTLE_V1_2_2_1_INPUT_TIMEOUT;
+	f->inputTimerId = TG_BATTLE_V1_2_3_1_TIMER_INPUT0;
+	f->inputTimerScript = TG_BATTLE_V1_2_3_1_HOOK_INPUT_TIMEOUT0;
+	f->inputTimeout = TG_BATTLE_V1_2_3_1_INPUT_TIMEOUT;
 
 	f = &_ctx->fighters[1];
-	f->inputTimerId = TG_BATTLE_V1_2_2_1_TIMER_INPUT1;
-	f->inputTimerScript = TG_BATTLE_V1_2_2_1_HOOK_INPUT_TIMEOUT1;
-	f->inputTimeout = TG_BATTLE_V1_2_2_1_INPUT_TIMEOUT;
+	f->inputTimerId = TG_BATTLE_V1_2_3_1_TIMER_INPUT1;
+	f->inputTimerScript = TG_BATTLE_V1_2_3_1_HOOK_INPUT_TIMEOUT1;
+	f->inputTimeout = TG_BATTLE_V1_2_3_1_INPUT_TIMEOUT;
 }
 
 uint16 BattleDemoPlugin::identity(uint16 player, uint16 device) {
 	uint16 *host = _host->variableTable();
 
-	if ((byte)device == kInputDeviceJoystick && host[TG_BATTLE_V1_2_2_1_VAR_JOYSTICKS] > (byte)player)
+	if ((byte)device == kInputDeviceJoystick && host[TG_BATTLE_V1_2_3_1_VAR_JOYSTICKS] > (byte)player)
 		return kInputDeviceJoystick;
 
 	return kInputDeviceKeyboard;
@@ -133,10 +133,10 @@ uint16 BattleDemoPlugin::inputMatch(uint16 player, uint16 timeout) {
 }
 
 uint16 BattleDemoPlugin::keyDown(uint16 virtualKey) {
-	if (virtualKey > TG_BATTLE_V1_2_2_1_KEY_TABLE_LAST)
+	if (virtualKey > TG_BATTLE_V1_2_3_1_KEY_TABLE_LAST)
 		return 0;
 
-	if (virtualKey == TG_BATTLE_V1_2_2_1_KEY_TABLE_LAST) {
+	if (virtualKey == TG_BATTLE_V1_2_3_1_KEY_TABLE_LAST) {
 		// In the original, this key's table entry overlaps the first joystick flags
 		warning("BattleDemoPlugin::keyDown(): key 0x%02X has no key table entry", virtualKey);
 		return 0;
@@ -149,10 +149,10 @@ uint16 BattleDemoPlugin::keyDown(uint16 virtualKey) {
 }
 
 uint16 BattleDemoPlugin::keyUp(uint16 virtualKey) {
-	if (virtualKey > TG_BATTLE_V1_2_2_1_KEY_TABLE_LAST)
+	if (virtualKey > TG_BATTLE_V1_2_3_1_KEY_TABLE_LAST)
 		return 0;
 
-	if (virtualKey == TG_BATTLE_V1_2_2_1_KEY_TABLE_LAST) {
+	if (virtualKey == TG_BATTLE_V1_2_3_1_KEY_TABLE_LAST) {
 		warning("BattleDemoPlugin::keyUp(): key 0x%02X has no key table entry", virtualKey);
 		return 0;
 	}
@@ -209,8 +209,8 @@ void BattleDemoPlugin::keyboardMap(uint16 player, uint16 enable) {
 	}
 
 	f->keyTimerArmed = 0;
-	f->keyTimerId = ((byte)player == 0) ? TG_BATTLE_V1_2_2_1_TIMER_KEY0 : TG_BATTLE_V1_2_2_1_TIMER_KEY1;
-	f->keyTimerScript = ((byte)player == 0) ? TG_BATTLE_V1_2_2_1_HOOK_KEY_TIMEOUT0 : TG_BATTLE_V1_2_2_1_HOOK_KEY_TIMEOUT1;
+	f->keyTimerId = ((byte)player == 0) ? TG_BATTLE_V1_2_3_1_TIMER_KEY0 : TG_BATTLE_V1_2_3_1_TIMER_KEY1;
+	f->keyTimerScript = ((byte)player == 0) ? TG_BATTLE_V1_2_3_1_HOOK_KEY_TIMEOUT0 : TG_BATTLE_V1_2_3_1_HOOK_KEY_TIMEOUT1;
 
 	if ((byte)enable == 0)
 		_host->cancelScriptTimer(f->keyTimerId);

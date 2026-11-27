@@ -119,7 +119,7 @@ uint16 BattleDemoPlugin::hitAttack(uint16 id) {
 	bool blocked = reaction->limit > damage || (attacker->side != defender->facing && defender->move == kMoveSlotGuardDownForward);
 
 	if (!blocked) {
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, defender->player, (uint16)-hit->energyLoss);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, defender->player, (uint16)-hit->energyLoss);
 		spawnHitSpark(&overlap, hit->damageClass);
 
 		if (defender->state == kStateGuard) {
@@ -143,7 +143,7 @@ uint16 BattleDemoPlugin::hitAttack(uint16 id) {
 	}
 
 	if (defender->state == kStateGuard) {
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, defender->player, 0xFFFB);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, defender->player, 0xFFFB);
 		if (defender->move != kMoveSlotGuardDownForward) {
 			uint16 anim = defender->animTab[defender->remap[reaction->reactionMove]];
 			if (reaction->reactionMove == kReactKnockBackSet1)
@@ -186,11 +186,11 @@ uint16 BattleDemoPlugin::hitFighter(uint16 a, uint16 b, uint16 id) {
 		if (f->state == kStateGuard)
 			table = f->reactTab[0];
 	} else if (f->move == kMoveSlotGuardDownForward) {
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFF8);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFF8);
 		return 0;
 	}
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFCE);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFCE);
 
 	Common::Rect rect;
 	_host->getSpriteRect(f->sprite, rect);
@@ -373,13 +373,13 @@ uint16 BattleDemoPlugin::hitPointTest(Fighter *a) {
 
 	// Only the last sprite's test counts
 	uint16 result = 0;
-	for (uint16 sprite = TG_BATTLE_V1_2_2_1_HIT_POINT_FIRST_SPRITE; sprite <= TG_BATTLE_V1_2_2_1_HIT_POINT_LAST_SPRITE; sprite++) {
+	for (uint16 sprite = TG_BATTLE_V1_2_3_1_HIT_POINT_FIRST_SPRITE; sprite <= TG_BATTLE_V1_2_3_1_HIT_POINT_LAST_SPRITE; sprite++) {
 		Common::Point point;
 		_host->getSpritePosition(sprite, point);
 
 		result = 0;
 		if (rect.contains(point.x, point.y))
-			result = _host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_HIT_POINT, (uint16)(sprite + TG_BATTLE_V1_2_2_1_LITERAL_BIAS), 0);
+			result = _host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_HIT_POINT, (uint16)(sprite + TG_BATTLE_V1_2_3_1_LITERAL_BIAS), 0);
 	}
 
 	return result;
@@ -392,7 +392,7 @@ void BattleDemoPlugin::loadStats(Fighter *f) {
 
 	f->fightAttacks = 0;
 	f->fightHits = 0;
-	f->fightMaxEnergy += host[TG_BATTLE_V1_2_2_1_VAR_MAX_ENERGY + opponent];
+	f->fightMaxEnergy += host[TG_BATTLE_V1_2_3_1_VAR_MAX_ENERGY + opponent];
 	f->fightDamage = 0;
 }
 
@@ -400,7 +400,7 @@ void BattleDemoPlugin::storeStats(Fighter *f) {
 	uint16 *host = _host->variableTable();
 	byte opponent = (f->player == 0) ? 1 : 0;
 
-	f->fightDamage += (uint16)(host[TG_BATTLE_V1_2_2_1_VAR_MAX_ENERGY + opponent] - host[TG_BATTLE_V1_2_2_1_VAR_ENERGY + opponent]);
+	f->fightDamage += (uint16)(host[TG_BATTLE_V1_2_3_1_VAR_MAX_ENERGY + opponent] - host[TG_BATTLE_V1_2_3_1_VAR_ENERGY + opponent]);
 	f->totalMaxEnergy += f->fightMaxEnergy;
 	f->totalDamage += f->fightDamage;
 
@@ -413,13 +413,13 @@ void BattleDemoPlugin::storeStats(Fighter *f) {
 	}
 
 	if (f->player == 0) {
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_ATTACKS0] = (uint16)f->totalAttacks;
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_HITS0] = (uint16)f->totalHits;
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_RATING0] = rating;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_ATTACKS0] = (uint16)f->totalAttacks;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_HITS0] = (uint16)f->totalHits;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_RATING0] = rating;
 	} else {
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_ATTACKS1] = (uint16)f->totalAttacks;
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_HITS1] = (uint16)f->totalHits;
-		host[TG_BATTLE_V1_2_2_1_VAR_STAT_RATING1] = rating;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_ATTACKS1] = (uint16)f->totalAttacks;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_HITS1] = (uint16)f->totalHits;
+		host[TG_BATTLE_V1_2_3_1_VAR_STAT_RATING1] = rating;
 	}
 }
 
@@ -451,7 +451,7 @@ uint16 BattleDemoPlugin::scoreAttack(Fighter *f, uint16 hit, uint16 move, uint16
 				else
 					code = 4;
 
-				_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_COMBO, f->player, code);
+				_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_COMBO, f->player, code);
 				break;
 			}
 		}

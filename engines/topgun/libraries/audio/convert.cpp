@@ -23,10 +23,10 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/audio/audio.h"
-#include "topgun/libraries/audio/audio_v1_2_3.h"
+#include "topgun/libraries/audio/audio_v1_2_4.h"
 #include "topgun/libraries/audio/audio_v1_2_tables.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 

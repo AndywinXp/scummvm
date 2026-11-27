@@ -624,12 +624,12 @@ Common::Point SpriteLibrary::computeQuadCurvePoint(uint16 step, uint16 steps, in
 
 	int16 controlX = (int16)((uint16)(viaRelativeX * 4) - (uint16)endRelativeX);
 	int64 sumX = (int64)(int32)weight * controlX + (int64)((uint32)u * u) * endRelativeX;
-	if (_engine->_version < kVersionV1_2_3)
+	if (_engine->_version < kVersionV1_2_4)
 		sumX += (sumX < 0) ? -0x80000 : 0x80000;
 
 	int16 controlY = (int16)((uint16)(viaRelativeY * 4) - (uint16)endRelativeY);
 	int64 sumY = (int64)(int32)weight * controlY + (int64)((uint32)u * u) * endRelativeY;
-	if (_engine->_version < kVersionV1_2_3)
+	if (_engine->_version < kVersionV1_2_4)
 		sumY += (sumY < 0) ? -0x80000 : 0x80000;
 
 	Common::Point point;

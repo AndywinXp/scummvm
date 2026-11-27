@@ -41,9 +41,9 @@
 #define TG_HOST_V1_2_LITERAL_BIAS                0x7D01
 #define TG_HOST_V1_2_ENTRY_SCRIPT                0x82FF
 #define TG_HOST_V1_2_NUM_SCENE_VARIABLES         401
-#define TG_HOST_V1_2_3_NUM_SCENE_VARIABLES       5001
-#define TG_HOST_V1_2_3_SCENE_NAME_SIZE           14
-#define TG_HOST_V1_2_5_SCENE_NAME_SIZE           16
+#define TG_HOST_V1_2_4_NUM_SCENE_VARIABLES       5001
+#define TG_HOST_V1_2_4_SCENE_NAME_SIZE           14
+#define TG_HOST_V1_2_6_SCENE_NAME_SIZE           16
 #define TG_HOST_V1_2_FIRST_CLEARED_VARIABLE      401
 #define TG_HOST_V1_2_NUM_CLEARED_VARIABLES       114
 #define TG_HOST_V1_2_VARIABLE_MOUSE_BUTTON       401
@@ -60,78 +60,78 @@
 #define TG_HOST_V1_2_1_VARIABLE_SCREEN_SAVER     415
 #define TG_HOST_V1_2_1_VARIABLE_JOYSTICKS        416
 #define TG_HOST_V1_2_TABLE_SIZE                  0x159F
-#define TG_HOST_V1_2_2_NUM_SCENE_VARIABLES       1001
-#define TG_HOST_V1_2_2_FIRST_ARGUMENT_SLOT       0x45E
-#define TG_HOST_V1_2_2_FIRST_FRAME_INDEX         0x5FD
-#define TG_HOST_V1_2_2_FIRST_SYSTEM_VARIABLE     1001
-#define TG_HOST_V1_2_2_NUM_SYSTEM_VARIABLES      117
-#define TG_HOST_V1_2_2_VARIABLE_MOUSE_BUTTON     1001
-#define TG_HOST_V1_2_2_VARIABLE_LOMEM            1002
-#define TG_HOST_V1_2_2_VARIABLE_SCREEN_WIDTH     1003
-#define TG_HOST_V1_2_2_VARIABLE_SCREEN_HEIGHT    1004
-#define TG_HOST_V1_2_2_VARIABLE_MOUSE_X          1005
-#define TG_HOST_V1_2_2_VARIABLE_MOUSE_Y          1006
-#define TG_HOST_V1_2_2_VARIABLE_CLICK_X          1007
-#define TG_HOST_V1_2_2_VARIABLE_CLICK_Y          1008
-#define TG_HOST_V1_2_2_VARIABLE_DROP_X           1009
-#define TG_HOST_V1_2_2_VARIABLE_DROP_Y           1010
-#define TG_HOST_V1_2_2_VARIABLE_LAUNCH_MODE      1011
-#define TG_HOST_V1_2_2_VARIABLE_AUDIO_PRESENT    1012
-#define TG_HOST_V1_2_2_VARIABLE_PROCESSOR_TYPE   1013
-#define TG_HOST_V1_2_2_VARIABLE_OVER_256_COLORS  1014
-#define TG_HOST_V1_2_2_VARIABLE_SCREEN_SAVER     1015
-#define TG_HOST_V1_2_2_VARIABLE_JOYSTICKS        1016
-#define TG_HOST_V1_2_2_VARIABLE_EVENT_PARAMETER  1017
+#define TG_HOST_V1_2_3_NUM_SCENE_VARIABLES       1001
+#define TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT       0x45E
+#define TG_HOST_V1_2_3_FIRST_FRAME_INDEX         0x5FD
+#define TG_HOST_V1_2_3_FIRST_SYSTEM_VARIABLE     1001
+#define TG_HOST_V1_2_3_NUM_SYSTEM_VARIABLES      117
+#define TG_HOST_V1_2_3_VARIABLE_MOUSE_BUTTON     1001
+#define TG_HOST_V1_2_3_VARIABLE_LOMEM            1002
+#define TG_HOST_V1_2_3_VARIABLE_SCREEN_WIDTH     1003
+#define TG_HOST_V1_2_3_VARIABLE_SCREEN_HEIGHT    1004
+#define TG_HOST_V1_2_3_VARIABLE_MOUSE_X          1005
+#define TG_HOST_V1_2_3_VARIABLE_MOUSE_Y          1006
+#define TG_HOST_V1_2_3_VARIABLE_CLICK_X          1007
+#define TG_HOST_V1_2_3_VARIABLE_CLICK_Y          1008
+#define TG_HOST_V1_2_3_VARIABLE_DROP_X           1009
+#define TG_HOST_V1_2_3_VARIABLE_DROP_Y           1010
+#define TG_HOST_V1_2_3_VARIABLE_LAUNCH_MODE      1011
+#define TG_HOST_V1_2_3_VARIABLE_AUDIO_PRESENT    1012
+#define TG_HOST_V1_2_3_VARIABLE_PROCESSOR_TYPE   1013
+#define TG_HOST_V1_2_3_VARIABLE_OVER_256_COLORS  1014
+#define TG_HOST_V1_2_3_VARIABLE_SCREEN_SAVER     1015
+#define TG_HOST_V1_2_3_VARIABLE_JOYSTICKS        1016
+#define TG_HOST_V1_2_3_VARIABLE_EVENT_PARAMETER  1017
 
 // Scenes and strings
 #define TG_HOST_V1_2_STRING_SLOT_SIZE            128
 #define TG_HOST_V1_2_STRING_ID_MASK              0x7FFF
 #define TG_HOST_V1_2_STRING_ID_CONSTANT          0x8000
 #define TG_HOST_V1_2_CONTAINER_TITLE_SIZE        0x4E
-#define TG_HOST_V1_2_5_CONTAINER_TITLE_SIZE      0x52
-#define TG_HOST_V1_2_10_CONTAINER_TITLE_SIZE     0x50
-#define TG_HOST_V1_2_2_1_LIBRARY_NAME_SIZE       14
-#define TG_HOST_V1_2_3_LIBRARY_NAME_SIZE         15
-#define TG_HOST_V1_2_5_LIBRARY_NAME_SIZE         17
+#define TG_HOST_V1_2_6_CONTAINER_TITLE_SIZE      0x52
+#define TG_HOST_V1_2_12_CONTAINER_TITLE_SIZE     0x50
+#define TG_HOST_V1_2_3_1_LIBRARY_NAME_SIZE       14
+#define TG_HOST_V1_2_4_LIBRARY_NAME_SIZE         15
+#define TG_HOST_V1_2_6_LIBRARY_NAME_SIZE         17
 
 // Background record of the demo: the colour and the wipe follow the two bitmap ids
-#define TG_HOST_V1_2_2_1_BACKGROUND_COLOR_OFFSET 8
-#define TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET  0x0C
+#define TG_HOST_V1_2_3_1_BACKGROUND_COLOR_OFFSET 8
+#define TG_HOST_V1_2_3_1_BACKGROUND_WIPE_OFFSET  0x0C
 
 // Script hook of a plug-in: it reads up to the sixth argument
-#define TG_HOST_V1_2_2_1_HOOK_ARGUMENTS          6
+#define TG_HOST_V1_2_3_1_HOOK_ARGUMENTS          6
 
 // Device groups
-#define TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS          8
-#define TG_DEVICE_V1_2_2_NUM_GROUPS                2
-#define TG_DEVICE_V1_2_2_NUM_DEVICES               6
-#define TG_DEVICE_V1_2_3_KEYBOARD_BASE             1
-#define TG_DEVICE_V1_2_3_JOYSTICK_BASE             3
-#define TG_DEVICE_V1_2_3_MOUSE                     5
-#define TG_DEVICE_V1_2_2_TYPE_JOYSTICK             1
-#define TG_DEVICE_V1_2_2_TYPE_KEYBOARD             2
-#define TG_DEVICE_V1_2_3_TYPE_MOUSE                5
-#define TG_DEVICE_V1_2_2_MAX_BINDINGS_A            50
-#define TG_DEVICE_V1_2_2_MAX_BINDINGS_B            4
-#define TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS         2
-#define TG_DEVICE_V1_2_2_KEYBOARD_SET_SLOTS        6
-#define TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS        8
-#define TG_DEVICE_V1_2_2_CODE_TABLE_SIZE           32
-#define TG_DEVICE_V1_2_2_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
-#define TG_DEVICE_V1_2_2_JOYSTICK_STATE_SIZE       17
-#define TG_DEVICE_V1_2_2_NO_DIRECTION              0x88
-#define TG_DEVICE_V1_2_2_KEY_RELEASE_DELAY         200
-#define TG_DEVICE_V1_2_2_COMBO_TIMEOUT             200
+#define TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS          8
+#define TG_DEVICE_V1_2_3_NUM_GROUPS                2
+#define TG_DEVICE_V1_2_3_NUM_DEVICES               6
+#define TG_DEVICE_V1_2_4_KEYBOARD_BASE             1
+#define TG_DEVICE_V1_2_4_JOYSTICK_BASE             3
+#define TG_DEVICE_V1_2_4_MOUSE                     5
+#define TG_DEVICE_V1_2_3_TYPE_JOYSTICK             1
+#define TG_DEVICE_V1_2_3_TYPE_KEYBOARD             2
+#define TG_DEVICE_V1_2_4_TYPE_MOUSE                5
+#define TG_DEVICE_V1_2_3_MAX_BINDINGS_A            50
+#define TG_DEVICE_V1_2_3_MAX_BINDINGS_B            4
+#define TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS         2
+#define TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS        6
+#define TG_DEVICE_V1_2_6_KEYBOARD_SET_SLOTS        8
+#define TG_DEVICE_V1_2_3_CODE_TABLE_SIZE           32
+#define TG_DEVICE_V1_2_3_JOYSTICK_CODES_OFFSET     14 // 0x2A - 0x1C
+#define TG_DEVICE_V1_2_3_JOYSTICK_STATE_SIZE       17
+#define TG_DEVICE_V1_2_3_NO_DIRECTION              0x88
+#define TG_DEVICE_V1_2_3_KEY_RELEASE_DELAY         200
+#define TG_DEVICE_V1_2_3_COMBO_TIMEOUT             200
 
 // Tables
 #define TG_HOST_V1_2_KEY_TABLE_SIZE              128
 #define TG_HOST_V1_2_MAX_CLICK_REGIONS           100
-#define TG_INPUT_V1_2_3_KEY_TABLE_SIZE           256
-#define TG_INPUT_V1_2_3_MAX_CLICK_REGIONS        5416 // 0xFDE8 / 12
-#define TG_INPUT_V1_2_5_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
-#define TG_INPUT_V1_2_6_1_MAX_CLICK_REGIONS      5000 // 0xFDE8 / 13
+#define TG_INPUT_V1_2_4_KEY_TABLE_SIZE           256
+#define TG_INPUT_V1_2_4_MAX_CLICK_REGIONS        5416 // 0xFDE8 / 12
+#define TG_INPUT_V1_2_6_MAX_CLICK_REGIONS        5909 // 0xFDE8 / 11
+#define TG_INPUT_V1_2_7_1_MAX_CLICK_REGIONS      5000 // 0xFDE8 / 13
 #define TG_HOST_V1_2_MAX_HOVER_REGIONS           40
-#define TG_HOST_V1_2_10_MAX_HOVER_REGIONS        80
+#define TG_HOST_V1_2_12_MAX_HOVER_REGIONS        80
 #define TG_HOST_V1_2_MAX_SCHEDULED_TIMERS        20
 #define TG_HOST_V1_2_MAX_COLLISION_PAIRS         50
 #define TG_HOST_V1_2_1_MAX_COLLISION_PAIRS       100
@@ -215,8 +215,8 @@
 #define TG_HOST_V1_2_CURSOR_MODE_BUSY            3
 #define TG_HOST_V1_2_CURSOR_MODE_HIDDEN          4
 #define TG_HOST_V1_2_NUM_CURSOR_IMAGES           6
-#define TG_HOST_V1_2_3_NUM_CURSOR_IMAGES         7
-#define TG_HOST_V1_2_3_CURSOR_MODE_INVISIBLE     9
+#define TG_HOST_V1_2_4_NUM_CURSOR_IMAGES         7
+#define TG_HOST_V1_2_4_CURSOR_MODE_INVISIBLE     9
 
 // Movies
 #define TG_MOVIE_V1_2_HEADER_SIZE                8
@@ -226,7 +226,7 @@
 #define TG_MOVIE_V1_2_FRAME_ENTRY_STATE          1
 #define TG_MOVIE_V1_2_FRAME_ENTRY_CHUNK_SIZE     2
 #define TG_MOVIE_V1_2_FRAME_ENTRY_FILE_OFFSET    4
-#define TG_MOVIE_V1_2_2_FRAME_TABLE_RESOURCE_OFFSET 1
+#define TG_MOVIE_V1_2_3_FRAME_TABLE_RESOURCE_OFFSET 1
 #define TG_MOVIE_V1_2_NUM_PREFETCH_BUFFERS       10
 #define TG_MOVIE_V1_2_PREFETCH_BUFFER_SIZE       0xFDE8
 #define TG_MOVIE_V1_2_AUDIO_BUFFER_SIZE          0x18000
@@ -235,7 +235,7 @@
 #define TG_MOVIE_V1_2_SKIP_STEP                  1
 #define TG_MOVIE_V1_2_MAX_FRAME_TABLE_ENTRIES    0x1FFF
 #define TG_MOVIE_V1_2_BITMAP_KIND                9
-#define TG_MOVIE_V1_2_5_BITMAP_KIND              8
+#define TG_MOVIE_V1_2_6_BITMAP_KIND              8
 #define TG_MOVIE_V1_2_BITMAP_KIND_DELTA          1
 #define TG_MOVIE_V1_2_BITMAP_KIND_MERGE          2
 #define TG_MOVIE_V1_2_BITMAP_BLIT_DIFF           1
@@ -251,8 +251,8 @@
 #define TG_MOVIE_V1_2_COMMAND_RESOURCE           2
 #define TG_MOVIE_V1_2_COMMAND_INDEX              4
 #define TG_MOVIE_V1_2_COMMAND_FRAME_READY        0x0A
-#define TG_MOVIE_V1_2_5_COMMAND_FRAME_READY      6
-#define TG_MOVIE_V1_2_6_2_DEFAULT_SPEED          100
+#define TG_MOVIE_V1_2_6_COMMAND_FRAME_READY      6
+#define TG_MOVIE_V1_2_7_2_DEFAULT_SPEED          100
 
 // Text objects
 #define TG_TEXT_V1_2_FONT_FULL_NAME              4
@@ -279,17 +279,17 @@
 #define TG_TEXT_V1_2_1_HEADER_BOX_WIDTH          0x10
 #define TG_TEXT_V1_2_1_HEADER_BOX_HEIGHT         0x12
 #define TG_TEXT_V1_2_1_HEADER_FLAGS              0x14
-#define TG_TEXT_V1_2_2_RESOURCE_TYPE             14
-#define TG_TEXT_V1_2_3_HEADER_SIZE               20
-#define TG_TEXT_V1_2_3_SHORT_HEADER_SIZE         18
-#define TG_TEXT_V1_2_3_EDIT_RECORD_SIZE          12
-#define TG_TEXT_V1_2_3_FACE_SIZE                 32
+#define TG_TEXT_V1_2_3_RESOURCE_TYPE             14
+#define TG_TEXT_V1_2_4_HEADER_SIZE               20
+#define TG_TEXT_V1_2_4_SHORT_HEADER_SIZE         18
+#define TG_TEXT_V1_2_4_EDIT_RECORD_SIZE          12
+#define TG_TEXT_V1_2_4_FACE_SIZE                 32
 
 // INI file
 #define TG_INI_V1_2_BACKUP_LAST                  999
 #define TG_INI_V1_2_COPY_CHUNK                   0x400
 #define TG_INI_V1_2_BUFFER_SIZE                  0xFF
-#define TG_INI_V1_2_3_STRING_SIZE                260
+#define TG_INI_V1_2_4_STRING_SIZE                260
 #define TG_INI_V1_2_COPY_SIZE                    0x7F
 #define TG_INI_V1_2_CIPHER_BASE                  0x30
 #define TG_INI_V1_2_CIPHER_SHIFT                 4
@@ -308,16 +308,16 @@
 #define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_VARIABLE 517
 #define TG_SCRIPT_V1_2_1_ARGUMENT_FRAME_SIZE     8
 #define TG_SCRIPT_V1_2_CALL_HEADER_SIZE          5
-#define TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE        6
-#define TG_SCRIPT_V1_2_2_TABLE_ADDRESS           0xF03
-#define TG_SCRIPT_V1_2_2_1_TABLE_ADDRESS         0x1187
-#define TG_SCRIPT_V1_2_2_1_LAST_BUILTIN_CODE     0x60
-#define TG_SCRIPT_V1_2_2_1_POSTED_RECORD_BUFFER_SIZE 20
-#define TG_SCRIPT_V1_2_2_1_MIDI_PARAMETERS_SIZE  10
+#define TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE        6
+#define TG_SCRIPT_V1_2_3_TABLE_ADDRESS           0xF03
+#define TG_SCRIPT_V1_2_3_1_TABLE_ADDRESS         0x1187
+#define TG_SCRIPT_V1_2_3_1_LAST_BUILTIN_CODE     0x60
+#define TG_SCRIPT_V1_2_3_1_POSTED_RECORD_BUFFER_SIZE 20
+#define TG_SCRIPT_V1_2_3_1_MIDI_PARAMETERS_SIZE  10
 #define TG_SCRIPT_V1_2_EXPRESSION_STACK_SIZE     100 // (0x7D6 - 0x70E) / 2
 #define TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES     4
-#define TG_SCRIPT_V1_2_6_1_NUM_ELEMENT_VARIABLES 10
-#define TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE       4
+#define TG_SCRIPT_V1_2_7_1_NUM_ELEMENT_VARIABLES 10
+#define TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE       4
 #define TG_SCRIPT_V1_2_NUM_SCRIPT_CHOICES        6
 #define TG_SCRIPT_V1_2_ROUND_ROBIN_NESTED_OPCODE 23
 #define TG_SCRIPT_V1_2_STRING_COPY_SIZE          0x7F
@@ -328,7 +328,7 @@
 #define TG_SCRIPT_V1_2_HOST_EVENT_SCENE_END      0x13
 #define TG_SCRIPT_V1_2_HOST_EVENT_OPERATION      0x14
 #define TG_SCRIPT_V1_2_HOST_EVENT_OPERATION_OFFSET 4
-#define TG_SCRIPT_V1_2_2_1_HOST_EVENT_POSTED_RUN 0x15
+#define TG_SCRIPT_V1_2_3_1_HOST_EVENT_POSTED_RUN 0x15
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERANDS_OFFSET 6
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERAND_SIZE   4
 #define TG_SCRIPT_V1_2_ARITHMETIC_OPERATION_MASK 0x3F
@@ -398,34 +398,34 @@ enum ResourceType_v1_2_1 {
 	kResV1_2_1Text = 13
 };
 
-enum ResourceType_v1_2_2 {
-	kResV1_2_2Bitmap = 1,
-	kResV1_2_2Wave = 4,
-	kResV1_2_2Midi = 5,
-	kResV1_2_2Movie = 6,
-	kResV1_2_2OpList = 7,
-	kResV1_2_2BitmapGroup = 8,
-	kResV1_2_2MixedGroup = 9,
-	kResV1_2_2Palette = 10,
-	kResV1_2_2SpriteQueueData = 11,
-	kResV1_2_2Script = 12,
-	kResV1_2_2Sprite = 13,
-	kResV1_2_2Text = 14
-};
-
 enum ResourceType_v1_2_3 {
 	kResV1_2_3Bitmap = 1,
-	kResV1_2_3Midi = 4,
-	kResV1_2_3Wave = 7,
-	kResV1_2_3Movie = 8,
-	kResV1_2_3OpList = 9,
-	kResV1_2_3BitmapGroup = 10,
-	kResV1_2_3MixedGroup = 11,
-	kResV1_2_3Palette = 12,
-	kResV1_2_3SpriteQueueData = 13,
-	kResV1_2_3Script = 14,
-	kResV1_2_3Sprite = 15,
-	kResV1_2_3Text = 16
+	kResV1_2_3Wave = 4,
+	kResV1_2_3Midi = 5,
+	kResV1_2_3Movie = 6,
+	kResV1_2_3OpList = 7,
+	kResV1_2_3BitmapGroup = 8,
+	kResV1_2_3MixedGroup = 9,
+	kResV1_2_3Palette = 10,
+	kResV1_2_3SpriteQueueData = 11,
+	kResV1_2_3Script = 12,
+	kResV1_2_3Sprite = 13,
+	kResV1_2_3Text = 14
+};
+
+enum ResourceType_v1_2_4 {
+	kResV1_2_4Bitmap = 1,
+	kResV1_2_4Midi = 4,
+	kResV1_2_4Wave = 7,
+	kResV1_2_4Movie = 8,
+	kResV1_2_4OpList = 9,
+	kResV1_2_4BitmapGroup = 10,
+	kResV1_2_4MixedGroup = 11,
+	kResV1_2_4Palette = 12,
+	kResV1_2_4SpriteQueueData = 13,
+	kResV1_2_4Script = 14,
+	kResV1_2_4Sprite = 15,
+	kResV1_2_4Text = 16
 };
 
 enum ResourceType_v1_2 {
@@ -532,11 +532,11 @@ enum ScriptOpcode_v1_2 {
 	kOpV1_2SetDeviceGroupFlag,
 	kOpV1_2GetDeviceGroupState,
 	kOpV1_2ReturnExpression,
-	kOpV1_2_2_1SetMidiParams = 92,
-	kOpV1_2_2_1SetVolume,
-	kOpV1_2_2_1Unused94,
-	kOpV1_2_2_1Unused95,
-	kOpV1_2_2_1SetDebugScriptId
+	kOpV1_2_3_1SetMidiParams = 92,
+	kOpV1_2_3_1SetVolume,
+	kOpV1_2_3_1Unused94,
+	kOpV1_2_3_1Unused95,
+	kOpV1_2_3_1SetDebugScriptId
 };
 
 struct FormatArgument_v1_2 {
@@ -613,7 +613,7 @@ struct Movie_v1_2 {
 		audioStream(0), delay(0), prefetchFrame(0), runSize(0), frame(0), id(0), index(0), sprite(0),
 		timelineRemaining(0), frameUpdated(false), prefetchDone(false), stalled(false), skipping(false),
 		late(false), prefetchExhausted(false), started(false), audioStarted(false), numBuffers(0),
-		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_6_2_DEFAULT_SPEED) {}
+		fillBuffer(0), consumeBuffer(0), speed(TG_MOVIE_V1_2_7_2_DEFAULT_SPEED) {}
 };
 
 struct TextObject_v1_2 {
@@ -623,7 +623,7 @@ struct TextObject_v1_2 {
 	bool fontOwned;
 	uint16 fontHandle;
 	uint16 color;
-	byte edit[TG_TEXT_V1_2_3_EDIT_RECORD_SIZE];
+	byte edit[TG_TEXT_V1_2_4_EDIT_RECORD_SIZE];
 	bool leadByteBuffered;
 	byte leadByte;
 	byte data[TG_TEXT_V1_2_1_HEADER_SIZE];
@@ -641,29 +641,29 @@ struct TextFont_v1_2 {
 	bool owned;
 	uint16 refCount;
 	int16 height;
-	char face[TG_TEXT_V1_2_3_FACE_SIZE];
+	char face[TG_TEXT_V1_2_4_FACE_SIZE];
 
 	// Set for a substitute with other metrics; a zero line height stands for the height of the font
 	int lineHeight;
 	int lineOffset;
 
 	TextFont_v1_2() : handle(0), font(nullptr), owned(false), refCount(0), height(0), lineHeight(0), lineOffset(0) {
-		for (uint16 i = 0; i < TG_TEXT_V1_2_3_FACE_SIZE; i++)
+		for (uint16 i = 0; i < TG_TEXT_V1_2_4_FACE_SIZE; i++)
 			face[i] = 0;
 	}
 };
 
 struct SceneEntry_v1_2 {
-	char name[TG_HOST_V1_2_5_SCENE_NAME_SIZE];
-	uint16 variables[TG_HOST_V1_2_3_NUM_SCENE_VARIABLES];
+	char name[TG_HOST_V1_2_6_SCENE_NAME_SIZE];
+	uint16 variables[TG_HOST_V1_2_4_NUM_SCENE_VARIABLES];
 	uint16 stringCount;
 	byte *strings;
 
 	SceneEntry_v1_2() : stringCount(0), strings(nullptr) {
-		for (int i = 0; i < TG_HOST_V1_2_5_SCENE_NAME_SIZE; i++)
+		for (int i = 0; i < TG_HOST_V1_2_6_SCENE_NAME_SIZE; i++)
 			name[i] = 0;
 
-		for (int i = 0; i < TG_HOST_V1_2_3_NUM_SCENE_VARIABLES; i++)
+		for (int i = 0; i < TG_HOST_V1_2_4_NUM_SCENE_VARIABLES; i++)
 			variables[i] = 0;
 	}
 };
@@ -730,82 +730,82 @@ struct CollisionPair_v1_2 {
 		sameLevelOnly(0), allowInvisibleFirst(0), allowInvisibleSecond(0) {}
 };
 
-enum NativeTimerProc_v1_2_3 {
-	kNativeTimerV1_2_3ComboHistory = 1,
-	kNativeTimerV1_2_3KeyRelease
+enum NativeTimerProc_v1_2_4 {
+	kNativeTimerV1_2_4ComboHistory = 1,
+	kNativeTimerV1_2_4KeyRelease
 };
 
-struct KeyRoute_v1_2_3 {
+struct KeyRoute_v1_2_4 {
 	byte device;
 	byte armed;
 	byte code;
 
-	KeyRoute_v1_2_3() : device(0), armed(0), code(0) {}
+	KeyRoute_v1_2_4() : device(0), armed(0), code(0) {}
 };
 
-struct DeviceBinding_v1_2_3 {
+struct DeviceBinding_v1_2_4 {
 	uint16 id;
 	uint16 script;
 	uint16 priority;
 	uint16 mask;
 	byte active;
 
-	DeviceBinding_v1_2_3() : id(0), script(0), priority(0), mask(0), active(0) {}
+	DeviceBinding_v1_2_4() : id(0), script(0), priority(0), mask(0), active(0) {}
 };
 
-struct DeviceGroup_v1_2_3 {
+struct DeviceGroup_v1_2_4 {
 	uint16 history;
 	uint16 lastCode;
 	uint16 pressedMask;
 	uint16 stateScript;
 	uint16 numBindingsA;
 	uint16 numBindingsB;
-	DeviceBinding_v1_2_3 bindingsA[TG_DEVICE_V1_2_2_MAX_BINDINGS_A];
-	DeviceBinding_v1_2_3 bindingsB[TG_DEVICE_V1_2_2_MAX_BINDINGS_B];
-	DeviceBinding_v1_2_3 latch;
+	DeviceBinding_v1_2_4 bindingsA[TG_DEVICE_V1_2_3_MAX_BINDINGS_A];
+	DeviceBinding_v1_2_4 bindingsB[TG_DEVICE_V1_2_3_MAX_BINDINGS_B];
+	DeviceBinding_v1_2_4 latch;
 	byte type;
 	byte remap;
 	byte latchMode;
 	byte device;
 	byte attached;
 
-	DeviceGroup_v1_2_3() : history(0), lastCode(0), pressedMask(0), stateScript(0), numBindingsA(0), numBindingsB(0),
+	DeviceGroup_v1_2_4() : history(0), lastCode(0), pressedMask(0), stateScript(0), numBindingsA(0), numBindingsB(0),
 		type(0), remap(0), latchMode(0), device(0), attached(0) {}
 };
 
-struct NativeTimer_v1_2_3 {
+struct NativeTimer_v1_2_4 {
 	uint32 expiry;
 	uint32 interval;
 	uint16 id;
 	uint16 proc;
 	byte repeat;
 
-	NativeTimer_v1_2_3() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
+	NativeTimer_v1_2_4() : expiry(0), interval(0), id(0), proc(0), repeat(0) {}
 };
 
-struct PluginModule_v1_2_10 {
+struct PluginModule_v1_2_12 {
 	Common::String name;
 	Plugin *plugin;
 	uint16 refCount;
 
-	PluginModule_v1_2_10() : plugin(nullptr), refCount(0) {}
+	PluginModule_v1_2_12() : plugin(nullptr), refCount(0) {}
 };
 
-struct PluginFunction_v1_2_3 {
+struct PluginFunction_v1_2_4 {
 	uint16 library;
 	int function;
 
-	PluginFunction_v1_2_3() : library(0), function(0) {}
+	PluginFunction_v1_2_4() : library(0), function(0) {}
 };
 
 class TopgunEngine_v1_2 : public TopgunEngine_v1_1 {
 	friend class AudioLibrary;
 	friend class AudioLibrary_v1_2;
-	friend class AudioLibrary_v1_2_3;
+	friend class AudioLibrary_v1_2_4;
 	friend class EnginePluginHost;
 	friend class ResourceLibrary_v1_2;
 	friend class SpriteLibrary_v1_2;
-	friend class SpriteLibrary_v1_2_3;
+	friend class SpriteLibrary_v1_2_4;
 
 public:
 	TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version = kVersionV1_2);
@@ -1086,12 +1086,12 @@ protected:
 
 	// Device groups
 	void clearDeviceState();
-	uint16 insertDeviceBindingSorted(uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
-	void setAllBindingScripts(uint16 script, uint16 count, DeviceBinding_v1_2_3 *list);
-	void setAllBindingActive(byte active, uint16 count, DeviceBinding_v1_2_3 *list);
+	uint16 insertDeviceBindingSorted(uint16 count, DeviceBinding_v1_2_4 *list, const byte *record);
+	void setAllBindingScripts(uint16 script, uint16 count, DeviceBinding_v1_2_4 *list);
+	void setAllBindingActive(byte active, uint16 count, DeviceBinding_v1_2_4 *list);
 	void fillJoystickStateBytes(byte value, byte stick);
-	uint16 deleteDeviceBinding(uint16 index, uint16 count, DeviceBinding_v1_2_3 *list);
-	uint16 updateDeviceBindingList(uint16 maxEntries, uint16 count, DeviceBinding_v1_2_3 *list, const byte *record);
+	uint16 deleteDeviceBinding(uint16 index, uint16 count, DeviceBinding_v1_2_4 *list);
+	uint16 updateDeviceBindingList(uint16 maxEntries, uint16 count, DeviceBinding_v1_2_4 *list, const byte *record);
 	void comboHistoryTimeoutCallback(byte timerId);
 	void callDeviceGroupScript(uint16 group, uint16 argument, uint16 script);
 	void scanDeviceBindingsListB(byte group);
@@ -1218,7 +1218,7 @@ protected:
 	uint16 _variableTable[TG_HOST_V1_2_TABLE_SIZE] = {};
 	uint16 _argumentFrame = 0;
 	Common::Array<SceneEntry_v1_2> _sceneEntries;
-	char _currentSceneName[TG_HOST_V1_2_5_SCENE_NAME_SIZE];
+	char _currentSceneName[TG_HOST_V1_2_6_SCENE_NAME_SIZE];
 	uint16 _currentSceneIndex = 0;
 	uint16 _previousSceneIndex = 0;
 	Common::String _containerTitle;
@@ -1277,7 +1277,7 @@ protected:
 	bool _rightButtonDown = false;
 
 	// Input state
-	KeyEntry_v1_2 _keyTable[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
+	KeyEntry_v1_2 _keyTable[TG_INPUT_V1_2_4_KEY_TABLE_SIZE];
 	Common::Array<ClickRegion_v1_2> _clickRegions;
 	uint16 _numClickRegions = 0;
 	bool _gamePaused = false;
@@ -1297,7 +1297,7 @@ protected:
 	uint16 _joystickY = TG_JOYSTICK_V1_2_1_AXIS_CENTER;
 	byte _joystickButtons = 0;
 	uint16 _joystickScripts[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
-	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_10_MAX_HOVER_REGIONS];
+	HoverRegion_v1_2 _hoverRegions[TG_HOST_V1_2_12_MAX_HOVER_REGIONS];
 	uint16 _numHoverRegions = 0;
 	uint16 _hoverRegionCurrent = 0;
 	ScheduledTimer_v1_2 _scheduledTimers[TG_HOST_V1_2_MAX_SCHEDULED_TIMERS];
@@ -1333,13 +1333,13 @@ protected:
 	bool _iniFileLoaded = false;
 
 	// Native timers and device groups
-	NativeTimer_v1_2_3 _nativeTimers[TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS];
+	NativeTimer_v1_2_4 _nativeTimers[TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS];
 	uint16 _numNativeTimers = 0;
-	uint16 _inputTimeout = TG_DEVICE_V1_2_2_COMBO_TIMEOUT;
-	KeyRoute_v1_2_3 _keyRoutes[TG_INPUT_V1_2_3_KEY_TABLE_SIZE];
-	DeviceGroup_v1_2_3 _deviceGroups[TG_DEVICE_V1_2_2_NUM_GROUPS];
-	byte _deviceOwners[TG_DEVICE_V1_2_2_NUM_DEVICES] = {};
-	byte _keyboardDirections[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS] = {};
+	uint16 _inputTimeout = TG_DEVICE_V1_2_3_COMBO_TIMEOUT;
+	KeyRoute_v1_2_4 _keyRoutes[TG_INPUT_V1_2_4_KEY_TABLE_SIZE];
+	DeviceGroup_v1_2_4 _deviceGroups[TG_DEVICE_V1_2_3_NUM_GROUPS];
+	byte _deviceOwners[TG_DEVICE_V1_2_3_NUM_DEVICES] = {};
+	byte _keyboardDirections[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS] = {};
 	byte _joystickStates[TG_JOYSTICK_V1_2_1_NUM_SCRIPTS] = {};
 	byte _joystickLastIndex[TG_JOYSTICK_V1_2_1_NUM_STICKS] = {};
 	Common::Rect _mouseStickDeadRect;
@@ -1347,12 +1347,12 @@ protected:
 	uint16 _mouseStickCode = 0;
 
 	// The last two slots of each set are used only from the later version on
-	byte _keyboardSetKeys[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+	byte _keyboardSetKeys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_6_KEYBOARD_SET_SLOTS] = {
 		{ 0x46, 0x56, 0x43, 0x42, 0x31, 0x32 },
 		{ 0x26, 0x28, 0x25, 0x27, 0x39, 0x30 }
 	};
 
-	byte _keyboardSetCodes[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_5_KEYBOARD_SET_SLOTS] = {
+	byte _keyboardSetCodes[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_6_KEYBOARD_SET_SLOTS] = {
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 },
 		{ 0x10, 0x20, 0x80, 0x40, 0x01, 0x02 }
 	};
@@ -1360,15 +1360,15 @@ protected:
 	// Plug-in state
 	PluginHost *_pluginHost = nullptr;
 	Plugin *_plugin = nullptr;
-	Common::Array<PluginFunction_v1_2_3> _pluginFunctions;
+	Common::Array<PluginFunction_v1_2_4> _pluginFunctions;
 	Plugin *_messageFilter = nullptr;
 	Plugin *_windowMessageCallback = nullptr;
 	Plugin *_scriptHook = nullptr;
-	Common::Array<PluginModule_v1_2_10 *> _pluginLibraries;
+	Common::Array<PluginModule_v1_2_12 *> _pluginLibraries;
 	uint16 _debugScriptId = 0;
 
 	// Cursor state
-	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = {};
+	Graphics::Cursor *_cursorImages[TG_HOST_V1_2_4_NUM_CURSOR_IMAGES] = {};
 	bool _cursorCounterVisible = true;
 	bool _cursorImageHidden = false;
 };

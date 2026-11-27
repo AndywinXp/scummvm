@@ -19,97 +19,97 @@
  *
  */
 
-#ifndef TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_3_H
-#define TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_3_H
+#ifndef TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_4_H
+#define TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_4_H
 
 #include "topgun/libraries/sprite/sprite_v1_2.h"
 
 // Limits
-#define TG_SPR_V1_2_3_NOTIFICATION_RECORD_SIZE 4
-#define TG_SPR_V1_2_2_1_MAX_HOST_EVENT_WORDS   4
-#define TG_SPR_V1_2_5_MAX_HOST_EVENT_WORDS     6
-#define TG_SPR_V1_2_2_1_MAX_HOST_EVENT_COUNT   4
-#define TG_SPR_V1_2_2_2_MAX_HOST_EVENT_COUNT   6
+#define TG_SPR_V1_2_4_NOTIFICATION_RECORD_SIZE 4
+#define TG_SPR_V1_2_3_1_MAX_HOST_EVENT_WORDS   4
+#define TG_SPR_V1_2_6_MAX_HOST_EVENT_WORDS     6
+#define TG_SPR_V1_2_3_1_MAX_HOST_EVENT_COUNT   4
+#define TG_SPR_V1_2_3_2_MAX_HOST_EVENT_COUNT   6
 // Cel ids that fit in a multi-cel record: (0x0E - 2) / 2
-#define TG_SPR_V1_2_2_2_MAX_MULTI_CEL_FRAMES   6
+#define TG_SPR_V1_2_3_2_MAX_MULTI_CEL_FRAMES   6
 
 // Bitmap header: bit 7 of the byte at +9 marks a line-RLE bitmap
-#define TG_SPR_V1_2_2_1_BITMAP_FLAGS_OFFSET    9
-#define TG_SPR_V1_2_2_1_BITMAP_RLE_FLAG        0x80
+#define TG_SPR_V1_2_3_1_BITMAP_FLAGS_OFFSET    9
+#define TG_SPR_V1_2_3_1_BITMAP_RLE_FLAG        0x80
 
 // Bitmap header: the word at +8 holds the flags, 0x80 marks a line-RLE bitmap and 0x40 a top-down one
-#define TG_SPR_V1_2_5_BITMAP_FLAGS_OFFSET      8
-#define TG_SPR_V1_2_5_BITMAP_RLE_FLAG          0x80
-#define TG_SPR_V1_2_5_BITMAP_TOP_DOWN_FLAG     0x40
+#define TG_SPR_V1_2_6_BITMAP_FLAGS_OFFSET      8
+#define TG_SPR_V1_2_6_BITMAP_RLE_FLAG          0x80
+#define TG_SPR_V1_2_6_BITMAP_TOP_DOWN_FLAG     0x40
 
 // RLE rows: 0 ends the row, 1..0x7F is a run of one byte, 0x80..0xFE a literal of (0xFF - code) bytes,
 // 0xFF a literal whose length is in the next byte and whose zero bytes are transparent
-#define TG_SPR_V1_2_2_1_RLE_LAST_RUN_CODE      0x7F
-#define TG_SPR_V1_2_2_1_RLE_TESTED_LITERAL_CODE 0xFF
+#define TG_SPR_V1_2_3_1_RLE_LAST_RUN_CODE      0x7F
+#define TG_SPR_V1_2_3_1_RLE_TESTED_LITERAL_CODE 0xFF
 
-#define TG_SPR_V1_2_2_1_MIRROR_FLAG_MASK       0x00FF
+#define TG_SPR_V1_2_3_1_MIRROR_FLAG_MASK       0x00FF
 
 // Tile cell bitmaps: bits 4 and 5 of the flags word at +8 mirror and flip the cell
-#define TG_SPR_V1_2_10_TILE_MIRROR_FLAG        0x10
-#define TG_SPR_V1_2_10_TILE_FLIP_FLAG          0x20
-#define TG_SPR_V1_2_10_TILE_STAGGERED_LAYOUT   1
+#define TG_SPR_V1_2_12_TILE_MIRROR_FLAG        0x10
+#define TG_SPR_V1_2_12_TILE_FLIP_FLAG          0x20
+#define TG_SPR_V1_2_12_TILE_STAGGERED_LAYOUT   1
 
 namespace Topgun {
 
-enum SpriteMessage_v1_2_3 {
-	kSprV1_2_3MsgPlayRange = 1,
-	kSprV1_2_3MsgMultiCel = 2,
-	kSprV1_2_3MsgComposite = 4,
-	kSprV1_2_3MsgQuadPath = 5,
-	kSprV1_2_3MsgFlip = 7,
-	kSprV1_2_3MsgHide = 8,
-	kSprV1_2_3MsgLinearMove = 9,
-	kSprV1_2_3MsgWait = 11,
-	kSprV1_2_3MsgSetPosition = 12,
-	kSprV1_2_3MsgTimingMode = 13,
-	kSprV1_2_3MsgFrameInterval = 14,
-	kSprV1_2_3MsgSetRange = 15,
-	kSprV1_2_3MsgMoveInterval = 16,
-	kSprV1_2_3MsgShowFrame = 17,
-	kSprV1_2_3MsgHostEvent = 21
+enum SpriteMessage_v1_2_4 {
+	kSprV1_2_4MsgPlayRange = 1,
+	kSprV1_2_4MsgMultiCel = 2,
+	kSprV1_2_4MsgComposite = 4,
+	kSprV1_2_4MsgQuadPath = 5,
+	kSprV1_2_4MsgFlip = 7,
+	kSprV1_2_4MsgHide = 8,
+	kSprV1_2_4MsgLinearMove = 9,
+	kSprV1_2_4MsgWait = 11,
+	kSprV1_2_4MsgSetPosition = 12,
+	kSprV1_2_4MsgTimingMode = 13,
+	kSprV1_2_4MsgFrameInterval = 14,
+	kSprV1_2_4MsgSetRange = 15,
+	kSprV1_2_4MsgMoveInterval = 16,
+	kSprV1_2_4MsgShowFrame = 17,
+	kSprV1_2_4MsgHostEvent = 21
 };
 
 // Messages of the games that renumber them: 10 and 14 are new and the following ones move up by one
-enum SpriteMessage_v1_2_6 {
-	kSprV1_2_6MsgDelayedMove = 10,
-	kSprV1_2_6MsgSetActive = 14,
-	kSprV1_2_6MsgFrameInterval,
-	kSprV1_2_6MsgSetRange,
-	kSprV1_2_6MsgMoveInterval,
-	kSprV1_2_6MsgShowFrame,
-	kSprV1_2_6MsgHostEvent = 22
+enum SpriteMessage_v1_2_7 {
+	kSprV1_2_7MsgDelayedMove = 10,
+	kSprV1_2_7MsgSetActive = 14,
+	kSprV1_2_7MsgFrameInterval,
+	kSprV1_2_7MsgSetRange,
+	kSprV1_2_7MsgMoveInterval,
+	kSprV1_2_7MsgShowFrame,
+	kSprV1_2_7MsgHostEvent = 22
 };
 
 // Messages of the games that mark the start of a queue loop and jump back to it
-enum SpriteMessage_v1_2_10 {
-	kSprV1_2_10MsgMarkLoopStart = 3,
-	kSprV1_2_10MsgLoopJump = 6
+enum SpriteMessage_v1_2_12 {
+	kSprV1_2_12MsgMarkLoopStart = 3,
+	kSprV1_2_12MsgLoopJump = 6
 };
 
-enum RleBlitMode_v1_2_3 {
-	kSprV1_2_3BlitCopy,
-	kSprV1_2_3BlitTransparent,
-	kSprV1_2_3BlitMasked
+enum RleBlitMode_v1_2_4 {
+	kSprV1_2_4BlitCopy,
+	kSprV1_2_4BlitTransparent,
+	kSprV1_2_4BlitMasked
 };
 
-struct SpriteInfo_v1_2_3 : public SpriteInfo_v1_2 {
+struct SpriteInfo_v1_2_4 : public SpriteInfo_v1_2 {
 	uint16 rangeStart;
 	uint16 rangeEnd;
 	uint16 nextFrame;
 	uint16 forward;
 
-	SpriteInfo_v1_2_3() : rangeStart(0), rangeEnd(0), nextFrame(0), forward(0) {}
+	SpriteInfo_v1_2_4() : rangeStart(0), rangeEnd(0), nextFrame(0), forward(0) {}
 };
 
-class SpriteLibrary_v1_2_3 : public SpriteLibrary_v1_2 {
+class SpriteLibrary_v1_2_4 : public SpriteLibrary_v1_2 {
 public:
-	SpriteLibrary_v1_2_3(TopgunEngine_v1_2 *engine);
-	~SpriteLibrary_v1_2_3() override;
+	SpriteLibrary_v1_2_4(TopgunEngine_v1_2 *engine);
+	~SpriteLibrary_v1_2_4() override;
 
 	// Library
 	void spriteScreenShake(int16 deltaX, int16 deltaY);
@@ -145,7 +145,7 @@ public:
 	Common::Point spriteCurvePoint(uint16 step, uint16 steps, int16 x0, int16 y0, int16 viaX, int16 viaY, int16 endX, int16 endY);
 
 	// Sprite information
-	void spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_3 &info);
+	void spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_4 &info);
 	uint16 spriteHitDetect(uint16 spriteA, uint16 spriteB, uint16 allowInvisibleA, uint16 allowInvisibleB, uint16 sameLevelOnly);
 	uint16 spriteHitDetectRect(uint16 spriteA, uint16 spriteB, const Common::Rect &rect);
 	uint16 spriteIsValid(uint16 sprite);
@@ -235,7 +235,7 @@ protected:
 	void blitOpaqueRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) override;
 	void blitTransparentRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) override;
 	void blitMaskedRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags) override;
-	void blitRleRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitMode_v1_2_3 mode);
+	void blitRleRect(byte *destination, const byte *source, uint16 width, uint16 height, int16 destinationX, int16 destinationY, int16 sourceX, int16 sourceY, uint16 flags, RleBlitMode_v1_2_4 mode);
 	void fetchBitmapRow(const byte *bitmap, int32 row, int32 firstColumn, uint16 count, byte *values) const;
 	uint16 blitPixelOverlapTest(const byte *first, const byte *second, uint16 width, uint16 height, int16 firstX, int16 firstY, int16 secondX, int16 secondY, uint16 firstFlags, uint16 secondFlags);
 	uint16 getBitmapPixel(const byte *bitmap, int16 x, int16 y, uint16 flags) override;
@@ -260,4 +260,4 @@ protected:
 
 } // End of namespace Topgun
 
-#endif // TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_3_H
+#endif // TOPGUN_LIBRARIES_SPRITE_SPRITE_V1_2_4_H

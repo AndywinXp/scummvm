@@ -56,7 +56,7 @@ void BattleDemoPlugin::initDemoTablesShared() {
 	for (int i = 0; i < kInputRecordCount; i++)
 		_verminBeastInputRecords[i] = verminBeastInputRecords[i];
 
-	const byte aiWeights[TG_BATTLE_V1_2_2_1_AI_WEIGHTS_SIZE] = {
+	const byte aiWeights[TG_BATTLE_V1_2_3_1_AI_WEIGHTS_SIZE] = {
 		50, 0, 0, 0, 20, 0, 30, 0,
 		50, 0, 0, 0, 30, 0, 20, 0,
 		70, 0, 0, 0, 30, 0, 0, 0,
@@ -86,7 +86,7 @@ void BattleDemoPlugin::initDemoTablesShared() {
 		0, 5, 0, 5, 20, 30, 0, 40,
 		51, 0, 52, 0
 	};
-	for (int i = 0; i < TG_BATTLE_V1_2_2_1_AI_WEIGHTS_SIZE; i++)
+	for (int i = 0; i < TG_BATTLE_V1_2_3_1_AI_WEIGHTS_SIZE; i++)
 		_aiWeights[i] = aiWeights[i];
 
 	const uint16 hitSparkAnimations[kDamageClassCount] = {
@@ -156,11 +156,11 @@ void BattleDemoPlugin::initDemoTablesShared() {
 	for (int i = 0; i < kFighterCount; i++)
 		_weaponProjectile128[i] = weaponProjectile128[i];
 
-	const FighterInitParams fighterInitParams[TG_BATTLE_V1_2_2_1_FIGHTER_TYPE_COUNT] = {
+	const FighterInitParams fighterInitParams[TG_BATTLE_V1_2_3_1_FIGHTER_TYPE_COUNT] = {
 		{0x834B, 0x004C, 1, 0, 0x8344},
 		{0x85B9, 0x02BA, 1, 0, 0x85B2}
 	};
-	for (int i = 0; i < TG_BATTLE_V1_2_2_1_FIGHTER_TYPE_COUNT; i++)
+	for (int i = 0; i < TG_BATTLE_V1_2_3_1_FIGHTER_TYPE_COUNT; i++)
 		_fighterInitParams[i] = fighterInitParams[i];
 }
 

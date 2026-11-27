@@ -22,8 +22,8 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/resource/resource_v1_2_3.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/libraries/resource/resource_v1_2_4.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -359,7 +359,7 @@ uint32 ResourceLibrary_v1_2::decodeRleSegment(byte *destination, const byte *sou
 
 void ResourceLibrary_v1_2::rleExpandBitmap(byte *destination, uint32 destinationSize, const byte *source, uint32 sourceSize) {
 	uint32 headerLength = READ_LE_UINT16(source);
-	uint32 padding = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) - READ_LE_UINT16(source + TG_RES_V1_2_2_1_BITMAP_WIDTH_OFFSET));
+	uint32 padding = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_PITCH_OFFSET) - READ_LE_UINT16(source + TG_RES_V1_2_3_1_BITMAP_WIDTH_OFFSET));
 
 	// The line offset table is skipped
 	uint32 tableSize = (uint16)(READ_LE_UINT16(source + TG_RES_V1_2_BITMAP_HEIGHT_OFFSET) << 1);
@@ -468,7 +468,7 @@ bool ResourceLibrary_v1_2::decodeSegmentedBitmapStream(LzwState *state, const by
 
 			memcpy(output, source, length);
 			written = length;
-		} else if (mode == TG_RES_V1_2_SEGMENT_RLE && _engine->_version < kVersionV1_2_5) {
+		} else if (mode == TG_RES_V1_2_SEGMENT_RLE && _engine->_version < kVersionV1_2_6) {
 			written = decodeRleSegment(output, source, length, limits);
 		} else if (mode == TG_RES_V1_2_SEGMENT_LZW_10_BITS) {
 			lzwInitCodeWidth(state, 10);

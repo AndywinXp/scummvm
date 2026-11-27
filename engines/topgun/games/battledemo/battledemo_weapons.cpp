@@ -30,45 +30,45 @@ void BattleDemoPlugin::weaponInit(Fighter *f) {
 
 	switch (f->weapon) {
 	case 1:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON1 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON1 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 6;
 		for (uint16 i = 0; i < kWeaponPoolSize; i++)
 			_host->loadResource(_weaponPool1[kWeaponPoolSize * f->player + i]);
 		_host->loadResource(_weaponLauncher1[f->player]);
 		break;
 	case 2:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON2 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON2 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile2[f->player]);
 		_host->loadResource(_weaponLauncher2[f->player]);
 		break;
 	case 4:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON4 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON4 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile4[f->player]);
 		break;
 	case 8:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON8 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON8 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile8[f->player]);
 		break;
 	case 0x10:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON16 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON16 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile16[f->player]);
 		break;
 	case 0x20:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON32 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON32 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile32[f->player]);
 		break;
 	case 0x40:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON64 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON64 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile64[f->player]);
 		break;
 	case 0x80:
-		f->ammo = &host[TG_BATTLE_V1_2_2_1_VAR_AMMO_WEAPON128 + f->player];
+		f->ammo = &host[TG_BATTLE_V1_2_3_1_VAR_AMMO_WEAPON128 + f->player];
 		f->moveTab[1][kMoveSlotWeaponHold].handlerParam = 0;
 		_host->loadResource(_weaponProjectile128[f->player]);
 		break;
@@ -177,13 +177,13 @@ void BattleDemoPlugin::weaponsFire(uint16 id, int16 dx, int16 dy) {
 
 			_host->setSpritePosition(sprite, x, y);
 			_host->setSpriteLevel(sprite, (uint16)(f->z + 1));
-			_host->addCollisionPair(sprite, f->opponent->sprite, TG_BATTLE_V1_2_2_1_HOOK_WEAPONS_HIT, player, sprite, 0);
+			_host->addCollisionPair(sprite, f->opponent->sprite, TG_BATTLE_V1_2_3_1_HOOK_WEAPONS_HIT, player, sprite, 0);
 			host[f->varList[9]] = speed;
 			_host->setSpriteQueue(sprite, anim, 0);
 		}
 	}
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_AMMO_DISPLAY, player, 1);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_AMMO_DISPLAY, player, 1);
 }
 
 uint16 BattleDemoPlugin::weaponsHit(uint16 shooter, uint16 sprite) {
@@ -319,7 +319,7 @@ uint16 BattleDemoPlugin::weaponsHit(uint16 shooter, uint16 sprite) {
 	const ReactionRecord *record = &table[(classIndex << 2) + setIndex];
 
 	if (b->state == kStateGuard && b->facing != a->side) {
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)(-damage));
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)(-damage));
 
 		byte reactionMove = record->reactionMove;
 		uint16 anim = b->animTab[b->remap[reactionMove]];
@@ -334,14 +334,14 @@ uint16 BattleDemoPlugin::weaponsHit(uint16 shooter, uint16 sprite) {
 		_host->addCollisionPair(sprite, b->sprite, 0, 0, 0, 0);
 
 		if (reflects != 0 && b->move == kMoveSlotGuardDownForward) {
-			_host->addCollisionPair(sprite, a->sprite, TG_BATTLE_V1_2_2_1_HOOK_WEAPONS_HIT, b->player, sprite, 0);
+			_host->addCollisionPair(sprite, a->sprite, TG_BATTLE_V1_2_3_1_HOOK_WEAPONS_HIT, b->player, sprite, 0);
 			aiEvent(a, kAiEventOpponentAttacking);
 		}
 
 		return 0;
 	}
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)(-damage));
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)(-damage));
 	spawnHitSpark(&rect, 0);
 	_host->setSpriteQueue(sprite, hitAnim, 1);
 
@@ -403,9 +403,9 @@ uint16 BattleDemoPlugin::weaponsSpecialHit(uint16 shooter, uint16 sprite) {
 
 	if (b->state == kStateGuard) {
 		if (b->facing == a->side) {
-			_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-40);
+			_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-40);
 		} else {
-			_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-5);
+			_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-5);
 			if (b->move == kMoveSlotGuardDownForward) {
 				aiEvent(b, kAiEventHitBlocked);
 				return 0;
@@ -419,7 +419,7 @@ uint16 BattleDemoPlugin::weaponsSpecialHit(uint16 shooter, uint16 sprite) {
 		return 0;
 	}
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-40);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, b->player, (uint16)-40);
 
 	byte reactionMove = record->reactionMove;
 	uint16 anim = b->animTab[b->remap[reactionMove]];

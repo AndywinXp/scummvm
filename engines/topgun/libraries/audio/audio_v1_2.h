@@ -81,55 +81,55 @@
 #define TG_AUDIO_V1_2_ADPCM_MAX_INDEX         0x2C0
 
 // Peter and the Wolf
-#define TG_AUDIO_V1_2_2_VERSION                    0x0300
-#define TG_AUDIO_V1_2_2_MAX_MIDI_OBJECTS           20
-#define TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE           6
-#define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_SIZE    0
-#define TG_AUDIO_V1_2_2_MIDI_HEADER_OFFSET_NOTIFY  4
+#define TG_AUDIO_V1_2_3_VERSION                    0x0300
+#define TG_AUDIO_V1_2_3_MAX_MIDI_OBJECTS           20
+#define TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE           6
+#define TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_SIZE    0
+#define TG_AUDIO_V1_2_3_MIDI_HEADER_OFFSET_NOTIFY  4
 
 // Sound creation block
-#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_LENGTH       0x00
-#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_FLAGS        0x04
-#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_ID           0x06
-#define TG_AUDIO_V1_2_2_1_INFO_OFFSET_FORMAT       0x08
-#define TG_AUDIO_V1_2_2_1_INFO_FLAG_PRELOAD        0x01
-#define TG_AUDIO_V1_2_2_1_INFO_FLAG_OVERLAY        0x02
-#define TG_AUDIO_V1_2_2_1_INFO_FLAG_ADPCM          0x04
+#define TG_AUDIO_V1_2_3_1_INFO_OFFSET_LENGTH       0x00
+#define TG_AUDIO_V1_2_3_1_INFO_OFFSET_FLAGS        0x04
+#define TG_AUDIO_V1_2_3_1_INFO_OFFSET_ID           0x06
+#define TG_AUDIO_V1_2_3_1_INFO_OFFSET_FORMAT       0x08
+#define TG_AUDIO_V1_2_3_1_INFO_FLAG_PRELOAD        0x01
+#define TG_AUDIO_V1_2_3_1_INFO_FLAG_OVERLAY        0x02
+#define TG_AUDIO_V1_2_3_1_INFO_FLAG_ADPCM          0x04
 
 // MIDI creation header
-#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE         8
-#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_SIZE  0
-#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_FLAGS 4
-#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_OFFSET_NOTIFY 6
-#define TG_AUDIO_V1_2_2_1_MIDI_HEADER_FLAG_STATIC  0x01
+#define TG_AUDIO_V1_2_3_1_MIDI_HEADER_SIZE         8
+#define TG_AUDIO_V1_2_3_1_MIDI_HEADER_OFFSET_SIZE  0
+#define TG_AUDIO_V1_2_3_1_MIDI_HEADER_OFFSET_FLAGS 4
+#define TG_AUDIO_V1_2_3_1_MIDI_HEADER_OFFSET_NOTIFY 6
+#define TG_AUDIO_V1_2_3_1_MIDI_HEADER_FLAG_STATIC  0x01
 
-#define TG_AUDIO_V1_2_2_1_MIDI_BUFFER_SIZE         0x8000
-#define TG_AUDIO_V1_2_2_1_MIDI_LOW_WATER           0x6000
+#define TG_AUDIO_V1_2_3_1_MIDI_BUFFER_SIZE         0x8000
+#define TG_AUDIO_V1_2_3_1_MIDI_LOW_WATER           0x6000
 
 // MIDI play parameters
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_PARAMS_SIZE    8
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_LOOPS   0
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_OFFSET_NOTIFY  2
-#define TG_AUDIO_V1_2_2_1_MIDI_PLAY_NOTIFY_MASK    0x01
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_PARAMS_SIZE    8
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_OFFSET_LOOPS   0
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_OFFSET_NOTIFY  2
+#define TG_AUDIO_V1_2_3_1_MIDI_PLAY_NOTIFY_MASK    0x01
 
 // MIDI settings block (10 bytes)
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_FLAGS    0
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_FLAG_MUTE       0x01
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_FLAG_TEMPO      0x02
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_CHANNELS 2
-#define TG_AUDIO_V1_2_2_1_MIDI_SET_OFFSET_MUTE_BITS 4
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_OFFSET_FLAGS    0
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_FLAG_MUTE       0x01
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_FLAG_TEMPO      0x02
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_OFFSET_CHANNELS 2
+#define TG_AUDIO_V1_2_3_1_MIDI_SET_OFFSET_MUTE_BITS 4
 
 // MIDI events
-#define TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS        16
-#define TG_AUDIO_V1_2_2_1_MIDI_DELAY_FLAGS         0xF000
-#define TG_AUDIO_V1_2_2_1_MIDI_DELAY_VALUE_MASK    0x7FFFFFFF
-#define TG_AUDIO_V1_2_2_1_MIDI_NOTE_ON             0x90
-#define TG_AUDIO_V1_2_2_1_MIDI_ALL_NOTES_OFF       0x7B
-#define TG_AUDIO_V1_2_2_1_MIDI_CONTROL_CHANGE      0xB0
+#define TG_AUDIO_V1_2_3_1_MIDI_NUM_CHANNELS        16
+#define TG_AUDIO_V1_2_3_1_MIDI_DELAY_FLAGS         0xF000
+#define TG_AUDIO_V1_2_3_1_MIDI_DELAY_VALUE_MASK    0x7FFFFFFF
+#define TG_AUDIO_V1_2_3_1_MIDI_NOTE_ON             0x90
+#define TG_AUDIO_V1_2_3_1_MIDI_ALL_NOTES_OFF       0x7B
+#define TG_AUDIO_V1_2_3_1_MIDI_CONTROL_CHANGE      0xB0
 
-#define TG_AUDIO_V1_2_2_3_MAX_SOUNDS          100
-#define TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE    0x1C
-#define TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE      0x18
+#define TG_AUDIO_V1_2_3_3_MAX_SOUNDS          100
+#define TG_AUDIO_V1_2_4_CREATE_HEADER_SIZE    0x1C
+#define TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE      0x18
 
 namespace Topgun {
 
@@ -145,27 +145,27 @@ struct AdpcmState {
 };
 
 struct SoundCreateInfo_v1_2 {
-	byte header[TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE];
+	byte header[TG_AUDIO_V1_2_4_CREATE_HEADER_SIZE];
 	uint16 readProc;
 	uint16 rewindProc;
 	uint16 closeProc;
 	uint16 handle;
 
 	SoundCreateInfo_v1_2() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_3_CREATE_HEADER_SIZE; i++)
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_4_CREATE_HEADER_SIZE; i++)
 			header[i] = 0;
 	}
 };
 
-struct MidiCreateInfo_v1_2_3 {
-	byte header[TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE];
+struct MidiCreateInfo_v1_2_4 {
+	byte header[TG_AUDIO_V1_2_3_1_MIDI_HEADER_SIZE];
 	uint16 readProc;
 	uint16 rewindProc;
 	uint16 closeProc;
 	uint16 handle;
 
-	MidiCreateInfo_v1_2_3() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
-		for (uint32 i = 0; i < TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE; i++)
+	MidiCreateInfo_v1_2_4() : readProc(0), rewindProc(0), closeProc(0), handle(0) {
+		for (uint32 i = 0; i < TG_AUDIO_V1_2_3_1_MIDI_HEADER_SIZE; i++)
 			header[i] = 0;
 	}
 };
@@ -194,7 +194,7 @@ public:
 	void audioMute(int16 muted);
 
 	// MIDI
-	uint16 audioCreateMidi(MidiCreateInfo_v1_2_3 *info);
+	uint16 audioCreateMidi(MidiCreateInfo_v1_2_4 *info);
 	uint16 audioDestroyMidi(uint16 midi);
 	uint16 audioPlayMidi(uint16 midi, const byte *params);
 	uint16 audioStopMidi(uint16 midi);
@@ -311,7 +311,7 @@ protected:
 		uint16 tempoDenominator;
 		int16 loops;
 		bool notifyArmed;
-		bool channelMuted[TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS];
+		bool channelMuted[TG_AUDIO_V1_2_3_1_MIDI_NUM_CHANNELS];
 
 		uint32 available;
 		uint32 readPos;
@@ -329,7 +329,7 @@ protected:
 			callbackHandle(0), notifyWParam(0), notifyLParam(0), tempoNumerator(0), tempoDenominator(0), loops(0),
 			notifyArmed(false), available(0), readPos(0), bufferSize(0), lowWater(0), consumed(0), readFromSource(0),
 			nextEventTime(0), initialLoops(0), enabled(false), isStatic(false), endOfSource(false) {
-			for (uint32 i = 0; i < TG_AUDIO_V1_2_2_1_MIDI_NUM_CHANNELS; i++)
+			for (uint32 i = 0; i < TG_AUDIO_V1_2_3_1_MIDI_NUM_CHANNELS; i++)
 				channelMuted[i] = false;
 		}
 	};
@@ -345,7 +345,7 @@ protected:
 	MidiObject *allocMidiObject();
 	void destroyMidiObject(MidiObject *midi);
 	void removeMidiFromArray(MidiObject *midi);
-	bool initMidiObjectDataSource(const MidiCreateInfo_v1_2_3 *info, MidiObject *midi);
+	bool initMidiObjectDataSource(const MidiCreateInfo_v1_2_4 *info, MidiObject *midi);
 	bool invokeAndClearCloseCallback(MidiObject *midi);
 	void destroyAllMidiObjects();
 	MidiObject *validateMidiHandle(uint16 handle);
@@ -468,7 +468,7 @@ protected:
 	uint32 _cdMuteSavedVolume = 0;
 
 	// MIDI
-	MidiObject *_midiObjects[TG_AUDIO_V1_2_2_MAX_MIDI_OBJECTS] = {};
+	MidiObject *_midiObjects[TG_AUDIO_V1_2_3_MAX_MIDI_OBJECTS] = {};
 	uint16 _midiCount = 0;
 	uint16 _nextMidiHandle = 1;
 	MidiObject *_currentMidi = nullptr;

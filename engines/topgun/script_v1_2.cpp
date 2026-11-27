@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -38,35 +38,35 @@ static const byte kScriptOpSizes[] = {
 };
 
 bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
-	if (_version >= kVersionV1_2_2_2) {
-		if (static_cast<TopgunEngine_v1_2_3 *>(this)->_fatalCode != 0)
+	if (_version >= kVersionV1_2_3_2) {
+		if (static_cast<TopgunEngine_v1_2_4 *>(this)->_fatalCode != 0)
 			return false;
 	} else if (_scriptsDisabled) {
 		return false;
 	}
 
 	uint16 scriptType = kResV1_2Script;
-	if (_version >= kVersionV1_2_10)
-		scriptType = kResV1_2_10Script;
-	else if (_version >= kVersionV1_2_5)
-		scriptType = kResV1_2_5Script;
-	else if (_version >= kVersionV1_2_2_1)
+	if (_version >= kVersionV1_2_12)
+		scriptType = kResV1_2_12Script;
+	else if (_version >= kVersionV1_2_6)
+		scriptType = kResV1_2_6Script;
+	else if (_version >= kVersionV1_2_3_1)
+		scriptType = kResV1_2_4Script;
+	else if (_version >= kVersionV1_2_3)
 		scriptType = kResV1_2_3Script;
-	else if (_version >= kVersionV1_2_2)
-		scriptType = kResV1_2_2Script;
 	if (!validateAndGetResourceByType(scriptId, scriptType))
 		return false;
 
 	_scriptDepth++;
 
-	if (_scriptDepth >= ((_version >= kVersionV1_2_2_2) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+	if (_scriptDepth >= ((_version >= kVersionV1_2_3_2) ? TG_SCRIPT_V1_2_4_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
 		if (_version >= kVersionV1_2_1)
 			return fatalError(106, "Stack overflow.");
 
 		return fatalError("Stack overflow.");
 	}
 
-	if (_version >= kVersionV1_2_5)
+	if (_version >= kVersionV1_2_6)
 		_debugScriptId = 0;
 
 	_currentScriptId = scriptId;
@@ -128,17 +128,17 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 	if (_version < kVersionV1_2_1 && opcode >= kOpV1_2GetTime)
 		opcode = 0;
 
-	if (_version < kVersionV1_2_2 && opcode >= kOpV1_2GetSpriteElementIds)
+	if (_version < kVersionV1_2_3 && opcode >= kOpV1_2GetSpriteElementIds)
 		opcode = 0;
 
-	if (_version < kVersionV1_2_2_1 && opcode > kOpV1_2ReturnExpression)
+	if (_version < kVersionV1_2_3_1 && opcode > kOpV1_2ReturnExpression)
 		opcode = 0;
 
 	switch (opcode) {
 	case kOpV1_2CallScript:
 		result = o_callScript(ip);
 
-		if (_version >= kVersionV1_2_2)
+		if (_version >= kVersionV1_2_3)
 			size = (ip[5] + 3) * 2;
 		else
 			size = TG_SCRIPT_V1_2_CALL_HEADER_SIZE + 2 * ip[4];
@@ -168,12 +168,12 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2SetSpriteQueue:
 		result = o_setSpriteQueue(READ_LE_UINT16(ip + 2), READ_LE_UINT16(ip + 4), ip[6] != 0);
-		size = (_version >= kVersionV1_2_2_1) ? 8 : 7;
+		size = (_version >= kVersionV1_2_3_1) ? 8 : 7;
 		break;
 
 	case kOpV1_2SetBackground:
 		o_setBackground(ip);
-		size = (_version >= kVersionV1_2_2_1) ? 14 : 10;
+		size = (_version >= kVersionV1_2_3_1) ? 14 : 10;
 		break;
 
 	case kOpV1_2SetSpriteObjectProperties:
@@ -199,7 +199,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2BindKeyScript:
 		o_bindKeyScript(ip);
-		size = (_version >= kVersionV1_2_2) ? 11 : 10;
+		size = (_version >= kVersionV1_2_3) ? 11 : 10;
 		break;
 
 	case kOpV1_2Quit:
@@ -238,7 +238,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2CancelScriptTimer:
 		o_cancelScriptTimer(ip);
-		size = (_version >= kVersionV1_2_2_1) ? 6 : 4;
+		size = (_version >= kVersionV1_2_3_1) ? 6 : 4;
 		break;
 
 	case kOpV1_2SetSceneEndScript:
@@ -295,7 +295,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		break;
 
 	case kOpV1_2PostScript:
-		if (_version >= kVersionV1_2_2_1) {
+		if (_version >= kVersionV1_2_3_1) {
 			uint16 argument1 = (uint16)(operandValue(READ_LE_UINT16(ip + 4)) - TG_HOST_V1_2_LITERAL_BIAS);
 			uint16 argument2 = (uint16)(operandValue(READ_LE_UINT16(ip + 6)) - TG_HOST_V1_2_LITERAL_BIAS);
 
@@ -317,7 +317,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		uint16 id = READ_LE_UINT16(ip + 2);
 		bool loaded;
 
-		if (_version >= kVersionV1_2_2_1)
+		if (_version >= kVersionV1_2_3_1)
 			loaded = isResourceObjectLoaded(id, resourceLib()->resGetType(_file, operandValue(id)));
 		else
 			loaded = isResourceObjectLoaded(id);
@@ -335,7 +335,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2AddCollisionPair:
 		result = o_addCollisionPair(ip);
-		size = (_version >= kVersionV1_2_2_1) ? 14 : 13;
+		size = (_version >= kVersionV1_2_3_1) ? 14 : 13;
 		break;
 
 	case kOpV1_2ListRunScript:
@@ -465,7 +465,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2SetHoverRegion:
 		o_setHoverRegion(ip);
-		size = (_version >= kVersionV1_2_2) ? 15 : 14;
+		size = (_version >= kVersionV1_2_3) ? 15 : 14;
 		break;
 
 	case kOpV1_2GetIntersect:
@@ -549,7 +549,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 
 	case kOpV1_2PlayMidi:
 		o_playMidi(ip);
-		size = (_version >= kVersionV1_2_2_1) ? 10 : 4;
+		size = (_version >= kVersionV1_2_3_1) ? 10 : 4;
 		break;
 
 	case kOpV1_2StopMidi:
@@ -597,22 +597,22 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 		_scriptResult = evaluateExpression(ip + 4);
 		break;
 
-	case kOpV1_2_2_1SetMidiParams:
+	case kOpV1_2_3_1SetMidiParams:
 		o_setMidiParams(ip);
 		size = 14;
 		break;
 
-	case kOpV1_2_2_1SetVolume:
+	case kOpV1_2_3_1SetVolume:
 		o_setVolume(ip);
 		size = 4;
 		break;
 
-	case kOpV1_2_2_1Unused94:
-	case kOpV1_2_2_1Unused95:
+	case kOpV1_2_3_1Unused94:
+	case kOpV1_2_3_1Unused95:
 		size = 4;
 		break;
 
-	case kOpV1_2_2_1SetDebugScriptId:
+	case kOpV1_2_3_1SetDebugScriptId:
 		_debugScriptId = READ_LE_UINT16(ip + 2);
 		size = 4;
 		break;
@@ -632,7 +632,7 @@ bool TopgunEngine_v1_2::executeScriptOp(byte *ip, uint16 *advance) {
 uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 	uint16 opcode = READ_LE_UINT16(ip);
 
-	if (_version >= kVersionV1_2_2_1) {
+	if (_version >= kVersionV1_2_3_1) {
 		switch (opcode) {
 		case kOpV1_2SetSpriteQueue:
 		case kOpV1_2PostScript:
@@ -640,7 +640,7 @@ uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 
 		case kOpV1_2SetBackground:
 		case kOpV1_2AddCollisionPair:
-		case kOpV1_2_2_1SetMidiParams:
+		case kOpV1_2_3_1SetMidiParams:
 			return 14;
 
 		case kOpV1_2CancelScriptTimer:
@@ -649,10 +649,10 @@ uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 		case kOpV1_2PlayMidi:
 			return 10;
 
-		case kOpV1_2_2_1SetVolume:
-		case kOpV1_2_2_1Unused94:
-		case kOpV1_2_2_1Unused95:
-		case kOpV1_2_2_1SetDebugScriptId:
+		case kOpV1_2_3_1SetVolume:
+		case kOpV1_2_3_1Unused94:
+		case kOpV1_2_3_1Unused95:
+		case kOpV1_2_3_1SetDebugScriptId:
 			return 4;
 
 		default:
@@ -660,7 +660,7 @@ uint16 TopgunEngine_v1_2::getScriptOpSize(const byte *ip) {
 		}
 	}
 
-	if (_version >= kVersionV1_2_2) {
+	if (_version >= kVersionV1_2_3) {
 		switch (opcode) {
 		case kOpV1_2CallScript:
 			return (ip[5] + 3) * 2;
@@ -760,14 +760,14 @@ void TopgunEngine_v1_2::popScriptArguments() {
 
 uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_10)
-		listType = kResV1_2_10OpList;
-	else if (_version >= kVersionV1_2_5)
-		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_2_1)
+	if (_version >= kVersionV1_2_12)
+		listType = kResV1_2_12OpList;
+	else if (_version >= kVersionV1_2_6)
+		listType = kResV1_2_6OpList;
+	else if (_version >= kVersionV1_2_3_1)
+		listType = kResV1_2_4OpList;
+	else if (_version >= kVersionV1_2_3)
 		listType = kResV1_2_3OpList;
-	else if (_version >= kVersionV1_2_2)
-		listType = kResV1_2_2OpList;
 	else if (_version >= kVersionV1_2_1)
 		listType = kResV1_2_1OpList;
 	if (!validateAndGetResourceByType(listId, listType))
@@ -796,14 +796,14 @@ uint16 TopgunEngine_v1_2::countScriptListEntries(uint16 listId) {
 
 bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	uint16 listType = kResV1_2OpList;
-	if (_version >= kVersionV1_2_10)
-		listType = kResV1_2_10OpList;
-	else if (_version >= kVersionV1_2_5)
-		listType = kResV1_2_5OpList;
-	else if (_version >= kVersionV1_2_2_1)
+	if (_version >= kVersionV1_2_12)
+		listType = kResV1_2_12OpList;
+	else if (_version >= kVersionV1_2_6)
+		listType = kResV1_2_6OpList;
+	else if (_version >= kVersionV1_2_3_1)
+		listType = kResV1_2_4OpList;
+	else if (_version >= kVersionV1_2_3)
 		listType = kResV1_2_3OpList;
-	else if (_version >= kVersionV1_2_2)
-		listType = kResV1_2_2OpList;
 	else if (_version >= kVersionV1_2_1)
 		listType = kResV1_2_1OpList;
 	if (!validateAndGetResourceByType(listId, listType))
@@ -836,7 +836,7 @@ bool TopgunEngine_v1_2::runScriptListEntry(uint16 listId, int16 index) {
 	_currentScriptId = listId;
 	_scriptDepth++;
 
-	if (_scriptDepth >= ((_version >= kVersionV1_2_2_2) ? TG_SCRIPT_V1_2_3_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
+	if (_scriptDepth >= ((_version >= kVersionV1_2_3_2) ? TG_SCRIPT_V1_2_4_MAX_DEPTH : TG_SCRIPT_V1_2_MAX_DEPTH)) {
 		if (_version >= kVersionV1_2_1)
 			return fatalError(106, "Stack overflow.");
 
@@ -957,8 +957,8 @@ uint16 TopgunEngine_v1_2::lookupSwitchOffset(const byte *record) {
 	const byte *table = record + READ_LE_UINT16(record + 4);
 	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
 	uint16 value = operandValue(READ_LE_UINT16(record + 2));
-	uint16 entrySize = (_version >= kVersionV1_2_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
-	uint16 valueOffset = (_version >= kVersionV1_2_2_3) ? 2 : 0;
+	uint16 entrySize = (_version >= kVersionV1_2_3_3) ? TG_SCRIPT_V1_2_4_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_3_3) ? 2 : 0;
 	uint16 index = 0;
 
 	while (index < count) {
@@ -975,9 +975,9 @@ uint16 TopgunEngine_v1_2::o_switchExpression(const byte *record) {
 	uint16 count = record[8];
 	const byte *table = record + READ_LE_UINT16(record + 4);
 	uint16 defaultAdvance = READ_LE_UINT16(record + 6);
-	uint16 value = evaluateExpression(record + ((_version >= kVersionV1_2_2_2) ? 10 : 9));
-	uint16 entrySize = (_version >= kVersionV1_2_2_3) ? TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_2_SWITCH_ENTRY_SIZE;
-	uint16 valueOffset = (_version >= kVersionV1_2_2_3) ? 2 : 0;
+	uint16 value = evaluateExpression(record + ((_version >= kVersionV1_2_3_2) ? 10 : 9));
+	uint16 entrySize = (_version >= kVersionV1_2_3_3) ? TG_SCRIPT_V1_2_4_SWITCH_ENTRY_SIZE : TG_SCRIPT_V1_2_3_SWITCH_ENTRY_SIZE;
+	uint16 valueOffset = (_version >= kVersionV1_2_3_3) ? 2 : 0;
 	uint16 index = 0;
 
 	while (index < count) {
@@ -1021,8 +1021,8 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record) {
 		executeScriptOp(record + TG_SCRIPT_V1_2_HOST_EVENT_OPERATION_OFFSET, nullptr);
 		break;
 
-	case TG_SCRIPT_V1_2_2_1_HOST_EVENT_POSTED_RUN:
-		if (_version >= kVersionV1_2_2_1)
+	case TG_SCRIPT_V1_2_3_1_HOST_EVENT_POSTED_RUN:
+		if (_version >= kVersionV1_2_3_1)
 			runPostedScriptRecord(record);
 
 		break;
@@ -1033,21 +1033,21 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record) {
 }
 
 bool TopgunEngine_v1_2::runPostedScriptRecord(const byte *record) {
-	byte local[TG_SCRIPT_V1_2_2_1_POSTED_RECORD_BUFFER_SIZE];
+	byte local[TG_SCRIPT_V1_2_3_1_POSTED_RECORD_BUFFER_SIZE];
 	uint16 count = READ_LE_UINT16(record + 4);
 
 	WRITE_LE_UINT16(local + 2, READ_LE_UINT16(record + 2));
 	local[4] = 0;
 	local[5] = (byte)count;
 
-	if (TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * (uint32)count > sizeof(local)) {
+	if (TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * (uint32)count > sizeof(local)) {
 		warning("TopgunEngine_v1_2::runPostedScriptRecord(): %d arguments do not fit in the record", count);
-		count = (sizeof(local) - TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE) / 2;
+		count = (sizeof(local) - TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE) / 2;
 		local[5] = (byte)count;
 	}
 
 	for (uint16 i = 0; i < count; i++)
-		WRITE_LE_UINT16(local + TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_2_CALL_HEADER_SIZE + 2 * i));
+		WRITE_LE_UINT16(local + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i));
 
 	return o_callScript(local);
 }

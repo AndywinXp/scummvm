@@ -43,21 +43,21 @@ enum EngineVersion {
 	kVersionV1_1 = 1100,
 	kVersionV1_2 = 1200,
 	kVersionV1_2_1 = 1210,
-	kVersionV1_2_2 = 1220,
-	kVersionV1_2_2_1 = 1221,
-	kVersionV1_2_2_2 = 1222,
-	kVersionV1_2_2_3 = 1223,
 	kVersionV1_2_3 = 1230,
+	kVersionV1_2_3_1 = 1231,
+	kVersionV1_2_3_2 = 1232,
+	kVersionV1_2_3_3 = 1233,
 	kVersionV1_2_4 = 1240,
 	kVersionV1_2_5 = 1250,
 	kVersionV1_2_6 = 1260,
-	kVersionV1_2_6_1 = 1261,
-	kVersionV1_2_6_2 = 1262,
-	kVersionV1_2_6_3 = 1263,
 	kVersionV1_2_7 = 1270,
-	kVersionV1_2_8 = 1280,
+	kVersionV1_2_7_1 = 1271,
+	kVersionV1_2_7_2 = 1272,
+	kVersionV1_2_7_3 = 1273,
 	kVersionV1_2_9 = 1290,
-	kVersionV1_2_10 = 1300
+	kVersionV1_2_10 = 1300,
+	kVersionV1_2_11 = 1310,
+	kVersionV1_2_12 = 1320
 };
 
 class AudioLibrary;
@@ -83,17 +83,17 @@ enum MessageId {
 class TopgunEngine : public Engine {
 	friend class AudioLibrary;
 	friend class AudioLibrary_v1_2;
-	friend class AudioLibrary_v1_2_3;
+	friend class AudioLibrary_v1_2_4;
 	friend class Console;
 	friend class EnginePluginHost;
 	friend class ResourceLibrary;
 	friend class ResourceLibrary_v1_2;
-	friend class ResourceLibrary_v1_2_3;
+	friend class ResourceLibrary_v1_2_4;
 	friend class SpriteLibrary;
 	friend class SpriteLibrary_v1_2;
-	friend class SpriteLibrary_v1_2_3;
+	friend class SpriteLibrary_v1_2_4;
 	friend class TopgunEngine_v1_2;
-	friend class TopgunEngine_v1_2_3;
+	friend class TopgunEngine_v1_2_4;
 	friend class UtilsLibrary;
 
 private:

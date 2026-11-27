@@ -306,7 +306,7 @@ int32 UtilsLibrary::tangent(int16 angle) {
 	int32 value;
 	if (angle == TG_UTILS_ANGLE_HALF_TURN) {
 		// One entry past the end of the tangent table: Monty Python and Ace Ventura read the first two sine table values, the other games read out of bounds data
-		if (_engine->_version >= kVersionV1_2_2_2 && _engine->_version != kVersionV1_2_10)
+		if (_engine->_version >= kVersionV1_2_3_2 && _engine->_version != kVersionV1_2_12)
 			warning("UtilsLibrary::tangent(): the angle is one entry past the end of the tangent table");
 
 		value =(int32)(((uint32)(uint16)kSineTable[1] << 16) | (uint16)kSineTable[0]);
@@ -350,7 +350,7 @@ uint16 UtilsLibrary::getIntersect(Common::Point *intersection, int16 x1, int16 y
 
 	double slopeB = (double)slopeBExtended;
 
-	if (_engine->_version >= kVersionV1_2_6_3) {
+	if (_engine->_version >= kVersionV1_2_7_3) {
 		if (kindA == 1 && kindB == -1) {
 			intersection->x = x3;
 			intersection->y = y1;

@@ -70,14 +70,14 @@ void BattleDemoPlugin::switchSprite(Fighter *f, uint16 k, uint16 anim, uint16 v)
 		return;
 	}
 
-	if (f->sprite > TG_BATTLE_V1_2_2_1_LAST_OPERAND_INDEX)
-		f->spriteId = (uint16)(f->sprite + TG_BATTLE_V1_2_2_1_LITERAL_BIAS);
+	if (f->sprite > TG_BATTLE_V1_2_3_1_LAST_OPERAND_INDEX)
+		f->spriteId = (uint16)(f->sprite + TG_BATTLE_V1_2_3_1_LITERAL_BIAS);
 	else
 		f->spriteId = host[f->sprite];
 
-	host[TG_BATTLE_V1_2_2_1_VAR_BUSY_COUNTER]++;
+	host[TG_BATTLE_V1_2_3_1_VAR_BUSY_COUNTER]++;
 	_host->loadResource(f->sprite);
-	host[TG_BATTLE_V1_2_2_1_VAR_BUSY_COUNTER]--;
+	host[TG_BATTLE_V1_2_3_1_VAR_BUSY_COUNTER]--;
 
 	_host->setSpriteLevel(f->sprite, f->z);
 	_host->transferSprite(old, f->sprite, anim, (byte)v, 0);
@@ -198,7 +198,7 @@ uint16 BattleDemoPlugin::moveProjectile(Fighter *f, uint16 move, uint16 anim) {
 	f->state = kStateAttack;
 
 	if (f->handlerParam != 0)
-		_host->addCollisionPair(f->handlerParam, opp->sprite, TG_BATTLE_V1_2_2_1_HOOK_WEAPONS_SPECIAL_HIT, f->player, f->handlerParam, 0);
+		_host->addCollisionPair(f->handlerParam, opp->sprite, TG_BATTLE_V1_2_3_1_HOOK_WEAPONS_SPECIAL_HIT, f->player, f->handlerParam, 0);
 
 	moveAttack(f, (byte)move, anim);
 	return 1;
@@ -207,7 +207,7 @@ uint16 BattleDemoPlugin::moveProjectile(Fighter *f, uint16 move, uint16 anim) {
 uint16 BattleDemoPlugin::moveKnockOut(Fighter *f, uint16 move, uint16 anim) {
 	setQueueGate(f->player, 1, 0);
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFFB);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFFB);
 
 	if (f->state != kStateFinal) {
 		f->doneCallback = &BattlePlugin::cbGetUp;
@@ -246,7 +246,7 @@ void BattleDemoPlugin::cbGetUp(Fighter *f) {
 	_host->setSpritePosition(f->sprite, (uint16)f->x, (uint16)f->y);
 	switchSprite(f, 1, anim, 1);
 	separateFighters(f);
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_SET_CHANGED, f->player, f->set);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_SET_CHANGED, f->player, f->set);
 	updateDistance(f);
 	updateWallFlags(f);
 	setQueueGate(f->player, 0, 0);
@@ -256,11 +256,11 @@ void BattleDemoPlugin::cbGetUp(Fighter *f) {
 	endMove(f);
 
 	uint16 *host = _host->variableTable();
-	host[TG_BATTLE_V1_2_2_1_VAR_BUSY_COUNTER]--;
+	host[TG_BATTLE_V1_2_3_1_VAR_BUSY_COUNTER]--;
 }
 
 void BattleDemoPlugin::cbFallAnim(Fighter *f) {
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFFD);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_CHANGE_ENERGY, f->player, 0xFFFD);
 
 	if (f->state == kStateFinal) {
 		if (!f->doneCallback)
@@ -301,8 +301,8 @@ uint16 BattleDemoPlugin::hookJump(Fighter *f, uint16 code) {
 void BattleDemoPlugin::initAiFlags(Fighter *f) {
 	uint16 *host = _host->variableTable();
 
-	f->moveTab[f->set][19].available = host[TG_BATTLE_V1_2_2_1_VAR_PLAYER_OPTIONS + f->player] & 1;
-	f->moveTab[f->set][kMoveSlotProjectile].available = host[TG_BATTLE_V1_2_2_1_VAR_PLAYER_OPTIONS + f->player] & 2;
+	f->moveTab[f->set][19].available = host[TG_BATTLE_V1_2_3_1_VAR_PLAYER_OPTIONS + f->player] & 1;
+	f->moveTab[f->set][kMoveSlotProjectile].available = host[TG_BATTLE_V1_2_3_1_VAR_PLAYER_OPTIONS + f->player] & 2;
 }
 
 void BattleDemoPlugin::setStanceSet(Fighter *f, uint16 set, uint16 flag) {

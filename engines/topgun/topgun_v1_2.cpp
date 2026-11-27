@@ -31,45 +31,45 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
 TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gameDesc, int version) :
 	TopgunEngine_v1_1(syst, gameDesc, version) {
-	if (version < kVersionV1_2_2_2) {
+	if (version < kVersionV1_2_3_2) {
 		setAudioLibrary(new AudioLibrary_v1_2(this));
 
-		if (version >= kVersionV1_2_2_1) {
-			setResourceLibrary(new ResourceLibrary_v1_2_3(this));
-			setSpriteLibrary(new SpriteLibrary_v1_2_3(this));
+		if (version >= kVersionV1_2_3_1) {
+			setResourceLibrary(new ResourceLibrary_v1_2_4(this));
+			setSpriteLibrary(new SpriteLibrary_v1_2_4(this));
 		} else {
 			setResourceLibrary(new ResourceLibrary_v1_2(this));
 			setSpriteLibrary(new SpriteLibrary_v1_2(this));
 		}
 	}
 
-	if (version >= kVersionV1_2_2 && version < kVersionV1_2_2_2) {
-		byte keys[TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_2_KEYBOARD_SET_SLOTS] = {
+	if (version >= kVersionV1_2_3 && version < kVersionV1_2_3_2) {
+		byte keys[TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS][TG_DEVICE_V1_2_3_KEYBOARD_SET_SLOTS] = {
 			{ 0x26, 0x28, 0x25, 0x27, 0x2D, 0x24 },
 			{ 0x53, 0x58, 0x5A, 0x43, 0x56, 0x42 }
 		};
 
-		if (version == kVersionV1_2_2_1) {
+		if (version == kVersionV1_2_3_1) {
 			keys[0][4] = 0x39;
 			keys[0][5] = 0x30;
 			keys[1][4] = 0x31;
 			keys[1][5] = 0x32;
 		}
 
-		for (uint16 i = 0; i < TG_DEVICE_V1_2_2_NUM_KEYBOARD_SETS; i++)
+		for (uint16 i = 0; i < TG_DEVICE_V1_2_3_NUM_KEYBOARD_SETS; i++)
 			memcpy(_keyboardSetKeys[i], keys[i], sizeof(keys[i]));
 	}
 
 	memset(_currentSceneName, 0, sizeof(_currentSceneName));
 
-	if (version >= kVersionV1_2_2)
-		_argumentFrame = (version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_FIRST_FRAME_INDEX : TG_HOST_V1_2_2_FIRST_FRAME_INDEX;
+	if (version >= kVersionV1_2_3)
+		_argumentFrame = (version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_FIRST_FRAME_INDEX : TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
 }
 
 TopgunEngine_v1_2::~TopgunEngine_v1_2() {
@@ -93,30 +93,30 @@ TopgunEngine_v1_2::~TopgunEngine_v1_2() {
 void TopgunEngine_v1_2::syncSoundSettings() {
 	TopgunEngine_v1_1::syncSoundSettings();
 
-	if (_version >= kVersionV1_2_2_1)
+	if (_version >= kVersionV1_2_3_1)
 		audioLib()->applyMidiDeviceVolume();
 }
 
 void TopgunEngine_v1_2::spriteQueueDoneService(uint16 sprite, uint16 tag) {
 	if (_queueDoneScript != 0)
-		static_cast<TopgunEngine_v1_2_3 *>(this)->enqueuePostedScriptRun((uint16)(_queueDoneScript - TG_HOST_V1_2_3_LITERAL_BIAS), sprite, tag);
+		static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun((uint16)(_queueDoneScript - TG_HOST_V1_2_4_LITERAL_BIAS), sprite, tag);
 }
 
 void TopgunEngine_v1_2::spriteMessageService(byte *record, uint16 spriteId) {
-	if (_version >= kVersionV1_2_2) {
+	if (_version >= kVersionV1_2_3) {
 		if (_scriptsDisabled)
 			return;
 
-		_variableTable[TG_HOST_V1_2_2_VARIABLE_EVENT_PARAMETER] = operandValue(spriteId);
+		_variableTable[TG_HOST_V1_2_3_VARIABLE_EVENT_PARAMETER] = operandValue(spriteId);
 	}
 
 	spriteMessageService(record);
 }
 
 uint16 TopgunEngine_v1_2::variableIndex(uint16 operand) const {
-	uint16 firstArgumentSlot = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT : TG_HOST_V1_2_2_FIRST_ARGUMENT_SLOT;
+	uint16 firstArgumentSlot = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_FIRST_ARGUMENT_SLOT : TG_HOST_V1_2_3_FIRST_ARGUMENT_SLOT;
 
-	if (_version < kVersionV1_2_2 || operand < firstArgumentSlot)
+	if (_version < kVersionV1_2_3 || operand < firstArgumentSlot)
 		return operand;
 
 	int32 index = (int32)_argumentFrame - (operand - firstArgumentSlot);
@@ -129,16 +129,16 @@ uint16 TopgunEngine_v1_2::variableIndex(uint16 operand) const {
 }
 
 uint16 TopgunEngine_v1_2::operandValue(uint16 operand) const {
-	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (operand > lastOperand)
-		return (uint16)(operand + ((_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
+		return (uint16)(operand + ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
 
 	return _variableTable[variableIndex(operand)];
 }
 
 uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
-	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::readVariable(): variable %d is out of range", index);
@@ -149,7 +149,7 @@ uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
 }
 
 void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
-	uint16 lastOperand = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::writeVariable(): variable %d is out of range", index);
@@ -160,25 +160,25 @@ void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
 }
 
 uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
-	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_10)
-		tableAddress = TG_SCRIPT_V1_2_10_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_2)
-		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_1)
-		tableAddress = TG_SCRIPT_V1_2_2_1_TABLE_ADDRESS;
+	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_12)
+		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_2)
+		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_1)
+		tableAddress = TG_SCRIPT_V1_2_3_1_TABLE_ADDRESS;
 
 	return (uint16)(tableAddress + 2 * variableIndex(operand));
 }
 
 uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
-	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_10)
-		tableAddress = TG_SCRIPT_V1_2_10_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_2)
-		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_1)
-		tableAddress = TG_SCRIPT_V1_2_2_1_TABLE_ADDRESS;
+	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_12)
+		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_2)
+		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_1)
+		tableAddress = TG_SCRIPT_V1_2_3_1_TABLE_ADDRESS;
 
 	uint16 index = (uint16)((address - tableAddress) / 2);
 
@@ -191,13 +191,13 @@ uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 }
 
 void TopgunEngine_v1_2::writeAddress(uint16 address, uint16 value) {
-	uint16 tableAddress = TG_SCRIPT_V1_2_2_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_10)
-		tableAddress = TG_SCRIPT_V1_2_10_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_2)
-		tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	else if (_version >= kVersionV1_2_2_1)
-		tableAddress = TG_SCRIPT_V1_2_2_1_TABLE_ADDRESS;
+	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
+	if (_version >= kVersionV1_2_12)
+		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_2)
+		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_3_1)
+		tableAddress = TG_SCRIPT_V1_2_3_1_TABLE_ADDRESS;
 
 	uint16 index = (uint16)((address - tableAddress) / 2);
 
@@ -248,20 +248,20 @@ uint16 TopgunEngine_v1_2::audioCreateWave(const byte *header, uint16 waveInfo) {
 }
 
 uint16 TopgunEngine_v1_2::audioCreateMidiEvent(const byte *header, uint16 midiInfo) {
-	MidiCreateInfo_v1_2_3 info;
+	MidiCreateInfo_v1_2_4 info;
 
-	uint16 headerSize = TG_AUDIO_V1_2_2_MIDI_HEADER_SIZE;
-	if (_version >= kVersionV1_2_2_2 && _version <= kVersionV1_2_5)
-		headerSize = TG_AUDIO_V1_2_2_2_MIDI_HEADER_SIZE;
-	else if (_version == kVersionV1_2_2_1)
-		headerSize = TG_AUDIO_V1_2_2_1_MIDI_HEADER_SIZE;
+	uint16 headerSize = TG_AUDIO_V1_2_3_MIDI_HEADER_SIZE;
+	if (_version >= kVersionV1_2_3_2 && _version <= kVersionV1_2_6)
+		headerSize = TG_AUDIO_V1_2_3_2_MIDI_HEADER_SIZE;
+	else if (_version == kVersionV1_2_3_1)
+		headerSize = TG_AUDIO_V1_2_3_1_MIDI_HEADER_SIZE;
 
 	memcpy(info.header, header, headerSize);
-	info.readProc = TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI;
-	info.closeProc = TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI;
+	info.readProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
+	info.closeProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
 
-	if (_version == kVersionV1_2_2_1)
-		info.rewindProc = TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI;
+	if (_version == kVersionV1_2_3_1)
+		info.rewindProc = TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI;
 
 	info.handle = midiInfo;
 
@@ -269,7 +269,7 @@ uint16 TopgunEngine_v1_2::audioCreateMidiEvent(const byte *header, uint16 midiIn
 }
 
 uint32 TopgunEngine_v1_2::audioSourceRead(uint16 proc, uint16 handle, byte *destination, uint32 count) {
-	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version >= kVersionV1_2_2 && proc == TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI))
+	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version >= kVersionV1_2_3 && proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI))
 		return (uint32)resourceLib()->waveRead(handle, destination, (int32)count);
 
 	if (proc == TG_AUDIO_V1_2_PROC_MOVIE_AUDIO)
@@ -280,14 +280,14 @@ uint32 TopgunEngine_v1_2::audioSourceRead(uint16 proc, uint16 handle, byte *dest
 }
 
 uint32 TopgunEngine_v1_2::audioSourceRewind(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version == kVersionV1_2_2_1 && proc == TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI))
+	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version == kVersionV1_2_3_1 && proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI))
 		return resourceLib()->waveRewind(handle);
 
 	return 0;
 }
 
 void TopgunEngine_v1_2::audioSourceClose(uint16 proc, uint16 handle) {
-	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version >= kVersionV1_2_2 && proc == TG_AUDIO_V1_2_2_PROC_RESOURCE_MIDI))
+	if (proc == TG_AUDIO_V1_2_PROC_RESOURCE_WAVE || (_version >= kVersionV1_2_3 && proc == TG_AUDIO_V1_2_3_PROC_RESOURCE_MIDI))
 		resourceLib()->waveDone(handle);
 }
 
@@ -310,7 +310,7 @@ bool TopgunEngine_v1_2::resourceVariableCallback(uint16 id, uint16 value, const 
 }
 
 bool TopgunEngine_v1_2::resourceVariablePairCallback(uint16 id, uint16 value) {
-	uint16 numSceneVariables = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_NUM_SCENE_VARIABLES : TG_HOST_V1_2_2_NUM_SCENE_VARIABLES;
+	uint16 numSceneVariables = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_NUM_SCENE_VARIABLES : TG_HOST_V1_2_3_NUM_SCENE_VARIABLES;
 
 	if (_currentSceneIndex >= _sceneEntries.size() || id >= numSceneVariables) {
 		warning("TopgunEngine_v1_2::resourceVariablePairCallback(): variable %d is out of range", id);
@@ -348,16 +348,16 @@ byte *TopgunEngine_v1_2::spriteBitmapProvider(uint16 id, bool release) {
 		uint16 bitmapGroupType = kResV1_2_1BitmapGroup;
 		bool loaded = false;
 
-		if (_version >= kVersionV1_2_10)
-			bitmapGroupType = kResV1_2_10Cell;
-		else if (_version >= kVersionV1_2_5)
-			bitmapGroupType = kResV1_2_5BitmapGroup;
-		else if (_version >= kVersionV1_2_2_1)
+		if (_version >= kVersionV1_2_12)
+			bitmapGroupType = kResV1_2_12Cell;
+		else if (_version >= kVersionV1_2_6)
+			bitmapGroupType = kResV1_2_6BitmapGroup;
+		else if (_version >= kVersionV1_2_3_1)
+			bitmapGroupType = kResV1_2_4BitmapGroup;
+		else if (_version >= kVersionV1_2_3)
 			bitmapGroupType = kResV1_2_3BitmapGroup;
-		else if (_version >= kVersionV1_2_2)
-			bitmapGroupType = kResV1_2_2BitmapGroup;
 
-		if (type == ((_version >= kVersionV1_2_2_2) ? kResV1_2_3Bitmap : kResV1_2_2Bitmap))
+		if (type == ((_version >= kVersionV1_2_3_2) ? kResV1_2_4Bitmap : kResV1_2_3Bitmap))
 			loaded = ensureBitmapResourceLoaded(id);
 		else if (type == bitmapGroupType)
 			loaded = ensureBitmapGroupResourceLoaded(id);
@@ -497,8 +497,8 @@ bool TopgunEngine_v1_2::registerViewClassAndCreateMainWindow() {
 
 bool TopgunEngine_v1_2::initEngineLibraries() {
 	uint16 audioVersion = TG_AUDIO_V1_2_VERSION;
-	if (_version >= kVersionV1_2_2)
-		audioVersion = TG_AUDIO_V1_2_2_VERSION;
+	if (_version >= kVersionV1_2_3)
+		audioVersion = TG_AUDIO_V1_2_3_VERSION;
 
 	if (audioLib()->audioInitLibrary(1, audioVersion) == 0) {
 		warning("TopgunEngine_v1_2::initEngineLibraries(): cannot initialize the audio library (version 0x%X)", audioVersion);
@@ -636,8 +636,8 @@ void TopgunEngine_v1_2::dispatchMessage(const Message &message) {
 		handleKeyDownMessage((Common::KeyCode)message.param, message.shift, message.ctrl);
 		break;
 
-	case kMsgV1_2_3KeyUp:
-		if (_version >= kVersionV1_2_2)
+	case kMsgV1_2_4KeyUp:
+		if (_version >= kVersionV1_2_3)
 			handleKeyUpMessage((Common::KeyCode)message.param);
 		break;
 
@@ -695,7 +695,7 @@ void TopgunEngine_v1_2::dispatchMessage(const Message &message) {
 	case kMsgV1_2SoundFinished:
 		if ((message.data & 0xFFFF) != 0)
 			runScriptResource((uint16)(message.data & 0xFFFF));
-		else if (_version >= kVersionV1_2_2_1)
+		else if (_version >= kVersionV1_2_3_1)
 			destroyResourceObjectByType(message.param, resourceLib()->resGetType(_file, operandValue(message.param)));
 		else
 			destroyResourceObjectByType(message.param, (_version >= kVersionV1_2_1) ? kResV1_2_1Wave : kResV1_2Wave);
@@ -829,7 +829,7 @@ void TopgunEngine_v1_2::handleRunScriptMessage(uint16 script, uint16 argument1, 
 
 	WRITE_LE_UINT16(record + 2, script);
 
-	if (_version >= kVersionV1_2_2) {
+	if (_version >= kVersionV1_2_3) {
 		WRITE_LE_UINT16(record + 6, argument1);
 		if (argument1 != 0)
 			record[5]++;
@@ -897,7 +897,7 @@ bool TopgunEngine_v1_2::fatalError(const Common::String &message) {
 
 bool TopgunEngine_v1_2::fatalError(uint16 code, const Common::String &message) {
 	// The later original marks the shutdown as already started, so the close message does nothing and the window stays frozen; here the close runs the normal shutdown
-	if (_version < kVersionV1_2_2_2)
+	if (_version < kVersionV1_2_3_2)
 		_shuttingDown = true;
 
 	_fatalCode = code;

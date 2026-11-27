@@ -27,7 +27,7 @@
 #include "graphics/wincursor.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 #define TG_INPUT_HOURGLASS_HOTSPOT_X 15
 #define TG_INPUT_HOURGLASS_HOTSPOT_Y 14
@@ -304,7 +304,7 @@ struct CursorImage_v1_2 {
 	int16 hotspotY;
 };
 
-static const CursorImage_v1_2 kCursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = {
+static const CursorImage_v1_2 kCursorImages[TG_HOST_V1_2_4_NUM_CURSOR_IMAGES] = {
 	{ kCursorMode2, 10, 5 },
 	{ kCursorMode3, 10, 4 },
 	{ kCursorMode5, 15, 15 },
@@ -315,7 +315,7 @@ static const CursorImage_v1_2 kCursorImages[TG_HOST_V1_2_3_NUM_CURSOR_IMAGES] = 
 };
 
 bool TopgunEngine_v1_2::loadCursorResources() {
-	uint16 numImages = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_3_NUM_CURSOR_IMAGES : TG_HOST_V1_2_NUM_CURSOR_IMAGES;
+	uint16 numImages = (_version >= kVersionV1_2_1) ? TG_HOST_V1_2_4_NUM_CURSOR_IMAGES : TG_HOST_V1_2_NUM_CURSOR_IMAGES;
 
 	for (uint16 i = 0; i < numImages; i++) {
 		Common::MemoryReadStream stream(kCursorImages[i].data, TG_HOST_V1_2_CURSOR_IMAGE_SIZE);
@@ -331,7 +331,7 @@ bool TopgunEngine_v1_2::loadCursorResources() {
 }
 
 void TopgunEngine_v1_2::destroyCursorResources() {
-	for (uint16 i = 0; i < TG_HOST_V1_2_3_NUM_CURSOR_IMAGES; i++) {
+	for (uint16 i = 0; i < TG_HOST_V1_2_4_NUM_CURSOR_IMAGES; i++) {
 		delete _cursorImages[i];
 		_cursorImages[i] = nullptr;
 	}
@@ -374,7 +374,7 @@ void TopgunEngine_v1_2::applyCursorFromRegister() {
 		cursor = _cursorImages[5];
 		break;
 
-	case TG_HOST_V1_2_3_CURSOR_MODE_INVISIBLE:
+	case TG_HOST_V1_2_4_CURSOR_MODE_INVISIBLE:
 		cursor = _cursorImages[6];
 		break;
 
@@ -403,7 +403,7 @@ void TopgunEngine_v1_2::forceShowOrHideCursor(bool show) {
 	CursorMan.showMouse(_cursorCounterVisible && !_cursorImageHidden);
 }
 
-void TopgunEngine_v1_2_3::o_setCursorMode(const byte *record) {
+void TopgunEngine_v1_2_4::o_setCursorMode(const byte *record) {
 	setCursorMode(record[2]);
 }
 

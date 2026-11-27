@@ -24,29 +24,29 @@
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
-bool TopgunEngine_v1_2_3::o_playWave(uint16 waveId, const byte *params) {
-	if (_version < kVersionV1_2_3)
+bool TopgunEngine_v1_2_4::o_playWave(uint16 waveId, const byte *params) {
+	if (_version < kVersionV1_2_4)
 		return TopgunEngine_v1_2::o_playWave(waveId, params);
 
-	byte parameters[TG_AUDIO_V1_2_3_PLAY_PARAMS_SIZE];
+	byte parameters[TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE];
 	memcpy(parameters, params, sizeof(parameters));
 
-	uint16 notifyValue = operandValue(READ_LE_UINT16(params + TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY_PARAM));
+	uint16 notifyValue = operandValue(READ_LE_UINT16(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM));
 	uint16 notifyScript = 0;
 
 	if (notifyValue != 0)
-		notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_3_LITERAL_BIAS);
+		notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_4_LITERAL_BIAS);
 
-	uint16 waveType = kResV1_2_3Wave;
-	if (_version >= kVersionV1_2_5)
-		waveType = kResV1_2_5Wave;
+	uint16 waveType = kResV1_2_4Wave;
+	if (_version >= kVersionV1_2_6)
+		waveType = kResV1_2_6Wave;
 
 	// The later version stops the operation when the wave cannot be validated
-	if (!validateAndGetResourceByType(waveId, waveType) && _version >= kVersionV1_2_5)
+	if (!validateAndGetResourceByType(waveId, waveType) && _version >= kVersionV1_2_6)
 		return false;
 
 	if (isResourceObjectLoaded(waveId, waveType)) {
@@ -55,17 +55,17 @@ bool TopgunEngine_v1_2_3::o_playWave(uint16 waveId, const byte *params) {
 		if (isRecordIndexValid(index, "o_playWave"))
 			audioLib()->audioPlayWave(_records[index].handle, parameters);
 
-		if (_version >= kVersionV1_2_7 && _waveStartedScript != 0)
+		if (_version >= kVersionV1_2_9 && _waveStartedScript != 0)
 			enqueuePostedScriptRun(_waveStartedScript, waveId, 0);
-	} else if (params[TG_AUDIO_V1_2_2_2_PLAY_OFFSET_NOTIFY] != 0 && notifyValue != 0) {
+	} else if (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY] != 0 && notifyValue != 0) {
 		enqueuePostedScriptRun(notifyScript, waveId, 0);
 	}
 
 	return true;
 }
 
-void TopgunEngine_v1_2_3::o_arithmetic(const byte *record) {
-	if (_version < kVersionV1_2_2_3) {
+void TopgunEngine_v1_2_4::o_arithmetic(const byte *record) {
+	if (_version < kVersionV1_2_3_3) {
 		TopgunEngine_v1_2::o_arithmetic(record);
 		return;
 	}
@@ -75,18 +75,18 @@ void TopgunEngine_v1_2_3::o_arithmetic(const byte *record) {
 	uint16 count = READ_LE_UINT16(record + 4);
 
 	for (uint16 i = 0; i < count; i++)
-		accumulator = applyArithmeticOperand(accumulator, record + TG_SCRIPT_V1_2_3_ARITHMETIC_OPERANDS_OFFSET + i * TG_SCRIPT_V1_2_3_ARITHMETIC_OPERAND_SIZE);
+		accumulator = applyArithmeticOperand(accumulator, record + TG_SCRIPT_V1_2_4_ARITHMETIC_OPERANDS_OFFSET + i * TG_SCRIPT_V1_2_4_ARITHMETIC_OPERAND_SIZE);
 
 	writeVariable(destination, (uint16)accumulator);
 }
 
-int32 TopgunEngine_v1_2_3::applyArithmeticOperand(int32 accumulator, const byte *operand) {
+int32 TopgunEngine_v1_2_4::applyArithmeticOperand(int32 accumulator, const byte *operand) {
 	int32 value = (int16)operandValue(READ_LE_UINT16(operand));
 
-	if (operand[TG_SCRIPT_V1_2_3_ARITHMETIC_NEGATE] != 0)
+	if (operand[TG_SCRIPT_V1_2_4_ARITHMETIC_NEGATE] != 0)
 		value = (int32)((uint32)0 - (uint32)value);
 
-	switch (operand[TG_SCRIPT_V1_2_3_ARITHMETIC_OPERATION]) {
+	switch (operand[TG_SCRIPT_V1_2_4_ARITHMETIC_OPERATION]) {
 	case 0:
 		return value;
 
@@ -107,7 +107,7 @@ int32 TopgunEngine_v1_2_3::applyArithmeticOperand(int32 accumulator, const byte 
 
 	case 7:
 		if (value == 0) {
-			warning("TopgunEngine_v1_2_3::applyArithmeticOperand(): division by zero");
+			warning("TopgunEngine_v1_2_4::applyArithmeticOperand(): division by zero");
 			return 0;
 		}
 
@@ -129,13 +129,13 @@ int32 TopgunEngine_v1_2_3::applyArithmeticOperand(int32 accumulator, const byte 
 	}
 }
 
-bool TopgunEngine_v1_2_3::o_conditionalRunScript(const byte *record, uint16 &size) {
+bool TopgunEngine_v1_2_4::o_conditionalRunScript(const byte *record, uint16 &size) {
 	uint16 operandA = operandValue(READ_LE_UINT16(record + 8));
 	uint16 operandB = operandValue(READ_LE_UINT16(record + 10));
 	uint16 hit = evaluateCondition(record[12], operandA, operandB);
 	uint16 script;
 
-	size = TG_SCRIPT_V1_2_3_CONDITIONAL_SIZE;
+	size = TG_SCRIPT_V1_2_4_CONDITIONAL_SIZE;
 
 	if (hit != 0) {
 		script = READ_LE_UINT16(record + 2);
@@ -154,22 +154,22 @@ bool TopgunEngine_v1_2_3::o_conditionalRunScript(const byte *record, uint16 &siz
 	return runScriptResource(script);
 }
 
-uint16 TopgunEngine_v1_2_3::evaluateCondition(byte condition, uint16 operandA, uint16 operandB) {
+uint16 TopgunEngine_v1_2_4::evaluateCondition(byte condition, uint16 operandA, uint16 operandB) {
 	uint16 result;
 
-	if ((condition & TG_SCRIPT_V1_2_3_CONDITION_EQUAL) != 0) {
+	if ((condition & TG_SCRIPT_V1_2_4_CONDITION_EQUAL) != 0) {
 		result = (operandB == operandA) ? 1 : 0;
-	} else if ((condition & TG_SCRIPT_V1_2_3_CONDITION_LESS) != 0) {
+	} else if ((condition & TG_SCRIPT_V1_2_4_CONDITION_LESS) != 0) {
 		result = ((int16)operandB < (int16)operandA) ? 1 : 0;
-	} else if ((condition & TG_SCRIPT_V1_2_3_CONDITION_GREATER) != 0) {
+	} else if ((condition & TG_SCRIPT_V1_2_4_CONDITION_GREATER) != 0) {
 		result = ((int16)operandB > (int16)operandA) ? 1 : 0;
-	} else if ((condition & TG_SCRIPT_V1_2_3_CONDITION_OR) != 0) {
+	} else if ((condition & TG_SCRIPT_V1_2_4_CONDITION_OR) != 0) {
 		result = operandB | operandA;
-	} else if ((condition & TG_SCRIPT_V1_2_3_CONDITION_AND) != 0) {
+	} else if ((condition & TG_SCRIPT_V1_2_4_CONDITION_AND) != 0) {
 		result = operandB & operandA;
-	} else if ((condition & TG_SCRIPT_V1_2_3_CONDITION_MODULO) != 0) {
+	} else if ((condition & TG_SCRIPT_V1_2_4_CONDITION_MODULO) != 0) {
 		if (operandB == 0) {
-			warning("TopgunEngine_v1_2_3::evaluateCondition(): division by zero");
+			warning("TopgunEngine_v1_2_4::evaluateCondition(): division by zero");
 			result = 0;
 		} else {
 			result = (uint16)((int16)operandA % (int16)operandB);
@@ -178,13 +178,13 @@ uint16 TopgunEngine_v1_2_3::evaluateCondition(byte condition, uint16 operandA, u
 		result = (operandA != 0) ? 1 : 0;
 	}
 
-	if ((condition & TG_SCRIPT_V1_2_3_CONDITION_NEGATE) != 0)
+	if ((condition & TG_SCRIPT_V1_2_4_CONDITION_NEGATE) != 0)
 		result = (result == 0) ? 1 : 0;
 
 	return result;
 }
 
-bool TopgunEngine_v1_2_3::o_randomRunScript(byte *record) {
+bool TopgunEngine_v1_2_4::o_randomRunScript(byte *record) {
 	if (record[0x10] != 0) {
 		uint16 listId = READ_LE_UINT16(record + 4);
 		uint16 count = countScriptListEntries(listId);
@@ -206,7 +206,7 @@ bool TopgunEngine_v1_2_3::o_randomRunScript(byte *record) {
 
 	uint16 count = record[2];
 	if (count == 0) {
-		warning("TopgunEngine_v1_2_3::o_randomRunScript(): the record has no scripts");
+		warning("TopgunEngine_v1_2_4::o_randomRunScript(): the record has no scripts");
 		return true;
 	}
 
@@ -221,15 +221,15 @@ bool TopgunEngine_v1_2_3::o_randomRunScript(byte *record) {
 
 	record[3] = (byte)pick;
 
-	if (pick >= TG_SCRIPT_V1_2_3_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v1_2_3::o_randomRunScript(): script index %d is out of range", pick);
+	if (pick >= TG_SCRIPT_V1_2_4_NUM_SCRIPT_CHOICES) {
+		warning("TopgunEngine_v1_2_4::o_randomRunScript(): script index %d is out of range", pick);
 		return true;
 	}
 
 	return runScriptResource(READ_LE_UINT16(record + 4 + 2 * pick));
 }
 
-bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
+bool TopgunEngine_v1_2_4::o_roundRobinRunScript(byte *record) {
 	if (record[0x10] != 0) {
 		uint16 listId = READ_LE_UINT16(record + 4);
 		uint16 count = countScriptListEntries(listId);
@@ -248,18 +248,18 @@ bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
 	if (record[2] <= record[3])
 		record[3] = 0;
 
-	if (record[3] >= TG_SCRIPT_V1_2_3_NUM_SCRIPT_CHOICES) {
-		warning("TopgunEngine_v1_2_3::o_roundRobinRunScript(): script index %d is out of range", record[3]);
+	if (record[3] >= TG_SCRIPT_V1_2_4_NUM_SCRIPT_CHOICES) {
+		warning("TopgunEngine_v1_2_4::o_roundRobinRunScript(): script index %d is out of range", record[3]);
 		return false;
 	}
 
 	uint16 id = READ_LE_UINT16(record + 4 + 2 * record[3]);
 
-	uint16 scriptType = kResV1_2_3Script;
-	if (_version >= kVersionV1_2_10)
-		scriptType = kResV1_2_10Script;
-	else if (_version >= kVersionV1_2_5)
-		scriptType = kResV1_2_5Script;
+	uint16 scriptType = kResV1_2_4Script;
+	if (_version >= kVersionV1_2_12)
+		scriptType = kResV1_2_12Script;
+	else if (_version >= kVersionV1_2_6)
+		scriptType = kResV1_2_6Script;
 
 	if (!validateAndGetResourceByType(id, scriptType))
 		return false;
@@ -270,13 +270,13 @@ bool TopgunEngine_v1_2_3::o_roundRobinRunScript(byte *record) {
 
 	const byte *nested = _records[index].data;
 
-	if (READ_LE_UINT16(nested) != kOpV1_2_3RoundRobinRunScript || nested[2] == nested[3])
+	if (READ_LE_UINT16(nested) != kOpV1_2_4RoundRobinRunScript || nested[2] == nested[3])
 		record[3]++;
 
 	return runScriptResource(id);
 }
 
-void TopgunEngine_v1_2_3::o_listRunScript(const byte *record) {
+void TopgunEngine_v1_2_4::o_listRunScript(const byte *record) {
 	uint16 listId = READ_LE_UINT16(record + 2);
 	uint16 count = countScriptListEntries(listId);
 	if (count == 0)
@@ -302,24 +302,24 @@ void TopgunEngine_v1_2_3::o_listRunScript(const byte *record) {
 	}
 }
 
-uint16 TopgunEngine_v1_2_3::o_conditionalSkip(const byte *record) {
+uint16 TopgunEngine_v1_2_4::o_conditionalSkip(const byte *record) {
 	uint16 operandA = operandValue(READ_LE_UINT16(record + 4));
 	uint16 operandB = operandValue(READ_LE_UINT16(record + 6));
 
 	if (evaluateCondition(record[8], operandA, operandB) != 0)
-		return TG_SCRIPT_V1_2_3_SKIP_TAKEN_SIZE;
+		return TG_SCRIPT_V1_2_4_SKIP_TAKEN_SIZE;
 
 	return READ_LE_UINT16(record + 2);
 }
 
-void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
-	uint16 spriteType = kResV1_2_3Sprite;
-	if (_version >= kVersionV1_2_10)
-		spriteType = kResV1_2_10Sprite;
-	else if (_version >= kVersionV1_2_5)
-		spriteType = kResV1_2_5Sprite;
+void TopgunEngine_v1_2_4::o_getSpritePosition(const byte *record) {
+	uint16 spriteType = kResV1_2_4Sprite;
+	if (_version >= kVersionV1_2_12)
+		spriteType = kResV1_2_12Sprite;
+	else if (_version >= kVersionV1_2_6)
+		spriteType = kResV1_2_6Sprite;
 
-	if (_version >= kVersionV1_2_3 && !validateResourceType(READ_LE_UINT16(record + 2), spriteType))
+	if (_version >= kVersionV1_2_4 && !validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 		return;
 
 	uint16 index = operandValue(READ_LE_UINT16(record + 2));
@@ -337,12 +337,12 @@ void TopgunEngine_v1_2_3::o_getSpritePosition(const byte *record) {
 	writeVariable(READ_LE_UINT16(record + 6), (uint16)y);
 }
 
-void TopgunEngine_v1_2_3::o_loadPaletteResource(const byte *record) {
-	uint16 paletteType = kResV1_2_3Palette;
-	if (_version >= kVersionV1_2_10)
-		paletteType = kResV1_2_10Palette;
-	else if (_version >= kVersionV1_2_5)
-		paletteType = kResV1_2_5Palette;
+void TopgunEngine_v1_2_4::o_loadPaletteResource(const byte *record) {
+	uint16 paletteType = kResV1_2_4Palette;
+	if (_version >= kVersionV1_2_12)
+		paletteType = kResV1_2_12Palette;
+	else if (_version >= kVersionV1_2_6)
+		paletteType = kResV1_2_6Palette;
 
 	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), paletteType))
 		return;
@@ -351,44 +351,44 @@ void TopgunEngine_v1_2_3::o_loadPaletteResource(const byte *record) {
 	if (!isRecordIndexValid(index, "o_loadPaletteResource"))
 		return;
 
-	if (!_records[index].data || _records[index].size < TG_SCRIPT_V1_2_3_PALETTE_RESOURCE_SIZE) {
-		warning("TopgunEngine_v1_2_3::o_loadPaletteResource(): the palette resource %d is too small", index);
+	if (!_records[index].data || _records[index].size < TG_SCRIPT_V1_2_4_PALETTE_RESOURCE_SIZE) {
+		warning("TopgunEngine_v1_2_4::o_loadPaletteResource(): the palette resource %d is too small", index);
 		return;
 	}
 
-	byte *entries = _palette + TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY * TG_DISPLAY_PALETTE_ENTRY_SIZE;
-	memmove(entries, _records[index].data, TG_SCRIPT_V1_2_3_PALETTE_RESOURCE_SIZE);
+	byte *entries = _palette + TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY * TG_DISPLAY_PALETTE_ENTRY_SIZE;
+	memmove(entries, _records[index].data, TG_SCRIPT_V1_2_4_PALETTE_RESOURCE_SIZE);
 
-	spriteLib()->spriteChangePalette(TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY, TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES, entries, (_fadeIn && !_entryScriptRunning), false);
+	spriteLib()->spriteChangePalette(TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY, TG_SCRIPT_V1_2_4_MAX_PALETTE_ENTRIES, entries, (_fadeIn && !_entryScriptRunning), false);
 }
 
-void TopgunEngine_v1_2_3::o_setPaletteEntries(const byte *record) {
+void TopgunEngine_v1_2_4::o_setPaletteEntries(const byte *record) {
 	if (!display()->hasPalette())
 		return;
 
 	uint16 first = operandValue(READ_LE_UINT16(record + 2));
-	if (first < TG_SCRIPT_V1_2_3_FIRST_PALETTE_ENTRY)
+	if (first < TG_SCRIPT_V1_2_4_FIRST_PALETTE_ENTRY)
 		return;
 
 	uint16 count = operandValue(READ_LE_UINT16(record + 4));
-	if (count > TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES)
-		count = TG_SCRIPT_V1_2_3_MAX_PALETTE_ENTRIES;
+	if (count > TG_SCRIPT_V1_2_4_MAX_PALETTE_ENTRIES)
+		count = TG_SCRIPT_V1_2_4_MAX_PALETTE_ENTRIES;
 
 	bool animate = (_fadeIn && !_entryScriptRunning);
 
 	if (record[6] != 0) {
-		if ((uint32)(first + count) * TG_DISPLAY_PALETTE_ENTRY_SIZE > TG_HOST_V1_2_3_PALETTE_SIZE) {
-			warning("TopgunEngine_v1_2_3::o_setPaletteEntries(): the entries %d..%d are out of the palette", first, first + count);
+		if ((uint32)(first + count) * TG_DISPLAY_PALETTE_ENTRY_SIZE > TG_HOST_V1_2_4_PALETTE_SIZE) {
+			warning("TopgunEngine_v1_2_4::o_setPaletteEntries(): the entries %d..%d are out of the palette", first, first + count);
 			return;
 		}
 
 		spriteLib()->spriteChangePalette(first, count, _palette + first * TG_DISPLAY_PALETTE_ENTRY_SIZE, animate, false);
 	} else {
-		spriteLib()->spriteChangePalette(first, count, record + TG_SCRIPT_V1_2_3_PALETTE_ENTRIES_OFFSET, animate, true);
+		spriteLib()->spriteChangePalette(first, count, record + TG_SCRIPT_V1_2_4_PALETTE_ENTRIES_OFFSET, animate, true);
 	}
 }
 
-void TopgunEngine_v1_2_3::o_setQueueDoneScript(const byte *record) {
+void TopgunEngine_v1_2_4::o_setQueueDoneScript(const byte *record) {
 	_queueDoneScript = operandValue(READ_LE_UINT16(record + 2));
 	spriteLib()->spriteSetQueueDoneProc(_queueDoneScript != 0);
 }

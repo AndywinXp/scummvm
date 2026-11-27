@@ -35,12 +35,12 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
 TextObject_v1_2::TextObject_v1_2() : handle(0), id(0), font(nullptr), fontOwned(false), fontHandle(0), color(0), leadByteBuffered(false), leadByte(0) {
-	for (uint16 i = 0; i < TG_TEXT_V1_2_3_EDIT_RECORD_SIZE; i++)
+	for (uint16 i = 0; i < TG_TEXT_V1_2_4_EDIT_RECORD_SIZE; i++)
 		edit[i] = 0;
 
 	for (uint16 i = 0; i < TG_TEXT_V1_2_1_HEADER_SIZE; i++)
@@ -122,21 +122,21 @@ uint16 TopgunEngine_v1_2::createTextObject(uint16 id, const byte *data) {
 	object->handle = handle;
 	object->id = id;
 	uint16 headerSize = TG_TEXT_V1_2_DATA_SIZE;
-	if (_version >= kVersionV1_2_4)
-		headerSize = TG_TEXT_V1_2_3_HEADER_SIZE;
-	else if (_version >= kVersionV1_2_2_2)
-		headerSize = TG_TEXT_V1_2_3_SHORT_HEADER_SIZE;
+	if (_version >= kVersionV1_2_5)
+		headerSize = TG_TEXT_V1_2_4_HEADER_SIZE;
+	else if (_version >= kVersionV1_2_3_2)
+		headerSize = TG_TEXT_V1_2_4_SHORT_HEADER_SIZE;
 	else if (_version >= kVersionV1_2_1)
 		headerSize = TG_TEXT_V1_2_1_HEADER_SIZE;
 
 	memcpy(object->data, data, headerSize);
 
-	if (_version >= kVersionV1_2_2_2)
-		object->color = READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_COLOR);
+	if (_version >= kVersionV1_2_3_2)
+		object->color = READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_COLOR);
 	else if (_version >= kVersionV1_2_1)
 		object->color = READ_LE_UINT16(object->data + TG_TEXT_V1_2_DATA_COLOR);
 
-	const char *initialText = getStringFromId(READ_LE_UINT16(data + ((_version >= kVersionV1_2_2_2) ? TG_TEXT_V1_2_3_HEADER_TEXT : TG_TEXT_V1_2_DATA_TEXT)));
+	const char *initialText = getStringFromId(READ_LE_UINT16(data + ((_version >= kVersionV1_2_3_2) ? TG_TEXT_V1_2_4_HEADER_TEXT : TG_TEXT_V1_2_DATA_TEXT)));
 	if (initialText)
 		Common::strlcpy(object->text, initialText, TG_TEXT_V1_2_TEXT_SIZE);
 
@@ -365,7 +365,7 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 		}
 	}
 
-	if (_textFonts.size() >= TG_TEXT_V1_2_3_MAX_FONTS)
+	if (_textFonts.size() >= TG_TEXT_V1_2_4_MAX_FONTS)
 		return 0;
 
 	TextFont_v1_2 entry;
@@ -418,7 +418,7 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 
 	entry.refCount = 1;
 	entry.height = height;
-	Common::strlcpy(entry.face, face, TG_TEXT_V1_2_3_FACE_SIZE);
+	Common::strlcpy(entry.face, face, TG_TEXT_V1_2_4_FACE_SIZE);
 
 	_textFonts.push_back(entry);
 	return entry.handle;
@@ -442,8 +442,8 @@ void TopgunEngine_v1_2::deleteTextObjectFont(uint16 font) {
 }
 
 void TopgunEngine_v1_2::refreshTextObjectFont(TextObject_v1_2 *object) {
-	uint16 faceOffset = (_version >= kVersionV1_2_2_2) ? TG_TEXT_V1_2_3_HEADER_FACE : TG_TEXT_V1_2_DATA_FACE;
-	uint16 heightOffset = (_version >= kVersionV1_2_2_2) ? TG_TEXT_V1_2_3_HEADER_HEIGHT : TG_TEXT_V1_2_DATA_HEIGHT;
+	uint16 faceOffset = (_version >= kVersionV1_2_3_2) ? TG_TEXT_V1_2_4_HEADER_FACE : TG_TEXT_V1_2_DATA_FACE;
+	uint16 heightOffset = (_version >= kVersionV1_2_3_2) ? TG_TEXT_V1_2_4_HEADER_HEIGHT : TG_TEXT_V1_2_DATA_HEIGHT;
 
 	const char *face = getStringFromId(READ_LE_UINT16(object->data + faceOffset));
 	if (!face)
@@ -474,7 +474,7 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(uint16 color, co
 
 	uint32 textColor = display()->hasPalette() ? (color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
 
-	if (_version >= kVersionV1_2_10 && display()->hasPalette()) {
+	if (_version >= kVersionV1_2_12 && display()->hasPalette()) {
 		// Black turns into the transparent index, matched on the color of the entry without fades
 		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
 		spriteLib()->spriteGetPalette(entry, (byte)color, 1);
@@ -506,17 +506,17 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 	int16 boxWidth;
 	int16 boxHeight;
 
-	if (_version >= kVersionV1_2_2_2) {
-		flags = READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_FLAGS);
-		if (_version < kVersionV1_2_4) {
+	if (_version >= kVersionV1_2_3_2) {
+		flags = READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_FLAGS);
+		if (_version < kVersionV1_2_5) {
 			flags &= 0xFF;
 
-			if (_version >= kVersionV1_2_3)
-				flags |= TG_TEXT_V1_2_3_FLAG_NO_PREFIX;
+			if (_version >= kVersionV1_2_4)
+				flags |= TG_TEXT_V1_2_4_FLAG_NO_PREFIX;
 		}
 
-		boxWidth = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_BOX_WIDTH);
-		boxHeight = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_BOX_HEIGHT);
+		boxWidth = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_BOX_WIDTH);
+		boxHeight = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_BOX_HEIGHT);
 	} else {
 		flags = object->data[TG_TEXT_V1_2_1_HEADER_FLAGS];
 		boxWidth = (int16)READ_LE_UINT16(object->data + TG_TEXT_V1_2_1_HEADER_BOX_WIDTH);
@@ -526,14 +526,14 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 	bool hasBox = (boxWidth != 0 && boxHeight != 0);
 
 	if (hasBox)
-		flags |= TG_TEXT_V1_2_3_FLAG_WORD_BREAK;
+		flags |= TG_TEXT_V1_2_4_FLAG_WORD_BREAK;
 
 	const char *text = (object->text[0] != '\0') ? object->text : " ";
 
 	Common::String visible;
 	for (const char *c = text; *c != '\0'; c++) {
 		// The underline of the prefix character is not drawn
-		if (*c == '&' && (flags & TG_TEXT_V1_2_3_FLAG_NO_PREFIX) == 0) {
+		if (*c == '&' && (flags & TG_TEXT_V1_2_4_FLAG_NO_PREFIX) == 0) {
 			c++;
 
 			if (*c == '\0')
@@ -547,10 +547,10 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 	Common::U32String string(visible.c_str(), codePage);
 	Common::Array<Common::U32String> lines;
 
-	if ((flags & TG_TEXT_V1_2_3_FLAG_SINGLE_LINE) != 0)
+	if ((flags & TG_TEXT_V1_2_4_FLAG_SINGLE_LINE) != 0)
 		lines.push_back(string);
 	else
-		font->wordWrapText(string, (flags & TG_TEXT_V1_2_3_FLAG_WORD_BREAK) != 0 ? boxWidth : TG_TEXT_V1_2_3_UNLIMITED_WIDTH, lines);
+		font->wordWrapText(string, (flags & TG_TEXT_V1_2_4_FLAG_WORD_BREAK) != 0 ? boxWidth : TG_TEXT_V1_2_4_UNLIMITED_WIDTH, lines);
 
 	if (lineHeight == 0)
 		lineHeight = font->getFontHeight();
@@ -576,7 +576,7 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 
 	uint32 textColor = display()->hasPalette() ? (object->color & 0xFF) : TG_TEXT_V1_2_SOLID_COLOR;
 
-	if (_version >= kVersionV1_2_10 && display()->hasPalette()) {
+	if (_version >= kVersionV1_2_12 && display()->hasPalette()) {
 		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
 		spriteLib()->spriteGetPalette(entry, (byte)object->color, 1);
 		textColor = display()->getDeviceColorIndex((byte)object->color, entry);
@@ -584,10 +584,10 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 
 	int top = 0;
 
-	if ((flags & TG_TEXT_V1_2_3_FLAG_SINGLE_LINE) != 0) {
-		if ((flags & TG_TEXT_V1_2_3_FLAG_BOTTOM) != 0)
+	if ((flags & TG_TEXT_V1_2_4_FLAG_SINGLE_LINE) != 0) {
+		if ((flags & TG_TEXT_V1_2_4_FLAG_BOTTOM) != 0)
 			top = surfaceHeight - lineHeight;
-		else if ((flags & TG_TEXT_V1_2_3_FLAG_VERTICAL_CENTER) != 0)
+		else if ((flags & TG_TEXT_V1_2_4_FLAG_VERTICAL_CENTER) != 0)
 			top = (surfaceHeight - lineHeight) / 2;
 	}
 
@@ -595,9 +595,9 @@ Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(const TextObject
 		int lineWidth = font->getStringWidth(lines[i]);
 		int x = 0;
 
-		if ((flags & TG_TEXT_V1_2_3_FLAG_RIGHT) != 0)
+		if ((flags & TG_TEXT_V1_2_4_FLAG_RIGHT) != 0)
 			x = surfaceWidth - lineWidth;
-		else if ((flags & TG_TEXT_V1_2_3_FLAG_CENTER) != 0)
+		else if ((flags & TG_TEXT_V1_2_4_FLAG_CENTER) != 0)
 			x = (surfaceWidth - lineWidth) / 2;
 
 		if (lineWidth > 0)
@@ -675,24 +675,24 @@ void TopgunEngine_v1_2::positionTextObject(byte *bitmap, const TextObject_v1_2 *
 		uint16 height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 		byte flags;
 
-		if (_version >= kVersionV1_2_2_2) {
-			flags = object->data[TG_TEXT_V1_2_3_HEADER_FLAGS];
-			hotX = READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_HOT_X);
-			hotY = READ_LE_UINT16(object->data + TG_TEXT_V1_2_3_HEADER_HOT_Y);
+		if (_version >= kVersionV1_2_3_2) {
+			flags = object->data[TG_TEXT_V1_2_4_HEADER_FLAGS];
+			hotX = READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_HOT_X);
+			hotY = READ_LE_UINT16(object->data + TG_TEXT_V1_2_4_HEADER_HOT_Y);
 		} else {
 			flags = object->data[TG_TEXT_V1_2_1_HEADER_FLAGS];
 			hotX = READ_LE_UINT16(object->data + TG_TEXT_V1_2_DATA_X);
 			hotY = READ_LE_UINT16(object->data + TG_TEXT_V1_2_DATA_Y);
 		}
 
-		if ((flags & TG_TEXT_V1_2_3_FLAG_RIGHT) != 0)
+		if ((flags & TG_TEXT_V1_2_4_FLAG_RIGHT) != 0)
 			hotX = (uint16)(hotX - (width >> 1));
-		else if ((flags & TG_TEXT_V1_2_3_FLAG_CENTER) == 0)
+		else if ((flags & TG_TEXT_V1_2_4_FLAG_CENTER) == 0)
 			hotX = (uint16)(hotX + ((uint16)(width - 1) >> 1));
 
-		if ((flags & TG_TEXT_V1_2_3_FLAG_BOTTOM) != 0)
+		if ((flags & TG_TEXT_V1_2_4_FLAG_BOTTOM) != 0)
 			hotY = (uint16)(hotY - (height >> 1));
-		else if ((flags & TG_TEXT_V1_2_3_FLAG_VERTICAL_CENTER) == 0)
+		else if ((flags & TG_TEXT_V1_2_4_FLAG_VERTICAL_CENTER) == 0)
 			hotY = (uint16)(hotY + ((uint16)(height - 1) >> 1));
 	} else {
 		byte alignment = object->data[TG_TEXT_V1_2_DATA_ALIGNMENT];
@@ -714,7 +714,7 @@ void TopgunEngine_v1_2::replaceTextBitmapInSprites(byte *oldBitmap, byte *newBit
 	if (!oldBitmap)
 		return;
 
-	uint16 bitmapResourceIdOffset = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
+	uint16 bitmapResourceIdOffset = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
 
 	CelReference oldCel(oldBitmap, READ_LE_UINT16(oldBitmap + bitmapResourceIdOffset));
 	CelReference newCel(newBitmap, READ_LE_UINT16(newBitmap + bitmapResourceIdOffset));
@@ -738,7 +738,7 @@ bool TopgunEngine_v1_2::refreshTextObjectBitmap(uint16 handle) {
 	if (!bitmap)
 		return false;
 
-	WRITE_LE_UINT16(bitmap + ((_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), object->id);
+	WRITE_LE_UINT16(bitmap + ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID), object->id);
 	positionTextObject(bitmap, object);
 
 	uint16 index = operandValue(object->id);
@@ -755,7 +755,7 @@ bool TopgunEngine_v1_2::refreshTextObjectBitmap(uint16 handle) {
 }
 
 bool TopgunEngine_v1_2::beginTextEdit(const byte *record) {
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV1_2_7)
 		_hasPendingChar = false;
 
 	uint16 handle = getTextObjectFromId(READ_LE_UINT16(record + 2));
@@ -763,12 +763,12 @@ bool TopgunEngine_v1_2::beginTextEdit(const byte *record) {
 	if (!object)
 		return false;
 
-	memcpy(object->edit, record, (_version >= kVersionV1_2_2_2) ? TG_TEXT_V1_2_3_EDIT_RECORD_SIZE : TG_TEXT_V1_2_EDIT_RECORD_SIZE);
+	memcpy(object->edit, record, (_version >= kVersionV1_2_3_2) ? TG_TEXT_V1_2_4_EDIT_RECORD_SIZE : TG_TEXT_V1_2_EDIT_RECORD_SIZE);
 
 	if (object->edit[TG_TEXT_V1_2_EDIT_MAX_LENGTH] == 0)
 		object->edit[TG_TEXT_V1_2_EDIT_MAX_LENGTH] = TG_TEXT_V1_2_DEFAULT_MAX_LENGTH;
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		Common::strlcpy(_textEditUndo, object->text, TG_TEXT_V1_2_TEXT_SIZE);
 	else
 		memcpy(object->undo, object->text, strlen(object->text) + 1);
@@ -821,7 +821,7 @@ bool TopgunEngine_v1_2::endTextEdit(uint16 handle, bool cancel) {
 		return false;
 
 	if (cancel) {
-		if (_version >= kVersionV1_2_2_2)
+		if (_version >= kVersionV1_2_3_2)
 			Common::strlcpy(object->text, _textEditUndo, TG_TEXT_V1_2_TEXT_SIZE);
 		else
 			memcpy(object->text, object->undo, strlen(object->undo) + 1);
@@ -861,7 +861,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 
 	uint16 length = (uint16)strlen(object->text);
 
-	if (_version >= kVersionV1_2_7) {
+	if (_version >= kVersionV1_2_9) {
 		uint16 position = 0;
 
 		if (!clearAll) {
@@ -879,7 +879,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 				position = scan;
 
 				byte current = (byte)object->text[scan];
-				if (_version == kVersionV1_2_9 && _gameDescription->language == Common::JA_JPN &&
+				if (_version == kVersionV1_2_11 && _gameDescription->language == Common::JA_JPN &&
 						((current >= 0x81 && current <= 0x9F) || (current >= 0xE0 && current <= 0xFC)) && object->text[scan + 1] != '\0')
 					scan += 2;
 				else
@@ -894,7 +894,7 @@ bool TopgunEngine_v1_2::textEditBackspace(uint16 handle, bool clearAll) {
 
 	if (_version >= kVersionV1_2_1) {
 		if ((int16)(length - 1) < 1) {
-			if (_version >= kVersionV1_2_2_2)
+			if (_version >= kVersionV1_2_3_2)
 				warning("textEditBeep UNIMPLEMENTED");
 
 			return false;
@@ -917,19 +917,19 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 	if (!object)
 		return false;
 
-	if (_version >= kVersionV1_2_7) {
+	if (_version >= kVersionV1_2_9) {
 		uint16 value = character;
 
 		if (object->leadByteBuffered) {
 			value = (uint16)((object->leadByte << 8) | character);
-		} else if (_version == kVersionV1_2_9 && _gameDescription->language == Common::JA_JPN &&
+		} else if (_version == kVersionV1_2_11 && _gameDescription->language == Common::JA_JPN &&
 				((character >= 0x81 && character <= 0x9F) || (character >= 0xE0 && character <= 0xFC))) {
 			object->leadByte = character;
 			object->leadByteBuffered = true;
 			return false;
 		}
 
-		if (object->edit[TG_TEXT_V1_2_3_EDIT_NUMERIC] != 0 && (value < '0' || value > '9')) {
+		if (object->edit[TG_TEXT_V1_2_4_EDIT_NUMERIC] != 0 && (value < '0' || value > '9')) {
 			warning("textEditBeep UNIMPLEMENTED");
 			return false;
 		}
@@ -966,7 +966,7 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 	}
 
 	if (_version >= kVersionV1_2_1) {
-		if (_version >= kVersionV1_2_2_3 && object->edit[TG_TEXT_V1_2_3_EDIT_NUMERIC] != 0 && (character < '0' || character > '9')) {
+		if (_version >= kVersionV1_2_3_3 && object->edit[TG_TEXT_V1_2_4_EDIT_NUMERIC] != 0 && (character < '0' || character > '9')) {
 			warning("textEditBeep UNIMPLEMENTED");
 			return false;
 		}
@@ -979,7 +979,7 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 		}
 
 		if ((int16)object->edit[TG_TEXT_V1_2_EDIT_MAX_LENGTH] <= (int16)(length - 1)) {
-			if (_version >= kVersionV1_2_2_2)
+			if (_version >= kVersionV1_2_3_2)
 				warning("textEditBeep UNIMPLEMENTED");
 
 			return false;
@@ -1007,14 +1007,14 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 
 bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	uint16 type = kResV1_2Text;
-	if (_version >= kVersionV1_2_10)
-		type = kResV1_2_10Text;
-	else if (_version >= kVersionV1_2_5)
-		type = kResV1_2_5Text;
-	else if (_version >= kVersionV1_2_2_1)
-		type = kResV1_2_3Text;
-	else if (_version >= kVersionV1_2_2)
-		type = TG_TEXT_V1_2_2_RESOURCE_TYPE;
+	if (_version >= kVersionV1_2_12)
+		type = kResV1_2_12Text;
+	else if (_version >= kVersionV1_2_6)
+		type = kResV1_2_6Text;
+	else if (_version >= kVersionV1_2_3_1)
+		type = kResV1_2_4Text;
+	else if (_version >= kVersionV1_2_3)
+		type = TG_TEXT_V1_2_3_RESOURCE_TYPE;
 	else if (_version >= kVersionV1_2_1)
 		type = kResV1_2_1Text;
 
@@ -1045,12 +1045,12 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	return refreshTextObjectBitmap(object->handle);
 }
 
-void TopgunEngine_v1_2_3::o_setTextParam(const byte *record) {
-	uint16 textType = kResV1_2_3Text;
-	if (_version >= kVersionV1_2_10)
-		textType = kResV1_2_10Text;
-	else if (_version >= kVersionV1_2_5)
-		textType = kResV1_2_5Text;
+void TopgunEngine_v1_2_4::o_setTextParam(const byte *record) {
+	uint16 textType = kResV1_2_4Text;
+	if (_version >= kVersionV1_2_12)
+		textType = kResV1_2_12Text;
+	else if (_version >= kVersionV1_2_6)
+		textType = kResV1_2_6Text;
 
 	if (!validateAndGetResourceByType(READ_LE_UINT16(record + 2), textType))
 		return;
@@ -1061,7 +1061,7 @@ void TopgunEngine_v1_2_3::o_setTextParam(const byte *record) {
 
 	TextObject_v1_2 *object = textObjectFromHandle(_records[index].object);
 	if (!object) {
-		warning("TopgunEngine_v1_2_3::o_setTextParam(): the text object %d does not exist", _records[index].object);
+		warning("TopgunEngine_v1_2_4::o_setTextParam(): the text object %d does not exist", _records[index].object);
 		return;
 	}
 

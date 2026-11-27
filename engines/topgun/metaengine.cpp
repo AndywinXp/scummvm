@@ -26,7 +26,7 @@
 #include "topgun/topgun_v1_0.h"
 #include "topgun/topgun_v1_1.h"
 #include "topgun/topgun_v1_2.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 #include "topgun/tunes_player.h"
 
 namespace Topgun {
@@ -83,9 +83,9 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 
 	if (gameId == "tuneland") {
 		if (Common::String(desc->extra) == "1996")
-			*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_5);
+			*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_6);
 		else if (Common::String(desc->extra) == "Demo 1996")
-			*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_4);
+			*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_5);
 		else if (desc->flags & ADGF_DEMO)
 			*engine = new Topgun::TopgunEngine_v1_1(syst, desc);
 		else
@@ -100,18 +100,18 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	}
 
 	if (gameId == "coldblooded") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6_1);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_7_1);
 		return Common::kNoError;
 	}
 
 	if (gameId == "dominion" || (gameId == "holygrail" && (desc->flags & ADGF_DEMO)) ||
 		(gameId == "bestshot" && (desc->flags & ADGF_DEMO))) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6_2);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_7_2);
 		return Common::kNoError;
 	}
 
 	if (gameId == "aceventura" && (desc->flags & ADGF_DEMO)) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6_3);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_7_3);
 		return Common::kNoError;
 	}
 
@@ -121,12 +121,12 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	}
 
 	if (gameId == "peterwolf") {
-		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_2);
+		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_3);
 		return Common::kNoError;
 	}
 
 	if (gameId == "battlebeast" && (desc->flags & ADGF_DEMO)) {
-		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_2_1);
+		*engine = new Topgun::TopgunEngine_v1_2(syst, desc, Topgun::kVersionV1_2_3_1);
 		return Common::kNoError;
 	}
 
@@ -136,48 +136,48 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 	}
 
 	if (gameId == "7thlevelsamplers") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_2_2);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_3_2);
 		return Common::kNoError;
 	}
 
 	if (gameId == "arcadeamerica" && (desc->flags & ADGF_DEMO)) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_2_3);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_3_3);
 		return Common::kNoError;
 	}
 
 	if (gameId == "battlebeast") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_4);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_5);
 		return Common::kNoError;
 	}
 
 	if (gameId == "arcadeamerica") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_6);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_7);
 		return Common::kNoError;
 	}
 
 	if (gameId == "holygrail" && desc->language == Common::EN_ANY) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_7);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_9);
 		return Common::kNoError;
 	}
 
 	if (gameId == "topsyturvy" || (gameId == "junglegames" && (desc->flags & ADGF_DEMO))) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_8);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_10);
 		return Common::kNoError;
 	}
 
 	if (gameId == "aceventura" && desc->language == Common::EN_ANY) {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_10);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_12);
 		return Common::kNoError;
 	}
 
 	if (((gameId == "junglegames" || gameId == "holygrail") && desc->language == Common::JA_JPN) || gameId == "burper" ||
 			gameId == "bugdrop" || gameId == "hippohop" || gameId == "junglepinball" || gameId == "djalibowling" || gameId == "upsydaisy") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_9);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_11);
 		return Common::kNoError;
 	}
 
 	if (gameId == "junglegames" || gameId == "greatword") {
-		*engine = new Topgun::TopgunEngine_v1_2_3(syst, desc, Topgun::kVersionV1_2_3);
+		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_4);
 		return Common::kNoError;
 	}
 

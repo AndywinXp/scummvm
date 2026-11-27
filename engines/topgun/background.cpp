@@ -26,7 +26,7 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -411,7 +411,7 @@ void TopgunEngine_v1_2::syncBackgroundDimensions(const byte *bitmap) {
 	_height = screenHeight;
 	_screenBox = true;
 
-	if (_version >= kVersionV1_2_10)
+	if (_version >= kVersionV1_2_12)
 		_screenBox = _scrollBoxWindowBox;
 
 	if (!bitmap)
@@ -421,7 +421,7 @@ void TopgunEngine_v1_2::syncBackgroundDimensions(const byte *bitmap) {
 	_height = READ_LE_UINT16(bitmap + TG_SPR_BITMAP_HEIGHT_OFFSET);
 	_screenBox = (screenWidth > _width) || (_height < screenHeight);
 
-	if (_version >= kVersionV1_2_10 && _scrollBoxWindowBox)
+	if (_version >= kVersionV1_2_12 && _scrollBoxWindowBox)
 		_screenBox = true;
 }
 
@@ -455,24 +455,24 @@ void TopgunEngine_v1_2::applyBackgroundToSpriteLib(Common::Rect *rectOut) {
 			return;
 
 		spriteLib()->spriteSetBackground(_buffer1, false, 0, rectOut);
-	} else if (_version >= kVersionV1_2_10 && _tileMap) {
-		static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteSetTileBackground(_tileMap, rectOut);
+	} else if (_version >= kVersionV1_2_12 && _tileMap) {
+		static_cast<SpriteLibrary_v1_2_4 *>(spriteLib())->spriteSetTileBackground(_tileMap, rectOut);
 	} else {
 		spriteLib()->spriteSetBackground(_backgroundBitmap, false, 0, rectOut);
 	}
 }
 
 void TopgunEngine_v1_2::clearBackground() {
-	if (_version >= kVersionV1_2_10 && _tileMap) {
+	if (_version >= kVersionV1_2_12 && _tileMap) {
 		uint16 tileId = _tileMap->id;
 
 		if (tileId != 0)
-			destroyResourceObjectByType(tileId, kResV1_2_10Tile);
+			destroyResourceObjectByType(tileId, kResV1_2_12Tile);
 
 		_tileMap = nullptr;
 	}
 
-	if ((_version >= kVersionV1_2_2_2 || _backgroundId == 0) && _backgroundBitmap)
+	if ((_version >= kVersionV1_2_3_2 || _backgroundId == 0) && _backgroundBitmap)
 		utilsLibrary()->tgFree(_backgroundBitmap);
 
 	_backgroundBitmap = nullptr;
@@ -486,19 +486,19 @@ void TopgunEngine_v1_2::setBackgroundFromBitmapResource(const byte *record) {
 	uint16 bitmapId = READ_LE_UINT16(record + 4);
 	uint16 alternativeId = READ_LE_UINT16(record + 6);
 
-	bool lowMemory = (_version >= kVersionV1_2_3) ? (readVariable(TG_HOST_V1_2_3_VARIABLE_LOMEM) != 0) : _flagLoMem;
+	bool lowMemory = (_version >= kVersionV1_2_4) ? (readVariable(TG_HOST_V1_2_4_VARIABLE_LOMEM) != 0) : _flagLoMem;
 
 	if ((lowMemory || _flagMode640) && alternativeId != 0)
 		bitmapId = alternativeId;
 
-	if (_version >= kVersionV1_2_2_2) {
-		byte *copy = static_cast<TopgunEngine_v1_2_3 *>(this)->loadBitmapResourceCopy(bitmapId);
+	if (_version >= kVersionV1_2_3_2) {
+		byte *copy = static_cast<TopgunEngine_v1_2_4 *>(this)->loadBitmapResourceCopy(bitmapId);
 		if (!copy)
 			return;
 
 		clearBackground();
 		_backgroundBitmap = copy;
-	} else if (_version >= kVersionV1_2_2_1) {
+	} else if (_version >= kVersionV1_2_3_1) {
 		if (bitmapId == 0 || !ensureBitmapOrGroupResourceLoaded(bitmapId))
 			return;
 
@@ -512,7 +512,7 @@ void TopgunEngine_v1_2::setBackgroundFromBitmapResource(const byte *record) {
 		syncBackgroundDimensions(_backgroundBitmap);
 
 		// A compressed bitmap is expanded into a copy that belongs to the background
-		if ((_backgroundBitmap[TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK) != 0) {
+		if ((_backgroundBitmap[TG_RES_V1_2_3_1_BITMAP_FLAGS_BYTE_OFFSET] & TG_RES_V1_2_3_1_BITMAP_COMPRESSED_MASK) != 0) {
 			_backgroundId = 0;
 
 			byte *expanded = resourceLib()->resExpandBitmap(_file, _backgroundBitmap);
@@ -543,7 +543,7 @@ void TopgunEngine_v1_2::setBackgroundFromBitmapResource(const byte *record) {
 	}
 
 	// The demo takes the dimensions from the bitmap before it expands it
-	if (_version != kVersionV1_2_2_1)
+	if (_version != kVersionV1_2_3_1)
 		syncBackgroundDimensions(_backgroundBitmap);
 
 	Common::Rect rect;
@@ -556,14 +556,14 @@ void TopgunEngine_v1_2::setSolidBackgroundColorPalette(uint32 color) {
 
 	Common::Rect rect;
 
-	spriteLib()->spriteSetBackground(nullptr, false, (_version >= kVersionV1_2_2_2) ? color : _solidColorEntry, &rect);
+	spriteLib()->spriteSetBackground(nullptr, false, (_version >= kVersionV1_2_3_2) ? color : _solidColorEntry, &rect);
 
 	_backgroundColor = color;
 
-	if (_version >= kVersionV1_2_7)
+	if (_version >= kVersionV1_2_9)
 		_solidBackground = true;
 
-	if (_version < kVersionV1_2_2_2) {
+	if (_version < kVersionV1_2_3_2) {
 		byte entry[TG_DISPLAY_PALETTE_ENTRY_SIZE];
 		entry[0] = (byte)(color & 0xFF);
 		entry[1] = (byte)((color >> 8) & 0xFF);
@@ -586,7 +586,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 	byte *pixels = _backgroundBitmap + READ_LE_UINT16(_backgroundBitmap);
 	uint32 count = (uint32)READ_LE_UINT16(_backgroundBitmap + TG_SPR_V1_2_BITMAP_PITCH_OFFSET) * _height;
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_3_2) {
 		memset(pixels, (byte)color, count);
 	} else {
 		memset(pixels, _solidColorEntry, count);
@@ -600,7 +600,7 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 		spriteLib()->spriteChangePalette(_solidColorEntry, 1, entry, !_faded);
 	}
 
-	if (_version >= kVersionV1_2_7) {
+	if (_version >= kVersionV1_2_9) {
 		_backgroundColor = color;
 		_solidBackground = true;
 	} else {
@@ -624,8 +624,8 @@ bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
 	if ((_flagLoMem || _flagMode640) && READ_LE_UINT16(record + 6) != 0)
 		bitmapId = READ_LE_UINT16(record + 6);
 
-	if (_version >= kVersionV1_2_2_2) {
-		byte *bitmap = static_cast<TopgunEngine_v1_2_3 *>(this)->loadBitmapResourceCopy(bitmapId);
+	if (_version >= kVersionV1_2_3_2) {
+		byte *bitmap = static_cast<TopgunEngine_v1_2_4 *>(this)->loadBitmapResourceCopy(bitmapId);
 		if (!bitmap)
 			return false;
 
@@ -637,7 +637,7 @@ bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
 	if (bitmapId == 0)
 		return false;
 
-	if (_version >= kVersionV1_2_2_1) {
+	if (_version >= kVersionV1_2_3_1) {
 		if (!ensureBitmapOrGroupResourceLoaded(bitmapId))
 			return false;
 	} else if (!validateAndGetResourceByType(bitmapId, kResV1_2_1Bitmap)) {
@@ -648,7 +648,7 @@ bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
 	if (!isRecordIndexValid(index, "setBackgroundWithWipeEffect"))
 		return false;
 
-	uint16 wipeOffset = (_version >= kVersionV1_2_2_1) ? TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET : 8;
+	uint16 wipeOffset = (_version >= kVersionV1_2_3_1) ? TG_HOST_V1_2_3_1_BACKGROUND_WIPE_OFFSET : 8;
 
 	executeWipeEffect(record + wipeOffset, _records[index].data, _backgroundBitmap);
 
@@ -657,7 +657,7 @@ bool TopgunEngine_v1_2::setBackgroundWithWipeEffect(const byte *record) {
 		_records[_backgroundId].data = nullptr;
 
 	uint16 type = kResV1_2_1Bitmap;
-	if (_version >= kVersionV1_2_2_1)
+	if (_version >= kVersionV1_2_3_1)
 		type = resourceLib()->resGetType(_file, index);
 
 	destroyResourceObjectByType(bitmapId, type);
@@ -668,9 +668,9 @@ void TopgunEngine_v1_2::o_setBackground(const byte *record) {
 	uint16 wipeOffset = 8;
 	uint16 colorOffset = 4;
 
-	if (_version >= kVersionV1_2_2_1) {
-		wipeOffset = TG_HOST_V1_2_2_1_BACKGROUND_WIPE_OFFSET;
-		colorOffset = TG_HOST_V1_2_2_1_BACKGROUND_COLOR_OFFSET;
+	if (_version >= kVersionV1_2_3_1) {
+		wipeOffset = TG_HOST_V1_2_3_1_BACKGROUND_WIPE_OFFSET;
+		colorOffset = TG_HOST_V1_2_3_1_BACKGROUND_COLOR_OFFSET;
 	}
 
 	if (_version >= kVersionV1_2_1 && READ_LE_UINT16(record + wipeOffset) != 0) {
@@ -812,7 +812,7 @@ void TopgunEngine_v1_2::advanceSceneFadeStep() {
 
 	uint16 mult = _fadeIn ? _step : (uint16)(_stepCount - _step);
 	uint16 fadeColors = TG_HOST_V1_2_NUM_FADE_COLORS;
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		fadeColors = _maxFadeColors;
 	else if (_version >= kVersionV1_2_1)
 		fadeColors = (uint16)(TG_HOST_V1_2_1_FADE_LAST_COLOR - _maxTransColors);
@@ -829,12 +829,12 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 
 	uint16 sendMessage = 0;
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		sendMessage = spriteLib()->spriteSetSendMsg(0);
 
 	_fadeIn = true;
 
-	if (_version >= kVersionV1_2_7 && !display()->hasPalette())
+	if (_version >= kVersionV1_2_9 && !display()->hasPalette())
 		spriteLib()->spriteSetBkgTransparent(!_solidBackground || _backgroundColor != 0);
 
 	if (display()->hasPalette()) {
@@ -855,10 +855,10 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 		if (_buffer1) {
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
 
-			if (_version >= kVersionV1_2_10) {
+			if (_version >= kVersionV1_2_12) {
 				_active = true;
 
-				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxInBackground(_backgroundBitmap, rings, true);
+				static_cast<SpriteLibrary_v1_2_4 *>(spriteLib())->spriteBoxInBackground(_backgroundBitmap, rings, true);
 			} else {
 				if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
 					rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
@@ -875,7 +875,7 @@ void TopgunEngine_v1_2::sceneTransitionIn(uint16 steps) {
 		}
 	}
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		spriteLib()->spriteSetSendMsg(sendMessage);
 }
 
@@ -885,7 +885,7 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 
 	uint16 sendMessage = 0;
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		sendMessage = spriteLib()->spriteSetSendMsg(0);
 
 	_fadeIn = false;
@@ -912,10 +912,10 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 
 			uint16 rings = (uint16)((steps * TG_HOST_V1_2_WIPE_RINGS_FACTOR + TG_HOST_V1_2_WIPE_RINGS_BASE) / TG_HOST_V1_2_WIPE_RINGS_DIVISOR);
 
-			if (_version >= kVersionV1_2_10) {
+			if (_version >= kVersionV1_2_12) {
 				_active = true;
 
-				static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteBoxOutBackground(_buffer1, rings, true);
+				static_cast<SpriteLibrary_v1_2_4 *>(spriteLib())->spriteBoxOutBackground(_buffer1, rings, true);
 			} else {
 				if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
 					rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
@@ -935,10 +935,10 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 	}
 
 	// The fade of a display without palette ends here even when there was no background to fade
-	if (_version >= kVersionV1_2_10 && !display()->hasPalette())
+	if (_version >= kVersionV1_2_12 && !display()->hasPalette())
 		_faded = true;
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		spriteLib()->spriteSetSendMsg(sendMessage);
 }
 
@@ -967,15 +967,15 @@ void TopgunEngine_v1_2::o_fadeInOut(const byte *record) {
 	sceneTransitionOut(steps);
 }
 
-byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
+byte *TopgunEngine_v1_2_4::loadBitmapResourceCopy(uint16 id) {
 	if (id == 0)
 		return nullptr;
 
-	uint16 cellType = kResV1_2_5BitmapGroup;
-	if (_version >= kVersionV1_2_10)
-		cellType = kResV1_2_10Cell;
+	uint16 cellType = kResV1_2_6BitmapGroup;
+	if (_version >= kVersionV1_2_12)
+		cellType = kResV1_2_12Cell;
 
-	if (_version >= kVersionV1_2_6 && resourceLib()->resGetType(_file, operandValue(id)) == cellType) {
+	if (_version >= kVersionV1_2_7 && resourceLib()->resGetType(_file, operandValue(id)) == cellType) {
 		byte *cell = loadResourceWithProcessingPause(id, nullptr);
 		if (!cell)
 			return nullptr;
@@ -984,17 +984,17 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 		utilsLibrary()->tgFree(cell);
 	}
 
-	if (!validateResourceType(id, kResV1_2_3Bitmap))
+	if (!validateResourceType(id, kResV1_2_4Bitmap))
 		return nullptr;
 
 	byte *copy = nullptr;
 
-	if (isResourceObjectLoaded(id, kResV1_2_3Bitmap)) {
+	if (isResourceObjectLoaded(id, kResV1_2_4Bitmap)) {
 		uint16 index = operandValue(id);
 		if (!isRecordIndexValid(index, "loadBitmapResourceCopy"))
 			return nullptr;
 
-		if (_version < kVersionV1_2_3) {
+		if (_version < kVersionV1_2_4) {
 			if (_records[index].refCount != 0)
 				return nullptr;
 
@@ -1007,11 +1007,11 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 		copy = loadResourceWithProcessingPause(id, nullptr);
 	}
 
-	uint16 flagsOffset = TG_RES_V1_2_2_1_BITMAP_FLAGS_BYTE_OFFSET;
-	if (_version >= kVersionV1_2_5)
-		flagsOffset = TG_RES_V1_2_5_BITMAP_FLAGS_BYTE_OFFSET;
+	uint16 flagsOffset = TG_RES_V1_2_3_1_BITMAP_FLAGS_BYTE_OFFSET;
+	if (_version >= kVersionV1_2_6)
+		flagsOffset = TG_RES_V1_2_6_BITMAP_FLAGS_BYTE_OFFSET;
 
-	if (copy && (copy[flagsOffset] & TG_RES_V1_2_2_1_BITMAP_COMPRESSED_MASK) != 0) {
+	if (copy && (copy[flagsOffset] & TG_RES_V1_2_3_1_BITMAP_COMPRESSED_MASK) != 0) {
 		byte *expanded = resourceLib()->resExpandBitmap(_file, copy);
 		utilsLibrary()->tgFree(copy);
 		copy = expanded;
@@ -1020,25 +1020,25 @@ byte *TopgunEngine_v1_2_3::loadBitmapResourceCopy(uint16 id) {
 	return copy;
 }
 
-void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
-	if (_version >= kVersionV1_2_7)
+void TopgunEngine_v1_2_4::setBackgroundByMode(const byte *record) {
+	if (_version >= kVersionV1_2_9)
 		_solidBackground = false;
 
 	uint16 mode = READ_LE_UINT16(record + 2);
 
 	bool tileMode = false;
 
-	if (_version >= kVersionV1_2_10) {
+	if (_version >= kVersionV1_2_12) {
 		if (mode == 3)
 			tileMode = true;
-		else if (mode == 0 && resourceLib()->resGetType(_file, operandValue(READ_LE_UINT16(record + 4))) != kResV1_2_10Bitmap)
+		else if (mode == 0 && resourceLib()->resGetType(_file, operandValue(READ_LE_UINT16(record + 4))) != kResV1_2_12Bitmap)
 			tileMode = true;
 	}
 
 	if (tileMode) {
 		uint16 tileId = READ_LE_UINT16(record + 4);
 
-		if (!validateAndGetResourceByType(tileId, kResV1_2_10Tile))
+		if (!validateAndGetResourceByType(tileId, kResV1_2_12Tile))
 			return;
 
 		uint16 index = operandValue(tileId);
@@ -1046,7 +1046,7 @@ void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
 			return;
 
 		if (!_tileBackgrounds.contains(index)) {
-			warning("TopgunEngine_v1_2_3::setBackgroundByMode(): the tile map %d is not loaded", index);
+			warning("TopgunEngine_v1_2_4::setBackgroundByMode(): the tile map %d is not loaded", index);
 			return;
 		}
 
@@ -1079,7 +1079,7 @@ void TopgunEngine_v1_2_3::setBackgroundByMode(const byte *record) {
 	}
 }
 
-void TopgunEngine_v1_2_3::setTileScreenRegion(bool repaint, TileBackground *tileMap) {
+void TopgunEngine_v1_2_4::setTileScreenRegion(bool repaint, TileBackground *tileMap) {
 	if (tileMap && tileMap != _tileMap)
 		clearBackground();
 
@@ -1095,14 +1095,14 @@ void TopgunEngine_v1_2_3::setTileScreenRegion(bool repaint, TileBackground *tile
 		commitBackgroundChangeAndRepaint(rect);
 }
 
-void TopgunEngine_v1_2_3::setScrollBox(const Common::Rect &box) {
+void TopgunEngine_v1_2_4::setScrollBox(const Common::Rect &box) {
 	spriteLib()->spriteSetScrollBox(&box);
 
 	_scrollBoxWindowBox = (box.right > box.left) || (box.top < box.bottom);
 	_screenBox = _scrollBoxWindowBox;
 }
 
-void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {
+void TopgunEngine_v1_2_4::wipeEffectIrisRings(uint16 rings) {
 	if (rings == 0)
 		rings = 10;
 
@@ -1131,14 +1131,14 @@ void TopgunEngine_v1_2_3::wipeEffectIrisRings(uint16 rings) {
 	}
 }
 
-void TopgunEngine_v1_2_3::wipeEffectInterlacedRows(uint16 duration, uint16 count) {
-	uint16 stride = TG_HOST_V1_2_6_WIPE_ROWS_DEFAULT_COUNT;
+void TopgunEngine_v1_2_4::wipeEffectInterlacedRows(uint16 duration, uint16 count) {
+	uint16 stride = TG_HOST_V1_2_7_WIPE_ROWS_DEFAULT_COUNT;
 
 	if (count != 0)
 		stride = (_height >= count) ? count : _height;
 
 	if (stride == 0 || _height == 0) {
-		warning("TopgunEngine_v1_2_3::wipeEffectInterlacedRows(): the background has no rows");
+		warning("TopgunEngine_v1_2_4::wipeEffectInterlacedRows(): the background has no rows");
 		return;
 	}
 
@@ -1180,14 +1180,14 @@ void TopgunEngine_v1_2_3::wipeEffectInterlacedRows(uint16 duration, uint16 count
 	}
 }
 
-void TopgunEngine_v1_2_3::wipeEffectSlideColumns(int16 direction, uint16 duration, uint16 steps) {
-	uint16 count = TG_HOST_V1_2_6_WIPE_SLIDE_DEFAULT_STEPS;
+void TopgunEngine_v1_2_4::wipeEffectSlideColumns(int16 direction, uint16 duration, uint16 steps) {
+	uint16 count = TG_HOST_V1_2_7_WIPE_SLIDE_DEFAULT_STEPS;
 
 	if (steps != 0)
 		count = (_width >= steps) ? steps : _width;
 
 	if (count == 0) {
-		warning("TopgunEngine_v1_2_3::wipeEffectSlideColumns(): the background has no columns");
+		warning("TopgunEngine_v1_2_4::wipeEffectSlideColumns(): the background has no columns");
 		return;
 	}
 
@@ -1223,14 +1223,14 @@ void TopgunEngine_v1_2_3::wipeEffectSlideColumns(int16 direction, uint16 duratio
 	}
 }
 
-void TopgunEngine_v1_2_3::wipeEffectSlideRows(int16 direction, uint16 duration, uint16 steps) {
-	uint16 count = TG_HOST_V1_2_6_WIPE_SLIDE_DEFAULT_STEPS;
+void TopgunEngine_v1_2_4::wipeEffectSlideRows(int16 direction, uint16 duration, uint16 steps) {
+	uint16 count = TG_HOST_V1_2_7_WIPE_SLIDE_DEFAULT_STEPS;
 
 	if (steps != 0)
 		count = (_height >= steps) ? steps : _height;
 
 	if (count == 0) {
-		warning("TopgunEngine_v1_2_3::wipeEffectSlideRows(): the background has no rows");
+		warning("TopgunEngine_v1_2_4::wipeEffectSlideRows(): the background has no rows");
 		return;
 	}
 
@@ -1273,13 +1273,13 @@ void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, b
 
 	uint16 sendMessage = 0;
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		sendMessage = spriteLib()->spriteSetSendMsg(0);
 
 	switch (READ_LE_UINT16(params)) {
 	case 1:
-		if (_version >= kVersionV1_2_2_2)
-			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectIrisRings(READ_LE_UINT16(params + 2));
+		if (_version >= kVersionV1_2_3_2)
+			static_cast<TopgunEngine_v1_2_4 *>(this)->wipeEffectIrisRings(READ_LE_UINT16(params + 2));
 		break;
 
 	case 2:
@@ -1299,22 +1299,22 @@ void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, b
 		break;
 
 	case 6:
-		if (_version >= kVersionV1_2_6)
-			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectInterlacedRows(READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+		if (_version >= kVersionV1_2_7)
+			static_cast<TopgunEngine_v1_2_4 *>(this)->wipeEffectInterlacedRows(READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_COUNT));
 
 		break;
 
 	case 7:
 	case 8:
-		if (_version >= kVersionV1_2_6)
-			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectSlideColumns((READ_LE_UINT16(params) == 7) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+		if (_version >= kVersionV1_2_7)
+			static_cast<TopgunEngine_v1_2_4 *>(this)->wipeEffectSlideColumns((READ_LE_UINT16(params) == 7) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_COUNT));
 
 		break;
 
 	case 9:
 	case 10:
-		if (_version >= kVersionV1_2_6)
-			static_cast<TopgunEngine_v1_2_3 *>(this)->wipeEffectSlideRows((READ_LE_UINT16(params) == 9) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_6_WIPE_PARAMETER_COUNT));
+		if (_version >= kVersionV1_2_7)
+			static_cast<TopgunEngine_v1_2_4 *>(this)->wipeEffectSlideRows((READ_LE_UINT16(params) == 9) ? -1 : 1, READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_DURATION), READ_LE_UINT16(params + TG_HOST_V1_2_7_WIPE_PARAMETER_COUNT));
 
 		break;
 
@@ -1322,7 +1322,7 @@ void TopgunEngine_v1_2::executeWipeEffect(const byte *params, byte *newBitmap, b
 		break;
 	}
 
-	if (_version >= kVersionV1_2_2_2)
+	if (_version >= kVersionV1_2_3_2)
 		spriteLib()->spriteSetSendMsg(sendMessage);
 
 	_wipeEffectActive = false;

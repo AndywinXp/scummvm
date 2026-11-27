@@ -82,7 +82,7 @@ void BattleDemoPlugin::movesReposition(uint16 id, uint16 mode) {
 
 void BattleDemoPlugin::storePlayer(Fighter *f) {
 	uint16 *host = _host->variableTable();
-	host[TG_BATTLE_V1_2_2_1_VAR_PLAYER] = f->player;
+	host[TG_BATTLE_V1_2_3_1_VAR_PLAYER] = f->player;
 }
 
 void BattleDemoPlugin::cbEmpty(Fighter *f) {
@@ -109,7 +109,7 @@ void BattleDemoPlugin::movesEnter(Fighter *f) {
 
 	_ctx->phase++;
 	if (_ctx->phase == kPhaseFight) {
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_BOTH_ENTERED, (uint16)(0x89F3 + TG_BATTLE_V1_2_2_1_LITERAL_BIAS), 0);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_BOTH_ENTERED, (uint16)(0x89F3 + TG_BATTLE_V1_2_3_1_LITERAL_BIAS), 0);
 		_host->unloadResource(0x8A12);
 	}
 }
@@ -130,8 +130,8 @@ void BattleDemoPlugin::enterFinished(Fighter *f) {
 
 	if (_ctx->phase == kPhaseFight) {
 		_host->unloadResource(0x89D2);
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_START, 2, 0);
-		_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_BEGIN, 0, 0);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_START, 2, 0);
+		_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_BEGIN, 0, 0);
 	}
 }
 
@@ -150,7 +150,7 @@ void BattleDemoPlugin::movesDie(uint16 flag, uint16 who) {
 	Fighter *f = &_ctx->fighters[who];
 	Fighter *o = f->opponent;
 
-	host[TG_BATTLE_V1_2_2_1_VAR_WINNER] = f->player;
+	host[TG_BATTLE_V1_2_3_1_VAR_WINNER] = f->player;
 
 	setInputDevice(0, kInputDeviceDisable);
 	setInputDevice(1, kInputDeviceDisable);
@@ -197,19 +197,19 @@ void BattleDemoPlugin::movesDie(uint16 flag, uint16 who) {
 void BattleDemoPlugin::fightOver(Fighter *f) {
 	uint16 *host = _host->variableTable();
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_OVER, 2, 0);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_OVER, 2, 0);
 
-	host[TG_BATTLE_V1_2_2_1_VAR_LOSER_ARGUMENT_7] = host[TG_BATTLE_V1_2_2_1_VAR_ARGUMENT_7];
-	host[TG_BATTLE_V1_2_2_1_VAR_LOSER_ARGUMENT_8] = host[TG_BATTLE_V1_2_2_1_VAR_ARGUMENT_8];
+	host[TG_BATTLE_V1_2_3_1_VAR_LOSER_ARGUMENT_7] = host[TG_BATTLE_V1_2_3_1_VAR_ARGUMENT_7];
+	host[TG_BATTLE_V1_2_3_1_VAR_LOSER_ARGUMENT_8] = host[TG_BATTLE_V1_2_3_1_VAR_ARGUMENT_8];
 
-	host[TG_BATTLE_V1_2_2_1_VAR_BUSY_COUNTER]++;
+	host[TG_BATTLE_V1_2_3_1_VAR_BUSY_COUNTER]++;
 
 	_host->unloadResource(0x8A0F);
 	_host->unloadResource(0x89F4);
 	_host->unloadResource(0x89FC);
 
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_OVER_SPRITE, 0x8A0C, 0);
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_OVER_SPRITE, 0x89D6, 0);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_OVER_SPRITE, 0x8A0C, 0);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_OVER_SPRITE, 0x89D6, 0);
 
 	Fighter *o = f->opponent;
 
@@ -250,7 +250,7 @@ void BattleDemoPlugin::endFight(Fighter *f) {
 
 	_host->unloadResource(0x8A0C);
 	_host->unloadResource(0x89D6);
-	_host->callScript(TG_BATTLE_V1_2_2_1_SCRIPT_FIGHT_END, 0, 0);
+	_host->callScript(TG_BATTLE_V1_2_3_1_SCRIPT_FIGHT_END, 0, 0);
 }
 
 void BattleDemoPlugin::sceneRegisterButton(uint16 id, uint16 variable, uint16 remove) {
@@ -275,9 +275,9 @@ void BattleDemoPlugin::sceneRegisterButton(uint16 id, uint16 variable, uint16 re
 	_ctx->buttonCount++;
 
 	button->spriteId = id;
-	button->script = (uint16)(variable - TG_BATTLE_V1_2_2_1_LITERAL_BIAS);
+	button->script = (uint16)(variable - TG_BATTLE_V1_2_3_1_LITERAL_BIAS);
 
-	_host->getSpriteRect((uint16)(button->spriteId - TG_BATTLE_V1_2_2_1_LITERAL_BIAS), button->rect);
+	_host->getSpriteRect((uint16)(button->spriteId - TG_BATTLE_V1_2_3_1_LITERAL_BIAS), button->rect);
 }
 
 } // End of namespace Topgun

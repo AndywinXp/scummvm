@@ -24,7 +24,7 @@
 #include "common/util.h"
 
 #include "topgun/games/battle/battle.h"
-#include "topgun/libraries/sprite/sprite_v1_2_3.h"
+#include "topgun/libraries/sprite/sprite_v1_2_4.h"
 
 namespace Topgun {
 
@@ -168,7 +168,7 @@ void BattlePlugin::contactPush(Fighter *f) {
 
 	int16 width = (int16)(rect.right - rect.left);
 
-	SpriteInfo_v1_2_3 info;
+	SpriteInfo_v1_2_4 info;
 	_host->getSpriteInfo(f->sprite, info);
 
 	uint16 *host = _host->variableTable();

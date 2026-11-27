@@ -23,9 +23,9 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/libraries/audio/audio_v1_2_3.h"
+#include "topgun/libraries/audio/audio_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -367,7 +367,7 @@ uint16 AudioLibrary_v1_2::mixAllWaves16Bit() {
 			if (produced > maxBytes)
 				maxBytes = produced;
 
-			if (_engine->_version >= kVersionV1_2_6 && _maxPriority < sound->priority)
+			if (_engine->_version >= kVersionV1_2_7 && _maxPriority < sound->priority)
 				_maxPriority = sound->priority;
 		}
 	}
@@ -392,7 +392,7 @@ uint16 AudioLibrary_v1_2::mixAllWaves8Bit() {
 			if (produced > maxBytes)
 				maxBytes = produced;
 
-			if (_engine->_version >= kVersionV1_2_6 && _maxPriority < sound->priority)
+			if (_engine->_version >= kVersionV1_2_7 && _maxPriority < sound->priority)
 				_maxPriority = sound->priority;
 		}
 	}
@@ -443,7 +443,7 @@ void AudioLibrary_v1_2::resetWaveQueueAndEnableAllWaves(uint16 on) {
 
 	updateWaveEnabledFlags(1);
 
-	if (_engine->_version >= kVersionV1_2_2_1)
+	if (_engine->_version >= kVersionV1_2_3_1)
 		updateMidiEnabledFlags(1);
 }
 
@@ -453,7 +453,7 @@ void AudioLibrary_v1_2::updateWaveEnabledFlags(uint16 on) {
 
 	bool cdOpen = _cdSuspend;
 
-	if (_engine->_version >= kVersionV1_2_2_1)
+	if (_engine->_version >= kVersionV1_2_3_1)
 		cdOpen = (_cdDeviceId != 0);
 
 	for (uint16 i = 0; i < _soundCount; i++) {
@@ -470,11 +470,11 @@ void AudioLibrary_v1_2::pauseAllPlayback(uint16 paused) {
 	if (!_waveOutStream)
 		return;
 
-	if (_engine->_version < kVersionV1_2_2_2 && _buffersInFlight == 0)
+	if (_engine->_version < kVersionV1_2_3_2 && _buffersInFlight == 0)
 		return;
 
 	// The mixer counts pauses but the original device does not, and the game can pause twice in a row
-	if (_engine->_version >= kVersionV1_2_2_1 && _engine->_version < kVersionV1_2_3 && paused != 0)
+	if (_engine->_version >= kVersionV1_2_3_1 && _engine->_version < kVersionV1_2_4 && paused != 0)
 		g_system->getMixer()->pauseHandle(_waveOutHandle, false);
 
 	g_system->getMixer()->pauseHandle(_waveOutHandle, paused != 0);
@@ -675,14 +675,14 @@ uint16 AudioLibrary_v1_2::mixSound16Bit(uint16 mixCount, uint16 bytes, byte *des
 	return requested - remaining;
 }
 
-void AudioLibrary_v1_2_3::resetWaveQueueAndEnableAllWaves(uint16 on) {
+void AudioLibrary_v1_2_4::resetWaveQueueAndEnableAllWaves(uint16 on) {
 	if (on != 0)
 		resetWaveOutQueue();
 
 	updateWaveEnabledFlags(1);
 }
 
-void AudioLibrary_v1_2_3::resetWaveOutQueue() {
+void AudioLibrary_v1_2_4::resetWaveOutQueue() {
 	if (!_waveOutStream || _buffersInFlight == 0)
 		return;
 
@@ -690,7 +690,7 @@ void AudioLibrary_v1_2_3::resetWaveOutQueue() {
 	_maxPriority = 0;
 }
 
-void AudioLibrary_v1_2_3::retireBuffer() {
+void AudioLibrary_v1_2_4::retireBuffer() {
 	bool done;
 
 	{
@@ -704,7 +704,7 @@ void AudioLibrary_v1_2_3::retireBuffer() {
 	_waveRing[_ringTail].busy = false;
 	_buffersInFlight--;
 
-	if (_buffersInFlight == 0 && _engine->_version < kVersionV1_2_6)
+	if (_buffersInFlight == 0 && _engine->_version < kVersionV1_2_7)
 		_maxPriority = 0;
 
 	_ringTail++;
@@ -713,50 +713,50 @@ void AudioLibrary_v1_2_3::retireBuffer() {
 		_ringTail = 0;
 }
 
-bool AudioLibrary_v1_2_3::finishWaveOutOpen() {
+bool AudioLibrary_v1_2_4::finishWaveOutOpen() {
 	if (!AudioLibrary_v1_2::finishWaveOutOpen())
 		return false;
 
-	if (_engine->_version >= kVersionV1_2_6 && _iniWaveVolume != 0) {
+	if (_engine->_version >= kVersionV1_2_7 && _iniWaveVolume != 0) {
 		_userVolume = ((uint32)_iniWaveVolume << 16) | _iniWaveVolume;
 		setWaveOutVolume(_userVolume);
 	}
 
-	if (_engine->_version >= kVersionV1_2_3 && _mute)
+	if (_engine->_version >= kVersionV1_2_4 && _mute)
 		waveMuteImpl();
 
 	return true;
 }
 
-bool AudioLibrary_v1_2_3::openWaveOutDevice(const WaveFormat *format) {
+bool AudioLibrary_v1_2_4::openWaveOutDevice(const WaveFormat *format) {
 	WaveFormat defaultFormat;
 
-	if (!format && _engine->_version >= kVersionV1_2_3) {
-		defaultFormat.tag = TG_AUDIO_V1_2_3_DEFAULT_FORMAT_TAG;
+	if (!format && _engine->_version >= kVersionV1_2_4) {
+		defaultFormat.tag = TG_AUDIO_V1_2_4_DEFAULT_FORMAT_TAG;
 		defaultFormat.channels = 1;
-		defaultFormat.sampleRate = TG_AUDIO_V1_2_3_DEFAULT_SAMPLE_RATE;
-		defaultFormat.averageBytesPerSecond = TG_AUDIO_V1_2_3_DEFAULT_BYTES_PER_SECOND;
-		defaultFormat.blockAlign = TG_AUDIO_V1_2_3_DEFAULT_BLOCK_ALIGN;
-		defaultFormat.bitsPerSample = TG_AUDIO_V1_2_3_DEFAULT_BITS_PER_SAMPLE;
+		defaultFormat.sampleRate = TG_AUDIO_V1_2_4_DEFAULT_SAMPLE_RATE;
+		defaultFormat.averageBytesPerSecond = TG_AUDIO_V1_2_4_DEFAULT_BYTES_PER_SECOND;
+		defaultFormat.blockAlign = TG_AUDIO_V1_2_4_DEFAULT_BLOCK_ALIGN;
+		defaultFormat.bitsPerSample = TG_AUDIO_V1_2_4_DEFAULT_BITS_PER_SAMPLE;
 		format = &defaultFormat;
 	}
 
 	return AudioLibrary_v1_2::openWaveOutDevice(format);
 }
 
-bool AudioLibrary_v1_2_3::openWaveDevice(const WaveFormat *format) {
+bool AudioLibrary_v1_2_4::openWaveDevice(const WaveFormat *format) {
 	if (!openWaveOutDevice(format)) {
 		audioCloseWave();
 		return false;
 	}
 
-	if (_userVolumeSet && _engine->_version < kVersionV1_2_6)
+	if (_userVolumeSet && _engine->_version < kVersionV1_2_7)
 		setWaveOutVolume(_userVolume);
 
 	return true;
 }
 
-void AudioLibrary_v1_2_3::waveMuteImpl() {
+void AudioLibrary_v1_2_4::waveMuteImpl() {
 	if (_mute) {
 		_waveMuteSavedVolume = ((uint32)_waveVolumeRight << 16) | _waveVolumeLeft;
 		setWaveOutVolume(0);
@@ -765,11 +765,11 @@ void AudioLibrary_v1_2_3::waveMuteImpl() {
 	}
 }
 
-uint32 AudioLibrary_v1_2_3::audioGetWaveVolume() {
-	if (_engine->_version < kVersionV1_2_3)
+uint32 AudioLibrary_v1_2_4::audioGetWaveVolume() {
+	if (_engine->_version < kVersionV1_2_4)
 		return AudioLibrary_v1_2::audioGetWaveVolume();
 
-	if (_userVolumeSet && _engine->_version >= kVersionV1_2_7)
+	if (_userVolumeSet && _engine->_version >= kVersionV1_2_9)
 		return _userVolume;
 
 	if (_waveOutStream)
@@ -784,32 +784,32 @@ uint32 AudioLibrary_v1_2_3::audioGetWaveVolume() {
 	return volume;
 }
 
-void AudioLibrary_v1_2_3::audioSetWaveVolume(uint32 volume) {
+void AudioLibrary_v1_2_4::audioSetWaveVolume(uint32 volume) {
 	AudioLibrary_v1_2::audioSetWaveVolume(volume);
 
-	if (_engine->_version >= kVersionV1_2_6 && !_noWaveDevice) {
+	if (_engine->_version >= kVersionV1_2_7 && !_noWaveDevice) {
 		_iniWaveVolume = (uint16)volume;
 		saveWaveVolumeToIni();
 	}
 }
 
-void AudioLibrary_v1_2_3::pumpAudioPlayback() {
+void AudioLibrary_v1_2_4::pumpAudioPlayback() {
 	if (!_waveOutStream)
 		return;
 
-	if (_soundCount == 0 && (_engine->_version < kVersionV1_2_7 || _buffersInFlight == 0))
+	if (_soundCount == 0 && (_engine->_version < kVersionV1_2_9 || _buffersInFlight == 0))
 		return;
 
 	if (_masterFadeMode != 0)
 		masterFadeTick();
 
-	if (_engine->_version >= kVersionV1_2_6)
+	if (_engine->_version >= kVersionV1_2_7)
 		_maxPriority = 0;
 
 	if (retireBufferAndRefill())
 		return;
 
-	if (_cdDeviceId != 0 && _engine->_version < kVersionV1_2_6)
+	if (_cdDeviceId != 0 && _engine->_version < kVersionV1_2_7)
 		return;
 
 	for (uint16 i = 0; i < _soundCount; i++) {
@@ -818,7 +818,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 		if (!sound->enabled)
 			continue;
 
-		if (_engine->_version >= kVersionV1_2_6) {
+		if (_engine->_version >= kVersionV1_2_7) {
 			if (_engine->getEngineMillis() < sound->notifyEndTime && _maxPriority < sound->priority)
 				_maxPriority = sound->priority;
 
@@ -834,7 +834,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 		if (!sound->isStatic && !sound->endOfSource && sound->available <= sound->lowWater)
 			compactAndRefillSoundBuffer(sound);
 
-		if (_engine->_version < kVersionV1_2_6 && sound->notifyPending && _engine->getEngineMillis() > sound->notifyEndTime) {
+		if (_engine->_version < kVersionV1_2_7 && sound->notifyPending && _engine->getEngineMillis() > sound->notifyEndTime) {
 			engine()->postMessage(TG_AUDIO_V1_2_NOTIFY_MESSAGE, sound->notifyWParam, sound->notifyLParam);
 			sound->notifyPending = false;
 		}
@@ -846,7 +846,7 @@ void AudioLibrary_v1_2_3::pumpAudioPlayback() {
 	}
 }
 
-void AudioLibrary_v1_2_3::updateWaveEnabledFlags(uint16 on) {
+void AudioLibrary_v1_2_4::updateWaveEnabledFlags(uint16 on) {
 	for (uint16 i = 0; i < _soundCount; i++) {
 		SoundObject *sound = _sounds[i];
 

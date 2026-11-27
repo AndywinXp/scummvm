@@ -25,7 +25,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -50,7 +50,7 @@ void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 	}
 
 	if (index >= TG_HOST_V1_2_MAX_SCHEDULED_TIMERS) {
-		if (_version >= kVersionV1_2_5)
+		if (_version >= kVersionV1_2_6)
 			fatalError(116, "Out of timers.");
 
 		return;
@@ -69,7 +69,7 @@ void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 }
 
 void TopgunEngine_v1_2::o_cancelScriptTimer(const byte *record) {
-	if (_version >= kVersionV1_2_2_1 && record[4] != 0) {
+	if (_version >= kVersionV1_2_3_1 && record[4] != 0) {
 		_numScheduledTimers = 0;
 		return;
 	}
@@ -96,7 +96,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 	for (uint16 i = index; i < _numScheduledTimers; i++)
 		_scheduledTimers[i] = _scheduledTimers[i + 1];
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_3_2) {
 		if ((int16)index <= _scheduledTimerIndex)
 			_scheduledTimerIndex--;
 
@@ -112,7 +112,7 @@ uint16 TopgunEngine_v1_2::removeScheduledTimer(uint16 index) {
 void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 	uint16 index = 0;
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_3_2) {
 		if (_timersPaused)
 			return;
 
@@ -123,7 +123,7 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 		return;
 
 	do {
-		if (_version >= kVersionV1_2_2_2)
+		if (_version >= kVersionV1_2_3_2)
 			index = (uint16)_scheduledTimerIndex;
 
 		ScheduledTimer_v1_2 &timer = _scheduledTimers[index];
@@ -136,17 +136,17 @@ void TopgunEngine_v1_2::serviceScheduledMsgTimerQueue() {
 			else
 				index = removeScheduledTimer(index);
 
-			if (_version >= kVersionV1_2_2_1)
+			if (_version >= kVersionV1_2_3_1)
 				runScriptResource(script);
 			else
 				postRunScript(script, 0, 0);
 		}
 
-		if (_version >= kVersionV1_2_2_2)
+		if (_version >= kVersionV1_2_3_2)
 			_scheduledTimerIndex++;
 		else
 			index++;
-	} while ((_version >= kVersionV1_2_2_2) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
+	} while ((_version >= kVersionV1_2_3_2) ? ((uint16)_scheduledTimerIndex < _numScheduledTimers) : (index < _numScheduledTimers));
 }
 
 bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
@@ -157,8 +157,8 @@ bool TopgunEngine_v1_2::o_addCollisionPair(const byte *record) {
 bool TopgunEngine_v1_2::appendCollisionPair() {
 	uint16 maxPairs = TG_HOST_V1_2_MAX_COLLISION_PAIRS;
 
-	if (_version >= kVersionV1_2_3)
-		maxPairs = TG_INPUT_V1_2_3_MAX_COLLISION_PAIRS;
+	if (_version >= kVersionV1_2_4)
+		maxPairs = TG_INPUT_V1_2_4_MAX_COLLISION_PAIRS;
 	else if (_version >= kVersionV1_2_1)
 		maxPairs = TG_HOST_V1_2_1_MAX_COLLISION_PAIRS;
 
@@ -175,21 +175,21 @@ bool TopgunEngine_v1_2::appendCollisionPair() {
 }
 
 bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
-	uint16 literalBias = (_version >= kVersionV1_2_2_2) ? TG_HOST_V1_2_3_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
 
-	if (_version >= kVersionV1_2_2_1 && record[0x0D] != 0) {
+	if (_version >= kVersionV1_2_3_1 && record[0x0D] != 0) {
 		_numCollisionPairs = 0;
 		return true;
 	}
 
-	if (_version >= kVersionV1_2_3) {
-		TopgunEngine_v1_2_3 *newer = static_cast<TopgunEngine_v1_2_3 *>(this);
+	if (_version >= kVersionV1_2_4) {
+		TopgunEngine_v1_2_4 *newer = static_cast<TopgunEngine_v1_2_4 *>(this);
 
-		uint16 spriteType = kResV1_2_3Sprite;
-		if (_version >= kVersionV1_2_10)
-			spriteType = kResV1_2_10Sprite;
-		else if (_version >= kVersionV1_2_5)
-			spriteType = kResV1_2_5Sprite;
+		uint16 spriteType = kResV1_2_4Sprite;
+		if (_version >= kVersionV1_2_12)
+			spriteType = kResV1_2_12Sprite;
+		else if (_version >= kVersionV1_2_6)
+			spriteType = kResV1_2_6Sprite;
 
 		if (!newer->validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 			return false;
@@ -203,12 +203,12 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 	byte allowInvisibleFirst = 0;
 	byte allowInvisibleSecond = 0;
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_3_2) {
 		allowInvisibleFirst = record[0x0E];
 		allowInvisibleSecond = record[0x0F];
 	}
 
-	if (_version >= kVersionV1_2_2_1 && second < first) {
+	if (_version >= kVersionV1_2_3_1 && second < first) {
 		uint16 swap = first;
 		first = second;
 		second = swap;
@@ -263,11 +263,11 @@ bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 
 	pair.repeat = record[0x0C];
 
-	if (_version >= kVersionV1_2_2_2) {
+	if (_version >= kVersionV1_2_3_2) {
 		pair.allowInvisibleFirst = allowInvisibleFirst;
 		pair.allowInvisibleSecond = allowInvisibleSecond;
 
-		if (_version >= kVersionV1_2_3)
+		if (_version >= kVersionV1_2_4)
 			pair.sameLevelOnly = record[0x10];
 	}
 
@@ -306,8 +306,8 @@ void TopgunEngine_v1_2::serviceCollisionPairs() {
 			bool hit = false;
 
 			if (firstSprite != 0 && secondSprite != 0) {
-				if (_version >= kVersionV1_2_2_1)
-					hit = (static_cast<SpriteLibrary_v1_2_3 *>(spriteLib())->spriteHitDetect(firstSprite, secondSprite, 0, 0, 0) != 0);
+				if (_version >= kVersionV1_2_3_1)
+					hit = (static_cast<SpriteLibrary_v1_2_4 *>(spriteLib())->spriteHitDetect(firstSprite, secondSprite, 0, 0, 0) != 0);
 				else
 					hit = (spriteLib()->spriteHitDetect(firstSprite, secondSprite) != 0);
 			}
@@ -368,8 +368,8 @@ void TopgunEngine_v1_2::addNativeTimer(uint16 id, uint32 interval, uint16 proc, 
 		} while (index < _numNativeTimers);
 	}
 
-	if (index >= TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS) {
-		if (_version >= kVersionV1_2_5)
+	if (index >= TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS) {
+		if (_version >= kVersionV1_2_6)
 			fatalError(116, "Out of timers.");
 
 		return;
@@ -378,7 +378,7 @@ void TopgunEngine_v1_2::addNativeTimer(uint16 id, uint32 interval, uint16 proc, 
 	if (_numNativeTimers == index)
 		_numNativeTimers++;
 
-	NativeTimer_v1_2_3 &timer = _nativeTimers[index];
+	NativeTimer_v1_2_4 &timer = _nativeTimers[index];
 
 	timer.id = id;
 	timer.interval = interval;
@@ -397,7 +397,7 @@ void TopgunEngine_v1_2::serviceNativeTimerQueue() {
 		return;
 
 	do {
-		NativeTimer_v1_2_3 &timer = _nativeTimers[index];
+		NativeTimer_v1_2_4 &timer = _nativeTimers[index];
 
 		if (timer.expiry <= getEngineMillis()) {
 			uint16 proc = timer.proc;
@@ -409,8 +409,8 @@ void TopgunEngine_v1_2::serviceNativeTimerQueue() {
 				index = removeNativeTimer(index);
 
 			// Bug in the original: the callback and its argument are read after the removal, from the entry at the new index
-			if (_version < kVersionV1_2_2_1) {
-				if (index < TG_INPUT_V1_2_2_MAX_NATIVE_TIMERS) {
+			if (_version < kVersionV1_2_3_1) {
+				if (index < TG_INPUT_V1_2_3_MAX_NATIVE_TIMERS) {
 					proc = _nativeTimers[index].proc;
 					id = _nativeTimers[index].id;
 				} else {
@@ -419,9 +419,9 @@ void TopgunEngine_v1_2::serviceNativeTimerQueue() {
 				}
 			}
 
-			if (proc == kNativeTimerV1_2_3ComboHistory)
+			if (proc == kNativeTimerV1_2_4ComboHistory)
 				comboHistoryTimeoutCallback((byte)id);
-			else if (proc == kNativeTimerV1_2_3KeyRelease)
+			else if (proc == kNativeTimerV1_2_4KeyRelease)
 				keyReleaseDelayTimerCallback((byte)id);
 		}
 
@@ -429,7 +429,7 @@ void TopgunEngine_v1_2::serviceNativeTimerQueue() {
 	} while (index < _numNativeTimers);
 }
 
-uint16 TopgunEngine_v1_2_3::builtinPauseTimers(uint16 flag) {
+uint16 TopgunEngine_v1_2_4::builtinPauseTimers(uint16 flag) {
 	uint32 now = getEngineMillis();
 
 	_timersPaused = ((byte)flag != 0);
@@ -450,7 +450,7 @@ uint16 TopgunEngine_v1_2_3::builtinPauseTimers(uint16 flag) {
 	return 109;
 }
 
-void TopgunEngine_v1_2_3::serviceCollisionPairs() {
+void TopgunEngine_v1_2_4::serviceCollisionPairs() {
 	uint16 index = 0;
 	uint16 pairIndex = 0;
 
@@ -459,7 +459,7 @@ void TopgunEngine_v1_2_3::serviceCollisionPairs() {
 
 	do {
 		// Bug in the original: after a removal, a pair is either read twice or skipped
-		if (_version < kVersionV1_2_3)
+		if (_version < kVersionV1_2_4)
 			pairIndex = index;
 
 		if (pairIndex < _numCollisionPairs) {

@@ -24,9 +24,9 @@
 #include "common/util.h"
 
 #include "topgun/display.h"
-#include "topgun/libraries/sprite/sprite_v1_2_3.h"
+#include "topgun/libraries/sprite/sprite_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_3.h"
+#include "topgun/topgun_v1_2_4.h"
 
 namespace Topgun {
 
@@ -104,9 +104,9 @@ uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw) const {
 	if (!_variableTable)
 		return raw;
 
-	if (_engine->_version >= kVersionV1_2_2_2) {
-		if (raw > TG_SPR_V1_2_2_2_VARIABLE_LAST_INDEX)
-			return (uint16)(raw + TG_SPR_V1_2_2_2_LITERAL_BIAS);
+	if (_engine->_version >= kVersionV1_2_3_2) {
+		if (raw > TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX)
+			return (uint16)(raw + TG_SPR_V1_2_3_2_LITERAL_BIAS);
 	} else if (raw > TG_SPR_V1_2_VARIABLE_LAST_INDEX) {
 		return (uint16)(raw + TG_SPR_V1_2_LITERAL_BIAS);
 	}
@@ -116,12 +116,12 @@ uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw) const {
 
 uint16 SpriteLibrary_v1_2::spriteObjectAlloc(int16 level) {
 	uint16 maxSprites = TG_SPR_V1_2_MAX_SPRITES;
-	if (_engine->_version >= kVersionV1_2_10)
-		maxSprites = TG_SPR_V1_2_10_MAX_SPRITES;
-	else if (_engine->_version >= kVersionV1_2_3)
-		maxSprites = TG_SPR_V1_2_3_MAX_SPRITES;
-	else if (_engine->_version == kVersionV1_2_2_3)
-		maxSprites = TG_SPR_V1_2_2_3_MAX_SPRITES;
+	if (_engine->_version >= kVersionV1_2_12)
+		maxSprites = TG_SPR_V1_2_12_MAX_SPRITES;
+	else if (_engine->_version >= kVersionV1_2_4)
+		maxSprites = TG_SPR_V1_2_4_MAX_SPRITES;
+	else if (_engine->_version == kVersionV1_2_3_3)
+		maxSprites = TG_SPR_V1_2_3_3_MAX_SPRITES;
 
 	if (_spriteCount >= maxSprites) {
 		warning("SpriteLibrary_v1_2::spriteObjectAlloc(): the sprite table is full");
@@ -219,7 +219,7 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 	int16 heightMinusOne = (int16)(height - 1);
 
-	if (_engine->_version == kVersionV1_2_2) {
+	if (_engine->_version == kVersionV1_2_3) {
 		if (object->anchorX)
 			hotX = (int16)(object->pivotX - hotX);
 
@@ -232,14 +232,14 @@ bool SpriteLibrary_v1_2::initSpriteFromFirstCel(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
-	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_12 && object->scrollable)
 		object->boundingBox.translate(_scrollPosX, _scrollPosY);
 
 	return true;
 }
 
 uint16 SpriteLibrary_v1_2::spriteObjectSetCelRange(uint16 sprite, uint16 startFrame, uint16 first, uint16 last) {
-	if (_engine->_version >= kVersionV1_2_2) {
+	if (_engine->_version >= kVersionV1_2_3) {
 		uint16 result = SpriteLibrary::spriteObjectSetCelRange(sprite, startFrame, first, last);
 		if (result == 0)
 			return 0;
@@ -274,7 +274,7 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	if (!object)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_6 && !object->active)
+	if (_engine->_version >= kVersionV1_2_7 && !object->active)
 		return;
 
 	byte *frame = object->currentFrame;
@@ -293,13 +293,13 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 	int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
-	if (_engine->_version >= kVersionV1_2_2_2) {
+	if (_engine->_version >= kVersionV1_2_3_2) {
 		if (object->mirrorX)
 			hotX = (int16)-hotX;
 
 		if (object->flipY)
 			hotY = (int16)-hotY;
-	} else if (_engine->_version == kVersionV1_2_2) {
+	} else if (_engine->_version == kVersionV1_2_3) {
 		if (object->anchorX)
 			hotX = (int16)(object->pivotX - hotX);
 
@@ -312,7 +312,7 @@ void SpriteLibrary_v1_2::recomputeSpriteBoundingBox(uint16 sprite) {
 	object->boundingBox.top = (int16)(object->y + hotY - heightMinusOne / 2);
 	object->boundingBox.bottom = (int16)(height + object->boundingBox.top);
 
-	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_12 && object->scrollable)
 		object->boundingBox.translate(_scrollPosX, _scrollPosY);
 
 	object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
@@ -323,7 +323,7 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 	if (!object || object->partCount == 0)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_6 && !object->active)
+	if (_engine->_version >= kVersionV1_2_7 && !object->active)
 		return;
 
 	if (!object->parts) {
@@ -345,10 +345,10 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		int16 hotX = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_X_OFFSET);
 		int16 hotY = READ_LE_INT16(frame + TG_SPR_BITMAP_HOT_Y_OFFSET);
 
-		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_2 && object->mirrorX)
+		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_3 && object->mirrorX)
 			hotX = (int16)-hotX;
 
-		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_2 && object->flipY)
+		if (_engine->_version >= kVersionV1_2_1 && _engine->_version != kVersionV1_2_3 && object->flipY)
 			hotY = (int16)-hotY;
 
 		part.box.left = (int16)((int16)(1 - width) / 2 + hotX + object->x);
@@ -356,7 +356,7 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 		part.box.top = (int16)(hotY + object->y - heightMinusOne / 2);
 		part.box.bottom = (int16)(height + part.box.top);
 
-		if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
+		if (_engine->_version >= kVersionV1_2_12 && object->scrollable)
 			part.box.translate(_scrollPosX, _scrollPosY);
 
 		if (i == 0)
@@ -365,7 +365,7 @@ void SpriteLibrary_v1_2::recomputeCelBoxArray(uint16 sprite) {
 			unionRectLocal(object->boundingBox, part.box, object->boundingBox);
 	}
 
-	if (_engine->_version != kVersionV1_2_2 || (!object->mirrorX && !object->flipY && !object->anchorX && !object->anchorY))
+	if (_engine->_version != kVersionV1_2_3 || (!object->mirrorX && !object->flipY && !object->anchorX && !object->anchorY))
 		return;
 
 	int16 sumX = (int16)(object->boundingBox.left + object->boundingBox.right);
@@ -420,7 +420,7 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 
 	Common::Rect oldBox = object->boundingBox;
 
-	if (_engine->_version >= kVersionV1_2_1 && object->framePending && (_engine->_version < kVersionV1_2_6 || object->active)) {
+	if (_engine->_version >= kVersionV1_2_1 && object->framePending && (_engine->_version < kVersionV1_2_7 || object->active)) {
 		applyFrameChange(sprite);
 
 		object = findSprite(sprite, "updateSpritePosition");
@@ -428,7 +428,7 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 			return;
 	}
 
-	bool shadow = (_engine->_version >= kVersionV1_2_6 && !object->active);
+	bool shadow = (_engine->_version >= kVersionV1_2_7 && !object->active);
 	int16 positionX = object->x;
 	int16 positionY = object->y;
 	if (shadow) {
@@ -459,7 +459,7 @@ void SpriteLibrary_v1_2::updateSpritePosition(uint16 sprite, int16 x, int16 y, u
 	object->boundingBox.bottom = (int16)(object->boundingBox.bottom + deltaY);
 
 	if (_engine->_version >= kVersionV1_2_1) {
-		if (_engine->_version >= kVersionV1_2_3)
+		if (_engine->_version >= kVersionV1_2_4)
 			object->multipartValid = false;
 
 		object->useUnionRefresh = intersectRectLocal(oldBox, object->boundingBox, oldBox);
@@ -493,8 +493,8 @@ bool SpriteLibrary_v1_2::spriteInitLibrary(uint16 mode) {
 	_serviceWord = 0;
 	_variableTable = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_2_2)
-		_literalBias = TG_SPR_V1_2_2_2_LITERAL_BIAS;
+	if (_engine->_version >= kVersionV1_2_3_2)
+		_literalBias = TG_SPR_V1_2_3_2_LITERAL_BIAS;
 	else
 		_literalBias = TG_SPR_V1_2_LITERAL_BIAS;
 	_inHostCallback = false;
@@ -537,7 +537,7 @@ bool SpriteLibrary_v1_2::spriteInitLibrary(uint16 mode) {
 
 	display->setViewportOrigin(screenWidth / 2, screenHeight / 2);
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		_screenRect.left = (int16)((1 - screenWidth) / 2);
 		_screenRect.top = (int16)((1 - screenHeight) / 2);
 		_screenRect.right = (int16)(_screenRect.left + screenWidth);
@@ -566,7 +566,7 @@ bool SpriteLibrary_v1_2::createComposeBuffer() {
 }
 
 void SpriteLibrary_v1_2::computeClipRect() {
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		_scrollPosX = 0;
 		_scrollPosY = 0;
 	}
@@ -586,11 +586,11 @@ void SpriteLibrary_v1_2::computeClipRect() {
 	_scrollY = (_clipRect.bottom - 1) / 2;
 	_clipRect.translate(-_scrollX, -_scrollY);
 
-	if (_engine->_version >= kVersionV1_2_10)
+	if (_engine->_version >= kVersionV1_2_12)
 		_backupRect = _clipRect;
 
 	bool userBoxSet = (_userClipBox.left < _userClipBox.right);
-	if (_engine->_version < kVersionV1_2_10)
+	if (_engine->_version < kVersionV1_2_12)
 		userBoxSet = (userBoxSet && _userClipBox.top < _userClipBox.bottom);
 
 	if (userBoxSet) {
@@ -599,7 +599,7 @@ void SpriteLibrary_v1_2::computeClipRect() {
 		_clipRect = intersection;
 	}
 
-	if (_engine->_version >= kVersionV1_2_10)
+	if (_engine->_version >= kVersionV1_2_12)
 		setScrollRegion(_scrollBox);
 }
 
@@ -622,12 +622,12 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[i] = 0;
 
 	_queueCommandSizeTable[kSprV1_2OpPlayRange] = 0x0A;
-	_queueCommandSizeTable[kSprV1_2OpMultiCel] = (_engine->_version >= kVersionV1_2_5) ? 0x10 : 0x0E;
+	_queueCommandSizeTable[kSprV1_2OpMultiCel] = (_engine->_version >= kVersionV1_2_6) ? 0x10 : 0x0E;
 	_queueCommandSizeTable[kSprV1_2OpReserved3] = 2;
 	_queueCommandSizeTable[kSprV1_2OpCompositeBackground] = 2;
 	_queueCommandSizeTable[kSprV1_2OpLoop] = 8;
 	_queueCommandSizeTable[kSprV1_2OpHide] = 2;
-	_queueCommandSizeTable[kSprV1_2OpLinearMove] = (_engine->_version >= kVersionV1_2_5) ? 0x18 : 0x16;
+	_queueCommandSizeTable[kSprV1_2OpLinearMove] = (_engine->_version >= kVersionV1_2_6) ? 0x18 : 0x16;
 	_queueCommandSizeTable[kSprV1_2OpFrameInterval] = 4;
 	_queueCommandSizeTable[kSprV1_2OpSetRange] = 8;
 	_queueCommandSizeTable[kSprV1_2OpMoveInterval] = 6;
@@ -636,18 +636,18 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 	_queueCommandSizeTable[kSprV1_2OpHostEvent] = 2;
 	_queueCommandSizeTable[kSprV1_2OpHostEventPayload] = 4;
 
-	if (_engine->_version >= kVersionV1_2_2_1) {
+	if (_engine->_version >= kVersionV1_2_3_1) {
 		_queueCommandSizeTable[kSprV1_2OpQuadPath] = 0x1E;
 		_queueCommandSizeTable[kSprV1_2OpFlip] = 0x0A;
 		_queueCommandSizeTable[kSprV1_2OpDelayedMove] = 8;
 		_queueCommandSizeTable[kSprV1_2OpWait] = 6;
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 8;
 		_queueCommandSizeTable[kSprV1_2OpTimingMode] = 4;
-		_queueCommandSizeTable[kSprV1_2_3OpHostEventFixed] = (_engine->_version >= kVersionV1_2_5) ? 0x12 : 0x0E;
-		_queueCommandSizeTable[kSprV1_2_3OpMovieFrame] = 0x0C;
+		_queueCommandSizeTable[kSprV1_2_4OpHostEventFixed] = (_engine->_version >= kVersionV1_2_6) ? 0x12 : 0x0E;
+		_queueCommandSizeTable[kSprV1_2_4OpMovieFrame] = 0x0C;
 	} else {
 		_queueCommandSizeTable[kSprV1_2OpQuadPath] = 0x1D;
-		_queueCommandSizeTable[kSprV1_2OpFlip] = (_engine->_version >= kVersionV1_2_2) ? TG_SPR_V1_2_2_FLIP_RECORD_SIZE : 6;
+		_queueCommandSizeTable[kSprV1_2OpFlip] = (_engine->_version >= kVersionV1_2_3) ? TG_SPR_V1_2_3_FLIP_RECORD_SIZE : 6;
 		_queueCommandSizeTable[kSprV1_2OpDelayedMove] = 7;
 		_queueCommandSizeTable[kSprV1_2OpWait] = 5;
 		_queueCommandSizeTable[kSprV1_2OpSetPosition] = 7;
@@ -655,25 +655,25 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 		_queueCommandSizeTable[kSprV1_2OpMovieFrame] = 0x0B;
 	}
 
-	if (_engine->_version >= kVersionV1_2_6) {
-		_queueCommandSizeTable[kSprV1_2_6OpSetActive] = 4;
-		_queueCommandSizeTable[kSprV1_2_6OpFrameInterval] = 4;
-		_queueCommandSizeTable[kSprV1_2_6OpSetRange] = 8;
-		_queueCommandSizeTable[kSprV1_2_6OpMoveInterval] = 6;
-		_queueCommandSizeTable[kSprV1_2_6OpShowFrame] = 4;
-		_queueCommandSizeTable[kSprV1_2_6OpReserved19] = 4;
-		_queueCommandSizeTable[kSprV1_2_6OpHostEvent] = 2;
-		_queueCommandSizeTable[kSprV1_2_6OpHostEventPayload] = 4;
-		_queueCommandSizeTable[kSprV1_2_6OpHostEventFixed] = 0x12;
-		_queueCommandSizeTable[kSprV1_2_6OpMovieFrame] = 0x0C;
+	if (_engine->_version >= kVersionV1_2_7) {
+		_queueCommandSizeTable[kSprV1_2_7OpSetActive] = 4;
+		_queueCommandSizeTable[kSprV1_2_7OpFrameInterval] = 4;
+		_queueCommandSizeTable[kSprV1_2_7OpSetRange] = 8;
+		_queueCommandSizeTable[kSprV1_2_7OpMoveInterval] = 6;
+		_queueCommandSizeTable[kSprV1_2_7OpShowFrame] = 4;
+		_queueCommandSizeTable[kSprV1_2_7OpReserved19] = 4;
+		_queueCommandSizeTable[kSprV1_2_7OpHostEvent] = 2;
+		_queueCommandSizeTable[kSprV1_2_7OpHostEventPayload] = 4;
+		_queueCommandSizeTable[kSprV1_2_7OpHostEventFixed] = 0x12;
+		_queueCommandSizeTable[kSprV1_2_7OpMovieFrame] = 0x0C;
 	}
 
-	if (_engine->_version >= kVersionV1_2_6_1)
+	if (_engine->_version >= kVersionV1_2_7_1)
 		_queueCommandSizeTable[kSprV1_2OpMultiCel] = 0x1C;
 }
 
 void SpriteLibrary_v1_2::spriteResetLibrary() {
-	if (_engine->_version >= kVersionV1_2_2) {
+	if (_engine->_version >= kVersionV1_2_3) {
 		_zoomOffsetX = 0;
 		_zoomOffsetY = 0;
 		_zoomFactor = 1;
@@ -681,14 +681,14 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 
 	_zoomActive = false;
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		_scrollPosX = 0;
 		_scrollPosY = 0;
 	}
 
 	_userClipBox = Common::Rect();
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		_scrollBox = Common::Rect();
 		_scrollRegion = _screenRect;
 		_backupRect = _screenRect;
@@ -697,7 +697,7 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 	_fillColor = 0;
 	_backgroundBitmap = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		_tileBackground = nullptr;
 
 		if (_scrollSurface) {
@@ -706,7 +706,7 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 		}
 	}
 
-	if (_engine->_version >= kVersionV1_2_6_1 && _engine->_version <= kVersionV1_2_9)
+	if (_engine->_version >= kVersionV1_2_7_1 && _engine->_version <= kVersionV1_2_11)
 		_rubberBandActive = false;
 
 	if (_composeBuffer)
@@ -732,7 +732,7 @@ uint16 SpriteLibrary_v1_2::spriteCreate(int16 level, const CelReference &cel) {
 	if (sprite == 0)
 		return 0;
 
-	if (_engine->_version >= kVersionV1_2_6) {
+	if (_engine->_version >= kVersionV1_2_7) {
 		SpriteObject_v1_2 *created = findSprite(sprite, "spriteCreate");
 		if (created)
 			created->active = 1;
@@ -831,7 +831,7 @@ bool SpriteLibrary_v1_2::spriteAppendBitmap(uint16 sprite, const CelReference &c
 	uint16 count = object->frames.size();
 	appendFrame(object, cel);
 
-	if (_engine->_version >= kVersionV1_2_10)
+	if (_engine->_version >= kVersionV1_2_12)
 		object->currentFrame = object->frames[0];
 
 	if (count == 0) {
@@ -874,7 +874,7 @@ bool SpriteLibrary_v1_2::spriteAppendBitmaps(uint16 sprite, const CelReference *
 		return true;
 	}
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		if (oldCount != 0)
 			object->currentFrame = object->frames[0];
 		else
@@ -967,7 +967,7 @@ void SpriteLibrary_v1_2::spriteReplaceBitmap(uint16 sprite, const CelReference &
 
 	object->framePending = false;
 
-	if (_engine->_version >= kVersionV1_2_2_1)
+	if (_engine->_version >= kVersionV1_2_3_1)
 		object->multipartValid = false;
 
 	renderSpriteToSurface(sprite);
@@ -981,18 +981,18 @@ void SpriteLibrary_v1_2::spriteShow(uint16 sprite, uint16 frame, bool refresh) {
 	if (object->visible && object->currentFrameIndex == frame)
 		return;
 
-	if (_engine->_version >= kVersionV1_2_6)
+	if (_engine->_version >= kVersionV1_2_7)
 		setSpriteActive(sprite, 1, false);
 
 	object->visible = (object->frames.size() != 0);
 
-	if (_engine->_version >= kVersionV1_2_2_1)
+	if (_engine->_version >= kVersionV1_2_3_1)
 		object->multipartValid = false;
 
 	if (object->frames.size() > frame) {
 		object->nextFrameIndex = frame;
 		object->framePending = true;
-	} else if (_engine->_version >= kVersionV1_2_2_2 && !object->currentFrame) {
+	} else if (_engine->_version >= kVersionV1_2_3_2 && !object->currentFrame) {
 		object->nextFrameIndex = object->currentFrameIndex;
 		object->framePending = true;
 	}
@@ -1013,8 +1013,8 @@ void SpriteLibrary_v1_2::spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY)
 		return;
 
 	byte *command = object->queueCurrent;
-	uint16 quadPathOffset = (_engine->_version >= kVersionV1_2_2_1) ? 0x12 : 0x11;
-	uint16 linearMoveOffset = (_engine->_version >= kVersionV1_2_5) ? 0x10 : 0x0E;
+	uint16 quadPathOffset = (_engine->_version >= kVersionV1_2_3_1) ? 0x12 : 0x11;
+	uint16 linearMoveOffset = (_engine->_version >= kVersionV1_2_6) ? 0x10 : 0x0E;
 
 	switch (READ_LE_UINT16(command)) {
 	case kSprV1_2OpQuadPath:
@@ -1179,7 +1179,7 @@ void SpriteLibrary_v1_2::spriteEmptyQueue(uint16 sprite) {
 
 	SpriteLibrary::spriteEmptyQueue(sprite);
 
-	if (_engine->_version >= kVersionV1_2_6)
+	if (_engine->_version >= kVersionV1_2_7)
 		object->active = 1;
 
 	object->advancePending = false;
@@ -1223,7 +1223,7 @@ bool SpriteLibrary_v1_2::spriteGetBounds(uint16 sprite, Common::Rect &bounds) {
 
 	bounds = object->boundingBox;
 
-	if (_engine->_version >= kVersionV1_2_10 && object->scrollable)
+	if (_engine->_version >= kVersionV1_2_12 && object->scrollable)
 		bounds.translate(-_scrollPosX, -_scrollPosY);
 
 	return true;
@@ -1253,7 +1253,7 @@ uint16 SpriteLibrary_v1_2::spriteIsVisible(uint16 sprite) {
 void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uint16 colorWord, Common::Rect *outClipRect) {
 	_backgroundBitmap = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_10) {
+	if (_engine->_version >= kVersionV1_2_12) {
 		if (_tileBackground) {
 			spriteResetComposeBuffer();
 			_tileBackground = nullptr;
@@ -1267,7 +1267,7 @@ void SpriteLibrary_v1_2::spriteSetBackground(byte *background, bool noClear, uin
 
 	_fillColor = 0;
 
-	if (_engine->_version < kVersionV1_2_10 || !_directMode) {
+	if (_engine->_version < kVersionV1_2_12 || !_directMode) {
 		if (noClear)
 			_fillColor = TG_SPR_V1_2_FILL_NONE;
 		else if (background)
@@ -1286,7 +1286,7 @@ void SpriteLibrary_v1_2::spriteSetClipBox(const Common::Rect *box) {
 	if (box) {
 		_userClipBox = *box;
 
-		if (_engine->_version >= kVersionV1_2_6_3) {
+		if (_engine->_version >= kVersionV1_2_7_3) {
 			if (_userClipBox.left < _userClipBox.right && _userClipBox.top < _userClipBox.bottom) {
 				_userClipBox.right++;
 				_userClipBox.bottom++;
@@ -1310,7 +1310,7 @@ bool SpriteLibrary_v1_2::spriteSetZoom(uint16 factor, int16 panX, int16 panY) {
 
 	_zoomActive = (factor != 0 && (factor != 1 || panX != 0 || panY != 0));
 
-	if (_engine->_version >= kVersionV1_2_2 && !_zoomActive) {
+	if (_engine->_version >= kVersionV1_2_3 && !_zoomActive) {
 		_zoomOffsetX = 0;
 		_zoomOffsetY = 0;
 		_zoomFactor = 1;
@@ -1480,13 +1480,13 @@ void SpriteLibrary_v1_2::releaseAllCachedBitmaps(uint16 sprite) {
 	object->celCacheCount = 0;
 }
 
-SpriteLibrary_v1_2_3::SpriteLibrary_v1_2_3(TopgunEngine_v1_2 *engine) : SpriteLibrary_v1_2(engine) {
+SpriteLibrary_v1_2_4::SpriteLibrary_v1_2_4(TopgunEngine_v1_2 *engine) : SpriteLibrary_v1_2(engine) {
 }
 
-SpriteLibrary_v1_2_3::~SpriteLibrary_v1_2_3() {
+SpriteLibrary_v1_2_4::~SpriteLibrary_v1_2_4() {
 }
 
-void SpriteLibrary_v1_2_3::spriteHide(uint16 sprite, bool refresh) {
+void SpriteLibrary_v1_2_4::spriteHide(uint16 sprite, bool refresh) {
 	SpriteLibrary::spriteHide(sprite, refresh);
 
 	SpriteObject_v1_2 *object = lookupSprite(sprite);
@@ -1494,31 +1494,31 @@ void SpriteLibrary_v1_2_3::spriteHide(uint16 sprite, bool refresh) {
 		object->multipartValid = false;
 }
 
-void SpriteLibrary_v1_2_3::spriteBreakLoops(uint16 sprite, uint16 flag) {
+void SpriteLibrary_v1_2_4::spriteBreakLoops(uint16 sprite, uint16 flag) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteBreakLoops");
 	if (!object)
 		return;
 
-	if (_engine->_version < kVersionV1_2_3)
+	if (_engine->_version < kVersionV1_2_4)
 		object->loopsDisabled = true;
 	else
 		object->loopsDisabled = ((flag & 0xFF) != 0);
 }
 
-void SpriteLibrary_v1_2_3::spriteSetPickMode(uint16 sprite, uint16 wholeBox, uint16 pickInvisible) {
+void SpriteLibrary_v1_2_4::spriteSetPickMode(uint16 sprite, uint16 wholeBox, uint16 pickInvisible) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetPickMode");
 	if (!object)
 		return;
 
 	object->pickWholeBox = ((wholeBox & 0xFF) != 0);
 
-	if (_engine->_version >= kVersionV1_2_7)
+	if (_engine->_version >= kVersionV1_2_9)
 		object->pickMode = pickInvisible;
-	else if (_engine->_version >= kVersionV1_2_2_3)
+	else if (_engine->_version >= kVersionV1_2_3_3)
 		object->pickInvisible = ((pickInvisible & 0xFF) != 0);
 }
 
-void SpriteLibrary_v1_2_3::pauseResumeSprite(uint16 sprite, bool pause) {
+void SpriteLibrary_v1_2_4::pauseResumeSprite(uint16 sprite, bool pause) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "pauseResumeSprite");
 	if (!object)
 		return;
@@ -1535,7 +1535,7 @@ void SpriteLibrary_v1_2_3::pauseResumeSprite(uint16 sprite, bool pause) {
 	object->paused = pause;
 }
 
-void SpriteLibrary_v1_2_3::spritePause(uint16 sprite, uint16 flag) {
+void SpriteLibrary_v1_2_4::spritePause(uint16 sprite, uint16 flag) {
 	bool pause = (flag != 0);
 
 	if (sprite != 0) {
@@ -1547,7 +1547,7 @@ void SpriteLibrary_v1_2_3::spritePause(uint16 sprite, uint16 flag) {
 		pauseResumeSprite(_spriteTable[i], pause);
 }
 
-void SpriteLibrary_v1_2_3::spriteSkipMessage(uint16 sprite, uint16 count) {
+void SpriteLibrary_v1_2_4::spriteSkipMessage(uint16 sprite, uint16 count) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSkipMessage");
 	if (!object)
 		return;
@@ -1561,7 +1561,7 @@ void SpriteLibrary_v1_2_3::spriteSkipMessage(uint16 sprite, uint16 count) {
 	}
 }
 
-uint16 SpriteLibrary_v1_2_3::spriteGetExtraId(uint16 sprite) {
+uint16 SpriteLibrary_v1_2_4::spriteGetExtraId(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteGetExtraId");
 	if (!object)
 		return 0;
@@ -1569,7 +1569,7 @@ uint16 SpriteLibrary_v1_2_3::spriteGetExtraId(uint16 sprite) {
 	return object->extraId;
 }
 
-void SpriteLibrary_v1_2_3::spriteSetExtraId(uint16 sprite, uint16 extraId) {
+void SpriteLibrary_v1_2_4::spriteSetExtraId(uint16 sprite, uint16 extraId) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetExtraId");
 	if (!object)
 		return;
@@ -1577,7 +1577,7 @@ void SpriteLibrary_v1_2_3::spriteSetExtraId(uint16 sprite, uint16 extraId) {
 	object->extraId = extraId;
 }
 
-uint16 SpriteLibrary_v1_2_3::spriteGetNumCels(uint16 sprite) {
+uint16 SpriteLibrary_v1_2_4::spriteGetNumCels(uint16 sprite) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteGetNumCels");
 	if (!object)
 		return 0;
@@ -1585,7 +1585,7 @@ uint16 SpriteLibrary_v1_2_3::spriteGetNumCels(uint16 sprite) {
 	return (uint16)object->frames.size();
 }
 
-void SpriteLibrary_v1_2_3::spriteSetSpriteClipBox(uint16 sprite, const Common::Rect *box) {
+void SpriteLibrary_v1_2_4::spriteSetSpriteClipBox(uint16 sprite, const Common::Rect *box) {
 	SpriteObject_v1_2 *object = findSprite(sprite, "spriteSetSpriteClipBox");
 	if (!object)
 		return;
@@ -1599,7 +1599,7 @@ void SpriteLibrary_v1_2_3::spriteSetSpriteClipBox(uint16 sprite, const Common::R
 	}
 }
 
-void SpriteLibrary_v1_2_3::spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_3 &info) {
+void SpriteLibrary_v1_2_4::spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_4 &info) {
 	SpriteLibrary_v1_2::spriteGetInfo(sprite, info);
 
 	SpriteObject_v1_2 *object = lookupSprite(sprite);
@@ -1612,15 +1612,15 @@ void SpriteLibrary_v1_2_3::spriteGetInfo(uint16 sprite, SpriteInfo_v1_2_3 &info)
 	info.forward = object->forward ? 1 : 0;
 }
 
-uint16 SpriteLibrary_v1_2_3::spriteIsValid(uint16 sprite) {
+uint16 SpriteLibrary_v1_2_4::spriteIsValid(uint16 sprite) {
 	return (findSpriteIndex(sprite) >= 0) ? 1 : 0;
 }
 
-Common::Point SpriteLibrary_v1_2_3::spriteLinePoint(uint16 step, uint16 total, int16 x0, int16 y0, int16 x1, int16 y1) {
+Common::Point SpriteLibrary_v1_2_4::spriteLinePoint(uint16 step, uint16 total, int16 x0, int16 y0, int16 x1, int16 y1) {
 	return computeLinePoint(step, total, x0, y0, x1, y1);
 }
 
-Common::Point SpriteLibrary_v1_2_3::spriteCurvePoint(uint16 step, uint16 steps, int16 x0, int16 y0, int16 viaX, int16 viaY, int16 endX, int16 endY) {
+Common::Point SpriteLibrary_v1_2_4::spriteCurvePoint(uint16 step, uint16 steps, int16 x0, int16 y0, int16 viaX, int16 viaY, int16 endX, int16 endY) {
 	return computeQuadCurvePoint(step, steps, x0, y0, viaX, viaY, endX, endY);
 }
 
