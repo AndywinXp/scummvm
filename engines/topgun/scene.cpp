@@ -31,7 +31,7 @@
 #include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -295,6 +295,9 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	if (_version >= kVersionV1_2_3)
 		_argumentFrame = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_FIRST_FRAME_INDEX : TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
 
+	if (_version >= kVersionV2_0)
+		_argumentFrame = TG_HOST_V2_0_FIRST_FRAME_INDEX;
+
 	if (_version >= kVersionV1_2_1)
 		_pauseScript = 0;
 
@@ -346,7 +349,11 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 	_entryScriptRunning = true;
 
 	// The entry script is the immediate operand 0 in the later version
-	runScriptResource((_version >= kVersionV1_2_3_2) ? (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT);
+	uint16 entryScript = (_version >= kVersionV1_2_3_2) ? (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS) : TG_HOST_V1_2_ENTRY_SCRIPT;
+	if (_version >= kVersionV2_0)
+		entryScript = 0;
+
+	runScriptResource(entryScript);
 
 	if (_version >= kVersionV1_2_12)
 		static_cast<TopgunEngine_v1_2_4 *>(this)->_scriptCursors.clear();

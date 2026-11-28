@@ -452,7 +452,7 @@ void TopgunEngine_v1_1::applyCursorFromRegister() {
 	delete cursor;
 }
 
-void TopgunEngine_v1_1::setCursorMode(byte mode) {
+void TopgunEngine_v1_1::setCursorMode(uint16 mode) {
 	if (_cursorMode == 3)
 		removeMessages(kMsgLButtonDown);
 

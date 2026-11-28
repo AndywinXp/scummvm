@@ -58,7 +58,7 @@ protected:
 
 	// Cursor
 	void applyCursorFromRegister() override;
-	virtual void setCursorMode(byte mode);
+	virtual void setCursorMode(uint16 mode);
 
 	// Scenes
 	void switchToNextScene(const char *name) override;
@@ -97,7 +97,7 @@ protected:
 	bool o_runListEntry(const byte *record); // 35
 	void o_iniVariable(const byte *record); // 36
 
-	byte _cursorMode = 1;
+	uint16 _cursorMode = 1;
 	bool _scriptsDisabled = false;
 	bool _releaseOnPalette = false;
 	bool _altTab = false;

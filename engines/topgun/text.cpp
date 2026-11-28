@@ -35,7 +35,7 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -454,8 +454,12 @@ void TopgunEngine_v1_2::refreshTextObjectFont(TextObject_v1_2 *object) {
 		object->fontHandle = 0;
 	}
 
-	int16 height = (int16)operandValue(READ_LE_UINT16(object->data + heightOffset));
-	object->fontHandle = createTextObjectFont(height, face);
+	uint16 height = operandValue(READ_LE_UINT16(object->data + heightOffset));
+
+	if (_version >= kVersionV2_0)
+		height = static_cast<TopgunEngine_v2_0 *>(this)->resolveScriptOperand(height, object->data[TG_TEXT_V2_0_HEADER_HEIGHT_VARIABLE]);
+
+	object->fontHandle = createTextObjectFont((int16)height, face);
 }
 
 Graphics::ManagedSurface *TopgunEngine_v1_2::renderTextToBitmap(uint16 color, const char *text, const Graphics::Font *font) {
@@ -834,7 +838,15 @@ bool TopgunEngine_v1_2::endTextEdit(uint16 handle, bool cancel) {
 			object->text[length - 1] = '\0';
 	}
 
-	uint16 stringId = READ_LE_UINT16(object->edit + TG_TEXT_V1_2_EDIT_STRING);
+	uint16 stringOffset = TG_TEXT_V1_2_EDIT_STRING;
+	uint16 scriptOffset = TG_TEXT_V1_2_EDIT_SCRIPT;
+
+	if (_version >= kVersionV2_0) {
+		stringOffset = TG_TEXT_V2_0_EDIT_STRING;
+		scriptOffset = TG_TEXT_V2_0_EDIT_SCRIPT;
+	}
+
+	uint16 stringId = READ_LE_UINT16(object->edit + stringOffset);
 
 	char *destination = nullptr;
 	if ((stringId & TG_HOST_V1_2_STRING_ID_CONSTANT) == 0)
@@ -843,9 +855,15 @@ bool TopgunEngine_v1_2::endTextEdit(uint16 handle, bool cancel) {
 	if (destination)
 		Common::strlcpy(destination, object->text, TG_HOST_V1_2_STRING_SLOT_SIZE);
 
-	uint16 script = READ_LE_UINT16(object->edit + TG_TEXT_V1_2_EDIT_SCRIPT);
+	uint16 accepted = 0;
+	if (_version >= kVersionV2_0)
+		accepted = cancel ? 0 : 1;
+	else if (_version >= kVersionV1_2_12)
+		accepted = (uint16)((cancel ? 0 : 1) - TG_HOST_V1_2_4_LITERAL_BIAS);
+
+	uint16 script = READ_LE_UINT16(object->edit + scriptOffset);
 	if (script != 0)
-		postRunScript(script, 0, 0);
+		postRunScript(script, accepted, 0);
 
 	if (_version >= kVersionV1_2_1)
 		refreshTextObjectBitmap(handle);
@@ -929,7 +947,12 @@ bool TopgunEngine_v1_2::textEditAppendChar(uint16 handle, byte character) {
 			return false;
 		}
 
-		if (object->edit[TG_TEXT_V1_2_4_EDIT_NUMERIC] != 0 && (value < '0' || value > '9')) {
+		bool numeric = (object->edit[TG_TEXT_V1_2_4_EDIT_NUMERIC] != 0);
+
+		if (_version >= kVersionV2_0)
+			numeric = ((object->edit[TG_TEXT_V1_2_4_EDIT_NUMERIC] & TG_TEXT_V2_0_EDIT_FLAG_NUMERIC) != 0);
+
+		if (numeric && (value < '0' || value > '9')) {
 			warning("textEditBeep UNIMPLEMENTED");
 			return false;
 		}
@@ -1027,7 +1050,15 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 
 	TextObject_v1_2 *object = textObjectFromHandle(_records[index].object);
 
-	const char *format = getStringFromId(READ_LE_UINT16(record + 4));
+	uint16 formatOffset = 4;
+	uint16 valueOffset = 6;
+
+	if (_version >= kVersionV2_0) {
+		formatOffset = 6;
+		valueOffset = 4;
+	}
+
+	const char *format = getStringFromId(READ_LE_UINT16(record + formatOffset));
 	if (!format)
 		return false;
 
@@ -1037,7 +1068,7 @@ bool TopgunEngine_v1_2::o_formatTextObject(const byte *record) {
 	}
 
 	FormatArgument_v1_2 argument;
-	argument.value = operandValue(READ_LE_UINT16(record + 6));
+	argument.value = operandValue(READ_LE_UINT16(record + valueOffset));
 
 	Common::String text = formatWindowsString(format, &argument, 1);
 	Common::strlcpy(object->text, text.c_str(), TG_TEXT_V1_2_TEXT_SIZE);

@@ -27,7 +27,7 @@
 #include "topgun/libraries/resource/resource.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 #define TG_LOADER_MAX_FRAME_BATCH       50
 #define TG_LOADER_NUM_SYSTEM_COLORS     10
@@ -732,7 +732,11 @@ bool TopgunEngine_v1_2::ensureSpriteResourceLoaded(uint16 id) {
 	if (sprite == 0)
 		return false;
 
-	spriteLib()->spriteSetId(sprite, (uint16)(index - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)));
+	uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
+	spriteLib()->spriteSetId(sprite, (uint16)(index - literalBias));
 
 	bool deferBitmaps;
 
@@ -1069,8 +1073,12 @@ bool TopgunEngine_v1_2::destroyResourceObjectByType(uint16 id, uint16 type) {
 void TopgunEngine_v1_2::resetResourcesAndTransientState() {
 	_freeingAll = true;
 
+	uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	for (uint16 index = 0; index < _numResources; index++) {
-		destroyResourceObjectByType((uint16)(index - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)), resourceLib()->resGetType(_file, index));
+		destroyResourceObjectByType((uint16)(index - literalBias), resourceLib()->resGetType(_file, index));
 
 		if (_version >= kVersionV1_2_3_2 && index >= static_cast<TopgunEngine_v1_2_4 *>(this)->_numFileResources)
 			static_cast<ResourceLibrary_v1_2_4 *>(resourceLib())->resDeleteResource(_file, index);
@@ -1527,7 +1535,11 @@ bool TopgunEngine_v1_2::ensureBitmapGroupResourceLoaded(uint16 id) {
 		object[TG_RES_V1_2_6_BITMAP_FLAGS_BYTE_OFFSET] = (object[TG_RES_V1_2_6_BITMAP_FLAGS_BYTE_OFFSET] & TG_HOST_V1_2_12_BITMAP_FLAGS_KEPT_MASK) | (list[TG_HOST_V1_2_12_CELL_FLAGS] & TG_HOST_V1_2_12_CELL_FLAGS_MASK);
 		WRITE_LE_UINT16(object + TG_HOST_V1_2_4_BITMAP_HOT_X, READ_LE_UINT16(list + TG_HOST_V1_2_12_CELL_X));
 		WRITE_LE_UINT16(object + TG_HOST_V1_2_4_BITMAP_HOT_Y, READ_LE_UINT16(list + TG_HOST_V1_2_12_CELL_Y));
-		WRITE_LE_UINT16(object + TG_HOST_V1_2_4_BITMAP_RESOURCE_ID, (uint16)(index - TG_HOST_V1_2_4_LITERAL_BIAS));
+		uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+		if (_version >= kVersionV2_0)
+			literalBias = 0;
+
+		WRITE_LE_UINT16(object + TG_HOST_V1_2_4_BITMAP_RESOURCE_ID, (uint16)(index - literalBias));
 		return true;
 	}
 
@@ -1589,7 +1601,11 @@ bool TopgunEngine_v1_2_4::ensureTableResourceLoaded(uint16 id) {
 	if (!block)
 		return false;
 
-	WRITE_LE_UINT16(block + TG_HOST_V1_2_12_TABLE_RESOURCE_ID, (uint16)(index - TG_HOST_V1_2_4_LITERAL_BIAS));
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
+	WRITE_LE_UINT16(block + TG_HOST_V1_2_12_TABLE_RESOURCE_ID, (uint16)(index - literalBias));
 
 	record.data = block;
 	record.size = size;
@@ -1700,7 +1716,11 @@ bool TopgunEngine_v1_2_4::ensureTileResourceLoaded(uint16 id) {
 	tile->columns = READ_LE_UINT16(data + TG_HOST_V1_2_12_TILE_COLUMNS);
 	tile->rows = READ_LE_UINT16(data + TG_HOST_V1_2_12_TILE_ROWS);
 	tile->layout = READ_LE_UINT16(data + TG_HOST_V1_2_12_TILE_LAYOUT);
-	tile->id = (uint16)(index - TG_HOST_V1_2_4_LITERAL_BIAS);
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
+	tile->id = (uint16)(index - literalBias);
 	tile->cellCount = count;
 
 	_tileBackgrounds[index] = tile;

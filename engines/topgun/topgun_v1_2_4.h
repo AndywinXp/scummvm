@@ -136,6 +136,7 @@
 #define TG_SCRIPT_V1_2_3_2_MAX_POSTED_RUNS         20
 #define TG_SCRIPT_V1_2_4_MAX_POSTED_RUNS           40
 #define TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE           18
+#define TG_SCRIPT_V2_0_POSTED_RUN_SIZE             20
 #define TG_SCRIPT_V1_2_3_2_LAST_OPCODE             106
 #define TG_SCRIPT_V1_2_3_3_LAST_OPCODE             120
 #define TG_SCRIPT_V1_2_4_LAST_OPCODE               119
@@ -579,7 +580,7 @@ protected:
 	uint32 _idleDeadline = 0;
 	uint16 _rubberBandScript = 0;
 	bool _wallpaperSelectionEnabled = true;
-	byte _postedRuns[TG_SCRIPT_V1_2_4_MAX_POSTED_RUNS * TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE] = {};
+	byte _postedRuns[TG_SCRIPT_V1_2_4_MAX_POSTED_RUNS * TG_SCRIPT_V2_0_POSTED_RUN_SIZE] = {};
 	char _quitSceneName[TG_HOST_V1_2_6_SCENE_NAME_SIZE] = {};
 	char _gotoSceneName[TG_HOST_V1_2_6_SCENE_NAME_SIZE] = {};
 	// The memory check is not emulated; the scripts compare this value with 53 as a signed number (53 * 65536 is about 3.4 MB), so it stands for plenty of memory

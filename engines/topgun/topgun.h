@@ -97,6 +97,7 @@ class TopgunEngine : public Engine {
 	friend class SpriteLibrary_v1_2_4;
 	friend class TopgunEngine_v1_2;
 	friend class TopgunEngine_v1_2_4;
+	friend class TopgunEngine_v2_0;
 	friend class UtilsLibrary;
 
 private:

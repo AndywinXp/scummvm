@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -965,8 +965,18 @@ uint16 TopgunEngine_v1_2::lookupSwitchOffset(const byte *record) {
 	uint16 valueOffset = (_version >= kVersionV1_2_3_3) ? 2 : 0;
 	uint16 index = 0;
 
+	if (_version >= kVersionV2_0) {
+		value = static_cast<TopgunEngine_v2_0 *>(this)->resolveScriptOperand(value, record[9]);
+		entrySize = TG_SCRIPT_V2_0_SWITCH_ENTRY_SIZE;
+	}
+
 	while (index < count) {
-		if (READ_LE_UINT16(table + valueOffset + entrySize * index) == value)
+		uint16 entryValue = READ_LE_UINT16(table + valueOffset + entrySize * index);
+
+		if (_version >= kVersionV2_0)
+			entryValue = static_cast<TopgunEngine_v2_0 *>(this)->resolveScriptOperand(entryValue, table[entrySize * index + TG_SCRIPT_V2_0_SWITCH_ENTRY_VARIABLE]);
+
+		if (entryValue == value)
 			return READ_LE_UINT16(table + valueOffset + entrySize * index + 2);
 
 		index++;
@@ -984,8 +994,16 @@ uint16 TopgunEngine_v1_2::o_switchExpression(const byte *record) {
 	uint16 valueOffset = (_version >= kVersionV1_2_3_3) ? 2 : 0;
 	uint16 index = 0;
 
+	if (_version >= kVersionV2_0)
+		entrySize = TG_SCRIPT_V2_0_SWITCH_ENTRY_SIZE;
+
 	while (index < count) {
-		if (READ_LE_UINT16(table + valueOffset + entrySize * index) == value)
+		uint16 entryValue = READ_LE_UINT16(table + valueOffset + entrySize * index);
+
+		if (_version >= kVersionV2_0)
+			entryValue = static_cast<TopgunEngine_v2_0 *>(this)->resolveScriptOperand(entryValue, table[entrySize * index + TG_SCRIPT_V2_0_SWITCH_ENTRY_VARIABLE]);
+
+		if (entryValue == value)
 			return READ_LE_UINT16(table + valueOffset + entrySize * index + 2);
 
 		index++;
@@ -1042,21 +1060,32 @@ void TopgunEngine_v1_2::spriteMessageService(byte *record) {
 }
 
 bool TopgunEngine_v1_2::runPostedScriptRecord(const byte *record) {
-	byte local[TG_SCRIPT_V1_2_3_1_POSTED_RECORD_BUFFER_SIZE];
+	byte local[TG_SCRIPT_V2_0_FORWARDED_RECORD_SIZE] = {};
 	uint16 count = READ_LE_UINT16(record + 4);
+	uint16 headerSize = TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE;
+	uint16 bufferSize = TG_SCRIPT_V1_2_3_1_POSTED_RECORD_BUFFER_SIZE;
+	uint16 countOffset = 5;
+
+	if (_version >= kVersionV2_0) {
+		headerSize = TG_SCRIPT_V2_0_CALL_HEADER_SIZE;
+		bufferSize = TG_SCRIPT_V2_0_FORWARDED_RECORD_SIZE;
+		countOffset = TG_SCRIPT_V2_0_CALL_COUNT;
+	}
 
 	WRITE_LE_UINT16(local + 2, READ_LE_UINT16(record + 2));
-	local[4] = 0;
-	local[5] = (byte)count;
+	local[countOffset] = (byte)count;
 
-	if (TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * (uint32)count > sizeof(local)) {
+	if (headerSize + 2 * (uint32)count > bufferSize) {
 		warning("TopgunEngine_v1_2::runPostedScriptRecord(): %d arguments do not fit in the record", count);
-		count = (sizeof(local) - TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE) / 2;
-		local[5] = (byte)count;
+		count = (bufferSize - headerSize) / 2;
+		local[countOffset] = (byte)count;
 	}
 
 	for (uint16 i = 0; i < count; i++)
-		WRITE_LE_UINT16(local + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i));
+		WRITE_LE_UINT16(local + headerSize + 2 * i, READ_LE_UINT16(record + TG_SCRIPT_V1_2_3_CALL_HEADER_SIZE + 2 * i));
+
+	if (_version >= kVersionV2_0)
+		return static_cast<TopgunEngine_v2_0 *>(this)->callScriptWithArguments(local);
 
 	return o_callScript(local);
 }

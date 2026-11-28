@@ -30,7 +30,7 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -570,6 +570,9 @@ bool TopgunEngine_v1_2::postRunScript(uint16 script, uint16 argument1, uint16 ar
 }
 
 uint16 TopgunEngine_v1_2::postMouseEventScript(uint16 code) {
+	if (_version >= kVersionV2_0)
+		return static_cast<TopgunEngine_v1_2_4 *>(this)->runScriptHookWithArg(_mouseEventScript, code);
+
 	byte record[18];
 
 	memset(record, 0, sizeof(record));
@@ -695,7 +698,7 @@ void TopgunEngine_v1_2::handleMouseButtonMessage(const Message &message) {
 	if (script == 0) {
 		clickedId = 0;
 
-		if (_version >= kVersionV1_2_7_1)
+		if (_version >= kVersionV1_2_7_1 && _version < kVersionV2_0)
 			clickedId = (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS);
 	}
 
@@ -814,7 +817,8 @@ void TopgunEngine_v1_2::handleMouseMoveMessage(const Message &message) {
 		return;
 	}
 
-	if (_version >= kVersionV1_2_3_2 && _hoverSpriteScript != 0 && static_cast<TopgunEngine_v1_2_4 *>(this)->updateSpriteHoverFromPoint(point.x, point.y))
+	if (_version >= kVersionV1_2_3_2 && _hoverSpriteScript != 0 && static_cast<TopgunEngine_v1_2_4 *>(this)->updateSpriteHoverFromPoint(point.x, point.y) &&
+			_version < kVersionV2_0)
 		return;
 
 	if (_numHoverRegions != 0)
@@ -1004,19 +1008,39 @@ void TopgunEngine_v1_2::o_bindKeyScript(const byte *record) {
 		last = key;
 	}
 
+	bool ctrlFlag;
+	bool shiftFlag;
+	bool enableFlag;
+	bool disableFlag;
+	bool keyUpFlag;
+
+	if (_version >= kVersionV2_0) {
+		ctrlFlag = ((record[6] & TG_SCRIPT_V2_0_KEY_CTRL) != 0);
+		shiftFlag = ((record[6] & TG_SCRIPT_V2_0_KEY_SHIFT) != 0);
+		enableFlag = ((record[6] & TG_SCRIPT_V2_0_KEY_ENABLE) != 0);
+		disableFlag = ((record[6] & TG_SCRIPT_V2_0_KEY_DISABLE) != 0);
+		keyUpFlag = ((record[6] & TG_SCRIPT_V2_0_KEY_UP) != 0);
+	} else {
+		ctrlFlag = (record[6] != 0);
+		shiftFlag = (record[7] != 0);
+		enableFlag = (record[8] != 0);
+		disableFlag = (record[9] != 0);
+		keyUpFlag = (_version >= kVersionV1_2_2 && record[0x0A] != 0);
+	}
+
 	for (uint16 i = first; i <= last; i++) {
 		KeyEntry_v1_2 &entry = _keyTable[i];
 
-		if (record[8] != 0) {
+		if (enableFlag) {
 			entry.disabled = 0;
-		} else if (record[9] != 0) {
+		} else if (disableFlag) {
 			entry.disabled = 1;
 		} else {
-			if (record[6] != 0)
+			if (ctrlFlag)
 				entry.ctrl = READ_LE_UINT16(record + 4);
-			else if (record[7] != 0)
+			else if (shiftFlag)
 				entry.shift = READ_LE_UINT16(record + 4);
-			else if (_version >= kVersionV1_2_2 && record[0x0A] != 0)
+			else if (keyUpFlag)
 				entry.keyUp = READ_LE_UINT16(record + 4);
 			else
 				entry.plain = READ_LE_UINT16(record + 4);
@@ -1035,6 +1059,12 @@ bool TopgunEngine_v1_2::o_setClickScript(const byte *record) {
 		allFlag = record[0x10];
 		enableFlag = record[0x11];
 		disableFlag = record[0x12];
+	}
+
+	if (_version >= kVersionV2_0) {
+		allFlag = record[0x10] & TG_SCRIPT_V2_0_CLICK_ALL;
+		enableFlag = record[0x10] & TG_SCRIPT_V2_0_CLICK_ENABLE;
+		disableFlag = record[0x10] & TG_SCRIPT_V2_0_CLICK_DISABLE;
 	}
 
 	if (allFlag != 0) {
@@ -1070,8 +1100,16 @@ bool TopgunEngine_v1_2::o_setClickScript(const byte *record) {
 	if (_version >= kVersionV1_2_7_1) {
 		disabledOffset = TG_INPUT_V1_2_7_1_OBJECT_DISABLED;
 
-		if (READ_LE_UINT16(record + 0x0E) != 0)
-			WRITE_LE_UINT16(object + TG_INPUT_V1_2_7_1_OBJECT_CLICK_ARGUMENT, (uint16)(operandValue(READ_LE_UINT16(record + 0x0E)) - TG_HOST_V1_2_4_LITERAL_BIAS));
+		uint16 argumentOffset = 0x0E;
+		uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+
+		if (_version >= kVersionV2_0) {
+			argumentOffset = 6;
+			literalBias = 0;
+		}
+
+		if (READ_LE_UINT16(record + argumentOffset) != 0)
+			WRITE_LE_UINT16(object + TG_INPUT_V1_2_7_1_OBJECT_CLICK_ARGUMENT, (uint16)(operandValue(READ_LE_UINT16(record + argumentOffset)) - literalBias));
 		else
 			WRITE_LE_UINT16(object + TG_INPUT_V1_2_7_1_OBJECT_CLICK_ARGUMENT, 0);
 	}
@@ -1089,10 +1127,20 @@ bool TopgunEngine_v1_2::o_setClickScript(const byte *record) {
 }
 
 void TopgunEngine_v1_2::addOrUpdateClickRegion(const byte *record) {
-	int16 left = (int16)operandValue(READ_LE_UINT16(record + 6));
-	int16 top = (int16)operandValue(READ_LE_UINT16(record + 8));
-	int16 right = (int16)operandValue(READ_LE_UINT16(record + 10));
-	int16 bottom = (int16)operandValue(READ_LE_UINT16(record + 12));
+	uint16 rectOffset = 6;
+	uint16 argumentOffset = 0x0E;
+	uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+
+	if (_version >= kVersionV2_0) {
+		rectOffset = 8;
+		argumentOffset = 6;
+		literalBias = 0;
+	}
+
+	int16 left = (int16)operandValue(READ_LE_UINT16(record + rectOffset));
+	int16 top = (int16)operandValue(READ_LE_UINT16(record + rectOffset + 2));
+	int16 right = (int16)operandValue(READ_LE_UINT16(record + rectOffset + 4));
+	int16 bottom = (int16)operandValue(READ_LE_UINT16(record + rectOffset + 6));
 	uint16 index = 0;
 
 	if (_numClickRegions != 0) {
@@ -1122,6 +1170,11 @@ void TopgunEngine_v1_2::addOrUpdateClickRegion(const byte *record) {
 		disableFlag = record[0x12];
 	}
 
+	if (_version >= kVersionV2_0) {
+		enableFlag = record[0x10] & TG_SCRIPT_V2_0_CLICK_ENABLE;
+		disableFlag = record[0x10] & TG_SCRIPT_V2_0_CLICK_DISABLE;
+	}
+
 	if (disableFlag != 0) {
 		region.disabled = 1;
 	} else if (enableFlag != 0) {
@@ -1139,13 +1192,13 @@ void TopgunEngine_v1_2::addOrUpdateClickRegion(const byte *record) {
 		region.script = READ_LE_UINT16(record + 4);
 
 		if (_version >= kVersionV1_2_3 && region.script != 0)
-			region.script = (uint16)(operandValue(region.script) - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS));
+			region.script = (uint16)(operandValue(region.script) - literalBias);
 
 		if (_version >= kVersionV1_2_7_1) {
-			region.argument = READ_LE_UINT16(record + 0x0E);
+			region.argument = READ_LE_UINT16(record + argumentOffset);
 
 			if (region.argument != 0)
-				region.argument = (uint16)(operandValue(region.argument) - TG_HOST_V1_2_4_LITERAL_BIAS);
+				region.argument = (uint16)(operandValue(region.argument) - literalBias);
 		}
 
 		region.disabled = 0;
@@ -1271,6 +1324,9 @@ bool TopgunEngine_v1_2::o_setHoverRegion(const byte *record) {
 	else if (_version >= kVersionV1_2_7_1)
 		clearFlag = record[0x12];
 
+	if (_version >= kVersionV2_0)
+		clearFlag &= TG_SCRIPT_V2_0_HOVER_CLEAR;
+
 	if (_version >= kVersionV1_2_3 && clearFlag != 0) {
 		if (_version >= kVersionV1_2_3_2)
 			_hoverRegionCurrent = 0;
@@ -1293,8 +1349,12 @@ bool TopgunEngine_v1_2::addHoverRegion(const byte *record) {
 	uint16 sprite = 0;
 	uint16 index = 0;
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	if (_version >= kVersionV1_2_9 && READ_LE_UINT16(record + 0x12) != 0)
-		sprite = (uint16)(operandValue(READ_LE_UINT16(record + 0x12)) - TG_HOST_V1_2_4_LITERAL_BIAS);
+		sprite = (uint16)(operandValue(READ_LE_UINT16(record + 0x12)) - literalBias);
 
 	if (_numHoverRegions != 0) {
 		do {
@@ -1331,16 +1391,15 @@ bool TopgunEngine_v1_2::addHoverRegion(const byte *record) {
 	region.bottom = bottom;
 
 	if (_version >= kVersionV1_2_7_1) {
-		uint16 bias = TG_HOST_V1_2_4_LITERAL_BIAS;
 		uint16 enterScript = READ_LE_UINT16(record + 0x0A);
 		uint16 enterArgument = READ_LE_UINT16(record + 0x0C);
 		uint16 leaveScript = READ_LE_UINT16(record + 0x0E);
 		uint16 leaveArgument = READ_LE_UINT16(record + 0x10);
 
-		region.enterScript = (enterScript != 0) ? (uint16)(operandValue(enterScript) - bias) : 0;
-		region.enterArgument = (enterArgument != 0) ? (uint16)(operandValue(enterArgument) - bias) : 0;
-		region.leaveScript = (leaveScript != 0) ? (uint16)(operandValue(leaveScript) - bias) : 0;
-		region.leaveArgument = (leaveArgument != 0) ? (uint16)(operandValue(leaveArgument) - bias) : 0;
+		region.enterScript = (enterScript != 0) ? (uint16)(operandValue(enterScript) - literalBias) : 0;
+		region.enterArgument = (enterArgument != 0) ? (uint16)(operandValue(enterArgument) - literalBias) : 0;
+		region.leaveScript = (leaveScript != 0) ? (uint16)(operandValue(leaveScript) - literalBias) : 0;
+		region.leaveArgument = (leaveArgument != 0) ? (uint16)(operandValue(leaveArgument) - literalBias) : 0;
 		region.sprite = sprite;
 	} else {
 		region.enterScript = READ_LE_UINT16(record + 0x0A);
@@ -1374,8 +1433,12 @@ bool TopgunEngine_v1_2::removeHoverRegion(const byte *record) {
 	uint16 sprite = 0;
 	uint16 index = 0;
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	if (_version >= kVersionV1_2_9 && READ_LE_UINT16(record + 0x12) != 0)
-		sprite = (uint16)(operandValue(READ_LE_UINT16(record + 0x12)) - TG_HOST_V1_2_4_LITERAL_BIAS);
+		sprite = (uint16)(operandValue(READ_LE_UINT16(record + 0x12)) - literalBias);
 
 	if (_numHoverRegions != 0) {
 		do {
@@ -1432,7 +1495,10 @@ void TopgunEngine_v1_2::updateHoverRegionFromPoint(int16 x, int16 y) {
 	uint16 leaveArgument = 0;
 	uint16 enterArgument = 0;
 
-	if (_version >= kVersionV1_2_3_2) {
+	if (_version >= kVersionV2_0) {
+		leaveArgument = 0;
+		enterArgument = 1;
+	} else if (_version >= kVersionV1_2_3_2) {
 		leaveArgument = (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS);
 		enterArgument = (uint16)(1 - TG_HOST_V1_2_4_LITERAL_BIAS);
 	} else if (_version >= kVersionV1_2_3_1) {
@@ -1503,30 +1569,36 @@ void TopgunEngine_v1_2::togglePauseState() {
 		audioLib()->audioPause(_gamePaused ? 0 : 1);
 
 	if (_pauseScript != 0) {
-		byte record[18];
+		uint16 hookResult;
 
-		memset(record, 0, sizeof(record));
-		WRITE_LE_UINT16(record + 2, _pauseScript);
-
-		if (_version >= kVersionV1_2_3) {
-			record[5] = 1;
-			WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)));
+		if (_version >= kVersionV2_0) {
+			hookResult = static_cast<TopgunEngine_v1_2_4 *>(this)->runScriptHookWithArg(_pauseScript, _gamePaused ? 0 : 1);
 		} else {
-			record[4] = 1;
-			WRITE_LE_UINT16(record + 5, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_LITERAL_BIAS));
+			byte record[18];
+
+			memset(record, 0, sizeof(record));
+			WRITE_LE_UINT16(record + 2, _pauseScript);
+
+			if (_version >= kVersionV1_2_3) {
+				record[5] = 1;
+				WRITE_LE_UINT16(record + 6, (uint16)((_gamePaused ? 0 : 1) - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)));
+			} else {
+				record[4] = 1;
+				WRITE_LE_UINT16(record + 5, (uint16)((_gamePaused ? 0 : 1) - TG_HOST_V1_2_LITERAL_BIAS));
+			}
+
+			uint16 savedResult = _scriptResult;
+
+			if (_version >= kVersionV1_2_7)
+				_scriptResult = 0;
+
+			o_callScript(record);
+
+			hookResult = _scriptResult;
+
+			if (_version >= kVersionV1_2_12)
+				_scriptResult = savedResult;
 		}
-
-		uint16 savedResult = _scriptResult;
-
-		if (_version >= kVersionV1_2_7)
-			_scriptResult = 0;
-
-		o_callScript(record);
-
-		uint16 hookResult = _scriptResult;
-
-		if (_version >= kVersionV1_2_12)
-			_scriptResult = savedResult;
 
 		if (_version >= kVersionV1_2_7 && hookResult != 0)
 			return;
@@ -1546,6 +1618,9 @@ void TopgunEngine_v1_2::togglePauseState() {
 }
 
 uint16 TopgunEngine_v1_2_4::postKeyHookScript(uint16 vk) {
+	if (_version >= kVersionV2_0)
+		return runScriptHookWithArg(_keyHookScript, vk);
+
 	byte record[18];
 
 	memset(record, 0, sizeof(record));
@@ -1563,16 +1638,26 @@ uint16 TopgunEngine_v1_2_4::postKeyHookScript(uint16 vk) {
 }
 
 uint16 TopgunEngine_v1_2_4::runScriptHookWithArg(uint16 script, uint16 argument) {
-	byte record[18];
+	byte record[TG_SCRIPT_V2_0_POSTED_RUN_SIZE];
 
 	memset(record, 0, sizeof(record));
 	WRITE_LE_UINT16(record + 2, script);
-	WRITE_LE_UINT16(record + 6, (uint16)(argument - TG_HOST_V1_2_4_LITERAL_BIAS));
-	record[5] = 1;
+
+	if (_version >= kVersionV2_0) {
+		WRITE_LE_UINT16(record + TG_SCRIPT_V2_0_CALL_HEADER_SIZE, argument);
+		record[TG_SCRIPT_V2_0_CALL_COUNT] = 1;
+	} else {
+		WRITE_LE_UINT16(record + 6, (uint16)(argument - TG_HOST_V1_2_4_LITERAL_BIAS));
+		record[5] = 1;
+	}
 
 	uint16 saved = _scriptResult;
 	_scriptResult = 0;
-	o_callScript(record);
+
+	if (_version >= kVersionV2_0)
+		static_cast<TopgunEngine_v2_0 *>(this)->callScriptWithArguments(record);
+	else
+		o_callScript(record);
 
 	uint16 result = _scriptResult;
 	_scriptResult = saved;
@@ -1642,6 +1727,10 @@ bool TopgunEngine_v1_2_4::updateSpriteHoverFromPoint(int16 x, int16 y) {
 	if (_hoverSprite != 0)
 		postSpriteLeaveScript();
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	if (_version < kVersionV1_2_4) {
 		byte record[18];
 
@@ -1654,7 +1743,7 @@ bool TopgunEngine_v1_2_4::updateSpriteHoverFromPoint(int16 x, int16 y) {
 		_hoverSprite = id;
 	} else {
 		_hoverSprite = id;
-		enqueuePostedScriptRun(_hoverSpriteScript, id, (uint16)(1 - TG_HOST_V1_2_4_LITERAL_BIAS));
+		enqueuePostedScriptRun(_hoverSpriteScript, id, (uint16)(1 - literalBias));
 	}
 
 	return true;
@@ -1671,7 +1760,11 @@ void TopgunEngine_v1_2_4::postSpriteLeaveScript() {
 		record[5] = 2;
 		o_callScript(record);
 	} else {
-		enqueuePostedScriptRun(_hoverSpriteScript, _hoverSprite, (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS));
+		uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+		if (_version >= kVersionV2_0)
+			literalBias = 0;
+
+		enqueuePostedScriptRun(_hoverSpriteScript, _hoverSprite, (uint16)(0 - literalBias));
 	}
 
 	_hoverSprite = 0;
@@ -1693,7 +1786,7 @@ void TopgunEngine_v1_2_4::o_getKeyState(const byte *record) {
 void TopgunEngine_v1_2_4::o_setMouseEventScript(const byte *record) {
 	uint16 script = READ_LE_UINT16(record + 2);
 
-	if (_version >= kVersionV1_2_9 && script != 0)
+	if (_version >= kVersionV1_2_9 && _version < kVersionV2_0 && script != 0)
 		script = (uint16)(operandValue(script) - TG_HOST_V1_2_4_LITERAL_BIAS);
 
 	_mouseEventScript = script;
@@ -1718,7 +1811,11 @@ uint16 TopgunEngine_v1_2_4::builtinGetKeyState(uint16 vk) {
 }
 
 uint16 TopgunEngine_v1_2_4::builtinSetDraggedSpriteId(uint16 id) {
-	uint16 raw = (uint16)(id - TG_HOST_V1_2_4_LITERAL_BIAS);
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
+	uint16 raw = (uint16)(id - literalBias);
 	uint16 spriteType = kResV1_2_4Sprite;
 	if (_version >= kVersionV1_2_12)
 		spriteType = kResV1_2_12Sprite;
@@ -1729,13 +1826,23 @@ uint16 TopgunEngine_v1_2_4::builtinSetDraggedSpriteId(uint16 id) {
 		return 0;
 
 	_dragSpriteId = raw;
+
+	if (_version >= kVersionV2_0) {
+		_dragStartX = (int16)readVariable(TG_HOST_V1_2_4_VARIABLE_MOUSE_X);
+		_dragStartY = (int16)readVariable(TG_HOST_V1_2_4_VARIABLE_MOUSE_Y);
+	}
+
 	return 1;
 }
 
 uint16 TopgunEngine_v1_2_4::builtinSetKeyHookScript(uint16 script) {
 	uint16 previous = _keyHookScript;
 
-	_keyHookScript = script != 0 ? (uint16)(script - TG_HOST_V1_2_4_LITERAL_BIAS) : 0;
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
+	_keyHookScript = script != 0 ? (uint16)(script - literalBias) : 0;
 	return operandValue(previous);
 }
 
@@ -1751,7 +1858,11 @@ uint16 TopgunEngine_v1_2_4::builtinSetSpriteHoverScript(uint16 script) {
 		if (_hoverSpriteScript != 0 && _hoverSprite != 0)
 			postSpriteLeaveScript();
 
-		_hoverSpriteScript = script != 0 ? (uint16)(script - TG_HOST_V1_2_4_LITERAL_BIAS) : 0;
+		uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+		if (_version >= kVersionV2_0)
+			literalBias = 0;
+
+		_hoverSpriteScript = script != 0 ? (uint16)(script - literalBias) : 0;
 
 		if (script != 0) {
 			Common::Point cursor = g_system->getEventManager()->getMousePos();
@@ -1936,22 +2047,26 @@ void TopgunEngine_v1_2_4::fireDeviceGroupStateScript(byte group) {
 	if (state.stateScript == 0)
 		return;
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	if ((pressedMask & 1) != 0)
-		enqueuePostedScriptRun(state.stateScript, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(0xFE - TG_HOST_V1_2_4_LITERAL_BIAS));
+		enqueuePostedScriptRun(state.stateScript, (uint16)(group - literalBias), (uint16)(0xFE - literalBias));
 
 	if ((pressedMask & 2) != 0)
-		enqueuePostedScriptRun(state.stateScript, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(0xFD - TG_HOST_V1_2_4_LITERAL_BIAS));
+		enqueuePostedScriptRun(state.stateScript, (uint16)(group - literalBias), (uint16)(0xFD - literalBias));
 
 	if (_version >= kVersionV1_2_7) {
 		if ((pressedMask & 4) != 0)
-			enqueuePostedScriptRun(state.stateScript, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(0xFB - TG_HOST_V1_2_4_LITERAL_BIAS));
+			enqueuePostedScriptRun(state.stateScript, (uint16)(group - literalBias), (uint16)(0xFB - literalBias));
 
 		if ((pressedMask & 8) != 0)
-			enqueuePostedScriptRun(state.stateScript, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(0xF7 - TG_HOST_V1_2_4_LITERAL_BIAS));
+			enqueuePostedScriptRun(state.stateScript, (uint16)(group - literalBias), (uint16)(0xF7 - literalBias));
 	}
 
 	if (lastCode != 0)
-		enqueuePostedScriptRun(state.stateScript, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(0 - TG_HOST_V1_2_4_LITERAL_BIAS));
+		enqueuePostedScriptRun(state.stateScript, (uint16)(group - literalBias), (uint16)(0 - literalBias));
 }
 
 void TopgunEngine_v1_2_4::releaseOrRestoreDeviceGroups(bool release) {
@@ -2017,6 +2132,10 @@ void TopgunEngine_v1_2::comboHistoryTimeoutCallback(byte timerId) {
 	uint16 history = group.history;
 	group.history = 0;
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	for (uint16 i = 0; i < group.numBindingsA; i++) {
 		const DeviceBinding_v1_2_4 &entry = group.bindingsA[i];
 
@@ -2026,7 +2145,7 @@ void TopgunEngine_v1_2::comboHistoryTimeoutCallback(byte timerId) {
 			else if (_version < kVersionV1_2_4)
 				callDeviceGroupScript(groupIndex, entry.id, entry.script);
 			else
-				static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(entry.script, (uint16)(groupIndex - TG_HOST_V1_2_4_LITERAL_BIAS), entry.id);
+				static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(entry.script, (uint16)(groupIndex - literalBias), entry.id);
 
 			return;
 		}
@@ -2044,6 +2163,10 @@ void TopgunEngine_v1_2::scanDeviceBindingsListB(byte group) {
 
 	state.history = 0;
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	for (uint16 i = 0; i < state.numBindingsB; i++) {
 		const DeviceBinding_v1_2_4 &entry = state.bindingsB[i];
 
@@ -2053,7 +2176,7 @@ void TopgunEngine_v1_2::scanDeviceBindingsListB(byte group) {
 			else if (_version < kVersionV1_2_4)
 				callDeviceGroupScript(group, entry.id, entry.script);
 			else
-				static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(entry.script, (uint16)(group - TG_HOST_V1_2_4_LITERAL_BIAS), entry.id);
+				static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(entry.script, (uint16)(group - literalBias), entry.id);
 
 			return;
 		}
@@ -2119,11 +2242,13 @@ void TopgunEngine_v1_2::deviceGroupInputEvent(byte code, byte device) {
 
 	if (group.stateScript != 0) {
 		uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+		if (_version >= kVersionV2_0)
+			literalBias = 0;
 
 		if (_version < kVersionV1_2_4)
 			callDeviceGroupScript(groupIndex, (uint16)(sentCode - literalBias), group.stateScript);
 		else
-			static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(group.stateScript, (uint16)(groupIndex - TG_HOST_V1_2_4_LITERAL_BIAS), (uint16)(sentCode - TG_HOST_V1_2_4_LITERAL_BIAS));
+			static_cast<TopgunEngine_v1_2_4 *>(this)->enqueuePostedScriptRun(group.stateScript, (uint16)(groupIndex - literalBias), (uint16)(sentCode - literalBias));
 	}
 
 	if (released)
@@ -2471,16 +2596,23 @@ void TopgunEngine_v1_2::o_setDeviceGroupScript(const byte *record) {
 		return;
 	}
 
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
+
 	if (_version < kVersionV1_2_4)
 		_deviceGroups[groupIndex].stateScript = READ_LE_UINT16(record + 4);
 	else if (READ_LE_UINT16(record + 4) != 0)
-		_deviceGroups[groupIndex].stateScript = (uint16)(operandValue(READ_LE_UINT16(record + 4)) - TG_HOST_V1_2_4_LITERAL_BIAS);
+		_deviceGroups[groupIndex].stateScript = (uint16)(operandValue(READ_LE_UINT16(record + 4)) - literalBias);
 	else
 		_deviceGroups[groupIndex].stateScript = 0;
 }
 
 void TopgunEngine_v1_2::o_deviceGroupButtonState(const byte *record) {
 	uint16 groupIndex = operandValue(READ_LE_UINT16(record + 2));
+
+	if (_version >= kVersionV2_0)
+		groupIndex = (byte)groupIndex;
 
 	if (groupIndex >= TG_DEVICE_V1_2_3_NUM_GROUPS) {
 		warning("TopgunEngine_v1_2::o_deviceGroupButtonState(): group %d is out of range", groupIndex);

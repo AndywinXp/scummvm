@@ -28,7 +28,7 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -673,10 +673,14 @@ void TopgunEngine_v1_2::o_getSpriteRect(const byte *record) {
 	Common::Rect bounds;
 	spriteLib()->spriteGetBounds(sprite, bounds);
 
-	writeVariable(READ_LE_UINT16(record + 4), (uint16)bounds.left);
-	writeVariable(READ_LE_UINT16(record + 6), (uint16)bounds.top);
-	writeVariable(READ_LE_UINT16(record + 8), (uint16)bounds.right);
-	writeVariable(READ_LE_UINT16(record + 10), (uint16)bounds.bottom);
+	uint16 destinations = 4;
+	if (_version >= kVersionV2_0)
+		destinations = 6;
+
+	writeVariable(READ_LE_UINT16(record + destinations), (uint16)bounds.left);
+	writeVariable(READ_LE_UINT16(record + destinations + 2), (uint16)bounds.top);
+	writeVariable(READ_LE_UINT16(record + destinations + 4), (uint16)bounds.right);
+	writeVariable(READ_LE_UINT16(record + destinations + 6), (uint16)bounds.bottom);
 }
 
 void TopgunEngine_v1_2::o_formatString(const byte *record) {
@@ -727,7 +731,11 @@ void TopgunEngine_v1_2::o_compareStrings(const byte *record) {
 	if (!first || !second)
 		return;
 
-	bool caseSensitive = (READ_LE_UINT16(record) != kOpV1_2CompareStringsIgnoreCase);
+	uint16 ignoreCaseOpcode = kOpV1_2CompareStringsIgnoreCase;
+	if (_version >= kVersionV2_0)
+		ignoreCaseOpcode = kOpV2_0CompareStringsIgnoreCase;
+
+	bool caseSensitive = (READ_LE_UINT16(record) != ignoreCaseOpcode);
 
 	writeVariable(READ_LE_UINT16(record + 2), (uint16)compareStringsCustom(first, second, caseSensitive));
 }
@@ -843,14 +851,22 @@ void TopgunEngine_v1_2::o_isSpriteBusy(const byte *record) {
 	uint16 index = operandValue(READ_LE_UINT16(record + 4));
 	uint16 busy = 0;
 
-	if (isRecordIndexValid(index, "o_isSpriteBusy") && _records[index].handle != 0 && spriteLib()->spriteIsVisible(_records[index].handle) != 0)
+	bool loaded = true;
+	if (_version >= kVersionV2_0)
+		loaded = isResourceObjectLoaded(READ_LE_UINT16(record + 4), kResV1_2_12Sprite);
+
+	if (loaded && isRecordIndexValid(index, "o_isSpriteBusy") && _records[index].handle != 0 && spriteLib()->spriteIsVisible(_records[index].handle) != 0)
 		busy = 1;
 
 	writeVariable(READ_LE_UINT16(record + 2), busy);
 }
 
 void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
-	uint16 firstVariable = READ_LE_UINT16(record + 4);
+	uint16 variables = 4;
+	if (_version >= kVersionV2_0)
+		variables = 6;
+
+	uint16 firstVariable = READ_LE_UINT16(record + variables);
 	uint16 spriteType = kResV1_2_3Sprite;
 	if (_version >= kVersionV1_2_12)
 		spriteType = kResV1_2_12Sprite;
@@ -860,6 +876,8 @@ void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 		spriteType = kResV1_2_4Sprite;
 
 	uint16 bias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		bias = 0;
 
 	if (_version >= kVersionV1_2_6 && !validateResourceType(READ_LE_UINT16(record + 2), spriteType))
 		return;
@@ -883,6 +901,8 @@ void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	uint16 maxCount = TG_SCRIPT_V1_2_NUM_ELEMENT_VARIABLES;
 	if (_version >= kVersionV1_2_7_1)
 		maxCount = TG_SCRIPT_V1_2_7_1_NUM_ELEMENT_VARIABLES;
+	if (_version >= kVersionV2_0)
+		maxCount = TG_SCRIPT_V2_0_NUM_ELEMENT_VARIABLES;
 
 	if (count > maxCount) {
 		warning("TopgunEngine_v1_2::o_getSpriteElementIds(): the sprite has %d elements", count);
@@ -890,7 +910,7 @@ void TopgunEngine_v1_2::o_getSpriteElementIds(const byte *record) {
 	}
 
 	for (uint16 i = 0; i < count; i++) {
-		uint16 variable = READ_LE_UINT16(record + 4 + 2 * i);
+		uint16 variable = READ_LE_UINT16(record + variables + 2 * i);
 
 		if (variable != 0 && info.frames[i])
 			writeVariable(variable, (uint16)(READ_LE_UINT16(info.frames[i] + TG_HOST_V1_2_BITMAP_RESOURCE_ID) + bias));
@@ -902,16 +922,23 @@ void TopgunEngine_v1_2::o_playMidi(const byte *record) {
 		return;
 
 	byte parameters[TG_AUDIO_V1_2_3_1_MIDI_PLAY_RECORD_SIZE];
+	uint16 blockOffset = 4;
+	uint16 literalBias = TG_HOST_V1_2_4_LITERAL_BIAS;
+
+	if (_version >= kVersionV2_0) {
+		blockOffset = 6;
+		literalBias = 0;
+	}
 
 	if (_version >= kVersionV1_2_3_1)
-		memcpy(parameters, record + 4, sizeof(parameters));
+		memcpy(parameters, record + blockOffset, sizeof(parameters));
 
 	if (_version >= kVersionV1_2_4) {
-		uint16 notifyValue = operandValue(READ_LE_UINT16(record + 8));
+		uint16 notifyValue = operandValue(READ_LE_UINT16(record + blockOffset + TG_AUDIO_V1_2_3_1_MIDI_PLAY_OFFSET_PARAM));
 		uint16 notifyScript = 0;
 
 		if (notifyValue != 0)
-			notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_4_LITERAL_BIAS);
+			notifyScript = (uint16)(notifyValue - literalBias);
 
 		WRITE_LE_UINT16(parameters + TG_AUDIO_V1_2_3_1_MIDI_PLAY_OFFSET_PARAM, notifyScript);
 	}
@@ -1282,7 +1309,11 @@ void TopgunEngine_v1_2::o_sineCosine(const byte *record) {
 	int16 angle = (int16)operandValue(READ_LE_UINT16(record + 4));
 	int16 result;
 
-	if (READ_LE_UINT16(record) == kOpV1_2Sine)
+	uint16 sineOpcode = kOpV1_2Sine;
+	if (_version >= kVersionV2_0)
+		sineOpcode = kOpV2_0Sine;
+
+	if (READ_LE_UINT16(record) == sineOpcode)
 		result = utilsLibrary()->sine(angle);
 	else
 		result = utilsLibrary()->cosine(angle);

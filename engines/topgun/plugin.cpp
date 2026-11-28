@@ -36,7 +36,7 @@
 #include "topgun/libraries/sprite/sprite_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
 #include "topgun/plugin.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -219,6 +219,19 @@ void EnginePluginHost::transferSprite(uint16 source, uint16 destination, uint16 
 }
 
 uint16 EnginePluginHost::callScript(uint16 script, uint16 argument1, uint16 argument2) {
+	if (_engine->_version >= kVersionV2_0) {
+		byte call[TG_SCRIPT_V2_0_POSTED_RUN_SIZE];
+		memset(call, 0, sizeof(call));
+
+		WRITE_LE_UINT16(call + 2, script);
+		call[TG_SCRIPT_V2_0_CALL_FRAME_SLOTS] = TG_SCRIPT_V2_0_HOST_FRAME_SLOTS;
+		call[TG_SCRIPT_V2_0_CALL_COUNT] = 2;
+		WRITE_LE_UINT16(call + TG_SCRIPT_V2_0_CALL_HEADER_SIZE, argument1);
+		WRITE_LE_UINT16(call + TG_SCRIPT_V2_0_CALL_HEADER_SIZE + 2, argument2);
+
+		return static_cast<TopgunEngine_v2_0 *>(_engine)->callScriptWithArguments(call);
+	}
+
 	byte record[18];
 	memset(record, 0, sizeof(record));
 
@@ -466,12 +479,26 @@ void EnginePluginHost::writeAddress(uint16 address, uint16 value) {
 }
 
 uint16 EnginePluginHost::runMessage(uint16 script, const uint16 *arguments, uint16 count) {
-	byte record[TG_PLUGIN_V1_2_12_RUN_MESSAGE_HEADER_SIZE + 2 * TG_PLUGIN_V1_2_12_RUN_MESSAGE_MAX_ARGUMENTS];
+	byte record[TG_SCRIPT_V2_0_CALL_HEADER_SIZE + 2 * TG_PLUGIN_V1_2_12_RUN_MESSAGE_MAX_ARGUMENTS];
 	memset(record, 0, sizeof(record));
 
 	if (count > TG_PLUGIN_V1_2_12_RUN_MESSAGE_MAX_ARGUMENTS) {
 		warning("EnginePluginHost::runMessage(): %d arguments are too many", count);
 		count = TG_PLUGIN_V1_2_12_RUN_MESSAGE_MAX_ARGUMENTS;
+	}
+
+	if (_engine->_version >= kVersionV2_0) {
+		WRITE_LE_UINT16(record + 2, script);
+		record[TG_SCRIPT_V2_0_CALL_FRAME_SLOTS] = TG_SCRIPT_V2_0_HOST_FRAME_SLOTS;
+		record[TG_SCRIPT_V2_0_CALL_COUNT] = (byte)count;
+
+		for (uint16 i = 0; i < count; i++)
+			WRITE_LE_UINT16(record + TG_SCRIPT_V2_0_CALL_HEADER_SIZE + 2 * i, arguments[i]);
+
+		_engine->_scriptResult = 1;
+		static_cast<TopgunEngine_v2_0 *>(_engine)->callScriptWithArguments(record);
+
+		return _engine->_scriptResult;
 	}
 
 	WRITE_LE_UINT16(record, kOpV1_2_4CallScript);

@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -338,6 +338,12 @@ bool TopgunEngine_v1_2::o_transferSprite(const byte *record) {
 	uint16 script = READ_LE_UINT16(record + 8);
 	bool freeSource = (record[0x0A] != 0);
 	bool flag = (record[0x0B] != 0);
+
+	if (_version >= kVersionV2_0) {
+		script = 0;
+		freeSource = (record[8] != 0);
+		flag = false;
+	}
 
 	if (_version >= kVersionV1_2_1) {
 		uint16 spriteType = kResV1_2_1Sprite;

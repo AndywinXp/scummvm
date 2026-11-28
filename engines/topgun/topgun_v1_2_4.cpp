@@ -26,7 +26,7 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -598,13 +598,20 @@ void TopgunEngine_v1_2_4::handleActivateMessage(uint16 param) {
 		}
 
 		if (_activateScript != 0) {
-			byte record[18];
+			byte record[TG_SCRIPT_V2_0_POSTED_RUN_SIZE];
 			memset(record, 0, sizeof(record));
 
 			WRITE_LE_UINT16(record + 2, _activateScript);
-			record[5] = 1;
-			WRITE_LE_UINT16(record + 6, (uint16)((active ? 1 : 0) - TG_HOST_V1_2_4_LITERAL_BIAS));
-			o_callScript(record);
+
+			if (_version >= kVersionV2_0) {
+				record[TG_SCRIPT_V2_0_CALL_COUNT] = 1;
+				WRITE_LE_UINT16(record + TG_SCRIPT_V2_0_CALL_HEADER_SIZE, active ? 1 : 0);
+				static_cast<TopgunEngine_v2_0 *>(this)->callScriptWithArguments(record);
+			} else {
+				record[5] = 1;
+				WRITE_LE_UINT16(record + 6, (uint16)((active ? 1 : 0) - TG_HOST_V1_2_4_LITERAL_BIAS));
+				o_callScript(record);
+			}
 		}
 
 		_activateState = active;
@@ -624,7 +631,7 @@ void TopgunEngine_v1_2_4::handleActivateMessage(uint16 param) {
 				runScriptResource(_activationScript);
 
 			if (_savedCursorMode != 0)
-				_cursorMode = (byte)_savedCursorMode;
+				_cursorMode = _savedCursorMode;
 
 			_savedCursorMode = 0;
 			applyCursorFromRegister();

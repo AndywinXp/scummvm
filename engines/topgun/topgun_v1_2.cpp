@@ -31,7 +31,7 @@
 
 #include "topgun/display.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -70,6 +70,9 @@ TopgunEngine_v1_2::TopgunEngine_v1_2(OSystem *syst, const ADGameDescription *gam
 
 	if (version >= kVersionV1_2_3)
 		_argumentFrame = (version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_FIRST_FRAME_INDEX : TG_HOST_V1_2_3_FIRST_FRAME_INDEX;
+
+	if (version >= kVersionV2_0)
+		_argumentFrame = TG_HOST_V2_0_FIRST_FRAME_INDEX;
 }
 
 TopgunEngine_v1_2::~TopgunEngine_v1_2() {
@@ -133,6 +136,9 @@ uint16 TopgunEngine_v1_2::variableIndex(uint16 operand) const {
 }
 
 uint16 TopgunEngine_v1_2::operandValue(uint16 operand) const {
+	if (_version >= kVersionV2_0)
+		return operand;
+
 	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
 	if (operand > lastOperand)
@@ -143,6 +149,9 @@ uint16 TopgunEngine_v1_2::operandValue(uint16 operand) const {
 
 uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
 	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
+
+	if (_version >= kVersionV2_0)
+		lastOperand = (uint16)(TG_HOST_V1_2_4_FIRST_ARGUMENT_SLOT + _argumentFrame);
 
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::readVariable(): variable %d is out of range", index);
@@ -155,6 +164,9 @@ uint16 TopgunEngine_v1_2::readVariable(uint16 index) const {
 void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
 	uint16 lastOperand = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LAST_OPERAND_INDEX : TG_HOST_V1_2_VARIABLE_LAST_INDEX;
 
+	if (_version >= kVersionV2_0)
+		lastOperand = (uint16)(TG_HOST_V1_2_4_FIRST_ARGUMENT_SLOT + _argumentFrame);
+
 	if (index > lastOperand) {
 		warning("TopgunEngine_v1_2::writeVariable(): variable %d is out of range", index);
 		return;
@@ -165,7 +177,9 @@ void TopgunEngine_v1_2::writeVariable(uint16 index, uint16 value) {
 
 uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_12)
+	if (_version >= kVersionV2_0)
+		tableAddress = TG_SCRIPT_V2_0_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_12)
 		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3_2)
 		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
@@ -177,7 +191,9 @@ uint16 TopgunEngine_v1_2::operandAddress(uint16 operand) const {
 
 uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_12)
+	if (_version >= kVersionV2_0)
+		tableAddress = TG_SCRIPT_V2_0_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_12)
 		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3_2)
 		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
@@ -196,7 +212,9 @@ uint16 TopgunEngine_v1_2::readAddress(uint16 address) const {
 
 void TopgunEngine_v1_2::writeAddress(uint16 address, uint16 value) {
 	uint16 tableAddress = TG_SCRIPT_V1_2_3_TABLE_ADDRESS;
-	if (_version >= kVersionV1_2_12)
+	if (_version >= kVersionV2_0)
+		tableAddress = TG_SCRIPT_V2_0_TABLE_ADDRESS;
+	else if (_version >= kVersionV1_2_12)
 		tableAddress = TG_SCRIPT_V1_2_12_TABLE_ADDRESS;
 	else if (_version >= kVersionV1_2_3_2)
 		tableAddress = TG_SCRIPT_V1_2_4_TABLE_ADDRESS;
@@ -802,7 +820,7 @@ void TopgunEngine_v1_2::handleActivateMessage(uint16 param) {
 				runScriptResource(_activationScript);
 
 			if (_savedCursorMode != 0)
-				_cursorMode = (byte)_savedCursorMode;
+				_cursorMode = _savedCursorMode;
 
 			_savedCursorMode = 0;
 			applyCursorFromRegister();
@@ -881,7 +899,7 @@ void TopgunEngine_v1_2::drainMessage(uint16 id) {
 	_numMsgsPosted = kept;
 }
 
-void TopgunEngine_v1_2::setCursorMode(byte mode) {
+void TopgunEngine_v1_2::setCursorMode(uint16 mode) {
 	if (_cursorMode == 3 || _cursorMode == 4)
 		removeMessages(kMsgLButtonDown);
 

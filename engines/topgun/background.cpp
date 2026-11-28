@@ -26,7 +26,7 @@
 #include "topgun/libraries/audio/audio.h"
 #include "topgun/libraries/sprite/sprite.h"
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -609,6 +609,9 @@ void TopgunEngine_v1_2::setSolidBackgroundColorBitmap(uint32 color) {
 
 	_screenBox = false;
 
+	if (_version >= kVersionV1_2_12)
+		_screenBox = _scrollBoxWindowBox;
+
 	syncBackgroundDimensions(_backgroundBitmap);
 
 	Common::Rect rect;
@@ -950,7 +953,11 @@ void TopgunEngine_v1_2::o_fadeInOut(const byte *record) {
 	if (steps < 1 || steps > TG_HOST_V1_2_FADE_STEPS)
 		steps = TG_HOST_V1_2_FADE_STEPS;
 
-	if (READ_LE_UINT16(record) == 10) {
+	uint16 fadeInOpcode = kOpV1_2FadeIn;
+	if (_version >= kVersionV2_0)
+		fadeInOpcode = kOpV2_0FadeIn;
+
+	if (READ_LE_UINT16(record) == fadeInOpcode) {
 		sceneTransitionIn(steps);
 
 		if (!display()->hasPalette())
@@ -1059,14 +1066,20 @@ void TopgunEngine_v1_2_4::setBackgroundByMode(const byte *record) {
 		setBackgroundFromBitmapResource(record);
 		break;
 
-	case 1:
+	case 1: {
+		uint16 color = READ_LE_UINT16(record + 8);
+
+		if (_version >= kVersionV2_0)
+			color = record[9];
+
 		clearBackground();
 
 		if (display()->hasPalette())
-			setSolidBackgroundColorPalette(READ_LE_UINT16(record + 8));
+			setSolidBackgroundColorPalette(color);
 		else
-			setSolidBackgroundColorBitmap(READ_LE_UINT16(record + 8));
+			setSolidBackgroundColorBitmap(color);
 		break;
+	}
 
 	case 2:
 		clearBackground();

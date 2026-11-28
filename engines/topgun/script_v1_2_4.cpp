@@ -22,7 +22,7 @@
 #include "common/endian.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -699,19 +699,30 @@ bool TopgunEngine_v1_2_4::enqueuePostedScriptRun(uint16 script, uint16 argument1
 	if (_numPostedScriptRuns >= maxRuns)
 		return fatalError(112, "Too many 'run' messages attempted.");
 
-	byte *record = _postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * _numPostedScriptRuns;
+	uint16 recordSize = TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE;
+	if (_version >= kVersionV2_0)
+		recordSize = TG_SCRIPT_V2_0_POSTED_RUN_SIZE;
 
-	memset(record, 0, TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE);
+	byte *record = _postedRuns + recordSize * _numPostedScriptRuns;
+
+	memset(record, 0, recordSize);
 	WRITE_LE_UINT16(record + 2, script);
-	WRITE_LE_UINT16(record + 6, argument1);
 
-	if (argument1 != 0)
-		record[5]++;
+	if (_version >= kVersionV2_0) {
+		record[TG_SCRIPT_V2_0_CALL_COUNT] = 2;
+		WRITE_LE_UINT16(record + TG_SCRIPT_V2_0_CALL_HEADER_SIZE, argument1);
+		WRITE_LE_UINT16(record + TG_SCRIPT_V2_0_CALL_HEADER_SIZE + 2, argument2);
+	} else {
+		WRITE_LE_UINT16(record + 6, argument1);
 
-	WRITE_LE_UINT16(record + 8, argument2);
+		if (argument1 != 0)
+			record[5]++;
 
-	if (argument2 != 0)
-		record[5]++;
+		WRITE_LE_UINT16(record + 8, argument2);
+
+		if (argument2 != 0)
+			record[5]++;
+	}
 
 	_numPostedScriptRuns++;
 	return true;
@@ -723,9 +734,16 @@ void TopgunEngine_v1_2_4::servicePostedRunQueue() {
 	// The runs posted while the queue is being drained wait for the next service
 	if (_version >= kVersionV1_2_12) {
 		uint16 count = _numPostedScriptRuns;
+		uint16 recordSize = TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE;
+		if (_version >= kVersionV2_0)
+			recordSize = TG_SCRIPT_V2_0_POSTED_RUN_SIZE;
 
 		while (index < count) {
-			o_callScript(_postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * index);
+			if (_version >= kVersionV2_0)
+				static_cast<TopgunEngine_v2_0 *>(this)->callScriptWithArguments(_postedRuns + recordSize * index);
+			else
+				o_callScript(_postedRuns + recordSize * index);
+
 			index++;
 		}
 
@@ -738,7 +756,7 @@ void TopgunEngine_v1_2_4::servicePostedRunQueue() {
 		_numPostedScriptRuns -= count;
 
 		if (_numPostedScriptRuns != 0)
-			memmove(_postedRuns, _postedRuns + TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * count, TG_SCRIPT_V1_2_4_POSTED_RUN_SIZE * _numPostedScriptRuns);
+			memmove(_postedRuns, _postedRuns + recordSize * count, recordSize * _numPostedScriptRuns);
 
 		return;
 	}

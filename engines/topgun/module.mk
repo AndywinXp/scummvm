@@ -71,6 +71,7 @@ MODULE_OBJS = \
 	opcode.o \
 	opcode_v1_2.o \
 	opcode_v1_2_4.o \
+	opcode_v2_0.o \
 	plugin.o \
 	res_loader.o \
 	scene.o \
@@ -78,6 +79,7 @@ MODULE_OBJS = \
 	script_v1_1.o \
 	script_v1_2.o \
 	script_v1_2_4.o \
+	script_v2_0.o \
 	text.o \
 	topgun.o \
 	topgun_v1_0.o \

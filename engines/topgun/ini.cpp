@@ -25,7 +25,7 @@
 #include "common/system.h"
 #include "common/textconsole.h"
 
-#include "topgun/topgun_v1_2.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -425,7 +425,11 @@ void TopgunEngine_v1_2::o_iniAccess(const byte *record) {
 	byte obfuscation = record[TG_INI_V1_2_RECORD_OBFUSCATION];
 	uint16 value = READ_LE_UINT16(record + TG_INI_V1_2_RECORD_VALUE);
 
-	if (READ_LE_UINT16(record) == kOpV1_2IniWrite) {
+	uint16 writeOpcode = kOpV1_2IniWrite;
+	if (_version >= kVersionV2_0)
+		writeOpcode = kOpV2_0IniWrite;
+
+	if (READ_LE_UINT16(record) == writeOpcode) {
 		if (record[TG_INI_V1_2_RECORD_STRING_MODE] != 0)
 			iniWriteStringEncoded(obfuscation, value, key, section);
 		else

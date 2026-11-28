@@ -25,14 +25,18 @@
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
 void TopgunEngine_v1_2::o_setScriptTimer(const byte *record) {
 	uint32 delay;
+	bool wordDelay = (record[0x0A] != 0);
 
-	if (record[0x0A] != 0)
+	if (_version >= kVersionV2_0)
+		wordDelay = ((record[0x0A] & 1) != 0);
+
+	if (wordDelay)
 		delay = operandValue(READ_LE_UINT16(record + 6));
 	else
 		delay = READ_LE_UINT32(record + 6);
@@ -176,6 +180,8 @@ bool TopgunEngine_v1_2::appendCollisionPair() {
 
 bool TopgunEngine_v1_2::addCollisionPair(const byte *record) {
 	uint16 literalBias = (_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS;
+	if (_version >= kVersionV2_0)
+		literalBias = 0;
 
 	if (_version >= kVersionV1_2_3_1 && record[0x0D] != 0) {
 		_numCollisionPairs = 0;

@@ -905,7 +905,7 @@ protected:
 	void showShutdownErrorBox();
 
 	// Cursor
-	void setCursorMode(byte mode) override;
+	void setCursorMode(uint16 mode) override;
 	void applyCursorFromRegister() override;
 	void forceShowOrHideCursor(bool show);
 

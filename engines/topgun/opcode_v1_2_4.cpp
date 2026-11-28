@@ -24,7 +24,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/display.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -32,16 +32,24 @@ bool TopgunEngine_v1_2_4::o_playWave(uint16 waveId, const byte *params) {
 	if (_version < kVersionV1_2_4)
 		return TopgunEngine_v1_2::o_playWave(waveId, params);
 
-	byte parameters[TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE];
-	memcpy(parameters, params, sizeof(parameters));
+	uint16 parametersSize = TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE;
+	if (_version >= kVersionV2_0)
+		parametersSize = TG_SCRIPT_V2_0_WAVE_BLOCK_SIZE;
 
-	uint16 notifyValue = operandValue(READ_LE_UINT16(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM));
+	byte parameters[TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE] = {};
+	memcpy(parameters, params, parametersSize);
+
+	uint16 notifyValue = 0;
 	uint16 notifyScript = 0;
 
-	if (notifyValue != 0)
-		notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_4_LITERAL_BIAS);
+	if (_version < kVersionV2_0) {
+		notifyValue = operandValue(READ_LE_UINT16(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM));
 
-	WRITE_LE_UINT16(parameters + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM, notifyScript);
+		if (notifyValue != 0)
+			notifyScript = (uint16)(notifyValue - TG_HOST_V1_2_4_LITERAL_BIAS);
+
+		WRITE_LE_UINT16(parameters + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM, notifyScript);
+	}
 
 	uint16 waveType = kResV1_2_4Wave;
 	if (_version >= kVersionV1_2_6)
@@ -73,7 +81,13 @@ void TopgunEngine_v1_2_4::o_arithmetic(const byte *record) {
 	}
 
 	uint16 destination = READ_LE_UINT16(record + 2);
-	int32 accumulator = (int16)operandValue(destination);
+	int32 accumulator;
+
+	if (_version >= kVersionV2_0)
+		accumulator = (int16)readVariable(destination);
+	else
+		accumulator = (int16)operandValue(destination);
+
 	uint16 count = READ_LE_UINT16(record + 4);
 
 	for (uint16 i = 0; i < count; i++)
@@ -187,8 +201,16 @@ uint16 TopgunEngine_v1_2_4::evaluateCondition(byte condition, uint16 operandA, u
 }
 
 bool TopgunEngine_v1_2_4::o_randomRunScript(byte *record) {
-	if (record[0x10] != 0) {
-		uint16 listId = READ_LE_UINT16(record + 4);
+	uint16 listFlag = 0x10;
+	uint16 scripts = 4;
+
+	if (_version >= kVersionV2_0) {
+		listFlag = 4;
+		scripts = 6;
+	}
+
+	if (record[listFlag] != 0) {
+		uint16 listId = READ_LE_UINT16(record + scripts);
 		uint16 count = countScriptListEntries(listId);
 		if (count == 0)
 			return false;
@@ -228,12 +250,22 @@ bool TopgunEngine_v1_2_4::o_randomRunScript(byte *record) {
 		return true;
 	}
 
-	return runScriptResource(READ_LE_UINT16(record + 4 + 2 * pick));
+	return runScriptResource(READ_LE_UINT16(record + scripts + 2 * pick));
 }
 
 bool TopgunEngine_v1_2_4::o_roundRobinRunScript(byte *record) {
-	if (record[0x10] != 0) {
-		uint16 listId = READ_LE_UINT16(record + 4);
+	uint16 listFlag = 0x10;
+	uint16 scripts = 4;
+	uint16 roundRobinOpcode = kOpV1_2_4RoundRobinRunScript;
+
+	if (_version >= kVersionV2_0) {
+		listFlag = 4;
+		scripts = 6;
+		roundRobinOpcode = kOpV2_0RoundRobinRunScript;
+	}
+
+	if (record[listFlag] != 0) {
+		uint16 listId = READ_LE_UINT16(record + scripts);
 		uint16 count = countScriptListEntries(listId);
 		if (count == 0)
 			return false;
@@ -255,7 +287,7 @@ bool TopgunEngine_v1_2_4::o_roundRobinRunScript(byte *record) {
 		return false;
 	}
 
-	uint16 id = READ_LE_UINT16(record + 4 + 2 * record[3]);
+	uint16 id = READ_LE_UINT16(record + scripts + 2 * record[3]);
 
 	uint16 scriptType = kResV1_2_4Script;
 	if (_version >= kVersionV1_2_12)
@@ -272,7 +304,7 @@ bool TopgunEngine_v1_2_4::o_roundRobinRunScript(byte *record) {
 
 	const byte *nested = _records[index].data;
 
-	if (READ_LE_UINT16(nested) != kOpV1_2_4RoundRobinRunScript || nested[2] == nested[3])
+	if (READ_LE_UINT16(nested) != roundRobinOpcode || nested[2] == nested[3])
 		record[3]++;
 
 	return runScriptResource(id);
@@ -286,15 +318,22 @@ void TopgunEngine_v1_2_4::o_listRunScript(const byte *record) {
 
 	uint16 indexVariable = READ_LE_UINT16(record + 6);
 	uint16 index = readVariable(indexVariable);
+	bool runFailScript = (record[8] != 0);
+	bool advanceIndex = (record[9] != 0);
+
+	if (_version >= kVersionV2_0) {
+		runFailScript = ((record[8] & TG_SCRIPT_V2_0_LIST_RUN_FAIL_SCRIPT) != 0);
+		advanceIndex = ((record[8] & TG_SCRIPT_V2_0_LIST_ADVANCE) != 0);
+	}
 
 	if (index >= count) {
-		if (record[8] != 0)
+		if (runFailScript)
 			runScriptResource(READ_LE_UINT16(record + 4));
 	} else {
 		runScriptListEntry(listId, (int16)index);
 	}
 
-	if (record[9] != 0) {
+	if (advanceIndex) {
 		index++;
 
 		if (index >= count)
@@ -335,8 +374,12 @@ void TopgunEngine_v1_2_4::o_getSpritePosition(const byte *record) {
 	if (sprite != 0)
 		spriteLib()->spriteGetPosition(sprite, x, y);
 
-	writeVariable(READ_LE_UINT16(record + 4), (uint16)x);
-	writeVariable(READ_LE_UINT16(record + 6), (uint16)y);
+	uint16 destinations = 4;
+	if (_version >= kVersionV2_0)
+		destinations = 6;
+
+	writeVariable(READ_LE_UINT16(record + destinations), (uint16)x);
+	writeVariable(READ_LE_UINT16(record + destinations + 2), (uint16)y);
 }
 
 void TopgunEngine_v1_2_4::o_loadPaletteResource(const byte *record) {

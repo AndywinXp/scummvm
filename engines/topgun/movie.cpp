@@ -24,7 +24,7 @@
 #include "common/textconsole.h"
 
 #include "topgun/libraries/utils/utils.h"
-#include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 
 namespace Topgun {
 
@@ -755,7 +755,16 @@ bool TopgunEngine_v1_2::movieStepFrame(Movie_v1_2 *movie) {
 }
 
 bool TopgunEngine_v1_2::movieBegin(byte *command, uint16 sprite) {
-	uint16 index = operandValue(READ_LE_UINT16(command + TG_MOVIE_V1_2_COMMAND_RESOURCE));
+	uint16 resource = READ_LE_UINT16(command + TG_MOVIE_V1_2_COMMAND_RESOURCE);
+
+	if (_version >= kVersionV2_0) {
+		byte copy[TG_MOVIE_V2_0_COMMAND_RESOLVE_SIZE];
+		memcpy(copy, command, sizeof(copy));
+		static_cast<TopgunEngine_v2_0 *>(this)->resolveRecordOperandWord2(copy);
+		resource = READ_LE_UINT16(copy + TG_MOVIE_V1_2_COMMAND_RESOURCE);
+	}
+
+	uint16 index = operandValue(resource);
 	if (!isRecordIndexValid(index, "movieBegin"))
 		return false;
 
@@ -800,7 +809,9 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 	if (!movie)
 		return 0;
 
-	if (_version >= kVersionV1_2_6)
+	if (_version >= kVersionV2_0)
+		command[TG_MOVIE_V1_2_6_COMMAND_FRAME_READY] = 0;
+	else if (_version >= kVersionV1_2_6)
 		WRITE_LE_UINT16(command + TG_MOVIE_V1_2_6_COMMAND_FRAME_READY, 0);
 	else
 		command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = 0;
@@ -828,7 +839,9 @@ uint16 TopgunEngine_v1_2::spriteMovieService(uint16 sprite, byte *command, byte 
 		if (!movieStepFrame(movie))
 			return 0;
 
-		if (_version >= kVersionV1_2_6)
+		if (_version >= kVersionV2_0)
+			command[TG_MOVIE_V1_2_6_COMMAND_FRAME_READY] = movie->frameUpdated ? 1 : 0;
+		else if (_version >= kVersionV1_2_6)
 			WRITE_LE_UINT16(command + TG_MOVIE_V1_2_6_COMMAND_FRAME_READY, movie->frameUpdated ? 1 : 0);
 		else
 			command[TG_MOVIE_V1_2_COMMAND_FRAME_READY] = movie->frameUpdated ? 1 : 0;
