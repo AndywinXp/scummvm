@@ -339,7 +339,15 @@ int32 ResourceLibrary::readCompressedWave(ResourceFile *file, WaveStreamInfo *in
 
 void ResourceLibrary::readEntry(const ResourceFile *file, uint16 index, ResourceEntry &entry) const {
 	const byte *data = file->index + (uint32)index * TG_RES_INDEX_ENTRY_SIZE;
-	entry.type = READ_LE_UINT16(data);
+
+	if (_engine->_version >= kVersionV2_0) {
+		entry.type = data[0];
+		entry.segment = data[1];
+	} else {
+		entry.type = READ_LE_UINT16(data);
+		entry.segment = 0;
+	}
+
 	entry.offset = READ_LE_UINT32(data + 2);
 	entry.size = READ_LE_UINT32(data + 6);
 }

@@ -27,6 +27,7 @@
 #include "topgun/topgun_v1_1.h"
 #include "topgun/topgun_v1_2.h"
 #include "topgun/topgun_v1_2_4.h"
+#include "topgun/topgun_v2_0.h"
 #include "topgun/tunes_player.h"
 
 namespace Topgun {
@@ -114,6 +115,11 @@ Common::Error TopgunMetaEngine::createInstance(OSystem *syst, Engine **engine, c
 
 	if (gameId == "aceventura" && (desc->flags & ADGF_DEMO)) {
 		*engine = new Topgun::TopgunEngine_v1_2_4(syst, desc, Topgun::kVersionV1_2_7_3);
+		return Common::kNoError;
+	}
+
+	if (gameId == "virgilreality" && !(desc->flags & ADGF_DEMO)) {
+		*engine = new Topgun::TopgunEngine_v2_0(syst, desc);
 		return Common::kNoError;
 	}
 

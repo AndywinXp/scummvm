@@ -204,6 +204,9 @@ bool TopgunEngine_v1_2_4::rtStartup(bool runChecks) {
 	if (getGameId() == "aceventura")
 		return runStartup("Ace Ventura", "ACE.BIN");
 
+	if (getGameId() == "virgilreality")
+		return runStartup("Virgil Reality", "VIRGIL.BIN");
+
 	if (getGameId() == "junglegames" && _version >= kVersionV1_2_11)
 		return runStartup("Pumbaa And Timon's Jungle Arcade", "JUNGLE.BIN");
 

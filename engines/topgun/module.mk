@@ -84,6 +84,7 @@ MODULE_OBJS = \
 	topgun_v1_1.o \
 	topgun_v1_2.o \
 	topgun_v1_2_4.o \
+	topgun_v2_0.o \
 	transfer.o \
 	tunes_player.o
 

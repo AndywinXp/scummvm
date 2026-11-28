@@ -644,6 +644,17 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"virgilreality",
+		"",
+		AD_ENTRY2s("VIRGIL.BIN", "28bfa22ab531d2f70140305fcc79d6c2", 46354,
+			"VIRLAB.BIN", "e9c0fe8cf15ce5068fdfb6ea2750f804", 2228599),
+		Common::EN_ANY,
+		Common::kPlatformWindows,
+		ADGF_UNSTABLE,
+		GUIO2(GAMEOPTION_SCREEN_800X600, GAMEOPTION_HIGH_BIT_DEPTH)
+	},
+
+	{
+		"virgilreality",
 		"Demo",
 		AD_ENTRY2s("LIBRARY.BIN", "03c4289eac432fb694e0c3a715b85cfd", 4707471,
 			"SAMPLER3.BIN", "1643920225eab3d987c787a5f3302c70", 186982),

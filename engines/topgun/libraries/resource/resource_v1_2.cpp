@@ -251,14 +251,14 @@ bool ResourceLibrary_v1_2::readChainedBlocks(ResourceFile *file, byte *buffer, u
 	return true;
 }
 
-bool ResourceLibrary_v1_2::readResourceBytes(ResourceFile *file, byte *buffer, uint32 count) {
+bool ResourceLibrary_v1_2::readResourceBytes(ResourceFile *file, Common::File *stream, byte *buffer, uint32 count) {
 	if (file->chained)
 		return readChainedBlocks(file, buffer, count);
 
-	return file->stream->read(buffer, count) == count;
+	return stream->read(buffer, count) == count;
 }
 
-bool ResourceLibrary_v1_2::readChunkedWithCallback(ResourceFile *file, byte *buffer, uint32 count) {
+bool ResourceLibrary_v1_2::readChunkedWithCallback(ResourceFile *file, Common::File *stream, byte *buffer, uint32 count) {
 	if (count == 0)
 		return true;
 
@@ -269,7 +269,7 @@ bool ResourceLibrary_v1_2::readChunkedWithCallback(ResourceFile *file, byte *buf
 
 	do {
 		uint32 chunk = ((int32)count <= file->callbackInterval) ? count : (uint32)file->callbackInterval;
-		if (!readResourceBytes(file, buffer, chunk))
+		if (!readResourceBytes(file, stream, buffer, chunk))
 			return false;
 
 		buffer += chunk;
@@ -280,14 +280,14 @@ bool ResourceLibrary_v1_2::readChunkedWithCallback(ResourceFile *file, byte *buf
 			uint32 savedCounter = file->callbackCounter;
 			int32 savedInterval = file->callbackInterval;
 			uint16 savedChainOffset = file->chainOffset;
-			int64 position = file->stream->pos();
+			int64 position = stream->pos();
 
 			engine()->resourceLoadProgressCallback();
 
 			file->callbackInterval = savedInterval;
 			file->callbackCounter = savedCounter - savedInterval;
 			file->chainOffset = savedChainOffset;
-			file->stream->seek(position, SEEK_SET);
+			stream->seek(position, SEEK_SET);
 		}
 	} while (count != 0);
 
@@ -307,6 +307,11 @@ uint16 ResourceLibrary_v1_2::resOpenFile(const Common::String &path) {
 	if (file == 0) {
 		delete record->stream;
 		delete record;
+		return 0;
+	}
+
+	if (_engine->_version >= kVersionV2_0 && !static_cast<ResourceLibrary_v1_2_4 *>(this)->openSegmentFiles(record, path)) {
+		resCloseFile(file);
 		return 0;
 	}
 
@@ -402,6 +407,9 @@ uint16 ResourceLibrary_v1_2::resCloseFile(uint16 file) {
 	if (record->lzwState)
 		lzwFreeStateFar(record->lzwState);
 
+	if (_engine->_version >= kVersionV2_0)
+		static_cast<ResourceLibrary_v1_2_4 *>(this)->closeSegmentFiles(record);
+
 	delete record->stream;
 	utilsLibrary->tgFree(record->index);
 	utilsLibrary->tgFree(record->residentChunk1);
@@ -411,7 +419,9 @@ uint16 ResourceLibrary_v1_2::resCloseFile(uint16 file) {
 	utilsLibrary->tgFree(record->namedEntries);
 
 	uint16 maxChunks = TG_RES_V1_2_4_MAX_RESIDENT_CHUNKS;
-	if (_engine->_version >= kVersionV1_2_12)
+	if (_engine->_version >= kVersionV2_0)
+		maxChunks = TG_RES_V2_0_MAX_RESIDENT_CHUNKS;
+	else if (_engine->_version >= kVersionV1_2_12)
 		maxChunks = TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS;
 	else if (_engine->_version >= kVersionV1_2_6)
 		maxChunks = TG_RES_V1_2_6_MAX_RESIDENT_CHUNKS;
@@ -573,9 +583,9 @@ byte *ResourceLibrary_v1_2::resLoadResource(uint16 file, uint16 index, uint32 *o
 
 	bool success;
 	if (record->callbackSet)
-		success = readChunkedWithCallback(record, buffer, entry.size);
+		success = readChunkedWithCallback(record, record->stream, buffer, entry.size);
 	else
-		success = readResourceBytes(record, buffer, entry.size);
+		success = readResourceBytes(record, record->stream, buffer, entry.size);
 
 	if (!success)
 		return utilsLibrary->tgFree(buffer);
@@ -639,9 +649,9 @@ uint32 ResourceLibrary_v1_2::resReadData(uint16 file, byte *buffer, uint32 count
 
 	bool success;
 	if (record->callbackSet)
-		success = readChunkedWithCallback(record, buffer, count);
+		success = readChunkedWithCallback(record, record->stream, buffer, count);
 	else
-		success = readResourceBytes(record, buffer, count);
+		success = readResourceBytes(record, record->stream, buffer, count);
 
 	return success ? count : 0;
 }
@@ -1093,10 +1103,40 @@ uint16 ResourceLibrary_v1_2::registerWaveInfo(WaveStreamInfo *info) {
 	return 0;
 }
 
-uint16 ResourceLibrary_v1_2::createWaveStreamInfo(uint16 file, ResourceFile *record) {
+uint16 ResourceLibrary_v1_2::createWaveStreamInfo(uint16 file, ResourceFile *record, uint16 index, byte *header, uint16 headerSize) {
+	Common::File *stream = record->stream;
+	byte segment = 0;
+
+	if (_engine->_version >= kVersionV2_0) {
+		if (record->entryCount <= index) {
+			warning("ResourceLibrary_v1_2::createWaveStreamInfo(): invalid resource %d", index);
+			return 0;
+		}
+
+		ResourceEntry entry;
+		readEntry(record, index, entry);
+
+		if (entry.segment >= TG_RES_V2_0_MAX_SEGMENTS) {
+			warning("ResourceLibrary_v1_2::createWaveStreamInfo(): invalid segment %d", entry.segment);
+			return 0;
+		}
+
+		segment = entry.segment;
+		stream = record->segments[segment];
+		if (!stream)
+			return 0;
+
+		if (!stream->seek(entry.offset, SEEK_SET) || stream->pos() != entry.offset)
+			return 0;
+
+		if (stream->read(header, headerSize) != headerSize)
+			return 0;
+	}
+
 	WaveStreamInfo *info = new WaveStreamInfo();
 	info->file = file;
-	info->position = (uint32)record->stream->pos();
+	info->segment = segment;
+	info->position = (uint32)stream->pos();
 	info->startPosition = info->position;
 	info->chainOffset = record->chainOffset;
 	info->startChainOffset = record->chainOffset;
@@ -1109,7 +1149,7 @@ uint16 ResourceLibrary_v1_2::createWaveStreamInfo(uint16 file, ResourceFile *rec
 }
 
 uint16 ResourceLibrary_v1_2::resCreateWaveEvent(uint16 file, uint16 index) {
-	if (resSeekResource(file, index) == 0)
+	if (_engine->_version < kVersionV2_0 && resSeekResource(file, index) == 0)
 		return 0;
 
 	ResourceFile *record = findFile(file, "resCreateWaveEvent");
@@ -1126,10 +1166,10 @@ uint16 ResourceLibrary_v1_2::resCreateWaveEvent(uint16 file, uint16 index) {
 	else if (_engine->_version >= kVersionV1_2_3_2)
 		headerSize = TG_RES_V1_2_3_2_WAVE_HEADER_SIZE;
 
-	if (!readResourceBytes(record, header, headerSize))
+	if (_engine->_version < kVersionV2_0 && !readResourceBytes(record, record->stream, header, headerSize))
 		return 0;
 
-	uint16 waveInfo = createWaveStreamInfo(file, record);
+	uint16 waveInfo = createWaveStreamInfo(file, record, index, header, headerSize);
 	if (waveInfo == 0)
 		return 0;
 
@@ -1140,7 +1180,7 @@ uint16 ResourceLibrary_v1_2::resCreateWaveEvent(uint16 file, uint16 index) {
 }
 
 uint16 ResourceLibrary_v1_2::resCreateMidiEvent(uint16 file, uint16 index) {
-	if (resSeekResource(file, index) == 0)
+	if (_engine->_version < kVersionV2_0 && resSeekResource(file, index) == 0)
 		return 0;
 
 	ResourceFile *record = findFile(file, "resCreateMidiEvent");
@@ -1156,10 +1196,10 @@ uint16 ResourceLibrary_v1_2::resCreateMidiEvent(uint16 file, uint16 index) {
 	else if (_engine->_version >= kVersionV1_2_3_1)
 		headerSize = TG_RES_V1_2_3_1_MIDI_HEADER_SIZE;
 
-	if (!readResourceBytes(record, header, headerSize))
+	if (_engine->_version < kVersionV2_0 && !readResourceBytes(record, record->stream, header, headerSize))
 		return 0;
 
-	uint16 midiInfo = createWaveStreamInfo(file, record);
+	uint16 midiInfo = createWaveStreamInfo(file, record, index, header, headerSize);
 	if (midiInfo == 0)
 		return 0;
 
@@ -1180,6 +1220,21 @@ int32 ResourceLibrary_v1_2::waveRead(uint16 waveInfo, byte *buffer, int32 count)
 	if (!record)
 		return 0;
 
+	if (_engine->_version >= kVersionV2_0) {
+		Common::File *stream = record->segments[info->segment];
+		if (!stream)
+			return 0;
+
+		if (!stream->seek(info->position, SEEK_SET) || stream->pos() != info->position)
+			return 0;
+
+		if (stream->read(buffer, (uint32)count) != (uint32)count)
+			return 0;
+
+		info->position += count;
+		return count;
+	}
+
 	bool callbackSet = record->callbackSet;
 	record->callbackSet = false;
 
@@ -1187,7 +1242,7 @@ int32 ResourceLibrary_v1_2::waveRead(uint16 waveInfo, byte *buffer, int32 count)
 		record->chainOffset = info->chainOffset;
 
 		record->stream->seek(info->position, SEEK_SET);
-		bool success = readResourceBytes(record, buffer, (uint32)count);
+		bool success = readResourceBytes(record, record->stream, buffer, (uint32)count);
 
 		info->chainOffset = record->chainOffset;
 		record->callbackSet = callbackSet;
@@ -1292,7 +1347,9 @@ ResourceLibrary_v1_2_4::ResourceLibrary_v1_2_4(TopgunEngine_v1_2 *engine) : Reso
 
 uint32 ResourceLibrary_v1_2_4::keyOffset(const ResourceFile *file, uint16 key) {
 	uint16 keyTableOffset = TG_RES_V1_2_4_HEADER_KEY_TABLE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_12)
+	if (_engine->_version >= kVersionV2_0)
+		keyTableOffset = TG_RES_V2_0_HEADER_KEY_TABLE_OFFSET;
+	else if (_engine->_version >= kVersionV1_2_12)
 		keyTableOffset = TG_RES_V1_2_12_HEADER_KEY_TABLE_OFFSET;
 	else if (_engine->_version >= kVersionV1_2_6)
 		keyTableOffset = TG_RES_V1_2_6_HEADER_KEY_TABLE_OFFSET;
@@ -1306,7 +1363,9 @@ uint32 ResourceLibrary_v1_2_4::keyOffset(const ResourceFile *file, uint16 key) {
 
 uint32 ResourceLibrary_v1_2_4::keySize(const ResourceFile *file, uint16 key) {
 	uint16 keyTableOffset = TG_RES_V1_2_4_HEADER_KEY_TABLE_OFFSET;
-	if (_engine->_version >= kVersionV1_2_12)
+	if (_engine->_version >= kVersionV2_0)
+		keyTableOffset = TG_RES_V2_0_HEADER_KEY_TABLE_OFFSET;
+	else if (_engine->_version >= kVersionV1_2_12)
 		keyTableOffset = TG_RES_V1_2_12_HEADER_KEY_TABLE_OFFSET;
 	else if (_engine->_version >= kVersionV1_2_6)
 		keyTableOffset = TG_RES_V1_2_6_HEADER_KEY_TABLE_OFFSET;
@@ -1316,6 +1375,36 @@ uint32 ResourceLibrary_v1_2_4::keySize(const ResourceFile *file, uint16 key) {
 		keyTableOffset = TG_RES_V1_2_3_2_HEADER_KEY_TABLE_OFFSET;
 
 	return READ_LE_UINT32(file->fullHeader + keyTableOffset + TG_RES_V1_2_3_1_KEY_ENTRY_SIZE * key + TG_RES_V1_2_3_1_KEY_SIZE_OFFSET);
+}
+
+bool ResourceLibrary_v1_2_4::openSegmentFiles(ResourceFile *record, const Common::String &path) {
+	size_t dot = path.findFirstOf('.');
+	if (dot == Common::String::npos)
+		return false;
+
+	Common::String baseName = path.substr(0, dot);
+	uint16 segment = 0;
+
+	// The header is not read yet, so only the first segment is opened
+	do {
+		Common::File *stream = new Common::File();
+		if (!stream->open(Common::Path(Common::String::format("%s.%03i", baseName.c_str(), segment)))) {
+			delete stream;
+			return false;
+		}
+
+		record->segments[segment] = stream;
+		segment++;
+	} while (segment <= record->fullHeader[TG_RES_V2_0_HEADER_LAST_SEGMENT_OFFSET]);
+
+	return true;
+}
+
+void ResourceLibrary_v1_2_4::closeSegmentFiles(ResourceFile *record) {
+	for (uint16 i = 0; i < TG_RES_V2_0_MAX_SEGMENTS; i++) {
+		delete record->segments[i];
+		record->segments[i] = nullptr;
+	}
 }
 
 bool ResourceLibrary_v1_2_4::readResourceFileHeader(ResourceFile *file) {
@@ -1362,6 +1451,18 @@ bool ResourceLibrary_v1_2_4::readResourceFileHeader(ResourceFile *file) {
 		variableCountOffset = TG_RES_V1_2_12_HEADER_VARIABLE_COUNT_OFFSET;
 		buildTypeOffset = TG_RES_V1_2_12_HEADER_BUILD_TYPE_OFFSET;
 		chainedOffset = TG_RES_V1_2_12_HEADER_CHAINED_OFFSET;
+	}
+
+	if (_engine->_version >= kVersionV2_0) {
+		maxHeaderSize = TG_RES_V2_0_HEADER_SIZE;
+		maxChunks = TG_RES_V2_0_MAX_RESIDENT_CHUNKS;
+		chunkCountOffset = TG_RES_V2_0_HEADER_CHUNK_COUNT_OFFSET;
+		maxFadeOffset = TG_RES_V2_0_HEADER_MAX_FADE_OFFSET;
+		maxTransOffset = TG_RES_V2_0_HEADER_MAX_TRANS_OFFSET;
+		extraSlotsOffset = TG_RES_V2_0_HEADER_EXTRA_SLOTS_OFFSET;
+		stringCountOffset = TG_RES_V2_0_HEADER_STRING_COUNT_OFFSET;
+		variableCountOffset = TG_RES_V2_0_HEADER_VARIABLE_COUNT_OFFSET;
+		buildTypeOffset = TG_RES_V2_0_HEADER_BUILD_TYPE_OFFSET;
 	}
 
 	if (_engine->_version < kVersionV1_2_3_2) {
@@ -1431,7 +1532,9 @@ bool ResourceLibrary_v1_2_4::readResourceFileHeader(ResourceFile *file) {
 	file->stringCount = READ_LE_UINT16(header + stringCountOffset);
 	file->variableCount = READ_LE_UINT16(header + variableCountOffset);
 	file->buildType = header[buildTypeOffset];
-	file->chained = (header[chainedOffset] != 0);
+
+	if (_engine->_version < kVersionV2_0)
+		file->chained = (header[chainedOffset] != 0);
 
 	if (_engine->_version < kVersionV1_2_3_2) {
 		file->residentSplit = READ_LE_UINT32(header + TG_RES_V1_2_3_1_HEADER_RESIDENT_SPLIT_OFFSET);
@@ -1524,7 +1627,9 @@ bool ResourceLibrary_v1_2_4::loadResidentChunks(ResourceFile *record) {
 		return ResourceLibrary_v1_2::loadResidentChunks(record);
 
 	uint16 maxChunks = TG_RES_V1_2_4_MAX_RESIDENT_CHUNKS;
-	if (_engine->_version >= kVersionV1_2_12)
+	if (_engine->_version >= kVersionV2_0)
+		maxChunks = TG_RES_V2_0_MAX_RESIDENT_CHUNKS;
+	else if (_engine->_version >= kVersionV1_2_12)
 		maxChunks = TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS;
 	else if (_engine->_version >= kVersionV1_2_6)
 		maxChunks = TG_RES_V1_2_6_MAX_RESIDENT_CHUNKS;
@@ -1693,7 +1798,19 @@ byte *ResourceLibrary_v1_2_4::resLoadResource(uint16 file, uint16 index, uint32 
 		return record->residentChunks[chunk] + (uint16)entry.offset;
 	}
 
-	if (!record->stream->seek(entry.offset, SEEK_SET) || record->stream->pos() != entry.offset)
+	Common::File *stream = record->stream;
+	if (_engine->_version >= kVersionV2_0) {
+		if (entry.segment >= TG_RES_V2_0_MAX_SEGMENTS) {
+			warning("ResourceLibrary_v1_2_4::resLoadResource(): invalid segment %d", entry.segment);
+			return nullptr;
+		}
+
+		stream = record->segments[entry.segment];
+		if (!stream)
+			return nullptr;
+	}
+
+	if (!stream->seek(entry.offset, SEEK_SET) || stream->pos() != entry.offset)
 		return nullptr;
 
 	record->chainOffset = 0;
@@ -1706,9 +1823,9 @@ byte *ResourceLibrary_v1_2_4::resLoadResource(uint16 file, uint16 index, uint32 
 
 	bool success;
 	if (record->callbackSet)
-		success = readChunkedWithCallback(record, buffer, entry.size);
+		success = readChunkedWithCallback(record, stream, buffer, entry.size);
 	else
-		success = readResourceBytes(record, buffer, entry.size);
+		success = readResourceBytes(record, stream, buffer, entry.size);
 
 	if (!success)
 		return utilsLibrary->tgFree(buffer);
@@ -1794,13 +1911,24 @@ uint16 ResourceLibrary_v1_2_4::resCopyResource(uint16 file, uint16 index) {
 		return 0;
 
 	byte *entry = getIndexEntry(record, index);
-	uint16 type = READ_LE_UINT16(entry);
+
+	ResourceEntry sourceEntry;
+	readEntry(record, index, sourceEntry);
+
+	uint16 type = sourceEntry.type;
 	if (type == 0)
 		return 0;
 
 	uint16 slot = record->indexCount;
-	while (slot < record->entryCount && READ_LE_UINT16(getIndexEntry(record, slot)) != 0)
+	while (slot < record->entryCount) {
+		ResourceEntry candidate;
+		readEntry(record, slot, candidate);
+
+		if (candidate.type == 0)
+			break;
+
 		slot++;
+	}
 
 	if (record->entryCount <= slot)
 		return 0;
@@ -1860,7 +1988,11 @@ uint16 ResourceLibrary_v1_2_4::resCopyResource(uint16 file, uint16 index) {
 		}
 
 		// The copy is kept in a table since the index entry cannot hold a pointer
-		WRITE_LE_UINT16(slotEntry, type);
+		if (_engine->_version >= kVersionV2_0)
+			slotEntry[0] = (byte)type;
+		else
+			WRITE_LE_UINT16(slotEntry, type);
+
 		WRITE_LE_UINT32(slotEntry + 2, 0);
 		WRITE_LE_UINT32(slotEntry + 6, size);
 		record->dynamicResident[slot] = copy;
@@ -1883,7 +2015,11 @@ bool ResourceLibrary_v1_2_4::resDeleteResource(uint16 file, uint16 index) {
 		return false;
 
 	byte *entry = getIndexEntry(record, index);
-	uint16 type = READ_LE_UINT16(entry);
+
+	ResourceEntry deleted;
+	readEntry(record, index, deleted);
+
+	uint16 type = deleted.type;
 
 	uint16 firstResidentType = TG_RES_V1_2_3_2_RESIDENT_FIRST_TYPE;
 	uint16 lastResidentType = TG_RES_V1_2_3_1_RESIDENT_LAST_TYPE;
@@ -1902,6 +2038,55 @@ bool ResourceLibrary_v1_2_4::resDeleteResource(uint16 file, uint16 index) {
 
 	memset(entry, 0, TG_RES_INDEX_ENTRY_SIZE);
 	return true;
+}
+
+uint32 ResourceLibrary_v1_2_4::resGetOffset(uint16 file, uint16 index) {
+	ResourceFile *record = findFile(file, "resGetOffset");
+	if (!record)
+		return 0;
+
+	if (record->entryCount <= index)
+		return 0;
+
+	ResourceEntry entry;
+	readEntry(record, index, entry);
+	return entry.offset;
+}
+
+uint32 ResourceLibrary_v1_2_4::resReadResourceData(uint16 file, uint16 index, byte *buffer, uint32 count, uint32 offset) {
+	ResourceFile *record = findFile(file, "resReadResourceData");
+	if (!record)
+		return 0;
+
+	if (record->entryCount <= index) {
+		warning("ResourceLibrary_v1_2_4::resReadResourceData(): invalid resource %d", index);
+		return 0;
+	}
+
+	ResourceEntry entry;
+	readEntry(record, index, entry);
+
+	if (entry.segment >= TG_RES_V2_0_MAX_SEGMENTS) {
+		warning("ResourceLibrary_v1_2_4::resReadResourceData(): invalid segment %d", entry.segment);
+		return 0;
+	}
+
+	Common::File *stream = record->segments[entry.segment];
+	if (!stream)
+		return 0;
+
+	if (!stream->seek(offset, SEEK_SET) || stream->pos() != offset)
+		return 0;
+
+	record->chainOffset = 0;
+
+	bool success;
+	if (record->callbackSet)
+		success = readChunkedWithCallback(record, stream, buffer, count);
+	else
+		success = readResourceBytes(record, stream, buffer, count);
+
+	return success ? count : 0;
 }
 
 } // End of namespace Topgun

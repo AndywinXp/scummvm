@@ -73,10 +73,11 @@ public:
 protected:
 	struct ResourceEntry {
 		uint16 type;
+		byte segment;
 		uint32 offset;
 		uint32 size;
 
-		ResourceEntry() : type(0), offset(0), size(0) {}
+		ResourceEntry() : type(0), segment(0), offset(0), size(0) {}
 	};
 
 	struct ResourceFile {

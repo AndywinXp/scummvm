@@ -155,6 +155,11 @@
 #define TG_RES_V1_2_12_HEADER_TITLE_OFFSET         0x06
 #define TG_RES_V1_2_12_HEADER_TITLE_MAX_SIZE       0x50
 
+// Container header of runtime 2.0: 48 resident chunks, records in segment files
+#define TG_RES_V2_0_HEADER_SIZE                    0x1A2
+#define TG_RES_V2_0_MAX_RESIDENT_CHUNKS            48
+#define TG_RES_V2_0_MAX_SEGMENTS                   16
+
 namespace Topgun {
 
 class TopgunEngine_v1_2;
@@ -274,9 +279,10 @@ protected:
 		LzwState *lzwState;
 
 		// Fields of the later version
-		byte fullHeader[TG_RES_V1_2_12_HEADER_SIZE];
-		uint32 limits[TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS + 1];
-		byte *residentChunks[TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS];
+		byte fullHeader[TG_RES_V2_0_HEADER_SIZE];
+		uint32 limits[TG_RES_V2_0_MAX_RESIDENT_CHUNKS + 1];
+		byte *residentChunks[TG_RES_V2_0_MAX_RESIDENT_CHUNKS];
+		Common::File *segments[TG_RES_V2_0_MAX_SEGMENTS];
 		byte *variablePairs;
 		uint16 chunkCount;
 		uint16 maxFadeColors;
@@ -297,14 +303,17 @@ protected:
 			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)
 				header[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_12_HEADER_SIZE; i++)
+			for (uint16 i = 0; i < TG_RES_V2_0_HEADER_SIZE; i++)
 				fullHeader[i] = 0;
 
-			for (uint16 i = 0; i <= TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i <= TG_RES_V2_0_MAX_RESIDENT_CHUNKS; i++)
 				limits[i] = 0;
 
-			for (uint16 i = 0; i < TG_RES_V1_2_12_MAX_RESIDENT_CHUNKS; i++)
+			for (uint16 i = 0; i < TG_RES_V2_0_MAX_RESIDENT_CHUNKS; i++)
 				residentChunks[i] = nullptr;
+
+			for (uint16 i = 0; i < TG_RES_V2_0_MAX_SEGMENTS; i++)
+				segments[i] = nullptr;
 		}
 	};
 
@@ -314,8 +323,9 @@ protected:
 		uint32 startPosition;
 		uint16 chainOffset;
 		uint16 startChainOffset;
+		byte segment;
 
-		WaveStreamInfo() : file(0), position(0), startPosition(0), chainOffset(0), startChainOffset(0) {}
+		WaveStreamInfo() : file(0), position(0), startPosition(0), chainOffset(0), startChainOffset(0), segment(0) {}
 	};
 
 	typedef Common::HashMap<uint16, WaveStreamInfo *> WaveStreamMap;
@@ -331,11 +341,11 @@ protected:
 	void writeVariableTableBack(ResourceFile *file);
 	void notifyHost(uint16 message, ResourceFile *file);
 	bool readChainedBlocks(ResourceFile *file, byte *buffer, uint32 count);
-	bool readResourceBytes(ResourceFile *file, byte *buffer, uint32 count);
-	bool readChunkedWithCallback(ResourceFile *file, byte *buffer, uint32 count);
+	bool readResourceBytes(ResourceFile *file, Common::File *stream, byte *buffer, uint32 count);
+	bool readChunkedWithCallback(ResourceFile *file, Common::File *stream, byte *buffer, uint32 count);
 
 	// Wave streams
-	uint16 createWaveStreamInfo(uint16 file, ResourceFile *record);
+	uint16 createWaveStreamInfo(uint16 file, ResourceFile *record, uint16 index, byte *header, uint16 headerSize);
 	uint16 registerWaveInfo(WaveStreamInfo *info);
 
 	// Bitmaps

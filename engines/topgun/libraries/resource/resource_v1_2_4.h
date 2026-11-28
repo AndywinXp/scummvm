@@ -154,6 +154,17 @@
 #define TG_RES_V1_2_12_RESIDENT_LAST_TYPE           20
 #define TG_RES_V1_2_12_SPRITE_TYPE                  18
 
+// Container header of runtime 2.0
+#define TG_RES_V2_0_HEADER_CHUNK_COUNT_OFFSET       0x122
+#define TG_RES_V2_0_HEADER_MAX_FADE_OFFSET          0x124
+#define TG_RES_V2_0_HEADER_MAX_TRANS_OFFSET         0x126
+#define TG_RES_V2_0_HEADER_EXTRA_SLOTS_OFFSET       0x128
+#define TG_RES_V2_0_HEADER_STRING_COUNT_OFFSET      0x12A
+#define TG_RES_V2_0_HEADER_VARIABLE_COUNT_OFFSET    0x12C
+#define TG_RES_V2_0_HEADER_BUILD_TYPE_OFFSET        0x12E
+#define TG_RES_V2_0_HEADER_LAST_SEGMENT_OFFSET      0x12F
+#define TG_RES_V2_0_HEADER_KEY_TABLE_OFFSET         0x132
+
 // Table resources: a block of 0x20 header bytes followed by the data, flagged as owned at +6
 #define TG_RES_V1_2_12_TABLE_TYPE                   10
 #define TG_RES_V1_2_12_TABLE_HEADER_SIZE            0x20
@@ -197,9 +208,13 @@ public:
 	byte *resLoadKeyResource(uint16 file, uint16 key, uint32 *outSize);
 	uint16 resCopyResource(uint16 file, uint16 index);
 	bool resDeleteResource(uint16 file, uint16 index);
+	uint32 resGetOffset(uint16 file, uint16 index);
+	uint32 resReadResourceData(uint16 file, uint16 index, byte *buffer, uint32 count, uint32 offset);
 
 protected:
 	// Container
+	bool openSegmentFiles(ResourceFile *record, const Common::String &path);
+	void closeSegmentFiles(ResourceFile *record);
 	bool readResourceFileHeader(ResourceFile *file) override;
 	bool loadIndexPages(ResourceFile *record);
 	bool loadNamedEntryTableKeyResource(uint16 file, ResourceFile *record);

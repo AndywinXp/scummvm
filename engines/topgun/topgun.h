@@ -59,7 +59,8 @@ enum EngineVersion {
 	kVersionV1_2_9 = 1290,
 	kVersionV1_2_10 = 1300,
 	kVersionV1_2_11 = 1310,
-	kVersionV1_2_12 = 1320
+	kVersionV1_2_12 = 1320,
+	kVersionV2_0 = 2000
 };
 
 class AudioLibrary;
