@@ -71,9 +71,12 @@ void SpriteLibrary_v1_2::setSpriteActive(uint16 sprite, uint16 mode, bool refres
 	if (object->active == mode)
 		return;
 
-	object->active = (byte)mode;
+	if (_engine->_version >= kVersionV1_2_12)
+		object->active = (byte)(mode & 1);
+	else
+		object->active = (byte)mode;
 
-	if ((byte)mode != 0) {
+	if (object->active != 0) {
 		object->x = object->shadowX;
 		object->y = object->shadowY;
 		object->mirrorX = object->shadowMirrorX;
@@ -1056,7 +1059,11 @@ void SpriteLibrary_v1_2::spriteSetPriority(uint16 sprite, uint16 mode) {
 	if (!object)
 		return;
 
-	object->timingMode = (byte)mode;
+	if (_engine->_version >= kVersionV1_2_12)
+		object->timingMode = (byte)(mode & 1);
+	else
+		object->timingMode = (byte)mode;
+
 	object->moveDue = 0;
 
 	if (mode != 0)
@@ -1518,6 +1525,8 @@ void SpriteLibrary_v1_2_4::spriteBreakLoops(uint16 sprite, uint16 flag) {
 
 	if (_engine->_version < kVersionV1_2_4)
 		object->loopsDisabled = true;
+	else if (_engine->_version >= kVersionV1_2_12)
+		object->loopsDisabled = ((flag & 1) != 0);
 	else
 		object->loopsDisabled = ((flag & 0xFF) != 0);
 }
@@ -1527,7 +1536,10 @@ void SpriteLibrary_v1_2_4::spriteSetPickMode(uint16 sprite, uint16 wholeBox, uin
 	if (!object)
 		return;
 
-	object->pickWholeBox = ((wholeBox & 0xFF) != 0);
+	if (_engine->_version >= kVersionV1_2_12)
+		object->pickWholeBox = ((wholeBox & 1) != 0);
+	else
+		object->pickWholeBox = ((wholeBox & 0xFF) != 0);
 
 	if (_engine->_version >= kVersionV1_2_9)
 		object->pickMode = pickInvisible;

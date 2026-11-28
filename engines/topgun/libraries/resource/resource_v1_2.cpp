@@ -324,8 +324,8 @@ uint16 ResourceLibrary_v1_2::resOpenFile(const Common::String &path) {
 	if (_engine->_version >= kVersionV1_2_3_1) {
 		ResourceLibrary_v1_2_4 *newer = static_cast<ResourceLibrary_v1_2_4 *>(this);
 
-		if (!newer->loadIndexPages(record) || !newer->loadKey3Table(file, record) || !newer->loadConstStringPool(file, record)
-				|| !newer->loadResidentChunks(record)) {
+		if (!newer->loadIndexPages(record) || !newer->loadNamedEntryTableKeyResource(file, record) || !newer->loadNameTableKeyResource(file, record)
+				|| !newer->loadKey3Table(file, record) || !newer->loadConstStringPool(file, record) || !newer->loadResidentChunks(record)) {
 			resCloseFile(file);
 			return 0;
 		}
@@ -408,6 +408,7 @@ uint16 ResourceLibrary_v1_2::resCloseFile(uint16 file) {
 	utilsLibrary->tgFree(record->residentChunk2);
 	utilsLibrary->tgFree(record->movieBuffer);
 	utilsLibrary->tgFree(record->variables);
+	utilsLibrary->tgFree(record->namedEntries);
 
 	uint16 maxChunks = TG_RES_V1_2_4_MAX_RESIDENT_CHUNKS;
 	if (_engine->_version >= kVersionV1_2_12)
@@ -1472,6 +1473,32 @@ bool ResourceLibrary_v1_2_4::loadIndexPages(ResourceFile *record) {
 
 	uint32 fileIndexSize = (uint32)TG_RES_INDEX_ENTRY_SIZE * record->indexCount;
 	return record->stream->read(record->index, fileIndexSize) == fileIndexSize;
+}
+
+bool ResourceLibrary_v1_2_4::loadNamedEntryTableKeyResource(uint16 file, ResourceFile *record) {
+	if (keySize(record, TG_RES_V1_2_3_1_KEY_NAMED_ENTRIES) == 0)
+		return true;
+
+	uint32 size = 0;
+	record->namedEntries = resLoadKeyResource(file, TG_RES_V1_2_3_1_KEY_NAMED_ENTRIES, &size);
+	if (!record->namedEntries)
+		return false;
+
+	record->namedEntryCount = (uint16)(size / TG_RES_V1_2_1_RECORD_SIZE);
+	return true;
+}
+
+bool ResourceLibrary_v1_2_4::loadNameTableKeyResource(uint16 file, ResourceFile *record) {
+	if (keySize(record, TG_RES_V1_2_3_1_KEY_NAMES) == 0)
+		return true;
+
+	uint32 size = 0;
+	record->variables = resLoadKeyResource(file, TG_RES_V1_2_3_1_KEY_NAMES, &size);
+	if (!record->variables)
+		return false;
+
+	record->variableTableCount = (uint16)(size / TG_RES_V1_2_3_VARIABLE_RECORD_SIZE);
+	return true;
 }
 
 bool ResourceLibrary_v1_2_4::loadKey3Table(uint16 file, ResourceFile *record) {

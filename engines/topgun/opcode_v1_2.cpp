@@ -727,20 +727,84 @@ void TopgunEngine_v1_2::o_compareStrings(const byte *record) {
 	if (!first || !second)
 		return;
 
-	int comparison;
+	bool caseSensitive = (READ_LE_UINT16(record) != kOpV1_2CompareStringsIgnoreCase);
 
-	if (READ_LE_UINT16(record) == kOpV1_2CompareStringsIgnoreCase)
-		comparison = scumm_stricmp(first, second);
-	else
-		comparison = strcmp(first, second);
+	writeVariable(READ_LE_UINT16(record + 2), (uint16)compareStringsCustom(first, second, caseSensitive));
+}
 
-	uint16 result = 0;
-	if (comparison < 0)
-		result = (uint16)-1;
-	else if (comparison > 0)
-		result = 1;
+// Unlike strcmp(), which compares byte values, this compares characters by a custom weight: accented letters come after
+// punctuation but before digits and plain letters, and the two cases of a letter weigh the same. When caseSensitive is
+// set, case only decides between strings which are otherwise equal, with upper case first.
+int16 TopgunEngine_v1_2::compareStringsCustom(const char *first, const char *second, bool caseSensitive) {
+	byte firstDifference = 0;
+	byte secondDifference = 0;
 
-	writeVariable(READ_LE_UINT16(record + 2), result);
+	while (true) {
+		byte firstCharacter = (byte)*first++;
+		byte secondCharacter = (byte)*second++;
+
+		if (firstCharacter == 0 || secondCharacter == 0) {
+			if (firstCharacter != 0)
+				return 1;
+
+			if (secondCharacter != 0)
+				return -1;
+
+			break;
+		}
+
+		if (firstCharacter == secondCharacter)
+			continue;
+
+		byte firstCaseWeight = 0;
+		byte secondCaseWeight = 0;
+		uint16 firstWeight = getCustomCharacterWeight(firstCharacter, firstCaseWeight);
+		uint16 secondWeight = getCustomCharacterWeight(secondCharacter, secondCaseWeight);
+
+		if (firstWeight > secondWeight)
+			return 1;
+
+		if (firstWeight < secondWeight)
+			return -1;
+
+		if (caseSensitive && firstCaseWeight != secondCaseWeight && (firstDifference | secondDifference) == 0) {
+			firstDifference = firstCaseWeight;
+			secondDifference = secondCaseWeight;
+		}
+	}
+
+	if (firstDifference > secondDifference)
+		return 1;
+
+	if (firstDifference < secondDifference)
+		return -1;
+
+	return 0;
+}
+
+uint16 TopgunEngine_v1_2::getCustomCharacterWeight(byte character, byte &caseWeight) {
+	// First and last character of each range, weight offset and case weight
+	static const byte ranges[][4] = {
+		{ '0', '9', 0xD0, 0 },
+		{ 'A', 'Z', 0xD0, 0 },
+		{ 'a', 'z', 0xB0, 1 },
+		{ 0xC0, 0xD6, 0x20, 0 },
+		{ 0xD8, 0xDE, 0x20, 0 },
+		{ 0xE0, 0xF6, 0x00, 1 },
+		{ 0xF8, 0xFE, 0x00, 1 }
+	};
+
+	for (int i = 0; i < ARRAYSIZE(ranges); i++) {
+		if (character < ranges[i][0])
+			break;
+
+		if (character <= ranges[i][1]) {
+			caseWeight = ranges[i][3];
+			return (uint16)(character + ranges[i][2]);
+		}
+	}
+
+	return character;
 }
 
 bool TopgunEngine_v1_2::o_setSpritePosition(const byte *record) {

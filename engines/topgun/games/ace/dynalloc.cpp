@@ -146,13 +146,9 @@ uint16 DynAllocPlugin::dynAllocBuf(uint16 size) {
 
 	for (uint32 i = 0; i < count; i++) {
 		if (_buffers[i].size == 0) {
-			byte *data = nullptr;
-			if (size != 0)
-				data = new byte[size]();
+			_buffers[i].data = _host->tgMalloc(size, 1);
 
-			_buffers[i].data = data;
-
-			if (data) {
+			if (_buffers[i].data) {
 				_buffers[i].size = size;
 				return i;
 			}
@@ -161,14 +157,9 @@ uint16 DynAllocPlugin::dynAllocBuf(uint16 size) {
 
 	// A failed allocation still leaves the new entry in the table
 	_buffers.push_back(DynBuffer());
+	_buffers[count].data = _host->tgMalloc(size, 1);
 
-	byte *data = nullptr;
-	if (size != 0)
-		data = new byte[size]();
-
-	_buffers[count].data = data;
-
-	if (!data) {
+	if (!_buffers[count].data) {
 		warning("DynAllocPlugin::dynAllocBuf(): cannot allocate %d bytes", size);
 		return kDynAllocFailed;
 	}
@@ -185,19 +176,19 @@ uint16 DynAllocPlugin::dynFreeBuf(uint16 buffer) {
 
 	DynBuffer &entry = _buffers[buffer];
 
-	if (entry.size != 0) {
-		delete[] entry.data;
-		entry.size = 0;
-		entry.data = nullptr;
-	}
+	if (entry.size == 0)
+		return kDynAllocNonZeroResult;
 
+	_host->tgFree(entry.data);
+	entry.size = 0;
+	entry.data = nullptr;
 	return 0;
 }
 
 uint16 DynAllocPlugin::dynFreeSystem() {
 	for (uint32 i = 0; i < _buffers.size(); i++) {
 		if (_buffers[i].size != 0)
-			delete[] _buffers[i].data;
+			_host->tgFree(_buffers[i].data);
 	}
 
 	_buffers.clear();

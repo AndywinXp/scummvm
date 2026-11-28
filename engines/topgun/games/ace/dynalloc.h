@@ -31,7 +31,9 @@
 namespace Topgun {
 
 enum {
-	kDynAllocFailed = 0xFFFF
+	kDynAllocFailed = 0xFFFF,
+	// Stands for the data segment selector that the original returns
+	kDynAllocNonZeroResult = 1
 };
 
 struct DynBuffer {

@@ -87,6 +87,8 @@ public:
 	virtual uint16 getErrorFileHandle() = 0;
 
 	virtual uint32 getConstantStringRoom(uint16 id) = 0;
+	virtual byte *tgMalloc(uint32 size, uint16 zeroInit) = 0;
+	virtual byte *tgFree(byte *block) = 0;
 
 	virtual uint16 mmioOpen(const char *name, uint32 flags) = 0;
 	virtual uint16 mmioClose(uint16 handle) = 0;

@@ -151,6 +151,7 @@ protected:
 	void stopAllNonExemptWaves();
 	void activateWaveObject(SoundObject *sound) override;
 	void armWaveNotificationEndTime(SoundObject *sound);
+	uint32 getWaveDurationMs(const SoundObject *sound);
 
 	// MIDI device
 	void muteMidiOutput();

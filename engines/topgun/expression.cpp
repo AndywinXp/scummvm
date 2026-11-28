@@ -464,18 +464,7 @@ void TopgunEngine_v1_2::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (!first || !second)
 			break;
 
-		int comparison;
-
-		if (code == 58)
-			comparison = scumm_stricmp(first, second);
-		else
-			comparison = strcmp(first, second);
-
-		uint16 result = 0;
-		if (comparison < 0)
-			result = (uint16)-1;
-		else if (comparison > 0)
-			result = 1;
+		uint16 result = (uint16)compareStringsCustom(first, second, code != 58);
 
 		if (_version >= kVersionV1_2_3_1)
 			_expressionStack[_expressionStackPointer - 1] = result;
@@ -860,20 +849,7 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		if (!first || !second)
 			break;
 
-		int comparison;
-
-		if (code == 58)
-			comparison = scumm_stricmp(first, second);
-		else
-			comparison = strcmp(first, second);
-
-		uint16 result = 0;
-		if (comparison < 0)
-			result = (uint16)-1;
-		else if (comparison > 0)
-			result = 1;
-
-		_expressionStack[_expressionStackPointer - 1] = result;
+		_expressionStack[_expressionStackPointer - 1] = (uint16)compareStringsCustom(first, second, code != 58);
 		break;
 	}
 

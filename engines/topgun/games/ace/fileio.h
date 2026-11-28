@@ -35,7 +35,9 @@ enum {
 	kFileIoPathSize = 256,
 	kFileIoStringSlotSize = 128,
 	kFileIoStringTransferLimit = 0x7F,
-	kFileIoConstantStringFlag = 0x8000
+	kFileIoConstantStringFlag = 0x8000,
+	// Stands for the data segment selector that the original returns
+	kFileIoNonZeroResult = 1
 };
 
 enum FileIoOpenFlag {

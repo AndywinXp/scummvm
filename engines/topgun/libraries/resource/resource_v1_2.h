@@ -266,7 +266,9 @@ protected:
 		byte *residentChunk2;
 		byte *movieBuffer;
 		byte *variables;
+		byte *namedEntries;
 		byte *stringPool;
+		uint16 namedEntryCount;
 		uint16 chainOffset;
 		bool variablesDirty;
 		LzwState *lzwState;
@@ -288,7 +290,8 @@ protected:
 
 		ResourceFile() : recordCount(0), paletteCount(0), nameTableSize(0), chained(false), variableTableCount(0), stringCount(0),
 			stringPoolSize(0), residentSplit(0), residentSize(0), residentChunk1(nullptr), residentChunk2(nullptr),
-			movieBuffer(nullptr), variables(nullptr), stringPool(nullptr), chainOffset(0), variablesDirty(false), lzwState(nullptr),
+			movieBuffer(nullptr), variables(nullptr), namedEntries(nullptr), stringPool(nullptr), namedEntryCount(0), chainOffset(0),
+			variablesDirty(false), lzwState(nullptr),
 			variablePairs(nullptr), chunkCount(0), maxFadeColors(0), maxTransparentColors(0), extraSlots(0),
 			buildType(0), indexCount(0), variablePairCount(0), notifyWindow(0) {
 			for (uint16 i = 0; i < TG_RES_V1_2_3_HEADER_SIZE; i++)

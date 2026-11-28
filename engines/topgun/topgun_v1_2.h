@@ -1012,6 +1012,8 @@ protected:
 	static int32 roundedDivideBy10000(int32 value);
 	Common::Point computeRayRectIntersection(int16 angle, int16 x, int16 y, int16 left, int16 top, int16 right, int16 bottom);
 	static Common::String formatWindowsString(const char *format, const FormatArgument_v1_2 *arguments, uint16 count);
+	static int16 compareStringsCustom(const char *first, const char *second, bool caseSensitive);
+	static uint16 getCustomCharacterWeight(byte character, byte &caseWeight);
 
 	// Plug-ins
 	bool loadPluginLibrary(const Common::String &name);

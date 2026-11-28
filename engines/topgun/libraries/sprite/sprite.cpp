@@ -353,7 +353,10 @@ void SpriteLibrary::spriteEnable(uint16 sprite, uint16 enable) {
 	if (!object)
 		return;
 
-	object->scriptActive = (byte)enable;
+	if (_engine->_version >= kVersionV1_2_12)
+		object->scriptActive = (byte)(enable & 1);
+	else
+		object->scriptActive = (byte)enable;
 }
 
 void SpriteLibrary::spriteExitLibrary() {

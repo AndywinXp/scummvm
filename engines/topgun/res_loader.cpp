@@ -1072,7 +1072,7 @@ void TopgunEngine_v1_2::resetResourcesAndTransientState() {
 	for (uint16 index = 0; index < _numResources; index++) {
 		destroyResourceObjectByType((uint16)(index - ((_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_LITERAL_BIAS : TG_HOST_V1_2_LITERAL_BIAS)), resourceLib()->resGetType(_file, index));
 
-		if (_version >= kVersionV1_2_3_2)
+		if (_version >= kVersionV1_2_3_2 && index >= static_cast<TopgunEngine_v1_2_4 *>(this)->_numFileResources)
 			static_cast<ResourceLibrary_v1_2_4 *>(resourceLib())->resDeleteResource(_file, index);
 	}
 

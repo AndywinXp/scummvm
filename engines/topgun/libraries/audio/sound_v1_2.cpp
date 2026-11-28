@@ -804,8 +804,13 @@ bool AudioLibrary_v1_2_4::startWavePlayback(SoundObject *sound, const byte *para
 	else
 		sound->notifyLParam = 0;
 
-	if (_engine->_version >= kVersionV1_2_7 || sound->notifyArmed)
+	if (_engine->_version >= kVersionV1_2_12) {
+		uint32 duration = getWaveDurationMs(sound);
+
+		sound->notifyEndTime = _engine->getEngineMillis() + duration;
+	} else if (_engine->_version >= kVersionV1_2_7 || (_engine->_version >= kVersionV1_2_3_3 && sound->notifyArmed)) {
 		armWaveNotificationEndTime(sound);
+	}
 
 	return true;
 }
@@ -842,10 +847,14 @@ uint32 AudioLibrary_v1_2_4::audioGetWaveSoundTime(uint16 handle) {
 	if (!sound)
 		return 0;
 
+	return getWaveDurationMs(sound);
+}
+
+uint32 AudioLibrary_v1_2_4::getWaveDurationMs(const SoundObject *sound) {
 	uint32 bytesPerTenthSecond = sound->format.averageBytesPerSecond / 10;
 
 	if (bytesPerTenthSecond == 0) {
-		warning("AudioLibrary_v1_2_4::audioGetWaveSoundTime(): the average byte rate of sound %d is below 10", sound->handle);
+		warning("AudioLibrary_v1_2_4::getWaveDurationMs(): the average byte rate of sound %d is below 10", sound->handle);
 		return 0;
 	}
 

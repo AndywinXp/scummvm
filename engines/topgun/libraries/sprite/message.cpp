@@ -207,7 +207,7 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 
 	uint32 capacity = (uint16)(size + slack) & rounding;
 
-	// The original leaves the bytes of a new block uninitialized
+	// Below kVersionV1_2_12 the original leaves the bytes of a new block uninitialized
 	byte *block = engine()->utilsLibrary()->tgMalloc(capacity, 1);
 	if (!block)
 		return nullptr;

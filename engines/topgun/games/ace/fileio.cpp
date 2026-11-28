@@ -472,6 +472,9 @@ uint16 FileIoPlugin::fileFindFirst(uint16 patternRef, uint16 resultRef, uint16 u
 			_findNames.push_back(saves[i]);
 	}
 
+	for (uint32 i = 0; i < _findNames.size(); i++)
+		_findNames[i].toUppercase();
+
 	if (_findNames.empty())
 		return 0;
 
@@ -505,6 +508,9 @@ uint16 FileIoPlugin::fileFindNext(uint16 resultRef) {
 }
 
 uint16 FileIoPlugin::fileFindClose() {
+	if (!_findActive)
+		return kFileIoNonZeroResult;
+
 	_findActive = false;
 	_findNames.clear();
 	_findIndex = 0;

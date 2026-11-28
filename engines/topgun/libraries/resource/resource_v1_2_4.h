@@ -44,6 +44,8 @@
 #define TG_RES_V1_2_3_1_KEY_COUNT                  13
 
 #define TG_RES_V1_2_3_1_KEY_INDEX                  0
+#define TG_RES_V1_2_3_1_KEY_NAMED_ENTRIES          1
+#define TG_RES_V1_2_3_1_KEY_NAMES                  2
 #define TG_RES_V1_2_3_1_KEY_VARIABLES              3
 #define TG_RES_V1_2_3_1_KEY_STRINGS                4
 #define TG_RES_V1_2_3_1_KEY_RESIDENT               5
@@ -200,6 +202,8 @@ protected:
 	// Container
 	bool readResourceFileHeader(ResourceFile *file) override;
 	bool loadIndexPages(ResourceFile *record);
+	bool loadNamedEntryTableKeyResource(uint16 file, ResourceFile *record);
+	bool loadNameTableKeyResource(uint16 file, ResourceFile *record);
 	bool loadKey3Table(uint16 file, ResourceFile *record);
 	bool loadResidentChunks(ResourceFile *record) override;
 	bool loadConstStringPool(uint16 file, ResourceFile *record);

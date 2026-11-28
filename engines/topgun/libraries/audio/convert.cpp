@@ -474,11 +474,19 @@ uint32 AudioLibrary::convertInitState(ConvertState *state, const WaveFormat *des
 	state->decimateFactor = 1;
 	state->interpolateFactor = 1;
 
-	if (sourceFormat->channels == 1)
-		state->sourceMono = 1;
+	if (_engine->_version >= kVersionV1_2) {
+		if (sourceFormat->channels != 2)
+			state->sourceMono = 1;
 
-	if (destinationFormat->channels == 1)
-		state->destinationMono = 1;
+		if (destinationFormat->channels != 2)
+			state->destinationMono = 1;
+	} else {
+		if (sourceFormat->channels == 1)
+			state->sourceMono = 1;
+
+		if (destinationFormat->channels == 1)
+			state->destinationMono = 1;
+	}
 
 	if (sourceFormat->bitsPerSample == 16)
 		state->source16 = 1;

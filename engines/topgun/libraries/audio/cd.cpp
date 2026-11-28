@@ -279,8 +279,10 @@ uint16 AudioLibrary::startCDPlayback(uint32 from, uint32 to) {
 	sendCdDeviceCommand(TG_AUDIO_DEV_PLAY, TG_AUDIO_DEV_FROM | TG_AUDIO_DEV_TO, play);
 
 	if (_engine->_version >= kVersionV1_1) {
-		if (_cdProfileFirst || _cdSlowStart)
-			profileCDStart();
+		if (_cdProfileFirst)
+			cdProfileDriveStartCheck();
+		else if (_cdSlowStart)
+			waitForCDPositionChange();
 	} else {
 		_cdNextPoll = _engine->getEngineMillis() + TG_AUDIO_POLL_INTERVAL;
 	}
@@ -288,30 +290,35 @@ uint16 AudioLibrary::startCDPlayback(uint32 from, uint32 to) {
 	return 1;
 }
 
-void AudioLibrary::profileCDStart() {
-	uint32 deadline = _engine->getEngineMillis() + 1000;
-	uint32 polls = 0;
-	uint32 position;
-	bool inTime;
+void AudioLibrary::cdProfileDriveStartCheck() {
+	waitForCDPositionChange();
+
+	if (_cdPollTime < _cdPollDeadline && _cdPollUnchangedCount >= 3 && (_cdPos >> 24) == (_cdFrom >> 24) &&
+		((_cdPos >> 16) & 0xFF) == ((_cdFrom >> 16) & 0xFF) && ((_cdPos >> 8) & 0xFF) == ((_cdFrom >> 8) & 0xFF) &&
+		(int32)(_cdFrom & 0xFF) + 2 > (int32)(_cdPos & 0xFF))
+		_cdSlowStart = true;
+
+	_cdProfileFirst = false;
+}
+
+void AudioLibrary::waitForCDPositionChange() {
+	_cdPollUnchangedCount = 0;
+	_cdPollTime = _engine->getEngineMillis();
+	_cdPollDeadline = _cdPollTime + 1000;
 
 	while (true) {
-		position = getCDCurrentPosition();
-		inTime = (_engine->getEngineMillis() < deadline);
+		_cdPos = getCDCurrentPosition();
 
-		if (position != _cdFrom || !inTime)
+		if (_cdPos != _cdFrom)
 			break;
 
-		polls++;
+		_cdPollTime = _engine->getEngineMillis();
+
+		if (_cdPollTime >= _cdPollDeadline)
+			break;
+
+		_cdPollUnchangedCount++;
 		g_system->delayMillis(1);
-	}
-
-	if (_cdProfileFirst) {
-		_cdProfileFirst = false;
-
-		if (inTime && polls >= 3 && (position >> 24) == (_cdFrom >> 24) &&
-			((position >> 16) & 0xFF) == ((_cdFrom >> 16) & 0xFF) && ((position >> 8) & 0xFF) == ((_cdFrom >> 8) & 0xFF) &&
-			(int32)(_cdFrom & 0xFF) + 2 > (int32)(position & 0xFF))
-			_cdSlowStart = true;
 	}
 }
 

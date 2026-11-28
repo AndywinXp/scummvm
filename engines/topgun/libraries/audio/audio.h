@@ -349,7 +349,8 @@ protected:
 	uint16 startCDFadeIn(uint16 milliseconds, uint32 from);
 	uint16 startCDFadeOut(uint16 milliseconds);
 	void cdFadeTick();
-	void profileCDStart();
+	void cdProfileDriveStartCheck();
+	void waitForCDPositionChange();
 	uint16 findCdAuxDevice();
 	void pollCDEndAndClose();
 	virtual uint16 closeCDAudioDevice();
@@ -439,6 +440,9 @@ protected:
 	uint32 _cdTo = 0;
 	uint32 _cdPos = 0;
 	uint32 _cdNextPoll = 0;
+	uint32 _cdPollTime = 0;
+	uint32 _cdPollDeadline = 0;
+	uint32 _cdPollUnchangedCount = 0;
 	byte _cdFadeMode = 0;
 	uint32 _cdFadeNextTick = 0;
 	uint16 _cdFadeSteps = 0;
