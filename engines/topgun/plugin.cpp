@@ -26,12 +26,15 @@
 #include "common/textconsole.h"
 #include "common/util.h"
 
+#include "topgun/display.h"
 #include "topgun/games/ace/ace1util.h"
 #include "topgun/games/ace/dynalloc.h"
 #include "topgun/games/ace/fileio.h"
 #include "topgun/games/ace/pathfind.h"
 #include "topgun/games/battle/battle.h"
 #include "topgun/games/battledemo/battledemo.h"
+#include "topgun/games/virgil/re.h"
+#include "topgun/games/virgil/wordlist.h"
 #include "topgun/libraries/resource/resource_v1_2_4.h"
 #include "topgun/libraries/sprite/sprite_v1_2_4.h"
 #include "topgun/libraries/utils/utils.h"
@@ -79,9 +82,24 @@ public:
 	void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_4 &info) override;
 	void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) override;
 	char *getString(uint16 id) override;
+	void setString(uint16 id, const char *text) override;
+	uint16 setText(uint16 id, const char *text) override;
+	int16 compareStringsIgnoreCase(const char *first, const char *second) override;
 	uint32 getConstantStringRoom(uint16 id) override;
 	byte *tgMalloc(uint32 size, uint16 zeroInit) override;
 	byte *tgFree(byte *block) override;
+	uint16 globalAlloc(uint32 size) override;
+	byte *globalLock(uint16 handle, uint32 &size) override;
+	void globalFree(uint16 handle) override;
+	ResourceRecord *getResource(uint16 id) override;
+	bool isPaletteDevice() override;
+	void getPalette(byte *entries, uint16 first, uint16 count) override;
+	void replaceSpriteBitmap(uint16 sprite, byte *oldBitmap, byte *newBitmap) override;
+	byte *deviceBitmapToDibData(const Graphics::ManagedSurface *bitmap, bool remap, byte color) override;
+	void mapBytes(byte *buffer, uint32 count, const byte *table) override;
+	uint16 createFont(int16 height, const char *face) override;
+	void deleteFont(uint16 font) override;
+	const Graphics::Font *getFont(uint16 font) override;
 	void copyStringVariable(uint16 index, char *destination) override;
 	void setScriptResult(uint16 value) override;
 	uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) override;
@@ -107,6 +125,7 @@ private:
 
 	TopgunEngine_v1_2 *_engine;
 	Common::Array<MmioFile> _files;
+	Common::Array<Common::Array<byte> *> _globalBlocks;
 };
 
 EnginePluginHost::~EnginePluginHost() {
@@ -114,6 +133,9 @@ EnginePluginHost::~EnginePluginHost() {
 		if (_files[i].open)
 			mmioClose(i + 1);
 	}
+
+	for (uint32 i = 0; i < _globalBlocks.size(); i++)
+		delete _globalBlocks[i];
 }
 
 uint16 *EnginePluginHost::variableTable() {
@@ -428,6 +450,50 @@ char *EnginePluginHost::getString(uint16 id) {
 	return _engine->getStringFromId(id);
 }
 
+void EnginePluginHost::setString(uint16 id, const char *text) {
+	if (id == 0 || _engine->_currentSceneIndex >= _engine->_sceneEntries.size())
+		return;
+
+	const SceneEntry_v1_2 &entry = _engine->_sceneEntries[_engine->_currentSceneIndex];
+	if (entry.stringCount < id)
+		return;
+
+	Common::strlcpy((char *)entry.strings + (id - 1) * TG_HOST_V1_2_STRING_SLOT_SIZE, text, TG_PLUGIN_V1_2_4_STRING_COPY_SIZE);
+}
+
+uint16 EnginePluginHost::setText(uint16 id, const char *text) {
+	if (!_engine->validateAndGetResourceByType(id, kResV1_2_12Text))
+		return 0;
+
+	uint16 index = _engine->operandValue(id);
+	if (!_engine->isRecordIndexValid(index, "setText"))
+		return 0;
+
+	if (!text)
+		return 0;
+
+	TextObject_v1_2 *object = _engine->textObjectFromHandle(_engine->_records[index].object);
+	if (!object) {
+		warning("EnginePluginHost::setText(): the text object %d does not exist", _engine->_records[index].object);
+		return 0;
+	}
+
+	if (strchr(text, '%'))
+		warning("EnginePluginHost::setText(): the string '%s' is a format without arguments", text);
+
+	Common::String formatted = TopgunEngine_v1_2::formatWindowsString(text, nullptr, 0);
+	if (formatted.size() >= TG_TEXT_V1_2_TEXT_SIZE)
+		warning("EnginePluginHost::setText(): the string '%s' does not fit in the text object", text);
+
+	Common::strlcpy(object->text, formatted.c_str(), TG_TEXT_V1_2_TEXT_SIZE);
+
+	return _engine->refreshTextObjectBitmap(object->handle) ? 1 : 0;
+}
+
+int16 EnginePluginHost::compareStringsIgnoreCase(const char *first, const char *second) {
+	return TopgunEngine_v1_2::compareStringsCustom(first, second, false);
+}
+
 uint32 EnginePluginHost::getConstantStringRoom(uint16 id) {
 	return _engine->resourceLib()->resGetConstStrRoom(_engine->_file, id & TG_HOST_V1_2_STRING_ID_MASK);
 }
@@ -438,6 +504,89 @@ byte *EnginePluginHost::tgMalloc(uint32 size, uint16 zeroInit) {
 
 byte *EnginePluginHost::tgFree(byte *block) {
 	return _engine->utilsLibrary()->tgFree(block);
+}
+
+uint16 EnginePluginHost::globalAlloc(uint32 size) {
+	Common::Array<byte> *block = new Common::Array<byte>();
+	block->resize(size);
+
+	for (uint16 i = 0; i < _globalBlocks.size(); i++) {
+		if (!_globalBlocks[i]) {
+			_globalBlocks[i] = block;
+			return i + 1;
+		}
+	}
+
+	_globalBlocks.push_back(block);
+	return _globalBlocks.size();
+}
+
+byte *EnginePluginHost::globalLock(uint16 handle, uint32 &size) {
+	if (handle == 0 || handle > _globalBlocks.size() || !_globalBlocks[handle - 1]) {
+		warning("EnginePluginHost::globalLock(): the memory handle %d does not exist", handle);
+		size = 0;
+		return nullptr;
+	}
+
+	size = _globalBlocks[handle - 1]->size();
+	return _globalBlocks[handle - 1]->data();
+}
+
+void EnginePluginHost::globalFree(uint16 handle) {
+	if (handle == 0 || handle > _globalBlocks.size())
+		return;
+
+	delete _globalBlocks[handle - 1];
+	_globalBlocks[handle - 1] = nullptr;
+}
+
+ResourceRecord *EnginePluginHost::getResource(uint16 id) {
+	if (!_engine->isRecordIndexValid(id, "getResource"))
+		return nullptr;
+
+	return &_engine->_records[id];
+}
+
+bool EnginePluginHost::isPaletteDevice() {
+	return _engine->display()->hasPalette();
+}
+
+void EnginePluginHost::getPalette(byte *entries, uint16 first, uint16 count) {
+	_engine->spriteLib()->spriteGetPalette(entries, first, count);
+}
+
+void EnginePluginHost::replaceSpriteBitmap(uint16 sprite, byte *oldBitmap, byte *newBitmap) {
+	uint16 bitmapResourceIdOffset = (_engine->_version >= kVersionV1_2_3_2) ? TG_HOST_V1_2_4_BITMAP_RESOURCE_ID : TG_HOST_V1_2_BITMAP_RESOURCE_ID;
+
+	CelReference oldCel(oldBitmap, READ_LE_UINT16(oldBitmap + bitmapResourceIdOffset));
+	CelReference newCel(newBitmap, READ_LE_UINT16(newBitmap + bitmapResourceIdOffset));
+
+	_engine->spriteLib()->spriteReplaceBitmap(sprite, oldCel, newCel);
+}
+
+byte *EnginePluginHost::deviceBitmapToDibData(const Graphics::ManagedSurface *bitmap, bool remap, byte color) {
+	return _engine->createDIBFromBitmapHandle(bitmap, remap, color);
+}
+
+void EnginePluginHost::mapBytes(byte *buffer, uint32 count, const byte *table) {
+	_engine->utilsLibrary()->mapBytes(buffer, count, table);
+}
+
+uint16 EnginePluginHost::createFont(int16 height, const char *face) {
+	return _engine->createTextObjectFont(height, face);
+}
+
+void EnginePluginHost::deleteFont(uint16 font) {
+	_engine->deleteTextObjectFont(font);
+}
+
+const Graphics::Font *EnginePluginHost::getFont(uint16 font) {
+	for (uint32 i = 0; i < _engine->_textFonts.size(); i++) {
+		if (_engine->_textFonts[i].handle == font)
+			return _engine->_textFonts[i].font;
+	}
+
+	return nullptr;
 }
 
 void EnginePluginHost::copyStringVariable(uint16 index, char *destination) {
@@ -691,6 +840,12 @@ Plugin *createPlugin(const Common::String &name, PluginHost *host) {
 
 	if (name.equalsIgnoreCase("PATHFIND.R16"))
 		return new PathFindPlugin(host);
+
+	if (name.equalsIgnoreCase("RE.R16"))
+		return new RePlugin(host, name);
+
+	if (name.equalsIgnoreCase("WORDLIST.R16"))
+		return new WordListPlugin(host, name);
 
 	return nullptr;
 }

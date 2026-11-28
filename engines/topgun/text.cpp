@@ -373,6 +373,7 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 	Common::String name(face);
 
 	bool bold = name.hasSuffixIgnoreCase(" Bold");
+	bool italic = _version >= kVersionV2_0 && name.hasSuffixIgnoreCase(" Italic");
 	bool serif = name.hasPrefixIgnoreCase("Times");
 
 	// The Japanese games ask for the fonts of Japanese Windows, such as MS Mincho and MS Gothic
@@ -381,6 +382,8 @@ uint16 TopgunEngine_v1_2::createTextObjectFont(int16 height, const char *face) {
 	const char *file;
 	if (japanese)
 		file = bold ? "NotoSansJP-Bold.otf" : "NotoSansJP-Regular.otf";
+	else if (italic)
+		file = serif ? "LiberationSerif-Italic.ttf" : "LiberationSans-Italic.ttf";
 	else if (serif)
 		file = bold ? "LiberationSerif-Bold.ttf" : "LiberationSerif-Regular.ttf";
 	else

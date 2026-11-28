@@ -26,8 +26,16 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
+namespace Graphics {
+
+class Font;
+class ManagedSurface;
+
+} // End of namespace Graphics
+
 namespace Topgun {
 
+struct ResourceRecord;
 struct SpriteInfo_v1_2_4;
 
 enum MmioFlag {
@@ -74,6 +82,9 @@ public:
 	virtual void getSpriteInfo(uint16 sprite, SpriteInfo_v1_2_4 &info) = 0; // RT_034
 	virtual void setSpriteSpeedMotion(uint16 sprite, uint16 speed, uint16 motion) = 0; // RT_035
 	virtual char *getString(uint16 id) = 0; // RT_036
+	virtual void setString(uint16 id, const char *text) = 0;
+	virtual uint16 setText(uint16 id, const char *text) = 0;
+	virtual int16 compareStringsIgnoreCase(const char *first, const char *second) = 0;
 	virtual void copyStringVariable(uint16 index, char *destination) = 0; // RT_037
 	virtual void setScriptResult(uint16 value) = 0; // RT_038
 	virtual uint16 getPrivateProfileInt(const char *section, const char *key, uint16 defaultValue) = 0;
@@ -89,6 +100,19 @@ public:
 	virtual uint32 getConstantStringRoom(uint16 id) = 0;
 	virtual byte *tgMalloc(uint32 size, uint16 zeroInit) = 0;
 	virtual byte *tgFree(byte *block) = 0;
+	virtual uint16 globalAlloc(uint32 size) = 0;
+	virtual byte *globalLock(uint16 handle, uint32 &size) = 0;
+	virtual void globalFree(uint16 handle) = 0;
+
+	virtual ResourceRecord *getResource(uint16 id) = 0;
+	virtual bool isPaletteDevice() = 0;
+	virtual void getPalette(byte *entries, uint16 first, uint16 count) = 0;
+	virtual void replaceSpriteBitmap(uint16 sprite, byte *oldBitmap, byte *newBitmap) = 0;
+	virtual byte *deviceBitmapToDibData(const Graphics::ManagedSurface *bitmap, bool remap, byte color) = 0;
+	virtual void mapBytes(byte *buffer, uint32 count, const byte *table) = 0;
+	virtual uint16 createFont(int16 height, const char *face) = 0;
+	virtual void deleteFont(uint16 font) = 0;
+	virtual const Graphics::Font *getFont(uint16 font) = 0;
 
 	virtual uint16 mmioOpen(const char *name, uint32 flags) = 0;
 	virtual uint16 mmioClose(uint16 handle) = 0;

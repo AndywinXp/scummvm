@@ -40,6 +40,9 @@ MODULE_OBJS = \
 	games/battledemo/battledemo_type0.o \
 	games/battledemo/battledemo_type1.o \
 	games/battledemo/battledemo_weapons.o \
+	games/virgil/re.o \
+	games/virgil/refengine.o \
+	games/virgil/wordlist.o \
 	ini.o \
 	input.o \
 	libraries/audio/audio.o \
