@@ -73,7 +73,7 @@ bool TopgunEngine_v1_2::runScriptResource(uint16 scriptId) {
 	_currentScriptId = scriptId;
 
 	bool result = true;
-	if (!_scriptHook || !callScriptHook(scriptId))
+	if (_version >= kVersionV1_2_6 || !_scriptHook || !callScriptHook(scriptId))
 		result = runScriptBytecodeLoop(scriptId);
 
 	if (_version >= kVersionV1_2_6)
