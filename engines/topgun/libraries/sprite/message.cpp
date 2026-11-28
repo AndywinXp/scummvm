@@ -200,7 +200,10 @@ byte *SpriteLibrary_v1_2::allocQueueRecord(uint16 explicitSize, uint16 opcode, u
 
 	uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 	uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-	if (_engine->_version >= kVersionV1_2_12) {
+	if (_engine->_version >= kVersionV2_0) {
+		slack = TG_SPR_V2_0_QUEUE_BLOCK_SLACK;
+		rounding = TG_SPR_V2_0_QUEUE_BLOCK_ROUNDING;
+	} else if (_engine->_version >= kVersionV1_2_12) {
 		slack = TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK;
 		rounding = TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING;
 	}
@@ -240,7 +243,10 @@ byte *SpriteLibrary_v1_2::growQueueForRecord(uint16 explicitSize, uint16 opcode,
 	if (needed > capacity) {
 		uint16 slack = TG_SPR_V1_2_QUEUE_BLOCK_SLACK;
 		uint16 rounding = TG_SPR_V1_2_QUEUE_BLOCK_ROUNDING;
-		if (_engine->_version >= kVersionV1_2_12) {
+		if (_engine->_version >= kVersionV2_0) {
+			slack = TG_SPR_V2_0_QUEUE_BLOCK_SLACK;
+			rounding = TG_SPR_V2_0_QUEUE_BLOCK_ROUNDING;
+		} else if (_engine->_version >= kVersionV1_2_12) {
 			slack = TG_SPR_V1_2_12_QUEUE_BLOCK_SLACK;
 			rounding = TG_SPR_V1_2_12_QUEUE_BLOCK_ROUNDING;
 		}
@@ -324,6 +330,9 @@ bool SpriteLibrary_v1_2::buildPlayRangeMessage(uint16 mode, const uint16 *params
 bool SpriteLibrary_v1_2_4::buildMultiCelMessage(uint16 mode, uint16 count, const uint16 *params, uint16 sprite) {
 	uint16 paramCount = (uint16)(count - 2);
 	uint16 maxParamCount = (_engine->_version >= kVersionV1_2_7_1) ? 11 : 5;
+	if (_engine->_version >= kVersionV2_0)
+		maxParamCount = 9;
+
 	if (_engine->_version == kVersionV1_2_3_2) {
 		if (count < 2)
 			return false;
@@ -364,7 +373,11 @@ bool SpriteLibrary_v1_2_4::buildMultiCelMessage(uint16 mode, uint16 count, const
 		WRITE_LE_UINT16(record + celsOffset + 2 * i, cel);
 	}
 
-	if (_engine->_version >= kVersionV1_2_7_1) {
+	if (_engine->_version >= kVersionV2_0) {
+		WRITE_LE_UINT16(record + 2, params[frames]);
+		WRITE_LE_UINT16(record + 4, frames);
+		record[6] &= 0xFE;
+	} else if (_engine->_version >= kVersionV1_2_7_1) {
 		WRITE_LE_UINT16(record + 2, (uint16)(params[frames] - _literalBias));
 		WRITE_LE_UINT16(record + 6, frames);
 		WRITE_LE_UINT16(record + 4, 0);
@@ -488,7 +501,7 @@ bool SpriteLibrary_v1_2::buildQuadPathMessage(uint16 mode, const uint16 *params,
 		WRITE_LE_UINT16(record + 0x0A, (uint16)(params[2] - _literalBias));
 		WRITE_LE_UINT16(record + 0x0C, (uint16)(params[3] - _literalBias));
 		WRITE_LE_UINT16(record + 2, (uint16)(params[4] - _literalBias));
-		if (_engine->_version >= kVersionV1_2_6)
+		if (_engine->_version >= kVersionV1_2_6 && _engine->_version < kVersionV2_0)
 			WRITE_LE_UINT16(record + 4, (params[5] != 0) ? 1 : 0);
 		else
 			record[4] = (params[5] != 0) ? 1 : 0;
@@ -538,8 +551,13 @@ bool SpriteLibrary_v1_2_4::buildFlipMessage(uint16 mode, const uint16 *params, u
 
 	WRITE_LE_UINT16(record + 2, (uint16)(((params[0] != 0) ? 1 : 0) - _literalBias));
 	WRITE_LE_UINT16(record + 4, (uint16)(((params[1] != 0) ? 1 : 0) - _literalBias));
-	WRITE_LE_UINT16(record + 8, (uint16)(0 - _literalBias));
-	WRITE_LE_UINT16(record + 6, (uint16)(0 - _literalBias));
+	if (_engine->_version >= kVersionV2_0) {
+		WRITE_LE_UINT16(record + 0x0A, 0);
+		WRITE_LE_UINT16(record + 8, 0);
+	} else {
+		WRITE_LE_UINT16(record + 8, (uint16)(0 - _literalBias));
+		WRITE_LE_UINT16(record + 6, (uint16)(0 - _literalBias));
+	}
 
 	if (mode != 0) {
 		runImmediateRecord(record, sprite);
@@ -583,7 +601,7 @@ bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *param
 	if (!object)
 		return false;
 
-	uint16 shift = (_engine->_version >= kVersionV1_2_6) ? 2 : 0;
+	uint16 shift = (_engine->_version >= kVersionV1_2_6 && _engine->_version < kVersionV2_0) ? 2 : 0;
 
 	if (mode != 0) {
 		WRITE_LE_INT16(record + 0x0A + shift, object->x);
@@ -607,7 +625,10 @@ bool SpriteLibrary_v1_2::buildLinearMoveMessage(uint16 mode, const uint16 *param
 		WRITE_LE_UINT16(record + 8 + shift, (uint16)(params[1] - _literalBias));
 		WRITE_LE_UINT16(record + 2, (uint16)(params[2] - _literalBias));
 
-		if (_engine->_version >= kVersionV1_2_6) {
+		if (_engine->_version >= kVersionV2_0) {
+			record[5] = (byte)((record[5] & 0xFE) | ((params[3] != 0) ? 1 : 0));
+			record[4] = (params[4] != 0) ? 1 : 0;
+		} else if (_engine->_version >= kVersionV1_2_6) {
 			WRITE_LE_UINT16(record + 4, (params[3] != 0) ? 1 : 0);
 			WRITE_LE_UINT16(record + 6, (params[4] != 0) ? 1 : 0);
 		} else {
@@ -685,7 +706,10 @@ bool SpriteLibrary_v1_2_4::buildWaitMessage(uint16 mode, const uint16 *params, u
 		return false;
 
 	WRITE_LE_UINT16(record + 2, (uint16)(params[0] - _literalBias));
-	WRITE_LE_UINT16(record + 4, 0);
+	if (_engine->_version >= kVersionV2_0)
+		record[4] = 0;
+	else
+		WRITE_LE_UINT16(record + 4, 0);
 
 	SpriteObject_v1_2 *object = findSprite(sprite, "buildWaitMessage");
 	if (object && !object->queueCurrent)
@@ -708,12 +732,19 @@ bool SpriteLibrary_v1_2_4::buildDelayedMoveMessage(uint16 mode, uint16 count, co
 	if (mode != 0) {
 		WRITE_LE_UINT16(record + 4, params[0]);
 		WRITE_LE_UINT16(record + 6, params[1]);
-		WRITE_LE_UINT16(record + 2, (params[2] != 0) ? 1 : 0);
+		if (_engine->_version >= kVersionV2_0)
+			record[2] = (params[2] != 0) ? 1 : 0;
+		else
+			WRITE_LE_UINT16(record + 2, (params[2] != 0) ? 1 : 0);
+
 		runImmediateRecord(record, sprite);
 	} else {
 		WRITE_LE_UINT16(record + 4, (uint16)(params[0] - _literalBias));
 		WRITE_LE_UINT16(record + 6, (uint16)(params[1] - _literalBias));
-		WRITE_LE_UINT16(record + 2, (params[2] != 0) ? 1 : 0);
+		if (_engine->_version >= kVersionV2_0)
+			record[2] = (params[2] != 0) ? 1 : 0;
+		else
+			WRITE_LE_UINT16(record + 2, (params[2] != 0) ? 1 : 0);
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildDelayedMoveMessage");
 		if (object && !object->queueCurrent)
@@ -763,7 +794,10 @@ bool SpriteLibrary_v1_2_4::buildSetPositionMessage(uint16 mode, uint16 count, co
 	WRITE_LE_UINT16(record + 2, (uint16)(params[0] - _literalBias));
 	WRITE_LE_UINT16(record + 4, (uint16)(params[1] - _literalBias));
 	if (_engine->_version >= kVersionV1_2_6) {
-		WRITE_LE_UINT16(record + 6, (relative != 0) ? 1 : 0);
+		if (_engine->_version >= kVersionV2_0)
+			record[6] = (relative != 0) ? 1 : 0;
+		else
+			WRITE_LE_UINT16(record + 6, (relative != 0) ? 1 : 0);
 
 		SpriteObject_v1_2 *object = findSprite(sprite, "buildSetPositionMessage");
 		if (object && !object->queueCurrent)

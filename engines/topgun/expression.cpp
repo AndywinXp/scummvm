@@ -554,7 +554,7 @@ static const byte kBuiltinCodesV2_0[] = {
 	193,   0, 146,  97,  96, 192, 229,   0,  63,   5, 203, 178, 228, 166, 145, 169,
 	  0, 159,   0,   0,   0, 205,   0, 182, 120,   0,  66, 197, 131,  91,  90, 132,
 	222, 128,  14,  81,  15,  57,  58,  99, 100,   0,   0,   0,   0, 209,   0,   3,
-	 50,  68, 154,   0,   0, 156,   0,   0
+	 50,  68, 154,   0,   0, 156,   0, 237
 };
 
 void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
@@ -2982,6 +2982,12 @@ void TopgunEngine_v1_2_4::evaluateBuiltinFunction(uint16 code, uint16 argc) {
 		o_bindKeyScript(record);
 		break;
 	}
+
+	case 237:
+		_expressionStackPointer--;
+		_spriteSync = (byte)_expressionStack[_expressionStackPointer];
+		spriteLib()->spriteSetSync(_spriteSync);
+		break;
 
 	default:
 		break;

@@ -103,11 +103,19 @@ void SpriteLibrary_v1_2::appendFrame(SpriteObject_v1_2 *object, const CelReferen
 	object->frameIds.push_back(cel.id);
 }
 
-uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw) const {
+uint16 SpriteLibrary_v1_2::decodeOperand(uint16 raw, byte variableFlag) const {
 	if (!_variableTable)
 		return raw;
 
-	if (_engine->_version >= kVersionV1_2_3_2) {
+	if (_engine->_version >= kVersionV2_0) {
+		if (variableFlag == 0)
+			return raw;
+
+		if (raw > TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX) {
+			warning("SpriteLibrary_v1_2::decodeOperand(): variable %d is out of range", raw);
+			return 0;
+		}
+	} else if (_engine->_version >= kVersionV1_2_3_2) {
 		if (raw > TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX)
 			return (uint16)(raw + TG_SPR_V1_2_3_2_LITERAL_BIAS);
 	} else if (raw > TG_SPR_V1_2_VARIABLE_LAST_INDEX) {
@@ -505,12 +513,15 @@ bool SpriteLibrary_v1_2::spriteInitLibrary(uint16 mode) {
 	_serviceWord = 0;
 	_variableTable = nullptr;
 
-	if (_engine->_version >= kVersionV1_2_3_2)
+	if (_engine->_version >= kVersionV2_0)
+		_literalBias = 0;
+	else if (_engine->_version >= kVersionV1_2_3_2)
 		_literalBias = TG_SPR_V1_2_3_2_LITERAL_BIAS;
 	else
 		_literalBias = TG_SPR_V1_2_LITERAL_BIAS;
 	_inHostCallback = false;
 	_hostEventsSuppressed = false;
+	_syncFlag = 0;
 	_zoomActive = false;
 	_stretch = false;
 	_zoomFactor = 0;
@@ -690,6 +701,16 @@ void SpriteLibrary_v1_2::initQueueRecordSizeTable() {
 
 	if (_engine->_version >= kVersionV1_2_7_1)
 		_queueCommandSizeTable[kSprV1_2OpMultiCel] = 0x1C;
+
+	if (_engine->_version >= kVersionV2_0) {
+		_queueCommandSizeTable[kSprV1_2OpPlayRange] = 0x0C;
+		_queueCommandSizeTable[kSprV1_2OpMultiCel] = 0x18;
+		_queueCommandSizeTable[kSprV1_2OpFlip] = 0x0C;
+		_queueCommandSizeTable[kSprV1_2OpLinearMove] = 0x16;
+		_queueCommandSizeTable[kSprV1_2_7OpFrameInterval] = 6;
+		_queueCommandSizeTable[kSprV1_2_7OpSetRange] = 0x0A;
+		_queueCommandSizeTable[kSprV1_2_7OpMoveInterval] = 8;
+	}
 }
 
 void SpriteLibrary_v1_2::spriteResetLibrary() {
@@ -700,6 +721,7 @@ void SpriteLibrary_v1_2::spriteResetLibrary() {
 	}
 
 	_zoomActive = false;
+	_syncFlag = 0;
 
 	if (_engine->_version >= kVersionV1_2_12) {
 		_scrollPosX = 0;
@@ -1034,7 +1056,7 @@ void SpriteLibrary_v1_2::spriteOffset(uint16 sprite, int16 deltaX, int16 deltaY)
 
 	byte *command = object->queueCurrent;
 	uint16 quadPathOffset = (_engine->_version >= kVersionV1_2_3_1) ? 0x12 : 0x11;
-	uint16 linearMoveOffset = (_engine->_version >= kVersionV1_2_6) ? 0x10 : 0x0E;
+	uint16 linearMoveOffset = (_engine->_version >= kVersionV1_2_6 && _engine->_version < kVersionV2_0) ? 0x10 : 0x0E;
 
 	switch (READ_LE_UINT16(command)) {
 	case kSprV1_2OpQuadPath:
@@ -1380,6 +1402,16 @@ uint16 SpriteLibrary_v1_2::spriteSetSendMsg(uint16 flag) {
 
 void SpriteLibrary_v1_2::spriteSetVarTable(const uint16 *table) {
 	_variableTable = table;
+}
+
+void SpriteLibrary_v1_2::spriteSetSync(uint16 flag) {
+	if (flag == 0 && _syncFlag == 0)
+		return;
+
+	_syncFlag = flag;
+
+	if (_syncFlag == 0)
+		renderRect(_clipRect);
 }
 
 byte *SpriteLibrary_v1_2::callStreamProc(uint16 sprite, uint16 id, uint16 release) {

@@ -338,7 +338,9 @@ bool TopgunEngine_v1_2_4::initEngineLibraries() {
 	if (_version == kVersionV1_2_3_3)
 		spriteLib()->spriteSetQueueDoneProc(false);
 
-	spriteLib()->spriteSetStreamProc(true);
+	if (_version < kVersionV2_0)
+		spriteLib()->spriteSetStreamProc(true);
+
 	spriteLib()->spriteSetServiceProc(true, 1);
 	return true;
 }
@@ -521,6 +523,9 @@ void TopgunEngine_v1_2_4::dispatchMessage(const Message &message) {
 }
 
 void TopgunEngine_v1_2_4::fillBackground() {
+	if (_spriteSync != 0)
+		return;
+
 	if (_backgroundColor == 0) {
 		display()->clearScreen();
 	} else if (display()->hasPalette()) {

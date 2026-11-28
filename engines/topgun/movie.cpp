@@ -204,7 +204,9 @@ bool TopgunEngine_v1_2::movieLoadFrameTable(Movie_v1_2 *movie) {
 			movie->frameCount = (uint16)(size / TG_MOVIE_V1_2_FRAME_ENTRY_SIZE);
 		}
 
-		if (_version >= kVersionV1_2_3_1) {
+		if (_version >= kVersionV2_0) {
+			movie->streamBase = static_cast<ResourceLibrary_v1_2_4 *>(resourceLib())->resGetOffset(_file, (uint16)(movie->index + TG_MOVIE_V1_2_4_STREAM_RESOURCE_OFFSET));
+		} else if (_version >= kVersionV1_2_3_1) {
 			if (static_cast<ResourceLibrary_v1_2_4 *>(resourceLib())->resSeekResource(_file, (uint16)(movie->index + TG_MOVIE_V1_2_4_STREAM_RESOURCE_OFFSET)) == 0)
 				return false;
 
@@ -348,7 +350,13 @@ uint16 TopgunEngine_v1_2::movieReadNextBlock(Movie_v1_2 *movie) {
 
 	PrefetchBuffer_v1_2 &buffer = movie->buffers[movie->fillBuffer];
 	uint32 streamBase = (_version >= kVersionV1_2_3_1) ? movie->streamBase : 0;
-	uint32 read = resourceLib()->resReadData(_file, buffer.data + buffer.filled, movie->runSize, streamBase + movie->runOffset);
+	uint32 read;
+
+	if (_version >= kVersionV2_0)
+		read = static_cast<ResourceLibrary_v1_2_4 *>(resourceLib())->resReadResourceData(_file, movie->id, buffer.data + buffer.filled, movie->runSize, streamBase + movie->runOffset);
+	else
+		read = resourceLib()->resReadData(_file, buffer.data + buffer.filled, movie->runSize, streamBase + movie->runOffset);
+
 	buffer.filled = (uint16)(buffer.filled + movie->runSize);
 
 	resourceLib()->resSetCallback(_file, previousCallback, TG_HOST_PROGRESS_INTERVAL);

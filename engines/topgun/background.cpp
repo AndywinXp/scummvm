@@ -919,6 +919,9 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 				_active = true;
 
 				static_cast<SpriteLibrary_v1_2_4 *>(spriteLib())->spriteBoxOutBackground(_buffer1, rings, true);
+
+				if (_version == kVersionV2_0)
+					_faded = true;
 			} else {
 				if (rings < TG_HOST_V1_2_WIPE_MIN_RINGS)
 					rings = TG_HOST_V1_2_WIPE_MIN_RINGS;
@@ -938,7 +941,7 @@ void TopgunEngine_v1_2::sceneTransitionOut(uint16 steps) {
 	}
 
 	// The fade of a display without palette ends here even when there was no background to fade
-	if (_version >= kVersionV1_2_12 && !display()->hasPalette())
+	if (_version >= kVersionV1_2_12 && _version != kVersionV2_0 && !display()->hasPalette())
 		_faded = true;
 
 	if (_version >= kVersionV1_2_3_2)
@@ -988,7 +991,6 @@ byte *TopgunEngine_v1_2_4::loadBitmapResourceCopy(uint16 id) {
 			return nullptr;
 
 		id = READ_LE_UINT16(cell);
-		utilsLibrary()->tgFree(cell);
 	}
 
 	if (!validateResourceType(id, kResV1_2_4Bitmap))

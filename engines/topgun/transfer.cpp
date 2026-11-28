@@ -119,7 +119,7 @@ void TopgunEngine_v1_2::hideSourceSpriteAndAddFrameRefs(const SpriteInfo_v1_2 &i
 		membersOffset = TG_HOST_V1_2_12_SPRITE_DATA_MEMBERS;
 
 	uint16 count = READ_LE_UINT16(data + memberCountOffset);
-	bool deferBitmaps = (_version >= kVersionV1_2_3_1 && data[shift + TG_HOST_V1_2_4_SPRITE_DATA_DEFER_FLAG] != 0);
+	bool deferBitmaps = (_version >= kVersionV1_2_3_1 && _version < kVersionV2_0 && data[shift + TG_HOST_V1_2_4_SPRITE_DATA_DEFER_FLAG] != 0);
 
 	if (_version >= kVersionV1_2_1 && _version < kVersionV1_2_3_1)
 		deferBitmaps = (data[TG_HOST_V1_2_SPRITE_DATA_DEFER_FLAG] != 0);

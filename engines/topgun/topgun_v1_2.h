@@ -1267,6 +1267,7 @@ protected:
 	uint16 _filePaletteEntryCount = 0;
 	TileBackground *_tileMap = nullptr;
 	bool _scrollBoxWindowBox = false;
+	byte _spriteSync = 0;
 
 	// Script state
 	uint16 _scriptArgStackOffset = 0;

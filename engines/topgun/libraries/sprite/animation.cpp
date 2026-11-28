@@ -86,6 +86,12 @@ bool SpriteLibrary::spriteSetQueue(uint16 sprite, const byte *queue, uint16 size
 	object->queueStart = copy;
 	object->queueEnd = copy + size;
 	object->queueTag = tag;
+
+	if (_engine->_version >= kVersionV2_0) {
+		object->queueCapacityStart = copy;
+		object->queueCapacity = size;
+	}
+
 	processSpriteQueueCommand(sprite);
 	return true;
 }

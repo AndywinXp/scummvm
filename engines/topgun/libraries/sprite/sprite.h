@@ -177,13 +177,15 @@ protected:
 		uint16 collisionTarget;
 		uint16 collisionValue;
 		uint16 queueTag;
+		byte *queueCapacityStart;
+		uint32 queueCapacity;
 
 		SpriteObject() : x(0), y(0), moveDue(0), frameDue(0), moveInterval(0), frameInterval(0), currentFrame(nullptr),
 			queueStart(nullptr), queueCurrent(nullptr), queueEnd(nullptr), id(0), currentFrameIndex(0),
 			nextFrameIndex(0), rangeStart(0), rangeEnd(0), visible(false), notifyOnFrame(false),
 			framePending(false), useUnionRefresh(false), forward(false), previousValid(false),
 			timingMode(0), inCallback(false), loopsDisabled(false), scriptActive(0), partCount(0),
-			collisionTarget(0), collisionValue(0), queueTag(0) {}
+			collisionTarget(0), collisionValue(0), queueTag(0), queueCapacityStart(nullptr), queueCapacity(0) {}
 
 		virtual ~SpriteObject() {}
 	};

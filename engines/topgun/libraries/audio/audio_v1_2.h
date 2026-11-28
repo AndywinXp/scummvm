@@ -137,6 +137,7 @@
 #define TG_AUDIO_V1_2_3_3_MAX_SOUNDS          100
 #define TG_AUDIO_V1_2_4_CREATE_HEADER_SIZE    0x1C
 #define TG_AUDIO_V1_2_4_PLAY_PARAMS_SIZE      0x18
+#define TG_AUDIO_V2_0_PLAY_OFFSET_VOLUME      0x03
 
 namespace Topgun {
 

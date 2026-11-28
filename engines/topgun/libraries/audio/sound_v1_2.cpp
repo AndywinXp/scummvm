@@ -418,8 +418,9 @@ bool AudioLibrary_v1_2::startWavePlayback(SoundObject *sound, const byte *params
 }
 
 void AudioLibrary_v1_2::scheduleRandomRepeatPlayback(SoundObject *sound, const byte *params) {
-	uint16 minimumOffset = (_engine->_version >= kVersionV1_2_3_2) ? TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MIN : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN;
-	uint16 maximumOffset = (_engine->_version >= kVersionV1_2_3_2) ? TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MAX : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MAX;
+	bool wideBlock = (_engine->_version >= kVersionV1_2_3_2 && _engine->_version < kVersionV2_0);
+	uint16 minimumOffset = wideBlock ? TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MIN : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN;
+	uint16 maximumOffset = wideBlock ? TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MAX : TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MAX;
 
 	sound->randomMode = true;
 
@@ -748,8 +749,34 @@ bool AudioLibrary_v1_2_4::startWavePlayback(SoundObject *sound, const byte *para
 	sound->fadingIn = false;
 	sound->notifyPending = false;
 
-	if (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_SET_VOLUME] != 0)
-		sound->volume = params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_VOLUME];
+	bool setVolume;
+	bool noFlush;
+	bool notify;
+	uint16 volumeOffset = TG_AUDIO_V1_2_3_2_PLAY_OFFSET_VOLUME;
+	uint16 fadeInOffset = TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_IN;
+	uint16 fadeOutOffset = TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_OUT;
+	uint16 minimumOffset = TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MIN;
+	uint16 notifyParamOffset = TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM;
+
+	if (_engine->_version >= kVersionV2_0) {
+		byte flags = params[TG_AUDIO_V1_2_PLAY_OFFSET_FLAGS];
+
+		setVolume = ((flags & TG_AUDIO_V1_2_1_PLAY_FLAG_SET_VOLUME) != 0);
+		noFlush = ((flags & TG_AUDIO_V1_2_PLAY_FLAG_KEEP_OTHERS) != 0);
+		notify = ((flags & TG_AUDIO_V1_2_PLAY_FLAG_NOTIFY) != 0);
+		volumeOffset = TG_AUDIO_V2_0_PLAY_OFFSET_VOLUME;
+		fadeInOffset = TG_AUDIO_V1_2_PLAY_OFFSET_FADE_IN;
+		fadeOutOffset = TG_AUDIO_V1_2_PLAY_OFFSET_FADE_OUT;
+		minimumOffset = TG_AUDIO_V1_2_PLAY_OFFSET_RANDOM_MIN;
+		notifyParamOffset = TG_AUDIO_V1_2_PLAY_OFFSET_NOTIFY;
+	} else {
+		setVolume = (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_SET_VOLUME] != 0);
+		noFlush = (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NO_FLUSH] != 0);
+		notify = (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY] != 0);
+	}
+
+	if (setVolume)
+		sound->volume = params[volumeOffset];
 
 	sound->currentVolume = sound->volume;
 	sound->loops = (int16)READ_LE_UINT16(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_LOOPS);
@@ -768,12 +795,12 @@ bool AudioLibrary_v1_2_4::startWavePlayback(SoundObject *sound, const byte *para
 		setWaveOutVolume(((uint32)_fadeTargetVolumeRight << 16) | _fadeTargetVolumeLeft);
 	}
 
-	uint32 fadeInMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_IN);
+	uint32 fadeInMilliseconds = READ_LE_UINT32(params + fadeInOffset);
 
 	if (fadeInMilliseconds != 0 && sound->volume != 0)
 		setupWaveFadeIn(sound, fadeInMilliseconds, sound->volume);
 
-	uint32 fadeOutMilliseconds = READ_LE_UINT32(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_FADE_OUT);
+	uint32 fadeOutMilliseconds = READ_LE_UINT32(params + fadeOutOffset);
 
 	if (fadeOutMilliseconds != 0 && sound->volume != 0 && sound->loops >= 0)
 		setupWaveFadeOut(sound, fadeOutMilliseconds, sound->volume, 1);
@@ -785,7 +812,7 @@ bool AudioLibrary_v1_2_4::startWavePlayback(SoundObject *sound, const byte *para
 
 	sound->randomMode = false;
 
-	if (READ_LE_UINT32(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_RANDOM_MIN) != 0) {
+	if (READ_LE_UINT32(params + minimumOffset) != 0) {
 		scheduleRandomRepeatPlayback(sound, params);
 		return true;
 	}
@@ -793,14 +820,14 @@ bool AudioLibrary_v1_2_4::startWavePlayback(SoundObject *sound, const byte *para
 	if (!sound->exempt)
 		stopAllNonExemptWaves();
 
-	if (_buffersInFlight != 0 && params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NO_FLUSH] == 0)
+	if (_buffersInFlight != 0 && !noFlush)
 		resetWaveOutQueue();
 
 	activateWaveObject(sound);
-	sound->notifyArmed = (params[TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY] != 0);
+	sound->notifyArmed = notify;
 
 	if (sound->notifyArmed)
-		sound->notifyLParam = READ_LE_UINT16(params + TG_AUDIO_V1_2_3_2_PLAY_OFFSET_NOTIFY_PARAM);
+		sound->notifyLParam = READ_LE_UINT16(params + notifyParamOffset);
 	else
 		sound->notifyLParam = 0;
 

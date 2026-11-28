@@ -416,6 +416,9 @@ bool SpriteLibrary_v1_2::ensureComposeBufferSize(uint16 width, uint16 height) {
 }
 
 bool SpriteLibrary_v1_2::renderRect(const Common::Rect &rect) {
+	if (_syncFlag != 0)
+		return true;
+
 	Common::Rect visible;
 	if (!intersectRectLocal(rect, _clipRect, visible))
 		return true;
@@ -1583,7 +1586,8 @@ void SpriteLibrary_v1_2_4::scrollSprite(uint16 sprite, int16 deltaX, int16 delta
 			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
 		}
 	} else if (READ_LE_UINT16(command) == kSprV1_2_4OpLinearMove) {
-		for (uint16 offset = 0x0C; offset <= 0x10; offset += 4) {
+		uint16 firstOffset = (_engine->_version >= kVersionV2_0) ? 0x0A : 0x0C;
+		for (uint16 offset = firstOffset; offset <= firstOffset + 4; offset += 4) {
 			WRITE_LE_UINT16(command + offset, (uint16)(READ_LE_UINT16(command + offset) + deltaX));
 			WRITE_LE_UINT16(command + offset + 2, (uint16)(READ_LE_UINT16(command + offset + 2) + deltaY));
 		}

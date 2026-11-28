@@ -255,6 +255,7 @@ bool TopgunEngine_v1_2::loadSceneContainerAndRunEntryScript(const Common::String
 		if (_version >= kVersionV1_2_4)
 			_timersPaused = false;
 
+		_spriteSync = 0;
 		_keyboardRouted = false;
 		newer->_joystickDirectionFlag = false;
 		newer->_joystickRouted = false;
@@ -447,7 +448,7 @@ void TopgunEngine_v1_2::switchToNextScene(const char *name) {
 	_file = 0;
 	_releaseOnPalette = true;
 
-	if (_version >= kVersionV1_2_12)
+	if (_version >= kVersionV1_2_12 && _version != kVersionV2_0)
 		fillBackground();
 
 	if (loadSceneContainerAndRunEntryScript(sceneName, true)) {
@@ -628,7 +629,7 @@ bool TopgunEngine_v1_2::loadInitialScene(const Common::String &name) {
 
 	_startTick = getEngineMillis();
 
-	if (_version >= kVersionV1_2_12)
+	if (_version >= kVersionV1_2_12 && _version != kVersionV2_0)
 		fillBackground();
 
 	bool loaded = loadSceneContainerAndRunEntryScript(sceneName, false);
@@ -704,6 +705,7 @@ void TopgunEngine_v1_2::cleanupCurrentSceneAndContainer() {
 		resourceLib()->resCloseFile(_file);
 
 	_file = 0;
+	_spriteSync = 0;
 	_appActive = false;
 
 	if (_version >= kVersionV1_2_3) {
@@ -896,7 +898,7 @@ void TopgunEngine_v1_2::refreshGamePalette() {
 
 	if (display()->hasPalette())
 		display()->getSystemPaletteEntries(palette, 0, TG_DISPLAY_NUM_PALETTE_ENTRIES);
-	else
+	else if (_version < kVersionV2_0)
 		memset(palette, 0, clearedSize);
 
 	_filePaletteEntryCount = resourceLib()->resLoadPalette(_file, palette + TG_HOST_V1_2_NUM_SYSTEM_COLORS * TG_DISPLAY_PALETTE_ENTRY_SIZE);

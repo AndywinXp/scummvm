@@ -754,7 +754,7 @@ bool TopgunEngine_v1_2::ensureSpriteResourceLoaded(uint16 id) {
 			_sceneSprite = sprite;
 		}
 
-		deferBitmaps = (data[shift + TG_HOST_V1_2_4_SPRITE_DATA_DEFER_FLAG] != 0);
+		deferBitmaps = (_version < kVersionV2_0 && data[shift + TG_HOST_V1_2_4_SPRITE_DATA_DEFER_FLAG] != 0);
 	} else {
 		if (data[TG_HOST_V1_2_SPRITE_DATA_PICK_FLAG] != 0)
 			spriteLib()->spriteSetPickMode(sprite, 1);
@@ -1570,7 +1570,10 @@ void TopgunEngine_v1_2::applySpritePaletteExtension(const byte *header) {
 	uint16 shift = 0;
 	uint16 entriesShift = 0;
 
-	if (_version >= kVersionV1_2_12) {
+	if (_version >= kVersionV2_0) {
+		shift = TG_HOST_V1_2_7_1_SPRITE_DATA_SHIFT;
+		entriesShift = TG_HOST_V2_0_SPRITE_DATA_PALETTE_ENTRIES_SHIFT;
+	} else if (_version >= kVersionV1_2_12) {
 		shift = TG_HOST_V1_2_7_1_SPRITE_DATA_SHIFT;
 		entriesShift = TG_HOST_V1_2_12_SPRITE_DATA_PALETTE_ENTRIES_SHIFT;
 	} else if (_version >= kVersionV1_2_7_1) {
@@ -1695,7 +1698,6 @@ bool TopgunEngine_v1_2_4::ensureTileResourceLoaded(uint16 id) {
 
 	if (size < TG_HOST_V1_2_12_TILE_HEADER_SIZE) {
 		warning("TopgunEngine_v1_2_4::ensureTileResourceLoaded(): resource %d is smaller than its header", index);
-		utilsLibrary()->tgFree(data);
 		return false;
 	}
 
@@ -1765,8 +1767,6 @@ void TopgunEngine_v1_2_4::destroyTileResourceObject(uint16 id) {
 		_tileBackgrounds.erase(index);
 	}
 
-	// The loaded resource is released here, the original keeps it allocated after clearing the record
-	utilsLibrary()->tgFree(record.data);
 	record.data = nullptr;
 }
 

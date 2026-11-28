@@ -51,6 +51,9 @@
 #define TG_SPR_V1_2_3_2_VARIABLE_LAST_INDEX    0x159E
 // A literal n is stored as n + 0x8ACF, so adding 0x7531 (0x10000 - 0x8ACF) recovers it
 #define TG_SPR_V1_2_3_2_LITERAL_BIAS           0x7531
+#define TG_SPR_V2_0_NUM_SPRITE_PARTS           8
+#define TG_SPR_V2_0_QUEUE_BLOCK_ROUNDING       0xFFE0
+#define TG_SPR_V2_0_QUEUE_BLOCK_SLACK          0x1F
 
 // Bitmap header
 #define TG_SPR_V1_2_BITMAP_HEADER_SIZE         0x14
@@ -257,6 +260,7 @@ public:
 	void spriteSetQueueDoneProc(bool enabled);
 	uint16 spriteSetSendMsg(uint16 flag);
 	void spriteSetVarTable(const uint16 *table);
+	void spriteSetSync(uint16 flag);
 
 protected:
 	struct BlitSetup_v1_2 {
@@ -300,8 +304,6 @@ protected:
 		int16 shadowY;
 		bool shadowMirrorX;
 		bool shadowFlipY;
-		byte *queueCapacityStart;
-		uint32 queueCapacity;
 		bool scrollable;
 		bool hasClipBox;
 		Common::Rect clipBox;
@@ -310,7 +312,7 @@ protected:
 		SpriteObject_v1_2() : level(0), mirrorX(false), flipY(false), pickWholeBox(false), advancePending(false),
 			animates(false), pivotX(0), pivotY(0), anchorX(false), anchorY(false), celCacheCount(0), movieFrame(nullptr), pauseTime(0), extraId(0), renderPending(false),
 			multipartValid(false), paused(false), pickInvisible(false), pickMode(0), active(0), shadowX(0), shadowY(0), shadowMirrorX(false), shadowFlipY(false),
-			queueCapacityStart(nullptr), queueCapacity(0), scrollable(false), hasClipBox(false), queueLoopStart(0) {}
+			scrollable(false), hasClipBox(false), queueLoopStart(0) {}
 	};
 
 	TopgunEngine_v1_2 *engine() const;
@@ -335,7 +337,7 @@ protected:
 	void computeClipRect();
 	void setScrollRegion(const Common::Rect &box);
 	void initQueueRecordSizeTable() override;
-	virtual uint16 decodeOperand(uint16 raw) const;
+	virtual uint16 decodeOperand(uint16 raw, byte variableFlag = 0) const;
 	void callServiceProc();
 	uint16 callDebugProc(uint16 sprite);
 	uint16 callMovieProc(uint16 sprite);
@@ -422,6 +424,7 @@ protected:
 	bool _queueDoneProcSet = false;
 	bool _inHostCallback = false;
 	bool _hostEventsSuppressed = false;
+	uint16 _syncFlag = 0;
 	uint16 _serviceWord = 0;
 	const uint16 *_variableTable = nullptr;
 	uint16 _literalBias = 0;

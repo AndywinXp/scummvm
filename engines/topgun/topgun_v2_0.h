@@ -67,6 +67,9 @@
 #define TG_SCRIPT_V2_0_WAVE_NOTIFY                 0x02
 #define TG_SCRIPT_V2_0_WAVE_NO_FLUSH               0x04
 
+// Sprite resources
+#define TG_HOST_V2_0_SPRITE_DATA_PALETTE_ENTRIES_SHIFT 0x0C
+
 // Text objects
 #define TG_TEXT_V2_0_HEADER_HEIGHT_VARIABLE        0x13
 #define TG_TEXT_V2_0_EDIT_SCRIPT                   4
